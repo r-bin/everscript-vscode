@@ -32,7 +32,7 @@ which is what identified it:
 |---|---|---|---|
 | 0 | name-table bit | 16×16 block rather than 8×8 | 39% set |
 | 1–3 | palette | 0 on 99.3%, 1 on 0.7% (not characters) | — |
-| 4–5 | priority | **not** the hardware priority — see below | only 0 and 1 occur; 88% are 1 |
+| 4–5 | priority | **not** the hardware priority — see below; added to it only on a gate-nibble-4 tile | only 0 and 1 occur; 88% are 1 |
 | 6 | **flip X** | mirror left-to-right | 31% |
 | 7 | flip Y | mirror top-to-bottom | 4% |
 
@@ -42,7 +42,9 @@ the attribute word the entity built (`$CC` or `$FC`) — so the chunk's
 priority bits are masked out and the hardware priority comes from the
 entity's own word, which `$8FC773` chose from the tile it stands on. Within
 one sprite they still decide which chunk covers which, so they are kept as
-a composition order. See [sprite_priority.md](sprite_priority.md).
+a composition order. The exception is a tile with gate nibble 4: the mask is then
+`$FC` and the bits are added to the hardware priority, splitting the sprite (legs
+behind, upper body in front). See [sprite_priority.md](sprite_priority.md).
 
 The mirror bits matter more than their share suggests. Symmetrical sprites
 store one half and mirror it: Strongheart's chunks 0 and 1 are the *same

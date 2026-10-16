@@ -54,7 +54,7 @@ are exactly `collisionWords[y >> 4][x >> 4]` in room `0x38`.
 8FC7AD  BNE $8FC7C1      ; -> LDA #$CC30, priority 3
 8FC7AF  EOR #$0400 / BIT #$0F00 / BEQ $8FC7BC
 8FC7B7  LDA #$CC20       ; priority 2
-8FC7BC  LDA #$FC20       ; priority 2, different attribute mask
+8FC7BC  LDA #$FC20       ; bits 8-11 = 4: priority 2, chunks' own priority bits kept
 8FC7C1  LDA #$CC30       ; priority 3
 8FC7C4  STA $06
 ```
@@ -67,6 +67,7 @@ In order:
 | character's plane **below** the tile's | 3 | in front of every background pixel |
 | character's plane **above** the tile's | 2 | behind `BG1.1` and `BG2.1` |
 | same plane, bit 12 set | 3 | in front of every background pixel |
+| same plane, bit 12 clear, bits 8–11 = `4` | 2 + each chunk's bits 4–5 | **split**: chunks marked 1 at 3, the rest at 2 (below) |
 | same plane, bit 12 clear | 2 | behind `BG1.1` and `BG2.1` |
 
 Mode 1's order is `OBJ.3 > BG1.1 > BG2.1 > OBJ.2 > BG1.0 > BG2.0`, so
@@ -130,6 +131,20 @@ is.
   differ — room `0x3b` would do.
 - **`$0010,Y` bit 10.** When it is set, `$8FC773` takes a different input
   entirely (`$23C1`) and skips the tile. Nothing traced has that bit set.
-- **`#$FC20` versus `#$CC20`.** Both are priority 2; the high byte is the
+- **The split, gate nibble 4 (`#$FC20`).** Not a different mask by accident:
+  `$809433` does `LDA $DF / AND $07 / CLC / ADC $06` per chunk, so with `$07 = $FC`
+  the chunk's own bits 4–5 survive and are added to priority 2. A chunk marked 1 is
+  drawn at priority 3 (in front of everything), a chunk marked 0 at 2 (behind the
+  priority half of the layers): one sprite, cut in two by the tile under it. The
+  marks are authored that way: of the 5128 sprites `walkSprites` finds, 1161 mix
+  marks 0 and 1, and in 1145 of those the 0 chunks are the lower ones (the legs;
+  e.g. `$CA0003`, the first sprite: legs at y −18..−2 marked 0, torso and head 1).
+  **No vanilla tile uses it** — the nibble only takes 1, 3, 5, 7, 9
+  (`map_collision_mechanics.md` §4) — and nibble 4 has bit 8 clear, so the movement
+  gate ignores it. A tile with nibble 4, bit 12 clear and art on the priority half
+  would show a character's legs hidden and its upper body in front: wading.
+  Not yet checked in the running game (OAM per chunk on such a tile). Readers of
+  bits 8–11 other than `$909DEA` and `$8FC780` were not searched for.
+- **`#$FC20` versus `#$CC20`, the rest.** Both start from priority 2; the high byte is the
   mask `$809433` ANDs the chunk attribute with, so it changes which chunk
   fields survive, not the depth.
