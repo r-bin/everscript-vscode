@@ -26,6 +26,11 @@ FLOWER_PURPLE = 0x0b, // #109, "Wimpy Flower"
 MOSQUITO      = 0x0f, // #113, "Mosquito"
 ```
 
+**The engine turns the id into a record through a table.** All four handlers read
+`lda.l $8EB55A,x`, a word table of character record addresses that sits right before the
+character table: 143 ids (`knowledge/rom/8eb55a.md`). New enemy types are new entries there
+(`docs/extension-tables.md`).
+
 **Coordinates are the same space as `add_enemy(x, y)`** for `0x3c` and
 `0xba`, because the encoder passes them straight through. That is 8-pixel
 units — one SVG unit in the Rooms tab — so a ROM spawn and a source-defined

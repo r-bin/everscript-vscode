@@ -22,6 +22,10 @@ const READERS = {
     room_enter_scripts: [0x8CCECB, 0x8CCED1],
     string_keys: [0x8CCCF7, 0x8CCD35],
     script_pointers: [0x8CCE62, 0x8CD3B4],
+    enemy_index: [0x8CDCE1, 0x8CDCF2, 0x8CDCCB, 0x8CDCA0],
+    characters: [0x8F8046, 0x8FB15A],          // Boy/Dog template copy, HP at spawn
+    map_palettes: [0x90D05C],
+    sprite_palettes: [0x90CF3A],
 };
 
 const a = process.argv.slice(2), opt = n => { const i = a.indexOf('--' + n); return i < 0 ? null : a[i + 1]; };

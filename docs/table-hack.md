@@ -11,6 +11,21 @@ The first build is deliberately simple:
 4. Write the result in [extension-tables.md](extension-tables.md) (status column), then take the
    next table.
 
+**Enemies and palettes (v0.223.0):**
+
+- The enemy index, the character records and the map palette families also move and are proven
+  over the attract loop.
+- New sprite palettes need a hook (`tools/table-hack/hooks.js`). It works, but it shifts the game's
+  timing and with it the RNG.
+
+Bank plan:
+
+- `$F8`: enemy index `$B8:8000` and records `$B8:B678`
+- `$F9`: map palettes `$B9:8000`
+- `$FA`: sprite palettes `$FA:0100` (lower half) and hook code `$BA:8000`
+
+New rooms therefore go to `$FB` only (§1 is older).
+
 **Result (v0.222.0):** all four build-1 tables are moved and proven. One table at a time and all
 together, the game plays exactly like the original over the attract-loop playback: same WRAM every
 frame, same screen every 60 frames. Only `$7E0028`, the bank byte of the string-key pointer, is left

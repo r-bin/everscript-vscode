@@ -62,7 +62,11 @@ async function main() {
     fs.mkdirSync(o.out, { recursive: true });
     const source = new Uint8Array(fs.readFileSync(o.rom));
     const sha = crypto.createHash('sha256').update(source).digest('hex');
-    const sets = { base: [], ...Object.fromEntries(Object.keys(TABLES).map(n => [n, [n]])), all: Object.keys(TABLES) };
+    const names = [...Object.keys(TABLES), 'sprite_palettes'];
+    // `tables`: every table move, no hook: must match exactly. A set with the sprite palette hook adds CPU cycles,
+    // which shifts the game's RNG (sample-playbacks skill), so it is reported, not failed.
+    const sets = { base: [], ...Object.fromEntries(names.map(n => [n, [n]])), tables: Object.keys(TABLES), all: names };
+    const timing = name => sets[name].includes('sprite_palettes');
     const images = {}, moves = {};
     for (const [name, list] of Object.entries(sets)) {
         const { image, moves: m } = build(source, list);
@@ -88,18 +92,18 @@ async function main() {
     const fail = [];
     const log = (...ss) => ss.forEach(s => { console.log(s); lines.push(s); });
     log('## 1. What moved', '', '| table | entries | bytes | from (file) | to (bus) | operands rewritten |', '|---|---|---|---|---|---|');
-    for (const name of Object.keys(TABLES)) {
+    for (const name of names) {
         const m = moves[name][0];
-        log(`| ${name} | ${m.count} | ${m.bytes} | ${hex(m.from)} (wiped to ${hex(m.wiped[1])}) | ${hex(m.bus)} | ${m.rewritten.join('<br>')} |`);
+        log(`| ${name} | ${m.count}${m.limit ? ' / ' + m.limit : ''} | ${m.bytes} | ${m.wiped ? hex(m.from) + ' (wiped to ' + hex(m.wiped[1]) + ')' : 'new'} | ${hex(m.bus)} | ${m.rewritten.join('<br>')}${m.left.length ? '<br>not rewritten (data): ' + m.left.join(', ') : ''} |`);
     }
     log('', `WRAM left out of the checksum: ${scratch.map(x => hex(x)).join(', ') || 'nothing'} (it holds a moved table's address, see tables.js \`scratch\`).`);
     log('', 'Every image is 4 MB; `0x300000+` holds what the bundled core shows past a 3 MB ROM, so `base` (nothing moved) must equal the original.', '');
     const control = firstDifference(trace(0, 'original'), trace(0, 'original-again'));
     log(`- control, original vs original: ${control ? 'NOT deterministic' : 'identical'}`);
     if (control) fail.push('the original is not deterministic');
-    const names = Object.keys(images);
+    const columns = Object.keys(images);
     log('', '## 2. Same input, same machine state (WRAM every frame, screen every 60)', '',
-        `| input | frames | rooms | ${names.join(' | ')} |`, `|---|---|---|${names.map(() => '---').join('|')}|`);
+        `| input | frames | rooms | ${columns.join(' | ')} |`, `|---|---|---|${columns.map(() => '---').join('|')}|`);
     let total = 0;
     const allRooms = new Set();
     inputs.forEach((inp, i) => {
@@ -109,9 +113,10 @@ async function main() {
         const sync = tail.pop();
         if (sync !== 'sync ok') fail.push(`${inp.name}: the original lost sync with the playback (${sync})`);
         rooms.forEach(r => allRooms.add(r));
-        const cells = names.map(n => {
+        const cells = columns.map(n => {
             const d = firstDifference(trace(i, 'original'), trace(i, n));
             if (!d) return 'same';
+            if (timing(n)) return `timing differs @${d.frame} (hook)`;
             fail.push(`${n} on ${inp.name}: differs at frame ${d.frame} (${d.original} / ${d.image})`);
             return `**differs @${d.frame}**`;
         });

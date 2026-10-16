@@ -17,7 +17,7 @@ pick the one recording that does. Do not replay the whole folder.
 
 | File | Frames | What it is | Rooms (`$7E0ADB`) | Table readers reached (count, first frame) |
 |---|---|---|---|---|
-| `playbacks/attract-loop.evsmv` | 6224 (1:44) | Power-on with no input: intro, then the demo scenes. It is cut at the frame where the intro's first picture comes back (frame 66 at the start). | `55 00 61 31 18 0a 19 1a 10 54` | map table 8× @374; enter scripts 8× @413; script pointers 12× @3084; string keys 14× @3104 |
+| `playbacks/attract-loop.evsmv` | 6224 (1:44) | Power-on with no input: intro, then the demo scenes. It is cut at the frame where the intro's first picture comes back (frame 66 at the start). | `55 00 61 31 18 0a 19 1a 10 54` | map table 8× @374; enter scripts 8× @413; script pointers 12× @3084; string keys 14× @3104; enemy index (spawns) 63× @1603; character records 296× @374; map palette loader 54× @374; sprite palette loader 49× @374 |
 
 Each playback carries the movie's own WRAM checks: `S|` every 60 frames and `T|` (VRAM, CGRAM, OAM,
 SRAM, ARAM) every 600. A replay on the clean ROM that misses a check has lost sync. The `# core:`
@@ -38,6 +38,11 @@ update the table.
 - **Screenshots of the vanilla game at known moments.** Use `tools/table-hack/run.js --shots
   <frames> <dir>`, e.g. the demo rooms of the attract loop. Screenshots stay in the scratchpad or
   `out/`, never in git.
+- **Telling a hook from a table move.** A move that only rewrites operands keeps every cycle
+  count, and the playback matches frame for frame. A hook adds cycles. The game seems to step its
+  RNG while it waits for the next frame, so the playback then drifts (the sprite palette hook: from
+  frame 374, the intro's lightning drawn differently). Prove a hook by what it does (screenshot,
+  CGRAM, WRAM at the point of use), not by identity.
 - **A determinism control.** Run the original twice on the same playback; both traces must be
   identical before any other comparison means anything.
 

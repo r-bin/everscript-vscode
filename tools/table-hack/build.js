@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 // Build a table-hack ROM (docs/table-hack.md §0), optionally with an everscript IPS patch applied on top.
 //   node tools/table-hack/build.js --rom <clean rom> [--tables all|name,name] [--ips everscript.ips] [--out file]
+//                                  [--add-enemy <record>,..] [--recolor-room <room>,..]   (test content, see testContent)
 // everscript writes into the vanilla tables (string keys, room enter scripts, script pointer slots); with a table
 // moved, each such IPS record goes to the moved copy instead, and a string key past the vanilla 3002 grows the table.
 'use strict';
 const fs = require('fs'), path = require('path');
-const { TABLES, build, finish, hex } = require('./tables');
+const { TABLES, build, finish, hex, familyCount } = require('./tables');
+const { paletteAddress } = require('./hooks');
 
 const REPO = path.resolve(__dirname, '..', '..');
 const KEY_SPAN = 0x8000;      // a key is a 16-bit byte offset, and the table must stay inside one 32 KB half
@@ -30,10 +32,10 @@ function parseIps(buf) {
  * Build with `names` moved and `ips` applied; returns { image, moves, redirected }. An IPS record inside a moved
  * table's old place is written into the moved copy instead; string keys past the vanilla table grow it.
  */
-function buildWithIps(source, names, ips) {
+function buildWithIps(source, names, ips, extra = {}, after = []) {
     const recs = ips ? parseIps(ips) : [];
     const rom = source.length % 1024 === 512 ? source.subarray(512) : source;
-    const span = names.map(name => {
+    const span = names.filter(name => TABLES[name]).map(name => {
         const t = TABLES[name], start = typeof t.start === 'function' ? t.start(rom) : t.start, len = t.count(rom) * t.entry;
         // the enter table's last entry overlaps the script pointer table: its span ends where that table starts
         const end = name === 'string_keys' ? start + KEY_SPAN : t.wipeEnd ? t.wipeEnd(rom) : start + len;
@@ -55,7 +57,8 @@ function buildWithIps(source, names, ips) {
         }
     }
     for (let i = 0; i < added.length; i++) if (added[i] === undefined) added[i] = 0;
-    const { image, moves } = build(source, names, keys ? { string_keys: added } : {});
+    const { image, moves } = build(source, names, keys ? { ...extra, string_keys: added } : extra);
+    for (const f of after) f(image);
     const redirected = [];
     for (const r of recs) {
         const s = tableOf(r);
@@ -68,21 +71,73 @@ function buildWithIps(source, names, ips) {
     return { image, moves, redirected };
 }
 
+/** BGR555 with red and blue swapped, so a copy is told apart at a glance. Word 0 (the transparent colour) stays. */
+function recolor(bytes) {
+    const out = Uint8Array.from(bytes);
+    for (let i = 2; i < out.length; i += 2) {
+        const c = out[i] | (out[i + 1] << 8);
+        const v = ((c & 0x1F) << 10) | (c & 0x3E0) | ((c >> 10) & 0x1F);
+        out[i] = v & 0xFF; out[i + 1] = v >> 8;
+    }
+    return out;
+}
+
+/**
+ * Test content on top of the moved tables: `enemies` = record numbers to copy as new enemies, each with its own
+ * recoloured sprite palette; `rooms` = room ids whose first tile family is replaced by a new, recoloured family.
+ * The room edit changes that room's blob (two bytes): it is a test of the moved family table, not part of the hack.
+ */
+function testContent(rom, names, { enemies = [], rooms = [] }) {
+    const extra = { characters: [], enemy_index: [], sprite_palettes: [], map_palettes: [] }, after = [], made = [];
+    const need = list => list.forEach(n => { if (!names.includes(n)) throw new Error(`this test needs --tables to include ${n}`); });
+    if (enemies.length) need(['characters', 'enemy_index', 'sprite_palettes']);
+    if (rooms.length) need(['map_palettes']);
+    const RECORDS = 0x0EB678, STRIDE = 74, VANILLA_RECORDS = TABLES.characters.count(rom), VANILLA_IDS = TABLES.enemy_index.count(rom);
+    for (const n of enemies) {
+        const rec = Uint8Array.from(rom.subarray(RECORDS + STRIDE * n, RECORDS + STRIDE * (n + 1)));
+        const pal = rec[9] | (rec[10] << 8);
+        const k = extra.sprite_palettes.push(recolor(rom.subarray(0x100000 + pal, 0x100000 + pal + 32))) - 1;
+        const addr = paletteAddress(k);
+        rec[9] = addr & 0xFF; rec[10] = addr >> 8;
+        const at = (RECORDS & 0xFFFF) + STRIDE * (VANILLA_RECORDS + extra.characters.push(rec) - 1);
+        const id = VANILLA_IDS + extra.enemy_index.push(at) - 1;
+        made.push(`enemy ${hex(id, 2)}: record ${VANILLA_RECORDS + extra.characters.length - 1} at $B8:${at.toString(16).toUpperCase()} (copy of record ${n}), sprite palette $${addr.toString(16).toUpperCase().padStart(4, '0')} (bank $FA)`);
+    }
+    if (rooms.length) {
+        const maps = require('../../src/maps');
+        const first = familyCount(rom);
+        for (const room of rooms) {
+            const ptr = rom[0x1FFDE7 + room * 4] | (rom[0x1FFDE8 + room * 4] << 8) | (rom[0x1FFDE9 + room * 4] << 16);
+            const at = maps.parseBlobLayout(rom, ptr & 0x3FFFFF).payloadOffset + 1;
+            const fam = rom[at] | (rom[at + 1] << 8);
+            const id = first + extra.map_palettes.push(recolor(rom.subarray(0x1CC322 + 32 * fam, 0x1CC322 + 32 * fam + 32))) - 1;
+            after.push(img => { img[at] = id & 0xFF; img[at + 1] = id >> 8; });
+            made.push(`room ${hex(room, 2)}: family ${fam} -> new family ${id} (recoloured copy), blob byte ${hex(at)}`);
+        }
+    }
+    return { extra, after, made };
+}
+
 function main() {
     const a = process.argv.slice(2), opt = n => { const i = a.indexOf('--' + n); return i < 0 ? null : a[i + 1]; };
     const romPath = opt('rom') || process.env.SOE_ROM || process.env.EVERSCRIPT_ROM;
     if (!romPath || !fs.existsSync(romPath)) { console.error('usage: build.js --rom <clean rom> [--tables all|a,b] [--ips file] [--out file]'); process.exit(2); }
     const t = opt('tables') || 'all';
-    const names = t === 'all' ? Object.keys(TABLES) : t.split(',').filter(Boolean);
+    const names = t === 'all' ? [...Object.keys(TABLES), 'sprite_palettes'] : t.split(',').filter(Boolean);
     const ipsPath = opt('ips');
     const out = opt('out') || path.join(REPO, 'out', 'table-hack', 'soe-tables.sfc');
-    const { image, moves, redirected } = buildWithIps(new Uint8Array(fs.readFileSync(romPath)), names, ipsPath ? fs.readFileSync(ipsPath) : null);
+    const source = new Uint8Array(fs.readFileSync(romPath));
+    const rom = source.length % 1024 === 512 ? source.subarray(512) : source;
+    const list = n => (opt(n) || '').split(',').filter(Boolean).map(Number);
+    const test = testContent(rom, names, { enemies: list('add-enemy'), rooms: list('recolor-room') });
+    const { image, moves, redirected } = buildWithIps(source, names, ipsPath ? fs.readFileSync(ipsPath) : null, test.extra, test.after);
     fs.mkdirSync(path.dirname(out), { recursive: true });
     fs.writeFileSync(out, image);
-    for (const m of moves) console.log(`${m.name}: ${m.count}${m.added ? ' + ' + m.added : ''} entries, ${hex(m.from)} -> ${hex(m.bus)}; ${m.rewritten.join('; ')}`);
+    for (const m of moves) console.log(`${m.name}: ${m.count}${m.added ? ' + ' + m.added : ''} entries, ${m.wiped ? hex(m.from) : 'new'} -> ${hex(m.bus)}; ${m.rewritten.join('; ')}`);
     for (const r of redirected) console.log('ips: ' + r);
+    for (const m of test.made) console.log('test: ' + m);
     console.log(`wrote ${out}`);
 }
 
 if (require.main === module) main();
-module.exports = { parseIps, buildWithIps };
+module.exports = { parseIps, buildWithIps, testContent, recolor };
