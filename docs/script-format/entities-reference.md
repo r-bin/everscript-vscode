@@ -196,7 +196,7 @@ strike box; 54 have no attack animation; 42 attack without `0x47` (shooters use
 | damage from attack (`+0x19`) and defence (`+0x1B`), added to pending `$0076` | `$8FC067` | formula modelled in `tests/memory/damage.test.js` (helpers, not a module yet) |
 | pending damage subtracted from HP on the target's next turn | `$8FC237` | read from the code |
 | charged attacks, the Atlas 999 glitch | | modelled, same test |
-| alchemy: `base_might`, level scale, RNG, `(0x40 − magic_def)/0x40` | | `src/maps/alchemy-model.js`, [../alchemy-damage.md](../alchemy-damage.md) |
+| alchemy: `base_might`, level scale, RNG, `(0x40 − magic_def)/0x40` | | `src/scaling/webview/alchemy-math.js`, [../alchemy-damage.md](../alchemy-damage.md) |
 
 What is missing (one `damage(attacker, defender, method)` entry point, the
 party's attack value) is in `docs/plans/simulation/damage.md`. A box hitting and damage being
@@ -267,6 +267,6 @@ The entity struct, as far as the traces and handlers read it:
 | idle and attack animation walks, strike boxes | `src/maps/characters.ts`, `character-animation.ts` | `checkStrikeBoxes` |
 | depth against the canopy | `src/maps/collision.ts` (`spriteDepth`, `spawnDepth`) | |
 | spawns, transitions, arrivals, loot | `src/script/entities.ts`, `transition.ts`, `arrivals.ts`, `loot.ts` | `tests/memory/script-parity.test.js`, `script-units.test.js`, `script-loot.test.js` |
-| damage | `src/maps/alchemy-model.js`; physical in `tests/memory/damage.test.js` | `damage.test.js` |
+| damage | `src/scaling/webview/alchemy-math.js`; physical in `tests/memory/damage.test.js` | `damage.test.js` |
 | Characters tab (viewer, animations, stats) | `src/sprites/` (`character-model.js`, `animation-catalog.js`, `animation-decoder.js`, `sprites-tab.js`) | `tests/memory/sprites.test.js` |
 | drawing enemies over a map | `docs/map-format/enemy-sprites-on-maps.md` | |

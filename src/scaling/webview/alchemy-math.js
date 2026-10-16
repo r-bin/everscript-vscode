@@ -1,6 +1,6 @@
-// Ownership: pure alchemy damage and stat calculation functions.
-// Runs in the shared.js outer IIFE scope (no inner IIFE wrapper).
-// Accessible to both the scaling tab and the docs tab.
+// Ownership: pure damage and stat calculation: alchemy, and the physical damage range for one
+// RNG-scaled base value. The one copy: it runs in the shared.js outer IIFE scope (no inner IIFE
+// wrapper), so the scaling and docs tabs both call it, and node (tests) requires it.
 function effectiveMdef(magicDefense) {
     const raw = Math.max(0, Number(magicDefense) || 0);
     return Math.max(0, Math.floor((raw + 20) / 4));
@@ -85,4 +85,31 @@ function alchemyProjectedRange(baseMight, spellLevel, magicDefense, defenseGrowt
     out.spellLevel = Math.max(0, Math.min(9, Number(spellLevel) || 0));
     out.targetLevel = Math.max(1, Math.min(37, Number(targetLevel) || 1));
     return out;
+}
+
+/** Physical damage for every 16-bit RNG value, from the game's base value `w` (min, max, 999 odds). */
+function damageRangeFull(w) {
+    let min = Infinity;
+    let max = 0;
+    let count999 = 0;
+    const w2 = (w + 1) & 0xffff;
+    for (let rng16 = 0; rng16 <= 0xffff; rng16++) {
+        const seed = Math.floor((w2 * rng16) / 0x10000) & 0xffff;
+        const a = (seed + w) & 0xffff;
+        const b = (a << 1) & 0xffff;
+        const c = (b + w + ((a & 0x8000) ? 1 : 0)) & 0xffff;
+        const dmg = c >>> 2;
+        if (dmg < min) min = dmg;
+        if (dmg > max) max = dmg;
+        if (dmg >= 999) count999++;
+    }
+    return { min: Math.min(999, min), max: Math.min(999, max), count999, pct999: count999 / 65536 * 100 };
+}
+
+if (typeof module === 'object' && module.exports) {
+    module.exports = {
+        effectiveMdef, damageRangeFull, alchemySpellPowerAtLevel, alchemySpellBonusBaseAtLevel,
+        alchemyDamageFromPower, alchemyDamageSamples, alchemyRangeAtLevel, alchemyMagicDefenseAtLevel,
+        alchemyTargetHpAtLevel, alchemyProjectedRange,
+    };
 }

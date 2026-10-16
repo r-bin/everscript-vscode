@@ -6,7 +6,7 @@
 
 ## What a placement already carries
 
-From [character_table.md](../docs/script-format/character_table.md) and the
+From [character_table.md](../../script-format/character_table.md) and the
 spawn opcodes:
 
 | | Source | Shown today |
@@ -43,7 +43,7 @@ of those, so the model needs the set of globals a room has active, not just
 what its enter script placed.
 
 **3. The animation script.** Already walked by
-[`character-animation.ts`](../src/maps/character-animation.ts) for the idle
+[`character-animation.ts`](../../../src/maps/character-animation.ts) for the idle
 pose. The same walker gives the attack timing a fight needs — command `0x47`
 is where the strike happens, and the frame timer says when.
 
@@ -67,7 +67,7 @@ interface PlacedEntity {
 ```
 
 The tab already builds most of this in
-[`src/rooms/data/room-scripts.js`](../src/rooms/data/room-scripts.js). Moving
+[`src/rooms/data/room-scripts.js`](../../../src/rooms/data/room-scripts.js). Moving
 it into `src/simulation/` and adding the last two fields is the work.
 
 ## How we would know it is right

@@ -1,0 +1,74 @@
+{
+  "string_keys": {
+    "name": "String Key Table",
+    "description": "Table of 3-byte packed string pointers (bank, 15-bit address, bit 23 = compressed flag)",
+    "entrySize": 3,
+    "variants": {
+      "us": {
+        "snes": "$91:D000",
+        "file": "0x11D000",
+        "count": 3002,
+        "readers": [
+          { "pc": "$8C:CCF7", "file": "0x0CCCF7", "asm": "lda #$0091 : sta $28 : ldy #$D000" },
+          { "pc": "$8C:CD35", "file": "0x0CCD35", "asm": "lda #$0091 : sta $28 : ldy #$D000" }
+        ],
+        "notes": "Base string key table for US release. Key index is 16-bit offset / 3."
+      }
+    }
+  },
+  "map_table": {
+    "name": "Room Pointer Table",
+    "description": "Room id to 24-bit room blob pointer + 1 pad byte",
+    "entrySize": 4,
+    "variants": {
+      "us": {
+        "snes": "$9F:FDE7",
+        "file": "0x1FFDE7",
+        "count": 127,
+        "readers": [
+          { "pc": "$90:8F69", "file": "0x108F69", "asm": "lda.l $9FFDE7,x" },
+          { "pc": "$90:8F6F", "file": "0x108F6F", "asm": "lda.l $9FFDE8,x" }
+        ],
+        "notes": "Table ends before slot $7F (0x1FFFFF)."
+      }
+    }
+  },
+  "room_enter_scripts": {
+    "name": "Room Enter Scripts",
+    "description": "Room id to enter script entry (3-byte packed pointer + 2 bytes)",
+    "entrySize": 5,
+    "variants": {
+      "us": {
+        "snes": "$92:801B",
+        "file": "0x12801B",
+        "count": 127,
+        "readers": [
+          { "pc": "$8C:CECC", "file": "0x0CCECC", "asm": "lda.l $92801B,x" },
+          { "pc": "$8C:CED2", "file": "0x0CCED2", "asm": "lda.l $92801C,x" }
+        ],
+        "notes": "Indexed by id*5 via hardware multiplier ($211B/$211C). Overlaps global script pointer table at end."
+      }
+    }
+  },
+  "script_pointers": {
+    "name": "Script Pointer Table",
+    "description": "Script IDs to 3-byte packed script pointers (bank $92+n, offset | $8000)",
+    "entrySize": 3,
+    "variants": {
+      "us": {
+        "snes": "$92:8294",
+        "file": "0x128294",
+        "count": 1917,
+        "headerSnes": "$92:8000",
+        "headerFile": "0x128000",
+        "readers": [
+          { "pc": "$8C:CE63", "file": "0x0CCE63", "asm": "lda.l $928000,x" },
+          { "pc": "$8C:CE69", "file": "0x0CCE69", "asm": "lda.l $928002,x" },
+          { "pc": "$8C:D3B5", "file": "0x0CD3B5", "asm": "lda.l $928000,x" },
+          { "pc": "$8C:D3BB", "file": "0x0CD3BB", "asm": "lda.l $928002,x" }
+        ],
+        "notes": "Readers index relative to script bank base $92:8000 + word[$92:8000]."
+      }
+    }
+  }
+}

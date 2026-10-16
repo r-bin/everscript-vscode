@@ -1,7 +1,7 @@
 # /simulation — design notes
 
 Written for: whoever builds the simulation, including future agents in this
-repo. Design only — the code lives in [`src/simulation/`](../src/simulation/README.md).
+repo. Design only — the code lives in [`src/simulation/`](../../../src/simulation/README.md).
 
 > **Built (v0.202.0):** the interpreter and virtual WRAM (0), spawn scenarios
 > (2, as scenarios + flag tree, with NPC conditions), loot interaction (4,
@@ -45,20 +45,20 @@ starting before the interpreter can run an enter script end to end.
 
 Real, tested, and reusable — this is not a green field:
 
-- **Script decoding** — [`src/script/`](../src/script/README.md) walks every
+- **Script decoding** — [`src/script/`](../../../src/script/README.md) walks every
   opcode, resolves operands, and names spawns, loot and transitions.
-  [`expression.ts`](../src/script/expression.ts) renders the operand grammar
+  [`expression.ts`](../../../src/script/expression.ts) renders the operand grammar
   as text; the simulation needs the same grammar *evaluated*.
-- **Damage** — [`src/maps/alchemy-model.js`](../src/maps/alchemy-model.js)
-  and [`tests/memory/damage.test.js`](../tests/memory/damage.test.js), from
-  [docs/alchemy-damage.md](../docs/alchemy-damage.md).
+- **Damage** — [`src/scaling/webview/alchemy-math.js`](../../../src/scaling/webview/alchemy-math.js)
+  and [`tests/memory/damage.test.js`](../../../tests/memory/damage.test.js), from
+  [docs/alchemy-damage.md](../../alchemy-damage.md).
 - **The map model** — collision, planes, triggers, objects and their states,
   arrivals, hitboxes, attack boxes, sprite priority. See
-  [docs/script-format/](../docs/script-format/README.md).
+  [docs/script-format/](../../script-format/README.md).
 - **Prior notes to fold in, not duplicate** —
-  [docs/room-simulation.md](../docs/room-simulation.md) (the enter-script
+  [docs/room-simulation.md](../../room-simulation.md) (the enter-script
   problem and the two unknowns the encoder already settled) and
-  [docs/route-planner.md](../docs/route-planner.md) (an earlier sketch of 6).
+  [docs/route-planner.md](../../route-planner.md) (an earlier sketch of 6).
 
 ## Where the code will go
 

@@ -4,7 +4,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const Module = require('module');
-const { alchemyRangeLevel0 } = require('../../src/maps/alchemy-model');
+const { alchemyRangeAtLevel } = require('../../src/scaling/webview/alchemy-math');
 
 let passed = 0;
 let failed = 0;
@@ -98,7 +98,7 @@ test('Hard Ball L0 vs Purple Flower uses parsed magic_defense=32 and yields 5–
         assert.strictEqual(flower.magic_defense, 32);
         assert.strictEqual(flower.evade, 0);
 
-        const r = alchemyRangeLevel0(21, flower.magic_defense);
+        const r = alchemyRangeAtLevel(21, 0, flower.magic_defense);
         assert.deepStrictEqual(
             {
                 spellPower: r.spellPower,

@@ -29,9 +29,13 @@ workflow.
    npm run check:dead                  # knip unused files/exports scan
    npm run check:deps                  # depcruise domain boundary rules (warn level)
    npm run check:legal -- --staged     # no game data, upstream code or home paths staged
+   npm run check:dup                   # no clone of 30+ lines (jscpd)
+   npm run check:knowledge             # no new WRAM/ROM address in code without a knowledge entry
+   npm run check:ai-context            # AI files within budget, their links resolve
    ```
-   All of these except `check:dead` (advisory) and `check:deps` (warn level) must pass
-   before proceeding. Fix failures before continuing.
+   All of these must pass before proceeding (`check:deps` warnings are reported, errors fail).
+   The legal, knowledge and AI-context checks keep a baseline / allow list of known findings in
+   `tools/`; it only shrinks — never add to it to make a check pass. Fix failures before continuing.
 3. **Commit** to `develop` with the message format below.
 4. **Push** branch commits to remote:
    ```

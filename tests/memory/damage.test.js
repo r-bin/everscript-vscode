@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('assert');
-const { alchemyEffectiveMdef, alchemyRangeLevel0, alchemySpellPowerAtLevel, alchemyMagicDefenseAtLevel, alchemyTargetHpAtLevel, alchemyProjectedRange, damageRangeFull } = require('../../src/maps/alchemy-model');
+const { effectiveMdef: alchemyEffectiveMdef, alchemyRangeAtLevel, alchemySpellPowerAtLevel, alchemyMagicDefenseAtLevel, alchemyTargetHpAtLevel, alchemyProjectedRange, damageRangeFull } = require('../../src/scaling/webview/alchemy-math');
 
 const dmgRangeFull = damageRangeFull;
 
@@ -154,7 +154,7 @@ test('atlas docs preview falls back to normal damage when subtraction does not u
 });
 
 test('offensive alchemy gives Hard Ball L0 vs Purple/Wimpy Flower as 6–10', () => {
-    const r = alchemyRangeLevel0(21, 32);
+    const r = alchemyRangeAtLevel(21, 0, 32);
     assert.strictEqual(r.spellPower, 11);
     assert.strictEqual(r.bonusBase, 10);
     assert.strictEqual(r.defenseFactor, 32);
@@ -162,19 +162,19 @@ test('offensive alchemy gives Hard Ball L0 vs Purple/Wimpy Flower as 6–10', ()
 });
 
 test('offensive alchemy gives Hard Ball L0 vs Carltron-like m.def 60 as 0–1', () => {
-    const r = alchemyRangeLevel0(21, 60);
+    const r = alchemyRangeAtLevel(21, 0, 60);
     assert.strictEqual(r.defenseFactor, 4);
     assert.deepStrictEqual({ min: r.min, max: r.max, pct999: r.pct999 }, { min: 0, max: 1, pct999: 0 });
 });
 
 test('offensive alchemy gives Hard Ball L0 vs Mosquito-like m.def 0 as 12–20', () => {
-    const r = alchemyRangeLevel0(21, 0);
+    const r = alchemyRangeAtLevel(21, 0, 0);
     assert.strictEqual(r.defenseFactor, 64);
     assert.deepStrictEqual({ min: r.min, max: r.max, pct999: r.pct999 }, { min: 11, max: 20, pct999: 0 });
 });
 
 test('offensive alchemy clamps out-of-range magic defense before applying the traced hit multiplier', () => {
-    const r = alchemyRangeLevel0(21, 70);
+    const r = alchemyRangeAtLevel(21, 0, 70);
     assert.strictEqual(alchemyEffectiveMdef(-1), 5);
     assert.strictEqual(r.rawMagicDefense, 64);
     assert.strictEqual(r.defenseFactor, 0);

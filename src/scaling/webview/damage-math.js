@@ -6,26 +6,10 @@
     var digits=pct<0.01?6:3;
     return pct.toFixed(digits).replace(/0+$/,'').replace(/.$/,'');
   }
-  function atlasSeed(w2,rng16){
-    return Math.floor(w2*rng16/0x10000)&0xffff;
-  }
-  function atlasRawDamage(w,rng16){
-    var seed=atlasSeed((w+1)&0xffff,rng16);
-    var sum1=(seed+w)&0xffff;
-    var carry=(sum1&0x8000)?1:0;
-    var sum2=(sum1<<1)&0xffff;
-    var sum3=(sum2+w+carry)&0xffff;
-    return sum3>>>2;
-  }
   function dmgRangeFull(w){
-    if(_dmgCache[w]!==undefined)return _dmgCache[w];
-    var mn=Infinity,mx=0,cnt999=0;
-    for(var i=0;i<=0xffff;i++){
-      var d=atlasRawDamage(w,i);
-      if(d<mn)mn=d; if(d>mx)mx=d;
-      if(d>=999)cnt999++;
-    }
-    return(_dmgCache[w]={min:Math.min(999,mn),max:Math.min(999,mx),pct999:cnt999/65536*100,count999:cnt999});
+    // damageRangeFull: alchemy-math.js (outer scope), cached per base value.
+    if(_dmgCache[w]===undefined)_dmgCache[w]=damageRangeFull(w);
+    return _dmgCache[w];
   }
   function atlasSubtractApplies(){return atlasMode;}
   function atlasOverflowBypassesClamp(){return atlasMode&&charge<100;}

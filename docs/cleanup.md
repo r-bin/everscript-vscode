@@ -175,7 +175,9 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   ~240 lines) → `platform/snes` gfx; alchemy damage math (×3) → one module in `games/evermore`;
   HTML escape (×6), hex formatters (×23), tab strip, CSP shell → `core/webview`; 65816 opcode table
   (×2), crc32 (×2), room-table pointer `0x1ffde7` (×3).
-- [ ] **5.2** `npm run check:dup` (jscpd), report-only until 5.1 is done, then blocking.
+- [x] **5.2** `npm run check:dup` (jscpd, `.jscpd.json`: clones of 30+ lines in `src/` and `tools/`), blocking.
+  The only such clone was the alchemy math (×3): one copy now, `src/scaling/webview/alchemy-math.js`,
+  loaded by the radar page and required by the tests. The short helpers of 5.1 are below its threshold.
 - [ ] **5.3 esbuild:** one host bundle and one bundle per webview from real `.ts`/`.css`/`.html`;
   no code in template literals (~9.5 k lines at v0.199: `emulator/panel-webview.js`,
   `menu/menu-view.js`, `bottom-bar-views.js`, the emulator `*-view.js` files) and no
@@ -190,7 +192,9 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   xrefs, the script VM if it runs simulations at scale. Output: a table in this file, no code.
 
 ### Step 6 — Docs and knowledge (D8, D11, D13)
-- [ ] **6.1** `tools/check-knowledge.ts` + `npm run check:knowledge`: scan `src/`, `tools/`, docs
+- [x] **6.1** `tools/check-knowledge.mts` + `npm run check:knowledge` (2026-10-16: 580 addresses in code,
+  12.4 % documented; CDL: 11/420 called routines, 4.7 % of touched WRAM bytes; the 508 known gaps are
+  in `tools/check-knowledge.baseline.json`, which only shrinks): scan `src/`, `tools/`, docs
   for `$7E…`/`$7F…` and `$XX:XXXX` addresses and the CDL library for routines; report the ones
   without an entry and the coverage %. Wire into the release ritual (new uncovered = block).
 - [ ] **6.2** Migrate `functions.js`, `tables.js` and the RAM side of `tags.json` into knowledge
@@ -209,7 +213,8 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   Emscripten, ROM tests skip when the library has no base ROM (old audit §17).
 
 ### Step 7 — AI files last (D10)
-- [ ] **7.1** `tools/check-ai-context.ts` + `npm run check:ai-context` (limits of D10, broken links).
+- [x] **7.1** `tools/check-ai-context.mts` + `npm run check:ai-context` (limits of D10, broken links; the 42
+  known overruns are in `tools/check-ai-context.allow.json`, which step 7 empties).
 - [ ] **7.2** Root `AGENTS.md` to ≤ 150 lines; `AI_ARCHITECTURE_GUIDE.md` updated to the
   `platform/core/games` kinds; no rule in two places.
 - [ ] **7.3 Skills:** merge the five architecture skills (`compress-architecture`,

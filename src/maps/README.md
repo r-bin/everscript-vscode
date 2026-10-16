@@ -49,7 +49,6 @@ it. See the `map-format` and `rom-map-data` skills.
 | `png.ts` | PNG encoding (zlib deflate + CRC-32) |
 | `index.ts` | Public API |
 | `index.js` | CommonJS facade; requires the compiled output in `dist/` |
-| `alchemy-model.js` | Alchemy damage tables (unrelated to map decoding; predates the port) |
 | `render-script-model.js` | Opcode 0x93 render-script trace decoder |
 
 ## Build

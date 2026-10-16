@@ -7,7 +7,7 @@
 ## What exists
 
 **Physical.** The clamp path lives in
-[`tests/memory/damage.test.js`](../tests/memory/damage.test.js) — as test
+[`tests/memory/damage.test.js`](../../../tests/memory/damage.test.js) — as test
 helpers, not as a module:
 
 ```js
@@ -21,10 +21,10 @@ damageRangeFull(w)                   // -> { min, max, pct999 }
 It also models the **Atlas glitch**: subtracting 480 from the charged attack
 and, below full charge, letting the underflow past the clamp — which is
 where the 999s come from. `damageRangeFull` is already in
-[`src/maps/alchemy-model.js`](../src/maps/alchemy-model.js).
+[`src/scaling/webview/alchemy-math.js`](../../../src/scaling/webview/alchemy-math.js).
 
-**Alchemy.** Fully in `alchemy-model.js`, from
-[docs/alchemy-damage.md](../docs/alchemy-damage.md): `base_might` from
+**Alchemy.** Fully in `alchemy-math.js`, from
+[docs/alchemy-damage.md](../../alchemy-damage.md): `base_might` from
 `$45E6B`, the ten-entry `level_scale` table, the RNG term, and the
 `(0x40 - magic_defense) / 0x40` reduction against the enemy's **magic**
 defence at `+0x1d`, not its physical one. `alchemyProjectedRange` even
@@ -56,9 +56,9 @@ and sourcing it is the only real unknown left on this page.
 
 **4. Whether a swing connects at all.** Damage is not the whole answer — an
 attack has to land. That is already solved and documented:
-[attack_boxes.md](../docs/script-format/attack_boxes.md) (animation command
+[attack_boxes.md](../../script-format/attack_boxes.md) (animation command
 `0x47`, the `2(|dx|-r) < w` test) and
-[hitboxes.md](../docs/script-format/hitboxes.md). A fight simulation that
+[hitboxes.md](../../script-format/hitboxes.md). A fight simulation that
 ignores reach will report odds for a swing that misses.
 
 ## How we would know it is right

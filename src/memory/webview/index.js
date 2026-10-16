@@ -63,7 +63,7 @@ const SCALING_JS_FILES = [
   'state.js',         // inner IIFE opener + state vars + DOM refs + char select init
   'helpers.js',       // isScalable, getWeapons, target helpers, slider helpers
   'events.js',        // srcSel/tgtSel/modeSel/button event listeners
-  'damage-math.js',   // dmgCache + fmtPct + atlasSeed + dmgRange + srcAtkAtLv etc.
+  'damage-math.js',   // dmgCache + fmtPct + dmgRange + srcAtkAtLv etc.
   'chart.js',         // _CW constants + renderTrendChart + attachSvgEvents
   'redraw.js',        // redraw function
   'tab-init.js',      // init calls + inner IIFE close

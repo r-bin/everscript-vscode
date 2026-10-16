@@ -1,7 +1,7 @@
 # 6. Routes — saving a run and replaying its odds
 
 > Status: **not built.** An earlier sketch exists as
-> [docs/route-planner.md](../docs/route-planner.md), from before the
+> [docs/route-planner.md](../../route-planner.md), from before the
 > simulation was on the table; this supersedes its scope but keeps its data
 > model.
 

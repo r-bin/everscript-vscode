@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.229.0",
+  "version": "0.230.0",
   "publisher": "rbin",
   "main": "./src/extension.js",
   "engines": {
@@ -50,6 +50,9 @@
     "check:dead": "knip",
     "check:deps": "depcruise --config .depcruise.js src/",
     "check:legal": "node tools/check-legal.mts",
+    "check:dup": "jscpd -c .jscpd.json --silent",
+    "check:knowledge": "npm run -s build:platform && node tools/check-knowledge.mts",
+    "check:ai-context": "node tools/check-ai-context.mts",
     "build:recorder": "npm run build:platform && npm run build:maps && npm run build:script && node tools/recorder/build.js",
     "build:platform": "tsc -p tsconfig.platform.json",
     "build:maps": "tsc -p tsconfig.maps.json",
@@ -72,6 +75,7 @@
   "devDependencies": {
     "@types/node": "^25.9.1",
     "dependency-cruiser": "^18.6.0",
+    "jscpd": "^5.4.1",
     "knip": "^6.14.2",
     "madge": "^8.0.0",
     "playwright": "^1.60.0",

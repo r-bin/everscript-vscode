@@ -1,0 +1,25 @@
+{
+  "path": [
+    "src",
+    "tools"
+  ],
+  "format": [
+    "javascript",
+    "typescript",
+    "css"
+  ],
+  "ignore": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "src/emulator/core/**",
+    "src/music/engine/spc-engine.js",
+    "**/*.json"
+  ],
+  "minLines": 30,
+  "threshold": 0,
+  "reporters": [
+    "console"
+  ],
+  "absolute": false,
+  "gitignore": true
+}

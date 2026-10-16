@@ -1,7 +1,7 @@
 ---
 name: map-entities
 description: Characters, enemies and NPCs on a Secret of Evermore map — the character record, how a room's enter script places them (8px units, every branch a candidate), sprites, the 4-palette budget, depth against the canopy, the body/hurt/strike boxes, damage, and animation scripts. Read before changing src/maps/character-*.ts, sprites.ts, characters.ts, src/script/entities.ts/arrivals.ts/transition.ts, or anything that draws, places, sizes or fights an entity.
-applyTo: "src/maps/character-*.ts,src/maps/characters.ts,src/maps/sprites.ts,src/maps/alchemy-model.js,src/script/entities.ts,src/script/arrivals.ts,src/script/transition.ts,docs/script-format/**,simulation/**,src/sprites/character-model.js,src/sprites/dog-forms.js,src/sprites/target.js"
+applyTo: "src/maps/character-*.ts,src/maps/characters.ts,src/maps/sprites.ts,src/scaling/webview/alchemy-math.js,src/script/entities.ts,src/script/arrivals.ts,src/script/transition.ts,docs/script-format/**,simulation/**,src/sprites/character-model.js,src/sprites/dog-forms.js,src/sprites/target.js"
 ---
 
 # Map entities: rules
@@ -82,7 +82,7 @@ separate questions.
 
 Physical: modelled only as test helpers in `tests/memory/damage.test.js` (move it
 to a module before building on it, `docs/plans/simulation/damage.md`). Alchemy:
-`src/maps/alchemy-model.js`. Return distributions, not averages.
+`src/scaling/webview/alchemy-math.js`. Return distributions, not averages.
 
 ## 6. Doors and entrances
 
