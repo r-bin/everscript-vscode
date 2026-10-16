@@ -14,6 +14,9 @@ The plan for the first test hack, which moves tables one at a time, is in
 
 Status values:
 
+- **proven ✓**: moved by the table hack (`tools/table-hack/`), and the game played exactly like the
+  original over the attract-loop playback (sample-playbacks skill). That playback reaches the table's
+  readers.
 - **moved ✓**: moved in the Asar export, and the game ran the same headless.
 - **movable**: the export already names the table as a label, but nobody has moved it yet.
 - **needs readers**: the table can probably move, but not every piece of code that reads it is
@@ -30,10 +33,10 @@ Sources: [asm-to-c-port.md §11](reverse-engineering/asm-to-c-port.md),
 
 | Table | Address | What more you get | Used / limit | What sets the limit | Status |
 |---|---|---|---|---|---|
-| Map table | `$9FFDE7`, 4 B/room | **more rooms** | **127 / 256** | Room enter-script lookup uses an 8×8 hardware multiply. In place, the table can only reach 134 slots before the end of bank `$9F`. | **moved ✓** (`$F18000`, v0.160.0) |
-| Room enter scripts | `$92801B`, 5 B/room | an enter script per new room; grows with the map table | **127 / 256** | the same 8×8 multiply | **moved ✓** (`$F19000`) |
-| String keys | `$91D000`, 3 B/key | **more strings** (dialogue, names, menu text) | **3,002 / ~10,900** | The table must stay inside one 32 KB bank half. Keys are 16-bit byte offsets, which would allow ~21,800. | **moved ✓** (`$F1A000`) |
-| Script pointer table: trigger/NPC entries | `$928294`, 3 B | **more trigger and NPC scripts**: step-on, B-button, talk, kill | **1,917 / ~21,800** | Ids are 16-bit byte offsets. Script bytecode follows the table directly, so in place it cannot grow at all. | **needs readers**: two are known (`8C:CE5C`, `8C:D3A0`). An unexecuted block calls `8C:CE5C`. The address comes from header words `$928000` / `$928008`. |
+| Map table | `$9FFDE7`, 4 B/room | **more rooms** | **127 / 256** | Room enter-script lookup uses an 8×8 hardware multiply. In place, the table can only reach 134 slots before the end of bank `$9F`. | **proven ✓** (`$B1:8000`, v0.222.0) |
+| Room enter scripts | `$92801B`, 5 B/room | an enter script per new room; grows with the map table | **127 / 256** | the same 8×8 multiply | **proven ✓** (`$B1:9000`) |
+| String keys | `$91D000`, 3 B/key | **more strings** (dialogue, names, menu text) | **3,002 / ~10,900** | The table must stay inside one 32 KB bank half. Keys are 16-bit byte offsets, which would allow ~21,800. | **proven ✓** (`$B1:A000`). String #3003 added through everscript and shown in game. |
+| Script pointer table: trigger/NPC entries | `$928294`, 3 B | **more trigger and NPC scripts**: step-on, B-button, talk, kill | **1,917 / ~21,800** | Ids are 16-bit byte offsets. Script bytecode follows the table directly, so in place it cannot grow at all. | **proven ✓** (`$B1:D000`). Four operands are rebased by `-word[$928000]`; the header words stay. A static scan of the whole ROM found no other `lda.l $928000/2,x`. |
 | Script pointer table: globals | `$928294 + $1677` | **more global functions** (`call_id`, `0xa3` / `0xb0`) | **≤ 256 / 256** (33 named) | The operand is one byte. All 256 slots already exist, so moving the table gains nothing here. | as above |
 | Map tile graphics | `$EE0000`, 3 B/tile | **more 16×16 map tile graphics** | **6,688 / ~21,800** *(to verify)* | id × 3 with a 16-bit index. How many tiles a room can use is a separate limit (the seven family slots, `map-editor-rules`). | **needs readers**: `8C:C88C` and `90:A23D` are known, and the CDL has seen only part of the code |
 | Sprite blocks 16×16 | `$EC0000`, 3 B | **more sprite graphics** (characters, enemies, effects) | **4,854 / ~21,800** *(to verify)* | The table is full and other data follows it, so it can only grow by moving. | **needs readers**: `80:9751`, `80:A2E6` |

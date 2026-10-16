@@ -1,0 +1,28 @@
+// Table hack test: one string past vanilla's 3002 (key 0x232E = index 3002, i.e. string #3003), shown when the
+// game enters Brian's room right after power-on. Its key goes into the moved string key table and the room's enter
+// script into the moved enter-script table (tools/table-hack/build.js redirects both).
+#memory(
+    string_key(0x232e)..string_key(0x232e), // the first key past the vanilla table
+    function_key(0x0000)..function_key(0x1716), // script pointer slots the compiler may reuse
+    0x320000..0x32ffff,                     // $F2: text in the lower half, scripts in the upper half
+    <0x2272>..<0x2558>,
+    <0x2834>..<0x28ff>
+)
+#include("in/core")
+
+@install(ADDRESS.INTRO_FIRST_CODE_EXECUTED)
+fun intro_skip() {
+    map_transition(brians_room, center, NONE);
+}
+
+map brians_room(MAP.BRIAN) {
+    enum entrance {
+        center = entrance(0x17, 0d40, NONE)
+    }
+
+    fun trigger_enter() {
+        fade_in();
+
+        dialog("TABLE HACK[LF]string 3003[B]"); // [B]: wait for a button, so the box stays up
+    }
+};

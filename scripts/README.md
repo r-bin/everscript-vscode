@@ -8,6 +8,7 @@ Run from anywhere; each script changes to the repo root and finds `npm` (PATH or
 | `test.sh [--quick\|--all]` | test suite, typecheck, circular-dependency scan; `--quick` tests only, `--all` adds the advisory knip / depcruise scans | `test`, `typecheck`, `check:circular`, `check:dead`, `check:deps` |
 | `build-recorder.sh [--install]` | package the SNES CDL Recorder (only the files it uses) into `out/snes-cdl-recorder-<version>.vsix`; `--install` also installs it | `build:recorder` |
 | `build-recomp.sh [rom] [-- args]` | build the recompiled game; ROM defaults to `$SOE_ROM`, then `out/rom.sfc` | `recomp` |
+| `build-table-hack.sh [rom] [--prove] [-- args]` | build the table hack into `out/table-hack/soe-tables.sfc`; `--prove` replays the sample playbacks against the original (`out/table-hack/REPORT.md`) | `table-hack`, `table-hack:prove` |
 | `play-recomp.sh [args]` | start the built game | – |
 | `lockstep.sh [rom] [-- args]` | recomp vs snes9x WRAM comparison | `recomp:lockstep` |
 | `release.sh` | on a clean, committed tree: `test.sh`, push `develop`, install the extension | `test`, `typecheck`, `check:circular`, `deploy` |

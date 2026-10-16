@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.221.0",
+  "version": "0.222.0",
   "publisher": "rbin",
   "main": "./src/extension.js",
   "engines": {
@@ -62,7 +62,9 @@
     "recomp": "node tools/recomp/build.js",
     "recomp:lockstep": "node tools/recomp/lockstep.js",
     "exhirom": "node tools/exhirom/convert.js",
-    "exhirom:prove": "node tools/exhirom/prove.js"
+    "exhirom:prove": "node tools/exhirom/prove.js",
+    "table-hack": "node tools/table-hack/build.js",
+    "table-hack:prove": "node tools/table-hack/prove.js"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",

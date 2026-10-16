@@ -11,6 +11,13 @@ The first build is deliberately simple:
 4. Write the result in [extension-tables.md](extension-tables.md) (status column), then take the
    next table.
 
+**Result (v0.222.0):** all four build-1 tables are moved and proven. One table at a time and all
+together, the game plays exactly like the original over the attract-loop playback: same WRAM every
+frame, same screen every 60 frames. Only `$7E0028`, the bank byte of the string-key pointer, is left
+out of the checksum. The everscript test adds string #3003 and shows it from Brian's room. Without
+the redirected key, no text appears. Tool: `tools/table-hack/`; results:
+[extension-tables.md](extension-tables.md).
+
 Start with the three tables already moved once in the Asar export (map table, enter scripts,
 string keys), then the script pointer table, then the graphics tables. Adding entries, the
 directory, the generated used/free md and the plugin resolver (§1–§7) come later. They are
