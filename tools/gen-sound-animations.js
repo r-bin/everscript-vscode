@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-// Writes src/localizations/data/sound-animations.json: which animations play
+// Writes src/games/evermore/localizations/data/sound-animations.json: which animations play
 // which sound. Run after a change to the animation catalogue:
 //   npm run build:ts && node tools/gen-sound-animations.js [rom.smc]
 //
@@ -21,9 +21,9 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const romPath = require('./rom').romOrExit('evermore', process.argv[2]);
-const { animationGroups } = require('../dist/maps/animation-vm');
-const { disassembleScript } = require('../dist/maps/animation-opcodes');
-const { readAllCharacters, buildAnimationCatalog } = require('../src/sprites');
+const { animationGroups } = require('../dist/games/evermore/maps/animation-vm');
+const { disassembleScript } = require('../dist/games/evermore/maps/animation-opcodes');
+const { readAllCharacters, buildAnimationCatalog } = require('../src/games/evermore/sprites');
 
 const SCRIPT_SFX = 0x0C8362;
 const SOUND_OPS = [0x2E, 0x2F];
@@ -97,6 +97,6 @@ function build(rom) {
 }
 
 const data = build(romPath);
-const file = path.join(ROOT, 'src', 'localizations', 'data', 'sound-animations.json');
+const file = path.join(ROOT, 'src', 'games', 'evermore', 'localizations', 'data', 'sound-animations.json');
 fs.writeFileSync(file, '{\n' + Object.entries(data).map(([k, v]) => JSON.stringify(k) + ': ' + JSON.stringify(v)).join(',\n') + '\n}\n');
 console.log('wrote ' + path.relative(ROOT, file) + ': ' + Object.keys(data).length + ' sounds');

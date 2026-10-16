@@ -41,13 +41,13 @@ draft is one object, `_edit` (`map-editor.js`).
 | **Construct** | a saved rectangle of map with the triggers and objects inside it, in the same portable form | same | `map-editor-constructs.js` |
 | **Deco library** | vanilla's own Section 3 objects (655 distinct) offered as floor-free widgets | same | `map-editor-deco.js`; host `deco-catalogue.js`, `deco-preview.js` |
 | **Group** (placed widget) | a stamped widget/construct kept as **one movable thing over the map**, stored apart from `_edit.cells` (`_edit.groups`). What a cell shows = the map + every group over it (`editCellAt`); drawing and export bake it (`editBakedCells`). Its triggers and objects are locked to it until **disbanded** | baked into cells at export | `map-editor-groups.js`, `-placed-list.js` |
-| **Entrance** | where the player arrives. Not in the room: it is a `CHANGE MAP` in another room's script, indexed by `src/script/arrivals.ts` and drawn as an arrow marker. The Special tab's Entrance glyphs are visual notes only (not exported) | the game has no such field | `arrivals.ts`; `map-editor-special.js` |
+| **Entrance** | where the player arrives. Not in the room: it is a `CHANGE MAP` in another room's script, indexed by `src/games/evermore/script/arrivals.ts` and drawn as an arrow marker. The Special tab's Entrance glyphs are visual notes only (not exported) | the game has no such field | `arrivals.ts`; `map-editor-special.js` |
 | **Boy start** | a custom map's one start marker (`_edit.start`), always inside the map. Export ROM turns it into the intro's `load_map(0x15, x, y)` | becomes a script operand, not room data | `map-editor-start.js`; `rom-export.md` |
 | **Donor room** | a custom map borrows room `0x34`'s graphics list and families (a room with no Block 1 renders black) and nothing else | its Block 1 and families are copied | `map-editor-custom.js`, `custom-room.ts` |
 | **Locked** | a vanilla room opens read-only; unlocking lets its draft change | view state | `editLocked` |
 | **Palette set preview** | the Info tab's Header sub-tab shows the map with another MAP_PALETTE value (rooms with 8–14 families) | a view: the host renders with `mapPalette` in the header overrides | `map-editor-family-sets.js`, host `family-sets.js`, `header-overrides.js` |
 | **Undo history** | one stack for everything, one step per gesture, saved with the map (`history.json`) | — | `map-editor.js`, `-history.js` |
-| **Vanilla index** | adjacency, layer preference, suggested collision, animation patterns, stairs, measured over all 127 rooms and every object state and animation frame | advice, never data (map-construction skill) | `src/maps/vanilla-*.ts`, host `vanilla-index.js` |
+| **Vanilla index** | adjacency, layer preference, suggested collision, animation patterns, stairs, measured over all 127 rooms and every object state and animation frame | advice, never data (map-construction skill) | `src/games/evermore/maps/vanilla-*.ts`, host `vanilla-index.js` |
 
 ---
 
@@ -83,7 +83,7 @@ Three sub-tabs (`_editInfoSub`, map-editor-tabs.js):
 ### Budgets
 
 Only attested ceilings get a bar: **7 families, 264 graphics, the 32 KB WRAM
-window** (`src/maps/budget.ts`). Stamps, triggers, objects and channels are
+window** (`src/games/evermore/maps/budget.ts`). Stamps, triggers, objects and channels are
 counts, compared against vanilla's maximum (`room-reference.md` §3). Sprite
 palettes (4 safe slots per room) are a separate budget on the Rooms tab
 (`docs/script-format/entities-reference.md` §4).

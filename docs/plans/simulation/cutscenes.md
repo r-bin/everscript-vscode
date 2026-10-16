@@ -11,9 +11,9 @@ of the verbs:
 | Cutscene verb | Where it already lives |
 |---|---|
 | place / remove an entity | [entities.md](entities.md) |
-| set a facing, play an animation | [`character-animation.ts`](../../../src/maps/character-animation.ts) |
+| set a facing, play an animation | [`character-animation.ts`](../../../src/games/evermore/maps/character-animation.ts) |
 | change the map | [map_transitions.md](../../script-format/map_transitions.md) |
-| rewrite the scenery | object stamps, `src/maps/objects.ts` |
+| rewrite the scenery | object stamps, `src/games/evermore/maps/objects.ts` |
 | set a flag | [virtual-wram.md](virtual-wram.md) |
 | show text | **missing** — the same gap as dialog |
 

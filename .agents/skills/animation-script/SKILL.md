@@ -1,7 +1,7 @@
 ---
 name: animation-script
-description: The animation bytecode language in Secret of Evermore — the per-entity interpreter at $9080D0, the frame-end bit, holds as checkpoints, every opcode and its width, the record table at $C43E3A (783 animations) and the global animate() id table at $C43C92. Read before changing src/maps/animation-opcodes.ts, animation-vm.ts, character-animation.ts, src/sprites/animation-*.js, or anything that walks, runs, lists, names or renders an animation script.
-applyTo: "src/maps/animation-*.ts,src/maps/character-animation.ts,src/sprites/**,docs/script-format/animation_*.md"
+description: The animation bytecode language in Secret of Evermore — the per-entity interpreter at $9080D0, the frame-end bit, holds as checkpoints, every opcode and its width, the record table at $C43E3A (783 animations) and the global animate() id table at $C43C92. Read before changing src/games/evermore/maps/animation-opcodes.ts, animation-vm.ts, character-animation.ts, src/games/evermore/sprites/animation-*.js, or anything that walks, runs, lists, names or renders an animation script.
+applyTo: "src/games/evermore/maps/animation-*.ts,src/games/evermore/maps/character-animation.ts,src/games/evermore/sprites/**,docs/script-format/animation_*.md"
 ---
 
 # Animation scripts: rules
@@ -15,13 +15,13 @@ wrong.
 
 | What | Where | Code |
 |---|---|---|
-| Opcode widths, mnemonics, disassembler | the one table | `src/maps/animation-opcodes.ts` (`opcode()`) |
-| Tick-accurate interpreter, record table, id table | | `src/maps/animation-vm.ts` |
-| Linear idle walk (room view) | | `src/maps/character-animation.ts` |
-| Catalogue of every animation + owners | | `src/sprites/animation-catalog.js` |
-| Render + script listing for the Characters tab (formerly Sprites) | | `src/sprites/animation-decoder.js` |
-| Projectile records, straight-line velocity | `$900000 + id` | `src/maps/projectiles.ts` |
-| Projectile spawns + their animations for the tab | | `src/sprites/projectile-render.js` |
+| Opcode widths, mnemonics, disassembler | the one table | `src/games/evermore/maps/animation-opcodes.ts` (`opcode()`) |
+| Tick-accurate interpreter, record table, id table | | `src/games/evermore/maps/animation-vm.ts` |
+| Linear idle walk (room view) | | `src/games/evermore/maps/character-animation.ts` |
+| Catalogue of every animation + owners | | `src/games/evermore/sprites/animation-catalog.js` |
+| Render + script listing for the Characters tab (formerly Sprites) | | `src/games/evermore/sprites/animation-decoder.js` |
+| Projectile records, straight-line velocity | `$900000 + id` | `src/games/evermore/maps/projectiles.ts` |
+| Projectile spawns + their animations for the tab | | `src/games/evermore/sprites/projectile-render.js` |
 
 **Widths live only in `animation-opcodes.ts`.** Never add a width table anywhere
 else; the linear walker reads `opcode()` too.
@@ -73,10 +73,10 @@ else; the linear walker reads `opcode()` too.
   aimed at the target, 6 the boomerang ellipse), per-tick behaviour `+0x0C` (`0x0E` gravity
   until height < 0, `0x12`/`0x1A` lifetime `+0x10`, `0x10` orbit). Projectile damage is
   a **16×16 hit test every tick alive**, not a `strike` command.
-- **Hit test** (`src/maps/hit-test.ts`): hurt region = half-size radius **centred on the
+- **Hit test** (`src/games/evermore/maps/hit-test.ts`): hurt region = half-size radius **centred on the
   feet**. Heights must satisfy −40 px ≤ target − attack < 30 px. Don't apply `hurtbox`
   (`0x50`) offsets until the Boy's −132/−144 is explained.
-- **Dog forms** (`src/sprites/dog-forms.js`): 6 entries via `$CF945F`, palette at
+- **Dog forms** (`src/games/evermore/sprites/dog-forms.js`): 6 entries via `$CF945F`, palette at
   header +6, 15 slots, named only where an id or the Dog's record names them. The
   Dog's own fields are the Act 1 wolf: draw them in its own palette, not the form's.
 - **`0x4B` = `palette $p`** (`$90CD80`, the projectile palette loader): a script that

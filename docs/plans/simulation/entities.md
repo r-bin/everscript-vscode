@@ -31,7 +31,7 @@ A spawn is not just a record. Three more things decide what it does, and
 none is modelled:
 
 **1. The entity's own script.** Some spawn opcodes carry or imply a script
-pointer, and NPCs run one on contact or on B. `src/script/entities.ts`
+pointer, and NPCs run one on contact or on B. `src/games/evermore/script/entities.ts`
 decodes the placement; resolving what it runs afterwards is the gap. Start
 by listing, across all 1606 spawns, which of them reference a script at all
 — that number decides whether this is a small job or a large one.
@@ -43,7 +43,7 @@ of those, so the model needs the set of globals a room has active, not just
 what its enter script placed.
 
 **3. The animation script.** Already walked by
-[`character-animation.ts`](../../../src/maps/character-animation.ts) for the idle
+[`character-animation.ts`](../../../src/games/evermore/maps/character-animation.ts) for the idle
 pose. The same walker gives the attack timing a fight needs — command `0x47`
 is where the strike happens, and the frame timer says when.
 
@@ -68,7 +68,7 @@ interface PlacedEntity {
 
 The tab already builds most of this in
 [`src/rooms/data/room-scripts.js`](../../../src/rooms/data/room-scripts.js). Moving
-it into `src/simulation/` and adding the last two fields is the work.
+it into `src/games/evermore/simulation/` and adding the last two fields is the work.
 
 ## How we would know it is right
 

@@ -1,6 +1,6 @@
 # Research & Visualizations — Open Tasks & Explorations
 
-> Domain: Reverse Engineering, Visual Diagnostics & Asset Research (`tools/`, `src/script/`, `src/localizations/`)
+> Domain: Reverse Engineering, Visual Diagnostics & Asset Research (`tools/`, `src/games/evermore/script/`, `src/games/evermore/localizations/`)
 > Status key: 💡 concept / proposal · 🟡 prototype exists · 🟢 planned pipeline
 
 ---
@@ -13,7 +13,7 @@ Visualizations building on data already recorded across the CDL logger, script d
 - **Concept:** Force-directed 3D/2D graph of the CDL call stack and xrefs. Node size indicates execution hit count, node color maps to ROM bank, and selecting a node displays its disassembly.
 - **Status:** **⚪ Prototype removed 2026-10-16 (`tools/call-graph-galaxy/`, in git history); rebuild on the CDL tab if wanted**
 - **Follow-ups:**
-  - Connect script calls (`src/script/`) to assembly call sites.
+  - Connect script calls (`src/games/evermore/script/`) to assembly call sites.
   - Export interactive standalone HTML artifact for easy web browsing.
 
 ### 1.2 ✨ ROM Heat-Strip Timelapse
@@ -21,7 +21,7 @@ Visualizations building on data already recorded across the CDL logger, script d
 - **Status:** 💡 Concept. CDL frame timestamps can generate per-frame execution heatmaps.
 
 ### 1.3 ✨ Script Execution Flame Graph
-- **Concept:** Record Everscript invocations through debugger script call/end hooks (`src/debugger/`) and display them as a hierarchical flame chart showing execution durations, call chains, and wait states.
+- **Concept:** Record Everscript invocations through debugger script call/end hooks (`src/games/evermore/debugger/`) and display them as a hierarchical flame chart showing execution durations, call chains, and wait states.
 - **Status:** 💡 Concept. Useful for spotting script performance bottlenecks or event lockups.
 
 ### 1.4 ✨ WRAM Write-Pulse Phosphor Heatmap
@@ -49,6 +49,6 @@ The Dog's form table at `$CF945F` has six 40-byte entries (10-byte header + 15 a
 1. **Quick Win — Bark Patch:** Point slot 14 at `$4526` (`ACT0_BARK`). This is a 2-byte patch at `$CF938F` requiring no new art.
 2. **Trace VRAM Upload Path:** Trace whether the engine decompresses blocks on demand or preloads form tile sets via the form header's `+0` pointer.
 3. **ROM Expansion to 4 MB:** Vanilla 3 MB ROM has zero runs of free space ≥ 1 KB. Expand image to 4 MB (HiROM banks `$F0..$FF`) and update header size byte (`$FFD7`).
-4. **Codec Implementation:** Add 4bpp block encoder and sprite-info writer to `src/maps/sprites.ts`.
+4. **Codec Implementation:** Add 4bpp block encoder and sprite-info writer to `src/games/evermore/maps/sprites.ts`.
 5. **Draw & Integrate Poses:** Pixel ~85 missing poses in the Act 0 palette, allocate dead block IDs, assemble animation scripts, and repoint `$CF936D` form slots.
 

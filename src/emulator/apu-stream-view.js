@@ -4,7 +4,7 @@
  * emulator/apu-stream-view.js
  *
  * Page side of the sound-chip stream for the radar's Music tab
- * (src/music/README.md). While the host has switched it on, every emulated
+ * (src/games/evermore/music/README.md). While the host has switched it on, every emulated
  * frame posts the core's getApuView (224 bytes: CPU registers, ports, timers,
  * the 128 DSP registers), the loaded package (WRAM $7E0E4B) and each voice's
  * sample: the start address in its directory entry (DSP DIR * 256 + SRCN * 4),

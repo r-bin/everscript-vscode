@@ -26,7 +26,7 @@ const {
     getFunctionName,
     decodeRomString,
     resolveLocalizedName,
-} = require('../../src/localizations');
+} = require('../../src/games/evermore/localizations');
 
 const { VANILLA_ROOMS: ROOMS_EXPORT } = require('../../src/rooms');
 
@@ -158,7 +158,7 @@ test('localizations scripts: NPC, ABS, and Global script lookups', () => {
         getGlobalScript,
         getGlobalScriptName,
         setScriptOverride,
-    } = require('../../src/localizations');
+    } = require('../../src/games/evermore/localizations');
 
     // NPC scripts from screenshot
     assert.equal(getNpcScriptName(0x17CD), 'Thraxx damage/kill');

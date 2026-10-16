@@ -7,16 +7,16 @@
 // drawing it, so keeping the object browser's data here leaves that file to
 // the picture.
 //
-// Pure apart from the module-level thumbnail cache. Consumes src/maps.
+// Pure apart from the module-level thumbnail cache. Consumes src/games/evermore/maps.
 
-const maps = require('../../maps');
+const maps = require('../../games/evermore/maps');
 const { romFingerprint } = require('./rom-fingerprint');
 
 /**
  * Section 3 map objects, their states, and a thumbnail of each state.
  *
  * A state is reached by XOR-ing the deltas up to it into the grid, so every
- * state can be rendered exactly — see src/maps/object-stamps.ts. An object
+ * state can be rendered exactly — see src/games/evermore/maps/object-stamps.ts. An object
  * with N delta records has N+1 appearances, state 0 being the loaded room.
  */
 function buildObjects(rom, room, selected) {

@@ -116,8 +116,8 @@ test('script-trace.js, panel.js, panel-webview.js, and grammar files are strictl
     path.join(__dirname, '..', '..', 'src', 'emulator', 'panel.js'),
     path.join(__dirname, '..', '..', 'src', 'emulator', 'panel-webview.js'),
     path.join(__dirname, '..', '..', 'src', 'emulator', 'bottom-bar-views.js'),
-    path.join(__dirname, '..', '..', 'src', 'language', 'syntaxes', 'everscript-trace.tmLanguage.json'),
-    path.join(__dirname, '..', '..', 'src', 'language', 'trace-language-configuration.json'),
+    path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'language', 'syntaxes', 'everscript-trace.tmLanguage.json'),
+    path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'language', 'trace-language-configuration.json'),
   ];
   for (const f of files) {
     const content = fs.readFileSync(f, 'utf8');
@@ -183,7 +183,7 @@ test('processScriptTraceBatch preserves timestamps and decodes Room 0x15 enter s
 
 // Test 8: everscript-trace.tmLanguage.json structure and regex sanity
 test('everscript-trace.tmLanguage.json parses and defines valid regex patterns', () => {
-  const grammarPath = path.join(__dirname, '..', '..', 'src', 'language', 'syntaxes', 'everscript-trace.tmLanguage.json');
+  const grammarPath = path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'language', 'syntaxes', 'everscript-trace.tmLanguage.json');
   const raw = fs.readFileSync(grammarPath, 'utf8');
   const grammar = JSON.parse(raw);
   assert.strictEqual(grammar.scopeName, 'source.evs-trace');

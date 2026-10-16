@@ -22,7 +22,7 @@ responsibilities, or has accumulated hidden state that makes AI-local reasoning 
 
 ## When splitting isn't the fix: recognize a weaker re-derivation
 
-Not every large or messy file should be decomposed in place. `src/maps/`'s ROM
+Not every large or messy file should be decomposed in place. `src/games/evermore/maps/`'s ROM
 tilemap decoder is large-ish and heuristic, but the right move isn't to split it into
 `map-sentinel.js` + `map-position-table.js` + `map-tilemap.js` — it's to retire its
 decoding responsibility in favor of the sibling `everscript` repo's already-verified,

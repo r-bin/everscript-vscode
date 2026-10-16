@@ -103,7 +103,7 @@ sprite info chunk ──16-bit block id──▶ $EC0000 / $D80000 pointer table
   bytes each). The pixels use the Act 0 palette `$90:B54B`, so draw in those 16
   colours only, with index 0 transparent.
 - Compression is optional. With bit 23 of the pointer set, the data is a
-  bit-per-word skip list. `blockBytes()` in `src/maps/sprites.ts` decodes it.
+  bit-per-word skip list. `blockBytes()` in `src/games/evermore/maps/sprites.ts` decodes it.
   The encoder is its inverse: one status byte per 8 words, with a bit set for
   each zero word, followed by the non-zero words. Add that encoder next to the
   decoder, with a round-trip test over all 4,854 + 6,265 vanilla blocks.
@@ -201,7 +201,7 @@ area while the Dog changes pose, and record the result in
 2. **Trace** the VRAM upload path and the form loader (above). Stop if it turns
    out to be a preloaded tile set; that is a different plan.
 3. **Expansion** to 4 MB, plus checksum, booted in an emulator.
-4. **Codec**: a block encoder and a sprite-info writer in `src/maps/sprites.ts`.
+4. **Codec**: a block encoder and a sprite-info writer in `src/games/evermore/maps/sprites.ts`.
    A round trip over every vanilla block and sprite must be byte-identical.
 5. **Free-space ledger**: confirm the dead block ids, the `$C4` record space and
    the `$CA`–`$D3` sprite-info space, each with the evidence for why it is free.

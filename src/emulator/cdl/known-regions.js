@@ -15,7 +15,7 @@
  */
 
 const { hex } = require('./rom-map');
-const maps = require('../../maps');
+const maps = require('../../games/evermore/maps');
 
 const CDL_CODE = 0x01, CDL_DATA = 0x02;
 

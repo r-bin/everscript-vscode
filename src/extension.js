@@ -11,7 +11,7 @@ const { resolveExtConfig, getRepoAutofillUpdates } = require('./shared/config');
 
 
 
-const lp = require('./language/language-providers');
+const lp = require('./games/evermore/language/language-providers');
 
 
 // ── Memory Radar ─────────────────────────────────────────────────────────────
@@ -155,9 +155,9 @@ function radarItemIcons() {
     return buildItemIcons(romReaders.loadRomBuffer(ws, ''));
 }
 const roomTree = require('./rooms');
-const { handlesRomMessage, handleRomMessage } = require('./rom');
-const { handlesMusicMessage, handleMusicMessage } = require('./music');
-const { handlesScriptsMessage, handleScriptsMessage } = require('./scripts-tab');
+const { handlesRomMessage, handleRomMessage } = require('./games/evermore/rom');
+const { handlesMusicMessage, handleMusicMessage } = require('./games/evermore/music');
+const { handlesScriptsMessage, handleScriptsMessage } = require('./games/evermore/scripts-tab');
 const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildDraftCollision, buildExportRom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, buildWidgetPreviews, buildConstructGhost, relatedTiles, neighbourTiles, vanillaExamples, proceduralFill, handlesCustomMapMessage, handleCustomMapMessage } = roomTree;
 
 const romReaders = require('./shared/rom-readers');
@@ -165,7 +165,7 @@ const roms = require('./core/roms/host');
 const { readPngDimensions, readRomTriggerOffsets, readRomMapHeader, readRomCharacters, readRomHitLookup, detectScaleEnemies } = romReaders;
 
 const { renderRadarHtml } = require('./memory/render-radar');
-const { readAllCharacters, getRawSpriteIndex, renderAnimation, renderRawSprite, buildAnimationCatalog, characterThumbs, listPalettes, renderInPalettes, thumbFor } = require('./sprites');
+const { readAllCharacters, getRawSpriteIndex, renderAnimation, renderRawSprite, buildAnimationCatalog, characterThumbs, listPalettes, renderInPalettes, thumbFor } = require('./games/evermore/sprites');
 
 // ── Activation ────────────────────────────────────────────────────────────────
 
@@ -383,7 +383,7 @@ async function exportRenderedRoomPng(msg) {
 }
 
 async function exportRoomMaps() {
-    const maps = require('./maps');
+    const maps = require('./games/evermore/maps');
     const cfg  = getExtConfig();
     const ws   = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     const rom  = romReaders.loadRomBuffer(ws, '');
@@ -839,23 +839,23 @@ function activate(context) {
                         },
                     });
                 } else if (handlesMusicMessage(msg.command)) {
-                    // The Music tab (src/music/README.md). The emulator's sound
+                    // The Music tab (src/games/evermore/music/README.md). The emulator's sound
                     // chip is injected so the music domain never imports it.
                     const _ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
                     handleMusicMessage(msg, {
                         post: (m) => _radarPanel?.webview.postMessage(m),
                         loadRom: () => romReaders.loadRomBuffer(_ws, ''),
                         apu: require('./emulator/panel').apuStream,
-                        describeSource: (rom, src) => require('./resources/sound-source').describeSoundSource(rom, src),
+                        describeSource: (rom, src) => require('./games/evermore/resources/sound-source').describeSoundSource(rom, src),
                         open: (uri) => vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(uri)),
                     });
                 } else if (handlesScriptsMessage(msg.command)) {
-                    // The Scripts tab (src/scripts-tab/README.md). The animation
+                    // The Scripts tab (src/games/evermore/scripts-tab/README.md). The animation
                     // renderer and the silent music player belong to the
                     // Characters and Music tabs; they are injected here so the
                     // scripts-tab domain never imports another feature.
                     const _ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                    const music = require('./music');
+                    const music = require('./games/evermore/music');
                     handleScriptsMessage(msg, {
                         post: (m) => _radarPanel?.webview.postMessage(m),
                         loadRom: () => romReaders.loadRomBuffer(_ws, ''),
@@ -869,7 +869,7 @@ function activate(context) {
                     });
                 } else if (handlesRomMessage(msg.command)) {
                     // The ROM tab: map of every bank, CDL coverage, readers
-                    // (src/rom/README.md). The CDL library is the emulator's,
+                    // (src/games/evermore/rom/README.md). The CDL library is the emulator's,
                     // read here so the rom domain never imports the emulator.
                     const _ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
                     handleRomMessage(msg, {
@@ -1341,9 +1341,9 @@ function activate(context) {
 
     );
 
-    // ── Debugger: .evs scripts in the emulator (src/debugger/README.md) ────
+    // ── Debugger: .evs scripts in the emulator (src/games/evermore/debugger/README.md) ────
     const emulatorPanel = require('./emulator/panel');
-    require('./debugger/inline-adapter').registerDebugger(context, {
+    require('./games/evermore/debugger/inline-adapter').registerDebugger(context, {
         bridge: emulatorPanel.getScriptDebugBridge(),
         runRom: romPath => emulatorPanel.runRomFile(context, romPath),
     }, () => getExtConfig().repoPath || '', name => {
@@ -1353,8 +1353,8 @@ function activate(context) {
         return entry ? entry.value : null;
     });
 
-    // ── soe:// resources (src/resources/README.md) ──────────────────────────
-    require('./resources').registerSoeResources(context, {
+    // ── soe:// resources (src/games/evermore/resources/README.md) ──────────────────────────
+    require('./games/evermore/resources').registerSoeResources(context, {
         // The first on-disk folder: a mounted ROM (soe://rom/?rom=…) can be listed first.
         vanillaRom: () => romReaders.loadRomBuffer(vscode.workspace.workspaceFolders?.find(f => f.uri.scheme === 'file')?.uri.fsPath ?? null, ''),
         emulatorRom: () => emulatorPanel.getCurrentRom(),
@@ -1393,7 +1393,7 @@ function activate(context) {
     // Sound-effect names for the emulator's marks (the Music model's, by driver id).
     require('./emulator/panel').apuStream.setNames(() => {
         const _ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-        return require('./music').sfxNames(() => romReaders.loadRomBuffer(_ws, ''));
+        return require('./games/evermore/music').sfxNames(() => romReaders.loadRomBuffer(_ws, ''));
     });
     require('./emulator/panel').apuStream.setOnPause(paused => {
         if (_radarPanel) _radarPanel.webview.postMessage({ command: 'musicPaused', paused });

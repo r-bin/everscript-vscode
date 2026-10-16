@@ -1,6 +1,6 @@
 # Attack boxes and hurt boxes
 
-> Status: **solved** for the geometry. `src/maps/character-animation.ts`.
+> Status: **solved** for the geometry. `src/games/evermore/maps/character-animation.ts`.
 > From `hit_flower.txt`, a trace of the Boy swinging his sword into a Wimpy
 > Flower. The body it bumps into is [hitboxes.md](hitboxes.md).
 

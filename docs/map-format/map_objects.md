@@ -209,7 +209,7 @@ Collision follows for free, because it is looked up from the same metatile ID.
 | Computed record length lands exactly on the next record's offset | 2726 / 2726 |
 | Cumulative XOR yields a metatile ID present in the room's Block 3 table | 19797 / 19797 |
 
-Implemented in `everscript-vscode/src/maps/object-stamps.ts` and `objects.ts`,
+Implemented in `everscript-vscode/src/games/evermore/maps/object-stamps.ts` and `objects.ts`,
 and pinned by `checkObjectStamps` in `tests/memory/map-parity.test.js`, which
 asserts the literal values the trace wrote.
 
@@ -255,9 +255,9 @@ A value with bit 15 set (or `$0106` bit 7) takes `$90A3AC` instead: it steps
 straight through, waiting only for each stamp to reach VRAM (`$90A5BA`), and
 ignores the holds.
 
-Implemented as `ObjectState.hold` in `src/maps/room.ts`; the Object tab edits
+Implemented as `ObjectState.hold` in `src/games/evermore/maps/room.ts`; the Object tab edits
 and plays it (`src/rooms/webview/map-editor-object-holds.js`), and Export ROM
-writes it (`src/maps/custom-room.ts`).
+writes it (`src/games/evermore/maps/custom-room.ts`).
 
 ---
 

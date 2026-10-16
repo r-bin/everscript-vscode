@@ -14,13 +14,13 @@ depends on the compiler through unversioned, hand-maintained copies.
 | Where the plugin depends on `everscript` today | How it drifts |
 |---|---|
 | Build & Run spawns `python everscript.py`, found via `everscript.compilerPath` / `../everscript` (`src/extension.js`, `src/shared/config.js`) | The two checkouts can be at any versions |
-| `tools/generate_data.py` regexes `in/core/*.evs` → `src/language/data/index.json` | A second, weaker grammar; not wired into any build; writes to a stale path |
-| Signatures hand-copied from `compiler/ast_everscript.py` into `src/script/everscript.ts` | Nothing checks them |
+| `tools/generate_data.py` regexes `in/core/*.evs` → `src/games/evermore/language/data/index.json` | A second, weaker grammar; not wired into any build; writes to a stale path |
+| Signatures hand-copied from `compiler/ast_everscript.py` into `src/games/evermore/script/everscript.ts` | Nothing checks them |
 | RAM region bounds hard-coded in `src/extension.js:18` | Copied from `in/core/…/02_ram.evs` |
 | `out/source_map.json` read by the debugger | No schema, no version |
 | Parity tests (`check:maps`, `check:script`, simulation `everscript.test.js`) | **Skip** when `../everscript` is missing, so a green run can mean nothing |
 | Six skills in both repos: `alchemy-spell-mechanics`, `rom-map-data`, `secret-of-evermore-engine`, `snes-asm-asar-patching`, `snes-memory-mapping`, `wram-memory-mapping` | Edited on one side only |
-| RAM/ROM facts in three places: `src/localizations/knowledge/` (here), `.github/memory-map.md` + `.github/rom-map.md` (there), `wiki/` Ram-Map (both, as a submodule) | The wiki page calls itself authoritative; nothing checks it |
+| RAM/ROM facts in three places: `src/games/evermore/localizations/knowledge/` (here), `.github/memory-map.md` + `.github/rom-map.md` (there), `wiki/` Ram-Map (both, as a submodule) | The wiki page calls itself authoritative; nothing checks it |
 
 ## 2. Decision proposed
 
@@ -41,7 +41,7 @@ the skill files**. Concretely, all four must hold in the merged repo before step
 | # | Condition | Check |
 |---|---|---|
 | G1 | **One skill tree.** Every skill exists once, in `.agents/skills/`; Claude Code (`.claude/skills` symlink), Antigravity and Copilot (`.github/skills`) all read that tree, whether the agent works in `compiler/` or `vscode/` | A script lists skill names across all agent folders; no duplicate names, no stale copies; one root `AGENTS.md`, nested ones per area |
-| G2 | **One source per fact.** RAM/ROM/script facts live in `knowledge/` (moved from `src/localizations/knowledge/`); language facts (functions, signatures, enums, RAM variable names) come from the compiler's parse of `in/core/` | `memory-map.md`, `rom-map.md` and the wiki Ram-Map are generated from `knowledge/` or deleted; a check fails when a name or address in `in/core/` and `knowledge/` disagree |
+| G2 | **One source per fact.** RAM/ROM/script facts live in `knowledge/` (moved from `src/games/evermore/localizations/knowledge/`); language facts (functions, signatures, enums, RAM variable names) come from the compiler's parse of `in/core/` | `memory-map.md`, `rom-map.md` and the wiki Ram-Map are generated from `knowledge/` or deleted; a check fails when a name or address in `in/core/` and `knowledge/` disagree |
 | G3 | **One build produces everything the plugin ships.** `scripts/build.sh` (or npm at the root) runs the Python exporter, then the plugin build; the `.vsix` contains the generated `language-data.json` and the knowledge the `soe://` MCP serves | Build from a clean clone with no env vars and no sibling checkout; diff the generated files against the committed ones (none committed, or the check fails) |
 | G4 | **Parity tests never skip for a missing compiler.** They may still skip for a missing ROM (that comes from `soe://`, D5) | `npm test` output lists compared rooms/scripts, not "everscript repo not found" |
 
@@ -90,7 +90,7 @@ Each step is one commit (or one short series) and leaves both repos working unti
 3. **Exporter (G2, G3), still two repos.** `everscript/tools/export_language_data.py` imports
    `compiler/lexer.py` + `parser.py` + `ast_everscript.py`, parses `in/core/` and writes
    `language-data.json` (functions + signatures, enums, RAM regions, opcode table). The
-   plugin reads it; delete `tools/generate_data.py`, the copies in `src/script/everscript.ts`
+   plugin reads it; delete `tools/generate_data.py`, the copies in `src/games/evermore/script/everscript.ts`
    and the bounds in `src/extension.js:18`. Give `source_map.json` a `version` field. The
    opcode table is the one D4 wants shared by decoder and compiler.
 4. **Skills and knowledge (G1, G2), still two repos.** For each of the six duplicated skills,

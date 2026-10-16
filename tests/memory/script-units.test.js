@@ -5,7 +5,7 @@
 // change that happens to keep the aggregate number up still fails here.
 
 const assert = require('assert');
-const script = require('../../src/script');
+const script = require('../../src/games/evermore/script');
 
 let passed = 0, failed = 0;
 function test(name, fn) {

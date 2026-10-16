@@ -10,7 +10,7 @@
 | | `structs.h`, `tables.h` | C headers | ✅ already compatible: Ghidra parses C headers, snesrecomp and C ports include them |
 | | `functions.json`, `tables.json`, `enums.json`, `structs.json` | our JSON | ✅ fine; candidates for one canonical symbol file (§2) |
 | | `recomp/cfg/bankXX.cfg` | snesrecomp's directive format | ✅ required by its parser (`recompiler/v2/cfg_loader.py`) |
-| Names | `functions.js`, `tables.js`, `src/script/names.json`, `knowledge/{ram,rom}/*.md` | JS tables, JSON, Markdown with front matter | ⚠️ four sources. Markdown entries are the target format (skill `game-knowledge`), but nothing loads them yet |
+| Names | `functions.js`, `tables.js`, `src/games/evermore/script/names.json`, `knowledge/{ram,rom}/*.md` | JS tables, JSON, Markdown with front matter | ⚠️ four sources. Markdown entries are the target format (skill `game-knowledge`), but nothing loads them yet |
 
 Overall the internal formats are sound. What is missing is **interchange**: our names and facts
 reach only our own tools. Mesen2, Ghidra, REA, bsnes-plus and snesrecomp each want their own

@@ -275,7 +275,7 @@ When the player presses the **B** button, before any B-trigger bounding boxes ar
 
 > Read off the ROM's code (v0.117.2 audit). An earlier line here called bit 14
 > "target tracking" and cited `$90812A`. That address is the *animation* record's
-> facing test (`BIT #$4000` on a different word, `src/maps/character-record.ts`),
+> facing test (`BIT #$4000` on a different word, `src/games/evermore/maps/character-record.ts`),
 > so it has nothing to do with collision.
 
 Every frame, the player's tile is checked before the step-on table is walked:

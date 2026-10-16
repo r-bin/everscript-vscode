@@ -253,7 +253,7 @@ Before starting work, consult:
 - Per-domain `src/<domain>/README.md` — local invariants, allowed dependencies
 
 New model files must:
-- Live in `src/maps/` (ROM game/map models) or `src/emulator/` (script/ROM models)
+- Live in `src/games/evermore/maps/` (ROM game/map models) or `src/emulator/` (script/ROM models)
 - Be pure: no VS Code dependency, no extension state access
 - Have a corresponding test file under `tests/memory/` or `tests/debugger/`
 - Document evidence source and confidence level at the top of the file

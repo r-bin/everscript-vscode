@@ -13,7 +13,7 @@ const path   = require('path');
 const fs     = require('fs');
 const os     = require('os');
 const crypto = require('crypto');
-const maps   = require('../maps');
+const maps   = require('../games/evermore/maps');
 const { resolveRomPath } = require('../shared/rom-readers');
 
 const HISTORY_FILENAME = 'recent-roms.json';

@@ -23,9 +23,9 @@ SOURCES (in order of trust)
 1. **Recorded facts** — the CDL library for the clean ROM
    (`~/Library/Application Support/Code/User/globalStorage/rbin.everscript/cdl-library/79e7738630fff5699217ef58ecc421bc8fcbcd89/`)
    and its Asar export (`functions.json`, `ram.asm`, `structs.json`, `enums.json`, `tables.json`).
-2. **Curated knowledge** — `src/localizations/functions.js`, `tables.js`, `src/script/names.json`,
-   `src/resources/ram-symbols.js`, `src/localizations/knowledge/{ram,rom}/*.md`, `soe://tags/`,
-   the ROM tab model (`src/rom/model/`), the everscript wiki maps.
+2. **Curated knowledge** — `src/games/evermore/localizations/functions.js`, `tables.js`, `src/games/evermore/script/names.json`,
+   `src/games/evermore/resources/ram-symbols.js`, `src/games/evermore/localizations/knowledge/{ram,rom}/*.md`, `soe://tags/`,
+   the ROM tab model (`src/games/evermore/rom/model/`), the everscript wiki maps.
 3. **Live state** — `soe://ram/` while the emulator runs (values to confirm a hypothesis).
 4. **Static analysis** — Ghidra / REA dossiers (assembly, callers, callees, refs). Tag what
    comes only from here as `static`.
@@ -51,8 +51,8 @@ LOOP
 5. **Write.**
    - Function / table names → `functions.js` / `tables.js` (with evidence in `notes`), because
      the tools read these today.
-   - RAM facts → `src/localizations/knowledge/ram/<addr>.md`.
-   - ROM data/format facts → `src/localizations/knowledge/rom/<addr>.md` or `docs/` prose.
+   - RAM facts → `src/games/evermore/localizations/knowledge/ram/<addr>.md`.
+   - ROM data/format facts → `src/games/evermore/localizations/knowledge/rom/<addr>.md` or `docs/` prose.
    - A skill or doc that turned out wrong → fix it in the same commit.
 6. **Report.** End with a table: address, name, confidence, evidence in one line, and a list of
    targets you could not settle plus the experiment that would settle each.

@@ -19,8 +19,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const script = require('../../src/script');
-const names = require('../../src/script/names.json');
+const script = require('../../src/games/evermore/script');
+const names = require('../../src/games/evermore/script/names.json');
 
 const HOME = process.env.HOME || '';
 const VIEWER = process.env.SOE_TILES_VIEWER ||

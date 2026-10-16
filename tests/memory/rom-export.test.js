@@ -1,5 +1,5 @@
 'use strict';
-// The room blob write path (src/maps/encode.ts, custom-room.ts) and Export
+// The room blob write path (src/games/evermore/maps/encode.ts, custom-room.ts) and Export
 // ROM (src/rooms/rendering/rom-export.js, map-editor-rom-export.js).
 //
 // The encoder is a port of everscript/tools/encode_room.py, so it is held to
@@ -11,9 +11,9 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 
-const maps = require('../../src/maps');
-const { decompressLzss } = require('../../dist/maps/lzss');
-const { decompressMarkovGrid } = require('../../dist/maps/markov');
+const maps = require('../../src/games/evermore/maps');
+const { decompressLzss } = require('../../dist/games/evermore/maps/lzss');
+const { decompressMarkovGrid } = require('../../dist/games/evermore/maps/markov');
 
 const ROM_PATH = require('../../dist/games').romPath('evermore');
 
@@ -137,7 +137,7 @@ try {
 if (!rom) {
     console.log(`SKIP rom-export ROM checks: ${ROM_PATH} not found or unreadable`);
 } else {
-    const script = require('../../src/script');
+    const script = require('../../src/games/evermore/script');
     const { buildExportRom, BRIAN_ROOM, INTRO_FIRST_CODE } = require('../../src/rooms/rendering/rom-export');
 
     test('buildBlob(modelFromRom()) is byte-exact for all 127 rooms (upstream --verify)', () => {

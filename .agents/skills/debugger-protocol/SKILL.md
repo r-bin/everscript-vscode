@@ -1,12 +1,12 @@
 ---
 name: debugger-protocol
-description: VS Code debugging of .evs scripts in the embedded emulator — DAP session, compiler source map, interpreter hook, stepping model. src/debugger/ and emulator/script-debug-*.
-applyTo: "src/debugger/**"
+description: VS Code debugging of .evs scripts in the embedded emulator — DAP session, compiler source map, interpreter hook, stepping model. src/games/evermore/debugger/ and emulator/script-debug-*.
+applyTo: "src/games/evermore/debugger/**"
 ---
 
 # Skill: Debugger Protocol
 
-Read `src/debugger/README.md` first: it has the architecture, file roles and launch flow.
+Read `src/games/evermore/debugger/README.md` first: it has the architecture, file roles and launch flow.
 
 ## Hard facts (verified headless, v0.166.0)
 

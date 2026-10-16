@@ -50,15 +50,15 @@ module.exports = {
       name: 'no-language-to-debugger',
       comment: 'Language features must not depend on the debugger.',
       severity: 'warn',
-      from: { path: '^src/language/' },
-      to: { path: '^src/debugger/' },
+      from: { path: '^src/games/evermore/language/' },
+      to: { path: '^src/games/evermore/debugger/' },
     },
 
     {
       name: 'no-rom-to-emulator',
       comment: 'The ROM tab takes CDL data as plain arrays injected by extension.js, never the emulator itself.',
       severity: 'warn',
-      from: { path: '^src/rom/' },
+      from: { path: '^src/games/evermore/rom/' },
       to: { path: '^src/emulator/' },
     },
 
@@ -66,7 +66,7 @@ module.exports = {
       name: 'no-music-to-emulator',
       comment: 'The Music tab gets the emulator sound-chip stream injected by extension.js, never the emulator itself.',
       severity: 'warn',
-      from: { path: '^src/music/' },
+      from: { path: '^src/games/evermore/music/' },
       to: { path: '^src/emulator/' },
     },
 
@@ -74,15 +74,15 @@ module.exports = {
       name: 'scripts-tab-no-features',
       comment: 'The Scripts tab gets the animation renderer (sprites) and the silent music player (music) injected by extension.js; it imports libraries only.',
       severity: 'error',
-      from: { path: '^src/scripts-tab/' },
-      to: { path: '^src/(sprites|music|rooms|emulator|memory|rom|scaling|docs|debugger|resources|mcp)/' },
+      from: { path: '^src/games/evermore/scripts-tab/' },
+      to: { path: '^src/(rooms|emulator|memory|docs|mcp)/|^src/games/evermore/(sprites|music|rom|scaling|debugger|resources)/' },
     },
 
     {
       name: 'no-resources-to-emulator',
       comment: 'The soe:// file system gets the emulator ROM and memory reads injected by extension.js.',
       severity: 'warn',
-      from: { path: '^src/resources/' },
+      from: { path: '^src/games/evermore/resources/' },
       to: { path: '^src/emulator/' },
     },
 
@@ -125,7 +125,7 @@ module.exports = {
       comment: 'The one converter between the games (games/evermore/imports/mana): the Mana decoder, the Evermore maps library and shared helpers, nothing else.',
       severity: 'error',
       from: { path: '^src/games/evermore/imports/mana/' },
-      to: { path: '^src/(?!games/evermore/imports/mana/|games/mana/decoder/|maps/|shared/)' },
+      to: { path: '^src/(?!games/evermore/imports/mana/|games/mana/decoder/|games/evermore/maps/|shared/)' },
     },
 
     {
@@ -146,10 +146,10 @@ module.exports = {
 
     {
       name: 'simulation-is-a-library',
-      comment: 'src/simulation is pure: it may use the script decoder facade and nothing else in src/.',
+      comment: 'src/games/evermore/simulation is pure: it may use the script decoder facade and nothing else in src/.',
       severity: 'error',
-      from: { path: '^src/simulation/' },
-      to: { path: '^src/(?!simulation/|script/)' },
+      from: { path: '^src/games/evermore/simulation/' },
+      to: { path: '^src/(?!games/evermore/(simulation|script)/)' },
     },
 
     {
@@ -180,7 +180,7 @@ module.exports = {
       name: 'no-language-to-emulator',
       comment: 'Language features must not depend on the emulator.',
       severity: 'warn',
-      from: { path: '^src/language/' },
+      from: { path: '^src/games/evermore/language/' },
       to: { path: '^src/emulator/' },
     },
 
@@ -188,7 +188,7 @@ module.exports = {
       name: 'no-language-to-memory-ui',
       comment: 'Language providers may use shared/radar-utils but not memory rendering.',
       severity: 'warn',
-      from: { path: '^src/language/' },
+      from: { path: '^src/games/evermore/language/' },
       to: { path: '^src/memory/(render-|webview/)' },
     },
 
@@ -196,7 +196,7 @@ module.exports = {
       name: 'no-debugger-to-memory',
       comment: 'The debugger must not trigger radar rendering. IPC routes through extension.js.',
       severity: 'warn',
-      from: { path: '^src/debugger/' },
+      from: { path: '^src/games/evermore/debugger/' },
       to: { path: '^src/memory/' },
     },
 
@@ -205,7 +205,7 @@ module.exports = {
       comment: 'Memory radar has no reason to call the debugger.',
       severity: 'warn',
       from: { path: '^src/memory/' },
-      to: { path: '^src/debugger/' },
+      to: { path: '^src/games/evermore/debugger/' },
     },
 
     {
@@ -213,14 +213,14 @@ module.exports = {
       comment: 'Rooms and scaling are sibling tab domains — no direct coupling.',
       severity: 'warn',
       from: { path: '^src/rooms/' },
-      to: { path: '^src/scaling/' },
+      to: { path: '^src/games/evermore/scaling/' },
     },
 
     {
       name: 'no-scaling-to-rooms',
       comment: 'Scaling tab must not depend on rooms tab.',
       severity: 'warn',
-      from: { path: '^src/scaling/' },
+      from: { path: '^src/games/evermore/scaling/' },
       to: { path: '^src/rooms/' },
     },
 
@@ -236,7 +236,7 @@ module.exports = {
       name: 'no-maps-to-vscode',
       comment: 'ROM analysis models are pure and must not depend on VS Code.',
       severity: 'warn',
-      from: { path: '^src/maps/' },
+      from: { path: '^src/games/evermore/maps/' },
       to: { path: '^vscode$' },
     },
 
@@ -244,7 +244,7 @@ module.exports = {
       name: 'no-maps-to-memory-ui',
       comment: 'ROM analysis models must not import memory tab rendering code.',
       severity: 'warn',
-      from: { path: '^src/maps/' },
+      from: { path: '^src/games/evermore/maps/' },
       to: { path: '^src/memory/(render-|webview/)' },
     },
 
@@ -276,7 +276,7 @@ module.exports = {
         collapsePattern: 'node_modules/[^/]+',
       },
       archi: {
-        collapsePattern: '^(node_modules|src/emulator/webview|src/memory/webview|src/rooms/webview|src/scaling/webview)/[^/]+',
+        collapsePattern: '^(node_modules|src/emulator/webview|src/memory/webview|src/rooms/webview|src/games/evermore/scaling/webview)/[^/]+',
       },
     },
   },

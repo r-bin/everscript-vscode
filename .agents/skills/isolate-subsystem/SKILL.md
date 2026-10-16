@@ -13,7 +13,7 @@ or when you want a module to be independently testable and reconstructable.
 
 ## When to invoke
 
-- A module requires files from a sibling domain (e.g. `src/debugger/` requiring
+- A module requires files from a sibling domain (e.g. `src/games/evermore/debugger/` requiring
   `src/memory/`)
 - A module cannot be tested without loading unrelated domains
 - Changing module A breaks module B for unclear reasons
@@ -42,8 +42,8 @@ authoritative per-domain "Allowed deps" / "Forbidden deps" table, enforced by
 `npm run check:deps`):
 - `src/rooms` → `src/memory` (rendering)
 - `src/shared` → any domain module or `vscode`
-- `src/language` → `src/debugger` or `src/emulator`
-- `src/debugger` → `src/memory` rendering
+- `src/games/evermore/language` → `src/games/evermore/debugger` or `src/emulator`
+- `src/games/evermore/debugger` → `src/memory` rendering
 
 For each forbidden direction:
 - Move the data production to the correct owner.
@@ -87,23 +87,23 @@ node tests/<domain>/<test>.js       # should pass without full extension
 src/extension.js  ← orchestrator only, no business logic
   ├── src/memory/    ← WRAM grid rendering
   ├── src/rooms/     ← map browser
-  ├── src/maps/      ← ROM map/blob models (being retired in favor of a map-server — see the `map-format` skill)
-  ├── src/scaling/   ← scaling calculator
+  ├── src/games/evermore/maps/      ← ROM map/blob models (being retired in favor of a map-server — see the `map-format` skill)
+  ├── src/games/evermore/scaling/   ← scaling calculator
   ├── src/docs/      ← docs/RNG tab
-  ├── src/language/  ← grammar, hover, completion, definitions
-  ├── src/debugger/  ← DAP adapter
+  ├── src/games/evermore/language/  ← grammar, hover, completion, definitions
+  ├── src/games/evermore/debugger/  ← DAP adapter
   ├── src/emulator/  ← SNES emulator panel
   ├── src/shared/    ← pure infra: config, radar-utils, rom-readers (no vscode dep)
   └── src/map-editor/ ← PLANNED, not yet created — a map-server bridge into the
                          sibling `everscript` repo's verified Python map/room decoder.
                          See the `map-format` skill before creating this domain or
-                         adding anything to `src/maps/` that assumes it won't exist.
+                         adding anything to `src/games/evermore/maps/` that assumes it won't exist.
 ```
 
 ## A distinct instance of the same problem: pointing at a sibling repo's authoritative implementation
 
 Everything above is about domains *inside* `src/`. The same isolation discipline
-applies across the repo boundary too: `src/maps/`'s ROM decoder and the old
+applies across the repo boundary too: `src/games/evermore/maps/`'s ROM decoder and the old
 `tools/generate_data.py` grammar scraper (deleted) were independent re-derivations of logic
 the sibling `everscript` repo already implements correctly and verified byte-exact. The
 fix for that is not "isolate it better" in the usual sense — it's "stop maintaining a

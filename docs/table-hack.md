@@ -84,7 +84,7 @@ Why each kind goes where it does:
 - **Scripts go in upper halves and never cross a bank.**
   - The packed pointer unpacks to bank `$92 + n` and offset `| $8000`.
   - The interpreter's program counter is 16-bit and never changes bank
-    *(repo: src/script/addressing.ts; export func_CCD09C)*.
+    *(repo: src/games/evermore/script/addressing.ts; export func_CCD09C)*.
 - **Rooms go in upper halves, never cross a bank, and are ≤ 32 KB each.** It is the same rule
   `writeRoomAt` enforces *(repo: docs/map-format/rom-export.md)*. The largest vanilla room is
   17,186 bytes.

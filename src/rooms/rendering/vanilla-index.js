@@ -8,7 +8,7 @@
 //
 // See docs/map-format/building-a-room-from-a-picture.md §2.
 
-const maps = require('../../maps');
+const maps = require('../../games/evermore/maps');
 const { romFingerprint } = require('./rom-fingerprint');
 
 let cached = null;

@@ -461,7 +461,7 @@ verified function at a time, and the generated C shrinks accordingly.
    RAM diff against the embedded emulator (or snesrecomp's `wram_diff.py`).
 3. **First `hle_func` replacements where the semantics are already known:** the LZSS and
    Markov decoders and the room blob layout are ported and verified for the map editor
-   (`src/maps/`). The room loader (`$908F6A`) is also where the room id will be widened.
+   (`src/games/evermore/maps/`). The room loader (`$908F6A`) is also where the room id will be widened.
 4. **Widen the room id:** verify in compat mode first, then extend (§8.4).
 5. **In parallel, on the ROM side:** symbolise more pointer forms (§8.1) with the padding
    test (§4) as the check. This is what moving code and data beyond rooms and strings needs.

@@ -1,6 +1,6 @@
 # Loot: what a pickup gives
 
-> Status: **solved and fully validated.** `src/script/loot.ts`.
+> Status: **solved and fully validated.** `src/games/evermore/script/loot.ts`.
 
 ## No simulation needed
 
@@ -26,7 +26,7 @@ reading the bytes tells us everything running the game would.
 
 ## Cross-checked by simulation
 
-`src/simulation` reads loot the other way: it runs the trigger through the
+`src/games/evermore/simulation` reads loot the other way: it runs the trigger through the
 game's own loot scripts (globals `0x39`/`0x3a`/`0x3b` → `0x3e`) and watches
 which inventory byte goes up. **910 of 910** item pickups agree with the
 extraction above. Four Ebon Keep scripts (`$98:CCCC` and three more) differ,

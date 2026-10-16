@@ -19,7 +19,7 @@ try {
 
 const path   = require('path');
 const fs     = require('fs');
-const { decodeInstruction, OperandStack } = require('../script');
+const { decodeInstruction, OperandStack } = require('../games/evermore/script');
 const { getActiveAddressLookup } = require('./address-lookup');
 const { ScriptTraceFormatter } = require('./trace-formatter');
 

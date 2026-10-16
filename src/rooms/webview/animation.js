@@ -2,7 +2,7 @@
 // shared player. Owns the room's player handle and the enemy idle animations.
 //
 // The host sends one small transparent PNG per frame per block of animated
-// cells (src/maps/animation.ts). Channels run on independent schedules — the
+// cells (src/games/evermore/maps/animation.ts). Channels run on independent schedules — the
 // hardware gives each its own frame delay and there is no common period — so
 // each group keeps its own clock rather than everything ticking together.
 //

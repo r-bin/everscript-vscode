@@ -12,7 +12,7 @@
     "**/dist/**",
     "**/node_modules/**",
     "src/emulator/core/**",
-    "src/music/engine/spc-engine.js",
+    "src/games/evermore/music/engine/spc-engine.js",
     "**/*.json"
   ],
   "minLines": 30,

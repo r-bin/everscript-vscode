@@ -7,7 +7,7 @@
 // directly, and need neither a ROM nor the everscript checkout.
 
 const assert = require('assert');
-const maps = require('../../src/maps');
+const maps = require('../../src/games/evermore/maps');
 
 let passed = 0, failed = 0;
 function test(name, fn) {

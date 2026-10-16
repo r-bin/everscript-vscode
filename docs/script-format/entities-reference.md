@@ -14,7 +14,7 @@ Enemies, NPCs, the Boy and the Dog are all the same thing to the engine: an
 ## 1. The character record
 
 Table `$8EB678`, **74 bytes** per character (`CHARACTER_TABLE`/`CHARACTER_STRIDE`,
-`src/maps/character-record.ts`). 141 named characters. Layout from
+`src/games/evermore/maps/character-record.ts`). 141 named characters. Layout from
 SoETilesViewer's `characterdata.h`, verified field by field
 ([character_table.md](character_table.md)).
 
@@ -41,7 +41,7 @@ here reads them yet.
 
 Not in the room blob. The room's **enter script** (`$928000 + 0x1B + 5·room`)
 places them with four opcodes, whose layout comes from the everscript encoder
-([enemy_spawns.md](enemy_spawns.md), `src/script/entities.ts`):
+([enemy_spawns.md](enemy_spawns.md), `src/games/evermore/script/entities.ts`):
 
 | Opcode | Operands | Position |
 |---|---|---|
@@ -62,7 +62,7 @@ places them with four opcodes, whose layout comes from the everscript encoder
 
 ## 3. Sprites
 
-`src/maps/sprites.ts`, ported from SoETilesViewer, the only implementation
+`src/games/evermore/maps/sprites.ts`, ported from SoETilesViewer, the only implementation
 anywhere ([sprite_format.md](sprite_format.md)).
 
 | Layer | Where |
@@ -96,7 +96,7 @@ palettes cover 134 characters; 27 are shared (e.g. 8 villagers on `$90B06B`).
 The Rooms tab shows the budget per room.
 
 **Depth** ([sprite_priority.md](sprite_priority.md), `spriteDepth()` in
-`src/maps/collision.ts`). Each frame `$8FC780` reads the collision word under the
+`src/games/evermore/maps/collision.ts`). Each frame `$8FC780` reads the collision word under the
 entity's feet (entity `+0x3C`, filled at `$8FAFE5`):
 
 | Test, in order | OAM priority |
@@ -134,7 +134,7 @@ entities.
 
 ## 6. Attacks: strike box and hurt box
 
-[attack_boxes.md](attack_boxes.md), `src/maps/character-animation.ts`.
+[attack_boxes.md](attack_boxes.md), `src/games/evermore/maps/character-animation.ts`.
 
 | | Body | Hurt box | Strike box |
 |---|---|---|---|
@@ -196,7 +196,7 @@ strike box; 54 have no attack animation; 42 attack without `0x47` (shooters use
 | damage from attack (`+0x19`) and defence (`+0x1B`), added to pending `$0076` | `$8FC067` | formula modelled in `tests/memory/damage.test.js` (helpers, not a module yet) |
 | pending damage subtracted from HP on the target's next turn | `$8FC237` | read from the code |
 | charged attacks, the Atlas 999 glitch | | modelled, same test |
-| alchemy: `base_might`, level scale, RNG, `(0x40 − magic_def)/0x40` | | `src/scaling/webview/alchemy-math.js`, [../alchemy-damage.md](../alchemy-damage.md) |
+| alchemy: `base_might`, level scale, RNG, `(0x40 − magic_def)/0x40` | | `src/games/evermore/scaling/webview/alchemy-math.js`, [../alchemy-damage.md](../alchemy-damage.md) |
 
 What is missing (one `damage(attacker, defender, method)` entry point, the
 party's attack value) is in `docs/plans/simulation/damage.md`. A box hitting and damage being
@@ -206,7 +206,7 @@ dealt are separate questions: the traced sword hit on a Wimpy Flower did 0.
 
 ## 8. Animation
 
-[animation_format.md](animation_format.md), `src/maps/characters.ts`,
+[animation_format.md](animation_format.md), `src/games/evermore/maps/characters.ts`,
 `character-animation.ts`.
 
 - **Chain:** record animation field (e.g. `+0x32` stand) → 24-bit script pointer
@@ -262,11 +262,11 @@ The entity struct, as far as the traces and handlers read it:
 
 | Question | Code | Tests |
 |---|---|---|
-| a character's record, radius, palette, flags | `src/maps/character-record.ts` | `tests/memory/map-parity.test.js` (`checkHitboxes`) |
-| sprite pixels | `src/maps/sprites.ts` | same file |
-| idle and attack animation walks, strike boxes | `src/maps/characters.ts`, `character-animation.ts` | `checkStrikeBoxes` |
-| depth against the canopy | `src/maps/collision.ts` (`spriteDepth`, `spawnDepth`) | |
-| spawns, transitions, arrivals, loot | `src/script/entities.ts`, `transition.ts`, `arrivals.ts`, `loot.ts` | `tests/memory/script-parity.test.js`, `script-units.test.js`, `script-loot.test.js` |
-| damage | `src/scaling/webview/alchemy-math.js`; physical in `tests/memory/damage.test.js` | `damage.test.js` |
-| Characters tab (viewer, animations, stats) | `src/sprites/` (`character-model.js`, `animation-catalog.js`, `animation-decoder.js`, `sprites-tab.js`) | `tests/memory/sprites.test.js` |
+| a character's record, radius, palette, flags | `src/games/evermore/maps/character-record.ts` | `tests/memory/map-parity.test.js` (`checkHitboxes`) |
+| sprite pixels | `src/games/evermore/maps/sprites.ts` | same file |
+| idle and attack animation walks, strike boxes | `src/games/evermore/maps/characters.ts`, `character-animation.ts` | `checkStrikeBoxes` |
+| depth against the canopy | `src/games/evermore/maps/collision.ts` (`spriteDepth`, `spawnDepth`) | |
+| spawns, transitions, arrivals, loot | `src/games/evermore/script/entities.ts`, `transition.ts`, `arrivals.ts`, `loot.ts` | `tests/memory/script-parity.test.js`, `script-units.test.js`, `script-loot.test.js` |
+| damage | `src/games/evermore/scaling/webview/alchemy-math.js`; physical in `tests/memory/damage.test.js` | `damage.test.js` |
+| Characters tab (viewer, animations, stats) | `src/games/evermore/sprites/` (`character-model.js`, `animation-catalog.js`, `animation-decoder.js`, `sprites-tab.js`) | `tests/memory/sprites.test.js` |
 | drawing enemies over a map | `docs/map-format/enemy-sprites-on-maps.md` | |

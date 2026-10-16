@@ -22,7 +22,7 @@ it picks `#$FC20` instead of `#$CC20` (`$8FC7BC`). The OAM assembly `$809433` th
 each chunk's own bits 4–5 and adds them to priority 2, so a chunk marked 1 is drawn at 3
 and a chunk marked 0 stays at 2.
 
-The marks are already in the art. Of the 5128 sprites `walkSprites` (`src/maps/sprites.ts`)
+The marks are already in the art. Of the 5128 sprites `walkSprites` (`src/games/evermore/maps/sprites.ts`)
 finds, 1161 mix marks 0 and 1, and in 1145 of them the chunks marked 0 are the lower ones.
 The first sprite in the list, `$CA0003`, has its legs (y −18..−2) marked 0 and its torso
 and head marked 1. 3878 sprites mark every chunk 1 (they would draw fully in front on such a
@@ -60,7 +60,7 @@ sprite with no mixed marks is drawn whole.
 
 ## In the plugin (not built)
 
-- `spriteDepth` (`src/maps/collision.ts`) answers `front`/`behind`/`hidden`; it would need
+- `spriteDepth` (`src/games/evermore/maps/collision.ts`) answers `front`/`behind`/`hidden`; it would need
   a `split` answer for nibble 4, and the Rooms tab would draw marked chunks above the canopy
   and the rest below it.
 - The map editor's Special tab would get a "Wading" special that sets `0x0400` and clears

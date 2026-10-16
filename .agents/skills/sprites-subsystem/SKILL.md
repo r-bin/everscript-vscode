@@ -1,12 +1,12 @@
 ---
 name: sprites-subsystem
-description: Sprites decoding, animation frames, palette slot assignments, and sprite rendering in src/sprites/.
-applyTo: "src/sprites/**"
+description: Sprites decoding, animation frames, palette slot assignments, and sprite rendering in src/games/evermore/sprites/.
+applyTo: "src/games/evermore/sprites/**"
 ---
 
 # Skill: Sprites Subsystem
 
-Use this skill when modifying sprite decoding, character animations, or sprite rendering pipelines in `src/sprites/`.
+Use this skill when modifying sprite decoding, character animations, or sprite rendering pipelines in `src/games/evermore/sprites/`.
 
 ---
 

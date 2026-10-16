@@ -12,7 +12,7 @@ const u24 = (rom, o) => rom[o] | (rom[o + 1] << 8) | (rom[o + 2] << 16);
 const put24 = (img, o, v) => { img[o] = v & 0xFF; img[o + 1] = (v >> 8) & 0xFF; img[o + 2] = (v >> 16) & 0xFF; };
 
 const SCRIPT_BANK = 0x128000;                 // $92:8000, the script bank header
-/** File offset of a packed script pointer (src/script/addressing.ts). */
+/** File offset of a packed script pointer (src/games/evermore/script/addressing.ts). */
 const unpackScript = v => (0x128000 + (v & 0x7FFF) + ((v & 0xFF8000) << 1)) & 0xFFFFFF;
 
 /**
@@ -41,9 +41,9 @@ function characterOperands(rom) {
     return { code, elsewhere };
 }
 
-/** Highest tile family any room loads, + 1 (src/maps decodes every room). */
+/** Highest tile family any room loads, + 1 (src/games/evermore/maps decodes every room). */
 function familyCount(rom) {
-    const maps = require('../../src/maps');
+    const maps = require('../../src/games/evermore/maps');
     let max = 0;
     for (let id = 0; id < maps.MAX_ROOMS; id++) {
         try { for (const f of maps.decodeRoom(rom, id).tileFamilies) max = Math.max(max, f); } catch (_) { /* not a room */ }
@@ -137,7 +137,7 @@ const TABLES = {
         readers: [operand(0x00A4FC, 0xBF, 0xD80001), operand(0x00A50B, 0xBF, 0xD80000), operand(0x00A800, 0xBF, 0xD80000)],
     },
     map_palettes: {
-        what: 'background palette families, 32 bytes each, $9C:C322 + 32*family (src/maps tileFamilies)',
+        what: 'background palette families, 32 bytes each, $9C:C322 + 32*family (src/games/evermore/maps tileFamilies)',
         // `adc #$C322` and `lda #$9C` in the family loader ($90:D05C) are the only readers; moved to $B9:8000 the
         // 16-bit source address has room for 1024 families (vanilla: 365; in place at most 486).
         start: 0x1CC322, entry: 32, count: rom => familyCount(rom),

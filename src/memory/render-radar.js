@@ -8,10 +8,10 @@ const { buildMemoryTabHtml }     = require('./render-memory-tab');
 const { buildDocsTabHtml, buildRngTabHtml } = require('../docs/render-docs-tab');
 const { renderRoomsTree, renderVanillaTree, buildRoomRailHtml,
         buildRoomsJson, VANILLA_ROOMS } = require('../rooms');
-const { buildSpritesTabHtml }    = require('../sprites');
-const { buildRomTabHtml }        = require('../rom');
-const { buildMusicTabHtml }      = require('../music');
-const { buildScriptsTabHtml }    = require('../scripts-tab');
+const { buildSpritesTabHtml }    = require('../games/evermore/sprites');
+const { buildRomTabHtml }        = require('../games/evermore/rom');
+const { buildMusicTabHtml }      = require('../games/evermore/music');
+const { buildScriptsTabHtml }    = require('../games/evermore/scripts-tab');
 const radarWebview               = require('./webview');
 const { shellFrameHtml }         = require('../shared/webview/map-editor-shell/frame');
 

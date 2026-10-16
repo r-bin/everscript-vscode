@@ -1,7 +1,7 @@
 ---
 name: map-entities
-description: Characters, enemies and NPCs on a Secret of Evermore map — the character record, how a room's enter script places them (8px units, every branch a candidate), sprites, the 4-palette budget, depth against the canopy, the body/hurt/strike boxes, damage, and animation scripts. Read before changing src/maps/character-*.ts, sprites.ts, characters.ts, src/script/entities.ts/arrivals.ts/transition.ts, or anything that draws, places, sizes or fights an entity.
-applyTo: "src/maps/character-*.ts,src/maps/characters.ts,src/maps/sprites.ts,src/scaling/webview/alchemy-math.js,src/script/entities.ts,src/script/arrivals.ts,src/script/transition.ts,docs/script-format/**,simulation/**,src/sprites/character-model.js,src/sprites/dog-forms.js,src/sprites/target.js"
+description: Characters, enemies and NPCs on a Secret of Evermore map — the character record, how a room's enter script places them (8px units, every branch a candidate), sprites, the 4-palette budget, depth against the canopy, the body/hurt/strike boxes, damage, and animation scripts. Read before changing src/games/evermore/maps/character-*.ts, sprites.ts, characters.ts, src/games/evermore/script/entities.ts/arrivals.ts/transition.ts, or anything that draws, places, sizes or fights an entity.
+applyTo: "src/games/evermore/maps/character-*.ts,src/games/evermore/maps/characters.ts,src/games/evermore/maps/sprites.ts,src/games/evermore/scaling/webview/alchemy-math.js,src/games/evermore/script/entities.ts,src/games/evermore/script/arrivals.ts,src/games/evermore/script/transition.ts,docs/script-format/**,simulation/**,src/games/evermore/sprites/character-model.js,src/games/evermore/sprites/dog-forms.js,src/games/evermore/sprites/target.js"
 ---
 
 # Map entities: rules
@@ -12,7 +12,7 @@ holds the evidence. This skill is what a change must not get wrong.
 
 ## 1. An entity is a character record plus a placement
 
-- Record: `$8EB678 + 74·id` (`src/maps/character-record.ts`). Read fields through
+- Record: `$8EB678 + 74·id` (`src/games/evermore/maps/character-record.ts`). Read fields through
   that module; the offsets are in the reference §1. `+0x0D` is the **radius**,
   the one number that sizes a character.
 - Placement is **script, not room data**: the enter script's spawn opcodes
@@ -33,7 +33,7 @@ holds the evidence. This skill is what a change must not get wrong.
 | test | `\|dx\| < r1+r2`, `2\|dy\| < r1+r2`, \|Δh\| < `$230` | `2(\|d\| − r) < w/h`; −40 px ≤ Δh < 30 px | live only on the ticks that run it, per facing |
 
 The hurt box is not "anchored upward" from the feet: `$8FB63D` adds 16 and
-`+0x44` rests at −16, so it is centred (`src/maps/hit-test.ts`).
+`+0x44` rests at −16, so it is centred (`src/games/evermore/maps/hit-test.ts`).
 A character with radius 0 has no body. Contact damage goes through the body test
 (`$8FB52C`), so "has no `0x47`" does not mean "harmless". Planes must match unless
 one side is plane-transparent (bit 6). "The box hit" and "damage was dealt" are
@@ -43,7 +43,7 @@ separate questions.
 
 - **Depth comes from the tile under the feet**, every frame: gate nibble 8 hides
   the sprite; otherwise plane comparison, then collision bit 12 (`spriteDepth`,
-  `src/maps/collision.ts`). Never lay the canopy over every sprite: 84% of tiles
+  `src/games/evermore/maps/collision.ts`). Never lay the canopy over every sprite: 84% of tiles
   put the character in front.
 - An entity on a bit-13 or bit-6 tile keeps the plane it walked in with, which the
   map cannot say: report `unknown`, do not guess.
@@ -82,17 +82,17 @@ separate questions.
 
 Physical: modelled only as test helpers in `tests/memory/damage.test.js` (move it
 to a module before building on it, `docs/plans/simulation/damage.md`). Alchemy:
-`src/scaling/webview/alchemy-math.js`. Return distributions, not averages.
+`src/games/evermore/scaling/webview/alchemy-math.js`. Return distributions, not averages.
 
 ## 6. Doors and entrances
 
 A room does not store its entrances. An entrance is a `CHANGE MAP` in some other
-room's trigger script; `src/script/arrivals.ts` indexes them by destination. Like
+room's trigger script; `src/games/evermore/script/arrivals.ts` indexes them by destination. Like
 spawns, these are a superset: a door behind a story flag is listed the same as
 one that always works.
 
 ## 7. The Characters tab
 
-`src/sprites/` (the radar's **Characters** tab, formerly Sprites): characters,
+`src/games/evermore/sprites/` (the radar's **Characters** tab, formerly Sprites): characters,
 the animation catalogue and raw sprites. Its rules for animations are the
 `animation-script` skill; its tests are `tests/memory/sprites.test.js`.

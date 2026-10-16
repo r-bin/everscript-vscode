@@ -58,10 +58,10 @@ of:
 |---|---|
 | `package.json` | Extension manifest — version lives here |
 | `src/extension.js` | Activation entry point (registered as `main`) |
-| `src/language/syntaxes/everscript.tmLanguage.json` | TextMate grammar |
-| `src/language/themes/everscript-dark.json` | Bundled colour theme — P1–P9 palette |
-| `src/language/language-configuration.json` | Bracket matching, comment toggle, word pattern |
-| `src/language/tests/highlight.test.evs` | Grammar unit tests (vscode-tmgrammar-test) |
+| `src/games/evermore/language/syntaxes/everscript.tmLanguage.json` | TextMate grammar |
+| `src/games/evermore/language/themes/everscript-dark.json` | Bundled colour theme — P1–P9 palette |
+| `src/games/evermore/language/language-configuration.json` | Bracket matching, comment toggle, word pattern |
+| `src/games/evermore/language/tests/highlight.test.evs` | Grammar unit tests (vscode-tmgrammar-test) |
 | `docs/future-features.md` | Roadmap — read before starting new features |
 | `docs/recomp/` | Recomp master page (`README.md`), setup (`setup.md`), Game Runtime Layer (`game-rtl.md`), debugging (`debugging.md`), headless exploration (`headless-exploration.md`), open bugs & roadmap (`bugs-and-todos.md`), addons (`snesmod-addons.md`), enhancements (`enhancements.md`), experimental graphics (`experimental-renderer.md`) |
 | `docs/reverse-engineering/` | RE master page (`README.md`: goals, how each is reached) + one page per approach (CDL, recomp/C port, Ghidra, REA, formats, other tools) — read before RE work |
@@ -80,8 +80,8 @@ of:
 | `tools/recomp/` | `room-nav.js` (room triggers/spawns → headless script lines), `check-obj-tiles.js`, `s9x-run.js` (same script on snes9x); `npm run recomp`: CDL + names + assets → Asar (byte-identical) + Mesen2 files → snesrecomp host project (`out/recomp/project/`, generated) + our glue (`tools/recomp/host/`, the only game-specific host files in git) → playable `out/recomp/SecretOfEvermore-<os>-<arch>/` + `REPORT.md`; `npm run recomp:lockstep`: that game vs snes9x |
 | `scripts/` | Shell wrappers for the npm commands: `build-plugin.sh`, `test.sh`, `build-recomp.sh`, `build-exhirom.sh`, `play-recomp.sh`, `lockstep.sh`, `release.sh` (see `scripts/README.md`) |
 | `src/recorder/`, `recorder/`, `tools/recorder/` | SNES CDL Recorder, the second extension: entry (`src/recorder/extension.js`), manifest + store README (`recorder/`), file list + build (`tools/recorder/`; `npm run build:recorder` / `scripts/build-recorder.sh` → `out/snes-cdl-recorder-<version>.vsix`). Emulator profiles and Evermore gating: `src/emulator/README.md` |
-| `src/scripts-tab/` | Scripts tab (radar): Everscript + map, animation and alchemy scripts + animation, music sequences + silent player — not `src/script/` (the decoder) |
-| `docs/plans/simulation/` | Design notes for the simulation; the code is `src/simulation/` (scenarios, loot cases, byte-identical Everscript; `npm run test:simulation`) |
+| `src/games/evermore/scripts-tab/` | Scripts tab (radar): Everscript + map, animation and alchemy scripts + animation, music sequences + silent player — not `src/games/evermore/script/` (the decoder) |
+| `docs/plans/simulation/` | Design notes for the simulation; the code is `src/games/evermore/simulation/` (scenarios, loot cases, byte-identical Everscript; `npm run test:simulation`) |
 | `src/platform/`, `src/core/`, `src/games/` | The game-neutral layers and the game list (multi-game.md): ROM identification, the ROM library (`npm run roms`), Switch ROM / ROM panel, game descriptors |
 | `src/games/mana/decoder/`, `src/games/mana/resources/`, `src/games/mana/maps/` | Secret of Mana, kept apart from Evermore: pure decoder/renderer (TS library), the read-only `som://` file system, and the Maps panel (`everscript.openManaMaps`). Format + evidence: `docs/mana/` |
 | `src/games/evermore/imports/mana/` | Secret of Mana maps converted into Evermore rooms, listed in the Rooms tab under the vanilla rooms (`docs/mana/evermore-rooms.md`) |

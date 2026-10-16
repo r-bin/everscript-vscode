@@ -29,7 +29,7 @@ Status values:
 
 Sources: [asm-to-c-port.md §11](reverse-engineering/asm-to-c-port.md),
 [cdl-export-build-recomp.md](reverse-engineering/cdl-export-build-recomp.md),
-`src/emulator/cdl/known-regions.js`, `src/rom/model/*`, and our own measurements on a clean ROM.
+`src/emulator/cdl/known-regions.js`, `src/games/evermore/rom/model/*`, and our own measurements on a clean ROM.
 *(to verify)* marks what has not been checked on the running game.
 
 ## Tables worth moving
@@ -49,7 +49,7 @@ Sources: [asm-to-c-port.md §11](reverse-engineering/asm-to-c-port.md),
 | Map tile graphics | `$EE0000`, 3 B/tile | **more 16×16 map tile graphics** | **6,688 / ~21,800** *(to verify)* | id × 3 with a 16-bit index. How many tiles a room can use is a separate limit (the seven family slots, `map-editor-rules`). | **needs readers**: `8C:C88C` and `90:A23D` are known, and the CDL has seen only part of the code |
 | Sprite blocks 16×16 | `$EC0000`, 3 B | **more sprite graphics** (characters, enemies, effects) | **4,854 / ~21,800** *(to verify)* | The table is full and other data follows it, so it can only grow by moving. | **proven ✓** (`$F8:0000`, 10922 ids). Readers `$80:9742`, `$80:9751`, `$80:A2E6`. |
 | Sprite blocks 8×8 | `$D80000`, 3 B | more small sprite pieces | **6,265 / ~21,800** *(to verify)* | as above | **proven ✓** (`$F9:0000`, 10922 ids). Readers `$80:A4FC`, `$80:A50B`, `$80:A800`. |
-| Song packages | `$819903`, 3 B | **more music and sound packages** | **71 / 256** *(to verify)* | The count is one byte: `$81:9900` is the last package index. The everscript repo reads `$9901` as 70 music ids and `$9902` as 90 sound effects; our `src/rom/model/audio.js` still calls `$9900` "song count". Sound-driver memory is a second limit. | **needs readers**: `8C:8252`, `8C:8257`; the export has it as a value-only table |
+| Song packages | `$819903`, 3 B | **more music and sound packages** | **71 / 256** *(to verify)* | The count is one byte: `$81:9900` is the last package index. The everscript repo reads `$9901` as 70 music ids and `$9902` as 90 sound effects; our `src/games/evermore/rom/model/audio.js` still calls `$9900` "song count". Sound-driver memory is a second limit. | **needs readers**: `8C:8252`, `8C:8257`; the export has it as a value-only table |
 
 The gain on one line:
 

@@ -52,7 +52,7 @@ var _layerForce = null;
  *
  * Bit 14 of a tilemap word is the horizontal flip and bit 15 the vertical
  * one (`docs/map-format/map_rendering_pipeline.md` §3), and `renderVramLayer`
- * (src/maps/render.ts) reads exactly those two bits back out per word and
+ * (src/games/evermore/maps/render.ts) reads exactly those two bits back out per word and
  * applies them to the whole 16×16 graphic — so a word this ORs them into
  * renders mirrored on the canvas and in the composed preview alike, with no
  * second code path. `docs/map-format/building-a-room-from-a-picture.md` §9.1

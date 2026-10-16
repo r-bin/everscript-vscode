@@ -1,5 +1,5 @@
 'use strict';
-// The ROM tab (src/rom): the model against the vanilla ROM, the reader lookup
+// The ROM tab (src/games/evermore/rom): the model against the vanilla ROM, the reader lookup
 // on synthetic xrefs, and the real panel page driven in a browser.
 // ROM-dependent checks skip without the ROM; browser checks skip without playwright.
 
@@ -7,10 +7,10 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 
-const { buildRomModel } = require('../../src/rom');
-const { readersOf } = require('../../src/rom/model/readers');
-const { parseWikiPoints, mergePoints } = require('../../src/rom/model/wiki-overlay');
-const { executedByHalf, wramStrip } = require('../../src/rom/model/bus-usage');
+const { buildRomModel } = require('../../src/games/evermore/rom');
+const { readersOf } = require('../../src/games/evermore/rom/model/readers');
+const { parseWikiPoints, mergePoints } = require('../../src/games/evermore/rom/model/wiki-overlay');
+const { executedByHalf, wramStrip } = require('../../src/games/evermore/rom/model/bus-usage');
 const { renderRadarHtml } = require('../../src/memory/render-radar');
 
 let passed = 0, failed = 0;

@@ -5,7 +5,7 @@
 //
 //   node tools/simulation/sweep-rooms.js [rom] [seconds-per-room]
 //
-// Writes nothing. Useful after changing src/simulation: compare totals before/after.
+// Writes nothing. Useful after changing src/games/evermore/simulation: compare totals before/after.
 
 const path = require('path');
 const { spawnSync } = require('child_process');
@@ -15,7 +15,7 @@ const LIMIT = (+process.argv[3] || 60) * 1000;
 
 if (process.argv[2] === '--room') {
     const fs = require('fs');
-    const sim = require('../../src/simulation');
+    const sim = require('../../src/games/evermore/simulation');
     const S = sim.createSimulator(new Uint8Array(fs.readFileSync(process.argv[4])));
     const t = Date.now();
     const r = S.room(parseInt(process.argv[3], 16));

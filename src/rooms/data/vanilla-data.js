@@ -15,7 +15,7 @@ function invalidateVanillaDataCaches() {
 }
 
 // Full catalogue of vanilla rooms grouped by act, loaded from localizations.
-const { VANILLA_ROOMS } = require('../../localizations');
+const { VANILLA_ROOMS } = require('../../games/evermore/localizations');
 
 
 /**

@@ -1,7 +1,7 @@
 # Hitboxes
 
 > Status: **solved** for the body — the box entities bump into.
-> `src/maps/character-record.ts`. Attack and hurt boxes are a separate
+> `src/games/evermore/maps/character-record.ts`. Attack and hurt boxes are a separate
 > question and are **not** covered here.
 
 There was no research on this before. It came out of one trace:
@@ -90,7 +90,7 @@ Passing the distance test is not enough:
 `$44` is loaded from the mover's `$0018` before the move (`$8FAF48`) and the
 value itself comes from the destination tile's collision word, masked with
 `AND #$0030` at `$8FA914` — which is `PLANE_MASK` in
-[`src/maps/collision.ts`](../../src/maps/collision.ts). Bit `0x40` is
+[`src/games/evermore/maps/collision.ts`](../../src/games/evermore/maps/collision.ts). Bit `0x40` is
 `PLANE_TRANSPARENT`, and here it means "collide regardless of plane". So
 entities on different elevations pass through each other.
 
@@ -170,6 +170,6 @@ every enemy 4 px down and to the right of where the game puts it.
   through this collision box (`$8FB52C`).
   `$8FDA10` uses `+0x0D` too — halved, plus 5 — in an enemy's approach logic.
 - **Tile collision.** Walls come from the collision word, which
-  [`src/maps/collision.ts`](../../src/maps/collision.ts) already decodes; the
+  [`src/games/evermore/maps/collision.ts`](../../src/games/evermore/maps/collision.ts) already decodes; the
   move routine checks that first (`$909815`, `$8FA946`, `$909561`) and only
   then asks about entities.

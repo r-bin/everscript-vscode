@@ -1138,7 +1138,7 @@ async function main() {
         order.join() === orderBefore.join() && order[0] === '4200', JSON.stringify([orderBefore, order]));
     // ── LIKELY NEIGHBORS: the plus-shape (§8b) ─────────────────────────────
     // The mock's N/E/S/W grid around the armed brush. It is honest now
-    // because the index counts each side separately (src/maps/vanilla-
+    // because the index counts each side separately (src/games/evermore/maps/vanilla-
     // adjacency.ts); before §8b it was a ranked list, since the only score
     // was undirected. 4191 is canopy-leaning (90/10), so it arms as front and
     // the card reads the canopy half of the answer.
@@ -1493,7 +1493,7 @@ async function main() {
 
     // ── H / V mirror ───────────────────────────────────────────────────────
     // Bit 14 is the horizontal flip and bit 15 the vertical one
-    // (docs/map-format/map_rendering_pipeline.md §3); src/maps/render.ts's
+    // (docs/map-format/map_rendering_pipeline.md §3); src/games/evermore/maps/render.ts's
     // renderVramLayer reads exactly those two back out per word and applies
     // them to the whole 16x16 graphic, so nothing else has to know. The cost
     // is one dictionary entry and **no** graphics slot, which is the whole

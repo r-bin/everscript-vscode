@@ -158,7 +158,7 @@ Things that are **not** real, and that a design mock or a plausible-looking UI h
 for anyway:
 - **Diagonal stairs are bit 13 + drift nibble 1 or 2** (the two "shear" handlers of
   `map_collision_mechanics.md` §6), measured over every vanilla room: only stair art
-  carries them, and the direction follows the art's H flip (`src/maps/vanilla-stairs.ts`).
+  carries them, and the direction follows the art's H flip (`src/games/evermore/maps/vanilla-stairs.ts`).
   **Vertical stairs are bit 13 + nibble 0** (walkable, no drift, the level kept): the
   word vanilla puts under its step art. An earlier version of this codebase mistook
   plane-transparency (bit 6) for a stairs test; that is still wrong.
@@ -171,7 +171,7 @@ for anyway:
 - **Adjacency comes in two kinds, and they are not interchangeable.**
   `relatedGraphics`/`relatedTiles` is **undirected** ("drawn beside, any side") and
   drives the tile list's % badges — **not its order**: the list is in placement order
-  and never moves once a tile is used. Since §8b the same walk (`src/maps/vanilla-adjacency.ts`) also
+  and never moves once a tile is used. Since §8b the same walk (`src/games/evermore/maps/vanilla-adjacency.ts`) also
   counts **per side and per layer** — a right pair is `b` east of `a` and `a` west of
   `b`, a down pair `b` south / `a` north — and `directionalNeighbours`/`neighbourTiles`
   answer N/E/S/W for one graphic. Only the directional data may be drawn as a compass

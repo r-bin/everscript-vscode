@@ -10,16 +10,16 @@ Items are grouped by VS Code extension API surface and rough complexity.
 - **Language Support**:
   - TextMate grammar (syntax highlighting) and language configuration
   - Bundled Everscript Dark theme
-  - Native language providers (`src/language/`): hover documentation, keyword/enum autocompletion, go-to-definition, and document symbols outline
+  - Native language providers (`src/games/evermore/language/`): hover documentation, keyword/enum autocompletion, go-to-definition, and document symbols outline
   - Compiler problem matchers and "Build ROM" tasks (`package.json`)
-  - Dead branch highlighting (`src/language/dead-branch.js`) and snippets
+  - Dead branch highlighting (`src/games/evermore/language/dead-branch.js`) and snippets
 - **Memory Radar & Rooms Panel**:
   - Live WRAM grid visualization, lifecycle analysis, and memory pool tracking
   - Room tree browser, map collision/trigger layers, candidate entity spawner preview, and characters/sprites catalog
   - Map Editor with Collision shape picker, Special levels, Widgets tab, and Section 2 animated tiles
 - **Embedded SNES Emulator Subsystem**:
   - Direct `snes9x2005-wasm` integration with planar 44.1kHz audio streaming and aspect-fit video
-  - Full VS Code Debug Adapter Protocol (DAP) debugger with breakpoints and stepping (`src/debugger/`)
+  - Full VS Code Debug Adapter Protocol (DAP) debugger with breakpoints and stepping (`src/games/evermore/debugger/`)
   - Map Extension multi-layer room rendering outside emulator boundaries
   - Runtime Everscript Injection, TAS input recording/replay, and sound-chip streaming to Music tab
 
@@ -175,7 +175,7 @@ another phase, so neighbours flicker out of step, or another room's delays.
 
 ### 17. Emulator: SPC monitor panel
 
-Built 2026-10-09 as the radar's **Music** tab (`src/music/README.md`), without the sequence view
+Built 2026-10-09 as the radar's **Music** tab (`src/games/evermore/music/README.md`), without the sequence view
 (`docs/todo/audio-and-music.md`). Proposed 2026-10-08. Mockup with real data:
 https://claude.ai/artifact/QHt9cxWViSqToKoiHRjRwr (Main Title, synced to audio).
 

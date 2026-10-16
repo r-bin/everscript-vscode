@@ -1,6 +1,6 @@
 # Combat Damage & Route Planning — Open Tasks & Roadmap
 
-> Domain: Damage Calculation Models (`src/scaling/`, Route Planner)
+> Domain: Damage Calculation Models (`src/games/evermore/scaling/`, Route Planner)
 > Shipped features reference: [`docs/scaling-scenarios.md`](../scaling-scenarios.md) (Physical Damage), [`docs/alchemy-damage.md`](../alchemy-damage.md) (Offensive Alchemy)
 > Master Reference: [`docs/atlas-trace-request.md`](../atlas-trace-request.md)
 > Status key: 🟡 blocked on user trace · 🟢 designed roadmap

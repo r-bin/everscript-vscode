@@ -136,7 +136,7 @@ decoders already read. Only these are useful leads:
 
 ## 4. Character record fields
 
-The project names the whole 74-byte record. Our `src/maps/character-record.ts` reads `+05`
+The project names the whole 74-byte record. Our `src/games/evermore/maps/character-record.ts` reads `+05`
 flags, `+09` palette, `+0D` collision radius and the animation words from `+32`, and the
 project agrees on all of these. New field names:
 
@@ -234,7 +234,7 @@ know where our own tools already reach further:
 In order of value:
 
 1. **Alchemy blocks as bytecode** (§3): check the opcode reading against the cast in the
-   emulator. It may turn `src/scripts-tab/model/alchemy.js` from "undecoded" into a decoder.
+   emulator. It may turn `src/games/evermore/scripts-tab/model/alchemy.js` from "undecoded" into a decoder.
 2. **New tables**: weapon, armor, ingredient cost, alchemy name/description pointers, dog form,
    projectile, font widths. Each becomes a `knowledge/rom/<addr>.md` entry after a check of the
    reader in the CDL (who loads it, with what stride).

@@ -1,6 +1,6 @@
 # `soe://tags/`: Tagging Specification
 
-> **Status:** Phases 1–2 and the claims/conflicts part of Phase 3 implemented in v0.186.0 (`src/resources/tag-*.js`, `src/resources/tags/tags.json`). Phase 4 is a proposal.
+> **Status:** Phases 1–2 and the claims/conflicts part of Phase 3 implemented in v0.186.0 (`src/games/evermore/resources/tag-*.js`, `src/games/evermore/resources/tags/tags.json`). Phase 4 is a proposal.
 > **Builds on:** [`soe-filesystem-spec.md`](soe-filesystem-spec.md) (the `soe://` provider, §3a MCP access)
 > **Goal:** Join everything known about one game concept (the boy, his HP, the Raptors room) under one name. Each fact links to the resource it came from, so a person or an AI can look up a concept and then follow links to the data.
 
@@ -17,7 +17,7 @@ What we know about the boy's HP is spread over six places that never reference e
 | `wiki/ram/Ram-Map.md` | `0x0a35 BOY_MAX_HP`, `0x0a37 BOY_CURRENT_HP` |
 | community RAM list (Data Crystals) | `7E0A35 to 7E0A36 = Boy - Stats - Max HP`, `7E4EB3 to 7E4EB4 = Boy - Current HP`. An **unverified reference** (§6) |
 | `wram-memory-mapping` skill | boy entity record at `$7E4E89`, pointer at `$0F3E` |
-| `src/script/names.json` | address labels used by hovers and `soe://ram/<addr>.json` |
+| `src/games/evermore/script/names.json` | address labels used by hovers and `soe://ram/<addr>.json` |
 | the running emulator | the value right now, e.g. `30` |
 
 The enums already explain the addresses; the link is just never written down:
@@ -113,7 +113,7 @@ The tree comes from what the extension already decodes, so most tags are generat
 
 | Root | Children | Generated from |
 |---|---|---|
-| `character`, `player`, `boy`, `dog`, `enemy` | the tag graph of §5.2: attributes, stats, equipment, sprite, animations | `src/resources/tags/tags.json` |
+| `character`, `player`, `boy`, `dog`, `enemy` | the tag graph of §5.2: attributes, stats, equipment, sprite, animations | `src/games/evermore/resources/tags/tags.json` |
 | `enemy.<name>` | one per character record (`enemy.raptor`): sprite, animations, stats | `maps/characters.ts`, `names.json enemies` |
 | `map` | `map.<name>` per room | `localizations/maps.js` |
 | `item`, `ingredient`, `alchemy` | per entry | `rom-assets.js` (same names it already serves) |
@@ -149,7 +149,7 @@ Names are the lowercased display name with non-alphanumerics folded to `_` (`Pre
 
 ### 5.1 One JSON file in the plugin
 
-Tags live in `src/resources/tags/tags.json`. The plugin reads nothing else to build them: no `.evs` files, no `core.evs`, no `everscript` checkout. That avoids a version dependency between the plugin and the compiler's core library (§5.4).
+Tags live in `src/games/evermore/resources/tags/tags.json`. The plugin reads nothing else to build them: no `.evs` files, no `core.evs`, no `everscript` checkout. That avoids a version dependency between the plugin and the compiler's core library (§5.4).
 
 ```json
 {
@@ -267,12 +267,12 @@ Uses of the same data outside `soe://`:
 
 | Phase | Scope |
 |---|---|
-| 1 ✓ | `soe://tags/` provider (`src/resources/tag-files.js`); generated `map.*`, `area.*`, `enemy.*`, `music.*`, `sound.*`, `flag.*`, `ram.*`, `table.*`, `ingredient.*` / `armor.*` / `consumable.*` (`tag-generate.js`); `index.md` + `index.json` per directory; `.md` + `.json` per tag |
+| 1 ✓ | `soe://tags/` provider (`src/games/evermore/resources/tag-files.js`); generated `map.*`, `area.*`, `enemy.*`, `music.*`, `sound.*`, `flag.*`, `ram.*`, `table.*`, `ingredient.*` / `armor.*` / `consumable.*` (`tag-generate.js`); `index.md` + `index.json` per directory; `.md` + `.json` per tag |
 | 2 ✓ | `tags.json` with `character` / `player` / `boy` / `dog` / `enemy` and their precompiled sub-tags; multiple inheritance (`tag-model.js`); back-links; live values; `check.json` and a row in `Everscript: Check soe:// Resources` |
 | 3 | ✓ claims with the Conflicts section, ✓ `search/`; open: more claims from the Data Crystals list |
 | 4 | `asm` facts from CDL / disassembly, `script` facts from decompiled room scripts; hover and Memory Radar integration |
 
-Dependency rules follow `src/resources/README.md`: tag files may use `shared/`, `maps/`, `script/` and `localizations/`, never `emulator/`. Live values come through the injected `readMemory`, the same path `ram-files.js` uses.
+Dependency rules follow `src/games/evermore/resources/README.md`: tag files may use `shared/`, `maps/`, `script/` and `localizations/`, never `emulator/`. Live values come through the injected `readMemory`, the same path `ram-files.js` uses.
 
 ---
 

@@ -888,7 +888,7 @@ function _getRoomMeta(rom, mapId) {
     if (_roomMetaCache.has(mapId)) {
         return _roomMetaCache.get(mapId);
     }
-    const maps = require('../maps');
+    const maps = require('../games/evermore/maps');
     const room = maps.decodeRoom(rom, mapId);
     if (!room) return null;
 
@@ -1086,7 +1086,7 @@ function _getRoomMeta(rom, mapId) {
 
     const roomLootables = [];
     try {
-        const { buildRoomScriptModel } = require('../script');
+        const { buildRoomScriptModel } = require('../games/evermore/script');
         const scriptModel = buildRoomScriptModel(rom, mapId);
         const allTrigs = [...(scriptModel.bTrigger || []), ...(scriptModel.stepOn || [])];
         let lootIdx = 0;
@@ -1161,7 +1161,7 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles, layered) {
     }
     if (!_currentRomBuffer) return;
     try {
-        const maps = require('../maps');
+        const maps = require('../games/evermore/maps');
         const rom = (_currentRomBuffer.length % 1024 === 512) ? _currentRomBuffer.subarray(512) : _currentRomBuffer;
         const meta = _getRoomMeta(rom, mapId);
         if (!meta) return;
@@ -1247,7 +1247,7 @@ const CHARACTER_TABLE = 0x8eb678;
 const CHARACTER_STRIDE = 74;
 function _handleIdleSprites(keys) {
     if (!_panel || !_currentRomBuffer || !Array.isArray(keys)) return;
-    const maps = require('../maps');
+    const maps = require('../games/evermore/maps');
     const rom = (_currentRomBuffer.length % 1024 === 512) ? _currentRomBuffer.subarray(512) : _currentRomBuffer;
     const sprites = {};
     for (const key of keys.slice(0, 64)) {

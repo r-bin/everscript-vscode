@@ -1,7 +1,7 @@
 # Sprite priority: which characters the scenery covers
 
 > Status: **solved**, except for one input the map does not hold.
-> `spriteDepth()` and `spawnDepth()` in `src/maps/collision.ts`; the Rooms
+> `spriteDepth()` and `spawnDepth()` in `src/games/evermore/maps/collision.ts`; the Rooms
 > tab draws the two groups on either side of the canopy. From
 > `walking_against_flower.txt`, `add_enemy__mosquito.txt`, and the handler at
 > `$8FC773`.
@@ -23,7 +23,7 @@ under the entity:
 8FAFF1  STA $003C,Y
 ```
 
-`$7F0004 + record` is the same metatile collision table `src/maps/room.ts`
+`$7F0004 + record` is the same metatile collision table `src/games/evermore/maps/room.ts`
 decodes, so the word the engine tests is one this repo already has. Four
 entities in `walking_against_flower.txt` pin that: the words the trace loads
 are exactly `collisionWords[y >> 4][x >> 4]` in room `0x38`.
@@ -115,7 +115,7 @@ find them.
 Bit 12 has a second use because of this. It is the only statement in the ROM
 about **which priority art is a canopy and which is just floor** — rooms put
 plain ground on the priority half of a layer all the time, purely so the art
-layers nicely. `hiddenTileMask` in `src/maps/render.ts` uses it for exactly
+layers nicely. `hiddenTileMask` in `src/games/evermore/maps/render.ts` uses it for exactly
 that, and without it a third of room `0x06` looks covered when none of it
 is.
 

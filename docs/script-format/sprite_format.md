@@ -1,6 +1,6 @@
 # Sprite format
 
-> Status: **solved.** `src/maps/sprites.ts`, ported from SoETilesViewer's
+> Status: **solved.** `src/games/evermore/maps/sprites.ts`, ported from SoETilesViewer's
 > `spriteblock.h` and `spriteinfo.h` — the only implementation of this
 > format anywhere.
 

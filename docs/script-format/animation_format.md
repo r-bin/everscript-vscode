@@ -1,6 +1,6 @@
 # The animation format
 
-> Status: **solved.** `src/maps/characters.ts`. **139 of 141** enemy walks
+> Status: **solved.** `src/games/evermore/maps/characters.ts`. **139 of 141** enemy walks
 > now end on the script's own loop command, so the whole idle cycle is read
 > rather than a prefix of it.
 

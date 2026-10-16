@@ -4,7 +4,7 @@
 Evermore ROM map/room binary format, reverse-engineered and verified there against a
 byte-exact round-trip of all 127 vanilla rooms.
 
-They are the specification the TypeScript port in `src/maps/` implements. If a document
+They are the specification the TypeScript port in `src/games/evermore/maps/` implements. If a document
 here and the code disagree, the document is probably right — but check `everscript`'s
 copy first, since that's the upstream.
 

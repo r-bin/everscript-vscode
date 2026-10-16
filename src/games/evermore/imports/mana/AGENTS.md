@@ -16,7 +16,7 @@ the translation table: [docs/mana/evermore-rooms.md](../../../../../docs/mana/ev
 ## Invariants
 - Each mapping is a stated translation between two documented facts (one per game),
   never an assumption that one game works like the other. Facts about Mana go in
-  `src/games/mana/decoder` + `docs/mana`, about Evermore in `src/maps` + `docs/map-format`; this folder
+  `src/games/mana/decoder` + `docs/mana`, about Evermore in `src/games/evermore/maps` + `docs/map-format`; this folder
   only pairs them, and every pairing is a row in `docs/mana/evermore-rooms.md`.
 - The room is encoded by Evermore's own encoder and must decode with `decodeRoom`.
 - The image is built in memory and never written anywhere; vanilla graphics, families and

@@ -15,9 +15,9 @@
 // "frame 2/3 still plays" bug. One stamp is timed by its first animated
 // word; a second animated word on the same stamp steps along with it.
 //
-// Pure apart from the vanilla index cache. Consumes src/maps.
+// Pure apart from the vanilla index cache. Consumes src/games/evermore/maps.
 
-const maps = require('../../maps');
+const maps = require('../../games/evermore/maps');
 const { vanillaIndex } = require('./vanilla-index'); // animationFor, for callers that still ask by graphic
 
 /** A guard against a runaway cycle; vanilla's longest (room 0x25) has 24 frames. */

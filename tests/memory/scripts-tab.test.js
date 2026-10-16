@@ -1,5 +1,5 @@
 'use strict';
-// Scripts tab (src/scripts-tab): the models against the ROM, the host with the
+// Scripts tab (src/games/evermore/scripts-tab): the models against the ROM, the host with the
 // injected sprites/music capabilities, and the page in a browser answered by
 // that same host. ROM-dependent checks skip without the Evermore ROM in the ROM
 // library; browser checks skip without playwright.
@@ -8,7 +8,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const { renderRadarHtml } = require('../../src/memory/render-radar');
-const { buildScriptsTabHtml } = require('../../src/scripts-tab');
+const { buildScriptsTabHtml } = require('../../src/games/evermore/scripts-tab');
 
 const ROM = require('../../dist/games').romPath('evermore');
 
@@ -19,8 +19,8 @@ async function test(name, fn) {
 }
 
 function hostDeps(rom, posted) {
-    const sprites = require('../../src/sprites');
-    const music = require('../../src/music');
+    const sprites = require('../../src/games/evermore/sprites');
+    const music = require('../../src/games/evermore/music');
     let bundle = null;
     return {
         post: (m) => posted.push(m),
@@ -52,9 +52,9 @@ async function unit() {
 
 async function romChecks(rom) {
     console.log('\nScripts tab — ROM');
-    const rooms = require('../../src/scripts-tab/model/rooms');
-    const { alchemyModel } = require('../../src/scripts-tab/model/alchemy');
-    const music = require('../../src/music');
+    const rooms = require('../../src/games/evermore/scripts-tab/model/rooms');
+    const { alchemyModel } = require('../../src/games/evermore/scripts-tab/model/alchemy');
+    const music = require('../../src/games/evermore/music');
 
     await test('every room decodes its scripts', () => {
         for (const r of rooms.roomList()) assert.ok(!rooms.roomScripts(rom, r.id).error, 'room ' + r.idHex);
@@ -95,7 +95,7 @@ async function romChecks(rom) {
         assert.ok(tl.notes.every((n) => n.f1 > n.f0));
     });
     await test('host: index, room, animation and simulation answers', async () => {
-        const { handleScriptsMessage } = require('../../src/scripts-tab');
+        const { handleScriptsMessage } = require('../../src/games/evermore/scripts-tab');
         const posted = [];
         const deps = hostDeps(rom, posted);
         handleScriptsMessage({ command: 'scriptsInit' }, deps);
@@ -120,7 +120,7 @@ async function dom(rom) {
     let browser;
     try { browser = await chromium.launch(); } catch (e) { console.log('\nScripts tab DOM: no browser — skipped'); return; }
     console.log('\nScripts tab — DOM');
-    const { handleScriptsMessage } = require('../../src/scripts-tab');
+    const { handleScriptsMessage } = require('../../src/games/evermore/scripts-tab');
     const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
     const errors = [];
     page.on('pageerror', (e) => errors.push(String(e)));

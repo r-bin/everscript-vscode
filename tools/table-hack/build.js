@@ -106,7 +106,7 @@ function testContent(rom, names, { enemies = [], rooms = [], animations = [], do
         made.push(`enemy ${hex(id, 2)}: record ${VANILLA_RECORDS + extra.characters.length - 1} at $B8:${at.toString(16).toUpperCase()} (copy of record ${n}), sprite palette $${addr.toString(16).toUpperCase().padStart(4, '0')} (bank $FA)`);
     }
     if (rooms.length) {
-        const maps = require('../../src/maps');
+        const maps = require('../../src/games/evermore/maps');
         const first = familyCount(rom);
         for (const room of rooms) {
             const ptr = rom[0x1FFDE7 + room * 4] | (rom[0x1FFDE8 + room * 4] << 8) | (rom[0x1FFDE9 + room * 4] << 16);
@@ -132,7 +132,7 @@ function testContent(rom, names, { enemies = [], rooms = [], animations = [], do
         made.push(`animation @${added.length - 1}: record $${(where & 0xFFFF).toString(16).toUpperCase()} = copy of $${rec.toString(16).toUpperCase()} (${facings} facings)`);
         at += bytes.length;
     }
-    // Dog form slots: $CF945F lists the six forms; slot s of a form is at +10 + 2s (src/sprites/dog-forms.js).
+    // Dog form slots: $CF945F lists the six forms; slot s of a form is at +10 + 2s (src/games/evermore/sprites/dog-forms.js).
     for (const spec of dogSlots) {
         const [, form, slot, value] = /^(\d+):(\d+)=(@?\w+)$/.exec(spec) || [];
         if (form === undefined) throw new Error(`--dog-slot ${spec}: want <form>:<slot>=<record|@n>`);

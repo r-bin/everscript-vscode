@@ -1,7 +1,7 @@
 # The instruction set
 
 > Status: **solved**, within the limits of the reference. Ported in
-> `src/script/ops-{flow,memory,entity,system}.ts` from the 207-case switch in
+> `src/games/evermore/script/ops-{flow,memory,entity,system}.ts` from the 207-case switch in
 > `list-rooms.cpp`.
 
 ## Shape

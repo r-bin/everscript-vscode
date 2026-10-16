@@ -256,7 +256,7 @@ advice are.
 
 | Phase | What | State |
 |---|---|---|
-| **1** | Relationship index in `src/maps/`, folded into the existing vanilla pass, with parity tests | **done** (0.49.0) |
+| **1** | Relationship index in `src/games/evermore/maps/`, folded into the existing vanilla pass, with parity tests | **done** (0.49.0) |
 | **2** | `everscript.newMap` + open in the active column | **done** (0.49.0) |
 | **3** | One scroll container: delete the inner `max-height`/`overflow` pairs | **done** (0.49.0) |
 | **4** | Family chips, with a working `×` | **done** (0.49.0) |

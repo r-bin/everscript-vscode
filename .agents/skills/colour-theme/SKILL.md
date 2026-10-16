@@ -1,13 +1,13 @@
 ---
 name: colour-theme
-description: Use when editing the bundled colour theme (src/language/themes/everscript-dark.json) or its spec (docs/vscode-highlighter-spec.md) in everscript-vscode.
-applyTo: "src/language/themes/**,docs/vscode-highlighter-spec.md"
+description: Use when editing the bundled colour theme (src/games/evermore/language/themes/everscript-dark.json) or its spec (docs/vscode-highlighter-spec.md) in everscript-vscode.
+applyTo: "src/games/evermore/language/themes/**,docs/vscode-highlighter-spec.md"
 ---
 
 # Skill: Colour Theme
 
 Use this skill when editing the bundled colour theme
-(`src/language/themes/everscript-dark.json`) or its spec
+(`src/games/evermore/language/themes/everscript-dark.json`) or its spec
 (`docs/vscode-highlighter-spec.md`).
 
 Colours follow the P1–P9 priority system defined in

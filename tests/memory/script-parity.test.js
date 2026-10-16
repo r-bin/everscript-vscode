@@ -1,5 +1,5 @@
 'use strict';
-// Parity harness: the TypeScript script decoder in src/script/ against
+// Parity harness: the TypeScript script decoder in src/games/evermore/script/ against
 // SoEScriptDumper's own dump of the ROM.
 //
 // Two things are scored, and they fail differently:
@@ -19,7 +19,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const script = require('../../src/script');
+const script = require('../../src/games/evermore/script');
 
 const HOME = process.env.HOME || '';
 const VIEWER = process.env.SOE_TILES_VIEWER ||

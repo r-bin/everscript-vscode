@@ -1,7 +1,7 @@
 ---
 name: rom-map-data
-description: Secret of Evermore map data in ROM -- room blob layout, the three compressed payload blocks, the collision word bitfield, and which document answers which question. Start here for anything about map/room binary format, including work on the TypeScript port in src/maps/.
-applyTo: "src/maps/**,docs/map-format/**"
+description: Secret of Evermore map data in ROM -- room blob layout, the three compressed payload blocks, the collision word bitfield, and which document answers which question. Start here for anything about map/room binary format, including work on the TypeScript port in src/games/evermore/maps/.
+applyTo: "src/games/evermore/maps/**,docs/map-format/**"
 ---
 
 # ROM Map Data & Tilemap Architecture
@@ -9,7 +9,7 @@ applyTo: "src/maps/**,docs/map-format/**"
 > **Imported from the sibling `everscript` repo** (`.github/skills/rom-map-data/SKILL.md`),
 > with document links repointed at this repo's `docs/map-format/` copies. `UPSTREAM:` prefixes
 > mark paths that still live only in `everscript`. This is the specification that
-> `src/maps/`'s TypeScript port implements — re-sync from upstream rather than editing
+> `src/games/evermore/maps/`'s TypeScript port implements — re-sync from upstream rather than editing
 > the format facts here.
 
 How Secret of Evermore stores, decompresses, re-encodes, and renders map data. The format is

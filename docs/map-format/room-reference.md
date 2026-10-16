@@ -35,13 +35,13 @@ quarters.
 | | |
 |---|---|
 | Pointer table | `$9FFDE7` (file `0x1FFDE7`), 4 bytes per room: 24-bit pointer + 1 pad |
-| Rooms | 127, `0x00..0x7E` (`MAX_ROOMS`, `src/maps/rom.ts`) |
-| Placement rule | a blob sits at `$8000+` of a bank and never crosses a bank (`writeRoomAt`, `src/maps/encode.ts`): the loader walks it with 16-bit offsets |
+| Rooms | 127, `0x00..0x7E` (`MAX_ROOMS`, `src/games/evermore/maps/rom.ts`) |
+| Placement rule | a blob sits at `$8000+` of a bank and never crosses a bank (`writeRoomAt`, `src/games/evermore/maps/encode.ts`): the loader walks it with 16-bit offsets |
 | Size | no field; = end of the object area (`objectAreaEnd`). Vanilla sizes: `docs/map-format/rom-map.md` |
-| Scripts | **not in the blob.** Enter script: packed pointer at `$928000 + 0x1B + 5·room`; triggers name a byte offset into the pointer table at `$928000 + *$928000` (`src/script/room-scripts.ts`) |
+| Scripts | **not in the blob.** Enter script: packed pointer at `$928000 + 0x1B + 5·room`; triggers name a byte offset into the pointer table at `$928000 + *$928000` (`src/games/evermore/script/room-scripts.ts`) |
 
 Section offsets are walked from length fields only, never searched for:
-`parseBlobLayout` (`src/maps/blob-layout.ts`). Writing: `modelFromRom` →
+`parseBlobLayout` (`src/games/evermore/maps/blob-layout.ts`). Writing: `modelFromRom` →
 `buildBlob` round-trips all 127 rooms byte-exactly (`tests/memory/rom-export.test.js`).
 
 ---
@@ -63,8 +63,8 @@ Section offsets are walked from length fields only, never searched for:
        object area            records + stamping blocks                §8
 ```
 
-Block sub-flags: `0x00` raw copy, `0x03` LZSS (`src/maps/lzss.ts`), `0x07` the 2D
-Markov grid coder (`src/maps/markov.ts`). The engine's dispatcher is `$8C988D`.
+Block sub-flags: `0x00` raw copy, `0x03` LZSS (`src/games/evermore/maps/lzss.ts`), `0x07` the 2D
+Markov grid coder (`src/games/evermore/maps/markov.ts`). The engine's dispatcher is `$8C988D`.
 LZSS streams end on 1–3 zero padding bytes inside their declared length.
 
 | Segment | Hard limit | Vanilla max (room) | Decoder | Encoder |
@@ -182,7 +182,7 @@ graphic is appended to the room's graphics list (slots after Block 1), and that 
 the slot the channel drives. Channels run independently (no common period) and
 never touch collision. Ticks are 60 Hz frames.
 
-Code: `src/maps/animation.ts` (parse), `custom-animation.ts` (write),
+Code: `src/games/evermore/maps/animation.ts` (parse), `custom-animation.ts` (write),
 `vanilla-animation.ts` (vanilla's timing census). Docs: `map_animated_tiles.md`;
 the editor's model: map-editor-rules §6 and `docs/animation-tab-plan.md`.
 
@@ -200,7 +200,7 @@ records: [steps:1][source:2][next:2]…[0x0000]
 dictionary indices `0..N-1`, which is why the same byte seeds Block 2's literal
 counter. `steps` is `0x01` in all 206 vanilla records (meaning unverified); four
 rooms repeat a source (which one wins is unverified; we keep the first).
-At most 24 swaps run at once (`$8E0FD2`). Code: `src/maps/cuttable-grass.ts`;
+At most 24 swaps run at once (`$8E0FD2`). Code: `src/games/evermore/maps/cuttable-grass.ts`;
 doc: `cuttable_grass_mechanics.md`; the editor's layer: `_edit.cut`.
 
 ---
@@ -244,7 +244,7 @@ Code: `room.ts readObjects`, `object-stamps.ts`, `objects.ts` (apply a state),
 ## 9. Collision word (Block 3 slice 2)
 
 One 16-bit word per stamp, so per cell. **Never read it by hand**: use
-`src/maps/collision.ts`. Authority: `map_collision_mechanics.md`.
+`src/games/evermore/maps/collision.ts`. Authority: `map_collision_mechanics.md`.
 
 | Bits | Field | Meaning |
 |---|---|---|
@@ -290,7 +290,7 @@ The editor converts records to inclusive map cells (`collision-overlay.ts`,
 
 | Thing | Where it really is |
 |---|---|
-| **Entrances** | Nowhere in the destination room. An entrance is a `CHANGE MAP` (`0x22`, `[x>>3][y>>3][room:16]`, 8px units) in some *other* room's trigger script. `src/script/arrivals.ts` walks every room's triggers and indexes them by destination (605 transitions); the arrow comes from the "Prepare room change? South exit…" call. `docs/script-format/arrivals.md`, `map_transitions.md` |
+| **Entrances** | Nowhere in the destination room. An entrance is a `CHANGE MAP` (`0x22`, `[x>>3][y>>3][room:16]`, 8px units) in some *other* room's trigger script. `src/games/evermore/script/arrivals.ts` walks every room's triggers and indexes them by destination (605 transitions); the arrow comes from the "Prepare room change? South exit…" call. `docs/script-format/arrivals.md`, `map_transitions.md` |
 | **Enemies, NPCs** | placed by the room's **enter script** (`add_enemy` opcodes `0x3C/0xBA/0xA2/0xC2`); every branch is a candidate. `docs/script-format/entities-reference.md` |
 | **Music, story state** | enter and trigger scripts |
 | **Widgets, groups, levels, specials, the Boy's start** | editor concepts: `docs/map-format/editor-concepts.md` |

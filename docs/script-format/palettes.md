@@ -1,6 +1,6 @@
 # Sprite palettes: how many enemies fit in a room
 
-> Status: **solved** for the allocator. `src/maps/character-record.ts` reads
+> Status: **solved** for the allocator. `src/games/evermore/maps/character-record.ts` reads
 > the field; the Rooms tab shows the budget per room. From the
 > `add_enemy__mosquito` trace, where Mesen even labels the table
 > (`palette_slot_1`).

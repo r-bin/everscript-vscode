@@ -216,7 +216,7 @@ if (!rom) {
     console.log(`SKIP archive ROM checks: ${ROM_PATH} not found or unreadable`);
 } else {
     const rooms = require('../../src/rooms');
-    const maps = require('../../src/maps');
+    const maps = require('../../src/games/evermore/maps');
     test('the archive holds the blob, the editor file, the .evs, the stamps and a README', () => {
         const w = 16; const h = 14; const cells = [];
         for (let i = 0; i < w * h; i++) cells.push(0xa800, 0x4c62, (i % w) === 0 ? 0x1f : 0x10);

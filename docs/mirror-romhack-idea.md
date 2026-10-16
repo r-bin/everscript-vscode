@@ -11,7 +11,7 @@ without mirroring them. The idea here is closer to the 3DS case — flip everyth
 keep the content.)
 
 Status: **idea only**. Nothing below is implemented. This is a scoping note, written
-against what `docs/map-format/` and `src/maps/` currently know about the ROM format,
+against what `docs/map-format/` and `src/games/evermore/maps/` currently know about the ROM format,
 so a future attempt doesn't have to re-derive it.
 
 ---
@@ -25,7 +25,7 @@ Everything here is against the room blob layout in the `rom-map-data` skill /
 | Data | Where it lives | Mirror transform |
 |---|---|---|
 | Layer 1 / Layer 2 metatile grid | Payload Block 2 (Markov grid), `width_tiles × height_tiles` | Reverse column order: `new[y][x] = old[y][width_tiles - 1 - x]` |
-| VRAM tilemap words per metatile | Payload Block 3, slices 0–1 | Toggle `HFLIP` (bit 14, `0x4000`) on every word — see `src/maps/render.ts:33-44` and `src/maps/chr.ts:118-141`, which already implement this bit for rendering |
+| VRAM tilemap words per metatile | Payload Block 3, slices 0–1 | Toggle `HFLIP` (bit 14, `0x4000`) on every word — see `src/games/evermore/maps/render.ts:33-44` and `src/games/evermore/maps/chr.ts:118-141`, which already implement this bit for rendering |
 | Collision word | Payload Block 3, slice 2 | Geometry nibble (bits 3..0) needs a left/right-aware remap, not just a flip — see `docs/map-format/map_collision_mechanics.md` §6. **Drift/slide direction** is the same nibble under the always-walkable override (bit 13) and must have its east/west component negated, or a drifting current reverses in the mirror but the sprite implies otherwise |
 | `origin_x` (header `$00`) | Room header | Stays as the trigger-origin offset; it's what the coordinate transform below is relative to |
 | Step-on trigger rects (header `$0F..`) | 6 bytes/entry: `y_min, x_min, y_max, x_max, script_id` | `new_x_min = width_tiles - x_max`, `new_x_max = width_tiles - x_min`. `y` fields untouched. `script_id` untouched — see below |
@@ -59,7 +59,7 @@ sufficient. Two more things have to line up for the world to stay consistent:
    operation, not a per-room toggle.
 2. **The destination spawn point is script data, not table data.** Whatever the
    target script does — set spawn X/Y, set facing direction — is Everscript-compiled
-   bytecode, which is outside what `src/maps/`'s decoder currently parses (that
+   bytecode, which is outside what `src/games/evermore/maps/`'s decoder currently parses (that
    decoder covers room blobs, not script bytecode). If a transition script hardcodes
    an absolute spawn X near the target room's west edge, that X needs the same
    `width - x` transform as everything else, or the player lands in the mirrored

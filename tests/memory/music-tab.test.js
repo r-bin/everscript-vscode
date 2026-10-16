@@ -1,5 +1,5 @@
 'use strict';
-// The Music tab (src/music): the ROM model, the tab's own sound engine driving
+// The Music tab (src/games/evermore/music): the ROM model, the tab's own sound engine driving
 // the ROM's driver, the emulator core's sound-chip stream (real core, real page
 // script, real host class) and the panel page in a browser.
 // ROM-dependent checks skip without the ROM; browser checks skip without playwright.
@@ -10,11 +10,11 @@ const vm = require('vm');
 const assert = require('assert');
 
 const ROOT = path.join(__dirname, '..', '..');
-const { buildMusicModel, packageData } = require('../../src/music/model/catalog');
-const { handlesMusicMessage, handleMusicMessage } = require('../../src/music');
-const createSpcEngine = require('../../src/music/engine/spc-engine.js');
-const { MusicSpc } = require('../../src/music/webview/music-engine.js');
-const V = require('../../src/music/webview/music-view.js');
+const { buildMusicModel, packageData } = require('../../src/games/evermore/music/model/catalog');
+const { handlesMusicMessage, handleMusicMessage } = require('../../src/games/evermore/music');
+const createSpcEngine = require('../../src/games/evermore/music/engine/spc-engine.js');
+const { MusicSpc } = require('../../src/games/evermore/music/webview/music-engine.js');
+const V = require('../../src/games/evermore/music/webview/music-view.js');
 const { ApuStream } = require('../../src/emulator/apu-stream');
 const { getApuStreamClientScript } = require('../../src/emulator/apu-stream-view');
 const { getSoundSourceClientScript } = require('../../src/emulator/sound-source-view');
@@ -212,7 +212,7 @@ async function coreStream(model) {
         assert.strictEqual(page.armed(), false, 'off with the chip and the stream');
         const anims = hooks.filter(e => e.kind === 'anim');
         assert.ok(anims.every(e => [0x2E, 0x2F].includes(rom[e.at & 0x3FFFFF] & 0x7F)), 'at = the animation\'s sound command');
-        const { describeSoundSource } = require('../../src/resources/sound-source');
+        const { describeSoundSource } = require('../../src/games/evermore/resources/sound-source');
         const boy = describeSoundSource(rom, anims.find(e => e.name === 'Boy'));
         assert.strictEqual(boy.who.uri, 'soe://tags/boy.md');
         assert.match(boy.who.image, /^data:image\/png/);
@@ -223,7 +223,7 @@ async function coreStream(model) {
         const call = eng.engine.lines.find(l => l.mark);
         assert.match(call.text, /^jsl \$8C82DC .*Play sound effect/, JSON.stringify(eng.engine.lines));
         assert.ok(eng.engine.lines.some(l => l.text === 'lda #$0003'), 'the effect it plays, loaded into A');
-        const { resolveRom } = require('../../src/resources/rom-files');
+        const { resolveRom } = require('../../src/games/evermore/resources/rom-files');
         const listing = (await resolveRom(['0cb8cf.asm'], rom).read()).toString();
         assert.match(listing, /\$8CB8DA {2}22 dc 82 8c +jsl \$8C82DC/);
         assert.ok(found.has('anim:7:Boy'), [...found].join(' '));

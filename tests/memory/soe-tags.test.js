@@ -37,9 +37,9 @@ require.cache.vscode = { id: 'vscode', filename: 'vscode', loaded: true, exports
     Uri: { parse: uri },
 } };
 
-const { buildTagModel, tagModel } = require('../../src/resources/tag-model');
-const { SoeFileSystem } = require('../../src/resources/fs-provider');
-const AUTHORED = require('../../src/resources/tags/tags.json');
+const { buildTagModel, tagModel } = require('../../src/games/evermore/resources/tag-model');
+const { SoeFileSystem } = require('../../src/games/evermore/resources/fs-provider');
+const AUTHORED = require('../../src/games/evermore/resources/tags/tags.json');
 
 const romPath = require('../../dist/games').romPath('evermore');
 const rom = fs.existsSync(romPath) ? new Uint8Array(fs.readFileSync(romPath)) : null;

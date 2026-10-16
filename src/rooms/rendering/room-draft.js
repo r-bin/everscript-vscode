@@ -9,7 +9,7 @@
 //
 // See docs/map-format/building-a-room-from-a-picture.md §5.
 
-const maps = require('../../maps');
+const maps = require('../../games/evermore/maps');
 const { romFingerprint } = require('./rom-fingerprint');
 const { vanillaIndex, budgetSummary } = require('./vanilla-index');
 const { VANILLA_ROOMS } = require('../data/vanilla-data');

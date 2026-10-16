@@ -1,6 +1,6 @@
 # Arrivals: the doors that lead into a room
 
-> Status: **built.** `src/script/arrivals.ts`, shown on the Rooms map.
+> Status: **built.** `src/games/evermore/script/arrivals.ts`, shown on the Rooms map.
 
 A room's own scripts say where they *send* you. Nothing in a room says where
 you *come in* — an entrance is only a `CHANGE MAP` somewhere else. So the

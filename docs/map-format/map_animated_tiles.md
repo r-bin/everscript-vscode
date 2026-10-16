@@ -1,7 +1,7 @@
 # Secret of Evermore: Animated Map Tiles (Section 2)
 
 > Status: format solved and implemented. Decoder in
-> `everscript-vscode/src/maps/animation.ts`, pinned by `checkAnimation` in
+> `everscript-vscode/src/games/evermore/maps/animation.ts`, pinned by `checkAnimation` in
 > `tests/memory/map-parity.test.js`.
 >
 > This supersedes §7 of [map_tile_graphics_decompression.md](map_tile_graphics_decompression.md),
@@ -209,7 +209,7 @@ tile swap — but it has not been ruled out by tracing.
 
 ## In the map editor's tile list
 
-`src/maps/vanilla-animation.ts` tallies every channel into the vanilla index.
+`src/games/evermore/maps/vanilla-animation.ts` tallies every channel into the vanilla index.
 Vanilla often runs **one cycle at several phases**: the Halls torches have
 channels starting at 2742, 2743, 2744… that all cycle through 2742–2746. So an
 animation is the cycle, whatever phase it starts at, named by its lowest

@@ -13,7 +13,7 @@
   - move 8×8 pixel blocks that live in `$D1–$D3` to the extension (only their 23-bit offsets in
     the moved `sprite_blocks_8` table change) and use the freed bytes;
   - check that the sprite-list walk (`walkSprites`, 5128 infos) still finds its end.
-- 🟡 **Block encoder** next to `blockBytes()` (`src/maps/sprites.ts`), with a byte-identical round
+- 🟡 **Block encoder** next to `blockBytes()` (`src/games/evermore/maps/sprites.ts`), with a byte-identical round
   trip over all 4854 + 6265 vanilla blocks ([act0-dog-animations.md](act0-dog-animations.md) step 4).
 - 🟡 **Prove that block offsets reach the extension**: that `$D90000` + a 23-bit offset is a plain
   24-bit add. Test it by moving one vanilla block's pixels to `$F2+` and comparing the screen.
@@ -45,7 +45,7 @@
   `ENEMY` ids past 143. Today `build.js` redirects its IPS writes.
 - 🟢 **The directory at `$F1:0000`** ([table-hack.md §3](../table-hack.md)) and one resolver in the
   plugin. `0x1FFDE7` is hard-coded in `maps/rom.ts`, `shared/rom-readers.js` and
-  `emulator/panel-webview.js`; `src/maps` also hard-codes `$EC0000`, `$D80000` and `$C43C92`.
+  `emulator/panel-webview.js`; `src/games/evermore/maps` also hard-codes `$EC0000`, `$D80000` and `$C43C92`.
 - 🟢 **A generated used/free md** (`LAYOUT.md`) per built ROM ([table-hack.md §5](../table-hack.md)).
 
 ## More tables
@@ -53,7 +53,7 @@
 - 🟡 **Map tile graphics `$EE0000`** (6688 / ~21,800): readers `$8C:C88C`, `$90:A23D`. Needs a scan
   like the block tables'.
 - 🟡 **Song packages `$819903`** (71 / 256): readers `$8C:8252`, `$8C:8257`. Also fix
-  `src/rom/model/audio.js`, which calls `$81:9900` "song count" (it is the last package index).
+  `src/games/evermore/rom/model/audio.js`, which calls `$81:9900` "song count" (it is the last package index).
 - 💡 Alchemy (`$C45DDF` / `$9180A6`), which needs its readers traced first.
 
 ## Housekeeping

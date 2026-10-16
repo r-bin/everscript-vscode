@@ -24,7 +24,7 @@ the item being awarded. That difference has to come out of the script
 
 **Levitate stones and revealers.** An object whose script rewrites the map:
 [map_objects.md](../../map-format/map_objects.md) and the object-state
-machinery in `src/maps/objects.ts` already render every state exactly, and
+machinery in `src/games/evermore/maps/objects.ts` already render every state exactly, and
 the Rooms tab already has state chips. Triggering one is that machinery
 driven by the script instead of by a click — the stone slides aside, the
 invisible bridge appears, and collision follows automatically because it is

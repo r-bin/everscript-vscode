@@ -1,6 +1,6 @@
 # Resource Tags (`soe://tags/`) — Open Tasks & Ontology Roadmap
 
-> Domain: Semantic Resource System (`src/resources/tags/`, `src/localizations/`)
+> Domain: Semantic Resource System (`src/games/evermore/resources/tags/`, `src/games/evermore/localizations/`)
 > Shipped specification & architecture: [`docs/soe-tags-spec.md`](../soe-tags-spec.md)
 > Status key: 🟡 Open items · 🟢 Planned compiler integration
 

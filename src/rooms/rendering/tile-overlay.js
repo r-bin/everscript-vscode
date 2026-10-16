@@ -4,14 +4,14 @@
 // plus the tabular data, legend and summary behind the panel.
 //
 // Pure apart from the module-level render cache. Consumes the maps domain
-// (src/maps). Lives in rooms/ because the Rooms tab owns its rendering;
-// src/maps stays a pure model.
+// (src/games/evermore/maps). Lives in rooms/ because the Rooms tab owns its rendering;
+// src/games/evermore/maps stays a pure model.
 //
 // The feature visualization is NOT drawn here as SVG: it is a faithful port of
 // render_map.py baked into the raster by maps/collision-overlay.ts, verified
 // pixel-identical to upstream by tests/memory/map-parity.test.js.
 
-const maps = require('../../maps');
+const maps = require('../../games/evermore/maps');
 const { romFingerprint } = require('./rom-fingerprint');
 const { headerSpec, withHeader } = require('./header-overrides');
 const { buildObjects, parseObjectStates, cachedObjectPreviews, invalidateObjectPreviews } = require('./object-previews');

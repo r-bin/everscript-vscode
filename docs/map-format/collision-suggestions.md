@@ -8,7 +8,7 @@ the same way a ROM room does.
 
 Code:
 
-- `src/maps/vanilla-suggest.ts`: `suggestGeometry`; `src/maps/vanilla-index.ts`: the `canopyCollisions`
+- `src/games/evermore/maps/vanilla-suggest.ts`: `suggestGeometry`; `src/games/evermore/maps/vanilla-index.ts`: the `canopyCollisions`
   tally.
 - `src/rooms/rendering/room-draft.js`: the family-sheet slots, and
   `buildDraftCollision`.
@@ -97,7 +97,7 @@ agree with their graphic's direction once the flip is taken out. So the
 index records each graphic's direction as drawn unflipped, and painting it
 H-flipped swaps 1 and 2.
 
-- `src/maps/vanilla-stairs.ts`: the tally, `suggestStairs`. A graphic
+- `src/games/evermore/maps/vanilla-stairs.ts`: the tally, `suggestStairs`. A graphic
   counts as stairs on a layer when at least half its placements there carry
   the flag. That covers 30 families (96 tiles), e.g. graphic 1833
   (diagonal) and 1877 (vertical) in Ebon Keep.

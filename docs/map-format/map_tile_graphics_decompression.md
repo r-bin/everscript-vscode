@@ -387,7 +387,7 @@ $$\text{Section 2 ROM Offset} = \text{Block 1 Offset} + \text{Block 1 Payload Le
 >
 > Channel periods have no useful common multiple, so the channels cannot be
 > driven off one global frame counter — each keeps its own clock.
-> Implemented in `everscript-vscode/src/maps/animation.ts`.
+> Implemented in `everscript-vscode/src/games/evermore/maps/animation.ts`.
 
 ### 7.2 Palette Extension & VRAM Indexing
 

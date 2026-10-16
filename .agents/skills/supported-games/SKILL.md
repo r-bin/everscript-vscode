@@ -12,12 +12,12 @@ The extension supports two games. They share the SNES and nothing else.
 
 | | Secret of Evermore | Secret of Mana |
 |---|---|---|
-| file system (MCP, editor) | `soe://` (`src/resources`, MCP `everscript-soe`) | `som://` (`src/games/mana/resources`): `som://rom/maps/<hex>.png/.json/.collision.json/.anim.json/.objects.json/.edit.json/.tiles.a.png`, `areas/` |
-| library | `src/maps`, `src/script`, … | `src/games/mana/decoder` (pure TS: header, pieces, metatiles, collision, events, objects, cuttable cells, animation on `cpu65816.ts`) |
+| file system (MCP, editor) | `soe://` (`src/games/evermore/resources`, MCP `everscript-soe`) | `som://` (`src/games/mana/resources`): `som://rom/maps/<hex>.png/.json/.collision.json/.anim.json/.objects.json/.edit.json/.tiles.a.png`, `areas/` |
+| library | `src/games/evermore/maps`, `src/games/evermore/script`, … | `src/games/mana/decoder` (pure TS: header, pieces, metatiles, collision, events, objects, cuttable cells, animation on `cpu65816.ts`) |
 | Which ROM | the ROM library (Everscript: Switch ROM; headless `npm run roms`): selected Evermore ROM, else the base `us` | the same library: selected Mana ROM, else the base `us` |
-| facts written to | `src/localizations/knowledge/` (`game-knowledge` skill) | `docs/mana/README.md` + the `src/games/mana/decoder` file that reads it |
+| facts written to | `src/games/evermore/localizations/knowledge/` (`game-knowledge` skill) | `docs/mana/README.md` + the `src/games/mana/decoder` file that reads it |
 | checked with | CDL, recomp, headless runs | `tools/mana/check-map.js` (screen vs render), `check-events.js` (step events), `find-picture.js` (which map a screenshot shows), the game's own routines run on `cpu65816.ts` (rom tests); `docs/mana/verifying.md` |
-| RAM map | `src/localizations/knowledge/` | `docs/mana/wram.md` |
+| RAM map | `src/games/evermore/localizations/knowledge/` | `docs/mana/wram.md` |
 
 For a Mana question, start with `som://rom/index.md` or `docs/mana/README.md`, not soe://.
 
@@ -40,7 +40,7 @@ does with a converted room says nothing about Mana.
 
 Dependency rules (`.depcruise.js`): `src/games/mana/decoder` imports nothing in `src/`;
 `src/games/mana/resources` only `src/games/mana/decoder`; `src/games/mana/maps` only `som://`;
-`src/games/evermore/imports/mana` only `src/games/mana/decoder`, `src/maps`, `src/shared`; Evermore domains never
+`src/games/evermore/imports/mana` only `src/games/mana/decoder`, `src/games/evermore/maps`, `src/shared`; Evermore domains never
 import any of them — only `extension.js` wires them in.
 
 ## 3. Use the plugin's features for every game

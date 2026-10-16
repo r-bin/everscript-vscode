@@ -142,7 +142,7 @@ Still open, and why:
 - **1.6 verification**, **2.9 (world overview)**, **2.10 (diff view)** — not
   started.
 
-What's already true, verified: `src/maps/` decodes all 127 vanilla rooms
+What's already true, verified: `src/games/evermore/maps/` decodes all 127 vanilla rooms
 identically to `everscript`'s `tools/dump_room.py` (`npm run check:maps`,
 `MAP_PARITY_ALL=1`), and renders them pixel-identical to `tools/render_map.py`
 across 9 sample rooms up to 2048×1120 (`checkRenderParity` in the same test).

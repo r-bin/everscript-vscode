@@ -14,7 +14,7 @@ not having it, so it is first.
 | Story flags and script memory | the `$7E2xxx` block scripts test and set | enter-script branches, doors, dialog |
 | Party stats | HP, levels, weapon and alchemy XP | damage, fight odds, routes |
 | Inventory | ingredients, weapons, armour, keys | loot, doors, alchemy casts |
-| Entity slots | the `$7E3Dxx`+ table `src/maps` already documents | placed NPCs, fights |
+| Entity slots | the `$7E3Dxx`+ table `src/games/evermore/maps` already documents | placed NPCs, fights |
 | Current room | map id, the Boy's position and plane | interaction |
 
 The first three are the ones scripts branch on. The entity table only
@@ -40,7 +40,7 @@ the failure mode this project keeps avoiding.
 
 ## The evaluator
 
-`src/script/expression.ts` renders the postfix operand grammar as text. The
+`src/games/evermore/script/expression.ts` renders the postfix operand grammar as text. The
 simulation needs the same grammar producing a *value*. These two must not
 drift, so build one of:
 

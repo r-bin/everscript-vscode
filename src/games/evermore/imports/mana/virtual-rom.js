@@ -4,11 +4,11 @@
 // where). Built in memory, never written to disk. Every Evermore reader then sees an
 // ordinary room: decodeRoom, the renderer, the collision overlay, the tile palette.
 //
-// The blob is made with Evermore's own builder (src/maps own-room.ts), so the room is real
+// The blob is made with Evermore's own builder (src/games/evermore/maps own-room.ts), so the room is real
 // Evermore data: grid, dictionary, Block 1, step-on triggers, the cuttable layer
 // (Section 4) and objects (Section 3), numbered the way a custom map's are.
 
-const maps = require('../../../../maps');
+const maps = require('../../maps');
 const ids = require('./ids');
 
 /** Header bytes 11-12 are not known; they are copied from this vanilla room. */

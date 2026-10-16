@@ -11,8 +11,8 @@ const fs     = require('fs');
 const path   = require('path');
 const vm     = require('vm');
 const { buildHtml } = require('../../src/emulator/panel-webview');
-const { loadSourceMap, romOffset } = require('../../src/debugger/source-map');
-const frames = require('../../src/debugger/script-frames');
+const { loadSourceMap, romOffset } = require('../../src/games/evermore/debugger/source-map');
+const frames = require('../../src/games/evermore/debugger/script-frames');
 
 const REPO = process.env.EVERSCRIPT_REPO || path.join(__dirname, '..', '..', '..', 'everscript');
 const ROM = require('../../dist/games').romPath('evermore');

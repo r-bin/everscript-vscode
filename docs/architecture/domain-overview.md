@@ -249,7 +249,7 @@
 - Breakpoint management
 - Debug session lifecycle
 
-**Current folder:** `src/debugger/` (see its README)
+**Current folder:** `src/games/evermore/debugger/` (see its README)
 
 **Key files:**
 - `debugger/inline-adapter.js` — debug type registration (launch / attach)
@@ -311,15 +311,15 @@ SoEScriptDumper (`list-rooms.cpp`) in the sibling `SoETilesViewer` checkout.
 - A room's enter / step-on / B-trigger scripts
 - Loot extraction, and writing a pickup back out as Everscript
 
-**Folder:** `src/script/`
+**Folder:** `src/games/evermore/script/`
 
 **Key files:**
-- `src/script/expression.ts` — the operand grammar
-- `src/script/ops-*.ts` — the ported opcode cases, split by theme
-- `src/script/decoder.ts` — `decodeScript()`
-- `src/script/room-scripts.ts` — trigger tables → decoded scripts
-- `src/script/loot.ts` — what a pickup gives, from its literal writes
-- `src/script/index.js` — CommonJS facade over `dist/`
+- `src/games/evermore/script/expression.ts` — the operand grammar
+- `src/games/evermore/script/ops-*.ts` — the ported opcode cases, split by theme
+- `src/games/evermore/script/decoder.ts` — `decodeScript()`
+- `src/games/evermore/script/room-scripts.ts` — trigger tables → decoded scripts
+- `src/games/evermore/script/loot.ts` — what a pickup gives, from its literal writes
+- `src/games/evermore/script/index.js` — CommonJS facade over `dist/`
 
 **Public API:** `require('./script')` → `{decodeScript, buildRoomScriptModel, …}`
 
@@ -332,7 +332,7 @@ summary text against SoEScriptDumper's own dump of the ROM, and
 `sniffflags.inc` from our own loot extraction. Floors only move up. Never
 relax one to make a change pass.
 
-**Documentation:** `src/script/README.md`
+**Documentation:** `src/games/evermore/script/README.md`
 **Related:** `src/rooms/data/room-scripts.js` is the thin filesystem shim that
 loads a ROM for this decoder. `script_parser/` is a separate standalone
 sandbox with its own `package.json` and is not part of the extension.
@@ -344,15 +344,15 @@ sandbox with its own `package.json` and is not part of the extension.
 **Purpose:** The read-only `soe://` file system: ROM content, decoded assets
 and the running emulator's WRAM as files, usable in editor tabs and webviews.
 
-**Folder:** `src/resources/`
+**Folder:** `src/games/evermore/resources/`
 
 **Public API:** `require('./resources').registerSoeResources(context, { vanillaRom, emulatorRom, readMemory })`;
-`src/resources/webview.js` → `soeResourceRoots`, `rewriteSoeUrls`, `soeClientScript`
+`src/games/evermore/resources/webview.js` → `soeResourceRoots`, `rewriteSoeUrls`, `soeClientScript`
 
 **Allowed deps:** `vscode`, `shared`, `maps`, `script`, `localizations`
 **Forbidden deps:** `emulator` (its ROM and memory reads are injected by `extension.js`)
 
-**Documentation:** `src/resources/README.md`, `docs/soe-filesystem-spec.md`
+**Documentation:** `src/games/evermore/resources/README.md`, `docs/soe-filesystem-spec.md`
 
 ---
 
@@ -361,14 +361,14 @@ and the running emulator's WRAM as files, usable in editor tabs and webviews.
 **Purpose:** The radar panel's Music tab: the SNES sound chip live from the emulator, or playing a
 chosen track in the tab's own SPC engine; voices, instruments, sound effects, ARAM usage.
 
-**Folder:** `src/music/`
+**Folder:** `src/games/evermore/music/`
 
 **Public API:** `require('./music')` → `buildMusicModel`, `handlesMusicMessage`, `handleMusicMessage`, `buildMusicTabHtml`
 
 **Allowed deps:** `localizations`
 **Forbidden deps:** `emulator` (its sound-chip stream, `apuStream`, is injected by `extension.js`)
 
-**Documentation:** `src/music/README.md`, `docs/todo/audio-and-music.md`
+**Documentation:** `src/games/evermore/music/README.md`, `docs/todo/audio-and-music.md`
 
 ---
 

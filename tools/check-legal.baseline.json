@@ -166,63 +166,63 @@
    "upstream"
   ],
   [
-   "src/localizations/AGENTS.md",
+   "src/games/evermore/localizations/AGENTS.md",
    "upstream"
   ],
   [
-   "src/localizations/README.md",
+   "src/games/evermore/localizations/README.md",
    "upstream"
   ],
   [
-   "src/localizations/maps.js",
+   "src/games/evermore/localizations/maps.js",
    "upstream"
   ],
   [
-   "src/localizations/scripts.js",
+   "src/games/evermore/localizations/scripts.js",
    "upstream"
   ],
   [
-   "src/maps/AGENTS.md",
+   "src/games/evermore/maps/AGENTS.md",
    "upstream"
   ],
   [
-   "src/maps/README.md",
+   "src/games/evermore/maps/README.md",
    "upstream"
   ],
   [
-   "src/maps/character-record.ts",
+   "src/games/evermore/maps/character-record.ts",
    "upstream"
   ],
   [
-   "src/maps/collision-overlay.ts",
+   "src/games/evermore/maps/collision-overlay.ts",
    "upstream"
   ],
   [
-   "src/maps/overlay-features.ts",
+   "src/games/evermore/maps/overlay-features.ts",
    "upstream"
   ],
   [
-   "src/maps/render-script-model.js",
+   "src/games/evermore/maps/render-script-model.js",
    "home-path"
   ],
   [
-   "src/maps/render-script-model.js",
+   "src/games/evermore/maps/render-script-model.js",
    "rom-name"
   ],
   [
-   "src/maps/render-script-model.js",
+   "src/games/evermore/maps/render-script-model.js",
    "upstream"
   ],
   [
-   "src/maps/room.ts",
+   "src/games/evermore/maps/room.ts",
    "upstream"
   ],
   [
-   "src/maps/sprites.ts",
+   "src/games/evermore/maps/sprites.ts",
    "upstream"
   ],
   [
-   "src/resources/fs-provider.js",
+   "src/games/evermore/resources/fs-provider.js",
    "home-path"
   ],
   [
@@ -234,71 +234,71 @@
    "upstream"
   ],
   [
-   "src/script/AGENTS.md",
+   "src/games/evermore/script/AGENTS.md",
    "upstream"
   ],
   [
-   "src/script/README.md",
+   "src/games/evermore/script/README.md",
    "upstream"
   ],
   [
-   "src/script/addressing.ts",
+   "src/games/evermore/script/addressing.ts",
    "upstream"
   ],
   [
-   "src/script/decoder.ts",
+   "src/games/evermore/script/decoder.ts",
    "upstream"
   ],
   [
-   "src/script/expression.ts",
+   "src/games/evermore/script/expression.ts",
    "upstream"
   ],
   [
-   "src/script/index.ts",
+   "src/games/evermore/script/index.ts",
    "upstream"
   ],
   [
-   "src/script/loot.ts",
+   "src/games/evermore/script/loot.ts",
    "upstream"
   ],
   [
-   "src/script/names.json",
+   "src/games/evermore/script/names.json",
    "upstream"
   ],
   [
-   "src/script/names.ts",
+   "src/games/evermore/script/names.ts",
    "upstream"
   ],
   [
-   "src/script/ops-entity.ts",
+   "src/games/evermore/script/ops-entity.ts",
    "upstream"
   ],
   [
-   "src/script/ops-flow.ts",
+   "src/games/evermore/script/ops-flow.ts",
    "upstream"
   ],
   [
-   "src/script/ops-memory.ts",
+   "src/games/evermore/script/ops-memory.ts",
    "upstream"
   ],
   [
-   "src/script/ops-system.ts",
+   "src/games/evermore/script/ops-system.ts",
    "upstream"
   ],
   [
-   "src/sprites/AGENTS.md",
+   "src/games/evermore/sprites/AGENTS.md",
    "upstream"
   ],
   [
-   "src/sprites/README.md",
+   "src/games/evermore/sprites/README.md",
    "upstream"
   ],
   [
-   "src/sprites/animation-decoder.js",
+   "src/games/evermore/sprites/animation-decoder.js",
    "upstream"
   ],
   [
-   "src/sprites/character-model.js",
+   "src/games/evermore/sprites/character-model.js",
    "upstream"
   ],
   [

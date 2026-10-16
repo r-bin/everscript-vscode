@@ -1,7 +1,7 @@
 # Everscript & entity formats
 
-What the decoder in [`src/script/`](../../src/script/README.md) and the
-sprite/character code in [`src/maps/`](../../src/maps/README.md) know about
+What the decoder in [`src/games/evermore/script/`](../../src/games/evermore/script/README.md) and the
+sprite/character code in [`src/games/evermore/maps/`](../../src/games/evermore/maps/README.md) know about
 the ROM, and how each fact was established.
 
 Every page here follows the same rule: **a claim is either measured against a

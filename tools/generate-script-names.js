@@ -1,5 +1,5 @@
 'use strict';
-// Generate src/script/names.json from SoEScriptDumper's data.h.
+// Generate src/games/evermore/script/names.json from SoEScriptDumper's data.h.
 //
 // The reference decoder's readability comes almost entirely from these tables:
 // without them every instruction reads `WRITE $2443 = 0x02` instead of
@@ -26,8 +26,8 @@ const DEFAULT_DATA_H = path.join(HOME, 'Documents', 'GitHub', 'SoETilesViewer', 
 const DEFAULT_EVERSCRIPT = path.join(HOME, 'Documents', 'GitHub', 'everscript');
 const ITEMS_EVS = path.join('in', 'core', '[group] 00_general_enums', '[group] 05_everscript', '04_items.evs');
 const SPRITES_EVS = path.join('in', 'core', '[group] 00_general_enums', '[group] 05_everscript', '03_sprites.evs');
-const OUT = path.join(__dirname, '..', 'src', 'script', 'names.json');
-const SCRIPTS_OUT = path.join(__dirname, '..', 'src', 'localizations', 'data', 'scripts.json');
+const OUT = path.join(__dirname, '..', 'src', 'games', 'evermore', 'script', 'names.json');
+const SCRIPTS_OUT = path.join(__dirname, '..', 'src', 'games', 'evermore', 'localizations', 'data', 'scripts.json');
 
 /**
  * Drop `//` comments, respecting string literals.

@@ -1,21 +1,21 @@
 ---
 name: grammar-rules
-description: Use when editing the TextMate grammar (src/language/syntaxes/everscript.tmLanguage.json) or its tests (src/language/tests/*.test.evs) in everscript-vscode.
-applyTo: "src/language/syntaxes/**,src/language/tests/**"
+description: Use when editing the TextMate grammar (src/games/evermore/language/syntaxes/everscript.tmLanguage.json) or its tests (src/games/evermore/language/tests/*.test.evs) in everscript-vscode.
+applyTo: "src/games/evermore/language/syntaxes/**,src/games/evermore/language/tests/**"
 ---
 
 # Skill: Grammar Rules
 
 Use this skill when editing the TextMate grammar
-(`src/language/syntaxes/everscript.tmLanguage.json`) or its tests
-(`src/language/tests/*.test.evs`).
+(`src/games/evermore/language/syntaxes/everscript.tmLanguage.json`) or its tests
+(`src/games/evermore/language/tests/*.test.evs`).
 
 - Pattern order matters: first match wins. See the `patterns` array in the grammar file.
 - All JSON must be ASCII-only. No em-dashes (`—`), curly quotes, or box-drawing
   characters.
 - Use named captures (`captures`) when a single `match` produces multiple token types.
 - After adding a grammar rule, add at least one test assertion in
-  `src/language/tests/highlight.test.evs` (grammar unit tests run via
+  `src/games/evermore/language/tests/highlight.test.evs` (grammar unit tests run via
   `vscode-tmgrammar-test`, part of `npm test`).
 
 ## Test assertion format

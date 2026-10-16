@@ -23,11 +23,11 @@
         "tools",
         "src/emulator/core",
         "src/memory/webview",
-        "src/scaling/webview",
+        "src/games/evermore/scaling/webview",
         "src/rooms/webview",
         "src/docs",
         "src/emulator/webview",
-        "src/sprites/webview",
+        "src/games/evermore/sprites/webview",
         "tests"
     ]
 }

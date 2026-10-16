@@ -13,8 +13,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
-const script = require('../../src/script');
-const sim = require('../../src/simulation');
+const script = require('../../src/games/evermore/script');
+const sim = require('../../src/games/evermore/simulation');
 
 const REPO = process.env.EVERSCRIPT_REPO || path.join(__dirname, '..', '..', '..', 'everscript');
 const ROM = require('../../dist/games').romPath('evermore');

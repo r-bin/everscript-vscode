@@ -6,8 +6,8 @@
 > come back round or end cleanly. The rest stop on `0x57`, which is
 > variable-length by design, or on `0x3C`.
 >
-> Code: `src/maps/animation-opcodes.ts` (the one width table, disassembler),
-> `src/maps/animation-vm.ts` (interpreter, record and id tables). The Sprites
+> Code: `src/games/evermore/maps/animation-opcodes.ts` (the one width table, disassembler),
+> `src/games/evermore/maps/animation-vm.ts` (interpreter, record and id tables). The Sprites
 > tab's **Animations** mode lists every record and shows each script.
 >
 > How the decoder uses this — idle frames, holds, strike boxes — is in
@@ -794,7 +794,7 @@ found.
 
 ## Running a script
 
-`runAnimation()` in `src/maps/animation-vm.ts` is the machine above, tick by
+`runAnimation()` in `src/games/evermore/maps/animation-vm.ts` is the machine above, tick by
 tick. It differs from a linear read in three ways, all visible in the Sprites
 tab:
 
@@ -849,7 +849,7 @@ Over all 1,752 record scripts, run tick by tick:
 
 - **`0x57`** needs an emulation of `$8FCA02` or a trace of one of its two
   bosses animating.
-- **The linear walker** (`src/maps/character-animation.ts`, used for room
+- **The linear walker** (`src/games/evermore/maps/character-animation.ts`, used for room
   idles) stops at `0x3B` rather than follow it, and plays a counted loop's body
   once. The interpreter does both properly; the room view has not moved to it
   yet.

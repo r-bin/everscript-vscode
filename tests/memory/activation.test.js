@@ -189,7 +189,7 @@ const EXPECTED_EXPORTS = {
         'readPngDimensions', 'readRomTriggerOffsets', 'readRomMapHeader',
         'readRomCharacters', 'readRomHitLookup', 'detectScaleEnemies',
     ],
-    './src/language/language-providers': [
+    './src/games/evermore/language/language-providers': [
         'loadIndex', 'buildWorkspaceIndex', 'indexDocument',
         'provideHover', 'provideDocumentSymbols',
         'getDeadDecorationType', 'updateDeadBranchDecorations',

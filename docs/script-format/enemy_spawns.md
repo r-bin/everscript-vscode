@@ -1,6 +1,6 @@
 # Enemy spawns
 
-> Status: **solved.** `src/script/entities.ts`. The format came from the
+> Status: **solved.** `src/games/evermore/script/entities.ts`. The format came from the
 > encoder, not from tracing.
 
 ## Four opcodes place an NPC

@@ -1,6 +1,6 @@
 # Simulating a room's enter script
 
-> Status: **built** in [`src/simulation/`](../src/simulation/README.md)
+> Status: **built** in [`src/games/evermore/simulation/`](../src/games/evermore/simulation/README.md)
 > (v0.202.0): enter scripts become scenarios with a flag tree, and each placed
 > NPC carries the condition that places it. The text below is the history.
 > The decoder still reports which NPCs an enter script *can* place. The two things that *were* unknown — what the NPC index means and
@@ -9,7 +9,7 @@
 ## Why a simulation is the right tool here
 
 Loot did not need one — a pickup writes its reward down as a literal, so
-reading the bytes was enough ([src/script/README.md](../src/script/README.md)).
+reading the bytes was enough ([src/games/evermore/script/README.md](../src/games/evermore/script/README.md)).
 Room population is different. Rooms are reused: the same map id is entered at
 several points in the story with different enemies, and the enter script picks
 between them with `IF` on saved flags. There is no literal answer in the
@@ -26,7 +26,7 @@ the side that writes the bytes usually says so outright.
 
 ## What a simulation needs
 
-**1. An expression evaluator.** `src/script/expression.ts` renders operands as
+**1. An expression evaluator.** `src/games/evermore/script/expression.ts` renders operands as
 text; it does not compute them. Simulating a branch means evaluating the same
 grammar to a value. The two must not drift, so either the evaluator lives
 beside the renderer and is tested against it, or the renderer is rebuilt on

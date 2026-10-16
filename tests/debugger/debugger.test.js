@@ -10,12 +10,12 @@ const fs     = require('fs');
 const os     = require('os');
 const path   = require('path');
 
-const { SourceMap, findSourceMap } = require('../../src/debugger/source-map');
-const frames = require('../../src/debugger/script-frames');
-const { EmulatorDebugSession } = require('../../src/debugger/emulator-session');
-const memory = require('../../src/debugger/memory-access');
-const { inferTypes } = require('../../src/debugger/value-types');
-const { evaluateCondition, conditionOf } = require('../../src/debugger/conditions');
+const { SourceMap, findSourceMap } = require('../../src/games/evermore/debugger/source-map');
+const frames = require('../../src/games/evermore/debugger/script-frames');
+const { EmulatorDebugSession } = require('../../src/games/evermore/debugger/emulator-session');
+const memory = require('../../src/games/evermore/debugger/memory-access');
+const { inferTypes } = require('../../src/games/evermore/debugger/value-types');
+const { evaluateCondition, conditionOf } = require('../../src/games/evermore/debugger/conditions');
 
 let passed = 0;
 let failed = 0;

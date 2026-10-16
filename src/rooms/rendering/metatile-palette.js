@@ -6,9 +6,9 @@
 // metatiles, which is a 325 KB data URI and, as objects, 166 KB of JSON.
 // Nobody pays that for a room whose tile palette they never open.
 //
-// Pure apart from the module-level cache. Consumes src/maps.
+// Pure apart from the module-level cache. Consumes src/games/evermore/maps.
 
-const maps = require('../../maps');
+const maps = require('../../games/evermore/maps');
 const { romFingerprint } = require('./rom-fingerprint');
 const { headerSpec, withHeader } = require('./header-overrides');
 const { annotateGraphics, budgetSummary, invalidateVanillaIndex, vanillaGeometry, vanillaCycleTimings } = require('./vanilla-index');

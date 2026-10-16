@@ -90,7 +90,7 @@ complement, REA optional.**
 ### G3 — Decomp in C
 
 snesrecomp boots (G2.1) → replace leaf routines first (decompressors, room loader: their
-semantics are already ported in `src/maps`) with `hle_func` C, checked by the per-frame diff.
+semantics are already ported in `src/games/evermore/maps`) with `hle_func` C, checked by the per-frame diff.
 Ghidra/REA help read a routine before writing its C. CDL improvement 4 (register snapshots)
 gives argument conventions.
 

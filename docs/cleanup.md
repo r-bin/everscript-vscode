@@ -115,14 +115,14 @@ Scope, from the inventory of 2026-10-16:
 
 | Part | Files | Rebuilt as |
 |---|---|---|
-| Script decoder | `src/script/{addressing,decoder,expression,loot,ops-entity,ops-flow,ops-memory,ops-system,index}.ts` (~1.7 k lines) | `src/games/evermore/script-vm/` from the interpreter at `$8C:D0A6`, printing compiler spelling (D4) |
-| Sprites | `src/maps/sprites.ts` | from the routines that walk the sprite pools |
-| Character record | `src/maps/character-record.ts`, `src/sprites/character-model.js` | from the game's own reads of the records |
-| Names | `src/script/names.json`, `names.ts`, `src/localizations/{maps,scripts}.js`, `src/localizations/data/scripts.json` | kept (D4); room names rewritten in our style; `tools/generate-script-names.js` deleted (it reads an upstream checkout) |
+| Script decoder | `src/games/evermore/script/{addressing,decoder,expression,loot,ops-entity,ops-flow,ops-memory,ops-system,index}.ts` (~1.7 k lines) | `src/games/evermore/script-vm/` from the interpreter at `$8C:D0A6`, printing compiler spelling (D4) |
+| Sprites | `src/games/evermore/maps/sprites.ts` | from the routines that walk the sprite pools |
+| Character record | `src/games/evermore/maps/character-record.ts`, `src/games/evermore/sprites/character-model.js` | from the game's own reads of the records |
+| Names | `src/games/evermore/script/names.json`, `names.ts`, `src/games/evermore/localizations/{maps,scripts}.js`, `src/games/evermore/localizations/data/scripts.json` | kept (D4); room names rewritten in our style; `tools/generate-script-names.js` deleted (it reads an upstream checkout) |
 | Upstream-output tests | `tests/memory/script-parity.test.js`, `script-loot.test.js`, the upstream parts of `script-units.test.js`, `map-parity.test.js:365,372` | goldens from the running game (plan phase 2) |
 | Upstream-output data | `script_parser/generated/**` (incl. the 2.3 MB `opcode-corpus.json` with raw ROM bytes + dumper text), `script_parser/tests/generated/**`, `sandbox/{,opcodes/}corpus`, `sandbox/{,opcodes/}boundaries` | deleted |
-| Upstream paths | `src/maps/render-script-model.js:8`, `script_parser/src/scripts-all-model.ts:56` | `soe://` (D5) |
-| Attribution in docs/comments | `src/README.md:17`, `src/script/README.md`, `src/maps/README.md:82`, `src/sprites/README.md:7`, `src/sprites/animation-decoder.js:113`, `src/docs/render-docs-tab.js:136` (user-visible), the "OBJ n" comments in `rom-overlay.js:35`, `overlay-features.ts:48`, `collision-overlay.ts:185`, `docs/script-format/*`, `docs/room-script-parser.md`, `docs/map-format/map_editor_design.md:50-58,233`, `docs/room-simulation.md:107`, `docs/rooms-settings-cleanup-dossier.md:42`, `.agents/agents/script-parser-generator.md:128` | rewritten with the code they describe |
+| Upstream paths | `src/games/evermore/maps/render-script-model.js:8`, `script_parser/src/scripts-all-model.ts:56` | `soe://` (D5) |
+| Attribution in docs/comments | `src/README.md:17`, `src/games/evermore/script/README.md`, `src/games/evermore/maps/README.md:82`, `src/games/evermore/sprites/README.md:7`, `src/games/evermore/sprites/animation-decoder.js:113`, `src/docs/render-docs-tab.js:136` (user-visible), the "OBJ n" comments in `rom-overlay.js:35`, `overlay-features.ts:48`, `collision-overlay.ts:185`, `docs/script-format/*`, `docs/room-script-parser.md`, `docs/map-format/map_editor_design.md:50-58,233`, `docs/room-simulation.md:107`, `docs/rooms-settings-cleanup-dossier.md:42`, `.agents/agents/script-parser-generator.md:128` | rewritten with the code they describe |
 
 - [ ] **2.1** Sprites + character record (plan part B).
 - [ ] **2.2** Script VM phases 1–5 of the plan, with the compiler-spelled output.
@@ -176,7 +176,7 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   HTML escape (×6), hex formatters (×23), tab strip, CSP shell → `core/webview`; 65816 opcode table
   (×2), crc32 (×2), room-table pointer `0x1ffde7` (×3).
 - [x] **5.2** `npm run check:dup` (jscpd, `.jscpd.json`: clones of 30+ lines in `src/` and `tools/`), blocking.
-  The only such clone was the alchemy math (×3): one copy now, `src/scaling/webview/alchemy-math.js`,
+  The only such clone was the alchemy math (×3): one copy now, `src/games/evermore/scaling/webview/alchemy-math.js`,
   loaded by the radar page and required by the tests. The short helpers of 5.1 are below its threshold.
 - [ ] **5.3 esbuild:** (first part done in v0.231.0: one TypeScript build, `tsconfig.build.json` →
   `dist/` mirroring `src/`, `npm run build:ts`; the five per-domain builds are gone) one host bundle and one bundle per webview from real `.ts`/`.css`/`.html`;

@@ -8,8 +8,8 @@
 // the variable switches set (Thraxx going from orange to white, Ebon/Ivor
 // Keep, dark storerooms). docs/map-format/room-reference.md §5.
 
-const maps = require('../../maps');
-const script = require('../../script');
+const maps = require('../../games/evermore/maps');
+const script = require('../../games/evermore/script');
 
 /** `WRITE $2437 = 0x0007` in a decoded row's summary. */
 const WRITE_MAP_PALETTE = /\$2437\b.*?=\s*(0x[0-9a-f]+|\d+)/i;

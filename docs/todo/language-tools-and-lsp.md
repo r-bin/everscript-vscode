@@ -1,6 +1,6 @@
 # Language Tools & LSP — Open Tasks & Roadmap
 
-> Domain: Everscript Language Support (`src/language/`, `syntaxes/`, `themes/`)
+> Domain: Everscript Language Support (`src/games/evermore/language/`, `syntaxes/`, `themes/`)
 > Shipped features reference: [`docs/language-features.md`](../language-features.md)
 > Status key: 🔴 bug · 🟡 feature gap · 🟢 designed, not yet built
 

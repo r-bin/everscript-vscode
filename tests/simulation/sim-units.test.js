@@ -5,8 +5,8 @@
 // operand evaluation, forking, pins, rejoining — so a regression is named.
 
 const assert = require('assert');
-const script = require('../../src/script');
-const sim = require('../../src/simulation');
+const script = require('../../src/games/evermore/script');
+const sim = require('../../src/games/evermore/simulation');
 
 let passed = 0, failed = 0;
 function test(name, fn) {

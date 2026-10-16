@@ -1,6 +1,6 @@
 # The operand grammar ("sub-instructions")
 
-> Status: **solved.** Ported in `src/script/expression.ts` from
+> Status: **solved.** Ported in `src/games/evermore/script/expression.ts` from
 > `buf_parse_sub` in SoEScriptDumper's `list-rooms.cpp`.
 
 ## Why this is the important one

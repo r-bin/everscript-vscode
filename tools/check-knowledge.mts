@@ -1,5 +1,5 @@
 // Knowledge coverage (docs/cleanup.md 6.1, D8, D11): every WRAM address and ROM routine we use has a
-// knowledge entry (src/localizations/knowledge/{ram,rom}/<addr>.md, `game-knowledge` skill).
+// knowledge entry (src/games/evermore/localizations/knowledge/{ram,rom}/<addr>.md, `game-knowledge` skill).
 //
 //   node tools/check-knowledge.mts             coverage report; fails on addresses in code that are
 //                                              neither documented nor in the baseline
@@ -15,7 +15,7 @@ import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
 
 const ROOT = join(import.meta.dirname, '..');
-const KNOWLEDGE = join(ROOT, 'src/localizations/knowledge');
+const KNOWLEDGE = join(ROOT, 'src/games/evermore/localizations/knowledge');
 const BASELINE = join(ROOT, 'tools/check-knowledge.baseline.json');
 
 type Range = { from: number; to: number; name: string };

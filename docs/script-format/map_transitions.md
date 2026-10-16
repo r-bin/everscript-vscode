@@ -1,6 +1,6 @@
 # Map transitions: where a door leads
 
-> Status: **solved.** `src/script/transition.ts`.
+> Status: **solved.** `src/games/evermore/script/transition.ts`.
 
 Most triggers in the game are doors, and they share a shape:
 

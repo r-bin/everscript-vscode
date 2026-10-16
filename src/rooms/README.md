@@ -385,7 +385,7 @@ page receives them as `ITEM_ICONS.loot`, a PNG data URI per `LOOT_REWARD` name
 is [docs/item-icons.md](../../docs/item-icons.md).
 
 Live rooms name their triggers in the source; vanilla rooms have no names, so
-the name comes from the reward `src/script/` read out of the ROM script.
+the name comes from the reward `src/games/evermore/script/` read out of the ROM script.
 `trigItemName()` in `webview/utils.js` owns that choice — source name first,
 decoded reward second — so both paths go through one renderer.
 
@@ -395,7 +395,7 @@ charms have no ring icon and get nothing.
 
 ## Exits
 
-`src/script/` reads a script's `CHANGE MAP` destinations, so a door trigger
+`src/games/evermore/script/` reads a script's `CHANGE MAP` destinations, so a door trigger
 shows where it leads. The link navigates by clicking that room's own tree
 entry (`gotoVanillaRoom`, rooms-rail.js) rather than duplicating the
 selection logic — one place owns highlight and render. Since Phase 7b it

@@ -3,12 +3,12 @@
 // the webview already has — a loot reward's `LOOT_REWARD` name (`CRYSTAL`,
 // `PETAL`, `CHEST_1_1`) and an alchemy formula's name (`Acid Rain`).
 //
-// The decoding is src/maps/item-icons.ts and is pure; this only joins it to
-// src/script/'s names and encodes the pixels. Every icon comes from the
+// The decoding is src/games/evermore/maps/item-icons.ts and is pure; this only joins it to
+// src/games/evermore/script/'s names and encodes the pixels. Every icon comes from the
 // user's ROM at run time — nothing is bundled. docs/item-icons.md.
 
-const { renderItemIcon, lootIconId, alchemyIconId, ALCHEMY_FORMULAS, encodePngDataUri } = require('../../maps');
-const { lootRewardName, ramBitToStr } = require('../../script');
+const { renderItemIcon, lootIconId, alchemyIconId, ALCHEMY_FORMULAS, encodePngDataUri } = require('../../games/evermore/maps');
+const { lootRewardName, ramBitToStr } = require('../../games/evermore/script');
 
 /** The reward categories the ring menu draws: ingredients, armour, consumables. */
 const REWARD_CATEGORIES = [0x0200, 0x0400, 0x0800];

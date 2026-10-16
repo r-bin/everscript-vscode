@@ -24,7 +24,7 @@ addresses: `$Cx` (full bank), `$8x` (upper half, FastROM), `$00–$3F:8000+` and
 | above `0x400000` | — | **does not exist** under HiROM | ExHiROM or SA-1 only |
 
 The rows are coarse; the authoritative per-bank breakdown is the generated ROM tab
-(`src/rom`, `docs/map-format/rom-map.md`). Do not read this table as exact bank boundaries.
+(`src/games/evermore/rom`, `docs/map-format/rom-map.md`). Do not read this table as exact bank boundaries.
 
 Two repo facts drive everything below:
 

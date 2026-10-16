@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('assert');
-const { effectiveMdef: alchemyEffectiveMdef, alchemyRangeAtLevel, alchemySpellPowerAtLevel, alchemyMagicDefenseAtLevel, alchemyTargetHpAtLevel, alchemyProjectedRange, damageRangeFull } = require('../../src/scaling/webview/alchemy-math');
+const { effectiveMdef: alchemyEffectiveMdef, alchemyRangeAtLevel, alchemySpellPowerAtLevel, alchemyMagicDefenseAtLevel, alchemyTargetHpAtLevel, alchemyProjectedRange, damageRangeFull } = require('../../src/games/evermore/scaling/webview/alchemy-math');
 
 const dmgRangeFull = damageRangeFull;
 

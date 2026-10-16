@@ -1,6 +1,6 @@
 ---
 name: game-knowledge
-description: Use whenever you learn, confirm, correct or need anything about a Secret of Evermore address — a WRAM variable/struct/region, a flag, a ROM routine (asm), a script or script function, a table or a data format. Look it up before researching; write it down before you finish. Covers the knowledge-entry format under src/localizations/knowledge/ and what evidence to record.
+description: Use whenever you learn, confirm, correct or need anything about a Secret of Evermore address — a WRAM variable/struct/region, a flag, a ROM routine (asm), a script or script function, a table or a data format. Look it up before researching; write it down before you finish. Covers the knowledge-entry format under src/games/evermore/localizations/knowledge/ and what evidence to record.
 applyTo: "**"
 ---
 
@@ -12,9 +12,9 @@ that is not written down is lost.** This skill is the one place that says where 
 ## 1. Before researching an address
 
 Look it up first — it may already be known:
-1. `src/localizations/knowledge/{ram,rom}/<addr>.md` (and regions containing it — check `end:`)
+1. `src/games/evermore/localizations/knowledge/{ram,rom}/<addr>.md` (and regions containing it — check `end:`)
 2. `soe://ram/<addr>.json`, `soe://bus/<addr>`, `soe://tags/search/<word>.md` (MCP `soe_read`)
-3. `src/localizations/functions.js`, `tables.js` (legacy one-liners, being migrated)
+3. `src/games/evermore/localizations/functions.js`, `tables.js` (legacy one-liners, being migrated)
 4. `docs/` (`grep -ri "<addr without \$>" docs`)
 
 ## 2. After learning anything — record it in the same commit
@@ -25,8 +25,8 @@ sentence beats nothing. No permission needed — this is part of every task.
 
 | You learned about | Write to |
 |---|---|
-| a WRAM address, struct, flag byte or region | `src/localizations/knowledge/ram/<addr>.md` |
-| an asm routine, script, script function, table or data block in the ROM | `src/localizations/knowledge/rom/<addr>.md` |
+| a WRAM address, struct, flag byte or region | `src/games/evermore/localizations/knowledge/ram/<addr>.md` |
+| an asm routine, script, script function, table or data block in the ROM | `src/games/evermore/localizations/knowledge/rom/<addr>.md` |
 | anything about **Secret of Mana** (a different game) | `docs/mana/README.md` and the comment of the `src/games/mana/decoder/` file that reads it — never `knowledge/`, never mixed with Evermore entries |
 | a format or mechanism spanning many addresses | `docs/game-research/…` (prose), linked from the entries |
 | a workflow trap, a tool fact, or a skill/AGENTS.md statement that is wrong | fix that skill / `AGENTS.md` directly |

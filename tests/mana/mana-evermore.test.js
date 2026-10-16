@@ -12,7 +12,7 @@
 const assert = require('assert');
 const fs = require('fs');
 const mana = require('../../src/games/mana/decoder');
-const maps = require('../../src/maps');
+const maps = require('../../src/games/evermore/maps');
 const bridge = require('../../src/games/evermore/imports/mana');
 const rooms = require('../../src/rooms');
 

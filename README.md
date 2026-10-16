@@ -85,7 +85,7 @@ Development Host from the repo with **F5**.
 | `npm run check:circular` / `check:deps` / `check:dead` | circular imports, domain boundaries (warn), unused files and exports (advisory) |
 | `npm run build:ts` | compile all TypeScript (`src/**/*.ts` → `dist/`) |
 | `npm run build:cores` | rebuild both snes9x WASM cores (needs Emscripten; `tools/build_snes_core.sh`) |
-| `npm run build:music-engine` | rebuild the SPC engine (`src/music/engine/build-engine.sh`) |
+| `npm run build:music-engine` | rebuild the SPC engine (`src/games/evermore/music/engine/build-engine.sh`) |
 | `npm run check:maps` / `check:script` / `check:collision` | parity and round-trip checks against the ROM (need a ROM) |
 | `npm run package` / `npm run deploy` | build the `.vsix` / build and install it |
 | `npm run recomp:lockstep -- --rom <clean rom>` | compare the snesrecomp host build with snes9x frame by frame (WRAM at equal NMI counts; [`docs/reverse-engineering/recomp-host.md`](docs/reverse-engineering/recomp-host.md)) |
@@ -173,7 +173,7 @@ repository's code only; bundled third-party parts keep their own licences:
 
 - The embedded SNES emulator WebAssembly core (`snes9x2005-wasm`) and the SPC engine built from
   it are distributed for personal, **non-commercial** use under the Snes9x licence (see
-  `src/emulator/core/snes9x2005-wasm/copyright` and `src/music/engine/copyright`). The extension
+  `src/emulator/core/snes9x2005-wasm/copyright` and `src/games/evermore/music/engine/copyright`). The extension
   must not be sold. Upstream: [r-bin/snes9x2005-wasm](https://github.com/r-bin/snes9x2005-wasm),
   [lrusso/snes9x2005-wasm](https://github.com/lrusso/snes9x2005-wasm).
 

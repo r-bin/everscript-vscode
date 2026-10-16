@@ -10,7 +10,7 @@ const {
     loadRom,
     parseCommandFetches,
     dumpOpcode93Commands,
-} = require('../../src/maps/render-script-model');
+} = require('../../src/games/evermore/maps/render-script-model');
 
 let passed = 0;
 let failed = 0;

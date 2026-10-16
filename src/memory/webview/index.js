@@ -5,13 +5,13 @@ const path = require('path');
 
 // Domain asset directories (resolved from src/ tree)
 const sharedDir  = path.join(__dirname, '../../shared');
-const scalingDir = path.join(__dirname, '../../scaling/webview');
+const scalingDir = path.join(__dirname, '../../games/evermore/scaling/webview');
 const roomsDir   = path.join(__dirname, '../../rooms/webview');
-const spritesDir = path.join(__dirname, '../../sprites/webview');
+const spritesDir = path.join(__dirname, '../../games/evermore/sprites/webview');
 const docsDir    = path.join(__dirname, '../../docs');
-const romDir     = path.join(__dirname, '../../rom/webview');
-const musicDir   = path.join(__dirname, '../../music/webview');
-const scriptsDir = path.join(__dirname, '../../scripts-tab/webview');
+const romDir     = path.join(__dirname, '../../games/evermore/rom/webview');
+const musicDir   = path.join(__dirname, '../../games/evermore/music/webview');
+const scriptsDir = path.join(__dirname, '../../games/evermore/scripts-tab/webview');
 
 const fileCache = new Map();
 
@@ -56,7 +56,7 @@ function buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, sca
   return out;
 }
 
-// Load scaling tab JS from split modules in src/scaling/webview/ (concatenated in dependency order).
+// Load scaling tab JS from split modules in src/games/evermore/scaling/webview/ (concatenated in dependency order).
 // alchemy-math.js runs in outer IIFE scope; state.js opens the inner IIFE; tab-init.js closes it.
 const SCALING_JS_FILES = [
   'alchemy-math.js',  // pure alchemy math — outer scope, accessible to docs-tab too

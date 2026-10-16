@@ -1,10 +1,10 @@
 # Plan: rebuild the script decoder from the game's own code
 
-**Decision (2026-10-11):** the script decoder (`src/script/`), the sprite/character readers
-(`src/maps/sprites.ts`, `src/maps/character-record.ts`, `src/sprites/character-model.js`) and
+**Decision (2026-10-11):** the script decoder (`src/games/evermore/script/`), the sprite/character readers
+(`src/games/evermore/maps/sprites.ts`, `src/games/evermore/maps/character-record.ts`, `src/games/evermore/sprites/character-model.js`) and
 everything else ported from SoEScriptDumper/SoETilesViewer is re-implemented **from the game
 itself**. We have the author's written agreement, but we choose not to build on their work.
-Names (`src/script/names.json`, room names) stay for now; room names are rewritten in our own
+Names (`src/games/evermore/script/names.json`, room names) stay for now; room names are rewritten in our own
 style and the disassembly text is reinvented in the everscript compiler's spelling
 (`docs/cleanup.md` D4).
 
@@ -17,7 +17,7 @@ derivation with its own evidence trail.
 
 Working rules for whoever implements it (human or agent):
 - Do **not** open SoEScriptDumper/SoETilesViewer sources, and do not read the legacy decoder's
-  opcode handling (`src/script/decoder.ts`, `expression.ts`, `ops-*.ts`) while writing the new
+  opcode handling (`src/games/evermore/script/decoder.ts`, `expression.ts`, `ops-*.ts`) while writing the new
   one. Comparing *test outputs* (lengths, stop points) is allowed.
 - Everything learned goes into knowledge entries (`game-knowledge` skill) and
   `docs/game-research/script-vm/`, in our own words. That doc is the spec the code is written
@@ -61,7 +61,7 @@ Working rules for whoever implements it (human or agent):
 - Delete: legacy decoder files, `tools/generate-script-names.js` (once names are decided),
   the parity tests that read upstream output (`script-parity`, `script-loot` upstream parts),
   `script_parser/` (the `sandbox/` corpora are already deleted), the hard-coded upstream
-  ROM path in `src/maps/render-script-model.js`.
+  ROM path in `src/games/evermore/maps/render-script-model.js`.
 
 ### B. Sprites and characters (parallel, smaller)
 - Re-derive sprite block pools, the sprite list walk and the character record from the ROM

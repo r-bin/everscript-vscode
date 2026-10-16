@@ -135,7 +135,7 @@ code, folder or docs are part of the cleanup.
    ROM; `openManaMaps` merged.
 6. Derived-ROM marker in `tools/table-hack` and `tools/exhirom`.
 
-**Status (v0.232.0):**
+**Status (v0.233.0):**
 - Built: 1 (resolver, library file, identification; every ROM reader in the extension, tests, tools and
   scripts goes through it; `romPath` / `manaRomPath` / `$SOE_ROM` / `EVERSCRIPT_ROM` are gone; old
   settings are adopted once into the library), 2 (`registerGame`, Evermore and Mana descriptors),
@@ -147,7 +147,12 @@ code, folder or docs are part of the cleanup.
   are still the old messages.
 - Built in part, 3: one TypeScript build (`tsconfig.build.json`, `dist/` mirrors `src/`, v0.231.0); Secret of
   Mana moved (v0.232.0): `games/mana/decoder`, `games/mana/resources`, `games/mana/maps`, and the bridge
-  `games/evermore/imports/mana`. The Evermore domains and `platform/` candidates are still at `src/<domain>`.
+  `games/evermore/imports/mana`. The twelve Evermore-only domains moved as they were (v0.233.0):
+  `games/evermore/{language,localizations,maps,script,simulation,sprites,resources,rom,scripts-tab,music,
+  scaling,debugger}`; their JS→TS conversion is cleanup 5.5, not part of the move. Still at `src/<domain>`
+  because each mixes game-neutral and Evermore code and must be split first: `emulator` (core, CDL →
+  `platform/`; ENTITIES/ALCHEMY panels → `games/evermore`), `memory` and `rooms` (tab shells → `core/`,
+  Evermore content → `games/evermore`), `docs`, `shared`, `mcp`, `recorder`.
 - Headless: `npm run roms` lists the library and adds/selects/marks ROMs (`tools/roms.js`).
 
 ## 8. The map editor (from the 2026-10-15 plan)

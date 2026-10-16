@@ -7,14 +7,14 @@
 > blitter and the Mesen `[REG]` pitfall, which still hold.
 
 The Rooms tab draws an ingredient icon on a loot trigger
-([src/script/README.md](../src/script/README.md) explains how the reward
+([src/games/evermore/script/README.md](../src/games/evermore/script/README.md) explains how the reward
 itself is read). Those icons come from a local assets folder, not the ROM,
 which is why four ingredients have no picture and seven reward kinds — money,
 charms, equipment — have none at all.
 
 Neither reference implementation helps: SoEScriptDumper is a script
 disassembler and SoETilesViewer has no item or menu tile handling. So unlike
-the rest of `src/script/`, this is original reverse engineering.
+the rest of `src/games/evermore/script/`, this is original reverse engineering.
 
 ## Traces used
 

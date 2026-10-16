@@ -135,7 +135,7 @@ mock's "Special" groups are **not** equally real:
   guess at an export shape.
 - This subsystem (`src/rooms/webview/`) has **no ROM write path** today — see
   `docs/map-format/map_editor_design.md` §1.1 ("no `writeFile`/save call
-  anywhere in `src/rooms/` or `src/maps/`"). `editExport()` only produces a
+  anywhere in `src/rooms/` or `src/games/evermore/maps/`"). `editExport()` only produces a
   draft handoff for an external encoder. Nothing added in Phase 3 should
   change that invariant.
 - Separately: `AI_ARCHITECTURE_GUIDE.md` §3 describes a **planned, unbuilt**
@@ -605,7 +605,7 @@ handoff README §2: centre = current tile, N/E/S/W = predicted candidates with
 a match-% badge, click/scroll a side to cycle, click the centre to toggle the
 draw layer.
 
-**Data (`src/maps/vanilla-adjacency.ts`, split out of `vanilla-index.ts`).**
+**Data (`src/games/evermore/maps/vanilla-adjacency.ts`, split out of `vanilla-index.ts`).**
 - The grid walk moved into its own module (vanilla-index.ts 432 → 402 LOC) and
   now files every edge twice more: a right pair is `b` east of `a` and `a`
   west of `b`; a down pair `b` south / `a` north. Same loop, no second scan,

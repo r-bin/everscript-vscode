@@ -1,0 +1,49 @@
+// Ownership: public API of the script simulation. Pure.
+//
+// `createSimulator(rom, decoder)` binds a ROM to the instruction decoder (the
+// `src/games/evermore/script` facade, injected by index.js) and returns the entry points.
+
+import { Machine, Decoder } from './machine';
+import { simulate, SimOptions, SimResult } from './explore';
+import { analyzeScript, ScriptAnalysis } from './trigger';
+import { Pin } from './memory';
+import { analyzeRoom, RoomAnalysis } from './room';
+import { emitScript, EmittedScript } from './everscript';
+
+export interface Simulator {
+    machine: Machine;
+    /** Every path a script at `entry` can take. */
+    run(entry: number, opts?: SimOptions): SimResult;
+    /** A small script (trigger, pickup) told as cases. */
+    analyze(entry: number, pins?: readonly Pin[]): ScriptAnalysis;
+    /** A room: enter-script scenarios, triggers as cases, clusters. */
+    room(mapId: number, pins?: readonly Pin[]): RoomAnalysis;
+    /** A script as a neutral tree and as Everscript that compiles to the same bytes. */
+    emit(entry: number, name?: string): EmittedScript;
+}
+
+export function createSimulator(rom: Uint8Array, decoder: Decoder): Simulator {
+    const machine = new Machine(rom, decoder);
+    return {
+        machine,
+        run: (entry, opts) => simulate(machine, entry, opts),
+        analyze: (entry, pins) => analyzeScript(machine, entry, pins),
+        emit: (entry, name) => emitScript(machine, entry, name),
+        room: (mapId, pins) => analyzeRoom(machine, mapId, decoder.buildRoomScriptModel(rom, mapId), pins),
+    };
+}
+
+export { key, ramHex } from './sym';
+export { PINS_BETWEEN_PICKUPS, lootOutcome, changes, describeCondition, describeChange } from './understand';
+export { segment, splitPrepareExecute } from './segments';
+export type { ScriptAnalysis, Case, Condition } from './trigger';
+export type { Pin } from './memory';
+export type { Part } from './segments';
+export type { RoomAnalysis, Scenario, FlagNode, Cluster, RoomTriggerAnalysis } from './room';
+export { roomReport, roomSummary, roomEverscript } from './report';
+export { pathFromMoment } from './snapshot';
+export type { GameMoment } from './snapshot';
+export type { EmittedScript, Neutral } from './everscript';
+export type { Sym } from './sym';
+export type { SimResult, SimPath, SimOptions } from './explore';
+export type { SimEvent, Step, SimEntity } from './state';

@@ -1,4 +1,4 @@
-// Parity harness: the TypeScript map decoder in src/maps/ vs. the verified
+// Parity harness: the TypeScript map decoder in src/games/evermore/maps/ vs. the verified
 // Python implementation in the sibling everscript repo.
 //
 // The TS code is a port, not an independent re-derivation — this test is what
@@ -16,8 +16,8 @@ const {
     decodeRoom, MAX_ROOMS, renderRoomComposite, encodePng, drawCollisionOverlay,
     parseObjectStamp, applyObjectStates, objectStateCount,
     drawCollisionOverlay: paintOverlay, buildAnimationGroups, buildOverlayTransfer,
-} = require('../../src/maps');
-const maps = require('../../src/maps');
+} = require('../../src/games/evermore/maps');
+const maps = require('../../src/games/evermore/maps');
 
 const EVERSCRIPT_REPO = process.env.EVERSCRIPT_REPO ||
     path.join(path.dirname(path.dirname(path.dirname(path.resolve(__dirname)))), 'everscript');
@@ -421,7 +421,7 @@ function checkSprites(rom) {
     const flower = maps.renderCharacterFrames(rom, 109);
     check('flower frames share one box', new Set(flower.frames.map((f) => f.data.length)).size, 1);
     check('flower origin is below centre', flower.originY > flower.height / 2, true);
-    const names = require('../../src/script/names.json');
+    const names = require('../../src/games/evermore/script/names.json');
     let rendered = 0;
     let total = 0;
     for (const enemy of Object.values(names.enemies)) {
@@ -548,7 +548,7 @@ function checkHitboxes(rom) {
     // the stone cobras are walked straight through.
     check('statue has no body', maps.characterHitbox(rom, 27).solid, false);
     check('bridge has no body', maps.characterHitbox(rom, 28).solid, false);
-    const names = require('../../src/script/names.json');
+    const names = require('../../src/games/evermore/script/names.json');
     let solid = 0;
     let insubstantial = 0;
     for (const enemy of Object.values(names.enemies)) {
@@ -581,7 +581,7 @@ function checkStrikeBoxes(rom) {
     check('...reaching two tiles south', flower.boxes[1].dy, 34);
     check('mosquito strike', maps.characterStrikeBoxes(rom, 113).boxes.length, 1);
 
-    const names = require('../../src/script/names.json');
+    const names = require('../../src/games/evermore/script/names.json');
     let armed = 0;
     let stopped = 0;
     for (const enemy of Object.values(names.enemies)) {
@@ -614,7 +614,7 @@ function checkPalettes(rom) {
     check('a villager and a monster do not',
         maps.characterPaletteAddress(rom, 4) === maps.characterPaletteAddress(rom, 88), false);
 
-    const names = require('../../src/script/names.json');
+    const names = require('../../src/games/evermore/script/names.json');
     const distinct = new Set();
     let none = 0;
     for (const enemy of Object.values(names.enemies)) {

@@ -47,7 +47,7 @@ All 35 vanilla formulas share a common index (`0x00` to `0x44`, step 2):
 | `ALCHEMY_TARGET` | `0x045BF5` | `$C4:5BF5` | 35 words | Target cursor bitfield (`BOY`, `PARTY`, `ENEMY_ALL`, etc.). |
 | `ALCHEMY_LEARNED_ADDR` | `0x045C3B` | `$C4:5C3B` | 35 words | Target WRAM persistence byte address (`$2258`..`$225C`). |
 | `ALCHEMY_LEARNED_MASK` | `0x045C81` | `$C4:5C81` | 35 bytes | Bitmask within persistence byte (`0x01`..`0x80`). |
-| `ALCHEMY_ANIM_MAP` | `0x045DDF` | `$C4:5DDF` | 35 words | Byte offset into `$91:80A6`, the table of each formula's **block** in bank `$91` (data, not code; it names the effect animation records). Not an animation id. See `src/localizations/knowledge/rom/c45ddf.md`, `9180a6.md`. |
+| `ALCHEMY_ANIM_MAP` | `0x045DDF` | `$C4:5DDF` | 35 words | Byte offset into `$91:80A6`, the table of each formula's **block** in bank `$91` (data, not code; it names the effect animation records). Not an animation id. See `src/games/evermore/localizations/knowledge/rom/c45ddf.md`, `9180a6.md`. |
 | `ALCHEMY_POWER` | `0x045E6B` | `$C4:5E6B` | 35 words | Base power (0 for utility, 15 for Defend, up to 112 for Nitro). |
 | `CALL_BEAD_POWER` | `0x045F17` | `$C4:5F17` | 16 words | Base power for 16 Call Bead spells. |
 | `ALCHEMY_COST_DATA` | `0x04601F` | `$C4:601F` | 35 * 4 B | `[Ing1_ID, Ing2_ID, Ing1_Qty, Ing2_Qty]`. |

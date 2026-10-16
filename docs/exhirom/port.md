@@ -126,7 +126,7 @@ ROM until step 5, so every existing tool (CDL, recomp seeds, patches) keeps work
    (`reference_headless_boot` method: bundled core under node) and compare against the original
    ROM frame by frame; the lockstep tooling (`npm run recomp:lockstep`, snes9x reference) is the
    oracle.
-4. **Teach the repo about the new layout.** `soe://rom/` (`src/resources/rom-files.js`
+4. **Teach the repo about the new layout.** `soe://rom/` (`src/games/evermore/resources/rom-files.js`
    reads the header at `0xFFC0` only), the ROM tab, the map/script decoders' size and bank checks,
    and the "clean ROM" checks (3 MB, checksum) must accept 8 MB ExHiROM. The CDL pieces already
    handle ExHiROM — verify rather than assume. Update `snes-memory-mapping` skill §1/§4.

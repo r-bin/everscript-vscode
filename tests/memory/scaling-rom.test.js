@@ -4,7 +4,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const Module = require('module');
-const { alchemyRangeAtLevel } = require('../../src/scaling/webview/alchemy-math');
+const { alchemyRangeAtLevel } = require('../../src/games/evermore/scaling/webview/alchemy-math');
 
 let passed = 0;
 let failed = 0;

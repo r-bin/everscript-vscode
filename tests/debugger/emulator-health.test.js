@@ -328,7 +328,7 @@ test('panel.js is ASCII-only to avoid webview parser/encoding issues', () => {
 
 test('extension.js registers the emulator debugger with the panel bridge', () => {
     const extContent = fs.readFileSync(path.join(ROOT, 'src', 'extension.js'), 'utf8');
-    assert.ok(extContent.includes("require('./debugger/inline-adapter').registerDebugger")
+    assert.ok(extContent.includes("require('./games/evermore/debugger/inline-adapter').registerDebugger")
         && extContent.includes('getScriptDebugBridge()'),
         'extension.js does not connect the debugger to the emulator');
 });

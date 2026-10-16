@@ -120,7 +120,7 @@ Ghidra's 65816 support is the weak link, and `docs/reverse-engineering/asm-to-c-
 | **DB and D.** 16-bit absolute and direct-page operands depend on them. | xrefs to WRAM / tables are wrong or missing. | CDL `regs.bin` (DB/D per instruction) |
 | **Jump tables / PHA+RTS dispatch.** | Ghidra misses most targets, so functions end early or never appear. | CDL edges, `indirect_dispatch` lists, FLOW_RETURN targets |
 | **Code vs data.** | Auto-analysis disassembles graphics, LZSS blobs and tables. | CDL CODE/DATA bits, `tables.json`, ROM asset locations (§5) |
-| **WRAM / registers have no names.** | Pseudocode is full of `DAT_7e3de5`. | `ram.asm`, `structs.h`, `src/localizations/`, `soe://ram/` |
+| **WRAM / registers have no names.** | Pseudocode is full of `DAT_7e3de5`. | `ram.asm`, `structs.h`, `src/games/evermore/localizations/`, `soe://ram/` |
 
 ### 4.2 What REA lets us pass in
 
@@ -147,9 +147,9 @@ A working generator exists in the spike folder (`scripts/gen-seeds.js`, §10.1 s
 
 | Source | Becomes |
 |---|---|
-| `functions.json` entries (CDL export) | `function` rows, named from `src/localizations/functions.js` where known, else `func_XXXXXX` |
+| `functions.json` entries (CDL export) | `function` rows, named from `src/games/evermore/localizations/functions.js` where known, else `func_XXXXXX` |
 | `rom.cdl` CODE-marked opcode heads that are not yet a function | `code` rows (jump-table targets, FLOW_RETURN targets) |
-| `tables.json` / table assets, ROM asset locations (map blobs, graphics, palettes, music packages, script banks: `soe://rom/assets/`, `src/localizations/tables.js`) | `label` rows such as `tbl_room_ptrs`, so Ghidra treats them as data and xrefs get names |
+| `tables.json` / table assets, ROM asset locations (map blobs, graphics, palettes, music packages, script banks: `soe://rom/assets/`, `src/games/evermore/localizations/tables.js`) | `label` rows such as `tbl_room_ptrs`, so Ghidra treats them as data and xrefs get names |
 | knowledge entries under the `game-knowledge` paths | `label` rows with our names |
 
 Combine this with `REA_GHIDRA_DISABLED_ANALYZERS` for the aggressive instruction / data
@@ -271,7 +271,7 @@ accesses do not hit our WRAM labels (only long `$7E:xxxx` operands did); pseudoc
 
 From the run-4 dossiers we ranked candidates by evidence (calls to named routines, long
 accesses to named WRAM) and read ten plus two of their callees. Results, all now in
-`src/localizations/functions.js` with evidence and `likely` / `guess`:
+`src/games/evermore/localizations/functions.js` with evidence and `likely` / `guess`:
 
 | Address | Name | Confidence |
 |---|---|---|
@@ -287,7 +287,7 @@ accesses to named WRAM) and read ten plus two of their callees. Results, all now
 Side findings that are facts, not guesses: the script opcode table `$8C:E8BD` has 195 entries;
 27 unused opcodes point at `STP` bytes (`$8C:E8B5–E8BC`) and halt the game; opcodes `0x30–0x32`
 start at `$8C:D6A7` and `0x33` at `$8C:D6D6` (our older entries `$D6BE` / `$D709` are inside
-them). Seven new WRAM entries went to `src/localizations/knowledge/ram/` (RNG state, shake
+them). Seven new WRAM entries went to `src/games/evermore/localizations/knowledge/ram/` (RNG state, shake
 offsets, camera target and follow pointer, frame counter, entity list head).
 
 **Assessment.** With the two patches and CDL seeds, REA is a *good evidence collector*: the

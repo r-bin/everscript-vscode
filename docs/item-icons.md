@@ -1,6 +1,6 @@
 # Item icons: ingredients, consumables, weapons, armour, alchemy
 
-> Status: **solved and in use** (v0.97.0). `src/maps/item-icons.ts` decodes
+> Status: **solved and in use** (v0.97.0). `src/games/evermore/maps/item-icons.ts` decodes
 > them; the Rooms tab draws them on B-triggers and the Scaling tab beside each
 > formula, and the old assets folder and `everscript.assetsPath` are gone. Checked pixel-exact: the Crystal decoded from the vanilla ROM matches a
 > reference screenshot on all 576 pixels (24×24 at 2×, zero mismatches).
@@ -23,7 +23,7 @@ ring icon id ─► $CE8000 + id ─► entry (8 bytes, bank $CE)
 Everything after "script" is already solved and ported:
 [script-format/animation_format.md](script-format/animation_format.md) and
 [script-format/sprite_format.md](script-format/sprite_format.md),
-`src/maps/character-animation.ts` and `src/maps/sprites.ts`. The two new
+`src/games/evermore/maps/character-animation.ts` and `src/games/evermore/maps/sprites.ts`. The two new
 pieces are the `$CE8000` table and the palette word.
 
 ## The icon id
@@ -118,7 +118,7 @@ A static view can use frame A.
 All icon chunks use chunk palette 0, so colour comes from the entity, and the
 entry's `+4` word supplies it. It is 16 BGR555 words at `$D0xxxx`, index 0
 transparent, widened `×8`: the same format and reading as
-`characterPalette()` in `src/maps/character-record.ts`. The `$D0` bank is the
+`characterPalette()` in `src/games/evermore/maps/character-record.ts`. The `$D0` bank is the
 `$90` bank character palettes already use, through the HiROM mirror.
 
 | Palette | Used by |
@@ -144,7 +144,7 @@ data seen from another angle. Not needed here.
 
 ## Joining a reward to its icon
 
-`src/script/` already decodes a pickup's reward as a 16-bit id
+`src/games/evermore/script/` already decodes a pickup's reward as a 16-bit id
 (`names.json → lootRewards`): the high byte is the category, the low byte the
 index. The entry's `+6` word is that index, so the join is a lookup, not a
 hand-written map:
@@ -171,14 +171,14 @@ any, are still an open question.
 
 | Piece | Where |
 |---|---|
-| Table, palette, first frame as RGBA; reward and formula → icon id | `src/maps/item-icons.ts` (`renderItemIcon`, `lootIconId`, `alchemyIconId`) |
-| The script walk, including `0x56` (3) and `0x30` (1) | `walkAnimationScript` in `src/maps/character-animation.ts`, shared with characters; all 141 characters × 8 facings walk byte-identically with the two widths added |
+| Table, palette, first frame as RGBA; reward and formula → icon id | `src/games/evermore/maps/item-icons.ts` (`renderItemIcon`, `lootIconId`, `alchemyIconId`) |
+| The script walk, including `0x56` (3) and `0x30` (1) | `walkAnimationScript` in `src/games/evermore/maps/character-animation.ts`, shared with characters; all 141 characters × 8 facings walk byte-identically with the two widths added |
 | PNG data URIs keyed by `LOOT_REWARD` name and by formula name, once per ROM buffer | `src/rooms/data/item-icons.js` (`buildItemIcons`) |
 | One `ITEM_ICONS` global on the radar page | `src/memory/render-radar.js` |
 | B-trigger icons, 2×2 viewBox units (native 16px against 8px tiles) | `itemSvgImg` / `trigItemName` in `src/rooms/webview/utils.js` |
-| An icon beside each formula in the Scaling legend | `alchemyIconHtml` in `src/scaling/webview/helpers.js` |
+| An icon beside each formula in the Scaling legend | `alchemyIconHtml` in `src/games/evermore/scaling/webview/helpers.js` |
 
-Formula names come from the "known" flags at `$2258` (`src/script` names),
+Formula names come from the "known" flags at `$2258` (`src/games/evermore/script` names),
 one bit per formula, which is also the entry's `+6` word halved. Bit 20,
 Laser, has no name there, so Laser has no icon until it does.
 

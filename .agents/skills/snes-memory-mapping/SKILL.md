@@ -101,7 +101,7 @@ Consequences for any static tool:
 ## 6. The 4th megabyte is not free: the game reads past its own end
 
 The vanilla code at `$80:D113` sets DB = `$B0` and reads 64 bytes at `$B0:E653–$B0:E6D1` (file
-`0x30E653–0x30E6D1`), beyond the 3 MB ROM (`src/localizations/knowledge/rom/80d113.md`). What it gets
+`0x30E653–0x30E6D1`), beyond the 3 MB ROM (`src/games/evermore/localizations/knowledge/rom/80d113.md`). What it gets
 depends on who answers for the missing megabyte:
 - the original cartridge (and bsnes-style emulators): file `0x20E653+` (the 1 MB chip mirrors)
 - the bundled snes9x2005 core: file `0x00E653+` (offset % 3 MB)

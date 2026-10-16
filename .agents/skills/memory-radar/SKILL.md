@@ -13,7 +13,7 @@ Current source locations (post v0.6.0 `src/` refactor):
 - `src/memory/render-radar.js`, `src/memory/render-memory-tab.js`, `src/memory/webview/`
 - `src/rooms/index.js`, `src/rooms/parsing/`, `src/rooms/rendering/`, `src/rooms/data/`,
   `src/rooms/webview/`
-- `src/sprites/` (the **Characters** tab, formerly Sprites: `character-model.js`, `animation-catalog.js`, `animation-decoder.js`, `raw-sprites.js`, `sprites-tab.js`, `webview/`)
+- `src/games/evermore/sprites/` (the **Characters** tab, formerly Sprites: `character-model.js`, `animation-catalog.js`, `animation-decoder.js`, `raw-sprites.js`, `sprites-tab.js`, `webview/`)
 - `src/docs/render-docs-tab.js` (docs/RNG tab, rendered in the same panel)
 - `src/shared/radar-utils.js` (pure functions shared by memory/rooms)
 - Panel lifecycle and command registration: `src/extension.js`
@@ -21,9 +21,9 @@ Current source locations (post v0.6.0 `src/` refactor):
 **Boundary note:** this skill covers the Rooms tab's *browsing* of already-parsed
 `.evs` source (`src/rooms/parsing/`, tree building, entity rendering) — that's
 author-side `.evs` text, unaffected by ROM format work. Decoding ROM map/room *bytes*
-(tile grids, collision, compression) is `src/maps/`'s job and is a separate, larger
+(tile grids, collision, compression) is `src/games/evermore/maps/`'s job and is a separate, larger
 concern — see the `map-format` skill before touching that side, especially before
-assuming `src/maps/` can answer a question the Rooms tab needs (it currently can't for
+assuming `src/games/evermore/maps/` can answer a question the Rooms tab needs (it currently can't for
 several rooms; `findRoomImage` falls back to a static image lookup rather than a ROM
 render for that reason).
 
@@ -261,9 +261,9 @@ document changes; cleared in `_radarPanel.onDidDispose`.
 
 Radar tabs are first-class ownership domains — each tab increasingly owns its own
 rendering, state, IPC, parsing, interactions, and tests:
-- `src/scaling/webview/` — scaling tab
+- `src/games/evermore/scaling/webview/` — scaling tab
 - `src/rooms/webview/`, `src/rooms/rendering/`, `src/rooms/parsing/`, `src/rooms/data/` — rooms tab
-- `src/sprites/` — Characters tab (characters, animations, raw sprites)
+- `src/games/evermore/sprites/` — Characters tab (characters, animations, raw sprites)
 - `src/memory/render-memory-tab.js` — memory tab rendering
 - `src/docs/render-docs-tab.js` — docs/RNG tab rendering
 

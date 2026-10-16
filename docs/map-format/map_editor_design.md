@@ -7,7 +7,7 @@ Two requirements shape everything below, and they pull in different directions:
 1. **It should eventually work on other SNES action-RPGs** — Secret of Mana and Terranigma are the named targets. Neither has anything like Everscript's compiled bytecode VM, so a design built around "jump from a trigger to its script" (this game's one truly distinctive need) cannot be the foundation — it has to be an optional capability on top of something more general.
 2. **Tiling and layers are the hard part.** Not a UI-polish afterthought — the genuinely difficult design problem, and where most of this document's effort goes (§9).
 
-**A third thing shapes it that wasn't known when this document was first drafted: this isn't a greenfield decision.** `/Users/v/Documents/GitHub/everscript-vscode` is an existing, actively-developed VS Code extension for this exact project, with its own architectural constitution (`AI_ARCHITECTURE_GUIDE.md`), a partial room/trigger inspector already shipping (`src/rooms/`), a partial independent attempt at decoding the ROM's map format in JavaScript (`src/maps/`, documented incomplete), and — unexpectedly — an already-forked, already-embedded SNES emulator core built specifically for debugger integration. §2 covers what was found there and how it changes this document's recommendations; every section after it was revised in light of it, not written as if it didn't exist.
+**A third thing shapes it that wasn't known when this document was first drafted: this isn't a greenfield decision.** `/Users/v/Documents/GitHub/everscript-vscode` is an existing, actively-developed VS Code extension for this exact project, with its own architectural constitution (`AI_ARCHITECTURE_GUIDE.md`), a partial room/trigger inspector already shipping (`src/rooms/`), a partial independent attempt at decoding the ROM's map format in JavaScript (`src/games/evermore/maps/`, documented incomplete), and — unexpectedly — an already-forked, already-embedded SNES emulator core built specifically for debugger integration. §2 covers what was found there and how it changes this document's recommendations; every section after it was revised in light of it, not written as if it didn't exist.
 
 **Status of the Secret-of-Evermore-specific prerequisites:** unusually for a romhacking project, the hard part is already done, and it's done in `everscript` (this repo), not `everscript-vscode`. `tools/dump_room.py` and `tools/encode_room.py` give a byte-exact, round-trip-verified read/write path for every one of the 127 vanilla rooms (`docs/map_encoding.md`); `tools/collision.py` decodes the full collision bitfield instead of guessing at it (`docs/map_collision_mechanics.md`); `tools/cuttable_grass.py` decodes the metatile swap table (`docs/cuttable_grass_mechanics.md`); `tools/render_map.py` already draws every one of those as a composited PNG. An editor is a UI wrapped around tooling that already exists and is already tested — see `docs/map_editor_architecture_and_limitations.md` §6 for the up-to-date completeness table.
 
@@ -23,15 +23,15 @@ This is the most relevant prior art in this whole document, more relevant than a
 
 | Capability | Where | Status |
 |---|---|---|
-| Full Everscript language tooling — hover docs, go-to-definition, find-references, completions, an Outline provider over `fun`/`map`/`area`/`group`/`enum`/`val` declarations | `src/language/` | Shipping |
-| A Debug Adapter Protocol implementation for stepping through `.evs` scripts | `src/debugger/` | "Mock" runtime today (`src/debugger/adapter.js` / `mock-runtime.js`), not yet driving real hardware state |
-| A ROM-backed room/trigger inspector: parses `.evs` `map`/`area` blocks, cross-references ROM headers and trigger tables, renders an SVG overlay of entrances/enemies/step-on/B-triggers on top of a static image | `src/rooms/` | Shipping, **read-only** — no ROM write path exists anywhere in this subsystem (checked directly: no `writeFile`/save call in `src/rooms/` or `src/maps/`) |
+| Full Everscript language tooling — hover docs, go-to-definition, find-references, completions, an Outline provider over `fun`/`map`/`area`/`group`/`enum`/`val` declarations | `src/games/evermore/language/` | Shipping |
+| A Debug Adapter Protocol implementation for stepping through `.evs` scripts | `src/games/evermore/debugger/` | "Mock" runtime today (`src/games/evermore/debugger/adapter.js` / `mock-runtime.js`), not yet driving real hardware state |
+| A ROM-backed room/trigger inspector: parses `.evs` `map`/`area` blocks, cross-references ROM headers and trigger tables, renders an SVG overlay of entrances/enemies/step-on/B-triggers on top of a static image | `src/rooms/` | Shipping, **read-only** — no ROM write path exists anywhere in this subsystem (checked directly: no `writeFile`/save call in `src/rooms/` or `src/games/evermore/maps/`) |
 | A JS-native disassembler for room trigger bytecode — reads the map pointer table, trigger tables, and opcodes straight from ROM bytes and produces readable pseudo-instructions | `src/emulator/room-script-model.js` | Shipping — this is a from-scratch JS reimplementation of roughly what SoETilesViewer's `script_all` dumper does (§1.2), used to populate the Rooms tab's "ROM script cards" |
-| An independent, from-scratch attempt at decoding the room tilemap/graphics payload in JavaScript | `src/maps/` (`map-pipeline-model.js`, `map-blob-evidence-model.js`, `render-script-model.js`) | **Documented incomplete** in `docs/map-renderer-status.md`: works for rooms `0x33`, `0x34`, `0x51`, `0x5c` under a heuristic "sentinel"/`strict7`/`short6` model; explicitly states **room `0x38` does not parse** under that model at all |
+| An independent, from-scratch attempt at decoding the room tilemap/graphics payload in JavaScript | `src/games/evermore/maps/` (`map-pipeline-model.js`, `map-blob-evidence-model.js`, `render-script-model.js`) | **Documented incomplete** in `docs/map-renderer-status.md`: works for rooms `0x33`, `0x34`, `0x51`, `0x5c` under a heuristic "sentinel"/`strict7`/`short6` model; explicitly states **room `0x38` does not parse** under that model at all |
 | An embedded SNES emulator core running inside a VS Code webview, with a fork built specifically for debugger hooks | `src/emulator/core/snes9x2005-wasm*` | Shipping — see §1.1.2 |
 | An existing pattern for invoking this project's Python compiler from the extension host | `src/extension.js` (`child_process.spawn`, ~line 836), `src/shared/config.js` (`pythonPath`, `compilerPath`) | Shipping — resolves `.venv/bin/python3` and spawns `everscript.py` for the "Build and Run in Emulator" command |
 
-#### 1.1.1 The `src/maps/` finding is the single most load-bearing fact in this section
+#### 1.1.1 The `src/games/evermore/maps/` finding is the single most load-bearing fact in this section
 
 `docs/map-renderer-status.md` (in `everscript-vscode`) is explicit and honest about its own state: header parsing and trigger tables work, but the tilemap payload decode is a heuristic "sentinel scan" that succeeds on four small/simple rooms and fails on `0x38` — **the exact room this project's own `docs/map_decompression_trace_analysis.md`, `docs/map_encoding.md`, and the Mesen2-trace-verified `tools/dump_room.py`/`encode_room.py` fully and byte-exactly solve**, in both directions, with a 127/127-room verified test suite behind it.
 
@@ -154,7 +154,7 @@ If a Secret of Mana server needs a `Layer` kind not in this table, that's real, 
 │     cuttable_grass.py -- no new decode/encode logic, this is a     │
 │     thin RPC shell around code that is already tested              │
 │   - retires the decode responsibility of everscript-vscode's own   │
-│     src/maps/ (§1.1.1); that subsystem's ROM-header/trigger-table  │
+│     src/games/evermore/maps/ (§1.1.1); that subsystem's ROM-header/trigger-table  │
 │     reading is still useful and can stay, but tilemap payload      │
 │     decode should come from here instead of the sentinel model     │
 └─────────────────────────────────────────────────────────────────┘
@@ -311,7 +311,7 @@ An editor is software with the same correctness bar as the rest of this project'
 
 Not a schedule — an ordering that keeps every phase shippable and useful on its own:
 
-1. **Wire the existing `src/rooms/` inspector to the new Python map-server for tile/collision rendering**, in place of `src/maps/`'s sentinel-based decode. This is closer to a migration than new construction: the Rooms tab's trigger/entity overlay, image display, and ROM script cards all keep working; only the tilemap payload source changes, from a heuristic that fails on `0x38` to one verified on all 127 rooms.
+1. **Wire the existing `src/rooms/` inspector to the new Python map-server for tile/collision rendering**, in place of `src/games/evermore/maps/`'s sentinel-based decode. This is closer to a migration than new construction: the Rooms tab's trigger/entity overlay, image display, and ROM script cards all keep working; only the tilemap payload source changes, from a heuristic that fails on `0x38` to one verified on all 127 rooms.
 2. **Tile and collision editing**, save-in-place only — proves out the JSON edit/undo loop, the `grid` and `bitfield-grid` tools, and §9.1's plane view-filter against the lowest-risk data.
 3. **Objects, triggers, cuttable grass**, the state scrubber (§9.3), and the relocation path in `save()`.
 4. **`source_map.json`** and bidirectional script linking (§8) — sequenced after the generic core is proven so it's built as a capability on top rather than woven through it.

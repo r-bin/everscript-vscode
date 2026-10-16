@@ -1,7 +1,7 @@
 ---
 name: map-format
-description: Use before touching ROM map/room decoding in src/maps/ or anything that reads Secret of Evermore room/tilemap bytes in everscript-vscode. src/maps/ is a TypeScript port of the sibling everscript repo's verified decoder — port and validate against it, never re-derive it.
-applyTo: "src/maps/**,src/language/data/index.json,src/rooms/rendering/tile-overlay.js"
+description: Use before touching ROM map/room decoding in src/games/evermore/maps/ or anything that reads Secret of Evermore room/tilemap bytes in everscript-vscode. src/games/evermore/maps/ is a TypeScript port of the sibling everscript repo's verified decoder — port and validate against it, never re-derive it.
+applyTo: "src/games/evermore/maps/**,src/games/evermore/language/data/index.json,src/rooms/rendering/tile-overlay.js"
 ---
 
 # Skill: Map Format — Port the Authoritative Implementation, Don't Re-derive It
@@ -12,13 +12,13 @@ times the re-derivation was weaker than the original. Read this **before** writi
 extending ROM map-decoding logic, or the `.evs` language-data generator.
 
 **The distinction that matters:** a *faithful port*, validated against the original's
-own output, is fine and is what `src/maps/` now is. An *independent re-derivation*
+own output, is fine and is what `src/games/evermore/maps/` now is. An *independent re-derivation*
 ("I'll work out the format from the bytes") is what failed twice. Porting is allowed;
 guessing is not.
 
-## Current state: src/maps/ is a validated TypeScript port
+## Current state: src/games/evermore/maps/ is a validated TypeScript port
 
-`src/maps/*.ts` ports `everscript`'s `tools/dump_room.py`, `collision.py` and
+`src/games/evermore/maps/*.ts` ports `everscript`'s `tools/dump_room.py`, `collision.py` and
 `cuttable_grass.py`. `npm run check:maps` decodes rooms with both implementations and
 diffs them; it passes on **all 127 rooms**, including `0x38` (which the retired decoder
 failed on) and `0x15` (uncompressed Block 3). Any change to the decoder must keep that
@@ -37,13 +37,13 @@ dumping raw RGBA from both sides — so neither PNG encoder can hide a differenc
 
 1. **The sentinel decoder** — a `strict7`/`short6` heuristic scan for locating
    compressed map blocks, which worked on a handful of simple rooms and **failed on room
-   `0x38`**. Deleted (git history has it). **Do not revive it** — `src/maps/` supersedes it.
+   `0x38`**. Deleted (git history has it). **Do not revive it** — `src/games/evermore/maps/` supersedes it.
 2. **`tools/generate_data.py`** — a regex scraper of `in/core/*.evs` that built
-   `src/language/data/index.json` (hover/completion data), a weaker second guess at the
+   `src/games/evermore/language/data/index.json` (hover/completion data), a weaker second guess at the
    compiler's real grammar. Deleted 2026-10-16; `index.json` is now frozen data. When it
    needs regenerating, have the everscript compiler emit it — never write a third scraper.
 
-The TextMate grammar (`src/language/syntaxes/everscript.tmLanguage.json`, see the
+The TextMate grammar (`src/games/evermore/language/syntaxes/everscript.tmLanguage.json`, see the
 `grammar-rules` skill) is a deliberate, correct exception — it has to be a fast
 synchronous regex grammar for paint-every-keystroke highlighting, and reuse of the real
 parser was explicitly evaluated and rejected for that specific case (see
@@ -63,7 +63,7 @@ parser was explicitly evaluated and rejected for that specific case (see
   authoritative one and its `rom-map-data` skill says as much.
 - Grids are numbers, never hex strings. Format at render time.
 - Never hand-decode a collision word; use `passability()`, `tilePlane()`,
-  `driftVector()`, `entityGate()` from `src/maps/collision.ts`.
+  `driftVector()`, `entityGate()` from `src/games/evermore/maps/collision.ts`.
 
 ## Where the extension consumes it
 
@@ -108,8 +108,8 @@ to the write path too, but the decision is not made — don't assume it.
 
 ## If a map-editor domain is added later
 
-It would be a new ownership domain, sibling to `src/debugger/`, `src/rooms/`,
-`src/emulator/`, `src/language/`. Before writing code against it: add it to
+It would be a new ownership domain, sibling to `src/games/evermore/debugger/`, `src/rooms/`,
+`src/emulator/`, `src/games/evermore/language/`. Before writing code against it: add it to
 `AI_ARCHITECTURE_GUIDE.md`'s ownership-domain list and to
 `docs/architecture/domain-overview.md`'s per-domain "Allowed deps" table, the same way
 the existing domains are documented (see the `isolate-subsystem` skill). If it spawns
@@ -124,7 +124,7 @@ uses for "Build and Run" — don't invent a second of either.
   sub-instruction format. If map-editor work wires a trigger to its script, check
   `docs/rooms-settings-cleanup-dossier.md` (status: in progress) first rather than
   assuming the disassembly is complete.
-- `src/debugger/mock-runtime.js` is a mock — "No actual bytecode execution" per its own
+- `src/games/evermore/debugger/mock-runtime.js` is a mock — "No actual bytecode execution" per its own
   header comment. If a map-editor feature wants a *live, debuggable* script view (not
   just static source navigation), that needs the mock runtime to become real first;
   treat that as separate, larger, unstarted work, not a dependency assumed to already

@@ -70,7 +70,7 @@ Enemy spawn positions in enter scripts are absolute 8-px units (pixel = unit × 
 
 ## 3. Entity Tables & Enemy Spawning
 
-- Entity records are 0xAE bytes long and linked through `+$5E`: the Dog at `$7E4F37` points to the Boy at `$7E4E89` (x `+$1A`, y `+$1C`, HP `+$2A`; see `src/localizations/knowledge/ram/7e4e89.md`). The old claim of a slot table at `$7E1000..$7E1FFF` is unverified. Enemies are not in that Dog→Boy chain; their home positions sit in per-spawn records near `$7E3DFF` (stride 0x8E, x/y words), observed in room 0x38 (v0.201.18).
+- Entity records are 0xAE bytes long and linked through `+$5E`: the Dog at `$7E4F37` points to the Boy at `$7E4E89` (x `+$1A`, y `+$1C`, HP `+$2A`; see `src/games/evermore/localizations/knowledge/ram/7e4e89.md`). The old claim of a slot table at `$7E1000..$7E1FFF` is unverified. Enemies are not in that Dog→Boy chain; their home positions sit in per-spawn records near `$7E3DFF` (stride 0x8E, x/y words), observed in room 0x38 (v0.201.18).
 - When loading an enemy:
   - Sprite graphic patterns are loaded into VRAM.
   - Hitbox definitions, HP, attack power, and AI routine pointers are assigned.

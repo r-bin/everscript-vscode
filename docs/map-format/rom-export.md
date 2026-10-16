@@ -8,8 +8,8 @@ Brian's Test Ground's slot (`0x15`), and makes the game start there.
 embedded emulator panel (`openEmulatorPanel`). That panel uses the same
 snes9x core the export was boot-tested on.
 
-Code: `src/maps/encode.ts` (a port of `everscript/tools/encode_room.py`),
-`src/maps/custom-room.ts`, `src/rooms/rendering/rom-export.js`,
+Code: `src/games/evermore/maps/encode.ts` (a port of `everscript/tools/encode_room.py`),
+`src/games/evermore/maps/custom-room.ts`, `src/rooms/rendering/rom-export.js`,
 `src/rooms/webview/map-editor-rom-export.js`. Tests:
 `tests/memory/rom-export.test.js`.
 

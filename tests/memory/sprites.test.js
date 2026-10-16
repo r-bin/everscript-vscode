@@ -13,7 +13,7 @@ const {
     getRawSpriteIndex,
     renderRawSprite,
     buildSpritesTabHtml,
-} = require('../../src/sprites');
+} = require('../../src/games/evermore/sprites');
 
 let passed = 0;
 let failed = 0;
@@ -195,11 +195,11 @@ if (!rom) {
 }
 
 if (rom) {
-    const { runAnimation, animationGroups, animationIdRecord, ANIMATION_ID_COUNT } = require('../../dist/maps/animation-vm');
-    const { disassembleScript } = require('../../dist/maps/animation-opcodes');
-    const { walkAnimationScript } = require('../../dist/maps/character-animation');
-    const { animationScript } = require('../../dist/maps/character-record');
-    const { buildAnimationCatalog } = require('../../src/sprites');
+    const { runAnimation, animationGroups, animationIdRecord, ANIMATION_ID_COUNT } = require('../../dist/games/evermore/maps/animation-vm');
+    const { disassembleScript } = require('../../dist/games/evermore/maps/animation-opcodes');
+    const { walkAnimationScript } = require('../../dist/games/evermore/maps/character-animation');
+    const { animationScript } = require('../../dist/games/evermore/maps/character-record');
+    const { buildAnimationCatalog } = require('../../src/games/evermore/sprites');
 
     test('record table splits into 783 animations over 1752 records', () => {
         const groups = animationGroups(rom);
@@ -274,7 +274,7 @@ if (rom) {
     });
 
     test('projectile records: 24 bytes at $900000 + id, +0x00 an animation head', () => {
-        const { projectileRecord, projectileVelocity } = require('../../dist/maps/projectiles');
+        const { projectileRecord, projectileVelocity } = require('../../dist/games/evermore/maps/projectiles');
         const heads = new Set(animationGroups(rom).map(g => g.record));
         const p = projectileRecord(rom, 0xd9d6);
         assert.strictEqual(p.animRecord, 0x5772);
@@ -308,7 +308,7 @@ if (rom) {
     });
 
     test('weapon palette (+0x04) fills the Boy palette slots left green', () => {
-        const { paletteAt, characterPalette } = require('../../dist/maps/character-record');
+        const { paletteAt, characterPalette } = require('../../dist/games/evermore/maps/character-record');
         const boy = readCharacter(rom, 0);
         const spear = boy.weapons[8];
         assert.strictEqual(spear.paletteAddr, 0xad8b);
@@ -377,7 +377,7 @@ if (rom) {
     });
 
     test('the boomerang (Vigor attack 1, routine 6) laps an ellipse and comes back', () => {
-        const { projectileRecord, projectileFlight } = require('../../dist/maps/projectiles');
+        const { projectileRecord, projectileFlight } = require('../../dist/games/evermore/maps/projectiles');
         const f = projectileFlight(rom, projectileRecord(rom, 0xda4e), { x: 10, y: 0, z: 300 }, 4, null);
         assert.strictEqual(f.model, 'orbit');
         assert.strictEqual(f.path.length, 256);
@@ -399,7 +399,7 @@ if (rom) {
     });
 
     test('hit test height rule: 30 px above an attack is out of reach', () => {
-        const { strikeHits, heightsMeet, OUT_OF_REACH_ABOVE } = require('../../dist/maps/hit-test');
+        const { strikeHits, heightsMeet, OUT_OF_REACH_ABOVE } = require('../../dist/games/evermore/maps/hit-test');
         assert.strictEqual(OUT_OF_REACH_ABOVE, 0x1e0);
         assert.strictEqual(heightsMeet(0, 0x1df), true);
         assert.strictEqual(heightsMeet(0, 0x1e0), false);
@@ -433,7 +433,7 @@ if (rom) {
     });
 
     test('segments (0x57) and segment (0x59): the Tar Skull is a snake of 8 placed orbs', () => {
-        const { lengthAt, segmentsAt } = require('../../dist/maps/animation-opcodes');
+        const { lengthAt, segmentsAt } = require('../../dist/games/evermore/maps/animation-opcodes');
         const sg = segmentsAt(rom, 0xc704e5);
         assert.strictEqual(sg.total, 8);
         assert.strictEqual(sg.length, 10);
@@ -465,12 +465,12 @@ if (rom) {
         assert.strictEqual(sp.onHit, 'consumed');           // proc 2
         assert.strictEqual(sp.ends, 'hit');
         assert.strictEqual(a.target.hits.projectile.length, 1, 'one hit, not one per overlapping tick');
-        const { projectileRecord } = require('../../dist/maps/projectiles');
+        const { projectileRecord } = require('../../dist/games/evermore/maps/projectiles');
         assert.strictEqual(projectileRecord(rom, 0xd9ee).field14, 4, 'the level-3 spear wave uses proc 4, which pierces');
     });
 
     test('the same attacker re-hits only after a 21-tick cooldown (+0x36/+0x38)', () => {
-        const target = require('../../src/sprites/target');
+        const target = require('../../src/games/evermore/sprites/target');
         const frames = [{ ticks: 60, strikeBox: { dx: 0, dy: 0, width: 40, height: 40 }, motion: Array.from({ length: 60 }, () => [0, 0, 0]) }];
         const hits = target.hitTicks(frames, [], { x: 0, y: 0, z: 0, radius: 8 });
         assert.deepStrictEqual(hits.melee, [0, 21, 42]);
@@ -502,7 +502,7 @@ if (rom) {
     });
 
     test('contact damage: a charging body (mode $C000) that runs into the target', () => {
-        const { bodiesTouch, MODE_CONTACT } = require('../../dist/maps/hit-test');
+        const { bodiesTouch, MODE_CONTACT } = require('../../dist/games/evermore/maps/hit-test');
         assert.strictEqual(MODE_CONTACT, 0xc000);
         assert.strictEqual(bodiesTouch({ x: 0, y: 0, z: 0, radius: 10 }, { x: 17, y: 0, z: 0, radius: 8 }), true);
         assert.strictEqual(bodiesTouch({ x: 0, y: 0, z: 0, radius: 10 }, { x: 0, y: 9, z: 0, radius: 8 }), false, '2|dy| < r1 + r2');
@@ -515,7 +515,7 @@ if (rom) {
     });
 
     test('character list thumbnails: resting pose south and east; palettes listed', () => {
-        const { characterThumbs, listPalettes, renderInPalettes } = require('../../src/sprites');
+        const { characterThumbs, listPalettes, renderInPalettes } = require('../../src/games/evermore/sprites');
         const chars = readAllCharacters(rom);
         const boy = characterThumbs(rom, chars[0]);
         assert(boy && boy.s && boy.e && boy.s.startsWith('data:image/png;base64,'));
@@ -542,7 +542,7 @@ if (rom) {
     });
 
     test('HUD opcodes 0x60-0x64 have measured widths; every record script completes', () => {
-        const { lengthAt, disassembleScript } = require('../../dist/maps/animation-opcodes');
+        const { lengthAt, disassembleScript } = require('../../dist/games/evermore/maps/animation-opcodes');
         assert.strictEqual(lengthAt(rom, 0xc8008d), 49, '0x60 hud_bar: 16 sprites of 3 bytes');
         assert.strictEqual(disassembleScript(rom, 0xc8008d)[0].text, 'hud_bar 16 sprites, first $cc3be6');
         let all = 0, complete = 0;
@@ -552,7 +552,7 @@ if (rom) {
     });
 
     test('thumbFor renders a record, a raw sprite, and falls back to the standing sprite', () => {
-        const { thumbFor } = require('../../src/sprites');
+        const { thumbFor } = require('../../src/games/evermore/sprites');
         assert(thumbFor(rom, { record: 0x411e, facing: 4, character: 0, paletteAddr: 0xad8b }).startsWith('data:image/png;base64,'));
         assert(thumbFor(rom, { sprite: 0xca0003, paletteAddr: 0x90b00b }));
         assert(thumbFor(rom, { record: 0x3e6a, facing: 0, character: 0 }), 'the knock-back keeps the standing sprite');
@@ -566,8 +566,8 @@ if (rom) {
     });
 
     test('OAM palette bits pick the second palette: only Harry and Vigor set them', () => {
-        const { readSpriteInfo, composeSprite } = require('../../dist/maps/sprites');
-        const { resolveCharacterSprite } = require('../../dist/maps/character-animation');
+        const { readSpriteInfo, composeSprite } = require('../../dist/games/evermore/maps/sprites');
+        const { resolveCharacterSprite } = require('../../dist/games/evermore/maps/character-animation');
         const users = [];
         for (let c = 0; c < CHARACTER_COUNT; c++) {
             const spr = resolveCharacterSprite(rom, c, 8);
@@ -580,7 +580,7 @@ if (rom) {
     });
 
     test('facing 8 is south: list previews show the front (8) and east (4)', () => {
-        const { THUMB_FACINGS } = require('../../src/sprites/thumbnails');
+        const { THUMB_FACINGS } = require('../../src/games/evermore/sprites/thumbnails');
         assert.deepStrictEqual(THUMB_FACINGS, { s: 8, e: 4 });
     });
 
@@ -619,7 +619,7 @@ if (rom) {
     });
 
     test('command 0x4b loads the script\'s own palette; placeholder ids and Dog forms get theirs', () => {
-        const { runAnimation, animationIdRecord, facingScript } = require('../../dist/maps/animation-vm');
+        const { runAnimation, animationIdRecord, facingScript } = require('../../dist/games/evermore/maps/animation-vm');
         const explosion = animationIdRecord(rom, 0x02);
         assert.strictEqual(runAnimation(rom, facingScript(rom, explosion, 8), 8).palette, 0xc08b);
         const cat = buildAnimationCatalog(rom, readAllCharacters(rom));
@@ -631,7 +631,7 @@ if (rom) {
     });
 
     test('an alchemy effect ends at effect_done (0x5d) when the next byte starts another record', () => {
-        const { runAnimation, facingScript } = require('../../dist/maps/animation-vm');
+        const { runAnimation, facingScript } = require('../../dist/games/evermore/maps/animation-vm');
         const run = runAnimation(rom, facingScript(rom, 0x586a, 8), 8);
         assert(run.complete);
         assert(run.frames.every(f => f.sprite !== 0xd01d08), 'the rocket record after it does not play');

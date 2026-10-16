@@ -16,7 +16,7 @@ Rules: [AGENTS.md](AGENTS.md). Translation table and budgets:
 the tile table and word builder it owns; splitting them would pass that state around.
 It must split before it grows further (`pieces.js` already took the objects' search).
 
-Plain CommonJS on top of the two compiled libraries' facades (`src/games/mana/decoder`, `src/maps`),
+Plain CommonJS on top of the two compiled libraries' facades (`src/games/mana/decoder`, `src/games/evermore/maps`),
 so it has no build step of its own.
 
 ## Flow

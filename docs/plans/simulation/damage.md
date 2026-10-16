@@ -21,7 +21,7 @@ damageRangeFull(w)                   // -> { min, max, pct999 }
 It also models the **Atlas glitch**: subtracting 480 from the charged attack
 and, below full charge, letting the underflow past the clamp — which is
 where the 999s come from. `damageRangeFull` is already in
-[`src/scaling/webview/alchemy-math.js`](../../../src/scaling/webview/alchemy-math.js).
+[`src/games/evermore/scaling/webview/alchemy-math.js`](../../../src/games/evermore/scaling/webview/alchemy-math.js).
 
 **Alchemy.** Fully in `alchemy-math.js`, from
 [docs/alchemy-damage.md](../../alchemy-damage.md): `base_might` from

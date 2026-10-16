@@ -1,6 +1,6 @@
 # `soe://` Read-Only File System Specification
 
-> **Status:** Phase 1 implemented (v0.178.0, `bus`/index/links/status v0.179.0) in `src/resources/`. Later phases are proposals.
+> **Status:** Phase 1 implemented (v0.178.0, `bus`/index/links/status v0.179.0) in `src/games/evermore/resources/`. Later phases are proposals.
 > **Builds on:** [`resource-paths-and-assets-spec.md`](resource-paths-and-assets-spec.md)
 > **Replaces:** §3 of that spec ("VFS rejected") and its `TextDocumentContentProvider` (§3.4)
 > **Goal:** One read-only `vscode.FileSystemProvider` for the `soe` scheme. It serves ROM content, decoded assets and live emulator memory as files, so editor tabs, webview `<img>` tags and links share one address.
@@ -39,7 +39,7 @@ Both are verified by `Everscript: Check soe:// Resources`. The command also retu
 `resource-paths-and-assets-spec.md` §3 rejected a VFS. That reasoning was wrong for webviews:
 
 - **Webviews can read from the provider.** A webview loads local resources through VS Code's file service, and the file service includes extension-registered providers. `webview.asWebviewUri(soe://rom/x)` becomes `https://soe+rom.vscode-resource.vscode-cdn.net/x`, which VS Code serves by calling this provider. Query strings pass through: `?rom=vanilla` gives 200, `?rom=bogus` gives 404. This was verified in VS Code 1.138.
-- **What blocks a raw `soe://` URL is the scheme, not the CSP.** A browser cannot fetch `soe://` itself, so every `soe://<authority>/` prefix is swapped for that authority's webview base: on the host for the HTML string (`rewriteSoeUrls`), and in the page for elements added later (`soeClientScript`). See `src/resources/README.md` for the four steps.
+- **What blocks a raw `soe://` URL is the scheme, not the CSP.** A browser cannot fetch `soe://` itself, so every `soe://<authority>/` prefix is swapped for that authority's webview base: on the host for the HTML string (`rewriteSoeUrls`), and in the page for elements added later (`soeClientScript`). See `src/games/evermore/resources/README.md` for the four steps.
 - **The extension chooses the representation:**
 
   | Extension | Content | Opens as |

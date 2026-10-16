@@ -4,7 +4,7 @@
 
 - State: in progress
 - Scope handled: emulator-panel manual byte-script breakpoints, live Rooms-tab script focus, ROM-header-backed room extent sizing
-- Scope handled (v0.166.0): `.evs` source-line debugging in the emulator through VS Code (compiler source map + interpreter hook), see [src/debugger/README.md](../src/debugger/README.md)
+- Scope handled (v0.166.0): `.evs` source-line debugging in the emulator through VS Code (compiler source map + interpreter hook), see [src/games/evermore/debugger/README.md](../src/games/evermore/debugger/README.md)
 - Scope still open: hex breakpoints inside the VS Code debug UI, full opcode coverage from `script_all`
 
 ## Understanding
@@ -16,7 +16,7 @@
 ## Dependency Check
 
 - Validated model availability: byte-script execution state comes from the custom SNES core bridge in [debugger/emulator/panel.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/emulator/panel.js).
-- Data sources: active emulator session, configured vanilla ROM, decoded room-script model from [src/script/](/Users/v/Documents/GitHub/everscript-vscode/src/script/README.md), current open `.evs` file for mock-source debugging.
+- Data sources: active emulator session, configured vanilla ROM, decoded room-script model from [src/games/evermore/script/](/Users/v/Documents/GitHub/everscript-vscode/src/games/evermore/script/README.md), current open `.evs` file for mock-source debugging.
 - Live byte-script addresses map back to `.evs` lines through the compiler's `out/source_map.json`.
 
 ## How To Attach

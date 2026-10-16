@@ -1,5 +1,5 @@
 (function(){
-  // Alchemy math: src/scaling/webview/alchemy-math.js (outer scope of the radar page).
+  // Alchemy math: src/games/evermore/scaling/webview/alchemy-math.js (outer scope of the radar page).
   // Sub-tab navigation
   document.querySelectorAll('.doc-btn').forEach(function(btn){
     btn.addEventListener('click',function(){

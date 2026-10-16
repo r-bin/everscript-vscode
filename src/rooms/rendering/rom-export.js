@@ -21,8 +21,8 @@
 // the Rooms tab uses and compared with what was asked for before it is
 // returned. See docs/map-format/rom-export.md.
 
-const maps = require('../../maps');
-const script = require('../../script');
+const maps = require('../../games/evermore/maps');
+const script = require('../../games/evermore/script');
 const { vanillaIndex } = require('./vanilla-index');
 
 /** Brian's Test Ground — a developer room, empty, never reached in play. */

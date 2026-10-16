@@ -3162,7 +3162,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       }
     }
 
-    // Port of $8FC773 (src/maps/collision.ts spriteDepth): an entity's OAM
+    // Port of $8FC773 (src/games/evermore/maps/collision.ts spriteDepth): an entity's OAM
     // priority comes from the collision word of the tile under its feet, which
     // $8FAFE5 caches at +0x3C, against its own plane at +0x18. Priority 3
     // draws over the canopy, priority 2 under it, gate nibble 8 not at all.

@@ -1,7 +1,7 @@
 # mcp/ — the soe:// file system over MCP
 
 A read-only [MCP](https://modelcontextprotocol.io) server inside the extension
-host, so AI clients can browse what `src/resources/` serves, including the
+host, so AI clients can browse what `src/games/evermore/resources/` serves, including the
 live emulator, at `http://127.0.0.1:47917/mcp`.
 
 | Client | How it finds the server | Verified |

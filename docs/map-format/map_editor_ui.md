@@ -80,7 +80,7 @@ change ([map_editor_architecture_and_limitations.md](map_editor_architecture_and
 
 ### What is built
 
-`src/maps/metatiles.ts`:
+`src/games/evermore/maps/metatiles.ts`:
 
 - `metatileTable(room)` — every entry with its two words, its collision word
   and **how many cells use it**.

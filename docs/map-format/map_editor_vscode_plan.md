@@ -76,8 +76,8 @@ one.** This was checked directly, not assumed.
 
 | # | What | Where | How it understands `.evs` syntax |
 |---|---|---|---|
-| 1 | Syntax highlighting | `src/language/syntaxes/everscript.tmLanguage.json` (266 lines) | Hand-written TextMate regex grammar |
-| 2 | Hover docs / completions data | `src/language/data/index.json` (231 KB, generated) | `tools/generate_data.py` — **hand-rolled `re.match()` calls** (`r'^enum\s+(\w+)\s*\{'`, `r'^fun\s+(\w+)\s*\(([^)]*)\)'`) scraping `in/core/*.evs` line by line |
+| 1 | Syntax highlighting | `src/games/evermore/language/syntaxes/everscript.tmLanguage.json` (266 lines) | Hand-written TextMate regex grammar |
+| 2 | Hover docs / completions data | `src/games/evermore/language/data/index.json` (231 KB, generated) | `tools/generate_data.py` — **hand-rolled `re.match()` calls** (`r'^enum\s+(\w+)\s*\{'`, `r'^fun\s+(\w+)\s*\(([^)]*)\)'`) scraping `in/core/*.evs` line by line |
 | 3 | The actual language | `compiler/lexer.py` + `compiler/parser.py` in **this repo** | A real `rply` LALR(1) grammar — the one that determines what `.evs` code actually means |
 
 None of these three is derived from either of the others. `generate_data.py` does not import
@@ -89,7 +89,7 @@ it's a manual step, so even its own regex-based understanding can go stale again
 without anything noticing.
 
 This is the same shape of problem `map_editor_design.md` §1.1.1 found for ROM decoding
-(`src/maps/`'s independent sentinel-based decoder failing on room `0x38` while `everscript`'s
+(`src/games/evermore/maps/`'s independent sentinel-based decoder failing on room `0x38` while `everscript`'s
 verified decoder already solved it) — a second, weaker reimplementation of something already
 solved correctly, one repo over. It should be named as the same category of problem, because the
 fix is the same shape too: point at the real implementation instead of re-deriving it.
@@ -123,8 +123,8 @@ Where reuse is unambiguously right, and unambiguously not what's happening today
   call from a core-library one, which needs to know what's actually declared where — `index.json`
   again, but live instead of stale). Whether this is worth building is a genuine open question, not
   a "yes" — see the TODOs.
-- **Go-to-definition / find-references correctness.** These already exist in `src/language/` and
-  already work by scanning `.evs` text with `src/language/`'s own logic, independent of both the
+- **Go-to-definition / find-references correctness.** These already exist in `src/games/evermore/language/` and
+  already work by scanning `.evs` text with `src/games/evermore/language/`'s own logic, independent of both the
   TextMate grammar and `generate_data.py`. Whether *this* should also route through the real parser
   is a separate, larger question (it would mean `everscript-vscode`'s core navigation features
   depend on a spawned Python process being available) and is explicitly **not** proposed here — the
@@ -173,7 +173,7 @@ hypothetical for this project, it's already shipping.
 This was already settled by evidence, not preference. `map_editor_design.md` §1.1.1 and this
 document's §2.1 both found the same failure mode: `everscript-vscode` independently re-derived two
 different pieces of this project's domain logic in JavaScript — the ROM tilemap decoder
-(`src/maps/`) and the `.evs` grammar (`generate_data.py`) — and both are demonstrably worse than the
+(`src/games/evermore/maps/`) and the `.evs` grammar (`generate_data.py`) — and both are demonstrably worse than the
 Python originals (one fails outright on room `0x38`, the other is a six-regex approximation of an
 LALR grammar). A third re-derivation, of the newer collision/cuttable-grass/encoding logic this
 session's work in `everscript` just finished verifying byte-exact across 127 rooms, would be
@@ -247,7 +247,7 @@ follow-up hardening pass rather than a prerequisite.
 Found directly in that repo's own status docs and changelog — not inferred. Two are already
 covered by `map_editor_design.md` and are only summarized here for completeness; the rest are new.
 
-### 4.1 The ROM tilemap decoder (`src/maps/`) — *(already covered, §1.1.1 of the design doc)*
+### 4.1 The ROM tilemap decoder (`src/games/evermore/maps/`) — *(already covered, §1.1.1 of the design doc)*
 
 Sentinel/`strict7`/`short6` heuristic scan; works on 4 simple rooms, explicitly fails on `0x38`.
 Superseded by calling into `everscript`'s verified decoder — no new work needed here beyond what
@@ -293,7 +293,7 @@ the debugger integration branch is feature-complete.
 
 ### 4.4 The DAP (Debug Adapter Protocol) implementation — mock, not real, and should stay legible about that
 
-`src/debugger/mock-runtime.js` says so in its own header comment: *"No actual bytecode execution —
+`src/games/evermore/debugger/mock-runtime.js` says so in its own header comment: *"No actual bytecode execution —
 this is a source-level mock for the DAP."* Variable inspection returns literal placeholder strings
 (`'0x0000  (mock)'`). This is a reasonable scaffold — it lets the DAP protocol surface (breakpoints,
 stepping UI, call stack panel) get built and tested before real execution exists — but it means
@@ -384,7 +384,7 @@ that's still labeled "in progress" or "mock" elsewhere in the same extension.
 
 ### 5.4 Rework before/alongside the map editor (§4)
 
-- [ ] `src/maps/`: retire its tilemap-decode responsibility in favor of the map-server
+- [ ] `src/games/evermore/maps/`: retire its tilemap-decode responsibility in favor of the map-server
       (`map_editor_design.md` §12 phase 1). Keep its header/trigger-table reading if
       `parse_blob_layout`-equivalent logic isn't yet available client-side, but don't extend the
       sentinel model further.
@@ -403,7 +403,7 @@ that's still labeled "in progress" or "mock" elsewhere in the same extension.
       (§4.5) before wiring the map editor's trigger panel to `room-script-model.js`'s disassembly
       output, since an incomplete disassembly presented as complete is worse than the map editor
       falling back to "no script preview available" for the affected opcodes.
-- [ ] Cross-reference: once `src/maps/` is retired (item 1 above), re-check whether
+- [ ] Cross-reference: once `src/games/evermore/maps/` is retired (item 1 above), re-check whether
       `rooms-settings-cleanup-dossier.md`'s "make vanilla Rooms data ROM-backed instead of
       client-side placeholder text" is already satisfied by the map-server, or still needs its own
       work — likely satisfied, but confirm rather than assume.

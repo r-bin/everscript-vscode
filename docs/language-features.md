@@ -1,49 +1,49 @@
 # Everscript Language Features & Editor Tooling
 
 > Comprehensive guide to Everscript language support and developer features in VS Code.
-> Code lives in `src/language/` and extension configuration in `package.json`.
+> Code lives in `src/games/evermore/language/` and extension configuration in `package.json`.
 
 ---
 
 ## 1. Syntax Highlighting & Themes
 
-- **TextMate Grammar:** Defined in `src/language/syntaxes/everscript.tmLanguage.json`.
+- **TextMate Grammar:** Defined in `src/games/evermore/language/syntaxes/everscript.tmLanguage.json`.
   - Supports keywords (`fun`, `map`, `area`, `enum`, `if`, `else`, `while`, `return`, `goto`).
   - Distinguishes built-in functions, variables, strings, hex/decimal/binary numbers, annotations (`@install`, `@inject`), and preprocessor directives (`#memory`, `#include`).
-  - Unit tests via `vscode-tmgrammar-test` in `src/language/tests/highlight.test.evs`.
-- **Bundled Theme:** `Everscript Dark` (`src/language/themes/everscript-dark.json`) implements the P1–P9 palette priority designed specifically for Everscript readability.
-- **Language Configuration:** `src/language/language-configuration.json` provides bracket matching (`{}`, `[]`, `()`), comment toggling (`//`, `/* */`), and word boundaries.
+  - Unit tests via `vscode-tmgrammar-test` in `src/games/evermore/language/tests/highlight.test.evs`.
+- **Bundled Theme:** `Everscript Dark` (`src/games/evermore/language/themes/everscript-dark.json`) implements the P1–P9 palette priority designed specifically for Everscript readability.
+- **Language Configuration:** `src/games/evermore/language/language-configuration.json` provides bracket matching (`{}`, `[]`, `()`), comment toggling (`//`, `/* */`), and word boundaries.
 
 ---
 
 ## 2. Editor Intelligence Providers
 
-Language features are registered natively in JavaScript via `src/language/language-providers.js`:
+Language features are registered natively in JavaScript via `src/games/evermore/language/language-providers.js`:
 
-### 2.1 Hover Documentation (`src/language/hover-provider.js`)
+### 2.1 Hover Documentation (`src/games/evermore/language/hover-provider.js`)
 Hovering symbols in `.evs` files provides instant context:
 - **Built-in Functions:** Displays signature and docstrings (e.g. `transition`, `damage`, `teleport`).
-- **Memory Addresses:** Hovering addresses (e.g. `<0x2258>`) looks up canonical RAM labels from `.github/memory-map.md` and `src/language/data/index.json`.
+- **Memory Addresses:** Hovering addresses (e.g. `<0x2258>`) looks up canonical RAM labels from `.github/memory-map.md` and `src/games/evermore/language/data/index.json`.
 - **Hex & Numeric Literals:** Displays decimal, hexadecimal, and binary conversions.
 - **Enums & Constants:** Shows underlying integer values.
 
-### 2.2 Autocompletion (`src/language/completion-provider.js`)
+### 2.2 Autocompletion (`src/games/evermore/language/completion-provider.js`)
 Context-aware code completion:
 - **Keywords & Declarations:** Suggests keywords (`fun`, `map`, `area`, `enum`, `val`, `var`).
 - **Function Names:** Completes built-in API calls and workspace-declared functions.
 - **Enum Members:** Completes enum identifiers after dot syntax (`DIRECTION.NORTH`, `ITEM.JAGUAR_RING`).
 
-### 2.3 Go-to-Definition & Symbol References (`src/language/definition-provider.js`)
+### 2.3 Go-to-Definition & Symbol References (`src/games/evermore/language/definition-provider.js`)
 - `Cmd+Click` or `F12` on a function call jumps directly to its `fun` declaration across any file in the workspace.
-- Resolves memory address declarations and constants indexed by `src/language/workspace-index.js`.
+- Resolves memory address declarations and constants indexed by `src/games/evermore/language/workspace-index.js`.
 
-### 2.4 Document Symbols & Breadcrumbs (`src/language/symbol-provider.js`)
+### 2.4 Document Symbols & Breadcrumbs (`src/games/evermore/language/symbol-provider.js`)
 - Populates the VS Code Outline pane and navigation breadcrumbs with structured hierarchy (`map` → triggers, `fun`, `enum`).
 
-### 2.5 Dead Branch Fading (`src/language/dead-branch.js`)
+### 2.5 Dead Branch Fading (`src/games/evermore/language/dead-branch.js`)
 - Identifies compile-time static constants in `if` conditions and fades unreachable code blocks using editor decorations.
 
-### 2.6 Code Snippets (`src/language/snippets/everscript.json`)
+### 2.6 Code Snippets (`src/games/evermore/language/snippets/everscript.json`)
 - Scaffold templates for quick code authoring:
   - `fun` — Function block template.
   - `map` — Map definition scaffold with triggers.

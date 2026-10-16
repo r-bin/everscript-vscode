@@ -72,7 +72,7 @@ animations come from the equipped weapon. The weapon table is at ROM offset
 
 The Dog's counterpart is its forms: 6 entries via the pointer table at `$CF945F`,
 a 10-byte header (palette at `+6`) and 15 animation slots
-(`src/sprites/dog-forms.js`). Acts 0–3 put one record in all four attack slots.
+(`src/games/evermore/sprites/dog-forms.js`). Acts 0–3 put one record in all four attack slots.
 
 Attack power scales with the attacker's stamina too (`$8FC02B`): ÷4 under 50%,
 ÷2 under 100%, ×1, ×2 from 200%, ×4 from 300%.

@@ -17,9 +17,9 @@ and a link that opens it in the Characters → Animations view.
 
 - `ANIMATION_PLACEHOLDER.*` are global ids. They draw as character #25 (`$BDB2`).
 - `ANIMATION_ENEMY.GORE = 0x8010` is relative: it is a different animation for every enemy.
-- The extension already resolves both: `src/sprites/animation-catalog.js` (owners of each
-  record, including `animate()` ids via `$C43C92`), `src/sprites/thumbnails.js`
-  (`recordRestingSprite`), and `src/maps/animation-vm.ts` (runs a script into frames).
+- The extension already resolves both: `src/games/evermore/sprites/animation-catalog.js` (owners of each
+  record, including `animate()` ids via `$C43C92`), `src/games/evermore/sprites/thumbnails.js`
+  (`recordRestingSprite`), and `src/games/evermore/maps/animation-vm.ts` (runs a script into frames).
 
 ## Proposal
 
@@ -77,6 +77,6 @@ The debugger shows memory values by enum name: `MEMORY.SELECTED_ALCHEMY_0` →
 
 - explicit: `SELECTED_ALCHEMY_0 = (Byte) <0x0ADA>, // @type ALCHEMY_INDEX`, or
 - inferred: the enum whose constants the sources assign to or compare with it most
-  (`src/debugger/value-types.js`).
+  (`src/games/evermore/debugger/value-types.js`).
 
 The constants come from the compiler (`constants` in `out/source_map.json`).

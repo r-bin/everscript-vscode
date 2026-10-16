@@ -30,10 +30,10 @@ image layered above the background.
 
 | Piece | File |
 |---|---|
-| Block decoding and composing a sprite from its chunks | [src/maps/sprites.ts](../../src/maps/sprites.ts) |
-| Character table: palette, hitbox, disposition | [src/maps/character-record.ts](../../src/maps/character-record.ts) |
-| Animation walk: which sprite each frame shows | [src/maps/character-animation.ts](../../src/maps/character-animation.ts) |
-| Idle animation as aligned RGBA frames (`renderCharacterFrames`) | [src/maps/characters.ts](../../src/maps/characters.ts) |
+| Block decoding and composing a sprite from its chunks | [src/games/evermore/maps/sprites.ts](../../src/games/evermore/maps/sprites.ts) |
+| Character table: palette, hitbox, disposition | [src/games/evermore/maps/character-record.ts](../../src/games/evermore/maps/character-record.ts) |
+| Animation walk: which sprite each frame shows | [src/games/evermore/maps/character-animation.ts](../../src/games/evermore/maps/character-animation.ts) |
+| Idle animation as aligned RGBA frames (`renderCharacterFrames`) | [src/games/evermore/maps/characters.ts](../../src/games/evermore/maps/characters.ts) |
 | Frames → PNG data URIs for the Rooms view (`buildSprite`) | [src/rooms/data/room-scripts.js](../../src/rooms/data/room-scripts.js) |
 
 The Rooms view already shows the characters a room's scripts spawn, animated, in

@@ -39,7 +39,7 @@ function readEntry(file) {
 }
 
 function readEntries(kind) {
-    const dir = path.join(REPO, 'src', 'localizations', 'knowledge', kind);
+    const dir = path.join(REPO, 'src', 'games', 'evermore', 'localizations', 'knowledge', kind);
     if (!fs.existsSync(dir)) return [];
     return fs.readdirSync(dir).filter(f => f.endsWith('.md')).map(f => readEntry(path.join(dir, f))).filter(e => e && e.addr);
 }
@@ -74,9 +74,9 @@ function collectNames(map, romLength) {
     for (const e of readEntries('rom')) {
         addRom(parseInt(e.addr, 16), e.name || e.title, [e.title, e.body].filter(Boolean).join(' - '), 'romEntries');
     }
-    const { FUNCTIONS } = require(path.join(REPO, 'src', 'localizations', 'functions.js'));
+    const { FUNCTIONS } = require(path.join(REPO, 'src', 'games', 'evermore', 'localizations', 'functions.js'));
     for (const f of FUNCTIONS) addRom(f.address, f.name, [f.name, f.notes].filter(Boolean).join(' - '), 'functions');
-    const { TABLES } = require(path.join(REPO, 'src', 'localizations', 'tables.js'));
+    const { TABLES } = require(path.join(REPO, 'src', 'games', 'evermore', 'localizations', 'tables.js'));
     for (const t of TABLES) addRom(t.address, 'tbl_' + t.name, [t.name, t.notes].filter(Boolean).join(' - '), 'tables');
 
     const wramNames = new Map();
@@ -90,7 +90,7 @@ function collectNames(map, romLength) {
         const size = e.end ? parseInt(e.end, 16) - parseInt(e.addr, 16) + 1 : parseInt(e.size || '1', 10);
         addWram(addr, e.name, [e.title, e.body].filter(Boolean).join(' - '), size);
     }
-    const { ramSymbols, ramBlocks } = require(path.join(REPO, 'src', 'resources', 'ram-symbols.js'));
+    const { ramSymbols, ramBlocks } = require(path.join(REPO, 'src', 'games', 'evermore', 'resources', 'ram-symbols.js'));
     for (const b of ramBlocks()) addWram(b.addr, b.tags[0], 'record (' + b.size + ' bytes)', b.size);
     for (const s of ramSymbols()) addWram(s.addr, s.name || s.tags[0], (s.tags || []).join(', '), s.size || 1);
 

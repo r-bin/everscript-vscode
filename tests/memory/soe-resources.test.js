@@ -29,10 +29,10 @@ require.cache.vscode = { id: 'vscode', filename: 'vscode', loaded: true, exports
 } };
 
 const { parseSoeParts, parseAddressName, slugify } = require('../../src/shared/resource-uri');
-const { resolveRom, toFileOffset } = require('../../src/resources/rom-files');
-const { resolveRam } = require('../../src/resources/ram-files');
-const { SoeFileSystem } = require('../../src/resources/fs-provider');
-const { busTarget } = require('../../src/resources/bus-files');
+const { resolveRom, toFileOffset } = require('../../src/games/evermore/resources/rom-files');
+const { resolveRam } = require('../../src/games/evermore/resources/ram-files');
+const { SoeFileSystem } = require('../../src/games/evermore/resources/fs-provider');
+const { busTarget } = require('../../src/games/evermore/resources/bus-files');
 
 const romPath = require('../../dist/games').romPath('evermore');
 const rom = fs.existsSync(romPath) ? new Uint8Array(fs.readFileSync(romPath)) : null;
@@ -839,7 +839,7 @@ test('provider: logs VFS routes at root level and mounted ROM (soe://logs/)', as
 });
 
 test('encodeGif: produces valid GIF89a with Netscape infinite loop and frame delays', () => {
-    const { encodeGif } = require('../../src/resources/gif');
+    const { encodeGif } = require('../../src/games/evermore/resources/gif');
     const w = 8, h = 8;
     const f1 = new Uint8Array(w * h * 4);
     const f2 = new Uint8Array(w * h * 4);
