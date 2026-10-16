@@ -105,10 +105,8 @@ add new skills in `.agents/skills/<name>/SKILL.md` and they show up in both (new
 | `game-knowledge` | `.agents/skills/game-knowledge/SKILL.md` | Look up and record RAM/ROM/script knowledge: entry format, evidence, where it goes |
 | `release-ritual` | `.agents/skills/release-ritual/SKILL.md` | version bump, validation, commit format, `npm run deploy` |
 | `memory-radar` | `.agents/skills/memory-radar/SKILL.md` | WRAM grid tab, rooms/map-browser tab, tab ownership |
-| `map-format` | `.agents/skills/map-format/SKILL.md` | ROM map decoding port and validation against `everscript` repo |
-| `rom-map-data` | `.agents/skills/rom-map-data/SKILL.md` | Room blob layout, compression blocks, collision bitfields |
-| `grammar-rules` | `.agents/skills/grammar-rules/SKILL.md` | TextMate pattern rules, test assertion format |
-| `colour-theme` | `.agents/skills/colour-theme/SKILL.md` | P1–P9 priority palette |
+| `map-format` | `.agents/skills/map-format/SKILL.md` | Evermore room format: where each fact is documented, the parity check, port-don't-re-derive |
+| `grammar-rules` | `.agents/skills/grammar-rules/SKILL.md` | TextMate grammar and its tests; the P1–P9 colour theme |
 | `architecture` | `.agents/skills/architecture/SKILL.md` | Layers and dependency rules, splitting files, state ownership, moving files (traps), TS and dead code policy |
 | `webview-dom-safety` | `.agents/skills/webview-dom-safety/SKILL.md` | Idempotent event binding, event target walk-up, SVG coordinate systems |
 | `emulator-subsystem` | `.agents/skills/emulator-subsystem/SKILL.md` | snes9x2005-wasm core build, licensing, audio sync, display scaling, keybinds |
@@ -116,14 +114,12 @@ add new skills in `.agents/skills/<name>/SKILL.md` and they show up in both (new
 | `map-editor-rules` | `.agents/skills/map-editor-rules/SKILL.md` | Editor hard rules: 7 tile families, ROM budgets, collision bit layouts |
 | `map-construction` | `.agents/skills/map-construction/SKILL.md` | How maps are constructed, cell-to-graphic mapping, animation groups |
 | `map-entities` | `.agents/skills/map-entities/SKILL.md` | Characters, enemies, spawns, palettes, body/hurt/strike boxes |
-| `animation-script` | `.agents/skills/animation-script/SKILL.md` | Animation bytecode, frame-end bit, holds, opcode tables |
+| `animation-script` | `.agents/skills/animation-script/SKILL.md` | Animation bytecode, frame-end bit, holds, opcode widths; the sprites domain and OBJ palettes |
 | `alchemy-spell-mechanics` | `.agents/skills/alchemy-spell-mechanics/SKILL.md` | Combat alchemy slots, projectile calculations, spell damage formulas |
 | `debugger-protocol` | `.agents/skills/debugger-protocol/SKILL.md` | Debug adapter protocol (DAP) implementation and mock runtime |
 | `secret-of-evermore-engine` | `.agents/skills/secret-of-evermore-engine/SKILL.md` | Engine execution loops, script stack, event flags |
 | `snes-asm-asar-patching` | `.agents/skills/snes-asm-asar-patching/SKILL.md` | 65816 assembly conventions, Asar patching pipelines |
-| `snes-memory-mapping` | `.agents/skills/snes-memory-mapping/SKILL.md` | SNES memory maps (HiROM, LoROM, cartridge ROM vs WRAM) |
-| `sprites-subsystem` | `.agents/skills/sprites-subsystem/SKILL.md` | Sprites rendering, animation frames, OBJ palettes |
-| `wram-memory-mapping` | `.agents/skills/wram-memory-mapping/SKILL.md` | WRAM address allocation, entity tables, party stats |
+| `memory-map` | `.agents/skills/memory-map/SKILL.md` | Evermore on the bus: ROM banks, mirrors, the 4th MB, ExHiROM; WRAM layout |
 | `recomp` | `.agents/skills/recomp/SKILL.md` | The snesrecomp build: commands, ownership of generated files, headless runs |
 | `recomp-debugging` | `.agents/skills/recomp-debugging/SKILL.md` | Reproduce and fix recomp bugs: headless repro, reference emulators (snes9x headless/lockstep, Mesen2, snesref, COSIM) and how to compare, classifying C vs seeds vs glue vs runtime, fixes, where to find what |
 | `emulator-script-debugging` | `.agents/skills/emulator-script-debugging/SKILL.md` | Start emulator, launch ROM, teleport Boy, step onto triggers, and analyze script trace logs and VFS log files |

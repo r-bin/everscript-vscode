@@ -2,7 +2,7 @@
 // Pure — takes a ROM buffer, returns data. No filesystem, no VS Code API.
 //
 // Ported from everscript/tools/dump_room.py (dump_room).
-// See docs/map-format/ and the `rom-map-data` skill.
+// See docs/map-format/ and the `map-format` skill.
 //
 // Unlike the Python original, every grid here is numbers, never hex strings.
 // Upstream carries both forms and warns that mixing them silently produces

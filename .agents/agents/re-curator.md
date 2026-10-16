@@ -13,7 +13,7 @@ READ FIRST
 
 - `docs/reverse-engineering/README.md` (goals G1–G5, how the tools combine)
 - skill `game-knowledge` (entry format, where things go, confidence rules)
-- skill `snes-memory-mapping` §5 (execution bank: `$8x` vs `$Cx`)
+- skill `memory-map` (execution address: `$8x` vs `$Cx`)
 - skill `ghidra-analysis` if Ghidra / REA output is part of the evidence
 
 ==================================================

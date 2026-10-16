@@ -100,7 +100,7 @@ function sameInEveryBank(rom, pc, mnemonic, mode) {
 /**
  * File offset an original cartridge of `size` bytes answers for `addr` >= size: the chips are power-of-two sized
  * and each one mirrors inside its own window (3 MB = 2 MB + 1 MB, so 0x300000+ shows 0x200000+). bsnes models it
- * this way; Mesen2 and the bundled snes9x2005 do not (snes-memory-mapping skill §6).
+ * this way; Mesen2 and the bundled snes9x2005 do not (`memory-map` skill).
  */
 function hardwareMirror(addr, size) {
     let base = 0, mask = 1 << 23;

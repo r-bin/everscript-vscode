@@ -9,7 +9,7 @@ must be checked on the running game before relying on them.
 
 Compared with staying HiROM and with an SA-1 port (mutually exclusive as a final ROM, shared first steps): [layout-options.md](layout-options.md).
 
-Related: [combo-rom.md](combo-rom.md) (a second game on the cartridge), `.agents/skills/snes-memory-mapping/SKILL.md`
+Related: [combo-rom.md](combo-rom.md) (a second game on the cartridge), `.agents/skills/memory-map/SKILL.md`
 (today's HiROM layout), `docs/patches/README.md` (the 4 MB squeeze).
 
 ---
@@ -55,7 +55,7 @@ Consequences, in order of importance:
 1. **Everything SoE reads through `$00–$3F:8000+` or `$40–$7D` changes meaning.** Today those
    are mirrors of the first 4 MB; in ExHiROM they are *different bytes*. Code that runs from
    `$8x` and reads data through `$Cx`/`$8x` is untouched. The CDL says all 449 recorded function
-   entries live in banks `$80`, `$8C–$92` *(repo: snes-memory-mapping §5)* — good news, but the
+   entries live in banks `$80`, `$8C–$92` *(repo: `memory-map` skill)* — good news, but the
    CDL stores file offsets, so it does **not** record which mirror a read used. §4 step 1 closes
    that gap.
 2. **Vectors and the reset path move.** The CPU always reads vectors from bus `$00:FFE0+`;
@@ -129,7 +129,7 @@ ROM until step 5, so every existing tool (CDL, recomp seeds, patches) keeps work
 4. **Teach the repo about the new layout.** `soe://rom/` (`src/games/evermore/resources/rom-files.js`
    reads the header at `0xFFC0` only), the ROM tab, the map/script decoders' size and bank checks,
    and the "clean ROM" checks (3 MB, checksum) must accept 8 MB ExHiROM. The CDL pieces already
-   handle ExHiROM — verify rather than assume. Update `snes-memory-mapping` skill §1/§4.
+   handle ExHiROM — verify rather than assume. Update `memory-map` skill.
 5. **Use the space.** Only now move or add data in `0x400000+`: new Everscript regions, Mana
    assets, a second game. Every new region is recorded in the ROM map generator and
    `map-editor-rules` budgets.

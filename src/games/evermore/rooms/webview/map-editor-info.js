@@ -142,7 +142,7 @@ function infoFactsHtml(p) {
 /*
  * Every value reads as words, locked or not; the controls only appear when
  * the map is unlocked. The names are the SNES registers' own meanings, and
- * the room layers are what this engine puts on them (rom-map-data): BG1 the
+ * the room layers are what this engine puts on them (map-format skill): BG1 the
  * front/canopy, BG2 the ground, BG3 the HUD, BG4 unused in mode 1.
  */
 var INFO_LAYERS = ['Front', 'Ground', 'HUD', 'BG4', 'Sprites', 'Backdrop'];

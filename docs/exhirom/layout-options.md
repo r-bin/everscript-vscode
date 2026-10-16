@@ -29,9 +29,9 @@ The rows are coarse; the authoritative per-bank breakdown is the generated ROM t
 Two repo facts drive everything below:
 
 - All 449 recorded function entries are upper-half code in banks `$80`, `$8C–$92`; JSL/JML
-  operands use `$8x` *(repo: `snes-memory-mapping` §5)*.
+  operands use `$8x` *(repo: `memory-map` skill)*.
 - Scripts, string pointers and tables hold **24-bit pointers with `$8x`–`$Bx` banks** *(repo:
-  `snes-memory-mapping` §1–§2)*. Whatever layout changes what `$8x` means must rewrite them.
+  `memory-map` skill)*. Whatever layout changes what `$8x` means must rewrite them.
 
 ---
 

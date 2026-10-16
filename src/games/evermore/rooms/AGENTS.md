@@ -1,7 +1,7 @@
 # src/games/evermore/rooms — agent rules
 
 Kind: **feature** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [README.md](README.md).
-Related skills: `map-editor-rules`, `map-construction`, `map-entities`, `rom-map-data`,
+Related skills: `map-editor-rules`, `map-construction`, `map-entities`, `map-format`,
 `memory-radar`, `webview-dom-safety`
 
 ## Owns

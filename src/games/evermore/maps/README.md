@@ -11,7 +11,7 @@ correctly — the old sentinel-scan tilemap decoder (removed in v0.155.1, which 
 outright on room `0x38`) and the regex grammar scraper `tools/generate_data.py` (both deleted). This
 is not that: it is a line-by-line port of an implementation that round-trips all 127
 vanilla rooms byte-exactly, and `npm run check:maps` proves the port still agrees with
-it. See the `map-format` and `rom-map-data` skills.
+it. See the `map-format` skill.
 
 ## Files
 

@@ -1,31 +1,33 @@
 ---
 name: grammar-rules
-description: Use when editing the TextMate grammar (src/games/evermore/language/syntaxes/everscript.tmLanguage.json) or its tests (src/games/evermore/language/tests/*.test.evs) in everscript-vscode.
-applyTo: "src/games/evermore/language/syntaxes/**,src/games/evermore/language/tests/**"
+description: Use when editing the Everscript TextMate grammar, its tests or the bundled colour theme (src/games/evermore/language/syntaxes, themes, tests; docs/vscode-highlighter-spec.md).
+applyTo: "src/games/evermore/language/syntaxes/**,src/games/evermore/language/tests/**,src/games/evermore/language/themes/**,docs/vscode-highlighter-spec.md"
 ---
 
-# Skill: Grammar Rules
+# Grammar and colour theme
 
-Use this skill when editing the TextMate grammar
-(`src/games/evermore/language/syntaxes/everscript.tmLanguage.json`) or its tests
-(`src/games/evermore/language/tests/*.test.evs`).
+## Grammar (`src/games/evermore/language/syntaxes/everscript.tmLanguage.json`)
 
-- Pattern order matters: first match wins. See the `patterns` array in the grammar file.
-- All JSON must be ASCII-only. No em-dashes (`—`), curly quotes, or box-drawing
-  characters.
-- Use named captures (`captures`) when a single `match` produces multiple token types.
-- After adding a grammar rule, add at least one test assertion in
-  `src/games/evermore/language/tests/highlight.test.evs` (grammar unit tests run via
-  `vscode-tmgrammar-test`, part of `npm test`).
+- Pattern order matters: first match wins (the `patterns` array).
+- ASCII only in the JSON: no em-dashes, curly quotes or box-drawing characters.
+- Named captures (`captures`) when one `match` yields several token types.
+- Every new rule gets a test assertion in `src/games/evermore/language/tests/highlight.test.evs`
+  (`vscode-tmgrammar-test`, the first thing `npm test` runs).
+- It is a regex grammar on purpose: highlighting runs on every keystroke, so it does not reuse
+  the compiler's parser (`docs/vscode-highlighter-spec.md` §Grammar Strategy).
 
-## Test assertion format
+Test assertion format:
 
 ```
 some_token_here
-// <- scope.name.evs         ← tests col 0 (the leftmost char)
-//  ^^^^^scope.name.evs      ← tests cols 2..7 (caret range, from/to are absolute in line)
+// <- scope.name.evs         tests col 0 (the leftmost char)
+//  ^^^^^scope.name.evs      tests cols 2..7 (caret range, absolute in the line)
 ```
 
-`from = commentLength + startIdx`, `to = commentLength + lastCaretIdx + 1`.
-Token overlap check: `from < t.endIndex && to > t.startIndex`.
-Do **not** let carets extend past the last character of the target token.
+`from = commentLength + startIdx`, `to = commentLength + lastCaretIdx + 1`; a token is hit when
+`from < t.endIndex && to > t.startIndex`. Carets never extend past the target token's last char.
+
+## Colour theme (`src/games/evermore/language/themes/everscript-dark.json`)
+
+Colours follow the P1–P9 priority tiers of `docs/vscode-highlighter-spec.md` §Color Priority
+Tiers. Moving a scope to another tier changes **both** the theme JSON and the spec table.

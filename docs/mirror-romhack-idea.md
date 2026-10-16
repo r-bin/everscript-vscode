@@ -18,7 +18,7 @@ so a future attempt doesn't have to re-derive it.
 
 ## What has to flip, per room
 
-Everything here is against the room blob layout in the `rom-map-data` skill /
+Everything here is against the room blob layout in the `map-format` skill /
 `docs/map-format/rom-map.md`. Room width in 16×16 metatiles is `width_tiles`
 (header byte `$02`); `x` below is always in that 16px-tile space unless noted.
 
@@ -99,7 +99,7 @@ Not "mirror all 127 rooms." Prove the transform on a small connected cluster fir
   need a manual exception list.
 - Object/NPC start positions and patrol waypoints (`docs/map-format/map_objects.md`)
   — same `width - x` transform, not yet checked against that doc's byte layout.
-- Collision bits 12 and 15..14 are still listed as unresolved in the `rom-map-data`
+- Collision bits 12 and 15..14 are still listed as unresolved in the `map-format`
   skill's "still open" section — worth re-checking those aren't secretly
   direction-sensitive before assuming the geometry nibble is the only one that needs
   care.

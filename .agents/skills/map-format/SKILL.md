@@ -1,161 +1,66 @@
 ---
 name: map-format
-description: Use before touching ROM map/room decoding in src/games/evermore/maps/ or anything that reads Secret of Evermore room/tilemap bytes in everscript-vscode. src/games/evermore/maps/ is a TypeScript port of the sibling everscript repo's verified decoder — port and validate against it, never re-derive it.
-applyTo: "src/games/evermore/maps/**,src/games/evermore/language/data/index.json,src/games/evermore/rooms/rendering/tile-overlay.js"
+description: Use before reading, decoding, encoding or drawing Secret of Evermore room data (games/evermore/maps, docs/map-format). Where each fact is documented, how the port is checked, what not to re-derive.
+applyTo: "src/games/evermore/maps/**,src/games/evermore/rooms/rendering/tile-overlay.js,docs/map-format/**"
 ---
 
-# Skill: Map Format — Port the Authoritative Implementation, Don't Re-derive It
+# Evermore room format
 
-`everscript-vscode` twice independently re-derived domain logic that the sibling
-`everscript` repo (the compiler) already solved correctly and verified byte-exact. Both
-times the re-derivation was weaker than the original. Read this **before** writing or
-extending ROM map-decoding logic, or the `.evs` language-data generator.
+The room format is decoded in both directions; treat `docs/map-format/` as established fact except
+where a line says UNVERIFIED. `src/games/evermore/maps/*.ts` is a TypeScript port of the sibling
+`everscript` repo's verified Python (`everscript/tools/dump_room.py`, `collision.py`,
+`cuttable_grass.py`, `render_map.py`), held to it by a parity test.
 
-**The distinction that matters:** a *faithful port*, validated against the original's
-own output, is fine and is what `src/games/evermore/maps/` now is. An *independent re-derivation*
-("I'll work out the format from the bytes") is what failed twice. Porting is allowed;
-guessing is not.
+## Rules
 
-## Current state: src/games/evermore/maps/ is a validated TypeScript port
+- **Port, never re-derive.** This repo twice shipped a weaker guess at something `everscript` had
+  solved byte-exact (a sentinel block scanner that failed on room `0x38`; a regex scraper of
+  `.evs` files). If a room decodes wrong, fix the logic the Python has; fix it in `everscript`
+  too — its copy is the reference.
+- **Check every change**: `npm run check:maps` (the decoder and renderer against the Python, RGBA
+  pixel for pixel); `MAP_PARITY_ALL=1` for all 127 rooms. It **skips** without the ROM or an
+  `everscript` checkout — read the output, a green run that compared nothing means nothing.
+- Never hand-decode a collision word: `passability()`, `tilePlane()`, `driftVector()`,
+  `entityGate()` in `collision.ts`. Grids are numbers; format hex at render time.
+- Something the original can draw (overlays, annotations) is ported, not approximated —
+  `docs/map-port-gap-analysis.md` gap 1.2 records the time it was hand-drawn and missed entity gates.
+- The TextMate grammar is the deliberate exception to "reuse the compiler" (`grammar-rules` skill).
 
-`src/games/evermore/maps/*.ts` ports `everscript`'s `tools/dump_room.py`, `collision.py` and
-`cuttable_grass.py`. `npm run check:maps` decodes rooms with both implementations and
-diffs them; it passes on **all 127 rooms**, including `0x38` (which the retired decoder
-failed on) and `0x15` (uncompressed Block 3). Any change to the decoder must keep that
-green — run it with `MAP_PARITY_ALL=1` for the full sweep.
+## The facts in one paragraph
 
-The root `tsconfig.json` is typecheck-only, so this domain has its own emit config
-(`tsconfig.build.json` → `dist/maps/`, via `npm run build:ts`). Consumers
-`require('../maps')`, which is a thin JS facade over the compiled output.
+Map pointer table at `$9F:FDE7` (file `0x1FFDE7`), 4 bytes per room (24-bit pointer + pad), 127
+rooms; slot `$7F` is not a room. A blob: 13-byte header (origin, size in 16×16 metatiles, PPU
+TM/TS/CGADSUB/CGWSEL, effect variant), step-on and B-trigger tables (6 bytes each, compared in
+16-pixel tiles plus the origin), tile families, CHR descriptors, then three payload blocks:
+Block 1 (delta tile palette, LZSS or raw → `$7F:C300`), Block 2 (2-D Markov metatile grid →
+`$7F:0000`), Block 3 (metatile table, LZSS; three planes: BG2 word, BG1 word, collision word),
+with section 2 (tile animation) and section 4 (cuttable grass, objects) between them. Every byte
+of a blob belongs to a field; the blob ends at its furthest object record or stamping block.
 
-`render_map.py`'s graphics pipeline is ported too (`palette.ts`, `chr.ts`, `render.ts`):
-palettes, CHR decompression, 4bpp planar decoding, and Mode 1 compositing. Its output is
-**pixel-identical** to the Python renderer, and `npm run check:maps` verifies that by
-dumping raw RGBA from both sides — so neither PNG encoder can hide a difference.
+## Which document answers which question
 
-## The two original instances (do not repeat this pattern a third time)
+| Question | Document |
+|---|---|
+| Everything at once: every segment, limits, decoder and engine routine | `docs/map-format/room-reference.md` (start here) |
+| Where each room is, sizes, compression flags | `docs/map-format/rom-map.md` |
+| How the decompression was traced | `docs/map-format/map_decompression_trace_analysis.md` |
+| Writing a room back (LZSS + Markov encoders, never grows) | `docs/map-format/map_encoding.md` |
+| Collision word: planes, drift, gates, bits 12–15 | `docs/map-format/map_collision_mechanics.md` |
+| Cuttable grass / objects / animated tiles | `docs/map-format/cuttable_grass_mechanics.md`, `map_objects.md`, `map_animated_tiles.md` |
+| Rendering, CHR graphics, palettes | `docs/map-format/map_rendering_pipeline.md`, `map_tile_graphics_decompression.md`, `map_palette_extraction.md` |
+| What the editor adds (stamps, widgets, levels, entrances) | `docs/map-format/editor-concepts.md`, `map-editor-rules` skill |
+| Characters, sprites, bodies, damage | `docs/script-format/entities-reference.md`, `map-entities` skill |
+| Open questions | `docs/map-format/room-reference.md` §12, `docs/map-port-gap-analysis.md` |
 
-1. **The sentinel decoder** — a `strict7`/`short6` heuristic scan for locating
-   compressed map blocks, which worked on a handful of simple rooms and **failed on room
-   `0x38`**. Deleted (git history has it). **Do not revive it** — `src/games/evermore/maps/` supersedes it.
-2. **`tools/generate_data.py`** — a regex scraper of `in/core/*.evs` that built
-   `src/games/evermore/language/data/index.json` (hover/completion data), a weaker second guess at the
-   compiler's real grammar. Deleted 2026-10-16; `index.json` is now frozen data. When it
-   needs regenerating, have the everscript compiler emit it — never write a third scraper.
+## In this repo
 
-The TextMate grammar (`src/games/evermore/language/syntaxes/everscript.tmLanguage.json`, see the
-`grammar-rules` skill) is a deliberate, correct exception — it has to be a fast
-synchronous regex grammar for paint-every-keystroke highlighting, and reuse of the real
-parser was explicitly evaluated and rejected for that specific case (see
-`docs/vscode-highlighter-spec.md §Grammar Strategy`). The rule here is about decoding
-*data* (ROM bytes, declarations), not about baseline syntax highlighting.
-
-## Working on the decoder
-
-- **Validate every change**: `npm run check:maps`, and `MAP_PARITY_ALL=1 npm run
-  check:maps` for all 127 rooms. The harness skips (does not fail) when the ROM or the
-  `everscript` checkout is missing, so a green run on a machine without them means
-  nothing — check the output says rooms were actually compared.
-- **Port, don't invent.** If the decoder is wrong for some room, the fix is in the
-  Python original's logic, not a new heuristic. Read the corresponding `tools/*.py`
-  function and the docs in `docs/map-format/`.
-- If you fix a genuine format bug, fix it **upstream too** — `everscript`'s copy is the
-  authoritative one and its `rom-map-data` skill says as much.
-- Grids are numbers, never hex strings. Format at render time.
-- Never hand-decode a collision word; use `passability()`, `tilePlane()`,
-  `driftVector()`, `entityGate()` from `src/games/evermore/maps/collision.ts`.
-
-## Where the extension consumes it
-
-- `src/games/evermore/rooms/rendering/tile-overlay.js` renders the room to a PNG data URI and builds
-  the collision overlay as SVG paths grouped by fill colour (a 128x70 room is 8960
-  tiles, so per-tile DOM nodes are not an option). It caches the 12 most recent renders:
-  ~146ms cold for the largest room, ~2ms warm.
-- `src/games/evermore/extension.js` handles a `requestRoomTiles` message from the Rooms tab webview and
-  replies with `roomTiles`. Decoding is **on demand per selected room**: the rooms tree
-  JSON carries no tile data, because 127 rooms of it would bloat every render.
-- `src/games/evermore/rom-readers.js` `loadRomBuffer()` caches the ~3MB ROM by path+mtime.
-
-## Still Python-only upstream
-
-**`encode_room.py` — the write path**, with its LZSS/Markov encoders and the
-never-grows guarantee. Nothing in this repo can write a room back to ROM. Anything
-map-*editing* needs that ported (and validated the same way: `--verify` round-trips all
-127 rooms upstream, so parity is checkable) or reached over IPC.
-
-`render_map.py`'s annotation system **is** ported as of v0.11.0, and held to a zero
-pixel budget by `checkOverlayParity`. The earlier position — draw approximate SVG
-overlays instead, because they stay interactive — produced a view that was missing
-entity gates entirely and could not be checked against anything. If you are tempted to
-hand-draw a visualization that upstream already implements, read gap 1.2 in
-`docs/map-port-gap-analysis.md` first; that section is kept specifically as a record of
-this mistake.
-
-Only two pieces of `render_full_composition` are deliberately not baked: the header and
-legend banners, which grow the PNG and would break the raster's registration with the
-Rooms tab's SVG overlay. `buildSummary()` / `buildLegend()` return that content as data
-and the webview renders it as HTML.
-
-Still unported from `render_map.py`: the alternative collision modes (`ascii`/
-`passability` and `verbose`/`raw`, with their 7x7 glyph font and per-word colouring) and
-`render_grid_overlay` — the Rooms tab draws its grid as SVG, at true 8px/16px spacing,
-which is better than a baked one.
-
-`everscript`'s `docs/map_editor_vscode_plan.md` §3.2 recommends keeping ROM logic in
-Python behind IPC. This repo went the other way for the read path, because a validated
-port removes the Python runtime dependency for extension users. That reasoning applies
-to the write path too, but the decision is not made — don't assume it.
-
-## If a map-editor domain is added later
-
-It would be a new ownership domain, sibling to `src/games/evermore/debugger/`, `src/games/evermore/rooms/`,
-`src/emulator/`, `src/games/evermore/language/`. Before writing code against it: add it to
-`AI_ARCHITECTURE_GUIDE.md`'s ownership-domain list and to
-`docs/architecture/domain-overview.md`'s per-domain "Allowed deps" table, the same way
-the existing domains are documented (see the `architecture` skill). If it spawns
-anything Python, reuse `src/games/evermore/language/config.js`'s existing `everscript.repoPath` /
-`pythonPath` resolution and the `child_process.spawn` pattern `src/games/evermore/extension.js` already
-uses for "Build and Run" — don't invent a second of either.
-
-## Related, not blocking, but worth knowing before building on top of them
-
-- `src/games/evermore/rooms/`'s room-script disassembly (`src/emulator/room-script-model.js`'s
-  `OPCODE_REGISTRY`) doesn't yet decode the variable-length "calculator"
-  sub-instruction format. If map-editor work wires a trigger to its script, check
-  `docs/rooms-settings-cleanup-dossier.md` (status: in progress) first rather than
-  assuming the disassembly is complete.
-- `src/games/evermore/debugger/mock-runtime.js` is a mock — "No actual bytecode execution" per its own
-  header comment. If a map-editor feature wants a *live, debuggable* script view (not
-  just static source navigation), that needs the mock runtime to become real first;
-  treat that as separate, larger, unstarted work, not a dependency assumed to already
-  exist.
-
-## What's still missing
-
-`docs/map-port-gap-analysis.md` tracks this in detail: format-fidelity gaps
-(the unported write path, unported annotation rendering, untested patched-ROM
-behavior) separately from Rooms tab UX gaps (a render-cache invalidation bug,
-whether the overlay activates for Live/author rooms at all, missing
-loading/error states). Read it before assuming a gap doesn't exist, and update
-it when you close one.
-
-## Where the full plan lives
-
-This skill is the pointer, not the plan. The actual reasoning, alternatives considered,
-and open TODOs live in the sibling `everscript` repo (same parent directory as this
-repo, path resolved via `everscript.repoPath` if not literally adjacent):
-- `docs/map_editor_design.md` — the original design doc (repo placement, extend vs.
-  fork, editor architecture)
-- `docs/map_editor_architecture_and_limitations.md` — architecture and known
-  limitations
-- `docs/map_editor_vscode_plan.md` — repo placement, lexer/parser reuse, IPC/packaging
-  options, and what in `everscript-vscode` needs redoing (this skill summarizes its §1,
-  §2, and §4.1)
-- `.github/skills/rom-map-data/SKILL.md` — the authoritative index of the ROM map
-  format itself (room header, trigger tables, compression pipeline, collision bitfield)
-- `.github/skills/map-tooling/SKILL.md` — the practical runbook for
-  `dump_room.py`/`encode_room.py`/`render_map.py`/`collision.py`/`cuttable_grass.py`
-
-If those documents and this skill ever disagree, the `everscript` documents win — they
-describe the authoritative implementation; this skill is a summary for
-`everscript-vscode` work and can go stale independently.
+- Read path: `room.ts`, `blob-layout.ts`, `lzss.ts`, `markov.ts`, `palette.ts`, `chr.ts`, `render.ts`,
+  `collision.ts`. Write path (custom rooms, Export / Play ROM): `encode.ts`, `encode-streams.ts`,
+  `object-encode.ts`, `custom-room.ts`. JS requires the compiled `dist/games/evermore/maps/`
+  through `maps/index.js`.
+- The Rooms tab decodes on demand per room (`rooms/editor-host.js` `requestRoomTiles` →
+  `rooms/rendering/tile-overlay.js`, which caches the 12 latest renders); the room tree carries no
+  tile data. `rom-readers.js` caches the ROM by path and mtime.
+- Python-side runbook (inspect, round-trip, render): `everscript/tools/dump_room.py`,
+  `everscript/tools/encode_room.py --verify`, `everscript/tools/render_map.py`; their skill is
+  `everscript/.github/skills/rom-map-data`. When it and this repo disagree, the Python wins.

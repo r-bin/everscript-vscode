@@ -1,10 +1,14 @@
 ---
 name: animation-script
-description: The animation bytecode language in Secret of Evermore — the per-entity interpreter at $9080D0, the frame-end bit, holds as checkpoints, every opcode and its width, the record table at $C43E3A (783 animations) and the global animate() id table at $C43C92. Read before changing src/games/evermore/maps/animation-opcodes.ts, animation-vm.ts, character-animation.ts, src/games/evermore/sprites/animation-*.js, or anything that walks, runs, lists, names or renders an animation script.
+description: Use before changing anything that walks, runs, lists, names or renders a Secret of Evermore animation script, or the sprites domain (maps/animation-*.ts, sprites/). Rules a change must keep.
 applyTo: "src/games/evermore/maps/animation-*.ts,src/games/evermore/maps/character-animation.ts,src/games/evermore/sprites/**,docs/script-format/animation_*.md"
 ---
 
-# Animation scripts: rules
+# Animation scripts and sprites: rules
+
+The sprites domain (`src/games/evermore/sprites/`, its AGENTS.md) decodes SNES OBJ graphics
+(4bpp planar), entity frames and hitboxes, OBJ palette slots (`$7E1278`) and character palettes,
+and renders thumbnails and animations for the Characters tab. The animation language it runs:
 
 The language, with every handler address and the evidence for each width, is
 `docs/script-format/animation_script.md`. How idle frames feed the room view is

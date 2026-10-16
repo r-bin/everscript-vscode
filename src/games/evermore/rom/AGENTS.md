@@ -1,7 +1,7 @@
 # src/games/evermore/rom — agent rules
 
 Kind: **feature** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [README.md](README.md).
-Related skills: `snes-memory-mapping`, `rom-map-data`, `cdl-recorder` (`.agents/skills/`).
+Related skills: `memory-map`, `map-format`, `cdl-recorder` (`.agents/skills/`).
 
 ## Owns
 - The radar panel's **ROM** tab (File, Bus, Compare views): the pure model (`build.js`,

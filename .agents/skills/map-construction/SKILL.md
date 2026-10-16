@@ -6,7 +6,7 @@ applyTo: "src/games/evermore/maps/vanilla-*.ts,src/games/evermore/maps/objects.t
 
 # How a Map Is Constructed
 
-The byte format is `rom-map-data`'s, and the editor's limits are `map-editor-rules`'.
+The byte format is `map-format`'s, and the editor's limits are `map-editor-rules`'.
 This skill is the model between them: what a map *shows*, over time and over its
 objects' states, and the words the user uses for it.
 

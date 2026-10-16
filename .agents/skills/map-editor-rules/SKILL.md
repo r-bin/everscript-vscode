@@ -11,7 +11,7 @@ the bugs that have shipped in it were not logic errors — they were a control o
 something the format cannot do, or a number invented to fill a gap in what the ROM
 actually attests. This is the list of what is true, so neither happens again.
 
-Format detail lives in `rom-map-data` and `docs/map-format/`. This skill is what the
+Format detail lives in `map-format` and `docs/map-format/`. This skill is what the
 *editor* has to honour.
 
 ---

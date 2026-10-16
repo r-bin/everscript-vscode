@@ -1,14 +1,17 @@
 // AI context budget (docs/cleanup.md D10, 7.1): the files agents load stay small and their links work.
-//   node tools/check-ai-context.mts         report; fails on overruns that are not in the allowance list
+//   node tools/check-ai-context.mts             report; fails on overruns that are not in the allowance list
+//   node tools/check-ai-context.mts --baseline  drop allowances that are fixed (the list only shrinks)
 // Limits: root AGENTS.md <= 150 lines; each SKILL.md <= 200 lines; a skill description <= 2 lines of
 // ~100 characters (200); nested AGENTS.md <= 70 lines; no relative link or `path` mention to a
 // missing repo file in these files.
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 
 const ROOT = join(import.meta.dirname, '..');
 // Known overruns, removed as cleanup step 7 slims them. Only ever shrinks.
-const ALLOW = new Set<string>(JSON.parse(readFileSync(join(ROOT, 'tools/check-ai-context.allow.json'), 'utf8')).allow);
+const ALLOW_FILE = join(ROOT, 'tools/check-ai-context.allow.json');
+const allowJson = JSON.parse(readFileSync(ALLOW_FILE, 'utf8'));
+const ALLOW = new Set<string>(allowJson.allow);
 
 type Problem = { file: string; what: string };
 const problems: Problem[] = [];
@@ -53,5 +56,15 @@ const key = (p: Problem) => `${p.file}: ${p.what.replace(/\d+ (lines|chars)/, 'N
 const fresh = problems.filter((p) => !ALLOW.has(key(p)));
 if (process.argv.includes('--list')) for (const p of problems) console.log(key(p));
 for (const p of fresh) console.log(`${p.file}: ${p.what}`);
+const seen = new Set(problems.map(key));
+const fixed = [...ALLOW].filter((k) => !seen.has(k));
+if (process.argv.includes('--baseline')) {
+    allowJson.allow = allowJson.allow.filter((k: string) => seen.has(k));
+    writeFileSync(ALLOW_FILE, JSON.stringify(allowJson, null, 1) + '\n');
+    console.log(`allowance list: ${fixed.length} fixed entries dropped, ${allowJson.allow.length} left`);
+} else if (fixed.length) {
+    console.log(`${fixed.length} allowances are fixed; run --baseline to drop them:`);
+    for (const k of fixed) console.log(`  ${k}`);
+}
 console.log(`check:ai-context: ${problems.length} problems, ${problems.length - fresh.length} allowed (cleanup step 7), ${fresh.length} new`);
 process.exitCode = fresh.length ? 1 : 0;

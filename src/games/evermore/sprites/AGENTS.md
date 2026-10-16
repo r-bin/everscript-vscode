@@ -1,7 +1,7 @@
 # src/games/evermore/sprites — agent rules
 
 Kind: **feature** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [README.md](README.md).
-Related skills: `sprites-subsystem`, `animation-script`, `map-entities` (`.agents/skills/`).
+Related skills: `animation-script`, `map-entities` (`.agents/skills/`).
 
 ## Owns
 - The radar panel's **Characters** tab: characters/enemies/NPCs and their stats and

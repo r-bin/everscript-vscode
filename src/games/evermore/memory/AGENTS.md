@@ -2,7 +2,7 @@
 
 Kind: **feature** — the radar host (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder
 does: [README.md](README.md).
-Related skills: `memory-radar`, `webview-dom-safety`, `wram-memory-mapping`
+Related skills: `memory-radar`, `webview-dom-safety`, `memory-map`
 
 ## Owns
 - The radar panel HTML: `render-radar.js` (tabs, layout, webview entry),

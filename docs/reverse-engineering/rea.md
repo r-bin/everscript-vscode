@@ -115,7 +115,7 @@ Ghidra's 65816 support is the weak link, and `docs/reverse-engineering/asm-to-c-
 
 | Problem | Why it hurts | We already have |
 |---|---|---|
-| **Memory map.** REA's raw loader maps the whole file at one address. | For SoE (HiROM, unheadered) mapping file offset 0 at `$C00000` gives a correct linear view of banks `$C0–$EF`. But code runs from the `$80–$BF` mirrors (`$8C:CB9C`, `$90:8F6A`), and those mirrors are not mapped, so long addresses and xrefs in `$8x` banks do not resolve. | `snes-memory-mapping` skill; `soe://bus/` |
+| **Memory map.** REA's raw loader maps the whole file at one address. | For SoE (HiROM, unheadered) mapping file offset 0 at `$C00000` gives a correct linear view of banks `$C0–$EF`. But code runs from the `$80–$BF` mirrors (`$8C:CB9C`, `$90:8F6A`), and those mirrors are not mapped, so long addresses and xrefs in `$8x` banks do not resolve. | `memory-map` skill; `soe://bus/` |
 | **M/X widths.** The same bytes decode differently in 8- and 16-bit mode. | A wrong immediate width desynchronises everything after it. | CDL `rom.cdl` IDX8/ACC8 bits per opcode; `rets.bin` entry/exit widths; `functions.json` |
 | **DB and D.** 16-bit absolute and direct-page operands depend on them. | xrefs to WRAM / tables are wrong or missing. | CDL `regs.bin` (DB/D per instruction) |
 | **Jump tables / PHA+RTS dispatch.** | Ghidra misses most targets, so functions end early or never appear. | CDL edges, `indirect_dispatch` lists, FLOW_RETURN targets |

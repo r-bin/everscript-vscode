@@ -26,7 +26,7 @@ Last updated 2026-10-12 (v0.201.9).
 | [community-ghidra-notes.md](community-ghidra-notes.md) | Old hand-annotated community Ghidra project: its terms vs ours, tables, field names, formulas, leads to check |
 | [docs/patches/](../patches/README.md) | **Patches & community hacks**: catalog of public patches, balance overhauls, engine bugfixes, and system mods |
 
-Skills: `cdl-recorder`, `ghidra-analysis`, `game-knowledge`, `snes-memory-mapping`,
+Skills: `cdl-recorder`, `ghidra-analysis`, `game-knowledge`, `memory-map`,
 `snes-asm-asar-patching`. Agent: `re-curator` (§7).
 
 ---

@@ -35,7 +35,7 @@ One record per symbol:
 
 | Field | Meaning |
 |---|---|
-| `addr` | execution bus address (`$8x` for upper-half code, see skill `snes-memory-mapping` §5) |
+| `addr` | execution bus address (`$8x` for upper-half code, see skill `memory-map` skill) |
 | `file` | file offset (dedupe key: one byte has two bus addresses in HiROM) |
 | `space` | `rom`, `wram`, `sram`, `io` |
 | `kind` | `function`, `code`, `label`, `table`, `var`, `struct`, … |
