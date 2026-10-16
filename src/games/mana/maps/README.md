@@ -1,7 +1,7 @@
 # src/games/mana/maps — Secret of Mana Maps panel
 
 Rules for agents: [AGENTS.md](AGENTS.md). Opened by **Everscript: Secret of Mana: Open Maps**
-(`everscript.openManaMaps`), or by **Open Memory Radar** when `everscript.romPath` is a Mana ROM.
+by **Open Memory Radar** when the ROM chosen with **Switch ROM** is a Mana ROM (one command for every game).
 
 The page is the Evermore Rooms editor's, built from the same shared shell (`src/shared/webview/map-editor-shell/`):
 left, the rail of areas and their maps (search, collapse); middle, the map on a card with the floating pill

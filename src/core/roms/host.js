@@ -120,4 +120,9 @@ function romPathFor(game) {
     return lib.romFor(game)?.path || null;
 }
 
-module.exports = { activateRoms, onDidChangeRoms, romPathFor };
+/** The game of the selected ROM (`evermore`, `mana`, …), or null when none is selected. */
+function selectedGame() {
+    return lib.selectedRom()?.game || null;
+}
+
+module.exports = { activateRoms, onDidChangeRoms, romPathFor, selectedGame };

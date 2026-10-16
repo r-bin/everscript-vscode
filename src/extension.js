@@ -524,11 +524,9 @@ function openManaMaps() {
     return require('./games/mana/maps').openManaMaps();
 }
 
-/** True when the Evermore ROM lookup found a Secret of Mana ROM (a hand-picked path can be anything). */
+/** True when the ROM chosen with Switch ROM is a Secret of Mana ROM (multi-game.md §6: one command, any game). */
 function romIsMana() {
-    const ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-    const rom = romReaders.loadRomBuffer(ws, '');
-    return !!rom && require('./games/mana/decoder').isManaRom(rom);
+    return roms.selectedGame() === 'mana';
 }
 
 /**
@@ -1370,7 +1368,6 @@ function activate(context) {
         manaRom: () => { const r = manaResources.manaRom(); return r && r.rom; },
     });
     context.subscriptions.push(
-        vscode.commands.registerCommand('everscript.openManaMaps', openManaMaps),
         roms.onDidChangeRoms(() => {
             romReaders.invalidateRomBuffer();
             manaResources.refresh();

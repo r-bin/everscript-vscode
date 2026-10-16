@@ -53,7 +53,7 @@ game supports it, not through a second tool:
   (`Mana event NNN`), cuttable cells, event-flag pieces as objects, character objects as
   spawn markers. The webview stays game-neutral: converted rooms arrive as data
   (`rooms-imported.js`), with ids from `0x1000` and family labels.
-- **Mana Maps panel** (`everscript.openManaMaps`) — the maps as the game draws them, with
+- **Mana Maps panel** (Open Memory Radar while a Mana ROM is selected with Switch ROM) — the maps as the game draws them, with
   collision, animation, special cells and objects, and a map editor (Edit button): paint
   metatiles, objects, step events, undo/redo. Nothing it changes is saved. It shares the filter
   bar, the tile animation player, the editor core (history, sessions, notice) and the editor shell

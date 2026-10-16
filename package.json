@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.235.0",
+  "version": "0.236.0",
   "publisher": "rbin",
   "main": "./src/extension.js",
   "engines": {
@@ -23,7 +23,6 @@
     "onCommand:everscript.debugInEmulator",
     "onFileSystem:soe",
     "onFileSystem:som",
-    "onCommand:everscript.openManaMaps",
     "onCommand:everscript.checkSoeResources",
     "onCommand:everscript.openSoeResource",
     "onCommand:everscript.openRomAsFolder",
@@ -281,11 +280,6 @@
         "title": "Open ROM as Folder",
         "category": "Everscript",
         "icon": "$(file-zip)"
-      },
-      {
-        "command": "everscript.openManaMaps",
-        "title": "Secret of Mana: Open Maps",
-        "category": "Everscript"
       },
       {
         "command": "everscript.switchRom",

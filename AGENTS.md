@@ -83,7 +83,7 @@ of:
 | `src/games/evermore/scripts-tab/` | Scripts tab (radar): Everscript + map, animation and alchemy scripts + animation, music sequences + silent player — not `src/games/evermore/script/` (the decoder) |
 | `docs/plans/simulation/` | Design notes for the simulation; the code is `src/games/evermore/simulation/` (scenarios, loot cases, byte-identical Everscript; `npm run test:simulation`) |
 | `src/platform/`, `src/core/`, `src/games/` | The game-neutral layers and the game list (multi-game.md): ROM identification, the ROM library (`npm run roms`), Switch ROM / ROM panel, game descriptors |
-| `src/games/mana/decoder/`, `src/games/mana/resources/`, `src/games/mana/maps/` | Secret of Mana, kept apart from Evermore: pure decoder/renderer (TS library), the read-only `som://` file system, and the Maps panel (`everscript.openManaMaps`). Format + evidence: `docs/mana/` |
+| `src/games/mana/decoder/`, `src/games/mana/resources/`, `src/games/mana/maps/` | Secret of Mana, kept apart from Evermore: pure decoder/renderer (TS library), the read-only `som://` file system, and the Maps panel (Open Memory Radar with a Mana ROM selected). Format + evidence: `docs/mana/` |
 | `src/games/evermore/imports/mana/` | Secret of Mana maps converted into Evermore rooms, listed in the Rooms tab under the vanilla rooms (`docs/mana/evermore-rooms.md`) |
 | `tools/mana/check-map.js`, `check-events.js`, `find-picture.js` | Load any Secret of Mana map in the headless game and compare its screen / its step events with ours; find which map a picture shows |
 

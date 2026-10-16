@@ -143,8 +143,9 @@ code, folder or docs are part of the cleanup.
   `.ts`), 6 (marker `EVSX`, `src/games/evermore/derived.ts`, written by both builders).
 - Built in part, 5: status bar item, Switch ROM opening the ROM panel (ROMs per game, ★ base, "use as
   base", feature table, drop zone), the drop-a-ROM prompt. Panels still follow the selected ROM instead
-  of keeping the one they were opened with; `openManaMaps` is not merged yet; per-panel empty states
-  are still the old messages.
+  of keeping the one they were opened with; per-panel empty states are still the old messages.
+  `openManaMaps` is merged (v0.236.0): Open Memory Radar opens the Mana Maps panel when the selected ROM is
+  a Mana ROM.
 - Built in part, 3: one TypeScript build (`tsconfig.build.json`, `dist/` mirrors `src/`, v0.231.0); Secret of
   Mana moved (v0.232.0): `games/mana/decoder`, `games/mana/resources`, `games/mana/maps`, and the bridge
   `games/evermore/imports/mana`. The twelve Evermore-only domains moved as they were (v0.233.0):
