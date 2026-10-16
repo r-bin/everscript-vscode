@@ -2,13 +2,11 @@
 
 These rules apply to every AI agent (Gemini, Claude, Copilot) working in this repository.
 
-This is a vibe-coding project. Every prompt should end in a commit that follows the
-`release-ritual` skill (`.agents/skills/release-ritual/SKILL.md`). If the worktree is still dirty afterward,
-or the version was not bumped, or nothing was installed, finish the ritual before ending the
-session.
+Every prompt ends in a commit that follows the `release-ritual` skill
+(`.agents/skills/release-ritual/SKILL.md`): version bump, tests and checks, commit, `npm run deploy`.
 
 External resources:
-- `everscript` repo (this repo)
+- `everscript` (sibling repo): the compiler, the reference for formats it already decodes.
 - `SoETilesViewer` / `SoEScriptDumper` (GPLv3, third-party): **do not use** — no code, tables,
   layouts or structure from them, and do not read their source while implementing something
   they also implement. Derive everything from the game itself. The one exception is the names
@@ -22,132 +20,66 @@ External resources:
 1. **Legal first.** Nothing that could bring legal trouble enters the repo: no ROM or ROM
    bytes, no extracted graphics/icons/palettes/music/text/maps/script dumps, no screenshots,
    no code or data copied from other projects. The extension decodes the *user's own ROM at
-   runtime*; the repo holds only our code and our own descriptions of facts.
-   See `AI_ARCHITECTURE_GUIDE.md` §3.8.
+   runtime*; the repo holds only our code and our own descriptions of facts
+   (`AI_ARCHITECTURE_GUIDE.md` §3.8; `npm run check:legal` blocks the rest).
 2. **Write down what you learn.** Every address, routine, script, flag, struct or format you
    learn about — even partially — is recorded in the same commit, in our own words, with its
-   purpose and evidence. Look it up before re-researching it. Format and locations: the
-   `game-knowledge` skill (`.agents/skills/game-knowledge/SKILL.md`).
-3. **Keep the AI files true.** When you find that a skill, an `AGENTS.md` (root or nested) or
-   the guide is wrong, stale or missing a trap you just hit, fix it in the same commit — no
-   need to ask. Prefer editing the existing file over adding a new one.
-4. **Secret of Mana is a different game.** Nothing known about Evermore (formats, engine,
-   addresses, scripts) is assumed for Secret of Mana, or the other way round; only SNES
-   hardware facts carry over. Mana code lives in `src/games/mana/decoder`, `src/games/mana/resources` and
-   `src/games/mana/maps` and never imports an Evermore domain (`.depcruise.js`); Mana facts go to
-   `docs/mana/`, checked against the running game (`tools/mana/check-map.js`,
-   `check-events.js`). The one place the two meet is `src/games/evermore/imports/mana`: an explicit
-   translation table (`docs/mana/evermore-rooms.md`), each row pairing two documented facts.
-   Use the plugin's features for both games (`supported-games` skill).
+   purpose and evidence. Look it up before re-researching it (`game-knowledge` skill).
+3. **Keep the AI files true.** When a skill, an `AGENTS.md` or the guide is wrong, stale or
+   missing a trap you just hit, fix it in the same commit. Prefer editing an existing file.
+   Keep them slim: `npm run check:ai-context` holds the limits.
+4. **Games stay apart.** Nothing known about one game (formats, engine, addresses, scripts) is
+   assumed for another; only SNES hardware facts carry over (`src/platform/`). A game's code
+   lives in `src/games/<game>/` and never imports another game; the one bridge is
+   `src/games/evermore/imports/mana`, an explicit translation table
+   (`docs/mana/evermore-rooms.md`). Each game's facts go to its docs (`docs/mana/`,
+   `docs/terra/`), checked against the running game (`supported-games` skill).
+5. **Shared working tree.** Several agents work in this checkout at once. Stage and commit
+   only the files you changed (`git commit -- <paths>`, or `git add <paths>`); never
+   `git add -A`, `git add .`, `git add -u` or `git commit -a`. Check
+   `git diff --cached --name-only` before committing and re-read `package.json`'s version
+   right before bumping it.
 
 ---
 
 ## 1. Goal
 
-Make Everscript code **more readable** in VS Code. Every change must serve one or more
-of:
-- Better visual differentiation of token categories
-- More information on hover, completion, or diagnostics
-- Better developer tooling (build tasks, problem matchers, snippets)
+Make Everscript code more readable in VS Code and make SNES romhacking (Evermore first, any game
+the plugin recognises) workable from the editor: better tokens, hover and diagnostics; insight
+into the ROM and the running game; build, debug and export tooling.
 
 ---
 
-## 2. File map
+## 2. Where things are
 
-| File / Dir | Role |
+| Where | What |
 |---|---|
-| `package.json` | Extension manifest — version lives here |
-| `src/extension.js` | Composition root (registered as `main`): ROM library, the list of games, game views, MCP; each game's `games/<game>/extension.js` registers its commands (Evermore's is the big one) |
-| `src/games/evermore/language/syntaxes/everscript.tmLanguage.json` | TextMate grammar |
-| `src/games/evermore/language/themes/everscript-dark.json` | Bundled colour theme — P1–P9 palette |
-| `src/games/evermore/language/language-configuration.json` | Bracket matching, comment toggle, word pattern |
-| `src/games/evermore/language/tests/highlight.test.evs` | Grammar unit tests (vscode-tmgrammar-test) |
-| `docs/future-features.md` | Roadmap — read before starting new features |
-| `docs/recomp/` | Recomp master page (`README.md`), setup (`setup.md`), Game Runtime Layer (`game-rtl.md`), debugging (`debugging.md`), headless exploration (`headless-exploration.md`), open bugs & roadmap (`bugs-and-todos.md`), addons (`snesmod-addons.md`), enhancements (`enhancements.md`), experimental graphics (`experimental-renderer.md`) |
-| `docs/reverse-engineering/` | RE master page (`README.md`: goals, how each is reached) + one page per approach (CDL, recomp/C port, Ghidra, REA, formats, other tools) — read before RE work |
-| `docs/vscode-highlighter-spec.md` | Token category spec |
-| `AI_ARCHITECTURE_GUIDE.md` | Architectural laws, file size limits, ownership rules |
-| `STATE_FLOW.md` | Authoritative state ownership table |
-| `docs/architecture/domain-overview.md` | Which `src/` domains to load for a given task |
-| `docs/architecture/multi-game.md` | Decided target: any game (`platform/` + `core/` + `games/<game>/`), game descriptor, variants and base ROM, ROM library and panel, `soe://` as the only source; §8 the one map editor (core + per-game adapter) — read before touching `src/games/evermore/rooms/webview/map-editor*`, `src/games/mana/` or ROM loading |
-| `docs/cleanup.md` | The repo cleanup: decisions D1–D13 and the ordered work items — read before deleting, moving, deduplicating or porting to TS |
-| `docs/evermore-releases.md` | The Evermore ROMs that exist (US, Europe, Germany, France, Spain Rev 1/2, prototype chip): how to identify them, 50 Hz speed, completeness, why US addresses don't apply to PAL builds |
-| `docs/exhirom/port.md` | Evermore as ExHiROM: why, bus map, what was built (§6) and how it was proven; the game's read past its 3 MB (`$80:D113`) |
-| `tools/exhirom/` | `npm run exhirom` / `scripts/build-exhirom.sh`: `convert.js` (clean ROM → 8 MB ExHiROM in `out/soe-exhirom.sfc`), `prove.js` (static + bus + snes9x/Mesen2 replay of every recorded movie + CDL → `out/exhirom/REPORT.md`) |
-| `docs/table-hack.md`, `docs/extension-tables.md`, `docs/enemies-and-palettes.md`, `tools/table-hack/` | The table hack: content tables (rooms, enter scripts, string keys, script pointers, enemies, palettes) moved into the 4th MB; how enemies and palettes load (ROM → WRAM shadow → CGRAM); which tables can move and what each buys; `npm run table-hack` / `table-hack:prove` (sample playbacks vs the original → `out/table-hack/REPORT.md`) |
-| `docs/exhirom/layout-options.md` | Comparison: stay HiROM vs ExHiROM vs SA-1 — Evermore's ROM map, mutual exclusivity, effort, benefits, recommendation |
-| `docs/exhirom/combo-rom.md` | A second game next to Evermore on one ExHiROM cartridge: where it can go, LoROM fits by rearranging / HiROM must relocate, cost of SlowROM, candidate games (index: `docs/exhirom/README.md`) |
-| `tools/recomp/` | `room-nav.js` (room triggers/spawns → headless script lines), `check-obj-tiles.js`, `s9x-run.js` (same script on snes9x); `npm run recomp`: CDL + names + assets → Asar (byte-identical) + Mesen2 files → snesrecomp host project (`out/recomp/project/`, generated) + our glue (`tools/recomp/host/`, the only game-specific host files in git) → playable `out/recomp/SecretOfEvermore-<os>-<arch>/` + `REPORT.md`; `npm run recomp:lockstep`: that game vs snes9x |
-| `scripts/` | Shell wrappers for the npm commands: `build-plugin.sh`, `test.sh`, `build-recomp.sh`, `build-exhirom.sh`, `play-recomp.sh`, `lockstep.sh`, `release.sh` (see `scripts/README.md`) |
-| `src/recorder/`, `recorder/`, `tools/recorder/` | SNES CDL Recorder, the second extension: entry (`src/recorder/extension.js`), manifest + store README (`recorder/`), file list + build (`tools/recorder/`; `npm run build:recorder` / `scripts/build-recorder.sh` → `out/snes-cdl-recorder-<version>.vsix`). Emulator profiles and Evermore gating: `src/emulator/README.md` |
-| `src/games/evermore/scripts-tab/` | Scripts tab (radar): Everscript + map, animation and alchemy scripts + animation, music sequences + silent player — not `src/games/evermore/script/` (the decoder) |
-| `docs/plans/simulation/` | Design notes for the simulation; the code is `src/games/evermore/simulation/` (scenarios, loot cases, byte-identical Everscript; `npm run test:simulation`) |
-| `src/platform/`, `src/core/`, `src/games/` | The game-neutral layers and the game list (multi-game.md): ROM identification, the ROM library (`npm run roms`), Switch ROM / ROM panel, game descriptors |
-| `src/games/mana/decoder/`, `src/games/mana/resources/`, `src/games/mana/maps/` | Secret of Mana, kept apart from Evermore: pure decoder/renderer (TS library), the read-only `som://` file system, and the Maps panel (Open Memory Radar with a Mana ROM selected). Format + evidence: `docs/mana/` |
-| `src/games/evermore/imports/mana/` | Secret of Mana maps converted into Evermore rooms, listed in the Rooms tab under the vanilla rooms (`docs/mana/evermore-rooms.md`) |
-| `tools/mana/check-map.js`, `check-events.js`, `find-picture.js` | Load any Secret of Mana map in the headless game and compare its screen / its step events with ours; find which map a picture shows |
-
-Full domain map (post v0.6.0 `src/` refactor): see `src/README.md`.
+| `src/README.md` | Every folder under `src/` and its dependency rules: `platform/` (no game, no VS Code), `core/` (game-neutral features), `games/<game>/` (each with `extension.js`), `emulator/`, `recorder/` (the SNES CDL Recorder, a second extension); `src/extension.js` is the composition root |
+| `src/**/AGENTS.md` | Each folder's kind, ownership, allowed dependencies, invariants and tests — read before working there |
+| `AI_ARCHITECTURE_GUIDE.md` | The laws: dependency direction, removable features, no code in strings, data provenance, file size, types |
+| `docs/architecture/multi-game.md` | The target and its status: platform / core / games, game descriptors, variants and base ROM, the ROM library, game views, the one map editor (§8) |
+| `docs/cleanup.md` | The cleanup: decisions D1–D13 and the open work — read before deleting, moving, deduplicating or porting to TS |
+| `docs/todo/README.md` | Open work by topic; `docs/future-features.md` the roadmap |
+| `docs/map-format/`, `docs/script-format/`, `docs/mana/`, `docs/terra/` | Each game's formats, with evidence |
+| `docs/reverse-engineering/README.md`, `docs/recomp/README.md`, `docs/exhirom/README.md` | RE approaches; the static recompilation; ExHiROM, the table hack and layouts |
+| `docs/evermore-releases.md` | The Evermore ROMs that exist, how they are identified, why US addresses do not apply to PAL builds |
+| `scripts/README.md` | Shell wrappers for the npm commands (build, test, recomp, ExHiROM, release) |
+| `tools/` | `check-*.mts` (the checks), `roms.js` (the ROM library), `recomp/`, `exhirom/`, `table-hack/`, `recorder/`, `mana/` |
 
 ---
 
 ## 3. Skills
 
-The canonical skill content is maintained in `.agents/skills/<skill-name>/SKILL.md`.
-Skills load on demand based on their `description` and `applyTo` globs.
-Claude Code finds them only under `.claude/skills/`, which is a symlink to `.agents/skills` —
-add new skills in `.agents/skills/<name>/SKILL.md` and they show up in both (new session needed).
+Canonical files: `.agents/skills/<name>/SKILL.md` (Claude Code reads them through the symlink
+`.claude/skills`). They load by their `description`; read the one that fits before working.
 
-| Skill | Canonical Location | Covers |
-|---|---|---|
-| `supported-games` | `.agents/skills/supported-games/SKILL.md` | Secret of Mana vs Evermore: som:// vs soe://, no facts across games, where each game's facts go and how they are checked, one UI for both games |
-| `sample-playbacks` | `.agents/skills/sample-playbacks/SKILL.md` | Stored vanilla playbacks with known coverage (attract loop: 6224 frames, all four table readers); the input for any original-vs-changed-ROM proof |
-| `game-knowledge` | `.agents/skills/game-knowledge/SKILL.md` | Look up and record RAM/ROM/script knowledge: entry format, evidence, where it goes |
-| `release-ritual` | `.agents/skills/release-ritual/SKILL.md` | version bump, validation, commit format, `npm run deploy` |
-| `memory-radar` | `.agents/skills/memory-radar/SKILL.md` | WRAM grid tab, rooms/map-browser tab, tab ownership |
-| `map-format` | `.agents/skills/map-format/SKILL.md` | Evermore room format: where each fact is documented, the parity check, port-don't-re-derive |
-| `grammar-rules` | `.agents/skills/grammar-rules/SKILL.md` | TextMate grammar and its tests; the P1–P9 colour theme |
-| `architecture` | `.agents/skills/architecture/SKILL.md` | Layers and dependency rules, splitting files, state ownership, moving files (traps), TS and dead code policy |
-| `webview-dom-safety` | `.agents/skills/webview-dom-safety/SKILL.md` | Idempotent event binding, event target walk-up, SVG coordinate systems |
-| `emulator-subsystem` | `.agents/skills/emulator-subsystem/SKILL.md` | snes9x2005-wasm core build, licensing, audio sync, display scaling, keybinds |
-| `cdl-recorder` | `.agents/skills/cdl-recorder/SKILL.md` | Code/Data Logger: core hooks, call stack / DB / D / SPC700 recording, mergeable library, Asar export with table assets, enums, structs, functions.json, snesrecomp directives; what recomp / decomp / SA-1 still need |
-| `map-editor-rules` | `.agents/skills/map-editor-rules/SKILL.md` | Editor hard rules: 7 tile families, ROM budgets, collision bit layouts |
-| `map-construction` | `.agents/skills/map-construction/SKILL.md` | How maps are constructed, cell-to-graphic mapping, animation groups |
-| `map-entities` | `.agents/skills/map-entities/SKILL.md` | Characters, enemies, spawns, palettes, body/hurt/strike boxes |
-| `animation-script` | `.agents/skills/animation-script/SKILL.md` | Animation bytecode, frame-end bit, holds, opcode widths; the sprites domain and OBJ palettes |
-| `alchemy-spell-mechanics` | `.agents/skills/alchemy-spell-mechanics/SKILL.md` | Combat alchemy slots, projectile calculations, spell damage formulas |
-| `debugger-protocol` | `.agents/skills/debugger-protocol/SKILL.md` | Debug adapter protocol (DAP) implementation and mock runtime |
-| `secret-of-evermore-engine` | `.agents/skills/secret-of-evermore-engine/SKILL.md` | Engine execution loops, script stack, event flags |
-| `snes-asm-asar-patching` | `.agents/skills/snes-asm-asar-patching/SKILL.md` | 65816 assembly conventions, Asar patching pipelines |
-| `memory-map` | `.agents/skills/memory-map/SKILL.md` | Evermore on the bus: ROM banks, mirrors, the 4th MB, ExHiROM; WRAM layout |
-| `recomp` | `.agents/skills/recomp/SKILL.md` | The snesrecomp build: commands, ownership of generated files, headless runs |
-| `recomp-debugging` | `.agents/skills/recomp-debugging/SKILL.md` | Reproduce and fix recomp bugs: headless repro, reference emulators (snes9x headless/lockstep, Mesen2, snesref, COSIM) and how to compare, classifying C vs seeds vs glue vs runtime, fixes, where to find what |
-| `emulator-script-debugging` | `.agents/skills/emulator-script-debugging/SKILL.md` | Start emulator, launch ROM, teleport Boy, step onto triggers, and analyze script trace logs and VFS log files |
-| `ghidra-analysis` | `.agents/skills/ghidra-analysis/SKILL.md` | Ghidra + ghidra-snes / REA on SoE: what for, setup traps, seeding from the CDL, trusting static results |
+- **Process:** `release-ritual`, `architecture`, `game-knowledge`, `supported-games`
+- **Evermore data:** `map-format`, `memory-map`, `map-construction`, `map-entities`,
+  `animation-script`, `alchemy-spell-mechanics`, `secret-of-evermore-engine`
+- **Editor and UI:** `map-editor-rules`, `memory-radar`, `webview-dom-safety`, `grammar-rules`,
+  `debugger-protocol`
+- **Emulator and RE:** `emulator-subsystem`, `emulator-script-debugging`, `cdl-recorder`,
+  `sample-playbacks`, `ghidra-analysis`, `snes-asm-asar-patching`, `recomp`, `recomp-debugging`
 
----
-
-## 4. Architectural cognitive stabilization
-
-Before working in any domain, read:
-- `AI_ARCHITECTURE_GUIDE.md` — the laws: domain kinds, dependency direction, removable features,
-  no code in strings, data provenance, file size, types
-- The domain's own `src/<domain>/AGENTS.md` — its kind, ownership, allowed deps (and the
-  existing exceptions not to extend), invariants and tests. Agents that support nested
-  `AGENTS.md` load it automatically when touching files in that folder; the domain's
-  `README.md` holds the descriptive docs.
-- `docs/cleanup.md` — the cleanup decisions, known violations and the ordered backlog
-
-`STATE_FLOW.md` and `docs/architecture/*` predate the `src/` refactor; trust `src/` and the
-domain `AGENTS.md`/`README.md` files over them.
-
----
-
-## 5. Workflows and personas
-
-Specialized workflow personas live in `.agents/agents/`:
-- `everscript-plugin-builder.md`
-- `mechanics-modeler.md`
-- `re-curator.md` — one pass over the knowledge gaps (names, RAM/ROM entries) from CDL, `soe://`, curated sources and Ghidra/REA dossiers
-
-Claude Code sees these through the symlink `.claude/agents` → `.agents/agents`.
+Personas (`.agents/agents/`, `.claude/agents` for Claude Code): `everscript-plugin-builder`,
+`mechanics-modeler`, `re-curator` (one pass over the knowledge gaps).
