@@ -16,7 +16,7 @@ Current source locations (post v0.6.0 `src/` refactor):
 - `src/games/evermore/sprites/` (the **Characters** tab, formerly Sprites: `character-model.js`, `animation-catalog.js`, `animation-decoder.js`, `raw-sprites.js`, `sprites-tab.js`, `webview/`)
 - `src/games/evermore/docs-tab/render-docs-tab.js` (docs/RNG tab, rendered in the same panel)
 - `src/games/evermore/radar-utils.js` (pure functions shared by memory/rooms)
-- Panel lifecycle and command registration: `src/extension.js`
+- Panel lifecycle and command registration: `src/games/evermore/extension.js`
 
 **Boundary note:** this skill covers the Rooms tab's *browsing* of already-parsed
 `.evs` source (`src/games/evermore/rooms/parsing/`, tree building, entity rendering) — that's
@@ -271,5 +271,5 @@ Rules:
 - Future work on a tab should reason only inside that tab's own directory.
 - Cross-tab shared code must be minimal, generic, ownership-neutral — prefer slight
   duplication over a giant shared abstraction.
-- New tab logic goes in the tab's own directory, never in `src/extension.js` or
+- New tab logic goes in the tab's own directory, never in `src/games/evermore/extension.js` or
   `src/games/evermore/memory/render-radar.js`.

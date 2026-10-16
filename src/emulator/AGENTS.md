@@ -19,7 +19,7 @@ Related skills: `emulator-subsystem`, `cdl-recorder`, `webview-dom-safety`, `deb
   through `configureEmulator({ game, cdlTools })` — Evermore's is `src/games/evermore/emulator/host.js`
   (room pictures, idle sprites, alchemy/loot icons, script trace, describing its own test ROMs) and
   `src/games/evermore/cdl/tools.js`. The recorder passes neither, so its package has no game code.
-- The ROM, Music and soe:// domains get emulator data injected by `src/extension.js`
+- The ROM, Music and soe:// domains get emulator data injected by `src/games/evermore/extension.js`
   (`.depcruise.js`: `no-rom-to-emulator`, `no-music-to-emulator`, `no-resources-to-emulator`).
 - Still Evermore inside: the webview side (`panel-webview.js`, `bottom-bar-views.js`, `menu/`) — the
   ENTITIES / ALCHEMY panels and the pause menu read Evermore WRAM; they move out with cleanup 5.3.
@@ -37,7 +37,7 @@ Related skills: `emulator-subsystem`, `cdl-recorder`, `webview-dom-safety`, `deb
   and its per-frame work checks `emuEvermore`; one that only Everscript has is `data-needs="full"`
   (and `emuScriptHook` for the script hook). The recorder's package is the `require()` closure of
   `src/recorder/extension.js`: editor / debugger code reaches the panel only through
-  `configureEmulator` from `src/extension.js`, never by a `require` here.
+  `configureEmulator` from `src/games/evermore/extension.js`, never by a `require` here.
 - Every optional feature starts off; what the user changes is saved (README "Profiles and games").
   One exception the user asked for: the CDL panel starts in the left side bar.
 - Whether a panel (CDL, TRACE, ENTITIES, ...) can be seen is `emuPanelVisible(name)`

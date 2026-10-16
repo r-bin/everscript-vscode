@@ -30,7 +30,9 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `games/mana/resources/` | Read-only `som://` file system: Secret of Mana maps and areas as files |
 | `games/mana/maps/` | Secret of Mana Maps panel: area list and map pictures, read from `som://` |
 
-Entry point: `extension.js` (orchestration root, registered as `main` in package.json).
+Entry point: `extension.js` (composition root, registered as `main` in package.json): the game-neutral layers, then
+the one list of games, each with its own `games/<game>/extension.js`. Evermore's wiring (commands, injection) is
+`games/evermore/extension.js`.
 
 ## Dependency Rules
 
@@ -38,15 +40,15 @@ Below, `language/`, `maps/`, … without a prefix are under `games/evermore/`.
 
 - `language/` → no debugger, no emulator, no memory UI
 - `memory/` → may use `docs-tab/`, `rooms/`, `maps/`, `rom/`, `core/map-editor/`, `core/webview/`
-- `rom/` → may use `maps/`; never `emulator/` (the CDL library is injected by `extension.js`)
-- `scripts-tab/` → libraries only (`script/`, `maps/`, `localizations/`, `simulation/`); sprites and music capabilities are injected by `extension.js`
-- `music/` → may use `localizations/`; never `emulator/` (the sound-chip stream is injected by `extension.js`)
+- `rom/` → may use `maps/`; never `emulator/` (the CDL library is injected by `games/evermore/extension.js`)
+- `scripts-tab/` → libraries only (`script/`, `maps/`, `localizations/`, `simulation/`); sprites and music capabilities are injected by `games/evermore/extension.js`
+- `music/` → may use `localizations/`; never `emulator/` (the sound-chip stream is injected by `games/evermore/extension.js`)
 - `recorder/` → only `emulator/`; nothing imports it
 - `emulator/` → `platform/` only; no game (`emulator-knows-no-game`)
-- `debugger/` → no memory, no emulator internals (the emulator bridge is injected by `extension.js`)
+- `debugger/` → no memory, no emulator internals (the emulator bridge is injected by `games/evermore/extension.js`)
 - `core/mcp/` → `vscode` only; reads `soe://` through `vscode.workspace.fs`, never another domain
 - `simulation/` → `script/` only, injected through its `index.js`
-- `resources/` → may use `maps/`, `script/`, `simulation/`, `localizations/`; never `emulator/` (ROM and memory reads are injected by `extension.js`)
+- `resources/` → may use `maps/`, `script/`, `simulation/`, `localizations/`; never `emulator/` (ROM and memory reads are injected by `games/evermore/extension.js`)
 - `platform/` → no `core/`, no game; `core/` → `platform/` only; a game never imports another game except through `games/<game>/imports/<other>/`
 - `games/mana/decoder/` → nothing in `src/`; `games/mana/resources/` → the decoder only; `games/mana/maps/` → `som://` only; `games/evermore/imports/mana/` → the Mana decoder, Evermore `maps/` and `rom-readers.js`; no Evermore domain uses any of them (only `extension.js` wires them)
 - No circular dependencies allowed

@@ -1,12 +1,12 @@
 ---
 name: split-orchestration
-description: Use when a god file (src/extension.js) has absorbed logic that belongs to a domain, or when a panel file in everscript-vscode mixes lifecycle, IPC, and rendering. Covers decomposing orchestration files into lifecycle/IPC/HTML-builder pieces.
-applyTo: "src/extension.js,src/emulator/panel.js,src/games/evermore/memory/render-radar.js"
+description: Use when a god file (src/games/evermore/extension.js) has absorbed logic that belongs to a domain, or when a panel file in everscript-vscode mixes lifecycle, IPC, and rendering. Covers decomposing orchestration files into lifecycle/IPC/HTML-builder pieces.
+applyTo: "src/games/evermore/extension.js,src/emulator/panel.js,src/games/evermore/memory/render-radar.js"
 ---
 
 # Skill: Split Orchestration
 
-Use this skill when a god file (`src/extension.js`) has absorbed logic that belongs to a
+Use this skill when a god file (`src/games/evermore/extension.js`) has absorbed logic that belongs to a
 domain, or when a panel file mixes lifecycle, IPC, and rendering.
 
 ---
@@ -20,7 +20,7 @@ domain, or when a panel file mixes lifecycle, IPC, and rendering.
 
 ---
 
-## Split procedure for `src/extension.js`
+## Split procedure for `src/games/evermore/extension.js`
 
 ### Phase 1: Extract HTML rendering
 
@@ -33,12 +33,12 @@ access. Must be callable standalone.
 
 Target: a `<domain>/state.js` (or similar) that owns panel/cache/timer state and
 exports `getPanel()`, `setPanel(p)`, `isPinned()`, `setPinned(v)`, `getMapCache()`, etc.
-`src/extension.js` calls the state module instead of direct `let` mutation.
+`src/games/evermore/extension.js` calls the state module instead of direct `let` mutation.
 
 ### Phase 3: Extract refresh/orchestration logic
 
 A `<domain>/refresh.js` that calls scope detection, analysis, render, and panel update,
-taking the state module as a dependency. `src/extension.js` just registers the watcher
+taking the state module as a dependency. `src/games/evermore/extension.js` just registers the watcher
 and calls `refresh(editor)`.
 
 ---

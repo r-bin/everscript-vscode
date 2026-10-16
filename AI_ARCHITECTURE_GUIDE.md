@@ -28,9 +28,10 @@ depend on.
 | **Platform** (VS Code integration, no tab UI) | `resources` (soe:// VFS), `mcp`, `language`, `debugger` | libraries; `mcp` only `vscode.workspace.fs` |
 | **Feature** (a tab or panel) | `emulator`, `memory` (radar host), `rooms`, `sprites`, `music`, `scripts-tab`, `rom`, `scaling`, `docs` | libraries, platform read APIs (`soe://`) |
 
-`src/extension.js` is the composition root: it registers commands and injects
-cross-feature capabilities (e.g. the emulator's `readMemory` into `resources`). It owns no
-state and no logic. `src/recorder/extension.js` is the second one, for the second extension
+`src/extension.js` is the composition root: the ROM library, the one list of games, the game
+views and MCP. Each game's `src/games/<game>/extension.js` registers that game's commands and
+injects cross-feature capabilities (e.g. the emulator's `readMemory` into Evermore's `resources`).
+They own no logic; Evermore's still holds radar state (cleanup 5.4). `src/recorder/extension.js` is the second one, for the second extension
 built from this repo (SNES CDL Recorder): it may use only the emulator, and its package holds
 only what it requires.
 
@@ -39,7 +40,7 @@ only what it requires.
 ## 3. Laws
 
 ### 3.1 Features are independently removable **[now: rule · target: fully true]**
-Deleting a feature domain may only break its own registration lines in `src/extension.js`.
+Deleting a feature domain may only break its own registration lines in its game's `extension.js`.
 - A feature never `require`s another feature — not its host code, not its webview files,
   not its globals. Cross-feature capability flows **only** through injection in
   `extension.js` or through `soe://`.

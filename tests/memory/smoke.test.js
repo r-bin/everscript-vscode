@@ -221,16 +221,16 @@ function extractScript(html) {
 
 const fs   = require('fs');
 const path = require('path');
-const src  = fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'extension.js'), 'utf8');
+const src  = fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'extension.js'), 'utf8');
 
-// Patch: replace `module.exports = { activate, deactivate };` with extended export
+// Patch: replace `module.exports = { activate };` (Evermore's activation) with an extended export
 const patchedSrc = src.replace(
     /module\.exports\s*=\s*\{[^}]+\};?\s*$/,
-    'module.exports = { activate, deactivate, _renderRadarHtml: renderRadarHtml, _buildRoomsJson: buildRoomsJson, _renderRoomsTree: renderRoomsTree };'
+    'module.exports = { activate, _renderRadarHtml: renderRadarHtml, _buildRoomsJson: buildRoomsJson, _renderRoomsTree: renderRoomsTree };'
 );
 
-// Write to tmp in the same dir as extension.js so relative requires resolve
-const tmpPath = path.join(__dirname, '..', '..', 'src', '_smoke_tmp.js');
+// Write to tmp in the same dir as the source so relative requires resolve
+const tmpPath = path.join(__dirname, '..', '..', 'src', 'games', 'evermore', '_smoke_tmp.js');
 fs.writeFileSync(tmpPath, patchedSrc);
 let extFull;
 try {

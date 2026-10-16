@@ -54,12 +54,12 @@ require.cache.vscode = {
     },
 };
 
-const extensionSrc = fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'extension.js'), 'utf8');
+const extensionSrc = fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'extension.js'), 'utf8');
 const patchedSrc = extensionSrc.replace(
     /module\.exports\s*=\s*\{[^}]+\};?\s*$/,
-    'module.exports = { activate, deactivate, _readRomCharacters: readRomCharacters };'
+    'module.exports = { activate, _readRomCharacters: readRomCharacters };'
 );
-const tmpPath = path.join(__dirname, '..', '..', 'src', '_scaling_rom_tmp.js');
+const tmpPath = path.join(__dirname, '..', '..', 'src', 'games', 'evermore', '_scaling_rom_tmp.js');
 fs.writeFileSync(tmpPath, patchedSrc);
 let readRomCharacters;
 try {

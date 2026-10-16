@@ -71,7 +71,7 @@ parser was explicitly evaluated and rejected for that specific case (see
   the collision overlay as SVG paths grouped by fill colour (a 128x70 room is 8960
   tiles, so per-tile DOM nodes are not an option). It caches the 12 most recent renders:
   ~146ms cold for the largest room, ~2ms warm.
-- `src/extension.js` handles a `requestRoomTiles` message from the Rooms tab webview and
+- `src/games/evermore/extension.js` handles a `requestRoomTiles` message from the Rooms tab webview and
   replies with `roomTiles`. Decoding is **on demand per selected room**: the rooms tree
   JSON carries no tile data, because 127 rooms of it would bloat every render.
 - `src/games/evermore/rom-readers.js` `loadRomBuffer()` caches the ~3MB ROM by path+mtime.
@@ -114,7 +114,7 @@ It would be a new ownership domain, sibling to `src/games/evermore/debugger/`, `
 `docs/architecture/domain-overview.md`'s per-domain "Allowed deps" table, the same way
 the existing domains are documented (see the `isolate-subsystem` skill). If it spawns
 anything Python, reuse `src/games/evermore/language/config.js`'s existing `everscript.repoPath` /
-`pythonPath` resolution and the `child_process.spawn` pattern `src/extension.js` already
+`pythonPath` resolution and the `child_process.spawn` pattern `src/games/evermore/extension.js` already
 uses for "Build and Run" — don't invent a second of either.
 
 ## Related, not blocking, but worth knowing before building on top of them

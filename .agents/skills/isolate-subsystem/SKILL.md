@@ -17,7 +17,7 @@ or when you want a module to be independently testable and reconstructable.
   `src/games/evermore/memory/`)
 - A module cannot be tested without loading unrelated domains
 - Changing module A breaks module B for unclear reasons
-- A module calls back into `src/extension.js` for data it should own itself
+- A module calls back into `src/games/evermore/extension.js` for data it should own itself
 
 ---
 
@@ -62,7 +62,7 @@ function doThing(data, deps) {
 }
 ```
 
-The caller (usually `src/extension.js` or the domain's `index.js`) injects the deps.
+The caller (usually `src/games/evermore/extension.js` or the domain's `index.js`) injects the deps.
 
 ### Step 4: Create a public API facade
 
@@ -84,7 +84,7 @@ node tests/<domain>/<test>.js       # should pass without full extension
 ## Domain boundaries in this repo
 
 ```
-src/extension.js  ← orchestrator only, no business logic
+src/games/evermore/extension.js  ← orchestrator only, no business logic
   ├── src/games/evermore/memory/    ← WRAM grid rendering
   ├── src/games/evermore/rooms/     ← map browser
   ├── src/games/evermore/maps/      ← ROM map/blob models (being retired in favor of a map-server — see the `map-format` skill)
@@ -115,7 +115,7 @@ Cross-domain communication ONLY through:
 - Return values (pure functions)
 - Explicit parameters (dependency injection)
 - VS Code message passing (`postMessage` for webviews)
-- `src/extension.js` relay (for cross-panel IPC)
+- `src/games/evermore/extension.js` relay (for cross-panel IPC)
 
 ---
 

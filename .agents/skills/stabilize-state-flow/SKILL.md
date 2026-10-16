@@ -26,7 +26,7 @@ implicit synchronization causes bugs.
 ### Step 1: Enumerate all mutable module-level variables
 
 ```bash
-grep -n "^let \|^var \|^const _" src/extension.js
+grep -n "^let \|^var \|^const _" src/games/evermore/extension.js
 grep -n "^let \|^var \|^const _" <other_large_file>.js
 ```
 
@@ -63,7 +63,7 @@ the `src/` refactor in places — cross-check against actual file locations unde
 before trusting a specific filename).
 
 Key rules:
-- Radar-related state vars live in `src/extension.js` (or the extracted radar state
+- Radar-related state vars live in `src/games/evermore/extension.js` (or the extracted radar state
   module, if one exists) — **never add new ones without checking there first**.
 - Domain caches (lua watcher cache, vanilla data cache) live in their owning domain
   under `src/`.

@@ -57,7 +57,7 @@ of:
 | File / Dir | Role |
 |---|---|
 | `package.json` | Extension manifest — version lives here |
-| `src/extension.js` | Activation entry point (registered as `main`) |
+| `src/extension.js` | Composition root (registered as `main`): ROM library, the list of games, game views, MCP; each game's `games/<game>/extension.js` registers its commands (Evermore's is the big one) |
 | `src/games/evermore/language/syntaxes/everscript.tmLanguage.json` | TextMate grammar |
 | `src/games/evermore/language/themes/everscript-dark.json` | Bundled colour theme — P1–P9 palette |
 | `src/games/evermore/language/language-configuration.json` | Bracket matching, comment toggle, word pattern |
@@ -113,7 +113,7 @@ add new skills in `.agents/skills/<name>/SKILL.md` and they show up in both (new
 | `compress-architecture` | `.agents/skills/compress-architecture/SKILL.md` | Splitting oversized files by ownership |
 | `isolate-subsystem` | `.agents/skills/isolate-subsystem/SKILL.md` | Fixing forbidden cross-domain dependencies |
 | `stabilize-state-flow` | `.agents/skills/stabilize-state-flow/SKILL.md` | Consolidating state to a single owner |
-| `split-orchestration` | `.agents/skills/split-orchestration/SKILL.md` | Decomposing god files (`src/extension.js`, panel files) |
+| `split-orchestration` | `.agents/skills/split-orchestration/SKILL.md` | Decomposing god files (`src/games/evermore/extension.js`, panel files) |
 | `webview-dom-safety` | `.agents/skills/webview-dom-safety/SKILL.md` | Idempotent event binding, event target walk-up, SVG coordinate systems |
 | `emulator-subsystem` | `.agents/skills/emulator-subsystem/SKILL.md` | snes9x2005-wasm core build, licensing, audio sync, display scaling, keybinds |
 | `cdl-recorder` | `.agents/skills/cdl-recorder/SKILL.md` | Code/Data Logger: core hooks, call stack / DB / D / SPC700 recording, mergeable library, Asar export with table assets, enums, structs, functions.json, snesrecomp directives; what recomp / decomp / SA-1 still need |

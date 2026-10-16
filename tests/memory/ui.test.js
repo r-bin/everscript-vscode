@@ -54,12 +54,12 @@ if (!require.cache.vscode) {
 }
 
 // ── Extract renderRadarHtml from patched source ─────────────────────────────
-const src = fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'extension.js'), 'utf8');
+const src = fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'extension.js'), 'utf8');
 const patchedSrc = src.replace(
     /module\.exports\s*=\s*\{[^}]+\};?\s*$/,
-    'module.exports = { activate, deactivate, _renderRadarHtml: renderRadarHtml };'
+    'module.exports = { activate, _renderRadarHtml: renderRadarHtml };'
 );
-const tmpPath = path.join(__dirname, '..', '..', 'src', '_ui_tmp.js');
+const tmpPath = path.join(__dirname, '..', '..', 'src', 'games', 'evermore', '_ui_tmp.js');
 fs.writeFileSync(tmpPath, patchedSrc);
 let _renderRadarHtml;
 try {
