@@ -53,8 +53,10 @@ and tabs are not saved.
 ## Panels
 
 CDL, TRACE, STACK, ENTITIES, ALCHEMY and PALETTES are panels (`#ss-view-<name>`), placed by
-`webview/emulator-panels.js`. Each has a pause-menu tab that shows it in full, with a
-"Show while playing" row: hidden, left side bar, right side bar or bottom bar.
+`webview/emulator-panels.js`. Each has a pause-menu tab with a "Show while playing" row:
+hidden, left side bar, right side bar or bottom bar. Only the bottom bar shows a panel in full;
+the menu tab (usual card size, no header, fewer columns, buttons as menu rows, the panel's rows
+selectable - see `menu/README.md`) and the side bars are leaner.
 
 - A side bar is drawn over the picture, as narrow as its content and at most a third of the
   screen, in a compact read-only form (`emulator-panels.css`: no buttons, filters, legend or
@@ -63,8 +65,8 @@ CDL, TRACE, STACK, ENTITIES, ALCHEMY and PALETTES are panels (`#ss-view-<name>`)
 - The bottom bar has a tab for each panel placed there. With none there is no bottom bar.
 - A panel is one element, moved (never copied) into the open menu tab and back, so its update
   code does not care where it is. Per-frame work asks `emuPanelVisible(name)`.
-- CDL is the exception to "in full": only the bottom bar shows its buttons, legend, lookup and
-  hover half. Its menu tab keeps the usual card size: "Recording" (on / off) and "Export"
+- CDL: only the bottom bar shows its buttons, legend, lookup and
+  hover half. Its menu tab: "Recording" (on / off) and "Export"
   (Asar project / WRAM map / bundle, whichever the profile has; B exports) are menu rows, then
   the status line and one row per bank that Up / Down selects and that does nothing (`.menu-pick`).
   In a side bar it has no title, no status and no WRAM: the ROM strips share the full height.
@@ -72,7 +74,12 @@ CDL, TRACE, STACK, ENTITIES, ALCHEMY and PALETTES are panels (`#ss-view-<name>`)
   pausing keeps the view; a panel that is shown or moved jumps to the newest line), "Clear" is a
   menu row, and there is no hide-inactive filter or copy any more (the "Everscript Script Trace" output
   channel has every line). Bottom bar: time, slot / entity / event, source, address, script,
-  bytes. Menu tab: time, source, script. Side bar: time and script, wrapped, no title.
+  bytes. Menu tab: time, source, script (the trace scrolls inside the card). Side bar: time and
+  source on one line, the script on the next, no title.
+- STACK, ENTITIES, ALCHEMY, PALETTES have no button bar either: what ENTITIES / ALCHEMY /
+  PALETTES list is the menu tab's "Show" row (`panelFilterStep` in `bottom-bar-views.js`), the
+  entity search and its "live" switch are gone (pausing stops the updates). In the menu B on a
+  character pings it; the bottom bar keeps its ping column.
 - REPLAYS is a menu tab only, with the usual card size (not a panel). It lists the recordings
   with this ROM's SHA-256 (the host's `romMatch`), one menu row each; playing one closes the
   menu, then reboots. Whether a recording replays in sync is written into it (`tas/README.md`). The chip at the top of the screen

@@ -4,7 +4,8 @@
  * The side bars over the picture and the panels' compact side form (emulator-panels.js).
  * A side bar is as narrow as its content, at most a third of the screen. In it a panel is
  * read-only: no buttons, filters, legends or lookup, fewer table columns.
- * CDL's pause-menu tab keeps the usual card: menu rows on top, then one row per bank.
+ * Every pause-menu tab keeps the usual card: menu rows on top, then the panel without its
+ * header, fewer columns; its rows (.menu-pick) can be selected. Only the bottom bar shows all.
  */
 .emu-side {
   position: absolute; top: 0; bottom: 0; z-index: 40;
@@ -45,40 +46,59 @@
 .emu-side .cdl-bank canvas { flex: none; width: 128px; height: 100%; min-height: 0; }
 .emu-side #ss-trace-log { font-size: 10px; padding: 2px 6px; }
 
-/* TRACE: only the bottom bar shows everything. Menu tab: time, source (e.g. 12.step[0]) and
-   script; side bar: time and script, wrapped. Slot / entity / event, address and bytes go. */
+/* TRACE: only the bottom bar shows everything. Menu tab: time, source (e.g. 0x12.step[0]) and
+   script; side bar: time and source, the script on the next line. Slot / entity / event,
+   address and bytes go. */
 #emu-slot-trace .ss-trace-tag, #emu-slot-trace .ss-trace-addr, #emu-slot-trace .ss-trace-bytes,
 #emu-slot-trace .ss-trace-row .ss-trace-arrow,
 .emu-side .ss-trace-tag, .emu-side .ss-trace-addr, .emu-side .ss-trace-bytes,
-.emu-side .ss-trace-lookup, .emu-side .ss-trace-arrow, .emu-side .ss-trace-sub,
+.emu-side .ss-trace-arrow, .emu-side .ss-trace-sub,
 .emu-side[data-panel="trace"]::before { display: none; }
 #emu-slot-trace .ss-trace-sub .ss-trace-time { visibility: hidden; }
-#emu-slot-trace .ss-trace-lookup { width: 130px; min-width: 130px; }
+#emu-slot-trace .ss-trace-lookup { width: 110px; min-width: 110px; }
+#emu-slot-trace .ss-trace-time { width: 80px; min-width: 80px; }
+#emu-slot-trace #ss-trace-log { flex: none; height: 300px; padding: 4px 14px; }
 .emu-side #ss-view-trace { width: 260px; max-width: 100%; }
-.emu-side .ss-trace-row { white-space: normal; gap: 4px; }
-.emu-side .ss-trace-time { width: auto; min-width: 0; font-size: 9px; }
+.emu-side .ss-trace-row { white-space: normal; flex-wrap: wrap; gap: 0 6px; }
+.emu-side .ss-trace-time, .emu-side .ss-trace-lookup { width: auto; min-width: 0; font-size: 9px; }
+.emu-side .ss-trace-text { flex-basis: 100%; }
+
+/* STACK: no header (the "active / scheduler / last slot" lines) outside the bottom bar */
+.emu-side #ss-detail, #emu-slot-stack #ss-detail { display: none; }
+
 .emu-side table { font-size: 10px; }
-/* ENTITIES: icon, name, HP, position */
+/* ENTITIES: icon, name, HP, position (menu: also the category) */
 .emu-side #ent-table th:nth-child(2), .emu-side #ent-table td:nth-child(2),
 .emu-side #ent-table th:nth-child(n+7), .emu-side #ent-table td:nth-child(n+7),
 .emu-side #ent-table th:nth-child(4), .emu-side #ent-table td:nth-child(4),
+#emu-slot-entities #ent-table th:nth-child(2), #emu-slot-entities #ent-table td:nth-child(2),
+#emu-slot-entities #ent-table th:nth-child(n+7), #emu-slot-entities #ent-table td:nth-child(n+7),
 /* ALCHEMY: icon, slot, status, formula / position */
-.emu-side .alc-section table th:nth-child(n+5), .emu-side .alc-section table td:nth-child(n+5) { display: none; }
+.emu-side .alc-section table th:nth-child(n+5), .emu-side .alc-section table td:nth-child(n+5),
+#emu-slot-alchemy .alc-section table th:nth-child(n+5), #emu-slot-alchemy .alc-section table td:nth-child(n+5) { display: none; }
 
-/* A panel in its pause-menu tab gets the whole menu card */
-#emulator-menu.panel-tab-active #menu-card { width: 96%; max-width: none; height: 92%; max-height: none; }
-#emulator-menu.panel-tab-active #menu-body { max-height: none; overflow: hidden; }
+/* A panel in its pause-menu tab: the usual card; the card body scrolls (TRACE: its log) */
+.menu-panel-host.active, .emu-panel-slot { flex: none; }
+.emu-panel-slot { display: flex; flex-direction: column; font-size: 11px; }
+.emu-panel-slot .ss-tab-view, .emu-panel-slot .ss-scroll-content { flex: none; overflow: visible; }
+.emu-panel-slot .ss-scroll-content { padding: 4px 14px; }
+#emu-slot-stack #ss-view-stack { overflow: visible; }
+#emu-slot-stack #ss-table { margin: 4px 0; }
+#emu-slot-stack #ss-table th, #emu-slot-stack #ss-table td { padding-left: 14px; }
+#emu-slot-palettes .pal-title { width: 170px; }
+/* The selected panel row (Up / Down; menu-view.js menuSelectableRows) */
+.emu-panel-slot .menu-pick.selected { background: rgba(78, 201, 176, 0.14); box-shadow: inset 3px 0 #4ec9b0; }
+.emu-panel-slot tr.menu-pick.selected > td { background: rgba(78, 201, 176, 0.14); }
+.emu-panel-slot tr.menu-pick.selected > td:first-child { box-shadow: inset 3px 0 #4ec9b0; }
+.emu-panel-slot tr.menu-pick.selected { background: none; box-shadow: none; }
 /* Up / Down scroll the panel (emuPanelMenuMove): the mark moves from the row to the panel */
 .menu-panel-host.scrolling .menu-row.selected { background: none; border-left-color: transparent; }
 .menu-panel-host.scrolling .menu-row.selected .menu-row-cursor { opacity: 0; }
 .menu-panel-host.scrolling .emu-panel-slot { box-shadow: inset 3px 0 #4ec9b0; }
-.menu-panel-host.active { flex: 1; min-height: 0; }
-.emu-panel-slot { flex: 1; min-height: 0; display: flex; flex-direction: column; font-size: 11px; }
 
-/* CDL in its pause-menu tab: the usual card; the card body scrolls, not the panel.
-   Its buttons are menu rows (menu-view.js), so only the status line and the strips stay. */
-#menu-panel-8.active, #emu-slot-cdl { flex: none; }
-#emu-slot-cdl .ss-tab-view, #emu-slot-cdl #cdl-body { flex: none; overflow: visible; }
+/* CDL in its pause-menu tab: its buttons are menu rows (menu-view.js), so only the status
+   line and the strips stay. */
+#emu-slot-cdl #cdl-body { flex: none; overflow: visible; }
 #emu-slot-cdl #cdl-banks { flex: 1; overflow: visible; padding: 0 0 4px; }
 #emu-slot-cdl .ss-subbar > :not(#cdl-status),
 #emu-slot-cdl #cdl-legend,
@@ -87,6 +107,6 @@
 #emu-slot-cdl #cdl-status { margin-left: 0; white-space: normal; font-size: 10px; }
 #emu-slot-cdl .cdl-group { padding: 0 14px; }
 #emu-slot-cdl .cdl-bank { margin: 0; padding: 2px 14px 2px 11px; border-left: 3px solid transparent; }
-#emu-slot-cdl .cdl-bank.selected { background: rgba(78, 201, 176, 0.14); border-left-color: #4ec9b0; }
+#emu-slot-cdl .cdl-bank.selected { background: rgba(78, 201, 176, 0.14); border-left-color: #4ec9b0; box-shadow: none; }
 #emu-slot-cdl .cdl-bank-label { width: 72px; flex-direction: row; justify-content: space-between; align-items: center; }
 #emu-slot-cdl .cdl-bank canvas { height: 16px; cursor: default; }

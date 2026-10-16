@@ -217,7 +217,7 @@ function recordInto(root, rom, hits) {
             assert.deepStrictEqual(await full.p.evaluate(() => Array.from(document.querySelectorAll('#ss-tabs .ss-tab')).filter(b => getComputedStyle(b).display !== 'none').map(b => b.id)), ['ss-tab-entities', 'ss-tab-cdl'], 'the bottom bar lists what is placed there');
             assert.strictEqual(await full.p.evaluate(() => emuBottomTab), 'cdl');
             await full.p.evaluate(() => { menuActiveTab = 9; openEmulatorMenu(); });
-            assert.deepStrictEqual(await full.p.evaluate(() => [document.getElementById('ss-view-trace').parentElement.id, getComputedStyle(document.getElementById('emu-side-left')).display]), ['emu-slot-trace', 'none'], 'the menu shows TRACE in full and hides the side bars');
+            assert.deepStrictEqual(await full.p.evaluate(() => [document.getElementById('ss-view-trace').parentElement.id, getComputedStyle(document.getElementById('emu-side-left')).display]), ['emu-slot-trace', 'none'], 'the menu shows TRACE and hides the side bars');
             assert.strictEqual(await full.p.evaluate(() => { changeMenuValue(1); return emuPanelPlace.trace; }), 'right', 'Right steps the placement');
             await full.p.evaluate(() => closeEmulatorMenu());
             assert.strictEqual(await full.p.evaluate(() => document.getElementById('ss-view-trace').parentElement.id), 'emu-side-right');
@@ -299,7 +299,8 @@ function recordInto(root, rom, hits) {
             }));
             assert.deepStrictEqual(await cols(), ['time', 'tag', 'lookup', 'addr', 'text', 'bytes'], 'bottom bar: everything');
             await full.p.evaluate(() => emuSetPanelPlace('trace', 'left'));
-            assert.deepStrictEqual(await cols(), ['time', 'text'], 'side bar: time and script');
+            assert.deepStrictEqual(await cols(), ['time', 'lookup', 'text'], 'side bar: time and source, then the script');
+            assert.ok(await full.p.evaluate(() => { const r = document.querySelector('#ss-trace-log .ss-trace-row'); return r.querySelector('.ss-trace-text').getBoundingClientRect().top >= r.querySelector('.ss-trace-time').getBoundingClientRect().bottom - 1; }), 'the script is on its own line');
             await full.p.evaluate(() => { menuActiveTab = 9; tabSelectedRows[9] = 0; openEmulatorMenu(); });
             assert.deepStrictEqual(await cols(), ['time', 'lookup', 'text'], 'menu: time, source and script');
             const log = () => full.p.evaluate(() => { const l = document.getElementById('ss-trace-log'); return [l.childNodes.length, Math.round(l.scrollTop), menuSelectedRow, emuPanelScrolling(9)]; });
@@ -317,6 +318,34 @@ function recordInto(root, rom, hits) {
             assert.deepStrictEqual((await log()).slice(2), [1, false], 'Up at the top goes back to the rows');
             await full.p.keyboard.press('c');
             assert.strictEqual((await log())[0], 0, 'B on Clear empties the trace');
+            for (const tab of [9, 10, 11, 12, 13]) {
+                const w = await full.p.evaluate(t => { menuActiveTab = t; renderMenuTab(t); return document.getElementById('menu-card').getBoundingClientRect().width; }, tab);
+                assert.ok(w <= 520, 'tab ' + tab + ' keeps the card width: ' + w);
+            }
+            assert.strictEqual(await full.p.evaluate(() => { renderMenuTab(10); return getComputedStyle(document.getElementById('ss-detail')).display; }), 'none', 'STACK: no header in the menu');
+
+            // ENTITIES: "Show" filters (Left / Right, B steps), Down selects a character, B pings it.
+            await full.p.evaluate(() => {
+                renderMenuTab(11); menuSelectedRow = 0; updateMenuRowSelection(false);
+                const tb = document.getElementById('ent-tbody');
+                for (const [x, y] of [[10, 20], [30, 40]]) {
+                    const tr = document.createElement('tr'); tr.className = 'menu-pick ent-row'; tr.innerHTML = '<td>e</td>';
+                    tr.onMenuAction = () => activeTargetPings.push({ x, y, birth: 0, duration: 1e12 });
+                    tb.appendChild(tr);
+                }
+            });
+            await full.p.keyboard.press('ArrowDown');
+            await full.p.keyboard.press('ArrowRight');
+            assert.deepStrictEqual(await full.p.evaluate(() => [panelFilter.entities, document.getElementById('menu-val-filter-entities').textContent]), ['party', 'Party (0)'], 'Right on Show filters the list');
+            await full.p.keyboard.press('ArrowLeft');
+            await full.p.evaluate(() => { const tb = document.getElementById('ent-tbody'); if (!tb.children.length) throw new Error('rows gone'); });
+            await full.p.keyboard.press('ArrowDown');
+            await full.p.keyboard.press('ArrowDown');
+            await full.p.keyboard.press('c');
+            assert.deepStrictEqual(await full.p.evaluate(() => [menuSelectedRow, activeTargetPings.map(p => [p.x, p.y])]), [3, [[30, 40]]], 'Down, Down selects the second character, B pings it');
+            await full.p.evaluate(() => { activeTargetPings.length = 0; renderMenuTab(12); menuSelectedRow = 1; changeMenuValue(1); changeMenuValue(1); });
+            assert.deepStrictEqual(await full.p.evaluate(() => ['palc', 'aalc', 'proj'].map(k => getComputedStyle(document.getElementById('alc-sec-' + k)).display !== 'none')), [false, true, false], 'ALCHEMY: Show steps to animation alchemy');
+            await full.p.evaluate(() => { changeMenuValue(-2); changeMenuValue(-1); });
             await full.p.evaluate(() => { closeEmulatorMenu(); emuSetPanelPlace('trace', 'hidden'); });
 
             await full.p.evaluate(() => { menuActiveTab = 1; openEmulatorMenu(); menuSelectedRow = 10; activateMenuRow(); });

@@ -54,14 +54,11 @@ test('getBottomBarTabButtonsHtml exposes entities, alchemy, and palettes tab but
 });
 
 // 3. Tab views HTML
-test('getBottomBarViewsHtml includes entities view with category filters and search', () => {
+test('getBottomBarViewsHtml includes the entities view without a button bar (the filter is a pause-menu row)', () => {
     const html = getBottomBarViewsHtml();
     assert.ok(html.includes('id="ss-view-entities"'), 'ss-view-entities view missing');
-    assert.ok(html.includes('id="ent-filter-all"'), 'ent-filter-all missing');
-    assert.ok(html.includes('id="ent-filter-party"'), 'ent-filter-party missing');
-    assert.ok(html.includes('id="ent-filter-enemies"'), 'ent-filter-enemies missing');
-    assert.ok(html.includes('id="ent-filter-npcs"'), 'ent-filter-npcs missing');
-    assert.ok(html.includes('id="ent-search"'), 'ent-search input missing');
+    assert.ok(!html.includes('ss-subbar'), 'no button bar in ENTITIES, ALCHEMY or PALETTES');
+    assert.ok(getBottomBarClientScript().includes('function panelFilterStep'), 'the menu steps the filters');
     assert.ok(html.includes('id="ent-table"'), 'ent-table element missing');
     assert.ok(html.includes('id="ent-tbody"'), 'ent-tbody element missing');
 });

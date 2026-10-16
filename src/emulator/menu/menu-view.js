@@ -586,6 +586,20 @@ const MENU_TRACE_ROWS = `
               </div>
             </div>`;
 
+// ENTITIES / ALCHEMY / PALETTES: what to list (bottom-bar-views.js panelFilterStep / panelFilterLabel).
+const MENU_FILTER_PANELS = ['entities', 'alchemy', 'palettes'];
+function menuFilterRow(name) {
+  return `
+            <div class="menu-row" data-row="1" data-action="panel-filter" title="What to list (also in the bottom bar)">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Show</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-filter-${name}" class="menu-pill active">All</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>`;
+}
+
 function getMenuHtml() {
   return `
     <div id="emulator-menu" class="hidden">
@@ -803,7 +817,7 @@ function getMenuHtml() {
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
-            ${name === 'cdl' ? MENU_CDL_ROWS : name === 'trace' ? MENU_TRACE_ROWS : ''}
+            ${name === 'cdl' ? MENU_CDL_ROWS : name === 'trace' ? MENU_TRACE_ROWS : MENU_FILTER_PANELS.includes(name) ? menuFilterRow(name) : ''}
             <div id="emu-slot-${name}" class="emu-panel-slot"></div>
           </div>`).join('')}
 
@@ -1133,8 +1147,6 @@ function getMenuClientScript() {
       const menuEl = document.getElementById('emulator-menu');
       if (menuEl) {
         menuEl.classList.toggle('lens-tab-active', tabIndex === 0);
-        // CDL (8) keeps the usual card; the other panels get the whole card.
-        menuEl.classList.toggle('panel-tab-active', tabIndex >= 9);
       }
       for (let i = 0; i < MENU_TAB_COUNT; i++) {
         const tabBtn = document.getElementById('menu-tab-btn-' + i);
@@ -1214,7 +1226,7 @@ function getMenuClientScript() {
       const isSmooth = (smooth !== false);
       const activePanel = document.getElementById('menu-panel-' + menuActiveTab);
       if (!activePanel) return;
-      const rows = activePanel.querySelectorAll('.menu-row, .menu-pick');
+      const rows = menuSelectableRows(activePanel);
       if (menuSelectedRow < 0) menuSelectedRow = 0;
       if (menuSelectedRow >= rows.length) menuSelectedRow = Math.max(0, rows.length - 1);
       tabSelectedRows[menuActiveTab] = menuSelectedRow;
@@ -1242,13 +1254,19 @@ function getMenuClientScript() {
       });
     }
 
+    // The rows Up / Down walk: every .menu-row (by index, hidden ones too, as the tabs' actions
+    // count them) and every shown .menu-pick (panel rows: CDL banks, entities, slots, palettes).
+    function menuSelectableRows(panel) {
+      return Array.from(panel.querySelectorAll('.menu-row, .menu-pick'))
+        .filter(el => !el.classList.contains('menu-pick') || el.getClientRects().length > 0);
+    }
+
     function moveMenuSelection(delta) {
       // Panels 9+: Up / Down walk the rows, Down past the last row scrolls the panel.
       if (menuActiveTab >= 9 && typeof emuPanelMenuMove === 'function' && emuPanelMenuMove(menuActiveTab, delta)) return;
       const activePanel = document.getElementById('menu-panel-' + menuActiveTab);
       if (!activePanel) return;
-      // .menu-pick rows (CDL banks) can be selected but do nothing.
-      const rows = activePanel.querySelectorAll('.menu-row, .menu-pick');
+      const rows = menuSelectableRows(activePanel);
       if (!rows.length) return;
 
       const nextRow = Math.max(0, Math.min(menuSelectedRow + delta, rows.length - 1));
@@ -1269,8 +1287,9 @@ function getMenuClientScript() {
         return;
       }
       if (menuActiveTab >= 8) {
-        const scrolling = typeof emuPanelScrolling === 'function' && emuPanelScrolling(menuActiveTab);
-        if (menuSelectedRow === 0 && !scrolling && typeof emuPanelMenuStep === 'function') emuPanelMenuStep(menuActiveTab, delta);
+        if (typeof emuPanelScrolling === 'function' && emuPanelScrolling(menuActiveTab)) return;
+        if (menuSelectedRow === 0) { if (typeof emuPanelMenuStep === 'function') emuPanelMenuStep(menuActiveTab, delta); }
+        else if (typeof emuPanelMenuValue === 'function') emuPanelMenuValue(menuActiveTab, menuSelectedRow, delta);
         return;
       }
       if (menuActiveTab === 7) {

@@ -1531,7 +1531,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         if (typeof emuPanelsLayout === 'function') emuPanelsLayout();
         window.dispatchEvent(new Event('resize'));
         if (emuScriptHook) startWramPolling();
-        initBottomBarEventListeners();
         if (emuEvermore) vscodeApi.postMessage({ command: 'requestAlchemyIcons' });
         vscodeApi.postMessage({ command: 'gameStarted', name: name || 'game' });
         tasOnBoot(name);
@@ -4225,13 +4224,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       for (const { slot, loc, state, nextSlot, timer1, entity } of displaySlots) {
         const cls   = (state === 2 ? 'exec' : state === 4 ? 'wait' : 'dead') + (slot === focusSlot ? ' focus' : '');
         const sname = stateName(state);
-        html += '<tr class="' + cls + '"><td>' + slot + '</td><td>' +
+        html += '<tr class="menu-pick ' + cls + '"><td>' + slot + '</td><td>' +
           fmtHex(loc, 6) + '</td><td>' + sname + '</td><td>' +
           (nextSlot >= 0 ? nextSlot : '--') + '</td><td>' +
           fmtHex(entity, 4) + '</td><td>' + timer1 + '</td></tr>';
       }
       if (!html) html = '<tr><td colspan="6" style="color:#555;text-align:center;padding:6px">no active scripts</td></tr>';
       tbody.innerHTML = html;
+      if (typeof emuPanelRowsChanged === 'function') emuPanelRowsChanged('stack');
 
       const actLen = snapshot.activeSlots.length;
       const waitLen = snapshot.waitingSlots ? snapshot.waitingSlots.length : 0;

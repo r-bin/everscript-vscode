@@ -19,9 +19,11 @@
  *   - The panel of the open menu tab is moved into that tab and back when the menu
  *     closes or turns to another tab. A panel is one element: it is moved, never copied,
  *     so its update code does not care where it is.
- * CDL's tab keeps the usual card size too: its buttons are menu rows, its banks selectable
- * rows (cdl-view.js). On the other panel tabs Up / Down walk the rows ("Show while playing",
- * TRACE's "Clear"), then scroll the panel a page per press (emuPanelMenuMove).
+ * Every panel tab has the usual card size. A panel's buttons are menu rows (CDL: Recording,
+ * Export; TRACE: Clear; ENTITIES / ALCHEMY / PALETTES: what to show), its own rows are
+ * .menu-pick rows that Up / Down select (CDL banks, STACK slots, entities - B pings -,
+ * alchemy slots, palettes). TRACE's lines are not rows: Down past the last row scrolls the
+ * trace a page per press (emuPanelMenuMove).
  * What a panel shows depends on where it is: only the bottom bar shows everything
  * (emulator-panels.css; TRACE: time + source + script in the menu, time + script in a side bar).
  * REPLAYS lives in the menu only (its tab, its status chip on the screen: tas-view.js); it is
@@ -154,6 +156,8 @@ function emuSyncPlaceRow(name) {
     pill.textContent = EMU_PLACE_LABELS[place];
     pill.classList.toggle('active', place !== 'hidden');
   }
+  const filter = document.getElementById('menu-val-filter-' + name);
+  if (filter && typeof panelFilterLabel === 'function') filter.textContent = panelFilterLabel(name);
 }
 
 /** Place a panel. A side holds one panel: the one there before is hidden. */
@@ -199,17 +203,23 @@ function emuSetPanelScroll(tab) {
   document.querySelectorAll('.menu-panel-host').forEach(el => el.classList.toggle('scrolling', el.id === 'menu-panel-' + tab));
 }
 
+/** The selectable rows of a panel's menu tab (menu-view.js menuSelectableRows). */
+function emuPanelMenuRows(tab) {
+  const panel = document.getElementById('menu-panel-' + tab);
+  if (!panel) return [];
+  return typeof menuSelectableRows === 'function' ? menuSelectableRows(panel) : Array.from(panel.querySelectorAll('.menu-row'));
+}
+
 /**
- * Up / Down on a panel tab (9+): rows first; Down on the last row starts scrolling the panel
- * (a page per press), Up at its top goes back to the rows. Returns false when the menu should
- * move between rows itself.
+ * Up / Down on a panel tab (9+): rows first (menu rows, then the panel's own rows such as
+ * entities). Down on the last one starts scrolling the panel when something in it scrolls
+ * (TRACE: a page per press); Up at its top goes back to the rows. Returns false when the menu
+ * should move between rows itself.
  */
 function emuPanelMenuMove(tab, delta) {
   if (emuPanelScrollTab !== tab) {
-    const panel = document.getElementById('menu-panel-' + tab);
-    const rows = panel ? panel.querySelectorAll('.menu-row').length : 0;
     const row = typeof menuSelectedRow === 'number' ? menuSelectedRow : 0;
-    if (delta < 0 || row < rows - 1) return false;
+    if (delta < 0 || row < emuPanelMenuRows(tab).length - 1 || !emuPanelScrollBox(tab)) return false;
     emuSetPanelScroll(tab);
   }
   const box = emuPanelScrollBox(tab);
@@ -218,12 +228,38 @@ function emuPanelMenuMove(tab, delta) {
   return true;
 }
 
-/** B on a panel tab's own row below "Show while playing". */
+/** Left / Right on a panel tab's row below "Show while playing": the filter steps. */
+function emuPanelMenuValue(tab, row, delta) {
+  const el = emuPanelMenuRows(tab)[row];
+  const name = emuPanelOfMenuTab(tab);
+  if (!el || el.getAttribute('data-action') !== 'panel-filter' || typeof panelFilterStep !== 'function') return;
+  if (panelFilterStep(name, delta)) {
+    emuSyncPlaceRow(name);
+    if (typeof playMenuSound === 'function') playMenuSound('click_nav');
+    if (typeof updateMenuRowSelection === 'function') updateMenuRowSelection(false);
+  }
+}
+
+/** B on a panel tab's row below "Show while playing": Clear, the next filter, or the row's own action. */
 function emuPanelMenuAction(tab, row) {
-  if (emuPanelOfMenuTab(tab) === 'trace' && row === 1 && typeof traceClear === 'function') {
+  const el = emuPanelMenuRows(tab)[row];
+  if (!el) return;
+  const action = el.getAttribute('data-action');
+  if (action === 'trace-clear' && typeof traceClear === 'function') {
     traceClear();
     if (typeof playMenuSound === 'function') playMenuSound('click_toggle');
+  } else if (action === 'panel-filter') {
+    emuPanelMenuValue(tab, row, 1);
+  } else if (el.classList.contains('menu-pick') && typeof el.onMenuAction === 'function') {
+    el.onMenuAction();   // e.g. ENTITIES: ping the character
+    if (typeof playMenuSound === 'function') playMenuSound('click_toggle');
   }
+}
+
+/** After a panel re-rendered its rows: keep the menu's mark on the selected one. */
+function emuPanelRowsChanged(name) {
+  if (emuMenuOpen() && typeof menuActiveTab === 'number' && EMU_PANEL_MENU_TAB[name] === menuActiveTab
+      && typeof updateMenuRowSelection === 'function') updateMenuRowSelection(false);
 }
 
 function emuSelectBottomTab(name) {

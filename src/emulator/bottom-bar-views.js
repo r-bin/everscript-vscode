@@ -294,15 +294,6 @@ function getBottomBarViewsHtml() {
   return `
     <!-- Tab: Entities / Enemies (Boy, Dog, Enemies, NPCs) -->
     <div id="ss-view-entities" class="ss-tab-view" data-needs="full evermore">
-      <div class="ss-subbar">
-        <button id="ent-filter-all" class="ss-btn active" type="button">All (<span id="ent-count-all">0</span>)</button>
-        <button id="ent-filter-party" class="ss-btn" type="button">Party (<span id="ent-count-party">0</span>)</button>
-        <button id="ent-filter-enemies" class="ss-btn" type="button">Enemies (<span id="ent-count-enemies">0</span>)</button>
-        <button id="ent-filter-npcs" class="ss-btn" type="button">NPCs (<span id="ent-count-npcs">0</span>)</button>
-        <input type="text" id="ent-search" class="ss-search-input" placeholder="Filter entities..." />
-        <span style="flex:1"></span>
-        <label title="Keep entity list updating during play"><input type="checkbox" id="ent-auto-refresh" checked /> live</label>
-      </div>
       <div class="ss-scroll-content">
         <table id="ent-table" class="alc-table">
           <thead>
@@ -325,14 +316,6 @@ function getBottomBarViewsHtml() {
 
     <!-- Tab: Projectile Alchemy + Animation Alchemy + Projectiles -->
     <div id="ss-view-alchemy" class="ss-tab-view" data-needs="full evermore">
-      <div class="ss-subbar">
-        <button id="alc-filter-all" class="ss-btn active" type="button">All (24)</button>
-        <button id="alc-filter-palc" class="ss-btn" type="button">Projectile Alchemy (8)</button>
-        <button id="alc-filter-aalc" class="ss-btn" type="button">Animation Alchemy (8)</button>
-        <button id="alc-filter-proj" class="ss-btn" type="button">Projectiles (8)</button>
-        <span style="flex:1"></span>
-        <span id="alc-status-summary" style="color:#777">8 slots per pool</span>
-      </div>
       <div class="ss-scroll-content">
         <!-- 1. Projectile Alchemy (8 slots at $7E3564, 0x76 stride) -->
         <div id="alc-sec-palc" class="alc-section">
@@ -404,13 +387,6 @@ function getBottomBarViewsHtml() {
 
     <!-- Tab: Sprite Palettes + Map Palettes -->
     <div id="ss-view-palettes" class="ss-tab-view" data-needs="full evermore">
-      <div class="ss-subbar">
-        <button id="pal-tab-all" class="ss-btn active" type="button">All Palettes</button>
-        <button id="pal-tab-sprites" class="ss-btn" type="button">Sprite Palettes (8)</button>
-        <button id="pal-tab-maps" class="ss-btn" type="button">Map Palettes (8)</button>
-        <span style="flex:1"></span>
-        <span style="color:#777">Hover swatches for hex code</span>
-      </div>
       <div class="ss-scroll-content">
         <!-- Sprite Palettes -->
         <div id="pal-sec-sprites">
@@ -477,15 +453,50 @@ function getBottomBarClientScript() {
     let cheatInvincibleEnabled = false;
     let cheatNoclipEnabled = false;
 
-    // Entity filter state
-    let entityFilterCategory = 'all';
-    let entityFilterSearch = '';
+    // What ENTITIES / ALCHEMY / PALETTES list: chosen in their pause-menu tab ("Show" row,
+    // webview/emulator-panels.js emuPanelMenuValue), the same wherever the panel is shown.
+    const PANEL_FILTERS = {
+      entities: [['all', 'All'], ['party', 'Party'], ['enemies', 'Enemies'], ['npcs', 'NPCs']],
+      alchemy: [['all', 'All'], ['palc', 'Projectile alchemy'], ['aalc', 'Animation alchemy'], ['proj', 'Projectiles']],
+      palettes: [['all', 'All'], ['sprites', 'Sprite palettes'], ['maps', 'Map palettes']],
+    };
+    const panelFilter = { entities: 'all', alchemy: 'all', palettes: 'all' };
+    const entityCounts = { all: 0, party: 0, enemies: 0, npcs: 0 };
 
-    // Alchemy filter state
-    let alchemyFilterCategory = 'all';
+    function panelFilterLabel(name) {
+      const list = PANEL_FILTERS[name];
+      if (!list) return '';
+      const hit = list.find(f => f[0] === panelFilter[name]) || list[0];
+      return hit[1] + (name === 'entities' ? ' (' + entityCounts[hit[0]] + ')' : '');
+    }
 
-    // Palettes filter state
-    let palettesFilterCategory = 'all';
+    // Steps the filter (clamped, no wrap-around); true when it changed.
+    function panelFilterStep(name, delta) {
+      const list = PANEL_FILTERS[name];
+      if (!list) return false;
+      const i = list.findIndex(f => f[0] === panelFilter[name]);
+      const next = Math.max(0, Math.min(list.length - 1, i + delta));
+      if (next === i) return false;
+      panelFilter[name] = list[next][0];
+      applyPanelFilter(name);
+      return true;
+    }
+
+    function applyPanelFilter(name) {
+      const f = panelFilter[name];
+      const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+      if (name === 'alchemy') {
+        for (const k of ['palc', 'aalc', 'proj']) show('alc-sec-' + k, f === 'all' || f === k);
+      } else if (name === 'palettes') {
+        for (const k of ['sprites', 'maps']) show('pal-sec-' + k, f === 'all' || f === k);
+      } else if (name === 'entities') {
+        updateEntitiesTab(lastSampledPreState, bottomBarRom());
+      }
+    }
+
+    function bottomBarRom() {
+      return loadedRomData ? ((loadedRomData.length % 1024 === 512) ? loadedRomData.subarray(512) : loadedRomData) : null;
+    }
 
     function renderEntityIconCanvas(rom, spritePtr, palAddr) {
       const c = document.createElement('canvas');
@@ -741,31 +752,26 @@ function getBottomBarClientScript() {
       // Update counters
       const elCount = document.getElementById('ss-ent-count');
       if (elCount) elCount.textContent = String(entList.length);
-      const elAll = document.getElementById('ent-count-all');
-      if (elAll) elAll.textContent = String(entList.length);
-      const elParty = document.getElementById('ent-count-party');
-      if (elParty) elParty.textContent = String(partyCount);
-      const elEnemies = document.getElementById('ent-count-enemies');
-      if (elEnemies) elEnemies.textContent = String(enemyCount);
-      const elNpcs = document.getElementById('ent-count-npcs');
-      if (elNpcs) elNpcs.textContent = String(npcCount);
+      entityCounts.all = entList.length;
+      entityCounts.party = partyCount;
+      entityCounts.enemies = enemyCount;
+      entityCounts.npcs = npcCount;
+      if (typeof emuSyncPlaceRow === 'function') emuSyncPlaceRow('entities');
 
       // Filter and render
       tbody.innerHTML = '';
-      const filterText = (entityFilterSearch || '').toLowerCase();
+      const cat = panelFilter.entities;
       for (let i = 0; i < entList.length; i++) {
         const ent = entList[i];
-        if (entityFilterCategory === 'party' && ent.category !== 'Boy' && ent.category !== 'Dog') continue;
-        if (entityFilterCategory === 'enemies' && ent.category !== 'Enemy') continue;
-        if (entityFilterCategory === 'npcs' && ent.category !== 'NPC') continue;
-        if (filterText) {
-          const match = ent.name.toLowerCase().includes(filterText) ||
-                        ('$' + ent.addr.toString(16)).toLowerCase().includes(filterText) ||
-                        ent.category.toLowerCase().includes(filterText);
-          if (!match) continue;
-        }
+        if (cat === 'party' && ent.category !== 'Boy' && ent.category !== 'Dog') continue;
+        if (cat === 'enemies' && ent.category !== 'Enemy') continue;
+        if (cat === 'npcs' && ent.category !== 'NPC') continue;
 
+        const ping = () => activeTargetPings.push({ x: ent.x, y: ent.y, birth: performance.now(), duration: 2500 });
         const tr = document.createElement('tr');
+        // A pause-menu row: Up / Down select it, B pings the character (emulator-panels.js).
+        tr.className = 'menu-pick ent-row';
+        tr.onMenuAction = ping;
 
         // Icon
         const tdIcon = document.createElement('td');
@@ -830,19 +836,13 @@ function getBottomBarClientScript() {
         const btnPing = document.createElement('button');
         btnPing.className = 'ss-btn';
         btnPing.textContent = 'ping';
-        btnPing.addEventListener('click', () => {
-          activeTargetPings.push({
-            x: ent.x,
-            y: ent.y,
-            birth: performance.now(),
-            duration: 2500,
-          });
-        });
+        btnPing.addEventListener('click', ping);
         tdPing.appendChild(btnPing);
         tr.appendChild(tdPing);
 
         tbody.appendChild(tr);
       }
+      if (typeof emuPanelRowsChanged === 'function') emuPanelRowsChanged('entities');
     }
 
     // -- Update Alchemy & Projectiles Tab --
@@ -880,6 +880,7 @@ function getBottomBarClientScript() {
           const target = palcBuf[rel + 0x2E] | (palcBuf[rel + 0x2F] << 8);
 
           const tr = document.createElement('tr');
+          tr.className = 'menu-pick';
           // Icon
           const tdIcon = document.createElement('td');
           tdIcon.appendChild(createFormulaIconElement(spellName));
@@ -935,6 +936,7 @@ function getBottomBarClientScript() {
           const source = aalcBuf[rel + 0x28] | (aalcBuf[rel + 0x29] << 8);
 
           const tr = document.createElement('tr');
+          tr.className = 'menu-pick';
           const tdIcon = document.createElement('td');
           tdIcon.appendChild(createFormulaIconElement(spellName));
           tr.appendChild(tdIcon);
@@ -997,6 +999,7 @@ function getBottomBarClientScript() {
           const behaviour = projBuf[rel + 0x26] | (projBuf[rel + 0x27] << 8);
 
           const tr = document.createElement('tr');
+          tr.className = 'menu-pick';
           const tdIcon = document.createElement('td');
           tdIcon.appendChild(renderProjectileIconCanvas(rom, spritePtr, palAddr));
           tr.appendChild(tdIcon);
@@ -1028,6 +1031,7 @@ function getBottomBarClientScript() {
 
       const elTotal = document.getElementById('ss-alc-count');
       if (elTotal) elTotal.textContent = String(totalActive);
+      if (typeof emuPanelRowsChanged === 'function') emuPanelRowsChanged('alchemy');
     }
 
     // -- Update Palettes Tab --
@@ -1054,7 +1058,7 @@ function getBottomBarClientScript() {
           const colors = paletteAt(rom, palAddr);
 
           const row = document.createElement('div');
-          row.className = 'pal-row' + (isStolen ? ' pal-stolen' : '');
+          row.className = 'pal-row menu-pick' + (isStolen ? ' pal-stolen' : '');
 
           const titleEl = document.createElement('div');
           titleEl.className = 'pal-title';
@@ -1110,7 +1114,7 @@ function getBottomBarClientScript() {
 
           const label = (p === 0) ? 'BG Pal 0 (HUD / Font)' : ('BG Pal ' + p + ' (Tile Family ' + (p - 1) + ')');
           const row = document.createElement('div');
-          row.className = 'pal-row';
+          row.className = 'pal-row menu-pick';
 
           const titleEl = document.createElement('div');
           titleEl.className = 'pal-title';
@@ -1132,6 +1136,7 @@ function getBottomBarClientScript() {
           mapGrid.appendChild(row);
         }
       }
+      if (typeof emuPanelRowsChanged === 'function') emuPanelRowsChanged('palettes');
     }
 
     // -- Update Cheats Tab --
@@ -1169,92 +1174,11 @@ function getBottomBarClientScript() {
       const m = getModule();
 
       // Every panel that can be seen (webview/emulator-panels.js), not only one.
-      if (emuPanelVisible('entities')) {
-        const chk = document.getElementById('ent-auto-refresh');
-        if (!chk || chk.checked) {
-          updateEntitiesTab(lastSampledPreState, rom);
-        }
-      }
+      if (emuPanelVisible('entities')) updateEntitiesTab(lastSampledPreState, rom);
       if (emuPanelVisible('alchemy')) updateAlchemyTab(lastSampledPreState, rom);
       if (emuPanelVisible('palettes')) updatePalettesTab(lastSampledPreState, rom);
     }
 
-    let bottomBarListenersBound = false;
-    // Called on every boot (ROM load, replay start): bind once.
-    function initBottomBarEventListeners() {
-      if (bottomBarListenersBound) return;
-      bottomBarListenersBound = true;
-      // Entities filter buttons
-      const btnAll = document.getElementById('ent-filter-all');
-      const btnParty = document.getElementById('ent-filter-party');
-      const btnEnemies = document.getElementById('ent-filter-enemies');
-      const btnNpcs = document.getElementById('ent-filter-npcs');
-      const searchInput = document.getElementById('ent-search');
-
-      function setEntCategory(cat) {
-        entityFilterCategory = cat;
-        [btnAll, btnParty, btnEnemies, btnNpcs].forEach(b => {
-          if (b) b.classList.toggle('active', b.id === 'ent-filter-' + cat);
-        });
-        const rom = loadedRomData ? ((loadedRomData.length % 1024 === 512) ? loadedRomData.subarray(512) : loadedRomData) : null;
-        updateEntitiesTab(lastSampledPreState, rom);
-      }
-
-      if (btnAll) btnAll.addEventListener('click', () => setEntCategory('all'));
-      if (btnParty) btnParty.addEventListener('click', () => setEntCategory('party'));
-      if (btnEnemies) btnEnemies.addEventListener('click', () => setEntCategory('enemies'));
-      if (btnNpcs) btnNpcs.addEventListener('click', () => setEntCategory('npcs'));
-
-      if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-          entityFilterSearch = e.target.value;
-          const rom = loadedRomData ? ((loadedRomData.length % 1024 === 512) ? loadedRomData.subarray(512) : loadedRomData) : null;
-          updateEntitiesTab(lastSampledPreState, rom);
-        });
-      }
-
-      // Alchemy section filter buttons
-      const alcBtnAll = document.getElementById('alc-filter-all');
-      const alcBtnPalc = document.getElementById('alc-filter-palc');
-      const alcBtnAalc = document.getElementById('alc-filter-aalc');
-      const alcBtnProj = document.getElementById('alc-filter-proj');
-      const secPalc = document.getElementById('alc-sec-palc');
-      const secAalc = document.getElementById('alc-sec-aalc');
-      const secProj = document.getElementById('alc-sec-proj');
-
-      function setAlcFilter(filter) {
-        [alcBtnAll, alcBtnPalc, alcBtnAalc, alcBtnProj].forEach(b => {
-          if (b) b.classList.toggle('active', b.id === 'alc-filter-' + filter);
-        });
-        if (secPalc) secPalc.style.display = (filter === 'all' || filter === 'palc') ? '' : 'none';
-        if (secAalc) secAalc.style.display = (filter === 'all' || filter === 'aalc') ? '' : 'none';
-        if (secProj) secProj.style.display = (filter === 'all' || filter === 'proj') ? '' : 'none';
-      }
-
-      if (alcBtnAll) alcBtnAll.addEventListener('click', () => setAlcFilter('all'));
-      if (alcBtnPalc) alcBtnPalc.addEventListener('click', () => setAlcFilter('palc'));
-      if (alcBtnAalc) alcBtnAalc.addEventListener('click', () => setAlcFilter('aalc'));
-      if (alcBtnProj) alcBtnProj.addEventListener('click', () => setAlcFilter('proj'));
-
-      // Palettes filter buttons
-      const palBtnAll = document.getElementById('pal-tab-all');
-      const palBtnSprites = document.getElementById('pal-tab-sprites');
-      const palBtnMaps = document.getElementById('pal-tab-maps');
-      const palSecSprites = document.getElementById('pal-sec-sprites');
-      const palSecMaps = document.getElementById('pal-sec-maps');
-
-      function setPalFilter(filter) {
-        [palBtnAll, palBtnSprites, palBtnMaps].forEach(b => {
-          if (b) b.classList.toggle('active', b.id === 'pal-tab-' + filter);
-        });
-        if (palSecSprites) palSecSprites.style.display = (filter === 'all' || filter === 'sprites') ? '' : 'none';
-        if (palSecMaps) palSecMaps.style.display = (filter === 'all' || filter === 'maps') ? '' : 'none';
-      }
-
-      if (palBtnAll) palBtnAll.addEventListener('click', () => setPalFilter('all'));
-      if (palBtnSprites) palBtnSprites.addEventListener('click', () => setPalFilter('sprites'));
-      if (palBtnMaps) palBtnMaps.addEventListener('click', () => setPalFilter('maps'));
-    }
   `;
 }
 
