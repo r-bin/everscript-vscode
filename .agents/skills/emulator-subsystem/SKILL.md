@@ -71,6 +71,9 @@ running `snes9x_2005.js` keeps the old glue.
    - `src/emulator/core/**/copyright` must **NEVER** be excluded from `.vscodeignore`.
    - The compiled artifacts (`snes9x_2005.js` and `snes9x_2005.wasm`) must always ship alongside their respective `copyright` files.
    - Intermediate object files, sources (`source/`), build scripts (`*.sh`), and submodules (`.git/`) are excluded to keep VSIX bundle sizes lean.
+4. **The SNES CDL Recorder** (`npm run build:recorder`) is packaged from a list, not from `.vscodeignore`:
+   `tools/recorder/package-files.js` (`require()` closure + `ASSETS`). Both cores' `copyright` files are in
+   `ASSETS`; a file the panel loads by path must be added there too, or the recorder ships without it.
 
 ---
 

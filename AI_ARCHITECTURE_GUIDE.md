@@ -30,7 +30,9 @@ depend on.
 
 `src/extension.js` is the composition root: it registers commands and injects
 cross-feature capabilities (e.g. the emulator's `readMemory` into `resources`). It owns no
-state and no logic.
+state and no logic. `src/recorder/extension.js` is the second one, for the second extension
+built from this repo (SNES CDL Recorder): it may use only the emulator, and its package holds
+only what it requires.
 
 ---
 

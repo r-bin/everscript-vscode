@@ -12,7 +12,8 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `maps/` | ROM map models: pipeline, blob evidence, render-script, alchemy |
 | `rooms/` | Rooms map browser: tree building, content parsing, rendering, data watchers |
 | `routes/` | Route planner tab webview assets |
-| `emulator/` | Embedded SNES emulator: panel, webview, SNES ROM header model |
+| `emulator/` | Embedded SNES emulator: panel, webview, SNES ROM header model; profiles (Everscript / recorder) and Evermore gating; recording bundles |
+| `recorder/` | SNES CDL Recorder: the second extension's entry (`recorder/package.json`), the emulator in its recorder profile |
 | `script/` | Everscript bytecode decoder, ported from SoEScriptDumper (TypeScript, pure) |
 | `simulation/` | Runs scripts symbolically: loot cases, room scenarios + flag tree, NPC tracking, clusters, byte-identical Everscript (TypeScript, pure) |
 | `mana/` | Secret of Mana maps: header, pieces, metatiles, characters, palettes, Mode 1 picture, areas (TypeScript, pure; nothing Evermore) |
@@ -37,6 +38,7 @@ Entry point: `extension.js` (orchestration root, registered as `main` in package
 - `rom/` → may use `maps/`; never `emulator/` (the CDL library is injected by `extension.js`)
 - `scripts-tab/` → libraries only (`script/`, `maps/`, `localizations/`, `simulation/`); sprites and music capabilities are injected by `extension.js`
 - `music/` → may use `localizations/`; never `emulator/` (the sound-chip stream is injected by `extension.js`)
+- `recorder/` → only `emulator/`; nothing imports it
 - `emulator/` → may use `shared/`
 - `debugger/` → no memory, no emulator internals (the emulator bridge is injected by `extension.js`)
 - `mcp/` → `vscode` only; reads `soe://` through `vscode.workspace.fs`, never another domain

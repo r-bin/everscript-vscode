@@ -38,7 +38,7 @@ function extract(src, from, endFunction) {
 }
 
 const html = String(buildHtml({ cspSource: 'x', asWebviewUri: u => u }, 'core.js', 'core.wasm', 'core', 'core.js'));
-const script = html.match(/<script[^>]*>([\s\S]*?)<\/script>/)[1];
+const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 const hookSource = extract(script, '// -- VS Code script debugger', 'sdbgHandleMessage');
 const bridgeSource = extract(script, 'function installDebuggerBridge(', 'installDebuggerBridge');
 
@@ -65,6 +65,7 @@ function bootCore() {
         const SCRIPT_BASE = 0x28FC, SLOT_SIZE = 0x4F, SLOT_COUNT = 20, SCRIPT_REGION_SIZE = 0x4F * 20;
         const SCRIPT_STACK_BUS_ADDR = 0x7E28FC, SCRIPT_ARG_OFFSET = 0x0F, SCRIPT_ARG_BYTES = 0x20;
         let romLoaded = false;
+        const emuEvermore = true, emuScriptHook = true, sndArmed = false, SND_SEND = 0;
         function readU16(w, o) { return (w[o] | (w[o + 1] << 8)) >>> 0; }
         function readU24(w, o) { return (w[o] | (w[o + 1] << 8) | (w[o + 2] << 16)) >>> 0; }
         function fmtHex(v, w) { return (v >>> 0).toString(16).toUpperCase().padStart(w, '0'); }

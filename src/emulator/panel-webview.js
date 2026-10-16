@@ -4,7 +4,11 @@
  * debugger/emulator/panel-webview.js
  *
  * Owns: the emulator webview HTML template.
- * Single export: buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay) -> string
+ * Single export: buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay, romOfferData, options) -> string
+ *   options.profile  'full' or 'recorder' (webview/emulator-profile.js hides what a profile or a
+ *                    non-Evermore ROM does not get: elements marked data-needs="full" / "evermore")
+ *   options.scripts  webview URIs of webview/rom-game.js and webview/emulator-profile.js, loaded
+ *                    before the inline script; options.styles  of webview/emulator-profile.css
  */
 
 const {
@@ -127,8 +131,13 @@ function resolveScriptIdToSnes(rom, scriptId) {
 //  HTML template
 // -----------------------------------------------------------------------------
 
-function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay, romOfferData) {
+function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay, romOfferData, options) {
     const nonce = _nonce();
+    const opts = options || {};
+    const profile = opts.profile === 'recorder' ? 'recorder' : 'full';
+    const config = JSON.stringify({ profile }).replace(/</g, '\\u003c');
+    const files = (opts.styles || []).map(u => `<link rel="stylesheet" href="${u}">`)
+        .concat((opts.scripts || []).map(u => `<script src="${u}"></script>`)).join('\n  ');
 
     // NOTE: Module.locateFile uses the literal CORE_WASM filename constant
     // so the string in the template must match the actual WASM filename.
@@ -681,12 +690,15 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     ${getFpsCss()}
     ${getMenuCss()}
   </style>
+  <script type="application/json" id="emu-config">${config}</script>
+  ${files}
 </head>
-<body>
+<body class="profile-${profile}">
   <div id="overlay">
     <div class="overlay-card">
       <div class="overlay-header">
-        <h2>Everscript Emulator</h2>
+        <h2 data-needs="full">Everscript Emulator</h2>
+        <h2 data-needs="recorder">SNES CDL Recorder</h2>
         <div class="overlay-subtitle">snes9x2005-wasm</div>
       </div>
 
@@ -697,7 +709,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       </div>
 
       <div class="overlay-action-row">
-        <button id="vanillaBtn" class="rom-action-btn primary" type="button" title="Load configured vanilla Secret of Evermore ROM">
+        <button id="vanillaBtn" class="rom-action-btn primary" data-needs="full" type="button" title="Load configured vanilla Secret of Evermore ROM">
           <div class="btn-main"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg> <span>Load Vanilla ROM</span></div>
           <div class="btn-meta" id="vanilla-desc">Secret of Evermore (U)</div>
         </button>
@@ -739,15 +751,15 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       </div>
       <div id="screen-overlay-bar">
         <button id="screen-menu-btn" class="screen-chip" type="button" title="Quick Menu (Start)">MENU</button>
-        <button id="screen-extend-toggle" class="screen-chip active" type="button" title="Toggle Extended Map">MAP EXT ON</button>
-        <button id="screen-trigger-toggle" class="screen-chip active" type="button" title="Toggle Trigger Overlay (B &amp; Step-on)">TRIGGERS ON</button>
-        <button id="screen-object-toggle" class="screen-chip active" type="button" title="Toggle Objects Overlay">OBJECTS ON</button>
-        <button id="screen-anim-toggle" class="screen-chip active" type="button" title="Toggle Animated Tiles Overlay">ANIM TILES ON</button>
-        <button id="screen-collision-toggle" class="screen-chip active" type="button" title="Toggle Collision Lines Overlay">COLLISION ON</button>
-        <button id="screen-fog-toggle" class="screen-chip" type="button" title="Toggle Fog of War outside emulator">FOG OFF</button>
+        <button id="screen-extend-toggle" class="screen-chip" data-needs="evermore" type="button" title="Toggle Extended Map">MAP EXT OFF</button>
+        <button id="screen-trigger-toggle" class="screen-chip" data-needs="evermore" type="button" title="Toggle Trigger Overlay (B &amp; Step-on)">TRIGGERS OFF</button>
+        <button id="screen-object-toggle" class="screen-chip" data-needs="evermore" type="button" title="Toggle Objects Overlay">OBJECTS OFF</button>
+        <button id="screen-anim-toggle" class="screen-chip" data-needs="evermore" type="button" title="Toggle Animated Tiles Overlay">ANIM TILES OFF</button>
+        <button id="screen-collision-toggle" class="screen-chip" data-needs="evermore" type="button" title="Toggle Collision Lines Overlay">COLLISION OFF</button>
+        <button id="screen-fog-toggle" class="screen-chip" data-needs="evermore" type="button" title="Toggle Fog of War outside emulator">FOG OFF</button>
         ${getSoundChipHtml()}
         <button id="screen-speed-chip" class="screen-chip" type="button" title="Speed-up (#)">SPEED x1</button>
-        <button id="screen-focus-chip" class="screen-chip" type="button" title="When the VS Code debugger stops: show the line in the editor (code) or keep the focus on the emulator (stay)">BREAK: code</button>
+        <button id="screen-focus-chip" class="screen-chip" type="button" title="Keep the focus on the emulator: Tab and debugger stops do not move it">KEEP FOCUS OFF</button>
         ${getTasChipHtml()}
         ${getFpsChipHtml()}
         <div id="screen-zoom-chip" class="screen-chip-group">
@@ -766,14 +778,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         <div id="ss-header-top">
           <span id="ss-header-title">EMULATOR</span>
           <div id="ss-controls">
-            <button id="ss-pause-btn"  class="ss-btn" disabled>pause</button>
-            <button id="ss-resume-btn" class="ss-btn" disabled>resume</button>
             <button id="ss-toggle-btn" class="ss-btn" title="Toggle Panel">hide panel</button>
           </div>
         </div>
         <div id="ss-tabs">
-          <button id="ss-tab-trace" class="ss-tab active" type="button">TRACE (<span id="ss-tab-trace-count">0</span>)</button>
-          <button id="ss-tab-stack" class="ss-tab" type="button">STACK (<span id="ss-count">waiting...</span>)</button>
+          <button id="ss-tab-trace" class="ss-tab active" data-needs="full evermore" type="button">TRACE (<span id="ss-tab-trace-count">0</span>)</button>
+          <button id="ss-tab-stack" class="ss-tab" data-needs="full evermore" type="button">STACK (<span id="ss-count">waiting...</span>)</button>
           ${getBottomBarTabButtonsHtml()}
           ${getCdlTabButtonHtml()}
           ${getTasTabButtonHtml()}
@@ -781,7 +791,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       </div>
 
       <!-- Tab 1: Script Trace Log (Active by default) -->
-      <div id="ss-view-trace" class="ss-tab-view active">
+      <div id="ss-view-trace" class="ss-tab-view active" data-needs="full evermore">
         <div id="ss-trace-header">
           <div id="ss-trace-controls">
             <button id="ss-trace-clear-btn" class="ss-btn" type="button">clear</button>
@@ -795,7 +805,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       </div>
 
       <!-- Tab 2: Script Stack live slot table -->
-      <div id="ss-view-stack" class="ss-tab-view">
+      <div id="ss-view-stack" class="ss-tab-view" data-needs="full evermore">
         <div id="ss-detail">waiting for script stack detail...</div>
         <table id="ss-table">
           <thead><tr><th>#</th><th>PC</th><th>state</th><th>next</th><th>entity</th><th>timer</th></tr></thead>
@@ -896,6 +906,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     let loadedRomName = 'game';
     let romLaunchTimestamp = 0;
     let romFrameCount = 0;
+    // Set per ROM by emulator-profile.js (emuGateRom): Evermore-only work runs only for Evermore;
+    // the script stack hook and trace (TRACE / STACK, the .evs debugger) only in the full profile too.
+    let emuEvermore = true;
+    let emuScriptHook = true;
+    let emuMuted = false;
 
     function romStage(text) {
       console.log('[EVS romStage]', text);
@@ -1319,7 +1334,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           const L = e.outputBuffer.getChannelData(0);
           const R = e.outputBuffer.getChannelData(1);
           const m = getModule();
-          if (!romLoaded || !m || typeof m._getSoundBuffer !== 'function') {
+          if (!romLoaded || emuMuted || !m || typeof m._getSoundBuffer !== 'function') {
             L.fill(0);
             R.fill(0);
             return;
@@ -1494,6 +1509,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       try {
         idleSprites.clear();
         idleSpritesWanted = new Set();
+        if (typeof emuGateRom === 'function') emuGateRom(romData);
         romStage('core start begin');
         cdlBeforeRomChange();
         tasFlush();
@@ -1527,9 +1543,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         document.getElementById('overlay').style.display = 'none';
         document.getElementById('script-stack').classList.add('visible');
         window.dispatchEvent(new Event('resize'));
-        startWramPolling();
+        if (emuScriptHook) startWramPolling();
         initBottomBarEventListeners();
-        vscodeApi.postMessage({ command: 'requestAlchemyIcons' });
+        if (emuEvermore) vscodeApi.postMessage({ command: 'requestAlchemyIcons' });
         vscodeApi.postMessage({ command: 'gameStarted', name: name || 'game' });
         tasOnBoot(name);
         romStage('launch success: ' + (name || 'game'));
@@ -1713,7 +1729,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         if (e.target.closest && (e.target.closest('.screen-chip') || e.target.closest('.screen-btn'))) return;
 
         // If paused, inspector click allows selecting character, trigger, or object
-        if (typeof isEmulatorPaused === 'function' && isEmulatorPaused() && romLoaded && lastLayout) {
+        if (emuEvermore && typeof isEmulatorPaused === 'function' && isEmulatorPaused() && romLoaded && lastLayout) {
           const rect = wrap.getBoundingClientRect();
           const mouseX = e.clientX - rect.left;
           const mouseY = e.clientY - rect.top;
@@ -1817,11 +1833,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           } else if (romLoaded) {
             romFrameCount++;
             // Sample camera and entity state BEFORE _mainLoop() to match rendered frame
-            const preState = samplePreLoopState();
+            const preState = emuEvermore ? samplePreLoopState() : null;
             lastSampledPreState = preState;
             const m = getModule();
             // A replay must see exactly the recorded memory: no cheat writes.
-            if (m && !tasReplaying()) maintainCheats(m);
+            if (m && emuEvermore && !tasReplaying()) maintainCheats(m);
             if (speedMultiplier < 1.0) {
               speedAccumulator += speedMultiplier;
               if (speedAccumulator < 1.0) {
@@ -1852,7 +1868,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
             }
             renderExtendedMapAndOverlays(preState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx);
             tasDrawOverlay();
-            checkScriptExecutionTrace();
+            if (emuScriptHook) checkScriptExecutionTrace();
             apuStreamTick(Module, false);
           }
         } catch (frameErr) {
@@ -1865,14 +1881,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     }
 
     // -- Extended map and overlays --------------------------------------------
-    let extendMapEnabled = true;
+    let extendMapEnabled = false;
     let triggersOverlayEnabled = false;
     let objectsOverlayEnabled = false;
     let animTilesOverlayEnabled = false;
     let collisionOverlayEnabled = false;
     let fogOfWarEnabled = false;
-    let thinHpBarEnabled = true;
-    let thinStaminaBarEnabled = true;
+    let thinHpBarEnabled = false;
+    let thinStaminaBarEnabled = false;
     let inspectedTarget = null;
     let lastInjectedTrigger = null;
     let cachedMapId = -1;
@@ -4358,8 +4374,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           ? 'Using save-state fallback for script stack'
           : 'Custom debugger API not available in this build');
       }
-      setControlEnabled('ss-pause-btn',  customApi);
-      setControlEnabled('ss-resume-btn', customApi);
       setControlEnabled('ss-hook-btn',   writeApi);
       setControlEnabled('ss-hook-all-btn', customApi);
       setControlEnabled('ss-bp-add-btn', customApi);
@@ -4412,27 +4426,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       wramPollTimer = setInterval(pollOnce, 250);
     }
 
-    const pauseBtn = document.getElementById('ss-pause-btn');
-    if (pauseBtn) {
-      pauseBtn.addEventListener('click', () => {
-        const m = getModule();
-        if (!hasDebuggerApi(m)) return;
-        m.pauseEmulation();
-        setText('ss-pause-state', 'paused', 'ss-bad');
-        setText('ss-last-hit', 'last: manual pause', 'ss-warn');
-      });
-    }
-
-    const resumeBtn = document.getElementById('ss-resume-btn');
-    if (resumeBtn) {
-      resumeBtn.addEventListener('click', () => {
-        const m = getModule();
-        if (!hasDebuggerApi(m)) return;
-        m.resumeEmulation();
-        setText('ss-pause-state', 'running', 'ss-ok');
-      });
-    }
-
     const hookBtn = document.getElementById('ss-hook-btn');
     if (hookBtn) {
       hookBtn.addEventListener('click', () => {
@@ -4473,7 +4466,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     }
 
     function redrawExtendedLayersNow() {
-      if (typeof renderExtendedMapAndOverlays !== 'function') return;
+      if (!emuEvermore || typeof renderExtendedMapAndOverlays !== 'function') return;
       const sc = document.getElementById('screen');
       const extM = document.getElementById('extended-map');
       const extE = document.getElementById('extended-entities');
@@ -4493,6 +4486,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
     function setExtendMap(enabled) {
       extendMapEnabled = !!enabled;
+      if (typeof emuSettingsChanged === 'function') emuSettingsChanged();
       const chip = document.getElementById('screen-extend-toggle');
       if (chip) {
         if (extendMapEnabled) {
@@ -4553,12 +4547,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
     function setThinHpBar(enabled) {
       thinHpBarEnabled = !!enabled;
+      if (typeof emuSettingsChanged === 'function') emuSettingsChanged();
       checkClearOverlayCanvas();
       redrawExtendedLayersNow();
     }
 
     function setThinStaminaBar(enabled) {
       thinStaminaBarEnabled = !!enabled;
+      if (typeof emuSettingsChanged === 'function') emuSettingsChanged();
       checkClearOverlayCanvas();
       redrawExtendedLayersNow();
     }
@@ -4575,6 +4571,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
     function setTriggersOverlay(enabled) {
       triggersOverlayEnabled = !!enabled;
+      if (typeof emuSettingsChanged === 'function') emuSettingsChanged();
       const chip = document.getElementById('screen-trigger-toggle');
       if (chip) {
         if (triggersOverlayEnabled) {
@@ -4610,6 +4607,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
     function setObjectsOverlay(enabled) {
       objectsOverlayEnabled = !!enabled;
+      if (typeof emuSettingsChanged === 'function') emuSettingsChanged();
       const chip = document.getElementById('screen-object-toggle');
       if (chip) {
         if (objectsOverlayEnabled) {
@@ -4645,6 +4643,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
     function setAnimTilesOverlay(enabled) {
       animTilesOverlayEnabled = !!enabled;
+      if (typeof emuSettingsChanged === 'function') emuSettingsChanged();
       const chip = document.getElementById('screen-anim-toggle');
       if (chip) {
         if (animTilesOverlayEnabled) {
@@ -4680,6 +4679,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
     function setCollisionOverlay(enabled) {
       collisionOverlayEnabled = !!enabled;
+      if (typeof emuSettingsChanged === 'function') emuSettingsChanged();
       const chip = document.getElementById('screen-collision-toggle');
       if (chip) {
         if (collisionOverlayEnabled) {
@@ -4715,6 +4715,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
     function setFogOfWar(enabled) {
       fogOfWarEnabled = !!enabled;
+      if (typeof emuSettingsChanged === 'function') emuSettingsChanged();
       const chip = document.getElementById('screen-fog-toggle');
       if (chip) {
         if (fogOfWarEnabled) {
@@ -4740,21 +4741,23 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     }
 
     // Keep the focus on the emulator when the VS Code debugger stops (the host re-reveals the panel).
+    // Also keeps Tab in the emulator (emulator-profile.js).
     let keepFocusOnBreak = false;
-    function setKeepFocusChip(on) {
+    // save: a change by the user, kept by the host (not when the host sends the saved value).
+    function setKeepFocusChip(on, save) {
       keepFocusOnBreak = !!on;
       const chip = document.getElementById('screen-focus-chip');
       if (chip) {
-        chip.textContent = keepFocusOnBreak ? 'BREAK: stay' : 'BREAK: code';
+        chip.textContent = keepFocusOnBreak ? 'KEEP FOCUS ON' : 'KEEP FOCUS OFF';
         chip.classList.toggle('active', keepFocusOnBreak);
       }
+      if (save) vscodeApi.postMessage({ command: 'setKeepFocusOnBreak', on: keepFocusOnBreak });
     }
     const focusChip = document.getElementById('screen-focus-chip');
     if (focusChip) {
       focusChip.addEventListener('click', (e) => {
         e.stopPropagation();
-        setKeepFocusChip(!keepFocusOnBreak);
-        vscodeApi.postMessage({ command: 'setKeepFocusOnBreak', on: keepFocusOnBreak });
+        setKeepFocusChip(!keepFocusOnBreak, true);
         const screenCanvas = document.getElementById('screen');
         if (screenCanvas) screenCanvas.focus();
       });

@@ -63,7 +63,7 @@ function getApuStreamClientScript() {
 
     // Called once per displayed frame, after mainLoop().
     function apuStreamTick(m, paused) {
-      sndSync(m, romLoaded && (apuStreamOn || sndShow));
+      sndSync(m, romLoaded && emuEvermore && (apuStreamOn || sndShow));
       const src = sndTake(paused);
       if (!apuStreamOn || !romLoaded) return;
       const view = apuViewBytes(m);

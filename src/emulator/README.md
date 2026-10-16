@@ -6,8 +6,11 @@ Embedded snes9x2005 WASM emulator panel integrated into VS Code.
 
 | File | Description |
 |---|---|
-| `panel.js` | WebviewPanel host: loads core WASM, dispatches ROMs, forwards messages |
+| `panel.js` | WebviewPanel host: loads core WASM, dispatches ROMs, forwards messages; `configureEmulator` (profile, title, CDL tools, bundle button, reopen last ROM); keeps the page's settings in `globalState` |
 | `panel-webview.js` | Webview HTML generator for the emulator panel |
+| `webview/rom-game.js` | `detectEvermore(rom)`: header title + destination of Secret of Evermore (U); loaded by the page as a file and by node |
+| `webview/emulator-profile.js` / `.css` | The page's profile and game gating (`data-needs`), saved settings (overlays, mute, keybinds), Keep Focus for Tab |
+| `bundle-commands.js` | Export (recorder) and import (Everscript) of recording bundles: dialogs, which library, which replays |
 | `snes-rom-header-model.js` | SNES ROM header parser |
 | `webview/index.html` | Emulator webview entry HTML |
 | `cdl-view.js` | CDL bottom-bar tab: record toggle, ROM + WRAM strips, last-flush snapshot, Asar/WRAM export, xref lookup |
@@ -22,6 +25,27 @@ Embedded snes9x2005 WASM emulator panel integrated into VS Code.
 | `tas/` | Input recordings: `.evsmv` format, recording files, replay list and pins (see `tas/README.md`) |
 | `core/snes9x2005-wasm/` | Custom emulator core (git submodule) |
 | `core/snes9x2005-wasm-vanilla/` | Vanilla emulator core (git submodule) |
+
+## Profiles and games
+
+Two extensions open this panel. `src/extension.js` configures the **full** profile (every tab,
+the CDL exports and lookups through `cdl/tools.js`); `src/recorder/extension.js` the
+**recorder** profile (SNES CDL Recorder: bottom bar CDL + REPLAYS, CDL starts on, the last ROM
+reopens, "export bundle" in the CDL tab). The profile reaches the page as data (`#emu-config`).
+
+Per ROM, `emuGateRom` (`webview/emulator-profile.js`, at every boot) decides whether it is
+Secret of Evermore (U) or built on it (`detectEvermore`: header title and destination, any
+layout; `src/localizations/knowledge/rom/00ffc0.md`). Only then: the overlays, VIEW's room and
+coordinates, the inspector click, OBJECTS / LOOT / CHEATS, the sound-source hook, the floating
+CDL gains, Start opening the menu; and in the full profile the script stack hook, the trace and
+the `.evs` debugger hook (`emuScriptHook`), and TRACE / STACK / ENTITIES / ALCHEMY / PALETTES.
+Markup says what it needs with `data-needs="full|recorder|evermore"` (several words: all must
+hold); `webview/emulator-profile.css` hides it. A hidden active tab hands over to the first
+shown one.
+
+Everything optional starts off. The page sends its settings (`saveEmuSettings`: the overlay
+toggles, Master Audio mute, keybinds) and gets them back on open (`emuSettings`); Keep Focus and
+the CDL switch are kept by the host. Zoom, speed, panel height and tabs are not saved.
 
 ## Extended map: what it follows
 

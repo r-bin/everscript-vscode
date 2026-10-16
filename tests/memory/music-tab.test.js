@@ -152,7 +152,7 @@ async function coreStream(model) {
 
     // The page script, as the emulator webview embeds it.
     const sent = [], listeners = [];
-    const page = { HEAPU8: global.HEAPU8, romLoaded: true, getModule: () => M, vscodeApi: { postMessage: m => sent.push(m) },
+    const page = { HEAPU8: global.HEAPU8, romLoaded: true, emuEvermore: true, getModule: () => M, vscodeApi: { postMessage: m => sent.push(m) },
         window: { addEventListener: (t, fn) => listeners.push(fn) } };
     vm.createContext(page);
     vm.runInContext(getSoundSourceClientScript() + getApuStreamClientScript() + ';this.apuStreamTick = apuStreamTick;', page);
@@ -204,6 +204,7 @@ async function coreStream(model) {
             for (const m of sent.splice(0)) for (const e of m.src || []) { hooks.push(e); found.add(e.kind + ':' + e.sfx + ':' + (e.name || '')); }
         }
         host.setOn(false);
+        vm.runInContext('sndShow = true;', page);   // off by default (v0.219.0): switched on as the user would
         page.apuStreamTick(M, false);
         assert.strictEqual(page.armed(), true, 'armed while the SOUNDS chip shows them');
         vm.runInContext('sndShow = false;', page);

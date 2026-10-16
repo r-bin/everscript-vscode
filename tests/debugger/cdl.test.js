@@ -313,11 +313,16 @@ test('host decodes webview deltas (base64 words) into the library', () => {
     try {
         const { CdlHost } = require('../../src/emulator/cdl/host');
         const posted = [];
-        const host = new CdlHost(path.join(tmp, 'host'), m => posted.push(m), () => {});
+        let wanted = false;
+        const host = new CdlHost(path.join(tmp, 'host'), m => posted.push(m), () => {},
+            { tools: require('../../src/emulator/cdl/tools'), wanted: { get: () => wanted, set: on => { wanted = on; } } });
         host.romStarted(makeRom());
         assert.strictEqual(posted[0].command, 'cdlConfig');
         assert.strictEqual(posted[0].autoEnable, false, 'recording is off by default');
         host.handle({ command: 'cdlEnable' });
+        assert.strictEqual(wanted, true, 'switching recording on is remembered');
+        host.romStarted(makeRom());
+        assert.strictEqual(posted.filter(m => m.command === 'cdlConfig').pop().autoEnable, true, 'the next ROM starts recording');
         const seed = posted.find(m => m.command === 'cdlSeed');
         assert.ok(seed && seed.labels[0] === 'C0' && seed.labels[1] === 'C1');
         const words = Buffer.from(Uint32Array.from([0x808010, 0x4E57, 2]).buffer).toString('base64');

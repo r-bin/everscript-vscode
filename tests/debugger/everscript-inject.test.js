@@ -35,7 +35,7 @@ function extractFunction(src, name) {
 }
 
 const html = String(buildHtml({ cspSource: 'x', asWebviewUri: u => u }, 'core.js', 'core.wasm', 'core', 'core.js'));
-const script = html.match(/<script[^>]*>([\s\S]*?)<\/script>/)[1];
+const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 const makeInject = new Function(
     'getModule', 'hasDebuggerApi', 'setText', 'fmtHex', 'SLOT_COUNT', 'SLOT_SIZE', 'SCRIPT_STACK_BUS_ADDR',
     'return ' + extractFunction(script, 'injectEverscript'));

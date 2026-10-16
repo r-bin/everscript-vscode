@@ -7,7 +7,8 @@
  * the deltas the webview drains from the core, and writes to disk only when
  * something changed: IDLE_FLUSH_MS after the last change, at least every
  * MAX_FLUSH_MS while changes keep coming, and at once on pause / stop / ROM
- * change / panel close. Also runs exports and lookups.
+ * change / panel close. Also runs exports and lookups when the panel was given
+ * the tools for them (tools.js; the SNES CDL Recorder has none).
  *
  * Messages (webview -> host): cdlEnable, cdlDelta, cdlPause, cdlDisabled,
  *   cdlRequestSnapshot, cdlExport, cdlLookup
@@ -17,14 +18,9 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { CdlLibrary, romHash, stripCopierHeader } = require('./library');
 const { createRomMap, hex } = require('./rom-map');
-const { buildIndex } = require('./xref-index');
-const { exportAsar } = require('./asar-export');
-const { exportWram } = require('./wram-export');
-const { lookup } = require('./lookup');
-const { findTables } = require('./tables');
-const { getActiveAddressLookup } = require('../address-lookup');
 
 const IDLE_FLUSH_MS = 60 * 1000;
 const MAX_FLUSH_MS = 5 * 60 * 1000;
@@ -64,11 +60,16 @@ class CdlHost {
      * @param {string} storageDir  extension global storage path
      * @param {(msg: object) => void} post  sends to the webview
      * @param {(line: string, show?: boolean) => void} log
+     * @param {{ tools?: object, wanted?: { get: () => boolean, set: (on: boolean) => void } }} [opts]
+     *   tools: exports and lookup (tools.js), absent in the recorder;
+     *   wanted: whether recording was on when the user last switched it (kept across sessions)
      */
-    constructor(storageDir, post, log) {
+    constructor(storageDir, post, log, opts) {
         this.root = path.join(storageDir, 'cdl-library');
         this.post = post;
         this.log = log;
+        this.tools = (opts && opts.tools) || null;
+        this.wanted = (opts && opts.wanted) || { get: () => false, set: () => {} };
         this.rom = null;
         this.lib = null;
         this.indexCache = null;
@@ -86,7 +87,7 @@ class CdlHost {
         this.lib = null;
         this.indexCache = null;
         this.describeScript = null;
-        this.post({ command: 'cdlConfig', autoEnable: !!this._config().get('cdl.enabled', false) });
+        this.post({ command: 'cdlConfig', autoEnable: !!this._config().get('cdl.enabled', false) || this.wanted.get() });
     }
 
     _body() { return stripCopierHeader(this.rom); }
@@ -94,7 +95,8 @@ class CdlHost {
     _library() {
         if (this.lib || !this.rom) return this.lib;
         const map = createRomMap(this._body());
-        this.lib = new CdlLibrary(this.root, this.rom, { title: map.header ? map.header.title : '', mapType: map.type });
+        const sha256 = crypto.createHash('sha256').update(this._body()).digest('hex');
+        this.lib = new CdlLibrary(this.root, this.rom, { title: map.header ? map.header.title : '', mapType: map.type, sha256 });
         this.log(`CDL library: ${this.lib.dir}`);
         return this.lib;
     }
@@ -107,24 +109,7 @@ class CdlHost {
     }
 
     _scriptNamer() {
-        if (this.describeScript) return this.describeScript;
-        let starts = [];
-        let table = null;
-        try {
-            table = getActiveAddressLookup(this._body(), null);
-            starts = [...table.lookupMap.keys()].sort((a, b) => a - b);
-        } catch (_) { /* no names: plain addresses */ }
-        this.describeScript = addr => {
-            let lo = 0, hi = starts.length - 1, best = -1;
-            while (lo <= hi) {
-                const mid = (lo + hi) >> 1;
-                if (starts[mid] <= addr) { best = starts[mid]; lo = mid + 1; } else hi = mid - 1;
-            }
-            const plain = '$' + hex(addr, 6);
-            if (best < 0 || addr - best > 0x800 || (best >>> 16) !== (addr >>> 16)) return plain;
-            const info = table.lookupMap.get(best);
-            return plain + ' (' + info.name + (addr !== best ? ' +$' + hex(addr - best, 2) : '') + ')';
-        };
+        if (!this.describeScript) this.describeScript = this.tools.scriptNamer(this._body());
         return this.describeScript;
     }
 
@@ -136,8 +121,8 @@ class CdlHost {
     _index() {
         if (!this.indexCache) {
             const map = createRomMap(this._body());
-            const index = buildIndex(this.lib, map);
-            this.indexCache = { map, index, tables: findTables(this.lib, this._body(), map, index) };
+            const index = this.tools.buildIndex(this.lib, map);
+            this.indexCache = { map, index, tables: this.tools.findTables(this.lib, this._body(), map, index) };
         }
         return this.indexCache;
     }
@@ -203,6 +188,7 @@ class CdlHost {
     handle(msg) {
         switch (msg.command) {
             case 'cdlEnable':
+                this.wanted.set(true);
                 this._seed();
                 return true;
             case 'cdlRequestSnapshot':
@@ -249,17 +235,22 @@ class CdlHost {
                 this.flushNow();
                 return true;
             case 'cdlDisabled':
+                this.wanted.set(false);
                 this.flushNow();
                 this._status('stopped');
                 return true;
             case 'cdlExport':
-                this._export(msg.kind);
+                if (this.tools) this._export(msg.kind);
                 return true;
             case 'cdlLookup': {
                 const lib = this._library();
                 if (!lib) return true;
+                if (!this.tools) {
+                    this.post({ command: 'cdlLookupResult', lines: ['Lookups are part of the full Everscript extension: import this recording there.'] });
+                    return true;
+                }
                 const { index, map, tables } = this._index();
-                this.post({ command: 'cdlLookupResult', lines: lookup(lib, index, map, msg.query, { describeScript: this._scriptNamer(), tables }) });
+                this.post({ command: 'cdlLookupResult', lines: this.tools.lookup(lib, index, map, msg.query, { describeScript: this._scriptNamer(), tables }) });
                 return true;
             }
             default:
@@ -276,11 +267,11 @@ class CdlHost {
             const t0 = Date.now();
             let file, text;
             if (kind === 'wram') {
-                const r = exportWram(lib, this.rom, outDir, { describeScript: this._scriptNamer() });
+                const r = this.tools.exportWram(lib, this.rom, outDir, { describeScript: this._scriptNamer() });
                 file = r.file;
                 text = `ram.asm: ${r.addresses} WRAM addresses, ${r.enums} enum candidates`;
             } else {
-                const r = exportAsar(lib, this.rom, outDir);
+                const r = this.tools.exportAsar(lib, this.rom, outDir);
                 file = r.mainPath;
                 text = `Asar export: ${r.banks} banks, ${r.functions} functions, ${r.codeLines} instructions, ${r.tables} lookup tables`;
             }
@@ -295,6 +286,13 @@ class CdlHost {
             this.log('CDL export failed: ' + (err.stack || err.message), true);
             this.post({ command: 'cdlStatus', text: 'export failed: ' + err.message });
         }
+    }
+
+    /** The library changed on disk (a bundle was imported): save ours, then read it again. */
+    reload() {
+        this.flushNow();
+        this.lib = null;
+        this.indexCache = null;
     }
 
     dispose() { this.flushNow(); }

@@ -1,6 +1,7 @@
 {
   "entry": [
     "src/extension.js",
+    "src/recorder/extension.js",
     "src/shared/config.js"
   ],
   "project": [

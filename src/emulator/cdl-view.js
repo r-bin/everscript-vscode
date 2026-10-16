@@ -5,7 +5,8 @@
  *
  * The emulator's CDL bottom-bar tab: record toggle (off by default), ROM
  * coverage strips (one per 64 KB, one pixel per byte), WRAM access strips
- * ($7E / $7F), Asar / WRAM export buttons and the xref lookup box.
+ * ($7E / $7F), Asar / WRAM export buttons and the xref lookup box (full extension),
+ * the "export bundle" button (SNES CDL Recorder).
  *
  * Recording state lives in the core (cdl.c). While recording and not paused,
  * one 1 s tick consumes the core's dirty chunks: it recounts their coverage
@@ -65,10 +66,11 @@ function getCdlViewHtml() {
       <div class="ss-subbar">
         <button id="cdl-toggle" class="ss-btn" type="button" title="Record code/data coverage, calls and memory accesses (in memory; written to disk only when something changed)">start recording</button>
         <button id="cdl-flush" class="ss-btn" type="button" disabled>flush now</button>
-        <button id="cdl-export-asm" class="ss-btn" type="button" title="Write an Asar project (byte-exact) and open main.asm">export asar</button>
-        <button id="cdl-export-wram" class="ss-btn" type="button" title="Write ram.asm: every WRAM address with its accessors and enum guesses">export wram</button>
-        <input id="cdl-lookup-input" class="ss-search-input" type="text" spellcheck="false" placeholder="who? 7E4E57 / C0:8000" />
-        <button id="cdl-lookup-btn" class="ss-btn" type="button">who?</button>
+        <button id="cdl-export-bundle" class="ss-btn" data-needs="recorder" type="button" title="Zip this ROM's recording and its replays to share (no ROM bytes)">export bundle</button>
+        <button id="cdl-export-asm" class="ss-btn" data-needs="full" type="button" title="Write an Asar project (byte-exact) and open main.asm">export asar</button>
+        <button id="cdl-export-wram" class="ss-btn" data-needs="full" type="button" title="Write ram.asm: every WRAM address with its accessors and enum guesses">export wram</button>
+        <input id="cdl-lookup-input" class="ss-search-input" data-needs="full" type="text" spellcheck="false" placeholder="who? 7E4E57 / C0:8000" />
+        <button id="cdl-lookup-btn" class="ss-btn" data-needs="full" type="button">who?</button>
         <span id="cdl-status">recording off</span>
       </div>
       <div id="cdl-legend">${legend}</div>
@@ -76,9 +78,9 @@ function getCdlViewHtml() {
         <div id="cdl-banks"><div id="cdl-empty">Recording is off. Start it to map which ROM bytes run as code, which are read as data,
 who calls each function and who reads or writes each WRAM address (including which script
 instruction did it). Data is kept per ROM in the extension's storage and merges across
-sessions, so the game does not have to be finished in one sitting. Click a strip to look up
-that address.</div></div>
-        <div id="cdl-side">
+sessions, so the game does not have to be finished in one sitting.<span data-needs="full"> Click a strip to look up
+that address.</span></div></div>
+        <div id="cdl-side" data-needs="full">
           <div id="cdl-hover">&nbsp;</div>
           <pre id="cdl-lookup-out"></pre>
         </div>
@@ -352,6 +354,11 @@ function getCdlClientScript() {
         cdlSetStatus('exporting WRAM...');
         vscodeApi.postMessage({ command: 'cdlExport', kind: 'wram' });
       });
+      document.getElementById('cdl-export-bundle').addEventListener('click', () => {
+        cdlDrain();
+        cdlSetStatus('exporting bundle...');
+        vscodeApi.postMessage({ command: 'exportBundle' });
+      });
       document.getElementById('cdl-lookup-btn').addEventListener('click', () => cdlLookup());
       document.getElementById('cdl-lookup-input').addEventListener('keydown', evt => {
         if (evt.key === 'Enter') { evt.preventDefault(); cdlLookup(); }
@@ -366,7 +373,7 @@ function getCdlClientScript() {
       banks.addEventListener('click', evt => {
         if (!evt.target || evt.target.tagName !== 'CANVAS') return;
         const a = cdlAddressAt(evt);
-        if (a) cdlLookup(a.wram ? cdlWramName(a.off) : a.bank + ':' + cdlHex(a.inner, 4));
+        if (a && document.body.classList.contains('profile-full')) cdlLookup(a.wram ? cdlWramName(a.off) : a.bank + ':' + cdlHex(a.inner, 4));
       });
       document.addEventListener('visibilitychange', () => { if (document.hidden) cdlDrain(); });
     }

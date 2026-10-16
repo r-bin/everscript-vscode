@@ -32,7 +32,7 @@ const fs     = require('fs');
 const { buildHtml } = require('./panel-webview');
 const { processScriptTraceBatch } = require('./script-trace');
 const { CdlHost } = require('./cdl/host');
-const { TasHost } = require('./tas/host');
+const { TasHost, recordingsDir } = require('./tas/host');
 const { ScriptDebugHost } = require('./script-debug-host');
 const { MemoryBridge } = require('./memory-bridge');
 const { ApuStream } = require('./apu-stream');
@@ -81,9 +81,37 @@ const _scriptDebug = new ScriptDebugHost(m => { if (_panel) _panel.webview.postM
 // soe://ram/ reads: request/reply with the webview, which owns the core.
 const _apu = new ApuStream(m => !!(_panel && _webviewReady && _panel.webview.postMessage(m) !== undefined));
 const _memory = new MemoryBridge(m => !!(_panel && _webviewReady && _panel.webview.postMessage(m) !== undefined));
-// "BREAK: stay" chip: a debugger stop leaves the focus on the emulator (globalState).
+// KEEP FOCUS (pause menu, EMULATION): Tab stays in the emulator and a debugger stop
+// leaves the focus on it (globalState).
 const KEEP_FOCUS_KEY = 'everscript.emulator.keepFocusOnBreak';
 const KEEP_FOCUS_MS = 2000;
+// The webview's settings (overlays, mute, keybinds): saved by the page, sent back on open.
+const SETTINGS_KEY = 'everscript.emulator.settings';
+// Whether CDL recording was on when last switched.
+const CDL_WANTED_KEY = 'everscript.emulator.cdlWanted';
+
+/**
+ * What the extension that hosts the panel wants (configureEmulator):
+ *   profile        'full' (Everscript) or 'recorder' (SNES CDL Recorder: CDL and REPLAYS only)
+ *   title          the panel's title
+ *   cdlTools       exports and lookups for the CDL tab (cdl/tools.js); none in the recorder
+ *   onExportBundle the CDL tab's "export bundle" button (recorder)
+ *   reopenLastRom  a panel opened without a ROM loads the most recent one that still exists (recorder)
+ */
+let _options = { profile: 'full', title: 'Everscript Emulator', cdlTools: null, onExportBundle: null, reopenLastRom: false };
+let _reopenTried = false;   // per panel: the last ROM is reopened once, on the first ready
+
+function configureEmulator(options) {
+  _options = Object.assign({}, _options, options || {});
+}
+
+function _state(key, fallback) {
+  return _context && _context.globalState ? _context.globalState.get(key, fallback) : fallback;
+}
+
+function _saveState(key, value) {
+  if (_context && _context.globalState) _context.globalState.update(key, value);
+}
 
 function _keepFocusSetting() {
   return !!(_context && _context.globalState && _context.globalState.get(KEEP_FOCUS_KEY, false));
@@ -358,7 +386,12 @@ function _resetPanelHtml() {
     let cfgRomPath = '';
     try { cfgRomPath = vscode.workspace.getConfiguration('everscript').get('romPath') || ''; } catch (_) {}
     const romOfferData = getRomOfferData(_context, wsRoot, cfgRomPath);
-    const html = buildHtml(_panel.webview, coreJsUri, coreWasmUri, core.label, core.path, romOfferData);
+    const file = name => _panel.webview.asWebviewUri(vscode.Uri.file(path.join(_extensionPath, 'src', 'emulator', 'webview', name))).toString();
+    const html = buildHtml(_panel.webview, coreJsUri, coreWasmUri, core.label, core.path, romOfferData, {
+      profile: _options.profile,
+      styles: [file('emulator-profile.css')],
+      scripts: [file('rom-game.js'), file('emulator-profile.js')],
+    });
     // Log a snippet to help diagnose CSP / script-load issues.
     _log('HTML head snippet: ' + html.substring(0, 220).replace(/\s+/g, ' '));
     _panel.webview.html = html;
@@ -427,7 +460,7 @@ function openEmulatorPanel(context, rom, channel) {
 
     _panel = vscode.window.createWebviewPanel(
         'everscriptEmulator',
-        'Everscript Emulator',
+        _options.title,
         vscode.ViewColumn.Beside,
         {
             enableScripts:          true,
@@ -443,6 +476,10 @@ function openEmulatorPanel(context, rom, channel) {
       context.globalStorageUri ? context.globalStorageUri.fsPath : path.join(context.extensionPath, '.storage'),
       m => { if (_panel) _panel.webview.postMessage(m); },
       _log,
+      {
+        tools: _options.cdlTools,
+        wanted: { get: () => !!_state(CDL_WANTED_KEY, _options.profile === 'recorder'), set: on => _saveState(CDL_WANTED_KEY, !!on) },
+      },
     );
     _tas = new TasHost(
       context.globalStorageUri ? context.globalStorageUri.fsPath : path.join(context.extensionPath, '.storage'),
@@ -462,11 +499,13 @@ function openEmulatorPanel(context, rom, channel) {
             _webviewReady = true;
             _apu.pageReady();
             _panel.webview.postMessage({ command: 'keepFocusOnBreak', on: _keepFocusSetting() });
+            _panel.webview.postMessage({ command: 'emuSettings', settings: _state(SETTINGS_KEY, null) });
             _clearReadyTimeout();
             _log('Webview runtime ready');
             _notifyWebviewStatus('ok', 'Core runtime ready');
             _broadcastRomOffer();
             _dispatchPendingRom();
+            _reopenLastRom();
                 break;
 
             case 'getRomOfferInfo':
@@ -622,7 +661,15 @@ function openEmulatorPanel(context, rom, channel) {
               break;
 
             case 'setKeepFocusOnBreak':
-              if (_context && _context.globalState) _context.globalState.update(KEEP_FOCUS_KEY, !!msg.on);
+              _saveState(KEEP_FOCUS_KEY, !!msg.on);
+              break;
+
+            case 'saveEmuSettings':
+              if (msg.settings && typeof msg.settings === 'object') _saveState(SETTINGS_KEY, msg.settings);
+              break;
+
+            case 'exportBundle':
+              if (_options.onExportBundle) _options.onExportBundle();
               break;
 
             case 'connectDebugger':
@@ -707,9 +754,26 @@ function openEmulatorPanel(context, rom, channel) {
       _currentRomBuffer = null;
       _currentRomName = '';
       _activeDraft = null;
+      _reopenTried = false;
       _roomMapCache.clear();
       _roomMetaCache.clear();
     }, null, context.subscriptions);
+}
+
+/** reopenLastRom: the newest recent ROM file that still exists, once per panel. */
+function _reopenLastRom() {
+  if (!_options.reopenLastRom || _reopenTried || _pending || _currentRomBuffer) return;
+  _reopenTried = true;
+  try {
+    const offer = getRomOfferData(_context, null, '');
+    const last = (offer.recent || []).find(r => r.exists && r.path && !r.isCustomMap);
+    if (last) {
+      _log(`Reopening the last ROM: ${last.path}`);
+      _sendRomFile(last.path);
+    }
+  } catch (err) {
+    _log('Could not reopen the last ROM: ' + err.message);
+  }
 }
 
 /** Read a ROM file from disk and send it to the open webview. */
@@ -1240,6 +1304,22 @@ function runRomFile(context, romPath) {
     openEmulatorPanel(context, { dataUrl, name: path.basename(romPath), filePath: romPath, kind: 'file' });
 }
 
+/** Write what the CDL recorder holds in memory (before a bundle is zipped). */
+function flushRecording() {
+  if (_cdl) _cdl.flushNow();
+}
+
+/** The CDL library changed on disk (bundle import): the open panel reads it again. */
+function reloadRecording() {
+  if (_cdl) _cdl.reload();
+}
+
+/** Where recordings live: the CDL library root and the replays folder. */
+function recordingFolders(context) {
+  const storage = context.globalStorageUri ? context.globalStorageUri.fsPath : path.join(context.extensionPath, '.storage');
+  return { storage, cdlRoot: path.join(storage, 'cdl-library'), replayDir: recordingsDir(storage) };
+}
+
 /** The ROM running in the emulator, or null. */
 function getCurrentRom() { return _panel ? _currentRomBuffer : null; }
 
@@ -1279,4 +1359,4 @@ function getLogHistory() {
   };
 }
 
-module.exports = { openEmulatorPanel, sendRomFile: _sendRomFile, injectEverscript, getScriptDebugBridge, runRomFile, getCurrentRom, readMemory, getStatus, apuStream, getLogHistory };
+module.exports = { configureEmulator, flushRecording, reloadRecording, recordingFolders, openEmulatorPanel, sendRomFile: _sendRomFile, injectEverscript, getScriptDebugBridge, runRomFile, getCurrentRom, readMemory, getStatus, apuStream, getLogHistory };

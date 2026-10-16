@@ -45,8 +45,10 @@ function dbLines(bytes, per = 16) {
     return out;
 }
 
+// The title alone, so ROM hacks and other layouts get the known regions too;
+// a room whose blob does not decode is skipped (roomRegions), not fatal.
 function isEvermore(map) {
-    return !!(map.header && /SECRET OF EVERMORE/.test(map.header.title) && map.type === 'HiROM');
+    return !!(map.header && /SECRET OF EVERMORE/.test(map.header.title));
 }
 
 function roomRegions(rom, map, steps) {
@@ -204,10 +206,16 @@ function findKnownRegions(rom, map, cdl) {
     let all = headerRegions(rom, map, steps);
     const defines = [];
     if (isEvermore(map) && rom.length > STRING_KEYS + STRING_COUNT * 3 && rom.length > maps.MAP_LIST_ADDR + maps.MAX_ROOMS * 4) {
-        all = all.concat(roomRegions(rom, map, steps), enterScriptRegion(rom, map, steps), stringRegions(rom, map, cdl, steps), stringKeyReaders(rom, map, steps));
-        defines.push(STRKEY_FN);
+        try {
+            all = all.concat(roomRegions(rom, map, steps), enterScriptRegion(rom, map, steps), stringRegions(rom, map, cdl, steps), stringKeyReaders(rom, map, steps));
+            defines.push(STRKEY_FN);
+        } catch (err) {
+            // A hack with the vanilla title but moved tables: keep the header only.
+            all = headerRegions(rom, map, []);
+            steps.push('Content: titled Secret of Evermore, but its tables do not decode (' + err.message + '); only the header is seeded.');
+        }
     } else {
-        steps.push('Content: not a Secret of Evermore HiROM image, only the header is seeded.');
+        steps.push('Content: not a Secret of Evermore image, only the header is seeded.');
     }
     all.sort((a, b) => a.start - b.start || b.end - a.end);
     const regions = [], dropped = [];

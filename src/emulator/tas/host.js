@@ -39,6 +39,12 @@ function safeName(name) {
     return String(name || 'rom').replace(/\.[^.]+$/, '').replace(/[^A-Za-z0-9 _()[\]!.-]+/g, '_').trim() || 'rom';
 }
 
+/** The recordings folder: everscript.tas.recordingsDirectory, else <storage>/tas-recordings. */
+function recordingsDir(storageDir) {
+    const custom = String(vscode.workspace.getConfiguration('everscript').get('tas.recordingsDirectory', '') || '').trim();
+    return custom || path.join(storageDir, 'tas-recordings');
+}
+
 class TasHost {
     /**
      * @param {string} storageDir  extension global storage path
@@ -48,7 +54,7 @@ class TasHost {
      */
     constructor(storageDir, post, log, coreWasmPath) {
         this.coreWasmPath = coreWasmPath || (() => '');
-        this.defaultDir = path.join(storageDir, 'tas-recordings');
+        this.storageDir = storageDir;
         this.post = post;
         this.log = log;
         this.romSha = '';
@@ -58,8 +64,7 @@ class TasHost {
     _config() { return vscode.workspace.getConfiguration('everscript'); }
 
     dir() {
-        const custom = String(this._config().get('tas.recordingsDirectory', '') || '').trim();
-        const dir = custom || this.defaultDir;
+        const dir = recordingsDir(this.storageDir);
         fs.mkdirSync(dir, { recursive: true });
         return dir;
     }
@@ -290,4 +295,4 @@ class TasHost {
     dispose() { this._recEnd(); }
 }
 
-module.exports = { TasHost };
+module.exports = { recordingsDir, TasHost };

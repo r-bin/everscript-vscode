@@ -162,6 +162,22 @@ module.exports = {
     },
 
     {
+      name: 'recorder-is-the-emulator',
+      comment: 'The SNES CDL Recorder (src/recorder) is the emulator panel in its recorder profile; it ships only what it requires (tools/recorder/package-files.js), so it builds on nothing else.',
+      severity: 'warn',
+      from: { path: '^src/recorder/' },
+      to: { path: '^src/(?!recorder/|emulator/)' },
+    },
+
+    {
+      name: 'nothing-imports-the-recorder',
+      comment: 'src/recorder is an activation entry, like src/extension.js.',
+      severity: 'warn',
+      from: { path: '^src/(?!recorder/)' },
+      to: { path: '^src/recorder/' },
+    },
+
+    {
       name: 'no-language-to-emulator',
       comment: 'Language features must not depend on the emulator.',
       severity: 'warn',

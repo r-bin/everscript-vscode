@@ -57,8 +57,12 @@ const WF = { READ: 1, WRITE: 2, BYTE: 4, WORD: 8, EXEC: 0x10, SCRIPT: 0x20, POIN
 
 function readRecords(file, magic, words) {
     if (!fs.existsSync(file)) return null;
-    const buf = fs.readFileSync(file);
-    if (buf.length < 12 || buf.toString('ascii', 0, 4) !== magic) return null;
+    return parseRecords(fs.readFileSync(file), magic, words);
+}
+
+/** A record file's rows as one flat Uint32Array, or null when it is not a `magic` file. */
+function parseRecords(buf, magic, words) {
+    if (!buf || buf.length < 12 || buf.toString('ascii', 0, 4) !== magic) return null;
     const count = buf.readUInt32LE(8);
     const out = new Uint32Array(count * words);
     for (let i = 0; i < out.length; i++) out[i] = buf.readUInt32LE(12 + i * 4);
@@ -85,13 +89,26 @@ class CdlLibrary {
     /**
      * @param {string} root   library root (e.g. <globalStorage>/cdl-library)
      * @param {Uint8Array} rom ROM bytes (copier header allowed)
-     * @param {object} [info]  { title, mapType } for the manifest
+     * @param {object} [info]  { title, mapType, sha256 } for the manifest
      */
     constructor(root, rom, info) {
-        const body = stripCopierHeader(rom);
-        this.hash = romHash(rom);
+        if (rom) this._init(root, romHash(rom), stripCopierHeader(rom).length, info);
+    }
+
+    /**
+     * The library of a ROM known only by its hash and size (importing a recording
+     * bundle, which carries no ROM).
+     */
+    static open(root, hash, romSize, info) {
+        const lib = new CdlLibrary(root, null);
+        lib._init(root, hash, romSize, info);
+        return lib;
+    }
+
+    _init(root, hash, romSize, info) {
+        this.hash = hash;
         this.dir = path.join(root, this.hash);
-        this.romSize = body.length;
+        this.romSize = romSize;
         this.info = info || {};
         this.cdl = new Uint8Array(this.romSize);
         this.ext = new Uint8Array(this.romSize);
@@ -309,6 +326,8 @@ class CdlLibrary {
         this.manifest = Object.assign({ format: FORMAT, sha1: this.hash, created: now }, this.manifest || {}, {
             title: this.info.title || (this.manifest && this.manifest.title) || '',
             mapType: this.info.mapType || (this.manifest && this.manifest.mapType) || '',
+            // sha256 of the ROM: how replays (.evsmv "# rom-sha256") find their library
+            sha256: this.info.sha256 || (this.manifest && this.manifest.sha256) || '',
             romSize: this.romSize,
             files: ['rom.cdl', 'rom.ext', 'wram-values.bin', 'xrefs.bin', 'edges.bin', 'pcstats.bin', 'wram.flags', 'script-xrefs.bin', 'rom-hits.bin', 'wram-hits.bin', ...EXT_FILES],
             updated: now,
@@ -330,4 +349,4 @@ class CdlLibrary {
     }
 }
 
-module.exports = { CdlLibrary, romHash, stripCopierHeader, xrefKey, edgeKey, scriptKey, WF, WRAM_SIZE, WVAL_BYTES };
+module.exports = { CdlLibrary, romHash, stripCopierHeader, parseRecords, xrefKey, edgeKey, scriptKey, WF, WRAM_SIZE, WVAL_BYTES };

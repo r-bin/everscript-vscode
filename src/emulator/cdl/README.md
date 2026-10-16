@@ -28,13 +28,21 @@ Usage (record → export → `build.sh` → `recomp.sh`): `docs/reverse-engineer
 | `functions.js` | `functions.json`: per-function widths, DB/D, WRAM / I/O footprint, SA-1 blockers |
 | `wram-export.js` | `ram.asm`: every WRAM address, accessors, values seen, enum / bit-flag guesses |
 | `lookup.js` | "who calls / who touches" answers for the CDL tab |
-| `host.js` | Panel glue (the only file that needs `vscode`): seed, snapshot, merge deltas, flush policy, export, lookup, script naming |
+| `host.js` | Panel glue (the only file that needs `vscode`): seed, snapshot, merge deltas, flush policy; export and lookup when given `tools.js`; remembers whether recording was on |
+| `tools.js` | Exports, lookup and script naming for the CDL tab, handed to the panel by Everscript (`configureEmulator({ cdlTools })`); not in the SNES CDL Recorder |
+| `bundle.js` | Recording bundles: zip one library + its replays (`buildBundle`), merge one in (`importBundle`); summed streams add only the growth since that install's last bundle |
 
 The webview half is `../cdl-view.js` (tab, tick / drain), `../cdl-strips.js` (ROM + WRAM strips) and `../cdl-float.js` (floating coverage gains over the active character).
 
 ## Invariants
 
-- Recording is **off by default** (`everscript.cdl.enabled`, or the tab's toggle per session).
+- Recording is **off by default** in Everscript (`everscript.cdl.enabled`, or the tab's toggle) and **on** in
+  the SNES CDL Recorder; the last switch of the toggle is remembered (`globalState` `everscript.emulator.cdlWanted`).
+- A library's manifest records the ROM's `sha256` (since v0.219.0): replays (`# rom.sha256`) find their
+  library by it when a bundle is exported.
+- A bundle never holds ROM bytes. Importing the same bundle twice is refused; a newer bundle from the
+  same recorder install replaces that install's hit / cycle counts instead of adding them again
+  (`<library>/imports/<installId>/`).
 - The SSD is never touched per instruction: the core records into WASM memory, the
   webview drains only changed chunks / new table entries every 15 s, and the host writes
   only files that changed: 60 s after the last change, at most every 5 min while changes

@@ -118,8 +118,8 @@ test('menu-view.js links objects to live WRAM and clears local pause cache on op
   assert.ok(menuCode.includes('for (let o = 0; o < 160; o++) {\n            const val = (o === objIndex) ? newState : (m.readMemory(0x7E10CE + o) || 0);'), 'stepObjectState must preserve full 160 WRAM object states in requestRoomMap');
 });
 
-test('panel-webview.js sets default extension on and technical overlays off', () => {
-  assert.ok(webviewCode.includes('let extendMapEnabled = true;'), 'extendMapEnabled must default to true');
+test('panel-webview.js starts with every overlay off (the saved settings turn them on)', () => {
+  assert.ok(webviewCode.includes('let extendMapEnabled = false;'), 'extendMapEnabled must default to false');
   assert.ok(webviewCode.includes('let triggersOverlayEnabled = false;'), 'triggersOverlayEnabled must default to false');
   assert.ok(webviewCode.includes('let objectsOverlayEnabled = false;'), 'objectsOverlayEnabled must default to false');
   assert.ok(webviewCode.includes('let animTilesOverlayEnabled = false;'), 'animTilesOverlayEnabled must default to false');
@@ -149,8 +149,8 @@ test('panel-webview.js synchronizes background and foreground image activation a
 });
 
 test('menu-view.js provides CHEATS tab with noclip, invincibility, and full heal', () => {
-  assert.ok(menuCode.includes('id="menu-tab-btn-4" class="menu-tab-btn" type="button" data-tab="4">CHEATS</button>'), 'missing CHEATS tab button');
-  assert.ok(menuCode.includes('id="menu-panel-4" class="menu-tab-panel"'), 'missing CHEATS panel');
+  assert.ok(menuCode.includes('id="menu-tab-btn-4" class="menu-tab-btn" data-needs="evermore" type="button" data-tab="4">CHEATS</button>'), 'missing CHEATS tab button');
+  assert.ok(menuCode.includes('id="menu-panel-4" class="menu-tab-panel" data-needs="evermore"'), 'missing CHEATS panel');
   assert.ok(menuCode.includes('toggle-cheat-noclip'), 'missing toggle-cheat-noclip row');
   assert.ok(menuCode.includes('toggle-cheat-invincible'), 'missing toggle-cheat-invincible row');
   assert.ok(menuCode.includes('action-cheat-heal'), 'missing action-cheat-heal row');

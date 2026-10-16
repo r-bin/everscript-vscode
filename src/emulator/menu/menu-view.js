@@ -6,12 +6,14 @@
  * Owns: the Emulator Quick Menu OSD (On-Screen Display).
  * - Fixed top positioning
  * - 6 Tabs paged with L and R:
- *     0: LENS (Default - undistorted room view, pan & zoom)
- *     1: OVERLAYS (Extended Map, Triggers, Entities, Anim Tiles, Collision, Fog, Sound FX, Zoom)
+ *     0: VIEW (Default - the paused screen undistorted, pan & zoom; room and coordinates for Evermore)
+ *     1: OVERLAYS (Extended Map, Triggers, Entities, Anim Tiles, Collision, Fog, Sound FX, Zoom) - all off by default
  *     2: OBJECTS (Section 3 objects list, state 0...max, stepper alters WRAM & engine)
  *     3: LOOT (Chests, Gourds & Sniff spots, preview icon, looted toggle, safe script run)
- *     4: EMULATION (Speed 1/4x..4x, Sound, Debugger Focus, Reset)
- *     5: CONTROLS (Interactive keybinds & gamepad remapper, presets)
+ *     4: CHEATS
+ *     5: EMULATION (Speed 1/4x..4x, Master Audio, Keep Focus, Reset, Soft Reset)
+ *     6: CONTROLS (Interactive keybinds & gamepad remapper, presets)
+ * Tabs 1-4 need Secret of Evermore (data-needs="evermore", webview/emulator-profile.js).
  * - Non-looping stepped values (Speed: 1/4x, 1/2x, 1x, 2x, 4x; Zoom, toggles)
  * - Up/Down automatic scroll-into-view
  * - Wheel events inside menu scroll the menu instead of the map
@@ -303,7 +305,7 @@ function getMenuCss() {
       color: #fff;
     }
 
-    /* Tab 0: LENS Panel */
+    /* Tab 0: VIEW Panel */
     .menu-lens-panel {
       padding: 10px 14px;
       display: flex;
@@ -552,11 +554,11 @@ function getMenuHtml() {
         <div id="menu-header">
           <button id="menu-l-btn" class="menu-shoulder-btn" type="button" title="Previous Tab (L)">&lt; L</button>
           <div id="menu-tabs">
-            <button id="menu-tab-btn-0" class="menu-tab-btn active" type="button" data-tab="0">LENS</button>
-            <button id="menu-tab-btn-1" class="menu-tab-btn" type="button" data-tab="1">OVERLAYS</button>
-            <button id="menu-tab-btn-2" class="menu-tab-btn" type="button" data-tab="2">OBJECTS</button>
-            <button id="menu-tab-btn-3" class="menu-tab-btn" type="button" data-tab="3">LOOT</button>
-            <button id="menu-tab-btn-4" class="menu-tab-btn" type="button" data-tab="4">CHEATS</button>
+            <button id="menu-tab-btn-0" class="menu-tab-btn active" type="button" data-tab="0">VIEW</button>
+            <button id="menu-tab-btn-1" class="menu-tab-btn" data-needs="evermore" type="button" data-tab="1">OVERLAYS</button>
+            <button id="menu-tab-btn-2" class="menu-tab-btn" data-needs="evermore" type="button" data-tab="2">OBJECTS</button>
+            <button id="menu-tab-btn-3" class="menu-tab-btn" data-needs="evermore" type="button" data-tab="3">LOOT</button>
+            <button id="menu-tab-btn-4" class="menu-tab-btn" data-needs="evermore" type="button" data-tab="4">CHEATS</button>
             <button id="menu-tab-btn-5" class="menu-tab-btn" type="button" data-tab="5">EMULATION</button>
             <button id="menu-tab-btn-6" class="menu-tab-btn" type="button" data-tab="6">CONTROLS</button>
           </div>
@@ -565,11 +567,11 @@ function getMenuHtml() {
         </div>
 
         <div id="menu-body">
-          <!-- Tab 0: LENS -->
+          <!-- Tab 0: VIEW -->
           <div id="menu-panel-0" class="menu-tab-panel active">
             <div class="menu-lens-panel">
-              <div class="menu-lens-header">
-                <div class="menu-lens-room" id="menu-lens-room-title">Map Lens (Undistorted Room View)</div>
+              <div class="menu-lens-header" data-needs="evermore">
+                <div class="menu-lens-room" id="menu-lens-room-title">View (Undistorted Room View)</div>
                 <div class="menu-lens-coords" id="menu-lens-coords">Cam: (0, 0) | Player: (0, 0)</div>
               </div>
               <div class="menu-row selected" data-row="0" data-action="step-zoom-lens">
@@ -580,7 +582,7 @@ function getMenuHtml() {
                   <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
                 </div>
               </div>
-              <div class="menu-row" data-row="1" data-action="action-reset-pan">
+              <div class="menu-row" data-row="1" data-action="action-reset-pan" data-needs="evermore">
                 <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Center on Player / Reset Pan</div>
                 <div class="menu-row-value">
                   <span class="menu-action-pill">[A] Center</span>
@@ -596,12 +598,12 @@ function getMenuHtml() {
           </div>
 
           <!-- Tab 1: OVERLAYS -->
-          <div id="menu-panel-1" class="menu-tab-panel">
+          <div id="menu-panel-1" class="menu-tab-panel" data-needs="evermore">
             <div class="menu-row selected" data-row="0" data-action="toggle-extend">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Extended Map Background</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
-                <span id="menu-val-extend" class="menu-pill active">ON</span>
+                <span id="menu-val-extend" class="menu-pill">OFF</span>
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
@@ -649,7 +651,7 @@ function getMenuHtml() {
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Sound Entity Visualizer</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
-                <span id="menu-val-sound-vis" class="menu-pill active">ON</span>
+                <span id="menu-val-sound-vis" class="menu-pill">OFF</span>
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
@@ -665,7 +667,7 @@ function getMenuHtml() {
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Thin HP Bar</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
-                <span id="menu-val-hp-bar" class="menu-pill active">ON</span>
+                <span id="menu-val-hp-bar" class="menu-pill">OFF</span>
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
@@ -673,26 +675,26 @@ function getMenuHtml() {
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Thin Stamina Bar</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
-                <span id="menu-val-stamina-bar" class="menu-pill active">ON</span>
+                <span id="menu-val-stamina-bar" class="menu-pill">OFF</span>
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
           </div>
 
           <!-- Tab 2: OBJECTS -->
-          <div id="menu-panel-2" class="menu-tab-panel">
+          <div id="menu-panel-2" class="menu-tab-panel" data-needs="evermore">
             <div class="menu-section-header">Section 3 Map Objects (0 ... Max State)</div>
             <div id="menu-objects-list" class="menu-scroll-list"></div>
           </div>
 
           <!-- Tab 3: LOOT -->
-          <div id="menu-panel-3" class="menu-tab-panel">
+          <div id="menu-panel-3" class="menu-tab-panel" data-needs="evermore">
             <div class="menu-section-header">Room Pickups (Chests, Gourds &amp; Sniff Spots)</div>
             <div id="menu-loot-list" class="menu-scroll-list"></div>
           </div>
 
           <!-- Tab 4: CHEATS -->
-          <div id="menu-panel-4" class="menu-tab-panel">
+          <div id="menu-panel-4" class="menu-tab-panel" data-needs="evermore">
             <div class="menu-row selected" data-row="0" data-action="toggle-cheat-noclip">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> No Clip / Phasing</div>
               <div class="menu-row-value">
@@ -749,29 +751,21 @@ function getMenuHtml() {
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
-            <div class="menu-row" data-row="2" data-action="toggle-sound-vis-tab4">
-              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Sound Entity Visualizer</div>
+            <div class="menu-row" data-row="2" data-action="toggle-keep-focus" title="Tab and debugger stops leave the focus on the emulator">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Keep Focus</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
-                <span id="menu-val-sound-vis-tab4" class="menu-pill active">ON</span>
+                <span id="menu-val-focus" class="menu-pill">OFF</span>
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
-            <div class="menu-row" data-row="3" data-action="toggle-breakpoint-focus">
-              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Debugger Break Focus</div>
-              <div class="menu-row-value">
-                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
-                <span id="menu-val-focus" class="menu-pill">Code</span>
-                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
-              </div>
-            </div>
-            <div class="menu-row" data-row="4" data-action="action-reset-rom">
+            <div class="menu-row" data-row="3" data-action="action-reset-rom">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Reset / Power-Cycle ROM</div>
               <div class="menu-row-value">
                 <span class="menu-action-pill">[Press A to Reset]</span>
               </div>
             </div>
-            <div class="menu-row" data-row="5" data-action="action-soft-reset">
+            <div class="menu-row" data-row="4" data-action="action-soft-reset">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Soft Reset (keeps RAM and save)</div>
               <div class="menu-row-value">
                 <span class="menu-action-pill">[Press A to Reset]</span>
@@ -858,13 +852,8 @@ function getMenuClientScript() {
     const MENU_ZOOM_VALUES = [0.5, 1.0, 1.5, 2.0, -1]; // -1 is Fit
     let menuZoomIndex = 4; // Default Fit
 
+    // The saved keybinds arrive with the host's settings (emulator-profile.js emuApplySettings).
     let userKeyMap = Object.assign({}, DEFAULT_KEY_MAP);
-    try {
-      const savedBinds = localStorage.getItem('everscript_emulator_keybinds_v1');
-      if (savedBinds) {
-        userKeyMap = Object.assign({}, DEFAULT_KEY_MAP, JSON.parse(savedBinds));
-      }
-    } catch (e) {}
 
     let dynamicKeyToBit = {};
     function rebuildKeyBitMap() {
@@ -881,10 +870,10 @@ function getMenuClientScript() {
     }
     rebuildKeyBitMap();
 
-    // Menu State: 0: LENS, 1: OVERLAYS, 2: OBJECTS, 3: LOOT, 4: CHEATS, 5: EMULATION, 6: CONTROLS
+    // Menu State: 0: VIEW, 1: OVERLAYS, 2: OBJECTS, 3: LOOT, 4: CHEATS, 5: EMULATION, 6: CONTROLS
     const MENU_TAB_COUNT = 7;
     let isMenuOpen = false;
-    let menuActiveTab = 0; // Default LENS
+    let menuActiveTab = 0; // Default VIEW
     let menuSelectedRow = 0;
     const tabSelectedRows = [0, 0, 0, 0, 0, 0, 0];
     const tabScrollTops = [0, 0, 0, 0, 0, 0, 0];
@@ -896,7 +885,7 @@ function getMenuClientScript() {
     // Controllable Player Gate:
     // Only intercepts Start when player is in gameplay (not on opening screen, cinema, or entering name)
     function isPlayerControllable(m) {
-      if (!m || !romLoaded) return false;
+      if (!m || !romLoaded || !emuEvermore) return false;   // other games keep Start for themselves
       try {
         if (typeof m.readMemory !== 'function') return false;
         // 1. Current map: 0x00 is title, Carlton cinema, intro, and name entry
@@ -974,7 +963,7 @@ function getMenuClientScript() {
       checkMapChange();
 
       const curMap = getCurrentMapId();
-      if (curMap >= 0 && (!cachedObjects || !cachedLootables)) {
+      if (emuEvermore && curMap >= 0 && (!cachedObjects || !cachedLootables)) {
         if (typeof roomObjectsCache !== 'undefined' && roomObjectsCache.has(curMap)) {
           cachedObjects = roomObjectsCache.get(curMap);
         }
@@ -1052,8 +1041,11 @@ function getMenuClientScript() {
       }
     }
 
+    // Tabs a ROM does not get (data-needs, emulator-profile.js) are skipped; no wrap-around.
     function switchMenuTab(delta) {
-      selectMenuTab(menuActiveTab + delta);
+      for (let t = menuActiveTab + delta; t >= 0 && t < MENU_TAB_COUNT; t += delta) {
+        if (typeof emuMenuTabShown !== 'function' || emuMenuTabShown(t)) { selectMenuTab(t); return; }
+      }
     }
 
     function renderMenuTab(tabIndex) {
@@ -1181,7 +1173,7 @@ function getMenuClientScript() {
     // Steppers / Toggles: Non-looping, clamped left and right
     function changeMenuValue(delta) {
       if (menuActiveTab === 0) {
-        // Tab 0: LENS
+        // Tab 0: VIEW
         if (menuSelectedRow === 0) {
           // Zoom stepper
           menuZoomIndex = Math.max(0, Math.min(menuZoomIndex + delta, MENU_ZOOM_LABELS.length - 1));
@@ -1226,7 +1218,6 @@ function getMenuClientScript() {
             if (typeof sndSetShow === 'function') {
               sndSetShow(delta > 0);
               setPillState('menu-val-sound-vis', sndShow);
-              setPillState('menu-val-sound-vis-tab4', sndShow);
               playMenuSound('click_toggle');
             }
             break;
@@ -1314,18 +1305,12 @@ function getMenuClientScript() {
             playMenuSound('click_toggle');
             break;
           case 1:
+            if (typeof emuSetMuted === 'function') emuSetMuted(delta < 0);
+            syncMenuValuesFromRuntime();
             playMenuSound('click_toggle');
             break;
           case 2:
-            if (typeof sndSetShow === 'function') {
-              sndSetShow(delta > 0);
-              setPillState('menu-val-sound-vis', sndShow);
-              setPillState('menu-val-sound-vis-tab4', sndShow);
-              playMenuSound('click_toggle');
-            }
-            break;
-          case 3:
-            setKeepFocusChip(delta > 0);
+            setKeepFocusChip(delta > 0, true);
             syncMenuValuesFromRuntime();
             playMenuSound('click_toggle');
             break;
@@ -1381,7 +1366,6 @@ function getMenuClientScript() {
             if (typeof sndSetShow === 'function') {
               sndSetShow(!sndShow);
               setPillState('menu-val-sound-vis', sndShow);
-              setPillState('menu-val-sound-vis-tab4', sndShow);
               playMenuSound('click_toggle');
             }
             break;
@@ -1452,29 +1436,24 @@ function getMenuClientScript() {
       } else if (menuActiveTab === 5) {
         // Tab 5: EMULATION
         switch (menuSelectedRow) {
-          case 2:
-            if (typeof sndSetShow === 'function') {
-              sndSetShow(!sndShow);
-              setPillState('menu-val-sound-vis', sndShow);
-              setPillState('menu-val-sound-vis-tab4', sndShow);
-              playMenuSound('click_toggle');
-            }
-            break;
-          case 3:
-            const focusChip = document.getElementById('ss-chip-stay');
-            const isStay = focusChip && focusChip.classList.contains('active');
-            setKeepFocusChip(!isStay);
+          case 1:
+            if (typeof emuSetMuted === 'function') emuSetMuted(!emuMuted);
             syncMenuValuesFromRuntime();
             playMenuSound('click_toggle');
             break;
-          case 4:
+          case 2:
+            setKeepFocusChip(!keepFocusOnBreak, true);
+            syncMenuValuesFromRuntime();
+            playMenuSound('click_toggle');
+            break;
+          case 3:
             playMenuSound('click_confirm');
             if (loadedRomData) {
               bootRom(loadedRomData, loadedRomName);
               closeEmulatorMenu();
             }
             break;
-          case 5:
+          case 4:
             if (typeof tasSoftReset === 'function' && tasSoftReset()) {
               playMenuSound('click_confirm');
               closeEmulatorMenu();
@@ -1959,9 +1938,7 @@ function getMenuClientScript() {
     function applyKeybind(keyStr) {
       if (!menuListeningBtn) return;
       userKeyMap[menuListeningBtn] = keyStr;
-      try {
-        localStorage.setItem('everscript_emulator_keybinds_v1', JSON.stringify(userKeyMap));
-      } catch (e) {}
+      if (typeof emuSettingsChanged === 'function') emuSettingsChanged();
       rebuildKeyBitMap();
       playMenuSound('click_confirm');
       menuListeningBtn = null;
@@ -2221,9 +2198,8 @@ function getMenuClientScript() {
       setPillState('menu-val-collision', collisionOverlayEnabled);
       setPillState('menu-val-fog', fogOfWarEnabled);
       setPillState('menu-val-sound-vis', sndShow);
-      setPillState('menu-val-sound-vis-tab4', sndShow);
-      setPillState('menu-val-hp-bar', typeof thinHpBarEnabled !== 'undefined' ? !!thinHpBarEnabled : true);
-      setPillState('menu-val-stamina-bar', typeof thinStaminaBarEnabled !== 'undefined' ? !!thinStaminaBarEnabled : true);
+      setPillState('menu-val-hp-bar', !!thinHpBarEnabled);
+      setPillState('menu-val-stamina-bar', !!thinStaminaBarEnabled);
       setPillState('menu-val-cheat-noclip', !!cheatNoclipEnabled);
       setPillState('menu-val-cheat-invincible', !!cheatInvincibleEnabled);
       setPillState('menu-val-cheat-atlas', !!cheatAtlasEnabled);
@@ -2234,12 +2210,11 @@ function getMenuClientScript() {
       const zmEl = document.getElementById('menu-val-zoom');
       if (zmEl) zmEl.textContent = MENU_ZOOM_LABELS[menuZoomIndex];
 
-      const focusChip = document.getElementById('ss-chip-stay');
-      const isStay = focusChip && focusChip.classList.contains('active');
-      const focusPill = document.getElementById('menu-val-focus');
-      if (focusPill) {
-        focusPill.textContent = isStay ? 'Stay' : 'Code';
-        focusPill.classList.toggle('active', isStay);
+      setPillState('menu-val-focus', keepFocusOnBreak);
+      const soundPill = document.getElementById('menu-val-sound');
+      if (soundPill) {
+        soundPill.textContent = emuMuted ? 'Muted' : 'Normal';
+        soundPill.classList.toggle('active', !emuMuted);
       }
     }
 
@@ -2312,7 +2287,7 @@ function getMenuClientScript() {
         if (pArrows) {
           pArrows.addEventListener('click', function() {
             userKeyMap = Object.assign({}, DEFAULT_KEY_MAP);
-            localStorage.setItem('everscript_emulator_keybinds_v1', JSON.stringify(userKeyMap));
+            if (typeof emuSettingsChanged === 'function') emuSettingsChanged();
             rebuildKeyBitMap();
             playMenuSound('click_confirm');
             renderKeybindRows();
@@ -2324,7 +2299,7 @@ function getMenuClientScript() {
               'Up': 'w', 'Down': 's', 'Left': 'a', 'Right': 'd',
               'B': 'j', 'A': 'k', 'Y': 'u', 'X': 'i', 'L': 'q', 'R': 'e'
             });
-            localStorage.setItem('everscript_emulator_keybinds_v1', JSON.stringify(userKeyMap));
+            if (typeof emuSettingsChanged === 'function') emuSettingsChanged();
             rebuildKeyBitMap();
             playMenuSound('click_confirm');
             renderKeybindRows();
@@ -2332,8 +2307,8 @@ function getMenuClientScript() {
         }
         if (pReset) {
           pReset.addEventListener('click', function() {
-            localStorage.removeItem('everscript_emulator_keybinds_v1');
             userKeyMap = Object.assign({}, DEFAULT_KEY_MAP);
+            if (typeof emuSettingsChanged === 'function') emuSettingsChanged();
             rebuildKeyBitMap();
             playMenuSound('click_confirm');
             renderKeybindRows();

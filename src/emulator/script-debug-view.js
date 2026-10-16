@@ -40,7 +40,8 @@ function getScriptDebugClientScript() {
     function sdbgArm() {
       const m = getModule();
       if (!sdbgApiReady(m)) return;
-      const want = sdbg.active && (sdbg.breakpoints.size > 0 || !!sdbg.step || sdbg.pauseNext);
+      // The interpreter fetch exists only in Secret of Evermore (U) and ROMs built on it.
+      const want = emuScriptHook && sdbg.active && (sdbg.breakpoints.size > 0 || !!sdbg.step || sdbg.pauseNext);
       if (want && !sdbg.armed) m.addExecBreakpoint(SDBG_DISPATCH);
       if (!want && sdbg.armed) m.removeExecBreakpoint(SDBG_DISPATCH);
       sdbg.armed = want;

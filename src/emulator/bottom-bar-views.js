@@ -284,16 +284,16 @@ function getBottomBarCss() {
 
 function getBottomBarTabButtonsHtml() {
   return `
-        <button id="ss-tab-entities" class="ss-tab" type="button">ENTITIES (<span id="ss-ent-count">0</span>)</button>
-        <button id="ss-tab-alchemy" class="ss-tab" type="button">ALCHEMY &amp; PROJECTILES (<span id="ss-alc-count">0</span>)</button>
-        <button id="ss-tab-palettes" class="ss-tab" type="button">PALETTES</button>
+        <button id="ss-tab-entities" class="ss-tab" data-needs="full evermore" type="button">ENTITIES (<span id="ss-ent-count">0</span>)</button>
+        <button id="ss-tab-alchemy" class="ss-tab" data-needs="full evermore" type="button">ALCHEMY &amp; PROJECTILES (<span id="ss-alc-count">0</span>)</button>
+        <button id="ss-tab-palettes" class="ss-tab" data-needs="full evermore" type="button">PALETTES</button>
   `;
 }
 
 function getBottomBarViewsHtml() {
   return `
     <!-- Tab: Entities / Enemies (Boy, Dog, Enemies, NPCs) -->
-    <div id="ss-view-entities" class="ss-tab-view">
+    <div id="ss-view-entities" class="ss-tab-view" data-needs="full evermore">
       <div class="ss-subbar">
         <button id="ent-filter-all" class="ss-btn active" type="button">All (<span id="ent-count-all">0</span>)</button>
         <button id="ent-filter-party" class="ss-btn" type="button">Party (<span id="ent-count-party">0</span>)</button>
@@ -324,7 +324,7 @@ function getBottomBarViewsHtml() {
     </div>
 
     <!-- Tab: Projectile Alchemy + Animation Alchemy + Projectiles -->
-    <div id="ss-view-alchemy" class="ss-tab-view">
+    <div id="ss-view-alchemy" class="ss-tab-view" data-needs="full evermore">
       <div class="ss-subbar">
         <button id="alc-filter-all" class="ss-btn active" type="button">All (24)</button>
         <button id="alc-filter-palc" class="ss-btn" type="button">Projectile Alchemy (8)</button>
@@ -403,7 +403,7 @@ function getBottomBarViewsHtml() {
     </div>
 
     <!-- Tab: Sprite Palettes + Map Palettes -->
-    <div id="ss-view-palettes" class="ss-tab-view">
+    <div id="ss-view-palettes" class="ss-tab-view" data-needs="full evermore">
       <div class="ss-subbar">
         <button id="pal-tab-all" class="ss-btn active" type="button">All Palettes</button>
         <button id="pal-tab-sprites" class="ss-btn" type="button">Sprite Palettes (8)</button>

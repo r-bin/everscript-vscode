@@ -64,6 +64,7 @@ function getCdlFloatScript() {
 
     /** Called once per tick with { label: percentGained } for the banks that grew. */
     function cdlFloatGains(gains) {
+      if (!emuEvermore) return;   // the anchor is Evermore's active character
       for (const label in gains) cdlFloatPending.set(label, (cdlFloatPending.get(label) || 0) + gains[label]);
       const ready = [...cdlFloatPending].filter(e => e[1] >= CDL_FLOAT_MIN_PCT).sort((a, b) => b[1] - a[1]).slice(0, CDL_FLOAT_MAX);
       if (!ready.length) return;

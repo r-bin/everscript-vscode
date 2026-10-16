@@ -36,7 +36,7 @@ const SFX_TAIL = 0x8C8327;     // return address of $8C:831D's JSL $8C:81FD
 
 /** The overlay bar's chip. */
 function getSoundChipHtml() {
-  return '<button id="screen-sound-toggle" class="screen-chip active" type="button" title="Show which entity makes each sound (and record who sent it for the Music tab)">SOUNDS ON</button>';
+  return '<button id="screen-sound-toggle" class="screen-chip" data-needs="evermore" type="button" title="Show which entity makes each sound (and record who sent it for the Music tab)">SOUNDS OFF</button>';
 }
 
 function getSoundSourceClientScript() {
@@ -45,7 +45,7 @@ function getSoundSourceClientScript() {
     const SND_SFX_TAIL = ${SFX_TAIL};
     const SND_PING_FRAMES = 75;
     let sndArmed = false;
-    let sndShow = true;
+    let sndShow = false;
     let sndEvents = [];
     let sndPings = [];
     let sndPoint = null;
@@ -208,6 +208,7 @@ function getSoundSourceClientScript() {
 
     function sndSetShow(on) {
       sndShow = !!on;
+      if (typeof emuSettingsChanged === 'function') emuSettingsChanged();
       if (!sndShow) sndPings = [];
       const chip = document.getElementById('screen-sound-toggle');
       if (chip) { chip.classList.toggle('active', sndShow); chip.textContent = sndShow ? 'SOUNDS ON' : 'SOUNDS OFF'; }

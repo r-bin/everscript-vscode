@@ -160,6 +160,7 @@ console.log('\nActivation: command registration');
 const EXPECTED_COMMANDS = [
     'everscript.openMemoryRadar',
     'everscript.openEmulator',
+    'everscript.importRecordingBundle',
     'everscript.openSettings',
     'everscript.buildAndRun',
     'everscript._scriptFocus',
