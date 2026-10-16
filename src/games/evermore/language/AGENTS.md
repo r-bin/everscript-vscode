@@ -26,7 +26,7 @@ Kind: **platform** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: 
 ## Invariants
 1. Grammar pattern order matters — first match wins in `tmLanguage.json`.
 2. All JSON in grammar must be ASCII-only (no em-dashes, curly quotes).
-3. Every new grammar rule needs a test assertion in `tests/highlight.test.evs`.
+3. Every new grammar rule needs a test assertion in `src/games/evermore/language/tests/highlight.test.evs`.
 4. Theme colors follow P1–P9 priority system from `docs/vscode-highlighter-spec.md`.
 
 ## Tests

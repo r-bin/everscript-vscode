@@ -1,6 +1,6 @@
 ---
 name: webview-dom-safety
-description: Use when writing or debugging click/pointer handling, delegated event binding, or SVG-based rendering in any src/**/webview/** file in everscript-vscode. Covers idempotent binding, event-target walk-up, VS Code webview API gaps, SVG coordinate systems, and why a green suite still ships broken UI — `[hidden]` losing to author `display` rules, flex items propped open by unwrappable text (only visible at the real container width), and module-level state leaking across tests. The bug class behind "the caret does nothing", "the edit button works every now and then", "new room does nothing", a dropdown visibly stuck open for three releases, and "H/V moves the side bar".
+description: Use when writing or debugging clicks, delegated events or SVG in a webview: idempotent binding, target walk-up, [hidden] vs display, flex overflow, and why green tests still ship broken UI.
 applyTo: "src/**/webview/**"
 ---
 

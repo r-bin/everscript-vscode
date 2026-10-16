@@ -1,6 +1,6 @@
 ---
 name: ghidra-analysis
-description: Use when running or reading Ghidra (with the ghidra-snes extension) or REA on Secret of Evermore — setting it up, seeding it from the CDL library, batch dossiers for naming, or deciding whether a Ghidra/REA result can be trusted. Covers what Ghidra is for in this project, what not, and the traps that cost hours.
+description: Use when running or reading Ghidra (ghidra-snes) or REA on Secret of Evermore: setup, seeding from the CDL library, batch dossiers, and when a result can be trusted.
 applyTo: "docs/reverse-engineering/ghidra.md,docs/reverse-engineering/rea.md,tools/ghidra/**"
 ---
 

@@ -5,7 +5,7 @@ description: Explains the Secret of Evermore alchemy formula subsystem, ROM mast
 
 # Alchemy & Spell Mechanics in Secret of Evermore
 
-This skill provides an authoritative operational reference for reverse-engineering, modifying, or balancing Alchemy formulas in Secret of Evermore. Detailed reference tables and decompiled scripts live in [`docs/alchemy_system_and_spell_mechanics.md`](file:///Users/v/Documents/GitHub/everscript/docs/alchemy_system_and_spell_mechanics.md).
+This skill provides an authoritative operational reference for reverse-engineering, modifying, or balancing Alchemy formulas in Secret of Evermore. Detailed reference tables and decompiled scripts live in `everscript/docs/alchemy_system_and_spell_mechanics.md` (sibling repo) and this repo's `docs/alchemy-damage.md`.
 
 ---
 

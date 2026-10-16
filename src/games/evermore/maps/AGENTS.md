@@ -28,7 +28,7 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
   size and registers with the Rooms tab's SVG layer. `buildSummary()` / `buildLegend()`
   hand that text to the webview as data.
 - The decoder is a line-by-line port of the sibling `everscript` repo's Python
-  (`tools/dump_room.py`, `collision.py`, `cuttable_grass.py`); `npm run check:maps`
+  (`everscript/tools/dump_room.py`, `collision.py`, `cuttable_grass.py`); `npm run check:maps`
   must keep agreeing with it.
 - Do not port or copy code, tables or struct layouts from SoETilesViewer/SoEScriptDumper;
   derive from the ROM with a test (guide §3.8). Known violations to replace, not extend:

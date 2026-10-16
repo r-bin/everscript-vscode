@@ -1,6 +1,6 @@
 ---
 name: supported-games
-description: Use whenever a prompt is about Secret of Mana (SoM, "mana", som://, src/games/mana, Mana maps, Mana rooms in the Rooms tab) or touches both games. Says which data plane to read (som:// for Mana, soe:// for Evermore), that facts never cross from one game to the other, where each game's facts are written down and how they are checked, and that the plugin's own features (editor, file systems, headless tools) are the way to work on every supported game.
+description: Use whenever a prompt is about Secret of Mana or Terranigma, or touches more than one game: which file system to read, no facts across games, where each game's facts live.
 applyTo: "src/games/mana/**,src/games/evermore/imports/mana/**,docs/mana/**,tools/mana/**,tests/mana/**"
 ---
 

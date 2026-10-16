@@ -2,27 +2,9 @@
  "//": "Known AI-context overruns and broken links, removed by docs/cleanup.md step 7. Only ever shrinks.",
  "allow": [
   "AGENTS.md: N lines (max 150)",
-  ".agents/skills/alchemy-spell-mechanics/SKILL.md: missing docs/alchemy_system_and_spell_mechanics.md",
-  ".agents/skills/cdl-recorder/SKILL.md: description N chars (max 200)",
-  ".agents/skills/emulator-script-debugging/SKILL.md: description N chars (max 200)",
-  ".agents/skills/game-knowledge/SKILL.md: description N chars (max 200)",
-  ".agents/skills/ghidra-analysis/SKILL.md: description N chars (max 200)",
-  ".agents/skills/map-construction/SKILL.md: description N chars (max 200)",
   ".agents/skills/map-editor-rules/SKILL.md: N lines (max 200)",
-  ".agents/skills/map-editor-rules/SKILL.md: description N chars (max 200)",
-  ".agents/skills/map-entities/SKILL.md: description N chars (max 200)",
   ".agents/skills/memory-radar/SKILL.md: N lines (max 200)",
-  ".agents/skills/memory-radar/SKILL.md: description N chars (max 200)",
-  ".agents/skills/recomp/SKILL.md: missing src/main.c",
-  ".agents/skills/recomp/SKILL.md: description N chars (max 200)",
-  ".agents/skills/recomp-debugging/SKILL.md: description N chars (max 200)",
-  ".agents/skills/release-ritual/SKILL.md: description N chars (max 200)",
-  ".agents/skills/sample-playbacks/SKILL.md: description N chars (max 200)",
-  ".agents/skills/supported-games/SKILL.md: description N chars (max 200)",
   ".agents/skills/webview-dom-safety/SKILL.md: N lines (max 200)",
-  ".agents/skills/webview-dom-safety/SKILL.md: description N chars (max 200)",
-  "src/emulator/AGENTS.md: N lines (max 70)",
-  "src/games/evermore/language/AGENTS.md: missing tests/highlight.test.evs",
-  "src/games/evermore/maps/AGENTS.md: missing tools/dump_room.py"
+  "src/emulator/AGENTS.md: N lines (max 70)"
  ]
 }

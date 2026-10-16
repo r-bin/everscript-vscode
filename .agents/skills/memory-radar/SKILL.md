@@ -1,6 +1,6 @@
 ---
 name: memory-radar
-description: Use when touching the Memory Radar webview panel in everscript-vscode — its Memory tab (WRAM grid, address lifecycle, arg tracking, pools) or its Rooms tab (map browser, room tree, SVG grid). Source lives under src/games/evermore/memory/, src/games/evermore/rooms/, src/games/evermore/docs-tab/render-docs-tab.js, and src/games/evermore/radar-utils.js.
+description: Use when touching the Memory Radar panel: its Memory tab (WRAM grid, lifecycles, pools) and Rooms tab (map browser, room tree, SVG grid), under games/evermore/memory and rooms.
 applyTo: "src/games/evermore/memory/**,src/games/evermore/rooms/**,src/games/evermore/radar-utils.js,src/games/evermore/docs-tab/render-docs-tab.js,src/extension.js"
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: map-entities
-description: Characters, enemies and NPCs on a Secret of Evermore map — the character record, how a room's enter script places them (8px units, every branch a candidate), sprites, the 4-palette budget, depth against the canopy, the body/hurt/strike boxes, damage, and animation scripts. Read before changing src/games/evermore/maps/character-*.ts, sprites.ts, characters.ts, src/games/evermore/script/entities.ts/arrivals.ts/transition.ts, or anything that draws, places, sizes or fights an entity.
+description: Use before changing how characters, enemies or NPCs are placed, drawn, sized or fought on an Evermore map: character record, enter-script placement, palettes, boxes, damage.
 applyTo: "src/games/evermore/maps/character-*.ts,src/games/evermore/maps/characters.ts,src/games/evermore/maps/sprites.ts,src/games/evermore/scaling/webview/alchemy-math.js,src/games/evermore/script/entities.ts,src/games/evermore/script/arrivals.ts,src/games/evermore/script/transition.ts,docs/script-format/**,simulation/**,src/games/evermore/sprites/character-model.js,src/games/evermore/sprites/dog-forms.js,src/games/evermore/sprites/target.js"
 ---
 

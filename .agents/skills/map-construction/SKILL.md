@@ -1,6 +1,6 @@
 ---
 name: map-construction
-description: How a Secret of Evermore map is put together, from grid cell down to graphic, and what the user means by "tile", "used" and "next to each other" — adjacency is counted over every object state and every animation frame, never just what the room loads with, and a tile no state or frame ever shows is unused. Also what animation groups are (inferred, not stored) and what the vanilla census says about their timing. Read before writing anything that counts, ranks, suggests or groups vanilla tiles (src/games/evermore/maps/vanilla-*.ts) or that seeds a ROM room's objects or animations into the editor.
+description: Use before counting, ranking, suggesting or grouping vanilla tiles, or seeding a ROM room into the editor: what tile, used and adjacent mean (every object state and animation frame).
 applyTo: "src/games/evermore/maps/vanilla-*.ts,src/games/evermore/maps/objects.ts,src/games/evermore/maps/object-stamps.ts,src/games/evermore/maps/animation.ts,src/games/evermore/rooms/webview/map-editor-animations.js,src/games/evermore/rooms/webview/map-editor-objects.js"
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: release-ritual
-description: Use at the end of any session that changed a project file in the everscript-vscode extension — version bump, validation commands, commit message format, and the npm run deploy install step. Skip only for doc-only changes (just commit).
+description: Use at the end of every session that changed a project file: version bump, tests and checks, commit format, npm run deploy. Doc-only changes: just commit.
 applyTo: "**"
 ---
 

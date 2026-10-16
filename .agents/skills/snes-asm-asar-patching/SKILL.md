@@ -16,7 +16,7 @@ Asar takes `.asm` source files, evaluates macros and labels, and assembles them 
 In the Everscript project:
 - Source assembly files live in `patches/*.asm` (e.g. `hotkeys.asm`, `scale_enemies.asm`, `five_status_effects_fix.asm`).
 - Assembly patches are referenced in Everscript via the `#patch("name")` directive.
-- The utility [ips2asar.py](file:///Users/v/Documents/GitHub/everscript/ips2asar.py) can also disassemble binary IPS patches back into clean, commented Asar assembly files.
+- The utility `everscript/ips2asar.py` (sibling repo) can also disassemble binary IPS patches back into clean, commented Asar assembly files.
 
 ---
 

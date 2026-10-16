@@ -1,6 +1,6 @@
 ---
 name: emulator-script-debugging
-description: Explains the debug technique of starting the emulator, launching a ROM or custom room, teleporting the Boy into position to test triggers, and analyzing the real-time execution trace logs and VFS log endpoints.
+description: Use to test a script in the running game: start the emulator, load a ROM or custom room, move the Boy onto a trigger, and read the script trace and the soe:// log files.
 ---
 
 # Emulator Script Debugging Technique

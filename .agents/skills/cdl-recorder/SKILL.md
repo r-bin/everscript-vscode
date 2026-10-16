@@ -1,6 +1,6 @@
 ---
 name: cdl-recorder
-description: Use when touching the Code/Data Logger (CDL) — the recorder compiled into the snes9x core (cdl*.c, hook sites in cpuexec/getset/dma/cpuops/spc700.h/apumem.h), the per-ROM library, xrefs, the Asar export and its assets (tables/, enums, structs, functions.json, snesrecomp cfgs), the CDL tab, or any analysis built on recorded data for a recomp, decomp or SA-1 port.
+description: Use when touching the Code/Data Logger: the recorder in the snes9x core, the per-ROM library, xrefs, the Asar/Mesen/recomp exports, the CDL tab, or analysis built on recorded data.
 applyTo: "src/platform/cdl/**,src/emulator/cdl/**,src/games/evermore/cdl/**,src/emulator/cdl-*.js,src/emulator/core/snes9x2005-wasm/source/cdl*,src/emulator/core/snes9x2005-wasm/source/spc700.h,src/emulator/core/snes9x2005-wasm/source/apumem.h,tools/gen-cdl-optable.js,tests/debugger/cdl*.test.js,docs/reverse-engineering/cdl-export-build-recomp.md,docs/reverse-engineering/asm-to-c-port.md"
 ---
 

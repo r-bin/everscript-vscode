@@ -1,6 +1,6 @@
 ---
 name: sample-playbacks
-description: Sample playbacks — short stored vanilla input recordings (.evsmv) with known coverage. Use when proving a changed ROM (table hack, ExHiROM, a patch, a moved table) still plays like the original, when you need a headless run that reaches a given routine, room or table reader, or when recording a new sample playback.
+description: Use to prove a changed ROM (table hack, ExHiROM, a patch) still plays like the original, or to get a headless run that reaches a routine, room or table: stored vanilla playbacks.
 ---
 
 # Sample playbacks

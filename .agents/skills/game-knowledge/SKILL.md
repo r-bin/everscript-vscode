@@ -1,6 +1,6 @@
 ---
 name: game-knowledge
-description: Use whenever you learn, confirm, correct or need anything about a Secret of Evermore address — a WRAM variable/struct/region, a flag, a ROM routine (asm), a script or script function, a table or a data format. Look it up before researching; write it down before you finish. Covers the knowledge-entry format under src/games/evermore/localizations/knowledge/ and what evidence to record.
+description: Use whenever you learn or need anything about an Evermore address, flag, routine, script, table or format: look it up first, write it down (knowledge entries) before you finish.
 applyTo: "**"
 ---
 
