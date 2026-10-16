@@ -622,19 +622,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     .ss-tab-view { display: none; flex: 1; min-height: 0; flex-direction: column; overflow: hidden; }
     .ss-tab-view.active { display: flex; }
 
-    #ss-trace-header {
-      background: #121212; border-bottom: 1px solid #1d1d1d;
-      padding: 4px 8px; display: flex; justify-content: space-between; align-items: center;
-      font-size: 10px; color: #888; flex-shrink: 0;
-    }
-    #ss-trace-controls { display: flex; gap: 6px; align-items: center; }
-    #ss-trace-controls label { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: #888; cursor: pointer; user-select: none; }
     #ss-trace-log {
       flex: 1; min-height: 0; background: #0c0c0c; padding: 4px 8px;
       font-family: monospace; font-size: 11px; line-height: 1.45;
       overflow-y: auto; overflow-x: hidden;
     }
-    #ss-trace-log.hide-inactive .ss-trace-entry.end { display: none !important; }
     .ss-trace-entry { display: flex; flex-direction: column; padding: 1px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
     .ss-trace-row { display: flex; gap: 6px; white-space: nowrap; padding: 1px 0; align-items: baseline; }
     .ss-trace-sub { display: flex; gap: 6px; white-space: nowrap; padding: 1px 0; font-family: monospace; font-size: 11px; align-items: baseline; }
@@ -796,15 +788,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       <!-- Panels: each is placed in a side bar, here, or only in its pause-menu tab (webview/emulator-panels.js) -->
       <!-- Script Trace Log -->
       <div id="ss-view-trace" class="ss-tab-view" data-needs="full evermore">
-        <div id="ss-trace-header">
-          <div id="ss-trace-controls">
-            <button id="ss-trace-clear-btn" class="ss-btn" type="button">clear</button>
-            <button id="ss-trace-copy-btn" class="ss-btn" type="button">copy</button>
-            <label id="ss-trace-scroll-label"><input type="checkbox" id="ss-trace-scroll" checked /> auto-scroll</label>
-            <label id="ss-trace-hide-inactive-label"><input type="checkbox" id="ss-trace-hide-inactive" /> hide inactive</label>
-          </div>
-          <span id="ss-trace-count">0 lines</span>
-        </div>
         <div id="ss-trace-log"></div>
       </div>
 
@@ -5221,18 +5204,21 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         container.removeChild(container.firstChild);
       }
       totalTraceCount += entries.length;
-      const countEl = document.getElementById('ss-trace-count');
-      if (countEl) {
-        countEl.textContent = totalTraceCount + ' lines';
-      }
       const tabCountEl = document.getElementById('ss-tab-trace-count');
       if (tabCountEl) {
         tabCountEl.textContent = totalTraceCount;
       }
-      const autoScroll = document.getElementById('ss-trace-scroll');
-      if (autoScroll && autoScroll.checked) {
-        container.scrollTop = container.scrollHeight;
-      }
+      // Always follow the newest line: nothing arrives while paused, so pausing keeps the view.
+      container.scrollTop = container.scrollHeight;
+    }
+
+    // The TRACE menu tab's "Clear" row (emulator-panels.js emuPanelMenuAction).
+    function traceClear() {
+      const log = document.getElementById('ss-trace-log');
+      if (log) log.innerHTML = '';
+      totalTraceCount = 0;
+      const tabCount = document.getElementById('ss-tab-trace-count');
+      if (tabCount) tabCount.textContent = '0';
     }
 
     window.addEventListener('message', evt => {
@@ -5376,45 +5362,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         }
       }
     });
-
-    const clearBtn = document.getElementById('ss-trace-clear-btn');
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
-        const log = document.getElementById('ss-trace-log');
-        if (log) log.innerHTML = '';
-        totalTraceCount = 0;
-        const count = document.getElementById('ss-trace-count');
-        if (count) count.textContent = '0 lines';
-        const tabCount = document.getElementById('ss-tab-trace-count');
-        if (tabCount) tabCount.textContent = '0';
-      });
-    }
-
-    const copyBtn = document.getElementById('ss-trace-copy-btn');
-    if (copyBtn) {
-      copyBtn.addEventListener('click', () => {
-        const log = document.getElementById('ss-trace-log');
-        if (!log) return;
-        const text = log.innerText || log.textContent || '';
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(text);
-        }
-      });
-    }
-
-    const hideInactive = document.getElementById('ss-trace-hide-inactive');
-    if (hideInactive) {
-      hideInactive.addEventListener('change', () => {
-        const log = document.getElementById('ss-trace-log');
-        if (log) {
-          if (hideInactive.checked) log.classList.add('hide-inactive');
-          else log.classList.remove('hide-inactive');
-        }
-        if (vscodeApi) {
-          vscodeApi.postMessage({ command: 'setHideInactiveTrace', hideInactive: hideInactive.checked });
-        }
-      });
-    }
 
     renderManualExecBreakpoints();
     initCdlTab();

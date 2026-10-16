@@ -61,7 +61,6 @@ let _pending       = null;   // { dataUrl, name } waiting to load
 let _currentRomBuffer = null; // raw ROM buffer for bytecode disassembly
 let _currentRomName = '';     // name of the ROM the game started from
 let _activeDraft   = null;   // custom draft object for trigger/address lookup
-let _hideInactiveTrace = false; // filter inactive/end script events
 let _extensionPath = '';
 let _buildChannel  = null;   // output channel for build log
 let _emulatorChannel = null; // output channel for emulator runtime and crash log
@@ -681,10 +680,6 @@ function openEmulatorPanel(context, rom, channel) {
               });
               break;
 
-            case 'setHideInactiveTrace':
-              _hideInactiveTrace = !!msg.hideInactive;
-              break;
-
             case 'requestRoomMap':
               _handleRoomMapRequest(msg.mapId, msg.objectStates, msg.cutGrassTiles, msg.layered === true);
               break;
@@ -708,9 +703,7 @@ function openEmulatorPanel(context, rom, channel) {
               const wsRoot = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]
                 ? vscode.workspace.workspaceFolders[0].uri.fsPath
                 : null;
-              const formatted = processScriptTraceBatch(msg.items, _currentRomBuffer, wsRoot, _activeDraft, {
-                hideInactive: _hideInactiveTrace,
-              });
+              const formatted = processScriptTraceBatch(msg.items, _currentRomBuffer, wsRoot, _activeDraft);
               if (_panel && formatted.length) {
                 _panel.webview.postMessage({ command: 'scriptTraceLogged', entries: formatted });
               }

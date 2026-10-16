@@ -132,10 +132,9 @@ function decodeScriptSnippet(rom, snesAddr, maxLines = 2) {
  * @param {Uint8Array|null} currentRom Active ROM buffer or null
  * @param {string|null} wsRoot Workspace root folder path
  * @param {object|null} [customDraft] Custom draft containing triggers for active room
- * @param {object} [options] Formatter options, e.g. { hideInactive: boolean, show8BitCalls: boolean }
  * @returns {Array} Formatted trace entries for the webview UI
  */
-function processScriptTraceBatch(items, currentRom, wsRoot, customDraft = null, options = {}) {
+function processScriptTraceBatch(items, currentRom, wsRoot, customDraft = null) {
   if (!Array.isArray(items) || !items.length) return [];
   const ch = ensureScriptTraceChannel();
 
@@ -144,7 +143,7 @@ function processScriptTraceBatch(items, currentRom, wsRoot, customDraft = null, 
     rom = loadFallbackRom(wsRoot);
   }
 
-  const formatter = new ScriptTraceFormatter(options);
+  const formatter = new ScriptTraceFormatter();
   const lookupTable = getActiveAddressLookup(rom, customDraft);
   const formatted = [];
 
@@ -217,18 +216,12 @@ function processScriptTraceBatch(items, currentRom, wsRoot, customDraft = null, 
     };
 
     const line = formatter.formatText(itemData, lookup);
-    const isInactive = formatter.isInactiveStatus(eventName);
-
-    if (ch && (!options.hideInactive || !isInactive)) {
-      ch.appendLine(line);
-    }
+    if (ch) ch.appendLine(line);
 
     if (subItems.length > 0) {
       for (const sub of subItems) {
         const subText = formatter.formatSubText(sub, itemData);
-        if (ch && (!options.hideInactive || !isInactive)) {
-          ch.appendLine(subText);
-        }
+        if (ch) ch.appendLine(subText);
         subLines.push(subText);
       }
     }

@@ -68,6 +68,11 @@ CDL, TRACE, STACK, ENTITIES, ALCHEMY and PALETTES are panels (`#ss-view-<name>`)
   (Asar project / WRAM map / bundle, whichever the profile has; B exports) are menu rows, then
   the status line and one row per bank that Up / Down selects and that does nothing (`.menu-pick`).
   In a side bar it has no title, no status and no WRAM: the ROM strips share the full height.
+- TRACE has no button bar: it always follows the newest line (nothing arrives while paused, so
+  pausing keeps the view; a panel that is shown or moved jumps to the newest line), "Clear" is a
+  menu row, and there is no hide-inactive filter or copy any more (the "Everscript Script Trace" output
+  channel has every line). Bottom bar: time, slot / entity / event, source, address, script,
+  bytes. Menu tab: time, source, script. Side bar: time and script, wrapped, no title.
 - REPLAYS is a menu tab only, with the usual card size (not a panel). It lists the recordings
   with this ROM's SHA-256 (the host's `romMatch`), one menu row each; playing one closes the
   menu, then reboots. Whether a recording replays in sync is written into it (`tas/README.md`). The chip at the top of the screen

@@ -297,8 +297,8 @@ test('ScriptTraceFormatter generates consistent TextMate line and HTML row with 
   assert.ok(html.includes('[s1 | 4E89]'), `Subline HTML should have slot tag: ${html}`);
 });
 
-// Test 11: processScriptTraceBatch with hideInactive option
-test('processScriptTraceBatch handles hideInactive option and attaches lookup', () => {
+// Test 11: processScriptTraceBatch keeps end events and attaches lookup
+test('processScriptTraceBatch keeps end events and attaches lookup', () => {
   const draft = {
     bTrigger: [{ x1: 4, y1: 4, x2: 5, y2: 5, scriptId: 477 }],
   };
@@ -308,7 +308,7 @@ test('processScriptTraceBatch handles hideInactive option and attaches lookup', 
     { slot: 0, entity: 0x0000, event: 'end', loc: 0x92A42F, bytes: [0x00] },
   ];
 
-  const results = processScriptTraceBatch(batch, null, null, draft, { hideInactive: true });
+  const results = processScriptTraceBatch(batch, null, null, draft);
   assert.strictEqual(results.length, 2, 'Batch returns all processed items for webview');
   assert.ok(results[0].lookup, 'Results[0] should have lookup attached');
   assert.strictEqual(results[0].lookup.shortTag, '0x15.enter');

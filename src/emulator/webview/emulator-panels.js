@@ -20,7 +20,10 @@
  *     closes or turns to another tab. A panel is one element: it is moved, never copied,
  *     so its update code does not care where it is.
  * CDL's tab keeps the usual card size too: its buttons are menu rows, its banks selectable
- * rows (cdl-view.js); Up / Down on the other panel tabs scrolls the panel.
+ * rows (cdl-view.js). On the other panel tabs Up / Down walk the rows ("Show while playing",
+ * TRACE's "Clear"), then scroll the panel a page per press (emuPanelMenuMove).
+ * What a panel shows depends on where it is: only the bottom bar shows everything
+ * (emulator-panels.css; TRACE: time + source + script in the menu, time + script in a side bar).
  * REPLAYS lives in the menu only (its tab, its status chip on the screen: tas-view.js); it is
  * not a panel: its rows are menu rows (replays-list.js) and its tab has the usual card size.
  *
@@ -47,6 +50,7 @@ function emuDefaultPlaces() {
 let emuPanelPlace = emuDefaultPlaces();
 let emuBottomTab = null;           // the panel shown in the bottom bar
 let emuPanelsVisible = new Set();  // panels on screen after the last layout
+let emuPanelScrollTab = null;      // menu tab whose panel Up / Down scroll (emuPanelMenuMove)
 
 function emuPanelOfMenuTab(tab) {
   return EMU_PANELS.find(n => EMU_PANEL_MENU_TAB[n] === tab) || null;
@@ -73,6 +77,7 @@ function emuPanelsLayout() {
   if (!stack || !left || !right) return;
   const menuOpen = emuMenuOpen();
   const menuPanel = menuOpen && typeof menuActiveTab === 'number' ? emuPanelOfMenuTab(menuActiveTab) : null;
+  if (emuPanelScrollTab !== null && (!menuOpen || emuPanelScrollTab !== menuActiveTab)) emuSetPanelScroll(null);
   const shown = n => emuShown(document.getElementById('ss-view-' + n));
 
   const bottom = EMU_PANELS.filter(n => emuPanelPlace[n] === 'bottom' && shown(n));
@@ -80,6 +85,7 @@ function emuPanelsLayout() {
 
   const before = emuPanelsVisible;
   const visible = new Set();
+  const moved = new Set();   // moving an element resets its scroll position
   const sides = { left: null, right: null };
   for (const n of EMU_PANELS) {
     const view = document.getElementById('ss-view-' + n);
@@ -96,7 +102,7 @@ function emuPanelsLayout() {
     } else if (place === 'bottom') {
       active = n === emuBottomTab;
     }
-    if (view.parentElement !== host) host.appendChild(view);
+    if (view.parentElement !== host) { host.appendChild(view); moved.add(n); }
     view.classList.toggle('active', active);
     const seen = shown(n) && (n === menuPanel || (place === 'bottom' && active && emuRomUp())
       || ((place === 'left' || place === 'right') && !menuOpen && emuRomUp()));
@@ -125,13 +131,18 @@ function emuPanelsLayout() {
 
   for (const n of EMU_PANELS) emuSyncPlaceRow(n);
   emuPanelsVisible = visible;
-  for (const n of visible) if (!before.has(n)) emuPanelShown(n);
+  for (const n of visible) if (!before.has(n) || moved.has(n)) emuPanelShown(n);
 }
 
-/** A panel just became visible: fill it now instead of on the next tick. */
+/** A panel just became visible or moved: fill it now instead of on the next tick. */
 function emuPanelShown(name) {
   try {
     if (name === 'cdl') { if (typeof cdlOnTabShown === 'function') cdlOnTabShown(); }
+    else if (name === 'trace') {
+      // Lines that came in while it was hidden could not scroll it: show the newest.
+      const log = document.getElementById('ss-trace-log');
+      if (log) log.scrollTop = log.scrollHeight;
+    }
     else if (typeof refreshActiveBottomTab === 'function') refreshActiveBottomTab();
   } catch (_) { /* the page is still booting */ }
 }
@@ -169,15 +180,50 @@ function emuPanelMenuStep(tab, delta) {
   return true;
 }
 
-/** Up / Down on a panel tab of the menu scrolls the panel. */
-function emuPanelMenuScroll(tab, delta) {
+/** The element that scrolls in a panel's menu tab, or null. */
+function emuPanelScrollBox(tab) {
   const name = emuPanelOfMenuTab(tab);
   const slot = name && document.getElementById('emu-slot-' + name);
-  if (!slot) return false;
+  if (!slot) return null;
   const all = [slot].concat(Array.from(slot.querySelectorAll('*')));
-  const box = all.find(el => el.scrollHeight > el.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(el).overflowY));
-  if (box) box.scrollTop += delta * 48;
+  return all.find(el => el.scrollHeight > el.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(el).overflowY)) || null;
+}
+
+/** Whether Up / Down scroll the panel of this menu tab (the selection went past its rows). */
+function emuPanelScrolling(tab) {
+  return emuPanelScrollTab === tab;
+}
+
+function emuSetPanelScroll(tab) {
+  emuPanelScrollTab = tab;
+  document.querySelectorAll('.menu-panel-host').forEach(el => el.classList.toggle('scrolling', el.id === 'menu-panel-' + tab));
+}
+
+/**
+ * Up / Down on a panel tab (9+): rows first; Down on the last row starts scrolling the panel
+ * (a page per press), Up at its top goes back to the rows. Returns false when the menu should
+ * move between rows itself.
+ */
+function emuPanelMenuMove(tab, delta) {
+  if (emuPanelScrollTab !== tab) {
+    const panel = document.getElementById('menu-panel-' + tab);
+    const rows = panel ? panel.querySelectorAll('.menu-row').length : 0;
+    const row = typeof menuSelectedRow === 'number' ? menuSelectedRow : 0;
+    if (delta < 0 || row < rows - 1) return false;
+    emuSetPanelScroll(tab);
+  }
+  const box = emuPanelScrollBox(tab);
+  if (delta < 0 && (!box || box.scrollTop <= 0)) { emuSetPanelScroll(null); return true; }
+  if (box) box.scrollTop += delta * Math.max(48, Math.round(box.clientHeight * 0.8));
   return true;
+}
+
+/** B on a panel tab's own row below "Show while playing". */
+function emuPanelMenuAction(tab, row) {
+  if (emuPanelOfMenuTab(tab) === 'trace' && row === 1 && typeof traceClear === 'function') {
+    traceClear();
+    if (typeof playMenuSound === 'function') playMenuSound('click_toggle');
+  }
 }
 
 function emuSelectBottomTab(name) {

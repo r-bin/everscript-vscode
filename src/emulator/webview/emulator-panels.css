@@ -27,7 +27,6 @@
 
 /* Compact: status lines stay, controls go */
 .emu-side .ss-subbar > :not(#cdl-status),
-.emu-side #ss-trace-header,
 .emu-side #cdl-legend,
 .emu-side #cdl-side,
 .emu-side .alc-section-title > span:first-child,
@@ -45,6 +44,19 @@
 .emu-side .cdl-bank-label { width: 40px; flex-direction: row; justify-content: space-between; align-items: center; font-size: 9px; line-height: 1; }
 .emu-side .cdl-bank canvas { flex: none; width: 128px; height: 100%; min-height: 0; }
 .emu-side #ss-trace-log { font-size: 10px; padding: 2px 6px; }
+
+/* TRACE: only the bottom bar shows everything. Menu tab: time, source (e.g. 12.step[0]) and
+   script; side bar: time and script, wrapped. Slot / entity / event, address and bytes go. */
+#emu-slot-trace .ss-trace-tag, #emu-slot-trace .ss-trace-addr, #emu-slot-trace .ss-trace-bytes,
+#emu-slot-trace .ss-trace-row .ss-trace-arrow,
+.emu-side .ss-trace-tag, .emu-side .ss-trace-addr, .emu-side .ss-trace-bytes,
+.emu-side .ss-trace-lookup, .emu-side .ss-trace-arrow, .emu-side .ss-trace-sub,
+.emu-side[data-panel="trace"]::before { display: none; }
+#emu-slot-trace .ss-trace-sub .ss-trace-time { visibility: hidden; }
+#emu-slot-trace .ss-trace-lookup { width: 130px; min-width: 130px; }
+.emu-side #ss-view-trace { width: 260px; max-width: 100%; }
+.emu-side .ss-trace-row { white-space: normal; gap: 4px; }
+.emu-side .ss-trace-time { width: auto; min-width: 0; font-size: 9px; }
 .emu-side table { font-size: 10px; }
 /* ENTITIES: icon, name, HP, position */
 .emu-side #ent-table th:nth-child(2), .emu-side #ent-table td:nth-child(2),
@@ -56,6 +68,10 @@
 /* A panel in its pause-menu tab gets the whole menu card */
 #emulator-menu.panel-tab-active #menu-card { width: 96%; max-width: none; height: 92%; max-height: none; }
 #emulator-menu.panel-tab-active #menu-body { max-height: none; overflow: hidden; }
+/* Up / Down scroll the panel (emuPanelMenuMove): the mark moves from the row to the panel */
+.menu-panel-host.scrolling .menu-row.selected { background: none; border-left-color: transparent; }
+.menu-panel-host.scrolling .menu-row.selected .menu-row-cursor { opacity: 0; }
+.menu-panel-host.scrolling .emu-panel-slot { box-shadow: inset 3px 0 #4ec9b0; }
 .menu-panel-host.active { flex: 1; min-height: 0; }
 .emu-panel-slot { flex: 1; min-height: 0; display: flex; flex-direction: column; font-size: 11px; }
 

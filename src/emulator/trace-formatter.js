@@ -46,14 +46,6 @@ function scriptHighlight(text) {
 }
 
 class ScriptTraceFormatter {
-  constructor(options = {}) {
-    this.hideInactive = !!options.hideInactive;
-  }
-
-  isInactiveStatus(event) {
-    return event === 'end';
-  }
-
   formatLookupTag(lookup) {
     if (!lookup || !lookup.shortTag) return '';
     return `[${lookup.shortTag}]`;

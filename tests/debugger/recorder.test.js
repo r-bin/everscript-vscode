@@ -286,6 +286,39 @@ function recordInto(root, rom, hits) {
             assert.ok(fit.bottom <= fit.side[1] + 1 && fit.top - fit.side[0] < 8, 'the strips fit the side bar: ' + JSON.stringify(fit));
             await full.p.evaluate(() => emuSetPanelPlace('cdl', 'hidden'));
 
+            // TRACE: no button bar; the bottom bar shows everything, the menu time + source + script,
+            // a side bar time + script. Clear is a menu row; Down past it scrolls the trace.
+            const { ScriptTraceFormatter } = require('../../src/emulator/trace-formatter');
+            const fmt = new ScriptTraceFormatter();
+            const traceHtml = fmt.formatHtml({ slot: 0, entity: 0x23b9, event: 'step', loc: 0x9DD008, locHex: '0x9DD008', bytesHex: '9D D0 08', summary: 'Make boy walk', timeStr: '20:18:59.123' }, { shortTag: '0x12.step[0]', name: 'step' });
+            assert.strictEqual(await full.p.evaluate(() => document.getElementById('ss-trace-header')), null, 'no button bar');
+            await full.p.evaluate(html => { appendTraceEntries(Array.from({ length: 120 }, () => ({ event: 'step', html }))); emuSetPanelPlace('trace', 'bottom'); }, traceHtml);
+            const cols = () => full.p.evaluate(() => ['time', 'tag', 'lookup', 'addr', 'text', 'bytes'].filter(c => {
+                const el = document.querySelector('#ss-trace-log .ss-trace-row .ss-trace-' + c);
+                return el && getComputedStyle(el).display !== 'none';
+            }));
+            assert.deepStrictEqual(await cols(), ['time', 'tag', 'lookup', 'addr', 'text', 'bytes'], 'bottom bar: everything');
+            await full.p.evaluate(() => emuSetPanelPlace('trace', 'left'));
+            assert.deepStrictEqual(await cols(), ['time', 'text'], 'side bar: time and script');
+            await full.p.evaluate(() => { menuActiveTab = 9; tabSelectedRows[9] = 0; openEmulatorMenu(); });
+            assert.deepStrictEqual(await cols(), ['time', 'lookup', 'text'], 'menu: time, source and script');
+            const log = () => full.p.evaluate(() => { const l = document.getElementById('ss-trace-log'); return [l.childNodes.length, Math.round(l.scrollTop), menuSelectedRow, emuPanelScrolling(9)]; });
+            const atEnd = (await log())[1];
+            assert.ok(atEnd > 0, 'the trace follows the newest line');
+            await full.p.keyboard.press('ArrowDown');
+            assert.deepStrictEqual((await log()).slice(2), [1, false], 'Down selects Clear');
+            await full.p.keyboard.press('ArrowDown');
+            await full.p.keyboard.press('ArrowUp');
+            const up = await log();
+            assert.ok(up[1] < atEnd && up[3] === true, 'Down past Clear, then Up scrolls the trace back: ' + up);
+            await full.p.keyboard.press('c');
+            assert.strictEqual((await log())[0], 120, 'B while scrolling does not clear');
+            for (let i = 0; i < 40 && (await log())[3]; i++) await full.p.keyboard.press('ArrowUp');
+            assert.deepStrictEqual((await log()).slice(2), [1, false], 'Up at the top goes back to the rows');
+            await full.p.keyboard.press('c');
+            assert.strictEqual((await log())[0], 0, 'B on Clear empties the trace');
+            await full.p.evaluate(() => { closeEmulatorMenu(); emuSetPanelPlace('trace', 'hidden'); });
+
             await full.p.evaluate(() => { menuActiveTab = 1; openEmulatorMenu(); menuSelectedRow = 10; activateMenuRow(); });
             assert.deepStrictEqual(await full.p.evaluate(() => [tasOverlayIsOn(), document.getElementById('menu-val-inputs').textContent]), [true, 'ON'], 'the input display is in OVERLAYS');
             await full.p.evaluate(() => closeEmulatorMenu());
