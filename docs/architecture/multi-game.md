@@ -61,10 +61,9 @@ that extend another extension (`activate()` returns an API; the other declares
 `extensionDependencies`), so `registerGame()` can later become public and a game can ship as its
 own extension. For now: one extension, one repo — splitting later is packaging work, not a redesign.
 
-The check that the descriptor is game-neutral: Mana fits it with no special case, and Terranigma's
-header would too (seen 2026-10-16 on the owner's European ROM: title `TERRANIGMA P`, 4 MB, map mode
-`$31` HiROM FastROM like Evermore and Mana, region `$02` PAL, header checksum valid). No Terranigma
-code, folder or docs are part of the cleanup.
+The check that the descriptor is game-neutral: Mana fits it with no special case, and Terranigma
+does too (registered in `src/games/terra/`, European base ROM title `TERRANIGMA P`, 4 MB, map mode
+`$31` HiROM FastROM like Evermore and Mana, region `$02` PAL, header checksum valid; facts in `docs/terra/`).
 
 ## 4. ROMs: identification, variants, base ROM, derived ROMs
 

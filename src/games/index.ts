@@ -3,6 +3,7 @@ import { registerGame } from '../platform/games';
 import { romFor, baseRom } from '../platform/roms/library';
 import { evermore } from './evermore/descriptor';
 import { mana } from './mana/descriptor';
+import { terra } from './terra/descriptor';
 
 let registered = false;
 
@@ -11,6 +12,7 @@ export function registerGames(): void {
     registered = true;
     registerGame(evermore);
     registerGame(mana);
+    registerGame(terra);
 }
 
 /**
