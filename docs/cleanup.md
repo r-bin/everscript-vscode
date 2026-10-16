@@ -170,7 +170,12 @@ converts to TS as it moves (D9).
 ### Step 5 — Duplication, big files, TypeScript (re-measure all)
 What is duplicated between Evermore and Mana is what becomes `core/`.
 
-- [ ] **5.1 Clones at v0.199** → one owner each: bus→file offset (~11 copies) and read16/24 (~20)
+- [ ] **5.1 Clones at v0.199** (v0.234.0, done: `platform/snes/hirom.ts` (bus→file, read16/24; Evermore `maps/rom.ts`,
+  Mana `decoder/rom.ts`, sprites, ROM tab, table hack, CDL values), `platform/crc32.ts` (6 copies → 1),
+  `platform/png.ts` (2 encoders → 1), `platform/snes/opcodes-65816.ts` (the one matrix, now TS; the CDL shim is
+  gone), ROM history identifies through the ROM library instead of its own hash list. Left: the inline
+  `& 0x3FFFFF` masks in `emulator/` and `shared/rom-readers.js` (go with their split), HTML escape, hex
+  formatters, tab strip, CSP shell → `core/webview` with 5.3; the script decoder's `addressing.ts` with step 2) → one owner each: bus→file offset (~11 copies) and read16/24 (~20)
   → `platform/snes`; BGR555, 2/4bpp, sprite decompressor (emulator copy of `maps/sprites.ts`
   ~240 lines) → `platform/snes` gfx; alchemy damage math (×3) → one module in `games/evermore`;
   HTML escape (×6), hex formatters (×23), tab strip, CSP shell → `core/webview`; 65816 opcode table

@@ -6,6 +6,9 @@ Kind: **platform** — knows SNES hardware and our machinery, no game (docs/arch
 - `games.ts`: the game registry (`registerGame`, `listGames`, `baseVariant`) and the descriptor type.
 - `roms/header.ts`: finding and reading the cartridge header (LoROM / HiROM / ExHiROM, PAL regions).
 - `roms/identify.ts`: game + variant from header and SHA-1; derived ROMs through the game's marker.
+- `snes/opcodes-65816.ts`: the 65816 opcode matrix (mnemonic, mode, length, flow); `tools/gen-cdl-optable.js`
+  generates the core's C table from it.
+- `crc32.ts`, `png.ts`: CRC-32 and the RGBA PNG encoder, one copy each.
 - `snes/hirom.ts`: HiROM bus → file offset and little-endian reads, the one copy (cleanup 5.1).
 - `roms/library.ts`: the ROM library file (paths only), selected ROM, base ROM per game, `romFor`.
 

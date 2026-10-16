@@ -9,7 +9,7 @@
  * address only when the label's address yields identical bytes.
  */
 
-const { OPCODES, instructionLength } = require('./opcodes');
+const { OPCODES, instructionLength } = require('../../../dist/platform/snes/opcodes-65816');
 const { hex } = require('./rom-map');
 
 const CDL_ACC_8 = 0x20, CDL_IDX_8 = 0x10;

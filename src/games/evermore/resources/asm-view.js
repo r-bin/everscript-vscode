@@ -9,7 +9,7 @@
 // REP/SEP says otherwise, and says so. Calls and long operands are named from
 // localizations (functions, tables).
 
-const { OPCODES, instructionLength, endsFlow } = require('../../../shared/opcodes-65816');
+const { OPCODES, instructionLength, endsFlow } = require('../../../../dist/platform/snes/opcodes-65816');
 const { getFunction } = require('../localizations/functions');
 const { getTable } = require('../localizations/tables');
 

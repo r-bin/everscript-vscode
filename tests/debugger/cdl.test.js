@@ -15,7 +15,7 @@ const { execFileSync } = require('child_process');
 const Module = require('module');
 
 const ROOT = path.resolve(__dirname, '../..');
-const { OPCODES, instructionLength, flowKind, FLOW } = require('../../src/emulator/cdl/opcodes');
+const { OPCODES, instructionLength, flowKind, FLOW } = require('../../dist/platform/snes/opcodes-65816');
 const { CdlLibrary, romHash } = require('../../src/emulator/cdl/library');
 const { decodeAt, formatInstruction } = require('../../src/emulator/cdl/disasm');
 const { exportAsar } = require('../../src/emulator/cdl/asar-export');

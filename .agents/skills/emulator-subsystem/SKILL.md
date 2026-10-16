@@ -52,7 +52,7 @@ the script instruction in `$82-$84`; interrupts suspend it). `isEmulationPaused(
 (debugger.c) is what the webview's frame loop and polls use to idle while paused - keep
 anything periodic you add gated on it.
 
-`source/cdl-optable.h` is generated: after changing `src/emulator/cdl/opcodes.js`, run
+`source/cdl-optable.h` is generated: after changing `src/platform/snes/opcodes-65816.ts`, run
 `node tools/gen-cdl-optable.js` (a test fails if they drift). Host side: `src/emulator/cdl/`.
 `debugger-post.js` is part of the build output: after editing it, rebuild the core, or the
 running `snes9x_2005.js` keeps the old glue.

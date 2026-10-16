@@ -5,7 +5,7 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 ## Owns
 - Cross-domain utilities used by several domains: settings model (`config.js`), pure
   parsing (`radar-utils.js`), ROM file reading (`rom-readers.js`), `soe://` URI helpers
-  (`resource-uri.js`), `zip.js`, `opcodes-65816.js`, and the radar webview assets
+  (`resource-uri.js`), `zip.js`, and the radar webview assets
   (`shared.js`, `shared.css`).
 - `webview/map-view/`: the map views' shared webview pieces — filter-bar chip builders
   (`view-chips.js`), their look and the design tokens (`map-view.css`), and the tile

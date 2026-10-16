@@ -1,8 +1,4 @@
-'use strict';
-
 /**
- * shared/opcodes-65816.js (also emulator/cdl/opcodes.js)
- *
  * The 65816 opcode matrix: mnemonic + addressing mode for all 256 opcodes.
  * Single source of truth for the disassembler and for the instruction-length
  * table compiled into the core (tools/gen-cdl-optable.js writes cdl-optable.h
@@ -10,7 +6,7 @@
  */
 
 // mode -> operand byte count; 'M'/'X' = 1 byte, +1 when that flag is 16-bit.
-const MODE_SIZE = {
+export const MODE_SIZE: Record<string, number | 'M' | 'X'> = {
     imp: 0, acc: 0, imm8: 1, immM: 'M', immX: 'X',
     dp: 1, dpx: 1, dpy: 1, idp: 1, idpx: 1, idpy: 1, ildp: 1, ildpy: 1,
     abs: 2, absx: 2, absy: 2, long: 3, longx: 3,
@@ -39,7 +35,9 @@ const ROWS = [
     'BEQ rel8,SBC idpy,SBC idp,SBC isry,PEA pea,SBC dpx,INC dpx,SBC ildpy,SED imp,SBC absy,PLX imp,XCE imp,JSR iabsx,SBC absx,INC absx,SBC longx',
 ];
 
-const OPCODES = [];
+export interface Opcode { mnemonic: string; mode: string }
+
+export const OPCODES: Opcode[] = [];
 for (const row of ROWS) {
     for (const cell of row.split(',')) {
         const [mnemonic, mode] = cell.split(' ');
@@ -49,11 +47,11 @@ for (const row of ROWS) {
 if (OPCODES.length !== 256) throw new Error('opcode matrix must have 256 entries');
 
 // Control flow kinds, recorded on edges. Bit flags so merged edges can carry several.
-const FLOW = { CALL: 1, JUMP: 2, BRANCH: 4, INDIRECT: 8 };
+export const FLOW = { CALL: 1, JUMP: 2, BRANCH: 4, INDIRECT: 8 };
 
 const COND_BRANCH = new Set([0x10, 0x30, 0x50, 0x70, 0x90, 0xB0, 0xD0, 0xF0]);
 
-function flowKind(op) {
+export function flowKind(op: number): number {
     if (op === 0x20 || op === 0x22) return FLOW.CALL;
     if (op === 0xFC) return FLOW.CALL | FLOW.INDIRECT;
     if (op === 0x4C || op === 0x5C || op === 0x80 || op === 0x82) return FLOW.JUMP;
@@ -68,26 +66,23 @@ const STACK_MNEMONICS = new Set([
     'PEA', 'PEI', 'PER', 'JSR', 'JSL', 'RTS', 'RTL', 'RTI', 'BRK', 'COP',
 ]);
 
-function isStackOp(op) {
+export function isStackOp(op: number): boolean {
     const o = OPCODES[op];
     return STACK_MNEMONICS.has(o.mnemonic) || o.mode === 'sr' || o.mode === 'isry';
 }
 
 /** Instruction length in bytes for opcode `op` with accumulator/index 8-bit flags. */
-function instructionLength(op, m8, x8) {
+export function instructionLength(op: number, m8: boolean, x8: boolean): number {
     const size = MODE_SIZE[OPCODES[op].mode];
     if (size === 'M') return m8 ? 2 : 3;
     if (size === 'X') return x8 ? 2 : 3;
-    return 1 + size;
+    return 1 + (size as number);
 }
 
 /** Does the instruction never fall through to the next byte? */
-function endsFlow(op) {
+export function endsFlow(op: number): boolean {
     const m = OPCODES[op].mnemonic;
     return m === 'RTS' || m === 'RTL' || m === 'RTI' || m === 'JMP' || m === 'JML'
         || m === 'BRA' || m === 'BRL' || m === 'STP';
 }
 
-module.exports = {
-    OPCODES, MODE_SIZE, FLOW, flowKind, isStackOp, instructionLength, endsFlow,
-};

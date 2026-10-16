@@ -11,7 +11,7 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const { OPCODES, instructionLength } = require('../../src/shared/opcodes-65816');
+const { OPCODES, instructionLength } = require('../../dist/platform/snes/opcodes-65816');
 const { markDerived } = require('../derived-marker');
 
 const REPO = path.resolve(__dirname, '..', '..');
