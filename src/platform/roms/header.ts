@@ -19,6 +19,13 @@ export interface RomHeader {
     complement: number;
     /** True when checksum ^ complement == $FFFF. */
     checksumPairOk: boolean;
+    /** Native-mode vectors (bank $00 addresses) right after the header: COP, BRK, ABORT, NMI, RESET, IRQ. */
+    nativeVectors: { cop: number; brk: number; abort: number; nmi: number; reset: number; irq: number };
+}
+
+/** `LoROM` / `HiROM` / `ExHiROM`, as tools and exports print the map. */
+export function layoutName(kind: MapKind): 'LoROM' | 'HiROM' | 'ExHiROM' {
+    return kind === 'lorom' ? 'LoROM' : kind === 'hirom' ? 'HiROM' : 'ExHiROM';
 }
 
 const CANDIDATES: [number, MapKind][] = [[0x40ffc0, 'exhirom'], [0xffc0, 'hirom'], [0x7fc0, 'lorom']];
@@ -41,6 +48,7 @@ function readAt(rom: Uint8Array, offset: number, kind: MapKind): RomHeader | nul
     const title = String.fromCharCode(...h.subarray(0, 21)).replace(/\s+$/, '');
     const complement = h[0x1c] | (h[0x1d] << 8);
     const checksum = h[0x1e] | (h[0x1f] << 8);
+    const vec = (at: number) => (rom[offset + at] ?? 0) | ((rom[offset + at + 1] ?? 0) << 8);
     return {
         offset, kind, title,
         mapMode: h[0x15],
@@ -49,6 +57,7 @@ function readAt(rom: Uint8Array, offset: number, kind: MapKind): RomHeader | nul
         version: h[0x1b],
         checksum, complement,
         checksumPairOk: (checksum ^ complement) === 0xffff,
+        nativeVectors: { cop: vec(0x24), brk: vec(0x26), abort: vec(0x28), nmi: vec(0x2a), reset: vec(0x2c), irq: vec(0x2e) },
     };
 }
 

@@ -8,11 +8,11 @@
  * $80-$FF:8000-FFFF); busToRom resolves any mirror back to the offset.
  */
 
-const { parseSnesRomHeader } = require('../snes/rom-header-model');
+const { readHeader, layoutName } = require('../../../dist/platform/roms/header');
 
 function createRomMap(rom) {
-    const header = parseSnesRomHeader(Buffer.from(rom.buffer, rom.byteOffset, rom.length));
-    const type = header ? header.layout : 'HiROM';
+    const header = readHeader(rom);
+    const type = header ? layoutName(header.kind) : 'HiROM';
     const size = rom.length;
     const lo = type === 'LoROM';
     const segment = lo ? 0x8000 : 0x10000;
