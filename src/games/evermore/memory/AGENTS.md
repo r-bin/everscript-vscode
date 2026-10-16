@@ -25,7 +25,7 @@ Related skills: `memory-radar`, `webview-dom-safety`, `memory-map`
 
 ## State owned
 - None module-local. Radar caches (`_radarMapCache`, `_radarRoomTree`, `_radarActiveTab`)
-  live in `src/games/evermore/extension.js` (`STATE_FLOW.md`).
+  live in `src/games/evermore/extension.js` (its state is listed at the top of that file).
 
 ## Invariants
 - `webview/index.js`'s concatenation is a legacy §3.5 offender: convert when touched, do

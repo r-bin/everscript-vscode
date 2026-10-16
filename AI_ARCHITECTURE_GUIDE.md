@@ -17,16 +17,23 @@ tooling usable from inside the editor. Every change must serve one of:
 
 ---
 
-## 2. Domain kinds
+## 2. Layers and domain kinds
 
-Every directory under `src/` is exactly one of three kinds. The kind decides what it may
-depend on.
+The layers (`docs/architecture/multi-game.md` §2, enforced by `.depcruise.js`):
 
-| Kind | Domains | May depend on |
+| Layer | Holds | May depend on |
 |---|---|---|
-| **Library** (pure, no `vscode`, no UI) | `shared`, `maps`, `script`, `localizations` | other libraries only (`shared` depends on nothing) |
-| **Platform** (VS Code integration, no tab UI) | `resources` (soe:// VFS), `mcp`, `language`, `debugger` | libraries; `mcp` only `vscode.workspace.fs` |
-| **Feature** (a tab or panel) | `emulator`, `memory` (radar host), `rooms`, `sprites`, `music`, `scripts-tab`, `rom`, `scaling`, `docs` | libraries, platform read APIs (`soe://`) |
+| `src/platform/` | SNES facts, ROM library and identification, CDL engine, TAS format, PNG/CRC/zip | itself only; no `vscode` |
+| `src/core/` | game-neutral VS Code features: ROM panel, game views, map-editor shell, MCP | `platform/`, `vscode`; no game |
+| `src/games/<game>/` | everything about one game | `platform/`, `core/`; no other game (one bridge: `games/evermore/imports/<game>/`) |
+| `src/emulator/` | the emulator panel (to `core/` with cleanup 5.3) | `platform/`, `vscode`; no game |
+
+Inside a game, every folder is one of two kinds:
+
+| Kind | Examples (Evermore) | May depend on |
+|---|---|---|
+| **Library** (pure, no `vscode`, no UI) | `maps`, `script`, `simulation`, `localizations` | other libraries of the game, `platform/` |
+| **Feature** (a tab, panel, file system or language service) | `memory`, `rooms`, `sprites`, `music`, `scripts-tab`, `rom`, `scaling`, `docs-tab`, `resources` (soe://), `language`, `debugger` | libraries, `core/`, read APIs (`soe://`) |
 
 `src/extension.js` is the composition root: the ROM library, the one list of games, the game
 views and MCP. Each game's `src/games/<game>/extension.js` registers that game's commands and
@@ -44,8 +51,8 @@ Deleting a feature domain may only break its own registration lines in its game'
 - A feature never `require`s another feature — not its host code, not its webview files,
   not its globals. Cross-feature capability flows **only** through injection in
   `extension.js` or through `soe://`.
-- Anything two features need moves down into a library (`platform/`, a game's `maps/`, …) or into
-  `soe://`.
+- Anything two features need moves down into a library (`platform/`, a game's `maps/`, …), into
+  `core/` when it is game-neutral and two games need it, or into `soe://`.
 - Tabs that share one webview are given to the host as a plain list of
   `{ id, label, html, css, js, onMessage }` objects; a missing tab is skipped, not fatal.
   (A plain array is not a "registry" in the sense of §3.6.)
@@ -54,7 +61,7 @@ Deleting a feature domain may only break its own registration lines in its game'
 
 ### 3.2 Direction **[now]**
 ```
-library  ←  platform  ←  feature  ←  extension.js
+platform  ←  core  ←  game library  ←  game feature  ←  game extension.js  ←  src/extension.js
    (parser → model → renderer → UI inside each)
 ```
 Forbidden: renderer → parser, UI mutating models except through explicit action files,
@@ -90,9 +97,10 @@ in-place ROM mutation.
   into the right library as pure functions.
 - Forbidden: grab-bag `utils.js`/`common.js`, helpers-of-helpers, DI containers, plugin
   registries with discovery or lifecycle.
-- Known canonical homes: SNES addressing and byte reads → `shared/snes-addr`; graphics
-  decode (BGR555, 2/4bpp, sprite blocks) → `maps/`; webview helpers (`escH`, hex format,
-  tab strip, CSP shell, theme) → `shared/webview/`.
+- Known canonical homes: SNES addressing and byte reads, CRC-32, PNG, the 65816 opcode matrix,
+  the cartridge header → `src/platform/`; Evermore graphics decode (BGR555, 2/4bpp, sprite
+  blocks) → `games/evermore/maps/`; webview helpers (`escH`, hex format, tab strip, CSP shell,
+  theme) → `src/core/webview/` (cleanup 5.1, 5.3).
 
 ### 3.7 Types **[target: strict everywhere]**
 - New files are TypeScript with `strict: true`. Libraries and platform code are TS first.
@@ -172,8 +180,9 @@ A new test file must be added to a tier; a test needing a ROM uses the shared sk
 
 ## 5. Checks and release
 
-- `npm run typecheck`, `npm run check:circular`, `npm run check:deps`, `npm test` must pass;
-  `npm run check:dead` is advisory.
+- `npm test`, `npm run typecheck` and every `check:*` must pass: `circular`, `deps`, `dead`,
+  `dup` (clones of 30+ lines), `legal`, `knowledge` (no new undocumented address),
+  `ai-context` (these files' limits). Their baselines and allow lists only shrink.
 - Versioning, commit format and install steps have one home: the `release-ritual` skill
   (`.agents/skills/release-ritual/SKILL.md`). Do not restate them elsewhere.
 
@@ -190,5 +199,4 @@ A new test file must be added to a tier; a test needing a ROM uses the shared sk
 | Machine-enforced dependency rules | `.depcruise.js` |
 | State ownership details | the owning domain's `AGENTS.md` |
 
-`STATE_FLOW.md` and `docs/architecture/*` predate the `src/` refactor; trust `src/` and
-the domain `AGENTS.md`/`README.md` files over them until they are rewritten or archived.
+The map editor's client-side state owners: `src/games/evermore/rooms/webview/STATE.md`.

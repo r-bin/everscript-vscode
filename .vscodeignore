@@ -55,7 +55,6 @@ recorder/**
 AGENTS.md
 **/AGENTS.md
 AI_ARCHITECTURE_GUIDE.md
-STATE_FLOW.md
 **/*.d.ts
 **/*.d.ts.map
 

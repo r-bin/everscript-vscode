@@ -9,7 +9,7 @@
 // writes through `_edit.removedTriggers` / `_edit.placed` /
 // `_edit.selectedTriggerRef`, the same way map-editor-special.js reads and
 // writes `_edit.currentSpecialId` without owning `_edit` itself (map-editor.js
-// does). See docs/map-editor-redesign-plan.md Phase 4 and STATE_FLOW.md.
+// does). See docs/map-editor-redesign-plan.md Phase 4 and rooms/webview/STATE.md.
 //
 // A trigger ref is `{kind: 'step'|'b', id}`. `id` is `'base:' + i`, `i`
 // being the index into that kind's `_mtPalette.attachments` array (stable

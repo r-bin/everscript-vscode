@@ -248,7 +248,7 @@ COGNITIVE STABILIZATION REFERENCES
 
 Before starting work, consult:
 - `AI_ARCHITECTURE_GUIDE.md` — architectural laws, ownership rules, file size limits
-- `STATE_FLOW.md` — authoritative state ownership, subsystem data flows (cross-check
+- each folder's `AGENTS.md` — state owners and data flow (cross-check
   paths against actual `src/` layout — it predates the `src/` refactor in places)
 - Per-domain `src/<domain>/README.md` — local invariants, allowed dependencies
 

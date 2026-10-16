@@ -211,7 +211,9 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   (`rom/model/wiki-overlay.js`) and the RAM bounds hard-coded in `extension.js`.
 - [ ] **6.3** Names and comments for recomp: entries feed the Asar export labels and the recomp's
   C names (`tools/recomp/names.js`).
-- [ ] **6.4** Delete or merge stale docs: `STATE_FLOW.md`, `docs/architecture/{domain-overview,
+- [ ] **6.4** (v0.255.0: `STATE_FLOW.md` → its map-editor rows in `games/evermore/rooms/webview/STATE.md`, the rest
+  deleted; `docs/architecture/{domain-overview,migration-plan,target-architecture,dependency-rules}.md` and
+  `docs/emulator-status-and-roadmap.md` deleted) Delete or merge stale docs: `STATE_FLOW.md`, `docs/architecture/{domain-overview,
   migration-plan,target-architecture}.md`, `docs/roadmap-and-vision.md` (empty),
   `emulator-status-and-roadmap.md`, `future-features.md`, revert notes, `docs/features/`,
   finished dossiers. Docs layout mirrors the code: `docs/platform/`, `docs/games/<game>/`,

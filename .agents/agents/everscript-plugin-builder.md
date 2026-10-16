@@ -319,15 +319,15 @@ COGNITIVE STABILIZATION REFERENCES
 Before starting work, consult:
 - `AI_ARCHITECTURE_GUIDE.md` — architectural laws, file size limits, anti-abstraction
   rules
-- `STATE_FLOW.md` — authoritative state ownership table, subsystem data flows
+- each folder's `AGENTS.md` — its state owners; `src/games/evermore/rooms/webview/STATE.md` for the map editor
   (cross-check paths against actual `src/` layout — it predates the `src/` refactor in
   places)
-- `docs/architecture/domain-overview.md` — which `src/` domain to load for a task
+- `src/README.md` — which `src/` folder to load for a task
 - Per-domain `src/<domain>/README.md` files — local ownership contracts, allowed deps,
   invariants
 
 When adding a new module:
-- Confirm target domain from `docs/architecture/domain-overview.md`
+- Confirm the target folder from `src/README.md`
 - Confirm dependency direction is allowed (`.depcruise.js`, `npm run check:deps`)
 - Add to the domain README if it introduces new state ownership
 

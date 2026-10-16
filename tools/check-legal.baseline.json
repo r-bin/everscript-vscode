@@ -6,28 +6,12 @@
    "upstream"
   ],
   [
-   ".agents/skills/alchemy-spell-mechanics/SKILL.md",
-   "home-path"
-  ],
-  [
    ".agents/skills/game-knowledge/SKILL.md",
    "upstream"
   ],
   [
-   ".agents/skills/snes-asm-asar-patching/SKILL.md",
-   "home-path"
-  ],
-  [
-   ".agents/skills/wram-memory-mapping/SKILL.md",
-   "home-path"
-  ],
-  [
    ".vscode/mcp.json",
    "home-path"
-  ],
-  [
-   "docs/architecture/domain-overview.md",
-   "upstream"
   ],
   [
    "docs/byte-script-debugging.md",

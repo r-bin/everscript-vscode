@@ -93,9 +93,9 @@ Types: `feat` (new token/feature), `fix` (bug), `test` (test-only), `docs` (docs
 ## Anti-entropy checklist (run before every commit)
 
 - [ ] No file exceeds 400 LOC without documented justification
-- [ ] No new state variable added to `src/extension.js` (use domain modules under `src/`)
+- [ ] No logic or state added to `src/extension.js` or a game's `extension.js` (use the owning folder)
 - [ ] No new cross-domain `require()` added without checking allowed direction (see
-      `docs/architecture/domain-overview.md` and `.depcruise.js`)
+      `src/README.md`, the folder's `AGENTS.md` and `.depcruise.js`)
 - [ ] Every new directory has a `README.md` or is trivially named
 - [ ] `npm run typecheck`, `npm run check:circular` pass
 - [ ] `npm run check:dead`, `npm run check:deps` reviewed (advisory/warn)

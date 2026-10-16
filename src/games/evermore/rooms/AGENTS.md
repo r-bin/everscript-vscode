@@ -29,7 +29,7 @@ Related skills: `map-editor-rules`, `map-construction`, `map-entities`, `map-for
 | Lua watcher POI cache | `data/lua-watchers.js` | Invalidated by `invalidateLuaWatcherCaches()` |
 | Vanilla data cache | `data/vanilla-data.js` | Invalidated by `invalidateVanillaDataCaches()` |
 | Room tree cache | `extension.js` `_radarRoomTree` | Rooms module is STATELESS; cache owned by caller |
-| Webview globals | one owner file each | see README's client-side list and `STATE_FLOW.md` |
+| Webview globals | one owner file each | see README's client-side list and `webview/STATE.md` |
 
 ## Invariants
 1. `parsing/content-parser.js` is pure: file path + line range in, data out — no side effects.
