@@ -21,7 +21,7 @@ function setupByteScriptFocus(){
 }
 
 // The pan gesture (start, and the window handlers that carry it past the SVG's edge) is the shared
-// shell's: shellPanStart / shellPanEnd in src/shared/webview/map-editor-shell/pan.js.
+// shell's: shellPanStart / shellPanEnd in src/core/map-editor/shell/pan.js.
 
 /**
  * Wire all mouse events: pan, box-select, entity drag, click select.

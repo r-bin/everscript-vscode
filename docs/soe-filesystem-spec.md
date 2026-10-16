@@ -109,10 +109,10 @@ An address without an extension reads as `.json` (`soe://bus/8cd0a6` → `soe://
 ## 3a. AI access over MCP (v0.180.0)
 
 A tool like Claude Code cannot read `soe://` itself, because it only sees the real disk. So the
-extension host runs a read-only MCP server (`src/mcp/`) at `http://127.0.0.1:47917/mcp`, and the repo's
+extension host runs a read-only MCP server (`src/core/mcp/`) at `http://127.0.0.1:47917/mcp`, and the repo's
 `.mcp.json` points Claude Code at it.
 
-- **Clients (v0.181.0):** Claude Code (`.mcp.json`), Antigravity (`.agents/mcp_config.json`) and VS Code's chat through `registerMcpServerDefinitionProvider`. Details in `src/mcp/README.md`.
+- **Clients (v0.181.0):** Claude Code (`.mcp.json`), Antigravity (`.agents/mcp_config.json`) and VS Code's chat through `registerMcpServerDefinitionProvider`. Details in `src/core/mcp/README.md`.
 - **Tools:** `soe_list(uri)` and `soe_read(uri)`. PNG files come back as images.
 - **Resources:** the entry points and URI templates.
 

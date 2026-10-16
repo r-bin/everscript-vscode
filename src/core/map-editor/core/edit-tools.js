@@ -1,6 +1,6 @@
 // Ownership: the editor's keys — which tool a letter selects, and the undo / redo shortcuts. Game-neutral: an
 // adapter lists its tools as `{ id, key }`. The tool strip itself is the shell's pill
-// (src/shared/webview/map-editor-shell/frame.js shellPillHtml). Plain browser script: defines globals (and
+// (src/core/map-editor/shell/frame.js shellPillHtml). Plain browser script: defines globals (and
 // `module.exports` under Node, for the unit test).
 
 /** The tool a key selects, or null (`tools` as above; ignores keys with a modifier). */

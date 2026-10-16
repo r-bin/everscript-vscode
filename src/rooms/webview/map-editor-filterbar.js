@@ -58,7 +58,7 @@ function filterGroupHtml(p) {
 
 /**
  * Background | Foreground | Collision, as one bordered segmented group (the shared
- * builders in src/shared/webview/map-view/view-chips.js, also used by the Secret of
+ * builders in src/core/map-editor/view/view-chips.js, also used by the Secret of
  * Mana Maps panel).
  *
  * Background and Foreground are two views of rom-overlay.js's single

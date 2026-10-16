@@ -1,4 +1,4 @@
-# src/docs — agent rules
+# src/games/evermore/docs-tab — agent rules
 
 Kind: **feature** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [README.md](README.md).
 Related skills: `alchemy-spell-mechanics` (`.agents/skills/`).

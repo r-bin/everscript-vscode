@@ -2,7 +2,7 @@
 // and putting the page together from the shared editor shell: the name line, the canvas column (the shell's
 // card, pill, zoom chip, filter bar and status bar), the dock. The pieces: editor-stage.js (what is on the
 // map), editor-tools.js (the pill, strokes, keys), editor-dock.js (the tabs), editor-model.js (the data).
-// The page frame, rail, layout, zoom and pan are the shell's (src/shared/webview/map-editor-shell/); the
+// The page frame, rail, layout, zoom and pan are the shell's (src/core/map-editor/shell/); the
 // history and the "not saved" notice are the core's (.../map-editor-core/). State owned here: manaEdSessions.
 // Nothing is saved anywhere (docs/architecture/multi-game.md): the notice says so.
 

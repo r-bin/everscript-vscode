@@ -8,7 +8,7 @@ const sharedDir  = path.join(__dirname, '../../shared');
 const scalingDir = path.join(__dirname, '../../games/evermore/scaling/webview');
 const roomsDir   = path.join(__dirname, '../../rooms/webview');
 const spritesDir = path.join(__dirname, '../../games/evermore/sprites/webview');
-const docsDir    = path.join(__dirname, '../../docs');
+const docsDir    = path.join(__dirname, '../../games/evermore/docs-tab');
 const romDir     = path.join(__dirname, '../../games/evermore/rom/webview');
 const musicDir   = path.join(__dirname, '../../games/evermore/music/webview');
 const scriptsDir = path.join(__dirname, '../../games/evermore/scripts-tab/webview');
@@ -151,15 +151,16 @@ const ROOMS_JS_FILES = [
   'tab-init.js',         // the top-level tab strip
 ];
 
-// Map-view pieces shared with the Secret of Mana Maps panel (src/shared/webview/map-view/).
-const MAP_VIEW_DIR = path.join(sharedDir, 'webview', 'map-view');
+// Map-view pieces shared with the Secret of Mana Maps panel (src/core/map-editor/view/).
+const MAP_EDITOR_DIR = path.join(__dirname, '../../core/map-editor');
+const MAP_VIEW_DIR = path.join(MAP_EDITOR_DIR, 'view');
 const MAP_VIEW_JS_FILES = ['tile-animation.js', 'view-chips.js'];
-// The game-neutral editor core (src/shared/webview/map-editor-core/): the Rooms editor uses its
+// The game-neutral editor core (src/core/map-editor/core/): the Rooms editor uses its
 // "not saved" notice, so both games' editors word and draw it the same way.
-const EDITOR_CORE_DIR = path.join(sharedDir, 'webview', 'map-editor-core');
+const EDITOR_CORE_DIR = path.join(MAP_EDITOR_DIR, 'core');
 const EDITOR_CORE_JS_FILES = ['edit-session.js'];
-// The shared editor shell (src/shared/webview/map-editor-shell/): layout, zoom/pan, rail, tabs, pill, status bar.
-const EDITOR_SHELL_DIR = path.join(sharedDir, 'webview', 'map-editor-shell');
+// The shared editor shell (src/core/map-editor/shell/): layout, zoom/pan, rail, tabs, pill, status bar.
+const EDITOR_SHELL_DIR = path.join(MAP_EDITOR_DIR, 'shell');
 const EDITOR_SHELL_JS_FILES = [
   'frame.js',     // markup: page frame, rail, header, canvas column, pill, status bar, tab strip, dock mount
   'layout.js',    // the rail and dock resize handles, collapsed and compact states (_layoutWidths)
@@ -188,7 +189,7 @@ module.exports = {
     + loadFile(path.join(EDITOR_SHELL_DIR, 'shell-tabs.css')) + '\n'
     + loadFile(path.join(EDITOR_SHELL_DIR, 'shell-canvas.css')) + '\n'
     + loadFile(path.join(roomsDir, 'map-editor-canvas.css')) + '\n'
-    + loadFile(path.join(sharedDir, 'webview', 'map-view', 'map-view.css')) + '\n'
+    + loadFile(path.join(MAP_VIEW_DIR, 'map-view.css')) + '\n'
     + loadFile(path.join(EDITOR_CORE_DIR, 'map-editor-core.css')) + '\n'
     + loadFile(path.join(roomsDir, 'map-editor-tile-tab.css')) + '\n'
     + loadFile(path.join(EDITOR_SHELL_DIR, 'shell-rail.css')) + '\n'

@@ -1,4 +1,4 @@
-# src/shared/webview/map-editor-shell — agent rules
+# src/core/map-editor/shell — agent rules
 
 Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2), part of `src/shared`. What it does: [README.md](README.md).
 

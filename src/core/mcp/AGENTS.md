@@ -1,6 +1,6 @@
-# src/mcp — agent rules
+# src/core/mcp — agent rules
 
-Kind: **platform** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does and how
+Kind: **core** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does and how
 clients connect: [README.md](README.md).
 
 ## Owns

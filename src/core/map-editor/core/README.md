@@ -1,8 +1,8 @@
-# src/shared/webview/map-editor-core — the game-neutral editor core
+# src/core/map-editor/core — the game-neutral editor core
 
 Rules for agents: [AGENTS.md](AGENTS.md). Plan: [docs/architecture/multi-game.md](../../../../docs/architecture/multi-game.md).
 The page around it (frame, rail, canvas card, pill, dock, layout, zoom/pan) is the sibling
-[map-editor-shell](../map-editor-shell/README.md).
+[map-editor-shell](../shell/README.md).
 
 Plain browser scripts (globals; also `module.exports` under Node for the unit test). They know no
 game: an adapter (a game's editor page) says what a cell is, what a tool does and what a change means.

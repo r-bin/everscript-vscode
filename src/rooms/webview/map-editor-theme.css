@@ -30,7 +30,7 @@
  * ~969-976) — its own README calls them a placeholder, so exact hue-matching
  * was never the goal.
  */
-/* The tokens themselves live in src/shared/webview/map-view/map-view.css (shared with
+/* The tokens themselves live in src/core/map-editor/view/map-view.css (shared with
  * the Secret of Mana Maps panel); this file and map-editor-canvas.css consume them. */
 
 /* ── Special tab (map-editor-special.js's specialTabHtml) ────────────────

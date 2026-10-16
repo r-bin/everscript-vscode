@@ -1,7 +1,7 @@
 ---
 name: memory-radar
-description: Use when touching the Memory Radar webview panel in everscript-vscode — its Memory tab (WRAM grid, address lifecycle, arg tracking, pools) or its Rooms tab (map browser, room tree, SVG grid). Source lives under src/memory/, src/rooms/, src/docs/render-docs-tab.js, and src/shared/radar-utils.js.
-applyTo: "src/memory/**,src/rooms/**,src/shared/radar-utils.js,src/docs/render-docs-tab.js,src/extension.js"
+description: Use when touching the Memory Radar webview panel in everscript-vscode — its Memory tab (WRAM grid, address lifecycle, arg tracking, pools) or its Rooms tab (map browser, room tree, SVG grid). Source lives under src/memory/, src/rooms/, src/games/evermore/docs-tab/render-docs-tab.js, and src/shared/radar-utils.js.
+applyTo: "src/memory/**,src/rooms/**,src/shared/radar-utils.js,src/games/evermore/docs-tab/render-docs-tab.js,src/extension.js"
 ---
 
 # Skill: Memory Radar & Rooms Tab
@@ -14,7 +14,7 @@ Current source locations (post v0.6.0 `src/` refactor):
 - `src/rooms/index.js`, `src/rooms/parsing/`, `src/rooms/rendering/`, `src/rooms/data/`,
   `src/rooms/webview/`
 - `src/games/evermore/sprites/` (the **Characters** tab, formerly Sprites: `character-model.js`, `animation-catalog.js`, `animation-decoder.js`, `raw-sprites.js`, `sprites-tab.js`, `webview/`)
-- `src/docs/render-docs-tab.js` (docs/RNG tab, rendered in the same panel)
+- `src/games/evermore/docs-tab/render-docs-tab.js` (docs/RNG tab, rendered in the same panel)
 - `src/shared/radar-utils.js` (pure functions shared by memory/rooms)
 - Panel lifecycle and command registration: `src/extension.js`
 
@@ -265,7 +265,7 @@ rendering, state, IPC, parsing, interactions, and tests:
 - `src/rooms/webview/`, `src/rooms/rendering/`, `src/rooms/parsing/`, `src/rooms/data/` — rooms tab
 - `src/games/evermore/sprites/` — Characters tab (characters, animations, raw sprites)
 - `src/memory/render-memory-tab.js` — memory tab rendering
-- `src/docs/render-docs-tab.js` — docs/RNG tab rendering
+- `src/games/evermore/docs-tab/render-docs-tab.js` — docs/RNG tab rendering
 
 Rules:
 - Future work on a tab should reason only inside that tab's own directory.

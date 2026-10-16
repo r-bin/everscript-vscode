@@ -3,7 +3,7 @@
 Rules for agents: [AGENTS.md](AGENTS.md). Opened by **Everscript: Secret of Mana: Open Maps**
 by **Open Memory Radar** when the ROM chosen with **Switch ROM** is a Mana ROM (one command for every game).
 
-The page is the Evermore Rooms editor's, built from the same shared shell (`src/shared/webview/map-editor-shell/`):
+The page is the Evermore Rooms editor's, built from the same shared shell (`src/core/map-editor/shell/`):
 left, the rail of areas and their maps (search, collapse); middle, the map on a card with the floating pill
 (Select, Pencil, Erase, Pick, Undo, Redo) over its top edge, the zoom chip, the filter bar over its bottom edge
 (BG1 | BG2 | Collision, Animate, Cuttable, Specials, Objects, Characters, Triggers, Grid) and the status bar; right, the dock with

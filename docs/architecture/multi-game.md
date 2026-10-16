@@ -150,10 +150,12 @@ does too (registered in `src/games/terra/`, European base ROM title `TERRANIGMA 
   Mana moved (v0.232.0): `games/mana/decoder`, `games/mana/resources`, `games/mana/maps`, and the bridge
   `games/evermore/imports/mana`. The twelve Evermore-only domains moved as they were (v0.233.0):
   `games/evermore/{language,localizations,maps,script,simulation,sprites,resources,rom,scripts-tab,music,
-  scaling,debugger}`; their JS→TS conversion is cleanup 5.5, not part of the move. Still at `src/<domain>`
+  scaling,debugger}`; their JS→TS conversion is cleanup 5.5, not part of the move. v0.241.0: the map editor's view/core/shell → `core/map-editor/`, `mcp` → `core/mcp`, the Docs/RNG
+  tab → `games/evermore/docs-tab`. Still at `src/<domain>`
   because each mixes game-neutral and Evermore code and must be split first: `emulator` (core, CDL →
   `platform/`; ENTITIES/ALCHEMY panels → `games/evermore`), `memory` and `rooms` (tab shells → `core/`,
-  Evermore content → `games/evermore`), `docs`, `shared`, `mcp`, `recorder`.
+  Evermore content → `games/evermore`), `shared` (`rom-readers`, `radar-utils` are Evermore), and
+  `recorder`, which stays: it is the second extension's composition root, like `extension.js`.
 - Headless: `npm run roms` lists the library and adds/selects/marks ROMs (`tools/roms.js`).
 
 ## 8. The map editor (from the 2026-10-15 plan)
@@ -177,8 +179,8 @@ does too (registered in `src/games/terra/`, European base ROM title `TERRANIGMA 
   Triggers: add/move/resize step-event cells, set the event number. Scripts show as an event number
   only until Mana event scripts are decoded (checked with `tools/mana/check-events.js`).
 
-**Built (v0.211–v0.217):** `src/shared/webview/map-editor-core/` (history, sessions, "not saved"
-notice, tool keys; rule `map-editor-core-is-game-neutral`) and `src/shared/webview/map-editor-shell/`
+**Built (v0.211–v0.217):** `src/core/map-editor/core/` (history, sessions, "not saved"
+notice, tool keys; rule `map-editor-core-is-game-neutral`) and `src/core/map-editor/shell/`
 (frame, rail, name line, canvas column, dock, tab strip, layout, zoom/pan, CSS; rule
 `map-editor-shell-is-game-neutral`) — the Evermore Rooms editor runs on these; the Mana editor
 (`src/games/mana/maps/webview/`) on the same shell and core with Select / Pencil / Erase / Pick /

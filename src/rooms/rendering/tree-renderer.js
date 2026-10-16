@@ -5,7 +5,7 @@
 
 const { radarEsc } = require('../../shared/radar-utils');
 // The rail's markup is the shared editor shell's, so the Secret of Mana editor builds the same one.
-const { shellRailHtml, shellRailTreeHtml } = require('../../shared/webview/map-editor-shell/frame');
+const { shellRailHtml, shellRailTreeHtml } = require('../../core/map-editor/shell/frame');
 
 /**
  * Server-side render of the static vanilla room list grouped by act.

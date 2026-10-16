@@ -11,7 +11,7 @@
 // webview that stutters when you pan.
 
 // The player itself is shared with the Secret of Mana Maps panel
-// (src/shared/webview/map-view/tile-animation.js: mapAnimPlay).
+// (src/core/map-editor/view/tile-animation.js: mapAnimPlay).
 var _animPlayer=null;
 
 /** Stop playback and drop the overlay. Safe to call when nothing is running. */

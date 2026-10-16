@@ -1,4 +1,4 @@
-# src/shared/webview/map-editor-shell — the editor page both games are built from
+# src/core/map-editor/shell — the editor page both games are built from
 
 Rules for agents: [AGENTS.md](AGENTS.md). Plan: [docs/architecture/multi-game.md](../../../../docs/architecture/multi-game.md).
 

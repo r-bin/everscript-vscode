@@ -377,14 +377,14 @@ chosen track in the tab's own SPC engine; voices, instruments, sound effects, AR
 **Purpose:** A read-only MCP server (Streamable HTTP, `127.0.0.1:47917/mcp`) so AI
 clients can browse the `soe://` file system, including the live emulator.
 
-**Folder:** `src/mcp/`
+**Folder:** `src/core/mcp/`
 
 **Public API:** `require('./mcp').registerMcpServer(context)`; Claude Code connects via the repo's `.mcp.json`
 
 **Allowed deps:** `vscode` only — every read goes through `vscode.workspace.fs`
 **Forbidden deps:** every other `src/` domain
 
-**Documentation:** `src/mcp/README.md`
+**Documentation:** `src/core/mcp/README.md`
 
 ---
 

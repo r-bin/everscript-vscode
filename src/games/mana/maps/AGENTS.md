@@ -15,7 +15,7 @@ What the folder does: [README.md](README.md).
   `map-editor-shell/`) by file path — the same files the Evermore Rooms tab uses.
 
 ## Invariants
-- The page is the shared editor shell (`src/shared/webview/map-editor-shell/`), the same files the Evermore
+- The page is the shared editor shell (`src/core/map-editor/shell/`), the same files the Evermore
   Rooms tab runs on: frame, rail, name line, canvas card with the floating pill, filter bar, status bar, dock
   with its tab strip, layout, zoom and pan. Do not rebuild a piece here: parametrise it in the shell, or leave
   the feature out until it can be shared. `style.css` holds only what the shell does not cover (collision
@@ -45,7 +45,7 @@ What the folder does: [README.md](README.md).
   never round a drawing to a shape Mana does not have. On one byte (c2) the last wish drawn wins. Step events and
   objects are edited as lists; only the fields documented in `docs/mana/README.md` are editable, every other
   byte is kept as read.
-- History, sessions and the "not saved" notice are the core's (`src/shared/webview/map-editor-core/`).
+- History, sessions and the "not saved" notice are the core's (`src/core/map-editor/core/`).
   Changed cells are drawn from the metatile sheets (no BG priority, no colour math) over the real picture, as
   SVG inside the one `#rg-svg` the shell zooms and pans.
 - Maps are SVGs sized by the shell (zoom-pan.js); never scale map pictures with CSS (VS Code's default

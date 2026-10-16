@@ -25,7 +25,7 @@
         "src/memory/webview",
         "src/games/evermore/scaling/webview",
         "src/rooms/webview",
-        "src/docs",
+        "src/games/evermore/docs-tab",
         "src/emulator/webview",
         "src/games/evermore/sprites/webview",
         "tests"

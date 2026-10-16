@@ -65,7 +65,7 @@ function familyName(id) {
  * The "changes are not saved" notice for a converted room that has changes in its draft, else ''.
  * A converted room is not a custom map: nothing writes its draft (only custom maps are saved,
  * map-editor-custom-store.js), and "duplicate as a custom map" is the way to keep the work.
- * The wording is the editor core's (src/shared/webview/map-editor-core/edit-session.js).
+ * The wording is the editor core's (src/core/map-editor/core/edit-session.js).
  */
 function importedNotSavedHtml() {
   var d = editDraft();

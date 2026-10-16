@@ -2,7 +2,7 @@
 // animation. Pixels are SVG units (16 per cell); the zoom is the shell's
 // (zoom-pan.js sets the SVG's width/height), so nothing is scaled by CSS (VS Code's default
 // `img { max-width: 100% }` is what squashed maps before).
-// Uses mapAnimPlay from src/shared/webview/map-view/tile-animation.js.
+// Uses mapAnimPlay from src/core/map-editor/view/tile-animation.js.
 
 var SVG_NS = 'http://www.w3.org/2000/svg';
 

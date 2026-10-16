@@ -9,9 +9,10 @@ const path = require('path');
 
 const SRC = path.join(__dirname, '..', '..', '..');
 const SHARED = path.join(SRC, 'shared');
-const MAP_VIEW = path.join(SHARED, 'webview', 'map-view');
-const CORE = path.join(SHARED, 'webview', 'map-editor-core');
-const SHELL = path.join(SHARED, 'webview', 'map-editor-shell');
+const MAP_EDITOR = path.join(SRC, 'core', 'map-editor');
+const MAP_VIEW = path.join(MAP_EDITOR, 'view');
+const CORE = path.join(MAP_EDITOR, 'core');
+const SHELL = path.join(MAP_EDITOR, 'shell');
 const WEBVIEW = path.join(__dirname, 'webview');
 
 /** Stylesheets, in the order the Rooms tab cascades them (src/memory/webview/index.js). */

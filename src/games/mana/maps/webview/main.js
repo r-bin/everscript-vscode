@@ -1,7 +1,7 @@
 // Ownership: the Secret of Mana Maps page — its data (the #init block and the som:// files the host reads on
 // request: {command:'read', path} -> 'file'), the rail of areas and maps, and opening a map in the editor
 // (editor.js). The page frame, rail behaviour, layout, zoom and pan are the shared editor shell's
-// (src/shared/webview/map-editor-shell/), the same files the Evermore Rooms tab runs on.
+// (src/core/map-editor/shell/), the same files the Evermore Rooms tab runs on.
 // State owned here: the open map and the view prefs (persisted with vscode.setState).
 (function () {
   // @ts-ignore acquireVsCodeApi is provided by the webview host

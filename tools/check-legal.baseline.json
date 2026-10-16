@@ -162,7 +162,7 @@
    "upstream"
   ],
   [
-   "src/docs/render-docs-tab.js",
+   "src/games/evermore/docs-tab/render-docs-tab.js",
    "upstream"
   ],
   [

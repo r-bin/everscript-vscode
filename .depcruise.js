@@ -132,16 +132,16 @@ module.exports = {
       name: 'map-editor-core-is-game-neutral',
       comment: 'The shared map-editor core (history, sessions, grid strokes, tool strip) knows no game: it imports nothing from src/ outside itself.',
       severity: 'error',
-      from: { path: '^src/shared/webview/map-editor-core/' },
-      to: { path: '^src/(?!shared/webview/map-editor-core/)' },
+      from: { path: '^src/core/map-editor/core/' },
+      to: { path: '^src/(?!core/map-editor/core/)' },
     },
 
     {
       name: 'map-editor-shell-is-game-neutral',
       comment: 'The shared editor shell (frame, rail, layout, zoom/pan, pill, status bar, dock) knows no game: it imports nothing from src/ outside itself.',
       severity: 'error',
-      from: { path: '^src/shared/webview/map-editor-shell/' },
-      to: { path: '^src/(?!shared/webview/map-editor-shell/)' },
+      from: { path: '^src/core/map-editor/shell/' },
+      to: { path: '^src/(?!core/map-editor/shell/)' },
     },
 
     {
@@ -156,8 +156,8 @@ module.exports = {
       name: 'no-mcp-to-domains',
       comment: 'The MCP server reads soe:// through vscode.workspace.fs only.',
       severity: 'warn',
-      from: { path: '^src/mcp/' },
-      to: { path: '^src/(?!mcp/)' },
+      from: { path: '^src/core/mcp/' },
+      to: { path: '^src/(?!core/mcp/)' },
     },
 
     {

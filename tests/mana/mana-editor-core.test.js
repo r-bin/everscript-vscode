@@ -1,11 +1,11 @@
 'use strict';
-// The editor core (src/shared/webview/map-editor-core/) and the Mana editor model
+// The editor core (src/core/map-editor/core/) and the Mana editor model
 // (src/games/mana/maps/webview/editor-model.js): plain data, no DOM, no ROM. Run: node tests/mana/mana-editor-core.test.js
 
 const assert = require('assert');
 const path = require('path');
 
-const CORE = path.join(__dirname, '..', '..', 'src', 'shared', 'webview', 'map-editor-core');
+const CORE = path.join(__dirname, '..', '..', 'src', 'core', 'map-editor', 'core');
 const { editHistoryCreate } = require(path.join(CORE, 'edit-history.js'));
 const { editSessionStore, editNotSavedHtml } = require(path.join(CORE, 'edit-session.js'));
 const { editToolForKey, editHistoryForKey } = require(path.join(CORE, 'edit-tools.js'));

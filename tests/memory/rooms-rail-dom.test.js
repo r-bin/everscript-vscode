@@ -246,8 +246,7 @@ async function main() {
     // IIFE, so the only way to re-run the binder against the real DOM is to
     // load a second copy of the file at global scope — which is exactly the
     // double-bind case.
-    await page.addScriptTag({ path: path.join(__dirname, '..', '..',
-        'src', 'shared', 'webview', 'map-editor-shell', 'rail.js') });
+    await page.addScriptTag({ path: path.join(__dirname, '..', '..', 'src', 'core', 'map-editor', 'shell', 'rail.js') });
     await page.addScriptTag({ path: path.join(__dirname, '..', '..',
         'src', 'rooms', 'webview', 'rooms-rail.js') });
     const before = await displayOf(page, '#rm-vanilla-tree');

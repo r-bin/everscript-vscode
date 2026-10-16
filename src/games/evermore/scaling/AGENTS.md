@@ -17,7 +17,7 @@ Existing exceptions (do not add more):
   `src/rooms/data/item-icons.js` and injected by `src/memory/render-radar.js`.
 - The tab's ROM data (`readRomCharacters`) is read in `src/extension.js`, not here.
 - `webview/alchemy-math.js` is loaded in the page's outer scope and its functions are
-  called by the Docs tab (`src/docs/docs-tab.js`).
+  called by the Docs tab (`src/games/evermore/docs-tab/docs-tab.js`).
 
 ## Invariants
 - Load order is `SCALING_JS_FILES` in `src/memory/webview/index.js`: `alchemy-math.js` in

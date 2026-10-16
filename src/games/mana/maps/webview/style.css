@@ -1,4 +1,4 @@
-/* Ownership: the Secret of Mana editor's own look — what the shared shell (src/shared/webview/map-editor-shell/)
+/* Ownership: the Secret of Mana editor's own look — what the shared shell (src/core/map-editor/shell/)
  * and the map-view tokens do not cover: the collision overlay colours, the metatile picker, the info rows,
  * the overlay marks for objects and step events. Everything else is the shell's, so the page looks like the
  * Evermore Rooms editor. Scoped under `.rg-theme` where it uses the shell's tokens. */

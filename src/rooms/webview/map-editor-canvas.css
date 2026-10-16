@@ -1,7 +1,7 @@
 /* Ownership: the Evermore editor's own canvas chrome — what its pill, level bar, stamps, groups,
  * specials, objects and animations draw over the map. The canvas card, the pill itself, the zoom chip,
  * the status bar, the resize grip and the pill's tooltips are the shared shell's
- * (src/shared/webview/map-editor-shell/shell-canvas.css). Scoped under `.rg-theme`; tokens in map-view.css. */
+ * (src/core/map-editor/shell/shell-canvas.css). Scoped under `.rg-theme`; tokens in map-view.css. */
 
 /* The cuttable layer while it is being edited (map-editor-cutlayer.js): a
    green outline per cuttable cell, the colour upstream render_map.py gives

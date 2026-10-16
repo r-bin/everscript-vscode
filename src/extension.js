@@ -1453,8 +1453,8 @@ function activate(context) {
             }
         }),
     );
-    // AI clients read the same soe:// tree over MCP (src/mcp/README.md).
-    require('./mcp').registerMcpServer(context);
+    // AI clients read the same soe:// tree over MCP (src/core/mcp/README.md).
+    require('./core/mcp').registerMcpServer(context);
 
     // ── Emulator Panel ───────────────────────────────────────────────────────
     const { openEmulatorPanel } = require('./emulator/panel');

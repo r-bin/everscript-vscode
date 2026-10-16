@@ -5,14 +5,12 @@ All production code lives here. Each subdirectory is an ownership domain.
 | Domain | Description |
 |---|---|
 | `platform/` | Game-neutral: ROM header and identification, the ROM library, the game registry (`docs/architecture/multi-game.md`) |
-| `core/` | Game-neutral features: Switch ROM, the ROM panel, the status bar item |
-| `shared/` | Cross-domain utilities: config, radar-utils, rom-readers, shared webview assets |
+| `core/` | Game-neutral features: Switch ROM, the ROM panel, the status bar item; `map-editor/` (view, core, shell of both games' editors); `mcp/` (read-only MCP server, 127.0.0.1:47917, for AI clients) |
+| `shared/` | Cross-domain utilities: config, radar-utils, rom-readers, radar webview assets |
 | `emulator/` | Embedded SNES emulator: panel, webview, SNES ROM header model; profiles (Everscript / recorder) and Evermore gating; recording bundles |
 | `recorder/` | SNES CDL Recorder: the second extension's entry (`recorder/package.json`), the emulator in its recorder profile |
-| `mcp/` | Read-only MCP server (127.0.0.1:47917) serving `soe://` to AI clients (Claude Code, Antigravity, Copilot, any MCP client) |
 | `memory/` | Memory Radar tab: WRAM grid, detail table, rendering pipeline |
 | `rooms/` | Rooms map browser: tree building, content parsing, rendering, data watchers |
-| `docs/` | Docs/RNG tab rendering (render-docs-tab.js and webview assets) |
 | `games/` | One folder per game; `games/index.ts` is the list of games (→ `dist/games`) |
 | `games/evermore/language/` | VS Code language features: grammar, theme, hover, completion, definitions, snippets |
 | `games/evermore/localizations/` | Centralized subjective names (maps, sounds, tables, functions) & ROM string resolution |
@@ -24,6 +22,7 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `games/evermore/sprites/` | Sprites tab and the character pictures: frames, animations, projectiles, palettes (from `maps/` sprites + character record) |
 | `games/evermore/scripts-tab/` | Scripts tab: Everscript (room scripts + map, simulation toggle, clusters), animation and alchemy scripts with their animation, music sequences with a silent player |
 | `games/evermore/music/` | Music tab: the sound chip live from the emulator or playing a track in its own engine; voices, instruments, sound effects, ARAM |
+| `games/evermore/docs-tab/` | The radar's Docs and RNG tabs (alchemy reference, RNG) |
 | `games/evermore/scaling/` | Scaling/Alchemy tab: damage math, charts, state, webview assets |
 | `games/evermore/debugger/` | VS Code debugger for .evs scripts in the emulator: DAP session, compiler source map, step logic |
 | `games/evermore/imports/mana/` | The one bridge: a Mana map converted into a real Evermore room (cells, graphics, families, collision, step-on boxes) for the Rooms tab |
@@ -46,7 +45,7 @@ Below, `language/`, `maps/`, … without a prefix are under `games/evermore/`.
 - `recorder/` → only `emulator/`; nothing imports it
 - `emulator/` → may use `shared/`
 - `debugger/` → no memory, no emulator internals (the emulator bridge is injected by `extension.js`)
-- `mcp/` → `vscode` only; reads `soe://` through `vscode.workspace.fs`, never another domain
+- `core/mcp/` → `vscode` only; reads `soe://` through `vscode.workspace.fs`, never another domain
 - `simulation/` → `script/` only, injected through its `index.js`
 - `resources/` → may use `shared/`, `maps/`, `script/`, `simulation/`, `localizations/`; never `emulator/` (ROM and memory reads are injected by `extension.js`)
 - `platform/` → no `core/`, no game; `core/` → `platform/` only; a game never imports another game except through `games/<game>/imports/<other>/`

@@ -57,7 +57,7 @@ game supports it, not through a second tool:
   collision, animation, special cells and objects, and a map editor (Edit button): paint
   metatiles, objects, step events, undo/redo. Nothing it changes is saved. It shares the filter
   bar, the tile animation player, the editor core (history, sessions, notice) and the editor shell
-  (frame, rail, canvas card, pill, dock, layout, zoom/pan) with the Rooms tab (`src/shared/webview/map-view/`,
+  (frame, rail, canvas card, pill, dock, layout, zoom/pan) with the Rooms tab (`src/core/map-editor/view/`,
   `.../map-editor-core/`, `.../map-editor-shell/`) — the Mana page looks and behaves like the Evermore editor
   because it is built from the same files. The two editors
   never mix data: the Rooms tab shows Evermore plus *converted* Mana rooms, the panel native

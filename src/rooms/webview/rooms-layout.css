@@ -1,7 +1,7 @@
 /* Ownership: the Evermore editor's own page chrome — the Trigger tab's cards and compact scripts
  * (map-editor-trigger-scripts.js), the map's labels, the level bar's place. The page layout itself
  * (one screen, resize handles, the map filling the space between the bars, the header, the collapsed
- * and compact overlay states) is the shared shell's (src/shared/webview/map-editor-shell/shell-layout.css). */
+ * and compact overlay states) is the shared shell's (src/core/map-editor/shell/shell-layout.css). */
 
 
 .rg-theme .rg-trigger-body{padding:6px 10px 8px 30px;border-top:1px solid var(--rg-border);font-size:11px}

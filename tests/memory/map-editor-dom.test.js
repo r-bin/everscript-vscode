@@ -23,11 +23,11 @@ const assert = require('assert');
 const WEBVIEW = path.join(__dirname, '..', '..', 'src', 'rooms', 'webview');
 const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
 /** Map-view pieces the bundle puts in front of the rooms files (src/memory/webview/index.js). */
-const MAP_VIEW = path.join(__dirname, '..', '..', 'src', 'shared', 'webview', 'map-view');
-const CORE = path.join(__dirname, '..', '..', 'src', 'shared', 'webview', 'map-editor-core');
+const MAP_VIEW = path.join(__dirname, '..', '..', 'src', 'core', 'map-editor', 'view');
+const CORE = path.join(__dirname, '..', '..', 'src', 'core', 'map-editor', 'core');
 const SHARED_JS = ['tile-animation.js', 'view-chips.js'].map((f) => fs.readFileSync(path.join(MAP_VIEW, f), 'utf8'))
   .concat(['edit-session.js'].map((f) => fs.readFileSync(path.join(CORE, f), 'utf8')))
-  .concat(['frame.js', 'layout.js', 'zoom-pan.js', 'pan.js', 'rail.js', 'status.js'].map((f) => fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'shared', 'webview', 'map-editor-shell', f), 'utf8'))).join('\n');
+  .concat(['frame.js', 'layout.js', 'zoom-pan.js', 'pan.js', 'rail.js', 'status.js'].map((f) => fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'core', 'map-editor', 'shell', f), 'utf8'))).join('\n');
 
 /** The editor's files, in the order the bundle concatenates them. */
 const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-history.js', 'map-editor-stamps.js', 'map-editor-paint.js',
@@ -88,8 +88,8 @@ async function main() {
     page.on('pageerror', (e) => pageErrors.push(e.message));
 
     const CSS = ['shared/shared.css', 'rooms/webview/map-editor-theme.css',
-        'shared/webview/map-editor-shell/shell-tabs.css', 'shared/webview/map-editor-shell/shell-canvas.css',
-        'rooms/webview/map-editor-canvas.css', 'shared/webview/map-view/map-view.css', 'rooms/webview/map-editor-tile-tab.css']
+        'core/map-editor/shell/shell-tabs.css', 'core/map-editor/shell/shell-canvas.css',
+        'rooms/webview/map-editor-canvas.css', 'core/map-editor/view/map-view.css', 'rooms/webview/map-editor-tile-tab.css']
         .map((f) => fs.readFileSync(path.join(__dirname, '..', '..', 'src', ...f.split('/')), 'utf8'))
         .join('\n');
     // The real stylesheets: without them every swatch is 0x0, so nothing is

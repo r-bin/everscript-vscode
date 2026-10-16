@@ -89,7 +89,7 @@ src/extension.js  ← orchestrator only, no business logic
   ├── src/rooms/     ← map browser
   ├── src/games/evermore/maps/      ← ROM map/blob models (being retired in favor of a map-server — see the `map-format` skill)
   ├── src/games/evermore/scaling/   ← scaling calculator
-  ├── src/docs/      ← docs/RNG tab
+  ├── src/games/evermore/docs-tab/      ← docs/RNG tab
   ├── src/games/evermore/language/  ← grammar, hover, completion, definitions
   ├── src/games/evermore/debugger/  ← DAP adapter
   ├── src/emulator/  ← SNES emulator panel

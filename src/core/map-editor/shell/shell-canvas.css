@@ -113,7 +113,7 @@
 .rg-theme .rg-edit-bar .rg-edit-icon{font-size:14px;line-height:1}
 
 /* The filter bar, its chips, the segmented pill and the chip dropdowns moved to
- * src/shared/webview/map-view/map-view.css (shared with the Secret of Mana Maps panel). */
+ * src/core/map-editor/view/map-view.css (shared with the Secret of Mana Maps panel). */
 
 /* ── Zoom chip (svg-builder.js, inside the card's bottom-left) ────────────
  * The mock's `zoomChipStyle` plus the three controls it replaces: `.rg-zoom`

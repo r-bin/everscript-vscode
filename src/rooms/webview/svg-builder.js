@@ -77,7 +77,7 @@ function buildRoomSvgSection(opts){
 
   var html='';
   if(hasCoords||imageUri){
-    // The canvas column's frame is the shell's (src/shared/webview/map-editor-shell/frame.js): the
+    // The canvas column's frame is the shell's (src/core/map-editor/shell/frame.js): the
     // canvas card with the tool pill on its top edge and the zoom chip in its corner, the viewport, the
     // svg. `canvas.open` ends with the svg's start tag, `canvas.close` starts with its end tag.
     var canvas=shellCanvasParts({dispW:dispW,dispH:dispH,viewBox:x1+' '+y1+' '+W+' '+H,filtersHtml:filtersHtml,statusHtml:statusHtml});

@@ -248,7 +248,7 @@ No new MCP tool is needed: `soe_list` and `soe_read` already serve any `soe://` 
 - **Entry point:** `soe://tags/index.md` lists the roots and explains the id → path rule in one paragraph.
 - **Exploring:** an agent reads `soe://tags/boy/index.md`, follows `hp.md`, then reads `soe://ram/4eb3.json` or the code links. Every link in a tag page is a `soe://` URI or a workspace path, so `soe_read` can open it directly.
 - **Search:** `soe://tags/search/<word>.md` (§4.3) is the way in when only a word is known ("what do we know about raptors?").
-- **Resources:** add `soe://tags/index.md` and the template `soe://tags/{id}.md` to the MCP server's resource list (`src/mcp/`).
+- **Resources:** add `soe://tags/index.md` and the template `soe://tags/{id}.md` to the MCP server's resource list (`src/core/mcp/`).
 
 ---
 
