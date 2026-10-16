@@ -1,8 +1,4 @@
 {
  "//": "Known AI-context overruns and broken links, removed by docs/cleanup.md step 7. Only ever shrinks.",
- "allow": [
-  ".agents/skills/map-editor-rules/SKILL.md: N lines (max 200)",
-  ".agents/skills/memory-radar/SKILL.md: N lines (max 200)",
-  ".agents/skills/webview-dom-safety/SKILL.md: N lines (max 200)"
- ]
+ "allow": []
 }

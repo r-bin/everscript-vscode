@@ -76,7 +76,7 @@ Canonical files: `.agents/skills/<name>/SKILL.md` (Claude Code reads them throug
 - **Process:** `release-ritual`, `architecture`, `game-knowledge`, `supported-games`, `games-and-roms`
 - **Evermore data:** `map-format`, `memory-map`, `map-construction`, `map-entities`,
   `animation-script`, `alchemy-spell-mechanics`, `secret-of-evermore-engine`
-- **Editor and UI:** `map-editor-rules`, `memory-radar`, `webview-dom-safety`, `grammar-rules`,
+- **Editor and UI:** `map-editor-rules`, `rooms-tab`, `memory-radar`, `webview-dom-safety`, `grammar-rules`,
   `debugger-protocol`
 - **Emulator and RE:** `emulator-subsystem`, `emulator-script-debugging`, `cdl-recorder`,
   `sample-playbacks`, `ghidra-analysis`, `snes-asm-asar-patching`, `recomp`, `recomp-debugging`

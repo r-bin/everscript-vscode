@@ -1,5 +1,5 @@
 // Ownership: a vanilla (ROM) room in the editor — what makes editing one look
-// and behave like editing a custom map (map-editor-rules §7): whether the
+// and behave like editing a custom map (docs/map-format/map-editor-reference.md §4): whether the
 // palette in hand is the room's own, the room's objects brought into its
 // draft, and its triggers and specials drawn by the editor rather than baked
 // into the host's render. Owns _specialByNibble; the rest reads `_edit` and

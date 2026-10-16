@@ -12,7 +12,7 @@
 // there would be a control for something that does not exist.
 //
 // Not in the JSON draft (entrances are room metadata, not tile-grid state,
-// map-editor-rules §6) — but Export ROM uses it: it is where the intro's
+// docs/map-format/map-editor-reference.md §3) — but Export ROM uses it: it is where the intro's
 // `load_map` puts the Boy (map-editor-rom-export.js, rom-export.js).
 //
 // Selecting him: the Select tool (or the Special tab's Boy pick) — a click

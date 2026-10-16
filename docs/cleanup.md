@@ -226,12 +226,13 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
 ### Step 7 — AI files last (D10)
 - [x] **7.1** `tools/check-ai-context.mts` + `npm run check:ai-context` (limits of D10, broken links; the 42
   known overruns are in `tools/check-ai-context.allow.json`, which step 7 empties).
-- [ ] **7.2** Root `AGENTS.md` to ≤ 150 lines; `AI_ARCHITECTURE_GUIDE.md` updated to the
+- [x] **7.2** (v0.254.0–v0.255.0: 85 lines; guide §2 rewritten) Root `AGENTS.md` to ≤ 150 lines; `AI_ARCHITECTURE_GUIDE.md` updated to the
   `platform/core/games` kinds; no rule in two places.
-- [ ] **7.3 Skills:** (v0.251.0: the five architecture skills are one, `architecture`; v0.252.0: `map-format` absorbs `rom-map-data`,
+- [x] **7.3 Skills:** (v0.251.0: the five architecture skills are one, `architecture`; v0.252.0: `map-format` absorbs `rom-map-data`,
   `memory-map` replaces `snes-memory-mapping` + `wram-memory-mapping`, `grammar-rules` absorbs `colour-theme`,
   `animation-script` absorbs `sprites-subsystem`; v0.257.0: new `games-and-roms` skill for adding a game, the
-  ROM library and identification) merge the five architecture skills (`compress-architecture`,
+  ROM library and identification; v0.258.0: `map-editor-rules` 444 → 194 (detail in `docs/map-format/map-editor-reference.md`),
+  `memory-radar` split off `rooms-tab`, `webview-dom-safety` 257 → 195; `check:ai-context` allow list empty) merge the five architecture skills (`compress-architecture`,
   `isolate-subsystem`, `split-orchestration`, `stabilize-state-flow`, `code-quality`) into one;
   `map-format` + `rom-map-data`; `wram-memory-mapping` + `snes-memory-mapping`; `grammar-rules` +
   `colour-theme`; `animation-script` + `sprites-subsystem`. Split `map-editor-rules` (444 lines),

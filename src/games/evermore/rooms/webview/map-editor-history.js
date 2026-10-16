@@ -4,7 +4,7 @@
 // (map-editor-animations.js: which slots move, at what timing), and the
 // canvas size a resize sets.
 //
-// Both are on the one history (map-editor-rules §6): pressing undo means
+// Both are on the one history (docs/map-format/map-editor-reference.md §3): pressing undo means
 // "the last thing I did", and freeing a family slot or dragging the resize
 // grip is a thing you did. A rename is not: a map's or widget's name is not
 // part of the drawing, and stays off the history.

@@ -157,93 +157,31 @@ run `npx playwright install`.
 
 ## 6. Undo/redo over a positionally-addressed dictionary can only prune from the tail
 
-If an editor lets a stroke append new dictionary entries (new metatiles, new stamps)
-and those entries are referenced elsewhere **by index** (`cells[key] = dictionaryIndex`),
-undoing the stroke has to consider dropping the entry it created — otherwise the
-dictionary only ever grows and any "used N of M slots" meter becomes a lie. But the
-entry can only be dropped from the **tail** of the list:
-
-```js
-function editPruneAdded(palette) {
-  while (_edit.added.length) {
-    var index = base + _edit.added.length - 1;   // the LAST entry only
-    if (used[index] || _edit.brush === index) break;
-    _edit.added.pop();
-  }
-}
-```
-
-Removing from the middle would silently repoint every surviving entry above it to the
-wrong picture — index `i` names position `i`, not identity `i`. This generalizes beyond
-undo: any "compact the dictionary" or "remove unused entries" feature over a
-positionally-addressed format has the same constraint, and needs the same tail-only
-rule or an explicit re-indexing pass over every reference.
+When a stroke appends dictionary entries (stamps) that cells reference **by index**, undo must
+drop the ones it created — or "used N of M slots" lies — but only from the **tail**
+(`editPruneAdded`: pop while the last entry is unused and not the brush). Removing from the
+middle repoints every later entry to the wrong picture: index `i` names a position, not an
+identity. Any "remove unused entries" feature over such a format needs the same tail-only rule
+or a re-indexing pass over every reference.
 
 ## 7. Three ways a green test suite still shipped a visibly broken UI
 
-Each of these passed every assertion and was caught only by a person looking at the
-rendered panel. They are why §5 is not enough on its own.
+Each passed every assertion and was caught only by a person looking at the panel.
 
-### 7a. `[hidden]` loses to any author `display` rule
-
-**Symptom:** a dropdown that should be closed is visibly open — for three releases —
-while every test that "closes" it passes.
-
-The browser hides `[hidden]` with a **user-agent** stylesheet rule. Author styles beat
-user-agent styles by *origin*, before specificity is even consulted, so a component rule
-like `.rg-filter-popup { display: flex }` overrides `hidden` no matter how weak its
-selector is. The element keeps its `hidden` attribute, `el.hidden` stays `true`, and it
-paints anyway.
-
-**Fix:** pair every author `display` rule on a hideable element with an explicit
-override — `.rg-filter-popup[hidden] { display: none }`.
-**Test:** never assert visibility through the `.hidden` IDL property or the attribute.
-Assert `getComputedStyle(el).display === 'none'` — that is the only check that agrees
-with what the user sees.
-
-### 7b. Reproduce at the real container width — and measure position, not just size
-
-**Symptom:** "clicking H/V moves the side bar to the right." A Playwright repro at a
-1400px-wide viewport measured the dock's *width* before and after the click and found
-**no change at all**, so the report looked unreproducible.
-
-It was real, and both halves of that repro were wrong. The dock never got wider — it
-**moved**. Its sibling, the canvas column (`#rg-outer`), is a flex item, and a flex
-item's default `min-width` is `auto`: it may not shrink below its content's min-content
-width. That content included the status-bar note, which is `white-space: nowrap`.
-Re-arming the brush on an H/V click writes the editor's longest note, the canvas column
-grows to hold it, and the fixed-width dock is shoved right until it clips off-screen. At
-1400px there was slack to absorb the growth, and a width-only measurement could never
-have seen a move anyway.
-
-**Fix:** `min-width: 0` on the flex item that holds unwrappable text
-(`.rg-edit-row > .rg-outer`), plus `min-width: 0` and an ellipsis on the text itself so
-it truncates instead of propping its column open.
-
-**Rules:**
-- Render at the width the component actually ships at, with its real content. When a
-  layout bug will not reproduce, the viewport is the first suspect.
-- Measure **position** (`getBoundingClientRect().left`) as well as size. "It moved" and
-  "it grew" are different bugs, and checking only one of them hides the other.
-- Any flex item containing `nowrap` text needs `min-width: 0`, or the longest string it
-  will ever show becomes that column's minimum width.
-- **Do not "fix" it with `overflow-x: hidden`** — that clips the control instead of
-  fitting it, trading a visible bug for an invisible one.
-
-### 7c. Module-level state leaks across tests — and across the real UI
-
-**Symptom:** two assertions about which layer a tile is badged for failed, reporting
-every tile as `ground`.
-
-The webview files share one concatenated scope, so a `var _layerForce` is a single
-global. A test that set it to `'terrain'` to exercise one path and never reset it
-silently forced every *later* badge in the same page. The failures looked exactly like
-the product bug being investigated.
-
-**Rule:** any test that writes a module-level webview variable restores it — the same
-suite runs every check in one page. And treat the same leak as a real product risk: if
-a code path sets shared state like `_layerForce` without clearing it, the UI shows the
-identical symptom to the user.
+- **`[hidden]` loses to any author `display` rule.** The browser hides `[hidden]` with a
+  user-agent rule, and author styles win by origin, so `.rg-filter-popup { display: flex }`
+  kept a "closed" dropdown open for three releases while `el.hidden` stayed `true`. Fix: pair
+  every author `display` rule on a hideable element with `[hidden] { display: none }`. Test with
+  `getComputedStyle(el).display === 'none'`, never the attribute or `.hidden`.
+- **Reproduce at the real container width, and measure position as well as size.** "H/V moves
+  the side bar": a flex item's default `min-width: auto` let a `nowrap` status note grow the
+  canvas column and shove the fixed-width dock off-screen. A 1400 px repro had slack, and a
+  width-only check could not see a move. Any flex item holding `nowrap` text gets `min-width: 0`
+  (and the text an ellipsis); never paper over it with `overflow-x: hidden`.
+- **Module-level state leaks across tests and the real UI.** The webview files share one scope,
+  so a test that set `_layerForce` and never reset it forced every later badge — exactly the
+  symptom of the bug under investigation. A test that writes a module-level webview variable
+  restores it; a code path that sets shared state clears it.
 
 ## 8. VS Code's own webview stylesheet caps images
 

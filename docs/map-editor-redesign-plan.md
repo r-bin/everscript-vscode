@@ -888,7 +888,7 @@ new **Start → Boy** pick (click or drag), as its own `start` undo step. It is
 deliberately **not** a `specialCells` entry: a special is one per cell, so it
 would overwrite a gate or drift glyph there (or be overwritten), and erase
 clears specials. It is not exported, since the encoder's shape has no entrance
-field (map-editor-rules §6). ROM rooms don't get one: their doors are already
+field (docs/map-format/map-editor-reference.md §3). ROM rooms don't get one: their doors are already
 drawn as arrivals.
 
 **3. "tile families should be pre-collapsed (and store it's state

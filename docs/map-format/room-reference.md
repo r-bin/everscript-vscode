@@ -184,7 +184,7 @@ never touch collision. Ticks are 60 Hz frames.
 
 Code: `src/games/evermore/maps/animation.ts` (parse), `custom-animation.ts` (write),
 `vanilla-animation.ts` (vanilla's timing census). Docs: `map_animated_tiles.md`;
-the editor's model: map-editor-rules §6 and `docs/animation-tab-plan.md`.
+the editor's model: map-editor-reference.md §3 and `docs/animation-tab-plan.md`.
 
 ---
 
