@@ -37,9 +37,14 @@ not a script. Without a fade-in, the room stays black.
 `writeRoomAt` refuses the lower half. Like upstream, it also refuses a blob
 that crosses a bank boundary.
 
-**Why `$BC`/`$BD`.** These banks are clear of what the everscript repo puts in
-the extension: `$B0` (strings, extension scripts), `$BE` (`debug_menu`,
-`scale_enemies`) and `$BF` (`hotkeys`, `_hook_input`).
+**Why `$BC`/`$BD`.** They were chosen as clear of the everscript repo's
+extension use, but they are not fully clear. Its linker fills text and scripts
+from the start of the `#memory` range (`$F0` lower and upper halves first). Its
+`.evs` patches declare ranges from `0x3c0000` (`connect_acts`), `0x3e0000` and
+`0x3f0000`. Its asm patches use `$F0:0000` (`room_timer`), `$FD:0000`
+(`auto_save` hotkeys), `$FE:0000` (debug menu), `$FE:5000` (hooks) and
+`$FE:8000+` (`scale_enemies`, whose tables run to about `$FF:9000`). Full bank
+plan: [docs/table-hack.md](../table-hack.md) §1.
 
 ## How the map becomes a blob
 

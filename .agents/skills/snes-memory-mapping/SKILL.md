@@ -24,7 +24,7 @@ ROM File Offset (Hex Editor)         SNES Bus Address (CPU View)
 0x000000 - 0x037FFF   ────────►     $C00000 - $C37FFF (Slow ROM, Strings)
 0x11D000 - 0x11F32D   ────────►     $91D000 - $91F32D (String Keys / Pointers)
 0x128000 - 0x1BFFFF   ────────►     $928000 - $9BFFFF (Fast ROM, Vanilla Scripts)
-0x300000 - 0x307FFF   ────────►     $B00000 - $B07FFF (Extended Strings)
+0x300000 - 0x307FFF   ────────►     $F00000 - $F07FFF (Extended Strings; $B0:0000-7FFF is not ROM)
 0x308000 - 0x30FFFF   ────────►     $B08000 - $B0FFFF (Extended Script Code)
 ```
 
@@ -34,10 +34,10 @@ ROM File Offset (Hex Editor)         SNES Bus Address (CPU View)
 
 The Evermore engine has strict architectural constraints on where specific asset types can reside:
 
-### 2.1 String Storage (`$C00000..$C37FFF` and `$B00000..$B07FFF`)
+### 2.1 String Storage (`$C00000..$C37FFF` and `$F00000..$F07FFF`)
 - Dialogue text and system strings are addressed through 24-bit pointers.
 - Vanilla string data lives in banks `$C0`, `$C1`, `$C2`, `$C3` (offsets `$0000..$7FFF`).
-- In an expanded ROM, extended strings are placed in bank `$B0` (`$0000..$7FFF`), corresponding to file offset `0x300000..0x307FFF`.
+- In an expanded ROM, extended strings are placed in the lower half of bank `$F0` (`$F0:0000..$7FFF`, file `0x300000..0x307FFF`). The lower half is reachable only as `$F0`: `$B0:0000..$7FFF` is WRAM/I/O, not ROM. The everscript linker allocates text from every lower half of its `#memory` range and scripts from every upper half (`compiler/linker.py`); the table hack's bank plan is in `docs/table-hack.md` §1.
 - Strings **cannot** be stored in the primary script banks without modifying the string decompression / rendering routines.
 
 ### 2.2 Script & Bytecode Storage (`$928000..$9BFFFF` and `$B08000..$B0FFFF`)
@@ -46,7 +46,7 @@ The Evermore engine has strict architectural constraints on where specific asset
 - In Everscript, additional custom code and functions are allocated into the extension region at file offset `0x308000..0x30FFFF` (`$B08000..$B0FFFF`).
 
 ### 2.3 String Key Table (`$91D000..$91F32D`)
-- File offset `0x11D000..0x11F32D` contains an indexed table of 3-byte string pointers (indices `0x0000` to `0x232B`).
+- File offset `0x11D000..0x11F32D` contains an indexed table of 3-byte string pointers (3002 keys; a key is a byte offset, `0x0000` to `0x232B`).
 - Structure of each 3-byte entry:
   - 24-bit address pointing to the string location.
   - The Most Significant Bit (MSB `0x80`) indicates whether the string is compressed using Evermore's proprietary dictionary compression.

@@ -88,6 +88,6 @@ Applying multiple IPS patches to a single ROM requires understanding the memory 
 2. **Expansion Space Standards:** 
    - FuSoYa claims Bank `$F0` (`$F0:0000..$F0:0A16`) for the 2-player kernel.
    - XaserLE claims Bank `$FE` (`$FE:0000..$FE:05FF`) for the debug menu kernel.
-   - Everscript uses Bank `$FD` and `$FE` (`!ROM_EXTENSION = $FD0000`, `!ROM_HOOK = $FE5000`) for custom script hooks and hotkey routines.
+   - Everscript's asm patches use `$F0:0000` (`room_timer`), `$FD:0000` (`auto_save` hotkey data), `$FE:0000` (debug menu), `$FE:5000` (hooks: `room_timer`, `_hook_input`, `auto_save`) and `$FE:8000+` (`scale_enemies`). Its linker allocates compiled text and scripts first-fit from the start of the `#memory` range, by default all of `0x300000..0x3fffff`. Bank plan: [docs/table-hack.md](../table-hack.md) §1.
 3. **Preserving Processor State in Hooks:** Several early community patches suffered from subtle crashes because 65816 status flags (`P.M`, `P.X`, Direct Page `D`, Data Bank `B`) were not cleanly preserved across `JSL`/`RTL` boundaries (see [snes-asm-asar-patching](../../.agents/skills/snes-asm-asar-patching/SKILL.md)). Everscript's modern patch architecture enforces strict `PHP`/`PHB`/`PHD` wraps on all injected hooks.
 
