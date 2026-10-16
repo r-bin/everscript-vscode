@@ -12,7 +12,7 @@ Kind: **platform** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: 
   `src/games/evermore/resources/resource-uri.js`.
 
 ## Dependencies
-- May use `shared/`, `maps/`, `script/`, `simulation/`, `localizations/`.
+- May use `platform/`, `maps/`, `script/`, `simulation/`, `localizations/`.
 - Never `emulator/`: the emulator's ROM and memory reads are injected by
   `extension.js` (`emulatorRom`, `readMemory`), as `rom/` gets the CDL library.
   `.depcruise.js` rule `no-resources-to-emulator`.

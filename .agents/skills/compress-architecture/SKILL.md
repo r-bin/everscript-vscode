@@ -48,7 +48,7 @@ polishing the copy)?
    risk.
 
 4. **Extract readers second** — pure I/O functions (file reads, ROM reads). These must
-   have ZERO VS Code dependency (candidates for `src/shared/`).
+   have ZERO VS Code dependency (candidates for `src/platform/` or a game's library folder).
 
 5. **Extract renderers third** — functions that produce HTML/JSON from data. Data in,
    string out, no state mutation.

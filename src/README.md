@@ -5,8 +5,7 @@ All production code lives here. Each subdirectory is an ownership domain.
 | Domain | Description |
 |---|---|
 | `platform/` | Game-neutral: ROM header and identification, the ROM library, the game registry (`docs/architecture/multi-game.md`) |
-| `core/` | Game-neutral features: Switch ROM, the ROM panel, the status bar item; `map-editor/` (view, core, shell of both games' editors); `mcp/` (read-only MCP server, 127.0.0.1:47917, for AI clients) |
-| `shared/` | The radar webview assets (`shared.js`, `shared.css`), also read by the Mana Maps page |
+| `core/` | Game-neutral features: `webview/shared.css` (the page base of the radar and the Mana Maps page); Switch ROM, the ROM panel, the status bar item; `map-editor/` (view, core, shell of both games' editors); `mcp/` (read-only MCP server, 127.0.0.1:47917, for AI clients) |
 | `emulator/` | Embedded SNES emulator: panel, webview, SNES ROM header model; profiles (Everscript / recorder) and Evermore gating; recording bundles |
 | `recorder/` | SNES CDL Recorder: the second extension's entry (`recorder/package.json`), the emulator in its recorder profile |
 | `games/` | One folder per game; `games/index.ts` is the list of games (→ `dist/games`) |
@@ -35,22 +34,21 @@ Entry point: `extension.js` (orchestration root, registered as `main` in package
 
 ## Dependency Rules
 
-- `shared/` → no VS Code API, no domain deps
 Below, `language/`, `maps/`, … without a prefix are under `games/evermore/`.
 
 - `language/` → no debugger, no emulator, no memory UI
-- `memory/` → may use `shared/`, `docs/`, `rooms/`, `maps/`, `rom/`
+- `memory/` → may use `docs-tab/`, `rooms/`, `maps/`, `rom/`, `core/map-editor/`, `core/webview/`
 - `rom/` → may use `maps/`; never `emulator/` (the CDL library is injected by `extension.js`)
 - `scripts-tab/` → libraries only (`script/`, `maps/`, `localizations/`, `simulation/`); sprites and music capabilities are injected by `extension.js`
 - `music/` → may use `localizations/`; never `emulator/` (the sound-chip stream is injected by `extension.js`)
 - `recorder/` → only `emulator/`; nothing imports it
-- `emulator/` → may use `shared/`
+- `emulator/` → `platform/` only; no game (`emulator-knows-no-game`)
 - `debugger/` → no memory, no emulator internals (the emulator bridge is injected by `extension.js`)
 - `core/mcp/` → `vscode` only; reads `soe://` through `vscode.workspace.fs`, never another domain
 - `simulation/` → `script/` only, injected through its `index.js`
-- `resources/` → may use `shared/`, `maps/`, `script/`, `simulation/`, `localizations/`; never `emulator/` (ROM and memory reads are injected by `extension.js`)
+- `resources/` → may use `maps/`, `script/`, `simulation/`, `localizations/`; never `emulator/` (ROM and memory reads are injected by `extension.js`)
 - `platform/` → no `core/`, no game; `core/` → `platform/` only; a game never imports another game except through `games/<game>/imports/<other>/`
-- `games/mana/decoder/` → nothing in `src/`; `games/mana/resources/` → the decoder only; `games/mana/maps/` → `som://` only; `games/evermore/imports/mana/` → the Mana decoder, Evermore `maps/`, `shared/`; no Evermore domain uses any of them (only `extension.js` wires them)
+- `games/mana/decoder/` → nothing in `src/`; `games/mana/resources/` → the decoder only; `games/mana/maps/` → `som://` only; `games/evermore/imports/mana/` → the Mana decoder, Evermore `maps/` and `rom-readers.js`; no Evermore domain uses any of them (only `extension.js` wires them)
 - No circular dependencies allowed
 
 See `.depcruise.js` for machine-enforced rules.

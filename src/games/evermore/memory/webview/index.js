@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Domain asset directories (resolved from src/ tree)
-const sharedDir  = path.join(__dirname, '../../../../shared');
+const coreWebviewDir = path.join(__dirname, '../../../../core/webview');
 const scalingDir = path.join(__dirname, '../../scaling/webview');
 const roomsDir   = path.join(__dirname, '..', '..', 'rooms', 'webview');
 const spritesDir = path.join(__dirname, '../../sprites/webview');
@@ -36,7 +36,7 @@ function inject(text, placeholder, content) {
 }
 
 function buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, rngJs, romJs, musicJs, scriptsJs }) {
-  let out = loadFile(path.join(sharedDir, 'shared.js'));
+  let out = loadFile(path.join(__dirname, 'shared.js'));
   for (const [placeholder, content] of [
     ['__JS_DATA__', jsData],
     ['__ROOMS_DATA__', roomsData],
@@ -184,7 +184,7 @@ module.exports = {
   // never bleed into the memory/scaling/docs/route tabs. theme.css declares
   // the tokens and must come before canvas.css and rooms-rail.css, which
   // both only consume them.
-  css: loadFile(path.join(sharedDir, 'shared.css')) + '\n'
+  css: loadFile(path.join(coreWebviewDir, 'shared.css')) + '\n'
     + loadFile(path.join(roomsDir, 'map-editor-theme.css')) + '\n'
     + loadFile(path.join(EDITOR_SHELL_DIR, 'shell-tabs.css')) + '\n'
     + loadFile(path.join(EDITOR_SHELL_DIR, 'shell-canvas.css')) + '\n'

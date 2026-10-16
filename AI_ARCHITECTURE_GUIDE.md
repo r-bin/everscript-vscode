@@ -43,7 +43,7 @@ Deleting a feature domain may only break its own registration lines in `src/exte
 - A feature never `require`s another feature — not its host code, not its webview files,
   not its globals. Cross-feature capability flows **only** through injection in
   `extension.js` or through `soe://`.
-- Anything two features need moves down into a library (`shared/`, `maps/`, …) or into
+- Anything two features need moves down into a library (`platform/`, a game's `maps/`, …) or into
   `soe://`.
 - Tabs that share one webview are given to the host as a plain list of
   `{ id, label, html, css, js, onMessage }` objects; a missing tab is skipped, not fatal.

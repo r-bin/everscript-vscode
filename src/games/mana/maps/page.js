@@ -2,13 +2,13 @@
 // Ownership: which files the Secret of Mana Maps page loads and in what order, and filling them into
 // webview/index.html. Pure (no `vscode`): the host gives a function that turns a file path into the
 // webview URI, the test gives `file://`. The page is built from the shared editor shell, so most of
-// the list is src/shared/webview/: the same files the Evermore Rooms tab runs on.
+// the list is src/core/map-editor/ and src/core/webview/: the same files the Evermore Rooms tab runs on.
 
 const fs = require('fs');
 const path = require('path');
 
 const SRC = path.join(__dirname, '..', '..', '..');
-const SHARED = path.join(SRC, 'shared');
+const SHARED = path.join(SRC, 'core', 'webview');
 const MAP_EDITOR = path.join(SRC, 'core', 'map-editor');
 const MAP_VIEW = path.join(MAP_EDITOR, 'view');
 const CORE = path.join(MAP_EDITOR, 'core');

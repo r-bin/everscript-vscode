@@ -1,6 +1,6 @@
 # src/core/map-editor/core — agent rules
 
-Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2), part of `src/shared`. What it does: [README.md](README.md).
+Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2), part of `src/core/map-editor`. What it does: [README.md](README.md).
 
 ## Owns
 - What every map editor needs whatever the game and that is not page chrome: undo/redo history,

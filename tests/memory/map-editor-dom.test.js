@@ -87,7 +87,7 @@ async function main() {
     const pageErrors = [];
     page.on('pageerror', (e) => pageErrors.push(e.message));
 
-    const CSS = ['shared/shared.css', 'games/evermore/rooms/webview/map-editor-theme.css',
+    const CSS = ['core/webview/shared.css', 'games/evermore/rooms/webview/map-editor-theme.css',
         'core/map-editor/shell/shell-tabs.css', 'core/map-editor/shell/shell-canvas.css',
         'games/evermore/rooms/webview/map-editor-canvas.css', 'core/map-editor/view/map-view.css', 'games/evermore/rooms/webview/map-editor-tile-tab.css']
         .map((f) => fs.readFileSync(path.join(__dirname, '..', '..', 'src', ...f.split('/')), 'utf8'))

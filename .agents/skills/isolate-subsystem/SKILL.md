@@ -41,7 +41,7 @@ Forbidden dependency directions (see `docs/architecture/domain-overview.md` for 
 authoritative per-domain "Allowed deps" / "Forbidden deps" table, enforced by
 `npm run check:deps`):
 - `src/games/evermore/rooms` → `src/games/evermore/memory` (rendering)
-- `src/shared` → any domain module or `vscode`
+- `src/platform` → anything outside `platform/`, or `vscode`
 - `src/games/evermore/language` → `src/games/evermore/debugger` or `src/emulator`
 - `src/games/evermore/debugger` → `src/games/evermore/memory` rendering
 
@@ -93,7 +93,7 @@ src/extension.js  ← orchestrator only, no business logic
   ├── src/games/evermore/language/  ← grammar, hover, completion, definitions
   ├── src/games/evermore/debugger/  ← DAP adapter
   ├── src/emulator/  ← SNES emulator panel
-  ├── src/shared/    ← pure infra: config, radar-utils, rom-readers (no vscode dep)
+  ├── src/platform/  ← game-neutral infra: ROM library, SNES reads, CDL engine (no vscode dep)
   └── src/map-editor/ ← PLANNED, not yet created — a map-server bridge into the
                          sibling `everscript` repo's verified Python map/room decoder.
                          See the `map-format` skill before creating this domain or

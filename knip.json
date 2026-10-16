@@ -10,7 +10,6 @@
     "src/**/webview/**",
     "src/core/map-editor/**",
     "src/games/evermore/docs-tab/**",
-    "src/shared/shared.js",
     "src/emulator/core/**"
   ],
   "ignoreExportsUsedInFile": true,

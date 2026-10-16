@@ -239,10 +239,10 @@ module.exports = {
     },
 
     {
-      name: 'no-shared-to-vscode',
-      comment: 'Shared utilities must be importable in any Node.js environment.',
-      severity: 'warn',
-      from: { path: '^src/shared/' },
+      name: 'no-platform-to-vscode',
+      comment: 'platform/ must be importable in any Node.js environment (tests, tools, the MCP server).',
+      severity: 'error',
+      from: { path: '^src/platform/' },
       to: { path: '^vscode$' },
     },
 

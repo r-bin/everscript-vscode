@@ -1,6 +1,6 @@
 # src/core/map-editor/shell — agent rules
 
-Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2), part of `src/shared`. What it does: [README.md](README.md).
+Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2), part of `src/core/map-editor`. What it does: [README.md](README.md).
 
 ## Owns
 - The editor page chrome both games share: frame, rail, name line, canvas column, pill, status bar, dock,
