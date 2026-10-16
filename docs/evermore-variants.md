@@ -67,3 +67,45 @@ Graphics banks differ between **Family A** (Europe, Germany) and **Family B** (F
   - `map_tile_graphics` stayed in `$EE:0000` (same bank as US)
   - `sprite_blocks_16` moved to `$ED:0000`
   - `animate_ids` and records sit in bank `$C3` (`$C3:42D2` and `$C3:447A`)
+
+---
+
+## 3. CPU Vectors & Important Bus / ASM Routines
+
+### 3.1 Hardware Interrupt & Reset Vectors (Bank `$00`)
+Every hardware vector in the SNES cartridge header (`$00:FFE0–$00:FFFF`) and its initial entry trampoline in bank `$00` is **100% byte-for-byte identical across all 6 retail releases**:
+
+| Vector | Header Offset | Vector Target | Initial Bank `$00` Trampoline | Disassembly |
+|---|---|---|---|---|
+| **RESET (emulation)** | `$00:FFFC` | `$00:8020` | `a9 8f 8d 00 21 18 fb c2 30 5c 2d 80 80` | `lda #$8F : sta $2100` (force blank)<br>`clc : xce` (native 65816 mode)<br>`rep #$30` (16-bit A/X/Y)<br>`jml $80:802D` |
+| **NMI (native & emu)** | `$00:FFEA` / `$00:FFFA` | `$00:823A` | `5c 3e 82 80` | `jml $80:823E` (V-Blank handler) |
+| **IRQ (native & emu)** | `$00:FFEE` / `$00:FFFE` | `$00:84EA` | `5c ee 84 80` | `jml $80:84EE` (Timer/raster IRQ) |
+| **COP (native)** | `$00:FFE4` | `$00:885E` | `db` | `stp` (halt CPU) |
+| **BRK (native)** | `$00:FFE6` | `$00:885F` | `db` | `stp` (halt CPU) |
+
+### 3.2 Key Engine Loops & ASM Routines Across Variants
+
+| Subsystem / Routine | Role | US Base | Europe & Germany (Family A) | France & Spain 1 / 2 (Family B) |
+|---|---|---|---|---|
+| **Script VM Dispatcher** | Bytecode fetch & opcode jump | `$8C:D0A6`<br>`jsr ($E8BD,x)` at `$8C:D0B1` | `$CC:D47E`<br>`jsr ($ECBE,x)` at `$CC:D493` | `$CC:D47E`<br>`jsr ($ECBE,x)` at `$CC:D493` |
+| **String Table Reader** | 3-byte key pointer resolver | `$8C:CCF5`<br>reads `$91:D000` | `$CC:D0B8`<br>reads `$92:8000` | `$CC:D0B8`<br>reads `$92:8000` |
+| **Room Transition Loader** | Reads `map_table` for room blob | `$90:8F60`<br>`lda.l $9FFDE7,x` at `$90:8F69` | `$D0:8F65`<br>`lda.l $A0FDE5,x` at `$D0:8F6E` | `$D0:8F65`<br>`lda.l $A0FDE5,x` at `$D0:8F6E` |
+| **Animation VM Loop** | Entity animation interpreter | `$90:80D0`<br>`jsr ($8000,x)` at `$90:80E5` | `$90:80D0`<br>`jsr ($8000,x)` at `$90:80E5` | `$90:80D0`<br>`jsr ($8000,x)` at `$90:80E5` |
+| **Map Palette Loader** | Tile family palette into CGRAM | `$90:D065`<br>`adc #$C322 : lda #$9C` | `$90:D073`<br>`adc #$C323 : lda #$9D` | `$90:D083` (FR/ES1), `$90:D085` (ES2)<br>`adc #$C323 : lda #$9D` |
+| **Tile Graphics Loader** | 16×16 metatile graphics | `$90:A23D`<br>`lda.l $EE0000,x` | `$90:A242`<br>`lda.l $EF0000,x` | `$90:A242`<br>`lda.l $EE0000,x` |
+
+---
+
+## 4. Noteworthy Differences Found With This Approach
+
+1. **Interpreter Bank Migration ($8C → $CC)**:
+   In the US build, the Everscript VM interpreter and string decoding code run in bank `$8C`. In all PAL releases, this engine code was relocated into bank `$CC`.
+2. **Room Loader Bank Migration ($90 → $D0)**:
+   The room loader was displaced by 5 bytes and moved from bank `$90` (`$90:8F69`) to bank `$D0` (`$D0:8F6E`).
+3. **Hardware Trampoline Invariance**:
+   Despite massive code shifts across banks `$8C`, `$90`, `$92`, `$93`, `$CC`, and `$D0`, the low bank `$00` reset and interrupt jump pads (`$00:8020`, `$00:823A`, `$00:84EA`) are byte-for-byte identical in every build.
+4. **Spain Rev 1 vs Rev 2 Nuance**:
+   Spain Rev 1 and Rev 2 have identical table offsets for all 15 core tables. However, Spain Rev 2 has a 2-byte displacement in its palette loader (`$90:D085` vs `$90:D083`) due to a minor fix in bank `$90`, and corrects 9 misspelled dialogue strings.
+5. **Animation Bank Shifting in Family B ($C4 → $C3)**:
+   France and Spain shifted both `animate_ids` and `animation_records` from bank `$C4` to bank `$C3` (`$C3:42D2` and `$C3:447A`).
+

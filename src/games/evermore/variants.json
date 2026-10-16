@@ -193,5 +193,96 @@
       "spain1": { "snes": "$D8:0000", "file": "0x180000", "count": 6265, "readers": [{ "pc": "$80:A50A", "file": "0x00A50A", "asm": "lda.l $D80000,x" }] },
       "spain2": { "snes": "$D8:0000", "file": "0x180000", "count": 6265, "readers": [{ "pc": "$80:A50A", "file": "0x00A50A", "asm": "lda.l $D80000,x" }] }
     }
+  },
+  "reset_vector": {
+    "name": "CPU Reset Vector (Emulation)",
+    "description": "65816 CPU boot vector at $00:FFFC, jumps to $00:8020 trampoline which forces blank and executes JML $80:802D",
+    "entrySize": 2,
+    "variants": {
+      "us": { "snes": "$00:8020", "file": "0x008020", "vector": "$00:FFFC", "target": "$80:802D" },
+      "europe": { "snes": "$00:8020", "file": "0x008020", "vector": "$00:FFFC", "target": "$80:802D" },
+      "germany": { "snes": "$00:8020", "file": "0x008020", "vector": "$00:FFFC", "target": "$80:802D" },
+      "france": { "snes": "$00:8020", "file": "0x008020", "vector": "$00:FFFC", "target": "$80:802D" },
+      "spain1": { "snes": "$00:8020", "file": "0x008020", "vector": "$00:FFFC", "target": "$80:802D" },
+      "spain2": { "snes": "$00:8020", "file": "0x008020", "vector": "$00:FFFC", "target": "$80:802D" }
+    }
+  },
+  "nmi_vector": {
+    "name": "NMI Vector (V-Blank)",
+    "description": "Vertical blanking interrupt handler vector at $00:FFEA/$00:FFFA, jumps to $00:823A trampoline (JML $80:823E)",
+    "entrySize": 2,
+    "variants": {
+      "us": { "snes": "$00:823A", "file": "0x00823A", "vector": "$00:FFEA", "target": "$80:823E" },
+      "europe": { "snes": "$00:823A", "file": "0x00823A", "vector": "$00:FFEA", "target": "$80:823E" },
+      "germany": { "snes": "$00:823A", "file": "0x00823A", "vector": "$00:FFEA", "target": "$80:823E" },
+      "france": { "snes": "$00:823A", "file": "0x00823A", "vector": "$00:FFEA", "target": "$80:823E" },
+      "spain1": { "snes": "$00:823A", "file": "0x00823A", "vector": "$00:FFEA", "target": "$80:823E" },
+      "spain2": { "snes": "$00:823A", "file": "0x00823A", "vector": "$00:FFEA", "target": "$80:823E" }
+    }
+  },
+  "irq_vector": {
+    "name": "IRQ Vector",
+    "description": "Hardware timer interrupt vector at $00:FFEE/$00:FFFE, jumps to $00:84EA trampoline (JML $80:84EE)",
+    "entrySize": 2,
+    "variants": {
+      "us": { "snes": "$00:84EA", "file": "0x0084EA", "vector": "$00:FFEE", "target": "$80:84EE" },
+      "europe": { "snes": "$00:84EA", "file": "0x0084EA", "vector": "$00:FFEE", "target": "$80:84EE" },
+      "germany": { "snes": "$00:84EA", "file": "0x0084EA", "vector": "$00:FFEE", "target": "$80:84EE" },
+      "france": { "snes": "$00:84EA", "file": "0x0084EA", "vector": "$00:FFEE", "target": "$80:84EE" },
+      "spain1": { "snes": "$00:84EA", "file": "0x0084EA", "vector": "$00:FFEE", "target": "$80:84EE" },
+      "spain2": { "snes": "$00:84EA", "file": "0x0084EA", "vector": "$00:FFEE", "target": "$80:84EE" }
+    }
+  },
+  "script_vm_dispatcher": {
+    "name": "Script VM Interpreter Loop",
+    "description": "Main Everscript bytecode execution loop, fetches opcode and dispatches through script_opcode_table",
+    "entrySize": 2,
+    "variants": {
+      "us": { "snes": "$8C:D0A6", "file": "0x0CD0A6", "readers": [{ "pc": "$8C:D0B1", "file": "0x0CD0B1", "asm": "jsr ($E8BD,x)" }] },
+      "europe": { "snes": "$CC:D47E", "file": "0x0CD47E", "readers": [{ "pc": "$CC:D493", "file": "0x0CD493", "asm": "jsr ($ECBE,x)" }] },
+      "germany": { "snes": "$CC:D47E", "file": "0x0CD47E", "readers": [{ "pc": "$CC:D493", "file": "0x0CD493", "asm": "jsr ($ECBE,x)" }] },
+      "france": { "snes": "$CC:D47E", "file": "0x0CD47E", "readers": [{ "pc": "$CC:D493", "file": "0x0CD493", "asm": "jsr ($ECBE,x)" }] },
+      "spain1": { "snes": "$CC:D47E", "file": "0x0CD47E", "readers": [{ "pc": "$CC:D493", "file": "0x0CD493", "asm": "jsr ($ECBE,x)" }] },
+      "spain2": { "snes": "$CC:D47E", "file": "0x0CD47E", "readers": [{ "pc": "$CC:D493", "file": "0x0CD493", "asm": "jsr ($ECBE,x)" }] }
+    }
+  },
+  "string_decoder": {
+    "name": "String Table Reader",
+    "description": "Routine reading 3-byte packed string pointer from string_keys table and routing to plain or compressed decoder",
+    "entrySize": 2,
+    "variants": {
+      "us": { "snes": "$8C:CCF5", "file": "0x0CCCF5", "readers": [{ "pc": "$8C:CCF7", "file": "0x0CCCF7", "asm": "lda #$0091 : sta $28 : ldy #$D000" }] },
+      "europe": { "snes": "$CC:D0B8", "file": "0x0CD0B8", "readers": [{ "pc": "$CC:D0BA", "file": "0x0CD0BA", "asm": "lda #$0092 : sta $28 : ldy #$8000" }] },
+      "germany": { "snes": "$CC:D0B8", "file": "0x0CD0B8", "readers": [{ "pc": "$CC:D0BA", "file": "0x0CD0BA", "asm": "lda #$0092 : sta $28 : ldy #$8000" }] },
+      "france": { "snes": "$CC:D0B8", "file": "0x0CD0B8", "readers": [{ "pc": "$CC:D0BA", "file": "0x0CD0BA", "asm": "lda #$0092 : sta $28 : ldy #$8000" }] },
+      "spain1": { "snes": "$CC:D0B8", "file": "0x0CD0B8", "readers": [{ "pc": "$CC:D0BA", "file": "0x0CD0BA", "asm": "lda #$0092 : sta $28 : ldy #$8000" }] },
+      "spain2": { "snes": "$CC:D0B8", "file": "0x0CD0B8", "readers": [{ "pc": "$CC:D0BA", "file": "0x0CD0BA", "asm": "lda #$0092 : sta $28 : ldy #$8000" }] }
+    }
+  },
+  "room_loader": {
+    "name": "Room Transition Loader",
+    "description": "Routine that reads map_table and loads room blob during map transitions",
+    "entrySize": 2,
+    "variants": {
+      "us": { "snes": "$90:8F60", "file": "0x108F60", "readers": [{ "pc": "$90:8F69", "file": "0x108F69", "asm": "lda.l $9FFDE7,x" }] },
+      "europe": { "snes": "$D0:8F65", "file": "0x108F65", "readers": [{ "pc": "$D0:8F6E", "file": "0x108F6E", "asm": "lda.l $A0FDE5,x" }] },
+      "germany": { "snes": "$D0:8F65", "file": "0x108F65", "readers": [{ "pc": "$D0:8F6E", "file": "0x108F6E", "asm": "lda.l $A0FDE5,x" }] },
+      "france": { "snes": "$D0:8F65", "file": "0x108F65", "readers": [{ "pc": "$D0:8F6E", "file": "0x108F6E", "asm": "lda.l $A0FDE5,x" }] },
+      "spain1": { "snes": "$D0:8F65", "file": "0x108F65", "readers": [{ "pc": "$D0:8F6E", "file": "0x108F6E", "asm": "lda.l $A0FDE5,x" }] },
+      "spain2": { "snes": "$D0:8F65", "file": "0x108F65", "readers": [{ "pc": "$D0:8F6E", "file": "0x108F6E", "asm": "lda.l $A0FDE5,x" }] }
+    }
+  },
+  "animation_vm_dispatcher": {
+    "name": "Animation VM Interpreter Loop",
+    "description": "Per-entity animation bytecode interpreter entry point at $90:80D0, dispatches via animation_vm_dispatch",
+    "entrySize": 2,
+    "variants": {
+      "us": { "snes": "$90:80D0", "file": "0x1080D0", "readers": [{ "pc": "$90:80E5", "file": "0x1080E5", "asm": "jsr ($8000,x)" }] },
+      "europe": { "snes": "$90:80D0", "file": "0x1080D0", "readers": [{ "pc": "$90:80E5", "file": "0x1080E5", "asm": "jsr ($8000,x)" }] },
+      "germany": { "snes": "$90:80D0", "file": "0x1080D0", "readers": [{ "pc": "$90:80E5", "file": "0x1080E5", "asm": "jsr ($8000,x)" }] },
+      "france": { "snes": "$90:80D0", "file": "0x1080D0", "readers": [{ "pc": "$90:80E5", "file": "0x1080E5", "asm": "jsr ($8000,x)" }] },
+      "spain1": { "snes": "$90:80D0", "file": "0x1080D0", "readers": [{ "pc": "$90:80E5", "file": "0x1080E5", "asm": "jsr ($8000,x)" }] },
+      "spain2": { "snes": "$90:80D0", "file": "0x1080D0", "readers": [{ "pc": "$90:80E5", "file": "0x1080E5", "asm": "jsr ($8000,x)" }] }
+    }
   }
 }

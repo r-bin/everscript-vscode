@@ -41,6 +41,12 @@ export {
     getSongPackagesOffset,
     getSpriteBlocks16Offset,
     getSpriteBlocks8Offset,
+    getResetVector,
+    getNmiVector,
+    getIrqVector,
+    getScriptVmDispatcher,
+    getStringDecoder,
+    getRoomLoader,
 } from '../variant-resolver';
 export { parseBlobLayout } from './blob-layout';
 export type { BlobLayout, PayloadBlock } from './blob-layout';

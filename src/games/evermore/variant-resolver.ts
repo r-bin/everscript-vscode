@@ -221,3 +221,27 @@ export function getSpriteBlocks16Offset(variantOrRom?: string | Uint8Array): num
 export function getSpriteBlocks8Offset(variantOrRom?: string | Uint8Array): number {
     return getTableFileOffset('sprite_blocks_8', variantOrRom);
 }
+
+export function getResetVector(variantOrRom?: string | Uint8Array): VariantTableVariantInfo | null {
+    return getTableInfo('reset_vector', variantOrRom);
+}
+
+export function getNmiVector(variantOrRom?: string | Uint8Array): VariantTableVariantInfo | null {
+    return getTableInfo('nmi_vector', variantOrRom);
+}
+
+export function getIrqVector(variantOrRom?: string | Uint8Array): VariantTableVariantInfo | null {
+    return getTableInfo('irq_vector', variantOrRom);
+}
+
+export function getScriptVmDispatcher(variantOrRom?: string | Uint8Array): VariantTableVariantInfo | null {
+    return getTableInfo('script_vm_dispatcher', variantOrRom);
+}
+
+export function getStringDecoder(variantOrRom?: string | Uint8Array): VariantTableVariantInfo | null {
+    return getTableInfo('string_decoder', variantOrRom);
+}
+
+export function getRoomLoader(variantOrRom?: string | Uint8Array): VariantTableVariantInfo | null {
+    return getTableInfo('room_loader', variantOrRom);
+}

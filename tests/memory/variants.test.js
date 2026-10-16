@@ -145,7 +145,35 @@ assert.strictEqual(getMapPalettesOffset(gerRom), 0x1DC323);
 assert.strictEqual(getMapTileGraphicsOffset(gerRom), 0x2F0000);
 assert.strictEqual(getStringKeysOffset(gerRom), 0x128000);
 
-// 4. Test VFS resolveTables with dynamic variant addresses
+// 4. Vectors and ASM dispatchers across variants
+const {
+    getResetVector,
+    getNmiVector,
+    getIrqVector,
+    getScriptVmDispatcher,
+    getStringDecoder,
+    getRoomLoader,
+} = require('../../dist/games/evermore/variant-resolver');
+
+for (const v of ['us', 'eu', 'de', 'fr', 'es', 'es-rev2']) {
+    assert.strictEqual(getResetVector(v).snes, '$00:8020');
+    assert.strictEqual(getResetVector(v).vector, '$00:FFFC');
+    assert.strictEqual(getResetVector(v).target, '$80:802D');
+    assert.strictEqual(getNmiVector(v).snes, '$00:823A');
+    assert.strictEqual(getNmiVector(v).target, '$80:823E');
+    assert.strictEqual(getIrqVector(v).snes, '$00:84EA');
+    assert.strictEqual(getIrqVector(v).target, '$80:84EE');
+}
+
+// Displaced ASM routines: US vs PAL
+assert.strictEqual(getScriptVmDispatcher('us').snes, '$8C:D0A6');
+assert.strictEqual(getScriptVmDispatcher('de').snes, '$CC:D47E');
+assert.strictEqual(getStringDecoder('us').snes, '$8C:CCF5');
+assert.strictEqual(getStringDecoder('de').snes, '$CC:D0B8');
+assert.strictEqual(getRoomLoader('us').snes, '$90:8F60');
+assert.strictEqual(getRoomLoader('de').snes, '$D0:8F65');
+
+// 5. Test VFS resolveTables with dynamic variant addresses
 const { resolveTables } = require('../../src/games/evermore/resources/table-files');
 
 (async () => {
