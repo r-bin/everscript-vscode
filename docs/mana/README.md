@@ -210,7 +210,7 @@ character is placed; `$00:F0A2` copies one character's to all three party member
 (`$00:F6D6`) changes the OAM priority bits of the character's own attribute (`+$8B`, priority 2 for
 the three party members: `$2B`, `$2D`, `$2F` seen): 4-7 give priority 0-3; 2 keeps 2 and draws the
 pieces marked in the sprite frame (piece byte bit 7) one higher; 1 and 3 give priority 1 with the marked
-pieces at 2. Seen in the game: walking up map `$80` column 18, `+$8E` was 7 on rows 54-53 (`c1 = 7`)
+pieces at 2 (the code: "Half-hidden characters" below). Seen in the game: walking up map `$80` column 18, `+$8E` was 7 on rows 54-53 (`c1 = 7`)
 and 2 on rows 52-51 (`c1 = 2`); the OAM priority itself was not compared piece by piece. Values: 6 (1028901
 cells, 405 maps), 2 (66716), 7 (65167), 0 (25611), 5 (6, maps `$E9`-`$EB`).
 
@@ -271,6 +271,78 @@ In the ROM: 131 cells in
 27 maps; `$F8`/`$6F` (event `$6F8`) 114 cells in 19 maps (Lofty Mountains, Mana Fortress, …),
 `$FF`/`$1A` (`$1AF`) in Gaia's Navel and the Underground Palace, `$F5`-`$F8`/`$56` (`$565`-`$568`)
 in the Sunken Continent, `$F0`/`$4C` (`$4C0`) in the Grand Palace.
+
+## Half-hidden characters (wading, tall grass) — `$00:F6D6`
+
+A character standing in water with only its upper body clear is a priority trick, not
+separate art: no "submerged" frames or tiles were found, and none are needed. The same
+walking frame is drawn with some of its pieces in front of the scenery and the rest behind
+it. Three things combine:
+
+1. **The cell.** Collision c1 bits 0-2 go to the character's `+$8E` when it enters the cell
+   (c1 above). Value 2 is the "split" value.
+2. **The frame.** Each piece of a sprite frame carries a mark bit. `$00:F6D6` raises the
+   marked pieces one priority level when `+$8E` is 1-3.
+3. **The hardware.** In Mode 1, high-priority BG tiles sit between OBJ priority 2 and 3, so
+   the unmarked pieces (priority 2) go behind the water's high-priority tiles and the marked
+   ones (priority 3) stay in front.
+
+The sprite builder, per character (X = the character's base, `$0C`/`$0D` = `+$8A`/`+$8B`, the
+character's own OAM attribute word, priority 2 for the party):
+
+```
+00:F6D6  LDA $E08E,X        ; +$8E, from c1 bits 0-2
+00:F6D9  BEQ $F6F6          ; 0: attribute unchanged, no split
+00:F6DB  CMP #$04 / BCS $F6EA
+00:F6DF  SEC / ROR $01      ; 1-3: $01 bit 7 = "split this sprite"
+00:F6E2  CMP #$02 / BEQ $F6F6   ; 2: keep priority 2
+00:F6E6  LDA #$30 / BRA $F6F2   ; 1, 3: priority bits ^ 3 -> priority 1
+00:F6EA  AND #$03 / ASL x4 / EOR #$20   ; 4-7: priority (v & 3), whole sprite
+00:F6F2  EOR $0D / STA $0D
+```
+
+then for each piece, 2 bytes read through `[$10]` (`$00:F706`):
+
+```
+00:F70E  XBA / ASL / ROR $00   ; byte 1 bit 7 -> $00 bit 6
+00:F712  XBA / ASL / ROR $00   ; byte 0 bit 7 -> $00 bit 7
+         ...                    ; bits 0-6 of each byte: signed offsets, negated by the flips in +$88
+00:F747  LDA $00 / BPL         ; piece not marked -> plain attribute
+00:F74B  BIT $01 / BPL         ; sprite not split -> plain attribute
+00:F74F  AND #$40 / EOR $02 / ORA $0D / CLC / ADC #$10   ; priority + 1
+00:F760  STA $E093,X           ; the piece's attribute (+$90-$93 per piece, X += 4)
+```
+
+So a frame piece is 2 bytes. **Byte 0**: bit 7 the priority mark, bits 0-6 a signed offset
+negated by the vertical flip (`+$88` bit 7), so the y offset. **Byte 1**: bit 7 flips the piece
+horizontally (attribute bit 6), bits 0-6 a signed offset negated by the horizontal flip, so the
+x offset. What each `+$8E` value gives, for a character whose own priority is 2 (`+$8B` = `$2x`):
+
+| `+$8E` | unmarked pieces | marked pieces |
+|---|---|---|
+| 0 | unchanged | unchanged |
+| 1, 3 | 1 | 2 |
+| 2 | 2 | 3 |
+| 4-7 | `v & 3` | `v & 3` |
+
+The `EOR` assumes priority 2 to start from: for a character with another `+$8B` priority the
+result is relative, not absolute.
+
+It works for every character the sprite builder draws (party, enemies, people), since only
+the mark bits in each frame decide where the cut falls. The same value 2 is on 66716 cells
+(c1 above), far more than the game's water, so the same split very likely also covers tall
+grass, bushes and railings; that is a guess from the count, not checked per map.
+
+Why the hidden part still shows through tinted water, rather than vanishing: where a map's
+display mode puts OBJ on the sub screen and adds it into the water's layer (as mode 1 does:
+TS `$11` = BG1 + OBJ, CGADSUB `$42` = BG2 half-added; "Palettes and display"), the water pixel
+is drawn as half water, half the sprite behind it. That is SNES colour math; the map in the
+user's screenshot was not identified, so its own TS/CGADSUB were not read.
+
+Not checked yet: that the marked pieces of the party's walking frames are the upper body
+(frames are not decoded; read from the code only), and OAM priority piece by piece in the
+running game while wading. To check: `tools/mana/find-picture.js` for a wading map, stand
+the boy on a `c1 = 2` cell, dump OAM and compare each piece's priority with byte 0 bit 7.
 
 ## Special cells — `$00:D03A`, `$02:B517`
 

@@ -54,7 +54,9 @@ Evermore or from other projects. Partial knowledge says so. Format and code:
 | `+$48`, `+$49`, `+$4D` | c2 and c3 of the cell entered when c2 changed, and that c2 (for the change test); `$00:D359` acts on `+$48` | `$00:D8B3`; game |
 | `+$4A` | `$80`: entered a return cell; the main loop goes back to `$7E:CE00` | `$00:D692`, `$00:B613`; game |
 | `+$8B` | the character's own OAM attribute high byte (priority 2 for the party: `$2B`/`$2D`/`$2F`) | `$00:F6CC`; game |
-| `+$8E` | sprite priority from collision c1 bits 0-2 | `$00:D6A6`, `$00:F6D6`; game |
+| `+$8E` | sprite priority from collision c1 bits 0-2; 1-3 split the sprite by each piece's mark bit (README "Half-hidden characters") | `$00:D6A6`, `$00:F6D6`; game |
+| `+$88` | bits 7 / 6: the character's vertical / horizontal flip, applied to every piece | `$00:F6F6`, `$00:F71B`, `$00:F730` |
+| `+$90`-`+$93` + 4 n | piece n as built for OAM: offsets, tile, attribute (priority already split) | `$00:F742`, `$00:F760`, `$00:F765` |
 | `+$68` | weapon type of the attack, matched against collision byte 2 (`$Cn`) | `$01:D3C3`; which weapon each number is: not read yet |
 | `+$C0` | the attack's reach offset (x, y bytes) | `$01:D295` |
 | `+$C2` | non-zero while the attack is out: the cut probe runs | `$01:CE19` |
