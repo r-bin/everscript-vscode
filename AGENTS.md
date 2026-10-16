@@ -68,6 +68,7 @@ of:
 | `STATE_FLOW.md` | Authoritative state ownership table |
 | `docs/architecture/domain-overview.md` | Which `src/` domains to load for a given task |
 | `docs/architecture/one-map-editor.md` | Decided plan: one map editor (core + per-game adapter) for Evermore and Secret of Mana, what is saved, order of work — read before touching `src/rooms/webview/map-editor*` or `src/mana-maps` |
+| `docs/evermore-releases.md` | The Evermore ROMs that exist (US, Europe, Germany, France, Spain Rev 1/2, prototype chip): how to identify them, 50 Hz speed, completeness, why US addresses don't apply to PAL builds |
 | `docs/exhirom/port.md` | Evermore as ExHiROM: why, bus map, what was built (§6) and how it was proven; the game's read past its 3 MB (`$80:D113`) |
 | `tools/exhirom/` | `npm run exhirom` / `scripts/build-exhirom.sh`: `convert.js` (clean ROM → 8 MB ExHiROM in `out/soe-exhirom.sfc`), `prove.js` (static + bus + snes9x/Mesen2 replay of every recorded movie + CDL → `out/exhirom/REPORT.md`) |
 | `docs/table-hack.md`, `docs/extension-tables.md`, `docs/enemies-and-palettes.md`, `tools/table-hack/` | The table hack: content tables (rooms, enter scripts, string keys, script pointers, enemies, palettes) moved into the 4th MB; how enemies and palettes load (ROM → WRAM shadow → CGRAM); which tables can move and what each buys; `npm run table-hack` / `table-hack:prove` (sample playbacks vs the original → `out/table-hack/REPORT.md`) |

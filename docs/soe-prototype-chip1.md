@@ -2,6 +2,8 @@
 
 What a single surviving EPROM from a Secret of Evermore prototype holds, and how it differs from the
 retail US release.
+The retail releases (US, Europe, Germany, France, Spain Rev 1/2) are compared in
+[evermore-releases.md](evermore-releases.md).
 
 - **Source:** [SNES Central, "Secret of Evermore (prototype)"](https://snescentral.com/review.php?id=0602&num=0&fancy=yes&article=proto).
   The dump came from a lot the Video Game History Foundation recovered for an anonymous collector. Only
