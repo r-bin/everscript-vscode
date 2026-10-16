@@ -10,7 +10,8 @@ This page lists every id-indexed table we know of, with:
 - **Status:** whether we can already move the table.
 
 The plan for the first test hack, which moves tables one at a time, is in
-[table-hack.md](table-hack.md).
+[table-hack.md](table-hack.md). Enemies and palettes, from ROM through WRAM to CGRAM, are in
+[enemies-and-palettes.md](enemies-and-palettes.md).
 
 Status values:
 

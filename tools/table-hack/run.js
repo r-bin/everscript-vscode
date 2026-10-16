@@ -66,7 +66,12 @@ function main(M) {
             fs.mkdirSync(shots[1], { recursive: true });
             fs.writeFileSync(path.join(shots[1], k + '.png'), encodePng({ width: 256, height: 224, rgba }));
         }
-        if (dump && k === Number(dump[0])) fs.writeFileSync(dump[1], Buffer.from(M.readMemoryRange(WRAM_BASE, WRAM_SIZE)));
+        if (dump && k === Number(dump[0])) {
+            // readMemoryRange returns at most 4096 bytes per call (the core's buffer), so read WRAM in chunks
+            const wram = Buffer.alloc(WRAM_SIZE);
+            for (let o = 0; o < WRAM_SIZE; o += 4096) wram.set(M.readMemoryRange(WRAM_BASE + o, 4096), o);
+            fs.writeFileSync(dump[1], wram);
+        }
     }
     out.push('sync ' + (desync < 0 ? 'ok' : 'lost at frame ' + desync));
     out.push('rooms ' + [...rooms].sort((a, b) => a - b).map(r => r.toString(16).padStart(2, '0')).join(' '));

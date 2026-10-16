@@ -17,6 +17,9 @@ what runs out.
 
 ## The slot table
 
+The whole path (ROM → slot → WRAM shadow `$7E6187` → CGRAM), and how the table hack adds new
+palettes, is in [enemies-and-palettes.md](../enemies-and-palettes.md).
+
 `$7E1278` holds one 16-bit value per slot: the palette address a slot
 currently carries, which is exactly the number in character record `+0x09`.
 Slot byte offsets step by 2, and `offset / 2` is the sprite palette number,

@@ -33,8 +33,9 @@ update the table.
   tables in about 15 s. The same pattern fits `tools/exhirom/prove.js` and any Asar patch.
 - **Reaching a routine headless.** Pick the playback whose coverage includes it. Set exec breakpoints
   (`M.addExecBreakpoint`, `M.onBreakpointHit` returning `false` to keep running) to count hits, or
-  dump WRAM at a frame (`tools/table-hack/run.js --dump <frame> <file>`) to find the bytes two ROMs
-  disagree on.
+  dump WRAM at a frame (`tools/table-hack/run.js --dump <frame> <file>`, all 128 KB) to find the
+  bytes two ROMs disagree on. The core's `readMemoryRange` returns at most 4096 bytes per call; read
+  larger ranges in chunks.
 - **Screenshots of the vanilla game at known moments.** Use `tools/table-hack/run.js --shots
   <frames> <dir>`, e.g. the demo rooms of the attract loop. Screenshots stay in the scratchpad or
   `out/`, never in git.
