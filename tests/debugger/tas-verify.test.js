@@ -2,7 +2,7 @@
 
 /**
  * The replay check (src/emulator/tas/verify.js): reading replay.js's result, and, with a local Secret of Evermore
- * ROM (EVERSCRIPT_ROM, else /Users/v/romhacking), checking a real movie headless: OK, resumed from a state the
+ * ROM (from the ROM library), checking a real movie headless: OK, resumed from a state the
  * first check left, and a tampered write reported as a desync.
  */
 
@@ -32,7 +32,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'evs-tas-verify-'));
     });
 
     await test('a real movie checks OK, resumes from the state the first check left, and a tampered write desyncs', async () => {
-        const rom = [process.env.EVERSCRIPT_ROM, '/Users/v/romhacking/Secret of Evermore (U) [!].smc'].filter(Boolean).find(p => fs.existsSync(p));
+        const rom = require('../../dist/games').romPath('evermore');
         if (!rom) { console.log('    (skipped: no local ROM)'); return; }
         const pads = Array.from({ length: 1500 }, (_, i) => (i % 50 < 3 ? 0x1000 : 0));
         // checksums from a collect run, put into the movie like a recording would

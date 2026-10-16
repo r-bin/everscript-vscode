@@ -10,8 +10,7 @@
 const path = require('path');
 const { spawnSync } = require('child_process');
 
-const ROM = process.argv[2] || process.env.EVERSCRIPT_ROM ||
-    path.join(__dirname, '..', '..', '..', 'everscript', 'Secret of Evermore (U) [!].smc');
+const ROM = require('../rom').romOrExit('evermore', process.argv[2]);
 const LIMIT = (+process.argv[3] || 60) * 1000;
 
 if (process.argv[2] === '--room') {

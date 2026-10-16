@@ -9,7 +9,7 @@
 // accuracy per key and target, and whether the vote share (the score the
 // tile list shows) is calibrated.
 //
-//   npm run check:collision            (EVERSCRIPT_ROM=... to override the ROM)
+//   npm run check:collision            (the Evermore ROM of the ROM library)
 //
 // See docs/map-format/collision-suggestions.md for the numbers and what they
 // decided.
@@ -18,8 +18,7 @@ const fs = require('fs');
 const path = require('path');
 const maps = require('../src/maps');
 
-const ROM = process.env.EVERSCRIPT_ROM
-    || path.join(__dirname, '..', '..', 'everscript', 'Secret of Evermore (U) [!].smc');
+const ROM = require('./rom').romOrExit('evermore');
 if (!fs.existsSync(ROM)) { console.log('SKIP: ROM not found at ' + ROM); process.exit(0); }
 const rom = new Uint8Array(fs.readFileSync(ROM));
 

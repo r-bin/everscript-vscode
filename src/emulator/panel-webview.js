@@ -962,8 +962,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         } else {
           vBtn.classList.add('disabled');
           vBtn.disabled = true;
-          vDesc.textContent = 'Not found (set everscript.romPath)';
-          vBtn.title = 'Vanilla ROM not found. Please set everscript.romPath in VS Code settings.';
+          vDesc.textContent = 'Not found (Everscript: Switch ROM)';
+          vBtn.title = 'Vanilla ROM not found. Add it with Everscript: Switch ROM.';
         }
       }
 

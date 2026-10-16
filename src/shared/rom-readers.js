@@ -1,20 +1,15 @@
 'use strict';
 // ROM reading functions for Memory Radar — extracted from extension.js
-// All functions read from the workspace ROM file (HiROM, no header).
+// The Evermore ROM comes from the ROM library (docs/architecture/multi-game.md §5): the selected
+// ROM when it is Evermore, else the base ROM. `wsRoot` parameters are kept for the callers only.
 
 const path = require('path');
 const fs   = require('fs');
+const { romPath } = require('../../dist/games');
 
-/** Candidate ROM paths, in resolution order. */
-function romCandidates(wsRoot, romPathOverride = '') {
-    const out = [];
-    if (romPathOverride) out.push(romPathOverride);
-    if (wsRoot) {
-        out.push(path.join(wsRoot, 'Secret of Evermore (U) [!].smc'));
-        out.push(path.join(wsRoot, 'Secret of Evermore.smc'));
-        out.push(path.join(wsRoot, 'script_parser', 'dependencies', 'Secret of Evermore (U) [!].smc'));
-    }
-    return out;
+/** Candidate ROM paths, in resolution order: an explicit path, then the library's Evermore ROM. */
+function romCandidates(_wsRoot, romPathOverride = '') {
+    return [romPathOverride, romPath('evermore')].filter(Boolean);
 }
 
 // The ROM is ~3MB and the individual readers each re-read it. Cache the buffer
@@ -116,17 +111,9 @@ function readRomTriggerOffsets(wsRoot, mapId) {
  * @returns {object|null}
  */
 function readRomMapHeader(wsRoot, mapId, romPathOverride = '') {
-    if (!wsRoot || mapId == null) return null;
+    if (mapId == null) return null;
     try {
-        const romCandidates = [];
-        if (romPathOverride) romCandidates.push(romPathOverride);
-        romCandidates.push(path.join(wsRoot, 'Secret of Evermore (U) [!].smc'));
-        romCandidates.push(path.join(wsRoot, 'Secret of Evermore.smc'));
-        let romBuf = null;
-        for (const p of romCandidates) {
-            if (p && fs.existsSync(p)) { romBuf = fs.readFileSync(p); break; }
-        }
-        return readRomMapHeaderFrom(romBuf, mapId);
+        return readRomMapHeaderFrom(loadRomBuffer(wsRoot, romPathOverride), mapId);
     } catch { return null; }
 }
 
@@ -203,20 +190,14 @@ function readRomMapHeaderFrom(romBuf, mapId) {
  * @param {string} wsRoot
  * @returns {Array<{id,name,hp,attack,defense,magic_defense,evade,hit_rate}>}
  */
-function readRomCharacters(wsRoot) {
-    if (!wsRoot) return [];
+function readRomCharacters(wsRoot, romPathOverride = '') {
     const CHAR_BASE = 0x0EB678;
     const CHAR_SIZE = 0x4a;
     const CHAR_COUNT = 142;
     const BOY_NAME_PTR = 0x7e2210;
     const DOG_NAME_PTR = 0x7e2234;
     try {
-        const romNames = ['Secret of Evermore (U) [!].smc', 'Secret of Evermore.smc'];
-        let romBuf = null;
-        for (const name of romNames) {
-            const p = path.join(wsRoot, name);
-            if (fs.existsSync(p)) { romBuf = fs.readFileSync(p); break; }
-        }
+        const romBuf = loadRomBuffer(wsRoot, romPathOverride);
         if (!romBuf) return [];
         const chars = [];
         for (let i = 0; i < CHAR_COUNT; i++) {
@@ -258,14 +239,9 @@ function readRomCharacters(wsRoot) {
  * Addresses: $8FBAAF (evasion pointer table), $8F0000 (hit value table) — HiROM, no header.
  */
 function readRomHitLookup(wsRoot, chars) {
-    if (!wsRoot || !chars || !chars.length) return {};
+    if (!chars || !chars.length) return {};
     try {
-        const romNames = ['Secret of Evermore (U) [!].smc', 'Secret of Evermore.smc'];
-        let romBuf = null;
-        for (const name of romNames) {
-            const p = path.join(wsRoot, name);
-            if (fs.existsSync(p)) { romBuf = fs.readFileSync(p); break; }
-        }
+        const romBuf = loadRomBuffer(wsRoot);
         if (!romBuf) return {};
         // HiROM: ROM offset = (bank & 0x3F) * 0x10000 + addr16
         // 0x8FBAAF → 0x0F0000 + 0xBAAF = 0x0FBAAF

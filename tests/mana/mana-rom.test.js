@@ -1,6 +1,6 @@
 'use strict';
 // Secret of Mana library + som:// files against the real ROM. Skips without it.
-// Run: EVERSCRIPT_MANA_ROM="/path/Secret of Mana (U) [!].smc" node tests/mana/mana-rom.test.js
+// Run: node tests/mana/mana-rom.test.js  (the Mana ROM from the ROM library: npm run roms)
 //
 // The goldens are observed facts (counts, sizes, render hashes), never ROM bytes.
 // The render hashes were taken after the renderer matched the running game:
@@ -14,9 +14,9 @@ const fs = require('fs');
 const mana = require('../../src/mana');
 const { resolveSom, getCatalog } = require('../../src/mana-resources/files');
 
-const ROM_PATH = process.env.EVERSCRIPT_MANA_ROM || '';
+const ROM_PATH = require('../../dist/games').romPath('mana') || '';
 if (!ROM_PATH || !fs.existsSync(ROM_PATH)) {
-    console.log('\nSecret of Mana ROM tests skipped (set EVERSCRIPT_MANA_ROM).');
+    console.log('\nSecret of Mana ROM tests skipped (add the Mana ROM: npm run roms -- add <path>).');
     process.exit(0);
 }
 const rom = new Uint8Array(fs.readFileSync(ROM_PATH));

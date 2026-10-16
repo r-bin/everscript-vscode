@@ -19,7 +19,7 @@ const check = (name, fn) => {
     catch (e) { console.error('  ✗ ' + name + '\n    ' + (e.stack || e.message)); failed++; }
 };
 
-const romPath = path.join(__dirname, '..', '..', 'script_parser', 'dependencies', 'Secret of Evermore (U) [!].smc');
+const romPath = require('../../dist/games').romPath('evermore');
 const rom = fs.existsSync(romPath) ? fs.readFileSync(romPath) : null;
 
 console.log('ROM tab model:');

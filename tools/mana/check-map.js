@@ -1,5 +1,5 @@
 // Check a Secret of Mana map picture against the running game (docs/mana/verifying.md).
-//   EVERSCRIPT_MANA_ROM=<rom> node tools/mana/check-map.js <map id, decimal> [outdir]
+//   node tools/mana/check-map.js <map id, decimal> [outdir]   (the Mana ROM of the ROM library)
 // Plays the opening headless on the extension's emulator core up to the fall from
 // the log bridge, makes the map loader at $00:C481 read the
 // given id from $DC instead, runs 200 frames, then finds the game's screen inside
@@ -10,11 +10,11 @@ const fs = require('fs'), path = require('path'), vm = require('vm');
 const mana = require('../../src/mana');
 const { encodePng } = require('../../src/mana-resources/png');
 
-const romPath = process.env.EVERSCRIPT_MANA_ROM;
+const romPath = require('../rom').romOrExit('mana');
 const id = Number(process.argv[2]);
 const outDir = process.argv[3] || '.';
 if (!romPath || !Number.isInteger(id)) {
-    console.error('usage: EVERSCRIPT_MANA_ROM=<rom> node tools/mana/check-map.js <map id> [outdir]');
+    console.error('usage: node tools/mana/check-map.js <map id> [outdir]');
     process.exit(2);
 }
 const CORE = path.join(__dirname, '../../src/emulator/core/snes9x2005-wasm/snes9x_2005.js');

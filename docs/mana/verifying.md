@@ -6,7 +6,7 @@ runs headless on the extension's own emulator core; nothing is copied from other
 ## Compare a map picture with the game
 
 ```
-EVERSCRIPT_MANA_ROM="…/Secret of Mana (U) [!].smc" node tools/mana/check-map.js 113 out/
+node tools/mana/check-map.js 113 out/
 ```
 
 `tools/mana/check-map.js` plays the opening (title, new game, the log-bridge dialogue),
@@ -58,7 +58,7 @@ registers with absolute addressing).
 ## Step events against the game
 
 ```
-EVERSCRIPT_MANA_ROM="…/Secret of Mana (U) [!].smc" node tools/mana/check-events.js 80
+node tools/mana/check-events.js 80
 ```
 
 Loads the map like `check-map.js`, saves the state, and for every cell `mapEvents` lists
@@ -79,7 +79,7 @@ priority, and the backdrop colour (Evermore draws black). See
 ## Which map is this picture?
 
 ```
-EVERSCRIPT_MANA_ROM="…" node tools/mana/find-picture.js shot.png 122 -4 -77
+node tools/mana/find-picture.js shot.png 122 -4 -77
 ```
 
 Compares the middle of each whole cell of a picture (a screenshot of the Rooms tab, the

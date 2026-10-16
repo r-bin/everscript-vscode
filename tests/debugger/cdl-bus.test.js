@@ -3,7 +3,7 @@
 /**
  * CDL bus-form and cycle streams: library merge / reload, the report for ExHiROM and SA-1,
  * and (when a local Secret of Evermore ROM is found) the real core recording them.
- * ROM lookup: EVERSCRIPT_ROM, else /Users/v/romhacking. The ROM is only read, never copied.
+ * ROM: the Evermore ROM of the ROM library (npm run roms). The ROM is only read, never copied.
  */
 
 const assert = require('assert');
@@ -114,7 +114,7 @@ test('the report separates ExHiROM breakers from SA-1 breakers', () => {
 
 // ---- the real core ----------------------------------------------------------------------
 function findRom() {
-    const cands = [process.env.EVERSCRIPT_ROM, '/Users/v/romhacking/Secret of Evermore (U) [!].smc'].filter(Boolean);
+    const cands = [require('../../dist/games').romPath('evermore')].filter(Boolean);
     return cands.find(p => fs.existsSync(p));
 }
 

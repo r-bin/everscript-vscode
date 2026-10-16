@@ -313,7 +313,7 @@ The editor converts records to inclusive map cells (`collision-overlay.ts`,
 ## 13. Re-measuring
 
 The numbers above came from Node one-liners over `src/maps/dist/` and the vanilla
-ROM (`../everscript/Secret of Evermore (U) [!].smc`, `EVERSCRIPT_ROM` in tests).
+ROM (the ROM library's Evermore ROM in tests).
 Pattern:
 
 ```js

@@ -56,15 +56,9 @@ function normalizePath(input) {
 }
 
 function resolveRomPath() {
-  const candidates = [
-    process.env.EVERSCRIPT_TEST_ROM,
-    process.env.ROM,
-    path.join(os.homedir(), 'Documents', 'evermore', 'roms', 'Secret of Evermore (U) [!].smc'),
-  ].map(normalizePath).filter(Boolean);
-  for (const romPath of candidates) {
-    if (fs.existsSync(romPath)) return romPath;
-  }
-  throw new Error('Emulator runtime test ROM not found. Set EVERSCRIPT_TEST_ROM or ROM, or place the ROM at ~/Documents/evermore/roms/Secret of Evermore (U) [!].smc');
+  const romPath = require('../../dist/games').romPath('evermore');
+  if (romPath && fs.existsSync(romPath)) return romPath;
+  throw new Error('Emulator runtime test ROM not found. Add it to the ROM library: npm run roms -- add <path>');
 }
 
 function parseArgs(argv) {

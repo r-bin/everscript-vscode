@@ -3,7 +3,7 @@
 /**
  * CDL value streams (core cdl-values.c, host library-values.js): I/O register values, SRAM access flags and the
  * 16-bit WRAM word ranges in two sets. Merge laws on random records, library store / reload, and (with a local
- * Secret of Evermore ROM, EVERSCRIPT_ROM or /Users/v/romhacking) the real core recording them from a replayed movie.
+ * Secret of Evermore ROM from the ROM library) the real core recording them from a replayed movie.
  */
 
 const assert = require('assert');
@@ -95,7 +95,7 @@ test('the library stores, merges and reloads the value streams', () => {
 });
 
 test('real core: a replayed movie records I/O values, word ranges (natural and cheated) and the SPC ports', () => {
-    const rom = [process.env.EVERSCRIPT_ROM, '/Users/v/romhacking/Secret of Evermore (U) [!].smc'].filter(Boolean).find(p => fs.existsSync(p));
+    const rom = require('../../dist/games').romPath('evermore');
     if (!rom) { console.log('    (skipped: no local ROM)'); return; }
     const pads = Array.from({ length: 2400 }, (_, i) => (i % 50 < 3 ? 0x1000 : 0));
     const body = pads.map((p, i) => (i === 1200 ? 'W|7E1F00|DEADBEEF\n' : '') + movie.frameLine(p)).join('\n') + '\n';

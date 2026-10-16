@@ -87,18 +87,10 @@ test('Hard Ball L0 vs Purple Flower uses parsed magic_defense=32 and yields 5–
     romBuf.writeUInt16LE(0,  base + 0x1f); // evade
     romBuf.writeUInt16LE(0,  base + 0x21); // hit_rate
 
-    const fakeRoot = '/fake/workspace';
-    const romPath = path.join(fakeRoot, 'Secret of Evermore (U) [!].smc');
-    const origExistsSync = fs.existsSync;
-    const origReadFileSync = fs.readFileSync;
+    const romPath = path.join(require('os').tmpdir(), `evs-scaling-${process.pid}.sfc`);
+    fs.writeFileSync(romPath, romBuf);
     try {
-        fs.existsSync = (p) => p === romPath;
-        fs.readFileSync = (p) => {
-            if (p === romPath) return romBuf;
-            return origReadFileSync(p);
-        };
-
-        const chars = readRomCharacters(fakeRoot);
+        const chars = readRomCharacters(null, romPath);
         const flower = chars.find((c) => c.id === targetId);
         assert.ok(flower, 'failed to parse target character record');
         assert.strictEqual(flower.hp, 18);
@@ -126,8 +118,7 @@ test('Hard Ball L0 vs Purple Flower uses parsed magic_defense=32 and yields 5–
             }
         );
     } finally {
-        fs.existsSync = origExistsSync;
-        fs.readFileSync = origReadFileSync;
+        fs.unlinkSync(romPath);
     }
 });
 

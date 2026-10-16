@@ -18,7 +18,7 @@ npm run exhirom:prove -- --rom "/path/Secret of Evermore (U) [!].smc" \
      --movies "$HOME/Library/Application Support/Code/User/globalStorage/rbin.everscript/tas-recordings"
 ```
 
-The ROM defaults to `$SOE_ROM`, then `out/rom.sfc`. A second argument changes the output path.
+The ROM defaults to the Evermore base ROM of the ROM library (`npm run roms`). A second argument changes the output path.
 
 `convert.js` options:
 - `--fill ff|db` sets the byte for unused space (default `$FF`).

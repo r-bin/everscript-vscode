@@ -17,9 +17,7 @@ const { buildZip, readZip } = require('../../src/shared/zip');
 const { handleCustomMapMessage, handlesCustomMapMessage } = require('../../src/rooms/custom-host');
 const { mapSlug, sampleEvs } = require('../../src/rooms/rendering/custom-export');
 
-const EVERSCRIPT_REPO = process.env.EVERSCRIPT_REPO ||
-    path.join(path.dirname(path.dirname(path.dirname(path.resolve(__dirname)))), 'everscript');
-const ROM_PATH = process.env.EVERSCRIPT_ROM || path.join(EVERSCRIPT_REPO, 'Secret of Evermore (U) [!].smc');
+const ROM_PATH = require('../../dist/games').romPath('evermore');
 
 let passed = 0;
 let failed = 0;

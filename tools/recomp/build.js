@@ -21,7 +21,7 @@ const { writeReport } = require('./report');
 const { buildHost } = require('./host');
 
 const HELP = `node tools/recomp/build.js [options]      (npm run recomp -- [options])
-  --rom <file>         clean ROM (env SOE_ROM)
+  --rom <file>         clean ROM (default: the base ROM of the ROM library)
   --lib <dir>          CDL library root (default: VS Code globalStorage rbin.everscript/cdl-library)
   --out <dir>          output folder (default: out/recomp)
   --asar <bin>         Asar binary (env ASAR; default: asar on PATH, else ../asar/asar/bin/asar)
@@ -63,8 +63,7 @@ function run(cmd, argv, opts) {
 
 function main() {
     const o = args(process.argv.slice(2));
-    const romPath = o.rom || process.env.SOE_ROM;
-    if (!romPath || !fs.existsSync(romPath)) { console.error('No ROM: pass --rom <clean ROM> or set SOE_ROM.'); process.exit(2); }
+    const romPath = require('../rom').baseRomOrExit('evermore', o.rom);
     const out = path.resolve(o.out || path.join(REPO, 'out', 'recomp'));
     const asarDir = path.join(out, 'asar');
     fs.mkdirSync(asarDir, { recursive: true });

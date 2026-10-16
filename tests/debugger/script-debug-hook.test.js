@@ -15,7 +15,7 @@ const { loadSourceMap, romOffset } = require('../../src/debugger/source-map');
 const frames = require('../../src/debugger/script-frames');
 
 const REPO = process.env.EVERSCRIPT_REPO || path.join(__dirname, '..', '..', '..', 'everscript');
-const ROM = path.join(REPO, 'out', 'Secret of Evermore (U) [!].smc');
+const ROM = require('../../dist/games').romPath('evermore');
 const MAP = path.join(REPO, 'out', 'source_map.json');
 const CORE_DIR = path.join(__dirname, '..', '..', 'src', 'emulator', 'core', 'snes9x2005-wasm');
 const MAX_FRAMES = 2400;

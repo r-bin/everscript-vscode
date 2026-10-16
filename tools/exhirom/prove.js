@@ -39,8 +39,7 @@ function parseArgs(argv) {
         else if (k === 'jobs') o.jobs = Number(argv[++i]);
         else o[k] = argv[++i];
     }
-    o.rom = o.rom || process.env.SOE_ROM || process.env.EVERSCRIPT_ROM;
-    if (!o.rom || !fs.existsSync(o.rom)) { console.error('usage: prove.js --rom <clean HiROM rom> [--movies <dir|file>...]'); process.exit(2); }
+    o.rom = require('../rom').baseRomOrExit('evermore', o.rom);
     return o;
 }
 

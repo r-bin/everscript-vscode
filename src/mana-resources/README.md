@@ -22,5 +22,5 @@ Rules for agents: [AGENTS.md](AGENTS.md).
 | `fs-provider.js` | VS Code `FileSystemProvider`, cache of produced files (64 per ROM) |
 | `files.js` | pure path → content resolver and the map/area catalogue |
 | `map-files.js` | the files of one map (pictures, data, collision, animation) |
-| `rom-source.js` | ROM lookup: `everscript.manaRomPath`, `romPath` if it is Mana, then Mana ROMs next to `romPath` or in the workspace |
+| `rom-source.js` | reads the Mana ROM the ROM library names (title-checked, cached) |
 | `png.js` | RGBA → PNG |

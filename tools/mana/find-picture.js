@@ -1,5 +1,5 @@
 // Which Secret of Mana map a picture shows, and where (docs/mana/verifying.md).
-//   EVERSCRIPT_MANA_ROM=<rom> node tools/mana/find-picture.js <picture.png> <cell px> [left] [top]
+//   node tools/mana/find-picture.js <picture.png> <cell px> [left] [top]   (the Mana ROM of the ROM library)
 // <cell px> is how wide one 16x16 map cell is in the picture (122 for a Rooms-tab
 // screenshot at ~760%); left/top are where the first cell edge would be (negative when
 // the picture starts mid-cell). Compares the middle of every whole cell with every cell
@@ -9,10 +9,10 @@
 const fs = require('fs'), zlib = require('zlib');
 const mana = require('../../src/mana');
 
-const romPath = process.env.EVERSCRIPT_MANA_ROM;
+const romPath = require('../rom').romOrExit('mana');
 const [file, size, left = '0', top = '0'] = process.argv.slice(2);
 if (!romPath || !file || !Number(size)) {
-    console.error('usage: EVERSCRIPT_MANA_ROM=<rom> node tools/mana/find-picture.js <picture.png> <cell px> [left] [top]');
+    console.error('usage: node tools/mana/find-picture.js <picture.png> <cell px> [left] [top]');
     process.exit(2);
 }
 

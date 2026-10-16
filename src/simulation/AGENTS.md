@@ -42,7 +42,7 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 
 ## Tests
 - Unit: `tests/simulation/sim-units.test.js` (no ROM).
-- ROM (skip without it; `EVERSCRIPT_ROM`): `loot.test.js` (910/910 pickups agree with the
+- ROM (skip without it; ROM library): `loot.test.js` (910/910 pickups agree with the
   decoded loot), `room.test.js` (Fire Eyes' Village; layout over every room).
 - ROM + everscript checkout with `.venv` (`EVERSCRIPT_REPO`): `everscript.test.js` compiles
   every emitted room script and requires identical bytes.

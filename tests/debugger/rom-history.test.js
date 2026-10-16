@@ -144,9 +144,8 @@ test('clearRecentRoms empties the recent roms list', () => {
 
 test('detectRomDetails detects known vanilla Secret of Evermore hashes', () => {
   const { detectRomDetails } = require('../../src/emulator/rom-history');
-  const wsRoot = path.resolve(__dirname, '../..');
-  const vanillaPath = path.join(wsRoot, 'script_parser', 'dependencies', 'Secret of Evermore (U) [!].smc');
-  if (fs.existsSync(vanillaPath)) {
+  const vanillaPath = require('../../dist/games').baseRomPath('evermore');
+  if (vanillaPath && fs.existsSync(vanillaPath)) {
     const details = detectRomDetails(vanillaPath);
     assert.ok(details, 'Should return details for vanilla ROM');
     assert.strictEqual(details.known, true);

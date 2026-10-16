@@ -23,12 +23,6 @@ const { decodeInstruction, OperandStack } = require('../script');
 const { getActiveAddressLookup } = require('./address-lookup');
 const { ScriptTraceFormatter } = require('./trace-formatter');
 
-const ROM_NAMES = [
-  'Secret of Evermore (U) [!].smc',
-  'Secret of Evermore.smc',
-  path.join('script_parser', 'dependencies', 'Secret of Evermore (U) [!].smc'),
-];
-
 let _scriptTraceChannel = null;
 
 function ensureScriptTraceChannel() {
@@ -39,19 +33,10 @@ function ensureScriptTraceChannel() {
   return _scriptTraceChannel;
 }
 
-function loadFallbackRom(wsRoot) {
-  if (!wsRoot) return null;
-  for (const name of ROM_NAMES) {
-    const candidate = path.isAbsolute(name) ? name : path.join(wsRoot, name);
-    if (fs.existsSync(candidate)) {
-      try {
-        return new Uint8Array(fs.readFileSync(candidate));
-      } catch (_) {
-        // Continue searching
-      }
-    }
-  }
-  return null;
+/** The Evermore ROM of the ROM library (docs/architecture/multi-game.md, section 5), when the emulator has none. */
+function loadFallbackRom(_wsRoot) {
+  const rom = require('../shared/rom-readers').loadRomBuffer(null);
+  return rom ? new Uint8Array(rom) : null;
 }
 
 function fmtHex(val, width) {

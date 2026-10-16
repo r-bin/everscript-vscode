@@ -4,10 +4,10 @@ One command that turns everything we know about the game into a rebuildable, nam
 disassembly and a snesrecomp C project, and reports what still blocks a working recomp.
 
 ```sh
-SOE_ROM="/path/to/Secret of Evermore (U) [!].smc" npm run recomp   # everything: export, rebuild, host project, game
-SOE_ROM=… npm run recomp -- --fresh --strict                      # scaffold the host project again; fail on problems
-SOE_ROM=… npm run recomp -- --no-build                            # generate the C but do not compile the game
-SOE_ROM=… npm run recomp -- --no-recomp                           # stop after the Asar rebuild (2 s)
+npm run recomp                       # everything: export, rebuild, host project, game (base ROM from `npm run roms`)
+npm run recomp -- --fresh --strict                      # scaffold the host project again; fail on problems
+npm run recomp -- --no-build                            # generate the C but do not compile the game
+npm run recomp -- --no-recomp                           # stop after the Asar rebuild (2 s)
 open "out/recomp/SecretOfEvermore-macos-arm64/play.command"       # play (Linux: play.sh, Windows: play.bat)
 ```
 
@@ -32,7 +32,7 @@ annotated in `labels.mlb`. They do not change the assembly, so the rebuild stays
 | Tool | Needed for | Found via |
 |---|---|---|
 | Node ≥ 20 | everything | – |
-| the clean ROM (SHA-1 `79e7738630fff5699217ef58ecc421bc8fcbcd89`) | everything | `--rom` / `SOE_ROM` |
+| the clean ROM (SHA-1 `79e7738630fff5699217ef58ecc421bc8fcbcd89`) | everything | `--rom`, else the ROM library's base ROM |
 | a CDL library for that ROM | meaningful output (without one: vectors only) | recorded in the emulator's CDL tab; `--lib` |
 | Asar | step 3 | `--asar` / `ASAR` / `asar` on PATH / `../asar/asar/bin/asar` |
 | snesrecomp checkout, Python 3.9+, Rust/cargo (first run builds its analyzer) | step 4 | `--snesrecomp` / `SNESRECOMP` / `../snesrecomp` |

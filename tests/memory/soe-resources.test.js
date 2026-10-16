@@ -34,7 +34,7 @@ const { resolveRam } = require('../../src/resources/ram-files');
 const { SoeFileSystem } = require('../../src/resources/fs-provider');
 const { busTarget } = require('../../src/resources/bus-files');
 
-const romPath = path.join(__dirname, '..', '..', 'script_parser', 'dependencies', 'Secret of Evermore (U) [!].smc');
+const romPath = require('../../dist/games').romPath('evermore');
 const rom = fs.existsSync(romPath) ? new Uint8Array(fs.readFileSync(romPath)) : null;
 
 let passed = 0, failed = 0, skipped = 0;

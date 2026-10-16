@@ -2,7 +2,7 @@
 // Secret of Mana maps as Evermore rooms (src/mana-to-evermore), end to end on both real
 // ROMs: converted, encoded with Evermore's own encoder, decoded and drawn by Evermore's
 // renderer, and served to the Rooms tab. Skips without both ROMs.
-// Run: EVERSCRIPT_ROM=<Evermore> EVERSCRIPT_MANA_ROM=<Mana> node tests/mana/mana-evermore.test.js
+// Run: node tests/mana/mana-evermore.test.js  (both ROMs from the ROM library: npm run roms)
 //
 // Goldens are observed facts (counts, ids, agreement), never ROM bytes. "Agreement" is the
 // share of pixels where Evermore's render of the converted room equals src/mana's render
@@ -41,9 +41,9 @@ test('a graphic survives Evermore\'s own decoder, and step cells merge into boxe
     assert.deepStrictEqual(boxes, [{ x1: 1, y1: 1, x2: 3, y2: 3, scriptId: 5 }, { x1: 4, y1: 1, x2: 5, y2: 2, scriptId: 6 }]);
 });
 
-const SOE = process.env.EVERSCRIPT_ROM || '', SOM = process.env.EVERSCRIPT_MANA_ROM || '';
+const SOE = require('../../dist/games').romPath('evermore') || '', SOM = require('../../dist/games').romPath('mana') || '';
 if (!SOE || !SOM || !fs.existsSync(SOE) || !fs.existsSync(SOM)) {
-    console.log('\nSecret of Mana -> Evermore ROM tests skipped (set EVERSCRIPT_ROM and EVERSCRIPT_MANA_ROM).');
+    console.log('\nSecret of Mana -> Evermore ROM tests skipped (add both ROMs: npm run roms -- add <path>).');
     console.log(`\n${passed} passed, ${failed} failed`);
     process.exit(failed ? 1 : 0);
 }

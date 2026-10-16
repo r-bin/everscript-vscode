@@ -5,15 +5,14 @@
 // that requires the operand layout to agree with the decoder everywhere the
 // simulation executed an instruction.
 //
-// Skips without the ROM (EVERSCRIPT_ROM, or the sibling everscript checkout).
+// Skips without the Evermore ROM in the ROM library.
 
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const sim = require('../../src/simulation');
 
-const ROM = process.env.EVERSCRIPT_ROM ||
-    path.join(__dirname, '..', '..', '..', 'everscript', 'Secret of Evermore (U) [!].smc');
+const ROM = require('../../dist/games').romPath('evermore');
 if (!fs.existsSync(ROM)) { console.log('SKIP simulation room: no ROM'); process.exit(0); }
 const rom = new Uint8Array(fs.readFileSync(ROM));
 

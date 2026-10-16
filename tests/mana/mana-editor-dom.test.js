@@ -3,13 +3,13 @@
 // page in headless Chromium, and a host stub that answers the page's requests the way
 // extension.js does (src/mana-to-evermore + src/rooms renderers on both ROMs). Checks the
 // Tile, Trigger and Object tabs. Needs both ROMs and playwright, else skips.
-// Run: EVERSCRIPT_ROM=<Evermore> EVERSCRIPT_MANA_ROM=<Mana> node tests/mana/mana-editor-dom.test.js [shots dir]
+// Run: node tests/mana/mana-editor-dom.test.js [shots dir]  (both ROMs from the ROM library: npm run roms)
 
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const SOE = process.env.EVERSCRIPT_ROM || '', SOM = process.env.EVERSCRIPT_MANA_ROM || '';
+const SOE = require('../../dist/games').romPath('evermore') || '', SOM = require('../../dist/games').romPath('mana') || '';
 let passed = 0, failed = 0;
 const check = (name, cond, detail) => {
     if (cond) { console.log('  ✓ ' + name); passed++; }
@@ -17,7 +17,7 @@ const check = (name, cond, detail) => {
 };
 
 async function main() {
-    if (!SOE || !SOM || !fs.existsSync(SOE) || !fs.existsSync(SOM)) { console.log('\nMana editor DOM: skipped (set EVERSCRIPT_ROM and EVERSCRIPT_MANA_ROM)'); return; }
+    if (!SOE || !SOM || !fs.existsSync(SOE) || !fs.existsSync(SOM)) { console.log('\nMana editor DOM: skipped (add both ROMs: npm run roms -- add <path>)'); return; }
     let chromium;
     try { ({ chromium } = require('playwright')); } catch { console.log('\nMana editor DOM: playwright not installed — skipped'); return; }
     let browser;

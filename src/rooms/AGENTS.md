@@ -49,7 +49,7 @@ Related skills: `map-editor-rules`, `map-construction`, `map-entities`, `rom-map
 ## Tests
 - Unit (`npm test`): `tests/memory/map-editor.test.js`, `rebuild-invalidation.test.js`,
   `smoke.test.js`, `activation.test.js`, `tests/localizations/localizations.test.js`.
-- ROM (skip without `EVERSCRIPT_ROM`): `tests/memory/map-parity.test.js`,
+- ROM (skip without an Evermore ROM in the ROM library): `tests/memory/map-parity.test.js`,
   `rom-export.test.js`, `collision-suggest.test.js`, `custom-maps.test.js`, `soe-resources.test.js`.
 - DOM (Playwright, skips without a browser): `tests/memory/map-editor-dom.test.js`,
   `tests/memory/rooms-rail-dom.test.js`, `tests/mana/mana-rooms-dom.test.js` (converted rooms).

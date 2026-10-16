@@ -34,4 +34,4 @@ Existing exceptions (do not add more):
 
 ## Tests
 - `tests/memory/sprites.test.js` — unit (tab HTML scaffold) and rom tier (ROM-backed
-  checks skip without `script_parser/dependencies/Secret of Evermore (U) [!].smc`).
+  checks skip without an Evermore ROM in the ROM library).

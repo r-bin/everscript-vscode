@@ -6,14 +6,6 @@
    "upstream"
   ],
   [
-   ".agents/agents/script-parser-generator.md",
-   "home-path"
-  ],
-  [
-   ".agents/agents/script-parser-generator.md",
-   "upstream"
-  ],
-  [
    ".agents/skills/alchemy-spell-mechanics/SKILL.md",
    "home-path"
   ],
@@ -170,36 +162,8 @@
    "upstream"
   ],
   [
-   "package.json",
-   "rom-name"
-  ],
-  [
-   "script_parser/docs/scripts-all-truths.md",
-   "upstream"
-  ],
-  [
-   "script_parser/generated/opcode-corpus.json",
-   "number-run"
-  ],
-  [
-   "script_parser/model/rom-script-model.ts",
-   "rom-name"
-  ],
-  [
-   "script_parser/src/scripts-all-model.ts",
-   "upstream"
-  ],
-  [
-   "src/README.md",
-   "upstream"
-  ],
-  [
    "src/docs/render-docs-tab.js",
    "upstream"
-  ],
-  [
-   "src/emulator/script-trace.js",
-   "rom-name"
   ],
   [
    "src/localizations/AGENTS.md",
@@ -322,14 +286,6 @@
    "upstream"
   ],
   [
-   "src/shared/config.js",
-   "rom-name"
-  ],
-  [
-   "src/shared/rom-readers.js",
-   "rom-name"
-  ],
-  [
    "src/sprites/AGENTS.md",
    "upstream"
   ],
@@ -346,88 +302,8 @@
    "upstream"
   ],
   [
-   "tests/debugger/cdl-bus.test.js",
-   "home-path"
-  ],
-  [
-   "tests/debugger/cdl-bus.test.js",
-   "rom-name"
-  ],
-  [
-   "tests/debugger/cdl-values.test.js",
-   "home-path"
-  ],
-  [
-   "tests/debugger/cdl-values.test.js",
-   "rom-name"
-  ],
-  [
-   "tests/debugger/emulator-runtime.test.js",
-   "rom-name"
-  ],
-  [
-   "tests/debugger/script-debug-hook.test.js",
-   "rom-name"
-  ],
-  [
-   "tests/debugger/settings-model.test.js",
-   "rom-name"
-  ],
-  [
-   "tests/debugger/tas-events.test.js",
-   "home-path"
-  ],
-  [
-   "tests/debugger/tas-events.test.js",
-   "rom-name"
-  ],
-  [
-   "tests/debugger/tas-states.test.js",
-   "home-path"
-  ],
-  [
-   "tests/debugger/tas-states.test.js",
-   "rom-name"
-  ],
-  [
-   "tests/debugger/tas-verify.test.js",
-   "home-path"
-  ],
-  [
-   "tests/debugger/tas-verify.test.js",
-   "rom-name"
-  ],
-  [
-   "tests/mana/mana-rom.test.js",
-   "rom-name"
-  ],
-  [
-   "tests/memory/collision-suggest.test.js",
-   "rom-name"
-  ],
-  [
-   "tests/memory/custom-maps.test.js",
-   "rom-name"
-  ],
-  [
-   "tests/memory/map-parity.test.js",
-   "rom-name"
-  ],
-  [
    "tests/memory/map-parity.test.js",
    "upstream"
-  ],
-  [
-   "tests/memory/music-tab.test.js",
-   "rom-name"
-  ],
-  [
-   "tests/memory/rom-export.test.js",
-   "rom-name"
-  ],
-  [
-   "tests/memory/rom-tab.test.js",
-   "rom-name"
   ],
   [
    "tests/memory/scaling-rom.test.js",
@@ -454,52 +330,8 @@
    "upstream"
   ],
   [
-   "tests/memory/scripts-tab.test.js",
-   "rom-name"
-  ],
-  [
-   "tests/memory/soe-resources.test.js",
-   "rom-name"
-  ],
-  [
-   "tests/memory/soe-tags.test.js",
-   "rom-name"
-  ],
-  [
-   "tests/memory/sprites.test.js",
-   "rom-name"
-  ],
-  [
-   "tests/simulation/everscript.test.js",
-   "rom-name"
-  ],
-  [
-   "tests/simulation/loot.test.js",
-   "rom-name"
-  ],
-  [
-   "tests/simulation/room.test.js",
-   "rom-name"
-  ],
-  [
-   "tests/simulation/scheduler.test.js",
-   "rom-name"
-  ],
-  [
    "tools/generate-script-names.js",
    "upstream"
-  ],
-  [
-   "tools/measure-collision.js",
-   "rom-name"
-  ],
-  [
-   "tools/simulation/exit-cutoff.js",
-   "rom-name"
-  ],
-  [
-   "tools/simulation/sweep-rooms.js",
-   "rom-name"
   ]
  ]
 }

@@ -132,7 +132,6 @@ function getExtConfig() {
         repoPath: cfg.get('repoPath'),
         inDirectory: cfg.get('inDirectory'),
         patchesDirectory: cfg.get('patchesDirectory'),
-        romPath: cfg.get('romPath'),
         compilerPath: cfg.get('compilerPath'),
         pythonPath: cfg.get('pythonPath'),
         snesCorePath: cfg.get('snesCorePath'),
@@ -140,7 +139,6 @@ function getExtConfig() {
     return {
         inDir: resolved.inDirectory || null,
         patchesDir: resolved.patchesDirectory || null,
-        romPath: resolved.romPath || null,
         repoPath: resolved.repoPath || null,
         compilerPath: resolved.compilerPath || null,
         pythonPath: resolved.pythonPath || null,
@@ -154,7 +152,7 @@ const { VANILLA_ROOMS, getMapEnum, readLuaWatchers, readScriptAllTriggers, build
 /** The ring menu's item icons from the configured ROM, for the radar page (rooms/data/item-icons.js). */
 function radarItemIcons() {
     const ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-    return buildItemIcons(romReaders.loadRomBuffer(ws, getExtConfig().romPath || ''));
+    return buildItemIcons(romReaders.loadRomBuffer(ws, ''));
 }
 const roomTree = require('./rooms');
 const { handlesRomMessage, handleRomMessage } = require('./rom');
@@ -163,6 +161,7 @@ const { handlesScriptsMessage, handleScriptsMessage } = require('./scripts-tab')
 const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildDraftCollision, buildExportRom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, buildWidgetPreviews, buildConstructGhost, relatedTiles, neighbourTiles, vanillaExamples, proceduralFill, handlesCustomMapMessage, handleCustomMapMessage } = roomTree;
 
 const romReaders = require('./shared/rom-readers');
+const roms = require('./core/roms/host');
 const { readPngDimensions, readRomTriggerOffsets, readRomMapHeader, readRomCharacters, readRomHitLookup, detectScaleEnemies } = romReaders;
 
 const { renderRadarHtml } = require('./memory/render-radar');
@@ -178,7 +177,6 @@ async function syncDerivedSettingsFromRepoPath() {
         repoPath: cfg.get('repoPath'),
         inDirectory: cfg.get('inDirectory'),
         patchesDirectory: cfg.get('patchesDirectory'),
-        romPath: cfg.get('romPath'),
         compilerPath: cfg.get('compilerPath'),
         pythonPath: cfg.get('pythonPath'),
     }, wsRoot);
@@ -347,9 +345,9 @@ function radarAnalyzeScope(document, startLine, endLine) {
 async function exportRenderedRoomPng(msg) {
     const cfg = getExtConfig();
     const ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-    const rom = romReaders.loadRomBuffer(ws, cfg.romPath || '');
+    const rom = romReaders.loadRomBuffer(ws, '');
     if (!rom) {
-        vscode.window.showErrorMessage('Everscript: ROM not found \u2014 set everscript.romPath.');
+        vscode.window.showErrorMessage('Everscript: ROM not found \u2014 use Everscript: Switch ROM.');
         return;
     }
     const roomId = Number(msg.roomId);
@@ -388,9 +386,9 @@ async function exportRoomMaps() {
     const maps = require('./maps');
     const cfg  = getExtConfig();
     const ws   = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-    const rom  = romReaders.loadRomBuffer(ws, cfg.romPath || '');
+    const rom  = romReaders.loadRomBuffer(ws, '');
     if (!rom) {
-        vscode.window.showErrorMessage('Everscript: ROM not found — set everscript.romPath.');
+        vscode.window.showErrorMessage('Everscript: ROM not found — use Everscript: Switch ROM.');
         return;
     }
 
@@ -493,8 +491,8 @@ function refreshRadar(editor) {
     const selectedMap = scope.kind === 'map' ? scope.name : null;
     const _extCfg1 = getExtConfig();
     const _wsRoot1 = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-    const _vrd1 = buildVanillaRoomDetails(_wsRoot1, _extCfg1.romPath || '');
-    const _romBuf1 = romReaders.loadRomBuffer(_wsRoot1, _extCfg1.romPath || '');
+    const _vrd1 = buildVanillaRoomDetails(_wsRoot1, '');
+    const _romBuf1 = romReaders.loadRomBuffer(_wsRoot1, '');
     const _spBundle1 = getSpritesBundle(_romBuf1);
     _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree || [], _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd1, _radarByteScriptFocus, _spBundle1, radarImportedRooms());
     _radarPanel.title = 'Radar: ' + scope.name;
@@ -526,10 +524,10 @@ function openManaMaps() {
     return require('./mana-maps').openManaMaps();
 }
 
-/** True when everscript.romPath names a Secret of Mana ROM rather than Evermore. */
+/** True when the Evermore ROM lookup found a Secret of Mana ROM (a hand-picked path can be anything). */
 function romIsMana() {
     const ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-    const rom = romReaders.loadRomBuffer(ws, getExtConfig().romPath || '');
+    const rom = romReaders.loadRomBuffer(ws, '');
     return !!rom && require('./mana').isManaRom(rom);
 }
 
@@ -558,14 +556,18 @@ function radarRoomRom(roomId) {
     const id = Number(roomId);
     if (Number.isInteger(id) && id >= 0 && id <= 0x7e) {
         const ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-        const romBuf = romReaders.loadRomBuffer(ws, getExtConfig().romPath || '');
-        return romBuf ? { romBuf, roomId: id } : { error: 'ROM not found — set everscript.romPath' };
+        const romBuf = romReaders.loadRomBuffer(ws, '');
+        return romBuf ? { romBuf, roomId: id } : { error: 'ROM not found — use Everscript: Switch ROM' };
     }
     const hit = _manaRooms && _manaRooms.resolveRoom(id);
     return hit ? { romBuf: hit.rom, roomId: hit.roomId } : { error: 'invalid room id' };
 }
 
 function activate(context) {
+    // The games, then the ROM library: every reader below asks it which ROM to use
+    // (docs/architecture/multi-game.md §3, §5). One list of games: src/games/index.ts.
+    require('../dist/games').registerGames();
+    roms.activateRoms(context);
     const idx = lp.loadIndex(context.extensionPath);
 
     // Build workspace index on activation; keep it fresh on file changes
@@ -693,8 +695,8 @@ function activate(context) {
             const selectedMap = scope.kind === 'map' ? scope.name : null;
             const _extCfg2 = getExtConfig();
             const _wsRoot2b = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-            const _vrd2 = buildVanillaRoomDetails(_wsRoot2b, _extCfg2.romPath || '');
-            const _romBuf2 = romReaders.loadRomBuffer(_wsRoot2b, _extCfg2.romPath || '');
+            const _vrd2 = buildVanillaRoomDetails(_wsRoot2b, '');
+            const _romBuf2 = romReaders.loadRomBuffer(_wsRoot2b, '');
             const _spBundle2 = getSpritesBundle(_romBuf2);
             _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd2, _radarByteScriptFocus, _spBundle2, radarImportedRooms());
 
@@ -776,7 +778,7 @@ function activate(context) {
                         const src = room && _manaRooms.resolveRoom(room.romRoomId);
                         if (src) room.familyPreviews = buildFamilyPreviews(src.rom, room.families.map((f) => f.id), 2);
                         _radarPanel.webview.postMessage(room ? { ...reply, room }
-                            : { ...reply, error: 'Needs both ROMs: everscript.romPath (Evermore) and a Secret of Mana ROM' });
+                            : { ...reply, error: 'Needs both ROMs: an Evermore and a Secret of Mana ROM (Everscript: Switch ROM)' });
                     } catch (err) {
                         _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
                     }
@@ -831,8 +833,8 @@ function activate(context) {
                             const _cfg = getExtConfig();
                             const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
                             return {
-                                romPath: romReaders.resolveRomPath(_ws, _cfg.romPath || ''),
-                                romBuf: romReaders.loadRomBuffer(_ws, _cfg.romPath || ''),
+                                romPath: romReaders.resolveRomPath(_ws, ''),
+                                romBuf: romReaders.loadRomBuffer(_ws, ''),
                             };
                         },
                     });
@@ -842,7 +844,7 @@ function activate(context) {
                     const _ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
                     handleMusicMessage(msg, {
                         post: (m) => _radarPanel?.webview.postMessage(m),
-                        loadRom: () => romReaders.loadRomBuffer(_ws, getExtConfig().romPath || ''),
+                        loadRom: () => romReaders.loadRomBuffer(_ws, ''),
                         apu: require('./emulator/panel').apuStream,
                         describeSource: (rom, src) => require('./resources/sound-source').describeSoundSource(rom, src),
                         open: (uri) => vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(uri)),
@@ -856,7 +858,7 @@ function activate(context) {
                     const music = require('./music');
                     handleScriptsMessage(msg, {
                         post: (m) => _radarPanel?.webview.postMessage(m),
-                        loadRom: () => romReaders.loadRomBuffer(_ws, getExtConfig().romPath || ''),
+                        loadRom: () => romReaders.loadRomBuffer(_ws, ''),
                         animations: (rom) => getSpritesBundle(rom).animations,
                         renderAnimation,
                         music: {
@@ -872,7 +874,7 @@ function activate(context) {
                     const _ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
                     handleRomMessage(msg, {
                         post: (m) => _radarPanel?.webview.postMessage(m),
-                        loadRom: () => romReaders.loadRomBuffer(_ws, getExtConfig().romPath || ''),
+                        loadRom: () => romReaders.loadRomBuffer(_ws, ''),
                         loadCdl: (rom) => {
                             const { CdlLibrary, romHash } = require('./emulator/cdl/library');
                             const root = path.join(context.globalStorageUri.fsPath, 'cdl-library');
@@ -908,10 +910,10 @@ function activate(context) {
                         try {
                             const _cfg = getExtConfig();
                             const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                            const romPath = romReaders.resolveRomPath(_ws, _cfg.romPath || '');
-                            if (!romPath) throw new Error('ROM not found — set everscript.romPath');
+                            const romPath = romReaders.resolveRomPath(_ws, '');
+                            if (!romPath) throw new Error('ROM not found — use Everscript: Switch ROM');
                             ch.appendLine(`  Using vanilla ROM: ${romPath}`);
-                            const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                            const romBuf = romReaders.loadRomBuffer(_ws, '');
                             if (!romBuf) throw new Error('Failed to load ROM buffer from ' + romPath);
                             ch.appendLine('  Building custom room 0x15 blob and patching intro jump...');
                             const { rom, report } = buildExportRom(romBuf, draft);
@@ -956,8 +958,8 @@ function activate(context) {
                     try {
                         const _cfg = getExtConfig();
                         const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
-                        if (!romBuf) throw new Error('ROM not found — set everscript.romPath');
+                        const romBuf = romReaders.loadRomBuffer(_ws, '');
+                        if (!romBuf) throw new Error('ROM not found — use Everscript: Switch ROM');
                         _radarPanel.webview.postMessage({ ...reply, ...buildDraftCollision(romBuf, msg.draft || {}) });
                     } catch (err) {
                         _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
@@ -978,10 +980,10 @@ function activate(context) {
                     try {
                         const _cfg = getExtConfig();
                         const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                        const romPath = romReaders.resolveRomPath(_ws, _cfg.romPath || '');
-                        if (!romPath) throw new Error('ROM not found — set everscript.romPath');
+                        const romPath = romReaders.resolveRomPath(_ws, '');
+                        if (!romPath) throw new Error('ROM not found — use Everscript: Switch ROM');
                         ch.appendLine(`  Using vanilla ROM: ${romPath}`);
-                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        const romBuf = romReaders.loadRomBuffer(_ws, '');
                         if (!romBuf) throw new Error('Failed to load ROM buffer from ' + romPath);
                         ch.appendLine('  Building custom room 0x15 blob and patching intro jump...');
                         const { rom, report } = buildExportRom(romBuf, draft);
@@ -1059,9 +1061,9 @@ function activate(context) {
                     try {
                         const _cfg = getExtConfig();
                         const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        const romBuf = romReaders.loadRomBuffer(_ws, '');
                         if (!romBuf) {
-                            _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — set everscript.romPath' });
+                            _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — use Everscript: Switch ROM' });
                             return;
                         }
                         // A converted family lives in its room's image (src/mana-to-evermore).
@@ -1079,9 +1081,9 @@ function activate(context) {
                     try {
                         const _cfg = getExtConfig();
                         const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        const romBuf = romReaders.loadRomBuffer(_ws, '');
                         if (!romBuf) {
-                            _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — set everscript.romPath' });
+                            _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — use Everscript: Switch ROM' });
                             return;
                         }
                         _radarPanel.webview.postMessage({ ...reply, families: buildFamilyCatalogue(romBuf) });
@@ -1095,9 +1097,9 @@ function activate(context) {
                     try {
                         const _cfg = getExtConfig();
                         const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        const romBuf = romReaders.loadRomBuffer(_ws, '');
                         if (!romBuf) {
-                            _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — set everscript.romPath' });
+                            _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — use Everscript: Switch ROM' });
                             return;
                         }
                         _radarPanel.webview.postMessage({ ...reply,
@@ -1115,9 +1117,9 @@ function activate(context) {
                     try {
                         const _cfg = getExtConfig();
                         const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        const romBuf = romReaders.loadRomBuffer(_ws, '');
                         if (!romBuf) {
-                            _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — set everscript.romPath' });
+                            _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — use Everscript: Switch ROM' });
                             return;
                         }
                         _radarPanel.webview.postMessage({ ...reply,
@@ -1133,9 +1135,9 @@ function activate(context) {
                     try {
                         const _cfg = getExtConfig();
                         const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        const romBuf = romReaders.loadRomBuffer(_ws, '');
                         if (!romBuf) {
-                            _radarPanel.webview.postMessage({ ...reply, graphic: msg.graphic, error: 'ROM not found — set everscript.romPath' });
+                            _radarPanel.webview.postMessage({ ...reply, graphic: msg.graphic, error: 'ROM not found — use Everscript: Switch ROM' });
                             return;
                         }
                         _radarPanel.webview.postMessage({ ...reply, ...neighbourTiles(romBuf, msg.graphic) });
@@ -1147,9 +1149,9 @@ function activate(context) {
                     try {
                         const _cfg = getExtConfig();
                         const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        const romBuf = romReaders.loadRomBuffer(_ws, '');
                         if (!romBuf) {
-                            _radarPanel.webview.postMessage({ ...reply, graphic: msg.graphic, error: 'ROM not found — set everscript.romPath' });
+                            _radarPanel.webview.postMessage({ ...reply, graphic: msg.graphic, error: 'ROM not found — use Everscript: Switch ROM' });
                             return;
                         }
                         _radarPanel.webview.postMessage({ ...reply, graphic: msg.graphic, examples: vanillaExamples(romBuf, msg.graphic) });
@@ -1161,9 +1163,9 @@ function activate(context) {
                     try {
                         const _cfg = getExtConfig();
                         const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        const romBuf = romReaders.loadRomBuffer(_ws, '');
                         if (!romBuf) {
-                            _radarPanel.webview.postMessage({ ...reply, graphic: msg.graphic, error: 'ROM not found — set everscript.romPath' });
+                            _radarPanel.webview.postMessage({ ...reply, graphic: msg.graphic, error: 'ROM not found — use Everscript: Switch ROM' });
                             return;
                         }
                         const patch = proceduralFill(romBuf, msg.graphic, msg.layer, msg.width, msg.height, msg.seed);
@@ -1178,9 +1180,9 @@ function activate(context) {
                     try {
                         const _cfg = getExtConfig();
                         const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        const romBuf = romReaders.loadRomBuffer(_ws, '');
                         if (!romBuf) {
-                            _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — set everscript.romPath' });
+                            _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — use Everscript: Switch ROM' });
                             return;
                         }
                         if (msg.ghost) {
@@ -1221,8 +1223,8 @@ function activate(context) {
                         _scaleActive = detectScaleEnemies(wsRoot, _radarDoc.uri?.fsPath ?? null);
                         const _extCfg3 = getExtConfig();
                         const _wsRoot3 = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                        const _vrd3 = buildVanillaRoomDetails(_wsRoot3, _extCfg3.romPath || '');
-                        const _romBuf3 = romReaders.loadRomBuffer(_wsRoot3, _extCfg3.romPath || '');
+                        const _vrd3 = buildVanillaRoomDetails(_wsRoot3, '');
+                        const _romBuf3 = romReaders.loadRomBuffer(_wsRoot3, '');
                         const _spBundle3 = getSpritesBundle(_romBuf3);
                         _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd3, _radarByteScriptFocus, _spBundle3, radarImportedRooms());
                         _radarPanel.title = 'Radar: (global)';
@@ -1273,7 +1275,7 @@ function activate(context) {
                     try {
                         const _cfg = getExtConfig();
                         const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        const romBuf = romReaders.loadRomBuffer(_ws, '');
                         if (!romBuf) {
                             _radarPanel.webview.postMessage({ command: 'spriteAnimationData', animation: null, error: 'ROM not found' });
                             return;
@@ -1287,7 +1289,7 @@ function activate(context) {
                     try {
                         const _cfg = getExtConfig();
                         const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        const romBuf = romReaders.loadRomBuffer(_ws, '');
                         const bundle = getSpritesBundle(romBuf);
                         const grid = romBuf ? renderInPalettes(romBuf, msg.sprite, listPalettes(bundle.characters)) : [];
                         _radarPanel.webview.postMessage({ command: 'paletteGridData', sprite: msg.sprite, grid, target: msg.target || 'char' });
@@ -1299,7 +1301,7 @@ function activate(context) {
                     try {
                         const _cfg = getExtConfig();
                         const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        const romBuf = romReaders.loadRomBuffer(_ws, '');
                         const thumbs = {};
                         if (romBuf) for (const item of (msg.items || []).slice(0, 200)) thumbs[item.key] = thumbFor(romBuf, item);
                         _radarPanel.webview.postMessage({ command: 'thumbsData', thumbs });
@@ -1310,7 +1312,7 @@ function activate(context) {
                     try {
                         const _cfg = getExtConfig();
                         const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        const romBuf = romReaders.loadRomBuffer(_ws, '');
                         if (!romBuf) {
                             _radarPanel.webview.postMessage({ command: 'rawSpriteData', sprite: null, error: 'ROM not found' });
                             return;
@@ -1354,7 +1356,7 @@ function activate(context) {
     // ── soe:// resources (src/resources/README.md) ──────────────────────────
     require('./resources').registerSoeResources(context, {
         // The first on-disk folder: a mounted ROM (soe://rom/?rom=…) can be listed first.
-        vanillaRom: () => romReaders.loadRomBuffer(vscode.workspace.workspaceFolders?.find(f => f.uri.scheme === 'file')?.uri.fsPath ?? null, getExtConfig().romPath || ''),
+        vanillaRom: () => romReaders.loadRomBuffer(vscode.workspace.workspaceFolders?.find(f => f.uri.scheme === 'file')?.uri.fsPath ?? null, ''),
         emulatorRom: () => emulatorPanel.getCurrentRom(),
         romFile: romPath => romReaders.loadRomFile(romPath),
         readMemory: (addr, len) => emulatorPanel.readMemory(addr, len),
@@ -1362,19 +1364,15 @@ function activate(context) {
         getLogs: () => emulatorPanel.getLogHistory(),
     });
     // ── som:// Secret of Mana (src/mana-resources/README.md) — its own tree, never mixed into soe:// ──
-    const manaResources = require('./mana-resources').registerManaResources(context, () => ({
-        manaRomPath: vscode.workspace.getConfiguration('everscript').get('manaRomPath') || '',
-        romPath: getExtConfig().romPath || '',
-        wsRoot: vscode.workspace.workspaceFolders?.find(f => f.uri.scheme === 'file')?.uri.fsPath ?? null,
-    }));
+    const manaResources = require('./mana-resources').registerManaResources(context, () => ({ path: roms.romPathFor('mana') }));
     _manaRooms = require('./mana-to-evermore').createManaRooms({
-        soeRom: () => romReaders.loadRomBuffer(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null, getExtConfig().romPath || ''),
+        soeRom: () => romReaders.loadRomBuffer(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null, ''),
         manaRom: () => { const r = manaResources.manaRom(); return r && r.rom; },
     });
     context.subscriptions.push(
         vscode.commands.registerCommand('everscript.openManaMaps', openManaMaps),
-        vscode.workspace.onDidChangeConfiguration(e => {
-            if (!e.affectsConfiguration('everscript.manaRomPath') && !e.affectsConfiguration('everscript.romPath')) return;
+        roms.onDidChangeRoms(() => {
+            romReaders.invalidateRomBuffer();
             manaResources.refresh();
             _manaRooms.clear();
             require('./mana-maps').refreshManaMaps();
@@ -1395,7 +1393,7 @@ function activate(context) {
     // Sound-effect names for the emulator's marks (the Music model's, by driver id).
     require('./emulator/panel').apuStream.setNames(() => {
         const _ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-        return require('./music').sfxNames(() => romReaders.loadRomBuffer(_ws, getExtConfig().romPath || ''));
+        return require('./music').sfxNames(() => romReaders.loadRomBuffer(_ws, ''));
     });
     require('./emulator/panel').apuStream.setOnPause(paused => {
         if (_radarPanel) _radarPanel.webview.postMessage({ command: 'musicPaused', paused });
@@ -1493,7 +1491,7 @@ function activate(context) {
             // ── 1. Resolve compiler and project root ───────────────────────
             let repoPath    = extCfg.repoPath || '';
             let patchesPath = extCfg.patchesDir || '';
-            let romPath     = extCfg.romPath || ''; // full path to vanilla ROM
+            let romPath     = roms.romPathFor('evermore') || ''; // the Evermore ROM of the ROM library
             let compilerBin = extCfg.compilerPath || ''; // manual override
             let projectRoot = repoPath;
             let useScript   = false;

@@ -22,8 +22,7 @@ const path = require('path');
 const sim = require('../../src/simulation');
 const script = require('../../src/script');
 
-const ROM = process.argv[2] || process.env.EVERSCRIPT_ROM ||
-    path.join(__dirname, '..', '..', '..', 'everscript', 'Secret of Evermore (U) [!].smc');
+const ROM = require('../rom').romOrExit('evermore', process.argv[2]);
 const rom = new Uint8Array(fs.readFileSync(ROM));
 const S = sim.createSimulator(rom);
 const OPTS = { maxPaths: 48, maxSteps: 40000, maxTicks: 900, rejoin: false };

@@ -24,7 +24,6 @@ test('buildRepoDefaults derives the expected project paths', () => {
     const out = buildRepoDefaults('/tmp/everscript', null);
     assert.strictEqual(out.inDirectory, '/tmp/everscript/in');
     assert.strictEqual(out.patchesDirectory, '/tmp/everscript/patches');
-    assert.strictEqual(out.romPath, '/tmp/everscript/Secret of Evermore (U) [!].smc');
     assert.strictEqual(out.compilerPath, '/tmp/everscript/everscript.py');
     assert.strictEqual(out.pythonPath, '/tmp/everscript/.venv/bin/python3');
 });
@@ -34,13 +33,11 @@ test('resolveExtConfig prefers explicit settings over derived repo defaults', ()
         repoPath: '/tmp/everscript',
         inDirectory: '/custom/in',
         patchesDirectory: '/custom/patches',
-        romPath: '/roms/soe.smc',
         compilerPath: '/bin/everscript',
         pythonPath: '/bin/python3',
     }, '/workspace');
     assert.strictEqual(out.inDirectory, '/custom/in');
     assert.strictEqual(out.patchesDirectory, '/custom/patches');
-    assert.strictEqual(out.romPath, '/roms/soe.smc');
     assert.strictEqual(out.compilerPath, '/bin/everscript');
     assert.strictEqual(out.pythonPath, '/bin/python3');
 });
@@ -49,7 +46,6 @@ test('resolveExtConfig falls back to workspace defaults when repoPath is empty',
     const out = resolveExtConfig({}, '/workspace');
     assert.strictEqual(out.inDirectory, '/workspace/in');
     assert.strictEqual(out.patchesDirectory, '/workspace/patches');
-    assert.strictEqual(out.romPath, '/workspace/Secret of Evermore (U) [!].smc');
 });
 
 test('getRepoAutofillUpdates only suggests missing fields', () => {
@@ -57,13 +53,11 @@ test('getRepoAutofillUpdates only suggests missing fields', () => {
         repoPath: '/tmp/everscript',
         inDirectory: '',
         patchesDirectory: '',
-        romPath: '',
         compilerPath: '/manual/compiler',
         pythonPath: '',
     }, null);
     assert.strictEqual(out.inDirectory, '/tmp/everscript/in');
     assert.strictEqual(out.patchesDirectory, '/tmp/everscript/patches');
-    assert.strictEqual(out.romPath, '/tmp/everscript/Secret of Evermore (U) [!].smc');
     assert.strictEqual(out.pythonPath, '/tmp/everscript/.venv/bin/python3');
     assert.ok(!Object.prototype.hasOwnProperty.call(out, 'compilerPath'), 'compilerPath should not be auto-filled when explicitly set');
 });

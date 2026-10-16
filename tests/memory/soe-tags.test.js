@@ -41,7 +41,7 @@ const { buildTagModel, tagModel } = require('../../src/resources/tag-model');
 const { SoeFileSystem } = require('../../src/resources/fs-provider');
 const AUTHORED = require('../../src/resources/tags/tags.json');
 
-const romPath = path.join(__dirname, '..', '..', 'script_parser', 'dependencies', 'Secret of Evermore (U) [!].smc');
+const romPath = require('../../dist/games').romPath('evermore');
 const rom = fs.existsSync(romPath) ? new Uint8Array(fs.readFileSync(romPath)) : null;
 
 let passed = 0, failed = 0, skipped = 0;

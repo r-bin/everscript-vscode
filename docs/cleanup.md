@@ -134,8 +134,8 @@ Inventory of 2026-10-16. Move the ROM out of `script_parser/dependencies/` first
 `src/shared/rom-readers.js:15`, `src/emulator/script-trace.js:29` and
 `tools/gen-sound-animations.js` look for it there — they go through the resolver (D5) instead.
 
-- [ ] **3.1 Delete, superseded:** `script_parser/` (whole package — **open**: waits for the resolver,
-  step 4) · done: `sandbox/opcodes`,
+- [x] **3.1 Delete, superseded:** `script_parser/` (tracked files; its untracked `dependencies/` and
+  `tests/` stay on disk for you to delete — nothing reads them now), `sandbox/opcodes`,
   `sandbox/corpus`, `sandbox/boundaries` (broken: import the missing `tests/parity/failure-types`),
   `tools/snes9x_wram.py`, `tools/pack_snes_core.py`, `tools/generate_data.py`,
   `tools/dump_proto_spc.py`, `tools/check-encode.js` + npm `check:encode`.
@@ -160,6 +160,8 @@ Inventory of 2026-10-16. Move the ROM out of `script_parser/dependencies/` first
 - [x] **3.7** `npm run package`: `vsce` from `PATH` (`build:script` already ran via `build:simulation`).
 
 ### Step 4 — Multi-game restructure (D5, D6)
+Progress: [architecture/multi-game.md](architecture/multi-game.md) §7 "Status" (ROM library, game
+descriptors, layer rules and the derived-ROM marker are built; moving the domains is open).
 Follow [architecture/multi-game.md](architecture/multi-game.md) §7. In short: resolver + ROM
 library + game descriptor; move domains into `platform/`, `core/`, `games/evermore/`,
 `games/mana/`; ROM panel and status bar; depcruise rules; `$SOE_ROM`/`romPath` gone. Each domain
@@ -216,8 +218,8 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   `colour-theme`; `animation-script` + `sprites-subsystem`. Split `map-editor-rules` (444 lines),
   `memory-radar` (282), `webview-dom-safety` (257), `rom-map-data` (242). New skills for what has
   none: the game descriptor / adding a game, the ROM library and resolver.
-- [ ] **7.4 Personas:** drop `architecture-compressor` (covered by the merged skill) and
-  `script-parser-generator` (its package is gone); trim the rest.
+- [ ] **7.4 Personas:** drop `architecture-compressor` (covered by the merged skill); trim the rest.
+  (`script-parser-generator` is gone with its package.)
 
 ---
 

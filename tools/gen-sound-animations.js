@@ -20,7 +20,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const romPath = process.argv[2] || path.join(ROOT, 'script_parser', 'dependencies', 'Secret of Evermore (U) [!].smc');
+const romPath = require('./rom').romOrExit('evermore', process.argv[2]);
 const { animationGroups } = require('../src/maps/dist/animation-vm');
 const { disassembleScript } = require('../src/maps/dist/animation-opcodes');
 const { readAllCharacters, buildAnimationCatalog } = require('../src/sprites');

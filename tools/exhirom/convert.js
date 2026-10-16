@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Convert a HiROM Secret of Evermore image into an 8 MB ExHiROM image (docs/exhirom/port.md).
 //   npm run exhirom -- [clean rom] [out.sfc] [--fill ff|db] [--upper hardware|snes9x2005|fill]
-//   (ROM: argument, else $SOE_ROM, else out/rom.sfc; output: out/soe-exhirom.sfc)
+//   (ROM: argument, else the base ROM of the ROM library; output: out/soe-exhirom.sfc)
 // The first 3 MB stay byte-identical except the 6 header bytes that say "ExHiROM, 8 MB" and the checksum pair;
 // 0x300000-0x3FFFFF repeats what the original cartridge answers there (--upper, see UPPER_MODES); the new second
 // half (file 0x400000+, bus $00-$3F:8000+ / $40-$7D) is empty except a copy of the header, the vector table and
@@ -12,6 +12,7 @@
 const fs = require('fs');
 const path = require('path');
 const { OPCODES, instructionLength } = require('../../src/shared/opcodes-65816');
+const { markDerived } = require('../derived-marker');
 
 const REPO = path.resolve(__dirname, '..', '..');
 const DEFAULT_OUT = path.join(REPO, 'out', 'soe-exhirom.sfc');
@@ -130,7 +131,8 @@ function checksum(img) {
 
 /**
  * @param {Uint8Array} source unheadered HiROM image (FastROM HiROM, at most 4 MB)
- * @param {{ fill?: number, upper?: 'hardware'|'snes9x2005'|'fill' }} [opts]
+ * @param {{ fill?: number, upper?: 'hardware'|'snes9x2005'|'fill', mark?: (image: Uint8Array) => void }} [opts]
+ *   `mark` writes extra bytes (the derived-ROM marker) before the checksum is computed
  * @returns {{ image: Uint8Array, report: object }}
  */
 function convert(source, opts = {}) {
@@ -165,6 +167,7 @@ function convert(source, opts = {}) {
         image.set([0xFF, 0xFF, 0x00, 0x00], base + COMPLEMENT);
     }
     image.set(rom.subarray(VECTORS, VECTORS + 0x20), HALF + VECTORS);
+    if (opts.mark) opts.mark(image);
     const sum = checksum(image);
     for (const base of [0, HALF]) {
         image.set([~sum & 0xFF, (~sum >> 8) & 0xFF, sum & 0xFF, sum >> 8], base + COMPLEMENT);
@@ -198,13 +201,13 @@ function main() {
     const fill = fi < 0 ? 0xFF : parseInt(args.splice(fi, 2)[1], 16);
     const ui = args.indexOf('--upper');
     const upper = ui < 0 ? 'hardware' : args.splice(ui, 2)[1];
-    const src = args[0] || process.env.SOE_ROM || path.join(REPO, 'out', 'rom.sfc');
+    // usage: convert.js [clean rom] [out.sfc] [--fill ff|db] [--upper hardware|snes9x2005|fill]
+    const src = require('../rom').baseRomOrExit('evermore', args[0]);
     const out = args[1] || DEFAULT_OUT;
-    if (!fs.existsSync(src)) {
-        console.error(`ROM not found: ${src}\nusage: convert.js [clean rom] [out.sfc] [--fill ff|db] [--upper hardware|snes9x2005|fill]\n(ROM defaults to $SOE_ROM, then out/rom.sfc; output to out/soe-exhirom.sfc)`);
-        process.exit(2);
-    }
-    const { image, report } = convert(new Uint8Array(fs.readFileSync(src)), { fill, upper });
+    const source = new Uint8Array(fs.readFileSync(src));
+    // Marks the result as derived from this base ROM in the free tail (multi-game.md §4).
+    const mark = image => markDerived(image, stripCopierHeader(source), image.length - 64, 'exhirom');
+    const { image, report } = convert(source, { fill, upper, mark });
     fs.mkdirSync(path.dirname(path.resolve(out)), { recursive: true });
     fs.writeFileSync(out, image);
     console.log(`wrote ${out}: ${report.size / MB} MB ExHiROM, map mode $${hex(report.mapMode.to, 2)}, size $${hex(report.romSize.to, 2)}, checksum $${hex(report.checksum, 4)}, fill $${hex(fill, 2)}, 0x${hex(report.sourceSize, 6)}-0x3FFFFF: ${upper}`);

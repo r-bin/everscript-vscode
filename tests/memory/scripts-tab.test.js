@@ -1,8 +1,8 @@
 'use strict';
 // Scripts tab (src/scripts-tab): the models against the ROM, the host with the
 // injected sprites/music capabilities, and the page in a browser answered by
-// that same host. ROM-dependent checks skip without the ROM (EVERSCRIPT_ROM, or
-// the sibling everscript checkout); browser checks skip without playwright.
+// that same host. ROM-dependent checks skip without the Evermore ROM in the ROM
+// library; browser checks skip without playwright.
 
 const assert = require('assert');
 const fs = require('fs');
@@ -10,8 +10,7 @@ const path = require('path');
 const { renderRadarHtml } = require('../../src/memory/render-radar');
 const { buildScriptsTabHtml } = require('../../src/scripts-tab');
 
-const ROM = process.env.EVERSCRIPT_ROM ||
-    path.join(__dirname, '..', '..', '..', 'everscript', 'Secret of Evermore (U) [!].smc');
+const ROM = require('../../dist/games').romPath('evermore');
 
 let passed = 0, failed = 0;
 async function test(name, fn) {

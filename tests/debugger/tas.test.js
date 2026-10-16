@@ -185,7 +185,7 @@ test('webview: REPLAYS tab, inputs + FPS chips, frame loop routes joypads throug
 });
 
 function findRom() {
-    const candidates = [process.env.EVS_ROM, path.join(ROOT, '..', 'everscript', 'Secret of Evermore (U) [!].smc')];
+    const candidates = [require('../../dist/games').romPath('evermore')];
     return candidates.find(p => p && fs.existsSync(p)) || null;
 }
 

@@ -19,4 +19,4 @@ system: Secret of Mana's data plane. What the folder does: [README.md](README.md
 - Ids in paths are hex without `$` (`som://rom/maps/80.png` = map 128).
 
 ## Tests
-- `tests/mana/mana-rom.test.js` — `files.js` routes (rom tier, `EVERSCRIPT_MANA_ROM`).
+- `tests/mana/mana-rom.test.js` — `files.js` routes (rom tier, Mana ROM from the ROM library).

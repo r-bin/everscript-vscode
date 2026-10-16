@@ -382,9 +382,8 @@ function _resetPanelHtml() {
     const coreWasmUri = _panel.webview.asWebviewUri(vscode.Uri.file(core.wasmPath)).toString();
     _log(`Core webview URIs: js=${coreJsUri} wasm=${coreWasmUri}`);
     const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-    let cfgRomPath = '';
-    try { cfgRomPath = vscode.workspace.getConfiguration('everscript').get('romPath') || ''; } catch (_) {}
-    const romOfferData = getRomOfferData(_context, wsRoot, cfgRomPath);
+    // The vanilla ROM comes from the ROM library (src/core/roms).
+    const romOfferData = getRomOfferData(_context, wsRoot, '');
     const file = name => _panel.webview.asWebviewUri(vscode.Uri.file(path.join(_extensionPath, 'src', 'emulator', 'webview', name))).toString();
     const html = buildHtml(_panel.webview, coreJsUri, coreWasmUri, core.label, core.path, romOfferData, {
       profile: _options.profile,
@@ -401,9 +400,8 @@ function _broadcastRomOffer() {
   if (!_panel) return;
   try {
     const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-    let cfgRomPath = '';
-    try { cfgRomPath = vscode.workspace.getConfiguration('everscript').get('romPath') || ''; } catch (_) {}
-    const romOfferData = getRomOfferData(_context, wsRoot, cfgRomPath);
+    // The vanilla ROM comes from the ROM library (src/core/roms).
+    const romOfferData = getRomOfferData(_context, wsRoot, '');
     _panel.webview.postMessage({ command: 'romOfferInfo', data: romOfferData });
   } catch (_) {}
 }
@@ -509,14 +507,13 @@ function openEmulatorPanel(context, rom, channel) {
 
             case 'loadVanillaRom': {
                 const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                let cfgRomPath = '';
-                try { cfgRomPath = vscode.workspace.getConfiguration('everscript').get('romPath') || ''; } catch (_) {}
-                const v = getVanillaRom(wsRoot, cfgRomPath);
+                // The vanilla ROM comes from the ROM library (src/core/roms).
+                const v = getVanillaRom(wsRoot, '');
                 if (v && v.available && v.path) {
                     recordRomUsage({ path: v.path, name: v.name, kind: 'vanilla' }, _context);
                     _sendRomFile(v.path);
                 } else {
-                    vscode.window.showErrorMessage('Vanilla Secret of Evermore ROM not found. Please set everscript.romPath in settings.');
+                    vscode.window.showErrorMessage('Vanilla Secret of Evermore ROM not found. Add it with Everscript: Switch ROM.');
                 }
                 break;
             }

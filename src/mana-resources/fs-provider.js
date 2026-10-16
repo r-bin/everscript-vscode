@@ -21,7 +21,7 @@ class SomFileSystem {
     _node(uri) {
         if (uri.authority !== 'rom') throw vscode.FileSystemError.FileNotFound(uri);
         const rom = this._getRom();
-        if (!rom) throw vscode.FileSystemError.Unavailable('Secret of Mana ROM not found: set everscript.manaRomPath');
+        if (!rom) throw vscode.FileSystemError.Unavailable('Secret of Mana ROM not found: Everscript: Switch ROM, then add one');
         const segments = uri.path.split('/').filter(Boolean);
         let node;
         try { node = resolveSom(segments, rom); } catch (err) {

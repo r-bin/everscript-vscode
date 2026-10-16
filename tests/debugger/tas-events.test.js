@@ -5,7 +5,7 @@
  * (tas-view.js) driven against a fake core, and, when a local Secret of Evermore ROM is found, the
  * headless replay tool (tools/cdl/replay.js) on the real core: checksums match across processes
  * and a changed input is reported as a desync.
- * ROM lookup: EVERSCRIPT_ROM, else /Users/v/romhacking. The ROM is only read.
+ * ROM: the Evermore ROM of the ROM library (npm run roms). The ROM is only read.
  */
 
 const assert = require('assert');
@@ -226,7 +226,7 @@ test('the webview CRC code equals movie.js', () => {
 
 // ---- the headless tool on the real core -----------------------------------------------------
 function findRom() {
-    return [process.env.EVERSCRIPT_ROM, '/Users/v/romhacking/Secret of Evermore (U) [!].smc'].filter(Boolean).find(p => fs.existsSync(p));
+    return require('../../dist/games').romPath('evermore');
 }
 
 test('headless replay: checksums match across processes, a changed event desyncs, CDL records', () => {

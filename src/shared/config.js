@@ -14,7 +14,6 @@ function buildRepoDefaults(repoPath, wsRoot) {
             repoPath: normalizedRepo,
             inDirectory: '',
             patchesDirectory: '',
-            romPath: '',
             compilerPath: '',
             pythonPath: '',
         };
@@ -23,7 +22,6 @@ function buildRepoDefaults(repoPath, wsRoot) {
         repoPath: normalizedRepo,
         inDirectory: path.join(base, 'in'),
         patchesDirectory: path.join(base, 'patches'),
-        romPath: path.join(base, 'Secret of Evermore (U) [!].smc'),
         compilerPath: path.join(base, 'everscript.py'),
         pythonPath: path.join(base, '.venv', 'bin', 'python3'),
     };
@@ -36,7 +34,6 @@ function resolveExtConfig(rawConfig, wsRoot) {
         repoPath: normalizePath(raw.repoPath),
         inDirectory: normalizePath(raw.inDirectory) || defaults.inDirectory,
         patchesDirectory: normalizePath(raw.patchesDirectory) || defaults.patchesDirectory,
-        romPath: normalizePath(raw.romPath) || defaults.romPath,
         compilerPath: normalizePath(raw.compilerPath) || defaults.compilerPath,
         pythonPath: normalizePath(raw.pythonPath) || defaults.pythonPath,
         snesCorePath: normalizePath(raw.snesCorePath),
@@ -51,7 +48,6 @@ function getRepoAutofillUpdates(rawConfig, wsRoot) {
     const updates = {};
     if (!normalizePath(raw.inDirectory)) updates.inDirectory = defaults.inDirectory;
     if (!normalizePath(raw.patchesDirectory)) updates.patchesDirectory = defaults.patchesDirectory;
-    if (!normalizePath(raw.romPath)) updates.romPath = defaults.romPath;
     if (!normalizePath(raw.compilerPath)) updates.compilerPath = defaults.compilerPath;
     if (!normalizePath(raw.pythonPath)) updates.pythonPath = defaults.pythonPath;
     return updates;

@@ -21,23 +21,30 @@ module.exports = {
       to: { circular: true },
     },
 
+    // ── GAME-NEUTRAL LAYERS (docs/architecture/multi-game.md §2) ───────────
     {
-      name: 'no-script-to-src',
-      comment: 'script_parser/ is a fully isolated domain. It must never import from src/.',
+      name: 'platform-knows-no-game',
+      comment: 'platform/ is SNES facts and machinery only: it imports neither core/ nor any game.',
       severity: 'error',
-      from: { path: '^script_parser/' },
-      to: { path: '^src/' },
+      from: { path: '^src/platform/' },
+      to: { path: '^(src/(core|games)/|dist/(core|games)/)' },
+    },
+    {
+      name: 'core-knows-no-game',
+      comment: 'core/ is game-neutral: it imports platform/ only. Games register through registerGame().',
+      severity: 'error',
+      from: { path: '^src/core/' },
+      to: { path: '^(src/games/|dist/games/)' },
+    },
+    {
+      name: 'games-stay-apart',
+      comment: 'A game never imports another game (the only bridge is games/<game>/imports/<other>/).',
+      severity: 'error',
+      from: { path: '^src/games/([^/]+)/', pathNot: '^src/games/[^/]+/imports/' },
+      to: { path: '^src/games/', pathNot: ['^src/games/$1/', '^src/games/index\\.ts$'] },
     },
 
     // ── DOMAIN ISOLATION RULES (warn) ──────────────────────────────────────
-
-    {
-      name: 'no-src-to-script-internals',
-      comment: 'Extension must not depend on parser internals.',
-      severity: 'warn',
-      from: { path: '^src/' },
-      to: { path: '^script_parser/(src|model)/' },
-    },
 
     {
       name: 'no-language-to-debugger',
@@ -257,11 +264,12 @@ module.exports = {
     exclude: {
       path: [
         '\\.test\\.js$',
-        'script_parser/dependencies/',
         'tmp/',
       ],
     },
-    moduleSystems: ['cjs'],
+    moduleSystems: ['cjs', 'es6'],
+    tsPreCompilationDeps: false,  // type-only imports are not runtime edges
+    enhancedResolveOptions: { extensions: ['.js', '.ts', '.json'] },
     combinedDependencies: false,
     reporterOptions: {
       dot: {

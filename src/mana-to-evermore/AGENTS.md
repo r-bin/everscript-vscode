@@ -24,7 +24,7 @@ the translation table: [docs/mana/evermore-rooms.md](../../docs/mana/evermore-ro
 - Converted rooms use tab ids from `0x1000`, never a ROM room id.
 
 ## Tests
-- `tests/mana/mana-evermore.test.js` — unit checks always; both ROMs (`EVERSCRIPT_ROM`,
-  `EVERSCRIPT_MANA_ROM`) for the end-to-end part.
+- `tests/mana/mana-evermore.test.js` — unit checks always; both ROMs (from the ROM library) for
+  the end-to-end part.
 - `tests/mana/mana-rooms-dom.test.js` — the rail group and opening a room (Playwright).
 - `tests/mana/mana-editor-dom.test.js` — a converted room in the real editor: Tile, Trigger, Object tabs (both ROMs + Playwright).

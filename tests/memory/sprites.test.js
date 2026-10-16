@@ -31,7 +31,7 @@ function test(name, fn) {
 console.log('Sprites Subsystem Tests:');
 
 // Resolve test ROM
-const romPath = path.join(__dirname, '..', '..', 'script_parser', 'dependencies', 'Secret of Evermore (U) [!].smc');
+const romPath = require('../../dist/games').romPath('evermore');
 const hasRom = fs.existsSync(romPath);
 const rom = hasRom ? fs.readFileSync(romPath) : null;
 

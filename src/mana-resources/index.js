@@ -1,7 +1,7 @@
 'use strict';
 // Ownership: entry point of the mana-resources domain: registers the read-only
-// `som://` file system for Secret of Mana. Where to look for the ROM is injected
-// by extension.js (settings and workspace), so this domain reads no config itself.
+// `som://` file system for Secret of Mana. Which ROM file is injected by
+// extension.js (the ROM library), so this domain reads no config itself.
 
 const vscode = require('vscode');
 const { SomFileSystem } = require('./fs-provider');
@@ -11,7 +11,7 @@ const SCHEME = 'som';
 
 /**
  * @param {vscode.ExtensionContext} context
- * @param {() => { manaRomPath?: string, romPath?: string, wsRoot?: string | null }} where
+ * @param {() => { path?: string | null }} where
  * @returns {{ manaRom: () => { path: string, rom: Uint8Array } | null, refresh: () => void }}
  */
 function registerManaResources(context, where) {

@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.228.0",
+  "version": "0.229.0",
   "publisher": "rbin",
   "main": "./src/extension.js",
   "engines": {
@@ -28,8 +28,9 @@
     "onCommand:everscript.openSoeResource",
     "onCommand:everscript.openRomAsFolder",
     "onCommand:everscript.toggleSoeMarkdown",
-    "onStartupFinished",
-    "onMcpCollection:everscript-soe"
+    "onMcpCollection:everscript-soe",
+    "onCommand:everscript.switchRom",
+    "onCommand:everscript.addRom"
   ],
   "categories": [
     "Programming Languages",
@@ -40,16 +41,17 @@
     "build:core:vanilla": "sh tools/build_snes_core.sh vanilla",
     "build:cores": "npm run build:core:vanilla && npm run build:core:custom",
     "build:music-engine": "sh src/music/engine/build-engine.sh",
-    "test": "npm run build:maps && npm run build:mana && npm run build:simulation && npm run build:cores && npm run build:music-engine && vscode-tmgrammar-test -g src/language/syntaxes/everscript.tmLanguage.json 'src/language/tests/**/*.test.evs' && node tests/memory/activation.test.js && node tests/memory/radar.test.js && node tests/memory/map-units.test.js && node tests/memory/script-units.test.js && node tests/memory/script-parity.test.js && node tests/memory/script-loot.test.js && node tests/simulation/sim-units.test.js && node tests/simulation/loot.test.js && node tests/simulation/room.test.js && node tests/simulation/everscript.test.js && node tests/simulation/scheduler.test.js && node tests/memory/map-parity.test.js && node tests/memory/rom-export.test.js && node tests/memory/collision-suggest.test.js && node tests/memory/custom-maps.test.js && node tests/memory/damage.test.js && node tests/memory/map-editor.test.js && node tests/memory/map-editor-dom.test.js && node tests/memory/rooms-rail-dom.test.js && node tests/memory/rooms-layout.test.js && node tests/memory/render-script-model.test.js && node tests/memory/smoke.test.js && node tests/memory/rebuild-invalidation.test.js && node tests/memory/ui.test.js && node tests/memory/scaling-rom.test.js && node tests/memory/sprites.test.js && node tests/memory/rom-tab.test.js && node tests/memory/music-tab.test.js && node tests/memory/scripts-tab.test.js && node tests/memory/soe-resources.test.js && node tests/memory/soe-tags.test.js && node tests/memory/mcp-server.test.js && node tests/mana/mana-units.test.js && node tests/mana/mana-cpu.test.js && node tests/mana/mana-panel-dom.test.js && node tests/mana/mana-editor-core.test.js && node tests/mana/mana-map-editor-dom.test.js && node tests/mana/mana-editor-props.test.js && node tests/mana/mana-editor-cells-dom.test.js && node tests/mana/mana-rom.test.js && node tests/mana/mana-evermore.test.js && node tests/mana/mana-rooms-dom.test.js && node tests/mana/mana-editor-dom.test.js && node tests/debugger/debugger.test.js && node tests/debugger/script-debug-hook.test.js && node tests/debugger/settings-model.test.js && node tests/debugger/snes-rom-header-model.test.js && node tests/debugger/emulator-health.test.js && node tests/debugger/script-trace.test.js && node tests/debugger/trigger-overlay.test.js && node tests/debugger/everscript-inject.test.js && node tests/debugger/emulator-bottom-bar.test.js && node tests/debugger/cdl.test.js && node tests/debugger/cdl-recomp.test.js && node tests/debugger/cdl-bus.test.js && node tests/debugger/recorder.test.js && node tests/debugger/exhirom.test.js && node tests/debugger/tas-events.test.js && node tests/debugger/tas.test.js && node tests/debugger/emulator-menu.test.js && node tests/debugger/emulator-crash-logging.test.js",
+    "test": "npm run build:platform && npm run build:maps && npm run build:mana && npm run build:simulation && npm run build:cores && npm run build:music-engine && vscode-tmgrammar-test -g src/language/syntaxes/everscript.tmLanguage.json 'src/language/tests/**/*.test.evs' && node tests/memory/activation.test.js && node tests/memory/radar.test.js && node tests/memory/map-units.test.js && node tests/memory/script-units.test.js && node tests/memory/script-parity.test.js && node tests/memory/script-loot.test.js && node tests/simulation/sim-units.test.js && node tests/simulation/loot.test.js && node tests/simulation/room.test.js && node tests/simulation/everscript.test.js && node tests/simulation/scheduler.test.js && node tests/memory/map-parity.test.js && node tests/memory/rom-export.test.js && node tests/memory/collision-suggest.test.js && node tests/memory/custom-maps.test.js && node tests/memory/damage.test.js && node tests/memory/map-editor.test.js && node tests/memory/map-editor-dom.test.js && node tests/memory/rooms-rail-dom.test.js && node tests/memory/rooms-layout.test.js && node tests/memory/render-script-model.test.js && node tests/memory/smoke.test.js && node tests/memory/rebuild-invalidation.test.js && node tests/memory/ui.test.js && node tests/memory/scaling-rom.test.js && node tests/memory/sprites.test.js && node tests/memory/rom-tab.test.js && node tests/memory/music-tab.test.js && node tests/memory/scripts-tab.test.js && node tests/memory/soe-resources.test.js && node tests/memory/soe-tags.test.js && node tests/memory/mcp-server.test.js && node tests/mana/mana-units.test.js && node tests/mana/mana-cpu.test.js && node tests/mana/mana-panel-dom.test.js && node tests/mana/mana-editor-core.test.js && node tests/mana/mana-map-editor-dom.test.js && node tests/mana/mana-editor-props.test.js && node tests/mana/mana-editor-cells-dom.test.js && node tests/mana/mana-rom.test.js && node tests/mana/mana-evermore.test.js && node tests/mana/mana-rooms-dom.test.js && node tests/mana/mana-editor-dom.test.js && node tests/debugger/debugger.test.js && node tests/debugger/script-debug-hook.test.js && node tests/debugger/settings-model.test.js && node tests/debugger/snes-rom-header-model.test.js && node tests/debugger/emulator-health.test.js && node tests/debugger/script-trace.test.js && node tests/debugger/trigger-overlay.test.js && node tests/debugger/everscript-inject.test.js && node tests/debugger/emulator-bottom-bar.test.js && node tests/debugger/cdl.test.js && node tests/debugger/cdl-recomp.test.js && node tests/debugger/cdl-bus.test.js && node tests/debugger/recorder.test.js && node tests/debugger/exhirom.test.js && node tests/debugger/tas-events.test.js && node tests/debugger/tas.test.js && node tests/debugger/emulator-menu.test.js && node tests/debugger/emulator-crash-logging.test.js",
     "test:emulator-runtime": "npm run build:cores && node tests/debugger/emulator-health.test.js",
-    "package": "npm run build:maps && npm run build:mana && npm run build:simulation && mkdir -p out && vsce package --out out/ 2>&1 || (echo '' && echo 'ERROR: vsce package failed. Check publisher/engine fields in package.json.' >&2 && exit 1)",
+    "package": "npm run build:platform && npm run build:maps && npm run build:mana && npm run build:simulation && mkdir -p out && vsce package --out out/ 2>&1 || (echo '' && echo 'ERROR: vsce package failed. Check publisher/engine fields in package.json.' >&2 && exit 1)",
     "deploy": "npm run package && node -e \"const v=require('./package.json').version; const {execSync}=require('child_process'); const vsix='out/everscript-'+v+'.vsix'; console.log('Installing '+vsix+'...'); try { execSync('code --install-extension '+vsix+' --force', {stdio:'inherit'}); } catch(e) { console.error('\\nERROR: code CLI not found or install failed.'); console.error('Fix: add VS Code to PATH via Command Palette: Shell Command: Install code in PATH'); process.exit(1); } const out=execSync('code --list-extensions 2>&1').toString(); if(!out.includes('rbin.everscript')) { console.error('\\nERROR: extension installed but rbin.everscript not found in extension list.'); console.error('Installed output was: '+out); process.exit(1); } console.log('\\nOK: rbin.everscript@'+v+' is installed. Reload VS Code (Developer: Reload Window).')\"",
     "typecheck": "tsc --noEmit",
     "check:circular": "madge --circular src/",
     "check:dead": "knip",
     "check:deps": "depcruise --config .depcruise.js src/",
     "check:legal": "node tools/check-legal.mts",
-    "build:recorder": "npm run build:maps && npm run build:script && node tools/recorder/build.js",
+    "build:recorder": "npm run build:platform && npm run build:maps && npm run build:script && node tools/recorder/build.js",
+    "build:platform": "tsc -p tsconfig.platform.json",
     "build:maps": "tsc -p tsconfig.maps.json",
     "check:collision": "node tools/measure-collision.js",
     "check:maps": "node tests/memory/map-parity.test.js",
@@ -59,16 +61,17 @@
     "build:simulation": "npm run build:script && tsc -p tsconfig.simulation.json",
     "test:simulation": "npm run build:simulation && node tests/simulation/sim-units.test.js && node tests/simulation/loot.test.js && node tests/simulation/room.test.js && node tests/simulation/everscript.test.js && node tests/simulation/scheduler.test.js",
     "check:script": "node tests/memory/script-parity.test.js",
-    "recomp": "node tools/recomp/build.js",
-    "recomp:lockstep": "node tools/recomp/lockstep.js",
-    "exhirom": "node tools/exhirom/convert.js",
-    "exhirom:prove": "node tools/exhirom/prove.js",
-    "table-hack": "node tools/table-hack/build.js",
-    "table-hack:prove": "node tools/table-hack/prove.js"
+    "recomp": "npm run -s build:platform && node tools/recomp/build.js",
+    "recomp:lockstep": "npm run -s build:platform && node tools/recomp/lockstep.js",
+    "exhirom": "npm run -s build:platform && node tools/exhirom/convert.js",
+    "exhirom:prove": "npm run -s build:platform && node tools/exhirom/prove.js",
+    "table-hack": "npm run -s build:platform && node tools/table-hack/build.js",
+    "table-hack:prove": "npm run -s build:platform && node tools/table-hack/prove.js",
+    "roms": "npm run -s build:platform && node tools/roms.js"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
-    "dependency-cruiser": "^16.10.4",
+    "dependency-cruiser": "^18.6.0",
     "knip": "^6.14.2",
     "madge": "^8.0.0",
     "playwright": "^1.60.0",
@@ -283,6 +286,17 @@
         "command": "everscript.openManaMaps",
         "title": "Secret of Mana: Open Maps",
         "category": "Everscript"
+      },
+      {
+        "command": "everscript.switchRom",
+        "title": "Switch ROM",
+        "category": "Everscript",
+        "icon": "$(circuit-board)"
+      },
+      {
+        "command": "everscript.addRom",
+        "title": "Add ROM…",
+        "category": "Everscript"
       }
     ],
     "problemMatchers": [
@@ -355,7 +369,7 @@
         "everscript.repoPath": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Absolute path to the Everscript repository root. When set, the extension auto-fills `compilerPath`, `pythonPath`, `inDirectory`, `patchesDirectory`, and `romPath` if those values are still empty."
+          "markdownDescription": "Absolute path to the Everscript repository root. When set, the extension auto-fills `compilerPath`, `pythonPath`, `inDirectory` and `patchesDirectory` if those values are still empty."
         },
         "everscript.compilerPath": {
           "type": "string",
@@ -376,16 +390,6 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Path to the `patches/` directory. Used both for active-patch detection and as the default compiler `--patches` directory. Auto-filled from `repoPath` when empty, otherwise defaults to `<workspace>/patches`."
-        },
-        "everscript.romPath": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Path to the Secret of Evermore ROM (`.smc`, no header). Used by the Scaling tab and the Rooms tab ROM-backed vanilla/script readers. Auto-filled from `repoPath` when empty, otherwise defaults to `<workspace>/Secret of Evermore (U) [!].smc`."
-        },
-        "everscript.manaRomPath": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Path to a Secret of Mana ROM (`.smc`/`.sfc`, no header) for the **Secret of Mana: Open Maps** panel and the read-only `som://` file system. Empty: a Mana ROM next to `everscript.romPath` or in the workspace is used. Kept apart from everything Evermore."
         },
         "everscript.snesCorePath": {
           "type": "string",

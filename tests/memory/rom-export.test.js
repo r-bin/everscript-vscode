@@ -15,9 +15,7 @@ const maps = require('../../src/maps');
 const { decompressLzss } = require('../../src/maps/dist/lzss');
 const { decompressMarkovGrid } = require('../../src/maps/dist/markov');
 
-const EVERSCRIPT_REPO = process.env.EVERSCRIPT_REPO ||
-    path.join(path.dirname(path.dirname(path.dirname(path.resolve(__dirname)))), 'everscript');
-const ROM_PATH = process.env.EVERSCRIPT_ROM || path.join(EVERSCRIPT_REPO, 'Secret of Evermore (U) [!].smc');
+const ROM_PATH = require('../../dist/games').romPath('evermore');
 
 let passed = 0;
 let failed = 0;

@@ -135,6 +135,19 @@ code, folder or docs are part of the cleanup.
    ROM; `openManaMaps` merged.
 6. Derived-ROM marker in `tools/table-hack` and `tools/exhirom`.
 
+**Status (v0.229.0):**
+- Built: 1 (resolver, library file, identification; every ROM reader in the extension, tests, tools and
+  scripts goes through it; `romPath` / `manaRomPath` / `$SOE_ROM` / `EVERSCRIPT_ROM` are gone; old
+  settings are adopted once into the library), 2 (`registerGame`, Evermore and Mana descriptors),
+  4 (rules `platform-knows-no-game`, `core-knows-no-game`, `games-stay-apart`; depcruise now reads
+  `.ts`), 6 (marker `EVSX`, `src/games/evermore/derived.ts`, written by both builders).
+- Built in part, 5: status bar item, Switch ROM opening the ROM panel (ROMs per game, ★ base, "use as
+  base", feature table, drop zone), the drop-a-ROM prompt. Panels still follow the selected ROM instead
+  of keeping the one they were opened with; `openManaMaps` is not merged yet; per-panel empty states
+  are still the old messages.
+- Open: 3 (moving the domains).
+- Headless: `npm run roms` lists the library and adds/selects/marks ROMs (`tools/roms.js`).
+
 ## 8. The map editor (from the 2026-10-15 plan)
 
 - One editor: a **game-neutral core** plus **one adapter per game**. The adapter supplies the map

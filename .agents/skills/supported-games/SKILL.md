@@ -14,7 +14,7 @@ The extension supports two games. They share the SNES and nothing else.
 |---|---|---|
 | file system (MCP, editor) | `soe://` (`src/resources`, MCP `everscript-soe`) | `som://` (`src/mana-resources`): `som://rom/maps/<hex>.png/.json/.collision.json/.anim.json/.objects.json/.edit.json/.tiles.a.png`, `areas/` |
 | library | `src/maps`, `src/script`, … | `src/mana` (pure TS: header, pieces, metatiles, collision, events, objects, cuttable cells, animation on `cpu65816.ts`) |
-| ROM setting | `everscript.romPath` | `everscript.manaRomPath` (or a ROM with "mana" in its name beside it) |
+| Which ROM | the ROM library (Everscript: Switch ROM; headless `npm run roms`): selected Evermore ROM, else the base `us` | the same library: selected Mana ROM, else the base `us` |
 | facts written to | `src/localizations/knowledge/` (`game-knowledge` skill) | `docs/mana/README.md` + the `src/mana` file that reads it |
 | checked with | CDL, recomp, headless runs | `tools/mana/check-map.js` (screen vs render), `check-events.js` (step events), `find-picture.js` (which map a screenshot shows), the game's own routines run on `cpu65816.ts` (rom tests); `docs/mana/verifying.md` |
 | RAM map | `src/localizations/knowledge/` | `docs/mana/wram.md` |

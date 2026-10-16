@@ -32,8 +32,7 @@ const READERS = {
 };
 
 const a = process.argv.slice(2), opt = n => { const i = a.indexOf('--' + n); return i < 0 ? null : a[i + 1]; };
-const romPath = opt('rom') || process.env.SOE_ROM || process.env.EVERSCRIPT_ROM;
-if (!romPath || !fs.existsSync(romPath)) { console.error('usage: record-attract.js --rom <clean rom> [--out file.evsmv]'); process.exit(2); }
+const romPath = require('../rom').baseRomOrExit('evermore', opt('rom'));
 const out = opt('out') || DEFAULT_OUT;
 const maxFrames = Number(opt('max-frames') || 80000);
 

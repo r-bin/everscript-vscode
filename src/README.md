@@ -4,6 +4,9 @@ All production code lives here. Each subdirectory is an ownership domain.
 
 | Domain | Description |
 |---|---|
+| `platform/` | Game-neutral, no VS Code: game registry, ROM header, identification, the ROM library (TypeScript → `dist/platform`) |
+| `core/` | Game-neutral VS Code features: `roms/` (status bar, Switch ROM, ROM panel) |
+| `games/` | One folder per game: descriptor (variants, base, capabilities), derived-ROM marker; `index.ts` is the list of games (→ `dist/games`) |
 | `shared/` | Cross-domain utilities: config, radar-utils, rom-readers, shared webview assets |
 | `language/` | VS Code language features: grammar, theme, hover, completion, definitions, snippets |
 | `memory/` | Memory Radar tab: WRAM grid, detail table, rendering pipeline |
@@ -13,7 +16,7 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `rooms/` | Rooms map browser: tree building, content parsing, rendering, data watchers |
 | `emulator/` | Embedded SNES emulator: panel, webview, SNES ROM header model; profiles (Everscript / recorder) and Evermore gating; recording bundles |
 | `recorder/` | SNES CDL Recorder: the second extension's entry (`recorder/package.json`), the emulator in its recorder profile |
-| `script/` | Everscript bytecode decoder, ported from SoEScriptDumper (TypeScript, pure) |
+| `script/` | Everscript bytecode decoder (TypeScript, pure); re-done from the game in cleanup step 2 |
 | `simulation/` | Runs scripts symbolically: loot cases, room scenarios + flag tree, NPC tracking, clusters, byte-identical Everscript (TypeScript, pure) |
 | `mana/` | Secret of Mana maps: header, pieces, metatiles, characters, palettes, Mode 1 picture, areas (TypeScript, pure; nothing Evermore) |
 | `mana-resources/` | Read-only `som://` file system: Secret of Mana maps and areas as files |
@@ -25,7 +28,7 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `debugger/` | VS Code debugger for .evs scripts in the emulator: DAP session, compiler source map, step logic |
 | `localizations/` | Centralized subjective names (maps, sounds, tables, functions) & ROM string resolution |
 | `resources/` | Read-only `soe://` file system: ROM, decoded assets and live WRAM as files |
-| `mcp/` | Read-only MCP server (127.0.0.1:47917) serving `soe://` to AI clients (Claude Code, Antigravity, Gemini CLI, Copilot) |
+| `mcp/` | Read-only MCP server (127.0.0.1:47917) serving `soe://` to AI clients (Claude Code, Antigravity, Copilot, any MCP client) |
 
 Entry point: `extension.js` (orchestration root, registered as `main` in package.json).
 

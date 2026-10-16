@@ -1,6 +1,6 @@
 // Check which event the running game runs for each step-event cell of a map
 // (docs/mana/README.md "Step events").
-//   EVERSCRIPT_MANA_ROM=<rom> node tools/mana/check-events.js <map id, hex>
+//   node tools/mana/check-events.js <map id, hex>   (the Mana ROM of the ROM library)
 // Plays the opening headless like check-map.js, makes the map loader at $00:C481 load
 // the given map, then for each cell src/mana's mapEvents lists: restores the state,
 // puts that cell's value under the first character ($7E:E04B/E04C, as $00:D682 does),
@@ -10,10 +10,10 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const mana = require('../../src/mana');
 
-const romPath = process.env.EVERSCRIPT_MANA_ROM;
+const romPath = require('../rom').romOrExit('mana');
 const id = parseInt(process.argv[2], 16);
 if (!romPath || !Number.isInteger(id)) {
-    console.error('usage: EVERSCRIPT_MANA_ROM=<rom> node tools/mana/check-events.js <map id, hex>');
+    console.error('usage: node tools/mana/check-events.js <map id, hex>');
     process.exit(2);
 }
 const CORE = path.join(__dirname, '../../src/emulator/core/snes9x2005-wasm/snes9x_2005.js');

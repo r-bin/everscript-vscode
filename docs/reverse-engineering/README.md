@@ -5,7 +5,7 @@ approach to improve or borrow from. Details live in the pages linked below.
 
 Last updated 2026-10-12 (v0.201.9).
 
-**Build everything we know into a recomp and see what blocks it:** `SOE_ROM=<clean rom> npm run recomp` ([tools/recomp/README.md](../../tools/recomp/README.md)).
+**Build everything we know into a recomp and see what blocks it:** `npm run recomp` ([tools/recomp/README.md](../../tools/recomp/README.md)).
 
 ## Pages
 

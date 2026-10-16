@@ -9,6 +9,7 @@
 const fs = require('fs'), path = require('path');
 const { TABLES, build, finish, hex, familyCount, ANIMATION_RECORD_POOL } = require('./tables');
 const { paletteAddress } = require('./hooks');
+const { markDerived } = require('../derived-marker');
 
 const REPO = path.resolve(__dirname, '..', '..');
 const KEY_SPAN = 0x8000;      // a key is a 16-bit byte offset, and the table must stay inside one 32 KB half
@@ -148,8 +149,8 @@ function testContent(rom, names, { enemies = [], rooms = [], animations = [], do
 
 function main() {
     const a = process.argv.slice(2), opt = n => { const i = a.indexOf('--' + n); return i < 0 ? null : a[i + 1]; };
-    const romPath = opt('rom') || process.env.SOE_ROM || process.env.EVERSCRIPT_ROM;
-    if (!romPath || !fs.existsSync(romPath)) { console.error('usage: build.js --rom <clean rom> [--tables all|a,b] [--ips file] [--out file]'); process.exit(2); }
+    // usage: build.js [--rom <clean rom>] [--tables all|a,b] [--ips file] [--out file]
+    const romPath = require('../rom').baseRomOrExit('evermore', opt('rom'));
     const t = opt('tables') || 'all';
     const names = t === 'all' ? [...Object.keys(TABLES), 'sprite_palettes'] : t.split(',').filter(Boolean);
     const ipsPath = opt('ips');
@@ -161,6 +162,9 @@ function main() {
     const test = testContent(rom, names, { enemies: list('add-enemy'), rooms: list('recolor-room'),
         animations: words('add-animation'), dogSlots: words('dog-slot') });
     const { image, moves, redirected } = buildWithIps(source, names, ipsPath ? fs.readFileSync(ipsPath) : null, test.extra, test.after);
+    // Marks the result as derived from this base ROM, at the directory spot (multi-game.md §4).
+    markDerived(image, rom, 0x310000, 'table-hack');
+    finish(image);
     fs.mkdirSync(path.dirname(out), { recursive: true });
     fs.writeFileSync(out, image);
     for (const m of moves) console.log(`${m.name}: ${m.count}${m.added ? ' + ' + m.added : ''} entries, ${m.wiped ? hex(m.from) : 'new'} -> ${hex(m.bus)}; ${m.rewritten.join('; ')}`);

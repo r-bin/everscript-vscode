@@ -25,7 +25,7 @@ async function loadInit(/** @type {vscode.Webview} */ webview) {
         return { title: info.title, maps, areas, somBase: String(webview.asWebviewUri(SOM_ROOT)) };
     } catch (err) {
         const why = err && /** @type {Error} */ (err).message || String(err);
-        return { error: `No Secret of Mana ROM found (${why}). Set everscript.manaRomPath to your ROM file.` };
+        return { error: `No Secret of Mana ROM found (${why}). Add it with Everscript: Switch ROM.` };
     }
 }
 

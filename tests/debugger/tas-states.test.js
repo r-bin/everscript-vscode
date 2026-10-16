@@ -3,7 +3,7 @@
 /**
  * Save states taken during a headless replay (tools/cdl/replay-states.js): resuming from one gives the
  * checksums of the uninterrupted run in every memory space. Needs a local Secret of Evermore ROM
- * (EVERSCRIPT_ROM, else /Users/v/romhacking); skipped without it. The ROM is only read.
+ * (from the ROM library); skipped without it. The ROM is only read.
  */
 
 const assert = require('assert');
@@ -23,7 +23,7 @@ function test(name, fn) {
 }
 
 console.log('TAS state tests:');
-const rom = [process.env.EVERSCRIPT_ROM, '/Users/v/romhacking/Secret of Evermore (U) [!].smc'].filter(Boolean).find(p => fs.existsSync(p));
+const rom = require('../../dist/games').romPath('evermore');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'evs-tas-states-'));
 const tool = path.join(ROOT, 'tools/cdl/replay.js');
 const run = args => execFileSync(process.execPath, [tool, ...args], { encoding: 'utf8', timeout: 240000 });

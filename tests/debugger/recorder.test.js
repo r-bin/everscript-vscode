@@ -101,11 +101,11 @@ function recordInto(root, rom, hits) {
         assert.strictEqual(CdlLibrary.open(dst, lib.hash, rom.length).romHits[0x10], 12);
     });
 
-    await test('recorder files: complete, nothing outside src/ and tools/, and every staged file loads', () => {
+    await test('recorder files: complete, nothing outside src/, tools/ and dist/, and every staged file loads', () => {
         const { recorderFiles, ASSETS } = require('../../tools/recorder/package-files');
         const { files } = recorderFiles();
         for (const a of ASSETS) assert.ok(files.includes(a), 'asset listed: ' + a);
-        assert.ok(files.every(f => /^(src|tools)\//.test(f)), 'only src/ and tools/');
+        assert.ok(files.every(f => /^(src|tools|dist)\//.test(f)), 'only src/, tools/ and the dist/ build');
         assert.ok(!files.some(f => /^src\/(memory|rooms\/webview|debugger|mana|music)\//.test(f)), 'no editor, radar or debugger domains');
         assert.ok(!files.includes('src/emulator/cdl/asar-export.js'), 'no Asar export in the recorder');
         const missing = files.filter(f => !fs.existsSync(path.join(ROOT, f)) && !/\/core\//.test(f));

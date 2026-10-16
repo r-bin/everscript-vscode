@@ -29,7 +29,7 @@ function args(argv) {
         const k = argv[i].replace(/^--/, ''), v = argv[++i];
         o[k] = ['from', 'to', 'step'].includes(k) ? Number(v) : v;
     }
-    o.rom = o.rom || process.env.SOE_ROM;
+    o.rom = require('../rom').baseRomOrExit('evermore', o.rom);
     const { platformTag } = require('./host');
     o.exe = o.exe || process.env.SOE_RECOMP_EXE
         || path.join(REPO, 'out', 'recomp', 'SecretOfEvermore-' + platformTag(), 'SecretOfEvermore' + (process.platform === 'win32' ? '.exe' : ''));

@@ -19,8 +19,7 @@ const fs = require('fs');
 const path = require('path');
 const sim = require('../../src/simulation');
 
-const ROM = process.env.EVERSCRIPT_ROM ||
-    path.join(__dirname, '..', '..', '..', 'everscript', 'Secret of Evermore (U) [!].smc');
+const ROM = require('../../dist/games').romPath('evermore');
 const CORE = path.join(__dirname, '..', '..', 'src', 'emulator', 'core', 'snes9x2005-wasm', 'snes9x_2005.wasm');
 if (!fs.existsSync(ROM) || !fs.existsSync(CORE)) { console.log('SKIP simulation scheduler: needs the ROM and the debugger core'); process.exit(0); }
 const { traceScripts } = require('../../tools/simulation/trace-scripts');

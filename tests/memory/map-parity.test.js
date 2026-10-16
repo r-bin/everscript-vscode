@@ -21,7 +21,7 @@ const maps = require('../../src/maps');
 
 const EVERSCRIPT_REPO = process.env.EVERSCRIPT_REPO ||
     path.join(path.dirname(path.dirname(path.dirname(path.resolve(__dirname)))), 'everscript');
-const ROM_PATH = process.env.EVERSCRIPT_ROM || path.join(EVERSCRIPT_REPO, 'Secret of Evermore (U) [!].smc');
+const ROM_PATH = require('../../dist/games').romPath('evermore');
 const PYTHON = process.env.EVERSCRIPT_PYTHON || path.join(EVERSCRIPT_REPO, '.venv', 'bin', 'python3');
 
 // Rooms covered by upstream's own VRAM ground-truth tests, plus 0x38 (the room

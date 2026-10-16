@@ -41,3 +41,6 @@ src/mana/dist/
 *script_all*
 dumps/
 last_run_report.json
+
+# platform/ + games/ TypeScript build output (npm run build:platform)
+dist/

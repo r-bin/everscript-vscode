@@ -17,7 +17,7 @@ const script = require('../../src/script');
 const sim = require('../../src/simulation');
 
 const REPO = process.env.EVERSCRIPT_REPO || path.join(__dirname, '..', '..', '..', 'everscript');
-const ROM = process.env.EVERSCRIPT_ROM || path.join(REPO, 'Secret of Evermore (U) [!].smc');
+const ROM = require('../../dist/games').romPath('evermore');
 if (!fs.existsSync(ROM)) { console.log('SKIP simulation everscript: no ROM'); process.exit(0); }
 const rom = new Uint8Array(fs.readFileSync(ROM));
 const S = sim.createSimulator(rom);
