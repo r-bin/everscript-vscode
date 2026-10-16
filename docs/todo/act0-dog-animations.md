@@ -1,7 +1,20 @@
 # Giving the Act 0 Dog its missing animations
 
-> Status: **plan, nothing built.** Every number below was measured from the US
+> Status: **plan; the table limits are lifted (v0.226.0).** Every number below was measured from the US
 > ROM with `src/maps/dist/sprites` and `src/maps/dist/animation-vm` (2026-10-03).
+>
+> **Update, table hack (v0.226.0)** ([adding-animations.md](../adding-animations.md)):
+> - Record groups no longer need free bytes in `$C4`: moving the `animate()` id table frees the pool
+>   `$C4:3C92–$3E39` (26 four-facing groups).
+> - The block id tables are moved and have room (16×16 4854 / 10922, 8×8 6265 / 10922), so dead ids
+>   are not needed.
+> - The 4 MB expansion and its boot are proven.
+> - Tested with `tools/table-hack/evs/act0-dog.evs`: the puppy's sit (slot 12) points at a new
+>   record in the pool, and its bark (slot 14) at its own `$4526`.
+> - Still open: space for sprite infos in `$CA–$D3`, the block encoder, the art
+>   ([todo/table-hack.md](table-hack.md)).
+> - **Correction:** slot `s` is at `$CF936D + 10 + 2s`, so bark (slot 14) is `$CF9393`. The
+>   `$CF938F` below is slot 12 (sit).
 > Background: [animation_script.md § The Dog's forms](../script-format/animation_script.md#the-dogs-forms),
 > [sprite_format.md](../script-format/sprite_format.md).
 

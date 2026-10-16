@@ -45,9 +45,10 @@ Sources: [asm-to-c-port.md §11](reverse-engineering/asm-to-c-port.md),
 | Character records | `$8EB678`, 74 B/record | **the new enemies' stats, AI, animations and palette** | **141 / 254** | Readers take a record by its 16-bit address in X (`$8E00xx,X`), so the records keep their offsets in their new bank: from `$B678` to the end of the bank. | **proven ✓** (`$B8:B678`). 131 operands rebanked (`$8E`→`$B8`, `$CE`→`$F8`) and the Boy/Dog template copy `mvn $8E,$8E` at `$8F:8046`. Enemy `$8F` (a Mosquito copy) spawned in game. |
 | Map palettes | `$9CC322`, 32 B/family | **more background palette families** | **365 / 1024** | `adc #$C322` and `lda #$9C` in the family loader `$90:D05C` (the only readers). In place: 486 at most. Up to 7 load per room. | **proven ✓** (`$B9:8000`). Brian's room on new family 365 in game. |
 | Sprite palettes | `$90:xxxx`, 32 B each | **new colours for new enemies** | **0 new / 1016** | Bank `$90` is full, and both palette readers (`$90:CF3A` copy, `$90:CFB8` CGRAM upload) take bank `$90` from the code. A hook reads an address below `$8000` as bank `$FA`. | **works, not identical** (`$FA:0100+`, hook at `$BA:8000`). The new palette reaches CGRAM next to the vanilla one. From frame 374 the RNG drifts (the intro's lightning is drawn differently). |
+| `animate()` ids | `$C43C92`, 2 B/id | **more global animation ids**, and the 424 bytes before the record table become the **animation record pool** | **212 / 2048** | Ids are words; ids `>= $8000` mean the character's own field. | **proven ✓** (`$B1:F000`). One reader, `$8C:E13C`. New records go to `$C4:3C92–$3E39` ([adding-animations.md](adding-animations.md)). |
 | Map tile graphics | `$EE0000`, 3 B/tile | **more 16×16 map tile graphics** | **6,688 / ~21,800** *(to verify)* | id × 3 with a 16-bit index. How many tiles a room can use is a separate limit (the seven family slots, `map-editor-rules`). | **needs readers**: `8C:C88C` and `90:A23D` are known, and the CDL has seen only part of the code |
-| Sprite blocks 16×16 | `$EC0000`, 3 B | **more sprite graphics** (characters, enemies, effects) | **4,854 / ~21,800** *(to verify)* | The table is full and other data follows it, so it can only grow by moving. | **needs readers**: `80:9751`, `80:A2E6` |
-| Sprite blocks 8×8 | `$D80000`, 3 B | more small sprite pieces | **6,265 / ~21,800** *(to verify)* | as above | **needs readers**: `80:A50B`, `80:A800` |
+| Sprite blocks 16×16 | `$EC0000`, 3 B | **more sprite graphics** (characters, enemies, effects) | **4,854 / ~21,800** *(to verify)* | The table is full and other data follows it, so it can only grow by moving. | **proven ✓** (`$F8:0000`, 10922 ids). Readers `$80:9742`, `$80:9751`, `$80:A2E6`. |
+| Sprite blocks 8×8 | `$D80000`, 3 B | more small sprite pieces | **6,265 / ~21,800** *(to verify)* | as above | **proven ✓** (`$F9:0000`, 10922 ids). Readers `$80:A4FC`, `$80:A50B`, `$80:A800`. |
 | Song packages | `$819903`, 3 B | **more music and sound packages** | **71 / 256** *(to verify)* | The count is one byte: `$81:9900` is the last package index. The everscript repo reads `$9901` as 70 music ids and `$9902` as 90 sound effects; our `src/rom/model/audio.js` still calls `$9900` "song count". Sound-driver memory is a second limit. | **needs readers**: `8C:8252`, `8C:8257`; the export has it as a value-only table |
 
 The gain on one line:
@@ -61,8 +62,10 @@ The gain on one line:
 | strings | 3,002 | ~10,900 |
 | trigger / NPC scripts | 1,917 | ~21,800 |
 | map tile graphics | 6,688 | ~21,800 |
-| 16×16 sprite blocks | 4,854 | ~21,800 |
-| 8×8 sprite blocks | 6,265 | ~21,800 |
+| 16×16 sprite blocks | 4,854 | 10,922 |
+| 8×8 sprite blocks | 6,265 | 10,922 |
+| animation record groups (4 facings) | 0 free | 26 (pool in `$C4`) |
+| global `animate()` ids | 212 | 2048 |
 | song packages | 71 | 256 |
 
 The `~21,800` limits come from a 16-bit index over 3-byte entries and are not checked.
@@ -71,8 +74,7 @@ The `~21,800` limits come from a 16-bit index over 3-byte entries and are not ch
 
 | Table | Address | Used | Why not |
 |---|---|---|---|
-| Animation records | `$C43E3A` | 783 animations | A record id is a 16-bit offset inside bank `$C4`. |
-| Global `animate()` ids | `$C43C92` | 212 | offsets into bank `$C4` |
+| Animation records | `$C43E3A` | 783 animations | A record id is a 16-bit offset inside bank `$C4`, so the records stay. New records go to the pool that the `animate()` id move frees (above). |
 | Alchemy formulas | `$C45DDF` → `$9180A6` | 35 | The blocks are bound to bank `$91`, and the code that reads them has not been traced. |
 | Alchemy script pointers | `$C45802` | not measured | readers unknown |
 | Ring-menu item icons | `$CE8000` | 162 | offsets inside bank `$CE` |

@@ -111,6 +111,31 @@ const TABLES = {
         // `mvn $8E,$8E` (opcode, dest bank, source bank): only the source bank moves.
         sites: [site(0x0F8046, [0x54, 0x8E, 0x8E], bus => [0x54, 0x8E, bus >> 16])],
     },
+    animate_ids: {
+        what: 'global animate() id -> animation record (word: a 16-bit offset in bank $C4)',
+        // `lda.l $C43C92,x` at $8C:E13C is the only reader (scan: the other 100 hits are data). Moving it frees
+        // $C4:3C92-$C4:3E39, right before the record table, for new animation records: record ids are 16-bit
+        // offsets into bank $C4, so new records have to be there (ANIMATION_RECORD_POOL). Ids >= $8000 mean the
+        // character's own field, so the table can grow to 2048 ids in its 4 KB.
+        start: 0x043C92, entry: 2, count: () => 212,
+        to: 0x31F000, limit: 2048,
+        readers: [operand(0x0CE13C, 0xBF, 0xC43C92)],
+    },
+    sprite_blocks_16: {
+        what: '16x16 sprite block id -> pixels (3 bytes: 23-bit offset from $D90000, bit 23 = compressed)',
+        // `lda.l $EC0000,x` / `$EC0001,x` at $80:9742, $80:9751, $80:A2E6 (all CDL code; no other operand, no
+        // `lda #$EC`). The table is full in vanilla; in the lower half of $F8 it has room for 10922 ids.
+        start: 0x2C0000, entry: 3, count: () => 4854,
+        to: 0x380000, full: true, limit: 10922,
+        readers: [operand(0x009742, 0xBF, 0xEC0001), operand(0x009751, 0xBF, 0xEC0000), operand(0x00A2E6, 0xBF, 0xEC0000)],
+    },
+    sprite_blocks_8: {
+        what: '8x8 sprite block id -> pixels (3 bytes: 23-bit offset from $D10000, bit 23 = compressed)',
+        // `lda.l $D80000,x` / `$D80001,x` at $80:A4FC, $80:A50B, $80:A800 (all CDL code). Lower half of $F9.
+        start: 0x180000, entry: 3, count: () => 6265,
+        to: 0x390000, full: true, limit: 10922,
+        readers: [operand(0x00A4FC, 0xBF, 0xD80001), operand(0x00A50B, 0xBF, 0xD80000), operand(0x00A800, 0xBF, 0xD80000)],
+    },
     map_palettes: {
         what: 'background palette families, 32 bytes each, $9C:C322 + 32*family (src/maps tileFamilies)',
         // `adc #$C322` and `lda #$9C` in the family loader ($90:D05C) are the only readers; moved to $B9:8000 the
@@ -137,6 +162,8 @@ function scriptTableCount(rom) {
 const value = (f, rom) => (typeof f === 'function' ? f(rom) : f);
 /** The bus address the readers should use for file offset `file` (upper half, FastROM mirror bank). */
 const mirrorBus = file => 0x800000 | file;
+/** A table in a lower bank half is ROM only through the $C0-$FF form. */
+const busOf = t => (t.full ? 0xC00000 | t.to : mirrorBus(t.to));
 
 /**
  * Build the 4 MB image with `names` moved. `extra` = { string_keys: [3-byte values to append], … }.
@@ -175,13 +202,13 @@ function build(source, names = [], extra = {}) {
             if (img[r.at] !== r.op || u24(img, r.at + 1) !== r.old) throw new Error(`${name}: ${hex(r.at)} is not op ${hex(r.op, 2)} ${hex(r.old)}`);
             const delta = (r.old & 0xFFFF) - (t.headerBias ? 0 : (0x800000 | start) & 0xFFFF) - (t.headerBias ? 0x8000 : 0);
             const bias = t.headerBias ? u16(rom, SCRIPT_BANK) : 0;
-            const v = mirrorBus(t.to) - bias + delta;
+            const v = busOf(t) - bias + delta;
             put24(img, r.at + 1, v);
             rewritten.push(`${hex(r.at)}: ${hex(r.old)} -> ${hex(v)}`);
         }
         for (const p of t.sites || []) {
             if (p.expect.some((b, i) => img[p.at + i] !== b)) throw new Error(`${name}: ${hex(p.at)} is not ${p.expect.map(b => hex(b, 2)).join(' ')}`);
-            const bytes = p.write(mirrorBus(t.to));
+            const bytes = p.write(busOf(t));
             img.set(bytes, p.at);
             rewritten.push(`${hex(p.at)}: ${p.expect.map(b => b.toString(16).padStart(2, '0')).join(' ')} -> ${bytes.map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
         }
@@ -192,7 +219,7 @@ function build(source, names = [], extra = {}) {
             rewritten.push(`${code.length} operands $8E00xx/$CE00xx -> $${(0x80 | bank).toString(16).toUpperCase()}00xx/$${(0xC0 | bank).toString(16).toUpperCase()}00xx (code banks)`);
             left.push(...elsewhere.map(o => hex(o)));
         }
-        moves.push({ name, what: t.what, from: start, count, added: added.length, limit: t.limit, bytes: total, to: t.to, bus: mirrorBus(t.to), wiped: [start, wipeEnd], rewritten, left });
+        moves.push({ name, what: t.what, from: start, count, added: added.length, limit: t.limit, bytes: total, to: t.to, bus: busOf(t), wiped: [start, wipeEnd], rewritten, left });
     }
     finish(img);
     return { image: img, moves };
@@ -208,4 +235,7 @@ function finish(img) {
     img[0xFFDE] = cs & 0xFF; img[0xFFDF] = cs >> 8; img[0xFFDC] = (cs ^ 0xFFFF) & 0xFF; img[0xFFDD] = (cs ^ 0xFFFF) >> 8;
 }
 
-module.exports = { TABLES, build, finish, scriptTableCount, characterOperands, familyCount, unpackScript, hex, MB4 };
+/** Where new animation records go once animate_ids has moved: bank $C4, before the record table. */
+const ANIMATION_RECORD_POOL = { start: 0x043C92, end: 0x043E3A };
+
+module.exports = { ANIMATION_RECORD_POOL, TABLES, build, finish, scriptTableCount, characterOperands, familyCount, unpackScript, hex, MB4 };

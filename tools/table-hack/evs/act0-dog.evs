@@ -1,0 +1,27 @@
+// Table hack test: the Act 0 Dog (DOG.PUPPER) in Brian's room, left idle so it sits (form slot 12).
+// Vanilla: slot 12 is the Act 1 wolf's sit ($4302), drawn in the puppy's palette. Built with
+// `tools/table-hack/build.js --add-animation 0x4502:4 --dog-slot 4:12=@0,4:14=0x4526` it uses a new record group
+// in bank $C4 (here a copy of the puppy's own stand), and barks as itself.
+#memory(
+    function_key(0x0000)..function_key(0x1716), // script pointer slots the compiler may reuse
+    0x320000..0x32ffff,                         // $F2: scripts in the upper half
+    <0x2272>..<0x2558>,
+    <0x2834>..<0x28ff>
+)
+#include("in/core")
+
+@install(ADDRESS.INTRO_FIRST_CODE_EXECUTED)
+fun intro_skip() {
+    MEMORY.DOG_WRITE = DOG.PUPPER;
+    map_transition(brians_room, center, NONE);
+}
+
+map brians_room(MAP.BRIAN) {
+    enum entrance {
+        center = entrance(0x17, 0d40, NONE)
+    }
+
+    fun trigger_enter() {
+        fade_in();
+    }
+};

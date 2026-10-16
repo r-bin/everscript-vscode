@@ -2,11 +2,12 @@
 // Build a table-hack ROM (docs/table-hack.md §0), optionally with an everscript IPS patch applied on top.
 //   node tools/table-hack/build.js --rom <clean rom> [--tables all|name,name] [--ips everscript.ips] [--out file]
 //                                  [--add-enemy <record>,..] [--recolor-room <room>,..]   (test content, see testContent)
+//                                  [--add-animation <record>:<facings>,..] [--dog-slot <form>:<slot>=<record|@n>,..]
 // everscript writes into the vanilla tables (string keys, room enter scripts, script pointer slots); with a table
 // moved, each such IPS record goes to the moved copy instead, and a string key past the vanilla 3002 grows the table.
 'use strict';
 const fs = require('fs'), path = require('path');
-const { TABLES, build, finish, hex, familyCount } = require('./tables');
+const { TABLES, build, finish, hex, familyCount, ANIMATION_RECORD_POOL } = require('./tables');
 const { paletteAddress } = require('./hooks');
 
 const REPO = path.resolve(__dirname, '..', '..');
@@ -87,7 +88,7 @@ function recolor(bytes) {
  * recoloured sprite palette; `rooms` = room ids whose first tile family is replaced by a new, recoloured family.
  * The room edit changes that room's blob (two bytes): it is a test of the moved family table, not part of the hack.
  */
-function testContent(rom, names, { enemies = [], rooms = [] }) {
+function testContent(rom, names, { enemies = [], rooms = [], animations = [], dogSlots = [] }) {
     const extra = { characters: [], enemy_index: [], sprite_palettes: [], map_palettes: [] }, after = [], made = [];
     const need = list => list.forEach(n => { if (!names.includes(n)) throw new Error(`this test needs --tables to include ${n}`); });
     if (enemies.length) need(['characters', 'enemy_index', 'sprite_palettes']);
@@ -115,6 +116,33 @@ function testContent(rom, names, { enemies = [], rooms = [] }) {
             made.push(`room ${hex(room, 2)}: family ${fam} -> new family ${id} (recoloured copy), blob byte ${hex(at)}`);
         }
     }
+    // Animation records: copies of vanilla record groups in the pool that animate_ids leaves free in bank $C4.
+    // A record is [script:16][bank:8][flags:8]; a group is one record per facing (4 for $40-flagged groups).
+    const added = [];
+    if (animations.length) need(['animate_ids']);
+    let at = ANIMATION_RECORD_POOL.start;
+    for (const spec of animations) {
+        const [rec, facings] = spec.split(':').map(Number);
+        const bytes = rom.subarray(0x040000 + rec, 0x040000 + rec + 4 * facings);
+        if (at + bytes.length > ANIMATION_RECORD_POOL.end) throw new Error('the animation record pool is full');
+        const where = at;
+        after.push(img => img.set(bytes, where));
+        added.push(where & 0xFFFF);
+        made.push(`animation @${added.length - 1}: record $${(where & 0xFFFF).toString(16).toUpperCase()} = copy of $${rec.toString(16).toUpperCase()} (${facings} facings)`);
+        at += bytes.length;
+    }
+    // Dog form slots: $CF945F lists the six forms; slot s of a form is at +10 + 2s (src/sprites/dog-forms.js).
+    for (const spec of dogSlots) {
+        const [, form, slot, value] = /^(\d+):(\d+)=(@?\w+)$/.exec(spec) || [];
+        if (form === undefined) throw new Error(`--dog-slot ${spec}: want <form>:<slot>=<record|@n>`);
+        const rec = value[0] === '@' ? added[Number(value.slice(1))] : Number(value);
+        if (rec === undefined) throw new Error(`--dog-slot ${spec}: no animation ${value}`);
+        const ptr = rom[0x0F945F + 2 * form] | (rom[0x0F9460 + 2 * form] << 8);
+        const o = 0x0F0000 + ptr + 10 + 2 * Number(slot);
+        const old = rom[o] | (rom[o + 1] << 8);
+        after.push(img => { img[o] = rec & 0xFF; img[o + 1] = rec >> 8; });
+        made.push(`dog form ${form} slot ${slot} ($CF${(ptr + 10 + 2 * slot).toString(16).toUpperCase()}): $${old.toString(16).toUpperCase()} -> $${rec.toString(16).toUpperCase()}`);
+    }
     return { extra, after, made };
 }
 
@@ -129,7 +157,9 @@ function main() {
     const source = new Uint8Array(fs.readFileSync(romPath));
     const rom = source.length % 1024 === 512 ? source.subarray(512) : source;
     const list = n => (opt(n) || '').split(',').filter(Boolean).map(Number);
-    const test = testContent(rom, names, { enemies: list('add-enemy'), rooms: list('recolor-room') });
+    const words = n => (opt(n) || '').split(',').filter(Boolean);
+    const test = testContent(rom, names, { enemies: list('add-enemy'), rooms: list('recolor-room'),
+        animations: words('add-animation'), dogSlots: words('dog-slot') });
     const { image, moves, redirected } = buildWithIps(source, names, ipsPath ? fs.readFileSync(ipsPath) : null, test.extra, test.after);
     fs.mkdirSync(path.dirname(out), { recursive: true });
     fs.writeFileSync(out, image);

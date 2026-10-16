@@ -8,9 +8,9 @@ The plan, and which tables can move and what each one buys:
 The tool moves tables, never content, rewrites the code that reads them, and wipes the old copy
 with `$FF`. Where each table goes:
 
-- content tables: bank `$F1`;
-- enemy index and character records: `$F8`;
-- map palettes: `$F9`.
+- content tables and the `animate()` ids: bank `$F1`;
+- enemy index, character records and the 16×16 block table: `$F8`;
+- map palettes and the 8×8 block table: `$F9`.
 
 The one exception is new sprite palettes: bank `$90` is full, so they need a hook (`hooks.js`, new
 code in `$FA`). The hook works, but it changes the game's RNG timing (docs/extension-tables.md).
@@ -23,6 +23,7 @@ code in `$FA`). The hook works, but it changes the game's RNG timing (docs/exten
 | `prove.js` | `npm run table-hack:prove`: builds `base`, one image per table and `all`, replays the sample playbacks (attract loop, sample-playbacks skill) on the original and each image, and writes `out/table-hack/REPORT.md`. It takes about 15 s. |
 | `run.js` | One headless snes9x run for `prove.js`. It writes a trace (WRAM every frame, screen every 60) and can save screenshots (`--shots`) or a WRAM dump (`--dump`). |
 | `evs/string-3003.evs` | Everscript test: adds string #3003 (key `0x232E`) and shows it when Brian's room is entered. |
+| `evs/act0-dog.evs` | Everscript test: the Act 0 Dog (`DOG.PUPPER`) idles in Brian's room until it sits. Build it with `--add-animation 0x4502:4 --dog-slot 4:12=@0,4:14=0x4526` to have it sit as itself (a new record in the `$C4` pool), not as the Act 1 wolf. |
 | `evs/enemy-143.evs` | Everscript test: spawns enemy `0x8F` (made by `--add-enemy 113`) next to a vanilla Mosquito in Brian's room. Build it with `--recolor-room 0x15` so the room uses the new family 365. |
 
 ```sh
@@ -33,7 +34,8 @@ scripts/build-table-hack.sh "/path/…smc" --prove
 ```
 
 Table names: `map_table`, `room_enter_scripts`, `string_keys`, `script_pointers`, `enemy_index`,
-`characters`, `map_palettes`, plus the hook `sprite_palettes`.
+`characters`, `animate_ids`, `sprite_blocks_16`, `sprite_blocks_8`, `map_palettes`, plus the hook
+`sprite_palettes`.
 
 The test content options of `build.js` exist to check the moved tables; they are not part of the
 hack:
@@ -41,6 +43,9 @@ hack:
 - `--add-enemy <record>,..`: a new character record copied from `<record>`, with its own
   red/blue-swapped sprite palette and a new enemy id;
 - `--recolor-room <room>,..`: that room's first tile family becomes a new, recoloured family.
+- `--add-animation <record>:<facings>,..`: copies a vanilla record group into the animation record
+  pool `$C4:3C92–$3E39`; it prints the new record id (`@0`, `@1`, …).
+- `--dog-slot <form>:<slot>=<record|@n>,..`: points a Dog form slot at a record.
 
 **The base image.** Every image is 4 MB. File `0x300000+` holds what the bundled core shows past a
 3 MB ROM (offset % size), so an image with nothing moved behaves exactly like the original in that

@@ -24,6 +24,9 @@ const READERS = {
     script_pointers: [0x8CCE62, 0x8CD3B4],
     enemy_index: [0x8CDCE1, 0x8CDCF2, 0x8CDCCB, 0x8CDCA0],
     characters: [0x8F8046, 0x8FB15A],          // Boy/Dog template copy, HP at spawn
+    animate_ids: [0x8CE13C],
+    sprite_blocks_16: [0x809742, 0x809751, 0x80A2E6],
+    sprite_blocks_8: [0x80A4FC, 0x80A50B, 0x80A800],
     map_palettes: [0x90D05C],
     sprite_palettes: [0x90CF3A],
 };
