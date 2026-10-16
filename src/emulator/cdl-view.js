@@ -3,7 +3,8 @@
 /**
  * emulator/cdl-view.js
  *
- * The emulator's CDL bottom-bar tab: record toggle (off by default), ROM
+ * The emulator's CDL panel (placed by webview/emulator-panels.js: side bar, bottom bar or
+ * only its pause-menu tab): record toggle (off by default), ROM
  * coverage strips (one per 64 KB, one pixel per byte), WRAM access strips
  * ($7E / $7F), Asar / WRAM export buttons and the xref lookup box (full extension),
  * the "export bundle" button (SNES CDL Recorder).
@@ -279,7 +280,7 @@ function getCdlClientScript() {
       cdlSnapRequested = false;
       cdlRefreshUi();
       cdlSetStatus('recording off');
-      if (currentBottomTab === 'cdl') cdlRequestSnapshot();
+      if (emuPanelVisible('cdl')) cdlRequestSnapshot();
     }
 
     // Called before the core is restarted with another ROM: flush what belongs to the old one.
@@ -382,7 +383,7 @@ function getCdlClientScript() {
       if (data.command === 'cdlConfig') {
         initCdlTab();
         if (data.autoEnable || cdlWanted) cdlStart();
-        else { cdlRefreshUi(); if (currentBottomTab === 'cdl') cdlRequestSnapshot(); }
+        else { cdlRefreshUi(); if (emuPanelVisible('cdl')) cdlRequestSnapshot(); }
       } else if (data.command === 'cdlSeed') {
         cdlOnSeed(data);
       } else if (data.command === 'cdlSnapshot') {

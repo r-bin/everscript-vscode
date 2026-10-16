@@ -1,6 +1,6 @@
 # emulator/tas/ — input recording and replays
 
-Host side of input recording. The webview half is `../tas-view.js` (REPLAYS tab, input
+Host side of input recording. The webview half is `../tas-view.js` (REPLAYS pause-menu tab, input
 overlay, `tasApplyInput()` in the frame loop); `../fps-meter.js` shows emulated and
 game frame rates.
 
@@ -33,7 +33,7 @@ game frame rates.
   events, so a branch taken over mid-replay is complete.
 - The pause menu (Esc) needs no event: no frame runs while it is open. What is done in it is
   recorded as what it does: flag/cheat/loot toggles are writes, **Soft Reset** (menu EMULATION
-  tab, or the REPLAYS bar button) is `R|soft`. **Reset / Power-Cycle ROM** boots a new session
+  tab, or the REPLAYS tab's button) is `R|soft`. **Reset / Power-Cycle ROM** boots a new session
   and recording, as before. Pause/resume, speed, zoom and overlays do not change emulation.
 - Format version 3 (v0.215.0) adds the `T` lines, `S` every 60 frames, the header lines `# core:` (first 16 hex of
   the core wasm's SHA-256; a replay on another build warns, `tools/cdl/replay.js` refuses without `--force`) and

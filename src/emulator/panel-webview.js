@@ -7,8 +7,9 @@
  * Single export: buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay, romOfferData, options) -> string
  *   options.profile  'full' or 'recorder' (webview/emulator-profile.js hides what a profile or a
  *                    non-Evermore ROM does not get: elements marked data-needs="full" / "evermore")
- *   options.scripts  webview URIs of webview/rom-game.js and webview/emulator-profile.js, loaded
- *                    before the inline script; options.styles  of webview/emulator-profile.css
+ *   options.scripts  webview URIs of webview/rom-game.js, emulator-profile.js and emulator-panels.js,
+ *                    loaded before the inline script; options.styles  of webview/emulator-profile.css
+ *                    and emulator-panels.css
  */
 
 const {
@@ -21,7 +22,7 @@ const { getCdlCss, getCdlTabButtonHtml, getCdlViewHtml, getCdlClientScript } = r
 const { getCdlFloatCss, getCdlFloatHtml, getCdlFloatScript } = require('./cdl-float');
 const { getCdlStripsScript } = require('./cdl-strips');
 const { getFpsCss, getFpsChipHtml, getFpsClientScript } = require('./fps-meter');
-const { getTasCss, getTasTabButtonHtml, getTasChipHtml, getTasOverlayHtml, getTasViewHtml, getTasClientScript } = require('./tas-view');
+const { getTasCss, getTasBadgeHtml, getTasChipHtml, getTasOverlayHtml, getTasViewHtml, getTasClientScript } = require('./tas-view');
 const { getScriptDebugClientScript } = require('./script-debug-view');
 const { getMemoryBridgeClientScript } = require('./memory-bridge-view');
 const { getApuStreamClientScript } = require('./apu-stream-view');
@@ -740,6 +741,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       <canvas id="extended-overlay"></canvas>
       ${getCdlFloatHtml()}
       ${getTasOverlayHtml()}
+      <div id="emu-side-left" class="emu-side"></div>
+      <div id="emu-side-right" class="emu-side"></div>
+      ${getTasBadgeHtml()}
       ${getMenuHtml()}
       <div id="menu-inspect-card" class="hidden">
         <div class="inspect-header">
@@ -782,16 +786,16 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           </div>
         </div>
         <div id="ss-tabs">
-          <button id="ss-tab-trace" class="ss-tab active" data-needs="full evermore" type="button">TRACE (<span id="ss-tab-trace-count">0</span>)</button>
+          <button id="ss-tab-trace" class="ss-tab" data-needs="full evermore" type="button">TRACE (<span id="ss-tab-trace-count">0</span>)</button>
           <button id="ss-tab-stack" class="ss-tab" data-needs="full evermore" type="button">STACK (<span id="ss-count">waiting...</span>)</button>
           ${getBottomBarTabButtonsHtml()}
           ${getCdlTabButtonHtml()}
-          ${getTasTabButtonHtml()}
         </div>
       </div>
 
-      <!-- Tab 1: Script Trace Log (Active by default) -->
-      <div id="ss-view-trace" class="ss-tab-view active" data-needs="full evermore">
+      <!-- Panels: each is placed in a side bar, here, or only in its pause-menu tab (webview/emulator-panels.js) -->
+      <!-- Script Trace Log -->
+      <div id="ss-view-trace" class="ss-tab-view" data-needs="full evermore">
         <div id="ss-trace-header">
           <div id="ss-trace-controls">
             <button id="ss-trace-clear-btn" class="ss-btn" type="button">clear</button>
@@ -804,7 +808,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         <div id="ss-trace-log"></div>
       </div>
 
-      <!-- Tab 2: Script Stack live slot table -->
+      <!-- Script Stack live slot table -->
       <div id="ss-view-stack" class="ss-tab-view" data-needs="full evermore">
         <div id="ss-detail">waiting for script stack detail...</div>
         <table id="ss-table">
@@ -1541,7 +1545,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         initAudio();
         ensureAudioRunning();
         document.getElementById('overlay').style.display = 'none';
-        document.getElementById('script-stack').classList.add('visible');
+        if (typeof emuPanelsLayout === 'function') emuPanelsLayout();
         window.dispatchEvent(new Event('resize'));
         if (emuScriptHook) startWramPolling();
         initBottomBarEventListeners();
@@ -4802,32 +4806,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
     ${getMenuClientScript()}
 
-    function selectTab(tabName) {
-      currentBottomTab = tabName;
-      const tabs = ['trace', 'stack', 'entities', 'alchemy', 'palettes', 'cdl', 'tas'];
-      for (const t of tabs) {
-        const btn = document.getElementById('ss-tab-' + t);
-        const view = document.getElementById('ss-view-' + t);
-        if (btn) btn.classList.toggle('active', t === tabName);
-        if (view) view.classList.toggle('active', t === tabName);
-      }
-      refreshActiveBottomTab();
-    }
-    const tabTraceBtn = document.getElementById('ss-tab-trace');
-    if (tabTraceBtn) tabTraceBtn.addEventListener('click', () => selectTab('trace'));
-    const tabStackBtn = document.getElementById('ss-tab-stack');
-    if (tabStackBtn) tabStackBtn.addEventListener('click', () => selectTab('stack'));
-    const tabEntitiesBtn = document.getElementById('ss-tab-entities');
-    if (tabEntitiesBtn) tabEntitiesBtn.addEventListener('click', () => selectTab('entities'));
-    const tabAlchemyBtn = document.getElementById('ss-tab-alchemy');
-    if (tabAlchemyBtn) tabAlchemyBtn.addEventListener('click', () => selectTab('alchemy'));
-    const tabPalettesBtn = document.getElementById('ss-tab-palettes');
-    if (tabPalettesBtn) tabPalettesBtn.addEventListener('click', () => selectTab('palettes'));
-    const tabCdlBtn = document.getElementById('ss-tab-cdl');
-    if (tabCdlBtn) tabCdlBtn.addEventListener('click', () => { selectTab('cdl'); cdlOnTabShown(); });
-    const tabTasBtn = document.getElementById('ss-tab-tas');
-    if (tabTasBtn) tabTasBtn.addEventListener('click', () => { selectTab('tas'); if (romLoaded) tasRequestList(); });
-
     const resizer = document.getElementById('ss-resizer');
     if (resizer) {
       let isDragging = false;
@@ -5391,7 +5369,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       } else if (evt.data.command === 'alchemyIconsLoaded') {
         if (evt.data.alchemy) {
           loadedAlchemyIcons = evt.data.alchemy;
-          if (currentBottomTab === 'alchemy') {
+          if (emuPanelVisible('alchemy')) {
             const rom = loadedRomData ? ((loadedRomData.length % 1024 === 512) ? loadedRomData.subarray(512) : loadedRomData) : null;
             updateAlchemyTab(lastSampledPreState, rom);
           }

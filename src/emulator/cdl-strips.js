@@ -88,7 +88,7 @@ function getCdlStripsScript() {
     }
 
     function cdlPaint() {
-      if (currentBottomTab !== 'cdl' || !cdlNeedsPaint.size) return;
+      if (!emuPanelVisible('cdl') || !cdlNeedsPaint.size) return;
       const data = cdlData();
       if (!data) return;
       const rom = cdlRom();

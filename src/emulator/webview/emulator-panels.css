@@ -1,0 +1,53 @@
+/*
+ * emulator/webview/emulator-panels.css
+ *
+ * The side bars over the picture and the panels' compact side form (emulator-panels.js).
+ * A side bar is as narrow as its content, at most a third of the screen. In it a panel is
+ * read-only: no buttons, filters, legends or lookup, fewer table columns.
+ */
+.emu-side {
+  position: absolute; top: 0; bottom: 0; z-index: 40;
+  display: none; flex-direction: column;
+  /* min-content: wrappable text (status lines) wraps, nowrap lines (trace) and strips set the width */
+  width: min-content; max-width: 33.333%; min-width: 0;
+  background: rgba(10, 10, 14, 0.82); color: #ccc;
+  font-size: 10px; overflow: hidden;
+}
+.emu-side.shown { display: flex; }
+#emu-side-left { left: 0; border-right: 1px solid #2a2a35; }
+#emu-side-right { right: 0; border-left: 1px solid #2a2a35; }
+.emu-side::before {
+  content: attr(data-title); flex-shrink: 0;
+  padding: 2px 6px; color: #778899; font-weight: bold; letter-spacing: 0.05em;
+  border-bottom: 1px solid #2a2a35;
+}
+.emu-side .ss-tab-view,
+.emu-panel-slot .ss-tab-view { display: flex; flex: 1; min-height: 0; }
+
+/* Compact: status lines stay, controls go */
+.emu-side .ss-subbar > :not(#cdl-status),
+.emu-side #ss-trace-header,
+.emu-side #cdl-legend,
+.emu-side #cdl-side,
+.emu-side .alc-section-title > span:first-child,
+.emu-side .pal-section-title { display: none; }
+.emu-side .ss-subbar { padding: 2px 6px; }
+.emu-side #cdl-status { margin-left: 0; white-space: normal; }
+.emu-side #cdl-banks { padding: 2px 6px; }
+.emu-side .cdl-bank { gap: 4px; margin-bottom: 1px; }
+.emu-side .cdl-bank-label { width: 40px; flex-direction: row; justify-content: space-between; align-items: center; font-size: 9px; }
+.emu-side .cdl-bank canvas { flex: none; width: 128px; height: 12px; }
+.emu-side #ss-trace-log { font-size: 10px; padding: 2px 6px; }
+.emu-side table { font-size: 10px; }
+/* ENTITIES: icon, name, HP, position */
+.emu-side #ent-table th:nth-child(2), .emu-side #ent-table td:nth-child(2),
+.emu-side #ent-table th:nth-child(n+7), .emu-side #ent-table td:nth-child(n+7),
+.emu-side #ent-table th:nth-child(4), .emu-side #ent-table td:nth-child(4),
+/* ALCHEMY: icon, slot, status, formula / position */
+.emu-side .alc-section table th:nth-child(n+5), .emu-side .alc-section table td:nth-child(n+5) { display: none; }
+
+/* A panel in its pause-menu tab gets the whole menu card */
+#emulator-menu.panel-tab-active #menu-card { width: 96%; max-width: none; height: 92%; max-height: none; }
+#emulator-menu.panel-tab-active #menu-body { max-height: none; overflow: hidden; }
+.menu-panel-host.active { flex: 1; min-height: 0; }
+.emu-panel-slot { flex: 1; min-height: 0; display: flex; flex-direction: column; font-size: 11px; }

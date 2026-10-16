@@ -5,7 +5,8 @@ Related skills: `emulator-subsystem`, `cdl-recorder`, `webview-dom-safety`, `deb
 
 ## Owns
 - The emulator WebviewPanel (`panel.js`, `panel-webview.js`, `webview/index.html`), the
-  snes9x2005-wasm cores (`core/`, git submodules), the bottom-bar tabs (CDL, REPLAYS, …),
+  snes9x2005-wasm cores (`core/`, git submodules), the panels (CDL, TRACE, …) and where they are shown
+  (`webview/emulator-panels.js`: menu tab, side bar, bottom bar), the REPLAYS menu tab,
   the script-debug hook (`script-debug-host.js` / `script-debug-view.js`) and the
   sound-chip stream for the Music tab (`apu-stream.js` / `apu-stream-view.js`).
 - Sub-folders with their own READMEs: `cdl/`, `tas/`, `menu/`. `webview/` holds the page's files
@@ -36,6 +37,10 @@ Related skills: `emulator-subsystem`, `cdl-recorder`, `webview-dom-safety`, `deb
   `src/recorder/extension.js`: editor / debugger code reaches the panel only through
   `configureEmulator` from `src/extension.js`, never by a `require` here.
 - Every optional feature starts off; what the user changes is saved (README "Profiles and games").
+  One exception the user asked for: the CDL panel starts in the left side bar.
+- Whether a panel (CDL, TRACE, ENTITIES, ...) can be seen is `emuPanelVisible(name)`
+  (`webview/emulator-panels.js`); there is no "current bottom tab" any more. Several panels
+  can be visible at once (two side bars, the bottom bar, the menu), so refresh each one that is.
 - Do not add new client code inside template strings (`*-view.js`, `panel-webview.js`);
   new webview code goes in real files (guide §3.5).
 - Per-frame work runs only when its output is visible; no per-frame round trip to the

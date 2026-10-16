@@ -547,6 +547,16 @@ function getMenuCss() {
   `;
 }
 
+// Pause-menu tabs of the panels (webview/emulator-panels.js EMU_PANEL_MENU_TAB).
+const MENU_PANELS = [
+  [8, 'cdl', ''],
+  [9, 'trace', 'full evermore'],
+  [10, 'stack', 'full evermore'],
+  [11, 'entities', 'full evermore'],
+  [12, 'alchemy', 'full evermore'],
+  [13, 'palettes', 'full evermore'],
+];
+
 function getMenuHtml() {
   return `
     <div id="emulator-menu" class="hidden">
@@ -559,6 +569,13 @@ function getMenuHtml() {
             <button id="menu-tab-btn-2" class="menu-tab-btn" data-needs="evermore" type="button" data-tab="2">OBJECTS</button>
             <button id="menu-tab-btn-3" class="menu-tab-btn" data-needs="evermore" type="button" data-tab="3">LOOT</button>
             <button id="menu-tab-btn-4" class="menu-tab-btn" data-needs="evermore" type="button" data-tab="4">CHEATS</button>
+            <button id="menu-tab-btn-7" class="menu-tab-btn" type="button" data-tab="7">REPLAYS</button>
+            <button id="menu-tab-btn-8" class="menu-tab-btn" type="button" data-tab="8">CDL</button>
+            <button id="menu-tab-btn-9" class="menu-tab-btn" data-needs="full evermore" type="button" data-tab="9">TRACE</button>
+            <button id="menu-tab-btn-10" class="menu-tab-btn" data-needs="full evermore" type="button" data-tab="10">STACK</button>
+            <button id="menu-tab-btn-11" class="menu-tab-btn" data-needs="full evermore" type="button" data-tab="11">ENTITIES</button>
+            <button id="menu-tab-btn-12" class="menu-tab-btn" data-needs="full evermore" type="button" data-tab="12">ALCHEMY</button>
+            <button id="menu-tab-btn-13" class="menu-tab-btn" data-needs="full evermore" type="button" data-tab="13">PALETTES</button>
             <button id="menu-tab-btn-5" class="menu-tab-btn" type="button" data-tab="5">EMULATION</button>
             <button id="menu-tab-btn-6" class="menu-tab-btn" type="button" data-tab="6">CONTROLS</button>
           </div>
@@ -733,6 +750,25 @@ function getMenuHtml() {
             </div>
           </div>
 
+          <!-- Tab 7: REPLAYS (the REPLAYS view is moved in, emulator-panels.js) -->
+          <div id="menu-panel-7" class="menu-tab-panel menu-panel-host">
+            <div id="emu-slot-tas" class="emu-panel-slot"></div>
+          </div>
+
+          <!-- Tabs 8-13: the panels, each with where it is shown while playing -->
+          ${MENU_PANELS.map(([tab, name, needs]) => `
+          <div id="menu-panel-${tab}" class="menu-tab-panel menu-panel-host"${needs ? ` data-needs="${needs}"` : ''}>
+            <div class="menu-row" data-row="0" data-action="step-place" title="Where this panel is shown while the game runs">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Show while playing</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-place-${name}" class="menu-pill">Hidden</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div id="emu-slot-${name}" class="emu-panel-slot"></div>
+          </div>`).join('')}
+
           <!-- Tab 5: EMULATION -->
           <div id="menu-panel-5" class="menu-tab-panel">
             <div class="menu-row" data-row="0" data-action="step-speed">
@@ -870,13 +906,16 @@ function getMenuClientScript() {
     }
     rebuildKeyBitMap();
 
-    // Menu State: 0: VIEW, 1: OVERLAYS, 2: OBJECTS, 3: LOOT, 4: CHEATS, 5: EMULATION, 6: CONTROLS
-    const MENU_TAB_COUNT = 7;
+    // Menu State: 0: VIEW, 1: OVERLAYS, 2: OBJECTS, 3: LOOT, 4: CHEATS, 5: EMULATION, 6: CONTROLS,
+    // 7: REPLAYS, 8..13: the panels CDL, TRACE, STACK, ENTITIES, ALCHEMY, PALETTES (emulator-panels.js).
+    // L / R walk MENU_TAB_ORDER, the order of the tab buttons.
+    const MENU_TAB_COUNT = 14;
+    const MENU_TAB_ORDER = [0, 1, 2, 3, 4, 7, 8, 9, 10, 11, 12, 13, 5, 6];
     let isMenuOpen = false;
     let menuActiveTab = 0; // Default VIEW
     let menuSelectedRow = 0;
-    const tabSelectedRows = [0, 0, 0, 0, 0, 0, 0];
-    const tabScrollTops = [0, 0, 0, 0, 0, 0, 0];
+    const tabSelectedRows = new Array(MENU_TAB_COUNT).fill(0);
+    const tabScrollTops = new Array(MENU_TAB_COUNT).fill(0);
     const menuLocalObjStates = new Map();
     let lastMenuMapId = -1;
     let menuListeningBtn = null;
@@ -993,6 +1032,7 @@ function getMenuClientScript() {
       menuLocalObjStates.clear();
       isMenuOpen = false;
       isLensModeActive = false;
+      if (typeof emuPanelsLayout === 'function') emuPanelsLayout();
       keyInput = 0;
       if (typeof closeInspector === 'function') closeInspector();
       const menuEl = document.getElementById('emulator-menu');
@@ -1043,7 +1083,9 @@ function getMenuClientScript() {
 
     // Tabs a ROM does not get (data-needs, emulator-profile.js) are skipped; no wrap-around.
     function switchMenuTab(delta) {
-      for (let t = menuActiveTab + delta; t >= 0 && t < MENU_TAB_COUNT; t += delta) {
+      const at = MENU_TAB_ORDER.indexOf(menuActiveTab);
+      for (let i = at + delta; i >= 0 && i < MENU_TAB_ORDER.length; i += delta) {
+        const t = MENU_TAB_ORDER[i];
         if (typeof emuMenuTabShown !== 'function' || emuMenuTabShown(t)) { selectMenuTab(t); return; }
       }
     }
@@ -1053,7 +1095,9 @@ function getMenuClientScript() {
       const menuEl = document.getElementById('emulator-menu');
       if (menuEl) {
         menuEl.classList.toggle('lens-tab-active', tabIndex === 0);
+        menuEl.classList.toggle('panel-tab-active', tabIndex >= 7);
       }
+      if (typeof emuPanelsLayout === 'function') emuPanelsLayout();
 
       for (let i = 0; i < MENU_TAB_COUNT; i++) {
         const tabBtn = document.getElementById('menu-tab-btn-' + i);
@@ -1077,6 +1121,8 @@ function getMenuClientScript() {
         syncMenuValuesFromRuntime();
       } else if (tabIndex === 6) {
         renderKeybindRows();
+      } else if (tabIndex === 7) {
+        if (romLoaded && typeof tasRequestList === 'function') tasRequestList();
       }
 
       const menuBody = document.getElementById('menu-body');
@@ -1156,6 +1202,7 @@ function getMenuClientScript() {
     }
 
     function moveMenuSelection(delta) {
+      if (menuActiveTab >= 7 && typeof emuPanelMenuScroll === 'function') { emuPanelMenuScroll(menuActiveTab, delta); return; }
       const activePanel = document.getElementById('menu-panel-' + menuActiveTab);
       if (!activePanel) return;
       const rows = activePanel.querySelectorAll('.menu-row');
@@ -1172,6 +1219,10 @@ function getMenuClientScript() {
 
     // Steppers / Toggles: Non-looping, clamped left and right
     function changeMenuValue(delta) {
+      if (menuActiveTab >= 8) {
+        if (typeof emuPanelMenuStep === 'function') emuPanelMenuStep(menuActiveTab, delta);
+        return;
+      }
       if (menuActiveTab === 0) {
         // Tab 0: VIEW
         if (menuSelectedRow === 0) {
@@ -1319,6 +1370,10 @@ function getMenuClientScript() {
     }
 
     function activateMenuRow() {
+      if (menuActiveTab >= 8) {
+        if (typeof emuPanelMenuStep === 'function') emuPanelMenuStep(menuActiveTab, 1);
+        return;
+      }
       if (menuActiveTab === 0) {
         if (menuSelectedRow === 1) {
           // Reset pan & center on player

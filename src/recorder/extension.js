@@ -5,7 +5,7 @@
  *
  * Activation entry of the SNES CDL Recorder, the second VS Code extension built
  * from this repository (manifest: recorder/package.json, build: npm run build:recorder).
- * It is the emulator panel in its 'recorder' profile: the CDL and REPLAYS tabs,
+ * It is the emulator panel in its 'recorder' profile: the CDL panel and REPLAYS,
  * no debugger, no editors, no other commands. Its storage (CDL library, replays,
  * settings) is its own; what it records reaches Everscript as a recording bundle.
  */

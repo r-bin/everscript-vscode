@@ -395,7 +395,7 @@ test('webview exposes the CDL tab and its script parses', () => {
     const { buildHtml } = require('../../src/emulator/panel-webview');
     const html = buildHtml({ cspSource: '' }, 'core.js', 'core.wasm', 'core', 'core');
     assert.ok(html.includes('id="ss-tab-cdl"') && html.includes('id="ss-view-cdl"'));
-    assert.ok(html.includes("'cdl', 'tas'"), 'selectTab knows the cdl tab');
+    assert.ok(html.includes('id="emu-slot-cdl"') && html.includes('id="menu-val-place-cdl"'), 'CDL has a pause-menu tab with its placement');
     assert.ok(html.includes('id="cdl-float-layer"'), 'floating coverage text layer');
     assert.ok(html.includes('cdlOnPauseChanged(paused)'), 'frame loop reports pause changes');
     for (const f of ['cdl-float.js', 'cdl-strips.js']) {

@@ -148,7 +148,8 @@ function recordInto(root, rom, hits) {
         assert.ok(html.includes('<body class="profile-recorder">'));
         assert.ok(html.includes('<script type="application/json" id="emu-config">{"profile":"recorder"}</script>'));
         assert.ok(html.includes('id="cdl-export-bundle" class="ss-btn" data-needs="recorder"'));
-        assert.ok(html.includes('id="ss-tab-trace" class="ss-tab active" data-needs="full evermore"'));
+        assert.ok(html.includes('id="ss-tab-trace" class="ss-tab" data-needs="full evermore"'));
+        assert.ok(html.includes('id="menu-tab-btn-9" class="menu-tab-btn" data-needs="full evermore"'), 'TRACE menu tab: Everscript + Evermore');
         assert.ok(!html.includes('ss-pause-btn') && !html.includes('ss-resume-btn'), 'no pause / resume buttons');
         assert.ok(buildHtml({ cspSource: '' }, 'core.js', 'core.wasm', 'core', 'core').includes('<body class="profile-full">'), 'full by default');
     });
@@ -164,8 +165,8 @@ function recordInto(root, rom, hits) {
             const page = async profile => {
                 const html = buildHtml({ cspSource: '' }, 'core.js', 'core.wasm', 'core', 'core', null, {
                     profile,
-                    styles: [dataUri('emulator-profile.css', 'text/css')],
-                    scripts: [dataUri('rom-game.js', 'text/javascript'), dataUri('emulator-profile.js', 'text/javascript')],
+                    styles: [dataUri('emulator-profile.css', 'text/css'), dataUri('emulator-panels.css', 'text/css')],
+                    scripts: [dataUri('rom-game.js', 'text/javascript'), dataUri('emulator-profile.js', 'text/javascript'), dataUri('emulator-panels.js', 'text/javascript')],
                 }).replace('<head>', '<head><script>window.__sent=[];window.acquireVsCodeApi=()=>({postMessage:m=>window.__sent.push(m)});</script>');
                 const p = await browser.newPage();
                 const errors = [];
@@ -177,30 +178,51 @@ function recordInto(root, rom, hits) {
 
             const rec = await page('recorder');
             assert.deepStrictEqual(rec.errors, []);
-            assert.strictEqual(await rec.p.evaluate(() => currentBottomTab), 'cdl', 'the recorder starts on CDL');
-            assert.strictEqual(await shown(rec.p, 'ss-tab-trace'), false);
-            assert.strictEqual(await shown(rec.p, 'ss-tab-entities'), false);
-            assert.strictEqual(await shown(rec.p, 'ss-tab-tas'), true);
-            assert.strictEqual(await shown(rec.p, 'cdl-export-asm'), false);
-            assert.strictEqual(await shown(rec.p, 'cdl-export-bundle'), true);
+            assert.strictEqual(await rec.p.evaluate(() => document.getElementById('ss-view-cdl').parentElement.id), 'emu-side-left', 'CDL starts in the left side bar');
+            assert.strictEqual(await rec.p.evaluate(() => document.getElementById('ss-view-tas').parentElement.id), 'emu-slot-tas', 'REPLAYS lives in the pause menu');
+            assert.strictEqual(await shown(rec.p, 'script-stack'), false, 'nothing placed at the bottom: no bottom bar');
+            assert.strictEqual(await shown(rec.p, 'menu-tab-btn-9'), false, 'no TRACE tab in the recorder');
+            assert.strictEqual(await shown(rec.p, 'menu-tab-btn-8'), true);
+            assert.strictEqual(await shown(rec.p, 'menu-tab-btn-7'), true);
+            // CDL's buttons are in its menu tab (the side bar is compact): ask the profile gate.
+            const gated = (p, id) => p.evaluate(i => emuShown(document.getElementById(i)), id);
+            assert.strictEqual(await gated(rec.p, 'cdl-export-asm'), false);
+            assert.strictEqual(await gated(rec.p, 'cdl-export-bundle'), true);
 
             const full = await page('full');
             assert.deepStrictEqual(full.errors, []);
             assert.strictEqual(await full.p.evaluate(() => [extendMapEnabled, triggersOverlayEnabled, sndShow, thinHpBarEnabled].some(Boolean)), false, 'every overlay starts off');
-            assert.strictEqual(await shown(full.p, 'cdl-export-bundle'), false);
+            assert.strictEqual(await gated(full.p, 'cdl-export-bundle'), false);
             const mana = Array.from(Buffer.from('Secret of MANA'.padEnd(21, ' '), 'latin1'));
             await full.p.evaluate(title => {
                 const rom = new Uint8Array(0x10000); rom.set(title, 0xFFC0); rom[0xFFD9] = 1;
                 emuGateRom(rom);
             }, mana);
             assert.strictEqual(await full.p.evaluate(() => emuEvermore), false);
-            assert.strictEqual(await shown(full.p, 'ss-tab-trace'), false, 'TRACE needs Evermore');
-            assert.strictEqual(await full.p.evaluate(() => currentBottomTab), 'cdl', 'a hidden tab hands over to the first shown');
+            assert.strictEqual(await shown(full.p, 'menu-tab-btn-9'), false, 'TRACE needs Evermore');
             assert.strictEqual(await shown(full.p, 'menu-tab-btn-1'), false, 'OVERLAYS needs Evermore');
-            assert.strictEqual(await full.p.evaluate(() => { menuActiveTab = 0; switchMenuTab(1); return menuActiveTab; }), 5, 'R skips to EMULATION');
+            assert.strictEqual(await full.p.evaluate(() => { menuActiveTab = 0; switchMenuTab(1); return menuActiveTab; }), 7, 'R skips to REPLAYS');
+            assert.strictEqual(await full.p.evaluate(() => { menuActiveTab = 8; switchMenuTab(1); return menuActiveTab; }), 5, 'R skips the Evermore panels to EMULATION');
             const evermore = Array.from(Buffer.from('SECRET OF EVERMORE'.padEnd(21, ' '), 'latin1'));
             await full.p.evaluate(title => { const rom = new Uint8Array(0x10000); rom.set(title, 0xFFC0); rom[0xFFD9] = 1; emuGateRom(rom); }, evermore);
-            assert.strictEqual(await shown(full.p, 'ss-tab-trace'), true);
+            assert.strictEqual(await shown(full.p, 'menu-tab-btn-9'), true);
+
+            // Placement: one panel per side, empty bottom bar = no bottom bar, the menu borrows the panel.
+            await full.p.evaluate(() => { romLoaded = true; emuSetPanelPlace('trace', 'left'); });
+            assert.deepStrictEqual(await full.p.evaluate(() => [emuPanelPlace.cdl, document.getElementById('ss-view-trace').parentElement.id]), ['hidden', 'emu-side-left'], 'a second panel on the left replaces the first');
+            assert.strictEqual(await shown(full.p, 'emu-side-left'), true);
+            assert.strictEqual(await shown(full.p, 'script-stack'), false);
+            await full.p.evaluate(() => { emuSetPanelPlace('entities', 'bottom'); emuSetPanelPlace('cdl', 'bottom'); });
+            assert.strictEqual(await shown(full.p, 'script-stack'), true);
+            assert.deepStrictEqual(await full.p.evaluate(() => Array.from(document.querySelectorAll('#ss-tabs .ss-tab')).filter(b => getComputedStyle(b).display !== 'none').map(b => b.id)), ['ss-tab-entities', 'ss-tab-cdl'], 'the bottom bar lists what is placed there');
+            assert.strictEqual(await full.p.evaluate(() => emuBottomTab), 'cdl');
+            await full.p.evaluate(() => { menuActiveTab = 9; openEmulatorMenu(); });
+            assert.deepStrictEqual(await full.p.evaluate(() => [document.getElementById('ss-view-trace').parentElement.id, getComputedStyle(document.getElementById('emu-side-left')).display]), ['emu-slot-trace', 'none'], 'the menu shows TRACE in full and hides the side bars');
+            assert.strictEqual(await full.p.evaluate(() => { changeMenuValue(1); return emuPanelPlace.trace; }), 'right', 'Right steps the placement');
+            await full.p.evaluate(() => closeEmulatorMenu());
+            assert.strictEqual(await full.p.evaluate(() => document.getElementById('ss-view-trace').parentElement.id), 'emu-side-right');
+            await full.p.evaluate(() => { emuSetPanelPlace('entities', 'hidden'); emuSetPanelPlace('cdl', 'hidden'); });
+            assert.strictEqual(await shown(full.p, 'script-stack'), false, 'empty bottom bar = no bottom bar');
 
             await full.p.evaluate(() => window.postMessage({ command: 'emuSettings', settings: { overlays: { triggers: true, sounds: true }, muted: true, keybinds: { A: 'k' } } }, '*'));
             await full.p.waitForTimeout(50);
@@ -210,6 +232,13 @@ function recordInto(root, rom, hits) {
             await full.p.waitForTimeout(400);
             const saved = await full.p.evaluate(() => window.__sent.filter(m => m.command === 'saveEmuSettings').pop());
             assert.ok(saved && saved.settings.overlays.collision === true && saved.settings.overlays.triggers === true && saved.settings.muted === true);
+            assert.deepStrictEqual([saved.settings.panels.cdl, saved.settings.panels.trace], ['left', 'hidden'], 'the placement is saved (settings without one reset it to the defaults)');
+            await full.p.evaluate(() => window.postMessage({ command: 'emuSettings', settings: { panels: { cdl: 'bottom', stack: 'left', trace: 'left' } } }, '*'));
+            await full.p.waitForTimeout(50);
+            assert.deepStrictEqual(await full.p.evaluate(() => [emuPanelPlace.cdl, emuPanelPlace.stack, emuPanelPlace.trace]), ['bottom', 'hidden', 'left'], 'saved placement applies, one per side (the first in tab order wins)');
+            await full.p.evaluate(() => window.postMessage({ command: 'emuSettings', settings: null }, '*'));
+            await full.p.waitForTimeout(50);
+            assert.strictEqual(await full.p.evaluate(() => emuPanelPlace.cdl), 'left', 'nothing saved: CDL on the left');
             assert.deepStrictEqual(full.errors, []);
         } finally {
             await browser.close();

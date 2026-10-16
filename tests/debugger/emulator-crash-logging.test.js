@@ -85,8 +85,8 @@ test('menu-view.js uses proper Everscript expression encoding (0x82) for opcode 
 
 // 4. Menu State Persistence and In-place Stepper Updates
 test('menu-view.js maintains per-tab row selections and scroll offsets across open/close and tab changes', () => {
-  assert.ok(menuCode.includes('tabSelectedRows = [0, 0, 0, 0, 0, 0, 0]'), 'missing tabSelectedRows tracking');
-  assert.ok(menuCode.includes('tabScrollTops = [0, 0, 0, 0, 0, 0, 0]'), 'missing tabScrollTops tracking');
+  assert.ok(menuCode.includes('tabSelectedRows = new Array(MENU_TAB_COUNT).fill(0)'), 'missing tabSelectedRows tracking');
+  assert.ok(menuCode.includes('tabScrollTops = new Array(MENU_TAB_COUNT).fill(0)'), 'missing tabScrollTops tracking');
   assert.ok(menuCode.includes('function selectMenuTab(targetTab)'), 'missing unified selectMenuTab function');
   assert.ok(menuCode.includes('menuSelectedRow = tabSelectedRows[menuActiveTab] || 0'), 'openEmulatorMenu does not restore previous tab/row');
   assert.ok(menuCode.includes('tabSelectedRows[menuActiveTab] = menuSelectedRow'), 'closeEmulatorMenu does not save tab/row');
@@ -154,7 +154,7 @@ test('menu-view.js provides CHEATS tab with noclip, invincibility, and full heal
   assert.ok(menuCode.includes('toggle-cheat-noclip'), 'missing toggle-cheat-noclip row');
   assert.ok(menuCode.includes('toggle-cheat-invincible'), 'missing toggle-cheat-invincible row');
   assert.ok(menuCode.includes('action-cheat-heal'), 'missing action-cheat-heal row');
-  assert.ok(menuCode.includes('MENU_TAB_COUNT = 7;'), 'MENU_TAB_COUNT must be 7');
+  assert.ok(menuCode.includes('MENU_TAB_COUNT = 14;'), 'MENU_TAB_COUNT must be 14 (7 menu tabs, REPLAYS, 6 panels)');
 });
 
 console.log(`\nResults: ${passed} passed, ${failed} failed`);

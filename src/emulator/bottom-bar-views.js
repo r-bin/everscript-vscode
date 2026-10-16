@@ -470,7 +470,6 @@ function getBottomBarClientScript() {
     };
 
     let loadedAlchemyIcons = {};
-    let currentBottomTab = 'trace';
     let lastSampledPreState = null;
 
     // Cheats state
@@ -1169,16 +1168,15 @@ function getBottomBarClientScript() {
         : null;
       const m = getModule();
 
-      if (currentBottomTab === 'entities') {
+      // Every panel that can be seen (webview/emulator-panels.js), not only one.
+      if (emuPanelVisible('entities')) {
         const chk = document.getElementById('ent-auto-refresh');
         if (!chk || chk.checked) {
           updateEntitiesTab(lastSampledPreState, rom);
         }
-      } else if (currentBottomTab === 'alchemy') {
-        updateAlchemyTab(lastSampledPreState, rom);
-      } else if (currentBottomTab === 'palettes') {
-        updatePalettesTab(lastSampledPreState, rom);
       }
+      if (emuPanelVisible('alchemy')) updateAlchemyTab(lastSampledPreState, rom);
+      if (emuPanelVisible('palettes')) updatePalettesTab(lastSampledPreState, rom);
     }
 
     let bottomBarListenersBound = false;

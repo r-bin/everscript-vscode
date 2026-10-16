@@ -7,7 +7,8 @@
  *  - every boot of a ROM starts an input recording; each emulated frame's pad
  *    word is buffered and sent to the host in batches (and on pause / ROM
  *    change / tab hide), so the SSD sees one small append per two seconds;
- *  - the REPLAYS tab lists the recordings (pinned first); playing one reboots
+ *  - the REPLAYS tab of the pause menu lists this ROM's recordings (same SHA-256,
+ *    pinned first) and scrolls; playing one closes the menu, then reboots
  *    the loaded ROM (with the custom core's EVS_TAS build a restart is a true
  *    power-on) and feeds the recorded pads frame by frame, optionally several
  *    frames per display frame; "take over" or the end hands control back to
@@ -34,7 +35,8 @@ function getTasCss() {
   return `
     #ss-view-tas .ss-subbar { flex-wrap: wrap; }
     #tas-status { color: #888; margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    #tas-rec-badge { font-size: 10px; padding: 1px 6px; border-radius: 3px; border: 1px solid #333; color: #777; }
+    #tas-rec-badge { position: absolute; top: 4px; left: 50%; transform: translateX(-50%); z-index: 45; cursor: pointer;
+      font: inherit; font-size: 10px; padding: 1px 6px; border-radius: 3px; border: 1px solid #333; color: #777; background: rgba(16, 16, 16, 0.75); }
     #tas-rec-badge.rec { color: #ff6b6b; border-color: #7a2a2a; background: rgba(120, 30, 30, 0.25); }
     #tas-rec-badge.play.desync { color: #ff6b6b; border-color: #7a2a2a; background: rgba(120, 30, 30, 0.35); }
     #tas-rec-badge.play { color: #6f9; border-color: #2e7d32; background: rgba(26, 60, 26, 0.35); }
@@ -61,8 +63,9 @@ function getTasCss() {
   `;
 }
 
-function getTasTabButtonHtml() {
-  return `<button id="ss-tab-tas" class="ss-tab" type="button">REPLAYS (<span id="ss-tas-count">-</span>)</button>`;
+// REC / PLAY / DESYNC on the screen; opens the pause menu on REPLAYS.
+function getTasBadgeHtml() {
+  return `<button id="tas-rec-badge" type="button" title="Replays (opens the pause menu)" style="display:none">no ROM</button>`;
 }
 
 function getTasChipHtml() {
@@ -77,7 +80,6 @@ function getTasViewHtml() {
   return `
     <div id="ss-view-tas" class="ss-tab-view">
       <div class="ss-subbar">
-        <span id="tas-rec-badge">no ROM</span>
         <button id="tas-takeover" class="ss-btn" type="button" title="Stop the replay here and play on with the keyboard (the recording keeps going)" disabled>take over</button>
         <label title="Frames emulated per display frame while replaying">speed
           <select id="tas-speed"><option value="1">1x</option><option value="2">2x</option><option value="4">4x</option><option value="8">8x</option><option value="16">16x</option></select>
@@ -139,6 +141,7 @@ function getTasClientScript() {
         badge.classList.toggle('rec', !!tasRec && !tasPlay);
         badge.classList.toggle('play', !!tasPlay);
         badge.classList.toggle('desync', !!tasPlay && !!tasDesync);
+        badge.style.display = romLoaded ? '' : 'none';
         badge.textContent = tasPlay && tasDesync ? 'DESYNC ' + tasDesync.frame
           : tasPlay ? 'PLAY ' + tasPlay.pos + ' / ' + tasPlay.count
           : tasRec ? 'REC ' + tasFmtTime(tasRec.frames)
@@ -457,7 +460,6 @@ function getTasClientScript() {
       if (it.frames != null) parts.push(it.frames + ' frames (' + tasFmtTime(it.frames) + ')');
       parts.push(new Date(it.meta && it.meta.started ? it.meta.started : it.mtime).toLocaleString());
       if (it.meta && it.meta.source) parts.push('from ' + tasEsc(it.meta.source));
-      if (it.romMatch === true) parts.push('<span class="ok">ROM ok</span>');
       if (it.romMatch === false) parts.push('<span class="bad">other ROM</span>');
       if (it.coreMatch === false) parts.push('<span class="bad">other core</span>');
       const warn = (it.warnings || []).join('; ');
@@ -471,16 +473,18 @@ function getTasClientScript() {
         + '</div>';
     }
 
+    // Only this ROM's recordings (the host compares the SHA-256 in each movie's header).
     function tasRenderList() {
       const list = document.getElementById('tas-list');
       if (!list) return;
-      const pinned = tasItems.filter(it => it.pinned), rest = tasItems.filter(it => !it.pinned);
+      const mine = tasItems.filter(it => it.romMatch === true || it.recording);
+      const others = tasItems.length - mine.length;
+      const pinned = mine.filter(it => it.pinned), rest = mine.filter(it => !it.pinned);
       let html = '';
       if (pinned.length) html += '<div class="tas-group">PINNED</div>' + pinned.map(tasRow).join('');
-      html += '<div class="tas-group">RECORDINGS</div>' + (rest.length ? rest.map(tasRow).join('') : '<div id="tas-empty">No recordings yet: play and press some buttons.</div>');
+      html += '<div class="tas-group">RECORDINGS</div>' + (rest.length ? rest.map(tasRow).join('') : '<div id="tas-empty">No recordings of this ROM yet: play and press some buttons.</div>');
+      if (others) html += '<div class="tas-group">' + others + ' recording' + (others === 1 ? '' : 's') + ' of other ROMs not listed</div>';
       list.innerHTML = html;
-      const count = document.getElementById('ss-tas-count');
-      if (count) count.textContent = String(tasItems.length);
     }
 
     function tasRequestList() {
@@ -499,6 +503,7 @@ function getTasClientScript() {
         const id = row.getAttribute('data-id');
         const act = btn.getAttribute('data-act');
         if (act === 'play') {
+          if (isMenuOpen) closeEmulatorMenu();
           // The session in progress: close its file first so the replay reads every frame.
           if (row.getAttribute('data-recording')) tasEndRecording();
           tasSetStatus('loading replay...');
@@ -512,6 +517,11 @@ function getTasClientScript() {
       document.getElementById('tas-speed').addEventListener('change', evt => { tasSpeed = parseInt(evt.target.value, 10) || 1; });
       document.getElementById('tas-overlay-btn').addEventListener('click', () => tasSetOverlay(!tasOverlayOn, true));
       document.getElementById('tas-reveal').addEventListener('click', () => vscodeApi.postMessage({ command: 'tasReveal' }));
+      document.getElementById('tas-rec-badge').addEventListener('click', evt => {
+        evt.stopPropagation();
+        if (isMenuOpen) selectMenuTab(7);
+        else { menuActiveTab = 7; openEmulatorMenu(); }
+      });
       const chip = document.getElementById('screen-inputs-toggle');
       if (chip) chip.addEventListener('click', evt => {
         evt.stopPropagation();
@@ -550,4 +560,4 @@ function getTasClientScript() {
   `;
 }
 
-module.exports = { getTasCss, getTasTabButtonHtml, getTasChipHtml, getTasOverlayHtml, getTasViewHtml, getTasClientScript };
+module.exports = { getTasCss, getTasBadgeHtml, getTasChipHtml, getTasOverlayHtml, getTasViewHtml, getTasClientScript };

@@ -12,13 +12,14 @@
  *   - emuGateRom(bytes) runs at every boot: detectEvermore (rom-game.js) sets
  *     emuEvermore and the body class rom-other. Elements marked data-needs are
  *     hidden by emulator-profile.css; Evermore-only work in the inline script
- *     checks emuEvermore. A hidden bottom tab or pause-menu tab is left for the
- *     first one still shown. emuScriptHook (the script stack polling and trace behind
+ *     checks emuEvermore. A hidden pause-menu tab is left for the first one still
+ *     shown; hidden panels are left out of the side and bottom bars (emulator-panels.js). emuScriptHook (the script stack polling and trace behind
  *     TRACE / STACK and the .evs debugger) needs Evermore and the full profile.
  *
  * Settings (kept by the host in globalState, sent back as 'emuSettings'):
- *   the overlay toggles, master audio mute and the keybinds. Every change posts
- *   'saveEmuSettings' (debounced). Zoom, speed, panel size and tabs are not saved.
+ *   the overlay toggles, master audio mute, the keybinds and where each panel is
+ *   shown (emulator-panels.js). Every change posts 'saveEmuSettings' (debounced).
+ *   Zoom, speed, panel size and tabs are not saved.
  *   Everything optional starts off.
  *
  * Keep focus (pause menu, EMULATION): Tab stays on the emulator screen.
@@ -54,14 +55,6 @@ function emuMenuTabShown(index) {
   return emuShown(document.getElementById('menu-tab-btn-' + index));
 }
 
-/** The active bottom-bar tab is hidden: show the first one that is not. */
-function emuEnsureVisibleTab() {
-  const current = typeof currentBottomTab === 'string' ? document.getElementById('ss-tab-' + currentBottomTab) : null;
-  if (current && emuShown(current)) return;
-  const first = Array.from(document.querySelectorAll('#ss-tabs .ss-tab')).find(emuShown);
-  if (first) first.click();
-}
-
 function emuClearExtendedLayers() {
   ['extended-map', 'extended-entities', 'extended-foreground', 'extended-overlay'].forEach(id => {
     const c = document.getElementById(id);
@@ -79,7 +72,7 @@ function emuGateRom(bytes) {
     if (typeof lastSampledPreState !== 'undefined') lastSampledPreState = null;
     emuClearExtendedLayers();
   }
-  emuEnsureVisibleTab();
+  if (typeof emuPanelsLayout === 'function') emuPanelsLayout();
   if (typeof menuActiveTab === 'number' && !emuMenuTabShown(menuActiveTab) && typeof selectMenuTab === 'function') selectMenuTab(0);
 }
 
@@ -98,6 +91,7 @@ function emuCollectSettings() {
       staminaBar: !!thinStaminaBarEnabled,
     },
     muted: !!emuMuted,
+    panels: typeof emuCollectPanels === 'function' ? emuCollectPanels() : undefined,
     keybinds: Object.assign({}, userKeyMap),
   };
 }
@@ -146,6 +140,7 @@ function emuApplySettings(saved) {
     set(setThinHpBar, o.hpBar);
     set(setThinStaminaBar, o.staminaBar);
     emuMuted = !!s.muted;
+    if (typeof emuApplyPanels === 'function') emuApplyPanels(s.panels);
     let binds = s.keybinds && typeof s.keybinds === 'object' ? s.keybinds : null;
     if (!binds) { binds = emuLegacyKeybinds(); migrated = !!binds; }
     userKeyMap = Object.assign({}, DEFAULT_KEY_MAP, binds || {});
@@ -176,5 +171,4 @@ window.addEventListener('keydown', e => {
 emuReadConfig();
 document.addEventListener('DOMContentLoaded', () => {
   document.body.classList.add('profile-' + emuProfile);
-  emuEnsureVisibleTab();
 });

@@ -138,7 +138,8 @@ test('webview: REPLAYS tab, inputs + FPS chips, frame loop routes joypads throug
     }
     const { buildHtml } = require('../../src/emulator/panel-webview');
     const html = buildHtml({ cspSource: '' }, 'core.js', 'core.wasm', 'core', 'core');
-    assert.ok(html.includes('id="ss-tab-tas"') && html.includes('id="ss-view-tas"'));
+    assert.ok(!html.includes('id="ss-tab-tas"') && html.includes('id="ss-view-tas"') && html.includes('id="emu-slot-tas"'), 'REPLAYS is a pause-menu tab only');
+    assert.ok(html.includes('id="tas-rec-badge"'), 'the replay status chip is on the screen');
     assert.ok(html.includes('id="screen-inputs-toggle"') && html.includes('id="tas-input-overlay"'));
     assert.ok(!/Module\._setJoypadInput\(keyInput\)/.test(html), 'joypads only set by tasApplyInput');
     assert.ok(html.includes('tasApplyInput(Module, keyInput);'));

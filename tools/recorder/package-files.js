@@ -32,6 +32,8 @@ const ASSETS = [
     'src/emulator/webview/rom-game.js',
     'src/emulator/webview/emulator-profile.js',
     'src/emulator/webview/emulator-profile.css',
+    'src/emulator/webview/emulator-panels.js',
+    'src/emulator/webview/emulator-panels.css',
     'src/emulator/known-scripts.json',   // address-lookup.js
 ];
 

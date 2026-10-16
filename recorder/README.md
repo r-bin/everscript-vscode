@@ -13,12 +13,14 @@ Recording starts on. Bring your own ROM: the extension contains no game data.
 
 1. `CDL Recorder: Open Emulator`, then load a `.smc` / `.sfc` file (or drop it on the panel).
    The last ROM opens by itself the next time.
-2. Play. The **CDL** tab shows the coverage growing; **REPLAYS** lists your sessions.
-3. `CDL Recorder: Export Recording Bundle` (or **export bundle** in the CDL tab) writes one
+2. Play. The **CDL** bar on the left shows the coverage growing.
+3. `CDL Recorder: Export Recording Bundle` (or **export bundle** in the menu's CDL tab) writes one
    zip with the ROM's recording and its replays. It holds no ROM bytes. Send it to whoever
    collects the recordings; they merge it with `Everscript: Import Recording Bundle`.
 
-**Esc** pauses and opens the menu: emulation speed, audio, keep focus, reset, controls.
+**Esc** pauses and opens the menu: **REPLAYS** (your sessions of this ROM: play one back),
+**CDL** (record, export, and where the CDL bar is shown: left, right, bottom or not at all),
+emulation speed, audio, keep focus, reset, controls.
 Everything optional starts off. What you change there is remembered.
 
 `CDL Recorder: Open Data Folder` shows where the recordings live.
