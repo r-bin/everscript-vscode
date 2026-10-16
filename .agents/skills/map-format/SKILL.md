@@ -1,7 +1,7 @@
 ---
 name: map-format
 description: Use before touching ROM map/room decoding in src/games/evermore/maps/ or anything that reads Secret of Evermore room/tilemap bytes in everscript-vscode. src/games/evermore/maps/ is a TypeScript port of the sibling everscript repo's verified decoder — port and validate against it, never re-derive it.
-applyTo: "src/games/evermore/maps/**,src/games/evermore/language/data/index.json,src/rooms/rendering/tile-overlay.js"
+applyTo: "src/games/evermore/maps/**,src/games/evermore/language/data/index.json,src/games/evermore/rooms/rendering/tile-overlay.js"
 ---
 
 # Skill: Map Format — Port the Authoritative Implementation, Don't Re-derive It
@@ -67,7 +67,7 @@ parser was explicitly evaluated and rejected for that specific case (see
 
 ## Where the extension consumes it
 
-- `src/rooms/rendering/tile-overlay.js` renders the room to a PNG data URI and builds
+- `src/games/evermore/rooms/rendering/tile-overlay.js` renders the room to a PNG data URI and builds
   the collision overlay as SVG paths grouped by fill colour (a 128x70 room is 8960
   tiles, so per-tile DOM nodes are not an option). It caches the 12 most recent renders:
   ~146ms cold for the largest room, ~2ms warm.
@@ -108,7 +108,7 @@ to the write path too, but the decision is not made — don't assume it.
 
 ## If a map-editor domain is added later
 
-It would be a new ownership domain, sibling to `src/games/evermore/debugger/`, `src/rooms/`,
+It would be a new ownership domain, sibling to `src/games/evermore/debugger/`, `src/games/evermore/rooms/`,
 `src/emulator/`, `src/games/evermore/language/`. Before writing code against it: add it to
 `AI_ARCHITECTURE_GUIDE.md`'s ownership-domain list and to
 `docs/architecture/domain-overview.md`'s per-domain "Allowed deps" table, the same way
@@ -119,7 +119,7 @@ uses for "Build and Run" — don't invent a second of either.
 
 ## Related, not blocking, but worth knowing before building on top of them
 
-- `src/rooms/`'s room-script disassembly (`src/emulator/room-script-model.js`'s
+- `src/games/evermore/rooms/`'s room-script disassembly (`src/emulator/room-script-model.js`'s
   `OPCODE_REGISTRY`) doesn't yet decode the variable-length "calculator"
   sub-instruction format. If map-editor work wires a trigger to its script, check
   `docs/rooms-settings-cleanup-dossier.md` (status: in progress) first rather than

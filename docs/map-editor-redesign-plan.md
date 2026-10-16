@@ -11,7 +11,7 @@ restyle of the current docked sidebar.
 
 ---
 
-## 1. Current State (grounded in `src/rooms/webview/`)
+## 1. Current State (grounded in `src/games/evermore/rooms/webview/`)
 
 - **Shell**: left rail (room tree, already exists) + canvas + a single docked
   column (`#rg-dock` > `#rg-panels`, built in `map-editor-ui.js:editDock()`).
@@ -45,7 +45,7 @@ restyle of the current docked sidebar.
   radar tab (memory/rooms/scaling/docs/route), using hardcoded hex colors, no
   custom-property theme. Adding tokens here unscoped would bleed into every
   other tab.
-- **File sizes**: 14 files, 2935 LOC total under `src/rooms/webview/map-editor-*.js`.
+- **File sizes**: 14 files, 2935 LOC total under `src/games/evermore/rooms/webview/map-editor-*.js`.
   Several already sit near the 250–400 "must justify" band (`map-editor.js`
   339, `map-editor-newroom.js` 363, `map-editor-ui.js` 292). New tabs *will*
   push files over the 400-LOC hard limit — split points are planned per phase
@@ -71,8 +71,8 @@ duplicated here to avoid drift between two copies.
   `shared.css:3`) for coordinates/counts/badges. Same visual register as
   Manrope/JetBrains Mono without an offline-breaking dependency.
 - **Token scoping**: new CSS custom properties go in a **new file**,
-  `src/rooms/webview/map-editor-theme.css`, concatenated onto the existing
-  `css` export in `src/memory/webview/index.js` (one extra `loadFile` call) —
+  `src/games/evermore/rooms/webview/map-editor-theme.css`, concatenated onto the existing
+  `css` export in `src/games/evermore/memory/webview/index.js` (one extra `loadFile` call) —
   not appended into `shared.css`. Keeps ownership with `rooms/` and guarantees
   zero visual change to the memory/scaling/docs/route tabs. Variables scoped
   under a single root class so nothing leaks.
@@ -92,7 +92,7 @@ explicitly run in isolated worktrees.
 
 | # | Phase | Touches | New state owned | Exit criteria | Suggested owner |
 |---|---|---|---|---|---|
-| 0 | Design tokens | new `map-editor-theme.css`, `src/memory/webview/index.js` (+1 loadFile) | none | Vars available; zero diff on other tabs' rendering | direct edit (small) |
+| 0 | Design tokens | new `map-editor-theme.css`, `src/games/evermore/memory/webview/index.js` (+1 loadFile) | none | Vars available; zero diff on other tabs' rendering | direct edit (small) |
 | 1 | Layout shell | `map-editor-ui.js` (toolbar → floating pill, bottom filter bar split out of the inline row) | none | All existing tools still work; pill floats above canvas; filter bar spans only canvas column | `everscript-plugin-builder` + `webview-dom-safety` |
 | 2 | Tab shell | `map-editor-panels.js` (likely split off a `map-editor-tabs.js`), re-home existing families/tiles/composer/budget content under Tile/Info tabs, existing trigger tables under Trigger tab | `activeTab` | Tab switching works; no functional regression, just re-homed DOM | `everscript-plugin-builder`, then `split-orchestration` if a file crosses 400 LOC |
 | 3 | Special tab (net-new) | new `map-editor-special.js`; edits to `map-editor-phases.js`, `map-editor-paint.js`, `map-editor-ui.js` (dropdown chip) | `currentSpecialId`, `specialCells` | Stairs/Gate/Entrance chips paint/erase glyphs on the grid; filter-bar gating works | `everscript-plugin-builder` |
@@ -133,9 +133,9 @@ mock's "Special" groups are **not** equally real:
   overlay for entrances in Phase 3 (not wired into `editExport()`) unless the
   encoder contract is confirmed to support it — flag the gap rather than
   guess at an export shape.
-- This subsystem (`src/rooms/webview/`) has **no ROM write path** today — see
+- This subsystem (`src/games/evermore/rooms/webview/`) has **no ROM write path** today — see
   `docs/map-format/map_editor_design.md` §1.1 ("no `writeFile`/save call
-  anywhere in `src/rooms/` or `src/games/evermore/maps/`"). `editExport()` only produces a
+  anywhere in `src/games/evermore/rooms/` or `src/games/evermore/maps/`"). `editExport()` only produces a
   draft handoff for an external encoder. Nothing added in Phase 3 should
   change that invariant.
 - Separately: `AI_ARCHITECTURE_GUIDE.md` §3 describes a **planned, unbuilt**
@@ -143,7 +143,7 @@ mock's "Special" groups are **not** equally real:
   bridge) — a longer-term replacement vision in
   `docs/map-format/map_editor_design.md`. This redesign plan is **not** that
   project; it restyles/extends the existing shipping
-  `src/rooms/webview/map-editor-*.js` system. Do not create `src/map-editor/`
+  `src/games/evermore/rooms/webview/map-editor-*.js` system. Do not create `src/map-editor/`
   or assume its existence.
 
 ### 5.2 Decisions made while executing Phase 4
@@ -279,7 +279,7 @@ machinery (`map-editor-constructs.js`) or needs its own.
   and `tests/memory/map-editor-dom.test.js`'s two dropdown-close checks now
   also assert `getComputedStyle(...).display === 'none'` so this class of
   bug cannot regress silently again. Caught by rendering the real bundle
-  (`src/memory/webview/index.js`'s `roomsJs`/`css` exports) with Playwright
+  (`src/games/evermore/memory/webview/index.js`'s `roomsJs`/`css` exports) with Playwright
   and looking at a screenshot, exactly as this phase's brief asked for —
   the existing DOM test suite's own `.hidden`-only assertions would never
   have caught it on their own.
@@ -292,7 +292,7 @@ machinery (`map-editor-constructs.js`) or needs its own.
 - **STATE_FLOW.md backfill**: one terse table per the brief, appended below
   the existing ownership table rather than interleaved with it, so the
   Phase 3-5 rows (already well-documented) are undisturbed. The forward
-  reference that used to say "see `src/rooms/README.md`... for the full
+  reference that used to say "see `src/games/evermore/rooms/README.md`... for the full
   inventory" now points at this new block instead.
 - **Nothing else in the mock's 7 screens needed a fix.** The full visual QA
   pass (browsing mode + all five edit tabs, both filter-bar dropdowns
@@ -732,7 +732,7 @@ real format doesn't have, the same trap §5.1/§8a already named.
   `#rg-outer`/`#rg-dock`/`.rg-edit-row` before and after. No width change in
   any of them (`#rg-dock` stayed exactly 400px throughout). Nothing in
   `map-editor-canvas.css`/`map-editor-tile-tab.css` sets width from content,
-  and no JS in `src/rooms/webview/` sets `.style.width` outside the room
+  and no JS in `src/games/evermore/rooms/webview/` sets `.style.width` outside the room
   canvas image and the new-room resize grip, neither of which the flip
   toggle touches. Could not confirm this happens from the code alone. Needs
   either a live repro (was a brush already armed? did the *whole* VS Code

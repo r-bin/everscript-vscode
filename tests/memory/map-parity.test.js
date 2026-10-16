@@ -1117,8 +1117,8 @@ function checkBudget(rom) {
  * See docs/map-format/building-a-room-from-a-picture.md §9.
  */
 function checkDecoLibrary(rom) {
-    const { buildDecoCatalogue, decoIndex } = require('../../src/rooms/rendering/deco-catalogue');
-    const { entryRoom } = require('../../src/rooms/rendering/deco-preview');
+    const { buildDecoCatalogue, decoIndex } = require('../../src/games/evermore/rooms/rendering/deco-catalogue');
+    const { entryRoom } = require('../../src/games/evermore/rooms/rendering/deco-preview');
     const cat = buildDecoCatalogue(rom);
 
     check('the library has 532 distinct objects', cat.length, 532);

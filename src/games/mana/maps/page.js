@@ -15,7 +15,7 @@ const CORE = path.join(MAP_EDITOR, 'core');
 const SHELL = path.join(MAP_EDITOR, 'shell');
 const WEBVIEW = path.join(__dirname, 'webview');
 
-/** Stylesheets, in the order the Rooms tab cascades them (src/memory/webview/index.js). */
+/** Stylesheets, in the order the Rooms tab cascades them (src/games/evermore/memory/webview/index.js). */
 const CSS = {
     sharedCss: path.join(SHARED, 'shared.css'),
     shellTabsCss: path.join(SHELL, 'shell-tabs.css'),

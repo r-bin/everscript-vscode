@@ -1,6 +1,6 @@
 /* Ownership: the map views' shared look — the design tokens and the filter bar
  * (chips, the segmented BG | FG | Collision pill, chip dropdowns). Shared by the
- * Evermore Rooms tab (loaded after map-editor-canvas.css by src/memory/webview/index.js)
+ * Evermore Rooms tab (loaded after map-editor-canvas.css by src/games/evermore/memory/webview/index.js)
  * and the Secret of Mana Maps panel; markup from view-chips.js.
  *
  * Scoped under `.rg-theme` (the Rooms tab puts it on `#room-detail`, the Mana panel on

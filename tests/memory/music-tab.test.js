@@ -18,7 +18,7 @@ const V = require('../../src/games/evermore/music/webview/music-view.js');
 const { ApuStream } = require('../../src/emulator/apu-stream');
 const { getApuStreamClientScript } = require('../../src/emulator/apu-stream-view');
 const { getSoundSourceClientScript } = require('../../src/emulator/sound-source-view');
-const { renderRadarHtml } = require('../../src/memory/render-radar');
+const { renderRadarHtml } = require('../../src/games/evermore/memory/render-radar');
 
 let passed = 0, failed = 0;
 const step = async (name, fn) => {

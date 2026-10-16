@@ -12,7 +12,7 @@ Related skills: `alchemy-spell-mechanics` (`.agents/skills/`).
 - Webview assets (`docs-tab.js`, `rng-tab.js`) are browser-side; excluded from typecheck/knip.
 
 Existing exceptions (do not add more):
-- `docs-tab.js` calls the Rooms tab's page global `escH` (`src/rooms/webview/utils.js`).
+- `docs-tab.js` calls the Rooms tab's page global `escH` (`src/games/evermore/rooms/webview/utils.js`).
 - `docs-tab.js` calls the Scaling tab's `alchemy-math.js` globals
   (`alchemyDamageFromPower`, `alchemyDamageSamples`, `alchemyRangeAtLevel`,
   `alchemySpellBonusBaseAtLevel`, `alchemySpellPowerAtLevel`, `effectiveMdef`).

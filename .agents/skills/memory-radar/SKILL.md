@@ -1,7 +1,7 @@
 ---
 name: memory-radar
-description: Use when touching the Memory Radar webview panel in everscript-vscode — its Memory tab (WRAM grid, address lifecycle, arg tracking, pools) or its Rooms tab (map browser, room tree, SVG grid). Source lives under src/memory/, src/rooms/, src/games/evermore/docs-tab/render-docs-tab.js, and src/games/evermore/radar-utils.js.
-applyTo: "src/memory/**,src/rooms/**,src/games/evermore/radar-utils.js,src/games/evermore/docs-tab/render-docs-tab.js,src/extension.js"
+description: Use when touching the Memory Radar webview panel in everscript-vscode — its Memory tab (WRAM grid, address lifecycle, arg tracking, pools) or its Rooms tab (map browser, room tree, SVG grid). Source lives under src/games/evermore/memory/, src/games/evermore/rooms/, src/games/evermore/docs-tab/render-docs-tab.js, and src/games/evermore/radar-utils.js.
+applyTo: "src/games/evermore/memory/**,src/games/evermore/rooms/**,src/games/evermore/radar-utils.js,src/games/evermore/docs-tab/render-docs-tab.js,src/extension.js"
 ---
 
 # Skill: Memory Radar & Rooms Tab
@@ -10,16 +10,16 @@ Use this skill when touching the Memory Radar webview panel (`everscript.openMem
 command), its Memory tab (WRAM grid), or its Rooms tab (map browser).
 
 Current source locations (post v0.6.0 `src/` refactor):
-- `src/memory/render-radar.js`, `src/memory/render-memory-tab.js`, `src/memory/webview/`
-- `src/rooms/index.js`, `src/rooms/parsing/`, `src/rooms/rendering/`, `src/rooms/data/`,
-  `src/rooms/webview/`
+- `src/games/evermore/memory/render-radar.js`, `src/games/evermore/memory/render-memory-tab.js`, `src/games/evermore/memory/webview/`
+- `src/games/evermore/rooms/index.js`, `src/games/evermore/rooms/parsing/`, `src/games/evermore/rooms/rendering/`, `src/games/evermore/rooms/data/`,
+  `src/games/evermore/rooms/webview/`
 - `src/games/evermore/sprites/` (the **Characters** tab, formerly Sprites: `character-model.js`, `animation-catalog.js`, `animation-decoder.js`, `raw-sprites.js`, `sprites-tab.js`, `webview/`)
 - `src/games/evermore/docs-tab/render-docs-tab.js` (docs/RNG tab, rendered in the same panel)
 - `src/games/evermore/radar-utils.js` (pure functions shared by memory/rooms)
 - Panel lifecycle and command registration: `src/extension.js`
 
 **Boundary note:** this skill covers the Rooms tab's *browsing* of already-parsed
-`.evs` source (`src/rooms/parsing/`, tree building, entity rendering) — that's
+`.evs` source (`src/games/evermore/rooms/parsing/`, tree building, entity rendering) — that's
 author-side `.evs` text, unaffected by ROM format work. Decoding ROM map/room *bytes*
 (tile grids, collision, compression) is `src/games/evermore/maps/`'s job and is a separate, larger
 concern — see the `map-format` skill before touching that side, especially before
@@ -262,9 +262,9 @@ document changes; cleared in `_radarPanel.onDidDispose`.
 Radar tabs are first-class ownership domains — each tab increasingly owns its own
 rendering, state, IPC, parsing, interactions, and tests:
 - `src/games/evermore/scaling/webview/` — scaling tab
-- `src/rooms/webview/`, `src/rooms/rendering/`, `src/rooms/parsing/`, `src/rooms/data/` — rooms tab
+- `src/games/evermore/rooms/webview/`, `src/games/evermore/rooms/rendering/`, `src/games/evermore/rooms/parsing/`, `src/games/evermore/rooms/data/` — rooms tab
 - `src/games/evermore/sprites/` — Characters tab (characters, animations, raw sprites)
-- `src/memory/render-memory-tab.js` — memory tab rendering
+- `src/games/evermore/memory/render-memory-tab.js` — memory tab rendering
 - `src/games/evermore/docs-tab/render-docs-tab.js` — docs/RNG tab rendering
 
 Rules:
@@ -272,4 +272,4 @@ Rules:
 - Cross-tab shared code must be minimal, generic, ownership-neutral — prefer slight
   duplication over a giant shared abstraction.
 - New tab logic goes in the tab's own directory, never in `src/extension.js` or
-  `src/memory/render-radar.js`.
+  `src/games/evermore/memory/render-radar.js`.

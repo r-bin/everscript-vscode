@@ -10,9 +10,9 @@ Code:
 
 - `src/games/evermore/maps/vanilla-suggest.ts`: `suggestGeometry`; `src/games/evermore/maps/vanilla-index.ts`: the `canopyCollisions`
   tally.
-- `src/rooms/rendering/room-draft.js`: the family-sheet slots, and
+- `src/games/evermore/rooms/rendering/room-draft.js`: the family-sheet slots, and
   `buildDraftCollision`.
-- `src/rooms/webview/map-editor-collision.js`.
+- `src/games/evermore/rooms/webview/map-editor-collision.js`.
 
 Measurement: `npm run check:collision` (`tools/measure-collision.js`). Tests:
 `tests/memory/collision-suggest.test.js`.

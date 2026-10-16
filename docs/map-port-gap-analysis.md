@@ -362,7 +362,7 @@ this for the common "flip back and forth between two layers" interaction.
 ### 2.9 No world/area overview
 
 The Rooms tab shows one room at a time. There's no stitched multi-room map
-showing how rooms connect (relevant given `src/rooms/` already parses
+showing how rooms connect (relevant given `src/games/evermore/rooms/` already parses
 `[area]` groupings and room adjacency isn't currently visualized spatially at
 all, only as a nested list). Out of scope for the current decoder work, but
 the natural next "perfect UX" ask once single-room rendering is solid.

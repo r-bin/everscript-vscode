@@ -6,13 +6,13 @@ All production code lives here. Each subdirectory is an ownership domain.
 |---|---|
 | `platform/` | Game-neutral: ROM header and identification, the ROM library, the game registry (`docs/architecture/multi-game.md`) |
 | `core/` | Game-neutral features: Switch ROM, the ROM panel, the status bar item; `map-editor/` (view, core, shell of both games' editors); `mcp/` (read-only MCP server, 127.0.0.1:47917, for AI clients) |
-| `shared/` | `zip.js` and the radar webview assets (`shared.js`, `shared.css`) |
+| `shared/` | The radar webview assets (`shared.js`, `shared.css`), also read by the Mana Maps page |
 | `emulator/` | Embedded SNES emulator: panel, webview, SNES ROM header model; profiles (Everscript / recorder) and Evermore gating; recording bundles |
 | `recorder/` | SNES CDL Recorder: the second extension's entry (`recorder/package.json`), the emulator in its recorder profile |
-| `memory/` | Memory Radar tab: WRAM grid, detail table, rendering pipeline |
-| `rooms/` | Rooms map browser: tree building, content parsing, rendering, data watchers |
 | `games/` | One folder per game; `games/index.ts` is the list of games (→ `dist/games`) |
 | `games/evermore/` (files) | `rom-readers.js` (ROM reads for rooms, characters, stats), `radar-utils.js` (Everscript parsing for the radar), the descriptor and derived-ROM marker |
+| `games/evermore/memory/` | Memory Radar tab: WRAM grid, detail table, rendering pipeline |
+| `games/evermore/rooms/` | Rooms map browser: tree building, content parsing, rendering, data watchers |
 | `games/evermore/language/` | VS Code language features: grammar, theme, hover, completion, definitions, snippets |
 | `games/evermore/localizations/` | Centralized subjective names (maps, sounds, tables, functions) & ROM string resolution |
 | `games/evermore/maps/` | ROM map models: pipeline, blob evidence, render-script, alchemy |

@@ -15,7 +15,7 @@ Related skills: `sprites-subsystem`, `animation-script`, `map-entities` (`.agent
   `character-animation.ts`, `animation-vm.ts`, `animation-opcodes.ts`, `projectiles.ts`,
   `hit-test.ts`, `png.ts`, required from `dist/maps/`).
 - `src/shared/` (`rom-readers.js`).
-- No dependency on `src/rooms/`, `src/games/evermore/debugger/`, `src/games/evermore/scaling/`, or `vscode`.
+- No dependency on `src/games/evermore/rooms/`, `src/games/evermore/debugger/`, `src/games/evermore/scaling/`, or `vscode`.
 
 Existing exceptions (do not add more):
 - `character-model.js` and `animation-catalog.js` require `../language/data/index.json`
@@ -30,7 +30,7 @@ Existing exceptions (do not add more):
   from the ROM with a test (guide §3.8).
 - Keep each file under the Max LOC listed in the README's file table.
 - `webview/` load order: `sprites-lazy.js`, `sprites-script.js`, `sprites-motion.js`,
-  then `sprites-view.js` (`src/memory/webview/index.js`).
+  then `sprites-view.js` (`src/games/evermore/memory/webview/index.js`).
 
 ## Tests
 - `tests/memory/sprites.test.js` — unit (tab HTML scaffold) and rom tier (ROM-backed

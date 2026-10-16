@@ -14,13 +14,13 @@ Related skills: `alchemy-spell-mechanics` (`.agents/skills/`).
 
 Existing exceptions (do not add more):
 - `webview/helpers.js` reads the page global `ITEM_ICONS.alchemy`, built from
-  `src/rooms/data/item-icons.js` and injected by `src/memory/render-radar.js`.
+  `src/games/evermore/rooms/data/item-icons.js` and injected by `src/games/evermore/memory/render-radar.js`.
 - The tab's ROM data (`readRomCharacters`) is read in `src/extension.js`, not here.
 - `webview/alchemy-math.js` is loaded in the page's outer scope and its functions are
   called by the Docs tab (`src/games/evermore/docs-tab/docs-tab.js`).
 
 ## Invariants
-- Load order is `SCALING_JS_FILES` in `src/memory/webview/index.js`: `alchemy-math.js` in
+- Load order is `SCALING_JS_FILES` in `src/games/evermore/memory/webview/index.js`: `alchemy-math.js` in
   the outer scope, `state.js` first, `tab-init.js` last.
 
 ## Tests

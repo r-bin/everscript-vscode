@@ -14,7 +14,7 @@ or when you want a module to be independently testable and reconstructable.
 ## When to invoke
 
 - A module requires files from a sibling domain (e.g. `src/games/evermore/debugger/` requiring
-  `src/memory/`)
+  `src/games/evermore/memory/`)
 - A module cannot be tested without loading unrelated domains
 - Changing module A breaks module B for unclear reasons
 - A module calls back into `src/extension.js` for data it should own itself
@@ -40,10 +40,10 @@ For each `require(path)`:
 Forbidden dependency directions (see `docs/architecture/domain-overview.md` for the
 authoritative per-domain "Allowed deps" / "Forbidden deps" table, enforced by
 `npm run check:deps`):
-- `src/rooms` → `src/memory` (rendering)
+- `src/games/evermore/rooms` → `src/games/evermore/memory` (rendering)
 - `src/shared` → any domain module or `vscode`
 - `src/games/evermore/language` → `src/games/evermore/debugger` or `src/emulator`
-- `src/games/evermore/debugger` → `src/memory` rendering
+- `src/games/evermore/debugger` → `src/games/evermore/memory` rendering
 
 For each forbidden direction:
 - Move the data production to the correct owner.
@@ -66,7 +66,7 @@ The caller (usually `src/extension.js` or the domain's `index.js`) injects the d
 
 ### Step 4: Create a public API facade
 
-Every domain gets one `index.js` (see `src/rooms/index.js` for an existing example)
+Every domain gets one `index.js` (see `src/games/evermore/rooms/index.js` for an existing example)
 that:
 - Re-exports the public API.
 - Provides backward-compat adapters for old callers.
@@ -85,8 +85,8 @@ node tests/<domain>/<test>.js       # should pass without full extension
 
 ```
 src/extension.js  ← orchestrator only, no business logic
-  ├── src/memory/    ← WRAM grid rendering
-  ├── src/rooms/     ← map browser
+  ├── src/games/evermore/memory/    ← WRAM grid rendering
+  ├── src/games/evermore/rooms/     ← map browser
   ├── src/games/evermore/maps/      ← ROM map/blob models (being retired in favor of a map-server — see the `map-format` skill)
   ├── src/games/evermore/scaling/   ← scaling calculator
   ├── src/games/evermore/docs-tab/      ← docs/RNG tab

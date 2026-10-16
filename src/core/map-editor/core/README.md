@@ -15,5 +15,5 @@ game: an adapter (a game's editor page) says what a cell is, what a tool does an
 | `map-editor-core.css` | the look of the notice, from VS Code theme tokens |
 
 Used by the Secret of Mana editor (`src/games/mana/maps/webview/`, loaded as files) and, for the notice only
-so far, by the Evermore Rooms editor (bundled by `src/memory/webview/index.js`). The Evermore editor's own
+so far, by the Evermore Rooms editor (bundled by `src/games/evermore/memory/webview/index.js`). The Evermore editor's own
 history lives in its draft (`map-editor.js`, `map-editor-history.js`) and moves onto this core later.

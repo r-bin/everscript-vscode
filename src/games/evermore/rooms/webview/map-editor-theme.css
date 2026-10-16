@@ -1,0 +1,297 @@
+/* Ownership: the map editor's design tokens, and the chrome for everything
+ * that is NOT the canvas column — the docked panel column's tab strip and
+ * the Special / Widgets / Trigger tab bodies inside it, plus the two
+ * canvas *overlays* those tabs own (the special glyphs and the trigger
+ * outlines, drawn inside the SVG by map-editor-paint.js).
+ *
+ * The canvas column's own chrome — the floating tool pill, the canvas card,
+ * the zoom chip, the docked filter bar and its dropdowns, the status bar and
+ * the resize grip — is map-editor-canvas.css, split out in Phase 7a when
+ * this file crossed 400 lines. Tokens are declared here and consumed there:
+ * both are concatenated onto shared.css by src/games/evermore/memory/webview/index.js, in
+ * that order.
+ *
+ * Scoped under `.rg-theme`, a class `renderRoomDetail` puts on `#room-detail`
+ * (see detail-renderer.js) — the one node that already wraps every piece of
+ * the map editor's DOM (the canvas card, the docked panel column, and the
+ * per-room filter bar docked under the canvas). Nothing here touches
+ * `shared.css`: these variables do not exist outside these two scopes, so the
+ * memory/scaling/docs/route tabs render exactly as before.
+ *
+ * `.rg-rail` is the second scope, added in Phase 7b: the Rooms tab's left
+ * rail is a *sibling* of `#room-detail`, not a descendant, so it cannot
+ * inherit tokens declared only on `.rg-theme`. Listing it here keeps one
+ * declaration of the palette instead of a second copy in
+ * `rooms-rail.css` — that file consumes these and owns no values of its own.
+ * Nothing else in this file matches a rail node: every rule below is scoped
+ * to a `.rg-theme` descendant with a `.rg-*` class the rail never carries.
+ *
+ * Values ported from the design mock (`Map Editor UI.dc.html`, lines
+ * ~969-976) — its own README calls them a placeholder, so exact hue-matching
+ * was never the goal.
+ */
+/* The tokens themselves live in src/core/map-editor/view/map-view.css (shared with
+ * the Secret of Mana Maps panel); this file and map-editor-canvas.css consume them. */
+
+/* ── Special tab (map-editor-special.js's specialTabHtml) ────────────────
+ * A 4-column grid of chips per group, matching the mock's layout. */
+.rg-theme .rg-special-group{margin-bottom:12px}
+.rg-theme .rg-special-h{font-weight:500;font-size:12px;margin-bottom:2px}
+.rg-theme .rg-special-grid{
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:4px;
+  margin-top:6px;
+}
+.rg-theme .rg-special-chip{
+  flex-direction:column;
+  height:auto;
+  padding:6px 2px;
+  gap:2px;
+  font-size:10px;
+  line-height:1.2;
+  text-align:center;
+}
+.rg-theme .rg-special-glyph-ic{font-size:16px;line-height:1;display:inline-block;min-width:1.25em;text-align:center}
+
+/* ── Collision tab (map-editor-collision-tab.js): its grid of shape cards is the shell's (shell-tabs.css). */
+
+/* ── Special glyph overlay on the map canvas (map-editor-paint.js) ───────
+ * Drawn non-blocking of the tile beneath it, per the mock. A thin stroke in
+ * the app background keeps a light glyph legible over a light tile. */
+.rg-theme .rg-special-glyph{
+  fill:var(--rg-text-primary);
+  paint-order:stroke;
+  stroke:var(--rg-bg-app);
+  stroke-width:.3;
+  stroke-linejoin:round;
+}
+.rg-theme.hide-special .rg-special-glyph{display:none!important}
+.rg-theme.hide-special-stairs .rg-special-glyph-stairs{display:none!important}
+.rg-theme.hide-special-gate .rg-special-glyph-gate{display:none!important}
+.rg-theme.hide-special-plane .rg-special-glyph-plane{display:none!important}
+.rg-theme.hide-special-interact .rg-special-glyph-interact{display:none!important}
+.rg-theme.hide-special-entrance .rg-special-glyph-entrance{display:none!important}
+.rg-theme .rg-interact-lbl{font-family:monospace;pointer-events:none;user-select:none}
+
+/* ── The Boy's start on a drafted map (map-editor-start.js) ──────────────
+ * Deliberately not under any hide-special filter: it is the map's one
+ * entrance and always on it. Success-green like the ROM entrances. */
+.rg-theme .rg-start-cell{
+  fill:var(--rg-success);fill-opacity:.18;
+  stroke:var(--rg-success);stroke-width:.14;stroke-dasharray:.4,.25;
+}
+.rg-theme .rg-start-glyph{
+  fill:var(--rg-text-primary);paint-order:stroke;stroke:var(--rg-bg-app);stroke-width:.3;
+}
+.rg-theme .rg-start-ic{height:22px;image-rendering:pixelated;display:block;margin:-3px auto}
+
+/* ── Trigger selection + drag preview on the canvas (map-editor-paint.js's
+ * triggerOutlineSvg, drawn inside #rg-edit by renderEditLayer). Step ~ pink,
+ * B ~ yellow, the same accents the toolbar's own step/B trigger tools will
+ * use — see map-editor-trigger-select.js. */
+.rg-theme .rg-trigger-sel, .rg-theme .rg-trigger-drag{
+  fill:none;
+  stroke-width:.3;
+  pointer-events:none;
+}
+.rg-theme .rg-trigger-sel-step{stroke:var(--rg-trigger-step)}
+.rg-theme .rg-trigger-sel-b{stroke:var(--rg-trigger-b)}
+.rg-theme .rg-trigger-drag-step{stroke:var(--rg-trigger-step);stroke-dasharray:.4 .3;opacity:.8}
+.rg-theme .rg-trigger-drag-b{stroke:var(--rg-trigger-b);stroke-dasharray:.4 .3;opacity:.8}
+
+/* ── Widgets tab (map-editor-deco.js's widgetsTabHtml) ────────────────────
+ * The picker itself (`.rg-deco`, `.rg-deco-grid`, `.rg-deco-tag`, …) is
+ * shared.css's — untouched, so no other tab that might reuse it changes
+ * look. `.rg-deco` there is a fixed 48px swatch with `line-height:0` so the
+ * tag overlays the art rather than adding height; that collapses the
+ * visible warning line this phase adds (`.rg-deco-warn` — "+2 families
+ * needed" as card text, not just the title tooltip), so this reflows the
+ * card into a short flex column *only* inside `.rg-widget-group`, leaving
+ * every other `.rg-deco` user (there are none left after this phase, but a
+ * future one) at the plain shared.css layout. */
+.rg-theme .rg-widget-group{margin-bottom:12px}
+.rg-theme .rg-widget-h{font-weight:500;font-size:12px;margin:8px 0 4px}
+.rg-theme .rg-widget-group .rg-deco{line-height:normal;display:flex;flex-direction:column}
+.rg-theme .rg-widget-group .rg-deco-tag{position:static;background:transparent;text-align:left;padding:2px 3px 0}
+.rg-theme .rg-widget-group .rg-deco-warn{
+  display:block;font-size:8px;line-height:1.3;padding:0 3px 3px;color:var(--rg-warning);
+}
+/* The "Ready only" toggle rides the plain `.rdf` look every other deco/tile/
+ * family filter chip already uses (shared.css) — it is a wider label on the
+ * same control, not a new visual register. */
+.rg-theme .rg-deco-ready{margin:4px 0 2px}
+/* The Widgets tab: yours first, the generated vanilla ones behind a toggle (map-editor-widgets.js). */
+.rg-theme .rg-widget-top{display:flex;align-items:center;gap:8px;margin:2px 0 6px}
+.rg-theme .rg-deco-keep{position:absolute;right:2px;top:2px;font-size:11px;line-height:14px;width:16px;height:16px;
+  text-align:center;border-radius:4px;background:var(--rg-bg-app);color:var(--rg-text-secondary);opacity:0;cursor:pointer}
+.rg-theme .rg-deco:hover .rg-deco-keep,.rg-theme .rg-widget-card .rg-deco-keep{opacity:1}
+.rg-theme .rg-deco-keep:hover{color:var(--rg-accent-text);background:var(--rg-accent-soft)}
+.rg-theme .rg-widget-add{border-style:dashed;color:var(--rg-text-muted);justify-content:center;align-items:center}
+.rg-theme .rg-widget-add[disabled]{opacity:.45;cursor:default}
+.rg-theme .rg-widget-plus{display:block;height:36px;line-height:36px;font-size:20px;text-align:center}
+.rg-theme .rg-widget-h-vanilla{margin-top:14px;padding-top:8px;border-top:1px solid var(--rg-border)}
+.rg-theme .rd-head.rg-appbar{display:flex;align-items:center;gap:8px;padding:4px 8px 6px 4px;border-radius:8px 8px 0 0;
+  background:var(--rg-accent-soft);border-bottom:2px solid var(--rg-accent)}
+.rg-theme .rg-appbar .rd-head-acts{position:static;margin-left:auto}
+.rg-theme .rg-appbar-back{flex:none;display:flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;
+  border:none;border-radius:50%;background:transparent;color:var(--rg-accent-text);cursor:pointer}
+.rg-theme .rg-appbar-back:hover{background:var(--rg-bg-hover);color:var(--rg-text-primary)}
+.rg-theme .rg-appbar-title{flex:1;min-width:0;display:flex;flex-direction:column}
+.rg-theme .rg-appbar-name{width:100%;max-width:360px;font:700 12px var(--rg-font-ui);color:var(--rg-text-primary);
+  background:transparent;border:1px solid transparent;border-radius:5px;padding:2px 5px;margin-left:-6px}
+.rg-theme .rg-appbar-name:hover{border-color:var(--rg-border)}
+.rg-theme .rg-appbar-name:focus{outline:none;border-color:var(--rg-accent);background:var(--rg-bg-app)}
+.rg-theme .rg-appbar-title-row{display:flex;align-items:baseline;gap:8px}
+.rg-theme .rg-widget-vars{display:flex;align-items:center;gap:5px;margin-top:3px;flex-wrap:wrap}
+.rg-theme .rg-widget-vars-lbl{font-size:10px;color:var(--rg-text-muted);text-transform:uppercase;letter-spacing:.5px}
+.rg-theme .rg-widget-var-chip{padding:1px 7px;border-radius:10px;border:1px solid var(--rg-border);background:var(--rg-bg-app);color:var(--rg-text-secondary);font:600 11px var(--rg-font-ui);cursor:pointer}
+.rg-theme .rg-widget-var-chip:hover{color:var(--rg-text-primary);border-color:var(--rg-accent)}
+.rg-theme .rg-widget-var-chip.on{background:var(--rg-accent);color:#fff;border-color:var(--rg-accent)}
+.rg-theme .rg-widget-var-btn{padding:1px 6px;border-radius:10px;border:1px dashed var(--rg-border);background:transparent;color:var(--rg-text-secondary);font:10px var(--rg-font-ui);cursor:pointer}
+.rg-theme .rg-widget-var-btn:hover{color:var(--rg-text-primary);border-color:var(--rg-accent);background:var(--rg-accent-soft)}
+.rg-theme .rg-widget-var-btn.on{border-style:solid;border-color:var(--rg-accent);color:var(--rg-text-primary);background:var(--rg-accent-soft)}
+.rg-theme .rg-widget-card-vars{display:flex;gap:3px;padding:2px 4px;flex-wrap:wrap}
+.rg-theme .rg-widget-pill{font-size:9px;padding:0 4px;border-radius:6px;background:rgba(255,255,255,.08);color:var(--rg-text-secondary);border:1px solid transparent}
+.rg-theme .rg-widget-pill.on{color:var(--rg-accent-text);border-color:var(--rg-accent);font-weight:700}
+.rg-theme .rg-widget-timeline{position:absolute;bottom:52px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--rg-bg-app,#1e1e1e);border:1px solid var(--rg-border);border-radius:18px;box-shadow:0 4px 14px rgba(0,0,0,.5);z-index:90;font:11px var(--rg-font-ui);color:var(--rg-text-primary);user-select:none}
+.rg-theme .rg-seek-btn{display:flex;align-items:center;justify-content:center;height:24px;min-width:24px;padding:0 6px;border:1px solid var(--rg-border);border-radius:12px;background:transparent;color:var(--rg-text-primary);cursor:pointer;font-size:11px}
+.rg-theme .rg-seek-btn:hover:not([disabled]){background:var(--rg-bg-hover);color:var(--rg-accent-text);border-color:var(--rg-accent)}
+.rg-theme .rg-seek-btn[disabled]{opacity:.4;cursor:default}
+.rg-theme .rg-seek-play.on{background:var(--rg-accent);color:#fff;border-color:var(--rg-accent)}
+.rg-theme .rg-seek-count{font-family:var(--rg-font-mono);font-size:11px;font-weight:600;min-width:36px;text-align:center;color:var(--rg-text-primary)}
+.rg-theme .rg-seek-slider{width:100px;accent-color:var(--rg-accent);cursor:pointer}
+.rg-theme .rg-seek-delay-wrap{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--rg-text-secondary);margin-left:4px}
+.rg-theme .rg-seek-delay{width:36px;padding:1px 3px;font:11px var(--rg-font-mono);background:#111;border:1px solid var(--rg-border);border-radius:4px;color:var(--rg-text-primary);text-align:center}
+.rg-theme .rg-seek-ticks{font-size:10px;color:var(--rg-text-muted)}
+.rg-theme .rg-seek-ms{font-size:10px;color:var(--rg-text-muted);font-family:var(--rg-font-mono)}
+.rg-theme .rg-seek-divider{width:1px;height:16px;background:var(--rg-border);margin:0 2px}
+.rg-theme .rg-seek-act{font-size:10px}
+.rg-theme .rg-seek-del:hover:not([disabled]){color:var(--rg-error);border-color:var(--rg-error)}
+.rg-theme .rd-head .rd-name-input{max-width:180px;min-width:60px;width:auto;font-size:12px}
+.rg-theme .rg-appbar .rd-file{opacity:.7;color:var(--rg-accent-text)}
+.rg-theme .rg-appbar .rd-head-acts .rg-appbar-delete:hover{color:var(--rg-error)}
+
+/* ── Trigger tab list (map-editor-trigger-panel.js's triggerTabPanelHtml) ── */
+.rg-theme .rg-trigger-section{margin-bottom:12px}
+/* What the Trigger tab's pencil draws (map-editor-drawable.js), B first. */
+.rg-theme .rg-trigger-kind b{display:inline-block;min-width:1.1em;text-align:center}
+.rg-theme .rg-trigger-kind-b b{color:var(--rg-trigger-b)}
+.rg-theme .rg-trigger-kind-step b{color:var(--rg-trigger-step)}
+
+
+
+
+
+/* ── The armed look (`.rg-armed`) is the shell's (shell-tabs.css): every tab of both games says "this is what
+ * the pencil draws" the same way. */
+.rg-theme .rg-erase-target{margin:0 0 10px;padding:6px 8px;border-radius:var(--rg-radius-control);font-size:11px}
+/* The Boy, selected (map-editor-start.js). */
+.rg-theme .rg-start.sel .rg-start-cell{stroke:var(--rg-accent);stroke-width:.2;stroke-dasharray:none;fill:var(--rg-accent-soft);fill-opacity:.35}
+
+/* ── Object cluster & frames (map-editor-objects.js) ────────────────────────── */
+
+
+
+/* One border around a whole object — its row and, when open, its states. */
+
+
+
+.rg-theme .rg-placed-card{margin-bottom:6px}
+.rg-theme .rg-widget-var-thumb{display:block;width:30px;height:30px;background-repeat:no-repeat;image-rendering:pixelated}
+
+
+
+
+
+
+
+
+
+
+/* ── Info tab: CAPACITY bars and CHECKS, the mock's inspector layout ────── */
+.rg-theme .rg-info-sec{margin-bottom:24px;font-family:var(--rg-font-ui)}
+.rg-theme .rg-info-h{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--rg-text-muted);margin-bottom:10px}
+.rg-theme .rg-cap{margin-bottom:10px}
+.rg-theme .rg-cap-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.rg-theme .rg-cap-l{font-size:11px;color:var(--rg-text-muted)}
+.rg-theme .rg-cap-v{font-size:13px;line-height:1.5;color:var(--rg-text-primary);font-family:var(--rg-font-mono)}
+.rg-theme .rg-cap-n{font-size:11px;color:var(--rg-text-muted);font-family:var(--rg-font-ui)}
+.rg-theme .rg-cap-track{height:6px;border-radius:3px;background:var(--rg-bg-hover);overflow:hidden}
+.rg-theme .rg-cap-fill{display:block;height:100%;border-radius:3px;background:var(--rg-accent)}
+.rg-theme .rg-cap-fill.full{background:var(--rg-warning)}
+.rg-theme .rg-cap-fill.over{background:var(--rg-error)}
+.rg-theme .rg-info-foot{font-size:11px;color:var(--rg-text-muted);margin-top:4px}
+.rg-theme .rg-check{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--rg-border);
+  font-size:13px;line-height:1.5;color:var(--rg-text-secondary)}
+.rg-theme .rg-check-dot{width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0;background:var(--rg-text-muted)}
+.rg-theme .rg-check-warning{background:var(--rg-warning)}
+.rg-theme .rg-check-error{background:var(--rg-error)}
+.rg-theme .rg-info-hn{text-transform:none;letter-spacing:0;font-weight:400;margin-left:6px}
+/* MAP: readings of the map, not budgets — the capacity rows, their bars in another colour. */
+.rg-theme .rg-cap-fill.measured{background:var(--rg-success)}
+/* HEADER: every value in words; the controls sit under it, like a capacity row's bar. */
+/* A header field: name and value on one line, its controls on their own line beneath. */
+.rg-theme .rg-hdr-row{margin-bottom:12px}
+.rg-theme .rg-hdr-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.rg-theme .rg-hdr-top .rg-cap-l{flex-shrink:0}
+.rg-theme .rg-hdr-v{font-size:12px;color:var(--rg-text-primary);text-align:right;min-width:0}
+.rg-theme .rg-hdr-ctl{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+.rg-theme .rg-hdr-bit{padding:1px 6px;font-size:11px;line-height:16px}
+.rg-theme .rg-hdr-in,.rg-theme .rg-hdr-sel{font-family:var(--rg-font-ui);font-size:11px;
+  background:var(--rg-bg-hover);color:var(--rg-text-primary);border:1px solid var(--rg-border);border-radius:4px;padding:2px 6px}
+.rg-theme .rg-hdr-in{width:72px;font-family:var(--rg-font-mono)}
+.rg-theme .rg-hdr-row.edited .rg-cap-l{color:var(--rg-warning)}
+
+/* The Animation tab (map-editor-anim-tab.js) and the Placed list's pattern chips — all in --rg-anim. */
+.rg-theme .rg-anim-sw{display:inline-block;flex:none;border-radius:4px;background-color:var(--rg-bg-app);background-repeat:no-repeat;image-rendering:pixelated}
+.rg-theme .rg-anim-sw.empty{background:color-mix(in srgb,var(--rg-anim) 18%,transparent);border:1px dashed var(--rg-anim)}
+.rg-theme .rg-anim-row{gap:8px}
+.rg-theme .rg-anim-lock{font-size:10px;opacity:.7}
+.rg-theme .rg-anim-badge{flex:none;font:600 11px var(--rg-font-mono);color:var(--rg-anim);border:1px solid color-mix(in srgb,var(--rg-anim) 55%,transparent);border-radius:var(--rg-radius-control);padding:2px 7px}
+.rg-theme .rg-anim-badge.custom{font-weight:400;color:var(--rg-text-secondary);border-color:var(--rg-border)}
+.rg-theme .rg-anim-badge.empty{font-weight:400;border-style:dashed;background:color-mix(in srgb,var(--rg-anim) 12%,transparent)}
+.rg-theme .rg-anim-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px}
+.rg-theme .rg-anim-head .rdf.on{border-color:var(--rg-anim);color:var(--rg-anim)}
+.rg-theme .rg-anim-budget{margin-left:auto;font:11px var(--rg-font-mono);color:var(--rg-text-muted)}
+.rg-theme .rg-anim-budget.over{color:var(--rg-error)}
+.rg-theme .rg-anim-timing .ro-chips{display:flex;flex-wrap:wrap;gap:8px}
+.rg-theme .rg-anim-timing .ro-chip.sel{border-color:var(--rg-anim)}
+.rg-theme .rg-anim-empty{border-style:dashed;border-color:var(--rg-anim)}
+.rg-theme .rg-anim-set{display:flex;flex-direction:column;gap:4px;margin-bottom:6px}
+.rg-theme .rg-anim-set-line{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.rg-theme .rg-anim-set-line .rg-anim-timing-lbl{min-width:44px}
+
+.rg-theme input.rg-anim-ticks{-moz-appearance:textfield;appearance:textfield;min-width:0}
+.rg-theme input.rg-anim-ticks::-webkit-inner-spin-button,.rg-theme input.rg-anim-ticks::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.rg-theme .rg-anim-ticks{width:52px;box-sizing:border-box;padding:2px 2px;border:1px solid var(--rg-border);border-radius:var(--rg-radius-control);background:var(--rg-bg-app);color:var(--rg-text-primary);font:11px var(--rg-font-mono);text-align:center}
+.rg-theme .rg-anim-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:var(--rg-text-secondary)}
+.rg-theme .rg-anim-bar .rdf.on{border-color:var(--rg-anim);color:var(--rg-anim)}
+/* .rdf is dimmed by default (shared.css); a Play that looked disabled was not. */
+.rg-theme .rg-anim-bar .rdf{opacity:1}
+/* A state the engine never holds (state 0, the last): keeps its chip in line with the held ones' tick boxes. */
+/* A hold is 0..255: the box is just wide enough for three digits. */
+.rg-theme input.rg-anim-ticks.rg-object-hold{width:calc(3ch + 8px);padding:2px 0}
+/* State 0 to 1 is always one tick: shown, not editable. */
+.rg-theme input.rg-anim-ticks.rg-object-hold-fixed{opacity:.45;cursor:default}
+.rg-theme .rg-object-hold-none{display:block;height:20px}
+.rg-theme .rg-anim-presets,.rg-theme .rg-anim-timing-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.rg-theme .rg-anim-presets{padding:0 0 8px}
+.rg-theme .rg-anim-timing-chips{padding:4px 8px 8px 30px}
+.rg-theme .rg-anim-timing-lbl{font:10px var(--rg-font-mono);color:var(--rg-text-muted);text-transform:uppercase;letter-spacing:.06em}
+.rg-theme .rg-anim-preset{font:11px var(--rg-font-mono);padding:3px 8px;color:var(--rg-text-secondary)}
+.rg-theme .rg-anim-preset b{color:var(--rg-anim);font-weight:700}
+.rg-theme .rg-anim-preset.sel,.rg-theme .rg-anim-letter-chip.sel{border-color:var(--rg-anim);color:var(--rg-text-primary);background:color-mix(in srgb,var(--rg-anim) 16%,transparent)}
+.rg-theme .rg-anim-preset.custom{cursor:default}
+.rg-theme .rg-anim-letter-chip{min-width:28px;justify-content:center;font-family:var(--rg-font-mono);color:var(--rg-anim)}
+/* Palette sets (map-editor-family-sets.js): one row per set, its seven slots as colour strips. */
+.rg-theme .rg-fset{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;margin-bottom:6px;border:1px solid var(--rg-border);border-radius:var(--rg-radius-control);background:transparent;color:var(--rg-text-secondary);font:11px var(--rg-font-ui);cursor:pointer;text-align:left}
+.rg-theme .rg-fset:hover{border-color:var(--rg-text-muted)}
+.rg-theme .rg-fset.on{border-color:var(--rg-accent);color:var(--rg-text-primary)}
+.rg-theme .rg-fset-n{flex:0 0 auto;min-width:3.5em;font-family:var(--rg-font-mono)}
+.rg-theme .rg-fset-strips{display:flex;gap:2px;flex:1;min-width:0}
+.rg-theme .rg-fset-strip{flex:1;height:14px;border-radius:2px;min-width:0}
+.rg-theme .rg-fset-strip.kept{opacity:.35}
+.rg-theme .rg-fset-why{flex:0 0 auto;color:var(--rg-text-muted)}
+.rg-theme .rg-fset-more{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:11px;color:var(--rg-text-muted)}

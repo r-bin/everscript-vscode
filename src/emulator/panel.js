@@ -287,7 +287,7 @@ function _dispatchPendingRom() {
   let alchemyIcons = null;
   if (_currentRomBuffer) {
     try {
-      const { buildItemIcons } = require('../rooms/data/item-icons');
+      const { buildItemIcons } = require('../games/evermore/rooms/data/item-icons');
       const icons = buildItemIcons(_currentRomBuffer);
       alchemyIcons = icons ? icons.alchemy : null;
     } catch (_) {}
@@ -680,7 +680,7 @@ function openEmulatorPanel(context, rom, channel) {
             case 'requestAlchemyIcons': {
               if (_currentRomBuffer && _panel) {
                 try {
-                  const { buildItemIcons } = require('../rooms/data/item-icons');
+                  const { buildItemIcons } = require('../games/evermore/rooms/data/item-icons');
                   const icons = buildItemIcons(_currentRomBuffer);
                   _panel.webview.postMessage({ command: 'alchemyIconsLoaded', alchemy: icons ? icons.alchemy : {} });
                 } catch (_) {}
@@ -1079,7 +1079,7 @@ function _getRoomMeta(rom, mapId) {
 
     let itemIcons = null;
     try {
-        const { buildItemIcons } = require('../rooms/data/item-icons');
+        const { buildItemIcons } = require('../games/evermore/rooms/data/item-icons');
         const icons = buildItemIcons(rom);
         itemIcons = (icons && icons.loot) ? icons.loot : null;
     } catch (_) {}

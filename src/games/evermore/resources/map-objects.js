@@ -4,8 +4,8 @@
 // and map widgets (portable deco stamps, composition, and previews).
 
 const maps = require('../maps');
-const { buildDecoCatalogue } = require('../../../rooms/rendering/deco-catalogue');
-const { entryRoom } = require('../../../rooms/rendering/deco-preview');
+const { buildDecoCatalogue } = require('../rooms/rendering/deco-catalogue');
+const { entryRoom } = require('../rooms/rendering/deco-preview');
 const { encodeGif } = require('./gif');
 const { dir, file, json, text } = require('./nodes');
 const { hexId } = require('./resource-uri');

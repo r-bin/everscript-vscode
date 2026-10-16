@@ -226,11 +226,11 @@
    "home-path"
   ],
   [
-   "src/rooms/data/room-scripts.js",
+   "src/games/evermore/rooms/data/room-scripts.js",
    "rom-name"
   ],
   [
-   "src/rooms/webview/rom-overlay.js",
+   "src/games/evermore/rooms/webview/rom-overlay.js",
    "upstream"
   ],
   [

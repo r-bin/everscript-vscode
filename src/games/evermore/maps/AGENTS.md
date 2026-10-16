@@ -12,7 +12,7 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 - Libraries only (guide §2). Currently requires no other `src/` domain.
 - No VS Code API (`.depcruise.js` `no-maps-to-vscode`), no filesystem.
 - No webview rendering and no memory-tab UI (`no-maps-to-memory-ui`); the Rooms tab owns
-  its own (`src/rooms/rendering/tile-overlay.js`).
+  its own (`src/games/evermore/rooms/rendering/tile-overlay.js`).
 - Consumers `require('../maps')` (the facade), never `./dist` directly.
 - Existing exceptions (do not add more):
   - `render-script-model.js` requires `fs` and hard-codes a ROM path inside the

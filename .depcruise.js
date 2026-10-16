@@ -82,7 +82,7 @@ module.exports = {
       comment: 'The Scripts tab gets the animation renderer (sprites) and the silent music player (music) injected by extension.js; it imports libraries only.',
       severity: 'error',
       from: { path: '^src/games/evermore/scripts-tab/' },
-      to: { path: '^src/(rooms|emulator|memory|docs|mcp)/|^src/games/evermore/(sprites|music|rom|scaling|debugger|resources)/' },
+      to: { path: '^src/(emulator|core/mcp)/|^src/games/evermore/(rooms|memory|docs-tab|sprites|music|rom|scaling|debugger|resources)/' },
     },
 
     {
@@ -196,7 +196,7 @@ module.exports = {
       comment: 'Language providers may use shared/radar-utils but not memory rendering.',
       severity: 'warn',
       from: { path: '^src/games/evermore/language/' },
-      to: { path: '^src/memory/(render-|webview/)' },
+      to: { path: '^src/games/evermore/memory/(render-|webview/)' },
     },
 
     {
@@ -204,14 +204,14 @@ module.exports = {
       comment: 'The debugger must not trigger radar rendering. IPC routes through extension.js.',
       severity: 'warn',
       from: { path: '^src/games/evermore/debugger/' },
-      to: { path: '^src/memory/' },
+      to: { path: '^src/games/evermore/memory/' },
     },
 
     {
       name: 'no-memory-to-debugger-dap',
       comment: 'Memory radar has no reason to call the debugger.',
       severity: 'warn',
-      from: { path: '^src/memory/' },
+      from: { path: '^src/games/evermore/memory/' },
       to: { path: '^src/games/evermore/debugger/' },
     },
 
@@ -219,7 +219,7 @@ module.exports = {
       name: 'no-sibling-tabs',
       comment: 'Rooms and scaling are sibling tab domains — no direct coupling.',
       severity: 'warn',
-      from: { path: '^src/rooms/' },
+      from: { path: '^src/games/evermore/rooms/' },
       to: { path: '^src/games/evermore/scaling/' },
     },
 
@@ -228,7 +228,7 @@ module.exports = {
       comment: 'Scaling tab must not depend on rooms tab.',
       severity: 'warn',
       from: { path: '^src/games/evermore/scaling/' },
-      to: { path: '^src/rooms/' },
+      to: { path: '^src/games/evermore/rooms/' },
     },
 
     {
@@ -252,7 +252,7 @@ module.exports = {
       comment: 'ROM analysis models must not import memory tab rendering code.',
       severity: 'warn',
       from: { path: '^src/games/evermore/maps/' },
-      to: { path: '^src/memory/(render-|webview/)' },
+      to: { path: '^src/games/evermore/memory/(render-|webview/)' },
     },
 
   ],
@@ -283,7 +283,7 @@ module.exports = {
         collapsePattern: 'node_modules/[^/]+',
       },
       archi: {
-        collapsePattern: '^(node_modules|src/emulator/webview|src/memory/webview|src/rooms/webview|src/games/evermore/scaling/webview)/[^/]+',
+        collapsePattern: '^(node_modules|src/emulator/webview|src/games/evermore/memory/webview|src/games/evermore/rooms/webview|src/games/evermore/scaling/webview)/[^/]+',
       },
     },
   },

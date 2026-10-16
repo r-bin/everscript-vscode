@@ -9,8 +9,8 @@ embedded emulator panel (`openEmulatorPanel`). That panel uses the same
 snes9x core the export was boot-tested on.
 
 Code: `src/games/evermore/maps/encode.ts` (a port of `everscript/tools/encode_room.py`),
-`src/games/evermore/maps/custom-room.ts`, `src/rooms/rendering/rom-export.js`,
-`src/rooms/webview/map-editor-rom-export.js`. Tests:
+`src/games/evermore/maps/custom-room.ts`, `src/games/evermore/rooms/rendering/rom-export.js`,
+`src/games/evermore/rooms/webview/map-editor-rom-export.js`. Tests:
 `tests/memory/rom-export.test.js`.
 
 ## What gets written
@@ -112,7 +112,7 @@ up drew correctly at every start tried.
 
 The editor's **Cuttable** toggle, next to Collision, draws on a second layer
 over the map. A cuttable cell shows its own tile until the player cuts it,
-and then the map's tile beneath (`src/rooms/webview/map-editor-cutlayer.js`).
+and then the map's tile beneath (`src/games/evermore/rooms/webview/map-editor-cutlayer.js`).
 The export turns that layer into the room's grass table, following the rules
 in `cuttable_grass_mechanics.md`:
 

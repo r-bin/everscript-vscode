@@ -5,8 +5,8 @@ const path   = require('path');
 const fs     = require('fs');
 const os     = require('os');
 const { radarLifecycle, radarH, radarEsc, radarExtractEmoji, radarParseName, radarParseNotes, parseEvsNum, parseEnumsFromContent, parseEvsEnumValues } = require('./games/evermore/radar-utils');
-const radarWebview = require('./memory/webview');
-const { readRoomScriptModel } = require('./rooms/data/room-scripts');
+const radarWebview = require('./games/evermore/memory/webview');
+const { readRoomScriptModel } = require('./games/evermore/rooms/data/room-scripts');
 const { resolveExtConfig, getRepoAutofillUpdates } = require('./games/evermore/language/config');
 
 
@@ -146,7 +146,7 @@ function getExtConfig() {
     };
 }
 
-const roomData = require('./rooms');
+const roomData = require('./games/evermore/rooms');
 const { VANILLA_ROOMS, getMapEnum, readLuaWatchers, readScriptAllTriggers, buildVanillaRoomContent, buildVanillaRoomDetails, buildItemIcons, invalidateRoomDataCaches } = roomData;
 
 /** The ring menu's item icons from the configured ROM, for the radar page (rooms/data/item-icons.js). */
@@ -154,7 +154,7 @@ function radarItemIcons() {
     const ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     return buildItemIcons(romReaders.loadRomBuffer(ws, ''));
 }
-const roomTree = require('./rooms');
+const roomTree = require('./games/evermore/rooms');
 const { handlesRomMessage, handleRomMessage } = require('./games/evermore/rom');
 const { handlesMusicMessage, handleMusicMessage } = require('./games/evermore/music');
 const { handlesScriptsMessage, handleScriptsMessage } = require('./games/evermore/scripts-tab');
@@ -164,7 +164,7 @@ const romReaders = require('./games/evermore/rom-readers');
 const roms = require('./core/roms/host');
 const { readPngDimensions, readRomTriggerOffsets, readRomMapHeader, readRomCharacters, readRomHitLookup, detectScaleEnemies } = romReaders;
 
-const { renderRadarHtml } = require('./memory/render-radar');
+const { renderRadarHtml } = require('./games/evermore/memory/render-radar');
 const { readAllCharacters, getRawSpriteIndex, renderAnimation, renderRawSprite, buildAnimationCatalog, characterThumbs, listPalettes, renderInPalettes, thumbFor } = require('./games/evermore/sprites');
 
 // ── Activation ────────────────────────────────────────────────────────────────

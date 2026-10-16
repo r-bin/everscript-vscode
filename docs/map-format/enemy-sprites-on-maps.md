@@ -34,7 +34,7 @@ image layered above the background.
 | Character table: palette, hitbox, disposition | [src/games/evermore/maps/character-record.ts](../../src/games/evermore/maps/character-record.ts) |
 | Animation walk: which sprite each frame shows | [src/games/evermore/maps/character-animation.ts](../../src/games/evermore/maps/character-animation.ts) |
 | Idle animation as aligned RGBA frames (`renderCharacterFrames`) | [src/games/evermore/maps/characters.ts](../../src/games/evermore/maps/characters.ts) |
-| Frames → PNG data URIs for the Rooms view (`buildSprite`) | [src/rooms/data/room-scripts.js](../../src/rooms/data/room-scripts.js) |
+| Frames → PNG data URIs for the Rooms view (`buildSprite`) | [src/games/evermore/rooms/data/room-scripts.js](../../src/games/evermore/rooms/data/room-scripts.js) |
 
 The Rooms view already shows the characters a room's scripts spawn, animated, in
 their own palettes.

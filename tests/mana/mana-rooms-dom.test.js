@@ -6,7 +6,7 @@
 // Run: node tests/mana/mana-rooms-dom.test.js
 
 const path = require('path');
-const { renderRadarHtml } = require(path.join(__dirname, '..', '..', 'src', 'memory', 'render-radar'));
+const { renderRadarHtml } = require(path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'memory', 'render-radar'));
 
 let passed = 0, failed = 0;
 const check = (name, cond, detail) => {
@@ -34,7 +34,7 @@ const ROOM = {
 /** The family labels, from the webview files themselves (their scope is one script on the page). */
 function labelChecks() {
     const vm = require('vm'), fs = require('fs');
-    const dir = path.join(__dirname, '..', '..', 'src', 'rooms', 'webview');
+    const dir = path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'rooms', 'webview');
     const ctx = vm.createContext({ document: { getElementById: () => null }, escH: (x) => String(x), _famCatalogue: [{ id: 12, tiles: 3, areas: ['Fire Eyes'], names: [] }] });
     for (const f of ['rooms-imported.js', 'map-editor-chips.js']) vm.runInContext(fs.readFileSync(path.join(dir, f), 'utf8'), ctx, { filename: f });
     vm.runInContext('_importedWaiting = "som-80"; renderRoomDetail = function () {};', ctx);

@@ -20,9 +20,9 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 
-const WEBVIEW = path.join(__dirname, '..', '..', 'src', 'rooms', 'webview');
+const WEBVIEW = path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'rooms', 'webview');
 const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
-/** Map-view pieces the bundle puts in front of the rooms files (src/memory/webview/index.js). */
+/** Map-view pieces the bundle puts in front of the rooms files (src/games/evermore/memory/webview/index.js). */
 const MAP_VIEW = path.join(__dirname, '..', '..', 'src', 'core', 'map-editor', 'view');
 const CORE = path.join(__dirname, '..', '..', 'src', 'core', 'map-editor', 'core');
 const SHARED_JS = ['tile-animation.js', 'view-chips.js'].map((f) => fs.readFileSync(path.join(MAP_VIEW, f), 'utf8'))
@@ -87,9 +87,9 @@ async function main() {
     const pageErrors = [];
     page.on('pageerror', (e) => pageErrors.push(e.message));
 
-    const CSS = ['shared/shared.css', 'rooms/webview/map-editor-theme.css',
+    const CSS = ['shared/shared.css', 'games/evermore/rooms/webview/map-editor-theme.css',
         'core/map-editor/shell/shell-tabs.css', 'core/map-editor/shell/shell-canvas.css',
-        'rooms/webview/map-editor-canvas.css', 'core/map-editor/view/map-view.css', 'rooms/webview/map-editor-tile-tab.css']
+        'games/evermore/rooms/webview/map-editor-canvas.css', 'core/map-editor/view/map-view.css', 'games/evermore/rooms/webview/map-editor-tile-tab.css']
         .map((f) => fs.readFileSync(path.join(__dirname, '..', '..', 'src', ...f.split('/')), 'utf8'))
         .join('\n');
     // The real stylesheets: without them every swatch is 0x0, so nothing is

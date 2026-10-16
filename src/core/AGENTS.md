@@ -8,7 +8,7 @@ Kind: **core** — game-neutral features and UI shells (docs/architecture/multi-
 - `map-editor/`: the editor both games' map pages are built from — `view/` (filter chips, tile
   animation, design tokens), `core/` (undo history, sessions, "not saved" notice, tool keys) and
   `shell/` (frame, rail, canvas column, dock, layout, zoom/pan). Browser-side files loaded by the
-  Rooms tab (`src/memory/webview/index.js`) and the Mana Maps page; each has its own AGENTS.md.
+  Rooms tab (`src/games/evermore/memory/webview/index.js`) and the Mana Maps page; each has its own AGENTS.md.
 - `mcp/`: the localhost MCP server serving the games' file systems to AI clients (own AGENTS.md).
 
 ## Dependencies

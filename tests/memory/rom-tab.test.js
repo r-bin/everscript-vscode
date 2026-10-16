@@ -11,7 +11,7 @@ const { buildRomModel } = require('../../src/games/evermore/rom');
 const { readersOf } = require('../../src/games/evermore/rom/model/readers');
 const { parseWikiPoints, mergePoints } = require('../../src/games/evermore/rom/model/wiki-overlay');
 const { executedByHalf, wramStrip } = require('../../src/games/evermore/rom/model/bus-usage');
-const { renderRadarHtml } = require('../../src/memory/render-radar');
+const { renderRadarHtml } = require('../../src/games/evermore/memory/render-radar');
 
 let passed = 0, failed = 0;
 const check = (name, fn) => {

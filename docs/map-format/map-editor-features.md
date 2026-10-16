@@ -1,11 +1,11 @@
 # Map Editor — Feature Guide & Implementation Details
 
-> Reference documentation for the Map Editor subsystem in `src/rooms/webview/`.
+> Reference documentation for the Map Editor subsystem in `src/games/evermore/rooms/webview/`.
 > For format details and binary specifications, see `docs/map-format/README.md`.
 
 ---
 
-## 1. Collision Editing (`src/rooms/webview/map-editor-collision-tab.js`)
+## 1. Collision Editing (`src/games/evermore/rooms/webview/map-editor-collision-tab.js`)
 
 The **Collision tab** provides cell-level manual collision authoring:
 
@@ -15,7 +15,7 @@ The **Collision tab** provides cell-level manual collision authoring:
 
 ---
 
-## 2. Special Levels & Bitfields (`src/rooms/webview/map-editor-special.js`)
+## 2. Special Levels & Bitfields (`src/games/evermore/rooms/webview/map-editor-special.js`)
 
 The **Special tab** writes specific collision-word bitflags:
 
@@ -26,7 +26,7 @@ The **Special tab** writes specific collision-word bitflags:
 
 ---
 
-## 3. Placed Widgets & Group Management (`src/rooms/webview/map-editor-groups.js`)
+## 3. Placed Widgets & Group Management (`src/games/evermore/rooms/webview/map-editor-groups.js`)
 
 - **Atomic Groups:** Stamped widgets are maintained in `_edit.groups` apart from the raw cell grid (`_edit.cells`).
 - **Independent Manipulation:** The Select tool can select, drag (`editGroupMove`), and delete entire widgets without corrupting or overwriting underlying floor metatiles.
@@ -35,7 +35,7 @@ The **Special tab** writes specific collision-word bitflags:
 
 ---
 
-## 4. Zoom & Panning System (`src/rooms/webview/zoom-pan.js`)
+## 4. Zoom & Panning System (`src/games/evermore/rooms/webview/zoom-pan.js`)
 
 - **Zoom Levels:** Zoom chip displays exact ratio (`100%` = one ROM pixel per screen pixel; 8 ROM px per SVG viewBox unit). Supports in/out/fit buttons.
 - **Trackpad Pinch-Zoom:** Proportional exponential zoom anchored to mouse cursor coordinates.
@@ -43,7 +43,7 @@ The **Special tab** writes specific collision-word bitflags:
 
 ---
 
-## 5. Header Effects & PPU Configuration (`src/rooms/webview/map-editor-info.js`)
+## 5. Header Effects & PPU Configuration (`src/games/evermore/rooms/webview/map-editor-info.js`)
 
 The **Info tab (Header sub-tab)** exposes editable PPU registers:
 - **Presets (`INFO_EFFECTS`):** Includes Lantern darkness mask (room `0x4B` cave, layer follows player), additive blend, subtract, and water wave ripple.
@@ -51,21 +51,21 @@ The **Info tab (Header sub-tab)** exposes editable PPU registers:
 
 ---
 
-## 6. Procedural Neighbour Suggestions (`src/rooms/webview/map-editor-neighbours.js`)
+## 6. Procedural Neighbour Suggestions (`src/games/evermore/rooms/webview/map-editor-neighbours.js`)
 
 - **Adjacency Intelligence:** Ranks tiles by vanilla placement frequency across four cardinal directions.
 - **Procedural Fill Mode (`data-nb-mode="fill"`):** Generates 3×3 and 4×4 procedural combination patches matching boundary constraints for rapid natural terrain building.
 
 ---
 
-## 7. Section 2 Animated Tiles (`src/rooms/webview/map-editor-anim-tab.js`)
+## 7. Section 2 Animated Tiles (`src/games/evermore/rooms/webview/map-editor-anim-tab.js`)
 
 - **Channels & Timings:** Supports dynamic animated tile sets with custom tick delays.
 - **Phase Staggering:** Supports `init` countdown phase shifts to stagger torch flickering across adjacent cells.
 
 ---
 
-## 8. Playable ROM Export (`src/rooms/rendering/rom-export.js`)
+## 8. Playable ROM Export (`src/games/evermore/rooms/rendering/rom-export.js`)
 
 - Extends vanilla 3MB ROM to 4MB (`0x300000..0x3FFFFF`).
 - Repoints developer room `0x15` (Brian's Test Ground) pointer table to custom map payload.

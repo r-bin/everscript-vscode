@@ -15,7 +15,7 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 
-const WEBVIEW = path.join(__dirname, '..', '..', 'src', 'rooms', 'webview');
+const WEBVIEW = path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'rooms', 'webview');
 const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
 
 // The webview files share one scope and are concatenated, so they are
@@ -3001,7 +3001,7 @@ const URN_FAMILIES = {
 };
 
 test('a widget is its cells: no frames, no variations; older libraries keep their first frame with art', () => {
-    const ws = require('../../src/rooms/data/widget-store');
+    const ws = require('../../src/games/evermore/rooms/data/widget-store');
     const os = require('os');
     const tempFile = path.join(os.tmpdir(), 'widgets-test-' + Date.now() + '.json');
     const legacy = ws.saveWidget(tempFile, {
@@ -3053,7 +3053,7 @@ test('a colouring recolours every object state, and keeps each part’s animatio
 });
 
 test('placed widgets render object-like cards with clickable variant preview chips and clean library cards', () => {
-    const ws = require('../../src/rooms/data/widget-store');
+    const ws = require('../../src/games/evermore/rooms/data/widget-store');
     const os = require('os');
     const tempFile = path.join(os.tmpdir(), 'widgets-placed-test-' + Date.now() + '.json');
 

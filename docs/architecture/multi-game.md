@@ -153,10 +153,11 @@ does too (registered in `src/games/terra/`, European base ROM title `TERRANIGMA 
   scaling,debugger}`; their JS→TS conversion is cleanup 5.5, not part of the move. v0.241.0: the map editor's view/core/shell → `core/map-editor/`, `mcp` → `core/mcp`, the Docs/RNG
   tab → `games/evermore/docs-tab`. v0.242.0: Evermore helpers out of `shared/`. v0.243.0: the CDL engine →
   `platform/cdl` (Evermore's seeds come in as `gameRegions` from `games/evermore/cdl/`), TAS movie format →
-  `platform/tas`, `zip.js` and the SNES header model → `platform/`; rule `platform-stands-alone`. Still at `src/<domain>`
+  `platform/tas`, `zip.js` and the SNES header model → `platform/`; rule `platform-stands-alone`. v0.245.0: `rooms` and `memory` →
+  `games/evermore/` whole (Evermore's Rooms and Memory Radar; the editor's game-neutral pieces are already
+  `core/map-editor`, and a tab shell moves to `core/` only when a second game uses it). Still at `src/<domain>`
   because each mixes game-neutral and Evermore code and must be split first: `emulator` (the panel, its webview and
-  the CDL/TAS hosts → `core/`; ENTITIES/ALCHEMY panels, script trace, address lookup → `games/evermore`), `memory` and `rooms` (tab shells → `core/`,
-  Evermore content → `games/evermore`), `shared` (now only the radar webview assets: they go with `memory`), and
+  the CDL/TAS hosts → `core/`; ENTITIES/ALCHEMY panels, script trace, address lookup → `games/evermore`), `shared` (now only the radar webview assets: they go with `memory`), and
   `recorder`, which stays: it is the second extension's composition root, like `extension.js`.
 - Headless: `npm run roms` lists the library and adds/selects/marks ROMs (`tools/roms.js`).
 

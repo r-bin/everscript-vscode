@@ -1,5 +1,5 @@
 // Ownership: playing tile animations over an SVG map — shared by the Evermore Rooms
-// tab (src/rooms/webview/animation.js) and the Secret of Mana Maps panel.
+// tab (src/games/evermore/rooms/webview/animation.js) and the Secret of Mana Maps panel.
 // Plain browser script: defines globals, loaded as a file or concatenated.
 //
 // A group is one animation: its frames (image URLs), how long each shows (ms), and

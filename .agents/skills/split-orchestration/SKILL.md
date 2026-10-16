@@ -1,7 +1,7 @@
 ---
 name: split-orchestration
 description: Use when a god file (src/extension.js) has absorbed logic that belongs to a domain, or when a panel file in everscript-vscode mixes lifecycle, IPC, and rendering. Covers decomposing orchestration files into lifecycle/IPC/HTML-builder pieces.
-applyTo: "src/extension.js,src/emulator/panel.js,src/memory/render-radar.js"
+applyTo: "src/extension.js,src/emulator/panel.js,src/games/evermore/memory/render-radar.js"
 ---
 
 # Skill: Split Orchestration
@@ -24,7 +24,7 @@ domain, or when a panel file mixes lifecycle, IPC, and rendering.
 
 ### Phase 1: Extract HTML rendering
 
-Rendering belongs in the owning tab's domain (e.g. `src/memory/render-radar.js`,
+Rendering belongs in the owning tab's domain (e.g. `src/games/evermore/memory/render-radar.js`,
 already extracted) — takes explicit params (`scope, refs, pools, argRefs, mapByAddr,
 enumMap, roomTree, activeTab, config`), returns an HTML string, no module-level state
 access. Must be callable standalone.

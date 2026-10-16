@@ -69,7 +69,7 @@ of:
 | `AI_ARCHITECTURE_GUIDE.md` | Architectural laws, file size limits, ownership rules |
 | `STATE_FLOW.md` | Authoritative state ownership table |
 | `docs/architecture/domain-overview.md` | Which `src/` domains to load for a given task |
-| `docs/architecture/multi-game.md` | Decided target: any game (`platform/` + `core/` + `games/<game>/`), game descriptor, variants and base ROM, ROM library and panel, `soe://` as the only source; §8 the one map editor (core + per-game adapter) — read before touching `src/rooms/webview/map-editor*`, `src/games/mana/` or ROM loading |
+| `docs/architecture/multi-game.md` | Decided target: any game (`platform/` + `core/` + `games/<game>/`), game descriptor, variants and base ROM, ROM library and panel, `soe://` as the only source; §8 the one map editor (core + per-game adapter) — read before touching `src/games/evermore/rooms/webview/map-editor*`, `src/games/mana/` or ROM loading |
 | `docs/cleanup.md` | The repo cleanup: decisions D1–D13 and the ordered work items — read before deleting, moving, deduplicating or porting to TS |
 | `docs/evermore-releases.md` | The Evermore ROMs that exist (US, Europe, Germany, France, Spain Rev 1/2, prototype chip): how to identify them, 50 Hz speed, completeness, why US addresses don't apply to PAL builds |
 | `docs/exhirom/port.md` | Evermore as ExHiROM: why, bus map, what was built (§6) and how it was proven; the game's read past its 3 MB (`$80:D113`) |

@@ -302,7 +302,7 @@ bit-14 cell under it never fires by walking onto it. **Anything that writes or
 moves a step-on trigger must set bit 14 on the cells under it.** In the editor
 it is a special like Interact: Special tab → Step-on (Force 1 / Force 0), the
 Special menu's Step-on overlay, and an Info → Map check for boxes with no
-bit-14 cell (`src/rooms/webview/map-editor-flag-overlays.js`).
+bit-14 cell (`src/games/evermore/rooms/webview/map-editor-flag-overlays.js`).
 
 ---
 

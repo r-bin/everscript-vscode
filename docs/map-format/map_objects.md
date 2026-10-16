@@ -256,7 +256,7 @@ straight through, waiting only for each stamp to reach VRAM (`$90A5BA`), and
 ignores the holds.
 
 Implemented as `ObjectState.hold` in `src/games/evermore/maps/room.ts`; the Object tab edits
-and plays it (`src/rooms/webview/map-editor-object-holds.js`), and Export ROM
+and plays it (`src/games/evermore/rooms/webview/map-editor-object-holds.js`), and Export ROM
 writes it (`src/games/evermore/maps/custom-room.ts`).
 
 ---

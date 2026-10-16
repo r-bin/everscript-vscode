@@ -1,6 +1,6 @@
 'use strict';
 // The room blob write path (src/games/evermore/maps/encode.ts, custom-room.ts) and Export
-// ROM (src/rooms/rendering/rom-export.js, map-editor-rom-export.js).
+// ROM (src/games/evermore/rooms/rendering/rom-export.js, map-editor-rom-export.js).
 //
 // The encoder is a port of everscript/tools/encode_room.py, so it is held to
 // upstream's own two checks — `--verify` (byte-exact container) and
@@ -71,7 +71,7 @@ test('writeRoomAt refuses the lower half of a bank and a bank crossing', () => {
 
 // ── the webview payload ─────────────────────────────────────────────────────
 
-const WEBVIEW = path.join(__dirname, '..', '..', 'src', 'rooms', 'webview');
+const WEBVIEW = path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'rooms', 'webview');
 const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
 const webview = new Function(`
   var _mtPalette = null;
@@ -138,7 +138,7 @@ if (!rom) {
     console.log(`SKIP rom-export ROM checks: ${ROM_PATH} not found or unreadable`);
 } else {
     const script = require('../../src/games/evermore/script');
-    const { buildExportRom, BRIAN_ROOM, INTRO_FIRST_CODE } = require('../../src/rooms/rendering/rom-export');
+    const { buildExportRom, BRIAN_ROOM, INTRO_FIRST_CODE } = require('../../src/games/evermore/rooms/rendering/rom-export');
 
     test('buildBlob(modelFromRom()) is byte-exact for all 127 rooms (upstream --verify)', () => {
         for (let id = 0; id < maps.MAX_ROOMS; id++) {
@@ -176,8 +176,8 @@ if (!rom) {
     });
 
     test('palette sets: room 0x18 stores two, its script switches to 7, and the render follows MAP_PALETTE', () => {
-        const { buildRoomMetatilePalette } = require('../../src/rooms/rendering/metatile-palette');
-        const { withHeader } = require('../../src/rooms/rendering/header-overrides');
+        const { buildRoomMetatilePalette } = require('../../src/games/evermore/rooms/rendering/metatile-palette');
+        const { withHeader } = require('../../src/games/evermore/rooms/rendering/header-overrides');
         const pal = buildRoomMetatilePalette(rom, 0x18, 'composite', 1, null);
         assert.strictEqual(pal.tileFamilies.length, 14);
         assert.deepStrictEqual(pal.familySets.scriptValues, [7], 'Thraxx\'s room writes MAP_PALETTE = 7');

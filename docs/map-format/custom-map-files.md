@@ -4,10 +4,10 @@ How the map editor stores a custom map, the export archive it produces, and
 how edit history and levels are recorded in them.
 
 Code:
-- Host storage: `src/rooms/custom-store.js`.
-- Export archive: `src/rooms/rendering/custom-export.js`, using
+- Host storage: `src/games/evermore/rooms/custom-store.js`.
+- Export archive: `src/games/evermore/rooms/rendering/custom-export.js`, using
   `src/platform/zip.js`.
-- Webview side: `src/rooms/webview/map-editor-custom.js` and
+- Webview side: `src/games/evermore/rooms/webview/map-editor-custom.js` and
   `map-editor-custom-store.js`.
 - Tests: `tests/memory/custom-maps.test.js`.
 

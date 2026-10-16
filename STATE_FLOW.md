@@ -55,7 +55,7 @@
 | `_triggerDrag` | `map-editor-trigger-select.js` (webview), module-local | `{ref, w, h, grabDx, grabDy, x, y}\|null` | The Select tool's in-progress drag, live-updated by pointer move and read by `map-editor-paint.js`'s `renderEditLayer` for the preview outline. Not part of `_edit`: a drag that never commits is not a draft change, so it is not in the undo history |
 | `_triggerClipboard` | `map-editor-trigger-select.js` (webview), module-local | `{kind, x1, y1, w, h, scriptId}\|null` | The last copied trigger. An instance field, not reactive state and not part of `_edit` — Cmd/Ctrl+V still works after Escape clears the selection that filled it, and neither copy nor its later paste is itself undoable (only the paste's resulting `_edit.placed` mutation is, via `editApplyTriggerOp`) |
 
-**Map-editor state that predates this table (Phase 6 backfill — see `src/rooms/README.md`'s client-side file list for the fuller narrative each of these files carries):**
+**Map-editor state that predates this table (Phase 6 backfill — see `src/games/evermore/rooms/README.md`'s client-side file list for the fuller narrative each of these files carries):**
 
 | State | Owner File | Type | Notes |
 |---|---|---|---|

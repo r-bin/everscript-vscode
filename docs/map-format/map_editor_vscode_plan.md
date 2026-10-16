@@ -29,7 +29,7 @@ This is the live question, and `map_editor_design.md` §3 already answered it: e
 extension rather than publish a second one. Restated with the reasoning specific to "should it be
 in this repo":
 
-- `everscript-vscode` already has a room/trigger inspector (`src/rooms/`), a ROM-backed script
+- `everscript-vscode` already has a room/trigger inspector (`src/games/evermore/rooms/`), a ROM-backed script
   disassembler (`src/emulator/room-script-model.js`), and — critically — a **first-party forked,
   embedded SNES core** (`r-bin/snes9x2005-wasm`, branch `feature/vscode-debugger-integration`).
   None of that is replicable cheaply in a new extension; it's not "some code that happens to
@@ -37,7 +37,7 @@ in this repo":
   took multiple broken releases to get right — §3) that a second extension would have to solve
   from scratch.
 - A second extension means a second activation lifecycle, a second settings surface
-  (`everscript.repoPath`/`everscript.romPath` already exist and are consumed by `src/rooms/` —
+  (`everscript.repoPath`/`everscript.romPath` already exist and are consumed by `src/games/evermore/rooms/` —
   duplicating them invites the two extensions' settings to drift), and the Rooms tab either stays
   a read-only toy forever or gets rebuilt inside the new extension, which is strictly worse than
   extending it in place.

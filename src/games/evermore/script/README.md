@@ -140,7 +140,7 @@ Every case in `list-rooms.cpp` is ported, so an opcode that stops the walk is
 one **SoEScriptDumper cannot decode either**. It prints those in red as
 `UNKNOWN INSTR`, its own marker for "length unknown, parsing stops here".
 Nobody knows how long they are, so some scripts will never render in full,
-whatever we do. `src/rooms` shows a final row saying where knowledge ends
+whatever we do. `src/games/evermore/rooms` shows a final row saying where knowledge ends
 rather than a table that silently stops.
 
 Walks also stop on `bad-operand` — a well-known opcode whose operand bytes do

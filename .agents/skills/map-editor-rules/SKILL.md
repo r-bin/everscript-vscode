@@ -1,7 +1,7 @@
 ---
 name: map-editor-rules
-description: The hard rules the map editor must obey — the seven tile-family slots and the other ROM budgets, the tilemap-word and collision-word layouts, what a stamp is and what painting/erasing does to one, and the "never invent data the ROM does not have" rule that several shipped bugs came from breaking. Read before changing anything under src/rooms/webview/map-editor*.
-applyTo: "src/rooms/webview/map-editor*,src/rooms/rendering/room-draft.js,src/rooms/rendering/vanilla-index.js"
+description: The hard rules the map editor must obey — the seven tile-family slots and the other ROM budgets, the tilemap-word and collision-word layouts, what a stamp is and what painting/erasing does to one, and the "never invent data the ROM does not have" rule that several shipped bugs came from breaking. Read before changing anything under src/games/evermore/rooms/webview/map-editor*.
+applyTo: "src/games/evermore/rooms/webview/map-editor*,src/games/evermore/rooms/rendering/room-draft.js,src/games/evermore/rooms/rendering/vanilla-index.js"
 ---
 
 # Map Editor Rules

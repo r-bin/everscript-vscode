@@ -333,7 +333,7 @@ summary text against SoEScriptDumper's own dump of the ROM, and
 relax one to make a change pass.
 
 **Documentation:** `src/games/evermore/script/README.md`
-**Related:** `src/rooms/data/room-scripts.js` is the thin filesystem shim that
+**Related:** `src/games/evermore/rooms/data/room-scripts.js` is the thin filesystem shim that
 loads a ROM for this decoder. `script_parser/` is a separate standalone
 sandbox with its own `package.json` and is not part of the extension.
 

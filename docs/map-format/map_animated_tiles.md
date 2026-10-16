@@ -247,7 +247,7 @@ its transparent pixels.
 
 The editor now keeps animation the way the format does: per slot. A slot
 animates exactly while an animation group lists it
-(`src/rooms/webview/map-editor-animations.js`), and the canvas
+(`src/games/evermore/rooms/webview/map-editor-animations.js`), and the canvas
 (`stamp-animation.js`, told the channels by the composed-preview request)
 and the export (`channels` in the draft) both read those groups. A ROM
 room's own channels are its groups, grouped by touching cells of one timing.

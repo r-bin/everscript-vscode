@@ -35,7 +35,7 @@ soe://strings/*                Dynamic map_tile_graphics    Dynamic script_point
 
 ## 2. Consumer Subsystems & Required Adaptations
 
-### 2.1 Map Editor & Rooms Subsystem (`src/games/evermore/maps/`, `src/rooms/`)
+### 2.1 Map Editor & Rooms Subsystem (`src/games/evermore/maps/`, `src/games/evermore/rooms/`)
 - [x] **`src/games/evermore/maps/rom.ts`**:
   - Implemented `mapTableOffset(rom)` resolving `0x1FFDE7` for US and `0x20FDE5` for PAL.
   - Updated `roomBlobOffset(rom, id)` to use `mapTableOffset(rom)`.
@@ -44,7 +44,7 @@ soe://strings/*                Dynamic map_tile_graphics    Dynamic script_point
 - [x] **Background Palettes & Tile Graphics**:
   - Updated `extractTileFamilyPalette(rom, familyId)`: dynamic via `getMapPalettesOffset(rom)` (US `0x1CC322` vs PAL `0x1DC323`).
   - Updated `decompressTile16x16(rom, tileId)`: dynamic via `getMapTileGraphicsOffset(rom)` (US/Family B `0x2E0000` vs Family A `0x2F0000`).
-- [x] **Rooms Tab & Webview Editor (`src/rooms/`)**:
+- [x] **Rooms Tab & Webview Editor (`src/games/evermore/rooms/`)**:
   - Verified room decoding, metatile decompression, and palette extraction across all PAL retail variants.
 
 ### 2.2 Text & Dialogue Subsystem (`src/games/evermore/language/`, `src/resources/`)
@@ -81,7 +81,7 @@ soe://strings/*                Dynamic map_tile_graphics    Dynamic script_point
   - Read from `$81:9903` (71 packages, count at `$81:9900`) across all releases.
   - Accommodate PAL sound driver entry points.
 
-### 2.6 ROM Catalog & Memory Radar (`src/games/evermore/rom/model/catalog.js`, `src/memory/`)
+### 2.6 ROM Catalog & Memory Radar (`src/games/evermore/rom/model/catalog.js`, `src/games/evermore/memory/`)
 - [ ] **`catalog.js`**:
   - Refactor `roomRegions`, `textRegions`, and `entityRegions` to obtain table regions dynamically from `variants.json` based on the loaded ROM.
 
@@ -93,7 +93,7 @@ soe://strings/*                Dynamic map_tile_graphics    Dynamic script_point
    - Create `src/games/evermore/variant-resolver.ts` exporting `getVariant(rom)` and `getTable(rom, tableName)`.
    - Mount variant table addresses in `soe://tables/`.
 2. **Phase 2: Map Editor & Rooms Tab**
-   - Connect `variant-resolver.ts` to `src/games/evermore/maps/rom.ts`, `room.ts`, and `src/rooms/`.
+   - Connect `variant-resolver.ts` to `src/games/evermore/maps/rom.ts`, `room.ts`, and `src/games/evermore/rooms/`.
    - Test opening European and German ROMs in Map Editor and verifying tile palettes and blobs.
 3. **Phase 3: Text, Scripts & Hovers**
    - Wire string keys and enter script lookups to `variant-resolver.ts`.

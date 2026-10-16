@@ -64,4 +64,4 @@ Real, tested, and reusable — this is not a green field:
 
 `src/games/evermore/simulation/`, as a pure domain with no VS Code API and no rendering, the
 way `src/games/evermore/maps/` and `src/games/evermore/script/` are — so it stays testable in plain Node.
-The tab that drives it belongs in `src/rooms/`. This folder stays prose.
+The tab that drives it belongs in `src/games/evermore/rooms/`. This folder stays prose.

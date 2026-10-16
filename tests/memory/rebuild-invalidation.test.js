@@ -3,7 +3,7 @@
 // (src/extension.js). A throw there aborts the build before the ROM reaches
 // the emulator, which is how a stale PREVIEW_CACHE reference broke F5.
 
-const rooms = require('../../src/rooms');
+const rooms = require('../../src/games/evermore/rooms');
 const romReaders = require('../../src/games/evermore/rom-readers');
 
 try {

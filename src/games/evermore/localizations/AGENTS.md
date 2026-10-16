@@ -23,5 +23,5 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 
 ## Tests
 - Unit: `tests/localizations/localizations.test.js` (mock ROM buffer; also requires
-  `src/rooms`). Not wired into `npm test` — run it with
+  `src/games/evermore/rooms`). Not wired into `npm test` — run it with
   `node tests/localizations/localizations.test.js`.

@@ -396,7 +396,7 @@ test('rooms detail shows every ROM feature toggle, all on by default but collisi
 
     // The flag set is the contract with rooms/rendering/tile-overlay.js. A
     // feature added there without a button here would be unreachable.
-    const { ALL_OVERLAY_FLAGS } = require('../../src/rooms/rendering/tile-overlay');
+    const { ALL_OVERLAY_FLAGS } = require('../../src/games/evermore/rooms/rendering/tile-overlay');
     const rendered = (detail.match(/data-ov="(.)"/g) || []).map((m) => m.charAt(m.length - 2));
     assert.deepStrictEqual(rendered.slice().sort().join(''), ALL_OVERLAY_FLAGS.split('').sort().join(''),
         'Expected one toggle per overlay flag the host understands');
@@ -521,7 +521,7 @@ test('rooms detail surfaces explicit room errors and avoids the stale vanilla pl
 // between the decoded loot and the icon renderer the live path already used.
 
 function loadRoomsUtils(extraGlobals) {
-    const roomsDir = path.join(__dirname, '..', '..', 'src', 'rooms', 'webview');
+    const roomsDir = path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'rooms', 'webview');
     const code = fs.readFileSync(path.join(roomsDir, 'utils.js'), 'utf8');
     const sandbox = Object.assign({ Math, JSON, String, Array }, extraGlobals || {});
     vm.createContext(sandbox);
@@ -582,7 +582,7 @@ test('webview source is pasted into the bundle literally, not as a replacement p
     // `$'` in a String.replace replacement means "everything after the
     // match", so one dollar-quote in the webview source used to swallow the
     // rest of the bundle and leave an unterminated string.
-    const rw = require('../../src/memory/webview');
+    const rw = require('../../src/games/evermore/memory/webview');
     const bundle = rw.buildMainJs({
         jsData: '', roomsData: '', scalingData: '',
         roomsJs: "var probe='flag $'+1;", scalingJs: '', docsJs: '', rngJs: '',
@@ -596,7 +596,7 @@ test('webview source is pasted into the bundle literally, not as a replacement p
 test('a door trigger renders its destination as a link to that room', () => {
     // v0.90.0: the scripts moved from a table under the map into the Trigger
     // tab's rows (map-editor-trigger-scripts.js); the exit is still a link.
-    const roomsDir = path.join(__dirname, '..', '..', 'src', 'rooms', 'webview');
+    const roomsDir = path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'rooms', 'webview');
     const code = ['utils.js', 'map-editor-trigger-scripts.js']
         .map((f) => fs.readFileSync(path.join(roomsDir, f), 'utf8')).join('\n');
     const sandbox = { Math, JSON, String, Array };
@@ -622,7 +622,7 @@ test('following an exit reuses the tree\'s own room selection', () => {
     // Moved from tab-init.js to rooms-rail.js in Phase 7b: the exit link
     // navigates the rail, so it belongs with the rail's own selection logic.
     const src = fs.readFileSync(
-        path.join(__dirname, '..', '..', 'src', 'rooms', 'webview', 'rooms-rail.js'), 'utf8');
+        path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'rooms', 'webview', 'rooms-rail.js'), 'utf8');
     assert.ok(/function gotoVanillaRoom/.test(src), 'expected a gotoVanillaRoom helper');
     assert.ok(/data-goto-map/.test(src), 'expected a delegated handler for exit links');
     // Navigating by clicking the tree entry keeps selection and rendering
@@ -638,7 +638,7 @@ test('following an exit reuses the tree\'s own room selection', () => {
 test('clicking the map marks what is under it and scrolls nothing', () => {
     // The tables a click used to scroll to are gone (v0.90.0): nothing under the map.
     const src = fs.readFileSync(
-        path.join(__dirname, '..', '..', 'src', 'rooms', 'webview', 'interactions.js'), 'utf8');
+        path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'rooms', 'webview', 'interactions.js'), 'utf8');
     assert.ok(/selectAt\(Math\.floor\(pt\.x\),Math\.floor\(pt\.y\)\)/.test(src), 'map clicks select');
     assert.ok(!/scrollIntoView\(\{block:'nearest'\}\);\s*\}\);\s*\}\s*stepOn/.test(src), 'no row scrolling');
 });

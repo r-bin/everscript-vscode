@@ -179,7 +179,7 @@ for (const cmd of EXPECTED_COMMANDS) {
 console.log('\nActivation: module exports');
 
 const EXPECTED_EXPORTS = {
-    './src/rooms': [
+    './src/games/evermore/rooms': [
         'VANILLA_ROOMS', 'getMapEnum', 'readLuaWatchers', 'readScriptAllTriggers',
         'buildVanillaRoomContent', 'buildVanillaRoomDetails', 'invalidateRoomDataCaches',
         'findRoomImage', 'parseRoomContent', 'collectRoomsFromDir', 'buildRoomTree',

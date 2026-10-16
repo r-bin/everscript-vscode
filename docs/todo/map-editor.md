@@ -1,6 +1,6 @@
 # Map Editor — Open Tasks & Backlog
 
-> Domain: Map Editor (`src/rooms/webview/`, `src/games/evermore/maps/`, `src/rooms/rendering/`)
+> Domain: Map Editor (`src/games/evermore/rooms/webview/`, `src/games/evermore/maps/`, `src/games/evermore/rooms/rendering/`)
 > Shipped features reference: [`docs/map-format/map-editor-features.md`](../map-format/map-editor-features.md)
 > Status key: 🔴 bug · 🟡 feature gap · 🟢 designed, not yet built
 

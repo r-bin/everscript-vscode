@@ -21,7 +21,7 @@ function test(name, fn) {
 
 // ── the webview module, DOM-free parts ──────────────────────────────────────
 
-const WEBVIEW = path.join(__dirname, '..', '..', 'src', 'rooms', 'webview');
+const WEBVIEW = path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'rooms', 'webview');
 const web = new Function(`
   var _currentOverlay = 'c';
   var _layerForce = null;
@@ -97,7 +97,7 @@ try {
 if (!rom) {
     console.log(`SKIP collision ROM checks: ${ROM_PATH} not found or unreadable`);
 } else {
-    const rooms = require('../../src/rooms');
+    const rooms = require('../../src/games/evermore/rooms');
     const index = maps.buildVanillaIndex(rom);
 
     test('suggestGeometry votes on the shape, with its share of vanilla', () => {
@@ -111,7 +111,7 @@ if (!rom) {
     });
 
     test('the widget library carries every family vanilla draws its graphics in', () => {
-        const { widgetGraphicFamilies } = require('../../src/rooms/custom-host');
+        const { widgetGraphicFamilies } = require('../../src/games/evermore/rooms/custom-host');
         const urn = { cells: [{ dx: 0, dy: 0, canopy: { graphic: 643, family: 115 } }],
             frames: [{ cells: [] }, { cells: [{ dx: 0, dy: 0, terrain: { graphic: 4739, family: 220 } }] }] };
         const got = widgetGraphicFamilies([urn], { loadRom: () => ({ romBuf: rom }) });
@@ -122,7 +122,7 @@ if (!rom) {
     });
 
     test('the canvas animates the slots it is told about, and a ROM room its own channels only', () => {
-        const { buildStampAnimations } = require('../../src/rooms/rendering/stamp-animation');
+        const { buildStampAnimations } = require('../../src/games/evermore/rooms/rendering/stamp-animation');
         const room = maps.decodeRoom(rom, 0x2d);
         const base = room.tilePalette.length;
         const torch = room.animation.findIndex((c) => c.frames[0].tileId === 2742);
