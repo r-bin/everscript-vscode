@@ -7,11 +7,13 @@ Related skills: `map-editor-rules`, `map-construction`, `map-entities`, `rom-map
 ## Owns
 - All Rooms-tab server-side logic: room tree building, room content parsing, vanilla data,
   lua-watcher POIs, server-side HTML/JSON rendering, custom maps and widgets on disk.
+- `editor-host.js`: the map editor's ROM-backed messages (tiles, stamps, families, suggestions, deco,
+  drafts, export / play ROM, PNG export); `extension.js` routes them here with an injected `ctx`.
 - Client-side room interactions and SVG rendering live in `webview/`.
 - Does NOT own: ROM map decoding (`../maps/`, a pure model), emulator state, memory-map state.
 
 ## Dependencies
-- Allowed: libraries (`../shared/`, `../maps/`, `../script/`, `../localizations/`) and
+- Allowed: libraries (`../maps/`, `../script/`, `../localizations/`) and
   platform read APIs (`soe://`).
 - Always import rooms functionality through `rooms/index.js`, never bypass to internal files.
 - Forbidden: `rooms/` → `extension.js` (no upward call), `../debugger/`, `vscode` (VS Code
