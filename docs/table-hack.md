@@ -1,14 +1,23 @@
 # Table hack — move the content tables into the extension
 
-Status: **decided, nothing built.** The plan:
+## 0. First step: one table at a time, does it crash?
 
-- Move only the *tables* that index Evermore's content into the 4 MB extension (file
-  `0x300000–0x3FFFFF`).
-- Leave all content (rooms, scripts, strings) where it is.
-- Put new content in the extension.
+The first build is deliberately simple:
 
-Then a 128th room, a new string or a new script is one more table entry plus a blob in free space.
-The decisions come from a design interview on 2026-10-16; §6 lists them.
+1. Move **one** table from [extension-tables.md](extension-tables.md) to the extension.
+2. Rewrite the operands that read it, and wipe the old copy with `$FF`.
+3. Boot the ROM headless and replay the recorded movies. Does the game crash or diverge from
+   vanilla?
+4. Write the result in [extension-tables.md](extension-tables.md) (status column), then take the
+   next table.
+
+Start with the three tables already moved once in the Asar export (map table, enter scripts,
+string keys), then the script pointer table, then the graphics tables. Adding entries, the
+directory, the generated used/free md and the plugin resolver (§1–§7) come later. They are
+written down here so the reasoning is not lost.
+
+Status of §1–§7: **design for later, nothing built.** The decisions come from a design
+interview on 2026-10-16.
 
 Facts are marked *(repo)* with their source, *(everscript)* when read from the sibling `everscript`
 repo, *(hardware)* for SNES facts, or *(to verify)*.
