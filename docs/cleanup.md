@@ -238,7 +238,8 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   `colour-theme`; `animation-script` + `sprites-subsystem`. Split `map-editor-rules` (444 lines),
   `memory-radar` (282), `webview-dom-safety` (257), `rom-map-data` (242). New skills for what has
   none: the game descriptor / adding a game, the ROM library and resolver.
-- [ ] **7.4 Personas:** (v0.251.0: `architecture-compressor` dropped) drop `architecture-compressor` (covered by the merged skill); trim the rest.
+- [x] **7.4 Personas:** (v0.251.0: `architecture-compressor` dropped; v0.259.0: `everscript-plugin-builder` 335 → 43
+  lines, `mechanics-modeler` 260 → 43, pointing at the guide and skills instead of restating them) drop `architecture-compressor` (covered by the merged skill); trim the rest.
   (`script-parser-generator` is gone with its package.)
 
 ---
