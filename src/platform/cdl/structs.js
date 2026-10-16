@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * emulator/cdl/structs.js
+ * platform/cdl/structs.js
  *
  * WRAM struct inference. Every access that splits into "instance base" +
  * "field offset" votes; accesses that see the same set of instances are one

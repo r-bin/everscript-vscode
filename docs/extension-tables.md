@@ -29,7 +29,7 @@ Status values:
 
 Sources: [asm-to-c-port.md §11](reverse-engineering/asm-to-c-port.md),
 [cdl-export-build-recomp.md](reverse-engineering/cdl-export-build-recomp.md),
-`src/emulator/cdl/known-regions.js`, `src/games/evermore/rom/model/*`, and our own measurements on a clean ROM.
+`src/platform/cdl/known-regions.js`, `src/games/evermore/rom/model/*`, and our own measurements on a clean ROM.
 *(to verify)* marks what has not been checked on the running game.
 
 ## Tables worth moving

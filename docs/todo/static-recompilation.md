@@ -1,6 +1,6 @@
 # Static Recompilation (snesrecomp) — Open Tasks & Roadmap
 
-> Domain: Static Recompilation (`tools/recomp/`, `src/emulator/cdl/recomp-*.js`, snesrecomp host)
+> Domain: Static Recompilation (`tools/recomp/`, `src/platform/cdl/recomp-*.js`, snesrecomp host)
 > Master Reference: `docs/recomp/README.md`, `docs/recomp/bugs-and-todos.md`
 > Status key: 🔴 bug / investigation · 🟡 feature gap · 🟢 designed roadmap milestone
 

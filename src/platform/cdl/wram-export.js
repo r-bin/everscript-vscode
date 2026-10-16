@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * emulator/cdl/wram-export.js
+ * platform/cdl/wram-export.js
  *
  * CDL library -> ram.asm: one Asar define per WRAM address the CPU touched,
  * with its width, the instructions that read / write it (grouped by

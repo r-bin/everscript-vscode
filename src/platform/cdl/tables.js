@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * emulator/cdl/tables.js
+ * platform/cdl/tables.js
  *
  * Pre-baked ROM lookup tables (HP per level, XP thresholds, damage curves,
  * dispatch tables) from the recorded xrefs. No core data beyond what exists:

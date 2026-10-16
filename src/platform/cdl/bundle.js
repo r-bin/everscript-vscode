@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * emulator/cdl/bundle.js
+ * platform/cdl/bundle.js
  *
  * Recording bundles: one ROM's CDL library and the replays recorded on that ROM,
  * zipped by the SNES CDL Recorder for whoever collects the data, and merged back
@@ -25,7 +25,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { buildZip, readZip } = require('../../shared/zip');
+const { buildZip, readZip } = require('../zip');
 const { CdlLibrary, parseRecords } = require('./library');
 
 const KIND = 'everscript-recording-bundle';

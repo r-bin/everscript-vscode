@@ -124,7 +124,7 @@ Verified with a headless Claude Code session against a VS Code instance running 
 | Path | Content | Source |
 |---|---|---|
 | `rom/map.md`, `rom/regions.json` | ROM map: every region with label and size | `rom/model/*` (ROM tab) |
-| `rom/banks/<bb>.asm` | disassembly with CDL marks and names | `emulator/cdl/disasm.js`: inject it, as for `rom/` |
+| `rom/banks/<bb>.asm` | disassembly with CDL marks and names | `platform/cdl/disasm.js`: inject it, as for `rom/` |
 | `rom/assets/maps/<id>/collision.png`, `objects.json`, `triggers.json`, `blob.bin` | room layers and lists | `maps/collision-overlay.ts`, `maps/objects.ts`, `maps/blob-layout.ts` |
 | `rom/assets/maps/<id>/scripts.evs`, `rom/assets/scripts/<id>.evs` | decompiled scripts with Everscript highlighting | `script/room-scripts.ts`, `script/decoder.ts` |
 | `rom/assets/tiles/<id>.png` | `$EE` table graphics (6,688) | `maps/chr.ts` |

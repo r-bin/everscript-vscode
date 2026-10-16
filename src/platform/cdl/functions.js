@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * emulator/cdl/functions.js
+ * platform/cdl/functions.js
  *
  * functions.json: one record per recorded function, for recomp, decomp and an
  * SA-1 port. An instruction belongs to the nearest preceding function entry in

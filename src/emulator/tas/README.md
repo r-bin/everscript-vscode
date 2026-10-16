@@ -6,7 +6,7 @@ game frame rates.
 
 | File | Role |
 |---|---|
-| `movie.js` | Pure: `.evsmv` parsing / writing, pad word ⇄ `BYsSudlrAXLR0123` text |
+| `movie.js` (`src/platform/tas/`) | Pure: `.evsmv` parsing / writing, pad word ⇄ `BYsSudlrAXLR0123` text |
 | `host.js` | Panel glue (the only file that needs `vscode`): recording file per session, replay list, pins, load |
 
 ## Model

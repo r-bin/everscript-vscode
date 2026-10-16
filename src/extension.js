@@ -885,7 +885,7 @@ function activate(context) {
                         post: (m) => _radarPanel?.webview.postMessage(m),
                         loadRom: () => romReaders.loadRomBuffer(_ws, ''),
                         loadCdl: (rom) => {
-                            const { CdlLibrary, romHash } = require('./emulator/cdl/library');
+                            const { CdlLibrary, romHash } = require('./platform/cdl/library');
                             const root = path.join(context.globalStorageUri.fsPath, 'cdl-library');
                             return fs.existsSync(path.join(root, romHash(rom))) ? new CdlLibrary(root, rom) : null;
                         },
@@ -1459,7 +1459,7 @@ function activate(context) {
     // ── Emulator Panel ───────────────────────────────────────────────────────
     const { openEmulatorPanel } = require('./emulator/panel');
     // The full profile: every tab, and the CDL tab's exports and lookups.
-    require('./emulator/panel').configureEmulator({ profile: 'full', cdlTools: require('./emulator/cdl/tools') });
+    require('./emulator/panel').configureEmulator({ profile: 'full', cdlTools: require('./games/evermore/cdl/tools') });
     // The emulator's sound chip, frame by frame, to the radar's Music tab.
     require('./emulator/panel').apuStream.setListener(f => {
         if (_radarPanel) _radarPanel.webview.postMessage({ command: 'musicFrame', view: f.view, pkg: f.pkg, starts: f.starts, drv: f.drv, src: f.src, frame: f.frame, paused: !!f.paused });

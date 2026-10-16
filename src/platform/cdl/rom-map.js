@@ -1,14 +1,14 @@
 'use strict';
 
 /**
- * emulator/cdl/rom-map.js
+ * platform/cdl/rom-map.js
  *
  * ROM offset <-> SNES bus address for the export. Every ROM byte gets one
  * canonical address (HiROM: $C0-$FF, ExHiROM upper half: $40-$7D, LoROM:
  * $80-$FF:8000-FFFF); busToRom resolves any mirror back to the offset.
  */
 
-const { parseSnesRomHeader } = require('../snes-rom-header-model');
+const { parseSnesRomHeader } = require('../snes/rom-header-model');
 
 function createRomMap(rom) {
     const header = parseSnesRomHeader(Buffer.from(rom.buffer, rom.byteOffset, rom.length));

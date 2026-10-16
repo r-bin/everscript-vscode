@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * emulator/cdl/recomp-analysis.js
+ * platform/cdl/recomp-analysis.js
  *
  * Recorded control flow -> snesrecomp cfg directives (grammar checked against
  * snesrecomp recompiler/v2/cfg_loader.py):

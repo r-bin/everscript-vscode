@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('assert');
-const { parseSnesRomHeader } = require('../../src/emulator/snes-rom-header-model');
+const { parseSnesRomHeader } = require('../../src/platform/snes/rom-header-model');
 
 let passed = 0;
 let failed = 0;

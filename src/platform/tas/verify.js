@@ -16,7 +16,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 
-const TOOL = path.join(__dirname, '../../../tools/cdl/replay.js');
+const TOOL = path.join(__dirname, '..', '..', '..', 'tools', 'cdl', 'replay.js');
 
 /** The newest state in <statesDir>/index.json, or null. */
 function latestState(statesDir) {

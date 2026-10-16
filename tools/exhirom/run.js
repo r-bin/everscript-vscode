@@ -8,7 +8,7 @@
 // --probe   before running, read a few bus addresses whose meaning differs between HiROM and ExHiROM (JSON)
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm'), crypto = require('crypto');
-const { parseMovie, groupEvents, wramCrc, crcText } = require('../../src/emulator/tas/movie');
+const { parseMovie, groupEvents, wramCrc, crcText } = require('../../src/platform/tas/movie');
 
 // EXHIROM_CORE: another copy of snes9x_2005.js (+ .wasm next to it), e.g. so a core rebuild cannot cut a long proof run.
 const CORE = process.env.EXHIROM_CORE || path.join(__dirname, '../../src/emulator/core/snes9x2005-wasm/snes9x_2005.js');

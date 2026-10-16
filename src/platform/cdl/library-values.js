@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * emulator/cdl/library-values.js
+ * platform/cdl/library-values.js
  *
  * Library streams about the VALUES the program wrote (core cdl-values.c), kept out of library-ext.js:
  *   io-values.bin    640 x 32 bytes  256-bit "values written" bitmap per I/O register the CPU wrote:

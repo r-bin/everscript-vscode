@@ -8,16 +8,19 @@ Kind: **platform** — knows SNES hardware and our machinery, no game (docs/arch
 - `roms/identify.ts`: game + variant from header and SHA-1; derived ROMs through the game's marker.
 - `snes/opcodes-65816.ts`: the 65816 opcode matrix (mnemonic, mode, length, flow); `tools/gen-cdl-optable.js`
   generates the core's C table from it.
+- `cdl/`: the CDL engine (library, xrefs, disassembly, Asar / Mesen / recomp exports) — JS until cleanup
+  5.5; a game's seeds come in as `gameRegions`, the VS Code side is `src/emulator/cdl/host.js`.
+- `tas/`: movie format and verification (`movie.js`, `verify.js`); `zip.js`; `snes/rom-header-model.js`.
 - `crc32.ts`, `png.ts`: CRC-32 and the RGBA PNG encoder, one copy each.
 - `snes/hirom.ts`: HiROM bus → file offset and little-endian reads, the one copy (cleanup 5.1).
 - `roms/library.ts`: the ROM library file (paths only), selected ROM, base ROM per game, `romFor`.
 
 ## Dependencies
-- Node built-ins only. Never `core/`, never `games/` (rule `platform-knows-no-game`), never `vscode`:
+- Node built-ins only; nothing outside `platform/` (rule `platform-stands-alone`), never `vscode`:
   the same code runs in the extension, the MCP server, tests and node tools.
 
 ## Invariants
-- Strict TypeScript, built to `dist/platform` by `npm run build:ts`; JS callers require `dist/`.
+- New code is strict TypeScript (the moved CDL / TAS JS converts in cleanup 5.5), built to `dist/platform` by `npm run build:ts`; JS callers require `dist/`.
 - No game name, title, hash or address in this folder. A game's facts live in its descriptor.
 - The library stores paths, never ROM bytes or copies.
 

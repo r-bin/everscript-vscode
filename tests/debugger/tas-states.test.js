@@ -13,7 +13,7 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '../..');
-const movie = require('../../src/emulator/tas/movie');
+const movie = require('../../src/platform/tas/movie');
 const { frameOfStateFile } = require('../../tools/cdl/replay-states');
 
 let passed = 0, failed = 0;

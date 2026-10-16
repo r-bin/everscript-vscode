@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * emulator/cdl/asar-export.js
+ * platform/cdl/asar-export.js
  *
  * CDL library + ROM -> Asar project that reassembles byte-exact:
  *   main.asm              mapper + incsrc of every bank
@@ -15,7 +15,7 @@
  *   spc/aram.cdl          SPC700 coverage of ARAM, when recorded
  *   rooms/, rom.cdl, build.sh, build-cdl.js, export.json, STEPS.md  (asar-build.js)
  *   mesen/labels.mlb, mesen/rom.cdl  Mesen2 labels + comments, CDL with asset ranges (mesen-export.js)
- * Known regions (known-regions.js: header, rooms, strings, their pointer
+ * Known regions (known-regions.js: the header, plus the game's own: rooms, strings, their pointer
  * tables) are placed first and override the CDL's view of their bytes.
  * Pass 1 picks instruction boundaries over the whole ROM so labels are only
  * emitted where a line starts; pass 2 writes the text.
@@ -85,6 +85,8 @@ function summarizeSkips(skipped) {
  * @param opts.names      Map<rom offset, { name, note? }> curated names (see xref-index.js)
  * @param opts.wramNames  Map<wram offset, { name, note?, size? }> for the Mesen labels
  * @param opts.assets     [{ start, end, name }] ROM ranges known to be data (Mesen CDL, report)
+ * @param opts.gameRegions (rom, map, cdl, steps) => { regions, defines } | null: what the game knows
+ *                        about its ROM (known-regions.js); Evermore: games/evermore/cdl/regions.js
  */
 function exportAsar(lib, romInput, outDir, opts = {}) {
     const rom = romInput.length % 1024 === 512 ? romInput.subarray(512) : romInput;
@@ -96,7 +98,7 @@ function exportAsar(lib, romInput, outDir, opts = {}) {
     const tables = findTables(lib, rom, map, index);
     const tableAtBase = new Map(tables.map(t => [t.base, t]));
 
-    const known = findKnownRegions(rom, map, lib.cdl);
+    const known = findKnownRegions(rom, map, lib.cdl, opts.gameRegions);
     const taken = new Uint8Array(rom.length);
     for (const r of known.regions) taken.fill(1, r.start, r.end);
     const assets = buildTableAssets({ tables, rom, lib, map, index, taken });

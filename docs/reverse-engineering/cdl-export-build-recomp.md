@@ -2,7 +2,7 @@
 
 > Status: working end to end on Secret of Evermore since v0.159.1.
 > Background and the overall plan: [asm-to-c-port.md](asm-to-c-port.md).
-> Code: `src/emulator/cdl/` ([README](../../src/emulator/cdl/README.md)).
+> Code: `src/platform/cdl/` ([README](../../src/platform/cdl/README.md)).
 
 This turns play sessions in the embedded emulator into three things:
 

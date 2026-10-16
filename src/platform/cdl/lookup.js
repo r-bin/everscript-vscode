@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * emulator/cdl/lookup.js
+ * platform/cdl/lookup.js
  *
  * Answers "who calls / who touches this address" for the CDL tab's lookup box.
  * Accepts 7E4E57, $7E:4E57, 4E57 (WRAM bank $7E), 2118 (I/O), C0:8000 / 808000 (ROM).

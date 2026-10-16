@@ -17,9 +17,9 @@ const Module = require('module');
 
 const ROOT = path.resolve(__dirname, '../..');
 const { detectEvermore } = require('../../src/emulator/webview/rom-game');
-const { CdlLibrary } = require('../../src/emulator/cdl/library');
-const { buildBundle, importBundle, readBundle } = require('../../src/emulator/cdl/bundle');
-const { evsmvHeader } = require('../../src/emulator/tas/movie');
+const { CdlLibrary } = require('../../src/platform/cdl/library');
+const { buildBundle, importBundle, readBundle } = require('../../src/platform/cdl/bundle');
+const { evsmvHeader } = require('../../src/platform/tas/movie');
 
 let passed = 0;
 let failed = 0;
@@ -107,7 +107,7 @@ function recordInto(root, rom, hits) {
         for (const a of ASSETS) assert.ok(files.includes(a), 'asset listed: ' + a);
         assert.ok(files.every(f => /^(src|tools|dist)\//.test(f)), 'only src/, tools/ and the dist/ build');
         assert.ok(!files.some(f => /^src\/(memory|rooms\/webview|debugger|mana|music)\//.test(f)), 'no editor, radar or debugger domains');
-        assert.ok(!files.includes('src/emulator/cdl/asar-export.js'), 'no Asar export in the recorder');
+        assert.ok(!files.includes('src/platform/cdl/asar-export.js'), 'no Asar export in the recorder');
         const missing = files.filter(f => !fs.existsSync(path.join(ROOT, f)) && !/\/core\//.test(f));
         assert.deepStrictEqual(missing, []);
 

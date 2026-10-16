@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * emulator/cdl/tools.js
+ * games/evermore/cdl/tools.js
  *
  * What the CDL tab can do with a library beyond recording it: the Asar and
  * WRAM exports and the "who?" lookup. The full extension hands this to the
@@ -9,13 +9,19 @@
  * not, so none of it - nor what it requires - ships in the recorder.
  */
 
-const { exportAsar } = require('./asar-export');
-const { exportWram } = require('./wram-export');
-const { lookup } = require('./lookup');
-const { findTables } = require('./tables');
-const { buildIndex } = require('./xref-index');
-const { getActiveAddressLookup } = require('../address-lookup');
-const { hex } = require('./rom-map');
+const asar = require('../../../platform/cdl/asar-export');
+const { evermoreRegions } = require('./regions');
+const { exportWram } = require('../../../platform/cdl/wram-export');
+const { lookup } = require('../../../platform/cdl/lookup');
+const { findTables } = require('../../../platform/cdl/tables');
+const { buildIndex } = require('../../../platform/cdl/xref-index');
+const { getActiveAddressLookup } = require('../../../emulator/address-lookup');
+const { hex } = require('../../../platform/cdl/rom-map');
+
+/** The Asar export with Evermore's known regions (rooms, strings, enter scripts) seeded. */
+function exportAsar(lib, rom, outDir, opts = {}) {
+    return asar.exportAsar(lib, rom, outDir, { gameRegions: evermoreRegions, ...opts });
+}
 
 /** addr -> "$928000 (script name +$12)" for script instructions; plain address when unnamed. */
 function scriptNamer(romBody) {

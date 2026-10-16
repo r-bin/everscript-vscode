@@ -1,20 +1,19 @@
-# emulator/cdl/ — Code/Data Logger, xrefs, Asar export
+# platform/cdl/ — Code/Data Logger, xrefs, Asar export
 
-Host side of the CDL recorder compiled into the debugger core
+The game-neutral engine behind the CDL recorder compiled into the debugger core
 (`core/snes9x2005-wasm/source/cdl.c`, gated by `#if EVS_CDL`, constant on).
 Design: `docs/reverse-engineering/cdl-design-history.md` section 9.
 Usage (record → export → `build.sh` → `recomp.sh`): `docs/reverse-engineering/cdl-export-build-recomp.md`.
 
 | File | Role |
 |---|---|
-| `opcodes.js` | 65816 opcode matrix — single source for the disassembler and the core's `cdl-optable.h` (`node tools/gen-cdl-optable.js`) |
 | `library.js` | Per-ROM library `<globalStorage>/cdl-library/<sha1>/`; mergeable files, atomic flush |
 | `library-ext.js` | Library streams for recomp / decomp / layout ports: `bus.cdl`, `bus-sites.bin`, `rom-cycles.bin` (cycles are summed deltas), `rets.bin` (call stack outcomes, exit widths), `regs.bin` (DB / D / Y), `bases.bin` (pointer bases), `wram-code.*`, `aram.cdl`; decoded views `retsList` / `regsByPc` / `basesByPc` |
 | `rom-map.js` | ROM offset ⇄ bus address (canonical HiROM `$C0+`, LoROM `$80+:8000`) |
 | `xref-index.js` | Functions, callers, enclosing function, accessors per address, labels |
 | `disasm.js` | Decode one instruction with recorded M/X; format Asar text that reassembles byte-exact |
 | `asar-export.js` | `main.asm` + `banks/*.asm` + `rom.bin` (incbin for unreached / DMA runs). Options: `names` (curated labels + descriptions), `wramNames`, `assets` (from `tools/recomp/`, which may read `src/games/evermore/localizations` and `src/games/evermore/rom`; this domain may not) |
-| `known-regions.js` | Seeds the export before any CDL data: header + vectors; for SoE the 127 room blobs (`rooms/*.bin`), the map table as `dl room_XX-$400000`, 3002 strings `str_<index>` and the key table as `dl strkey(str_XXXX)`, the room enter script table `room_enter_scripts`, the two string key readers (`string_keys_ref_N`, immediates as expressions) |
+| `known-regions.js` | Seeds the export before any CDL data: header + vectors, plus the game's regions handed in as `gameRegions`. Evermore's (`src/games/evermore/cdl/regions.js`): the 127 room blobs (`rooms/*.bin`), the map table as `dl room_XX-$400000`, 3002 strings `str_<index>` and the key table as `dl strkey(str_XXXX)`, the room enter script table `room_enter_scripts`, the two string key readers (`string_keys_ref_N`, immediates as expressions) |
 | `recomp-analysis.js` | Recorded flow → snesrecomp directives: exit widths, `indirect_dispatch` (indexed / ptrtail / ptrcall / rtsstack), `ram_routine`, comments for patterns without a directive |
 | `recomp-seeds.js` | `recomp/cfg/bankXX.cfg` seeds for [snesrecomp](https://github.com/RetroPortingToolKit/snesrecomp) (func entries + entry M/X per runtime bank, data regions, indirect sites as comments) and `recomp.sh` |
 | `mesen-export.js` | Mesen2 files: `mesen/labels.mlb` (labels + comments for ROM and WRAM, `memtype:addr[-end]:label[:comment]`) and `mesen/rom.cdl` (`CDLv2` + CRC32 + flags, asset ranges as data) |
@@ -76,4 +75,4 @@ The webview half is `../cdl-view.js` (tab, tick / drain), `../cdl-strips.js` (RO
 
 ## Allowed dependencies
 
-`../snes-rom-header-model.js`, `../../maps` (room blob layout, `known-regions.js` only), Node built-ins; `host.js` additionally `vscode` and `../address-lookup.js` (script names).
+`../snes/` (header model, opcode matrix), `../zip.js`, Node built-ins — nothing outside `platform/` (`.depcruise.js` `platform-stands-alone`). The VS Code side is `src/emulator/cdl/host.js`; the Evermore seeds and the CDL tab's tools (with script names from `address-lookup.js`) are `src/games/evermore/cdl/`.

@@ -16,13 +16,13 @@ const Module = require('module');
 
 const ROOT = path.resolve(__dirname, '../..');
 const { OPCODES, instructionLength, flowKind, FLOW } = require('../../dist/platform/snes/opcodes-65816');
-const { CdlLibrary, romHash } = require('../../src/emulator/cdl/library');
-const { decodeAt, formatInstruction } = require('../../src/emulator/cdl/disasm');
-const { exportAsar } = require('../../src/emulator/cdl/asar-export');
-const { exportWram } = require('../../src/emulator/cdl/wram-export');
-const { parseQuery, lookup } = require('../../src/emulator/cdl/lookup');
-const { createRomMap } = require('../../src/emulator/cdl/rom-map');
-const { buildIndex, SPACE } = require('../../src/emulator/cdl/xref-index');
+const { CdlLibrary, romHash } = require('../../src/platform/cdl/library');
+const { decodeAt, formatInstruction } = require('../../src/platform/cdl/disasm');
+const { exportAsar } = require('../../src/games/evermore/cdl/tools');
+const { exportWram } = require('../../src/platform/cdl/wram-export');
+const { parseQuery, lookup } = require('../../src/platform/cdl/lookup');
+const { createRomMap } = require('../../src/platform/cdl/rom-map');
+const { buildIndex, SPACE } = require('../../src/platform/cdl/xref-index');
 const gen = require('../../tools/gen-cdl-optable');
 
 let passed = 0;
@@ -267,7 +267,7 @@ test('hit counts sum drained deltas and survive a flush', () => {
 });
 
 test('lookup tables: base, entry size, curve, index source and result', () => {
-    const { findTables, tablesReport } = require('../../src/emulator/cdl/tables');
+    const { findTables, tablesReport } = require('../../src/platform/cdl/tables');
     const rom = makeRom();
     //   A000 AF 10 00 7E  lda.l $7E0010 / A004 0A asl / A005 AA tax
     //   A006 BF 00 B0 C0  lda.l $C0B000,x / A00A 8F 20 00 7E sta.l $7E0020 / A00E 60 rts
@@ -315,7 +315,7 @@ test('host decodes webview deltas (base64 words) into the library', () => {
         const posted = [];
         let wanted = false;
         const host = new CdlHost(path.join(tmp, 'host'), m => posted.push(m), () => {},
-            { tools: require('../../src/emulator/cdl/tools'), wanted: { get: () => wanted, set: on => { wanted = on; } } });
+            { tools: require('../../src/games/evermore/cdl/tools'), wanted: { get: () => wanted, set: on => { wanted = on; } } });
         host.romStarted(makeRom());
         assert.strictEqual(posted[0].command, 'cdlConfig');
         assert.strictEqual(posted[0].autoEnable, false, 'recording is off by default');

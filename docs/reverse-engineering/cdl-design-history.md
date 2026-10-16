@@ -535,7 +535,7 @@ The output is a list of **enum candidates** (address, value set, comparing sites
 
 ### 9.7 Implementation Status (v0.156.0)
 
-Implemented in the custom core and `src/emulator/cdl/`. Where it deviates from the plan above:
+Implemented in the custom core and `src/platform/cdl/`. Where it deviates from the plan above:
 
 | Plan | As built |
 |---|---|

@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * emulator/cdl/library-ext.js
+ * platform/cdl/library-ext.js
  *
  * The library streams added for recomp / decomp work (v0.174.0), kept out of
  * library.js so that file stays about storage and the original streams:

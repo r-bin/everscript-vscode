@@ -1,21 +1,17 @@
 'use strict';
 
 /**
- * emulator/cdl/known-regions.js
+ * games/evermore/cdl/regions.js
  *
- * What the export knows about a ROM before any CDL data: the header, and for
- * Secret of Evermore the room blobs, the map pointer table, the strings and
- * the string key table. Each region replaces the CDL's guess for its bytes:
- *   blob   -> incbin of its own file (rooms/room_XX.bin)
- *   bytes  -> db lines under a label (header, strings)
- *   table  -> pointer entries written as label expressions, so a moved target
- *             moves its pointer with it
- * Every region is a plain slice of the ROM, so a wrong end only moves a label;
- * the rebuild stays byte-identical either way.
+ * What the CDL export knows about Secret of Evermore before any CDL data: the room blobs, the
+ * map pointer table, the room enter script table, the strings with their key table, and the
+ * two string key readers. Handed to the export as `gameRegions` (platform/cdl/known-regions.js
+ * owns the header and how regions are merged). Region kinds and rules: that file.
  */
 
-const { hex } = require('./rom-map');
-const maps = require('../../games/evermore/maps');
+const { hex } = require('../../../platform/cdl/rom-map');
+const { dbLines, labelExpr } = require('../../../platform/cdl/known-regions');
+const maps = require('../maps');
 
 const CDL_CODE = 0x01, CDL_DATA = 0x02;
 
@@ -25,25 +21,6 @@ const STRING_KEYS = 0x11D000;
 const STRING_COUNT = 3002;
 const STRING_CHUNK = 0x8000;
 const STRKEY_FN = 'function strkey(a) = ((a-$C00000)&$FFFF)+(((a-$C00000)&$7F8000)>>1)';
-
-function headerRegions(rom, map, steps) {
-    const h = map.header;
-    if (!h) { steps.push('Header: none found, no header labels.'); return []; }
-    const base = map.type === 'LoROM' ? 0x7FB0 : 0xFFB0;
-    if (base + 0x50 > rom.length) return [];
-    const at = (o, n) => [...rom.subarray(base + o, base + o + n)];
-    steps.push(`Header: "${h.title}", ${map.type}, ${rom.length} bytes; labels rom_header ($${hex(map.canonical(base), 6)}) and rom_vectors.`);
-    return [
-        { start: base, end: base + 0x30, kind: 'bytes', name: 'rom_header', note: `${h.title} - ${map.type}`, lines: dbLines(at(0, 0x30)) },
-        { start: base + 0x30, end: base + 0x50, kind: 'bytes', name: 'rom_vectors', note: 'native $FFE0-$FFEF, emulation $FFF0-$FFFF', lines: dbLines(at(0x30, 0x20)) },
-    ];
-}
-
-function dbLines(bytes, per = 16) {
-    const out = [];
-    for (let i = 0; i < bytes.length; i += per) out.push('    db ' + bytes.slice(i, i + per).map(b => '$' + hex(b, 2)).join(','));
-    return out;
-}
 
 // The title alone, so ROM hacks and other layouts get the known regions too;
 // a room whose blob does not decode is skipped (roomRegions), not fatal.
@@ -106,11 +83,6 @@ function enterScriptRegion(rom, map, steps) {
     }
     steps.push(`Room enter scripts: table at $${hex(map.canonical(ENTER_TABLE), 6)}, ${lines.length} entries (5 bytes, id*5 via the 8x8-bit multiplier: max 256 rooms), labelled room_enter_scripts.`);
     return [{ start: ENTER_TABLE, end, kind: 'bytes', name: 'room_enter_scripts', note: 'room id -> enter script (3-byte packed pointer + 2 bytes), stride 5', lines }];
-}
-
-function labelExpr(name, delta) {
-    if (!delta) return name;
-    return name + (delta < 0 ? '-$' + hex(-delta, 6) : '+$' + hex(delta, 6));
 }
 
 function stringText(bytes) {
@@ -197,41 +169,19 @@ function stringKeyReaders(rom, map, steps) {
 }
 
 /**
- * Known regions for this ROM, sorted and non-overlapping (a later region that
- * overlaps an earlier one is dropped and reported).
- * @returns {{ regions: object[], defines: string[], steps: string[] }}
+ * Evermore's regions, or null when the ROM is not Evermore (title) or too small.
+ * @returns {{ regions: object[], defines: string[] } | null}
  */
-function findKnownRegions(rom, map, cdl) {
-    const steps = [];
-    let all = headerRegions(rom, map, steps);
-    const defines = [];
-    if (isEvermore(map) && rom.length > STRING_KEYS + STRING_COUNT * 3 && rom.length > maps.MAP_LIST_ADDR + maps.MAX_ROOMS * 4) {
-        try {
-            all = all.concat(roomRegions(rom, map, steps), enterScriptRegion(rom, map, steps), stringRegions(rom, map, cdl, steps), stringKeyReaders(rom, map, steps));
-            defines.push(STRKEY_FN);
-        } catch (err) {
-            // A hack with the vanilla title but moved tables: keep the header only.
-            all = headerRegions(rom, map, []);
-            steps.push('Content: titled Secret of Evermore, but its tables do not decode (' + err.message + '); only the header is seeded.');
-        }
-    } else {
-        steps.push('Content: not a Secret of Evermore image, only the header is seeded.');
+function evermoreRegions(rom, map, cdl, steps) {
+    if (!isEvermore(map) || rom.length <= STRING_KEYS + STRING_COUNT * 3 || rom.length <= maps.MAP_LIST_ADDR + maps.MAX_ROOMS * 4) return null;
+    try {
+        const regions = [].concat(roomRegions(rom, map, steps), enterScriptRegion(rom, map, steps), stringRegions(rom, map, cdl, steps), stringKeyReaders(rom, map, steps));
+        return { regions, defines: [STRKEY_FN] };
+    } catch (err) {
+        // A hack with the vanilla title but moved tables: keep the header only.
+        steps.push('Content: titled Secret of Evermore, but its tables do not decode (' + err.message + '); only the header is seeded.');
+        return null;
     }
-    all.sort((a, b) => a.start - b.start || b.end - a.end);
-    const regions = [], dropped = [];
-    for (const r of all) {
-        const prev = regions[regions.length - 1];
-        const crosses = map.segment && Math.floor(r.start / map.segment) !== Math.floor((r.end - 1) / map.segment);
-        if ((prev && r.start < prev.end) || crosses) dropped.push(r.name + (crosses ? ' (crosses a bank)' : ' (overlaps ' + prev.name + ')'));
-        else regions.push(r);
-    }
-    if (dropped.length) steps.push('Dropped: ' + dropped.join(', ') + '.');
-    if (cdl) {
-        let codeInside = 0;
-        for (const r of regions) for (let o = r.start; o < r.end; o++) if (cdl[o] & CDL_CODE) codeInside++;
-        if (codeInside) steps.push(`Warning: the CDL saw ${codeInside} bytes inside known regions execute as code; the known region wins.`);
-    }
-    return { regions, defines, steps };
 }
 
-module.exports = { findKnownRegions, stringText };
+module.exports = { evermoreRegions, stringText };

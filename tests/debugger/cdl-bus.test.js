@@ -13,10 +13,10 @@ const path = require('path');
 const vm = require('vm');
 
 const ROOT = path.resolve(__dirname, '../..');
-const { CdlLibrary } = require('../../src/emulator/cdl/library');
-const { createRomMap } = require('../../src/emulator/cdl/rom-map');
-const { busSitesList, BUS } = require('../../src/emulator/cdl/library-ext');
-const { buildBusReport, busReportMd } = require('../../src/emulator/cdl/bus-report');
+const { CdlLibrary } = require('../../src/platform/cdl/library');
+const { createRomMap } = require('../../src/platform/cdl/rom-map');
+const { busSitesList, BUS } = require('../../src/platform/cdl/library-ext');
+const { buildBusReport, busReportMd } = require('../../src/platform/cdl/bus-report');
 
 let passed = 0;
 let failed = 0;

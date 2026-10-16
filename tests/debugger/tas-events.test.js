@@ -16,7 +16,7 @@ const vm = require('vm');
 const { execFileSync, spawnSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '../..');
-const movie = require('../../src/emulator/tas/movie');
+const movie = require('../../src/platform/tas/movie');
 const { getTasClientScript } = require('../../src/emulator/tas-view');
 
 let passed = 0;

@@ -9,7 +9,7 @@ Related skills: `emulator-subsystem`, `cdl-recorder`, `webview-dom-safety`, `deb
   (`webview/emulator-panels.js`: menu tab, side bar, bottom bar), the REPLAYS menu tab,
   the script-debug hook (`script-debug-host.js` / `script-debug-view.js`) and the
   sound-chip stream for the Music tab (`apu-stream.js` / `apu-stream-view.js`).
-- Sub-folders with their own READMEs: `cdl/`, `tas/`, `menu/`. `webview/` holds the page's files
+- Sub-folders with their own READMEs: `cdl/` (only `host.js` here; the engine is `src/platform/cdl/`), `tas/` (`host.js`; the movie format is `src/platform/tas/`), `menu/`. `webview/` holds the page's files
   that are loaded as files (`rom-game.js`, `emulator-profile.js` / `.css`): new page code goes there.
 - The two profiles (full Everscript, SNES CDL Recorder) and the Evermore gating: README "Profiles and games".
 

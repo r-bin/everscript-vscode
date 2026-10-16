@@ -7,7 +7,7 @@
 // frames, rooms ($7E0ADB) and which table readers ran (docs/extension-tables.md).
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm'), crypto = require('crypto');
-const T = require('../../src/emulator/tas/movie');
+const T = require('../../src/platform/tas/movie');
 
 const REPO = path.resolve(__dirname, '..', '..');
 const CORE = path.join(REPO, 'src/emulator/core/snes9x2005-wasm/snes9x_2005.js');

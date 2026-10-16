@@ -18,7 +18,7 @@ const crypto = require('crypto');
 const Module = require('module');
 
 const ROOT = path.resolve(__dirname, '..', '..');
-const movie = require('../../src/emulator/tas/movie');
+const movie = require('../../src/platform/tas/movie');
 
 let passed = 0;
 let failed = 0;

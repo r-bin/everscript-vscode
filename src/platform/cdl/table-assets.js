@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * emulator/cdl/table-assets.js
+ * platform/cdl/table-assets.js
  *
  * Detected ROM lookup tables (tables.js) -> editable assets in the Asar export:
  *   tables/tbl_XXXXXX.asm   one per table: header (shape, index source, result,

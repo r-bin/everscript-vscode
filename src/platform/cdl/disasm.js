@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * emulator/cdl/disasm.js
+ * platform/cdl/disasm.js
  *
  * Decodes one 65816 instruction at a ROM offset using the CDL's recorded M/X
  * widths and formats it as Asar source that reassembles to the same bytes:

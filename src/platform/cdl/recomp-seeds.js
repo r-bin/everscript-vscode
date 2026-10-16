@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * emulator/cdl/recomp-seeds.js
+ * platform/cdl/recomp-seeds.js
  *
  * CDL -> snesrecomp analysis seeds (https://github.com/RetroPortingToolKit/snesrecomp):
  *   recomp/cfg/bankXX.cfg   one per bank code ran in (the runtime bank, e.g. $80, not $C0):

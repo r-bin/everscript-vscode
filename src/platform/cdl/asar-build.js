@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * emulator/cdl/asar-build.js
+ * platform/cdl/asar-build.js
  *
  * Everything in the export folder besides the .asm text:
  *   rooms/*.bin     known blob regions, one file each

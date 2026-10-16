@@ -12,10 +12,10 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { buildBundle, importBundle } = require('./cdl/bundle');
-const { parseMovie } = require('./tas/movie');
+const { buildBundle, importBundle } = require('../platform/cdl/bundle');
+const { parseMovie } = require('../platform/tas/movie');
 const { flushRecording, reloadRecording, recordingFolders, getCurrentRom } = require('./panel');
-const { stripCopierHeader } = require('./cdl/library');
+const { stripCopierHeader } = require('../platform/cdl/library');
 
 const INSTALL_ID_KEY = 'everscript.recorder.installId';
 

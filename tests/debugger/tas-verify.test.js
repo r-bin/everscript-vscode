@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * The replay check (src/emulator/tas/verify.js): reading replay.js's result, and, with a local Secret of Evermore
+ * The replay check (src/platform/tas/verify.js): reading replay.js's result, and, with a local Secret of Evermore
  * ROM (from the ROM library), checking a real movie headless: OK, resumed from a state the
  * first check left, and a tampered write reported as a desync.
  */
@@ -11,8 +11,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const movie = require('../../src/emulator/tas/movie');
-const { verifyMovie, interpret, latestState } = require('../../src/emulator/tas/verify');
+const movie = require('../../src/platform/tas/movie');
+const { verifyMovie, interpret, latestState } = require('../../src/platform/tas/verify');
 
 let passed = 0, failed = 0;
 async function test(name, fn) {

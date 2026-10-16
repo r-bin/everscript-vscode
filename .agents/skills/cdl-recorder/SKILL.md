@@ -1,12 +1,12 @@
 ---
 name: cdl-recorder
 description: Use when touching the Code/Data Logger (CDL) — the recorder compiled into the snes9x core (cdl*.c, hook sites in cpuexec/getset/dma/cpuops/spc700.h/apumem.h), the per-ROM library, xrefs, the Asar export and its assets (tables/, enums, structs, functions.json, snesrecomp cfgs), the CDL tab, or any analysis built on recorded data for a recomp, decomp or SA-1 port.
-applyTo: "src/emulator/cdl/**,src/emulator/cdl-*.js,src/emulator/core/snes9x2005-wasm/source/cdl*,src/emulator/core/snes9x2005-wasm/source/spc700.h,src/emulator/core/snes9x2005-wasm/source/apumem.h,tools/gen-cdl-optable.js,tests/debugger/cdl*.test.js,docs/reverse-engineering/cdl-export-build-recomp.md,docs/reverse-engineering/asm-to-c-port.md"
+applyTo: "src/platform/cdl/**,src/emulator/cdl/**,src/games/evermore/cdl/**,src/emulator/cdl-*.js,src/emulator/core/snes9x2005-wasm/source/cdl*,src/emulator/core/snes9x2005-wasm/source/spc700.h,src/emulator/core/snes9x2005-wasm/source/apumem.h,tools/gen-cdl-optable.js,tests/debugger/cdl*.test.js,docs/reverse-engineering/cdl-export-build-recomp.md,docs/reverse-engineering/asm-to-c-port.md"
 ---
 
 # Skill: CDL recorder, library and exports
 
-Read first: `src/emulator/cdl/README.md` (file map, invariants, allowed deps).
+Read first: `src/platform/cdl/README.md` (file map, invariants, allowed deps).
 Usage: `docs/reverse-engineering/cdl-export-build-recomp.md`. Goal and status: `docs/reverse-engineering/asm-to-c-port.md` §10–11.
 Design history: `docs/reverse-engineering/cdl-design-history.md` §9 (§1–8 are the original
 proposal and differ from what was built).
@@ -156,7 +156,7 @@ Recording the CDL never changes emulation (tested: same checksums with `--cdl`).
 frame 1 does not reproduce the run) and `--from-state <file>` resumes from one (`tools/cdl/replay-states.js`,
 `tests/debugger/tas-states.test.js`); states hold ROM-derived memory and stay out of git. While you record by hand the
 extension replays the session headless every `everscript.tas.verifyEveryMinutes` (default 30) and reports OK / desync
-(`src/emulator/tas/verify.js`); a failure after resuming from a state is repeated from power-on before it is believed.
+(`src/platform/tas/verify.js`); a failure after resuming from a state is repeated from power-on before it is believed.
 
 ## 6. What each goal still needs
 

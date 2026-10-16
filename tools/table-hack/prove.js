@@ -10,7 +10,7 @@
 const fs = require('fs'), path = require('path'), os = require('os'), crypto = require('crypto');
 const { spawn } = require('child_process');
 const { TABLES, build, hex } = require('./tables');
-const { parseMovie } = require('../../src/emulator/tas/movie');
+const { parseMovie } = require('../../src/platform/tas/movie');
 
 const RUN = path.join(__dirname, 'run.js');
 const REPO = path.resolve(__dirname, '..', '..');

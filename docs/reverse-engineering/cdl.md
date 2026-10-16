@@ -5,7 +5,7 @@ merges every session, and the export turns it into a rebuildable Asar project an
 input.
 
 - How to use it: [cdl-export-build-recomp.md](cdl-export-build-recomp.md)
-- Code and invariants: `src/emulator/cdl/README.md`, skill `cdl-recorder`
+- Code and invariants: `src/platform/cdl/README.md`, skill `cdl-recorder`
 - Design history: [cdl-design-history.md](cdl-design-history.md) (§9 is what was built)
 - Where it leads (C, room ids): [asm-to-c-port.md](asm-to-c-port.md)
 - Files and formats: [formats.md](formats.md)

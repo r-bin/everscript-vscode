@@ -30,6 +30,13 @@ module.exports = {
       to: { path: '^(src/(core|games)/|dist/(core|games)/)' },
     },
     {
+      name: 'platform-stands-alone',
+      comment: 'platform/ imports only itself (and node built-ins): SNES facts, the CDL engine, the ROM library.',
+      severity: 'error',
+      from: { path: '^src/platform/' },
+      to: { path: '^src/(?!platform/)' },
+    },
+    {
       name: 'core-knows-no-game',
       comment: 'core/ is game-neutral: it imports platform/ only. Games register through registerGame().',
       severity: 'error',

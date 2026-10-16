@@ -1,9 +1,9 @@
 'use strict';
 
 /**
- * emulator/cdl/bus-report.js
+ * platform/cdl/bus-report.js
  *
- * bus.json / bus.md: what the recording says about moving Evermore to another
+ * bus.json / bus.md: what the recording says about moving a HiROM game to another
  * cartridge layout, in the order of the plan (docs/exhirom/layout-options.md):
  *   exhirom  bytes that ran / were read through $00-$3F or $40-$7D (those bytes
  *            change meaning in ExHiROM), the instructions that read them, and the

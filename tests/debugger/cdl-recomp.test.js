@@ -14,14 +14,14 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '../..');
-const { CdlLibrary } = require('../../src/emulator/cdl/library');
-const { exportAsar } = require('../../src/emulator/cdl/asar-export');
-const { createRomMap } = require('../../src/emulator/cdl/rom-map');
-const { buildIndex, SPACE } = require('../../src/emulator/cdl/xref-index');
-const { inferStructs } = require('../../src/emulator/cdl/structs');
-const { buildEnums } = require('../../src/emulator/cdl/enums');
-const { buildFunctions } = require('../../src/emulator/cdl/functions');
-const { lookup } = require('../../src/emulator/cdl/lookup');
+const { CdlLibrary } = require('../../src/platform/cdl/library');
+const { exportAsar } = require('../../src/games/evermore/cdl/tools');
+const { createRomMap } = require('../../src/platform/cdl/rom-map');
+const { buildIndex, SPACE } = require('../../src/platform/cdl/xref-index');
+const { inferStructs } = require('../../src/platform/cdl/structs');
+const { buildEnums } = require('../../src/platform/cdl/enums');
+const { buildFunctions } = require('../../src/platform/cdl/functions');
+const { lookup } = require('../../src/platform/cdl/lookup');
 
 let passed = 0;
 let failed = 0;
@@ -324,7 +324,7 @@ test('host package: rebuild replaces the game but keeps saves and settings', () 
 });
 
 test('dispatch table size: static scan past the observed entries, stops at a data read, allows a sibling dispatcher', () => {
-    const { staticTableCount } = require('../../src/emulator/cdl/recomp-analysis');
+    const { staticTableCount } = require('../../src/platform/cdl/recomp-analysis');
     // bank $8F mapped flat for the test: bus $8Fxxxx -> offset xxxx
     const map = { busToRom: b => ((b >>> 16) === 0x8F ? b & 0xFFFF : -1) };
     const rom = new Uint8Array(0x10000), cdl = new Uint8Array(0x10000);

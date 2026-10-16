@@ -21,7 +21,7 @@ const fs = require('fs'), path = require('path'), os = require('os'), crypto = r
 const { spawn } = require('child_process');
 const { convert, secondHalfUsed, UPPER_MODES, HALF } = require('./convert');
 const { mesenPath, runMesen } = require('./mesen');
-const { parseMovie } = require('../../src/emulator/tas/movie');
+const { parseMovie } = require('../../src/platform/tas/movie');
 
 const RUN = path.join(__dirname, 'run.js');
 const REPO = path.resolve(__dirname, '..', '..');

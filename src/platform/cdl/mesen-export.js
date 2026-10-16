@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * emulator/cdl/mesen-export.js
+ * platform/cdl/mesen-export.js
  *
  * Files Mesen2 reads directly (formats checked against Mesen2's source, 2026-10-12):
  *   mesen/labels.mlb  one entry per line: `<memory type>:<hex address>[-<hex end>]:<label>[:<comment>]`.

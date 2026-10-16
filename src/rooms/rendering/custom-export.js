@@ -8,7 +8,7 @@
 
 const { buildExportRom, BRIAN_ROOM } = require('./rom-export');
 const { mapDocument } = require('../data/custom-store');
-const { buildZip } = require('../../shared/zip');
+const { buildZip } = require('../../platform/zip');
 
 /** `New map 1` -> `new_map_1`: a file name every tool accepts. */
 function mapSlug(name) {

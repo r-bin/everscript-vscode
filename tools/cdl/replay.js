@@ -17,7 +17,7 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const crypto = require('crypto');
 const { StateWriter, loadStateFile } = require('./replay-states');
-const { parseMovie, groupEvents, wramCrc, spaceCrcs, spacesLine, SPACES, crcText } = require('../../src/emulator/tas/movie');
+const { parseMovie, groupEvents, wramCrc, spaceCrcs, spacesLine, SPACES, crcText } = require('../../src/platform/tas/movie');
 
 // Word ranges (cdl-values.c) go to set 1 for CHEAT_WINDOW frames after a memory write the movie recorded (cheat, menu
 // toggle, injected script): the game's own stores right after one see values it would not produce by itself.
@@ -52,7 +52,7 @@ function run(moviePath, romPath, opts) {
         M._startWithRom(p, romBuf.length, movie.meta.audio);   // the rate it was recorded at: it leaks into ARAM
         let lib = null;
         if (opts.cdl) {
-            const { CdlLibrary, stripCopierHeader } = require('../../src/emulator/cdl/library');
+            const { CdlLibrary, stripCopierHeader } = require('../../src/platform/cdl/library');
             lib = new CdlLibrary(opts.cdl, new Uint8Array(stripCopierHeader(romBuf)));
             if (!M.cdlEnable()) { console.error('the core has no CDL recorder'); process.exit(1); }
         }

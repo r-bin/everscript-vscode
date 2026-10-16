@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * emulator/cdl/xref-index.js
+ * platform/cdl/xref-index.js
  *
  * Turns library data into the questions the export answers:
  *   - what is a function (call / interrupt targets, vectors) and who calls it

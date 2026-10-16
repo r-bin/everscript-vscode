@@ -10,7 +10,7 @@
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm'), crypto = require('crypto');
 const { encodePng } = require('../../dist/platform');
-const { parseMovie, groupEvents, wramCrc, crcText, WRAM_BASE, WRAM_SIZE, AUDIO_RATE } = require('../../src/emulator/tas/movie');
+const { parseMovie, groupEvents, wramCrc, crcText, WRAM_BASE, WRAM_SIZE, AUDIO_RATE } = require('../../src/platform/tas/movie');
 
 const CORE = process.env.TABLE_HACK_CORE || path.join(__dirname, '../../src/emulator/core/snes9x2005-wasm/snes9x_2005.js');
 const STATE_EVERY = 60;

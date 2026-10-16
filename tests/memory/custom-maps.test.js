@@ -1,7 +1,7 @@
 'use strict';
 // Custom maps on disk and their export archive:
 // src/rooms/data/custom-store.js, src/rooms/custom-host.js,
-// src/rooms/rendering/custom-export.js, src/shared/zip.js.
+// src/rooms/rendering/custom-export.js, src/platform/zip.js.
 // The format is docs/map-format/custom-map-files.md.
 //
 // The archive checks need the ROM and skip, not fail, without it.
@@ -13,7 +13,7 @@ const assert = require('assert');
 
 const store = require('../../src/rooms/data/custom-store');
 const widgetStore = require('../../src/rooms/data/widget-store');
-const { buildZip, readZip } = require('../../src/shared/zip');
+const { buildZip, readZip } = require('../../src/platform/zip');
 const { handleCustomMapMessage, handlesCustomMapMessage } = require('../../src/rooms/custom-host');
 const { mapSlug, sampleEvs } = require('../../src/rooms/rendering/custom-export');
 

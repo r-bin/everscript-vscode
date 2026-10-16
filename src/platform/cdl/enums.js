@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * emulator/cdl/enums.js
+ * platform/cdl/enums.js
  *
  * WRAM enums, states and bit flags as export assets, from ram.asm's guesses
  * (wram-export.js classify) plus the values each address was seen holding:

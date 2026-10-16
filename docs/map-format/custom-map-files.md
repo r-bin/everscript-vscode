@@ -6,7 +6,7 @@ how edit history and levels are recorded in them.
 Code:
 - Host storage: `src/rooms/custom-store.js`.
 - Export archive: `src/rooms/rendering/custom-export.js`, using
-  `src/shared/zip.js`.
+  `src/platform/zip.js`.
 - Webview side: `src/rooms/webview/map-editor-custom.js` and
   `map-editor-custom-store.js`.
 - Tests: `tests/memory/custom-maps.test.js`.

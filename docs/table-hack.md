@@ -80,7 +80,7 @@ Why each kind goes where it does:
   only if every reader's operand uses the `$F1` form *(to verify)*. The string key table must not
   cross a 32 KB half *(repo: docs/reverse-engineering/asm-to-c-port.md §11)*.
 - **Strings go in lower halves.** A key unpacks to `(bank << 16) | (p & $7FFF)` from `$C00000`, so
-  strings can only sit at `$xx0000–$7FFF` *(repo: src/emulator/cdl/known-regions.js string_keys)*.
+  strings can only sit at `$xx0000–$7FFF` *(repo: src/platform/cdl/known-regions.js string_keys)*.
 - **Scripts go in upper halves and never cross a bank.**
   - The packed pointer unpacks to bank `$92 + n` and offset `| $8000`.
   - The interpreter's program counter is 16-bit and never changes bank

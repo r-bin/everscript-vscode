@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * emulator/cdl/library.js
+ * platform/cdl/library.js
  *
  * Per-ROM CDL library: <root>/<sha1>/ outside the workspace. Every stored
  * field merges with a commutative, associative, idempotent operation (OR,
