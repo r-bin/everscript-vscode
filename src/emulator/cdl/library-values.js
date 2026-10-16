@@ -32,7 +32,7 @@ function initValues(lib) {
     lib.wordRanges = [new Uint8Array(SET_SIZE), new Uint8Array(SET_SIZE)];
 }
 
-const u16 = (a, o) => a[o] | (a[o + 1] << 8);
+const { fileU16: u16 } = require('../../../dist/platform');
 
 /** Merge one 40-byte record src[s..] into dst[d..]; true when dst changed. */
 function mergeRecord(dst, d, src, s) {

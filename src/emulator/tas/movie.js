@@ -80,24 +80,8 @@ function parseMeta(text) {
     return meta;
 }
 
-// CRC-32 (IEEE). The webview script carries the same algorithm (tas-view.js); a test keeps them equal.
-const CRC_TABLE = (() => {
-    const t = new Uint32Array(256);
-    for (let n = 0; n < 256; n++) {
-        let c = n;
-        for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
-        t[n] = c >>> 0;
-    }
-    return t;
-})();
-
-function crcUpdate(crc, bytes) {
-    for (let i = 0; i < bytes.length; i++) crc = CRC_TABLE[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
-    return crc >>> 0;
-}
-
-const crcFinish = crc => ((crc ^ 0xFFFFFFFF) >>> 0);
-const crc32 = bytes => crcFinish(crcUpdate(0xFFFFFFFF, bytes));
+// CRC-32 (IEEE), platform/crc32.ts. The webview script carries the same algorithm (tas-view.js); a test keeps them equal.
+const { crc32, crc32Update: crcUpdate, crc32Finish: crcFinish } = require('../../../dist/platform');
 const crcText = crc => crc.toString(16).toUpperCase().padStart(8, '0');
 
 /** CRC-32 of WRAM through read(addr, length) -> bytes (the core's side-effect-free readMemoryRange). */

@@ -240,6 +240,117 @@ function analyzeScriptPointers(rom) {
     };
 }
 
+function analyzeMapPalettes(rom) {
+    for (let i = 0x100000; i < 0x110000; i++) {
+        if (rom[i] === 0x0A && rom[i + 1] === 0x0A && rom[i + 2] === 0x0A && rom[i + 3] === 0x0A && rom[i + 4] === 0x0A && rom[i + 5] === 0x69) {
+            const off = u16(rom, i + 6);
+            for (let j = i + 8; j < i + 35; j++) {
+                if (rom[j] === 0xA9 && rom[j + 1] >= 0x90) {
+                    const bank = rom[j + 1];
+                    const snes = (bank << 16) | off;
+                    const pc1 = romToSnes(i + 5);
+                    const pc2 = romToSnes(j);
+                    return {
+                        snes: `$${hex(bank)}:${hex(off, 4)}`,
+                        file: `0x${hex(snesToRom(snes), 6)}`,
+                        count: 365,
+                        readers: [
+                            { pc: `$${hex(pc1 >> 16)}:${hex(pc1 & 0xFFFF, 4)}`, file: `0x${hex(i + 5, 6)}`, asm: `adc #$${hex(off, 4)}` },
+                            { pc: `$${hex(pc2 >> 16)}:${hex(pc2 & 0xFFFF, 4)}`, file: `0x${hex(j, 6)}`, asm: `lda #$${hex(bank)}` }
+                        ]
+                    };
+                }
+            }
+        }
+    }
+    return null;
+}
+
+function analyzeMapTileGraphics(rom) {
+    for (let i = 0x100000; i < 0x110000; i++) {
+        if (rom[i] === 0xBF && rom[i + 2] === 0x00 && (rom[i + 3] === 0xEE || rom[i + 3] === 0xEF)) {
+            const ptr = u24(rom, i + 1);
+            const pc = romToSnes(i);
+            return {
+                snes: `$${hex(ptr >> 16)}:${hex(ptr & 0xFFFF, 4)}`,
+                file: `0x${hex(snesToRom(ptr), 6)}`,
+                count: 6688,
+                readers: [{ pc: `$${hex(pc >> 16)}:${hex(pc & 0xFFFF, 4)}`, file: `0x${hex(i, 6)}`, asm: `lda.l $${hex(ptr, 6)},x` }]
+            };
+        }
+    }
+    return null;
+}
+
+function analyzeScriptOpcodeTable(rom) {
+    for (let i = 0x0CD000; i < 0x0CE000; i++) {
+        if (rom[i] === 0xAA && rom[i + 1] === 0xFC) {
+            const addr = u16(rom, i + 2);
+            const pc = romToSnes(i + 1);
+            return {
+                snes: `$8C:${hex(addr, 4)}`,
+                file: `0x${hex(snesToRom(((0x8C << 16) | addr)), 6)}`,
+                count: 176,
+                readers: [{ pc: `$${hex(pc >> 16)}:${hex(pc & 0xFFFF, 4)}`, file: `0x${hex(i + 1, 6)}`, asm: `jsr ($${hex(addr, 4)},x)` }]
+            };
+        }
+    }
+    return null;
+}
+
+function analyzeAnimateIds(rom) {
+    for (let i = 0x0C0000; i < 0x0E0000; i++) {
+        if (rom[i] === 0xFA && rom[i + 1] === 0x30 && rom[i + 2] === 0x06 && rom[i + 3] === 0xBF) {
+            const ptr = u24(rom, i + 4);
+            const pc = romToSnes(i + 3);
+            return {
+                snes: `$${hex(ptr >> 16)}:${hex(ptr & 0xFFFF, 4)}`,
+                file: `0x${hex(snesToRom(ptr), 6)}`,
+                count: 212,
+                readers: [{ pc: `$${hex(pc >> 16)}:${hex(pc & 0xFFFF, 4)}`, file: `0x${hex(i + 3, 6)}`, asm: `lda.l $${hex(ptr, 6)},x` }]
+            };
+        }
+    }
+    return null;
+}
+
+function analyzeSpriteBlocks(rom) {
+    let sb16 = null, sb8 = null;
+    for (let i = 0x008000; i < 0x00B000; i++) {
+        if (rom[i] === 0xBF && (rom[i + 3] >= 0xEC && rom[i + 3] <= 0xEE) && rom[i + 1] === 0x00 && rom[i + 2] === 0x00) {
+            const ptr = u24(rom, i + 1);
+            const pc = romToSnes(i);
+            sb16 = {
+                snes: `$${hex(ptr >> 16)}:${hex(ptr & 0xFFFF, 4)}`,
+                file: `0x${hex(snesToRom(ptr), 6)}`,
+                count: 4854,
+                readers: [{ pc: `$${hex(pc >> 16)}:${hex(pc & 0xFFFF, 4)}`, file: `0x${hex(i, 6)}`, asm: `lda.l $${hex(ptr, 6)},x` }]
+            };
+        }
+        if (rom[i] === 0xBF && (rom[i + 3] === 0xD8 || rom[i + 3] === 0xD9) && rom[i + 1] === 0x00 && rom[i + 2] === 0x00) {
+            const ptr = u24(rom, i + 1);
+            const pc = romToSnes(i);
+            sb8 = {
+                snes: `$${hex(ptr >> 16)}:${hex(ptr & 0xFFFF, 4)}`,
+                file: `0x${hex(snesToRom(ptr), 6)}`,
+                count: 6265,
+                readers: [{ pc: `$${hex(pc >> 16)}:${hex(pc & 0xFFFF, 4)}`, file: `0x${hex(i, 6)}`, asm: `lda.l $${hex(ptr, 6)},x` }]
+            };
+        }
+    }
+    return { sb16, sb8 };
+}
+
+function analyzeSongPackages(rom) {
+    const count = rom[0x019900] + 1;
+    return {
+        snes: '$81:9903',
+        file: '0x019903',
+        count,
+        countByte: '$81:9900'
+    };
+}
+
 async function runHeadlessBoot(romPath) {
     const CORE = path.join(__dirname, '../../src/emulator/core/snes9x2005-wasm/snes9x_2005.js');
     if (!fs.existsSync(CORE)) return { verified: false, error: 'snes9x core not found' };
@@ -329,20 +440,35 @@ async function main() {
 
     const stringKeys = analyzeStringKeys(rom);
     const mapTable = analyzeMapTable(rom);
+    const mapPalettes = analyzeMapPalettes(rom);
+    const mapTileGraphics = analyzeMapTileGraphics(rom);
     const roomEnter = analyzeRoomEnterScripts(rom);
     const scriptPointers = analyzeScriptPointers(rom);
+    const scriptOpcode = analyzeScriptOpcodeTable(rom);
+    const animateIds = analyzeAnimateIds(rom);
+    const { sb16, sb8 } = analyzeSpriteBlocks(rom);
+    const songPackages = analyzeSongPackages(rom);
 
     console.log('\n--- 1. string_keys ---');
     console.log(stringKeys);
-
     console.log('\n--- 2. map_table ---');
     console.log(mapTable);
-
-    console.log('\n--- 3. room_enter_scripts ---');
+    console.log('\n--- 3. map_palettes ---');
+    console.log(mapPalettes);
+    console.log('\n--- 4. map_tile_graphics ---');
+    console.log(mapTileGraphics);
+    console.log('\n--- 5. room_enter_scripts ---');
     console.log(roomEnter);
-
-    console.log('\n--- 4. script_pointers ---');
+    console.log('\n--- 6. script_pointers ---');
     console.log(scriptPointers);
+    console.log('\n--- 7. script_opcode_table ---');
+    console.log(scriptOpcode);
+    console.log('\n--- 8. animate_ids ---');
+    console.log(animateIds);
+    console.log('\n--- 9. sprite_blocks_16 & 8 ---');
+    console.log({ sb16, sb8 });
+    console.log('\n--- 10. song_packages ---');
+    console.log(songPackages);
 
     console.log('\n--- Headless Emulator Verification ---');
     const emu = await runHeadlessBoot(romPath);

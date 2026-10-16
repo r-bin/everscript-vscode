@@ -90,10 +90,10 @@ module.exports = {
 
     {
       name: 'mana-decoder-is-alone',
-      comment: 'games/mana/decoder is a pure Secret of Mana library: no Evermore (or any other src/) code.',
+      comment: 'games/mana/decoder is a pure Secret of Mana library: no Evermore code; SNES facts from platform/snes only.',
       severity: 'error',
       from: { path: '^src/games/mana/decoder/' },
-      to: { path: '^(src|dist)/(?!games/mana/decoder/)' },
+      to: { path: '^(src|dist)/(?!games/mana/decoder/|platform/snes/)' },
     },
 
     {

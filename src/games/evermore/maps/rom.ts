@@ -12,20 +12,16 @@ export const MAX_ROOMS = 127;
 /** Bytes per map pointer table entry: a 24-bit pointer plus one padding byte. */
 export const MAP_TABLE_STRIDE = 4;
 
+import { hiromFileOffset, fileU16, fileU24 } from '../../../platform/snes/hirom';
+
 /** Translate a SNES 24-bit FastROM/HiROM address to a ROM file offset. */
-export function snesToRom(snesAddr: number): number {
-    return snesAddr & 0x3fffff;
-}
+export const snesToRom = hiromFileOffset;
 
-/** Read a 16-bit little-endian value. */
-export function read16(rom: Uint8Array, offset: number): number {
-    return rom[offset] | (rom[offset + 1] << 8);
-}
+/** Read a 16-bit little-endian value at a file offset. */
+export const read16 = fileU16;
 
-/** Read a 24-bit little-endian value. */
-export function read24(rom: Uint8Array, offset: number): number {
-    return rom[offset] | (rom[offset + 1] << 8) | (rom[offset + 2] << 16);
-}
+/** Read a 24-bit little-endian value at a file offset. */
+export const read24 = fileU24;
 
 /** Byte at `offset`, or 0 when past the end — matches the Python readers' guards. */
 export function readByte(rom: Uint8Array, offset: number): number {

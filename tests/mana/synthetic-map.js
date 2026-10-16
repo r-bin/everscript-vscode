@@ -5,7 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { encodePng } = require('../../src/games/mana/resources/png');
+const { encodePng } = require('../../dist/platform');
 
 const tileColour = n => [(n * 23) % 256, 40 + n, 200 - n];
 
@@ -17,7 +17,7 @@ function sheetPng() {
         const c = tileColour(n);
         rgba[i] = c[0]; rgba[i + 1] = c[1]; rgba[i + 2] = c[2]; rgba[i + 3] = 255;
     }
-    return encodePng({ width: w, height: h, rgba });
+    return encodePng(w, h, rgba);
 }
 
 const collision = new Array(192 * 4).fill(0);

@@ -71,7 +71,7 @@ function fromCdl(): { routines: number[]; wram: number[] } | null {
         const lib = new CdlLibrary(join(homedir(), 'Library/Application Support/Code/User/globalStorage/rbin.everscript/cdl-library'),
             readFileSync(rom));
         const bytes: Uint8Array = readFileSync(rom);
-        const toFile = (b: number) => ((b >> 16) & 0x3f) * 0x10000 + (b & 0xffff);
+        const toFile: (b: number) => number = require('../dist/platform').hiromFileOffset;
         const routines = new Set<number>();
         for (const k of lib.edges.keys() as Iterable<number>) {
             const from = Math.floor(k / 0x1000000), to = k % 0x1000000;

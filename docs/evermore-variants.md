@@ -1,79 +1,69 @@
-# Secret of Evermore — Variant Tables & Pointer Mapping
+# Secret of Evermore — Complete Variant Table Port & Memory Map
 
-This document records the exact ROM locations, SNES addresses, entry counts, and reader instructions for the core content tables across all Secret of Evermore releases (USA, Europe, Germany, France, Spain Rev 1, and Spain Rev 2).
+This document records the exact ROM locations, SNES addresses, entry counts, and reader instructions for **all 15 essential tables** across every Secret of Evermore retail release (USA, Europe, Germany, France, Spain Rev 1, and Spain Rev 2).
 
-The machine-readable definitions live in [`src/games/evermore/variants.json`](../src/games/evermore/variants.json).
-The analysis and discovery tool is [`tools/variants/analyze-variant.js`](../tools/variants/analyze-variant.js).
+Categories covered:
+1. **Translations & Dialogue** (`string_keys`)
+2. **Maps** (`map_table`, `map_palettes`, `map_tile_graphics`)
+3. **Scripts** (`room_enter_scripts`, `script_pointers`, `script_opcode_table`)
+4. **Animations & Sprites** (`animate_ids`, `animation_records`, `animation_vm_dispatch`, `character_records`, `enemy_index`, `sprite_blocks_16`, `sprite_blocks_8`)
+5. **Music & Sounds** (`song_packages`)
 
----
-
-## 1. Master Variant Comparison Table
-
-All 6 retail releases were analyzed via static signature scanning and verified via headless emulation boot traces in `snes9x2005-wasm`:
-
-| Variant | Region | Version | SHA-1 | `string_keys` | `map_table` | `room_enter_scripts` | `script_pointers` |
-|---|---|---|---|---|---|---|---|
-| **USA (Base)** | `$01` | `$00` | `79e7738630fff5699217ef58ecc421bc8fcbcd89` | `$91:D000` (`0x11D000`)<br>3,002 keys | `$9F:FDE7` (`0x1FFDE7`)<br>127 rooms | `$92:801B` (`0x12801B`)<br>127 entries | `$92:8294` (`0x128294`)<br>1,917 entries |
-| **Europe** | `$02` | `$00` | `ae17166919fdfdf26cc5771f83cfd19eaf71806c` | `$92:8000` (`0x128000`)<br>3,085 keys | `$A0:FDE5` (`0x20FDE5`)<br>127 rooms | `$93:801B` (`0x13801B`)<br>127 entries | `$93:8294` (`0x138294`)<br>2,344 entries |
-| **Germany** | `$09` | `$00` | `5e5c2082526690d05f962c3ffbd7e080c681bfa4` | `$92:8000` (`0x128000`)<br>3,087 keys | `$A0:FDE5` (`0x20FDE5`)<br>127 rooms | `$93:801B` (`0x13801B`)<br>127 entries | `$93:8294` (`0x138294`)<br>2,344 entries |
-| **France** | `$06` | `$00` | `8a430c9d6a3dcef974252fe8d946a0d619bb1a61` | `$92:8000` (`0x128000`)<br>3,083 keys | `$A0:FDE5` (`0x20FDE5`)<br>127 rooms | `$93:801B` (`0x13801B`)<br>127 entries | `$93:8294` (`0x138294`)<br>2,344 entries |
-| **Spain (Rev 1)** | `$08` | `$00` | `4363ce4b19e76261f9325ac9a0cce27d97490df2` | `$92:8000` (`0x128000`)<br>3,082 keys | `$A0:FDE5` (`0x20FDE5`)<br>127 rooms | `$93:801B` (`0x13801B`)<br>127 entries | `$93:8294` (`0x138294`)<br>2,344 entries |
-| **Spain (Rev 2)** | `$08` | `$02` | `c29fe997740bd9b54a07fba7b2b5442a49245aac` | `$92:8000` (`0x128000`)<br>3,082 keys | `$A0:FDE5` (`0x20FDE5`)<br>127 rooms | `$93:801B` (`0x13801B`)<br>127 entries | `$93:8294` (`0x138294`)<br>2,344 entries |
-
-### Key Discovery: The Unified PAL Layout
-
-Across **all five European releases** (both Layout Family A: Europe/Germany and Layout Family B: France/Spain), the four core content tables sit at **identical addresses**:
-1. **`string_keys`** moved from `$91:D000` to **`$92:8000`** (file `0x128000`), accommodating ~3,080 keys.
-2. Because `$92:8000` was taken by strings, **`room_enter_scripts`** moved from `$92:801B` to **`$93:801B`** (file `0x13801B`).
-3. **`script_pointers`** moved from `$92:8294` to **`$93:8294`** (file `0x138294`), with script bank base header at `$93:8000` (word offset `0x0294`).
-4. **`map_table`** moved from `$9F:FDE7` to **`$A0:FDE5`** (file `0x20FDE5`), displaced by 2 bytes and pushed into bank `$A0`.
+Machine-readable JSON definitions: [`src/games/evermore/variants.json`](../src/games/evermore/variants.json).  
+Discovery & verification script: [`tools/variants/analyze-variant.js`](../tools/variants/analyze-variant.js).
 
 ---
 
-## 2. Table-by-Table Details
+## 1. Master Table Inventory Across All Variants
 
-### 2.1 String Keys (`string_keys`)
-
-- **Format**: 3 bytes per key `(bank << 15) | (addr & $7FFF)` from `$C0:0000`, bit 23 = compressed.
-- **US Base**: `$91:D000` (file `0x11D000`), 3,002 keys (144 plain keys).
-  - Readers: `$8C:CCF7` and `$8C:CD35` (`lda #$0091 : sta $28 : ldy #$D000`).
-- **All PAL Releases**: `$92:8000` (file `0x128000`), 3,082–3,087 keys (49–75 plain keys).
-  - Readers: `$CC:D0BA` and `$CC:D0F8` (`lda #$0092 : sta $28 : ldy #$8000`).
-- **Language plain samples**:
-  - English (Europe): `"rice"`, `"bead"`
-  - German: `"Reis"`, `"Gewürz"`, `"Huhn"`, `"EIN GEHEIMES LABOR"`
-  - French: `"riz"`, `"Parfum"`
-  - Spanish: `"Tapiz"`, `"Podunk, U.S.A."`
-
-### 2.2 Room Pointer Table (`map_table`)
-
-- **Format**: 4 bytes per room (`dl blob_pointer : db pad`). 127 rooms (0x00..0x7E).
-- **US Base**: `$9F:FDE7` (file `0x1FFDE7`).
-  - Readers: `$90:8F69` and `$90:8F6F` (`lda.l $9FFDE7/8,x`).
-- **All PAL Releases**: `$A0:FDE5` (file `0x20FDE5`).
-  - Reader: `$D0:8F6E` (`lda.l $A0FDE5,x`).
-  - Room `0x61` (Podunk intro title): Points to blob at `0x29B3AA` (US is `0x28B3A9`). Decodes identically to US: `48×47` tiles, 762 metatiles, 2 objects, tile families `[285..291]`.
-
-### 2.3 Room Enter Scripts (`room_enter_scripts`)
-
-- **Format**: 5 bytes per room (3-byte packed script pointer + 2 bytes).
-- **US Base**: `$92:801B` (file `0x12801B`).
-  - Readers: `$8C:CECC` and `$8C:CED2` (`lda.l $92801B/C,x`).
-- **All PAL Releases**: `$93:801B` (file `0x13801B`).
-  - Reader: `$CC:D2B1` (`lda.l $93801B,x`).
-
-### 2.4 Script Pointer Table (`script_pointers`)
-
-- **Format**: 3-byte packed script bytecode pointer (`bank $92+n, offset | $8000` in US; `bank $93+n, offset | $8000` in PAL).
-- **US Base**: Header at `$92:8000` (file `0x128000`), global table at `$92:8294` (file `0x128294`), 1,917 entries.
-  - Readers: `$8C:CE63`, `$8C:CE69`, `$8C:D3B5`, `$8C:D3BB`.
-- **All PAL Releases**: Header at `$93:8000` (file `0x138000`), global table at `$93:8294` (file `0x138294`), 2,344 entries.
-  - Readers: `$CC:D248`, `$CC:D24E`, `$CC:D79E`, `$CC:D7A4`.
+| Table Category | Table Name | Entry Stride | US Base (NTSC) | Europe / Germany (PAL Family A) | France / Spain 1 & 2 (PAL Family B) |
+|---|---|---|---|---|---|
+| **Translations** | `string_keys` | 3 B | `$91:D000` (`0x11D000`)<br>3,002 keys | `$92:8000` (`0x128000`)<br>3,085–3,087 keys | `$92:8000` (`0x128000`)<br>3,082–3,083 keys |
+| **Maps** | `map_table` | 4 B | `$9F:FDE7` (`0x1FFDE7`)<br>127 rooms | `$A0:FDE5` (`0x20FDE5`)<br>127 rooms | `$A0:FDE5` (`0x20FDE5`)<br>127 rooms |
+| **Maps** | `map_palettes` | 32 B | `$9C:C322` (`0x1CC322`)<br>365 families | `$9D:C323` (`0x1DC323`)<br>365 families | `$9D:C323` (`0x1DC323`)<br>365 families |
+| **Maps** | `map_tile_graphics` | 3 B | `$EE:0000` (`0x2E0000`)<br>6,688 tiles | `$EF:0000` (`0x2F0000`)<br>6,688 tiles | `$EE:0000` (`0x2E0000`)<br>6,688 tiles |
+| **Scripts** | `room_enter_scripts` | 5 B | `$92:801B` (`0x12801B`)<br>127 entries | `$93:801B` (`0x13801B`)<br>127 entries | `$93:801B` (`0x13801B`)<br>127 entries |
+| **Scripts** | `script_pointers` | 3 B | `$92:8294` (`0x128294`)<br>1,917 entries | `$93:8294` (`0x138294`)<br>2,344 entries | `$93:8294` (`0x138294`)<br>2,344 entries |
+| **Scripts** | `script_opcode_table` | 2 B | `$8C:E8BD` (`0x0CE8BD`)<br>176 handlers | `$8C:ECBE` (`0x0CECBE`)<br>176 handlers | `$8C:ECBE` (`0x0CECBE`)<br>176 handlers |
+| **Animations** | `animate_ids` | 2 B | `$C4:3C92` (`0x043C92`)<br>212 words | `$C4:42D2` (`0x0442D2`)<br>212 words | `$C3:42D2` (`0x0342D2`)<br>212 words |
+| **Animations** | `animation_records` | 4 B | `$C4:3E3A` (`0x043E3A`)<br>783 records | `$C4:447A` (`0x04447A`)<br>783 records | `$C3:447A` (`0x03447A`)<br>783 records |
+| **Animations** | `animation_vm_dispatch`| 2 B | `$90:8000` (`0x108000`)<br>103 handlers | `$90:8000` (`0x108000`)<br>103 handlers | `$90:8000` (`0x108000`)<br>103 handlers |
+| **Sprites / Chars**| `character_records` | 74 B | `$8E:B678` (`0x0EB678`)<br>141 records | `$8E:B678` (`0x0EB678`)<br>141 records | `$8E:B678` (`0x0EB678`)<br>141 records |
+| **Sprites / Chars**| `enemy_index` | 2 B | `$8E:B55A` (`0x0EB55A`)<br>143 entries | `$8E:B55A` (`0x0EB55A`)<br>143 entries | `$8E:B55A` (`0x0EB55A`)<br>143 entries |
+| **Sprites / Chars**| `sprite_blocks_16` | 3 B | `$EC:0000` (`0x2C0000`)<br>4,854 blocks | `$EE:0000` (`0x2E0000`)<br>4,854 blocks | `$ED:0000` (`0x2D0000`)<br>4,854 blocks |
+| **Sprites / Chars**| `sprite_blocks_8` | 3 B | `$D8:0000` (`0x180000`)<br>6,265 blocks | `$D9:0000` (`0x190000`)<br>6,265 blocks | `$D8:0000` (`0x180000`)<br>6,265 blocks |
+| **Music / Audio** | `song_packages` | 3 B | `$81:9903` (`0x019903`)<br>71 packages | `$81:9903` (`0x019903`)<br>71 packages | `$81:9903` (`0x019903`)<br>71 packages |
 
 ---
 
-## 3. Emulation Verification
+## 2. Structural Findings & Layout Rules
 
-Headless execution across each retail ROM in `snes9x2005-wasm` confirms:
-1. All retail ROMs transition from room `0x00` to intro title room `0x61` at frame 384 (PAL 50 Hz).
-2. The room decoder successfully parses Room `0x61` using `$A0:FDE5`.
+### 2.1 What Never Moves Across Any Release
+Several fundamental engine tables sit at the **exact same ROM offset** in every single release (USA, Europe, Germany, France, Spain Rev 1 & 2):
+1. **`character_records`** (`$8E:B678` / `0x0EB678`): All 141 records have identical stats across all retail builds.
+2. **`enemy_index`** (`$8E:B55A` / `0x0EB55A`): Spawning index for all 143 enemy types.
+3. **`animation_vm_dispatch`** (`$90:8000` / `0x108000`): Jump table for the 103 animation bytecode commands.
+4. **`song_packages`** (`$81:9903` / `0x019903`): 71 song packages; last index byte `0x46` at `$81:9900`.
+
+### 2.2 What Moves Universally in All PAL Releases
+Because the European localizations required larger string tables (~3,085 keys vs 3,002 in US):
+1. **`string_keys`** took `$92:8000` (file `0x128000`), pushing the script bank out of bank `$92`.
+2. **`room_enter_scripts`** and **`script_pointers`** shifted from bank `$92` to bank `$93`:
+   - `room_enter_scripts`: `$93:801B` (`0x13801B`)
+   - `script_pointers`: `$93:8294` (`0x138294`), header at `$93:8000` (word offset `0x0294`)
+3. **`script_opcode_table`** shifted by `0x401` bytes from `$8C:E8BD` to `$8C:ECBE` (`0x0CECBE`). Reader at `$CC:D493` (`jsr ($ECBE,x)`).
+4. **`map_table`** shifted by 2 bytes from `$9F:FDE7` to `$A0:FDE5` (`0x20FDE5`), crossing into bank `$A0`. Reader at `$D0:8F6E`.
+5. **`map_palettes`** shifted by 1 byte from `$9C:C322` to `$9D:C323` (`0x1DC323`), crossing into bank `$9D`. Reader at `$90:D073` / `$90:D083` (`adc #$C323`, `lda #$9D`).
+
+### 2.3 The Family A vs Family B Graphics Split
+Graphics banks differ between **Family A** (Europe, Germany) and **Family B** (France, Spain):
+- **Family A** shifted graphics further down:
+  - `sprite_blocks_8` moved to `$D9:0000`
+  - `sprite_blocks_16` moved to `$EE:0000`
+  - `map_tile_graphics` moved to `$EF:0000`
+  - `animate_ids` and records sit in bank `$C4` (`$C4:42D2` and `$C4:447A`)
+- **Family B** kept more of the US graphics layout:
+  - `sprite_blocks_8` stayed in `$D8:0000` (same bank as US)
+  - `map_tile_graphics` stayed in `$EE:0000` (same bank as US)
+  - `sprite_blocks_16` moved to `$ED:0000`
+  - `animate_ids` and records sit in bank `$C3` (`$C3:42D2` and `$C3:447A`)

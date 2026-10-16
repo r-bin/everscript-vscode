@@ -7,8 +7,7 @@ const MB4 = 0x400000;
 const FILL = 0xFF;
 
 const hex = (v, n = 6) => '$' + v.toString(16).toUpperCase().padStart(n, '0');
-const u16 = (rom, o) => rom[o] | (rom[o + 1] << 8);
-const u24 = (rom, o) => rom[o] | (rom[o + 1] << 8) | (rom[o + 2] << 16);
+const { fileU16: u16, fileU24: u24 } = require('../../dist/platform');
 const put24 = (img, o, v) => { img[o] = v & 0xFF; img[o + 1] = (v >> 8) & 0xFF; img[o + 2] = (v >> 16) & 0xFF; };
 
 const SCRIPT_BANK = 0x128000;                 // $92:8000, the script bank header

@@ -18,20 +18,7 @@ const path = require('path');
 const CDL_DATA = 0x02;
 const COMMENT_MAX = 240;
 
-let crcTable = null;
-function crc32(bytes) {
-    if (!crcTable) {
-        crcTable = new Uint32Array(256);
-        for (let n = 0; n < 256; n++) {
-            let c = n;
-            for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
-            crcTable[n] = c >>> 0;
-        }
-    }
-    let crc = 0xFFFFFFFF;
-    for (let i = 0; i < bytes.length; i++) crc = crcTable[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
-    return (crc ^ 0xFFFFFFFF) >>> 0;
-}
+const { crc32 } = require('../../../dist/platform');
 
 function cleanComment(text) {
     const one = String(text || '').replace(/\r?\n/g, '\\n').trim();
@@ -96,4 +83,4 @@ function writeMesenFiles({ rom, lib, outDir, comments, wramNames, assets }) {
     return { labels, comments: notes, assetBytes, file: path.join(dir, 'labels.mlb') };
 }
 
-module.exports = { writeMesenFiles, crc32 };
+module.exports = { writeMesenFiles };

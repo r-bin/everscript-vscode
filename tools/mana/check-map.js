@@ -8,7 +8,7 @@
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const mana = require('../../src/games/mana/decoder');
-const { encodePng } = require('../../src/games/mana/resources/png');
+const { encodePng } = require('../../dist/platform');
 
 const romPath = require('../rom').romOrExit('mana');
 const id = Number(process.argv[2]);
@@ -71,8 +71,8 @@ function main() {
         if (q(img.rgba, ((oy + y) * img.width + ox + x) * 4) === q(shot, (y * 256 + x) * 4)) same++;
     }
     fs.mkdirSync(outDir, { recursive: true });
-    fs.writeFileSync(path.join(outDir, `game-${id}.png`), encodePng({ width: 256, height: 224, rgba: shot }));
-    fs.writeFileSync(path.join(outDir, `render-${id}.png`), encodePng(img));
+    fs.writeFileSync(path.join(outDir, `game-${id}.png`), encodePng(256, 224, shot));
+    fs.writeFileSync(path.join(outDir, `render-${id}.png`), encodePng(img.width, img.height, img.rgba));
     console.log(`map ${id}: screen found at ${ox},${oy} in the render; ${(100 * same / (256 * 224)).toFixed(1)}% of pixels agree`);
     process.exit(0);
 }

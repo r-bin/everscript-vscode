@@ -19,68 +19,9 @@ const { resolveRomPath } = require('../shared/rom-readers');
 const HISTORY_FILENAME = 'recent-roms.json';
 const MAX_HISTORY_ITEMS = 15;
 
-const KNOWN_EVERMORE_HASHES = [
-  {
-    region: 'US',
-    name: 'USA',
-    language: 'English',
-    icon: 'US',
-    flag: 'USA',
-    crc32: 'a5c0045e',
-    sha1: '79e7738630fff5699217ef58ecc421bc8fcbcd89',
-  },
-  {
-    region: 'EU',
-    name: 'Europe',
-    language: 'English',
-    icon: 'EU',
-    flag: 'EUR',
-    crc32: 'e168d085',
-    sha1: 'ae17166919fdfdf26cc5771f83cfd19eaf71806c',
-  },
-  {
-    region: 'DE',
-    name: 'Germany',
-    language: 'German',
-    icon: 'DE',
-    flag: 'DEU',
-    crc32: '27f60e77',
-    sha1: '5e5c2082526690d05f962c3ffbd7e080c681bfa4',
-  },
-  {
-    region: 'FR',
-    name: 'France',
-    language: 'French',
-    icon: 'FR',
-    flag: 'FRA',
-    crc32: '7425bb91',
-    sha1: '8a430c9d6a3dcef974252fe8d946a0d619bb1a61',
-  },
-  {
-    region: 'ES',
-    name: 'Spain',
-    language: 'Spanish',
-    icon: 'ES',
-    flag: 'ESP',
-    crc32: '7bfe934f',
-    sha1: '4363ce4b19e76261f9325ac9a0cce27d97490df2',
-  },
-];
-
-let _crcTable = null;
-function calcCrc32(bytes) {
-  if (!_crcTable) {
-    _crcTable = new Uint32Array(256);
-    for (let n = 0; n < 256; n++) {
-      let c = n;
-      for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
-      _crcTable[n] = c >>> 0;
-    }
-  }
-  let crc = 0xFFFFFFFF;
-  for (let i = 0; i < bytes.length; i++) crc = _crcTable[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
-  return (crc ^ 0xFFFFFFFF) >>> 0;
-}
+// Which game and variant a ROM is comes from the ROM library's identification (platform/roms/identify.ts);
+// this file only shapes it for the quick-launch list.
+const platform = require('../../dist/platform');
 
 function isCustomMapPath(target, hintPath) {
   const p = String(typeof target === 'string' ? target : (hintPath || '')).toLowerCase();
@@ -110,7 +51,7 @@ function detectRomDetails(target, hintPath) {
 
     const clean = (buf.length % 1024 === 512) ? buf.subarray(512) : buf;
     const sha1 = crypto.createHash('sha1').update(clean).digest('hex').toLowerCase();
-    const crc = calcCrc32(clean).toString(16).padStart(8, '0').toLowerCase();
+    const crc = platform.crc32(clean).toString(16).padStart(8, '0').toLowerCase();
 
     // 1. Path-based custom map detection (e.g. *_emulator.sfc from the map editor)
     const customByPath = isCustomMapPath(target, hintPath);
@@ -151,17 +92,18 @@ function detectRomDetails(target, hintPath) {
       };
     }
 
-    // 2. Known Evermore releases
-    const match = KNOWN_EVERMORE_HASHES.find(h => h.sha1 === sha1 || h.crc32 === crc);
-    if (match) {
+    // 2. A known variant of a registered game
+    const id = platform.identifyRom(clean);
+    const variant = id.match === 'known' && id.game ? platform.gameById(id.game)?.variants.find(v => v.id === id.variant) : null;
+    if (variant) {
+      const code = variant.id.toUpperCase();
       return {
         known: true,
         isCustomMap: false,
-        region: match.region,
-        regionName: match.name,
-        language: match.language,
-        icon: match.icon,
-        flag: match.flag,
+        region: code,
+        regionName: variant.name,
+        icon: code,
+        flag: code,
         sha1: sha1,
         crc32: crc,
       };
@@ -244,7 +186,6 @@ function getVanillaRom(wsRoot, cfgRomPath) {
         icon: (details && details.icon) || 'US',
         region: (details && details.region) || 'US',
         regionName: (details && details.regionName) || 'USA',
-        language: (details && details.language) || 'English',
       };
     }
   } catch (_) {}
@@ -460,6 +401,4 @@ module.exports = {
   getRomOfferData,
   clearRecentRoms,
   detectRomDetails,
-  calcCrc32,
-  KNOWN_EVERMORE_HASHES,
 };

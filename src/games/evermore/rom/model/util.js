@@ -10,6 +10,6 @@ function bus(off) {
 }
 
 /** Bus address (any mirror) → file offset in a HiROM image. */
-const busToFile = a => a & 0x3FFFFF;
+const { hiromFileOffset: busToFile } = require('../../../../../dist/platform');
 
 module.exports = { hex, bus, busToFile };

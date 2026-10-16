@@ -236,7 +236,7 @@ test('lookup shows registers, exit widths and table membership', () => {
 });
 
 test('curated names + Mesen2 files: labels, comments, CDLv2 header, still byte-identical', () => {
-    const { crc32 } = require('../../src/emulator/cdl/mesen-export');
+    const { crc32 } = require('../../dist/platform');
     const named = path.join(tmp, 'named');
     exportAsar(lib, rom, named, {
         names: new Map([[0x8010, { name: 'set_screen', note: 'Writes INIDISP' }]]),
@@ -264,7 +264,7 @@ test('curated names + Mesen2 files: labels, comments, CDLv2 header, still byte-i
 });
 
 test('crc32 matches the standard check value', () => {
-    const { crc32 } = require('../../src/emulator/cdl/mesen-export');
+    const { crc32 } = require('../../dist/platform');
     assert.strictEqual(crc32(Buffer.from('123456789')), 0xCBF43926);
 });
 

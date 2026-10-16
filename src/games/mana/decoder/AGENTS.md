@@ -8,7 +8,7 @@ ROM bytes in, map data and pictures out. What the folder does: [README.md](READM
   display mode), drawing them (SNES Mode 1 BG1 + BG2), and the area catalogue.
 
 ## Dependencies
-- None inside `src/`. Never `maps/`, `script/` or anything else Evermore: the two games
+- Only `platform/snes/` (SNES hardware facts: HiROM addressing). Never `maps/`, `script/` or anything else Evermore: the two games
   share no format here, only SNES hardware rules (`.depcruise.js` `mana-decoder-is-alone`).
 
 ## Invariants

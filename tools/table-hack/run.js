@@ -9,7 +9,7 @@
 // --shots  <f1,f2,..> <dir>: save the screen after those frames as <dir>/<frame>.png
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm'), crypto = require('crypto');
-const { encodePng } = require('../../src/games/mana/resources/png');
+const { encodePng } = require('../../dist/platform');
 const { parseMovie, groupEvents, wramCrc, crcText, WRAM_BASE, WRAM_SIZE, AUDIO_RATE } = require('../../src/emulator/tas/movie');
 
 const CORE = process.env.TABLE_HACK_CORE || path.join(__dirname, '../../src/emulator/core/snes9x2005-wasm/snes9x_2005.js');
@@ -64,7 +64,7 @@ function main(M) {
                 rgba[(y * 256 + x) * 4 + 3] = 255;
             }
             fs.mkdirSync(shots[1], { recursive: true });
-            fs.writeFileSync(path.join(shots[1], k + '.png'), encodePng({ width: 256, height: 224, rgba }));
+            fs.writeFileSync(path.join(shots[1], k + '.png'), encodePng(256, 224, rgba));
         }
         if (dump && k === Number(dump[0])) {
             // readMemoryRange returns at most 4096 bytes per call (the core's buffer), so read WRAM in chunks

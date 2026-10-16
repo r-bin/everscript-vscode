@@ -8,7 +8,6 @@
 // data, and a slot is named only where its record is one the Dog's own character record
 // (+0x32..) or an ANIMATION_DOG id (via $C43C92) already names.
 
-const { snesToRom } = require('../../../../dist/games/evermore/maps/rom');
 
 const FORM_POINTERS = 0xcf945f;
 const FORM_BANK = 0xcf0000;
@@ -38,10 +37,7 @@ const SLOT_PURPOSES = [
     null, null, 'sleep', 'sit', null, 'bark',
 ];
 
-const read16 = (rom, snes) => {
-    const o = snesToRom(snes);
-    return rom[o] | (rom[o + 1] << 8);
-};
+const { busU16: read16 } = require('../../../../dist/platform');
 
 /** One form's palette and animations, shaped like a Boy weapon for the tab. */
 function readDogForm(rom, index) {

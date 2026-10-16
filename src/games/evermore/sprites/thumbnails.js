@@ -7,7 +7,6 @@ const { runAnimation, facingScript } = require('../../../../dist/games/evermore/
 const { readSpriteInfo, composeSprite, decodeSpriteBlock } = require('../../../../dist/games/evermore/maps/sprites');
 const { encodePng } = require('../../../../dist/games/evermore/maps/png');
 const { composeAligned } = require('./frame-compose');
-const { snesToRom } = require('../../../../dist/games/evermore/maps/rom');
 const { resolveCharacterSprite } = require('../../../../dist/games/evermore/maps/character-animation');
 
 /** South (8, the front view) and east (4) — the direction tables move 8 down the screen. */
@@ -54,7 +53,7 @@ function characterThumbs(rom, c) {
 }
 
 const hex4 = (v) => '$' + v.toString(16).padStart(4, '0');
-const read16 = (rom, snes) => { const o = snesToRom(snes); return rom[o] | (rom[o + 1] << 8); };
+const { busU16: read16 } = require('../../../../dist/platform');
 
 /**
  * Every distinct palette the characters use — record +0x09 and +0x0B, the Boy's weapon
