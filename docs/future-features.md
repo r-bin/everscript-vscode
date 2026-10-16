@@ -194,6 +194,14 @@ Open before building:
 - The sequence opcodes and the pointer tables at `$2070`–`$2350` are not decoded, so the sequence stays raw hex and track→voice is unmapped.
 - Pitch can only be shown relative to each sample's native rate until the sample base notes are known.
 
+### 18. Map editor: wading tiles
+
+Asked about 2026-10-16, not scheduled. Evermore has an unused tile setting (gate
+nibble 4, bit 12 clear) that draws a character's legs behind the scenery and its
+upper body in front, and 1145 of the 5128 sprites are already marked for it. Steps:
+prove it headless, then a `split` answer in `spriteDepth`, a "Wading" special in the
+editor, and the Mana conversion row. [docs/map-format/wading.md](map-format/wading.md).
+
 ## Data Requirements
 
 Many hover/completion features require machine-readable data that doesn't exist yet:

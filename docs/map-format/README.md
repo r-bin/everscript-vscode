@@ -16,6 +16,7 @@ copy first, since that's the upstream.
 | `map_decompression_trace_analysis.md` | How the decompression pipeline was reverse-engineered; the deterministic block layout |
 | `map_encoding.md` | Container layout, LZSS + Markov encoders, the never-grows guarantee (the write path) |
 | `map_collision_mechanics.md` | The collision word bitfield — geometry, elevation planes, drift, entity gates |
+| `wading.md` | The unused split-priority tile (gate nibble 4): characters half hidden in water, how to make one, what is unchecked |
 | `cuttable_grass_mechanics.md` | The metatile swap table driven by `$90A6EF` |
 | `map_objects.md` | Section 3 object structure and states |
 | `map_rendering_pipeline.md` | Turning a decoded room into pixels; Mode 1 compositing |

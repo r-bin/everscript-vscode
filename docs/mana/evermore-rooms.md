@@ -28,6 +28,7 @@ h-flip 14, priority 13, palette 10-12, character 0-9.
 | wall (c0 = 3) | geometry `$F`, plane 2 (`$2F`) | |
 | diagonal half wall 4 / 5 / 6 / 7 (c2) | geometry `$2` / `$9` / `$A` / `$1` | bottom-left / top-right / top-left / bottom-right solid |
 | layer switch (c0 bit 3: the walker moves to the other layer, A↔B) | — | not converted |
+| split sprite priority (c1 bits 0-2 = 2: marked pieces in front, the rest behind; README "Half-hidden characters") | gate nibble 4 with bit 12 clear (`docs/map-format/wading.md`) | not converted yet: the Evermore side is read from the code but not seen in the game |
 | step event cell (`$C8:4000`) | step-on bit 14 + a step-on box | boxes: runs of one event along a row, merged with the same run above; `scriptId` = the Mana event number |
 | the map's own event (byte 3 bit 2) | — | kept as `conversion.onEnter` |
 | weapon-cut cell (c2 `$Cn`, becomes c3) | cuttable layer (Section 4) | the cell's words until cut, then metatile c3's; one source per (cell, beneath) pair, Evermore's own `buildDictionary`. Which weapons may cut it is lost: Evermore's grass has no weapon test |
