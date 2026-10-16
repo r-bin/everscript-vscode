@@ -3,7 +3,6 @@
  "allow": [
   ".agents/skills/map-editor-rules/SKILL.md: N lines (max 200)",
   ".agents/skills/memory-radar/SKILL.md: N lines (max 200)",
-  ".agents/skills/webview-dom-safety/SKILL.md: N lines (max 200)",
-  "src/emulator/AGENTS.md: N lines (max 70)"
+  ".agents/skills/webview-dom-safety/SKILL.md: N lines (max 200)"
  ]
 }

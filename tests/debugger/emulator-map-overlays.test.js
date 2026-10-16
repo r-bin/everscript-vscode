@@ -36,7 +36,7 @@ test('panel.js and panel-webview.js are strictly ASCII-only', () => {
 });
 
 // 2. HTML elements in buildHtml
-test('buildHtml includes overlay chips and control checkboxes for objects, anim tiles, and collision', () => {
+test('buildHtml includes overlay chips for objects, anim tiles, and collision', () => {
     const mockWebview = { asWebviewUri: (uri) => uri };
     const html = buildHtml(mockWebview, 'core.js', 'core.wasm', 'core', '/path/to/core');
 
@@ -48,18 +48,7 @@ test('buildHtml includes overlay chips and control checkboxes for objects, anim 
     assert.ok(html.includes('id="screen-collision-toggle"'), 'screen-collision-toggle missing');
     assert.ok(html.includes('COLLISION ON'), 'COLLISION ON text missing');
 
-    // Checkboxes in #ss-controls
-    assert.ok(html.includes('id="ss-object-toggle"'), 'ss-object-toggle checkbox missing');
-    assert.ok(html.includes('id="ss-anim-toggle"'), 'ss-anim-toggle checkbox missing');
-    assert.ok(html.includes('id="ss-collision-toggle"'), 'ss-collision-toggle checkbox missing');
-    assert.ok(html.includes('id="ss-object-label"'), 'ss-object-label missing');
-    assert.ok(html.includes('id="ss-anim-label"'), 'ss-anim-label missing');
-    assert.ok(html.includes('id="ss-collision-label"'), 'ss-collision-label missing');
 
-    // CSS
-    assert.ok(html.includes('#ss-object-label'), 'CSS for #ss-object-label missing');
-    assert.ok(html.includes('#ss-anim-label'), 'CSS for #ss-anim-label missing');
-    assert.ok(html.includes('#ss-collision-label'), 'CSS for #ss-collision-label missing');
 });
 
 // 3. Client script rendering logic
@@ -81,17 +70,17 @@ test('panel-webview contains renderObjectsOverlay, renderAnimTilesOverlay, and r
 });
 
 // 4. Panel.js passes objects, animTiles, and collisionUri in roomMapRendered
-test('panel.js computes and passes objects, animTiles, and collisionUri in roomMapRendered data', () => {
-    const panelJsPath = path.join(__dirname, '..', '..', 'src', 'emulator', 'panel.js');
+test('the Evermore emulator host computes and passes objects, animTiles, and collisionUri in roomMapRendered data', () => {
+    const panelJsPath = path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'host.js');
     const panelContent = fs.readFileSync(panelJsPath, 'utf8');
 
-    assert.ok(panelContent.includes('roomObjects = []'), 'roomObjects extraction missing in panel.js');
-    assert.ok(panelContent.includes('animTileClusters = []'), 'animTileClusters extraction missing in panel.js');
-    assert.ok(panelContent.includes('maps.drawCollisionOverlay(img, staged, {'), 'drawCollisionOverlay missing in panel.js');
-    assert.ok(panelContent.includes('collisionUri = maps.encodePngDataUri'), 'encodePngDataUri for collision missing in panel.js');
-    assert.ok(panelContent.includes('collisionUri: collisionUri'), 'collisionUri field missing in data in panel.js');
-    assert.ok(panelContent.includes('objects: roomObjects'), 'objects field missing in data in panel.js');
-    assert.ok(panelContent.includes('animTiles: animTileClusters'), 'animTiles field missing in data in panel.js');
+    assert.ok(panelContent.includes('roomObjects = []'), 'roomObjects extraction missing');
+    assert.ok(panelContent.includes('animTileClusters = []'), 'animTileClusters extraction missing');
+    assert.ok(panelContent.includes('maps.drawCollisionOverlay(img, room, {'), 'drawCollisionOverlay missing');
+    assert.ok(panelContent.includes('collisionUri = maps.encodePngDataUri'), 'encodePngDataUri for collision missing');
+    assert.ok(panelContent.includes('collisionUri: meta.collisionUri'), 'collisionUri field missing in the reply');
+    assert.ok(panelContent.includes('objects: meta.roomObjects'), 'objects field missing in the reply');
+    assert.ok(panelContent.includes('animTiles: meta.animTileClusters'), 'animTiles field missing in the reply');
 });
 
 console.log(`\nResults: ${passed} passed, ${failed} failed`);

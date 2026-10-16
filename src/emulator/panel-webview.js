@@ -385,18 +385,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       color: #6f9;
       border-color: #2e7d32;
     }
-    #ss-extend-label, #ss-overlay-label, #ss-object-label, #ss-anim-label, #ss-collision-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 10px;
-      color: #aaa;
-      cursor: pointer;
-      user-select: none;
-    }
-    #ss-extend-label input, #ss-overlay-label input, #ss-object-label input, #ss-anim-label input, #ss-collision-label input {
-      cursor: pointer;
-    }
     /* -- ROM picker overlay --------------------------------------------- */
     #overlay {
       position: fixed; inset: 0; z-index: 100;
@@ -4605,8 +4593,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           chip.textContent = 'OBJECTS OFF';
         }
       }
-      const cb = document.getElementById('ss-object-toggle');
-      if (cb) cb.checked = objectsOverlayEnabled;
       checkClearOverlayCanvas();
       redrawExtendedLayersNow();
     }
@@ -4621,12 +4607,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       });
     }
 
-    const objectCb = document.getElementById('ss-object-toggle');
-    if (objectCb) {
-      objectCb.addEventListener('change', () => {
-        setObjectsOverlay(objectCb.checked);
-      });
-    }
 
     function setAnimTilesOverlay(enabled) {
       animTilesOverlayEnabled = !!enabled;
@@ -4641,8 +4621,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           chip.textContent = 'ANIM TILES OFF';
         }
       }
-      const cb = document.getElementById('ss-anim-toggle');
-      if (cb) cb.checked = animTilesOverlayEnabled;
       checkClearOverlayCanvas();
       redrawExtendedLayersNow();
     }
@@ -4657,12 +4635,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       });
     }
 
-    const animCb = document.getElementById('ss-anim-toggle');
-    if (animCb) {
-      animCb.addEventListener('change', () => {
-        setAnimTilesOverlay(animCb.checked);
-      });
-    }
 
     function setCollisionOverlay(enabled) {
       collisionOverlayEnabled = !!enabled;
@@ -4677,8 +4649,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           chip.textContent = 'COLLISION OFF';
         }
       }
-      const cb = document.getElementById('ss-collision-toggle');
-      if (cb) cb.checked = collisionOverlayEnabled;
       checkClearOverlayCanvas();
       redrawExtendedLayersNow();
     }
@@ -4693,12 +4663,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       });
     }
 
-    const collisionCb = document.getElementById('ss-collision-toggle');
-    if (collisionCb) {
-      collisionCb.addEventListener('change', () => {
-        setCollisionOverlay(collisionCb.checked);
-      });
-    }
 
     function setFogOfWar(enabled) {
       fogOfWarEnabled = !!enabled;

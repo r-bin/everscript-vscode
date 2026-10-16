@@ -48,23 +48,14 @@ Related skills: `emulator-subsystem`, `cdl-recorder`, `webview-dom-safety`, `deb
 - Per-frame work runs only when its output is visible; no per-frame round trip to the
   extension host (batch to ≥ 100 ms); send typed arrays over `postMessage`, never
   `Array.from` of memory (guide §3.11).
-- Core path remapping: `panel.js`'s `LEGACY_CUSTOM_CORE_DIRS` remaps user-configured core
-  paths from `debugger/core/snes9x2005-wasm` (pre-v0.6.0 location) to
-  `src/emulator/core/snes9x2005-wasm` (current location). Keep it when moving cores.
+- Keep `panel.js`'s `LEGACY_CUSTOM_CORE_DIRS` (old core paths users configured) when moving cores.
 - Core build, licensing, audio sync, display scaling and keybinds: `emulator-subsystem` skill.
 
 ## Tests
-- Unit (`npm test`): `tests/debugger/script-debug-hook.test.js`, `snes-rom-header-model.test.js`,
-  `script-trace.test.js`, `trigger-overlay.test.js`, `everscript-inject.test.js`,
-  `emulator-bottom-bar.test.js`, `cdl.test.js`, `cdl-recomp.test.js`, `emulator-menu.test.js`,
-  `tas.test.js` (its core test needs a ROM: `$EVS_ROM` or `../everscript/`), `recorder.test.js`
-  (profiles and Evermore gating in headless Chromium, bundles, the recorder's file list).
-- Emulator (built cores): `tests/debugger/emulator-health.test.js` (`npm run test:emulator-runtime`),
-  `tests/debugger/emulator-runtime.test.js` (headless Chromium; stale: waits for `ss-hook-btn` / `ss-hook-all-btn`,
-  which the page no longer has, and the pause / resume buttons removed in v0.219.0).
-- Not in any script yet: `tests/debugger/emulator-map-overlays.test.js`,
-  `tests/debugger/rom-history.test.js`.
-- DOM: `tests/memory/music-tab.test.js` (APU stream into the Music tab).
+- `npm test` runs `tests/debugger/*` for the hook, trace, overlays, bottom bar, menu, CDL, TAS (core test
+  needs a ROM from the ROM library), recorder (profiles, gating, bundles, file list), ROM history;
+  `tests/memory/music-tab.test.js` covers the APU stream. Built cores: `emulator-health.test.js`
+  (`npm run test:emulator-runtime`). Stale, not run: `emulator-runtime.test.js` (waits for removed buttons).
 
 ## Pitfalls
 - `window.prompt` / `confirm` / `alert` are inert in a VS Code webview (no throw); use an
