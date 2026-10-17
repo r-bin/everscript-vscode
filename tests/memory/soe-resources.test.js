@@ -288,7 +288,7 @@ test('provider: stat, readDirectory, errors and read-only', async () => {
     assert.strictEqual((await fsp.stat(uri('soe://ram/'))).type, 2);
     assert.ok(fsp.readDirectory(uri('soe://ram/')).some(([n]) => n === 'wram.bin'));
     await assert.rejects(fsp.readFile(uri('soe://ram/0adb.json')), e => e.code === 'Unavailable' && /not open/.test(e.message));
-    await assert.rejects(fsp.readFile(uri('soe://rom/rom.sfc')), e => e.code === 'Unavailable' && /romPath/.test(e.message));
+    await assert.rejects(fsp.readFile(uri('soe://rom/rom.sfc')), e => e.code === 'Unavailable' && /Switch ROM/.test(e.message));
     await assert.rejects(fsp.readFile(uri('soe://vram/vram.bin')), e => e.code === 'FileNotFound');
     assert.throws(() => fsp.writeFile(uri('soe://ram/wram.bin')), e => e.code === 'NoPermissions');
     fsp.dispose();

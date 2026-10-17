@@ -7,6 +7,7 @@
 const vscode = require('vscode');
 const romReaders = require('../rom-readers');
 const { renderAnimation, renderRawSprite, listPalettes, renderInPalettes, thumbFor } = require('./index');
+const { missingRomText } = require('../../../../dist/platform/roms/library');
 
 const HANDLERS = {
     getSpriteAnimation(msg, ctx) {
@@ -14,7 +15,7 @@ const HANDLERS = {
             const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             const romBuf = romReaders.loadRomBuffer(_ws, '');
             if (!romBuf) {
-                ctx.post({ command: 'spriteAnimationData', animation: null, error: 'ROM not found' });
+                ctx.post({ command: 'spriteAnimationData', animation: null, error: missingRomText('evermore') });
                 return;
             }
             const anim = renderAnimation(romBuf, msg.characterId, msg.animOpt, msg.facing);
@@ -51,7 +52,7 @@ const HANDLERS = {
             const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             const romBuf = romReaders.loadRomBuffer(_ws, '');
             if (!romBuf) {
-                ctx.post({ command: 'rawSpriteData', sprite: null, error: 'ROM not found' });
+                ctx.post({ command: 'rawSpriteData', sprite: null, error: missingRomText('evermore') });
                 return;
             }
             const sprite = renderRawSprite(romBuf, msg.address, msg.paletteAddr);

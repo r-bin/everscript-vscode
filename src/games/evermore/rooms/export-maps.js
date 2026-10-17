@@ -6,6 +6,7 @@ const vscode = require('vscode');
 const path = require('path');
 const fs = require('fs');
 const romReaders = require('../rom-readers');
+const { missingRomText } = require('../../../../dist/platform/roms/library');
 
 /**
  * Export decoded room maps as PNG files.
@@ -19,7 +20,7 @@ async function exportRoomMaps(getExtConfig) {
     const ws   = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     const rom  = romReaders.loadRomBuffer(ws, '');
     if (!rom) {
-        vscode.window.showErrorMessage('Everscript: ROM not found — use Everscript: Switch ROM.');
+        vscode.window.showErrorMessage('Everscript: ' + missingRomText('evermore'));
         return;
     }
 

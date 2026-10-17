@@ -11,6 +11,7 @@ const crypto = require('crypto');
 const { buildRomModel, stripCopierHeader } = require('./build');
 const { readersOf } = require('./model/readers');
 const { executedByHalf, wramStrip } = require('./model/bus-usage');
+const { missingRomText } = require('../../../../dist/platform/roms/library');
 
 const COMMANDS = new Set(['romMapRequest', 'romReaders']);
 
@@ -32,7 +33,7 @@ function handleRomMessage(msg, deps) {
 function sendModel(msg, deps) {
     try {
         const romBuf = deps.loadRom();
-        if (!romBuf) { deps.post({ command: 'romMap', error: 'ROM not found — set everscript.romPath' }); return; }
+        if (!romBuf) { deps.post({ command: 'romMap', error: missingRomText('evermore') }); return; }
         const hash = crypto.createHash('sha1').update(stripCopierHeader(romBuf)).digest('hex');
         if (msg.refresh || !_cdl || _cdl.hash !== hash) {
             const lib = deps.loadCdl(romBuf);

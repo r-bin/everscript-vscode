@@ -170,3 +170,9 @@ export function romFor(gameId: string, rom?: string): LibraryEntry | null {
     const kept = last ? lib.roms.find((r) => r.path === last && r.game === gameId && existsSync(r.path)) : undefined;
     return kept ?? baseRom(gameId);
 }
+
+/** What a panel, tool or file system says when a game has no ROM in the library (multi-game.md §6). */
+export function missingRomText(gameId: string): string {
+    const name = gameById(gameId)?.name ?? gameId;
+    return `No ${name} ROM in the ROM library. Add your own with Everscript: Switch ROM.`;
+}

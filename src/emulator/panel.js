@@ -507,7 +507,9 @@ function openEmulatorPanel(context, rom, channel) {
                     recordRomUsage({ path: v.path, name: v.name, kind: 'vanilla' }, _context);
                     _sendRomFile(v.path);
                 } else {
-                    vscode.window.showErrorMessage('Vanilla Secret of Evermore ROM not found. Add it with Everscript: Switch ROM.');
+                    const platform = require('../../dist/platform');
+                    const game = platform.selectedRom()?.game;
+                    vscode.window.showErrorMessage(game ? platform.missingRomText(game) : 'No ROM in the ROM library. Add your own with Everscript: Switch ROM.');
                 }
                 break;
             }

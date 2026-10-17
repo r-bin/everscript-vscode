@@ -49,7 +49,7 @@ async function modelAndEngine() {
         assert.ok(handlesMusicMessage('musicInit') && !handlesMusicMessage('romMapRequest'));
         const sent = [];
         handleMusicMessage({ command: 'musicInit' }, { post: m => sent.push(m), loadRom: () => null, apu: { isOpen: () => false } });
-        assert.match(sent[0].model.error, /ROM not found/);
+        assert.match(sent[0].model.error, /No Secret of Evermore ROM in the ROM library/);
         assert.deepStrictEqual(sent[1], { command: 'musicEmulator', open: false });
     });
     if (!rom) { console.log('  (ROM not found — ROM checks skipped)'); return null; }

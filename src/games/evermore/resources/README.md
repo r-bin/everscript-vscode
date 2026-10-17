@@ -15,7 +15,7 @@ soe://tags/boy/hp.md                                   a concept: links to the a
 ```
 
 The authority names the memory, the path names what is read, `?rom=` names
-where it is read from (`vanilla` = `everscript.romPath`, `emulator` = the ROM
+where it is read from (`vanilla` = the game's ROM in the ROM library, `emulator` = the ROM
 running in the emulator, an absolute path = that file; default: the emulator's
 when one runs, else vanilla).
 

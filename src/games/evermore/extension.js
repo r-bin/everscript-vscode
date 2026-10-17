@@ -268,7 +268,7 @@ function radarRoomRom(roomId) {
     if (Number.isInteger(id) && id >= 0 && id <= 0x7e) {
         const ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
         const romBuf = romReaders.loadRomBuffer(ws, '');
-        return romBuf ? { romBuf, roomId: id } : { error: 'ROM not found — use Everscript: Switch ROM' };
+        return romBuf ? { romBuf, roomId: id } : { error: platform.missingRomText('evermore') };
     }
     const hit = _manaRooms && _manaRooms.resolveRoom(id);
     return hit ? { romBuf: hit.rom, roomId: hit.roomId } : { error: 'invalid room id' };

@@ -31,6 +31,7 @@ const store = require('./data/custom-store');
 const widgetStore = require('./data/widget-store');
 const { buildCustomMapArchive } = require('./rendering/custom-export');
 const { graphicFamilies } = require('./rendering/vanilla-index');
+const { missingRomText } = require('../../../../dist/platform/roms/library');
 
 const COMMANDS = new Set(['requestCustomMaps', 'saveCustomMap', 'setCustomActive', 'deleteCustomMap', 'exportCustomMap',
     'requestWidgets', 'saveWidget', 'deleteWidget']);
@@ -104,7 +105,7 @@ function handleCustomMapMessage(msg, deps) {
             const reply = { command: 'customMapExported' };
             try {
                 const { romBuf, romPath } = deps.loadRom();
-                if (!romBuf) throw new Error('ROM not found — set everscript.romPath');
+                if (!romBuf) throw new Error(missingRomText('evermore'));
                 const out = buildCustomMapArchive(romBuf, { map: msg.map || {}, draft: msg.draft || {}, stamps: msg.stamps || [] });
                 const target = await vscode.window.showSaveDialog({
                     defaultUri: vscode.Uri.file(path.join(romPath ? path.dirname(romPath) : root, out.fileName)),

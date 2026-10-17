@@ -145,7 +145,10 @@ does too (registered in `src/games/terra/`, European base ROM title `TERRANIGMA 
   game (`current`; `romFor` reads it before the base), so selecting a Mana ROM leaves an open Evermore radar on
   its ROM, and every game view's title names its ROM (`Memory Radar — Evermore · us`). Still open: each game
   has one main view, so two variants of one game cannot sit side by side, and that view follows its game's
-  selection; per-panel empty states are still the old messages.
+  selection. v0.265.0: every panel, file system and command says the same thing when its game has no ROM
+  (`missingRomText(game)` in `platform/roms/library.ts`: "No Secret of Mana ROM in the ROM library. Add your own
+  with Everscript: Switch ROM."); the old `everscript.romPath` / workspace-root hints are gone. A panel for a
+  capability its game lacks only exists in the emulator (ENTITIES, ALCHEMY), which moves with cleanup 5.3.
   `openManaMaps` is merged (v0.236.0): Open Memory Radar opens the Mana Maps panel when the selected ROM is
   a Mana ROM, and opens Terranigma Maps (v0.240.0) when a Terranigma ROM is selected.
 - Built in part, 3: one TypeScript build (`tsconfig.build.json`, `dist/` mirrors `src/`, v0.231.0); Secret of

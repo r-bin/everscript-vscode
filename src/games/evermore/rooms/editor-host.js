@@ -16,6 +16,7 @@ const fs = require('fs');
 const os = require('os');
 const romReaders = require('../rom-readers');
 const { buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildDraftCollision, buildExportRom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, buildWidgetPreviews, buildConstructGhost, relatedTiles, neighbourTiles, vanillaExamples, proceduralFill } = require('./index');
+const { missingRomText } = require('../../../../dist/platform/roms/library');
 
 /**
  * Save the room currently on screen in the Rooms tab as a PNG.
@@ -27,7 +28,7 @@ async function exportRenderedRoomPng(msg, ctx) {
     const ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     const rom = romReaders.loadRomBuffer(ws, '');
     if (!rom) {
-        vscode.window.showErrorMessage('Everscript: ROM not found \u2014 use Everscript: Switch ROM.');
+        vscode.window.showErrorMessage('Everscript: ' + missingRomText('evermore'));
         return;
     }
     const roomId = Number(msg.roomId);
@@ -162,7 +163,7 @@ const HANDLERS = {
             try {
                 const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
                 const romPath = romReaders.resolveRomPath(_ws, '');
-                if (!romPath) throw new Error('ROM not found — use Everscript: Switch ROM');
+                if (!romPath) throw new Error(missingRomText('evermore'));
                 ch.appendLine(`  Using vanilla ROM: ${romPath}`);
                 const romBuf = romReaders.loadRomBuffer(_ws, '');
                 if (!romBuf) throw new Error('Failed to load ROM buffer from ' + romPath);
@@ -210,7 +211,7 @@ const HANDLERS = {
         try {
             const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             const romBuf = romReaders.loadRomBuffer(_ws, '');
-            if (!romBuf) throw new Error('ROM not found — use Everscript: Switch ROM');
+            if (!romBuf) throw new Error(missingRomText('evermore'));
             ctx.post({ ...reply, ...buildDraftCollision(romBuf, msg.draft || {}) });
         } catch (err) {
             ctx.post({ ...reply, error: String(err && err.message || err) });
@@ -232,7 +233,7 @@ const HANDLERS = {
         try {
             const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             const romPath = romReaders.resolveRomPath(_ws, '');
-            if (!romPath) throw new Error('ROM not found — use Everscript: Switch ROM');
+            if (!romPath) throw new Error(missingRomText('evermore'));
             ch.appendLine(`  Using vanilla ROM: ${romPath}`);
             const romBuf = romReaders.loadRomBuffer(_ws, '');
             if (!romBuf) throw new Error('Failed to load ROM buffer from ' + romPath);
@@ -316,7 +317,7 @@ const HANDLERS = {
             const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             const romBuf = romReaders.loadRomBuffer(_ws, '');
             if (!romBuf) {
-                ctx.post({ ...reply, error: 'ROM not found — use Everscript: Switch ROM' });
+                ctx.post({ ...reply, error: missingRomText('evermore') });
                 return;
             }
             // A converted family lives in its room's image (src/games/evermore/imports/mana).
@@ -336,7 +337,7 @@ const HANDLERS = {
             const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             const romBuf = romReaders.loadRomBuffer(_ws, '');
             if (!romBuf) {
-                ctx.post({ ...reply, error: 'ROM not found — use Everscript: Switch ROM' });
+                ctx.post({ ...reply, error: missingRomText('evermore') });
                 return;
             }
             ctx.post({ ...reply, families: buildFamilyCatalogue(romBuf) });
@@ -352,7 +353,7 @@ const HANDLERS = {
             const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             const romBuf = romReaders.loadRomBuffer(_ws, '');
             if (!romBuf) {
-                ctx.post({ ...reply, error: 'ROM not found — use Everscript: Switch ROM' });
+                ctx.post({ ...reply, error: missingRomText('evermore') });
                 return;
             }
             ctx.post({ ...reply,
@@ -372,7 +373,7 @@ const HANDLERS = {
             const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             const romBuf = romReaders.loadRomBuffer(_ws, '');
             if (!romBuf) {
-                ctx.post({ ...reply, error: 'ROM not found — use Everscript: Switch ROM' });
+                ctx.post({ ...reply, error: missingRomText('evermore') });
                 return;
             }
             ctx.post({ ...reply,
@@ -390,7 +391,7 @@ const HANDLERS = {
             const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             const romBuf = romReaders.loadRomBuffer(_ws, '');
             if (!romBuf) {
-                ctx.post({ ...reply, graphic: msg.graphic, error: 'ROM not found — use Everscript: Switch ROM' });
+                ctx.post({ ...reply, graphic: msg.graphic, error: missingRomText('evermore') });
                 return;
             }
             ctx.post({ ...reply, ...neighbourTiles(romBuf, msg.graphic) });
@@ -404,7 +405,7 @@ const HANDLERS = {
             const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             const romBuf = romReaders.loadRomBuffer(_ws, '');
             if (!romBuf) {
-                ctx.post({ ...reply, graphic: msg.graphic, error: 'ROM not found — use Everscript: Switch ROM' });
+                ctx.post({ ...reply, graphic: msg.graphic, error: missingRomText('evermore') });
                 return;
             }
             ctx.post({ ...reply, graphic: msg.graphic, examples: vanillaExamples(romBuf, msg.graphic) });
@@ -418,7 +419,7 @@ const HANDLERS = {
             const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             const romBuf = romReaders.loadRomBuffer(_ws, '');
             if (!romBuf) {
-                ctx.post({ ...reply, graphic: msg.graphic, error: 'ROM not found — use Everscript: Switch ROM' });
+                ctx.post({ ...reply, graphic: msg.graphic, error: missingRomText('evermore') });
                 return;
             }
             const patch = proceduralFill(romBuf, msg.graphic, msg.layer, msg.width, msg.height, msg.seed);
@@ -435,7 +436,7 @@ const HANDLERS = {
             const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             const romBuf = romReaders.loadRomBuffer(_ws, '');
             if (!romBuf) {
-                ctx.post({ ...reply, error: 'ROM not found — use Everscript: Switch ROM' });
+                ctx.post({ ...reply, error: missingRomText('evermore') });
                 return;
             }
             if (msg.ghost) {

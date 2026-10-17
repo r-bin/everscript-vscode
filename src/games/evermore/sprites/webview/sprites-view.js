@@ -181,7 +181,7 @@
       if (!chars || chars.length === 0) {
         var emptyEl = document.createElement('div');
         emptyEl.className = 'sp-empty-notice';
-        emptyEl.innerHTML = '<strong>No characters loaded.</strong><br><span style="opacity:0.75">Ensure a Secret of Evermore ROM is present or configured in Settings (<code>everscript.romPath</code>).</span>';
+        emptyEl.innerHTML = '<strong>No characters loaded.</strong><br><span style="opacity:0.75">No Secret of Evermore ROM in the ROM library. Add your own with Everscript: Switch ROM.</span>';
         listEl.appendChild(emptyEl);
         return;
       }
@@ -217,7 +217,7 @@
       if (!rawList || rawList.length === 0) {
         var emptyRawEl = document.createElement('div');
         emptyRawEl.className = 'sp-empty-notice';
-        emptyRawEl.innerHTML = '<strong>No raw sprites loaded.</strong><br><span style="opacity:0.75">Ensure a Secret of Evermore ROM is present or configured in Settings (<code>everscript.romPath</code>).</span>';
+        emptyRawEl.innerHTML = '<strong>No raw sprites loaded.</strong><br><span style="opacity:0.75">No Secret of Evermore ROM in the ROM library. Add your own with Everscript: Switch ROM.</span>';
         listEl.appendChild(emptyRawEl);
         return;
       }

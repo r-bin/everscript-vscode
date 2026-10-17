@@ -16,6 +16,7 @@
 const { roomList, roomScripts, roomPicture } = require('./model/rooms');
 const { alchemyModel } = require('./model/alchemy');
 const { simulateScript, roomClusters } = require('./model/simulation');
+const { missingRomText } = require('../../../../dist/platform/roms/library');
 
 const FACING_SOUTH = 8;
 
@@ -82,7 +83,7 @@ function failed(msg, deps, error) {
 
 function handleScriptsMessage(msg, deps) {
     const rom = loadRom(deps);
-    if (!rom) { failed(msg, deps, 'ROM not found: set everscript.romPath'); return; }
+    if (!rom) { failed(msg, deps, missingRomText('evermore')); return; }
     try {
         switch (msg.command) {
             case 'scriptsInit':

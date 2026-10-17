@@ -5,6 +5,7 @@
 
 const vscode = require('vscode');
 const romReaders = require('../rom-readers');
+const { missingRomText } = require('../../../../dist/platform/roms/library');
 
 function registerBuildAndRun(context, { getExtConfig, openEmulatorPanel }) {
 // ── Build-and-Run ────────────────────────────────────────────────────────
@@ -94,7 +95,7 @@ context.subscriptions.push(
 
         if (!romName) {
             vscode.window.showErrorMessage(
-                'Everscript: no ROM found. Set the Vanilla ROM in the Emulator panel \u2192 Settings tab.'
+                'Everscript: ' + missingRomText('evermore')
             );
             return { ok: false };
         }

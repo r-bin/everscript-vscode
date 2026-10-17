@@ -199,7 +199,7 @@
     if (!all.length) {
       var empty = document.createElement('div');
       empty.className = 'sp-empty-notice';
-      empty.innerHTML = '<strong>No animations loaded.</strong><br><span style="opacity:0.75">Ensure a Secret of Evermore ROM is present or configured in Settings (<code>everscript.romPath</code>).</span>';
+      empty.innerHTML = '<strong>No animations loaded.</strong><br><span style="opacity:0.75">No Secret of Evermore ROM in the ROM library. Add your own with Everscript: Switch ROM.</span>';
       listEl.appendChild(empty);
       return;
     }

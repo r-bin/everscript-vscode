@@ -3,7 +3,7 @@
 (function(){
   if(!SC_CHARS.length){
     var ce=document.getElementById('sc-chart');
-    if(ce)ce.innerHTML='<div style="padding:16px;opacity:.4;font-size:11px">ROM not found — place the .smc in workspace root.</div>';
+    if(ce)ce.innerHTML='<div style="padding:16px;opacity:.4;font-size:11px">No Secret of Evermore ROM in the ROM library. Add your own with Everscript: Switch ROM.</div>';
     return;
   }
   var srcId=0,srcLv=0,charge=100;

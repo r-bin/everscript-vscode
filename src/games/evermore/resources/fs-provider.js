@@ -21,6 +21,7 @@ const { resolveLogs } = require('./log-files');
 const { autoIndex } = require('./autoindex');
 const { dir, text } = require('./nodes');
 const { intoMount, pageLinks } = require('./page-links');
+const { missingRomText } = require('../../../../dist/platform/roms/library');
 
 const LIVE_TTL_MS = 250;
 const WATCH_INTERVAL_MS = 1000;
@@ -162,7 +163,7 @@ class SoeFileSystem {
         if (!rom) {
             throw vscode.FileSystemError.Unavailable(which === 'emulator' ? 'No ROM is running in the emulator'
                 : isAbsolutePath(which) ? `ROM not readable: ${which}`
-                : 'ROM not found: set everscript.romPath');
+                : missingRomText('evermore'));
         }
         return rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     }

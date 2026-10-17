@@ -951,7 +951,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           vBtn.classList.add('disabled');
           vBtn.disabled = true;
           vDesc.textContent = 'Not found (Everscript: Switch ROM)';
-          vBtn.title = 'Vanilla ROM not found. Add it with Everscript: Switch ROM.';
+          vBtn.title = 'No base ROM for this game in the ROM library. Add yours with Everscript: Switch ROM.';
         }
       }
 

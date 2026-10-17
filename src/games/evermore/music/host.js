@@ -16,6 +16,7 @@
 //                                     host -> musicPaused { paused }   (from extension.js: the emulator's pause)
 
 const { buildMusicModel, packageData } = require('./model/catalog');
+const { missingRomText } = require('../../../../dist/platform/roms/library');
 
 let _cache = null;   // { rom, model }
 
@@ -29,7 +30,7 @@ function loadRom(deps) {
 
 function model(deps) {
     const rom = loadRom(deps);
-    if (!rom) return { rom: null, model: { error: 'ROM not found: set everscript.romPath' } };
+    if (!rom) return { rom: null, model: { error: missingRomText('evermore') } };
     if (!_cache || _cache.rom.length !== rom.length || !_cache.rom.equals(rom)) _cache = { rom, model: buildMusicModel(rom) };
     return _cache;
 }

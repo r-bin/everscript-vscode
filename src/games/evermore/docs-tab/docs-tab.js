@@ -108,7 +108,7 @@
   var hitTbl=document.getElementById('doc-hit-table');
   if(hitTbl){
     if(!SC_HIT_LOOKUP||!Object.keys(SC_HIT_LOOKUP).length){
-      hitTbl.innerHTML='<div style="opacity:.35;padding:8px;font-size:10px">ROM not found — place the .smc in workspace root.</div>';
+      hitTbl.innerHTML='<div style="opacity:.35;padding:8px;font-size:10px">No Secret of Evermore ROM in the ROM library. Add your own with Everscript: Switch ROM.</div>';
     }else{
       var hrs=Object.keys(SC_HIT_LOOKUP).map(Number).sort(function(a,b){return a-b;});
       var evSet={};hrs.forEach(function(hr){Object.keys(SC_HIT_LOOKUP[hr]).forEach(function(ev){evSet[ev]=1;});});
