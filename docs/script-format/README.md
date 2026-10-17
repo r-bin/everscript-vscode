@@ -30,7 +30,7 @@ ruled out, so the next attempt starts further along.
 | [arrivals.md](arrivals.md) | The doors that lead *into* a room | Solved |
 | [trigger-modernization.md](trigger-modernization.md) | Trigger exit detection, companion/enemy triggers, context registers, performance | Architecture Spec |
 | [../room-simulation.md](../room-simulation.md) | Deciding which branch an enter script takes | **Not built** — see [/simulation](../plans/simulation/README.md) |
-| [../ingredient-icons.md](../ingredient-icons.md) | Where the menu's item icons live | **Unsolved** |
+| [../item-icons.md](../item-icons.md) | Where the menu's item icons live | Solved |
 
 ## Two lessons that keep repaying
 

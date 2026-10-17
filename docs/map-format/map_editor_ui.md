@@ -7,10 +7,9 @@
 > room's own slot is not shipped yet; the draft is still the handover format
 > for that, and §6 says where it plugs in. Everything else here is design.
 >
-> Companion pages: [map_editor_design.md](map_editor_design.md) decided it is
-> a VS Code extension; [map_editor_architecture_and_limitations.md](map_editor_architecture_and_limitations.md)
-> covers the hardware budgets; [map_editor_vscode_plan.md](map_editor_vscode_plan.md)
-> covers repo placement and IPC. This page is about **what the user sees and
+> Companion pages: [map_editor_architecture_and_limitations.md](map_editor_architecture_and_limitations.md)
+> covers the hardware budgets; [../architecture/multi-game.md](../architecture/multi-game.md) §8 the one
+> editor for every game. This page is about **what the user sees and
 > clicks**, and which of it the format actually permits.
 
 ## 1. What a room is, from an editor's point of view

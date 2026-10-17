@@ -4,8 +4,8 @@
 > them; the Rooms tab draws them on B-triggers and the Scaling tab beside each
 > formula, and the old assets folder and `everscript.assetsPath` are gone. Checked pixel-exact: the Crystal decoded from the vanilla ROM matches a
 > reference screenshot on all 576 pixels (24×24 at 2×, zero mismatches).
-> Supersedes [ingredient-icons.md](ingredient-icons.md), which went looking in
-> VRAM and the font and did not find them.
+> An earlier search went looking in VRAM and the font and did not find them; what it
+> did find is kept in §"The Formulas screen" at the end.
 
 ## What an icon is
 
@@ -233,5 +233,24 @@ art for every category, and the palette match. A Mesen read breakpoint on
 
 The Alchemy **Formulas screen** is a separate path. Its text and icons are
 composited by the bitplane blitter at `$8CA6AB` into WRAM, as
-[ingredient-icons.md](ingredient-icons.md) found. Whether it reads these same
+the earlier search found (below). Whether it reads these same
 sprite blocks is not checked, and nothing in the plugin needs it to.
+
+## The Formulas screen and the ring menu's setup
+
+What the earlier VRAM-side search established (two Mesen traces: the Formulas screen already open, and
+opening the ring menu), still true and not repeated elsewhere:
+
+| Transfer | Meaning |
+|---|---|
+| `$C4:1F74` → VRAM `$2000`, `$1000` bytes | Background tileset (the stone texture) |
+| `$C4:2FF4` → VRAM `$0000`, `$700` bytes | Window frame and border tiles |
+| `$C4:1EA4`, `$C4:1EEC` → CGRAM, 8 bytes each | This screen's palettes |
+| `$C4:0000`, read as `LDA $C40000,X` | The menu font, 2bpp; read from `$8CA5AC` and `$8CA60C` |
+
+- `OBSEL = $03` is set at `$8CB769`, so the sprite tile base is VRAM `$6000`; nothing uploads there while
+  the menu opens, so the sprite graphics are already resident.
+- Text and icons are composited into WRAM staging buffers by a bitplane blitter at `$8CA6AB`–`$8CA6C6`
+  (read-mask-write on `$0000,Y`..`$0003,Y`), then DMA'd to VRAM; there is no direct ROM→VRAM copy for them.
+- Mesen trace pitfall: `[REG] = $x` prints the address's *prior* contents, not the value written. The
+  written value is the register the store names, at the width the M/X flags give (`P:nvmxdizc`, lowercase = 16-bit).

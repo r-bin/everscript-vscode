@@ -36,3 +36,14 @@
 ### 1.5 Standalone LSP Server Daemon (Python)
 - **Status: 🟢 architecture consideration**
 - The current implementation delivers hover, completion, definitions, and symbols via custom JavaScript providers. If deeper AST sharing with Python compiler is desired, bridge via `vscode-languageclient` → stdio → `python everscript_lsp.py`.
+
+### 1.6 Workspace Symbols and CodeLens
+- **Status: 🟢 idea**
+- `cmd+T` across every `.evs` file for a `fun`, `map` or `enum` (the document outline exists, workspace symbols do not).
+- CodeLens above `map ROOM` ("act, objects, step-on triggers" from the room data) and above `fun` ("called N times").
+
+### 1.7 Bundling the compiler
+- **Status: 🟢 idea**
+- Build and run use the user's `everscript` checkout (`everscript.repoPath`). Shipping the compiler in the
+  VSIX would remove that setup, at the cost of a release per compiler change and a Python dependency;
+  the compiler version would then be recorded in `package.json`.

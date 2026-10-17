@@ -122,7 +122,7 @@ Scope, from the inventory of 2026-10-16:
 | Upstream-output tests | `tests/memory/script-parity.test.js`, `script-loot.test.js`, the upstream parts of `script-units.test.js`, `map-parity.test.js:365,372` | goldens from the running game (plan phase 2) |
 | Upstream-output data | `script_parser/generated/**` (incl. the 2.3 MB `opcode-corpus.json` with raw ROM bytes + dumper text), `script_parser/tests/generated/**`, `sandbox/{,opcodes/}corpus`, `sandbox/{,opcodes/}boundaries` | deleted |
 | Upstream paths | `src/games/evermore/maps/render-script-model.js:8`, `script_parser/src/scripts-all-model.ts:56` | `soe://` (D5) |
-| Attribution in docs/comments | `src/README.md:17`, `src/games/evermore/script/README.md`, `src/games/evermore/maps/README.md:82`, `src/games/evermore/sprites/README.md:7`, `src/games/evermore/sprites/animation-decoder.js:113`, `src/games/evermore/docs-tab/render-docs-tab.js:136` (user-visible), the "OBJ n" comments in `rom-overlay.js:35`, `overlay-features.ts:48`, `collision-overlay.ts:185`, `docs/script-format/*`, `docs/room-script-parser.md`, `docs/map-format/map_editor_design.md:50-58,233`, `docs/room-simulation.md:107`, `docs/rooms-settings-cleanup-dossier.md:42`, `.agents/agents/script-parser-generator.md:128` | rewritten with the code they describe |
+| Attribution in docs/comments | `src/README.md:17`, `src/games/evermore/script/README.md`, `src/games/evermore/maps/README.md:82`, `src/games/evermore/sprites/README.md:7`, `src/games/evermore/sprites/animation-decoder.js:113`, `src/games/evermore/docs-tab/render-docs-tab.js:136` (user-visible), the "OBJ n" comments in `rom-overlay.js:35`, `overlay-features.ts:48`, `collision-overlay.ts:185`, `docs/script-format/*`, `docs/room-simulation.md:107`, `.agents/agents/script-parser-generator.md:128` | rewritten with the code they describe |
 
 - [ ] **2.1** Sprites + character record (plan part B).
 - [ ] **2.2** Script VM phases 1–5 of the plan, with the compiler-spelled output.
@@ -215,7 +215,12 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   (`rom/model/wiki-overlay.js`) and the RAM bounds hard-coded in `extension.js`.
 - [ ] **6.3** Names and comments for recomp: entries feed the Asar export labels and the recomp's
   C names (`tools/recomp/names.js`).
-- [ ] **6.4** (v0.255.0: `STATE_FLOW.md` → its map-editor rows in `games/evermore/rooms/webview/STATE.md`, the rest
+- [x] **6.4** (v0.263.0: revert notes, the emulator integration logs and plans (`emulator-integration`, `web-emulator-plan`,
+  `snes9x_integration`, `embedded-emulator-panel-concept`), finished dossiers (`room-script-parser`,
+  `rooms-settings-cleanup-dossier`), `compiler-bundling`, `future-features` (its open ideas → `docs/todo/`), the
+  `sprite-rendering` stub, `ingredient-icons` (its facts → `item-icons.md`) and the two pre-build map editor design
+  docs deleted; `docs/features/` was never tracked. The docs layout mirroring the code (`docs/games/<game>/`) moves
+  to 5.x with the rest of the moves. v0.255.0: `STATE_FLOW.md` → its map-editor rows in `games/evermore/rooms/webview/STATE.md`, the rest
   deleted; `docs/architecture/{domain-overview,migration-plan,target-architecture,dependency-rules}.md` and
   `docs/emulator-status-and-roadmap.md` deleted) Delete or merge stale docs: `STATE_FLOW.md`, `docs/architecture/{domain-overview,
   migration-plan,target-architecture}.md`, `docs/roadmap-and-vision.md` (empty),

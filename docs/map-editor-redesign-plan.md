@@ -134,14 +134,13 @@ mock's "Special" groups are **not** equally real:
   encoder contract is confirmed to support it — flag the gap rather than
   guess at an export shape.
 - This subsystem (`src/games/evermore/rooms/webview/`) has **no ROM write path** today — see
-  `docs/map-format/map_editor_design.md` §1.1 ("no `writeFile`/save call
-  anywhere in `src/games/evermore/rooms/` or `src/games/evermore/maps/`"). `editExport()` only produces a
+  (no `writeFile`/save call anywhere in `src/games/evermore/rooms/` or
+  `src/games/evermore/maps/`). `editExport()` only produces a
   draft handoff for an external encoder. Nothing added in Phase 3 should
   change that invariant.
 - Separately: `AI_ARCHITECTURE_GUIDE.md` §3 describes a **planned, unbuilt**
   `src/map-editor/` domain (a Custom Editor Provider + external map-server
-  bridge) — a longer-term replacement vision in
-  `docs/map-format/map_editor_design.md`. This redesign plan is **not** that
+  bridge) — a longer-term replacement vision, since dropped. This redesign plan is **not** that
   project; it restyles/extends the existing shipping
   `src/games/evermore/rooms/webview/map-editor-*.js` system. Do not create `src/map-editor/`
   or assume its existence.

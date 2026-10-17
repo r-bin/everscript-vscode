@@ -23,9 +23,7 @@ copy first, since that's the upstream.
 | `map_tile_graphics_decompression.md` | CHR tile graphics decompression |
 | `map_animated_tiles.md` | Section 2 animation channels — frame table, palette extension, and what it takes to play them outside the game |
 | `map_palette_extraction.md` | How palettes are built |
-| `map_editor_design.md` | Design decisions for a map editor (repo placement, extend vs. fork) |
 | `map_editor_architecture_and_limitations.md` | Architecture and known limitations |
-| `map_editor_vscode_plan.md` | Repo placement, lexer/parser reuse, IPC/packaging options |
 | `map_editor_ui.md` | **The editor's UI**: which tiles can be placed, editing layers independently, resize, and the write-back plan |
 | `building-a-room-from-scratch.md` | **Tutorial**: five rooms of increasing difficulty, built and verified; every header field named; the blob as JSON |
 | `building-a-room-from-a-picture.md` | Drafting a room from vanilla's vocabulary — the vanilla index, portable constructs, the deco library |
@@ -40,9 +38,8 @@ copy first, since that's the upstream.
 runtime via the `everscript.repoPath` setting. Re-copy from there rather than editing
 these in place, unless the change is specific to this repo's TypeScript port.
 
-Note that `map_editor_vscode_plan.md` §3.2 argues the ROM-format logic should stay
-Python and be reached over IPC. That recommendation was **superseded**: this repo ports
-the decoder to TypeScript instead, to avoid requiring a Python runtime for extension
+An early design note argued the ROM-format logic should stay Python and be reached over
+IPC. That was **superseded**: this repo ports the decoder to TypeScript instead, to avoid requiring a Python runtime for extension
 users. The distinction that makes this safe is in the `map-format` skill — a faithful
 port validated against the Python implementation's own output is not the same thing as
 the independent re-derivations that failed here before.

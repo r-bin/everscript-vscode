@@ -41,3 +41,16 @@
 ### 2.2 Object / Trigger Tabular Editor
 - **Status: 🟢 designed, not built**
 - Add visual spreadsheet/table editor for step-on and B-triggers allowing manual coordinate, script ID, and flag edits alongside canvas selection.
+
+### 2.3 Tuning animations from vanilla presets
+- **Status: 🟢 idea** (asked 2026-09-25)
+- A placed animation plays vanilla's own cycle (`maps/vanilla-animation.ts`), one channel per placed graphic
+  (`maps/custom-animation.ts`). Tuning would let a map pick another timing or phase vanilla attests for the
+  same graphics: the same torch cycle at another phase, so neighbours flicker out of step.
+
+### 2.4 Wading tiles
+- **Status: 🟢 idea** (asked 2026-10-16)
+- An unused tile setting (gate nibble 4, bit 12 clear) draws a character's legs behind the scenery and the
+  upper body in front; 1145 of the 5128 sprites are already marked for it. Steps: prove it headless, a `split`
+  answer in `spriteDepth`, a "Wading" special in the editor, the Mana conversion row
+  ([../map-format/wading.md](../map-format/wading.md)).

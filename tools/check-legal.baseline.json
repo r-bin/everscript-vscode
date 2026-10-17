@@ -26,16 +26,8 @@
    "home-path"
   ],
   [
-   "docs/emulator-v0.2.71-revert-notes.md",
-   "home-path"
-  ],
-  [
    "docs/evermore-releases.md",
    "home-path"
-  ],
-  [
-   "docs/ingredient-icons.md",
-   "upstream"
   ],
   [
    "docs/map-editor-redesign-plan.md",
@@ -55,18 +47,6 @@
   ],
   [
    "docs/map-format/map_editor_architecture_and_limitations.md",
-   "home-path"
-  ],
-  [
-   "docs/map-format/map_editor_design.md",
-   "home-path"
-  ],
-  [
-   "docs/map-format/map_editor_design.md",
-   "upstream"
-  ],
-  [
-   "docs/map-format/map_editor_vscode_plan.md",
    "home-path"
   ],
   [
@@ -90,23 +70,11 @@
    "upstream"
   ],
   [
-   "docs/room-script-parser.md",
-   "home-path"
-  ],
-  [
-   "docs/room-script-parser.md",
-   "upstream"
-  ],
-  [
    "docs/room-simulation.md",
    "upstream"
   ],
   [
    "docs/rooms-map-coordinates.md",
-   "upstream"
-  ],
-  [
-   "docs/rooms-settings-cleanup-dossier.md",
    "upstream"
   ],
   [

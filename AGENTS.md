@@ -59,7 +59,7 @@ into the ROM and the running game; build, debug and export tooling.
 | `AI_ARCHITECTURE_GUIDE.md` | The laws: dependency direction, removable features, no code in strings, data provenance, file size, types |
 | `docs/architecture/multi-game.md` | The target and its status: platform / core / games, game descriptors, variants and base ROM, the ROM library, game views, the one map editor (§8) |
 | `docs/cleanup.md` | The cleanup: decisions D1–D13 and the open work — read before deleting, moving, deduplicating or porting to TS |
-| `docs/todo/README.md` | Open work by topic; `docs/future-features.md` the roadmap |
+| `docs/todo/README.md` | Open work and ideas, by topic |
 | `docs/map-format/`, `docs/script-format/`, `docs/mana/`, `docs/terra/` | Each game's formats, with evidence |
 | `docs/reverse-engineering/README.md`, `docs/recomp/README.md`, `docs/exhirom/README.md` | RE approaches; the static recompilation; ExHiROM, the table hack and layouts |
 | `docs/evermore-releases.md` | The Evermore ROMs that exist, how they are identified, why US addresses do not apply to PAL builds |
