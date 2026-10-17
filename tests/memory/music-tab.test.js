@@ -17,7 +17,7 @@ const { MusicSpc } = require('../../src/games/evermore/music/webview/music-engin
 const V = require('../../src/games/evermore/music/webview/music-view.js');
 const { ApuStream } = require('../../src/emulator/apu-stream');
 const { getApuStreamClientScript } = require('../../src/emulator/apu-stream-view');
-const { getSoundSourceClientScript } = require('../../src/emulator/sound-source-view');
+const { getSoundSourceClientScript } = require('../../src/games/evermore/emulator/sound-source-view');
 const { renderRadarHtml } = require('../../src/games/evermore/memory/render-radar');
 
 let passed = 0, failed = 0;

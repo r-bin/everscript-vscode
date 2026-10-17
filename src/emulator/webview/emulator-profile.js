@@ -86,7 +86,7 @@ function emuCollectSettings() {
       anim: typeof animTilesOverlayEnabled !== 'undefined' && !!animTilesOverlayEnabled,
       collision: typeof collisionOverlayEnabled !== 'undefined' && !!collisionOverlayEnabled,
       fog: typeof fogOfWarEnabled !== 'undefined' && !!fogOfWarEnabled,
-      sounds: !!sndShow,
+      sounds: typeof sndShow !== 'undefined' && !!sndShow,
       hpBar: typeof thinHpBarEnabled !== 'undefined' && !!thinHpBarEnabled,
       staminaBar: typeof thinStaminaBarEnabled !== 'undefined' && !!thinStaminaBarEnabled,
     },

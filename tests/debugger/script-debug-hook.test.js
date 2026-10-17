@@ -10,7 +10,9 @@ const assert = require('assert');
 const fs     = require('fs');
 const path   = require('path');
 const vm     = require('vm');
-const { buildHtml } = require('../../src/emulator/panel-webview');
+// The page as Everscript builds it: with Evermore's part (games/evermore/emulator/host.js webview()).
+const _gameView = require('../../src/games/evermore/emulator/host').webview();
+const buildHtml = (w, js, wasm, label, p, offer, opts) => require('../../src/emulator/panel-webview').buildHtml(w, js, wasm, label, p, offer || null, Object.assign({ gameView: _gameView }, opts || {}));
 const { loadSourceMap, romOffset } = require('../../src/games/evermore/debugger/source-map');
 const frames = require('../../src/games/evermore/debugger/script-frames');
 

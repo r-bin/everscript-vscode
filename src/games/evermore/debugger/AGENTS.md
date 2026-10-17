@@ -6,8 +6,8 @@ Kind: **platform** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: 
 - The `everscript` debug type (launch / attach) and the in-process DAP session for `.evs`
   scripts running in the emulator panel: breakpoints, stops, steps, threads, stack,
   variables, evaluate, readMemory / writeMemory.
-- Not the webview side: `emulator/script-debug-host.js` and `script-debug-view.js` belong
-  to the emulator; the bridge to them is injected.
+- Not the webview side: `src/emulator/script-debug-host.js` (the emulator's) and
+  `games/evermore/emulator/script-debug-view.js`; the bridge to them is injected.
 
 ## Dependencies
 - `inline-adapter.js` → `vscode`, `emulator-session.js`, `source-map.js`. It is the only

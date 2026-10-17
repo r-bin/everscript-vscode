@@ -10,7 +10,7 @@ const getMenuCss = () => menuView.getMenuCss() + tabs.getMenuTabsCss();
 const getMenuHtml = () => menuView.getMenuHtml({ tabButtonsHtml: tabs.getMenuTabButtonsHtml(), panelsHtml: tabs.getMenuPanelsHtml() });
 const getMenuClientScript = () => menuView.getMenuClientScript() + tabs.getMenuTabsClientScript();
 const { getMenuSoundScript } = require('../../src/emulator/menu/menu-sound');
-const { getSoundSourceClientScript } = require('../../src/emulator/sound-source-view');
+const { getSoundSourceClientScript } = require('../../src/games/evermore/emulator/sound-source-view');
 const { buildHtml } = require('../../src/emulator/panel-webview');
 
 let passed = 0;
@@ -36,7 +36,7 @@ test('menu-view.js, menu-sound.js, and sound-source-view.js are strictly ASCII-o
         path.join(__dirname, '..', '..', 'src', 'emulator', 'menu', 'menu-view.js'),
         path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'menu-tabs.js'),
         path.join(__dirname, '..', '..', 'src', 'emulator', 'menu', 'menu-sound.js'),
-        path.join(__dirname, '..', '..', 'src', 'emulator', 'sound-source-view.js'),
+        path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'sound-source-view.js'),
         path.join(__dirname, '..', '..', 'src', 'emulator', 'panel-webview.js'),
     ];
     for (const f of files) {

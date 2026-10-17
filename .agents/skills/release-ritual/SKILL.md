@@ -38,6 +38,8 @@ workflow.
    All of these must pass before proceeding (`check:deps` warnings are reported, errors fail).
    The legal, knowledge and AI-context checks keep a baseline / allow list of known findings in
    `tools/`; it only shrinks — never add to it to make a check pass. Fix failures before continuing.
+   `check:knowledge` scans `git ls-files` only: `git add` new files before running it, or their
+   addresses are not counted (a moved file then looks like fewer addresses, not a pass).
 3. **Commit** to `develop` with the message format below.
 4. **Push** branch commits to remote:
    ```

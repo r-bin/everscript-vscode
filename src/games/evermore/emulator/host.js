@@ -516,12 +516,17 @@ function traceScripts(items, romBuffer, wsRoot, draft) {
     return processScriptTraceBatch(items, romBuffer, wsRoot, draft);
 }
 
-/** Evermore's part of the emulator page: the screen overlays, the ENTITIES, ALCHEMY and PALETTES panels, the cheats, and pause-menu tabs 1-4. */
+/** Evermore's part of the emulator page: the screen overlays, the script VM (STACK, TRACE, the VS Code script debugger's hook, who sent each sound), the ENTITIES, ALCHEMY and PALETTES panels, the cheats, and pause-menu tabs 1-4. */
 function webview() {
     const v = require('./bottom-bar-views');
     const t = require('./menu-tabs');
     const o = require('./overlays-view');
+    const st = require('./stack-view');
+    const sd = require('./script-debug-view');
+    const snd = require('./sound-source-view');
     return {
+        stackScript: st.getStackScript(), traceScript: st.getTraceScript(), scriptDebugScript: sd.getScriptDebugClientScript(),
+        soundSourceScript: snd.getSoundSourceClientScript(), soundChipHtml: snd.getSoundChipHtml(),
         overlaysScript: o.getOverlaysScript(), overlayTogglesScript: o.getOverlayTogglesScript(), screenChipsHtml: o.getScreenChipsHtml(),
         css: v.getBottomBarCss(), tabButtonsHtml: v.getBottomBarTabButtonsHtml(), viewsHtml: v.getBottomBarViewsHtml(),
         clientScript: v.getBottomBarClientScript() + t.getMenuTabsClientScript(),

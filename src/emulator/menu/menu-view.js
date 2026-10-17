@@ -930,22 +930,13 @@ function getMenuClientScript() {
       const coordsEl = document.getElementById('menu-lens-coords');
       const zoomPill = document.getElementById('menu-val-lens-zoom');
 
-      if (roomTitleEl) {
-        const mapName = (typeof activeRoomMap !== 'undefined' && activeRoomMap && activeRoomMap.name) ? activeRoomMap.name : '';
-        const hex = (typeof cachedMapId === 'number' && cachedMapId >= 0) ? ('0x' + cachedMapId.toString(16).toUpperCase().padStart(2, '0')) : '0x00';
-        roomTitleEl.textContent = 'Room ' + hex + (mapName ? ' (' + mapName + ')' : ' Exploration Lens');
-      }
-
+      // The room and the player: the game's (gameLensInfo, Evermore: menu-tabs.js); the line is data-needs="evermore".
+      const info = typeof gameLensInfo === 'function' ? gameLensInfo() : null;
+      if (roomTitleEl && info) roomTitleEl.textContent = info.room;
       if (coordsEl) {
-        let playerX = 0, playerY = 0;
-        const m = getModule();
-        if (m && typeof m.readMemory === 'function') {
-          playerX = m.readMemory(0x7E4E89 + 0x1A) | (m.readMemory(0x7E4E89 + 0x1B) << 8);
-          playerY = m.readMemory(0x7E4E89 + 0x1C) | (m.readMemory(0x7E4E89 + 0x1D) << 8);
-        }
         const px = (typeof panX !== 'undefined') ? panX : 0;
         const py = (typeof panY !== 'undefined') ? panY : 0;
-        coordsEl.textContent = 'Cam: (' + Math.round(px) + ', ' + Math.round(py) + ') | Player: (' + playerX + ', ' + playerY + ')';
+        coordsEl.textContent = 'Cam: (' + Math.round(px) + ', ' + Math.round(py) + ')' + (info ? ' | Player: (' + info.playerX + ', ' + info.playerY + ')' : '');
       }
 
       if (zoomPill) {

@@ -45,7 +45,7 @@ The engine reads the following verified WRAM registers every frame tick:
 
 ### 3.1 Sound-Chip Telemetry (`src/emulator/apu-stream.js`)
 - Streams 44.1kHz audio samples and full 64 KB ARAM snapshots directly to the Radar Music tab (`src/games/evermore/music/`).
-- Arms non-pausing breakpoint at `$8C:81FD` (`sound-source-view.js`) to log which entity, animation, or script triggered each sound effect.
+- Arms non-pausing breakpoint at `$8C:81FD` (`src/games/evermore/emulator/sound-source-view.js`) to log which entity, animation, or script triggered each sound effect.
 
 ### 3.2 TAS Input Recording & Playback (`src/emulator/tas/`)
 - Frame-exact joypad input recording and replay saved in `.evsmv` format.

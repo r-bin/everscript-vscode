@@ -291,6 +291,19 @@ function getMenuTabsClientScript() {
       return 0;
     }
 
+    // VIEW's line: the room (number and name) and the Boy's position (menu-view.js updateLensTabInfo).
+    function gameLensInfo() {
+      const mapName = (typeof activeRoomMap !== 'undefined' && activeRoomMap && activeRoomMap.name) ? activeRoomMap.name : '';
+      const hex = (typeof cachedMapId === 'number' && cachedMapId >= 0) ? ('0x' + cachedMapId.toString(16).toUpperCase().padStart(2, '0')) : '0x00';
+      let playerX = 0, playerY = 0;
+      const m = getModule();
+      if (m && typeof m.readMemory === 'function') {
+        playerX = m.readMemory(0x7E4E89 + 0x1A) | (m.readMemory(0x7E4E89 + 0x1B) << 8);
+        playerY = m.readMemory(0x7E4E89 + 0x1C) | (m.readMemory(0x7E4E89 + 0x1D) << 8);
+      }
+      return { room: 'Room ' + hex + (mapName ? ' (' + mapName + ')' : ' Exploration Lens'), playerX, playerY };
+    }
+
     function gameMenuOpened() { menuLocalObjStates.clear(); }
     function gameMenuClosed() { menuLocalObjStates.clear(); }
     function gameMenuMapChanged() { menuLocalObjStates.clear(); }

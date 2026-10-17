@@ -63,8 +63,10 @@ function getApuStreamClientScript() {
 
     // Called once per displayed frame, after mainLoop().
     function apuStreamTick(m, paused) {
-      sndSync(m, romLoaded && emuEvermore && (apuStreamOn || sndShow));
-      const src = sndTake(paused);
+      // Who sent each sound effect: the game's (Evermore: sound-source-view.js), none without it.
+      const hasSnd = typeof sndSync === 'function';
+      if (hasSnd) sndSync(m, romLoaded && emuEvermore && (apuStreamOn || sndShow));
+      const src = hasSnd ? sndTake(paused) : [];
       if (!apuStreamOn || !romLoaded) return;
       const view = apuViewBytes(m);
       if (!view) return;
@@ -75,7 +77,7 @@ function getApuStreamClientScript() {
         pkg: apuLoadedPackage(m),
         starts: apuVoiceStarts(view),
         drv: apuDriverBytes(view),
-        src: src,   // sound-source-view.js: who sent each effect this frame
+        src: src,   // games/evermore/emulator/sound-source-view.js: who sent each effect this frame
         frame: apuStreamFrame,
         paused: !!paused
       });
