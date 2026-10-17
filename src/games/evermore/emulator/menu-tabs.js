@@ -4,7 +4,7 @@
  * games/evermore/emulator/menu-tabs.js
  *
  * Evermore's tabs 1-4 of the emulator's pause menu (OVERLAYS, OBJECTS, LOOT, CHEATS), handed in
- * through host.js webview() like the bottom bar. The menu (src/emulator/menu/menu-view.js) splices
+ * through host.js webview() like the bottom bar. The menu (src/core/emulator/menu/menu-view.js) splices
  * the buttons and panels into its card and calls the hooks below (gameStartAllowed, gameMenuOpened,
  * gameMenuLoad, gameMenuRender, gameMenuStep, gameMenuActivate, gameMenuSync, ...) only behind
  * typeof guards, so a page without them (the SNES CDL Recorder) has no tabs 1-4.
@@ -240,7 +240,7 @@ function getMenuPanelsHtml() {
 function getMenuTabsClientScript() {
   return `
     // ---- Evermore's pause-menu tabs 1-4 (OVERLAYS, OBJECTS, LOOT, CHEATS): the hooks the emulator's
-    // menu calls behind typeof guards (src/emulator/menu/menu-view.js), and what they need.
+    // menu calls behind typeof guards (src/core/emulator/menu/menu-view.js), and what they need.
     const menuLocalObjStates = new Map();
 
     // Controllable Player Gate:

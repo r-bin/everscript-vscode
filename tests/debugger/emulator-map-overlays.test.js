@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 // The page as Everscript builds it: with Evermore's part (games/evermore/emulator/host.js webview()).
 const _gameView = require('../../src/games/evermore/emulator/host').webview();
-const buildHtml = (w, js, wasm, label, p, offer, opts) => require('../../src/emulator/panel-webview').buildHtml(w, js, wasm, label, p, offer || null, Object.assign({ gameView: _gameView }, opts || {}));
+const buildHtml = (w, js, wasm, label, p, offer, opts) => require('../../src/core/emulator/panel-webview').buildHtml(w, js, wasm, label, p, offer || null, Object.assign({ gameView: _gameView }, opts || {}));
 
 let passed = 0;
 let failed = 0;
@@ -27,8 +27,8 @@ console.log('Emulator Map Overlays (Objects, Animated Tiles, & Collision Lines) 
 // 1. ASCII-only verification
 test('panel.js and panel-webview.js are strictly ASCII-only', () => {
     const files = [
-        path.join(__dirname, '..', '..', 'src', 'emulator', 'panel.js'),
-        path.join(__dirname, '..', '..', 'src', 'emulator', 'panel-webview.js'),
+        path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'panel.js'),
+        path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'panel-webview.js'),
     ];
     for (const f of files) {
         const content = fs.readFileSync(f, 'utf8');

@@ -7,7 +7,7 @@
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const [rom, srm, scriptFile, outDir] = process.argv.slice(2);
-const CORE = path.join(__dirname, '../../src/emulator/core/snes9x2005-wasm/snes9x_2005.js');
+const CORE = path.join(__dirname, '../../src/core/emulator/core/snes9x2005-wasm/snes9x_2005.js');
 fs.mkdirSync(outDir, { recursive: true });
 const BTN = { b: 0x8000, y: 0x4000, select: 0x2000, start: 0x1000, up: 0x800, down: 0x400, left: 0x200, right: 0x100, a: 0x80, x: 0x40, l: 0x20, r: 0x10 };
 

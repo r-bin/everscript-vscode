@@ -378,7 +378,7 @@ function activate(context) {
                     },
                 );
                 _radarPanel.onDidDispose(() => {
-                    require('../../emulator/panel').apuStream.setOn(false);
+                    require('../../core/emulator/panel').apuStream.setOn(false);
                     _radarPanel = null;
                     _radarPinned = false;
                     _radarCurrentScope = null;
@@ -457,7 +457,7 @@ function activate(context) {
                         roomRom: radarRoomRom,
                         manaRooms: _manaRooms,
                         exportChannel: getMapExportChannel,
-                        openEmulator: (rom) => require('../../emulator/panel').openEmulatorPanel(context, rom),
+                        openEmulator: (rom) => require('../../core/emulator/panel').openEmulatorPanel(context, rom),
                         context,
                     });
                 } else if (handlesCustomMapMessage(msg.command)) {
@@ -486,7 +486,7 @@ function activate(context) {
                     handleMusicMessage(msg, {
                         post: (m) => _radarPanel?.webview.postMessage(m),
                         loadRom: () => romReaders.loadRomBuffer(_ws, ''),
-                        apu: require('../../emulator/panel').apuStream,
+                        apu: require('../../core/emulator/panel').apuStream,
                         describeSource: (rom, src) => require('./resources/sound-source').describeSoundSource(rom, src),
                         open: (uri) => vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(uri)),
                     });
@@ -605,7 +605,7 @@ function activate(context) {
     );
 
     // ── Debugger: .evs scripts in the emulator (src/games/evermore/debugger/README.md) ────
-    const emulatorPanel = require('../../emulator/panel');
+    const emulatorPanel = require('../../core/emulator/panel');
     require('./debugger/inline-adapter').registerDebugger(context, {
         bridge: emulatorPanel.getScriptDebugBridge(),
         runRom: romPath => emulatorPanel.runRomFile(context, romPath),
@@ -672,23 +672,23 @@ function activate(context) {
     );
 
     // ── Emulator Panel ───────────────────────────────────────────────────────
-    const { openEmulatorPanel } = require('../../emulator/panel');
+    const { openEmulatorPanel } = require('../../core/emulator/panel');
     // The full profile: every tab, and the CDL tab's exports and lookups.
-    require('../../emulator/panel').configureEmulator({ profile: 'full', cdlTools: require('./cdl/tools'), game: require('./emulator/host') });
+    require('../../core/emulator/panel').configureEmulator({ profile: 'full', cdlTools: require('./cdl/tools'), game: require('./emulator/host') });
     // The emulator's sound chip, frame by frame, to the radar's Music tab.
-    require('../../emulator/panel').apuStream.setListener(f => {
+    require('../../core/emulator/panel').apuStream.setListener(f => {
         if (_radarPanel) _radarPanel.webview.postMessage({ command: 'musicFrame', view: f.view, pkg: f.pkg, starts: f.starts, drv: f.drv, src: f.src, frame: f.frame, paused: !!f.paused });
     });
 
     // Sound-effect names for the emulator's marks (the Music model's, by driver id).
-    require('../../emulator/panel').apuStream.setNames(() => {
+    require('../../core/emulator/panel').apuStream.setNames(() => {
         const _ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
         return require('./music').sfxNames(() => romReaders.loadRomBuffer(_ws, ''));
     });
-    require('../../emulator/panel').apuStream.setOnPause(paused => {
+    require('../../core/emulator/panel').apuStream.setOnPause(paused => {
         if (_radarPanel) _radarPanel.webview.postMessage({ command: 'musicPaused', paused });
     });
-    require('../../emulator/panel').apuStream.setOnClose(() => {
+    require('../../core/emulator/panel').apuStream.setOnClose(() => {
         if (_radarPanel) _radarPanel.webview.postMessage({ command: 'musicEmulator', open: false });
     });
     context.subscriptions.push(
@@ -697,7 +697,7 @@ function activate(context) {
         }),
         // A SNES CDL Recorder's zip (CDL library + replays) merged into this install's.
         vscode.commands.registerCommand('everscript.importRecordingBundle', () =>
-            require('../../emulator/bundle-commands').importRecordingBundle(context)
+            require('../../core/emulator/bundle-commands').importRecordingBundle(context)
                 .catch(err => vscode.window.showErrorMessage('Import failed: ' + err.message))),
         vscode.commands.registerCommand('everscript._scriptFocus', (payload) => {
             _radarByteScriptFocus = String(payload?.address || '').toUpperCase();

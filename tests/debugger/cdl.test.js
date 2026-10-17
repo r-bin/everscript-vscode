@@ -311,7 +311,7 @@ test('host decodes webview deltas (base64 words) into the library', () => {
         return origLoad.call(this, req, ...rest);
     };
     try {
-        const { CdlHost } = require('../../src/emulator/cdl/host');
+        const { CdlHost } = require('../../src/core/emulator/cdl/host');
         const posted = [];
         let wanted = false;
         const host = new CdlHost(path.join(tmp, 'host'), m => posted.push(m), () => {},
@@ -378,7 +378,7 @@ test('script accessors show up in ram.asm and lookup; interpreter found by patte
     const origLoad = Module._load;
     Module._load = function (req, ...rest) { return req === 'vscode' ? {} : origLoad.call(this, req, ...rest); };
     try {
-        const { findScriptContext, parseRanges } = require('../../src/emulator/cdl/host');
+        const { findScriptContext, parseRanges } = require('../../src/core/emulator/cdl/host');
         const withVm = makeRom();
         withVm.set([0xA7, 0x82, 0xE6, 0x82, 0x29, 0xFF, 0x00, 0x0A, 0xAA, 0xFC, 0xBD, 0xE8], 0xD0A6);
         assert.deepStrictEqual(findScriptContext(withVm), { fetchRomOff: 0xD0A6, ptr: 0x82 });
@@ -390,16 +390,16 @@ test('script accessors show up in ram.asm and lookup; interpreter found by patte
 });
 
 test('webview exposes the CDL tab and its script parses', () => {
-    const src = fs.readFileSync(path.join(ROOT, 'src', 'emulator', 'cdl-view.js'), 'utf8');
+    const src = fs.readFileSync(path.join(ROOT, 'src', 'core', 'emulator', 'cdl-view.js'), 'utf8');
     assert.ok(!/[^\x09\x0A\x0D\x20-\x7E]/.test(src), 'cdl-view.js must be ASCII');
-    const { buildHtml } = require('../../src/emulator/panel-webview');
+    const { buildHtml } = require('../../src/core/emulator/panel-webview');
     const html = buildHtml({ cspSource: '' }, 'core.js', 'core.wasm', 'core', 'core');
     assert.ok(html.includes('id="ss-tab-cdl"') && html.includes('id="ss-view-cdl"'));
     assert.ok(html.includes('id="emu-slot-cdl"') && html.includes('id="menu-val-place-cdl"'), 'CDL has a pause-menu tab with its placement');
     assert.ok(html.includes('id="cdl-float-layer"'), 'floating coverage text layer');
     assert.ok(html.includes('cdlOnPauseChanged(paused)'), 'frame loop reports pause changes');
     for (const f of ['cdl-float.js', 'cdl-strips.js']) {
-        const text = fs.readFileSync(path.join(ROOT, 'src', 'emulator', f), 'utf8');
+        const text = fs.readFileSync(path.join(ROOT, 'src', 'core', 'emulator', f), 'utf8');
         assert.ok(!/[^\x09\x0A\x0D\x20-\x7E]/.test(text), f + ' must be ASCII');
     }
     for (const m of html.matchAll(/<script>([\s\S]*?)<\/script>/g)) new Function(m[1]);

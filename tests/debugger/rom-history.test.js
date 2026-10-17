@@ -13,7 +13,7 @@ const {
   recordRomUsage,
   getRecentRoms,
   getRomOfferData,
-} = require('../../src/emulator/rom-history');
+} = require('../../src/core/emulator/rom-history');
 
 let passed = 0;
 let failed = 0;
@@ -32,7 +32,7 @@ function test(name, fn) {
 console.log('ROM History & Quick Launch Tests:');
 
 test('rom-history.js is strictly ASCII-only', () => {
-  const content = fs.readFileSync(path.join(__dirname, '../../src/emulator/rom-history.js'), 'utf8');
+  const content = fs.readFileSync(path.join(__dirname, '../../src/core/emulator/rom-history.js'), 'utf8');
   assert.ok(!/[^\x09\x0A\x0D\x20-\x7E]/.test(content), 'rom-history.js must contain ASCII characters only');
 });
 
@@ -130,7 +130,7 @@ test('clearRecentRoms empties the recent roms list', () => {
     fs.writeFileSync(file1, 'data');
     recordRomUsage({ path: file1, name: 'game.sfc' }, mockContext);
     assert.strictEqual(getRecentRoms(testDir).length, 1);
-    const { clearRecentRoms } = require('../../src/emulator/rom-history');
+    const { clearRecentRoms } = require('../../src/core/emulator/rom-history');
     clearRecentRoms(testDir);
     assert.strictEqual(getRecentRoms(testDir).length, 0);
   } finally {
@@ -143,7 +143,7 @@ test('clearRecentRoms empties the recent roms list', () => {
 });
 
 test('detectRomDetails detects known vanilla Secret of Evermore hashes', () => {
-  const { detectRomDetails } = require('../../src/emulator/rom-history');
+  const { detectRomDetails } = require('../../src/core/emulator/rom-history');
   const vanillaPath = require('../../dist/games').baseRomPath('evermore');
   if (vanillaPath && fs.existsSync(vanillaPath)) {
     const details = detectRomDetails(vanillaPath);
@@ -156,7 +156,7 @@ test('detectRomDetails detects known vanilla Secret of Evermore hashes', () => {
 });
 
 test('detectRomDetails returns ? for unknown ROM buffers', () => {
-  const { detectRomDetails } = require('../../src/emulator/rom-history');
+  const { detectRomDetails } = require('../../src/core/emulator/rom-history');
   const dummy = Buffer.alloc(0x200000);
   const details = detectRomDetails(dummy);
   assert.ok(details);
@@ -167,7 +167,7 @@ test('detectRomDetails returns ? for unknown ROM buffers', () => {
 });
 
 test('detectRomDetails detects custom map ROM by path name (Evermore describes its own test ROMs)', () => {
-  const { detectRomDetails, setRomDescriber } = require('../../src/emulator/rom-history');
+  const { detectRomDetails, setRomDescriber } = require('../../src/core/emulator/rom-history');
   setRomDescriber(require('../../src/games/evermore/emulator/host').describeRom);
   const dummy = Buffer.alloc(0x300000);
   const details = detectRomDetails(dummy, '/path/to/Copy_of_Shops_emulator.sfc');

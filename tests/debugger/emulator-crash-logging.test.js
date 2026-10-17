@@ -5,9 +5,9 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..', '..');
-const PANEL_JS = path.join(ROOT, 'src', 'emulator', 'panel.js');
-const PANEL_WEBVIEW_JS = path.join(ROOT, 'src', 'emulator', 'panel-webview.js');
-const MENU_VIEW_JS = path.join(ROOT, 'src', 'emulator', 'menu', 'menu-view.js');
+const PANEL_JS = path.join(ROOT, 'src', 'core', 'emulator', 'panel.js');
+const PANEL_WEBVIEW_JS = path.join(ROOT, 'src', 'core', 'emulator', 'panel-webview.js');
+const MENU_VIEW_JS = path.join(ROOT, 'src', 'core', 'emulator', 'menu', 'menu-view.js');
 
 let passed = 0;
 let failed = 0;

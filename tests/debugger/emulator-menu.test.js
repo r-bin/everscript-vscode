@@ -3,15 +3,15 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
-const menuView = require('../../src/emulator/menu/menu-view');
+const menuView = require('../../src/core/emulator/menu/menu-view');
 // The menu as Everscript shows it: with Evermore's tabs 1-4 (games/evermore/emulator/menu-tabs.js).
 const tabs = require('../../src/games/evermore/emulator/menu-tabs');
 const getMenuCss = () => menuView.getMenuCss() + tabs.getMenuTabsCss();
 const getMenuHtml = () => menuView.getMenuHtml({ tabButtonsHtml: tabs.getMenuTabButtonsHtml(), panelsHtml: tabs.getMenuPanelsHtml() });
 const getMenuClientScript = () => menuView.getMenuClientScript() + tabs.getMenuTabsClientScript();
-const { getMenuSoundScript } = require('../../src/emulator/menu/menu-sound');
+const { getMenuSoundScript } = require('../../src/core/emulator/menu/menu-sound');
 const { getSoundSourceClientScript } = require('../../src/games/evermore/emulator/sound-source-view');
-const { buildHtml } = require('../../src/emulator/panel-webview');
+const { buildHtml } = require('../../src/core/emulator/panel-webview');
 
 let passed = 0;
 let failed = 0;
@@ -33,11 +33,11 @@ console.log('Emulator Quick Menu Tests:');
 // 1. ASCII-only verification
 test('menu-view.js, menu-sound.js, and sound-source-view.js are strictly ASCII-only', () => {
     const files = [
-        path.join(__dirname, '..', '..', 'src', 'emulator', 'menu', 'menu-view.js'),
+        path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'menu', 'menu-view.js'),
         path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'menu-tabs.js'),
-        path.join(__dirname, '..', '..', 'src', 'emulator', 'menu', 'menu-sound.js'),
+        path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'menu', 'menu-sound.js'),
         path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'sound-source-view.js'),
-        path.join(__dirname, '..', '..', 'src', 'emulator', 'panel-webview.js'),
+        path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'panel-webview.js'),
     ];
     for (const f of files) {
         const content = fs.readFileSync(f, 'utf8');

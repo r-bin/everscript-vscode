@@ -52,8 +52,8 @@ function withVscodeStub(config, fn) {
         return origLoad.call(this, req, ...rest);
     };
     try {
-        delete require.cache[require.resolve('../../src/emulator/tas/host')];
-        return fn(require('../../src/emulator/tas/host'));
+        delete require.cache[require.resolve('../../src/core/emulator/tas/host')];
+        return fn(require('../../src/core/emulator/tas/host'));
     } finally {
         Module._load = origLoad;
     }
@@ -148,7 +148,7 @@ test('host: recording kept only when a button was pressed by hand; pins; replay 
 });
 
 test('REPLAYS rows: when, length and sync, no file name; play and delete ask first', () => {
-    const list = require('../../src/emulator/webview/replays-list');
+    const list = require('../../src/core/emulator/webview/replays-list');
     const items = [
         { id: 'file:a.evsmv', name: 'a', frames: 60 * 60.0988 * 3 + 2, romMatch: true, meta: { started: '2026-10-16T15:39:37Z', synced: '2026-10-16' } },
         { id: 'file:b.evsmv', name: 'b', frames: 600, romMatch: true, meta: { started: '2026-10-16T10:39:29Z', desync: '3606 expected A, got B' } },
@@ -166,11 +166,11 @@ test('REPLAYS rows: when, length and sync, no file name; play and delete ask fir
 
 test('webview: REPLAYS tab, inputs + FPS chips, frame loop routes joypads through tasApplyInput; script parses', () => {
     for (const [file, fn] of [['tas-view.js', 'getTasClientScript'], ['fps-meter.js', 'getFpsClientScript']]) {
-        const src = fs.readFileSync(path.join(ROOT, 'src', 'emulator', file), 'utf8');
+        const src = fs.readFileSync(path.join(ROOT, 'src', 'core', 'emulator', file), 'utf8');
         assert.ok(!/[^\x09\x0A\x0D\x20-\x7E]/.test(src), file + ' must be ASCII');
         assert.ok(!src.slice(src.indexOf('function ' + fn)).includes('\\'), 'no backslashes in ' + fn);
     }
-    const { buildHtml } = require('../../src/emulator/panel-webview');
+    const { buildHtml } = require('../../src/core/emulator/panel-webview');
     const html = buildHtml({ cspSource: '' }, 'core.js', 'core.wasm', 'core', 'core');
     assert.ok(!html.includes('id="ss-tab-tas"') && html.includes('id="ss-view-tas"') && html.includes('id="emu-slot-tas"'), 'REPLAYS is a pause-menu tab only');
     assert.ok(html.includes('id="tas-rec-badge"'), 'the replay status chip is on the screen');
@@ -190,7 +190,7 @@ function findRom() {
 }
 
 function loadCore() {
-    const dir = path.join(ROOT, 'src', 'emulator', 'core', 'snes9x2005-wasm');
+    const dir = path.join(ROOT, 'src', 'core', 'emulator', 'core', 'snes9x2005-wasm');
     return new Promise(resolve => {
         const Mod = { locateFile: f => path.join(dir, f), onRuntimeInitialized: () => resolve(Mod), print() {}, printErr() {} };
         const ctx = vm.createContext({ Module: Mod, require, __dirname: dir, __filename: path.join(dir, 'snes9x_2005.js'), console, process, Buffer, URL, WebAssembly, TextDecoder, setTimeout, clearTimeout, performance });

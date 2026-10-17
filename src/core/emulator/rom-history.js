@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * src/emulator/rom-history.js
+ * src/core/emulator/rom-history.js
  *
  * Tracks ROM loading history and offers quick-launch targets for the emulator:
  * - The base ROM of the selected game (ROM library)
@@ -19,7 +19,7 @@ const MAX_HISTORY_ITEMS = 15;
 
 // Which game and variant a ROM is comes from the ROM library's identification (platform/roms/identify.ts);
 // this file only shapes it for the quick-launch list.
-const platform = require('../../dist/platform');
+const platform = require('../../../dist/platform');
 
 /**
  * A game can describe ROMs it built itself (Evermore: the map editor's test ROMs) before the

@@ -1,7 +1,7 @@
 ---
 name: cdl-recorder
 description: Use when touching the Code/Data Logger: the recorder in the snes9x core, the per-ROM library, xrefs, the Asar/Mesen/recomp exports, the CDL tab, or analysis built on recorded data.
-applyTo: "src/platform/cdl/**,src/emulator/cdl/**,src/games/evermore/cdl/**,src/emulator/cdl-*.js,src/emulator/core/snes9x2005-wasm/source/cdl*,src/emulator/core/snes9x2005-wasm/source/spc700.h,src/emulator/core/snes9x2005-wasm/source/apumem.h,tools/gen-cdl-optable.js,tests/debugger/cdl*.test.js,docs/reverse-engineering/cdl-export-build-recomp.md,docs/reverse-engineering/asm-to-c-port.md"
+applyTo: "src/platform/cdl/**,src/core/emulator/cdl/**,src/games/evermore/cdl/**,src/core/emulator/cdl-*.js,src/core/emulator/core/snes9x2005-wasm/source/cdl*,src/core/emulator/core/snes9x2005-wasm/source/spc700.h,src/core/emulator/core/snes9x2005-wasm/source/apumem.h,tools/gen-cdl-optable.js,tests/debugger/cdl*.test.js,docs/reverse-engineering/cdl-export-build-recomp.md,docs/reverse-engineering/asm-to-c-port.md"
 ---
 
 # Skill: CDL recorder, library and exports
@@ -144,13 +144,13 @@ are two further records `$AE` apart (larger records, not on the `$8E` lattice).
 
 ## 5b. Building a library from a movie
 
-Play once, replay forever: the input recording (`.evsmv`, `src/emulator/tas/README.md`) is the
+Play once, replay forever: the input recording (`.evsmv`, `src/core/emulator/tas/README.md`) is the
 source of truth and the library is derived. `node tools/cdl/replay.js <movie> <rom> --cdl <root>`
 replays headless with the recorder on, drains and flushes every `--drain` frames, and stops
 with exit code 2 at the first WRAM-checksum mismatch ("DESYNC at frame N"). Rerun it whenever
 the recorder gains a stream. Movies record pad input, memory writes (cheats, object states, menu
 toggles), soft resets, a WRAM CRC every 60 frames and a VRAM/CGRAM/OAM/SRAM/ARAM CRC every 600; a power-cycle starts
-a new movie. The replay boots at the movie's audio rate (44100): the rate leaks into ARAM (`src/emulator/tas/README.md`).
+a new movie. The replay boots at the movie's audio rate (44100): the rate leaks into ARAM (`src/core/emulator/tas/README.md`).
 Recording the CDL never changes emulation (tested: same checksums with `--cdl`).
 `--states <dir>` saves a state at room changes (`$7E0ADB`, at least 60 s apart, none before frame 600: a state taken at
 frame 1 does not reproduce the run) and `--from-state <file>` resumes from one (`tools/cdl/replay-states.js`,

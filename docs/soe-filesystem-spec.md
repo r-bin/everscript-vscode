@@ -100,7 +100,7 @@ Both are verified by `Everscript: Check soe:// Resources`. The command also retu
 An address without an extension reads as `.json` (`soe://bus/8cd0a6` → `soe://rom/0cd0a6.json`, "Script VM opcode dispatch"). `.bin`, `[<len>]` and `.<bit>` carry over to the target.
 
 **How live reads work:**
-- **The bridge.** The core runs in the emulator webview, so the host asks it: `soeRequest` (kind `read` or `status`) → `soeReply` (`src/emulator/memory-bridge.js` and `memory-bridge-view.js`).
+- **The bridge.** The core runs in the emulator webview, so the host asks it: `soeRequest` (kind `read` or `status`) → `soeReply` (`src/core/emulator/memory-bridge.js` and `memory-bridge-view.js`).
 - **Which read.** The debugger core reads any bus address with `readMemoryRange`, 4 KB per call. The vanilla core serves WRAM from its save state at offset `0x10c14`.
 - **Caching and refresh.** Live files are cached for 250 ms and re-announced once a second while watched. Without a running game, reads throw `Unavailable`.
 

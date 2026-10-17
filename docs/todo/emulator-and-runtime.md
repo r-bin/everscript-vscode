@@ -1,6 +1,6 @@
 # Emulator Subsystem & Runtime — Open Tasks & Roadmap
 
-> Domain: Embedded SNES Emulator (`src/emulator/`, `src/games/evermore/debugger/`)
+> Domain: Embedded SNES Emulator (`src/core/emulator/`, `src/games/evermore/debugger/`)
 > Shipped features reference: [`docs/emulator-and-debugging.md`](../emulator-and-debugging.md)
 > Status key: 🔴 blocking / bug · 🟡 feature gap · 🟢 designed, not yet built
 

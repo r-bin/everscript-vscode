@@ -173,7 +173,7 @@ repository's code only; bundled third-party parts keep their own licences:
 
 - The embedded SNES emulator WebAssembly core (`snes9x2005-wasm`) and the SPC engine built from
   it are distributed for personal, **non-commercial** use under the Snes9x licence (see
-  `src/emulator/core/snes9x2005-wasm/copyright` and `src/games/evermore/music/engine/copyright`). The extension
+  `src/core/emulator/core/snes9x2005-wasm/copyright` and `src/games/evermore/music/engine/copyright`). The extension
   must not be sold. Upstream: [r-bin/snes9x2005-wasm](https://github.com/r-bin/snes9x2005-wasm),
   [lrusso/snes9x2005-wasm](https://github.com/lrusso/snes9x2005-wasm).
 

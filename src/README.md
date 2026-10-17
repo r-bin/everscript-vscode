@@ -5,8 +5,7 @@ All production code lives here. Each subdirectory is an ownership domain.
 | Domain | Description |
 |---|---|
 | `platform/` | Game-neutral: ROM header and identification, the ROM library, the game registry (`docs/architecture/multi-game.md`) |
-| `core/` | Game-neutral features: `webview/shared.css` (the page base of the radar and the Mana Maps page); Switch ROM, the ROM panel, the status bar item; `map-editor/` (view, core, shell of both games' editors); `mcp/` (read-only MCP server, 127.0.0.1:47917, for AI clients) |
-| `emulator/` | Embedded SNES emulator: panel, webview, SNES ROM header model; profiles (Everscript / recorder) and Evermore gating; recording bundles |
+| `core/` | Game-neutral features: `webview/shared.css` (the page base of the radar and the Mana Maps page); Switch ROM, the ROM panel, the status bar item; `map-editor/` (view, core, shell of both games' editors); `mcp/` (read-only MCP server, 127.0.0.1:47917, for AI clients); `emulator/` (the embedded SNES emulator: panel, page, cores, profiles Everscript / recorder; a game hands in its part) |
 | `recorder/` | SNES CDL Recorder: the second extension's entry (`recorder/package.json`), the emulator in its recorder profile |
 | `games/` | One folder per game; `games/index.ts` is the list of games (→ `dist/games`) |
 | `games/evermore/` (files) | `rom-readers.js` (ROM reads for rooms, characters, stats), `radar-utils.js` (Everscript parsing for the radar), the descriptor and derived-ROM marker |
@@ -43,8 +42,8 @@ Below, `language/`, `maps/`, … without a prefix are under `games/evermore/`.
 - `rom/` → may use `maps/`; never `emulator/` (the CDL library is injected by `games/evermore/extension.js`)
 - `scripts-tab/` → libraries only (`script/`, `maps/`, `localizations/`, `simulation/`); sprites and music capabilities are injected by `games/evermore/extension.js`
 - `music/` → may use `localizations/`; never `emulator/` (the sound-chip stream is injected by `games/evermore/extension.js`)
-- `recorder/` → only `emulator/`; nothing imports it
-- `emulator/` → `platform/` only; no game (`emulator-knows-no-game`)
+- `recorder/` → only `core/emulator/`; nothing imports it
+- `core/emulator/` → `platform/` only; no game (`emulator-knows-no-game`); a game hands in its part
 - `debugger/` → no memory, no emulator internals (the emulator bridge is injected by `games/evermore/extension.js`)
 - `core/mcp/` → `vscode` only; reads `soe://` through `vscode.workspace.fs`, never another domain
 - `simulation/` → `script/` only, injected through its `index.js`

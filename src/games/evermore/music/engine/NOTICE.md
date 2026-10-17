@@ -1,7 +1,7 @@
 # spc-engine.js: licence notice
 
 `spc-engine.js` is compiled from `spc-engine.c` and the emulator core's
-`src/emulator/core/snes9x2005-wasm/source/apu_blargg.c`. That file is the SPC700/S-DSP
+`src/core/emulator/core/snes9x2005-wasm/source/apu_blargg.c`. That file is the SPC700/S-DSP
 emulation by Shay Green (blargg), under the GNU Lesser General Public License 2.1 or later,
 inside the snes9x2005 core whose terms are in `copyright` (shipped next to this file, as with
 the core's own build).

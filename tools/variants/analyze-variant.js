@@ -352,7 +352,7 @@ function analyzeSongPackages(rom) {
 }
 
 async function runHeadlessBoot(romPath) {
-    const CORE = path.join(__dirname, '../../src/emulator/core/snes9x2005-wasm/snes9x_2005.js');
+    const CORE = path.join(__dirname, '../../src/core/emulator/core/snes9x2005-wasm/snes9x_2005.js');
     if (!fs.existsSync(CORE)) return { verified: false, error: 'snes9x core not found' };
 
     return new Promise((resolve) => {

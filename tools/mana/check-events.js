@@ -16,7 +16,7 @@ if (!romPath || !Number.isInteger(id)) {
     console.error('usage: node tools/mana/check-events.js <map id, hex>');
     process.exit(2);
 }
-const CORE = path.join(__dirname, '../../src/emulator/core/snes9x2005-wasm/snes9x_2005.js');
+const CORE = path.join(__dirname, '../../src/core/emulator/core/snes9x2005-wasm/snes9x_2005.js');
 const START = 0x1000, A = 0x80, B = 0x8000;
 
 global.Module = { locateFile: f => path.join(path.dirname(CORE), f), onRuntimeInitialized: main };

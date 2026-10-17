@@ -1,7 +1,7 @@
 'use strict';
 // Ownership: how the emulator's ROM list describes a ROM the Evermore map editor built (a test ROM
 // that boots into a custom room: *_emulator.sfc, or the intro hook pointing at the room). Handed to
-// src/emulator/rom-history.js as its ROM describer through the game adapter (host.js).
+// src/core/emulator/rom-history.js as its ROM describer through the game adapter (host.js).
 
 const path = require('path');
 const maps = require('../maps');

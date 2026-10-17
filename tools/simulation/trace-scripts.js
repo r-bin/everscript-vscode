@@ -12,13 +12,13 @@
 //
 //   node tools/simulation/trace-scripts.js <rom> <frames> <out.json> [--wram-at=<tick>]
 //
-// Needs the built debugger core (src/emulator/core/snes9x2005-wasm). Writes only <out.json>.
+// Needs the built debugger core (src/core/emulator/core/snes9x2005-wasm). Writes only <out.json>.
 
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const CORE_DIR = path.join(__dirname, '..', '..', 'src', 'emulator', 'core', 'snes9x2005-wasm');
+const CORE_DIR = path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'core', 'snes9x2005-wasm');
 const TICK = 0x8ee446, FETCH = 0x8cd0a6, AFTER = 0x8cd0b2, RNG = 0x80859b;
 
 function bootCore() {

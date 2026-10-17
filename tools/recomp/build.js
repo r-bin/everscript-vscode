@@ -12,9 +12,9 @@ const crypto = require('crypto');
 const { spawnSync } = require('child_process');
 
 const REPO = path.resolve(__dirname, '..', '..');
-const { CdlLibrary, stripCopierHeader } = require(path.join(REPO, 'src/emulator/cdl/library'));
-const { createRomMap } = require(path.join(REPO, 'src/emulator/cdl/rom-map'));
-const { exportAsar } = require(path.join(REPO, 'src/emulator/cdl/tools'));
+const { CdlLibrary, stripCopierHeader } = require(path.join(REPO, 'src/core/emulator/cdl/library'));
+const { createRomMap } = require(path.join(REPO, 'src/core/emulator/cdl/rom-map'));
+const { exportAsar } = require(path.join(REPO, 'src/core/emulator/cdl/tools'));
 const { romRegions } = require(path.join(REPO, 'src/games/evermore/rom'));
 const { collectNames } = require('./names');
 const { writeReport } = require('./report');

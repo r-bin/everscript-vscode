@@ -1,6 +1,6 @@
 'use strict';
 
-// Writes src/emulator/core/snes9x2005-wasm/source/cdl-optable.h from
+// Writes src/core/emulator/core/snes9x2005-wasm/source/cdl-optable.h from
 // src/platform/snes/opcodes-65816.ts so the core's instruction lengths and flow
 // kinds always match the disassembler's.
 //   node tools/gen-cdl-optable.js
@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const { OPCODES, MODE_SIZE, flowKind, isStackOp } = require('../dist/platform/snes/opcodes-65816');
 
-const OUT = path.join(__dirname, '..', 'src', 'emulator', 'core', 'snes9x2005-wasm', 'source', 'cdl-optable.h');
+const OUT = path.join(__dirname, '..', 'src', 'core', 'emulator', 'core', 'snes9x2005-wasm', 'source', 'cdl-optable.h');
 
 function render() {
     // bits 0-1: operand bytes; 0x04: +1 when M=0; 0x08: +1 when X=0;

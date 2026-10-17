@@ -19,11 +19,11 @@ const fs     = require('fs');
 const path   = require('path');
 
 const ROOT      = path.resolve(__dirname, '../..');
-const CORE_DIR  = path.join(ROOT, 'src', 'emulator', 'core', 'snes9x2005-wasm-vanilla');
+const CORE_DIR  = path.join(ROOT, 'src', 'core', 'emulator', 'core', 'snes9x2005-wasm-vanilla');
 const CORE_JS   = path.join(CORE_DIR, 'snes9x_2005.js');
 const CORE_WASM = path.join(CORE_DIR, 'snes9x_2005.wasm');
-const PANEL_JS         = path.join(ROOT, 'src', 'emulator', 'panel.js');
-const PANEL_WEBVIEW_JS = path.join(ROOT, 'src', 'emulator', 'panel-webview.js');
+const PANEL_JS         = path.join(ROOT, 'src', 'core', 'emulator', 'panel.js');
+const PANEL_WEBVIEW_JS = path.join(ROOT, 'src', 'core', 'emulator', 'panel-webview.js');
 
 // WebAssembly binary magic: \0asm  (00 61 73 6D)
 const WASM_MAGIC = Buffer.from([0x00, 0x61, 0x73, 0x6d]);
@@ -136,7 +136,7 @@ test('panel.js references the merged core folder, not emulator/vendor', () => {
     if (!panelContent) { assert.fail('panel.js could not be read'); return; }
     assert.ok(!panelContent.includes('emulator/vendor'),
         'panel.js still references emulator/vendor — remove EmulatorJS dependency');
-    assert.ok(panelContent.includes("path.join('src', 'emulator', 'core', 'snes9x2005-wasm-vanilla')"),
+    assert.ok(panelContent.includes("path.join('src', 'core', 'emulator', 'core', 'snes9x2005-wasm-vanilla')"),
         'panel.js does not point bundled core resolution at debugger/core/snes9x2005-wasm-vanilla');
 });
 

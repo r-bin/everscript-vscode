@@ -316,14 +316,14 @@ Graphics_PlayerRunSprites:
 ## 7. Implementation Roadmap & Milestones
 
 1. **Phase 1: WASM CDL Buffer**
-   - Add a 4 MB bitfield buffer in `src/emulator/core/snes9x2005-wasm/source/debugger.c`.
+   - Add a 4 MB bitfield buffer in `src/core/emulator/core/snes9x2005-wasm/source/debugger.c`.
    - Instrument the opcode fetch cycle to log execution flags and register widths (`M`/`X`).
 2. **Phase 2: Hardware Access Hooks**
    - Hook DMA registers (`$420B`, `$43x0-$43xF`) to catch source ROM offsets flowing into VRAM.
    - Hook `$2140-$2143` to catch audio transfers.
    - Add WRAM profiling buffer (128 KB).
 3. **Phase 3: Host Exporter & Disassembler Engine**
-   - Implement 65816 disassembler in TypeScript (`src/emulator/disassembler/`).
+   - Implement 65816 disassembler in TypeScript (`src/core/emulator/disassembler/`).
    - Parse CDL flags: generate label targets for subroutines and branch destinations.
    - Emit `incbin` directives for pure data and unexecuted chunks.
 4. **Phase 4: Struct & Type Correlator**

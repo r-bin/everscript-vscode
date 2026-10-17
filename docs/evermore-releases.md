@@ -231,7 +231,7 @@ Scripts lived in the session scratchpad and are not checked in. To reproduce:
   (bit 23 clear) to identify the language.
 - **Region check**: search for `LDA $213F` (`AD 3F 21`), `LDA $00213F` (`AF 3F 21 00`) and `BIT $213F`
   (`2C 3F 21`). None in any release.
-- **Speed**: boot each ROM in `src/emulator/core/snes9x2005-wasm-vanilla` under node (load it with `vm.runInThisContext`,
+- **Speed**: boot each ROM in `src/core/emulator/core/snes9x2005-wasm-vanilla` under node (load it with `vm.runInThisContext`,
   then `_startWithRom` and one `_mainLoop` per frame), no input, 3000 frames. Each frame, log whether the screen is
   dark and the room id at `$7E:0ADB`.
 - **Characters**: compare bytes `+0x0D..+0x2F` of each of the 141 US records at `$8E:B678` (file

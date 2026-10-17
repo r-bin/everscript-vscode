@@ -1,4 +1,4 @@
-# src/emulator — agent rules
+# src/core/emulator — agent rules
 
 Kind: **feature** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [README.md](README.md).
 Related skills: `emulator-subsystem`, `cdl-recorder`, `webview-dom-safety`, `debugger-protocol`

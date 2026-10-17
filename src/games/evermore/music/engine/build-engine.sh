@@ -5,7 +5,7 @@ set -e
 cd "$(dirname "$0")"
 ROOT_DIR=$(CDPATH= cd -- "../../../../.." && pwd)
 export EM_CACHE="${EM_CACHE:-$ROOT_DIR/.emscripten_cache}"
-CORE=../../../../emulator/core/snes9x2005-wasm/source
+CORE=../../../../core/emulator/core/snes9x2005-wasm/source
 
 emcc -O3 -DUSE_BLARGG_APU \
     -I"$CORE" \

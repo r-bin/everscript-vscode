@@ -120,7 +120,7 @@ function findRom() {
 
 test('the core records mirror forms, mirror read sites and per-frame cycles', function () {
     const romPath = findRom();
-    const core = path.join(ROOT, 'src/emulator/core/snes9x2005-wasm/snes9x_2005.js');
+    const core = path.join(ROOT, 'src/core/emulator/core/snes9x2005-wasm/snes9x_2005.js');
     if (!romPath || !fs.existsSync(core)) { console.log('    (skipped: no local ROM or built core)'); return; }
     // The core's Emscripten glue runs in this process; run it in a child so a failure cannot hang the suite.
     const script = `

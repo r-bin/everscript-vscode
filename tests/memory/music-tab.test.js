@@ -15,8 +15,8 @@ const { handlesMusicMessage, handleMusicMessage } = require('../../src/games/eve
 const createSpcEngine = require('../../src/games/evermore/music/engine/spc-engine.js');
 const { MusicSpc } = require('../../src/games/evermore/music/webview/music-engine.js');
 const V = require('../../src/games/evermore/music/webview/music-view.js');
-const { ApuStream } = require('../../src/emulator/apu-stream');
-const { getApuStreamClientScript } = require('../../src/emulator/apu-stream-view');
+const { ApuStream } = require('../../src/core/emulator/apu-stream');
+const { getApuStreamClientScript } = require('../../src/core/emulator/apu-stream-view');
 const { getSoundSourceClientScript } = require('../../src/games/evermore/emulator/sound-source-view');
 const { renderRadarHtml } = require('../../src/games/evermore/memory/render-radar');
 
@@ -139,7 +139,7 @@ async function modelAndEngine() {
 /** The custom core under node, the page's stream script against it, the host class. */
 async function coreStream(model) {
     console.log('\nEmulator sound-chip stream:');
-    const dir = path.join(ROOT, 'src', 'emulator', 'core', 'snes9x2005-wasm');
+    const dir = path.join(ROOT, 'src', 'core', 'emulator', 'core', 'snes9x2005-wasm');
     if (!rom || !fs.existsSync(path.join(dir, 'snes9x_2005.wasm'))) { console.log('  (ROM or custom core missing — skipped)'); return; }
     await new Promise(resolve => {
         global.require = require; global.__dirname = dir; global.__filename = path.join(dir, 'snes9x_2005.js');

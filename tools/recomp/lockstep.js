@@ -14,7 +14,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const REPO = path.resolve(__dirname, '..', '..');
-const CORE = path.join(REPO, 'src/emulator/core/snes9x2005-wasm-vanilla/snes9x_2005.js');
+const CORE = path.join(REPO, 'src/core/emulator/core/snes9x2005-wasm-vanilla/snes9x_2005.js');
 const STATE_WRAM = 0x10c14;          // WRAM offset inside this core's save state
 const SYNC_AT = 115;                 // counter at which the RNG is copied into the recomp
 const RNG = [0x133, 0x13B];

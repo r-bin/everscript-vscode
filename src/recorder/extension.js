@@ -11,8 +11,8 @@
  */
 
 const vscode = require('vscode');
-const panel = require('../emulator/panel');
-const { exportRecordingBundle } = require('../emulator/bundle-commands');
+const panel = require('../core/emulator/panel');
+const { exportRecordingBundle } = require('../core/emulator/bundle-commands');
 
 function activate(context) {
     const tool = { name: 'snes-cdl-recorder', version: context.extension ? context.extension.packageJSON.version : '' };

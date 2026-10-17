@@ -3,7 +3,7 @@
 /**
  * games/evermore/emulator/bottom-bar-views.js
  *
- * Evermore's part of the emulator page (handed in as host.js webview(), see src/emulator/AGENTS.md):
+ * Evermore's part of the emulator page (handed in as host.js webview(), see src/core/emulator/AGENTS.md):
  * HTML, CSS, and client-side logic for the bottom bar pages:
  * 1. Entities & Enemies (Boy, Dog, Enemies, NPCs with sprite icons)
  * 2. Projectile Alchemy + Animation Alchemy + Projectiles (8 slots each with icons)

@@ -1,7 +1,7 @@
 'use strict';
 // Ownership: entry point of the resources domain — registers the `soe://`
 // file system and its commands. The ROM and emulator access are injected
-// by extension.js; this domain never requires src/emulator/.
+// by extension.js; this domain never requires src/core/emulator/.
 
 const path = require('path');
 const vscode = require('vscode');

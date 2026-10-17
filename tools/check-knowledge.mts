@@ -44,7 +44,7 @@ const ROM = /(?:\$|0x)([89A-F][0-9A-F])[:]?([0-9A-F]{4})\b/gi;
 
 function scanCode(): Map<string, string> {
     const files = execFileSync('git', ['ls-files', 'src', 'tools'], { cwd: ROOT }).toString().split('\n')
-        .filter((f) => /\.(js|ts|mts)$/.test(f) && !f.includes('/dist/') && !f.startsWith('src/emulator/core/'));
+        .filter((f) => /\.(js|ts|mts)$/.test(f) && !f.includes('/dist/') && !f.startsWith('src/core/emulator/core/'));
     const found = new Map<string, string>(); // "ram:7E2834" -> first file
     for (const f of files) {
         if (!existsSync(join(ROOT, f))) continue;

@@ -24,9 +24,8 @@ The layers (`docs/architecture/multi-game.md` §2, enforced by `.depcruise.js`):
 | Layer | Holds | May depend on |
 |---|---|---|
 | `src/platform/` | SNES facts, ROM library and identification, CDL engine, TAS format, PNG/CRC/zip | itself only; no `vscode` |
-| `src/core/` | game-neutral VS Code features: ROM panel, game views, map-editor shell, MCP | `platform/`, `vscode`; no game |
+| `src/core/` | game-neutral VS Code features: ROM panel, game views, map-editor shell, MCP, the emulator panel (a game hands in its part, `configureEmulator({ game })`) | `platform/`, `vscode`; no game |
 | `src/games/<game>/` | everything about one game | `platform/`, `core/`; no other game (one bridge: `games/evermore/imports/<game>/`) |
-| `src/emulator/` | the emulator panel (to `core/` with cleanup 5.3) | `platform/`, `vscode`; no game |
 
 Inside a game, every folder is one of two kinds:
 
@@ -88,7 +87,7 @@ in-place ROM mutation.
 - Configuration reaches the webview as data (a `<script type="application/json">` block or
   an `init` message), never by interpolating `${…}` into code.
 - Building DOM from data is fine; use the shared `escH` and keep it out of logic files.
-- Legacy offenders (the `src/emulator/*-view.js` family, `panel-webview.js`,
+- Legacy offenders (the `src/core/emulator/*-view.js` family, `panel-webview.js`,
   `menu/menu-view.js`, the radar concatenation in `memory/webview/index.js`) are converted
   when touched. Do not add to them.
 

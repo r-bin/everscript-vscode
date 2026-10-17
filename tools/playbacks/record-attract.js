@@ -10,7 +10,7 @@ const fs = require('fs'), path = require('path'), vm = require('vm'), crypto = r
 const T = require('../../src/platform/tas/movie');
 
 const REPO = path.resolve(__dirname, '..', '..');
-const CORE = path.join(REPO, 'src/emulator/core/snes9x2005-wasm/snes9x_2005.js');
+const CORE = path.join(REPO, 'src/core/emulator/core/snes9x2005-wasm/snes9x_2005.js');
 const DEFAULT_OUT = path.join(REPO, '.agents/skills/sample-playbacks/playbacks/attract-loop.evsmv');
 // tas/host.js coreId(): a replay only trusts a movie recorded on the same core build
 const coreId = () => crypto.createHash('sha256').update(fs.readFileSync(CORE.replace(/\.js$/, '.wasm'))).digest('hex').slice(0, 16);

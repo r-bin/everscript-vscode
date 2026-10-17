@@ -112,7 +112,7 @@ class ScriptDebugHost {
                 if (this.listener && msg.active && msg.running && !msg.api) {
                     this.listener.onUnavailable(
                         'This emulator core has no debugger API. Set everscript.snesCorePath to the custom core ' +
-                        '(src/emulator/core/snes9x2005-wasm/snes9x_2005.js) and restart the emulator.');
+                        '(src/core/emulator/core/snes9x2005-wasm/snes9x_2005.js) and restart the emulator.');
                 }
                 return true;
             case 'scriptDebugReadResult': {

@@ -19,7 +19,7 @@ so the frame differs from frame 0.
 
 ## Find the code that loads something
 
-The debugger core (`src/emulator/core/snes9x2005-wasm`) records CDL xrefs
+The debugger core (`src/core/emulator/core/snes9x2005-wasm`) records CDL xrefs
 (`_cdlEnable`, `_cdlDrainXrefs` → `[pc, space<<24 | addr, flags]`, flags `0x40` = DMA to
 VRAM). Load a save state just before a map change, enable the CDL, run ~200 frames and
 group ROM reads by pc: that is how `$01:F413` (BG characters), `$02:A069` (metatiles),

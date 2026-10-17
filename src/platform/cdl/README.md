@@ -75,4 +75,4 @@ The webview half is `../cdl-view.js` (tab, tick / drain), `../cdl-strips.js` (RO
 
 ## Allowed dependencies
 
-`../snes/` (header model, opcode matrix), `../zip.js`, Node built-ins — nothing outside `platform/` (`.depcruise.js` `platform-stands-alone`). The VS Code side is `src/emulator/cdl/host.js`; the Evermore seeds and the CDL tab's tools (with script names from `address-lookup.js`) are `src/games/evermore/cdl/`.
+`../snes/` (header model, opcode matrix), `../zip.js`, Node built-ins — nothing outside `platform/` (`.depcruise.js` `platform-stands-alone`). The VS Code side is `src/core/emulator/cdl/host.js`; the Evermore seeds and the CDL tab's tools (with script names from `address-lookup.js`) are `src/games/evermore/cdl/`.

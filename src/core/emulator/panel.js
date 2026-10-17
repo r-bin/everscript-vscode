@@ -44,15 +44,15 @@ const {
   getStorageDir,
 } = require('./rom-history');
 
-const CORE_SUBDIR        = path.join('src', 'emulator', 'core', 'snes9x2005-wasm-vanilla');
-const CUSTOM_CORE_SUBDIR = path.join('src', 'emulator', 'core', 'snes9x2005-wasm');
+const CORE_SUBDIR        = path.join('src', 'core', 'emulator', 'core', 'snes9x2005-wasm-vanilla');
+const CUSTOM_CORE_SUBDIR = path.join('src', 'core', 'emulator', 'core', 'snes9x2005-wasm');
 const CORE_JS     = 'snes9x_2005.js';
 const CORE_WASM   = 'snes9x_2005.wasm';
 const LEGACY_CUSTOM_CORE_DIRS = [
   path.join('debugger', 'core', 'snes9x2005-wasm'),
   path.join('debugger', 'core', 'snes9x'),
   path.join('src', 'emulator', 'core', 'snes9x2005-wasm'),
-  path.join('src', 'emulator', 'core', 'snes9x'),
+  path.join('src', 'emulator', 'core', 'snes9x'),   // before v0.271.0 the emulator was src/emulator
 ];
 
 let _context       = null;   // VS Code extension context
@@ -303,7 +303,7 @@ function _remapLegacyCorePath(rawPath) {
   for (const legacyDir of LEGACY_CUSTOM_CORE_DIRS) {
     const legacySuffix = path.sep + path.normalize(path.join(legacyDir, CORE_JS));
     if (!normalized.endsWith(legacySuffix)) continue;
-    const migrated = path.join(_extensionPath, 'src', 'emulator', 'core', 'snes9x2005-wasm', CORE_JS);
+    const migrated = path.join(_extensionPath, 'src', 'core', 'emulator', 'core', 'snes9x2005-wasm', CORE_JS);
     if (fs.existsSync(migrated)) return migrated;
   }
   return rawPath;
@@ -313,7 +313,7 @@ function _remapLegacyCorePath(rawPath) {
  * Resolve the snes9x core to use.
  * everscript.snesCorePath (if set) must point to a snes9x2005-wasm .js file.
  * Otherwise - and whenever the configured one is missing or unusable - the
- * bundled src/emulator/core/snes9x2005-wasm-vanilla/snes9x_2005.js is used.
+ * bundled src/core/emulator/core/snes9x2005-wasm-vanilla/snes9x_2005.js is used.
  * Returns { path, wasmPath, label, source?, warning? }.
  *
  * A bad setting used to return no core at all, which left the panel blank
@@ -378,7 +378,7 @@ function _resetPanelHtml() {
     const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     // The vanilla ROM comes from the ROM library (src/core/roms).
     const romOfferData = getRomOfferData(_context, wsRoot, '');
-    const file = name => _panel.webview.asWebviewUri(vscode.Uri.file(path.join(_extensionPath, 'src', 'emulator', 'webview', name))).toString();
+    const file = name => _panel.webview.asWebviewUri(vscode.Uri.file(path.join(_extensionPath, 'src', 'core', 'emulator', 'webview', name))).toString();
     const html = buildHtml(_panel.webview, coreJsUri, coreWasmUri, core.label, core.path, romOfferData, {
       profile: _options.profile,
       gameView: _options.game && _options.game.webview ? _options.game.webview() : null,
@@ -510,7 +510,7 @@ function openEmulatorPanel(context, rom, channel) {
                     recordRomUsage({ path: v.path, name: v.name, kind: 'vanilla' }, _context);
                     _sendRomFile(v.path);
                 } else {
-                    const platform = require('../../dist/platform');
+                    const platform = require('../../../dist/platform');
                     const game = platform.selectedRom()?.game;
                     vscode.window.showErrorMessage(game ? platform.missingRomText(game) : 'No ROM in the ROM library. Add your own with Everscript: Switch ROM.');
                 }

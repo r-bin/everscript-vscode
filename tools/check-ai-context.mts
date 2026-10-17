@@ -49,7 +49,7 @@ for (const s of readdirSync(skills)) {
     if (desc.length > 200) problems.push({ file: f, what: `description ${desc.length} chars (max 200)` });
 }
 const walk = (d: string): string[] => readdirSync(join(ROOT, d), { withFileTypes: true }).flatMap((e) =>
-    e.isDirectory() ? (['node_modules', 'dist', 'core'].includes(e.name) && d === 'src/emulator' ? [] : walk(`${d}/${e.name}`))
+    e.isDirectory() ? (['node_modules', 'dist', 'core'].includes(e.name) && d === 'src/core/emulator' ? [] : walk(`${d}/${e.name}`))
         : e.name === 'AGENTS.md' ? [`${d}/${e.name}`] : []);
 for (const f of walk('src')) { limit(f, 70); links(f); }
 

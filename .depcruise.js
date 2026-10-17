@@ -47,7 +47,7 @@ module.exports = {
       name: 'emulator-knows-no-game',
       comment: 'The emulator panel is game-neutral on the host side: a game hands in its half through configureEmulator({ game, cdlTools }).',
       severity: 'error',
-      from: { path: '^src/emulator/' },
+      from: { path: '^src/core/emulator/' },
       to: { path: '^(src|dist)/games/' },
     },
     {
@@ -73,7 +73,7 @@ module.exports = {
       comment: 'The ROM tab takes CDL data as plain arrays injected by extension.js, never the emulator itself.',
       severity: 'warn',
       from: { path: '^src/games/evermore/rom/' },
-      to: { path: '^src/emulator/' },
+      to: { path: '^src/core/emulator/' },
     },
 
     {
@@ -81,7 +81,7 @@ module.exports = {
       comment: 'The Music tab gets the emulator sound-chip stream injected by extension.js, never the emulator itself.',
       severity: 'warn',
       from: { path: '^src/games/evermore/music/' },
-      to: { path: '^src/emulator/' },
+      to: { path: '^src/core/emulator/' },
     },
 
     {
@@ -89,7 +89,7 @@ module.exports = {
       comment: 'The Scripts tab gets the animation renderer (sprites) and the silent music player (music) injected by extension.js; it imports libraries only.',
       severity: 'error',
       from: { path: '^src/games/evermore/scripts-tab/' },
-      to: { path: '^src/(emulator|core/mcp)/|^src/games/evermore/(rooms|memory|docs-tab|sprites|music|rom|scaling|debugger|resources)/' },
+      to: { path: '^src/core/(emulator|mcp)/|^src/games/evermore/(rooms|memory|docs-tab|sprites|music|rom|scaling|debugger|resources)/' },
     },
 
     {
@@ -97,7 +97,7 @@ module.exports = {
       comment: 'The soe:// file system gets the emulator ROM and memory reads injected by extension.js.',
       severity: 'warn',
       from: { path: '^src/games/evermore/resources/' },
-      to: { path: '^src/emulator/' },
+      to: { path: '^src/core/emulator/' },
     },
 
     // ── Secret of Mana stays apart from Evermore (src/games/mana/*/AGENTS.md) ─────────
@@ -179,7 +179,7 @@ module.exports = {
       comment: 'The SNES CDL Recorder (src/recorder) is the emulator panel in its recorder profile; it ships only what it requires (tools/recorder/package-files.js), so it builds on nothing else.',
       severity: 'warn',
       from: { path: '^src/recorder/' },
-      to: { path: '^src/(?!recorder/|emulator/)' },
+      to: { path: '^src/(?!recorder/|core/emulator/)' },
     },
 
     {
@@ -195,7 +195,7 @@ module.exports = {
       comment: 'Language features must not depend on the emulator.',
       severity: 'warn',
       from: { path: '^src/games/evermore/language/' },
-      to: { path: '^src/emulator/' },
+      to: { path: '^src/core/emulator/' },
     },
 
     {
@@ -271,7 +271,7 @@ module.exports = {
     doNotFollow: {
       path: [
         'node_modules',
-        'src/emulator/core/',
+        'src/core/emulator/core/',
         '\\.bak$',
       ],
     },
@@ -290,7 +290,7 @@ module.exports = {
         collapsePattern: 'node_modules/[^/]+',
       },
       archi: {
-        collapsePattern: '^(node_modules|src/emulator/webview|src/games/evermore/memory/webview|src/games/evermore/rooms/webview|src/games/evermore/scaling/webview)/[^/]+',
+        collapsePattern: '^(node_modules|src/core/emulator/webview|src/games/evermore/memory/webview|src/games/evermore/rooms/webview|src/games/evermore/scaling/webview)/[^/]+',
       },
     },
   },

@@ -12,14 +12,14 @@ const path   = require('path');
 const vm     = require('vm');
 // The page as Everscript builds it: with Evermore's part (games/evermore/emulator/host.js webview()).
 const _gameView = require('../../src/games/evermore/emulator/host').webview();
-const buildHtml = (w, js, wasm, label, p, offer, opts) => require('../../src/emulator/panel-webview').buildHtml(w, js, wasm, label, p, offer || null, Object.assign({ gameView: _gameView }, opts || {}));
+const buildHtml = (w, js, wasm, label, p, offer, opts) => require('../../src/core/emulator/panel-webview').buildHtml(w, js, wasm, label, p, offer || null, Object.assign({ gameView: _gameView }, opts || {}));
 const { loadSourceMap, romOffset } = require('../../src/games/evermore/debugger/source-map');
 const frames = require('../../src/games/evermore/debugger/script-frames');
 
 const REPO = process.env.EVERSCRIPT_REPO || path.join(__dirname, '..', '..', '..', 'everscript');
 const ROM = require('../../dist/games').romPath('evermore');
 const MAP = path.join(REPO, 'out', 'source_map.json');
-const CORE_DIR = path.join(__dirname, '..', '..', 'src', 'emulator', 'core', 'snes9x2005-wasm');
+const CORE_DIR = path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'core', 'snes9x2005-wasm');
 const MAX_FRAMES = 2400;
 
 if (!fs.existsSync(ROM) || !fs.existsSync(MAP) || !fs.existsSync(path.join(CORE_DIR, 'snes9x_2005.wasm'))) {

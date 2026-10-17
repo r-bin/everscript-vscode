@@ -2,14 +2,14 @@
  * spc-engine.c - the Music tab's own sound chip.
  *
  * blargg's SPC700 + S-DSP from the emulator core's source tree
- * (src/emulator/core/snes9x2005-wasm/source/apu_blargg.c, which the core itself
+ * (src/core/emulator/core/snes9x2005-wasm/source/apu_blargg.c, which the core itself
  * does not use: it runs snes9x's older APU). Built by build-engine.sh into
  * spc-engine.js (wasm embedded). The tab drives it the way the game drives the
  * real chip: it writes ARAM, sets the CPU registers and talks through the four
  * ports, then pulls 32 kHz stereo samples.
  *
  * Layout of se_view() is the same as the emulator core's getApuView()
- * (src/emulator/core/snes9x2005-wasm/source/exports.c), so the tab reads both
+ * (src/core/emulator/core/snes9x2005-wasm/source/exports.c), so the tab reads both
  * the same way.
  */
 

@@ -8,9 +8,9 @@ const http = require('http');
 const { execSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '../..');
-const PANEL_JS = path.join(ROOT, 'src', 'emulator', 'panel.js');
-const BUNDLED_CORE_JS = path.join(ROOT, 'src', 'emulator', 'core', 'snes9x2005-wasm-vanilla', 'snes9x_2005.js');
-const DEBUGGER_CORE_DIR = path.join(ROOT, 'src', 'emulator', 'core', 'snes9x2005-wasm');
+const PANEL_JS = path.join(ROOT, 'src', 'core', 'emulator', 'panel.js');
+const BUNDLED_CORE_JS = path.join(ROOT, 'src', 'core', 'emulator', 'core', 'snes9x2005-wasm-vanilla', 'snes9x_2005.js');
+const DEBUGGER_CORE_DIR = path.join(ROOT, 'src', 'core', 'emulator', 'core', 'snes9x2005-wasm');
 const DEBUGGER_CORE_JS = path.join(DEBUGGER_CORE_DIR, 'snes9x_2005.js');
 
 const BASE_API = [

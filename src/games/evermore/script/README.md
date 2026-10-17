@@ -11,7 +11,7 @@ A **TypeScript port** of [SoEScriptDumper](https://github.com/black-sliver/SoESc
 API, no filesystem, no rendering.
 
 This is the only script decoder in the repo. It replaced
-`src/emulator/room-script-model.js` + `opcode-registry.js`, which were an
+`src/core/emulator/room-script-model.js` + `opcode-registry.js`, which were an
 independent re-derivation.
 
 ## Why a port, and why this one

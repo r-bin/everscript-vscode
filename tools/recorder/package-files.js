@@ -22,18 +22,18 @@ const ENTRIES = ['src/recorder/extension.js', 'tools/cdl/replay.js'];
 // Loaded by path, not by require: the cores (panel.js _bundledCore) and the
 // webview's own files (panel.js _resetPanelHtml).
 const ASSETS = [
-    'src/emulator/core/snes9x2005-wasm/snes9x_2005.js',
-    'src/emulator/core/snes9x2005-wasm/snes9x_2005.wasm',
-    'src/emulator/core/snes9x2005-wasm-vanilla/snes9x_2005.js',
-    'src/emulator/core/snes9x2005-wasm-vanilla/snes9x_2005.wasm',
+    'src/core/emulator/core/snes9x2005-wasm/snes9x_2005.js',
+    'src/core/emulator/core/snes9x2005-wasm/snes9x_2005.wasm',
+    'src/core/emulator/core/snes9x2005-wasm-vanilla/snes9x_2005.js',
+    'src/core/emulator/core/snes9x2005-wasm-vanilla/snes9x_2005.wasm',
     // The Snes9x licence: every copy of the core binaries comes with its copyright file.
-    'src/emulator/core/snes9x2005-wasm/copyright',
-    'src/emulator/core/snes9x2005-wasm-vanilla/copyright',
-    'src/emulator/webview/emulator-profile.js',
-    'src/emulator/webview/emulator-profile.css',
-    'src/emulator/webview/emulator-panels.js',
-    'src/emulator/webview/emulator-panels.css',
-    'src/emulator/webview/replays-list.js',
+    'src/core/emulator/core/snes9x2005-wasm/copyright',
+    'src/core/emulator/core/snes9x2005-wasm-vanilla/copyright',
+    'src/core/emulator/webview/emulator-profile.js',
+    'src/core/emulator/webview/emulator-profile.css',
+    'src/core/emulator/webview/emulator-panels.js',
+    'src/core/emulator/webview/emulator-panels.css',
+    'src/core/emulator/webview/replays-list.js',
 ];
 
 const REQUIRE = /\brequire\(\s*(['"])([^'"]+)\1\s*\)/g;

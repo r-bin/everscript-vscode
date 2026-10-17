@@ -143,7 +143,7 @@ function recordInto(root, rom, hits) {
     });
 
     await test('buildHtml: the recorder profile is data, marks what it hides, offers the bundle export', () => {
-        const { buildHtml } = require('../../src/emulator/panel-webview');
+        const { buildHtml } = require('../../src/core/emulator/panel-webview');
         const html = buildHtml({ cspSource: '' }, 'core.js', 'core.wasm', 'core', 'core', null, { profile: 'recorder' });
         assert.ok(html.includes('<body class="profile-recorder">'));
         assert.ok(html.includes('<script type="application/json" id="emu-config">{"profile":"recorder"}</script>'));
@@ -160,8 +160,8 @@ function recordInto(root, rom, hits) {
         let browser;
         try { browser = await chromium.launch(); } catch (e) { console.log('    (no browser: skipped)'); return; }
         try {
-            const { buildHtml } = require('../../src/emulator/panel-webview');
-            const dataUri = (file, type) => `data:${type};base64,` + fs.readFileSync(path.join(ROOT, 'src/emulator/webview', file)).toString('base64');
+            const { buildHtml } = require('../../src/core/emulator/panel-webview');
+            const dataUri = (file, type) => `data:${type};base64,` + fs.readFileSync(path.join(ROOT, 'src/core/emulator/webview', file)).toString('base64');
             const page = async profile => {
                 const html = buildHtml({ cspSource: '' }, 'core.js', 'core.wasm', 'core', 'core', null, {
                     profile,

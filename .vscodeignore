@@ -22,14 +22,14 @@ src/**/*.ts
 # C sources, build scripts, docs or submodule git pointers that surround them.
 **/.git
 **/.git/**
-src/emulator/core/**/source/**
-src/emulator/core/**/doc/**
-src/emulator/core/**/libretro/**
-src/emulator/core/**/*.sh
-src/emulator/core/**/*.c
-src/emulator/core/**/*.h
-src/emulator/core/**/Makefile*
-src/emulator/core/**/gitignore.txt
+src/core/emulator/core/**/source/**
+src/core/emulator/core/**/doc/**
+src/core/emulator/core/**/libretro/**
+src/core/emulator/core/**/*.sh
+src/core/emulator/core/**/*.c
+src/core/emulator/core/**/*.h
+src/core/emulator/core/**/Makefile*
+src/core/emulator/core/**/gitignore.txt
 src/games/evermore/music/engine/*.c
 src/games/evermore/music/engine/*.sh
 # NOTE: copyright notices must be bundled alongside built .wasm/.js artifacts

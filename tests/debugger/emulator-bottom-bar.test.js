@@ -9,7 +9,7 @@ const {
     getBottomBarViewsHtml,
     getBottomBarClientScript,
 } = require('../../src/games/evermore/emulator/bottom-bar-views');
-const { buildHtml } = require('../../src/emulator/panel-webview');
+const { buildHtml } = require('../../src/core/emulator/panel-webview');
 
 let passed = 0;
 let failed = 0;
@@ -32,8 +32,8 @@ console.log('Emulator Bottom Bar Pages Tests:');
 test('bottom-bar-views.js and modified panel files are strictly ASCII-only', () => {
     const files = [
         path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'bottom-bar-views.js'),
-        path.join(__dirname, '..', '..', 'src', 'emulator', 'panel.js'),
-        path.join(__dirname, '..', '..', 'src', 'emulator', 'panel-webview.js'),
+        path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'panel.js'),
+        path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'panel-webview.js'),
     ];
     for (const f of files) {
         const content = fs.readFileSync(f, 'utf8');

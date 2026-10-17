@@ -30,7 +30,7 @@ cores but one. It uses Mesen2 from `/Applications/Mesen.app` or `$MESEN`; `--no-
 A full run (30 movies, about 440,000 frames) takes about 4 minutes for snes9x plus Mesen's time.
 
 `EXHIROM_CORE=<dir>/snes9x_2005.js` runs on a copy of the core. Use it when something may rebuild
-`src/emulator/core/` during the run: a rebuild half-way through aborts the proof.
+`src/core/emulator/core/` during the run: a rebuild half-way through aborts the proof.
 
 The ROM goes to `out/soe-exhirom.sfc`; the proof's images, traces and `REPORT.md` go to `out/exhirom/`. None of it may be committed: the
 images are game data, and the report quotes a few ROM bytes.

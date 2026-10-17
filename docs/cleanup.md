@@ -150,7 +150,7 @@ Inventory of 2026-10-16. Move the ROM out of `script_parser/dependencies/` first
 - [x] **3.4 Move:** `call-log/design.md` → `docs/plans/call-log.md`, `simulation/*.md` →
   `docs/plans/simulation/`, `todo.md` → `docs/todo/scratch.md`.
 - [x] **3.5 Dead code:** emulator handlers with no sender (`wramDelta`, `getRomOfferInfo`),
-  unreferenced `src/emulator/webview/index.html`, the Route mock tab (`src/routes/`, its HTML, CSS
+  unreferenced `src/core/emulator/webview/index.html`, the Route mock tab (`src/routes/`, its HTML, CSS
   and logic in `docs-tab.js`; the plan stays in `docs/route-planner.md`), setting
   `everscript.patchesPath`. Checked and kept: the vanilla core is the default bundled core.
 - [x] **3.6** knip: one `src/**/webview/**` ignore instead of nine folders, stale entries gone, clean.
@@ -192,7 +192,7 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   who sent each sound) → `stack-view.js`, `script-debug-view.js`, `sound-source-view.js` (`panel-webview.js` → 2101); VIEW's room line → `gameLensInfo()`. v0.270.0: the Evermore detector (`rom-game.js`) → a game page file
   (`webviewFiles()`), the music package byte → `gameMusicPackage`, the camera entity → `gameCameraWorld`, the
   launcher names no game; the emulator holds no Evermore facts (the gate's name `emuEvermore` / `data-needs="evermore"`
-  stays until the move). Next: `emulator` → `core/emulator`, then esbuild. First part done in v0.231.0: one TypeScript build, `tsconfig.build.json` →
+  stays). v0.271.0: `src/emulator` → `src/core/emulator` (cores and submodules too). Next: esbuild. First part done in v0.231.0: one TypeScript build, `tsconfig.build.json` →
   `dist/` mirroring `src/`, `npm run build:ts`; the five per-domain builds are gone) one host bundle and one bundle per webview from real `.ts`/`.css`/`.html`;
   no code in template literals (~9.5 k lines at v0.199: `emulator/panel-webview.js`,
   `menu/menu-view.js`, `bottom-bar-views.js`, the emulator `*-view.js` files) and no

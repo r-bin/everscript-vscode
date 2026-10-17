@@ -12,7 +12,7 @@
     "src/**/webview/**",
     "src/core/map-editor/**",
     "src/games/evermore/docs-tab/**",
-    "src/emulator/core/**"
+    "src/core/emulator/core/**"
   ],
   "ignoreExportsUsedInFile": true,
   "rules": {

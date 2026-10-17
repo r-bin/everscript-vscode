@@ -3,7 +3,7 @@
 Status: **built and proven (v0.216.0)** — `tools/exhirom/convert.js` turns a clean ROM into an 8 MB
 ExHiROM image; §6 says how, §7 how it was proven. §1–§5 are the original plan, kept for the reasoning.
 Facts below are marked *(core source)* when read from the
-bundled snes9x2005 core (`src/emulator/core/snes9x2005-wasm/source/memmap.c`), *(repo)* when
+bundled snes9x2005 core (`src/core/emulator/core/snes9x2005-wasm/source/memmap.c`), *(repo)* when
 read from our own code/docs, *(hardware)* for generic SNES facts, and *(to verify)* when they
 must be checked on the running game before relying on them.
 

@@ -14,9 +14,8 @@ What is still being moved: `docs/cleanup.md`. This skill is how to work inside t
 | Layer | Holds | May import |
 |---|---|---|
 | `src/platform/` | SNES facts, ROM library and identification, CDL engine, TAS format, PNG/CRC/zip | itself only (`platform-stands-alone`), no `vscode` |
-| `src/core/` | game-neutral VS Code features: ROM panel, game views, map-editor shell, MCP | `platform/`, `vscode`; never a game |
+| `src/core/` | game-neutral VS Code features: ROM panel, game views, map-editor shell, MCP, the emulator (`core/emulator/`: a game hands in its part, `emulator-knows-no-game`) | `platform/`, `vscode`; never a game |
 | `src/games/<game>/` | everything about one game; `extension.js` registers it | `platform/`, `core/`; never another game except `games/<game>/imports/<other>/` |
-| `src/emulator/` | the emulator panel (moving to `core/` with cleanup 5.3) | `platform/`; no game (`emulator-knows-no-game`) |
 | `src/extension.js` | composition root: ROM library, the list of games, game views, MCP | everything, but owns no logic |
 
 Inside a game, a **library** (pure: `maps/`, `script/`, `localizations/`) never imports a
@@ -61,6 +60,9 @@ toggles) stays in the webview. Caches live with their owner and expose a `clear(
   excludes, `tools/recorder/package-files.js`, shell scripts with relative paths;
 - `.depcruise.js` lookaheads (`'^src/(?!foo/)'`) and alternations — a plain rename skips them;
 - tests that read or patch source text (`smoke`, `ui`, `scaling-rom`, `emulator-health`);
+- `path.join(ROOT|_extensionPath, 'src', ...)` (only `__dirname` joins are easy to find); users' saved
+  paths into a moved folder (keep the old one in a legacy list: `LEGACY_CUSTOM_CORE_DIRS`);
+- text that must match a file in a submodule (`tools/gen-cdl-optable.js`'s header line) stays as is;
 - skills' `applyTo`, nested `AGENTS.md` and docs.
 
 ## TypeScript (cleanup D9)

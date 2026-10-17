@@ -12,6 +12,7 @@ Kind: **core** — game-neutral features and UI shells (docs/architecture/multi-
 - `game-views.js`: each game's main view (registered by the game) and which one shows for the selected
   ROM; Switch ROM refreshes the selected game's open view, views of other games keep their ROM, every
   view's title names its ROM.
+- `emulator/`: the embedded SNES emulator (own AGENTS.md); the recorder ships it alone.
 - `mcp/`: the localhost MCP server serving the games' file systems to AI clients (own AGENTS.md).
 
 ## Dependencies

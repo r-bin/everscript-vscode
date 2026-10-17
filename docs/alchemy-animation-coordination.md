@@ -89,3 +89,4 @@ Bank `$91` 65816 assembly operates as the supervisor / coordinator:
      - Status Buffs: `$91:B137` (applies stat additions, sets duration frame timers).
    - **Phase Advance:** If the `$91` data block specifies a subsequent animation record (Phase B), ASM re-initializes the slot's script pointer to that record and clears the `+0x26` done flag.
    - **Termination:** When all phases are complete, ASM frees the effect slot and releases entity lock.
+

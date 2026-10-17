@@ -1,13 +1,13 @@
 ---
 name: emulator-subsystem
 description: Rules, build instructions, and release checklist for the embedded snes9x2005-wasm emulator core and webview runner.
-applyTo: "src/emulator/**"
+applyTo: "src/core/emulator/**"
 ---
 
 # Skill: Emulator Subsystem
 
-Use this skill when modifying or releasing the embedded SNES emulator core (`src/emulator/core/`),
-the host panel (`src/emulator/panel.js`), or the webview runner (`src/emulator/panel-webview.js`).
+Use this skill when modifying or releasing the embedded SNES emulator core (`src/core/emulator/core/`),
+the host panel (`src/core/emulator/panel.js`), or the webview runner (`src/core/emulator/panel-webview.js`).
 
 ---
 
@@ -16,8 +16,8 @@ the host panel (`src/emulator/panel.js`), or the webview runner (`src/emulator/p
 The emulator uses `snes9x2005-wasm` compiled with Emscripten (`emcc`).
 
 Two variants are tracked:
-- `src/emulator/core/snes9x2005-wasm`: The debugger-enabled fork (`feature/vscode-debugger-integration`).
-- `src/emulator/core/snes9x2005-wasm-vanilla`: Upstream vanilla base.
+- `src/core/emulator/core/snes9x2005-wasm`: The debugger-enabled fork (`feature/vscode-debugger-integration`).
+- `src/core/emulator/core/snes9x2005-wasm-vanilla`: Upstream vanilla base.
 
 ### Building Cores
 
@@ -53,7 +53,7 @@ the script instruction in `$82-$84`; interrupts suspend it). `isEmulationPaused(
 anything periodic you add gated on it.
 
 `source/cdl-optable.h` is generated: after changing `src/platform/snes/opcodes-65816.ts`, run
-`node tools/gen-cdl-optable.js` (a test fails if they drift). Host side: `src/platform/cdl/` (engine), `src/emulator/cdl/host.js` (VS Code side).
+`node tools/gen-cdl-optable.js` (a test fails if they drift). Host side: `src/platform/cdl/` (engine), `src/core/emulator/cdl/host.js` (VS Code side).
 `debugger-post.js` is part of the build output: after editing it, rebuild the core, or the
 running `snes9x_2005.js` keeps the old glue.
 - Output files: `snes9x_2005.js` and `snes9x_2005.wasm` placed directly inside the core folder.
@@ -68,7 +68,7 @@ running `snes9x_2005.js` keeps the old glue.
 2. **GNU GPL v2 (NDSSFC/ZSNES)**:
    - Portions derived from NDSSFC and ZSNES require source availability.
 3. **Packaging Rules (`.vscodeignore`)**:
-   - `src/emulator/core/**/copyright` must **NEVER** be excluded from `.vscodeignore`.
+   - `src/core/emulator/core/**/copyright` must **NEVER** be excluded from `.vscodeignore`.
    - The compiled artifacts (`snes9x_2005.js` and `snes9x_2005.wasm`) must always ship alongside their respective `copyright` files.
    - Intermediate object files, sources (`source/`), build scripts (`*.sh`), and submodules (`.git/`) are excluded to keep VSIX bundle sizes lean.
 4. **The SNES CDL Recorder** (`npm run build:recorder`) is packaged from a list, not from `.vscodeignore`:
@@ -107,7 +107,7 @@ Standard keyboard layout:
   - Select: `Space` (`' '`)
   - Pause / Resume: `Escape`
 
-The joypad is set only by `tasApplyInput()` (`src/emulator/tas-view.js`), once per
+The joypad is set only by `tasApplyInput()` (`src/core/emulator/tas-view.js`), once per
 `_mainLoop()`: live keys, or a replay's recorded frame.
 
 ### `EVS_TAS` (input recording / replay determinism)
@@ -130,7 +130,7 @@ on; build with `-DEVS_TAS=0` for the original behaviour). Emulation itself is un
 
 ## 5. Verification Checklist
 
-Before releasing any changes to `src/emulator/`:
+Before releasing any changes to `src/core/emulator/`:
 - [ ] Run `npm run test:emulator` to verify core file integrity and exports.
 - [ ] Run `node tests/debugger/emulator-health.test.js`.
 - [ ] Verify that `snes9x2005-wasm` builds cleanly without warnings or errors.
