@@ -516,10 +516,15 @@ function traceScripts(items, romBuffer, wsRoot, draft) {
     return processScriptTraceBatch(items, romBuffer, wsRoot, draft);
 }
 
-/** Evermore's part of the emulator page: the ENTITIES, ALCHEMY and PALETTES panels and the cheats. */
+/** Evermore's part of the emulator page: the ENTITIES, ALCHEMY and PALETTES panels, the cheats, and pause-menu tabs 1-4. */
 function webview() {
     const v = require('./bottom-bar-views');
-    return { css: v.getBottomBarCss(), tabButtonsHtml: v.getBottomBarTabButtonsHtml(), viewsHtml: v.getBottomBarViewsHtml(), clientScript: v.getBottomBarClientScript() };
+    const t = require('./menu-tabs');
+    return {
+        css: v.getBottomBarCss(), tabButtonsHtml: v.getBottomBarTabButtonsHtml(), viewsHtml: v.getBottomBarViewsHtml(),
+        clientScript: v.getBottomBarClientScript() + t.getMenuTabsClientScript(),
+        menuCss: t.getMenuTabsCss(), menuTabButtonsHtml: t.getMenuTabButtonsHtml(), menuPanelsHtml: t.getMenuPanelsHtml(),
+    };
 }
 
 module.exports = { webview, clearCaches, alchemyIcons, roomMap, idleSprites, traceScripts, describeRom: describeCustomMapRom };

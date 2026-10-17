@@ -22,8 +22,8 @@ Related skills: `emulator-subsystem`, `cdl-recorder`, `webview-dom-safety`, `deb
 - The ROM, Music and soe:// domains get emulator data injected by `src/games/evermore/extension.js`
   (`.depcruise.js`: `no-rom-to-emulator`, `no-music-to-emulator`, `no-resources-to-emulator`).
 - The game's part of the page too: `game.webview()` → `{ css, tabButtonsHtml, viewsHtml, clientScript }`
-  (Evermore's: `games/evermore/emulator/bottom-bar-views.js`), called only behind `typeof` guards.
-- Still Evermore inside (cleanup 5.3): `panel-webview.js` overlays, entity sampling; `menu/` tabs 1-4.
+  + its pause-menu tabs (Evermore's: `games/evermore/emulator/{bottom-bar-views,menu-tabs}.js`), behind `typeof` guards.
+- Still Evermore inside (cleanup 5.3): `panel-webview.js` overlays, entity sampling, VIEW's room line.
 
 ## State owned
 - `panel.js` (module-local, per panel): the active `WebviewPanel`, pending ROM, current ROM

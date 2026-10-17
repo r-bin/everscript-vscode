@@ -15,7 +15,12 @@ Owns the on-screen display (OSD) Quick Menu for the embedded SNES emulator.
   - `9: TRACE`, `10: STACK`, `11: ENTITIES`, `12: ALCHEMY`, `13: PALETTES`: the usual card size too, with a "Show while playing" row on top (left / right steps hidden, left side bar, right side bar, bottom bar), then the panel without its header and with fewer columns. No button bars: TRACE adds a "Clear" row (B empties the trace) and shows time, source (e.g. `0x12.step[0]`) and script; STACK drops its "active / scheduler / last slot" header; ENTITIES, ALCHEMY and PALETTES add a "Show" row (what to list: all, party / enemies / NPCs, the three alchemy pools, sprite / map palettes; left / right, B steps). The panel's own rows (STACK slots, characters, alchemy slots, palettes) are `.menu-pick` rows Up / Down selects (`menuSelectableRows`: hidden ones are skipped); B on a character pings it on the screen (`tr.onMenuAction`), the others do nothing. TRACE's lines are not rows: Down past the last row scrolls the trace a page per press (the mark moves to the trace, B and left / right do nothing there), Up at its top goes back to the rows (`emuPanelMenuMove`). The panel element is moved in while its tab is open (`../webview/emulator-panels.js`). TRACE..PALETTES need the full profile and Evermore.
   - `5: EMULATION`: Playback speed (1/4x, 1/2x, 1x, 2x, 4x), Master Audio (mute, saved), Keep Focus (Tab and debugger stops leave the focus on the emulator, saved), power-cycle ROM, soft reset.
   - `6: CONTROLS`: Interactive keybinding remapper and gamepad listener with Arrow/WASD presets (saved by the extension, not in the page's localStorage).
-  - Tabs 1-4 need Secret of Evermore (U) or a ROM built on it (`data-needs="evermore"`, `../webview/emulator-profile.js`).
+  - Tabs 1-4 are the game's (Evermore's: `src/games/evermore/emulator/menu-tabs.js`, handed in through
+    `host.js` `webview()`), and need Secret of Evermore (U) or a ROM built on it (`data-needs="evermore"`).
+    The menu splices their buttons and panels in (`getMenuHtml(parts)`) and calls the game's hooks behind
+    `typeof` guards: `gameStartAllowed(m)` (Start opens the menu), `gameMenuOpened` / `Closed` /
+    `MapChanged`, `gameMenuLoad`, `gameMenuRender(tab)`, `gameMenuStep(tab, row, delta)`,
+    `gameMenuActivate(tab, row)`, `gameMenuSync()`. Without them (the recorder) there are no tabs 1-4.
 - **`menu-sound.js`**: Web Audio API synthesis for authentic Secret of Evermore sound effects (SFX 0x02 Wheel Turn, 0x04 Wheel Open, 0x06 Wheel Close, 0x38 Click 1, 0x3A Click 2, 0x44 Loot Chime).
 
 ## Keys

@@ -27,7 +27,9 @@ console.log('Emulator Crash Logging & Fixes Tests:');
 
 const panelCode = fs.readFileSync(PANEL_JS, 'utf8');
 const webviewCode = fs.readFileSync(PANEL_WEBVIEW_JS, 'utf8');
-const menuCode = fs.readFileSync(MENU_VIEW_JS, 'utf8');
+const menuCode = fs.readFileSync(MENU_VIEW_JS, 'utf8')
+  // Evermore's tabs 1-4 live in the game's part of the page (handed in through host.js webview()).
+  + fs.readFileSync(path.join(ROOT, 'src', 'games', 'evermore', 'emulator', 'menu-tabs.js'), 'utf8');
 
 // 1. Output Channel & Crash Reporting in panel.js
 test('panel.js defines dedicated Everscript Emulator output channel', () => {
@@ -113,8 +115,9 @@ test('panel-webview.js renders live vector overlays without static overlayImg hi
 });
 
 test('menu-view.js links objects to live WRAM and clears local pause cache on open/close', () => {
-  assert.ok(menuCode.includes('function openEmulatorMenu() {\n      if (isMenuOpen) return;\n      isMenuOpen = true;\n      keyInput = 0;\n      menuLocalObjStates.clear();'), 'openEmulatorMenu must clear menuLocalObjStates so live WRAM is read');
-  assert.ok(menuCode.includes('function closeEmulatorMenu() {\n      if (!isMenuOpen) return;\n      if (menuListeningBtn) cancelKeybindListen();\n      const menuBody = document.getElementById(\'menu-body\');\n      if (menuBody) tabScrollTops[menuActiveTab] = menuBody.scrollTop;\n      tabSelectedRows[menuActiveTab] = menuSelectedRow;\n      menuLocalObjStates.clear();'), 'closeEmulatorMenu must clear menuLocalObjStates once emulation resumes');
+  assert.ok(menuCode.includes('function openEmulatorMenu() {\n      if (isMenuOpen) return;\n      isMenuOpen = true;\n      keyInput = 0;\n      if (typeof gameMenuOpened === \'function\') gameMenuOpened();'), 'openEmulatorMenu must let the game clear its pause cache so live WRAM is read');
+  assert.ok(menuCode.includes('function closeEmulatorMenu() {\n      if (!isMenuOpen) return;\n      if (menuListeningBtn) cancelKeybindListen();\n      const menuBody = document.getElementById(\'menu-body\');\n      if (menuBody) tabScrollTops[menuActiveTab] = menuBody.scrollTop;\n      tabSelectedRows[menuActiveTab] = menuSelectedRow;\n      if (typeof gameMenuClosed === \'function\') gameMenuClosed();'), 'closeEmulatorMenu must let the game clear its pause cache once emulation resumes');
+  assert.ok(menuCode.includes('function gameMenuOpened() { menuLocalObjStates.clear(); }') && menuCode.includes('function gameMenuClosed() { menuLocalObjStates.clear(); }'), 'Evermore clears menuLocalObjStates on open and close');
   assert.ok(menuCode.includes('for (let o = 0; o < 160; o++) {\n            const val = (o === objIndex) ? newState : (m.readMemory(0x7E10CE + o) || 0);'), 'stepObjectState must preserve full 160 WRAM object states in requestRoomMap');
 });
 

@@ -10,7 +10,8 @@
  *   options.scripts  webview URIs of webview/rom-game.js, emulator-profile.js, emulator-panels.js and replays-list.js,
  *                    loaded before the inline script; options.styles  of webview/emulator-profile.css
  *                    and emulator-panels.css
- *   options.gameView the game's part of the page ({ css, tabButtonsHtml, viewsHtml, clientScript },
+ *   options.gameView the game's part of the page ({ css, tabButtonsHtml, viewsHtml, clientScript, and its
+ *                    pause-menu tabs menuCss, menuTabButtonsHtml, menuPanelsHtml },
  *                    strings; Evermore's: src/games/evermore/emulator/host.js webview()); none for
  *                    the recorder. The page calls into it only behind typeof guards.
  */
@@ -133,7 +134,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     const nonce = _nonce();
     const opts = options || {};
     const profile = opts.profile === 'recorder' ? 'recorder' : 'full';
-    const game = Object.assign({ css: '', tabButtonsHtml: '', viewsHtml: '', clientScript: '' }, opts.gameView || {});
+    const game = Object.assign({ css: '', tabButtonsHtml: '', viewsHtml: '', clientScript: '', menuCss: '', menuTabButtonsHtml: '', menuPanelsHtml: '' }, opts.gameView || {});
     const config = JSON.stringify({ profile }).replace(/</g, '\\u003c');
     const files = (opts.styles || []).map(u => `<link rel="stylesheet" href="${u}">`)
         .concat((opts.scripts || []).map(u => `<script src="${u}"></script>`)).join('\n  ');
@@ -668,6 +669,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     ${getTasCss()}
     ${getFpsCss()}
     ${getMenuCss()}
+    ${game.menuCss}
   </style>
   <script type="application/json" id="emu-config">${config}</script>
   ${files}
@@ -722,7 +724,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       <div id="emu-side-left" class="emu-side"></div>
       <div id="emu-side-right" class="emu-side"></div>
       ${getTasBadgeHtml()}
-      ${getMenuHtml()}
+      ${getMenuHtml({ tabButtonsHtml: game.menuTabButtonsHtml, panelsHtml: game.menuPanelsHtml })}
       <div id="menu-inspect-card" class="hidden">
         <div class="inspect-header">
           <span id="inspect-title">INSPECTOR</span>
