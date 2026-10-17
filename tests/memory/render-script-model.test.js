@@ -4,8 +4,9 @@
 const assert = require('assert');
 const fs = require('fs');
 
+const os = require('os');
+const path = require('path');
 const {
-    DEFAULT_TRACE_PATH,
     loadTrace,
     loadRom,
     parseCommandFetches,
@@ -27,10 +28,15 @@ function test(name, fn) {
 
 console.log('\nRender script model checks');
 
+// A Mesen2 trace of the tile decoder on room 0x33 (the user's own; never in the repo):
+// $EVS_RENDER_TRACE, else where Mesen2 writes its trace logs.
+const TRACE_PATH = process.env.EVS_RENDER_TRACE || path.join(os.homedir(), 'Library', 'Application Support', 'Mesen2',
+    'Debugger', 'strongheart_exterior_decode_tiles_fist_call__breakpoint_bus=ee0000.txt');
+
 let traceText = null;
 try {
-    if (fs.existsSync(DEFAULT_TRACE_PATH)) {
-        traceText = loadTrace(DEFAULT_TRACE_PATH);
+    if (fs.existsSync(TRACE_PATH)) {
+        traceText = loadTrace(TRACE_PATH);
     }
 } catch (e) {
     traceText = null;
@@ -41,7 +47,7 @@ if (!traceText) {
     process.exit(0);
 }
 
-const romBuf = loadRom();
+const romBuf = loadRom(require('../../dist/games').romPath('evermore'));
 
 test('decode trace exposes expected command fetch anchors', () => {
     const fetches = parseCommandFetches(traceText);

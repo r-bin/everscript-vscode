@@ -220,7 +220,9 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   `docs/plans/`, `docs/todo/`.
 - [ ] **6.5** README per domain and for `tools/`, `tests/`; file names without spaces; no doc
   links a missing path (add a link check to `check:ai-context`).
-- [ ] **6.6** Tests tiered (`unit` / `rom` / `dom` / `emulator` / `slow`), `npm test` < 10 s without
+- [x] **6.6** (v0.260.0: `tests/tiers.json` + `tools/test.mts`; `npm test` = grammar + unit in ~7 s, was ~4 min with
+  core builds; `test:rom` / `test:dom` / `test:emulator` / `test:all`; four forgotten tests back in a tier;
+  the two slowest unit tests 24.6 s → 1.8 s and 4.9 s → 1.9 s by fixing the code they test) Tests tiered (`unit` / `rom` / `dom` / `emulator` / `slow`), `npm test` < 10 s without
   Emscripten, ROM tests skip when the library has no base ROM (old audit §17).
 
 ### Step 7 — AI files last (D10)

@@ -14,7 +14,7 @@
         {
             "label": "Test Emulator Runtime",
             "type": "shell",
-            "command": "/opt/homebrew/bin/npm run test:emulator-runtime",
+            "command": "/opt/homebrew/bin/npm run test:emulator",
             "options": {
                 "cwd": "${workspaceFolder}"
             },

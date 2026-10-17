@@ -164,17 +164,19 @@ touching it.
 
 ---
 
-## 4. Tests **[target — see `docs/cleanup.md` 6.6]**
+## 4. Tests **[now — `tests/tiers.json`, `tools/test.mts`]**
 
-| Script | Contents | When |
-|---|---|---|
-| `npm test` | grammar + unit tier (no ROM, no emcc, no browser), < 10 s | every commit |
-| `npm run test:rom` | ROM- and DOM-backed tests; skip cleanly without a ROM | when a ROM is present |
-| `npm run test:emulator` | built cores + headless runtime | when `src/emulator/**` or cores change |
-| `npm run test:slow` / `test:all` | full parity runs | on demand / pre-release |
+| Script | Tier | Needs | Time (2026-10) |
+|---|---|---|---|
+| `npm test` | grammar + `unit` | nothing | ~7 s |
+| `npm run test:rom` | `rom` | a ROM in the ROM library (skips without) | ~80 s |
+| `npm run test:dom` | `dom` | headless Chromium (Playwright) | ~45 s |
+| `npm run test:emulator` | `emulator` | the built snes9x cores (`build:cores`) | ~20 s |
+| `npm run test:all` | every tier, after building cores and the music engine | all of the above | ~3 min |
 
-A new test file must be added to a tier; a test needing a ROM uses the shared skip guard.
-`npm test` must never rebuild native code or rewrite tracked files.
+Every `tests/**/*.test.js` is in exactly one tier or in `manual` with a reason; the runner fails
+otherwise. A ROM test finds its ROM with `romPath()` and skips cleanly without one. `npm test`
+never rebuilds native code or rewrites tracked files.
 
 ---
 

@@ -1,7 +1,9 @@
 {
   "entry": [
     "src/recorder/extension.js",
-    "src/games/evermore/language/config.js"
+    "src/games/evermore/language/config.js",
+    "tests/**/*.test.js",
+    "tools/**/*.{js,mts}"
   ],
   "project": [
     "src/**/*.js"

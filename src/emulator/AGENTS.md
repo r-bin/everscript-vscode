@@ -55,7 +55,7 @@ Related skills: `emulator-subsystem`, `cdl-recorder`, `webview-dom-safety`, `deb
 - `npm test` runs `tests/debugger/*` for the hook, trace, overlays, bottom bar, menu, CDL, TAS (core test
   needs a ROM from the ROM library), recorder (profiles, gating, bundles, file list), ROM history;
   `tests/memory/music-tab.test.js` covers the APU stream. Built cores: `emulator-health.test.js`
-  (`npm run test:emulator-runtime`). Stale, not run: `emulator-runtime.test.js` (waits for removed buttons).
+  (`npm run test:emulator`). Stale, not run: `emulator-runtime.test.js` (waits for removed buttons).
 
 ## Pitfalls
 - `window.prompt` / `confirm` / `alert` are inert in a VS Code webview (no throw); use an

@@ -23,7 +23,9 @@ workflow.
    new features, major for breaking changes.
 2. **Validate**:
    ```
-   /opt/homebrew/bin/npm test          # full suite (grammar + memory + debugger tests)
+   npm test                            # grammar + unit tier (seconds; no ROM, browser or cores)
+   npm run test:all                    # every tier (tests/tiers.json): + rom, dom, emulator; builds cores
+                                       # touched code with a ROM / page / core behind it: at least its tier
    npm run typecheck                   # tsc --noEmit
    npm run check:circular              # madge circular dependency scan (src/)
    npm run check:dead                  # knip unused files/exports scan

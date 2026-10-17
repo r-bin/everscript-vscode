@@ -51,7 +51,7 @@ toggles) stays in the webview. Caches live with their owner and expose a `clear(
 
 ## Moving files (the traps)
 
-`git mv`, then fix every path, then `npm test` and all checks. What a search-and-replace misses:
+`git mv`, then fix every path, then `npm run test:all` and all checks. What a search-and-replace misses:
 - paths built from variables: `path.join(SRC, 'shared', …)`, `path.join(__dirname, '..', 'src', 'rooms')`,
   CSS/JS lists in page loaders and DOM tests;
 - `require()` of a single file without its extension; a bare `'../'` used as a building block;
@@ -82,4 +82,4 @@ deleted. When splitting, the original goes. Webview files are outside knip; chec
 
 ## After
 
-The `release-ritual` skill: version bump, `npm test`, every `check:*`, commit, `npm run deploy`.
+The `release-ritual` skill: version bump, `npm run test:all`, every `check:*`, commit, `npm run deploy`.

@@ -16,6 +16,19 @@ function alchemyDamageFromPower(power, magicDefense) {
     const rawMdef = Math.max(0, Math.min(0x40, Number(magicDefense) || 0));
     return Math.max(0, Math.floor((rawPower * (0x40 - rawMdef)) / 0x40));
 }
+/**
+ * The RNG adds floor(bonusBase * rng16 / 0x10000) for rng16 in 0..0xFFFF, so the bonus is a
+ * staircase: bonus b holds for rng16 from ceil(b * 0x10000 / bonusBase) up to the next step.
+ * Calls fn(bonus, firstRng, endRng) once per step instead of once per RNG value.
+ */
+function alchemyBonusRuns(bonusBase, fn) {
+    if (bonusBase <= 0) { fn(0, 0, 0x10000); return; }
+    for (let b = 0; ; b++) {
+        const start = Math.ceil((b * 0x10000) / bonusBase);
+        if (start > 0xffff) break;
+        fn(b, start, Math.min(0x10000, Math.ceil(((b + 1) * 0x10000) / bonusBase)));
+    }
+}
 function alchemyDamageSamples(baseMight, spellLevel, magicDefense) {
     const rawMdef = Math.max(0, Math.min(0x40, Number(magicDefense) || 0));
     const key = `${Number(baseMight) || 0}|${Math.max(0, Math.min(9, Number(spellLevel) || 0))}|${rawMdef}`;
@@ -24,10 +37,7 @@ function alchemyDamageSamples(baseMight, spellLevel, magicDefense) {
     const prePower = alchemySpellPowerAtLevel(baseMight, spellLevel);
     const bonusBase = alchemySpellBonusBaseAtLevel(baseMight, spellLevel);
     const samples = new Array(0x10000);
-    for (let rng16 = 0; rng16 <= 0xffff; rng16++) {
-        const bonus = Math.floor((bonusBase * rng16) / 0x10000);
-        samples[rng16] = alchemyDamageFromPower(prePower + bonus, rawMdef);
-    }
+    alchemyBonusRuns(bonusBase, (b, from, to) => samples.fill(alchemyDamageFromPower(prePower + b, rawMdef), from, to));
     cache.set(key, samples);
     return samples;
 }
@@ -38,15 +48,15 @@ function alchemyRangeAtLevel(baseMight, spellLevel, magicDefense) {
     if (cache.has(key)) return { ...cache.get(key) };
     const prePower = alchemySpellPowerAtLevel(baseMight, spellLevel);
     const bonusBase = alchemySpellBonusBaseAtLevel(baseMight, spellLevel);
-    const samples = alchemyDamageSamples(baseMight, spellLevel, rawMdef);
     let min = Infinity;
     let max = 0;
     let count999 = 0;
-    for (const damage of samples) {
+    alchemyBonusRuns(bonusBase, (b, from, to) => {
+        const damage = alchemyDamageFromPower(prePower + b, rawMdef);
         if (damage < min) min = damage;
         if (damage > max) max = damage;
-        if (damage >= 999) count999++;
-    }
+        if (damage >= 999) count999 += to - from;
+    });
     const out = {
         spellPower: prePower,
         bonusBase,

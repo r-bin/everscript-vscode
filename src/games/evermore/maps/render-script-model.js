@@ -2,12 +2,8 @@
 
 const fs = require('fs');
 
-const DEFAULT_TRACE_PATH = '/Users/v/Library/Application Support/Mesen2/Debugger/strongheart_exterior_decode_tiles_fist_call__breakpoint_bus=ee0000.txt';
-const ROM_CANDIDATES = [
-    process.env.ROM,
-    '/Users/v/Documents/GitHub/SoETilesViewer/SoEScriptDumper/Secret of Evermore (U) [!].smc',
-    '/Users/v/Documents/GitHub/everscript/Secret of Evermore (U) [!].smc',
-].filter(Boolean);
+// Reads a Mesen2 trace log of the tile decoder ($8C:C8A9 fetches) and the ROM it ran on; both
+// paths come from the caller (the ROM from the ROM library, the trace from the user's Mesen2).
 
 const FETCH_RE = /^8CC8A9\s+LDA \(\$12\) \[\$([0-9A-F]{6})\] = \$([0-9A-F]{2})/;
 const ACCESS_RE = /\[\$([0-9A-F]{6})\] = \$([0-9A-F]{2,4})/;
@@ -36,17 +32,14 @@ function snesToRomOffset(snesAddr) {
     return (((snesAddr >>> 16) & 0x3f) * 0x10000) + (snesAddr & 0xffff);
 }
 
-function loadTrace(tracePath = DEFAULT_TRACE_PATH) {
+function loadTrace(tracePath) {
     return fs.readFileSync(tracePath, 'utf8');
 }
 
 function loadRom(romPath) {
-    const finalPath = romPath || ROM_CANDIDATES.find((candidate) => {
-        try { return candidate && fs.existsSync(candidate); } catch { return false; }
-    });
-    if (!finalPath) return null;
+    if (!romPath) return null;
     try {
-        return fs.readFileSync(finalPath);
+        return fs.readFileSync(romPath);
     } catch {
         return null;
     }
@@ -124,6 +117,16 @@ function parseVramWrite(line) {
     return null;
 }
 
+/** Index of the first line with lineNumber >= n (lines are in file order). */
+function firstLineAtOrAfter(lines, n) {
+    let lo = 0, hi = lines.length;
+    while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (lines[mid].lineNumber < n) lo = mid + 1; else hi = mid;
+    }
+    return lo;
+}
+
 function analyzeCommandOccurrence(lines, fetches, index) {
     const fetch = fetches[index];
     const nextFetch = index + 1 < fetches.length ? fetches[index + 1] : null;
@@ -135,14 +138,14 @@ function analyzeCommandOccurrence(lines, fetches, index) {
     const vramWrites = [];
     const preludeVramWrites = [];
 
-    for (const line of lines) {
-        if (line.lineNumber < Math.max(1, fetch.lineNumber - 32) || line.lineNumber >= fetch.lineNumber) continue;
+    for (let i = firstLineAtOrAfter(lines, Math.max(1, fetch.lineNumber - 32)); i < lines.length && lines[i].lineNumber < fetch.lineNumber; i++) {
+        const line = lines[i];
         const vramWrite = parseVramWrite(line);
         if (vramWrite) preludeVramWrites.push(vramWrite);
     }
 
-    for (const line of lines) {
-        if (line.lineNumber < fetch.lineNumber || line.lineNumber >= endLineNumber) continue;
+    for (let i = firstLineAtOrAfter(lines, fetch.lineNumber); i < lines.length && lines[i].lineNumber < endLineNumber; i++) {
+        const line = lines[i];
 
         const addrMatch = line.text.match(ACCESS_RE);
         if (addrMatch) {
@@ -387,8 +390,6 @@ function formatOpcode93Dump(commands) {
 }
 
 module.exports = {
-    DEFAULT_TRACE_PATH,
-    ROM_CANDIDATES,
     hex,
     snesToRomOffset,
     loadTrace,

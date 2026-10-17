@@ -131,7 +131,7 @@ on; build with `-DEVS_TAS=0` for the original behaviour). Emulation itself is un
 ## 5. Verification Checklist
 
 Before releasing any changes to `src/emulator/`:
-- [ ] Run `npm run test:emulator-runtime` to verify core file integrity and exports.
+- [ ] Run `npm run test:emulator` to verify core file integrity and exports.
 - [ ] Run `node tests/debugger/emulator-health.test.js`.
 - [ ] Verify that `snes9x2005-wasm` builds cleanly without warnings or errors.
 - [ ] Check that `.vscodeignore` preserves `copyright` files in the package.

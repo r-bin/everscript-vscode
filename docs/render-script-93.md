@@ -10,7 +10,7 @@ Status:
 
 This dossier is limited to what the decode trace proves for the Strong Heart exterior render stream in:
 
-- `/Users/v/Library/Application Support/Mesen2/Debugger/strongheart_exterior_decode_tiles_fist_call__breakpoint_bus=ee0000.txt`
+- a Mesen2 trace log of that load (`strongheart_exterior_decode_tiles_fist_call__breakpoint_bus=ee0000.txt` in Mesen2's debugger folder; the test reads `$EVS_RENDER_TRACE`)
 
 The primary model artifact is `render-script-model.js`. (The old dump tool `tools/render-script-dump-93.js` was broken and is deleted.)
 

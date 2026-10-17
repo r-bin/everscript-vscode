@@ -82,10 +82,6 @@
    "home-path"
   ],
   [
-   "docs/render-script-93.md",
-   "home-path"
-  ],
-  [
    "docs/reverse-engineering/community-ghidra-notes.md",
    "upstream"
   ],
@@ -183,18 +179,6 @@
   ],
   [
    "src/games/evermore/maps/overlay-features.ts",
-   "upstream"
-  ],
-  [
-   "src/games/evermore/maps/render-script-model.js",
-   "home-path"
-  ],
-  [
-   "src/games/evermore/maps/render-script-model.js",
-   "rom-name"
-  ],
-  [
-   "src/games/evermore/maps/render-script-model.js",
    "upstream"
   ],
   [
