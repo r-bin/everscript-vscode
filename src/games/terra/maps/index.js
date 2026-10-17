@@ -6,8 +6,8 @@
 const fs = require('fs');
 const path = require('path');
 const vscode = require('vscode');
-const lib = require('../../../dist/platform');
-const terra = require('../../../dist/games/terra');
+const lib = require('../../../../dist/platform');
+const terra = require('../../../../dist/games/terra');
 const { renderTerraMapsHtml } = require('./page');
 
 /** @type {vscode.WebviewPanel | null} */
@@ -193,3 +193,4 @@ module.exports = {
     isTerraMapsOpen,
     getTerraMapsPanel,
 };
+

@@ -570,3 +570,4 @@ function escapeHtml(s) {
 }
 
 module.exports = { renderTerraMapsHtml };
+

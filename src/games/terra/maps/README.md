@@ -13,3 +13,4 @@ Interactive panel for browsing Terranigma's 1,104 rooms, SNES bus pointers, PC f
   - `0x40`: Palette data.
 - **Search & Filter**: Filter by used rooms vs unused slots (`$000002`), search by room ID (e.g. `000A`), bus address, or name.
 - **Multi-Game UX Compliant**: Displays capability empty-states with direct links to `docs/terra/` for features still under reverse engineering.
+

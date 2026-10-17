@@ -12,3 +12,4 @@ Terranigma Maps and Room Explorer panel.
 - `games/terra/rom.ts` for Table A reading and header decoding.
 - Never imports Evermore (`games/evermore`) or Mana (`games/mana`), enforcing rule `games-stay-apart`.
 - Uses only verified Terranigma facts recorded in `docs/terra/`.
+

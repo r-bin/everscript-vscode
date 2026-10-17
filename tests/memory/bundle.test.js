@@ -21,6 +21,8 @@ test('tools/bundle.mts builds bundle/extension.js', () => {
     const r = spawnSync(process.execPath, [path.join(ROOT, 'tools', 'bundle.mts')], { cwd: ROOT, encoding: 'utf8' });
     assert.strictEqual(r.status, 0, r.stderr || r.stdout);
     assert.ok(fs.existsSync(BUNDLE));
+    // A relative require that resolves nowhere fails at runtime (v0.272.0: Terranigma Maps' ../../../dist).
+    assert.ok(!/unresolved/.test(r.stdout + r.stderr), 'every relative require resolves:\n' + (r.stdout + r.stderr));
 });
 
 test('package.json main is the bundle', () => {
