@@ -3,9 +3,10 @@
 //   node tools/check-ai-context.mts --baseline  drop allowances that are fixed (the list only shrinks)
 // Limits: root AGENTS.md <= 150 lines; each SKILL.md <= 200 lines; a skill description <= 2 lines of
 // ~100 characters (200); nested AGENTS.md <= 70 lines; no relative link or `path` mention to a
-// missing repo file in these files.
+// missing repo file in these files; and no relative link in any tracked Markdown file to a missing path.
 import { readFileSync, readdirSync, existsSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 const ROOT = join(import.meta.dirname, '..');
 // Known overruns, removed as cleanup step 7 slims them. Only ever shrinks.
@@ -51,6 +52,22 @@ const walk = (d: string): string[] => readdirSync(join(ROOT, d), { withFileTypes
     e.isDirectory() ? (['node_modules', 'dist', 'core'].includes(e.name) && d === 'src/emulator' ? [] : walk(`${d}/${e.name}`))
         : e.name === 'AGENTS.md' ? [`${d}/${e.name}`] : []);
 for (const f of walk('src')) { limit(f, 70); links(f); }
+
+// Every tracked Markdown file (docs, READMEs): relative links resolve (cleanup 6.5). Fenced code
+// blocks are examples, not links. The generated legal history lists paths of old commits.
+const mdFiles = execFileSync('git', ['ls-files', '*.md'], { cwd: ROOT }).toString().split('\n')
+    .filter((f) => f && f !== 'docs/legal-history.md' && existsSync(join(ROOT, f)));
+for (const file of mdFiles) {
+    const text = readFileSync(join(ROOT, file), 'utf8').replace(/^```[\s\S]*?^```/gm, '');
+    const base = dirname(join(ROOT, file));
+    for (const m of text.matchAll(/\]\(([^)#\s]+)(?:#[^)]*)?\)/g)) {
+        const href = m[1];
+        if (/^[a-z]+:/i.test(href) || href.startsWith('UPSTREAM') || href.startsWith('/')) continue;
+        let target = href;
+        try { target = decodeURIComponent(href); } catch { /* keep as written */ }
+        if (!existsSync(join(base, target)) && !existsSync(join(ROOT, target))) problems.push({ file, what: `link to missing ${href}` });
+    }
+}
 
 const key = (p: Problem) => `${p.file}: ${p.what.replace(/\d+ (lines|chars)/, 'N $1')}`;
 const fresh = problems.filter((p) => !ALLOW.has(key(p)));

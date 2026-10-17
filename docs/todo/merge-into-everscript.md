@@ -3,7 +3,7 @@
 **Status: deferred (owner, 2026-10-16): no merge for now.** Kept as a draft; nothing here applies
 until the owner reopens it.
 It changes cleanup decisions D7 and D9 ([cleanup.md](../cleanup.md)) and replaces the
-recommendation in [architecture-state.md](../architecture-state.md) §22.
+recommendation in [architecture-state.md](../cleanup.md) §22.
 
 ## 1. Why
 
@@ -79,7 +79,7 @@ Rules that change:
 
 Each step is one commit (or one short series) and leaves both repos working until step 8.
 
-1. **Accept this plan.** Amend D7, D9 and [architecture-state.md](../architecture-state.md) §22; update
+1. **Accept this plan.** Amend D7, D9 and [architecture-state.md](../cleanup.md) §22; update
    [language-tools-and-lsp.md](language-tools-and-lsp.md) §1.5 (the Python LSP stays an option, the TS port does
    not).
 2. **Legal pass on `everscript`, tree and history.** Run the `check:legal` rules over it.

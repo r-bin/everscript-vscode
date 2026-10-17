@@ -1,6 +1,6 @@
 # Secret of Evermore ROM Memory Map
 
-This document serves as the authoritative single source of truth for the **ROM layout, bank organization, and map blob locations** in *Secret of Evermore* (US 1.0), matching the standard established in [.github/memory-map.md](memory-map.md) for WRAM.
+This document serves as the authoritative single source of truth for the **ROM layout, bank organization, and map blob locations** in *Secret of Evermore* (US 1.0), matching the standard established in .github/memory-map.md (`everscript/.github/memory-map.md`, sibling repo) for WRAM.
 
 ---
 
@@ -51,8 +51,8 @@ object record or stamping block reaches (`encode_room._object_area_end`), not a 
 gap to the next blob -- blobs are not stored in room order. *B1*/*B3* are the compression
 `sub_flag`s of Block 1 and Block 3 (`raw` = `0x00` uncompressed, `lzss` = `0x03`); Block 2 is
 `markov` (`0x07`) in all 127 rooms. *Planes* is the set of elevation planes the room's collision
-words use (bold where more than one -- see [docs/map_collision_mechanics.md](../docs/map_collision_mechanics.md)).
-*Grass* is the cuttable-tile count where non-zero ([docs/cuttable_grass_mechanics.md](../docs/cuttable_grass_mechanics.md)).
+words use (bold where more than one -- see [map_collision_mechanics.md](map_collision_mechanics.md)).
+*Grass* is the cuttable-tile count where non-zero ([cuttable_grass_mechanics.md](cuttable_grass_mechanics.md)).
 
 | ID | Hex | Room | SNES ptr | ROM offset | Bytes | Tiles | Metatiles | B1 | B3 | Objs | Step | B-Trig | Planes | Grass |
 |---:|---|---|---|---|---:|---|---:|---|---|---:|---:|---:|---|---:|

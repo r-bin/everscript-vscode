@@ -74,14 +74,8 @@ phrasing is upstream's, quirks included, and a few upstream bugs are
 reproduced deliberately with a comment saying so (`0xad` shifts one value
 twice and the other not at all; one sniff-spot case tests the wrong variable).
 
-The names come from `data.h` and `sniffflags.inc`, plus the `LOOT_REWARD`
-enum from the sibling `everscript` compiler repo, imported by
-`tools/generate-script-names.js` into the committed `names.json` — 842 flag
-names, 235 absolute scripts, 128 NPC scripts, 126 rooms, 87 loot rewards:
-
-```
-node tools/generate-script-names.js [path/to/data.h] [path/to/everscript]
-```
+`names.json` holds 842 flag names, 235 absolute scripts, 128 NPC scripts, 126 rooms and 87 loot
+rewards. They are kept from an earlier import and frozen (cleanup D4): they are rewritten in our own style over time, and no new ones are added; there is no generator any more (the `LOOT_REWARD` values come from the sibling `everscript` compiler).
 
 The ~0.23% of summaries that differ are almost all placeholder names for
 scripts nobody has named. Upstream *caches* the first placeholder it invents

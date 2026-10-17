@@ -20,9 +20,9 @@
 
 - Open workspace folder for repo-relative defaults
 - Configured `everscript.repoPath` or `everscript.romPath` for vanilla room parsing
-- ROM-backed room-script parser in [debugger/emulator/room-script-model.js](../debugger/emulator/room-script-model.js)
-- Cartridge header model in [emulator/snes-rom-header-model.js](../emulator/snes-rom-header-model.js)
-- Webview data assembly in [extension.js](../extension.js)
+- ROM-backed room-script parser in `debugger/emulator/room-script-model.js` (since replaced by `src/games/evermore/script/`)
+- Cartridge header model in `emulator/snes-rom-header-model.js` (now `src/platform/roms/header.ts`)
+- Webview data assembly in `extension.js` (now `src/games/evermore/extension.js`)
 
 ## Evidence
 

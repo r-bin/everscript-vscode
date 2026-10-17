@@ -241,7 +241,7 @@ Moving a table is trivial once every reference to it is a symbol. Most of the wo
 
 Every one of these must be a symbol before the padding test (§4) passes. Once it passes,
 moving a table means moving the label. The concrete cost of more rooms in the ROM is
-already documented in [map_editor_architecture_and_limitations.md §7](map-format/map_editor_architecture_and_limitations.md):
+already documented in [map_editor_architecture_and_limitations.md §7](../map-format/map_editor_architecture_and_limitations.md):
 relocate the `$9FFDE7` table and you get up to 256 rooms.
 
 ### 8.1.1 Done: moving a room today (v0.158.0)
@@ -298,7 +298,7 @@ computed. Before changing it, list every place the id appears:
 4. **Sentinels.** Does `$FF` (or `$7F`) mean "no room"? Widening silently breaks a
    sentinel comparison.
 5. **Script bytecode.** `CHANGE MAP` (`0x22`) already carries a 16-bit map id
-   ([map_transitions.md](script-format/map_transitions.md)); the engine and the reference
+   ([map_transitions.md](../script-format/map_transitions.md)); the engine and the reference
    only use the low byte. Audit every other opcode that takes a room id.
 6. **Save data (SRAM).** If the current room is saved, the save format needs a version
    bump.

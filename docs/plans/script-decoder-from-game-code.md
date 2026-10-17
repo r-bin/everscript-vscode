@@ -58,7 +58,7 @@ Working rules for whoever implements it (human or agent):
 ### 5. Switch and delete
 - Move consumers (debugger source map, hover, Rooms scripts, `soe://` scripts, ROM tab) to
   `src/script-vm/`.
-- Delete: legacy decoder files, `tools/generate-script-names.js` (once names are decided),
+- Delete: legacy decoder files (`tools/generate-script-names.js` is gone, v0.261.0),
   the parity tests that read upstream output (`script-parity`, `script-loot` upstream parts),
   `script_parser/` (the `sandbox/` corpora are already deleted), the hard-coded upstream
   ROM path in `src/games/evermore/maps/render-script-model.js`.

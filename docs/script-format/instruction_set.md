@@ -47,11 +47,7 @@ silently.
 Summaries name what they touch, using tables generated from the reference's
 `data.h` plus `sniffflags.inc` and the encoder's `LOOT_REWARD` enum:
 842 flag names, 235 absolute scripts, 128 NPC scripts, 126 rooms, 87 loot
-rewards, 144 enemies. Regenerate with:
-
-```
-node tools/generate-script-names.js [path/to/data.h] [path/to/everscript]
-```
+rewards, 144 enemies — kept from an earlier import and frozen (cleanup D4): they are rewritten in our own style over time, and no new ones are added; there is no generator any more.
 
 The ~0.2% of summaries that differ are placeholder names for unnamed
 scripts: upstream caches the first placeholder it invents for an id across a

@@ -230,14 +230,6 @@
    "upstream"
   ],
   [
-   "src/games/evermore/script/names.json",
-   "upstream"
-  ],
-  [
-   "src/games/evermore/script/names.ts",
-   "upstream"
-  ],
-  [
    "src/games/evermore/script/ops-entity.ts",
    "upstream"
   ],
@@ -291,10 +283,6 @@
   ],
   [
    "tests/memory/script-units.test.js",
-   "upstream"
-  ],
-  [
-   "tools/generate-script-names.js",
    "upstream"
   ]
  ]

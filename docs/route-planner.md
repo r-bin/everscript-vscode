@@ -1,4 +1,4 @@
-> Superseded in scope by [/simulation/routes.md](../simulation/routes.md),
+> Superseded in scope by [/simulation/routes.md](plans/simulation/routes.md),
 > which builds routes on the simulation rather than on a standalone tab.
 > The data model below is still the one to use.
 

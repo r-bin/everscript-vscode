@@ -29,7 +29,7 @@ ruled out, so the next attempt starts further along.
 | [palettes.md](palettes.md) | How many enemies fit in a room before their colours glitch | Solved |
 | [arrivals.md](arrivals.md) | The doors that lead *into* a room | Solved |
 | [trigger-modernization.md](trigger-modernization.md) | Trigger exit detection, companion/enemy triggers, context registers, performance | Architecture Spec |
-| [../room-simulation.md](../room-simulation.md) | Deciding which branch an enter script takes | **Not built** — see [/simulation](../../simulation/README.md) |
+| [../room-simulation.md](../room-simulation.md) | Deciding which branch an enter script takes | **Not built** — see [/simulation](../plans/simulation/README.md) |
 | [../ingredient-icons.md](../ingredient-icons.md) | Where the menu's item icons live | **Unsolved** |
 
 ## Two lessons that keep repaying

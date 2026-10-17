@@ -218,7 +218,10 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   `emulator-status-and-roadmap.md`, `future-features.md`, revert notes, `docs/features/`,
   finished dossiers. Docs layout mirrors the code: `docs/platform/`, `docs/games/<game>/`,
   `docs/plans/`, `docs/todo/`.
-- [ ] **6.5** README per domain and for `tools/`, `tests/`; file names without spaces; no doc
+- [x] **6.5** (v0.261.0: READMEs for `platform/`, `core/`, `games/`, `games/evermore/`, `games/mana/`, `tools/`, `tests/`; AGENTS.md
+  for `games/evermore/` and `games/mana/`; no file name with a space; `check:ai-context` checks every relative link
+  in every tracked Markdown file, 26 broken ones fixed; `tools/generate-script-names.js` (read SoEScriptDumper's
+  `data.h`) deleted, its names frozen per D4) README per domain and for `tools/`, `tests/`; file names without spaces; no doc
   links a missing path (add a link check to `check:ai-context`).
 - [x] **6.6** (v0.260.0: `tests/tiers.json` + `tools/test.mts`; `npm test` = grammar + unit in ~7 s, was ~4 min with
   core builds; `test:rom` / `test:dom` / `test:emulator` / `test:all`; four forgotten tests back in a tier;

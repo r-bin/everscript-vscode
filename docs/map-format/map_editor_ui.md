@@ -349,7 +349,7 @@ interface precedent, not as code to read:
   Section 3, and the tab's object-state chips already work this way.
 - **Temporal Flux** (Chrono Trigger): editing the map and its event scripts
   in one tool. This repo already decodes the scripts, so the two halves are
-  both present — see [/simulation](../../simulation/README.md).
+  both present — see [/simulation](../plans/simulation/README.md).
 - **LazyShell** (Super Mario RPG): live patching with verification. The
   equivalent here is running `verify_rebuild` on the edited room before the
   write, which costs nothing and catches an encoder bug before it reaches

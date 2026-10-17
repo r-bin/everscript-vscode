@@ -3,7 +3,7 @@
 > [!IMPORTANT]
 > **Empirical SNES PPU Mode 1 Pipeline**  
 > All rendering logic is derived from SNES PPU hardware specifications and 65c816 disassembly of the Secret of Evermore engine, validated against `Secret of Evermore (U) [!]`.
-> Core implementation resides in [`tools/render_map.py`](../tools/render_map.py) with payload decoding in [`tools/dump_room.py`](../tools/dump_room.py).
+> Core implementation resides in `everscript/tools/render_map.py` (sibling repo; ported to `src/games/evermore/maps/render.ts`) with payload decoding in `everscript/tools/dump_room.py`.
 
 ---
 

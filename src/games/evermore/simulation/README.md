@@ -1,7 +1,7 @@
 # simulation/ — running scripts to see what they do
 
 Rules for changing this folder: [AGENTS.md](AGENTS.md). Design history:
-[/simulation](../../simulation/README.md).
+[/simulation](../../../../docs/plans/simulation/README.md).
 
 The decoder (`src/games/evermore/script`) says what each instruction *is*. This folder runs them, from
 an unknown save, and reports what happens and under which conditions:

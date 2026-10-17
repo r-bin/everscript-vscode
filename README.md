@@ -129,7 +129,7 @@ Key scopes:
 
 ## Development Notes
 
-See [`docs/vscode-highlighter-spec.md`](../everscript/docs/vscode-highlighter-spec.md) in the main repo for the full design spec.
+See [`docs/vscode-highlighter-spec.md`](docs/vscode-highlighter-spec.md) in the main repo for the full design spec.
 
 ## Customisation
 

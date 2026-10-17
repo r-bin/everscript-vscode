@@ -1,8 +1,7 @@
 // Ownership: the human-readable names behind script operands. Pure lookups.
 //
-// Data comes from SoEScriptDumper/data.h via tools/generate-script-names.js
-// and is committed as names.json, so this repo does not depend on the
-// SoETilesViewer checkout being present.
+// The names are in names.json: kept from an earlier import and frozen
+// (docs/cleanup.md D4) — rewritten in our own words over time, no new ones added.
 //
 // These tables are the whole difference between `WRITE $2443 = 0x02` and
 // `WRITE CHANGE DOGGO ($2443) = Wolf (0x02)`. They are curated upstream from
