@@ -16,7 +16,7 @@ const crypto = require('crypto');
 const Module = require('module');
 
 const ROOT = path.resolve(__dirname, '../..');
-const { detectEvermore } = require('../../src/emulator/webview/rom-game');
+const { detectEvermore } = require('../../src/games/evermore/emulator/webview/rom-game');
 const { CdlLibrary } = require('../../src/platform/cdl/library');
 const { buildBundle, importBundle, readBundle } = require('../../src/platform/cdl/bundle');
 const { evsmvHeader } = require('../../src/platform/tas/movie');
@@ -168,7 +168,8 @@ function recordInto(root, rom, hits) {
                     // As the extensions pass it: Everscript hands in Evermore's part of the page, the recorder none.
                     gameView: profile === 'full' ? require('../../src/games/evermore/emulator/host').webview() : null,
                     styles: [dataUri('emulator-profile.css', 'text/css'), dataUri('emulator-panels.css', 'text/css')],
-                    scripts: [dataUri('rom-game.js', 'text/javascript'), dataUri('emulator-profile.js', 'text/javascript'), dataUri('emulator-panels.js', 'text/javascript'), dataUri('replays-list.js', 'text/javascript')],
+                    // As the extensions pass them: Everscript's page gets Evermore's ROM detector first, the recorder's none.
+                    scripts: (profile === 'full' ? ['data:text/javascript;base64,' + fs.readFileSync(path.join(ROOT, 'src/games/evermore/emulator/webview/rom-game.js')).toString('base64')] : []).concat([dataUri('emulator-profile.js', 'text/javascript'), dataUri('emulator-panels.js', 'text/javascript'), dataUri('replays-list.js', 'text/javascript')]),
                 }).replace('<head>', '<head><script>window.__sent=[];window.acquireVsCodeApi=()=>({postMessage:m=>window.__sent.push(m)});</script>');
                 const p = await browser.newPage();
                 const errors = [];

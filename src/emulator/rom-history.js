@@ -321,7 +321,7 @@ function getRecentRoms(storageDir) {
       path: item.path || '',
       name: item.name || (item.path ? path.basename(item.path) : 'ROM'),
       customName: item.customName || '',
-      vfsUri: item.vfsUri || (item.isCustomMap ? ('soe://rom/maps/custom/' + encodeURIComponent(item.customName || item.name)) : ''),
+      vfsUri: item.vfsUri || '',   // set by the game's describer (Evermore: soe://maps/custom/<name>)
       kind: item.kind || 'file',
       badge: getBadge(item.kind),
       lastUsed: item.lastUsed || 0,

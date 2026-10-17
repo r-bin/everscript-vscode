@@ -7,7 +7,8 @@
  * Single export: buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay, romOfferData, options) -> string
  *   options.profile  'full' or 'recorder' (webview/emulator-profile.js hides what a profile or a
  *                    non-Evermore ROM does not get: elements marked data-needs="full" / "evermore")
- *   options.scripts  webview URIs of webview/rom-game.js, emulator-profile.js, emulator-panels.js and replays-list.js,
+ *   options.scripts  webview URIs of the game's page files (Evermore: its rom-game.js), emulator-profile.js,
+ *                    emulator-panels.js and replays-list.js,
  *                    loaded before the inline script; options.styles  of webview/emulator-profile.css
  *                    and emulator-panels.css
  *   options.gameView the game's part of the page ({ css, tabButtonsHtml, viewsHtml, clientScript, and its
@@ -600,9 +601,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       </div>
 
       <div class="overlay-action-row">
-        <button id="vanillaBtn" class="rom-action-btn primary" data-needs="full" type="button" title="Load configured vanilla Secret of Evermore ROM">
+        <button id="vanillaBtn" class="rom-action-btn primary" data-needs="full" type="button" title="Load the base ROM of the selected game (ROM library)">
           <div class="btn-main"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg> <span>Load Vanilla ROM</span></div>
-          <div class="btn-meta" id="vanilla-desc">Secret of Evermore (U)</div>
+          <div class="btn-meta" id="vanilla-desc">Base ROM</div>
         </button>
         <button id="pickBtn" class="rom-action-btn secondary" type="button" title="Choose a ROM file from disk">
           <div class="btn-main"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path></svg> <span>Load ROM...</span></div>
@@ -853,7 +854,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           vBtn.disabled = false;
           const regPrefix = data.vanilla.region ? '[' + data.vanilla.region + '] ' : '';
           vDesc.textContent = regPrefix + (data.vanilla.name || 'Vanilla ROM') + (data.vanilla.sizeFormatted ? ' (' + data.vanilla.sizeFormatted + ')' : '');
-          vBtn.title = 'Load vanilla Secret of Evermore ROM: ' + (data.vanilla.path || '');
+          vBtn.title = 'Load the base ROM: ' + (data.vanilla.path || '');
         } else {
           vBtn.classList.add('disabled');
           vBtn.disabled = true;

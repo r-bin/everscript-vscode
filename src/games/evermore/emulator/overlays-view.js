@@ -2038,6 +2038,20 @@ function getOverlaysScript() {
       }
     }
 
+    // Just above the entity the camera follows ($7E:0F42 points into the entity records sampled at
+    // $7E:3DDF): x, and y minus the elevation; for the CDL float (cdl-float.js). Null when unknown.
+    function gameCameraWorld(m, ps) {
+      if (!ps.entBuf) return null;
+      const ptr = m.readMemory(0x7E0F42) | (m.readMemory(0x7E0F43) << 8);
+      const rel = ptr - 0x3DDF;
+      if (rel < 0 || rel + 0x20 > ps.entBuf.length) return null;
+      const b = ps.entBuf;
+      const sx = v => (v >= 0x8000 ? v - 0x10000 : v);
+      const x = sx(b[rel + 0x1A] | (b[rel + 0x1B] << 8));
+      const y = sx(b[rel + 0x1C] | (b[rel + 0x1D] << 8)) - sx(b[rel + 0x1E] | (b[rel + 0x1F] << 8));
+      return { x, y: y - 40 };
+    }
+
     // A (re)started ROM: forget the room and the sprites of the last one (panel-webview.js bootRom).
     function gameRomReset() {
       idleSprites.clear();

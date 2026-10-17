@@ -48,23 +48,18 @@ function getCdlFloatScript() {
       const center = { x: layout.emuX + layout.emuW / 2, y: layout.emuY + layout.emuH / 2 };
       const m = getModule();
       const ps = lastSampledPreState;
-      if (!m || !ps || !ps.entBuf) return center;
-      const ptr = m.readMemory(0x7E0F42) | (m.readMemory(0x7E0F43) << 8);
-      const rel = ptr - 0x3DDF;
-      if (rel < 0 || rel + 0x20 > ps.entBuf.length) return center;
-      const b = ps.entBuf;
-      const sx = v => (v >= 0x8000 ? v - 0x10000 : v);
-      const x = sx(b[rel + 0x1A] | (b[rel + 0x1B] << 8));
-      const y = sx(b[rel + 0x1C] | (b[rel + 0x1D] << 8)) - sx(b[rel + 0x1E] | (b[rel + 0x1F] << 8));
-      const px = layout.emuX + (x - layout.camX) * layout.scaleSnes;
-      const py = layout.emuY + (y - 40 - layout.camY) * layout.scaleSnes;
+      // Where the game's camera follows (Evermore: overlays-view.js gameCameraWorld), in world pixels.
+      const at = m && ps && typeof gameCameraWorld === 'function' ? gameCameraWorld(m, ps) : null;
+      if (!at) return center;
+      const px = layout.emuX + (at.x - layout.camX) * layout.scaleSnes;
+      const py = layout.emuY + (at.y - layout.camY) * layout.scaleSnes;
       const inside = px >= layout.emuX && px <= layout.emuX + layout.emuW && py >= layout.emuY && py <= layout.emuY + layout.emuH;
       return inside ? { x: px, y: py } : center;
     }
 
     /** Called once per tick with { label: percentGained } for the banks that grew. */
     function cdlFloatGains(gains) {
-      if (!emuEvermore) return;   // the anchor is Evermore's active character
+      if (!emuEvermore || typeof gameCameraWorld !== 'function') return;   // the anchor is the game's camera entity
       for (const label in gains) cdlFloatPending.set(label, (cdlFloatPending.get(label) || 0) + gains[label]);
       const ready = [...cdlFloatPending].filter(e => e[1] >= CDL_FLOAT_MIN_PCT).sort((a, b) => b[1] - a[1]).slice(0, CDL_FLOAT_MAX);
       if (!ready.length) return;

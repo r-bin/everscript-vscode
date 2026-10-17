@@ -189,10 +189,10 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   lines); v0.268.0: the screen layer (extended map, overlays, entity sprites, inspector, the per-frame RAM sample,
   overlay toggles and chips) → `games/evermore/emulator/overlays-view.js`, the trigger helpers → `room-triggers.js`
   (`panel-webview.js` 5342 → 2867 lines); v0.269.0: the script VM (STACK, TRACE, the script debugger's page side,
-  who sent each sound) → `stack-view.js`, `script-debug-view.js`, `sound-source-view.js` (`panel-webview.js` → 2101); VIEW's room line → `gameLensInfo()`. Left in the emulator: the Evermore gate (`rom-game.js`
-  `detectEvermore`, `data-needs="evermore"`), the music driver's package byte (`apu-stream-view.js`), the camera
-  entity (`cdl-float.js`), the menu sounds (`menu-sound.js`) and the launcher's "Secret of Evermore (U)"; then
-  `emulator` → `core/emulator`, then esbuild. First part done in v0.231.0: one TypeScript build, `tsconfig.build.json` →
+  who sent each sound) → `stack-view.js`, `script-debug-view.js`, `sound-source-view.js` (`panel-webview.js` → 2101); VIEW's room line → `gameLensInfo()`. v0.270.0: the Evermore detector (`rom-game.js`) → a game page file
+  (`webviewFiles()`), the music package byte → `gameMusicPackage`, the camera entity → `gameCameraWorld`, the
+  launcher names no game; the emulator holds no Evermore facts (the gate's name `emuEvermore` / `data-needs="evermore"`
+  stays until the move). Next: `emulator` → `core/emulator`, then esbuild. First part done in v0.231.0: one TypeScript build, `tsconfig.build.json` →
   `dist/` mirroring `src/`, `npm run build:ts`; the five per-domain builds are gone) one host bundle and one bundle per webview from real `.ts`/`.css`/`.html`;
   no code in template literals (~9.5 k lines at v0.199: `emulator/panel-webview.js`,
   `menu/menu-view.js`, `bottom-bar-views.js`, the emulator `*-view.js` files) and no

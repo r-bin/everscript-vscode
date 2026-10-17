@@ -199,6 +199,11 @@ function getSoundSourceClientScript() {
     }
 
     // Called once per emulated frame by apuStreamTick: the events since the last frame.
+    // The music package loaded into the sound driver ($7E:0E4B), for the Music tab (apu-stream-view.js).
+    function gameMusicPackage(m) {
+      return typeof m.readMemory === 'function' ? m.readMemory(0x7E0E4B) : -1;
+    }
+
     function sndTake(paused) {
       if (!paused) sndFrame++;
       const out = sndEvents;

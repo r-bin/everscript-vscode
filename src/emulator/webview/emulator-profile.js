@@ -9,7 +9,7 @@
  * Profile and game:
  *   - The profile ('full' Everscript, 'recorder' SNES CDL Recorder) comes from the
  *     #emu-config JSON block; the body carries it as a class.
- *   - emuGateRom(bytes) runs at every boot: detectEvermore (rom-game.js) sets
+ *   - emuGateRom(bytes) runs at every boot: detectEvermore (the game's rom-game.js; none = no) sets
  *     emuEvermore and the body class rom-other. Elements marked data-needs are
  *     hidden by emulator-profile.css; Evermore-only work in the inline script
  *     checks emuEvermore. A hidden pause-menu tab is left for the first one still
@@ -65,7 +65,7 @@ function emuClearExtendedLayers() {
 
 /** Called at every boot, before the core starts. */
 function emuGateRom(bytes) {
-  emuEvermore = typeof detectEvermore === 'function' ? detectEvermore(bytes) : true;
+  emuEvermore = typeof detectEvermore === 'function' ? detectEvermore(bytes) : false;   // the game's detector (Evermore: rom-game.js)
   emuScriptHook = emuEvermore && emuProfile === 'full';
   document.body.classList.toggle('rom-other', !emuEvermore);
   if (!emuEvermore) {

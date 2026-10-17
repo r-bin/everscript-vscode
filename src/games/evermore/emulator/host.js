@@ -534,4 +534,9 @@ function webview() {
     };
 }
 
-module.exports = { webview, clearCaches, alchemyIcons, roomMap, idleSprites, traceScripts, describeRom: describeCustomMapRom };
+/** Evermore's page files, loaded before the page's own script: its ROM detector (detectEvermore). */
+function webviewFiles() {
+    return [require('path').join(__dirname, 'webview', 'rom-game.js')];
+}
+
+module.exports = { webviewFiles, webview, clearCaches, alchemyIcons, roomMap, idleSprites, traceScripts, describeRom: describeCustomMapRom };

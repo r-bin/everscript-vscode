@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * emulator/webview/rom-game.js
+ * games/evermore/emulator/webview/rom-game.js
  *
  * Which game a ROM is, for the features that only work on Secret of Evermore (U):
  * the overlays, the pause menu's OBJECTS / LOOT / CHEATS, the script stack hook,
@@ -12,8 +12,8 @@
  * Nothing else is checked, so ROM hacks and the ExHiROM build count too; the
  * other regions do not (their addresses differ).
  *
- * Loaded by the emulator webview as a file (window.detectEvermore) and by node
- * (module.exports) for the tests.
+ * Loaded by the emulator webview as a file (window.detectEvermore; host.js webviewFiles() hands it to the
+ * panel) and by node (module.exports) for the tests. Without it (the recorder) no ROM counts as Evermore.
  */
 (function (root) {
     const TITLE = 'SECRET OF EVERMORE';

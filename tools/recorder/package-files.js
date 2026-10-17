@@ -29,7 +29,6 @@ const ASSETS = [
     // The Snes9x licence: every copy of the core binaries comes with its copyright file.
     'src/emulator/core/snes9x2005-wasm/copyright',
     'src/emulator/core/snes9x2005-wasm-vanilla/copyright',
-    'src/emulator/webview/rom-game.js',
     'src/emulator/webview/emulator-profile.js',
     'src/emulator/webview/emulator-profile.css',
     'src/emulator/webview/emulator-panels.js',

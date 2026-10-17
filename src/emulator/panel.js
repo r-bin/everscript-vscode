@@ -383,7 +383,9 @@ function _resetPanelHtml() {
       profile: _options.profile,
       gameView: _options.game && _options.game.webview ? _options.game.webview() : null,
       styles: [file('emulator-profile.css'), file('emulator-panels.css')],
-      scripts: [file('rom-game.js'), file('emulator-profile.js'), file('emulator-panels.js'), file('replays-list.js')],
+      // The game's page files first (Evermore: its ROM detector), then the emulator's.
+      scripts: (_options.game && _options.game.webviewFiles ? _options.game.webviewFiles() : []).map(f => _panel.webview.asWebviewUri(vscode.Uri.file(f)).toString())
+        .concat([file('emulator-profile.js'), file('emulator-panels.js'), file('replays-list.js')]),
     });
     // Log a snippet to help diagnose CSP / script-load issues.
     _log('HTML head snippet: ' + html.substring(0, 220).replace(/\s+/g, ' '));

@@ -10,7 +10,7 @@ Related skills: `emulator-subsystem`, `cdl-recorder`, `webview-dom-safety`, `deb
   the script-debug hook's host side (`script-debug-host.js`) and the
   sound-chip stream for the Music tab (`apu-stream.js` / `apu-stream-view.js`).
 - Sub-folders with their own READMEs: `cdl/` (only `host.js` here; the engine is `src/platform/cdl/`), `tas/` (`host.js`; the movie format is `src/platform/tas/`), `menu/`. `webview/` holds the page's files
-  that are loaded as files (`rom-game.js`, `emulator-profile.js` / `.css`): new page code goes there.
+  that are loaded as files (`emulator-profile.js` / `.css`, ...): new page code goes there.
 - The two profiles (full Everscript, SNES CDL Recorder) and the Evermore gating: README "Profiles and games".
 
 ## Dependencies
@@ -23,7 +23,7 @@ Related skills: `emulator-subsystem`, `cdl-recorder`, `webview-dom-safety`, `deb
   (`.depcruise.js`: `no-rom-to-emulator`, `no-music-to-emulator`, `no-resources-to-emulator`).
 - The game's part of the page too: `game.webview()` → `{ css, tabButtonsHtml, viewsHtml, clientScript }`
   + menu tabs + screen layer (Evermore: `games/evermore/emulator/*-view.js`, `menu-tabs.js`), behind `typeof` guards.
-- Still Evermore inside (cleanup 5.3): `detectEvermore`, `apu-stream-view.js`, `cdl-float.js`, `menu-sound.js`.
+- Game hooks: README "Profiles and games"; the detector is a page file (`game.webviewFiles()`).
 
 ## State owned
 - `panel.js` (module-local, per panel): the active `WebviewPanel`, pending ROM, current ROM

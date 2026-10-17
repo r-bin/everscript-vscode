@@ -58,7 +58,8 @@ function getApuStreamClientScript() {
     }
 
     function apuLoadedPackage(m) {
-      try { return typeof m.readMemory === 'function' ? m.readMemory(0x7E0E4B) : -1; } catch (e) { return -1; }
+      // The music package the game loaded (Evermore: sound-source-view.js gameMusicPackage), -1 when unknown.
+      try { return typeof gameMusicPackage === 'function' ? gameMusicPackage(m) : -1; } catch (e) { return -1; }
     }
 
     // Called once per displayed frame, after mainLoop().
