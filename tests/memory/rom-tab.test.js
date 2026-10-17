@@ -9,7 +9,6 @@ const assert = require('assert');
 
 const { buildRomModel } = require('../../src/games/evermore/rom');
 const { readersOf } = require('../../src/games/evermore/rom/model/readers');
-const { parseWikiPoints, mergePoints } = require('../../src/games/evermore/rom/model/wiki-overlay');
 const { executedByHalf, wramStrip } = require('../../src/games/evermore/rom/model/bus-usage');
 const { renderRadarHtml } = require('../../src/games/evermore/memory/render-radar');
 
@@ -23,15 +22,6 @@ const romPath = require('../../dist/games').romPath('evermore');
 const rom = fs.existsSync(romPath) ? fs.readFileSync(romPath) : null;
 
 console.log('ROM tab model:');
-
-check('wiki §4 point rows are parsed; built-in names win on the same address', () => {
-    const md = '| $8C:805B | — | 🧠 Wiki name | | n |\n| $90:1234 | — | 📋 New table | 🦖 Prehistoria | from the wiki |\n| $90:1234 | 12 | 📋 Sized | | x |';
-    const wiki = parseWikiPoints(md);
-    assert.strictEqual(wiki.length, 2);
-    assert.deepStrictEqual(wiki[1], { bus: 0x901234, cat: '📋', name: 'New table', notes: 'from the wiki' });
-    const merged = mergePoints([{ bus: 0x8C805B, cat: '🧠', name: 'Built in', notes: '' }], wiki);
-    assert.deepStrictEqual(merged.map(p => p.name), ['Built in', 'New table']);
-});
 
 check('readers: exact ROM xrefs grouped by PC, bulk ranges included, other spaces ignored', () => {
     const key = (pc, space, addr) => pc * 0x4000000 + ((space << 24) | addr);

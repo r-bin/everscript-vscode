@@ -1,9 +1,7 @@
 'use strict';
 
-// Curated names for the recomp build: functions.js, tables.js, knowledge entries and the WRAM
-// symbols, turned into identifiers that are valid in Asar, C (snesrecomp) and Mesen2 labels.
+// Curated names for the recomp build: the knowledge entries and the WRAM symbols, turned into identifiers that are valid in Asar, C (snesrecomp) and Mesen2 labels.
 
-const fs = require('fs');
 const path = require('path');
 
 const REPO = path.resolve(__dirname, '..', '..');
@@ -24,24 +22,9 @@ function slug(text) {
     return s;
 }
 
-/** Flat front matter of a knowledge entry: { addr, end, size, name, title, confidence, ... } */
-function readEntry(file) {
-    const text = fs.readFileSync(file, 'utf8');
-    const m = /^---\n([\s\S]*?)\n---\n?([\s\S]*)$/.exec(text);
-    if (!m) return null;
-    const meta = {};
-    for (const line of m[1].split('\n')) {
-        const kv = /^([a-z_]+):\s*(.*)$/.exec(line);
-        if (kv) meta[kv[1]] = kv[2].trim();
-    }
-    meta.body = m[2].trim().split(/\n\s*\n/)[0].replace(/\s+/g, ' ');
-    return meta;
-}
-
+/** The knowledge entries of one space, through the one loader (src/games/evermore/localizations/knowledge.js). */
 function readEntries(kind) {
-    const dir = path.join(REPO, 'src', 'games', 'evermore', 'localizations', 'knowledge', kind);
-    if (!fs.existsSync(dir)) return [];
-    return fs.readdirSync(dir).filter(f => f.endsWith('.md')).map(f => readEntry(path.join(dir, f))).filter(e => e && e.addr);
+    return require(path.join(REPO, 'src', 'games', 'evermore', 'localizations', 'knowledge.js')).entries(kind);
 }
 
 /**
@@ -59,7 +42,7 @@ function collectNames(map, romLength) {
     const toRom = bus => {
         const off = map.busToRom(bus);
         if (off >= 0) return off;
-        return bus < romLength ? bus : -1;   // tables.js holds a few plain file offsets
+        return bus < romLength ? bus : -1;
     };
 
     const names = new Map();
@@ -71,13 +54,11 @@ function collectNames(map, romLength) {
         counts[key]++;
     };
 
+    // Every routine and table name is a knowledge entry (functions.js / tables.js are views of them).
     for (const e of readEntries('rom')) {
-        addRom(parseInt(e.addr, 16), e.name || e.title, [e.title, e.body].filter(Boolean).join(' - '), 'romEntries');
+        const key = e.kind === 'table' || e.kind === 'data' ? 'tables' : e.kind === 'code' || e.kind === 'script' ? 'functions' : 'romEntries';
+        addRom(e.addr, (key === 'tables' ? 'tbl_' : '') + (e.name || e.title), [e.title, e.purpose].filter(Boolean).join(' - '), key);
     }
-    const { FUNCTIONS } = require(path.join(REPO, 'src', 'games', 'evermore', 'localizations', 'functions.js'));
-    for (const f of FUNCTIONS) addRom(f.address, f.name, [f.name, f.notes].filter(Boolean).join(' - '), 'functions');
-    const { TABLES } = require(path.join(REPO, 'src', 'games', 'evermore', 'localizations', 'tables.js'));
-    for (const t of TABLES) addRom(t.address, 'tbl_' + t.name, [t.name, t.notes].filter(Boolean).join(' - '), 'tables');
 
     const wramNames = new Map();
     const addWram = (addr, name, note, size) => {
@@ -86,9 +67,7 @@ function collectNames(map, romLength) {
         counts.wram++;
     };
     for (const e of readEntries('ram')) {
-        const addr = parseInt(e.addr, 16) - 0x7E0000;
-        const size = e.end ? parseInt(e.end, 16) - parseInt(e.addr, 16) + 1 : parseInt(e.size || '1', 10);
-        addWram(addr, e.name, [e.title, e.body].filter(Boolean).join(' - '), size);
+        addWram(e.addr - 0x7E0000, e.name, [e.title, e.purpose].filter(Boolean).join(' - '), e.end - e.addr + 1);
     }
     const { ramSymbols, ramBlocks } = require(path.join(REPO, 'src', 'games', 'evermore', 'resources', 'ram-symbols.js'));
     for (const b of ramBlocks()) addWram(b.addr, b.tags[0], 'record (' + b.size + ' bytes)', b.size);

@@ -10,6 +10,8 @@
 //   soe://localization/tables/...           curated ROM tables
 //   soe://localization/functions/...        curated ROM routines
 //   soe://localization/strings/...          in-game dialog strings
+//   soe://localization/knowledge/{ram,rom}/ every knowledge entry: index.md (the generated RAM / ROM map),
+//                                           <addr>.md (the entry), <addr>.json (its fields)
 
 const {
     VANILLA_MAPS, getMap,
@@ -23,8 +25,9 @@ const {
 const { hexId } = require('./resource-uri');
 const { dir, json, text } = require('./nodes');
 const MD = require('./localization-markdown');
+const { entries: knowledgeEntries } = require('../localizations/knowledge');
 
-const CATEGORIES = ['scripts', 'maps', 'sounds', 'tables', 'functions', 'strings'];
+const CATEGORIES = ['scripts', 'maps', 'sounds', 'tables', 'functions', 'strings', 'knowledge'];
 const STRING_COUNT = 3002;
 
 function resolveLocalization(segments, rom) {
@@ -39,6 +42,7 @@ function resolveLocalization(segments, rom) {
     if (cat === 'tables') return tablesRoute(segments.slice(1));
     if (cat === 'functions') return functionsRoute(segments.slice(1));
     if (cat === 'strings') return stringsRoute(segments.slice(1), rom);
+    if (cat === 'knowledge') return knowledgeRoute(segments.slice(1));
     return null;
 }
 
@@ -65,6 +69,7 @@ function rootSummary() {
             tables: TABLES.length,
             functions: FUNCTIONS.length,
             strings: STRING_COUNT,
+            knowledge: { ram: knowledgeEntries('ram').length, rom: knowledgeEntries('rom').length },
         },
     };
 }
@@ -306,6 +311,40 @@ function functionsRoute(rest) {
     const clean = name.replace(/\.json$/i, '');
     const f = getFunction(clean) || (/^[0-9a-f]+$/i.test(clean) ? getFunction(parseInt(clean, 16)) : null);
     return f ? json(() => f) : null;
+}
+
+// -- knowledge ----------------------------------------------------------------
+
+const hex6 = (n) => (n >>> 0).toString(16).toUpperCase().padStart(6, '0');
+const cell = (s) => String(s == null ? '' : s).replace(/\|/g, '\\|').replace(/\s+/g, ' ');
+
+/** The RAM or ROM map, generated from the entries (one row each, in address order). */
+function knowledgeMapMarkdown(space) {
+    const list = knowledgeEntries(space);
+    const rows = list.map(e => `| [$${hex6(e.addr)}](${hex6(e.addr).toLowerCase()}.md) | ${e.end > e.addr ? `$${hex6(e.end)}` : ''} | ${cell(e.kind)} | ${cell(e.title)} | ${cell(e.confidence)} |`);
+    return [`# ${space.toUpperCase()} map: what is known`, '',
+        `${list.length} knowledge entries (src/games/evermore/localizations/knowledge/${space}/). Generated; edit the entries.`, '',
+        '| Address | End | Kind | What | Confidence |', '|---|---|---|---|---|', ...rows, ''].join('\n');
+}
+
+function knowledgeRoute(rest) {
+    const [space, name, ...more] = rest;
+    if (more.length) return null;
+    if (space === undefined) return dir([['ram', 'dir'], ['rom', 'dir']], () => '# Knowledge entries\n\n- [RAM](ram/index.md)\n- [ROM](rom/index.md)\n');
+    if (space !== 'ram' && space !== 'rom') return null;
+    const list = knowledgeEntries(space);
+    if (name === undefined) {
+        return dir([['index.md', 'file'], ...list.flatMap(e => [[hex6(e.addr).toLowerCase() + '.md', 'file'], [hex6(e.addr).toLowerCase() + '.json', 'file']])],
+            () => knowledgeMapMarkdown(space));
+    }
+    if (name === 'index.md') return text(() => knowledgeMapMarkdown(space));
+    const m = /^([0-9a-f]{1,6})\.(md|json)$/i.exec(name);
+    if (!m) return null;
+    const addr = parseInt(m[1], 16);
+    const e = list.find(x => x.addr === addr) || list.find(x => (x.addr & 0xFFFF) === addr);
+    if (!e) return null;
+    if (m[2].toLowerCase() === 'json') return json(() => ({ ...e, body: undefined }));
+    return text(() => `# $${hex6(e.addr)}: ${e.title}\n\n${e.body}\n`);
 }
 
 // -- strings ------------------------------------------------------------------

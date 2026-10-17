@@ -14,11 +14,12 @@
    - Sound effect (SFX) parameters mapped to descriptive titles from EMU reference rips and engine disassembly.
    - `getSoundAnimations()`: which animations play which sound (animation command `0x2E`/`0x2F` `sound n` = script id `2n`), from `data/sound-animations.json` (generated from the ROM by `tools/gen-sound-animations.js`).
 
-3. **Tables (`tables.js`)**
-   - Curated list of engine lookup tables, jump tables, and alchemy/character data structures by ROM bus address.
+3. **Knowledge entries (`knowledge/{ram,rom}/<addr>.md`, loaded by `knowledge.js`)**
+   - Everything known about an address: what it is, its fields, how it is known (`game-knowledge` skill).
+   - `tables.js` and `functions.js` are views of the ROM entries with a `category` (tables, routines);
+     `soe://localization/knowledge/` serves every entry and the generated RAM and ROM maps.
 
-4. **Functions (`functions.js`)**
-   - Curated list of engine routine entry points, handlers, and script VM dispatchers.
+4. **Compiler regions** — RAM entries tagged `compiler-region` give the radar its temp / session ranges.
 
 5. **Script Names (`scripts.js`)**
    - NPC / Short scripts (e.g. `0x17cd` -> "Thraxx damage/kill", `0x199e` -> "Aegis kill", `0x1a79` -> "Vigor damage").

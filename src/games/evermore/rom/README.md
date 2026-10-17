@@ -15,7 +15,7 @@ Reference: the everscript wiki's ROM map (`wiki/rom/Rom-Map.md`), whose §4 this
 | File | Role |
 |---|---|
 | `index.js` | Public API: `buildRomModel`, `handlesRomMessage` / `handleRomMessage`, `buildRomTabHtml` |
-| `build.js` | ROM bytes (+ CDL, wiki text, room names) → model. Pure |
+| `build.js` | ROM bytes (+ CDL, room names) → model. Pure |
 | `host.js` | The webview's `romMapRequest` / `romReaders`; caches one model per ROM hash. No `vscode` |
 | `render-rom-tab.js` | The pane scaffold; content arrives by message |
 | `model/catalog.js` | Fixed-place content: header, rooms, palettes, strings, scripts, entities, alchemy |
@@ -23,7 +23,6 @@ Reference: the everscript wiki's ROM map (`wiki/rom/Rom-Map.md`), whose §4 this
 | `model/audio.js` | Song descriptors and every byte each song loads |
 | `model/layout.js` | One owner per byte, rows per half, gaps, overlap notes, strips, CDL counts |
 | `model/points.js` | Curated routine / table names (points without a size) |
-| `model/wiki-overlay.js` | Extra points from the wiki's §4 rows |
 | `model/readers.js` | "Which code reads these bytes", from the CDL library's xrefs |
 | `model/bus-usage.js` | CDL facts on the bus side: bank halves code executed from (pcstats + edges), WRAM strip |
 | `webview/rom-tab.js`, `.css` | `_rom`; File view: strips, half table, CDL layer, row details, text search |

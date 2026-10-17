@@ -4,16 +4,24 @@
  * radar-utils.js — pure helper functions for the Memory Radar.
  * No VS Code API dependency; importable from tests.
  *
- * Region definitions (from linker main.evs):
- *   temp    0x2834–0x28FF  compiler TEMP RAM (cleared on room load)
- *   session 0x2200–0x27FF  cross-room persistent SRAM vars
- *   sram    [SRAM]-tagged  battery-backed save (by tag, outside temp/session)
- *   system  everything else
+ * Lifecycles: temp and session come from the compiler-region knowledge entries
+ * (knowledge/ram/7e2834.md, 7e2200.md); sram from an [SRAM] tag; system otherwise.
  */
 
+// The compiler's regions are knowledge entries tagged `compiler-region` (localizations/knowledge/ram):
+// lifetime `room` = temp, `save` = session. Read once, as 16-bit (bank $7E) ranges.
+let _compilerRegions = null;
+function compilerRegions() {
+    if (!_compilerRegions) {
+        const { entries } = require('./localizations/knowledge');
+        _compilerRegions = entries('ram').filter(e => e.kind === 'region' && e.tags.includes('compiler-region'))
+            .map(e => ({ from: e.addr & 0xFFFF, to: e.end & 0xFFFF, lifecycle: e.lifetime === 'room' ? 'temp' : 'session' }));
+    }
+    return _compilerRegions;
+}
+
 function radarLifecycle(addr, type, notes) {
-    if (addr >= 0x2834 && addr <= 0x28FF) return 'temp';
-    if (addr >= 0x2200 && addr <= 0x27FF) return 'session';
+    for (const r of compilerRegions()) if (addr >= r.from && addr <= r.to) return r.lifecycle;
     const hay = (String(type) + ' ' + String(notes)).toLowerCase();
     if (hay.includes('sram')) return 'sram';
     return 'system';

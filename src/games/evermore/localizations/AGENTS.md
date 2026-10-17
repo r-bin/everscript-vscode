@@ -4,17 +4,17 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 
 ## Owns
 - Subjective names across the game: room names (`maps.js`), music/SFX names
-  (`sounds.js`), table and routine names (`tables.js`, `functions.js`), script names (`scripts.js`, `data/scripts.json`), and in-game string
-  resolution (`strings.js`).
+  (`sounds.js`), script names (`scripts.js`, `data/scripts.json`), in-game string resolution
+  (`strings.js`), and the knowledge entries (`knowledge/`, loaded by `knowledge.js`; `tables.js` and
+  `functions.js` are views of them — add a routine or table as an entry, never as a JS line).
 
 ## Dependencies
 - Libraries only (guide §2). Currently requires no other `src/` domain.
 - No `vscode`, no DOM, no extension state.
 
 ## Invariants
-- The only place where naming data (room/map/enemy names) lives. Naming data is the one
-  thing that may come from SoETilesViewer/SoEScriptDumper (guide §3.8); code, tables and
-  struct layouts may not.
+- The only place where naming data lives. The room, enemy and flag names imported long ago stay
+  frozen and are rewritten in our own words (cleanup D4); nothing new comes from other projects.
 - `data/sound-animations.json` is generated from the ROM by
   `tools/gen-sound-animations.js`; rerun it when the animation catalogue changes. Do not
   hand-edit it.

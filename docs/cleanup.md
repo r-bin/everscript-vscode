@@ -206,7 +206,11 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   in `tools/check-knowledge.baseline.json`, which only shrinks): scan `src/`, `tools/`, docs
   for `$7E…`/`$7F…` and `$XX:XXXX` addresses and the CDL library for routines; report the ones
   without an entry and the coverage %. Wire into the release ritual (new uncovered = block).
-- [ ] **6.2** Migrate `functions.js`, `tables.js` and the RAM side of `tags.json` into knowledge
+- [x] **6.2** (v0.262.0: 130 entries generated from `functions.js` / `tables.js` / the table sizes, which are now views of
+  the entries (`localizations/knowledge.js`); the boy/dog stats blocks and record fields from `tags.json` are entries;
+  the radar's temp/session bounds are `compiler-region` entries; `soe://localization/knowledge/{ram,rom}/index.md`
+  is the generated RAM/ROM map; the ROM tab's wiki overlay is gone; knowledge coverage 12.4 % → 27.7 % of code
+  addresses, CDL routines 11 → 49) Migrate `functions.js`, `tables.js` and the RAM side of `tags.json` into knowledge
   entries; generate the RAM/ROM map overviews from the entries; drop the runtime wiki overlay
   (`rom/model/wiki-overlay.js`) and the RAM bounds hard-coded in `extension.js`.
 - [ ] **6.3** Names and comments for recomp: entries feed the Asar export labels and the recomp's

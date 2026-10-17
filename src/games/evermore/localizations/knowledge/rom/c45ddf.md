@@ -2,6 +2,7 @@
 addr: C45DDF
 size: 70
 kind: table
+category: ⚗️
 name: ALCHEMY_ANIM_MAP
 title: Alchemy formula → its block in bank $91
 confidence: likely

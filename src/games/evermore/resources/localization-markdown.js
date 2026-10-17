@@ -17,6 +17,7 @@ Concentrated subjective and localized names for Secret of Evermore.
 | [tables/](tables/index.md) | ${s.counts.tables} | Curated master ROM tables |
 | [functions/](functions/index.md) | ${s.counts.functions} | Curated ROM routines and entry points |
 | [strings/](strings/index.md) | ${s.counts.strings} | In-game dialog strings from ROM table at \`$11D000\` |
+| [knowledge/](knowledge/ram/index.md) | ${s.counts.knowledge ? s.counts.knowledge.ram + s.counts.knowledge.rom : 0} | Knowledge entries: the generated RAM and ROM maps, each entry |
 
 [index.json](index.json)
 `;

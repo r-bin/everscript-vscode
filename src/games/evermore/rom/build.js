@@ -1,6 +1,6 @@
 'use strict';
-// Ownership: building the ROM tab's model from ROM bytes (+ optional CDL and
-// wiki names). Pure; the host caches the result.
+// Ownership: building the ROM tab's model from ROM bytes (+ optional CDL; names from the
+// knowledge entries). Pure; the host caches the result.
 //
 // Only a Secret of Evermore image gets the content catalogue; any other ROM
 // still gets its header, the gap layout and CDL coverage.
@@ -10,7 +10,6 @@ const { assetRegions, graphicSpans } = require('./model/assets');
 const { audioRegions } = require('./model/audio');
 const { annotateOverlaps, layoutHalves } = require('./model/layout');
 const { knownPoints } = require('./model/points');
-const { parseWikiPoints, mergePoints } = require('./model/wiki-overlay');
 const { busToFile } = require('./model/util');
 
 function stripCopierHeader(rom) {
@@ -56,7 +55,7 @@ function collectRegions(rom, opts = {}) {
         const graphics = step('graphics', () => graphicSpans(rom)) || [];
         spriteBlocks = (step('assets', () => assetRegions(rom, R, graphics, worlds)) || {}).spriteBlocks || 0;
         annotateOverlaps(regions, graphics);
-        points = mergePoints(knownPoints(), parseWikiPoints(opts.wiki))
+        points = knownPoints()
             .map(p => ({ s: busToFile(p.bus), cat: p.cat, name: p.name, notes: p.notes }))
             .filter(p => p.s < rom.length);
     }
@@ -71,7 +70,6 @@ function romRegions(romBytes, opts = {}) {
 /**
  * @param romBytes Buffer/Uint8Array (a copier header is stripped)
  * @param opts.rooms  Map<room id, {name, area}>
- * @param opts.wiki   wiki/rom/Rom-Map.md text, or ''
  * @param opts.cdl    Uint8Array CDL bytes for this ROM, or null
  */
 function buildRomModel(romBytes, opts = {}) {
@@ -80,7 +78,6 @@ function buildRomModel(romBytes, opts = {}) {
     const { halves, totals } = layoutHalves(rom, regions, points, opts.cdl || null);
     return {
         title: title || '(no header)', size: rom.length, evermore, hasCdl: !!opts.cdl, mapping,
-        wikiPoints: evermore ? parseWikiPoints(opts.wiki).length : 0,
         spriteBlocks, errors, totals, halves,
         codePoints: points.filter(p => p.cat === '🧠').map(p => ({ s: p.s, name: p.name })),
     };

@@ -1,7 +1,7 @@
 'use strict';
 // Ownership: the ROM tab's host side — answering the webview's requests and
 // caching the built model. No VS Code dependency: extension.js injects the
-// loaders (ROM, CDL library, wiki text, room names) and `post`.
+// loaders (ROM, CDL library, room names) and `post`.
 //
 // State owned: `_cache` (one model per ROM hash + CDL presence) and `_cdl`
 // (the loaded library's cross references, for reader lookups, and its bus facts:
@@ -22,7 +22,7 @@ const handlesRomMessage = command => COMMANDS.has(command);
 /**
  * @param msg  webview message
  * @param deps {post, loadRom: () => Buffer|null, loadCdl: (rom) => {cdl, xrefs, stats, edges, wflags}|null,
- *              readWiki: () => string, rooms: () => Map<id, {name, area}>}
+ *              rooms: () => Map<id, {name, area}>}
  */
 function handleRomMessage(msg, deps) {
     if (msg.command === 'romMapRequest') return sendModel(msg, deps);
@@ -42,7 +42,7 @@ function sendModel(msg, deps) {
         }
         const key = hash + (_cdl.cdl ? ':cdl' : '');
         if (!_cache || _cache.key !== key) {
-            _cache = { key, model: buildRomModel(romBuf, { rooms: deps.rooms(), wiki: deps.readWiki(), cdl: _cdl.cdl }) };
+            _cache = { key, model: buildRomModel(romBuf, { rooms: deps.rooms(), cdl: _cdl.cdl }) };
         }
         deps.post({ command: 'romMap', model: _cache.model, hasXrefs: !!(_cdl.xrefs && _cdl.xrefs.size), bus: _cdl.bus });
     } catch (err) {

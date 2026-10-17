@@ -12,9 +12,8 @@ Related skills: `memory-map`, `map-format`, `cdl-recorder` (`.agents/skills/`).
 - May use `../maps` (room, sprite and animation decoders) and `../localizations` (names).
 - Must **not** import `../emulator`: `extension.js` loads the CDL library and injects
   `{cdl, xrefs, stats}`; the model only takes plain arrays and maps.
-- Names: `extension.js` injects the Rooms tab's room catalogue and the wiki text
-  (`<workspace>/wiki/rom/Rom-Map.md`, `<workspace>/.github/rom-map.md`, then the copy in the
-  extension's own `wiki/` submodule).
+- Names: the knowledge entries (`localizations`, through `functions.js` / `tables.js`); room
+  names are injected by `extension.js` from the Rooms tab's catalogue. No wiki text is read.
 
 Existing exceptions (do not add more):
 - `webview/rom-init.js` calls the Rooms tab's page global `gotoVanillaRoom` (guarded by
@@ -37,5 +36,5 @@ Existing exceptions (do not add more):
   through, only which bank halves *code* ran in.
 
 ## Tests
-- `tests/memory/rom-tab.test.js` — unit (readers, wiki overlay, bus usage), rom (model
+- `tests/memory/rom-tab.test.js` — unit (readers, bus usage), rom (model
   against the vanilla ROM; skips without it) and dom (skips without playwright).

@@ -12,11 +12,8 @@ const lp = require('./language/language-providers');
 
 
 // ── Memory Radar ─────────────────────────────────────────────────────────────
-// Region boundaries (from compiler/ast_everscript.py + core/[group] 00_general_enums/02_ram.evs):
-//   temp    0x2800–0x28FF  compiler type "28" — cleared on room load, scratch vars
-//   session 0x2200–0x27FF  compiler type "22" — persistent across rooms
-//   sram    varies         explicitly tagged [SRAM] in memory map
-//   system  everything else (0x0000–0x21FF engine/HW, 0x2900+)
+// RAM lifecycles (temp / session / sram / system): radar-utils.js radarLifecycle, from the
+// compiler-region knowledge entries.
 
 // Note: _loot_chest/_loot/loot/retained_object are dynamically allocated from the
 // compiler memory pool — addresses cannot be statically inferred from call sites.
@@ -523,15 +520,6 @@ function activate(context) {
                             const { CdlLibrary, romHash } = require('../../platform/cdl/library');
                             const root = path.join(context.globalStorageUri.fsPath, 'cdl-library');
                             return fs.existsSync(path.join(root, romHash(rom))) ? new CdlLibrary(root, rom) : null;
-                        },
-                        readWiki: () => {
-                            const candidates = [
-                                _ws && path.join(_ws, 'wiki', 'rom', 'Rom-Map.md'),
-                                _ws && path.join(_ws, '.github', 'rom-map.md'),
-                                path.join(context.extensionPath, 'wiki', 'rom', 'Rom-Map.md'),
-                            ];
-                            const hit = candidates.find(p => p && fs.existsSync(p));
-                            return hit ? fs.readFileSync(hit, 'utf8') : '';
                         },
                         rooms: () => new Map(VANILLA_ROOMS.flatMap(a => a.rooms.map(r => [parseInt(r.id, 16), { name: r.name, area: a.area }]))),
                     });

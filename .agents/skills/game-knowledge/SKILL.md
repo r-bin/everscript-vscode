@@ -14,8 +14,7 @@ that is not written down is lost.** This skill is the one place that says where 
 Look it up first — it may already be known:
 1. `src/games/evermore/localizations/knowledge/{ram,rom}/<addr>.md` (and regions containing it — check `end:`)
 2. `soe://ram/<addr>.json`, `soe://bus/<addr>`, `soe://tags/search/<word>.md` (MCP `soe_read`)
-3. `src/games/evermore/localizations/functions.js`, `tables.js` (legacy one-liners, being migrated)
-4. `docs/` (`grep -ri "<addr without \$>" docs`)
+3. `docs/` (`grep -ri "<addr without \$>" docs`)
 
 ## 2. After learning anything — record it in the same commit
 
@@ -74,7 +73,8 @@ the room id.
 | `title` | yes | short human label |
 | `lifetime` | RAM | `frame`, `room`, `map`, `save` (persists in SRAM), `boot`, `unknown` |
 | `confidence` | yes | `guess`, `likely`, `confirmed` |
-| `tags` | no | `soe://tags` ids |
+| `tags` | no | `soe://tags` ids; `compiler-region` marks the Everscript compiler's RAM regions (radar lifecycles) |
+| `category` | ROM code / tables | the emoji group that lists it in the ROM tab, `soe://` and the exports |
 | `evidence` | yes unless `guess` | list of `"kind: what was observed"` — kinds: `trace`, `write`, `read`, `cdl`, `disasm`, `test`, `evs` |
 | `see` | no | related entries/docs |
 
@@ -94,12 +94,13 @@ the room id.
 - **Names are ours.** Pick descriptive names; don't import names from other projects.
 - **Evidence makes it trustworthy.** Say how you know. `confirmed` needs a trace, test or
   disassembly you actually looked at.
-- **Don't duplicate — but don't break consumers.** Nothing reads the entries yet (no loader as
-  of v0.201.7; the first entries are the RAM ones under `knowledge/ram/`). `functions.js` /
-  `tables.js` / `names.json` are what the hover, ROM tab, exports and seeds read today, so new
-  *function and table names* still go there (with evidence in `notes`). Move a JS line into an
-  entry only once a loader serves entries to those consumers. RAM facts with no JS home go into
-  entries now.
+- **Entries are the one source.** `localizations/knowledge.js` loads them; `functions.js` and
+  `tables.js` are views of the ROM entries of kind `code`/`script` and `table`/`data` that have a
+  `category` (🧠 code, 📜 script, 📋 table, ⚗️ alchemy, 👾 enemies, 🎞️ animation, ⚔️ weapons,
+  🎒 items) — that is how a routine or table reaches the ROM tab, `soe://localization`, the asm
+  view, the Asar/recomp exports. A new routine or table name is an entry with a `category`; never
+  a JS line. `size:` on a table is its length for `soe://` table views. `names.json` (script
+  operand names) is still separate and frozen (cleanup D4).
 - **One commit:** the code change and the knowledge it produced land together.
 
 ## 5. Why not one big Markdown table
