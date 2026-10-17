@@ -25,6 +25,7 @@
   "tests/debugger/debugger.test.js",
   "tests/debugger/settings-model.test.js",
   "tests/debugger/snes-rom-header-model.test.js",
+  "tests/debugger/rom-library.test.js",
   "tests/debugger/script-trace.test.js",
   "tests/debugger/trigger-overlay.test.js",
   "tests/debugger/everscript-inject.test.js",

@@ -120,9 +120,15 @@ function romPathFor(game) {
     return lib.romFor(game)?.path || null;
 }
 
+/** `Evermore · us`: the ROM a game's panels show right now (romFor), for their titles; null when none. */
+function romLabel(game) {
+    const entry = lib.romFor(game);
+    return entry ? label(entry) : null;
+}
+
 /** The game of the selected ROM (`evermore`, `mana`, …), or null when none is selected. */
 function selectedGame() {
     return lib.selectedRom()?.game || null;
 }
 
-module.exports = { activateRoms, onDidChangeRoms, romPathFor, selectedGame };
+module.exports = { activateRoms, onDidChangeRoms, romPathFor, romLabel, selectedGame };

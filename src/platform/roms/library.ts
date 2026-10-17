@@ -18,6 +18,8 @@ interface LibraryFile {
     roms: LibraryEntry[];
     /** Path of the ROM last chosen with Switch ROM. */
     selected: string | null;
+    /** Per game, the ROM last chosen for it: what its open panels keep when another game is selected. */
+    current: Record<string, string>;
     /** Base ROM chosen by hand per game, for when the known base variant is not in the library. */
     bases: Record<string, string>;
 }
@@ -50,7 +52,7 @@ export function libraryPath(): string {
 }
 
 function empty(): LibraryFile {
-    return { version: 1, roms: [], selected: null, bases: {} };
+    return { version: 1, roms: [], selected: null, bases: {}, current: {} };
 }
 
 export function loadLibrary(): LibraryFile {
@@ -103,6 +105,7 @@ export function removeRom(path: string): void {
     const lib = loadLibrary();
     lib.roms = lib.roms.filter((r) => r.path !== abs);
     if (lib.selected === abs) lib.selected = null;
+    for (const [g, p] of Object.entries(lib.current)) if (p === abs) delete lib.current[g];
     for (const [g, p] of Object.entries(lib.bases)) if (p === abs) delete lib.bases[g];
     save(lib);
 }
@@ -113,6 +116,7 @@ export function selectRom(path: string): LibraryEntry | null {
     if (!entry) return null;
     const lib = loadLibrary();
     lib.selected = entry.path;
+    if (entry.game) lib.current[entry.game] = entry.path;
     save(lib);
     return entry;
 }
@@ -151,7 +155,8 @@ export function baseRom(gameId: string): LibraryEntry | null {
 
 /**
  * The ROM a game's scheme means (multi-game.md §5): `rom` (a path, added when new) if given, else the
- * selected ROM when it is this game's, else the game's base ROM.
+ * selected ROM when it is this game's, else the ROM last chosen for this game, else its base ROM. So
+ * selecting another game's ROM leaves this game's panels on the ROM they had (§6).
  */
 export function romFor(gameId: string, rom?: string): LibraryEntry | null {
     if (rom) {
@@ -160,5 +165,8 @@ export function romFor(gameId: string, rom?: string): LibraryEntry | null {
     }
     const sel = selectedRom();
     if (sel && sel.game === gameId) return sel;
-    return baseRom(gameId);
+    const lib = loadLibrary();
+    const last = lib.current[gameId];
+    const kept = last ? lib.roms.find((r) => r.path === last && r.game === gameId && existsSync(r.path)) : undefined;
+    return kept ?? baseRom(gameId);
 }

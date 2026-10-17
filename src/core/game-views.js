@@ -1,15 +1,18 @@
 'use strict';
 // Ownership: each game's main view (Evermore: the Memory Radar; Mana and Terranigma: their Maps
-// panels) and which one is shown for the selected ROM (docs/architecture/multi-game.md §6: one
-// command, any game). Games register their view; on Switch ROM, an open view of another game is
-// replaced in the same column by the selected game's view, and the selected game's own open view is
-// refreshed. Knows no game by name.
+// panels), which one opens for the selected ROM, and the ROM each open view shows
+// (docs/architecture/multi-game.md §6: one command, any game; panels keep their ROM). Games register
+// their view. Switch ROM refreshes the selected game's open view; views of other games keep the ROM
+// they had (the library remembers one per game), so Evermore and Mana can sit side by side. Every
+// view's title names its ROM. Knows no game by name.
 
 const vscode = require('vscode');
 const roms = require('./roms/host');
 
 /** @type {Map<string, { open(column?: vscode.ViewColumn): unknown, panel(): vscode.WebviewPanel | null | undefined, refresh?(): void }>} */
 const views = new Map();
+/** The title each panel was created with, before the ROM was added to it. */
+const baseTitles = new WeakMap();
 
 /** A game's main view. `panel()` returns its open WebviewPanel, if any. */
 function registerGameView(gameId, view) {
@@ -27,28 +30,37 @@ function openSelectedGameView(column, exceptGame) {
     const view = views.get(game);
     if (!view) return false;
     view.open(column);
+    retitle();
     return true;
 }
 
-/** Switch ROM: swap an open view of another game for the selected game's, or refresh its own. */
+/** `Memory Radar — Evermore · us`: each open view's title says which ROM it shows. */
+function retitle() {
+    for (const [game, view] of views) {
+        let panel;
+        try { panel = view.panel(); } catch (_) { continue; }
+        if (!panel) continue;
+        if (!baseTitles.has(panel)) baseTitles.set(panel, panel.title);
+        const rom = roms.romLabel(game);
+        const title = rom ? `${baseTitles.get(panel)} — ${rom}` : baseTitles.get(panel);
+        if (panel.title !== title) panel.title = title;
+    }
+}
+
+/** Switch ROM: the selected game's open view follows the selection; the others keep their ROM. */
 function onRomChanged() {
     const game = roms.selectedGame();
     const target = game ? views.get(game) : null;
-    let column = null;
-    for (const [id, view] of views) {
-        if (id === game) continue;
-        const panel = view.panel();
-        if (!panel) continue;
-        column = column || panel.viewColumn || vscode.ViewColumn.Active;
-        panel.dispose();
-    }
-    if (!target) return;
-    if (column) target.open(column);
-    else if (target.panel() && target.refresh) target.refresh();
+    if (target && target.panel() && target.refresh) target.refresh();
+    retitle();
 }
 
 function activateGameViews(context) {
-    context.subscriptions.push(roms.onDidChangeRoms(() => onRomChanged()));
+    context.subscriptions.push(
+        roms.onDidChangeRoms(() => onRomChanged()),
+        // A view opened by its own command gets its ROM in the title as its tab appears.
+        vscode.window.tabGroups?.onDidChangeTabs?.(() => retitle()) ?? { dispose() {} },
+    );
 }
 
 module.exports = { registerGameView, openSelectedGameView, activateGameViews };

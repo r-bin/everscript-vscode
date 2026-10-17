@@ -38,7 +38,9 @@ same file. `romFor(game)` = the selected ROM if it is that game's, else the game
 2. Its line in `src/games/index.ts` `registerGames()`.
 3. `src/games/<id>/extension.js` with `activate(context)`: commands, its file system, and its main
    view via `core/game-views.js` `registerGameView(id, { open, panel, refresh })` — Open Memory
-   Radar and Switch ROM then reach it without any game naming another.
+   Radar and Switch ROM then reach it without any game naming another. A game's code reads its ROM
+   with `romFor(id)` / `romPathFor(id)`, never `selectedRom()`: that is what lets its panels keep their
+   ROM while another game is selected.
 4. Its line in `src/extension.js` `GAMES`.
 5. `src/games/<id>/AGENTS.md`, `docs/<id>/` with evidence. `games-stay-apart` (depcruise) keeps it
    from importing another game; a bridge is `games/<other>/imports/<id>/` only.

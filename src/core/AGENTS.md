@@ -10,7 +10,8 @@ Kind: **core** — game-neutral features and UI shells (docs/architecture/multi-
   `shell/` (frame, rail, canvas column, dock, layout, zoom/pan). Browser-side files loaded by the
   Rooms tab (`src/games/evermore/memory/webview/index.js`) and the Mana Maps page; each has its own AGENTS.md.
 - `game-views.js`: each game's main view (registered by the game) and which one shows for the selected
-  ROM; Switch ROM swaps an open view of another game in the same column.
+  ROM; Switch ROM refreshes the selected game's open view, views of other games keep their ROM, every
+  view's title names its ROM.
 - `mcp/`: the localhost MCP server serving the games' file systems to AI clients (own AGENTS.md).
 
 ## Dependencies

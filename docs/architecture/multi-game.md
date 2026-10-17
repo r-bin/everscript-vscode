@@ -141,11 +141,13 @@ does too (registered in `src/games/terra/`, European base ROM title `TERRANIGMA 
   4 (rules `platform-knows-no-game`, `core-knows-no-game`, `games-stay-apart`; depcruise now reads
   `.ts`), 6 (marker `EVSX`, `src/games/evermore/derived.ts`, written by both builders).
 - Built in part, 5: status bar item, Switch ROM opening the ROM panel (ROMs per game, ★ base, "use as
-  base", feature table, drop zone), the drop-a-ROM prompt. Panels still follow the selected ROM instead
-  of keeping the one they were opened with; per-panel empty states are still the old messages.
+  base", feature table, drop zone), the drop-a-ROM prompt. Panels keep their ROM (v0.264.0): the library remembers the ROM last chosen per
+  game (`current`; `romFor` reads it before the base), so selecting a Mana ROM leaves an open Evermore radar on
+  its ROM, and every game view's title names its ROM (`Memory Radar — Evermore · us`). Still open: each game
+  has one main view, so two variants of one game cannot sit side by side, and that view follows its game's
+  selection; per-panel empty states are still the old messages.
   `openManaMaps` is merged (v0.236.0): Open Memory Radar opens the Mana Maps panel when the selected ROM is
-  a Mana ROM, and opens Terranigma Maps (v0.240.0) when a Terranigma ROM is selected. Active open panels
-  automatically reload or switch across games on Switch ROM.
+  a Mana ROM, and opens Terranigma Maps (v0.240.0) when a Terranigma ROM is selected.
 - Built in part, 3: one TypeScript build (`tsconfig.build.json`, `dist/` mirrors `src/`, v0.231.0); Secret of
   Mana moved (v0.232.0): `games/mana/decoder`, `games/mana/resources`, `games/mana/maps`, and the bridge
   `games/evermore/imports/mana`. The twelve Evermore-only domains moved as they were (v0.233.0):
@@ -160,7 +162,7 @@ does too (registered in `src/games/terra/`, European base ROM title `TERRANIGMA 
   handed in through `configureEmulator({ game })`; the recorder's package has no game code (103 → 52 files). v0.247.0: `shared/` is gone
   (`shared.css` → `core/webview/`, the Memory tab's `shared.js` → `games/evermore/memory/webview/`). v0.248.0: `src/extension.js` is the composition
   root (ROM library, the list of games, `core/game-views.js`, MCP); each game has `games/<game>/extension.js`;
-  Switch ROM swaps the open game view (Evermore radar / Mana or Terranigma Maps) in `core/game-views.js`. Still at `src/<domain>`
+  `core/game-views.js` opens the selected game's view (Evermore radar / Mana or Terranigma Maps). Still at `src/<domain>`
   because each mixes game-neutral and Evermore code and must be split first: `emulator` (its webview still holds the
   ENTITIES / ALCHEMY panels and the pause menu, which read Evermore WRAM: they move with cleanup 5.3; then
   the folder → `core/emulator`), and
