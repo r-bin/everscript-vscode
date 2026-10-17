@@ -13,9 +13,11 @@ tests/**
 **/__tests__/**
 **/tests/**/*.test.evs
 
-# NOTE: src/** must NOT be ignored yet. `main` is ./bundle/extension.js (tools/bundle.mts, built by
+# NOTE: src/** must NOT be ignored. `main` is ./bundle/extension.js (tools/bundle.mts, built by
 # `npm run package`), but the code still reads files next to its source at runtime (webview pages,
-# knowledge entries, cores, JSON tables). TypeScript sources are excluded.
+# knowledge entries, cores, JSON tables). `npm run package` uses bundle/.vscodeignore: this file plus the
+# JS the bundle holds (tests/memory/package-files.test.js checks nothing read from disk is left out).
+# TypeScript sources are excluded.
 src/**/*.ts
 
 # Emulator cores: ship only the built artifacts (snes9x_2005.js/.wasm), not the

@@ -50,7 +50,8 @@ workflow.
    npm run deploy
    ```
    This builds the host bundle (`tools/bundle.mts` → `bundle/extension.js`, the `main`; F5 runs the
-   "Build Bundle" task first), packages a `.vsix` via `vsce` and installs it with
+   "Build Bundle" task first), packages a `.vsix` via `vsce` (`--ignoreFile bundle/.vscodeignore`: the JS
+   the bundle holds stays out; `package-files.test.js` guards the files read from disk) and installs it with
    `code --install-extension --force`, then verifies `rbin.everscript` shows up in
    `code --list-extensions`. Reload VS Code afterwards (`Developer: Reload Window`).
 

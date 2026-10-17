@@ -3,6 +3,7 @@
  "unit": [
   "tests/memory/activation.test.js",
   "tests/memory/bundle.test.js",
+  "tests/memory/package-files.test.js",
   "tests/memory/radar.test.js",
   "tests/memory/map-units.test.js",
   "tests/memory/variants.test.js",

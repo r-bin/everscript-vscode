@@ -65,5 +65,14 @@ const result = await build({
 
 const inputs = Object.keys(result.metafile.inputs);
 writeFileSync(join(ROOT, 'bundle', 'inputs.json'), JSON.stringify(inputs.sort(), null, 1) + '\n');
+
+// The package leaves out the JS the bundle holds, except files a page or the code also reads from
+// disk: everything under a page folder, the knowledge entries, the music engine and the cores. JSON
+// stays (a table can be required and read). tests/memory/package-files.test.js checks the reads.
+const KEEP = /(^|\/)(webview|docs-tab|map-editor|knowledge|engine|core\/emulator\/core)(\/|$)/;
+const drop = inputs.filter((f) => /^(src|dist)\//.test(f) && f.endsWith('.js') && !KEEP.test(f));
+writeFileSync(join(ROOT, 'bundle', 'drop.json'), JSON.stringify(drop, null, 1) + '\n');
+const ignore = readFileSync(join(ROOT, '.vscodeignore'), 'utf8');
+writeFileSync(join(ROOT, 'bundle', '.vscodeignore'), ignore + '\n# Held by bundle/extension.js (tools/bundle.mts)\n' + drop.join('\n') + '\n');
 for (const m of missing) console.warn(`  unresolved (left as require): ${m}`);
-console.log(`bundle/extension.js: ${inputs.length} modules, ${(result.metafile.outputs['bundle/extension.js']?.bytes ?? 0) >> 10} KB`);
+console.log(`bundle/extension.js: ${inputs.length} modules (${drop.length} left out of the package), ${(result.metafile.outputs['bundle/extension.js']?.bytes ?? 0) >> 10} KB`);
