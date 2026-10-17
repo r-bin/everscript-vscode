@@ -10,14 +10,11 @@
  *   options.scripts  webview URIs of webview/rom-game.js, emulator-profile.js, emulator-panels.js and replays-list.js,
  *                    loaded before the inline script; options.styles  of webview/emulator-profile.css
  *                    and emulator-panels.css
+ *   options.gameView the game's part of the page ({ css, tabButtonsHtml, viewsHtml, clientScript },
+ *                    strings; Evermore's: src/games/evermore/emulator/host.js webview()); none for
+ *                    the recorder. The page calls into it only behind typeof guards.
  */
 
-const {
-    getBottomBarCss,
-    getBottomBarTabButtonsHtml,
-    getBottomBarViewsHtml,
-    getBottomBarClientScript,
-} = require('./bottom-bar-views');
 const { getCdlCss, getCdlTabButtonHtml, getCdlViewHtml, getCdlClientScript } = require('./cdl-view');
 const { getCdlFloatCss, getCdlFloatHtml, getCdlFloatScript } = require('./cdl-float');
 const { getCdlStripsScript } = require('./cdl-strips');
@@ -136,6 +133,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     const nonce = _nonce();
     const opts = options || {};
     const profile = opts.profile === 'recorder' ? 'recorder' : 'full';
+    const game = Object.assign({ css: '', tabButtonsHtml: '', viewsHtml: '', clientScript: '' }, opts.gameView || {});
     const config = JSON.stringify({ profile }).replace(/</g, '\\u003c');
     const files = (opts.styles || []).map(u => `<link rel="stylesheet" href="${u}">`)
         .concat((opts.scripts || []).map(u => `<script src="${u}"></script>`)).join('\n  ');
@@ -664,7 +662,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     .sx-num                { color: #b5cea8; }
     .sx-str                { color: #ce9178; }
     .sx-aside              { color: #777; }
-    ${getBottomBarCss()}
+    ${game.css}
     ${getCdlCss()}
     ${getCdlFloatCss()}
     ${getTasCss()}
@@ -768,7 +766,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         <div id="ss-tabs">
           <button id="ss-tab-trace" class="ss-tab" data-needs="full evermore" type="button">TRACE (<span id="ss-tab-trace-count">0</span>)</button>
           <button id="ss-tab-stack" class="ss-tab" data-needs="full evermore" type="button">STACK (<span id="ss-count">waiting...</span>)</button>
-          ${getBottomBarTabButtonsHtml()}
+          ${game.tabButtonsHtml}
           ${getCdlTabButtonHtml()}
         </div>
       </div>
@@ -788,7 +786,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         </table>
       </div>
 
-      ${getBottomBarViewsHtml()}
+      ${game.viewsHtml}
 
       ${getCdlViewHtml()}
 
@@ -798,6 +796,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
   <!-- Module object must be declared before the core script loads. -->
   <script>
+    // Sampled each frame while an Evermore-compatible ROM runs (samplePreLoopState); read by the overlays and the game's panels.
+    let lastSampledPreState = null;
     // -- Boot: register error handlers BEFORE acquiring vscode API so any
     //    init failure is captured.  'var' lets onerror reference the variable
     //    before the assignment below runs.
@@ -1259,7 +1259,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         return;
       }
       if (evt.data.command === 'loadRom') {
-        if (evt.data.alchemyIcons) loadedAlchemyIcons = evt.data.alchemyIcons;
+        if (evt.data.alchemyIcons && typeof loadedAlchemyIcons !== 'undefined') loadedAlchemyIcons = evt.data.alchemyIcons;
         if (evt.data.scriptDebug) sdbgConfigure(evt.data.scriptDebug);
         romStage('loadRom received: ' + (evt.data.name || 'game'));
         startWithRom(evt.data.dataUrl, evt.data.name);
@@ -1811,7 +1811,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
             lastSampledPreState = preState;
             const m = getModule();
             // A replay must see exactly the recorded memory: no cheat writes.
-            if (m && emuEvermore && !tasReplaying()) maintainCheats(m);
+            if (m && emuEvermore && !tasReplaying() && typeof maintainCheats === 'function') maintainCheats(m);
             if (speedMultiplier < 1.0) {
               speedAccumulator += speedMultiplier;
               if (speedAccumulator < 1.0) {
@@ -2652,7 +2652,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       let name = isBoy ? 'Boy' : isDog ? 'Dog' : '';
       if (!name && stype >= 0x8000 && rom) {
         const namePtr = readRom24(rom, snesToRom(0x8E0000 | stype));
-        name = decodeEntityName(rom, namePtr, stype);
+        if (typeof decodeEntityName === 'function') name = decodeEntityName(rom, namePtr, stype);
       }
       if (!name) name = isBoy ? 'Boy' : isDog ? 'Dog' : ('Entity $' + addr.toString(16).toUpperCase());
 
@@ -4389,8 +4389,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
             reportScriptFocus(snapshot);
             checkManualScriptBreakpoints(snapshot, m);
             checkScriptExecutionTrace();
-            if (!tasReplaying()) maintainCheats(m);
-            refreshActiveBottomTab();
+            if (!tasReplaying() && typeof maintainCheats === 'function') maintainCheats(m);
+            if (typeof refreshActiveBottomTab === 'function') refreshActiveBottomTab();
           } else {
             document.getElementById('ss-count').textContent =
               src.mode === 'connecting' ? 'connecting...' : 'unavailable';
@@ -4732,7 +4732,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       });
     }
 
-    ${getBottomBarClientScript()}
+    ${game.clientScript}
 
     ${getCdlFloatScript()}
 
@@ -5317,7 +5317,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       } else if (evt.data.command === 'injectEverscript') {
         injectEverscript(evt.data.code);
       } else if (evt.data.command === 'alchemyIconsLoaded') {
-        if (evt.data.alchemy) {
+        if (evt.data.alchemy && typeof updateAlchemyTab === 'function') {
           loadedAlchemyIcons = evt.data.alchemy;
           if (emuPanelVisible('alchemy')) {
             const rom = loadedRomData ? ((loadedRomData.length % 1024 === 512) ? loadedRomData.subarray(512) : loadedRomData) : null;

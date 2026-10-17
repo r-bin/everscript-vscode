@@ -75,7 +75,7 @@ selectable - see `menu/README.md`) and the side bars are leaner.
   bytes. Menu tab: time, source, script (the trace scrolls inside the card). Side bar: time and
   source on one line, the script on the next, no title.
 - STACK, ENTITIES, ALCHEMY, PALETTES have no button bar either: what ENTITIES / ALCHEMY /
-  PALETTES list is the menu tab's "Show" row (`panelFilterStep` in `bottom-bar-views.js`), the
+  PALETTES list is the menu tab's "Show" row (`panelFilterStep` in `games/evermore/emulator/bottom-bar-views.js`), the
   entity search and its "live" switch are gone (pausing stops the updates). In the menu B on a
   character pings it; the bottom bar keeps its ping column.
 - REPLAYS is a menu tab only, with the usual card size (not a panel). It lists the recordings

@@ -1,7 +1,7 @@
 'use strict';
 // Ownership: the Evermore half of the emulator panel's host side — what the panel asks the game for:
 // the room under the running game as pictures (map view), standing sprites of entities not yet
-// active, the alchemy and loot icons, and script trace formatting. The panel (src/emulator/panel.js)
+// active, the alchemy and loot icons, script trace formatting, and its part of the page (webview()). The panel (src/emulator/panel.js)
 // gets this module through configureEmulator({ game }); the SNES CDL Recorder passes none.
 
 const maps = require('../maps');
@@ -516,4 +516,10 @@ function traceScripts(items, romBuffer, wsRoot, draft) {
     return processScriptTraceBatch(items, romBuffer, wsRoot, draft);
 }
 
-module.exports = { clearCaches, alchemyIcons, roomMap, idleSprites, traceScripts, describeRom: describeCustomMapRom };
+/** Evermore's part of the emulator page: the ENTITIES, ALCHEMY and PALETTES panels and the cheats. */
+function webview() {
+    const v = require('./bottom-bar-views');
+    return { css: v.getBottomBarCss(), tabButtonsHtml: v.getBottomBarTabButtonsHtml(), viewsHtml: v.getBottomBarViewsHtml(), clientScript: v.getBottomBarClientScript() };
+}
+
+module.exports = { webview, clearCaches, alchemyIcons, roomMap, idleSprites, traceScripts, describeRom: describeCustomMapRom };

@@ -165,6 +165,8 @@ function recordInto(root, rom, hits) {
             const page = async profile => {
                 const html = buildHtml({ cspSource: '' }, 'core.js', 'core.wasm', 'core', 'core', null, {
                     profile,
+                    // As the extensions pass it: Everscript hands in Evermore's part of the page, the recorder none.
+                    gameView: profile === 'full' ? require('../../src/games/evermore/emulator/host').webview() : null,
                     styles: [dataUri('emulator-profile.css', 'text/css'), dataUri('emulator-panels.css', 'text/css')],
                     scripts: [dataUri('rom-game.js', 'text/javascript'), dataUri('emulator-profile.js', 'text/javascript'), dataUri('emulator-panels.js', 'text/javascript'), dataUri('replays-list.js', 'text/javascript')],
                 }).replace('<head>', '<head><script>window.__sent=[];window.acquireVsCodeApi=()=>({postMessage:m=>window.__sent.push(m)});</script>');

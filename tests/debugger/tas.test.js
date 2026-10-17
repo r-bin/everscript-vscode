@@ -177,7 +177,7 @@ test('webview: REPLAYS tab, inputs + FPS chips, frame loop routes joypads throug
     assert.ok(html.includes('id="screen-inputs-toggle"') && html.includes('id="tas-input-overlay"'));
     assert.ok(!/Module\._setJoypadInput\(keyInput\)/.test(html), 'joypads only set by tasApplyInput');
     assert.ok(html.includes('tasApplyInput(Module, keyInput);'));
-    assert.ok(html.includes('if (m && emuEvermore && !tasReplaying()) maintainCheats(m);'), 'no cheat writes during replay');
+    assert.ok(html.includes('if (m && emuEvermore && !tasReplaying() && typeof maintainCheats === \'function\') maintainCheats(m);'), 'no cheat writes during replay');
     assert.ok(html.includes('id="screen-fps"'), 'FPS chip');
     assert.strictEqual((html.match(/Module\._mainLoop\(\);\s*fpsCountFrame\(Module\);/g) || []).length, 2, 'every emulated frame counted');
     assert.ok(html.includes('fpsTick(timestamp, romLoaded && !paused);'), 'paused time is not measured');

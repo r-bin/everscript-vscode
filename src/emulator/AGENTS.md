@@ -21,8 +21,9 @@ Related skills: `emulator-subsystem`, `cdl-recorder`, `webview-dom-safety`, `deb
   `src/games/evermore/cdl/tools.js`. The recorder passes neither, so its package has no game code.
 - The ROM, Music and soe:// domains get emulator data injected by `src/games/evermore/extension.js`
   (`.depcruise.js`: `no-rom-to-emulator`, `no-music-to-emulator`, `no-resources-to-emulator`).
-- Still Evermore inside: the webview side (`panel-webview.js`, `bottom-bar-views.js`, `menu/`) — the
-  ENTITIES / ALCHEMY panels and the pause menu read Evermore WRAM; they move out with cleanup 5.3.
+- The game's part of the page too: `game.webview()` → `{ css, tabButtonsHtml, viewsHtml, clientScript }`
+  (Evermore's: `games/evermore/emulator/bottom-bar-views.js`), called only behind `typeof` guards.
+- Still Evermore inside (cleanup 5.3): `panel-webview.js` overlays, entity sampling; `menu/` tabs 1-4.
 
 ## State owned
 - `panel.js` (module-local, per panel): the active `WebviewPanel`, pending ROM, current ROM

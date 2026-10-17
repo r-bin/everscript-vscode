@@ -586,7 +586,7 @@ const MENU_TRACE_ROWS = `
               </div>
             </div>`;
 
-// ENTITIES / ALCHEMY / PALETTES: what to list (bottom-bar-views.js panelFilterStep / panelFilterLabel).
+// ENTITIES / ALCHEMY / PALETTES: what to list (games/evermore/emulator/bottom-bar-views.js panelFilterStep / panelFilterLabel).
 const MENU_FILTER_PANELS = ['entities', 'alchemy', 'palettes'];
 function menuFilterRow(name) {
   return `
@@ -2351,9 +2351,9 @@ function getMenuClientScript() {
       setPillState('menu-val-hp-bar', !!thinHpBarEnabled);
       setPillState('menu-val-stamina-bar', !!thinStaminaBarEnabled);
       if (typeof tasOverlayIsOn === 'function') setPillState('menu-val-inputs', tasOverlayIsOn());
-      setPillState('menu-val-cheat-noclip', !!cheatNoclipEnabled);
-      setPillState('menu-val-cheat-invincible', !!cheatInvincibleEnabled);
-      setPillState('menu-val-cheat-atlas', !!cheatAtlasEnabled);
+      setPillState('menu-val-cheat-noclip', typeof cheatNoclipEnabled !== 'undefined' && !!cheatNoclipEnabled);
+      setPillState('menu-val-cheat-invincible', typeof cheatInvincibleEnabled !== 'undefined' && !!cheatInvincibleEnabled);
+      setPillState('menu-val-cheat-atlas', typeof cheatAtlasEnabled !== 'undefined' && !!cheatAtlasEnabled);
 
       const spdEl = document.getElementById('menu-val-speed');
       if (spdEl) spdEl.textContent = MENU_SPEED_LABELS[menuSpeedIndex];

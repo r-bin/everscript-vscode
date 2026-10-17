@@ -381,6 +381,7 @@ function _resetPanelHtml() {
     const file = name => _panel.webview.asWebviewUri(vscode.Uri.file(path.join(_extensionPath, 'src', 'emulator', 'webview', name))).toString();
     const html = buildHtml(_panel.webview, coreJsUri, coreWasmUri, core.label, core.path, romOfferData, {
       profile: _options.profile,
+      gameView: _options.game && _options.game.webview ? _options.game.webview() : null,
       styles: [file('emulator-profile.css'), file('emulator-panels.css')],
       scripts: [file('rom-game.js'), file('emulator-profile.js'), file('emulator-panels.js'), file('replays-list.js')],
     });

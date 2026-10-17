@@ -1,9 +1,10 @@
 'use strict';
 
 /**
- * emulator/bottom-bar-views.js
+ * games/evermore/emulator/bottom-bar-views.js
  *
- * Provides HTML, CSS, and client-side logic for the Emulator bottom bar pages:
+ * Evermore's part of the emulator page (handed in as host.js webview(), see src/emulator/AGENTS.md):
+ * HTML, CSS, and client-side logic for the bottom bar pages:
  * 1. Entities & Enemies (Boy, Dog, Enemies, NPCs with sprite icons)
  * 2. Projectile Alchemy + Animation Alchemy + Projectiles (8 slots each with icons)
  * 3. Sprite Palettes + Map Palettes (16-color swatches with hex tooltips)
@@ -446,7 +447,6 @@ function getBottomBarClientScript() {
     };
 
     let loadedAlchemyIcons = {};
-    let lastSampledPreState = null;
 
     // Cheats state
     let cheatAtlasEnabled = false;

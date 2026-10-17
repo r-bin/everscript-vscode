@@ -8,7 +8,7 @@ const {
     getBottomBarTabButtonsHtml,
     getBottomBarViewsHtml,
     getBottomBarClientScript,
-} = require('../../src/emulator/bottom-bar-views');
+} = require('../../src/games/evermore/emulator/bottom-bar-views');
 const { buildHtml } = require('../../src/emulator/panel-webview');
 
 let passed = 0;
@@ -31,7 +31,7 @@ console.log('Emulator Bottom Bar Pages Tests:');
 // 1. ASCII-only verification
 test('bottom-bar-views.js and modified panel files are strictly ASCII-only', () => {
     const files = [
-        path.join(__dirname, '..', '..', 'src', 'emulator', 'bottom-bar-views.js'),
+        path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'bottom-bar-views.js'),
         path.join(__dirname, '..', '..', 'src', 'emulator', 'panel.js'),
         path.join(__dirname, '..', '..', 'src', 'emulator', 'panel-webview.js'),
     ];
@@ -105,9 +105,12 @@ test('getBottomBarClientScript exports essential functions and spell definitions
 });
 
 // 5. Integration into buildHtml()
-test('buildHtml correctly embeds all bottom bar buttons, views, CSS and logic', () => {
+test('buildHtml embeds the game part (Evermore: host.js webview()) and nothing without it', () => {
     const mockWebview = { asWebviewUri: (uri) => uri };
-    const html = buildHtml(mockWebview, 'core.js', 'core.wasm', 'core', '/path/to/core');
+    const bare = buildHtml(mockWebview, 'core.js', 'core.wasm', 'core', '/path/to/core');
+    assert.ok(!bare.includes('id="ss-tab-entities"') && !bare.includes('function updateAlchemyTab'), 'no game part without gameView');
+    const gameView = require('../../src/games/evermore/emulator/host').webview();
+    const html = buildHtml(mockWebview, 'core.js', 'core.wasm', 'core', '/path/to/core', null, { gameView });
 
     // CSS
     assert.ok(html.includes('.pal-swatch'), 'pal-swatch CSS missing');
