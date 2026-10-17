@@ -49,13 +49,14 @@ workflow.
    ```
    npm run deploy
    ```
-   This packages a `.vsix` via `vsce` and installs it with
+   This builds the host bundle (`tools/bundle.mts` → `bundle/extension.js`, the `main`; F5 runs the
+   "Build Bundle" task first), packages a `.vsix` via `vsce` and installs it with
    `code --install-extension --force`, then verifies `rbin.everscript` shows up in
    `code --list-extensions`. Reload VS Code afterwards (`Developer: Reload Window`).
 
    **Do not use `rsync` to `~/.vscode/extensions/`.** That was the old ritual and it
    left 19 unregistered full-repo copies behind (~9GB) before being cleaned up in
-   v0.7.0. It also masked a real bug: `.vscodeignore` excluded `src/**` while `main` is
+   v0.7.0. It also masked a real bug: `.vscodeignore` excluded `src/**` while `main` was
    `./src/extension.js`, so the `.vsix` path was broken for a long time without anyone
    noticing, because the rsync copies were what actually ran.
 

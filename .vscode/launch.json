@@ -8,6 +8,7 @@
             "args": [
                 "--extensionDevelopmentPath=${workspaceFolder}"
             ],
+            "preLaunchTask": "Build Bundle",
             "outFiles": [
                 "${workspaceFolder}/**/*.js"
             ]

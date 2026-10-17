@@ -1,6 +1,8 @@
 node_modules/
 dependencies/
 out/
+# The host bundle (tools/bundle.mts), the package's main; built by npm run package / build:bundle.
+bundle/
 .DS_Store
 tmp/
 tools/__pycache__/

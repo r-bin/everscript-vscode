@@ -2,6 +2,7 @@
  "//": "Test tiers (docs/cleanup.md 6.6, guide \u00a74). unit: no ROM, no browser, no built cores. rom: needs a ROM from the ROM library (skips without). dom: headless Chromium (Playwright). emulator: the built snes9x cores. Every tests/**/*.test.js is in one tier or in manual. Run: node tools/test.mts <tier...>",
  "unit": [
   "tests/memory/activation.test.js",
+  "tests/memory/bundle.test.js",
   "tests/memory/radar.test.js",
   "tests/memory/map-units.test.js",
   "tests/memory/variants.test.js",

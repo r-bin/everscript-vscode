@@ -2,6 +2,15 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "Build Bundle",
+            "type": "shell",
+            "command": "/opt/homebrew/bin/npm run -s build:bundle",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
             "label": "Build Plugin (tests)",
             "type": "shell",
             "command": "/opt/homebrew/bin/npm test",

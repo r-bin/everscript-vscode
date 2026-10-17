@@ -192,7 +192,10 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   who sent each sound) → `stack-view.js`, `script-debug-view.js`, `sound-source-view.js` (`panel-webview.js` → 2101); VIEW's room line → `gameLensInfo()`. v0.270.0: the Evermore detector (`rom-game.js`) → a game page file
   (`webviewFiles()`), the music package byte → `gameMusicPackage`, the camera entity → `gameCameraWorld`, the
   launcher names no game; the emulator holds no Evermore facts (the gate's name `emuEvermore` / `data-needs="evermore"`
-  stays). v0.271.0: `src/emulator` → `src/core/emulator` (cores and submodules too). Next: esbuild. First part done in v0.231.0: one TypeScript build, `tsconfig.build.json` →
+  stays). v0.271.0: `src/emulator` → `src/core/emulator` (cores and submodules too). v0.272.0: esbuild
+  host bundle (`tools/bundle.mts` → `bundle/extension.js`, the `main`; 361 modules; `__dirname` rewritten per
+  module, `tests/memory/bundle.test.js` activates it). Next: ship only what the bundle does not hold (needs a
+  test that runs the unpacked VSIX alone), then the webview bundles. First part done in v0.231.0: one TypeScript build, `tsconfig.build.json` →
   `dist/` mirroring `src/`, `npm run build:ts`; the five per-domain builds are gone) one host bundle and one bundle per webview from real `.ts`/`.css`/`.html`;
   no code in template literals (~9.5 k lines at v0.199: `emulator/panel-webview.js`,
   `menu/menu-view.js`, `bottom-bar-views.js`, the emulator `*-view.js` files) and no

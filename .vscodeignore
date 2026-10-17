@@ -13,9 +13,9 @@ tests/**
 **/__tests__/**
 **/tests/**/*.test.evs
 
-# NOTE: src/** must NOT be ignored — `main` is ./src/extension.js and the
-# extension is loaded from source. TypeScript sources are excluded; their
-# compiled output in dist/ (`npm run build:ts`) is what ships.
+# NOTE: src/** must NOT be ignored yet. `main` is ./bundle/extension.js (tools/bundle.mts, built by
+# `npm run package`), but the code still reads files next to its source at runtime (webview pages,
+# knowledge entries, cores, JSON tables). TypeScript sources are excluded.
 src/**/*.ts
 
 # Emulator cores: ship only the built artifacts (snes9x_2005.js/.wasm), not the
@@ -67,3 +67,6 @@ AI_ARCHITECTURE_GUIDE.md
 **/*.sav
 **/*.ips
 **/*.bps
+
+# The bundle's module list (tools/bundle.mts), for trimming the package later; not needed at runtime.
+bundle/inputs.json
