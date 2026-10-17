@@ -80,15 +80,15 @@ function emuCollectSettings() {
   return {
     version: 1,
     overlays: {
-      extend: !!extendMapEnabled,
-      triggers: !!triggersOverlayEnabled,
-      objects: !!objectsOverlayEnabled,
-      anim: !!animTilesOverlayEnabled,
-      collision: !!collisionOverlayEnabled,
-      fog: !!fogOfWarEnabled,
+      extend: typeof extendMapEnabled !== 'undefined' && !!extendMapEnabled,
+      triggers: typeof triggersOverlayEnabled !== 'undefined' && !!triggersOverlayEnabled,
+      objects: typeof objectsOverlayEnabled !== 'undefined' && !!objectsOverlayEnabled,
+      anim: typeof animTilesOverlayEnabled !== 'undefined' && !!animTilesOverlayEnabled,
+      collision: typeof collisionOverlayEnabled !== 'undefined' && !!collisionOverlayEnabled,
+      fog: typeof fogOfWarEnabled !== 'undefined' && !!fogOfWarEnabled,
       sounds: !!sndShow,
-      hpBar: !!thinHpBarEnabled,
-      staminaBar: !!thinStaminaBarEnabled,
+      hpBar: typeof thinHpBarEnabled !== 'undefined' && !!thinHpBarEnabled,
+      staminaBar: typeof thinStaminaBarEnabled !== 'undefined' && !!thinStaminaBarEnabled,
     },
     muted: !!emuMuted,
     panels: typeof emuCollectPanels === 'function' ? emuCollectPanels() : undefined,
@@ -129,16 +129,17 @@ function emuApplySettings(saved) {
   let migrated = false;
   emuApplying = true;
   try {
-    const set = (fn, on) => { try { fn(!!on); } catch (_) { /* a layer not ready yet redraws on the next frame */ } };
-    set(setExtendMap, o.extend);
-    set(setTriggersOverlay, o.triggers);
-    set(setObjectsOverlay, o.objects);
-    set(setAnimTilesOverlay, o.anim);
-    set(setCollisionOverlay, o.collision);
-    set(setFogOfWar, o.fog);
-    set(sndSetShow, o.sounds);
-    set(setThinHpBar, o.hpBar);
-    set(setThinStaminaBar, o.staminaBar);
+    // The overlays are the game's (games/evermore/emulator/overlays-view.js): absent without it.
+    const set = (fn, on) => { try { if (fn) fn(!!on); } catch (_) { /* a layer not ready yet redraws on the next frame */ } };
+    set(typeof setExtendMap === 'function' ? setExtendMap : null, o.extend);
+    set(typeof setTriggersOverlay === 'function' ? setTriggersOverlay : null, o.triggers);
+    set(typeof setObjectsOverlay === 'function' ? setObjectsOverlay : null, o.objects);
+    set(typeof setAnimTilesOverlay === 'function' ? setAnimTilesOverlay : null, o.anim);
+    set(typeof setCollisionOverlay === 'function' ? setCollisionOverlay : null, o.collision);
+    set(typeof setFogOfWar === 'function' ? setFogOfWar : null, o.fog);
+    set(typeof sndSetShow === 'function' ? sndSetShow : null, o.sounds);
+    set(typeof setThinHpBar === 'function' ? setThinHpBar : null, o.hpBar);
+    set(typeof setThinStaminaBar === 'function' ? setThinStaminaBar : null, o.staminaBar);
     emuMuted = !!s.muted;
     if (typeof emuApplyPanels === 'function') emuApplyPanels(s.panels);
     let binds = s.keybinds && typeof s.keybinds === 'object' ? s.keybinds : null;

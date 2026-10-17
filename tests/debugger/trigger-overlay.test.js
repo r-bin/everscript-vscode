@@ -1,7 +1,10 @@
 'use strict';
 
 const assert = require('assert');
-const { parseRoomTriggers, calculateTriggerBox, buildHtml } = require('../../src/emulator/panel-webview');
+const { parseRoomTriggers, calculateTriggerBox } = require('../../src/games/evermore/emulator/room-triggers');
+// The page as Everscript builds it: with Evermore's part (games/evermore/emulator/host.js webview()).
+const _gameView = require('../../src/games/evermore/emulator/host').webview();
+const buildHtml = (w, js, wasm, label, p, offer, opts) => require('../../src/emulator/panel-webview').buildHtml(w, js, wasm, label, p, offer || null, Object.assign({ gameView: _gameView }, opts || {}));
 
 let passed = 0;
 let failed = 0;

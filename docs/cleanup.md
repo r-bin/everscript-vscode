@@ -186,7 +186,9 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
 - [ ] **5.3 esbuild:** (v0.266.0: the game's part of the emulator page comes in through `game.webview()`; the
   bottom bar (ENTITIES / ALCHEMY / PALETTES, cheats) moved to `games/evermore/emulator/`, so the recorder no longer
   ships it; v0.267.0: pause-menu tabs 1-4 → `games/evermore/emulator/menu-tabs.js` (menu-view.js 2479 → 1581
-  lines); next the overlays and the entity sampling in `panel-webview.js`. First part done in v0.231.0: one TypeScript build, `tsconfig.build.json` →
+  lines); v0.268.0: the screen layer (extended map, overlays, entity sprites, inspector, the per-frame RAM sample,
+  overlay toggles and chips) → `games/evermore/emulator/overlays-view.js`, the trigger helpers → `room-triggers.js`
+  (`panel-webview.js` 5342 → 2867 lines); left: the script stack and trace, the sound chip, VIEW's room line. First part done in v0.231.0: one TypeScript build, `tsconfig.build.json` →
   `dist/` mirroring `src/`, `npm run build:ts`; the five per-domain builds are gone) one host bundle and one bundle per webview from real `.ts`/`.css`/`.html`;
   no code in template literals (~9.5 k lines at v0.199: `emulator/panel-webview.js`,
   `menu/menu-view.js`, `bottom-bar-views.js`, the emulator `*-view.js` files) and no

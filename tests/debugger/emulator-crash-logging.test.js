@@ -26,7 +26,9 @@ function test(name, fn) {
 console.log('Emulator Crash Logging & Fixes Tests:');
 
 const panelCode = fs.readFileSync(PANEL_JS, 'utf8');
-const webviewCode = fs.readFileSync(PANEL_WEBVIEW_JS, 'utf8');
+const webviewCode = fs.readFileSync(PANEL_WEBVIEW_JS, 'utf8')
+  // Evermore's screen layer is spliced into the page (games/evermore/emulator/overlays-view.js).
+  + fs.readFileSync(path.join(ROOT, 'src', 'games', 'evermore', 'emulator', 'overlays-view.js'), 'utf8');
 const menuCode = fs.readFileSync(MENU_VIEW_JS, 'utf8')
   // Evermore's tabs 1-4 live in the game's part of the page (handed in through host.js webview()).
   + fs.readFileSync(path.join(ROOT, 'src', 'games', 'evermore', 'emulator', 'menu-tabs.js'), 'utf8');
@@ -146,7 +148,7 @@ test('the Evermore emulator host caches static room metadata; the panel clears i
 
 test('panel-webview.js synchronizes background and foreground image activation and immediate redraw', () => {
   assert.ok(webviewCode.includes('let imgLoaded = false;'), 'missing imgLoaded flag');
-  assert.ok(webviewCode.includes('let fgLoaded = !evt.data.foregroundUri;'), 'missing fgLoaded flag');
+  assert.ok(webviewCode.includes('let fgLoaded = !data.foregroundUri;'), 'missing fgLoaded flag');
   assert.ok(webviewCode.includes('function tryActivate() {'), 'missing tryActivate dual-image sync');
   assert.ok(webviewCode.includes('function redrawExtendedLayersNow() {'), 'missing redrawExtendedLayersNow for synchronous layer updates');
   assert.ok(webviewCode.includes('redrawExtendedLayersNow();'), 'toggles must invoke redrawExtendedLayersNow');
