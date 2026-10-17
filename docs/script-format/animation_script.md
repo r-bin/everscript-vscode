@@ -273,7 +273,7 @@ animation uses them. They are presumably for effects and menu scripts.
 | `4F` | 1 | — | Clears bits `~$FB87` of `+0x12`, if `+0x2A` set and `+0x76` clear | `$9084A7` | 194 |
 | `56` | 3 | — | A formula index; greys out a ring-menu icon via `$91CE38` | `$90878C` | — |
 | `5A` | 2 | — | Byte into `+0x82` | `$908447` | 22 |
-| `5D` | 1 | `effect_done` | Sets bit 1 of `+0x26`, which only the alchemy code in bank `$91` reads (`$919BCC`, `$919D2E`, `$91A53A`): the effect tells its spell it is done. In 106 of 114 uses the next byte is another record's script, so the effect ends there (the VM stops); the other 8 signal mid-effect and carry on | `$908C75` | 114 |
+| `5D` | 1 | `effect_done` | Sets bit 1 of `+0x26`, which only the alchemy code in bank `$91` reads (`$919BCC`, `$919D2E`, `$91A53A`): the effect tells its spell it is done. In 106 of 114 uses the next byte is another record's script, so the effect ends there (the VM stops); the other 8 signal mid-effect and carry on. Bank `$91` ASM coordinates advancing to subsequent animation phases (e.g. Phase A -> Phase B) and resolving damage/healing/buffs; see [alchemy-animation-coordination.md](../alchemy-animation-coordination.md) | `$908C75` | 114 |
 | `3D` | 5 | — | Two words, then `$90CFB8` | `$908A8A` | — |
 | `3E` | 9 | — | Four words, then `$90D408` | `$908AA7` | 3 |
 | `51` | 1 | — | Player slot only (`Y = $4E89`): `$8FB28D` | `$908C67` | 16 |

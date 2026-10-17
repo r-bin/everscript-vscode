@@ -113,6 +113,13 @@ $$\text{Final Power} = \text{Min Power} + \text{Random Add}$$
 - **Keyframe synchronization** is `effect_done` (`0x5D`, handler `$908C75`): it sets bit 1
   of `+0x26`, which only bank `$91` reads (`$919BCC`, `$919D2E`, `$91A53A`). Nothing else in
   the language is alchemy-specific.
+- **Multi-Phase Animation Coordination (e.g. Parts A & B)**:
+  Alchemy formulas have no high-level script language. Instead, **native 65816 ASM in Bank `$91`**
+  coordinates multi-phase animations. The formula's descriptor block in Bank `$91` (table `$91:80A6`)
+  stores 1 to 3 animation record IDs. When an active animation phase signals `effect_done` (`0x5D`),
+  Bank `$91` polling code detects bit 1 of `+0x26`, resolves formula effects (damage at `$91:9C90`,
+  healing at `$91:9D16`, status buffs at `$91:B137`), and advances the slot to the next animation
+  record ID (e.g. Part A -> Part B). See `docs/alchemy-animation-coordination.md`.
 
 ---
 
