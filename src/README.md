@@ -14,7 +14,8 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `games/evermore/language/` | VS Code language features: grammar, theme, hover, completion, definitions, snippets |
 | `games/evermore/localizations/` | Centralized subjective names (maps, sounds, tables, functions) & ROM string resolution |
 | `games/evermore/maps/` | ROM map models: pipeline, blob evidence, render-script, alchemy |
-| `games/evermore/script/` | Everscript bytecode decoder (TypeScript, pure); re-done from the game in cleanup step 2 |
+| `games/evermore/script/` | The legacy script decoder (a port, being replaced: cleanup step 2) and the room / loot facts built on it |
+| `games/evermore/script-vm/` | The script decoder written from the game's interpreter: opcodes, expressions, packed pointers, the tables that name scripts (TypeScript, pure) |
 | `games/evermore/simulation/` | Runs scripts symbolically: loot cases, room scenarios + flag tree, NPC tracking, clusters, byte-identical Everscript (TypeScript, pure) |
 | `games/evermore/resources/` | Read-only `soe://` file system: ROM, decoded assets and live WRAM as files |
 | `games/evermore/rom/` | ROM tab: every bank's content, gaps and CDL coverage, measured from the ROM |

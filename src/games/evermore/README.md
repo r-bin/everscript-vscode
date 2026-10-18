@@ -9,7 +9,7 @@ Rules: [AGENTS.md](AGENTS.md). Every folder below has its own `AGENTS.md` and `R
 | `extension.js` | wiring | Everything Evermore registers in VS Code: the radar, language, debugger, `soe://`, emulator half |
 | `rom-readers.js`, `radar-utils.js` | library | ROM reads for rooms and characters; Everscript parsing for the radar |
 | `maps/` | library | Room format: decode, encode, render, collision, sprites, animation (TypeScript) |
-| `script/`, `simulation/` | library | The script decoder; symbolic runs of scripts (TypeScript) |
+| `script/`, `script-vm/`, `simulation/` | library | The legacy script decoder; its replacement written from the game; symbolic runs of scripts (TypeScript) |
 | `localizations/` | library | Names, strings and the knowledge entries (`knowledge/{ram,rom}/`) |
 | `resources/` | feature | The read-only `soe://` file system |
 | `language/` | feature | Grammar, theme, hover, completion, Build and Run |

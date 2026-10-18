@@ -10,6 +10,7 @@
   "tests/memory/script-units.test.js",
   "tests/memory/script-parity.test.js",
   "tests/memory/script-loot.test.js",
+  "tests/script-vm/units.test.js",
   "tests/simulation/sim-units.test.js",
   "tests/memory/damage.test.js",
   "tests/memory/map-editor.test.js",
@@ -41,6 +42,7 @@
   "tests/localizations/localizations.test.js"
  ],
  "rom": [
+  "tests/script-vm/rom.test.js",
   "tests/simulation/loot.test.js",
   "tests/simulation/room.test.js",
   "tests/simulation/everscript.test.js",

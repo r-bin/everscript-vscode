@@ -167,6 +167,14 @@ module.exports = {
     },
 
     {
+      name: 'script-vm-from-the-game',
+      comment: 'src/games/evermore/script-vm is written from the game: it uses SNES helpers and the variant tables, never the legacy decoder (docs/cleanup.md D3).',
+      severity: 'error',
+      from: { path: '^src/games/evermore/script-vm/' },
+      to: { path: '^(src|dist)/(?!games/evermore/(script-vm/|variant-resolver)|platform/snes/)' },
+    },
+
+    {
       name: 'no-mcp-to-domains',
       comment: 'The MCP server reads soe:// through vscode.workspace.fs only.',
       severity: 'warn',

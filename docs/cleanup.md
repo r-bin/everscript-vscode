@@ -125,7 +125,14 @@ Scope, from the inventory of 2026-10-16:
 | Attribution in docs/comments | `src/README.md:17`, `src/games/evermore/script/README.md`, `src/games/evermore/maps/README.md:82`, `src/games/evermore/sprites/README.md:7`, `src/games/evermore/sprites/animation-decoder.js:113`, `src/games/evermore/docs-tab/render-docs-tab.js:136` (user-visible), the "OBJ n" comments in `rom-overlay.js:35`, `overlay-features.ts:48`, `collision-overlay.ts:185`, `docs/script-format/*`, `docs/room-simulation.md:107`, `.agents/agents/script-parser-generator.md:128` | rewritten with the code they describe |
 
 - [ ] **2.1** Sprites + character record (plan part B).
-- [ ] **2.2** Script VM phases 1–5 of the plan, with the compiler-spelled output.
+- [ ] **2.2** Script VM phases 1–5 of the plan, with the compiler-spelled output. v0.280.0: phases 1–3 —
+  `docs/game-research/script-vm/` (the interpreter, packed pointers, expressions, the tables that name
+  scripts, one row per opcode; a knowledge entry per handler), `src/games/evermore/script-vm/` (strict TS,
+  from that spec), `tools/script-vm/record-goldens.js` → `tests/script-vm/goldens.json` (2,130
+  instructions the game ran in the intro and 32 recorded sessions, addresses only). A walk from every
+  table reaches 64,839 instructions, none the game cannot run, all 2,130 among them; sizes agree with the
+  legacy decoder on every one (compared once, not kept as a test). Left: printing in the compiler's
+  spelling, then moving the consumers (2.4).
 - [ ] **2.3** Room names in the new style, each with evidence.
 - [ ] **2.4** Delete every row's old files; `check:legal` clean.
 

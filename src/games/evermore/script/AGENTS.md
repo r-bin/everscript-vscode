@@ -19,9 +19,9 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
   so in `stopReason` / `stoppedAt`. `bad-operand` stops it too.
 - The operand stack belongs to the decode run — never reset it between operands.
 - Legacy decoder only: its summary wording matches upstream's, quirks included, because
-  `npm run check:script` scores it string for string — don't "improve" it in place. The
-  replacement decoder (§16 #1) gets its own wording and is checked against ROM/trace
-  goldens, not against upstream output.
+  `npm run check:script` scores it string for string — don't "improve" it in place. Its
+  replacement is `../script-vm/` (written from the game, checked against goldens); new code uses
+  that, and consumers move there one by one (`docs/cleanup.md` 2.2/2.4).
 - `$2461` (`LOOT_AMOUNT`) means amount − 1 before the loot call and the next pickup's bonus
   after it: track where the call happened, never read it position-blind.
 - All 922 pickups write a literal item; `script-loot.test.js` fails if that changes.
