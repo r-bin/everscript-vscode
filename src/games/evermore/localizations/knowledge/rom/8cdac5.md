@@ -2,19 +2,14 @@
 addr: 8CDAC5
 kind: code
 category: 🧠
-name: script_op_bd
-title: Script opcode 0xbd
+name: companion_input_ai_dispatcher
+title: Party input and companion AI dispatcher (Boy $4E89 and Dog $4F37)
 confidence: confirmed
-tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands none, continues in the same turn (docs/game-research/script-vm/opcodes.md)", "trace: the game ran 3 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
-see: [docs/game-research/script-vm/opcodes.md]
+tags: [entities, companion, dog, boy, input]
+evidence: ["disasm: tests active control bits in DP $02; routes Boy ($4E89) or Dog ($4F37) to companion_entity_update $8F:CD4D or controller input", "recomp: func_CCDAC5_M0X0 in bank8c_part0b_v2.c; clean C in docs/disassembly/entities/dog-ai.md"]
+see: [rom/8fcd4d.md, ram/7e4e89.md, ram/7e4f37.md]
 ---
-Only the operands and the flow are traced so far; what the handler does with them is not.
-
-Operands: none (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
-
-## Addresses
-Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
-- Calls: `$8F:CD4D`
-- Record fields (indexed by X/Y: a slot, an entity, a window): `+$0D`
-- Opcode table entry: `$8C:EA37` (0xbd)
+Called once per frame to tick active player control and companion following/combat AI:
+1. Tests player index at DP `$02`: bit 0 for Boy (`$7E:4E89`), bit 1 for Dog (`$7E:4F37`).
+2. If character is player-controlled, parses controller input register `$7E:000D`.
+3. If character is companion, sets active actor `$4C` and executes follower AI routine `$8F:CD4D`.
