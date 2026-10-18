@@ -65,6 +65,12 @@ game supports it, not through a second tool:
 - Mana collision is per **metatile**, not per cell. The Mana editor draws collision/specials as wishes and solves
   them into metatiles (copies in free slots, "?" where none fit) — never per-cell bytes (`src/games/mana/maps/AGENTS.md`).
 - **som://** for anything an agent or the user wants to read as files.
+- **The Core Map Editor Rule:** A map from any game (Evermore, Mana, Terranigma) is ONLY working
+  if it is embedded into our core map editor (`src/core/map-editor/`) AND renders to what you see in the
+  game or internet map dumps. Terranigma currently renders nothing; treating it as "working" is a defect.
+- **Connect concepts to core:** Mana has objects, so Mana connects to the objects system made for
+  Evermore. If a game has features not supported in core, discuss and extend core instead of creating
+  a disconnected, ad-hoc viewer.
 
 When a Mana feature is missing, check `docs/mana/evermore-rooms.md` ("The editor for Mana
 rooms") and `docs/mana/README.md` ("Not done yet") before building a parallel path.

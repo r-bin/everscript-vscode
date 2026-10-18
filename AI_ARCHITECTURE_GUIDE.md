@@ -73,11 +73,16 @@ Viewport, zoom, selection, filters, emulator runtime state, panel lifecycle, roo
 cache, memory-map cache, enum cache and extension config each have a single owner listed
 in the domain's `AGENTS.md`.
 
-### 3.4 soe:// is the data plane **[target]**
+### 3.4 VFS (soe://, som://) is the data plane and primary data source **[now: rule · target: fully true]**
 Anything derived from the ROM or live RAM that more than one consumer needs (a tab, hover,
-MCP, tests) is exposed under `soe://` first and consumed from there. Tabs fetch data from
-`soe://` instead of from each other. Writes, when added, produce patch overlays, never
-in-place ROM mutation.
+MCP, tests, AI) is exposed under the game's VFS scheme (`soe://`, `som://`) first and consumed from there.
+- **VFS primacy:** Expose new game subsystems under the VFS early, even before all UI use cases exist.
+- **Single source of truth:** RAM maps, CDL traces, ROM models, and VFS endpoints must share the
+  same underlying data structures—never duplicate metadata tables across features.
+- **Linked knowledge without barriers:** Memory addresses and symbols should link contextually to
+  human-readable names, natural language usage descriptions, cross-system references (enemy -> animation -> command),
+  and deep links to feature tabs (`.agents/skills/vfs-and-knowledge/SKILL.md`).
+- Writes produce patch overlays, never in-place ROM mutation.
 
 ### 3.5 Code lives in code files, not strings **[target — no new violations]**
 - No JavaScript, CSS or HTML inside JS template literals or string concatenation. Webview
@@ -91,9 +96,12 @@ in-place ROM mutation.
   `menu/menu-view.js`, the radar concatenation in `memory/webview/index.js`) are converted
   when touched. Do not add to them.
 
-### 3.6 Shared code: extract on the third copy **[now]**
+### 3.6 Shared code and global look & feel **[now]**
 - One user → keep it local. Two → duplication is acceptable. **Three or more → extract**
   into the right library as pure functions.
+- **Global styling & shared CSS:** All webview panels and tabs share visual styles from `src/core/webview/`
+  (color tokens, typography, tabs, buttons, canvas cards, scrollbars). Tabs in feature A look like tabs in
+  feature B unless a domain-specific layout exception is justified.
 - Forbidden: grab-bag `utils.js`/`common.js`, helpers-of-helpers, DI containers, plugin
   registries with discovery or lifecycle.
 - Known canonical homes: SNES addressing and byte reads, CRC-32, PNG, the 65816 opcode matrix,
@@ -101,10 +109,10 @@ in-place ROM mutation.
   blocks) → `games/evermore/maps/`; webview helpers (`escH`, hex format, tab strip, CSP shell,
   theme) → `src/core/webview/` (cleanup 5.1, 5.3).
 
-### 3.7 Types **[target: strict everywhere]**
-- New files are TypeScript with `strict: true`. Libraries and platform code are TS first.
-- Existing JS is ratcheted: a file, once added to the strict list, may never fall out of
-  it. `@types/vscode` is a dev dependency, so the VS Code API is typed, not `any`.
+### 3.7 Language hierarchy: wasm > ts (default) > js **[target: strict everywhere]**
+- `wasm` for compute-heavy, performance-critical tasks (e.g. emulator core, audio synthesis).
+- `ts` with `strict: true` is the default for all business logic, decoders, data models, and tooling.
+- `js` should be avoided unless strictly advantageous; legacy JS is ratcheted to TS when touched.
 - Host↔webview messages are a typed union per panel; no stringly-typed `command` switch
   without a type.
 
@@ -160,6 +168,29 @@ in the commit that creates it.
 caches (`.emscripten_cache`), TS sources whose `dist/` ships, and every ROM/save-state
 extension (`*.sfc`, `*.smc`, `*.srm`, `*.spc`, `*.state`). Check with `vsce ls` after
 touching it.
+
+### 3.13 Definition of "Working" & empirical validation **[now]**
+Never declare a subsystem, map, tab, or ROM "working" based on partial decodes or lack of exceptions:
+- **Maps:** A map is ONLY working if it is embedded in our core map editor (`src/core/map-editor/`) AND
+  renders to what is visible in the running game or verified internet map dumps. A blank or glitched render
+  is broken (e.g. Terranigma). New maps connect to existing core systems (e.g. Mana objects -> Evermore object model;
+  extend core after discussion). (`.agents/skills/feature-validation/SKILL.md`).
+- **Webviews & Tabs:** A tab is only working if it has been visually inspected in headless Chromium (`npm run test:dom`
+  or Playwright) and matches the shared global look-and-feel.
+- **ROMs:** A ROM or emulator feature is only working if a verified replay script runs and advances game state.
+
+### 3.14 Test discipline, tiers & timeouts **[now]**
+Respect developer time. Fast iterations depend on fast feedback:
+- `npm test` runs fast unit tests (~7 s) on every iteration.
+- Heavy tests (`rom`, `dom`, `emulator`, `all`) run only on demand when relevant subsystems change.
+- Never replay the same emulator file 100 times; use focused, targeted verification.
+- Every asynchronous test and wait loop MUST have an explicit timeout; hanging forever is forbidden
+  (`.agents/skills/test-discipline/SKILL.md`).
+
+### 3.15 Exploration & Markdown proposals **[now]**
+When investigating game data or discovering novel ways to combine disparate subsystems (e.g. collision maps
+cross-referenced with loot drops and enemy script triggers), document the insight and write a concrete proposal
+in `docs/todo/README.md`.
 
 ---
 

@@ -39,14 +39,29 @@ External resources:
    `git add -A`, `git add .`, `git add -u` or `git commit -a`. Check
    `git diff --cached --name-only` before committing and re-read `package.json`'s version
    right before bumping it.
+6. **Multi-game core reuse & map standard.** All games reuse `src/core/map-editor/` and core UI
+   shells. A map is ONLY working if it is embedded in our core map editor and renders to what you see
+   in-game / internet map dumps (blank renders are broken; e.g. Terranigma). Compare new game features
+   against core (Mana objects -> Evermore object system; extend core after discussion). (`feature-validation` skill).
+7. **Empirical validation & global styling.** Never call a tab or feature working without visual
+   verification (headless Chromium). All tabs share cohesive look-and-feel using shared CSS (`src/core/webview/`).
+   A ROM is only working if a replay works.
+8. **Language hierarchy: wasm > ts (default) > js.** TS with strict mode is default for all code and types.
+   WASM is reserved for high-performance compute. JS is avoided and ratcheted to TS when touched.
+9. **VFS primacy & linked knowledge.** `soe://` / `som://` is the primary data plane for AI and UI. Never
+   duplicate metadata tables. Link facts contextually: address names, natural language tooltips, cross-system links,
+   deep links to tabs (`vfs-and-knowledge` skill). Propose creative data combinations in Markdown.
+10. **Respect developer time & test tiers.** Run fast unit tests (`npm test` ~7s) during iterations. Slow tiers
+    (`rom`, `dom`, `emulator`, `all`) run on demand. Never replay the same file 100 times. Always use timeouts (`test-discipline` skill).
 
 ---
 
 ## 1. Goal
 
-Make Everscript code more readable in VS Code and make SNES romhacking (Evermore first, any game
-the plugin recognises) workable from the editor: better tokens, hover and diagnostics; insight
-into the ROM and the running game; build, debug and export tooling.
+Make Everscript code more readable and accessible in VS Code, with full IDE candy (highlighting, hover
+metadata, live debugger, diagnostics), and make SNES romhacking workable from the editor: understand
+Evermore (WRAM/ROM map, recomp, decomp), extend it (compiler, ExHiROM, SA-1, movable structures), and
+visualize all game data (map editor, music player, script editor, sprite viewer) across supported games.
 
 ---
 
@@ -73,7 +88,8 @@ into the ROM and the running game; build, debug and export tooling.
 Canonical files: `.agents/skills/<name>/SKILL.md` (Claude Code reads them through the symlink
 `.claude/skills`). They load by their `description`; read the one that fits before working.
 
-- **Process:** `release-ritual`, `architecture`, `game-knowledge`, `supported-games`, `games-and-roms`
+- **Process & Architecture:** `release-ritual`, `architecture`, `game-knowledge`, `supported-games`,
+  `games-and-roms`, `feature-validation`, `test-discipline`, `vfs-and-knowledge`
 - **Evermore data:** `map-format`, `memory-map`, `map-construction`, `map-entities`,
   `animation-script`, `alchemy-spell-mechanics`, `secret-of-evermore-engine`
 - **Editor and UI:** `map-editor-rules`, `rooms-tab`, `memory-radar`, `webview-dom-safety`, `grammar-rules`,
@@ -82,4 +98,5 @@ Canonical files: `.agents/skills/<name>/SKILL.md` (Claude Code reads them throug
   `sample-playbacks`, `ghidra-analysis`, `snes-asm-asar-patching`, `recomp`, `recomp-debugging`
 
 Personas (`.agents/agents/`, `.claude/agents` for Claude Code): `everscript-plugin-builder`,
-`mechanics-modeler`, `re-curator` (one pass over the knowledge gaps).
+`mechanics-modeler`, `re-curator`, `project-auditor`, `emulator-debugger`.
+
