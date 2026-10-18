@@ -70,5 +70,20 @@ AI_ARCHITECTURE_GUIDE.md
 **/*.ips
 **/*.bps
 
-# The bundle's module list (tools/bundle.mts), for trimming the package later; not needed at runtime.
+# The bundle's module lists (tools/bundle.mts) and its ignore file; not needed at runtime.
 bundle/inputs.json
+bundle/drop.json
+bundle/.vscodeignore
+
+# Repo tooling and submodules (tests/memory/package-files.test.js keeps the package root to an allowlist)
+dependencies/**
+script_parser/**
+.*
+*.json
+!package.json
+**/.gitignore
+**/README.md
+src/games/evermore/rooms/webview/STATE.md
+src/core/emulator/core/**/*.md
+!src/core/emulator/core/**/README-snes9x2005.md
+src/core/emulator/core/**/test.html

@@ -86,6 +86,11 @@ test('every package file read above ships (vsce ls with bundle/.vscodeignore)', 
     const missing = [...reads].filter((r) => /^(src|dist)\//.test(r) && fs.existsSync(path.join(ROOT, r)) && fs.statSync(path.join(ROOT, r)).isFile() && !listed.has(r));
     assert.deepStrictEqual(missing, []);
     assert.ok(listed.has('bundle/extension.js'), 'the bundle ships');
+    // The root holds only the manifest, its pages and the runtime folders: no repo tooling, configs
+    // or submodule folders (they have shipped before: knip.json, dependencies/, script_parser/).
+    const ROOT_ALLOWED = /^(package\.json|README\.md|LICENSE|bundle\/extension\.js|resources\/|src\/|dist\/)/;
+    assert.deepStrictEqual([...listed].filter((f) => f && !ROOT_ALLOWED.test(f)), [], 'tooling in the package');
+    assert.deepStrictEqual([...listed].filter((f) => /(^|\/)(AGENTS|STATE)\.md$|\/README\.md$|\.gitignore$|test\.html$/.test(f)), [], 'developer docs in the package');
 });
 
 if (failed) process.exit(1);
