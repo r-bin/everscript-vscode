@@ -10,10 +10,10 @@
 | Metric | Completed | Total / Scope | Progress (%) | Status |
 |---|---|---|---|---|
 | **CDL ROM Coverage** | ~42,584 bytes | ~450,000 code bytes | **9.3 %** | Expanding via scripted emulator runs |
-| **Identified / Named Functions** | 105 | 403 (CDL recorded roots) | **26.1 %** | In Progress |
-| **Fully Documented Functions** | 80 | 403 (CDL recorded roots) | **19.9 %** | In Progress |
-| **Clean C Decompiled Functions** | 59 | 403 (CDL recorded roots) | **14.6 %** | Boot, Main Loop, NMI, Enter Room, Room Reset, Script VM Dispatcher, Expression Evaluator, Entity Pool, APU Handshake, Soundbank Loader, Music Player, Entity Physics, Trigger Scanner, Tile Collision, Spell Power Math, Camera Centering, Ring Menu Validator, Damage Mitigation, Animation VM, Companion & Dog AI, Weapon Stamina Regen, Attack Level Select, Damage Stamina Scaling, Name Profanity Filter, Equipped Armor Defense, Enemy AI Dispatcher, Roaming Monster AI, Aggro Detection Pipeline, Stationary Turret AI, Dialogue String Key Decoder, Magmar Boss State Machine, Static Boss Target Exposure, Submerging Swamp Boss AI, Alchemy Cost & XP Progression, Isometric Collision Overlap, Entity Movement Blocker, Hit Reaction & Knockback, Palette Cycle Groups 1 & 2, Weather Particles & Screen Shake, Player Boy Movement & Dash, Player Dog Movement & Dash, Shop Catalog Loader, Shop Sell List Populator, Direct SFX Trigger, SFX Soundbank Package Loader, APU SFX Command Sender, Status Effect Applicator & Eviction, Status Effects Tick All, Projectile Master Spawner, Entity Slot Allocator & Attribute Init, SRAM Verify All Save Slots, SRAM Rotational Checksum Compute, Ring Menu Sub-Item Selector, Weapon Equip & Experience Transfer, Palette Transfer Stream Block, CGRAM 16-Color Chunk Commit, Companion Teleport Recovery, Companion Proximity Evaluator |
-| **WRAM Variables Mapped** | 2,826 | 32,291 accessed bytes | **8.8 %** | Weapon XP registers $0AC6/$0AC8, equipped weapon $231C, CGRAM shadow $7E:7339..$734F, tremor registers $2435/$2437, and recovery anchor $1443/$1445 mapped |
+| **Identified / Named Functions** | 113 | 403 (CDL recorded roots) | **28.0 %** | In Progress |
+| **Fully Documented Functions** | 88 | 403 (CDL recorded roots) | **21.8 %** | In Progress |
+| **Clean C Decompiled Functions** | 67 | 403 (CDL recorded roots) | **16.6 %** | Boot, Main Loop, NMI, Enter Room, Room Reset, Script VM Dispatcher, Expression Evaluator, Entity Pool, APU Handshake, Soundbank Loader, Music Player, Entity Physics, Trigger Scanner, Tile Collision, Spell Power Math, Camera Centering, Ring Menu Validator, Damage Mitigation, Animation VM, Companion & Dog AI, Weapon Stamina Regen, Attack Level Select, Damage Stamina Scaling, Name Profanity Filter, Equipped Armor Defense, Enemy AI Dispatcher, Roaming Monster AI, Aggro Detection Pipeline, Stationary Turret AI, Dialogue String Key Decoder, Magmar Boss State Machine, Static Boss Target Exposure, Submerging Swamp Boss AI, Alchemy Cost & XP Progression, Isometric Collision Overlap, Entity Movement Blocker, Hit Reaction & Knockback, Palette Cycle Groups 1 & 2, Weather Particles & Screen Shake, Player Boy Movement & Dash, Player Dog Movement & Dash, Shop Catalog Loader, Shop Sell List Populator, Direct SFX Trigger, SFX Soundbank Package Loader, APU SFX Command Sender, Status Effect Applicator & Eviction, Status Effects Tick All, Projectile Master Spawner, Entity Slot Allocator & Attribute Init, SRAM Verify All Save Slots, SRAM Rotational Checksum Compute, Ring Menu Sub-Item Selector, Weapon Equip & Experience Transfer, Palette Transfer Stream Block, CGRAM 16-Color Chunk Commit, Companion Teleport Recovery, Companion Proximity Evaluator, Cutscene Dialogue Queue Reset, Cutscene Script Enqueue, Cutscene Pause Activate, Cutscene Dialogue Activate, Alchemy Healing Effect Handler, Entity HP Heal Commit, Camera Frustum Cull Test, Entity Screen Tile Projection |
+| **WRAM Variables Mapped** | 2,954 | 32,291 accessed bytes | **9.1 %** | Cutscene FIFO $0DFB..$0E12, queue heads $0B2F/$0B31, window record $034D..$0377, camera frustum $0F48..$0F4E, and entity hurt timers mapped |
 | **Mechanical C Lift (snesrecomp)** | 400 roots | 400 roots (1,079 variants) | **100 %** | Compiles & runs |
 
 ---
@@ -27,11 +27,11 @@
 | **NMI & Video Refresh (VBLANK)**| `$80:823A` – `$80:84A0` | 6 / 8 | 1 / 1 (`nmi_handler`) | ✅ **Complete**: [`nmi-vblank.md`](engine-core/nmi-vblank.md) |
 | **Screen Transitions & Room Loader** | `$8E:E4E2` – `$8E:FFFF` | 9 / 22 | 4 / 4 (`enter_room`, `reset_per_room_state`, `scan_room_triggers`, `spawn_character_script_thread`) | ✅ **Complete**: [`room-enter.md`](engine-core/room-enter.md), [`trigger-scanner.md`](maps/trigger-scanner.md), [`equipment-stats.md`](ui/equipment-stats.md) |
 | **Core WRAM & PPU Shadows** | `$7E:0070` – `$7E:013A` | 34 / 34 | Structs Defined | ✅ **Complete**: [`wram-map.md`](engine-core/wram-map.md) |
-| **Script VM & Opcode Dispatch**| `$8C:CFFD` – `$8C:EFFF` | 39 / 195 | 5 / 5 (`script_scheduler_pass`, `script_vm_eval_expression`, `launch_trigger_script`, `decode_dialogue_string_key`, `decode_dialogue_string_key_secondary`) | ✅ **Complete**: [`dispatcher.md`](script-vm/dispatcher.md), [`expression-eval.md`](script-vm/expression-eval.md), [`dialogue-window.md`](ui/dialogue-window.md) |
+| **Script VM & Opcode Dispatch**| `$8C:C4F6` – `$8C:EFFF` | 43 / 195 | 9 / 9 (`script_scheduler_pass`, `script_vm_eval_expression`, `launch_trigger_script`, `decode_dialogue_string_key`, `decode_dialogue_string_key_secondary`, `cutscene_dialogue_queue_reset`, `cutscene_script_enqueue`, `cutscene_pause_activate`, `cutscene_dialogue_activate`) | ✅ **Complete**: [`dispatcher.md`](script-vm/dispatcher.md), [`expression-eval.md`](script-vm/expression-eval.md), [`dialogue-window.md`](ui/dialogue-window.md), [`cutscene-scheduler.md`](script-vm/cutscene-scheduler.md) |
 | **Actor & Animation Engine** | `$80:9685`, `$90:xxxx` | 18 / 45 | 9 / 9 (`init_entity_pool`, `update_entity_physics`, `anim_vm_tick`, `companion_input_ai_dispatcher`, `companion_entity_update`, `projectile_spawn_master`, `entity_slot_allocate_and_init`, `companion_teleport_recovery`, `companion_proximity_evaluator`) | ✅ **Complete**: [`actor-lifecycle.md`](entities/actor-lifecycle.md), [`physics-integration.md`](entities/physics-integration.md), [`animation-vm.md`](animation/animation-vm.md), [`dog-ai.md`](entities/dog-ai.md), [`projectiles.md`](combat/projectiles.md), [`companion-leash.md`](entities/companion-leash.md) |
-| **Combat, Hitboxes & Enemy AI** | `$89:xxxx`, `$8F:Bxxx`–`$8F:Dxxx`, `$91:Bxxx` | 33 / 52 | 18 / 18 (`calc_spell_power_and_cast`, `apply_spell_damage_to_targets`, `recharge_entity_stamina`, `select_attack_level_by_stamina`, `scale_damage_by_stamina`, `enemy_ai_dispatcher`, `enemy_ai_roaming_chaser`, `enemy_ai_check_aggro`, `boss_ai_magmar`, `boss_part_static_target`, `alchemy_deduct_ingredients_and_award_xp`, `entity_collision_check`, `test_entity_pair_overlap`, `dispatch_hit_reaction_and_knockback`, `player_human_control_boy`, `player_human_control_dog`, `status_effect_apply`, `status_effects_tick_all`) | ✅ **Complete**: [`alchemy-formulas.md`](combat/alchemy-formulas.md), [`damage-mitigation.md`](combat/damage-mitigation.md), [`weapon-charge.md`](combat/weapon-charge.md), [`enemy-ai.md`](entities/enemy-ai.md), [`boss-engine.md`](combat/boss-engine.md), [`alchemy-ingredients.md`](combat/alchemy-ingredients.md), [`hitbox-intersections.md`](combat/hitbox-intersections.md), [`player-movement.md`](engine-core/player-movement.md), [`status-effects.md`](combat/status-effects.md) |
+| **Combat, Hitboxes & Enemy AI** | `$89:xxxx`, `$8F:Bxxx`–`$8F:Dxxx`, `$91:Bxxx` | 35 / 52 | 20 / 20 (`calc_spell_power_and_cast`, `apply_spell_damage_to_targets`, `recharge_entity_stamina`, `select_attack_level_by_stamina`, `scale_damage_by_stamina`, `enemy_ai_dispatcher`, `enemy_ai_roaming_chaser`, `enemy_ai_check_aggro`, `boss_ai_magmar`, `boss_part_static_target`, `alchemy_deduct_ingredients_and_award_xp`, `entity_collision_check`, `test_entity_pair_overlap`, `dispatch_hit_reaction_and_knockback`, `player_human_control_boy`, `player_human_control_dog`, `status_effect_apply`, `status_effects_tick_all`, `alchemy_healing_effect_handler`, `entity_hp_heal_commit`) | ✅ **Complete**: [`alchemy-formulas.md`](combat/alchemy-formulas.md), [`damage-mitigation.md`](combat/damage-mitigation.md), [`weapon-charge.md`](combat/weapon-charge.md), [`enemy-ai.md`](entities/enemy-ai.md), [`boss-engine.md`](combat/boss-engine.md), [`alchemy-ingredients.md`](combat/alchemy-ingredients.md), [`hitbox-intersections.md`](combat/hitbox-intersections.md), [`player-movement.md`](engine-core/player-movement.md), [`status-effects.md`](combat/status-effects.md), [`healing-spells.md`](combat/healing-spells.md) |
 | **Audio / APU Handshake & Sound**| `$8C:8000` – `$8C:83FF` | 11 / 15 | 6 / 6 (`apu_command_handshake`, `load_song_soundbank`, `play_music_track`, `play_sound_effect_direct`, `play_sound_effect_with_package`, `apu_send_sfx_command`) | ✅ **Complete**: [`spc-handshake.md`](audio/spc-handshake.md), [`sfx-queue.md`](audio/sfx-queue.md) |
-| **Camera & Viewport Subsystem**| `$90:94AB` – `$90:9544` | 3 / 6 | 1 / 1 (`camera_center_and_clamp`) | ✅ **Complete**: [`camera-system.md`](engine-core/camera-system.md) |
+| **Camera & Viewport Subsystem**| `$90:94AB` – `$90:95CD` | 5 / 6 | 3 / 3 (`camera_center_and_clamp`, `camera_frustum_cull_test`, `entity_screen_tile_projection`) | ✅ **Complete**: [`camera-system.md`](engine-core/camera-system.md), [`viewport-culling.md`](engine-core/viewport-culling.md) |
 | **Map Metatiles & Collision Grid**| `$90:9DE8` – `$90:9E72` | 4 / 10 | 2 / 2 (`eval_tile_collision`, `update_entity_plane`) | ✅ **Complete**: [`tile-collision.md`](maps/tile-collision.md) |
 | **Ring Menu & UI Subsystems** | `$8E:8000` – `$8E:9F00` | 10 / 12 | 9 / 9 (`ring_menu_select_and_cost_check`, `calc_equipped_armor_defense`, `init_equipment_screen_slots`, `check_name_profanity`, `decode_dialogue_string_key`, `shop_load_catalog`, `shop_populate_sell_list`, `ring_menu_subitem_select`, `weapon_equip_and_experience_update`) | ✅ **Complete**: [`ring-menu.md`](ui/ring-menu.md), [`equipment-stats.md`](ui/equipment-stats.md), [`weapon-charge.md`](combat/weapon-charge.md), [`dialogue-window.md`](ui/dialogue-window.md), [`shop-system.md`](ui/shop-system.md), [`weapon-select.md`](ui/weapon-select.md) |
 | **Save NVRAM & Persistence** | `$8D:B400` – `$8D:C950` | 2 / 4 | 2 / 2 (`sram_verify_all_save_slots`, `sram_compute_checksum`) | ✅ **Complete**: [`save-system.md`](engine-core/save-system.md) |
@@ -42,23 +42,21 @@
 
 When an agent is prompted with *"continue the decompilation"*, work down this ordered queue:
 
-1. **Target 1: Event Cutscene Script VM Scheduler & Pause Guard (`$8C:C520` – `$8C:C5A0`)**:
-   - Location: Bank `$8C` (`$8C:C520` – `$8C:C5A0`).
-   - Purpose: Cutscene freeze arbitration (`$22EB` bit 5), dialog box priority locking, actor physics suspension during cutscenes, and global script yield.
-   - Evidence to consult: `docs/game-research/script-vm/README.md`, `soe://bus/8cc520.asm`.
-   - Deliverable: Decompile into clean C in `docs/disassembly/script-vm/cutscene-scheduler.md`.
-
-2. **Target 2: Alchemy Formula Damage Scaling & Enemy Magic Defense Math (`$91:D800` – `$91:DA00`)**:
-   - Location: Bank `$91` (`$91:D800` – `$91:DA00`).
-   - Purpose: Spell attack power multipliers, formula level scaling (levels 0:00 through 9:99), target MDEF reduction, and critical magic hits.
-   - Evidence to consult: `docs/disassembly/combat/alchemy-formulas.md`, `soe://bus/91d800.asm`.
-   - Deliverable: Decompile into clean C in `docs/disassembly/combat/alchemy-scaling.md`.
-
-3. **Target 3: Minimap & Compass HUD Projection Engine (`$8E:AC00` – `$8E:AE00`)**:
+1. **Target 1: Minimap & Compass HUD Projection Engine (`$8E:AC00` – `$8E:AE00`)**:
    - Location: Bank `$8E` (`$8E:AC00` – `$8E:AE00`).
    - Purpose: Overworld / windwalker minimap radar rendering, mode 7 coordinate translation, and heading arrow compass rotation.
    - Evidence to consult: `docs/disassembly/ui/ring-menu.md`, `soe://bus/8eac00.asm`.
    - Deliverable: Decompile into clean C in `docs/disassembly/ui/minimap-radar.md`.
+
+2. **Target 2: Mode 7 Flight Matrix Transform & Camera Pitch Math (`$8E:B000` – `$8E:B200`)**:
+   - Location: Bank `$8E` (`$8E:B000` – `$8E:B200`).
+   - Purpose: Overworld flying camera transformation matrix, pitch angle sine/cosine lookup, and Mode 7 parameter registers (`$211B`–`$2120`).
+   - Deliverable: Decompile into clean C in `docs/disassembly/engine-core/mode7-flight.md`.
+
+3. **Target 3: Item Usage & Consumable Inventory Pipeline (`$8E:9E00` – `$8E:9F80`)**:
+   - Location: Bank `$8E` (`$8E:9E00` – `$8E:9F80`).
+   - Purpose: Consumable satchel deduction (Petals, Nectar, Honey, Wings, Biscuits), effect dispatch, and satchel cap enforcement (6 max).
+   - Deliverable: Decompile into clean C in `docs/disassembly/ui/item-consumption.md`.
 
 ---
 
@@ -102,6 +100,21 @@ When an agent is prompted with *"continue the decompilation"*, work down this or
   - Hitbox Damage Intersections, Elliptical Collision & Knockback Vectors (`$8F:B46D`, `$8F:B4AB`, `$8F:C0D3`): analyzed 2:1 isometric collision ellipse rule ($|dx| < r_1 + r_2$ and $2 \cdot |dy| < r_1 + r_2$), overlapping mover bypass (`$8F:B4FD`), invulnerability flash timer in `entity +0x14` (30 frames), floating damage number dispatch (`$8F:C09A`), and normalized knockback velocity vector integration (`docs/disassembly/combat/hitbox-intersections.md`).
   - Weather Effects, Palette Cycling & Screen Shake Engine (`$80:9E93`, `$80:A003`, `$80:A2E0`): analyzed animated palette cycling rotation in WRAM shadow buffers `$7E:7321` and `$7E:7331` for molten lava and glowing crystals, queued for VBLANK CGRAM DMA, falling weather particle simulation (rain/snow/embers), and screen shake decay curve in `$C3` / `$7E:2435` with camera displacement `$7E:2437` (`docs/disassembly/engine-core/weather-palette.md`).
   - Created confirmed knowledge entries `91d800.md`, `8fb46d.md`, `8fb4ab.md`, `8fc0d3.md`, `809e93.md`, `80a003.md`, `80a2e0.md`, and upgraded `c4601f.md`. Advanced queue to Player Dash/Sprint, Shop Currency Engine, and Sound Effect Allocator.
-
-
+- **2026-10-18 (Session 10)**: Decompiled Player Dash Mechanics, Shop Currency Engine, and Direct Sound Effect Queue:
+  - Player Boy (`$8F:CD88`) & Dog (`$8F:CECC`) Movement & Sprint Mechanics: analyzed sprint gating (stamina $\ge 1024$), 3-stamina/frame drain (`ADC #$FFFD`), D-pad heading mapping `$8F:CC0E`, and 45-degree slope guide velocity vector projection (`$C3:A3`) (`docs/disassembly/engine-core/player-movement.md`).
+  - Shop Catalog Loader & Currency Engine (`$8E:9BC1`, `$8E:9CA1`): analyzed price tables `$C4:5ABE`, 50% resale return, 6-item consumable satchel cap, and 4-era currency wallets (`docs/disassembly/ui/shop-system.md`).
+  - Direct SFX Dispatch & Soundbank Loader (`$8C:82DC`, `$8C:82E3`, `$8C:831D`): analyzed APU command $04 handshake and SPC700 voice channels 4–7 priority allocation (`docs/disassembly/audio/sfx-queue.md`).
+- **2026-10-18 (Session 11)**: Decompiled Status Effect Affliction/Eviction, Projectile Spawner, and Battery SRAM Persistence:
+  - Status Effect Subsystem (`$91:B632`, `$91:BC28`): analyzed 4-slot ring buffer (`+$46`..`+$58`), 60 Hz countdown, and the vanilla "5 status effects" bug root cause at `$91:B7FA` (`docs/disassembly/combat/status-effects.md`).
+  - Unified Projectile Spawner & Entity Allocator (`$8F:B094`, `$8F:B0A4`): analyzed entity memory cleansing, ballistic trajectories, and target guidance (`docs/disassembly/combat/projectiles.md`).
+  - Battery SRAM Verification & Rotational Checksum (`$8D:B400`, `$8D:B478`): analyzed 4 save slots at `$30:6002`, stride 817 bytes, seed `0x043F`, and 1-bit rotate add checksum (`docs/disassembly/engine-core/save-system.md`).
+- **2026-10-18 (Session 12)**: Decompiled Ring Menu Weapon Equipping, Screen Visual FX, and Companion Tether Recovery:
+  - Ring Menu Sub-Item Selector & Weapon Equip (`$8E:8F50`, `$8E:9000`): analyzed weapon category stride, experience mapping `$0AC6`/`$0AC8`, ownership verification in `$7E:231D,x`, and equip SFX `0x0043` (`docs/disassembly/ui/weapon-select.md`).
+  - Screen Shake, Palette Block Streaming & Damage Flash (`$80:A100`, `$80:A16E`): analyzed CGRAM DMA pipeline and decay curve (`docs/disassembly/engine-core/screen-effects.md`).
+  - Companion Tether Leash & Desync Teleport (`$8F:D018`, `$8F:D0B0`): analyzed distance zones (32px, 128px, 384px) and teleport recovery to anchor `$1443/$1445` (`docs/disassembly/entities/companion-leash.md`).
+- **2026-10-18 (Session 13)**: Decompiled Cutscene Script VM Queue, Healing Spells Pipeline, and Viewport Frustum Culling:
+  - Event Cutscene Queue & Text Box Dispatcher (`$8C:C4F6`, `$8C:C521`, `$8C:C543`, `$8C:C55D`): analyzed 8-entry circular FIFO buffer (`$7E:0DFB`..`$7E:0E12`), pause flag `$0B2B` bit 15, and 20x30 text window constructor (`docs/disassembly/script-vm/cutscene-scheduler.md`).
+  - Alchemy Healing Spells & Entity HP Restoration (`$91:9D16`, `$8F:C09A`): analyzed 999 HP ceiling, green palette flash ID `$7E80`, max HP stat clamp `$8E:000F,x`, player HUD meter synchronization (`$8F:9144`), and affliction ticker clearing (`docs/disassembly/combat/healing-spells.md`).
+  - Viewport Frustum Culling & Screen Tile Projection (`$90:9545`, `$90:9561`): analyzed visible margin registers `$0F48`..`$0F4E`, tile row stride, and contact shadow rendering hook `$90:9DE8` (`docs/disassembly/engine-core/viewport-culling.md`).
+  - Created confirmed knowledge entries `8cc4f6.md`, `8cc521.md`, `8cc543.md`, `8fc09a.md`, `909545.md`, `909561.md`, and upgraded `8cc55d.md`.
 
