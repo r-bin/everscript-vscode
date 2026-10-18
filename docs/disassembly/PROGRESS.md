@@ -10,10 +10,10 @@
 | Metric | Completed | Total / Scope | Progress (%) | Status |
 |---|---|---|---|---|
 | **CDL ROM Coverage** | ~42,584 bytes | ~450,000 code bytes | **9.3 %** | Expanding via scripted emulator runs |
-| **Identified / Named Functions** | 50 | 403 (CDL recorded roots) | **12.4 %** | In Progress |
-| **Fully Documented Functions** | 25 | 403 (CDL recorded roots) | **6.2 %** | In Progress |
-| **Clean C Decompiled Functions** | 16 | 403 (CDL recorded roots) | **4.0 %** | Boot, Main Loop, NMI, Enter Room, Room Reset, Script VM Dispatcher, Expression Evaluator, Entity Pool, APU Handshake, Soundbank Loader, Music Player, Entity Physics, Trigger Scanner, Tile Collision, Spell Power Math, Camera Centering |
-| **WRAM Variables Mapped** | 1,680 | 32,291 accessed bytes | **5.2 %** | Metatile records, camera bounds, and alchemy stats mapped |
+| **Identified / Named Functions** | 51 | 403 (CDL recorded roots) | **12.7 %** | In Progress |
+| **Fully Documented Functions** | 28 | 403 (CDL recorded roots) | **6.9 %** | In Progress |
+| **Clean C Decompiled Functions** | 19 | 403 (CDL recorded roots) | **4.7 %** | Boot, Main Loop, NMI, Enter Room, Room Reset, Script VM Dispatcher, Expression Evaluator, Entity Pool, APU Handshake, Soundbank Loader, Music Player, Entity Physics, Trigger Scanner, Tile Collision, Spell Power Math, Camera Centering, Ring Menu Validator, Damage Mitigation, Animation VM |
+| **WRAM Variables Mapped** | 1,800 | 32,291 accessed bytes | **5.6 %** | Ring menu inventory, damage multipliers, and animation timers mapped |
 | **Mechanical C Lift (snesrecomp)** | 400 roots | 400 roots (1,079 variants) | **100 %** | Compiles & runs |
 
 ---
@@ -28,11 +28,12 @@
 | **Screen Transitions & Room Loader** | `$8E:E4E2` – `$8E:FFFF` | 8 / 22 | 3 / 3 (`enter_room`, `reset_per_room_state`, `scan_room_triggers`) | ✅ **Complete**: [`room-enter.md`](engine-core/room-enter.md), [`trigger-scanner.md`](maps/trigger-scanner.md) |
 | **Core WRAM & PPU Shadows** | `$7E:0070` – `$7E:013A` | 34 / 34 | Structs Defined | ✅ **Complete**: [`wram-map.md`](engine-core/wram-map.md) |
 | **Script VM & Opcode Dispatch**| `$8C:CFFD` – `$8C:EFFF` | 36 / 195 | 3 / 3 (`script_scheduler_pass`, `script_vm_eval_expression`, `launch_trigger_script`) | ✅ **Complete**: [`dispatcher.md`](script-vm/dispatcher.md), [`expression-eval.md`](script-vm/expression-eval.md) |
-| **Actor & Animation Engine** | `$80:9685`, `$90:xxxx` | 10 / 45 | 2 / 2 (`init_entity_pool`, `update_entity_physics`) | ✅ **Complete**: [`actor-lifecycle.md`](entities/actor-lifecycle.md), [`physics-integration.md`](entities/physics-integration.md) |
-| **Combat & Damage Math** | `$89:xxxx`, `$91:xxxx` | 8 / 38 | 1 / 1 (`calc_spell_power_and_cast`) | ✅ **Complete**: [`alchemy-formulas.md`](combat/alchemy-formulas.md) |
+| **Actor & Animation Engine** | `$80:9685`, `$90:xxxx` | 11 / 45 | 3 / 3 (`init_entity_pool`, `update_entity_physics`, `anim_vm_tick`) | ✅ **Complete**: [`actor-lifecycle.md`](entities/actor-lifecycle.md), [`physics-integration.md`](entities/physics-integration.md), [`animation-vm.md`](animation/animation-vm.md) |
+| **Combat & Damage Math** | `$89:xxxx`, `$91:xxxx` | 9 / 38 | 2 / 2 (`calc_spell_power_and_cast`, `apply_spell_damage_to_targets`) | ✅ **Complete**: [`alchemy-formulas.md`](combat/alchemy-formulas.md), [`damage-mitigation.md`](combat/damage-mitigation.md) |
 | **Audio / APU Handshake & Sound**| `$8C:8000` – `$8C:83FF` | 8 / 15 | 3 / 3 (`apu_command_handshake`, `load_song_soundbank`, `play_music_track`) | ✅ **Complete**: [`spc-handshake.md`](audio/spc-handshake.md) |
 | **Camera & Viewport Subsystem**| `$90:94AB` – `$90:9544` | 3 / 6 | 1 / 1 (`camera_center_and_clamp`) | ✅ **Complete**: [`camera-system.md`](engine-core/camera-system.md) |
 | **Map Metatiles & Collision Grid**| `$90:9DE8` – `$90:9E72` | 4 / 10 | 2 / 2 (`eval_tile_collision`, `update_entity_plane`) | ✅ **Complete**: [`tile-collision.md`](maps/tile-collision.md) |
+| **Ring Menu & UI Subsystems** | `$8E:8000` – `$8E:8E00` | 2 / 8 | 1 / 1 (`ring_menu_select_and_cost_check`) | ✅ **Complete**: [`ring-menu.md`](ui/ring-menu.md) |
 
 ---
 
@@ -40,23 +41,23 @@
 
 When an agent is prompted with *"continue the decompilation"*, work down this ordered queue:
 
-1. **Target 1: Ring Menu Engine & Item Selection (`$8E:8000` – `$8E:83FF`)**:
-   - Location: Bank `$8E` (`$8E:8000` – `$8E:83FF`).
-   - Purpose: Ring menu open/rotation animation, weapon/alchemy/item icon descriptors (`$8E:827C`), sub-menu navigation, and inventory validation.
-   - Evidence to consult: `alchemy-spell-mechanics/SKILL.md` Section 1, `soe://rom/0e8000.asm`.
-   - Deliverable: Decompile into clean C in `docs/disassembly/ui/ring-menu.md`.
+1. **Target 1: Dog AI State Machine & Sniffing Logic (`$8C:A400` / `$80:A4B5`)**:
+   - Location: Bank `$8C` / `$80` (`func_C0A4B5_M1X1`).
+   - Purpose: Dog companion AI: following distance to boy, sniffing hidden ingredient spots, aggressive enemy targeting, and sit/fetch behaviors.
+   - Evidence to consult: `.agents/skills/secret-of-evermore-engine/SKILL.md`, `soe://rom/00a4b5.asm`.
+   - Deliverable: Decompile into clean C in `docs/disassembly/entities/dog-ai.md`.
 
-2. **Target 2: Combat Damage Mitigation & Hurtbox Collision (`$91:9C90` – `$91:9D80`)**:
-   - Location: Bank `$91` (`$91:9C90` – `$91:9D80`).
-   - Purpose: Physical & magic damage calculations, defense reduction (`(64 - M.Def) / 64`), damage pop-up numbers, and HP subtraction/death state triggering.
-   - Evidence to consult: `docs/disassembly/combat/alchemy-formulas.md`, `soe://rom/019c90.asm`.
-   - Deliverable: Decompile into clean C in `docs/disassembly/combat/damage-mitigation.md`.
+2. **Target 2: Weapon Charge Attack & Stamina Gauge Math (`$80:B173` / `$80:B21F`)**:
+   - Location: Bank `$80` (`func_C0B173_M0X0`, `bank_80_B21F_M0X0`).
+   - Purpose: 0–100% weapon recharge stamina bar, charge levels 1–3 hold timers, and attack swing hitboxes.
+   - Evidence to consult: `src/games/evermore/simulation/machine.ts`, `soe://rom/00b173.asm`.
+   - Deliverable: Decompile into clean C in `docs/disassembly/combat/weapon-charge.md`.
 
-3. **Target 3: Animation Bytecode VM & Keyframe Driver (`$90:80CE` – `$90:8250`)**:
-   - Location: Bank `$90` (`$90:80CE` – `$90:8250`).
-   - Purpose: Secret of Evermore's animation bytecode interpreter (`$90`), frame duration timers, and keyframe event triggering.
-   - Evidence to consult: `.agents/skills/animation-script/SKILL.md`, `soe://rom/0080ce.asm`.
-   - Deliverable: Decompile into clean C in `docs/disassembly/animation/animation-vm.md`.
+3. **Target 3: Inventory Storage & Equipment Stat Application (`$8E:9EBE` / `$8E:9FA8`)**:
+   - Location: Bank `$8E` (`$8E:9EBE` – `$8E:A050`).
+   - Purpose: Equipping armors (collar, vest, helmet, bracer), calculating defense/magic defense aggregates, and weapon swapping.
+   - Evidence to consult: `docs/disassembly/ui/ring-menu.md`, `soe://rom/0e9ebe.asm`.
+   - Deliverable: Decompile into clean C in `docs/disassembly/ui/equipment-stats.md`.
 
 ---
 
@@ -80,3 +81,8 @@ When an agent is prompted with *"continue the decompilation"*, work down this or
   - Alchemy Formula Engine & Spell Power Math (`$91:CCD8`): analyzed target counting at `slot+$2E`, gross power math using hardware multiplier `$4202`, multi-target division via `$4204`, random variance (50% min + RNG), and formula experience/level-up progression (`docs/disassembly/combat/alchemy-formulas.md`).
   - Camera Centering & Margin Clamping (`$90:94AB`): analyzed fixed cutscene targets (`$242B`) vs entity tracking (`$0F42`), VRAM safety locking (`$0F3A++`), centering arithmetic, and clamping to `$7E:23E9`..`$23EF` (`docs/disassembly/engine-core/camera-system.md`).
   - Upgraded knowledge entries `909de8.md`, `8fa914.md`, `91ccd8.md`, `9094ab.md` to confirmed. Advanced queue to Ring Menu, Damage Mitigation, and Animation VM.
+- **2026-10-18 (Session 6)**: Decompiled Ring Menu Subsystem, Combat Damage Mitigation, and Animation VM:
+  - Ring Menu Engine & Item Descriptors (`$8E:8000`, `$8E:8D80`): analyzed 16-bit pointer table, 8-byte item structs, sub-item identifier extraction, player currency validation, and transaction rejection (`docs/disassembly/ui/ring-menu.md`).
+  - Combat Damage Mitigation & Hurtbox Resolution (`$91:9C90`): analyzed asymmetric defense reduction (player linear MDef subtraction vs enemy 64-base fractional reduction via Mode 7 multiplier `$211B`/`$2135`), damage clamping 1..999, HP subtraction, and floating number dispatch via `$8F:C0D3` (`docs/disassembly/combat/damage-mitigation.md`).
+  - Animation Bytecode VM & Keyframe Driver (`$90:80CE`): analyzed 24-bit script instruction pointer `[$5D]`, bit 7 end-of-frame marker, opcode dispatch via `$90:8000`, hold timer countdown (`slot+$05`), and PC advancement (`docs/disassembly/animation/animation-vm.md`).
+  - Created `8e8d80.md`; upgraded `919c90.md` and `9080ce.md` to confirmed. Advanced queue to Dog AI, Weapon Charge, and Equipment Stats.
