@@ -26,7 +26,7 @@ restyle of the current docked sidebar.
   `layerVis` object, and there is no segmented BG/FG/Collision pill or
   Triggers/Special dropdown chips.
 - **Triggers**: `bTrigger`/`stepOn` arrays already exist end-to-end (parsed in
-  `content-parser.js`, surfaced in `detail-renderer.js`,
+  `content-parser.ts`, surfaced in `detail-renderer.js`,
   `map-editor-constructs.js`). There is **no** `selectedTriggerRef`, no
   click-to-select/drag-to-move, no copy/paste, no drag-to-reorder.
 - **Capacity bars**: partially exists — `map-editor-panels.js` already has a
@@ -34,7 +34,7 @@ restyle of the current docked sidebar.
   bars are not wired yet.
 - **Special tiles** (stairs/drift, gate, entrance-as-placement-helper): **no
   equivalent exists.** Entrances are currently only parsed/read-only room
-  metadata (`content-parser.js`), not an editable tile-adjacent concept.
+  metadata (`content-parser.ts`), not an editable tile-adjacent concept.
 - **Widgets tab**: no equivalent tab, but `map-editor-deco.js` +
   `rooms/rendering/deco-catalogue.js` / `deco-preview.js` already implement
   almost exactly what the mock calls "widgets" (vanilla Section-3 objects as
@@ -103,7 +103,7 @@ explicitly run in isolated worktrees.
 ## 5. Open questions to resolve during Phase 3/5
 
 - Special-tab "Entrance" placement helpers vs. the room's already-parsed
-  `entrances` data (`content-parser.js`) — reuse one model, don't duplicate.
+  `entrances` data (`content-parser.ts`) — reuse one model, don't duplicate.
 - Whether "widgets" fully subsumes "deco" naming/UX, or the mock's Widgets tab
   is deco plus a few new affordances (ready-only toggle, warnings) layered on.
 

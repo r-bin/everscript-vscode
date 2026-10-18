@@ -1,23 +1,37 @@
-'use strict';
 // ROM reading functions for Memory Radar — extracted from extension.js
 // The Evermore ROM comes from the ROM library (docs/architecture/multi-game.md §5): the selected
 // ROM when it is Evermore, else the base ROM. `wsRoot` parameters are kept for the callers only.
 
-const path = require('path');
-const fs   = require('fs');
-const { romPath } = require('../../../dist/games');
+import * as path from 'path';
+import * as fs from 'fs';
+import { romPath } from '..';
+
+/** A room header and its trigger tables, as the Rooms tab shows them (null fields: the data ran out). */
+interface RomMapHeader {
+    offX: number; offY: number; mapW: number; mapH: number; mapWpx: number; mapHpx: number; scrollW: number; scrollH: number;
+    b4: number; b5: number; b6: number; b7: number; b8: number; sig: string; renderPreset: string | null;
+    unknownWord: number; b11: number; b12: number;
+    stepLen: number | null; stepCount: number | null; bLen: number | null; bCount: number | null;
+    payloadOffset: number | null; payloadTileCount: number | null; payloadTileIds: number[] | null;
+}
+/** One character record's name and stats. */
+interface RomCharacter {
+    id: number; name: string; hp: number; attack: number; defense: number; magic_defense: number; evade: number; hit_rate: number;
+}
+/** hit% by hit rate, then evade. */
+type HitLookup = Record<number, Record<number, number>>;
 
 /** Candidate ROM paths, in resolution order: an explicit path, then the library's Evermore ROM. */
-function romCandidates(_wsRoot, romPathOverride = '') {
-    return [romPathOverride, romPath('evermore')].filter(Boolean);
+function romCandidates(_wsRoot: unknown, romPathOverride = ''): string[] {
+    return [romPathOverride, romPath('evermore')].filter((p): p is string => !!p);
 }
 
 // The ROM is ~3MB and the individual readers each re-read it. Cache the buffer
 // keyed by path + mtime so repeated decodes (e.g. room tile overlays) are cheap.
-let _romCache = null;
+let _romCache: { path: string; mtime: number; buf: Buffer } | null = null;
 
 /** Load the workspace ROM as a Buffer, cached by path and mtime. Null if absent. */
-function loadRomBuffer(wsRoot, romPathOverride = '') {
+function loadRomBuffer(wsRoot?: unknown, romPathOverride = ''): Buffer | null {
     try {
         for (const p of romCandidates(wsRoot, romPathOverride)) {
             if (!p || !fs.existsSync(p)) continue;
@@ -32,7 +46,7 @@ function loadRomBuffer(wsRoot, romPathOverride = '') {
 }
 
 /** The ROM file `loadRomBuffer` would read, or null when none exists. */
-function resolveRomPath(wsRoot, romPathOverride = '') {
+function resolveRomPath(wsRoot?: unknown, romPathOverride = ''): string | null {
     for (const p of romCandidates(wsRoot, romPathOverride)) {
         if (p && fs.existsSync(p)) return p;
     }
@@ -41,10 +55,10 @@ function resolveRomPath(wsRoot, romPathOverride = '') {
 
 // ROM files mounted as folders (`soe://rom/?rom=<path>`): one entry per path,
 // so a mount never evicts the workspace ROM above.
-const _fileCache = new Map();
+const _fileCache = new Map<string, { mtime: number; buf: Buffer }>();
 
 /** Load the ROM at an absolute path, cached by path and mtime. Null if unreadable. */
-function loadRomFile(romPath) {
+function loadRomFile(romPath: string): Buffer | null {
     try {
         const mtime = fs.statSync(romPath).mtimeMs;
         const hit = _fileCache.get(romPath);
@@ -61,7 +75,7 @@ function loadRomFile(romPath) {
 function invalidateRomBuffer() { _romCache = null; }
 
 /** Read width/height from a PNG file header. Returns {w,h} or null. */
-function readPngDimensions(filePath) {
+function readPngDimensions(filePath: string): { w: number; h: number } | null {
     try {
         const buf = Buffer.alloc(24);
         const fd = fs.openSync(filePath, 'r');
@@ -84,7 +98,7 @@ function readPngDimensions(filePath) {
  * @param {number} mapId   Numeric map ID (e.g. 0x5c)
  * @returns {{offX:number, offY:number}|null}
  */
-function readRomTriggerOffsets(wsRoot, mapId) {
+function readRomTriggerOffsets(wsRoot: unknown, mapId: number): { offX: number; offY: number } | null {
     const h = readRomMapHeader(wsRoot, mapId);
     return h ? { offX: h.offX, offY: h.offY } : null;
 }
@@ -110,10 +124,10 @@ function readRomTriggerOffsets(wsRoot, mapId) {
  * @param {number} mapId
  * @returns {object|null}
  */
-function readRomMapHeader(wsRoot, mapId, romPathOverride = '') {
+function readRomMapHeader(wsRoot: unknown, mapId: number, romPathOverride = ''): RomMapHeader | null {
     if (mapId == null) return null;
     try {
-        return readRomMapHeaderFrom(loadRomBuffer(wsRoot, romPathOverride), mapId);
+        return readRomMapHeaderFrom(loadRomBuffer(wsRoot, romPathOverride) as Uint8Array, mapId);
     } catch { return null; }
 }
 
@@ -123,7 +137,7 @@ function readRomMapHeader(wsRoot, mapId, romPathOverride = '') {
  * @param {Uint8Array} romBuf
  * @param {number} mapId
  */
-function readRomMapHeaderFrom(romBuf, mapId) {
+function readRomMapHeaderFrom(romBuf: Uint8Array | null, mapId: number): RomMapHeader | null {
     if (!romBuf || mapId == null) return null;
     try {
         // Map pointer table at SNES 0x9ffde7 = ROM 0x1ffde7 (HiROM no header)
@@ -133,8 +147,8 @@ function readRomMapHeaderFrom(romBuf, mapId) {
         const dataSnes = romBuf[ptrAddr] | (romBuf[ptrAddr + 1] << 8) | (romBuf[ptrAddr + 2] << 16);
         const dataRom  = ((dataSnes >> 16) & 0x3f) * 0x10000 + (dataSnes & 0xffff);
         if (dataRom + 20 >= romBuf.length) return null;
-        const h   = (off) => romBuf[dataRom + off];
-        const h16 = (off) => romBuf[dataRom + off] | (romBuf[dataRom + off + 1] << 8);
+        const h   = (off: number): number => romBuf[dataRom + off];
+        const h16 = (off: number): number => romBuf[dataRom + off] | (romBuf[dataRom + off + 1] << 8);
         const offX = h(0), offY = h(1);
         const mapW = h(2), mapH = h(3);
         const b4 = h(4), b5 = h(5), b6 = h(6), b7 = h(7), b8 = h(8);
@@ -146,7 +160,7 @@ function readRomMapHeaderFrom(romBuf, mapId) {
         const scrollH = Math.max(0, mapHpx - 224);
         // Render preset lookup (5-byte signature of bytes 4..8)
         const sig = [b4, b5, b6, b7, b8].map(v => v.toString(16).padStart(2, '0')).join(' ');
-        const PRESETS = {
+        const PRESETS: Record<string, string> = {
             '17 00 00 02 00': 'default outdoor / neutral',
             '17 11 02 02 00': 'indoor / interior',
             '17 01 42 02 00': 'cave / transition-heavy',
@@ -170,7 +184,7 @@ function readRomMapHeaderFrom(romBuf, mapId) {
         const bCount     = Math.floor(bLen / 6);
         const payloadOff = bLenOff + 2 + bLen;
         // Payload tile-set list: 1-byte count + count × uint16 tile-family IDs
-        let payloadTileCount = null, payloadTileIds = null;
+        let payloadTileCount: number | null = null, payloadTileIds: number[] | null = null;
         if (dataRom + payloadOff < romBuf.length) {
             const tileCount = romBuf[dataRom + payloadOff];
             const tileEnd   = dataRom + payloadOff + 1 + tileCount * 2;
@@ -190,7 +204,7 @@ function readRomMapHeaderFrom(romBuf, mapId) {
  * @param {string} wsRoot
  * @returns {Array<{id,name,hp,attack,defense,magic_defense,evade,hit_rate}>}
  */
-function readRomCharacters(wsRoot, romPathOverride = '') {
+function readRomCharacters(wsRoot: unknown, romPathOverride = ''): RomCharacter[] {
     const CHAR_BASE = 0x0EB678;
     const CHAR_SIZE = 0x4a;
     const CHAR_COUNT = 142;
@@ -199,7 +213,7 @@ function readRomCharacters(wsRoot, romPathOverride = '') {
     try {
         const romBuf = loadRomBuffer(wsRoot, romPathOverride);
         if (!romBuf) return [];
-        const chars = [];
+        const chars: RomCharacter[] = [];
         for (let i = 0; i < CHAR_COUNT; i++) {
             const base = CHAR_BASE + i * CHAR_SIZE;
             if (base + CHAR_SIZE > romBuf.length) break;
@@ -238,7 +252,7 @@ function readRomCharacters(wsRoot, romPathOverride = '') {
  * Returns { hit_rate: { evade: pct } } for all unique (hit_rate, evade) pairs in chars.
  * Addresses: $8FBAAF (evasion pointer table), $8F0000 (hit value table) — HiROM, no header.
  */
-function readRomHitLookup(wsRoot, chars) {
+function readRomHitLookup(wsRoot: unknown, chars: Partial<RomCharacter>[] | null | undefined): HitLookup {
     if (!chars || !chars.length) return {};
     try {
         const romBuf = loadRomBuffer(wsRoot);
@@ -248,7 +262,7 @@ function readRomHitLookup(wsRoot, chars) {
         // 0x8F0000 → 0x0F0000 + 0x0000 = 0x0F0000
         const PTR_BASE  = 0x0FBAAF;
         const HIT_BASE  = 0x0F0000;
-        const calcHit = (hit_rate, evade) => {
+        const calcHit = (hit_rate: number, evade: number): number | null => {
             const sprite_off = Math.floor((evade + 1) / 2) & 0xFFFE;
             const ptr_addr   = PTR_BASE + sprite_off;
             if (ptr_addr + 2 > romBuf.length) return null;
@@ -259,17 +273,17 @@ function readRomHitLookup(wsRoot, chars) {
             const raw = romBuf.readUInt16LE(final_addr);
             return Math.min(100, raw / 0x7FFF * 100);
         };
-        const hitRates = new Set([38, 50]);
+        const hitRates = new Set<number>([38, 50]);
         // Pre-compute all hit_rates Boy and Dog could have across L1–L37 (hitRateG=1)
         for (let hr = 1; hr <= 127; hr++) hitRates.add(hr);
-        const evades   = new Set([0]);
+        const evades   = new Set<number>([0]);
         for (const c of chars) {
             if (c.hit_rate !== undefined) hitRates.add(c.hit_rate);
             if (c.evade    !== undefined) evades.add(c.evade);
         }
-        const lookup = {};
+        const lookup: HitLookup = {};
         for (const hr of hitRates) {
-            const row = {};
+            const row: Record<number, number> = {};
             for (const ev of evades) {
                 const pct = calcHit(hr, ev);
                 if (pct !== null) row[ev] = Math.round(pct * 10) / 10;
@@ -285,7 +299,7 @@ function readRomHitLookup(wsRoot, chars) {
  * @param {string} wsRoot
  * @returns {boolean}
  */
-function detectScaleEnemies(wsRoot, docPath) {
+function detectScaleEnemies(wsRoot: string | null | undefined, docPath?: string | null): boolean {
     if (!wsRoot) return false;
     try {
         // Walk up from docPath to find the nearest main.evs in its directory tree.
@@ -312,16 +326,5 @@ function detectScaleEnemies(wsRoot, docPath) {
     } catch { return false; }
 }
 
-module.exports = {
-    loadRomFile,
-    readPngDimensions,
-    readRomTriggerOffsets,
-    readRomMapHeader,
-    readRomMapHeaderFrom,
-    readRomCharacters,
-    readRomHitLookup,
-    detectScaleEnemies,
-    loadRomBuffer,
-    resolveRomPath,
-    invalidateRomBuffer,
-};
+export type { RomMapHeader, RomCharacter, HitLookup };
+export { loadRomFile, readPngDimensions, readRomTriggerOffsets, readRomMapHeader, readRomMapHeaderFrom, readRomCharacters, readRomHitLookup, detectScaleEnemies, loadRomBuffer, resolveRomPath, invalidateRomBuffer };

@@ -17,7 +17,7 @@
  */
 
 const { hex } = require('../../../dist/platform/cdl/rom-map');
-const { retsList, RET, WCODE } = require('./library-ext');
+const { retsList, RET, WCODE } = require('../../../dist/platform/cdl/library-ext');
 const { decodeAt } = require('../../../dist/platform/cdl/disasm');
 
 const FLOW_INDIRECT = 8, FLOW_RETURN = 0x20;

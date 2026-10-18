@@ -4,7 +4,7 @@
 // Injected by extension.js: getExtConfig (compiler and paths), openEmulatorPanel.
 
 const vscode = require('vscode');
-const romReaders = require('../rom-readers');
+const romReaders = require('../../../../dist/games/evermore/rom-readers');
 const { missingRomText } = require('../../../../dist/platform/roms/library');
 
 function registerBuildAndRun(context, { getExtConfig, openEmulatorPanel }) {

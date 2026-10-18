@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: `soe://rom/<offset>.asm` (and `soe://bus/<addr>.asm`): a readable
 // 65816 listing at a ROM address, and the short excerpt the Music tab shows for
 // engine code that sent a sound. Pure: ROM bytes in, lines out.
@@ -9,17 +8,23 @@
 // REP/SEP says otherwise, and says so. Calls and long operands are named from
 // localizations (functions, tables).
 
-const { OPCODES, instructionLength, endsFlow } = require('../../../../dist/platform/snes/opcodes-65816');
-const { getFunction } = require('../../../../dist/games/evermore/localizations/functions');
-const { getTable } = require('../../../../dist/games/evermore/localizations/tables');
+import { OPCODES, instructionLength, endsFlow } from '../../../platform/snes/opcodes-65816';
+import { getFunction } from '../localizations/functions';
+import { getTable } from '../localizations/tables';
+import { getDecompiledC } from './decomp-view';
+
+/** One listed instruction: where, its bytes, the opcode, the text; `name` of what it calls, `mark` on the call. */
+interface AsmLine { addr: number; bytes: number[]; op: number; text: string; name?: string; mark?: boolean }
+/** The CPU widths the decode assumes; `stopAtEnd` stops after a return or jump. */
+interface DecodeState { m8: boolean; x8: boolean; stopAtEnd?: boolean }
 
 const SYNC_BYTES = 48;
 const SUSPECT = new Set(['BRK', 'COP', 'WDM', 'STP', 'WAI', 'XCE']);
 
-const h = (v, d) => '$' + (v >>> 0).toString(16).toUpperCase().padStart(d, '0');
+const h = (v: number, d: number): string => '$' + (v >>> 0).toString(16).toUpperCase().padStart(d, '0');
 
 /** HiROM bus address -> file offset, or null (WRAM, I/O, lower halves). */
-function busToFile(bus) {
+function busToFile(bus: number): number | null {
     const bank = bus >> 16, lo = bus & 0xFFFF;
     if (bank >= 0xC0) return bus - 0xC00000;
     if (bank >= 0x40 && bank < 0x7E) return bus - 0x400000;
@@ -27,14 +32,14 @@ function busToFile(bus) {
     return null;
 }
 
-function nameOf(addr) {
+function nameOf(addr: number): string | null {
     const f = getFunction(addr) || getFunction((addr & 0x3FFFFF) | 0x800000) || getFunction((addr & 0x3FFFFF) | 0xC00000);
     if (f) return f.name;
     const t = getTable(addr & 0x3FFFFF) || getTable(addr);
     return t ? t.name : null;
 }
 
-function operandText(ins, addr) {
+function operandText(ins: { mode: string; len: number; operand: number }, addr: number): string {
     const v = ins.operand, h2 = h(v, 2), h4 = h(v, 4), h6 = h(v, 6);
     switch (ins.mode) {
         case 'imp': return '';
@@ -56,8 +61,8 @@ function operandText(ins, addr) {
 }
 
 /** Decodes `count` instructions from bus address `bus`: [{ addr, bytes, op, text, name? }]. */
-function decode(rom, bus, count, state) {
-    const out = [], st = state || { m8: false, x8: false };
+function decode(rom: Uint8Array, bus: number, count: number, state?: DecodeState): AsmLine[] {
+    const out: AsmLine[] = [], st = state || { m8: false, x8: false };
     let addr = bus;
     for (let i = 0; i < count; i++) {
         const off = busToFile(addr);
@@ -68,8 +73,9 @@ function decode(rom, bus, count, state) {
         const ins = { mnemonic: o.mnemonic, mode: o.mode, len, operand };
         const arg = operandText(ins, addr);
         const target = o.mode === 'long' ? operand : (o.mnemonic === 'JSR' || o.mnemonic === 'JMP') && o.mode === 'abs' ? (addr & 0xFF0000) | operand : null;
-        const line = { addr, bytes: Array.from(rom.subarray(off, off + len)), op, text: o.mnemonic.toLowerCase() + (arg ? ' ' + arg : '') };
-        if (target !== null && nameOf(target)) line.name = nameOf(target);
+        const line: AsmLine = { addr, bytes: Array.from(rom.subarray(off, off + len)), op, text: o.mnemonic.toLowerCase() + (arg ? ' ' + arg : '') };
+        const called = target !== null ? nameOf(target) : null;
+        if (called) line.name = called;
         out.push(line);
         if (o.mnemonic === 'REP') { if (operand & 0x20) st.m8 = false; if (operand & 0x10) st.x8 = false; }
         if (o.mnemonic === 'SEP') { if (operand & 0x20) st.m8 = true; if (operand & 0x10) st.x8 = true; }
@@ -80,7 +86,7 @@ function decode(rom, bus, count, state) {
 }
 
 /** The earliest start within SYNC_BYTES before `mark` whose decode lands on it, plausibly. */
-function syncTo(rom, mark) {
+function syncTo(rom: Uint8Array, mark: number): AsmLine[] | null {
     for (let start = mark - SYNC_BYTES; start < mark; start++) {
         if ((start & 0xFFFF) < 0x8000 && (mark & 0xFFFF) >= 0x8000) continue;
         const lines = decode(rom, start, 40, { m8: false, x8: false });
@@ -96,7 +102,7 @@ function syncTo(rom, mark) {
  * The code that made a call returning to `ret` (a JSL is 4 bytes, a JSR 3): a few
  * instructions before it, the call (mark: true) and after. { lines, start, assumed }.
  */
-function asmAroundCall(rom, ret, before = 7) {
+function asmAroundCall(rom: Uint8Array, ret: number, before = 7) {
     const callAt = [4, 3].map(n => ret - n).find(a => {
         const off = busToFile(a);
         return off !== null && (rom[off] === (ret - a === 4 ? 0x22 : 0x20));
@@ -109,15 +115,13 @@ function asmAroundCall(rom, ret, before = 7) {
     return { lines, name: nameOf(ret), assumed: '16-bit A/X assumed until a REP/SEP' };
 }
 
-const { getDecompiledC } = require('../../../../dist/games/evermore/resources/decomp-view');
-
-function lineText(l) {
+function lineText(l: AsmLine): string {
     const bytes = l.bytes.map(b => b.toString(16).padStart(2, '0')).join(' ');
     return h(l.addr, 6) + '  ' + bytes.padEnd(12) + l.text.padEnd(22) + (l.name ? '; ' + l.name : '') + (l.mark ? '   <- here' : '');
 }
 
 /** The listing file: 48 instructions from `bus`, stopping after a return. */
-function asmListing(rom, bus, options = {}) {
+function asmListing(rom: Uint8Array, bus: number, options: { wantsC?: boolean } = {}): string {
     const name = nameOf(bus);
     const lines = decode(rom, bus, 48, { m8: false, x8: false, stopAtEnd: true });
     let out = '; ' + h(bus, 6) + (name ? '  ' + name : '') + '\n; 65816, 16-bit A/X assumed until a REP/SEP\n\n' + lines.map(lineText).join('\n') + '\n';
@@ -133,5 +137,6 @@ function asmListing(rom, bus, options = {}) {
     return out;
 }
 
-module.exports = { asmListing, asmAroundCall, lineText, busToFile };
+export type { AsmLine };
+export { asmListing, asmAroundCall, lineText, busToFile };
 

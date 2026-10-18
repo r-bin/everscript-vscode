@@ -39,7 +39,7 @@ let localizations: Localizations | null = null;
 function loc(): Localizations {
     if (!localizations) {
         // Runs from dist/ (the build); the localizations are JS in src/.
-        localizations = require('../../../../src/games/evermore/localizations') as Localizations;
+        localizations = require('../localizations') as Localizations;
     }
     return localizations;
 }

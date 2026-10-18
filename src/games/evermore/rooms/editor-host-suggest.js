@@ -4,7 +4,7 @@
 // dispatches; `ctx` is described there.
 
 const vscode = require('vscode');
-const romReaders = require('../rom-readers');
+const romReaders = require('../../../../dist/games/evermore/rom-readers');
 const { buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, buildWidgetPreviews, buildConstructGhost, relatedTiles, neighbourTiles, vanillaExamples, proceduralFill } = require('./index');
 const { missingRomText } = require('../../../../dist/platform/roms/library');
 

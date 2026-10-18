@@ -7,7 +7,7 @@
 // The format is docs/map-format/custom-map-files.md §4.
 
 const { buildExportRom, BRIAN_ROOM } = require('./rom-export');
-const { mapDocument } = require('../data/custom-store');
+const { mapDocument } = require('../../../../../dist/games/evermore/rooms/data/custom-store');
 const { buildZip } = require('../../../../../dist/platform/zip');
 const { hexLower } = require('../../../../../dist/platform');
 

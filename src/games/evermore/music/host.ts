@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: the Music tab's host side: answers the webview's requests and
 // caches the model. No VS Code dependency: extension.js injects the ROM loader,
 // `post`, and the emulator's sound-chip stream (`apu`), so this domain never
@@ -15,33 +14,46 @@
 //   page -> musicOpen { uri }              opens a soe:// link in the editor
 //                                     host -> musicPaused { paused }   (from extension.js: the emulator's pause)
 
-const { buildMusicModel, packageData } = require('../../../../dist/games/evermore/music/model/catalog');
-const { missingRomText } = require('../../../../dist/platform/roms/library');
+import { buildMusicModel, packageData } from './model/catalog';
+import { missingRomText } from '../../../platform/roms/library';
 
-let _cache = null;   // { rom, model }
+/** What extension.js hands in: posting to the page, the ROM, the emulator's sound chip, link opening. */
+interface MusicDeps {
+    post(msg: object): void;
+    loadRom(): Buffer | null;
+    apu: {
+        setOn(on: boolean): void;
+        snapshot(): Promise<{ view?: number[]; ram?: number[]; pkg?: number; frame?: number }>;
+        isOpen(): boolean;
+        point?(entity: number, label?: string): void;
+    };
+    /** Who sent a sound (resources/sound-source.js). */
+    describeSource?(rom: Buffer, src: unknown): unknown;
+    open?(uri: string): void;
+}
+/** A message from the Music page. */
+interface MusicMessage { command: string; id?: number; on?: boolean; key?: string; src?: unknown; uri?: unknown; entity?: number; label?: string }
+type MusicModel = ReturnType<typeof buildMusicModel>;
 
-const handlesMusicMessage = command => typeof command === 'string' && command.startsWith('music');
+let _cache: { rom: Buffer; model: MusicModel } | null = null;
 
-function loadRom(deps) {
+const handlesMusicMessage = (command: unknown): boolean => typeof command === 'string' && command.startsWith('music');
+
+function loadRom(deps: Pick<MusicDeps, 'loadRom'>): Buffer | null {
     const buf = deps.loadRom();
     if (!buf) return null;
     return buf.length % 0x8000 === 0x200 ? buf.subarray(0x200) : buf;
 }
 
-function model(deps) {
+function model(deps: Pick<MusicDeps, 'loadRom'>): { rom: Buffer | null; model: MusicModel } {
     const rom = loadRom(deps);
     if (!rom) return { rom: null, model: { error: missingRomText('evermore') } };
     if (!_cache || _cache.rom.length !== rom.length || !_cache.rom.equals(rom)) _cache = { rom, model: buildMusicModel(rom) };
     return _cache;
 }
 
-/**
- * @param msg  webview message
- * @param deps {post, loadRom: () => Buffer|null,
- *              apu: {setOn(on), snapshot(): Promise<{view, ram, pkg, frame}>, isOpen(): boolean, point(entity, label)},
- *              describeSource(rom, src) (resources/sound-source.js), open(uri)}
- */
-function handleMusicMessage(msg, deps) {
+/** Answers one message from the Music page. */
+function handleMusicMessage(msg: MusicMessage, deps: MusicDeps): void {
     switch (msg.command) {
         case 'musicInit':
             deps.post({ command: 'musicModel', model: model(deps).model });
@@ -49,7 +61,7 @@ function handleMusicMessage(msg, deps) {
             return;
         case 'musicPackage': {
             const { rom } = model(deps);
-            deps.post({ command: 'musicPackageData', id: msg.id, records: rom ? packageData(rom, msg.id) : [] });
+            deps.post({ command: 'musicPackageData', id: msg.id, records: rom ? packageData(rom, msg.id ?? 0) : [] });
             return;
         }
         case 'musicStream':
@@ -67,20 +79,21 @@ function handleMusicMessage(msg, deps) {
             if (deps.open && /^soe:\/\//.test(String(msg.uri))) deps.open(String(msg.uri));
             return;
         case 'musicPoint':
-            if (deps.apu.point) deps.apu.point(msg.entity, msg.label);
+            if (deps.apu.point) deps.apu.point(msg.entity ?? 0, msg.label);
             return;
         case 'musicSnapshot':
             deps.apu.snapshot()
                 .then(s => deps.post({ command: 'musicSnapshotData', id: msg.id, view: s.view, ram: s.ram, pkg: s.pkg, frame: s.frame }))
-                .catch(e => deps.post({ command: 'musicSnapshotData', id: msg.id, error: String(e && e.message || e) }));
+                .catch((e: unknown) => deps.post({ command: 'musicSnapshotData', id: msg.id, error: String(e instanceof Error ? e.message : e) }));
             return;
     }
 }
 
 /** Sound-effect names by driver id (for the emulator's marks), or null without the ROM. */
-function sfxNames(loadRom) {
+function sfxNames(loadRom: () => Buffer | null): string[] | null {
     const m = model({ loadRom }).model;
-    return m.error ? null : m.sfx.map(s => s.name || '');
+    return 'error' in m ? null : m.sfx.map(s => s.name || '');
 }
 
-module.exports = { handlesMusicMessage, handleMusicMessage, sfxNames };
+export type { MusicDeps, MusicMessage };
+export { handlesMusicMessage, handleMusicMessage, sfxNames };

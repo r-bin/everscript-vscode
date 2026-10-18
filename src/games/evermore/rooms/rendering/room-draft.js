@@ -14,7 +14,7 @@ const { romFingerprint } = require('../../../../../dist/games/evermore/rooms/ren
 const { vanillaIndex, budgetSummary } = require('./vanilla-index');
 const { VANILLA_ROOMS } = require('../data/vanilla-data');
 const { overlayOptions } = require('./tile-overlay');
-const { animationOf, sheetAnimations, shapeCounts, stairsOf, specialFlagsOf } = require('./graphic-traits');
+const { animationOf, sheetAnimations, shapeCounts, stairsOf, specialFlagsOf } = require('../../../../../dist/games/evermore/rooms/rendering/graphic-traits');
 
 /** Tiles per sheet row, matching the metatile atlas. */
 const COLUMNS = 16;

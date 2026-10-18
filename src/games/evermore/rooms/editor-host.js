@@ -13,7 +13,7 @@
 const vscode = require('vscode');
 const path = require('path');
 const os = require('os');
-const romReaders = require('../rom-readers');
+const romReaders = require('../../../../dist/games/evermore/rom-readers');
 const { buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildFamilyPreviews } = require('./index');
 const { missingRomText } = require('../../../../dist/platform/roms/library');
 const { ROM_HANDLERS } = require('./editor-host-rom');

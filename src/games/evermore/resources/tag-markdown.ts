@@ -1,28 +1,50 @@
-'use strict';
 // Ownership: the Markdown and JSON views of `soe://tags/` pages. Pure: takes
 // the tag model and already-read live values. Every link is an absolute
 // `soe://` address, so an AI reading through MCP can open it as written.
 
 const IMAGE = /\.(png|gif)(\?.*)?$/i;
 
-const cell = s => String(s ?? '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
-const tagPath = id => id.split('.').join('/');
+/** A link from a tag to a soe:// resource. */
+interface TagLink { uri: string; role?: string; status?: string; source?: string; id?: string }
+interface TagClaim { uri: string; text: string; source?: string; status?: string; id?: string }
+/** One tag as the model holds it (tag-model.js). */
+interface Tag {
+    altTitles: string[]; parents: string[]; size?: number; source?: string; status?: string;
+    links: TagLink[]; claims: TagClaim[]; see: string[]; origins: Iterable<string>;
+}
+/** What these pages ask of the tag model. */
+interface TagModel {
+    tags: Map<string, Tag>;
+    isDir(id: string): boolean;
+    title(id: string): string;
+    children(id: string): Map<string, { id: string; from: string[] }>;
+    ancestors(id: string): string[];
+    conflicts(id: string): { uri: string; claim: TagClaim & { id: string }; link: TagLink & { id: string } }[];
+    referencedBy(id: string): string[];
+    resolve(name: string): { id: string } | null | undefined;
+    roots(): string[];
+    search(word: string): string[];
+}
+type Values = Map<string, string | null | undefined>;
+
+const cell = (s: unknown): string => String(s ?? '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
+const tagPath = (id: string): string => id.split('.').join('/');
 /** Link text for a resource: the address without `soe://`. */
-const short = uri => String(uri).replace(/^soe:\/\//, '');
+const short = (uri: unknown): string => String(uri).replace(/^soe:\/\//, '');
 
 /** The page address of a tag: `soe://tags/boy/index.md` for a tag with sub-tags, else `soe://tags/boy/hp.md`. */
-function pageUri(model, id, ext = 'md') {
+function pageUri(model: TagModel, id: string, ext = 'md'): string {
     return model.isDir(id) ? `soe://tags/${tagPath(id)}/index.${ext}` : `soe://tags/${tagPath(id)}.${ext}`;
 }
 
-const tagLink = (model, id) => `[${id}](${pageUri(model, id)})`;
+const tagLink = (model: TagModel, id: string): string => `[${id}](${pageUri(model, id)})`;
 
 /** A live value for display: a `ram/<addr>.json` word, a flag bit, or a short `.bin` as a little-endian number. */
-function formatValue(uri, bytes) {
+function formatValue(uri: string, bytes: Uint8Array): string | null {
     if (/\.json(\?|$)/.test(uri)) {
         const v = JSON.parse(Buffer.from(bytes).toString('utf8'));
         if (typeof v.set === 'boolean') return v.set ? 'set' : 'clear';
-        if (Array.isArray(v.bits)) return `${v.hex}: ${v.bits.filter(b => b.set).map(b => b.name).join(', ') || 'none set'}`;
+        if (Array.isArray(v.bits)) return `${v.hex}: ${v.bits.filter((b: { set: boolean }) => b.set).map((b: { name: string }) => b.name).join(', ') || 'none set'}`;
         if (typeof v.value === 'number') return `${v.value} (${v.hex})${v.valueName ? ' ' + v.valueName : ''}`;
         if (typeof v.word === 'number') return `${v.word} (${v.hex})${v.valueName ? ' ' + v.valueName : ''}`;
         if (typeof v.byte === 'number') return `${v.byte}`;
@@ -35,7 +57,7 @@ function formatValue(uri, bytes) {
 }
 
 /** A tag as data. `values` maps a link uri to its live value. */
-function tagJson(model, id, values = new Map()) {
+function tagJson(model: TagModel, id: string, values: Values = new Map()) {
     const t = model.tags.get(id);
     const kids = model.children(id);
     return {
@@ -62,12 +84,12 @@ function tagJson(model, id, values = new Map()) {
     };
 }
 
-function firstValue(model, id, values) {
+function firstValue(model: TagModel, id: string, values: Values) {
     for (const l of model.tags.get(id)?.links || []) if (values.has(l.uri)) return values.get(l.uri);
     return undefined;
 }
 
-function tagMarkdown(model, id, values = new Map(), live = null) {
+function tagMarkdown(model: TagModel, id: string, values: Values = new Map(), live: string | null = null): string {
     const j = tagJson(model, id, values);
     const out = [`# ${id}${j.title ? ': ' + j.title : ''}`, ''];
     if (j.altTitles.length) out.push(`Also called: ${j.altTitles.join(' · ')}`, '');
@@ -117,7 +139,7 @@ function tagMarkdown(model, id, values = new Map(), live = null) {
     return out.join('\n');
 }
 
-function rootMarkdown(model) {
+function rootMarkdown(model: TagModel): string {
     const out = [
         '# soe://tags/', '',
         'Everything known about one game concept under one name. A tag is a set of links to',
@@ -136,7 +158,7 @@ function rootMarkdown(model) {
     return out.join('\n');
 }
 
-function searchMarkdown(model, word) {
+function searchMarkdown(model: TagModel, word: string): string {
     const hits = model.search(word);
     const out = [`# Tags matching "${word}" (${hits.length})`, ''];
     if (!hits.length) out.push('No tag id or title contains this word. See [soe://tags/](soe://tags/index.md).', '');
@@ -148,4 +170,5 @@ function searchMarkdown(model, word) {
     return out.join('\n');
 }
 
-module.exports = { pageUri, tagPath, formatValue, tagJson, tagMarkdown, rootMarkdown, searchMarkdown };
+export type { TagModel, Tag, TagLink };
+export { pageUri, tagPath, formatValue, tagJson, tagMarkdown, rootMarkdown, searchMarkdown };

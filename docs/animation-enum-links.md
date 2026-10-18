@@ -17,7 +17,7 @@ and a link that opens it in the Characters → Animations view.
 
 - `ANIMATION_PLACEHOLDER.*` are global ids. They draw as character #25 (`$BDB2`).
 - `ANIMATION_ENEMY.GORE = 0x8010` is relative: it is a different animation for every enemy.
-- The extension already resolves both: `src/games/evermore/sprites/animation-catalog.js` (owners of each
+- The extension already resolves both: `src/games/evermore/sprites/animation-catalog.ts` (owners of each
   record, including `animate()` ids via `$C43C92`), `src/games/evermore/sprites/thumbnails.js`
   (`recordRestingSprite`), and `src/games/evermore/maps/animation-vm.ts` (runs a script into frames).
 

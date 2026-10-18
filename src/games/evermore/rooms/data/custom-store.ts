@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: custom maps on disk — one folder per map, holding its editor
 // document (map.json) and its whole edit history (history.json), plus an
 // index of the order and the map that was open last.
@@ -8,36 +7,48 @@
 // passes `<globalStorage>/custom-maps`. No VS Code API, so the tests run it
 // against a temp folder.
 
-const fs = require('fs');
-const path = require('path');
+import * as fs from 'fs';
+import * as path from 'path';
 
 const MAP_FORMAT = 'everscript-custom-map';
 const HISTORY_FORMAT = 'everscript-custom-map-history';
 const VERSION = 1;
 
+/** A custom map as the webview holds it (map-editor-custom.js). */
+interface CustomMap {
+    key: string; name?: string; borrow?: number; w?: number; h?: number; created?: string; modified?: string;
+    saved?: object | null; history?: { undo?: unknown[]; redo?: unknown[] } | null; readOnly?: boolean;
+}
+interface CustomIndex { order: string[]; active: string | null }
+/** map.json; a newer editor may have added fields, which a save keeps. */
+interface MapDoc {
+    format: string; version: number; key: string; name: string; created: string; modified: string;
+    borrow: number; width: number; height: number; draft: object;
+}
+
 /** A key is a folder name, so it must stay one. */
-function safeKey(key) {
+function safeKey(key: unknown): string {
     if (typeof key !== 'string' || !/^[A-Za-z0-9_-]{1,80}$/.test(key)) {
         throw new Error('invalid custom map key: ' + JSON.stringify(key));
     }
     return key;
 }
 
-function readJson(file, fallback) {
+function readJson<T>(file: string, fallback: T): T {
     try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return fallback; }
 }
 
 /** Write through a temp file, so a crash mid-write never leaves half a map. */
-function writeJson(file, value) {
+function writeJson(file: string, value: unknown): void {
     const tmp = file + '.tmp';
     fs.writeFileSync(tmp, JSON.stringify(value));
     fs.renameSync(tmp, file);
 }
 
-function indexFile(root) { return path.join(root, 'index.json'); }
+function indexFile(root: string): string { return path.join(root, 'index.json'); }
 
-function readIndex(root) {
-    const idx = readJson(indexFile(root), null);
+function readIndex(root: string): CustomIndex {
+    const idx = readJson<CustomIndex | null>(indexFile(root), null);
     return idx && Array.isArray(idx.order) ? idx : { order: [], active: null };
 }
 
@@ -46,7 +57,7 @@ function readIndex(root) {
  * the webview's own shape (map-editor-custom.js), plus `active`, the map
  * that was open last.
  */
-function listMaps(root) {
+function listMaps(root: string): { maps: CustomMap[]; active: string | null } {
     if (!fs.existsSync(root)) return { maps: [], active: null };
     const idx = readIndex(root);
     const keys = fs.readdirSync(root, { withFileTypes: true })
@@ -56,11 +67,11 @@ function listMaps(root) {
         const ia = idx.order.indexOf(a); const ib = idx.order.indexOf(b);
         return (ia < 0 ? 1e9 : ia) - (ib < 0 ? 1e9 : ib) || (a < b ? -1 : 1);
     });
-    const maps = [];
+    const maps: CustomMap[] = [];
     for (const key of keys) {
-        const doc = readJson(path.join(root, key, 'map.json'), null);
+        const doc = readJson<MapDoc | null>(path.join(root, key, 'map.json'), null);
         if (!doc || doc.format !== MAP_FORMAT) continue;
-        const hist = readJson(path.join(root, key, 'history.json'), null);
+        const hist = readJson<{ format?: string; undo?: unknown[]; redo?: unknown[] } | null>(path.join(root, key, 'history.json'), null);
         maps.push({
             key, name: doc.name, borrow: doc.borrow, w: doc.width, h: doc.height,
             created: doc.created, modified: doc.modified,
@@ -70,11 +81,11 @@ function listMaps(root) {
             readOnly: doc.version > VERSION,
         });
     }
-    return { maps, active: keys.indexOf(idx.active) >= 0 ? idx.active : null };
+    return { maps, active: idx.active !== null && keys.indexOf(idx.active) >= 0 ? idx.active : null };
 }
 
 /** The document for one map, as map.json holds it. */
-function mapDocument(m, previous) {
+function mapDocument(m: CustomMap, previous?: Partial<MapDoc> | null): MapDoc {
     const now = new Date().toISOString();
     return {
         format: MAP_FORMAT,
@@ -91,12 +102,12 @@ function mapDocument(m, previous) {
 }
 
 /** Save one map: its document, its history (when given), and the index. */
-function saveMap(root, m, opts) {
+function saveMap(root: string, m: CustomMap, opts?: { order?: unknown[]; active?: string | null }): MapDoc {
     const key = safeKey(m.key);
     const dir = path.join(root, key);
     fs.mkdirSync(dir, { recursive: true });
     const file = path.join(dir, 'map.json');
-    const previous = readJson(file, null);
+    const previous = readJson<MapDoc | null>(file, null);
     if (previous && previous.version > VERSION) throw new Error(`${m.name}: saved by a newer version of the editor`);
     // Unknown fields a newer editor wrote survive a save by this one.
     const doc = Object.assign({}, previous || {}, mapDocument(m, previous));
@@ -109,14 +120,14 @@ function saveMap(root, m, opts) {
     }
     const idx = readIndex(root);
     if (idx.order.indexOf(key) < 0) idx.order.push(key);
-    if (opts && opts.order) idx.order = opts.order.filter((k) => typeof k === 'string');
-    if (opts && 'active' in opts) idx.active = opts.active;
+    if (opts && opts.order) idx.order = opts.order.filter((k): k is string => typeof k === 'string');
+    if (opts && 'active' in opts) idx.active = opts.active ?? null;
     writeJson(indexFile(root), idx);
     return doc;
 }
 
 /** Remember which map is open, without rewriting any map. */
-function setActive(root, key) {
+function setActive(root: string, key: string | null | undefined): void {
     fs.mkdirSync(root, { recursive: true });
     const idx = readIndex(root);
     idx.active = key || null;
@@ -124,7 +135,7 @@ function setActive(root, key) {
 }
 
 /** Delete a map's folder, history and all. */
-function deleteMap(root, key) {
+function deleteMap(root: string, key: string): void {
     const dir = path.join(root, safeKey(key));
     fs.rmSync(dir, { recursive: true, force: true });
     const idx = readIndex(root);
@@ -138,10 +149,10 @@ function deleteMap(root, key) {
  * folders. Returns how many were moved; a map whose folder exists already
  * is left alone.
  */
-function migrateFromPrefs(root, list) {
+function migrateFromPrefs(root: string, list: unknown): number {
     if (!Array.isArray(list)) return 0;
     let moved = 0;
-    for (const m of list) {
+    for (const m of list as CustomMap[]) {
         if (!m || typeof m.key !== 'string') continue;
         try { safeKey(m.key); } catch { continue; }
         if (fs.existsSync(path.join(root, m.key, 'map.json'))) continue;
@@ -151,7 +162,5 @@ function migrateFromPrefs(root, list) {
     return moved;
 }
 
-module.exports = {
-    listMaps, saveMap, setActive, deleteMap, migrateFromPrefs, mapDocument,
-    MAP_FORMAT, HISTORY_FORMAT, VERSION,
-};
+export type { CustomMap, MapDoc };
+export { listMaps, saveMap, setActive, deleteMap, migrateFromPrefs, mapDocument, MAP_FORMAT, HISTORY_FORMAT, VERSION };

@@ -86,7 +86,7 @@ function summarizeSkips(skipped) {
  * @param opts.wramNames  Map<wram offset, { name, note?, size? }> for the Mesen labels
  * @param opts.assets     [{ start, end, name }] ROM ranges known to be data (Mesen CDL, report)
  * @param opts.gameRegions (rom, map, cdl, steps) => { regions, defines } | null: what the game knows
- *                        about its ROM (known-regions.ts); Evermore: games/evermore/cdl/regions.js
+ *                        about its ROM (known-regions.ts); Evermore: games/evermore/cdl/regions.ts
  */
 function exportAsar(lib, romInput, outDir, opts = {}) {
     const rom = romInput.length % 1024 === 512 ? romInput.subarray(512) : romInput;

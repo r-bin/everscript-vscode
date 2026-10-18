@@ -14,7 +14,7 @@ const {
 
 /** The user's ROM: the override, else the ROM library's (rom-readers, cleanup D5). */
 function loadRom(wsRoot, romPathOverride) {
-    const buf = require('../../rom-readers').loadRomBuffer(wsRoot, romPathOverride);
+    const buf = require('../../../../../dist/games/evermore/rom-readers').loadRomBuffer(wsRoot, romPathOverride);
     return buf ? new Uint8Array(buf) : null;
 }
 

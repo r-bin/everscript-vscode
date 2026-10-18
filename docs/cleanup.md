@@ -266,7 +266,10 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   index (`trig.index` did not exist; now each has its table's kind and index). v0.305.0: 20 more (81 in all): the ROM
   tab's model (`Claim`, the region callback, typed once in `rom/model/util.ts`), the CDL disassembler, known regions
   and value streams, the language providers, the script and sound names, the trace formatter, the room map, the
-  script debugger's host half. Left: 144 host JS modules, the page scripts (5.3), `tools/` (41), `tests/` (77).
+  script debugger's host half. v0.306.0: 18 more (99 in all): the som:// provider, the Music host, the emulator log, the
+  MCP protocol, the ROM history, the CDL stream extension, the Evermore CDL regions, the room parser, the object previews, the
+  animation catalog, ROM readers, hover and tag/localization pages. Types found a bug: the MCP handler looked a method up in
+  a plain object, so a request for `toString` reached `Object.prototype` (now own methods only). Left: 126 host JS modules, the page scripts (5.3), `tools/` (41), `tests/` (77).
 - [x] **5.6 WASM scouting (D12):** profile and list candidates with numbers — room decompression
   and encoding (`maps/lzss.ts`, `chr.ts`), the collision/special solver, CDL library analysis and
   xrefs, the script VM if it runs simulations at scale. Output: a table in this file, no code.

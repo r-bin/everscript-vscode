@@ -1,10 +1,19 @@
-'use strict';
 // Ownership: Markdown generators for `soe://localization/` directories.
 // Pure formatting functions only; no routing or I/O.
 
-const { hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
+import { hexId } from './resource-uri';
 
-function rootMarkdown(s) {
+/** How many names each soe://localization/ directory holds. */
+interface LocalizationCounts {
+    counts: {
+        npcScripts: number; absScripts: number; globalScripts: number; maps: number; music: number; sounds: number;
+        tables: number; functions: number; strings: number; knowledge?: { ram: number; rom: number } | null;
+    };
+}
+interface IdEntry { id: number; hex: string; name: string }
+interface AddressEntry { address: number; hex: string; name: string; notes?: string }
+
+function rootMarkdown(s: LocalizationCounts): string {
     return `# soe://localization/
 
 Concentrated subjective and localized names for Secret of Evermore.
@@ -23,7 +32,7 @@ Concentrated subjective and localized names for Secret of Evermore.
 `;
 }
 
-function scriptsMarkdown(allNpc, allAbs, allGlobal) {
+function scriptsMarkdown(allNpc: unknown[], allAbs: unknown[], allGlobal: unknown[]): string {
     return `# soe://localization/scripts/
 
 | Category | Count | Sample Names |
@@ -36,7 +45,7 @@ function scriptsMarkdown(allNpc, allAbs, allGlobal) {
 `;
 }
 
-function npcMarkdown(allNpc) {
+function npcMarkdown(allNpc: IdEntry[]): string {
     const lines = allNpc.map(e => `| \`${e.hex}\` | ${e.id} | ${e.name} | [${hexId(e.id, 4)}.json](${hexId(e.id, 4)}.json) |`);
     return `# NPC Scripts (${allNpc.length})
 
@@ -46,7 +55,7 @@ ${lines.join('\n')}
 `;
 }
 
-function absMarkdown(allAbs) {
+function absMarkdown(allAbs: AddressEntry[]): string {
     const lines = allAbs.map(e => `| \`${e.hex}\` | ${e.address} | ${e.name} | [${hexId(e.address, 6)}.json](${hexId(e.address, 6)}.json) |`);
     return `# ABS Scripts (${allAbs.length})
 
@@ -56,7 +65,7 @@ ${lines.join('\n')}
 `;
 }
 
-function globalMarkdown(allGlobal) {
+function globalMarkdown(allGlobal: IdEntry[]): string {
     const lines = allGlobal.map(e => `| \`${e.hex}\` | ${e.id} | ${e.name} | [${hexId(e.id, 2)}.json](${hexId(e.id, 2)}.json) |`);
     return `# Global Scripts (${allGlobal.length})
 
@@ -66,7 +75,7 @@ ${lines.join('\n')}
 `;
 }
 
-function mapsMarkdown(vanillaMaps) {
+function mapsMarkdown(vanillaMaps: (IdEntry & { area: string })[]): string {
     const rows = vanillaMaps.map(m => `| \`${m.hex}\` | ${m.area} | ${m.name} | [${hexId(m.id, 2)}.json](${hexId(m.id, 2)}.json) |`);
     return `# Vanilla Rooms (${vanillaMaps.length})
 
@@ -76,7 +85,7 @@ ${rows.join('\n')}
 `;
 }
 
-function soundsMarkdown(musicCount, soundsCount) {
+function soundsMarkdown(musicCount: number, soundsCount: number): string {
     return `# Sounds & Music
 
 | Category | Count | Content |
@@ -88,7 +97,7 @@ function soundsMarkdown(musicCount, soundsCount) {
 `;
 }
 
-function musicMarkdown(music) {
+function musicMarkdown(music: (IdEntry & { spc: string })[]): string {
     const rows = music.map(m => `| \`${m.hex}\` | ${m.name} | \`${m.spc}\` | [${hexId(m.id, 2)}.json](${hexId(m.id, 2)}.json) |`);
     return `# Music Tracks (${music.length})
 
@@ -98,7 +107,7 @@ ${rows.join('\n')}
 `;
 }
 
-function sfxMarkdown(sounds) {
+function sfxMarkdown(sounds: IdEntry[]): string {
     const rows = sounds.map(s => `| \`${s.hex}\` | ${s.name} | [${hexId(s.id, 2)}.json](${hexId(s.id, 2)}.json) |`);
     return `# Sound Effects (${sounds.length})
 
@@ -108,7 +117,7 @@ ${rows.join('\n')}
 `;
 }
 
-function tablesMarkdown(tables) {
+function tablesMarkdown(tables: AddressEntry[]): string {
     const rows = tables.map(t => `| \`${t.hex}\` | ${t.name} | ${t.notes || ''} | [${hexId(t.address, 6)}.json](${hexId(t.address, 6)}.json) |`);
     return `# Curated Tables (${tables.length})
 
@@ -118,7 +127,7 @@ ${rows.join('\n')}
 `;
 }
 
-function functionsMarkdown(functions) {
+function functionsMarkdown(functions: AddressEntry[]): string {
     const rows = functions.map(f => `| \`${f.hex}\` | ${f.name} | ${f.notes || ''} | [${hexId(f.address, 6)}.json](${hexId(f.address, 6)}.json) |`);
     return `# Curated Functions (${functions.length})
 
@@ -128,7 +137,7 @@ ${rows.join('\n')}
 `;
 }
 
-function stringsMarkdown(rom, stringCount) {
+function stringsMarkdown(rom: unknown, stringCount: number): string {
     return `# In-Game Strings
 
 ${stringCount} strings in ROM key table at \`$11D000\`.
@@ -138,18 +147,5 @@ Read \`<index>.json\` or \`<index>.txt\` with hex index e.g. \`0540.json\` or \`
 `;
 }
 
-module.exports = {
-    rootMarkdown,
-    scriptsMarkdown,
-    npcMarkdown,
-    absMarkdown,
-    globalMarkdown,
-    mapsMarkdown,
-    soundsMarkdown,
-    musicMarkdown,
-    sfxMarkdown,
-    tablesMarkdown,
-    functionsMarkdown,
-    stringsMarkdown,
-};
+export { rootMarkdown, scriptsMarkdown, npcMarkdown, absMarkdown, globalMarkdown, mapsMarkdown, soundsMarkdown, musicMarkdown, sfxMarkdown, tablesMarkdown, functionsMarkdown, stringsMarkdown };
 

@@ -1,6 +1,6 @@
 'use strict';
 // Custom maps on disk and their export archive:
-// src/games/evermore/rooms/data/custom-store.js, src/games/evermore/rooms/custom-host.js,
+// src/games/evermore/rooms/data/custom-store.ts, src/games/evermore/rooms/custom-host.js,
 // src/games/evermore/rooms/rendering/custom-export.js, src/platform/zip.ts.
 // The format is docs/map-format/custom-map-files.md.
 //
@@ -11,7 +11,7 @@ const os = require('os');
 const path = require('path');
 const assert = require('assert');
 
-const store = require('../../src/games/evermore/rooms/data/custom-store');
+const store = require('../../dist/games/evermore/rooms/data/custom-store');
 const widgetStore = require('../../dist/games/evermore/rooms/data/widget-store');
 const { buildZip, readZip } = require('../../dist/platform/zip');
 const { handleCustomMapMessage, handlesCustomMapMessage } = require('../../src/games/evermore/rooms/custom-host');

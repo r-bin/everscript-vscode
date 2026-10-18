@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: the MCP protocol for the soe:// file system — JSON-RPC 2.0
 // messages in, responses out. Pure: no VS Code API, no HTTP. The two
 // capabilities it serves (`read`, `list`) are handed in, so it never knows
@@ -9,16 +8,16 @@
 const PROTOCOL_VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05'];
 const HEXDUMP_LIMIT = 4096;
 
-const MIME = { md: 'text/markdown', json: 'application/json', txt: 'text/plain', png: 'image/png', bin: 'application/octet-stream', sfc: 'application/octet-stream' };
+const MIME: Record<string, string> = { md: 'text/markdown', json: 'application/json', txt: 'text/plain', png: 'image/png', bin: 'application/octet-stream', sfc: 'application/octet-stream' };
 
 /** MIME type from the last path segment; `soe://bus/7e0adb` (no extension) reads as JSON. */
-function mimeOf(uri) {
-    const last = String(uri).split('?')[0].split('/').pop();
+function mimeOf(uri: unknown): string {
+    const last = String(uri).split('?')[0].split('/').pop() ?? '';
     const m = /\.([a-z0-9]+)$/i.exec(last);
     if (!m) return last ? MIME.json : 'text/markdown';
     return MIME[m[1].toLowerCase()] || 'application/octet-stream';
 }
-const isText = mime => mime.startsWith('text/') || mime === MIME.json;
+const isText = (mime: string): boolean => mime.startsWith('text/') || mime === MIME.json;
 
 const ENTRY_POINTS = [
     ['soe://rom/index.md', 'ROM overview', 'The cartridge as files: header, slices, assets.'],
@@ -75,9 +74,9 @@ const TOOLS = [
 ];
 
 /** `00000000  a9 00 …  |..|` lines for at most HEXDUMP_LIMIT bytes. */
-function hexdump(bytes) {
+function hexdump(bytes: Uint8Array): string {
     const shown = bytes.subarray(0, HEXDUMP_LIMIT);
-    const lines = [];
+    const lines: string[] = [];
     for (let i = 0; i < shown.length; i += 16) {
         const row = shown.subarray(i, i + 16);
         const hex = Array.from(row, b => b.toString(16).padStart(2, '0')).join(' ').padEnd(47);
@@ -90,26 +89,30 @@ function hexdump(bytes) {
     return `${bytes.length} bytes\n` + lines.join('\n');
 }
 
-/**
- * @param {{ read: (uri: string) => Promise<Uint8Array>,
- *           list: (uri: string) => Promise<Array<[string, 'file'|'dir'|'link']>>,
- *           version: string }} fsApi
- */
-function createMcpHandler(fsApi) {
-    const checkUri = uri => {
+/** A JSON-RPC 2.0 message (request, notification, or a client's response). */
+interface RpcMessage { jsonrpc?: string; id?: string | number | null; method?: unknown; params?: unknown; result?: unknown; error?: unknown }
+type RpcParams = Record<string, unknown> | null | undefined;
+
+/** Handles MCP messages with the file system's `read` and `list` (handed in). */
+function createMcpHandler(fsApi: {
+        read: (uri: string) => Promise<Uint8Array>;
+        list: (uri: string) => Promise<Array<[string, 'file' | 'dir' | 'link']>>;
+        version: string;
+    }) {
+    const checkUri = (uri: unknown): string => {
         if (typeof uri !== 'string' || !/^soe:\/\/(rom|ram|bus|localization|tags|maps)(\/|$)/.test(uri)) {
             throw rpcError(-32602, 'uri must start with soe://rom/, soe://ram/, soe://bus/, soe://localization/, soe://tags/ or soe://maps/');
         }
         return uri;
     };
 
-    async function readContent(uri) {
+    async function readContent(uri: string) {
         const bytes = await fsApi.read(uri);
         const mimeType = mimeOf(uri);
         return { bytes, mimeType };
     }
 
-    async function callTool(name, args) {
+    async function callTool(name: unknown, args: RpcParams) {
         const uri = checkUri(args && args.uri);
         try {
             if (name === 'soe_list') {
@@ -125,22 +128,22 @@ function createMcpHandler(fsApi) {
             const text = isText(mimeType) ? Buffer.from(bytes).toString('utf8') : hexdump(bytes);
             return { content: [{ type: 'text', text }] };
         } catch (err) {
-            return { content: [{ type: 'text', text: `${uri}: ${err && err.message || err}` }], isError: true };
+            return { content: [{ type: 'text', text: `${uri}: ${err instanceof Error ? err.message : err}` }], isError: true };
         }
     }
 
-    const methods = {
-        initialize: params => ({
-            protocolVersion: PROTOCOL_VERSIONS.includes(params && params.protocolVersion) ? params.protocolVersion : PROTOCOL_VERSIONS[0],
+    const methods: Record<string, (params: RpcParams) => unknown> = {
+        initialize: (params) => ({
+            protocolVersion: params && typeof params.protocolVersion === 'string' && PROTOCOL_VERSIONS.includes(params.protocolVersion) ? params.protocolVersion : PROTOCOL_VERSIONS[0],
             capabilities: { resources: {}, tools: {} },
             serverInfo: { name: 'everscript-soe', title: 'Everscript soe://', version: fsApi.version },
             instructions: 'Read-only access to Secret of Evermore: the ROM (soe://rom/), decoded assets (soe://rom/assets/), the running emulator\'s WRAM (soe://ram/), SNES bus addresses (soe://bus/) and localized names (soe://localization/), and tags that connect all of these by concept (soe://tags/: boy, boy.hp, map.jungle_raptors; soe://tags/search/<word>.md). Numbers in paths are hex without $. Start with soe_read soe://tags/index.md to explore a concept, or soe://rom/index.md, soe://ram/index.md, soe://localization/index.md.',
         }),
         ping: () => ({}),
         'tools/list': () => ({ tools: TOOLS }),
-        'tools/call': params => {
+        'tools/call': (params) => {
             if (!params || !TOOLS.some(t => t.name === params.name)) throw rpcError(-32602, `Unknown tool: ${params && params.name}`);
-            return callTool(params.name, params.arguments);
+            return callTool(params.name, params.arguments as RpcParams);
         },
         'resources/list': () => ({
             resources: ENTRY_POINTS.map(([uri, title, description]) => ({ uri, name: title, title, description, mimeType: mimeOf(uri) })),
@@ -148,10 +151,10 @@ function createMcpHandler(fsApi) {
         'resources/templates/list': () => ({
             resourceTemplates: TEMPLATES.map(([uriTemplate, title, description]) => ({ uriTemplate, name: title, title, description })),
         }),
-        'resources/read': async params => {
+        'resources/read': async (params) => {
             const uri = checkUri(params && params.uri);
             let content;
-            try { content = await readContent(uri); } catch (err) { throw rpcError(-32002, `${uri}: ${err && err.message || err}`); }
+            try { content = await readContent(uri); } catch (err) { throw rpcError(-32002, `${uri}: ${err instanceof Error ? err.message : err}`); }
             const { bytes, mimeType } = content;
             return {
                 contents: [isText(mimeType)
@@ -162,26 +165,27 @@ function createMcpHandler(fsApi) {
     };
 
     /** One JSON-RPC message in; its response, or null for a notification. */
-    return async function handle(msg) {
+    return async function handle(msg: RpcMessage | null | undefined): Promise<object | null> {
         if (!msg || msg.jsonrpc !== '2.0' || typeof msg.method !== 'string') {
             if (msg && msg.jsonrpc === '2.0' && ('result' in msg || 'error' in msg)) return null;  // a client response
             return { jsonrpc: '2.0', id: msg && msg.id !== undefined ? msg.id : null, error: { code: -32600, message: 'Invalid request' } };
         }
         const isNotification = msg.id === undefined;
         if (isNotification) return null;
-        const fn = methods[msg.method];
+        const fn = Object.prototype.hasOwnProperty.call(methods, msg.method) ? methods[msg.method] : undefined;
         if (!fn) return { jsonrpc: '2.0', id: msg.id, error: { code: -32601, message: `Method not found: ${msg.method}` } };
         try {
-            return { jsonrpc: '2.0', id: msg.id, result: await fn(msg.params) };
+            return { jsonrpc: '2.0', id: msg.id, result: await fn(msg.params as RpcParams) };
         } catch (err) {
-            const error = err && err.rpc ? err.rpc : { code: -32603, message: String(err && err.message || err) };
+            const rpc = (err as { rpc?: object } | null)?.rpc;
+            const error = rpc ? rpc : { code: -32603, message: String(err instanceof Error ? err.message : err) };
             return { jsonrpc: '2.0', id: msg.id, error };
         }
     };
 }
 
-function rpcError(code, message) {
+function rpcError(code: number, message: string): Error & { rpc: { code: number; message: string } } {
     return Object.assign(new Error(message), { rpc: { code, message } });
 }
 
-module.exports = { createMcpHandler, mimeOf, hexdump };
+export { createMcpHandler, mimeOf, hexdump };

@@ -14,7 +14,7 @@ const { headerSpec, withHeader } = require('../../../../../dist/games/evermore/r
 const { annotateGraphics, budgetSummary, invalidateVanillaIndex, vanillaGeometry, vanillaCycleTimings } = require('./vanilla-index');
 const { groupRoomGraphics } = require('./room-draft');
 const { buildStampAnimations } = require('./stamp-animation');
-const { editorObjects } = require('./object-previews');
+const { editorObjects } = require('../../../../../dist/games/evermore/rooms/rendering/object-previews');
 const { familySetInfo } = require('../../../../../dist/games/evermore/rooms/rendering/family-sets');
 
 /** Metatiles per atlas row. 16 keeps the sheet narrow enough to scroll. */

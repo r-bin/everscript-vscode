@@ -1,7 +1,7 @@
 /**
  * platform/cdl/library-values.ts
  *
- * Library streams about the VALUES the program wrote (core cdl-values.c), kept out of library-ext.js:
+ * Library streams about the VALUES the program wrote (core cdl-values.c), kept out of library-ext.ts:
  *   io-values.bin    640 x 32 bytes  256-bit "values written" bitmap per I/O register the CPU wrote:
  *                    register i < 256 is $2100+i (PPU, the SPC ports $2140-$2143), i >= 256 is $4200+(i-256)
  *                    (CPU registers, DMA channels up to $437F)                                      OR

@@ -20,7 +20,7 @@
 
 Language features are registered natively in JavaScript via `src/games/evermore/language/language-providers.js`:
 
-### 2.1 Hover Documentation (`src/games/evermore/language/hover-provider.js`)
+### 2.1 Hover Documentation (`src/games/evermore/language/hover-provider.ts`)
 Hovering symbols in `.evs` files provides instant context:
 - **Built-in Functions:** Displays signature and docstrings (e.g. `transition`, `damage`, `teleport`).
 - **Memory Addresses:** Hovering addresses (e.g. `<0x2258>`) looks up canonical RAM labels from `.github/memory-map.md` and `src/games/evermore/language/data/index.json`.

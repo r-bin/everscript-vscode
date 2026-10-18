@@ -10,7 +10,7 @@
  */
 
 const asar = require('../../../platform/cdl/asar-export');
-const { evermoreRegions } = require('./regions');
+const { evermoreRegions } = require('../../../../dist/games/evermore/cdl/regions');
 const { exportWram } = require('../../../platform/cdl/wram-export');
 const { lookup } = require('../../../platform/cdl/lookup');
 const { findTables } = require('../../../platform/cdl/tables');

@@ -7,7 +7,7 @@
 import { dir, json, text } from './nodes';
 import type { VfsNode } from './nodes';
 
-/** One crash report from the emulator panel (emulator-log.js). */
+/** One crash report from the emulator panel (emulator-log.ts). */
 interface CrashLog {
     timestamp?: string; error?: string; rom?: string; frame?: number | null; mapId?: number | null;
     camX?: number | null; camY?: number | null; stack?: string;

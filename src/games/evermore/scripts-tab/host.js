@@ -73,7 +73,7 @@ function index(rom, deps) {
 /**
  * @param msg  webview message
  * @param deps {post, loadRom: () => Buffer|null,
- *              animations(rom): catalogue entries (sprites/animation-catalog.js),
+ *              animations(rom): catalogue entries (sprites/animation-catalog.ts),
  *              renderAnimation(rom, characterId, animOpt, facing) (sprites/animation-decoder.js),
  *              music: {list(rom), sequence(rom, id), timeline(rom, id, seconds): Promise} (music/)}
  */

@@ -29,7 +29,7 @@ function mtPaletteFits(room) {
 /**
  * A ROM room's own objects, brought into its draft once so the Object tab
  * lists and edits them like drawn ones (`roomObject` is the ROM's index).
- * State 0 is the loaded map; frames are the host's (object-previews.js's
+ * State 0 is the loaded map; frames are the host's (object-previews.ts's
  * editorObjects). Never inside an open undo step: seeding is not an edit,
  * and undoing the first stroke must not take the room's objects with it.
  */

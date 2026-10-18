@@ -14,7 +14,7 @@
 // without a server; the first window keeps answering.
 
 const vscode = require('vscode');
-const { createMcpHandler } = require('./protocol');
+const { createMcpHandler } = require('../../../dist/core/mcp/protocol');
 const { createMcpHttpServer } = require('../../../dist/core/mcp/server');
 
 const PROVIDER_ID = 'everscript-soe';   // = contributes.mcpServerDefinitionProviders[].id

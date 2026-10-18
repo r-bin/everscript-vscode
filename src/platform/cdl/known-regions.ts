@@ -2,7 +2,7 @@
  * platform/cdl/known-regions.ts
  *
  * What the export knows about a ROM before any CDL data: the header, plus whatever the
- * game hands in as `gameRegions` (Evermore: games/evermore/cdl/regions.js). Each region
+ * game hands in as `gameRegions` (Evermore: games/evermore/cdl/regions.ts). Each region
  * replaces the CDL's guess for its bytes:
  *   blob   -> incbin of its own file (rooms/room_XX.bin)
  *   bytes  -> db lines under a label (header, strings)

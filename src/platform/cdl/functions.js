@@ -19,7 +19,7 @@
 
 const { hex } = require('../../../dist/platform/cdl/rom-map');
 const { SPACE, XR, EXT_HEAD } = require('./xref-index');
-const { regsByPc, basesByPc, busSitesList } = require('./library-ext');
+const { regsByPc, basesByPc, busSitesList } = require('../../../dist/platform/cdl/library-ext');
 const { returnsByEntry } = require('./recomp-analysis');
 const { decodeAt } = require('../../../dist/platform/cdl/disasm');
 

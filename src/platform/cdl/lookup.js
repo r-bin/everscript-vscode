@@ -11,7 +11,7 @@ const { hex, busName, countText } = require('../../../dist/platform/cdl/rom-map'
 const { flagText, SPACE } = require('./xref-index');
 const { valuesSeen } = require('./wram-export');
 const { tableAt, tableTitle } = require('./tables');
-const { regsByPc, basesByPc } = require('./library-ext');
+const { regsByPc, basesByPc } = require('../../../dist/platform/cdl/library-ext');
 const { returnsByEntry } = require('./recomp-analysis');
 
 function parseQuery(text) {

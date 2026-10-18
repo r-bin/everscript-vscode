@@ -5,8 +5,8 @@
 
 const path = require('path');
 const fs   = require('fs');
-const { parseRoomContent } = require('./content-parser');
-const { readPngDimensions } = require('../../rom-readers');
+const { parseRoomContent } = require('../../../../../dist/games/evermore/rooms/parsing/content-parser');
+const { readPngDimensions } = require('../../../../../dist/games/evermore/rom-readers');
 
 // These are imported lazily via getters to avoid circular deps at require time.
 // file-scanner depends on room-data functions (getMapEnum etc.) which may be in the same

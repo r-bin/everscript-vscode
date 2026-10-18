@@ -3,7 +3,7 @@
 // Maintains a cache for the expensive buildVanillaRoomDetails call.
 // Depends on: readRomMapHeader (rom-readers), readScriptAllTriggers (lua-watchers).
 
-const { readRomMapHeader } = require('../../rom-readers');
+const { readRomMapHeader } = require('../../../../../dist/games/evermore/rom-readers');
 const { readScriptAllTriggers } = require('./lua-watchers');
 
 let _radarVanillaRoomsCache    = null;
@@ -15,7 +15,7 @@ function invalidateVanillaDataCaches() {
 }
 
 // Full catalogue of vanilla rooms grouped by act, loaded from localizations.
-const { VANILLA_ROOMS } = require('../../localizations');
+const { VANILLA_ROOMS } = require('../../../../../dist/games/evermore/localizations');
 
 
 /**

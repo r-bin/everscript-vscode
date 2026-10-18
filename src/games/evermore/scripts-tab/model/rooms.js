@@ -10,7 +10,7 @@
 
 const { buildRoomScriptModel } = require('../../../../../dist/games/evermore/script-model');
 const maps = require('../../../../../dist/games/evermore/maps');
-const { getMapName, getMapArea } = require('../../localizations');
+const { getMapName, getMapArea } = require('../../../../../dist/games/evermore/localizations');
 const { hex } = require('../../../../../dist/platform');
 
 /** Every room with a name: [{ id, idHex, name, area }]. */

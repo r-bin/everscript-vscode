@@ -3,7 +3,7 @@
 // Import this when you need multiple rooms functions.
 // Import sub-modules directly for narrow dependencies.
 
-const { parseRoomContent }                                          = require('./parsing/content-parser');
+const { parseRoomContent }                                          = require('../../../../dist/games/evermore/rooms/parsing/content-parser');
 const { findRoomImage, collectRoomsFromDir, buildRoomTree,
         setRoomImageUris }                                          = require('./parsing/file-scanner');
 const { renderVanillaTree, renderRoomsTree, buildRoomRailHtml,
@@ -41,7 +41,7 @@ function buildRoomTreeWithDeps(document, wsRoot, extCfg) {
         getMapEnum,
         readScriptAllTriggers,
         readLuaWatchers,
-        readRomMapHeader: require('../rom-readers').readRomMapHeader,
+        readRomMapHeader: require('../../../../dist/games/evermore/rom-readers').readRomMapHeader,
     });
 }
 

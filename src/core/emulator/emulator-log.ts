@@ -1,23 +1,35 @@
-'use strict';
-
 /**
- * core/emulator/emulator-log.js
+ * core/emulator/emulator-log.ts
  *
  * Owns: the two output channels of the emulator panel (Everscript Build, Everscript Emulator), the
  * crash report written to the second, and the histories the status report (getStatus) hands out:
  * recent crashes (50), ROM launches (50) and formatted script trace entries (2000).
  */
 
-const vscode = require('vscode');
-const fs     = require('fs');
+import * as vscode from 'vscode';
+import * as fs from 'fs';
 
-let buildChannel = null;     // output channel for build log
-let emulatorChannel = null;  // output channel for emulator runtime and crash log
-const crashHistory = [];       // recent crash reports (capped at 50)
-const launchHistory = [];      // recent ROM launches (capped at 50)
-const scriptTraceHistory = []; // recent formatted script trace entries (capped at 2000)
+/** A crash the page reports (panel-messages.js): the error, where, the CPU and the script slots. */
+interface CrashReport {
+  message?: string; error?: string; type?: string; source?: string; line?: number; col?: number;
+  frame?: number; mapId?: number; camX?: number; camY?: number; stack?: string;
+  cpu?: { pc?: number; pb?: number; a?: number; x?: number; y?: number; sp?: number; db?: number; p?: number };
+  scriptSlots?: { slot: number; state: string; loc?: number; entity?: number }[];
+}
+/** A crash as the histories keep it (soe://logs/crashes.json). */
+interface CrashEntry {
+  timestamp: string; error: string; type: string | null; source: string | null; rom: string;
+  frame: number | null; mapId: number | null; camX: number | null; camY: number | null;
+  cpu: CrashReport['cpu'] | null; stack: string | null; scriptSlots: NonNullable<CrashReport['scriptSlots']>;
+}
 
-function describeFile(filePath) {
+let buildChannel: vscode.OutputChannel | null = null;     // output channel for build log
+let emulatorChannel: vscode.OutputChannel | null = null;  // output channel for emulator runtime and crash log
+const crashHistory: CrashEntry[] = [];  // recent crash reports (capped at 50)
+const launchHistory: { timestamp?: string; name?: string; size?: number | null }[] = [];  // recent ROM launches (capped at 50)
+const scriptTraceHistory: unknown[] = []; // recent formatted script trace entries (capped at 2000)
+
+function describeFile(filePath: string): string {
   try {
     const st = fs.statSync(filePath);
     return `${filePath} (${st.size} bytes)`;
@@ -27,21 +39,21 @@ function describeFile(filePath) {
 }
 
 /** The build channel the host already has (the Build and Run command's), shared. */
-function setBuildChannel(channel) {
+function setBuildChannel(channel: vscode.OutputChannel | null): void {
   buildChannel = channel;
 }
 
-function ensureBuildChannel() {
+function ensureBuildChannel(): vscode.OutputChannel {
   if (!buildChannel) buildChannel = vscode.window.createOutputChannel('Everscript Build');
   return buildChannel;
 }
 
-function ensureEmulatorChannel() {
+function ensureEmulatorChannel(): vscode.OutputChannel {
   if (!emulatorChannel) emulatorChannel = vscode.window.createOutputChannel('Everscript Emulator');
   return emulatorChannel;
 }
 
-function log(line, show) {
+function log(line: string, show?: boolean): void {
   const emuCh = ensureEmulatorChannel();
   const time = new Date().toLocaleTimeString();
   emuCh.appendLine(`[${time}] ${line}`);
@@ -51,7 +63,7 @@ function log(line, show) {
   if (show) emuCh.show(true);
 }
 
-function logCrash(crash, romName) {
+function logCrash(crash: CrashReport, romName?: string | null): void {
   const ch = ensureEmulatorChannel();
   const time = new Date().toISOString();
   const border = '================================================================================';
@@ -67,7 +79,7 @@ function logCrash(crash, romName) {
 
   if (crash.cpu) {
     const c = crash.cpu;
-    const h = (v, len) => (typeof v === 'number' ? (v >>> 0).toString(16).toUpperCase().padStart(len, '0') : '????');
+    const h = (v: number | undefined, len: number): string => (typeof v === 'number' ? (v >>> 0).toString(16).toUpperCase().padStart(len, '0') : '????');
     ch.appendLine('');
     ch.appendLine('SNES CPU State:');
     ch.appendLine(`  PC: $${h(c.pc, 6)} (PB: $${h(c.pb, 2)})   A: $${h(c.a, 4)}   X: $${h(c.x, 4)}   Y: $${h(c.y, 4)}`);
@@ -118,4 +130,5 @@ function logCrash(crash, romName) {
   if (crashHistory.length > 50) crashHistory.shift();
 }
 
-module.exports = { describeFile, setBuildChannel, ensureBuildChannel, ensureEmulatorChannel, log, logCrash, crashHistory, launchHistory, scriptTraceHistory };
+export type { CrashReport, CrashEntry };
+export { describeFile, setBuildChannel, ensureBuildChannel, ensureEmulatorChannel, log, logCrash, crashHistory, launchHistory, scriptTraceHistory };

@@ -8,7 +8,7 @@ Embedded snes9x2005 WASM emulator panel integrated into VS Code.
 |---|---|
 | `panel.js` | WebviewPanel host: loads core WASM, dispatches ROMs; `configureEmulator` (profile, title, CDL tools, bundle button, reopen last ROM); the API the extension calls |
 | `panel-state.js`, `panel-messages.js` | The panel's state and helpers (settings in `globalState`, timeouts, ROM offer); every message the page sends |
-| `core-path.ts`, `emulator-log.js` | Which core loads; the output channels and the crash report |
+| `core-path.ts`, `emulator-log.ts` | Which core loads; the output channels and the crash report |
 | `panel-webview.js` | Webview HTML generator for the emulator panel |
 | `webview/emulator-profile.js` / `.css` | The page's profile and game gating (`data-needs`), saved settings (overlays, mute, keybinds, panel placement), Keep Focus for Tab |
 | `webview/emulator-panels.js` / `.css` | Where each panel is shown: its pause-menu tab, a side bar over the picture, the bottom bar or nowhere (README "Panels") |

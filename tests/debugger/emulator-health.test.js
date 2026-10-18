@@ -515,7 +515,7 @@ test('a missing snesCorePath falls back to the bundled core, with a warning', ()
         debug: { activeDebugSession: null, startDebugging: async () => false },
     };
     Mod._load = (req, parent, isMain) => (req === 'vscode' ? vscodeMock : load(req, parent, isMain));
-    const fresh = () => { for (const m of [PANEL_JS, '../../../dist/core/emulator/core-path.js', 'emulator-log.js', 'panel-state.js', 'panel-messages.js']) delete require.cache[require.resolve(path.resolve(path.dirname(PANEL_JS), m))]; };
+    const fresh = () => { for (const m of [PANEL_JS, '../../../dist/core/emulator/core-path.js', '../../../dist/core/emulator/emulator-log.js', 'panel-state.js', 'panel-messages.js']) delete require.cache[require.resolve(path.resolve(path.dirname(PANEL_JS), m))]; };
     fresh();
     try {
         require(PANEL_JS).openEmulatorPanel({ extensionPath: ROOT, subscriptions: [] }, null, null);

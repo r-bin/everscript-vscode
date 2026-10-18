@@ -22,7 +22,7 @@ wrong.
 | Opcode widths, mnemonics, disassembler | the one table | `src/games/evermore/maps/animation-opcodes.ts` (`opcode()`) |
 | Tick-accurate interpreter, record table, id table | | `src/games/evermore/maps/animation-vm.ts` |
 | Linear idle walk (room view) | | `src/games/evermore/maps/character-animation.ts` |
-| Catalogue of every animation + owners | | `src/games/evermore/sprites/animation-catalog.js` |
+| Catalogue of every animation + owners | | `src/games/evermore/sprites/animation-catalog.ts` |
 | Render + script listing for the Characters tab (formerly Sprites) | | `src/games/evermore/sprites/animation-decoder.js` |
 | Projectile records, straight-line velocity | `$900000 + id` | `src/games/evermore/maps/projectiles.ts` |
 | Projectile spawns + their animations for the tab | | `src/games/evermore/sprites/projectile-render.ts` |

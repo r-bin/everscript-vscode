@@ -54,7 +54,7 @@ test('a room request the radar cannot resolve is answered with the error', () =>
 });
 
 test('requestRoomTiles draws a ROM room through the radar\'s room lookup', () => {
-    const rom = require('../../src/games/evermore/rom-readers').loadRomFile(ROM);
+    const rom = require('../../dist/games/evermore/rom-readers').loadRomFile(ROM);
     const c = ctx({ roomRom: (id) => ({ romBuf: rom, roomId: id }) });
     editor.handleEditorMessage({ command: 'requestRoomTiles', roomId: 0x15, mapName: 'm', layer: 'composite' }, c);
     assert.strictEqual(c.posted.length, 1);

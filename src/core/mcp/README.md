@@ -24,7 +24,7 @@ Notes:
 
 | File | Owns |
 |---|---|
-| `protocol.js` | JSON-RPC 2.0 → MCP: `initialize`, `ping`, `tools/*`, `resources/*`. Pure; `read`/`list` are handed in |
+| `protocol.ts` | JSON-RPC 2.0 → MCP: `initialize`, `ping`, `tools/*`, `resources/*`. Pure; `read`/`list` are handed in |
 | `server.ts` | Streamable HTTP: `POST /mcp` on 127.0.0.1, JSON replies only, Origin/Host checks. No VS Code API |
 | `index.js` | starts/stops the server from settings, reads through `vscode.workspace.fs`, registers it for VS Code's chat |
 

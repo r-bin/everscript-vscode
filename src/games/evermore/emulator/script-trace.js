@@ -37,7 +37,7 @@ function ensureScriptTraceChannel() {
 
 /** The Evermore ROM of the ROM library (docs/architecture/multi-game.md, section 5), when the emulator has none. */
 function loadFallbackRom(_wsRoot) {
-  const rom = require('../rom-readers').loadRomBuffer(null);
+  const rom = require('../../../../dist/games/evermore/rom-readers').loadRomBuffer(null);
   return rom ? new Uint8Array(rom) : null;
 }
 

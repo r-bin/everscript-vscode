@@ -20,7 +20,7 @@ const NAMES = require('../script-model/names.json');
 const { dir, file, json, text } = require('../../../../dist/games/evermore/resources/nodes');
 const { ramSymbols, ramSymbol, ramBlocks } = require('./ram-symbols');
 const { tagModel } = require('./tag-model');
-const { pageUri } = require('./tag-markdown');
+const { pageUri } = require('../../../../dist/games/evermore/resources/tag-markdown');
 
 const WRAM = 0x7E0000;
 const WRAM_SIZE = 0x20000;

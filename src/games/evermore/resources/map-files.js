@@ -3,7 +3,7 @@
 // (composite, layers, overlays, object states) and its info page. Pure. rom-assets.js routes here.
 
 const { encodePng, decodeRoom, renderRoomComposite, renderStandaloneOverlay, applyObjectStates, MAX_ROOMS } = require('../../../../dist/games/evermore/maps');
-const { getMapName, getMapArea } = require('../localizations');
+const { getMapName, getMapArea } = require('../../../../dist/games/evermore/localizations');
 const { hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
 const { dir, file, json, text } = require('../../../../dist/games/evermore/resources/nodes');
 

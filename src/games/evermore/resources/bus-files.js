@@ -7,7 +7,7 @@
 //   soe://bus/7e2258.0.json   → soe://ram/2258.0.json
 //   soe://bus/c4601f[20].bin  → soe://rom/04601f[20].bin
 //   soe://bus/8cd0a6          → soe://rom/0cd0a6.json  (named function)
-//   soe://bus/8cb8de.asm      → soe://rom/0cb8de.asm   (65816 listing, asm-view.js)
+//   soe://bus/8cb8de.asm      → soe://rom/0cb8de.asm   (65816 listing, asm-view.ts)
 //
 // HiROM map: $7E-$7F and the $0000-$1FFF mirror in banks $00-$3F/$80-$BF are
 // WRAM; $40-$7D, $C0-$FF and the upper halves of $00-$3F/$80-$BF are ROM.

@@ -4,7 +4,7 @@ Kind: **core** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does and h
 clients connect: [README.md](README.md).
 
 ## Owns
-- The localhost MCP server: `protocol.js` (JSON-RPC → MCP, pure), `server.ts` (HTTP, no
+- The localhost MCP server: `protocol.ts` (JSON-RPC → MCP, pure), `server.ts` (HTTP, no
   VS Code API), `index.js` (lifecycle, `workspace.fs` reads, VS Code chat registration).
 
 ## Dependencies

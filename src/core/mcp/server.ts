@@ -18,7 +18,7 @@ const isLocalOrigin = (origin: string): boolean => {
     try { return isLocal(new URL(origin).host); } catch (_) { return false; }
 };
 
-/** `handle` answers one JSON-RPC message (protocol.js); the server is not yet listening. */
+/** `handle` answers one JSON-RPC message (protocol.ts); the server is not yet listening. */
 function createMcpHttpServer(handle: (msg: object) => Promise<object | null>): http.Server {
     return http.createServer((req, res) => {
         const send = (status: number, body?: unknown, headers: Record<string, string> = {}) => {

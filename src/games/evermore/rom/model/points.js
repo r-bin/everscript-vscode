@@ -6,7 +6,7 @@
 // Bus addresses as the game uses them. `cat` is the entry's category: 🧠 code, 📋 table,
 // ⚗️ alchemy, 📜 script.
 
-const { FUNCTIONS, TABLES, getTable } = require('../../localizations');
+const { FUNCTIONS, TABLES, getTable } = require('../../../../../dist/games/evermore/localizations');
 
 /** @returns {{bus:number, cat:string, name:string, notes:string}[]} */
 function knownPoints() {

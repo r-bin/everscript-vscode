@@ -4,7 +4,7 @@
 // extension.js (the ROM library), so this domain reads no config itself.
 
 const vscode = require('vscode');
-const { SomFileSystem } = require('./fs-provider');
+const { SomFileSystem } = require('../../../../dist/games/mana/resources/fs-provider');
 const { findManaRom } = require('../../../../dist/games/mana/resources/rom-source');
 
 const SCHEME = 'som';

@@ -2184,7 +2184,7 @@ test('customDuplicateMap duplicates a vanilla room with pre-seeded cells and att
         stepOn: [],
         objects: [[2, 2, 1, 1, 5]]
     };
-    // The object with its states, as the host sends it (object-previews.js's editorObjects).
+    // The object with its states, as the host sends it (object-previews.ts's editorObjects).
     p.roomObjects = [{ index: 5, x: 2, y: 2, w: 1, h: 1, frames: [{ '0,0': 1 }] }];
     ui.setPalette(p);
     ui.setPanelRoom({ romRoomId: 0x34, name: "Strongheart's Hut", widthTiles: 4, heightTiles: 4 });

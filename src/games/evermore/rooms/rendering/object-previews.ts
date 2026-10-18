@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: Section 3 map objects for the Rooms tab — each object's states,
 // a thumbnail of every state, and the wire form of the user's selection.
 //
@@ -9,8 +8,15 @@
 //
 // Pure apart from the module-level thumbnail cache. Consumes src/games/evermore/maps.
 
-const maps = require('../../../../../dist/games/evermore/maps');
-const { romFingerprint } = require('../../../../../dist/games/evermore/rooms/rendering/rom-fingerprint');
+import * as maps from '../../maps';
+import { romFingerprint } from './rom-fingerprint';
+import type { RoomData } from '../../maps/room';
+
+/** The selected state per object index. */
+type Selection = Record<number, number>;
+/** One state of an object, with its thumbnail (a PNG data URI) when it renders. */
+interface StateView { state: number; x: number; y: number; metatileId: number; preview: string | null }
+interface ObjectView { index: number; current: number; x: number; y: number; w: number; h: number; states: StateView[]; stampSigs: string[] }
 
 /**
  * Section 3 map objects, their states, and a thumbnail of each state.
@@ -19,16 +25,16 @@ const { romFingerprint } = require('../../../../../dist/games/evermore/rooms/ren
  * state can be rendered exactly — see src/games/evermore/maps/object-stamps.ts. An object
  * with N delta records has N+1 appearances, state 0 being the loaded room.
  */
-function buildObjects(rom, room, selected) {
+function buildObjects(rom: Uint8Array, room: RoomData, selected: Selection): ObjectView[] {
     return room.objects.map((obj, index) => {
         const count = maps.objectStateCount(obj);
         const current = Math.min(selected[index] || maps.DEFAULT_OBJECT_STATE, count - 1);
         const box = maps.objectBounds(rom, room, obj);
-        const states = [];
+        const states: StateView[] = [];
         for (let s = 0; s < count; s++) {
             // Descriptor s-1 is what produces appearance s; state 0 has none.
             const src = s > 0 ? obj.states[s - 1] : obj.states[0];
-            let preview = null;
+            let preview: string | null = null;
             try {
                 const img = maps.renderObjectState(rom, room, index, s);
                 if (img) preview = maps.encodePngDataUri(img);
@@ -69,14 +75,14 @@ function buildObjects(rom, room, selected) {
  * Every value lands on a Block 3 entry (19797 of 19797 writes, measured), so
  * nothing here names a stamp the room does not have.
  */
-function editorObjects(rom, room) {
+function editorObjects(rom: Uint8Array, room: RoomData) {
     const W = room.header.widthTiles;
     const H = room.header.heightTiles;
     return room.objects.map((obj, index) => {
         const box = maps.objectBounds(rom, room, obj);
         if (!box || box.w <= 0 || box.h <= 0) return null;
-        const at = (x, y) => (x >= 0 && y >= 0 && x < W && y < H ? room.layer1MetatileIds[y][x] : null);
-        const base = [];
+        const at = (x: number, y: number): number | null => (x >= 0 && y >= 0 && x < W && y < H ? room.layer1MetatileIds[y][x] : null);
+        const base: (number | null)[] = [];
         for (let y = 0; y < box.h; y++) for (let x = 0; x < box.w; x++) base.push(at(box.x + x, box.y + y));
         const now = base.slice();
         const frames = obj.states.map((st) => {
@@ -86,10 +92,11 @@ function editorObjects(rom, room) {
                     const x = st.tileX + (k % stamp.tw) - box.x;
                     const y = st.tileY + Math.floor(k / stamp.tw) - box.y;
                     const i = y * box.w + x;
-                    if (d !== null && now[i] !== null && now[i] !== undefined) now[i] ^= d;
+                    const cur = now[i];
+                    if (d !== null && cur !== null && cur !== undefined) now[i] = cur ^ d;
                 });
             }
-            const frame = {};
+            const frame: Record<string, number> = {};
             now.forEach((id, i) => {
                 if (id === null || id === base[i]) return;
                 const idx = maps.metatileIndex(room, id);
@@ -108,8 +115,8 @@ function editorObjects(rom, room) {
  * Parse the wire form of the object-state selection: `index:state` pairs
  * joined by commas, e.g. `20:1`. A string because it also keys the cache.
  */
-function parseObjectStates(spec) {
-    const out = {};
+function parseObjectStates(spec: unknown): Selection {
+    const out: Selection = {};
     if (typeof spec !== 'string' || !spec) return out;
     for (const part of spec.split(',')) {
         const [i, st] = part.split(':').map(Number);
@@ -121,16 +128,16 @@ function parseObjectStates(spec) {
 // Thumbnails depend only on the ROM and the room, never on which state is
 // selected, so they are cached apart from the map render — otherwise every
 // chip click would re-render every thumbnail in the room.
-const PREVIEW_CACHE = new Map();
+const PREVIEW_CACHE = new Map<string, ObjectView[]>();
 const PREVIEW_CACHE_MAX = 8;
 
-function cachedObjectPreviews(rom, roomId, room, selected) {
+function cachedObjectPreviews(rom: Uint8Array, roomId: number, room: RoomData, selected: Selection): ObjectView[] {
     const key = romFingerprint(rom) + ':' + roomId;
     let objects = PREVIEW_CACHE.get(key);
     if (!objects) {
         objects = buildObjects(rom, room, {});
         PREVIEW_CACHE.set(key, objects);
-        if (PREVIEW_CACHE.size > PREVIEW_CACHE_MAX) PREVIEW_CACHE.delete(PREVIEW_CACHE.keys().next().value);
+        if (PREVIEW_CACHE.size > PREVIEW_CACHE_MAX) PREVIEW_CACHE.delete(PREVIEW_CACHE.keys().next().value as string);
     }
     return objects.map((o) => ({ ...o, current: Math.min(selected[o.index] || 0, o.states.length - 1) }));
 }
@@ -140,4 +147,5 @@ function invalidateObjectPreviews() {
     PREVIEW_CACHE.clear();
 }
 
-module.exports = { buildObjects, editorObjects, parseObjectStates, cachedObjectPreviews, invalidateObjectPreviews };
+export type { ObjectView, StateView, Selection };
+export { buildObjects, editorObjects, parseObjectStates, cachedObjectPreviews, invalidateObjectPreviews };

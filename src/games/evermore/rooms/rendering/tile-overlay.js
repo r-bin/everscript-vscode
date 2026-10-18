@@ -14,7 +14,7 @@
 const maps = require('../../../../../dist/games/evermore/maps');
 const { romFingerprint } = require('../../../../../dist/games/evermore/rooms/rendering/rom-fingerprint');
 const { headerSpec, withHeader } = require('../../../../../dist/games/evermore/rooms/rendering/header-overrides');
-const { buildObjects, parseObjectStates, cachedObjectPreviews, invalidateObjectPreviews } = require('./object-previews');
+const { buildObjects, parseObjectStates, cachedObjectPreviews, invalidateObjectPreviews } = require('../../../../../dist/games/evermore/rooms/rendering/object-previews');
 
 /** Which render the map image shows. */
 const LAYERS = ['composite', 'layer1', 'layer2'];

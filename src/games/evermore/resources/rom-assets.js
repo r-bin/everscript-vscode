@@ -6,7 +6,7 @@
 
 const { renderItemIcon, lootIconId, alchemyIconId, iconEntry, ALCHEMY_FORMULAS, ICON_ID_LAST, encodePng, decodeRoom, renderRoomComposite, MAX_ROOMS } = require('../../../../dist/games/evermore/maps');
 const { lootRewardName, flagName } = require('../../../../dist/games/evermore/script-model');
-const { decodeRomString } = require('../localizations');
+const { decodeRomString } = require('../../../../dist/games/evermore/localizations');
 const { slugify, hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
 const { gallery, href } = require('../../../../dist/games/evermore/resources/autoindex');
 const { dir, file, link, json, text } = require('../../../../dist/games/evermore/resources/nodes');

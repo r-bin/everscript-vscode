@@ -54,8 +54,8 @@ require.cache.vscode = {
     },
 };
 
-// The reader the radar's Scaling tab uses (rom-readers.js).
-const { readRomCharacters } = require('../../src/games/evermore/rom-readers');
+// The reader the radar's Scaling tab uses (rom-readers.ts).
+const { readRomCharacters } = require('../../dist/games/evermore/rom-readers');
 
 console.log('\nscaling rom parsing:');
 

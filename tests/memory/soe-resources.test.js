@@ -245,7 +245,7 @@ test('provider: ?rom= picks the ROM; default prefers the emulator', async () => 
 }, true);
 
 test('provider: ?rom=<absolute path> reads that ROM file (Open ROM as Folder)', async () => {
-    const { loadRomFile } = require('../../src/games/evermore/rom-readers');
+    const { loadRomFile } = require('../../dist/games/evermore/rom-readers');
     const fsp = new SoeFileSystem({ vanillaRom: () => null, emulatorRom: () => null, romFile: loadRomFile, readMemory });
     const q = '?' + new URLSearchParams({ rom: romPath }).toString();
     const title = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/header.json' + q)))).title;
@@ -264,7 +264,7 @@ test('mount segment: ~<base64url path> names the ROM file and is stripped from s
 });
 
 test('provider: a ~mount reads that ROM file; autoindex stays inside the mount', async () => {
-    const { loadRomFile } = require('../../src/games/evermore/rom-readers');
+    const { loadRomFile } = require('../../dist/games/evermore/rom-readers');
     const { mountSegment } = require('../../dist/games/evermore/resources/resource-uri');
     const fsp = new SoeFileSystem({ vanillaRom: () => null, emulatorRom: () => null, romFile: loadRomFile, readMemory });
     const base = `soe://rom/${mountSegment(romPath)}/`;

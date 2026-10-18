@@ -1,7 +1,7 @@
 'use strict';
 // Ownership: the host side of custom maps — the webview's requests to list,
 // save, delete and export them, answered against the folder store
-// (data/custom-store.js) and the export archive (rendering/custom-export.js).
+// (data/custom-store.ts) and the export archive (rendering/custom-export.js).
 //
 // Split out of extension.js's message switch: it is one feature with five
 // messages. The VS Code API arrives as an argument (`deps.vscode`), so this
@@ -27,7 +27,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const store = require('./data/custom-store');
+const store = require('../../../../dist/games/evermore/rooms/data/custom-store');
 const widgetStore = require('../../../../dist/games/evermore/rooms/data/widget-store');
 const { buildCustomMapArchive } = require('./rendering/custom-export');
 const { graphicFamilies } = require('./rendering/vanilla-index');

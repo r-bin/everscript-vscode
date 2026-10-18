@@ -33,7 +33,7 @@ Related skills: `rooms-tab`, `map-editor-rules`, `map-construction`, `map-entiti
 | Webview globals | one owner file each | see README's client-side list and `webview/STATE.md` |
 
 ## Invariants
-1. `parsing/content-parser.js` is pure: file path + line range in, data out — no side effects.
+1. `parsing/content-parser.ts` is pure: file path + line range in, data out — no side effects.
 2. `parsing/file-scanner.js` receives `{getMapEnum, readScriptAllTriggers, readLuaWatchers,
    readRomMapHeader}` by injection — no direct requires of lua-watchers.
 3. `buildRoomsJson` flattens the tree to `{ mapName: { content, romHeader, ... } }`.

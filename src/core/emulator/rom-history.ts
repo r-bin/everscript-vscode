@@ -1,7 +1,5 @@
-'use strict';
-
 /**
- * src/core/emulator/rom-history.js
+ * src/core/emulator/rom-history.ts
  *
  * Tracks ROM loading history and offers quick-launch targets for the emulator:
  * - The base ROM of the selected game (ROM library)
@@ -9,36 +7,52 @@
  * - Recently opened / built / dropped ROM files
  */
 
-const path   = require('path');
-const fs     = require('fs');
-const os     = require('os');
-const crypto = require('crypto');
+import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as crypto from 'crypto';
 
 const HISTORY_FILENAME = 'recent-roms.json';
 const MAX_HISTORY_ITEMS = 15;
 
 // Which game and variant a ROM is comes from the ROM library's identification (platform/roms/identify.ts);
 // this file only shapes it for the quick-launch list.
-const platform = require('../../../dist/platform');
+import * as platform from '../../platform';
 
 /**
  * A game can describe ROMs it built itself (Evermore: the map editor's test ROMs) before the
  * library identification runs: (rom without copier header, target, hintPath) => details or null.
  * Set by the emulator panel from configureEmulator({ game }).
  */
-let _describeRom = null;
-function setRomDescriber(fn) {
-  _describeRom = typeof fn === 'function' ? fn : null;
+/** What the list shows about a ROM; a game's describer may add more (custom map name, preview). */
+interface RomDetails {
+  known: boolean; isCustomMap: boolean; region: string; regionName: string; icon: string; flag: string;
+  sha1?: string; crc32?: string; customName?: string; vfsUri?: string; previewDataUri?: string;
+}
+type RomDescriber = (clean: Uint8Array, target: unknown, hintPath?: string | null) => RomDetails | null;
+/** A stored history entry (recent-roms.json). */
+interface HistoryItem {
+  path: string; name: string; kind: string; lastUsed: number; size: number; customName?: string; vfsUri?: string;
+  icon?: string; region?: string; regionName?: string; isCustomMap?: boolean; previewDataUri?: string;
+}
+/** What the panel reports when a ROM was loaded. */
+interface RomUsage { path?: string; name?: string; kind?: string; dataUrl?: unknown; romBuffer?: Uint8Array; size?: number }
+/** For getStorageDir: the extension context, or anything with its global storage folder. */
+type StorageContext = { globalStorageUri?: { fsPath?: string } } | null | undefined;
+
+let _describeRom: RomDescriber | null = null;
+function setRomDescriber(fn: unknown): void {
+  _describeRom = typeof fn === 'function' ? fn as RomDescriber : null;
 }
 
-function detectRomDetails(target, hintPath) {
+function detectRomDetails(target: unknown, hintPath?: string | null): RomDetails | null {
   try {
-    let buf = null;
+    let buf: Uint8Array | null = null;
     let targetPath = typeof target === 'string' ? target : (hintPath || '');
     if (typeof target === 'string') {
       if (!fs.existsSync(target)) return null;
       buf = fs.readFileSync(target);
-    } else if (Buffer.isBuffer(target) || (target && target.buffer)) {
+    } else if (Buffer.isBuffer(target) || (target instanceof Uint8Array)) {
       buf = target;
     }
     if (!buf || buf.length < 0x200000) return null;
@@ -84,13 +98,13 @@ function detectRomDetails(target, hintPath) {
   }
 }
 
-function formatBytes(bytes) {
+function formatBytes(bytes: unknown): string {
   if (typeof bytes !== 'number' || isNaN(bytes) || bytes <= 0) return '';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
 }
 
-function formatRelativeTime(ts) {
+function formatRelativeTime(ts: number | null | undefined): string {
   if (!ts) return '';
   const diffSec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
   if (diffSec < 60) return 'Just now';
@@ -105,7 +119,7 @@ function formatRelativeTime(ts) {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-function getBadge(kind) {
+function getBadge(kind: string | undefined): string {
   switch (kind) {
     case 'editor':  return 'Map Editor';
     case 'vanilla': return 'Vanilla';
@@ -115,7 +129,7 @@ function getBadge(kind) {
   }
 }
 
-function getStorageDir(context) {
+function getStorageDir(context: StorageContext): string {
   if (context && context.globalStorageUri && context.globalStorageUri.fsPath) {
     const p = context.globalStorageUri.fsPath;
     try {
@@ -130,7 +144,7 @@ function getStorageDir(context) {
   return fallback;
 }
 
-function getVanillaRom(wsRoot, cfgRomPath) {
+function getVanillaRom(wsRoot?: string | null, cfgRomPath?: string | null) {
   try {
     // The base ROM of the selected ROM's game (the clean one to hack), else the selected ROM itself.
     const sel = platform.selectedRom();
@@ -154,9 +168,9 @@ function getVanillaRom(wsRoot, cfgRomPath) {
   return { available: false };
 }
 
-function scanEditorTempRoms(storageDir) {
+function scanEditorTempRoms(storageDir: string): HistoryItem[] {
   const dirs = [storageDir, os.tmpdir()].filter(Boolean);
-  const found = new Map();
+  const found = new Map<string, HistoryItem>();
 
   for (const dir of dirs) {
     try {
@@ -185,7 +199,7 @@ function scanEditorTempRoms(storageDir) {
   return Array.from(found.values());
 }
 
-function readHistoryFile(storageDir) {
+function readHistoryFile(storageDir: string): HistoryItem[] {
   const histPath = path.join(storageDir, HISTORY_FILENAME);
   try {
     if (fs.existsSync(histPath)) {
@@ -197,7 +211,7 @@ function readHistoryFile(storageDir) {
   return [];
 }
 
-function writeHistoryFile(storageDir, list) {
+function writeHistoryFile(storageDir: string, list: HistoryItem[]): void {
   const histPath = path.join(storageDir, HISTORY_FILENAME);
   try {
     if (!fs.existsSync(storageDir)) fs.mkdirSync(storageDir, { recursive: true });
@@ -205,11 +219,11 @@ function writeHistoryFile(storageDir, list) {
   } catch (_) {}
 }
 
-function clearRecentRoms(storageDir) {
+function clearRecentRoms(storageDir: string): void {
   writeHistoryFile(storageDir, []);
 }
 
-function recordRomUsage(entry, context) {
+function recordRomUsage(entry: RomUsage | null | undefined, context: StorageContext): void {
   if (!entry) return;
   const storageDir = getStorageDir(context);
   let filePath = entry.path || '';
@@ -230,7 +244,7 @@ function recordRomUsage(entry, context) {
     } catch (_) {}
   }
 
-  let details = null;
+  let details: RomDetails | null = null;
   if (filePath && fs.existsSync(filePath)) {
     details = detectRomDetails(filePath, filePath || name);
   } else if (entry.romBuffer) {
@@ -269,11 +283,11 @@ function recordRomUsage(entry, context) {
   writeHistoryFile(storageDir, filtered);
 }
 
-function getRecentRoms(storageDir) {
+function getRecentRoms(storageDir: string) {
   const stored = readHistoryFile(storageDir);
   const tempEditorRoms = scanEditorTempRoms(storageDir);
 
-  const byPath = new Map();
+  const byPath = new Map<string, HistoryItem>();
   for (const item of stored) {
     if (item.path) byPath.set(item.path, item);
   }
@@ -344,24 +358,12 @@ function getRecentRoms(storageDir) {
   return result;
 }
 
-function getRomOfferData(context, wsRoot, cfgRomPath) {
+function getRomOfferData(context: StorageContext, wsRoot?: string | null, cfgRomPath?: string | null) {
   const storageDir = getStorageDir(context);
   const vanilla = getVanillaRom(wsRoot, cfgRomPath);
   const recent = getRecentRoms(storageDir);
   return { vanilla, recent };
 }
 
-module.exports = {
-  formatBytes,
-  formatRelativeTime,
-  getBadge,
-  getStorageDir,
-  getVanillaRom,
-  scanEditorTempRoms,
-  recordRomUsage,
-  getRecentRoms,
-  getRomOfferData,
-  clearRecentRoms,
-  detectRomDetails,
-  setRomDescriber,
-};
+export type { RomDetails, RomDescriber, HistoryItem };
+export { formatBytes, formatRelativeTime, getBadge, getStorageDir, getVanillaRom, scanEditorTempRoms, recordRomUsage, getRecentRoms, getRomOfferData, clearRecentRoms, detectRomDetails, setRomDescriber };

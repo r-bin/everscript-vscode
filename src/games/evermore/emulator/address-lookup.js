@@ -19,7 +19,7 @@ const {
   getGlobalScriptName,
   ABS_SCRIPTS,
   getMapName,
-} = require('../localizations');
+} = require('../../../../dist/games/evermore/localizations');
 
 const SCRIPTS_START_ADDR_US = 0x928000;
 const ENTER_TABLE_OFFSET    = 0x1b;

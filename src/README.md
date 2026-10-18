@@ -8,7 +8,7 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `core/` | Game-neutral features: `webview/shared.css` + `shared-map-editor.css` + `shared-tabs.css` (the page base of the radar and the Mana Maps page); Switch ROM, the ROM panel, the status bar item; `map-editor/` (view, core, shell of both games' editors); `mcp/` (read-only MCP server, 127.0.0.1:47917, for AI clients); `emulator/` (the embedded SNES emulator: panel, page, cores, profiles Everscript / recorder; a game hands in its part) |
 | `recorder/` | SNES CDL Recorder: the second extension's entry (`recorder/package.json`), the emulator in its recorder profile |
 | `games/` | One folder per game; `games/index.ts` is the list of games (→ `dist/games`) |
-| `games/evermore/` (files) | `rom-readers.js` (ROM reads for rooms, characters, stats), `radar-utils.ts` (Everscript parsing for the radar), the descriptor and derived-ROM marker |
+| `games/evermore/` (files) | `rom-readers.ts` (ROM reads for rooms, characters, stats), `radar-utils.ts` (Everscript parsing for the radar), the descriptor and derived-ROM marker |
 | `games/evermore/memory/` | Memory Radar tab: WRAM grid, detail table, rendering pipeline |
 | `games/evermore/rooms/` | Rooms map browser: tree building, content parsing, rendering, data watchers |
 | `games/evermore/language/` | VS Code language features: grammar, theme, hover, completion, definitions, snippets |
@@ -51,7 +51,7 @@ Below, `language/`, `maps/`, … without a prefix are under `games/evermore/`.
 - `script-model/` → `script-vm/`, `localizations/`; `script-vm/` → `variant-resolver`, `platform/snes/`
 - `resources/` → may use `maps/`, `script-vm/`, `script-model/`, `simulation/`, `localizations/`; never `emulator/` (ROM and memory reads are injected by `games/evermore/extension.js`)
 - `platform/` → no `core/`, no game; `core/` → `platform/` only; a game never imports another game except through `games/<game>/imports/<other>/`
-- `games/mana/decoder/` → nothing in `src/`; `games/mana/resources/` → the decoder only; `games/mana/maps/` → `som://` only; `games/evermore/imports/mana/` → the Mana decoder, Evermore `maps/` and `rom-readers.js`; no Evermore domain uses any of them (only `extension.js` wires them)
+- `games/mana/decoder/` → nothing in `src/`; `games/mana/resources/` → the decoder only; `games/mana/maps/` → `som://` only; `games/evermore/imports/mana/` → the Mana decoder, Evermore `maps/` and `rom-readers.ts`; no Evermore domain uses any of them (only `extension.js` wires them)
 - No circular dependencies allowed
 
 See `.depcruise.js` for machine-enforced rules.

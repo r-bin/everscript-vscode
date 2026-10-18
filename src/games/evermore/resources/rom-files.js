@@ -7,15 +7,15 @@
 //   soe://rom/header.json         cartridge header at $FFC0
 //   soe://rom/<off>[<len>].bin    file-offset slice (unlisted; default 0x100 bytes)
 //   soe://rom/<off>.json          byte, word, long and table/function name
-//   soe://rom/<off>.asm           65816 listing from there (asm-view.js)
+//   soe://rom/<off>.asm           65816 listing from there (asm-view.ts)
 //   soe://rom/assets/...          decoded content, rom-assets.js
 // Bus addresses go through soe://bus/ (bus-files.js), which links here.
 
 const { snesToRom } = require('../../../../dist/games/evermore/maps');
-const { getTable, getFunction, getAbsScript } = require('../localizations');
+const { getTable, getFunction, getAbsScript } = require('../../../../dist/games/evermore/localizations');
 const { parseAddressName, hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
 const { dir, file, json, text } = require('../../../../dist/games/evermore/resources/nodes');
-const { asmListing } = require('./asm-view');
+const { asmListing } = require('../../../../dist/games/evermore/resources/asm-view');
 const { cListing } = require('../../../../dist/games/evermore/resources/decomp-view');
 
 /** A file offset as the bus address code runs at: $80-$BF upper halves (fast ROM), else $C0+. */

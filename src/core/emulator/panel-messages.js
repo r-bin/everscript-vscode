@@ -5,8 +5,8 @@
 
 const vscode = require('vscode');
 const fs     = require('fs');
-const { ensureEmulatorChannel: _ensureEmulatorChannel, log: _log, logCrash, launchHistory: _launchHistory, scriptTraceHistory: _scriptTraceHistory } = require('./emulator-log');
-const { recordRomUsage, getVanillaRom, clearRecentRoms, getStorageDir } = require('./rom-history');
+const { ensureEmulatorChannel: _ensureEmulatorChannel, log: _log, logCrash, launchHistory: _launchHistory, scriptTraceHistory: _scriptTraceHistory } = require('../../../dist/core/emulator/emulator-log');
+const { recordRomUsage, getVanillaRom, clearRecentRoms, getStorageDir } = require('../../../dist/core/emulator/rom-history');
 const { emu, _scriptDebug, _apu, _memory, KEEP_FOCUS_KEY, SETTINGS_KEY, _state, _saveState, _keepFocusSetting, _notifyWebviewStatus, _clearReadyTimeout, _clearRomTimeout, _dispatchPendingRom, _broadcastRomOffer, _reopenLastRom, _sendRomFile, _handleRoomMapRequest } = require('./panel-state');
 
 /** Everything the page sends: readiness, ROM load stages, crashes, CDL / REPLAYS / debugger traffic, the game's requests. */

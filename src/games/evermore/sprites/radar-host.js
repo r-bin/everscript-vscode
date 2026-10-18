@@ -5,7 +5,7 @@
 //   spritesBundle(romBuf)    the cached characters / raw sprite index (games/evermore/extension.js)
 
 const vscode = require('vscode');
-const romReaders = require('../rom-readers');
+const romReaders = require('../../../../dist/games/evermore/rom-readers');
 const { renderAnimation, renderRawSprite, listPalettes, renderInPalettes, thumbFor } = require('./index');
 const { missingRomText } = require('../../../../dist/platform/roms/library');
 

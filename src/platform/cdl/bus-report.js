@@ -15,7 +15,7 @@
  */
 
 const { hex } = require('../../../dist/platform/cdl/rom-map');
-const { busSitesList, BUS } = require('./library-ext');
+const { busSitesList, BUS } = require('../../../dist/platform/cdl/library-ext');
 
 const FORMS = [[BUS.C, '$C0-$FF'], [BUS.B8, '$80-$BF'], [BUS.B0, '$00-$3F'], [BUS.B4, '$40-$7D']];
 const bankClass = bank => (bank >= 0xC0 ? BUS.C : bank >= 0x80 ? BUS.B8 : bank >= 0x40 ? BUS.B4 : BUS.B0);

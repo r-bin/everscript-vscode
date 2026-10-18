@@ -270,7 +270,7 @@ still needs to run the Python tool directly.
 ### 2.1 The render cache never invalidates when the ROM changes
 
 `tile-overlay.js` exports `invalidateRoomRenders()`, but **nothing calls it.**
-`src/games/evermore/rom-readers.js`'s `loadRomBuffer()` correctly detects a changed ROM
+`src/games/evermore/rom-readers.ts`'s `loadRomBuffer()` correctly detects a changed ROM
 by mtime and returns a fresh buffer — but `tile-overlay.js`'s own render cache
 is keyed only by `roomId:layer`, not by ROM identity, so after the user runs
 "Build and Run" (`everscript.buildAndRun`) and recompiles a modified ROM, the

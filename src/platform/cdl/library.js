@@ -21,7 +21,7 @@
  *   script-xrefs.bin [script instruction, wram addr, flags]                       OR
  *   rom-hits.bin     [rom offset, hits lo, hits hi]  execs at opcode heads, reads at data   SUM
  *   wram-hits.bin    [wram addr, reads lo, reads hi, writes lo, writes hi]                 SUM
- *   rets / regs / bases / wram-code / aram: library-ext.js
+ *   rets / regs / bases / wram-code / aram: library-ext.ts
  *
  * Newer files are optional: a library written before they existed still loads,
  * keeps all its data, and gains them on the next flush (wram.flags is derived
@@ -33,7 +33,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { initExt, mergeExt, loadExt, extWriters, EXT_FILES } = require('./library-ext');
+const { initExt, mergeExt, loadExt, extWriters, EXT_FILES } = require('../../../dist/platform/cdl/library-ext');
 
 const FORMAT = 1;
 const WRAM_SIZE = 0x20000;

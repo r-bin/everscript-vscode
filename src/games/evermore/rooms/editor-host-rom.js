@@ -6,7 +6,7 @@ const vscode = require('vscode');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const romReaders = require('../rom-readers');
+const romReaders = require('../../../../dist/games/evermore/rom-readers');
 const { buildDraftCollision, buildExportRom } = require('./index');
 const { missingRomText } = require('../../../../dist/platform/roms/library');
 

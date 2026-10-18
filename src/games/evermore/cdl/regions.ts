@@ -1,7 +1,5 @@
-'use strict';
-
 /**
- * games/evermore/cdl/regions.js
+ * games/evermore/cdl/regions.ts
  *
  * What the CDL export knows about Secret of Evermore before any CDL data: the room blobs, the
  * map pointer table, the room enter script table, the strings with their key table, and the
@@ -9,11 +7,15 @@
  * owns the header and how regions are merged). Region kinds and rules: that file.
  */
 
-const { hex } = require('../../../../dist/platform/cdl/rom-map');
-const { dbLines, labelExpr } = require('../../../../dist/platform/cdl/known-regions');
-const maps = require('../../../../dist/games/evermore/maps');
+import { hex } from '../../../platform/cdl/rom-map';
+import type { createRomMap } from '../../../platform/cdl/rom-map';
+import { dbLines, labelExpr } from '../../../platform/cdl/known-regions';
+import type { KnownRegion } from '../../../platform/cdl/known-regions';
+import * as maps from '../maps';
 
 const CDL_CODE = 0x01, CDL_DATA = 0x02;
+
+type RomMap = ReturnType<typeof createRomMap>;
 
 // String key table: 3-byte entries, low 23 bits are the string's ROM offset
 // from $C00000 packed as (bank << 15) | (addr & $7FFF); bit 23 = compressed.
@@ -24,14 +26,14 @@ const STRKEY_FN = 'function strkey(a) = ((a-$C00000)&$FFFF)+(((a-$C00000)&$7F800
 
 // The title alone, so ROM hacks and other layouts get the known regions too;
 // a room whose blob does not decode is skipped (roomRegions), not fatal.
-function isEvermore(map) {
+function isEvermore(map: RomMap): boolean {
     return !!(map.header && /SECRET OF EVERMORE/.test(map.header.title));
 }
 
-function roomRegions(rom, map, steps) {
-    const regions = [];
-    const skipped = [];
-    const nameOf = id => 'room_' + hex(id, 2);
+function roomRegions(rom: Uint8Array, map: RomMap, steps: string[]): KnownRegion[] {
+    const regions: KnownRegion[] = [];
+    const skipped: string[] = [];
+    const nameOf = (id: number): string => 'room_' + hex(id, 2);
     for (let id = 0; id < maps.MAX_ROOMS; id++) {
         const ptr = rom[maps.MAP_LIST_ADDR + id * 4] | (rom[maps.MAP_LIST_ADDR + id * 4 + 1] << 8) | (rom[maps.MAP_LIST_ADDR + id * 4 + 2] << 16);
         const off = map.busToRom(ptr);
@@ -41,25 +43,24 @@ function roomRegions(rom, map, steps) {
             if ((off >> 16) !== ((end - 1) >> 16)) throw new Error('crosses a bank');
             regions.push({ start: off, end, kind: 'blob', name: nameOf(id), file: 'rooms/' + nameOf(id) + '.bin', note: 'room ' + hex(id, 2) });
         } catch (err) {
-            skipped.push(hex(id, 2) + ': ' + err.message);
+            skipped.push(hex(id, 2) + ': ' + (err instanceof Error ? err.message : err));
         }
     }
-    const table = {
-        start: maps.MAP_LIST_ADDR, end: maps.MAP_LIST_ADDR + maps.MAX_ROOMS * 4, kind: 'table', name: 'map_table',
-        note: 'room id -> blob (dl pointer, db pad); slot $7F onward is not a room',
-        entry: i => {
-            const o = maps.MAP_LIST_ADDR + i * 4;
-            return { ptr: rom[o] | (rom[o + 1] << 8) | (rom[o + 2] << 16), pad: rom[o + 3], name: nameOf(i) };
-        },
+    const entry = (i: number) => {
+        const o = maps.MAP_LIST_ADDR + i * 4;
+        return { ptr: rom[o] | (rom[o + 1] << 8) | (rom[o + 2] << 16), pad: rom[o + 3], name: nameOf(i) };
     };
-    const named = new Set(regions.map(r => r.name));
-    table.lines = [];
+    const lines: string[] = [];
     for (let i = 0; i < maps.MAX_ROOMS; i++) {
-        const e = table.entry(i);
+        const e = entry(i);
         const r = regions.find(x => x.name === e.name);
-        const expr = named.has(e.name) ? labelExpr(e.name, e.ptr - map.canonical(r.start)) : '$' + hex(e.ptr, 6);
-        table.lines.push(`    dl ${expr} : db $${hex(e.pad, 2)}`);
+        const expr = r ? labelExpr(e.name, e.ptr - map.canonical(r.start)) : '$' + hex(e.ptr, 6);
+        lines.push(`    dl ${expr} : db $${hex(e.pad, 2)}`);
     }
+    const table: KnownRegion = {
+        start: maps.MAP_LIST_ADDR, end: maps.MAP_LIST_ADDR + maps.MAX_ROOMS * 4, kind: 'table', name: 'map_table',
+        note: 'room id -> blob (dl pointer, db pad); slot $7F onward is not a room', lines,
+    };
     const bytes = regions.reduce((s, r) => s + r.end - r.start, 0);
     steps.push(`Rooms: map table at $${hex(map.canonical(maps.MAP_LIST_ADDR), 6)}, ${regions.length}/${maps.MAX_ROOMS} blobs carved to rooms/ (${bytes} bytes), ends from the blob layout + object area.` +
         (skipped.length ? ' Skipped: ' + skipped.join('; ') + '.' : ''));
@@ -73,10 +74,10 @@ function roomRegions(rom, map, steps) {
 const SCRIPT_BANK = 0x128000;
 const ENTER_TABLE = SCRIPT_BANK + 0x1B;
 
-function enterScriptRegion(rom, map, steps) {
+function enterScriptRegion(rom: Uint8Array, map: RomMap, steps: string[]): KnownRegion[] {
     const end = SCRIPT_BANK + (rom[SCRIPT_BANK] | (rom[SCRIPT_BANK + 1] << 8));
     if (end <= ENTER_TABLE || end > SCRIPT_BANK + 0x8000) { steps.push('Room enter scripts: table end not found, not seeded.'); return []; }
-    const lines = [];
+    const lines: string[] = [];
     for (let o = ENTER_TABLE, id = 0; o < end; o += 5, id++) {
         const n = Math.min(5, end - o);
         lines.push(dbLines([...rom.subarray(o, o + n)])[0] + `    ; room ${hex(id, 2)}` + (n < 5 ? ` (${n} bytes; overlaps the global script table)` : ''));
@@ -85,7 +86,7 @@ function enterScriptRegion(rom, map, steps) {
     return [{ start: ENTER_TABLE, end, kind: 'bytes', name: 'room_enter_scripts', note: 'room id -> enter script (3-byte packed pointer + 2 bytes), stride 5', lines }];
 }
 
-function stringText(bytes) {
+function stringText(bytes: Iterable<number>): string {
     let s = '';
     for (const b of bytes) {
         if (b === 0) s += '[END]';
@@ -96,8 +97,8 @@ function stringText(bytes) {
     return s;
 }
 
-function stringRegions(rom, map, cdl, steps) {
-    const keys = [];
+function stringRegions(rom: Uint8Array, map: RomMap, cdl: Uint8Array | null | undefined, steps: string[]): KnownRegion[] {
+    const keys: { index: number; raw: number; compressed: boolean; off: number }[] = [];
     for (let i = 0; i < STRING_COUNT; i++) {
         const o = STRING_KEYS + i * 3;
         const v = rom[o] | (rom[o + 1] << 8) | (rom[o + 2] << 16);
@@ -105,16 +106,16 @@ function stringRegions(rom, map, cdl, steps) {
         keys.push({ index: i, raw: v, compressed: !!(v & 0x800000), off: ((packed >> 15) << 16) | (packed & 0x7FFF) });
     }
     const starts = [...new Set(keys.map(k => k.off))].sort((a, b) => a - b);
-    const firstKey = new Map();
+    const firstKey = new Map<number, (typeof keys)[number]>();
     for (const k of keys) if (!firstKey.has(k.off)) firstKey.set(k.off, k);
 
-    const regions = [];
+    const regions: KnownRegion[] = [];
     let fromCdl = 0, toChunkEnd = 0, plainEnds = 0;
     for (let n = 0; n < starts.length; n++) {
         const start = starts[n];
         const chunkEnd = start - (start % 0x10000) + STRING_CHUNK;
         if (start >= chunkEnd || start >= rom.length) continue;
-        const k = firstKey.get(start);
+        const k = firstKey.get(start) as (typeof keys)[number];
         let end = n + 1 < starts.length && starts[n + 1] < chunkEnd ? starts[n + 1] : -1;
         if (end < 0 && !k.compressed) {
             const z = rom.indexOf(0, start);
@@ -140,7 +141,7 @@ function stringRegions(rom, map, cdl, steps) {
         if (!name) return '    dl $' + hex(k.raw, 6);
         return '    dl strkey(' + name + ')' + (k.compressed ? '|$800000' : '') + '    ; ' + hex(k.index, 4);
     });
-    const table = { start: STRING_KEYS, end: STRING_KEYS + STRING_COUNT * 3, kind: 'table', name: 'string_keys', note: 'string index -> string (strkey packing, bit 23 = compressed)', lines };
+    const table: KnownRegion = { start: STRING_KEYS, end: STRING_KEYS + STRING_COUNT * 3, kind: 'table', name: 'string_keys', note: 'string index -> string (strkey packing, bit 23 = compressed)', lines };
     const compressed = keys.filter(k => k.compressed).length;
     steps.push(`Strings: key table at $${hex(map.canonical(STRING_KEYS), 6)}, ${STRING_COUNT} keys (${compressed} compressed), ${regions.length} strings labelled str_<index> in banks $C0-$C3. ` +
         `Each string ends where the next one starts; the last one per 32 KB chunk ends at its terminator (${plainEnds}), the end of the CDL-read run (${fromCdl}), or the chunk end (${toChunkEnd}, end not known: no decompressor yet).`);
@@ -154,8 +155,8 @@ function stringRegions(rom, map, cdl, steps) {
 // $xx8000-$xxFFFF half (read through the $80 mirror, like the original $91D000).
 const KEY_READER = [0xA9, 0x91, 0x00, 0x85, 0x28, 0xA0, 0x00, 0xD0];
 
-function stringKeyReaders(rom, map, steps) {
-    const regions = [];
+function stringKeyReaders(rom: Uint8Array, map: RomMap, steps: string[]): KnownRegion[] {
+    const regions: KnownRegion[] = [];
     for (let o = 0; o + KEY_READER.length <= Math.min(rom.length, 0x400000); o++) {
         if (rom[o] !== 0xA9 || KEY_READER.some((b, i) => rom[o + i] !== b)) continue;
         regions.push({
@@ -168,20 +169,17 @@ function stringKeyReaders(rom, map, steps) {
     return regions;
 }
 
-/**
- * Evermore's regions, or null when the ROM is not Evermore (title) or too small.
- * @returns {{ regions: object[], defines: string[] } | null}
- */
-function evermoreRegions(rom, map, cdl, steps) {
+/** Evermore's regions, or null when the ROM is not Evermore (title) or too small. */
+function evermoreRegions(rom: Uint8Array, map: RomMap, cdl: Uint8Array | null | undefined, steps: string[]): { regions: KnownRegion[]; defines: string[] } | null {
     if (!isEvermore(map) || rom.length <= STRING_KEYS + STRING_COUNT * 3 || rom.length <= maps.MAP_LIST_ADDR + maps.MAX_ROOMS * 4) return null;
     try {
-        const regions = [].concat(roomRegions(rom, map, steps), enterScriptRegion(rom, map, steps), stringRegions(rom, map, cdl, steps), stringKeyReaders(rom, map, steps));
+        const regions = [...roomRegions(rom, map, steps), ...enterScriptRegion(rom, map, steps), ...stringRegions(rom, map, cdl, steps), ...stringKeyReaders(rom, map, steps)];
         return { regions, defines: [STRKEY_FN] };
     } catch (err) {
         // A hack with the vanilla title but moved tables: keep the header only.
-        steps.push('Content: titled Secret of Evermore, but its tables do not decode (' + err.message + '); only the header is seeded.');
+        steps.push('Content: titled Secret of Evermore, but its tables do not decode (' + (err instanceof Error ? err.message : err) + '); only the header is seeded.');
         return null;
     }
 }
 
-module.exports = { evermoreRegions, stringText };
+export { evermoreRegions, stringText };

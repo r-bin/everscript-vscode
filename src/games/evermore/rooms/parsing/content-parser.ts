@@ -1,23 +1,31 @@
-'use strict';
 // Ownership: parsing .evs map block text → room entity data (initMap, entrances, enemies, objects, transitions).
 // Pure function: reads one file, returns structured data. No caching, no side effects.
 
-const fs = require('fs');
-const { parseEvsNum } = require('../../../../../dist/games/evermore/radar-utils');
+import * as fs from 'fs';
+import { parseEvsNum } from '../../radar-utils';
+
+/** What a map block holds, each with the 0-based line it is on (-1: implied by a later object). */
+interface RoomContent {
+    initMap: { x1: number; y1: number; x2: number; y2: number; line: number } | null;
+    entrances: { name: string; x: number; y: number; dir: string; line: number }[];
+    enemies: { type: string; x: number; y: number; dynamic: boolean; line: number }[];
+    objects: { index: string; line: number; desc: string }[];
+    transitions: { target: string; via: string; dir: string; line: number }[];
+    triggerNames: { stepOn: string[]; bTrigger: string[] };
+}
+
+const empty = (): RoomContent => ({ initMap: null, entrances: [], enemies: [], objects: [], transitions: [], triggerNames: { stepOn: [], bTrigger: [] } });
 
 /**
- * Parse the content of a single map block from a .evs file.
- * @param {string}  filePath  Absolute path to the .evs file.
- * @param {number}  startLine 0-based line of the opening `map NAME(...) {`.
- * @param {number}  endLine   0-based line of the closing `}`.
- * @returns {{initMap, entrances, enemies, objects, transitions, triggerNames}}
+ * Parse the content of a single map block from a .evs file (absolute path), from the 0-based line of
+ * the opening `map NAME(...) {` to the line of its closing `}`.
  */
-function parseRoomContent(filePath, startLine, endLine) {
-    let lines;
+function parseRoomContent(filePath: string, startLine: number, endLine: number): RoomContent {
+    let lines: string[];
     try { lines = fs.readFileSync(filePath, 'utf8').split(/\r?\n/); }
-    catch { return { initMap: null, entrances: [], enemies: [], objects: [], transitions: [] }; }
+    catch { return empty(); }
 
-    const out = {
+    const out: RoomContent = {
         initMap: null,
         entrances: [],
         enemies: [],
@@ -25,8 +33,8 @@ function parseRoomContent(filePath, startLine, endLine) {
         transitions: [],
         triggerNames: { stepOn: [], bTrigger: [] },
     };
-    const objSeen = new Set();
-    const objDesc = new Map();
+    const objSeen = new Set<string>();
+    const objDesc = new Map<string, string>();
     let inStepOnEnum = false, inBTrigEnum = false, enumDepth = 0;
     const end = Math.min(endLine, lines.length - 1);
 
@@ -96,12 +104,12 @@ function parseRoomContent(filePath, startLine, endLine) {
 
     // Fill descriptions from commented lines for live-code objects
     for (const o of out.objects) {
-        if (!o.desc && objDesc.has(o.index)) o.desc = objDesc.get(o.index);
+        if (!o.desc && objDesc.has(o.index)) o.desc = objDesc.get(o.index) || '';
     }
 
     // Fill object index gaps (object[0x05] implies 0x00..0x04 exist)
     if (out.objects.length > 0) {
-        const parseIdx = s => parseInt(s, (s.startsWith('0x') || s.startsWith('0X')) ? 16 : 10);
+        const parseIdx = (s: string): number => parseInt(s, (s.startsWith('0x') || s.startsWith('0X')) ? 16 : 10);
         const maxIdx = Math.max(...out.objects.map(o => parseIdx(o.index)));
         const seenIdxs = new Set(out.objects.map(o => parseIdx(o.index)));
         for (let i = 0; i <= maxIdx; i++) {
@@ -114,4 +122,5 @@ function parseRoomContent(filePath, startLine, endLine) {
     return out;
 }
 
-module.exports = { parseRoomContent };
+export type { RoomContent };
+export { parseRoomContent };

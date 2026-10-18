@@ -40,7 +40,7 @@ does with a converted room says nothing about Mana.
 
 Dependency rules (`.depcruise.js`): `src/games/mana/decoder` imports nothing in `src/`;
 `src/games/mana/resources` only `src/games/mana/decoder`; `src/games/mana/maps` only `som://`;
-`src/games/evermore/imports/mana` only `src/games/mana/decoder`, `src/games/evermore/maps`, `src/games/evermore/rom-readers.js`; Evermore domains never
+`src/games/evermore/imports/mana` only `src/games/mana/decoder`, `src/games/evermore/maps`, `src/games/evermore/rom-readers.ts`; Evermore domains never
 import any of them — only `extension.js` wires them in.
 
 ## 3. Use the plugin's features for every game

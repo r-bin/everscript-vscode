@@ -1,11 +1,11 @@
 'use strict';
-// The soe:// MCP server over real HTTP (src/core/mcp/protocol.js + server.ts),
+// The soe:// MCP server over real HTTP (src/core/mcp/protocol.ts + server.ts),
 // with a stub file system: handshake, tools, resources, errors and the
 // localhost-only guard. The live VS Code path is checked by hand / in a
 // VS Code test instance (see the v0.180.0 commit).
 
 const assert = require('assert');
-const { createMcpHandler, mimeOf, hexdump } = require('../../src/core/mcp/protocol');
+const { createMcpHandler, mimeOf, hexdump } = require('../../dist/core/mcp/protocol');
 const { createMcpHttpServer } = require('../../dist/core/mcp/server');
 
 const PNG = Buffer.from('89504e470d0a1a0a', 'hex');

@@ -1,7 +1,5 @@
-'use strict';
-
 /**
- * platform/cdl/library-ext.js
+ * platform/cdl/library-ext.ts
  *
  * The library streams added for recomp / decomp work (v0.174.0), kept out of
  * library.js so that file stays about storage and the original streams:
@@ -21,7 +19,7 @@
  * sessions saw different code: the state then says CHANGED either way.
  */
 
-const values = require('../../../dist/platform/cdl/library-values');
+import * as values from './library-values';
 
 const WRAM_SIZE = 0x20000;
 const ARAM_SIZE = 0x10000;
@@ -34,11 +32,35 @@ const ARAM = { EXEC: 1, OPERAND: 2, READ: 4, WRITE: 8 };
 const BUS = { C: 1, B8: 2, B0: 4, B4: 8 };
 const TWO32 = 0x100000000;
 
-const retKey = (entry, retPc, mx) => (entry * 0x1000000 + retPc) * 16 + (mx & 0xF);
-const regKey = (pc, kv) => pc * 0x100000 + kv;
-const baseKey = (pc, base) => pc * 0x1000000 + base;
+/** The library's extension streams (fields of the CDL library object, library.js), plus the value streams. */
+interface ExtLib extends values.ValuesLib {
+    romSize: number;
+    rets: Map<number, number>;
+    regs: Set<number>;
+    bases: Map<number, number>;
+    wcode: Uint8Array;
+    wcodeState: Uint8Array;
+    aram: Uint8Array;
+    bus: Uint8Array;
+    /** formIdx * 2^24 + pc -> the flags and the lowest / highest address read in that form. */
+    busSites: Map<number, { flags: number; lo: number; hi: number }>;
+    romCycles: Float64Array;
+}
+type Records = ArrayLike<number> | null | undefined;
+/** A delta from the recorder (or the loaded files), stream by stream. */
+interface ExtDelta extends values.ValuesDelta {
+    rets?: Records; regs?: Records; bases?: Records; busSites?: Records; romCycles?: Records;
+    wcode?: { index: number; code: Uint8Array; state: Uint8Array }[];
+    aram?: { index: number; data: Uint8Array }[];
+    bus?: { index: number; data: Uint8Array }[];
+}
+type Touch = (name: string) => void;
 
-function initExt(lib) {
+const retKey = (entry: number, retPc: number, mx: number): number => (entry * 0x1000000 + retPc) * 16 + (mx & 0xF);
+const regKey = (pc: number, kv: number): number => pc * 0x100000 + kv;
+const baseKey = (pc: number, base: number): number => pc * 0x1000000 + base;
+
+function initExt(lib: Partial<ExtLib> & { romSize: number }): void {
     lib.rets = new Map();
     lib.regs = new Set();
     lib.bases = new Map();
@@ -51,7 +73,7 @@ function initExt(lib) {
     values.initValues(lib);
 }
 
-function orInto(map, key, flags) {
+function orInto(map: Map<number, number>, key: number, flags: number): boolean {
     const old = map.get(key) || 0;
     if ((old | flags) === old) return false;
     map.set(key, old | flags);
@@ -59,7 +81,7 @@ function orInto(map, key, flags) {
 }
 
 /** Merge the extension part of a delta (or of loaded files); touch(name) marks a file dirty. */
-function mergeExt(lib, d, touch) {
+function mergeExt(lib: ExtLib, d: ExtDelta, touch: Touch): void {
     if (d.rets) for (let i = 0; i + 2 < d.rets.length; i += 3) {
         if (orInto(lib.rets, retKey(d.rets[i], d.rets[i + 1], d.rets[i + 2] >>> 8), d.rets[i + 2] & 0xFF)) touch('rets.bin');
     }
@@ -111,7 +133,7 @@ function mergeExt(lib, d, touch) {
 }
 
 /** Load the extension files: readRecords(name, magic, words), readBytes(name) -> Uint8Array | null. */
-function loadExt(lib, readRecords, readBytes) {
+function loadExt(lib: ExtLib, readRecords: (name: string, magic: string, words: number) => Records, readBytes: (name: string) => Uint8Array | null): void {
     const code = readBytes('wram-code.bin'), state = readBytes('wram-code.state'), aram = readBytes('aram.cdl'), bus = readBytes('bus.cdl');
     mergeExt(lib, {
         rets: readRecords('rets.bin', 'EVRT', 3),
@@ -128,7 +150,7 @@ function loadExt(lib, readRecords, readBytes) {
 }
 
 /** Writers for flush(): name -> () => Buffer | Uint8Array. */
-function extWriters(lib, packRecords) {
+function extWriters(lib: ExtLib, packRecords: (magic: string, rows: number[][], words: number) => Uint8Array): Record<string, () => Uint8Array> {
     return {
         'rets.bin': () => packRecords('EVRT', [...lib.rets].map(([k, f]) => {
             const mx = k % 16, rest = Math.floor(k / 16);
@@ -143,7 +165,7 @@ function extWriters(lib, packRecords) {
         'bus.cdl': () => lib.bus,
         'bus-sites.bin': () => packRecords('EVBU', [...lib.busSites].map(([k, v]) => [k, v.flags, v.lo, v.hi]), 4),
         'rom-cycles.bin': () => {
-            const rows = [];
+            const rows: number[][] = [];
             for (let i = 0; i < lib.romSize; i++) { const n = lib.romCycles[i]; if (n) rows.push([i, n % TWO32, Math.floor(n / TWO32)]); }
             return packRecords('EVRY', rows, 3);
         },
@@ -151,7 +173,7 @@ function extWriters(lib, packRecords) {
 }
 
 /** Decoded views for the exporters. */
-function retsList(lib) {
+function retsList(lib: ExtLib) {
     return [...lib.rets].map(([k, flags]) => {
         const mx = k % 16, rest = Math.floor(k / 16);
         return { entry: Math.floor(rest / 0x1000000), retPc: rest % 0x1000000, entryM8: !!(mx & 1), entryX8: !!(mx & 2), exitM8: !!(mx & 4), exitX8: !!(mx & 8), flags };
@@ -159,32 +181,34 @@ function retsList(lib) {
 }
 
 /** pc -> { db: Set, d: Set, y: Set } */
-function regsByPc(lib) {
-    const out = new Map();
+function regsByPc(lib: ExtLib): Map<number, { db: Set<number>; d: Set<number>; y: Set<number> }> {
+    const out = new Map<number, { db: Set<number>; d: Set<number>; y: Set<number> }>();
     for (const k of lib.regs) {
         const pc = Math.floor(k / 0x100000), kv = k % 0x100000, kind = kv >>> 16, v = kv & 0xFFFF;
-        const r = out.get(pc) || out.set(pc, { db: new Set(), d: new Set(), y: new Set() }).get(pc);
+        let r = out.get(pc);
+        if (!r) { r = { db: new Set(), d: new Set(), y: new Set() }; out.set(pc, r); }
         (kind === REG.DB ? r.db : kind === REG.D ? r.d : r.y).add(v);
     }
     return out;
 }
 
 /** pc -> [{ base, flags }] */
-function basesByPc(lib) {
-    const out = new Map();
+function basesByPc(lib: ExtLib): Map<number, { base: number; flags: number }[]> {
+    const out = new Map<number, { base: number; flags: number }[]>();
     for (const [k, flags] of lib.bases) {
         const pc = Math.floor(k / 0x1000000);
-        (out.get(pc) || out.set(pc, []).get(pc)).push({ base: k % 0x1000000, flags });
+        let list = out.get(pc);
+        if (!list) { list = []; out.set(pc, list); }
+        list.push({ base: k % 0x1000000, flags });
     }
     return out;
 }
 
 /** [{ pc, formBit, flags, lo, hi }] - instructions that read ROM through a mirror form. */
-function busSitesList(lib) {
+function busSitesList(lib: ExtLib) {
     return [...lib.busSites].map(([k, v]) => ({ pc: k % 0x1000000, formBit: 1 << Math.floor(k / 0x1000000), ...v }));
 }
 
-module.exports = {
-    initExt, mergeExt, loadExt, extWriters, retsList, regsByPc, basesByPc, busSitesList,
-    BUS, RET, REG, BASE, WCODE, ARAM, EXT_FILES: ['rets.bin', 'regs.bin', 'bases.bin', 'wram-code.bin', 'wram-code.state', 'aram.cdl', 'bus.cdl', 'bus-sites.bin', 'rom-cycles.bin', ...values.FILES],
-};
+export const EXT_FILES = ['rets.bin', 'regs.bin', 'bases.bin', 'wram-code.bin', 'wram-code.state', 'aram.cdl', 'bus.cdl', 'bus-sites.bin', 'rom-cycles.bin', ...values.FILES];
+export type { ExtLib, ExtDelta };
+export { initExt, mergeExt, loadExt, extWriters, retsList, regsByPc, basesByPc, busSitesList, BUS, RET, REG, BASE, WCODE, ARAM };

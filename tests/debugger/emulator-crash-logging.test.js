@@ -25,7 +25,7 @@ function test(name, fn) {
 
 console.log('Emulator Crash Logging & Fixes Tests:');
 
-const panelCode = fs.readFileSync(PANEL_JS, 'utf8') + ['emulator-log.js', 'panel-state.js', 'panel-messages.js'].map((f) => fs.readFileSync(path.join(ROOT, 'src', 'core', 'emulator', f), 'utf8')).join('\n');
+const panelCode = fs.readFileSync(PANEL_JS, 'utf8') + ['emulator-log.ts', 'panel-state.js', 'panel-messages.js'].map((f) => fs.readFileSync(path.join(ROOT, 'src', 'core', 'emulator', f), 'utf8')).join('\n');
 const webviewCode = fs.readFileSync(PANEL_WEBVIEW_JS, 'utf8') + '\n' + ['page.html', 'page-style', 'page'].map((f) => require('../../src/core/webview/page-file').pageFiles(path.join(ROOT, 'src', 'core', 'emulator', 'webview'))(f, new Proxy({}, { has: () => true, get: (_, k) => '//@@' + String(k) }))).join('\n')
   // Evermore's screen layer is spliced into the page (games/evermore/emulator/overlays-view.js).
   + (({ getOverlaysScript, getOverlayTogglesScript }) => getOverlaysScript() + getOverlayTogglesScript())(require('../../src/games/evermore/emulator/overlays-view'));

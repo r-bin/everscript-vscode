@@ -60,7 +60,7 @@ of a blob belongs to a field; the blob ends at its furthest object record or sta
   through `maps/index.ts`.
 - The Rooms tab decodes on demand per room (`rooms/editor-host.js` `requestRoomTiles` →
   `rooms/rendering/tile-overlay.js`, which caches the 12 latest renders); the room tree carries no
-  tile data. `rom-readers.js` caches the ROM by path and mtime.
+  tile data. `rom-readers.ts` caches the ROM by path and mtime.
 - Python-side runbook (inspect, round-trip, render): `everscript/tools/dump_room.py`,
   `everscript/tools/encode_room.py --verify`, `everscript/tools/render_map.py`; their skill is
   `everscript/.github/skills/rom-map-data`. When it and this repo disagree, the Python wins.

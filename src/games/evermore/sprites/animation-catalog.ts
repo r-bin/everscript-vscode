@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: the catalogue of every animation in the ROM for the Sprites tab — each
 // record of the table at $C43E3A, who uses it, and which palette to draw it in. Pure.
 //
@@ -7,12 +6,12 @@
 //   `animate(entity, mode, id)` reads for ids below 0x8000, and the projectile records
 //   ($900000 + id) that animation command 0x4c throws.
 
-const indexJson = require('../language/data/index.json');
-const { runAnimation } = require('../../../../dist/games/evermore/maps/animation-vm');
-const { animationGroups, animationIdRecord, ANIMATION_ID_COUNT } = require('../../../../dist/games/evermore/maps/animation-table');
-const { disassembleScript } = require('../../../../dist/games/evermore/maps/animation-opcodes');
-const { projectileRecord } = require('../../../../dist/games/evermore/maps/projectiles');
-const { hexLower: hex } = require('../../../../dist/platform');
+import indexJson from '../language/data/index.json';
+import { runAnimation } from '../maps/animation-vm';
+import { animationGroups, animationIdRecord, ANIMATION_ID_COUNT } from '../maps/animation-table';
+import { disassembleScript } from '../maps/animation-opcodes';
+import { projectileRecord } from '../maps/projectiles';
+import { hexLower as hex } from '../../../platform';
 
 const PROJECTILE_OP = 0x4c;
 
@@ -24,25 +23,39 @@ const DOG = 1;
 const PLACEHOLDER = 25;
 const PALETTE_OP = 0x4b;
 
+/** An enum name that spells a global animation id. */
+interface IdName { group: string; name: string }
+/** What this reads of a character (sprites/character-model.js): its animations and its Boy weapons / Dog forms. */
+interface AnimEntry { animRec: number; category?: string; label?: string }
+interface WeaponEntry { name: string; paletteAddr?: number; anims?: AnimEntry[] }
+interface CatalogCharacter { id: number; name?: string; anims?: AnimEntry[]; weapons?: WeaponEntry[] }
+/** Who points at a record. */
+type Owner =
+    | { kind: 'character'; id: number; name?: string; label?: string }
+    | { kind: 'weapon'; id: number; name: string; label?: string; paletteAddr: number }
+    | { kind: 'id'; id: number; idHex: string; names: string[]; paletteCharacter: number | null; paletteAddr: number }
+    | { kind: 'projectile'; id: number; idHex: string; thrower: string };
+
 /** Global id → the enum names that spell it, e.g. 0xae → ['ANIMATION_ENEMY.MAGMAR_ENTER']. */
-function idNames() {
-    const out = new Map();
-    const enums = indexJson.enums || {};
+function idNames(): Map<number, IdName[]> {
+    const out = new Map<number, IdName[]>();
+    const enums = (indexJson.enums || {}) as Record<string, { name: string; value?: string }[]>;
     for (const group of ID_ENUMS) {
         for (const item of enums[group] || []) {
             const v = String(item.value || '');
             if (!v.startsWith('0x')) continue;
             const id = parseInt(v, 16);
             if (id >= 0x8000) continue;           // a character-relative field, not a global id
-            if (!out.has(id)) out.set(id, []);
-            out.get(id).push({ group, name: item.name });
+            const list = out.get(id) ?? [];
+            list.push({ group, name: item.name });
+            out.set(id, list);
         }
     }
     return out;
 }
 
 /** The character whose palette suits an id's enum name: Boy, Dog, or a name-prefix match. */
-function paletteOwnerForNames(names, characters) {
+function paletteOwnerForNames(names: IdName[], characters: CatalogCharacter[]): number | null {
     for (const n of names) {
         if (n.group === 'ANIMATION_BOY') return BOY;
         if (n.group === 'ANIMATION_DOG') return DOG;
@@ -57,7 +70,7 @@ function paletteOwnerForNames(names, characters) {
 }
 
 /** ANIMATION_DOG ids name their act (ACT0_RUN): that Dog form's palette, else 0. */
-function dogActPalette(names, characters) {
+function dogActPalette(names: IdName[], characters: CatalogCharacter[]): number {
     const dog = characters.find((c) => c.id === DOG);
     for (const n of names) {
         const act = n.group === 'ANIMATION_DOG' && /^ACT(\d)_/.exec(n.name);
@@ -71,12 +84,13 @@ function dogActPalette(names, characters) {
  * Every animation in the ROM, in record order.
  * `characters` is readAllCharacters()'s output, which already carries each field's record.
  */
-function buildAnimationCatalog(rom, characters) {
-    const owners = new Map();
-    const add = (record, owner) => {
+function buildAnimationCatalog(rom: Uint8Array, characters: CatalogCharacter[]) {
+    const owners = new Map<number, Owner[]>();
+    const add = (record: number | null | undefined, owner: Owner): void => {
         if (!record) return;
-        if (!owners.has(record)) owners.set(record, []);
-        owners.get(record).push(owner);
+        const list = owners.get(record) ?? [];
+        list.push(owner);
+        owners.set(record, list);
     };
 
     for (const c of characters) {
@@ -106,24 +120,24 @@ function buildAnimationCatalog(rom, characters) {
     // whose palette it is and which: a weapon's or form's own, else the character's. Taking
     // the two from different owners drew the Act 4 toaster, which the Dark Toaster shares,
     // in the Dog's Act 1 colours.
-    const firstOwner = (record) => (owners.get(record) || []).find((o) => o.kind === 'character' || o.kind === 'weapon');
-    const weaponPaletteOf = (record) => {
+    const firstOwner = (record: number) => (owners.get(record) || []).find((o): o is Extract<Owner, { kind: 'character' | 'weapon' }> => o.kind === 'character' || o.kind === 'weapon');
+    const weaponPaletteOf = (record: number): number => {
         const o = firstOwner(record);
         if (o) return o.kind === 'weapon' ? o.paletteAddr : 0;
-        const named = (owners.get(record) || []).find((n) => n.kind === 'id' && n.paletteAddr);
+        const named = (owners.get(record) || []).find((n): n is Extract<Owner, { kind: 'id' }> => n.kind === 'id' && !!n.paletteAddr);
         return named ? named.paletteAddr : 0;
     };
-    const paletteOf = (record) => {
+    const paletteOf = (record: number): number | null => {
         const o = firstOwner(record);
-        const named = (owners.get(record) || []).find((n) => n.kind === 'id' && n.paletteCharacter !== null);
+        const named = (owners.get(record) || []).find((n): n is Extract<Owner, { kind: 'id' }> => n.kind === 'id' && n.paletteCharacter !== null);
         return o ? o.id : named ? named.paletteCharacter : null;
     };
 
     // Projectiles: a record thrown by another animation belongs to its thrower,
     // and takes the projectile's own palette or, when that is 0, the thrower's.
-    const thrown = new Map();
+    const thrown = new Map<number, { paletteAddr: number; paletteCharacter: number | null }>();
     for (const g of groups) {
-        const ids = new Set();
+        const ids = new Set<number>();
         for (const script of g.scripts) {
             for (const l of disassembleScript(rom, script)) {
                 if ((l.bytes[0] & 0x7f) === PROJECTILE_OP && l.known) ids.add(l.bytes[1] | (l.bytes[2] << 8));
@@ -142,27 +156,27 @@ function buildAnimationCatalog(rom, characters) {
     // Who draws which sprite: every sprite a character's own animations show. An animation
     // nobody owns borrows the palette of whoever shares its sprites, else of the nearest
     // owned record in the table (records are laid out character by character).
-    const spritesOf = (g) => {
-        const out = new Set();
+    const spritesOf = (g: (typeof groups)[number]): Set<number> => {
+        const out = new Set<number>();
         for (const script of g.scripts) {
             for (const f of runAnimation(rom, script, 8).frames) if (f.sprite) out.add(f.sprite);
         }
         return out;
     };
-    const spriteUsers = new Map();
+    const spriteUsers = new Map<number, Map<string, number>>();
     for (const g of groups) {
         const own = (owners.get(g.record) || []).find((o) => o.kind === 'character' || o.kind === 'weapon');
         if (!own) continue;
         for (const spr of spritesOf(g)) {
-            if (!spriteUsers.has(spr)) spriteUsers.set(spr, new Map());
-            const m = spriteUsers.get(spr);
+            const m = spriteUsers.get(spr) ?? new Map<string, number>();
+            spriteUsers.set(spr, m);
             const key = own.kind === 'weapon' ? own.id + ':' + (own.paletteAddr || 0) : own.id + ':0';
             m.set(key, (m.get(key) || 0) + 1);
         }
     }
     const ownedRecords = groups.filter((g) => paletteOf(g.record) !== null).map((g) => g.record);
-    const inferPalette = (g) => {
-        const votes = new Map();
+    const inferPalette = (g: (typeof groups)[number]) => {
+        const votes = new Map<string, number>();
         for (const spr of spritesOf(g)) for (const [k, n] of spriteUsers.get(spr) || []) votes.set(k, (votes.get(k) || 0) + n);
         if (votes.size) {
             const [best] = [...votes.entries()].sort((a, b) => b[1] - a[1])[0];
@@ -171,7 +185,7 @@ function buildAnimationCatalog(rom, characters) {
         }
         // Sprite graphics are stored character by character too: the nearest owned sprite in
         // the same bank (within 4 KB) says whose graphics these sit among.
-        let best = null;
+        let best: { d: number; users: Map<string, number>; owned: number } | null = null;
         for (const spr of spritesOf(g)) {
             for (const [owned, users] of spriteUsers) {
                 if ((owned >> 16) !== (spr >> 16)) continue;
@@ -184,13 +198,13 @@ function buildAnimationCatalog(rom, characters) {
             const [id, addr] = key.split(':').map(Number);
             return { paletteCharacter: id, paletteAddr: addr, inferredBy: 'sprites stored next to $' + best.owned.toString(16) };
         }
-        let near = null;
+        let near: number | null = null;
         for (const r of ownedRecords) if (near === null || Math.abs(r - g.record) < Math.abs(near - g.record)) near = r;
         return near === null ? null : { paletteCharacter: paletteOf(near), paletteAddr: 0, inferredBy: 'nearest owned record $' + hex(near, 4) };
     };
 
     // A script that loads its own palette (command 0x4b) is drawn in it, whoever shows it.
-    const scriptPalette = (g) => {
+    const scriptPalette = (g: (typeof groups)[number]): number => {
         for (const script of g.scripts) {
             for (const l of disassembleScript(rom, script)) {
                 if (l.known && (l.bytes[0] & 0x7f) === PALETTE_OP) return l.bytes[1] | (l.bytes[2] << 8);
@@ -223,7 +237,7 @@ function buildAnimationCatalog(rom, characters) {
 }
 
 /** A short human label: the first owner that names it. */
-function catalogLabel(list) {
+function catalogLabel(list: Owner[]): string {
     for (const o of list) {
         if (o.kind === 'character') return `${o.name} · ${o.label}`;
         if (o.kind === 'weapon') return `${o.id === 1 ? 'Dog · ' : ''}${o.name} · ${o.label}`;
@@ -237,6 +251,5 @@ function catalogLabel(list) {
     return id ? `id ${id.idHex}` : 'no known owner';
 }
 
-module.exports = {
-    buildAnimationCatalog,
-};
+export type { Owner, CatalogCharacter };
+export { buildAnimationCatalog };

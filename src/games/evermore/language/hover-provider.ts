@@ -1,20 +1,24 @@
-'use strict';
-// Owner: code_highlighter/hover-provider.js
+// Owner: games/evermore/language/hover-provider.ts
 // Provides hover tooltips: functions, enum names/members, number literals.
 // idx (static index) and radarMap are injected at call time — no module state.
 
-const vscode = require('vscode');
+import * as vscode from 'vscode';
+import type { LanguageIndex, EnumMember } from './workspace-index';
+
+/** What the Memory Radar knows about a WRAM address (the hover adds it to a hex literal). */
+interface RadarEntry { name: string; lifecycle: string; type?: string; notes?: string }
+type RadarMap = Map<number, RadarEntry>;
 
 // ── Shared text utilities (hover + completion use these) ──────────────────────
 
 /** Return the word (identifier) under the cursor, or null. */
-function wordAt(document, position) {
+function wordAt(document: vscode.TextDocument, position: vscode.Position) {
     const range = document.getWordRangeAtPosition(position, /[a-zA-Z_][a-zA-Z0-9_]*/);
     return range ? { word: document.getText(range), range } : null;
 }
 
 /** Return the UPPER_CASE enum name immediately before a dot on the same line, or null. */
-function enumNameBeforeDot(document, position, wordRange) {
+function enumNameBeforeDot(document: vscode.TextDocument, position: vscode.Position, wordRange: vscode.Range): string | null {
     const line   = document.lineAt(position.line).text;
     const before = line.substring(0, wordRange.start.character);
     const m      = before.match(/([A-Z_][A-Z0-9_]*)\.$/);
@@ -23,7 +27,7 @@ function enumNameBeforeDot(document, position, wordRange) {
 
 // ── Hover helpers ─────────────────────────────────────────────────────────────
 
-function makeHoverForFunction(name, idx) {
+function makeHoverForFunction(name: string, idx: LanguageIndex) {
     const sigs = idx.functions[name];
     if (!sigs || sigs.length === 0) return null;
     const isNative = idx.native.includes(name);
@@ -33,7 +37,7 @@ function makeHoverForFunction(name, idx) {
     return new vscode.Hover(md);
 }
 
-function makeHoverForEnum(name, idx) {
+function makeHoverForEnum(name: string, idx: LanguageIndex) {
     const members = idx.enums[name];
     if (!members || members.length === 0) return null;
     const shown = members.slice(0, 30);
@@ -45,7 +49,7 @@ function makeHoverForEnum(name, idx) {
     return new vscode.Hover(md);
 }
 
-function makeHoverForMember(word, enumName, idx) {
+function makeHoverForMember(word: string, enumName: string, idx: LanguageIndex) {
     const members = idx.enums[enumName];
     if (!members) return null;
     const member = members.find(m => m.name === word);
@@ -56,7 +60,7 @@ function makeHoverForMember(word, enumName, idx) {
     return new vscode.Hover(md);
 }
 
-function makeHoverForSpecial(word, idx) {
+function makeHoverForSpecial(word: string, idx: LanguageIndex) {
     const desc = idx.specials[word];
     if (!desc) return null;
     return new vscode.Hover(new vscode.MarkdownString(desc));
@@ -64,7 +68,7 @@ function makeHoverForSpecial(word, idx) {
 
 // ── Number literal hover ──────────────────────────────────────────────────────
 
-function numberAt(document, position) {
+function numberAt(document: vscode.TextDocument, position: vscode.Position) {
     const range = document.getWordRangeAtPosition(
         position, /0[xX][0-9a-fA-F]+|0[dD]\d+|0[bB][01]+/
     );
@@ -72,12 +76,9 @@ function numberAt(document, position) {
     return { text: document.getText(range), range };
 }
 
-/**
- * @param {string} text
- * @param {Map|null} radarMap - optional WRAM address map for memory annotation
- */
-function makeHoverForNumber(text, radarMap = null) {
-    let value, base, rawDigits;
+/** `radarMap`: optional WRAM address map for memory annotation. */
+function makeHoverForNumber(text: string, radarMap: RadarMap | null = null) {
+    let value: number, base: number, rawDigits: string;
     if (/^0[xX]/.test(text)) {
         rawDigits = text.slice(2); value = parseInt(rawDigits, 16); base = 16;
     } else if (/^0[dD]/.test(text)) {
@@ -96,7 +97,7 @@ function makeHoverForNumber(text, radarMap = null) {
     const hexStr    = value.toString(16).toUpperCase().padStart(byteCount * 2, '0');
     const binStr    = value.toString(2).padStart(byteCount * 8, '0');
 
-    const lines = [];
+    const lines: string[] = [];
     if (base !== 16) lines.push(`hex:     0x${hexStr}`);
     if (base !== 10) lines.push(`decimal: ${value}`);
     if (base !== 2)  lines.push(`binary:  0b${binStr}`);
@@ -120,21 +121,24 @@ function makeHoverForNumber(text, radarMap = null) {
 
 // ── Reverse enum member lookup ────────────────────────────────────────────────
 
-let _reverseMemberMap = null;
+type ReverseMember = { enumName: string; value: string; comment: string };
+let _reverseMemberMap: Map<string, ReverseMember[]> | null = null;
 
-function buildReverseMemberMap(idx) {
+function buildReverseMemberMap(idx: LanguageIndex): Map<string, ReverseMember[]> {
     if (_reverseMemberMap) return _reverseMemberMap;
-    _reverseMemberMap = new Map();
+    const map = new Map<string, ReverseMember[]>();
     for (const [enumName, members] of Object.entries(idx.enums)) {
-        for (const m of members) {
-            if (!_reverseMemberMap.has(m.name)) _reverseMemberMap.set(m.name, []);
-            _reverseMemberMap.get(m.name).push({ enumName, value: m.value, comment: m.comment });
+        for (const m of members as EnumMember[]) {
+            const list = map.get(m.name) ?? [];
+            list.push({ enumName, value: m.value, comment: m.comment });
+            map.set(m.name, list);
         }
     }
-    return _reverseMemberMap;
+    _reverseMemberMap = map;
+    return map;
 }
 
-function makeHoverForUnqualifiedMember(word, idx) {
+function makeHoverForUnqualifiedMember(word: string, idx: LanguageIndex) {
     const map     = buildReverseMemberMap(idx);
     const matches = map.get(word);
     if (!matches || matches.length === 0) return null;
@@ -159,13 +163,8 @@ function makeHoverForUnqualifiedMember(word, idx) {
 
 // ── Hover provider ────────────────────────────────────────────────────────────
 
-/**
- * @param {vscode.TextDocument} document
- * @param {vscode.Position} position
- * @param {object} idx - static index (from workspace-index.ts)
- * @param {Map|null} radarMap - optional WRAM map for hex literal annotations
- */
-function provideHover(document, position, idx, radarMap = null) {
+/** `idx`: the static index (workspace-index.ts); `radarMap`: optional WRAM map for hex literal annotations. */
+function provideHover(document: vscode.TextDocument, position: vscode.Position, idx: LanguageIndex, radarMap: RadarMap | null = null) {
     const numHit = numberAt(document, position);
     if (numHit) return makeHoverForNumber(numHit.text, radarMap);
 
@@ -209,4 +208,5 @@ function provideHover(document, position, idx, radarMap = null) {
     return null;
 }
 
-module.exports = { wordAt, enumNameBeforeDot, provideHover };
+export type { RadarEntry, RadarMap };
+export { wordAt, enumNameBeforeDot, provideHover };

@@ -7,12 +7,12 @@ rooms/
   index.js                    — Public API + backwards-compat adapters
   custom-host.js              — custom maps: the webview's list/save/delete/export messages (VS Code API injected)
   parsing/
-    content-parser.js         — parseRoomContent(filePath, startLine, endLine) → room data object
+    content-parser.ts         — parseRoomContent(filePath, startLine, endLine) → room data object
     file-scanner.js           — buildRoomTree, collectRoomsFromDir, findRoomImage, setRoomImageUris
   rendering/
     tree-renderer.js          — renderVanillaTree(rooms), renderRoomsTree(nodes), buildRoomRailHtml(live, vanilla), buildRoomsJson(tree)
     tile-overlay.js           — buildRoomTileOverlay: the map raster, the canopy, and the canopy overlay
-    object-previews.js        — Section 3 objects: states, thumbnails, the selection wire form
+    object-previews.ts        — Section 3 objects: states, thumbnails, the selection wire form
     family-sets.ts            — alternate family sets: each family's colours and the MAP_PALETTE values the room's scripts write
     header-overrides.ts       — the Info tab's header fields (and a previewed palette set) applied before a render
     rom-fingerprint.ts        — romFingerprint(rom): the cache key every render cache shares
@@ -20,7 +20,7 @@ rooms/
     stamp-animation.js        — animated stamps' later frames (`anim`), so a placed torch flickers on the canvas
     vanilla-index.js          — the vanilla index + room budget, cached per ROM, packaged for the tab
     room-draft.js             — blank rooms, family sheets, the family catalogue and its preview strips
-    graphic-traits.js         — one graphic's animation, shape class, stairs and special flags, for the sheets
+    graphic-traits.ts         — one graphic's animation, shape class, stairs and special flags, for the sheets
     deco-catalogue.js         — the deco library: vanilla's Section 3 objects as portable, floor-free entries
     deco-preview.js           — one entry rendered on nothing, so the thumbnail is the thing not the place
     rom-export.js             — Export ROM: a custom map in room 0x15, the intro jumping there
@@ -29,7 +29,7 @@ rooms/
     widget-store.ts           — the user's own widgets: <globalStorage>/widgets.json (list, save, delete)
     vanilla-data.js           — VANILLA_ROOMS catalogue + buildVanillaRoomContent/Details + ROM backing
     lua-watchers.js           — getMapEnum, readLuaWatchers, readScriptAllTriggers + caches
-    custom-store.js           — custom maps on disk: one folder per map (map.json + history.json)
+    custom-store.ts           — custom maps on disk: one folder per map (map.json + history.json)
 ```
 
 ---

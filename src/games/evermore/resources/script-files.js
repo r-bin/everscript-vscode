@@ -11,7 +11,7 @@ const { MAX_ROOMS } = require('../../../../dist/games/evermore/maps');
 const {
     getMapName, getMapArea,
     getAbsScript, getNpcScript, getGlobalScript,
-} = require('../localizations');
+} = require('../../../../dist/games/evermore/localizations');
 const { hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
 const { dir, json, text } = require('../../../../dist/games/evermore/resources/nodes');
 const MD = require('../../../../dist/games/evermore/resources/script-markdown');
