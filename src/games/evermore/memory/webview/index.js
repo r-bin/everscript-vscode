@@ -22,6 +22,13 @@ function loadFile(filePath) {
   return fileCache.get(filePath);
 }
 
+/** sprites-view/: the Sprites tab's script as parts in name order, inside the one IIFE they share. */
+function spritesViewJs() {
+  const dir = path.join(spritesDir, 'sprites-view');
+  const parts = fs.readdirSync(dir).filter((f) => f.endsWith('.js')).sort().map((f) => loadFile(path.join(dir, f)));
+  return '(function() {\n' + parts.join('') + '})();\n';
+}
+
 /**
  * Substitute a placeholder with literal text.
  *
@@ -201,7 +208,7 @@ module.exports = {
     + loadFile(path.join(scriptsDir, 'scripts-tab.css')),
   get scalingJs() { return loadScalingJs(); },
   get roomsJs() { return loadRoomsJs(); },
-  get spritesJs() { return loadFile(path.join(spritesDir, 'sprites-lazy.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-script.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-motion.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-view.js')); },
+  get spritesJs() { return loadFile(path.join(spritesDir, 'sprites-lazy.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-script.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-motion.js')) + '\n' + spritesViewJs(); },
   docsJs: loadFile(path.join(docsDir, 'docs-tab.js')),
   rngJs: loadFile(path.join(docsDir, 'rng-tab.js')),
   // Order matters: rom-tab.js declares _rom, rom-init.js binds and runs last.

@@ -9,11 +9,57 @@
 // from the panel that caused it.
 //
 // The model (which cells, and which family each one wants) is
-// map-editor-families.js's editStrandedGroups; this file is the banner and
-// the two buttons.
+// editStrandedGroups below (moved here from map-editor-families.js for the
+// 400-line limit); the rest of this file is the banner and the two buttons.
 //
 // Owns: nothing. Both actions go through existing owners — editSetFamily for
 // the restore, editApply for the removal, so it shares the one undo stack.
+
+/**
+ * Cells the draft has drawn that no loaded family can colour any more.
+ *
+ * Removing a family does not silently recolour anything — the word still
+ * names palette slot N, and slot N is now empty or something else. So the
+ * cells that named it are **stranded**, and the checks panel says so rather
+ * than letting the canvas and the ROM disagree.
+ */
+function editStrandedCells() {
+  return editStrandedGroups().reduce(function (all, g) { return all.concat(g.cells); }, []);
+}
+
+/**
+ * The same cells, grouped by the empty slot they name.
+ *
+ * `[{slot, family, cells}]`, ordered by slot. `family` is what used to be in
+ * that slot (editDroppedFamilies) or `undefined` if this draft never saw it
+ * leave — the Tile tab's banner needs the family id to offer a restore, and
+ * the *slot* is what the cells actually name, so the restore has to go back
+ * into that exact slot to fix anything. See map-editor-stranded.js.
+ *
+ * Flip bits (14/15) and the priority bit never move the palette field, so
+ * a mirrored word is grouped exactly like an unmirrored one.
+ */
+function editStrandedGroups() {
+  var d = editDraft();
+  if (!d || !_mtPalette) return [];
+  var fams = editFamilies();
+  var dropped = editDroppedFamilies();
+  var bySlot = {};
+  Object.keys(d.cells).sort().forEach(function (key) {
+    var w = editStampWords(_mtPalette, d.cells[key]);
+    if (!w) return;
+    for (var i = 0; i < 2; i++) {
+      var slot = editWordFamilySlot(i ? w.layer2 : w.layer1);
+      if (slot >= 0 && fams[slot] === undefined) {
+        if (!bySlot[slot]) bySlot[slot] = [];
+        bySlot[slot].push(key);
+        return;
+      }
+    }
+  });
+  return Object.keys(bySlot).map(Number).sort(function (a, b) { return a - b; })
+    .map(function (slot) { return { slot: slot, family: dropped[slot], cells: bySlot[slot] }; });
+}
 
 /**
  * One banner per stranded family.

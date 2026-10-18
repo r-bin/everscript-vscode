@@ -110,3 +110,11 @@ function editLockToggle() {
   editNote(d.locked ? 'locked — look, pick and copy; nothing changes' : 'unlocked — edits go into this map’s draft');
   renderEditChrome();
 }
+
+/** Dock buttons that change the map, refused while it is locked (the rest only look or pick). */
+var EDIT_LOCK_BLOCKS = ['triggerRemove', 'chipDrop', 'chipAdopt', 'strandedFix', 'strandedDrop', 'objectRemove',
+  'objectAddFrame', 'objectRemoveFrame', 'objectConfirmRemoveFrame', 'objectMoveFrame', 'objectMoveObj'];
+function editLockBlocks(t) {
+  if (t.dataset.editAct === 'undo' || t.dataset.editAct === 'redo') return true;
+  return EDIT_LOCK_BLOCKS.some(function (k) { return t.dataset[k] !== undefined && t.dataset[k] !== ''; });
+}

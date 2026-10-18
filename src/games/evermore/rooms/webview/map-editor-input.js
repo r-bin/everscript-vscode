@@ -360,14 +360,6 @@ function bindEditControls(panel, room) {
   });
 }
 
-/** Dock buttons that change the map, refused while it is locked (the rest only look or pick). */
-var EDIT_LOCK_BLOCKS = ['triggerRemove', 'chipDrop', 'chipAdopt', 'strandedFix', 'strandedDrop', 'objectRemove',
-  'objectAddFrame', 'objectRemoveFrame', 'objectConfirmRemoveFrame', 'objectMoveFrame', 'objectMoveObj'];
-function editLockBlocks(t) {
-  if (t.dataset.editAct === 'undo' || t.dataset.editAct === 'redo') return true;
-  return EDIT_LOCK_BLOCKS.some(function (k) { return t.dataset[k] !== undefined && t.dataset[k] !== ''; });
-}
-
 /** Turn edit mode on or off for the room on screen. */
 function editToggle(room, btn) {
   var id = (typeof roomVanillaIdNum === 'function') ? roomVanillaIdNum(room) : null;
