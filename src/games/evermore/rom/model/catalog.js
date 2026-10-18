@@ -7,7 +7,7 @@
 const { decodeRoom, parseBlobLayout, objectAreaEnd, MAP_LIST_ADDR, MAX_ROOMS } = require('../../maps');
 const { hex } = require('./util');
 
-const WORLD = { Prehistoria: '🦖 Prehistoria', Antiqua: '🏛️ Antiqua', Gothica: '🏰 Gothica', Omnitopia: '🚀 Omnitopia', 'Intro / Misc': '🏡 Intro / misc' };
+const WORLD = { Prehistoria: '🦖 Prehistoria', Antiqua: '🏛️ Antiqua', Gothica: '🏰 Gothica', Omnitopia: '🚀 Omnitopia', Podunk: '🏡 Podunk' };
 const worldOf = area => WORLD[area] || (area ? '❓ ' + area : '');
 const SUB = { 0: 'raw', 3: 'lzss', 7: 'markov' };
 

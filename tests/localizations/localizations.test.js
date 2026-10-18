@@ -38,17 +38,17 @@ test('localizations maps: covers all 127 vanilla rooms', () => {
     // Test map 0x38 (Start)
     const map38 = getMap(0x38);
     assert.ok(map38);
-    assert.equal(map38.name, 'South jungle / Start');
+    assert.equal(map38.name, 'Jungle › south, where the game starts');
     assert.equal(map38.area, 'Prehistoria');
-    assert.equal(getMapName(0x38), 'South jungle / Start');
-    assert.equal(getMapName(0x38, { full: true }), 'Prehistoria - South jungle / Start');
-    assert.equal(getMapName('0x38'), 'South jungle / Start');
+    assert.equal(getMapName(0x38), 'Jungle › south, where the game starts');
+    assert.equal(getMapName(0x38, { full: true }), 'Prehistoria › Jungle › south, where the game starts');
+    assert.equal(getMapName('0x38'), 'Jungle › south, where the game starts');
     assert.equal(getMapArea(0x38), 'Prehistoria');
 
     // Test map 0x4A (Final Boss Room)
     const map4A = getMap(0x4A);
     assert.ok(map4A);
-    assert.equal(map4A.name, 'Final Boss Room');
+    assert.equal(map4A.name, 'Omnitopia › final boss room');
     assert.equal(map4A.area, 'Omnitopia');
 });
 

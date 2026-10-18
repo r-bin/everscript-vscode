@@ -6,8 +6,10 @@
 
 1. **Map / Room Names (`maps.js`)**
    - Authoritative mapping from ROM room IDs (`0x00`..`0x7E`) to room names and world areas.
-   - Names kept from an earlier import and frozen (docs/cleanup.md D4), to be rewritten in our own words, and vanilla catalogues.
-   - Supports short names, full names (prefixed by area), and optional in-game string indices.
+   - Names in our style from `data/rooms.json`: `region › place › part`, a path id, and where each part comes from
+     (the region from the Dog form the room asks for, the place from the game's text where it names one).
+     Regenerate with `node tools/rooms/write-room-names.js`; edit the rows there, not the JSON.
+   - Short names (`place › part`), full names (with the region), and optional in-game string indices.
 
 2. **Sound & Music Names (`sounds.js`)**
    - Music tracks (`0x00`..`0x45`) mapped to titles verified against reference rips in `Secret of Evermore (EMU)`.

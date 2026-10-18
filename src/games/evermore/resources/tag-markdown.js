@@ -127,7 +127,7 @@ function rootMarkdown(model) {
         '- **Inheritance:** `boy` → `player` → `character`. A tag lists every sub-tag of its ancestors;',
         '  the ones it has no links for read "not mapped yet".',
         '- **Search:** `soe://tags/search/<word>.md`, e.g. [raptor](soe://tags/search/raptor.md).',
-        '- **Aliases:** hex ids name the same tag: [map/5c.md](soe://tags/map/5c.md) → `map.raptors`.',
+        '- **Aliases:** hex ids name the same tag: [map/5c.md](soe://tags/map/5c.md) → `map.jungle_raptors`.',
         '- **Health:** [check.json](soe://tags/check.json) lists load errors and broken links.', '',
         '| Tag | Title | Sub-tags |', '|---|---|---|',
     ];

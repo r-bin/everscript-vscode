@@ -345,7 +345,7 @@ test('provider: soe://localization/scripts/ resolves known script names as JSON'
 
     // Maps via maps/38.json
     const m = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://localization/maps/38.json'))).toString('utf8'));
-    assert.strictEqual(m.name, 'South jungle / Start');
+    assert.strictEqual(m.name, 'Jungle › south, where the game starts');
     assert.strictEqual(m.area, 'Prehistoria');
 
     fsp.dispose();
@@ -400,7 +400,7 @@ test('provider: script VFS decodes by room (enter, step-on, b-trigger, room inde
     // soe://rom/assets/scripts/everscript/rooms/38/enter.md
     const enter1 = Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/everscript/rooms/38/enter.md'))).toString('utf8');
     assert.match(enter1, /^# Room 38: Enter Script \(\$9384D9\)/);
-    assert.match(enter1, /Prehistoria - South jungle \/ Start/);
+    assert.match(enter1, /Prehistoria › Jungle › south, where the game starts/);
 
     // Without /everscript/ prefix
     const enter2 = Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/rooms/38/enter.md'))).toString('utf8');

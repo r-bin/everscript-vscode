@@ -8,7 +8,7 @@
 //   soe://tags/<a>/<b>.md, .json         the tag a.b; live when it links WRAM
 //   soe://tags/<a>/index.md, index.json  a tag with sub-tags (own + inherited)
 //   soe://tags/<a>.md                    → <a>/index.md (link, unlisted)
-//   soe://tags/map/5c.md                 alias → map/raptors.md (link, unlisted)
+//   soe://tags/map/5c.md                 alias → map/jungle_raptors.md (link, unlisted)
 //   soe://tags/search/<word>.md, .json   tags whose id or title contains <word>
 
 const { tagModel } = require('./tag-model');

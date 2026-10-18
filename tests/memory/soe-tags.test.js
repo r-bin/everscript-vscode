@@ -113,11 +113,11 @@ test('boy.hp inherits its title from character.hp; enemy.hp is virtual', () => {
 
 test('aliases, search and back-links', () => {
     const m = tagModel();
-    assert.deepStrictEqual(m.resolve('map.5c'), { id: 'map.raptors', alias: 'map.5c' });
+    assert.deepStrictEqual(m.resolve('map.5c'), { id: 'map.jungle_raptors', alias: 'map.5c' });
     assert.ok(m.tags.has('music.raptor_attack'));
-    for (const id of ['map.raptors', 'enemy.raptor', 'enemy.raptor_purple', 'music.raptor_attack']) assert.ok(m.search('raptor').includes(id), id);
-    assert.ok(m.referencedBy('map.raptors').includes('enemy.raptor'));
-    assert.ok(m.tags.get('map.raptors').see.includes('area.prehistoria'), 'generated see survives the authored entry');
+    for (const id of ['map.jungle_raptors', 'enemy.raptor', 'enemy.raptor_purple', 'music.raptor_attack']) assert.ok(m.search('raptor').includes(id), id);
+    assert.ok(m.referencedBy('map.jungle_raptors').includes('enemy.raptor'));
+    assert.ok(m.tags.get('map.jungle_raptors').see.includes('area.prehistoria'), 'generated see survives the authored entry');
 });
 
 test('a claim on another tag\'s address is a conflict on both tags', () => {
@@ -220,7 +220,7 @@ test('provider: virtual sub-tags, aliases and search', async () => {
     assert.match(await read(fsp, 'soe://tags/enemy/hp.md'), /\*\*Not mapped yet\.\*\* Inherited from \[character\.hp\]/);
     assert.match(await read(fsp, 'soe://tags/enemy/index.md'), /\| \[hp\]\(hp\.md\) \| Current HP \| \*not mapped yet\* \|/);
     assert.strictEqual((await fsp.stat(uri('soe://tags/map/5c.md'))).type, 1 | 64);
-    assert.match(await read(fsp, 'soe://tags/map/5c.md'), /^# map\.raptors: Prehistoria - Raptors/);
+    assert.match(await read(fsp, 'soe://tags/map/5c.md'), /^# map\.jungle_raptors: Prehistoria › Jungle › raptors/);
     assert.match(await read(fsp, 'soe://tags/search/raptor.md'), /\[enemy\.raptor\]/);
     await assert.rejects(fsp.readFile(uri('soe://tags/boy/nonsense.md')), e => e.code === 'FileNotFound');
     await assert.rejects(fsp.readFile(uri('soe://tags/nope/index.md')), e => e.code === 'FileNotFound');
@@ -264,7 +264,7 @@ test('provider: a mounted ROM folder holds rom/, ram/, tags/ and localization/; 
     assert.ok(!/\]\(soe:/.test(md), 'no link leaves the mount');
     const boy = await read(fsp, `soe://rom/${m}/tags/boy/index.md`);
     assert.ok(boy.includes('![sprite](../../rom/assets/characters/00/sprite.png)'), 'images are relative');
-    const raptors = await read(fsp, `soe://rom/${m}/tags/map/raptors.md`);
+    const raptors = await read(fsp, `soe://rom/${m}/tags/map/jungle_raptors.md`);
     assert.ok(raptors.includes('![render](../../rom/assets/maps/5c/render.png)'));
     const j = JSON.parse(await read(fsp, `soe://rom/${m}/tags/boy/hp.json`));
     assert.strictEqual(j.links[0].uri, `soe://rom/${m}/ram/4eb3.json`);

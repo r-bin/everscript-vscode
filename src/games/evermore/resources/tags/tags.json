@@ -143,10 +143,10 @@
   "enemy.raptor": {
     "title": "Raptors (all colour variants)",
     "parents": ["enemy"],
-    "see": ["enemy.raptor_purple", "enemy.raptor_green", "enemy.raptor_black", "enemy.raptor_teal", "map.raptors", "music.raptor_attack"]
+    "see": ["enemy.raptor_purple", "enemy.raptor_green", "enemy.raptor_black", "enemy.raptor_teal", "map.jungle_raptors", "music.raptor_attack"]
   },
 
-  "map.raptors": {
+  "map.jungle_raptors": {
     "see": ["enemy.raptor", "music.raptor_attack"]
   }
 }

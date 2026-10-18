@@ -312,7 +312,7 @@ function mountIndex(romPath) {
 |---|---|
 | [rom/](rom/index.md) | the cartridge: header, decoded assets (icons, items, rooms, characters, audio, tables), byte slices |
 | [ram/](ram/index.md) | the running game's WRAM: every known address with its live value, flags |
-| [tags/](tags/index.md) | concepts that connect both: [boy](tags/boy/index.md), [map.raptors](tags/map/raptors.md) |
+| [tags/](tags/index.md) | concepts that connect both: [boy](tags/boy/index.md), [map.jungle_raptors](tags/map/jungle_raptors.md) |
 | [localization/](localization/index.md) | names for scripts, rooms, sounds, tables, functions |
 | [logs/](logs/index.md) | emulator runtime logs: crashes, launches, script execution trace |
 `;

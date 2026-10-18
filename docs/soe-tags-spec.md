@@ -44,7 +44,7 @@ soe://tags/boy/hp.md                the tag as Markdown (for people and AI)
 soe://tags/boy/hp.json              the same tag as data (for panels and tools)
 soe://tags/boy/index.md             the tag "boy": its facts plus links to every child tag
 soe://tags/index.md                 all top-level tags
-soe://tags/map/raptors.md           tag id map.raptors
+soe://tags/map/jungle_raptors.md           tag id map.jungle_raptors
 ```
 
 - **Id to path:** each dot becomes a `/`. A tag that has children is a directory: its own page is `index.md` and every child is listed in it.
@@ -122,9 +122,9 @@ The tree comes from what the extension already decodes, so most tags are generat
 | `table` | per engine table | `table-files.js` |
 | `script` | per named script | `localizations/data/scripts.json` |
 
-### 4.1 Example: `map.raptors`
+### 4.1 Example: `map.jungle_raptors`
 
-`soe://tags/map/raptors.md` gathers:
+`soe://tags/map/jungle_raptors.md` gathers:
 
 - room `0x5c`, "Prehistoria - Raptors": `soe://rom/assets/maps/5c/info.md`, `render.png` (shown inline), `header.json`
 - its scripts: "Raptors kill", "Progress Raptors" (from `scripts.json`), and later the decompiled `.evs`
@@ -140,7 +140,7 @@ Names are the lowercased display name with non-alphanumerics folded to `_` (`Pre
 
 ### 4.3 Ambiguity and aliases
 
-- A hex id is always an alias: `map.5c` → `map.raptors`, served as a link (`File | SymbolicLink`), the same way `ingredients/wax/icon.png` links to `icons/<id>.png`.
+- A hex id is always an alias: `map.5c` → `map.jungle_raptors`, served as a link (`File | SymbolicLink`), the same way `ingredients/wax/icon.png` links to `icons/<id>.png`.
 - A bare word that matches several roots (`raptors` is a room, a song and a script) is served at `soe://tags/search/raptors.md` as a list of candidates, one per root.
 
 ---
@@ -180,7 +180,7 @@ Tags live in `src/games/evermore/resources/tags/tags.json`. The plugin reads not
     },
     "see": ["dog"]
   },
-  "map.raptors": {
+  "map.jungle_raptors": {
     "parents": ["map"],
     "links": ["soe://rom/assets/maps/5c/info.md", "soe://rom/assets/maps/5c/render.png"],
     "see": ["enemy.raptor", "music.raptor_attack"]
@@ -190,7 +190,7 @@ Tags live in `src/games/evermore/resources/tags/tags.json`. The plugin reads not
 
 | Field | Meaning |
 |---|---|
-| key | the tag id (`boy`, `map.raptors`) |
+| key | the tag id (`boy`, `map.jungle_raptors`) |
 | `title` | one line for the summary and for hovers |
 | `parents` | zero or more tags this one inherits from (§5.2) |
 | `links` | `soe://` resources (or workspace paths) that hold the data: a string, or `{ uri, role, source, status }` |
@@ -216,7 +216,7 @@ character            hp, max_hp, x, y, …
 
 ### 5.3 Generated tags
 
-Merged into the same graph, with no JSON entry needed: one tag per room (`map.*`), character record (`enemy.*`), item, song, flag, table and named RAM address, built from the modules listed in §4. A JSON entry with the same id adds to a generated tag and never replaces it, so `map.raptors` above only adds the `see` links.
+Merged into the same graph, with no JSON entry needed: one tag per room (`map.*`), character record (`enemy.*`), item, song, flag, table and named RAM address, built from the modules listed in §4. A JSON entry with the same id adds to a generated tag and never replaces it, so `map.jungle_raptors` above only adds the `see` links.
 
 **Back-links are computed.** If `boy` lists `see: dog`, then `dog` shows `boy` under "Referenced by". Authors write each link once.
 

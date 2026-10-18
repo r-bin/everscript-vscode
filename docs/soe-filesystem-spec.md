@@ -137,7 +137,7 @@ Verified with a headless Claude Code session against a VS Code instance running 
 
 ### `soe://tags/` (v0.186.0)
 
-Tags connect the files above by concept: `soe://tags/boy/hp.md` links `soe://ram/4eb3.json` with its live value, `soe://tags/map/raptors.md` links the room, its scripts, enemies and music. Spec: [`soe-tags-spec.md`](soe-tags-spec.md). A ROM opened as a folder holds `rom/`, `ram/`, `tags/` and `localization/` (v0.187.0).
+Tags connect the files above by concept: `soe://tags/boy/hp.md` links `soe://ram/4eb3.json` with its live value, `soe://tags/map/jungle_raptors.md` links the room, its scripts, enemies and music. Spec: [`soe-tags-spec.md`](soe-tags-spec.md). A ROM opened as a folder holds `rom/`, `ram/`, `tags/` and `localization/` (v0.187.0).
 
 ---
 

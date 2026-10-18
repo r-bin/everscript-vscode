@@ -1,0 +1,1526 @@
+[
+ {
+  "id": 56,
+  "region": "Prehistoria",
+  "place": "Jungle",
+  "part": "south, where the game starts",
+  "path": "prehistoria/jungle/south-where-the-game-starts",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x2, 0x4)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 51,
+  "region": "Prehistoria",
+  "place": "Strong Heart's hut",
+  "part": "outside",
+  "path": "prehistoria/strong-hearts-hut/outside",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x2)",
+   "place": "game text, string 614",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 52,
+  "region": "Prehistoria",
+  "place": "Strong Heart's hut",
+  "part": "inside",
+  "path": "prehistoria/strong-hearts-hut/inside",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x2)",
+   "place": "game text, string 614",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 92,
+  "region": "Prehistoria",
+  "place": "Jungle",
+  "part": "raptors",
+  "path": "prehistoria/jungle/raptors",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x2)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 37,
+  "region": "Prehistoria",
+  "place": "Fire Eyes' village",
+  "part": "village",
+  "path": "prehistoria/fire-eyes-village/village",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x2)",
+   "place": "game text, string 252",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 81,
+  "region": "Prehistoria",
+  "place": "Fire Eyes' village",
+  "part": "huts and Blimp's hut",
+  "path": "prehistoria/fire-eyes-village/huts-and-blimps-hut",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x2)",
+   "place": "game text, string 252",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 38,
+  "region": "Prehistoria",
+  "place": "Jungle",
+  "part": "west, where Defend is",
+  "path": "prehistoria/jungle/west-where-defend-is",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x2)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 91,
+  "region": "Prehistoria",
+  "place": "Jungle",
+  "part": "east",
+  "path": "prehistoria/jungle/east",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 89,
+  "region": "Prehistoria",
+  "place": "Quicksand Field",
+  "part": "desert",
+  "path": "prehistoria/quicksand-field/desert",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 261",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 103,
+  "region": "Prehistoria",
+  "place": "Bugmuck",
+  "part": "outside",
+  "path": "prehistoria/bugmuck/outside",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 259",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 22,
+  "region": "Prehistoria",
+  "place": "Bugmuck",
+  "part": "first chamber",
+  "path": "prehistoria/bugmuck/first-chamber",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 259",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 23,
+  "region": "Prehistoria",
+  "place": "Bugmuck",
+  "part": "second chamber",
+  "path": "prehistoria/bugmuck/second-chamber",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 259",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 24,
+  "region": "Prehistoria",
+  "place": "Bugmuck",
+  "part": "Thraxx's chamber",
+  "path": "prehistoria/bugmuck/thraxxs-chamber",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 259",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 90,
+  "region": "Prehistoria",
+  "place": "Quicksand Field",
+  "part": "Acid Rain giver",
+  "path": "prehistoria/quicksand-field/acid-rain-giver",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 261",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 65,
+  "region": "Prehistoria",
+  "place": "Jungle",
+  "part": "north",
+  "path": "prehistoria/jungle/north",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x2)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 39,
+  "region": "Prehistoria",
+  "place": "Mammoth graveyard",
+  "part": "graveyard",
+  "path": "prehistoria/mammoth-graveyard/graveyard",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x2)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 105,
+  "region": "Prehistoria",
+  "place": "Volcano",
+  "part": "path",
+  "path": "prehistoria/volcano/path",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 82,
+  "region": "Prehistoria",
+  "place": "Volcano",
+  "part": "top",
+  "path": "prehistoria/volcano/top",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 80,
+  "region": "Prehistoria",
+  "place": "Volcano",
+  "part": "sky above",
+  "path": "prehistoria/volcano/sky-above",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 102,
+  "region": "Prehistoria",
+  "place": "Swamp",
+  "part": "west",
+  "path": "prehistoria/swamp/west",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 101,
+  "region": "Prehistoria",
+  "place": "Swamp",
+  "part": "main",
+  "path": "prehistoria/swamp/main",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 1,
+  "region": "Prehistoria",
+  "place": "Blimp's hut",
+  "part": "outside",
+  "path": "prehistoria/blimps-hut/outside",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x2)",
+   "place": "game text, string 253",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 60,
+  "region": "Prehistoria",
+  "place": "Volcano",
+  "part": "first chamber",
+  "path": "prehistoria/volcano/first-chamber",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 59,
+  "region": "Prehistoria",
+  "place": "Volcano",
+  "part": "second chamber",
+  "path": "prehistoria/volcano/second-chamber",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 61,
+  "region": "Prehistoria",
+  "place": "Volcano",
+  "part": "pipe maze",
+  "path": "prehistoria/volcano/pipe-maze",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 62,
+  "region": "Prehistoria",
+  "place": "Volcano",
+  "part": "pipe maze side rooms",
+  "path": "prehistoria/volcano/pipe-maze-side-rooms",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 63,
+  "region": "Prehistoria",
+  "place": "Volcano",
+  "part": "boss chamber",
+  "path": "prehistoria/volcano/boss-chamber",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 54,
+  "region": "Prehistoria",
+  "place": "Fire pits",
+  "part": "both pits",
+  "path": "prehistoria/fire-pits/both-pits",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x2)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 83,
+  "region": "Antiqua",
+  "place": "Arrival in Antiqua",
+  "part": "opening scene",
+  "path": "antiqua/arrival-in-antiqua/opening-scene",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 106,
+  "region": "Antiqua",
+  "place": "Arrival in Antiqua",
+  "part": "waterfall scene",
+  "path": "antiqua/arrival-in-antiqua/waterfall-scene",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 10,
+  "region": "Antiqua",
+  "place": "Nobilia",
+  "part": "market",
+  "path": "antiqua/nobilia/market",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "game text, string 256",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 8,
+  "region": "Antiqua",
+  "place": "Nobilia",
+  "part": "square",
+  "path": "antiqua/nobilia/square",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "game text, string 256",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 9,
+  "region": "Antiqua",
+  "place": "Nobilia",
+  "part": "square, Aegis fight",
+  "path": "antiqua/nobilia/square-aegis-fight",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "game text, string 256",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 30,
+  "region": "Antiqua",
+  "place": "Nobilia Colosseum",
+  "part": "holding room",
+  "path": "antiqua/nobilia-colosseum/holding-room",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "game text, string 270",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 29,
+  "region": "Antiqua",
+  "place": "Nobilia Colosseum",
+  "part": "arena, Vigor fight",
+  "path": "antiqua/nobilia-colosseum/arena-vigor-fight",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "game text, string 270",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 76,
+  "region": "Antiqua",
+  "place": "Nobilia",
+  "part": "fountain and snake statues",
+  "path": "antiqua/nobilia/fountain-and-snake-statues",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "game text, string 256",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 11,
+  "region": "Antiqua",
+  "place": "Nobilia",
+  "part": "palace grounds",
+  "path": "antiqua/nobilia/palace-grounds",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "game text, string 256",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 77,
+  "region": "Antiqua",
+  "place": "Nobilia",
+  "part": "inside the palace, Horace scene",
+  "path": "antiqua/nobilia/inside-the-palace-horace-scene",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "game text, string 256",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 58,
+  "region": "Antiqua",
+  "place": "Nobilia",
+  "part": "fire pit",
+  "path": "antiqua/nobilia/fire-pit",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 256",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 12,
+  "region": "Antiqua",
+  "place": "Nobilia",
+  "part": "inn",
+  "path": "antiqua/nobilia/inn",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 256",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 28,
+  "region": "Antiqua",
+  "place": "Nobilia",
+  "part": "north of the market",
+  "path": "antiqua/nobilia/north-of-the-market",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "game text, string 256",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 27,
+  "region": "Antiqua",
+  "place": "Antiqua desert",
+  "part": "Desert of Doom",
+  "path": "antiqua/antiqua-desert/desert-of-doom",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 107,
+  "region": "Antiqua",
+  "place": "Waterfall",
+  "part": "waterfall",
+  "path": "antiqua/waterfall/waterfall",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 5,
+  "region": "Antiqua",
+  "place": "Antiqua desert",
+  "part": "between the pyramid and the halls",
+  "path": "antiqua/antiqua-desert/between-the-pyramid-and-the-halls",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 7,
+  "region": "Antiqua",
+  "place": "Crustacia",
+  "part": "west shore",
+  "path": "antiqua/crustacia/west-shore",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "game text, string 1768",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 79,
+  "region": "Antiqua",
+  "place": "Crustacia",
+  "part": "east shore",
+  "path": "antiqua/crustacia/east-shore",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "game text, string 1768",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 46,
+  "region": "Antiqua",
+  "place": "Blimp's cave",
+  "part": "cave",
+  "path": "antiqua/blimps-cave/cave",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 104,
+  "region": "Antiqua",
+  "place": "Crustacia",
+  "part": "outside",
+  "path": "antiqua/crustacia/outside",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "game text, string 1768",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 48,
+  "region": "Antiqua",
+  "place": "Crustacia",
+  "part": "inside the pirate ship",
+  "path": "antiqua/crustacia/inside-the-pirate-ship",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "game text, string 1768",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 4,
+  "region": "Antiqua",
+  "place": "Crustacia",
+  "part": "fire pit",
+  "path": "antiqua/crustacia/fire-pit",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 1768",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 47,
+  "region": "Antiqua",
+  "place": "Horace's camp",
+  "part": "camp",
+  "path": "antiqua/horaces-camp/camp",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 257",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 6,
+  "region": "Antiqua",
+  "place": "Pyramid",
+  "part": "outside",
+  "path": "antiqua/pyramid/outside",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 100,
+  "region": "Antiqua",
+  "place": "Pyramid",
+  "part": "cave entrance below",
+  "path": "antiqua/pyramid/cave-entrance-below",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 85,
+  "region": "Antiqua",
+  "place": "Pyramid",
+  "part": "bottom level, the Dog starts",
+  "path": "antiqua/pyramid/bottom-level-the-dog-starts",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 86,
+  "region": "Antiqua",
+  "place": "Pyramid",
+  "part": "top level, the Boy starts",
+  "path": "antiqua/pyramid/top-level-the-boy-starts",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 87,
+  "region": "Antiqua",
+  "place": "Pyramid",
+  "part": "basement, Tiny",
+  "path": "antiqua/pyramid/basement-tiny",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 88,
+  "region": "Antiqua",
+  "place": "Pyramid",
+  "part": "boss room, Rimsala",
+  "path": "antiqua/pyramid/boss-room-rimsala",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 43,
+  "region": "Antiqua",
+  "place": "Halls of Collosia",
+  "part": "outside",
+  "path": "antiqua/halls-of-collosia/outside",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 41,
+  "region": "Antiqua",
+  "place": "Halls of Collosia",
+  "part": "main hall",
+  "path": "antiqua/halls-of-collosia/main-hall",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 35,
+  "region": "Antiqua",
+  "place": "Halls of Collosia",
+  "part": "south-west",
+  "path": "antiqua/halls-of-collosia/south-west",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 36,
+  "region": "Antiqua",
+  "place": "Halls of Collosia",
+  "part": "north-west",
+  "path": "antiqua/halls-of-collosia/north-west",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 44,
+  "region": "Antiqua",
+  "place": "Halls of Collosia",
+  "part": "south-east",
+  "path": "antiqua/halls-of-collosia/south-east",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 45,
+  "region": "Antiqua",
+  "place": "Halls of Collosia",
+  "part": "north-east",
+  "path": "antiqua/halls-of-collosia/north-east",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 40,
+  "region": "Antiqua",
+  "place": "Halls of Collosia",
+  "part": "collapsing bridge",
+  "path": "antiqua/halls-of-collosia/collapsing-bridge",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 42,
+  "region": "Antiqua",
+  "place": "Halls of Collosia",
+  "part": "boss room",
+  "path": "antiqua/halls-of-collosia/boss-room",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 75,
+  "region": "Antiqua",
+  "place": "Oglin cave",
+  "part": "cave",
+  "path": "antiqua/oglin-cave/cave",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 109,
+  "region": "Antiqua",
+  "place": "Aquagoth",
+  "part": "chamber",
+  "path": "antiqua/aquagoth/chamber",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x6)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 53,
+  "region": "Antiqua",
+  "place": "Caves",
+  "part": "quicksand, Bugmuck and volcano caves; west alchemist cave",
+  "path": "antiqua/caves/quicksand-bugmuck-and-volcano-caves-west-alchemist-cave",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 18,
+  "region": "Gothica",
+  "place": "Ebon Keep",
+  "part": "sewers",
+  "path": "gothica/ebon-keep/sewers",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 265",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 19,
+  "region": "Gothica",
+  "place": "Ebon Keep",
+  "part": "sewer exit to the forest and swamp",
+  "path": "gothica/ebon-keep/sewer-exit-to-the-forest-and-swamp",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 265",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 64,
+  "region": "Gothica",
+  "place": "Swamp",
+  "part": "south of Gomi's tower",
+  "path": "gothica/swamp/south-of-gomis-tower",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 55,
+  "region": "Gothica",
+  "place": "Gomi's tower",
+  "part": "tower",
+  "path": "gothica/gomis-tower/tower",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x8)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 32,
+  "region": "Gothica",
+  "place": "Dark Forest",
+  "part": "Timberdrake clearing",
+  "path": "gothica/dark-forest/timberdrake-clearing",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x8)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 31,
+  "region": "Gothica",
+  "place": "Dark Forest",
+  "part": "doubles clearing",
+  "path": "gothica/dark-forest/doubles-clearing",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x8)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 34,
+  "region": "Gothica",
+  "place": "Dark Forest",
+  "part": "forest",
+  "path": "gothica/dark-forest/forest",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x8)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 33,
+  "region": "Gothica",
+  "place": "Dark Forest",
+  "part": "entrance, save point",
+  "path": "gothica/dark-forest/entrance-save-point",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x8)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 108,
+  "region": "Gothica",
+  "place": "Ivor Tower",
+  "part": "south-east, the well",
+  "path": "gothica/ivor-tower/south-east-the-well",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x8)",
+   "place": "game text, string 264",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 118,
+  "region": "Gothica",
+  "place": "Ivor Tower",
+  "part": "south gate",
+  "path": "gothica/ivor-tower/south-gate",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 264",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 123,
+  "region": "Gothica",
+  "place": "Ebon Keep and Ivor Tower",
+  "part": "outside, lower half",
+  "path": "gothica/ebon-keep-and-ivor-tower/outside-lower-half",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 124,
+  "region": "Gothica",
+  "place": "Ebon Keep and Ivor Tower",
+  "part": "outside, upper half",
+  "path": "gothica/ebon-keep-and-ivor-tower/outside-upper-half",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 125,
+  "region": "Gothica",
+  "place": "Ebon Keep and Ivor Tower",
+  "part": "inside",
+  "path": "gothica/ebon-keep-and-ivor-tower/inside",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 78,
+  "region": "Gothica",
+  "place": "Ivor Tower",
+  "part": "west alley, market",
+  "path": "gothica/ivor-tower/west-alley-market",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x8)",
+   "place": "game text, string 264",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 98,
+  "region": "Gothica",
+  "place": "Ivor Tower",
+  "part": "west square, trailers",
+  "path": "gothica/ivor-tower/west-square-trailers",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x8)",
+   "place": "game text, string 264",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 99,
+  "region": "Gothica",
+  "place": "Ivor Tower",
+  "part": "inside the trailers",
+  "path": "gothica/ivor-tower/inside-the-trailers",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 264",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 25,
+  "region": "Gothica",
+  "place": "Chessboard",
+  "part": "board",
+  "path": "gothica/chessboard/board",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x8)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 26,
+  "region": "Gothica",
+  "place": "Chessboard",
+  "part": "below the board",
+  "path": "gothica/chessboard/below-the-board",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x8)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 116,
+  "region": "Gothica",
+  "place": "Ebon Keep and Ivor Tower",
+  "part": "dungeon and pipe room",
+  "path": "gothica/ebon-keep-and-ivor-tower/dungeon-and-pipe-room",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x8)",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 13,
+  "region": "Gothica",
+  "place": "Ebon Keep",
+  "part": "stair hall behind Verminator",
+  "path": "gothica/ebon-keep/stair-hall-behind-verminator",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 265",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 15,
+  "region": "Gothica",
+  "place": "Ebon Keep",
+  "part": "west room (Naris)",
+  "path": "gothica/ebon-keep/west-room-naris",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 265",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 17,
+  "region": "Gothica",
+  "place": "Ebon Keep",
+  "part": "queen's room",
+  "path": "gothica/ebon-keep/queens-room",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 265",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 16,
+  "region": "Gothica",
+  "place": "Ebon Keep",
+  "part": "stained-glass hallway",
+  "path": "gothica/ebon-keep/stained-glass-hallway",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x8)",
+   "place": "game text, string 265",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 20,
+  "region": "Gothica",
+  "place": "Ebon Keep",
+  "part": "Tinker's room",
+  "path": "gothica/ebon-keep/tinkers-room",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 265",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 57,
+  "region": "Gothica",
+  "place": "Ebon Keep",
+  "part": "fire pit",
+  "path": "gothica/ebon-keep/fire-pit",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 265",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 14,
+  "region": "Gothica",
+  "place": "Ebon Keep",
+  "part": "dining room",
+  "path": "gothica/ebon-keep/dining-room",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 265",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 93,
+  "region": "Gothica",
+  "place": "Ebon Keep",
+  "part": "courtyard south of Verminator",
+  "path": "gothica/ebon-keep/courtyard-south-of-verminator",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 265",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 94,
+  "region": "Gothica",
+  "place": "Ebon Keep",
+  "part": "front room, Verminator",
+  "path": "gothica/ebon-keep/front-room-verminator",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 265",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 95,
+  "region": "Gothica",
+  "place": "Ebon Keep",
+  "part": "side rooms by Verminator",
+  "path": "gothica/ebon-keep/side-rooms-by-verminator",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 265",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 96,
+  "region": "Gothica",
+  "place": "Ebon Keep",
+  "part": "storage room",
+  "path": "gothica/ebon-keep/storage-room",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 265",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 110,
+  "region": "Gothica",
+  "place": "Ivor Tower",
+  "part": "hall",
+  "path": "gothica/ivor-tower/hall",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x8)",
+   "place": "game text, string 264",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 111,
+  "region": "Gothica",
+  "place": "Ivor Tower",
+  "part": "dining room",
+  "path": "gothica/ivor-tower/dining-room",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x8)",
+   "place": "game text, string 264",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 112,
+  "region": "Gothica",
+  "place": "Ivor Tower",
+  "part": "outside bridges and balconies",
+  "path": "gothica/ivor-tower/outside-bridges-and-balconies",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x8)",
+   "place": "game text, string 264",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 113,
+  "region": "Gothica",
+  "place": "Ivor Tower",
+  "part": "east room and kitchen",
+  "path": "gothica/ivor-tower/east-room-and-kitchen",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x8)",
+   "place": "game text, string 264",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 114,
+  "region": "Gothica",
+  "place": "Ivor Tower",
+  "part": "east upper floor",
+  "path": "gothica/ivor-tower/east-upper-floor",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x8)",
+   "place": "game text, string 264",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 115,
+  "region": "Gothica",
+  "place": "Ivor Tower",
+  "part": "Dog maze below",
+  "path": "gothica/ivor-tower/dog-maze-below",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 264",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 117,
+  "region": "Gothica",
+  "place": "Ivor Tower",
+  "part": "stairwell to the dungeon",
+  "path": "gothica/ivor-tower/stairwell-to-the-dungeon",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x8)",
+   "place": "game text, string 264",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 121,
+  "region": "Gothica",
+  "place": "Ivor Tower",
+  "part": "sewers",
+  "path": "gothica/ivor-tower/sewers",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x8)",
+   "place": "game text, string 264",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 122,
+  "region": "Gothica",
+  "place": "Ivor Tower",
+  "part": "sewer outlet, landing spot",
+  "path": "gothica/ivor-tower/sewer-outlet-landing-spot",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x8)",
+   "place": "game text, string 264",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 120,
+  "region": "Gothica",
+  "place": "Ivor Tower",
+  "part": "queen's room",
+  "path": "gothica/ivor-tower/queens-room",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x8)",
+   "place": "game text, string 264",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 119,
+  "region": "Gothica",
+  "place": "Ivor Tower",
+  "part": "puppet show, Mungola",
+  "path": "gothica/ivor-tower/puppet-show-mungola",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0x8)",
+   "place": "game text, string 264",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 70,
+  "region": "Omnitopia",
+  "place": "Omnitopia",
+  "part": "Professor's lab and ship",
+  "path": "omnitopia/omnitopia/professors-lab-and-ship",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 274",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 72,
+  "region": "Omnitopia",
+  "place": "Omnitopia",
+  "part": "Metroplex tunnels",
+  "path": "omnitopia/omnitopia/metroplex-tunnels",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0xc)",
+   "place": "game text, string 274",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 68,
+  "region": "Omnitopia",
+  "place": "Omnitopia",
+  "part": "greenhouse",
+  "path": "omnitopia/omnitopia/greenhouse",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0xc)",
+   "place": "game text, string 274",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 0,
+  "region": "Omnitopia",
+  "place": "Omnitopia",
+  "part": "alarm room",
+  "path": "omnitopia/omnitopia/alarm-room",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0xc)",
+   "place": "game text, string 274",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 67,
+  "region": "Omnitopia",
+  "place": "Omnitopia",
+  "part": "control room",
+  "path": "omnitopia/omnitopia/control-room",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0xc)",
+   "place": "game text, string 274",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 69,
+  "region": "Omnitopia",
+  "place": "Omnitopia",
+  "part": "secret boss room",
+  "path": "omnitopia/omnitopia/secret-boss-room",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0xc)",
+   "place": "game text, string 274",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 71,
+  "region": "Omnitopia",
+  "place": "Omnitopia",
+  "part": "storage room",
+  "path": "omnitopia/omnitopia/storage-room",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0xc)",
+   "place": "game text, string 274",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 66,
+  "region": "Omnitopia",
+  "place": "Omnitopia",
+  "part": "reactor and reactor control",
+  "path": "omnitopia/omnitopia/reactor-and-reactor-control",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0xc)",
+   "place": "game text, string 274",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 84,
+  "region": "Omnitopia",
+  "place": "Omnitopia",
+  "part": "shops",
+  "path": "omnitopia/omnitopia/shops",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0xc)",
+   "place": "game text, string 274",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 126,
+  "region": "Omnitopia",
+  "place": "Omnitopia",
+  "part": "jail",
+  "path": "omnitopia/omnitopia/jail",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0xc)",
+   "place": "game text, string 274",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 73,
+  "region": "Omnitopia",
+  "place": "Junkyard",
+  "part": "landing spot",
+  "path": "omnitopia/junkyard/landing-spot",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0xc)",
+   "place": "game text, string 279",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 74,
+  "region": "Omnitopia",
+  "place": "Omnitopia",
+  "part": "final boss room",
+  "path": "omnitopia/omnitopia/final-boss-room",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0xc)",
+   "place": "game text, string 274",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 21,
+  "region": "Podunk",
+  "place": "Test room",
+  "part": "Brian's room",
+  "path": "podunk/test-room/brians-room",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 97,
+  "region": "Podunk",
+  "place": "Opening",
+  "part": "over the machine",
+  "path": "podunk/opening/over-the-machine",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "our wording",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 49,
+  "region": "Podunk",
+  "place": "Podunk",
+  "part": "town, 1965",
+  "path": "podunk/podunk/town-1965",
+  "evidence": {
+   "region": "enter script sets the Dog's form ($2443 = 0xa)",
+   "place": "game text, string 421",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 2,
+  "region": "Podunk",
+  "place": "Podunk",
+  "part": "mansion grounds, 1965",
+  "path": "podunk/podunk/mansion-grounds-1965",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 421",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 50,
+  "region": "Podunk",
+  "place": "Podunk",
+  "part": "town, 1995",
+  "path": "podunk/podunk/town-1995",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 421",
+   "part": "our wording"
+  }
+ },
+ {
+  "id": 3,
+  "region": "Podunk",
+  "place": "Podunk",
+  "part": "mansion grounds, 1995",
+  "path": "podunk/podunk/mansion-grounds-1995",
+  "evidence": {
+   "region": "kept from the old catalogue (D4): its enter script requests no Dog form",
+   "place": "game text, string 421",
+   "part": "our wording"
+  }
+ }
+]

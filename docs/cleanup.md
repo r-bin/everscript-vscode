@@ -144,7 +144,11 @@ Scope, from the inventory of 2026-10-16:
   `code(...)` with it as a comment for the exact form); 25 more opcodes named from their handlers; every handler's
   knowledge entry lists the addresses it uses, and `soe://rom/assets/scripts/opcodes/` serves one page per opcode.
   v0.282.0: the consumers moved (2.4); phases done.
-- [ ] **2.3** Room names in the new style, each with evidence.
+- [x] **2.3** Room names in the new style, each with evidence. v0.285.0: `localizations/data/rooms.json` (written by
+  `tools/rooms/write-room-names.js`): `region › place › part` with a path id and each part's source. The region
+  comes from the Dog form the room's enter script requests (`$2443`, knowledge `ram/7e2443.md`; 76 rooms, all
+  agreeing with the old areas), else the old area; the place is the game's own text where it names one (string
+  ids), else our wording. Doors alone cannot place the rest: the game reuses some maps in two acts.
 - [x] **2.4** Delete every row's old files; `check:legal` clean. v0.284.0: clean, baseline empty — the policy
   statements name "the third-party tools the root `AGENTS.md` names", home paths are relative or generic, the
   Rooms tab finds the ROM through the ROM library, `instruction_set.md` / `operand_grammar.md` gave way to
