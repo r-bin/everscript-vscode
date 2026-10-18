@@ -55,137 +55,12 @@
       return false;
     }
 
-    const POOL_LARGE = { pointers: 0xec0000, data: 0xd90000, size: 16 };
-    const POOL_SMALL = { pointers: 0xd80000, data: 0xd10000, size: 8 };
-
-    function blockBytes(rom, index, pool) {
-      const raw = readRom24(rom, snesToRom(pool.pointers + index * 3));
-      const compressed = (raw >>> 23) & 1;
-      const addr = ((raw & ~(1 << 23)) >>> 0) + pool.data;
-      const sub = pool.size / 8;
-      const length = (8 * 8 * sub * sub) / 2;
-      const out = new Uint8Array(length);
-      if (!compressed) {
-        for (let i = 0; i < length; i++) out[i] = atRom(rom, addr + i);
-        return out;
-      }
-      let src = addr;
-      let dst = 0;
-      for (let group = 0; group < length / 16; group++) {
-        let bits = atRom(rom, src++);
-        for (let bit = 0; bit < 8; bit++, bits >>= 1) {
-          if (bits & 1) { dst += 2; continue; }
-          out[dst++] = atRom(rom, src++);
-          out[dst++] = atRom(rom, src++);
-        }
-      }
-      return out;
-    }
-
-    function decodeSpriteBlock(rom, index, large) {
-      const pool = large ? POOL_LARGE : POOL_SMALL;
-      const d = blockBytes(rom, index, pool);
-      const sub = pool.size / 8;
-      const pixels = new Uint8Array(pool.size * pool.size);
-      let n = 0;
-      for (let l = 0; l < sub; l++) {
-        for (let row = 0; row < 8; row++) {
-          for (let j = 0; j < sub; j++) {
-            const base = (j + 2 * l) * 32 + row * 2;
-            for (let bit = 7; bit >= 0; bit--) {
-              let p = 0;
-              if (d[base + 0] & (1 << bit)) p |= 1;
-              if (d[base + 1] & (1 << bit)) p |= 2;
-              if (d[base + 16] & (1 << bit)) p |= 4;
-              if (d[base + 17] & (1 << bit)) p |= 8;
-              pixels[n++] = p;
-            }
-          }
-        }
-      }
-      return { size: pool.size, pixels: pixels };
-    }
-
-    function readSpriteInfo(rom, address) {
-      const count = atRom(rom, address);
-      const dataOffset = atRom(rom, address + 1);
-      const chunks = [];
-      let cursor = address;
-      for (let n = 0; n < count; n++) {
-        const c = cursor + dataOffset;
-        const flags = atRom(rom, c);
-        chunks.push({
-          flags: flags,
-          x: (atRom(rom, c + 1) << 24) >> 24,
-          y: (atRom(rom, c + 2) << 24) >> 24,
-          block: atRom(rom, c + 3) | (atRom(rom, c + 4) << 8),
-          large: (flags & 1) !== 0,
-          flipX: (flags & 0x40) !== 0,
-          flipY: (flags & 0x80) !== 0,
-          priority: (flags & 0x30) >> 4,
-          palette: (flags & 0x0e) >> 1,
-        });
-        cursor += 5;
-      }
-      return { address: address, chunks: chunks, size: dataOffset + count * 5 };
-    }
-
-    function composeSprite(rom, info) {
-      let minX = 0, minY = 0, maxX = 1, maxY = 1;
-      for (let i = 0; i < info.chunks.length; i++) {
-        const c = info.chunks[i];
-        const s = c.large ? 16 : 8;
-        if (c.x < minX) minX = c.x;
-        if (c.y < minY) minY = c.y;
-        if (c.x + s > maxX) maxX = c.x + s;
-        if (c.y + s > maxY) maxY = c.y + s;
-      }
-      const width = maxX - minX;
-      const height = maxY - minY;
-      const pixels = new Int16Array(width * height).fill(-1);
-      // Each pixel's chunk palette bits (OAM palette = entity slot + these).
-      const pals = new Uint8Array(width * height);
-      for (let priority = 0; priority < 4; priority++) {
-        for (let i = info.chunks.length - 1; i >= 0; i--) {
-          const c = info.chunks[i];
-          if (c.priority !== priority) continue;
-          const b = decodeSpriteBlock(rom, c.block, c.large);
-          for (let y = 0; y < b.size; y++) {
-            for (let x = 0; x < b.size; x++) {
-              const sx = c.flipX ? b.size - 1 - x : x;
-              const sy = c.flipY ? b.size - 1 - y : y;
-              const v = b.pixels[sy * b.size + sx];
-              if (!v) continue;
-              const px = c.x - minX + x;
-              const py = c.y - minY + y;
-              if (px < 0 || py < 0 || px >= width || py >= height) continue;
-              pixels[py * width + px] = v;
-              pals[py * width + px] = c.palette;
-            }
-          }
-        }
-      }
-      return { width: width, height: height, pixels: pixels, pals: pals, originX: -minX, originY: -minY };
-    }
+    // The sprite readers are the host's (maps/sprites.ts, maps/character-record.ts), bundled for the page
+    // as EvsSprites (dist/webview/evermore-sprites.js, a page file from host.js webviewFiles()).
+    const { readSpriteInfo, composeSprite } = typeof EvsSprites !== 'undefined' ? EvsSprites : {};
 
     function paletteAt(rom, palAddr) {
-      const addr = (palAddr && palAddr > 0) ? palAddr : 0xad0b;
-      const base = snesToRom(0x900000 | addr);
-      const out = [];
-      for (let i = 0; i < 16; i++) {
-        const off = base + i * 2;
-        if (off + 2 <= rom.length) {
-          const c = rom[off] | (rom[off + 1] << 8);
-          out.push([
-            (c & 31) * 8,
-            ((c >> 5) & 31) * 8,
-            ((c >> 10) & 31) * 8,
-          ]);
-        } else {
-          out.push([0, 0, 0]);
-        }
-      }
-      return out;
+      return EvsSprites.paletteAt(rom, (palAddr && palAddr > 0) ? palAddr : 0xad0b);
     }
 
     function characterPalette(rom, characterOrPal) {
@@ -210,10 +85,7 @@
     function liveObjPalette(cg, pal) {
       const out = [];
       const base = 256 + (pal & 7) * 32;
-      for (let i = 0; i < 16; i++) {
-        const c = cg[base + i * 2] | (cg[base + i * 2 + 1] << 8);
-        out.push([(c & 31) * 8, ((c >> 5) & 31) * 8, ((c >> 10) & 31) * 8]);
-      }
+      for (let i = 0; i < 16; i++) out.push(EvsSprites.bgr555(cg[base + i * 2] | (cg[base + i * 2 + 1] << 8)));
       return out;
     }
 
@@ -261,7 +133,7 @@
         for (let i = 0; i < total; i++) {
           const v = comp.pixels[i];
           if (v > 0) {
-            const pal = livePals ? (livePals[comp.pals[i] ? 1 : 0]) : palette;
+            const pal = livePals ? (livePals[comp.palettes[i] ? 1 : 0]) : palette;
             const col = pal[v] || [255, 255, 255];
             const dst = i * 4;
             data[dst] = col[0];

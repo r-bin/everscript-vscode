@@ -206,7 +206,10 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   `platform/png.ts` (2 encoders → 1), `platform/snes/opcodes-65816.ts` (the one matrix, now TS; the CDL shim is
   gone), ROM history identifies through the ROM library instead of its own hash list. Left: the inline
   `& 0x3FFFFF` masks in `emulator/` and `shared/rom-readers.js` (go with their split), HTML escape, hex
-  formatters, tab strip, CSP shell → `core/webview` with 5.3; the script decoder's `addressing.ts` with step 2) → one owner each: bus→file offset (~11 copies) and read16/24 (~20)
+  formatters, tab strip, CSP shell → `core/webview` with 5.3; v0.292.0: the emulator page's copy of the sprite readers
+  (block decompressor, chunk list, composer, palettes, ~120 lines) is gone: the page loads the host's own
+  (`maps/sprites.ts`, `character-record.ts`) as `EvsSprites`, bundled by `tools/bundle-pages.mts`; same pixels on all
+  4,903 sprites, colours now full range as on the map; the script decoder's `addressing.ts` with step 2) → one owner each: bus→file offset (~11 copies) and read16/24 (~20)
   → `platform/snes`; BGR555, 2/4bpp, sprite decompressor (emulator copy of `maps/sprites.ts`
   ~240 lines) → `platform/snes` gfx; alchemy damage math (×3) → one module in `games/evermore`;
   HTML escape (×6), hex formatters (×23), tab strip, CSP shell → `core/webview`; 65816 opcode table

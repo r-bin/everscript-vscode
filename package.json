@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.291.0",
+  "version": "0.292.0",
   "publisher": "rbin",
   "main": "./bundle/extension.js",
   "engines": {
@@ -56,7 +56,7 @@
     "check:knowledge": "npm run -s build:ts && node tools/check-knowledge.mts",
     "check:ai-context": "node tools/check-ai-context.mts",
     "build:recorder": "npm run build:ts && node tools/recorder/build.js",
-    "build:ts": "tsc -p tsconfig.build.json",
+    "build:ts": "tsc -p tsconfig.build.json && node tools/bundle-pages.mts",
     "build:bundle": "npm run build:ts && node tools/bundle.mts",
     "check:collision": "node tools/measure-collision.js",
     "check:maps": "node tests/memory/map-parity.test.js",

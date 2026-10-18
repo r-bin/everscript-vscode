@@ -85,5 +85,18 @@ test('the Evermore emulator host computes and passes objects, animTiles, and col
     assert.ok(panelContent.includes('animTiles: meta.animTileClusters'), 'animTiles field missing in the reply');
 });
 
+// 5. The page draws sprites with the host's readers, bundled (tools/bundle-pages.mts), not a copy of them.
+test('the page loads the host sprite readers as EvsSprites and keeps no copy', () => {
+    const files = require('../../src/games/evermore/emulator/host').webviewFiles();
+    const bundle = files.find((f) => f.endsWith('evermore-sprites.js'));
+    assert.ok(bundle && fs.existsSync(bundle), 'dist/webview/evermore-sprites.js is built by npm run build:ts');
+    const ctx = {};
+    require('vm').runInNewContext(fs.readFileSync(bundle, 'utf8') + ';this.S = EvsSprites;', ctx);
+    for (const k of ['readSpriteInfo', 'composeSprite', 'paletteAt', 'bgr555']) assert.strictEqual(typeof ctx.S[k], 'function', k);
+    assert.deepStrictEqual(Array.from(ctx.S.bgr555(0x7fff)), [255, 255, 255], 'full-range colours, as on the map');
+    const page = _gameView.overlaysScript;
+    assert.ok(!/function (readSpriteInfo|composeSprite|decodeSpriteBlock|blockBytes)\(/.test(page), 'the page keeps its own sprite decoder');
+});
+
 console.log(`\nResults: ${passed} passed, ${failed} failed`);
-if (failed > 0) process.exit(1);
+process.exitCode = failed > 0 ? 1 : 0;
