@@ -131,12 +131,17 @@ export class PathState {
     log: Array<[number, number, number]> | null = null;
     mem: Memory;
     lastEntity: Sym;
-    /** Every condition this path assumed, by its rendering. */
+    /** Every condition this path assumed, by its rendering (shared with clones until one writes: `ownKnown`). */
     known = new Map<string, boolean>();
+    private knownShared = false;
     /** How many paths were merged into this one (see explore.ts). */
     merged = 1;
     /** Conditions merged paths disagreed on: the outcome holds either way. */
     either: Sym[] = [];
+    /**
+     * Each assumed condition by its rendering. The rendering decides the condition, so one map
+     * serves a path and every path cloned or merged from it; it only grows.
+     */
     private conds = new Map<string, Sym>();
     /** Set by `ret` when a call returned into the entry script. */
     returnedToEntry = false;
@@ -202,11 +207,12 @@ export class PathState {
         p.opts = this.opts;
         p.log = this.log ? [...this.log] : null;
         p.lastEntity = this.lastEntity;
-        p.known = new Map(this.known);
+        p.known = this.known;
+        p.knownShared = this.knownShared = true;
         p.merged = this.merged;
         p.topTrail = this.topTrail;
         p.either = [...this.either];
-        p.conds = new Map(this.conds);
+        p.conds = this.conds;
         p.steps = [...this.steps];
         p.entities = this.entities.map((e) => ({ ...e, refs: [...e.refs] }));
         p.returnedToEntry = this.returnedToEntry;
@@ -240,9 +246,15 @@ export class PathState {
         return null;
     }
 
+    /** `known`, copied first when a clone still shares it. */
+    private ownKnown(): Map<string, boolean> {
+        if (this.knownShared) { this.known = new Map(this.known); this.knownShared = false; }
+        return this.known;
+    }
+
     assume(cond: Sym, value: boolean): void {
         const t = truthy(cond);
-        this.known.set(key(t), value);
+        this.ownKnown().set(key(t), value);
         this.conds.set(key(t), t);
     }
 
@@ -326,7 +338,7 @@ export class PathState {
         this.clock = this.clock.join(o.clock, Math.min(this.sharedNodes, o.sharedNodes));
         for (const [k, v] of [...this.known]) {
             if (o.known.get(k) === v) continue;
-            this.known.delete(k);
+            this.ownKnown().delete(k);
             const c = this.conds.get(k);
             if (c && this.either.length < 64 && !this.either.some((e) => key(e) === k)) this.either.push(c);
         }
@@ -353,7 +365,7 @@ export class PathState {
         const out = this.clone();
         out.mem = t.mem.merge(cond, f.mem);
         out.known = new Map();
-        out.conds = new Map(this.conds);
+        out.knownShared = false;
         out.lastEntity = ite(cond, t.lastEntity, f.lastEntity);
         for (const [k, v] of this.known) if (o.known.get(k) === v) out.known.set(k, v);
         out.steps = [...this.steps.slice(0, n), {

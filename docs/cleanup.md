@@ -239,10 +239,12 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   question on random graphs); `mergeGroup` keeps each path's best partner and memoizes shared lengths
   instead of trying every pair on every merge (group sizes up to 737 in room 0x5a). `room()` output is
   byte-identical for all 127 rooms (sha1 of the JSON, before and after); all rooms 308 → 221 s, 0x25 5.0 →
-  0.5 s, 0x5a 44 → 20 s, 0x35 31 → 12 s. Left: no single hot spot. 0x5a spends 31 % in `PathState.clone`
-  (each fork copies `steps`, `visited` and `log`; `rejoin` / `absorb` rebuild `visited`), and 0x48 spends
-  31 % in GC plus symbolic keys (`sym.ts` `memo` / `key`). Next: share history between forks (a persistent
-  `steps` that `rejoin` can still bisect, a `visited` that is not copied) and measure the GC again.
+  0.5 s, 0x5a 44 → 20 s, 0x35 31 → 12 s. v0.279.0: `PathState.clone` spent 83 % of its time copying
+  `conds` and `known` (0x5a, timed per field): `conds` (rendering → condition, grow-only) is now one map for
+  a path and its clones, `known` is shared until a clone writes; still byte-identical, all rooms → 201 s,
+  0x5a → 16 s. Left: no single hot spot; the slowest rooms (0x48 20 s, 0x0a 20 s) spend ~30 % in GC and the
+  rest across stepping, the scheduler and symbolic keys (`sym.ts` `memo` / `key`) over many paths: fewer
+  paths (earlier merging) is what would move them, not faster code.
 
 ### Step 6 — Docs and knowledge (D8, D11, D13)
 - [x] **6.1** `tools/check-knowledge.mts` + `npm run check:knowledge` (2026-10-16: 580 addresses in code,
