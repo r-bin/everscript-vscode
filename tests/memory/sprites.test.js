@@ -195,7 +195,8 @@ if (!rom) {
 }
 
 if (rom) {
-    const { runAnimation, animationGroups, animationIdRecord, ANIMATION_ID_COUNT } = require('../../dist/games/evermore/maps/animation-vm');
+    const { runAnimation } = require('../../dist/games/evermore/maps/animation-vm');
+    const { animationGroups, animationIdRecord, ANIMATION_ID_COUNT } = require('../../dist/games/evermore/maps/animation-table');
     const { disassembleScript } = require('../../dist/games/evermore/maps/animation-opcodes');
     const { walkAnimationScript } = require('../../dist/games/evermore/maps/character-animation');
     const { animationScript } = require('../../dist/games/evermore/maps/character-record');
@@ -619,7 +620,8 @@ if (rom) {
     });
 
     test('command 0x4b loads the script\'s own palette; placeholder ids and Dog forms get theirs', () => {
-        const { runAnimation, animationIdRecord, facingScript } = require('../../dist/games/evermore/maps/animation-vm');
+        const { runAnimation } = require('../../dist/games/evermore/maps/animation-vm');
+        const { animationIdRecord, facingScript } = require('../../dist/games/evermore/maps/animation-table');
         const explosion = animationIdRecord(rom, 0x02);
         assert.strictEqual(runAnimation(rom, facingScript(rom, explosion, 8), 8).palette, 0xc08b);
         const cat = buildAnimationCatalog(rom, readAllCharacters(rom));
@@ -631,7 +633,8 @@ if (rom) {
     });
 
     test('an alchemy effect ends at effect_done (0x5d) when the next byte starts another record', () => {
-        const { runAnimation, facingScript } = require('../../dist/games/evermore/maps/animation-vm');
+        const { runAnimation } = require('../../dist/games/evermore/maps/animation-vm');
+        const { facingScript } = require('../../dist/games/evermore/maps/animation-table');
         const run = runAnimation(rom, facingScript(rom, 0x586a, 8), 8);
         assert(run.complete);
         assert(run.frames.every(f => f.sprite !== 0xd01d08), 'the rocket record after it does not play');

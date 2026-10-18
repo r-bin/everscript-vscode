@@ -13,7 +13,7 @@
 //   decoded; the records are found by scanning its words, so a word that
 //   happens to equal a record id would be listed too.
 
-const { animationGroups } = require('../../../../../dist/games/evermore/maps/animation-vm');
+const { animationGroups } = require('../../../../../dist/games/evermore/maps/animation-table');
 const { disassembleScript } = require('../../../../../dist/games/evermore/maps/animation-opcodes');
 const indexJson = require('../../language/data/index.json');
 const { hex } = require('../../../../../dist/platform');

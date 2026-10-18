@@ -8,7 +8,8 @@
 //   ($900000 + id) that animation command 0x4c throws.
 
 const indexJson = require('../language/data/index.json');
-const { animationGroups, animationIdRecord, ANIMATION_ID_COUNT, runAnimation } = require('../../../../dist/games/evermore/maps/animation-vm');
+const { runAnimation } = require('../../../../dist/games/evermore/maps/animation-vm');
+const { animationGroups, animationIdRecord, ANIMATION_ID_COUNT } = require('../../../../dist/games/evermore/maps/animation-table');
 const { disassembleScript } = require('../../../../dist/games/evermore/maps/animation-opcodes');
 const { projectileRecord } = require('../../../../dist/games/evermore/maps/projectiles');
 const { hexLower: hex } = require('../../../../dist/platform');

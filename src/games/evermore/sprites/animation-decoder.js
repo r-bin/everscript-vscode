@@ -2,7 +2,8 @@
 // Ownership: running an animation script, aligning and rendering its frames, and its script listing for the Sprites tab. Pure.
 
 const { animationScript, characterPalette, characterPaletteAddress, characterHitbox, paletteAt, FACING_SOUTH } = require('../../../../dist/games/evermore/maps/character-record');
-const { runAnimation, facingScript, MODE_INVULNERABLE } = require('../../../../dist/games/evermore/maps/animation-vm');
+const { runAnimation, MODE_INVULNERABLE } = require('../../../../dist/games/evermore/maps/animation-vm');
+const { facingScript } = require('../../../../dist/games/evermore/maps/animation-table');
 const { resolveCharacterSprite } = require('../../../../dist/games/evermore/maps/character-animation');
 const { MODE_CONTACT } = require('../../../../dist/games/evermore/maps/hit-test');
 const { disassembleScript } = require('../../../../dist/games/evermore/maps/animation-opcodes');

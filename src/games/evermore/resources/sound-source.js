@@ -12,7 +12,7 @@
 // reads the entity's palette slot from $7E1278).
 
 const { readAllCharacters, readCharacter, renderRawSprite, thumbFor } = require('../sprites');
-const { animationGroups } = require('../../../../dist/games/evermore/maps/animation-vm');
+const { animationGroups } = require('../../../../dist/games/evermore/maps/animation-table');
 const { disassembleScript } = require('../../../../dist/games/evermore/maps/animation-opcodes');
 const vm = require('../script-vm');
 const { printNames } = require('../script-model');

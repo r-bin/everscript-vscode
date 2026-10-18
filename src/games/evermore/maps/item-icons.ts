@@ -12,7 +12,8 @@
 //
 // docs/item-icons.md has how it was found and what was checked.
 
-import { read16At, recordScript, paletteAt } from './character-record';
+import { read16At, paletteAt } from './character-record';
+import { recordScript } from './animation-table';
 import { walkAnimationScript } from './character-animation';
 import { renderSpriteAt } from './characters';
 

@@ -17,7 +17,7 @@
 
 import { busU8, busU16 } from '../../../platform/snes/hirom';
 import { tile4bpp } from '../../../platform/snes/tiles';
-import { animationGroups } from './animation-vm';
+import { animationGroups } from './animation-table';
 import { disassembleScript, opcode, segmentsAt, spriteOperand, sprite2Operand, sprite24At } from './animation-opcodes';
 
 /** Palette indices, row-major, `size` x `size`. */

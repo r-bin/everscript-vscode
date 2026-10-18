@@ -2,7 +2,8 @@
 // Ownership: what an animation throws, for the Sprites tab — each `projectile` spawn's
 // timing, offset and flight, and the projectile's own animation rendered once per type. Pure.
 
-const { runAnimation, facingScript } = require('../../../../dist/games/evermore/maps/animation-vm');
+const { runAnimation } = require('../../../../dist/games/evermore/maps/animation-vm');
+const { facingScript } = require('../../../../dist/games/evermore/maps/animation-table');
 const { projectileRecord, projectileFlight } = require('../../../../dist/games/evermore/maps/projectiles');
 const { paletteAt } = require('../../../../dist/games/evermore/maps/character-record');
 const { composeAligned } = require('./frame-compose');

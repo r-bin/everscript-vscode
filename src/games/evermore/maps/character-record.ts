@@ -13,7 +13,7 @@
 
 import { busU8, busU16 } from '../../../platform/snes/hirom';
 import { bgr555 } from '../../../platform/snes/tiles';
-import { ANIMATION_TABLE, facingScript } from './animation-vm';
+import { ANIMATION_TABLE, facingScript } from './animation-table';
 
 /** A 16-bit little-endian value at a bus address. */
 export function read16At(rom: Uint8Array, snes: number): number {
@@ -76,11 +76,6 @@ export function entityNamePointer(rom: Uint8Array, record: number): number {
 /** The script a character plays for one of its animations at a facing ($90:8124). */
 export function animationScript(rom: Uint8Array, character: number, facing: number, field: number = ANIMATION_FIELDS.stand): number {
     return facingScript(rom, read16At(rom, recordAt(character) + field), facing);
-}
-
-/** The script an animation record points at, as it stands (no facing applied). */
-export function recordScript(rom: Uint8Array, record: number): number {
-    return (read16At(rom, ANIMATION_TABLE + record) | (busU8(rom, ANIMATION_TABLE + record + 2) << 16)) >>> 0;
 }
 
 /**

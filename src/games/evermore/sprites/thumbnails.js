@@ -3,7 +3,8 @@
 // facing, and one sprite shown in every palette the game's characters use. Pure.
 
 const { animationScript, characterPalette, paletteAt, FACING_SOUTH } = require('../../../../dist/games/evermore/maps/character-record');
-const { runAnimation, facingScript } = require('../../../../dist/games/evermore/maps/animation-vm');
+const { runAnimation } = require('../../../../dist/games/evermore/maps/animation-vm');
+const { facingScript } = require('../../../../dist/games/evermore/maps/animation-table');
 const { readSpriteInfo, composeSprite, decodeSpriteBlock } = require('../../../../dist/games/evermore/maps/sprites');
 const { encodePng } = require('../../../../dist/games/evermore/maps/png');
 const { composeAligned } = require('./frame-compose');

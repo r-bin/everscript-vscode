@@ -21,7 +21,7 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const romPath = require('./rom').romOrExit('evermore', process.argv[2]);
-const { animationGroups } = require('../dist/games/evermore/maps/animation-vm');
+const { animationGroups } = require('../dist/games/evermore/maps/animation-table');
 const { disassembleScript } = require('../dist/games/evermore/maps/animation-opcodes');
 const { readAllCharacters, buildAnimationCatalog } = require('../src/games/evermore/sprites');
 const { hex } = require('../dist/platform');

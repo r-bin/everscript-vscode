@@ -92,15 +92,17 @@ export {
     withMetatiles, renderTileListAtlas, tileSlotChr,
 } from './metatiles';
 export type { MetatileInfo, MetatileAtlas, MetatileLayer, MetatileDraft, TileListAtlas } from './metatiles';
+export { buildVanillaIndex } from './vanilla-index';
 export {
-    buildVanillaIndex, graphicsForFamilies, familyExamples, groupByRooms,
+    graphicsForFamilies, familyExamples, groupByRooms,
     isUnusedGraphic, isCanopyGraphic, isDualLayerGraphic, tileCategoryFlags,
-} from './vanilla-index';
+} from './vanilla-queries';
 export { GRASS_UNCUT, GRASS_CUT } from './vanilla-grass';
 export type { GrassReveal } from './vanilla-grass';
 export { suggestFamily, suggestCollision, suggestGeometry, suggestStairs, shapeOf, GEOMETRY_BITS, preferredLayer } from './vanilla-suggest';
 export { stairsNibble, stairsForWord, stairsCollision, ALWAYS_WALKABLE, STAIRS_RISE_RIGHT, STAIRS_RISE_LEFT, STAIRS_VERTICAL } from './vanilla-stairs';
-export type { VanillaIndex, Attestation, GraphicGroup } from './vanilla-index';
+export type { VanillaIndex, Attestation } from './vanilla-index';
+export type { GraphicGroup } from './vanilla-queries';
 export { relatedGraphics, relationship, rankByRelationship } from './vanilla-related';
 export type { Related } from './vanilla-related';
 export type { Animation, AnimationIndex } from './vanilla-animation';
@@ -123,11 +125,10 @@ export type { RoomBudget, BudgetLine, MarginalCost, StampTriple } from './budget
 export { applyObjectStates, renderObjectState, objectStateCount, objectBounds, DEFAULT_OBJECT_STATE } from './objects';
 export type { ObjectStateMap } from './objects';
 export type { ObjectStamp } from './object-stamps';
-export { parseAnimationChannels, buildAnimationGroups, buildOverlayTransfer, overlayLayer, cellChannels, clearAnimatedCells } from './animation';
-export type {
-    AnimationChannel, AnimationFrame, AnimationGroup, AnimationLayer, AnimationOptions,
-    OverlayTransfer, Section2Ref,
-} from './animation';
+export { parseAnimationChannels, buildOverlayTransfer, overlayLayer } from './animation';
+export { buildAnimationGroups, cellChannels, clearAnimatedCells } from './animation-groups';
+export type { AnimationChannel, AnimationFrame, OverlayTransfer, Section2Ref } from './animation';
+export type { AnimationGroup, AnimationLayer, AnimationOptions } from './animation-groups';
 export { drawString3x5, drawLabelInRect, textWidth3x5 } from './font';
 export type { Rgba8, LabelAnchor } from './font';
 

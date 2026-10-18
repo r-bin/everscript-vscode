@@ -13,8 +13,8 @@
 //   Dog forms   $8F:9471 copies a form's entry into the Dog's ($0A70) (./dog-forms)
 
 const indexJson = require('../language/data/index.json');
-const { CHARACTER_TABLE, CHARACTER_STRIDE, ANIMATION_TABLE, characterPalette, characterHitbox, read16At, recordScript } = require('../../../../dist/games/evermore/maps/character-record');
-const { animationIdRecord } = require('../../../../dist/games/evermore/maps/animation-vm');
+const { CHARACTER_TABLE, CHARACTER_STRIDE, ANIMATION_TABLE, characterPalette, characterHitbox, read16At } = require('../../../../dist/games/evermore/maps/character-record');
+const { animationIdRecord, recordScript } = require('../../../../dist/games/evermore/maps/animation-table');
 const { readSpriteInfo, scriptSprites } = require('../../../../dist/games/evermore/maps/sprites');
 const { readDogForms } = require('./dog-forms');
 
