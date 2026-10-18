@@ -23,7 +23,7 @@ const { encodePng } = require('../../../../dist/games/evermore/maps/png');
 const { getSoundAnimations } = require('../localizations/sounds');
 const { getFunctionName } = require('../localizations/functions');
 const { hexId } = require('./resource-uri');
-const { hex: toHex } = require('../../../../dist/platform');
+const { hex: toHex, hiromFileOffset } = require('../../../../dist/platform');
 
 const ROM = 'soe://rom/assets/';
 const BOY = 0x4E89, DOG = 0x4F37;
@@ -173,7 +173,7 @@ function describeSoundSource(rom, ev) {
     } else if (ev.kind === 'script') {
         let lines = [];
         try {
-            const sr = new vm.ScriptRom(rom), names = printNames((bus) => bus & 0x3fffff);
+            const sr = new vm.ScriptRom(rom), names = printNames(hiromFileOffset);
             lines = vm.scriptInstructions(sr, ev.script).slice(0, 6).map((i, k) => ({ addr: hex(i.address, 6), text: vm.text(i, names), mark: k === 0 }));
         } catch { /* not a script */ }
         out.script = { label: 'script ' + hex(ev.script, 6), uri: `${ROM}scripts/0x${(ev.script >>> 0).toString(16)}.md`, lines };

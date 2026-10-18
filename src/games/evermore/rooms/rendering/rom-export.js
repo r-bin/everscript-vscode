@@ -25,6 +25,7 @@ const maps = require('../../maps');
 const vm = require('../../script-vm');
 const { buildRoomScriptModel } = require('../../script-model');
 const { vanillaIndex } = require('./vanilla-index');
+const { hiromFileOffset: snesOffset } = require('../../../../../dist/platform');
 
 /** Brian's Test Ground — a developer room, empty, never reached in play. */
 const BRIAN_ROOM = 0x15;
@@ -83,7 +84,6 @@ function startUnits(start, widthTiles, heightTiles) {
 }
 
 /** HiROM: the file offset of a bus address (the top two bank bits drop out). */
-function snesOffset(addr) { return addr & 0x3fffff; }
 
 /** Recompute the header checksum over the whole image. */
 function fixChecksum(rom) {

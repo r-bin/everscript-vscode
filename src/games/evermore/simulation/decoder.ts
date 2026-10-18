@@ -4,10 +4,10 @@
 import { Expression, Instruction as VmInstruction, ScriptRom, decodeAt, facts, text, unpack } from '../script-vm';
 import { buildRoomScriptModel, enemyName, flagName, globalScriptName, lootRewardName, mapName, printNames, scriptName } from '../script-model';
 import { Decoder, Effect, Instruction, SpawnFact } from './machine';
+import { hiromFileOffset as file } from '../../../platform/snes/hirom';
 
 const TILE = 8;
 const RANDOM_SUB_OPS = new Set([0x2A, 0x2B]);
-const file = (bus: number): number => bus & 0x3FFFFF;
 const names = printNames(file);
 
 const roms = new WeakMap<Uint8Array, ScriptRom | null>();

@@ -23,7 +23,7 @@ const vm = require('../script-vm');
 const { printNames } = require('../script-model');
 const { getActiveAddressLookup } = require('./address-lookup');
 const { ScriptTraceFormatter } = require('./trace-formatter');
-const { hex: fmtHex } = require('../../../../dist/platform');
+const { hex: fmtHex, hiromFileOffset } = require('../../../../dist/platform');
 
 let _scriptTraceChannel = null;
 
@@ -41,7 +41,7 @@ function loadFallbackRom(_wsRoot) {
   return rom ? new Uint8Array(rom) : null;
 }
 
-const NAMES = printNames((bus) => bus & 0x3fffff);
+const NAMES = printNames(hiromFileOffset);
 const _scriptRoms = new WeakMap();
 /** script-vm's view of `rom`, or null for a ROM it does not know (non-US layouts). */
 function scriptRom(rom) {

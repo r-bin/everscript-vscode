@@ -6,7 +6,7 @@ const vm = require('../script-vm');
 const { buildRoomScriptModel, scriptModel } = require('../script-model');
 
 /** HiROM: the file offset of a bus address. */
-const snesToRom = (bus) => bus & 0x3fffff;
+const { hiromFileOffset: snesToRom } = require('../../../../dist/platform');
 const { MAX_ROOMS } = require('../maps');
 const {
     getMapName, getMapArea,

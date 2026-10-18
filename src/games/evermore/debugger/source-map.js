@@ -26,9 +26,7 @@ const path = require('path');
 
 const SOURCE_MAP_NAME = path.join('out', 'source_map.json');
 
-function romOffset(snesAddress) {
-    return (snesAddress & 0x3FFFFF) >>> 0;
-}
+const { hiromFileOffset: romOffset } = require('../../../../dist/platform');
 
 function sameLocation(a, b) {
     return !!a && !!b && a.line === b.line && a.file === b.file && a.function === b.function;
