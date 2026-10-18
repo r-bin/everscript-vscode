@@ -86,16 +86,17 @@ test('the Evermore emulator host computes and passes objects, animTiles, and col
 });
 
 // 5. The page draws sprites with the host's readers, bundled (tools/bundle-pages.mts), not a copy of them.
-test('the page loads the host sprite readers as EvsSprites and keeps no copy', () => {
+test('the page loads the host sprite readers as EvsRom and keeps no copy', () => {
     const files = require('../../src/games/evermore/emulator/host').webviewFiles();
-    const bundle = files.find((f) => f.endsWith('evermore-sprites.js'));
-    assert.ok(bundle && fs.existsSync(bundle), 'dist/webview/evermore-sprites.js is built by npm run build:ts');
+    const bundle = files.find((f) => f.endsWith('evermore-rom.js'));
+    assert.ok(bundle && fs.existsSync(bundle), 'dist/webview/evermore-rom.js is built by npm run build:ts');
     const ctx = {};
-    require('vm').runInNewContext(fs.readFileSync(bundle, 'utf8') + ';this.S = EvsSprites;', ctx);
-    for (const k of ['readSpriteInfo', 'composeSprite', 'paletteAt', 'bgr555']) assert.strictEqual(typeof ctx.S[k], 'function', k);
+    require('vm').runInNewContext(fs.readFileSync(bundle, 'utf8') + ';this.S = EvsRom;', ctx);
+    for (const k of ['readSpriteInfo', 'composeSprite', 'paletteAt', 'bgr555', 'entityRecordWord', 'entityNamePointer', 'entityCharacter']) assert.strictEqual(typeof ctx.S[k], 'function', k);
     assert.deepStrictEqual(Array.from(ctx.S.bgr555(0x7fff)), [255, 255, 255], 'full-range colours, as on the map');
     const page = _gameView.overlaysScript;
-    assert.ok(!/function (readSpriteInfo|composeSprite|decodeSpriteBlock|blockBytes)\(/.test(page), 'the page keeps its own sprite decoder');
+    assert.ok(!/function (readSpriteInfo|composeSprite|decodeSpriteBlock|blockBytes|characterPalette)\(/.test(page), 'the page keeps its own sprite decoder');
+    assert.ok(!/0x8E0000|0x8EB678/i.test(page), 'the page reads character records itself');
 });
 
 console.log(`\nResults: ${passed} passed, ${failed} failed`);

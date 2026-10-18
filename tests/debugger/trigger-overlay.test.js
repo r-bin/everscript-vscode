@@ -213,7 +213,7 @@ test('buildHtml includes extended-entities canvas and sprite rendering routines'
     assert.ok(html.includes('getDecodedSprite'), 'getDecodedSprite routine missing');
     assert.ok(html.includes('readSpriteInfo'), 'readSpriteInfo routine missing');
     assert.ok(html.includes('composeSprite'), 'composeSprite routine missing');
-    assert.ok(html.includes('characterPalette'), 'characterPalette routine missing');
+    assert.ok(html.includes('EvsRom.entityRecordWord'), 'the record reads go through the host readers (EvsRom)');
 });
 
 // 10. Zoom and pan controls

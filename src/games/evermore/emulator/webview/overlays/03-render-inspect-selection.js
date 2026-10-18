@@ -123,7 +123,7 @@
       const stype = buf[rel + 0x60] | (buf[rel + 0x61] << 8);
       let name = isBoy ? 'Boy' : isDog ? 'Dog' : '';
       if (!name && stype >= 0x8000 && rom) {
-        const namePtr = readRom24(rom, snesToRom(0x8E0000 | stype));
+        const namePtr = EvsRom.entityNamePointer(rom, stype);
         if (typeof decodeEntityName === 'function') name = decodeEntityName(rom, namePtr, stype);
       }
       if (!name) name = isBoy ? 'Boy' : isDog ? 'Dog' : ('Entity $' + addr.toString(16).toUpperCase());
@@ -154,10 +154,7 @@
         if (!maxHp) maxHp = Math.max(hp, 1);
       } else {
         if (stype >= 0x8000 && rom) {
-          const recOffset = snesToRom(0x8E0000 | (stype + 0x0F));
-          if (recOffset >= 0 && recOffset + 2 <= rom.length) {
-            maxHp = rom[recOffset] | (rom[recOffset + 1] << 8);
-          }
+          maxHp = EvsRom.entityRecordWord(rom, stype, EvsRom.RECORD_FIELDS.hp);
         }
         if (!maxHp || maxHp < hp) maxHp = Math.max(hp, 1);
       }

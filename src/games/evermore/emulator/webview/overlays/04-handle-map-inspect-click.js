@@ -55,28 +55,12 @@
       return false;
     }
 
-    // The sprite readers are the host's (maps/sprites.ts, maps/character-record.ts), bundled for the page
-    // as EvsSprites (dist/webview/evermore-sprites.js, a page file from host.js webviewFiles()).
-    const { readSpriteInfo, composeSprite } = typeof EvsSprites !== 'undefined' ? EvsSprites : {};
+    // The sprite and record readers are the host's (maps/sprites.ts, maps/character-record.ts), bundled for the page
+    // as EvsRom (dist/webview/evermore-rom.js, a page file from host.js webviewFiles()).
+    const { readSpriteInfo, composeSprite } = typeof EvsRom !== 'undefined' ? EvsRom : {};
 
     function paletteAt(rom, palAddr) {
-      return EvsSprites.paletteAt(rom, (palAddr && palAddr > 0) ? palAddr : 0xad0b);
-    }
-
-    function characterPalette(rom, characterOrPal) {
-      if (typeof characterOrPal === 'number' && characterOrPal > 256) {
-        return paletteAt(rom, characterOrPal);
-      }
-      const CHARACTER_TABLE = 0x8eb678;
-      const CHARACTER_STRIDE = 74;
-      let addr = 0xad0b;
-      try {
-        const recOffset = snesToRom(CHARACTER_TABLE + (characterOrPal || 0) * CHARACTER_STRIDE + 0x09);
-        if (recOffset >= 0 && recOffset + 2 <= rom.length) {
-          addr = rom[recOffset] | (rom[recOffset + 1] << 8);
-        }
-      } catch (_) {}
-      return paletteAt(rom, addr);
+      return EvsRom.paletteAt(rom, (palAddr && palAddr > 0) ? palAddr : 0xad0b);
     }
 
     const spriteCache = new Map();
@@ -85,7 +69,7 @@
     function liveObjPalette(cg, pal) {
       const out = [];
       const base = 256 + (pal & 7) * 32;
-      for (let i = 0; i < 16; i++) out.push(EvsSprites.bgr555(cg[base + i * 2] | (cg[base + i * 2 + 1] << 8)));
+      for (let i = 0; i < 16; i++) out.push(EvsRom.bgr555(cg[base + i * 2] | (cg[base + i * 2 + 1] << 8)));
       return out;
     }
 

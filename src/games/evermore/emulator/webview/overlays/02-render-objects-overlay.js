@@ -164,10 +164,8 @@
       overlayCtx.drawImage(cImg, mapX, mapY, mapW, mapH);
     }
 
-    // -- Sprite decoding & caching ---------------------------------------------
+    // -- ROM bus address -> file offset (the name text) --------------------------
     function snesToRom(snes) { return snes & 0x3fffff; }
-    function atRom(rom, snes) { return rom[snesToRom(snes)]; }
-    function readRom24(rom, off) { return rom[off] | (rom[off + 1] << 8) | (rom[off + 2] << 16); }
 
     function renderHpAndStaminaBarsOverlay(overlayCtx, layout, preState) {
       if (!overlayCtx || (!thinHpBarEnabled && !thinStaminaBarEnabled)) return;
@@ -223,10 +221,7 @@
         } else {
           const stype = buf[rel + 0x60] | (buf[rel + 0x61] << 8);
           if (stype >= 0x8000 && rom) {
-            const recOffset = snesToRom(0x8E0000 | (stype + 0x0F));
-            if (recOffset >= 0 && recOffset + 2 <= rom.length) {
-              maxHp = rom[recOffset] | (rom[recOffset + 1] << 8);
-            }
+            maxHp = EvsRom.entityRecordWord(rom, stype, EvsRom.RECORD_FIELDS.hp);
           }
           if (!maxHp || maxHp < hp) maxHp = Math.max(hp, 1);
         }
@@ -259,14 +254,7 @@
           if (!attackAnimsCount && rom) {
             const stype = buf[rel + 0x60] | (buf[rel + 0x61] << 8);
             if (stype >= 0x8000) {
-              const charId = Math.floor(((0x8E0000 | stype) - 0x8EB678) / 74);
-              if (charId >= 0 && charId < 142) {
-                const snes = 0x8EB678 + charId * 74;
-                for (const off of [0x38, 0x3A, 0x3C, 0x3E]) {
-                  const o = snesToRom(snes + off);
-                  if (o + 1 < rom.length && (rom[o] | (rom[o + 1] << 8))) attackAnimsCount++;
-                }
-              }
+              for (const field of EvsRom.ATTACK_FIELDS) if (EvsRom.entityRecordWord(rom, stype, field)) attackAnimsCount++;
             }
           }
 

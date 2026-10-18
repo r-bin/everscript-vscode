@@ -39,7 +39,7 @@
       try {
         const rom = loadedRomData && ((loadedRomData.length % 1024 === 512) ? loadedRomData.subarray(512) : loadedRomData);
         if (rom && type >= 0x8000 && typeof decodeEntityName === 'function') {
-          const name = decodeEntityName(rom, readRom24(rom, snesToRom(0x8E0000 | type)), type);
+          const name = decodeEntityName(rom, EvsRom.entityNamePointer(rom, type), type);
           if (name) return name;
         }
       } catch (e) { /* fall through */ }

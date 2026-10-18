@@ -45,7 +45,7 @@ hold); `webview/emulator-profile.css` hides it. A hidden pause-menu tab hands ov
 shown one; a hidden panel leaves its side bar or bottom-bar tab (its placement is kept).
 
 The game's part of the page comes from `configureEmulator({ game })`: `game.webviewFiles()` (page files
-loaded first; Evermore: its detector and `EvsSprites`, the host's sprite readers bundled from TypeScript by
+loaded first; Evermore: its detector and `EvsRom`, the host's sprite and record readers bundled from TypeScript by
 `tools/bundle-pages.mts` into `dist/webview/`) and `game.webview()` (markup, CSS and scripts spliced into the page,
 each where the emulator's own code once ran: bottom bar, menu tabs 1-4, screen layer, script VM). The page
 itself and every part are real files (`webview/page.html`, `page.css`, `page/`, the views' `webview/` folders),

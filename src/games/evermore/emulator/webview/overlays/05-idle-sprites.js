@@ -107,10 +107,7 @@
             } else {
               const stype = buf[rel + 0x60] | (buf[rel + 0x61] << 8);
               if (stype >= 0x8000) {
-                const recOffset = snesToRom(0x8E0000 | (stype + 0x09));
-                if (recOffset >= 0 && recOffset + 2 <= rom.length) {
-                  palAddr = rom[recOffset] | (rom[recOffset + 1] << 8);
-                }
+                palAddr = EvsRom.entityRecordWord(rom, stype, EvsRom.RECORD_FIELDS.palette);
               }
             }
           }

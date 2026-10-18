@@ -534,10 +534,10 @@ function webview() {
     };
 }
 
-/** Evermore's page files, loaded before the page's own script: its ROM detector (gameDetectRom) and the host's sprite readers (EvsSprites, tools/bundle-pages.mts). */
+/** Evermore's page files, loaded before the page's own script: its ROM detector (gameDetectRom) and the host's ROM readers (EvsRom, tools/bundle-pages.mts). */
 function webviewFiles() {
     const path = require('path');
-    return [path.join(__dirname, 'webview', 'rom-game.js'), path.join(__dirname, '..', '..', '..', '..', 'dist', 'webview', 'evermore-sprites.js')];
+    return [path.join(__dirname, 'webview', 'rom-game.js'), path.join(__dirname, '..', '..', '..', '..', 'dist', 'webview', 'evermore-rom.js')];
 }
 
 module.exports = { webviewFiles, webview, clearCaches, romData, roomMap, idleSprites, traceScripts, describeRom: describeCustomMapRom };

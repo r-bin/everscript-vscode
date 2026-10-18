@@ -50,6 +50,29 @@ const UNTARGETED = 0x0020;
 
 const recordAt = (character: number): number => CHARACTER_TABLE + character * CHARACTER_STRIDE;
 
+/**
+ * Word fields read from a record by its address (an entity keeps the low word at +$60, bank $8E):
+ * +$00 the name's text pointer ($8C:89FD), +$05 flags, +$09 palette, +$0D radius, +$0F the HP the
+ * entity starts with ($8F:B15B copies it into entity +$2A).
+ */
+export const RECORD_FIELDS = { name: 0x00, flags: FLAGS, palette: PALETTE, radius: RADIUS, hp: 0x0f } as const;
+
+/** A word of the record an entity's +$60 points at. */
+export function entityRecordWord(rom: Uint8Array, record: number, field: number): number {
+    return read16At(rom, 0x8e0000 | ((record + field) & 0xffff));
+}
+
+/** The character index of the record an entity's +$60 points at, or -1 outside the records at $8E:B678. */
+export function entityCharacter(record: number): number {
+    const at = (0x8e0000 | record) - CHARACTER_TABLE;
+    return at >= 0 && at % CHARACTER_STRIDE === 0 && at / CHARACTER_STRIDE < 142 ? at / CHARACTER_STRIDE : -1;
+}
+
+/** Record +$00: the 24-bit address of the character's name ($8C:89FD prints it). */
+export function entityNamePointer(rom: Uint8Array, record: number): number {
+    return (entityRecordWord(rom, record, RECORD_FIELDS.name) | (busU8(rom, 0x8e0000 | ((record + 2) & 0xffff)) << 16)) >>> 0;
+}
+
 /** The script a character plays for one of its animations at a facing ($90:8124). */
 export function animationScript(rom: Uint8Array, character: number, facing: number, field: number = ANIMATION_FIELDS.stand): number {
     return facingScript(rom, read16At(rom, recordAt(character) + field), facing);

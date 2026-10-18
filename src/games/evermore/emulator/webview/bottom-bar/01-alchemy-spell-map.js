@@ -187,7 +187,7 @@
       if (namePtr === 0x7E2210) return 'Boy';
       if (namePtr === 0x7E2234) return 'Dog';
       if (!rom || !namePtr) {
-        const charId = Math.floor(((0x8E0000 | (stype || 0)) - 0x8EB678) / 74);
+        const charId = EvsRom.entityCharacter(stype || 0);
         return charId >= 0 ? ('Char #' + charId) : '$' + (stype || 0).toString(16).toUpperCase();
       }
       const o = snesToRom(namePtr);
@@ -200,7 +200,7 @@
         }
         if (name.trim()) return name.trim();
       }
-      const charId = Math.floor(((0x8E0000 | (stype || 0)) - 0x8EB678) / 74);
+      const charId = EvsRom.entityCharacter(stype || 0);
       return charId >= 0 ? ('Char #' + charId) : '$' + (stype || 0).toString(16).toUpperCase();
     }
 
@@ -305,7 +305,7 @@
         const stype = buf[rel + 0x60] | (buf[rel + 0x61] << 8);
         let name = isBoy ? 'Boy' : isDog ? 'Dog' : '';
         if (!name && stype >= 0x8000) {
-          const namePtr = readRom24(rom, snesToRom(0x8E0000 | stype));
+          const namePtr = EvsRom.entityNamePointer(rom, stype);
           name = decodeEntityName(rom, namePtr, stype);
         }
         if (!name) name = isBoy ? 'Boy' : isDog ? 'Dog' : ('Entity $' + addr.toString(16).toUpperCase());

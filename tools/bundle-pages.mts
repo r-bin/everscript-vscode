@@ -9,7 +9,7 @@ const ROOT = join(import.meta.dirname, '..');
 
 /** name → [entry, global] */
 const PAGES: Record<string, [string, string]> = {
-    'evermore-sprites': ['src/games/evermore/emulator/page-sprites.ts', 'EvsSprites'],
+    'evermore-rom': ['src/games/evermore/emulator/page-rom.ts', 'EvsRom'],
 };
 
 for (const [name, [entry, globalName]] of Object.entries(PAGES)) {
