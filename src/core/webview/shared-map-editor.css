@@ -1,0 +1,146 @@
+/* Ownership: the Rooms tab map editor's draft, panel column, checks, deco picker and family chips (after shared.css). */
+
+/* ── Map editor ── */
+/* Edit mode docks the tile palette beside the map instead of below it. */
+.rg-edit-row{display:flex;gap:8px;align-items:flex-start;min-height:0}
+/* The canvas column may shrink: its default min-width is min-content, which
+   included the status bar's nowrap note, so a long note (H/V) pushed the dock
+   off-screen. See docs/map-editor-redesign-plan.md §8a.3 item 1. */
+/* …and it takes *all* the room the dock leaves, whatever its content says.
+   Sized by content, it grew 18px when a tile click wrote a longer note, and
+   the dock (and every swatch in it) slid right under the pointer — the
+   "tiles are jumping when you click on them" of §8e. */
+.rg-edit-row>.rg-outer{min-width:0;flex:1 1 0}
+.rg-dock{flex:none;width:400px;min-width:340px;max-width:460px;min-height:0}
+.rg-edit-bar{margin:0 0 4px}
+.rg-edit-count{font-size:10px;color:#888;margin-left:8px;align-self:center}
+/* The draft, drawn over the map image from the palette sheet.
+   Each cell is a nested <svg> whose viewBox crops one 16x16 stamp out of the
+   sheet, and the crop IS the nested viewport clipping. `overflow:visible`
+   here smears the whole atlas across the map — it was exactly that bug. */
+.rg-edit-cell{overflow:hidden}
+.rg-edit-sel{fill:rgba(120,200,255,.12);stroke:#63c5ff;stroke-width:.18;
+  stroke-dasharray:.6,.4;pointer-events:none}
+/* While editing, the map takes a crosshair and the overlays stay clickable-through. */
+.rg-editing .rg-svg{cursor:crosshair}
+.rg-editing [class*="svge-"],.rg-editing #rg-objlayer,.rg-editing .svge-romobj{pointer-events:none!important}
+/* The editor draws a ROM room's triggers and objects itself while editing
+   (editOnRomRoom); these read-only boxes would be a second box on each. Only
+   the boxes: a B-trigger's loot icon (.svge-ingr) stays, and the Triggers
+   chip hides it with its trigger (.hide-trigger .svge-btrig). */
+.rg-editing rect.svge-step,.rg-editing rect.svge-btrig,.rg-editing #rg-objlayer{display:none!important}
+/* The editor's panel column: metrics, checks, families, tile groups and the
+   metatiles the draft still needs. Collapsible, because four of them do not
+   fit a sidebar open at once. */
+.rg-panels{margin-bottom:8px;overflow-y:auto;overflow-x:hidden;min-height:0;
+  max-height:calc(100vh - 90px);padding-right:4px}
+.rg-panel{border:1px solid #2a2a2a;border-radius:3px;margin-bottom:4px;background:rgba(0,0,0,.15)}
+.rg-panel-h{padding:3px 6px;font-size:10px;text-transform:uppercase;letter-spacing:.4px;
+  color:#999;cursor:pointer;user-select:none}
+.rg-panel-h:hover{color:#ddd}
+.rg-panel-caret{display:inline-block;width:8px;color:#666}
+.rg-panel-b{padding:4px 6px 6px}
+/* One scroll container. A panel that is open is as tall as its content;
+   if that makes the sidebar long, the sidebar scrolls — which is what the
+   sidebar is for. Every inner max-height here was a letterbox over art the
+   whole point of which is to be looked at. */
+.rg-panel-b .rs-mt-sheet{max-height:none;overflow:visible}
+.rg-tile-group{margin-bottom:6px}
+/* The resize grip, over the map's own bottom-right corner. Only a drafted
+   map resizes: the dictionary starts right after the grid, so changing the
+   size renumbers every metatile id in the room. */
+.rg-resize{position:absolute;right:0;bottom:0;width:14px;height:14px;cursor:nwse-resize;
+  background:linear-gradient(135deg,transparent 45%,#7ecbd0 45%,#7ecbd0 55%,transparent 55%,
+    transparent 70%,#7ecbd0 70%,#7ecbd0 80%,transparent 80%);
+  z-index:6;opacity:.65}
+.rg-resize:hover{opacity:1}
+.rg-resize-label{position:absolute;right:16px;bottom:4px;display:none;z-index:6;font-size:9px;
+  padding:1px 5px;border-radius:3px;background:rgba(0,0,0,.82);color:#9fdf9f;white-space:nowrap}
+.rg-resize-label.over{color:#ff9f9f}
+.rg-group-sheet{max-height:none;padding:2px}
+.rg-need-list{margin-top:4px}
+.rg-need{font-size:10px;color:#bbb;padding:1px 0}
+.rg-need b{color:#7ecbd0;font-weight:400;margin-right:4px}
+/* Checks. A hard error is one the format cannot forgive; a warning is past
+   what vanilla does, which is not the same as impossible. */
+.rg-err{font-size:10px;padding:2px 5px;border-radius:2px;margin-bottom:2px}
+.rg-err-hard{background:rgba(224,85,85,.13);color:#ff9d9d;border-left:2px solid #e05555}
+.rg-err-warn{background:rgba(227,179,65,.10);color:#e3b341;border-left:2px solid #e3b341}
+.rg-ok{font-size:10px;color:#6a9955}
+.rg-constructs{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
+/* The deco picker: a thumbnail is the name, because the ROM has none. */
+.rg-deco-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:3px;margin:4px 0}
+.rg-deco{position:relative;padding:0;border:1px solid #333;border-radius:3px;
+  background-color:#0d0d0d;background-image:
+    linear-gradient(45deg,#1b1b1b 25%,transparent 25%,transparent 75%,#1b1b1b 75%),
+    linear-gradient(45deg,#1b1b1b 25%,transparent 25%,transparent 75%,#1b1b1b 75%);
+  background-size:8px 8px;background-position:0 0,4px 4px;
+  cursor:pointer;overflow:hidden;line-height:0}
+.rg-deco:hover{border-color:#7ecbd0}
+.rg-deco.on{border-color:#e3b341;box-shadow:0 0 0 1px #e3b341}
+/* An entry that comes with a B-trigger script works the moment it lands. */
+.rg-deco-live{border-color:#4a5a3a}
+/* The thumbnail is transparent where the entry draws nothing, so the
+   checkerboard behind it shows exactly what the stamp will not cover. */
+.rg-deco-art{display:block;width:100%;height:48px;background-repeat:no-repeat;
+  image-rendering:pixelated}
+.rg-deco-tag{position:absolute;left:0;bottom:0;right:0;font-size:8px;line-height:11px;
+  background:rgba(0,0,0,.66);color:#aaa;text-align:center}
+/* An entry that needs families you do not have costs one of seven slots. */
+.rg-deco-costly{opacity:.62}
+.rg-deco-costly:hover{opacity:1}
+.rg-deco-cost{position:absolute;right:1px;top:1px;font-size:8px;line-height:10px;padding:0 2px;
+  border-radius:2px;background:rgba(0,0,0,.72);color:#e3b341}
+.rg-deco-flags{margin:3px 0 2px}
+/* ── Family chips ──────────────────────────────────────────────────────────
+   A family id is not a name, so the chip leads with its two most-placed
+   tiles: the art is the label. Three targets — the chip filters, x frees the
+   slot, + loads one. */
+.rg-chips{display:flex;flex-wrap:wrap;gap:3px;margin:4px 0}
+.rg-chip{display:inline-flex;align-items:stretch;border:1px solid #333;border-radius:3px;
+  overflow:hidden;background:#141414}
+.rg-chip.adopted{border-color:#4a5a3a}
+.rg-chip.sel{border-color:#e3b341;box-shadow:0 0 0 1px #e3b341}
+.rg-chip-main{display:flex;align-items:center;gap:4px;padding:1px 4px 1px 0;border:none;
+  background:none;color:inherit;font:inherit;font-size:9px;cursor:pointer;line-height:16px}
+.rg-chip-main:hover{background:rgba(255,255,255,.05)}
+.rg-chip-art{display:block;width:32px;height:16px;flex:none;background-repeat:no-repeat;
+  image-rendering:pixelated;background-color:#0d0d0d}
+.rg-chip-where{opacity:.5}
+.rg-chip-x{border:none;border-left:1px solid #2a2a2a;background:none;color:#888;font:inherit;
+  font-size:10px;padding:0 4px;cursor:pointer}
+.rg-chip-x:hover{background:#3a2020;color:#ff9f9f}
+.rg-chip-add:hover{background:#203a20;color:#9fdf9f}
+.rg-chip-add-note{color:#7a6a3a}
+/* The recommended-neighbour strip: a score is the label here, not the art,
+   because the art is already in the list below. */
+.rg-neighbours .rg-neighbour{border:1px solid #2e2e2e;border-radius:3px;padding:1px 5px}
+.rg-neighbour.rg-unknown{opacity:.55}
+.rg-group-h{display:flex;align-items:baseline;gap:5px;flex-wrap:wrap}
+/* Which layer a picked tile lands on, from vanilla's own average. */
+.rs-mt-cell.rg-lay-front{box-shadow:inset 0 2px 0 #7ecbd0}
+.rs-mt-cell.rg-lay-ground{box-shadow:inset 0 -2px 0 #b58a4a}
+.rs-mt-cell.rg-rel{outline:1px solid #e3b34188}
+.rg-fam-filter{width:100%;box-sizing:border-box;margin:4px 0;padding:2px 5px;font-size:10px;
+  background:#1a1a1a;border:1px solid #3a3a3a;border-radius:3px;color:#ddd;font-family:inherit}
+/* Panel strips keep the palette's 2x scale: these are the swatches you pick
+   a brush from, and 16px of pixel art is too small to tell a wall from a
+   floor. The scale is integer so the pixels stay sharp. */
+.rg-panel-b .rs-mt-sheet{padding:2px}
+.rg-panel-b .rs-mt-cell{cursor:pointer}
+/* The armed brush, called out on the swatch itself — a click with no visible
+   confirmation reads as a dead control. */
+.rs-mt-cell.sel{outline:2px solid #e3b341;z-index:2}
+.rg-panel-b .rs-mt-cell.sel{outline:2px solid #e3b341}
+.rs-mt-compose{margin-top:8px;border-top:1px solid #2a2a2a;padding-top:6px}
+.rs-mt-preview{margin-top:4px;min-height:20px}
+.rs-mt-preview .rs-mt-cell{background-repeat:no-repeat}
+.rs-note.rs-err{color:#ff8d8d}
+.rs-script{margin-top:6px;padding:6px 8px;border-left:3px solid #3a3a3a;background:rgba(255,255,255,.02)}
+.rs-script-enter{border-left-color:#72b7ff}
+.rs-script-step{border-left-color:#ff69b4}
+.rs-script-btrig{border-left-color:#ffcc00}
+.rs-script.rs-current{background:rgba(114,183,255,.08);outline:1px solid rgba(114,183,255,.35)}
+.rs-script.hi-card{background:rgba(255,255,255,.06)}
+.rs-script.sel-script{background:rgba(255,165,0,.10);outline:1px solid rgba(255,165,0,.35)}
+.badge-d{font-size:7px;opacity:.55;border:1px solid #ffa94d;border-radius:3px;padding:0 2px;color:#ffa94d}

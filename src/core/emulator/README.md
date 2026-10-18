@@ -50,8 +50,8 @@ The game's part of the page comes from `configureEmulator({ game })`: `game.webv
 loaded first; Evermore: its detector and `EvsRom`, the host's sprite and record readers bundled from TypeScript by
 `tools/bundle-pages.mts` into `dist/webview/`) and `game.webview()` (markup, CSS and scripts spliced into the page,
 each where the emulator's own code once ran: bottom bar, menu tabs 1-4, screen layer, script VM). The page
-itself and every part are real files (`webview/page.html`, `page.css`, `page/`, the views' `webview/` folders),
-put together by `core/webview/page-file.js` at `//@@name` marks; a folder is one script kept as parts. The page
+itself and every part are real files (`webview/page.html`, `page-style/`, `page/`, `menu-style/`, the views' `webview/` folders),
+put together by `core/webview/page-file.js` at `//@@name` marks; a folder is one script or style sheet kept as parts. The page
 calls the game only behind `typeof` guards, so without one (the recorder) it runs as a plain SNES emulator.
 The game gets data built from the ROM on the host with each ROM (`game.romData(buffer)` → the page's
 `gameRomData(data, redraw)`; Evermore: the ALCHEMY icons). The hooks: `gameDetectRom`, `gameRomData`, `gameRomReset`, `gameOnRoomMap`, `gameTraceReset`, `gameStartAllowed`, `gameMenuOpened` /

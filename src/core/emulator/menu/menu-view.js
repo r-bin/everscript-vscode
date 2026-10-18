@@ -29,7 +29,7 @@ const { pageFile } = require('../page-file');
 const { getMenuSoundScript } = require('./menu-sound');
 
 function getMenuCss() {
-  return pageFile('menu.css');
+  return pageFile('menu-style');
 }
 
 // Pause-menu tabs of the panels (webview/emulator-panels.js EMU_PANEL_MENU_TAB).

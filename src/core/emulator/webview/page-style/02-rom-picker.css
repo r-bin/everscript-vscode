@@ -1,0 +1,176 @@
+    /* -- ROM picker overlay --------------------------------------------- */
+    #overlay {
+      position: fixed; inset: 0; z-index: 100;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-start;
+      background: #0f0f11; color: #ccc; padding: 12px 16px 10px;
+      overflow: hidden; box-sizing: border-box;
+    }
+    .overlay-card {
+      width: 100%; max-width: 480px; height: 100%; max-height: 100%;
+      display: flex; flex-direction: column;
+      align-items: stretch; gap: 8px; box-sizing: border-box;
+    }
+    .overlay-header {
+      text-align: center; flex-shrink: 0;
+    }
+    .overlay-header h2 {
+      margin: 0; color: #eee; font-size: 17px; font-weight: 600; letter-spacing: -0.01em;
+    }
+    .overlay-subtitle {
+      font-size: 11px; color: #666; margin-top: 1px; font-family: monospace;
+    }
+
+    /* Drag and Drop Zone */
+    #rom-drop-zone {
+      width: 100%; box-sizing: border-box; flex-shrink: 0;
+      border: 2px dashed #33333d; border-radius: 8px;
+      background: rgba(255, 255, 255, 0.02);
+      padding: 8px 12px; text-align: center;
+      cursor: pointer; user-select: none;
+      transition: border-color 0.15s, background 0.15s, transform 0.15s;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+    }
+    #rom-drop-zone:hover {
+      border-color: #4a4a58;
+      background: rgba(255, 255, 255, 0.04);
+    }
+    #rom-drop-zone.drag-active, body.window-drag-active #rom-drop-zone {
+      border-color: #1a6;
+      background: rgba(17, 170, 102, 0.12);
+      box-shadow: 0 0 14px rgba(17, 170, 102, 0.25);
+      transform: scale(1.01);
+    }
+    .drop-zone-icon {
+      font-size: 20px; line-height: 1; margin-bottom: 1px;
+    }
+    .drop-zone-title {
+      font-size: 12px; font-weight: 600; color: #ddd;
+    }
+    .drop-zone-sub {
+      font-size: 10px; color: #777;
+    }
+
+    /* Action Buttons Row */
+    .overlay-action-row {
+      display: flex; width: 100%; gap: 8px; flex-shrink: 0;
+    }
+    .rom-action-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 6px 10px; border-radius: 6px; cursor: pointer; font-family: inherit;
+      border: 1px solid #333; background: #1a1a20; color: #eee;
+      transition: background 0.12s, border-color 0.12s; min-height: 40px; text-align: center; box-sizing: border-box;
+    }
+    .rom-action-btn:hover {
+      background: #24242c; border-color: #444; color: #fff;
+    }
+    .rom-action-btn.primary {
+      background: #107c41; border-color: #16934f; color: #fff;
+    }
+    .rom-action-btn.primary:hover {
+      background: #149b52; border-color: #1bb761;
+    }
+    .rom-action-btn.disabled {
+      opacity: 0.45; cursor: not-allowed; border-color: #252528; background: #141416; color: #666;
+    }
+    .rom-action-btn .btn-main {
+      font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;
+    }
+    .rom-action-btn .btn-meta {
+      font-size: 10px; opacity: 0.75; margin-top: 1px; font-family: monospace;
+      max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    #pickBtn:hover { background: #0c5; }
+    #load-status {
+      font-size: 11px; color: #888; text-align: center; min-height: 15px; flex-shrink: 0;
+    }
+
+    /* Recent ROMs Section */
+    .recent-roms-section {
+      width: 100%; display: flex; flex-direction: column; gap: 6px;
+      margin-top: 2px; border-top: 1px solid #222; padding-top: 8px;
+      flex: 1; min-height: 0; overflow: hidden;
+    }
+    .recent-roms-header {
+      font-size: 10px; font-weight: 600; color: #888;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-shrink: 0;
+    }
+    .clear-recent-btn {
+      background: transparent; border: 1px solid #3c3c4a;
+      color: #8899aa; border-radius: 3px; padding: 1px 6px;
+      font-size: 9px; cursor: pointer; font-family: inherit;
+      transition: all 0.12s;
+    }
+    .clear-recent-btn:hover {
+      background: rgba(255, 60, 60, 0.15); border-color: #c33; color: #f66;
+    }
+    .recent-roms-list {
+      display: flex; flex-direction: column; gap: 4px;
+      flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px;
+    }
+    .recent-rom-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 6px 10px; background: #15151a; border: 1px solid #252530;
+      border-radius: 6px; cursor: pointer; transition: all 0.12s ease;
+      user-select: none; text-align: left; flex-shrink: 0;
+    }
+    .recent-rom-item:hover {
+      background: #1d1d26; border-color: #383848;
+    }
+    .recent-rom-item.keyboard-focused, .rom-action-btn.keyboard-focused, .clear-recent-btn.keyboard-focused {
+      outline: 2px solid #4ec9b0 !important; outline-offset: 1px !important;
+      box-shadow: 0 0 10px rgba(78, 201, 176, 0.45) !important;
+      background: rgba(78, 201, 176, 0.08) !important;
+    }
+    .recent-rom-item.missing {
+      opacity: 0.45; cursor: not-allowed;
+    }
+
+    .recent-rom-square {
+      width: 48px; height: 48px; min-width: 48px; min-height: 48px;
+      border-radius: 5px; overflow: hidden; background: #0c0c10;
+      border: 1px solid #2e2e3e; display: flex; align-items: center; justify-content: center;
+      position: relative; flex-shrink: 0; box-shadow: inset 0 0 4px rgba(0,0,0,0.6);
+    }
+    .recent-rom-square img {
+      width: 100%; height: 100%; object-fit: cover;
+      image-rendering: pixelated; display: block;
+    }
+    .recent-rom-square-badge {
+      font-size: 16px; font-weight: bold; font-family: monospace;
+      letter-spacing: 0.05em; color: #8899aa;
+    }
+    .recent-rom-square-badge.badge-US { color: #569cd6; }
+    .recent-rom-square-badge.badge-EU { color: #dcdcaa; }
+    .recent-rom-square-badge.badge-DE { color: #ce9178; }
+    .recent-rom-square-badge.badge-FR { color: #4ec9b0; }
+    .recent-rom-square-badge.badge-ES { color: #c586c0; }
+    .recent-rom-square-badge.badge-unk { color: #667788; }
+
+    .recent-rom-info {
+      flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column;
+      justify-content: center; gap: 3px;
+    }
+    .recent-rom-name {
+      font-size: 12px; color: #eee; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      line-height: 1.2;
+    }
+    .recent-rom-details {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 10px; color: #888899; font-family: monospace;
+      line-height: 1.2;
+    }
+    .recent-rom-pill {
+      padding: 1px 5px; border-radius: 3px; font-size: 9px; font-weight: bold;
+      font-family: monospace; border: 1px solid #3c3c4e; background: #20202a;
+    }
+    .recent-rom-pill.badge-US { color: #569cd6; border-color: #2b4c6e; background: rgba(86, 156, 214, 0.12); }
+    .recent-rom-pill.badge-EU { color: #dcdcaa; border-color: #5c5c36; background: rgba(220, 220, 170, 0.12); }
+    .recent-rom-pill.badge-DE { color: #ce9178; border-color: #5c3c32; background: rgba(206, 145, 120, 0.12); }
+    .recent-rom-pill.badge-FR { color: #4ec9b0; border-color: #245248; background: rgba(78, 201, 176, 0.12); }
+    .recent-rom-pill.badge-ES { color: #c586c0; border-color: #583355; background: rgba(197, 134, 192, 0.12); }
+

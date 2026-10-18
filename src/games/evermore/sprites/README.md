@@ -24,12 +24,14 @@ The radar tab is called **Characters** (it was "Sprites"); inside it, three mode
 | `dog-forms.js` | The Dog's six forms (bank `$CF`), shaped like Boy weapons | < 90 |
 | `raw-sprites.js` | Walks and indexes all raw sprites from `$CA0003`, renders chunk tables | < 150 |
 | `sprites-tab.js` | Server-side tab pane HTML scaffold | < 200 |
-| `webview/sprites-view.js` | Client-side webview controller, rAF animation loop, canvas drawing | < 350 |
-| `webview/sprites-script.js` | Script listing panel (current-frame highlight, owners) and the Animations rail list; loaded before `sprites-view.js` | < 200 |
+| `webview/sprites-view/` | Client-side webview controller, rAF animation loop, canvas drawing: one IIFE kept as parts (`01-state.js` … `05-raw-sprites.js`), wrapped by `memory/webview/index.js` | < 400 each |
+| `webview/sprites-script.js` | Script listing panel (current-frame highlight, owners) and the Animations rail list; loaded before `sprites-view/` | < 200 |
 | `webview/sprites-motion.js` | Stage geometry: walk path, jump height, projectile flight, and the scene box the canvas must hold | < 160 |
 | `webview/sprites-lazy.js` | Resizable splitters and lazy list thumbnails (`window.SpritesThumbs`) | < 120 |
 | `thumbnails.js` | List previews (south/east), sprites in every palette, chunk tiles | < 200 |
-| `webview/sprites-layout.css` | Styling adhering to VS Code theme tokens | < 300 |
+| `webview/sprites-layout.css` | Styling adhering to VS Code theme tokens: rail, splitter, main panel, toolbar | < 400 |
+| `webview/sprites-stage.css` | Stage canvas, player bar, stat cards, chunk table | < 400 |
+| `webview/sprites-views.css` | Raw sprites view, script panel, thumbnails, resizable sidebars | < 400 |
 | `index.js` | Public API exports | < 50 |
 
 ## Rules for changing this folder

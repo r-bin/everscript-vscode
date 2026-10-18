@@ -139,7 +139,7 @@ while telling you nothing about whether a *user* could have clicked that pixel. 
 the actual `shared.css` (or the domain's own stylesheet) into the test page:
 
 ```js
-const CSS = fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'shared', 'shared.css'), 'utf8');
+const CSS = fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'core', 'webview', 'shared.css'), 'utf8'); // + shared-map-editor.css, shared-tabs.css
 await page.setContent(`<!doctype html><html><head><style>${CSS}</style></head>...`);
 ```
 

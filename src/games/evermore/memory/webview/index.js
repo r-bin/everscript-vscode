@@ -186,12 +186,14 @@ function loadRoomsJs() {
 }
 
 module.exports = {
-  // shared.css stays the flat baseline every tab renders with; the map
+  // shared.css (+ shared-map-editor.css, shared-tabs.css) stays the flat baseline every tab renders with; the map
   // editor's own tokens/chrome live in rooms-owned files so restyling it can
   // never bleed into the memory/scaling/docs/route tabs. theme.css declares
   // the tokens and must come before canvas.css and rooms-rail.css, which
   // both only consume them.
   css: loadFile(path.join(coreWebviewDir, 'shared.css')) + '\n'
+    + loadFile(path.join(coreWebviewDir, 'shared-map-editor.css')) + '\n'
+    + loadFile(path.join(coreWebviewDir, 'shared-tabs.css')) + '\n'
     + loadFile(path.join(roomsDir, 'map-editor-theme.css')) + '\n'
     + loadFile(path.join(EDITOR_SHELL_DIR, 'shell-tabs.css')) + '\n'
     + loadFile(path.join(EDITOR_SHELL_DIR, 'shell-canvas.css')) + '\n'
@@ -203,6 +205,8 @@ module.exports = {
     + loadFile(path.join(EDITOR_SHELL_DIR, 'shell-layout.css')) + '\n'
     + loadFile(path.join(roomsDir, 'rooms-layout.css')) + '\n'
     + loadFile(path.join(spritesDir, 'sprites-layout.css')) + '\n'
+    + loadFile(path.join(spritesDir, 'sprites-stage.css')) + '\n'
+    + loadFile(path.join(spritesDir, 'sprites-views.css')) + '\n'
     + loadFile(path.join(romDir, 'rom-tab.css')) + '\n'
     + loadFile(path.join(musicDir, 'music-tab.css')) + '\n'
     + loadFile(path.join(scriptsDir, 'scripts-tab.css')),

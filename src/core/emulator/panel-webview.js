@@ -3,7 +3,7 @@
 /**
  * debugger/emulator/panel-webview.js
  *
- * Owns: the emulator webview page: webview/page.html (the skeleton), page.css and page.js, in which a
+ * Owns: the emulator webview page: webview/page.html (the skeleton), page-style/ and page/ (folders of parts), in which a
  * `//@@name` line or word is a place the parts (the other views, the game's part) are put into.
  * Single export: buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay, romOfferData, options) -> string
  *   options.profile  'full' or 'recorder' (webview/emulator-profile.js hides what a profile or a
@@ -68,7 +68,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         FpsClientScript: getFpsClientScript(), MenuClientScript: getMenuClientScript(),
     };
     // Module.locateFile uses the literal CORE_WASM filename constant, so webview/page.js takes the real file name.
-    values.css = pageFile('page.css', values);
+    values.css = pageFile('page-style', values);
     values.script = pageFile('page', values);
     return pageFile('page.html', values);
 }

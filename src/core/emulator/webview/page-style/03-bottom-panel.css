@@ -1,0 +1,110 @@
+    /* -- Resizer & Bottom panel ------------------------------------ */
+    #main-container {
+      display: flex; flex-direction: column; width: 100%; height: 100%;
+      overflow: hidden; position: relative;
+    }
+
+    #ss-resizer {
+      height: 5px; width: 100%; background: #1c1c22; cursor: row-resize; flex-shrink: 0;
+      border-top: 1px solid #2e2e38; border-bottom: 1px solid #111;
+      transition: background 0.15s;
+    }
+    #ss-resizer:hover, #ss-resizer.dragging { background: #007acc; }
+
+    #script-stack {
+      height: 260px; min-height: 80px; max-height: calc(100vh - 100px); width: 100%;
+      background: #0d0d0d; border-top: 1px solid #2a2a35;
+      font-size: 11px; display: none; flex-direction: column; overflow: hidden; flex-shrink: 0;
+    }
+    #script-stack.visible { display: flex; }
+    #script-stack.collapsed {
+      height: 28px !important; min-height: 28px !important;
+    }
+    #ss-header {
+      background: #16161c; padding: 4px 8px;
+      color: #aaa; font-size: 10px;
+      display: flex; flex-direction: column; gap: 4px;
+      border-bottom: 1px solid #2a2a35; flex-shrink: 0;
+    }
+    #ss-header-top {
+      display: flex; justify-content: space-between; align-items: center; width: 100%;
+    }
+    #ss-header-title {
+      font-weight: bold; letter-spacing: 0.05em; color: #778899; font-size: 10px;
+    }
+    #ss-tabs {
+      display: flex; flex-wrap: wrap; gap: 3px; align-items: center;
+    }
+    .ss-tab {
+      border: 1px solid #2e2e38; background: #141418; color: #8899aa;
+      padding: 3px 6px; border-radius: 3px; font-size: 10px; cursor: pointer;
+      font-family: inherit; font-weight: 600; white-space: nowrap;
+    }
+    .ss-tab:hover { background: #22222c; color: #fff; }
+    .ss-tab.active { background: #007acc; color: #fff; border-color: #007acc; }
+    #ss-controls { display: flex; gap: 4px; align-items: center; }
+
+    .ss-tab-view { display: none; flex: 1; min-height: 0; flex-direction: column; overflow: hidden; }
+    .ss-tab-view.active { display: flex; }
+
+    #ss-trace-log {
+      flex: 1; min-height: 0; background: #0c0c0c; padding: 4px 8px;
+      font-family: monospace; font-size: 11px; line-height: 1.45;
+      overflow-y: auto; overflow-x: hidden;
+    }
+    .ss-trace-entry { display: flex; flex-direction: column; padding: 1px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+    .ss-trace-row { display: flex; gap: 6px; white-space: nowrap; padding: 1px 0; align-items: baseline; }
+    .ss-trace-sub { display: flex; gap: 6px; white-space: nowrap; padding: 1px 0; font-family: monospace; font-size: 11px; align-items: baseline; }
+    .ss-trace-arrow { color: #c586c0; font-weight: bold; width: 20px; min-width: 20px; flex-shrink: 0; text-align: right; }
+    .ss-trace-time { color: #569cd6; font-size: 10px; width: 95px; min-width: 95px; flex-shrink: 0; }
+    .ss-trace-lookup { color: #4ec9b0; font-weight: bold; width: 110px; min-width: 110px; flex-shrink: 0; display: inline-block; overflow: hidden; text-overflow: ellipsis; }
+    .ss-trace-tag { font-weight: bold; width: 140px; min-width: 140px; flex-shrink: 0; }
+    .ss-trace-tag.start  { color: #6f9; }
+    .ss-trace-tag.resume { color: #ff6; }
+    .ss-trace-tag.step   { color: #69f; }
+    .ss-trace-tag.end    { color: #f66; }
+    .ss-trace-addr       { color: #4ec9b0; width: 68px; min-width: 68px; flex-shrink: 0; }
+    .ss-trace-bytes      { color: #888; font-size: 10px; font-family: monospace; }
+    .ss-trace-text       { color: #d4d4d4; }
+
+    #ss-view-stack { overflow-y: auto; }
+    #ss-view-debug { overflow-y: auto; }
+    .ss-btn            { border: 1px solid #444; background: #181818; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px; cursor: pointer; }
+    .ss-btn:hover      { background: #222; }
+    .ss-btn:disabled   { opacity: 0.45; cursor: default; }
+    #ss-core-row       { background: #0e0e0e; border-bottom: 1px solid #1e1e1e; padding: 2px 8px; display: flex; gap: 8px; align-items: center; color: #555; font-size: 10px; overflow: hidden; flex-shrink: 0; }
+    #ss-core-label     { color: #444; flex-shrink: 0; }
+    #ss-core-name      { color: #7a9a7a; flex-shrink: 0; }
+    #ss-core-path      { color: #4a4a4a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+    #ss-meta           { background: #141414; border-bottom: 1px solid #222; padding: 4px 8px; display: flex; gap: 12px; flex-wrap: wrap; color: #777; font-size: 10px; flex-shrink: 0; }
+    #ss-breakpoints    { background: #121212; border-bottom: 1px solid #1d1d1d; padding: 6px 8px; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+    #ss-bp-controls    { display: flex; gap: 6px; align-items: center; }
+    #ss-bp-input       { width: 108px; background: #0e0e0e; border: 1px solid #333; color: #ddd; padding: 3px 5px; border-radius: 3px; font: inherit; }
+    #ss-bp-input::placeholder { color: #555; }
+    #ss-bp-list        { display: flex; gap: 6px; flex-wrap: wrap; min-height: 20px; }
+    .ss-bp-chip        { display: inline-flex; align-items: center; gap: 6px; padding: 2px 6px; border: 1px solid #2d4b2d; border-radius: 999px; background: rgba(122, 214, 122, 0.08); color: #b8ddb8; }
+    .ss-bp-chip button { border: none; background: transparent; color: #888; cursor: pointer; font: inherit; line-height: 1; }
+    .ss-bp-chip button:hover { color: #ddd; }
+    .ss-bp-empty       { color: #555; }
+    .ss-ok   { color: #7ad67a; }
+    .ss-warn { color: #d9c36a; }
+    .ss-bad  { color: #d98383; }
+    #ss-detail             { background: #101010; border-bottom: 1px solid #1d1d1d; padding: 6px 8px; color: #8b8b8b; font-size: 10px; white-space: pre-wrap; font-family: monospace; line-height: 1.35; flex-shrink: 0; }
+    #ss-table              { width: 100%; border-collapse: collapse; }
+    #ss-table th           { text-align: left; padding: 2px 6px; color: #666; font-weight: normal; font-size: 10px; position: sticky; top: 0; background: #111; border-bottom: 1px solid #222; }
+    #ss-table td           { padding: 1px 6px; color: #ccc; }
+    #ss-table tr.exec td   { color: #6f6; }
+    #ss-table tr.wait td   { color: #ff6; }
+    #ss-table tr.dead td   { color: #633; }
+    #ss-table tr.focus td  { background: rgba(122, 214, 122, 0.08); }
+    .sx-kw                 { color: #569cd6; font-weight: bold; }
+    .sx-num                { color: #b5cea8; }
+    .sx-str                { color: #ce9178; }
+    .sx-aside              { color: #777; }
+    //@@game_css
+    //@@CdlCss
+    //@@CdlFloatCss
+    //@@TasCss
+    //@@FpsCss
+    //@@MenuCss
+    //@@game_menuCss

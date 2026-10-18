@@ -123,7 +123,7 @@ try {
     panelContent = fs.readFileSync(PANEL_JS, 'utf8') + '\n' + ['core-path.js', 'panel-state.js', 'panel-messages.js'].map((f) => fs.readFileSync(path.join(ROOT, 'src', 'core', 'emulator', f), 'utf8')).join('\n');
     // Append panel-webview.js so tests that scan the HTML template still pass.
     // The page with Evermore's part spliced in (games/evermore/emulator/: the script VM is stack-view.js).
-    const webviewContent = fs.readFileSync(PANEL_WEBVIEW_JS, 'utf8') + '\n' + ['page.html', 'page.css', 'page'].map((f) => require('../../src/core/webview/page-file').pageFiles(path.join(ROOT, 'src', 'core', 'emulator', 'webview'))(f, new Proxy({}, { has: () => true, get: (_, k) => '//@@' + String(k) }))).join('\n')
+    const webviewContent = fs.readFileSync(PANEL_WEBVIEW_JS, 'utf8') + '\n' + ['page.html', 'page-style', 'page'].map((f) => require('../../src/core/webview/page-file').pageFiles(path.join(ROOT, 'src', 'core', 'emulator', 'webview'))(f, new Proxy({}, { has: () => true, get: (_, k) => '//@@' + String(k) }))).join('\n')
         + (({ getStackScript, getTraceScript }) => getStackScript() + getTraceScript())(require('../../src/games/evermore/emulator/stack-view'));
     panelContent += '\n' + webviewContent;
 } catch (_) {}

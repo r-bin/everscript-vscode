@@ -280,7 +280,7 @@ test('a painted cell crops the right stamp out of the right sheet', () => {
  * and no runtime test would have caught it.
  */
 test('the stylesheet does not switch off the crop', () => {
-    const css = fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'core', 'webview', 'shared.css'), 'utf8');
+    const css = fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'core', 'webview', 'shared-map-editor.css'), 'utf8');
     const rule = css.match(/\.rg-edit-cell\s*\{([^}]*)\}/);
     assert.ok(rule, '.rg-edit-cell must have a rule; the crop depends on it');
     assert.ok(/overflow\s*:\s*hidden/.test(rule[1]),

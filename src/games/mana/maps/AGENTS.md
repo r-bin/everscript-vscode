@@ -12,7 +12,7 @@ What the folder does: [README.md](README.md).
   `asWebviewUri`, JSON via the page's `read` message). Never `require`s the decoder,
   `resources/` or any Evermore domain (`.depcruise.js` `mana-maps-reads-som-only`).
 - The page loads the shared pieces from `src/core/map-editor/` (`view/`, `core/`, `shell/`) and
-  `src/core/webview/shared.css` by file path — the same files the Evermore Rooms tab uses.
+  `src/core/webview/shared.css` (+ `shared-map-editor.css`, `shared-tabs.css`) by file path — the same files the Evermore Rooms tab uses.
 
 ## Invariants
 - The page is the shared editor shell (`src/core/map-editor/shell/`), the same files the Evermore

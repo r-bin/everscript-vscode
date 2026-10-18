@@ -9,4 +9,4 @@ What every game shares inside VS Code. Rules: [AGENTS.md](AGENTS.md).
 | `map-editor/` | The editor both games' map pages are built from: `view/` (chips, tile animation, tokens), `core/` (history, sessions, tool keys), `shell/` (frame, rail, dock, layout, zoom/pan) |
 | `emulator/` | The embedded SNES emulator: panel, page, cores (submodules), CDL / TAS / script-debug hosts, profiles (Everscript, SNES CDL Recorder); a game hands in its part ([README](emulator/README.md)) |
 | `mcp/` | The read-only MCP server on 127.0.0.1:47917 serving the games' file systems to AI clients ([README](mcp/README.md)) |
-| `webview/shared.css` | The page base of the radar and the Mana Maps page |
+| `webview/shared.css`, `shared-map-editor.css`, `shared-tabs.css` | The page base of the radar and the Mana Maps page (in that order) |

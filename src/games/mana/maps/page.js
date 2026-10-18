@@ -18,6 +18,8 @@ const WEBVIEW = path.join(__dirname, 'webview');
 /** Stylesheets, in the order the Rooms tab cascades them (src/games/evermore/memory/webview/index.js). */
 const CSS = {
     sharedCss: path.join(SHARED, 'shared.css'),
+    sharedEditorCss: path.join(SHARED, 'shared-map-editor.css'),
+    sharedTabsCss: path.join(SHARED, 'shared-tabs.css'),
     shellTabsCss: path.join(SHELL, 'shell-tabs.css'),
     shellCanvasCss: path.join(SHELL, 'shell-canvas.css'),
     mapViewCss: path.join(MAP_VIEW, 'map-view.css'),
