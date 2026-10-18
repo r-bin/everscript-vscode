@@ -10,10 +10,10 @@
 | Metric | Completed | Total / Scope | Progress (%) | Status |
 |---|---|---|---|---|
 | **CDL ROM Coverage** | ~42,584 bytes | ~450,000 code bytes | **9.3 %** | Expanding via scripted emulator runs |
-| **Identified / Named Functions** | 79 | 403 (CDL recorded roots) | **19.6 %** | In Progress |
-| **Fully Documented Functions** | 54 | 403 (CDL recorded roots) | **13.4 %** | In Progress |
-| **Clean C Decompiled Functions** | 40 | 403 (CDL recorded roots) | **9.9 %** | Boot, Main Loop, NMI, Enter Room, Room Reset, Script VM Dispatcher, Expression Evaluator, Entity Pool, APU Handshake, Soundbank Loader, Music Player, Entity Physics, Trigger Scanner, Tile Collision, Spell Power Math, Camera Centering, Ring Menu Validator, Damage Mitigation, Animation VM, Companion & Dog AI, Weapon Stamina Regen, Attack Level Select, Damage Stamina Scaling, Name Profanity Filter, Equipped Armor Defense, Enemy AI Dispatcher, Roaming Monster AI, Aggro Detection Pipeline, Stationary Turret AI, Dialogue String Key Decoder, Magmar Boss State Machine, Static Boss Target Exposure, Submerging Swamp Boss AI, Alchemy Cost & XP Progression, Isometric Collision Overlap, Entity Movement Blocker, Hit Reaction & Knockback, Palette Cycle Groups 1 & 2, Weather Particles & Screen Shake |
-| **WRAM Variables Mapped** | 2,650 | 32,291 accessed bytes | **8.2 %** | Ingredient counters $7E:22FF..$2314, spell XP registers, palette shadow buffers $7E:7321/$7331, and screen shake registers mapped |
+| **Identified / Named Functions** | 84 | 403 (CDL recorded roots) | **20.8 %** | In Progress |
+| **Fully Documented Functions** | 59 | 403 (CDL recorded roots) | **14.6 %** | In Progress |
+| **Clean C Decompiled Functions** | 47 | 403 (CDL recorded roots) | **11.7 %** | Boot, Main Loop, NMI, Enter Room, Room Reset, Script VM Dispatcher, Expression Evaluator, Entity Pool, APU Handshake, Soundbank Loader, Music Player, Entity Physics, Trigger Scanner, Tile Collision, Spell Power Math, Camera Centering, Ring Menu Validator, Damage Mitigation, Animation VM, Companion & Dog AI, Weapon Stamina Regen, Attack Level Select, Damage Stamina Scaling, Name Profanity Filter, Equipped Armor Defense, Enemy AI Dispatcher, Roaming Monster AI, Aggro Detection Pipeline, Stationary Turret AI, Dialogue String Key Decoder, Magmar Boss State Machine, Static Boss Target Exposure, Submerging Swamp Boss AI, Alchemy Cost & XP Progression, Isometric Collision Overlap, Entity Movement Blocker, Hit Reaction & Knockback, Palette Cycle Groups 1 & 2, Weather Particles & Screen Shake, Player Boy Movement & Dash, Player Dog Movement & Dash, Shop Catalog Loader, Shop Sell List Populator, Direct SFX Trigger, SFX Soundbank Package Loader, APU SFX Command Sender |
+| **WRAM Variables Mapped** | 2,714 | 32,291 accessed bytes | **8.4 %** | Shop buffer $0B95..$0BA5, active currency registers, SFX parameter $0E4F, and player dash stamina registers mapped |
 | **Mechanical C Lift (snesrecomp)** | 400 roots | 400 roots (1,079 variants) | **100 %** | Compiles & runs |
 
 ---
@@ -29,11 +29,11 @@
 | **Core WRAM & PPU Shadows** | `$7E:0070` – `$7E:013A` | 34 / 34 | Structs Defined | ✅ **Complete**: [`wram-map.md`](engine-core/wram-map.md) |
 | **Script VM & Opcode Dispatch**| `$8C:CFFD` – `$8C:EFFF` | 38 / 195 | 5 / 5 (`script_scheduler_pass`, `script_vm_eval_expression`, `launch_trigger_script`, `decode_dialogue_string_key`, `decode_dialogue_string_key_secondary`) | ✅ **Complete**: [`dispatcher.md`](script-vm/dispatcher.md), [`expression-eval.md`](script-vm/expression-eval.md), [`dialogue-window.md`](ui/dialogue-window.md) |
 | **Actor & Animation Engine** | `$80:9685`, `$90:xxxx` | 13 / 45 | 5 / 5 (`init_entity_pool`, `update_entity_physics`, `anim_vm_tick`, `companion_input_ai_dispatcher`, `companion_entity_update`) | ✅ **Complete**: [`actor-lifecycle.md`](entities/actor-lifecycle.md), [`physics-integration.md`](entities/physics-integration.md), [`animation-vm.md`](animation/animation-vm.md), [`dog-ai.md`](entities/dog-ai.md) |
-| **Combat, Hitboxes & Enemy AI** | `$89:xxxx`, `$8F:Bxxx`–`$8F:Dxxx` | 24 / 52 | 14 / 14 (`calc_spell_power_and_cast`, `apply_spell_damage_to_targets`, `recharge_entity_stamina`, `select_attack_level_by_stamina`, `scale_damage_by_stamina`, `enemy_ai_dispatcher`, `enemy_ai_roaming_chaser`, `enemy_ai_check_aggro`, `boss_ai_magmar`, `boss_part_static_target`, `alchemy_deduct_ingredients_and_award_xp`, `entity_collision_check`, `test_entity_pair_overlap`, `dispatch_hit_reaction_and_knockback`) | ✅ **Complete**: [`alchemy-formulas.md`](combat/alchemy-formulas.md), [`damage-mitigation.md`](combat/damage-mitigation.md), [`weapon-charge.md`](combat/weapon-charge.md), [`enemy-ai.md`](entities/enemy-ai.md), [`boss-engine.md`](combat/boss-engine.md), [`alchemy-ingredients.md`](combat/alchemy-ingredients.md), [`hitbox-intersections.md`](combat/hitbox-intersections.md) |
-| **Audio / APU Handshake & Sound**| `$8C:8000` – `$8C:83FF` | 8 / 15 | 3 / 3 (`apu_command_handshake`, `load_song_soundbank`, `play_music_track`) | ✅ **Complete**: [`spc-handshake.md`](audio/spc-handshake.md) |
+| **Combat, Hitboxes & Enemy AI** | `$89:xxxx`, `$8F:Bxxx`–`$8F:Dxxx` | 26 / 52 | 16 / 16 (`calc_spell_power_and_cast`, `apply_spell_damage_to_targets`, `recharge_entity_stamina`, `select_attack_level_by_stamina`, `scale_damage_by_stamina`, `enemy_ai_dispatcher`, `enemy_ai_roaming_chaser`, `enemy_ai_check_aggro`, `boss_ai_magmar`, `boss_part_static_target`, `alchemy_deduct_ingredients_and_award_xp`, `entity_collision_check`, `test_entity_pair_overlap`, `dispatch_hit_reaction_and_knockback`, `player_human_control_boy`, `player_human_control_dog`) | ✅ **Complete**: [`alchemy-formulas.md`](combat/alchemy-formulas.md), [`damage-mitigation.md`](combat/damage-mitigation.md), [`weapon-charge.md`](combat/weapon-charge.md), [`enemy-ai.md`](entities/enemy-ai.md), [`boss-engine.md`](combat/boss-engine.md), [`alchemy-ingredients.md`](combat/alchemy-ingredients.md), [`hitbox-intersections.md`](combat/hitbox-intersections.md), [`player-movement.md`](engine-core/player-movement.md) |
+| **Audio / APU Handshake & Sound**| `$8C:8000` – `$8C:83FF` | 11 / 15 | 6 / 6 (`apu_command_handshake`, `load_song_soundbank`, `play_music_track`, `play_sound_effect_direct`, `play_sound_effect_with_package`, `apu_send_sfx_command`) | ✅ **Complete**: [`spc-handshake.md`](audio/spc-handshake.md), [`sfx-queue.md`](audio/sfx-queue.md) |
 | **Camera & Viewport Subsystem**| `$90:94AB` – `$90:9544` | 3 / 6 | 1 / 1 (`camera_center_and_clamp`) | ✅ **Complete**: [`camera-system.md`](engine-core/camera-system.md) |
 | **Map Metatiles & Collision Grid**| `$90:9DE8` – `$90:9E72` | 4 / 10 | 2 / 2 (`eval_tile_collision`, `update_entity_plane`) | ✅ **Complete**: [`tile-collision.md`](maps/tile-collision.md) |
-| **Ring Menu & UI Subsystems** | `$8E:8000` – `$8E:9F00` | 6 / 12 | 5 / 5 (`ring_menu_select_and_cost_check`, `calc_equipped_armor_defense`, `init_equipment_screen_slots`, `check_name_profanity`, `decode_dialogue_string_key`) | ✅ **Complete**: [`ring-menu.md`](ui/ring-menu.md), [`equipment-stats.md`](ui/equipment-stats.md), [`weapon-charge.md`](combat/weapon-charge.md), [`dialogue-window.md`](ui/dialogue-window.md) |
+| **Ring Menu & UI Subsystems** | `$8E:8000` – `$8E:9F00` | 8 / 12 | 7 / 7 (`ring_menu_select_and_cost_check`, `calc_equipped_armor_defense`, `init_equipment_screen_slots`, `check_name_profanity`, `decode_dialogue_string_key`, `shop_load_catalog`, `shop_populate_sell_list`) | ✅ **Complete**: [`ring-menu.md`](ui/ring-menu.md), [`equipment-stats.md`](ui/equipment-stats.md), [`weapon-charge.md`](combat/weapon-charge.md), [`dialogue-window.md`](ui/dialogue-window.md), [`shop-system.md`](ui/shop-system.md) |
 
 ---
 
@@ -41,23 +41,23 @@
 
 When an agent is prompted with *"continue the decompilation"*, work down this ordered queue:
 
-1. **Target 1: Player Dash / Sprinting Mechanics & Collision Slopes (`$80:92E0` – `$80:9400`)**:
-   - Location: Bank `$80` (`$80:92E0` – `$80:9400`).
-   - Purpose: B-button sprinting velocity boost, stamina bar drain while running, sub-pixel acceleration accumulation, and 45-degree slope guide velocity vector projection.
-   - Evidence to consult: `src/games/evermore/simulation/machine.ts`, `soe://rom/0092e0.asm`.
-   - Deliverable: Decompile into clean C in `docs/disassembly/engine-core/player-movement.md`.
+1. **Target 1: Status Effect Timers & State Modification Loop (`$8F:B600` – `$8F:B7A0`)**:
+   - Location: Bank `$8F` (`$8F:B600` – `$8F:B7A0`).
+   - Purpose: Status effect tick processing (Poison, Confound, Plague, Defense Up, Attack Up), timer decrementing, damage tick cadence, and the 5-status RAM corruption boundary.
+   - Evidence to consult: `docs/5-status-effects-bug.md`, `soe://bus/8fb600.asm`.
+   - Deliverable: Decompile into clean C in `docs/disassembly/combat/status-effects.md`.
 
-2. **Target 2: Shop Buying, Selling & Currency Exchange Engine (`$8E:8400` – `$8E:8700`)**:
-   - Location: Bank `$8E` (`$8E:8400` – `$8E:8700`).
-   - Purpose: 4 world currency converters (Talons, Jewels, Gold Coins, Credits), item cost calculation, inventory 6-item capacity validation, and transaction confirmation.
-   - Evidence to consult: `docs/script-format/shops.md`, `soe://rom/0e8400.asm`.
-   - Deliverable: Decompile into clean C in `docs/disassembly/ui/shop-system.md`.
+2. **Target 2: Projectile & Spell Sprite Spawner Pipeline (`$8F:B000` – `$8F:B200`)**:
+   - Location: Bank `$8F` (`$8F:B000` – `$8F:B200`).
+   - Purpose: Projectile entity slot allocation, ballistic velocity trajectory vectors, homing target tracking, and expiration particle spawning.
+   - Evidence to consult: `docs/disassembly/combat/alchemy-formulas.md`, `soe://bus/8fb094.asm`.
+   - Deliverable: Decompile into clean C in `docs/disassembly/combat/projectiles.md`.
 
-3. **Target 3: Sound Effect Queue & Multi-Voice Channel Allocator (`$8C:8300` – `$8C:8450`)**:
-   - Location: Bank `$8C` (`$8C:8300` – `$8C:8450`).
-   - Purpose: SFX priority arbitration, queueing up to 4 concurrent sound effects across SPC700 voice channels 4–7, pitch modulation, and interruption logic.
-   - Evidence to consult: `docs/disassembly/audio/spc-handshake.md`, `soe://rom/0c8300.asm`.
-   - Deliverable: Decompile into clean C in `docs/disassembly/audio/sfx-queue.md`.
+3. **Target 3: Save Game NVRAM Serialization & Checksum Verification (`$80:8800` – `$80:8A50`)**:
+   - Location: Bank `$80` (`$80:8800` – `$80:8A50`).
+   - Purpose: 4 NVRAM save slots in battery-backed SRAM ($70:0000..$70:1FFF), struct serialization, party stats, flag packing, and complement checksum validator.
+   - Evidence to consult: `docs/script-format/save.md`, `soe://bus/8088a3.asm`.
+   - Deliverable: Decompile into clean C in `docs/disassembly/engine-core/save-system.md`.
 
 ---
 
