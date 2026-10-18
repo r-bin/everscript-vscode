@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'none';
+    script-src * blob: data: 'unsafe-eval' 'unsafe-inline' 'wasm-unsafe-eval';
+    style-src * 'unsafe-inline' blob: data:;
+    img-src * blob: data:;
+    media-src * blob: data:;
+    connect-src * blob: data:;
+    worker-src blob: data:;
+    font-src * blob: data:;
+  ">
+  <title>Everscript Emulator</title>
+  <style>
+//@@css
+  </style>
+  <script type="application/json" id="emu-config">//@@config</script>
+  //@@files
+</head>
+<body class="profile-//@@profile">
+  <div id="overlay">
+    <div class="overlay-card">
+      <div class="overlay-header">
+        <h2 data-needs="full">Everscript Emulator</h2>
+        <h2 data-needs="recorder">SNES CDL Recorder</h2>
+        <div class="overlay-subtitle">snes9x2005-wasm</div>
+      </div>
+
+      <div id="rom-drop-zone" class="rom-drop-zone" title="Drag and drop a SNES ROM here, or click to browse">
+        <div class="drop-zone-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="12" rx="4"></rect><path d="M6 12h4m-2-2v4"></path><circle cx="15" cy="11" r="1" fill="currentColor"></circle><circle cx="18" cy="13" r="1" fill="currentColor"></circle></svg></div>
+        <div class="drop-zone-title">Drop SNES ROM here</div>
+        <div class="drop-zone-sub">Drag &amp; drop any .smc / .sfc file, or click to browse</div>
+      </div>
+
+      <div class="overlay-action-row">
+        <button id="vanillaBtn" class="rom-action-btn primary" data-needs="full" type="button" title="Load the base ROM of the selected game (ROM library)">
+          <div class="btn-main"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg> <span>Load Vanilla ROM</span></div>
+          <div class="btn-meta" id="vanilla-desc">Base ROM</div>
+        </button>
+        <button id="pickBtn" class="rom-action-btn secondary" type="button" title="Choose a ROM file from disk">
+          <div class="btn-main"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path></svg> <span>Load ROM...</span></div>
+          <div class="btn-meta">Browse files</div>
+        </button>
+      </div>
+
+      <div id="load-status">Select a SNES ROM (.smc / .sfc) to begin.</div>
+
+      <div id="recent-roms-section" class="recent-roms-section" style="display:none;">
+        <div class="recent-roms-header">
+          <span>Recent &amp; Generated ROMs</span>
+          <button id="clearRecentBtn" class="clear-recent-btn" type="button" title="Clear recent ROMs history">Clear</button>
+        </div>
+        <div id="recent-roms-list" class="recent-roms-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="main-container">
+    <div id="screen-wrap">
+      <canvas id="extended-map"></canvas>
+      <canvas id="extended-entities"></canvas>
+      <canvas id="extended-foreground"></canvas>
+      <canvas id="screen" width="512" height="448"></canvas>
+      <canvas id="extended-overlay"></canvas>
+      //@@CdlFloatHtml
+      //@@TasOverlayHtml
+      <div id="emu-side-left" class="emu-side"></div>
+      <div id="emu-side-right" class="emu-side"></div>
+      //@@TasBadgeHtml
+      //@@MenuHtml
+      <div id="menu-inspect-card" class="hidden">
+        <div class="inspect-header">
+          <span id="inspect-title">INSPECTOR</span>
+          <button id="inspect-close-btn" type="button" title="Close">[X]</button>
+        </div>
+        <div id="inspect-body" class="inspect-body"></div>
+        <div id="inspect-footer" class="inspect-footer"></div>
+      </div>
+      <div id="screen-overlay-bar">
+        <button id="screen-menu-btn" class="screen-chip" type="button" title="Quick Menu (Start)">MENU</button>
+        //@@game_screenChipsHtml
+        //@@game_soundChipHtml
+        <button id="screen-speed-chip" class="screen-chip" type="button" title="Speed-up (#)">SPEED x1</button>
+        <button id="screen-focus-chip" class="screen-chip" type="button" title="Keep the focus on the emulator: Tab and debugger stops do not move it">KEEP FOCUS OFF</button>
+        //@@TasChipHtml
+        //@@FpsChipHtml
+        <div id="screen-zoom-chip" class="screen-chip-group">
+          <button id="screen-zout" class="screen-chip" type="button" title="Zoom out">-</button>
+          <span id="screen-zlevel" class="screen-chip" style="cursor:default">100%</span>
+          <button id="screen-zin" class="screen-chip" type="button" title="Zoom in">+</button>
+          <button id="screen-zfit" class="screen-chip" type="button" title="Fit to viewport">fit</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="ss-resizer" title="Drag to resize panel"></div>
+
+    <div id="script-stack">
+      <div id="ss-header">
+        <div id="ss-header-top">
+          <span id="ss-header-title">EMULATOR</span>
+          <div id="ss-controls">
+            <button id="ss-toggle-btn" class="ss-btn" title="Toggle Panel">hide panel</button>
+          </div>
+        </div>
+        <div id="ss-tabs">
+          <button id="ss-tab-trace" class="ss-tab" data-needs="full game" type="button">TRACE (<span id="ss-tab-trace-count">0</span>)</button>
+          <button id="ss-tab-stack" class="ss-tab" data-needs="full game" type="button">STACK (<span id="ss-count">waiting...</span>)</button>
+          //@@game_tabButtonsHtml
+          //@@CdlTabButtonHtml
+        </div>
+      </div>
+
+      <!-- Panels: each is placed in a side bar, here, or only in its pause-menu tab (webview/emulator-panels.js) -->
+      <!-- Script Trace Log -->
+      <div id="ss-view-trace" class="ss-tab-view" data-needs="full game">
+        <div id="ss-trace-log"></div>
+      </div>
+
+      <!-- Script Stack live slot table -->
+      <div id="ss-view-stack" class="ss-tab-view" data-needs="full game">
+        <div id="ss-detail">waiting for script stack detail...</div>
+        <table id="ss-table">
+          <thead><tr><th>#</th><th>PC</th><th>state</th><th>next</th><th>entity</th><th>timer</th></tr></thead>
+          <tbody id="ss-tbody"></tbody>
+        </table>
+      </div>
+
+      //@@game_viewsHtml
+
+      //@@CdlViewHtml
+
+      //@@TasViewHtml
+    </div>
+  </div>
+
+  <!-- Module object must be declared before the core script loads. -->
+  <script>
+//@@script
+  </script>
+</body>
+</html>

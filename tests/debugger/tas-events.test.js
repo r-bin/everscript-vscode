@@ -213,7 +213,7 @@ test('while recording by hand the webview asks the host for a replay check every
 });
 
 test('the movie sample rate is the one the emulator panel boots with', () => {
-    const panel = fs.readFileSync(path.join(ROOT, 'src/core/emulator/panel-webview.js'), 'utf8');
+    const panel = fs.readFileSync(path.join(ROOT, 'src/core/emulator/webview/page.js'), 'utf8');
     assert.ok(new RegExp('AUDIO_FREQ\\s*=\\s*' + movie.AUDIO_RATE + '\\b').test(panel));
 });
 
