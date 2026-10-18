@@ -112,18 +112,18 @@ module.exports = {
 
     {
       name: 'mana-resources-only-mana',
-      comment: 'The som:// file system uses the Mana decoder and nothing Evermore.',
+      comment: 'The som:// file system uses the Mana decoder and nothing Evermore (platform/ is SNES facts, open to every game).',
       severity: 'error',
       from: { path: '^src/games/mana/resources/' },
-      to: { path: '^src/(?!games/mana/(resources|decoder)/)' },
+      to: { path: '^src/(?!games/mana/(resources|decoder)/|platform/)' },
     },
 
     {
       name: 'mana-maps-reads-som-only',
-      comment: 'The Mana Maps panel reads Mana data through som:// only.',
+      comment: 'The Mana Maps panel reads Mana data through som:// only (platform/ helpers allowed).',
       severity: 'error',
       from: { path: '^src/games/mana/maps/' },
-      to: { path: '^src/(?!games/mana/maps/)' },
+      to: { path: '^src/(?!games/mana/maps/|platform/)' },
     },
 
     {

@@ -75,7 +75,9 @@ Porting a module: only once everything it requires is TS, JSON, a Node built-in 
 (the build has no `allowJs`); `require` → `import`, `module.exports` → `export`; its JS users,
 tests and tools then require `dist/<same path>` (no JS facades). Write the types; never TS's
 "infer from usage" fix (it writes structural junk). `__dirname` in `dist/` is not the source
-folder: a module that reads files beside it needs the source folder (cleanup 5.5).
+folder: a module that reads files beside it uses `sourceDir(__dirname)` (`platform/source-dir.ts`).
+`check:dead` runs knip on `dist/` (it cannot follow `dist/` requires back to `.ts`); `build:ts` empties
+`dist/` first, so no stale module outlives its source.
 
 ## Scripted edits
 

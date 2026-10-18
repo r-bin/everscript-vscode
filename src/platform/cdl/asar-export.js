@@ -13,8 +13,8 @@
  *   functions.json        per-function summary (widths, DB/D, WRAM / I/O footprint, SA-1 blockers)
  *   bus.json, bus.md      which ROM mirror ran / was read (ExHiROM and SA-1 audit) and where the cycles went
  *   spc/aram.cdl          SPC700 coverage of ARAM, when recorded
- *   rooms/, rom.cdl, build.sh, build-cdl.js, export.json, STEPS.md  (asar-build.js)
- *   mesen/labels.mlb, mesen/rom.cdl  Mesen2 labels + comments, CDL with asset ranges (mesen-export.js)
+ *   rooms/, rom.cdl, build.sh, build-cdl.js, export.json, STEPS.md  (asar-build.ts)
+ *   mesen/labels.mlb, mesen/rom.cdl  Mesen2 labels + comments, CDL with asset ranges (mesen-export.ts)
  * Known regions (known-regions.js: the header, plus the game's own: rooms, strings, their pointer
  * tables) are placed first and override the CDL's view of their bytes.
  * Pass 1 picks instruction boundaries over the whole ROM so labels are only
@@ -27,7 +27,7 @@ const { createRomMap, hex, countText } = require('../../../dist/platform/cdl/rom
 const { buildIndex, SPACE } = require('./xref-index');
 const { decodeAt, formatInstruction, staticTarget } = require('./disasm');
 const { findKnownRegions } = require('./known-regions');
-const { writeBuildFiles } = require('./asar-build');
+const { writeBuildFiles } = require('../../../dist/platform/cdl/asar-build');
 const { writeRecompSeeds } = require('./recomp-seeds');
 const { findTables, tablesReport, tableComment } = require('./tables');
 const { buildTableAssets } = require('./table-assets');
@@ -35,7 +35,7 @@ const { exportWram } = require('./wram-export');
 const { buildEnums, enumsAsm } = require('./enums');
 const { inferStructs, structsAsm, structsHeader } = require('./structs');
 const { buildFunctions } = require('./functions');
-const { writeMesenFiles } = require('./mesen-export');
+const { writeMesenFiles } = require('../../../dist/platform/cdl/mesen-export');
 const { buildBusReport, busReportMd } = require('./bus-report');
 
 const CDL_CODE = 0x01, CDL_DATA = 0x02;

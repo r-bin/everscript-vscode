@@ -43,7 +43,7 @@ The engine reads the following verified WRAM registers every frame tick:
 
 ## 3. Audio Telemetry & Replay Subsystems
 
-### 3.1 Sound-Chip Telemetry (`src/core/emulator/apu-stream.js`)
+### 3.1 Sound-Chip Telemetry (`src/core/emulator/apu-stream.ts`)
 - Streams 44.1kHz audio samples and full 64 KB ARAM snapshots directly to the Radar Music tab (`src/games/evermore/music/`).
 - Arms non-pausing breakpoint at `$8C:81FD` (`src/games/evermore/emulator/sound-source-view.js`) to log which entity, animation, or script triggered each sound effect.
 

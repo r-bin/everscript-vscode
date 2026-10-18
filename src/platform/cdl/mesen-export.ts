@@ -1,7 +1,5 @@
-'use strict';
-
 /**
- * platform/cdl/mesen-export.js
+ * platform/cdl/mesen-export.ts
  *
  * Files Mesen2 reads directly (formats checked against Mesen2's source, 2026-10-12):
  *   mesen/labels.mlb  one entry per line: `<memory type>:<hex address>[-<hex end>]:<label>[:<comment>]`.
@@ -12,37 +10,40 @@
  *                     (same bit layout as rom.cdl). Known asset ranges are OR-ed in as data.
  */
 
-const fs = require('fs');
-const path = require('path');
+import * as fs from 'fs';
+import * as path from 'path';
+import { crc32 } from '../crc32';
 
 const CDL_DATA = 0x02;
 const COMMENT_MAX = 240;
 
-const { crc32 } = require('../../../dist/platform');
+/** A ROM entry the export collected: a label, a comment, or both, at a file offset. */
+interface RomNote { off: number; label?: string; size?: number; comment?: string }
+interface MesenInput {
+    rom: Uint8Array; lib: { cdl: ArrayLike<number> }; outDir: string; comments: RomNote[];
+    wramNames?: Map<number, { name: string; note?: string; size?: number }> | null;
+    assets?: { start: number; end: number; name: string }[] | null;
+}
 
-function cleanComment(text) {
+function cleanComment(text: string | undefined): string {
     const one = String(text || '').replace(/\r?\n/g, '\\n').trim();
     return one.length > COMMENT_MAX ? one.slice(0, COMMENT_MAX - 1) + '…' : one;
 }
 
-function line(type, addr, size, label, comment) {
+function line(type: string, addr: number, size: number, label: string | undefined, comment: string | undefined): string {
     const a = addr.toString(16).toUpperCase().padStart(4, '0');
     const range = size > 1 ? a + '-' + (addr + size - 1).toString(16).toUpperCase().padStart(4, '0') : a;
     const c = cleanComment(comment);
     return `${type}:${range}:${label || ''}` + (c ? ':' + c : '');
 }
 
-/**
- * @param comments  [{ off, label?, size?, comment }] ROM entries collected by the export
- * @param wramNames Map<wram offset, { name, note?, size? }>
- * @param assets    [{ start, end, name }] ROM ranges known to be data
- */
-function writeMesenFiles({ rom, lib, outDir, comments, wramNames, assets }) {
+/** `comments`: ROM entries the export collected; `wramNames`: by WRAM offset; `assets`: ROM ranges known to be data. */
+function writeMesenFiles({ rom, lib, outDir, comments, wramNames, assets }: MesenInput) {
     const dir = path.join(outDir, 'mesen');
     fs.mkdirSync(dir, { recursive: true });
 
     // One entry per ROM offset: a label line wins, comments for the same offset are joined.
-    const byOff = new Map();
+    const byOff = new Map<number, RomNote>();
     for (const c of comments) {
         const old = byOff.get(c.off);
         if (!old) { byOff.set(c.off, { ...c }); continue; }
@@ -55,11 +56,11 @@ function writeMesenFiles({ rom, lib, outDir, comments, wramNames, assets }) {
         if (!e) byOff.set(a.start, { off: a.start, comment: note });
         else if (!String(e.comment).includes(note)) e.comment = e.comment ? e.comment + '  ' + note : note;
     }
-    const out = [];
+    const out: string[] = [];
     let labels = 0, notes = 0;
     for (const off of [...byOff.keys()].sort((a, b) => a - b)) {
         const e = byOff.get(off);
-        if (!e.label && !e.comment) continue;
+        if (!e || (!e.label && !e.comment)) continue;
         out.push(line('SnesPrgRom', off, e.size || 1, e.label, e.comment));
         if (e.label) labels++; else notes++;
     }
@@ -83,4 +84,4 @@ function writeMesenFiles({ rom, lib, outDir, comments, wramNames, assets }) {
     return { labels, comments: notes, assetBytes, file: path.join(dir, 'labels.mlb') };
 }
 
-module.exports = { writeMesenFiles };
+export { writeMesenFiles };

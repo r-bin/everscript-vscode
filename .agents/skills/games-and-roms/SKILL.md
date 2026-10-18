@@ -26,7 +26,7 @@ One JSON file in the extension's global storage (`roms.json`): paths only (never
 selected ROM, a base marked by hand per game. The extension, MCP, tests and node tools read the
 same file. `romFor(game)` = the selected ROM if it is that game's, else the game's base.
 - Code reads a ROM through its game's scheme (`soe://`, `som://`; `?rom=<path>` names a specific
-  one) or `romPathFor(game)` (`core/roms/host.js`) — never a setting, env var or fixed path.
+  one) or `romPathFor(game)` (`core/roms/host.ts`) — never a setting, env var or fixed path.
 - Tests and tools: `require('…/dist/games').romPath('evermore')` / `baseRomPath()`; a test
   **skips** when it returns null. Headless: `npm run roms [add|select|base|remove <path>]`.
 

@@ -15,7 +15,7 @@
  * Messages (webview -> host): tasRecStart, tasRecFrames, tasRecEnd, tasList,
  *   tasLoad, tasPin, tasDelete (confirmed: the pause menu asked already), tasReveal, tasPrefs,
  *   tasDesync / tasReplayed (a replay lost sync / reached the end in sync: written into the
- *   recording when the replay was fair), tasVerify (replay the session so far headless, see verify.js)
+ *   recording when the replay was fair), tasVerify (replay the session so far headless, see verify.ts)
  * Messages (host -> webview): tasConfig, tasListResult, tasMovie, tasStatus
  */
 
@@ -25,7 +25,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { parseMovie, evsmvHeader, evsmvTrailer, rleFrames } = require('../../../platform/tas/movie');
 const { stripCopierHeader } = require('../../../platform/cdl/library');
-const { verifyMovieSafely } = require('../../../platform/tas/verify');
+const { verifyMovieSafely } = require('../../../../dist/platform/tas/verify');
 
 const MOVIE_EXT = /\.evsmv$/i;
 const PREFS_FILE = 'tas-prefs.json';

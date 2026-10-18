@@ -8,7 +8,7 @@ const path = require('path');
 const assert = require('assert');
 
 const { buildRomModel } = require('../../src/games/evermore/rom');
-const { readersOf } = require('../../src/games/evermore/rom/model/readers');
+const { readersOf } = require('../../dist/games/evermore/rom/model/readers');
 const { executedByHalf, wramStrip } = require('../../dist/games/evermore/rom/model/bus-usage');
 const { renderRadarHtml } = require('../../src/games/evermore/memory/render-radar');
 

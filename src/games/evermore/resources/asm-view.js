@@ -10,8 +10,8 @@
 // localizations (functions, tables).
 
 const { OPCODES, instructionLength, endsFlow } = require('../../../../dist/platform/snes/opcodes-65816');
-const { getFunction } = require('../localizations/functions');
-const { getTable } = require('../localizations/tables');
+const { getFunction } = require('../../../../dist/games/evermore/localizations/functions');
+const { getTable } = require('../../../../dist/games/evermore/localizations/tables');
 
 const SYNC_BYTES = 48;
 const SUSPECT = new Set(['BRK', 'COP', 'WDM', 'STP', 'WAI', 'XCE']);

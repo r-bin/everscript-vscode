@@ -23,7 +23,7 @@ Reference: the everscript wiki's ROM map (`wiki/rom/Rom-Map.md`), whose §4 this
 | `model/audio.js` | Song descriptors and every byte each song loads |
 | `model/layout.js` | One owner per byte, rows per half, gaps, overlap notes, strips, CDL counts |
 | `model/points.js` | Curated routine / table names (points without a size) |
-| `model/readers.js` | "Which code reads these bytes", from the CDL library's xrefs |
+| `model/readers.ts` | "Which code reads these bytes", from the CDL library's xrefs |
 | `model/bus-usage.ts` | CDL facts on the bus side: bank halves code executed from (pcstats + edges), WRAM strip |
 | `webview/rom-tab.js`, `.css` | `_rom`; File view: strips, half table, CDL layer, row details, text search |
 | `webview/rom-bus-map.js` | Bus mapping (HiROM / LoROM, FastROM, SRAM), the bank × offset canvas |

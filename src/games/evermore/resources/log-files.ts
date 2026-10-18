@@ -1,14 +1,25 @@
-'use strict';
 // Ownership: `soe://logs/` — Virtual file system for emulator runtime logs:
 // crashes (crashes.json, crashes.md), script trace history (script-trace.log,
 // script-trace.json), and ROM launches (launches.json, launches.md).
 //
 // All markdown and text generated in this file is strictly ASCII-only.
 
-const { dir, json, text } = require('../../../../dist/games/evermore/resources/nodes');
+import { dir, json, text } from './nodes';
+import type { VfsNode } from './nodes';
 
-function resolveLogs(segments, getLogs) {
-    const fetchLogs = () => {
+/** One crash report from the emulator panel (emulator-log.js). */
+interface CrashLog {
+    timestamp?: string; error?: string; rom?: string; frame?: number | null; mapId?: number | null;
+    camX?: number | null; camY?: number | null; stack?: string;
+    cpu?: { pc?: number; pb?: number; a?: number; x?: number; y?: number; sp?: number; db?: number; p?: number };
+    scriptSlots?: { slot: number; state: string; loc?: number | null; entity?: number | null }[];
+}
+interface LaunchLog { timestamp?: string; name?: string; size?: number | null }
+interface TraceLog { line?: string; tag?: string; timeStr?: string; slot?: number; entity?: string; event?: string; locHex?: string; summary?: string }
+interface RuntimeLogs { crashes?: CrashLog[]; launches?: LaunchLog[]; scriptTrace?: TraceLog[] }
+
+function resolveLogs(segments: string[], getLogs?: () => RuntimeLogs | null | undefined): VfsNode | null {
+    const fetchLogs = (): RuntimeLogs => {
         if (typeof getLogs === 'function') {
             try {
                 return getLogs() || {};
@@ -62,7 +73,7 @@ function resolveLogs(segments, getLogs) {
     return null;
 }
 
-function formatIndexMd(logs) {
+function formatIndexMd(logs: RuntimeLogs): string {
     const crashes = logs.crashes || [];
     const launches = logs.launches || [];
     const trace = logs.scriptTrace || [];
@@ -79,7 +90,7 @@ Real-time runtime activity from the embedded SNES emulator.
 `;
 }
 
-function formatCrashesMd(crashes) {
+function formatCrashesMd(crashes: CrashLog[]): string {
     if (!crashes.length) {
         return '# Emulator Crash Log\n\nNo emulator crashes recorded.\n';
     }
@@ -95,7 +106,7 @@ function formatCrashesMd(crashes) {
         if (c.camX != null || c.camY != null) out += `- **Camera:** X=${c.camX ?? 0}, Y=${c.camY ?? 0}\n`;
 
         if (c.cpu) {
-            const h = (v, len) => (typeof v === 'number' ? (v >>> 0).toString(16).toUpperCase().padStart(len, '0') : '????');
+            const h = (v: number | undefined, len: number): string => (typeof v === 'number' ? (v >>> 0).toString(16).toUpperCase().padStart(len, '0') : '????');
             out += `\n### SNES CPU State\n\n`;
             out += `\`\`\`\n`;
             out += `PC: $${h(c.cpu.pc, 6)} (PB: $${h(c.cpu.pb, 2)})   A: $${h(c.cpu.a, 4)}   X: $${h(c.cpu.x, 4)}   Y: $${h(c.cpu.y, 4)}\n`;
@@ -121,7 +132,7 @@ function formatCrashesMd(crashes) {
     return out;
 }
 
-function formatLaunchesMd(launches) {
+function formatLaunchesMd(launches: LaunchLog[]): string {
     if (!launches.length) {
         return '# ROM Launches\n\nNo ROM launches recorded.\n';
     }
@@ -135,7 +146,7 @@ function formatLaunchesMd(launches) {
     return out + '\n';
 }
 
-function formatScriptTraceLog(trace) {
+function formatScriptTraceLog(trace: TraceLog[]): string {
     if (!trace.length) {
         return '[No script trace entries recorded]\n';
     }
@@ -147,11 +158,6 @@ function formatScriptTraceLog(trace) {
     }).join('\n') + '\n';
 }
 
-module.exports = {
-    resolveLogs,
-    formatIndexMd,
-    formatCrashesMd,
-    formatLaunchesMd,
-    formatScriptTraceLog,
-};
+export type { RuntimeLogs, CrashLog, LaunchLog, TraceLog };
+export { resolveLogs, formatIndexMd, formatCrashesMd, formatLaunchesMd, formatScriptTraceLog };
 

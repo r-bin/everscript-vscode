@@ -8,7 +8,7 @@ language/
   workspace-index.ts       — static JSON index + live workspace declaration index
   hover-provider.js        — hover
   completion-provider.js   — completions
-  definition-provider.js   — go-to-definition
+  definition-provider.ts   — go-to-definition
   symbol-provider.ts       — document symbols
   dead-branch.ts           — fades statically dead if-branches
   language-configuration.json       — Bracket matching, comment toggle, word pattern

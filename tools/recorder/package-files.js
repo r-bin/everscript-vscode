@@ -7,7 +7,7 @@
  * through require() (resolved the way node resolves it, literal specifiers only,
  * also inside functions), plus the files loaded by path (ASSETS). Nothing else
  * of the repository goes into its .vsix. Entry points: the extension, and the
- * headless replay check the recordings are verified with (tas/verify.js spawns it).
+ * headless replay check the recordings are verified with (tas/verify.ts spawns it).
  *
  *   node tools/recorder/package-files.js          prints the list (repo-relative)
  *   require(...).recorderFiles()                  { files, unresolved, dynamic }

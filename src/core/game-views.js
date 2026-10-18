@@ -7,7 +7,7 @@
 // view's title names its ROM. Knows no game by name.
 
 const vscode = require('vscode');
-const roms = require('./roms/host');
+const roms = require('../../dist/core/roms/host');
 
 /** @type {Map<string, { open(column?: vscode.ViewColumn): unknown, panel(): vscode.WebviewPanel | null | undefined, refresh?(): void }>} */
 const views = new Map();

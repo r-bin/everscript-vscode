@@ -17,7 +17,7 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
   Which opcodes touch text, sound or the screen is in `reach.ts` / `por.ts` as opcode sets, never
   read from the instruction text. `.depcruise.js` rule `simulation-is-a-library`.
 - Consumers `require('../simulation')`, never `./dist`. `soe://` serves it
-  (`src/games/evermore/resources/simulation-files.js`).
+  (`src/games/evermore/resources/simulation-files.ts`).
 
 ## Invariants
 - Never guess state. A WRAM read nobody wrote is `mem(addr)`; only `Pin`s change that, and

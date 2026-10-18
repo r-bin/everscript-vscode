@@ -9,7 +9,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { getFunction } = require('../localizations/functions');
+const { getFunction } = require('../../../../dist/games/evermore/localizations/functions');
 
 const REPO = path.resolve(__dirname, '..', '..', '..', '..');
 

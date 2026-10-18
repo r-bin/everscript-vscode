@@ -7,3 +7,4 @@ export * from './snes/hirom';
 export * from './crc32';
 export * from './png';
 export * from './hex';
+export * from './source-dir';

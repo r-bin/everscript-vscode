@@ -3,8 +3,8 @@
 // sound effects, where every package writes in ARAM, and the driver bytes.
 // Pure; ROM bytes in, a JSON-ready object out.
 
-const { isEvermoreAudio, packageRecords, driverBlocks, musicPackages, sfxPackages, scriptIdsBySfx } = require('./rom-audio');
-const { getMusic, getMusicName, getSound, getSoundName, getSoundAnimations } = require('../../localizations/sounds');
+const { isEvermoreAudio, packageRecords, driverBlocks, musicPackages, sfxPackages, scriptIdsBySfx } = require('../../../../../dist/games/evermore/music/model/rom-audio');
+const { getMusic, getMusicName, getSound, getSoundName, getSoundAnimations } = require('../../../../../dist/games/evermore/localizations/sounds');
 const { hex: hex2 } = require('../../../../../dist/platform');
 
 /** Where a package writes: [dest, length] per record, in upload order. */

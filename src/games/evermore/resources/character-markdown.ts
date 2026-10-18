@@ -1,9 +1,21 @@
-'use strict';
 // Ownership: Markdown builders for soe://rom/assets/characters/ and animations/. Pure.
 
-const { hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
+import { hexId } from './resource-uri';
 
-function characterMarkdown(c) {
+/** What these pages read of a character (sprites/character-model.js) and its animations. */
+interface AnimOption { key?: string; label?: string; purpose?: string | null; offset?: number }
+interface CharacterInfo {
+    id: number; name: string; disposition: { label: string }; paletteAddrHex: string; anims: AnimOption[];
+    stats: { hp: number; attack: number; defense: number; aggro_range: number };
+    hitbox: { width: number; height: number; radius: number };
+}
+interface AnimationInfo {
+    scriptHex: string; totalTicks: number; width: number; height: number;
+    frames: { ticks: number; spriteHex: string }[];
+}
+interface BlockUse { blockHex: string; size: number; count: number }
+
+function characterMarkdown(c: CharacterInfo): string {
     return `# Character ${hexId(c.id, 2)}: ${c.name}
 
 | Property | Value |
@@ -19,11 +31,11 @@ function characterMarkdown(c) {
 ![Idle Sprite](sprite.png)
 
 ## Animations
-${c.anims.map((a) => `- [${a.label || a.key}](animations/${a.key || hexId(a.offset, 2)}/index.md)${a.purpose ? ` *(purpose: ${a.purpose})*` : ''}`).join('\n')}
+${c.anims.map((a) => `- [${a.label || a.key}](animations/${a.key || hexId(a.offset ?? 0, 2)}/index.md)${a.purpose ? ` *(purpose: ${a.purpose})*` : ''}`).join('\n')}
 `;
 }
 
-function charactersIndexMarkdown(chars) {
+function charactersIndexMarkdown(chars: CharacterInfo[]): string {
     return `# soe://rom/assets/characters/
 
 ${chars.length} characters in the engine table at \`$8EB678\`.
@@ -34,7 +46,7 @@ ${chars.map((c) => `| [${hexId(c.id, 2)}](${hexId(c.id, 2)}/info.md) | ${c.name}
 `;
 }
 
-function animationMarkdown(charId, animOpt, anim) {
+function animationMarkdown(charId: number, animOpt: AnimOption, anim: AnimationInfo): string {
     return `# Animation: ${animOpt.label || animOpt.key}
 
 | Property | Value |
@@ -52,7 +64,7 @@ function animationMarkdown(charId, animOpt, anim) {
 `;
 }
 
-function characterAnimationsIndexMarkdown(charData) {
+function characterAnimationsIndexMarkdown(charData: Pick<CharacterInfo, 'name' | 'anims'>): string {
     return [
         `# Animations: ${charData.name}`, '',
         `${charData.anims.length} animations available. Each has \`animation.gif\`, \`script.txt\`, \`frames/\`, and \`tiles/\`.`, '',
@@ -63,7 +75,7 @@ function characterAnimationsIndexMarkdown(charData) {
     ].join('\n');
 }
 
-function framesIndexMarkdown(anim) {
+function framesIndexMarkdown(anim: Pick<AnimationInfo, 'frames' | 'totalTicks'>): string {
     return [
         '# Frames', '',
         `${anim.frames.length} frames (${anim.totalTicks} ticks total).`, '',
@@ -71,7 +83,7 @@ function framesIndexMarkdown(anim) {
     ].join('\n');
 }
 
-function tilesIndexMarkdown(blocks) {
+function tilesIndexMarkdown(blocks: BlockUse[]): string {
     return [
         '# Animation Tiles (Sprite Blocks)', '',
         `${blocks.length} unique sprite blocks used in this animation.`, '',
@@ -80,13 +92,7 @@ function tilesIndexMarkdown(blocks) {
     ].join('\n') + '\n';
 }
 
-module.exports = {
-    characterMarkdown,
-    charactersIndexMarkdown,
-    animationMarkdown,
-    characterAnimationsIndexMarkdown,
-    framesIndexMarkdown,
-    tilesIndexMarkdown,
-};
+export type { CharacterInfo, AnimationInfo, AnimOption, BlockUse };
+export { characterMarkdown, charactersIndexMarkdown, animationMarkdown, characterAnimationsIndexMarkdown, framesIndexMarkdown, tilesIndexMarkdown };
 
 

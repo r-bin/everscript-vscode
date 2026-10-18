@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: the sound data of a Secret of Evermore ROM, as the 65816 uploads
 // it. Pure: ROM bytes in, plain objects out.
 //
@@ -22,13 +21,16 @@ const PACKAGE_POINTERS = 0x019903;
 const SCRIPT_SFX = 0x0C8362;
 const SCRIPT_SFX_WORDS = 120;
 
+/** A block the driver uploads to the sound chip: its destination in SPC RAM and its bytes. */
+interface UploadBlock { dest: number; bytes: Uint8Array }
+
 /** True when the ROM has Secret of Evermore (U)'s sound tables. */
-function isEvermoreAudio(rom) {
+function isEvermoreAudio(rom: Uint8Array | null | undefined): boolean {
     return !!rom && rom.length >= 0x300000 && rom[LAST_PACKAGE] === 0x46 && rom[MUSIC_COUNT] === 0x46 && rom[SFX_COUNT] === 0x5A;
 }
 
 /** n bytes from `cur`, upper halves only; returns { bytes, next }. */
-function readUpper(rom, cur, n) {
+function readUpper(rom: Uint8Array, cur: number, n: number): { bytes: Uint8Array; next: number } {
     const bytes = new Uint8Array(n);
     let at = 0;
     while (at < n) {
@@ -42,15 +44,15 @@ function readUpper(rom, cur, n) {
     return { bytes, next: cur };
 }
 
-const r24 = (rom, o) => rom[o] | rom[o + 1] << 8 | rom[o + 2] << 16;
+const r24 = (rom: Uint8Array, o: number): number => rom[o] | rom[o + 1] << 8 | rom[o + 2] << 16;
 
 /** [{ dest, bytes }] of one package, in upload order. */
-function packageRecords(rom, id) {
+function packageRecords(rom: Uint8Array, id: number): UploadBlock[] {
     let cur = r24(rom, PACKAGE_POINTERS + id * 3) & 0x3FFFFF;
     let r = readUpper(rom, cur, 2);
     const count = r.bytes[0] | r.bytes[1] << 8;
     cur = r.next;
-    const out = [];
+    const out: UploadBlock[] = [];
     for (let i = 0; i < count; i++) {
         r = readUpper(rom, cur, 7);
         cur = r.next;
@@ -64,8 +66,8 @@ function packageRecords(rom, id) {
 }
 
 /** The driver: { blocks: [{ dest, bytes }], entry }. */
-function driverBlocks(rom) {
-    const blocks = [];
+function driverBlocks(rom: Uint8Array): { blocks: UploadBlock[]; entry: number } {
+    const blocks: UploadBlock[] = [];
     let cur = DRIVER_BLOCK;
     for (;;) {
         const len = rom[cur] | rom[cur + 1] << 8;
@@ -76,7 +78,7 @@ function driverBlocks(rom) {
     }
 }
 
-function tables(rom) {
+function tables(rom: Uint8Array) {
     const packages = rom[LAST_PACKAGE] + 1;
     const musicTable = PACKAGE_POINTERS + packages * 3;
     const musicCount = rom[MUSIC_COUNT];
@@ -84,27 +86,28 @@ function tables(rom) {
 }
 
 /** Package of each music id. */
-function musicPackages(rom) {
+function musicPackages(rom: Uint8Array): number[] {
     const t = tables(rom);
     return Array.from({ length: t.musicCount }, (_, m) => rom[t.musicTable + m]);
 }
 
 /** Package of each driver sfx (0 = the base bank). */
-function sfxPackages(rom) {
+function sfxPackages(rom: Uint8Array): number[] {
     const t = tables(rom);
     return Array.from({ length: t.sfxCount }, (_, s) => rom[t.sfxTable + s]);
 }
 
 /** driver sfx -> the script ids (sound() parameters) that reach it. */
-function scriptIdsBySfx(rom) {
-    const out = new Map();
+function scriptIdsBySfx(rom: Uint8Array): Map<number, number[]> {
+    const out = new Map<number, number[]>();
     for (let i = 0; i < SCRIPT_SFX_WORDS; i++) {
         const v = rom[SCRIPT_SFX + 2 * i] | rom[SCRIPT_SFX + 2 * i + 1] << 8;
         if (v === 0xFFFF) continue;
-        if (!out.has(v)) out.set(v, []);
-        out.get(v).push(2 * i);
+        const ids = out.get(v);
+        if (ids) ids.push(2 * i); else out.set(v, [2 * i]);
     }
     return out;
 }
 
-module.exports = { isEvermoreAudio, packageRecords, driverBlocks, musicPackages, sfxPackages, scriptIdsBySfx };
+export type { UploadBlock };
+export { isEvermoreAudio, packageRecords, driverBlocks, musicPackages, sfxPackages, scriptIdsBySfx };

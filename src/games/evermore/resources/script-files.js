@@ -14,8 +14,8 @@ const {
 } = require('../localizations');
 const { hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
 const { dir, json, text } = require('../../../../dist/games/evermore/resources/nodes');
-const MD = require('./script-markdown');
-const { resolveSimulationFile, SIMULATION_FILES } = require('./simulation-files');
+const MD = require('../../../../dist/games/evermore/resources/script-markdown');
+const { resolveSimulationFile, SIMULATION_FILES } = require('../../../../dist/games/evermore/resources/simulation-files');
 const { resolveOpcodes } = require('./opcode-files');
 
 function resolveScripts(segments, rom) {

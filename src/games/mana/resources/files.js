@@ -12,7 +12,7 @@
 // Ids in paths are hex without `$`, like soe://.
 
 const mana = require('../../../../dist/games/mana/decoder');
-const { mapFile, MAP_FILE_EXTS } = require('./map-files');
+const { mapFile, MAP_FILE_EXTS } = require('../../../../dist/games/mana/resources/map-files');
 
 /** @typedef {{ kind: 'dir', entries: Array<[string, 'file' | 'dir']> } | { kind: 'file', read: () => Buffer }} SomNode */
 

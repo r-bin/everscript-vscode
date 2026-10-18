@@ -5,9 +5,9 @@
 // Returns definitions in the same shape as tags/tags.json (tag-model.js merges
 // both). docs/soe-tags-spec.md §5.3.
 
-const { VANILLA_MAPS } = require('../localizations/maps');
-const { MUSIC, SOUNDS, getSoundAnimations } = require('../localizations/sounds');
-const { TABLES } = require('../localizations/tables');
+const { VANILLA_MAPS } = require('../../../../dist/games/evermore/localizations/maps');
+const { MUSIC, SOUNDS, getSoundAnimations } = require('../../../../dist/games/evermore/localizations/sounds');
+const { TABLES } = require('../../../../dist/games/evermore/localizations/tables');
 const { lootRewardName } = require('../../../../dist/games/evermore/script-model');
 const NAMES = require('../script-model/names.json');
 const { slugify, hexId } = require('../../../../dist/games/evermore/resources/resource-uri');

@@ -25,7 +25,7 @@ wrong.
 | Catalogue of every animation + owners | | `src/games/evermore/sprites/animation-catalog.js` |
 | Render + script listing for the Characters tab (formerly Sprites) | | `src/games/evermore/sprites/animation-decoder.js` |
 | Projectile records, straight-line velocity | `$900000 + id` | `src/games/evermore/maps/projectiles.ts` |
-| Projectile spawns + their animations for the tab | | `src/games/evermore/sprites/projectile-render.js` |
+| Projectile spawns + their animations for the tab | | `src/games/evermore/sprites/projectile-render.ts` |
 
 **Widths live only in `animation-opcodes.ts`.** Never add a width table anywhere
 else; the linear walker reads `opcode()` too.

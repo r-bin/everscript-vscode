@@ -130,7 +130,7 @@ Verified with a headless Claude Code session against a VS Code instance running 
 | `rom/assets/tiles/<id>.png` | `$EE` table graphics (6,688) | `maps/chr.ts` |
 | `rom/assets/sprites/<id>/…`, `rom/assets/animations/<id>/script.txt` | sprite frames, animation bytecode | `sprites/`, `maps/animation-opcodes.ts` |
 | `rom/assets/characters/<id>.json` | character records | `maps/characters.ts`, `names.json` `enemies` |
-| `rom/assets/audio/{music,sfx}/index.json` | id → title, package | `localizations/sounds.js`, `rom/model/audio.js` |
+| `rom/assets/audio/{music,sfx}/index.json` | id → title, package | `localizations/sounds.ts`, `rom/model/audio.js` |
 | `ram/scripts.json`, `ram/entities/<ptr>.json`, `ram/party.json`, `ram/room.json` | decoded live structures | bridge + WRAM tables in the skills |
 
 ---

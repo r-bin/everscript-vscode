@@ -3,16 +3,22 @@
     "src/recorder/extension.js",
     "src/games/evermore/language/config.ts",
     "tests/**/*.test.js",
-    "tools/**/*.{js,mts}"
+    "tools/**/*.{js,mts}",
+    "dist/games/evermore/emulator/page-rom.js"
   ],
   "project": [
-    "src/**/*.js"
+    "src/**/*.js",
+    "dist/**/*.js"
   ],
   "ignore": [
     "src/**/webview/**",
     "src/core/map-editor/**",
     "src/games/evermore/docs-tab/**",
-    "src/core/emulator/core/**"
+    "src/core/emulator/core/**",
+    "src/platform/cdl/asar-kit/**",
+    "dist/webview/**",
+    "bundle/**",
+    "dist/games/evermore/maps/animation-vm-types.js"
   ],
   "ignoreExportsUsedInFile": true,
   "rules": {

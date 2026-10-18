@@ -69,6 +69,9 @@ function decodeRomString(rom: Uint8Array | Buffer, stringIndex: number): string 
     return result;
 }
 
+/** Options of the get…Name lookups: the ROM to read in-game strings from, the long name, a name for a miss. */
+interface NameOptions { full?: boolean; rom?: Uint8Array | Buffer | null; fallback?: string }
+
 /** A names table entry: our name, and the in-game string that names it when there is one. */
 interface NamedEntry { stringIndex?: number | null; name?: string; fullName?: string; [prop: string]: unknown }
 
@@ -87,6 +90,6 @@ function resolveLocalizedName(entry: NamedEntry | string | null | undefined, rom
     return (typeof own === 'string' && own) || entry.name || entry.fullName || '';
 }
 
-export type { NamedEntry };
+export type { NamedEntry, NameOptions };
 export { STRING_KEYS_ADDR, STRING_KEY_COUNT, decodeRomString, resolveLocalizedName };
 

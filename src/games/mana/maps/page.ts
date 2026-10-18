@@ -1,22 +1,23 @@
-'use strict';
 // Ownership: which files the Secret of Mana Maps page loads and in what order, and filling them into
 // webview/index.html. Pure (no `vscode`): the host gives a function that turns a file path into the
 // webview URI, the test gives `file://`. The page is built from the shared editor shell, so most of
 // the list is src/core/map-editor/ and src/core/webview/: the same files the Evermore Rooms tab runs on.
 
-const fs = require('fs');
-const path = require('path');
+import * as fs from 'fs';
+import * as path from 'path';
+import { sourceDir } from '../../../platform/source-dir';
 
-const SRC = path.join(__dirname, '..', '..', '..');
+const HERE = sourceDir(__dirname);
+const SRC = path.join(HERE, '..', '..', '..');
 const SHARED = path.join(SRC, 'core', 'webview');
 const MAP_EDITOR = path.join(SRC, 'core', 'map-editor');
 const MAP_VIEW = path.join(MAP_EDITOR, 'view');
 const CORE = path.join(MAP_EDITOR, 'core');
 const SHELL = path.join(MAP_EDITOR, 'shell');
-const WEBVIEW = path.join(__dirname, 'webview');
+const WEBVIEW = path.join(HERE, 'webview');
 
 /** Stylesheets, in the order the Rooms tab cascades them (src/games/evermore/memory/webview/index.js). */
-const CSS = {
+const CSS: Record<string, string> = {
     sharedCss: path.join(SHARED, 'shared.css'),
     sharedEditorCss: path.join(SHARED, 'shared-map-editor.css'),
     sharedTabsCss: path.join(SHARED, 'shared-tabs.css'),
@@ -42,19 +43,16 @@ const SCRIPTS = [
 /** Every directory the page reads from (the host's localResourceRoots). */
 const ROOTS = [WEBVIEW, MAP_VIEW, CORE, SHELL, SHARED];
 
-/**
- * @param {(file: string) => string} uriOf the URI the page uses for a file
- * @param {{cspSource: string, nonce: string, init: object}} v
- */
-function pageHtml(uriOf, v) {
-    const values = /** @type {Record<string, string>} */ ({
+/** The page's HTML; `uriOf` turns a file path into the URI the page uses for it. */
+function pageHtml(uriOf: (file: string) => string, v: { cspSource: string; nonce: string; init: object; }): string {
+    const values: Record<string, string> = ({
         cspSource: v.cspSource,
         nonce: v.nonce,
         init: JSON.stringify(v.init).replace(/</g, '\\u003c'),
         scripts: SCRIPTS.map(f => `<script nonce="${v.nonce}" src="${uriOf(f)}"></script>`).join('\n'),
     });
     Object.keys(CSS).forEach(k => { values[k] = uriOf(CSS[k]); });
-    return fs.readFileSync(path.join(WEBVIEW, 'index.html'), 'utf8').replace(/\{\{(\w+)\}\}/g, (_, k) => values[k] ?? '');
+    return fs.readFileSync(path.join(WEBVIEW, 'index.html'), 'utf8').replace(/\{\{(\w+)\}\}/g, (_: string, k: string) => values[k] ?? '');
 }
 
-module.exports = { pageHtml, ROOTS, CSS, SCRIPTS };
+export { pageHtml, ROOTS, CSS, SCRIPTS };

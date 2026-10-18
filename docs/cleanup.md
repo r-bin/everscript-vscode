@@ -255,8 +255,16 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   has no `allowJs`, so a module moves once everything it requires is TS, JSON, a Node built-in or `vscode`); its JS
   users, tests and tools require it from `dist/`; types written out (TS's "infer from usage" fix writes structural
   junk like `{ getHours(): number … }` for a `Date`, so it is not used; "types from JSDoc" is). A module that reads
-  files beside it (`__dirname`) needs the source folder, not `dist/`, and waits for a helper. Left: 196 host JS
-  modules, the page scripts (5.3), `tools/` (41), `tests/` (77).
+  files beside it (`__dirname`) needs the source folder, not `dist/`. v0.304.0: 26 more
+  (61 in all); `platform/source-dir.ts` `sourceDir(__dirname)` maps a compiled module's folder back to `src/` (also in the
+  bundle, where `__dirname` is the `dist/` folder); the Asar export's `build.sh` / `build-cdl.js` are real files
+  (`platform/cdl/asar-kit/`, copied as they are; the string version had `__dirname` in it, which the bundle rewrote to a
+  helper the exported script does not have); `build:ts` empties `dist/` first (3 stale modules had outlived their source);
+  `check:dead` runs knip on `dist/` too (it could not follow `dist/` requires back to `.ts`, so TS was never checked; the
+  114 unused-export warnings it now lists are mostly in-file uses, which compiled CommonJS writes as `exports.x`); the
+  Mana depcruise rules allow `platform/`. Types found one bug: the emulator's loot markers never had their trigger's
+  index (`trig.index` did not exist; now each has its table's kind and index). Left: 164 host JS modules, the page
+  scripts (5.3), `tools/` (41), `tests/` (77).
 - [x] **5.6 WASM scouting (D12):** profile and list candidates with numbers — room decompression
   and encoding (`maps/lzss.ts`, `chr.ts`), the collision/special solver, CDL library analysis and
   xrefs, the script VM if it runs simulations at scale. Output: a table in this file, no code.

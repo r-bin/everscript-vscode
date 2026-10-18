@@ -3,7 +3,7 @@
 // music, sound effects, song descriptors, and assembled SNES SPC files. Pure. One song's
 // records, SPC and page are audio-songs.js.
 
-const { MUSIC, SOUNDS } = require('../localizations/sounds');
+const { MUSIC, SOUNDS } = require('../../../../dist/games/evermore/localizations/sounds');
 const { hexId, slugify } = require('../../../../dist/games/evermore/resources/resource-uri');
 const { dir, file, json, text } = require('../../../../dist/games/evermore/resources/nodes');
 const { readSongInfo, buildSpc, songMarkdown, SONG_POINTERS_ADDR } = require('./audio-songs');

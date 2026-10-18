@@ -1,5 +1,5 @@
 // The ROM panel page: your ROMs per game (base marked ★), a feature table per ROM, a drop zone.
-// State comes from src/core/roms/host.js; every action goes back as a message.
+// State comes from src/core/roms/host.ts; every action goes back as a message.
 (function () {
     const vscode = acquireVsCodeApi();
     const app = document.getElementById('app');

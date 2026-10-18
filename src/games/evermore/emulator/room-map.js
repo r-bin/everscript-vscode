@@ -1,10 +1,10 @@
 'use strict';
 // Ownership: the room under the running game as pictures for the emulator's map view: composite,
 // foreground and layers at 2x, with the objects' states and cut grass applied, cached per state.
-// Facts about the room are room-meta.js.
+// Facts about the room are room-meta.ts.
 
 const maps = require('../../../../dist/games/evermore/maps');
-const { roomMeta, roomMetaCache, scale2x, alignPixelsToSnes, hasOpaquePixel } = require('./room-meta');
+const { roomMeta, roomMetaCache, scale2x, alignPixelsToSnes, hasOpaquePixel } = require('../../../../dist/games/evermore/emulator/room-meta');
 
 const roomMapCache = new Map();
 

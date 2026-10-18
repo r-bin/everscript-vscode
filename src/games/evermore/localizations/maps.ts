@@ -1,10 +1,10 @@
-'use strict';
 // Ownership: map / room IDs to room names, regions, and optional string indices.
 // Source: data/rooms.json — names in our style with their evidence (docs/cleanup.md D4).
 
-const { resolveLocalizedName } = require('../../../../dist/games/evermore/localizations/strings');
+import { resolveLocalizedName } from './strings';
+import type { NameOptions } from './strings';
 
-const ROOMS = require('./data/rooms.json');
+import ROOMS from './data/rooms.json';
 
 
 /**
@@ -25,7 +25,9 @@ const VANILLA_MAPS = ROOMS.map((r) => {
     };
 });
 
-const MAP_BY_ID = new Map();
+type MapEntry = (typeof VANILLA_MAPS)[number];
+
+const MAP_BY_ID = new Map<number | string, MapEntry>();
 for (const m of VANILLA_MAPS) {
     MAP_BY_ID.set(m.id, m);
     MAP_BY_ID.set(m.hex.toLowerCase(), m);
@@ -43,7 +45,7 @@ const VANILLA_ROOMS = AREAS.map(area => ({
 /**
  * Retrieve a map record by id (integer e.g. 0x38 or string '0x38' or 56).
  */
-function getMap(id) {
+function getMap(id: number | string): MapEntry | null {
     if (typeof id === 'string') {
         const parsed = id.startsWith('0x') || id.startsWith('0X') ? parseInt(id, 16) : parseInt(id, 10);
         return MAP_BY_ID.get(id.toLowerCase()) || MAP_BY_ID.get(parsed) || null;
@@ -51,12 +53,8 @@ function getMap(id) {
     return MAP_BY_ID.get(id) || null;
 }
 
-/**
- * Get map name with optional full name (area prefix) or in-game ROM string resolution.
- * @param {number|string} id
- * @param {{full?: boolean, rom?: Uint8Array|Buffer}} [options]
- */
-function getMapName(id, options = {}) {
+/** Get map name with optional full name (area prefix) or in-game ROM string resolution. */
+function getMapName(id: number | string, options: NameOptions = {}): string {
     const map = getMap(id);
     if (!map) {
         if (options.fallback !== undefined) return options.fallback;
@@ -69,16 +67,9 @@ function getMapName(id, options = {}) {
 /**
  * Get the area name for a map ID.
  */
-function getMapArea(id) {
+function getMapArea(id: number | string): string {
     const map = getMap(id);
     return map ? map.area : '';
 }
 
-module.exports = {
-    VANILLA_MAPS,
-    VANILLA_ROOMS,
-    MAP_BY_ID,
-    getMap,
-    getMapName,
-    getMapArea,
-};
+export { VANILLA_MAPS, VANILLA_ROOMS, MAP_BY_ID, getMap, getMapName, getMapArea };

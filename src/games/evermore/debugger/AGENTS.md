@@ -17,7 +17,7 @@ Kind: **platform** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: 
 - Existing exceptions: none (no `require('../…')` in this folder).
 
 ## Invariants
-- `script-frames.js`, `source-map.js`, `value-types.js`, `conditions.js`,
+- `script-frames.js`, `source-map.js`, `value-types.js`, `conditions.ts`,
   `memory-access.js` are pure.
 - Steps are data (`{ slot, scope, parent, parentScope, ranges, into, callerOnly }`): the
   decision is made synchronously inside the core's `Module.onBreakpointHit`, which keeps

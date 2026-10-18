@@ -1,9 +1,9 @@
-'use strict';
 // Ownership: music and sound IDs to subjective names.
 // Source: Secret of Evermore (EMU) rips, everscript enum SOUND/MUSIC, and dump_spc.py.
 
-const { resolveLocalizedName } = require('../../../../dist/games/evermore/localizations/strings');
-const SOUND_ANIMATIONS = require('./data/sound-animations.json');
+import { resolveLocalizedName } from './strings';
+import type { NameOptions } from './strings';
+import SOUND_ANIMATIONS from './data/sound-animations.json';
 
 /**
  * Master music catalogue (opcode 0x33, internal IDs 0x00..0x45).
@@ -169,7 +169,7 @@ for (const s of SOUNDS) {
     SOUND_BY_ID.set(s.hex.toLowerCase(), s);
 }
 
-function getMusic(id) {
+function getMusic(id: number | string) {
     if (typeof id === 'string') {
         const parsed = id.startsWith('0x') || id.startsWith('0X') ? parseInt(id, 16) : parseInt(id, 10);
         return MUSIC_BY_ID.get(id.toLowerCase()) || MUSIC_BY_ID.get(parsed) || null;
@@ -177,13 +177,13 @@ function getMusic(id) {
     return MUSIC_BY_ID.get(id) || null;
 }
 
-function getMusicName(id, options = {}) {
+function getMusicName(id: number | string, options: NameOptions = {}): string {
     const entry = getMusic(id);
     if (!entry) return typeof id === 'number' ? `Song 0x${id.toString(16).padStart(2, '0')}` : `Song ${id}`;
     return resolveLocalizedName(entry, options.rom, 'name');
 }
 
-function getSound(id) {
+function getSound(id: number | string) {
     if (typeof id === 'string') {
         const parsed = id.startsWith('0x') || id.startsWith('0X') ? parseInt(id, 16) : parseInt(id, 10);
         return SOUND_BY_ID.get(id.toLowerCase()) || SOUND_BY_ID.get(parsed) || null;
@@ -191,7 +191,7 @@ function getSound(id) {
     return SOUND_BY_ID.get(id) || null;
 }
 
-function getSoundName(id, options = {}) {
+function getSoundName(id: number | string, options: NameOptions = {}): string {
     const entry = getSound(id);
     if (!entry) return typeof id === 'number' ? `SFX 0x${id.toString(16).padStart(2, '0')}` : `SFX ${id}`;
     return resolveLocalizedName(entry, options.rom, 'name');
@@ -206,14 +206,5 @@ function getSoundAnimations() {
     return Object.entries(SOUND_ANIMATIONS).map(([hex, e]) => ({ id: parseInt(hex, 16), ...e }));
 }
 
-module.exports = {
-    getSoundAnimations,
-    MUSIC,
-    SOUNDS,
-    EXTRAS,
-    getMusic,
-    getMusicName,
-    getSound,
-    getSoundName,
-};
+export { getSoundAnimations, MUSIC, SOUNDS, EXTRAS, getMusic, getMusicName, getSound, getSoundName };
 

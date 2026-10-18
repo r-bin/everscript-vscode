@@ -1,14 +1,27 @@
-'use strict';
 // Ownership: Markdown and Everscript text generators for decoded ROM scripts.
 // Pure formatting functions only; no routing or I/O.
 
-const { hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
+import { hexId } from './resource-uri';
+import type { RoomScriptModel } from '../script-model/room-model';
 
-function fmtSnes(addr) {
-    return '$' + (addr >>> 0).toString(16).toUpperCase().padStart(6, '0');
+/** One instruction row as the pages show it. */
+interface InstructionView { addressSnes?: number; address?: number; bytesHex?: string; summary?: string; depth?: number }
+
+/** What a script page shows: the script, and where it sits when it is a room's. */
+interface ScriptPageInfo {
+    addressSnes: number; title?: string; name?: string | null; romOffset?: number | null; label?: string;
+    terminated?: boolean; stopReason?: string; everscript?: string[]; instructions?: InstructionView[];
+    room?: { id: string | number; name?: string; area?: string } | null;
+    trigger?: { kind: string; index: number; rect?: number[]; scriptId?: number } | null;
+    transitions?: { mapId: number | string; mapName?: string; x: number; y: number }[];
+    spawns?: { npc: number | string; name?: string; romName?: string; character: number | string; x: number; y: number }[];
 }
 
-function scriptMarkdown(info) {
+function fmtSnes(addr: number | undefined): string {
+    return '$' + ((addr ?? 0) >>> 0).toString(16).toUpperCase().padStart(6, '0');
+}
+
+function scriptMarkdown(info: ScriptPageInfo): string {
     const snes = fmtSnes(info.addressSnes);
     const title = info.title || (info.name ? `Script ${snes}: ${info.name}` : `Script ${snes}`);
     const lines = [`# ${title}`, ''];
@@ -99,7 +112,7 @@ function scriptMarkdown(info) {
     return lines.join('\n');
 }
 
-function scriptEverscript(info) {
+function scriptEverscript(info: ScriptPageInfo): string {
     const snes = fmtSnes(info.addressSnes);
     const lines = [
         `// ${info.title || `Script ${snes}`}`,
@@ -128,7 +141,7 @@ function scriptEverscript(info) {
     return lines.join('\n');
 }
 
-function roomScriptsIndexMarkdown(model, mapId, roomName, roomArea) {
+function roomScriptsIndexMarkdown(model: RoomScriptModel, mapId: number, roomName?: string | null, roomArea?: string | null): string {
     const hex = hexId(mapId, 2);
     const lines = [
         `# Room ${hex} Scripts: ${roomName || 'Unknown'}`,
@@ -207,15 +220,10 @@ Read any script by SNES bus address or file offset:
 `;
 }
 
-function escapeCell(text) {
+function escapeCell(text: string | undefined): string {
     return String(text || '').replace(/\|/g, '\\|');
 }
 
-module.exports = {
-    fmtSnes,
-    scriptMarkdown,
-    scriptEverscript,
-    roomScriptsIndexMarkdown,
-    scriptsRootMarkdown,
-};
+export type { ScriptPageInfo, InstructionView };
+export { fmtSnes, scriptMarkdown, scriptEverscript, roomScriptsIndexMarkdown, scriptsRootMarkdown };
 

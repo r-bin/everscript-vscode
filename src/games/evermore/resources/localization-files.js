@@ -25,7 +25,7 @@ const {
 const { hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
 const { dir, json, text } = require('../../../../dist/games/evermore/resources/nodes');
 const MD = require('./localization-markdown');
-const { entries: knowledgeEntries } = require('../localizations/knowledge');
+const { entries: knowledgeEntries } = require('../../../../dist/games/evermore/localizations/knowledge');
 const { hex } = require('../../../../dist/platform');
 
 const CATEGORIES = ['scripts', 'maps', 'sounds', 'tables', 'functions', 'strings', 'knowledge'];

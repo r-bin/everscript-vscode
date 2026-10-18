@@ -1,7 +1,5 @@
-'use strict';
-
 /**
- * debugger/conditions.js
+ * debugger/conditions.ts
  *
  * Evaluates an .evs condition (the text between if( and )) against the
  * current memory, for the editor's "this branch runs" hints while stopped.
@@ -17,8 +15,11 @@
 // Memory literals before operators: "(Byte) <0x0ADA>" is not a parenthesis, "<0x..>" not a comparison.
 const TOKEN = /\s*(?:(\((?:Byte|Word)\)\s*<[^>]*>|<\s*0x[0-9a-fA-F]+\s*(?:,\s*(?:0x[0-9a-fA-F]+|\d+)\s*)?>)|(\|\||&&|==|!=|<=|>=|[|&<>!()])|(0x[0-9a-fA-F]+|0d\d+|\d+)|(True|False)|([A-Z][A-Z0-9_]*\.[A-Z][A-Z0-9_]*|arg\[\s*(?:0x[0-9a-fA-F]+|\d+)\s*\]))/y;
 
-function tokenize(text) {
-    const tokens = [];
+/** A token: an operator, a known value, or an operand still to be read from memory. */
+interface Token { op?: string; value?: number; operand?: string }
+
+function tokenize(text: string): Token[] | null {
+    const tokens: Token[] = [];
     TOKEN.lastIndex = 0;
     let at = 0;
     while (at < text.length) {
@@ -38,7 +39,7 @@ function tokenize(text) {
 
 const LEVELS = [['||'], ['&&'], ['|'], ['&'], ['==', '!='], ['<', '>', '<=', '>=']];
 
-function apply(op, a, b) {
+function apply(op: string, a: number, b: number): number {
     switch (op) {
         case '||': return a || b ? 1 : 0;
         case '&&': return a && b ? 1 : 0;
@@ -54,18 +55,18 @@ function apply(op, a, b) {
 }
 
 /** Evaluate tokens whose operands are already values; throws on malformed input. */
-function evaluateTokens(tokens) {
+function evaluateTokens(tokens: Token[]): number {
     let i = 0;
-    const level = depth => {
+    const level = (depth: number): number => {
         if (depth === LEVELS.length) return unary();
         let left = level(depth + 1);
-        while (i < tokens.length && LEVELS[depth].includes(tokens[i].op)) {
-            const op = tokens[i++].op;
+        while (i < tokens.length && LEVELS[depth].includes(tokens[i].op ?? '')) {
+            const op = tokens[i++].op ?? '';
             left = apply(op, left, level(depth + 1));
         }
         return left;
     };
-    const unary = () => {
+    const unary = (): number => {
         const token = tokens[i++];
         if (!token) throw new Error('unexpected end');
         if (token.op === '!') return unary() ? 0 : 1;
@@ -83,7 +84,7 @@ function evaluateTokens(tokens) {
 }
 
 /** true / false, or undefined when some part cannot be known. */
-async function evaluateCondition(text, resolve) {
+async function evaluateCondition(text: string, resolve: (operand: string) => Promise<number | null | undefined>): Promise<boolean | undefined> {
     const tokens = tokenize(String(text));
     if (!tokens || !tokens.length) return undefined;
     for (const token of tokens) {
@@ -103,7 +104,7 @@ async function evaluateCondition(text, resolve) {
  * The condition of an if / else if / while line: { kind, negated, text }, or
  * null. Only conditions that close on the same line.
  */
-function conditionOf(line) {
+function conditionOf(line: string): { kind: string; negated: boolean; text: string; end: number } | null {
     const m = line.match(/^\s*(\}\s*)?(else\s+if|if|while)(!?)\s*\(/);
     if (!m) return null;
     let depth = 1;
@@ -117,4 +118,4 @@ function conditionOf(line) {
     return null;
 }
 
-module.exports = { evaluateCondition, conditionOf, tokenize };
+export { evaluateCondition, conditionOf, tokenize };

@@ -26,7 +26,7 @@ Behind the Music view: `docs/todo/audio-and-music.md` §1.1.
 | `render-scripts-tab.ts` | The pane scaffold |
 | `model/rooms.js` | Room list, a room's scripts with trigger boxes, the room picture |
 | `model/alchemy.ts` | Formulas → `$91` blocks → animation records; records that signal `effect_done` |
-| `model/simulation.js` | The simulation's Everscript for one script, a room's clusters |
+| `model/simulation.ts` | The simulation's Everscript for one script, a room's clusters |
 | `webview/scripts-tab.js` | `_scr`, the list, the tool bar, dispatch |
 | `webview/scripts-room.js` | Everscript view |
 | `webview/scripts-anim.js` | Animations and Alchemy views, the animation player |

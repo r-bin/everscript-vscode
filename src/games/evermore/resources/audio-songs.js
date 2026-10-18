@@ -2,10 +2,10 @@
 // Ownership: one song of the music package — its transfer records read from the ROM, the assembled
 // SPC file (driver + records into ARAM), and its info page. Pure. audio-files.js serves the paths.
 
-const { getSoundAnimations } = require('../localizations/sounds');
+const { getSoundAnimations } = require('../../../../dist/games/evermore/localizations/sounds');
 const { hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
 const { buildMusicModel } = require('../music/model/catalog');
-const { packageRecords, musicPackages, driverBlocks, isEvermoreAudio } = require('../music/model/rom-audio');
+const { packageRecords, musicPackages, driverBlocks, isEvermoreAudio } = require('../../../../dist/games/evermore/music/model/rom-audio');
 const V = require('../music/webview/music-view');
 
 const SONG_POINTERS_ADDR = 0x019903;

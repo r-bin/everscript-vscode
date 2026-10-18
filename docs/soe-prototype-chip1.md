@@ -634,7 +634,7 @@ be rebuilt from the two ROM files with:
 - the chunk relocation map (32-byte window index, §1);
 - the `src/platform/snes/opcodes-65816.ts` matrix for disassembly (`M`/`X` tracked through `REP`/`SEP`);
 - the structure layouts already in this repo: character table (`soe://rom/assets/tables/character_table`),
-  song packages (`src/games/evermore/music/model/rom-audio.js`), sprite chunk lists (`src/games/evermore/maps/sprites.ts`);
+  song packages (`src/games/evermore/music/model/rom-audio.ts`), sprite chunk lists (`src/games/evermore/maps/sprites.ts`);
 - the parameters given above: prototype character table `$8E:B69C` × 136 × 76, song packages from
   `$8A:E220`, cheat table `$8C:F865`.
 

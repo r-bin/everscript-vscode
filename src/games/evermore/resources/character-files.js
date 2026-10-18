@@ -18,7 +18,7 @@ const {
     characterAnimationsIndexMarkdown,
     framesIndexMarkdown,
     tilesIndexMarkdown,
-} = require('./character-markdown');
+} = require('../../../../dist/games/evermore/resources/character-markdown');
 
 // WeakMap cache: rom -> Map(key -> renderedAnim)
 const _animCache = new WeakMap();

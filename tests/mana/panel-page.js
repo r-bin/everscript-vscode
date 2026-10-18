@@ -1,11 +1,11 @@
 'use strict';
-// Shared by the Secret of Mana Maps page tests: the real page (src/games/mana/maps/page.js, the same file list the
+// Shared by the Secret of Mana Maps page tests: the real page (src/games/mana/maps/page.ts, the same file list the
 // host uses) with `file://` URIs, written to a temp dir. The page is the shared editor shell plus the Mana editor.
 
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { pageHtml } = require('../../src/games/mana/maps/page');
+const { pageHtml } = require('../../dist/games/mana/maps/page');
 
 const url = p => 'file://' + p;
 

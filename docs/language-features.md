@@ -33,7 +33,7 @@ Context-aware code completion:
 - **Function Names:** Completes built-in API calls and workspace-declared functions.
 - **Enum Members:** Completes enum identifiers after dot syntax (`DIRECTION.NORTH`, `ITEM.JAGUAR_RING`).
 
-### 2.3 Go-to-Definition & Symbol References (`src/games/evermore/language/definition-provider.js`)
+### 2.3 Go-to-Definition & Symbol References (`src/games/evermore/language/definition-provider.ts`)
 - `Cmd+Click` or `F12` on a function call jumps directly to its `fun` declaration across any file in the workspace.
 - Resolves memory address declarations and constants indexed by `src/games/evermore/language/workspace-index.ts`.
 

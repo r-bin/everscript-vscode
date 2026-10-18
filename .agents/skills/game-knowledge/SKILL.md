@@ -94,7 +94,7 @@ the room id.
 - **Names are ours.** Pick descriptive names; don't import names from other projects.
 - **Evidence makes it trustworthy.** Say how you know. `confirmed` needs a trace, test or
   disassembly you actually looked at.
-- **Entries are the one source.** `localizations/knowledge.js` loads them; `functions.js` and
+- **Entries are the one source.** `localizations/knowledge.ts` loads them; `functions.js` and
   `tables.js` are views of the ROM entries of kind `code`/`script` and `table`/`data` that have a
   `category` (🧠 code, 📜 script, 📋 table, ⚗️ alchemy, 👾 enemies, 🎞️ animation, ⚔️ weapons,
   🎒 items) — that is how a routine or table reaches the ROM tab, `soe://localization`, the asm

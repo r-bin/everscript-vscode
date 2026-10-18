@@ -9,7 +9,7 @@
 
 const crypto = require('crypto');
 const { buildRomModel, stripCopierHeader } = require('./build');
-const { readersOf } = require('./model/readers');
+const { readersOf } = require('../../../../dist/games/evermore/rom/model/readers');
 const { executedByHalf, wramStrip } = require('../../../../dist/games/evermore/rom/model/bus-usage');
 const { missingRomText } = require('../../../../dist/platform/roms/library');
 

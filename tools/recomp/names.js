@@ -22,9 +22,9 @@ function slug(text) {
     return s;
 }
 
-/** The knowledge entries of one space, through the one loader (src/games/evermore/localizations/knowledge.js). */
+/** The knowledge entries of one space, through the one loader (src/games/evermore/localizations/knowledge.ts). */
 function readEntries(kind) {
-    return require(path.join(REPO, 'src', 'games', 'evermore', 'localizations', 'knowledge.js')).entries(kind);
+    return require(path.join(REPO, 'dist', 'games', 'evermore', 'localizations', 'knowledge.js')).entries(kind);
 }
 
 /**

@@ -3,9 +3,9 @@
 Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [README.md](README.md).
 
 ## Owns
-- Subjective names across the game: room names (`maps.js`), music/SFX names
-  (`sounds.js`), script names (`scripts.js`, `data/scripts.json`), in-game string resolution
-  (`strings.ts`), and the knowledge entries (`knowledge/`, loaded by `knowledge.js`; `tables.js` and
+- Subjective names across the game: room names (`maps.ts`), music/SFX names
+  (`sounds.ts`), script names (`scripts.js`, `data/scripts.json`), in-game string resolution
+  (`strings.ts`), and the knowledge entries (`knowledge/`, loaded by `knowledge.ts`; `tables.js` and
   `functions.js` are views of them — add a routine or table as an entry, never as a JS line).
 
 ## Dependencies

@@ -4,19 +4,19 @@
 
 ## Responsibilities
 
-1. **Map / Room Names (`maps.js`)**
+1. **Map / Room Names (`maps.ts`)**
    - Authoritative mapping from ROM room IDs (`0x00`..`0x7E`) to room names and world areas.
    - Names in our style from `data/rooms.json`: `region › place › part`, a path id, and where each part comes from
      (the region from the Dog form the room asks for, the place from the game's text where it names one).
      Regenerate with `node tools/rooms/write-room-names.js`; edit the rows there, not the JSON.
    - Short names (`place › part`), full names (with the region), and optional in-game string indices.
 
-2. **Sound & Music Names (`sounds.js`)**
+2. **Sound & Music Names (`sounds.ts`)**
    - Music tracks (`0x00`..`0x45`) mapped to titles verified against reference rips in `Secret of Evermore (EMU)`.
    - Sound effect (SFX) parameters mapped to descriptive titles from EMU reference rips and engine disassembly.
    - `getSoundAnimations()`: which animations play which sound (animation command `0x2E`/`0x2F` `sound n` = script id `2n`), from `data/sound-animations.json` (generated from the ROM by `tools/gen-sound-animations.js`).
 
-3. **Knowledge entries (`knowledge/{ram,rom}/<addr>.md`, loaded by `knowledge.js`)**
+3. **Knowledge entries (`knowledge/{ram,rom}/<addr>.md`, loaded by `knowledge.ts`)**
    - Everything known about an address: what it is, its fields, how it is known (`game-knowledge` skill).
    - `tables.js` and `functions.js` are views of the ROM entries with a `category` (tables, routines);
      `soe://localization/knowledge/` serves every entry and the generated RAM and ROM maps.

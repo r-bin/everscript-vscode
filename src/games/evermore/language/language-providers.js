@@ -9,7 +9,7 @@ const hoverProv    = require('./hover-provider');
 const completeProv = require('./completion-provider');
 const symbolProv   = require('../../../../dist/games/evermore/language/symbol-provider');
 const deadBranch   = require('../../../../dist/games/evermore/language/dead-branch');
-const defProv      = require('./definition-provider');
+const defProv      = require('../../../../dist/games/evermore/language/definition-provider');
 
 module.exports = {
     // Data loading

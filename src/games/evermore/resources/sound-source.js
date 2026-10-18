@@ -20,8 +20,8 @@ const { resolveCharacters } = require('./character-files');
 const { asmAroundCall, lineText } = require('./asm-view');
 const { renderCharacterSprite } = require('../../../../dist/games/evermore/maps/characters');
 const { encodePng } = require('../../../../dist/games/evermore/maps/png');
-const { getSoundAnimations } = require('../localizations/sounds');
-const { getFunctionName } = require('../localizations/functions');
+const { getSoundAnimations } = require('../../../../dist/games/evermore/localizations/sounds');
+const { getFunctionName } = require('../../../../dist/games/evermore/localizations/functions');
 const { hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
 const { hex: toHex, hiromFileOffset } = require('../../../../dist/platform');
 

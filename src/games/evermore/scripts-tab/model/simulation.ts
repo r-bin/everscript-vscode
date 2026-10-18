@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: the Scripts tab's use of the script simulation (../../simulation,
 // a library): a script as the Everscript that compiles back to its bytes, and a
 // room's triggers grouped into the simulation's clusters (pickups, exits,
@@ -7,34 +6,41 @@
 //
 // Trigger keys match model/rooms.js: `step:<i>`, `b:<i>`, `enter`.
 
-const simulation = require('../../../../../dist/games/evermore/simulation');
+import * as simulation from '../../simulation';
 
-let _sim = null;      // { rom, sim, rooms: Map<id, clusters> }
+/** A room's triggers grouped by what they do, keyed like model/rooms.js. */
+interface ClusterView { kind: string; title: string; keys: string[] }
+type Clusters = ClusterView[] | { error: string };
 
-function simulator(rom) {
+let _sim: { rom: ArrayLike<number>; sim: simulation.Simulator; rooms: Map<number, Clusters> } | null = null;
+
+const message = (err: unknown): string => String(err instanceof Error ? err.message : err);
+
+function simulator(rom: ArrayLike<number>) {
     if (!_sim || _sim.rom !== rom) _sim = { rom, sim: simulation.createSimulator(new Uint8Array(rom)), rooms: new Map() };
     return _sim;
 }
 
-const NAMES = { enter: 'enter', step: 'step_on', b: 'b_trigger' };
+const NAMES: Record<string, string> = { enter: 'enter', step: 'step_on', b: 'b_trigger' };
 
 /** { text, structured } or { error }. */
-function simulateScript(rom, address, key) {
+function simulateScript(rom: ArrayLike<number>, address: number, key: string) {
     try {
         const kind = String(key).split(':')[0];
         const name = (NAMES[kind] || 'script') + (key.includes(':') ? '_' + key.split(':')[1] : '');
         const out = simulator(rom).sim.emit(address, name);
         return { text: out.everscript, structured: out.structured };
     } catch (err) {
-        return { error: String(err && err.message || err) };
+        return { error: message(err) };
     }
 }
 
 /** [{ kind, title, keys: ['step:3', ...] }] or { error }. Cached per room. */
-function roomClusters(rom, id) {
+function roomClusters(rom: ArrayLike<number>, id: number): Clusters {
     const s = simulator(rom);
-    if (s.rooms.has(id)) return s.rooms.get(id);
-    let out;
+    const hit = s.rooms.get(id);
+    if (hit) return hit;
+    let out: Clusters;
     try {
         out = s.sim.room(id).clusters.map((c) => ({
             kind: c.kind,
@@ -42,10 +48,10 @@ function roomClusters(rom, id) {
             keys: c.triggers.map((t) => (t.type === 'b-button' ? 'b:' : 'step:') + t.index),
         }));
     } catch (err) {
-        out = { error: String(err && err.message || err) };
+        out = { error: message(err) };
     }
     s.rooms.set(id, out);
     return out;
 }
 
-module.exports = { simulateScript, roomClusters };
+export { simulateScript, roomClusters };

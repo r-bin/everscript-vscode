@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: the "Check soe:// Resources" panel — the feature's acceptance
 // test, run in a real webview:
 //   1. <img src="soe://rom/assets/ingredients/wax/icon.png">  (host rewrite)
@@ -7,18 +6,21 @@
 //   4. fetch soe://tags/check.json                     (tag graph: load errors, broken links)
 // The command resolves with each result, so a test can run it too.
 
-const vscode = require('vscode');
-const { soeResourceRoots, rewriteSoeUrls, soeClientScript } = require('../../../../dist/games/evermore/resources/webview');
+import * as vscode from 'vscode';
+import { soeResourceRoots, rewriteSoeUrls, soeClientScript } from './webview';
 
 const TIMEOUT_MS = 8000;
-let _panel = null;
+let _panel: vscode.WebviewPanel | null = null;
+
+/** Each check's result as the page reports it. */
+interface CheckResult { ok: boolean; detail: string }
+type CheckResults = Record<'benchmark' | 'dynamic' | 'ram' | 'tags', CheckResult | undefined> & { error?: string };
 
 function nonce() {
     return Array.from({ length: 32 }, () => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]).join('');
 }
 
-/** @returns {Promise<{ benchmark: object, dynamic: object, ram: object, tags: object }>} */
-function checkSoeResources() {
+function checkSoeResources(): Promise<CheckResults> {
     if (_panel) _panel.dispose();
     const panel = vscode.window.createWebviewPanel('everscriptSoeCheck', 'soe:// Check', vscode.ViewColumn.Active, {
         enableScripts: true,
@@ -27,24 +29,24 @@ function checkSoeResources() {
     _panel = panel;
     panel.onDidDispose(() => { if (_panel === panel) _panel = null; });
 
-    const result = new Promise(resolve => {
-        const timer = setTimeout(() => resolve({ error: 'The check page did not report back' }), TIMEOUT_MS + 2000);
-        panel.webview.onDidReceiveMessage(msg => {
+    const result = new Promise<CheckResults>(resolve => {
+        const timer = setTimeout(() => resolve({ benchmark: undefined, dynamic: undefined, ram: undefined, tags: undefined, error: 'The check page did not report back' }), TIMEOUT_MS + 2000);
+        panel.webview.onDidReceiveMessage((msg: { command?: string; results?: CheckResults }) => {
             if (!msg || msg.command !== 'soeCheckDone') return;
             clearTimeout(timer);
-            resolve(msg.results);
+            if (msg.results) resolve(msg.results);
         });
     });
     panel.webview.html = rewriteSoeUrls(buildHtml(panel.webview, nonce()), panel.webview);
     return result.then(results => {
-        const ok = r => r && r.ok;
-        const line = ['benchmark', 'dynamic', 'ram', 'tags'].map(k => `${k} ${ok(results[k]) ? '✓' : '✗'}`).join(' · ');
+        const ok = (r: CheckResult | undefined) => !!r && r.ok;
+        const line = (['benchmark', 'dynamic', 'ram', 'tags'] as const).map(k => `${k} ${ok(results[k]) ? '✓' : '✗'}`).join(' · ');
         vscode.window.setStatusBarMessage(`soe:// check: ${line}`, 10000);
         return results;
     });
 }
 
-function buildHtml(webview, n) {
+function buildHtml(webview: vscode.Webview, n: string): string {
     return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource}; connect-src ${webview.cspSource}; style-src 'unsafe-inline'; script-src 'nonce-${n}';">
@@ -115,4 +117,4 @@ function buildHtml(webview, n) {
 </body></html>`;
 }
 
-module.exports = { checkSoeResources };
+export { checkSoeResources };

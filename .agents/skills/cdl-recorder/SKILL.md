@@ -132,7 +132,7 @@ work behind a "seen lately" or "already marked" check.
 | `bus.md`, `bus.json` | `bus-report.js` | ExHiROM audit (bytes/instructions/edges through `$00-$3F`, `$40-$7D`), SA-1 audit (every form but `$C0-$FF`), bytes per file bank and form, top functions by cycles |
 | `ram.asm` | `wram-export.js` | every WRAM address, accessors, values, hit counts |
 | `spc/aram.cdl` | `asar-export.js` | ARAM coverage |
-| `mesen/labels.mlb`, `mesen/rom.cdl` | `mesen-export.js` | export comments + curated names (option `names`, `wramNames`), asset ranges (`assets`); formats in docs/reverse-engineering/formats.md §3 |
+| `mesen/labels.mlb`, `mesen/rom.cdl` | `mesen-export.ts` | export comments + curated names (option `names`, `wramNames`), asset ranges (`assets`); formats in docs/reverse-engineering/formats.md §3 |
 
 **Curated names** reach the export only through options (`exportAsar(lib, rom, dir, { names, wramNames, assets })`): the cdl domain may not import `src/games/evermore/localizations`. `tools/recomp/` (`npm run recomp`) collects them and runs export → asar → snesrecomp → `out/recomp/REPORT.md`. A name must be a valid Asar/C identifier; `buildIndex(lib, map, { names })` makes `labelName()` return it.
 
@@ -156,7 +156,7 @@ Recording the CDL never changes emulation (tested: same checksums with `--cdl`).
 frame 1 does not reproduce the run) and `--from-state <file>` resumes from one (`tools/cdl/replay-states.js`,
 `tests/debugger/tas-states.test.js`); states hold ROM-derived memory and stay out of git. While you record by hand the
 extension replays the session headless every `everscript.tas.verifyEveryMinutes` (default 30) and reports OK / desync
-(`src/platform/tas/verify.js`); a failure after resuming from a state is repeated from power-on before it is believed.
+(`src/platform/tas/verify.ts`); a failure after resuming from a state is repeated from power-on before it is believed.
 
 ## 6. What each goal still needs
 

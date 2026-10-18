@@ -36,7 +36,7 @@ game frame rates.
   `# desync: <frame> <detail>` at the first lost checksum, `# synced: <date>` after a replay to the
   end with none. A desync is for good: the recording is never marked synced afterwards. Only a fair
   replay marks (EVS_TAS core, same ROM, same core build); a failed headless replay check while
-  recording (`verify.js`) writes the desync line into the recording in progress. The REPLAYS tab
+  recording (`verify.ts`) writes the desync line into the recording in progress. The REPLAYS tab
   shows "synced", "desync at m:ss" or "not replayed yet".
 - The pause menu (Esc) needs no event: no frame runs while it is open. What is done in it is
   recorded as what it does: flag/cheat/loot toggles are writes, **Soft Reset** (menu EMULATION
@@ -52,7 +52,7 @@ game frame rates.
 - Every way into emulator memory from outside is `Module.writeMemory` (hooked), `softReset` and the pad; audited at v0.215.0
   (`maintainCheats` writes through `writeMemory`; there is no other cheat engine in use; a replay does not run it).
 - **Save states and the replay check** (v0.216.0): `tools/cdl/replay.js --states <dir>` saves a state at room changes
-  (`replay-states.js`), `--from-state` resumes from one. `verify.js` replays the session being recorded on a headless
+  (`replay-states.js`), `--from-state` resumes from one. `verify.ts` replays the session being recorded on a headless
   copy every `everscript.tas.verifyEveryMinutes`. A failure after resuming from a state is repeated from power-on.
 - Version 1 recordings still replay (without events); their cheat warning stays.
 - Headless: `node tools/cdl/replay.js <movie> <rom> [--cdl <library root>]` replays on the same

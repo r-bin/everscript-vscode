@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: the files of one map under som://rom/maps/ — pictures, data, collision
 // and animation. Pure (no `vscode`): ROM bytes and a map id in, Buffers out.
 //
@@ -12,29 +11,27 @@
 //                         pieces and their states, the backdrop
 //   <id>.tiles.a.png / .tiles.b.png   layer A's / B's 192 metatiles as a 16x12 sheet (colour 0 clear)
 
-const mana = require('../../../../dist/games/mana/decoder');
-const platform = require('../../../../dist/platform');
-/** @param {{ width: number, height: number, rgba: Uint8Array }} img */
-const encodePng = img => platform.encodePng(img.width, img.height, img.rgba);
+import * as mana from '../decoder';
+import * as platform from '../../../platform';
+import type { ManaMap } from '../decoder/map';
 
-const json = v => Buffer.from(JSON.stringify(v) + '\n', 'utf8');
+const encodePng = (img: { width: number; height: number; rgba: Uint8Array; }): Buffer => platform.encodePng(img.width, img.height, img.rgba);
 
-/** @param {Uint8Array} rom @param {number} id */
-function load(rom, id) {
+const json = (v: unknown): Buffer => Buffer.from(JSON.stringify(v) + '\n', 'utf8');
+
+function load(rom: Uint8Array, id: number) {
     const map = mana.loadMap(rom, id);
     if (!map) throw new Error(`map ${id.toString(16)} has no pieces`);
     return map;
 }
 
-/** @param {Uint8Array} rom @param {number} id @param {'both'|'a'|'b'} layers */
-function picture(rom, id, layers) {
+function picture(rom: Uint8Array, id: number, layers: 'both' | 'a' | 'b') {
     const map = load(rom, id);
     const opts = layers === 'both' ? {} : { layers: { a: layers === 'a', b: layers === 'b' } };
     return encodePng(mana.renderMap(map, opts));
 }
 
-/** @param {Uint8Array} rom @param {number} id */
-function data(rom, id) {
+function data(rom: Uint8Array, id: number) {
     const m = load(rom, id);
     return json({
         id, w: m.w, h: m.h, sizeB: m.sizeB,
@@ -46,12 +43,11 @@ function data(rom, id) {
     });
 }
 
-/** @param {Uint8Array} rom @param {number} id */
-function collision(rom, id) {
+function collision(rom: Uint8Array, id: number) {
     const m = load(rom, id);
     const c = mana.collisionOf(rom, m);
     let floor = '', diagonal = '';
-    const switches = [], specials = [];
+    const switches: [number, number][] = [], specials: { x: number; y: number; kind: number }[] = [];
     for (let i = 0; i < c.w * c.h; i++) {
         const [c0, c1, c2] = c.bytes.subarray(i * 4, i * 4 + 3);
         floor += mana.floorOf(c0);
@@ -64,13 +60,12 @@ function collision(rom, id) {
     return json({ w: c.w, h: c.h, floor, diagonal, switches, specials });
 }
 
-/** @param {Uint8Array} rom @param {number} id */
-function animation(rom, id) {
+function animation(rom: Uint8Array, id: number) {
     const m = load(rom, id);
     const trace = mana.traceAnimation(rom, m.header);
     if (!trace) return json({ length: 0, images: [], kinds: [] });
     const cells = mana.animateCells(m, trace);
-    const images = [], index = new Map();
+    const images: string[] = [], index = new Map<string, number>();
     const kinds = cells.kinds.map(k => ({
         cells: k.cells,
         starts: k.starts,
@@ -88,28 +83,26 @@ function animation(rom, id) {
     return json({ length: cells.length, images, kinds });
 }
 
-/** @param {Uint8Array} rom @param {number} id */
-function objects(rom, id) {
+function objects(rom: Uint8Array, id: number) {
     load(rom, id);
     return json({ objects: mana.mapObjects(rom, id) });
 }
 
 /** Both layers' metatile numbers, cell by cell (layer B with its own size, as the game repeats it). */
-function layerCells(m, layer, w, h) {
-    const out = [];
+function layerCells(m: ManaMap, layer: 'A' | 'B', w: number, h: number): number[] {
+    const out: number[] = [];
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) out.push(m.cell(layer, x, y));
     return out;
 }
 
 /** Collision bytes of every metatile of a layer's half, 4 each, in metatile order. */
-function halfCollision(rom, m, layer) {
-    const out = [];
+function halfCollision(rom: Uint8Array, m: ManaMap, layer: 'A' | 'B'): number[] {
+    const out: number[] = [];
     for (let n = 0; n < mana.METATILES_PER_HALF; n++) out.push(...mana.metatileCollision(rom, m, layer, n));
     return out;
 }
 
-/** @param {Uint8Array} rom @param {number} id */
-function editModel(rom, id) {
+function editModel(rom: Uint8Array, id: number) {
     const m = load(rom, id);
     const bd = m.display.backdrop;
     const ev = mana.mapEvents(rom, m);
@@ -129,13 +122,12 @@ function editModel(rom, id) {
     });
 }
 
-/** @param {Uint8Array} rom @param {number} id @param {'A'|'B'} layer */
-function tileSheet(rom, id, layer) {
+function tileSheet(rom: Uint8Array, id: number, layer: 'A' | 'B') {
     return encodePng(mana.renderMetatileSheet(load(rom, id), layer));
 }
 
 /** File name -> producer for one map, or null. */
-function mapFile(rom, id, ext) {
+function mapFile(rom: Uint8Array, id: number, ext: string): (() => Buffer) | null {
     switch (ext) {
         case 'png': return () => picture(rom, id, 'both');
         case 'a.png': return () => picture(rom, id, 'a');
@@ -153,4 +145,4 @@ function mapFile(rom, id, ext) {
 
 const MAP_FILE_EXTS = ['png', 'a.png', 'b.png', 'json', 'collision.json', 'anim.json', 'objects.json', 'edit.json', 'tiles.a.png', 'tiles.b.png'];
 
-module.exports = { mapFile, MAP_FILE_EXTS };
+export { mapFile, MAP_FILE_EXTS };

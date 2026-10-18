@@ -16,7 +16,7 @@
 
 const fs = require('fs');
 const { constantNames, constantValue } = require('./value-types');
-const { evaluateCondition } = require('./conditions');
+const { evaluateCondition } = require('../../../../dist/games/evermore/debugger/conditions');
 const { hex: toHex } = require('../../../../dist/platform');
 
 const WRAM = 0x7E0000;

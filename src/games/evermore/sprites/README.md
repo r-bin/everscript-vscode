@@ -19,7 +19,7 @@ The radar tab is called **Characters** (it was "Sprites"); inside it, three mode
 | `animation-decoder.js` | Runs an animation script (via `maps/animation-vm`), aligns frames, renders PNGs, returns the script listing | < 200 |
 | `animation-catalog.js` | Every animation in the ROM's record table ($C43E3A), who uses it (character fields, weapons, `animate()` ids via $C43C92), and its palette | < 150 |
 | `frame-compose.ts` | Composes a run's frames into PNGs aligned on one feet origin | < 80 |
-| `projectile-render.js` | Projectile spawns on the playback timeline, their flight and their own animation | < 100 |
+| `projectile-render.ts` | Projectile spawns on the playback timeline, their flight and their own animation | < 100 |
 | `target.js` | The second character on stage: who, where, its standing frame, and which ticks hit it | < 120 |
 | `dog-forms.ts` | The Dog's six forms (bank `$CF`), shaped like Boy weapons | < 90 |
 | `raw-sprites.ts` | Walks and indexes all raw sprites from `$CA0003`, renders chunk tables | < 150 |

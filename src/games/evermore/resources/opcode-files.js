@@ -5,7 +5,7 @@
 // Pure apart from the ROM buffer it is handed.
 
 const V = require('../../../../dist/games/evermore/script-vm');
-const { entries } = require('../localizations/knowledge');
+const { entries } = require('../../../../dist/games/evermore/localizations/knowledge');
 const { dir, json, text } = require('../../../../dist/games/evermore/resources/nodes');
 const { hexLower: hex2 } = require('../../../../dist/platform');
 

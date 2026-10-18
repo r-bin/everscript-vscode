@@ -115,9 +115,9 @@ The tree comes from what the extension already decodes, so most tags are generat
 |---|---|---|
 | `character`, `player`, `boy`, `dog`, `enemy` | the tag graph of §5.2: attributes, stats, equipment, sprite, animations | `src/games/evermore/resources/tags/tags.json` |
 | `enemy.<name>` | one per character record (`enemy.raptor`): sprite, animations, stats | `maps/characters.ts`, `names.json enemies` |
-| `map` | `map.<name>` per room | `localizations/maps.js` |
+| `map` | `map.<name>` per room | `localizations/maps.ts` |
 | `item`, `ingredient`, `alchemy` | per entry | `rom-assets.js` (same names it already serves) |
-| `music`, `sound` | per track / effect; a sound links the characters whose animations play it (≤ 12) and sees `boy` / `dog` | `localizations/sounds.js`, `localizations/data/sound-animations.json` (`tools/gen-sound-animations.js`), `audio-files.js` |
+| `music`, `sound` | per track / effect; a sound links the characters whose animations play it (≤ 12) and sees `boy` / `dog` | `localizations/sounds.ts`, `localizations/data/sound-animations.json` (`tools/gen-sound-animations.js`), `audio-files.js` |
 | `flag` | `flag.<name>` per named flag | `names.json flags` |
 | `table` | per engine table | `table-files.js` |
 | `script` | per named script | `localizations/data/scripts.json` |

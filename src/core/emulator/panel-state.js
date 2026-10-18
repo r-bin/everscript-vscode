@@ -12,7 +12,7 @@ const { ScriptDebugHost } = require('./script-debug-host');
 const { resolveCore } = require('../../../dist/core/emulator/core-path');
 const { describeFile: _describeFile, log: _log } = require('./emulator-log');
 const { MemoryBridge } = require('../../../dist/core/emulator/memory-bridge');
-const { ApuStream } = require('./apu-stream');
+const { ApuStream } = require('../../../dist/core/emulator/apu-stream');
 const { getRomOfferData, recordRomUsage } = require('./rom-history');
 
 /** The panel's state: the panel itself, the ROM it runs, the timers and hosts that live with it. */

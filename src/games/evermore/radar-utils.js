@@ -15,7 +15,7 @@ const { escapeHtml } = require('../../../dist/core/webview/html');
 let _compilerRegions = null;
 function compilerRegions() {
     if (!_compilerRegions) {
-        const { entries } = require('./localizations/knowledge');
+        const { entries } = require('../../../dist/games/evermore/localizations/knowledge');
         _compilerRegions = entries('ram').filter(e => e.kind === 'region' && e.tags.includes('compiler-region'))
             .map(e => ({ from: e.addr & 0xFFFF, to: e.end & 0xFFFF, lifecycle: e.lifetime === 'room' ? 'temp' : 'session' }));
     }

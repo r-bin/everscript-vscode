@@ -1,15 +1,17 @@
-'use strict';
 // Ownership: what the emulator's map view knows about a room besides its picture (collision, the
 // animated tiles, objects, the foreground), read once per room and kept; and the 2x pixel helpers its
 // pictures share. room-map.js draws the room; host.js hands both to the panel.
 
-const maps = require('../../../../dist/games/evermore/maps');
-const { buildItemIcons } = require('../../../../dist/games/evermore/rooms/data/item-icons');
-const { buildRoomScriptModel } = require('../../../../dist/games/evermore/script-model');
+import * as maps from '../maps';
+import { buildItemIcons } from '../rooms/data/item-icons';
+import { buildRoomScriptModel } from '../script-model';
+import type { PixelBuffer } from '../maps/render';
 
-const roomMetaCache = new Map();
+const roomMetaCache = new Map<number, RoomMeta>();
 
-function scale2x(pb) {
+type RoomMeta = NonNullable<ReturnType<typeof readRoomMeta>>;
+
+function scale2x(pb: PixelBuffer): PixelBuffer {
     if (!pb || !pb.data) return pb;
     const w = pb.width;
     const h = pb.height;
@@ -39,7 +41,7 @@ function scale2x(pb) {
     return { width: w * 2, height: h * 2, data: dst };
 }
 
-function alignPixelsToSnes(pb) {
+function alignPixelsToSnes(pb: PixelBuffer): PixelBuffer {
     if (!pb || !pb.data) return pb;
     const d = pb.data;
     for (let i = 0; i < d.length; i += 4) {
@@ -50,20 +52,25 @@ function alignPixelsToSnes(pb) {
     return pb;
 }
 
-function hasOpaquePixel(pb) {
+function hasOpaquePixel(pb: PixelBuffer): boolean {
     const d = pb.data;
     for (let i = 3; i < d.length; i += 4) if (d[i]) return true;
     return false;
 }
 
-function roomMeta(rom, mapId) {
-    if (roomMetaCache.has(mapId)) {
-        return roomMetaCache.get(mapId);
-    }
+function roomMeta(rom: Uint8Array, mapId: number): RoomMeta | null {
+    const hit = roomMetaCache.get(mapId);
+    if (hit) return hit;
+    const meta = readRoomMeta(rom, mapId);
+    if (meta) roomMetaCache.set(mapId, meta);   // a room that does not decode is tried again next time
+    return meta;
+}
+
+function readRoomMeta(rom: Uint8Array, mapId: number) {
     const room = maps.decodeRoom(rom, mapId);
     if (!room) return null;
 
-    let collisionUri = null;
+    let collisionUri: string | null = null;
     try {
         const wTiles = room.header.widthTiles;
         const hTiles = room.header.heightTiles;
@@ -88,9 +95,9 @@ function roomMeta(rom, mapId) {
         }
     } catch (_) {}
 
-    let animGroups = [];
+    let animGroups: AnimGroupView[] = [];
     try {
-        const encodeFrame = f => {
+        const encodeFrame = (f: PixelBuffer): string => {
             alignPixelsToSnes(f);
             return maps.encodePngDataUri(scale2x(f));
         };
@@ -114,7 +121,7 @@ function roomMeta(rom, mapId) {
         });
     } catch (_) {}
 
-    let bgPalette = null;
+    let bgPalette: number[] | null = null;
     try {
         bgPalette = [];
         for (const pal of maps.buildRoomCgramPalettes(rom, room.tileFamilies)) {
@@ -122,7 +129,7 @@ function roomMeta(rom, mapId) {
         }
     } catch (_) { bgPalette = null; }
 
-    const roomObjects = [];
+    const roomObjects: RoomObjectView[] = [];
     const hexId = mapId.toString(16).padStart(2, '0');
     try {
         if (room.objects && room.objects.length) {
@@ -142,8 +149,8 @@ function roomMeta(rom, mapId) {
                 const states = [];
                 for (let s = 0; s < count; s++) {
                     const st = s > 0 ? obj.states[s - 1] : obj.states[0];
-                    const stamp = st ? maps.parseObjectStamp(rom, room.objectArea, st.metatileId) : { valid: false };
-                    let preview = null;
+                    const stamp = st ? maps.parseObjectStamp(rom, room.objectArea, st.metatileId) : null;
+                    let preview: string | null = null;
                     try {
                         const img = maps.renderObjectState(rom, room, i, s);
                         if (img) preview = maps.encodePngDataUri(img);
@@ -153,8 +160,8 @@ function roomMeta(rom, mapId) {
                         hold: st ? st.hold : 0,
                         x: st ? st.tileX * 16 : box.x * 16,
                         y: st ? st.tileY * 16 : box.y * 16,
-                        w: (stamp.valid ? stamp.tw : (st ? st.targetWidth : box.w)) * 16,
-                        h: (stamp.valid ? stamp.th : (st ? st.targetHeight : box.h)) * 16,
+                        w: (stamp && stamp.valid ? stamp.tw : (st ? st.targetWidth : box.w)) * 16,
+                        h: (stamp && stamp.valid ? stamp.th : (st ? st.targetHeight : box.h)) * 16,
                         preview: preview,
                         vfsUri: 'soe://rom/assets/maps/' + hexId + '/objects/' + i + '/state_' + s + '.png',
                     });
@@ -176,12 +183,12 @@ function roomMeta(rom, mapId) {
         }
     } catch (_) {}
 
-    const animTileClusters = [];
+    const animTileClusters: unknown[] = [];
     try {
         if (room.animation && room.animation.length) {
             const wTiles = room.header.widthTiles;
             const hTiles = room.header.heightTiles;
-            const cellMap = new Map();
+            const cellMap = new Map<string, number>();
             for (let y = 0; y < hTiles; y++) {
                 for (let x = 0; x < wTiles; x++) {
                     const chans = maps.cellChannels(room, x, y, 'composite');
@@ -194,11 +201,11 @@ function roomMeta(rom, mapId) {
             for (const key of cellMap.keys()) {
                 if (!unvisited.has(key)) continue;
                 const chan = cellMap.get(key);
-                const clusterKeys = [];
+                const clusterKeys: string[] = [];
                 const queue = [key];
                 unvisited.delete(key);
                 while (queue.length > 0) {
-                    const cur = queue.pop();
+                    const cur = queue.pop() as string;
                     clusterKeys.push(cur);
                     const [cx, cy] = cur.split(',').map(Number);
                     const neighbors = [
@@ -228,7 +235,7 @@ function roomMeta(rom, mapId) {
                     if (c.y > maxY) maxY = c.y;
                 }
                 const isRect = parsedCells.length === (maxX - minX + 1) * (maxY - minY + 1);
-                const letter = String.fromCharCode(65 + (chan % 26));
+                const letter = String.fromCharCode(65 + ((chan ?? 0) % 26));
 
                 animTileClusters.push({
                     channel: chan,
@@ -248,16 +255,20 @@ function roomMeta(rom, mapId) {
         }
     } catch (_) {}
 
-    let itemIcons = null;
+    let itemIcons: Record<string, string> | null = null;
     try {
         const icons = buildItemIcons(rom);
         itemIcons = (icons && icons.loot) ? icons.loot : null;
     } catch (_) {}
 
-    const roomLootables = [];
+    const roomLootables: unknown[] = [];
     try {
         const scriptModel = buildRoomScriptModel(rom, mapId);
-        const allTrigs = [...(scriptModel.bTrigger || []), ...(scriptModel.stepOn || [])];
+        // Each trigger with its index in its own table (b-trigger or step-on), as the page names triggers.
+        const allTrigs = [
+            ...(scriptModel.bTrigger || []).map((t, index) => ({ ...t, kind: 'bTrigger', index })),
+            ...(scriptModel.stepOn || []).map((t, index) => ({ ...t, kind: 'stepOn', index })),
+        ];
         let lootIdx = 0;
         for (const trig of allTrigs) {
             if (!trig.loot || !trig.loot.length) continue;
@@ -287,6 +298,7 @@ function roomMeta(rom, mapId) {
                     y: trigBox.y,
                     w: trigBox.w,
                     h: trigBox.h,
+                    triggerKind: trig.kind,
                     triggerIndex: trig.index,
                     scriptAddressSnes: trig.scriptAddressSnes,
                 });
@@ -294,7 +306,7 @@ function roomMeta(rom, mapId) {
         }
     } catch (_) {}
 
-    const meta = {
+    return {
         room: room,
         collisionUri: collisionUri,
         animGroups: animGroups,
@@ -306,8 +318,16 @@ function roomMeta(rom, mapId) {
         offX: room.header.originX,
         offY: room.header.originY,
     };
-    roomMetaCache.set(mapId, meta);
-    return meta;
 }
 
-module.exports = { roomMeta, roomMetaCache, scale2x, alignPixelsToSnes, hasOpaquePixel };
+/** An animated area of the room: its box in pixels, the channels it runs and its frames (2x PNG data URIs). */
+interface AnimGroupView {
+    x: number; y: number; w: number; h: number; delays: number[]; channels: number[]; chanLens: number[];
+    frames: string[]; fgFrames: string[] | null;
+}
+interface RoomObjectView {
+    index: number; x: number; y: number; w: number; h: number; preview: string | null; states: unknown[];
+    vfsUri: string; vfsPreview: string; vfsGif: string;
+}
+
+export { roomMeta, roomMetaCache, scale2x, alignPixelsToSnes, hasOpaquePixel };

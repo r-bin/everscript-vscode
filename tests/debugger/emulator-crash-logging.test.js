@@ -139,8 +139,8 @@ test('menu-view.js gates Start button only on opening screen and name entry', ()
 });
 
 test('the Evermore emulator host caches static room metadata; the panel clears it on disposal', () => {
-  const hostCode = ['host.js', 'room-meta.js', 'room-map.js'].map((f) => fs.readFileSync(path.join(__dirname, '../../src/games/evermore/emulator', f), 'utf8')).join('\n');
-  assert.ok(hostCode.includes('const roomMetaCache = new Map();'), 'the host must keep a room meta cache');
+  const hostCode = ['host.js', 'room-meta.ts', 'room-map.js'].map((f) => fs.readFileSync(path.join(__dirname, '../../src/games/evermore/emulator', f), 'utf8')).join('\n');
+  assert.ok(/const roomMetaCache = new Map(<[^>]*>)?\(\);/.test(hostCode), 'the host must keep a room meta cache');
   assert.ok(hostCode.includes('roomMeta(rom, mapId)'), 'the host must use roomMeta to avoid re-encoding animation groups on every frame');
   assert.ok(hostCode.includes('roomMetaCache.clear();'), 'clearCaches must clear the room meta cache');
   assert.ok(panelCode.includes('options.game.clearCaches()'), 'panel.js must clear the game caches on disposal');

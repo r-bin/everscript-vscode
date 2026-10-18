@@ -12,7 +12,7 @@ const GAMES = [
 function activate(context) {
     // The game descriptors, then the ROM library: every reader asks it which ROM to use (§3, §5).
     require('../dist/games').registerGames();
-    require('./core/roms/host').activateRoms(context);
+    require('../dist/core/roms/host').activateRoms(context);
     for (const game of GAMES) game.activate(context);
     // After the games: their own Switch ROM listeners (caches) run before views are swapped.
     require('./core/game-views').activateGameViews(context);

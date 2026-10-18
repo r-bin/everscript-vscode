@@ -1,10 +1,10 @@
-'use strict';
 // Ownership: ROM tables by address, as the rest of the plugin reads them. A view of the knowledge
-// entries of kind `table` / `data` with a `category` (knowledge.js); write new facts as entries
+// entries of kind `table` / `data` with a `category` (knowledge.ts); write new facts as entries
 // (`game-knowledge` skill), never here.
 
-const { entries } = require('./knowledge');
-const { resolveLocalizedName } = require('../../../../dist/games/evermore/localizations/strings');
+import { entries } from './knowledge';
+import { resolveLocalizedName } from './strings';
+import type { NameOptions } from './strings';
 
 /** { address, name, notes, category, size, stringIndex, id } per table (name = the entry's title). */
 const TABLES = entries('rom')
@@ -18,15 +18,15 @@ const TABLES = entries('rom')
 const TABLE_BY_OFFSET = new Map(TABLES.map(t => [t.address & 0x3FFFFF, t]));
 const TABLE_BY_ADDRESS = new Map(TABLES.map(t => [t.address, t]));
 
-function getTable(address) {
+function getTable(address: unknown) {
     if (typeof address !== 'number') return null;
     return TABLE_BY_ADDRESS.get(address) || TABLE_BY_OFFSET.get(address & 0x3FFFFF) || null;
 }
 
-function getTableName(address, options = {}) {
+function getTableName(address: number, options: NameOptions = {}): string {
     const table = getTable(address);
     if (!table) return `Table $${address.toString(16).toUpperCase()}`;
     return resolveLocalizedName(table, options.rom, 'name');
 }
 
-module.exports = { TABLES, TABLE_BY_ADDRESS, getTable, getTableName };
+export { TABLES, TABLE_BY_ADDRESS, getTable, getTableName };

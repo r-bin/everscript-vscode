@@ -7,7 +7,7 @@ Related skills: `animation-script`, `map-entities` (`.agents/skills/`).
 - The radar panel's **Characters** tab: characters/enemies/NPCs and their stats and
   hitboxes, raw ROM sprites, the animation catalog, and the animation player.
 - Host side: `character-model.js`, `animation-*.js`, `frame-compose.ts`,
-  `projectile-render.js`, `target.js`, `dog-forms.ts`, `raw-sprites.ts`, `thumbnails.js`,
+  `projectile-render.ts`, `target.js`, `dog-forms.ts`, `raw-sprites.ts`, `thumbnails.js`,
   `sprites-tab.ts`, `index.js`, `radar-host.js` (the tab's messages, routed by `extension.js`). Browser side: `webview/` (concatenated into the radar page).
 
 ## Dependencies

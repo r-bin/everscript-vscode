@@ -68,7 +68,7 @@ binds the same key and wins on extension load order; a user keybinding
 | `tag-markdown.js` | tag pages as Markdown / JSON |
 | `tags/tags.json` | hand-authored tags: `character` → `player` → `boy` / `dog`, `enemy`, precompiled WRAM links |
 | `webview.ts` | `soeResourceRoots`, `rewriteSoeUrls`, `soeClientScript` for any webview |
-| `check-panel.js` | `Everscript: Check soe:// Resources`, the feature's acceptance check |
+| `check-panel.ts` | `Everscript: Check soe:// Resources`, the feature's acceptance check |
 
 The address grammar (`parseSoeParts`, `parseAddressName`) is pure and lives in
 `src/games/evermore/resources/resource-uri.ts`.

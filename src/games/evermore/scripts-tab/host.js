@@ -15,7 +15,7 @@
 
 const { roomList, roomScripts, roomPicture } = require('./model/rooms');
 const { alchemyModel } = require('../../../../dist/games/evermore/scripts-tab/model/alchemy');
-const { simulateScript, roomClusters } = require('./model/simulation');
+const { simulateScript, roomClusters } = require('../../../../dist/games/evermore/scripts-tab/model/simulation');
 const { missingRomText } = require('../../../../dist/platform/roms/library');
 
 const FACING_SOUTH = 8;

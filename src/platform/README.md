@@ -12,8 +12,9 @@ SNES facts and tools that know no game. Rules: [AGENTS.md](AGENTS.md). Design:
 | `snes/hirom.ts` | HiROM bus address ↔ file offset, little-endian reads |
 | `snes/opcodes-65816.ts` | The 65816 opcode matrix (mnemonic, mode, length, flow) |
 | `crc32.ts`, `png.ts`, `zip.ts` | CRC-32, an RGBA PNG encoder, a small zip reader/writer |
+| `source-dir.ts` | `sourceDir(__dirname)`: a compiled module's folder in `src/` (TS runs from `dist/`; the files it reads beside it stay in `src/`) |
 | `cdl/` | The CDL engine: library, xrefs, disassembly, Asar / Mesen / recomp exports ([README](cdl/README.md)) |
-| `tas/` | The `.evsmv` movie format (`movie.js`) and replay verification (`verify.js`) |
+| `tas/` | The `.evsmv` movie format (`movie.js`) and replay verification (`verify.ts`) |
 | `index.ts` | What JS callers get from `dist/platform` |
 
 TypeScript is built to `dist/platform/` (`npm run build:ts`); the CDL and TAS files are still JS.

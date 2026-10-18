@@ -4,10 +4,10 @@
 // optional in-game string indices resolved against ROM bytes.
 
 const strings = require('../../../../dist/games/evermore/localizations/strings');
-const maps = require('./maps');
-const sounds = require('./sounds');
-const tables = require('./tables');
-const functions = require('./functions');
+const maps = require('../../../../dist/games/evermore/localizations/maps');
+const sounds = require('../../../../dist/games/evermore/localizations/sounds');
+const tables = require('../../../../dist/games/evermore/localizations/tables');
+const functions = require('../../../../dist/games/evermore/localizations/functions');
 const scripts = require('./scripts');
 
 module.exports = {

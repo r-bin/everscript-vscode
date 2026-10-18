@@ -1,13 +1,14 @@
-'use strict';
 // Ownership: what an animation throws, for the Sprites tab — each `projectile` spawn's
 // timing, offset and flight, and the projectile's own animation rendered once per type. Pure.
 
-const { runAnimation } = require('../../../../dist/games/evermore/maps/animation-vm');
-const { facingScript } = require('../../../../dist/games/evermore/maps/animation-table');
-const { projectileRecord, projectileFlight } = require('../../../../dist/games/evermore/maps/projectiles');
-const { paletteAt } = require('../../../../dist/games/evermore/maps/character-record');
-const { composeAligned } = require('../../../../dist/games/evermore/sprites/frame-compose');
-const { hexLower: hex } = require('../../../../dist/platform');
+import { runAnimation } from '../maps/animation-vm';
+import { facingScript } from '../maps/animation-table';
+import { projectileRecord, projectileFlight } from '../maps/projectiles';
+import type { ProjectileRecord } from '../maps/projectiles';
+import type { VmFrame } from '../maps/animation-vm-types';
+import { paletteAt } from '../maps/character-record';
+import { composeAligned } from './frame-compose';
+import { hexLower as hex } from '../../../platform';
 
 const MAX_SPAWNS = 64;
 
@@ -18,10 +19,12 @@ const MAX_SPAWNS = 64;
  */
 const CONSUMED_PROCS = new Set([2, 6]);
 const PIERCING_PROCS = new Set([4]);
-const onHit = (proc) => (CONSUMED_PROCS.has(proc) ? 'consumed' : PIERCING_PROCS.has(proc) ? 'pierces' : 'unknown');
+type Colours = Array<[number, number, number]>;
+
+const onHit = (proc: number): string => (CONSUMED_PROCS.has(proc) ? 'consumed' : PIERCING_PROCS.has(proc) ? 'pierces' : 'unknown');
 
 /** A projectile type's own animation at this facing, in its palette or the thrower's. */
-function renderProjectileAnimation(rom, record, facing, throwerColours) {
+function renderProjectileAnimation(rom: Uint8Array, record: ProjectileRecord, facing: number, throwerColours: Colours) {
     const script = facingScript(rom, record.animRecord, facing);
     if (!script) return null;
     const run = runAnimation(rom, script, facing);
@@ -44,9 +47,9 @@ function renderProjectileAnimation(rom, record, facing, throwerColours) {
  * thrower's start); empty when its routine is not modelled. `target` is where
  * aimed routines aim, or null to aim straight ahead.
  */
-function renderProjectiles(rom, vmFrames, facing, throwerColours, target) {
+function renderProjectiles(rom: Uint8Array, vmFrames: VmFrame[], facing: number, throwerColours: Colours, target?: { x: number; y: number } | null) {
     const spawns = [];
-    const anims = {};
+    const anims: Record<string, ReturnType<typeof renderProjectileAnimation>> = {};
     let t = 0;
     for (const f of vmFrames) {
         for (const sp of f.spawns || []) {
@@ -82,4 +85,4 @@ function renderProjectiles(rom, vmFrames, facing, throwerColours, target) {
     return { spawns, anims };
 }
 
-module.exports = { renderProjectiles };
+export { renderProjectiles };
