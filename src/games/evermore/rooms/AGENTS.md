@@ -42,7 +42,7 @@ Related skills: `rooms-tab`, `map-editor-rules`, `map-construction`, `map-entiti
 6. The webview files share one scope, so a global belongs to exactly one of them.
    `rom-overlay.js` owns the view state; `detail-renderer.js` owns the request state.
    Do not mirror either into the other.
-7. Loot icons are decoded from the user's ROM (`data/item-icons.js`), never bundled.
+7. Loot icons are decoded from the user's ROM (`data/item-icons.ts`), never bundled.
 8. Rooms converted from another game arrive as data (`importedRooms` rail groups, then
    one room per `requestImportedRoom`); nothing here knows the other game. Their ids are
    `>= 0x1000` and their family ids carry a `label` — never treat either as a ROM id.

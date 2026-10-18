@@ -7,7 +7,7 @@ const { runAnimation } = require('../../../../dist/games/evermore/maps/animation
 const { facingScript } = require('../../../../dist/games/evermore/maps/animation-table');
 const { readSpriteInfo, composeSprite, decodeSpriteBlock } = require('../../../../dist/games/evermore/maps/sprites');
 const { encodePng } = require('../../../../dist/games/evermore/maps/png');
-const { composeAligned } = require('./frame-compose');
+const { composeAligned } = require('../../../../dist/games/evermore/sprites/frame-compose');
 const { resolveCharacterSprite } = require('../../../../dist/games/evermore/maps/character-animation');
 
 /** South (8, the front view) and east (4) — the direction tables move 8 down the screen. */

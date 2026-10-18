@@ -22,8 +22,8 @@ const {
     getNpcScript, getAbsScript, getGlobalScript,
     decodeRomString, resolveLocalizedName,
 } = require('../localizations');
-const { hexId } = require('./resource-uri');
-const { dir, json, text } = require('./nodes');
+const { hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
+const { dir, json, text } = require('../../../../dist/games/evermore/resources/nodes');
 const MD = require('./localization-markdown');
 const { entries: knowledgeEntries } = require('../localizations/knowledge');
 const { hex } = require('../../../../dist/platform');

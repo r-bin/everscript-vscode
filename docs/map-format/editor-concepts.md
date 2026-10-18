@@ -45,7 +45,7 @@ draft is one object, `_edit` (`map-editor.js`).
 | **Boy start** | a custom map's one start marker (`_edit.start`), always inside the map. Export ROM turns it into the intro's `load_map(0x15, x, y)` | becomes a script operand, not room data | `map-editor-start.js`; `rom-export.md` |
 | **Donor room** | a custom map borrows room `0x34`'s graphics list and families (a room with no Block 1 renders black) and nothing else | its Block 1 and families are copied | `map-editor-custom.js`, `custom-room.ts` |
 | **Locked** | a vanilla room opens read-only; unlocking lets its draft change | view state | `editLocked` |
-| **Palette set preview** | the Info tab's Header sub-tab shows the map with another MAP_PALETTE value (rooms with 8–14 families) | a view: the host renders with `mapPalette` in the header overrides | `map-editor-family-sets.js`, host `family-sets.js`, `header-overrides.js` |
+| **Palette set preview** | the Info tab's Header sub-tab shows the map with another MAP_PALETTE value (rooms with 8–14 families) | a view: the host renders with `mapPalette` in the header overrides | `map-editor-family-sets.js`, host `family-sets.ts`, `header-overrides.ts` |
 | **Undo history** | one stack for everything, one step per gesture, saved with the map (`history.json`) | — | `map-editor.js`, `-history.js` |
 | **Vanilla index** | adjacency, layer preference, suggested collision, animation patterns, stairs, measured over all 127 rooms and every object state and animation frame | advice, never data (map-construction skill) | `src/games/evermore/maps/vanilla-*.ts`, host `vanilla-index.js` |
 

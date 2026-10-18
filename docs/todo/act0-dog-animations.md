@@ -215,7 +215,7 @@ area while the Dog changes pose, and record the result in
 7. **Scripts + records**: clone the wolf's scripts per slot, swap the sprites,
    write the records, and point the Act 0 slots at them.
 8. **Extension**: the Sprites tab's Dog → Act 0 should show the new slots with
-   no code change, since `dog-forms.js` reads the slots from the ROM. Add a test
+   no code change, since `dog-forms.ts` reads the slots from the ROM. Add a test
    that every Act 0 slot's record differs from Act 1's.
 9. **In-game check**: a custom map with `CHANGE DOGGO = 0x0A`, then fight, take
    damage, sit and sleep.

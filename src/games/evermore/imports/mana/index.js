@@ -4,5 +4,5 @@ module.exports = {
     ...require('./rooms'),
     ...require('./convert'),
     ...require('./virtual-rom'),
-    ids: require('./ids'),
+    ids: require('../../../../../dist/games/evermore/imports/mana/ids'),
 };

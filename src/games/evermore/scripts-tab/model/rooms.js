@@ -8,8 +8,8 @@
 // pixel = (x - originX) * 16, x2/y2 exclusive (maps/collision-overlay.ts draws
 // them the same way).
 
-const { buildRoomScriptModel } = require('../../script-model');
-const maps = require('../../maps');
+const { buildRoomScriptModel } = require('../../../../../dist/games/evermore/script-model');
+const maps = require('../../../../../dist/games/evermore/maps');
 const { getMapName, getMapArea } = require('../../localizations');
 const { hex } = require('../../../../../dist/platform');
 

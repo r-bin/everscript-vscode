@@ -17,7 +17,7 @@
  *     adds everything its callees need.
  */
 
-const { hex } = require('./rom-map');
+const { hex } = require('../../../dist/platform/cdl/rom-map');
 const { SPACE, XR, EXT_HEAD } = require('./xref-index');
 const { regsByPc, basesByPc, busSitesList } = require('./library-ext');
 const { returnsByEntry } = require('./recomp-analysis');

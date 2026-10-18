@@ -4,10 +4,10 @@
 // active, the alchemy and loot icons, script trace formatting, and its part of the page (webview()). The panel (src/core/emulator/panel.js)
 // gets this module through configureEmulator({ game }); the SNES CDL Recorder passes none.
 
-const maps = require('../maps');
-const { buildItemIcons } = require('../rooms/data/item-icons');
+const maps = require('../../../../dist/games/evermore/maps');
+const { buildItemIcons } = require('../../../../dist/games/evermore/rooms/data/item-icons');
 const { processScriptTraceBatch } = require('./script-trace');
-const { describeCustomMapRom } = require('./custom-map-rom');
+const { describeCustomMapRom } = require('../../../../dist/games/evermore/emulator/custom-map-rom');
 const { roomMap, clearCaches } = require('./room-map');
 
 /** What the page's gameRomData hook gets with each ROM: the ALCHEMY panel's icons (or null). */

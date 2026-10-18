@@ -11,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 
-const maps = require('../../src/games/evermore/maps');
+const maps = require('../../dist/games/evermore/maps');
 const { decompressLzss } = require('../../dist/games/evermore/maps/lzss');
 const { decompressMarkovGrid } = require('../../dist/games/evermore/maps/markov');
 
@@ -137,8 +137,8 @@ try {
 if (!rom) {
     console.log(`SKIP rom-export ROM checks: ${ROM_PATH} not found or unreadable`);
 } else {
-    const vm = require('../../src/games/evermore/script-vm');
-    const { buildRoomScriptModel } = require('../../src/games/evermore/script-model');
+    const vm = require('../../dist/games/evermore/script-vm');
+    const { buildRoomScriptModel } = require('../../dist/games/evermore/script-model');
     const { buildExportRom, BRIAN_ROOM, INTRO_FIRST_CODE } = require('../../src/games/evermore/rooms/rendering/rom-export');
 
     test('buildBlob(modelFromRom()) is byte-exact for all 127 rooms (upstream --verify)', () => {
@@ -178,7 +178,7 @@ if (!rom) {
 
     test('palette sets: room 0x18 stores two, its script switches to 7, and the render follows MAP_PALETTE', () => {
         const { buildRoomMetatilePalette } = require('../../src/games/evermore/rooms/rendering/metatile-palette');
-        const { withHeader } = require('../../src/games/evermore/rooms/rendering/header-overrides');
+        const { withHeader } = require('../../dist/games/evermore/rooms/rendering/header-overrides');
         const pal = buildRoomMetatilePalette(rom, 0x18, 'composite', 1, null);
         assert.strictEqual(pal.tileFamilies.length, 14);
         assert.deepStrictEqual(pal.familySets.scriptValues, [7], 'Thraxx\'s room writes MAP_PALETTE = 7');

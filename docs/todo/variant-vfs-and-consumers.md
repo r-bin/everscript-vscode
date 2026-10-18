@@ -99,3 +99,4 @@ soe://strings/*                Dynamic map_tile_graphics    Dynamic script_point
    - Wire string keys and enter script lookups to `variant-resolver.ts`.
 4. **Phase 4: Sprites, Animation & Catalog**
    - Wire sprite blocks and animation record lookups. Update `catalog.js` for the ROM tab.
+5. **Two variants side by side** (from `docs/architecture/multi-game.md` §7, item 5): each game has one main view, which follows its game's selected ROM, so a US and a PAL radar cannot be open at once. Needs a view per (game, ROM) in `core/game-views.js`.

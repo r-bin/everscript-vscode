@@ -18,7 +18,7 @@
  * Outputs: structs.asm (defines), structs.h (C), structs.json.
  */
 
-const { hex } = require('./rom-map');
+const { hex } = require('../../../dist/platform/cdl/rom-map');
 const { decodeAt } = require('./disasm');
 const { SPACE, XR, EXT_HEAD } = require('./xref-index');
 const { regsByPc, basesByPc } = require('./library-ext');

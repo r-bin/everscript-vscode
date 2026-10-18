@@ -9,9 +9,9 @@ const path   = require('path');
 const fs     = require('fs');
 const { buildHtml } = require('./panel-webview');
 const { ScriptDebugHost } = require('./script-debug-host');
-const { resolveCore } = require('./core-path');
+const { resolveCore } = require('../../../dist/core/emulator/core-path');
 const { describeFile: _describeFile, log: _log } = require('./emulator-log');
-const { MemoryBridge } = require('./memory-bridge');
+const { MemoryBridge } = require('../../../dist/core/emulator/memory-bridge');
 const { ApuStream } = require('./apu-stream');
 const { getRomOfferData, recordRomUsage } = require('./rom-history');
 

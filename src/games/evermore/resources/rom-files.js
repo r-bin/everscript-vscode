@@ -11,10 +11,10 @@
 //   soe://rom/assets/...          decoded content, rom-assets.js
 // Bus addresses go through soe://bus/ (bus-files.js), which links here.
 
-const { snesToRom } = require('../maps');
+const { snesToRom } = require('../../../../dist/games/evermore/maps');
 const { getTable, getFunction, getAbsScript } = require('../localizations');
-const { parseAddressName, hexId } = require('./resource-uri');
-const { dir, file, json, text } = require('./nodes');
+const { parseAddressName, hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
+const { dir, file, json, text } = require('../../../../dist/games/evermore/resources/nodes');
 const { asmListing } = require('./asm-view');
 const { cListing } = require('./decomp-view');
 

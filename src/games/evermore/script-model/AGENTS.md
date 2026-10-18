@@ -10,7 +10,7 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 ## Dependencies
 - `../script-vm` (decoding, facts, printing), `../localizations` (script and room names),
   `platform/snes/`. `.depcruise.js` rule `script-model-on-script-vm`. No VS Code API, no filesystem.
-- Consumers `require('../script-model')` (the JS facade), never `./dist`.
+- JS consumers require `dist/games/evermore/script-model` (no JS facade); TS imports `src/` directly.
 
 ## Invariants
 - Meaning comes from script-vm's facts and the knowledge entries (loot: `ram/7e2391`,

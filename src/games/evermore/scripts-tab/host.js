@@ -14,7 +14,7 @@
 //   page -> scriptsSim { room, key }    host -> scriptsSim { room, key, everscript, clusters } | { error }
 
 const { roomList, roomScripts, roomPicture } = require('./model/rooms');
-const { alchemyModel } = require('./model/alchemy');
+const { alchemyModel } = require('../../../../dist/games/evermore/scripts-tab/model/alchemy');
 const { simulateScript, roomClusters } = require('./model/simulation');
 const { missingRomText } = require('../../../../dist/platform/roms/library');
 

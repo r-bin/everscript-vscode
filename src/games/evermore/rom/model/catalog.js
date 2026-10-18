@@ -4,8 +4,8 @@
 // dog forms, alchemy tables — each claimed with its measured size. Pure.
 // Sources: wiki/rom/Rom-Map.md §2 (the everscript wiki's ROM map).
 
-const { decodeRoom, parseBlobLayout, objectAreaEnd, MAP_LIST_ADDR, MAX_ROOMS } = require('../../maps');
-const { hex } = require('./util');
+const { decodeRoom, parseBlobLayout, objectAreaEnd, MAP_LIST_ADDR, MAX_ROOMS } = require('../../../../../dist/games/evermore/maps');
+const { hex } = require('../../../../../dist/games/evermore/rom/model/util');
 
 const WORLD = { Prehistoria: '🦖 Prehistoria', Antiqua: '🏛️ Antiqua', Gothica: '🏰 Gothica', Omnitopia: '🚀 Omnitopia', Podunk: '🏡 Podunk' };
 const worldOf = area => WORLD[area] || (area ? '❓ ' + area : '');

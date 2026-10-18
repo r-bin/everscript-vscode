@@ -310,7 +310,7 @@ function infoRenderHeader(id) {
 /**
  * Show a header change at once: main/sub screen and colour math decide how
  * every stamp's layers composite, so the host redraws the room image (a ROM
- * room), the palette's stamps and the draft's own (header-overrides.js).
+ * room), the palette's stamps and the draft's own (header-overrides.ts).
  */
 function infoApplyHeader() {
   var d = editDraft();

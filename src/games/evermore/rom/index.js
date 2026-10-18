@@ -3,6 +3,6 @@
 
 const { buildRomModel, romRegions } = require('./build');
 const { handlesRomMessage, handleRomMessage } = require('./host');
-const { buildRomTabHtml } = require('./render-rom-tab');
+const { buildRomTabHtml } = require('../../../../dist/games/evermore/rom/render-rom-tab');
 
 module.exports = { buildRomModel, romRegions, handlesRomMessage, handleRomMessage, buildRomTabHtml };

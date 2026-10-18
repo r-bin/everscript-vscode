@@ -26,8 +26,8 @@
 //
 // See docs/map-format/building-a-room-from-a-picture.md §9.
 
-const maps = require('../../maps');
-const { romFingerprint } = require('./rom-fingerprint');
+const maps = require('../../../../../dist/games/evermore/maps');
+const { romFingerprint } = require('../../../../../dist/games/evermore/rooms/rendering/rom-fingerprint');
 const { VANILLA_ROOMS } = require('../data/vanilla-data');
 
 /** Below this an "object" is a doorway marker or a single tile, not deco. */

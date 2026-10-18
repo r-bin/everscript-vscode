@@ -5,7 +5,7 @@
 
 const path = require('path');
 const vscode = require('vscode');
-const { SCHEME, parseSoeParts, mountSegment } = require('./resource-uri');
+const { SCHEME, parseSoeParts, mountSegment } = require('../../../../dist/games/evermore/resources/resource-uri');
 const { SoeFileSystem } = require('./fs-provider');
 const { checkSoeResources } = require('./check-panel');
 

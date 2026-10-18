@@ -6,7 +6,7 @@
 // Ownership of a byte: higher priority wins, then the later start (a region's
 // start is certain, a measured end less so), then the earlier claim.
 
-const { bus } = require('./util');
+const { bus } = require('../../../../../dist/games/evermore/rom/model/util');
 
 const HALF = 0x8000, CELL = 128;
 const CDL_CODE = 0x01, CDL_DATA = 0x02;

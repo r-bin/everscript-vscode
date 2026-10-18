@@ -233,7 +233,7 @@ know where our own tools already reach further:
 In order of value:
 
 1. **Alchemy blocks as bytecode** (§3): check the opcode reading against the cast in the
-   emulator. It may turn `src/games/evermore/scripts-tab/model/alchemy.js` from "undecoded" into a decoder.
+   emulator. It may turn `src/games/evermore/scripts-tab/model/alchemy.ts` from "undecoded" into a decoder.
 2. **New tables**: weapon, armor, ingredient cost, alchemy name/description pointers, dog form,
    projectile, font widths. Each becomes a `knowledge/rom/<addr>.md` entry after a check of the
    reader in the CDL (who loads it, with what stride).

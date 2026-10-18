@@ -3,12 +3,12 @@
 // Section 3 map objects (composition, states, rendered PNG and animated GIF)
 // and map widgets (portable deco stamps, composition, and previews).
 
-const maps = require('../maps');
+const maps = require('../../../../dist/games/evermore/maps');
 const { buildDecoCatalogue } = require('../rooms/rendering/deco-catalogue');
 const { entryRoom } = require('../rooms/rendering/deco-preview');
-const { encodeGif } = require('./gif');
-const { dir, file, json, text } = require('./nodes');
-const { hexId } = require('./resource-uri');
+const { encodeGif } = require('../../../../dist/games/evermore/resources/gif');
+const { dir, file, json, text } = require('../../../../dist/games/evermore/resources/nodes');
+const { hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
 
 /**
  * Resolve Section 3 map objects for a room.

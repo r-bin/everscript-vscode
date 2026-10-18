@@ -2,10 +2,10 @@
 // Ownership: `soe://rom/assets/maps/` — every room: its index, decoded header and grids, renders
 // (composite, layers, overlays, object states) and its info page. Pure. rom-assets.js routes here.
 
-const { encodePng, decodeRoom, renderRoomComposite, renderStandaloneOverlay, applyObjectStates, MAX_ROOMS } = require('../maps');
+const { encodePng, decodeRoom, renderRoomComposite, renderStandaloneOverlay, applyObjectStates, MAX_ROOMS } = require('../../../../dist/games/evermore/maps');
 const { getMapName, getMapArea } = require('../localizations');
-const { hexId } = require('./resource-uri');
-const { dir, file, json, text } = require('./nodes');
+const { hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
+const { dir, file, json, text } = require('../../../../dist/games/evermore/resources/nodes');
 
 /** One line of text, safe inside a Markdown table cell. */
 function cell(s) {

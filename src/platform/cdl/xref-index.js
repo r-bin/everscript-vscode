@@ -11,7 +11,7 @@
  *   - which ROM offsets deserve a label
  */
 
-const { hex } = require('./rom-map');
+const { hex } = require('../../../dist/platform/cdl/rom-map');
 
 const CDL_CODE = 0x01, CDL_DATA = 0x02, CDL_JUMP = 0x04, CDL_SUB = 0x08;
 const EXT_HEAD = 0x04, EXT_POINTER = 0x20;

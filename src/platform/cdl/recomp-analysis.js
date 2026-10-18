@@ -16,7 +16,7 @@
  * return) becomes a comment next to the site. 1 = 8-bit in every M/X field.
  */
 
-const { hex } = require('./rom-map');
+const { hex } = require('../../../dist/platform/cdl/rom-map');
 const { retsList, RET, WCODE } = require('./library-ext');
 const { decodeAt } = require('./disasm');
 

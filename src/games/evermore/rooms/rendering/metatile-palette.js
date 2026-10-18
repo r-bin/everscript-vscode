@@ -8,14 +8,14 @@
 //
 // Pure apart from the module-level cache. Consumes src/games/evermore/maps.
 
-const maps = require('../../maps');
-const { romFingerprint } = require('./rom-fingerprint');
-const { headerSpec, withHeader } = require('./header-overrides');
+const maps = require('../../../../../dist/games/evermore/maps');
+const { romFingerprint } = require('../../../../../dist/games/evermore/rooms/rendering/rom-fingerprint');
+const { headerSpec, withHeader } = require('../../../../../dist/games/evermore/rooms/rendering/header-overrides');
 const { annotateGraphics, budgetSummary, invalidateVanillaIndex, vanillaGeometry, vanillaCycleTimings } = require('./vanilla-index');
 const { groupRoomGraphics } = require('./room-draft');
 const { buildStampAnimations } = require('./stamp-animation');
 const { editorObjects } = require('./object-previews');
-const { familySetInfo } = require('./family-sets');
+const { familySetInfo } = require('../../../../../dist/games/evermore/rooms/rendering/family-sets');
 
 /** Metatiles per atlas row. 16 keeps the sheet narrow enough to scroll. */
 const COLUMNS = 16;
@@ -123,7 +123,7 @@ function buildRoomMetatilePalette(rom, roomId, layer, bgPalette, header) {
         // What the dictionary is made of, which is what limits it: the CHR
         // banks in VRAM and the tile ids Block 1 selected out of them.
         tileFamilies: room.tileFamilies,
-        /** Alternate family sets past the seventh entry: colours and script values (family-sets.js), or null. */
+        /** Alternate family sets past the seventh entry: colours and script values (family-sets.ts), or null. */
         familySets: familySetInfo(buf, room, roomId, romFingerprint(buf)),
         paletteCount: room.tilePalette.length,
         animatedCount: room.animatedTiles.length,

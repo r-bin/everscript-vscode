@@ -12,7 +12,7 @@
  * jsr ($table,x)): entry = table[value * 2] in the dispatching instruction's bank.
  */
 
-const { hex } = require('./rom-map');
+const { hex } = require('../../../dist/platform/cdl/rom-map');
 const { decodeAt } = require('./disasm');
 const { buildWramReport } = require('./wram-export');
 const { EXT_HEAD, XR } = require('./xref-index');

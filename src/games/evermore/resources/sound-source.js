@@ -14,15 +14,15 @@
 const { readAllCharacters, readCharacter, renderRawSprite, thumbFor } = require('../sprites');
 const { animationGroups } = require('../../../../dist/games/evermore/maps/animation-table');
 const { disassembleScript } = require('../../../../dist/games/evermore/maps/animation-opcodes');
-const vm = require('../script-vm');
-const { printNames } = require('../script-model');
+const vm = require('../../../../dist/games/evermore/script-vm');
+const { printNames } = require('../../../../dist/games/evermore/script-model');
 const { resolveCharacters } = require('./character-files');
 const { asmAroundCall, lineText } = require('./asm-view');
 const { renderCharacterSprite } = require('../../../../dist/games/evermore/maps/characters');
 const { encodePng } = require('../../../../dist/games/evermore/maps/png');
 const { getSoundAnimations } = require('../localizations/sounds');
 const { getFunctionName } = require('../localizations/functions');
-const { hexId } = require('./resource-uri');
+const { hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
 const { hex: toHex, hiromFileOffset } = require('../../../../dist/platform');
 
 const ROM = 'soe://rom/assets/';

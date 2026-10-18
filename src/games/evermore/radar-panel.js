@@ -8,7 +8,7 @@ const vscode = require('vscode');
 const path   = require('path');
 const fs     = require('fs');
 const { parseEnumsFromContent } = require('./radar-utils');
-const { resolveExtConfig } = require('./language/config');
+const { resolveExtConfig } = require('../../../dist/games/evermore/language/config');
 const { buildVanillaRoomDetails, buildItemIcons, invalidateRoomDataCaches, buildRoomTree, setRoomImageUris } = require('./rooms');
 const romReaders = require('./rom-readers');
 const platform = require('../../../dist/platform');
@@ -154,7 +154,7 @@ function getExtConfig() {
     };
 }
 
-/** The ring menu's item icons from the configured ROM, for the radar page (rooms/data/item-icons.js). */
+/** The ring menu's item icons from the configured ROM, for the radar page (rooms/data/item-icons.ts). */
 function radarItemIcons() {
     const ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     return buildItemIcons(romReaders.loadRomBuffer(ws, ''));

@@ -26,7 +26,7 @@ folder, so the game browses like a directory: `rom/` (the cartridge:
 (`soe://rom/~…/tags/boy/hp.md` is `soe://tags/boy/hp.md`). The mount's
 old root paths (`~…/assets/…`) still resolve, unlisted. Pages that link
 across files (tags/, `ram/index.md`) are served with relative link targets
-(`page-links.js`): the built-in Markdown preview loads only relative images. VS Code cannot expand a file in
+(`page-links.ts`): the built-in Markdown preview loads only relative images. VS Code cannot expand a file in
 place; remove it with *Remove Folder from Workspace*. The ROM is named in the
 path, not the query: a webview checks a requested resource against its roots
 with the query stripped from the request but not the root, so a `?rom=` root
@@ -46,8 +46,8 @@ binds the same key and wins on extension load order; a user keybinding
 |---|---|
 | `index.js` | `registerSoeResources(context, deps)`: the provider and its commands (open, check, Open ROM as Folder) |
 | `fs-provider.js` | `SoeFileSystem`: routing, ROM choice, caching, live-file watch, errors |
-| `nodes.js` | the `dir` / `file` / `link` shapes handlers return |
-| `autoindex.js` | the `index.md` of a directory without its own: links + image gallery |
+| `nodes.ts` | the `dir` / `file` / `link` shapes handlers return |
+| `autoindex.ts` | the `index.md` of a directory without its own: links + image gallery |
 | `bus-files.js` | `soe://bus/`: maps a bus address to its `ram/` or `rom/` file (no data of its own) |
 | `rom-files.js` | `soe://rom/`: `rom.sfc`, `header.json`, offset slices, `<offset>.json`, top-level aliases |
 | `rom-assets.js` | `soe://rom/assets/`: icons, items by name, alchemy, strings; routes the other kinds |
@@ -56,22 +56,22 @@ binds the same key and wins on extension load order; a user keybinding
 | `tile-files.js` | `assets/tiles/`: 16×16 CHR tile graphics table ($EE0000); room metatile atlas/tiles |
 | `audio-files.js`, `audio-songs.js` | `audio/`: music tracks, playable `.spc` snapshots, sound effects, descriptors (one song's records, SPC and page: `audio-songs.js`) |
 | `table-files.js` | `tables/`: engine lookup and pointer tables with `data.bin` and `data.json` |
-| `gif.js` | pure GIF89a encoder for animated character and sprite sequences |
+| `gif.ts` | pure GIF89a encoder for animated character and sprite sequences |
 | `ram-symbols.js` | every known WRAM address (names.json + tag links) with size and type; flag bytes; records |
 | `asm-view.js` | `<offset>.asm` / `soe://bus/<addr>.asm`: a 65816 listing (16-bit A/X assumed until REP/SEP), and the excerpt around a call |
 | `sound-source.js` | Who sent a sound effect (the emulator hook's event) as names, pictures and links, for the Music tab |
-| `page-links.js` | link targets of generated pages: into a mount, relative to the page |
+| `page-links.ts` | link targets of generated pages: into a mount, relative to the page |
 | `ram-files.js` | `soe://ram/`: `status.json`, `wram.bin`, slices, `<addr>.json`, flags, symbols |
 | `tag-model.js` | `soe://tags/` graph: merges generated + `tags/tags.json`, inheritance, aliases, conflicts, validation |
 | `tag-generate.js` | generated tags (rooms, areas, enemies, music, sounds, flags, RAM names, tables, items) from shipped data |
 | `tag-files.js` | `soe://tags/`: routing, directory listings, live values, search, `check.json` |
 | `tag-markdown.js` | tag pages as Markdown / JSON |
 | `tags/tags.json` | hand-authored tags: `character` → `player` → `boy` / `dog`, `enemy`, precompiled WRAM links |
-| `webview.js` | `soeResourceRoots`, `rewriteSoeUrls`, `soeClientScript` for any webview |
+| `webview.ts` | `soeResourceRoots`, `rewriteSoeUrls`, `soeClientScript` for any webview |
 | `check-panel.js` | `Everscript: Check soe:// Resources`, the feature's acceptance check |
 
 The address grammar (`parseSoeParts`, `parseAddressName`) is pure and lives in
-`src/games/evermore/resources/resource-uri.js`.
+`src/games/evermore/resources/resource-uri.ts`.
 
 ## Using `soe://` in a webview
 

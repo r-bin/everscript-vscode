@@ -15,7 +15,7 @@ const LIMIT = (+process.argv[3] || 60) * 1000;
 
 if (process.argv[2] === '--room') {
     const fs = require('fs');
-    const sim = require('../../src/games/evermore/simulation');
+    const sim = require('../../dist/games/evermore/simulation');
     const S = sim.createSimulator(new Uint8Array(fs.readFileSync(process.argv[4])));
     const t = Date.now();
     const r = S.room(parseInt(process.argv[3], 16));

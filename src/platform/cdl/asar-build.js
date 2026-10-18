@@ -16,7 +16,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { hex } = require('./rom-map');
+const { hex } = require('../../../dist/platform/cdl/rom-map');
 
 const BUILD_SH = `#!/bin/sh
 # Rebuild the ROM and its CDL from this folder:  ASAR=/path/to/asar ./build.sh

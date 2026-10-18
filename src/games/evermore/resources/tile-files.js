@@ -5,8 +5,8 @@
 const { decompressTile16x16, decodeTilePixels } = require('../../../../dist/games/evermore/maps/chr');
 const { extractTileFamilyPalette } = require('../../../../dist/games/evermore/maps/palette');
 const { encodePng } = require('../../../../dist/games/evermore/maps/png');
-const { hexId } = require('./resource-uri');
-const { dir, file, json, text } = require('./nodes');
+const { hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
+const { dir, file, json, text } = require('../../../../dist/games/evermore/resources/nodes');
 
 const GFX_COUNT = 6688;
 

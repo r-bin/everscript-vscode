@@ -4,7 +4,7 @@
 // Mode 1 compositor. No ROM needed. Run: node tests/mana/mana-units.test.js
 
 const assert = require('assert');
-const mana = require('../../src/games/mana/decoder');
+const mana = require('../../dist/games/mana/decoder');
 
 let passed = 0, failed = 0;
 function test(name, fn) {

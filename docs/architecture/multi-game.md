@@ -165,11 +165,9 @@ does too (registered in `src/games/terra/`, European base ROM title `TERRANIGMA 
   handed in through `configureEmulator({ game })`; the recorder's package has no game code (103 → 52 files). v0.247.0: `shared/` is gone
   (`shared.css` → `core/webview/`, the Memory tab's `shared.js` → `games/evermore/memory/webview/`). v0.248.0: `src/extension.js` is the composition
   root (ROM library, the list of games, `core/game-views.js`, MCP); each game has `games/<game>/extension.js`;
-  `core/game-views.js` opens the selected game's view (Evermore radar / Mana or Terranigma Maps). Still at `src/<domain>`
-  because each mixes game-neutral and Evermore code and must be split first: `emulator` (its webview still holds the
-  ENTITIES / ALCHEMY panels and the pause menu, which read Evermore WRAM: they move with cleanup 5.3; then
-  the folder → `core/emulator`), and
-  `recorder`, which stays: it is the second extension's composition root, like `extension.js`.
+  `core/game-views.js` opens the selected game's view (Evermore radar / Mana or Terranigma Maps). v0.266.0–v0.271.0:
+  the emulator's Evermore panels moved to `games/evermore/emulator/` and the folder to `core/emulator`. Step 3 is done:
+  only `recorder` stays at `src/`, the second extension's composition root, like `extension.js`.
 - Headless: `npm run roms` lists the library and adds/selects/marks ROMs (`tools/roms.js`).
 
 ## 8. The map editor (from the 2026-10-15 plan)

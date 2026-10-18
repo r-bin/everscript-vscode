@@ -23,7 +23,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { createRomMap, hex, countText } = require('./rom-map');
+const { createRomMap, hex, countText } = require('../../../dist/platform/cdl/rom-map');
 const { buildIndex, SPACE } = require('./xref-index');
 const { decodeAt, formatInstruction, staticTarget } = require('./disasm');
 const { findKnownRegions } = require('./known-regions');

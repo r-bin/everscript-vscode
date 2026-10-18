@@ -4,7 +4,7 @@
 // entries (`game-knowledge` skill), never here.
 
 const { entries } = require('./knowledge');
-const { resolveLocalizedName } = require('./strings');
+const { resolveLocalizedName } = require('../../../../dist/games/evermore/localizations/strings');
 
 /** { address, name, notes, category, stringIndex, id } per routine (name = the entry's title). */
 const FUNCTIONS = entries('rom')

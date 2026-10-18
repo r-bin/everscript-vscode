@@ -16,7 +16,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { hex } = require('./rom-map');
+const { hex } = require('../../../dist/platform/cdl/rom-map');
 const { returnsByEntry, exitDirectives, dispatchDirectives, noReturnComments, ramRoutines, FUNC_EXCLUSIONS } = require('./recomp-analysis');
 
 const CDL_ACC_8 = 0x20, CDL_IDX_8 = 0x10;

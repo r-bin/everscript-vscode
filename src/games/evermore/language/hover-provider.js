@@ -162,7 +162,7 @@ function makeHoverForUnqualifiedMember(word, idx) {
 /**
  * @param {vscode.TextDocument} document
  * @param {vscode.Position} position
- * @param {object} idx - static index (from workspace-index.js)
+ * @param {object} idx - static index (from workspace-index.ts)
  * @param {Map|null} radarMap - optional WRAM map for hex literal annotations
  */
 function provideHover(document, position, idx, radarMap = null) {

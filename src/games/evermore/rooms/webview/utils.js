@@ -24,7 +24,7 @@ function tsvg(t,trigOff){
 
 // ── Item icons ────────────────────────────────────────────────────────────
 // A pickup's icon is the ring menu's own, decoded from the ROM by the host
-// (rooms/data/item-icons.js) and handed over as ITEM_ICONS.loot — a PNG data
+// (rooms/data/item-icons.ts) and handed over as ITEM_ICONS.loot — a PNG data
 // URI per LOOT_REWARD name: ingredients, consumables, armour. Money, trade
 // goods and charms have no ring icon, so they get none here either.
 //

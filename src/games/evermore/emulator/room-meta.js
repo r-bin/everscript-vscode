@@ -3,9 +3,9 @@
 // animated tiles, objects, the foreground), read once per room and kept; and the 2x pixel helpers its
 // pictures share. room-map.js draws the room; host.js hands both to the panel.
 
-const maps = require('../maps');
-const { buildItemIcons } = require('../rooms/data/item-icons');
-const { buildRoomScriptModel } = require('../script-model');
+const maps = require('../../../../dist/games/evermore/maps');
+const { buildItemIcons } = require('../../../../dist/games/evermore/rooms/data/item-icons');
+const { buildRoomScriptModel } = require('../../../../dist/games/evermore/script-model');
 
 const roomMetaCache = new Map();
 

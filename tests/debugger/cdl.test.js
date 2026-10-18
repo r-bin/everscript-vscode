@@ -21,7 +21,7 @@ const { decodeAt, formatInstruction } = require('../../src/platform/cdl/disasm')
 const { exportAsar } = require('../../src/games/evermore/cdl/tools');
 const { exportWram } = require('../../src/platform/cdl/wram-export');
 const { parseQuery, lookup } = require('../../src/platform/cdl/lookup');
-const { createRomMap } = require('../../src/platform/cdl/rom-map');
+const { createRomMap } = require('../../dist/platform/cdl/rom-map');
 const { buildIndex, SPACE } = require('../../src/platform/cdl/xref-index');
 const gen = require('../../tools/gen-cdl-optable');
 

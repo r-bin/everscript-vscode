@@ -5,7 +5,7 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 ## Owns
 - Subjective names across the game: room names (`maps.js`), music/SFX names
   (`sounds.js`), script names (`scripts.js`, `data/scripts.json`), in-game string resolution
-  (`strings.js`), and the knowledge entries (`knowledge/`, loaded by `knowledge.js`; `tables.js` and
+  (`strings.ts`), and the knowledge entries (`knowledge/`, loaded by `knowledge.js`; `tables.js` and
   `functions.js` are views of them — add a routine or table as an entry, never as a JS line).
 
 ## Dependencies

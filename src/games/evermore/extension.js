@@ -1,7 +1,7 @@
 'use strict';
 
 const vscode = require('vscode');
-const { getRepoAutofillUpdates } = require('./language/config');
+const { getRepoAutofillUpdates } = require('../../../dist/games/evermore/language/config');
 const lp = require('./language/language-providers');
 const { buildVanillaRoomDetails, buildRoomTree, setRoomImageUris } = require('./rooms');
 const romReaders = require('./rom-readers');

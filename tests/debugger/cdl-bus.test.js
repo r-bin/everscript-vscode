@@ -14,7 +14,7 @@ const vm = require('vm');
 
 const ROOT = path.resolve(__dirname, '../..');
 const { CdlLibrary } = require('../../src/platform/cdl/library');
-const { createRomMap } = require('../../src/platform/cdl/rom-map');
+const { createRomMap } = require('../../dist/platform/cdl/rom-map');
 const { busSitesList, BUS } = require('../../src/platform/cdl/library-ext');
 const { buildBusReport, busReportMd } = require('../../src/platform/cdl/bus-report');
 

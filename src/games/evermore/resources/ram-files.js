@@ -15,9 +15,9 @@
 //   soe://ram/symbols.json          every known address (size, type, name, tags) and flag byte
 // Known addresses: ram-symbols.js (names.json + soe://tags/ WRAM links).
 
-const { parseAddressName, hexId } = require('./resource-uri');
+const { parseAddressName, hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
 const NAMES = require('../script-model/names.json');
-const { dir, file, json, text } = require('./nodes');
+const { dir, file, json, text } = require('../../../../dist/games/evermore/resources/nodes');
 const { ramSymbols, ramSymbol, ramBlocks } = require('./ram-symbols');
 const { tagModel } = require('./tag-model');
 const { pageUri } = require('./tag-markdown');

@@ -15,7 +15,7 @@ const { missingRomText } = require('../../../../dist/platform/roms/library');
  * so the PNGs are reachable without leaving VS Code or setting up Python.
  */
 async function exportRoomMaps(getExtConfig) {
-    const maps = require('../maps');
+    const maps = require('../../../../dist/games/evermore/maps');
     const cfg  = getExtConfig();
     const ws   = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     const rom  = romReaders.loadRomBuffer(ws, '');

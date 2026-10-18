@@ -2,7 +2,7 @@
 // Ownership: Markdown generators for `soe://localization/` directories.
 // Pure formatting functions only; no routing or I/O.
 
-const { hexId } = require('./resource-uri');
+const { hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
 
 function rootMarkdown(s) {
     return `# soe://localization/

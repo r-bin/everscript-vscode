@@ -15,9 +15,9 @@
 //   weapon-cut cells (c2 $Cn)   -> the cuttable layer; event-flag pieces -> objects
 // Only SNES facts are shared: both games use Mode 1 tilemap words with the same bits.
 
-const mana = require('../../../mana/decoder');
-const { FAMILY_BASE, MAX_GRAPHICS } = require('./ids');
-const { flagObjects } = require('./pieces');
+const mana = require('../../../../../dist/games/mana/decoder');
+const { FAMILY_BASE, MAX_GRAPHICS } = require('../../../../../dist/games/evermore/imports/mana/ids');
+const { flagObjects } = require('../../../../../dist/games/evermore/imports/mana/pieces');
 
 const EMPTY_GRAPHIC = 0;        // slot 0 is always the fully transparent graphic
 
@@ -177,7 +177,7 @@ function convertManaMap(manaRom, id) {
         }
         return t;
     };
-    // What weapons change (cuttable.ts) and what event flags change (pieces.js) are
+    // What weapons change (cuttable.ts) and what event flags change (pieces.ts) are
     // tiles the map can show too.
     const cuts = mana.cuttableCells(manaRom, map);
     const flagged = flagObjects(manaRom, map);

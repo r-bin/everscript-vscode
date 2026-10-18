@@ -1,7 +1,7 @@
 'use strict';
 // Custom maps on disk and their export archive:
 // src/games/evermore/rooms/data/custom-store.js, src/games/evermore/rooms/custom-host.js,
-// src/games/evermore/rooms/rendering/custom-export.js, src/platform/zip.js.
+// src/games/evermore/rooms/rendering/custom-export.js, src/platform/zip.ts.
 // The format is docs/map-format/custom-map-files.md.
 //
 // The archive checks need the ROM and skip, not fail, without it.
@@ -13,7 +13,7 @@ const assert = require('assert');
 
 const store = require('../../src/games/evermore/rooms/data/custom-store');
 const widgetStore = require('../../src/games/evermore/rooms/data/widget-store');
-const { buildZip, readZip } = require('../../src/platform/zip');
+const { buildZip, readZip } = require('../../dist/platform/zip');
 const { handleCustomMapMessage, handlesCustomMapMessage } = require('../../src/games/evermore/rooms/custom-host');
 const { mapSlug, sampleEvs } = require('../../src/games/evermore/rooms/rendering/custom-export');
 
@@ -216,7 +216,7 @@ if (!rom) {
     console.log(`SKIP archive ROM checks: ${ROM_PATH} not found or unreadable`);
 } else {
     const rooms = require('../../src/games/evermore/rooms');
-    const maps = require('../../src/games/evermore/maps');
+    const maps = require('../../dist/games/evermore/maps');
     test('the archive holds the blob, the editor file, the .evs, the stamps and a README', () => {
         const w = 16; const h = 14; const cells = [];
         for (let i = 0; i < w * h; i++) cells.push(0xa800, 0x4c62, (i % w) === 0 ? 0x1f : 0x10);

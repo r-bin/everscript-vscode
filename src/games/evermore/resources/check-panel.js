@@ -8,7 +8,7 @@
 // The command resolves with each result, so a test can run it too.
 
 const vscode = require('vscode');
-const { soeResourceRoots, rewriteSoeUrls, soeClientScript } = require('./webview');
+const { soeResourceRoots, rewriteSoeUrls, soeClientScript } = require('../../../../dist/games/evermore/resources/webview');
 
 const TIMEOUT_MS = 8000;
 let _panel = null;

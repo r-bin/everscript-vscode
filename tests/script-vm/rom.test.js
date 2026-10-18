@@ -10,7 +10,7 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
-const V = require('../../src/games/evermore/script-vm');
+const V = require('../../dist/games/evermore/script-vm');
 
 const ROM = require('../../dist/games').romPath('evermore');
 if (!fs.existsSync(ROM)) { console.log('SKIP script-vm rom: no ROM'); process.exit(0); }

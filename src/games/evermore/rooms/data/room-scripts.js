@@ -5,12 +5,12 @@
 // This is the thin layer that turns a workspace into that buffer, kept
 // separate so the decoder stays testable without a filesystem.
 
-const { buildRoomScriptModel, buildArrivalIndex, mergeArrivals } = require('../../script-model');
+const { buildRoomScriptModel, buildArrivalIndex, mergeArrivals } = require('../../../../../dist/games/evermore/script-model');
 const {
     renderCharacterFrames, encodePng, characterDisposition, characterHitbox,
     characterPalette, characterPaletteAddress,
     decodeRoom, planesUsed, spawnDepth,
-} = require('../../maps');
+} = require('../../../../../dist/games/evermore/maps');
 
 /** The user's ROM: the override, else the ROM library's (rom-readers, cleanup D5). */
 function loadRom(wsRoot, romPathOverride) {

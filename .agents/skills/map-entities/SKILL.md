@@ -1,7 +1,7 @@
 ---
 name: map-entities
 description: Use before changing how characters, enemies or NPCs are placed, drawn, sized or fought on an Evermore map: character record, enter-script placement, palettes, boxes, damage.
-applyTo: "src/games/evermore/maps/character-*.ts,src/games/evermore/maps/characters.ts,src/games/evermore/maps/sprites.ts,src/games/evermore/scaling/webview/alchemy-math.js,src/games/evermore/script/entities.ts,src/games/evermore/script/arrivals.ts,src/games/evermore/script/transition.ts,docs/script-format/**,simulation/**,src/games/evermore/sprites/character-model.js,src/games/evermore/sprites/dog-forms.js,src/games/evermore/sprites/target.js"
+applyTo: "src/games/evermore/maps/character-*.ts,src/games/evermore/maps/characters.ts,src/games/evermore/maps/sprites.ts,src/games/evermore/scaling/webview/alchemy-math.js,src/games/evermore/script/entities.ts,src/games/evermore/script/arrivals.ts,src/games/evermore/script/transition.ts,docs/script-format/**,simulation/**,src/games/evermore/sprites/character-model.js,src/games/evermore/sprites/dog-forms.ts,src/games/evermore/sprites/target.js"
 ---
 
 # Map entities: rules

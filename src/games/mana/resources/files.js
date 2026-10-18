@@ -11,7 +11,7 @@
 //   areas/<slug>.md                 an area's maps as images
 // Ids in paths are hex without `$`, like soe://.
 
-const mana = require('../decoder');
+const mana = require('../../../../dist/games/mana/decoder');
 const { mapFile, MAP_FILE_EXTS } = require('./map-files');
 
 /** @typedef {{ kind: 'dir', entries: Array<[string, 'file' | 'dir']> } | { kind: 'file', read: () => Buffer }} SomNode */

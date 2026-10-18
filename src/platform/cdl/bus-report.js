@@ -14,7 +14,7 @@
  * Only observed behaviour: a layout with no hits is "not seen", not "safe".
  */
 
-const { hex } = require('./rom-map');
+const { hex } = require('../../../dist/platform/cdl/rom-map');
 const { busSitesList, BUS } = require('./library-ext');
 
 const FORMS = [[BUS.C, '$C0-$FF'], [BUS.B8, '$80-$BF'], [BUS.B0, '$00-$3F'], [BUS.B4, '$40-$7D']];

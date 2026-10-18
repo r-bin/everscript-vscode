@@ -7,9 +7,9 @@
 // measured exactly and merged only when closer than `GAP` and inside one 32 KB
 // half: nothing in the ROM crosses a half line.
 
-const { walkSprites } = require('../../maps');
+const { walkSprites } = require('../../../../../dist/games/evermore/maps');
 const { disassembleScript } = require('../../../../../dist/games/evermore/maps/animation-opcodes');
-const { hex, bus, busToFile } = require('./util');
+const { hex, bus, busToFile } = require('../../../../../dist/games/evermore/rom/model/util');
 
 const GFX_TABLE = 0x2E0000, GFX_COUNT = 6688;
 const GAP = 32;

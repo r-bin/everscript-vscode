@@ -7,7 +7,7 @@
 //
 // Trigger keys match model/rooms.js: `step:<i>`, `b:<i>`, `enter`.
 
-const simulation = require('../../simulation');
+const simulation = require('../../../../../dist/games/evermore/simulation');
 
 let _sim = null;      // { rom, sim, rooms: Map<id, clusters> }
 

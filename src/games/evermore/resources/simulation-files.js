@@ -4,13 +4,13 @@
 // trigger cases, clusters) and written back as byte-identical Everscript.
 // Pure apart from the ROM buffer it is handed; one simulator per ROM buffer.
 
-const { text, json } = require('./nodes');
+const { text, json } = require('../../../../dist/games/evermore/resources/nodes');
 
 const simulators = new WeakMap();
 const rooms = new WeakMap();
 
 function simulation() {
-    return require('../simulation');
+    return require('../../../../dist/games/evermore/simulation');
 }
 
 function simulatorFor(rom) {

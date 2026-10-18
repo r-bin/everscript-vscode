@@ -46,7 +46,7 @@ File offsets are for an unheadered ROM.
 | header | file `0x00FFC0` (bus `$C0:FFC0`) | file `0x40FFC0` = bus `$00:FFC0` |
 | CPU vectors | file `0x00FFE0` (read via `$00:FFE0`) | file `0x40FFE0` (read via `$00:FFE0`) |
 
-*(core source: `TalesROMMap`; repo: `src/platform/cdl/rom-map.js` `busToRom` already implements
+*(core source: `TalesROMMap`; repo: `src/platform/cdl/rom-map.ts` `busToRom` already implements
 exactly this mapping, `src/platform/snes/rom-header-model.js` already looks for the header at
 `0x40FFC0`.)*
 
@@ -153,7 +153,7 @@ lockstep comparison, with the second half still empty. Everything after is ordin
   Mesen2, bsnes) and real-hardware flashcart behaviour before promising compatibility.
 - **SRAM** relocation only matters for a combo ROM; one game alone keeps its 8 KB where it is.
 - **Recomp**: `snesrecomp` seeds and `functions.json` use canonical `$C0+` addresses
-  *(repo: `rom-map.js` `canonical`)*; the exporter must keep the canonical address of
+  *(repo: `rom-map.ts` `canonical`)*; the exporter must keep the canonical address of
   second-half bytes at `$40–$7D` — already handled there, *to verify* in the generated host.
 - **Do not guess SMZ3's or any other game's layout**; check public documentation and our own
   runs, and write the result down.

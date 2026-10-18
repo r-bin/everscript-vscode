@@ -38,9 +38,8 @@ const NONE = '\u0000';
 let localizations: Localizations | null = null;
 function loc(): Localizations {
     if (!localizations) {
-        // Run from dist/ (the build) or src/ (ts-node style tools): the JS lives in src/.
-        try { localizations = require('../localizations') as Localizations; }
-        catch { localizations = require('../../../../src/games/evermore/localizations') as Localizations; }
+        // Runs from dist/ (the build); the localizations are JS in src/.
+        localizations = require('../../../../src/games/evermore/localizations') as Localizations;
     }
     return localizations;
 }

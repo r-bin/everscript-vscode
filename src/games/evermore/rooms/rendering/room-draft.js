@@ -9,8 +9,8 @@
 //
 // See docs/map-format/building-a-room-from-a-picture.md §5.
 
-const maps = require('../../maps');
-const { romFingerprint } = require('./rom-fingerprint');
+const maps = require('../../../../../dist/games/evermore/maps');
+const { romFingerprint } = require('../../../../../dist/games/evermore/rooms/rendering/rom-fingerprint');
 const { vanillaIndex, budgetSummary } = require('./vanilla-index');
 const { VANILLA_ROOMS } = require('../data/vanilla-data');
 const { overlayOptions } = require('./tile-overlay');

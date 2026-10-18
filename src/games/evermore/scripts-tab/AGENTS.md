@@ -17,7 +17,7 @@ Not to be confused with `src/games/evermore/script-vm/` (the bytecode decoder), 
 
 ## State owned
 - `host.js`: `_rooms` (room scripts + picture per room, for one ROM).
-- `model/alchemy.js`: `_cache` (alchemy model per ROM). `model/simulation.js`: `_sim`
+- `model/alchemy.ts`: `_cache` (alchemy model per ROM). `model/simulation.js`: `_sim`
   (the simulator per ROM, clusters per room).
 - `webview/scripts-tab.js`: `_scr` (view, selections, toggles, per-key caches, players).
 

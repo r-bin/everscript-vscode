@@ -15,7 +15,7 @@
  * Heuristic: a wrong guess only mislabels a comment, never changes the export bytes.
  */
 
-const { hex, countText } = require('./rom-map');
+const { hex, countText } = require('../../../dist/platform/cdl/rom-map');
 const { decodeAt } = require('./disasm');
 const { SPACE, XR, EXT_HEAD, CDL_CODE, XREFS_PER_PC } = require('./xref-index');
 

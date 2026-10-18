@@ -6,7 +6,7 @@ Kind: **platform** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: 
 - TextMate grammars, color theme, language configuration, snippets, and the hover,
   completion, definition, symbol and dead-branch providers with their workspace index; Build and Run
   (`build-and-run.js`: the compiler call and loading its ROM into the emulator); the compiler settings
-  model (`config.js`).
+  model (`config.ts`).
 - Does NOT own: ROM byte reading, radar panel, emulator state, debugger protocol.
 
 ## Dependencies
@@ -20,8 +20,8 @@ Kind: **platform** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: 
 
 | State | Location | Notes |
 |---|---|---|
-| Static hover/completion index (`data/index.json`) | `workspace-index.js` | Loaded once |
-| Workspace declaration index | `workspace-index.js` | Replaced whole by `buildWorkspaceIndex()` |
+| Static hover/completion index (`data/index.json`) | `workspace-index.ts` | Loaded once |
+| Workspace declaration index | `workspace-index.ts` | Replaced whole by `buildWorkspaceIndex()` |
 
 ## Invariants
 1. Grammar pattern order matters — first match wins in `tmLanguage.json`.

@@ -2,7 +2,7 @@
 // Ownership: script IDs and ROM addresses to subjective script names (NPC, ABS, Global).
 // Sources: names kept from an earlier import and frozen (docs/cleanup.md D4), src/games/evermore/script-model/names.json.
 
-const { resolveLocalizedName } = require('./strings');
+const { resolveLocalizedName } = require('../../../../dist/games/evermore/localizations/strings');
 
 let rawNames = null;
 try {

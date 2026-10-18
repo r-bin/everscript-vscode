@@ -53,7 +53,7 @@ async function unit() {
 async function romChecks(rom) {
     console.log('\nScripts tab — ROM');
     const rooms = require('../../src/games/evermore/scripts-tab/model/rooms');
-    const { alchemyModel } = require('../../src/games/evermore/scripts-tab/model/alchemy');
+    const { alchemyModel } = require('../../dist/games/evermore/scripts-tab/model/alchemy');
     const music = require('../../src/games/evermore/music');
 
     await test('every room decodes its scripts', () => {

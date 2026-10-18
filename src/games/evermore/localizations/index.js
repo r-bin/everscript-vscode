@@ -3,7 +3,7 @@
 // Concentrates subjective names (maps, sounds, tables, functions) and supports
 // optional in-game string indices resolved against ROM bytes.
 
-const strings = require('./strings');
+const strings = require('../../../../dist/games/evermore/localizations/strings');
 const maps = require('./maps');
 const sounds = require('./sounds');
 const tables = require('./tables');

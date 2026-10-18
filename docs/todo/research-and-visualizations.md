@@ -52,3 +52,11 @@ The Dog's form table at `$CF945F` has six 40-byte entries (10-byte header + 15 a
 4. **Codec Implementation:** Add 4bpp block encoder and sprite-info writer to `src/games/evermore/maps/sprites.ts`.
 5. **Draw & Integrate Poses:** Pixel ~85 missing poses in the Act 0 palette, allocate dead block IDs, assemble animation scripts, and repoint `$CF936D` form slots.
 
+
+## 3. Script simulation: fewer paths
+
+> From cleanup 5.6/5.7 (`docs/cleanup.md`): the profiled hot spots are fixed (all 127 rooms 308 → 201 s, output byte-identical).
+
+- **The problem:** the slowest rooms (0x48 and 0x0a, ~20 s each; 0x5a 16 s) have no single hot spot left: ~30 % is GC, the rest is spread over stepping, the scheduler and the symbolic keys (`simulation/sym.ts` `memo` / `key`) across many paths.
+- **The way:** fewer paths, i.e. merging them earlier (`simulation/turn.ts` `mergeGroup`), not faster code. Check any change against the sha1 of `room()`'s JSON for all 127 rooms.
+- **Status:** 💡 Not started.

@@ -20,7 +20,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { CdlLibrary, romHash, stripCopierHeader } = require('../../../platform/cdl/library');
-const { createRomMap, hex } = require('../../../platform/cdl/rom-map');
+const { createRomMap, hex } = require('../../../../dist/platform/cdl/rom-map');
 
 const IDLE_FLUSH_MS = 60 * 1000;
 const MAX_FLUSH_MS = 5 * 60 * 1000;

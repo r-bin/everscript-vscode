@@ -3,7 +3,7 @@
 // SPC file (driver + records into ARAM), and its info page. Pure. audio-files.js serves the paths.
 
 const { getSoundAnimations } = require('../localizations/sounds');
-const { hexId } = require('./resource-uri');
+const { hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
 const { buildMusicModel } = require('../music/model/catalog');
 const { packageRecords, musicPackages, driverBlocks, isEvermoreAudio } = require('../music/model/rom-audio');
 const V = require('../music/webview/music-view');

@@ -12,7 +12,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..', '..');
 const { regions } = require('./region-evidence');
 
-/** Strings in the game's text that name a place (decoded by localizations/strings.js). */
+/** Strings in the game's text that name a place (decoded by localizations/strings.ts). */
 const PLACE_STRINGS = {
     'Nobilia': 256, 'Bugmuck': 259, 'Quicksand Field': 261, 'Ivor Tower': 264, 'Ebon Keep': 265,
     'Nobilia Colosseum': 270, 'Omnitopia': 274, 'Junkyard': 279, 'Crustacia': 1768, 'Podunk': 421,

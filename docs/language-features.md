@@ -35,12 +35,12 @@ Context-aware code completion:
 
 ### 2.3 Go-to-Definition & Symbol References (`src/games/evermore/language/definition-provider.js`)
 - `Cmd+Click` or `F12` on a function call jumps directly to its `fun` declaration across any file in the workspace.
-- Resolves memory address declarations and constants indexed by `src/games/evermore/language/workspace-index.js`.
+- Resolves memory address declarations and constants indexed by `src/games/evermore/language/workspace-index.ts`.
 
-### 2.4 Document Symbols & Breadcrumbs (`src/games/evermore/language/symbol-provider.js`)
+### 2.4 Document Symbols & Breadcrumbs (`src/games/evermore/language/symbol-provider.ts`)
 - Populates the VS Code Outline pane and navigation breadcrumbs with structured hierarchy (`map` → triggers, `fun`, `enum`).
 
-### 2.5 Dead Branch Fading (`src/games/evermore/language/dead-branch.js`)
+### 2.5 Dead Branch Fading (`src/games/evermore/language/dead-branch.ts`)
 - Identifies compile-time static constants in `if` conditions and fades unreachable code blocks using editor decorations.
 
 ### 2.6 Code Snippets (`src/games/evermore/language/snippets/everscript.json`)

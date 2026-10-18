@@ -3,9 +3,9 @@
 // ROM lookup tables, jump tables, pointer tables, and formula tables. Pure.
 
 const { TABLES, getTable } = require('../localizations/tables');
-const { hexId, slugify } = require('./resource-uri');
-const { snesToRom } = require('../maps');
-const { dir, file, json, text } = require('./nodes');
+const { hexId, slugify } = require('../../../../dist/games/evermore/resources/resource-uri');
+const { snesToRom } = require('../../../../dist/games/evermore/maps');
+const { dir, file, json, text } = require('../../../../dist/games/evermore/resources/nodes');
 
 let vr;
 try {

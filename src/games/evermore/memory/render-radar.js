@@ -37,7 +37,7 @@ function renderRadarHtml(
     // ── JS data blobs ───────────────────────────────────────────────────────
     const css    = radarWebview.css;
     const jsData = 'var CELLS=' + JSON.stringify(cellData).replace(/<\/script>/gi, '<\\/script>') + ';' +
-        // The ring menu's icons, decoded from the ROM (rooms/data/item-icons.js):
+        // The ring menu's icons, decoded from the ROM (rooms/data/item-icons.ts):
         // `loot` by LOOT_REWARD name for the Rooms tab, `alchemy` by formula
         // name for the Scaling tab. Empty without a ROM — both fall back.
         '\nvar ITEM_ICONS=' + JSON.stringify(itemIcons || { loot: {}, alchemy: {} }) + ';';

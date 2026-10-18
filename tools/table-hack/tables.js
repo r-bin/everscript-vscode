@@ -42,7 +42,7 @@ function characterOperands(rom) {
 
 /** Highest tile family any room loads, + 1 (src/games/evermore/maps decodes every room). */
 function familyCount(rom) {
-    const maps = require('../../src/games/evermore/maps');
+    const maps = require('../../dist/games/evermore/maps');
     let max = 0;
     for (let id = 0; id < maps.MAX_ROOMS; id++) {
         try { for (const f of maps.decodeRoom(rom, id).tileFamilies) max = Math.max(max, f); } catch (_) { /* not a room */ }

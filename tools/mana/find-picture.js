@@ -7,7 +7,7 @@
 // markers in the picture are mostly skipped by sampling only the middle 40%.
 'use strict';
 const fs = require('fs'), zlib = require('zlib');
-const mana = require('../../src/games/mana/decoder');
+const mana = require('../../dist/games/mana/decoder');
 
 const romPath = require('../rom').romOrExit('mana');
 const [file, size, left = '0', top = '0'] = process.argv.slice(2);

@@ -16,7 +16,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const maps = require('../src/games/evermore/maps');
+const maps = require('../dist/games/evermore/maps');
 
 const ROM = require('./rom').romOrExit('evermore');
 if (!fs.existsSync(ROM)) { console.log('SKIP: ROM not found at ' + ROM); process.exit(0); }

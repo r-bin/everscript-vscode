@@ -8,7 +8,7 @@
 
 const { buildExportRom, BRIAN_ROOM } = require('./rom-export');
 const { mapDocument } = require('../data/custom-store');
-const { buildZip } = require('../../../../platform/zip');
+const { buildZip } = require('../../../../../dist/platform/zip');
 const { hexLower } = require('../../../../../dist/platform');
 
 /** `New map 1` -> `new_map_1`: a file name every tool accepts. */

@@ -13,9 +13,9 @@
 
 const fs = require('fs');
 const path = require('path');
-const { hex, countText } = require('./rom-map');
+const { hex, countText } = require('../../../dist/platform/cdl/rom-map');
 const { buildIndex, flagText, SPACE, XR } = require('./xref-index');
-const { createRomMap } = require('./rom-map');
+const { createRomMap } = require('../../../dist/platform/cdl/rom-map');
 const { decodeAt } = require('./disasm');
 const { WVAL_BYTES } = require('./library');
 

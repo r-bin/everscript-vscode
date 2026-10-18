@@ -9,7 +9,7 @@ Usage (record → export → `build.sh` → `recomp.sh`): `docs/reverse-engineer
 |---|---|
 | `library.js` | Per-ROM library `<globalStorage>/cdl-library/<sha1>/`; mergeable files, atomic flush |
 | `library-ext.js` | Library streams for recomp / decomp / layout ports: `bus.cdl`, `bus-sites.bin`, `rom-cycles.bin` (cycles are summed deltas), `rets.bin` (call stack outcomes, exit widths), `regs.bin` (DB / D / Y), `bases.bin` (pointer bases), `wram-code.*`, `aram.cdl`; decoded views `retsList` / `regsByPc` / `basesByPc` |
-| `rom-map.js` | ROM offset ⇄ bus address (canonical HiROM `$C0+`, LoROM `$80+:8000`) |
+| `rom-map.ts` | ROM offset ⇄ bus address (canonical HiROM `$C0+`, LoROM `$80+:8000`) |
 | `xref-index.js` | Functions, callers, enclosing function, accessors per address, labels |
 | `disasm.js` | Decode one instruction with recorded M/X; format Asar text that reassembles byte-exact |
 | `asar-export.js` | `main.asm` + `banks/*.asm` + `rom.bin` (incbin for unreached / DMA runs). Options: `names` (curated labels + descriptions), `wramNames`, `assets` (from `tools/recomp/`, which may read `src/games/evermore/localizations` and `src/games/evermore/rom`; this domain may not) |

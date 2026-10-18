@@ -10,7 +10,7 @@
 // emulator's when one runs, else vanilla.
 
 const vscode = require('vscode');
-const { parseSoeParts } = require('./resource-uri');
+const { parseSoeParts } = require('../../../../dist/games/evermore/resources/resource-uri');
 const { resolveRom } = require('./rom-files');
 const { resolveRam } = require('./ram-files');
 const { busTarget, indexMarkdown: busIndex } = require('./bus-files');
@@ -18,9 +18,9 @@ const { resolveLocalization } = require('./localization-files');
 const { resolveTags } = require('./tag-files');
 const { resolveMaps } = require('./custom-map-files');
 const { resolveLogs } = require('./log-files');
-const { autoIndex } = require('./autoindex');
-const { dir, text } = require('./nodes');
-const { intoMount, pageLinks } = require('./page-links');
+const { autoIndex } = require('../../../../dist/games/evermore/resources/autoindex');
+const { dir, text } = require('../../../../dist/games/evermore/resources/nodes');
+const { intoMount, pageLinks } = require('../../../../dist/games/evermore/resources/page-links');
 const { missingRomText } = require('../../../../dist/platform/roms/library');
 
 const LIVE_TTL_MS = 250;
@@ -87,7 +87,7 @@ class SoeFileSystem {
     /**
      * A ROM opened as a folder (`soe://rom/~<mount>/`) is a game root: `rom/` is the
      * cartridge, `ram/`, `tags/` and `localization/` are those authorities. Pages
-     * served here link into the mount (page-links.js), so the Markdown preview,
+     * served here link into the mount (page-links.ts), so the Markdown preview,
      * whose resource roots are the workspace folders, loads their images.
      */
     _routeMounted(uri, p) {

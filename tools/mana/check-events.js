@@ -8,7 +8,7 @@
 // and records what the event runner $01:E76D was called with.
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
-const mana = require('../../src/games/mana/decoder');
+const mana = require('../../dist/games/mana/decoder');
 
 const romPath = require('../rom').romOrExit('mana');
 const id = parseInt(process.argv[2], 16);

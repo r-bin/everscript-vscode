@@ -13,7 +13,7 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 - No VS Code API (`.depcruise.js` `no-maps-to-vscode`), no filesystem.
 - No webview rendering and no memory-tab UI (`no-maps-to-memory-ui`); the Rooms tab owns
   its own (`src/games/evermore/rooms/rendering/tile-overlay.js`).
-- Consumers `require('../maps')` (the facade), never `./dist` directly.
+- JS consumers require the compiled module from `dist/games/evermore/maps` (there is no JS facade); TS imports `src/` directly.
 
 ## Invariants
 - Pure: takes a ROM buffer, returns data.

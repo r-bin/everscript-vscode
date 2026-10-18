@@ -6,7 +6,7 @@
 // [count:16] then count × [length:16][rom_src:24][spc_dest:16]. Every copy
 // reads upper halves only: past $FFFF it continues at the next bank's $8000.
 
-const { hex } = require('./util');
+const { hex } = require('../../../../../dist/games/evermore/rom/model/util');
 
 const SONG_COUNT = 0x019900, SONG_POINTERS = 0x019903;
 const FINE_END = 0x01B710;   // below: per-song tables, interleaved record by record

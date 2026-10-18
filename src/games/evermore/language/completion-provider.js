@@ -3,7 +3,7 @@
 // Provides function, enum, annotation, and workspace completions for .evs files.
 
 const vscode = require('vscode');
-const { getWorkspaceIndex } = require('./workspace-index');
+const { getWorkspaceIndex } = require('../../../../dist/games/evermore/language/workspace-index');
 
 /**
  * Convert a core function signature to a VS Code snippet string.

@@ -4,7 +4,7 @@ Kind: **platform** (see `/AI_ARCHITECTURE_GUIDE.md` §2). The read-only `som://`
 system: Secret of Mana's data plane. What the folder does: [README.md](README.md).
 
 ## Owns
-- The `som://` FileSystemProvider and finding the Mana ROM (`rom-source.js`).
+- The `som://` FileSystemProvider and finding the Mana ROM (`rom-source.ts`).
 - `som://` is separate from `soe://`: no Evermore path ever serves Mana data and back.
 
 ## Dependencies

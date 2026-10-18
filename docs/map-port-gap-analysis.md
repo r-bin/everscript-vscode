@@ -236,7 +236,7 @@ Every verification so far (`check:maps`, the render comparison, all 127-room
 sweeps) runs against the stock retail ROM. `parseBlobLayout`'s deterministic
 offset-walking has no fallback if a patch changes a room's section framing,
 relocates the map pointer table, or adds an 128th+ room. The extension's own
-`patches/` / `scale_enemies` detection (`src/games/evermore/language/config.js`,
+`patches/` / `scale_enemies` detection (`src/games/evermore/language/config.ts`,
 `detectScaleEnemies`) exists for *script* behavior, not map data — nobody has
 checked whether any shipped or hypothetical map-editing patch would break
 `decodeRoom`'s assumptions. If `src/map-editor/` (see the `map-format` skill's

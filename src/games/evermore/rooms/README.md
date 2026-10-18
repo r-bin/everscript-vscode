@@ -13,9 +13,9 @@ rooms/
     tree-renderer.js          — renderVanillaTree(rooms), renderRoomsTree(nodes), buildRoomRailHtml(live, vanilla), buildRoomsJson(tree)
     tile-overlay.js           — buildRoomTileOverlay: the map raster, the canopy, and the canopy overlay
     object-previews.js        — Section 3 objects: states, thumbnails, the selection wire form
-    family-sets.js            — alternate family sets: each family's colours and the MAP_PALETTE values the room's scripts write
-    header-overrides.js       — the Info tab's header fields (and a previewed palette set) applied before a render
-    rom-fingerprint.js        — romFingerprint(rom): the cache key every render cache shares
+    family-sets.ts            — alternate family sets: each family's colours and the MAP_PALETTE values the room's scripts write
+    header-overrides.ts       — the Info tab's header fields (and a previewed palette set) applied before a render
+    rom-fingerprint.ts        — romFingerprint(rom): the cache key every render cache shares
     metatile-palette.js       — buildRoomMetatilePalette: the dictionary atlas + one packed row per stamp
     stamp-animation.js        — animated stamps' later frames (`anim`), so a placed torch flickers on the canvas
     vanilla-index.js          — the vanilla index + room budget, cached per ROM, packaged for the tab
@@ -380,7 +380,7 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
 
 A B-trigger shows the ring menu's own icon for what it hands over —
 ingredients, consumables and armour — decoded from the user's ROM, never a
-bundled image. `data/item-icons.js` encodes them once per ROM buffer and the
+bundled image. `data/item-icons.ts` encodes them once per ROM buffer and the
 page receives them as `ITEM_ICONS.loot`, a PNG data URI per `LOOT_REWARD` name
 (the Scaling tab reads `ITEM_ICONS.alchemy` from the same global). The format
 is [docs/item-icons.md](../../../../docs/item-icons.md).

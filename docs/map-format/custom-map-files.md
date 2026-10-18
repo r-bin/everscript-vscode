@@ -6,7 +6,7 @@ how edit history and levels are recorded in them.
 Code:
 - Host storage: `src/games/evermore/rooms/custom-store.js`.
 - Export archive: `src/games/evermore/rooms/rendering/custom-export.js`, using
-  `src/platform/zip.js`.
+  `src/platform/zip.ts`.
 - Webview side: `src/games/evermore/rooms/webview/map-editor-custom.js` and
   `map-editor-custom-store.js`.
 - Tests: `tests/memory/custom-maps.test.js`.

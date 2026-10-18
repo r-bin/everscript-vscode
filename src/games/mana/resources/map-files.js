@@ -12,7 +12,7 @@
 //                         pieces and their states, the backdrop
 //   <id>.tiles.a.png / .tiles.b.png   layer A's / B's 192 metatiles as a 16x12 sheet (colour 0 clear)
 
-const mana = require('../decoder');
+const mana = require('../../../../dist/games/mana/decoder');
 const platform = require('../../../../dist/platform');
 /** @param {{ width: number, height: number, rgba: Uint8Array }} img */
 const encodePng = img => platform.encodePng(img.width, img.height, img.rgba);

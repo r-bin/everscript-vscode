@@ -6,7 +6,7 @@ const { runAnimation } = require('../../../../dist/games/evermore/maps/animation
 const { facingScript } = require('../../../../dist/games/evermore/maps/animation-table');
 const { projectileRecord, projectileFlight } = require('../../../../dist/games/evermore/maps/projectiles');
 const { paletteAt } = require('../../../../dist/games/evermore/maps/character-record');
-const { composeAligned } = require('./frame-compose');
+const { composeAligned } = require('../../../../dist/games/evermore/sprites/frame-compose');
 const { hexLower: hex } = require('../../../../dist/platform');
 
 const MAX_SPAWNS = 64;

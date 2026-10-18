@@ -13,10 +13,10 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
-const { buildRoomScriptModel } = require('../../src/games/evermore/script-model');
+const { buildRoomScriptModel } = require('../../dist/games/evermore/script-model');
 /** HiROM: the file offset of a bus address. */
 const fileOf = (bus) => bus & 0x3fffff;
-const sim = require('../../src/games/evermore/simulation');
+const sim = require('../../dist/games/evermore/simulation');
 
 const REPO = process.env.EVERSCRIPT_REPO || path.join(__dirname, '..', '..', '..', 'everscript');
 const ROM = require('../../dist/games').romPath('evermore');

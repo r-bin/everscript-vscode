@@ -14,7 +14,7 @@
  * the rebuild stays byte-identical either way.
  */
 
-const { hex } = require('./rom-map');
+const { hex } = require('../../../dist/platform/cdl/rom-map');
 
 const CDL_CODE = 0x01;
 

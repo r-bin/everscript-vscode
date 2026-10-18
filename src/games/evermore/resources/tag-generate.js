@@ -8,9 +8,9 @@
 const { VANILLA_MAPS } = require('../localizations/maps');
 const { MUSIC, SOUNDS, getSoundAnimations } = require('../localizations/sounds');
 const { TABLES } = require('../localizations/tables');
-const { lootRewardName } = require('../script-model');
+const { lootRewardName } = require('../../../../dist/games/evermore/script-model');
 const NAMES = require('../script-model/names.json');
-const { slugify, hexId } = require('./resource-uri');
+const { slugify, hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
 
 const ROM = 'soe://rom/assets/';
 const MAX_SOUND_CHARACTERS = 12;   // a shared death animation is played by 80 characters

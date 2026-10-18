@@ -17,7 +17,7 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
-const sim = require('../../src/games/evermore/simulation');
+const sim = require('../../dist/games/evermore/simulation');
 
 const ROM = require('../../dist/games').romPath('evermore');
 const CORE = path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'core', 'snes9x2005-wasm', 'snes9x_2005.wasm');

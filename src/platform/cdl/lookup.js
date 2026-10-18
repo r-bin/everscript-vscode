@@ -7,7 +7,7 @@
  * Accepts 7E4E57, $7E:4E57, 4E57 (WRAM bank $7E), 2118 (I/O), C0:8000 / 808000 (ROM).
  */
 
-const { hex, busName, countText } = require('./rom-map');
+const { hex, busName, countText } = require('../../../dist/platform/cdl/rom-map');
 const { flagText, SPACE } = require('./xref-index');
 const { valuesSeen } = require('./wram-export');
 const { tableAt, tableTitle } = require('./tables');

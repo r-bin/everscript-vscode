@@ -15,7 +15,7 @@
 
 const vscode = require('vscode');
 const { createMcpHandler } = require('./protocol');
-const { createMcpHttpServer } = require('./server');
+const { createMcpHttpServer } = require('../../../dist/core/mcp/server');
 
 const PROVIDER_ID = 'everscript-soe';   // = contributes.mcpServerDefinitionProviders[].id
 const KIND = { 1: 'file', 2: 'dir' };

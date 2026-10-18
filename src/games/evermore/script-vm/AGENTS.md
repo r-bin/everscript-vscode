@@ -9,7 +9,7 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 ## Dependencies
 - `platform/snes/` and `../variant-resolver` only (`.depcruise.js` `script-vm-from-the-game`).
   No VS Code API, no filesystem.
-- Consumers `require('../script-vm')` (the JS facade), never `./dist`.
+- JS consumers require `dist/games/evermore/script-vm` (no JS facade); TS imports `src/` directly.
 
 ## Invariants
 - Written from the game. Never read the legacy decoder (`../script/decoder.ts`, `expression.ts`,

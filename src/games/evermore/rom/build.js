@@ -10,7 +10,7 @@ const { assetRegions, graphicSpans } = require('./model/assets');
 const { audioRegions } = require('./model/audio');
 const { annotateOverlaps, layoutHalves } = require('./model/layout');
 const { knownPoints } = require('./model/points');
-const { busToFile } = require('./model/util');
+const { busToFile } = require('../../../../dist/games/evermore/rom/model/util');
 
 function stripCopierHeader(rom) {
     return rom.length % 1024 === 512 ? rom.subarray(512) : rom;

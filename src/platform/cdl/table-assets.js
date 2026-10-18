@@ -15,7 +15,7 @@
  * recorded indices cover it densely enough to trust its length.
  */
 
-const { hex } = require('./rom-map');
+const { hex } = require('../../../dist/platform/cdl/rom-map');
 const { tableTitle } = require('./tables');
 
 const CDL_CODE = 0x01;

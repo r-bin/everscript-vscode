@@ -1,6 +1,6 @@
 'use strict';
 // Ownership: an Evermore ROM image with one converted room in it — the user's Evermore
-// ROM, copied, plus the room's graphics, its families' colours and its blob (ids.js says
+// ROM, copied, plus the room's graphics, its families' colours and its blob (ids.ts says
 // where). Built in memory, never written to disk. Every Evermore reader then sees an
 // ordinary room: decodeRoom, the renderer, the collision overlay, the tile palette.
 //
@@ -8,8 +8,8 @@
 // Evermore data: grid, dictionary, Block 1, step-on triggers, the cuttable layer
 // (Section 4) and objects (Section 3), numbered the way a custom map's are.
 
-const maps = require('../../maps');
-const ids = require('./ids');
+const maps = require('../../../../../dist/games/evermore/maps');
+const ids = require('../../../../../dist/games/evermore/imports/mana/ids');
 
 /** Header bytes 11-12 are not known; they are copied from this vanilla room. */
 const HEADER_DONOR = 0x34;

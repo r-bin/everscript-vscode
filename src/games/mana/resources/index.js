@@ -5,7 +5,7 @@
 
 const vscode = require('vscode');
 const { SomFileSystem } = require('./fs-provider');
-const { findManaRom } = require('./rom-source');
+const { findManaRom } = require('../../../../dist/games/mana/resources/rom-source');
 
 const SCHEME = 'som';
 

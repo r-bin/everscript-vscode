@@ -29,7 +29,7 @@
    - Global scripts (e.g. `0x00` -> "Fade-out / stop music").
    - Dynamic overrides and string index binding via `setScriptOverride`.
 
-6. **In-game String Resolution (`strings.js`)**
+6. **In-game String Resolution (`strings.ts`)**
    - Decoder for ROM strings using the 3002-key table at `$C3:D000` (`$11D000`).
    - Resolves `stringIndex` properties dynamically against ROM bytes when available, falling back to subjective names.
 

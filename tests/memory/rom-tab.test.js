@@ -9,7 +9,7 @@ const assert = require('assert');
 
 const { buildRomModel } = require('../../src/games/evermore/rom');
 const { readersOf } = require('../../src/games/evermore/rom/model/readers');
-const { executedByHalf, wramStrip } = require('../../src/games/evermore/rom/model/bus-usage');
+const { executedByHalf, wramStrip } = require('../../dist/games/evermore/rom/model/bus-usage');
 const { renderRadarHtml } = require('../../src/games/evermore/memory/render-radar');
 
 let passed = 0, failed = 0;

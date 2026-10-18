@@ -3,7 +3,7 @@
 // check per rule of docs/game-research/script-vm/, so a regression is named.
 
 const assert = require('assert');
-const V = require('../../src/games/evermore/script-vm');
+const V = require('../../dist/games/evermore/script-vm');
 
 let passed = 0, failed = 0;
 function test(name, fn) {

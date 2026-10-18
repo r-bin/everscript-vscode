@@ -28,7 +28,7 @@ require.cache.vscode = { id: 'vscode', filename: 'vscode', loaded: true, exports
     FileChangeType: { Changed: 1 },
 } };
 
-const { parseSoeParts, parseAddressName, slugify } = require('../../src/games/evermore/resources/resource-uri');
+const { parseSoeParts, parseAddressName, slugify } = require('../../dist/games/evermore/resources/resource-uri');
 const { resolveRom, toFileOffset } = require('../../src/games/evermore/resources/rom-files');
 const { resolveRam } = require('../../src/games/evermore/resources/ram-files');
 const { SoeFileSystem } = require('../../src/games/evermore/resources/fs-provider');
@@ -256,7 +256,7 @@ test('provider: ?rom=<absolute path> reads that ROM file (Open ROM as Folder)', 
 }, true);
 
 test('mount segment: ~<base64url path> names the ROM file and is stripped from segments', () => {
-    const { mountSegment } = require('../../src/games/evermore/resources/resource-uri');
+    const { mountSegment } = require('../../dist/games/evermore/resources/resource-uri');
     const m = mountSegment('/x/Secret of Evermore (U) [!].smc');
     assert.ok(/^~[A-Za-z0-9_-]+$/.test(m), m);
     const p = parseSoeParts('rom', `/${m}/assets/icons/0000.png`, '');
@@ -265,7 +265,7 @@ test('mount segment: ~<base64url path> names the ROM file and is stripped from s
 
 test('provider: a ~mount reads that ROM file; autoindex stays inside the mount', async () => {
     const { loadRomFile } = require('../../src/games/evermore/rom-readers');
-    const { mountSegment } = require('../../src/games/evermore/resources/resource-uri');
+    const { mountSegment } = require('../../dist/games/evermore/resources/resource-uri');
     const fsp = new SoeFileSystem({ vanillaRom: () => null, emulatorRom: () => null, romFile: loadRomFile, readMemory });
     const base = `soe://rom/${mountSegment(romPath)}/`;
     assert.ok(JSON.parse(Buffer.from(await fsp.readFile(uri(base + 'header.json')))).title.startsWith('SECRET OF EVERMORE'));
@@ -846,7 +846,7 @@ test('provider: logs VFS routes at root level and mounted ROM (soe://logs/)', as
 });
 
 test('encodeGif: produces valid GIF89a with Netscape infinite loop and frame delays', () => {
-    const { encodeGif } = require('../../src/games/evermore/resources/gif');
+    const { encodeGif } = require('../../dist/games/evermore/resources/gif');
     const w = 8, h = 8;
     const f1 = new Uint8Array(w * h * 4);
     const f2 = new Uint8Array(w * h * 4);

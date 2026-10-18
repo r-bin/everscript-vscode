@@ -16,8 +16,8 @@ const {
     decodeRoom, MAX_ROOMS, renderRoomComposite, encodePng, drawCollisionOverlay,
     parseObjectStamp, applyObjectStates, objectStateCount,
     drawCollisionOverlay: paintOverlay, buildAnimationGroups, buildOverlayTransfer,
-} = require('../../src/games/evermore/maps');
-const maps = require('../../src/games/evermore/maps');
+} = require('../../dist/games/evermore/maps');
+const maps = require('../../dist/games/evermore/maps');
 
 const EVERSCRIPT_REPO = process.env.EVERSCRIPT_REPO ||
     path.join(path.dirname(path.dirname(path.dirname(path.resolve(__dirname)))), 'everscript');

@@ -18,12 +18,12 @@ The radar tab is called **Characters** (it was "Sprites"); inside it, three mode
 | `character-model.js` | Reads all 142 characters, stats, and animation catalog from ROM | < 250 |
 | `animation-decoder.js` | Runs an animation script (via `maps/animation-vm`), aligns frames, renders PNGs, returns the script listing | < 200 |
 | `animation-catalog.js` | Every animation in the ROM's record table ($C43E3A), who uses it (character fields, weapons, `animate()` ids via $C43C92), and its palette | < 150 |
-| `frame-compose.js` | Composes a run's frames into PNGs aligned on one feet origin | < 80 |
+| `frame-compose.ts` | Composes a run's frames into PNGs aligned on one feet origin | < 80 |
 | `projectile-render.js` | Projectile spawns on the playback timeline, their flight and their own animation | < 100 |
 | `target.js` | The second character on stage: who, where, its standing frame, and which ticks hit it | < 120 |
-| `dog-forms.js` | The Dog's six forms (bank `$CF`), shaped like Boy weapons | < 90 |
-| `raw-sprites.js` | Walks and indexes all raw sprites from `$CA0003`, renders chunk tables | < 150 |
-| `sprites-tab.js` | Server-side tab pane HTML scaffold | < 200 |
+| `dog-forms.ts` | The Dog's six forms (bank `$CF`), shaped like Boy weapons | < 90 |
+| `raw-sprites.ts` | Walks and indexes all raw sprites from `$CA0003`, renders chunk tables | < 150 |
+| `sprites-tab.ts` | Server-side tab pane HTML scaffold | < 200 |
 | `webview/sprites-view/` | Client-side webview controller, rAF animation loop, canvas drawing: one IIFE kept as parts (`01-state.js` … `05-raw-sprites.js`), wrapped by `memory/webview/index.js` | < 400 each |
 | `webview/sprites-script.js` | Script listing panel (current-frame highlight, owners) and the Animations rail list; loaded before `sprites-view/` | < 200 |
 | `webview/sprites-motion.js` | Stage geometry: walk path, jump height, projectile flight, and the scene box the canvas must hold | < 160 |

@@ -10,7 +10,7 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
-const sim = require('../../src/games/evermore/simulation');
+const sim = require('../../dist/games/evermore/simulation');
 
 const ROM = require('../../dist/games').romPath('evermore');
 if (!fs.existsSync(ROM)) { console.log('SKIP simulation room: no ROM'); process.exit(0); }
@@ -90,7 +90,7 @@ test('every room script runs through the simulation, and the operand layout agre
     // Small budgets: this checks that every reachable instruction is executed with the
     // right layout, not the analysis itself (tools/simulation/sweep-rooms.js does that).
     const all = sim.createSimulator(rom);
-    const { buildRoomScriptModel } = require('../../src/games/evermore/script-model');
+    const { buildRoomScriptModel } = require('../../dist/games/evermore/script-model');
     let scripts = 0;
     for (let id = 0; id < 0x7f; id++) {
         const m = buildRoomScriptModel(rom, id);

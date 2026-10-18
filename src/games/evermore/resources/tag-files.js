@@ -13,7 +13,7 @@
 
 const { tagModel } = require('./tag-model');
 const { pageUri, formatValue, tagJson, tagMarkdown, rootMarkdown, searchMarkdown } = require('./tag-markdown');
-const { dir, link, json, text } = require('./nodes');
+const { dir, link, json, text } = require('../../../../dist/games/evermore/resources/nodes');
 
 const LIVE_LINK = /^soe:\/\/(ram|bus\/7[ef])/i;
 const MAX_LIVE_READS = 64;

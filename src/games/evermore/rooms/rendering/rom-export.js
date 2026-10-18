@@ -21,9 +21,9 @@
 // the Rooms tab uses and compared with what was asked for before it is
 // returned. See docs/map-format/rom-export.md.
 
-const maps = require('../../maps');
-const vm = require('../../script-vm');
-const { buildRoomScriptModel } = require('../../script-model');
+const maps = require('../../../../../dist/games/evermore/maps');
+const vm = require('../../../../../dist/games/evermore/script-vm');
+const { buildRoomScriptModel } = require('../../../../../dist/games/evermore/script-model');
 const { vanillaIndex } = require('./vanilla-index');
 const { hiromFileOffset: snesOffset } = require('../../../../../dist/platform');
 

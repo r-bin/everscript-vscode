@@ -1,7 +1,7 @@
 # src/games/mana/decoder — Secret of Mana maps
 
 Rules for agents: [AGENTS.md](AGENTS.md). Format and evidence: [docs/mana/README.md](../../../../docs/mana/README.md).
-Built by `npm run build:ts` (`tsconfig.build.json`) into `dist/games/mana/decoder/`; `index.js` is the CommonJS facade.
+Built by `npm run build:ts` (`tsconfig.build.json`) into `dist/games/mana/decoder/`; JS requires it from there (no JS facade).
 
 | File | Owns | Game routine |
 |---|---|---|

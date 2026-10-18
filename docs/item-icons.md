@@ -173,7 +173,7 @@ any, are still an open question.
 |---|---|
 | Table, palette, first frame as RGBA; reward and formula → icon id | `src/games/evermore/maps/item-icons.ts` (`renderItemIcon`, `lootIconId`, `alchemyIconId`) |
 | The script walk, including `0x56` (3) and `0x30` (1) | `walkAnimationScript` in `src/games/evermore/maps/character-animation.ts`, shared with characters; all 141 characters × 8 facings walk byte-identically with the two widths added |
-| PNG data URIs keyed by `LOOT_REWARD` name and by formula name, once per ROM buffer | `src/games/evermore/rooms/data/item-icons.js` (`buildItemIcons`) |
+| PNG data URIs keyed by `LOOT_REWARD` name and by formula name, once per ROM buffer | `src/games/evermore/rooms/data/item-icons.ts` (`buildItemIcons`) |
 | One `ITEM_ICONS` global on the radar page | `src/games/evermore/memory/render-radar.js` |
 | B-trigger icons, 2×2 viewBox units (native 16px against 8px tiles) | `itemSvgImg` / `trigItemName` in `src/games/evermore/rooms/webview/utils.js` |
 | An icon beside each formula in the Scaling legend | `alchemyIconHtml` in `src/games/evermore/scaling/webview/helpers.js` |

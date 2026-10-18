@@ -10,8 +10,8 @@
 const fs = require('fs');
 const path = require('path');
 const ROOT = path.join(__dirname, '..', '..');
-const V = require(path.join(ROOT, 'src/games/evermore/script-vm'));
-const M = require(path.join(ROOT, 'src/games/evermore/script-model'));
+const V = require(path.join(ROOT, 'dist/games/evermore/script-vm'));
+const M = require(path.join(ROOT, 'dist/games/evermore/script-model'));
 
 /** The Dog's form ($2443) → the act it belongs to. */
 const FORM_REGION = { 0x02: 'Prehistoria', 0x04: 'Prehistoria', 0x06: 'Antiqua', 0x08: 'Gothica', 0x0a: 'Podunk', 0x0c: 'Omnitopia' };

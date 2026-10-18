@@ -10,7 +10,7 @@
 // of the ROM. So a bulk reader counts only when its whole range sits in the
 // region's 32 KB half; wider ones are counted, not listed.
 
-const { hex } = require('./util');
+const { hex } = require('../../../../../dist/games/evermore/rom/model/util');
 
 const SPACE_ROM = 1, BULK = 128;
 const XR_DMA = 0x20;

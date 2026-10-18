@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('assert');
-const { buildRepoDefaults, resolveExtConfig, getRepoAutofillUpdates } = require('../../src/games/evermore/language/config');
+const { buildRepoDefaults, resolveExtConfig, getRepoAutofillUpdates } = require('../../dist/games/evermore/language/config');
 
 let passed = 0;
 let failed = 0;

@@ -13,7 +13,7 @@ depends on the compiler through unversioned, hand-maintained copies.
 
 | Where the plugin depends on `everscript` today | How it drifts |
 |---|---|
-| Build & Run spawns `python everscript.py`, found via `everscript.compilerPath` / `../everscript` (`src/extension.js`, `src/games/evermore/language/config.js`) | The two checkouts can be at any versions |
+| Build & Run spawns `python everscript.py`, found via `everscript.compilerPath` / `../everscript` (`src/extension.js`, `src/games/evermore/language/config.ts`) | The two checkouts can be at any versions |
 | `tools/generate_data.py` regexes `in/core/*.evs` → `src/games/evermore/language/data/index.json` | A second, weaker grammar; not wired into any build; writes to a stale path |
 | Signatures hand-copied from `compiler/ast_everscript.py` into `src/games/evermore/script/everscript.ts` | Nothing checks them |
 | RAM region bounds hard-coded in `src/extension.js:18` | Copied from `in/core/…/02_ram.evs` |

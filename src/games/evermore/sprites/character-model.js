@@ -16,7 +16,7 @@ const indexJson = require('../language/data/index.json');
 const { CHARACTER_TABLE, CHARACTER_STRIDE, ANIMATION_TABLE, characterPalette, characterHitbox, read16At } = require('../../../../dist/games/evermore/maps/character-record');
 const { animationIdRecord, recordScript } = require('../../../../dist/games/evermore/maps/animation-table');
 const { readSpriteInfo, scriptSprites } = require('../../../../dist/games/evermore/maps/sprites');
-const { readDogForms } = require('./dog-forms');
+const { readDogForms } = require('../../../../dist/games/evermore/sprites/dog-forms');
 
 /** Records the ENEMY table reaches (the last ROM entry is record 141). */
 const CHARACTER_COUNT = 142;

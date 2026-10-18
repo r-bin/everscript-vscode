@@ -9,8 +9,8 @@
 //
 // Picking a set is a **view**, not an edit: nothing is written, nothing goes on
 // the undo history. The host renders it through the same overrides the header
-// fields use (map-editor-info.js infoRenderHeader → header-overrides.js).
-// The colours and script values come with the palette (rendering/family-sets.js).
+// fields use (map-editor-info.js infoRenderHeader → header-overrides.ts).
+// The colours and script values come with the palette (rendering/family-sets.ts).
 //
 // Owns: _familySetView ({roomId, start} | null).
 

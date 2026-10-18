@@ -5,7 +5,7 @@
 const vscode = require('vscode');
 const path   = require('path');
 const fs     = require('fs');
-const { getWorkspaceIndex } = require('./workspace-index');
+const { getWorkspaceIndex } = require('../../../../dist/games/evermore/language/workspace-index');
 
 function escapeRegex(s) {
     return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

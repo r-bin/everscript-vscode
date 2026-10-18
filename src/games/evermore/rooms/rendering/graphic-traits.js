@@ -2,7 +2,7 @@
 // Ownership: what the vanilla rooms say about one graphic, for the tile sheets — its animation, its
 // shape class, the stairs under it, its special flags. Pure reads of the vanilla index.
 
-const maps = require('../../maps');
+const maps = require('../../../../../dist/games/evermore/maps');
 
 /** `[kind, frame0, frame]` for a graphic: 1 = an animation's frame 0, 2 = a later frame, 0 = neither. */
 function animationOf(index, graphic) {

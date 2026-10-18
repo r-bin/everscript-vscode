@@ -5,7 +5,7 @@
 //
 // All markdown and text generated in this file is strictly ASCII-only.
 
-const { dir, json, text } = require('./nodes');
+const { dir, json, text } = require('../../../../dist/games/evermore/resources/nodes');
 
 function resolveLogs(segments, getLogs) {
     const fetchLogs = () => {

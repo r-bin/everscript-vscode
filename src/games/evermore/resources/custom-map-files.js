@@ -2,10 +2,10 @@
 // Ownership: `soe://maps/` — maps virtual file system at root level.
 // Supports both custom maps (`soe://maps/custom/<name>`) and maps overall.
 
-const { dir, file, json, text } = require('./nodes');
+const { dir, file, json, text } = require('../../../../dist/games/evermore/resources/nodes');
 const { resolveAssets } = require('./rom-assets');
-const { encodePng, decodeRoom, renderRoomComposite } = require('../maps');
-const { hexId } = require('./resource-uri');
+const { encodePng, decodeRoom, renderRoomComposite } = require('../../../../dist/games/evermore/maps');
+const { hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
 
 function resolveMaps(segments, rom, deps) {
     const [head, ...rest] = segments;

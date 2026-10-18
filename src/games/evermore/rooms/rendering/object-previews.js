@@ -9,8 +9,8 @@
 //
 // Pure apart from the module-level thumbnail cache. Consumes src/games/evermore/maps.
 
-const maps = require('../../maps');
-const { romFingerprint } = require('./rom-fingerprint');
+const maps = require('../../../../../dist/games/evermore/maps');
+const { romFingerprint } = require('../../../../../dist/games/evermore/rooms/rendering/rom-fingerprint');
 
 /**
  * Section 3 map objects, their states, and a thumbnail of each state.

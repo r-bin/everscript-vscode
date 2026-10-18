@@ -9,9 +9,9 @@
  * owns the header and how regions are merged). Region kinds and rules: that file.
  */
 
-const { hex } = require('../../../platform/cdl/rom-map');
+const { hex } = require('../../../../dist/platform/cdl/rom-map');
 const { dbLines, labelExpr } = require('../../../platform/cdl/known-regions');
-const maps = require('../maps');
+const maps = require('../../../../dist/games/evermore/maps');
 
 const CDL_CODE = 0x01, CDL_DATA = 0x02;
 

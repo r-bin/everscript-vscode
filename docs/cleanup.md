@@ -191,8 +191,9 @@ Inventory of 2026-10-16. Move the ROM out of `script_parser/dependencies/` first
 - [x] **3.7** `npm run package`: `vsce` from `PATH` (`build:script` already ran via `build:simulation`).
 
 ### Step 4 — Multi-game restructure (D5, D6)
-Progress: [architecture/multi-game.md](architecture/multi-game.md) §7 "Status" (ROM library, game
-descriptors, layer rules and the derived-ROM marker are built; moving the domains is open).
+Done (v0.271.0, closed v0.303.0): [architecture/multi-game.md](architecture/multi-game.md) §7 "Status" — ROM library,
+game descriptors, layer rules, the derived-ROM marker, and the domains moved (`src/` is `platform/`, `core/`, `games/<game>/`,
+`recorder/` and the composition root). Two variants side by side is a feature, now in `docs/todo/variant-vfs-and-consumers.md`.
 Follow [architecture/multi-game.md](architecture/multi-game.md) §7. In short: resolver + ROM
 library + game descriptor; move domains into `platform/`, `core/`, `games/evermore/`,
 `games/mana/`; ROM panel and status bar; depcruise rules; `$SOE_ROM`/`romPath` gone. Each domain
@@ -240,14 +241,22 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   no code in template literals (~9.5 k lines at v0.199: `emulator/panel-webview.js`,
   `menu/menu-view.js`, `bottom-bar-views.js`, the emulator `*-view.js` files) and no
   `readFileSync` concatenation of ~70 webview files.
-- [ ] **5.4 Split files > 400 lines** (v0.249.0: `src/extension.js` 1791 → the 25-line composition root +
+- [x] **5.4 Split files > 400 lines** (done v0.302.0: no file in `src/` or `tools/` over 400 lines, CSS included; the steps are in 5.3's log above) (v0.249.0: `src/extension.js` 1791 → the 25-line composition root +
   `games/evermore/extension.js` 1250; the map editor's and Characters tab's messages → `rooms/editor-host.js`,
   `sprites/radar-host.js`, unit-tested in `tests/memory/radar-hosts.test.js`; v0.250.0: scope analysis → `memory/scope-analysis.js`, Build and Run → `language/build-and-run.js`,
   Export Room Maps → `rooms/export-maps.js`: `games/evermore/extension.js` 1250 → 776) (19 at v0.199; largest `emulator/panel-webview.js` 4115,
   `menu-view.js` 1925, `extension.js` 1627, `bottom-bar-views.js` 1422, `sprites-view.js` 1409,
   `emulator/panel.js` 1130). The split lines are in the old audit §7.
 - [ ] **5.5 TS everywhere (D9)** with `@types/vscode` and `strict`; typed host↔webview message
-  unions per panel. Measured at v0.199: 4 360 strict errors over the JS.
+  unions per panel. Measured at v0.199: 4 360 strict errors over the JS. v0.303.0 (re-measured: 6 925 strict errors in
+  263 of 407 `src/` JS files, 3 935 of them untyped parameters): `@types/vscode` 1.85.0 (the engine's) in both tsconfigs; the five
+  JS facades over `dist/` are gone (`maps`, `script-model`, `script-vm`, `simulation`, `mana/decoder`: JS requires
+  `dist/…` directly, as for every other TS module); 35 host modules ported to strict TS. The way: bottom-up (the build
+  has no `allowJs`, so a module moves once everything it requires is TS, JSON, a Node built-in or `vscode`); its JS
+  users, tests and tools require it from `dist/`; types written out (TS's "infer from usage" fix writes structural
+  junk like `{ getHours(): number … }` for a `Date`, so it is not used; "types from JSDoc" is). A module that reads
+  files beside it (`__dirname`) needs the source folder, not `dist/`, and waits for a helper. Left: 196 host JS
+  modules, the page scripts (5.3), `tools/` (41), `tests/` (77).
 - [x] **5.6 WASM scouting (D12):** profile and list candidates with numbers — room decompression
   and encoding (`maps/lzss.ts`, `chr.ts`), the collision/special solver, CDL library analysis and
   xrefs, the script VM if it runs simulations at scale. Output: a table in this file, no code.
@@ -272,7 +281,7 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   each merge looks at every pair of paths for the longest shared history (cubic in the group size)
   and recurses when a pair will not rejoin; a trie of the shared step arrays finds the pair directly.
   WASM would buy a constant factor on top of these; nothing here needs it. Follow-ups: 5.7.
-- [ ] **5.7 The simulation's hot spots (from 5.6):** v0.278.0: `Clock` answers from one all-pairs
+- [x] **5.7 The simulation's hot spots (from 5.6):** (closed v0.303.0: what is left is an algorithm, not a hot spot — fewer paths — now `docs/todo/research-and-visualizations.md` §3) v0.278.0: `Clock` answers from one all-pairs
   longest-path table, built on the first question after a change and shared by clones (a positive cycle
   falls back to the bounded search; `tests/simulation/sim-units.test.js` checks it against one search per
   question on random graphs); `mergeGroup` keeps each path's best partner and memoizes shared lengths

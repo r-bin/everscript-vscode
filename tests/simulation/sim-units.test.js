@@ -7,7 +7,7 @@
 const assert = require('assert');
 /** HiROM: the file offset of a bus address. */
 const fileOf = (bus) => bus & 0x3fffff;
-const sim = require('../../src/games/evermore/simulation');
+const sim = require('../../dist/games/evermore/simulation');
 
 let passed = 0, failed = 0;
 function test(name, fn) {

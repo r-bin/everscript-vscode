@@ -15,8 +15,8 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
-const { buildRoomScriptModel } = require('../../src/games/evermore/script-model');
-const sim = require('../../src/games/evermore/simulation');
+const { buildRoomScriptModel } = require('../../dist/games/evermore/script-model');
+const sim = require('../../dist/games/evermore/simulation');
 
 const ROM = require('../../dist/games').romPath('evermore');
 if (!fs.existsSync(ROM)) { console.log('SKIP simulation loot: no ROM'); process.exit(0); }

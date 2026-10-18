@@ -68,7 +68,7 @@ accept `annotation_list` before `enum_entry` first (compiler change, everscript 
   declared as a parameter type `:ANIMATION_*`; alternatively a `// @animation-ids`
   tag on the `enum` line.
 - Should the preview animate (several frames, a GIF-like strip) or stay one frame?
-  One frame is cheap; a strip reuses `frame-compose.js`.
+  One frame is cheap; a strip reuses `frame-compose.ts`.
 
 ## Implemented: value types (v0.169.0)
 

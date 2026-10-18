@@ -7,7 +7,7 @@
 // animated characters and palette cycling account for the rest.
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
-const mana = require('../../src/games/mana/decoder');
+const mana = require('../../dist/games/mana/decoder');
 const { encodePng } = require('../../dist/platform');
 
 const romPath = require('../rom').romOrExit('mana');

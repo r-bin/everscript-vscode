@@ -10,7 +10,7 @@
 const crypto = require('crypto');
 const { buildRomModel, stripCopierHeader } = require('./build');
 const { readersOf } = require('./model/readers');
-const { executedByHalf, wramStrip } = require('./model/bus-usage');
+const { executedByHalf, wramStrip } = require('../../../../dist/games/evermore/rom/model/bus-usage');
 const { missingRomText } = require('../../../../dist/platform/roms/library');
 
 const COMMANDS = new Set(['romMapRequest', 'romReaders']);

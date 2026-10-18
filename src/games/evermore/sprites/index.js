@@ -3,8 +3,8 @@
 
 const { readCharacter, readAllCharacters, CHARACTER_TABLE, CHARACTER_COUNT } = require('./character-model');
 const { renderAnimation, resolveExternalScript } = require('./animation-decoder');
-const { getRawSpriteIndex, renderRawSprite, SPRITE_LIST_START } = require('./raw-sprites');
-const { buildSpritesTabHtml } = require('./sprites-tab');
+const { getRawSpriteIndex, renderRawSprite, SPRITE_LIST_START } = require('../../../../dist/games/evermore/sprites/raw-sprites');
+const { buildSpritesTabHtml } = require('../../../../dist/games/evermore/sprites/sprites-tab');
 const { buildAnimationCatalog } = require('./animation-catalog');
 const { characterThumbs, listPalettes, renderInPalettes, thumbFor } = require('./thumbnails');
 

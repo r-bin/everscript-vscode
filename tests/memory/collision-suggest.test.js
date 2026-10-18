@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 
-const maps = require('../../src/games/evermore/maps');
+const maps = require('../../dist/games/evermore/maps');
 
 const ROM_PATH = require('../../dist/games').romPath('evermore');
 

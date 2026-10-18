@@ -20,7 +20,7 @@ const { buildExportRom }                                            = require('.
 const { buildCustomMapArchive }                                     = require('./rendering/custom-export');
 const { handlesCustomMapMessage, handleCustomMapMessage }           = require('./custom-host');
 const { relatedTiles, neighbourTiles, vanillaExamples, proceduralFill } = require('./rendering/vanilla-index');
-const { buildItemIcons }                                            = require('./data/item-icons');
+const { buildItemIcons }                                            = require('../../../../dist/games/evermore/rooms/data/item-icons');
 const { VANILLA_ROOMS, buildVanillaRoomContent,
         buildVanillaRoomDetails, invalidateVanillaDataCaches }      = require('./data/vanilla-data');
 const { getMapEnum, readLuaWatchers, readScriptAllTriggers,

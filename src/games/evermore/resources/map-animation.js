@@ -4,7 +4,7 @@
 
 const { renderRoomComposite } = require('../../../../dist/games/evermore/maps/render');
 const { renderMetatileAtlas } = require('../../../../dist/games/evermore/maps/metatiles');
-const { encodeGif } = require('./gif');
+const { encodeGif } = require('../../../../dist/games/evermore/resources/gif');
 
 const _roomGifCache = new WeakMap();
 const _atlasGifCache = new WeakMap();

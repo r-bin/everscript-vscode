@@ -17,7 +17,7 @@
  */
 
 const { pageFile } = require('./page-file');
-const { parseRoomTriggers, calculateTriggerBox, resolveScriptIdToSnes } = require('./room-triggers');
+const { parseRoomTriggers, calculateTriggerBox, resolveScriptIdToSnes } = require('../../../../dist/games/evermore/emulator/room-triggers');
 
 function getScreenChipsHtml() {
   return `<button id="screen-extend-toggle" class="screen-chip" data-needs="game" type="button" title="Toggle Extended Map">MAP EXT OFF</button>

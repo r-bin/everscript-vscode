@@ -418,7 +418,7 @@ test('RomAddressLookup and processScriptTraceBatch correctly attribute step-on t
 
 // Test 15: resolveScriptIdToSnes helper handles bare END and script pointers
 test('resolveScriptIdToSnes resolves script 477 to 0x92A42F and handles bounds guards', () => {
-  const { resolveScriptIdToSnes } = require('../../src/games/evermore/emulator/room-triggers');
+  const { resolveScriptIdToSnes } = require('../../dist/games/evermore/emulator/room-triggers');
   assert.strictEqual(resolveScriptIdToSnes(null, 477), 0x92A42F);
   assert.strictEqual(resolveScriptIdToSnes(new Uint8Array(10), 477), 0x92A42F);
   assert.strictEqual(resolveScriptIdToSnes(null, 0), 0);

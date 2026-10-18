@@ -6,7 +6,7 @@
 const assert = require('assert');
 const { Cpu65816 } = require('../../dist/games/mana/decoder/cpu65816');
 const { SnesBus } = require('../../dist/games/mana/decoder/snes-bus');
-const mana = require('../../src/games/mana/decoder');
+const mana = require('../../dist/games/mana/decoder');
 
 let passed = 0, failed = 0;
 function test(name, fn) {

@@ -10,7 +10,7 @@
  */
 
 const { OPCODES, instructionLength } = require('../../../dist/platform/snes/opcodes-65816');
-const { hex } = require('./rom-map');
+const { hex } = require('../../../dist/platform/cdl/rom-map');
 
 const CDL_ACC_8 = 0x20, CDL_IDX_8 = 0x10;
 const EXT_SEEN_M16 = 0x08, EXT_SEEN_X16 = 0x10;

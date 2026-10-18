@@ -2,7 +2,7 @@
 // Ownership: map / room IDs to room names, regions, and optional string indices.
 // Source: data/rooms.json — names in our style with their evidence (docs/cleanup.md D4).
 
-const { resolveLocalizedName } = require('./strings');
+const { resolveLocalizedName } = require('../../../../dist/games/evermore/localizations/strings');
 
 const ROOMS = require('./data/rooms.json');
 

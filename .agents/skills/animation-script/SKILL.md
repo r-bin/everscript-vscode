@@ -80,7 +80,7 @@ else; the linear walker reads `opcode()` too.
 - **Hit test** (`src/games/evermore/maps/hit-test.ts`): hurt region = half-size radius **centred on the
   feet**. Heights must satisfy −40 px ≤ target − attack < 30 px. Don't apply `hurtbox`
   (`0x50`) offsets until the Boy's −132/−144 is explained.
-- **Dog forms** (`src/games/evermore/sprites/dog-forms.js`): 6 entries via `$CF945F`, palette at
+- **Dog forms** (`src/games/evermore/sprites/dog-forms.ts`): 6 entries via `$CF945F`, palette at
   header +6, 15 slots, named only where an id or the Dog's record names them. The
   Dog's own fields are the Act 1 wolf: draw them in its own palette, not the form's.
 - **`0x4B` = `palette $p`** (`$90CD80`, the projectile palette loader): a script that

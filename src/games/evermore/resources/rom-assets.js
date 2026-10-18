@@ -4,15 +4,15 @@
 // their LOOT_REWARD / alchemy name (`ingredients/wax`, `alchemy/acid_rain`,
 // the hex reward id works too) and their `icon.png` is a link to that file.
 
-const { renderItemIcon, lootIconId, alchemyIconId, iconEntry, ALCHEMY_FORMULAS, ICON_ID_LAST, encodePng, decodeRoom, renderRoomComposite, MAX_ROOMS } = require('../maps');
-const { lootRewardName, flagName } = require('../script-model');
+const { renderItemIcon, lootIconId, alchemyIconId, iconEntry, ALCHEMY_FORMULAS, ICON_ID_LAST, encodePng, decodeRoom, renderRoomComposite, MAX_ROOMS } = require('../../../../dist/games/evermore/maps');
+const { lootRewardName, flagName } = require('../../../../dist/games/evermore/script-model');
 const { decodeRomString } = require('../localizations');
-const { slugify, hexId } = require('./resource-uri');
-const { gallery, href } = require('./autoindex');
-const { dir, file, link, json, text } = require('./nodes');
+const { slugify, hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
+const { gallery, href } = require('../../../../dist/games/evermore/resources/autoindex');
+const { dir, file, link, json, text } = require('../../../../dist/games/evermore/resources/nodes');
 const { maps, cell } = require('./map-files');
 
-/** Reward categories with ring-menu icons (as in rooms/data/item-icons.js). */
+/** Reward categories with ring-menu icons (as in rooms/data/item-icons.ts). */
 const CATEGORIES = { ingredients: 0x0200, armor: 0x0400, consumables: 0x0800 };
 /** Each alchemy formula's "known" flag is one bit from here, alphabetical. */
 const ALCHEMY_KNOWN = 0x2258;

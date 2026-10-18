@@ -2,7 +2,7 @@
 // Ownership: music and sound IDs to subjective names.
 // Source: Secret of Evermore (EMU) rips, everscript enum SOUND/MUSIC, and dump_spc.py.
 
-const { resolveLocalizedName } = require('./strings');
+const { resolveLocalizedName } = require('../../../../dist/games/evermore/localizations/strings');
 const SOUND_ANIMATIONS = require('./data/sound-animations.json');
 
 /**

@@ -11,9 +11,9 @@
 // render_map.py baked into the raster by maps/collision-overlay.ts, verified
 // pixel-identical to upstream by tests/memory/map-parity.test.js.
 
-const maps = require('../../maps');
-const { romFingerprint } = require('./rom-fingerprint');
-const { headerSpec, withHeader } = require('./header-overrides');
+const maps = require('../../../../../dist/games/evermore/maps');
+const { romFingerprint } = require('../../../../../dist/games/evermore/rooms/rendering/rom-fingerprint');
+const { headerSpec, withHeader } = require('../../../../../dist/games/evermore/rooms/rendering/header-overrides');
 const { buildObjects, parseObjectStates, cachedObjectPreviews, invalidateObjectPreviews } = require('./object-previews');
 
 /** Which render the map image shows. */

@@ -11,7 +11,7 @@
 const assert = require('assert');
 const crypto = require('crypto');
 const fs = require('fs');
-const mana = require('../../src/games/mana/decoder');
+const mana = require('../../dist/games/mana/decoder');
 const { resolveSom, getCatalog } = require('../../src/games/mana/resources/files');
 
 const ROM_PATH = require('../../dist/games').romPath('mana') || '';
@@ -188,7 +188,7 @@ test('the editor\'s data (edit.json, tiles sheets) is the library\'s map, cell b
 });
 
 test('the event-flag pieces: the editor\'s data is the converter\'s objects; Water Palace 2 has three 3x6 areas with two states', () => {
-    const { flagObjects } = require('../../src/games/evermore/imports/mana/pieces');
+    const { flagObjects } = require('../../dist/games/evermore/imports/mana/pieces');
     for (const id of [0x66, 0x8B]) {
         const m = mana.loadMap(rom, id);
         const d = JSON.parse(resolveSom(['maps', id.toString(16) + '.edit.json'], rom).read());

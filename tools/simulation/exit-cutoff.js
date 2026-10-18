@@ -19,8 +19,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const sim = require('../../src/games/evermore/simulation');
-const script = require('../../src/games/evermore/script-model');
+const sim = require('../../dist/games/evermore/simulation');
+const script = require('../../dist/games/evermore/script-model');
 
 const ROM = require('../rom').romOrExit('evermore', process.argv[2]);
 const rom = new Uint8Array(fs.readFileSync(ROM));

@@ -15,7 +15,7 @@
 //
 // See docs/map-format/building-a-room-from-a-picture.md §9.
 
-const maps = require('../../maps');
+const maps = require('../../../../../dist/games/evermore/maps');
 const { buildDecoCatalogue } = require('./deco-catalogue');
 
 /** Thumbnails per row in the preview sheet. */

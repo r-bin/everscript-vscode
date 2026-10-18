@@ -2,18 +2,18 @@
 // Ownership: `soe://rom/assets/scripts/` - disassembled ROM scripts, room enter/triggers, and Everscript views.
 // Pure apart from the ROM buffer it is handed.
 
-const vm = require('../script-vm');
-const { buildRoomScriptModel, scriptModel } = require('../script-model');
+const vm = require('../../../../dist/games/evermore/script-vm');
+const { buildRoomScriptModel, scriptModel } = require('../../../../dist/games/evermore/script-model');
 
 /** HiROM: the file offset of a bus address. */
 const { hiromFileOffset: snesToRom } = require('../../../../dist/platform');
-const { MAX_ROOMS } = require('../maps');
+const { MAX_ROOMS } = require('../../../../dist/games/evermore/maps');
 const {
     getMapName, getMapArea,
     getAbsScript, getNpcScript, getGlobalScript,
 } = require('../localizations');
-const { hexId } = require('./resource-uri');
-const { dir, json, text } = require('./nodes');
+const { hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
+const { dir, json, text } = require('../../../../dist/games/evermore/resources/nodes');
 const MD = require('./script-markdown');
 const { resolveSimulationFile, SIMULATION_FILES } = require('./simulation-files');
 const { resolveOpcodes } = require('./opcode-files');
