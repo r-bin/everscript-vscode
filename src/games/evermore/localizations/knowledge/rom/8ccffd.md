@@ -6,7 +6,7 @@ title: Script scheduler — one pass over every running script thread
 confidence: confirmed
 tags: [script-vm]
 evidence: ["disasm: guard $1436; x=0; while (slot = $7E2F28[x]) { $80=x; $7E=slot; jsr ($D029 + slot.state) ; x=$80+2 }", "disasm: called from the field tick $8E:E45C right after $0B19 is incremented, skipped while $143C = $FFFF", "trace: tools/simulation/trace-scripts.js — 10051 ticks of the intro; tests/simulation/scheduler.test.js replays 5338 instructions on the same tick and slot (v0.203.0)"]
-see: [ram/7e2f28.md, ram/7e28fc.md, rom/8cd244.md, src/games/evermore/simulation/README.md]
+see: [ram/7e2f28.md, ram/7e28fc.md, rom/8cd244.md, docs/disassembly/script-vm/dispatcher.md, src/games/evermore/simulation/README.md]
 ---
 One pass per field tick. Threads run in run-list order; each runs until an instruction
 handler returns carry clear (its turn is over) — carry set means the next instruction

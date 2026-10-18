@@ -16,6 +16,7 @@ const { getTable, getFunction, getAbsScript } = require('../localizations');
 const { parseAddressName, hexId } = require('./resource-uri');
 const { dir, file, json, text } = require('./nodes');
 const { asmListing } = require('./asm-view');
+const { cListing } = require('./decomp-view');
 
 /** A file offset as the bus address code runs at: $80-$BF upper halves (fast ROM), else $C0+. */
 function fileToBus(off) { return off < 0x400000 && (off & 0xFFFF) >= 0x8000 ? 0x800000 | off : 0xC00000 + off; }
@@ -43,17 +44,20 @@ function resolveRom(segments, rom, deps) {
         if (head === 'index.md') return text(() => indexMarkdown(rom));
         if (head === 'rom.sfc') return file(() => Buffer.from(rom.buffer, rom.byteOffset, rom.length));
         if (head === 'header.json') return json(() => readHeader(rom));
-        return slice(rom, head);
+        return slice(rom, head, deps);
     }
     return null;
 }
 
-function slice(rom, name) {
+function slice(rom, name, deps) {
     const a = parseAddressName(name);
     if (!a || a.bit !== null || a.addr >= rom.length) return null;
     const off = a.addr;
+    const query = deps && deps.query ? new URLSearchParams(deps.query) : null;
+    const wantsC = query ? (query.has('c') || query.has('pseudocode')) : false;
     if (a.ext === 'json') return a.len === null ? json(() => describe(rom, off)) : null;
-    if (a.ext === 'asm') return a.len === null ? text(() => asmListing(rom, fileToBus(off))) : null;
+    if (a.ext === 'asm') return a.len === null ? text(() => asmListing(rom, fileToBus(off), { wantsC })) : null;
+    if (a.ext === 'c') return a.len === null ? text(() => cListing(rom, fileToBus(off))) : null;
     const len = a.len ?? DEFAULT_SLICE;
     if (off + len > rom.length) return null;
     return file(() => Buffer.from(rom.subarray(off, off + len)));
@@ -80,6 +84,7 @@ function describe(rom, off) {
         notes: named && named.notes ? named.notes : null,
         script: script ? { kind: 'abs', name: script.name } : undefined,
         asm: 'soe://rom/' + hexId(off, 6) + '.asm',
+        c: 'soe://rom/' + hexId(off, 6) + '.c',
     };
 }
 

@@ -109,16 +109,29 @@ function asmAroundCall(rom, ret, before = 7) {
     return { lines, name: nameOf(ret), assumed: '16-bit A/X assumed until a REP/SEP' };
 }
 
+const { getDecompiledC } = require('./decomp-view');
+
 function lineText(l) {
     const bytes = l.bytes.map(b => b.toString(16).padStart(2, '0')).join(' ');
     return h(l.addr, 6) + '  ' + bytes.padEnd(12) + l.text.padEnd(22) + (l.name ? '; ' + l.name : '') + (l.mark ? '   <- here' : '');
 }
 
 /** The listing file: 48 instructions from `bus`, stopping after a return. */
-function asmListing(rom, bus) {
+function asmListing(rom, bus, options = {}) {
     const name = nameOf(bus);
     const lines = decode(rom, bus, 48, { m8: false, x8: false, stopAtEnd: true });
-    return '; ' + h(bus, 6) + (name ? '  ' + name : '') + '\n; 65816, 16-bit A/X assumed until a REP/SEP\n\n' + lines.map(lineText).join('\n') + '\n';
+    let out = '; ' + h(bus, 6) + (name ? '  ' + name : '') + '\n; 65816, 16-bit A/X assumed until a REP/SEP\n\n' + lines.map(lineText).join('\n') + '\n';
+    if (options.wantsC) {
+        const decomp = getDecompiledC(bus);
+        if (decomp) {
+            out += '\n; ==============================================================================\n';
+            out += `; Decompiled C / Pseudocode (Source: ${decomp.source} - ${decomp.path})\n`;
+            out += '; ==============================================================================\n';
+            out += '/*\n' + decomp.code + '\n*/\n';
+        }
+    }
+    return out;
 }
 
 module.exports = { asmListing, asmAroundCall, lineText, busToFile };
+
