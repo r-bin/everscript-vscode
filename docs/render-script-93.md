@@ -12,7 +12,7 @@ This dossier is limited to what the decode trace proves for the Strong Heart ext
 
 - a Mesen2 trace log of that load (`strongheart_exterior_decode_tiles_fist_call__breakpoint_bus=ee0000.txt` in Mesen2's debugger folder; the test reads `$EVS_RENDER_TRACE`)
 
-The primary model artifact is `render-script-model.js`. (The old dump tool `tools/render-script-dump-93.js` was broken and is deleted.)
+The model is `src/games/evermore/maps/render-trace.ts` and `render-trace-93.ts` (pure; the test reads the trace). (The old dump tool `tools/render-script-dump-93.js` was broken and is deleted.)
 
 ---
 

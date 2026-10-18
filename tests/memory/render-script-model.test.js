@@ -6,12 +6,8 @@ const fs = require('fs');
 
 const os = require('os');
 const path = require('path');
-const {
-    loadTrace,
-    loadRom,
-    parseCommandFetches,
-    dumpOpcode93Commands,
-} = require('../../src/games/evermore/maps/render-script-model');
+const { parseCommandFetches } = require('../../dist/games/evermore/maps/render-trace');
+const { dumpOpcode93Commands } = require('../../dist/games/evermore/maps/render-trace-93');
 
 let passed = 0;
 let failed = 0;
@@ -36,7 +32,7 @@ const TRACE_PATH = process.env.EVS_RENDER_TRACE || path.join(os.homedir(), 'Libr
 let traceText = null;
 try {
     if (fs.existsSync(TRACE_PATH)) {
-        traceText = loadTrace(TRACE_PATH);
+        traceText = fs.readFileSync(TRACE_PATH, 'utf8');
     }
 } catch (e) {
     traceText = null;
@@ -47,7 +43,8 @@ if (!traceText) {
     process.exit(0);
 }
 
-const romBuf = loadRom(require('../../dist/games').romPath('evermore'));
+const romPath = require('../../dist/games').romPath('evermore');
+const romBuf = romPath && fs.existsSync(romPath) ? fs.readFileSync(romPath) : null;
 
 test('decode trace exposes expected command fetch anchors', () => {
     const fetches = parseCommandFetches(traceText);
@@ -148,4 +145,4 @@ test('opcode 0x93 last logically consumed byte is 0x8FE645, not overlapping 0x8F
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);
-if (failed) process.exit(1);
+process.exitCode = failed ? 1 : 0;

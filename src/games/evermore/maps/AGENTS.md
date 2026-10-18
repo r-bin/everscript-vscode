@@ -14,8 +14,6 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 - No webview rendering and no memory-tab UI (`no-maps-to-memory-ui`); the Rooms tab owns
   its own (`src/games/evermore/rooms/rendering/tile-overlay.js`).
 - Consumers `require('../maps')` (the facade), never `./dist` directly.
-- Existing exception (do not add more): `render-script-model.js` reads files (`fs`) — a trace log and
-  a ROM, both paths given by the caller.
 
 ## Invariants
 - Pure: takes a ROM buffer, returns data.
@@ -40,5 +38,5 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 - ROM (skip without one): `map-parity.test.js` (`check:maps`; also needs the `everscript`
   checkout and its Python; covers `checkSprites`, `checkMetatilePalette`),
   `rom-export.test.js`, `collision-suggest.test.js`, `custom-maps.test.js`,
-  `sprites.test.js`, `scaling-rom.test.js`, `render-script-model.test.js` (needs a Mesen2 trace: `$EVS_RENDER_TRACE`).
+  `sprites.test.js`, `scaling-rom.test.js`, `render-script-model.test.js` (`render-trace.ts`, `render-trace-93.ts`; needs a Mesen2 trace: `$EVS_RENDER_TRACE`).
 - DOM: `tests/memory/map-editor-dom.test.js`.

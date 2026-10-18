@@ -49,7 +49,7 @@ it. See the `map-format` skill.
 | `png.ts` | PNG encoding (zlib deflate + CRC-32) |
 | `index.ts` | Public API |
 | `index.js` | CommonJS facade; requires the compiled output in `dist/` |
-| `render-script-model.js` | Opcode 0x93 render-script trace decoder |
+| `render-trace.ts`, `render-trace-93.ts` | A Mesen2 trace of the tile decoder read into commands; opcode 0x93's size and fixed counter |
 
 ## Build
 
