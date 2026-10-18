@@ -1,0 +1,110 @@
+
+    <!-- Tab: Entities / Enemies (Boy, Dog, Enemies, NPCs) -->
+    <div id="ss-view-entities" class="ss-tab-view" data-needs="full game">
+      <div class="ss-scroll-content">
+        <table id="ent-table" class="alc-table">
+          <thead>
+            <tr>
+              <th style="width:30px">Icon</th>
+              <th style="width:60px">Address</th>
+              <th>Name</th>
+              <th style="width:70px">Category</th>
+              <th style="width:50px">HP</th>
+              <th style="width:110px">Position (X,Y,Z)</th>
+              <th>Flags</th>
+              <th style="width:65px">Palette</th>
+              <th style="width:45px">Ping</th>
+            </tr>
+          </thead>
+          <tbody id="ent-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab: Projectile Alchemy + Animation Alchemy + Projectiles -->
+    <div id="ss-view-alchemy" class="ss-tab-view" data-needs="full game">
+      <div class="ss-scroll-content">
+        <!-- 1. Projectile Alchemy (8 slots at $7E3564, 0x76 stride) -->
+        <div id="alc-sec-palc" class="alc-section">
+          <div class="alc-section-title">
+            <span>PROJECTILE ALCHEMY (8 slots &middot; WRAM $7E3564 &middot; stride 0x76)</span>
+            <span id="alc-palc-active-count" style="font-size:10px;font-weight:normal;color:#aaa">0 active</span>
+          </div>
+          <table class="alc-table">
+            <thead>
+              <tr>
+                <th style="width:26px">Icon</th>
+                <th style="width:55px">Slot</th>
+                <th style="width:65px">Status</th>
+                <th>Spell Formula</th>
+                <th style="width:60px">Power</th>
+                <th style="width:60px">Source</th>
+                <th>Targets</th>
+              </tr>
+            </thead>
+            <tbody id="alc-palc-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- 2. Animation Alchemy (8 slots at $7E3364, 0x40 stride) -->
+        <div id="alc-sec-aalc" class="alc-section">
+          <div class="alc-section-title">
+            <span>ANIMATION ALCHEMY (8 slots &middot; WRAM $7E3364 &middot; stride 0x40)</span>
+            <span id="alc-aalc-active-count" style="font-size:10px;font-weight:normal;color:#aaa">0 active</span>
+          </div>
+          <table class="alc-table">
+            <thead>
+              <tr>
+                <th style="width:26px">Icon</th>
+                <th style="width:55px">Slot</th>
+                <th style="width:65px">Status</th>
+                <th>Spell Formula</th>
+                <th style="width:60px">Timer</th>
+                <th style="width:60px">Power</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody id="alc-aalc-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- 3. Projectiles (8 slots at $7E6387, 44-byte stride) -->
+        <div id="alc-sec-proj" class="alc-section">
+          <div class="alc-section-title">
+            <span>PROJECTILES (8 slots &middot; WRAM $7E6387 &middot; stride 44 bytes)</span>
+            <span id="alc-proj-active-count" style="font-size:10px;font-weight:normal;color:#aaa">0 active</span>
+          </div>
+          <table class="alc-table">
+            <thead>
+              <tr>
+                <th style="width:26px">Icon</th>
+                <th style="width:55px">Slot</th>
+                <th style="width:65px">Status</th>
+                <th style="width:110px">Position (X,Y,Z)</th>
+                <th style="width:60px">Lifetime</th>
+                <th style="width:60px">Power</th>
+                <th>Sprite / Action</th>
+              </tr>
+            </thead>
+            <tbody id="alc-proj-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Sprite Palettes + Map Palettes -->
+    <div id="ss-view-palettes" class="ss-tab-view" data-needs="full game">
+      <div class="ss-scroll-content">
+        <!-- Sprite Palettes -->
+        <div id="pal-sec-sprites">
+          <div class="pal-section-title">SPRITE PALETTES (8 slots &middot; WRAM $7E1278 &middot; CGRAM 128..255)</div>
+          <div id="pal-sprite-grid" class="pal-grid"></div>
+        </div>
+        <!-- Map Palettes -->
+        <div id="pal-sec-maps">
+          <div class="pal-section-title">MAP PALETTES (8 sub-palettes &middot; WRAM $7E61A7 &middot; CGRAM 0..127)</div>
+          <div id="pal-map-grid" class="pal-grid"></div>
+        </div>
+      </div>
+    </div>
+  

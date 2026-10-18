@@ -1,0 +1,267 @@
+
+    /* -- Bottom bar views styling -- */
+    .ss-subbar {
+      background: #141414;
+      border-bottom: 1px solid #222;
+      padding: 4px 8px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-shrink: 0;
+      font-size: 10px;
+    }
+    .ss-search-input {
+      background: #0e0e0e;
+      border: 1px solid #333;
+      color: #ddd;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font: inherit;
+      font-size: 10px;
+      width: 140px;
+    }
+    .ss-search-input:focus {
+      outline: none;
+      border-color: #007acc;
+    }
+    .ss-scroll-content {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 4px 8px;
+    }
+    .ent-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 2px;
+      background: #181818;
+      vertical-align: middle;
+      image-rendering: pixelated;
+      display: inline-block;
+    }
+    .proj-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 2px;
+      background: #181818;
+      vertical-align: middle;
+      image-rendering: pixelated;
+      display: inline-block;
+    }
+    .alc-icon {
+      width: 16px;
+      height: 16px;
+      vertical-align: middle;
+      margin-right: 4px;
+      image-rendering: pixelated;
+      display: inline-block;
+    }
+    .badge-party {
+      color: #4fc1ff;
+      background: rgba(79, 193, 255, 0.12);
+      padding: 1px 4px;
+      border-radius: 2px;
+      font-weight: bold;
+    }
+    .badge-enemy {
+      color: #f48771;
+      background: rgba(244, 135, 113, 0.12);
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    .badge-npc {
+      color: #7ad67a;
+      background: rgba(122, 214, 122, 0.12);
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    .flag-chip {
+      font-size: 9px;
+      padding: 1px 3px;
+      border-radius: 2px;
+      background: #242424;
+      color: #aaa;
+      margin-right: 2px;
+      display: inline-block;
+    }
+    .flag-chip.inv   { background: #3d2a14; color: #f5a742; }
+    .flag-chip.phase { background: #2a143d; color: #c586c0; }
+    .flag-chip.inact { background: #331414; color: #f48771; }
+    .slot-active     { color: #7ad67a; font-weight: bold; }
+    .slot-inactive   { color: #555; }
+    .alc-section {
+      margin-bottom: 12px;
+    }
+    .alc-section-title {
+      font-size: 11px;
+      font-weight: bold;
+      color: #4ec9b0;
+      padding: 3px 6px;
+      background: #161616;
+      border-left: 3px solid #4ec9b0;
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .alc-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 8px;
+    }
+    .alc-table th {
+      text-align: left;
+      padding: 2px 6px;
+      color: #666;
+      font-weight: normal;
+      font-size: 10px;
+      background: #111;
+      border-bottom: 1px solid #222;
+    }
+    .alc-table td {
+      padding: 2px 6px;
+      color: #ccc;
+      border-bottom: 1px solid #181818;
+      font-size: 10px;
+    }
+    .alc-table tr:hover td {
+      background: rgba(255, 255, 255, 0.03);
+    }
+    /* -- Palettes -- */
+    .pal-section-title {
+      font-size: 11px;
+      font-weight: bold;
+      color: #ce9178;
+      padding: 3px 6px;
+      background: #161616;
+      border-left: 3px solid #ce9178;
+      margin-bottom: 6px;
+    }
+    .pal-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+    .pal-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #111;
+      padding: 3px 8px;
+      border-radius: 3px;
+      border: 1px solid #1f1f1f;
+    }
+    .pal-row.pal-stolen {
+      border-color: #6a4010;
+      background: #191208;
+    }
+    .pal-title {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      font-size: 10px;
+      width: 240px;
+      flex-shrink: 0;
+    }
+    .pal-name {
+      font-weight: bold;
+      color: #ccc;
+    }
+    .pal-note {
+      font-size: 9px;
+      color: #888;
+    }
+    .pal-stolen .pal-note {
+      color: #f5a742;
+    }
+    .pal-strip {
+      display: flex;
+      gap: 2px;
+      flex-wrap: nowrap;
+    }
+    .pal-swatch {
+      width: 14px;
+      height: 14px;
+      border: 1px solid rgba(0, 0, 0, 0.6);
+      border-radius: 2px;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .pal-swatch:hover {
+      transform: scale(1.35);
+      z-index: 2;
+      border-color: #fff;
+    }
+    /* -- Cheats -- */
+    .cheat-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .cheat-card {
+      background: #121212;
+      border: 1px solid #242424;
+      border-radius: 4px;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .cheat-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .cheat-card-title {
+      font-weight: bold;
+      font-size: 11px;
+      color: #eee;
+    }
+    .cheat-badge {
+      font-size: 9px;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+    .cheat-badge.active {
+      background: #1b4d1b;
+      color: #85e085;
+      border: 1px solid #2e7d32;
+    }
+    .cheat-badge.off {
+      background: #1f1f1f;
+      color: #777;
+      border: 1px solid #333;
+    }
+    .cheat-desc {
+      font-size: 10px;
+      color: #888;
+      line-height: 1.35;
+    }
+    .cheat-toggle-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #ccc;
+      cursor: pointer;
+      user-select: none;
+    }
+    .cheat-toggle-label input {
+      cursor: pointer;
+    }
+    .party-monitor {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 10px;
+      color: #aaa;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+  

@@ -1,0 +1,145 @@
+
+          <!-- Tab 1: OVERLAYS -->
+          <div id="menu-panel-1" class="menu-tab-panel" data-needs="game">
+            <div class="menu-row selected" data-row="0" data-action="toggle-extend">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Extended Map Background</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-extend" class="menu-pill">OFF</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="1" data-action="toggle-triggers">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Triggers (B &amp; Step-on)</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-triggers" class="menu-pill">OFF</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="2" data-action="toggle-objects">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Entities &amp; Objects</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-objects" class="menu-pill">OFF</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="3" data-action="toggle-anim">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Animated Tile Outlines</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-anim" class="menu-pill">OFF</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="4" data-action="toggle-collision">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Collision Geometry</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-collision" class="menu-pill">OFF</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="5" data-action="toggle-fog">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Fog of War (Outer Bounds)</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-fog" class="menu-pill">OFF</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="6" data-action="toggle-sound-vis">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Sound Entity Visualizer</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-sound-vis" class="menu-pill">OFF</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="7" data-action="step-zoom">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Viewport Zoom / Scale</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-zoom" class="menu-pill">Fit</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="8" data-action="toggle-hp-bar">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Thin HP Bar</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-hp-bar" class="menu-pill">OFF</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="9" data-action="toggle-stamina-bar">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Thin Stamina Bar</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-stamina-bar" class="menu-pill">OFF</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="10" data-action="toggle-inputs" title="The pad fed to the core each frame (also the INPUTS chip on the screen)">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Input Display</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-inputs" class="menu-pill">OFF</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2: OBJECTS -->
+          <div id="menu-panel-2" class="menu-tab-panel" data-needs="game">
+            <div class="menu-section-header">Section 3 Map Objects (0 ... Max State)</div>
+            <div id="menu-objects-list" class="menu-scroll-list"></div>
+          </div>
+
+          <!-- Tab 3: LOOT -->
+          <div id="menu-panel-3" class="menu-tab-panel" data-needs="game">
+            <div class="menu-section-header">Room Pickups (Chests, Gourds &amp; Sniff Spots)</div>
+            <div id="menu-loot-list" class="menu-scroll-list"></div>
+          </div>
+
+          <!-- Tab 4: CHEATS -->
+          <div id="menu-panel-4" class="menu-tab-panel" data-needs="game">
+            <div class="menu-row selected" data-row="0" data-action="toggle-cheat-noclip">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> No Clip / Phasing</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-cheat-noclip" class="menu-pill">OFF</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="1" data-action="toggle-cheat-invincible">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Invincibility (God Mode)</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-cheat-invincible" class="menu-pill">OFF</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="2" data-action="toggle-cheat-atlas">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Atlas Power (+480 ATK)</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-cheat-atlas" class="menu-pill">OFF</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="3" data-action="action-cheat-heal">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Full Heal Party (999 HP)</div>
+              <div class="menu-row-value">
+                <span class="menu-action-pill">[B] Heal</span>
+              </div>
+            </div>
+            <div class="menu-row" data-row="4" data-action="action-cheat-disable-all">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Disable All Cheats</div>
+              <div class="menu-row-value">
+                <span class="menu-action-pill">[B] Reset</span>
+              </div>
+            </div>
+          </div>
+

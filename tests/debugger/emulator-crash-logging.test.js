@@ -28,10 +28,10 @@ console.log('Emulator Crash Logging & Fixes Tests:');
 const panelCode = fs.readFileSync(PANEL_JS, 'utf8');
 const webviewCode = fs.readFileSync(PANEL_WEBVIEW_JS, 'utf8')
   // Evermore's screen layer is spliced into the page (games/evermore/emulator/overlays-view.js).
-  + fs.readFileSync(path.join(ROOT, 'src', 'games', 'evermore', 'emulator', 'overlays-view.js'), 'utf8');
+  + (({ getOverlaysScript, getOverlayTogglesScript }) => getOverlaysScript() + getOverlayTogglesScript())(require('../../src/games/evermore/emulator/overlays-view'));
 const menuCode = fs.readFileSync(MENU_VIEW_JS, 'utf8')
   // Evermore's tabs 1-4 live in the game's part of the page (handed in through host.js webview()).
-  + fs.readFileSync(path.join(ROOT, 'src', 'games', 'evermore', 'emulator', 'menu-tabs.js'), 'utf8');
+  + (({ getMenuTabsClientScript, getMenuPanelsHtml, getMenuTabButtonsHtml }) => getMenuTabsClientScript() + getMenuPanelsHtml() + getMenuTabButtonsHtml())(require('../../src/games/evermore/emulator/menu-tabs'));
 
 // 1. Output Channel & Crash Reporting in panel.js
 test('panel.js defines dedicated Everscript Emulator output channel', () => {
