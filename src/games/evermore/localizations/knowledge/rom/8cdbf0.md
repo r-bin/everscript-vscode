@@ -7,7 +7,7 @@ title: Script opcode 0x20 — place camera tile
 confidence: confirmed
 tags: [script-vm]
 evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands u8 u8, continues in the same turn (docs/game-research/script-vm/opcodes.md)", "trace: the game ran 5 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
-see: [docs/game-research/script-vm/opcodes.md]
+see: [docs/game-research/script-vm/opcodes.md, rom/8fb434.md, rom/8cdb71.md, rom/8cdbb9.md, docs/disassembly/script-vm/opcode-camera-room.md]
 ---
 Two bytes times 8 to $46/$48 (x, y in pixels), then $8F:B434.
 
