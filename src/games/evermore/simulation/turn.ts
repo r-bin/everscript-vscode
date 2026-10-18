@@ -172,15 +172,24 @@ export function runTurn(m: Machine, s0: PathState, opts: SimOptions, counters: C
  * split latest go first — the innermost `if` closes before the one around it,
  * or the outer merge would leave nothing for the inner one to match.
  */
-function mergeGroup(group: PathState[]): PathState[] {
+function mergeGroup(group: PathState[], memo: SharedMemo = new Map()): PathState[] {
     // Paths share their history by reference up to where they split, never after:
-    // the shared length is found by bisection.
+    // the shared length is found by bisection, once per pair of histories (nothing
+    // here changes a path's steps, so the answer holds through the recursion).
     const shared = (a: PathState, b: PathState): number => {
+        let row = memo.get(a.steps);
+        const known = row?.get(b.steps);
+        if (known !== undefined) return known;
         let lo = 0, hi = Math.min(a.steps.length, b.steps.length);
         while (lo < hi) {
             const mid = (lo + hi + 1) >> 1;
             if (a.steps[mid - 1] === b.steps[mid - 1]) lo = mid; else hi = mid - 1;
         }
+        if (!row) memo.set(a.steps, row = new Map());
+        row.set(b.steps, lo);
+        let back = memo.get(b.steps);
+        if (!back) memo.set(b.steps, back = new Map());
+        back.set(a.steps, lo);
         return lo;
     };
     // Identical states first: one pass, by key.
@@ -191,26 +200,41 @@ function mergeGroup(group: PathState[]): PathState[] {
         if (into) into.absorb(s); else byKey.set(k, s);
     }
     group = [...byKey.values()];
-    for (;;) {
-        let best: { i: number; j: number; n: number } | null = null;
-        for (let i = 0; i < group.length; i++) {
-            for (let j = i + 1; j < group.length; j++) {
-                const n = shared(group[i], group[j]);
-                if (!best || n > best.n) best = { i, j, n };
-            }
+    // The pair to try is the first (in group order) that shares the most. Each path keeps
+    // its best partner among the paths after it (the first of the best), so a merge only
+    // rescans the rows that pointed at the two paths it took.
+    type Best = { n: number; with: PathState | null };
+    const scan = (k: number): Best => {
+        const best: Best = { n: -1, with: null };
+        for (let m = k + 1; m < group.length; m++) {
+            const n = shared(group[k], group[m]);
+            if (n > best.n) { best.n = n; best.with = group[m]; }
         }
-        if (!best) return group;
-        const a = group[best.i], b = group[best.j];
+        return best;
+    };
+    let rows = group.map((_, k) => scan(k));
+    for (;;) {
+        let i = -1;
+        for (let k = 0; k < rows.length; k++) if (rows[k].with && (i < 0 || rows[k].n > rows[i].n)) i = k;
+        if (i < 0) return group;
+        const a = group[i], b = rows[i].with!;
         const merged: PathState | null = a.rejoin(b);
         if (!merged) {
             // This pair cannot be one `if`; try the rest without it.
-            const others = group.filter((_, k) => k !== best!.i && k !== best!.j);
-            const restMerged = mergeGroup([a, ...others]);
-            return restMerged.length < others.length + 1 ? mergeGroup([...restMerged, b]) : [...restMerged, b];
+            const others = group.filter((x) => x !== a && x !== b);
+            const restMerged = mergeGroup([a, ...others], memo);
+            return restMerged.length < others.length + 1 ? mergeGroup([...restMerged, b], memo) : [...restMerged, b];
         }
-        group = [merged, ...group.filter((_, k) => k !== best!.i && k !== best!.j)];
+        const kept = rows.filter((_, k) => group[k] !== a && group[k] !== b);
+        group = [merged, ...group.filter((x) => x !== a && x !== b)];
+        rows = [null as unknown as Best, ...kept];
+        for (let k = 1; k < group.length; k++) if (rows[k].with === a || rows[k].with === b) rows[k] = scan(k);
+        rows[0] = scan(0);
     }
 }
+
+/** Shared history lengths, by the two step arrays. */
+type SharedMemo = Map<PathState['steps'], Map<PathState['steps'], number>>;
 
 
 /**

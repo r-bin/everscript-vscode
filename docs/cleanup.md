@@ -233,10 +233,16 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   each merge looks at every pair of paths for the longest shared history (cubic in the group size)
   and recurses when a pair will not rejoin; a trie of the shared step arrays finds the pair directly.
   WASM would buy a constant factor on top of these; nothing here needs it. Follow-ups: 5.7.
-- [ ] **5.7 The simulation's two hot spots (from 5.6):** `Clock` keeps numeric edges and one all-pairs
-  longest-path table, rebuilt only after `add` (the check: `room()` output byte-identical for every room
-  before and after); `mergeGroup` finds the pair with the longest shared history without trying every
-  pair. Target: `sim.room()` for every room in seconds, not 278 s.
+- [ ] **5.7 The simulation's hot spots (from 5.6):** v0.278.0: `Clock` answers from one all-pairs
+  longest-path table, built on the first question after a change and shared by clones (a positive cycle
+  falls back to the bounded search; `tests/simulation/sim-units.test.js` checks it against one search per
+  question on random graphs); `mergeGroup` keeps each path's best partner and memoizes shared lengths
+  instead of trying every pair on every merge (group sizes up to 737 in room 0x5a). `room()` output is
+  byte-identical for all 127 rooms (sha1 of the JSON, before and after); all rooms 308 → 221 s, 0x25 5.0 →
+  0.5 s, 0x5a 44 → 20 s, 0x35 31 → 12 s. Left: no single hot spot. 0x5a spends 31 % in `PathState.clone`
+  (each fork copies `steps`, `visited` and `log`; `rejoin` / `absorb` rebuild `visited`), and 0x48 spends
+  31 % in GC plus symbolic keys (`sym.ts` `memo` / `key`). Next: share history between forks (a persistent
+  `steps` that `rejoin` can still bisect, a `visited` that is not copied) and measure the GC again.
 
 ### Step 6 — Docs and knowledge (D8, D11, D13)
 - [x] **6.1** `tools/check-knowledge.mts` + `npm run check:knowledge` (2026-10-16: 580 addresses in code,

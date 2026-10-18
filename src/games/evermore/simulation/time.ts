@@ -24,12 +24,21 @@ export class Clock {
     readonly events: string[] = [];
     /** `x[to] >= x[from] + w`, keyed `from>to`, keeping the strongest w. Node -1 is the start. */
     private edges = new Map<string, number>();
+    /**
+     * Longest paths between every pair of nodes, built on the first question after a change
+     * (`paths`); never mutated, so clones share it until one of them adds an edge.
+     */
+    private table: Float64Array | null = null;
+    /** The node count `table` was built for (events can be added without an edge). */
+    private tableN = 0;
 
     clone(): Clock {
         const c = new Clock();
         c.now = this.now;
         c.events.push(...this.events);
         c.edges = new Map(this.edges);
+        c.table = this.table;
+        c.tableN = this.tableN;
         return c;
     }
 
@@ -164,12 +173,49 @@ export class Clock {
         if (from === to) return;
         const k = `${from}>${to}`;
         const old = this.edges.get(k);
-        if (old === undefined || w > old) this.edges.set(k, w);
+        if (old === undefined || w > old) { this.edges.set(k, w); this.table = null; }
     }
 
     /** Longest path from → to (the tightest lower bound of x[to] - x[from]), or null if none. */
     private longest(from: number, to: number): number | null {
         if (from === to) return 0;
+        const n = this.events.length + 1;
+        let t = this.table;
+        if (!t || this.tableN !== n) { t = this.table = this.paths(n); this.tableN = n; }
+        if (t.length === 0) return this.relax(from, to);
+        const d = t[(from + 1) * n + to + 1];
+        return d === -Infinity ? null : d;
+    }
+
+    /**
+     * Every longest path at once (Floyd–Warshall; node x at index x + 1). The graph is a few
+     * dozen nodes after `project`, so this costs less than one search per question did.
+     * Empty when the constraints hold a positive cycle: `relax` then answers as it always has.
+     */
+    private paths(n: number): Float64Array {
+        const d = new Float64Array(n * n).fill(-Infinity);
+        for (let i = 0; i < n; i++) d[i * n + i] = 0;
+        for (const [k, w] of this.edges) {
+            const j = k.indexOf('>');
+            const at = (+k.slice(0, j) + 1) * n + (+k.slice(j + 1) + 1);
+            if (w > d[at]) d[at] = w;
+        }
+        for (let m = 0; m < n; m++) {
+            for (let i = 0; i < n; i++) {
+                const im = d[i * n + m];
+                if (im === -Infinity) continue;
+                for (let j = 0; j < n; j++) {
+                    const v = im + d[m * n + j];
+                    if (v > d[i * n + j]) d[i * n + j] = v;
+                }
+            }
+        }
+        for (let i = 0; i < n; i++) if (d[i * n + i] > 0) return new Float64Array(0);
+        return d;
+    }
+
+    /** One longest-path search (Bellman–Ford, bounded): the answer when `paths` cannot give one. */
+    private relax(from: number, to: number): number | null {
         const dist = new Map<number, number>([[from, 0]]);
         const n = this.events.length + 1;
         for (let i = 0; i < n; i++) {

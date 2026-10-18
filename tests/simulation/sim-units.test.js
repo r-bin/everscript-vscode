@@ -140,5 +140,79 @@ test('YIELD ends the turn for exactly one tick; a call costs none', () => {
     assert.deepStrictEqual(p.log.map(([t]) => t), [0, 1, 1, 1]);
 });
 
+// ── time: what the clock knows about the order of events ─────────────────────
+
+test('the clock answers p >= q as one longest-path search per question would (random graphs, clones)', () => {
+    const { Clock } = require('../../dist/games/evermore/simulation/time.js');
+    let seed = 7;
+    const rnd = (n) => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % n; };
+    // The reference: the constraints kept as the clock keeps them (the strongest per pair, in the
+    // order pairs first appeared: with a contradiction the bounded search depends on it), one
+    // bounded Bellman–Ford per question.
+    const keep = (edges, a, b, w) => {
+        if (a === b) return;
+        const k = a + '>' + b, old = edges.get(k);
+        if (old === undefined || w > old[2]) edges.set(k, [a, b, w]);
+    };
+    const longest = (edges, n, from, to) => {
+        if (from === to) return 0;
+        const dist = new Map([[from, 0]]);
+        for (let i = 0; i < n; i++) {
+            let changed = false;
+            for (const [a, b, w] of edges.values()) {
+                if (!dist.has(a)) continue;
+                if (!dist.has(b) || dist.get(a) + w > dist.get(b)) { dist.set(b, dist.get(a) + w); changed = true; }
+            }
+            if (!changed) break;
+        }
+        return dist.has(to) ? dist.get(to) : null;
+    };
+    const ge = (edges, n, p, q) => {
+        const lo = longest(edges, n, q.base, p.base);
+        if (lo !== null && lo + p.off - q.off >= 0) return true;
+        const back = longest(edges, n, p.base, q.base);
+        if (back !== null && back + q.off - p.off >= 1) return false;
+        return null;
+    };
+    let answers = 0, cyclic = 0;
+    for (let round = 0; round < 60; round++) {
+        let c = new Clock(), edges = new Map(), events = 0;
+        const point = () => ({ base: rnd(events + 1) - 1, off: rnd(7) - 3 });
+        for (let step = 0; step < 14; step++) {
+            if (rnd(3) === 0 || events === 0) {
+                const after = point(), min = rnd(4);
+                c.event('e' + events, after, min);
+                keep(edges, after.base, events, min - after.off);
+                events++;
+            } else {
+                const p = point(), q = point(), holds = rnd(2) === 0;
+                c.assume(p, q, holds);
+                const [a, b, w] = holds ? [q.base, p.base, q.off - p.off] : [p.base, q.base, p.off - q.off + 1];
+                keep(edges, a, b, w);
+            }
+            if (rnd(4) === 0) {
+                // A clone shares what the original worked out until it learns something of its own.
+                const before = c, beforeEdges = new Map(edges), p = point(), q = point();
+                const was = before.ge(p, q);
+                c = before.clone(); edges = new Map(edges);
+                const r = point(), s = point();
+                c.assume(r, s, true);
+                keep(edges, s.base, r.base, s.off - r.off);
+                assert.strictEqual(before.ge(p, q), was, 'the original is untouched by its clone');
+                assert.strictEqual(was, ge(beforeEdges, events + 1, p, q));
+            }
+            for (let k = 0; k < 6; k++) {
+                const p = point(), q = point();
+                assert.strictEqual(c.ge(p, q), ge(edges, events + 1, p, q), `round ${round} step ${step}`);
+                answers++;
+            }
+        }
+        // Contradictory constraints (a positive cycle) are answered too, the bounded way.
+        const list = [...edges.values()];
+        if (list.some(([a, b, w]) => list.some(([x, y, v]) => x === b && y === a && w + v > 0))) cyclic++;
+    }
+    assert.ok(answers > 4000 && cyclic > 0, `${answers} answers, ${cyclic} rounds with a cycle`);
+});
+
 console.log(`\nsim-units: ${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
