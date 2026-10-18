@@ -39,6 +39,9 @@ test('menu-view.js, menu-sound.js, and sound-source-view.js are strictly ASCII-o
         path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'sound-source-view.js'),
         path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'panel-webview.js'),
     ];
+    for (const dir of [path.join('src', 'core', 'emulator', 'webview'), path.join('src', 'games', 'evermore', 'emulator', 'webview')]) {
+        for (const f of fs.readdirSync(path.join(__dirname, '..', '..', dir))) files.push(path.join(__dirname, '..', '..', dir, f));
+    }
     for (const f of files) {
         const content = fs.readFileSync(f, 'utf8');
         const nonAscii = /[^\x09\x0A\x0D\x20-\x7E]/.test(content);

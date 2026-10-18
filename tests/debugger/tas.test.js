@@ -165,10 +165,10 @@ test('REPLAYS rows: when, length and sync, no file name; play and delete ask fir
 });
 
 test('webview: REPLAYS tab, inputs + FPS chips, frame loop routes joypads through tasApplyInput; script parses', () => {
-    for (const [file, fn] of [['tas-view.js', 'getTasClientScript'], ['fps-meter.js', 'getFpsClientScript']]) {
-        const src = fs.readFileSync(path.join(ROOT, 'src', 'core', 'emulator', file), 'utf8');
+    for (const file of ['tas.js', 'fps.js']) {
+        const src = fs.readFileSync(path.join(ROOT, 'src', 'core', 'emulator', 'webview', file), 'utf8');
         assert.ok(!/[^\x09\x0A\x0D\x20-\x7E]/.test(src), file + ' must be ASCII');
-        assert.ok(!src.slice(src.indexOf('function ' + fn)).includes('\\'), 'no backslashes in ' + fn);
+        assert.ok(!src.includes('\\'), 'no backslashes in ' + file);
     }
     const { buildHtml } = require('../../src/core/emulator/panel-webview');
     const html = buildHtml({ cspSource: '' }, 'core.js', 'core.wasm', 'core', 'core');

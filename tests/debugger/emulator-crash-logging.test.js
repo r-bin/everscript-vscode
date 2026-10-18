@@ -29,7 +29,7 @@ const panelCode = fs.readFileSync(PANEL_JS, 'utf8');
 const webviewCode = fs.readFileSync(PANEL_WEBVIEW_JS, 'utf8')
   // Evermore's screen layer is spliced into the page (games/evermore/emulator/overlays-view.js).
   + (({ getOverlaysScript, getOverlayTogglesScript }) => getOverlaysScript() + getOverlayTogglesScript())(require('../../src/games/evermore/emulator/overlays-view'));
-const menuCode = fs.readFileSync(MENU_VIEW_JS, 'utf8')
+const menuCode = (({ getMenuCss, getMenuHtml, getMenuClientScript }) => getMenuCss() + getMenuHtml() + getMenuClientScript())(require('../../src/core/emulator/menu/menu-view'))
   // Evermore's tabs 1-4 live in the game's part of the page (handed in through host.js webview()).
   + (({ getMenuTabsClientScript, getMenuPanelsHtml, getMenuTabButtonsHtml }) => getMenuTabsClientScript() + getMenuPanelsHtml() + getMenuTabButtonsHtml())(require('../../src/games/evermore/emulator/menu-tabs'));
 

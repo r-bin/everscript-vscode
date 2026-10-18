@@ -1,0 +1,4 @@
+
+    #screen-fps { cursor: default; min-width: 74px; text-align: center; }
+    #screen-fps.lag { color: #f0b040; border-color: #7a5a20; }
+  

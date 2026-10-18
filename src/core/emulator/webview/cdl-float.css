@@ -1,0 +1,16 @@
+
+    #cdl-float-layer { position: absolute; inset: 0; pointer-events: none; z-index: 15; overflow: hidden; }
+    .cdl-float {
+      position: absolute; transform: translate(-50%, 0); white-space: nowrap;
+      font-family: monospace; font-weight: bold; color: #ffe066;
+      text-shadow: 0 0 2px #000, 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+      animation: cdl-float-rise 1.8s ease-out both;
+    }
+    .cdl-float small { color: #fff; font-size: 0.7em; margin-right: 3px; }
+    @keyframes cdl-float-rise {
+      0%   { opacity: 0; transform: translate(-50%, 6px) scale(0.8); }
+      12%  { opacity: 1; transform: translate(-50%, 0) scale(1.08); }
+      25%  { transform: translate(-50%, -6px) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -64px) scale(1); }
+    }
+  

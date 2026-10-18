@@ -1,0 +1,456 @@
+
+    /* -- Emulator Quick Menu OSD --------------------------------------- */
+    #emulator-menu {
+      position: absolute;
+      inset: 0;
+      z-index: 60;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 0;
+      background: rgba(8, 8, 12, 0.78);
+      backdrop-filter: blur(2px);
+      user-select: none;
+      font-family: monospace;
+    }
+    #emulator-menu.hidden {
+      display: none !important;
+    }
+
+    /* Lens Tab Active: top-bar only, completely unobstructed map */
+    #emulator-menu.lens-tab-active {
+      background: transparent !important;
+      backdrop-filter: none !important;
+      pointer-events: none !important;
+      padding-top: 0 !important;
+    }
+    #emulator-menu.lens-tab-active #menu-card {
+      pointer-events: auto !important;
+      background: #1c1c22 !important;
+      border: 1px solid #30303a !important;
+      border-top: none !important;
+      border-radius: 0 0 6px 6px !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+      width: 520px !important;
+      max-width: 95% !important;
+    }
+    #emulator-menu.lens-tab-active #menu-body,
+    #emulator-menu.lens-tab-active #menu-footer {
+      display: none !important;
+    }
+
+    #menu-card {
+      width: 520px;
+      max-width: 95%;
+      max-height: 85vh;
+      background: #141418;
+      border: 1px solid #363640;
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.9);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      color: #ccc;
+    }
+
+    /* Header & L / R Tabs */
+    #menu-header {
+      display: flex;
+      align-items: center;
+      background: #1c1c22;
+      border-bottom: 1px solid #30303a;
+      padding: 4px 8px;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .menu-shoulder-btn {
+      flex-shrink: 0;
+      background: #25252e;
+      border: 1px solid #454555;
+      color: #8899aa;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: bold;
+      padding: 3px 7px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.12s, color 0.12s;
+    }
+    .menu-shoulder-btn:hover {
+      background: #353542;
+      color: #fff;
+    }
+    #menu-tabs {
+      display: flex;
+      gap: 3px;
+      flex: 1 1 auto;
+      min-width: 0;
+      justify-content: flex-start;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: thin;
+      scrollbar-color: #3e3e50 transparent;
+      align-items: center;
+    }
+    #menu-tabs::-webkit-scrollbar {
+      height: 4px;
+    }
+    #menu-tabs::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    #menu-tabs::-webkit-scrollbar-thumb {
+      background: #3e3e50;
+      border-radius: 2px;
+    }
+    #menu-tabs::-webkit-scrollbar-thumb:hover {
+      background: #55556a;
+    }
+    .menu-tab-btn {
+      flex-shrink: 0;
+      background: transparent;
+      border: none;
+      color: #778899;
+      font-family: inherit;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      padding: 4px 7px;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: all 0.12s;
+      white-space: nowrap;
+    }
+    .menu-tab-btn:hover {
+      color: #ddd;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .menu-tab-btn.active {
+      color: #4ec9b0;
+      background: rgba(78, 201, 176, 0.12);
+      border-bottom: 2px solid #4ec9b0;
+    }
+    #menu-close-btn {
+      flex-shrink: 0;
+      background: transparent;
+      border: none;
+      color: #667;
+      font-size: 14px;
+      font-weight: bold;
+      padding: 2px 7px;
+      cursor: pointer;
+      border-radius: 3px;
+      line-height: 1;
+    }
+    #menu-close-btn:hover {
+      color: #f66;
+      background: rgba(255, 100, 100, 0.15);
+    }
+
+    /* Tab Content Views */
+    #menu-body {
+      flex: 1;
+      min-height: 0;
+      max-height: 400px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      background: #101014;
+    }
+    .menu-tab-panel {
+      display: none;
+      flex-direction: column;
+      width: 100%;
+    }
+    .menu-tab-panel.active {
+      display: flex;
+    }
+
+    /* Rows */
+    .menu-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 14px;
+      border-bottom: 1px solid #1a1a20;
+      cursor: pointer;
+      font-size: 11px;
+      transition: background 0.08s, border-color 0.08s;
+      flex-shrink: 0;
+    }
+    .menu-row:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .menu-row.selected {
+      background: rgba(78, 201, 176, 0.14);
+      color: #fff;
+      border-left: 3px solid #4ec9b0;
+      padding-left: 11px;
+    }
+    .menu-row-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+    }
+    .menu-row-cursor {
+      color: #4ec9b0;
+      font-weight: bold;
+      opacity: 0;
+      width: 10px;
+    }
+    .menu-row.selected .menu-row-cursor {
+      opacity: 1;
+    }
+    .menu-row-value {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Stepper & Toggle Pills */
+    .menu-stepper-btn {
+      background: #202028;
+      border: 1px solid #3c3c48;
+      color: #8899aa;
+      border-radius: 3px;
+      width: 20px;
+      height: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 10px;
+      line-height: 1;
+      padding: 0;
+    }
+    .menu-stepper-btn:hover {
+      background: #353545;
+      color: #fff;
+    }
+    .menu-pill {
+      display: inline-block;
+      min-width: 44px;
+      text-align: center;
+      background: #181820;
+      border: 1px solid #333340;
+      border-radius: 3px;
+      padding: 2px 7px;
+      font-size: 10px;
+      font-weight: 600;
+      color: #778899;
+    }
+    .menu-pill.active {
+      color: #4ec9b0;
+      border-color: rgba(78, 201, 176, 0.4);
+      background: rgba(78, 201, 176, 0.08);
+    }
+    .menu-state-pill {
+      min-width: 20px;
+      padding: 1px 4px;
+      font-size: 9px;
+      cursor: pointer;
+    }
+    .menu-state-pill:hover {
+      background: #2a2a36;
+      color: #fff;
+    }
+    .menu-state-pill.active {
+      background: rgba(78, 201, 176, 0.25);
+      border-color: #4ec9b0;
+      color: #4ec9b0;
+      font-weight: bold;
+    }
+    .menu-action-pill {
+      background: #252535;
+      border: 1px solid #444458;
+      color: #ccd;
+      border-radius: 3px;
+      padding: 3px 9px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .menu-action-pill:hover {
+      background: #383850;
+      color: #fff;
+    }
+
+    /* Tab 0: VIEW Panel */
+    .menu-lens-panel {
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .menu-lens-header {
+      background: #161620;
+      border: 1px solid #282836;
+      border-radius: 4px;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .menu-lens-room {
+      color: #4ec9b0;
+      font-weight: bold;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+    }
+    .menu-lens-coords {
+      color: #8899aa;
+      font-size: 10px;
+    }
+    .menu-lens-hint-box {
+      margin-top: 6px;
+      padding: 8px 12px;
+      background: rgba(78, 201, 176, 0.06);
+      border-left: 3px solid #4ec9b0;
+      font-size: 10px;
+      color: #aab;
+      line-height: 1.5;
+    }
+    .menu-lens-hint-title {
+      color: #4ec9b0;
+      font-weight: bold;
+      margin-bottom: 2px;
+    }
+
+    /* Section headers & lists for Objects and Loot */
+    .menu-section-header {
+      padding: 6px 14px;
+      font-size: 10px;
+      font-weight: bold;
+      color: #8899aa;
+      background: #16161e;
+      border-bottom: 1px solid #252530;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      flex-shrink: 0;
+    }
+    .menu-scroll-list {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+    .menu-empty-hint {
+      padding: 20px;
+      color: #778899;
+      text-align: center;
+      font-style: italic;
+      font-size: 11px;
+    }
+    /* Preview Thumbnail Box (Fixed size, stretched inside) */
+    .menu-preview-box {
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      min-height: 36px;
+      background: #0d0d12;
+      border: 1px solid #282836;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+    .menu-preview-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      image-rendering: pixelated;
+    }
+    .menu-preview-empty {
+      font-size: 8px;
+      color: #556;
+      text-align: center;
+    }
+
+    /* Keybind Remapper List */
+    .menu-device-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 14px;
+      background: #181822;
+      border-bottom: 1px solid #282836;
+      font-size: 10px;
+      color: #99aabb;
+      flex-shrink: 0;
+    }
+    .menu-device-status {
+      color: #4ec9b0;
+      font-weight: bold;
+    }
+    .menu-keybind-list {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+    .menu-bind-badge {
+      background: #1a1a24;
+      border: 1px solid #353545;
+      color: #ccd;
+      border-radius: 3px;
+      padding: 2px 8px;
+      font-size: 10px;
+      font-weight: bold;
+      min-width: 52px;
+      text-align: center;
+      display: inline-block;
+    }
+    .menu-bind-badge.listening {
+      background: #c72e2e;
+      border-color: #f55;
+      color: #fff;
+      animation: menuPulse 0.8s infinite alternate;
+    }
+    @keyframes menuPulse {
+      from { opacity: 0.7; }
+      to { opacity: 1; }
+    }
+    .menu-preset-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 8px 14px;
+      border-top: 1px solid #20202a;
+      background: #121218;
+      flex-shrink: 0;
+    }
+    .menu-preset-btn {
+      background: #202028;
+      border: 1px solid #3c3c4a;
+      color: #99a;
+      border-radius: 3px;
+      padding: 3px 8px;
+      font-size: 10px;
+      cursor: pointer;
+    }
+    .menu-preset-btn:hover {
+      background: #2c2c36;
+      color: #fff;
+    }
+
+    /* Footer Navigation Legend */
+    #menu-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #16161c;
+      border-top: 1px solid #282832;
+      padding: 5px 12px;
+      font-size: 9px;
+      color: #778;
+      letter-spacing: 0.02em;
+      flex-shrink: 0;
+    }
+    .menu-footer-hint {
+      display: flex;
+      gap: 12px;
+    }
+  

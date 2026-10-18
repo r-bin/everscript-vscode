@@ -1,5 +1,7 @@
 'use strict';
 
+const { pageFile } = require('./page-file');
+
 /**
  * emulator/memory-bridge-view.js
  *
@@ -13,45 +15,7 @@
  */
 
 function getMemoryBridgeClientScript() {
-  return `
-    function soeReadBus(m, addr, len) {
-      if (typeof m.readMemoryRange === 'function') {
-        const out = new Uint8Array(len);
-        for (let off = 0; off < len; off += 4096) {
-          const n = Math.min(4096, len - off);
-          out.set(m.readMemoryRange(addr + off, n).subarray(0, n), off);
-        }
-        return out;
-      }
-      if (addr >= 0x7E0000 && addr + len <= 0x800000 && typeof m._saveState === 'function') {
-        const ptr = m._saveState();
-        const at = ptr + 0x10c14 + (addr - 0x7E0000);
-        const out = HEAPU8.slice(at, at + len);
-        if (typeof m._my_free === 'function') m._my_free(ptr);
-        return out;
-      }
-      throw new Error('This core cannot read that address');
-    }
-
-    window.addEventListener('message', evt => {
-      const d = evt.data;
-      if (!d || d.command !== 'soeRequest') return;
-      const reply = { command: 'soeReply', id: d.id };
-      try {
-        const m = getModule();
-        if (d.kind === 'status') {
-          reply.status = { romLoaded: !!(m && romLoaded), paused: !!(m && typeof m.isEmulationPaused === 'function' && m.isEmulationPaused()) };
-        } else if (!m || !romLoaded) {
-          reply.error = 'No game is running in the emulator';
-        } else {
-          reply.bytes = Array.from(soeReadBus(m, d.addr >>> 0, d.len >>> 0));
-        }
-      } catch (e) {
-        reply.error = String(e && e.message || e);
-      }
-      vscodeApi.postMessage(reply);
-    });
-  `;
+  return pageFile('memory-bridge.js');
 }
 
 module.exports = { getMemoryBridgeClientScript };

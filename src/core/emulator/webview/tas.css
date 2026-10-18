@@ -1,0 +1,34 @@
+
+    #tas-status { color: #888; font-size: 10px; padding: 3px 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #tas-status:empty { display: none; }
+    #tas-rec-badge { position: absolute; top: 4px; left: 50%; transform: translateX(-50%); z-index: 45; cursor: pointer;
+      font: inherit; font-size: 10px; padding: 1px 6px; border-radius: 3px; border: 1px solid #333; color: #777; background: rgba(16, 16, 16, 0.75); }
+    #tas-rec-badge.rec { color: #ff6b6b; border-color: #7a2a2a; background: rgba(120, 30, 30, 0.25); }
+    #tas-rec-badge.play.desync { color: #ff6b6b; border-color: #7a2a2a; background: rgba(120, 30, 30, 0.35); }
+    #tas-rec-badge.play { color: #6f9; border-color: #2e7d32; background: rgba(26, 60, 26, 0.35); }
+    #tas-list { display: flex; flex-direction: column; }
+    .rp-group { color: #667; font-size: 9px; padding: 8px 14px 3px; letter-spacing: 0.06em; }
+    .menu-row.rp-row { justify-content: flex-start; gap: 8px; padding: 4px 14px; }
+    .menu-row.rp-row.selected { padding-left: 11px; }
+    .rp-row.playing { box-shadow: inset 0 0 0 1px rgba(102, 255, 153, 0.35); }
+    .rp-when { width: 112px; flex-shrink: 0; color: #ddd; white-space: nowrap; }
+    .rp-len { width: 52px; flex-shrink: 0; text-align: right; color: #aab; font-variant-numeric: tabular-nums; }
+    .rp-sync { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; }
+    .rp-sync .ok { color: #6a6; }
+    .rp-sync .bad { color: #e0a040; }
+    .rp-sync .rec { color: #ff6b6b; }
+    .rp-sync .dim { color: #667; }
+    .rp-flags { color: #887; }
+    .rp-act { flex-shrink: 0; background: #202028; border: 1px solid #3c3c48; color: #8899aa; border-radius: 3px;
+      font: inherit; font-size: 10px; padding: 2px 7px; cursor: pointer; }
+    .rp-act:disabled { opacity: 0.35; cursor: default; }
+    .rp-pin { border-color: transparent; background: none; font-size: 13px; padding: 0 3px; color: #555; }
+    .rp-pin[data-on] { color: #e8c33a; }
+    .menu-row.selected .rp-act.focus { border-color: #4ec9b0; color: #fff; background: rgba(78, 201, 176, 0.18); }
+    .rp-act.asking { border-color: #e0a040 !important; color: #ffd27a !important; background: rgba(224, 160, 64, 0.15) !important; }
+    #tas-empty { color: #666; padding: 12px 14px; font-size: 11px; line-height: 1.5; }
+    #tas-input-overlay {
+      position: absolute; left: 8px; bottom: 8px; z-index: 19;
+      width: 118px; height: 80px; pointer-events: none; display: none;
+    }
+  
