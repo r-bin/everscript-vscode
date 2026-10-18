@@ -2,20 +2,23 @@
 addr: 8CDF1D
 kind: code
 category: 🧠
-name: script_op_71
-title: Script opcode 0x71
-confidence: likely
-tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E E, continues in the same turn (docs/game-research/script-vm/opcodes.md)"]
-see: [docs/game-research/script-vm/opcodes.md]
+name: script_op_71_face_away_from_entity
+title: Script opcode 0x71 — face away from entity
+confidence: confirmed
+tags: [script-vm, entities]
+evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E E (target, source); evaluates both entities via $8C:EC8E, calls $8C:DF33 to compute compass vector, then flips angle 180 degrees (EOR #8) to face away from target, storing to source +0x22", "recomp: clean C in docs/disassembly/script-vm/opcode-facing.md"]
+see: [docs/game-research/script-vm/opcodes.md, rom/8cdf33.md, rom/8cdf0d.md]
 ---
-Only the operands and the flow are traced so far; what the handler does with them is not.
+Directs a source entity to rotate and face 180 degrees directly away from a target entity:
+- Evaluates operand 1 (target entity) into register Y.
+- Evaluates operand 2 (source entity) into register Y (stashing target in X).
+- Invokes `$8C:DF33` (`entity_compute_facing_towards`) to compute the dominant vector delta.
+- Inverts the direction by 180 degrees via `EOR #$0008`:
+  - North (`0`) -> South (`8`)
+  - East (`4`) -> West (`12`)
+  - South (`8`) -> North (`0`)
+  - West (`12`) -> East (`4`)
+- Updates source entity's facing direction field at `+0x22`.
+- Continues in the same VM turn (`SEC; RTS`).
+- Full clean C decompilation: `docs/disassembly/script-vm/opcode-facing.md`.
 
-Operands: `E E` (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
-
-## Addresses
-Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
-- Operand expressions: `$8C:EA43` (`$8C:EC8E` for an entity: the result also goes to DP `$4C`)
-- Calls: `$8C:DF33`
-- Record fields (indexed by X/Y: a slot, an entity, a window): `+$22`
-- Opcode table entry: `$8C:E99F` (0x71)
