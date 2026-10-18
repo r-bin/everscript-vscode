@@ -1,5 +1,6 @@
 'use strict';
 const { hex: fmtHex } = require('../../../../dist/platform');
+const { escapeHtml } = require('../../../../dist/core/webview/html');
 
 /**
  * debugger/emulator/trace-formatter.js
@@ -12,11 +13,7 @@ const { hex: fmtHex } = require('../../../../dist/platform');
  */
 
 function escH(s) {
-  return String(s || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return escapeHtml(String(s || ''));
 }
 
 const SCRIPT_TOKEN = /("[^"]*")|(\([^()]*\))|(\$[0-9a-fA-F]+|0x[0-9a-fA-F]+|\b0d\d+\b|\b\d+\b)|(\b(?:WRITE|CALL|RCALL|END|IF|THEN|SKIP|ELSE|GOTO|RETURN|WAIT|SLEEP|YIELD|SPAWN|NPC|CHANGE MAP|CHANGE MUSIC|UNHIDE\?|UNWINDOWED TEXT|SET|UNSET|CLEAR|COPY|READ|CHECK|TRIGGER|GET WEAPON|GAIN WEAPON|FADE IN|FADE OUT)\b|\b_[a-z_]+(?=\())/g;

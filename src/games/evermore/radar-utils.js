@@ -8,6 +8,8 @@
  * (knowledge/ram/7e2834.md, 7e2200.md); sram from an [SRAM] tag; system otherwise.
  */
 
+const { escapeHtml } = require('../../../dist/core/webview/html');
+
 // The compiler's regions are knowledge entries tagged `compiler-region` (localizations/knowledge/ram):
 // lifetime `room` = temp, `save` = session. Read once, as 16-bit (bank $7E) ranges.
 let _compilerRegions = null;
@@ -32,9 +34,7 @@ function radarH(n) {
 }
 
 function radarEsc(s) {
-    return String(s)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return escapeHtml(String(s));
 }
 
 function radarExtractEmoji(str) {

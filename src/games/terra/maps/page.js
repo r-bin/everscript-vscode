@@ -3,6 +3,8 @@
 // Renders a CSP-compliant webview with the Terranigma celestial-indigo theme,
 // Table A room browser, header opcode inspector, and multi-game capability notices.
 
+const { escapeHtml: escapeEntities } = require('../../../../dist/core/webview/html');
+
 function renderTerraMapsHtml(params) {
     const { cspSource, nonce, init } = params;
     const jsonInit = JSON.stringify(init).replace(/</g, '\\u003c');
@@ -566,7 +568,7 @@ function renderTerraMapsHtml(params) {
 }
 
 function escapeHtml(s) {
-    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return escapeEntities(String(s || ''));
 }
 
 module.exports = { renderTerraMapsHtml };
