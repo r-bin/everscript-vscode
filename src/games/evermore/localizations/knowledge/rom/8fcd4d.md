@@ -2,15 +2,26 @@
 addr: 8FCD4D
 kind: code
 category: 🧠
-name: companion_entity_update
-title: Companion entity movement, waypoint following, and ingredient sniffing update
+name: entity_unfreeze_mobilize
+title: Restore autonomous entity physics and clear immobilization status flags
 confidence: confirmed
-tags: [entities, companion, dog, waypoints]
-evidence: ["disasm: updates collision box via $8F:A8E2, clears transient obstacle bits in entity+$10/$12, checks waypoint node at entity+$98, calls navigation routine $8F:9937", "recomp: func_CFCD4D_M0X0 in bank8f_v2.c; clean C in docs/disassembly/entities/dog-ai.md"]
-see: [rom/8cdac5.md, ram/7e4f37.md, rom/92a44c.md]
+tags: [entities, physics, mobility, script-vm]
+evidence: ["disasm: $8F:CD4D calls $8F:A8E2, clears status flags bits via AND #$DFDE (clearing bit 5 0x0020 and bit 13 0x2000), clears anim state via AND #$FCFF, zeroes latch timer at +$78, restores neutral frame via $8F:9937 if player/dog", "docs/disassembly/script-vm/opcode-mobility.md"]
+see: [rom/8cdb11.md, rom/8fcd78.md, docs/disassembly/script-vm/opcode-mobility.md]
 ---
-Updates companion entity state every frame:
-1. Clears transient collision status bits at `entity+$10` and `+$12`.
-2. Compares entity address against Boy (`$4E89`): if companion is the Dog (`$4F37`), checks for ingredient sniff spots within proximity.
-3. Leashes companion to leader: follows waypoints at `entity+$98` via `$8F:9937`.
-4. Resets to leader coordinates if distance exceeds 384 pixels to prevent desync across screen boundaries.
+Re-enables autonomous physics, movement, and animation on an entity after an immobilization or cutscene freeze:
+1. Calls `$8F:A8E2` to resume physics processing.
+2. Clears status flags (`entity->status_flags &= ~0x2021`), clearing bit 5 (`0x0020` immobilized), bit 0 (`0x0001` dead/inactive), and bit 13 (`0x2000` script lock).
+3. Clears animation transition bits (`entity->anim_state &= ~0x0300`).
+4. Zeroes out the immobilization countdown latch timer at `+$78`.
+5. If the entity is a player or companion (`address >= $4E89`), checks the auxiliary animation descriptor at `+$98` and calls `$8F:9937` to restore neutral standing frames.
+
+Invoked directly by Script VM Opcode `0x2B` (`$8C:DB11`).
+
+## Addresses
+- Entity Physics Resume Routine: `$8F:A8E2`
+- Neutral Animation Restore Routine: `$8F:9937`
+- Entity Status Flags Field: `+$10`
+- Entity Animation State Field: `+$12`
+- Entity Latch Timer Field: `+$78`
+- Script VM Opcode 0x2B Caller: `$8C:DB11`
