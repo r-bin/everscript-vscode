@@ -11,7 +11,9 @@ interface LocalizationCounts {
     };
 }
 interface IdEntry { id: number; hex: string; name: string }
-interface AddressEntry { address: number; hex: string; name: string; notes?: string }
+interface AddressEntry { address: number; hex?: string; name: string; notes?: string }
+/** The address column: the entry's own text, else the address as lowercase hex (the scripts' form). */
+const addressText = (e: AddressEntry): string => e.hex ?? '0x' + e.address.toString(16);
 
 function rootMarkdown(s: LocalizationCounts): string {
     return `# soe://localization/
@@ -97,7 +99,7 @@ function soundsMarkdown(musicCount: number, soundsCount: number): string {
 `;
 }
 
-function musicMarkdown(music: (IdEntry & { spc: string })[]): string {
+function musicMarkdown(music: (IdEntry & { spc: string | null })[]): string {
     const rows = music.map(m => `| \`${m.hex}\` | ${m.name} | \`${m.spc}\` | [${hexId(m.id, 2)}.json](${hexId(m.id, 2)}.json) |`);
     return `# Music Tracks (${music.length})
 
@@ -118,7 +120,7 @@ ${rows.join('\n')}
 }
 
 function tablesMarkdown(tables: AddressEntry[]): string {
-    const rows = tables.map(t => `| \`${t.hex}\` | ${t.name} | ${t.notes || ''} | [${hexId(t.address, 6)}.json](${hexId(t.address, 6)}.json) |`);
+    const rows = tables.map(t => `| \`${addressText(t)}\` | ${t.name} | ${t.notes || ''} | [${hexId(t.address, 6)}.json](${hexId(t.address, 6)}.json) |`);
     return `# Curated Tables (${tables.length})
 
 | Address | Name | Notes | JSON |
@@ -128,7 +130,7 @@ ${rows.join('\n')}
 }
 
 function functionsMarkdown(functions: AddressEntry[]): string {
-    const rows = functions.map(f => `| \`${f.hex}\` | ${f.name} | ${f.notes || ''} | [${hexId(f.address, 6)}.json](${hexId(f.address, 6)}.json) |`);
+    const rows = functions.map(f => `| \`${addressText(f)}\` | ${f.name} | ${f.notes || ''} | [${hexId(f.address, 6)}.json](${hexId(f.address, 6)}.json) |`);
     return `# Curated Functions (${functions.length})
 
 | Address | Name | Notes | JSON |
