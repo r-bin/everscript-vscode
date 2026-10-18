@@ -182,7 +182,7 @@ export function drawCollisionOverlay(
     }
 
     // 7. Object stamps: soft blue tint with a 1px perimeter, labelled with the
-    //    index SoEScriptDumper's `script_all` calls "OBJ n".
+    //    index (n).
     if (on(opts.objects)) {
         for (const { tx, ty, w, h, index } of f.objectRects) {
             const x1 = tx * 16;
@@ -206,7 +206,7 @@ export function drawCollisionOverlay(
         drawGrass(buf, blend, wPx, hPx, grassPx, f.grassTiles);
     }
 
-    // 9. Trigger boxes, labelled with the hex script id `script_all` lists.
+    // 9. Trigger boxes, labelled with their hex script id.
     if (on(opts.triggers)) {
         const ox = room.header.originX;
         const oy = room.header.originY;

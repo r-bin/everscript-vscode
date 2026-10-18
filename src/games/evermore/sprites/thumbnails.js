@@ -36,7 +36,7 @@ function displayPalette(rom, c) {
 
 /** A character's second palette (+0x0B: Harry, Vigor), or null. */
 function secondPalette(rom, c) {
-    return c && c.stats && c.stats.unknown0b ? paletteAt(rom, c.stats.unknown0b) : null;
+    return c && c.stats && c.stats.palette2 ? paletteAt(rom, c.stats.palette2) : null;
 }
 
 /** `{ s, e }` data URIs (or null) for one character's list entry. */
@@ -69,7 +69,7 @@ function listPalettes(characters) {
     };
     for (const c of characters) {
         add(c.stats.palette, c.name);
-        add(c.stats.unknown0b, c.name + ' (2nd)');
+        add(c.stats.palette2, c.name + ' (2nd)');
         for (const w of c.weapons || []) add(w.paletteAddr, (c.id === 1 ? 'Dog · ' : 'Boy · ') + w.name);
     }
     return [...byAddr.entries()].sort((a, b) => a[0] - b[0]).map(([addr, owners]) => ({ addr, addrHex: hex4(addr), owners }));

@@ -10,10 +10,11 @@
 // and `step` count every tick of a hold.
 
 import { snesToRom, readByte } from './rom';
-import { read16At, ANIMATION_TABLE } from './character-record';
+import { busU16 } from '../../../platform/snes/hirom';
 import { opcode, lengthAt, segmentsAt, spriteOperand, sprite2Operand, sprite24At, jumpTarget, END_FRAME, SEGMENT_FIRST, SEGMENT_STRIDE } from './animation-opcodes';
 
 const at = (rom: Uint8Array, snes: number): number => readByte(rom, snesToRom(snes));
+const read16At = (rom: Uint8Array, snes: number): number => busU16(rom, snes);
 const signed8 = (v: number): number => (v << 24) >> 24;
 const signed16 = (v: number): number => (v << 16) >> 16;
 
@@ -22,6 +23,8 @@ const signed16 = (v: number): number => (v << 16) >> 16;
  * `$C45999`. Every character and weapon field, and every global id, points
  * at a record inside this range and at the head of a facing group.
  */
+/** The animation records: `[script:u16][bank:u8][flags:u8]` ($90:8124). */
+export const ANIMATION_TABLE = 0xc40000;
 export const RECORD_FIRST = 0x3e3a;
 export const RECORD_END = 0x599a;
 const RECORD_SIZE = 4;

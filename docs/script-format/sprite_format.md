@@ -1,87 +1,42 @@
-# Sprite format
+# Sprites
 
-> Status: **solved.** `src/games/evermore/maps/sprites.ts`, ported from SoETilesViewer's
-> `spriteblock.h` and `spriteinfo.h` — the only implementation of this
-> format anywhere.
+How the game stores and draws a sprite, read from its own code. The code is
+`src/games/evermore/maps/sprites.ts`; the knowledge entries cited hold the evidence.
 
-## Three layers
+## Which sprites exist
 
-| Layer | Where |
+Nothing lists them. An entity's sprite is set by its animation script: opcodes `0x22`-`0x2B`
+take a word and put the sprite in bank `$A8 + opcode` (`$CA`-`$D3`), `0x2C` and the long forms
+carry a 24-bit address (`rom/908418.md`). So the sprites are the ones the animation scripts name:
+`spriteAddresses()` walks every animation record (`$C4:0000`) and collects them. A record with no
+chunks (`$CA:0001`) is the empty frame.
+
+## A sprite record
+
+`$80:9033` draws the record at `[$26]` (`rom/809033.md`):
+
+| byte | |
 |---|---|
-| 16×16 block pointers | `$EC0000 + i*3`, data based at `$D90000` |
-| 8×8 block pointers | `$D80000 + i*3`, data based at `$D10000` |
-| Sprite infos (chunk lists) | from `$CA0003`, walked end to end |
+| 0 | chunk count (0 draws nothing) |
+| 1 | offset of the first chunk from the record |
+| 2-5 | when the count is 3 or more: a box, x:s8 y:s8 width height, used only to skip a sprite that is off screen |
+| then | `count` chunks of 5 bytes |
 
-**Blocks** are the pixels, 4bpp planar. A 16×16 block is four 8×8 SNES tiles
-in the order top-left, top-right, bottom-left, bottom-right, 32 bytes each.
-**Bit 23 of a block pointer marks its data compressed.**
+A chunk is `flags`, `x:s8`, `y:s8`, `block:u16`. Flags bit 0 picks a 16×16 block (else 8×8);
+bits 1-3 are the palette, 4-5 the priority, 6 and 7 the horizontal and vertical flip, as in the
+OAM attribute byte. The attribute word in `$06`/`$07` decides which of the chunk's bits survive
+(`rom/809433.md`).
 
-**Compression** is a bit-per-word skip list: one status byte per eight
-output words, a set bit meaning "this word is zero and is not stored".
+## Blocks
 
-**Chunks** place a block at a signed offset — five bytes: flags, x, y, and a
-16-bit block id.
+A block id indexes 3-byte entries at `$EC:0000` (16×16) and `$D8:0000` (8×8): a 16-bit address and
+a bank byte, the bank being `$D9` / `$D1` plus its low 7 bits; bit 7 marks a compressed block
+(`rom/809751.md`). A 16×16 block is 128 bytes, an 8×8 one 32: 4bpp tiles. Compressed, the bytes
+come in groups of 16: a mask byte whose bits, lowest first, say which of the group's 8 words are
+zero, then the other words. The NMI puts a 16×16 block's first 64 bytes on its OBJ tile row and
+the next 64 one row down, so its tiles are top-left, top-right, bottom-left, bottom-right.
 
-## The flags byte is an OAM attribute byte
+## Drawing order
 
-SNES OAM byte 3 is `vhoopppn`: flip Y, flip X, two priority bits, three
-palette bits, one name bit. Every field lines up with what the data does,
-which is what identified it:
-
-| Bits | OAM meaning | Here | Share of 37413 chunks |
-|---|---|---|---|
-| 0 | name-table bit | 16×16 block rather than 8×8 | 39% set |
-| 1–3 | palette | 0 on 99.3%, 1 on 0.7% (not characters) | — |
-| 4–5 | priority | **not** the hardware priority — see below; added to it only on a gate-nibble-4 tile | only 0 and 1 occur; 88% are 1 |
-| 6 | **flip X** | mirror left-to-right | 31% |
-| 7 | flip Y | mirror top-to-bottom | 4% |
-
-Bits 4–5 are the one field that is *not* passed through. The OAM assembly at
-`$809433` does `LDA $DF / AND $07 / ADC $06`, and `$07` is the high byte of
-the attribute word the entity built (`$CC` or `$FC`) — so the chunk's
-priority bits are masked out and the hardware priority comes from the
-entity's own word, which `$8FC773` chose from the tile it stands on. Within
-one sprite they still decide which chunk covers which, so they are kept as
-a composition order. The exception is a tile with gate nibble 4: the mask is then
-`$FC` and the bits are added to the hardware priority, splitting the sprite (legs
-behind, upper body in front). See [sprite_priority.md](sprite_priority.md).
-
-The mirror bits matter more than their share suggests. Symmetrical sprites
-store one half and mirror it: Strongheart's chunks 0 and 1 are the *same
-block* at x=−7 and x=0, differing only in bit 6. Ignoring it draws one half
-twice, which is exactly what a buggy-looking tile turned out to be.
-
-## Draw order is not list order
-
-These chunks become OAM entries, and the PPU draws a **lower OAM index in
-front of a higher one**, with bits 4–5 deciding first. So the
-correct painting order is priority ascending, and within a priority, index
-descending — the first chunk ends up on top. SoETilesViewer's `frameview.cpp`
-does exactly this (`for priority 0..3 { for i = n-1 down to 0 }`), and its
-output is what the format was checked against.
-
-Painting the list front to back instead leaves the *last* chunk on top. 1161
-of the 5128 sprites reuse a cell across chunks, so this is visible: it is
-what buried the Megataur's face behind its body.
-
-**Sprite infos** are `[count][dataOffset]` followed by the chunks. Nothing
-indexes them, so they are walked sequentially; a zero-length entry or one
-near the end of a bank means the list continues in the next bank.
-
-## How it is checked
-
-Two ways, in increasing strength:
-
-1. The walk finds **5128 sprites**, the same count the reference's walk ends
-   on. Sharp, because it chains on each entry's declared length — one
-   mis-sized sprite desynchronises everything after it. 9 of the 5128 are
-   blank padding between banks.
-
-2. **Against live frames.** A Mesen trace hands 11 distinct 24-bit sprite
-   pointers to the game's own renderer; decoding all of them cold from the
-   ROM produces correct, recognisable sprites. Those are addresses a running
-   game chose.
-
-Chunk offsets are signed and relative to an origin that is not a corner, so
-`composeSprite` measures the extent first rather than assuming a canvas
-size — several sprites reach well above and left of their origin.
+Chunks become OAM entries in list order. The PPU shows a lower OAM index in front of a higher one,
+priority deciding first, so the first chunk is on top. `composeSprite()` paints back to front.

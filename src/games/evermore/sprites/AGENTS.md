@@ -26,7 +26,7 @@ Existing exceptions (do not add more):
 - The animation and entity rules this tab encodes (attack facing rounding, stamina →
   attack level, palette precedence, the home palette slot, Dog forms) are in the
   `animation-script` and `map-entities` skills. Follow them; do not restate them here.
-- Do not port or copy code, tables or layouts from SoETilesViewer/SoEScriptDumper; derive
+- Do not port or copy code, tables or layouts from the third-party tools the root `AGENTS.md` names; derive
   from the ROM with a test (guide §3.8).
 - Keep each file under the Max LOC listed in the README's file table.
 - `webview/` load order: `sprites-lazy.js`, `sprites-script.js`, `sprites-motion.js`,

@@ -33,7 +33,7 @@ engine code.
 | record groups | 1752 records `$C4:3E3A–$599A` | **no free space in `$C4`**. A record id is a 16-bit offset into bank `$C4`. | **pool `$C4:3C92–$3E39` (424 bytes)**, freed by moving the `animate()` id table: 26 four-facing groups or 106 one-facing records |
 | `animate()` ids | 212 | ends where the record table starts | 212 / 2048 (`$B1:F000`) |
 | scripts | 1595 in `$C7–$C9` | none: a 24-bit pointer | unchanged; new scripts can go in the extension |
-| sprite infos | 5128 from `$CA:0003` | bank = command + `$A8`, so only `$CA–$D3`, and no proven free space there | **unchanged, still the bottleneck** ([todo](todo/table-hack.md)) |
+| sprite infos | 4,903 the animation scripts name, from `$CA:0003` | bank = command + `$A8`, so only `$CA–$D3`, and no proven free space there | **unchanged, still the bottleneck** ([todo](todo/table-hack.md)) |
 | 16×16 block ids | 4854, table full | the pointer table `$EC0000` is followed by other data | 4854 / 10922 (`$F8:0000`) |
 | 8×8 block ids | 6265, table full | the pointer table `$D80000` is followed by other data | 6265 / 10922 (`$F9:0000`) |
 | pixels | `$D90000` / `$D10000` + 23-bit offset | none: the offset reaches `$FFFFFF` *(to verify: that the add carries across banks)* | new pixels can go in the extension |

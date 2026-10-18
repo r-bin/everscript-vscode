@@ -72,15 +72,15 @@ const room = decodeRoom(romBuffer, 0x38);
 room.header.widthTiles;           // 83
 room.collisionWords[y][x];        // 16-bit collision word — decode with ./collision
 room.layer1MetatileIds[y][x];     // metatile ID (WRAM offset)
-room.triggers.stepOn[i].scriptId; // matches script_all's "id:" field
+room.triggers.stepOn[i].scriptId; // byte offset into the script pointer table
 ```
 
 ## Sprites
 
-`sprites.ts` decodes character and object sprites — block pools, the
-bit-per-word compression, and chunk composition — ported from
-SoETilesViewer. Pinned by `checkSprites` against the reference's own walk
-count of 5128.
+`sprites.ts` decodes character and object sprites — sprite records, block tables, the
+mask-per-group compression and chunk composition — read from the game's sprite renderer
+`$80:9033` and block loaders (docs/script-format/sprite_format.md). The sprites are the ones the
+animation scripts name.
 
 Going from a character to a picture is three layers, each its own file:
 

@@ -4,10 +4,10 @@
 
 ## 1. Goal
 
-Unify and modernize the first two tabs of SoETilesViewer into an interactive, readable tool within the VS Code Extension:
+Characters, sprites and animations from the user's ROM, in one interactive tool:
 The radar tab is called **Characters** (it was "Sprites"); inside it, three modes:
 - **Characters [Ctrl+1]**: Lists all 142 characters/enemies/NPCs from the ROM table at `$8EB678`, with their stats, engine mechanics explanations, and hitboxes.
-- **Sprites [2]**: Lists all 5,128 raw sprites walked from `$CA0003`, with chunk breakdown (`0x0000 @ -12, -31, flags 10`), selectable palettes and backgrounds.
+- **Sprites [2]**: Lists every sprite the animation scripts name (from `$CA:0003`), with chunk breakdown (`0x0000 @ -12, -31, flags 10`), selectable palettes and backgrounds.
 - **Animations**: every one of the 783 animations in the ROM's record table, with its owners and its script.
 - **Animation Player**: Plays all animations (both standard 11 character actions and externally triggered scripts from `animate(entity, mode, id)` such as `MAGMAR_ENTER`), with real-time 60Hz SNES tick playback, directional facings, frame scrubber, and body/hurt/strike hitbox overlays.
 

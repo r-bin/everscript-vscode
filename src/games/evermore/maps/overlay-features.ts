@@ -45,7 +45,7 @@ export interface ObjectRect {
     ty: number;
     w: number;
     h: number;
-    /** Section 3 object index — matches SoEScriptDumper's `script_all` "OBJ n". */
+    /** Section 3 object index. */
     index: number;
 }
 
@@ -164,9 +164,9 @@ export function buildLegend(features: RoomFeatures, weighted = false): LegendIte
     if (features.transitions.length) items.push({ color: [255, 152, 0], label: 'ELEVATION CHANGE', flag: 'e' });
     if (features.gated.length) items.push({ color: [235, 235, 235], label: 'ENTITY GATE (BIT 8)', flag: 'n' });
     if (features.grassTiles.length) items.push({ color: [76, 175, 80], label: 'CUTTABLE GRASS', flag: 'g' });
-    items.push({ color: [33, 150, 243], label: 'OBJECT STAMP (N BOTTOM-LEFT = SCRIPT_ALL OBJ N)', flag: 'o' });
-    items.push({ color: [255, 255, 0], label: 'B-TRIGGER (HEX TOP-LEFT = SCRIPT_ALL ID)', flag: 't' });
-    items.push({ color: [255, 0, 255], label: 'STEP-ON (HEX TOP-LEFT = SCRIPT_ALL ID)', flag: 't' });
+    items.push({ color: [33, 150, 243], label: 'OBJECT STAMP (N BOTTOM-LEFT = OBJECT INDEX)', flag: 'o' });
+    items.push({ color: [255, 255, 0], label: 'B-TRIGGER (HEX TOP-LEFT = SCRIPT ID)', flag: 't' });
+    items.push({ color: [255, 0, 255], label: 'STEP-ON (HEX TOP-LEFT = SCRIPT ID)', flag: 't' });
     return items;
 }
 

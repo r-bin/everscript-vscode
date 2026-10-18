@@ -4,9 +4,10 @@
 //
 // Six 40-byte entries in bank $CF, listed by the pointer table at $CF945F. Each is a
 // 10-byte header — a 24-bit pointer, a byte, $CC3C, the palette (+6, bank $90), a word
-// — then 15 animation records. The loader is not traced; the layout is read from the
-// data, and a slot is named only where its record is one the Dog's own character record
-// (+0x32..) or an ANIMATION_DOG id (via $C43C92) already names.
+// — then 15 animation records. The loader is $8F:9471: it takes the entry from
+// $8F:945D[form] (word 0 is no form, so form n is at $CF945F + 2n), writes +6 into the Dog's
+// palette (+$09 of its WRAM record $0A70), +8 into +$13, and the records from +$0A into
+// stand, walk, run (+$32..+$36), +$48, +$40, the attacks (+$38..+$3E), then $1443-$144D.
 
 
 const FORM_POINTERS = 0xcf945f;

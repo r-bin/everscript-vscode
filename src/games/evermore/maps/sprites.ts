@@ -1,33 +1,24 @@
-// Ownership: decoding character/object sprites out of the ROM. Pure.
+// Ownership: sprites as the game draws them — a sprite record's chunks, a chunk's block pixels, a
+// composed image — and every sprite the animation scripts name. Pure.
 //
-// A port of SoETilesViewer's `spriteblock.h` and `spriteinfo.h`, which is the
-// only implementation of this format anywhere. Verified by rendering: the
-// walk finds 5128 sprites and they come out as recognisable characters.
-//
-// Three layers:
-//
-//   **Blocks** are the pixels. Two pools, each a table of 24-bit pointers:
-//   16x16 blocks at $EC0000 with data based at $D90000, and 8x8 blocks at
-//   $D80000 based at $D10000. Bit 23 of the pointer marks the data as
-//   compressed.
-//
-//   **Chunks** place a block at a signed offset. Five bytes: flags, x, y and
-//   a 16-bit block id. Bit 0 of `flags` picks the pool — set means 16x16.
-//
-//   **Sprite infos** are a chunk list: a count, a data offset, then the
-//   chunks. They sit end to end from $CA0003 and are walked sequentially,
-//   since nothing indexes them.
-//
-// The compression is a bit-per-word skip list: one status byte per eight
-// output words, a set bit meaning "this word is zero, it is not stored".
-//
-// Getting from a character to one of these sprites is ./characters, which
-// walks the animation format. This module only knows pixels.
+// Read from the game's own code (knowledge rom/809033.md, rom/809751.md):
+//   record    $80:9033 reads [$26]: count, offset of the first chunk, and when count >= 3 a
+//             bounding box (x:s8 y:s8 w:u8 h:u8) it culls by; then `count` chunks of 5 bytes
+//   chunk     flags, x:s8, y:s8, block:u16. Flags bit 0: 16x16; bits 1-3 palette, 4-5 priority,
+//             6/7 flip (the OAM attribute byte, through the mask in $07, $80:9433)
+//   block     3 bytes at $EC:0000 + 3·id (16x16) or $D8:0000 + 3·id (8x8): a 16-bit address and a
+//             bank byte, $D9 (16x16) / $D1 (8x8) + its low 7 bits; bit 7 = compressed ($80:9742,
+//             $80:A4FC). Compressed data is groups of 16 bytes, each a mask byte whose bits
+//             (lowest first) mark the group's zero words, then the other words.
+//   16x16     the 128 bytes are four 8x8 tiles; the NMI ($80:82A1) puts bytes 0-63 at the tile
+//             and 64-127 one OBJ row down: top-left, top-right, bottom-left, bottom-right
+//   naming    animation opcodes 0x22-0x2B set the sprite to bank $A8 + opcode : word ($90:8418);
+//             0x2C and the long forms carry a 24-bit address (animation-opcodes.ts)
 
-import { snesToRom, read24, readByte } from './rom';
-
-/** Byte at a SNES address. */
-const at = (rom: Uint8Array, snes: number): number => readByte(rom, snesToRom(snes));
+import { busU8, busU16 } from '../../../platform/snes/hirom';
+import { tile4bpp } from '../../../platform/snes/tiles';
+import { animationGroups } from './animation-vm';
+import { disassembleScript, opcode, segmentsAt, spriteOperand, sprite2Operand, sprite24At } from './animation-opcodes';
 
 /** Palette indices, row-major, `size` x `size`. */
 export interface SpriteBlockPixels {
@@ -35,76 +26,44 @@ export interface SpriteBlockPixels {
     pixels: Uint8Array;
 }
 
-interface Pool {
-    /** Table of 24-bit data pointers. */
-    pointers: number;
-    /** Base the pointer is relative to. */
-    data: number;
-    size: number;
-}
+const LARGE = { table: 0xec0000, bank: 0xd9, bytes: 128 };
+const SMALL = { table: 0xd80000, bank: 0xd1, bytes: 32 };
+const GROUP = 16;
 
-const LARGE: Pool = { pointers: 0xec0000, data: 0xd90000, size: 16 };
-const SMALL: Pool = { pointers: 0xd80000, data: 0xd10000, size: 8 };
-
-/** Where the sprite-info list starts. Not $CA0001 — upstream notes that too. */
-export const SPRITE_LIST_START = 0xca0003;
-
-/** A block's raw 4bpp planar bytes, decompressing if the pointer says so. */
-function blockBytes(rom: Uint8Array, index: number, pool: Pool): Uint8Array {
-    const raw = read24(rom, snesToRom(pool.pointers + index * 3));
-    const compressed = (raw >>> 23) & 1;
-    const addr = ((raw & ~(1 << 23)) >>> 0) + pool.data;
-    const sub = pool.size / 8;
-    const length = (8 * 8 * sub * sub) / 2;
-    const out = new Uint8Array(length);
-
-    if (!compressed) {
-        for (let i = 0; i < length; i++) out[i] = at(rom, addr + i);
+/** A block's bytes, decompressed as $80:9742 / $80:A4FC do. */
+function blockBytes(rom: Uint8Array, index: number, large: boolean): Uint8Array {
+    const t = large ? LARGE : SMALL;
+    const e = t.table + 3 * index;
+    const hi = busU8(rom, e + 2);
+    let p = (((t.bank + (hi & 0x7f)) << 16) | busU16(rom, e)) >>> 0;
+    const out = new Uint8Array(t.bytes);
+    if (!(hi & 0x80)) {
+        for (let i = 0; i < t.bytes; i++) out[i] = busU8(rom, p + i);
         return out;
     }
-    // One status byte per eight output words; a set bit means the word is
-    // zero and was not stored.
-    let src = addr;
-    let dst = 0;
-    for (let group = 0; group < length / 16; group++) {
-        let bits = at(rom, src++);
-        for (let bit = 0; bit < 8; bit++, bits >>= 1) {
-            if (bits & 1) { dst += 2; continue; }        // stored as zero
-            out[dst++] = at(rom, src++);
-            out[dst++] = at(rom, src++);
+    for (let g = 0; g < t.bytes; g += GROUP) {
+        const mask = busU8(rom, p++);
+        for (let w = 0; w < GROUP / 2; w++) {
+            if (mask & (1 << w)) continue;
+            out[g + 2 * w] = busU8(rom, p);
+            out[g + 2 * w + 1] = busU8(rom, p + 1);
+            p += 2;
         }
     }
     return out;
 }
 
-/**
- * One sprite block as palette indices.
- *
- * A 16x16 block is four 8x8 SNES tiles in the order top-left, top-right,
- * bottom-left, bottom-right, each 32 bytes of 4bpp planar data.
- */
+/** One sprite block as palette indices. */
 export function decodeSpriteBlock(rom: Uint8Array, index: number, large: boolean): SpriteBlockPixels {
-    const pool = large ? LARGE : SMALL;
-    const d = blockBytes(rom, index, pool);
-    const sub = pool.size / 8;
-    const pixels = new Uint8Array(pool.size * pool.size);
-    let n = 0;
-    for (let l = 0; l < sub; l++) {
-        for (let row = 0; row < 8; row++) {
-            for (let j = 0; j < sub; j++) {
-                const base = (j + 2 * l) * 32 + row * 2;
-                for (let bit = 7; bit >= 0; bit--) {
-                    let p = 0;
-                    if (d[base + 0] & (1 << bit)) p |= 1;
-                    if (d[base + 1] & (1 << bit)) p |= 2;
-                    if (d[base + 16] & (1 << bit)) p |= 4;
-                    if (d[base + 17] & (1 << bit)) p |= 8;
-                    pixels[n++] = p;
-                }
-            }
-        }
+    const bytes = blockBytes(rom, index, large);
+    if (!large) return { size: 8, pixels: tile4bpp(bytes) };
+    const pixels = new Uint8Array(256);
+    for (let t = 0; t < 4; t++) {
+        const tile = tile4bpp(bytes, 32 * t);
+        const x0 = (t & 1) * 8, y0 = (t >> 1) * 8;
+        for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) pixels[(y0 + r) * 16 + x0 + c] = tile[r * 8 + c];
     }
-    return { size: pool.size, pixels };
+    return { size: 16, pixels };
 }
 
 export interface SpriteChunk {
@@ -113,106 +72,95 @@ export interface SpriteChunk {
     x: number;
     y: number;
     block: number;
-    /** Bit 0 of flags: a 16x16 block rather than an 8x8 one. */
+    /** Flags bit 0: a 16x16 block rather than an 8x8 one. */
     large: boolean;
-    /** Bit 6: draw the block mirrored left-to-right. */
+    /** Bit 6: mirrored left to right. */
     flipX: boolean;
-    /** Bit 7: mirrored top-to-bottom. */
+    /** Bit 7: mirrored top to bottom. */
     flipY: boolean;
-    /** Bits 4-5: the OAM priority, which decides what covers what. */
+    /** Bits 4-5: the OAM priority. */
     priority: number;
-    /** Bits 1-3: which of the character's palettes (0 own, 1 second). */
+    /** Bits 1-3: which of the character's palettes. */
     palette: number;
 }
-
-/**
- * The flags byte is an **OAM attribute byte**, and reads as one.
- *
- * SNES OAM byte 3 is `vhoopppn`: flip Y, flip X, two priority bits, three
- * palette bits, one name bit. Every field lines up with what the data does:
- *
- * | Bits | Meaning | In this ROM |
- * |---|---|---|
- * | 0 | size, in place of OAM's name bit | 39% set (16x16) |
- * | 1-3 | palette | 0 on 99.3%, 1 on 0.7% |
- * | 4-5 | priority | only 0 and 1 occur; 88% are 1 |
- * | 6 | flip X | 31% |
- * | 7 | flip Y | 4% |
- *
- * Symmetrical sprites reuse one block for both halves and mirror it, so a
- * decoder that ignores bit 6 draws the mirrored half twice — Strongheart's
- * face comes out with one side duplicated.
- *
- * The palette bits pick which of the character's palettes a chunk uses: 0 is
- * its own (record +0x09), 1 its second (+0x0B). Exactly the two characters with
- * a second palette, Harry and Vigor, set them. `composeSprite` reports them per
- * pixel; the caller colours with the matching palette.
- */
-const CHUNK_PALETTE = 0x0e;
-const CHUNK_PALETTE_SHIFT = 1;
-const CHUNK_LARGE = 0x01;
-const CHUNK_PRIORITY = 0x30;
-const CHUNK_PRIORITY_SHIFT = 4;
-const CHUNK_FLIP_X = 0x40;
-const CHUNK_FLIP_Y = 0x80;
-const PRIORITY_LEVELS = 4;
 
 export interface SpriteInfo {
     address: number;
     chunks: SpriteChunk[];
-    /** Total bytes, so the next sprite can be found. */
+    /** Bytes the record spans: up to the end of its last chunk. */
     size: number;
 }
 
-const CHUNK_BYTES = 5;
-const MAX_CHUNKS = 64;
+const CHUNK = 5;
+const s8 = (v: number): number => (v << 24) >> 24;
 
-/** Read the chunk list at `address`. */
+/** The sprite record at `address`, as $80:9033 reads it. */
 export function readSpriteInfo(rom: Uint8Array, address: number): SpriteInfo {
-    const count = at(rom, address);
-    const dataOffset = at(rom, address + 1);
+    const count = busU8(rom, address);
+    const first = busU8(rom, address + 1);
     const chunks: SpriteChunk[] = [];
-    let cursor = address;
-    for (let n = 0; n < count; n++) {
-        const c = cursor + dataOffset;
-        const flags = at(rom, c);
+    for (let i = 0; i < count; i++) {
+        const c = address + first + CHUNK * i;
+        const flags = busU8(rom, c);
         chunks.push({
-            flags,
-            x: (at(rom, c + 1) << 24) >> 24,
-            y: (at(rom, c + 2) << 24) >> 24,
-            block: at(rom, c + 3) | (at(rom, c + 4) << 8),
-            large: (flags & CHUNK_LARGE) !== 0,
-            flipX: (flags & CHUNK_FLIP_X) !== 0,
-            flipY: (flags & CHUNK_FLIP_Y) !== 0,
-            priority: (flags & CHUNK_PRIORITY) >> CHUNK_PRIORITY_SHIFT,
-            palette: (flags & CHUNK_PALETTE) >> CHUNK_PALETTE_SHIFT,
+            flags, x: s8(busU8(rom, c + 1)), y: s8(busU8(rom, c + 2)), block: busU16(rom, c + 3),
+            large: (flags & 1) !== 0, flipX: (flags & 0x40) !== 0, flipY: (flags & 0x80) !== 0,
+            priority: (flags >> 4) & 3, palette: (flags >> 1) & 7,
         });
-        cursor += CHUNK_BYTES;
     }
-    return { address, chunks, size: dataOffset + count * CHUNK_BYTES };
+    return { address, chunks, size: count ? first + CHUNK * count : 2 };
+}
+
+/** Sprite addresses an animation script names, in the sprite banks: every sprite-setting command it can reach. */
+export function scriptSprites(rom: Uint8Array, script: number): number[] {
+    const found: number[] = [];
+    for (const line of disassembleScript(rom, script)) {
+        const o = opcode(line.bytes[0]);
+        if (!o) continue;
+        const p = line.address;
+        if (o.kind === 'sprite') found.push(spriteOperand(rom, p));
+        else if (o.kind === 'sprite2') found.push(sprite2Operand(rom, p));
+        else if (o.kind === 'sprite_long') found.push(sprite24At(rom, p + 1));
+        else if (o.kind === 'sprite_aim') for (let i = 0; i < 8; i++) found.push(sprite24At(rom, p + 1 + 3 * i));
+        else if (o.kind === 'hud') for (let i = 0; i < (o.length - 1) / 3; i++) found.push(sprite24At(rom, p + 1 + 3 * i));
+        else if (o.kind === 'segments') for (const s of segmentsAt(rom, p).groups) found.push(s.sprite);
+    }
+    return found.filter((a) => (a >>> 16) >= 0xca && (a >>> 16) <= 0xd3 && (a & 0xffff) !== 0);
+}
+
+/** The first sprite an animation names that draws something. */
+export const SPRITE_LIST_START = 0xca0003;
+
+const spritesCache = new WeakMap<Uint8Array, number[]>();
+
+/** Every sprite address the animation scripts name, in address order. */
+export function spriteAddresses(rom: Uint8Array): number[] {
+    const cached = spritesCache.get(rom);
+    if (cached) return cached;
+    const found = new Set<number>();
+    const seen = new Set<number>();
+    for (const g of animationGroups(rom)) {
+        for (const script of g.scripts) {
+            if (!script || seen.has(script)) continue;
+            seen.add(script);
+            for (const a of scriptSprites(rom, script)) found.add(a);
+        }
+    }
+    const out = [...found].sort((a, b) => a - b);
+    spritesCache.set(rom, out);
+    return out;
 }
 
 /**
- * Walk the sprite list from the start.
- *
- * Nothing indexes these, so they are read end to end. A zero-length entry or
- * one that runs up against the end of a bank means the list continues in the
- * next bank — upstream's rule, kept because it is what makes the walk reach
- * all 5128.
+ * Every sprite the animations name that draws something, in address order; `limit` keeps the first
+ * ones. (A count of 0, such as $CA:0001, is the empty frame: $80:9033 returns at once.)
  */
-export function walkSprites(rom: Uint8Array, limit = 20000): SpriteInfo[] {
+export function walkSprites(rom: Uint8Array, limit = Infinity): SpriteInfo[] {
     const out: SpriteInfo[] = [];
-    let addr = SPRITE_LIST_START;
-    for (let i = 0; i < limit; i++) {
-        if (snesToRom(addr) >= rom.length - 7) break;
-        let info = readSpriteInfo(rom, addr);
-        if (info.chunks.length === 0 || (addr & 0xffff) > 0x7ffd) {
-            addr = (addr & 0xff0000) + 0x10001;
-            info = readSpriteInfo(rom, addr);
-        }
-        if (info.chunks.length > MAX_CHUNKS) break;
-        out.push(info);
-        addr += info.size;
+    for (const a of spriteAddresses(rom)) {
+        if (out.length >= limit) break;
+        const s = readSpriteInfo(rom, a);
+        if (s.chunks.length) out.push(s);
     }
     return out;
 }
@@ -222,7 +170,7 @@ export interface SpritePixels {
     height: number;
     /** Palette index per pixel; -1 where nothing was drawn. */
     pixels: Int16Array;
-    /** The chunk's OAM palette bits per pixel (0 = own palette, 1 = second). */
+    /** The chunk's palette bits per pixel. */
     palettes: Uint8Array;
     /** Where the sprite's origin sits inside the buffer. */
     originX: number;
@@ -230,50 +178,34 @@ export interface SpritePixels {
 }
 
 /**
- * Compose a sprite's chunks into one buffer.
- *
- * Chunk offsets are signed and relative to an origin that is not at a
- * corner, so the extent is measured first rather than assuming a canvas
- * size — several sprites reach well above and left of their origin.
- *
- * **Draw order is not list order.** These chunks become OAM entries, and the
- * PPU draws a lower OAM index in front of a higher one, so the first chunk
- * belongs on top. Priority decides first, index second. Painting the list
- * front to back instead puts the last chunk on top, which is what buried a
- * boss's face behind its body.
+ * The chunks drawn into one buffer. Offsets are signed, so the extent is measured first. The chunks
+ * become OAM entries in list order, and the PPU shows a lower OAM index in front of a higher one
+ * (priority deciding first), so the first chunk ends up on top.
  */
 export function composeSprite(rom: Uint8Array, info: SpriteInfo): SpritePixels {
-    let minX = 0; let minY = 0; let maxX = 1; let maxY = 1;
-    for (const c of info.chunks) {
-        const s = c.large ? 16 : 8;
-        if (c.x < minX) minX = c.x;
-        if (c.y < minY) minY = c.y;
-        if (c.x + s > maxX) maxX = c.x + s;
-        if (c.y + s > maxY) maxY = c.y + s;
+    const chunks = info.chunks;
+    if (!chunks.length) return { width: 0, height: 0, pixels: new Int16Array(0), palettes: new Uint8Array(0), originX: 0, originY: 0 };
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const c of chunks) {
+        const n = c.large ? 16 : 8;
+        x0 = Math.min(x0, c.x); y0 = Math.min(y0, c.y); x1 = Math.max(x1, c.x + n); y1 = Math.max(y1, c.y + n);
     }
-    const width = maxX - minX;
-    const height = maxY - minY;
+    const width = x1 - x0, height = y1 - y0;
     const pixels = new Int16Array(width * height).fill(-1);
     const palettes = new Uint8Array(width * height);
-    for (let priority = 0; priority < PRIORITY_LEVELS; priority++) {
-        for (let i = info.chunks.length - 1; i >= 0; i--) {
-            const c = info.chunks[i];
-            if (c.priority !== priority) continue;
-            const b = decodeSpriteBlock(rom, c.block, c.large);
-            for (let y = 0; y < b.size; y++) {
-                for (let x = 0; x < b.size; x++) {
-                    const sx = c.flipX ? b.size - 1 - x : x;
-                    const sy = c.flipY ? b.size - 1 - y : y;
-                    const v = b.pixels[sy * b.size + sx];
-                    if (!v) continue;                   // index 0 is transparent
-                    const px = c.x - minX + x;
-                    const py = c.y - minY + y;
-                    if (px < 0 || py < 0 || px >= width || py >= height) continue;
-                    pixels[py * width + px] = v;
-                    palettes[py * width + px] = c.palette;
-                }
+    // Paint back to front: lowest priority first, and within one priority the last chunk first.
+    const order = chunks.map((c, i) => ({ c, i })).sort((a, b) => a.c.priority - b.c.priority || b.i - a.i);
+    for (const { c } of order) {
+        const b = decodeSpriteBlock(rom, c.block, c.large);
+        for (let r = 0; r < b.size; r++) {
+            for (let q = 0; q < b.size; q++) {
+                const v = b.pixels[(c.flipY ? b.size - 1 - r : r) * b.size + (c.flipX ? b.size - 1 - q : q)];
+                if (!v) continue;
+                const at = (c.y - y0 + r) * width + (c.x - x0 + q);
+                pixels[at] = v;
+                palettes[at] = c.palette;
             }
         }
     }
-    return { width, height, pixels, palettes, originX: -minX, originY: -minY };
+    return { width, height, pixels, palettes, originX: -x0, originY: -y0 };
 }

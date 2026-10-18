@@ -86,10 +86,6 @@
    "upstream"
   ],
   [
-   "docs/script-format/character_table.md",
-   "upstream"
-  ],
-  [
    "docs/script-format/entities-reference.md",
    "upstream"
   ],
@@ -103,10 +99,6 @@
   ],
   [
    "docs/script-format/operand_grammar.md",
-   "upstream"
-  ],
-  [
-   "docs/script-format/sprite_format.md",
    "upstream"
   ],
   [
@@ -126,64 +118,12 @@
    "upstream"
   ],
   [
-   "src/games/evermore/maps/AGENTS.md",
-   "upstream"
-  ],
-  [
-   "src/games/evermore/maps/README.md",
-   "upstream"
-  ],
-  [
-   "src/games/evermore/maps/character-record.ts",
-   "upstream"
-  ],
-  [
-   "src/games/evermore/maps/collision-overlay.ts",
-   "upstream"
-  ],
-  [
-   "src/games/evermore/maps/overlay-features.ts",
-   "upstream"
-  ],
-  [
-   "src/games/evermore/maps/room.ts",
-   "upstream"
-  ],
-  [
-   "src/games/evermore/maps/sprites.ts",
-   "upstream"
-  ],
-  [
    "src/games/evermore/resources/fs-provider.js",
    "home-path"
   ],
   [
    "src/games/evermore/rooms/data/room-scripts.js",
    "rom-name"
-  ],
-  [
-   "src/games/evermore/rooms/webview/rom-overlay.js",
-   "upstream"
-  ],
-  [
-   "src/games/evermore/sprites/AGENTS.md",
-   "upstream"
-  ],
-  [
-   "src/games/evermore/sprites/README.md",
-   "upstream"
-  ],
-  [
-   "src/games/evermore/sprites/animation-decoder.js",
-   "upstream"
-  ],
-  [
-   "src/games/evermore/sprites/character-model.js",
-   "upstream"
-  ],
-  [
-   "tests/memory/map-parity.test.js",
-   "upstream"
   ]
  ]
 }

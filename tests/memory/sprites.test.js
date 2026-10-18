@@ -315,8 +315,8 @@ if (rom) {
         assert(spear.anims.every(a => a.paletteAddr === 0xad8b));
         const own = characterPalette(rom, 0);
         const held = paletteAt(rom, spear.paletteAddr);
-        assert.deepStrictEqual(own[12], [8, 248, 8]);
-        assert.notDeepStrictEqual(held[12], [8, 248, 8]);
+        assert.deepStrictEqual(own[12], [8, 255, 8]);
+        assert.notDeepStrictEqual(held[12], [8, 255, 8]);
         for (const i of [1, 2, 4, 5, 15]) assert.deepStrictEqual(held[i], own[i], `skin/outline slot ${i}`);
     });
 

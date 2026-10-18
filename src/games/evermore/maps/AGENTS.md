@@ -29,7 +29,7 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 - The decoder is a line-by-line port of the sibling `everscript` repo's Python
   (`everscript/tools/dump_room.py`, `collision.py`, `cuttable_grass.py`); `npm run check:maps`
   must keep agreeing with it.
-- Do not port or copy code, tables or struct layouts from SoETilesViewer/SoEScriptDumper;
+- Do not port or copy code, tables or struct layouts from the third-party tools the root `AGENTS.md` names;
   derive from the ROM with a test (guide §3.8). Known violations to replace, not extend:
   `sprites.ts`, `character-record.ts` (`docs/cleanup.md` step 2).
 - `dist/maps/` is gitignored; emitted by `tsconfig.build.json` (`npm run build:ts`), rebuilt by

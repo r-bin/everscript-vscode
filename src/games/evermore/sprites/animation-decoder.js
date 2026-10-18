@@ -110,7 +110,7 @@ function renderAnimation(rom, characterId, animOpt = {}, requestedFacing = FACIN
         const pngDataUri = images[i];
         const bufInfo = buffers && buffers[i];
 
-        // Format chunks list for inspection (matching SoETilesViewer style: 0x0000 @ -12, -31, flags 10)
+        // The chunks for inspection: block, offset, flags (`0x0000 @ -12, -31, flags 10`).
         const chunkList = (info ? info.chunks : []).map((ch) => ({
             blockHex: '0x' + ch.block.toString(16).padStart(4, '0'),
             block: ch.block,

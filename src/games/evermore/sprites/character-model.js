@@ -1,134 +1,71 @@
 'use strict';
-// Ownership: character records, stat definitions, and animation mappings for the Sprites tab. Pure.
-// Layout from SoETilesViewer's characterdata.h, verified field by field against ROM.
-// Base address: $8EB678, stride: 74 bytes. 142 total character records.
+// Ownership: one character as the Sprites tab shows it — its record's fields with what the game
+// does with each, its animations (own, held weapon or Dog form, and the compiler's named ones),
+// palette, boxes and disposition. Pure.
+//
+// Read from the game's own code (knowledge rom/8eb678.md has the field map and the evidence):
+//   record      bank $8E, 74 bytes, addressed by the ENEMY table $8E:B55A (whose ROM entries
+//               reach record 141: 142 records from $8E:B678)
+//   +$00        24-bit pointer to the name, shown in a text window; the Boy's and the Dog's point
+//               at their WRAM name buffers
+//   weapons     $8F:81C9 copies the held weapon's entry into the Boy's WRAM record ($0A26): the
+//               entry from $C4:3874[index] (the Bazooka by its ammo $2349 from $C4:388E), 36 bytes
+//   Dog forms   $8F:9471 copies a form's entry into the Dog's ($0A70) (./dog-forms)
 
 const indexJson = require('../language/data/index.json');
-const { snesToRom } = require('../../../../dist/games/evermore/maps/rom');
-const { paletteAt } = require('../../../../dist/games/evermore/maps/character-record');
-const { runAnimation, animationIdRecord } = require('../../../../dist/games/evermore/maps/animation-vm');
+const { CHARACTER_TABLE, CHARACTER_STRIDE, ANIMATION_TABLE, characterPalette, characterHitbox, read16At, recordScript } = require('../../../../dist/games/evermore/maps/character-record');
+const { animationIdRecord } = require('../../../../dist/games/evermore/maps/animation-vm');
+const { readSpriteInfo, scriptSprites } = require('../../../../dist/games/evermore/maps/sprites');
 const { readDogForms } = require('./dog-forms');
 
-const CHARACTER_TABLE = 0x8eb678;
-const CHARACTER_STRIDE = 74;
+/** Records the ENEMY table reaches (the last ROM entry is record 141). */
 const CHARACTER_COUNT = 142;
 
-const BOY_NAME_PTR = 0x7e2210;
-const DOG_NAME_PTR = 0x7e2234;
+const u8 = (rom, bus) => rom[bus & 0x3fffff];
+const u24 = (rom, bus) => (read16At(rom, bus) | (u8(rom, bus + 2) << 16)) >>> 0;
+const hex = (v) => '$' + (v >>> 0).toString(16);
 
-const ANIMATION_RECORD_TABLE = 0xc40000;
-
-const WEAPONS_BASE = 0x0438e6;
-const WEAPON_STRIDE = 36;
-const WEAPON_COUNT = 15;
-
-const WEAPON_NAMES = [
-    'Bone Crusher',
-    'Gladiator Sword',
-    'Crusader Sword',
-    'Neutron Blade',
-    "Spider's Claw",
-    'Bronze Axe',
-    'Knight Basher',
-    'Atom Smasher',
-    'Horn Spear',
-    'Bronze Spear',
-    'Lance',
-    'Laser Lance',
-    'Bazooka',
-    'Bazooka (Thunder Ball)',
-    'Bazooka (Particle Bomb)',
-];
-
-const WEAPON_ANIM_OFFSETS = [
-    { key: 'w_stand', label: 'Idle', offset: 0x08, purpose: 'idle' },
-    { key: 'w_walk', label: 'Walk', offset: 0x0a, purpose: 'walk' },
-    { key: 'w_run', label: 'Run', offset: 0x0c, purpose: 'run' },
-    { key: 'w_atk0', label: 'Attack Lvl 0', offset: 0x0e, purpose: 'attack_0' },
-    { key: 'w_atk1', label: 'Attack Lvl 1', offset: 0x10, purpose: 'attack_1' },
-    { key: 'w_atk2', label: 'Attack Lvl 2', offset: 0x12, purpose: 'attack_2' },
-    { key: 'w_atk3', label: 'Attack Lvl 3', offset: 0x14, purpose: 'attack_3' },
-    // Was 'Charge Attack': a held pose with mode $0020 (invulnerable) — the dodge.
-    { key: 'w_charge', label: 'Dodge (invulnerable)', offset: 0x16, purpose: 'dodge' },
-    { key: 'w_damage', label: 'Knockback', offset: 0x18, purpose: 'knockback' },
-];
-
-/** A script in the animation banks that draws at least one sprite when run. */
-function isValidAnimationScript(rom, scriptAddr) {
-    if (!scriptAddr) return false;
-    const bank = (scriptAddr >> 16) & 0xff;
-    if (bank < 0xc4 || bank > 0xce) return false;
-    return runAnimation(rom, scriptAddr).frames.some((f) => f.sprite);
-}
-
-/**
- * Weapon record +0x04: the Boy's palette while holding this weapon. Read from the data,
- * not a traced reader: across all 15 weapons it keeps the Boy's skin and outline
- * (slots 1, 2, 4, 5, 15 equal his own +0x09 palette) and always replaces slots 12-13,
- * which his own palette leaves as placeholder green, with the weapon's colours (bone
- * for Bone Crusher, lavender for the spears, gold for Crusader Sword).
- */
-const WEAPON_PALETTE = 0x04;
-
-function weaponPalette(rom, weaponIdx) {
-    const o = snesToRom(WEAPONS_BASE + weaponIdx * WEAPON_STRIDE + WEAPON_PALETTE);
-    return rom[o] | (rom[o + 1] << 8);
-}
-
-function readWeaponAnimations(rom, weaponIdx) {
-    const o = snesToRom(WEAPONS_BASE + weaponIdx * WEAPON_STRIDE);
-    const paletteAddr = weaponPalette(rom, weaponIdx);
-    const anims = [];
-    for (const f of WEAPON_ANIM_OFFSETS) {
-        const animRec = rom[o + f.offset] | (rom[o + f.offset + 1] << 8);
-        if (animRec) {
-            const scriptAddr = (read16At(rom, ANIMATION_RECORD_TABLE + animRec) |
-                (rom[snesToRom(ANIMATION_RECORD_TABLE + animRec + 2)] << 16)) >>> 0;
-            const animFlags = rom[snesToRom(ANIMATION_RECORD_TABLE + animRec + 3)];
-            anims.push({
-                key: f.key,
-                label: f.label,
-                purpose: f.purpose || null,
-                offset: f.offset,
-                animRec,
-                scriptAddr,
-                flags: animFlags,
-                category: 'weapon',
-                paletteAddr,
-            });
-        }
-    }
-    return anims;
-}
-
-/** Stat field descriptions explaining what each stat does in the Evermore engine. */
+/** What the game does with each stat field, with the code that does it. */
 const STAT_MEANINGS = {
-    hp: 'HP (+0x0F). Copied into the entity\'s HP (+0x2A) when it spawns ($8FB15B).',
+    hp: "HP (+0x0F). Copied into the entity's HP (+0x2A) when it spawns ($8FB15B).",
     attack: 'Attack (+0x19). Used by the damage routine $8FC067.',
     defense: 'Defence (+0x1B). Subtracted in the damage routine $8FC067.',
     magic_defense: 'Magic defence (+0x1D). Alchemy damage scales by ($40 − m.def) / $40 ($919CB3).',
     evade: 'Evade (+0x1F). Indexes the to-hit table at $8FBAAF when this character is the target ($8FBA27).',
-    hit_rate: 'Hit rate (+0x21). The attacker\'s side of the to-hit roll ($8FBA53); −30 when flags2 bit 1 is set.',
+    hit_rate: "Hit rate (+0x21). The attacker's side of the to-hit roll ($8FBA53); −30 when flags2 bit 1 is set.",
     aggro_range: 'Aggro range (+0x13): engages when the target is within this many pixels in x AND in y — a square, not a circle ($8FD72D) — then turns to face it.',
     aggro_chance: 'Aggro chance (+0x15): once stamina (entity +0x2E) is full, engages when rand(0..255) < this ($8FD69B); the check covers both party members.',
-    exp: 'EXP (+0x23, 32-bit). Added to both the Boy\'s ($0A49) and the Dog\'s ($0A93) totals ($8F8292).',
+    exp: "EXP (+0x23, 32-bit). Added to both the Boy's ($0A49) and the Dog's ($0A93) totals ($8F8292).",
     money: 'Talons (+0x27).',
     prize_chance: 'Prize chance (+0x29, byte). On death a drop happens when rand & $7F < this: value / 128 ($908567). With a drop the death animation is +0x44 (spoils), otherwise +0x42.',
-    radius: 'Collision radius (+0x0D). Body box 2r × r; the hit test\'s hurt region is half-size r around the feet ($8FB651). 0 = walk-through.',
-    flags: 'Spawn flags (+0x05), OR\'d into entity +0x10 at spawn ($8FB0C3). Names from everscript FLAG_ENEMY: $0001 inactive+invisible, $0002 invincible (most NPCs), $0004 party/bombable, $0020 inactive, $0040 mosquito, $0400 phasing, $1000 invisible+invincible+inactive. The hit test compares the side bits $5006 ($8FB606), and $4000 on the target blocks damage ($8FC0D9).',
+    radius: 'Collision radius (+0x0D). Body box 2r × r ($8FB4AB); the hit test\'s hurt region is half-size r around the feet ($8FB651). 0 = walk-through.',
+    flags: 'Spawn flags (+0x05), OR\'d into entity +0x10 at spawn ($8FB0C3). Bit 1: touching it runs no contact handler ($8FB564); bit 5: left out of targeting ($8FD8D2); $0400 phasing. The hit test compares the side bits $5006 ($8FB606), and $4000 on the target blocks damage ($8FC0D9).',
     palette: 'Palette (+0x09), a 16-colour address in bank $90; the palette-slot allocator $90CD80 reuses a slot for an equal value.',
     charge_limit: 'Charge limit (+0x2C): the cap on the charge meter (entity +0x2E, $91AEDE). 1024 ($400) is a full charge.',
-    charge_speed: 'Charge speed (+0x2E): added to the stamina/charge meter (entity +0x2E, everscript STAMINA) every tick until it reaches $400 ($8FCC5D). everscript lists CHARGE_RATE at +0x2F; the code reads the word at +0x2E.',
+    charge_speed: 'Charge speed (+0x2E): added to the charge meter (entity +0x2E) every tick until it reaches $400 ($8FCC5D).',
     attack_proc: 'Attack proc (+0x30): what a hit by this character does, dispatched at $8FB6A5 through $8FB6AE (0 = to-hit roll and damage).',
-    ai_script: 'Behaviour (+0x03): selects the entity\'s AI script ($8FCD1A).',
+    ai_script: "Behaviour (+0x03): selects the entity's AI script ($8FCD1A).",
     flags2: 'Flags (+0x07). Bit 0: registered in the list at $58AF ($8FC4BA). Bit 1: −30 hit rate ($8FBA46). Bits 2–3: tested by the script engine ($8C86A6, $8C86DA). Bit 4: immune to projectiles — an automatic miss ($8FB9FB).',
     palette2: 'Second palette (+0x0B): when non-zero, loaded into palette slot 2 ($90CD01, $90CF3A).',
-    unknown11: '+0x11: copied into entity +0x2C at spawn ($8FB162). Meaning open (0–100; 20 on 52 characters).',
-    unknown17: '+0x17: copied into entity +0x40 at spawn unless $23DD overrides it ($8FB169). Meaning open (0–1000).',
-    unknown2a: 'Level (+0x2A): everscript ATTRIBUTE_GENERAL.LEVEL. No code reads it directly from the record; 1 on 115 characters, 2–50 on the rest.',
+    unknown11: '+0x11: copied into entity +0x2C at spawn ($8FB162). Meaning open.',
+    unknown17: '+0x17: copied into entity +0x40 at spawn unless $23DD overrides it ($8FB169). Meaning open.',
+    unknown2a: 'Level (+0x2A): the compiler\'s ATTRIBUTE_GENERAL.LEVEL. No code reads it directly from the record.',
 };
 
-/** Character animation field offsets in the 74-byte struct. */
+/** Record fields: name, offset, width in bytes. */
+const STATS = [
+    ['hp', 0x0f, 2], ['attack', 0x19, 2], ['defense', 0x1b, 2], ['magic_defense', 0x1d, 2], ['evade', 0x1f, 2], ['hit_rate', 0x21, 2],
+    ['aggro_range', 0x13, 2], ['aggro_chance', 0x15, 2], ['exp', 0x23, 4], ['money', 0x27, 2], ['prize_chance', 0x29, 1],
+    ['radius', 0x0d, 2], ['flags', 0x05, 2], ['palette', 0x09, 2], ['charge_limit', 0x2c, 2], ['charge_speed', 0x2e, 2],
+    ['attack_proc', 0x30, 2], ['ai_script', 0x03, 2], ['flags2', 0x07, 2], ['palette2', 0x0b, 2], ['unknown11', 0x11, 2],
+    ['unknown17', 0x17, 2], ['unknown2a', 0x2a, 2],
+];
+
+/**
+ * The record's animation ids ($90:8240-$90:8317 choose among them): stand when still, walk when
+ * moving, run when running, attack by charge, knockback, death with or without a drop ($90:8567),
+ * cast, and +0x48, the dodge the hit reaction plays ($8F:C1D6); weapons and Dog forms bring their own.
+ */
 const STANDARD_ANIM_FIELDS = [
     { key: 'stand', label: 'Idle', offset: 0x32, purpose: 'idle' },
     { key: 'walk', label: 'Walk', offset: 0x34, purpose: 'walk' },
@@ -140,298 +77,129 @@ const STANDARD_ANIM_FIELDS = [
     { key: 'damage', label: 'Knockback', offset: 0x40, purpose: 'knockback' },
     { key: 'death', label: 'Death', offset: 0x42, purpose: 'death' },
     { key: 'spoils', label: 'Death with spoils', offset: 0x44, purpose: 'spoils' },
-    // Was 'Block': casting alchemy or using an item (Boy, Bad Boy, Verminator); mode $0120,
-    // invulnerable while it plays. Started by its own routine at $90829B.
     { key: 'block', label: 'Cast (alchemy / item)', offset: 0x46, purpose: 'cast' },
-    // Only on the evil copies (Bad Dawg, Bad Boy, Dark Toaster): started at $8FC1D6 when
-    // state +0x12 bit $40 is raised while alive.
-    { key: 'x48', label: 'Field +0x48 (evil copies)', offset: 0x48, purpose: 'special' },
+    { key: 'x48', label: 'Dodge (+0x48)', offset: 0x48, purpose: 'special' },
 ];
 
-/** Read 16-bit value from ROM at SNES address. */
-function read16At(rom, snes) {
-    const o = snesToRom(snes);
-    return rom[o] | (rom[o + 1] << 8);
-}
+/** A weapon entry's animation words ($8F:81C9) and the record field each one fills. */
+const WEAPON_ANIMS = [
+    { key: 'w_stand', label: 'Idle', purpose: 'idle', offset: 0x08 },
+    { key: 'w_walk', label: 'Walk', purpose: 'walk', offset: 0x0a },
+    { key: 'w_run', label: 'Run', purpose: 'run', offset: 0x0c },
+    { key: 'w_atk0', label: 'Attack Lvl 0', purpose: 'attack_0', offset: 0x0e },
+    { key: 'w_atk1', label: 'Attack Lvl 1', purpose: 'attack_1', offset: 0x10 },
+    { key: 'w_atk2', label: 'Attack Lvl 2', purpose: 'attack_2', offset: 0x12 },
+    { key: 'w_atk3', label: 'Attack Lvl 3', purpose: 'attack_3', offset: 0x14 },
+    { key: 'w_charge', label: 'Dodge (invulnerable)', purpose: 'dodge', offset: 0x16 },
+    { key: 'w_damage', label: 'Knockback', purpose: 'knockback', offset: 0x18 },
+];
 
-/** Read 24-bit value from ROM at SNES address. */
-function read24At(rom, snes) {
-    const o = snesToRom(snes);
-    return rom[o] | (rom[o + 1] << 8) | (rom[o + 2] << 16);
-}
+/** Weapon entries in $C4:3874 order (index 0 is no weapon), then the Bazooka's three by its ammo. */
+const WEAPON_TABLE = 0xc43874, BAZOOKA_TABLE = 0xc4388e, WEAPON_BANK = 0xc40000;
+const WEAPON_NAMES = ['Bone Crusher', 'Gladiator Sword', 'Crusader Sword', 'Neutron Blade', "Spider's Claw", 'Bronze Axe', 'Knight Basher',
+    'Atom Smasher', 'Horn Spear', 'Bronze Spear', 'Lance', 'Laser Lance', 'Bazooka', 'Bazooka (Thunder Ball)', 'Bazooka (Particle Bomb)'];
+const WEAPON_PALETTE = 0x04;
 
-/** Read 32-bit value from ROM at SNES address. */
-function read32At(rom, snes) {
-    const o = snesToRom(snes);
-    return (rom[o] | (rom[o + 1] << 8) | (rom[o + 2] << 16) | (rom[o + 3] << 24)) >>> 0;
-}
+const BOY = 0, DOG = 1;
+const NAME_BUFFERS = { 0x7e2210: '<Boy Name>', 0x7e2234: '<Dog Name>' };
 
-/** Decode character name from name pointer in ROM. */
-function decodeName(rom, namePtr, id) {
-    if (namePtr === BOY_NAME_PTR || id === 0) return '<Boy Name>';
-    if (namePtr === DOG_NAME_PTR || id === 1) return '<Dog Name>';
-    const o = snesToRom(namePtr);
-    if (o < 0 || o >= rom.length) return `$${namePtr.toString(16)}`;
-    let name = '';
-    for (let i = 0; i < 32 && o + i < rom.length; i++) {
-        const b = rom[o + i];
-        if (!b || b === 0xff || b < 32 || b > 126) break;
-        name += String.fromCharCode(b);
-    }
-    return name || `#${id}`;
-}
-
-/** Build list of external animations mapped to this character from index.json enums. */
-function getExternalAnimations(rom, characterId, characterName) {
-    const out = [];
-    const enums = indexJson.enums || {};
-    const nameUpper = characterName.toUpperCase().replace(/[^A-Z0-9]/g, '_');
-
-    // Groups to check: ANIMATION_ENEMY, ANIMATION_BOY (for boy), ANIMATION_DOG (for dog)
-    const groups = [];
-    if (characterId === 0) groups.push(enums.ANIMATION_BOY || []);
-    if (characterId === 1) groups.push(enums.ANIMATION_DOG || []);
-    groups.push(enums.ANIMATION_ENEMY || []);
-
-    const seen = new Set();
-    for (const group of groups) {
-        for (const item of group) {
-            if (!item.name || !item.value || seen.has(item.name)) continue;
-            let val = item.value;
-            // Check if item belongs to this character:
-            // 1. By name prefix match (e.g. MAGMAR_ENTER matches MAGMAR)
-            // 2. Or Boy/Dog special groups
-            const isMatch = (characterId === 0 && group === enums.ANIMATION_BOY) ||
-                (characterId === 1 && group === enums.ANIMATION_DOG) ||
-                item.name.startsWith(nameUpper + '_') ||
-                item.name === nameUpper;
-
-            if (!isMatch) continue;
-
-            // Resolve value
-            let num = null;
-            if (val.startsWith('0x')) {
-                num = parseInt(val, 16);
-            } else if (val.startsWith('ANIMATION_ALL.')) {
-                const aliasKey = val.split('.')[1];
-                const aliasItem = (enums.ANIMATION_ALL || []).find((x) => x.name === aliasKey);
-                if (aliasItem && aliasItem.value.startsWith('0x')) num = parseInt(aliasItem.value, 16);
-            }
-
-            if (num === null) continue;
-
-            seen.add(item.name);
-            let scriptAddr = 0;
-            let animRec = 0;
-            let flags = 0;
-
-            if (num >= 0x8000) {
-                // Internal field offset
-                const fieldOffset = 0x32 + (num & 0x7ffe);
-                animRec = read16At(rom, CHARACTER_TABLE + characterId * CHARACTER_STRIDE + fieldOffset);
-                if (animRec) {
-                    scriptAddr = (read16At(rom, ANIMATION_RECORD_TABLE + animRec) |
-                        (rom[snesToRom(ANIMATION_RECORD_TABLE + animRec + 2)] << 16)) >>> 0;
-                    flags = rom[snesToRom(ANIMATION_RECORD_TABLE + animRec + 3)];
-                }
-            } else {
-                // Global id: $8CE13C reads the record from $C43C92 + id
-                animRec = animationIdRecord(rom, num);
-                if (animRec) {
-                    scriptAddr = (read16At(rom, ANIMATION_RECORD_TABLE + animRec) |
-                        (rom[snesToRom(ANIMATION_RECORD_TABLE + animRec + 2)] << 16)) >>> 0;
-                    flags = rom[snesToRom(ANIMATION_RECORD_TABLE + animRec + 3)];
-                }
-            }
-
-            if (scriptAddr && isValidAnimationScript(rom, scriptAddr)) {
-                let purpose = 'external';
-                const lower = item.name.toLowerCase();
-                if (lower.includes('atk') || lower.includes('attack')) {
-                    if (lower.includes('0') || lower.includes('lvl0')) purpose = 'attack_0';
-                    else if (lower.includes('1') || lower.includes('lvl1')) purpose = 'attack_1';
-                    else if (lower.includes('2') || lower.includes('lvl2')) purpose = 'attack_2';
-                    else if (lower.includes('3') || lower.includes('lvl3')) purpose = 'attack_3';
-                    else purpose = 'attack';
-                } else if (lower.includes('walk')) {
-                    purpose = 'walk';
-                } else if (lower.includes('run')) {
-                    purpose = 'run';
-                } else if (lower.includes('idle') || lower.includes('stand')) {
-                    purpose = 'idle';
-                } else if (lower.includes('death') || lower.includes('die')) {
-                    purpose = 'death';
-                } else if (lower.includes('damage') || lower.includes('hit') || lower.includes('knockback')) {
-                    purpose = 'knockback';
-                }
-
-                out.push({
-                    key: item.name,
-                    label: item.name.replace(/_/g, ' '),
-                    purpose,
-                    valueHex: '0x' + num.toString(16),
-                    num,
-                    category: 'external',
-                    animRec,
-                    scriptAddr,
-                    flags,
-                    comment: item.comment || '',
-                });
-            }
-        }
-    }
-    return out;
-}
-
-/**
- * True when none of a character's own animations ever shows a sprite or a segment — the
- * invisible helpers (fans, speakers, statues, stand-ins) and bosses drawn as background.
- * Death and spoils are left out: they are the shared dust puff ($CB7343) for everyone.
- */
-const SHARED_EFFECT_FIELDS = new Set([0x42, 0x44]);
-function drawsNothing(rom, anims) {
-    const own = anims.filter((a) => a.category === 'standard' && a.scriptAddr && !SHARED_EFFECT_FIELDS.has(a.offset));
-    if (!own.length) return true;
-    return own.every((a) => {
-        const run = runAnimation(rom, a.scriptAddr);
-        return !run.frames.some((f) => f.sprite || f.sprite2 || (f.segments && f.segments.sprites.length));
-    });
-}
-
-/** Read one full character record and format all fields with meanings. */
-function readCharacter(rom, id) {
-    const snes = CHARACTER_TABLE + id * CHARACTER_STRIDE;
-    const namePtr = read24At(rom, snes);
-    const name = decodeName(rom, namePtr, id);
-
-    const unknown03 = read16At(rom, snes + 0x03);
-    const flags = read16At(rom, snes + 0x05);
-    const unknown07 = read16At(rom, snes + 0x07);
-    const palette = read16At(rom, snes + 0x09);
-    const unknown0b = read16At(rom, snes + 0x0b);
-    const radius = read16At(rom, snes + 0x0d);
-    const hp = read16At(rom, snes + 0x0f);
-    const unknown11 = read16At(rom, snes + 0x11);
-    const aggro_range = read16At(rom, snes + 0x13);
-    const aggro_chance = read16At(rom, snes + 0x15);
-    const unknown17 = read16At(rom, snes + 0x17);
-    const attack = read16At(rom, snes + 0x19);
-    const defense = read16At(rom, snes + 0x1b);
-    const magic_defense = read16At(rom, snes + 0x1d);
-    const evade = read16At(rom, snes + 0x1f);
-    const hit_rate = read16At(rom, snes + 0x21);
-    const exp = read32At(rom, snes + 0x23);
-    const money = read16At(rom, snes + 0x27);
-    const prize_chance = rom[snesToRom(snes + 0x29)];
-    const unknown2a = read16At(rom, snes + 0x2a);
-    const charge_limit = read16At(rom, snes + 0x2c);
-    const charge_speed = read16At(rom, snes + 0x2e);
-    const attack_proc = read16At(rom, snes + 0x30);
-
-    const isHostile = (flags & 0x0002) === 0;
-    const isInactive = (flags & 0x0020) !== 0;
-    const isPhasing = (flags & 0x0400) !== 0;
-
-    // Palette colours as hex strings
-    const rawPalette = paletteAt(rom, palette);
-    const paletteHex = rawPalette.map(([r, g, b]) =>
-        '#' + [r, g, b].map((x) => x.toString(16).padStart(2, '0')).join('')
-    );
-
-    // Standard animations list
-    const anims = [];
-    for (const f of STANDARD_ANIM_FIELDS) {
-        const animRec = read16At(rom, snes + f.offset);
-        if (animRec) {
-            const scriptAddr = (read16At(rom, ANIMATION_RECORD_TABLE + animRec) |
-                (rom[snesToRom(ANIMATION_RECORD_TABLE + animRec + 2)] << 16)) >>> 0;
-            const animFlags = rom[snesToRom(ANIMATION_RECORD_TABLE + animRec + 3)];
-            anims.push({
-                key: f.key,
-                label: f.label,
-                purpose: f.purpose || null,
-                offset: f.offset,
-                animRec,
-                scriptAddr,
-                flags: animFlags,
-                category: 'standard',
-            });
-        }
-    }
-
-    // External animations from script triggers / enums
-    const externalAnims = getExternalAnimations(rom, id, name);
-    anims.push(...externalAnims);
-    let weapons = null;
-    if (id === 1) {
-        // The Dog's forms play the part of the Boy's weapons: an animation set and palette each.
-        weapons = readDogForms(rom);
-        // ANIMATION_DOG ids name their act (ACT0_RUN, ACT2_SNIFF): draw each in that form's palette.
-        for (const a of externalAnims) {
-            const act = /^ACT(\d)_/.exec(a.key || '');
-            const form = act && weapons.find((w) => w.name.startsWith('Act ' + act[1]));
-            if (form && form.paletteAddr) a.paletteAddr = form.paletteAddr;
-        }
-    }
-    if (id === 0) {
-        weapons = WEAPON_NAMES.map((wName, idx) => ({
-            id: idx,
-            name: wName,
-            paletteAddr: weaponPalette(rom, idx),
-            anims: readWeaponAnimations(rom, idx),
-        }));
-        if (weapons[0]) {
-            anims.unshift(...weapons[0].anims);
-        }
-    }
-
+function anim(rom, base, extra) {
+    const animRec = base.animRec;
     return {
-        id,
-        name,
-        noVisuals: drawsNothing(rom, anims),
-        snes,
-        snesHex: '$' + snes.toString(16),
-        namePtr,
-        namePtrHex: '$' + namePtr.toString(16),
-        stats: {
-            hp, attack, defense, magic_defense, evade, hit_rate,
-            aggro_range, aggro_chance, exp, money, prize_chance,
-            radius, flags, palette, charge_limit, charge_speed,
-            attack_proc, ai_script: unknown03,
-            unknown07, unknown0b, unknown11, unknown17, unknown2a,
-        },
-        hitbox: {
-            radius,
-            width: radius * 2,
-            height: radius, // top-down 2:1 squash
-            solid: radius > 0,
-        },
-        hurtbox: {
-            radius,
-            width: radius * 2,
-            height: radius * 2,
-        },
-        disposition: {
-            hostile: isHostile,
-            inactive: isInactive,
-            phasing: isPhasing,
-            label: isHostile ? 'Enemy' : 'NPC / Friendly',
-        },
-        paletteAddrHex: '0x' + palette.toString(16),
-        paletteColors: paletteHex,
-        weapons,
-        anims,
-        statMeanings: STAT_MEANINGS,
+        ...extra, animRec, scriptAddr: animRec ? recordScript(rom, animRec) : 0,
+        flags: animRec ? u8(rom, ANIMATION_TABLE + animRec + 3) : 0,
     };
 }
 
-/** Read all 142 characters from ROM buffer. */
-function readAllCharacters(rom) {
-    const list = [];
-    for (let i = 0; i < CHARACTER_COUNT; i++) {
-        list.push(readCharacter(rom, i));
+/** The animations of each weapon the Boy can hold, by $8F:81C9's entries. */
+function readWeaponAnimations(rom) {
+    const entries = [];
+    for (let i = 1; i <= 12; i++) entries.push(read16At(rom, WEAPON_TABLE + 2 * i));
+    for (let i = 0; i < 3; i++) entries.push(read16At(rom, BAZOOKA_TABLE + 2 * i));
+    return entries.map((e, id) => {
+        const at = WEAPON_BANK | e;
+        const paletteAddr = read16At(rom, at + WEAPON_PALETTE);
+        const anims = WEAPON_ANIMS.map((w) => anim(rom, { animRec: read16At(rom, at + w.offset) }, { ...w, category: 'weapon', paletteAddr }))
+            .filter((a) => a.animRec);
+        return { id, name: WEAPON_NAMES[id], paletteAddr, entryHex: hex(at), anims };
+    });
+}
+
+/** The compiler's named animations for this character (ANIMATION_BOY, ANIMATION_DOG, its prefix in ANIMATION_ENEMY). */
+function externalAnimations(rom, id, name, record, forms) {
+    const enums = indexJson.enums || {};
+    let list = [];
+    if (id === BOY) list = enums.ANIMATION_BOY || [];
+    else if (id === DOG) list = enums.ANIMATION_DOG || [];
+    else if (name) {
+        const prefix = name.toUpperCase().replace(/[^A-Z0-9]+/g, '_') + '_';
+        list = (enums.ANIMATION_ENEMY || []).filter((e) => e.name.startsWith(prefix));
     }
-    return list;
+    return list.map((e) => {
+        const num = parseInt(e.value, 16);
+        // Ids from $8000 name a field of the character's own record; below, the global id table.
+        const animRec = num >= 0x8000 ? read16At(rom, record + (num & 0x7fff)) : animationIdRecord(rom, num);
+        const purpose = /RUN/.test(e.name) ? 'run' : /WALK/.test(e.name) ? 'walk' : /ATTACK/.test(e.name) ? 'attack' : /STAND|IDLE/.test(e.name) ? 'idle' : /DAMAGE/.test(e.name) ? 'knockback' : 'external';
+        const out = anim(rom, { animRec }, {
+            key: e.name, label: e.name.replace(/_/g, ' '), purpose, valueHex: '0x' + num.toString(16), num, category: 'external', comment: e.comment || '',
+        });
+        const act = /^ACT(\d)_/.exec(e.name);
+        const form = act && forms.find((f) => f.name.startsWith('Act ' + act[1]));
+        if (form) out.paletteAddr = form.paletteAddr;
+        return out;
+    }).filter((a) => a.animRec);
+}
+
+/** Whether a script names a sprite that draws something. */
+function showsSprite(rom, script) {
+    return !!script && scriptSprites(rom, script).some((s) => readSpriteInfo(rom, s).chunks.length > 0);
+}
+
+function readName(rom, ptr) {
+    if (NAME_BUFFERS[ptr]) return NAME_BUFFERS[ptr];
+    if ((ptr >>> 16) < 0x80) return '';
+    let s = '';
+    for (let a = ptr; s.length < 32; a++) {
+        const c = u8(rom, a);
+        if (!c) break;
+        s += String.fromCharCode(c);
+    }
+    return s;
+}
+
+const hexColour = ([r, g, b]) => '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
+
+function readCharacter(rom, id) {
+    const record = CHARACTER_TABLE + id * CHARACTER_STRIDE;
+    const namePtr = u24(rom, record);
+    const name = readName(rom, namePtr);
+    const stats = {};
+    for (const [key, off, width] of STATS) {
+        stats[key] = width === 1 ? u8(rom, record + off) : width === 4 ? (read16At(rom, record + off) | (read16At(rom, record + off + 2) << 16)) >>> 0 : read16At(rom, record + off);
+    }
+    const hitbox = characterHitbox(rom, id);
+    const own = STANDARD_ANIM_FIELDS.map((f) => anim(rom, { animRec: read16At(rom, record + f.offset) }, { ...f, category: 'standard' })).filter((a) => a.animRec);
+    const weapons = id === BOY ? readWeaponAnimations(rom) : id === DOG ? readDogForms(rom) : null;
+    const anims = [...(id === BOY ? weapons[0].anims : []), ...own, ...externalAnimations(rom, id, name, record, weapons || [])];
+    const drawn = own.filter((a) => a.purpose !== 'death' && a.purpose !== 'spoils');
+    const noVisuals = !drawn.some((a) => showsSprite(rom, a.scriptAddr)) && !(id === BOY || id === DOG);
+    const flags = stats.flags;
+    const hostile = !(flags & 0x0002);
+    return {
+        id, name: name || '#' + id, noVisuals, snes: record, snesHex: hex(record), namePtr, namePtrHex: hex(namePtr),
+        stats, hitbox,
+        hurtbox: { radius: hitbox.radius, width: 2 * hitbox.radius, height: 2 * hitbox.radius },
+        disposition: { hostile, inactive: (flags & 0x0020) !== 0, phasing: (flags & 0x0400) !== 0, label: hostile ? 'Enemy' : 'NPC / Friendly' },
+        paletteAddrHex: '0x' + stats.palette.toString(16),
+        paletteColors: characterPalette(rom, id).map(hexColour),
+        weapons, anims, statMeanings: STAT_MEANINGS,
+    };
+}
+
+function readAllCharacters(rom) {
+    const out = [];
+    for (let id = 0; id < CHARACTER_COUNT; id++) out.push(readCharacter(rom, id));
+    return out;
 }
 
 module.exports = {

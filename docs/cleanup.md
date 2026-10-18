@@ -124,7 +124,15 @@ Scope, from the inventory of 2026-10-16:
 | Upstream paths | `src/games/evermore/maps/render-script-model.js:8`, `script_parser/src/scripts-all-model.ts:56` | `soe://` (D5) |
 | Attribution in docs/comments | `src/README.md:17`, `src/games/evermore/script/README.md`, `src/games/evermore/maps/README.md:82`, `src/games/evermore/sprites/README.md:7`, `src/games/evermore/sprites/animation-decoder.js:113`, `src/games/evermore/docs-tab/render-docs-tab.js:136` (user-visible), the "OBJ n" comments in `rom-overlay.js:35`, `overlay-features.ts:48`, `collision-overlay.ts:185`, `docs/script-format/*`, `docs/room-simulation.md:107`, `.agents/agents/script-parser-generator.md:128` | rewritten with the code they describe |
 
-- [ ] **2.1** Sprites + character record (plan part B).
+- [x] **2.1** Sprites + character record (plan part B). v0.283.0: `maps/sprites.ts`, `maps/character-record.ts` and
+  `sprites/character-model.js` rewritten from the game's code: the sprite renderer `$80:9033` (record, 5-byte chunks,
+  culling box), the block loaders `$80:9742` / `$80:A4FC` (tables, banks, mask-per-group compression) and the NMI
+  upload (tile order); the spawn `$8F:B094`, the animation choice `$90:8240`-`$90:8317` and start `$90:8124`, the
+  palette loader `$90:CF3A`, the overlap test `$8F:B4AB`, the weapon and Dog form loaders `$8F:81C9` / `$8F:9471`
+  (knowledge `rom/8eb678.md` and the entries it links). The sprite list is now what the animation scripts name
+  (4,903 that draw), not a walk of the banks; block pixels agree with the old reader on all 8,000 checked, chunks on
+  every shared sprite. Colours now use the full 8-bit range like the map palettes. Left: the emulator webview's own
+  copy of the sprite readers (`overlays-view.js`, 5.1/5.3).
 - [ ] **2.2** Script VM phases 1–5 of the plan, with the compiler-spelled output. v0.280.0: phases 1–3 —
   `docs/game-research/script-vm/` (the interpreter, packed pointers, expressions, the tables that name
   scripts, one row per opcode; a knowledge entry per handler), `src/games/evermore/script-vm/` (strict TS,

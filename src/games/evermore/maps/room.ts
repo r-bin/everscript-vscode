@@ -45,7 +45,7 @@ export interface TriggerRecord {
     x1: number;
     y2: number;
     x2: number;
-    /** Matches the `id:` field in script_all. */
+    /** The trigger's script id: a byte offset into the pointer table at $92:8000 + word[$92:8000]. */
     scriptId: number;
 }
 

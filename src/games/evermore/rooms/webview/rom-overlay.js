@@ -31,7 +31,7 @@ var OVERLAY_BUTTONS=[
   {f:'p',label:'pass-thru',title:'Plane-transparent tiles (collision bit 6) — bridge and overpass tiles you walk straight through while on another plane.'},
   {f:'n',label:'gates',title:'Entity-gated tiles (collision bit 8), drawn as dashed white borders: solid for the boy, for the dog, or for everything except them.'},
   {f:'g',label:'grass',title:'Cuttable grass — a temporary barrier, so it is excluded from every plane’s contour.'},
-  {f:'o',label:'rom objects',title:'Section 3 object stamps, labelled with the index SoEScriptDumper’s script_all calls OBJ n.'},
+  {f:'o',label:'rom objects',title:'Section 3 object stamps, labelled with their object index.'},
   {f:'t',label:'rom triggers',title:'Step-on (magenta) and B-trigger (yellow) boxes decoded from the ROM, labelled with their hex script id.'},
   {f:'l',label:'labels',title:'The object index and hex script id printed inside each box.'}
 ];

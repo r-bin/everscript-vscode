@@ -360,17 +360,13 @@ function checkObjectStamps(rom) {
 const OVERLAY_DIFF_BUDGET = 0; // exact — the port draws every pass upstream does
 
 /**
- * The sprite decoder, against the reference's own walk.
- *
- * SoETilesViewer reads this format and nothing else does, so the number of
- * sprites its walk finds is the only external check available — and it is a
- * sharp one: the walk chains on each entry's own length, so a single
- * mis-sized sprite desynchronises every one after it.
+ * The sprite decoder (docs/script-format/sprite_format.md): the sprites are the ones the
+ * animation scripts name (opcodes 0x22-0x2C and the long forms), read as $80:9033 reads them.
  */
 function checkSprites(rom) {
     const sprites = maps.walkSprites(rom);
-    // SoETilesViewer's own walk from $CA0003 ends here.
-    check('sprite count', sprites.length, 5128);
+    // Every sprite the animation records reach that draws something.
+    check('sprite count', sprites.length, 4903);
 
     // Nearly every sprite composes to something visible; an all-transparent
     // result would mean the block pointers or the decompression came out
@@ -503,8 +499,9 @@ function checkItemIcons(rom) {
     // everscript's RING_MENU_ICON: ALCHEMY_ACID_RAIN, ALCHEMY_LEVITATE, ALCHEMY_FIREBALL.
     check('item icons: formulas 0, 21, 13', [formulas[0], formulas[21], formulas[13]], [0x56, 0x48, 0x6c]);
 
-    // The screenshot's five colours: outline, highlight, three greens.
-    const key = { '0,8,8': 'f', '240,240,248': '1', '56,240,56': '5', '16,168,16': '6', '0,104,0': '7' };
+    // The screenshot's five colours (outline, highlight, three greens), in the full 8-bit range the
+    // palettes use (the emulator's screenshot shifts the 5-bit channels left by 3: 248 there is 255).
+    const key = { '0,8,8': 'f', '247,247,255': '1', '57,247,57': '5', '16,173,16': '6', '0,107,0': '7' };
     const px = maps.renderItemIcon(rom, 0x0120);
     const rows = [];
     for (let y = 0; y < 12; y++) {
