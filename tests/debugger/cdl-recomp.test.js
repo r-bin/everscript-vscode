@@ -345,6 +345,20 @@ test('dispatch table size: static scan past the observed entries, stops at a dat
     assert.strictEqual(staticTableCount({ lib, rom, map, bank: 0x8F, base: 0xA3D8, observed: 8, site: 0x8F9F46, readers }), 8);
 });
 
+test('recomp names: every knowledge entry becomes one valid, unique identifier', () => {
+    const { collectNames } = require('../../tools/recomp/names');
+    const { names, wramNames, counts } = collectNames({ busToRom: (b) => b & 0x3FFFFF }, 0x400000);
+    assert.ok(counts.functions > 100 && counts.tables > 20 && counts.wram > 50, JSON.stringify(counts));
+    for (const group of [names, wramNames]) {
+        const seen = new Set();
+        for (const { name } of group.values()) {
+            assert.ok(/^[A-Za-z_][A-Za-z0-9_]*$/.test(name), 'not an identifier: ' + name);
+            assert.ok(!seen.has(name), 'duplicate name: ' + name);
+            seen.add(name);
+        }
+    }
+});
+
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(`\n${passed} passed, ${failed} failed`);
-if (failed) process.exit(1);
+process.exitCode = failed ? 1 : 0;

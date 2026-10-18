@@ -290,8 +290,9 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   addresses, CDL routines 11 → 49) Migrate `functions.js`, `tables.js` and the RAM side of `tags.json` into knowledge
   entries; generate the RAM/ROM map overviews from the entries; drop the runtime wiki overlay
   (`rom/model/wiki-overlay.js`) and the RAM bounds hard-coded in `extension.js`.
-- [ ] **6.3** Names and comments for recomp: entries feed the Asar export labels and the recomp's
-  C names (`tools/recomp/names.js`).
+- [x] **6.3** Names and comments for recomp: entries feed the Asar export labels and the recomp's
+  C names (`tools/recomp/names.js`, since v0.262.0; v0.286.0: `tests/debugger/cdl-recomp.test.js` holds every
+  name a valid, unique identifier).
 - [x] **6.4** (v0.263.0: revert notes, the emulator integration logs and plans (`emulator-integration`, `web-emulator-plan`,
   `snes9x_integration`, `embedded-emulator-panel-concept`), finished dossiers (`room-script-parser`,
   `rooms-settings-cleanup-dossier`), `compiler-bundling`, `future-features` (its open ideas → `docs/todo/`), the
