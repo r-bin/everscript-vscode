@@ -208,40 +208,11 @@ function extractScript(html) {
     return html.slice(start + 8, end);
 }
 
-// ── Build minimal inputs for renderRadarHtml ──────────────────────────────────
-// We need to call renderRadarHtml. It's not exported, so we call activate with
-// mocked context then trigger a render. Instead, we reach into the module via a
-// small trick: wrap renderRadarHtml call inside the extension by patching
-// module.exports temporarily. Since we can't do that easily, we extract it from
-// the source and eval it with mocked deps.
-
-// Simpler: just invoke the extension's renderRadarHtml by adding it to exports
-// temporarily in a test-only re-require with the function exposed.
-// We'll do this by reading the source, appending an export, and eval'ing it.
-
+// ── The functions under test, from the modules that own them ─────────────────
 const fs   = require('fs');
 const path = require('path');
-const src  = fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'extension.js'), 'utf8');
-
-// Patch: replace `module.exports = { activate };` (Evermore's activation) with an extended export
-const patchedSrc = src.replace(
-    /module\.exports\s*=\s*\{[^}]+\};?\s*$/,
-    'module.exports = { activate, _renderRadarHtml: renderRadarHtml, _buildRoomsJson: buildRoomsJson, _renderRoomsTree: renderRoomsTree };'
-);
-
-// Write to tmp in the same dir as the source so relative requires resolve
-const tmpPath = path.join(__dirname, '..', '..', 'src', 'games', 'evermore', '_smoke_tmp.js');
-fs.writeFileSync(tmpPath, patchedSrc);
-let extFull;
-try {
-    // Clear any cached version
-    delete require.cache[require.resolve(tmpPath)];
-    extFull = require(tmpPath);
-} finally {
-    fs.unlinkSync(tmpPath);
-}
-
-const { _renderRadarHtml, _buildRoomsJson, _renderRoomsTree } = extFull;
+const { renderRadarHtml: _renderRadarHtml } = require('../../src/games/evermore/memory/render-radar');
+const { buildRoomsJson: _buildRoomsJson, renderRoomsTree: _renderRoomsTree } = require('../../src/games/evermore/rooms');
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 

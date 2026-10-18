@@ -20,7 +20,7 @@ Node 26 runs the `.mts` files directly. Tools find a ROM through the ROM library
 | `playbacks/` | Record the vanilla attract loop as a sample playback | `node tools/playbacks/record-attract.js` |
 | `simulation/` | Sweep every room with the simulation; trace the real scheduler; exit cut-offs | `node tools/simulation/*.js` |
 | `mana/` | Compare a Mana map's picture / step events with the running game; find a map by picture | `node tools/mana/*.js` |
-| `variants/` | Find table addresses in other Evermore releases | `node tools/variants/analyze-variant.js` |
+| `variants/` | Find table addresses in other Evermore releases (the scans: `variant-scans.js`) | `node tools/variants/analyze-variant.js` |
 | `gen-cdl-optable.js` | Writes the core's `cdl-optable.h` from the opcode matrix | after changing the matrix |
 | `gen-sound-animations.js` | Writes `localizations/data/sound-animations.json` | after changing the animation catalogue |
 | `measure-collision.js` | How well a tile predicts its collision (the editor's suggestion) | `npm run check:collision` |

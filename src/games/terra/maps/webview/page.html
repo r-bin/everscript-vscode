@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src //@@cspSource 'unsafe-inline'; script-src 'nonce-//@@nonce';">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terranigma — Maps</title>
+    <style>
+//@@css
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-title-group">
+            <div class="header-title">
+                <span>Terranigma</span>
+                <span class="badge">//@@variant</span>
+                <span class="badge warning">Maps: ◐ Partial</span>
+            </div>
+            <div class="header-meta">
+                <span>Table A: <code>//@@tableAOffset</code></span>
+                <span>Table B: <code>//@@tableBOffset</code></span>
+                <span>Rooms: <strong>//@@usedCount</strong> used / //@@roomCount total</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="btn" id="btn-docs">Docs</button>
+            <button class="btn primary" id="btn-switch-rom">Switch ROM</button>
+        </div>
+    </header>
+
+    <div class="notice-banner">
+        <div class="notice-content">
+            <span class="notice-icon">ℹ</span>
+            <span><strong>Multi-Game Capability Notice:</strong> Terranigma room pointers (Table A) and sub-script events (Table B) are decoded. Tile & collision decoding are under active research.</span>
+        </div>
+        <button class="btn" id="btn-read-docs" style="padding: 2px 8px; font-size: 11px;">View Docs</button>
+    </div>
+
+    <div class="controls-bar">
+        <div class="search-box">
+            <input type="text" id="search-input" class="search-input" placeholder="Search room ID (e.g. 000A), address, or name..." />
+        </div>
+        <div class="filter-chips">
+            <div class="chip active" data-filter="all">All (//@@roomCount)</div>
+            <div class="chip" data-filter="used">Used (//@@usedCount)</div>
+            <div class="chip" data-filter="unused">Unused (//@@unusedCount)</div>
+        </div>
+    </div>
+
+    <div class="workspace">
+        <div class="table-container">
+            <table class="room-table">
+                <thead>
+                    <tr>
+                        <th style="width: 70px;">ID</th>
+                        <th style="width: 90px;">Status</th>
+                        <th style="width: 140px;">Bus Address</th>
+                        <th style="width: 110px;">File Offset</th>
+                        <th style="width: 160px;">Name</th>
+                        <th>Header Preview</th>
+                    </tr>
+                </thead>
+                <tbody id="rooms-body">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="inspector" id="inspector">
+            <div class="empty-placeholder" id="inspector-placeholder">
+                <div>Select a room from the list to inspect its header bitstream and decoded opcodes.</div>
+            </div>
+            <div id="inspector-content" style="display: none; flex-direction: column; gap: 14px;">
+                <div class="inspector-title">
+                    <span id="insp-title">Room 0x0000</span>
+                    <span id="insp-tag" class="tag used">USED</span>
+                </div>
+
+                <div class="section-box">
+                    <div class="section-label">Memory Offsets</div>
+                    <div class="prop-row">
+                        <span class="prop-key">SNES Bus:</span>
+                        <span class="prop-val" id="insp-bus">$00:0000</span>
+                    </div>
+                    <div class="prop-row">
+                        <span class="prop-key">PC File:</span>
+                        <span class="prop-val" id="insp-file">0x000000</span>
+                    </div>
+                    <div class="prop-row">
+                        <span class="prop-key">SPC Audio Track:</span>
+                        <span class="prop-val" id="insp-spc">—</span>
+                    </div>
+                </div>
+
+                <div class="section-box">
+                    <div class="section-label">Decoded Map Header Opcodes</div>
+                    <div class="opcode-list" id="insp-opcodes"></div>
+                </div>
+
+                <div class="section-box">
+                    <div class="section-label">Raw Header Bytes</div>
+                    <div class="hex-dump" id="insp-raw"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script nonce="//@@nonce">
+//@@script
+    </script>
+</body>
+</html>

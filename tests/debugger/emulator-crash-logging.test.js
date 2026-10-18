@@ -25,7 +25,7 @@ function test(name, fn) {
 
 console.log('Emulator Crash Logging & Fixes Tests:');
 
-const panelCode = fs.readFileSync(PANEL_JS, 'utf8') + fs.readFileSync(path.join(ROOT, 'src', 'core', 'emulator', 'emulator-log.js'), 'utf8');
+const panelCode = fs.readFileSync(PANEL_JS, 'utf8') + ['emulator-log.js', 'panel-state.js', 'panel-messages.js'].map((f) => fs.readFileSync(path.join(ROOT, 'src', 'core', 'emulator', f), 'utf8')).join('\n');
 const webviewCode = fs.readFileSync(PANEL_WEBVIEW_JS, 'utf8') + '\n' + ['page.html', 'page.css', 'page'].map((f) => require('../../src/core/webview/page-file').pageFiles(path.join(ROOT, 'src', 'core', 'emulator', 'webview'))(f, new Proxy({}, { has: () => true, get: (_, k) => '//@@' + String(k) }))).join('\n')
   // Evermore's screen layer is spliced into the page (games/evermore/emulator/overlays-view.js).
   + (({ getOverlaysScript, getOverlayTogglesScript }) => getOverlaysScript() + getOverlayTogglesScript())(require('../../src/games/evermore/emulator/overlays-view'));
@@ -139,11 +139,11 @@ test('menu-view.js gates Start button only on opening screen and name entry', ()
 });
 
 test('the Evermore emulator host caches static room metadata; the panel clears it on disposal', () => {
-  const hostCode = fs.readFileSync(path.join(__dirname, '../../src/games/evermore/emulator/host.js'), 'utf8');
-  assert.ok(hostCode.includes('const _roomMetaCache = new Map();'), 'the host must define _roomMetaCache');
-  assert.ok(hostCode.includes('_getRoomMeta(rom, mapId)'), 'the host must use _getRoomMeta to avoid re-encoding animation groups on every frame');
-  assert.ok(hostCode.includes('_roomMetaCache.clear();'), 'clearCaches must clear _roomMetaCache');
-  assert.ok(panelCode.includes('_options.game.clearCaches()'), 'panel.js must clear the game caches on disposal');
+  const hostCode = ['host.js', 'room-meta.js', 'room-map.js'].map((f) => fs.readFileSync(path.join(__dirname, '../../src/games/evermore/emulator', f), 'utf8')).join('\n');
+  assert.ok(hostCode.includes('const roomMetaCache = new Map();'), 'the host must keep a room meta cache');
+  assert.ok(hostCode.includes('roomMeta(rom, mapId)'), 'the host must use roomMeta to avoid re-encoding animation groups on every frame');
+  assert.ok(hostCode.includes('roomMetaCache.clear();'), 'clearCaches must clear the room meta cache');
+  assert.ok(panelCode.includes('options.game.clearCaches()'), 'panel.js must clear the game caches on disposal');
 });
 
 test('panel-webview.js synchronizes background and foreground image activation and immediate redraw', () => {

@@ -54,20 +54,8 @@ require.cache.vscode = {
     },
 };
 
-const extensionSrc = fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'extension.js'), 'utf8');
-const patchedSrc = extensionSrc.replace(
-    /module\.exports\s*=\s*\{[^}]+\};?\s*$/,
-    'module.exports = { activate, _readRomCharacters: readRomCharacters };'
-);
-const tmpPath = path.join(__dirname, '..', '..', 'src', 'games', 'evermore', '_scaling_rom_tmp.js');
-fs.writeFileSync(tmpPath, patchedSrc);
-let readRomCharacters;
-try {
-    delete require.cache[require.resolve(tmpPath)];
-    readRomCharacters = require(tmpPath)._readRomCharacters;
-} finally {
-    fs.unlinkSync(tmpPath);
-}
+// The reader the radar's Scaling tab uses (rom-readers.js).
+const { readRomCharacters } = require('../../src/games/evermore/rom-readers');
 
 console.log('\nscaling rom parsing:');
 

@@ -20,6 +20,7 @@ rooms/
     stamp-animation.js        — animated stamps' later frames (`anim`), so a placed torch flickers on the canvas
     vanilla-index.js          — the vanilla index + room budget, cached per ROM, packaged for the tab
     room-draft.js             — blank rooms, family sheets, the family catalogue and its preview strips
+    graphic-traits.js         — one graphic's animation, shape class, stairs and special flags, for the sheets
     deco-catalogue.js         — the deco library: vanilla's Section 3 objects as portable, floor-free entries
     deco-preview.js           — one entry rendered on nothing, so the thumbnail is the thing not the place
     rom-export.js             — Export ROM: a custom map in room 0x15, the intro jumping there

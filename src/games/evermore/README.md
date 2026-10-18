@@ -7,6 +7,7 @@ Rules: [AGENTS.md](AGENTS.md). Every folder below has its own `AGENTS.md` and `R
 | `descriptor.ts`, `derived.ts` | — | Variants and base ROM; the marker our builders write (`EVSX`) |
 | `variants.json`, `variant-resolver.ts` | — | Table addresses per release (`docs/evermore-variants.md`) |
 | `extension.js` | wiring | Everything Evermore registers in VS Code: the radar, language, debugger, `soe://`, emulator half |
+| `radar-panel.js`, `radar-open.js` | wiring | The Memory Radar's state and helpers; opening it and routing its page's messages |
 | `rom-readers.js`, `radar-utils.js` | library | ROM reads for rooms and characters; Everscript parsing for the radar |
 | `maps/` | library | Room format: decode, encode, render, collision, sprites, animation (TypeScript) |
 | `script/`, `script-vm/`, `simulation/` | library | The legacy script decoder; its replacement written from the game; symbolic runs of scripts (TypeScript) |

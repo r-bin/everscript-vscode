@@ -120,7 +120,7 @@ console.log('\nE. panel.js:');
 
 let panelContent = null;
 try {
-    panelContent = fs.readFileSync(PANEL_JS, 'utf8') + '\n' + fs.readFileSync(path.join(ROOT, 'src', 'core', 'emulator', 'core-path.js'), 'utf8');
+    panelContent = fs.readFileSync(PANEL_JS, 'utf8') + '\n' + ['core-path.js', 'panel-state.js', 'panel-messages.js'].map((f) => fs.readFileSync(path.join(ROOT, 'src', 'core', 'emulator', f), 'utf8')).join('\n');
     // Append panel-webview.js so tests that scan the HTML template still pass.
     // The page with Evermore's part spliced in (games/evermore/emulator/: the script VM is stack-view.js).
     const webviewContent = fs.readFileSync(PANEL_WEBVIEW_JS, 'utf8') + '\n' + ['page.html', 'page.css', 'page'].map((f) => require('../../src/core/webview/page-file').pageFiles(path.join(ROOT, 'src', 'core', 'emulator', 'webview'))(f, new Proxy({}, { has: () => true, get: (_, k) => '//@@' + String(k) }))).join('\n')
@@ -515,7 +515,7 @@ test('a missing snesCorePath falls back to the bundled core, with a warning', ()
         debug: { activeDebugSession: null, startDebugging: async () => false },
     };
     Mod._load = (req, parent, isMain) => (req === 'vscode' ? vscodeMock : load(req, parent, isMain));
-    const fresh = () => { for (const m of [PANEL_JS, 'core-path.js', 'emulator-log.js']) delete require.cache[require.resolve(path.resolve(path.dirname(PANEL_JS), m))]; };
+    const fresh = () => { for (const m of [PANEL_JS, 'core-path.js', 'emulator-log.js', 'panel-state.js', 'panel-messages.js']) delete require.cache[require.resolve(path.resolve(path.dirname(PANEL_JS), m))]; };
     fresh();
     try {
         require(PANEL_JS).openEmulatorPanel({ extensionPath: ROOT, subscriptions: [] }, null, null);

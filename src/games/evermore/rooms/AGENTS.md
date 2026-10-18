@@ -8,8 +8,9 @@ Related skills: `rooms-tab`, `map-editor-rules`, `map-construction`, `map-entiti
 - All Rooms-tab server-side logic: room tree building, room content parsing, vanilla data,
   lua-watcher POIs, server-side HTML/JSON rendering, custom maps and widgets on disk.
 - `export-maps.js`: Export Room Maps as PNG.
-- `editor-host.js`: the map editor's ROM-backed messages (tiles, stamps, families, suggestions, deco,
-  drafts, export / play ROM, PNG export); `extension.js` routes them here with an injected `ctx`.
+- `editor-host.js`: the map editor's ROM-backed messages (tiles, stamps, PNG export; drafts and export / play
+  ROM in `editor-host-rom.js`, families, suggestions and deco in `editor-host-suggest.js`); `radar-open.js`
+  routes them here with an injected `ctx`.
 - Client-side room interactions and SVG rendering live in `webview/`.
 - Does NOT own: ROM map decoding (`../maps/`, a pure model), emulator state, memory-map state.
 

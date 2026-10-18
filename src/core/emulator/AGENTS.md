@@ -26,9 +26,9 @@ Related skills: `emulator-subsystem`, `cdl-recorder`, `webview-dom-safety`, `deb
 - Game hooks: README "Profiles and games"; the detector is a page file (`game.webviewFiles()`).
 
 ## State owned
-- `panel.js` (module-local, per panel): the active `WebviewPanel`, pending ROM, current ROM
-  buffer/name, active draft, `_cdl` (CdlHost), `_tas` (TasHost), ready/ROM timeouts; per extension:
-  `_options` (`configureEmulator`). `globalState`: `everscript.emulator.settings` (the page's),
+- `panel-state.js` `emu` (per panel): the active `WebviewPanel`, pending ROM, current ROM
+  buffer/name, active draft, `cdl` (CdlHost), `tas` (TasHost), ready/ROM timeouts; per extension:
+  `options` (`configureEmulator`). `panel.js` opens the panel and is the API; `panel-messages.js` answers the page. `globalState`: `everscript.emulator.settings` (the page's),
   `.keepFocusOnBreak`, `.cdlWanted`; `everscript.recorder.installId` (`bundle-commands.js`).
 - `apu-stream.js` (`ApuStream._on`): on only while the Music tab shows the Emulator source.
 - `script-debug-host.js`: one per extension, outlives the panel (breakpoints, step, reads).
