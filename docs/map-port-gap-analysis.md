@@ -269,9 +269,9 @@ still needs to run the Python tool directly.
 
 ### 2.1 The render cache never invalidates when the ROM changes
 
-`tile-overlay.js` exports `invalidateRoomRenders()`, but **nothing calls it.**
+`tile-overlay.ts` exports `invalidateRoomRenders()`, but **nothing calls it.**
 `src/games/evermore/rom-readers.ts`'s `loadRomBuffer()` correctly detects a changed ROM
-by mtime and returns a fresh buffer — but `tile-overlay.js`'s own render cache
+by mtime and returns a fresh buffer — but `tile-overlay.ts`'s own render cache
 is keyed only by `roomId:layer`, not by ROM identity, so after the user runs
 "Build and Run" (`everscript.buildAndRun`) and recompiles a modified ROM, the
 Rooms tab keeps serving the **stale pre-rebuild render** indefinitely, with no
@@ -287,7 +287,7 @@ The Rooms tab has two trees: **Vanilla** (the 127 reference rooms, built from
 `VANILLA_ROOMS`) and **Live** (parsed from the user's currently-open `.evs`
 project). The new ROM overlay is gated on `roomVanillaIdNum(room)`, which
 expects `room.vanillaId` to already be a hex-parseable value. For Live rooms,
-`file-scanner.js` resolves the numeric ROM room id via
+`file-scanner.ts` resolves the numeric ROM room id via
 `getMapEnum(wsRoot).get(vid)` into a separate `roomNum` — `vid` itself looks
 like it may be a symbolic enum name, not a hex string. If that's right, the
 render/collision/object overlays added in v0.8.x silently never trigger for

@@ -36,7 +36,7 @@ function maps(rom, name, leaf, deps) {
     let d;
     try { d = decodeRoom(rom, id); } catch (_) { return null; }
     if (!d) return null;
-    const { isRoomAnimated, isLayerAnimated, isCollisionAnimated, renderRoomAnimationGif } = require('./map-animation');
+    const { isRoomAnimated, isLayerAnimated, isCollisionAnimated, renderRoomAnimationGif } = require('../../../../dist/games/evermore/resources/map-animation');
     const hasAnim = isRoomAnimated(d);
     const hasL1Anim = isLayerAnimated(d, 'layer1');
     const hasL2Anim = isLayerAnimated(d, 'layer2');
@@ -202,7 +202,7 @@ function maps(rom, name, leaf, deps) {
 function roomMarkdown(rom, id) {
     const d = decodeRoom(rom, id);
     const h = d.header;
-    const { isRoomAnimated, isLayerAnimated } = require('./map-animation');
+    const { isRoomAnimated, isLayerAnimated } = require('../../../../dist/games/evermore/resources/map-animation');
     const hasAnim = isRoomAnimated(d);
     const hasL1Anim = isLayerAnimated(d, 'layer1');
     const hasL2Anim = isLayerAnimated(d, 'layer2');

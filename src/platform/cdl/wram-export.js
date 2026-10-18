@@ -14,10 +14,10 @@
 const fs = require('fs');
 const path = require('path');
 const { hex, countText } = require('../../../dist/platform/cdl/rom-map');
-const { buildIndex, flagText, SPACE, XR } = require('./xref-index');
+const { buildIndex, flagText, SPACE, XR } = require('../../../dist/platform/cdl/xref-index');
 const { createRomMap } = require('../../../dist/platform/cdl/rom-map');
 const { decodeAt } = require('../../../dist/platform/cdl/disasm');
-const { WVAL_BYTES } = require('./library');
+const { WVAL_BYTES } = require('../../../dist/platform/cdl/library');
 
 const EXT_HEAD = 0x04;
 const ACCESSOR_MAX = 12;

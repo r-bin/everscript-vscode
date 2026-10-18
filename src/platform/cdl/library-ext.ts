@@ -2,7 +2,7 @@
  * platform/cdl/library-ext.ts
  *
  * The library streams added for recomp / decomp work (v0.174.0), kept out of
- * library.js so that file stays about storage and the original streams:
+ * library.ts so that file stays about storage and the original streams:
  *   rets.bin         [entry, retPc, mx<<8|flags]   shadow call stack outcomes   OR
  *   regs.bin         [pc, kind<<16|value]          DB / D per instruction, Y at pointer sites   union
  *   bases.bin        [pc, base24, flags]           pointer behind (dp),Y / [dp],Y / (sr,S),Y   OR
@@ -32,7 +32,7 @@ const ARAM = { EXEC: 1, OPERAND: 2, READ: 4, WRITE: 8 };
 const BUS = { C: 1, B8: 2, B0: 4, B4: 8 };
 const TWO32 = 0x100000000;
 
-/** The library's extension streams (fields of the CDL library object, library.js), plus the value streams. */
+/** The library's extension streams (fields of the CDL library object, library.ts), plus the value streams. */
 interface ExtLib extends values.ValuesLib {
     romSize: number;
     rets: Map<number, number>;

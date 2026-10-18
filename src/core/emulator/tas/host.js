@@ -23,8 +23,8 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { parseMovie, evsmvHeader, evsmvTrailer, rleFrames } = require('../../../platform/tas/movie');
-const { stripCopierHeader } = require('../../../platform/cdl/library');
+const { parseMovie, evsmvHeader, evsmvTrailer, rleFrames } = require('../../../../dist/platform/tas/movie');
+const { stripCopierHeader } = require('../../../../dist/platform/cdl/library');
 const { verifyMovieSafely } = require('../../../../dist/platform/tas/verify');
 
 const MOVIE_EXT = /\.evsmv$/i;

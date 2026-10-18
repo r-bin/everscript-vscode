@@ -4,7 +4,7 @@
 // injects JS data blobs, and wraps in page shell.
 // No VS Code dependency — all external state arrives as parameters.
 
-const { buildMemoryTabHtml }     = require('./render-memory-tab');
+const { buildMemoryTabHtml }     = require('../../../../dist/games/evermore/memory/render-memory-tab');
 const { buildDocsTabHtml, buildRngTabHtml } = require('../docs-tab/render-docs-tab');
 const { renderRoomsTree, renderVanillaTree, buildRoomRailHtml,
         buildRoomsJson, VANILLA_ROOMS } = require('../rooms');

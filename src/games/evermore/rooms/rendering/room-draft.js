@@ -13,7 +13,7 @@ const maps = require('../../../../../dist/games/evermore/maps');
 const { romFingerprint } = require('../../../../../dist/games/evermore/rooms/rendering/rom-fingerprint');
 const { vanillaIndex, budgetSummary } = require('./vanilla-index');
 const { VANILLA_ROOMS } = require('../data/vanilla-data');
-const { overlayOptions } = require('./tile-overlay');
+const { overlayOptions } = require('../../../../../dist/games/evermore/rooms/rendering/tile-overlay');
 const { animationOf, sheetAnimations, shapeCounts, stairsOf, specialFlagsOf } = require('../../../../../dist/games/evermore/rooms/rendering/graphic-traits');
 
 /** Tiles per sheet row, matching the metatile atlas. */

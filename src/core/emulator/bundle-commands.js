@@ -13,9 +13,9 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { buildBundle, importBundle } = require('../../platform/cdl/bundle');
-const { parseMovie } = require('../../platform/tas/movie');
+const { parseMovie } = require('../../../dist/platform/tas/movie');
 const { flushRecording, reloadRecording, recordingFolders, getCurrentRom } = require('./panel');
-const { stripCopierHeader } = require('../../platform/cdl/library');
+const { stripCopierHeader } = require('../../../dist/platform/cdl/library');
 
 const INSTALL_ID_KEY = 'everscript.recorder.installId';
 

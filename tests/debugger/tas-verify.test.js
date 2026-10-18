@@ -11,7 +11,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const movie = require('../../src/platform/tas/movie');
+const movie = require('../../dist/platform/tas/movie');
 const { verifyMovie, interpret, latestState } = require('../../dist/platform/tas/verify');
 
 let passed = 0, failed = 0;

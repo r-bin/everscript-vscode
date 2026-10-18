@@ -51,7 +51,7 @@ update the table.
 
 1. Write the recorder like `tools/playbacks/record-attract.js`:
    - boot at `AUDIO_RATE` (44100);
-   - write `F|` lines plus `S|`/`T|` checks with `src/platform/tas/movie.js`;
+   - write `F|` lines plus `S|`/`T|` checks with `src/platform/tas/movie.ts`;
    - stamp the `coreId()`;
    - cut at a frame you can name.
 2. Record the coverage while recording: rooms from `$7E0ADB`, and exec-breakpoint hits on the

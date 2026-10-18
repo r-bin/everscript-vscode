@@ -16,7 +16,7 @@ const { hexId } = require('../../../../dist/games/evermore/resources/resource-ur
 const { dir, json, text } = require('../../../../dist/games/evermore/resources/nodes');
 const MD = require('../../../../dist/games/evermore/resources/script-markdown');
 const { resolveSimulationFile, SIMULATION_FILES } = require('../../../../dist/games/evermore/resources/simulation-files');
-const { resolveOpcodes } = require('./opcode-files');
+const { resolveOpcodes } = require('../../../../dist/games/evermore/resources/opcode-files');
 
 function resolveScripts(segments, rom) {
     if (segments.length > 0 && segments[0] === 'everscript') {
@@ -197,7 +197,7 @@ function resolveDirectScript(name, rom) {
     const ext = m[2].toLowerCase();
 
     // Check named script / known IDs first (NPC, ABS, Global)
-    const { formatScript } = require('./localization-files');
+    const { formatScript } = require('../../../../dist/games/evermore/resources/localization-files');
     const cleanAddr = ident.replace(/^(\$|0x)/i, '');
     const num = /^[0-9a-f]+$/i.test(cleanAddr) ? parseInt(cleanAddr, 16) : null;
 

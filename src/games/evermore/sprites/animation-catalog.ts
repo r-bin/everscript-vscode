@@ -25,7 +25,7 @@ const PALETTE_OP = 0x4b;
 
 /** An enum name that spells a global animation id. */
 interface IdName { group: string; name: string }
-/** What this reads of a character (sprites/character-model.js): its animations and its Boy weapons / Dog forms. */
+/** What this reads of a character (sprites/character-model.ts): its animations and its Boy weapons / Dog forms. */
 interface AnimEntry { animRec: number; category?: string; label?: string }
 interface WeaponEntry { name: string; paletteAddr?: number; anims?: AnimEntry[] }
 interface CatalogCharacter { id: number; name?: string; anims?: AnimEntry[]; weapons?: WeaponEntry[] }

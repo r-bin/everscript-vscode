@@ -13,9 +13,9 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '../..');
-const { CdlLibrary } = require('../../src/platform/cdl/library');
+const { CdlLibrary } = require('../../dist/platform/cdl/library');
 const V = require('../../dist/platform/cdl/library-values');
-const movie = require('../../src/platform/tas/movie');
+const movie = require('../../dist/platform/tas/movie');
 
 let passed = 0, failed = 0;
 function test(name, fn) {

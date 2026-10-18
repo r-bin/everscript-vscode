@@ -8,11 +8,11 @@
  */
 
 const { hex, busName, countText } = require('../../../dist/platform/cdl/rom-map');
-const { flagText, SPACE } = require('./xref-index');
+const { flagText, SPACE } = require('../../../dist/platform/cdl/xref-index');
 const { valuesSeen } = require('./wram-export');
 const { tableAt, tableTitle } = require('./tables');
 const { regsByPc, basesByPc } = require('../../../dist/platform/cdl/library-ext');
-const { returnsByEntry } = require('./recomp-analysis');
+const { returnsByEntry } = require('../../../dist/platform/cdl/recomp-analysis');
 
 function parseQuery(text) {
     const clean = String(text || '').replace(/[$\s:_]/g, '').replace(/^0x/i, '');

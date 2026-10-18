@@ -1,7 +1,7 @@
 ---
 name: map-format
 description: Use before reading, decoding, encoding or drawing Secret of Evermore room data (games/evermore/maps, docs/map-format). Where each fact is documented, how the port is checked, what not to re-derive.
-applyTo: "src/games/evermore/maps/**,src/games/evermore/rooms/rendering/tile-overlay.js,docs/map-format/**"
+applyTo: "src/games/evermore/maps/**,src/games/evermore/rooms/rendering/tile-overlay.ts,docs/map-format/**"
 ---
 
 # Evermore room format
@@ -59,7 +59,7 @@ of a blob belongs to a field; the blob ends at its furthest object record or sta
   `object-encode.ts`, `custom-room.ts`. JS requires the compiled `dist/games/evermore/maps/`
   through `maps/index.ts`.
 - The Rooms tab decodes on demand per room (`rooms/editor-host.js` `requestRoomTiles` →
-  `rooms/rendering/tile-overlay.js`, which caches the 12 latest renders); the room tree carries no
+  `rooms/rendering/tile-overlay.ts`, which caches the 12 latest renders); the room tree carries no
   tile data. `rom-readers.ts` caches the ROM by path and mtime.
 - Python-side runbook (inspect, round-trip, render): `everscript/tools/dump_room.py`,
   `everscript/tools/encode_room.py --verify`, `everscript/tools/render_map.py`; their skill is

@@ -1,19 +1,22 @@
-'use strict';
 // Ownership: Animated GIF generation for map rooms and metatiles.
 // Visualizes animated tile channels in motion. Pure.
 
-const { renderRoomComposite } = require('../../../../dist/games/evermore/maps/render');
-const { renderMetatileAtlas } = require('../../../../dist/games/evermore/maps/metatiles');
-const { encodeGif } = require('../../../../dist/games/evermore/resources/gif');
+import { renderRoomComposite } from '../maps/render';
+import { renderMetatileAtlas } from '../maps/metatiles';
+import { encodeGif } from './gif';
+import type { RoomData } from '../maps/room';
 
-const _roomGifCache = new WeakMap();
-const _atlasGifCache = new WeakMap();
-const _metatileGifCache = new WeakMap();
+type Image = ReturnType<typeof renderRoomComposite>;
+type Frame = { data: Uint8Array | Buffer; ticks?: number };
 
-function gcd(a, b) { return b ? gcd(b, a % b) : a; }
-function lcm(a, b) { return a && b ? (a / gcd(a, b)) * b : (a || b || 1); }
+const _roomGifCache = new WeakMap<Uint8Array, Map<number, Buffer>>();
+const _atlasGifCache = new WeakMap<Uint8Array, Map<number, Buffer>>();
+const _metatileGifCache = new WeakMap<Uint8Array, Map<string, Buffer>>();
 
-function getAnimationSchedule(room, maxSteps = 12) {
+function gcd(a: number, b: number): number { return b ? gcd(b, a % b) : a; }
+function lcm(a: number, b: number): number { return a && b ? (a / gcd(a, b)) * b : (a || b || 1); }
+
+function getAnimationSchedule(room: RoomData, maxSteps = 12) {
     const channels = room.animation || [];
     if (!channels.length) return { steps: 1, ticks: 60 };
 
@@ -34,14 +37,14 @@ function getAnimationSchedule(room, maxSteps = 12) {
     return { steps, ticks };
 }
 
-function renderRoomAnimationGif(rom, room) {
+function renderRoomAnimationGif(rom: Uint8Array, room: RoomData): Buffer {
     let map = _roomGifCache.get(rom);
     if (!map) {
-        map = new Map();
+        map = new Map<number, Buffer>();
         _roomGifCache.set(rom, map);
     }
-    const rId = room.roomId ?? room.id ?? 0;
-    if (map.has(rId)) return map.get(rId);
+    const rId = room.roomId;
+    if (map.has(rId)) return map.get(rId)!;
 
     const w = room.header.widthTiles * 16;
     const h = room.header.heightTiles * 16;
@@ -57,7 +60,7 @@ function renderRoomAnimationGif(rom, room) {
     // For large maps (>500k pixels), cap steps to 4 for responsive encoding
     const maxSteps = (w * h > 500000) ? 4 : 12;
     const { steps, ticks } = getAnimationSchedule(room, maxSteps);
-    const frames = [];
+    const frames: Frame[] = [];
 
     for (let s = 0; s < steps; s++) {
         const tiles = room.animatedTiles.slice();
@@ -77,14 +80,14 @@ function renderRoomAnimationGif(rom, room) {
     return gif;
 }
 
-function renderMetatileAtlasAnimationGif(rom, room) {
+function renderMetatileAtlasAnimationGif(rom: Uint8Array, room: RoomData): Buffer {
     let map = _atlasGifCache.get(rom);
     if (!map) {
-        map = new Map();
+        map = new Map<number, Buffer>();
         _atlasGifCache.set(rom, map);
     }
-    const rId = room.roomId ?? room.id ?? 0;
-    if (map.has(rId)) return map.get(rId);
+    const rId = room.roomId;
+    if (map.has(rId)) return map.get(rId)!;
 
     const channels = room.animation || [];
     if (!channels.length) {
@@ -95,7 +98,7 @@ function renderMetatileAtlasAnimationGif(rom, room) {
     }
 
     const { steps, ticks } = getAnimationSchedule(room);
-    const frames = [];
+    const frames: Frame[] = [];
     let atlasWidth = 0;
     let atlasHeight = 0;
 
@@ -119,7 +122,7 @@ function renderMetatileAtlasAnimationGif(rom, room) {
     return gif;
 }
 
-function getWordChannel(room, word) {
+function getWordChannel(room: RoomData, word: number): number {
     const charIdx = word & 0x03ff;
     const slot = Math.floor(charIdx / 0x20) * 8 + Math.floor((charIdx % 0x20) / 2);
     const nPal = room.tilePalette.length;
@@ -127,12 +130,12 @@ function getWordChannel(room, word) {
     return (ch >= 0 && ch < (room.animation || []).length) ? ch : -1;
 }
 
-function isChannelActive(room, ch) {
+function isChannelActive(room: RoomData, ch: number): boolean {
     const c = (room.animation || [])[ch];
     return Boolean(c && c.frames && c.frames.length > 1);
 }
 
-function isLayerAnimated(room, layerName) {
+function isLayerAnimated(room: RoomData, layerName: 'layer1' | 'layer2'): boolean {
     const channels = room.animation || [];
     const active = new Set(
         channels.map((c, i) => (c.frames && c.frames.length > 1 ? i : -1)).filter((i) => i >= 0)
@@ -151,18 +154,18 @@ function isLayerAnimated(room, layerName) {
     return false;
 }
 
-function isRoomAnimated(room) {
+function isRoomAnimated(room: RoomData): boolean {
     return isLayerAnimated(room, 'layer1') || isLayerAnimated(room, 'layer2');
 }
 
-function isCollisionAnimated(_room) {
+function isCollisionAnimated(_room: RoomData): boolean {
     return false;
 }
 
-function isMetatileAnimated(room, m) {
+function isMetatileAnimated(room: RoomData, m: { layer1: number; layer2: number }) {
     const ch1 = getWordChannel(room, m.layer1);
     const ch2 = getWordChannel(room, m.layer2);
-    const channels = [];
+    const channels: number[] = [];
     if (ch1 >= 0 && isChannelActive(room, ch1)) channels.push(ch1);
     if (ch2 >= 0 && ch2 !== ch1 && isChannelActive(room, ch2)) channels.push(ch2);
     return {
@@ -171,15 +174,15 @@ function isMetatileAnimated(room, m) {
     };
 }
 
-function renderMetatileAnimationGif(rom, room, idx) {
+function renderMetatileAnimationGif(rom: Uint8Array, room: RoomData, idx: number): Buffer {
     let map = _metatileGifCache.get(rom);
     if (!map) {
-        map = new Map();
+        map = new Map<string, Buffer>();
         _metatileGifCache.set(rom, map);
     }
-    const rId = room.roomId ?? room.id ?? 0;
+    const rId = room.roomId;
     const key = `${rId}:${idx}`;
-    if (map.has(key)) return map.get(key);
+    if (map.has(key)) return map.get(key)!;
 
     const channels = room.animation || [];
     const cell = 16;
@@ -195,7 +198,7 @@ function renderMetatileAnimationGif(rom, room, idx) {
     }
 
     const { steps, ticks } = getAnimationSchedule(room);
-    const frames = [];
+    const frames: Frame[] = [];
 
     for (let s = 0; s < steps; s++) {
         const tiles = room.animatedTiles.slice();
@@ -218,7 +221,7 @@ function renderMetatileAnimationGif(rom, room, idx) {
     return gif;
 }
 
-function extractCell(image, col, row, cell) {
+function extractCell(image: Image, col: number, row: number, cell: number): Uint8Array {
     const data = new Uint8Array(cell * cell * 4);
     for (let y = 0; y < cell; y++) {
         const srcY = row * cell + y;
@@ -235,13 +238,4 @@ function extractCell(image, col, row, cell) {
     return data;
 }
 
-module.exports = {
-    getAnimationSchedule,
-    renderRoomAnimationGif,
-    renderMetatileAtlasAnimationGif,
-    renderMetatileAnimationGif,
-    isMetatileAnimated,
-    isLayerAnimated,
-    isRoomAnimated,
-    isCollisionAnimated,
-};
+export { getAnimationSchedule, renderRoomAnimationGif, renderMetatileAtlasAnimationGif, renderMetatileAnimationGif, isMetatileAnimated, isLayerAnimated, isRoomAnimated, isCollisionAnimated };

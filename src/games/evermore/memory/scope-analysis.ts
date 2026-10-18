@@ -1,14 +1,22 @@
-'use strict';
 // Ownership: what the Memory Radar shows for the cursor's scope in an .evs file — the memory map
 // (memory-map.md), the enclosing fun/map/area/group, and the RAM addresses that scope reads and
 // writes. Pure apart from reading memory-map.md; a document only needs lineCount / lineAt().
 
-const fs = require('fs');
-const path = require('path');
-const { radarLifecycle, radarParseName, radarParseNotes } = require('../../../../dist/games/evermore/radar-utils');
+import * as fs from 'fs';
+import * as path from 'path';
+import { radarLifecycle, radarParseName, radarParseNotes } from '../radar-utils';
 
-function radarReadMemoryMap(filePath) {
-    const map = new Map();
+/** The slice of a TextDocument the scope analysis reads. */
+interface Doc { lineCount: number; lineAt(line: number): { text: string }; uri: { fsPath: string } }
+/** A row of memory-map.md: one named RAM range. */
+interface MapEntry {
+    name: string; nameParts: string[]; type: string; notes: string; lifecycle: string; isWord: boolean; addrStart: number; addrEnd: number;
+}
+type Ref = { line: number; text: string };
+type Refs = { reads: Ref[]; writes: Ref[] };
+
+function radarReadMemoryMap(filePath: string): Map<number, MapEntry> {
+    const map = new Map<number, MapEntry>();
     if (!fs.existsSync(filePath)) return map;
     for (const line of fs.readFileSync(filePath, 'utf8').split(/\r?\n/)) {
         if (!line.startsWith('|')) continue;
@@ -26,7 +34,7 @@ function radarReadMemoryMap(filePath) {
         const typeStr = cells[2] || '';
         const isWord = /\bWord\b/i.test(typeStr);
         const effectiveEnd = (isWord && end === start) ? start + 1 : end;
-        const entry = {
+        const entry: MapEntry = {
             name, nameParts, type: typeStr, notes,
             lifecycle: radarLifecycle(start, typeStr, notes),
             isWord, addrStart: start, addrEnd: effectiveEnd,
@@ -39,14 +47,14 @@ function radarReadMemoryMap(filePath) {
     return map;
 }
 
-function radarFindOpenBrace(document, fromLine) {
+function radarFindOpenBrace(document: Doc, fromLine: number): number {
     for (let l = fromLine; l < Math.min(fromLine + 10, document.lineCount); l++) {
         if (document.lineAt(l).text.includes('{')) return l;
     }
     return -1;
 }
 
-function radarFindCloseBrace(document, ob) {
+function radarFindCloseBrace(document: Doc, ob: number): number {
     let depth = 0;
     for (let l = ob; l < document.lineCount; l++) {
         for (const ch of document.lineAt(l).text.replace(/\/\/.*$/, '')) {
@@ -57,7 +65,7 @@ function radarFindCloseBrace(document, ob) {
     return -1;
 }
 
-function radarDetectScope(document, cursorLine) {
+function radarDetectScope(document: Doc, cursorLine: number) {
     const declRe = /^\s*(fun|map|area|group)\s+([A-Za-z_][A-Za-z0-9_]*)\b/;
     for (let line = cursorLine; line >= 0; line--) {
         const m = declRe.exec(document.lineAt(line).text);
@@ -70,34 +78,34 @@ function radarDetectScope(document, cursorLine) {
     return { kind: 'global', name: 'global', startLine: 0, endLine: document.lineCount - 1 };
 }
 
-function radarAnalyzeScope(document, startLine, endLine) {
-    const refs = new Map();
-    const pools = [];
-    const argRefs = new Map();
+function radarAnalyzeScope(document: Doc, startLine: number, endLine: number) {
+    const refs = new Map<number, Refs & { sources: string[] }>();
+    const pools: { start: number; end: number; line: number; lc: string }[] = [];
+    const argRefs = new Map<number, Refs>();
 
-    const add = (addr, line, rawText, source, isWrite) => {
+    const add = (addr: number, line: number, rawText: string, source: string, isWrite: boolean) => {
         if (!refs.has(addr)) refs.set(addr, { reads: [], writes: [], sources: [] });
-        const r = refs.get(addr);
+        const r = refs.get(addr)!;
         const entry = { line, text: rawText.trim() };
         if (isWrite) { if (!r.writes.some(x => x.line === line)) r.writes.push(entry); }
         else         { if (!r.reads.some(x => x.line === line))  r.reads.push(entry); }
         if (!r.sources.includes(source)) r.sources.push(source);
     };
-    const addArg = (idx, line, rawText, isWrite) => {
+    const addArg = (idx: number, line: number, rawText: string, isWrite: boolean) => {
         if (!argRefs.has(idx)) argRefs.set(idx, { reads: [], writes: [] });
-        const r = argRefs.get(idx);
+        const r = argRefs.get(idx)!;
         const entry = { line, text: rawText.trim() };
         if (isWrite) { if (!r.writes.some(x => x.line === line)) r.writes.push(entry); }
         else         { if (!r.reads.some(x => x.line === line))  r.reads.push(entry); }
     };
-    const isWrite = (text, hexLit) => {
+    const isWrite = (text: string, hexLit: string): boolean => {
         const h = hexLit.replace(/^0x/i, '');
         return new RegExp('<\\s*0x' + h + '[^>]*>\\s*(?:[+\\-*\\/&|^]|<<|>>)?=(?!=)', 'i').test(text) ||
                new RegExp('memory\\s*\\(\\s*0x' + h + '[^)]*\\)\\s*(?:[+\\-*\\/&|^]|<<|>>)?=(?!=)', 'i').test(text);
     };
 
-    const seenPools = new Set();
-    const addPool = (ps, pe, lineIdx) => {
+    const seenPools = new Set<string>();
+    const addPool = (ps: number, pe: number, lineIdx: number) => {
         if (isNaN(ps) || isNaN(pe) || ps > pe) return;
         const key = ps + '-' + pe;
         if (seenPools.has(key)) return;
@@ -144,4 +152,5 @@ function radarAnalyzeScope(document, startLine, endLine) {
     return { refs, pools, argRefs };
 }
 
-module.exports = { radarReadMemoryMap, radarDetectScope, radarAnalyzeScope };
+export type { MapEntry, Refs, Ref };
+export { radarReadMemoryMap, radarDetectScope, radarAnalyzeScope };

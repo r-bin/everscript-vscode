@@ -22,7 +22,7 @@ function roomAnimateOn(){
 
 /**
  * Feature toggles, in top-bar order. The flag characters are the contract with
- * rooms/rendering/tile-overlay.js — keep them in step with its OVERLAY_FLAGS.
+ * rooms/rendering/tile-overlay.ts — keep them in step with its OVERLAY_FLAGS.
  */
 var OVERLAY_BUTTONS=[
   {f:'c',label:'collision',title:'Per-plane passability contours plus the solid-wall tint. The dominant plane draws solid, the others dashed, so a tunnel under a bridge reads as two crossing outlines.'},

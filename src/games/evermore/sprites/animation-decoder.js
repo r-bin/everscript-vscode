@@ -11,7 +11,7 @@ const { composeAligned } = require('../../../../dist/games/evermore/sprites/fram
 const { snesToRom } = require('../../../../dist/games/evermore/maps/rom');
 const { renderProjectiles } = require('../../../../dist/games/evermore/sprites/projectile-render');
 const { projectileRecord } = require('../../../../dist/games/evermore/maps/projectiles');
-const { targetFor, buildTarget, hitTicks, DEFAULT_DISTANCE, OUT_OF_REACH_ABOVE, OUT_OF_REACH_BELOW } = require('./target');
+const { targetFor, buildTarget, hitTicks, DEFAULT_DISTANCE, OUT_OF_REACH_ABOVE, OUT_OF_REACH_BELOW } = require('../../../../dist/games/evermore/sprites/target');
 const { hexLower } = require('../../../../dist/platform');
 
 /** Resolve script address for a record, taking facing into account if directional. */

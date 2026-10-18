@@ -16,13 +16,13 @@ const Module = require('module');
 
 const ROOT = path.resolve(__dirname, '../..');
 const { OPCODES, instructionLength, flowKind, FLOW } = require('../../dist/platform/snes/opcodes-65816');
-const { CdlLibrary, romHash } = require('../../src/platform/cdl/library');
+const { CdlLibrary, romHash } = require('../../dist/platform/cdl/library');
 const { decodeAt, formatInstruction } = require('../../dist/platform/cdl/disasm');
 const { exportAsar } = require('../../src/games/evermore/cdl/tools');
 const { exportWram } = require('../../src/platform/cdl/wram-export');
 const { parseQuery, lookup } = require('../../src/platform/cdl/lookup');
 const { createRomMap } = require('../../dist/platform/cdl/rom-map');
-const { buildIndex, SPACE } = require('../../src/platform/cdl/xref-index');
+const { buildIndex, SPACE } = require('../../dist/platform/cdl/xref-index');
 const gen = require('../../tools/gen-cdl-optable');
 
 let passed = 0;

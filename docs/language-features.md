@@ -18,7 +18,7 @@
 
 ## 2. Editor Intelligence Providers
 
-Language features are registered natively in JavaScript via `src/games/evermore/language/language-providers.js`:
+Language features are registered natively in JavaScript via `src/games/evermore/language/language-providers.ts`:
 
 ### 2.1 Hover Documentation (`src/games/evermore/language/hover-provider.ts`)
 Hovering symbols in `.evs` files provides instant context:

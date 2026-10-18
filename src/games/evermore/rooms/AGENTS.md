@@ -7,7 +7,7 @@ Related skills: `rooms-tab`, `map-editor-rules`, `map-construction`, `map-entiti
 ## Owns
 - All Rooms-tab server-side logic: room tree building, room content parsing, vanilla data,
   lua-watcher POIs, server-side HTML/JSON rendering, custom maps and widgets on disk.
-- `export-maps.js`: Export Room Maps as PNG.
+- `export-maps.ts`: Export Room Maps as PNG.
 - `editor-host.js`: the map editor's ROM-backed messages (tiles, stamps, PNG export; drafts and export / play
   ROM in `editor-host-rom.js`, families, suggestions and deco in `editor-host-suggest.js`); `radar-open.js`
   routes them here with an injected `ctx`.
@@ -34,7 +34,7 @@ Related skills: `rooms-tab`, `map-editor-rules`, `map-construction`, `map-entiti
 
 ## Invariants
 1. `parsing/content-parser.ts` is pure: file path + line range in, data out — no side effects.
-2. `parsing/file-scanner.js` receives `{getMapEnum, readScriptAllTriggers, readLuaWatchers,
+2. `parsing/file-scanner.ts` receives `{getMapEnum, readScriptAllTriggers, readLuaWatchers,
    readRomMapHeader}` by injection — no direct requires of lua-watchers.
 3. `buildRoomsJson` flattens the tree to `{ mapName: { content, romHeader, ... } }`.
 4. `renderVanillaTree` and `renderRoomsTree` return HTML strings — no DOM operations.

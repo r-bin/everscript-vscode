@@ -1,12 +1,31 @@
-'use strict';
 // Ownership: filesystem scanning — walking .evs directories, building the room tree,
 // locating room images, and converting image paths to webview URIs.
 // Impure: reads filesystem. No HTML rendering, no ROM data reading.
 
-const path = require('path');
-const fs   = require('fs');
-const { parseRoomContent } = require('../../../../../dist/games/evermore/rooms/parsing/content-parser');
-const { readPngDimensions } = require('../../../../../dist/games/evermore/rom-readers');
+import * as path from 'path';
+import * as fs from 'fs';
+import { parseRoomContent } from './content-parser';
+import type { RoomContent } from './content-parser';
+import { readPngDimensions } from '../../rom-readers';
+import type { RomMapHeader } from '../../rom-readers';
+
+/** The runtime pieces the scan needs, passed in so this file does not depend on the room data. */
+interface ScanDeps {
+    getMapEnum(wsRoot: string): Map<string, number>;
+    readScriptAllTriggers(wsRoot: string, vanillaId: string, romPath: string): unknown;
+    readLuaWatchers(wsRoot: string): Map<string, unknown>;
+    readRomMapHeader(wsRoot: string, mapId: number, romPath: string): RomMapHeader | null;
+}
+interface ExtConfig { romPath?: string }
+/** A room's parsed content plus what the ROM and the watcher list add to it. */
+type ScannedContent = RoomContent & { triggers?: unknown; poi?: unknown; trigOffset?: { offX: number; offY: number }; romHeader?: RomMapHeader };
+interface MapNode {
+    name: string; vanillaId: string | null; romRoomId: number | null; kind: 'map';
+    filePath: string; relPath: string; startLine: number; endLine: number; content: ScannedContent; imagePath: string | null;
+    imageUri?: string | null; imageDims?: unknown; children?: undefined;
+}
+interface AreaNode { name: string; kind: 'area'; children: RoomNode[]; imagePath?: undefined; imageUri?: undefined; imageDims?: undefined }
+type RoomNode = MapNode | AreaNode;
 
 // These are imported lazily via getters to avoid circular deps at require time.
 // file-scanner depends on room-data functions (getMapEnum etc.) which may be in the same
@@ -17,10 +36,10 @@ const { readPngDimensions } = require('../../../../../dist/games/evermore/rom-re
  * Checks docs/rooms/images/{name}.{ext} then docs/rooms/{name}.{ext}.
  * @returns {string|null} Absolute filesystem path or null.
  */
-function findRoomImage(wsRoot, mapName, vanillaId, filePath) {
-    const names    = [mapName, vanillaId].filter(Boolean);
+function findRoomImage(wsRoot: string | null | undefined, mapName: string, vanillaId: string | null, filePath?: string): string | null {
+    const names    = [mapName, vanillaId].filter((n): n is string => !!n);
     const exts     = ['.png', '.jpg', '.jpeg', '.webp'];
-    const baseDirs = [];
+    const baseDirs: string[] = [];
     if (filePath) baseDirs.push(path.dirname(filePath));
     if (wsRoot) {
         baseDirs.push(
@@ -49,13 +68,13 @@ function findRoomImage(wsRoot, mapName, vanillaId, filePath) {
  * @param {object}   extCfg  Extension config ({ romPath }).
  * @param {object}   deps    Runtime deps: { getMapEnum, readScriptAllTriggers, readLuaWatchers, readRomMapHeader }
  */
-function collectRoomsFromDir(dir, wsRoot, depth, extCfg, deps) {
+function collectRoomsFromDir(dir: string, wsRoot: string, depth: number, extCfg: ExtConfig, deps?: ScanDeps): RoomNode[] {
     if (depth > 8) return [];
-    let entries;
+    let entries: fs.Dirent[];
     try { entries = fs.readdirSync(dir, { withFileTypes: true }); }
     catch { return []; }
 
-    const items    = [];
+    const items: RoomNode[] = [];
     const subAreas = entries.filter(e => e.isDirectory() && e.name.startsWith('[area]')).sort((a, b) => a.name.localeCompare(b.name));
     const files    = entries.filter(e => !e.isDirectory() && e.name.endsWith('.evs') && !e.name.startsWith('_')).sort((a, b) => a.name.localeCompare(b.name));
 
@@ -68,7 +87,7 @@ function collectRoomsFromDir(dir, wsRoot, depth, extCfg, deps) {
     const mapRe = /^\s*map\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\(\s*([^)]*?)\s*\))?\s*\{/;
     for (const f of files) {
         const fp = path.join(dir, f.name);
-        let text;
+        let text: string;
         try { text = fs.readFileSync(fp, 'utf8'); } catch { continue; }
         const lines = text.split(/\r?\n/);
         for (let i = 0; i < lines.length; i++) {
@@ -82,9 +101,9 @@ function collectRoomsFromDir(dir, wsRoot, depth, extCfg, deps) {
                 }
             }
             const vid     = m[2] ? m[2].trim() : null;
-            const content = parseRoomContent(fp, i, endLine);
+            const content: ScannedContent = parseRoomContent(fp, i, endLine);
             const imgPath = findRoomImage(wsRoot, m[1], vid, fp);
-            let romRoomId = null;
+            let romRoomId: number | null = null;
             if (wsRoot && vid && deps) {
                 content.triggers = deps.readScriptAllTriggers(wsRoot, vid, extCfg.romPath || '');
                 const luaPoi     = deps.readLuaWatchers(wsRoot);
@@ -116,12 +135,12 @@ function collectRoomsFromDir(dir, wsRoot, depth, extCfg, deps) {
  * @param {object}              extCfg    Extension config.
  * @param {object}              deps      Runtime deps: { getMapEnum, readScriptAllTriggers, readLuaWatchers, readRomMapHeader }
  */
-function buildRoomTree(document, wsRoot, extCfg, deps) {
+function buildRoomTree(document: { uri: { fsPath: string }; lineCount: number; lineAt(line: number): { text: string } }, wsRoot: string, extCfg: ExtConfig, deps?: ScanDeps): RoomNode[] {
     const docPath = document.uri.fsPath;
     const docDir  = path.dirname(docPath);
     const mapRe   = /^\s*map\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\(\s*([^)]*?)\s*\))?\s*\{/;
 
-    const docMaps = [];
+    const docMaps: MapNode[] = [];
     for (let i = 0; i < document.lineCount; i++) {
         const m = mapRe.exec(document.lineAt(i).text);
         if (!m) continue;
@@ -133,9 +152,9 @@ function buildRoomTree(document, wsRoot, extCfg, deps) {
             }
         }
         const vid     = m[2] ? m[2].trim() : null;
-        const content = parseRoomContent(docPath, i, endLine);
+        const content: ScannedContent = parseRoomContent(docPath, i, endLine);
         const imgPath = findRoomImage(wsRoot, m[1], vid, docPath);
-        let romRoomId = null;
+        let romRoomId: number | null = null;
         if (wsRoot && vid && deps) {
             content.triggers = deps.readScriptAllTriggers(wsRoot, vid, extCfg.romPath || '');
             const mapNum = deps.getMapEnum(wsRoot).get(vid);
@@ -152,15 +171,15 @@ function buildRoomTree(document, wsRoot, extCfg, deps) {
         });
     }
 
-    const importedAreas = [];
+    const importedAreas: AreaNode[] = [];
     for (let i = 0; i < document.lineCount; i++) {
         const imp = document.lineAt(i).text.match(/#import\s*\(\s*["']([^"']+)["']\s*\)/);
         if (!imp) continue;
         const impRel     = imp[1].replace(/^\.\//, '');
-        const candidates = [wsRoot ? path.join(wsRoot, impRel) : null, path.join(docDir, impRel)].filter(Boolean);
+        const candidates = [wsRoot ? path.join(wsRoot, impRel) : null, path.join(docDir, impRel)].filter((c): c is string => !!c);
         for (const p of candidates) {
             if (!fs.existsSync(p)) continue;
-            let stat;
+            let stat: fs.Stats;
             try { stat = fs.statSync(p); } catch { continue; }
             if (stat.isDirectory()) {
                 const areaName = path.basename(p).replace(/^\[area\]\s*/, '').replace(/^\d+_/, '');
@@ -171,7 +190,7 @@ function buildRoomTree(document, wsRoot, extCfg, deps) {
         }
     }
 
-    const tree = [];
+    const tree: RoomNode[] = [];
     if (docMaps.length) {
         if (importedAreas.length) {
             tree.push({ name: path.basename(docPath, '.evs'), kind: 'area', children: docMaps });
@@ -188,7 +207,7 @@ function buildRoomTree(document, wsRoot, extCfg, deps) {
  * @param {Array}    nodes        Room tree nodes (mutated in-place).
  * @param {Function} toWebviewUri (imagePath: string) => string
  */
-function setRoomImageUris(nodes, toWebviewUri) {
+function setRoomImageUris(nodes: RoomNode[], toWebviewUri: (imagePath: string) => string): void {
     for (const n of nodes) {
         if (n.kind === 'map' && n.imagePath) {
             try {
@@ -200,4 +219,5 @@ function setRoomImageUris(nodes, toWebviewUri) {
     }
 }
 
-module.exports = { findRoomImage, collectRoomsFromDir, buildRoomTree, setRoomImageUris };
+export type { RoomNode, MapNode, AreaNode, ScanDeps };
+export { findRoomImage, collectRoomsFromDir, buildRoomTree, setRoomImageUris };

@@ -5,7 +5,7 @@ Kind: **platform** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: 
 ## Owns
 - TextMate grammars, color theme, language configuration, snippets, and the hover,
   completion, definition, symbol and dead-branch providers with their workspace index; Build and Run
-  (`build-and-run.js`: the compiler call and loading its ROM into the emulator); the compiler settings
+  (`build-and-run.ts`: the compiler call and loading its ROM into the emulator); the compiler settings
   model (`config.ts`).
 - Does NOT own: ROM byte reading, radar panel, emulator state, debugger protocol.
 

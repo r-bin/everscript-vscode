@@ -67,7 +67,7 @@ function fromCdl(): { routines: number[]; wram: number[] } | null {
         const require = createRequire(import.meta.url);
         const rom = require('../dist/games').baseRomPath('evermore');
         if (!rom) return null;
-        const { CdlLibrary } = require('../src/platform/cdl/library');
+        const { CdlLibrary } = require('../dist/platform/cdl/library');
         const lib = new CdlLibrary(join(homedir(), 'Library/Application Support/Code/User/globalStorage/rbin.everscript/cdl-library'),
             readFileSync(rom));
         const bytes: Uint8Array = readFileSync(rom);

@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: produce everything the Rooms tab needs to draw a ROM room — the
 // rendered map image for a chosen layer with the requested features baked in,
 // plus the tabular data, legend and summary behind the panel.
@@ -11,13 +10,27 @@
 // render_map.py baked into the raster by maps/collision-overlay.ts, verified
 // pixel-identical to upstream by tests/memory/map-parity.test.js.
 
-const maps = require('../../../../../dist/games/evermore/maps');
-const { romFingerprint } = require('../../../../../dist/games/evermore/rooms/rendering/rom-fingerprint');
-const { headerSpec, withHeader } = require('../../../../../dist/games/evermore/rooms/rendering/header-overrides');
-const { buildObjects, parseObjectStates, cachedObjectPreviews, invalidateObjectPreviews } = require('../../../../../dist/games/evermore/rooms/rendering/object-previews');
+import * as maps from '../../maps';
+import { romFingerprint } from './rom-fingerprint';
+import { headerSpec, withHeader } from './header-overrides';
+import { buildObjects, parseObjectStates, cachedObjectPreviews, invalidateObjectPreviews } from './object-previews';
+import type { PixelBuffer } from '../../maps/render';
+import type { RoomData } from '../../maps/room';
+import type { RoomFeatures } from '../../maps/overlay-features';
+import type { CollisionOverlayOptions } from '../../maps/collision-overlay';
+
+type Rom = Uint8Array;
+type Layer = 'composite' | 'layer1' | 'layer2';
+type Overlay = ReturnType<typeof overlayOptions>;
+type Animation = { groups: unknown[]; channels: number; bytes?: number; skipped?: string };
+/** One cached render of a room: the pictures plus what the overlay and the animation reuse. */
+interface Render {
+    room: RoomData; overlayOpts: CollisionOverlayOptions | null; features: RoomFeatures; imageUri: string; foregroundUri: string | null;
+    foreground: PixelBuffer | null; canopyOverlayUri: string | null; width: number; height: number; foregroundAnimUri?: string;
+}
 
 /** Which render the map image shows. */
-const LAYERS = ['composite', 'layer1', 'layer2'];
+const LAYERS: Layer[] = ['composite', 'layer1', 'layer2'];
 
 /**
  * Overlay flag characters, in the order the top bar shows them.
@@ -26,7 +39,7 @@ const LAYERS = ['composite', 'layer1', 'layer2'];
  * postMessage field. The host is the only place that maps them to the maps
  * domain's option names — the webview just passes the string around.
  */
-const OVERLAY_FLAGS = {
+const OVERLAY_FLAGS: Record<string, keyof CollisionOverlayOptions> = {
     c: 'contours',
     d: 'drift',
     p: 'transparent',
@@ -52,9 +65,9 @@ const ALL_OVERLAY_FLAGS = Object.keys(OVERLAY_FLAGS).filter((ch) => ch !== 'k').
  * distinction matters because the host used to drop the flags entirely, which
  * looked exactly like "everything off" and made the toggles appear dead.
  */
-function overlayOptions(flags) {
+function overlayOptions(flags?: string | null) {
     const s = typeof flags === 'string' ? flags : ALL_OVERLAY_FLAGS;
-    const opts = {};
+    const opts: Record<string, boolean> = {};
     Object.keys(OVERLAY_FLAGS).forEach(function (ch) {
         opts[OVERLAY_FLAGS[ch]] = s.indexOf(ch) >= 0;
     });
@@ -67,7 +80,7 @@ function overlayOptions(flags) {
  * The visualization itself is drawn by maps/collision-overlay.ts — this only
  * counts.
  */
-function countCollision(collisionWords) {
+function countCollision(collisionWords: number[][]) {
     let painted = 0;
     for (let y = 0; y < collisionWords.length; y++) {
         const row = collisionWords[y];
@@ -80,8 +93,8 @@ function countCollision(collisionWords) {
 }
 
 /** Drift tiles: where the floor pushes an entity, and which way. */
-function buildDrift(collisionWords) {
-    const out = [];
+function buildDrift(collisionWords: number[][]) {
+    const out: { x: number; y: number; dx: number; dy: number; name: string }[] = [];
     for (let y = 0; y < collisionWords.length; y++) {
         const row = collisionWords[y];
         for (let x = 0; x < row.length; x++) {
@@ -94,12 +107,12 @@ function buildDrift(collisionWords) {
 
 
 /** Entity-gate tiles grouped by which entities the gate blocks. */
-function buildGates(features) {
-    const WHO = { 3: 'all but boy and dog', 5: 'dog', 7: 'boy and dog' };
-    const counts = {};
+function buildGates(features: RoomFeatures) {
+    const WHO: Record<number, string> = { 3: 'all but boy and dog', 5: 'dog', 7: 'boy and dog' };
+    const counts: Record<number, number> = {};
     features.gated.forEach(function (g) { counts[g[2]] = (counts[g[2]] || 0) + 1; });
     return Object.keys(counts).map(function (k) {
-        return { gate: Number(k), blocks: WHO[k] || 'unknown', count: counts[k] };
+        return { gate: Number(k), blocks: WHO[Number(k)] || 'unknown', count: counts[Number(k)] };
     });
 }
 
@@ -109,10 +122,10 @@ function buildGates(features) {
 // The key includes a ROM fingerprint: keying on roomId+layer alone meant a
 // rebuilt ROM (everscript.buildAndRun) kept serving the pre-rebuild render
 // forever, which is worse than slow — it silently shows the wrong map.
-const RENDER_CACHE = new Map();
+const RENDER_CACHE = new Map<string, Render>();
 const RENDER_CACHE_MAX = 24;
 
-function renderLayer(rom, room, layer) {
+function renderLayer(rom: Rom, room: RoomData, layer: Layer): PixelBuffer {
     if (layer === 'layer1') return maps.renderVramLayer(rom, room, room.layer1VramWords);
     if (layer === 'layer2') return maps.renderVramLayer(rom, room, room.layer2VramWords);
     return maps.renderRoomComposite(rom, room);
@@ -136,7 +149,7 @@ function renderLayer(rom, room, layer) {
  * Only the pixels the second pass actually changed survive, so the layer is
  * marks on transparency rather than a second copy of the canopy.
  */
-function overlayOverCanopy(foreground, room, opts, hidden) {
+function overlayOverCanopy(foreground: PixelBuffer, room: RoomData, opts: CollisionOverlayOptions, hidden: Uint8Array | null) {
     const canopyPx = maps.opaqueMask(foreground);
     const before = foreground.data;
     const marks = {
@@ -156,7 +169,7 @@ function overlayOverCanopy(foreground, room, opts, hidden) {
     return painted ? marks : null;
 }
 
-function cachedRender(rom, roomId, layer, ov, stateSpec, header) {
+function cachedRender(rom: Rom, roomId: number, layer: Layer, ov: Overlay, stateSpec: string, header: unknown): Render {
     const key = romFingerprint(rom) + ':' + roomId + ':' + layer + ':' + ov.flags + ':' + stateSpec + ':' + headerSpec(header);
     const hit = RENDER_CACHE.get(key);
     if (hit) return hit;
@@ -178,7 +191,7 @@ function cachedRender(rom, roomId, layer, ov, stateSpec, header) {
     if (ov.any) maps.drawCollisionOverlay(image, room, Object.assign({}, ov.opts, { hidden }));
     const canopyOverlay = foreground && ov.any
         ? overlayOverCanopy(foreground, room, ov.opts, hidden) : null;
-    const entry = {
+    const entry: Render = {
         room,
         // Kept so the animation can re-apply the same overlay to its frames.
         // Measured lazily: it costs two more overlay passes and only matters
@@ -195,7 +208,7 @@ function cachedRender(rom, roomId, layer, ov, stateSpec, header) {
     };
 
     RENDER_CACHE.set(key, entry);
-    if (RENDER_CACHE.size > RENDER_CACHE_MAX) RENDER_CACHE.delete(RENDER_CACHE.keys().next().value);
+    if (RENDER_CACHE.size > RENDER_CACHE_MAX) RENDER_CACHE.delete(RENDER_CACHE.keys().next().value!);
     return entry;
 }
 
@@ -206,7 +219,7 @@ function cachedRender(rom, roomId, layer, ov, stateSpec, header) {
 // that say which channel drives a cell. Keying this on the room alone meant
 // switching the firepit in 0x25 to burning replayed its unlit channels (6-9)
 // over the lit tiles (0-3) — so it shares the render's key.
-const ANIM_CACHE = new Map();
+const ANIM_CACHE = new Map<string, Animation | null>();
 const ANIM_CACHE_MAX = 6;
 
 /** Refuse to ship an animation bigger than this; a patched ROM could be wild. */
@@ -218,13 +231,13 @@ const ANIM_MAX_GROUPS = 800;
  * none. Each group is a small transparent PNG covering a block of animated
  * cells, plus how long to hold each frame.
  */
-function cachedAnimation(rom, key, layer, entry) {
+function cachedAnimation(rom: Rom, key: string, layer: Layer, entry: Render): Animation | null {
     const room = entry.room;
     if (!room.animation.length) return null;
     const hit = ANIM_CACHE.get(key);
     if (hit !== undefined) return hit;
 
-    let out = null;
+    let out: Animation | null = null;
     try {
         // An animated tile can also carry a contour, an object box or a
         // label. Measuring what the overlay does to each pixel lets those
@@ -234,7 +247,7 @@ function cachedAnimation(rom, key, layer, entry) {
         // of the pixels in 0x25.
         const overlay = entry.overlayOpts
             ? maps.buildOverlayTransfer(entry.width, entry.height,
-                (img) => maps.drawCollisionOverlay(img, room, entry.overlayOpts))
+                (img) => maps.drawCollisionOverlay(img, room, entry.overlayOpts ?? undefined))
             : null;
         const groups = maps.buildAnimationGroups(rom, room, { layer, overlay });
         let bytes = 0;
@@ -251,11 +264,11 @@ function cachedAnimation(rom, key, layer, entry) {
             ? { groups: [], channels: room.animation.length, skipped: 'too large to stream' }
             : { groups: wire, channels: room.animation.length, bytes };
     } catch (err) {
-        out = { groups: [], channels: room.animation.length, skipped: String(err && err.message || err) };
+        out = { groups: [], channels: room.animation.length, skipped: String(err instanceof Error ? err.message : err) };
     }
 
     ANIM_CACHE.set(key, out);
-    if (ANIM_CACHE.size > ANIM_CACHE_MAX) ANIM_CACHE.delete(ANIM_CACHE.keys().next().value);
+    if (ANIM_CACHE.size > ANIM_CACHE_MAX) ANIM_CACHE.delete(ANIM_CACHE.keys().next().value!);
     return out;
 }
 
@@ -265,7 +278,7 @@ function cachedAnimation(rom, key, layer, entry) {
  * of a torch's canopy there covered every later frame. Measured once per
  * render and kept with it.
  */
-function foregroundFor(entry, animate) {
+function foregroundFor(entry: Render, animate: boolean) {
     if (!animate || !entry.foreground || !entry.room.animation.length) return entry.foregroundUri;
     if (!entry.foregroundAnimUri) {
         entry.foregroundAnimUri = maps.encodePngDataUri(maps.clearAnimatedCells(entry.foreground, entry.room));
@@ -290,9 +303,9 @@ function invalidateRoomRenders() { RENDER_CACHE.clear(); invalidateObjectPreview
  *                                 '20:1'. Objects not listed show state 0.
  * @param {boolean} [animate]      Include the Section 2 animation overlays.
  */
-function buildRoomTileOverlay(rom, roomId, originX, originY, layer, overlay, objectStates, animate, header) {
+function buildRoomTileOverlay(rom: Uint8Array | Buffer, roomId: number, originX: number, originY: number, layer: string, overlay: string, objectStates: string, animate: boolean, header?: unknown) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
-    const which = LAYERS.indexOf(layer) >= 0 ? layer : 'composite';
+    const which: Layer = LAYERS.indexOf(layer as Layer) >= 0 ? layer as Layer : 'composite';
     const ov = overlayOptions(overlay);
     const spec = typeof objectStates === 'string' ? objectStates : '';
     const renderKey = romFingerprint(buf) + ':' + roomId + ':' + which + ':' + ov.flags + ':' + spec + ':' + headerSpec(header);
@@ -339,15 +352,4 @@ function buildRoomTileOverlay(rom, roomId, originX, originY, layer, overlay, obj
     };
 }
 
-module.exports = {
-    buildRoomTileOverlay,
-    overlayOptions,
-    parseObjectStates,
-    countCollision,
-    buildDrift,
-    buildObjects,
-    invalidateRoomRenders,
-    LAYERS,
-    OVERLAY_FLAGS,
-    ALL_OVERLAY_FLAGS,
-};
+export { buildRoomTileOverlay, overlayOptions, parseObjectStates, countCollision, buildDrift, buildObjects, invalidateRoomRenders, LAYERS, OVERLAY_FLAGS, ALL_OVERLAY_FLAGS };

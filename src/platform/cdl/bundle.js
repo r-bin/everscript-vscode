@@ -26,7 +26,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { buildZip, readZip } = require('../../../dist/platform/zip');
-const { CdlLibrary, parseRecords } = require('./library');
+const { CdlLibrary, parseRecords } = require('../../../dist/platform/cdl/library');
 
 const KIND = 'everscript-recording-bundle';
 const FORMAT = 1;

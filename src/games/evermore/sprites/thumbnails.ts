@@ -1,23 +1,31 @@
-'use strict';
 // Ownership: small preview images for the Sprites tab — a character's resting pose per
 // facing, and one sprite shown in every palette the game's characters use. Pure.
 
-const { animationScript, characterPalette, paletteAt, FACING_SOUTH } = require('../../../../dist/games/evermore/maps/character-record');
-const { runAnimation } = require('../../../../dist/games/evermore/maps/animation-vm');
-const { facingScript } = require('../../../../dist/games/evermore/maps/animation-table');
-const { readSpriteInfo, composeSprite, decodeSpriteBlock } = require('../../../../dist/games/evermore/maps/sprites');
-const { encodePng } = require('../../../../dist/games/evermore/maps/png');
-const { composeAligned } = require('../../../../dist/games/evermore/sprites/frame-compose');
-const { resolveCharacterSprite } = require('../../../../dist/games/evermore/maps/character-animation');
+import { animationScript, characterPalette, paletteAt, FACING_SOUTH } from '../maps/character-record';
+import { runAnimation } from '../maps/animation-vm';
+import { facingScript } from '../maps/animation-table';
+import { readSpriteInfo, composeSprite, decodeSpriteBlock } from '../maps/sprites';
+import { encodePng } from '../maps/png';
+import { composeAligned } from './frame-compose';
+import { resolveCharacterSprite } from '../maps/character-animation';
+import type { readCharacter } from './character-model';
+
+type Rom = Uint8Array;
+type Character = ReturnType<typeof readCharacter>;
+/** A thumbnail request: a raw sprite, an animation record's resting pose, or one sprite chunk's tile. */
+interface ThumbItem {
+    sprite?: number; record?: number; facing?: number; character?: number; paletteAddr?: number;
+    block?: number; large?: boolean; flipX?: boolean; flipY?: boolean; pal?: boolean | number;
+}
 
 /** South (8, the front view) and east (4) — the direction tables move 8 down the screen. */
-const THUMB_FACINGS = { s: 8, e: 4 };
+const THUMB_FACINGS: Record<'s' | 'e', number> = { s: 8, e: 4 };
 
 /**
  * The idle's resting pose: the last frame of its cycle that draws something (what the
  * character settles back into before the loop), else a segmented body's head.
  */
-function restingSprite(rom, id, facing) {
+function restingSprite(rom: Rom, id: number, facing: number): number {
     const script = animationScript(rom, id, facing, 0x32);
     if (!script) return 0;
     const run = runAnimation(rom, script, facing);
@@ -30,22 +38,22 @@ function restingSprite(rom, id, facing) {
 }
 
 /** The palette a character is shown in: the Boy's first weapon, the Dog's first form, else its own. */
-function displayPalette(rom, c) {
+function displayPalette(rom: Rom, c: Character) {
     if ((c.id === 0 || c.id === 1) && c.weapons && c.weapons[0] && c.weapons[0].paletteAddr) return paletteAt(rom, c.weapons[0].paletteAddr);
     return characterPalette(rom, c.id);
 }
 
 /** A character's second palette (+0x0B: Harry, Vigor), or null. */
-function secondPalette(rom, c) {
+function secondPalette(rom: Rom, c: Character | null) {
     return c && c.stats && c.stats.palette2 ? paletteAt(rom, c.stats.palette2) : null;
 }
 
 /** `{ s, e }` data URIs (or null) for one character's list entry. */
-function characterThumbs(rom, c) {
+function characterThumbs(rom: Rom, c: Character) {
     if (c.noVisuals) return null;
     const colours = displayPalette(rom, c);
     const colours2 = secondPalette(rom, c);
-    const out = {};
+    const out: Record<string, string | null> = {};
     for (const [key, facing] of Object.entries(THUMB_FACINGS)) {
         const sprite = restingSprite(rom, c.id, facing);
         out[key] = sprite ? composeAligned(rom, [{ sprite }], colours, colours2).images[0] : null;
@@ -53,20 +61,20 @@ function characterThumbs(rom, c) {
     return out.s || out.e ? out : null;
 }
 
-const hex4 = (v) => '$' + hexLower(v, 4);
-const { busU16: read16 } = require('../../../../dist/platform');
-const { hexLower } = require('../../../../dist/platform');
+const hex4 = (v: number): string => '$' + hexLower(v, 4);
+import { busU16 as read16 } from '../../../platform';
+import { hexLower } from '../../../platform';
 
 /**
  * Every distinct palette the characters use — record +0x09 and +0x0B, the Boy's weapon
  * palettes, the Dog's forms — each with who uses it.
  */
-function listPalettes(characters) {
-    const byAddr = new Map();
-    const add = (addr, who) => {
+function listPalettes(characters: Character[]) {
+    const byAddr = new Map<number, string[]>();
+    const add = (addr: number, who: string) => {
         if (!addr) return;
         if (!byAddr.has(addr)) byAddr.set(addr, []);
-        const list = byAddr.get(addr);
+        const list = byAddr.get(addr)!;
         if (!list.includes(who)) list.push(who);
     };
     for (const c of characters) {
@@ -78,7 +86,7 @@ function listPalettes(characters) {
 }
 
 /** One sprite coloured with each palette — composed once, recoloured per palette. */
-function renderInPalettes(rom, sprite, palettes) {
+function renderInPalettes(rom: Rom, sprite: number, palettes: { addr: number; addrHex: string; owners: string[] }[]) {
     if (!sprite) return [];
     const c = composeSprite(rom, readSpriteInfo(rom, sprite));
     if (!c.width || !c.height) return [];
@@ -97,7 +105,7 @@ function renderInPalettes(rom, sprite, palettes) {
 }
 
 /** Roughly how much a sprite covers: its chunks, 16×16 ones counting four times. */
-function spriteArea(rom, sprite) {
+function spriteArea(rom: Rom, sprite: number): number {
     try {
         return readSpriteInfo(rom, sprite).chunks.reduce((n, ch) => n + (ch.large ? 4 : 1), 0);
     } catch (e) { return 0; }
@@ -108,7 +116,7 @@ function spriteArea(rom, sprite) {
  * head segment), unless that is a fading wisp — under half the fullest frame, as when a
  * spell effect dissipates — then the fullest frame.
  */
-function recordRestingSprite(rom, record, facing) {
+function recordRestingSprite(rom: Rom, record: number, facing: number): number {
     const script = facingScript(rom, record, facing);
     if (!script) return 0;
     const run = runAnimation(rom, script, facing);
@@ -135,14 +143,14 @@ function recordRestingSprite(rom, record, facing) {
  * an animation's resting pose; coloured by `paletteAddr`, else `character`'s own palette.
  * Returns a data URI, or null when there is nothing to draw.
  */
-function thumbFor(rom, item) {
+function thumbFor(rom: Rom, item: ThumbItem): string | null {
     if (Number.isInteger(item.block)) return blockThumb(rom, item);
     let sprite = item.sprite || (item.record ? recordRestingSprite(rom, item.record, item.facing ?? FACING_SOUTH) : 0);
     // An animation that sets no sprite (the shared knock-back) keeps the character's standing one.
-    if (!sprite && item.record && Number.isInteger(item.character)) sprite = resolveCharacterSprite(rom, item.character, item.facing ?? FACING_SOUTH) || 0;
+    if (!sprite && item.record && item.character !== undefined) sprite = resolveCharacterSprite(rom, item.character, item.facing ?? FACING_SOUTH) || 0;
     if (!sprite) return null;
     const colours = item.paletteAddr ? paletteAt(rom, item.paletteAddr) : characterPalette(rom, item.character || 0);
-    const pal2 = Number.isInteger(item.character) ? read16(rom, 0x8eb678 + item.character * 74 + 0x0b) : 0;
+    const pal2 = item.character !== undefined ? read16(rom, 0x8eb678 + item.character * 74 + 0x0b) : 0;
     const c = composeAligned(rom, [{ sprite }], colours, pal2 ? paletteAt(rom, pal2) : null);
     return c.width > 1 || c.height > 1 ? c.images[0] : null;
 }
@@ -152,10 +160,10 @@ function thumbFor(rom, item) {
  * chunk, coloured with the character's own palette or — when its OAM palette bits are 1 —
  * its second one.
  */
-function blockThumb(rom, item) {
-    const b = decodeSpriteBlock(rom, item.block, !!item.large);
+function blockThumb(rom: Rom, item: ThumbItem): string {
+    const b = decodeSpriteBlock(rom, item.block!, !!item.large);
     const own = item.paletteAddr ? paletteAt(rom, item.paletteAddr) : characterPalette(rom, item.character || 0);
-    const pal2 = item.pal && Number.isInteger(item.character) ? read16(rom, 0x8eb678 + item.character * 74 + 0x0b) : 0;
+    const pal2 = item.pal && item.character !== undefined ? read16(rom, 0x8eb678 + item.character * 74 + 0x0b) : 0;
     const colours = pal2 ? paletteAt(rom, pal2) : own;
     const data = new Uint8Array(b.size * b.size * 4);
     for (let y = 0; y < b.size; y++) {
@@ -170,4 +178,4 @@ function blockThumb(rom, item) {
     return 'data:image/png;base64,' + encodePng({ width: b.size, height: b.size, data }).toString('base64');
 }
 
-module.exports = { characterThumbs, listPalettes, renderInPalettes, thumbFor, THUMB_FACINGS };
+export { characterThumbs, listPalettes, renderInPalettes, thumbFor, THUMB_FACINGS };

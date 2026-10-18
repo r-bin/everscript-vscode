@@ -15,7 +15,7 @@ const platform = require('../../../dist/platform');
 const { detectScaleEnemies } = require('../../../dist/games/evermore/rom-readers');
 const { renderRadarHtml } = require('./memory/render-radar');
 const { readAllCharacters, getRawSpriteIndex, buildAnimationCatalog, characterThumbs } = require('./sprites');
-const { radarReadMemoryMap, radarDetectScope, radarAnalyzeScope } = require('./memory/scope-analysis');
+const { radarReadMemoryMap, radarDetectScope, radarAnalyzeScope } = require('../../../dist/games/evermore/memory/scope-analysis');
 
 // ── Memory Radar ─────────────────────────────────────────────────────────────
 // RAM lifecycles (temp / session / sram / system): radar-utils.ts radarLifecycle, from the

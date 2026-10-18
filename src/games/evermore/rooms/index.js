@@ -5,10 +5,10 @@
 
 const { parseRoomContent }                                          = require('../../../../dist/games/evermore/rooms/parsing/content-parser');
 const { findRoomImage, collectRoomsFromDir, buildRoomTree,
-        setRoomImageUris }                                          = require('./parsing/file-scanner');
+        setRoomImageUris }                                          = require('../../../../dist/games/evermore/rooms/parsing/file-scanner');
 const { renderVanillaTree, renderRoomsTree, buildRoomRailHtml,
         buildRoomsJson }                                            = require('./rendering/tree-renderer');
-const { buildRoomTileOverlay, invalidateRoomRenders }               = require('./rendering/tile-overlay');
+const { buildRoomTileOverlay, invalidateRoomRenders }               = require('../../../../dist/games/evermore/rooms/rendering/tile-overlay');
 const { buildRoomMetatilePalette, buildComposedPreview,
         invalidateMetatilePalettes }                               = require('./rendering/metatile-palette');
 const { buildBlankRoom, buildDraftCollision, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews,
@@ -34,7 +34,7 @@ function invalidateRoomDataCaches() {
 }
 
 // Adapter: old room-tree.js buildRoomTree took (document, wsRoot, extCfg).
-// New file-scanner.js takes (document, wsRoot, extCfg, deps).
+// New file-scanner.ts takes (document, wsRoot, extCfg, deps).
 // This adapter injects the deps so callers in extension.js don't need to change.
 function buildRoomTreeWithDeps(document, wsRoot, extCfg) {
     return buildRoomTree(document, wsRoot, extCfg, {

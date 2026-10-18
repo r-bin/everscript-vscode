@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: one character as the Sprites tab shows it — its record's fields with what the game
 // does with each, its animations (own, held weapon or Dog form, and the compiler's named ones),
 // palette, boxes and disposition. Pure.
@@ -12,21 +11,31 @@
 //               entry from $C4:3874[index] (the Bazooka by its ammo $2349 from $C4:388E), 36 bytes
 //   Dog forms   $8F:9471 copies a form's entry into the Dog's ($0A70) (./dog-forms)
 
-const indexJson = require('../language/data/index.json');
-const { CHARACTER_TABLE, CHARACTER_STRIDE, ANIMATION_TABLE, characterPalette, characterHitbox, read16At } = require('../../../../dist/games/evermore/maps/character-record');
-const { animationIdRecord, recordScript } = require('../../../../dist/games/evermore/maps/animation-table');
-const { readSpriteInfo, scriptSprites } = require('../../../../dist/games/evermore/maps/sprites');
-const { readDogForms } = require('../../../../dist/games/evermore/sprites/dog-forms');
+import indexJson from '../language/data/index.json';
+import { CHARACTER_TABLE, CHARACTER_STRIDE, ANIMATION_TABLE, characterPalette, characterHitbox, read16At } from '../maps/character-record';
+import { animationIdRecord, recordScript } from '../maps/animation-table';
+import { readSpriteInfo, scriptSprites } from '../maps/sprites';
+import { readDogForms } from './dog-forms';
+
+type Rom = Uint8Array;
+/** An animation as the Sprites tab lists it. `category` says where it comes from. */
+interface Anim {
+    key: string; label: string; purpose: string | null; animRec: number; scriptAddr: number; flags: number; category: string;
+    offset?: number; paletteAddr?: number; valueHex?: string; num?: number; comment?: string;
+}
+/** The Boy's held weapons and the Dog's forms share this shape. */
+interface Form { id: number; name: string; paletteAddr: number; entryHex: string; anims: { animRec: number; paletteAddr?: number }[] }
+type AnimField = { key: string; label: string; offset: number; purpose: string };
 
 /** Records the ENEMY table reaches (the last ROM entry is record 141). */
 const CHARACTER_COUNT = 142;
 
-const u8 = (rom, bus) => rom[bus & 0x3fffff];
-const u24 = (rom, bus) => (read16At(rom, bus) | (u8(rom, bus + 2) << 16)) >>> 0;
-const hex = (v) => '$' + (v >>> 0).toString(16);
+const u8 = (rom: Rom, bus: number): number => rom[bus & 0x3fffff];
+const u24 = (rom: Rom, bus: number): number => (read16At(rom, bus) | (u8(rom, bus + 2) << 16)) >>> 0;
+const hex = (v: number): string => '$' + (v >>> 0).toString(16);
 
 /** What the game does with each stat field, with the code that does it. */
-const STAT_MEANINGS = {
+const STAT_MEANINGS: Record<string, string> = {
     hp: "HP (+0x0F). Copied into the entity's HP (+0x2A) when it spawns ($8FB15B).",
     attack: 'Attack (+0x19). Used by the damage routine $8FC067.',
     defense: 'Defence (+0x1B). Subtracted in the damage routine $8FC067.',
@@ -53,7 +62,7 @@ const STAT_MEANINGS = {
 };
 
 /** Record fields: name, offset, width in bytes. */
-const STATS = [
+const STATS: [string, number, number][] = [
     ['hp', 0x0f, 2], ['attack', 0x19, 2], ['defense', 0x1b, 2], ['magic_defense', 0x1d, 2], ['evade', 0x1f, 2], ['hit_rate', 0x21, 2],
     ['aggro_range', 0x13, 2], ['aggro_chance', 0x15, 2], ['exp', 0x23, 4], ['money', 0x27, 2], ['prize_chance', 0x29, 1],
     ['radius', 0x0d, 2], ['flags', 0x05, 2], ['palette', 0x09, 2], ['charge_limit', 0x2c, 2], ['charge_speed', 0x2e, 2],
@@ -66,7 +75,7 @@ const STATS = [
  * moving, run when running, attack by charge, knockback, death with or without a drop ($90:8567),
  * cast, and +0x48, the dodge the hit reaction plays ($8F:C1D6); weapons and Dog forms bring their own.
  */
-const STANDARD_ANIM_FIELDS = [
+const STANDARD_ANIM_FIELDS: AnimField[] = [
     { key: 'stand', label: 'Idle', offset: 0x32, purpose: 'idle' },
     { key: 'walk', label: 'Walk', offset: 0x34, purpose: 'walk' },
     { key: 'run', label: 'Run', offset: 0x36, purpose: 'run' },
@@ -82,7 +91,7 @@ const STANDARD_ANIM_FIELDS = [
 ];
 
 /** A weapon entry's animation words ($8F:81C9) and the record field each one fills. */
-const WEAPON_ANIMS = [
+const WEAPON_ANIMS: AnimField[] = [
     { key: 'w_stand', label: 'Idle', purpose: 'idle', offset: 0x08 },
     { key: 'w_walk', label: 'Walk', purpose: 'walk', offset: 0x0a },
     { key: 'w_run', label: 'Run', purpose: 'run', offset: 0x0c },
@@ -101,9 +110,9 @@ const WEAPON_NAMES = ['Bone Crusher', 'Gladiator Sword', 'Crusader Sword', 'Neut
 const WEAPON_PALETTE = 0x04;
 
 const BOY = 0, DOG = 1;
-const NAME_BUFFERS = { 0x7e2210: '<Boy Name>', 0x7e2234: '<Dog Name>' };
+const NAME_BUFFERS: Record<number, string> = { 0x7e2210: '<Boy Name>', 0x7e2234: '<Dog Name>' };
 
-function anim(rom, base, extra) {
+function anim(rom: Rom, base: { animRec: number }, extra: Omit<Anim, 'animRec' | 'scriptAddr' | 'flags'>): Anim {
     const animRec = base.animRec;
     return {
         ...extra, animRec, scriptAddr: animRec ? recordScript(rom, animRec) : 0,
@@ -112,8 +121,8 @@ function anim(rom, base, extra) {
 }
 
 /** The animations of each weapon the Boy can hold, by $8F:81C9's entries. */
-function readWeaponAnimations(rom) {
-    const entries = [];
+function readWeaponAnimations(rom: Rom): (Form & { anims: Anim[] })[] {
+    const entries: number[] = [];
     for (let i = 1; i <= 12; i++) entries.push(read16At(rom, WEAPON_TABLE + 2 * i));
     for (let i = 0; i < 3; i++) entries.push(read16At(rom, BAZOOKA_TABLE + 2 * i));
     return entries.map((e, id) => {
@@ -126,9 +135,9 @@ function readWeaponAnimations(rom) {
 }
 
 /** The compiler's named animations for this character (ANIMATION_BOY, ANIMATION_DOG, its prefix in ANIMATION_ENEMY). */
-function externalAnimations(rom, id, name, record, forms) {
-    const enums = indexJson.enums || {};
-    let list = [];
+function externalAnimations(rom: Rom, id: number, name: string, record: number, forms: Form[]): Anim[] {
+    const enums = (indexJson.enums || {}) as unknown as Record<string, { name: string; value: string; comment?: string }[]>;
+    let list: { name: string; value: string; comment?: string }[] = [];
     if (id === BOY) list = enums.ANIMATION_BOY || [];
     else if (id === DOG) list = enums.ANIMATION_DOG || [];
     else if (name) {
@@ -151,11 +160,11 @@ function externalAnimations(rom, id, name, record, forms) {
 }
 
 /** Whether a script names a sprite that draws something. */
-function showsSprite(rom, script) {
+function showsSprite(rom: Rom, script: number): boolean {
     return !!script && scriptSprites(rom, script).some((s) => readSpriteInfo(rom, s).chunks.length > 0);
 }
 
-function readName(rom, ptr) {
+function readName(rom: Rom, ptr: number): string {
     if (NAME_BUFFERS[ptr]) return NAME_BUFFERS[ptr];
     if ((ptr >>> 16) < 0x80) return '';
     let s = '';
@@ -167,20 +176,21 @@ function readName(rom, ptr) {
     return s;
 }
 
-const hexColour = ([r, g, b]) => '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
+const hexColour = ([r, g, b]: [number, number, number]): string => '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
 
-function readCharacter(rom, id) {
+function readCharacter(rom: Rom, id: number) {
     const record = CHARACTER_TABLE + id * CHARACTER_STRIDE;
     const namePtr = u24(rom, record);
     const name = readName(rom, namePtr);
-    const stats = {};
+    const stats: Record<string, number> = {};
     for (const [key, off, width] of STATS) {
         stats[key] = width === 1 ? u8(rom, record + off) : width === 4 ? (read16At(rom, record + off) | (read16At(rom, record + off + 2) << 16)) >>> 0 : read16At(rom, record + off);
     }
     const hitbox = characterHitbox(rom, id);
     const own = STANDARD_ANIM_FIELDS.map((f) => anim(rom, { animRec: read16At(rom, record + f.offset) }, { ...f, category: 'standard' })).filter((a) => a.animRec);
-    const weapons = id === BOY ? readWeaponAnimations(rom) : id === DOG ? readDogForms(rom) : null;
-    const anims = [...(id === BOY ? weapons[0].anims : []), ...own, ...externalAnimations(rom, id, name, record, weapons || [])];
+    const boyWeapons = id === BOY ? readWeaponAnimations(rom) : null;
+    const weapons: Form[] | null = boyWeapons || (id === DOG ? readDogForms(rom) : null);
+    const anims = [...(boyWeapons ? boyWeapons[0].anims : []), ...own, ...externalAnimations(rom, id, name, record, weapons || [])];
     const drawn = own.filter((a) => a.purpose !== 'death' && a.purpose !== 'spoils');
     const noVisuals = !drawn.some((a) => showsSprite(rom, a.scriptAddr)) && !(id === BOY || id === DOG);
     const flags = stats.flags;
@@ -196,20 +206,10 @@ function readCharacter(rom, id) {
     };
 }
 
-function readAllCharacters(rom) {
-    const out = [];
+function readAllCharacters(rom: Rom) {
+    const out: ReturnType<typeof readCharacter>[] = [];
     for (let id = 0; id < CHARACTER_COUNT; id++) out.push(readCharacter(rom, id));
     return out;
 }
 
-module.exports = {
-    CHARACTER_TABLE,
-    CHARACTER_STRIDE,
-    CHARACTER_COUNT,
-    STAT_MEANINGS,
-    STANDARD_ANIM_FIELDS,
-    WEAPON_NAMES,
-    readWeaponAnimations,
-    readCharacter,
-    readAllCharacters,
-};
+export { CHARACTER_TABLE, CHARACTER_STRIDE, CHARACTER_COUNT, STAT_MEANINGS, STANDARD_ANIM_FIELDS, WEAPON_NAMES, readWeaponAnimations, readCharacter, readAllCharacters };

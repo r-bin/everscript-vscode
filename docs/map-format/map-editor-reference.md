@@ -262,7 +262,7 @@ took, so none of it comes undone:
   has a canopy picture (`#rg-fg`) above `#rg-edit` that hides anything there.
   That picture is frame 0 and still, so it must never cover what moves or what the
   draft changed: with animation on the host cuts every animated cell out of it
-  (`clearAnimatedCells`, tile-overlay.js `foregroundFor`), and the editor masks it
+  (`clearAnimatedCells`, tile-overlay.ts `foregroundFor`), and the editor masks it
   off every painted cell (`editCanopyMask`, map-editor-paint.js). Animation frames
   are opaque over their cells (the map's own backdrop), so frame 0 in the map
   image cannot show through a later frame. The editor's Animation on/off stops a

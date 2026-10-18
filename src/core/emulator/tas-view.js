@@ -18,7 +18,7 @@ const { pageFile } = require('./page-file');
  *  - the input overlay (OVERLAYS tab, INPUTS chip) draws the pad fed to the core this frame.
  *
  * Beyond the pad, a movie also records everything that changes the emulation
- * from outside (movie.js documents the lines): memory writes made through
+ * from outside (movie.ts documents the lines): memory writes made through
  * Module.writeMemory (cheats, object states, menu toggles, injected scripts;
  * a hook installed once records them, WRAM writes that change nothing are
  * dropped), soft resets, and a WRAM checksum every TAS_CHECK_EVERY frames. A

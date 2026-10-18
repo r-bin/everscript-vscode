@@ -110,7 +110,7 @@ test('processScriptTraceBatch handles interwoven slots and state transitions', (
 // Test 4: ASCII-only invariant across emulator sources and grammar files
 test('script-trace.js, panel.js, panel-webview.js, and grammar files are strictly ASCII-only', () => {
   const files = [
-    path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'address-lookup.js'),
+    path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'address-lookup.ts'),
     path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'trace-formatter.ts'),
     path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'script-trace.js'),
     path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'panel.js'),
@@ -213,7 +213,7 @@ test('everscript-trace.tmLanguage.json parses and defines valid regex patterns',
 
 // Test 9: RomAddressLookup resolves enter script, empty trigger, and draft triggers
 test('RomAddressLookup resolves Room 0x15 enter script, empty trigger, and custom draft triggers', () => {
-  const { RomAddressLookup } = require('../../src/games/evermore/emulator/address-lookup');
+  const { RomAddressLookup } = require('../../dist/games/evermore/emulator/address-lookup');
   const draft = {
     bTrigger: [
       { x1: 5, y1: 10, x2: 6, y2: 11, scriptId: 477 },
@@ -319,7 +319,7 @@ test('processScriptTraceBatch keeps end events and attaches lookup', () => {
 
 // Test 12: RomAddressLookup resolves global scripts (e.g. 0x92A050 -> global[0x36])
 test('RomAddressLookup resolves global script addresses including 0x92A050 (global[0x36])', () => {
-  const { RomAddressLookup } = require('../../src/games/evermore/emulator/address-lookup');
+  const { RomAddressLookup } = require('../../dist/games/evermore/emulator/address-lookup');
   const lookup = new RomAddressLookup(null, null);
 
   const g36 = lookup.lookup(0x92A050);
@@ -362,7 +362,7 @@ test('End events omit bytecode repetition and sub-lines carry slot prefixes', ()
 
 // Test 14: Step-on trigger attribution in RomAddressLookup and processScriptTraceBatch
 test('RomAddressLookup and processScriptTraceBatch correctly attribute step-on triggers', () => {
-  const { RomAddressLookup } = require('../../src/games/evermore/emulator/address-lookup');
+  const { RomAddressLookup } = require('../../dist/games/evermore/emulator/address-lookup');
   const draft = {
     bTrigger: [
       { x1: 5, y1: 10, x2: 6, y2: 11, scriptId: 477 },

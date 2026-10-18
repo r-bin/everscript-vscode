@@ -7,7 +7,7 @@
  *   recomp/cfg/bankXX.cfg   one per bank code ran in (the runtime bank, e.g. $80, not $C0):
  *                           `func <name> <pc16> entry_mx:M,X [exit_mx:M,X]` per recorded entry,
  *                           exit width variants, indirect_dispatch for recorded jump tables /
- *                           pointer jumps / PEI;RTS, ram_routine for WRAM code (recomp-analysis.js),
+ *                           pointer jumps / PEI;RTS, ram_routine for WRAM code (recomp-analysis.ts),
  *                           `data_region` for known regions (rooms, strings, lookup tables)
  *   recomp.sh               scaffold once, copy the seeds, `generate`, build the static library
  * The seeds only add roots and widths the recorder saw; snesrecomp's own analysis
@@ -17,7 +17,7 @@
 const fs = require('fs');
 const path = require('path');
 const { hex } = require('../../../dist/platform/cdl/rom-map');
-const { returnsByEntry, exitDirectives, dispatchDirectives, noReturnComments, ramRoutines, FUNC_EXCLUSIONS } = require('./recomp-analysis');
+const { returnsByEntry, exitDirectives, dispatchDirectives, noReturnComments, ramRoutines, FUNC_EXCLUSIONS } = require('../../../dist/platform/cdl/recomp-analysis');
 
 const CDL_ACC_8 = 0x20, CDL_IDX_8 = 0x10;
 const EXT_SEEN_M16 = 0x08, EXT_SEEN_X16 = 0x10;

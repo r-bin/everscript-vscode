@@ -24,7 +24,7 @@
 const fs = require('fs');
 const path = require('path');
 const { createRomMap, hex, countText } = require('../../../dist/platform/cdl/rom-map');
-const { buildIndex, SPACE } = require('./xref-index');
+const { buildIndex, SPACE } = require('../../../dist/platform/cdl/xref-index');
 const { decodeAt, formatInstruction, staticTarget } = require('../../../dist/platform/cdl/disasm');
 const { findKnownRegions } = require('../../../dist/platform/cdl/known-regions');
 const { writeBuildFiles } = require('../../../dist/platform/cdl/asar-build');
@@ -36,7 +36,7 @@ const { buildEnums, enumsAsm } = require('./enums');
 const { inferStructs, structsAsm, structsHeader } = require('./structs');
 const { buildFunctions } = require('./functions');
 const { writeMesenFiles } = require('../../../dist/platform/cdl/mesen-export');
-const { buildBusReport, busReportMd } = require('./bus-report');
+const { buildBusReport, busReportMd } = require('../../../dist/platform/cdl/bus-report');
 
 const CDL_CODE = 0x01, CDL_DATA = 0x02;
 const EXT_DMA = 0x01, EXT_APU = 0x02, EXT_HEAD = 0x04, EXT_POINTER = 0x20;
@@ -82,7 +82,7 @@ function summarizeSkips(skipped) {
 }
 
 /**
- * @param opts.names      Map<rom offset, { name, note? }> curated names (see xref-index.js)
+ * @param opts.names      Map<rom offset, { name, note? }> curated names (see xref-index.ts)
  * @param opts.wramNames  Map<wram offset, { name, note?, size? }> for the Mesen labels
  * @param opts.assets     [{ start, end, name }] ROM ranges known to be data (Mesen CDL, report)
  * @param opts.gameRegions (rom, map, cdl, steps) => { regions, defines } | null: what the game knows

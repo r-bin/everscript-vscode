@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * platform/cdl/bus-report.js
  *
@@ -14,19 +12,25 @@
  * Only observed behaviour: a layout with no hits is "not seen", not "safe".
  */
 
-const { hex } = require('../../../dist/platform/cdl/rom-map');
-const { busSitesList, BUS } = require('../../../dist/platform/cdl/library-ext');
+import { hex } from './rom-map';
+import { busSitesList, BUS } from './library-ext';
+import type { RomMap } from './rom-map';
+import type { CdlLibrary } from './library';
 
-const FORMS = [[BUS.C, '$C0-$FF'], [BUS.B8, '$80-$BF'], [BUS.B0, '$00-$3F'], [BUS.B4, '$40-$7D']];
-const bankClass = bank => (bank >= 0xC0 ? BUS.C : bank >= 0x80 ? BUS.B8 : bank >= 0x40 ? BUS.B4 : BUS.B0);
-const names = bits => FORMS.filter(([b]) => bits & b).map(([, n]) => n);
-const topN = (list, n) => list.slice(0, n);
+/** A function record of functions.json, as far as the report reads it. */
+interface FunctionRecord { name: string; bus: number; cycles: number; execCount: number; sa1: { transitiveBlockers: string[] } }
+type BusReport = ReturnType<typeof buildBusReport>;
 
-function buildBusReport(lib, map, functions) {
-    const banks = new Map();
-    const bankOf = off => {
+const FORMS: [number, string][] = [[BUS.C, '$C0-$FF'], [BUS.B8, '$80-$BF'], [BUS.B0, '$00-$3F'], [BUS.B4, '$40-$7D']];
+const bankClass = (bank: number): number => (bank >= 0xC0 ? BUS.C : bank >= 0x80 ? BUS.B8 : bank >= 0x40 ? BUS.B4 : BUS.B0);
+const names = (bits: number): string[] => FORMS.filter(([b]) => bits & b).map(([, n]) => n);
+const topN = <T>(list: T[], n: number): T[] => list.slice(0, n);
+
+function buildBusReport(lib: CdlLibrary, map: RomMap, functions: FunctionRecord[]) {
+    const banks = new Map<number, { exec: number[]; read: number[] }>();
+    const bankOf = (off: number) => {
         const b = off >> 16;
-        return banks.get(b) || banks.set(b, { exec: [0, 0, 0, 0], read: [0, 0, 0, 0] }).get(b);
+        return banks.get(b) || banks.set(b, { exec: [0, 0, 0, 0], read: [0, 0, 0, 0] }).get(b)!;
     };
     const total = { exec: [0, 0, 0, 0], read: [0, 0, 0, 0], recorded: 0 };
     for (let off = 0; off < lib.romSize; off++) {
@@ -43,13 +47,13 @@ function buildBusReport(lib, map, functions) {
         pc: '$' + hex(s.pc, 6), form: names(s.formBit)[0], lo: '$' + hex(s.lo, 6), hi: '$' + hex(s.hi, 6),
         dma: !!(s.flags & 0x20), bit: s.formBit,
     }));
-    const edges = [];
+    const edges: { from: string; to: string; form: string; bit: number }[] = [];
     for (const [key] of lib.edges) {
         const from = Math.floor(key / 0x1000000), to = key % 0x1000000;
         const cls = bankClass(to >>> 16);
         if (cls !== BUS.C) edges.push({ from: '$' + hex(from, 6), to: '$' + hex(to, 6), form: names(cls)[0], bit: cls });
     }
-    const pick = mask => ({
+    const pick = (mask: number) => ({
         executedBytes: total.exec.reduce((n, c, i) => n + ((mask & (1 << i)) ? c : 0), 0),
         readBytes: total.read.reduce((n, c, i) => n + ((mask & (1 << i)) ? c : 0), 0),
         readSites: sites.filter(s => s.bit & mask).map(({ bit, ...r }) => r),
@@ -71,15 +75,15 @@ function buildBusReport(lib, map, functions) {
     };
 }
 
-function busReportMd(r) {
-    const L = [];
+function busReportMd(r: BusReport): string {
+    const L: string[] = [];
     L.push('# Bus-form report', '',
         'Which mirror of the ROM the recorded program used (`bus.cdl`, `bus-sites.bin`), and where the cycles went. Only observed behaviour: no hits means "not seen yet", not "safe". Plan: `docs/exhirom/layout-options.md`.', '',
         `ROM layout: ${r.layout}. Bytes with a recorded bus form: ${r.recordedBytes}.`, '');
-    for (const [key, title, why] of [
+    for (const [key, title, why] of ([
         ['exhirom', 'ExHiROM audit', 'Bytes seen through `$00-$3F:8000+` or `$40-$7D` change meaning in ExHiROM. Zero here after a long recording means the first 4 MB can stay identical.'],
         ['sa1', 'SA-1 audit', 'SA-1 maps `$80-$BF:8000+` LoROM-style, so every use of a form other than `$C0-$FF` has to be rewritten (to `$Cx`).'],
-    ]) {
+    ] as ['exhirom' | 'sa1', string, string][])) {
         const x = r[key];
         L.push(`## ${title}`, '', why, '',
             `- executed bytes through those forms: **${x.executedBytes}**`,
@@ -110,4 +114,4 @@ function busReportMd(r) {
     return L.join('\n') + '\n';
 }
 
-module.exports = { buildBusReport, busReportMd };
+export { buildBusReport, busReportMd };

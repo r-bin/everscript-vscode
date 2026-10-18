@@ -18,7 +18,7 @@ interface TraceItem {
 }
 /** A follow-up line under an entry: an address the instruction reached (a call, a read). */
 interface TraceSub { addrHex: string; summary?: string; bytesHex?: string; callKind?: string }
-/** What address-lookup.js knows about the script an entry belongs to. */
+/** What address-lookup.ts knows about the script an entry belongs to. */
 interface TraceLookup { shortTag?: string; name?: string }
 
 function escH(s: unknown): string {

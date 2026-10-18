@@ -2,14 +2,14 @@
 
 const vscode = require('vscode');
 const { getRepoAutofillUpdates } = require('../../../dist/games/evermore/language/config');
-const lp = require('./language/language-providers');
+const lp = require('../../../dist/games/evermore/language/language-providers');
 const { buildVanillaRoomDetails, buildRoomTree, setRoomImageUris } = require('./rooms');
 const romReaders = require('../../../dist/games/evermore/rom-readers');
 const roms = require('../../../dist/core/roms/host');
 const gameViews = require('../../../dist/core/game-views');
 const platform = require('../../../dist/platform');
 const { renderRadarHtml } = require('./memory/render-radar');
-const { radarDetectScope, radarAnalyzeScope } = require('./memory/scope-analysis');
+const { radarDetectScope, radarAnalyzeScope } = require('../../../dist/games/evermore/memory/scope-analysis');
 const { radar, getRadarMap, invalidateRadarMap, getRadarEnums, invalidateRadarEnums, invalidateRoomCaches, getSpritesBundle, getExtConfig, radarItemIcons, refreshRadar, RadarCodeLensProvider, radarImportedRooms } = require('./radar-panel');
 const { openMemoryRadar } = require('./radar-open');
 
@@ -239,7 +239,7 @@ function activate(context) {
             syncDerivedSettingsFromRepoPath().catch(() => {});
             vscode.commands.executeCommand('workbench.action.openSettings', 'everscript');
         }),
-        vscode.commands.registerCommand('everscript.exportRoomMaps', () => require('./rooms/export-maps').exportRoomMaps(getExtConfig)),
+        vscode.commands.registerCommand('everscript.exportRoomMaps', () => require('../../../dist/games/evermore/rooms/export-maps').exportRoomMaps()),
 
         // A map editor is a workspace, not a read-out: it opens in the active
         // column with the whole editor area, on the Rooms tab, already in edit
@@ -274,7 +274,7 @@ function activate(context) {
         if (event.affectsConfiguration('everscript.repoPath')) syncDerivedSettingsFromRepoPath().catch(() => {});
     }));
 
-    require('./language/build-and-run').registerBuildAndRun(context, { getExtConfig, openEmulatorPanel });
+    require('../../../dist/games/evermore/language/build-and-run').registerBuildAndRun(context, { getExtConfig, openEmulatorPanel, romPathFor: roms.romPathFor, invalidateRoomCaches });
 }
 
 module.exports = { activate };

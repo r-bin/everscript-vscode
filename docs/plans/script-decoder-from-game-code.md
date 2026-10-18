@@ -1,7 +1,7 @@
 # Plan: rebuild the script decoder from the game's own code
 
 **Decision (2026-10-11):** the script decoder (`src/games/evermore/script/`), the sprite/character readers
-(`src/games/evermore/maps/sprites.ts`, `src/games/evermore/maps/character-record.ts`, `src/games/evermore/sprites/character-model.js`) and
+(`src/games/evermore/maps/sprites.ts`, `src/games/evermore/maps/character-record.ts`, `src/games/evermore/sprites/character-model.ts`) and
 everything else ported from SoEScriptDumper/SoETilesViewer is re-implemented **from the game
 itself**. We have the author's written agreement, but we choose not to build on their work.
 Names (`src/games/evermore/script/names.json`, room names) stay for now; room names are rewritten in our own

@@ -365,9 +365,9 @@ test('rooms detail shows every ROM feature toggle, all on by default but collisi
     const { sandbox } = runWebviewJs(extractScript(html));
     const detail = sandbox.document.getElementById('room-detail').innerHTML || '';
 
-    // The flag set is the contract with rooms/rendering/tile-overlay.js. A
+    // The flag set is the contract with rooms/rendering/tile-overlay.ts. A
     // feature added there without a button here would be unreachable.
-    const { ALL_OVERLAY_FLAGS } = require('../../src/games/evermore/rooms/rendering/tile-overlay');
+    const { ALL_OVERLAY_FLAGS } = require('../../dist/games/evermore/rooms/rendering/tile-overlay');
     const rendered = (detail.match(/data-ov="(.)"/g) || []).map((m) => m.charAt(m.length - 2));
     assert.deepStrictEqual(rendered.slice().sort().join(''), ALL_OVERLAY_FLAGS.split('').sort().join(''),
         'Expected one toggle per overlay flag the host understands');

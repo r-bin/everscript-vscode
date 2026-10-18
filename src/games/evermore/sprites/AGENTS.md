@@ -6,8 +6,8 @@ Related skills: `animation-script`, `map-entities` (`.agents/skills/`).
 ## Owns
 - The radar panel's **Characters** tab: characters/enemies/NPCs and their stats and
   hitboxes, raw ROM sprites, the animation catalog, and the animation player.
-- Host side: `character-model.js`, `animation-*.js`, `frame-compose.ts`,
-  `projectile-render.ts`, `target.js`, `dog-forms.ts`, `raw-sprites.ts`, `thumbnails.js`,
+- Host side: `character-model.ts`, `animation-*.js`, `frame-compose.ts`,
+  `projectile-render.ts`, `target.ts`, `dog-forms.ts`, `raw-sprites.ts`, `thumbnails.ts`,
   `sprites-tab.ts`, `index.js`, `radar-host.js` (the tab's messages, routed by `extension.js`). Browser side: `webview/` (concatenated into the radar page).
 
 ## Dependencies
@@ -18,7 +18,7 @@ Related skills: `animation-script`, `map-entities` (`.agents/skills/`).
 - No dependency on `src/games/evermore/rooms/`, `src/games/evermore/debugger/`, `src/games/evermore/scaling/`, or `vscode`.
 
 Existing exceptions (do not add more):
-- `character-model.js` and `animation-catalog.ts` require `../language/data/index.json`
+- `character-model.ts` and `animation-catalog.ts` require `../language/data/index.json`
   (enum definitions for external animations), a platform domain's file rather than a
   `soe://` read.
 

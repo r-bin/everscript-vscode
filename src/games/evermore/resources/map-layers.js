@@ -7,7 +7,7 @@ const { geometryMask, isAlwaysWalkable, tilePlane } = require('../../../../dist/
 const { PLANE_COLORS } = require('../../../../dist/games/evermore/maps/collision-overlay');
 const { renderMetatileAtlas, metatileTable } = require('../../../../dist/games/evermore/maps/metatiles');
 const { encodeGif } = require('../../../../dist/games/evermore/resources/gif');
-const { getAnimationSchedule } = require('./map-animation');
+const { getAnimationSchedule } = require('../../../../dist/games/evermore/resources/map-animation');
 
 const _layerCache = new WeakMap();
 const _collCache = new WeakMap();

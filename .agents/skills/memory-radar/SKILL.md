@@ -9,8 +9,8 @@ applyTo: "src/games/evermore/memory/**,src/games/evermore/radar-utils.ts,src/gam
 The radar is one webview panel (`everscript.openMemoryRadar`, Evermore's main view in
 `core/game-views.ts`) with tabs: Memory, Rooms (`rooms-tab` skill), Characters
 (`games/evermore/sprites/`), Scripts, Music, ROM, Scaling, Docs/RNG. The panel is
-`games/evermore/extension.js`; rendering `memory/render-radar.js`, `memory/render-memory-tab.js`,
-`memory/webview/`; scope analysis `memory/scope-analysis.js`; pure helpers `radar-utils.ts`.
+`games/evermore/extension.js`; rendering `memory/render-radar.js`, `memory/render-memory-tab.ts`,
+`memory/webview/`; scope analysis `memory/scope-analysis.ts`; pure helpers `radar-utils.ts`.
 
 ## Radar data sources
 
@@ -131,7 +131,7 @@ rendering, state, IPC, parsing, interactions, and tests:
 - `src/games/evermore/scaling/webview/` — scaling tab
 - `src/games/evermore/rooms/webview/`, `src/games/evermore/rooms/rendering/`, `src/games/evermore/rooms/parsing/`, `src/games/evermore/rooms/data/` — rooms tab
 - `src/games/evermore/sprites/` — Characters tab (characters, animations, raw sprites)
-- `src/games/evermore/memory/render-memory-tab.js` — memory tab rendering
+- `src/games/evermore/memory/render-memory-tab.ts` — memory tab rendering
 - `src/games/evermore/docs-tab/render-docs-tab.js` — docs/RNG tab rendering
 
 Rules:

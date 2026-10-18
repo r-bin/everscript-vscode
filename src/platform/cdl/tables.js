@@ -17,7 +17,7 @@
 
 const { hex, countText } = require('../../../dist/platform/cdl/rom-map');
 const { decodeAt } = require('../../../dist/platform/cdl/disasm');
-const { SPACE, XR, EXT_HEAD, CDL_CODE, XREFS_PER_PC } = require('./xref-index');
+const { SPACE, XR, EXT_HEAD, CDL_CODE, XREFS_PER_PC } = require('../../../dist/platform/cdl/xref-index');
 
 const SITE_MODES = new Set(['absx', 'absy', 'longx']);
 const MEM_MODES = new Set(['dp', 'dpx', 'dpy', 'abs', 'absx', 'absy', 'long', 'longx']);

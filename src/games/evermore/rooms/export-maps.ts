@@ -1,12 +1,11 @@
-'use strict';
 // Ownership: Everscript: Export Room Maps as PNG — every decoded room (or one) written as PNG files,
-// the in-editor equivalent of a batch render. `getExtConfig` is injected by extension.js.
+// the in-editor equivalent of a batch render.
 
-const vscode = require('vscode');
-const path = require('path');
-const fs = require('fs');
-const romReaders = require('../../../../dist/games/evermore/rom-readers');
-const { missingRomText } = require('../../../../dist/platform/roms/library');
+import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as romReaders from '../rom-readers';
+import { missingRomText } from '../../../platform/roms/library';
 
 /**
  * Export decoded room maps as PNG files.
@@ -14,9 +13,8 @@ const { missingRomText } = require('../../../../dist/platform/roms/library');
  * The in-repo equivalent of `tools/render_map.py --all-rooms -o out/maps`,
  * so the PNGs are reachable without leaving VS Code or setting up Python.
  */
-async function exportRoomMaps(getExtConfig) {
-    const maps = require('../../../../dist/games/evermore/maps');
-    const cfg  = getExtConfig();
+async function exportRoomMaps() {
+    const maps = require('../maps');
     const ws   = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     const rom  = romReaders.loadRomBuffer(ws, '');
     if (!rom) {
@@ -84,7 +82,7 @@ async function exportRoomMaps(getExtConfig) {
                     fs.writeFileSync(file, maps.encodePng(image));
                     written += 1;
                 } catch (err) {
-                    failures.push(`0x${id.toString(16)}: ${err && err.message || err}`);
+                    failures.push(`0x${id.toString(16)}: ${err instanceof Error ? err.message : err}`);
                 }
                 // Yield so the progress notification can paint.
                 await new Promise((r) => setImmediate(r));
@@ -101,4 +99,4 @@ async function exportRoomMaps(getExtConfig) {
     );
 }
 
-module.exports = { exportRoomMaps };
+export { exportRoomMaps };

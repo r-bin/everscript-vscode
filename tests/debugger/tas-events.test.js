@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Movie events (writes, soft resets, WRAM checksums): the format in movie.js, the webview half
+ * Movie events (writes, soft resets, WRAM checksums): the format in movie.ts, the webview half
  * (tas-view.js) driven against a fake core, and, when a local Secret of Evermore ROM is found, the
  * headless replay tool (tools/cdl/replay.js) on the real core: checksums match across processes
  * and a changed input is reported as a desync.
@@ -16,7 +16,7 @@ const vm = require('vm');
 const { execFileSync, spawnSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '../..');
-const movie = require('../../src/platform/tas/movie');
+const movie = require('../../dist/platform/tas/movie');
 const { getTasClientScript } = require('../../src/core/emulator/tas-view');
 
 let passed = 0;
@@ -29,7 +29,7 @@ function test(name, fn) {
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'evs-tas-events-'));
 console.log('TAS events tests:');
 
-// ---- movie.js -----------------------------------------------------------------------------
+// ---- movie.ts -----------------------------------------------------------------------------
 test('CRC-32 matches the standard check value; WRAM CRC reads the 128 KB in core-sized chunks', () => {
     assert.strictEqual(movie.crc32(Buffer.from('123456789')), 0xCBF43926);
     const reads = [];
@@ -127,7 +127,7 @@ test('the webview records frames, merged writes, resets and checksums in order, 
     assert.ok(lines.some(l => /^T\|vram=[0-9A-F]{8}\|cgram=[0-9A-F]{8}\|oam=[0-9A-F]{8}\|sram=[0-9A-F]{8}\|aram=[0-9A-F]{8}$/.test(l)), 'the other spaces after 600 frames');
     const sent = w.posted.filter(p => p.command === 'tasRecFrames').reduce((n, p) => n + p.frames, 0);
     assert.strictEqual(sent, 603, 'the host is told the frame count, not the line count');
-    // the checksum in the file equals movie.js over the same memory, i.e. the two CRC codes agree
+    // the checksum in the file equals movie.ts over the same memory, i.e. the two CRC codes agree
     const s = lines.find(l => l[0] === 'S');
     assert.strictEqual(s.slice(2).length, 8);
 });

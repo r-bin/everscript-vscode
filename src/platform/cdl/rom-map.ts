@@ -54,4 +54,7 @@ function countText(n: number): string {
 /** "C0:8012" */
 function busName(addr: number): string { return hex(addr >>> 16, 2) + ':' + hex(addr & 0xFFFF, 4); }
 
+type RomMap = ReturnType<typeof createRomMap>;
+
+export type { RomMap };
 export { createRomMap, hex, busName, countText };

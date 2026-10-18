@@ -15,7 +15,7 @@
 const { hex } = require('../../../dist/platform/cdl/rom-map');
 const { decodeAt } = require('../../../dist/platform/cdl/disasm');
 const { buildWramReport } = require('./wram-export');
-const { EXT_HEAD, XR } = require('./xref-index');
+const { EXT_HEAD, XR } = require('../../../dist/platform/cdl/xref-index');
 
 const WALK = 6;
 

@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * platform/cdl/recomp-analysis.js
  *
@@ -16,23 +14,29 @@
  * return) becomes a comment next to the site. 1 = 8-bit in every M/X field.
  */
 
-const { hex } = require('../../../dist/platform/cdl/rom-map');
-const { retsList, RET, WCODE } = require('../../../dist/platform/cdl/library-ext');
-const { decodeAt } = require('../../../dist/platform/cdl/disasm');
+import { hex } from './rom-map';
+import type { RomMap } from './rom-map';
+import type { CdlLibrary } from './library';
+import { retsList, RET, WCODE } from './library-ext';
+import { decodeAt } from './disasm';
 
 const FLOW_INDIRECT = 8, FLOW_RETURN = 0x20;
 const EXT_HEAD = 0x04;
 const TABLE_SCAN = 256;
 const CDL_CODE = 0x01, CDL_DATA = 0x02, SPACE_ROM = 1;
 
+/** What returnsByEntry collects for one routine entry. */
+interface ReturnInfo { variants: Map<string, Set<string>>; normal: number; dropped: Set<number>; modified: Set<number> }
+type Readers = Map<number, Set<number>>;
+
 /** ROM offset -> Set of PCs that read it (recorded xrefs). */
-function romReaders(lib) {
-    const by = new Map();
+function romReaders(lib: CdlLibrary): Readers {
+    const by: Readers = new Map();
     for (const key of lib.xrefs.keys()) {
         const pc = Math.floor(key / 0x4000000), sa = key % 0x4000000;
         if ((sa >>> 24) !== SPACE_ROM) continue;
         const off = sa & 0xFFFFFF;
-        (by.get(off) || by.set(off, new Set()).get(off)).add(pc);
+        (by.get(off) || by.set(off, new Set()).get(off)!).add(pc);
     }
     return by;
 }
@@ -45,7 +49,9 @@ function romReaders(lib) {
  * pointer and the table bytes are not something else: never executed, not read by another
  * non-dispatch instruction (the next table), target not recorded as data only.
  */
-function staticTableCount({ lib, rom, map, bank, base, observed, site, readers }) {
+function staticTableCount({ lib, rom, map, bank, base, observed, site, readers }: {
+    lib: CdlLibrary; rom: Uint8Array; map: RomMap; bank: number; base: number; observed: number; site: number; readers: Readers;
+}): number {
     let count = observed;
     for (let k = observed; k < TABLE_SCAN; k++) {
         const o = map.busToRom((bank << 16) | ((base + k * 2) & 0xFFFF));
@@ -53,7 +59,7 @@ function staticTableCount({ lib, rom, map, bank, base, observed, site, readers }
         if ((lib.cdl[o] | lib.cdl[o + 1]) & CDL_CODE) break;
         // another jmp/jsr (abs,X) may share the table (SoE $8F:9ECA reads $8F:9F46's entries 8+); a plain
         // data read (lda $A3F8,x) marks the next table
-        const other = pc => {
+        const other = (pc: number): boolean => {
             if (pc === site) return false;
             const po = map.busToRom(pc);
             return !(po >= 0 && (rom[po] === 0x7C || rom[po] === 0xFC));
@@ -70,12 +76,12 @@ function staticTableCount({ lib, rom, map, bank, base, observed, site, readers }
 }
 const RAM_ROUTINE_MAX = 0x400;
 
-const mxName = (m8, x8) => 'M' + (m8 ? 1 : 0) + 'X' + (x8 ? 1 : 0);
+const mxName = (m8: boolean, x8: boolean): string => 'M' + (m8 ? 1 : 0) + 'X' + (x8 ? 1 : 0);
 
 /** entry bus -> { variants: Map('M1X1' -> Set(exit names)), normal, dropped: Set(site), modified: Set(retPc) } */
-function returnsByEntry(lib) {
-    const out = new Map();
-    const get = e => out.get(e) || out.set(e, { variants: new Map(), normal: 0, dropped: new Set(), modified: new Set() }).get(e);
+function returnsByEntry(lib: CdlLibrary): Map<number, ReturnInfo> {
+    const out = new Map<number, ReturnInfo>();
+    const get = (e: number): ReturnInfo => out.get(e) || out.set(e, { variants: new Map(), normal: 0, dropped: new Set(), modified: new Set() }).get(e)!;
     for (const r of retsList(lib)) {
         if (r.flags & RET.INTERRUPT) continue;
         const f = get(r.entry);
@@ -83,7 +89,7 @@ function returnsByEntry(lib) {
         if (r.flags & (RET.NORMAL | RET.MODIFIED)) {
             f.normal++;
             const v = mxName(r.entryM8, r.entryX8);
-            (f.variants.get(v) || f.variants.set(v, new Set()).get(v)).add(mxName(r.exitM8, r.exitX8));
+            (f.variants.get(v) || f.variants.set(v, new Set()).get(v)!).add(mxName(r.exitM8, r.exitX8));
         }
         if (r.flags & RET.MODIFIED) f.modified.add(r.retPc);
     }
@@ -91,15 +97,15 @@ function returnsByEntry(lib) {
 }
 
 /** Inline exit_mx for a func line, plus standalone lines when variants differ. */
-function exitDirectives(info, bus) {
+function exitDirectives(info: ReturnInfo | null | undefined, bus: number): { inline: string; lines: string[] } {
     if (!info || !info.variants.size) return { inline: '', lines: [] };
-    const all = new Set();
+    const all = new Set<string>();
     for (const exits of info.variants.values()) exits.forEach(e => all.add(e));
     if (all.size === 1) {
         const e = [...all][0];
         return { inline: ` exit_mx:${e[1]},${e[3]}`, lines: [] };
     }
-    const lines = [];
+    const lines: string[] = [];
     const addr = hex(bus, 6).toLowerCase();
     for (const [entry, exits] of info.variants) {
         if (exits.size === 1) {
@@ -112,12 +118,12 @@ function exitDirectives(info, bus) {
     return { inline: '', lines };
 }
 
-function head(rom, lib, off) {
+function head(rom: Uint8Array, lib: CdlLibrary, off: number) {
     return off >= 0 && (lib.ext[off] & EXT_HEAD) ? decodeAt(rom, off, lib.cdl[off], lib.ext[off]) : null;
 }
 
 /** Previous instruction head before `off` (CDL heads only). */
-function prevHead(rom, lib, off) {
+function prevHead(rom: Uint8Array, lib: CdlLibrary, off: number) {
     for (let p = off - 1; p >= off - 4 && p >= 0; p--) {
         const ins = head(rom, lib, p);
         if (ins && p + ins.len === off) return { off: p, ins };
@@ -179,20 +185,20 @@ const FUNC_EXCLUSIONS = new Map([
  * Indirect sites: directive or comment per site, keyed by runtime bank.
  * @returns {{ lines: Map(bank -> string[]), counts: { indexed, pointer, rtsstack, comments } }}
  */
-function dispatchDirectives({ lib, rom, map }) {
-    const lines = new Map();
-    const add = (bank, line) => (lines.get(bank) || lines.set(bank, []).get(bank)).push(line);
+function dispatchDirectives({ lib, rom, map }: { lib: CdlLibrary; rom: Uint8Array; map: RomMap }) {
+    const lines = new Map<number, string[]>();
+    const add = (bank: number, line: string) => (lines.get(bank) || lines.set(bank, []).get(bank)!).push(line);
     const counts = { indexed: 0, pointer: 0, rtsstack: 0, comments: 0 };
-    const sites = new Map(), returns = new Map();
+    const sites = new Map<number, Set<number>>(), returns = new Map<number, Set<number>>();
     for (const [key, kind] of lib.edges) {
         const from = Math.floor(key / 0x1000000), to = key % 0x1000000;
         if (kind & 0x10) continue;
-        if (kind & FLOW_INDIRECT) (sites.get(from) || sites.set(from, new Set()).get(from)).add(to);
-        else if (kind & FLOW_RETURN) (returns.get(from) || returns.set(from, new Set()).get(from)).add(to);
+        if (kind & FLOW_INDIRECT) (sites.get(from) || sites.set(from, new Set()).get(from)!).add(to);
+        else if (kind & FLOW_RETURN) (returns.get(from) || returns.set(from, new Set()).get(from)!).add(to);
     }
     const modifiedAt = new Set(retsList(lib).filter(r => r.flags & RET.MODIFIED).map(r => r.retPc));
-    const t6 = v => hex(v, 6).toLowerCase(), t4 = v => hex(v & 0xFFFF, 4).toLowerCase();
-    let readers = null;
+    const t6 = (v: number) => hex(v, 6).toLowerCase(), t4 = (v: number) => hex(v & 0xFFFF, 4).toLowerCase();
+    let readers: Readers | null = null;
 
     for (const [site, tos] of [...sites].sort((a, b) => a[0] - b[0])) {
         const bank = site >>> 16, off = map.busToRom(site), ins = head(rom, lib, off);
@@ -258,8 +264,8 @@ function dispatchDirectives({ lib, rom, map }) {
 }
 
 /** Functions whose frames were unwound and that never returned normally. */
-function noReturnComments(returns, labelOf) {
-    const out = [];
+function noReturnComments(returns: Map<number, ReturnInfo>, labelOf: (entry: number) => string) {
+    const out: { bank: number; line: string }[] = [];
     for (const [entry, info] of returns) {
         if (info.normal || !info.dropped.size) continue;
         out.push({ bank: entry >>> 16, line: `# ${labelOf(entry)} never returned normally; frames unwound from call sites ${[...info.dropped].map(s => hex(s & 0xFFFF, 4).toLowerCase()).join(',')} (noreturn_jsr / terminal_jsr candidate, check by hand)` });
@@ -268,9 +274,9 @@ function noReturnComments(returns, labelOf) {
 }
 
 /** WRAM routines reached by a call or jump, with their recorded bytes. */
-function ramRoutines(lib, returns) {
-    const out = [], skipped = [];
-    const entries = new Set();
+function ramRoutines(lib: CdlLibrary, returns: Map<number, ReturnInfo>) {
+    const out: string[] = [], skipped: string[] = [];
+    const entries = new Set<number>();
     for (const [key] of lib.edges) {
         const to = key % 0x1000000, bank = to >>> 16;
         if (bank === 0x7E || bank === 0x7F) entries.add(to - 0x7E0000);
@@ -296,4 +302,4 @@ function ramRoutines(lib, returns) {
     return { lines: out, skipped };
 }
 
-module.exports = { returnsByEntry, exitDirectives, dispatchDirectives, noReturnComments, ramRoutines, staticTableCount, DISPATCH_EXCLUSIONS, FUNC_EXCLUSIONS };
+export { returnsByEntry, exitDirectives, dispatchDirectives, noReturnComments, ramRoutines, staticTableCount, DISPATCH_EXCLUSIONS, FUNC_EXCLUSIONS };

@@ -21,7 +21,7 @@ const path   = require('path');
 const fs     = require('fs');
 const vm = require('../../../../dist/games/evermore/script-vm');
 const { printNames } = require('../../../../dist/games/evermore/script-model');
-const { getActiveAddressLookup } = require('./address-lookup');
+const { getActiveAddressLookup } = require('../../../../dist/games/evermore/emulator/address-lookup');
 const { ScriptTraceFormatter } = require('../../../../dist/games/evermore/emulator/trace-formatter');
 const { hex: fmtHex, hiromFileOffset } = require('../../../../dist/platform');
 

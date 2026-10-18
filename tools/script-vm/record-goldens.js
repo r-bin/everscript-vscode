@@ -16,7 +16,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
-const { parseMovie, groupEvents } = require('../../src/platform/tas/movie');
+const { parseMovie, groupEvents } = require('../../dist/platform/tas/movie');
 
 const CORE = path.join(__dirname, '../../src/core/emulator/core/snes9x2005-wasm/snes9x_2005.js');
 const FETCH = 0x8cd0a6, AFTER = 0x8cd0b2;

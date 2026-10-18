@@ -179,7 +179,7 @@ function decodeCollisionWord(cw) {
 
 function metatileComposition(room, m) {
     const rId = room.roomId ?? room.id ?? 0;
-    const { isMetatileAnimated } = require('./map-animation');
+    const { isMetatileAnimated } = require('../../../../dist/games/evermore/resources/map-animation');
     const animInfo = isMetatileAnimated(room, m);
     return {
         roomId: rId,
@@ -244,7 +244,7 @@ function resolveRoomTiles(room, rom, subSegments) {
 
     const table = metatileTable(room);
     const rId = room.roomId ?? room.id ?? 0;
-    const { isRoomAnimated, isLayerAnimated, isMetatileAnimated, renderMetatileAnimationGif, renderMetatileAtlasAnimationGif } = require('./map-animation');
+    const { isRoomAnimated, isLayerAnimated, isMetatileAnimated, renderMetatileAnimationGif, renderMetatileAtlasAnimationGif } = require('../../../../dist/games/evermore/resources/map-animation');
     const hasAnim = isRoomAnimated(room);
     const hasL1Anim = isLayerAnimated(room, 'layer1');
     const hasL2Anim = isLayerAnimated(room, 'layer2');

@@ -17,7 +17,7 @@ function activate(context) {
     // After the games: their own Switch ROM listeners (caches) run before views are swapped.
     require('../dist/core/game-views').activateGameViews(context);
     // AI clients read the games' file systems over MCP (core/mcp/README.md).
-    require('./core/mcp').registerMcpServer(context);
+    require('../dist/core/mcp').registerMcpServer(context);
 }
 
 function deactivate() {}

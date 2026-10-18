@@ -1,42 +1,60 @@
-'use strict';
 // Owner: memory_radar/render-memory-tab.js
 // Renders the WRAM grid, arg grid, and detail table tab-pane HTML.
 // Pure function — no state, no VS Code dependency.
 
-const { radarH, radarEsc, radarLifecycle, radarExtractEmoji } = require('../../../../dist/games/evermore/radar-utils');
+import { radarH, radarEsc, radarLifecycle, radarExtractEmoji } from '../radar-utils';
+import type { MapEntry, Refs } from './scope-analysis';
+
+type Pool = { start: number; end: number; line: number; lc: string };
+type EnumTag = { cls: string; name: string };
+/** What the page's detail pane shows for one WRAM address. */
+interface CellData {
+    addr: string; name: string; type: string; lc: string; notes: string; addrStart: number; addrEnd: number; emoji: string;
+    reads: { line: number; text: string }[]; writes: { line: number; text: string }[];
+    untracked?: boolean; inPool?: boolean; isPool?: boolean;
+}
+/** One detail-table row: a documented entry, or an address the scope used that the map does not know. */
+interface DetailEntry {
+    addr: number; usage: Refs | null; untracked?: boolean; inPool?: boolean | null;
+    e: Pick<MapEntry, 'name' | 'nameParts' | 'type' | 'notes' | 'lifecycle' | 'addrStart' | 'addrEnd'>;
+}
 
 const COLS = 16;
 
 /**
  * Build the full `<div class="tab-pane" data-tab="radar">` HTML string.
- * @param {object} scope - { kind, name, startLine, endLine }
- * @param {Map} refs - addr → { reads, writes }
- * @param {Array} pools - [ { start, end, lc, line } ]
- * @param {Map} argRefs - argIdx → { reads, writes }
- * @param {Map} mapByAddr - addr → memory-map entry
- * @param {Map} enumByAddr - addr → [{cls, name}] (default empty map)
- * @returns {{ html: string, cellData: object }} tab HTML + cell data JSON
+ * @param scope      { kind, name, startLine, endLine }
+ * @param refs       addr → { reads, writes }
+ * @param pools      declared pools
+ * @param argRefs    argIdx → { reads, writes }
+ * @param mapByAddr  addr → memory-map entry
+ * @param enumByAddr addr → [{cls, name}] (default empty map)
+ * @returns tab HTML + cell data JSON
  */
-function buildMemoryTabHtml(scope, refs, pools, argRefs, mapByAddr, enumByAddr = new Map()) {
+function buildMemoryTabHtml(
+    scope: { kind: string; name: string; startLine: number; endLine: number },
+    refs: Map<number, Refs>, pools: Pool[], argRefs: Map<number, Refs>, mapByAddr: Map<number, MapEntry>,
+    enumByAddr: Map<number, EnumTag[]> = new Map(),
+): { html: string; cellData: Record<number, CellData> } {
     const allAddrs = [...mapByAddr.keys(), ...refs.keys()];
     if (!allAddrs.length) { allAddrs.push(0x2200, 0x28FF); }
     const rowStart = Math.min(...allAddrs) & ~(COLS - 1);
     const rowEnd   = (Math.max(...allAddrs) | (COLS - 1)) + 1;
 
-    const lcCount = (lc) => {
-        const seen = new Set();
+    const lcCount = (lc: string): number => {
+        const seen = new Set<MapEntry>();
         for (const e of mapByAddr.values()) { if (e.lifecycle === lc && !seen.has(e)) seen.add(e); }
         return seen.size;
     };
-    const lcUsed = (lc) => {
-        const seen = new Set();
+    const lcUsed = (lc: string): number => {
+        const seen = new Set<MapEntry>();
         for (const [addr, e] of mapByAddr) {
             if (e.lifecycle !== lc || !refs.has(addr) || seen.has(e)) continue;
             seen.add(e);
         }
         return seen.size;
     };
-    const bar = (u, t, lc) => {
+    const bar = (u: number, t: number, lc: string): string => {
         const p = t ? Math.round(u / t * 100) : 0;
         const w = Math.max(p, u > 0 ? 2 : 0);
         return '<div class="bo"><div class="bi bi-' + lc + '" style="width:' + w + '%"></div></div>' +
@@ -44,7 +62,7 @@ function buildMemoryTabHtml(scope, refs, pools, argRefs, mapByAddr, enumByAddr =
     };
 
     // Build cell data (keyed by address number for JSON)
-    const cellData = {};
+    const cellData: Record<number, CellData> = {};
     for (const [addr, me] of mapByAddr) {
         const usage = refs.get(addr);
         cellData[addr] = {
@@ -86,7 +104,7 @@ function buildMemoryTabHtml(scope, refs, pools, argRefs, mapByAddr, enumByAddr =
     // Grid HTML
     let gridHtml = '';
     for (let base = rowStart; base < rowEnd; base += COLS) {
-        let cells = '', rowLcs = new Set(), allRest = true, rowHasUsed = false, rowHasDoc = false;
+        let cells = '', rowLcs = new Set<string>(), allRest = true, rowHasUsed = false, rowHasDoc = false;
         for (let col = 0; col < COLS; col++) {
             const addr  = base + col;
             const me    = mapByAddr.get(addr);
@@ -110,7 +128,7 @@ function buildMemoryTabHtml(scope, refs, pools, argRefs, mapByAddr, enumByAddr =
             const tip = radarEsc(radarH(addr) + (me ? ' ' + me.name : ''));
             const emoji = cd ? cd.emoji : '';
             const gsize = me ? (me.addrEnd - me.addrStart + 1) : 1;
-            const grpAttrs = (gsize > 1)
+            const grpAttrs = (me && gsize > 1)
                 ? ' data-gid="' + me.addrStart + '" data-gend="' + me.addrEnd + '"'
                 : '';
             cells += '<span class="' + cls + '" data-addr="' + addr + '"' +
@@ -126,18 +144,18 @@ function buildMemoryTabHtml(scope, refs, pools, argRefs, mapByAddr, enumByAddr =
     }
 
     // Detail table
-    const mkLinks = (items, cls) => items.map(r =>
+    const mkLinks = (items: { line: number; text: string }[], cls: string): string => items.map(r =>
         '<a class="ll' + (cls ? ' ' + cls : '') + '" data-line="' + r.line + '" title="' + radarEsc(r.text) + '">:' + (r.line + 1) + '</a>'
     ).join('');
 
-    const allEntries = [];
-    const seenE = new Set();
+    const allEntries: DetailEntry[] = [];
+    const seenE = new Set<MapEntry>();
     for (const [, e] of [...mapByAddr.entries()].sort((a, b) => a[0] - b[0])) {
         if (seenE.has(e)) continue;
         seenE.add(e);
         allEntries.push({ addr: e.addrStart, e, usage: refs.get(e.addrStart) || null });
     }
-    const seenU = new Set();
+    const seenU = new Set<number>();
     for (const [addr, usage] of refs) {
         if (mapByAddr.has(addr) || seenU.has(addr)) continue;
         seenU.add(addr);
@@ -297,4 +315,4 @@ function buildMemoryTabHtml(scope, refs, pools, argRefs, mapByAddr, enumByAddr =
     return { html: tabHtml, cellData };
 }
 
-module.exports = { buildMemoryTabHtml };
+export { buildMemoryTabHtml };

@@ -56,7 +56,7 @@ const pages = [
     }],
     ['the Mana Maps page', () => { const p = req('dist/games/mana/maps/page.js'); for (const f of [...Object.values(p.CSS || {}), ...(p.SCRIPTS || [])].flat()) if (typeof f === 'string') fs.readFileSync(f); }],
     ['the knowledge entries', () => { const k = req('dist/games/evermore/localizations/knowledge.js'); k.entries('ram'); k.entries('rom'); }],
-    ['the known script names (address lookup)', () => new (req('src/games/evermore/emulator/address-lookup.js').RomAddressLookup)(null)],
+    ['the known script names (address lookup)', () => new (req('dist/games/evermore/emulator/address-lookup.js').RomAddressLookup)(null)],
     ['the language index', () => req('dist/games/evermore/language/workspace-index.js').loadIndex(ROOT)],
     ['the Asar export kit (platform/cdl/asar-build.ts copies it)', () => { for (const f of ['build.sh', 'build-cdl.js']) fs.readFileSync(path.join(ROOT, 'src/platform/cdl/asar-kit', f)); }],
     ['the music engine', () => req('src/games/evermore/music/engine/spc-engine.js')],

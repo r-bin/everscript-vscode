@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: runs the soe:// MCP server inside the extension host, so AI
 // clients can browse the virtual file system, including the live emulator,
 // and tells VS Code's own chat (Copilot) about it. Reads only through
@@ -13,22 +12,28 @@
 // (default 47917). A second VS Code window finds the port taken and runs
 // without a server; the first window keeps answering.
 
-const vscode = require('vscode');
-const { createMcpHandler } = require('../../../dist/core/mcp/protocol');
-const { createMcpHttpServer } = require('../../../dist/core/mcp/server');
+import * as vscode from 'vscode';
+import { createMcpHandler } from './protocol';
+import { createMcpHttpServer } from './server';
 
 const PROVIDER_ID = 'everscript-soe';   // = contributes.mcpServerDefinitionProviders[].id
-const KIND = { 1: 'file', 2: 'dir' };
-const kindOf = type => (type & vscode.FileType.SymbolicLink ? 'link' : KIND[type & 3] || 'file');
+const KIND: Record<number, 'file' | 'dir'> = { 1: 'file', 2: 'dir' };
+const kindOf = (type: number): 'file' | 'dir' | 'link' => (type & vscode.FileType.SymbolicLink ? 'link' : KIND[type & 3] || 'file');
 
-function registerMcpServer(context) {
+/** The slice of the VS Code MCP provider API used here (newer than the bundled typings). */
+interface McpApi {
+    lm?: { registerMcpServerDefinitionProvider?: (id: string, provider: object) => vscode.Disposable };
+    McpHttpServerDefinition?: new (label: string, uri: vscode.Uri, headers: object, version: string | undefined) => object;
+}
+
+function registerMcpServer(context: vscode.ExtensionContext) {
     const log = vscode.window.createOutputChannel('Everscript MCP');
     const handle = createMcpHandler({
         version: context.extension ? context.extension.packageJSON.version : '0',
-        read: uri => vscode.workspace.fs.readFile(vscode.Uri.parse(uri)),
+        read: async uri => vscode.workspace.fs.readFile(vscode.Uri.parse(uri)),
         list: async uri => (await vscode.workspace.fs.readDirectory(vscode.Uri.parse(uri))).map(([n, t]) => [n, kindOf(t)]),
     });
-    let server = null;
+    let server: ReturnType<typeof createMcpHttpServer> | null = null;
 
     const start = () => {
         stop();
@@ -36,7 +41,7 @@ function registerMcpServer(context) {
         if (!cfg.get('enabled', true)) return log.appendLine('soe:// MCP server disabled (everscript.mcp.enabled).');
         const port = cfg.get('port', 47917);
         const s = createMcpHttpServer(handle);
-        s.on('error', err => {
+        s.on('error', (err: NodeJS.ErrnoException) => {
             log.appendLine(err.code === 'EADDRINUSE'
                 ? `Port ${port} is taken (another VS Code window?); this window runs without the MCP server.`
                 : `MCP server error: ${err.message}`);
@@ -64,12 +69,14 @@ function registerMcpServer(context) {
  * 1.101). Skipped on older hosts and forks without the API, which then use
  * their config files. The constructor is positional: (label, uri, headers, version).
  */
-function registerForCopilot(context) {
-    const lm = vscode.lm;
-    if (!lm || typeof lm.registerMcpServerDefinitionProvider !== 'function' || !vscode.McpHttpServerDefinition) {
+function registerForCopilot(context: vscode.ExtensionContext) {
+    const api = vscode as unknown as McpApi;
+    const lm = api.lm;
+    const Definition = api.McpHttpServerDefinition;
+    if (!lm || typeof lm.registerMcpServerDefinitionProvider !== 'function' || !Definition) {
         return { changed() {} };
     }
-    const emitter = new vscode.EventEmitter();
+    const emitter = new vscode.EventEmitter<void>();
     const version = context.extension ? context.extension.packageJSON.version : undefined;
     context.subscriptions.push(emitter, lm.registerMcpServerDefinitionProvider(PROVIDER_ID, {
         onDidChangeMcpServerDefinitions: emitter.event,
@@ -77,11 +84,11 @@ function registerForCopilot(context) {
             const cfg = vscode.workspace.getConfiguration('everscript.mcp');
             if (!cfg.get('enabled', true)) return [];
             const uri = vscode.Uri.parse(`http://127.0.0.1:${cfg.get('port', 47917)}/mcp`);
-            return [new vscode.McpHttpServerDefinition('Everscript soe://', uri, {}, version)];
+            return [new Definition('Everscript soe://', uri, {}, version)];
         },
-        resolveMcpServerDefinition: server => server,
+        resolveMcpServerDefinition: (server: object) => server,
     }));
     return { changed: () => emitter.fire() };
 }
 
-module.exports = { registerMcpServer };
+export { registerMcpServer };

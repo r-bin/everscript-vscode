@@ -1,12 +1,12 @@
 'use strict';
 // Ownership: root export for the sprites subsystem domain.
 
-const { readCharacter, readAllCharacters, CHARACTER_TABLE, CHARACTER_COUNT } = require('./character-model');
+const { readCharacter, readAllCharacters, CHARACTER_TABLE, CHARACTER_COUNT } = require('../../../../dist/games/evermore/sprites/character-model');
 const { renderAnimation, resolveExternalScript } = require('./animation-decoder');
 const { getRawSpriteIndex, renderRawSprite, SPRITE_LIST_START } = require('../../../../dist/games/evermore/sprites/raw-sprites');
 const { buildSpritesTabHtml } = require('../../../../dist/games/evermore/sprites/sprites-tab');
 const { buildAnimationCatalog } = require('../../../../dist/games/evermore/sprites/animation-catalog');
-const { characterThumbs, listPalettes, renderInPalettes, thumbFor } = require('./thumbnails');
+const { characterThumbs, listPalettes, renderInPalettes, thumbFor } = require('../../../../dist/games/evermore/sprites/thumbnails');
 
 module.exports = {
     readCharacter,

@@ -6,7 +6,7 @@ game frame rates.
 
 | File | Role |
 |---|---|
-| `movie.js` (`src/platform/tas/`) | Pure: `.evsmv` parsing / writing, pad word ⇄ `BYsSudlrAXLR0123` text |
+| `movie.ts` (`src/platform/tas/`) | Pure: `.evsmv` parsing / writing, pad word ⇄ `BYsSudlrAXLR0123` text |
 | `host.js` | Panel glue (the only file that needs `vscode`): recording file per session, replay list, pins, load |
 
 ## Model
@@ -19,7 +19,7 @@ game frame rates.
 - A **replay** reboots the loaded ROM and feeds the recorded pad; the session it starts
   is recorded too (`# source:`), so taking over mid-replay produces a complete
   recording that branches off the original.
-- A recording holds more than the pad (format version 2, `movie.js` documents the lines):
+- A recording holds more than the pad (format version 2, `movie.ts` documents the lines):
   `W|addr|bytes` memory writes made through `Module.writeMemory` (cheats, object states, menu
   toggles such as loot/flag rows, injected scripts, the script debugger), `R|soft` the console
   reset button, `S|crc` a CRC-32 of the 128 KB WRAM every 60 frames, and `T|vram=..|cgram=..|oam=..|sram=..|aram=..`

@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: which known ROM addresses the ROM tab marks as points (routine entries and tables whose
 // length nobody has measured). The names are the knowledge entries' (localizations/knowledge/rom/,
 // through functions.js / tables.js); this file only picks which of them are points.
@@ -6,10 +5,10 @@
 // Bus addresses as the game uses them. `cat` is the entry's category: 🧠 code, 📋 table,
 // ⚗️ alchemy, 📜 script.
 
-const { FUNCTIONS, TABLES, getTable } = require('../../../../../dist/games/evermore/localizations');
+import { FUNCTIONS, TABLES, getTable } from '../../localizations';
 
-/** @returns {{bus:number, cat:string, name:string, notes:string}[]} */
-function knownPoints() {
+/** The known points: bus address, category (null for an uncategorised entry), name, notes. */
+function knownPoints(): { bus: number; cat: string | null; name: string; notes: string }[] {
     const tables = TABLES.filter(t => t.category === '📋' && t.address >= 0x800000 && t.address < 0xC00000);
     const alchemyScripts = getTable(0xC45802);   // the alchemy script pointers: 4 bytes per entry
     return [
@@ -19,4 +18,4 @@ function knownPoints() {
     ];
 }
 
-module.exports = { knownPoints };
+export { knownPoints };

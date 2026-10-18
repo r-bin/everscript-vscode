@@ -4,7 +4,7 @@
 
 ```
 language/
-  language-providers.js    — registers all VS Code language features (wires the files below)
+  language-providers.ts    — registers all VS Code language features (wires the files below)
   workspace-index.ts       — static JSON index + live workspace declaration index
   hover-provider.ts        — hover
   completion-provider.ts   — completions
@@ -30,7 +30,7 @@ language/
 
 ## Language Provider Features
 
-Registered by `language-providers.js`:
+Registered by `language-providers.ts`:
 - Hover: memory address names, function signatures, hex literal lookup
 - Completions: keyword, function name completions
 - Go-to-Definition: function definitions, memory addresses

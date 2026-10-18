@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * platform/cdl/xref-index.js
  *
@@ -11,7 +9,9 @@
  *   - which ROM offsets deserve a label
  */
 
-const { hex } = require('../../../dist/platform/cdl/rom-map');
+import { hex } from './rom-map';
+import type { RomMap } from './rom-map';
+import type { CdlLibrary } from './library';
 
 const CDL_CODE = 0x01, CDL_DATA = 0x02, CDL_JUMP = 0x04, CDL_SUB = 0x08;
 const EXT_HEAD = 0x04, EXT_POINTER = 0x20;
@@ -22,7 +22,7 @@ const XR = { READ: 1, WRITE: 2, BYTE: 4, WORD: 8, POINTER: 0x10, DMA: 0x20, DMA_
 const XREFS_PER_PC = 128;
 const SCRIPT_BULK = 64;   // a script touching more addresses (room loads, decompression) is a range
 
-function push(map, key, value) {
+function push<K, V>(map: Map<K, V[]>, key: K, value: V): void {
     const list = map.get(key);
     if (list) list.push(value); else map.set(key, [value]);
 }
@@ -31,19 +31,22 @@ function push(map, key, value) {
  * @param opts.names  Map<rom offset, { name, note? }>: curated names (valid Asar / C identifiers)
  *                    that replace `func_XXXXXX`; an offset the CDL did not label becomes a data label
  */
-function buildIndex(lib, map, opts = {}) {
-    const names = opts.names || new Map();
-    const { cdl, ext } = lib;
-    const labels = new Map();          // rom offset -> 'func' | 'loc' | 'data' | 'gfx' | 'ptrs'
-    const callers = new Map();         // rom offset -> [{ from, kind }]
-    const byAddr = new Map();          // space<<24|addr -> [{ pc, flags }]
-    const byPc = new Map();            // pc -> [{ spaceAddr, flags }]
-    const bulk = [];                   // { pc, space, lo, hi, flags }
-    const scriptsByAddr = new Map();   // wram addr -> [{ script, flags }]
-    const scriptSpan = new Map();      // script -> { count, lo, hi }
+type Label = 'func' | 'loc' | 'data' | 'gfx' | 'hdma' | 'ptrs';
+type Names = Map<number, { name: string; note?: string }>;
 
-    const setLabel = (off, kind) => {
-        const rank = { func: 5, loc: 4, gfx: 3, hdma: 3, ptrs: 2, data: 1 };
+function buildIndex(lib: CdlLibrary, map: RomMap, opts: { names?: Names } = {}) {
+    const names: Names = opts.names || new Map();
+    const { cdl, ext } = lib;
+    const labels = new Map<number, Label>();          // rom offset -> 'func' | 'loc' | 'data' | 'gfx' | 'ptrs'
+    const callers = new Map<number, { from: number; kind: number }[]>();         // rom offset -> [{ from, kind }]
+    const byAddr = new Map<number, { pc: number; flags: number }[]>();          // space<<24|addr -> [{ pc, flags }]
+    const byPc = new Map<number, { spaceAddr: number; flags: number }[]>();            // pc -> [{ spaceAddr, flags }]
+    const bulk: { pc: number; space: number; lo: number; hi: number; flags: number }[] = [];                   // { pc, space, lo, hi, flags }
+    const scriptsByAddr = new Map<number, { script: number; flags: number }[]>();   // wram addr -> [{ script, flags }]
+    const scriptSpan = new Map<number, { count: number; lo: number; hi: number }>();      // script -> { count, lo, hi }
+
+    const setLabel = (off: number, kind: Label): void => {
+        const rank: Record<Label, number> = { func: 5, loc: 4, gfx: 3, hdma: 3, ptrs: 2, data: 1 };
         const old = labels.get(off);
         if (!old || rank[kind] > rank[old]) labels.set(off, kind);
     };
@@ -112,7 +115,7 @@ function buildIndex(lib, map, opts = {}) {
 
     const entries = [...labels].filter(([, k]) => k === 'func').map(([o]) => o).sort((a, b) => a - b);
 
-    function functionOf(off) {
+    function functionOf(off: number): number {
         let lo = 0, hi = entries.length - 1, best = -1;
         while (lo <= hi) {
             const mid = (lo + hi) >> 1;
@@ -121,7 +124,7 @@ function buildIndex(lib, map, opts = {}) {
         return best >= 0 && (best >>> 16) === (off >>> 16) ? best : -1;
     }
 
-    function labelName(off) {
+    function labelName(off: number): string | null {
         const kind = labels.get(off);
         if (!kind) return null;
         const named = names.get(off);
@@ -129,13 +132,13 @@ function buildIndex(lib, map, opts = {}) {
     }
 
     /** Curated description of a labelled offset, or null. */
-    function noteOf(off) {
+    function noteOf(off: number): string | null {
         const named = names.get(off);
         return named && named.note ? named.note : null;
     }
 
     /** "func_C08000+$12 (80:8012)" for a bus PC. */
-    function describePc(pc) {
+    function describePc(pc: number): string {
         const where = hex(pc >>> 16, 2) + ':' + hex(pc & 0xFFFF, 4);
         if (pc === 0) return 'interrupt / HDMA';
         const off = map.busToRom(pc);
@@ -147,8 +150,8 @@ function buildIndex(lib, map, opts = {}) {
     }
 
     /** Accessors of one address, exact xrefs plus bulk ranges that cover it. */
-    function accessorsOf(space, addr) {
-        const exact = (byAddr.get((space << 24) | addr) || []).map(x => ({ pc: x.pc, flags: x.flags, bulk: false }));
+    function accessorsOf(space: number, addr: number) {
+        const exact: { pc: number; flags: number; bulk: boolean; lo?: number; hi?: number }[] = (byAddr.get((space << 24) | addr) || []).map(x => ({ pc: x.pc, flags: x.flags, bulk: false }));
         const seen = new Set(exact.map(x => x.pc));
         for (const b of bulk) {
             if (b.space === space && addr >= b.lo && addr <= b.hi && !seen.has(b.pc)) {
@@ -159,9 +162,9 @@ function buildIndex(lib, map, opts = {}) {
     }
 
     /** Script instructions that touched a WRAM address; bulk when the script touched many. */
-    function scriptAccessorsOf(addr) {
+    function scriptAccessorsOf(addr: number) {
         return (scriptsByAddr.get(addr) || []).map(x => {
-            const sp = scriptSpan.get(x.script);
+            const sp = scriptSpan.get(x.script)!;
             return { script: x.script, flags: x.flags, bulk: sp.count > SCRIPT_BULK, count: sp.count, lo: sp.lo, hi: sp.hi };
         }).sort((a, b) => a.script - b.script);
     }
@@ -169,11 +172,11 @@ function buildIndex(lib, map, opts = {}) {
     return { labels, callers, byAddr, byPc, bulk, entries, functionOf, labelName, noteOf, describePc, accessorsOf, scriptAccessorsOf };
 }
 
-function flagText(flags) {
+function flagText(flags: number): string {
     const rw = (flags & XR.READ ? 'R' : '') + (flags & XR.WRITE ? 'W' : '');
     const w = (flags & XR.WORD ? '16' : '') + (flags & XR.BYTE ? (flags & XR.WORD ? '/8' : '8') : '');
     const extra = (flags & XR.POINTER ? ' ptr' : '') + (flags & XR.DMA ? (flags & XR.DMA_VRAM ? ' dma>vram' : flags & XR.DMA_CGRAM ? ' dma>cgram' : ' dma') : '');
     return (rw.padEnd(2) + ' ' + w).trim() + extra;
 }
 
-module.exports = { buildIndex, flagText, SPACE, SPACE_NAMES, XR, CDL_CODE, CDL_DATA, EXT_HEAD, XREFS_PER_PC };
+export { buildIndex, flagText, SPACE, SPACE_NAMES, XR, CDL_CODE, CDL_DATA, EXT_HEAD, XREFS_PER_PC };

@@ -11,7 +11,7 @@ Kind: **platform** — knows SNES hardware and our machinery, no game (docs/arch
   generates the core's C table from it.
 - `cdl/`: the CDL engine (library, xrefs, disassembly, Asar / Mesen / recomp exports) — JS until cleanup
   5.5; a game's seeds come in as `gameRegions`, the VS Code side is `src/core/emulator/cdl/host.js`.
-- `tas/`: movie format and verification (`movie.js`, `verify.ts`); `zip.ts`.
+- `tas/`: movie format and verification (`movie.ts`, `verify.ts`); `zip.ts`.
 - `crc32.ts`, `png.ts`: CRC-32 and the RGBA PNG encoder, one copy each.
 - `snes/hirom.ts`: HiROM bus → file offset and little-endian reads, the one copy (cleanup 5.1).
 - `roms/library.ts`: the ROM library file (paths only), selected ROM, base ROM per game, `romFor`.

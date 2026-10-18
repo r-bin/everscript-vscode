@@ -13,7 +13,7 @@
 //   page -> scriptsMusic { id, seconds }          host -> scriptsMusic { id, sequence, timeline } | { id, error }
 //   page -> scriptsSim { room, key }    host -> scriptsSim { room, key, everscript, clusters } | { error }
 
-const { roomList, roomScripts, roomPicture } = require('./model/rooms');
+const { roomList, roomScripts, roomPicture } = require('../../../../dist/games/evermore/scripts-tab/model/rooms');
 const { alchemyModel } = require('../../../../dist/games/evermore/scripts-tab/model/alchemy');
 const { simulateScript, roomClusters } = require('../../../../dist/games/evermore/scripts-tab/model/simulation');
 const { missingRomText } = require('../../../../dist/platform/roms/library');

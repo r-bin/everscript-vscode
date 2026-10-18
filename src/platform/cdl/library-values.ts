@@ -24,7 +24,7 @@ const RANGE_CHUNK = 256;   // addresses per drained chunk
 
 const FILES = ['io-values.bin', 'sram-flags.bin', 'word-ranges.bin'];
 
-/** The library's value streams (fields of the CDL library object, library.js). */
+/** The library's value streams (fields of the CDL library object, library.ts). */
 interface ValuesLib { ioVals: Uint8Array; sramFlags: Uint8Array; wordRanges: [Uint8Array, Uint8Array] }
 /** A delta's chunks of the value streams. */
 interface ValuesDelta {

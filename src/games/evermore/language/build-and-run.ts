@@ -1,18 +1,30 @@
-'use strict';
 // Ownership: Everscript: Build and Run — compile the active .evs with the everscript compiler, then
 // load the output ROM into the emulator. Also the debugger's build step ({ inputPath, run: false }).
-// Injected by extension.js: getExtConfig (compiler and paths), openEmulatorPanel.
+// Injected by extension.js: getExtConfig (compiler and paths), openEmulatorPanel, romPathFor (the ROM library),
+// invalidateRoomCaches (the Rooms tab's caches after the ROM changed).
 
-const vscode = require('vscode');
-const romReaders = require('../../../../dist/games/evermore/rom-readers');
-const { missingRomText } = require('../../../../dist/platform/roms/library');
+import * as vscode from 'vscode';
+import * as nodePath from 'path';
+import * as nodeFs from 'fs';
+import * as nodeOs from 'os';
+import * as cp from 'child_process';
+import * as romReaders from '../rom-readers';
+import { missingRomText } from '../../../platform/roms/library';
 
-function registerBuildAndRun(context, { getExtConfig, openEmulatorPanel }) {
+interface BuildConfig { repoPath?: string; patchesDir?: string; compilerPath?: string; pythonPath?: string }
+interface BuildDeps {
+    getExtConfig(): BuildConfig;
+    openEmulatorPanel(context: vscode.ExtensionContext, rom: { dataUrl: string; name: string; filePath: string; kind: string } | undefined, channel: vscode.OutputChannel): void;
+    romPathFor(game: string): string | null;
+    invalidateRoomCaches(): void;
+}
+
+function registerBuildAndRun(context: vscode.ExtensionContext, { getExtConfig, openEmulatorPanel, romPathFor, invalidateRoomCaches }: BuildDeps) {
 // ── Build-and-Run ────────────────────────────────────────────────────────
 // Options (the debugger's launch): { inputPath, run: false } builds without
 // loading the ROM. Resolves to { ok, outputRom }. Menus pass a Uri instead.
 context.subscriptions.push(
-    vscode.commands.registerCommand('everscript.buildAndRun', async (options) => {
+    vscode.commands.registerCommand('everscript.buildAndRun', async (options?: { inputPath?: string; run?: boolean }) => {
         const opts = options && typeof options.inputPath === 'string' ? options : {};
         const editor = vscode.window.activeTextEditor;
         const inputFile = opts.inputPath
@@ -23,16 +35,12 @@ context.subscriptions.push(
         }
 
         const cfg       = vscode.workspace.getConfiguration('everscript');
-        const nodePath  = require('path');
-        const nodeFs    = require('fs');
-        const nodeOs    = require('os');
-        const cp        = require('child_process');
         const extCfg    = getExtConfig();
 
         // ── 1. Resolve compiler and project root ───────────────────────
         let repoPath    = extCfg.repoPath || '';
         let patchesPath = extCfg.patchesDir || '';
-        let romPath     = roms.romPathFor('evermore') || ''; // the Evermore ROM of the ROM library
+        let romPath     = romPathFor('evermore') || ''; // the Evermore ROM of the ROM library
         let compilerBin = extCfg.compilerPath || ''; // manual override
         let projectRoot = repoPath;
         let useScript   = false;
@@ -88,7 +96,7 @@ context.subscriptions.push(
         } else {
             try {
                 const files = nodeFs.readdirSync(projectRoot);
-                const found = files.find(f => /\.(smc|sfc)$/i.test(f));
+                const found = files.find((f: string) => /\.(smc|sfc)$/i.test(f));
                 if (found) romName = found;
             } catch (_) {}
         }
@@ -130,7 +138,7 @@ context.subscriptions.push(
             ? nodePath.relative(projectRoot, patchesArg)
             : patchesArg;
 
-        let spawnBin, spawnArgs;
+        let spawnBin: string, spawnArgs: string[];
         if (useScript) {
             spawnBin  = pythonBin;
             spawnArgs = [compilerBin, '--rom', romName];
@@ -144,9 +152,9 @@ context.subscriptions.push(
         function buildSpawnEnv() {
             const env = { ...process.env };
             const pathKey = Object.keys(env).find((key) => key.toUpperCase() === 'PATH') || 'PATH';
-            const pathEntries = [];
+            const pathEntries: string[] = [];
             const seen = new Set();
-            function addPathEntry(entry) {
+            function addPathEntry(entry: string | undefined) {
                 if (!entry || seen.has(entry)) return;
                 seen.add(entry);
                 pathEntries.push(entry);
@@ -194,7 +202,7 @@ context.subscriptions.push(
         channel.show(true);
         channel.appendLine(`[Everscript] Compiling: ${nodePath.basename(inputEvs)}`);
         channel.appendLine(`[Everscript] CWD:       ${projectRoot}`);
-        function _qArg(a) { return /[ ()\[\]\\!'"<>]/.test(a) ? '"' + a.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"' : a; }
+        function _qArg(a: string) { return /[ ()\[\]\\!'"<>]/.test(a) ? '"' + a.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"' : a; }
         channel.appendLine(`[Everscript] Command:   ${[spawnBin, ...spawnArgs.map(_qArg)].join(' ')}`);
         channel.appendLine('');
 
@@ -202,12 +210,12 @@ context.subscriptions.push(
         statusItem.text = '$(sync~spin) Everscript: building...';
         statusItem.show();
 
-        const exitCode = await new Promise(resolve => {
+        const exitCode = await new Promise<number | null>(resolve => {
             const proc = cp.spawn(spawnBin, spawnArgs, { cwd: projectRoot, shell: false, env: buildSpawnEnv() });
-            proc.stdout.on('data', d => channel.append(d.toString()));
-            proc.stderr.on('data', d => channel.append(d.toString()));
-            proc.on('close', code => resolve(code));
-            proc.on('error', err => {
+            proc.stdout.on('data', (d: Buffer) => channel.append(d.toString()));
+            proc.stderr.on('data', (d: Buffer) => channel.append(d.toString()));
+            proc.on('close', (code: number | null) => resolve(code));
+            proc.on('error', (err: Error) => {
                 channel.appendLine('[Everscript] Error: ' + err.message);
                 resolve(1);
             });
@@ -226,19 +234,19 @@ context.subscriptions.push(
         // so it would recover on its own, but drop it explicitly too —
         // a stale map render is worse than a slow one.
         romReaders.invalidateRomBuffer();
-        roomTree.invalidateRoomRenders();
-        roomTree.invalidateMetatilePalettes();
+        invalidateRoomCaches();
 
         channel.appendLine('[Everscript] Build succeeded.');
 
         // ── 5. Load output ROM into the emulator ───────────────────────
-        let romData;
+        let romData: Buffer;
         try {
             romData = nodeFs.readFileSync(outputRom);
         } catch (e) {
             channel.appendLine(`[Everscript] Output ROM not found: ${outputRom}`);
-            channel.appendLine(`[Everscript] Error: ${e.message}`);
-            vscode.window.showErrorMessage('Everscript: build succeeded but output ROM not found: ' + e.message);
+            const why = e instanceof Error ? e.message : String(e);
+            channel.appendLine(`[Everscript] Error: ${why}`);
+            vscode.window.showErrorMessage('Everscript: build succeeded but output ROM not found: ' + why);
             openEmulatorPanel(context, undefined, channel);
             return { ok: false };
         }
@@ -252,4 +260,4 @@ context.subscriptions.push(
 );
 }
 
-module.exports = { registerBuildAndRun };
+export { registerBuildAndRun };

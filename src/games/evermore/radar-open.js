@@ -17,7 +17,7 @@ const gameViews = require('../../../dist/core/game-views');
 const { readRomCharacters, readRomHitLookup, detectScaleEnemies } = require('../../../dist/games/evermore/rom-readers');
 const { renderRadarHtml } = require('./memory/render-radar');
 const { renderAnimation } = require('./sprites');
-const { radarDetectScope, radarAnalyzeScope } = require('./memory/scope-analysis');
+const { radarDetectScope, radarAnalyzeScope } = require('../../../dist/games/evermore/memory/scope-analysis');
 const { radar, getMapExportChannel, getRadarMap, getRadarEnums, getSpritesBundle, getExtConfig, radarItemIcons, refreshRadar, ROOMS_UI_PREFS_KEY, radarImportedRooms, radarRoomRom } = require('./radar-panel');
 
 /** The Memory Radar for the scope at the cursor (or doc/startLine from a CodeLens): builds or reuses the panel and answers its messages. */
@@ -199,7 +199,7 @@ async function openMemoryRadar(doc, startLine) {
                 post: (m) => radar.panel?.webview.postMessage(m),
                 loadRom: () => romReaders.loadRomBuffer(_ws, ''),
                 loadCdl: (rom) => {
-                    const { CdlLibrary, romHash } = require('../../platform/cdl/library');
+                    const { CdlLibrary, romHash } = require('../../../dist/platform/cdl/library');
                     const root = path.join(context.globalStorageUri.fsPath, 'cdl-library');
                     return fs.existsSync(path.join(root, romHash(rom))) ? new CdlLibrary(root, rom) : null;
                 },

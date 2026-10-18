@@ -20,7 +20,7 @@
 
 const { hex } = require('../../../dist/platform/cdl/rom-map');
 const { decodeAt } = require('../../../dist/platform/cdl/disasm');
-const { SPACE, XR, EXT_HEAD } = require('./xref-index');
+const { SPACE, XR, EXT_HEAD } = require('../../../dist/platform/cdl/xref-index');
 const { regsByPc, basesByPc } = require('../../../dist/platform/cdl/library-ext');
 
 const WRAM_SIZE = 0x20000;

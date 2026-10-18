@@ -8,10 +8,10 @@ rooms/
   custom-host.js              — custom maps: the webview's list/save/delete/export messages (VS Code API injected)
   parsing/
     content-parser.ts         — parseRoomContent(filePath, startLine, endLine) → room data object
-    file-scanner.js           — buildRoomTree, collectRoomsFromDir, findRoomImage, setRoomImageUris
+    file-scanner.ts           — buildRoomTree, collectRoomsFromDir, findRoomImage, setRoomImageUris
   rendering/
     tree-renderer.js          — renderVanillaTree(rooms), renderRoomsTree(nodes), buildRoomRailHtml(live, vanilla), buildRoomsJson(tree)
-    tile-overlay.js           — buildRoomTileOverlay: the map raster, the canopy, and the canopy overlay
+    tile-overlay.ts           — buildRoomTileOverlay: the map raster, the canopy, and the canopy overlay
     object-previews.ts        — Section 3 objects: states, thumbnails, the selection wire form
     family-sets.ts            — alternate family sets: each family's colours and the MAP_PALETTE values the room's scripts write
     header-overrides.ts       — the Info tab's header fields (and a previewed palette set) applied before a render

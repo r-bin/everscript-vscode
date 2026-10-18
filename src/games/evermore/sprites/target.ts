@@ -1,10 +1,17 @@
-'use strict';
 // Ownership: the second character on the Sprites stage — who it is, where it stands, how it
 // is drawn — and which ticks of the viewed animation hit it, by strike or projectile. Pure.
 
-const { strikeHits, bodiesTouch, MODE_CONTACT, OUT_OF_REACH_ABOVE, OUT_OF_REACH_BELOW } = require('../../../../dist/games/evermore/maps/hit-test');
-const { facingVector, PROJECTILE_HIT_SIZE } = require('../../../../dist/games/evermore/maps/projectiles');
-const { characterHitbox, characterDisposition } = require('../../../../dist/games/evermore/maps/character-record');
+import { strikeHits, bodiesTouch, MODE_CONTACT, OUT_OF_REACH_ABOVE, OUT_OF_REACH_BELOW } from '../maps/hit-test';
+import { facingVector, PROJECTILE_HIT_SIZE } from '../maps/projectiles';
+import { characterHitbox, characterDisposition } from '../maps/character-record';
+import type { VmFrame } from '../maps/animation-vm-types';
+
+type Rom = Uint8Array;
+/** A projectile thrown during the run, as the tab sketches it: its path in px from the start. */
+interface Spawn { path?: [number, number, number][]; ex: number; ey: number; onHit: string; idHex: string; tick: number }
+type Body = { x: number; y: number; z: number; radius: number };
+/** The standing frame of a character, rendered for the stage. */
+interface Standing { frames: { png: string }[]; width: number; height: number; originX: number; originY: number }
 
 const BOY = 0;
 const DOG = 1;
@@ -12,7 +19,7 @@ const WIMPY_FLOWER = 'Wimpy Flower';
 const DEFAULT_DISTANCE = 40;
 
 /** Enemies are shown against the Boy; the Boy, the Dog and NPCs against a Wimpy Flower. */
-function targetFor(rom, viewedId, characters) {
+function targetFor(rom: Rom, viewedId: number, characters: { id: number; name: string }[] | null): number {
     const hostile = viewedId !== BOY && viewedId !== DOG && characterDisposition(rom, viewedId).hostile;
     if (hostile) return BOY;
     const wimpy = characters ? characters.find((c) => c.name === WIMPY_FLOWER) : null;
@@ -20,7 +27,7 @@ function targetFor(rom, viewedId, characters) {
 }
 
 /** Where the target stands: `distance` px ahead along the facing, on the ground. */
-function placeTarget(facing, distance) {
+function placeTarget(facing: number, distance: number) {
     const [ux, uy] = facingVector(facing);
     return { x: ux * distance, y: uy * distance, z: 0 };
 }
@@ -33,8 +40,8 @@ function placeTarget(facing, distance) {
 const HIT_COOLDOWN = 0x14 + 1;
 
 /** The ticks that land, given every tick of contact and the per-attacker cooldown. */
-function withCooldown(ticks) {
-    const out = [];
+function withCooldown(ticks: number[]): number[] {
+    const out: number[] = [];
     for (const t of ticks) if (!out.length || t >= out[out.length - 1] + HIT_COOLDOWN) out.push(t);
     return out;
 }
@@ -47,10 +54,10 @@ function withCooldown(ticks) {
  * hit (procs 2 and 6) hits once, and `cut` says where its flight ends. Contact damage needs a
  * tick on which the entity tries to step, and lands once per charge.
  */
-function hitTicks(vmFrames, spawns, target, attackerRadius = 0, still = false) {
-    const melee = [];
-    let contact = null;
-    let prev = [0, 0];
+function hitTicks(vmFrames: VmFrame[], spawns: Spawn[], target: Body, attackerRadius = 0, still = false) {
+    const melee: number[] = [];
+    let contact: number | null = null;
+    let prev: number[] = [0, 0];
     let t = 0;
     for (const f of vmFrames) {
         f.motion.forEach((m, i) => {
@@ -67,13 +74,13 @@ function hitTicks(vmFrames, spawns, target, attackerRadius = 0, still = false) {
         });
         t += f.ticks;
     }
-    const projectile = [];
-    const cut = {};
+    const projectile: { idHex: string; tick: number; onHit: string }[] = [];
+    const cut: Record<number, number> = {};
     spawns.forEach((sp, k) => {
         const path = sp.path || [];
         const sx = still ? sp.ex : 0;
         const sy = still ? sp.ey : 0;
-        const contactAt = [];
+        const contactAt: number[] = [];
         path.forEach((p, i) => {
             if (strikeHits({ x: p[0] - sx, y: p[1] - sy, width: PROJECTILE_HIT_SIZE, height: PROJECTILE_HIT_SIZE, z: p[2] }, target)) contactAt.push(i);
         });
@@ -89,7 +96,7 @@ function hitTicks(vmFrames, spawns, target, attackerRadius = 0, still = false) {
 }
 
 /** The target, ready to draw: its standing frame, facing back at the viewed character. */
-function buildTarget(rom, render, opts) {
+function buildTarget(rom: Rom, render: (id: number, facing: number) => Standing | null, opts: { character: number; facing: number; distance: number; name: string }) {
     const id = opts.character;
     const at = placeTarget(opts.facing, opts.distance);
     const radius = characterHitbox(rom, id).radius;
@@ -111,4 +118,4 @@ function buildTarget(rom, render, opts) {
     };
 }
 
-module.exports = { targetFor, placeTarget, hitTicks, buildTarget, DEFAULT_DISTANCE, OUT_OF_REACH_ABOVE, OUT_OF_REACH_BELOW };
+export { targetFor, placeTarget, hitTicks, buildTarget, DEFAULT_DISTANCE, OUT_OF_REACH_ABOVE, OUT_OF_REACH_BELOW };

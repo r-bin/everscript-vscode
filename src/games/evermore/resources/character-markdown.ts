@@ -2,7 +2,7 @@
 
 import { hexId } from './resource-uri';
 
-/** What these pages read of a character (sprites/character-model.js) and its animations. */
+/** What these pages read of a character (sprites/character-model.ts) and its animations. */
 interface AnimOption { key?: string; label?: string; purpose?: string | null; offset?: number }
 interface CharacterInfo {
     id: number; name: string; disposition: { label: string }; paletteAddrHex: string; anims: AnimOption[];

@@ -17,7 +17,7 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
   (lengths, stop points) is allowed.
 - A rule change starts in the handler's code (`$8C:E8BD` table), goes into
   `docs/game-research/script-vm/` and the handler's knowledge entry, then `spec.ts`. The entries are
-  the opcodes' descriptions for `soe://rom/assets/scripts/opcodes/` (`resources/opcode-files.js`): what
+  the opcodes' descriptions for `soe://rom/assets/scripts/opcodes/` (`resources/opcode-files.ts`): what
   the handler does in plain words, then `## Addresses` (calls, WRAM, ROM tables, fields).
 - Never guess a length: an opcode without a handler or a sub-op the game cannot run is a
   `DecodeError` at its address.

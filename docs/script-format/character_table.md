@@ -2,7 +2,7 @@
 
 The record the game builds an entity from, read from its own code. The field map and its evidence
 are in the knowledge entry `rom/8eb678.md`; the code is `src/games/evermore/maps/character-record.ts`
-and `src/games/evermore/sprites/character-model.js`.
+and `src/games/evermore/sprites/character-model.ts`.
 
 ## Where they are
 

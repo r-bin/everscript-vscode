@@ -4,11 +4,11 @@
 // dialog, cutscenes, other). The simulation is work in progress; whatever it
 // cannot do comes back as `error` and the tab keeps showing the decoded bytes.
 //
-// Trigger keys match model/rooms.js: `step:<i>`, `b:<i>`, `enter`.
+// Trigger keys match model/rooms.ts: `step:<i>`, `b:<i>`, `enter`.
 
 import * as simulation from '../../simulation';
 
-/** A room's triggers grouped by what they do, keyed like model/rooms.js. */
+/** A room's triggers grouped by what they do, keyed like model/rooms.ts. */
 interface ClusterView { kind: string; title: string; keys: string[] }
 type Clusters = ClusterView[] | { error: string };
 

@@ -12,7 +12,7 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 - Libraries only (guide §2). Currently requires no other `src/` domain.
 - No VS Code API (`.depcruise.js` `no-maps-to-vscode`), no filesystem.
 - No webview rendering and no memory-tab UI (`no-maps-to-memory-ui`); the Rooms tab owns
-  its own (`src/games/evermore/rooms/rendering/tile-overlay.js`).
+  its own (`src/games/evermore/rooms/rendering/tile-overlay.ts`).
 - JS consumers require the compiled module from `dist/games/evermore/maps` (there is no JS facade); TS imports `src/` directly.
 
 ## Invariants

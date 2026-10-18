@@ -6,8 +6,8 @@ Related skills: `memory-radar`, `webview-dom-safety`, `memory-map`
 
 ## Owns
 - The radar panel HTML: `render-radar.js` (tabs, layout, webview entry),
-  `render-memory-tab.js` (WRAM grid + detail table), `webview/index.js` (loads the tabs'
-  webview JS/CSS into the panel), `scope-analysis.js` (the cursor's scope in an .evs file and the RAM
+  `render-memory-tab.ts` (WRAM grid + detail table), `webview/index.js` (loads the tabs'
+  webview JS/CSS into the panel), `scope-analysis.ts` (the cursor's scope in an .evs file and the RAM
   it reads and writes; pure).
 
 ## Dependencies

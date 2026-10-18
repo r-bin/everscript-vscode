@@ -20,7 +20,7 @@ bytes are tables, how WRAM is laid out, and what each function touches.
 
 ```text
 core (WASM, per instruction / access)        webview (every 15 s)        host (Node)
-  cdl.c        rom.cdl/ext, edges, xrefs, ─► cdl-view.js drains only ──► library.js + library-ext.ts merge
+  cdl.c        rom.cdl/ext, edges, xrefs, ─► cdl-view.js drains only ──► library.ts + library-ext.ts merge
                pcstats, wvals, DMA/HDMA/$2180    changed chunks /           flush 60 s after last change
   cdl-wram.c   wflags, script-xrefs, WRAM code   new table entries          (max every 5 min, at once on pause/stop)
   cdl-count.c  hit counters (deltas)                                        ▼
@@ -113,8 +113,8 @@ work behind a "seen lately" or "already marked" check.
 2. `debugger-post.js` `cdlDrain` (guard with `typeof Module._x === 'function'` so older cores
    still work), then **rebuild the core** (`sh tools/build_snes_core.sh custom`) — the glue is
    part of the build output.
-3. `cdl-view.js` posts it, `host.js` decodes it, `library.js` / `library-ext.ts` merge and store it.
-4. Consumers read through `xref-index.js` / `library-ext.ts` helpers (`retsList`, `regsByPc`, `basesByPc`).
+3. `cdl-view.js` posts it, `host.js` decodes it, `library.ts` / `library-ext.ts` merge and store it.
+4. Consumers read through `xref-index.ts` / `library-ext.ts` helpers (`retsList`, `regsByPc`, `basesByPc`).
 5. Tests: `tests/debugger/cdl.test.js` (core streams, export) and `tests/debugger/cdl-recomp.test.js`
    (new streams, directives, assets, structs, enums, functions). Check `-DEVS_CDL=0` still compiles.
 6. Headless check: boot `../everscript/out/Secret of Evermore (U) [!].smc` (skips the intro), run a
@@ -124,12 +124,12 @@ work behind a "seen lately" or "already marked" check.
 
 | File | Module | Derived from |
 |---|---|---|
-| `recomp/cfg/bankXX.cfg` | `recomp-seeds.js`, `recomp-analysis.js` | `func … entry_mx exit_mx`, `exit_mx_variant` / `exit_mx_set` from rets; `indirect_dispatch … idx:X` for `jmp/jsr (abs,X)` (count = highest table entry that is an observed target); `ptrtail` / `ptrcall` (PEA before) for `jmp (abs)` / `jml [abs]`; `rtsstack` for `pei ; rts`; `ram_routine` for unchanged WRAM code; comments for PHA/PEA+RTS dispatch, adjusted returns, never-returning callees |
+| `recomp/cfg/bankXX.cfg` | `recomp-seeds.js`, `recomp-analysis.ts` | `func … entry_mx exit_mx`, `exit_mx_variant` / `exit_mx_set` from rets; `indirect_dispatch … idx:X` for `jmp/jsr (abs,X)` (count = highest table entry that is an observed target); `ptrtail` / `ptrcall` (PEA before) for `jmp (abs)` / `jml [abs]`; `rtsstack` for `pei ; rts`; `ram_routine` for unchanged WRAM code; comments for PHA/PEA+RTS dispatch, adjusted returns, never-returning callees |
 | `tables.md`, `tables/tbl_*.asm`, `tables.json`, `tables.h` | `tables.js`, `table-assets.js` | indexed ROM reads. Asset only when dense (≥1 recorded index per 8 entries), no executed byte inside, no overlap, one bank; else comment only. Code operands into an asset become `tbl_X+$n` |
 | `enums.asm`, `enums.json` | `enums.js` | ram.asm classification; a state that feeds `asl / tax / jsr (abs,X)` maps each value to its handler |
 | `structs.asm`, `structs.h`, `structs.json` | `structs.js` | indexed absolute accesses, pointer bases + Y, D ≠ 0. Sets merge when they share ≥ half the smaller one and sit on the larger one's stride; byte-stride groups that overlap are dropped |
 | `functions.json` | `functions.js` | per function: entries, callers/callees, widths, DB/D, WRAM ranges, I/O by class, ROM data, pointer bases, SA-1 blockers (direct + through callees), `cycles`, `execForms` / `readForms` (mirrors used) |
-| `bus.md`, `bus.json` | `bus-report.js` | ExHiROM audit (bytes/instructions/edges through `$00-$3F`, `$40-$7D`), SA-1 audit (every form but `$C0-$FF`), bytes per file bank and form, top functions by cycles |
+| `bus.md`, `bus.json` | `bus-report.ts` | ExHiROM audit (bytes/instructions/edges through `$00-$3F`, `$40-$7D`), SA-1 audit (every form but `$C0-$FF`), bytes per file bank and form, top functions by cycles |
 | `ram.asm` | `wram-export.js` | every WRAM address, accessors, values, hit counts |
 | `spc/aram.cdl` | `asar-export.js` | ARAM coverage |
 | `mesen/labels.mlb`, `mesen/rom.cdl` | `mesen-export.ts` | export comments + curated names (option `names`, `wramNames`), asset ranges (`assets`); formats in docs/reverse-engineering/formats.md §3 |

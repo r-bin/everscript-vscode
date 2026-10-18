@@ -1,7 +1,7 @@
 // Ownership: Section 3 map objects for the Rooms tab — each object's states,
 // a thumbnail of every state, and the wire form of the user's selection.
 //
-// Split out of tile-overlay.js, which owns the map raster. These two meet
+// Split out of tile-overlay.ts, which owns the map raster. These two meet
 // only where the render stamps the selected states into the room before
 // drawing it, so keeping the object browser's data here leaves that file to
 // the picture.

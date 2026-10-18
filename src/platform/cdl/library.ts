@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * platform/cdl/library.js
  *
@@ -30,10 +28,11 @@
  * No VS Code dependency: the host passes the root directory.
  */
 
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-const { initExt, mergeExt, loadExt, extWriters, EXT_FILES } = require('../../../dist/platform/cdl/library-ext');
+import * as fs from 'fs';
+import * as path from 'path';
+import * as crypto from 'crypto';
+import { initExt, mergeExt, loadExt, extWriters, EXT_FILES } from './library-ext';
+import type { ExtLib, ExtDelta } from './library-ext';
 
 const FORMAT = 1;
 const WRAM_SIZE = 0x20000;
@@ -42,26 +41,26 @@ const TWO32 = 0x100000000;
 const CHUNK = 0x10000;
 
 /** ROM bytes without a 512-byte copier header. */
-function stripCopierHeader(rom) {
+function stripCopierHeader(rom: Buffer): Buffer {
     return (rom.length % 1024 === 512) ? rom.subarray(512) : rom;
 }
 
-function romHash(rom) {
+function romHash(rom: Buffer): string {
     return crypto.createHash('sha1').update(stripCopierHeader(rom)).digest('hex');
 }
 
-const xrefKey  = (pc, spaceAddr) => pc * 0x4000000 + spaceAddr;
-const edgeKey  = (from, to) => from * 0x1000000 + to;
-const scriptKey = (script, addr) => script * 0x20000 + addr;
+const xrefKey  = (pc: number, spaceAddr: number): number => pc * 0x4000000 + spaceAddr;
+const edgeKey  = (from: number, to: number): number => from * 0x1000000 + to;
+const scriptKey = (script: number, addr: number): number => script * 0x20000 + addr;
 const WF = { READ: 1, WRITE: 2, BYTE: 4, WORD: 8, EXEC: 0x10, SCRIPT: 0x20, POINTER: 0x40 };
 
-function readRecords(file, magic, words) {
+function readRecords(file: string, magic: string, words: number): Uint32Array | null {
     if (!fs.existsSync(file)) return null;
     return parseRecords(fs.readFileSync(file), magic, words);
 }
 
 /** A record file's rows as one flat Uint32Array, or null when it is not a `magic` file. */
-function parseRecords(buf, magic, words) {
+function parseRecords(buf: Buffer | null | undefined, magic: string, words: number): Uint32Array | null {
     if (!buf || buf.length < 12 || buf.toString('ascii', 0, 4) !== magic) return null;
     const count = buf.readUInt32LE(8);
     const out = new Uint32Array(count * words);
@@ -69,13 +68,13 @@ function parseRecords(buf, magic, words) {
     return out;
 }
 
-function writeAtomic(file, data) {
+function writeAtomic(file: string, data: Uint8Array | string): void {
     const tmp = file + '.tmp';
     fs.writeFileSync(tmp, data);
     fs.renameSync(tmp, file);
 }
 
-function packRecords(magic, rows, words) {
+function packRecords(magic: string, rows: ArrayLike<number>[], words: number): Buffer {
     const buf = Buffer.alloc(12 + rows.length * words * 4);
     buf.write(magic, 0, 'ascii');
     buf.writeUInt32LE(FORMAT, 4);
@@ -85,13 +84,50 @@ function packRecords(magic, rows, words) {
     return buf;
 }
 
+type Info = { title?: string; mapType?: string; sha256?: string };
+type Stat = { count: number; lo: number; hi: number; flags: number };
+type Manifest = { format?: number; sha1?: string; created?: string; title?: string; mapType?: string; sha256?: string; romSize?: number; files?: string[]; updated?: string };
+type Records = ArrayLike<number> | null | undefined;
+type Chunks = { index: number; data: Uint8Array }[];
+/** A delta from the recorder: chunks of the image plus record lists (the ext streams are ExtDelta). */
+interface Delta extends ExtDelta {
+    chunks?: { index: number; cdl?: Uint8Array; ext?: Uint8Array }[];
+    wvals?: Chunks;
+    wflags?: Chunks;
+    xrefs?: Records; edges?: Records; stats?: Records; scriptXrefs?: Records;
+    romHits?: Records; wramHits?: Records;
+}
+
+// The ext streams (rets, regs, bus, ...) are set by initExt; their fields come from ExtLib.
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
+interface CdlLibrary extends ExtLib {}
 class CdlLibrary {
+    hash!: string;
+    dir!: string;
+    romSize!: number;
+    info!: Info;
+    cdl!: Uint8Array;
+    ext!: Uint8Array;
+    wvals!: Uint8Array | null;
+    xrefs!: Map<number, number>;
+    edges!: Map<number, number>;
+    stats!: Map<number, Stat>;
+    wflags!: Uint8Array;
+    scriptXrefs!: Map<number, number>;
+    romHits!: Float64Array;
+    wramReads!: Float64Array;
+    wramWrites!: Float64Array;
+    hasHits!: boolean;
+    manifest!: Manifest | null;
+    dirty!: Set<string>;
+    changes!: number;
+
     /**
-     * @param {string} root   library root (e.g. <globalStorage>/cdl-library)
-     * @param {Uint8Array} rom ROM bytes (copier header allowed)
-     * @param {object} [info]  { title, mapType, sha256 } for the manifest
+     * @param root   library root (e.g. <globalStorage>/cdl-library)
+     * @param rom    ROM bytes (copier header allowed)
+     * @param info   { title, mapType, sha256 } for the manifest
      */
-    constructor(root, rom, info) {
+    constructor(root: string, rom: Buffer | null, info?: Info) {
         if (rom) this._init(root, romHash(rom), stripCopierHeader(rom).length, info);
     }
 
@@ -99,13 +135,13 @@ class CdlLibrary {
      * The library of a ROM known only by its hash and size (importing a recording
      * bundle, which carries no ROM).
      */
-    static open(root, hash, romSize, info) {
+    static open(root: string, hash: string, romSize: number, info?: Info): CdlLibrary {
         const lib = new CdlLibrary(root, null);
         lib._init(root, hash, romSize, info);
         return lib;
     }
 
-    _init(root, hash, romSize, info) {
+    _init(root: string, hash: string, romSize: number, info?: Info): void {
         this.hash = hash;
         this.dir = path.join(root, this.hash);
         this.romSize = romSize;
@@ -129,9 +165,9 @@ class CdlLibrary {
         this._load();
     }
 
-    _file(name) { return path.join(this.dir, name); }
+    _file(name: string): string { return path.join(this.dir, name); }
 
-    _touch(name) { this.dirty.add(name); this.changes++; }
+    _touch(name: string): void { this.dirty.add(name); this.changes++; }
 
     _load() {
         const manifestFile = this._file('manifest.json');
@@ -141,7 +177,7 @@ class CdlLibrary {
         if (this.manifest && this.manifest.sha1 && this.manifest.sha1 !== this.hash) {
             throw new Error(`CDL library ${this.dir} belongs to ROM ${this.manifest.sha1}`);
         }
-        for (const [name, arr] of [['rom.cdl', this.cdl], ['rom.ext', this.ext]]) {
+        for (const [name, arr] of [['rom.cdl', this.cdl], ['rom.ext', this.ext]] as [string, Uint8Array][]) {
             if (fs.existsSync(this._file(name))) arr.set(fs.readFileSync(this._file(name)).subarray(0, this.romSize));
         }
         if (fs.existsSync(this._file('wram-values.bin'))) {
@@ -186,7 +222,7 @@ class CdlLibrary {
         for (const [key] of this.scriptXrefs) this.wflags[key % 0x20000] |= WF.SCRIPT;
     }
 
-    mergeWflags(index, data) {
+    mergeWflags(index: number, data: Uint8Array): void {
         const base = index * data.length;
         for (let i = 0; i < data.length && base + i < WRAM_SIZE; i++) {
             const v = this.wflags[base + i] | data[i];
@@ -194,7 +230,7 @@ class CdlLibrary {
         }
     }
 
-    mergeScriptXrefs(list) {
+    mergeScriptXrefs(list: Records): void {
         if (!list) return;
         for (let i = 0; i + 2 < list.length; i += 3) {
             const k = scriptKey(list[i], list[i + 1]);
@@ -204,10 +240,10 @@ class CdlLibrary {
     }
 
     /** OR-merge a whole CDL/EXT image (e.g. an imported BizHawk / Mesen .cdl). */
-    mergeImage(cdl, ext, offset) {
+    mergeImage(cdl: Uint8Array | undefined, ext: Uint8Array | undefined, offset?: number): boolean {
         const base = offset || 0;
         let changed = false;
-        for (const [src, dst, name] of [[cdl, this.cdl, 'rom.cdl'], [ext, this.ext, 'rom.ext']]) {
+        for (const [src, dst, name] of [[cdl, this.cdl, 'rom.cdl'], [ext, this.ext, 'rom.ext']] as [Uint8Array | undefined, Uint8Array, string][]) {
             if (!src) continue;
             const n = Math.min(src.length, dst.length - base);
             for (let i = 0; i < n; i++) {
@@ -218,7 +254,7 @@ class CdlLibrary {
         return changed;
     }
 
-    mergeWvals(index, data) {
+    mergeWvals(index: number, data: Uint8Array): void {
         if (!this.wvals) this.wvals = new Uint8Array(WRAM_SIZE * WVAL_BYTES);
         const base = index * data.length;
         for (let i = 0; i < data.length && base + i < this.wvals.length; i++) {
@@ -227,7 +263,7 @@ class CdlLibrary {
         }
     }
 
-    mergeLists(xrefs, edges, stats) {
+    mergeLists(xrefs: Records, edges: Records, stats: Records): void {
         if (xrefs) for (let i = 0; i + 2 < xrefs.length; i += 3) {
             const k = xrefKey(xrefs[i], xrefs[i + 1]);
             const old = this.xrefs.get(k) || 0;
@@ -252,7 +288,7 @@ class CdlLibrary {
     }
 
     /** Add drained hit deltas: romHits [off, n], wramHits [addr, reads, writes]. */
-    addHits(romHits, wramHits) {
+    addHits(romHits: Records, wramHits: Records): void {
         if (romHits && romHits.length) {
             for (let i = 0; i + 1 < romHits.length; i += 2) if (romHits[i] < this.romSize) this.romHits[romHits[i]] += romHits[i + 1];
             this._touch('rom-hits.bin');
@@ -270,7 +306,7 @@ class CdlLibrary {
     }
 
     /** Merge one drained delta from the webview recorder (see debugger-post.js cdlDrain). */
-    applyDelta(delta) {
+    applyDelta(delta: Delta): boolean {
         const before = this.changes;
         for (const c of delta.chunks || []) this.mergeImage(c.cdl, c.ext, c.index * CHUNK);
         for (const w of delta.wvals || []) this.mergeWvals(w.index, w.data);
@@ -283,14 +319,14 @@ class CdlLibrary {
     }
 
     /** Write changed files (atomic rename). Returns the names written. */
-    flush() {
-        const written = [];
+    flush(): string[] {
+        const written: string[] = [];
         if (!this.dirty.size && this.manifest) return written;
         fs.mkdirSync(this.dir, { recursive: true });
         const xr = () => [...this.xrefs].map(([k, f]) => [Math.floor(k / 0x4000000), k % 0x4000000, f]);
         const ed = () => [...this.edges].map(([k, f]) => [Math.floor(k / 0x1000000), k % 0x1000000, f]);
         const st = () => [...this.stats].map(([k, s]) => [k, s.count, s.lo, s.hi, s.flags]);
-        const writers = {
+        const writers: Record<string, () => Uint8Array | null> = {
             'rom.cdl': () => this.cdl,
             'rom.ext': () => this.ext,
             'wram-values.bin': () => this.wvals,
@@ -301,12 +337,12 @@ class CdlLibrary {
             'script-xrefs.bin': () => packRecords('EVSX',
                 [...this.scriptXrefs].map(([k, f]) => [Math.floor(k / 0x20000), k % 0x20000, f]), 3),
             'rom-hits.bin': () => {
-                const rows = [];
+                const rows: number[][] = [];
                 for (let i = 0; i < this.romSize; i++) { const n = this.romHits[i]; if (n) rows.push([i, n % TWO32, Math.floor(n / TWO32)]); }
                 return packRecords('EVRH', rows, 3);
             },
             'wram-hits.bin': () => {
-                const rows = [];
+                const rows: number[][] = [];
                 for (let i = 0; i < WRAM_SIZE; i++) {
                     const r = this.wramReads[i], w = this.wramWrites[i];
                     if (r || w) rows.push([i, r % TWO32, Math.floor(r / TWO32), w % TWO32, Math.floor(w / TWO32)]);
@@ -349,4 +385,4 @@ class CdlLibrary {
     }
 }
 
-module.exports = { CdlLibrary, romHash, stripCopierHeader, parseRecords, xrefKey, edgeKey, scriptKey, WF, WRAM_SIZE, WVAL_BYTES };
+export { CdlLibrary, romHash, stripCopierHeader, parseRecords, xrefKey, edgeKey, scriptKey, WF, WRAM_SIZE, WVAL_BYTES };

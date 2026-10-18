@@ -1,20 +1,26 @@
-'use strict';
 // Ownership: finding the ROM on disk for the Rooms tab's script view.
 //
 // The decoding itself lives in src/games/evermore/script-model/ and is pure — it takes a buffer.
 // This is the thin layer that turns a workspace into that buffer, kept
 // separate so the decoder stays testable without a filesystem.
 
-const { buildRoomScriptModel, buildArrivalIndex, mergeArrivals } = require('../../../../../dist/games/evermore/script-model');
-const {
-    renderCharacterFrames, encodePng, characterDisposition, characterHitbox,
-    characterPalette, characterPaletteAddress,
-    decodeRoom, planesUsed, spawnDepth,
-} = require('../../../../../dist/games/evermore/maps');
+import { buildRoomScriptModel, buildArrivalIndex, mergeArrivals } from '../../script-model';
+import type { RoomScriptModel, SpawnFacts, Arrival, ArrivalIndex } from '../../script-model';
+import { renderCharacterFrames, encodePng, characterDisposition, characterHitbox, characterPalette, characterPaletteAddress, decodeRoom, planesUsed, spawnDepth } from '../../maps';
+
+type Rom = Uint8Array;
+/** A spawn with what the tab adds to it: sprite, hit box, hostility, depth. */
+type Spawn = SpawnFacts & {
+    hitW?: number; hitH?: number; flags?: number; hostile?: boolean; inactive?: boolean; flagsFrom?: string;
+    sprite?: string; spriteW?: number; spriteH?: number; spriteOX?: number; spriteOY?: number; spriteFrames?: { uri: string; ms: number }[];
+    tileWord?: number; depth?: string; inFront?: boolean; hiddenHere?: boolean;
+};
+interface PaletteGroup { address: number; colours: string[]; characters: { character: number; name: string }[]; count: number }
+type RoomModel = RoomScriptModel & { palettes?: ReturnType<typeof paletteSummary>; arrivals?: Arrival[] };
 
 /** The user's ROM: the override, else the ROM library's (rom-readers, cleanup D5). */
-function loadRom(wsRoot, romPathOverride) {
-    const buf = require('../../../../../dist/games/evermore/rom-readers').loadRomBuffer(wsRoot, romPathOverride);
+function loadRom(wsRoot: unknown, romPathOverride: string): Rom | null {
+    const buf = require('../../rom-readers').loadRomBuffer(wsRoot, romPathOverride);
     return buf ? new Uint8Array(buf) : null;
 }
 
@@ -35,10 +41,10 @@ const TICK_MS = 1000 / 60;
  * other. A single frame is a still; only more than one is animation, since
  * playing one sprite as a loop would claim more than was read.
  */
-function buildSprite(rom, character) {
+function buildSprite(rom: Rom, character: number) {
     const r = renderCharacterFrames(rom, character);
     if (!r) return null;
-    const png = (data) => 'data:image/png;base64,'
+    const png = (data: Uint8Array) => 'data:image/png;base64,'
         + encodePng({ width: r.width, height: r.height, data }).toString('base64');
     const frames = r.frames.map((f) => ({
         uri: png(f.data),
@@ -66,14 +72,16 @@ function buildSprite(rom, character) {
 const FLAG_INVINCIBLE = 0x0002;
 const FLAG_INACTIVE = 0x0020;
 
-function attachSprites(rom, spawns) {
-    const cache = new Map();
+type Cached = { sprite: ReturnType<typeof buildSprite>; disposition: ReturnType<typeof characterDisposition> | null; hitbox: ReturnType<typeof characterHitbox> | null };
+
+function attachSprites(rom: Rom, spawns: Spawn[]): void {
+    const cache = new Map<number, Cached>();
     for (const spawn of spawns) {
         if (spawn.character === null || spawn.character === undefined) continue;
         if (!cache.has(spawn.character)) {
-            let built = null;
-            let disposition = null;
-            let hitbox = null;
+            let built: ReturnType<typeof buildSprite> = null;
+            let disposition: Cached['disposition'] = null;
+            let hitbox: Cached['hitbox'] = null;
             try {
                 built = buildSprite(rom, spawn.character);
                 disposition = characterDisposition(rom, spawn.character);
@@ -81,7 +89,7 @@ function attachSprites(rom, spawns) {
             } catch { built = null; }
             cache.set(spawn.character, { sprite: built, disposition, hitbox });
         }
-        const { sprite, disposition, hitbox } = cache.get(spawn.character);
+        const { sprite, disposition, hitbox } = cache.get(spawn.character)!;
         if (hitbox) {
             // In pixels, the unit the collision test uses. One SVG unit on the
             // Rooms map is 8 of them.
@@ -123,13 +131,13 @@ function attachSprites(rom, spawns) {
  *
  * See docs/script-format/sprite_priority.md.
  */
-function attachTileDepth(rom, mapId, spawns) {
-    let room;
+function attachTileDepth(rom: Rom, mapId: number, spawns: Spawn[]): void {
+    let room: ReturnType<typeof decodeRoom>;
     try { room = decodeRoom(rom, mapId); } catch { return; }
     const planes = planesUsed(room.collisionWords);
     for (const spawn of spawns) {
         if (spawn.x === null || spawn.x === undefined) continue;
-        const row = room.collisionWords[spawn.y >> 1];
+        const row = room.collisionWords[spawn.y! >> 1];
         if (!row) continue;
         const word = row[spawn.x >> 1];
         if (word === undefined) continue;
@@ -152,11 +160,11 @@ function attachTileDepth(rom, mapId, spawns) {
  */
 const PALETTE_SLOTS = 4;
 
-function paletteSummary(rom, spawns) {
-    const groups = new Map();
+function paletteSummary(rom: Rom, spawns: Spawn[]) {
+    const groups = new Map<number, PaletteGroup>();
     for (const spawn of spawns) {
         if (spawn.character === null || spawn.character === undefined) continue;
-        let addr;
+        let addr: number;
         try { addr = characterPaletteAddress(rom, spawn.character); } catch { continue; }
         // Zero means the character has no palette of its own; `$90CD48` skips
         // the whole allocation for it, so it costs nothing.
@@ -170,7 +178,7 @@ function paletteSummary(rom, spawns) {
                 count: 0,
             });
         }
-        const g = groups.get(addr);
+        const g = groups.get(addr)!;
         g.count += 1;
         const name = spawn.romName || spawn.name || ('NPC ' + spawn.npc);
         if (!g.characters.some((c) => c.character === spawn.character)) {
@@ -182,27 +190,27 @@ function paletteSummary(rom, spawns) {
 }
 
 /** Doors that lead into this room, built once per ROM and kept. */
-let arrivalIndex = null;
+let arrivalIndex: ArrivalIndex | null = null;
 let arrivalIndexKey = '';
 
-function arrivalsFor(rom, mapId) {
+function arrivalsFor(rom: Rom, mapId: number): Arrival[] {
     const key = rom.length + ':' + rom[0x100] + ':' + rom[0x20000] + ':' + rom[0x100000];
     if (arrivalIndexKey !== key) {
         arrivalIndex = buildArrivalIndex(rom);
         arrivalIndexKey = key;
     }
-    return mergeArrivals(arrivalIndex.get(mapId) || []);
+    return mergeArrivals(arrivalIndex!.get(mapId) || []);
 }
 
 /**
  * The room's enter / step-on / B-trigger scripts, or null when there is no
  * ROM to read. A malformed room returns null rather than a partial model.
  */
-function readRoomScriptModel(wsRoot, mapId, romPathOverride) {
+function readRoomScriptModel(wsRoot: unknown, mapId: number, romPathOverride: string): RoomModel | null {
     const rom = loadRom(wsRoot, romPathOverride);
     if (!rom) return null;
     try {
-        const model = buildRoomScriptModel(rom, mapId);
+        const model: RoomModel = buildRoomScriptModel(rom, mapId);
         attachSprites(rom, model.enter.spawns);
         attachTileDepth(rom, mapId, model.enter.spawns);
         model.palettes = paletteSummary(rom, model.enter.spawns);
@@ -211,4 +219,4 @@ function readRoomScriptModel(wsRoot, mapId, romPathOverride) {
     } catch { return null; }
 }
 
-module.exports = { readRoomScriptModel };
+export { readRoomScriptModel };

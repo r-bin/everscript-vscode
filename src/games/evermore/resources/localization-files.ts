@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: `soe://localization/` - concentrated subjective and localized names as files.
 // Pure apart from optional ROM buffer used for resolving in-game string indices.
 //
@@ -13,25 +12,24 @@
 //   soe://localization/knowledge/{ram,rom}/ every knowledge entry: index.md (the generated RAM / ROM map),
 //                                           <addr>.md (the entry), <addr>.json (its fields)
 
-const {
-    VANILLA_MAPS, getMap,
-    MUSIC, SOUNDS, getMusic, getSound,
-    TABLES, getTable,
-    FUNCTIONS, getFunction,
-    NPC_SCRIPTS, ABS_SCRIPTS, GLOBAL_SCRIPTS,
-    getNpcScript, getAbsScript, getGlobalScript,
-    decodeRomString, resolveLocalizedName,
-} = require('../../../../dist/games/evermore/localizations');
-const { hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
-const { dir, json, text } = require('../../../../dist/games/evermore/resources/nodes');
-const MD = require('../../../../dist/games/evermore/resources/localization-markdown');
-const { entries: knowledgeEntries } = require('../../../../dist/games/evermore/localizations/knowledge');
-const { hex } = require('../../../../dist/platform');
+import { VANILLA_MAPS, getMap, MUSIC, SOUNDS, getMusic, getSound, TABLES, getTable, FUNCTIONS, getFunction, NPC_SCRIPTS, ABS_SCRIPTS, GLOBAL_SCRIPTS, getNpcScript, getAbsScript, getGlobalScript, decodeRomString, resolveLocalizedName } from '../localizations';
+import { hexId } from './resource-uri';
+import { dir, json, text } from './nodes';
+import type { Entry } from './nodes';
+import * as MD from './localization-markdown';
+import { entries as knowledgeEntries } from '../localizations/knowledge';
+import { hex } from '../../../platform';
+
+type Rom = Uint8Array | null | undefined;
+type ScriptEntry = NonNullable<ReturnType<typeof getNpcScript>>;
+type WithId = ScriptEntry & { id: number };
+type WithAddress = ScriptEntry & { address: number };
+type Kind = 'npc' | 'abs' | 'global';
 
 const CATEGORIES = ['scripts', 'maps', 'sounds', 'tables', 'functions', 'strings', 'knowledge'];
 const STRING_COUNT = 3002;
 
-function resolveLocalization(segments, rom) {
+function resolveLocalization(segments: string[], rom: Rom) {
     const [cat, sub, leaf, ...extra] = segments;
     if (extra.length) return null;
     if (cat === undefined) return rootDir();
@@ -53,7 +51,7 @@ function rootDir() {
     return dir([
         ['index.md', 'file'],
         ['index.json', 'file'],
-        ...CATEGORIES.map(c => [c, 'dir']),
+        ...CATEGORIES.map((c): Entry => [c, 'dir']),
     ], () => MD.rootMarkdown(rootSummary()));
 }
 
@@ -77,45 +75,45 @@ function rootSummary() {
 
 // -- scripts ------------------------------------------------------------------
 
-function allNpc() {
-    const seen = new Set();
-    const list = [];
+function allNpc(): WithId[] {
+    const seen = new Set<number>();
+    const list: WithId[] = [];
     for (const [k, v] of NPC_SCRIPTS.entries()) {
-        if (typeof k === 'number' && !seen.has(v.id)) {
-            seen.add(v.id);
-            list.push(v);
+        if (typeof k === 'number' && !seen.has(v.id!)) {
+            seen.add(v.id!);
+            list.push(v as WithId);
         }
     }
     return list.sort((a, b) => a.id - b.id);
 }
 
-function allAbs() {
-    const seen = new Set();
-    const list = [];
+function allAbs(): WithAddress[] {
+    const seen = new Set<number>();
+    const list: WithAddress[] = [];
     for (const [k, v] of ABS_SCRIPTS.entries()) {
-        if (typeof k === 'number' && !seen.has(v.address)) {
-            seen.add(v.address);
-            list.push(v);
+        if (typeof k === 'number' && !seen.has(v.address!)) {
+            seen.add(v.address!);
+            list.push(v as WithAddress);
         }
     }
     return list.sort((a, b) => a.address - b.address);
 }
 
-function allGlobal() {
-    const seen = new Set();
-    const list = [];
+function allGlobal(): WithId[] {
+    const seen = new Set<number>();
+    const list: WithId[] = [];
     for (const [k, v] of GLOBAL_SCRIPTS.entries()) {
-        if (typeof k === 'number' && !seen.has(v.id)) {
-            seen.add(v.id);
-            list.push(v);
+        if (typeof k === 'number' && !seen.has(v.id!)) {
+            seen.add(v.id!);
+            list.push(v as WithId);
         }
     }
     return list.sort((a, b) => a.id - b.id);
 }
 
-function formatScript(e, kind, rom) {
+function formatScript(e: ScriptEntry | null, kind: Kind, rom: Rom) {
     if (!e) return null;
-    const res = {
+    const res: { id?: number; address?: number; hex: string; kind: Kind; name: string; romName?: string } = {
         id: e.id !== undefined ? e.id : undefined,
         address: e.address !== undefined ? e.address : undefined,
         hex: e.hex,
@@ -128,7 +126,7 @@ function formatScript(e, kind, rom) {
     return res;
 }
 
-function findScriptEntry(name, getter) {
+function findScriptEntry(name: string, getter: (key: number | string) => ScriptEntry | null): ScriptEntry | null {
     const clean = String(name || '').replace(/\.json$/i, '').trim();
     if (!clean) return null;
     return (/^[0-9a-f]+$/i.test(clean) ? getter(parseInt(clean, 16)) : null)
@@ -137,7 +135,7 @@ function findScriptEntry(name, getter) {
         || null;
 }
 
-function scriptsRoute(rest, rom) {
+function scriptsRoute(rest: string[], rom: Rom) {
     if (rest.length === 0) {
         return dir([
             ['index.md', 'file'],
@@ -161,7 +159,7 @@ function scriptsRoute(rest, rom) {
             return dir([
                 ['index.md', 'file'],
                 ['index.json', 'file'],
-                ...allNpc().map(e => [hexId(e.id, 4) + '.json', 'file']),
+                ...allNpc().map((e): Entry => [hexId(e.id, 4) + '.json', 'file']),
             ], () => MD.npcMarkdown(allNpc()));
         }
         if (leaf === 'index.md') return text(() => MD.npcMarkdown(allNpc()));
@@ -174,7 +172,7 @@ function scriptsRoute(rest, rom) {
             return dir([
                 ['index.md', 'file'],
                 ['index.json', 'file'],
-                ...allAbs().map(e => [hexId(e.address, 6) + '.json', 'file']),
+                ...allAbs().map((e): Entry => [hexId(e.address, 6) + '.json', 'file']),
             ], () => MD.absMarkdown(allAbs()));
         }
         if (leaf === 'index.md') return text(() => MD.absMarkdown(allAbs()));
@@ -187,7 +185,7 @@ function scriptsRoute(rest, rom) {
             return dir([
                 ['index.md', 'file'],
                 ['index.json', 'file'],
-                ...allGlobal().map(e => [hexId(e.id, 2) + '.json', 'file']),
+                ...allGlobal().map((e): Entry => [hexId(e.id, 2) + '.json', 'file']),
             ], () => MD.globalMarkdown(allGlobal()));
         }
         if (leaf === 'index.md') return text(() => MD.globalMarkdown(allGlobal()));
@@ -209,20 +207,20 @@ function scriptsRoute(rest, rom) {
 
 // -- maps ---------------------------------------------------------------------
 
-function formatMap(m, rom) {
-    const res = { id: m.id, hex: m.hex, name: m.name, fullName: m.fullName, area: m.area };
+function formatMap(m: NonNullable<ReturnType<typeof getMap>>, rom: Rom) {
+    const res: { id: number; hex: string; name: string; fullName: string; area: string; romName?: string } = { id: m.id, hex: m.hex, name: m.name, fullName: m.fullName, area: m.area };
     if (rom && m.stringIndex !== null && m.stringIndex !== undefined) {
         res.romName = resolveLocalizedName(m, rom, 'name');
     }
     return res;
 }
 
-function mapsRoute(rest, rom) {
+function mapsRoute(rest: string[], rom: Rom) {
     if (rest.length === 0) {
         return dir([
             ['index.md', 'file'],
             ['index.json', 'file'],
-            ...VANILLA_MAPS.map(m => [hexId(m.id, 2) + '.json', 'file']),
+            ...VANILLA_MAPS.map((m): Entry => [hexId(m.id, 2) + '.json', 'file']),
         ], () => MD.mapsMarkdown(VANILLA_MAPS));
     }
     const [name] = rest;
@@ -237,7 +235,7 @@ function mapsRoute(rest, rom) {
 
 // -- sounds -------------------------------------------------------------------
 
-function soundsRoute(rest) {
+function soundsRoute(rest: string[]) {
     if (rest.length === 0) {
         return dir([
             ['index.md', 'file'],
@@ -254,7 +252,7 @@ function soundsRoute(rest) {
             return dir([
                 ['index.md', 'file'],
                 ['index.json', 'file'],
-                ...MUSIC.map(m => [hexId(m.id, 2) + '.json', 'file']),
+                ...MUSIC.map((m): Entry => [hexId(m.id, 2) + '.json', 'file']),
             ], () => MD.musicMarkdown(MUSIC));
         }
         if (leaf === 'index.md') return text(() => MD.musicMarkdown(MUSIC));
@@ -268,7 +266,7 @@ function soundsRoute(rest) {
             return dir([
                 ['index.md', 'file'],
                 ['index.json', 'file'],
-                ...SOUNDS.map(s => [hexId(s.id, 2) + '.json', 'file']),
+                ...SOUNDS.map((s): Entry => [hexId(s.id, 2) + '.json', 'file']),
             ], () => MD.sfxMarkdown(SOUNDS));
         }
         if (leaf === 'index.md') return text(() => MD.sfxMarkdown(SOUNDS));
@@ -282,12 +280,12 @@ function soundsRoute(rest) {
 
 // -- tables & functions -------------------------------------------------------
 
-function tablesRoute(rest) {
+function tablesRoute(rest: string[]) {
     if (rest.length === 0) {
         return dir([
             ['index.md', 'file'],
             ['index.json', 'file'],
-            ...TABLES.map(t => [hexId(t.address, 6) + '.json', 'file']),
+            ...TABLES.map((t): Entry => [hexId(t.address, 6) + '.json', 'file']),
         ], () => MD.tablesMarkdown(TABLES));
     }
     const [name] = rest;
@@ -298,12 +296,12 @@ function tablesRoute(rest) {
     return t ? json(() => t) : null;
 }
 
-function functionsRoute(rest) {
+function functionsRoute(rest: string[]) {
     if (rest.length === 0) {
         return dir([
             ['index.md', 'file'],
             ['index.json', 'file'],
-            ...FUNCTIONS.map(f => [hexId(f.address, 6) + '.json', 'file']),
+            ...FUNCTIONS.map((f): Entry => [hexId(f.address, 6) + '.json', 'file']),
         ], () => MD.functionsMarkdown(FUNCTIONS));
     }
     const [name] = rest;
@@ -316,10 +314,11 @@ function functionsRoute(rest) {
 
 // -- knowledge ----------------------------------------------------------------
 
-const cell = (s) => String(s == null ? '' : s).replace(/\|/g, '\\|').replace(/\s+/g, ' ');
+const hex6 = (n: number): string => hex(n, 6);
+const cell = (s: unknown): string => String(s == null ? '' : s).replace(/\|/g, '\\|').replace(/\s+/g, ' ');
 
 /** The RAM or ROM map, generated from the entries (one row each, in address order). */
-function knowledgeMapMarkdown(space) {
+function knowledgeMapMarkdown(space: 'ram' | 'rom'): string {
     const list = knowledgeEntries(space);
     const rows = list.map(e => `| [$${hex6(e.addr)}](${hex6(e.addr).toLowerCase()}.md) | ${e.end > e.addr ? `$${hex6(e.end)}` : ''} | ${cell(e.kind)} | ${cell(e.title)} | ${cell(e.confidence)} |`);
     return [`# ${space.toUpperCase()} map: what is known`, '',
@@ -327,14 +326,14 @@ function knowledgeMapMarkdown(space) {
         '| Address | End | Kind | What | Confidence |', '|---|---|---|---|---|', ...rows, ''].join('\n');
 }
 
-function knowledgeRoute(rest) {
+function knowledgeRoute(rest: string[]) {
     const [space, name, ...more] = rest;
     if (more.length) return null;
     if (space === undefined) return dir([['ram', 'dir'], ['rom', 'dir']], () => '# Knowledge entries\n\n- [RAM](ram/index.md)\n- [ROM](rom/index.md)\n');
     if (space !== 'ram' && space !== 'rom') return null;
     const list = knowledgeEntries(space);
     if (name === undefined) {
-        return dir([['index.md', 'file'], ...list.flatMap(e => [[hex6(e.addr).toLowerCase() + '.md', 'file'], [hex6(e.addr).toLowerCase() + '.json', 'file']])],
+        return dir([['index.md', 'file'], ...list.flatMap((e): Entry[] => [[hex6(e.addr).toLowerCase() + '.md', 'file'], [hex6(e.addr).toLowerCase() + '.json', 'file']])],
             () => knowledgeMapMarkdown(space));
     }
     if (name === 'index.md') return text(() => knowledgeMapMarkdown(space));
@@ -349,7 +348,7 @@ function knowledgeRoute(rest) {
 
 // -- strings ------------------------------------------------------------------
 
-function stringsRoute(rest, rom) {
+function stringsRoute(rest: string[], rom: Rom) {
     if (rest.length === 0) {
         return dir([
             ['index.md', 'file'],
@@ -380,8 +379,5 @@ function stringsRoute(rest, rom) {
     }));
 }
 
-module.exports = {
-    resolveLocalization,
-    formatScript,
-};
+export { resolveLocalization, formatScript };
 

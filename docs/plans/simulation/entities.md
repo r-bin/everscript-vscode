@@ -67,7 +67,7 @@ interface PlacedEntity {
 ```
 
 The tab already builds most of this in
-[`src/games/evermore/rooms/data/room-scripts.js`](../../../src/games/evermore/rooms/data/room-scripts.js). Moving
+[`src/games/evermore/rooms/data/room-scripts.ts`](../../../src/games/evermore/rooms/data/room-scripts.ts). Moving
 it into `src/games/evermore/simulation/` and adding the last two fields is the work.
 
 ## How we would know it is right

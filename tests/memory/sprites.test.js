@@ -471,7 +471,7 @@ if (rom) {
     });
 
     test('the same attacker re-hits only after a 21-tick cooldown (+0x36/+0x38)', () => {
-        const target = require('../../src/games/evermore/sprites/target');
+        const target = require('../../dist/games/evermore/sprites/target');
         const frames = [{ ticks: 60, strikeBox: { dx: 0, dy: 0, width: 40, height: 40 }, motion: Array.from({ length: 60 }, () => [0, 0, 0]) }];
         const hits = target.hitTicks(frames, [], { x: 0, y: 0, z: 0, radius: 8 });
         assert.deepStrictEqual(hits.melee, [0, 21, 42]);
@@ -581,7 +581,7 @@ if (rom) {
     });
 
     test('facing 8 is south: list previews show the front (8) and east (4)', () => {
-        const { THUMB_FACINGS } = require('../../src/games/evermore/sprites/thumbnails');
+        const { THUMB_FACINGS } = require('../../dist/games/evermore/sprites/thumbnails');
         assert.deepStrictEqual(THUMB_FACINGS, { s: 8, e: 4 });
     });
 

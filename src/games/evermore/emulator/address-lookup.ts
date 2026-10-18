@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * debugger/emulator/address-lookup.js
  *
@@ -12,65 +10,63 @@
  * Strictly ASCII-only.
  */
 
-const path = require('path');
-const fs   = require('fs');
-const {
-  getNpcScriptName,
-  getGlobalScriptName,
-  ABS_SCRIPTS,
-  getMapName,
-} = require('../../../../dist/games/evermore/localizations');
+import { getNpcScriptName, getGlobalScriptName, ABS_SCRIPTS, getMapName } from '../localizations';
+import knownScriptsJson from './known-scripts.json';
+
+type Rom = Uint8Array;
+type Kind = 'empty' | 'global' | 'npc' | 'enter' | 'bTrigger' | 'stepOn';
+/** What an address resolves to: a named script, or a trigger of a room. */
+interface Resolved {
+  addr: number; name: string; shortTag: string; kind: Kind;
+  id?: number; room?: number; index?: number; scriptId?: number; coords?: string;
+}
+interface RoomTriggers { bTrigger: Resolved[]; stepOn: Resolved[]; enter: number | null }
+/** The Rooms editor's draft: its triggers (x1/y1 are tiles, scriptId 0 = none). */
+interface Draft { bTrigger?: { x1: number; y1: number; scriptId?: number }[]; stepOn?: { x1: number; y1: number; scriptId?: number }[] }
+interface LookupItem { triggerKind?: string; triggerIndex?: number }
+const KNOWN_SCRIPTS = knownScriptsJson as Record<string, { id: number; kind: 'global' | 'npc' }>;
 
 const SCRIPTS_START_ADDR_US = 0x928000;
 const ENTER_TABLE_OFFSET    = 0x1b;
 
-function snesToRom(addr) {
+function snesToRom(addr: number): number {
   return (addr & ~0xc00000) >>> 0;
 }
 
-function read16(rom, addr) {
+function read16(rom: Rom | null, addr: number): number {
   const a = snesToRom(addr);
   if (!rom || a + 1 >= rom.length) return 0;
   return (rom[a] | (rom[a + 1] << 8)) >>> 0;
 }
 
-function read24(rom, addr) {
+function read24(rom: Rom | null, addr: number): number {
   const a = snesToRom(addr);
   if (!rom || a + 2 >= rom.length) return 0;
   return (rom[a] | (rom[a + 1] << 8) | (rom[a + 2] << 16)) >>> 0;
 }
 
-function scriptValueToSnes(value, base = SCRIPTS_START_ADDR_US) {
+function scriptValueToSnes(value: number, base = SCRIPTS_START_ADDR_US): number {
   return (base + (value & 0x007fff) + ((value & 0xff8000) << 1)) >>> 0;
 }
 
 class RomAddressLookup {
-  constructor(rom, customDraft, activeRoomId = 0x15) {
+  rom: Rom | null;
+  activeRoomId: number;
+  lookupMap = new Map<number, Resolved>();
+  roomTriggersMap = new Map<number, RoomTriggers>();
+  mapscriptTableSnes = 0;
+
+  constructor(rom: Rom | null | undefined, customDraft?: Draft | null, activeRoomId = 0x15) {
     this.rom = rom || null;
     this.activeRoomId = activeRoomId;
-    this.lookupMap = new Map();
-    this.roomTriggersMap = new Map(); // roomId -> { bTrigger: [], stepOn: [], enter: null }
-    this.namesData = null;
 
-    this._loadNamesData();
     this._initVanillaTable();
     if (customDraft) {
       this.registerCustomDraft(customDraft, activeRoomId);
     }
   }
 
-  _loadNamesData() {
-    try {
-      const knownPath = path.join(__dirname, 'known-scripts.json');
-      if (fs.existsSync(knownPath)) {
-        this.knownScripts = JSON.parse(fs.readFileSync(knownPath, 'utf8'));
-      }
-    } catch (_) {
-      this.knownScripts = null;
-    }
-  }
-
-  _initVanillaTable() {
+  _initVanillaTable(): void {
     // 1. Bare empty trigger script (id 477)
     this.lookupMap.set(0x92A42F, {
       addr: 0x92A42F,
@@ -80,23 +76,21 @@ class RomAddressLookup {
     });
 
     // 2. Pre-indexed known global and NPC scripts (e.g. 0x92A050 -> global[0x36])
-    if (this.knownScripts) {
-      for (const [addrStr, entry] of Object.entries(this.knownScripts)) {
-        const addr = parseInt(addrStr, 10);
-        if (!isNaN(addr) && addr > 0 && !this.lookupMap.has(addr)) {
-          const hexId = '0x' + entry.id.toString(16).toLowerCase();
-          const shortTag = entry.kind === 'global' ? `global[${hexId}]` : `npc[${hexId}]`;
-          const displayName = entry.kind === 'global'
-            ? getGlobalScriptName(entry.id)
-            : getNpcScriptName(entry.id);
-          this.lookupMap.set(addr, {
-            addr,
-            id: entry.id,
-            name: displayName,
-            shortTag,
-            kind: entry.kind,
-          });
-        }
+    for (const [addrStr, entry] of Object.entries(KNOWN_SCRIPTS)) {
+      const addr = parseInt(addrStr, 10);
+      if (!isNaN(addr) && addr > 0 && !this.lookupMap.has(addr)) {
+        const hexId = '0x' + entry.id.toString(16).toLowerCase();
+        const shortTag = entry.kind === 'global' ? `global[${hexId}]` : `npc[${hexId}]`;
+        const displayName = entry.kind === 'global'
+          ? getGlobalScriptName(entry.id)
+          : getNpcScriptName(entry.id);
+        this.lookupMap.set(addr, {
+          addr,
+          id: entry.id,
+          name: displayName,
+          shortTag,
+          kind: entry.kind,
+        });
       }
     }
 
@@ -143,14 +137,14 @@ class RomAddressLookup {
     this.mapscriptTableSnes = mapscriptTableSnes;
   }
 
-  resolveScriptIdToSnes(scriptId) {
+  resolveScriptIdToSnes(scriptId: number): number {
     if (!this.rom || typeof scriptId !== 'number') return 0;
     const mapscriptTableSnes = this.mapscriptTableSnes || (SCRIPTS_START_ADDR_US + read16(this.rom, SCRIPTS_START_ADDR_US));
     const packed = read24(this.rom, mapscriptTableSnes + scriptId);
     return packed > 0 ? scriptValueToSnes(packed) : 0;
   }
 
-  registerCustomDraft(draft, roomId = 0x15) {
+  registerCustomDraft(draft: Draft | null | undefined, roomId = 0x15): void {
     if (!draft) return;
     const roomHex = '0x' + roomId.toString(16).toUpperCase().padStart(2, '0');
 
@@ -164,7 +158,7 @@ class RomAddressLookup {
       shortTag: `${roomHex}.enter`,
     });
 
-    const roomTrigs = { bTrigger: [], stepOn: [], enter: enterAddr };
+    const roomTrigs: RoomTriggers = { bTrigger: [], stepOn: [], enter: enterAddr };
 
     // Register B-triggers
     if (Array.isArray(draft.bTrigger)) {
@@ -172,7 +166,7 @@ class RomAddressLookup {
         const sId = typeof t.scriptId === 'number' && t.scriptId !== 0 ? t.scriptId : 477;
         const addr = this.resolveScriptIdToSnes(sId) || (sId === 477 ? 0x92A42F : 0);
         const coords = `(${t.x1},${t.y1})`;
-        const trigInfo = {
+        const trigInfo: Resolved = {
           addr,
           room: roomId,
           kind: 'bTrigger',
@@ -195,7 +189,7 @@ class RomAddressLookup {
         const sId = typeof t.scriptId === 'number' && t.scriptId !== 0 ? t.scriptId : 477;
         const addr = this.resolveScriptIdToSnes(sId) || (sId === 477 ? 0x92A42F : 0);
         const coords = `(${t.x1},${t.y1})`;
-        const trigInfo = {
+        const trigInfo: Resolved = {
           addr,
           room: roomId,
           kind: 'stepOn',
@@ -215,9 +209,9 @@ class RomAddressLookup {
     this.roomTriggersMap.set(roomId, roomTrigs);
   }
 
-  _getRoomTriggers(roomId) {
+  _getRoomTriggers(roomId: number): RoomTriggers | null {
     if (this.roomTriggersMap.has(roomId)) {
-      return this.roomTriggersMap.get(roomId);
+      return this.roomTriggersMap.get(roomId)!;
     }
     if (!this.rom || typeof roomId !== 'number' || roomId < 0 || roomId > 0x90) return null;
     const headerOffset = (this.rom.length % 1024 === 512) ? 512 : 0;
@@ -237,7 +231,7 @@ class RomAddressLookup {
     const bTableRom = bLenRom + 2;
 
     const roomHex = '0x' + roomId.toString(16).toUpperCase().padStart(2, '0');
-    const roomTrigs = { bTrigger: [], stepOn: [], enter: null };
+    const roomTrigs: RoomTriggers = { bTrigger: [], stepOn: [], enter: null };
 
     if (stepLen >= 6 && stepLen % 6 === 0 && stepLen <= 600) {
       let idx = 0;
@@ -287,13 +281,13 @@ class RomAddressLookup {
     return roomTrigs;
   }
 
-  lookup(addr, currentRoomId, item) {
+  lookup(addr: number, currentRoomId?: number, item?: LookupItem): Resolved | null {
     if (typeof addr !== 'number' || addr <= 0) return null;
 
     // Check custom room or room-specific triggers first if room matches
     const roomId = currentRoomId !== undefined ? currentRoomId : this.activeRoomId;
     const roomTrigs = this.roomTriggersMap.has(roomId)
-      ? this.roomTriggersMap.get(roomId)
+      ? this.roomTriggersMap.get(roomId) ?? null
       : this._getRoomTriggers(roomId);
 
     if (roomTrigs) {
@@ -379,17 +373,13 @@ class RomAddressLookup {
   }
 }
 
-let _activeLookup = null;
+let _activeLookup: RomAddressLookup | null = null;
 
-function getActiveAddressLookup(rom, customDraft, activeRoomId = 0x15) {
+function getActiveAddressLookup(rom?: Rom | null, customDraft?: Draft | null, activeRoomId = 0x15): RomAddressLookup {
   if (!_activeLookup || (rom && _activeLookup.rom !== rom) || customDraft) {
     _activeLookup = new RomAddressLookup(rom, customDraft, activeRoomId);
   }
   return _activeLookup;
 }
 
-module.exports = {
-  RomAddressLookup,
-  getActiveAddressLookup,
-  scriptValueToSnes,
-};
+export { RomAddressLookup, getActiveAddressLookup, scriptValueToSnes };

@@ -76,7 +76,7 @@
       if (tasRec.unsent >= TAS_FLUSH_FRAMES) tasFlush();
     }
 
-    // An event line between two frame lines (see movie.js).
+    // An event line between two frame lines (see movie.ts).
     function tasRecordEvent(line) {
       if (!tasRec) return;
       tasFlushWrite();
@@ -119,7 +119,7 @@
       }
     }
 
-    // CRC-32 (IEEE), the same as movie.js crc32 (a test keeps them equal).
+    // CRC-32 (IEEE), the same as movie.ts crc32 (a test keeps them equal).
     function tasCrcUpdate(crc, bytes) {
       if (!tasCrcTable) {
         tasCrcTable = new Uint32Array(256);
