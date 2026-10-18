@@ -16,7 +16,7 @@ Owns the on-screen display (OSD) Quick Menu for the embedded SNES emulator.
   - `5: EMULATION`: Playback speed (1/4x, 1/2x, 1x, 2x, 4x), Master Audio (mute, saved), Keep Focus (Tab and debugger stops leave the focus on the emulator, saved), power-cycle ROM, soft reset.
   - `6: CONTROLS`: Interactive keybinding remapper and gamepad listener with Arrow/WASD presets (saved by the extension, not in the page's localStorage).
   - Tabs 1-4 are the game's (Evermore's: `src/games/evermore/emulator/menu-tabs.js`, handed in through
-    `host.js` `webview()`), and need Secret of Evermore (U) or a ROM built on it (`data-needs="evermore"`).
+    `host.js` `webview()`), and need Secret of Evermore (U) or a ROM built on it (`data-needs="game"`).
     The menu splices their buttons and panels in (`getMenuHtml(parts)`) and calls the game's hooks behind
     `typeof` guards: `gameStartAllowed(m)` (Start opens the menu), `gameMenuOpened` / `Closed` /
     `MapChanged`, `gameMenuLoad`, `gameMenuRender(tab)`, `gameMenuStep(tab, row, delta)`,

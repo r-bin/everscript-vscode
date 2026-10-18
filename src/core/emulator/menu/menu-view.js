@@ -13,7 +13,7 @@
  *     4: CHEATS
  *     5: EMULATION (Speed 1/4x..4x, Master Audio, Keep Focus, Reset, Soft Reset)
  *     6: CONTROLS (Interactive keybinds & gamepad remapper, presets)
- * Tabs 1-4 need Secret of Evermore (data-needs="evermore", webview/emulator-profile.js).
+ * Tabs 1-4 need Secret of Evermore (data-needs="game", webview/emulator-profile.js).
  * - Non-looping stepped values (Speed: 1/4x, 1/2x, 1x, 2x, 4x; Zoom, toggles)
  * - Up/Down automatic scroll-into-view
  * - Wheel events inside menu scroll the menu instead of the map
@@ -550,11 +550,11 @@ function getMenuHtml(parts = {}) {
 ${parts.tabButtonsHtml || ''}
             <button id="menu-tab-btn-7" class="menu-tab-btn" type="button" data-tab="7">REPLAYS</button>
             <button id="menu-tab-btn-8" class="menu-tab-btn" type="button" data-tab="8">CDL</button>
-            <button id="menu-tab-btn-9" class="menu-tab-btn" data-needs="full evermore" type="button" data-tab="9">TRACE</button>
-            <button id="menu-tab-btn-10" class="menu-tab-btn" data-needs="full evermore" type="button" data-tab="10">STACK</button>
-            <button id="menu-tab-btn-11" class="menu-tab-btn" data-needs="full evermore" type="button" data-tab="11">ENTITIES</button>
-            <button id="menu-tab-btn-12" class="menu-tab-btn" data-needs="full evermore" type="button" data-tab="12">ALCHEMY</button>
-            <button id="menu-tab-btn-13" class="menu-tab-btn" data-needs="full evermore" type="button" data-tab="13">PALETTES</button>
+            <button id="menu-tab-btn-9" class="menu-tab-btn" data-needs="full game" type="button" data-tab="9">TRACE</button>
+            <button id="menu-tab-btn-10" class="menu-tab-btn" data-needs="full game" type="button" data-tab="10">STACK</button>
+            <button id="menu-tab-btn-11" class="menu-tab-btn" data-needs="full game" type="button" data-tab="11">ENTITIES</button>
+            <button id="menu-tab-btn-12" class="menu-tab-btn" data-needs="full game" type="button" data-tab="12">ALCHEMY</button>
+            <button id="menu-tab-btn-13" class="menu-tab-btn" data-needs="full game" type="button" data-tab="13">PALETTES</button>
             <button id="menu-tab-btn-5" class="menu-tab-btn" type="button" data-tab="5">EMULATION</button>
             <button id="menu-tab-btn-6" class="menu-tab-btn" type="button" data-tab="6">CONTROLS</button>
           </div>
@@ -566,7 +566,7 @@ ${parts.tabButtonsHtml || ''}
           <!-- Tab 0: VIEW -->
           <div id="menu-panel-0" class="menu-tab-panel active">
             <div class="menu-lens-panel">
-              <div class="menu-lens-header" data-needs="evermore">
+              <div class="menu-lens-header" data-needs="game">
                 <div class="menu-lens-room" id="menu-lens-room-title">View (Undistorted Room View)</div>
                 <div class="menu-lens-coords" id="menu-lens-coords">Cam: (0, 0) | Player: (0, 0)</div>
               </div>
@@ -578,7 +578,7 @@ ${parts.tabButtonsHtml || ''}
                   <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
                 </div>
               </div>
-              <div class="menu-row" data-row="1" data-action="action-reset-pan" data-needs="evermore">
+              <div class="menu-row" data-row="1" data-action="action-reset-pan" data-needs="game">
                 <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Center on Player / Reset Pan</div>
                 <div class="menu-row-value">
                   <span class="menu-action-pill">[B] Center</span>
@@ -930,7 +930,7 @@ function getMenuClientScript() {
       const coordsEl = document.getElementById('menu-lens-coords');
       const zoomPill = document.getElementById('menu-val-lens-zoom');
 
-      // The room and the player: the game's (gameLensInfo, Evermore: menu-tabs.js); the line is data-needs="evermore".
+      // The room and the player: the game's (gameLensInfo, Evermore: menu-tabs.js); the line is data-needs="game".
       const info = typeof gameLensInfo === 'function' ? gameLensInfo() : null;
       if (roomTitleEl && info) roomTitleEl.textContent = info.room;
       if (coordsEl) {

@@ -9,12 +9,12 @@
  * Profile and game:
  *   - The profile ('full' Everscript, 'recorder' SNES CDL Recorder) comes from the
  *     #emu-config JSON block; the body carries it as a class.
- *   - emuGateRom(bytes) runs at every boot: detectEvermore (the game's rom-game.js; none = no) sets
- *     emuEvermore and the body class rom-other. Elements marked data-needs are
- *     hidden by emulator-profile.css; Evermore-only work in the inline script
- *     checks emuEvermore. A hidden pause-menu tab is left for the first one still
+ *   - emuGateRom(bytes) runs at every boot: gameDetectRom (the game's rom-game.js; none = no) sets
+ *     emuGameRom and the body class rom-other. Elements marked data-needs are
+ *     hidden by emulator-profile.css; the game's work in the inline script
+ *     checks emuGameRom. A hidden pause-menu tab is left for the first one still
  *     shown; hidden panels are left out of the side and bottom bars (emulator-panels.js). emuScriptHook (the script stack polling and trace behind
- *     TRACE / STACK and the .evs debugger) needs Evermore and the full profile.
+ *     TRACE / STACK and the .evs debugger) needs the game's ROM and the full profile.
  *
  * Settings (kept by the host in globalState, sent back as 'emuSettings'):
  *   the overlay toggles, master audio mute, the keybinds and where each panel is
@@ -47,7 +47,7 @@ function emuShown(el) {
   const needs = (el.getAttribute('data-needs') || '').split(/\s+/).filter(Boolean);
   return needs.every(n => (n === 'full' ? emuProfile === 'full'
     : n === 'recorder' ? emuProfile === 'recorder'
-    : n === 'evermore' ? emuEvermore
+    : n === 'game' ? emuGameRom
     : true));
 }
 
@@ -65,10 +65,10 @@ function emuClearExtendedLayers() {
 
 /** Called at every boot, before the core starts. */
 function emuGateRom(bytes) {
-  emuEvermore = typeof detectEvermore === 'function' ? detectEvermore(bytes) : false;   // the game's detector (Evermore: rom-game.js)
-  emuScriptHook = emuEvermore && emuProfile === 'full';
-  document.body.classList.toggle('rom-other', !emuEvermore);
-  if (!emuEvermore) {
+  emuGameRom = typeof gameDetectRom === 'function' ? gameDetectRom(bytes) : false;   // the game's detector (Evermore: rom-game.js)
+  emuScriptHook = emuGameRom && emuProfile === 'full';
+  document.body.classList.toggle('rom-other', !emuGameRom);
+  if (!emuGameRom) {
     if (typeof lastSampledPreState !== 'undefined') lastSampledPreState = null;
     emuClearExtendedLayers();
   }

@@ -4,11 +4,11 @@
  * What a profile or a ROM does not get is not shown (emulator-profile.js sets the body classes):
  *   data-needs="full"      the Everscript extension only (not the SNES CDL Recorder)
  *   data-needs="recorder"  the SNES CDL Recorder only
- *   data-needs="evermore"  only while a Secret of Evermore (U) compatible ROM runs
+ *   data-needs="game"      only while a ROM the game recognises runs (gameDetectRom)
  * Several words: every one must hold. !important beats the tab views' own display rules.
  */
 body.profile-recorder [data-needs~="full"],
 body.profile-full [data-needs~="recorder"],
-body.rom-other [data-needs~="evermore"] {
+body.rom-other [data-needs~="game"] {
   display: none !important;
 }

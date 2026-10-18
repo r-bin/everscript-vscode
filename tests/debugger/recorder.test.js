@@ -2,7 +2,7 @@
 
 /**
  * The SNES CDL Recorder and what it shares with Everscript:
- *   - detectEvermore (webview/rom-game.js) on synthetic headers (no ROM bytes)
+ *   - gameDetectRom (webview/rom-game.js) on synthetic headers (no ROM bytes)
  *   - recording bundles: export, import, cumulative hit counts not doubled, repeats refused
  *   - the recorder's file list: complete (every staged file loads from a copy of only those files)
  *   - the webview by profile and ROM, in headless Chromium (skipped without playwright)
@@ -16,7 +16,7 @@ const crypto = require('crypto');
 const Module = require('module');
 
 const ROOT = path.resolve(__dirname, '../..');
-const { detectEvermore } = require('../../src/games/evermore/emulator/webview/rom-game');
+const { gameDetectRom } = require('../../src/games/evermore/emulator/webview/rom-game');
 const { CdlLibrary } = require('../../src/platform/cdl/library');
 const { buildBundle, importBundle, readBundle } = require('../../src/platform/cdl/bundle');
 const { evsmvHeader } = require('../../src/platform/tas/movie');
@@ -51,13 +51,13 @@ function recordInto(root, rom, hits) {
 (async () => {
     console.log('\nrecorder:');
 
-    await test('detectEvermore: vanilla US title and region only, any layout, with or without copier header', () => {
-        assert.strictEqual(detectEvermore(fakeRom('SECRET OF EVERMORE', 1)), true);
-        assert.strictEqual(detectEvermore(fakeRom('SECRET OF EVERMORE', 1, { copier: true })), true, 'copier header');
-        assert.strictEqual(detectEvermore(fakeRom('SECRET OF EVERMORE', 1, { size: 0x410000, at: 0x40FFC0 })), true, 'ExHiROM header');
-        assert.strictEqual(detectEvermore(fakeRom('SECRET OF EVERMORE', 2)), false, 'another region');
-        assert.strictEqual(detectEvermore(fakeRom('Secret of MANA', 1)), false, 'another game');
-        assert.strictEqual(detectEvermore(new Uint8Array(0)), false);
+    await test('gameDetectRom: vanilla US title and region only, any layout, with or without copier header', () => {
+        assert.strictEqual(gameDetectRom(fakeRom('SECRET OF EVERMORE', 1)), true);
+        assert.strictEqual(gameDetectRom(fakeRom('SECRET OF EVERMORE', 1, { copier: true })), true, 'copier header');
+        assert.strictEqual(gameDetectRom(fakeRom('SECRET OF EVERMORE', 1, { size: 0x410000, at: 0x40FFC0 })), true, 'ExHiROM header');
+        assert.strictEqual(gameDetectRom(fakeRom('SECRET OF EVERMORE', 2)), false, 'another region');
+        assert.strictEqual(gameDetectRom(fakeRom('Secret of MANA', 1)), false, 'another game');
+        assert.strictEqual(gameDetectRom(new Uint8Array(0)), false);
     });
 
     await test('bundle: export, import, newer bundle replaces the install\'s counts, repeats refused, replays deduped', () => {
@@ -148,8 +148,8 @@ function recordInto(root, rom, hits) {
         assert.ok(html.includes('<body class="profile-recorder">'));
         assert.ok(html.includes('<script type="application/json" id="emu-config">{"profile":"recorder"}</script>'));
         assert.ok(html.includes('id="cdl-export-bundle" class="ss-btn" data-needs="recorder"'));
-        assert.ok(html.includes('id="ss-tab-trace" class="ss-tab" data-needs="full evermore"'));
-        assert.ok(html.includes('id="menu-tab-btn-9" class="menu-tab-btn" data-needs="full evermore"'), 'TRACE menu tab: Everscript + Evermore');
+        assert.ok(html.includes('id="ss-tab-trace" class="ss-tab" data-needs="full game"'));
+        assert.ok(html.includes('id="menu-tab-btn-9" class="menu-tab-btn" data-needs="full game"'), 'TRACE menu tab: Everscript + Evermore');
         assert.ok(!html.includes('ss-pause-btn') && !html.includes('ss-resume-btn'), 'no pause / resume buttons');
         assert.ok(buildHtml({ cspSource: '' }, 'core.js', 'core.wasm', 'core', 'core').includes('<body class="profile-full">'), 'full by default');
     });
@@ -201,7 +201,7 @@ function recordInto(root, rom, hits) {
                 const rom = new Uint8Array(0x10000); rom.set(title, 0xFFC0); rom[0xFFD9] = 1;
                 emuGateRom(rom);
             }, mana);
-            assert.strictEqual(await full.p.evaluate(() => emuEvermore), false);
+            assert.strictEqual(await full.p.evaluate(() => emuGameRom), false);
             assert.strictEqual(await shown(full.p, 'menu-tab-btn-9'), false, 'TRACE needs Evermore');
             assert.strictEqual(await shown(full.p, 'menu-tab-btn-1'), false, 'OVERLAYS needs Evermore');
             assert.strictEqual(await full.p.evaluate(() => { menuActiveTab = 0; switchMenuTab(1); return menuActiveTab; }), 7, 'R skips to REPLAYS');
@@ -209,6 +209,11 @@ function recordInto(root, rom, hits) {
             const evermore = Array.from(Buffer.from('SECRET OF EVERMORE'.padEnd(21, ' '), 'latin1'));
             await full.p.evaluate(title => { const rom = new Uint8Array(0x10000); rom.set(title, 0xFFC0); rom[0xFFD9] = 1; emuGateRom(rom); }, evermore);
             assert.strictEqual(await shown(full.p, 'menu-tab-btn-9'), true);
+            // What the game builds from the ROM on the host reaches its page hook (Evermore: the ALCHEMY icons).
+            assert.strictEqual(await rec.p.evaluate(() => typeof gameRomData), 'undefined', 'no game, no hook');
+            await full.p.evaluate(() => window.postMessage({ command: 'gameRomData', data: { alchemyIcons: { Flash: 'data:,' } } }, '*'));
+            await new Promise(r => setTimeout(r, 50));
+            assert.deepStrictEqual(await full.p.evaluate(() => loadedAlchemyIcons), { Flash: 'data:,' });
 
             // Placement: one panel per side, empty bottom bar = no bottom bar, the menu borrows the panel.
             await full.p.evaluate(() => { romLoaded = true; emuSetPanelPlace('trace', 'left'); });

@@ -66,7 +66,7 @@ function getApuStreamClientScript() {
     function apuStreamTick(m, paused) {
       // Who sent each sound effect: the game's (Evermore: sound-source-view.js), none without it.
       const hasSnd = typeof sndSync === 'function';
-      if (hasSnd) sndSync(m, romLoaded && emuEvermore && (apuStreamOn || sndShow));
+      if (hasSnd) sndSync(m, romLoaded && emuGameRom && (apuStreamOn || sndShow));
       const src = hasSnd ? sndTake(paused) : [];
       if (!apuStreamOn || !romLoaded) return;
       const view = apuViewBytes(m);

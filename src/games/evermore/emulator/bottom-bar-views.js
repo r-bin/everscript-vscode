@@ -285,16 +285,16 @@ function getBottomBarCss() {
 
 function getBottomBarTabButtonsHtml() {
   return `
-        <button id="ss-tab-entities" class="ss-tab" data-needs="full evermore" type="button">ENTITIES (<span id="ss-ent-count">0</span>)</button>
-        <button id="ss-tab-alchemy" class="ss-tab" data-needs="full evermore" type="button">ALCHEMY &amp; PROJECTILES (<span id="ss-alc-count">0</span>)</button>
-        <button id="ss-tab-palettes" class="ss-tab" data-needs="full evermore" type="button">PALETTES</button>
+        <button id="ss-tab-entities" class="ss-tab" data-needs="full game" type="button">ENTITIES (<span id="ss-ent-count">0</span>)</button>
+        <button id="ss-tab-alchemy" class="ss-tab" data-needs="full game" type="button">ALCHEMY &amp; PROJECTILES (<span id="ss-alc-count">0</span>)</button>
+        <button id="ss-tab-palettes" class="ss-tab" data-needs="full game" type="button">PALETTES</button>
   `;
 }
 
 function getBottomBarViewsHtml() {
   return `
     <!-- Tab: Entities / Enemies (Boy, Dog, Enemies, NPCs) -->
-    <div id="ss-view-entities" class="ss-tab-view" data-needs="full evermore">
+    <div id="ss-view-entities" class="ss-tab-view" data-needs="full game">
       <div class="ss-scroll-content">
         <table id="ent-table" class="alc-table">
           <thead>
@@ -316,7 +316,7 @@ function getBottomBarViewsHtml() {
     </div>
 
     <!-- Tab: Projectile Alchemy + Animation Alchemy + Projectiles -->
-    <div id="ss-view-alchemy" class="ss-tab-view" data-needs="full evermore">
+    <div id="ss-view-alchemy" class="ss-tab-view" data-needs="full game">
       <div class="ss-scroll-content">
         <!-- 1. Projectile Alchemy (8 slots at $7E3564, 0x76 stride) -->
         <div id="alc-sec-palc" class="alc-section">
@@ -387,7 +387,7 @@ function getBottomBarViewsHtml() {
     </div>
 
     <!-- Tab: Sprite Palettes + Map Palettes -->
-    <div id="ss-view-palettes" class="ss-tab-view" data-needs="full evermore">
+    <div id="ss-view-palettes" class="ss-tab-view" data-needs="full game">
       <div class="ss-scroll-content">
         <!-- Sprite Palettes -->
         <div id="pal-sec-sprites">
@@ -447,6 +447,12 @@ function getBottomBarClientScript() {
     };
 
     let loadedAlchemyIcons = {};
+
+    /** The page's game-data hook: what host.js romData() built from the ROM (the ALCHEMY icons). */
+    function gameRomData(data, redraw) {
+      loadedAlchemyIcons = data.alchemyIcons || {};
+      if (redraw && emuPanelVisible('alchemy')) updateAlchemyTab(lastSampledPreState, bottomBarRom());
+    }
 
     // Cheats state
     let cheatAtlasEnabled = false;

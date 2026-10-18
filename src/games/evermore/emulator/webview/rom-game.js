@@ -12,7 +12,7 @@
  * Nothing else is checked, so ROM hacks and the ExHiROM build count too; the
  * other regions do not (their addresses differ).
  *
- * Loaded by the emulator webview as a file (window.detectEvermore; host.js webviewFiles() hands it to the
+ * Loaded by the emulator webview as a file (window.gameDetectRom; host.js webviewFiles() hands it to the
  * panel) and by node (module.exports) for the tests. Without it (the recorder) no ROM counts as Evermore.
  */
 (function (root) {
@@ -29,7 +29,7 @@
     }
 
     /** true when the ROM is Secret of Evermore (U) or built on it (header title + region). */
-    function detectEvermore(rom) {
+    function gameDetectRom(rom) {
         if (!rom || !rom.length) return false;
         const base = rom.length % 1024 === 512 ? 512 : 0;
         for (const at of HEADERS) {
@@ -39,6 +39,6 @@
         return false;
     }
 
-    if (typeof module !== 'undefined' && module.exports) module.exports = { detectEvermore };
-    else root.detectEvermore = detectEvermore;
+    if (typeof module !== 'undefined' && module.exports) module.exports = { gameDetectRom };
+    else root.gameDetectRom = gameDetectRom;
 })(this);

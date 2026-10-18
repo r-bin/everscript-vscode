@@ -19,11 +19,11 @@ function clearCaches() {
     _roomMetaCache.clear();
 }
 
-/** Alchemy icons for the ALCHEMY panel, or null. */
-function alchemyIcons(romBuffer) {
+/** What the page's gameRomData hook gets with each ROM: the ALCHEMY panel's icons (or null). */
+function romData(romBuffer) {
     try {
         const icons = romBuffer ? buildItemIcons(romBuffer) : null;
-        return icons ? icons.alchemy : null;
+        return icons ? { alchemyIcons: icons.alchemy } : null;
     } catch (_) {
         return null;
     }
@@ -534,9 +534,9 @@ function webview() {
     };
 }
 
-/** Evermore's page files, loaded before the page's own script: its ROM detector (detectEvermore). */
+/** Evermore's page files, loaded before the page's own script: its ROM detector (gameDetectRom). */
 function webviewFiles() {
     return [require('path').join(__dirname, 'webview', 'rom-game.js')];
 }
 
-module.exports = { webviewFiles, webview, clearCaches, alchemyIcons, roomMap, idleSprites, traceScripts, describeRom: describeCustomMapRom };
+module.exports = { webviewFiles, webview, clearCaches, romData, roomMap, idleSprites, traceScripts, describeRom: describeCustomMapRom };

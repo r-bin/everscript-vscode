@@ -285,12 +285,12 @@ function _dispatchPendingRom() {
   const romName = _pending.name || 'game';
   _log(`Sending ROM to webview: ${romName}`);
   _armRomTimeout(romName);
-  const alchemyIcons = _options.game ? _options.game.alchemyIcons(_currentRomBuffer) : null;
+  const gameData = _options.game && _options.game.romData ? _options.game.romData(_currentRomBuffer) : null;
   _panel.webview.postMessage({
     command: 'loadRom',
     dataUrl: _pending.dataUrl,
     name: _pending.name,
-    alchemyIcons: alchemyIcons,
+    gameData,
     scriptDebug: _scriptDebug.beforeRomLoad(),
   });
   return true;
@@ -679,9 +679,9 @@ function openEmulatorPanel(context, rom, channel) {
               }
               break;
 
-            case 'requestAlchemyIcons': {
-              if (_currentRomBuffer && _panel && _options.game) {
-                _panel.webview.postMessage({ command: 'alchemyIconsLoaded', alchemy: _options.game.alchemyIcons(_currentRomBuffer) || {} });
+            case 'requestGameRomData': {
+              if (_currentRomBuffer && _panel && _options.game && _options.game.romData) {
+                _panel.webview.postMessage({ command: 'gameRomData', data: _options.game.romData(_currentRomBuffer) || {} });
               }
               break;
             }

@@ -81,17 +81,17 @@ function getMenuTabsCss() {
 
 function getMenuTabButtonsHtml() {
   return `
-            <button id="menu-tab-btn-1" class="menu-tab-btn" data-needs="evermore" type="button" data-tab="1">OVERLAYS</button>
-            <button id="menu-tab-btn-2" class="menu-tab-btn" data-needs="evermore" type="button" data-tab="2">OBJECTS</button>
-            <button id="menu-tab-btn-3" class="menu-tab-btn" data-needs="evermore" type="button" data-tab="3">LOOT</button>
-            <button id="menu-tab-btn-4" class="menu-tab-btn" data-needs="evermore" type="button" data-tab="4">CHEATS</button>
+            <button id="menu-tab-btn-1" class="menu-tab-btn" data-needs="game" type="button" data-tab="1">OVERLAYS</button>
+            <button id="menu-tab-btn-2" class="menu-tab-btn" data-needs="game" type="button" data-tab="2">OBJECTS</button>
+            <button id="menu-tab-btn-3" class="menu-tab-btn" data-needs="game" type="button" data-tab="3">LOOT</button>
+            <button id="menu-tab-btn-4" class="menu-tab-btn" data-needs="game" type="button" data-tab="4">CHEATS</button>
 `;
 }
 
 function getMenuPanelsHtml() {
   return `
           <!-- Tab 1: OVERLAYS -->
-          <div id="menu-panel-1" class="menu-tab-panel" data-needs="evermore">
+          <div id="menu-panel-1" class="menu-tab-panel" data-needs="game">
             <div class="menu-row selected" data-row="0" data-action="toggle-extend">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Extended Map Background</div>
               <div class="menu-row-value">
@@ -183,19 +183,19 @@ function getMenuPanelsHtml() {
           </div>
 
           <!-- Tab 2: OBJECTS -->
-          <div id="menu-panel-2" class="menu-tab-panel" data-needs="evermore">
+          <div id="menu-panel-2" class="menu-tab-panel" data-needs="game">
             <div class="menu-section-header">Section 3 Map Objects (0 ... Max State)</div>
             <div id="menu-objects-list" class="menu-scroll-list"></div>
           </div>
 
           <!-- Tab 3: LOOT -->
-          <div id="menu-panel-3" class="menu-tab-panel" data-needs="evermore">
+          <div id="menu-panel-3" class="menu-tab-panel" data-needs="game">
             <div class="menu-section-header">Room Pickups (Chests, Gourds &amp; Sniff Spots)</div>
             <div id="menu-loot-list" class="menu-scroll-list"></div>
           </div>
 
           <!-- Tab 4: CHEATS -->
-          <div id="menu-panel-4" class="menu-tab-panel" data-needs="evermore">
+          <div id="menu-panel-4" class="menu-tab-panel" data-needs="game">
             <div class="menu-row selected" data-row="0" data-action="toggle-cheat-noclip">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> No Clip / Phasing</div>
               <div class="menu-row-value">
@@ -246,7 +246,7 @@ function getMenuTabsClientScript() {
     // Controllable Player Gate:
     // Only intercepts Start when player is in gameplay (not on opening screen, cinema, or entering name)
     function gameStartAllowed(m) {
-      if (!emuEvermore) return false;
+      if (!emuGameRom) return false;
       try {
         if (typeof m.readMemory !== 'function') return false;
         // 1. Current map: 0x00 is title, Carlton cinema, intro, and name entry
@@ -311,7 +311,7 @@ function getMenuTabsClientScript() {
     // The room's objects and pickups for OBJECTS and LOOT, asked for when the menu opens.
     function gameMenuLoad() {
       const curMap = getCurrentMapId();
-      if (emuEvermore && curMap >= 0 && (!cachedObjects || !cachedLootables)) {
+      if (emuGameRom && curMap >= 0 && (!cachedObjects || !cachedLootables)) {
         if (typeof roomObjectsCache !== 'undefined' && roomObjectsCache.has(curMap)) {
           cachedObjects = roomObjectsCache.get(curMap);
         }

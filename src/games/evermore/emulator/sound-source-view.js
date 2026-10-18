@@ -36,7 +36,7 @@ const SFX_TAIL = 0x8C8327;     // return address of $8C:831D's JSL $8C:81FD
 
 /** The overlay bar's chip. */
 function getSoundChipHtml() {
-  return '<button id="screen-sound-toggle" class="screen-chip" data-needs="evermore" type="button" title="Show which entity makes each sound (and record who sent it for the Music tab)">SOUNDS OFF</button>';
+  return '<button id="screen-sound-toggle" class="screen-chip" data-needs="game" type="button" title="Show which entity makes each sound (and record who sent it for the Music tab)">SOUNDS OFF</button>';
 }
 
 function getSoundSourceClientScript() {

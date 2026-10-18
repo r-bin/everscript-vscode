@@ -16,12 +16,12 @@
 const { parseRoomTriggers, calculateTriggerBox, resolveScriptIdToSnes } = require('./room-triggers');
 
 function getScreenChipsHtml() {
-  return `<button id="screen-extend-toggle" class="screen-chip" data-needs="evermore" type="button" title="Toggle Extended Map">MAP EXT OFF</button>
-        <button id="screen-trigger-toggle" class="screen-chip" data-needs="evermore" type="button" title="Toggle Trigger Overlay (B &amp; Step-on)">TRIGGERS OFF</button>
-        <button id="screen-object-toggle" class="screen-chip" data-needs="evermore" type="button" title="Toggle Objects Overlay">OBJECTS OFF</button>
-        <button id="screen-anim-toggle" class="screen-chip" data-needs="evermore" type="button" title="Toggle Animated Tiles Overlay">ANIM TILES OFF</button>
-        <button id="screen-collision-toggle" class="screen-chip" data-needs="evermore" type="button" title="Toggle Collision Lines Overlay">COLLISION OFF</button>
-        <button id="screen-fog-toggle" class="screen-chip" data-needs="evermore" type="button" title="Toggle Fog of War outside emulator">FOG OFF</button>`;
+  return `<button id="screen-extend-toggle" class="screen-chip" data-needs="game" type="button" title="Toggle Extended Map">MAP EXT OFF</button>
+        <button id="screen-trigger-toggle" class="screen-chip" data-needs="game" type="button" title="Toggle Trigger Overlay (B &amp; Step-on)">TRIGGERS OFF</button>
+        <button id="screen-object-toggle" class="screen-chip" data-needs="game" type="button" title="Toggle Objects Overlay">OBJECTS OFF</button>
+        <button id="screen-anim-toggle" class="screen-chip" data-needs="game" type="button" title="Toggle Animated Tiles Overlay">ANIM TILES OFF</button>
+        <button id="screen-collision-toggle" class="screen-chip" data-needs="game" type="button" title="Toggle Collision Lines Overlay">COLLISION OFF</button>
+        <button id="screen-fog-toggle" class="screen-chip" data-needs="game" type="button" title="Toggle Fog of War outside emulator">FOG OFF</button>`;
 }
 
 function getOverlaysScript() {
@@ -2188,7 +2188,7 @@ function getOverlaysScript() {
 function getOverlayTogglesScript() {
   return `
     function redrawExtendedLayersNow() {
-      if (!emuEvermore || typeof renderExtendedMapAndOverlays !== 'function') return;
+      if (!emuGameRom || typeof renderExtendedMapAndOverlays !== 'function') return;
       const sc = document.getElementById('screen');
       const extM = document.getElementById('extended-map');
       const extE = document.getElementById('extended-entities');

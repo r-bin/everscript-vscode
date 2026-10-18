@@ -6,7 +6,7 @@
  * Owns: the emulator webview HTML template.
  * Single export: buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay, romOfferData, options) -> string
  *   options.profile  'full' or 'recorder' (webview/emulator-profile.js hides what a profile or a
- *                    non-Evermore ROM does not get: elements marked data-needs="full" / "evermore")
+ *                    ROM the game does not recognise does not get: elements marked data-needs="full" / "game")
  *   options.scripts  webview URIs of the game's page files (Evermore: its rom-game.js), emulator-profile.js,
  *                    emulator-panels.js and replays-list.js,
  *                    loaded before the inline script; options.styles  of webview/emulator-profile.css
@@ -672,8 +672,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           </div>
         </div>
         <div id="ss-tabs">
-          <button id="ss-tab-trace" class="ss-tab" data-needs="full evermore" type="button">TRACE (<span id="ss-tab-trace-count">0</span>)</button>
-          <button id="ss-tab-stack" class="ss-tab" data-needs="full evermore" type="button">STACK (<span id="ss-count">waiting...</span>)</button>
+          <button id="ss-tab-trace" class="ss-tab" data-needs="full game" type="button">TRACE (<span id="ss-tab-trace-count">0</span>)</button>
+          <button id="ss-tab-stack" class="ss-tab" data-needs="full game" type="button">STACK (<span id="ss-count">waiting...</span>)</button>
           ${game.tabButtonsHtml}
           ${getCdlTabButtonHtml()}
         </div>
@@ -681,12 +681,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
       <!-- Panels: each is placed in a side bar, here, or only in its pause-menu tab (webview/emulator-panels.js) -->
       <!-- Script Trace Log -->
-      <div id="ss-view-trace" class="ss-tab-view" data-needs="full evermore">
+      <div id="ss-view-trace" class="ss-tab-view" data-needs="full game">
         <div id="ss-trace-log"></div>
       </div>
 
       <!-- Script Stack live slot table -->
-      <div id="ss-view-stack" class="ss-tab-view" data-needs="full evermore">
+      <div id="ss-view-stack" class="ss-tab-view" data-needs="full game">
         <div id="ss-detail">waiting for script stack detail...</div>
         <table id="ss-table">
           <thead><tr><th>#</th><th>PC</th><th>state</th><th>next</th><th>entity</th><th>timer</th></tr></thead>
@@ -704,7 +704,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
   <!-- Module object must be declared before the core script loads. -->
   <script>
-    // Sampled each frame while an Evermore-compatible ROM runs (samplePreLoopState); read by the overlays and the game's panels.
+    // Sampled each frame while the game's ROM runs (samplePreLoopState); read by the overlays and the game's panels.
     let lastSampledPreState = null;
     // -- Boot: register error handlers BEFORE acquiring vscode API so any
     //    init failure is captured.  'var' lets onerror reference the variable
@@ -789,9 +789,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     let loadedRomName = 'game';
     let romLaunchTimestamp = 0;
     let romFrameCount = 0;
-    // Set per ROM by emulator-profile.js (emuGateRom): Evermore-only work runs only for Evermore;
+    // Set per ROM by emulator-profile.js (emuGateRom): the game's work runs only for its ROM;
     // the script stack hook and trace (TRACE / STACK, the .evs debugger) only in the full profile too.
-    let emuEvermore = true;
+    let emuGameRom = true;
     let emuScriptHook = true;
     let emuMuted = false;
 
@@ -1167,7 +1167,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         return;
       }
       if (evt.data.command === 'loadRom') {
-        if (evt.data.alchemyIcons && typeof loadedAlchemyIcons !== 'undefined') loadedAlchemyIcons = evt.data.alchemyIcons;
+        if (evt.data.gameData && typeof gameRomData === 'function') gameRomData(evt.data.gameData, false);
         if (evt.data.scriptDebug && typeof sdbgConfigure === 'function') sdbgConfigure(evt.data.scriptDebug);
         romStage('loadRom received: ' + (evt.data.name || 'game'));
         startWithRom(evt.data.dataUrl, evt.data.name);
@@ -1414,7 +1414,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         if (typeof emuPanelsLayout === 'function') emuPanelsLayout();
         window.dispatchEvent(new Event('resize'));
         if (emuScriptHook) startWramPolling();
-        if (emuEvermore) vscodeApi.postMessage({ command: 'requestAlchemyIcons' });
+        if (emuGameRom) vscodeApi.postMessage({ command: 'requestGameRomData' });
         vscodeApi.postMessage({ command: 'gameStarted', name: name || 'game' });
         tasOnBoot(name);
         romStage('launch success: ' + (name || 'game'));
@@ -1598,7 +1598,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         if (e.target.closest && (e.target.closest('.screen-chip') || e.target.closest('.screen-btn'))) return;
 
         // If paused, inspector click allows selecting character, trigger, or object
-        if (emuEvermore && typeof isEmulatorPaused === 'function' && isEmulatorPaused() && romLoaded && lastLayout) {
+        if (emuGameRom && typeof isEmulatorPaused === 'function' && isEmulatorPaused() && romLoaded && lastLayout) {
           const rect = wrap.getBoundingClientRect();
           const mouseX = e.clientX - rect.left;
           const mouseY = e.clientY - rect.top;
@@ -1702,11 +1702,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           } else if (romLoaded) {
             romFrameCount++;
             // Sample camera and entity state BEFORE _mainLoop() to match rendered frame
-            const preState = emuEvermore && typeof samplePreLoopState === 'function' ? samplePreLoopState() : null;
+            const preState = emuGameRom && typeof samplePreLoopState === 'function' ? samplePreLoopState() : null;
             lastSampledPreState = preState;
             const m = getModule();
             // A replay must see exactly the recorded memory: no cheat writes.
-            if (m && emuEvermore && !tasReplaying() && typeof maintainCheats === 'function') maintainCheats(m);
+            if (m && emuGameRom && !tasReplaying() && typeof maintainCheats === 'function') maintainCheats(m);
             if (speedMultiplier < 1.0) {
               speedAccumulator += speedMultiplier;
               if (speedAccumulator < 1.0) {
@@ -2080,14 +2080,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         if (typeof idleSprites !== 'undefined') for (const k in got) idleSprites.set(k, got[k]);
       } else if (evt.data.command === 'injectEverscript') {
         if (typeof injectEverscript === 'function') injectEverscript(evt.data.code);
-      } else if (evt.data.command === 'alchemyIconsLoaded') {
-        if (evt.data.alchemy && typeof updateAlchemyTab === 'function') {
-          loadedAlchemyIcons = evt.data.alchemy;
-          if (emuPanelVisible('alchemy')) {
-            const rom = loadedRomData ? ((loadedRomData.length % 1024 === 512) ? loadedRomData.subarray(512) : loadedRomData) : null;
-            updateAlchemyTab(lastSampledPreState, rom);
-          }
-        }
+      } else if (evt.data.command === 'gameRomData') {
+        if (evt.data.data && typeof gameRomData === 'function') gameRomData(evt.data.data, true);
       }
     });
 

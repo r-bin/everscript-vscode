@@ -152,7 +152,7 @@ async function coreStream(model) {
 
     // The page script, as the emulator webview embeds it.
     const sent = [], listeners = [];
-    const page = { HEAPU8: global.HEAPU8, romLoaded: true, emuEvermore: true, getModule: () => M, vscodeApi: { postMessage: m => sent.push(m) },
+    const page = { HEAPU8: global.HEAPU8, romLoaded: true, emuGameRom: true, getModule: () => M, vscodeApi: { postMessage: m => sent.push(m) },
         window: { addEventListener: (t, fn) => listeners.push(fn) } };
     vm.createContext(page);
     vm.runInContext(getSoundSourceClientScript() + getApuStreamClientScript() + ';this.apuStreamTick = apuStreamTick;', page);

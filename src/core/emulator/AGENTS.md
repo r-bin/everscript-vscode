@@ -34,8 +34,8 @@ Related skills: `emulator-subsystem`, `cdl-recorder`, `webview-dom-safety`, `deb
 - `script-debug-host.js`: one per extension, outlives the panel (breakpoints, step, reads).
 
 ## Invariants
-- A feature that needs Secret of Evermore (its RAM, its ROM tables) is marked `data-needs="evermore"`
-  and its per-frame work checks `emuEvermore`; one that only Everscript has is `data-needs="full"`
+- A feature that needs the game (its RAM, its ROM tables) is marked `data-needs="game"` and its
+  per-frame work checks `emuGameRom` (the game's `gameDetectRom` said yes); the core names no game; one that only Everscript has is `data-needs="full"`
   (and `emuScriptHook` for the script hook). The recorder's package is the `require()` closure of
   `src/recorder/extension.js`: editor / debugger code reaches the panel only through
   `configureEmulator` from `src/games/evermore/extension.js`, never by a `require` here.

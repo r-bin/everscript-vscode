@@ -192,7 +192,7 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   who sent each sound) → `stack-view.js`, `script-debug-view.js`, `sound-source-view.js` (`panel-webview.js` → 2101); VIEW's room line → `gameLensInfo()`. v0.270.0: the Evermore detector (`rom-game.js`) → a game page file
   (`webviewFiles()`), the music package byte → `gameMusicPackage`, the camera entity → `gameCameraWorld`, the
   launcher names no game; the emulator holds no Evermore facts (the gate's name `emuEvermore` / `data-needs="evermore"`
-  stays). v0.271.0: `src/emulator` → `src/core/emulator` (cores and submodules too). v0.272.0: esbuild
+  stays until v0.276.0: `emuGameRom` / `data-needs="game"`, the detector hook `gameDetectRom`, the ALCHEMY icons through `game.romData()` → `gameRomData`). v0.271.0: `src/emulator` → `src/core/emulator` (cores and submodules too). v0.272.0: esbuild
   host bundle (`tools/bundle.mts` → `bundle/extension.js`, the `main`; 361 modules; `__dirname` rewritten per
   module, `tests/memory/bundle.test.js` activates it). v0.274.0: the package leaves out the 243 JS files the bundle holds
   (`bundle/.vscodeignore`; `tests/memory/package-files.test.js` records the files every page and table reads from

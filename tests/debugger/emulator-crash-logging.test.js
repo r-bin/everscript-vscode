@@ -155,8 +155,8 @@ test('panel-webview.js synchronizes background and foreground image activation a
 });
 
 test('menu-view.js provides CHEATS tab with noclip, invincibility, and full heal', () => {
-  assert.ok(menuCode.includes('id="menu-tab-btn-4" class="menu-tab-btn" data-needs="evermore" type="button" data-tab="4">CHEATS</button>'), 'missing CHEATS tab button');
-  assert.ok(menuCode.includes('id="menu-panel-4" class="menu-tab-panel" data-needs="evermore"'), 'missing CHEATS panel');
+  assert.ok(menuCode.includes('id="menu-tab-btn-4" class="menu-tab-btn" data-needs="game" type="button" data-tab="4">CHEATS</button>'), 'missing CHEATS tab button');
+  assert.ok(menuCode.includes('id="menu-panel-4" class="menu-tab-panel" data-needs="game"'), 'missing CHEATS panel');
   assert.ok(menuCode.includes('toggle-cheat-noclip'), 'missing toggle-cheat-noclip row');
   assert.ok(menuCode.includes('toggle-cheat-invincible'), 'missing toggle-cheat-invincible row');
   assert.ok(menuCode.includes('action-cheat-heal'), 'missing action-cheat-heal row');

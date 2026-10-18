@@ -32,15 +32,15 @@ the CDL exports and lookups through `cdl/tools.js`); `src/recorder/extension.js`
 **recorder** profile (SNES CDL Recorder: CDL in the left side bar and recording, REPLAYS in the
 pause menu, the last ROM reopens, "export bundle" in the CDL tab). The profile reaches the page as data (`#emu-config`).
 
-Per ROM, `emuGateRom` (`webview/emulator-profile.js`, at every boot) decides whether it is
-Secret of Evermore (U) or built on it (`detectEvermore`, Evermore's page file
+Per ROM, `emuGateRom` (`webview/emulator-profile.js`, at every boot) decides whether the ROM is
+the game's (`emuGameRom`, from the game's `gameDetectRom`; Evermore: Secret of Evermore (U) or built on it, its page file
 `games/evermore/emulator/webview/rom-game.js`, handed in by `host.js` `webviewFiles()`: header title and
 destination, any layout; `src/games/evermore/localizations/knowledge/rom/00ffc0.md`). Without a game (the
 recorder) no ROM is. Only then: the overlays, VIEW's room and
 coordinates, the inspector click, OBJECTS / LOOT / CHEATS, the sound-source hook, the floating
 CDL gains, Start opening the menu; and in the full profile the script stack hook, the trace and
 the `.evs` debugger hook (`emuScriptHook`), and TRACE / STACK / ENTITIES / ALCHEMY / PALETTES.
-Markup says what it needs with `data-needs="full|recorder|evermore"` (several words: all must
+Markup says what it needs with `data-needs="full|recorder|game"` (several words: all must
 hold); `webview/emulator-profile.css` hides it. A hidden pause-menu tab hands over to the first
 shown one; a hidden panel leaves its side bar or bottom-bar tab (its placement is kept).
 
@@ -48,7 +48,8 @@ The game's part of the page comes from `configureEmulator({ game })`: `game.webv
 loaded first; Evermore: its detector) and `game.webview()` (markup, CSS and scripts spliced into the page,
 each where the emulator's own code once ran: bottom bar, menu tabs 1-4, screen layer, script VM). The page
 calls the game only behind `typeof` guards, so without one (the recorder) it runs as a plain SNES emulator.
-The hooks: `gameRomReset`, `gameOnRoomMap`, `gameTraceReset`, `gameStartAllowed`, `gameMenuOpened` /
+The game gets data built from the ROM on the host with each ROM (`game.romData(buffer)` → the page's
+`gameRomData(data, redraw)`; Evermore: the ALCHEMY icons). The hooks: `gameDetectRom`, `gameRomData`, `gameRomReset`, `gameOnRoomMap`, `gameTraceReset`, `gameStartAllowed`, `gameMenuOpened` /
 `Closed` / `MapChanged` / `Load` / `Render` / `Step` / `Activate` / `Sync`, `gameLensInfo`, `gameMusicPackage`,
 `gameCameraWorld`, plus the panels' own functions (`renderExtendedMapAndOverlays`, `samplePreLoopState`,
 `readScriptStackRegion`, `sdbg*`, `snd*`, `maintainCheats`, `refreshActiveBottomTab`, ...).
