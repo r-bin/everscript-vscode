@@ -23,6 +23,7 @@ const vm = require('../script-vm');
 const { printNames } = require('../script-model');
 const { getActiveAddressLookup } = require('./address-lookup');
 const { ScriptTraceFormatter } = require('./trace-formatter');
+const { hex: fmtHex } = require('../../../../dist/platform');
 
 let _scriptTraceChannel = null;
 
@@ -50,10 +51,6 @@ function scriptRom(rom) {
     _scriptRoms.set(rom, sr);
   }
   return _scriptRoms.get(rom);
-}
-
-function fmtHex(val, width) {
-  return (val >>> 0).toString(16).toUpperCase().padStart(width, '0');
 }
 
 /**

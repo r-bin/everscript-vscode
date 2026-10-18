@@ -23,10 +23,11 @@ const { encodePng } = require('../../../../dist/games/evermore/maps/png');
 const { getSoundAnimations } = require('../localizations/sounds');
 const { getFunctionName } = require('../localizations/functions');
 const { hexId } = require('./resource-uri');
+const { hex: toHex } = require('../../../../dist/platform');
 
 const ROM = 'soe://rom/assets/';
 const BOY = 0x4E89, DOG = 0x4F37;
-const hex = (v, d) => '$' + (v >>> 0).toString(16).toUpperCase().padStart(d, '0');
+const hex = (v, d) => '$' + toHex(v, d);
 
 let _cache = null;   // { rom, byRecordPtr: Map(record low16 -> character id), ops: Map(at -> {...}), images: Map }
 

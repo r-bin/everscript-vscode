@@ -5,6 +5,7 @@
 import { advance, distance, pack, unpack, ScriptRom } from './address';
 import { Expression, ExpressionError, constantValue, readExpression } from './expression';
 import { Flow, OPCODES, OpcodeSpec, OperandToken } from './spec';
+import { hexLower } from '../../../platform/hex';
 
 export type Operand =
     | { k: 'u8' | 'u16' | 'skip'; value: number }
@@ -116,4 +117,4 @@ export function callee(ins: Instruction): number | null {
     return ins.flow === 'call' || ins.flow === 'start' ? ins.target : null;
 }
 
-function hex2(v: number): string { return v.toString(16).padStart(2, '0'); }
+const hex2 = (v: number): string => hexLower(v, 2);

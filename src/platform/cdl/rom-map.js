@@ -9,6 +9,7 @@
  */
 
 const { readHeader, layoutName } = require('../../../dist/platform/roms/header');
+const { hex } = require('../../../dist/platform');
 
 function createRomMap(rom) {
     const header = readHeader(rom);
@@ -44,8 +45,6 @@ function createRomMap(rom) {
 
     return { type, size, segment, header, canonical, busToRom };
 }
-
-const hex = (v, w) => (v >>> 0).toString(16).toUpperCase().padStart(w, '0');
 
 /** 1234 / 12.3k / 4.56M / 7.89G: a hit count in at most 5 characters. */
 function countText(n) {

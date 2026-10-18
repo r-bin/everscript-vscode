@@ -52,8 +52,9 @@ function characterThumbs(rom, c) {
     return out.s || out.e ? out : null;
 }
 
-const hex4 = (v) => '$' + v.toString(16).padStart(4, '0');
+const hex4 = (v) => '$' + hexLower(v, 4);
 const { busU16: read16 } = require('../../../../dist/platform');
+const { hexLower } = require('../../../../dist/platform');
 
 /**
  * Every distinct palette the characters use — record +0x09 and +0x0B, the Boy's weapon

@@ -24,12 +24,12 @@ const romPath = require('./rom').romOrExit('evermore', process.argv[2]);
 const { animationGroups } = require('../dist/games/evermore/maps/animation-vm');
 const { disassembleScript } = require('../dist/games/evermore/maps/animation-opcodes');
 const { readAllCharacters, buildAnimationCatalog } = require('../src/games/evermore/sprites');
+const { hex } = require('../dist/platform');
 
 const SCRIPT_SFX = 0x0C8362;
 const SOUND_OPS = [0x2E, 0x2F];
 const PITCH_STAMINA = 0x3F, PITCH_FIXED = 0x40;
 const SPRITE_OPS = l => /^sprite(_long)? /.test(l.text);
-const hex = (v, d) => v.toString(16).toUpperCase().padStart(d, '0');
 
 /** Who plays a record, as short { who, what, character? } entries. */
 function owners(entry) {

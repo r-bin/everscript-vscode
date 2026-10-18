@@ -6,6 +6,7 @@
 import { Instruction, Operand } from './decode';
 import { Expression, Node, Term, tree } from './expression';
 import { Fact, facts } from './facts';
+import { hexLower } from '../../../platform/hex';
 
 /** Names a caller can supply; each returns '' (or null) when it has none. */
 export interface Names {
@@ -24,7 +25,7 @@ export interface Names {
     enemy?(index: number): string;
 }
 
-const hex = (v: number, w = 2): string => '0x' + v.toString(16).padStart(w, '0');
+const hex = (v: number, w = 2): string => '0x' + hexLower(v, w);
 const bus = (a: number): string => '$' + (a >>> 16).toString(16).padStart(2, '0') + ':' + (a & 0xFFFF).toString(16).padStart(4, '0');
 const constText = (v: number): string => (v < 0 ? String(v) : v < 10 ? String(v) : hex(v, v > 0xFF ? 4 : 2));
 

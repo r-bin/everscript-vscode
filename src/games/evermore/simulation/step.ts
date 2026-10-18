@@ -14,6 +14,7 @@ import { evalOperand, EvalContext, Operand } from './operand';
 import { Machine, Instruction } from './machine';
 import { PathState, SimEvent, SLOT_BASE } from './state';
 import { rngNext, RNG_STATE } from './rng';
+import { hexLower } from '../../../platform/hex';
 
 const MAX_DEPTH = 24;
 const MAX_STEPS = 20000;
@@ -305,7 +306,7 @@ function ret(s: PathState, base: Base): PathState[] {
     return [s];
 }
 
-const hex6 = (v: number): string => '$' + v.toString(16).padStart(6, '0');
+const hex6 = (v: number): string => '$' + hexLower(v, 6);
 
 /** Decide `cond`, or split the path in two and let each assume one answer. */
 function fork(s: PathState, cond: Sym, src: string, base: Base, apply: (p: PathState, v: boolean) => PathState[]): PathState[] {

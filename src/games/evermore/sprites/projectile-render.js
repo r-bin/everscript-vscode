@@ -6,6 +6,7 @@ const { runAnimation, facingScript } = require('../../../../dist/games/evermore/
 const { projectileRecord, projectileFlight } = require('../../../../dist/games/evermore/maps/projectiles');
 const { paletteAt } = require('../../../../dist/games/evermore/maps/character-record');
 const { composeAligned } = require('./frame-compose');
+const { hexLower: hex } = require('../../../../dist/platform');
 
 const MAX_SPAWNS = 64;
 
@@ -17,7 +18,6 @@ const MAX_SPAWNS = 64;
 const CONSUMED_PROCS = new Set([2, 6]);
 const PIERCING_PROCS = new Set([4]);
 const onHit = (proc) => (CONSUMED_PROCS.has(proc) ? 'consumed' : PIERCING_PROCS.has(proc) ? 'pierces' : 'unknown');
-const hex = (v, d) => v.toString(16).padStart(d, '0');
 
 /** A projectile type's own animation at this facing, in its palette or the thrower's. */
 function renderProjectileAnimation(rom, record, facing, throwerColours) {

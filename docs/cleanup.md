@@ -211,7 +211,8 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   (`maps/sprites.ts`, `character-record.ts`) as `EvsRom`, bundled by `tools/bundle-pages.mts`; same pixels on all
   4,903 sprites, colours now full range as on the map; v0.293.0: the page's character-record reads (`$8E` +$00 name, +$09 palette, +$0F HP, the attack
   animations; 6 places) go through `character-record.ts` too (`entityRecordWord`, `RECORD_FIELDS`, `entityNamePointer`,
-  `entityCharacter`; the bundle is now `EvsRom`, `dist/webview/evermore-rom.js`), same values for all 142 records; the script decoder's `addressing.ts` with step 2) → one owner each: bus→file offset (~11 copies) and read16/24 (~20)
+  `entityCharacter`; the bundle is now `EvsRom`, `dist/webview/evermore-rom.js`), same values for all 142 records; v0.294.0: hex formatters → `platform/hex.ts` (`hex` upper case, `hexLower`; callers keep their `$` / `0x`):
+  28 named copies in the host code and tools replaced (the page scripts' own wait for the page bundles); the script decoder's `addressing.ts` with step 2) → one owner each: bus→file offset (~11 copies) and read16/24 (~20)
   → `platform/snes`; BGR555, 2/4bpp, sprite decompressor (emulator copy of `maps/sprites.ts`
   ~240 lines) → `platform/snes` gfx; alchemy damage math (×3) → one module in `games/evermore`;
   HTML escape (×6), hex formatters (×23), tab strip, CSP shell → `core/webview`; 65816 opcode table

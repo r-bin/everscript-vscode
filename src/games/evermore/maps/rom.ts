@@ -14,6 +14,7 @@ export const MAP_TABLE_STRIDE = 4;
 
 import { hiromFileOffset, fileU16, fileU24 } from '../../../platform/snes/hirom';
 import { getMapTableOffset } from '../variant-resolver';
+import { hex as upperHex } from '../../../platform/hex';
 
 /** Translate a SNES 24-bit FastROM/HiROM address to a ROM file offset. */
 export const snesToRom = hiromFileOffset;
@@ -42,5 +43,5 @@ export function roomBlobOffset(rom: Uint8Array, roomId: number): number {
 
 /** Format a number as a fixed-width `0x`-prefixed uppercase hex string. */
 export function hex(value: number, width = 4): string {
-    return '0x' + value.toString(16).toUpperCase().padStart(width, '0');
+    return '0x' + upperHex(value, width);
 }

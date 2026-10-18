@@ -1,8 +1,6 @@
 'use strict';
 // Ownership: the ROM tab's address formatting. Pure, no state.
 
-const hex = (n, w) => (n >>> 0).toString(16).toUpperCase().padStart(w, '0');
-
 /** File offset → the bus address the game uses: `$Cx` for a lower half, `$8x` for an upper half. */
 function bus(off) {
     const b = off >> 16, a = off & 0xFFFF;
@@ -11,5 +9,6 @@ function bus(off) {
 
 /** Bus address (any mirror) → file offset in a HiROM image. */
 const { hiromFileOffset: busToFile } = require('../../../../../dist/platform');
+const { hex } = require('../../../../../dist/platform');
 
 module.exports = { hex, bus, busToFile };

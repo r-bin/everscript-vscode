@@ -5,8 +5,7 @@
 
 const { isEvermoreAudio, packageRecords, driverBlocks, musicPackages, sfxPackages, scriptIdsBySfx } = require('./rom-audio');
 const { getMusic, getMusicName, getSound, getSoundName, getSoundAnimations } = require('../../localizations/sounds');
-
-const hex2 = n => n.toString(16).toUpperCase().padStart(2, '0');
+const { hex: hex2 } = require('../../../../../dist/platform');
 
 /** Where a package writes: [dest, length] per record, in upload order. */
 function packageLayout(rom, id) {

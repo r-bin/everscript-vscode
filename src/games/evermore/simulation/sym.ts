@@ -6,6 +6,7 @@
 // choices and the clock (`atom`), and entities placed while the script runs
 // (`ent`). Every constructor simplifies, so a value that *can* be known is
 // always a plain `c` — that is what lets a fork be decided instead of taken.
+import { hexLower } from '../../../platform/hex';
 
 export type Sym =
     | { k: 'c'; v: number }
@@ -240,8 +241,8 @@ export function same(a: Sym, b: Sym): boolean {
     return key(a) === key(b);
 }
 
-const hex = (v: number, d = 4): string => '0x' + (v >>> 0).toString(16).padStart(d, '0');
-export const ramHex = (a: number): string => '$' + (a & 0xffff).toString(16).padStart(4, '0');
+const hex = (v: number, d = 4): string => '0x' + hexLower(v, d);
+export const ramHex = (a: number): string => '$' + hexLower(a & 0xffff, 4);
 
 const KEYS = new WeakMap<Sym, string>();
 

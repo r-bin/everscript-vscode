@@ -17,6 +17,7 @@
 const fs = require('fs');
 const { constantNames, constantValue } = require('./value-types');
 const { evaluateCondition } = require('./conditions');
+const { hex: toHex } = require('../../../../dist/platform');
 
 const WRAM = 0x7E0000;
 const MAX_READ = 4096;
@@ -24,9 +25,7 @@ const NAME_PATTERN = /\b[A-Z][A-Z0-9_]*\.[A-Z][A-Z0-9_]*\b/g;
 // <0x0ADA>, (Byte) <0x0ADA>, <0x28fa, 0x10>; not <BOY>[...] (entity-relative)
 const MEMORY_PATTERN = /(?:\((?:Byte|Word)\)\s*)?<\s*0x[0-9a-fA-F]+\s*(?:,\s*(?:0x[0-9a-fA-F]+|\d+)\s*)?>/g;
 
-function hex(value, width) {
-    return '0x' + (value >>> 0).toString(16).toUpperCase().padStart(width, '0');
-}
+const hex = (value, width) => '0x' + toHex(value, width);
 
 function typeOf(location) {
     return location.flag !== undefined ? 'Flag' : location.size === 1 ? 'Byte' : 'Word';

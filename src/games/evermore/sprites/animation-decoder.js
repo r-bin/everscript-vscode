@@ -11,6 +11,7 @@ const { snesToRom } = require('../../../../dist/games/evermore/maps/rom');
 const { renderProjectiles } = require('./projectile-render');
 const { projectileRecord } = require('../../../../dist/games/evermore/maps/projectiles');
 const { targetFor, buildTarget, hitTicks, DEFAULT_DISTANCE, OUT_OF_REACH_ABOVE, OUT_OF_REACH_BELOW } = require('./target');
+const { hexLower } = require('../../../../dist/platform');
 
 /** Resolve script address for a record, taking facing into account if directional. */
 function resolveExternalScript(rom, animRec, facing) {
@@ -231,7 +232,7 @@ function attackFacing(rom, characterId, opt, facing) {
     return flags & FOUR_POSES ? ROUND_TO_FOUR[(facing & 0x0e) >> 1] : facing;
 }
 
-const hex6 = (v) => '$' + v.toString(16).padStart(6, '0');
+const hex6 = (v) => '$' + hexLower(v, 6);
 
 /** A character's second palette (+0x0B), or null when it has none. */
 function secondPalette(rom, characterId) {

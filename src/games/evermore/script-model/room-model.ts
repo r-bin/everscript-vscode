@@ -8,6 +8,7 @@ import { doorsOf, TransitionFacts } from './doors';
 import { LootFacts, lootOf, lootToEverscript } from './loot';
 import { enemyName, printNames } from './names';
 import { paths } from './paths';
+import { hexLower } from '../../../platform/hex';
 
 /** One instruction as a listing row. */
 export interface ScriptRow {
@@ -98,7 +99,7 @@ export interface RoomScriptModel {
 }
 
 const SPAWNER_QUANTITY = 0x2433;
-const hex2 = (v: number): string => '0x' + v.toString(16).padStart(2, '0');
+const hex2 = (v: number): string => '0x' + hexLower(v, 2);
 
 function row(rom: ScriptRom, ins: Instruction, names: Names): ScriptRow {
     const bytes: string[] = [];

@@ -160,18 +160,18 @@ module.exports = {
 
     {
       name: 'simulation-is-a-library',
-      comment: 'src/games/evermore/simulation is pure: it may use the script decoder (script-vm), the script model and the SNES helpers, nothing else in src/.',
+      comment: 'src/games/evermore/simulation is pure: it may use the script decoder (script-vm), the script model, the SNES helpers and the hex formatter, nothing else in src/.',
       severity: 'error',
       from: { path: '^src/games/evermore/simulation/' },
-      to: { path: '^src/(?!games/evermore/(simulation|script-vm|script-model)/|platform/snes/)' },
+      to: { path: '^src/(?!games/evermore/(simulation|script-vm|script-model)/|platform/snes/|platform/hex)' },
     },
 
     {
       name: 'script-vm-from-the-game',
-      comment: 'src/games/evermore/script-vm is written from the game: it uses SNES helpers and the variant tables, never the legacy decoder (docs/cleanup.md D3).',
+      comment: 'src/games/evermore/script-vm is written from the game: it uses SNES helpers, the hex formatter and the variant tables, never the legacy decoder (docs/cleanup.md D3).',
       severity: 'error',
       from: { path: '^src/games/evermore/script-vm/' },
-      to: { path: '^(src|dist)/(?!games/evermore/(script-vm/|variant-resolver)|platform/snes/)' },
+      to: { path: '^(src|dist)/(?!games/evermore/(script-vm/|variant-resolver)|platform/snes/|platform/hex)' },
     },
 
     {
@@ -179,7 +179,7 @@ module.exports = {
       comment: 'src/games/evermore/script-model builds on script-vm and names from the localizations; never the legacy decoder (docs/cleanup.md D3).',
       severity: 'error',
       from: { path: '^src/games/evermore/script-model/' },
-      to: { path: '^(src|dist)/(?!games/evermore/(script-model/|script-vm/|localizations/)|platform/snes/)' },
+      to: { path: '^(src|dist)/(?!games/evermore/(script-model/|script-vm/|localizations/)|platform/snes/|platform/hex)' },
     },
 
     {

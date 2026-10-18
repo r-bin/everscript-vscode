@@ -23,13 +23,10 @@
  */
 
 const { romOffset, sameLocation } = require('./source-map');
+const { hex } = require('../../../../dist/platform');
 
 const STATE_RUN = 2;
 const STATE_WAIT = 4;
-
-function hex(value, width) {
-    return (value >>> 0).toString(16).toUpperCase().padStart(width, '0');
-}
 
 function isLive(slot) {
     return slot.state === STATE_RUN || slot.state === STATE_WAIT;

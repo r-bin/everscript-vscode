@@ -7,9 +7,9 @@
 const V = require('../script-vm');
 const { entries } = require('../localizations/knowledge');
 const { dir, json, text } = require('./nodes');
+const { hexLower: hex2 } = require('../../../../dist/platform');
 
 const TABLE = 0x8CE8BD;
-const hex2 = (v) => v.toString(16).padStart(2, '0');
 const bus = (a) => '$' + (a >>> 16).toString(16).toUpperCase().padStart(2, '0') + ':' + (a & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
 
 /** The handler of `op`: the word in the opcode table (bank $8C). */

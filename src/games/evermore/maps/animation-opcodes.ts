@@ -7,12 +7,12 @@
 // ./character-animation and ./animation-vm both ask `opcode()`.
 
 import { snesToRom, readByte } from './rom';
+import { hexLower as hex } from '../../../platform/hex';
 
 const at = (rom: Uint8Array, snes: number): number => readByte(rom, snesToRom(snes));
 const word = (rom: Uint8Array, snes: number): number => at(rom, snes) | (at(rom, snes + 1) << 8);
 const signed8 = (v: number): number => (v << 24) >> 24;
 const signed16 = (v: number): number => (v << 16) >> 16;
-const hex = (v: number, digits: number): string => v.toString(16).padStart(digits, '0');
 
 /** Bit 7 of a command byte: the frame ends after this command. */
 export const END_FRAME = 0x80;

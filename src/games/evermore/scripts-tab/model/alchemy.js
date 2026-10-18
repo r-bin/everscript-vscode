@@ -16,6 +16,7 @@
 const { animationGroups } = require('../../../../../dist/games/evermore/maps/animation-vm');
 const { disassembleScript } = require('../../../../../dist/games/evermore/maps/animation-opcodes');
 const indexJson = require('../../language/data/index.json');
+const { hex } = require('../../../../../dist/platform');
 
 const ANIM_MAP = 0x045DDF;
 const BLOCK_TABLE = 0x1180A6;    // $91:80A6
@@ -25,7 +26,6 @@ const MAX_BLOCK = 0x80;
 const EFFECT_DONE = 0x5D;
 
 const w16 = (rom, o) => rom[o] | rom[o + 1] << 8;
-const hex = (v, d) => v.toString(16).toUpperCase().padStart(d, '0');
 const title = (s) => s.toLowerCase().split('_').map((p) => p[0].toUpperCase() + p.slice(1)).join(' ');
 
 let _cache = null;   // { rom, model }

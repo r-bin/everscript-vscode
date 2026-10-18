@@ -6,3 +6,4 @@ export * from './roms/library';
 export * from './snes/hirom';
 export * from './crc32';
 export * from './png';
+export * from './hex';

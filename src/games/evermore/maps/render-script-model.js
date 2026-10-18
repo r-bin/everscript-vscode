@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('fs');
+const { hex } = require('../../../../dist/platform');
 
 // Reads a Mesen2 trace log of the tile decoder ($8C:C8A9 fetches) and the ROM it ran on; both
 // paths come from the caller (the ROM from the ROM library, the trace from the user's Mesen2).
@@ -23,10 +24,6 @@ const DEC04_65816_RE = /^(8C[0-9A-F]{4})\s+DEC \$04 \[\$000004\] = \$([0-9A-F]{2
 // Matches VMADDL writes at phase-transition PCs that use the direct label form (e.g. 8CCAF0 STA VMADDL)
 // These differ from prelude writes (e.g. 8CC88F STX $2116 [VMADDL]) which are handled by VMADDR_RE
 const VMADDL_TRANSIT_RE = /^(8CC[AB]F0)\s+STA VMADDL = \$[0-9A-F]+\s+A:([0-9A-F]{4})/;
-
-function hex(value, width) {
-    return (value >>> 0).toString(16).toUpperCase().padStart(width, '0');
-}
 
 function snesToRomOffset(snesAddr) {
     return (((snesAddr >>> 16) & 0x3f) * 0x10000) + (snesAddr & 0xffff);

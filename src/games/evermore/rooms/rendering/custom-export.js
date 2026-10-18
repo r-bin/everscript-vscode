@@ -9,6 +9,7 @@
 const { buildExportRom, BRIAN_ROOM } = require('./rom-export');
 const { mapDocument } = require('../data/custom-store');
 const { buildZip } = require('../../../../platform/zip');
+const { hexLower } = require('../../../../../dist/platform');
 
 /** `New map 1` -> `new_map_1`: a file name every tool accepts. */
 function mapSlug(name) {
@@ -16,7 +17,7 @@ function mapSlug(name) {
     return s || 'map';
 }
 
-const hex = (n, w) => '0x' + Number(n).toString(16).padStart(w || 2, '0');
+const hex = (n, w) => '0x' + hexLower(Number(n), w || 2);
 
 /**
  * The sample script: the everscript repo's `in/test_noinclude.evs` pattern —

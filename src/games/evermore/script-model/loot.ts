@@ -11,6 +11,7 @@
 import type { Expression } from '../script-vm';
 import type { Step } from './paths';
 import { lootRewardName } from './names';
+import { hexLower } from '../../../platform/hex';
 
 export type ValueEncoding = 'word' | 'byte' | 'inline' | 'expression';
 
@@ -107,7 +108,7 @@ export function lootOf(paths: Step[][]): LootFacts[] {
 }
 
 const dec = (n: number): string => '0d' + String(n).padStart(2, '0');
-const hex = (n: number): string => '0x' + (n >>> 0).toString(16).padStart(2, '0');
+const hex = (n: number): string => '0x' + hexLower(n, 2);
 
 /**
  * The pickup as the compiler's `_loot(object, reward, amount, next)` (sniff spots, with the kneel)

@@ -11,6 +11,7 @@ const indexJson = require('../language/data/index.json');
 const { animationGroups, animationIdRecord, ANIMATION_ID_COUNT, runAnimation } = require('../../../../dist/games/evermore/maps/animation-vm');
 const { disassembleScript } = require('../../../../dist/games/evermore/maps/animation-opcodes');
 const { projectileRecord } = require('../../../../dist/games/evermore/maps/projectiles');
+const { hexLower: hex } = require('../../../../dist/platform');
 
 const PROJECTILE_OP = 0x4c;
 
@@ -21,8 +22,6 @@ const DOG = 1;
 /** everscript's PLACEHOLDER entity ($BDB2, character #25): what shows ANIMATION_PLACEHOLDER ids. */
 const PLACEHOLDER = 25;
 const PALETTE_OP = 0x4b;
-
-const hex = (v, d) => v.toString(16).padStart(d, '0');
 
 /** Global id → the enum names that spell it, e.g. 0xae → ['ANIMATION_ENEMY.MAGMAR_ENTER']. */
 function idNames() {

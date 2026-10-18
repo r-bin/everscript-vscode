@@ -26,6 +26,7 @@ const { hexId } = require('./resource-uri');
 const { dir, json, text } = require('./nodes');
 const MD = require('./localization-markdown');
 const { entries: knowledgeEntries } = require('../localizations/knowledge');
+const { hex } = require('../../../../dist/platform');
 
 const CATEGORIES = ['scripts', 'maps', 'sounds', 'tables', 'functions', 'strings', 'knowledge'];
 const STRING_COUNT = 3002;
@@ -315,7 +316,6 @@ function functionsRoute(rest) {
 
 // -- knowledge ----------------------------------------------------------------
 
-const hex6 = (n) => (n >>> 0).toString(16).toUpperCase().padStart(6, '0');
 const cell = (s) => String(s == null ? '' : s).replace(/\|/g, '\\|').replace(/\s+/g, ' ');
 
 /** The RAM or ROM map, generated from the entries (one row each, in address order). */

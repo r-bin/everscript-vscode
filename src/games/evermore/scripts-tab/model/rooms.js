@@ -11,8 +11,7 @@
 const { buildRoomScriptModel } = require('../../script-model');
 const maps = require('../../maps');
 const { getMapName, getMapArea } = require('../../localizations');
-
-const hex = (v, d) => v.toString(16).toUpperCase().padStart(d, '0');
+const { hex } = require('../../../../../dist/platform');
 
 /** Every room with a name: [{ id, idHex, name, area }]. */
 function roomList() {
