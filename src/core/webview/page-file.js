@@ -14,10 +14,17 @@
 const fs = require('fs');
 const path = require('path');
 
+/** The text of <dir>/<name>; for a folder, its files in name order (a long script is kept as parts: 01-..., 02-...). */
+function read(dir, name) {
+  const file = path.join(dir, name);
+  if (!fs.statSync(file).isDirectory()) return fs.readFileSync(file, 'utf8');
+  return fs.readdirSync(file).sort().map((part) => fs.readFileSync(path.join(file, part), 'utf8')).join('');
+}
+
 /** pageFile(name, values) reads <dir>/<name>; a place marked for a key that has no value throws. */
 function pageFiles(dir) {
   return function pageFile(name, values = {}) {
-    const text = fs.readFileSync(path.join(dir, name), 'utf8');
+    const text = read(dir, name);
     const take = (key) => {
       if (!(key in values)) throw new Error(name + ': no value for ' + key);
       return String(values[key]);

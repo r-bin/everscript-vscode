@@ -231,7 +231,7 @@ ${parts.panelsHtml || ''}
 }
 
 function getMenuClientScript() {
-  return pageFile('menu.js', { sound: getMenuSoundScript() });
+  return pageFile('menu', { sound: getMenuSoundScript() });
 }
 
 module.exports = {

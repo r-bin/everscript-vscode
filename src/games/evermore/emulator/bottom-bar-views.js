@@ -32,7 +32,7 @@ function getBottomBarViewsHtml() {
 }
 
 function getBottomBarClientScript() {
-  return pageFile('bottom-bar.js');
+  return pageFile('bottom-bar');
 }
 
 module.exports = {

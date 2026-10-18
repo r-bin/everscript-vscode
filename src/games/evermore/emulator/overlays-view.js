@@ -31,7 +31,7 @@ function getScreenChipsHtml() {
 const helper = { parseRoomTriggers, calculateTriggerBox, resolveScriptIdToSnes };
 
 function getOverlaysScript() {
-  return pageFile('overlays.js', Object.fromEntries(Object.entries(helper).map(([name, fn]) => [name, fn.toString()])));
+  return pageFile('overlays', Object.fromEntries(Object.entries(helper).map(([name, fn]) => [name, fn.toString()])));
 }
 
 function getOverlayTogglesScript() {

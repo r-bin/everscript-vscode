@@ -14,7 +14,7 @@ const { pageFile } = require('./page-file');
  */
 
 function getStackScript() {
-  return pageFile('stack.js');
+  return pageFile('stack');
 }
 
 function getTraceScript() {

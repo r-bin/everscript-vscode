@@ -32,7 +32,7 @@ function getMenuPanelsHtml() {
 }
 
 function getMenuTabsClientScript() {
-  return pageFile('menu-tabs.js');
+  return pageFile('menu-tabs');
 }
 
 module.exports = { getMenuTabsCss, getMenuTabButtonsHtml, getMenuPanelsHtml, getMenuTabsClientScript };

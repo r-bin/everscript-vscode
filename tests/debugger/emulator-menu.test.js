@@ -40,7 +40,8 @@ test('menu-view.js, menu-sound.js, and sound-source-view.js are strictly ASCII-o
         path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'panel-webview.js'),
     ];
     for (const dir of [path.join('src', 'core', 'emulator', 'webview'), path.join('src', 'games', 'evermore', 'emulator', 'webview')]) {
-        for (const f of fs.readdirSync(path.join(__dirname, '..', '..', dir))) files.push(path.join(__dirname, '..', '..', dir, f));
+        const walk = (d) => { for (const f of fs.readdirSync(d)) { const full = path.join(d, f); if (fs.statSync(full).isDirectory()) walk(full); else files.push(full); } };
+        walk(path.join(__dirname, '..', '..', dir));
     }
     for (const f of files) {
         const content = fs.readFileSync(f, 'utf8');

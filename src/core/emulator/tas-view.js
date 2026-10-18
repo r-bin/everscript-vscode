@@ -60,7 +60,7 @@ function getTasViewHtml() {
 }
 
 function getTasClientScript() {
-  return pageFile('tas.js');
+  return pageFile('tas');
 }
 
 module.exports = { getTasCss, getTasBadgeHtml, getTasChipHtml, getTasOverlayHtml, getTasViewHtml, getTasClientScript };

@@ -69,7 +69,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     };
     // Module.locateFile uses the literal CORE_WASM filename constant, so webview/page.js takes the real file name.
     values.css = pageFile('page.css', values);
-    values.script = pageFile('page.js', values);
+    values.script = pageFile('page', values);
     return pageFile('page.html', values);
 }
 

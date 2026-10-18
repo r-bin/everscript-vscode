@@ -165,8 +165,8 @@ test('REPLAYS rows: when, length and sync, no file name; play and delete ask fir
 });
 
 test('webview: REPLAYS tab, inputs + FPS chips, frame loop routes joypads through tasApplyInput; script parses', () => {
-    for (const file of ['tas.js', 'fps.js']) {
-        const src = fs.readFileSync(path.join(ROOT, 'src', 'core', 'emulator', 'webview', file), 'utf8');
+    for (const file of ['tas', 'fps.js']) {
+        const src = require('../../src/core/webview/page-file').pageFiles(path.join(ROOT, 'src', 'core', 'emulator', 'webview'))(file);
         assert.ok(!/[^\x09\x0A\x0D\x20-\x7E]/.test(src), file + ' must be ASCII');
         assert.ok(!src.includes('\\'), 'no backslashes in ' + file);
     }
