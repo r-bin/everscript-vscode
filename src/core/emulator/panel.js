@@ -33,6 +33,11 @@ const { buildHtml } = require('./panel-webview');
 const { CdlHost } = require('./cdl/host');
 const { TasHost, recordingsDir } = require('./tas/host');
 const { ScriptDebugHost } = require('./script-debug-host');
+const { resolveCore, CORE_SUBDIR } = require('./core-path');
+const {
+  describeFile: _describeFile, setBuildChannel, ensureBuildChannel: _ensureBuildChannel, ensureEmulatorChannel: _ensureEmulatorChannel,
+  log: _log, logCrash, crashHistory: _crashHistory, launchHistory: _launchHistory, scriptTraceHistory: _scriptTraceHistory,
+} = require('./emulator-log');
 const { MemoryBridge } = require('./memory-bridge');
 const { ApuStream } = require('./apu-stream');
 const {
@@ -44,17 +49,6 @@ const {
   getStorageDir,
 } = require('./rom-history');
 
-const CORE_SUBDIR        = path.join('src', 'core', 'emulator', 'core', 'snes9x2005-wasm-vanilla');
-const CUSTOM_CORE_SUBDIR = path.join('src', 'core', 'emulator', 'core', 'snes9x2005-wasm');
-const CORE_JS     = 'snes9x_2005.js';
-const CORE_WASM   = 'snes9x_2005.wasm';
-const LEGACY_CUSTOM_CORE_DIRS = [
-  path.join('debugger', 'core', 'snes9x2005-wasm'),
-  path.join('debugger', 'core', 'snes9x'),
-  path.join('src', 'emulator', 'core', 'snes9x2005-wasm'),
-  path.join('src', 'emulator', 'core', 'snes9x'),   // before v0.271.0 the emulator was src/emulator
-];
-
 let _context       = null;   // VS Code extension context
 let _panel         = null;   // active WebviewPanel
 let _pending       = null;   // { dataUrl, name } waiting to load
@@ -62,14 +56,9 @@ let _currentRomBuffer = null; // raw ROM buffer for bytecode disassembly
 let _currentRomName = '';     // name of the ROM the game started from
 let _activeDraft   = null;   // custom draft object for trigger/address lookup
 let _extensionPath = '';
-let _buildChannel  = null;   // output channel for build log
-let _emulatorChannel = null; // output channel for emulator runtime and crash log
 let _readyTimeout  = null;
 let _romTimeout    = null;
 let _webviewReady  = false;
-const _crashHistory = [];       // recent crash reports (capped at 50)
-const _launchHistory = [];      // recent ROM launches (capped at 50)
-const _scriptTraceHistory = []; // recent formatted script trace entries (capped at 2000)
 let _cdl           = null;   // CdlHost: per-ROM code/data log library
 let _tas           = null;   // TasHost: input recordings and replays
 // VS Code script debugger hook: outlives the panel (a session can attach first).
@@ -134,14 +123,6 @@ function _keepFocusAfterBreak() {
   setTimeout(() => watch.dispose(), KEEP_FOCUS_MS);
 }
 
-function _describeFile(filePath) {
-  try {
-    const st = fs.statSync(filePath);
-    return `${filePath} (${st.size} bytes)`;
-  } catch (_) {
-    return `${filePath} (missing)`;
-  }
-}
 
 function _notifyWebviewStatus(level, text) {
   if (!_panel) return;
@@ -150,93 +131,6 @@ function _notifyWebviewStatus(level, text) {
   } catch (_) {
     // Best-effort status propagation only.
   }
-}
-
-function _ensureBuildChannel() {
-  if (!_buildChannel) _buildChannel = vscode.window.createOutputChannel('Everscript Build');
-  return _buildChannel;
-}
-
-function _ensureEmulatorChannel() {
-  if (!_emulatorChannel) _emulatorChannel = vscode.window.createOutputChannel('Everscript Emulator');
-  return _emulatorChannel;
-}
-
-function _log(line, show) {
-  const emuCh = _ensureEmulatorChannel();
-  const time = new Date().toLocaleTimeString();
-  emuCh.appendLine(`[${time}] ${line}`);
-  if (_buildChannel && _buildChannel !== emuCh) {
-    _buildChannel.appendLine('[Everscript] ' + line);
-  }
-  if (show) emuCh.show(true);
-}
-
-function _logCrash(crash) {
-  const ch = _ensureEmulatorChannel();
-  const time = new Date().toISOString();
-  const border = '================================================================================';
-  ch.appendLine(border);
-  ch.appendLine(`[EMULATOR CRASH REPORT] ${time}`);
-  ch.appendLine(`Error: ${crash.message || crash.error || 'Unknown emulator error'}`);
-  if (crash.type) ch.appendLine(`Type: ${crash.type}`);
-  if (crash.source) ch.appendLine(`Source: ${crash.source}${crash.line ? ':' + crash.line : ''}${crash.col ? ':' + crash.col : ''}`);
-  ch.appendLine(`ROM: ${_currentRomName || 'unknown'}${crash.frame !== undefined ? ` | Frame: ${crash.frame}` : ''}${crash.mapId !== undefined && crash.mapId >= 0 ? ` | Map ID: 0x${crash.mapId.toString(16).toUpperCase()} (${crash.mapId})` : ''}`);
-  if (crash.camX !== undefined || crash.camY !== undefined) {
-    ch.appendLine(`Camera: X=${crash.camX ?? 0}, Y=${crash.camY ?? 0}`);
-  }
-
-  if (crash.cpu) {
-    const c = crash.cpu;
-    const h = (v, len) => (typeof v === 'number' ? (v >>> 0).toString(16).toUpperCase().padStart(len, '0') : '????');
-    ch.appendLine('');
-    ch.appendLine('SNES CPU State:');
-    ch.appendLine(`  PC: $${h(c.pc, 6)} (PB: $${h(c.pb, 2)})   A: $${h(c.a, 4)}   X: $${h(c.x, 4)}   Y: $${h(c.y, 4)}`);
-    ch.appendLine(`  SP: $${h(c.sp, 4)}   DB: $${h(c.db, 2)}   P: $${h(c.p, 2)}`);
-  }
-
-  if (crash.stack) {
-    ch.appendLine('');
-    ch.appendLine('Stack Trace:');
-    ch.appendLine(crash.stack);
-  }
-
-  if (Array.isArray(crash.scriptSlots) && crash.scriptSlots.length > 0) {
-    ch.appendLine('');
-    ch.appendLine('Active Script Slots:');
-    for (const slot of crash.scriptSlots) {
-      const locHex = slot.loc !== undefined ? (slot.loc >>> 0).toString(16).toUpperCase().padStart(6, '0') : '000000';
-      ch.appendLine(`  Slot ${slot.slot}: state=${slot.state} loc=$${locHex} entity=${slot.entity !== undefined ? slot.entity : '-'}`);
-    }
-  }
-
-  ch.appendLine(border);
-  ch.show(true);
-
-  _crashHistory.push({
-    timestamp: time,
-    error: crash.message || crash.error || 'Unknown emulator error',
-    type: crash.type || null,
-    source: crash.source ? `${crash.source}${crash.line ? ':' + crash.line : ''}${crash.col ? ':' + crash.col : ''}` : null,
-    rom: _currentRomName || 'unknown',
-    frame: crash.frame !== undefined ? crash.frame : null,
-    mapId: crash.mapId !== undefined && crash.mapId >= 0 ? crash.mapId : null,
-    camX: crash.camX ?? null,
-    camY: crash.camY ?? null,
-    cpu: crash.cpu ? {
-      pc: crash.cpu.pc,
-      pb: crash.cpu.pb,
-      a: crash.cpu.a,
-      x: crash.cpu.x,
-      y: crash.cpu.y,
-      sp: crash.cpu.sp,
-      db: crash.cpu.db,
-      p: crash.cpu.p,
-    } : null,
-    stack: crash.stack || null,
-    scriptSlots: Array.isArray(crash.scriptSlots) ? crash.scriptSlots : [],
-  });
-  if (_crashHistory.length > 50) _crashHistory.shift();
 }
 
 function _estimateDataUrlBytes(dataUrl) {
@@ -296,76 +190,10 @@ function _dispatchPendingRom() {
   return true;
 }
 
-/** A missing core under a pre-v0.6.0 folder of any checkout (or of this install) -> the bundled custom core. */
-function _remapLegacyCorePath(rawPath) {
-  const normalized = path.normalize(rawPath);
-  if (fs.existsSync(normalized)) return rawPath;
-  for (const legacyDir of LEGACY_CUSTOM_CORE_DIRS) {
-    const legacySuffix = path.sep + path.normalize(path.join(legacyDir, CORE_JS));
-    if (!normalized.endsWith(legacySuffix)) continue;
-    const migrated = path.join(_extensionPath, 'src', 'core', 'emulator', 'core', 'snes9x2005-wasm', CORE_JS);
-    if (fs.existsSync(migrated)) return migrated;
-  }
-  return rawPath;
-}
-
-/**
- * Resolve the snes9x core to use.
- * everscript.snesCorePath (if set) must point to a snes9x2005-wasm .js file.
- * Otherwise - and whenever the configured one is missing or unusable - the
- * bundled src/core/emulator/core/snes9x2005-wasm-vanilla/snes9x_2005.js is used.
- * Returns { path, wasmPath, label, source?, warning? }.
- *
- * A bad setting used to return no core at all, which left the panel blank
- * with only an output-channel line to say why. The setting is typically a
- * leftover `debugger/core/...` path from before the src/ refactor, pointing
- * into a checkout rather than the extension, so the legacy remap cannot
- * catch it. Falling back keeps the emulator working and still says so.
- */
-function _resolveCore() {
-    const bundled = _bundledCore();
-    const raw = vscode.workspace.getConfiguration('everscript').get('snesCorePath', '').trim();
-    if (!raw) return bundled;
-    const custom = _customCore(raw);
-    if (custom.path) return custom;
-    if (!bundled.path) return { ...bundled, warning: custom.warning + '; ' + bundled.warning };
-    return { ...bundled, warning: custom.warning + ' - using the bundled core instead' };
-}
-
-function _customCore(raw) {
-    const configured = path.isAbsolute(raw) ? raw : path.resolve(raw);
-    const resolved = _remapLegacyCorePath(configured);
-    if (!fs.existsSync(resolved))
-        return { path: '', wasmPath: '', label: '', warning: `snesCorePath "${raw}" does not exist` };
-    if (!resolved.toLowerCase().endsWith('.js'))
-        return { path: '', wasmPath: '', label: '', warning: `snesCorePath must point to a snes9x2005-wasm .js build, got "${path.extname(resolved)}"` };
-    const wasmPath = path.join(path.dirname(resolved), CORE_WASM);
-    if (!fs.existsSync(wasmPath))
-        return { path: '', wasmPath: '', label: '', warning: `Custom core JS found but WASM missing: ${wasmPath}` };
-    return { path: resolved, wasmPath, label: path.basename(resolved), source: 'custom' };
-}
-
-function _bundledCore() {
-    const customJs   = path.join(_extensionPath, CUSTOM_CORE_SUBDIR, CORE_JS);
-    const customWasm = path.join(_extensionPath, CUSTOM_CORE_SUBDIR, CORE_WASM);
-    if (fs.existsSync(customJs) && fs.existsSync(customWasm)) {
-      return { path: customJs, wasmPath: customWasm, label: CORE_JS + ' (debugger core)', source: 'custom-bundled' };
-    }
-    const jsPath   = path.join(_extensionPath, CORE_SUBDIR, CORE_JS);
-    const wasmPath = path.join(_extensionPath, CORE_SUBDIR, CORE_WASM);
-    if (!fs.existsSync(jsPath)) {
-      return { path: '', wasmPath: '', label: '', warning: `Bundled core JS missing: ${jsPath}` };
-    }
-    if (!fs.existsSync(wasmPath)) {
-      return { path: '', wasmPath: '', label: '', warning: `Bundled core WASM missing: ${wasmPath}` };
-    }
-    return { path: jsPath, wasmPath, label: CORE_JS + ' (bundled)', source: 'bundled' };
-}
-
 function _resetPanelHtml() {
     if (!_panel || !_extensionPath) return;
   _webviewReady = false;
-    const core = _resolveCore();
+    const core = resolveCore(_extensionPath);
     if (!core.path) {
     if (core.warning) _log(core.warning, true);
     if (core.warning) _notifyWebviewStatus('error', core.warning);
@@ -421,7 +249,7 @@ function openEmulatorPanel(context, rom, channel) {
         dataUrl: rom.dataUrl,
       }, _context);
     }
-    if (channel) _buildChannel = channel;
+    if (channel) setBuildChannel(channel);
   _ensureBuildChannel();
     _extensionPath = context.extensionPath;
 
@@ -443,7 +271,7 @@ function openEmulatorPanel(context, rom, channel) {
         return;
     }
 
-    const core    = _resolveCore();
+    const core    = resolveCore(_extensionPath);
     if (core.warning) {
       _log(core.warning, true);
         vscode.window.showWarningMessage(`Everscript Emulator: ${core.warning}`);
@@ -479,7 +307,7 @@ function openEmulatorPanel(context, rom, channel) {
       context.globalStorageUri ? context.globalStorageUri.fsPath : path.join(context.extensionPath, '.storage'),
       m => { if (_panel) _panel.webview.postMessage(m); },
       _log,
-      () => _resolveCore().wasmPath,
+      () => resolveCore(_extensionPath).wasmPath,
     );
 
     _panel.webview.onDidReceiveMessage(msg => {
@@ -585,7 +413,7 @@ function openEmulatorPanel(context, rom, channel) {
               _clearReadyTimeout();
               _clearRomTimeout();
               _notifyWebviewStatus('error', `Emulator crash: ${msg.message || msg.error}`);
-              _logCrash(msg);
+              logCrash(msg, _currentRomName);
               vscode.window.showErrorMessage(`Emulator crash: ${msg.message || msg.error}`, 'Show Crash Log').then(choice => {
                 if (choice === 'Show Crash Log') {
                   const ch = _ensureEmulatorChannel();
@@ -603,7 +431,7 @@ function openEmulatorPanel(context, rom, channel) {
               _clearReadyTimeout();
               _clearRomTimeout();
               _notifyWebviewStatus('error', `Emulator error: ${msg.error}`);
-              _logCrash(msg);
+              logCrash(msg, _currentRomName);
               break;
 
             case 'romLoadLog':

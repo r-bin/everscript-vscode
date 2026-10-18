@@ -25,7 +25,7 @@ function test(name, fn) {
 
 console.log('Emulator Crash Logging & Fixes Tests:');
 
-const panelCode = fs.readFileSync(PANEL_JS, 'utf8');
+const panelCode = fs.readFileSync(PANEL_JS, 'utf8') + fs.readFileSync(path.join(ROOT, 'src', 'core', 'emulator', 'emulator-log.js'), 'utf8');
 const webviewCode = fs.readFileSync(PANEL_WEBVIEW_JS, 'utf8') + '\n' + ['page.html', 'page.css', 'page'].map((f) => require('../../src/core/webview/page-file').pageFiles(path.join(ROOT, 'src', 'core', 'emulator', 'webview'))(f, new Proxy({}, { has: () => true, get: (_, k) => '//@@' + String(k) }))).join('\n')
   // Evermore's screen layer is spliced into the page (games/evermore/emulator/overlays-view.js).
   + (({ getOverlaysScript, getOverlayTogglesScript }) => getOverlaysScript() + getOverlayTogglesScript())(require('../../src/games/evermore/emulator/overlays-view'));
@@ -42,7 +42,7 @@ test('panel.js defines dedicated Everscript Emulator output channel', () => {
 test('panel.js handles emulatorCrash and emulatorStderr messages', () => {
   assert.ok(panelCode.includes("case 'emulatorCrash':"), 'missing case emulatorCrash in panel.js');
   assert.ok(panelCode.includes("case 'emulatorStderr':"), 'missing case emulatorStderr in panel.js');
-  assert.ok(panelCode.includes("_logCrash(msg)"), 'missing _logCrash call on emulatorCrash');
+  assert.ok(panelCode.includes("logCrash(msg"), 'missing _logCrash call on emulatorCrash');
 });
 
 test('panel.js formats comprehensive crash report with CPU state and script slots', () => {
