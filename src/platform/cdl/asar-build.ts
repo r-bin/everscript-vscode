@@ -16,14 +16,13 @@ import * as path from 'path';
 import * as crypto from 'crypto';
 import { hex, createRomMap } from './rom-map';
 import { sourceDir } from '../source-dir';
+import type { KnownRegion } from './known-regions';
 
 // build.sh and build-cdl.js are real files, copied into every export as they are.
 const KIT = path.join(sourceDir(__dirname), 'asar-kit');
 
 /** What this file reads of the CDL library: its CDL bytes and the extra flags (bit 0 DMA, bit 1 APU). */
 interface CdlLib { cdl: Uint8Array; ext: Uint8Array }
-/** A known region: its file offsets, its kind, and for a blob the file it is written to. */
-interface KnownRegion { start: number; end: number; kind: string; file?: string }
 interface Known { regions: KnownRegion[]; steps: string[] }
 type RomMap = ReturnType<typeof createRomMap>;
 interface BuildFilesInput {

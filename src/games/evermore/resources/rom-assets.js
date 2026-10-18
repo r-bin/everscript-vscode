@@ -41,7 +41,7 @@ function resolveAssets(segments, rom, deps) {
         return resolveAudio(segments.slice(1), rom);
     }
     if (kind === 'tables') {
-        const { resolveTables } = require('./table-files');
+        const { resolveTables } = require('../../../../dist/games/evermore/resources/table-files');
         return resolveTables(segments.slice(1), rom);
     }
     if (kind === 'maps' && (leaf === 'scripts' || extra.includes('scripts'))) {

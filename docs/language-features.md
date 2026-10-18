@@ -27,7 +27,7 @@ Hovering symbols in `.evs` files provides instant context:
 - **Hex & Numeric Literals:** Displays decimal, hexadecimal, and binary conversions.
 - **Enums & Constants:** Shows underlying integer values.
 
-### 2.2 Autocompletion (`src/games/evermore/language/completion-provider.js`)
+### 2.2 Autocompletion (`src/games/evermore/language/completion-provider.ts`)
 Context-aware code completion:
 - **Keywords & Declarations:** Suggests keywords (`fun`, `map`, `area`, `enum`, `val`, `var`).
 - **Function Names:** Completes built-in API calls and workspace-declared functions.

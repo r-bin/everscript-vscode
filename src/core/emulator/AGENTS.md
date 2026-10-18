@@ -7,7 +7,7 @@ Related skills: `emulator-subsystem`, `cdl-recorder`, `webview-dom-safety`, `deb
 - The emulator WebviewPanel (`panel.js`, `panel-webview.js`), the
   snes9x2005-wasm cores (`core/`, git submodules), the panels (CDL, TRACE, …) and where they are shown
   (`webview/emulator-panels.js`: menu tab, side bar, bottom bar), the REPLAYS menu tab,
-  the script-debug hook's host side (`script-debug-host.js`) and the
+  the script-debug hook's host side (`script-debug-host.ts`) and the
   sound-chip stream for the Music tab (`apu-stream.js` / `apu-stream-view.js`).
 - Sub-folders with their own READMEs: `cdl/` (only `host.js` here; the engine is `src/platform/cdl/`), `tas/` (`host.js`; the movie format is `src/platform/tas/`), `menu/`. `webview/` holds the page's files
   that are loaded as files (`emulator-profile.js` / `.css`, ...): new page code goes there.
@@ -31,7 +31,7 @@ Related skills: `emulator-subsystem`, `cdl-recorder`, `webview-dom-safety`, `deb
   `options` (`configureEmulator`). `panel.js` opens the panel and is the API; `panel-messages.js` answers the page. `globalState`: `everscript.emulator.settings` (the page's),
   `.keepFocusOnBreak`, `.cdlWanted`; `everscript.recorder.installId` (`bundle-commands.js`).
 - `apu-stream.js` (`ApuStream._on`): on only while the Music tab shows the Emulator source.
-- `script-debug-host.js`: one per extension, outlives the panel (breakpoints, step, reads).
+- `script-debug-host.ts`: one per extension, outlives the panel (breakpoints, step, reads).
 
 ## Invariants
 - A feature that needs the game (its RAM, its ROM tables) is marked `data-needs="game"` and its

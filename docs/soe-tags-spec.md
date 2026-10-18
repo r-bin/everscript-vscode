@@ -119,7 +119,7 @@ The tree comes from what the extension already decodes, so most tags are generat
 | `item`, `ingredient`, `alchemy` | per entry | `rom-assets.js` (same names it already serves) |
 | `music`, `sound` | per track / effect; a sound links the characters whose animations play it (≤ 12) and sees `boy` / `dog` | `localizations/sounds.ts`, `localizations/data/sound-animations.json` (`tools/gen-sound-animations.js`), `audio-files.js` |
 | `flag` | `flag.<name>` per named flag | `names.json flags` |
-| `table` | per engine table | `table-files.js` |
+| `table` | per engine table | `table-files.ts` |
 | `script` | per named script | `localizations/data/scripts.json` |
 
 ### 4.1 Example: `map.jungle_raptors`

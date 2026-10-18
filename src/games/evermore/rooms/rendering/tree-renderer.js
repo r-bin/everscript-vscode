@@ -3,7 +3,7 @@
 // Pure functions: take data structures, return HTML strings or JS variable declarations.
 // No filesystem I/O, no caching.
 
-const { radarEsc } = require('../../radar-utils');
+const { radarEsc } = require('../../../../../dist/games/evermore/radar-utils');
 // The rail's markup is the shared editor shell's, so the Secret of Mana editor builds the same one.
 const { shellRailHtml, shellRailTreeHtml } = require('../../../../core/map-editor/shell/frame');
 

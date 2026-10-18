@@ -12,7 +12,7 @@ const path = require('path');
 const assert = require('assert');
 
 const store = require('../../src/games/evermore/rooms/data/custom-store');
-const widgetStore = require('../../src/games/evermore/rooms/data/widget-store');
+const widgetStore = require('../../dist/games/evermore/rooms/data/widget-store');
 const { buildZip, readZip } = require('../../dist/platform/zip');
 const { handleCustomMapMessage, handlesCustomMapMessage } = require('../../src/games/evermore/rooms/custom-host');
 const { mapSlug, sampleEvs } = require('../../src/games/evermore/rooms/rendering/custom-export');

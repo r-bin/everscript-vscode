@@ -14,9 +14,9 @@ system: Secret of Mana's data plane. What the folder does: [README.md](README.md
 
 ## Invariants
 - Read-only: writes throw `NoPermissions`.
-- `files.js` is pure (no `vscode`); files are functions of the ROM bytes, cached per buffer.
+- `files.ts` is pure (no `vscode`); files are functions of the ROM bytes, cached per buffer.
 - A file is served only from a ROM whose internal title is Secret of Mana.
 - Ids in paths are hex without `$` (`som://rom/maps/80.png` = map 128).
 
 ## Tests
-- `tests/mana/mana-rom.test.js` — `files.js` routes (rom tier, Mana ROM from the ROM library).
+- `tests/mana/mana-rom.test.js` — `files.ts` routes (rom tier, Mana ROM from the ROM library).

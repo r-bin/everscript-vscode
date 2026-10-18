@@ -6,7 +6,7 @@ const lp = require('./language/language-providers');
 const { buildVanillaRoomDetails, buildRoomTree, setRoomImageUris } = require('./rooms');
 const romReaders = require('./rom-readers');
 const roms = require('../../../dist/core/roms/host');
-const gameViews = require('../../core/game-views');
+const gameViews = require('../../../dist/core/game-views');
 const platform = require('../../../dist/platform');
 const { renderRadarHtml } = require('./memory/render-radar');
 const { radarDetectScope, radarAnalyzeScope } = require('./memory/scope-analysis');
@@ -180,7 +180,7 @@ function activate(context) {
             radar.roomTree = null;
             radar.roomDocPath = null;
         }),
-        // The Memory Radar is Evermore's main view (core/game-views.js swaps it on Switch ROM).
+        // The Memory Radar is Evermore's main view (core/game-views.ts swaps it on Switch ROM).
         gameViews.registerGameView('evermore', {
             open: () => vscode.commands.executeCommand('everscript.openMemoryRadar'),
             panel: () => radar.panel,

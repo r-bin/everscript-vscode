@@ -95,7 +95,7 @@ so the read-ahead never blinks empty. What the game will send next it cannot kno
 | `index.js` | Public API: `buildMusicModel`, `handlesMusicMessage` / `handleMusicMessage`, `buildMusicTabHtml` |
 | `host.js` | The webview's `music*` requests; caches the model per ROM. No `vscode` |
 | `model/rom-audio.ts` | ROM tables: driver, packages (upper-half reads), music/sfx → package, script id → sfx |
-| `model/catalog.js` | The model the page gets: tracks, sound effects, package layouts, driver bytes |
+| `model/catalog.ts` | The model the page gets: tracks, sound effects, package layouts, driver bytes |
 | `model/track-timeline.js` | For the Scripts tab (injected): a track's sequence records, and the track played silently on the host (notes per voice) |
 | `render-music-tab.ts` | The pane scaffold |
 | `engine/spc-engine.c`, `build-engine.sh` | The engine's C side; `build-engine.sh` (`npm run build:music-engine`) writes `spc-engine.js` (wasm embedded, 43 KB) |

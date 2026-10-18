@@ -8,7 +8,7 @@ const maps = require('../../../../dist/games/evermore/maps');
 const { buildItemIcons } = require('../../../../dist/games/evermore/rooms/data/item-icons');
 const { processScriptTraceBatch } = require('./script-trace');
 const { describeCustomMapRom } = require('../../../../dist/games/evermore/emulator/custom-map-rom');
-const { roomMap, clearCaches } = require('./room-map');
+const { roomMap, clearCaches } = require('../../../../dist/games/evermore/emulator/room-map');
 
 /** What the page's gameRomData hook gets with each ROM: the ALCHEMY panel's icons (or null). */
 function romData(romBuffer) {

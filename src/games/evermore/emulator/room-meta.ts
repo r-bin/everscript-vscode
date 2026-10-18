@@ -1,6 +1,6 @@
 // Ownership: what the emulator's map view knows about a room besides its picture (collision, the
 // animated tiles, objects, the foreground), read once per room and kept; and the 2x pixel helpers its
-// pictures share. room-map.js draws the room; host.js hands both to the panel.
+// pictures share. room-map.ts draws the room; host.js hands both to the panel.
 
 import * as maps from '../maps';
 import { buildItemIcons } from '../rooms/data/item-icons';
@@ -330,4 +330,5 @@ interface RoomObjectView {
     vfsUri: string; vfsPreview: string; vfsGif: string;
 }
 
+export type { RoomMeta, AnimGroupView, RoomObjectView };
 export { roomMeta, roomMetaCache, scale2x, alignPixelsToSnes, hasOpaquePixel };

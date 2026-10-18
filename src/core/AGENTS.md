@@ -9,7 +9,7 @@ Kind: **core** — game-neutral features and UI shells (docs/architecture/multi-
   animation, design tokens), `core/` (undo history, sessions, "not saved" notice, tool keys) and
   `shell/` (frame, rail, canvas column, dock, layout, zoom/pan). Browser-side files loaded by the
   Rooms tab (`src/games/evermore/memory/webview/index.js`) and the Mana Maps page; each has its own AGENTS.md.
-- `game-views.js`: each game's main view (registered by the game) and which one shows for the selected
+- `game-views.ts`: each game's main view (registered by the game) and which one shows for the selected
   ROM; Switch ROM refreshes the selected game's open view, views of other games keep their ROM, every
   view's title names its ROM.
 - `emulator/`: the embedded SNES emulator (own AGENTS.md); the recorder ships it alone.

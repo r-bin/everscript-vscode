@@ -1,7 +1,5 @@
-'use strict';
-
 /**
- * debugger/value-types.js
+ * debugger/value-types.ts
  *
  * Which enum a memory value holds, so the debugger can show 0x03 as
  * ALCHEMY_INDEX.HARD_BALL. Pure.
@@ -15,38 +13,37 @@
  * ({ ENUM: { MEMBER: value } }).
  */
 
-const fs = require('fs');
+import * as fs from 'fs';
+
+/** { ENUM: { MEMBER: value } } from the source map. */
+type Constants = Record<string, Record<string, number>>;
+/** A memory symbol: where it is, its size, its flag bit if it is one. */
+interface MemorySymbol { address: number; size?: number; flag?: number | null }
 
 const DECLARATION = /^\s*([A-Z][A-Z0-9_]*)\s*=\s*(?:\((?:Byte|Word)\)\s*)?<\s*(0x[0-9a-fA-F]+)[^>]*>[^/]*\/\/.*@type\s+([A-Z][A-Z0-9_]*)/;
 const PAIR = /\b([A-Z][A-Z0-9_]*\.[A-Z][A-Z0-9_]*)\s*(?:==|!=|<=|>=|=(?!=)|<|>)\s*([A-Z][A-Z0-9_]*\.[A-Z][A-Z0-9_]*)\b/g;
 
-function isConstant(constants, name) {
+function isConstant(constants: Constants, name: string): boolean {
     const [enumName, member] = name.split('.');
     return !!(constants[enumName] && Object.prototype.hasOwnProperty.call(constants[enumName], member));
 }
 
-/**
- * @param files     .evs paths to scan
- * @param symbols   Map name -> { address, size, flag }
- * @param constants { ENUM: { MEMBER: value } }
- * @param read      (file) -> text (tests); default fs
- * @returns Map symbol name -> enum name
- */
-function inferTypes(files, symbols, constants, read) {
-    const readFile = read || (file => { try { return fs.readFileSync(file, 'utf8'); } catch (_) { return ''; } });
-    const explicit = new Map();
-    const votes = new Map();
-    const byMember = new Map();
+/** Symbol name -> enum name, from the .evs `files` (`read` gives a file's text; tests pass their own). */
+function inferTypes(files: string[], symbols: Map<string, MemorySymbol>, constants: Constants, read?: (file: string) => string): Map<string, string> {
+    const readFile = read || ((file: string) => { try { return fs.readFileSync(file, 'utf8'); } catch (_) { return ''; } });
+    const explicit = new Map<string, string>();
+    const votes = new Map<string, Map<string, number>>();
+    const byMember = new Map<string, { name: string; symbol: MemorySymbol }[]>();
     for (const [name, symbol] of symbols) {
         const member = name.split('.')[1];
-        if (!byMember.has(member)) byMember.set(member, []);
-        byMember.get(member).push({ name, symbol });
+        const list = byMember.get(member);
+        if (list) list.push({ name, symbol }); else byMember.set(member, [{ name, symbol }]);
     }
-    const vote = (memory, constant) => {
+    const vote = (memory: string, constant: string) => {
         if (!symbols.has(memory) || !isConstant(constants, constant)) return;
         const enumName = constant.split('.')[0];
-        if (!votes.has(memory)) votes.set(memory, new Map());
-        const counts = votes.get(memory);
+        const counts = votes.get(memory) ?? new Map<string, number>();
+        votes.set(memory, counts);
         counts.set(enumName, (counts.get(enumName) || 0) + 1);
     };
     for (const file of files) {
@@ -75,16 +72,17 @@ function inferTypes(files, symbols, constants, read) {
 }
 
 /** ENUM.MEMBER names of a value (several members can share one), or []. */
-function constantNames(constants, enumName, value) {
+function constantNames(constants: Constants, enumName: string, value: number): string[] {
     const members = constants[enumName];
     if (!members) return [];
     return Object.keys(members).filter(member => members[member] === value).map(member => enumName + '.' + member);
 }
 
 /** The value of an ENUM.MEMBER constant, or undefined. */
-function constantValue(constants, name) {
+function constantValue(constants: Constants, name: string): number | undefined {
     const [enumName, member] = name.split('.');
     return isConstant(constants, name) ? constants[enumName][member] : undefined;
 }
 
-module.exports = { inferTypes, constantNames, constantValue };
+export type { Constants, MemorySymbol };
+export { inferTypes, constantNames, constantValue };

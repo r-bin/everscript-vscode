@@ -1,9 +1,8 @@
-'use strict';
-const { hex: fmtHex } = require('../../../../dist/platform');
-const { escapeHtml } = require('../../../../dist/core/webview/html');
+import { hex as fmtHex } from '../../../platform';
+import { escapeHtml } from '../../../core/webview/html';
 
 /**
- * debugger/emulator/trace-formatter.js
+ * games/evermore/emulator/trace-formatter.ts
  *
  * Unified trace entry formatting class ensuring identical visual presentation,
  * tags, token categories, and colors across both the VS Code OutputChannel
@@ -12,13 +11,23 @@ const { escapeHtml } = require('../../../../dist/core/webview/html');
  * Strictly ASCII-only.
  */
 
-function escH(s) {
+/** One SCRIPT TRACE entry from the page (webview/trace.js). */
+interface TraceItem {
+  timeStr?: string; entity?: number; event?: string; slot?: number; locHex?: string; loc?: number;
+  summary?: string; bytesHex?: string;
+}
+/** A follow-up line under an entry: an address the instruction reached (a call, a read). */
+interface TraceSub { addrHex: string; summary?: string; bytesHex?: string; callKind?: string }
+/** What address-lookup.js knows about the script an entry belongs to. */
+interface TraceLookup { shortTag?: string; name?: string }
+
+function escH(s: unknown): string {
   return escapeHtml(String(s || ''));
 }
 
 const SCRIPT_TOKEN = /("[^"]*")|(\([^()]*\))|(\$[0-9a-fA-F]+|0x[0-9a-fA-F]+|\b0d\d+\b|\b\d+\b)|(\b(?:WRITE|CALL|RCALL|END|IF|THEN|SKIP|ELSE|GOTO|RETURN|WAIT|SLEEP|YIELD|SPAWN|NPC|CHANGE MAP|CHANGE MUSIC|UNHIDE\?|UNWINDOWED TEXT|SET|UNSET|CLEAR|COPY|READ|CHECK|TRIGGER|GET WEAPON|GAIN WEAPON|FADE IN|FADE OUT)\b|\b_[a-z_]+(?=\())/g;
 
-function scriptHighlight(text) {
+function scriptHighlight(text: unknown): string {
   let out = '';
   let last = 0;
   let m;
@@ -40,7 +49,7 @@ function scriptHighlight(text) {
 }
 
 class ScriptTraceFormatter {
-  formatLookupTag(lookup) {
+  formatLookupTag(lookup: TraceLookup | null | undefined): string {
     if (!lookup || !lookup.shortTag) return '';
     return `[${lookup.shortTag}]`;
   }
@@ -49,7 +58,7 @@ class ScriptTraceFormatter {
    * Formats a main trace item as a plain-text line matching the everscript-trace
    * TextMate grammar used by the VS Code OutputChannel, with column-aligned addresses.
    */
-  formatText(item, lookup) {
+  formatText(item: TraceItem, lookup?: TraceLookup | null): string {
     const timePart = item.timeStr ? `[${item.timeStr}]`.padEnd(16, ' ') : '';
     const entityHex = fmtHex(item.entity || 0, 4);
     const eventName = String(item.event || 'exec');
@@ -75,7 +84,7 @@ class ScriptTraceFormatter {
    * Formats a sub-line indented so the address begins at the exact same
    * column as the main script line, with `-> ` pointing to the address.
    */
-  formatSubText(sub, item = null) {
+  formatSubText(sub: TraceSub, item: TraceItem | null = null): string {
     const timePart = item && item.timeStr ? `[${item.timeStr}]`.padEnd(16, ' ') : '';
     const entityHex = fmtHex(item ? (item.entity || 0) : 0, 4);
     const slotTag = item ? `[s${item.slot} | ${entityHex}]` : '';
@@ -90,7 +99,7 @@ class ScriptTraceFormatter {
   /**
    * Formats a sub-line as an HTML snippet with fixed column widths.
    */
-  formatSubHtml(sub, item = null) {
+  formatSubHtml(sub: TraceSub, item: TraceItem | null = null): string {
     const event = item ? (item.event || '') : '';
     const callClass = sub.callKind ? ` call-${sub.callKind}` : '';
     const bytes = sub.bytesHex ? ` <span class="ss-trace-bytes">[${escH(sub.bytesHex)}]</span>` : '';
@@ -117,7 +126,7 @@ class ScriptTraceFormatter {
    * Formats a trace item and any follow-up sub-items into complete HTML markup
    * with column-aligned addresses.
    */
-  formatHtml(item, lookup, subItems = []) {
+  formatHtml(item: TraceItem, lookup?: TraceLookup | null, subItems: TraceSub[] = []): string {
     const event = item.event || '';
     const tagClass = 'ss-trace-tag ' + event;
     const timeHtml = item.timeStr
@@ -155,9 +164,5 @@ class ScriptTraceFormatter {
   }
 }
 
-module.exports = {
-  ScriptTraceFormatter,
-  scriptHighlight,
-  escH,
-  fmtHex,
-};
+export type { TraceItem, TraceSub, TraceLookup };
+export { ScriptTraceFormatter, scriptHighlight, escH, fmtHex };

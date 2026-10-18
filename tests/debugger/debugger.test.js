@@ -14,7 +14,7 @@ const { SourceMap, findSourceMap } = require('../../src/games/evermore/debugger/
 const frames = require('../../src/games/evermore/debugger/script-frames');
 const { EmulatorDebugSession } = require('../../src/games/evermore/debugger/emulator-session');
 const memory = require('../../src/games/evermore/debugger/memory-access');
-const { inferTypes } = require('../../src/games/evermore/debugger/value-types');
+const { inferTypes } = require('../../dist/games/evermore/debugger/value-types');
 const { evaluateCondition, conditionOf } = require('../../dist/games/evermore/debugger/conditions');
 
 let passed = 0;

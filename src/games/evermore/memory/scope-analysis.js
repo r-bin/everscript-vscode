@@ -5,7 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { radarLifecycle, radarParseName, radarParseNotes } = require('../radar-utils');
+const { radarLifecycle, radarParseName, radarParseNotes } = require('../../../../dist/games/evermore/radar-utils');
 
 function radarReadMemoryMap(filePath) {
     const map = new Map();

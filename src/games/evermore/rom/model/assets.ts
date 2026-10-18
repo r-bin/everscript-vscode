@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: the small, scattered assets of a Secret of Evermore ROM — map
 // graphics, sprite blocks, sprite infos, animation bytecode — measured item by
 // item from their pointer tables. Pure.
@@ -7,19 +6,25 @@
 // measured exactly and merged only when closer than `GAP` and inside one 32 KB
 // half: nothing in the ROM crosses a half line.
 
-const { walkSprites } = require('../../../../../dist/games/evermore/maps');
-const { disassembleScript } = require('../../../../../dist/games/evermore/maps/animation-opcodes');
-const { hex, bus, busToFile } = require('../../../../../dist/games/evermore/rom/model/util');
+import { walkSprites } from '../../maps';
+import { disassembleScript } from '../../maps/animation-opcodes';
+import { hex, bus, busToFile } from './util';
+import type { Claim } from './util';
+
+/** A measured span of file offsets s..e (end exclusive). */
+interface Span { s: number; e: number }
+/** A map graphic's span: its id, the length it measures, and whether that would cross its half. */
+interface GraphicSpan extends Span { id: number; measured: number; over: boolean }
 
 const GFX_TABLE = 0x2E0000, GFX_COUNT = 6688;
 const GAP = 32;
 
 /** Byte length of one $EE-table graphic: raw word copy or dual-stream ($8C:C9C0). */
-function graphicLength(rom, a) {
+function graphicLength(rom: Uint8Array, a: number): number {
     const info = rom[a];
     if (!(info & 0x80)) return 1 + 2 * Math.min((info & 0x7F) + 1, 64);
     let dp = a + (info & 0x7F), cp = a + 1, half = false, out = 0;
-    const nibble = () => { const v = rom[cp]; let x; if (half) { x = v & 15; cp++; } else x = v >> 4; half = !half; return x; };
+    const nibble = (): number => { const v = rom[cp]; let x: number; if (half) { x = v & 15; cp++; } else x = v >> 4; half = !half; return x; };
     while (out < 64) {
         let ind = rom[dp++];
         for (let b = 0; b < 8 && out < 64; b++, ind = (ind << 1) & 255) {
@@ -34,7 +39,7 @@ function graphicLength(rom, a) {
 }
 
 /** Byte length of a compressed sprite block: a status byte per 8 words, set bit = zero word not stored. */
-function spriteBlockLength(rom, a, size) {
+function spriteBlockLength(rom: Uint8Array, a: number, size: number): number {
     let src = a;
     for (let g = 0; g < (size === 16 ? 8 : 2); g++) {
         let bits = rom[src++];
@@ -44,8 +49,8 @@ function spriteBlockLength(rom, a, size) {
 }
 
 /** Merge [s, e] spans closer than `tol`, never across a half. */
-function mergeRuns(spans, tol) {
-    const out = [];
+function mergeRuns<T extends Span>(spans: T[], tol: number): (Span & { items: T[] })[] {
+    const out: (Span & { items: T[] })[] = [];
     for (const r of spans.slice().sort((a, b) => a.s - b.s)) {
         const l = out[out.length - 1];
         if (l && r.s - l.e <= tol && (r.s >> 15) === ((l.e - 1) >> 15)) { l.e = Math.max(l.e, r.e); l.items.push(r); }
@@ -55,9 +60,9 @@ function mergeRuns(spans, tol) {
 }
 
 /** Each graphic's span, clipped to its half; `over` marks a measured length that would cross. */
-function graphicSpans(rom) {
-    const r24 = o => rom[o] | rom[o + 1] << 8 | rom[o + 2] << 16;
-    const spans = [];
+function graphicSpans(rom: Uint8Array): GraphicSpan[] {
+    const r24 = (o: number): number => rom[o] | rom[o + 1] << 8 | rom[o + 2] << 16;
+    const spans: GraphicSpan[] = [];
     for (let id = 0; id < GFX_COUNT; id++) {
         const a = busToFile(r24(GFX_TABLE + id * 3));
         if (a >= rom.length) continue;
@@ -69,14 +74,13 @@ function graphicSpans(rom) {
 
 /**
  * Claims for map graphics (tagged with the worlds whose rooms load them),
- * sprite infos and blocks, and animation bytecode.
- * @param worldsOfGraphic Map<graphic id, Set<world>>
+ * sprite infos and blocks, and animation bytecode. `worldsOfGraphic`: graphic id -> the worlds that load it.
  */
-function assetRegions(rom, R, gfx, worldsOfGraphic) {
+function assetRegions(rom: Uint8Array, R: Claim, gfx: GraphicSpan[], worldsOfGraphic: Map<number, Iterable<string>>) {
     R(GFX_TABLE, GFX_TABLE + GFX_COUNT * 3, '📋', 'Map graphic pointer table', `${GFX_COUNT} × 24-bit pointer; graphic id × 3, read by \`$8C:C88C\``, '', 2);
     for (const run of mergeRuns(gfx, GAP)) {
-        const worlds = new Set();
-        for (const g of run.items) (worldsOfGraphic.get(g.id) || []).forEach(w => worlds.add(w));
+        const worlds = new Set<string>();
+        for (const g of run.items) for (const w of worldsOfGraphic.get(g.id) || []) worlds.add(w);
         const warn = run.items.filter(g => g.over).map(g => ` · ⚠ graphic ${g.id} measures ${g.measured} B from ${bus(g.s)}, past the end of its half; a 16-bit pointer would wrap to \`$${hex(0x80 + (g.s >> 16), 2)}:0000\` instead, so this is unverified`).join('');
         R(run.s, run.e, '🖼️', 'Map graphics (16×16 CHR)', `${run.items.length} graphics${warn}`, [...worlds].sort().join(' · '));
     }
@@ -87,8 +91,8 @@ function assetRegions(rom, R, gfx, worldsOfGraphic) {
     const infoSpans = infos.map(i => ({ s: busToFile(i.address), e: busToFile(i.address) + i.size }));
     for (const run of mergeRuns(infoSpans, 2)) R(run.s, run.e, '🧍', 'Sprite infos (chunk lists)', `${run.items.length} sprites; \`[count][offset]\` then 5-byte chunks \`[flags][x][y][block:16]\``);
 
-    const blocks = [];
-    for (const [table, n, base, size] of [[0x2C0000, maxL + 1, 0x190000, 16], [0x180000, maxS + 1, 0x110000, 8]]) {
+    const blocks: Span[] = [];
+    for (const [table, n, base, size] of [[0x2C0000, maxL + 1, 0x190000, 16], [0x180000, maxS + 1, 0x110000, 8]] as const) {
         R(table, table + n * 3, '📋', `${size}×${size} sprite block pointers`, `${n} × 3 bytes (highest index used); data at \`$${hex(0xC0 + (base >> 16), 2)}:0000 + ptr\`, bit 23 = compressed`, '', 2);
         for (let i = 0; i < n; i++) {
             const raw = rom[table + i * 3] | rom[table + i * 3 + 1] << 8 | rom[table + i * 3 + 2] << 16;
@@ -110,7 +114,7 @@ function assetRegions(rom, R, gfx, worldsOfGraphic) {
             for (let i = 0; i < line.bytes.length; i++) reached[busToFile(line.address) + i] = 1;
         }
     }
-    const spans = [];
+    const spans: Span[] = [];
     let start = -1;
     for (let o = 0; o <= rom.length; o++) {
         const on = o < rom.length && reached[o] && !(o >= 0x043C92 && o < 0x04599A);
@@ -121,4 +125,5 @@ function assetRegions(rom, R, gfx, worldsOfGraphic) {
     return { spriteBlocks: blocks.length };
 }
 
-module.exports = { assetRegions, graphicSpans };
+export type { GraphicSpan };
+export { assetRegions, graphicSpans };

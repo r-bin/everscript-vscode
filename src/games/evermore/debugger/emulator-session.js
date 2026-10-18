@@ -8,7 +8,7 @@
  * (inline-adapter.js connects it to VS Code). No VS Code API, no emulator
  * internals: everything outside the protocol comes in through `deps`:
  *
- *   bridge     emulator script hook (emulator/script-debug-host.js):
+ *   bridge     emulator script hook (emulator/script-debug-host.ts):
  *              attach(listener) -> detach(); configure({ breakpoints });
  *              resume(step | null); pause(); read(address, length) -> Promise<bytes>;
  *              write(address, bytes) -> Promise;
@@ -28,7 +28,7 @@ const path = require('path');
 const { loadSourceMap, isStale } = require('./source-map');
 const frames = require('./script-frames');
 const memory = require('./memory-access');
-const { inferTypes } = require('./value-types');
+const { inferTypes } = require('../../../../dist/games/evermore/debugger/value-types');
 
 const NO_SCRIPT_THREAD = { id: 1000, name: 'no script running' };
 

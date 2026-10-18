@@ -5,12 +5,12 @@
  *
  * What the CDL export knows about Secret of Evermore before any CDL data: the room blobs, the
  * map pointer table, the room enter script table, the strings with their key table, and the
- * two string key readers. Handed to the export as `gameRegions` (platform/cdl/known-regions.js
+ * two string key readers. Handed to the export as `gameRegions` (platform/cdl/known-regions.ts
  * owns the header and how regions are merged). Region kinds and rules: that file.
  */
 
 const { hex } = require('../../../../dist/platform/cdl/rom-map');
-const { dbLines, labelExpr } = require('../../../platform/cdl/known-regions');
+const { dbLines, labelExpr } = require('../../../../dist/platform/cdl/known-regions');
 const maps = require('../../../../dist/games/evermore/maps');
 
 const CDL_CODE = 0x01, CDL_DATA = 0x02;

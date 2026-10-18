@@ -77,6 +77,6 @@ The debugger shows memory values by enum name: `MEMORY.SELECTED_ALCHEMY_0` →
 
 - explicit: `SELECTED_ALCHEMY_0 = (Byte) <0x0ADA>, // @type ALCHEMY_INDEX`, or
 - inferred: the enum whose constants the sources assign to or compare with it most
-  (`src/games/evermore/debugger/value-types.js`).
+  (`src/games/evermore/debugger/value-types.ts`).
 
 The constants come from the compiler (`constants` in `out/source_map.json`).

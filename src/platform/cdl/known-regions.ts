@@ -1,7 +1,5 @@
-'use strict';
-
 /**
- * platform/cdl/known-regions.js
+ * platform/cdl/known-regions.ts
  *
  * What the export knows about a ROM before any CDL data: the header, plus whatever the
  * game hands in as `gameRegions` (Evermore: games/evermore/cdl/regions.js). Each region
@@ -14,16 +12,29 @@
  * the rebuild stays byte-identical either way.
  */
 
-const { hex } = require('../../../dist/platform/cdl/rom-map');
+import { hex, createRomMap } from './rom-map';
 
 const CDL_CODE = 0x01;
 
-function headerRegions(rom, map, steps) {
+type RomMap = ReturnType<typeof createRomMap>;
+
+/** A ROM range the export writes as known data, not from the CDL's guess (file offsets, end exclusive). */
+interface KnownRegion {
+    start: number; end: number; kind: 'blob' | 'bytes' | 'table'; name: string; note?: string;
+    /** blob: the file it is written to. */
+    file?: string;
+    /** bytes, table: the asm lines under the label. */
+    lines?: string[];
+}
+/** The game's regions and the defines its tables use, or null when it knows none for this image. */
+type GameRegions = (rom: Uint8Array, map: RomMap, cdl: Uint8Array | null | undefined, steps: string[]) => { regions: KnownRegion[]; defines: string[] } | null;
+
+function headerRegions(rom: Uint8Array, map: RomMap, steps: string[]): KnownRegion[] {
     const h = map.header;
     if (!h) { steps.push('Header: none found, no header labels.'); return []; }
     const base = map.type === 'LoROM' ? 0x7FB0 : 0xFFB0;
     if (base + 0x50 > rom.length) return [];
-    const at = (o, n) => [...rom.subarray(base + o, base + o + n)];
+    const at = (o: number, n: number): number[] => [...rom.subarray(base + o, base + o + n)];
     steps.push(`Header: "${h.title}", ${map.type}, ${rom.length} bytes; labels rom_header ($${hex(map.canonical(base), 6)}) and rom_vectors.`);
     return [
         { start: base, end: base + 0x30, kind: 'bytes', name: 'rom_header', note: `${h.title} - ${map.type}`, lines: dbLines(at(0, 0x30)) },
@@ -31,27 +42,25 @@ function headerRegions(rom, map, steps) {
     ];
 }
 
-function dbLines(bytes, per = 16) {
-    const out = [];
+function dbLines(bytes: number[], per = 16): string[] {
+    const out: string[] = [];
     for (let i = 0; i < bytes.length; i += per) out.push('    db ' + bytes.slice(i, i + per).map(b => '$' + hex(b, 2)).join(','));
     return out;
 }
 
-function labelExpr(name, delta) {
+function labelExpr(name: string, delta: number): string {
     if (!delta) return name;
     return name + (delta < 0 ? '-$' + hex(-delta, 6) : '+$' + hex(delta, 6));
 }
 
 /**
  * Known regions for this ROM, sorted and non-overlapping (a later region that
- * overlaps an earlier one is dropped and reported). `gameRegions(rom, map, cdl, steps)`
- * returns the game's { regions, defines }, or null.
- * @returns {{ regions: object[], defines: string[], steps: string[] }}
+ * overlaps an earlier one is dropped and reported).
  */
-function findKnownRegions(rom, map, cdl, gameRegions) {
-    const steps = [];
+function findKnownRegions(rom: Uint8Array, map: RomMap, cdl: Uint8Array | null | undefined, gameRegions?: GameRegions | null): { regions: KnownRegion[]; defines: string[]; steps: string[] } {
+    const steps: string[] = [];
     let all = headerRegions(rom, map, steps);
-    const defines = [];
+    const defines: string[] = [];
     const game = gameRegions ? gameRegions(rom, map, cdl, steps) : null;
     if (game) {
         all = all.concat(game.regions);
@@ -60,7 +69,7 @@ function findKnownRegions(rom, map, cdl, gameRegions) {
         steps.push('Content: no game regions for this image, only the header is seeded.');
     }
     all.sort((a, b) => a.start - b.start || b.end - a.end);
-    const regions = [], dropped = [];
+    const regions: KnownRegion[] = [], dropped: string[] = [];
     for (const r of all) {
         const prev = regions[regions.length - 1];
         const crosses = map.segment && Math.floor(r.start / map.segment) !== Math.floor((r.end - 1) / map.segment);
@@ -76,4 +85,5 @@ function findKnownRegions(rom, map, cdl, gameRegions) {
     return { regions, defines, steps };
 }
 
-module.exports = { findKnownRegions, dbLines, labelExpr };
+export type { KnownRegion, GameRegions };
+export { findKnownRegions, dbLines, labelExpr };

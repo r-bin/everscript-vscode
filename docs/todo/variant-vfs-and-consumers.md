@@ -81,7 +81,7 @@ soe://strings/*                Dynamic map_tile_graphics    Dynamic script_point
   - Read from `$81:9903` (71 packages, count at `$81:9900`) across all releases.
   - Accommodate PAL sound driver entry points.
 
-### 2.6 ROM Catalog & Memory Radar (`src/games/evermore/rom/model/catalog.js`, `src/games/evermore/memory/`)
+### 2.6 ROM Catalog & Memory Radar (`src/games/evermore/rom/model/catalog.ts`, `src/games/evermore/memory/`)
 - [ ] **`catalog.js`**:
   - Refactor `roomRegions`, `textRegions`, and `entityRegions` to obtain table regions dynamically from `variants.json` based on the loaded ROM.
 
@@ -99,4 +99,4 @@ soe://strings/*                Dynamic map_tile_graphics    Dynamic script_point
    - Wire string keys and enter script lookups to `variant-resolver.ts`.
 4. **Phase 4: Sprites, Animation & Catalog**
    - Wire sprite blocks and animation record lookups. Update `catalog.js` for the ROM tab.
-5. **Two variants side by side** (from `docs/architecture/multi-game.md` §7, item 5): each game has one main view, which follows its game's selected ROM, so a US and a PAL radar cannot be open at once. Needs a view per (game, ROM) in `core/game-views.js`.
+5. **Two variants side by side** (from `docs/architecture/multi-game.md` §7, item 5): each game has one main view, which follows its game's selected ROM, so a US and a PAL radar cannot be open at once. Needs a view per (game, ROM) in `core/game-views.ts`.

@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: the user's own widgets on disk — one JSON file,
 // `<globalStorage>/widgets.json`, shared by every map.
 //
@@ -11,20 +10,31 @@
 // Takes the file path as an argument; no VS Code API, so the tests run it
 // against a temp folder. Writes go through a temp file.
 
-const fs = require('fs');
-const path = require('path');
+import * as fs from 'fs';
+import * as path from 'path';
 
 const FORMAT = 'everscript-widgets';
 const VERSION = 1;
 
-function safeId(id) {
+/** A frame of an older widget shape: its cells. */
+interface StoredFrame { cells?: unknown[] }
+/** A widget as stored; older files may still have frames or variations instead of `cells`. */
+interface Widget {
+    id: string; name?: string; w?: number; h?: number; cells?: unknown[];
+    attachments?: { bTrigger: unknown[]; stepOn: unknown[]; objects: unknown[] } | null;
+    source?: unknown; created?: string; modified?: string;
+    frames?: StoredFrame[]; variations?: { id?: unknown; frames?: StoredFrame[] }[]; activeVariation?: unknown; animated?: unknown;
+}
+interface WidgetDoc { format: string; version: number; widgets: Widget[] }
+
+function safeId(id: unknown): string {
     if (typeof id !== 'string' || !/^w-[A-Za-z0-9_-]{1,60}$/.test(id)) {
         throw new Error('invalid widget id: ' + JSON.stringify(id));
     }
     return id;
 }
 
-function readDoc(file) {
+function readDoc(file: string): WidgetDoc {
     try {
         const doc = JSON.parse(fs.readFileSync(file, 'utf8'));
         if (doc && doc.format === FORMAT && Array.isArray(doc.widgets)) return doc;
@@ -32,7 +42,7 @@ function readDoc(file) {
     return { format: FORMAT, version: VERSION, widgets: [] };
 }
 
-function writeDoc(file, doc) {
+function writeDoc(file: string, doc: WidgetDoc): void {
     if (doc.version > VERSION) throw new Error('widgets.json was written by a newer version; not overwriting it');
     fs.mkdirSync(path.dirname(file), { recursive: true });
     const tmp = file + '.tmp';
@@ -41,11 +51,11 @@ function writeDoc(file, doc) {
 }
 
 /** Every widget, oldest first, in the current shape (see `ownCells`). */
-function listWidgets(file) {
+function listWidgets(file: string): Widget[] {
     return readDoc(file).widgets.map(currentShape);
 }
 
-const num = (n, lo, hi) => Math.max(lo, Math.min(hi, Number(n) | 0));
+const num = (n: unknown, lo: number, hi: number): number => Math.max(lo, Math.min(hi, Number(n) | 0));
 
 /**
  * The cells a widget stamps. Animation is per cell part now (`anim`, the
@@ -53,20 +63,20 @@ const num = (n, lo, hi) => Math.max(lo, Math.min(hi, Number(n) | 0));
  * a widget saved with them keeps frame 0 of its first variation with art, a
  * hand-made one before a generated `fam-<id>` colouring.
  */
-function ownCells(w) {
-    const hasArt = (f) => f && Array.isArray(f.cells) && f.cells.length;
+function ownCells(w: Widget): unknown[] {
+    const hasArt = (f: StoredFrame | undefined): boolean => !!f && Array.isArray(f.cells) && f.cells.length > 0;
     if (Array.isArray(w.cells) && w.cells.length) return w.cells;
     const fr = (Array.isArray(w.frames) ? w.frames : []).find(hasArt);
-    if (fr) return fr.cells;
+    if (fr) return fr.cells || [];
     const vars = (Array.isArray(w.variations) ? w.variations : []).filter((v) => (v && v.frames || []).some(hasArt));
     const own = vars.find((v) => !/^fam-\d+$/.test(String(v.id))) || vars[0];
-    return own ? own.frames.find(hasArt).cells : [];
+    return own ? (own.frames || []).find(hasArt)?.cells || [] : [];
 }
 
 /** A stored widget, older shapes included, as `{..., cells}` with no frames or variations. */
-function currentShape(w) {
+function currentShape(w: Widget): Widget {
     if (!w.variations && !w.frames && !('animated' in w)) return w;
-    const out = { ...w, cells: ownCells(w) };
+    const out: Widget = { ...w, cells: ownCells(w) };
     delete out.variations;
     delete out.activeVariation;
     delete out.frames;
@@ -75,13 +85,13 @@ function currentShape(w) {
 }
 
 /** Only the fields a widget has, so a webview slip cannot bloat the file. */
-function cleanWidget(w) {
+function cleanWidget(w: Partial<Widget>): Widget {
     return {
         id: safeId(w.id),
         name: String(w.name || 'widget').slice(0, 80),
         w: num(w.w, 1, 32),
         h: num(w.h, 1, 32),
-        cells: ownCells(w),
+        cells: ownCells(w as Widget),
         attachments: w.attachments && typeof w.attachments === 'object'
             ? w.attachments : { bTrigger: [], stepOn: [], objects: [] },
         source: w.source || null,
@@ -91,7 +101,7 @@ function cleanWidget(w) {
 }
 
 /** Add or replace one widget (by id). Returns the list. */
-function saveWidget(file, widget) {
+function saveWidget(file: string, widget: Partial<Widget> | null | undefined): Widget[] {
     const doc = readDoc(file);
     const w = cleanWidget(widget || {});
     const at = doc.widgets.findIndex((x) => x.id === w.id);
@@ -101,7 +111,7 @@ function saveWidget(file, widget) {
 }
 
 /** Remove one widget. Returns the list. */
-function deleteWidget(file, id) {
+function deleteWidget(file: string, id: string): Widget[] {
     safeId(id);
     const doc = readDoc(file);
     doc.widgets = doc.widgets.filter((x) => x.id !== id);
@@ -109,4 +119,5 @@ function deleteWidget(file, id) {
     return doc.widgets.map(currentShape);
 }
 
-module.exports = { listWidgets, saveWidget, deleteWidget, FORMAT, VERSION };
+export type { Widget };
+export { listWidgets, saveWidget, deleteWidget, FORMAT, VERSION };

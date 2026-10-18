@@ -6,7 +6,7 @@
 
 const wsIndex      = require('../../../../dist/games/evermore/language/workspace-index');
 const hoverProv    = require('./hover-provider');
-const completeProv = require('./completion-provider');
+const completeProv = require('../../../../dist/games/evermore/language/completion-provider');
 const symbolProv   = require('../../../../dist/games/evermore/language/symbol-provider');
 const deadBranch   = require('../../../../dist/games/evermore/language/dead-branch');
 const defProv      = require('../../../../dist/games/evermore/language/definition-provider');

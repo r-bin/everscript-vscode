@@ -263,8 +263,10 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   `check:dead` runs knip on `dist/` too (it could not follow `dist/` requires back to `.ts`, so TS was never checked; the
   114 unused-export warnings it now lists are mostly in-file uses, which compiled CommonJS writes as `exports.x`); the
   Mana depcruise rules allow `platform/`. Types found one bug: the emulator's loot markers never had their trigger's
-  index (`trig.index` did not exist; now each has its table's kind and index). Left: 164 host JS modules, the page
-  scripts (5.3), `tools/` (41), `tests/` (77).
+  index (`trig.index` did not exist; now each has its table's kind and index). v0.305.0: 20 more (81 in all): the ROM
+  tab's model (`Claim`, the region callback, typed once in `rom/model/util.ts`), the CDL disassembler, known regions
+  and value streams, the language providers, the script and sound names, the trace formatter, the room map, the
+  script debugger's host half. Left: 144 host JS modules, the page scripts (5.3), `tools/` (41), `tests/` (77).
 - [x] **5.6 WASM scouting (D12):** profile and list candidates with numbers — room decompression
   and encoding (`maps/lzss.ts`, `chr.ts`), the collision/special solver, CDL library analysis and
   xrefs, the script VM if it runs simulations at scale. Output: a table in this file, no code.

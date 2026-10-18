@@ -1,6 +1,6 @@
 'use strict';
 /**
- * memory_radar/tests/radar.test.js — unit tests for radar-utils.js pure functions.
+ * memory_radar/tests/radar.test.js — unit tests for radar-utils.ts pure functions.
  * Run with: node memory_radar/tests/radar.test.js
  */
 
@@ -9,7 +9,7 @@ const {
     radarLifecycle, radarH, radarEsc,
     radarExtractEmoji, radarParseName, radarParseNotes, parseEvsNum,
     parseEnumsFromContent, parseEvsEnumValues,
-} = require('../../src/games/evermore/radar-utils');
+} = require('../../dist/games/evermore/radar-utils');
 
 let passed = 0, failed = 0;
 function test(name, fn) {

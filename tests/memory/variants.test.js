@@ -174,7 +174,7 @@ assert.strictEqual(getRoomLoader('us').snes, '$90:8F60');
 assert.strictEqual(getRoomLoader('de').snes, '$D0:8F65');
 
 // 5. Test VFS resolveTables with dynamic variant addresses
-const { resolveTables } = require('../../src/games/evermore/resources/table-files');
+const { resolveTables } = require('../../dist/games/evermore/resources/table-files');
 
 (async () => {
     const usVfs = resolveTables(['room-pointer-table', 'info.json'], makeRom(0x01, 0x00));

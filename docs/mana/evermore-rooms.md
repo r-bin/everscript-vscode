@@ -41,7 +41,7 @@ script, and the tab labels it `Mana event NNN`.
 ## Where the room lives
 
 The Rooms tab draws every room from a ROM image, so a converted room gets one of its own
-(`virtual-rom.js`), built in memory and never saved: the user's Evermore ROM, copied, plus
+(`virtual-rom.ts`), built in memory and never saved: the user's Evermore ROM, copied, plus
 
 | what | where in the image | why there |
 |---|---|---|
@@ -97,4 +97,4 @@ and what is missing:
 
 Editing a converted room is not supported: it is locked, and nothing saves back to the
 Mana ROM or exports it to an Evermore ROM yet (the image's graphics and colours would
-need free space in the Evermore ROM — `virtual-rom.js` shows where they would go).
+need free space in the Evermore ROM — `virtual-rom.ts` shows where they would go).

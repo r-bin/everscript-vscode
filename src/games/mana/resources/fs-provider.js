@@ -1,9 +1,9 @@
 'use strict';
-// Ownership: the read-only `som://` FileSystemProvider. Turns files.js nodes into
+// Ownership: the read-only `som://` FileSystemProvider. Turns files.ts nodes into
 // VS Code file-system answers and caches produced files per ROM buffer.
 
 const vscode = require('vscode');
-const { resolveSom } = require('./files');
+const { resolveSom } = require('../../../../dist/games/mana/resources/files');
 const { missingRomText } = require('../../../../dist/platform/roms/library');
 
 const CACHE_MAX = 64;
@@ -32,7 +32,7 @@ class SomFileSystem {
         return { node, rom };
     }
 
-    /** @param {vscode.Uri} uri @param {import('./files').SomNode} node @param {Uint8Array} rom */
+    /** @param {vscode.Uri} uri @param {import('../../../../dist/games/mana/resources/files').SomNode} node @param {Uint8Array} rom */
     _bytes(uri, node, rom) {
         if (node.kind !== 'file') throw vscode.FileSystemError.FileIsADirectory(uri);
         let cache = this._cache.get(rom);

@@ -37,7 +37,7 @@ same file. `romFor(game)` = the selected ROM if it is that game's, else the game
    feature table), `docs`. Facts only from the game itself (root AGENTS.md §0.4).
 2. Its line in `src/games/index.ts` `registerGames()`.
 3. `src/games/<id>/extension.js` with `activate(context)`: commands, its file system, and its main
-   view via `core/game-views.js` `registerGameView(id, { open, panel, refresh })` — Open Memory
+   view via `core/game-views.ts` `registerGameView(id, { open, panel, refresh })` — Open Memory
    Radar and Switch ROM then reach it without any game naming another. A game's code reads its ROM
    with `romFor(id)` / `romPathFor(id)`, never `selectedRom()`: that is what lets its panels keep their
    ROM while another game is selected.

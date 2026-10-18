@@ -15,7 +15,7 @@
  */
 
 const fs = require('fs');
-const { constantNames, constantValue } = require('./value-types');
+const { constantNames, constantValue } = require('../../../../dist/games/evermore/debugger/value-types');
 const { evaluateCondition } = require('../../../../dist/games/evermore/debugger/conditions');
 const { hex: toHex } = require('../../../../dist/platform');
 

@@ -15,7 +15,7 @@
 //   page -> musicOpen { uri }              opens a soe:// link in the editor
 //                                     host -> musicPaused { paused }   (from extension.js: the emulator's pause)
 
-const { buildMusicModel, packageData } = require('./model/catalog');
+const { buildMusicModel, packageData } = require('../../../../dist/games/evermore/music/model/catalog');
 const { missingRomText } = require('../../../../dist/platform/roms/library');
 
 let _cache = null;   // { rom, model }

@@ -7,7 +7,7 @@
 const vscode = require('vscode');
 const path   = require('path');
 const fs     = require('fs');
-const { parseEnumsFromContent } = require('./radar-utils');
+const { parseEnumsFromContent } = require('../../../dist/games/evermore/radar-utils');
 const { resolveExtConfig } = require('../../../dist/games/evermore/language/config');
 const { buildVanillaRoomDetails, buildItemIcons, invalidateRoomDataCaches, buildRoomTree, setRoomImageUris } = require('./rooms');
 const romReaders = require('./rom-readers');
@@ -18,7 +18,7 @@ const { readAllCharacters, getRawSpriteIndex, buildAnimationCatalog, characterTh
 const { radarReadMemoryMap, radarDetectScope, radarAnalyzeScope } = require('./memory/scope-analysis');
 
 // ── Memory Radar ─────────────────────────────────────────────────────────────
-// RAM lifecycles (temp / session / sram / system): radar-utils.js radarLifecycle, from the
+// RAM lifecycles (temp / session / sram / system): radar-utils.ts radarLifecycle, from the
 // compiler-region knowledge entries.
 
 // Note: _loot_chest/_loot/loot/retained_object are dynamically allocated from the

@@ -3,7 +3,7 @@
 // Renders the WRAM grid, arg grid, and detail table tab-pane HTML.
 // Pure function — no state, no VS Code dependency.
 
-const { radarH, radarEsc, radarLifecycle, radarExtractEmoji } = require('../radar-utils');
+const { radarH, radarEsc, radarLifecycle, radarExtractEmoji } = require('../../../../dist/games/evermore/radar-utils');
 
 const COLS = 16;
 

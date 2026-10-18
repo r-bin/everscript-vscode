@@ -56,7 +56,7 @@ What the folder does: [README.md](README.md).
   special overlays and the animation. `page.js` is the one list of files the page loads (host and tests share
   it); the host fills only URIs, the CSP nonce and the `#init` JSON data block.
 - `everscript.openMemoryRadar` opens this panel instead of the radar when the selected ROM is a Secret
-  of Mana ROM (`core/game-views.js`).
+  of Mana ROM (`core/game-views.ts`).
 
 ## Tests
 - `tests/mana/mana-panel-dom.test.js` — the page in headless Chromium with a stub host: the shell's frame,

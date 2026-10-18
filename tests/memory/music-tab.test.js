@@ -10,7 +10,7 @@ const vm = require('vm');
 const assert = require('assert');
 
 const ROOT = path.join(__dirname, '..', '..');
-const { buildMusicModel, packageData } = require('../../src/games/evermore/music/model/catalog');
+const { buildMusicModel, packageData } = require('../../dist/games/evermore/music/model/catalog');
 const { handlesMusicMessage, handleMusicMessage } = require('../../src/games/evermore/music');
 const createSpcEngine = require('../../src/games/evermore/music/engine/spc-engine.js');
 const { MusicSpc } = require('../../src/games/evermore/music/webview/music-engine.js');

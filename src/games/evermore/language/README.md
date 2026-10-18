@@ -7,7 +7,7 @@ language/
   language-providers.js    — registers all VS Code language features (wires the files below)
   workspace-index.ts       — static JSON index + live workspace declaration index
   hover-provider.js        — hover
-  completion-provider.js   — completions
+  completion-provider.ts   — completions
   definition-provider.ts   — go-to-definition
   symbol-provider.ts       — document symbols
   dead-branch.ts           — fades statically dead if-branches

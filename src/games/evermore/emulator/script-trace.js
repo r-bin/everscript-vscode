@@ -22,7 +22,7 @@ const fs     = require('fs');
 const vm = require('../../../../dist/games/evermore/script-vm');
 const { printNames } = require('../../../../dist/games/evermore/script-model');
 const { getActiveAddressLookup } = require('./address-lookup');
-const { ScriptTraceFormatter } = require('./trace-formatter');
+const { ScriptTraceFormatter } = require('../../../../dist/games/evermore/emulator/trace-formatter');
 const { hex: fmtHex, hiromFileOffset } = require('../../../../dist/platform');
 
 let _scriptTraceChannel = null;

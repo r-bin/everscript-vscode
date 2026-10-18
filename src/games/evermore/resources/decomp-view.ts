@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: decompiled C and pseudocode resolution for `soe://rom/<addr>.c` and
 // `soe://rom/<addr>.asm?pseudocode=1` (and `soe://bus/<addr>`).
 //
@@ -7,17 +6,21 @@
 // 2. Mechanical C lift from snesrecomp (out/recomp/project/src/gen/)
 // 3. Ghidra pseudocode exports (out/ghidra/ or traces/ghidra/)
 
-const fs = require('fs');
-const path = require('path');
-const { getFunction } = require('../../../../dist/games/evermore/localizations/functions');
+import * as fs from 'fs';
+import * as path from 'path';
+import { getFunction } from '../localizations/functions';
 
+// dist/ mirrors src/ at the same depth, so four folders up is the repo root from either.
 const REPO = path.resolve(__dirname, '..', '..', '..', '..');
 
+/** Decompiled C for a routine, and where it came from. */
+interface DecompiledC { source: string; title: string; code: string; path: string }
+
 /** Hex formatting helper. */
-const h = (v, d) => (v >>> 0).toString(16).toUpperCase().padStart(d, '0');
+const h = (v: number, d: number): string => (v >>> 0).toString(16).toUpperCase().padStart(d, '0');
 
 /** Search docs/disassembly/ for a C code block covering this routine. */
-function findCuratedC(bus) {
+function findCuratedC(bus: number): DecompiledC | null {
     const fn = getFunction(bus) || getFunction((bus & 0x3FFFFF) | 0x800000) || getFunction((bus & 0x3FFFFF) | 0xC00000);
     const disasmDir = path.join(REPO, 'docs', 'disassembly');
     if (!fs.existsSync(disasmDir)) return null;
@@ -26,8 +29,8 @@ function findCuratedC(bus) {
     const hexFull = bus.toString(16).toUpperCase();
 
     // Walk subdirectories under docs/disassembly/
-    function walk(dir) {
-        let results = [];
+    function walk(dir: string): string[] {
+        let results: string[] = [];
         for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
             const full = path.join(dir, entry.name);
             if (entry.isDirectory()) {
@@ -40,7 +43,7 @@ function findCuratedC(bus) {
     }
 
     const mdFiles = walk(disasmDir);
-    let best = null;
+    let best: DecompiledC | null = null;
     let bestScore = -1;
 
     for (const f of mdFiles) {
@@ -72,7 +75,7 @@ function findCuratedC(bus) {
 }
 
 /** Search out/recomp/project/src/gen/ for mechanical snesrecomp C. */
-function findRecompC(bus) {
+function findRecompC(bus: number): DecompiledC | null {
     const genDir = path.join(REPO, 'out', 'recomp', 'project', 'src', 'gen');
     if (!fs.existsSync(genDir)) return null;
 
@@ -110,7 +113,7 @@ function findRecompC(bus) {
 }
 
 /** Find decompiled C or pseudocode from any available source. */
-function getDecompiledC(bus) {
+function getDecompiledC(bus: number): DecompiledC | null {
     const curated = findCuratedC(bus);
     if (curated) return curated;
 
@@ -132,7 +135,7 @@ function getDecompiledC(bus) {
 }
 
 /** Render a standalone .c listing for a given bus address. */
-function cListing(rom, bus) {
+function cListing(rom: unknown, bus: number): string {
     const decomp = getDecompiledC(bus);
     if (decomp) {
         return `// ==============================================================================\n// Decompiled C: ${decomp.title}\n// Source: ${decomp.source} (${decomp.path})\n// ==============================================================================\n\n${decomp.code}\n`;
@@ -140,5 +143,5 @@ function cListing(rom, bus) {
     return `// No decompiled C found for address $${h(bus, 6)}.\n// You can run decomp-curator or inspect soe://rom/${h(bus & 0x3FFFFF, 6)}.asm\n`;
 }
 
-module.exports = { getDecompiledC, cListing };
+export { getDecompiledC, cListing };
 

@@ -16,7 +16,7 @@ const { getTable, getFunction, getAbsScript } = require('../localizations');
 const { parseAddressName, hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
 const { dir, file, json, text } = require('../../../../dist/games/evermore/resources/nodes');
 const { asmListing } = require('./asm-view');
-const { cListing } = require('./decomp-view');
+const { cListing } = require('../../../../dist/games/evermore/resources/decomp-view');
 
 /** A file offset as the bus address code runs at: $80-$BF upper halves (fast ROM), else $C0+. */
 function fileToBus(off) { return off < 0x400000 && (off & 0xFFFF) >= 0x8000 ? 0x800000 | off : 0xC00000 + off; }

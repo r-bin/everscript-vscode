@@ -9,7 +9,7 @@ in the emulator panel, through VS Code's debugger UI (F5).
 VS Code debug UI ── DAP (in-process) ── emulator-session.js
                                             │  bridge (injected by extension.js)
                                             ▼
-                     emulator/script-debug-host.js ── postMessage ── script-debug-view.js (webview)
+                     emulator/script-debug-host.ts ── postMessage ── script-debug-view.js (webview)
                                                                           │ exec breakpoint $8C:D0A6
                                                                           ▼
                                                                   custom snes9x core
@@ -56,7 +56,7 @@ VS Code debug UI ── DAP (in-process) ── emulator-session.js
 | `emulator-session.js` | DAP session: breakpoints, stops, steps, threads, stack, variables, evaluate |
 | `script-frames.js` | Pure: snapshot → threads / frames / variables; step predicates |
 | `source-map.js` | Pure: reads `out/source_map.json`; address ↔ line, inline levels, step ranges, memory symbols |
-| `value-types.js` | Pure: which enum a memory value holds (`// @type ENUM` on its declaration, else inferred from the sources) |
+| `value-types.ts` | Pure: which enum a memory value holds (`// @type ENUM` on its declaration, else inferred from the sources) |
 | `conditions.ts` | Pure: evaluates an `if` / `while` condition against live memory |
 | `memory-access.js` | Pure: memory by name or `.evs` notation (type, read, write), the Memory scope, DAP readMemory / writeMemory |
 

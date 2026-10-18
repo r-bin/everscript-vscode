@@ -8,7 +8,7 @@ const maps = require('../../../../dist/games/evermore/localizations/maps');
 const sounds = require('../../../../dist/games/evermore/localizations/sounds');
 const tables = require('../../../../dist/games/evermore/localizations/tables');
 const functions = require('../../../../dist/games/evermore/localizations/functions');
-const scripts = require('./scripts');
+const scripts = require('../../../../dist/games/evermore/localizations/scripts');
 
 module.exports = {
     // Strings & resolution

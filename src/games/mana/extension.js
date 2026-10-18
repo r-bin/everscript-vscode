@@ -1,9 +1,9 @@
 'use strict';
 // Ownership: Secret of Mana inside VS Code — the read-only som:// file system and the Maps panel as
-// the game's main view (core/game-views.js). Called from src/extension.js.
+// the game's main view (core/game-views.ts). Called from src/extension.js.
 
 const roms = require('../../../dist/core/roms/host');
-const gameViews = require('../../core/game-views');
+const gameViews = require('../../../dist/core/game-views');
 
 function activate(context) {
     // som:// (resources/README.md): its own tree, never mixed into soe://.

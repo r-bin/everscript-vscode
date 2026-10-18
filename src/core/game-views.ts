@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: each game's main view (Evermore: the Memory Radar; Mana and Terranigma: their Maps
 // panels), which one opens for the selected ROM, and the ROM each open view shows
 // (docs/architecture/multi-game.md §6: one command, any game; panels keep their ROM). Games register
@@ -6,16 +5,17 @@
 // they had (the library remembers one per game), so Evermore and Mana can sit side by side. Every
 // view's title names its ROM. Knows no game by name.
 
-const vscode = require('vscode');
-const roms = require('../../dist/core/roms/host');
-
-/** @type {Map<string, { open(column?: vscode.ViewColumn): unknown, panel(): vscode.WebviewPanel | null | undefined, refresh?(): void }>} */
-const views = new Map();
-/** The title each panel was created with, before the ROM was added to it. */
-const baseTitles = new WeakMap();
+import * as vscode from 'vscode';
+import * as roms from './roms/host';
 
 /** A game's main view. `panel()` returns its open WebviewPanel, if any. */
-function registerGameView(gameId, view) {
+interface GameView { open(column?: vscode.ViewColumn): unknown; panel(): vscode.WebviewPanel | null | undefined; refresh?(): void }
+
+const views = new Map<string, GameView>();
+/** The title each panel was created with, before the ROM was added to it. */
+const baseTitles = new WeakMap<vscode.WebviewPanel, string>();
+
+function registerGameView(gameId: string, view: GameView): vscode.Disposable {
     views.set(gameId, view);
     return { dispose: () => { if (views.get(gameId) === view) views.delete(gameId); } };
 }
@@ -24,7 +24,7 @@ function registerGameView(gameId, view) {
  * Opens the selected game's view when that game is not `exceptGame` (the caller's own game) and has
  * one. True when it opened something, so the caller does not open its own view.
  */
-function openSelectedGameView(column, exceptGame) {
+function openSelectedGameView(column?: vscode.ViewColumn, exceptGame?: string): boolean {
     const game = roms.selectedGame();
     if (!game || game === exceptGame) return false;
     const view = views.get(game);
@@ -42,7 +42,8 @@ function retitle() {
         if (!panel) continue;
         if (!baseTitles.has(panel)) baseTitles.set(panel, panel.title);
         const rom = roms.romLabel(game);
-        const title = rom ? `${baseTitles.get(panel)} — ${rom}` : baseTitles.get(panel);
+        const base = baseTitles.get(panel) ?? panel.title;
+        const title = rom ? `${base} — ${rom}` : base;
         if (panel.title !== title) panel.title = title;
     }
 }
@@ -55,7 +56,7 @@ function onRomChanged() {
     retitle();
 }
 
-function activateGameViews(context) {
+function activateGameViews(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
         roms.onDidChangeRoms(() => onRomChanged()),
         // A view opened by its own command gets its ROM in the title as its tab appears.
@@ -63,4 +64,5 @@ function activateGameViews(context) {
     );
 }
 
-module.exports = { registerGameView, openSelectedGameView, activateGameViews };
+export type { GameView };
+export { registerGameView, openSelectedGameView, activateGameViews };

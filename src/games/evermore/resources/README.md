@@ -55,7 +55,7 @@ binds the same key and wins on extension load order; a user keybinding
 | `character-files.js` | `characters/`, `animations/`: records, sprites, animation GIFs, frames, tile blocks |
 | `tile-files.js` | `assets/tiles/`: 16×16 CHR tile graphics table ($EE0000); room metatile atlas/tiles |
 | `audio-files.js`, `audio-songs.js` | `audio/`: music tracks, playable `.spc` snapshots, sound effects, descriptors (one song's records, SPC and page: `audio-songs.js`) |
-| `table-files.js` | `tables/`: engine lookup and pointer tables with `data.bin` and `data.json` |
+| `table-files.ts` | `tables/`: engine lookup and pointer tables with `data.bin` and `data.json` |
 | `gif.ts` | pure GIF89a encoder for animated character and sprite sequences |
 | `ram-symbols.js` | every known WRAM address (names.json + tag links) with size and type; flag bytes; records |
 | `asm-view.js` | `<offset>.asm` / `soe://bus/<addr>.asm`: a 65816 listing (16-bit A/X assumed until REP/SEP), and the excerpt around a call |

@@ -53,7 +53,7 @@
 - 🟡 **Map tile graphics `$EE0000`** (6688 / ~21,800): readers `$8C:C88C`, `$90:A23D`. Needs a scan
   like the block tables'.
 - 🟡 **Song packages `$819903`** (71 / 256): readers `$8C:8252`, `$8C:8257`. Also fix
-  `src/games/evermore/rom/model/audio.js`, which calls `$81:9900` "song count" (it is the last package index).
+  `src/games/evermore/rom/model/audio.ts`, which calls `$81:9900` "song count" (it is the last package index).
 - 💡 Alchemy (`$C45DDF` / `$9180A6`), which needs its readers traced first.
 
 ## Housekeeping

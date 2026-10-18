@@ -111,7 +111,7 @@ test('processScriptTraceBatch handles interwoven slots and state transitions', (
 test('script-trace.js, panel.js, panel-webview.js, and grammar files are strictly ASCII-only', () => {
   const files = [
     path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'address-lookup.js'),
-    path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'trace-formatter.js'),
+    path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'trace-formatter.ts'),
     path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'script-trace.js'),
     path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'panel.js'),
     path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'panel-webview.js'),
@@ -247,7 +247,7 @@ test('RomAddressLookup resolves Room 0x15 enter script, empty trigger, and custo
 
 // Test 10: ScriptTraceFormatter formats text and html consistently with opcode at end
 test('ScriptTraceFormatter generates consistent TextMate line and HTML row with opcode at end', () => {
-  const { ScriptTraceFormatter } = require('../../src/games/evermore/emulator/trace-formatter');
+  const { ScriptTraceFormatter } = require('../../dist/games/evermore/emulator/trace-formatter');
   const formatter = new ScriptTraceFormatter();
 
   const item = {

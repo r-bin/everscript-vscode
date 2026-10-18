@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: the audio regions of a Secret of Evermore ROM, measured by
 // following every transfer record of every song descriptor. Pure.
 //
@@ -6,14 +5,17 @@
 // [count:16] then count × [length:16][rom_src:24][spc_dest:16]. Every copy
 // reads upper halves only: past $FFFF it continues at the next bank's $8000.
 
-const { hex } = require('../../../../../dist/games/evermore/rom/model/util');
+import { hex } from './util';
+import type { Claim } from './util';
+
+type Range = [number, number];
 
 const SONG_COUNT = 0x019900, SONG_POINTERS = 0x019903;
 const FINE_END = 0x01B710;   // below: per-song tables, interleaved record by record
 
 /** File ranges a copy of `len` bytes from upper-half offset `off` reads. */
-function upperWalk(off, len) {
-    const out = [];
+function upperWalk(off: number, len: number): Range[] {
+    const out: Range[] = [];
     while (len > 0) {
         const bankEnd = (off | 0xFFFF) + 1;
         const n = Math.min(len, bankEnd - off);
@@ -25,8 +27,8 @@ function upperWalk(off, len) {
 }
 
 /** Bytes read sequentially from `cur`, hopping halves; returns [bytes, next]. */
-function take(rom, cur, n, ranges) {
-    const bytes = [];
+function take(rom: Uint8Array, cur: number, n: number, ranges: Range[]): [number[], number] {
+    const bytes: number[] = [];
     for (const [a, b] of upperWalk(cur, n)) {
         ranges.push([a, b]);
         for (let i = a; i < b; i++) bytes.push(rom[i]);
@@ -36,13 +38,13 @@ function take(rom, cur, n, ranges) {
     return [bytes, cur];
 }
 
-function songs(rom) {
-    const r24 = o => rom[o] | rom[o + 1] << 8 | rom[o + 2] << 16;
+function songs(rom: Uint8Array): { song: number; desc: Range[]; data: Range[] }[] {
+    const r24 = (o: number): number => rom[o] | rom[o + 1] << 8 | rom[o + 2] << 16;
     const count = rom[SONG_COUNT];
     const res = [];
     for (let s = 0; s <= count; s++) {
-        const desc = [], data = [];
-        let cur = r24(SONG_POINTERS + s * 3) & 0x3FFFFF, b;
+        const desc: Range[] = [], data: Range[] = [];
+        let cur = r24(SONG_POINTERS + s * 3) & 0x3FFFFF, b: number[];
         [b, cur] = take(rom, cur, 2, desc);
         const n = b[0] | b[1] << 8;
         for (let k = 0; k < n; k++) {
@@ -56,10 +58,14 @@ function songs(rom) {
     return res;
 }
 
-const ids = v => v.length > 10 ? `${v.length} songs` : v.map(x => '0x' + hex(x, 2)).join(', ');
+const ids = (v: number[]): string => v.length > 10 ? `${v.length} songs` : v.map(x => '0x' + hex(x, 2)).join(', ');
 
 /** Claims for the driver, the song tables, the descriptors and every song's data. */
-function audioRegions(rom, R) {
+/** A run of bytes loaded by the same set of songs. */
+interface Run { s: number; e: number; sig: string; set: Set<number> }
+interface Row { s: number; e: number; fine: boolean; parts: Run[] }
+
+function audioRegions(rom: Uint8Array, R: Claim): void {
     R(0x0180DC, 0x0180DC + 6112, '🎵', 'Wolfgang v3 SPC700 driver', 'uploaded to SPC `$0700`');
     R(0x019900, 0x019902, '🎵', 'Song count', '`0x46` (songs `0x00..0x46`)');
     R(0x019903, 0x019903 + 213, '📋', 'Song pointer table', '71 × 24-bit pointers to the descriptors in `$8A..$8B`');
@@ -72,21 +78,21 @@ function audioRegions(rom, R) {
     for (const r of list) for (const [a, b] of r.desc) R(a, b, '📋', 'Song descriptors', '`[count:16]` + count × `[len:16][src:24][spc_dest:16]`; song `0x00` has 407 records');
 
     // Which songs load each byte, then runs of bytes with the same set.
-    const owner = new Map();
+    const owner = new Map<number, Set<number>>();
     for (const r of list) for (const [a, b] of r.data) for (let i = a; i < b; i++) {
         let set = owner.get(i);
         if (!set) owner.set(i, set = new Set());
         set.add(r.song);
     }
-    const runs = [];
+    const runs: Run[] = [];
     for (const k of [...owner.keys()].sort((a, b) => a - b)) {
-        const set = owner.get(k), sig = [...set].sort((a, b) => a - b).join(',');
+        const set = owner.get(k) as Set<number>, sig = [...set].sort((a, b) => a - b).join(',');
         const l = runs[runs.length - 1];
         if (l && l.e === k && l.sig === sig) l.e++;
         else runs.push({ s: k, e: k + 1, sig, set });
     }
     // Rows of at least 2 KB inside one half; the interleaved head stays one row.
-    const rows = [];
+    const rows: Row[] = [];
     for (const r of runs) {
         const fine = r.s < FINE_END, l = rows[rows.length - 1];
         const joins = l && (l.s >> 15) === (r.s >> 15) && l.e === r.s && l.fine === fine && (fine || l.e - l.s < 2048);
@@ -94,7 +100,7 @@ function audioRegions(rom, R) {
     }
     for (const r of rows) {
         if (r.fine) { R(r.s, r.e, '🎵', 'Per-song tables', 'small per-song records, interleaved, all 71 songs'); continue; }
-        const excl = new Map(), sharers = new Set();
+        const excl = new Map<number, number>(), sharers = new Set<number>();
         let shared = 0;
         for (const p of r.parts) {
             const n = p.e - p.s;
@@ -105,11 +111,11 @@ function audioRegions(rom, R) {
         const name = !shared && ex.length === 1 ? (ex[0] === 0 ? 'Song 0x00 (base soundbank)' : `Song 0x${hex(ex[0], 2)}`)
             : !ex.length ? 'Shared samples'
             : ex.length === 1 ? `Song 0x${hex(ex[0], 2)} + shared samples` : `Songs 0x${hex(ex[0], 2)}–0x${hex(ex[ex.length - 1], 2)}`;
-        const notes = [];
-        if (ex.length) notes.push('exclusive: ' + ex.map(k => `0x${hex(k, 2)} (${excl.get(k).toLocaleString('en-US')} B)`).join(', '));
+        const notes: string[] = [];
+        if (ex.length) notes.push('exclusive: ' + ex.map(k => `0x${hex(k, 2)} (${(excl.get(k) ?? 0).toLocaleString('en-US')} B)`).join(', '));
         if (shared) notes.push(`shared samples: ${shared.toLocaleString('en-US')} B, used by ${ids([...sharers].sort((a, b) => a - b))}`);
         R(r.s, r.e, '🎵', name, notes.join('; '));
     }
 }
 
-module.exports = { audioRegions };
+export { audioRegions };

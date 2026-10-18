@@ -16,7 +16,7 @@
  */
 
 const { hex, countText } = require('../../../dist/platform/cdl/rom-map');
-const { decodeAt } = require('./disasm');
+const { decodeAt } = require('../../../dist/platform/cdl/disasm');
 const { SPACE, XR, EXT_HEAD, CDL_CODE, XREFS_PER_PC } = require('./xref-index');
 
 const SITE_MODES = new Set(['absx', 'absy', 'longx']);

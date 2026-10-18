@@ -48,7 +48,7 @@ const ext = require('../../src/extension.js');
 // Instead, test via a helper that reconstructs minimal inputs.
 // We also need buildRoomsJson, renderRoomsTree — test them via a thin wrapper.
 
-const { radarH } = require('../../src/games/evermore/radar-utils');
+const { radarH } = require('../../dist/games/evermore/radar-utils');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 let passed = 0, failed = 0;

@@ -73,7 +73,7 @@ test('panel-webview contains renderObjectsOverlay, renderAnimTilesOverlay, and r
 
 // 4. Panel.js passes objects, animTiles, and collisionUri in roomMapRendered
 test('the Evermore emulator host computes and passes objects, animTiles, and collisionUri in roomMapRendered data', () => {
-    const panelContent = ['host.js', 'room-meta.ts', 'room-map.js']
+    const panelContent = ['host.js', 'room-meta.ts', 'room-map.ts']
         .map((f) => fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', f), 'utf8')).join('\n');
 
     assert.ok(/roomObjects(: [\w[\]]+)? = \[\]/.test(panelContent), 'roomObjects extraction missing');

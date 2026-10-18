@@ -12,7 +12,7 @@ const assert = require('assert');
 const crypto = require('crypto');
 const fs = require('fs');
 const mana = require('../../dist/games/mana/decoder');
-const { resolveSom, getCatalog } = require('../../src/games/mana/resources/files');
+const { resolveSom, getCatalog } = require('../../dist/games/mana/resources/files');
 
 const ROM_PATH = require('../../dist/games').romPath('mana') || '';
 if (!ROM_PATH || !fs.existsSync(ROM_PATH)) {

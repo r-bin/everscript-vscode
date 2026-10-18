@@ -21,7 +21,7 @@ const { hex } = require('../../../dist/platform/cdl/rom-map');
 const { SPACE, XR, EXT_HEAD } = require('./xref-index');
 const { regsByPc, basesByPc, busSitesList } = require('./library-ext');
 const { returnsByEntry } = require('./recomp-analysis');
-const { decodeAt } = require('./disasm');
+const { decodeAt } = require('../../../dist/platform/cdl/disasm');
 
 const FLOW_CALL = 1, FLOW_INDIRECT = 8, FLOW_INTERRUPT = 0x10;
 

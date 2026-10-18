@@ -18,9 +18,9 @@ Reference: the everscript wiki's ROM map (`wiki/rom/Rom-Map.md`), whose §4 this
 | `build.js` | ROM bytes (+ CDL, room names) → model. Pure |
 | `host.js` | The webview's `romMapRequest` / `romReaders`; caches one model per ROM hash. No `vscode` |
 | `render-rom-tab.ts` | The pane scaffold; content arrives by message |
-| `model/catalog.js` | Fixed-place content: header, rooms, palettes, strings, scripts, entities, alchemy |
-| `model/assets.js` | Map graphics, sprite infos/blocks, animation bytecode, measured item by item |
-| `model/audio.js` | Song descriptors and every byte each song loads |
+| `model/catalog.ts` | Fixed-place content: header, rooms, palettes, strings, scripts, entities, alchemy |
+| `model/assets.ts` | Map graphics, sprite infos/blocks, animation bytecode, measured item by item |
+| `model/audio.ts` | Song descriptors and every byte each song loads |
 | `model/layout.js` | One owner per byte, rows per half, gaps, overlap notes, strips, CDL counts |
 | `model/points.js` | Curated routine / table names (points without a size) |
 | `model/readers.ts` | "Which code reads these bytes", from the CDL library's xrefs |

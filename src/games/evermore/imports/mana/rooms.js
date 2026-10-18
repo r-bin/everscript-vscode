@@ -1,6 +1,6 @@
 'use strict';
 // Ownership: Secret of Mana maps as rooms of Evermore's Rooms tab — the rail's list,
-// a room's details when it is opened, and which ROM image (virtual-rom.js) answers the
+// a room's details when it is opened, and which ROM image (virtual-rom.ts) answers the
 // tab's requests for it. No `vscode`: both ROMs arrive as functions from the host.
 //
 // A converted room's id in the tab is IMPORTED_ROOM_BASE + Mana map id, never a ROM
@@ -11,7 +11,7 @@
 const mana = require('../../../../../dist/games/mana/decoder');
 const { readRomMapHeaderFrom } = require('../../rom-readers');
 const { convertManaMap } = require('./convert');
-const { buildVirtualRom } = require('./virtual-rom');
+const { buildVirtualRom } = require('../../../../../dist/games/evermore/imports/mana/virtual-rom');
 const ids = require('../../../../../dist/games/evermore/imports/mana/ids');
 
 const VID_PREFIX = 'som-';

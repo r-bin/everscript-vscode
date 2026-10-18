@@ -8,7 +8,7 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `core/` | Game-neutral features: `webview/shared.css` + `shared-map-editor.css` + `shared-tabs.css` (the page base of the radar and the Mana Maps page); Switch ROM, the ROM panel, the status bar item; `map-editor/` (view, core, shell of both games' editors); `mcp/` (read-only MCP server, 127.0.0.1:47917, for AI clients); `emulator/` (the embedded SNES emulator: panel, page, cores, profiles Everscript / recorder; a game hands in its part) |
 | `recorder/` | SNES CDL Recorder: the second extension's entry (`recorder/package.json`), the emulator in its recorder profile |
 | `games/` | One folder per game; `games/index.ts` is the list of games (→ `dist/games`) |
-| `games/evermore/` (files) | `rom-readers.js` (ROM reads for rooms, characters, stats), `radar-utils.js` (Everscript parsing for the radar), the descriptor and derived-ROM marker |
+| `games/evermore/` (files) | `rom-readers.js` (ROM reads for rooms, characters, stats), `radar-utils.ts` (Everscript parsing for the radar), the descriptor and derived-ROM marker |
 | `games/evermore/memory/` | Memory Radar tab: WRAM grid, detail table, rendering pipeline |
 | `games/evermore/rooms/` | Rooms map browser: tree building, content parsing, rendering, data watchers |
 | `games/evermore/language/` | VS Code language features: grammar, theme, hover, completion, definitions, snippets |

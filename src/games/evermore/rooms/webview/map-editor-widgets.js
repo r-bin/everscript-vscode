@@ -1,5 +1,5 @@
 // Ownership: the user's own widgets — the library every map shares (on the
-// host: `<globalStorage>/widgets.json`, rooms/data/widget-store.js) and the
+// host: `<globalStorage>/widgets.json`, rooms/data/widget-store.ts) and the
 // Widgets tab that lists them first.
 //
 // The tab is one scrolling list:

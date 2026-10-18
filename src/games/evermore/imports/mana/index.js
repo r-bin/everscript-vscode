@@ -3,6 +3,6 @@
 module.exports = {
     ...require('./rooms'),
     ...require('./convert'),
-    ...require('./virtual-rom'),
+    ...require('../../../../../dist/games/evermore/imports/mana/virtual-rom'),
     ids: require('../../../../../dist/games/evermore/imports/mana/ids'),
 };

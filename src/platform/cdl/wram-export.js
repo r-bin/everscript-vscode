@@ -16,7 +16,7 @@ const path = require('path');
 const { hex, countText } = require('../../../dist/platform/cdl/rom-map');
 const { buildIndex, flagText, SPACE, XR } = require('./xref-index');
 const { createRomMap } = require('../../../dist/platform/cdl/rom-map');
-const { decodeAt } = require('./disasm');
+const { decodeAt } = require('../../../dist/platform/cdl/disasm');
 const { WVAL_BYTES } = require('./library');
 
 const EXT_HEAD = 0x04;

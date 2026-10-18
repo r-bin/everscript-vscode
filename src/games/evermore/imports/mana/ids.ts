@@ -1,5 +1,5 @@
 // Ownership: where a converted room's own data sits in the Evermore ROM image it is
-// drawn from (virtual-rom.js), and the ids that follow from it.
+// drawn from (virtual-rom.ts), and the ids that follow from it.
 //
 // Evermore finds a graphic through a 3-byte pointer at $EE0000 + id*3 (file 0x2E0000)
 // and a family's 16 colours at file 0x1CC322 + id*32 (docs/map-format/

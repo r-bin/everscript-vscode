@@ -1,12 +1,16 @@
-'use strict';
 // Ownership: the room under the running game as pictures for the emulator's map view: composite,
 // foreground and layers at 2x, with the objects' states and cut grass applied, cached per state.
 // Facts about the room are room-meta.ts.
 
-const maps = require('../../../../dist/games/evermore/maps');
-const { roomMeta, roomMetaCache, scale2x, alignPixelsToSnes, hasOpaquePixel } = require('../../../../dist/games/evermore/emulator/room-meta');
+import * as maps from '../maps';
+import { roomMeta, roomMetaCache, scale2x, alignPixelsToSnes, hasOpaquePixel } from './room-meta';
+import type { RoomData } from '../maps/room';
+import type { PixelBuffer } from '../maps/render';
 
-const roomMapCache = new Map();
+/** A cut grass cell as the page sends it: "x,y", [x, y] or {x, y}. */
+type CutTile = string | [number, number] | { x: number; y: number };
+
+const roomMapCache = new Map<string, ReturnType<typeof drawRoomMap>>();
 
 /** Drops the cached pictures (the panel calls it when the ROM changes). */
 function clearCaches() {
@@ -14,7 +18,7 @@ function clearCaches() {
     roomMetaCache.clear();
 }
 
-function applyCutGrass(room, cutTiles) {
+function applyCutGrass(room: RoomData, cutTiles: CutTile[] | null | undefined): RoomData {
     if (!room || !room.cuttableGrass || !room.cuttableGrass.table || !room.cuttableGrass.table.swaps) return room;
     const swaps = room.cuttableGrass.table.swaps;
     if (!swaps.size || !cutTiles || !cutTiles.length) return room;
@@ -49,7 +53,7 @@ function applyCutGrass(room, cutTiles) {
     if (!touched) return room;
 
     const s = room.metatileSlices;
-    function resolve(metaId) {
+    function resolve(metaId: number) {
         const idx = Math.floor((metaId - room.baseMetatile) / 8);
         if (idx < 0 || idx >= room.metatileCount) return { l1: 0, l2: 0, coll: 0 };
         return { l1: s.layer1[idx] != null ? s.layer1[idx] : 0, l2: s.layer2[idx] != null ? s.layer2[idx] : 0, coll: s.collision[idx] != null ? s.collision[idx] : 0 };
@@ -83,13 +87,19 @@ function applyCutGrass(room, cutTiles) {
  * collision, optional BG layers, objects, animated tiles, lootables. Cached per ROM; null when the
  * room cannot be drawn.
  */
-function roomMap(romBuffer, mapId, objectStates, cutGrassTiles, layered, log) {
+function roomMap(romBuffer: Uint8Array | null | undefined, mapId: unknown, objectStates?: Record<number, number> | null,
+    cutGrassTiles?: CutTile[] | null, layered?: boolean, log?: (line: string) => void) {
     if (!romBuffer || typeof mapId !== 'number') return null;
     const objKey = objectStates ? JSON.stringify(objectStates) : '';
     const grassKey = cutGrassTiles && cutGrassTiles.length ? JSON.stringify(cutGrassTiles) : '';
     const cacheKey = mapId + ':' + objKey + ':' + grassKey + (layered ? ':layered' : '');
 
     if (roomMapCache.has(cacheKey)) return roomMapCache.get(cacheKey);
+    return drawRoomMap(romBuffer, mapId, cacheKey, objectStates, cutGrassTiles, layered, log);
+}
+
+function drawRoomMap(romBuffer: Uint8Array, mapId: number, cacheKey: string, objectStates: Record<number, number> | null | undefined,
+    cutGrassTiles: CutTile[] | null | undefined, layered: boolean | undefined, log: ((line: string) => void) | undefined) {
     try {
         const rom = (romBuffer.length % 1024 === 512) ? romBuffer.subarray(512) : romBuffer;
         const meta = roomMeta(rom, mapId);
@@ -109,7 +119,7 @@ function roomMap(romBuffer, mapId, objectStates, cutGrassTiles, layered, log) {
         const comp2x = scale2x(composite);
         const imageUri = maps.encodePngDataUri(comp2x);
 
-        let foregroundUri = null;
+        let foregroundUri: string | null = null;
         try {
             let fg = maps.renderRoomForeground(rom, staged);
             if (fg) {
@@ -122,10 +132,10 @@ function roomMap(romBuffer, mapId, objectStates, cutGrassTiles, layered, log) {
             }
         } catch (_) {}
 
-        let layers = null;
+        let layers: Record<string, string | null> | null = null;
         if (layered) {
             try {
-                const encodeLayer = img => {
+                const encodeLayer = (img: PixelBuffer): string | null => {
                     if (!hasOpaquePixel(img)) return null;
                     alignPixelsToSnes(img);
                     return maps.encodePngDataUri(scale2x(img));
@@ -164,9 +174,9 @@ function roomMap(romBuffer, mapId, objectStates, cutGrassTiles, layered, log) {
         roomMapCache.set(cacheKey, data);
         return data;
     } catch (err) {
-        if (log) log('Room map render unavailable for map ' + mapId + ': ' + (err.message || err));
+        if (log) log('Room map render unavailable for map ' + mapId + ': ' + (err instanceof Error ? err.message : err));
         return null;
     }
 }
 
-module.exports = { roomMap, clearCaches };
+export { roomMap, clearCaches };

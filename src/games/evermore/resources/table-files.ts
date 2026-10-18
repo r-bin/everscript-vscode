@@ -1,18 +1,16 @@
-'use strict';
 // Ownership: `soe://rom/tables/` and `soe://rom/assets/tables/` —
 // ROM lookup tables, jump tables, pointer tables, and formula tables. Pure.
 
-const { TABLES, getTable } = require('../../../../dist/games/evermore/localizations/tables');
-const { hexId, slugify } = require('../../../../dist/games/evermore/resources/resource-uri');
-const { snesToRom } = require('../../../../dist/games/evermore/maps');
-const { dir, file, json, text } = require('../../../../dist/games/evermore/resources/nodes');
+import { TABLES, getTable } from '../localizations/tables';
+import { hexId, slugify } from './resource-uri';
+import { snesToRom } from '../maps';
+import { dir, file, json, text } from './nodes';
+import type { Entry, VfsNode } from './nodes';
+import * as vr from '../variant-resolver';
 
-let vr;
-try {
-    vr = require('../../../../dist/games/evermore/variant-resolver');
-} catch {}
+type Table = (typeof TABLES)[number];
 
-const TABLE_TO_VARIANT_KEY = {
+const TABLE_TO_VARIANT_KEY: Record<string, string> = {
     'Room pointer table': 'map_table',
     'String key table': 'string_keys',
     'Room enter-script table': 'room_enter_scripts',
@@ -25,25 +23,25 @@ const TABLE_TO_VARIANT_KEY = {
     'Song pointer table': 'song_packages',
 };
 
-function toFileOffset(bus) {
+function toFileOffset(bus: number): number | null {
     const bank = bus >> 16;
     if (bank === 0x7E || bank === 0x7F) return null;
     if ((bank & 0x40) === 0 && (bus & 0xFFFF) < 0x8000) return null;
     return snesToRom(bus);
 }
 
-function getTableFileOffset(addr) {
+function getTableFileOffset(addr: number): number | null {
     if (addr < 0x400000) return addr;
     return toFileOffset(addr);
 }
 
-function resolveTables(segments, rom) {
+function resolveTables(segments: string[], rom: Uint8Array | null): VfsNode | null {
     const [name, leaf] = segments;
 
     if (name === undefined) {
-        const entries = [
+        const entries: Entry[] = [
             ['index.json', 'file'],
-            ...TABLES.map((t) => [slugify(t.name), 'dir']),
+            ...TABLES.map((t): Entry => [slugify(t.name), 'dir']),
         ];
         return dir(entries, () => tablesIndexMarkdown());
     }
@@ -67,7 +65,7 @@ function resolveTables(segments, rom) {
     let size = table.size || 256;
     let snesAddr = table.address;
 
-    if (vr && rom) {
+    if (rom) {
         const vKey = TABLE_TO_VARIANT_KEY[table.name];
         if (vKey) {
             const info = vr.getTableInfo(vKey, rom);
@@ -78,7 +76,7 @@ function resolveTables(segments, rom) {
                     snesAddr = parseInt(cleaned, 16);
                 }
                 if (info.count) {
-                    const entrySizes = {
+                    const entrySizes: Record<string, number> = {
                         map_table: 4,
                         string_keys: 3,
                         room_enter_scripts: 5,
@@ -123,21 +121,21 @@ function resolveTables(segments, rom) {
     }
 
     if (leaf === 'data.bin') {
-        if (fileOff === null || fileOff >= rom.length) return null;
-        const len = Math.min(size, rom.length - fileOff);
-        return file(() => Buffer.from(rom.subarray(fileOff, fileOff + len)));
+        if (!rom || fileOff === null || fileOff >= rom.length) return null;
+        const at = fileOff, len = Math.min(size, rom.length - at);
+        return file(() => Buffer.from(rom.subarray(at, at + len)));
     }
 
     if (leaf === 'data.json') {
-        if (fileOff === null || fileOff >= rom.length) return null;
-        const len = Math.min(size, rom.length - fileOff);
-        return json(() => decodeTableData(rom, fileOff, len));
+        if (!rom || fileOff === null || fileOff >= rom.length) return null;
+        const at = fileOff, len = Math.min(size, rom.length - at);
+        return json(() => decodeTableData(rom, at, len));
     }
 
     return null;
 }
 
-function parseTable(ident) {
+function parseTable(ident: string): Table | null {
     if (/^[0-9a-f]{4,6}$/i.test(ident)) {
         const addr = parseInt(ident, 16);
         return getTable(addr);
@@ -146,9 +144,9 @@ function parseTable(ident) {
     return TABLES.find((t) => slugify(t.name) === slug) || null;
 }
 
-function decodeTableData(rom, off, len) {
+function decodeTableData(rom: Uint8Array, off: number, len: number) {
     const bytes = Array.from(rom.subarray(off, off + len));
-    const words = [];
+    const words: number[] = [];
     for (let i = 0; i + 1 < len; i += 2) {
         words.push(bytes[i] | (bytes[i + 1] << 8));
     }
@@ -159,7 +157,7 @@ function decodeTableData(rom, off, len) {
     };
 }
 
-function tableMarkdown(table, fileOff, size, snesAddr = table.address) {
+function tableMarkdown(table: Table, fileOff: number | null, size: number, snesAddr = table.address): string {
     return `# ${table.category} ${table.name}
 
 | Property | Value |
@@ -184,4 +182,4 @@ ${TABLES.map((t) => `| ${t.category} | [${t.name}](${slugify(t.name)}/info.md) |
 `;
 }
 
-module.exports = { resolveTables };
+export { resolveTables };

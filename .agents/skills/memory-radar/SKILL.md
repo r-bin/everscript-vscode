@@ -1,16 +1,16 @@
 ---
 name: memory-radar
 description: Use when touching the Memory Radar panel and its Memory tab: WRAM grid, address lifecycles, read/write detection, arg tracking, pools, enum cross-reference, auto-update (games/evermore/memory).
-applyTo: "src/games/evermore/memory/**,src/games/evermore/radar-utils.js,src/games/evermore/extension.js"
+applyTo: "src/games/evermore/memory/**,src/games/evermore/radar-utils.ts,src/games/evermore/extension.js"
 ---
 
 # Memory Radar and its Memory tab
 
 The radar is one webview panel (`everscript.openMemoryRadar`, Evermore's main view in
-`core/game-views.js`) with tabs: Memory, Rooms (`rooms-tab` skill), Characters
+`core/game-views.ts`) with tabs: Memory, Rooms (`rooms-tab` skill), Characters
 (`games/evermore/sprites/`), Scripts, Music, ROM, Scaling, Docs/RNG. The panel is
 `games/evermore/extension.js`; rendering `memory/render-radar.js`, `memory/render-memory-tab.js`,
-`memory/webview/`; scope analysis `memory/scope-analysis.js`; pure helpers `radar-utils.js`.
+`memory/webview/`; scope analysis `memory/scope-analysis.js`; pure helpers `radar-utils.ts`.
 
 ## Radar data sources
 
@@ -101,8 +101,8 @@ consumed. Do NOT attempt to infer addresses from call sites.
 
 - `radarReadEnums(wsFolder)` scans `.evs` files under the **workspace's** `in/core/`
   (recursively) for `enum CLASSNAME { NAME = ... <0xNNNN> }`.
-- Returns `Map<addr, [{cls, name}]>`. Pure core lives in `radar-utils.js` /
-  `src/games/evermore/radar-utils.js`; cached via `getRadarEnums()` /
+- Returns `Map<addr, [{cls, name}]>`. Pure core lives in `radar-utils.ts` /
+  `src/games/evermore/radar-utils.ts`; cached via `getRadarEnums()` /
   `invalidateRadarEnums()`, invalidated by a watcher on `**/in/core/**/*.evs`.
 - Detail table shows matching addresses with `<span class="enum-tag">CLASSNAME.NAME</span>`.
 

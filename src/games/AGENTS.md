@@ -10,7 +10,7 @@ one list of games (removing a game = deleting its folder and its line).
   `configureEmulator({ game })`), script trace, address lookup, custom-map test ROMs; `evermore/cdl/`:
   the CDL export's Evermore seeds (`regions.js`) and the CDL tab's tools.
 - `<game>/extension.js`: the game inside VS Code — its commands, file system, main view
-  (`core/game-views.js`); called from the list in `src/extension.js`.
+  (`core/game-views.ts`); called from the list in `src/extension.js`.
 - `index.ts`: `registerGames()`, plus `romPath(game)` / `baseRomPath(game)` for tests and tools.
 
 ## Dependencies

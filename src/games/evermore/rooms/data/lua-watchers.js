@@ -5,7 +5,7 @@
 
 const path = require('path');
 const fs   = require('fs');
-const { parseEvsEnumValues } = require('../../radar-utils');
+const { parseEvsEnumValues } = require('../../../../../dist/games/evermore/radar-utils');
 const { readRoomScriptModel } = require('./room-scripts');
 
 let _radarMapEnumCache = null;

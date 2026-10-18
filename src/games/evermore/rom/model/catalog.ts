@@ -1,32 +1,31 @@
-'use strict';
 // Ownership: the fixed-place content of a Secret of Evermore ROM — header,
 // rooms, palettes, strings, scripts, characters, animation records, icons,
 // dog forms, alchemy tables — each claimed with its measured size. Pure.
 // Sources: wiki/rom/Rom-Map.md §2 (the everscript wiki's ROM map).
 
-const { decodeRoom, parseBlobLayout, objectAreaEnd, MAP_LIST_ADDR, MAX_ROOMS } = require('../../../../../dist/games/evermore/maps');
-const { hex } = require('../../../../../dist/games/evermore/rom/model/util');
+import { decodeRoom, parseBlobLayout, objectAreaEnd, MAP_LIST_ADDR, MAX_ROOMS } from '../../maps';
+import { hex } from './util';
+import type { Claim } from './util';
 
-const WORLD = { Prehistoria: '🦖 Prehistoria', Antiqua: '🏛️ Antiqua', Gothica: '🏰 Gothica', Omnitopia: '🚀 Omnitopia', Podunk: '🏡 Podunk' };
-const worldOf = area => WORLD[area] || (area ? '❓ ' + area : '');
-const SUB = { 0: 'raw', 3: 'lzss', 7: 'markov' };
+const WORLD: Record<string, string> = { Prehistoria: '🦖 Prehistoria', Antiqua: '🏛️ Antiqua', Gothica: '🏰 Gothica', Omnitopia: '🚀 Omnitopia', Podunk: '🏡 Podunk' };
+const worldOf = (area: string | undefined): string => (area && WORLD[area]) || (area ? '❓ ' + area : '');
+const SUB: Record<number, string> = { 0: 'raw', 3: 'lzss', 7: 'markov' };
 
-/** @param base header start: $FFC0 (HiROM) or $7FC0 (LoROM) */
-function headerRegions(R, base = 0xFFC0) {
+/** `base`: the header's start, $FFC0 (HiROM) or $7FC0 (LoROM). */
+function headerRegions(R: Claim, base = 0xFFC0): void {
     R(base - 0x10, base, '🏷️', 'Extended header', 'maker code, game code, expansion sizes');
     R(base, base + 0x20, '🏷️', 'Cartridge header', 'title, map mode, cartridge type, ROM and SRAM size');
     R(base + 0x20, base + 0x40, '🏷️', 'Interrupt vectors', 'native $FFE4..$FFEF, emulation $FFF4..$FFFF');
 }
 
 /**
- * Rooms and everything keyed by room. Returns graphic id → worlds that load it.
- * @param rooms Map<room id, {name, area}> (the Rooms tab's catalogue)
+ * Rooms and everything keyed by room (`rooms`: the Rooms tab's catalogue). Returns graphic id → worlds that load it.
  */
-function roomRegions(rom, R, rooms) {
-    const worldsOfGraphic = new Map();
+function roomRegions(rom: Uint8Array, R: Claim, rooms: Map<number, { name?: string; area?: string }>): Map<number, Set<string>> {
+    const worldsOfGraphic = new Map<number, Set<string>>();
     let maxFamily = 0;
     for (let id = 0; id < MAX_ROOMS; id++) {
-        const info = rooms.get(id) || {};
+        const info: { name?: string; area?: string } = rooms.get(id) || {};
         const world = worldOf(info.area);
         let d;
         try { d = decodeRoom(rom, id); } catch (_) { continue; }
@@ -37,8 +36,9 @@ function roomRegions(rom, R, rooms) {
             world, 1, { room: id });
         for (const f of d.tileFamilies) maxFamily = Math.max(maxFamily, f);
         for (const g of d.tilePalette) {
-            if (!worldsOfGraphic.has(g)) worldsOfGraphic.set(g, new Set());
-            if (world) worldsOfGraphic.get(g).add(world);
+            const worlds = worldsOfGraphic.get(g) ?? new Set<string>();
+            worldsOfGraphic.set(g, worlds);
+            if (world) worlds.add(world);
         }
     }
     R(MAP_LIST_ADDR, MAP_LIST_ADDR + MAX_ROOMS * 4, '📋', 'Room pointer table', `${MAX_ROOMS} × [ptr:24, pad:8], room id × 4`, '', 2);
@@ -47,16 +47,17 @@ function roomRegions(rom, R, rooms) {
     return worldsOfGraphic;
 }
 
-function textRegions(rom, R) {
+function textRegions(rom: Uint8Array, R: Claim): void {
     const KEYS = 0x11D000, COUNT = 3002;
-    const r24 = o => rom[o] | rom[o + 1] << 8 | rom[o + 2] << 16;
+    const r24 = (o: number): number => rom[o] | rom[o + 1] << 8 | rom[o + 2] << 16;
     R(KEYS, KEYS + COUNT * 3, '📋', 'String key table', `${COUNT} × 3 bytes: \`(bank<<15)|(addr&$7FFF)\` from \`$C0:0000\`, bit 23 = compressed`);
-    const byBank = new Map();
+    const byBank = new Map<number, { off: number; comp: boolean }[]>();
     for (let i = 0; i < COUNT; i++) {
         const v = r24(KEYS + i * 3), p = v & 0x7FFFFF;
         const k = { off: ((p >> 15) << 16) | (p & 0x7FFF), comp: !!(v & 0x800000) };
-        if (!byBank.has(k.off >> 16)) byBank.set(k.off >> 16, []);
-        byBank.get(k.off >> 16).push(k);
+        const list = byBank.get(k.off >> 16) ?? [];
+        list.push(k);
+        byBank.set(k.off >> 16, list);
     }
     for (const ks of byBank.values()) {
         ks.sort((a, b) => a.off - b.off);
@@ -81,14 +82,14 @@ function textRegions(rom, R) {
     }
 }
 
-function entityRegions(rom, R) {
+function entityRegions(rom: Uint8Array, R: Claim): void {
     R(0x0EB678, 0x0EB678 + 141 * 74, '👾', 'Character table', '141 × 74-byte records: name, AI, flags, palette, radius, stats, animations');
     R(0x043C92, 0x043E3A, '📋', 'Global animation ids', '212 words → record offsets in `$C4`');
     R(0x043E3A, 0x04599A, '🎞️', 'Animation records', '4 bytes `[script:16][bank:8][flags:8]`; heads of 1, 4 or 8 facings');
     R(0x0438E6, 0x0438E6 + 15 * 36, '⚔️', 'Boy weapon table', '15 × 36 bytes: attack, walk, run, knockback per weapon');
     R(0x10D9A6, 0x10D9A6 + 21 * 24, '👾', 'Projectile records', '21 × 24 bytes; id = address in `$90`; thrown by animation opcode `0x4C`');
     R(0x108000, 0x1080CE, '📋', 'Animation VM dispatch', '103 × 2-byte handlers, `(cmd & $7F)·2`');
-    const icons = [];
+    const icons: number[] = [];
     for (let i = 0; i <= 0x142; i += 2) icons.push(rom[0x0E8000 + i] | rom[0x0E8001 + i] << 8);
     R(0x0E8000, 0x0E8000 + 0x144, '🎒', 'Ring-menu icon table', '162 words, one per `RING_MENU_ICON` id (step 2)');
     R(0x0E0000 | Math.min(...icons), (0x0E0000 | Math.max(...icons)) + 8, '🎒', 'Ring-menu icon entries', '8 bytes: `+2` animation record, `+4` palette, `+6` index in category');
@@ -107,7 +108,7 @@ function entityRegions(rom, R) {
         [0x045E6B, 70, '`ALCHEMY_POWER`', 'base power: 0 utility, 15 Defend, up to 112 Nitro'],
         [0x045F17, 32, '`CALL_BEAD_POWER`', '16 Call Bead spells'],
         [0x04601F, 140, '`ALCHEMY_COST_DATA`', '35 × `[ing1, ing2, qty1, qty2]`'],
-    ]) R(a, a + n, '⚗️', name, note);
+    ] as const) R(a, a + n, '⚗️', name, note);
 }
 
-module.exports = { headerRegions, roomRegions, textRegions, entityRegions };
+export { headerRegions, roomRegions, textRegions, entityRegions };

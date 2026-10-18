@@ -109,7 +109,7 @@ function asmAroundCall(rom, ret, before = 7) {
     return { lines, name: nameOf(ret), assumed: '16-bit A/X assumed until a REP/SEP' };
 }
 
-const { getDecompiledC } = require('./decomp-view');
+const { getDecompiledC } = require('../../../../dist/games/evermore/resources/decomp-view');
 
 function lineText(l) {
     const bytes = l.bytes.map(b => b.toString(16).padStart(2, '0')).join(' ');

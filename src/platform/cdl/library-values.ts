@@ -1,7 +1,5 @@
-'use strict';
-
 /**
- * platform/cdl/library-values.js
+ * platform/cdl/library-values.ts
  *
  * Library streams about the VALUES the program wrote (core cdl-values.c), kept out of library-ext.js:
  *   io-values.bin    640 x 32 bytes  256-bit "values written" bitmap per I/O register the CPU wrote:
@@ -26,16 +24,25 @@ const RANGE_CHUNK = 256;   // addresses per drained chunk
 
 const FILES = ['io-values.bin', 'sram-flags.bin', 'word-ranges.bin'];
 
-function initValues(lib) {
+/** The library's value streams (fields of the CDL library object, library.js). */
+interface ValuesLib { ioVals: Uint8Array; sramFlags: Uint8Array; wordRanges: [Uint8Array, Uint8Array] }
+/** A delta's chunks of the value streams. */
+interface ValuesDelta {
+    ioVals?: { index: number; data: Uint8Array }[];
+    sramFlags?: { index: number; data: Uint8Array }[];
+    wordRanges?: { set: number; index: number; data: Uint8Array }[];
+}
+
+function initValues(lib: Partial<ValuesLib>): void {
     lib.ioVals = new Uint8Array(IO_REGS * IO_BYTES);
     lib.sramFlags = new Uint8Array(SRAM_SIZE);
     lib.wordRanges = [new Uint8Array(SET_SIZE), new Uint8Array(SET_SIZE)];
 }
 
-const { fileU16: u16 } = require('../../../dist/platform');
+import { fileU16 as u16 } from '../snes/hirom';
 
 /** Merge one 40-byte record src[s..] into dst[d..]; true when dst changed. */
-function mergeRecord(dst, d, src, s) {
+function mergeRecord(dst: Uint8Array, d: number, src: Uint8Array, s: number): boolean {
     const ns = src[s + 4];
     if (!ns) return false;
     const nd = dst[d + 4];
@@ -45,7 +52,7 @@ function mergeRecord(dst, d, src, s) {
     out[0] = mn & 255; out[1] = mn >> 8; out[2] = mx & 255; out[3] = mx >> 8;
     if (nd === OVER || ns === OVER) out[4] = OVER;
     else {
-        const set = new Set();
+        const set = new Set<number>();
         for (let i = 0; i < nd; i++) set.add(u16(dst, d + 6 + i * 2));
         for (let i = 0; i < ns; i++) set.add(u16(src, s + 6 + i * 2));
         if (set.size > 16) out[4] = OVER;
@@ -59,7 +66,7 @@ function mergeRecord(dst, d, src, s) {
     return false;
 }
 
-function orBytes(dst, base, data, touch, name) {
+function orBytes(dst: Uint8Array, base: number, data: Uint8Array, touch: (name: string) => void, name: string): void {
     for (let i = 0; i < data.length && base + i < dst.length; i++) {
         const v = dst[base + i] | data[i];
         if (v !== dst[base + i]) { dst[base + i] = v; touch(name); }
@@ -67,7 +74,7 @@ function orBytes(dst, base, data, touch, name) {
 }
 
 /** Merge the values part of a delta: { ioVals:[{index,data}], sramFlags:[{index,data}], wordRanges:[{set,index,data}] }. */
-function mergeValues(lib, d, touch) {
+function mergeValues(lib: ValuesLib, d: ValuesDelta, touch: (name: string) => void): void {
     for (const c of d.ioVals || []) orBytes(lib.ioVals, 0, c.data, touch, 'io-values.bin');
     for (const c of d.sramFlags || []) orBytes(lib.sramFlags, c.index * 4096, c.data, touch, 'sram-flags.bin');
     for (const c of d.wordRanges || []) {
@@ -80,14 +87,14 @@ function mergeValues(lib, d, touch) {
 }
 
 /** readBytes(name) -> Uint8Array | null. */
-function loadValues(lib, readBytes) {
+function loadValues(lib: ValuesLib, readBytes: (name: string) => Uint8Array | null): void {
     const io = readBytes('io-values.bin'), sr = readBytes('sram-flags.bin'), wr = readBytes('word-ranges.bin');
     if (io) lib.ioVals.set(io.subarray(0, lib.ioVals.length));
     if (sr) lib.sramFlags.set(sr.subarray(0, SRAM_SIZE));
     if (wr) for (let s = 0; s < 2; s++) lib.wordRanges[s].set(wr.subarray(s * SET_SIZE, (s + 1) * SET_SIZE));
 }
 
-function valueWriters(lib) {
+function valueWriters(lib: ValuesLib): Record<string, () => Uint8Array> {
     return {
         'io-values.bin': () => lib.ioVals,
         'sram-flags.bin': () => lib.sramFlags,
@@ -96,22 +103,23 @@ function valueWriters(lib) {
 }
 
 /** Values written to I/O register reg ($2100-$21FF, $4200-$437F) as a sorted list; null when never written. */
-function ioValuesWritten(lib, reg) {
+function ioValuesWritten(lib: ValuesLib, reg: number): number[] | null {
     const i = reg >= 0x2100 && reg <= 0x21FF ? reg - 0x2100 : reg >= 0x4200 && reg <= 0x437F ? 256 + reg - 0x4200 : -1;
     if (i < 0) return null;
-    const out = [];
+    const out: number[] = [];
     for (let v = 0; v < 256; v++) if (lib.ioVals[i * IO_BYTES + (v >> 3)] & (1 << (v & 7))) out.push(v);
     return out.length ? out : null;
 }
 
 /** Range of the 16-bit stores at a WRAM address: { min, max, values: number[] | null (more than 16) } | null. */
-function wordRange(lib, addr, set = 0) {
+function wordRange(lib: ValuesLib, addr: number, set = 0): { min: number; max: number; values: number[] | null } | null {
     const a = lib.wordRanges[set], o = addr * REC;
     const n = a[o + 4];
     if (!n) return null;
-    const values = [];
+    const values: number[] = [];
     if (n !== OVER) for (let i = 0; i < n; i++) values.push(u16(a, o + 6 + i * 2));
     return { min: u16(a, o), max: u16(a, o + 2), values: n === OVER ? null : values };
 }
 
-module.exports = { initValues, mergeValues, loadValues, valueWriters, mergeRecord, ioValuesWritten, wordRange, FILES, REC, RANGE_CHUNK, OVER };
+export type { ValuesLib, ValuesDelta };
+export { initValues, mergeValues, loadValues, valueWriters, mergeRecord, ioValuesWritten, wordRange, FILES, REC, RANGE_CHUNK, OVER };

@@ -5,9 +5,9 @@
 // Only a Secret of Evermore image gets the content catalogue; any other ROM
 // still gets its header, the gap layout and CDL coverage.
 
-const { headerRegions, roomRegions, textRegions, entityRegions } = require('./model/catalog');
-const { assetRegions, graphicSpans } = require('./model/assets');
-const { audioRegions } = require('./model/audio');
+const { headerRegions, roomRegions, textRegions, entityRegions } = require('../../../../dist/games/evermore/rom/model/catalog');
+const { assetRegions, graphicSpans } = require('../../../../dist/games/evermore/rom/model/assets');
+const { audioRegions } = require('../../../../dist/games/evermore/rom/model/audio');
 const { annotateOverlaps, layoutHalves } = require('./model/layout');
 const { knownPoints } = require('./model/points');
 const { busToFile } = require('../../../../dist/games/evermore/rom/model/util');

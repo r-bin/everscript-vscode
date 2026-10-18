@@ -23,7 +23,7 @@
 
 4. **Compiler regions** — RAM entries tagged `compiler-region` give the radar its temp / session ranges.
 
-5. **Script Names (`scripts.js`)**
+5. **Script Names (`scripts.ts`)**
    - NPC / Short scripts (e.g. `0x17cd` -> "Thraxx damage/kill", `0x199e` -> "Aegis kill", `0x1a79` -> "Vigor damage").
    - Absolute scripts by ROM address (e.g. `0x93ca9f` -> "Thraxx maggot trigger part", `0x93d036` -> "Thraxx damage / kill part [1]").
    - Global scripts (e.g. `0x00` -> "Fade-out / stop music").

@@ -1,15 +1,15 @@
-'use strict';
-// Owner: code_highlighter/completion-provider.js
+// Owner: games/evermore/language/completion-provider.ts
 // Provides function, enum, annotation, and workspace completions for .evs files.
 
-const vscode = require('vscode');
-const { getWorkspaceIndex } = require('../../../../dist/games/evermore/language/workspace-index');
+import * as vscode from 'vscode';
+import { getWorkspaceIndex } from './workspace-index';
+import type { LanguageIndex } from './workspace-index';
 
 /**
  * Convert a core function signature to a VS Code snippet string.
  * "transition(map:MAP, x, y)" -> "transition(${1:map}, ${2:x}, ${3:y})$0"
  */
-function sigToSnippet(sig) {
+function sigToSnippet(sig: string): string {
     const m = sig.match(/^(\w+)\(([^)]*)\)$/);
     if (!m) return sig + '($0)';
     const [, name, rawParams] = m;
@@ -21,7 +21,7 @@ function sigToSnippet(sig) {
     return `${name}(${snippetParams})$0`;
 }
 
-function provideCompletionItems(document, position, idx) {
+function provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, idx: LanguageIndex): vscode.CompletionItem[] {
     const line   = document.lineAt(position).text;
     const prefix = line.substring(0, position.character);
 
@@ -64,8 +64,8 @@ function provideCompletionItems(document, position, idx) {
 }
 
 /** Build function completion items from static index (cached per process). */
-let _fnCompletions = null;
-function getFunctionCompletions(idx) {
+let _fnCompletions: vscode.CompletionItem[] | null = null;
+function getFunctionCompletions(idx: LanguageIndex): vscode.CompletionItem[] {
     if (_fnCompletions) return _fnCompletions;
     _fnCompletions = Object.entries(idx.functions).map(([name, sigs]) => {
         const sig  = sigs[0] || name;
@@ -82,8 +82,8 @@ function getFunctionCompletions(idx) {
 }
 
 /** Workspace-defined functions (rebuilt from live index each time). */
-function getWorkspaceFunctionCompletions() {
-    const items = [];
+function getWorkspaceFunctionCompletions(): vscode.CompletionItem[] {
+    const items: vscode.CompletionItem[] = [];
     for (const [name, entries] of getWorkspaceIndex().entries()) {
         const funs = entries.filter(e => e.kind === 'fun');
         if (funs.length === 0) continue;
@@ -96,8 +96,8 @@ function getWorkspaceFunctionCompletions() {
 }
 
 /** Enum name completions (cached per process). */
-let _enumCompletions = null;
-function getEnumNameCompletions(idx) {
+let _enumCompletions: vscode.CompletionItem[] | null = null;
+function getEnumNameCompletions(idx: LanguageIndex): vscode.CompletionItem[] {
     if (_enumCompletions) return _enumCompletions;
     _enumCompletions = Object.keys(idx.enums).map(name => {
         const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Enum);
@@ -108,9 +108,4 @@ function getEnumNameCompletions(idx) {
     return _enumCompletions;
 }
 
-module.exports = {
-    provideCompletionItems,
-    getFunctionCompletions,
-    getWorkspaceFunctionCompletions,
-    getEnumNameCompletions,
-};
+export { provideCompletionItems, getFunctionCompletions, getWorkspaceFunctionCompletions, getEnumNameCompletions };

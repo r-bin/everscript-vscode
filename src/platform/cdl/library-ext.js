@@ -16,12 +16,12 @@
  *   bus-sites.bin    [formIdx<<24|pc, flags, lo, hi]  instruction -> lowest / highest bus address
  *                    it read in that form (ExHiROM / SA-1 audit)                              OR / min / max
  *   rom-cycles.bin   [rom offset, cycles lo, cycles hi]  master cycles per opcode head       SUM
- * The streams about written values (io-values.bin, sram-flags.bin, word-ranges.bin) are in library-values.js.
+ * The streams about written values (io-values.bin, sram-flags.bin, word-ranges.bin) are in library-values.ts.
  * All merges are order independent except which bytes wram-code.bin keeps when two
  * sessions saw different code: the state then says CHANGED either way.
  */
 
-const values = require('./library-values');
+const values = require('../../../dist/platform/cdl/library-values');
 
 const WRAM_SIZE = 0x20000;
 const ARAM_SIZE = 0x10000;

@@ -197,14 +197,21 @@ function getSoundName(id: number | string, options: NameOptions = {}): string {
     return resolveLocalizedName(entry, options.rom, 'name');
 }
 
+/** One animation command around a sound: where it is, the sprite then, and a pitch offset (1/20 semitone, or 'stamina'). */
+interface SoundOp { at: number; sprite: number; pitch?: number | 'stamina' }
+interface SoundOwner { who: string; what: string; character?: number; attack?: boolean }
+interface SoundAnimation { record: string; label: string; sometimes?: boolean; ops?: SoundOp[]; owners: SoundOwner[] }
+/** A script sound id, its driver effect, and the animations that play it. */
+interface SoundAnimations { id: number; sfx: number; animations: SoundAnimation[] }
+
 /**
  * The animations that play a sound (command 0x2E/0x2F `sound n` = script id 2n),
- * generated from the ROM by tools/gen-sound-animations.js:
- * [{ id: script id, sfx: driver effect, animations: [{ record, label, sometimes?, owners: [{ who, what, character?, attack? }] }] }]
+ * generated from the ROM by tools/gen-sound-animations.js.
  */
-function getSoundAnimations() {
-    return Object.entries(SOUND_ANIMATIONS).map(([hex, e]) => ({ id: parseInt(hex, 16), ...e }));
+function getSoundAnimations(): SoundAnimations[] {
+    return Object.entries(SOUND_ANIMATIONS as Record<string, Omit<SoundAnimations, 'id'>>).map(([hex, e]) => ({ id: parseInt(hex, 16), ...e }));
 }
 
+export type { SoundAnimations, SoundAnimation, SoundOwner, SoundOp };
 export { getSoundAnimations, MUSIC, SOUNDS, EXTRAS, getMusic, getMusicName, getSound, getSoundName };
 

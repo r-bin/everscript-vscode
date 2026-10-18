@@ -153,7 +153,7 @@ function injectEverscript(code) {
   return false;
 }
 
-/** The VS Code script debugger's bridge to the emulator (see script-debug-host.js). */
+/** The VS Code script debugger's bridge to the emulator (see script-debug-host.ts). */
 function getScriptDebugBridge() {
     return _scriptDebug;
 }

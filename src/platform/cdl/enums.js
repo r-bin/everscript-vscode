@@ -13,7 +13,7 @@
  */
 
 const { hex } = require('../../../dist/platform/cdl/rom-map');
-const { decodeAt } = require('./disasm');
+const { decodeAt } = require('../../../dist/platform/cdl/disasm');
 const { buildWramReport } = require('./wram-export');
 const { EXT_HEAD, XR } = require('./xref-index');
 

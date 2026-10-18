@@ -23,7 +23,7 @@
 
 const createSpcEngine = require('../engine/spc-engine.js');
 const { MusicSpc } = require('../webview/music-engine.js');
-const { buildMusicModel, packageData } = require('./catalog');
+const { buildMusicModel, packageData } = require('../../../../../dist/games/evermore/music/model/catalog');
 
 const CLOCKS_PER_FRAME = Math.round(1024000 / 60);
 const DSP = 32;

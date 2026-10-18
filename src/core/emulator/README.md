@@ -19,7 +19,7 @@ Embedded snes9x2005 WASM emulator panel integrated into VS Code.
 | `cdl/` | CDL library, xref index, 65816 disassembler, Asar + `ram.asm` export (see `cdl/README.md`) |
 | `tas-view.js` | REPLAYS pause-menu tab (this ROM's recordings) and its REC / PLAY / DESYNC chip on the screen, input overlay, per-frame joypad feed (`tasApplyInput`) and session recording buffer |
 | `webview/replays-list.js` | The REPLAYS tab's rows (when, length, sync; no file name) and their keys: Left / Right choose favourite / play / delete, B does it, play and delete ask first |
-| `script-debug-host.js` | VS Code debugger hook, host bridge (outlives the panel); its page side is Evermore's `games/evermore/emulator/script-debug-view.js` (exec breakpoint on the interpreter fetch `$8C:D0A6`, see `src/games/evermore/debugger/README.md`) |
+| `script-debug-host.ts` | VS Code debugger hook, host bridge (outlives the panel); its page side is Evermore's `games/evermore/emulator/script-debug-view.js` (exec breakpoint on the interpreter fetch `$8C:D0A6`, see `src/games/evermore/debugger/README.md`) |
 | `apu-stream.js` / `apu-stream-view.js` | Sound-chip stream for the radar's Music tab: host side (on/off, frame listener, ARAM snapshots) and page side (posts the core's `getApuView` + package + voice samples after each frame while on). See `src/games/evermore/music/README.md` |
 | (Evermore) | `games/evermore/emulator/`: `overlays-view.js` (screen layer), `stack-view.js` (STACK, TRACE), `script-debug-view.js`, `sound-source-view.js` (who sent each sound effect, the SOUNDS chip), `menu-tabs.js`, `bottom-bar-views.js`: handed in through `host.js` `webview()` |
 | `fps-meter.js` | Screen chip: frames emulated per second and frames the game read input in (lag), frozen while paused |

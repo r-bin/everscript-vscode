@@ -73,7 +73,7 @@ function decodeRomString(rom: Uint8Array | Buffer, stringIndex: number): string 
 interface NameOptions { full?: boolean; rom?: Uint8Array | Buffer | null; fallback?: string }
 
 /** A names table entry: our name, and the in-game string that names it when there is one. */
-interface NamedEntry { stringIndex?: number | null; name?: string; fullName?: string; [prop: string]: unknown }
+interface NamedEntry { stringIndex?: number | null; name?: string; fullName?: string }
 
 /**
  * Resolve the localized name for an entry. If entry has a stringIndex and rom is provided,
@@ -86,7 +86,7 @@ function resolveLocalizedName(entry: NamedEntry | string | null | undefined, rom
         const inGame = decodeRomString(rom, entry.stringIndex);
         if (inGame) return inGame;
     }
-    const own = entry[fallbackProp];
+    const own = (entry as unknown as Record<string, unknown>)[fallbackProp];
     return (typeof own === 'string' && own) || entry.name || entry.fullName || '';
 }
 

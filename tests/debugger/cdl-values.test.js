@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * CDL value streams (core cdl-values.c, host library-values.js): I/O register values, SRAM access flags and the
+ * CDL value streams (core cdl-values.c, host library-values.ts): I/O register values, SRAM access flags and the
  * 16-bit WRAM word ranges in two sets. Merge laws on random records, library store / reload, and (with a local
  * Secret of Evermore ROM from the ROM library) the real core recording them from a replayed movie.
  */
@@ -14,7 +14,7 @@ const { spawnSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '../..');
 const { CdlLibrary } = require('../../src/platform/cdl/library');
-const V = require('../../src/platform/cdl/library-values');
+const V = require('../../dist/platform/cdl/library-values');
 const movie = require('../../src/platform/tas/movie');
 
 let passed = 0, failed = 0;
