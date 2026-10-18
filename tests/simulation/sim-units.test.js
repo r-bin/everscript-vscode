@@ -5,7 +5,8 @@
 // operand evaluation, forking, pins, rejoining — so a regression is named.
 
 const assert = require('assert');
-const script = require('../../src/games/evermore/script');
+/** HiROM: the file offset of a bus address. */
+const fileOf = (bus) => bus & 0x3fffff;
 const sim = require('../../src/games/evermore/simulation');
 
 let passed = 0, failed = 0;
@@ -17,7 +18,7 @@ function test(name, fn) {
 const AT = 0x948000;
 function simWith(bytes) {
     const rom = new Uint8Array(0x400000);
-    rom.set(bytes, script.snesToRom(AT));
+    rom.set(bytes, fileOf(AT));
     return sim.createSimulator(rom);
 }
 const finalOf = (path, addr) => (path.diff.find((d) => d.addr === addr) || {}).value;
@@ -112,8 +113,8 @@ test('an increment is read as "+= n", a flag change as bits', () => {
 /** Bytes at AT, more bytes at AT + 0x10. */
 function simWith2(main, other) {
     const rom = new Uint8Array(0x400000);
-    rom.set(main, script.snesToRom(AT));
-    rom.set(other, script.snesToRom(AT + 0x10));
+    rom.set(main, fileOf(AT));
+    rom.set(other, fileOf(AT + 0x10));
     return sim.createSimulator(rom);
 }
 /** The packed script pointer of AT + 0x10 ($948010 → 0x010010). */

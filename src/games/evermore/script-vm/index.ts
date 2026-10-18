@@ -14,5 +14,5 @@ export { facts, SAVE_AREA, TEMP_AREA } from './facts';
 export type { Fact, Area } from './facts';
 export { text, expressionText, everscript } from './print';
 export type { Names } from './print';
-export type { RoomScripts, Trigger } from './rooms';
+export type { RoomScripts, Trigger, TriggerTable } from './rooms';
 export type { Walk } from './walk';

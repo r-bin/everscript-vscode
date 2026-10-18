@@ -1,37 +1,50 @@
 // Ownership: what the simulation needs from outside — the ROM and the
 // instruction decoder — and the address arithmetic that goes with them. Pure.
 //
-// The decoder is injected (src/games/evermore/simulation/index.js passes `require('../script')`)
-// so this domain uses only its public facade: instruction *boundaries*, branch
-// targets and placement facts. Meaning — values, conditions, writes — is
-// computed here, from operand.ts. When the clean-room decoder of
-// docs/plans/script-decoder-from-game-code.md lands, only this interface moves.
+// The decoder is injected (`decoder.ts` binds script-vm and script-model) so this domain reads
+// instruction *boundaries*, control flow and placement facts through one interface. Meaning —
+// values, conditions, writes — is computed here, from operand.ts.
+
+/** What an instruction does that the simulation acts on without reading its operands itself. */
+export type Effect =
+    /** A branch or jump target. */
+    | { kind: 'branch'; target: number }
+    /** A call or a thread start by pointer or table offset, resolved. */
+    | { kind: 'call'; target: number }
+    | { kind: 'callGlobal'; id: number }
+    /** A map change: x and y in pixels. */
+    | { kind: 'changeMap'; mapId: number; x: number; y: number }
+    | { kind: 'spawn'; npc: number }
+    | { kind: 'playMusic'; track: number }
+    /** An operand reads the random number generator. */
+    | { kind: 'random' };
 
 /** The subset of a decoded instruction the simulation reads. */
 export interface Instruction {
     address: number;
     opcode: number;
     size: number;
+    /** For reading: the instruction in the compiler's notation. */
     summary: string;
     terminal: boolean;
-    effects: Array<{ kind: string; [k: string]: unknown }>;
+    effects: Effect[];
 }
 
 export interface SpawnFact { npc: number; name: string | null; romName: string | null; x: number | null; y: number | null }
 
 export interface Decoder {
-    decodeInstruction(rom: Uint8Array, addr: number, stack: unknown): Instruction | null;
-    OperandStack: new () => unknown;
+    /** Null where there is no script code the game can run. */
+    decodeInstruction(rom: Uint8Array, addr: number): Instruction | null;
     snesToRom(addr: number): number;
-    read16(rom: Uint8Array, addr: number): number;
-    read24(rom: Uint8Array, addr: number): number;
-    scriptValueToSnes(v: number): number;
+    /** A packed script pointer as a bus address. */
+    unpack(packed: number): number;
+    /** Names; '' (or null) when there is none. */
     globalScriptName(id: number): string;
-    absScriptName(romAddr: number, fallback?: string): string;
-    ramBitToStr(addr: number, bit: number): string;
+    scriptName(fileOffset: number): string;
+    flagName(addr: number, bit: number): string;
     lootRewardName(item: number): string | null;
     mapName(id: number): string;
-    extractSpawns(ins: Instruction[]): SpawnFact[];
+    spawn(ins: Instruction): SpawnFact | null;
     /** The room's enter script and trigger tables. */
     buildRoomScriptModel(rom: Uint8Array, mapId: number): import('./room').RoomTables;
 }
@@ -55,13 +68,14 @@ export class Machine {
     instruction(addr: number): Instruction | null {
         if (!this.cache.has(addr)) {
             const ok = this.dec.snesToRom(addr) < this.rom.length;
-            this.cache.set(addr, ok ? this.dec.decodeInstruction(this.rom, addr, new this.dec.OperandStack()) : null);
+            this.cache.set(addr, ok ? this.dec.decodeInstruction(this.rom, addr) : null);
         }
         return this.cache.get(addr)!;
     }
 
     u8(addr: number): number { return this.rom[this.toFile(addr)]; }
     u16(addr: number): number { return this.u8(addr) | (this.u8(addr + 1) << 8); }
+    u24(addr: number): number { return this.u16(addr) | (this.u8(addr + 2) << 16); }
 
     /**
      * Where `CALL <id>` (opcode 0xa3) goes. Read from its handler at
@@ -70,12 +84,12 @@ export class Machine {
      * it the id lands in the sniff-spot scripts.
      */
     globalScript(id: number): number {
-        const index = id * 3 + this.dec.read16(this.rom, SCRIPT_BANK + 8) + this.dec.read16(this.rom, SCRIPT_BANK);
-        return this.dec.scriptValueToSnes(this.dec.read24(this.rom, SCRIPT_BANK + index));
+        const index = id * 3 + this.u16(SCRIPT_BANK + 8) + this.u16(SCRIPT_BANK);
+        return this.dec.unpack(this.u24(SCRIPT_BANK + index));
     }
 
     /** A trigger's script id is a byte offset into the pointer table at word[$928000]. */
     triggerScript(id: number): number {
-        return this.dec.scriptValueToSnes(this.dec.read24(this.rom, SCRIPT_BANK + this.dec.read16(this.rom, SCRIPT_BANK) + id));
+        return this.dec.unpack(this.u24(SCRIPT_BANK + this.u16(SCRIPT_BANK) + id));
     }
 }

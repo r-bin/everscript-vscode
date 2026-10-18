@@ -1,13 +1,13 @@
 'use strict';
 // Ownership: every WRAM address the plugin knows, in one list — the named
-// addresses of src/games/evermore/script/names.json, the WRAM links of `soe://tags/`, and the
+// addresses of src/games/evermore/script-model/names.json, the WRAM links of `soe://tags/`, and the
 // flag bytes (one entry per byte, bits named). Pure: no emulator.
 //
 //   ramSymbols(): { addr, size, type, name, tags, values?, bits? }
 //                 type: 'byte' | 'word' | 'long' | 'dword' | 'flags'
 //   ramBlocks():  { addr, size, tags } — records longer than 4 bytes (entity, stats block)
 
-const NAMES = require('../script/names.json');
+const NAMES = require('../script-model/names.json');
 const { tagModel } = require('./tag-model');
 
 const TYPE = { 1: 'byte', 2: 'word', 3: 'long', 4: 'dword' };

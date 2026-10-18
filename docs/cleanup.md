@@ -135,9 +135,15 @@ Scope, from the inventory of 2026-10-16:
   changes, sound, music, text, spawns, sleeps) and `print.ts` (one line per instruction in the compiler's notation,
   `code(...)` with it as a comment for the exact form); 25 more opcodes named from their handlers; every handler's
   knowledge entry lists the addresses it uses, and `soe://rom/assets/scripts/opcodes/` serves one page per opcode.
-  Left: moving the consumers (2.4).
+  v0.282.0: the consumers moved (2.4); phases done.
 - [ ] **2.3** Room names in the new style, each with evidence.
-- [ ] **2.4** Delete every row's old files; `check:legal` clean.
+- [ ] **2.4** Delete every row's old files; `check:legal` clean. v0.282.0, the script decoder row: `script-model/`
+  (room listings in the compiler's notation, loot and doors read per path, spawns, arrivals, the kept names) on
+  script-vm; every consumer moved (Rooms tab, `soe://` scripts, sound sources, palettes, export checks, trace, the
+  simulation through `simulation/decoder.ts`, tools); `src/games/evermore/script/` and the upstream-output tests
+  (`script-parity`, `script-loot`, `script-units`) deleted. Loot differs from the legacy reading where it was wrong
+  (Ebon Keep's branched pickups, `$98:CCCC`) and finds 42 more pickups. Left: the other rows (sprites, character
+  record, attribution in docs and comments, `map-parity.test.js` upstream parts), `docs/script-format/*`.
 
 ### Step 3 — Dead code and tools (D7)
 Inventory of 2026-10-16. Move the ROM out of `script_parser/dependencies/` first: 7 tests,

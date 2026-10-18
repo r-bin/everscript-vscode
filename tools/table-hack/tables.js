@@ -11,7 +11,7 @@ const { fileU16: u16, fileU24: u24 } = require('../../dist/platform');
 const put24 = (img, o, v) => { img[o] = v & 0xFF; img[o + 1] = (v >> 8) & 0xFF; img[o + 2] = (v >> 16) & 0xFF; };
 
 const SCRIPT_BANK = 0x128000;                 // $92:8000, the script bank header
-/** File offset of a packed script pointer (src/games/evermore/script/addressing.ts). */
+/** File offset of a packed script pointer (docs/game-research/script-vm/README.md, "Script addresses"). */
 const unpackScript = v => (0x128000 + (v & 0x7FFF) + ((v & 0xFF8000) << 1)) & 0xFFFFFF;
 
 /**

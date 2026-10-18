@@ -19,7 +19,8 @@ try {
 
 const path   = require('path');
 const fs     = require('fs');
-const { decodeInstruction, OperandStack } = require('../script');
+const vm = require('../script-vm');
+const { printNames } = require('../script-model');
 const { getActiveAddressLookup } = require('./address-lookup');
 const { ScriptTraceFormatter } = require('./trace-formatter');
 
@@ -37,6 +38,18 @@ function ensureScriptTraceChannel() {
 function loadFallbackRom(_wsRoot) {
   const rom = require('../rom-readers').loadRomBuffer(null);
   return rom ? new Uint8Array(rom) : null;
+}
+
+const NAMES = printNames((bus) => bus & 0x3fffff);
+const _scriptRoms = new WeakMap();
+/** script-vm's view of `rom`, or null for a ROM it does not know (non-US layouts). */
+function scriptRom(rom) {
+  if (!_scriptRoms.has(rom)) {
+    let sr = null;
+    try { sr = new vm.ScriptRom(rom); } catch (_) { sr = null; }
+    _scriptRoms.set(rom, sr);
+  }
+  return _scriptRoms.get(rom);
 }
 
 function fmtHex(val, width) {
@@ -63,18 +76,19 @@ function isValidScriptAddr(loc) {
  */
 function decodeScriptSnippet(rom, snesAddr, maxLines = 2) {
   if (!rom || !snesAddr || snesAddr <= 0) return null;
-  const stack = new OperandStack();
+  const sr = scriptRom(rom);
   const lines = [];
   let cur = snesAddr >>> 0;
 
   for (let i = 0; i < maxLines; i++) {
     let ins = null;
     try {
-      ins = decodeInstruction(rom, cur, stack);
+      ins = sr && sr.contains(cur) ? vm.decodeAt(sr, cur) : null;
     } catch (_) {
       ins = null;
     }
     if (!ins || ins.size <= 0) break;
+    const terminal = ins.flow === 'end' || ins.flow === 'reset';
 
     const romOffset = (cur & ~0xc00000) >>> 0;
     let bytesHex = '';
@@ -97,15 +111,15 @@ function decodeScriptSnippet(rom, snesAddr, maxLines = 2) {
       addr: cur,
       addrHex: '0x' + fmtHex(cur, 6),
       bytesHex,
-      summary: ins.summary || ('op 0x' + fmtHex(ins.opcode, 2)),
-      terminal: !!ins.terminal,
+      summary: vm.text(ins, NAMES),
+      terminal,
       opcode: ins.opcode,
       callKind,
       size: ins.size,
     });
 
-    cur += ins.size;
-    if (ins.terminal) break;
+    cur = ins.next;
+    if (terminal) break;
   }
 
   return lines.length ? lines : null;

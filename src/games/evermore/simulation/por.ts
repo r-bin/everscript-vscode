@@ -38,7 +38,21 @@ export function union(a: Footprint, b: Footprint): Footprint {
     };
 }
 
-const ENTITY = /([A-Z][\w' .-]*#[0-9a-f.]+)|\b(boy|dog|controlled char|non-controlled char|script owner)\b|\$([0-9a-f]{4})\b/gi;
+/**
+ * Entities an instruction's text names: a placed NPC's label (`Boy#ca7d`, step.ts resolveText),
+ * the character sub-ops (`word_0f3e()` the boy, `word_0f40()` the dog, `camera_entity()` the
+ * controlled one, `other_character()`, `self_entity()` the script's owner) or a WRAM cell.
+ */
+const ENTITY = /([A-Z][\w' .-]*#[0-9a-f.]+)|\b(word_0f3e|word_0f40|camera_entity|other_character|self_entity)\(\)|<0x([0-9a-f]{4})>/gi;
+/** Opcodes that act on fixed characters, with no operand naming them. */
+const IMPLIED: Record<number, string[]> = {
+    0xbc: ['word_0f3e'], 0xbd: ['word_0f3e'], 0xbf: ['word_0f40'],
+    0xaa: ['word_0f3e', 'word_0f40'], 0xc0: ['word_0f3e', 'word_0f40'], 0xc1: ['word_0f3e', 'word_0f40'],
+};
+/** What the other opaque opcodes touch (see reach.ts GLOBAL). */
+const AUDIO = new Set([0x30, 0x31, 0x32, 0x33, 0x58, 0x59, 0x86, 0x87]);
+const TEXT = new Set([0x44, 0x45, 0x46, 0x47, 0x50, 0x51, 0x52, 0x54, 0x55, 0x5a, 0x5b, 0x7f, 0x80, 0x81, 0x8e, 0x9f, 0xa0, 0xa1]);
+const SCREEN = new Set([0x26, 0x27, 0x2b, 0x58, 0x59, 0x63, 0x82, 0x83, 0x8d, 0x91, 0x96, 0xbd, 0xbf, 0xc1]);
 
 /** The engine resources a run of steps touches. */
 export function resourcesOf(steps: readonly Step[]): Set<string> {
@@ -55,12 +69,12 @@ export function resourcesOf(steps: readonly Step[]): Set<string> {
             case 'opaque': {
                 const s = e.summary;
                 let placed = false;
-                if (/SOUND|MUSIC|VOLUME|AUDIO/i.test(s)) { out.add('audio'); placed = true; }
-                if (/TEXT|message ?box|message timer|dialog|CURRENCY/i.test(s)) { out.add('text'); placed = true; }
-                if (/screen|bright|fade|layer|VRAM|shak/i.test(s)) { out.add('screen'); placed = true; }
-                if (/camera/i.test(s)) { out.add('camera'); placed = true; }
-                // The first entity an instruction names is the one it changes; the rest it only looks at.
+                if (AUDIO.has(e.opcode)) { out.add('audio'); placed = true; }
+                if (TEXT.has(e.opcode)) { out.add('text'); placed = true; }
+                if (SCREEN.has(e.opcode)) { out.add('screen'); placed = true; }
                 let first = true;
+                for (const who of IMPLIED[e.opcode] ?? []) { out.add(`ent:${who}`); first = false; placed = true; }
+                // The first entity an instruction names is the one it changes; the rest it only looks at.
                 for (const m of s.matchAll(ENTITY)) {
                     out.add(`${first ? 'ent' : 'see'}:${(m[1] ?? m[2] ?? m[3]).toLowerCase()}`);
                     first = false;

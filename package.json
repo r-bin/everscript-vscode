@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.281.0",
+  "version": "0.282.0",
   "publisher": "rbin",
   "main": "./bundle/extension.js",
   "engines": {
@@ -63,7 +63,6 @@
     "test:mana": "npm run build:ts && node tests/mana/mana-units.test.js && node tests/mana/mana-cpu.test.js && node tests/mana/mana-panel-dom.test.js && node tests/mana/mana-editor-core.test.js && node tests/mana/mana-map-editor-dom.test.js && node tests/mana/mana-editor-props.test.js && node tests/mana/mana-editor-cells-dom.test.js && node tests/mana/mana-rom.test.js && node tests/mana/mana-evermore.test.js && node tests/mana/mana-rooms-dom.test.js && node tests/mana/mana-editor-dom.test.js",
     "test:terra": "npm run build:ts && node tests/terra/terra-rom.test.js && node tests/terra/terra-maps-page.test.js",
     "test:simulation": "npm run build:ts && node tests/simulation/sim-units.test.js && node tests/simulation/loot.test.js && node tests/simulation/room.test.js && node tests/simulation/everscript.test.js && node tests/simulation/scheduler.test.js",
-    "check:script": "node tests/memory/script-parity.test.js",
     "recomp": "npm run -s build:ts && node tools/recomp/build.js",
     "recomp:lockstep": "npm run -s build:ts && node tools/recomp/lockstep.js",
     "exhirom": "npm run -s build:ts && node tools/exhirom/convert.js",

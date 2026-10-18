@@ -6,7 +6,7 @@
 //    Call Beads or a Biscuit depending on Thraxx, and the Quick Sand Desert
 //    gourd adds 4 crystals (the largest crystal pickup in the game);
 //  - every pickup in the ROM: the item and amount the simulation sees counted
-//    up in the inventory must equal what src/games/evermore/script/loot.ts reads from the
+//    up in the inventory must equal what src/games/evermore/script-model/loot.ts reads from the
 //    literal writes (itself verified line for line against sniffflags.inc).
 //    The two methods share nothing but the instruction boundaries.
 //
@@ -15,7 +15,7 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
-const script = require('../../src/games/evermore/script');
+const { buildRoomScriptModel } = require('../../src/games/evermore/script-model');
 const sim = require('../../src/games/evermore/simulation');
 
 const ROM = require('../../dist/games').romPath('evermore');
@@ -81,7 +81,7 @@ test('every pickup in the ROM: simulated loot equals the decoded loot', () => {
     const wrong = [];
     for (let id = 0; id < 0x7f; id++) {
         let room;
-        try { room = script.buildRoomScriptModel(rom, id); } catch { continue; }
+        try { room = buildRoomScriptModel(rom, id); } catch { continue; }
         for (const t of room.bTrigger) {
             const facts = t.loot.filter((l) => l.itemName && l.itemName !== 'MONEY' && l.item.value !== null);
             if (!facts.length || DECODER_LEAKS.has(t.scriptAddressSnes)) continue;

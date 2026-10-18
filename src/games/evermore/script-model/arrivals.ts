@@ -7,15 +7,15 @@
 // the set of doors that open into it.
 //
 // The direction comes from the global script the trigger calls on its way out.
-// Those are named in names.json, and the names carry it:
+// Those are named in the localizations, and the names carry it:
 //
 //   "Prepare room change? South exit/north entrance outdoor-outdoor?"
 //
 // which means you leave southwards and walk in at the destination's north
 // edge — still heading south.
 
-import { buildRoomScriptModel } from './room-scripts';
-import { TransitionFacts } from './transition';
+import { buildRoomScriptModel } from './room-model';
+import { TransitionFacts } from './doors';
 
 export interface Arrival {
     /** The room this door is in. */

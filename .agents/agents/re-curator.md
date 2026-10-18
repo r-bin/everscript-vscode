@@ -23,7 +23,7 @@ SOURCES (in order of trust)
 1. **Recorded facts** — the CDL library for the clean ROM
    (`~/Library/Application Support/Code/User/globalStorage/rbin.everscript/cdl-library/79e7738630fff5699217ef58ecc421bc8fcbcd89/`)
    and its Asar export (`functions.json`, `ram.asm`, `structs.json`, `enums.json`, `tables.json`).
-2. **Curated knowledge** — `src/games/evermore/localizations/functions.js`, `tables.js`, `src/games/evermore/script/names.json`,
+2. **Curated knowledge** — `src/games/evermore/localizations/functions.js`, `tables.js`, `src/games/evermore/script-model/names.json`,
    `src/games/evermore/resources/ram-symbols.js`, `src/games/evermore/localizations/knowledge/{ram,rom}/*.md`, `soe://tags/`,
    the ROM tab model (`src/games/evermore/rom/model/`), the everscript wiki maps.
 3. **Live state** — `soe://ram/` while the emulator runs (values to confirm a hypothesis).

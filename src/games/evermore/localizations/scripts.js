@@ -1,6 +1,6 @@
 'use strict';
 // Ownership: script IDs and ROM addresses to subjective script names (NPC, ABS, Global).
-// Sources: SoEScriptDumper/data.h, src/games/evermore/script/names.json.
+// Sources: SoEScriptDumper/data.h, src/games/evermore/script-model/names.json.
 
 const { resolveLocalizedName } = require('./strings');
 

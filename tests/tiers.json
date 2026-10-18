@@ -7,9 +7,6 @@
   "tests/memory/radar.test.js",
   "tests/memory/map-units.test.js",
   "tests/memory/variants.test.js",
-  "tests/memory/script-units.test.js",
-  "tests/memory/script-parity.test.js",
-  "tests/memory/script-loot.test.js",
   "tests/script-vm/units.test.js",
   "tests/simulation/sim-units.test.js",
   "tests/memory/damage.test.js",
@@ -43,6 +40,7 @@
  ],
  "rom": [
   "tests/script-vm/rom.test.js",
+  "tests/script-model/rom.test.js",
   "tests/simulation/loot.test.js",
   "tests/simulation/room.test.js",
   "tests/simulation/everscript.test.js",

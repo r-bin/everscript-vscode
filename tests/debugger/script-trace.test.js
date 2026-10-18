@@ -52,7 +52,7 @@ test('decodeScriptSnippet decodes synthetic instruction bytes into summary', () 
   assert.strictEqual(snippet.length, 1);
   assert.strictEqual(snippet[0].addrHex, '0x938740');
   assert.ok(snippet[0].bytesHex.length > 0, 'Bytes hex should be populated');
-  assert.ok(snippet[0].summary.includes('CALL'), 'Summary should decode CALL');
+  assert.ok(snippet[0].summary.startsWith('call '), `Summary should decode a call: ${snippet[0].summary}`);
 });
 
 // Test 2: Real ROM decoding if ROM file exists
@@ -64,12 +64,12 @@ test('decodeScriptSnippet decodes real ROM scripts when available', () => {
     return;
   }
 
-  // Known instruction at 0x93874D: IF $2834&0x01 THEN SKIP 11 (to 0x93875e)
+  // Known instruction at 0x93874D: jump to $93:875E when bit 0 of $2834 is set
   const snippet = decodeScriptSnippet(rom, 0x93874D, 2);
   assert.ok(snippet && snippet.length >= 1, 'Snippet should decode at 0x93874D');
   assert.strictEqual(snippet[0].addrHex, '0x93874D');
   assert.strictEqual(snippet[0].bytesHex, '08 8A 00 00 0B 00');
-  assert.ok(snippet[0].summary.includes('IF $2834&0x01 THEN SKIP 11'), `Unexpected summary: ${snippet[0].summary}`);
+  assert.strictEqual(snippet[0].summary, 'if (<0x2834, 0x01>) goto $93:875e;');
   if (snippet.length > 1) {
     assert.strictEqual(snippet[1].addrHex, '0x938753');
   }
@@ -175,10 +175,10 @@ test('processScriptTraceBatch preserves timestamps and decodes Room 0x15 enter s
   assert.strictEqual(results[0].locHex, '0xBC8000', 'Should normalize to enter script entry point 0xBC8000');
   assert.strictEqual(results[0].timeStr, '+0.12s, f7');
   assert.strictEqual(results[0].frame, 7);
-  assert.ok(results[0].summary.includes('Laser Lance'), `Expected Laser Lance summary, got: ${results[0].summary}`);
+  assert.ok(results[0].summary.includes('LASER_LANCE'), `Expected Laser Lance summary, got: ${results[0].summary}`);
   assert.ok(results[0].subLines.length >= 2, 'Should have subLines for Fade in and End');
-  assert.ok(results[0].subLines[0].includes('CALL'), `Expected CALL in subLines[0]: ${results[0].subLines[0]}`);
-  assert.ok(results[0].subLines[1].includes('END'), `Expected END in subLines[1]: ${results[0].subLines[1]}`);
+  assert.ok(results[0].subLines[0].includes('call_id(0x36);'), `Expected call_id(0x36) in subLines[0]: ${results[0].subLines[0]}`);
+  assert.ok(results[0].subLines[1].includes('end();'), `Expected end() in subLines[1]: ${results[0].subLines[1]}`);
 });
 
 // Test 8: everscript-trace.tmLanguage.json structure and regex sanity
@@ -412,7 +412,7 @@ test('RomAddressLookup and processScriptTraceBatch correctly attribute step-on t
   assert.strictEqual(results[0].lookup.kind, 'stepOn');
   assert.strictEqual(results[0].lookup.index, 0);
   assert.ok(results[0].line.includes('[0x15.step[0]]'));
-  assert.ok(results[0].line.includes('0x92A42F: END (return) [00]'));
+  assert.ok(results[0].line.includes('0x92A42F: end(); [00]'), results[0].line);
   assert.ok(results[0].html.includes('[0x15.step[0]]'));
 });
 

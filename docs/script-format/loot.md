@@ -38,11 +38,10 @@ which the extraction reports only as Biscuit.
 
 ## How it is validated
 
-Upstream's `sniffflags.inc` was itself *generated* by the reference's loot
-extraction, which makes it a complete, independently produced record of
-every sniff spot. `tests/memory/script-loot.test.js` regenerates it: **593
-of 593 lines byte-identical, in both directions** — nothing missing, nothing
-invented.
+Loot is read per path by `src/games/evermore/script-model/loot.ts` from what a pickup stages
+before calling the driver (the rules: knowledge `ram/7e2391`, `ram/7e2461`, `rom/92a482`).
+`tests/simulation/loot.test.js` runs every pickup through the simulation and checks that the
+inventory changes by what the model reads.
 
 ## Round trip
 

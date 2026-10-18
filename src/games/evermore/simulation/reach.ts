@@ -11,8 +11,16 @@ import { Machine } from './machine';
 
 const WRITES = new Set([0x0c, 0x0d, 0x10, 0x11, 0x14, 0x15, 0x17, 0x18, 0x19, 0x1b, 0x1c, 0x1d, 0x7a, 0xad]);
 const STARTS = new Set([0x07, 0xb4]);
-const GLOBAL = new Set([0x22, 0x50, 0x51, 0x52, 0xab, 0x8c, 0x7f, 0x63]);
-const CALLS_WITH_TARGET = /(?:-> |script )0x([0-9a-f]{6})/;
+/**
+ * Opcodes that reach past the thread's entities: map change, reset, text and its windows
+ * (handlers through $8C:C55D / $8C:D967, the records at $034D), sound and music, the PPU shadows
+ * at $0106 (0x63, 0x7f), and the rest whose handlers are not read yet but were seen doing so.
+ * Too many here only costs merges; too few would merge threads that matter.
+ */
+const GLOBAL = new Set([
+    0x22, 0xab, 0x8c, 0x27, 0x30, 0x31, 0x32, 0x33, 0x44, 0x45, 0x46, 0x47, 0x50, 0x51, 0x52, 0x54, 0x55, 0x58, 0x59,
+    0x5a, 0x5b, 0x63, 0x7f, 0x80, 0x81, 0x8d, 0x8e, 0x91, 0x96, 0x9f, 0xa0, 0xa1,
+]);
 
 export interface Reach { writes: boolean; starts: boolean; global: boolean }
 
@@ -32,14 +40,16 @@ export function reach(m: Machine, pc: number): Reach {
         const ins = m.instruction(a);
         if (!ins) { out.global = true; continue; }
         const op = ins.opcode;
-        if (WRITES.has(op) || /RAND|random/i.test(ins.summary)) out.writes = true;
+        // Reading the random number generator advances it: a write.
+        if (WRITES.has(op) || ins.effects.some((e) => e.kind === 'random')) out.writes = true;
         if (STARTS.has(op) || ins.effects.some((e) => e.kind === 'spawn')) out.starts = true;
-        if (GLOBAL.has(op) || /TEXT|message|CURRENCY|music|SOUND|screen|bright|fade/i.test(ins.summary)) out.global = true;
-        const target = ins.effects.find((e) => e.kind === 'branch')?.target as number | undefined;
-        if (target !== undefined) todo.push(target);
-        const call = (ins.effects.find((e) => e.kind === 'call')?.target as number | undefined)
-            ?? (ins.effects.some((e) => e.kind === 'callGlobal') ? m.globalScript(ins.effects.find((e) => e.kind === 'callGlobal')!.id as number) : undefined)
-            ?? (CALLS_WITH_TARGET.exec(ins.summary) ? parseInt(CALLS_WITH_TARGET.exec(ins.summary)![1], 16) : undefined);
+        if (GLOBAL.has(op)) out.global = true;
+        let call: number | undefined;
+        for (const e of ins.effects) {
+            if (e.kind === 'branch') todo.push(e.target);
+            else if (e.kind === 'call') call = e.target;
+            else if (e.kind === 'callGlobal') call = m.globalScript(e.id);
+        }
         if (call !== undefined && !STARTS.has(op)) todo.push(call);
         if (op !== 0x00 && op !== 0x04 && op !== 0x05 && !ins.terminal) todo.push(a + ins.size);
     }

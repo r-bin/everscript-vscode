@@ -1,6 +1,6 @@
 'use strict';
-// CommonJS facade for the TypeScript script simulation. Injects the script
-// decoder so src/games/evermore/simulation/*.ts depends on its public facade only.
+// CommonJS facade for the TypeScript script simulation (its decoder is script-vm, bound in
+// decoder.ts).
 
 let api;
 try {
@@ -15,10 +15,4 @@ try {
     throw err;
 }
 
-const script = require('../script');
-
-module.exports = {
-    ...api,
-    /** `createSimulator(rom)` with the repo's decoder bound in. */
-    createSimulator: (rom) => api.createSimulator(rom, script),
-};
+module.exports = api;

@@ -22,7 +22,8 @@
 // returned. See docs/map-format/rom-export.md.
 
 const maps = require('../../maps');
-const script = require('../../script');
+const vm = require('../../script-vm');
+const { buildRoomScriptModel } = require('../../script-model');
 const { vanillaIndex } = require('./vanilla-index');
 
 /** Brian's Test Ground — a developer room, empty, never reached in play. */
@@ -81,7 +82,8 @@ function startUnits(start, widthTiles, heightTiles) {
     };
 }
 
-function snesOffset(addr) { return script.snesToRom(addr); }
+/** HiROM: the file offset of a bus address (the top two bank bits drop out). */
+function snesOffset(addr) { return addr & 0x3fffff; }
 
 /** Recompute the header checksum over the whole image. */
 function fixChecksum(rom) {
@@ -199,7 +201,7 @@ function buildExportRom(vanilla, asDrawn) {
 
     // 3. The enter script, and room 0x15's pointer to it.
     rom.set(GAIN_SPEAR_4.concat([OP_CALL_GLOBAL, GLOBAL_FADE_IN, OP_END]), SCRIPT_OFFSET);
-    const packed = script.snesToScriptValue(0x800000 | SCRIPT_OFFSET);
+    const packed = vm.pack(0x800000 | SCRIPT_OFFSET);
     const entry = snesOffset(ENTER_TABLE + BRIAN_ROOM * ENTER_STRIDE);
     rom[entry] = packed & 0xff;
     rom[entry + 1] = (packed >> 8) & 0xff;
@@ -297,16 +299,17 @@ function verifyExport(rom, built, draft, at) {
         throw new Error(`export check: ${room.triggers.bTrigger.length} B-triggers decoded, ${expB} expected`);
     }
 
-    const enter = script.buildRoomScriptModel(rom, BRIAN_ROOM).enter;
+    const enter = buildRoomScriptModel(rom, BRIAN_ROOM).enter;
     const ops = enter ? enter.instructions.map((r) => r.opcode) : [];
+    const sr = new vm.ScriptRom(rom);
+    const first = enter && enter.instructions.length ? vm.facts(vm.decodeAt(sr, enter.instructions[0].addressSnes)) : null;
     if (ops.join() !== [GAIN_SPEAR_4[0], OP_CALL_GLOBAL, OP_END].join() || !enter.terminated
-        || !/\$2441\) = .*\(0x18\)/.test(enter.instructions[0].summary)) {
+        || !first || first.k !== 'write' || first.addr !== 0x2441 || first.value !== 0x18) {
         throw new Error('export check: room 0x15 does not enter with the spear and fade_in()');
     }
 
-    const intro = script.decodeScript(rom, INTRO_FIRST_CODE).instructions[0];
-    const change = intro && intro.effects && intro.effects.find((e) => e.kind === 'changeMap');
-    if (!change || change.mapId !== BRIAN_ROOM || change.x !== at.x * 8 || change.y !== at.y * 8) {
+    const change = vm.facts(vm.decodeAt(sr, INTRO_FIRST_CODE));
+    if (change.k !== 'changeMap' || change.map !== BRIAN_ROOM || change.x !== at.x || change.y !== at.y) {
         throw new Error('export check: the intro does not load room 0x15 at the start marker');
     }
 }

@@ -15,6 +15,10 @@ export interface Names {
     flag?(addr: number, mask: number): string;
     /** A script by its bus address. */
     script?(bus: number): string;
+    /** A global script by its id (0xA3, 0xB0). */
+    global?(id: number): string;
+    /** A constant written to a save- or temp-area cell (absolute address). */
+    value?(addr: number, value: number): string;
     map?(id: number): string;
     /** An ENEMY value. */
     enemy?(index: number): string;
@@ -97,7 +101,10 @@ export function text(ins: Instruction, names: Names = {}): string {
     const E = (k: number): string => operandText(o[k], names);
     const withArgs = (head: string): string => (o[0] && o[0].k === 'A' ? `${head}(${E(0)})` : head);
     switch (f.k) {
-        case 'write': return `${cell(f.area, f.addr, f.width, names)} = ${f.expr ? expressionText(f.expr, names) : constText(f.value ?? 0)};`;
+        case 'write': {
+            const named = f.value !== null && f.area !== 'local' ? names.value?.(f.addr, f.value) : '';
+            return `${cell(f.area, f.addr, f.width, names)} = ${named || (f.expr ? expressionText(f.expr, names) : constText(f.value ?? 0))};`;
+        }
         case 'flag': {
             const name = f.area === 'local' ? `arg_flag[${f.addr}, ${hex(f.mask)}]` : (names.flag?.(f.addr, f.mask) || `<${hex(f.addr, 4)}, ${hex(f.mask)}>`);
             return `${name} = ${expressionText(f.expr, names)};`;
@@ -105,11 +112,15 @@ export function text(ins: Instruction, names: Names = {}): string {
         case 'tilePair': return `${cell(f.area, f.xAddr, 2, names)}, ${cell(f.area, f.yAddr, 2, names)} = ${f.x}, ${f.y};`;
         case 'call': {
             const head = f.global !== null ? `call_id(${hex(f.global)})` : f.trigger !== null ? `call_trigger(${hex(f.trigger, 4)})` : `call ${target(f.target, names)}`;
-            return `${withArgs(head)};${f.global !== null || f.trigger !== null ? ` // ${target(f.target, names)}` : ''}`;
+            const via = f.global !== null ? (names.global?.(f.global) || target(f.target, names)) : f.trigger !== null ? target(f.target, names) : '';
+            return `${withArgs(head)};${via ? ` // ${via}` : ''}`;
         }
         case 'start': return `${withArgs(`async ${target(f.target, names)}`)};`;
-        case 'changeMap': return f.map === null ? `warp(${f.x}, ${f.y});`
-            : `change_map(${names.map?.(f.map) || hex(f.map)}, ${f.x}, ${f.y});${f.word !== null && f.word > 0xFF ? ` // word ${hex(f.word, 4)}` : ''}`;
+        case 'changeMap': {
+            if (f.map === null) return `warp(${f.x}, ${f.y});`;
+            const notes = [names.map?.(f.map) || '', f.word !== null && f.word > 0xFF ? `word ${hex(f.word, 4)}` : ''].filter(Boolean);
+            return `change_map(${hex(f.map)}, ${f.x}, ${f.y});${notes.length ? ` // ${notes.join(', ')}` : ''}`;
+        }
         case 'sound': return `sound(${hex(f.index)});`;
         case 'music': return `music(${hex(f.index)});`;
         case 'text': return `${f.message ? 'message' : 'text'}(${f.window !== null ? f.window + ', ' : ''}${hex(f.key, 4)});`;

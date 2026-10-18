@@ -9,10 +9,11 @@
 // Keep, dark storerooms). docs/map-format/room-reference.md §5.
 
 const maps = require('../../maps');
-const script = require('../../script');
+const vm = require('../../script-vm');
 
 /** `WRITE $2437 = 0x0007` in a decoded row's summary. */
-const WRITE_MAP_PALETTE = /\$2437\b.*?=\s*(0x[0-9a-f]+|\d+)/i;
+/** MAP_PALETTE: the room's palette variant, which enter and trigger scripts write. */
+const MAP_PALETTE = 0x2437;
 
 const _values = new Map();
 
@@ -22,13 +23,13 @@ function scriptPaletteValues(rom, roomId, key) {
     if (_values.has(k)) return _values.get(k);
     const found = new Set();
     try {
-        const m = script.buildRoomScriptModel(rom, roomId);
-        [m.enter].concat(m.stepOn || [], m.bTrigger || []).filter(Boolean).forEach((sc) => {
-            (sc.instructions || []).forEach((row) => {
-                const x = WRITE_MAP_PALETTE.exec(row.summary || '');
-                if (x) found.add(Number(x[1]));
-            });
-        });
+        const sr = new vm.ScriptRom(rom);
+        const r = vm.roomScripts(sr, roomId);
+        const entries = [r.enter, ...r.triggers.map((t) => t.script)].filter((a) => a !== null && sr.contains(a));
+        for (const ins of vm.walk(sr, entries, false).instructions.values()) {
+            const f = vm.facts(ins);
+            if (f.k === 'write' && f.area === 'save' && f.addr === MAP_PALETTE && f.value !== null) found.add(f.value);
+        }
     } catch { /* an unreadable script just offers no values */ }
     const out = Array.from(found).filter((v) => Number.isFinite(v)).sort((a, b) => a - b);
     _values.set(k, out);

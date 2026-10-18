@@ -13,7 +13,9 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
-const script = require('../../src/games/evermore/script');
+const { buildRoomScriptModel } = require('../../src/games/evermore/script-model');
+/** HiROM: the file offset of a bus address. */
+const fileOf = (bus) => bus & 0x3fffff;
 const sim = require('../../src/games/evermore/simulation');
 
 const REPO = process.env.EVERSCRIPT_REPO || path.join(__dirname, '..', '..', '..', 'everscript');
@@ -28,7 +30,7 @@ function test(name, fn) {
     catch (e) { console.error('  ✗ ' + name + '\n    ' + e.message); failed++; }
 }
 const romHex = (entry, n) => {
-    const o = script.snesToRom(entry);
+    const o = fileOf(entry);
     return Array.from(rom.slice(o, o + n), (b) => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
 };
 
@@ -41,14 +43,14 @@ test('the Thraxx gourd decompiles into nested if / else', () => {
     assert.strictEqual(top.cond, '<0x2266, 0x80>');
     const inner = top.then[0];
     assert.strictEqual(inner.cond, '<0x2260, 0x10>');
-    assert.ok(/Call Beads/.test(inner.then[0].summary) && /Biscuit/.test(inner.else[0].summary));
+    assert.ok(/= CALL_BEADS;/.test(inner.then[0].summary) && /= BISCUIT;/.test(inner.else[0].summary), `${inner.then[0].summary} / ${inner.else[0].summary}`);
     assert.ok(e.everscript.includes('call_id(0x3a);'));
 });
 
 // Every enter script, step-on and B-trigger in the ROM.
 const scripts = new Map();
 for (let id = 0; id < 0x7f; id++) {
-    const r = script.buildRoomScriptModel(rom, id);
+    const r = buildRoomScriptModel(rom, id);
     for (const t of [r.enter, ...r.stepOn, ...r.bTrigger]) scripts.set(t.scriptAddressSnes, null);
 }
 for (const entry of scripts.keys()) {

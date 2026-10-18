@@ -55,7 +55,7 @@ toggles) stays in the webview. Caches live with their owner and expose a `clear(
   CSS/JS lists in page loaders and DOM tests;
 - `require()` of a single file without its extension; a bare `'../'` used as a building block;
 - `dist/` twins: a TS file moves its compiled output (`dist/<same path>`); JS requires it from there;
-  a TS file requiring JS needs the path from `dist/` (`src/games/evermore/script/names.ts`);
+  a TS file requiring JS needs the path from `dist/` (`src/games/evermore/script-model/names.ts`);
 - `package.json` (grammar, theme, snippets, `main`), `.vscodeignore`, `knip.json`, `tsconfig.json`
   excludes, `tools/recorder/package-files.js`, shell scripts with relative paths;
 - `.depcruise.js` lookaheads (`'^src/(?!foo/)'`) and alternations — a plain rename skips them;

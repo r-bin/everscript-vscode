@@ -17,7 +17,7 @@ What we know about the boy's HP is spread over six places that never reference e
 | `wiki/ram/Ram-Map.md` | `0x0a35 BOY_MAX_HP`, `0x0a37 BOY_CURRENT_HP` |
 | community RAM list (Data Crystals) | `7E0A35 to 7E0A36 = Boy - Stats - Max HP`, `7E4EB3 to 7E4EB4 = Boy - Current HP`. An **unverified reference** (§6) |
 | `memory-map` skill | boy entity record at `$7E4E89`, pointer at `$0F3E` |
-| `src/games/evermore/script/names.json` | address labels used by hovers and `soe://ram/<addr>.json` |
+| `src/games/evermore/script-model/names.json` | address labels used by hovers and `soe://ram/<addr>.json` |
 | the running emulator | the value right now, e.g. `30` |
 
 The enums already explain the addresses; the link is just never written down:

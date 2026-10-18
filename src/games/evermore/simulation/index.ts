@@ -1,9 +1,10 @@
 // Ownership: public API of the script simulation. Pure.
 //
-// `createSimulator(rom, decoder)` binds a ROM to the instruction decoder (the
-// `src/games/evermore/script` facade, injected by index.js) and returns the entry points.
+// `createSimulator(rom, decoder)` binds a ROM to the instruction decoder (by default script-vm,
+// decoder.ts) and returns the entry points.
 
 import { Machine, Decoder } from './machine';
+import { vmDecoder } from './decoder';
 import { simulate, SimOptions, SimResult } from './explore';
 import { analyzeScript, ScriptAnalysis } from './trigger';
 import { Pin } from './memory';
@@ -22,7 +23,7 @@ export interface Simulator {
     emit(entry: number, name?: string): EmittedScript;
 }
 
-export function createSimulator(rom: Uint8Array, decoder: Decoder): Simulator {
+export function createSimulator(rom: Uint8Array, decoder: Decoder = vmDecoder): Simulator {
     const machine = new Machine(rom, decoder);
     return {
         machine,

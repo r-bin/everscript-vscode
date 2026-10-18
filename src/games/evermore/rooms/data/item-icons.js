@@ -4,11 +4,11 @@
 // `PETAL`, `CHEST_1_1`) and an alchemy formula's name (`Acid Rain`).
 //
 // The decoding is src/games/evermore/maps/item-icons.ts and is pure; this only joins it to
-// src/games/evermore/script/'s names and encodes the pixels. Every icon comes from the
+// src/games/evermore/script-model/'s names and encodes the pixels. Every icon comes from the
 // user's ROM at run time — nothing is bundled. docs/item-icons.md.
 
 const { renderItemIcon, lootIconId, alchemyIconId, ALCHEMY_FORMULAS, encodePngDataUri } = require('../../maps');
-const { lootRewardName, ramBitToStr } = require('../../script');
+const { lootRewardName, flagName } = require('../../script-model');
 
 /** The reward categories the ring menu draws: ingredients, armour, consumables. */
 const REWARD_CATEGORIES = [0x0200, 0x0400, 0x0800];
@@ -54,12 +54,6 @@ function centreIcon(px) {
         }
     }
     return { width: w, height: h, data: out };
-}
-
-/** `(Acid Rain) ` → `Acid Rain`; '' when the flag has no name. */
-function flagName(addr, bit) {
-    const m = /^\((.*)\) $/.exec(ramBitToStr(addr, bit));
-    return m ? m[1] : '';
 }
 
 /**

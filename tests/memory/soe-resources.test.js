@@ -383,7 +383,7 @@ test('provider: script VFS decodes by address (md, evs, json, with/without evers
 
     // Plain Everscript (.evs)
     const evs = Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/0x93c8a1.evs'))).toString('utf8');
-    assert.match(evs, /\$93C8A1:\s+IF \(script\[0x9\] & 0x0100\) == FALSE THEN SKIP 72/);
+    assert.match(evs, /\$93C8A1:\s+if! \(slot_word_09\(\) & 0x0100\) goto \$93:c8f2;/);
 
     // Structured JSON (.json)
     const j = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/0x93c8a1.json'))).toString('utf8'));

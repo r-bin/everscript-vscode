@@ -14,7 +14,8 @@
 const { readAllCharacters, readCharacter, renderRawSprite, thumbFor } = require('../sprites');
 const { animationGroups } = require('../../../../dist/games/evermore/maps/animation-vm');
 const { disassembleScript } = require('../../../../dist/games/evermore/maps/animation-opcodes');
-const { decodeScript } = require('../script');
+const vm = require('../script-vm');
+const { printNames } = require('../script-model');
 const { resolveCharacters } = require('./character-files');
 const { asmAroundCall, lineText } = require('./asm-view');
 const { renderCharacterSprite } = require('../../../../dist/games/evermore/maps/characters');
@@ -170,7 +171,10 @@ function describeSoundSource(rom, ev) {
         }
     } else if (ev.kind === 'script') {
         let lines = [];
-        try { lines = decodeScript(rom, ev.script).instructions.slice(0, 6).map((i, k) => ({ addr: hex(i.address, 6), text: i.summary, mark: k === 0 })); } catch { /* not a script */ }
+        try {
+            const sr = new vm.ScriptRom(rom), names = printNames((bus) => bus & 0x3fffff);
+            lines = vm.scriptInstructions(sr, ev.script).slice(0, 6).map((i, k) => ({ addr: hex(i.address, 6), text: vm.text(i, names), mark: k === 0 }));
+        } catch { /* not a script */ }
         out.script = { label: 'script ' + hex(ev.script, 6), uri: `${ROM}scripts/0x${(ev.script >>> 0).toString(16)}.md`, lines };
     } else {
         const fn = getFunctionName(ev.caller);

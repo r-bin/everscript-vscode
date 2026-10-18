@@ -8,8 +8,8 @@
 const { VANILLA_MAPS } = require('../localizations/maps');
 const { MUSIC, SOUNDS, getSoundAnimations } = require('../localizations/sounds');
 const { TABLES } = require('../localizations/tables');
-const { lootRewardName } = require('../script');
-const NAMES = require('../script/names.json');
+const { lootRewardName } = require('../script-model');
+const NAMES = require('../script-model/names.json');
 const { slugify, hexId } = require('./resource-uri');
 
 const ROM = 'soe://rom/assets/';

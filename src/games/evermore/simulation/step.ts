@@ -130,7 +130,7 @@ export function step(m: Machine, s: PathState): PathState[] {
         case 0x0a: case 0x0b: case 0x8e: case 0x8f: {
             if (branch === undefined) break;
             // A currency comparison: modelled as an unknown named by its site.
-            const cond: Sym = { k: 'atom', name: `[${ins.summary.replace(/ THEN SKIP.*| SKIP.*/, '')}]`, volatile: false };
+            const cond: Sym = { k: 'atom', name: `[${ins.summary.replace(/ goto .*$/, '')}]`, volatile: false };
             return fork(s, cond, key(cond), base, (p, v) => goTo(p, v ? branch : next));
         }
         case 0x0c: case 0x0d: {
@@ -203,22 +203,19 @@ export function step(m: Machine, s: PathState): PathState[] {
 function generic(m: Machine, s: PathState, ins: Instruction, base: Base, next: number, op: (a: number) => Operand): PathState[] {
     const call = ins.effects.find((e) => e.kind === 'call')?.target as number | undefined;
     const global = ins.effects.find((e) => e.kind === 'callGlobal')?.id as number | undefined;
-    let target: number | null = call ?? (global !== undefined ? m.globalScript(global) : null);
+    const target: number | null = call ?? (global !== undefined ? m.globalScript(global) : null);
     let args: Sym[] = [];
-    if (target === null && (ins.opcode === 0xa4 || CALL_TAIL[ins.opcode] !== undefined)) {
-        const t = /(?:-> |script )0x([0-9a-f]{6})/.exec(ins.summary);
-        target = t ? parseInt(t[1], 16) : null;
-        if (CALL_TAIL[ins.opcode] !== undefined) {
-            let pos = s.pc + 2;
-            for (let i = 0; i < m.u8(s.pc + 1); i++) { const o = op(pos); args.push(o.value); pos += o.length; }
-            if (pos + CALL_TAIL[ins.opcode] !== next) {
-                m.layoutErrors.set(ins.address, { opcode: ins.opcode, ours: pos + CALL_TAIL[ins.opcode] - s.pc, decoder: ins.size });
-                args = [];
-            }
+    if (target !== null && CALL_TAIL[ins.opcode] !== undefined) {
+        let pos = s.pc + 2;
+        for (let i = 0; i < m.u8(s.pc + 1); i++) { const o = op(pos); args.push(o.value); pos += o.length; }
+        if (pos + CALL_TAIL[ins.opcode] !== next) {
+            m.layoutErrors.set(ins.address, { opcode: ins.opcode, ours: pos + CALL_TAIL[ins.opcode] - s.pc, decoder: ins.size });
+            args = [];
         }
     }
     if (target !== null) {
-        const name = global !== undefined ? m.dec.globalScriptName(global) : m.dec.absScriptName(m.toFile(target), `script ${target.toString(16)}`);
+        const name = (global !== undefined ? m.dec.globalScriptName(global) : m.dec.scriptName(m.toFile(target)))
+            || (global !== undefined ? `global 0x${global.toString(16).padStart(2, '0')}` : `script ${target.toString(16)}`);
         const isAsync = ASYNC_CALLS.has(ins.opcode);
         s.event({ ...base, type: 'call', target, name, async: isAsync, args, global: global ?? null });
         const slot = s.allocSlot();
@@ -238,7 +235,7 @@ function generic(m: Machine, s: PathState, ins: Instruction, base: Base, next: n
     }
     for (const e of ins.effects) {
         if (e.kind === 'spawn') {
-            const f = m.dec.extractSpawns([ins])[0];
+            const f = m.dec.spawn(ins);
             const again = s.entities.filter((x) => x.at === ins.address).length;
             const id = ins.address * 16 + again;
             const label = `${f?.romName ?? f?.name ?? 'npc 0x' + (e.npc as number).toString(16)}#${(ins.address & 0xffff).toString(16)}${again ? '.' + again : ''}`;
@@ -327,13 +324,13 @@ function fork(s: PathState, cond: Sym, src: string, base: Base, apply: (p: PathS
 
 /** Opaque summaries name entities by RAM; say which placed NPC lives there. */
 function resolveText(summary: string, s: PathState): string {
-    // An argument holding an entity is named by it: `signed arg2` → `dog`.
-    let out = summary.replace(/(?:signed )?arg(\d+)/g, (all, n: string) => {
+    // An argument holding an entity is named by it: `signed arg[2]` → `dog`.
+    let out = summary.replace(/(?:signed )?arg\[(\d+)\]/g, (all, n: string) => {
         const v = s.frame.args.get(+n);
         return v && v.k === 'ent' ? v.label : all;
     });
-    if (s.lastEntity.k === 'ent') out = out.replace(/last entity \(\$0341\)/g, s.lastEntity.label);
-    return out.replace(/\$([0-9a-f]{4})\b/g, (all, h: string) => {
+    if (s.lastEntity.k === 'ent') out = out.replace(/entity_0341\(\)/g, s.lastEntity.label);
+    return out.replace(/<0x([0-9a-f]{4})>/g, (all, h: string) => {
         const a = parseInt(h, 16);
         const e = s.entities.find((x) => x.refs.includes(a));
         return e ? `${e.label}(${all})` : all;

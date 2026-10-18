@@ -109,7 +109,7 @@ If a user wants to open an inspection tab in VS Code editor, `vscode.workspace.r
 | Existing Domain | Integration Point |
 |---|---|
 | `src/games/evermore/localizations/` | Resolves names, string indices, and table offsets for `/assets/...` and `/bus/...` |
-| `src/games/evermore/script/names.json` | Symbol mappings for RAM addresses and loot rewards |
+| `src/games/evermore/script-model/names.json` | Symbol mappings for RAM addresses and loot rewards |
 | `src/games/evermore/maps/item-icons.ts` | Pixel generator for `/assets/ingredients/.../icon.png` |
 | `src/games/evermore/memory/` | Receiver for `/wram/...` navigation events |
 | `src/games/evermore/rooms/` | Receiver for `/assets/maps/...` navigation events |

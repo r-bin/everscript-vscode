@@ -115,7 +115,7 @@ export function itemName(item: number, dec: Decoder): string {
 export function describeCondition(cond: Sym, value: boolean, dec: Decoder): string {
     let text: string;
     if (cond.k === 'bit' && cond.a.k === 'mem') {
-        const name = dec.ramBitToStr(cond.a.addr, cond.bit).trim().replace(/^\((.*)\)$/, '$1');
+        const name = dec.flagName(cond.a.addr, cond.bit);
         text = name ? `${name} [${key(cond)}]` : key(cond);
     } else if (cond.k === 'bin' && cond.op === '==' && key(cond) === '(boy == controlled char)') {
         return value ? 'the boy is in control' : 'the dog is in control';
@@ -130,8 +130,9 @@ export function describeChange(x: Change, dec: Decoder): string {
     if (x.kind === 'add') return `${ramHex(x.addr)} += ${key(x.amount)}`;
     if (x.kind === 'bits') {
         return x.bits.map((b) => {
-            const name = dec.ramBitToStr(x.addr, b.bit).trim();
-            return `${ramHex(x.addr)}&0x${(1 << b.bit).toString(16).padStart(2, '0')} = ${key(b.value)}${name ? ' ' + name : ''}`;
+            const name = dec.flagName(x.addr, b.bit);
+            const shown = name ? `(${name})` : '';
+            return `${ramHex(x.addr)}&0x${(1 << b.bit).toString(16).padStart(2, '0')} = ${key(b.value)}${shown ? ' ' + shown : ''}`;
         }).join(', ');
     }
     return `${ramHex(x.addr)} = ${key(x.value)}`;

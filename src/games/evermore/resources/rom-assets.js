@@ -8,7 +8,7 @@ const {
     renderItemIcon, lootIconId, alchemyIconId, iconEntry, ALCHEMY_FORMULAS, ICON_ID_LAST,
     encodePng, decodeRoom, renderRoomComposite, renderStandaloneOverlay, applyObjectStates, MAX_ROOMS,
 } = require('../maps');
-const { lootRewardName, ramBitToStr } = require('../script');
+const { lootRewardName, flagName } = require('../script-model');
 const { decodeRomString, getMapName, getMapArea } = require('../localizations');
 const { slugify, hexId } = require('./resource-uri');
 const { gallery, href } = require('./autoindex');
@@ -180,8 +180,8 @@ function alchemy(rom, name, leaf) {
     const entries = [];
     for (let n = 0; n < ALCHEMY_FORMULAS; n++) {
         const flag = ALCHEMY_KNOWN + (n >> 3), bit = n & 7;
-        const m = /^\((.*)\) $/.exec(ramBitToStr(flag, bit));
-        if (m) entries.push({ id: n, slug: slugify(m[1]), label: m[1], flag: `${hexId(flag, 4)}.${bit}`, iconId: alchemyIconId(rom, n) });
+        const label = flagName(flag, bit);
+        if (label) entries.push({ id: n, slug: slugify(label), label, flag: `${hexId(flag, 4)}.${bit}`, iconId: alchemyIconId(rom, n) });
     }
     return itemDir(rom, 'soe://rom/assets/alchemy/', entries, name, leaf, e => ({
         name: e.label,

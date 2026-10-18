@@ -87,7 +87,7 @@ to a module before building on it, `docs/plans/simulation/damage.md`). Alchemy:
 ## 6. Doors and entrances
 
 A room does not store its entrances. An entrance is a `CHANGE MAP` in some other
-room's trigger script; `src/games/evermore/script/arrivals.ts` indexes them by destination. Like
+room's trigger script; `src/games/evermore/script-model/arrivals.ts` indexes them by destination. Like
 spawns, these are a superset: a door behind a story flag is listed the same as
 one that always works.
 

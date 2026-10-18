@@ -11,10 +11,11 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 
 ## Dependencies
 - Library: no VS Code API, no filesystem, no rendering.
-- The instruction decoder is **injected** (`index.js` passes `require('../script')`); `.ts`
-  files import nothing outside this folder. Only boundaries, branch targets and placement
-  facts come from it — values and conditions are computed by `operand.ts`. `.depcruise.js`
-  rule `simulation-is-a-library`.
+- The instruction decoder sits behind `machine.ts`'s `Decoder`; `decoder.ts` implements it on
+  `../script-vm` (boundaries, control flow, placements, the text) and `../script-model` (names).
+  Only that file imports outside this folder. Values and conditions are computed by `operand.ts`.
+  Which opcodes touch text, sound or the screen is in `reach.ts` / `por.ts` as opcode sets, never
+  read from the instruction text. `.depcruise.js` rule `simulation-is-a-library`.
 - Consumers `require('../simulation')`, never `./dist`. `soe://` serves it
   (`src/games/evermore/resources/simulation-files.js`).
 

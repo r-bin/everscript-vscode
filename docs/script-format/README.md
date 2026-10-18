@@ -1,6 +1,6 @@
 # Everscript & entity formats
 
-What the decoder in [`src/games/evermore/script/`](../../src/games/evermore/script/README.md) and the
+What the decoder in [`src/games/evermore/script-vm/`](../../src/games/evermore/script-vm/README.md) and the
 sprite/character code in [`src/games/evermore/maps/`](../../src/games/evermore/maps/README.md) know about
 the ROM, and how each fact was established.
 

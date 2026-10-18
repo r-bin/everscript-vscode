@@ -1,7 +1,7 @@
 # src/games/evermore/scripts-tab — agent rules
 
 Kind: **feature** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [README.md](README.md).
-Not to be confused with `src/games/evermore/script/` (the bytecode decoder library) or the root `scripts/`
+Not to be confused with `src/games/evermore/script-vm/` (the bytecode decoder), `script-model/` or the root `scripts/`
 (shell wrappers).
 
 ## Owns

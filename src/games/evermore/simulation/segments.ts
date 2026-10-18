@@ -34,7 +34,7 @@ const LOOT_DRIVER_IDS = new Set([0x39, 0x3a, 0x3b]);
 const hx = (v: number, d = 2): string => '0x' + v.toString(16).padStart(d, '0');
 
 /** Global scripts that mark the screen becoming visible (see the README). */
-const FADE_IN = [/^Fade-in/, /^Unnamed Global script 0x36$/, /cinematic/i];
+const FADE_IN = [/^Fade-in/, /^global 0x36$/, /cinematic/i];
 
 /** The steps of one thread (by its uid), branches included. */
 export function stepsOfThread(steps: readonly Step[], tid: number): Step[] {
@@ -183,8 +183,10 @@ export function splitPrepareExecute(parts: Part[]): { prepare: Part[]; execute: 
 
 function depthOf(s: Step): number { return s.kind === 'event' ? s.event.depth : s.depth; }
 function isEvent(s: Step, type: SimEvent['type']): boolean { return s.kind === 'event' && s.event.type === type; }
+/** Text and its windows: show, clear, hide, wait for the box (see reach.ts GLOBAL). */
+const DIALOG = new Set([0x44, 0x45, 0x46, 0x47, 0x50, 0x51, 0x52, 0x54, 0x55, 0x5a, 0x5b, 0x7f, 0x80, 0x81]);
 function isDialogGlue(s: Step): boolean {
-    return s.kind === 'event' && s.event.depth === 0 && /TEXT|messagebox|message timer/i.test(s.event.summary) && s.event.type !== 'call';
+    return s.kind === 'event' && s.event.depth === 0 && DIALOG.has(s.event.opcode) && s.event.type !== 'call';
 }
 function touches(s: Step, label: string): boolean {
     if (s.kind !== 'event' || s.event.depth > 0) return false;

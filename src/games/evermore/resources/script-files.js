@@ -2,10 +2,11 @@
 // Ownership: `soe://rom/assets/scripts/` - disassembled ROM scripts, room enter/triggers, and Everscript views.
 // Pure apart from the ROM buffer it is handed.
 
-const {
-    decodeScript, buildRoomScriptModel, snesToRom,
-    extractLoot, extractTransitions, extractSpawns, isLoot, lootToEverscript,
-} = require('../script');
+const vm = require('../script-vm');
+const { buildRoomScriptModel, scriptModel } = require('../script-model');
+
+/** HiROM: the file offset of a bus address. */
+const snesToRom = (bus) => bus & 0x3fffff;
 const { MAX_ROOMS } = require('../maps');
 const {
     getMapName, getMapArea,
@@ -251,39 +252,22 @@ function resolveDirectScript(name, rom) {
     return null;
 }
 
+/** One script by its bus address: the listing in the compiler's notation, loot, doors, spawns. */
 function decodeByAddress(rom, snesAddr) {
-    const s = decodeScript(rom, snesAddr);
-    const fileOff = snesToRom(snesAddr);
-    const instrs = s.instructions.map(ins => {
-        const off = snesToRom(ins.address);
-        const raw = off < rom.length ? rom.subarray(off, Math.min(rom.length, off + ins.size)) : new Uint8Array(0);
-        const bytesHex = Array.from(raw).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
-        return {
-            addressSnes: ins.address,
-            opcode: ins.opcode,
-            opcodeHex: '0x' + ins.opcode.toString(16).padStart(2, '0'),
-            size: ins.size,
-            bytesHex,
-            summary: ins.summary,
-            terminal: ins.terminal,
-            depth: 0,
-        };
-    });
-    const loot = extractLoot(s.instructions);
-    const lootList = isLoot(loot) ? [loot] : [];
+    const s = scriptModel(new vm.ScriptRom(rom), snesAddr);
     const named = getAbsScript(snesAddr);
     return {
         addressSnes: snesAddr,
-        romOffset: fileOff,
+        romOffset: snesToRom(snesAddr),
         name: named ? named.name : null,
-        instructions: instrs,
+        instructions: s.instructions,
         stopReason: s.stopReason,
-        terminated: s.stopReason === 'terminated',
-        label: instrs.length > 0 ? instrs[0].summary : '',
-        loot: lootList,
-        everscript: lootList.map(lootToEverscript).filter(Boolean),
-        transitions: extractTransitions(s.instructions),
-        spawns: extractSpawns(s.instructions),
+        terminated: s.terminated,
+        label: s.label,
+        loot: s.loot,
+        everscript: s.everscript,
+        transitions: s.transitions,
+        spawns: s.spawns,
     };
 }
 

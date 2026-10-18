@@ -45,10 +45,10 @@ starting before the interpreter can run an enter script end to end.
 
 Real, tested, and reusable — this is not a green field:
 
-- **Script decoding** — [`src/games/evermore/script/`](../../../src/games/evermore/script/README.md) walks every
-  opcode, resolves operands, and names spawns, loot and transitions.
-  [`expression.ts`](../../../src/games/evermore/script/expression.ts) renders the operand grammar
-  as text; the simulation needs the same grammar *evaluated*.
+- **Script decoding** — [`src/games/evermore/script-vm/`](../../../src/games/evermore/script-vm/README.md) decodes
+  every opcode from the game's interpreter; [`script-model/`](../../../src/games/evermore/script-model/README.md)
+  names spawns, loot and transitions. [`expression.ts`](../../../src/games/evermore/script-vm/expression.ts) reads
+  the operand grammar; the simulation needs the same grammar *evaluated*.
 - **Damage** — [`src/games/evermore/scaling/webview/alchemy-math.js`](../../../src/games/evermore/scaling/webview/alchemy-math.js)
   and [`tests/memory/damage.test.js`](../../../tests/memory/damage.test.js), from
   [docs/alchemy-damage.md](../../alchemy-damage.md).

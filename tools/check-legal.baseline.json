@@ -166,50 +166,6 @@
    "upstream"
   ],
   [
-   "src/games/evermore/script/AGENTS.md",
-   "upstream"
-  ],
-  [
-   "src/games/evermore/script/README.md",
-   "upstream"
-  ],
-  [
-   "src/games/evermore/script/addressing.ts",
-   "upstream"
-  ],
-  [
-   "src/games/evermore/script/decoder.ts",
-   "upstream"
-  ],
-  [
-   "src/games/evermore/script/expression.ts",
-   "upstream"
-  ],
-  [
-   "src/games/evermore/script/index.ts",
-   "upstream"
-  ],
-  [
-   "src/games/evermore/script/loot.ts",
-   "upstream"
-  ],
-  [
-   "src/games/evermore/script/ops-entity.ts",
-   "upstream"
-  ],
-  [
-   "src/games/evermore/script/ops-flow.ts",
-   "upstream"
-  ],
-  [
-   "src/games/evermore/script/ops-memory.ts",
-   "upstream"
-  ],
-  [
-   "src/games/evermore/script/ops-system.ts",
-   "upstream"
-  ],
-  [
    "src/games/evermore/sprites/AGENTS.md",
    "upstream"
   ],
@@ -227,26 +183,6 @@
   ],
   [
    "tests/memory/map-parity.test.js",
-   "upstream"
-  ],
-  [
-   "tests/memory/script-loot.test.js",
-   "rom-name"
-  ],
-  [
-   "tests/memory/script-loot.test.js",
-   "upstream"
-  ],
-  [
-   "tests/memory/script-parity.test.js",
-   "rom-name"
-  ],
-  [
-   "tests/memory/script-parity.test.js",
-   "upstream"
-  ],
-  [
-   "tests/memory/script-units.test.js",
    "upstream"
   ]
  ]

@@ -6,7 +6,7 @@
 
 const maps = require('../maps');
 const { buildItemIcons } = require('../rooms/data/item-icons');
-const { buildRoomScriptModel } = require('../script');
+const { buildRoomScriptModel } = require('../script-model');
 const { processScriptTraceBatch } = require('./script-trace');
 const { describeCustomMapRom } = require('./custom-map-rom');
 

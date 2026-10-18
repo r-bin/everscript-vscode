@@ -2,7 +2,7 @@
 // Ownership: `soe://ram/` — the running emulator's 128 KB WRAM as files.
 // Values come from `readMemory(busAddr, len)`, which extension.js wires to the
 // emulator panel; this file never requires the emulator. Names come from
-// src/games/evermore/script/names.json and need no emulator.
+// src/games/evermore/script-model/names.json and need no emulator.
 //
 //   soe://ram/index.md              every known address with its live value (live)
 //   soe://ram/wram.bin              all of $7E0000-$7FFFFF          (live)
@@ -16,7 +16,7 @@
 // Known addresses: ram-symbols.js (names.json + soe://tags/ WRAM links).
 
 const { parseAddressName, hexId } = require('./resource-uri');
-const NAMES = require('../script/names.json');
+const NAMES = require('../script-model/names.json');
 const { dir, file, json, text } = require('./nodes');
 const { ramSymbols, ramSymbol, ramBlocks } = require('./ram-symbols');
 const { tagModel } = require('./tag-model');

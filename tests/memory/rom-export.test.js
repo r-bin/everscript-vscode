@@ -137,7 +137,8 @@ try {
 if (!rom) {
     console.log(`SKIP rom-export ROM checks: ${ROM_PATH} not found or unreadable`);
 } else {
-    const script = require('../../src/games/evermore/script');
+    const vm = require('../../src/games/evermore/script-vm');
+    const { buildRoomScriptModel } = require('../../src/games/evermore/script-model');
     const { buildExportRom, BRIAN_ROOM, INTRO_FIRST_CODE } = require('../../src/games/evermore/rooms/rendering/rom-export');
 
     test('buildBlob(modelFromRom()) is byte-exact for all 127 rooms (upstream --verify)', () => {
@@ -325,13 +326,13 @@ if (!rom) {
 
     test('the intro loads room 0x15 at the start marker; the Boy gets a spear, and the room fades in', () => {
         const { rom: out } = buildExportRom(rom, draft);
-        const intro = script.decodeScript(out, INTRO_FIRST_CODE).instructions;
+        const intro = vm.decodeAt(new vm.ScriptRom(out), INTRO_FIRST_CODE);
         assert.deepStrictEqual(Array.from(out.slice(0x12e0ca, 0x12e0ca + 6)), [0x22, 17, 15, 0x15, 0x00, 0x00]);
-        assert.strictEqual(intro[0].opcode, 0x22);
-        const enter = script.buildRoomScriptModel(out, BRIAN_ROOM).enter;
+        assert.strictEqual(intro.opcode, 0x22);
+        const enter = buildRoomScriptModel(out, BRIAN_ROOM).enter;
         assert.deepStrictEqual(enter.instructions.map((r) => r.opcode), [0x14, 0xa3, 0x00]);
-        assert.match(enter.instructions[0].summary, /\$2441\) = .*\(0x18\)/, 'GAIN_WEAPON = SPEAR_4');
-        assert.match(enter.instructions[1].summary, /0x36/);
+        assert.strictEqual(enter.instructions[0].summary, '(Byte)GET_WEAPON = LASER_LANCE;', 'GAIN_WEAPON = SPEAR_4');
+        assert.match(enter.instructions[1].summary, /^call_id\(0x36\);/);
     });
 
     test('header fields set on the Info tab are written; origin and size stay the map\'s', () => {

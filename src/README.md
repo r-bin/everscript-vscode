@@ -14,7 +14,7 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `games/evermore/language/` | VS Code language features: grammar, theme, hover, completion, definitions, snippets |
 | `games/evermore/localizations/` | Centralized subjective names (maps, sounds, tables, functions) & ROM string resolution |
 | `games/evermore/maps/` | ROM map models: pipeline, blob evidence, render-script, alchemy |
-| `games/evermore/script/` | The legacy script decoder (a port, being replaced: cleanup step 2) and the room / loot facts built on it |
+| `games/evermore/script-model/` | Rooms' scripts as the editor shows them, on script-vm: listings, loot, doors, spawns, arrivals; the kept names (`names.json`, D4) |
 | `games/evermore/script-vm/` | The script decoder written from the game's interpreter: opcodes, expressions, packed pointers, the tables that name scripts (TypeScript, pure) |
 | `games/evermore/simulation/` | Runs scripts symbolically: loot cases, room scenarios + flag tree, NPC tracking, clusters, byte-identical Everscript (TypeScript, pure) |
 | `games/evermore/resources/` | Read-only `soe://` file system: ROM, decoded assets and live WRAM as files |
@@ -41,14 +41,15 @@ Below, `language/`, `maps/`, … without a prefix are under `games/evermore/`.
 - `language/` → no debugger, no emulator, no memory UI
 - `memory/` → may use `docs-tab/`, `rooms/`, `maps/`, `rom/`, `core/map-editor/`, `core/webview/`
 - `rom/` → may use `maps/`; never `emulator/` (the CDL library is injected by `games/evermore/extension.js`)
-- `scripts-tab/` → libraries only (`script/`, `maps/`, `localizations/`, `simulation/`); sprites and music capabilities are injected by `games/evermore/extension.js`
+- `scripts-tab/` → libraries only (`script-model/`, `maps/`, `localizations/`, `simulation/`); sprites and music capabilities are injected by `games/evermore/extension.js`
 - `music/` → may use `localizations/`; never `emulator/` (the sound-chip stream is injected by `games/evermore/extension.js`)
 - `recorder/` → only `core/emulator/`; nothing imports it
 - `core/emulator/` → `platform/` only; no game (`emulator-knows-no-game`); a game hands in its part
 - `debugger/` → no memory, no emulator internals (the emulator bridge is injected by `games/evermore/extension.js`)
 - `core/mcp/` → `vscode` only; reads `soe://` through `vscode.workspace.fs`, never another domain
-- `simulation/` → `script/` only, injected through its `index.js`
-- `resources/` → may use `maps/`, `script/`, `script-vm/`, `simulation/`, `localizations/`; never `emulator/` (ROM and memory reads are injected by `games/evermore/extension.js`)
+- `simulation/` → `script-vm/` and `script-model/` only, through its `decoder.ts`
+- `script-model/` → `script-vm/`, `localizations/`; `script-vm/` → `variant-resolver`, `platform/snes/`
+- `resources/` → may use `maps/`, `script-vm/`, `script-model/`, `simulation/`, `localizations/`; never `emulator/` (ROM and memory reads are injected by `games/evermore/extension.js`)
 - `platform/` → no `core/`, no game; `core/` → `platform/` only; a game never imports another game except through `games/<game>/imports/<other>/`
 - `games/mana/decoder/` → nothing in `src/`; `games/mana/resources/` → the decoder only; `games/mana/maps/` → `som://` only; `games/evermore/imports/mana/` → the Mana decoder, Evermore `maps/` and `rom-readers.js`; no Evermore domain uses any of them (only `extension.js` wires them)
 - No circular dependencies allowed

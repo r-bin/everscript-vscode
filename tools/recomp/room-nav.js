@@ -8,7 +8,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { buildRoomScriptModel } = require(path.join(__dirname, '../../dist/games/evermore/script/room-scripts.js'));
+const { buildRoomScriptModel } = require(path.join(__dirname, '../../dist/games/evermore/script-model/room-model.js'));
 
 const BOY_X = '4ea3', BOY_Y = '4ea5', DOG_X = '4f51', DOG_Y = '4f53';
 const le = v => [(v & 0xFF), (v >> 8) & 0xFF].map(b => b.toString(16).padStart(2, '0')).join('');

@@ -1,14 +1,14 @@
 'use strict';
 // Ownership: finding the ROM on disk for the Rooms tab's script view.
 //
-// The decoding itself lives in src/games/evermore/script/ and is pure — it takes a buffer.
+// The decoding itself lives in src/games/evermore/script-model/ and is pure — it takes a buffer.
 // This is the thin layer that turns a workspace into that buffer, kept
 // separate so the decoder stays testable without a filesystem.
 
 const fs = require('fs');
 const path = require('path');
 
-const { buildRoomScriptModel, buildArrivalIndex, mergeArrivals } = require('../../script');
+const { buildRoomScriptModel, buildArrivalIndex, mergeArrivals } = require('../../script-model');
 const {
     renderCharacterFrames, encodePng, characterDisposition, characterHitbox,
     characterPalette, characterPaletteAddress,

@@ -266,7 +266,7 @@ The entity struct, as far as the traces and handlers read it:
 | sprite pixels | `src/games/evermore/maps/sprites.ts` | same file |
 | idle and attack animation walks, strike boxes | `src/games/evermore/maps/characters.ts`, `character-animation.ts` | `checkStrikeBoxes` |
 | depth against the canopy | `src/games/evermore/maps/collision.ts` (`spriteDepth`, `spawnDepth`) | |
-| spawns, transitions, arrivals, loot | `src/games/evermore/script/entities.ts`, `transition.ts`, `arrivals.ts`, `loot.ts` | `tests/memory/script-parity.test.js`, `script-units.test.js`, `script-loot.test.js` |
+| spawns, transitions, arrivals, loot | `src/games/evermore/script-model/` (`room-model.ts`, `doors.ts`, `arrivals.ts`, `loot.ts`) on `script-vm/` | `tests/script-model/rom.test.js`, `tests/simulation/loot.test.js` |
 | damage | `src/games/evermore/scaling/webview/alchemy-math.js`; physical in `tests/memory/damage.test.js` | `damage.test.js` |
 | Characters tab (viewer, animations, stats) | `src/games/evermore/sprites/` (`character-model.js`, `animation-catalog.js`, `animation-decoder.js`, `sprites-tab.js`) | `tests/memory/sprites.test.js` |
 | drawing enemies over a map | `docs/map-format/enemy-sprites-on-maps.md` | |
