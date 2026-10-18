@@ -163,7 +163,7 @@ box involved, which is why plenty of enemies have no `0x47` anywhere. Of the
 ## What a hit does
 
 Once a candidate passes, `$8FB6A5` dispatches through record `+0x30`, the
-field `characterdata.h` calls `attack_proc` — so the character decides what
+field the character record keeps at `+0x30` (`attack_proc`) — so the character decides what
 its hit *does*. The default lands in `$8FB75A`, which rolls to-hit from the
 target's evade (`+0x1F`) against the attacker's hit rate (`+0x21`), then
 `$8FC067` computes damage from attack (`+0x19`) and defence (`+0x1B`) and

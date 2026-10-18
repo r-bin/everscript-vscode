@@ -13,6 +13,6 @@ Tools we use occasionally or have evaluated. The main approaches have their own 
 | everscript (`../everscript`) | ours | Script decompiler / compiler, wiki `Rom-Map.md` / `Ram-Map.md` | The script layer of the game is already decompiled. The C port only covers the engine |
 | SA-1 investigation (`../evermore-sa1`) | ours | Findings on SA-1 feasibility | Status "not feasible as a simple patch": SoE's HiROM layout conflicts with the SA-1 memory map. Needs a shiftable disassembly first (master plan G4) |
 
-**Not allowed:** `SoETilesViewer`, `SoEScriptDumper` (GPLv3, third-party; AGENTS.md). Use no
+**Not allowed:** the third-party tools the root `AGENTS.md` names (GPLv3). Use no
 code, tables, layouts or names from them, and don't read their source while implementing the
 same thing.

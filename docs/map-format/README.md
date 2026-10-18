@@ -34,7 +34,7 @@ copy first, since that's the upstream.
 
 ## Upstream
 
-`/Users/v/Documents/GitHub/everscript/docs/` (and `.github/rom-map.md`), resolvable at
+`../everscript/docs/` (the sibling checkout) (and `.github/rom-map.md`), resolvable at
 runtime via the `everscript.repoPath` setting. Re-copy from there rather than editing
 these in place, unless the change is specific to this repo's TypeScript port.
 

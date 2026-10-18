@@ -21,9 +21,9 @@ check).
 | Load mode | **Raw binary at offset 0**, one 3 MB block called `bus`. No SNES loader and no functions were made; all of the analysis is in comments and typed data |
 | Language | `65816:LE:16:default`, from an older 65816 plugin than the `ghidra-snes` we use |
 | Annotations | 9,131 comments (9,118 end-of-line, 13 plate), ~18,600 typed data items, ~430 user data types, 23 bookmarks, no named functions, no equates |
-| `Script Dumper/` | A 2020 clone (2 commits) of the third-party SoEScriptDumper (GPLv3): one C++ file that lists every room's enter, step-on and B-trigger scripts as text/HTML (§7) |
+| `Script Dumper/` | A 2020 clone (2 commits) of the third-party script dumper the root `AGENTS.md` names (GPLv3): one C++ file that lists every room's enter, step-on and B-trigger scripts as text/HTML (§7) |
 
-This is **not** SoETilesViewer output. The project contains no tile, map or rendering material.
+This is **not** output of the third-party tile viewer. The project contains no tile, map or rendering material.
 Its type names and terms differ from both third-party tools, and everything in it was typed in by
 hand in Ghidra.
 
@@ -157,9 +157,8 @@ project agrees on all of these. New field names:
 | +32..+49 | 12 words | stand, walk, run, L0–L3 attack, recoil, death (no drop), death (drop), cast, block |
 
 Spot check: the first three records (the Boy, the Dog, …) have HP 30, 36, 1, the rest 0, which
-fits record templates for party members. **Side note**: `character-record.ts` says its layout
-came from SoETilesViewer, which AGENTS.md does not allow. This table and the ROM are an
-independent source the citation could move to.
+fits record templates for party members. `character-record.ts` now reads the record from the
+game's own code (v0.283.0, knowledge `rom/8eb678.md`); this table agrees with it.
 
 ---
 
@@ -213,7 +212,7 @@ All unconfirmed. Each needs a trace in the emulator before it goes into a knowle
 
 ## 7. The script dumper next to it
 
-`Script Dumper/` is a 2020 snapshot of SoEScriptDumper (GPLv3, third-party). AGENTS.md says not
+`Script Dumper/` is a 2020 snapshot of that third-party script dumper (GPLv3). AGENTS.md says not
 to take code, tables, layouts or names from it. This section only says what it covers, so we
 know where our own tools already reach further:
 
@@ -239,7 +238,7 @@ In order of value:
    projectile, font widths. Each becomes a `knowledge/rom/<addr>.md` entry after a check of the
    reader in the CDL (who loads it, with what stride).
 3. **Character record fields** (§4) into `character-record.ts` and its doc, citing the ROM
-   check instead of SoETilesViewer.
+   check (done in v0.283.0).
 4. **Animation record names** (`$C4:3E3A`): about 1000 group names to compare with our
    generated ones (`re-curator` pass).
 5. **Combat formulas** (§6): trace each in the emulator and record it under

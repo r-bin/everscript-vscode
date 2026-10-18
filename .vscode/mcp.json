@@ -1,9 +1,9 @@
 {
   "mcpServers": {
     "traces": {
-      "command": "/Users/v/Documents/GitHub/mesen2-mcp/scripts/run-trace-mcp.sh",
+      "command": "${userHome}/Documents/GitHub/mesen2-mcp/scripts/run-trace-mcp.sh",
       "env": {
-        "TRACES_ROOT": "/Users/v/Documents/GitHub/mesen2-mcp/traces"
+        "TRACES_ROOT": "${userHome}/Documents/GitHub/mesen2-mcp/traces"
       }
     }
   }

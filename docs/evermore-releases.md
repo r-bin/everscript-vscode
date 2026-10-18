@@ -58,7 +58,7 @@ SNES bus addresses written the way the game uses them (`$Cx:xxxx` lower half, `$
 
 The checksum is the header word at `$00:FFDE`. Each retail file's computed sum matches its own header.
 
-On this Mac the retail ROMs are in `/Users/v/romhacking/evermore variants/` and the prototype chip is in
+On the maintainer's machine the retail ROMs are in a local `evermore variants/` folder and the prototype chip is in
 `~/Downloads/`. **No ROM goes into the repo.**
 
 There is no Japanese release: Secret of Evermore was made by Square's US studio for the Western market.

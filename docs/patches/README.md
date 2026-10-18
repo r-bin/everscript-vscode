@@ -2,7 +2,7 @@
 
 A comprehensive index and technical analysis of all known ROM patches, balance overhauls, engine bugfixes, input modifications, and developer utilities for *Secret of Evermore* (SNES).
 
-This directory analyzes both external community patches (such as those archived in `/Users/v/Documents/evermore/public patches`) and internal engine patches developed within the Everscript and reverse-engineering toolchain.
+This directory analyzes both external community patches (such as those archived in a local `public patches` folder, not in the repo) and internal engine patches developed within the Everscript and reverse-engineering toolchain.
 
 ---
 
@@ -10,7 +10,7 @@ This directory analyzes both external community patches (such as those archived 
 
 | Document | Focus & Scope | Key Subjects |
 |---|---|---|
-| [public-patches.md](public-patches.md) | **External Public Patches Catalog** | Detailed breakdown of all patches in `/Users/v/Documents/evermore/public patches`: author, purpose, modified ROM addresses, byte spans, and mechanics. |
+| [public-patches.md](public-patches.md) | **External Public Patches Catalog** | Detailed breakdown of all patches in that local `public patches` folder: author, purpose, modified ROM addresses, byte spans, and mechanics. |
 | [gameplay-balance-patches.md](gameplay-balance-patches.md) | **Gameplay Balance & Overhaul Analysis** | Deep comparative study of Ninakoru's Balance Patch 1.1 (Normal & Hard), Master Knight DH's 25th Anniversary Patch, and Faster Magic. Mathematical analysis of subtractive defense, charge multipliers, and spell EXP. |
 | [bugfixes-and-engine-fixes.md](bugfixes-and-engine-fixes.md) | **Bugfixes & Engine Quirks** | Root-cause analysis of vanilla bugs and their fixes: 5-status effects overflow bug, Assassin17's bugfix suite (Atlas retention, Bazooka ammo, Bazooka charge, Silver Sheath leak), Miracle Cure, and SPC700 sound lag. |
 | [system-and-tooling-patches.md](system-and-tooling-patches.md) | **System Architecture, 2-Player & Tools** | FuSoYa 2-Player Edition architecture, XaserLE Debug Menu rebuild, mziab A/B Button Swap, Everscript runtime hooks (`hotkeys.asm`, `scale_enemies.asm`, `auto_save.asm`), and SRAM reverse engineering (SramComparer, RAMsetta Stone). |

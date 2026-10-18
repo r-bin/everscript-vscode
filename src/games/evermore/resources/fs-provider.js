@@ -318,7 +318,7 @@ function mountIndex(romPath) {
 `;
 }
 
-/** `/Users/…/x.smc` or `C:\\…\\x.smc`: a `?rom=` naming a ROM file. */
+/** An absolute path to a `.smc` / `.sfc` file: a `?rom=` naming a ROM file. */
 function isAbsolutePath(s) {
     return typeof s === 'string' && (s.startsWith('/') || /^[A-Za-z]:[\\/]/.test(s));
 }

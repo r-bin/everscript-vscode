@@ -5,7 +5,7 @@
 - State: in progress
 - Scope handled: emulator-panel manual byte-script breakpoints, live Rooms-tab script focus, ROM-header-backed room extent sizing
 - Scope handled (v0.166.0): `.evs` source-line debugging in the emulator through VS Code (compiler source map + interpreter hook), see [src/games/evermore/debugger/README.md](../src/games/evermore/debugger/README.md)
-- Scope still open: hex breakpoints inside the VS Code debug UI, full opcode coverage from `script_all`
+- Scope still open: hex breakpoints inside the VS Code debug UI, full opcode coverage from the room script listings (`soe://rom/assets/scripts/`)
 
 ## Understanding
 
@@ -15,8 +15,8 @@
 
 ## Dependency Check
 
-- Validated model availability: byte-script execution state comes from the custom SNES core bridge in [debugger/emulator/panel.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/emulator/panel.js).
-- Data sources: active emulator session, configured vanilla ROM, decoded room-script model from [src/games/evermore/script/](/Users/v/Documents/GitHub/everscript-vscode/src/games/evermore/script/README.md), current open `.evs` file for mock-source debugging.
+- Validated model availability: byte-script execution state comes from the custom SNES core bridge in [src/core/emulator/panel.js](../src/core/emulator/panel.js).
+- Data sources: active emulator session, configured vanilla ROM, decoded room-script model from [src/games/evermore/script-model/](../src/games/evermore/script-model/README.md), current open `.evs` file for mock-source debugging.
 - Live byte-script addresses map back to `.evs` lines through the compiler's `out/source_map.json`.
 
 ## How To Attach
@@ -54,7 +54,7 @@
 - The emulator panel now compares manual breakpoint addresses against active script-slot `loc` values instead of using CPU exec breakpoints.
 - The Rooms tab now accepts `byteScriptFocus` messages and highlights decoded script rows carrying the matching ROM address.
 - The Rooms map view now sizes its extent from ROM header width/height, using `width * 16` and `height * 16` as the authoritative room geometry.
-- Regression coverage was added in [debugger/tests/emulator-health.test.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/tests/emulator-health.test.js), [memory_radar/tests/smoke.test.js](/Users/v/Documents/GitHub/everscript-vscode/memory_radar/tests/smoke.test.js), and [memory_radar/tests/ui.test.js](/Users/v/Documents/GitHub/everscript-vscode/memory_radar/tests/ui.test.js).
+- Regression coverage was added in [tests/debugger/emulator-health.test.js](../tests/debugger/emulator-health.test.js), [tests/memory/smoke.test.js](../tests/memory/smoke.test.js), and [tests/memory/ui.test.js](../tests/memory/ui.test.js).
 
 ## UI Visibility Checklist
 
@@ -80,4 +80,4 @@
 - The mock `.evs` debugger is still not tied to the emulator-panel lifecycle.
 - Live byte-script execution still does not map back to real `.evs` source lines.
 - Manual hex breakpoints are only in the emulator panel, not yet in the Debug view.
-- Parser validation still needs broader real-world opcode coverage from `script_all`.
+- Parser validation still needs broader real-world opcode coverage from the room script listings (`soe://rom/assets/scripts/`).

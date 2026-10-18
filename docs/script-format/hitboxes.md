@@ -13,7 +13,7 @@ examples.
 
 ## Where the size lives
 
-**Character record `+0x0D`** — the field `characterdata.h` calls
+**Character record `+0x0D`** — the field read by the overlap test `$8F:B4AB`, called
 `unknown0d`. It is a radius in pixels.
 
 Finding it took one grep. Across the trace, only nine character-record fields

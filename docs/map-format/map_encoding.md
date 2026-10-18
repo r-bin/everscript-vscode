@@ -1,6 +1,6 @@
 # Room Blob Encoding
 
-The write path for room data: [`tools/encode_room.py`](file:///Users/v/Documents/GitHub/everscript/tools/encode_room.py) turns a decoded room back into the byte blob the engine loads. It is the inverse of [`tools/dump_room.py`](file:///Users/v/Documents/GitHub/everscript/tools/dump_room.py) (see [`docs/map_decompression_trace_analysis.md`](file:///Users/v/Documents/GitHub/everscript/docs/map_decompression_trace_analysis.md) for the decode side), and is the mechanism a future map editor uses to write an edited map back into the ROM.
+The write path for room data: [`tools/encode_room.py`](../../../everscript/tools/encode_room.py) turns a decoded room back into the byte blob the engine loads. It is the inverse of [`tools/dump_room.py`](../../../everscript/tools/dump_room.py) (see [`docs/map_decompression_trace_analysis.md`](../../../everscript/docs/map_decompression_trace_analysis.md) for the decode side), and is the mechanism a future map editor uses to write an edited map back into the ROM.
 
 > **Status.** The container layout and both compression encoders are verified against all 127 vanilla rooms (see [§4 Verification](#4-verification)). Anything not established that way is marked **UNVERIFIED**, per `AGENTS.md` §1.
 

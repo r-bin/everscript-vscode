@@ -63,7 +63,7 @@ NON-NEGOTIABLE RULES
 ==================================================
 
 - Facts in our own words. Never paste disassembly listings, ROM bytes, game text, graphics or
-  pointer tables into the repo. Never copy from SoETilesViewer / SoEScriptDumper.
+  pointer tables into the repo. Never copy from the third-party tools the root `AGENTS.md` names.
 - Never delete a JS name line in favour of a Markdown entry until a loader serves entries to
   the hover, ROM tab, exports and seeds (skill `game-knowledge` §4).
 - Use bus addresses as the game uses them (`$8C:D0A6`, not `$CC:D0A6`, for upper-half code).

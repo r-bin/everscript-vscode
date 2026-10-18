@@ -2,7 +2,7 @@
 
 > [!IMPORTANT]
 > **Zero-Trust Trace Methodology**  
-> All logic documented here is derived directly from 65c816 disassembly trace logs captured in Mesen2 under `/Users/v/Library/Application Support/Mesen2/Debugger/` for **Room `0x33` (Prehistoria - Strong Heart's Exterior)**.  
+> All logic documented here is derived directly from 65c816 disassembly trace logs captured in Mesen2 (its `Debugger/` folder) for **Room `0x33` (Prehistoria - Strong Heart's Exterior)**.  
 > No speculative heuristics from legacy tools are assumed without line-by-line assembly verification.
 
 ---
@@ -631,7 +631,7 @@ A live emulator VRAM dump captured at camera viewport `(row 3, col 33)` spans tw
 
 ## Standalone Python Extraction Tool & Integration Tests
 
-The extractor [**`tools/dump_room.py`**](file:///Users/v/Documents/GitHub/everscript/tools/dump_room.py) provides complete extraction of multi-layer room data directly from raw ROM:
+The extractor [**`tools/dump_room.py`**](../../../everscript/tools/dump_room.py) provides complete extraction of multi-layer room data directly from raw ROM:
 
 ```bash
 # Dump map metadata, dimensions, triggers, and metatiles:
@@ -653,14 +653,14 @@ python3 tools/dump_room.py 0x33 --json
 ### Automated Integration Tests (`tests/integration/maps/`)
 
 Regression testing against verified emulator memory dumps lives under `tests/integration/maps/`:
-- [`test_room_0x33_vram.py`](file:///Users/v/Documents/GitHub/everscript/tests/integration/maps/test_room_0x33_vram.py): Room 0x33 (Strong Heart's Exterior, $20 \times 16$)
-- [`test_room_0x34_vram.py`](file:///Users/v/Documents/GitHub/everscript/tests/integration/maps/test_room_0x34_vram.py): Room 0x34 (Strong Heart's Hut, $18 \times 18$)
-- [`test_room_0x38_vram.py`](file:///Users/v/Documents/GitHub/everscript/tests/integration/maps/test_room_0x38_vram.py): Room 0x38 (South Jungle, $83 \times 91$)
-- [`test_room_0x25_vram.py`](file:///Users/v/Documents/GitHub/everscript/tests/integration/maps/test_room_0x25_vram.py): Room 0x25 (Fire Eyes' Village, $63 \times 58$)
-- [`test_room_0x26_vram.py`](file:///Users/v/Documents/GitHub/everscript/tests/integration/maps/test_room_0x26_vram.py): Room 0x26 (West Area with Defend, $19 \times 18$)
-- [`test_room_0x36_vram.py`](file:///Users/v/Documents/GitHub/everscript/tests/integration/maps/test_room_0x36_vram.py): Room 0x36 (Volcano Fire Pits, $25 \times 25$)
-- [`test_room_0x51_vram.py`](file:///Users/v/Documents/GitHub/everscript/tests/integration/maps/test_room_0x51_vram.py): Room 0x51 (Village Huts & Blimp's Hut, $50 \times 56$)
-- [`test_room_0x5b_vram.py`](file:///Users/v/Documents/GitHub/everscript/tests/integration/maps/test_room_0x5b_vram.py): Room 0x5B (East Jungle, $72 \times 48$)
+- [`test_room_0x33_vram.py`](../../../everscript/tests/integration/maps/test_room_0x33_vram.py): Room 0x33 (Strong Heart's Exterior, $20 \times 16$)
+- [`test_room_0x34_vram.py`](../../../everscript/tests/integration/maps/test_room_0x34_vram.py): Room 0x34 (Strong Heart's Hut, $18 \times 18$)
+- [`test_room_0x38_vram.py`](../../../everscript/tests/integration/maps/test_room_0x38_vram.py): Room 0x38 (South Jungle, $83 \times 91$)
+- [`test_room_0x25_vram.py`](../../../everscript/tests/integration/maps/test_room_0x25_vram.py): Room 0x25 (Fire Eyes' Village, $63 \times 58$)
+- [`test_room_0x26_vram.py`](../../../everscript/tests/integration/maps/test_room_0x26_vram.py): Room 0x26 (West Area with Defend, $19 \times 18$)
+- [`test_room_0x36_vram.py`](../../../everscript/tests/integration/maps/test_room_0x36_vram.py): Room 0x36 (Volcano Fire Pits, $25 \times 25$)
+- [`test_room_0x51_vram.py`](../../../everscript/tests/integration/maps/test_room_0x51_vram.py): Room 0x51 (Village Huts & Blimp's Hut, $50 \times 56$)
+- [`test_room_0x5b_vram.py`](../../../everscript/tests/integration/maps/test_room_0x5b_vram.py): Room 0x5B (East Jungle, $72 \times 48$)
 
 Run the full integration test suite via:
 ```bash
@@ -671,7 +671,7 @@ Run the full integration test suite via:
 
 ## The Inverse Pipeline: Encoding
 
-Everything on this page decodes a room blob. [**`tools/encode_room.py`**](file:///Users/v/Documents/GitHub/everscript/tools/encode_room.py) does the reverse -- turns a room model back into the bytes the engine loads -- and is the write path a future map editor uses. See [**`docs/map_encoding.md`**](file:///Users/v/Documents/GitHub/everscript/docs/map_encoding.md) for the container layout, the LZSS and Markov encoders, and the object-area packing.
+Everything on this page decodes a room blob. [**`tools/encode_room.py`**](../../../everscript/tools/encode_room.py) does the reverse -- turns a room model back into the bytes the engine loads -- and is the write path a future map editor uses. See [**`docs/map_encoding.md`**](../../../everscript/docs/map_encoding.md) for the container layout, the LZSS and Markov encoders, and the object-area packing.
 
 
 

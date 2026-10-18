@@ -12,8 +12,7 @@ ruled out, so the next attempt starts further along.
 | Page | Topic | Status |
 |---|---|---|
 | **[entities-reference.md](entities-reference.md)** | **Start here** for anything on a map that moves: the character record, placement, sprites, palettes and depth, bodies, attacks, damage, animation, entity WRAM fields | Index |
-| [operand_grammar.md](operand_grammar.md) | The postfix expression grammar operands are written in | Solved |
-| [instruction_set.md](instruction_set.md) | Opcodes, sizes, summaries, and what stops a walk | Solved |
+| [../game-research/script-vm/](../game-research/script-vm/README.md) | The script interpreter: opcodes, operands, expressions, read from the game | Solved |
 | [loot.md](loot.md) | What a pickup gives, and writing it back as Everscript | Solved |
 | [map_transitions.md](map_transitions.md) | Doors: where a trigger sends the player | Solved |
 | [enemy_spawns.md](enemy_spawns.md) | Which NPCs a script places, and where | Solved |
@@ -35,7 +34,7 @@ ruled out, so the next attempt starts further along.
 ## Two lessons that keep repaying
 
 **Read the encoder before tracing.** This repo sits between an encoder
-(`everscript`) and a decoder (`SoEScriptDumper`). Twice a question that
+(`everscript`) and the game's own interpreter. Twice a question that
 looked like it needed a Mesen trace was answered outright by the side that
 *writes* the bytes: `add_enemy` defined the spawn opcodes' operand layout and
 the `ENEMY` enum, and `loot()` defined what `$2461` means before and after a

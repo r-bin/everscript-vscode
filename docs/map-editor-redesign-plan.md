@@ -1,6 +1,6 @@
 # Map Editor Redesign — Migration Plan
 
-Source material: `/Users/v/Downloads/design_handoff_map_editor/` (`README.md` +
+Source material: a design handoff folder, `design_handoff_map_editor/` (not in the repo) (`README.md` +
 `Map Editor UI.dc.html`, a Claude Design Component mock — layout/interaction
 reference, not production code; its colors/typography are an explicit
 placeholder per its own README).

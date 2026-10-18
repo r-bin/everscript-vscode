@@ -1,6 +1,6 @@
 # Public Patches Analysis: Secret of Evermore
 
-An in-depth technical analysis of the existing public patches and reverse-engineering tools in `/Users/v/Documents/evermore/public patches`.
+An in-depth technical analysis of the existing public patches and reverse-engineering tools in a local `public patches` folder (not in the repo).
 
 This document answers:
 1. **What exists for the game already?**

@@ -4,16 +4,16 @@
 Each one is encoded, spliced into a scratch copy of the ROM, read back and
 checked. Needs the sibling `everscript` checkout and its .venv:
 
-    ~/Documents/GitHub/everscript/.venv/bin/python3 docs/map-format/examples-build-rooms.py
+    ~/Documents/GitHub/everscript/.venv/bin/python3 docs/map-format/examples-build-rooms.py <your ROM>
 """
 import sys, os, json, tempfile
+ROM = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else sys.exit('usage: examples-build-rooms.py <your ROM>')
 sys.path.insert(0, os.path.expanduser('~/Documents/GitHub/everscript'))
 os.chdir(os.path.expanduser('~/Documents/GitHub/everscript'))
 from tools.encode_room import RoomModel, build_blob, encode_block1, encode_block2, encode_block3
 import tools.dump_room as dr
 
 OUT = os.environ.get("ROOMLAB_OUT") or tempfile.mkdtemp(prefix="roomlab-")
-ROM = "Secret of Evermore (U) [!].smc"
 rom = open(ROM, "rb").read()
 SRC = dr.dump_room(0x76, ROM)
 FAMILIES = [int(x, 16) for x in SRC["tile_families"]]

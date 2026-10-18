@@ -89,7 +89,7 @@ the room id.
 
 - **Facts only, our own words.** Addresses, behaviours, formats observed in the ROM or
   emulator. Never paste game text, graphics, byte dumps or disassembly listings longer than a
-  few lines, and never copy from SoETilesViewer/SoEScriptDumper or other projects
+  few lines, and never copy from the third-party tools the root `AGENTS.md` names or other projects
   (`AI_ARCHITECTURE_GUIDE.md` §3.8).
 - **Names are ours.** Pick descriptive names; don't import names from other projects.
 - **Evidence makes it trustworthy.** Say how you know. `confirmed` needs a trace, test or

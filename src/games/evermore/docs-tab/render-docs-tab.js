@@ -133,7 +133,7 @@ function buildDocsTabHtml() {
         '<li>The two step-on records only describe the doorway transitions. They do not describe the hut image itself.</li>' +
         '<li>Because the image disappears from bottom-right first when the payload tail is cut, later payload bytes correspond to later-placed tiles in the final room image.</li>' +
         '<li>The black walkable square is the same room after payload loss: enter logic and room origin still exist, but the art and collision payload are no longer complete.</li>' +
-        '<li>The current 6-byte trigger-record model matches the in-repo parser notes, but the external SoE tiles viewer C++ source was not re-verified inside this workspace.</li>' +
+        '<li>The 6-byte trigger record is read the way the room loader in the game reads it (script-vm, checked on every room).</li>' +
         '<li>Still open: header bytes 2..12, the exact codec commands, whether graphics and collision are interleaved or split, and the precise buffer layout used before the picture is shown.</li>' +
         '</ul>' +
         '</div>' +

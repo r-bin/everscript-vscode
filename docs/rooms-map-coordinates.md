@@ -88,15 +88,15 @@ The container height is `520 × (H_tiles / W_tiles)` to preserve aspect ratio.
 
 ## Trigger Coordinate Sourcing
 
-Trigger coordinates come from the **script dump** (`script_all`), not from `.evs`. The `.evs` enums supply names only. Names are correlated by index order:
+Trigger coordinates come from the **room's trigger tables** in the ROM (`script-model`, `soe://rom/assets/scripts/`), not from `.evs`. The `.evs` enums supply names only. Names are correlated by index order:
 
 ```
-script_all step-on [N]  ↔  enum stepon_trigger { member[N] }
+ROM step-on trigger [N]  ↔  enum stepon_trigger { member[N] }
 ```
 
 ## Data Block Layout
 
-From `list-rooms.cpp` and Lua analysis (`soestuff.lua`):
+From the room loader (`src/games/evermore/maps/room.ts`, `docs/map-format/`) and Lua analysis (`soestuff.lua`):
 
 ```
 dataptr → [  0] offX      (u8)  — trig_off_x = room x-origin in 16px-tile units
@@ -143,7 +143,7 @@ That comparison strongly suggests:
 - byte `8` is a smaller per-room presentation modifier,
 - and Oglin cave's always-on darkness is very likely encoded in this `4..8` block.
 
-Important: the 6-byte record width is the current working model and matches the in-repo parser assumptions, but the external SoE tiles viewer C++ source is not present in this workspace, so that external comparison was not freshly re-verified here.
+The 6-byte trigger record is read from the game: `script-vm/rooms.ts` walks both tables the way the room loader does, and every trigger's script lies in script space (`tests/script-vm/rom.test.js`).
 
 The map pointer table is at SNES `0x9ffde7` = ROM `0x1ffde7`. Each entry is 4 bytes; entry for map `id` is at `0x1ffde7 + id * 4` and contains a 24-bit SNES address to the data block.
 
@@ -152,7 +152,7 @@ The map pointer table is at SNES `0x9ffde7` = ROM `0x1ffde7`. Each entry is 4 by
 |--------|------|----------|
 | `entrance(x, y, DIR)` in `.evs` | 8-px tile | parsed from source |
 | `init_map(x1,y1,x2,y2)` in `.evs` | 8-px tile | parsed from source |
-| Step-on / B-trigger coords in `script_all` | 8-px tile | parsed from dump |
+| Step-on / B-trigger coords in the ROM's trigger tables | 8-px tile | `script-vm/rooms.ts` |
 | Grizzly room images (`.png`) | 8 image-px per tile | image dims / 8 |
 
 ### Why the Lua uses `× 16`
@@ -200,19 +200,19 @@ This ensures 1 tile unit has the same display pixel size in X and Y — no disto
 
 ## Trigger Coordinate Sourcing
 
-Trigger coordinates come from the **script dump** (`script_all`), NOT from the `.evs` source. The `.evs` enums define trigger logic (names, code); the coordinates are stored in the ROM data block and only appear in `script_all`.
+Trigger coordinates come from the **ROM's trigger tables**, NOT from the `.evs` source. The `.evs` enums define trigger logic (names, code); the coordinates are stored in the ROM data block.
 
-The **order** of triggers in `script_all` matches the **order** of enum members in the `.evs` source. This lets us correlate:
+The **order** of triggers in the ROM's tables matches the **order** of enum members in the `.evs` source. This lets us correlate:
 
 ```
-script_all step-on trigger [N]  ↔  enum stepon_trigger { member[N] }
+ROM step-on trigger [N]  ↔  enum stepon_trigger { member[N] }
 ```
 
-So `exit_north` (index 0 in `.evs`) corresponds to the first step-on trigger in `script_all`.
+So `exit_north` (index 0 in `.evs`) corresponds to the first step-on trigger in the ROM.
 
 ## Data Block Layout
 
-From `list-rooms.cpp`, the room data block at `dataptr`:
+The room data block at `dataptr` (`src/games/evermore/maps/room.ts`):
 
 | Offset | Size | Content |
 |--------|------|---------|
@@ -223,9 +223,8 @@ From `list-rooms.cpp`, the room data block at `dataptr`:
 | `0x0f+N+2` | M bytes | B-trigger entries (same 6-byte format) |
 
 Each trigger entry byte layout in ROM: `[y1][x1][y2][x2][scriptId16]`  
-`script_all` prints them as `[x1,y1:x2,y2]` (x first).
-
-That print order is the likely reason the format can look inconsistent across tools: the record is still 6 bytes, but many dumps display `x` first for readability.
+Listings usually print them x first (`[x1,y1:x2,y2]`), which is why the format can look
+inconsistent across tools: the record is still 6 bytes, y first.
 
 ## Known Rooms Without `init_map`
 

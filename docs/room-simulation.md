@@ -104,10 +104,10 @@ branch is designed.
 
 ## Then: drawing them
 
-`SoETilesViewer` already decodes sprites — `spriteinfo.h` (`SpriteChunk`:
-flags, x, y, block), `spriteblock.h`, and `characterdata.h`'s animation
-pointers (`anim_stand` and friends). So rendering an idle animation is a
-**port**, not new reverse engineering. The character is now identified for
+The sprites and the character record are read from the game's own code
+([script-format/sprite_format.md](script-format/sprite_format.md),
+[script-format/character_table.md](script-format/character_table.md)), animation
+pointers included, so rendering an idle animation needs no new reverse engineering. The character is now identified for
 every spawn, so this is unblocked: `enemyName(index).character` gives the
 record, and record 109's `anim_stand` is `0x495e`. It is a separate piece of
 work from the simulation and should not be mixed into it.

@@ -6,7 +6,7 @@
 
 1. **Map / Room Names (`maps.js`)**
    - Authoritative mapping from ROM room IDs (`0x00`..`0x7E`) to room names and world areas.
-   - Sourced from SoETilesViewer (`SoEScriptDumper/data.h`) and vanilla catalogues.
+   - Names kept from an earlier import and frozen (docs/cleanup.md D4), to be rewritten in our own words, and vanilla catalogues.
    - Supports short names, full names (prefixed by area), and optional in-game string indices.
 
 2. **Sound & Music Names (`sounds.js`)**

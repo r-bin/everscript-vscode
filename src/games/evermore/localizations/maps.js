@@ -1,6 +1,6 @@
 'use strict';
 // Ownership: map / room IDs to subjective map names, areas, and optional string indices.
-// Source: SoETilesViewer (SoEScriptDumper/data.h) + everscript wiki room catalogue.
+// Source: names kept from an earlier import and frozen (docs/cleanup.md D4) + the everscript wiki room catalogue.
 
 const { resolveLocalizedName } = require('./strings');
 

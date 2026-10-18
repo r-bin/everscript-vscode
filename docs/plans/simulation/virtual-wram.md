@@ -49,7 +49,7 @@ drift, so build one of:
   evaluated form; or
 - the renderer rebuilt on top of the evaluator, so there is only one parse.
 
-The second is cleaner and is what [operand_grammar.md](../../script-format/operand_grammar.md)
+The second is cleaner and is what [the script VM spec](../../game-research/script-vm/README.md)
 already implies. Either way it is one parse of one grammar, checked against
 all ~1600 operand sites the decoder already walks.
 

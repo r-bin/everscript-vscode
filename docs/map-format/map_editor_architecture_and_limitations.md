@@ -143,7 +143,7 @@ Zero-compression override     Runtime poke to $7F0280       Decompress → Edit 
    - *Pros:* Instant, programmatic control; can change tiles dynamically based on story flags.
 
 3. **Method 3: Build Pipeline Decompress-Edit-Repoint (Recommended for Editors)**
-   - Implemented end-to-end in [`tools/encode_room.py`](file:///Users/v/Documents/GitHub/everscript/tools/encode_room.py); see [`docs/map_encoding.md`](file:///Users/v/Documents/GitHub/everscript/docs/map_encoding.md) for the encoders and their verification.
+   - Implemented end-to-end in [`tools/encode_room.py`](../../../everscript/tools/encode_room.py); see [`docs/map_encoding.md`](../../../everscript/docs/map_encoding.md) for the encoders and their verification.
      1. Decompress room blob using `tools/dump_room.py`.
      2. Edit the target metatile grid, collision word, or object in the decoded data.
      3. `rebuild_model()` re-encodes every block (LZSS or Markov, matching what the original used) and rebuilds the object area.
@@ -186,7 +186,7 @@ The remaining gap for a full editor is UI, not format understanding: every byte 
 - The vanilla ROM defines **127 rooms**, `0x00` through `0x7E` — not 128.
   The entry at index `0x7F` is not a room: its padding byte is `0xCC` where every real entry's is
   `0x00`, and the bytes it points at do not parse as a room blob (Block 2 reports `sub_flag 0x09`
-  where the loader requires `0x07`). See [.github/rom-map.md](file:///Users/v/Documents/GitHub/everscript/.github/rom-map.md) §2,
+  where the loader requires `0x07`). See [.github/rom-map.md](../../../everscript/.github/rom-map.md) §2,
   which lists all 127 and shows the check. `MAX_ROOMS = 127` in `tools/dump_room.py` is correct.
 - The Map Pointer Table starts at `$9FFDE7` (`0x1FFDE7` in ROM file).
 - The table is located near the end of Bank `$9F` (`$9F8000..$9FFFFF`), which terminates at `0x1FFFFF`.

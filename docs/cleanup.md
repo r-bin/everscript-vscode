@@ -102,7 +102,7 @@ an item only when its check passes.
 - [x] **1.2** One rule on names in `AGENTS.md`, `AI_ARCHITECTURE_GUIDE.md` §3.8 and the plan (D4).
 - [x] **1.3** `docs/release-checklist.md` (called the upstream tool MIT; stale) deleted.
   `LICENSE`/README: MIT covers our code only; the snes9x2005 core and the SPC engine are
-  non-commercial and keep their `copyright`/`NOTICE` files. README §License: no `file:///Users/…`
+  non-commercial and keep their `copyright`/`NOTICE` files. README §License: no `file://` links into a home directory
   links.
 - [x] **1.4** `.vscodeignore` and `.gitignore`: ROM/save/patch/audio globs, `docs/**`, `wiki/**`,
   `.agents/**`, `tools/**`, `.emscripten_cache/**` (re-measure the VSIX; at v0.199 it was 37 MB,
@@ -133,7 +133,7 @@ Scope, from the inventory of 2026-10-16:
   (4,903 that draw), not a walk of the banks; block pixels agree with the old reader on all 8,000 checked, chunks on
   every shared sprite. Colours now use the full 8-bit range like the map palettes. Left: the emulator webview's own
   copy of the sprite readers (`overlays-view.js`, 5.1/5.3).
-- [ ] **2.2** Script VM phases 1–5 of the plan, with the compiler-spelled output. v0.280.0: phases 1–3 —
+- [x] **2.2** Script VM phases 1–5 of the plan, with the compiler-spelled output. v0.280.0: phases 1–3 —
   `docs/game-research/script-vm/` (the interpreter, packed pointers, expressions, the tables that name
   scripts, one row per opcode; a knowledge entry per handler), `src/games/evermore/script-vm/` (strict TS,
   from that spec), `tools/script-vm/record-goldens.js` → `tests/script-vm/goldens.json` (2,130
@@ -145,13 +145,16 @@ Scope, from the inventory of 2026-10-16:
   knowledge entry lists the addresses it uses, and `soe://rom/assets/scripts/opcodes/` serves one page per opcode.
   v0.282.0: the consumers moved (2.4); phases done.
 - [ ] **2.3** Room names in the new style, each with evidence.
-- [ ] **2.4** Delete every row's old files; `check:legal` clean. v0.282.0, the script decoder row: `script-model/`
+- [x] **2.4** Delete every row's old files; `check:legal` clean. v0.284.0: clean, baseline empty — the policy
+  statements name "the third-party tools the root `AGENTS.md` names", home paths are relative or generic, the
+  Rooms tab finds the ROM through the ROM library, `instruction_set.md` / `operand_grammar.md` gave way to
+  `docs/game-research/script-vm/`, the kept names say so (D4). v0.282.0, the script decoder row: `script-model/`
   (room listings in the compiler's notation, loot and doors read per path, spawns, arrivals, the kept names) on
   script-vm; every consumer moved (Rooms tab, `soe://` scripts, sound sources, palettes, export checks, trace, the
   simulation through `simulation/decoder.ts`, tools); `src/games/evermore/script/` and the upstream-output tests
   (`script-parity`, `script-loot`, `script-units`) deleted. Loot differs from the legacy reading where it was wrong
   (Ebon Keep's branched pickups, `$98:CCCC`) and finds 42 more pickups. Left: the other rows (sprites, character
-  record, attribution in docs and comments, `map-parity.test.js` upstream parts), `docs/script-format/*`.
+  record, attribution in docs and comments, `map-parity.test.js` upstream parts), `docs/script-format/*` — all done by v0.284.0.
 
 ### Step 3 — Dead code and tools (D7)
 Inventory of 2026-10-16. Move the ROM out of `script_parser/dependencies/` first: 7 tests,

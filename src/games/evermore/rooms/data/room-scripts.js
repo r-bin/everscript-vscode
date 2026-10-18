@@ -5,9 +5,6 @@
 // This is the thin layer that turns a workspace into that buffer, kept
 // separate so the decoder stays testable without a filesystem.
 
-const fs = require('fs');
-const path = require('path');
-
 const { buildRoomScriptModel, buildArrivalIndex, mergeArrivals } = require('../../script-model');
 const {
     renderCharacterFrames, encodePng, characterDisposition, characterHitbox,
@@ -15,16 +12,10 @@ const {
     decodeRoom, planesUsed, spawnDepth,
 } = require('../../maps');
 
-const ROM_NAMES = ['Secret of Evermore (U) [!].smc', 'Secret of Evermore.smc'];
-
+/** The user's ROM: the override, else the ROM library's (rom-readers, cleanup D5). */
 function loadRom(wsRoot, romPathOverride) {
-    const candidates = [];
-    if (romPathOverride) candidates.push(romPathOverride);
-    if (wsRoot) for (const name of ROM_NAMES) candidates.push(path.join(wsRoot, name));
-    for (const filePath of candidates) {
-        if (filePath && fs.existsSync(filePath)) return new Uint8Array(fs.readFileSync(filePath));
-    }
-    return null;
+    const buf = require('../../rom-readers').loadRomBuffer(wsRoot, romPathOverride);
+    return buf ? new Uint8Array(buf) : null;
 }
 
 /**
@@ -220,4 +211,4 @@ function readRoomScriptModel(wsRoot, mapId, romPathOverride) {
     } catch { return null; }
 }
 
-module.exports = { readRoomScriptModel, ROM_NAMES };
+module.exports = { readRoomScriptModel };
