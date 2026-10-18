@@ -99,8 +99,8 @@ test('localizations tables: address lookups', () => {
     // Engine table
     const orbit = getTable(0x8088A3);
     assert.ok(orbit);
-    assert.equal(orbit.name, 'Orbit table (y)');
-    assert.equal(getTableName(0x8088A3), 'Orbit table (y)');
+    assert.equal(orbit.name, '512-entry 16-bit trigonometric sine table (0..511 steps = 360 degrees)');
+    assert.equal(getTableName(0x8088A3), '512-entry 16-bit trigonometric sine table (0..511 steps = 360 degrees)');
 
     // Alchemy table
     const target = getTable(0x045BF5);
