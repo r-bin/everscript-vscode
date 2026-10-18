@@ -209,9 +209,34 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   `emulator/panel.js` 1130). The split lines are in the old audit §7.
 - [ ] **5.5 TS everywhere (D9)** with `@types/vscode` and `strict`; typed host↔webview message
   unions per panel. Measured at v0.199: 4 360 strict errors over the JS.
-- [ ] **5.6 WASM scouting (D12):** profile and list candidates with numbers — room decompression
+- [x] **5.6 WASM scouting (D12):** profile and list candidates with numbers — room decompression
   and encoding (`maps/lzss.ts`, `chr.ts`), the collision/special solver, CDL library analysis and
   xrefs, the script VM if it runs simulations at scale. Output: a table in this file, no code.
+  Measured v0.277.0 (2026-10-18), Node 26, Apple M4, the user's US ROMs, `node --cpu-prof`:
+
+  | Work | Time | Where the time goes | Verdict |
+  |---|---|---|---|
+  | Evermore `decodeRoom`, 127 rooms (LZSS, Markov, CHR) | 42 ms | spread | no |
+  | `decompressTile16x16` ×4096 | 6 ms | — | no |
+  | `modelFromRom` + `buildBlob`, all rooms; `lzssCompress` 16 KB | 3 ms; 2–3 ms | — | no |
+  | Evermore `renderRoomComposite`, all rooms (100 Mpx per layer) | 1.03 s (~8 ms a room) | `compositeLayers` 47 %, `renderVramLayer` 37 % (2.2 ns/px) | no: 32-bit pixel writes alone 2.2 → 1.6 ns/px, same bytes |
+  | Mana `renderMap`, 408 maps (304 Mpx) | 4.7 s (median 6 ms, max 72 ms) | `pick` / `rgb` allocate 2 objects + 2 arrays per pixel (15 ns/px) | no: JS without per-pixel allocation |
+  | Mana `loadMap` ×512, `mapCatalog` | 53 ms, 25 ms | — | no |
+  | CDL: open the library, `buildIndex`, the whole asar export | 91 ms, 57 ms, 0.73 s | string building, spread | no |
+  | Script simulation `sim.room()`, 127 rooms | 278 s (0x25: 5 s, 0x5a: 48 s) | see below | **no, algorithm** |
+
+  The simulation is the only slow path, and both hot spots are algorithmic. `Clock.longest`
+  (`simulation/time.ts`) runs Bellman–Ford over string-keyed edges, splitting `"a>b"` for every edge on every pass,
+  and `project` calls it for every pair of points (80 % of room 0x25). Swapping in a cached
+  all-pairs table (Floyd–Warshall, reset on `add`) gives identical `room()` output for 0x0a, 0x25, 0x35 and 0x5a and
+  takes 0x25 from 5.0 s to 0.52 s. The slow rooms then spend 55 % in `mergeGroup`'s `shared` (`turn.ts`):
+  each merge looks at every pair of paths for the longest shared history (cubic in the group size)
+  and recurses when a pair will not rejoin; a trie of the shared step arrays finds the pair directly.
+  WASM would buy a constant factor on top of these; nothing here needs it. Follow-ups: 5.7.
+- [ ] **5.7 The simulation's two hot spots (from 5.6):** `Clock` keeps numeric edges and one all-pairs
+  longest-path table, rebuilt only after `add` (the check: `room()` output byte-identical for every room
+  before and after); `mergeGroup` finds the pair with the longest shared history without trying every
+  pair. Target: `sim.room()` for every room in seconds, not 278 s.
 
 ### Step 6 — Docs and knowledge (D8, D11, D13)
 - [x] **6.1** `tools/check-knowledge.mts` + `npm run check:knowledge` (2026-10-16: 580 addresses in code,
