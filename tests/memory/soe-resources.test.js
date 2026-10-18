@@ -276,7 +276,14 @@ test('provider: a ~mount reads that ROM file; autoindex stays inside the mount',
 
 test('provider: rooms list every room; scripts/ does not list itself', async () => {
     const fsp = new SoeFileSystem({ vanillaRom: () => rom, emulatorRom: () => null, readMemory });
-    assert.deepStrictEqual(fsp.readDirectory(uri('soe://rom/assets/scripts/')).map(([n]) => n), ['index.md', 'index.json', 'rooms']);
+    assert.deepStrictEqual(fsp.readDirectory(uri('soe://rom/assets/scripts/')).map(([n]) => n), ['index.md', 'index.json', 'rooms', 'opcodes']);
+    // One page per opcode, from the handler's knowledge entry: description, addresses, uses.
+    const op = Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/opcodes/3c.md'))).toString();
+    assert.ok(op.startsWith('# Opcode 0x3c — spawn'), op.slice(0, 60));
+    assert.ok(op.includes('## Addresses') && op.includes('$8E:B55A') && op.includes('## In scripts'), 'addresses and uses');
+    const ops = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/opcodes/index.json'))).toString());
+    assert.strictEqual(ops.length, 168);
+    assert.ok(ops.every((o) => o.description), 'every opcode has a knowledge entry');
     const md = Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/rooms/index.md'))).toString();
     assert.ok(/# Room Scripts \(127\)/.test(md), md.slice(0, 80));
     assert.ok(md.includes('[38/index.md](38/index.md)'));

@@ -188,6 +188,7 @@ Disassembled and decoded Everscript bytecode from ROM.
 ## Navigating Scripts
 
 - [rooms/](rooms/index.md) - Scripts grouped by room (enter scripts, step-on triggers, B-triggers)
+- [opcodes/](opcodes/index.md) - Every script opcode: what the game's handler does, operands, flow, addresses, uses
 
 ## Direct Script Access
 

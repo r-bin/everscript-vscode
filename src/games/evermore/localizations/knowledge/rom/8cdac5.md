@@ -12,3 +12,9 @@ see: [docs/game-research/script-vm/opcodes.md]
 Only the operands and the flow are traced so far; what the handler does with them is not.
 
 Operands: none (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Calls: `$8F:CD4D`
+- Record fields (indexed by X/Y: a slot, an entity, a window): `+$0D`
+- Opcode table entry: `$8C:EA37` (0xbd)

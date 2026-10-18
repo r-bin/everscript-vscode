@@ -12,3 +12,8 @@ see: [docs/game-research/script-vm/opcodes.md]
 Only the operands and the flow are traced so far; what the handler does with them is not.
 
 Operands: `u8 u16 u16` (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Calls: `$90:A2A2`
+- Opcode table entry: `$8C:E981` (0x62)

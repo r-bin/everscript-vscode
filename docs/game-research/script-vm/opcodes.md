@@ -1,10 +1,10 @@
 # Script opcodes
 
 One row per opcode the dispatch table at `$8C:E8BD` sends to a handler (`$8C:D0A6` doubles the
-opcode byte and `JSR ($E8BD,x)`); the other opcodes land on `STP` (`$8C:E8B5`-`$E8BC`) and stop the CPU.
-Operand tokens and flow words: [README.md](README.md). Written from each handler's code (`$8C:xxxx` =
-the handler; each has a knowledge entry `rom/8cxxxx.md`) and checked against the running game
-(`tests/script-vm/`). `name` is ours; an empty one means only the operands are known so far.
+opcode byte and calls `JSR ($E8BD,x)`); the other opcodes land on `STP` (`$8C:E8B5`-`$E8BC`) and stop the CPU.
+Operand tokens and flow words: [README.md](README.md). Written from each handler's code (each has a
+knowledge entry `rom/8cxxxx.md`) and checked against the running game (`tests/script-vm/`). `name` is
+ours; an empty one means only the operands are known so far.
 
 | op | handler | operands | flow | name | what it does |
 |---|---|---|---|---|---|
@@ -45,15 +45,15 @@ the handler; each has a knowledge entry `rom/8cxxxx.md`) and checked against the
 | `2C` | `$8C:DB2A` | `u8` | continues |  | One byte of bits; bit 3 applies $8F:CD78 to the slot's entity. |
 | `2D` | `$8C:DAD4` | `u8` | continues |  | One byte of bits; bit 3 applies $8F:CD4D to the slot's entity. |
 | `2E` | `$8C:D244` | `E` | yields | `wait` | Wait: an entity expression; yields until it is done (see knowledge rom/8cd244). |
-| `30` | `$8C:D6A7` | `u8` | continues |  | One byte (see knowledge rom/8cd6a7). |
-| `31` | `$8C:D6A7` | `u8` | continues |  | Same handler as 0x30. |
-| `32` | `$8C:D6A7` | `u8` | continues |  | Same handler as 0x30. |
-| `33` | `$8C:D6D6` | `u8` | continues |  | One byte (see knowledge rom/8cd6d6). |
+| `30` | `$8C:D6A7` | `u8` | continues | `sound` | Sound effect: the byte indexes the word table at $8C:8362 (a negative entry is silent), played by $8C:82DC after driver command $30 with $243B. |
+| `31` | `$8C:D6A7` | `u8` | continues | `sound` | Same handler as 0x30. |
+| `32` | `$8C:D6A7` | `u8` | continues | `sound` | Same handler as 0x30. |
+| `33` | `$8C:D6D6` | `u8` | continues | `music` | Music: the byte indexes the word table at $8C:8442 (a negative entry does nothing); driver commands $1A, $2A ($A0), $2C, then $8C:828F with interrupts held off. |
 | `38` | `$8C:D20D` | — | yields | `yield` | Yield for one tick. |
 | `39` | `$8C:D220` | `E` | yields | `sleep` | Sleep for expression ticks: wake at timer $0B19 + n - 1 (32-bit), state 4; 0 does not yield. |
 | `3A` | `$8C:D20D` | — | yields | `yield` | Same handler as 0x38. |
 | `3B` | `$8C:D220` | `E` | yields | `sleep` | Same handler as 0x39. |
-| `3C` | `$8C:DCEC` | `u16 u16 u8 u8` | continues |  | A word indexing the table at $8E:B55A, a word, two bytes times 8. |
+| `3C` | `$8C:DCEC` | `u16 u16 u8 u8` | continues | `spawn` | Place an enemy or NPC: the first word is a byte offset into the ENEMY table at $8E:B55A (ENEMY value * 2), the second its state (bit 15: a spawner, $8F:DE98), then x and y in tiles (each * 8 to $46 / $48); $8F:A933, $8F:B094; the new entity goes to $0341. |
 | `3D` | `$8C:DD4B` | `E u16` | continues |  | Entity expression; the word to entity +$66, $40 to entity +$68. |
 | `3F` | `$8C:DD60` | `E u16 u16` | continues |  | Expression: an entity address (>= $2000) gets the two words at +$68 / +$66; a small index n gets them at $0EA2 / $0EAC + 2(n-1) (the second word is skipped when the first is 0). |
 | `42` | `$8C:DFEE` | `E u16` | continues |  | Entity expression and a word whose two bytes times 8 go to $46 / $48. |
@@ -69,21 +69,21 @@ the handler; each has a knowledge entry `rom/8cxxxx.md`) and checked against the
 | `4C` | `$8C:D87C` | `skip` | continues | `skip_byte` | Skips one byte and continues. |
 | `4D` | `$8C:D87E` | — | continues | `nop` | Does nothing. |
 | `4E` | `$8C:DDB0` | `E` | continues | `bind_entity` | The slot's entity (slot + $0D) becomes the entity expression (reference counts at entity +$3E follow). |
-| `50` | `$8C:D9FD` | `u8 u16` | continues |  |  |
-| `51` | `$8C:DA0A` | `u16` | continues |  |  |
-| `52` | `$8C:D99E` | `u16` | continues |  |  |
+| `50` | `$8C:D9FD` | `u8 u16` | continues | `text_in_window` | Show text: a window byte (record at $034D + $2C * n, $8C:D967), then the string key, looked up by $8C:CCF5 and shown by $8C:9E03. |
+| `51` | `$8C:DA0A` | `u16` | continues | `text` | Show text in the default window ($034D): the string key, as 0x50. |
+| `52` | `$8C:D99E` | `u16` | continues | `message` | Show a string key through $8C:CD33 and $8C:C521 (after $8C:C4F6 unless $23D3 or bit 15 of $0B2B is set). |
 | `54` | `$8C:D97C` | `u8` | continues |  |  |
 | `55` | `$8C:D988` | — | continues |  |  |
 | `58` | `$8C:DC87` | — | continues |  |  |
 | `59` | `$8C:DC74` | — | continues |  |  |
 | `5A` | `$8C:DE8F` | — | continues |  |  |
 | `5B` | `$8C:DE95` | — | continues |  |  |
-| `5C` | `$8C:DDCB` | `E E` | continues |  |  |
-| `5D` | `$8C:DDFF` | `E u16` | continues |  |  |
-| `5E` | `$8C:DE2E` | `E u16` | continues |  |  |
-| `5F` | `$8C:DE77` | `E u16` | continues |  |  |
-| `60` | `$8C:DDDB` | `E` | continues |  |  |
-| `61` | `$8C:DDED` | `E` | continues |  |  |
+| `5C` | `$8C:DDCB` | `E E` | continues | `set_object_state` | Map object (first expression) goes to the state of the second, through $90:A36D: clamped to the object's highest state, kept at $107E + object, animated when it differs from the current one ($10CE + object). |
+| `5D` | `$8C:DDFF` | `E u16` | continues | `set_object_state_by_flag` | Map object (expression) goes to its highest state ($7F, clamped) when the save flag (bit number) is set, else to 0 ($90:A36D). |
+| `5E` | `$8C:DE2E` | `E u16` | continues | `set_object_state_unless_flag` | The same with the flag's meaning reversed: highest state when it is clear. |
+| `5F` | `$8C:DE77` | `E u16` | continues | `add_object_state` | Map object (expression) goes to its target state ($107E + object) plus the word. |
+| `60` | `$8C:DDDB` | `E` | continues | `next_object_state` | Map object (expression) goes to its target state + 1. |
+| `61` | `$8C:DDED` | `E` | continues | `previous_object_state` | Map object (expression) goes to its target state - 1. |
 | `62` | `$8C:DFCF` | `u8 u16 u16` | continues |  |  |
 | `63` | `$8C:DF75` | — | continues |  |  |
 | `64` | `$8C:DE9B` | `E` | continues |  |  |
@@ -99,10 +99,10 @@ the handler; each has a knowledge entry `rom/8cxxxx.md`) and checked against the
 | `70` | `$8C:DF0D` | `E E` | continues |  |  |
 | `71` | `$8C:DF1D` | `E E` | continues |  |  |
 | `73` | `$8C:DA8D` | `E E E` | continues |  |  |
-| `74` | `$8C:DEDF` | `E` | continues |  |  |
-| `75` | `$8C:DEF5` | `E` | continues |  |  |
-| `76` | `$8C:DF01` | `E` | continues |  |  |
-| `77` | `$8C:DEE9` | `E` | continues |  |  |
+| `74` | `$8C:DEDF` | `E` | continues | `face_0` | Entity (expression) faces direction 0: its +$22 (FACE_DIRECTION) = 0. |
+| `75` | `$8C:DEF5` | `E` | continues | `face_8` | Entity faces direction 8 (+$22 = 8). |
+| `76` | `$8C:DF01` | `E` | continues | `face_12` | Entity faces direction 12 (+$22 = 12). |
+| `77` | `$8C:DEE9` | `E` | continues | `face_4` | Entity faces direction 4 (+$22 = 4). |
 | `78` | `$8C:E0B0` | `E u16 E` | continues |  | Entity expression, a word, an expression that picks one of six routines at $8C:E100 (none reads operands). |
 | `79` | `$8C:E156` | `E u16 E` | yields |  | Same as 0x78, then yields. |
 | `7A` | `$8C:E08E` | `E E` | continues |  |  |
@@ -144,7 +144,7 @@ the handler; each has a knowledge entry `rom/8cxxxx.md`) and checked against the
 | `9F` | `$8C:E5B0` | — | continues |  |  |
 | `A0` | `$8C:E628` | — | continues |  |  |
 | `A1` | `$8C:E65F` | — | continues |  |  |
-| `A2` | `$8C:DC9A` | `u16 u16 E E` | continues |  |  |
+| `A2` | `$8C:DC9A` | `u16 u16 E E` | continues | `spawn_at` | As 0x3C with x and y as expressions (pixels). |
 | `A3` | `$8C:D3A0` | `u8` | calls (yields) | `call_global` | Call a global script by id (see knowledge rom/8cd3a0). |
 | `A4` | `$8C:D395` | `u16` | calls (yields) | `call_trigger` | Call the script whose packed pointer is at $92:8000 + word[$92:8000] + the word. |
 | `A5` | `$8C:D35C` | `cb` | calls (yields) | `call_back` | Call a script that starts before this opcode: packed(opcode) - (256 - byte). |
@@ -167,7 +167,7 @@ the handler; each has a knowledge entry `rom/8cxxxx.md`) and checked against the
 | `B6` | `$8C:E85D` | `E E E E` | continues |  |  |
 | `B7` | `$8C:E88A` | `E` | continues |  |  |
 | `B9` | `$8C:E040` | `E E E` | continues |  |  |
-| `BA` | `$8C:DCD9` | `u8 u8 u8` | continues |  |  |
+| `BA` | `$8C:DCD9` | `u8 u8 u8` | continues | `spawn` | As 0x3C with an ENEMY value byte (doubled by the handler) and state 0. |
 | `BB` | `$8C:E467` | `E E` | continues |  |  |
 | `BC` | `$8C:DB1B` | — | continues |  |  |
 | `BD` | `$8C:DAC5` | — | continues |  |  |
@@ -175,4 +175,4 @@ the handler; each has a knowledge entry `rom/8cxxxx.md`) and checked against the
 | `BF` | `$8C:DACA` | — | continues |  |  |
 | `C0` | `$8C:DB25` | — | continues |  |  |
 | `C1` | `$8C:DACF` | — | continues |  |  |
-| `C2` | `$8C:DCC3` | `u8 u8 u8` | continues |  |  |
+| `C2` | `$8C:DCC3` | `u8 u8 u8` | continues | `spawn_spawner` | As 0xBA with state $8000: places a spawner. |

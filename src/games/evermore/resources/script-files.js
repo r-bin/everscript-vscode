@@ -15,6 +15,7 @@ const { hexId } = require('./resource-uri');
 const { dir, json, text } = require('./nodes');
 const MD = require('./script-markdown');
 const { resolveSimulationFile, SIMULATION_FILES } = require('./simulation-files');
+const { resolveOpcodes } = require('./opcode-files');
 
 function resolveScripts(segments, rom) {
     if (segments.length > 0 && segments[0] === 'everscript') {
@@ -25,6 +26,7 @@ function resolveScripts(segments, rom) {
             ['index.md', 'file'],
             ['index.json', 'file'],
             ['rooms', 'dir'],
+            ['opcodes', 'dir'],
         ], () => MD.scriptsRootMarkdown());
     }
 
@@ -40,6 +42,7 @@ function resolveScripts(segments, rom) {
     if (head === 'rooms' || head === 'maps') {
         return resolveRoomScripts(rest, rom);
     }
+    if (head === 'opcodes') return resolveOpcodes(rest, rom);
 
     // Direct script lookup by address or name
     return resolveDirectScript(head, rom);

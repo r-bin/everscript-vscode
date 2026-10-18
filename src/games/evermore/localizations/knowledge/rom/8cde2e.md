@@ -2,13 +2,21 @@
 addr: 8CDE2E
 kind: code
 category: 🧠
-name: script_op_5e
-title: Script opcode 0x5e
+name: script_op_5e_set_object_state_unless_flag
+title: Script opcode 0x5e — set object state unless flag
 confidence: likely
 tags: [script-vm]
 evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E u16, continues in the same turn (docs/game-research/script-vm/opcodes.md)"]
 see: [docs/game-research/script-vm/opcodes.md]
 ---
-Only the operands and the flow are traced so far; what the handler does with them is not.
+The same with the flag's meaning reversed: highest state when it is clear.
 
 Operands: `E u16` (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Operand expressions: `$8C:EA43` (`$8C:EC8E` for an entity: the result also goes to DP `$4C`)
+- Calls: `$90:A36D`
+- Reads ROM: `$80:A87F`
+- Record fields (indexed by X/Y: a slot, an entity, a window): `+$00`
+- Opcode table entry: `$8C:E979` (0x5e)

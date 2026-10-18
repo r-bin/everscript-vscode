@@ -12,3 +12,8 @@ see: [docs/game-research/script-vm/opcodes.md]
 Only the operands and the flow are traced so far; what the handler does with them is not.
 
 Operands: none (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Writes WRAM: `$7E:0B95`; `$7E:0E6C`
+- Opcode table entry: `$8C:E9CD` (0x88)

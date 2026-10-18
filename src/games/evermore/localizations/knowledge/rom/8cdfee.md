@@ -12,3 +12,12 @@ see: [docs/game-research/script-vm/opcodes.md]
 Entity expression and a word whose two bytes times 8 go to $46 / $48.
 
 Operands: `E u16` (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Operand expressions: `$8C:EA43` (`$8C:EC8E` for an entity: the result also goes to DP `$4C`)
+- Calls: `$8F:C2D1`; `$8F:C2E4`
+- Reads WRAM: `$7E:23DB` in Persistent RAM across rooms (names, story flags, markets, alchemy) (+$1DB)
+- Writes WRAM: `$7E:23DB` in Persistent RAM across rooms (names, story flags, markets, alchemy) (+$1DB)
+- Record fields (indexed by X/Y: a slot, an entity, a window): `+$10`
+- Opcode table entry: `$8C:E941` (0x42)

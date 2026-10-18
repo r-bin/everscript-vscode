@@ -123,5 +123,31 @@ test('a walk follows branches and calls and reports where decoding stops', () =>
     assert.ok(w.callees.has(0x948010));
 });
 
+test('facts: writes, flags, calls, map changes, sounds, spawns, sleeps', () => {
+    const w = V.facts(decode([0x18, 0x39, 0x01, 0x84, 0x07, 0x08]));
+    assert.deepStrictEqual([w.k, w.area, w.addr, w.width, w.value], ['write', 'save', 0x2391, 2, 0x0807]);
+    const t = V.facts(decode([0x11, 0x02, 0x00, 0xb5]));
+    assert.deepStrictEqual([t.area, t.addr, t.width, t.value], ['temp', 0x2836, 1, 5]);
+    const f = V.facts(decode([0x0c, 0x0c, 0x00, 0xb1]));
+    assert.deepStrictEqual([f.k, f.addr, f.mask, f.value], ['flag', 0x2259, 0x10, 1]);
+    assert.deepStrictEqual(V.facts(decode([0x22, 29, 41, 0x36, 0x00])), { k: 'changeMap', map: 0x36, word: 0x36, x: 29, y: 41 });
+    assert.deepStrictEqual(V.facts(decode([0x33, 0x8e])), { k: 'music', index: 0x8e });
+    assert.deepStrictEqual(V.facts(decode([0x3c, 0x16, 0x00, 0x00, 0x80, 4, 5])), { k: 'spawn', index: 0x0b, state: 0x8000, x: 4, y: 5, spawner: true });
+    assert.deepStrictEqual(V.facts(decode([0xba, 0x08, 49, 57])), { k: 'spawn', index: 8, state: 0, x: 49, y: 57, spawner: false });
+    assert.deepStrictEqual(V.facts(decode([0xa7, 5])), { k: 'sleep', ticks: 5 });
+    const c = V.facts(decode([0xb0, 0x01, 0xb3, 0x02]));
+    assert.deepStrictEqual([c.k, c.global, c.args], ['call', 2, 1]);
+});
+
+test('text: the compiler\'s notation, our names, the caller\'s names', () => {
+    assert.strictEqual(V.text(decode([0x18, 0x39, 0x01, 0x84, 0x07, 0x08])), '<0x2391> = 0x0807;');
+    assert.strictEqual(V.text(decode([0x09, 0x85, 0x08, 0x00, 0x06, 0x00])), 'if! (<0x2259, 0x01>) goto $94:800c;');
+    assert.strictEqual(V.text(decode([0x10, 0x39, 0x01, 0x07, 0x39, 0x01, 0x29, 0x33, 0x9a])), '(Byte)<0x2391> = (Byte)<0x2391> + 3;');
+    assert.strictEqual(V.text(decode([0x29, 0x10, 0x00, 0x01]), { script: (a) => (a === 0x948010 ? 'gourd' : '') }), 'call gourd;');
+    assert.strictEqual(V.text(decode([0x8d, 0x01])), 'op_8d(0x01);', 'an opcode without a name says so');
+    assert.strictEqual(V.everscript(decode([0xa7, 5]), [0xa7, 5]), 'code(0xa7, 0x05); // sleep(5);');
+});
+
 console.log(`\nscript-vm units: ${passed} passed, ${failed} failed`);
-process.exit(failed ? 1 : 0);
+// exitCode, not exit(): Node 26 can deadlock in process.exit() (tools/test.mts).
+process.exitCode = failed ? 1 : 0;

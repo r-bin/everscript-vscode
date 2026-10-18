@@ -16,7 +16,9 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
   `ops-*.ts`) or the third-party tools the root `AGENTS.md` names while changing this folder; comparing outputs
   (lengths, stop points) is allowed.
 - A rule change starts in the handler's code (`$8C:E8BD` table), goes into
-  `docs/game-research/script-vm/` and the handler's knowledge entry, then `spec.ts`.
+  `docs/game-research/script-vm/` and the handler's knowledge entry, then `spec.ts`. The entries are
+  the opcodes' descriptions for `soe://rom/assets/scripts/opcodes/` (`resources/opcode-files.js`): what
+  the handler does in plain words, then `## Addresses` (calls, WRAM, ROM tables, fields).
 - Never guess a length: an opcode without a handler or a sub-op the game cannot run is a
   `DecodeError` at its address.
 - US layout only: `ScriptRom` refuses a ROM whose script header is elsewhere.

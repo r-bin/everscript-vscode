@@ -131,8 +131,11 @@ Scope, from the inventory of 2026-10-16:
   from that spec), `tools/script-vm/record-goldens.js` → `tests/script-vm/goldens.json` (2,130
   instructions the game ran in the intro and 32 recorded sessions, addresses only). A walk from every
   table reaches 64,839 instructions, none the game cannot run, all 2,130 among them; sizes agree with the
-  legacy decoder on every one (compared once, not kept as a test). Left: printing in the compiler's
-  spelling, then moving the consumers (2.4).
+  legacy decoder on every one (compared once, not kept as a test). v0.281.0: `facts.ts` (writes, flags, calls, map
+  changes, sound, music, text, spawns, sleeps) and `print.ts` (one line per instruction in the compiler's notation,
+  `code(...)` with it as a comment for the exact form); 25 more opcodes named from their handlers; every handler's
+  knowledge entry lists the addresses it uses, and `soe://rom/assets/scripts/opcodes/` serves one page per opcode.
+  Left: moving the consumers (2.4).
 - [ ] **2.3** Room names in the new style, each with evidence.
 - [ ] **2.4** Delete every row's old files; `check:legal` clean.
 

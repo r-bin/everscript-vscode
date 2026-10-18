@@ -2,13 +2,20 @@
 addr: 8CDCD9
 kind: code
 category: 🧠
-name: script_op_ba
-title: Script opcode 0xba
+name: script_op_ba_spawn
+title: Script opcode 0xba — spawn
 confidence: confirmed
 tags: [script-vm]
 evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands u8 u8 u8, continues in the same turn (docs/game-research/script-vm/opcodes.md)", "trace: the game ran 57 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
 see: [docs/game-research/script-vm/opcodes.md]
 ---
-Only the operands and the flow are traced so far; what the handler does with them is not.
+As 0x3C with an ENEMY value byte (doubled by the handler) and state 0.
 
 Operands: `u8 u8 u8` (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Calls: `$8F:A933`; `$8F:B094`; `$8F:DE98`
+- Writes WRAM: `$7E:0341`
+- Reads ROM: `$8E:B55A` ENEMY id -> character record address (word table, 143 entries, right before the character table)
+- Opcode table entry: `$8C:EA31` (0xba)

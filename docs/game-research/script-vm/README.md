@@ -3,7 +3,9 @@
 How Secret of Evermore (US) runs its event scripts, read from the interpreter's own code and
 checked against the running game. This is the spec `src/games/evermore/script-vm/` is written
 from (`docs/plans/script-decoder-from-game-code.md`, `docs/cleanup.md` D3). Per-opcode table:
-[opcodes.md](opcodes.md).
+[opcodes.md](opcodes.md). Each handler's knowledge entry (`knowledge/rom/<handler>.md`) holds what it
+does in plain words and the addresses it uses (calls, WRAM, ROM tables, record fields); `soe://` serves one
+page per opcode from them, with the uses in the user's ROM: `soe://rom/assets/scripts/opcodes/<xx>.md`.
 
 ## The interpreter
 
@@ -87,7 +89,7 @@ binary operator pops the saved value and combines it with the current one. So `a
 | `$57` | 0 | 1 when `$0F42` = `$0F40` |
 | `$58` / `$59` | 0 | the low / high word of the field frame counter `$0B19` |
 | `$5A` / `$5B` | 0 | shop routines (`$8E:9FA8`, `$8E:9EBE`) on the current value; a small result code |
-| `$5C` | 0 | 1 when the entity in the current value has +`$2A` > +`$76` |
+| `$5C` | 0 | 1 when the entity in the current value has more HP (+`$2A`) than its last damage (+`$76`) |
 
 `$19`, `$2F` and `$5D`-`$5F` branch to themselves and hang the game. `$70`-`$7F` index past
 the table.

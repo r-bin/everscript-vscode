@@ -12,3 +12,8 @@ see: [docs/game-research/script-vm/opcodes.md]
 Two bytes times 8 to $46/$48 (x, y in pixels), then $8F:B434.
 
 Operands: `u8 u8` (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Calls: `$8F:B434`
+- Opcode table entry: `$8C:E8FD` (0x20)
