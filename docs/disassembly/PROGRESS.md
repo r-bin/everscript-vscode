@@ -10,9 +10,9 @@
 | Metric | Completed | Total / Scope | Progress (%) | Status |
 |---|---|---|---|---|
 | **CDL ROM Coverage** | ~43,890 bytes | ~450,000 code bytes | **9.8 %** | Expanding via scripted emulator runs |
-| **Identified / Named Functions** | 264 | 403 (CDL recorded roots) | **65.5 %** | Solid majority landmark (>65%)! |
-| **Fully Documented Functions** | 251 | 403 (CDL recorded roots) | **62.3 %** | Crosses 62.3% landmark documentation milestone! |
-| **Clean C Decompiled Functions** | 229 | 403 (CDL recorded roots) | **56.8 %** | Crosses 56.8% milestone! |
+| **Identified / Named Functions** | 265 | 403 (CDL recorded roots) | **65.8 %** | Solid majority landmark (>65%)! |
+| **Fully Documented Functions** | 252 | 403 (CDL recorded roots) | **62.5 %** | Crosses 62.5% landmark documentation milestone! |
+| **Clean C Decompiled Functions** | 230 | 403 (CDL recorded roots) | **57.1 %** | Crosses 57.1% milestone! |
 | **WRAM Variables Mapped** | 9,373 | 32,291 accessed bytes | **29.0 %** | Crosses 29.0% of WRAM! Dialogue cursor $7E:061F, text control $7E:0621, Deadzones $7E:240F..$7E:2415, companion lead $7E:143A, header flags $7E:0F84, Child slot cursor $7E:3BC3, task selector $7E:3BC5, free list head $7E:3BC7, free list links $7E:3BC9, parent pointers $7E:3C14, frame latch $7E:0100, Grass swap batch cursor $7E:0FD0, pending swap queue $7E:0FD2..$7E:1001, grid offset table $7E:1002..$7E:1031, packed coords $7E:1032..$7E:1061, L2 viewport bounds $7E:0F94..$7E:0F9A, VRAM staging cursor $7E:1170, Companion waypoint ring anchor $7E:3C01, queue tail $7E:3BFF, step counter $7E:3C10, nav flags $7E:3C12, target layer $7E:3BCA, target metatile $7E:3BC9, obstacle $7E:3BFC, breadcrumb targets $7E:3C03..$7E:3C0E, Tile family animation offsets $7E:62A5..$7E:6385, animation channel buffers $7E:13D2..$7E:13F0, timers $7E:128E/$7E:1290, frame hold timer $7E:1432, POI tracking slots $7E:0FD2..$7E:0FDC, POI screen buffers $7E:1002..$7E:100C, packed coordinates $7E:1032..$7E:103C, radar window bounds $7E:0F8C..$7E:0F92, radar cache buffer $7E:1174, staging buffer $7E:11F4, cell attributes $7E:0FB4..$7E:0FC0, Particle states $7E:2480..$7E:24BF, status slots $46..$5C, child aux barrier $98, silent flag $7E:15D2, party barrier flags $7E:2261, buff conditions $7E:2262/$7E:2263, Entity face direction +$22, vector deltas, VRAM lock $7E:0F3A, font glyph height $7E:0B3D, line stride $7E:0B3F, buffer base $7E:0B41, 2bpp staging buffer $7F:A000, last spawned entity $7E:0341, deferred spawn buffer $7E:0EC0, animation override $7E:23DD, room states $7E:2431/$7E:2433, Joypad control mask $7E:0B83, joypad button filter $7E:0106, joypad edge state $7E:0105, DP $9B fade target, Target room ID $7E:0ADB, active Boy/Dog pointers $7E:0F3E/$7E:0F40, current/target orbit angles $7E:061B/$7E:061D, combat flow override flags $7E:0EB8, entity combat flags +$16, HUD tracking +$8E, last damage taken +$AA, Ring Slot Display table $7E:06A3 (256 bytes), ring cached flag $7E:0BF9, modal flag $7E:05AB, active char $7E:05A7, map tile dimensions $7E:08EE/$7E:08EF, script Z override $7E:23DB, entity world coords +$18/+$1A/+$1C, tile offset +$3A, surface flags +$3C, packed tile +$62, child attachments +$6A/+$6C/+$98, Low OAM buffer $7E:ABDE (512 bytes) + High OAM bit table (32 bytes), screen shake registers $7E:2409/$7E:240B, DP $C3/$C5/$C7/$C9, frame seed $7E:0134, Dog latch timer +0x78, Dynamic OBJ LRU cache tables $7E:96A5/$7E:9725, tile owner tables $7E:7D51/$7E:95A5, VRAM staging DMA buffer $7E:6C91, upload queue $7E:15D6, attack power $7E:0E9C, projectile pointer $7E:0E9E, damage dealt $7E:0EA0, weather preset config block $7E:72D1..$7E:734F, active action ID $7E:0E9A, entity node head $7E:3DDF, DP $80, DP $83, DP $86, MAP_PALETTE $7E:2437, loaded palette $7E:0F8A, tile families offset $7E:0F9C, tile family buffer $7E:61A7, charge stamina +0x2E, contact weapon +0x60, state flags +0x14, Thread return PC +0x0B/+0x0D, parent link +0x3E, arg flag $8A, LZSS window $7F:A000..$7F:A3FF, LZSS idx $12, LZSS flags $16, sprite palette slots $7E:0DE0..$7E:0DF7, palette age $7E:0DF8, DMA queue ptr $7E:0DFA, entity palette +0x24, asset ID +0x22, trigger count $7E:1067, trigger ptr $7E:1069, latched trigger $7E:2429, world coords +0x30/+0x32, facing dir +0x34, step speed +0x36, tile collision +0x38, weather particles $7E:2440..$7E:247F, weather mode $7E:2439, wind drift $7E:243B, terminal velocity $7E:243D, consumable satchel $2315..$231B, escape flag $0E5E, hit rate +0x42, evade +0x44, last attacker +0x72, cooldown timer +0x74, pending damage +0x76, animation done bit +0x26, Max HP cap $0A35, current HP clamp $4EB3, evade $0A3F, MDef $0A41, MEvade $0A43, crit $0A45, buff flags $2261..$2263, bazooka ammo $2349, equipped gear $0ABE, gear bonuses $4F29..$4F37, HDMA sky table $7E:7341..$7E:734F, active weapon $2441, level stat $0A91, attack $0A8F, defense $0A8B, MDef $0A89, Atlas buff $2261, Toaster form $2363, weapon bonus $4FDB/$4FDD, ingredient satchel $2315, sub-window registers $03E1..$0403, altitude $0619, pitch $061B, flight active $0B29, cockpit anchors $4EF7/$4EF9, entity node head $3DDF, tracking deltas $0F8C/$0F90, minimap blip $0F92, active offers count $0BA1, cursor $0BA3, controller 1 buttons $0104, weapon threshold target $0BF5, text buffer $7E:2FF4, flight coordinates $0615/$0617, and category counts $0BFF..$0C6D mapped |
 | **Mechanical C Lift (snesrecomp)** | 400 roots | 400 roots (1,079 variants) | **100 %** | Compiles & runs |
 
@@ -22,7 +22,7 @@
 
 | Subsystem | Key Address Range | Functions Named | C Decompiled | Status & Documentation |
 |---|---|---|---|---|
-| **Boot, Hardware & Weather** | `$80:8020` – `$80:A4B4`, `$8C:988D` | 18 / 16 | 15 / 6 (`reset_handler`, `cycle_palette_group_1`, `cycle_palette_group_2`, `weather_tick_and_screen_shake`, `palette_transfer_stream_block`, `palette_cgram_buffer_commit`, `hdma_color_gradient_band_builder`, `weather_particle_simulation_loop`, `decompression_dispatcher_reads_sub_flag_jumps_th`, `method_0x00_raw_copy`, `method_0x03_lzss_window`, `load_weather_preset_parameters`, `vram_dma_upload_tile_block`, `weather_particle_generator_and_acceleration`, `weather_particle_splash_and_recycle`) | ✅ **Complete**: [`boot-reset.md`](engine-core/boot-reset.md), [`weather-palette.md`](engine-core/weather-palette.md), [`screen-effects.md`](engine-core/screen-effects.md), [`hdma-gradients.md`](engine-core/hdma-gradients.md), [`weather-particles.md`](engine-core/weather-particles.md), [`lzss-decompression.md`](engine-core/lzss-decompression.md), [`weather-preset.md`](engine-core/weather-preset.md), [`dialogue-glyphs.md`](ui/dialogue-glyphs.md), [`weather-physics.md`](engine-core/weather-physics.md) |
+| **Boot, Hardware & Weather** | `$80:8020` – `$80:A4B4`, `$8C:988D` | 19 / 16 | 16 / 6 (`reset_handler`, `cycle_palette_group_1`, `cycle_palette_group_2`, `weather_tick_and_screen_shake`, `palette_transfer_stream_block`, `palette_cgram_buffer_commit`, `hdma_color_gradient_band_builder`, `weather_particle_simulation_loop`, `decompression_dispatcher_reads_sub_flag_jumps_th`, `method_0x00_raw_copy`, `method_0x03_lzss_window`, `load_weather_preset_parameters`, `vram_dma_upload_tile_block`, `weather_particle_generator_and_acceleration`, `weather_particle_splash_and_recycle`, `weather_preset_and_palette_dispatcher`) | ✅ **Complete**: [`boot-reset.md`](engine-core/boot-reset.md), [`weather-palette.md`](engine-core/weather-palette.md), [`screen-effects.md`](engine-core/screen-effects.md), [`hdma-gradients.md`](engine-core/hdma-gradients.md), [`weather-particles.md`](engine-core/weather-particles.md), [`lzss-decompression.md`](engine-core/lzss-decompression.md), [`weather-preset.md`](engine-core/weather-preset.md), [`dialogue-glyphs.md`](ui/dialogue-glyphs.md), [`weather-physics.md`](engine-core/weather-physics.md), [`screen-flash.md`](engine-core/screen-flash.md) |
 | **Engine Main Loop & Tasks** | `$80:8B66` – `$80:8CC8` | 6 / 12 | 1 / 1 (`main_loop_entry`) | ✅ **Complete**: [`main-loop.md`](engine-core/main-loop.md) |
 | **NMI & Video Refresh (VBLANK)**| `$80:823A` – `$80:84A0` | 6 / 8 | 1 / 1 (`nmi_handler`) | ✅ **Complete**: [`nmi-vblank.md`](engine-core/nmi-vblank.md) |
 | **Screen Transitions & Room Loader** | `$8E:E4E2` – `$8E:FFFF`, `$8F:ACB1` | 12 / 22 | 7 / 4 (`enter_room`, `reset_per_room_state`, `scan_room_triggers`, `spawn_character_script_thread`, `step_on_trigger_search`, `trigger_box_test_origin_added_far_edge_exclusive`, `bit_14_gate_before_step_on_search_current_trigge`) | ✅ **Complete**: [`room-enter.md`](engine-core/room-enter.md), [`trigger-scanner.md`](maps/trigger-scanner.md), [`equipment-stats.md`](ui/equipment-stats.md), [`step-triggers.md`](maps/step-triggers.md) |
@@ -43,24 +43,29 @@
 
 When an agent is prompted with *"continue the decompilation"*, work down this ordered queue:
 
-1. **Target 1: Screen Flash & Sparse Palette Decompressor (`$80:9FA0` – `$80:A050`)**:
-   - Location: Bank `$80` (`$80:9FA0` – `$80:A050`).
-   - Purpose: Sparse 2-bit tag palette stream decompressor for PPU CGRAM shadow buffers `$7E:7321`..`$7E:734F`.
-   - Deliverable: Decompile into clean C in `docs/disassembly/engine-core/screen-flash.md`.
-
-2. **Target 2: Map Palette Cycle Staging Buffer Commit (`$80:9700` – `$80:9770`)**:
-   - Location: Bank `$80` (`$80:9700` – `$80:9770`).
+1. **Target 1: Map Palette Cycle Staging Buffer Commit (`$80:9700` – `$80:9740`)**:
+   - Location: Bank `$80` (`$80:9700` – `$80:9740`).
    - Purpose: Real-time map color cycling buffer commit and DMA channel scheduling.
    - Deliverable: Decompile into clean C in `docs/disassembly/engine-core/palette-cycle-commit.md`.
 
-3. **Target 3: Script VM String Dictionary Expander (`$91:F300` – `$91:F3AE`)**:
+2. **Target 2: Script VM String Dictionary Expander (`$91:F300` – `$91:F3AE`)**:
    - Location: Bank `$91` (`$91:F300` – `$91:F3AE`).
    - Purpose: Secondary Huffman / word dictionary pointer unpacker for dialogue script keys.
    - Deliverable: Decompile into clean C in `docs/disassembly/ui/string-dictionary.md`.
 
+3. **Target 3: Map Elevation Ramp & Slope Edge Detector (`$90:9E50` – `$90:9EA0`)**:
+   - Location: Bank `$90` (`$90:9E50` – `$90:9EA0`).
+   - Purpose: Sub-tile slope collision height interpolation and diagonal boundary physics.
+   - Deliverable: Decompile into clean C in `docs/disassembly/maps/slope-collision.md`.
+
 ---
 
 ## 4. Session History
+
+- **2026-10-18 (Session 48)**: Decompiled Sparse Palette & Weather Preset Bitmask Decompressor (`$80:9741` – `$80:A16E`):
+   - Master Stream Dispatcher (`$80:9741`): analyzed preset header routing checking bit 15 of `$EC:0001,X` to select either uncompressed copy `$80:A2E0` or sparse 2-bit tag stream decompressor (`docs/disassembly/engine-core/screen-flash.md`).
+   - 2-Bit Tag Sparse Decompressor (`$80:974B` – `$80:A16E`): analyzed 8-block $\times$ 8-word (128-byte) reconstruction loop for weather physics (`$7E:72D1`..`$7E:731F`) and CGRAM shadow buffers (`$7E:7321`..`$7E:734F`), evaluating 2-bit shift tags (`11` = double zero, `01` = zero/word, `10` = word/zero, `00` = word/word), and committing to PPU via `palette_cgram_buffer_commit` (`$80:A16E`).
+   - Upgraded knowledge entry `809751.md` with category brain and C decompilation cross-reference.
 
 - **2026-10-18 (Session 47)**: Decompiled Dialogue Variable Token Expander & Proportional Word-Wrap Line Measurer (`$8C:9E03` – `$8C:A0C4`):
    - Variable Token Expander (`$8C:A01D` – `$8C:A0B7`): analyzed special control code jump table `$8C:9EFA` expanding token `0x81` to Boy's name (`$7E:2210`), `0x82` to Dog's name (`$7E:2234`), `0x83` to `"player 3\0"` (`$8C:A087`), and `0x84` to `"player 4\0"` (`$8C:A0AF`) (`docs/disassembly/ui/string-digraphs.md`).
