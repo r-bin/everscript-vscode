@@ -10,10 +10,10 @@
 | Metric | Completed | Total / Scope | Progress (%) | Status |
 |---|---|---|---|---|
 | **CDL ROM Coverage** | ~42,584 bytes | ~450,000 code bytes | **9.3 %** | Expanding via scripted emulator runs |
-| **Identified / Named Functions** | 60 | 403 (CDL recorded roots) | **14.9 %** | In Progress |
-| **Fully Documented Functions** | 36 | 403 (CDL recorded roots) | **8.9 %** | In Progress |
-| **Clean C Decompiled Functions** | 25 | 403 (CDL recorded roots) | **6.2 %** | Boot, Main Loop, NMI, Enter Room, Room Reset, Script VM Dispatcher, Expression Evaluator, Entity Pool, APU Handshake, Soundbank Loader, Music Player, Entity Physics, Trigger Scanner, Tile Collision, Spell Power Math, Camera Centering, Ring Menu Validator, Damage Mitigation, Animation VM, Companion & Dog AI, Weapon Stamina Regen, Attack Level Select, Damage Stamina Scaling, Name Profanity Filter, Equipped Armor Defense |
-| **WRAM Variables Mapped** | 2,050 | 32,291 accessed bytes | **6.3 %** | Ring menu inventory, equipment slots, stamina registers, and companion state mapped |
+| **Identified / Named Functions** | 70 | 403 (CDL recorded roots) | **17.4 %** | In Progress |
+| **Fully Documented Functions** | 45 | 403 (CDL recorded roots) | **11.2 %** | In Progress |
+| **Clean C Decompiled Functions** | 33 | 403 (CDL recorded roots) | **8.2 %** | Boot, Main Loop, NMI, Enter Room, Room Reset, Script VM Dispatcher, Expression Evaluator, Entity Pool, APU Handshake, Soundbank Loader, Music Player, Entity Physics, Trigger Scanner, Tile Collision, Spell Power Math, Camera Centering, Ring Menu Validator, Damage Mitigation, Animation VM, Companion & Dog AI, Weapon Stamina Regen, Attack Level Select, Damage Stamina Scaling, Name Profanity Filter, Equipped Armor Defense, Enemy AI Dispatcher, Roaming Monster AI, Aggro Detection Pipeline, Stationary Turret AI, Dialogue String Key Decoder, Magmar Boss State Machine, Static Boss Target Exposure, Submerging Swamp Boss AI |
+| **WRAM Variables Mapped** | 2,350 | 32,291 accessed bytes | **7.3 %** | Text decode buffer $7F:D81E, enemy AI target registers, boss phase timers, and damage flags mapped |
 | **Mechanical C Lift (snesrecomp)** | 400 roots | 400 roots (1,079 variants) | **100 %** | Compiles & runs |
 
 ---
@@ -27,13 +27,13 @@
 | **NMI & Video Refresh (VBLANK)**| `$80:823A` – `$80:84A0` | 5 / 8 | 1 / 1 (`nmi_handler`) | ✅ **Complete**: [`nmi-vblank.md`](engine-core/nmi-vblank.md) |
 | **Screen Transitions & Room Loader** | `$8E:E4E2` – `$8E:FFFF` | 9 / 22 | 4 / 4 (`enter_room`, `reset_per_room_state`, `scan_room_triggers`, `spawn_character_script_thread`) | ✅ **Complete**: [`room-enter.md`](engine-core/room-enter.md), [`trigger-scanner.md`](maps/trigger-scanner.md), [`equipment-stats.md`](ui/equipment-stats.md) |
 | **Core WRAM & PPU Shadows** | `$7E:0070` – `$7E:013A` | 34 / 34 | Structs Defined | ✅ **Complete**: [`wram-map.md`](engine-core/wram-map.md) |
-| **Script VM & Opcode Dispatch**| `$8C:CFFD` – `$8C:EFFF` | 36 / 195 | 3 / 3 (`script_scheduler_pass`, `script_vm_eval_expression`, `launch_trigger_script`) | ✅ **Complete**: [`dispatcher.md`](script-vm/dispatcher.md), [`expression-eval.md`](script-vm/expression-eval.md) |
+| **Script VM & Opcode Dispatch**| `$8C:CFFD` – `$8C:EFFF` | 38 / 195 | 5 / 5 (`script_scheduler_pass`, `script_vm_eval_expression`, `launch_trigger_script`, `decode_dialogue_string_key`, `decode_dialogue_string_key_secondary`) | ✅ **Complete**: [`dispatcher.md`](script-vm/dispatcher.md), [`expression-eval.md`](script-vm/expression-eval.md), [`dialogue-window.md`](ui/dialogue-window.md) |
 | **Actor & Animation Engine** | `$80:9685`, `$90:xxxx` | 13 / 45 | 5 / 5 (`init_entity_pool`, `update_entity_physics`, `anim_vm_tick`, `companion_input_ai_dispatcher`, `companion_entity_update`) | ✅ **Complete**: [`actor-lifecycle.md`](entities/actor-lifecycle.md), [`physics-integration.md`](entities/physics-integration.md), [`animation-vm.md`](animation/animation-vm.md), [`dog-ai.md`](entities/dog-ai.md) |
-| **Combat & Damage Math** | `$89:xxxx`, `$91:xxxx` | 12 / 38 | 5 / 5 (`calc_spell_power_and_cast`, `apply_spell_damage_to_targets`, `recharge_entity_stamina`, `select_attack_level_by_stamina`, `scale_damage_by_stamina`) | ✅ **Complete**: [`alchemy-formulas.md`](combat/alchemy-formulas.md), [`damage-mitigation.md`](combat/damage-mitigation.md), [`weapon-charge.md`](combat/weapon-charge.md) |
+| **Combat, Enemy & Boss AI** | `$89:xxxx`, `$8F:Dxxx` | 20 / 48 | 10 / 10 (`calc_spell_power_and_cast`, `apply_spell_damage_to_targets`, `recharge_entity_stamina`, `select_attack_level_by_stamina`, `scale_damage_by_stamina`, `enemy_ai_dispatcher`, `enemy_ai_roaming_chaser`, `enemy_ai_check_aggro`, `boss_ai_magmar`, `boss_part_static_target`) | ✅ **Complete**: [`alchemy-formulas.md`](combat/alchemy-formulas.md), [`damage-mitigation.md`](combat/damage-mitigation.md), [`weapon-charge.md`](combat/weapon-charge.md), [`enemy-ai.md`](entities/enemy-ai.md), [`boss-engine.md`](combat/boss-engine.md) |
 | **Audio / APU Handshake & Sound**| `$8C:8000` – `$8C:83FF` | 8 / 15 | 3 / 3 (`apu_command_handshake`, `load_song_soundbank`, `play_music_track`) | ✅ **Complete**: [`spc-handshake.md`](audio/spc-handshake.md) |
 | **Camera & Viewport Subsystem**| `$90:94AB` – `$90:9544` | 3 / 6 | 1 / 1 (`camera_center_and_clamp`) | ✅ **Complete**: [`camera-system.md`](engine-core/camera-system.md) |
 | **Map Metatiles & Collision Grid**| `$90:9DE8` – `$90:9E72` | 4 / 10 | 2 / 2 (`eval_tile_collision`, `update_entity_plane`) | ✅ **Complete**: [`tile-collision.md`](maps/tile-collision.md) |
-| **Ring Menu & UI Subsystems** | `$8E:8000` – `$8E:9F00` | 5 / 12 | 4 / 4 (`ring_menu_select_and_cost_check`, `calc_equipped_armor_defense`, `init_equipment_screen_slots`, `check_name_profanity`) | ✅ **Complete**: [`ring-menu.md`](ui/ring-menu.md), [`equipment-stats.md`](ui/equipment-stats.md), [`weapon-charge.md`](combat/weapon-charge.md) |
+| **Ring Menu & UI Subsystems** | `$8E:8000` – `$8E:9F00` | 6 / 12 | 5 / 5 (`ring_menu_select_and_cost_check`, `calc_equipped_armor_defense`, `init_equipment_screen_slots`, `check_name_profanity`, `decode_dialogue_string_key`) | ✅ **Complete**: [`ring-menu.md`](ui/ring-menu.md), [`equipment-stats.md`](ui/equipment-stats.md), [`weapon-charge.md`](combat/weapon-charge.md), [`dialogue-window.md`](ui/dialogue-window.md) |
 
 ---
 
@@ -41,23 +41,23 @@
 
 When an agent is prompted with *"continue the decompilation"*, work down this ordered queue:
 
-1. **Target 1: Enemy AI Behavioral State Machine & Leash Radius (`$8F:D34B` / `$8F:D6FB`)**:
-   - Location: Bank `$8F` (`$8F:D34B` roaming/chasing monsters, `$8F:D6FB` stationary turrets).
-   - Purpose: Enemy behavioral loops, aggro dice roll against stamina $\ge \$0400$, leash radius `+0x40`, vector advance towards target, and stamina-gated attacks.
-   - Evidence to consult: `docs/script-format/enemy_ai.md`, `soe://rom/0fd34b.asm`.
-   - Deliverable: Decompile into clean C in `docs/disassembly/entities/enemy-ai.md`.
+1. **Target 1: Alchemy Formula Inventory & Ingredient Consumption Math (`$91:D800` – `$91:E200`)**:
+   - Location: Bank `$91` (`$91:D800` – `$91:E200`).
+   - Purpose: Inventory deduction of 22 alchemy ingredients (Roots, Wax, Ash, Limestone, etc.), formula cost validation, and alchemy experience level-up progression tables.
+   - Evidence to consult: `docs/script-format/alchemy_spells.md`, `soe://rom/01d800.asm`.
+   - Deliverable: Decompile into clean C in `docs/disassembly/combat/alchemy-ingredients.md`.
 
-2. **Target 2: Dialogue Window & Text Box Rendering Engine (`$8E:B000` – `$8E:B800`)**:
-   - Location: Bank `$8E` (`$8E:B000` – `$8E:B800`).
-   - Purpose: In-game dialogue string key unpacking, font tile generation into VRAM, typewriter scroll timing, and player choice menu branches.
-   - Evidence to consult: `docs/script-format/dialogue.md`, `soe://rom/0eb000.asm`.
-   - Deliverable: Decompile into clean C in `docs/disassembly/ui/dialogue-window.md`.
+2. **Target 2: Hitbox Damage Intersections & Knockback Vectors (`$8F:C0D3`, `$8F:C200`)**:
+   - Location: Bank `$8F` (`$8F:C0D3` – `$8F:C2E0`).
+   - Purpose: Real-time bounding box intersection resolution, invulnerability flash frame countdown (`entity +0x14`), damage pop-up number dispatch, and knockback direction vector displacement.
+   - Evidence to consult: `docs/script-format/hitboxes.md`, `soe://rom/0fc0d3.asm`.
+   - Deliverable: Decompile into clean C in `docs/disassembly/combat/hitbox-intersections.md`.
 
-3. **Target 3: Boss Multi-Part State Driver & HP Phase Transitions (`$8F:E000` / `$8F:E800`)**:
-   - Location: Bank `$8F` (`$8F:E000` – `$8F:E800`).
-   - Purpose: Multi-segment boss coordination (e.g. Thraxx heart and claws, Magmar lava submerging, Salabog mini-minions), invulnerability shields, and phase progression flags.
-   - Evidence to consult: `docs/script-format/enemy_ai.md`, `soe://rom/0fe000.asm`.
-   - Deliverable: Decompile into clean C in `docs/disassembly/combat/boss-engine.md`.
+3. **Target 3: Weather Effects, Palette Cycling & Screen Shake Engine (`$80:A000` – `$80:A3FF`)**:
+   - Location: Bank `$80` (`$80:A000` – `$80:A3FF`).
+   - Purpose: Ambient weather precipitation particles (rain/snow/ash), animated palette cycling (molten lava, glowing crystals), and camera shake displacement registers (`$7E:2435` / `$7E:2437`).
+   - Evidence to consult: `docs/map-format/map_palette_extraction.md`, `soe://rom/00a000.asm`.
+   - Deliverable: Decompile into clean C in `docs/disassembly/engine-core/weather-palette.md`.
 
 ---
 
@@ -91,4 +91,10 @@ When an agent is prompted with *"continue the decompilation"*, work down this or
   - Weapon Charge, Stamina Gauge Math & String Profanity Filter (`$8F:CC5D`, `$90:82D8`, `$8F:C02B`, `$80:B173`): analyzed 0..1024 (`$0400`) stamina gauge, per-tick `charge_speed` addition, attack animation tier selection (Level 0 jab under 100%, Level 1 standard at 100%, Levels 2/3 charge tiers), attack power scaling (quarter damage penalty under 50%), attack swing discharge (`STZ $002E,X`), and case-insensitive naming screen profanity detection setting `$7E:22E9` bit 5 (`docs/disassembly/combat/weapon-charge.md`).
   - Equipment Inventory, Armor Defense Calculation & Script Spawning (`$8E:99D2`, `$8E:9A86`, `$8E:A091`): analyzed 4 gear categories (helmets/collars `0x16`, vests `0x1A`, bracers `0x1C`, accessories `0x1E`), bitmask validation against `$C4:59A4` / `$C4:59C0`, accumulation into `$7E:07A4` (defense) and `$7E:07A6` (MDef), propagation to character stat blocks (`$7E:0ABA` / `$7E:0A26` / `$7E:0A70`), and character script VM thread instantiation (`docs/disassembly/ui/equipment-stats.md`).
   - Created confirmed knowledge entries `8cdac5.md`, `8fcd4d.md`, `8fcc5d.md`, `9082d8.md`, `8fc02b.md`, `80b173.md`, `8e99d2.md`, `8e9a86.md`, `8ea091.md`. Advanced queue to Enemy AI, Dialogue Window, and Boss Multi-Part Drivers.
+- **2026-10-18 (Session 8)**: Decompiled Enemy AI Behavioral State Machine, Dialogue String Key Decoder, and Boss Multi-Part State Driver:
+  - Enemy AI Dispatcher & Roaming Monster Loop (`$8F:CD17`, `$8F:D34B`, `$8F:D69B`, `$8F:D6FB`): analyzed character record offset `entity +0x60`, behavior word read from `$8E0003,X`, 15-entry jump table `$8F:CBE0`, aggro filter pipeline (100% stamina gate `$0400`, RNG roll vs `aggro_chance`, bounding box $|dx| < \text{range}$ and $|dy| < \text{range}$ checks for Boy and Dog), stationary turret hazard loop, and target pointer lock in `entity +0x24` (`docs/disassembly/entities/enemy-ai.md`).
+  - Dialogue Window & Text Box String Decoder Engine (`$8C:CCF5`, `$8C:CD35`, `$91:D000`): analyzed 3,002-entry string keys table, bit 23 dictionary compression flag, bank/offset resolution, word dictionary expansions (`$91:F46C` / `$91:F3EC`), digraph substitutions (`$91:F32E`), and plain ASCII blitting into WRAM buffer `$7F:D81E` for Script VM opcode `0x51` (`docs/disassembly/ui/dialogue-window.md`).
+  - Boss Multi-Part State Driver & HP Phase Transitions (`$8F:D5D2`, `$8F:D76A`, `$8F:D715`): analyzed Magmar lava boss AI (submerged subterranean tracking, surfaced lava projectile spit `$DA66`, HP < 512 enrage rolling boulder with mode `$4000` continuous charging contact damage), static boss core targets (Thraxx Heart, Coleoptera Heart, Aegis shielding exposure), and submerging multi-segment body links (`0x57`) for Salabog and Tar Skull (`docs/disassembly/combat/boss-engine.md`).
+  - Created confirmed knowledge entries `8fcd17.md`, `8fd34b.md`, `8fd69b.md`, `8fd6fb.md`, `8cccf5.md`, `8ccd35.md`, `8fd5d2.md`, `8fd76a.md`, `8fd715.md`, and upgraded `d1d000.md`. Advanced queue to Alchemy Ingredients, Hitbox Intersections, and Weather/Palettes.
+
 
