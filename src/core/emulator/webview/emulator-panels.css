@@ -54,18 +54,24 @@
 .emu-side .ss-trace-tag, .emu-side .ss-trace-addr, .emu-side .ss-trace-bytes,
 .emu-side .ss-trace-arrow, .emu-side .ss-trace-sub,
 .emu-side[data-panel="trace"]::before { display: none; }
+#emu-slot-trace .ss-trace-entry { padding: 0; border-bottom: none; line-height: 1.35; }
+#emu-slot-trace .ss-trace-entry.end { margin-bottom: 5px; padding-bottom: 3px; border-bottom: 1px solid rgba(255,255,255,0.15); }
 #emu-slot-trace .ss-trace-sub .ss-trace-time { visibility: hidden; }
-#emu-slot-trace .ss-trace-lookup { width: 110px; min-width: 110px; }
-#emu-slot-trace .ss-trace-time { width: 80px; min-width: 80px; flex-shrink: 0; }
+#emu-slot-trace .ss-trace-lookup { width: auto; min-width: 0; max-width: 120px; white-space: nowrap; flex-shrink: 0; }
+#emu-slot-trace .ss-trace-lookup:empty { display: none; }
+#emu-slot-trace .ss-trace-time { width: auto; min-width: 0; white-space: nowrap; flex-shrink: 0; }
 #emu-slot-trace #ss-trace-log { flex: none; height: 300px; padding: 4px 14px; }
 #emu-slot-trace .ss-trace-row,
 #emu-slot-trace .ss-trace-sub {
   white-space: normal;
-  flex-wrap: wrap;
-  gap: 0 6px;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: nowrap;
+  gap: 8px;
+  padding: 1px 0;
 }
 #emu-slot-trace .ss-trace-text {
-  flex: 1 1 0%;
+  flex: 1 1 auto;
   min-width: 0;
   word-break: break-word;
   overflow-wrap: anywhere;

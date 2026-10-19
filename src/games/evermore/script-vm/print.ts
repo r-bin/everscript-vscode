@@ -137,6 +137,14 @@ export function text(ins: Instruction, names: Names = {}): string {
         case 0x09: return `if! (${E(0)}) goto ${bus(ins.target!)};`;
         case 0x0A: return `if (amount[${E(0)}] >= ${hex(num(o[1]) | (num(o[2]) << 16), 6)}) goto ${bus(ins.target!)};`;
         case 0x0B: return `if (amount[${E(0)}] < ${hex(num(o[1]) | (num(o[2]) << 16), 6)}) goto ${bus(ins.target!)};`;
+        case 0x5C: return `object[${E(0)}] = ${E(1)};`;
+        case 0x5F: return `object[${E(0)}] += ${hex(num(o[1]), 4)};`;
+        case 0x60: return `object[${E(0)}]++;`;
+        case 0x61: return `object[${E(0)}]--;`;
+        case 0x74: return `face(${E(0)}, NORTH);`;
+        case 0x75: return `face(${E(0)}, SOUTH);`;
+        case 0x76: return `face(${E(0)}, WEST);`;
+        case 0x77: return `face(${E(0)}, EAST);`;
         case 0xAB: return 'reset();';
         default: break;
     }

@@ -114,7 +114,6 @@ class ScriptTraceFormatter {
     return `<div class="ss-trace-sub ${event}${callClass}">` +
       timeHtml +
       slotHtml +
-      `<span class="ss-trace-lookup"></span>` +
       `<span class="ss-trace-arrow">-&gt;&nbsp;</span>` +
       `<span class="ss-trace-addr">${escH(sub.addrHex)}:</span>` +
       `<span class="ss-trace-text">${summaryHtml}</span>` +
@@ -135,7 +134,7 @@ class ScriptTraceFormatter {
     const lookupTitle = lookup && lookup.name ? escH(lookup.name) : '';
     const lookupHtml = lookup && lookup.shortTag
       ? '<span class="ss-trace-lookup" title="' + lookupTitle + '">' + escH('[' + lookup.shortTag + ']') + '</span>'
-      : '<span class="ss-trace-lookup"></span>';
+      : '';
     const entityHex = fmtHex(item.entity || 0, 4);
     const locHex = item.locHex || ('0x' + fmtHex(item.loc || 0, 6));
     const summary = item.summary || (event === 'end' ? 'END of script' : 'UNKNOWN INSTR');

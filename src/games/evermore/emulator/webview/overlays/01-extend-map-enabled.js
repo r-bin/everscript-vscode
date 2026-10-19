@@ -57,7 +57,7 @@
       const walkMatch = str.match(/^walk\s*\(\s*(\w+)\s*,\s*(\w+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*(?:,\s*(\w+)\s*)?(?:,\s*(\w+)\s*)?\)/i);
       const destroyMatch = str.match(/^destroy\s*\(\s*([^)]+)\s*\)/i);
       const callMatch = str.match(/^(?:call_id|call|trigger)\s*\(\s*([^)]+)\s*\)/i);
-      const objMatch = str.match(/^(?:set_object_state|set_obj_state|set_state)\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)/i);
+      const objMatch = str.match(/^(?:set_object_state|set_obj_state|set_state|object)\s*(?:\(\s*([^,]+)\s*,\s*([^)]+)\s*\)|\[\s*([^\]]+)\s*\]\s*=\s*([^;]+))/i);
 
       if (walkMatch) {
         const charName = walkMatch[1].toUpperCase();
@@ -112,8 +112,11 @@
           bytecode = [0xA4, idVal & 0xFF, (idVal >> 8) & 0xFF, 0x00];
         }
       } else if (objMatch) {
-        const objVal = parseInt(objMatch[1].trim(), 10);
-        const stateVal = parseInt(objMatch[2].trim(), 10);
+        const rawObj = (objMatch[1] || objMatch[3] || '').trim();
+        const rawState = (objMatch[2] || objMatch[4] || '').trim();
+        const parseN = s => s.toLowerCase().startsWith('0x') ? parseInt(s, 16) : parseInt(s, 10);
+        const objVal = parseN(rawObj);
+        const stateVal = parseN(rawState);
         if (!isNaN(objVal) && !isNaN(stateVal)) {
           bytecode = [0x5C, 0x82, objVal & 0xFF, 0x82, stateVal & 0xFF, 0x00];
         }

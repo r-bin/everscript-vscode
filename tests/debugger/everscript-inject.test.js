@@ -146,5 +146,21 @@ test('set_object_state(2, 1) parses and lands in WRAM', () => {
     assert.strictEqual(m.readMemory(0x7FFF05), 0x00);
 });
 
+test('object[0x02] = 1 and object(2, 1) parse and land in WRAM', () => {
+    const m1 = fakeModule();
+    assert.strictEqual(inject(m1, 'object[0x02] = 1'), true);
+    assert.strictEqual(m1.readMemory(0x7FFF00), 0x5C);
+    assert.strictEqual(m1.readMemory(0x7FFF01), 0x82);
+    assert.strictEqual(m1.readMemory(0x7FFF02), 0x02);
+    assert.strictEqual(m1.readMemory(0x7FFF03), 0x82);
+    assert.strictEqual(m1.readMemory(0x7FFF04), 0x01);
+    assert.strictEqual(m1.readMemory(0x7FFF05), 0x00);
+
+    const m2 = fakeModule();
+    assert.strictEqual(inject(m2, 'object(2, 1)'), true);
+    assert.strictEqual(m2.readMemory(0x7FFF00), 0x5C);
+    assert.strictEqual(m2.readMemory(0x7FFF02), 0x02);
+});
+
 console.log(`\nResults: ${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

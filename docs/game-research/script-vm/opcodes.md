@@ -58,14 +58,14 @@ ours; an empty one means only the operands are known so far.
 | `3F` | `$8C:DD60` | `E u16 u16` | continues |  | Expression: an entity address (>= $2000) gets the two words at +$68 / +$66; a small index n gets them at $0EA2 / $0EAC + 2(n-1) (the second word is skipped when the first is 0). |
 | `42` | `$8C:DFEE` | `E u16` | continues |  | Entity expression and a word whose two bytes times 8 go to $46 / $48. |
 | `43` | `$8C:E00D` | `E E E` | continues |  | Entity expression and two expressions to $46 / $48. |
-| `44` | `$8C:D890` | `u8 u8 u8 u8 u8` | continues |  | Five bytes; sets up through $8C:C543 and $8C:D967. |
-| `45` | `$8C:D890` | `u8 u8 u8 u8 u8` | continues |  | Same handler as 0x44. |
-| `46` | `$8C:D890` | `u8 u8 u8 u8 u8` | continues |  | Same handler as 0x44. |
-| `47` | `$8C:D890` | `u8 u8 u8 u8 u8` | continues |  | Same handler as 0x44. |
-| `48` | `$8C:D8FE` | — | continues |  | No operands; $8C:C543, then fixed values to $0361-$036B. |
-| `49` | `$8C:D8FE` | — | continues |  | Same handler as 0x48. |
-| `4A` | `$8C:D8FE` | — | continues |  | Same handler as 0x48. |
-| `4B` | `$8C:D8FE` | — | continues |  | Same handler as 0x48. |
+| `44` | `$8C:D890` | `u8 u8 u8 u8 u8` | continues | `open_message_box` | Five bytes (type, x, y, w, h); sets up message box through $8C:C543 and $8C:D967. |
+| `45` | `$8C:D890` | `u8 u8 u8 u8 u8` | continues | `open_message_box` | Same handler as 0x44. |
+| `46` | `$8C:D890` | `u8 u8 u8 u8 u8` | continues | `open_message_box` | Same handler as 0x44. |
+| `47` | `$8C:D890` | `u8 u8 u8 u8 u8` | continues | `open_message_box` | Same handler as 0x44. |
+| `48` | `$8C:D8FE` | — | continues | `text_start` | No operands; $8C:C543, then fixed values to $0361-$036B. |
+| `49` | `$8C:D8FE` | — | continues | `text_start` | Same handler as 0x48. |
+| `4A` | `$8C:D8FE` | — | continues | `text_start` | Same handler as 0x48. |
+| `4B` | `$8C:D8FE` | — | continues | `text_start` | Same handler as 0x48. |
 | `4C` | `$8C:D87C` | `skip` | continues | `skip_byte` | Skips one byte and continues. |
 | `4D` | `$8C:D87E` | — | continues | `nop` | Does nothing. |
 | `4E` | `$8C:DDB0` | `E` | continues | `bind_entity` | The slot's entity (slot + $0D) becomes the entity expression (reference counts at entity +$3E follow). |
@@ -78,9 +78,9 @@ ours; an empty one means only the operands are known so far.
 | `59` | `$8C:DC74` | — | continues |  |  |
 | `5A` | `$8C:DE8F` | — | continues |  |  |
 | `5B` | `$8C:DE95` | — | continues |  |  |
-| `5C` | `$8C:DDCB` | `E E` | continues | `set_object_state` | Map object (first expression) goes to the state of the second, through $90:A36D: clamped to the object's highest state, kept at $107E + object, animated when it differs from the current one ($10CE + object). |
-| `5D` | `$8C:DDFF` | `E u16` | continues | `set_object_state_by_flag` | Map object (expression) goes to its highest state ($7F, clamped) when the save flag (bit number) is set, else to 0 ($90:A36D). |
-| `5E` | `$8C:DE2E` | `E u16` | continues | `set_object_state_unless_flag` | The same with the flag's meaning reversed: highest state when it is clear. |
+| `5C` | `$8C:DDCB` | `E E` | continues | `object` | Map object (first expression) goes to the state of the second, through $90:A36D: clamped to the object's highest state, kept at $107E + object, animated when it differs from the current one ($10CE + object). Decompiled as object[idx] = val; |
+| `5D` | `$8C:DDFF` | `E u16` | continues | `object_state_by_flag` | Map object (expression) goes to its highest state ($7F, clamped) when the save flag (bit number) is set, else to 0 ($90:A36D). |
+| `5E` | `$8C:DE2E` | `E u16` | continues | `object_state_unless_flag` | The same with the flag's meaning reversed: highest state when it is clear. |
 | `5F` | `$8C:DE77` | `E u16` | continues | `add_object_state` | Map object (expression) goes to its target state ($107E + object) plus the word. |
 | `60` | `$8C:DDDB` | `E` | continues | `next_object_state` | Map object (expression) goes to its target state + 1. |
 | `61` | `$8C:DDED` | `E` | continues | `previous_object_state` | Map object (expression) goes to its target state - 1. |
@@ -99,10 +99,10 @@ ours; an empty one means only the operands are known so far.
 | `70` | `$8C:DF0D` | `E E` | continues |  |  |
 | `71` | `$8C:DF1D` | `E E` | continues |  |  |
 | `73` | `$8C:DA8D` | `E E E` | continues |  |  |
-| `74` | `$8C:DEDF` | `E` | continues | `face_0` | Entity (expression) faces direction 0: its +$22 (FACE_DIRECTION) = 0. |
-| `75` | `$8C:DEF5` | `E` | continues | `face_8` | Entity faces direction 8 (+$22 = 8). |
-| `76` | `$8C:DF01` | `E` | continues | `face_12` | Entity faces direction 12 (+$22 = 12). |
-| `77` | `$8C:DEE9` | `E` | continues | `face_4` | Entity faces direction 4 (+$22 = 4). |
+| `74` | `$8C:DEDF` | `E` | continues | `face_north` | Entity (expression) faces direction 0 (NORTH): its +$22 (FACE_DIRECTION) = 0. Decompiled as face(entity, NORTH); |
+| `75` | `$8C:DEF5` | `E` | continues | `face_south` | Entity faces direction 8 (SOUTH): +$22 = 8. Decompiled as face(entity, SOUTH); |
+| `76` | `$8C:DF01` | `E` | continues | `face_west` | Entity faces direction 12 (WEST): +$22 = 12. Decompiled as face(entity, WEST); |
+| `77` | `$8C:DEE9` | `E` | continues | `face_east` | Entity faces direction 4 (EAST): +$22 = 4. Decompiled as face(entity, EAST); |
 | `78` | `$8C:E0B0` | `E u16 E` | continues |  | Entity expression, a word, an expression that picks one of six routines at $8C:E100 (none reads operands). |
 | `79` | `$8C:E156` | `E u16 E` | yields |  | Same as 0x78, then yields. |
 | `7A` | `$8C:E08E` | `E E` | continues |  |  |
@@ -139,7 +139,7 @@ ours; an empty one means only the operands are known so far.
 | `9A` | `$8C:E6CF` | `E` | continues |  |  |
 | `9B` | `$8C:DD33` | `E` | continues |  |  |
 | `9C` | `$8C:DD41` | `E` | continues |  |  |
-| `9D` | `$8C:DA88` | `E E E` | continues | `set_entity_position` | Set entity position: entity, x, y expressions (calls $8F:AA82 / $8F:AAD3). |
+| `9D` | `$8C:DA88` | `E E E` | continues | `teleport` | Entity expression and two coordinate expressions (x, y); decompiled as teleport(entity, x, y); |
 | `9E` | `$8C:D0D0` | `E E E Z` | continues |  | Entity expression, two expressions, then expressions up to one that is 0 (stored to a free slot from $91:9759). Without a free slot it reads three more expressions and the list from where it stands: the same end only for lists of three or more. |
 | `9F` | `$8C:E5B0` | — | continues |  |  |
 | `A0` | `$8C:E628` | — | continues |  |  |
@@ -175,4 +175,4 @@ ours; an empty one means only the operands are known so far.
 | `BF` | `$8C:DACA` | — | continues | `freeze_boy` | Freeze Boy character ($8F:CD78). |
 | `C0` | `$8C:DB25` | — | continues | `freeze` | Freeze bound entity ($8F:CD78). |
 | `C1` | `$8C:DACF` | — | continues | `freeze_dog` | Freeze Dog character ($8F:CD78). |
-| `C2` | `$8C:DCC3` | `u8 u8 u8` | continues | `spawn_spawner` | As 0xBA with state $8000: places a spawner. |
+| `C2` | `$8C:DCC3` | `u8 u8 u8` | continues | `add_enemy_spawner` | As 0xBA with state $8000: places a spawner. |
