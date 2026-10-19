@@ -202,12 +202,14 @@ function _resetPanelHtml() {
     const romOfferData = getRomOfferData(emu.context, wsRoot, '');
     const panel = emu.panel;
     const file = (name: string) => panel.webview.asWebviewUri(vscode.Uri.file(path.join(emu.extensionPath, 'src', 'core', 'emulator', 'webview', name))).toString();
+    const isRecorder = (emu.sessionProfile || emu.options.profile) === 'recorder';
     const html = buildHtml(emu.panel.webview, coreJsUri, coreWasmUri, core.label, core.path, romOfferData, {
-      profile: emu.sessionProfile || emu.options.profile,
-      gameView: emu.options.game && emu.options.game.webview ? emu.options.game.webview() : null,
+      profile: isRecorder ? 'recorder' : 'full',
+      gameView: isRecorder ? null : (emu.options.game && emu.options.game.webview ? emu.options.game.webview() : null),
       styles: [file('emulator-profile.css'), file('emulator-panels.css')],
       // The game's page files first (Evermore: its ROM detector), then the emulator's.
-      scripts: (emu.options.game && emu.options.game.webviewFiles ? emu.options.game.webviewFiles() : []).map((f) => panel.webview.asWebviewUri(vscode.Uri.file(f)).toString())
+      scripts: (isRecorder ? [] : (emu.options.game && emu.options.game.webviewFiles ? emu.options.game.webviewFiles() : []))
+        .map((f) => panel.webview.asWebviewUri(vscode.Uri.file(f)).toString())
         .concat([file('emulator-profile.js'), file('emulator-panels.js'), file('replays-list.js')]),
     });
     // Log a snippet to help diagnose CSP / script-load issues.
