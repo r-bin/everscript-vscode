@@ -7,8 +7,10 @@
  *   data-needs="game"      only while a ROM the game recognises runs (gameDetectRom)
  * Several words: every one must hold. !important beats the tab views' own display rules.
  */
-body.profile-recorder [data-needs~="full"],
+body.profile-recorder [data-needs~="full"]:not([data-needs~="game"]),
+body.profile-recorder.no-game-features [data-needs~="game"],
 body.profile-full [data-needs~="recorder"],
-body.rom-other [data-needs~="game"] {
+body.rom-other [data-needs~="game"],
+body.no-game-features [data-needs~="game"] {
   display: none !important;
 }

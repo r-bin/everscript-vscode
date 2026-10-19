@@ -33,5 +33,6 @@ Owns the on-screen display (OSD) Quick Menu for the embedded SNES emulator.
 
 - Strictly ASCII-only (no Unicode symbols or non-ASCII characters).
 - Start button opens menu (EMULATION tab): toggles whether Start button on keyboard or gamepad opens the menu (doing the same as Esc). Initially forced off for CDL recorder profile so in-game Start functions normally; when turned on, Esc and Start do the same. Escape key always toggles pause and opens/resumes the menu.
+- Game specific features (EMULATION tab): toggles game-specific tabs (Overlays, Objects, Loot, Cheats, Trace, Stack, Entities, Alchemy, Palettes) and overlay layers. Forced off initially in CDL recorder mode, otherwise on by default.
 - Non-looping steppers: value steppers clamp at boundaries rather than looping indefinitely.
 - Crash prevention: script execution checks for available script slots and run list bounds (`targetSlot >= 0 && runIdx < 40`).

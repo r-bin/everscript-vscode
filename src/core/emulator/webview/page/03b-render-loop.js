@@ -271,17 +271,18 @@
           }
 
           resizeCanvas(false);
+          const gameActive = emuGameRom && (typeof gameFeaturesEnabled === 'undefined' || gameFeaturesEnabled);
           if (romLoaded && paused) {
-            if (typeof renderExtendedMapAndOverlays === 'function') renderExtendedMapAndOverlays(lastSampledPreState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx);
+            if (gameActive && typeof renderExtendedMapAndOverlays === 'function') renderExtendedMapAndOverlays(lastSampledPreState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx);
             apuStreamTick(Module, true);
           } else if (romLoaded) {
             romFrameCount++;
             // Sample camera and entity state BEFORE _mainLoop() to match rendered frame
-            const preState = emuGameRom && typeof samplePreLoopState === 'function' ? samplePreLoopState() : null;
+            const preState = gameActive && typeof samplePreLoopState === 'function' ? samplePreLoopState() : null;
             lastSampledPreState = preState;
             const m = getModule();
             // A replay must see exactly the recorded memory: no cheat writes.
-            if (m && emuGameRom && !tasReplaying() && typeof maintainCheats === 'function') maintainCheats(m);
+            if (m && gameActive && !tasReplaying() && typeof maintainCheats === 'function') maintainCheats(m);
             if (speedMultiplier < 1.0) {
               speedAccumulator += speedMultiplier;
               if (speedAccumulator < 1.0) {
@@ -290,7 +291,7 @@
                   imageData.data.set(new Uint8ClampedArray(HEAPU8.buffer, fbPtr, 512 * 448 * 4));
                   ctx.putImageData(imageData, 0, 0);
                 }
-                if (typeof renderExtendedMapAndOverlays === 'function') renderExtendedMapAndOverlays(preState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx);
+                if (preState && typeof renderExtendedMapAndOverlays === 'function') renderExtendedMapAndOverlays(preState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx);
                 return;
               }
               speedAccumulator -= 1.0;
@@ -310,7 +311,7 @@
               imageData.data.set(new Uint8ClampedArray(HEAPU8.buffer, fbPtr, 512 * 448 * 4));
               ctx.putImageData(imageData, 0, 0);
             }
-            if (typeof renderExtendedMapAndOverlays === 'function') renderExtendedMapAndOverlays(preState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx);
+            if (preState && typeof renderExtendedMapAndOverlays === 'function') renderExtendedMapAndOverlays(preState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx);
             tasDrawOverlay();
             if (emuScriptHook && typeof checkScriptExecutionTrace === 'function') checkScriptExecutionTrace();
             apuStreamTick(Module, false);

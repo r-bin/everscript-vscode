@@ -124,6 +124,7 @@ test('getMenuHtml defines 7 tabs with Lens default, Objects list, Loot list, Che
     assert.ok(html.includes('id="menu-val-sound"'), 'missing sound control');
     assert.ok(html.includes('id="menu-val-focus"'), 'missing breakpoint focus control');
     assert.ok(html.includes('id="menu-val-start-menu"'), 'missing start button opens menu control');
+    assert.ok(html.includes('id="menu-val-game-features"'), 'missing game specific features control');
 
     // Tab 6: Controls & Remapper
     assert.ok(html.includes('id="menu-panel-6"'), 'missing controls panel');

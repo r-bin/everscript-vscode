@@ -205,10 +205,10 @@ function _resetPanelHtml() {
     const isRecorder = (emu.sessionProfile || emu.options.profile) === 'recorder';
     const html = buildHtml(emu.panel.webview, coreJsUri, coreWasmUri, core.label, core.path, romOfferData, {
       profile: isRecorder ? 'recorder' : 'full',
-      gameView: isRecorder ? null : (emu.options.game && emu.options.game.webview ? emu.options.game.webview() : null),
+      gameView: emu.options.game && emu.options.game.webview ? emu.options.game.webview() : null,
       styles: [file('emulator-profile.css'), file('emulator-panels.css')],
       // The game's page files first (Evermore: its ROM detector), then the emulator's.
-      scripts: (isRecorder ? [] : (emu.options.game && emu.options.game.webviewFiles ? emu.options.game.webviewFiles() : []))
+      scripts: (emu.options.game && emu.options.game.webviewFiles ? emu.options.game.webviewFiles() : [])
         .map((f) => panel.webview.asWebviewUri(vscode.Uri.file(f)).toString())
         .concat([file('emulator-profile.js'), file('emulator-panels.js'), file('replays-list.js')]),
     });

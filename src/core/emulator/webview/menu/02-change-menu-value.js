@@ -53,6 +53,11 @@
             syncMenuValuesFromRuntime();
             playMenuSound('click_toggle');
             break;
+          case 4:
+            if (typeof setGameFeaturesEnabled === 'function') setGameFeaturesEnabled(delta > 0);
+            syncMenuValuesFromRuntime();
+            playMenuSound('click_toggle');
+            break;
         }
       }
     }
@@ -104,13 +109,18 @@
             playMenuSound('click_toggle');
             break;
           case 4:
+            if (typeof setGameFeaturesEnabled === 'function') setGameFeaturesEnabled(!gameFeaturesEnabled);
+            syncMenuValuesFromRuntime();
+            playMenuSound('click_toggle');
+            break;
+          case 5:
             playMenuSound('click_confirm');
             if (loadedRomData) {
               bootRom(loadedRomData, loadedRomName);
               closeEmulatorMenu();
             }
             break;
-          case 5:
+          case 6:
             if (typeof tasSoftReset === 'function' && tasSoftReset()) {
               playMenuSound('click_confirm');
               closeEmulatorMenu();

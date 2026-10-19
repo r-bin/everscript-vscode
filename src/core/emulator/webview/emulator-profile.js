@@ -32,6 +32,8 @@ let emuProfile = 'full';
 let emuApplying = false;
 let emuSaveTimer = null;
 
+let gameFeaturesEnabled = true;
+
 function emuReadConfig() {
   try {
     const el = document.getElementById('emu-config');
@@ -40,15 +42,35 @@ function emuReadConfig() {
   } catch (_) {
     emuProfile = 'full';
   }
+  gameFeaturesEnabled = emuProfile !== 'recorder';
+  if (document.body) document.body.classList.toggle('no-game-features', !gameFeaturesEnabled);
+}
+
+function setGameFeaturesEnabled(on) {
+  gameFeaturesEnabled = !!on;
+  if (document.body) document.body.classList.toggle('no-game-features', !gameFeaturesEnabled);
+  emuScriptHook = emuGameRom && emuProfile === 'full' && gameFeaturesEnabled;
+  if (!gameFeaturesEnabled) {
+    if (typeof lastSampledPreState !== 'undefined') lastSampledPreState = null;
+    emuClearExtendedLayers();
+  }
+  if (typeof emuPanelsLayout === 'function') emuPanelsLayout();
+  if (typeof menuActiveTab === 'number' && !emuMenuTabShown(menuActiveTab) && typeof selectMenuTab === 'function') {
+    selectMenuTab(0);
+  }
+  if (typeof syncMenuValuesFromRuntime === 'function') syncMenuValuesFromRuntime();
+  emuSettingsChanged();
 }
 
 /** Whether an element's data-needs words all hold for this profile and ROM. */
 function emuShown(el) {
   if (!el) return false;
   const needs = (el.getAttribute('data-needs') || '').split(/\s+/).filter(Boolean);
-  return needs.every(n => (n === 'full' ? emuProfile === 'full'
+  const hasGame = needs.includes('game');
+  if (hasGame && (!emuGameRom || !gameFeaturesEnabled)) return false;
+  return needs.every(n => (n === 'full' ? (emuProfile === 'full' || (hasGame && gameFeaturesEnabled))
     : n === 'recorder' ? emuProfile === 'recorder'
-    : n === 'game' ? emuGameRom
+    : n === 'game' ? (emuGameRom && gameFeaturesEnabled)
     : true));
 }
 
@@ -67,9 +89,10 @@ function emuClearExtendedLayers() {
 /** Called at every boot, before the core starts. */
 function emuGateRom(bytes) {
   emuGameRom = typeof gameDetectRom === 'function' ? gameDetectRom(bytes) : false;   // the game's detector (Evermore: rom-game.js)
-  emuScriptHook = emuGameRom && emuProfile === 'full';
+  emuScriptHook = emuGameRom && emuProfile === 'full' && gameFeaturesEnabled;
   document.body.classList.toggle('rom-other', !emuGameRom);
-  if (!emuGameRom) {
+  document.body.classList.toggle('no-game-features', !gameFeaturesEnabled);
+  if (!emuGameRom || !gameFeaturesEnabled) {
     if (typeof lastSampledPreState !== 'undefined') lastSampledPreState = null;
     emuClearExtendedLayers();
   }
@@ -95,6 +118,7 @@ function emuCollectSettings() {
     panels: typeof emuCollectPanels === 'function' ? emuCollectPanels() : undefined,
     keybinds: Object.assign({}, userKeyMap),
     startOpensMenu: typeof startOpensMenu !== 'undefined' ? !!startOpensMenu : undefined,
+    gameFeatures: typeof gameFeaturesEnabled !== 'undefined' ? !!gameFeaturesEnabled : undefined,
   };
 }
 
@@ -155,6 +179,15 @@ function emuApplySettings(saved) {
         setStartOpensMenu(s.startOpensMenu);
       }
     }
+    if (typeof setGameFeaturesEnabled === 'function') {
+      if (emuProfile === 'recorder') {
+        setGameFeaturesEnabled(false);
+      } else if (typeof s.gameFeatures === 'boolean') {
+        setGameFeaturesEnabled(s.gameFeatures);
+      } else {
+        setGameFeaturesEnabled(true);
+      }
+    }
     if (typeof syncMenuValuesFromRuntime === 'function') syncMenuValuesFromRuntime();
   } finally {
     emuApplying = false;
@@ -181,4 +214,5 @@ window.addEventListener('keydown', e => {
 emuReadConfig();
 document.addEventListener('DOMContentLoaded', () => {
   document.body.classList.add('profile-' + emuProfile);
+  document.body.classList.toggle('no-game-features', !gameFeaturesEnabled);
 });
