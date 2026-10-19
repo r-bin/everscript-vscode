@@ -368,6 +368,7 @@
         if (a && document.body.classList.contains('profile-full')) cdlLookup(a.wram ? cdlWramName(a.off) : a.bank + ':' + cdlHex(a.inner, 4));
       });
       document.addEventListener('visibilitychange', () => { if (document.hidden) cdlDrain(); });
+      cdlRefreshUi();
     }
 
     function handleCdlMessage(data) {

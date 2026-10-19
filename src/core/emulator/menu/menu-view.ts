@@ -33,11 +33,11 @@ function getMenuCss() {
 // Pause-menu tabs of the panels (webview/emulator-panels.js EMU_PANEL_MENU_TAB).
 const MENU_PANELS: [number, string, string][] = [
   [8, 'cdl', ''],
-  [9, 'trace', 'full evermore'],
-  [10, 'stack', 'full evermore'],
-  [11, 'entities', 'full evermore'],
-  [12, 'alchemy', 'full evermore'],
-  [13, 'palettes', 'full evermore'],
+  [9, 'trace', 'full game'],
+  [10, 'stack', 'full game'],
+  [11, 'entities', 'full game'],
+  [12, 'alchemy', 'full game'],
+  [13, 'palettes', 'full game'],
 ];
 
 // CDL's own rows (cdl-view.ts cdlMenuStep / cdlMenuActivate); below them one row per bank.

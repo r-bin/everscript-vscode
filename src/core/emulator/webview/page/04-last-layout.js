@@ -146,7 +146,15 @@
 
     /** Start the WRAM polling cycle (called on every boot; one timer per webview). */
     let wramPollTimer = null;
+    function stopWramPolling() {
+      if (wramPollTimer) {
+        clearInterval(wramPollTimer);
+        wramPollTimer = null;
+      }
+    }
+    window.stopWramPolling = stopWramPolling;
     function startWramPolling() {
+      window.startWramPolling = startWramPolling;
       document.getElementById('ss-count').textContent = 'connecting...';
       if (wramPollTimer) return;
 

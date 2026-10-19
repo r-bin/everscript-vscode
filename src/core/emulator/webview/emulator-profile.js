@@ -49,7 +49,12 @@ function emuReadConfig() {
 function setGameFeaturesEnabled(on) {
   gameFeaturesEnabled = !!on;
   if (document.body) document.body.classList.toggle('no-game-features', !gameFeaturesEnabled);
-  emuScriptHook = emuGameRom && emuProfile === 'full' && gameFeaturesEnabled;
+  emuScriptHook = emuGameRom && gameFeaturesEnabled;
+  if (emuScriptHook && typeof startWramPolling === 'function') {
+    startWramPolling();
+  } else if (!emuScriptHook && typeof stopWramPolling === 'function') {
+    stopWramPolling();
+  }
   if (!gameFeaturesEnabled) {
     if (typeof lastSampledPreState !== 'undefined') lastSampledPreState = null;
     emuClearExtendedLayers();
@@ -89,7 +94,7 @@ function emuClearExtendedLayers() {
 /** Called at every boot, before the core starts. */
 function emuGateRom(bytes) {
   emuGameRom = typeof gameDetectRom === 'function' ? gameDetectRom(bytes) : false;   // the game's detector (Evermore: rom-game.js)
-  emuScriptHook = emuGameRom && emuProfile === 'full' && gameFeaturesEnabled;
+  emuScriptHook = emuGameRom && gameFeaturesEnabled;
   document.body.classList.toggle('rom-other', !emuGameRom);
   document.body.classList.toggle('no-game-features', !gameFeaturesEnabled);
   if (!emuGameRom || !gameFeaturesEnabled) {

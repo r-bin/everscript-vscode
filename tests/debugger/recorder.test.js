@@ -119,6 +119,8 @@ function recordInto(root, rom, hits) {
         assert.ok(html.includes('id="cdl-export-bundle" class="ss-btn" data-needs="recorder"'));
         assert.ok(html.includes('id="ss-tab-trace" class="ss-tab" data-needs="full game"'));
         assert.ok(html.includes('id="menu-tab-btn-9" class="menu-tab-btn" data-needs="full game"'), 'TRACE menu tab: Everscript + Evermore');
+        assert.ok(html.includes('id="menu-panel-9" class="menu-tab-panel menu-panel-host" data-needs="full game"'));
+        assert.ok(html.includes('id="menu-panel-11" class="menu-tab-panel menu-panel-host" data-needs="full game"'));
         assert.ok(!html.includes('ss-pause-btn') && !html.includes('ss-resume-btn'), 'no pause / resume buttons');
         assert.ok(buildHtml({ cspSource: '' }, 'core.js', 'core.wasm', 'core', 'core').includes('<body class="profile-full">'), 'full by default');
     });
@@ -134,12 +136,9 @@ function recordInto(root, rom, hits) {
             const page = async profile => {
                 const html = buildHtml({ cspSource: '' }, 'core.js', 'core.wasm', 'core', 'core', null, {
                     profile,
-                    // As the extensions pass it: Everscript hands in Evermore's part of the page, the recorder none.
-                    gameView: profile === 'full' ? require('../../dist/games/evermore/emulator/host').webview() : null,
+                    gameView: require('../../dist/games/evermore/emulator/host').webview(),
                     styles: [dataUri('emulator-profile.css', 'text/css'), dataUri('emulator-panels.css', 'text/css')],
-                    // As the extensions pass them: Everscript's page gets Evermore's files first (webviewFiles(): the ROM
-                    // detector and the EvsRom bundle), the recorder's none.
-                    scripts: (profile === 'full' ? require('../../dist/games/evermore/emulator/host').webviewFiles().map(f => 'data:text/javascript;base64,' + fs.readFileSync(f).toString('base64')) : []).concat([dataUri('emulator-profile.js', 'text/javascript'), dataUri('emulator-panels.js', 'text/javascript'), dataUri('replays-list.js', 'text/javascript')]),
+                    scripts: require('../../dist/games/evermore/emulator/host').webviewFiles().map(f => 'data:text/javascript;base64,' + fs.readFileSync(f).toString('base64')).concat([dataUri('emulator-profile.js', 'text/javascript'), dataUri('emulator-panels.js', 'text/javascript'), dataUri('replays-list.js', 'text/javascript')]),
                 }).replace('<head>', '<head><script>window.__sent=[];window.acquireVsCodeApi=()=>({postMessage:m=>window.__sent.push(m)});</script>');
                 const p = await browser.newPage();
                 const errors = [];
@@ -164,6 +163,17 @@ function recordInto(root, rom, hits) {
             assert.strictEqual(await rec.p.evaluate(() => document.getElementById('cdl-toggle')?.getAttribute('disabled')), 'true');
             assert.strictEqual(await rec.p.evaluate(() => document.getElementById('cdl-toggle')?.getAttribute('title')), 'Recording cannot be disabled in CDL Recorder mode');
 
+            // When game features are enabled with an Evermore ROM:
+            const evermoreRom = Array.from(Buffer.from('SECRET OF EVERMORE'.padEnd(21, ' '), 'latin1'));
+            await rec.p.evaluate(title => {
+                const rom = new Uint8Array(0x10000); rom.set(title, 0xFFC0); rom[0xFFD9] = 1;
+                emuGateRom(rom);
+                setGameFeaturesEnabled(true);
+            }, evermoreRom);
+            assert.strictEqual(await shown(rec.p, 'menu-tab-btn-11'), true, 'ENTITIES tab button shown when game features enabled');
+            await rec.p.evaluate(() => { selectMenuTab(11); });
+            assert.strictEqual(await shown(rec.p, 'menu-panel-11'), true, 'ENTITIES menu panel shown with height when selected');
+
             const full = await page('full');
             assert.deepStrictEqual(full.errors, []);
             assert.strictEqual(await full.p.evaluate(() => [extendMapEnabled, triggersOverlayEnabled, sndShow, thinHpBarEnabled].some(Boolean)), false, 'every overlay starts off');
@@ -181,8 +191,7 @@ function recordInto(root, rom, hits) {
             const evermore = Array.from(Buffer.from('SECRET OF EVERMORE'.padEnd(21, ' '), 'latin1'));
             await full.p.evaluate(title => { const rom = new Uint8Array(0x10000); rom.set(title, 0xFFC0); rom[0xFFD9] = 1; emuGateRom(rom); }, evermore);
             assert.strictEqual(await shown(full.p, 'menu-tab-btn-9'), true);
-            // What the game builds from the ROM on the host reaches its page hook (Evermore: the ALCHEMY icons).
-            assert.strictEqual(await rec.p.evaluate(() => typeof gameRomData), 'undefined', 'no game, no hook');
+            assert.strictEqual(await rec.p.evaluate(() => typeof gameRomData), 'function');
             await full.p.evaluate(() => window.postMessage({ command: 'gameRomData', data: { alchemyIcons: { Flash: 'data:,' } } }, '*'));
             await new Promise(r => setTimeout(r, 50));
             assert.deepStrictEqual(await full.p.evaluate(() => loadedAlchemyIcons), { Flash: 'data:,' });
