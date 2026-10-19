@@ -73,3 +73,10 @@ game frame rates.
   not maintained during a replay: their recorded writes are replayed instead.
 - A power-on zeroes SRAM (`startWithRom`), so every movie starts from an empty save.
 - The joypad is set only by `tasApplyInput()`, once per `_mainLoop()`.
+- Every recorded frame must emulate a whole frame. `pauseEmulation()` (pause menu, script debugger) only
+  breaks the CPU loop when a breakpoint callback calls it mid-frame (`dbg.running`, EVS_TAS). Before
+  v0.314.4 it also did so between frames: the first `_mainLoop()` after resuming ran no instruction, so
+  each pause cost one frame and the replay ran a frame ahead (recordings on core `9b3501044983116e`
+  with a pause in them desync, ~60 frames after it). `tas-events.test.js` holds it. Diagnose a desync
+  by replaying from a state a few frames before it with one frame dropped or doubled:
+  if dropping any one frame matches the recorded checksum, the live loop lost a frame.

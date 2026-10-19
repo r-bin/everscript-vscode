@@ -294,6 +294,40 @@ test('headless replay: checksums match across processes, a changed event desyncs
     assert.strictEqual(spawnSync(process.execPath, [tool, other, rom, '--until', '10', '--force'], { encoding: 'utf8', timeout: 60000 }).status, 0);
 });
 
+// The pause menu pauses the core between frames. That must not cost a frame: the first mainLoop() after
+// resuming used to end before its first instruction, so every replay of a paused session ran one frame ahead.
+test('a pause between frames loses no frame', () => {
+    const rom = findRom();
+    const core = path.join(ROOT, 'src/core/emulator/core/snes9x2005-wasm/snes9x_2005.js');
+    if (!rom || !fs.existsSync(core)) { console.log('    (skipped: no local ROM or built core)'); return; }
+    // In a function: the core's glue declares its own top-level fs and path.
+    const script = `(() => {
+        const fs = require('fs'), path = require('path'), vm = require('vm');
+        const { wramCrc, crcText } = require(${JSON.stringify(path.join(ROOT, 'dist/platform/tas/movie'))});
+        const CORE = ${JSON.stringify(core)}, rom = fs.readFileSync(${JSON.stringify(rom)});
+        const pauseAt = +process.argv[process.argv.length - 1];
+        global.Module = { locateFile: f => path.join(path.dirname(CORE), f), onRuntimeInitialized: () => {
+            const M = global.Module, p = M._my_malloc(rom.length);
+            HEAPU8.set(rom, p);
+            M._startWithRom(p, rom.length, 44100);
+            for (let k = 0; k < 400; k++) {
+                if (k === pauseAt) { M.pauseEmulation(); M._mainLoop(); M.resumeEmulation(); }
+                M._setJoypadInput(k % 50 < 3 ? 0x1000 : 0);
+                M._mainLoop();
+            }
+            console.log(crcText(wramCrc((a, n) => M.readMemoryRange(a, n))));
+        } };
+        global.require = require; global.__dirname = path.dirname(CORE); global.__filename = CORE;
+        vm.runInThisContext(fs.readFileSync(CORE, 'utf8'), { filename: CORE });
+    })();`;
+    const run = pauseAt => {
+        const r = spawnSync(process.execPath, ['-e', script, '--', String(pauseAt)], { encoding: 'utf8', timeout: 60000 });
+        assert.strictEqual(r.status, 0, r.stderr.split('\n').filter(l => l.length < 300).slice(-6).join('\n'));
+        return r.stdout.trim();
+    };
+    assert.strictEqual(run(200), run(-1), 'pausing at frame 200 changes nothing');
+});
+
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

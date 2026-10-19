@@ -123,6 +123,9 @@ on; build with `-DEVS_TAS=0` for the original behaviour). Emulation itself is un
   Going through `S9xGetByte` let the webview's wall-clock polls shift emulation.
 - `takeInputPolled()`: 1 if the game read `$4016/$4017/$4218-$421F` since the last call,
   0 for a lag frame. The FPS chip's "game" rate counts these.
+- `pauseEmulation()` breaks the CPU loop only from inside it (a breakpoint callback,
+  `dbg.running`). Called between frames it used to leave `SCAN_KEYS_FLAG` set, so the next
+  `mainLoop()` emulated nothing and every pause desynced the recording by one frame.
 - Anything new that touches emulation state must run inside the frame loop, never
   from a timer, or recorded sessions stop replaying.
 

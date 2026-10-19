@@ -36,3 +36,15 @@
 ### 1.4 Save State Scrubbing & Rewind
 - **Status: 🟡 feature gap**
 - Visual timeline slider for stepping backward/forward through recent game states in the emulator panel.
+
+### 1.5 Recordings: saves across sessions, saves in exports, a state per room
+- **Status: 🟡 feature gap** (asked 2026-10-19, after the pause-desync fix of v0.314.4)
+- **SRAM across sessions:** the in-game saves survive closing the ROM. Today every power-on zeroes SRAM
+  so every movie starts from an empty save (`tas/README.md`). Keeping SRAM means a movie must name the
+  SRAM it started from (a header line with its CRC and the bytes in a side file), or replays desync.
+- **Export with SRAM:** an exported recording carries that starting SRAM and the SRAM at its end, so
+  someone else sees the player's save files.
+- **A state per room:** while recording (or on replay), save a state at every room change so a replay
+  can start in a chosen room. The headless half exists (`tools/cdl/replay-states.js`, `--states`);
+  the panel has none.
+
