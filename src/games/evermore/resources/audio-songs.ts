@@ -6,6 +6,7 @@ import { hexId } from './resource-uri';
 import { buildMusicModel } from '../music/model/catalog';
 import { packageRecords, musicPackages, driverBlocks, isEvermoreAudio } from '../music/model/rom-audio';
 import * as V from '../music/webview/music-view';
+import { hiromFileOffset } from '../../../platform/snes/hirom';
 
 const SONG_POINTERS_ADDR = 0x019903;
 const DRIVER_ROM_ADDR = 0x0180DC;
@@ -69,7 +70,7 @@ function readSongInfo(rom: Rom, songId: number, song: Song, ptr: number) {
         cur = nextCur;
         rawBytes.push(...rec);
         const len = rec[0] | (rec[1] << 8);
-        const src = (rec[2] | (rec[3] << 8) | (rec[4] << 16)) & 0x3FFFFF;
+        const src = hiromFileOffset(rec[2] | (rec[3] << 8) | (rec[4] << 16));
         const dest = rec[5] | (rec[6] << 8);
         transfers.push({
             index: k,
@@ -207,7 +208,7 @@ function buildSpc(rom: Rom, songId: number, title = 'Secret of Evermore') {
 
     // 2. Apply transfer records
     const r24 = (o: number) => rom[o] | (rom[o + 1] << 8) | (rom[o + 2] << 16);
-    let cur = r24(SONG_POINTERS_ADDR + songId * 3) & 0x3FFFFF;
+    let cur = hiromFileOffset(r24(SONG_POINTERS_ADDR + songId * 3));
     const [b, c2] = take(rom, cur, 2);
     cur = c2;
     const n = b[0] | (b[1] << 8);
@@ -216,7 +217,7 @@ function buildSpc(rom: Rom, songId: number, title = 'Secret of Evermore') {
         const [rec, nextCur] = take(rom, cur, 7);
         cur = nextCur;
         const len = rec[0] | (rec[1] << 8);
-        const src = (rec[2] | (rec[3] << 8) | (rec[4] << 16)) & 0x3FFFFF;
+        const src = hiromFileOffset(rec[2] | (rec[3] << 8) | (rec[4] << 16));
         const dest = rec[5] | (rec[6] << 8);
         let destPos = dest;
         for (const [a, end] of upperWalk(src, len)) {

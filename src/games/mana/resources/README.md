@@ -23,4 +23,3 @@ Rules for agents: [AGENTS.md](AGENTS.md).
 | `files.ts` | pure path → content resolver and the map/area catalogue |
 | `map-files.ts` | the files of one map (pictures, data, collision, animation) |
 | `rom-source.ts` | reads the Mana ROM the ROM library names (title-checked, cached) |
-| `png.js` | RGBA → PNG |

@@ -13,6 +13,7 @@
 // picks the half for layer A's table ($7F:C000), bit 7 for layer B's ($7F:C800).
 
 import { Rom, u24 } from './rom';
+import { hiromFileOffset } from '../../../platform/snes/hirom';
 
 const STREAM_POINTERS = 0xCB4000;
 export const METATILES_PER_HALF = 192;
@@ -20,7 +21,7 @@ const WORDS = 384 * 4;
 
 /** All 384 metatiles of set `set`, 4 words each (1536 words). */
 export function decodeMetatileSet(rom: Rom, set: number): Uint16Array {
-    let p = u24(rom, STREAM_POINTERS + (set & 0x3F) * 3) & 0x3FFFFF;
+    let p = hiromFileOffset(u24(rom, STREAM_POINTERS + (set & 0x3F) * 3));
     let byte = 0, left = 0;
     const bits = (n: number): number => {
         let v = 0;

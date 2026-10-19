@@ -6,6 +6,7 @@
 import { decodeRoom, parseBlobLayout, objectAreaEnd, MAP_LIST_ADDR, MAX_ROOMS } from '../../maps';
 import { hex } from './util';
 import type { Claim } from './util';
+import { hiromFileOffset } from '../../../../platform/snes/hirom';
 
 const WORLD: Record<string, string> = { Prehistoria: '🦖 Prehistoria', Antiqua: '🏛️ Antiqua', Gothica: '🏰 Gothica', Omnitopia: '🚀 Omnitopia', Podunk: '🏡 Podunk' };
 const worldOf = (area: string | undefined): string => (area && WORLD[area]) || (area ? '❓ ' + area : '');
@@ -72,7 +73,7 @@ function textRegions(rom: Uint8Array, R: Claim): void {
     R(BANK + 0x1B, g, '📋', 'Room enter-script table', '5 bytes per room, packed pointer first; read by `$8C:CE99`', '', 2);
     let n = 0, first = Infinity;
     for (; g + n * 3 < first; n++) {
-        const v = r24(g + n * 3), o = (0x928000 + (v & 0x7FFF) + ((v & 0xFF8000) << 1)) & 0x3FFFFF;
+        const v = r24(g + n * 3), o = hiromFileOffset(0x928000 + (v & 0x7FFF) + ((v & 0xFF8000) << 1));
         if (o > g && o < first) first = o;
     }
     R(g, g + n * 3, '📋', 'Global script pointer table', `${n} × 3-byte packed pointers; trigger \`script\` fields are byte offsets into it`);

@@ -5,6 +5,7 @@
 import { entries } from './knowledge';
 import { resolveLocalizedName } from './strings';
 import type { NameOptions } from './strings';
+import { hiromFileOffset } from '../../../platform/snes/hirom';
 
 /** { address, name, notes, category, stringIndex, id } per routine (name = the entry's title). */
 const FUNCTIONS = entries('rom')
@@ -15,12 +16,12 @@ const FUNCTIONS = entries('rom')
     }));
 
 // Code runs from the $8x mirror; a lookup may come with the $Cx spelling or a file offset.
-const FUNCTION_BY_OFFSET = new Map(FUNCTIONS.map(f => [f.address & 0x3FFFFF, f]));
+const FUNCTION_BY_OFFSET = new Map(FUNCTIONS.map(f => [hiromFileOffset(f.address), f]));
 const FUNCTION_BY_ADDRESS = new Map(FUNCTIONS.map(f => [f.address, f]));
 
 function getFunction(address: unknown) {
     if (typeof address !== 'number') return null;
-    return FUNCTION_BY_ADDRESS.get(address) || FUNCTION_BY_OFFSET.get(address & 0x3FFFFF) || null;
+    return FUNCTION_BY_ADDRESS.get(address) || FUNCTION_BY_OFFSET.get(hiromFileOffset(address)) || null;
 }
 
 function getFunctionName(address: number, options: NameOptions = {}): string {

@@ -16,6 +16,7 @@ import { CHARACTER_TABLE, CHARACTER_STRIDE, ANIMATION_TABLE, characterPalette, c
 import { animationIdRecord, recordScript } from '../maps/animation-table';
 import { readSpriteInfo, scriptSprites } from '../maps/sprites';
 import { readDogForms } from './dog-forms';
+import { hiromFileOffset } from '../../../platform/snes/hirom';
 
 type Rom = Uint8Array;
 /** An animation as the Sprites tab lists it. `category` says where it comes from. */
@@ -30,7 +31,7 @@ type AnimField = { key: string; label: string; offset: number; purpose: string }
 /** Records the ENEMY table reaches (the last ROM entry is record 141). */
 const CHARACTER_COUNT = 142;
 
-const u8 = (rom: Rom, bus: number): number => rom[bus & 0x3fffff];
+const u8 = (rom: Rom, bus: number): number => rom[hiromFileOffset(bus)];
 const u24 = (rom: Rom, bus: number): number => (read16At(rom, bus) | (u8(rom, bus + 2) << 16)) >>> 0;
 const hex = (v: number): string => '$' + (v >>> 0).toString(16);
 

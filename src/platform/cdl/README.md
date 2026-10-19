@@ -27,11 +27,11 @@ Usage (record → export → `build.sh` → `recomp.sh`): `docs/reverse-engineer
 | `functions.ts` | `functions.json`: per-function widths, DB/D, WRAM / I/O footprint, SA-1 blockers |
 | `wram-export.ts` | `ram.asm`: every WRAM address, accessors, values seen, enum / bit-flag guesses |
 | `lookup.ts` | "who calls / who touches" answers for the CDL tab |
-| `host.js` | Panel glue (the only file that needs `vscode`): seed, snapshot, merge deltas, flush policy; export and lookup when given `tools.ts`; remembers whether recording was on |
+| `host.ts` | Panel glue (the only file that needs `vscode`): seed, snapshot, merge deltas, flush policy; export and lookup when given `tools.ts`; remembers whether recording was on |
 | `tools.ts` | Exports, lookup and script naming for the CDL tab, handed to the panel by Everscript (`configureEmulator({ cdlTools })`); not in the SNES CDL Recorder |
 | `bundle.ts` | Recording bundles: zip one library + its replays (`buildBundle`), merge one in (`importBundle`); summed streams add only the growth since that install's last bundle |
 
-The webview half is `../cdl-view.js` (tab, tick / drain), `../cdl-strips.js` (ROM + WRAM strips) and `../cdl-float.js` (floating coverage gains over the active character).
+The webview half is `../cdl-view.ts` (tab, tick / drain), `../cdl-strips.ts` (ROM + WRAM strips) and `../cdl-float.ts` (floating coverage gains over the active character).
 
 ## Invariants
 
@@ -75,4 +75,4 @@ The webview half is `../cdl-view.js` (tab, tick / drain), `../cdl-strips.js` (RO
 
 ## Allowed dependencies
 
-`../snes/` (header model, opcode matrix), `../zip.js`, Node built-ins — nothing outside `platform/` (`.depcruise.js` `platform-stands-alone`). The VS Code side is `src/core/emulator/cdl/host.ts`; the Evermore seeds and the CDL tab's tools (with script names from `address-lookup.ts`) are `src/games/evermore/cdl/`.
+`../snes/` (header model, opcode matrix), `../zip.ts`, Node built-ins — nothing outside `platform/` (`.depcruise.js` `platform-stands-alone`). The VS Code side is `src/core/emulator/cdl/host.ts`; the Evermore seeds and the CDL tab's tools (with script names from `address-lookup.ts`) are `src/games/evermore/cdl/`.

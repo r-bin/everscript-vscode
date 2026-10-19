@@ -14,7 +14,7 @@ Related skills: `animation-script`, `map-entities` (`.agents/skills/`).
 - `src/games/evermore/maps/` (pure ROM functions: `rom.ts`, `sprites.ts`, `character-record.ts`,
   `character-animation.ts`, `animation-vm.ts`, `animation-opcodes.ts`, `projectiles.ts`,
   `hit-test.ts`, `png.ts`, required from `dist/maps/`).
-- `../rom-readers.js`.
+- `../rom-readers.ts`.
 - No dependency on `src/games/evermore/rooms/`, `src/games/evermore/debugger/`, `src/games/evermore/scaling/`, or `vscode`.
 
 Existing exceptions (do not add more):

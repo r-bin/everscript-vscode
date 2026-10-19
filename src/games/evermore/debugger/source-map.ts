@@ -16,7 +16,7 @@
  * through the callee, so its lines sit one level below the callee's line that
  * runs it (callback();), like any inlined function.
  *
- * Addresses are ROM offsets (SNES address & 0x3FFFFF). Pure: no VS Code API.
+ * Addresses are ROM offsets (SNES hiromFileOffset(address)). Pure: no VS Code API.
  */
 
 import * as fs from 'fs';

@@ -9,6 +9,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { getFunction } from '../localizations/functions';
+import { hiromFileOffset } from '../../../platform/snes/hirom';
 
 // dist/ mirrors src/ at the same depth, so four folders up is the repo root from either.
 const REPO = path.resolve(__dirname, '..', '..', '..', '..');
@@ -21,7 +22,7 @@ const h = (v: number, d: number): string => (v >>> 0).toString(16).toUpperCase()
 
 /** Search docs/disassembly/ for a C code block covering this routine. */
 function findCuratedC(bus: number): DecompiledC | null {
-    const fn = getFunction(bus) || getFunction((bus & 0x3FFFFF) | 0x800000) || getFunction((bus & 0x3FFFFF) | 0xC00000);
+    const fn = getFunction(bus) || getFunction((hiromFileOffset(bus)) | 0x800000) || getFunction((hiromFileOffset(bus)) | 0xC00000);
     const disasmDir = path.join(REPO, 'docs', 'disassembly');
     if (!fs.existsSync(disasmDir)) return null;
 
@@ -140,7 +141,7 @@ function cListing(rom: unknown, bus: number): string {
     if (decomp) {
         return `// ==============================================================================\n// Decompiled C: ${decomp.title}\n// Source: ${decomp.source} (${decomp.path})\n// ==============================================================================\n\n${decomp.code}\n`;
     }
-    return `// No decompiled C found for address $${h(bus, 6)}.\n// You can run decomp-curator or inspect soe://rom/${h(bus & 0x3FFFFF, 6)}.asm\n`;
+    return `// No decompiled C found for address $${h(bus, 6)}.\n// You can run decomp-curator or inspect soe://rom/${h(hiromFileOffset(bus), 6)}.asm\n`;
 }
 
 export { getDecompiledC, cListing };

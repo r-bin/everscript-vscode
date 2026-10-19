@@ -1,7 +1,7 @@
 # emulator/tas/ — input recording and replays
 
-Host side of input recording. The webview half is `../tas-view.js` (REPLAYS pause-menu tab, input
-overlay, `tasApplyInput()` in the frame loop); `../fps-meter.js` shows emulated and
+Host side of input recording. The webview half is `../tas-view.ts` (REPLAYS pause-menu tab, input
+overlay, `tasApplyInput()` in the frame loop); `../fps-meter.ts` shows emulated and
 game frame rates.
 
 | File | Role |

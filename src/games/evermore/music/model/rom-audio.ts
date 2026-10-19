@@ -1,3 +1,4 @@
+import { hiromFileOffset } from '../../../../platform/snes/hirom';
 // Ownership: the sound data of a Secret of Evermore ROM, as the 65816 uploads
 // it. Pure: ROM bytes in, plain objects out.
 //
@@ -48,7 +49,7 @@ const r24 = (rom: Uint8Array, o: number): number => rom[o] | rom[o + 1] << 8 | r
 
 /** [{ dest, bytes }] of one package, in upload order. */
 function packageRecords(rom: Uint8Array, id: number): UploadBlock[] {
-    let cur = r24(rom, PACKAGE_POINTERS + id * 3) & 0x3FFFFF;
+    let cur = hiromFileOffset(r24(rom, PACKAGE_POINTERS + id * 3));
     let r = readUpper(rom, cur, 2);
     const count = r.bytes[0] | r.bytes[1] << 8;
     cur = r.next;
@@ -58,7 +59,7 @@ function packageRecords(rom: Uint8Array, id: number): UploadBlock[] {
         cur = r.next;
         const b = r.bytes;
         const len = b[0] | b[1] << 8;
-        const src = (b[2] | b[3] << 8 | b[4] << 16) & 0x3FFFFF;
+        const src = hiromFileOffset(b[2] | b[3] << 8 | b[4] << 16);
         const dest = b[5] | b[6] << 8;
         out.push({ dest, bytes: readUpper(rom, src, len).bytes });
     }

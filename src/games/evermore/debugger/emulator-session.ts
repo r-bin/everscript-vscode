@@ -29,6 +29,7 @@ import * as memory from './memory-access';
 import { inferTypes } from './value-types';
 import type { SourceMap } from './source-map';
 import type { Slot, Snapshot } from './script-frames';
+import { hiromFileOffset } from '../../../platform/snes/hirom';
 
 /** A DAP request or response, as far as this session reads it. */
 interface DapRequest { type: string; seq: number; command: string; arguments?: any }
@@ -281,7 +282,7 @@ class EmulatorDebugSession {
     /** Where the stopped slot is shown (for the next stop's level). */
     _rememberStop(): void {
         const snap = this.snapshot;
-        const chain = this.map && snap && snap.address != null ? this.map.chainAt(snap.address & 0x3FFFFF) : null;
+        const chain = this.map && snap && snap.address != null ? this.map.chainAt(hiromFileOffset(snap.address)) : null;
         this.lastStop = chain ? { slot: snap!.slot, chain, level: this.level } : null;
     }
 

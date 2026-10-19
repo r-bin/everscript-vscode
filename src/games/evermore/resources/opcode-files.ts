@@ -9,6 +9,7 @@ import { dir, json, text } from './nodes';
 import { hexLower as hex2 } from '../../../platform';
 import type { Entry } from './nodes';
 import type { Instruction } from '../script-vm';
+import { hiromFileOffset } from '../../../platform/snes/hirom';
 
 type Rom = Uint8Array;
 
@@ -17,7 +18,7 @@ const bus = (a: number): string => '$' + (a >>> 16).toString(16).toUpperCase().p
 
 /** The handler of `op`: the word in the opcode table (bank $8C). */
 function handlerOf(rom: Rom, op: number): number {
-    const off = (TABLE & 0x3FFFFF) + 2 * op;
+    const off = (hiromFileOffset(TABLE)) + 2 * op;
     return (TABLE & 0xFF0000) | rom[off] | (rom[off + 1] << 8);
 }
 

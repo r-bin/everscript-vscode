@@ -8,7 +8,7 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2), part of `src/core/map-e
 
 ## Dependencies
 - Nothing: no imports from `src/` outside this folder (`.depcruise.js` `map-editor-shell-is-game-neutral`).
-  `frame.js` is also `require`d by the Rooms host (`rooms/rendering/tree-renderer.ts`, `memory/render-radar.js`).
+  `frame.ts` is also imported by the Rooms host (`rooms/rendering/tree-renderer.ts`, `memory/render-radar.js`) and bundled for the page (`dist/webview/shell-frame.js`).
 
 ## Invariants
 - No game's words here: no rooms, families, metatiles, collision bits, ROM. A page passes content in; a hook
@@ -17,8 +17,8 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2), part of `src/core/map-e
   parametrise it, or leave the feature out of the other page until it can be shared.
 - Classes before ids in stylesheets (`.rg-edit-bar`, not `#rg-edit-bar`); the ids stay in the markup for scripts.
 - A page's own look goes in its own stylesheet and uses the tokens; do not restyle a shell class per game.
-- `frame.js` builders return strings and touch no DOM (they run under Node); only `shellDockMount` /
-  `shellDockUnmount` use `document`.
+- `frame.ts` builders return strings and touch no DOM (they run under Node); the DOM half
+  (`shellDockMount` / `shellDockUnmount`) is in `frame-dock.js`.
 
 ## Tests
 - `tests/memory/map-editor-dom.test.js`, `rooms-rail-dom.test.js`, `rooms-layout.test.js`, `map-editor.test.js`

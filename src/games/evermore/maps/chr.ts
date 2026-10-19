@@ -3,6 +3,7 @@
 // See docs/map-format/map_tile_graphics_decompression.md.
 
 import { getMapTileGraphicsOffset } from '../variant-resolver';
+import { hiromFileOffset } from '../../../platform/snes/hirom';
 
 /** US ROM file offset of the master 16x16 graphic pointer table (SNES $EE0000). */
 export const GRAPHIC_TABLE = 0x2e0000;
@@ -21,7 +22,7 @@ const TILE_BYTES = 128;
 export function decompressTile16x16(rom: Uint8Array, tileId: number): Uint8Array {
     const tableOffset = getMapTileGraphicsOffset(rom);
     const ptrAddr = tableOffset + tileId * 3;
-    const dataAddr = (rom[ptrAddr] | (rom[ptrAddr + 1] << 8) | (rom[ptrAddr + 2] << 16)) & 0x3fffff;
+    const dataAddr = hiromFileOffset(rom[ptrAddr] | (rom[ptrAddr + 1] << 8) | (rom[ptrAddr + 2] << 16));
     const tileInfo = rom[dataAddr];
     const out = new Uint8Array(TILE_BYTES);
 

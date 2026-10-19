@@ -7,6 +7,7 @@
 // Everything else reads 0 and ignores writes.
 
 import { Bus } from './cpu65816';
+import { hiromFileOffset } from '../../../platform/snes/hirom';
 
 export class SnesBus implements Bus {
     readonly wram = new Uint8Array(0x20000);
@@ -42,7 +43,7 @@ export class SnesBus implements Bus {
             if (a >= 0x8000) return this.romRead(((bank & 0x3F) << 16) | a);
             return this.readIo(a);
         }
-        return this.romRead(addr & 0x3FFFFF);           // $40-$7D, $C0-$FF: HiROM
+        return this.romRead(hiromFileOffset(addr));           // $40-$7D, $C0-$FF: HiROM
     }
 
     write(addr: number, v: number): void {

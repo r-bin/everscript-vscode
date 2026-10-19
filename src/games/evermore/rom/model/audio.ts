@@ -7,6 +7,7 @@
 
 import { hex } from './util';
 import type { Claim } from './util';
+import { hiromFileOffset } from '../../../../platform/snes/hirom';
 
 type Range = [number, number];
 
@@ -44,12 +45,12 @@ function songs(rom: Uint8Array): { song: number; desc: Range[]; data: Range[] }[
     const res = [];
     for (let s = 0; s <= count; s++) {
         const desc: Range[] = [], data: Range[] = [];
-        let cur = r24(SONG_POINTERS + s * 3) & 0x3FFFFF, b: number[];
+        let cur = hiromFileOffset(r24(SONG_POINTERS + s * 3)), b: number[];
         [b, cur] = take(rom, cur, 2, desc);
         const n = b[0] | b[1] << 8;
         for (let k = 0; k < n; k++) {
             [b, cur] = take(rom, cur, 7, desc);
-            const len = b[0] | b[1] << 8, src = (b[2] | b[3] << 8 | b[4] << 16) & 0x3FFFFF;
+            const len = b[0] | b[1] << 8, src = hiromFileOffset(b[2] | b[3] << 8 | b[4] << 16);
             if (src + len > rom.length) throw new Error('song 0x' + hex(s, 2) + ' reads past the ROM');
             data.push(...upperWalk(src, len));
         }

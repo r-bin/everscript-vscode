@@ -7,7 +7,7 @@
 // the byte offset from $92:8000 in that window space: bank = $92 + (p >> 15), address =
 // $8000 | (p & $7FFF) ($8C:CF2E builds the bus pointer that way).
 
-import { busU8 } from '../../../platform/snes/hirom';
+import { busU8, hiromFileOffset } from '../../../platform/snes/hirom';
 import { getScriptHeaderOffset } from '../variant-resolver';
 
 /** First bank of script code. */
@@ -37,7 +37,7 @@ export function distance(from: number, to: number): number {
 export class ScriptRom {
     /** `rom`: the user's ROM, unheadered. The US layout only (other releases keep scripts at $93). */
     constructor(readonly rom: Uint8Array) {
-        if (getScriptHeaderOffset(rom) !== (SCRIPT_HEADER & 0x3FFFFF)) throw new Error('script VM: this ROM keeps its scripts elsewhere (only the US layout is known)');
+        if (getScriptHeaderOffset(rom) !== (hiromFileOffset(SCRIPT_HEADER))) throw new Error('script VM: this ROM keeps its scripts elsewhere (only the US layout is known)');
     }
 
     /** Whether `bus` is script space inside this ROM. */

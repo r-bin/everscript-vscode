@@ -5,6 +5,7 @@
 import { entries } from './knowledge';
 import { resolveLocalizedName } from './strings';
 import type { NameOptions } from './strings';
+import { hiromFileOffset } from '../../../platform/snes/hirom';
 
 /** { address, name, notes, category, size, stringIndex, id } per table (name = the entry's title). */
 const TABLES = entries('rom')
@@ -15,12 +16,12 @@ const TABLES = entries('rom')
     }));
 
 // Entries use the bus address; callers also look up by file offset or the other mirror.
-const TABLE_BY_OFFSET = new Map(TABLES.map(t => [t.address & 0x3FFFFF, t]));
+const TABLE_BY_OFFSET = new Map(TABLES.map(t => [hiromFileOffset(t.address), t]));
 const TABLE_BY_ADDRESS = new Map(TABLES.map(t => [t.address, t]));
 
 function getTable(address: unknown) {
     if (typeof address !== 'number') return null;
-    return TABLE_BY_ADDRESS.get(address) || TABLE_BY_OFFSET.get(address & 0x3FFFFF) || null;
+    return TABLE_BY_ADDRESS.get(address) || TABLE_BY_OFFSET.get(hiromFileOffset(address)) || null;
 }
 
 function getTableName(address: number, options: NameOptions = {}): string {

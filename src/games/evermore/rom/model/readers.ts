@@ -10,6 +10,7 @@
 // region's 32 KB half; wider ones are counted, not listed.
 
 import { hex } from './util';
+import { hiromFileOffset } from '../../../../platform/snes/hirom';
 
 const SPACE_ROM = 1, BULK = 128;
 const XR_DMA = 0x20;
@@ -49,7 +50,7 @@ function readersOf(xrefs: Map<number, number> | null | undefined, stats: Map<num
     }
     const named = points.slice().sort((a, b) => a.s - b.s);
     const readers = [...byPc.values()].sort((a, b) => (Number(a.bulk) - Number(b.bulk)) || b.bytes - a.bytes).slice(0, limit).map(r => {
-        const off = r.pc & 0x3FFFFF;
+        const off = hiromFileOffset(r.pc);
         let near: { s: number; name: string } | null = null;
         for (const p of named) { if (p.s > off) break; if ((p.s >> 16) === (off >> 16)) near = p; }
         const where = near && off - near.s < 0x800 ? `${near.name}${off > near.s ? ' +$' + hex(off - near.s, 2) : ''}` : '';

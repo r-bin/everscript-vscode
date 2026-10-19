@@ -5,6 +5,7 @@ const STRING_KEYS_ADDR = 0x11D000;
 const STRING_KEY_COUNT = 3002;
 
 import * as vr from '../variant-resolver';
+import { hiromFileOffset } from '../../../platform/snes/hirom';
 
 /** Decode a plain or dictionary-compressed string from the ROM by index; null when there is none. */
 function decodeRomString(rom: Uint8Array | Buffer, stringIndex: number): string | null {
@@ -23,7 +24,7 @@ function decodeRomString(rom: Uint8Array | Buffer, stringIndex: number): string 
     let addr = 0xC00000 + (v & 0x7FFF) + ((v & 0x7F8000) << 1);
     if (addr > 0xCFFFFF) return null;
 
-    const read8 = (a: number): number => (a & 0x3FFFFF) < rom.length ? rom[a & 0x3FFFFF] : 0;
+    const read8 = (a: number): number => hiromFileOffset(a) < rom.length ? rom[hiromFileOffset(a)] : 0;
     const read16 = (a: number): number => read8(a) | (read8(a + 1) << 8);
 
     let result = '';

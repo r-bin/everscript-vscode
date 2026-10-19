@@ -49,7 +49,7 @@ engine on the host), injected by `extension.js`. Opcodes are still undecoded: `d
 ## The driver's own bookkeeping (disassembly of the ROM driver, verified in the engine)
 
 The emulator stream sends these ARAM bytes with every frame (`drv`,
-`emulator/apu-stream-view.ts` `APU_DRIVER_RANGES`); `music-view.js` decodes them:
+`emulator/apu-stream-view.ts` `APU_DRIVER_RANGES`); `music-view.ts` decodes them:
 
 | ARAM | Meaning |
 |---|---|
@@ -83,7 +83,7 @@ so the read-ahead never blinks empty. What the game will send next it cannot kno
   the driver bytes below. The tab asks for all 64 KB of ARAM when the package changes, and for
   the read-ahead.
 - **A track:** `engine/spc-engine.js` is blargg's SPC700 + S-DSP. It's built from the core's
-  `apu_blargg.c`, which the core itself does not use. `music-engine.js` speaks the 65816's side
+  `apu_blargg.c`, which the core itself does not use. `music-engine.ts` speaks the 65816's side
   of the port protocol to it, as bank `$8C` does: boot, package upload through the IPL hand-off,
   `$06 M`. Its view has the same layout as the core's, so one renderer serves both.
 - **Sound effects while following the emulator:** the tab copies the emulator's chip (view +
@@ -100,8 +100,8 @@ so the read-ahead never blinks empty. What the game will send next it cannot kno
 | `render-music-tab.ts` | The pane scaffold |
 | `engine/spc-engine.c`, `build-engine.sh` | The engine's C side; `build-engine.sh` (`npm run build:music-engine`) writes `spc-engine.js` (wasm embedded, 43 KB) |
 | `engine/copyright`, `engine/NOTICE.md` | Licence terms shipped with the engine (blargg's SPC code is LGPL-2.1, inside the snes9x2005 core) |
-| `webview/music-view.js` | Pure: the 224-byte view, BRR, instruments, ARAM owners |
-| `webview/music-engine.js` | `MusicSpc`: the engine + the port protocol |
+| `webview/music-view.ts` | Pure: the 224-byte view, BRR, instruments, ARAM owners |
+| `webview/music-engine.ts` | `MusicSpc`: the engine + the port protocol |
 | `webview/music-audio.js` | `_muAudio`: WebAudio output (32 kHz) and instrument previews |
 | `webview/music-tab.js` | `_music` state; status, voices (inspector), the timeline's channel column |
 | `webview/music-timeline.js` | Timeline frames from the driver state, effect runs and who sent them, the canvas |

@@ -22,6 +22,7 @@ import type { KnownRegion } from './known-regions';
 
 type Index = ReturnType<typeof buildIndex>;
 import { returnsByEntry, exitDirectives, dispatchDirectives, noReturnComments, ramRoutines, FUNC_EXCLUSIONS } from './recomp-analysis';
+import { hiromFileOffset } from '../snes/hirom';
 
 const CDL_ACC_8 = 0x20, CDL_IDX_8 = 0x10;
 const EXT_SEEN_M16 = 0x08, EXT_SEEN_X16 = 0x10;
@@ -122,7 +123,7 @@ function writeRecompSeeds({ lib, rom, map, index, known, outDir }: {
     // Dropping the root is not enough: snesrecomp rediscovers an excluded routine as the target of a
     // compiled caller's JSL and compiles it anyway ($80:9033 from $90:D749 corrupted the OBJ tile LRU
     // lists, v0.201.19). force_lle keeps the boundary on the interpreter for every caller.
-    const forced = new Set([...(FUNC_EXCLUSIONS || new Map()).keys()].map(bus => (0x800000 | (bus & 0x3FFFFF)) >>> 0));
+    const forced = new Set([...(FUNC_EXCLUSIONS || new Map()).keys()].map(bus => (0x800000 | (hiromFileOffset(bus))) >>> 0));
     for (const pc24 of [...forced].sort((a, b) => a - b)) {
         bankLines(pc24 >>> 16).push(`force_lle ${hex(pc24, 6).toLowerCase()}    # ${FUNC_EXCLUSIONS.get(pc24)}`);
     }
@@ -142,7 +143,7 @@ function writeRecompSeeds({ lib, rom, map, index, known, outDir }: {
         const what = r.names.length > 2 ? `${r.names[0]} .. ${r.names[r.names.length - 1]} (${r.names.length})` : r.names.join(', ');
         const range = (b: number) => `data_region ${hex(b >>> 16, 2).toLowerCase()} ${hex(b & 0xFFFF, 4).toLowerCase()} ${hex((b & 0xFFFF) + len, 5).toLowerCase()}    # ${what}`;
         data.push(range(bus));
-        if (map.type === 'HiROM' && (bus & 0xFFFF) >= 0x8000 && r.start < 0x400000) data.push(range(0x800000 | (r.start & 0x3FFFFF)));
+        if (map.type === 'HiROM' && (bus & 0xFFFF) >= 0x8000 && r.start < 0x400000) data.push(range(0x800000 | (hiromFileOffset(r.start))));
     }
 
     const b0 = bankLines(0);

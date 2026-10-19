@@ -121,8 +121,8 @@ does too (registered in `src/games/terra/`, European base ROM title `TERRANIGMA 
 ## 7. Order of work (cleanup step 4)
 
 1. Resolver core + library file + ROM identification in `platform/`; switch every
-   `$SOE_ROM` / `romPath` / hard-coded path reader to it (tools, tests, `rom-readers.js`,
-   `script-trace.js`, `gen-sound-animations.js`, the npm/sh wrappers and their docs).
+   `$SOE_ROM` / `romPath` / hard-coded path reader to it (tools, tests, `rom-readers.ts`,
+   `script-trace.ts`, `gen-sound-animations.js`, the npm/sh wrappers and their docs).
 2. Game descriptor and `registerGame()`; Evermore and Mana descriptors with variants and base.
 3. Move domains, one per commit with `git mv`, converting to TS as they move:
    `src/mana*` → `games/mana/` (done in v0.232.0); Evermore domains (`maps`, `script`, `sprites`, `localizations`,
@@ -158,14 +158,14 @@ does too (registered in `src/games/terra/`, European base ROM title `TERRANIGMA 
   scaling,debugger}`; their JS→TS conversion is cleanup 5.5, not part of the move. v0.241.0: the map editor's view/core/shell → `core/map-editor/`, `mcp` → `core/mcp`, the Docs/RNG
   tab → `games/evermore/docs-tab`. v0.242.0: Evermore helpers out of `shared/`. v0.243.0: the CDL engine →
   `platform/cdl` (Evermore's seeds come in as `gameRegions` from `games/evermore/cdl/`), TAS movie format →
-  `platform/tas`, `zip.js` and the SNES header model → `platform/`; rule `platform-stands-alone`. v0.245.0: `rooms` and `memory` →
+  `platform/tas`, `zip.ts` and the SNES header model → `platform/`; rule `platform-stands-alone`. v0.245.0: `rooms` and `memory` →
   `games/evermore/` whole (Evermore's Rooms and Memory Radar; the editor's game-neutral pieces are already
   `core/map-editor`, and a tab shell moves to `core/` only when a second game uses it). v0.246.0: the emulator's host
-  side knows no game (rule `emulator-knows-no-game`): Evermore's half is `games/evermore/emulator/host.js`,
+  side knows no game (rule `emulator-knows-no-game`): Evermore's half is `games/evermore/emulator/host.ts`,
   handed in through `configureEmulator({ game })`; the recorder's package has no game code (103 → 52 files). v0.247.0: `shared/` is gone
   (`shared.css` → `core/webview/`, the Memory tab's `shared.js` → `games/evermore/memory/webview/`). v0.248.0: `src/extension.js` is the composition
-  root (ROM library, the list of games, `core/game-views.js`, MCP); each game has `games/<game>/extension.js`;
-  `core/game-views.js` opens the selected game's view (Evermore radar / Mana or Terranigma Maps). v0.266.0–v0.271.0:
+  root (ROM library, the list of games, `core/game-views.ts`, MCP); each game has `games/<game>/extension.js`;
+  `core/game-views.ts` opens the selected game's view (Evermore radar / Mana or Terranigma Maps). v0.266.0–v0.271.0:
   the emulator's Evermore panels moved to `games/evermore/emulator/` and the folder to `core/emulator`. Step 3 is done:
   only `recorder` stays at `src/`, the second extension's composition root, like `extension.js`.
 - Headless: `npm run roms` lists the library and adds/selects/marks ROMs (`tools/roms.js`).

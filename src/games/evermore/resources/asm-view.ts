@@ -12,6 +12,7 @@ import { OPCODES, instructionLength, endsFlow } from '../../../platform/snes/opc
 import { getFunction } from '../localizations/functions';
 import { getTable } from '../localizations/tables';
 import { getDecompiledC } from './decomp-view';
+import { hiromFileOffset } from '../../../platform/snes/hirom';
 
 /** One listed instruction: where, its bytes, the opcode, the text; `name` of what it calls, `mark` on the call. */
 interface AsmLine { addr: number; bytes: number[]; op: number; text: string; name?: string; mark?: boolean }
@@ -33,9 +34,9 @@ function busToFile(bus: number): number | null {
 }
 
 function nameOf(addr: number): string | null {
-    const f = getFunction(addr) || getFunction((addr & 0x3FFFFF) | 0x800000) || getFunction((addr & 0x3FFFFF) | 0xC00000);
+    const f = getFunction(addr) || getFunction((hiromFileOffset(addr)) | 0x800000) || getFunction((hiromFileOffset(addr)) | 0xC00000);
     if (f) return f.name;
-    const t = getTable(addr & 0x3FFFFF) || getTable(addr);
+    const t = getTable(hiromFileOffset(addr)) || getTable(addr);
     return t ? t.name : null;
 }
 

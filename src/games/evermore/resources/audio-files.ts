@@ -11,6 +11,7 @@ type Rom = Uint8Array;
 type Song = (typeof MUSIC)[number];
 type Sound = (typeof SOUNDS)[number];
 import { readSongInfo, buildSpc, songMarkdown, SONG_POINTERS_ADDR } from './audio-songs';
+import { hiromFileOffset } from '../../../platform/snes/hirom';
 
 const SONG_COUNT_ADDR = 0x019900;
 
@@ -66,7 +67,7 @@ function resolveMusic(idStr: string | undefined, leaf: string | undefined, extra
 
     const id = song.id;
     const r24 = (o: number) => rom[o] | (rom[o + 1] << 8) | (rom[o + 2] << 16);
-    const ptr = r24(SONG_POINTERS_ADDR + id * 3) & 0x3FFFFF;
+    const ptr = hiromFileOffset(r24(SONG_POINTERS_ADDR + id * 3));
 
     if (leaf === undefined) {
         const entries: Entry[] = [
