@@ -11,6 +11,7 @@ READ FIRST
 ==================================================
 
 - `docs/disassembly/PROGRESS.md` (Current metrics, subsystem breakdown, prioritized queue)
+- `docs/todo/engine-decompilation.md` (Master /goal continuation roadmap and upcoming batches)
 - `docs/reverse-engineering/incremental-decomp-guide.md` (The step-by-step C decompilation pipeline)
 - `docs/reverse-engineering/asm-to-c-port.md` (The 6-stage port roadmap)
 - skill `game-knowledge` (Where addresses, routines, and structs must be recorded)
