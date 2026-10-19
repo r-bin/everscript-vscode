@@ -9,6 +9,23 @@ over below, each marked "re-measure" because the tree has moved since.
 Work happens in this repo (no fresh repo), one work item per session, in the order of §3. Tick
 an item only when its check passes.
 
+**State (2026-10-19, v0.314.1).** Steps 1–4, 6 and 7 are done; in step 5, 5.2, 5.4, 5.6 and 5.7 are
+done, and 5.1, 5.3 and 5.5 are open (each lists what is left; the TS list is
+[todo/port-to-ts.md](todo/port-to-ts.md)). All seven checks pass and block: `check:legal` (1,755 files, baseline
+empty), `check:ai-context` (0, allow list empty), `check:dup` (0 clones), `check:deps` (919 modules),
+`check:circular`, `check:dead` (files clean; 157 unused-export *warnings*, mostly exports used only in their own
+file, which compiled CommonJS writes as `exports.x`), `check:knowledge` (no new gaps). `npm test`: 36 files,
+9.6 s, green. How far each §1 goal has got:
+
+| Goal | Where it stands |
+|---|---|
+| Licences, nothing ported | met |
+| Dead code, lean tools | files met; unused exports are a warning, not counted |
+| Duplication | 30+ line clones met; short copies left in 5.1, including one real bug (the room table, below) |
+| TypeScript | 222 host modules strict TS; left: 9 host modules, 173 page scripts (5.3), 42 in `tools/` + `scripts/`, 77 tests |
+| Addresses documented | 40.4 % of code addresses (316 left, baseline 368), 220/420 CDL routines (52.4 %), 5.9 % of touched WRAM bytes. The baseline only shrinks; the `re-curator` agent works it down |
+| Docs, AI context, multi-game | met (what multi-game.md §7 leaves open is listed there) |
+
 ---
 
 ## 1. Goals and the check that proves each
@@ -202,24 +219,28 @@ converts to TS as it moves (D9).
 ### Step 5 — Duplication, big files, TypeScript (re-measure all)
 What is duplicated between Evermore and Mana is what becomes `core/`.
 
-- [ ] **5.1 Clones at v0.199** (v0.234.0, done: `platform/snes/hirom.ts` (bus→file, read16/24; Evermore `maps/rom.ts`,
-  Mana `decoder/rom.ts`, sprites, ROM tab, table hack, CDL values), `platform/crc32.ts` (6 copies → 1),
-  `platform/png.ts` (2 encoders → 1), `platform/snes/opcodes-65816.ts` (the one matrix, now TS; the CDL shim is
-  gone), ROM history identifies through the ROM library instead of its own hash list. v0.314.0: the inline
-  `& 0x3FFFFF` masks in the TS host code are `hiromFileOffset` (the page scripts' and `tools/`'s JS copies go with their port to TS). Left: HTML escape, hex
-  formatters, tab strip, CSP shell → `core/webview` with 5.3; v0.292.0: the emulator page's copy of the sprite readers
-  (block decompressor, chunk list, composer, palettes, ~120 lines) is gone: the page loads the host's own
-  (`maps/sprites.ts`, `character-record.ts`) as `EvsRom`, bundled by `tools/bundle-pages.mts`; same pixels on all
-  4,903 sprites, colours now full range as on the map; v0.293.0: the page's character-record reads (`$8E` +$00 name, +$09 palette, +$0F HP, the attack
-  animations; 6 places) go through `character-record.ts` too (`entityRecordWord`, `RECORD_FIELDS`, `entityNamePointer`,
-  `entityCharacter`; the bundle is now `EvsRom`, `dist/webview/evermore-rom.js`), same values for all 142 records; v0.294.0: hex formatters → `platform/hex.ts` (`hex` upper case, `hexLower`; callers keep their `$` / `0x`):
-  28 named copies in the host code and tools replaced (the page scripts' own wait for the page bundles); v0.296.0: five local bus→file helpers (`bus & 0x3FFFFF`: script files, ROM export, the debugger's source map, the script
-  trace, the sound-source names, the simulation decoder) → `platform/snes/hirom.ts` `hiromFileOffset`; v0.297.0: the host's HTML escapes (radar, script trace, Terra page) → `core/webview/html.ts` `escapeHtml`
-  (the page-side ones in `frame.js`, `view-chips.js`, the sprites and ROM pages wait for the page bundles); the script decoder's `addressing.ts` with step 2) → one owner each: bus→file offset (~11 copies) and read16/24 (~20)
-  → `platform/snes`; BGR555, 2/4bpp, sprite decompressor (emulator copy of `maps/sprites.ts`
-  ~240 lines) → `platform/snes` gfx; alchemy damage math (×3) → one module in `games/evermore`;
-  HTML escape (×6), hex formatters (×23), tab strip, CSP shell → `core/webview`; 65816 opcode table
-  (×2), crc32 (×2), room-table pointer `0x1ffde7` (×3).
+- [ ] **5.1 Short copies below the jscpd threshold** (found at v0.199: bus→file ~11, read16/24 ~20, BGR555 / 4bpp,
+  the emulator page's sprite readers, alchemy math ×3, HTML escape ×6, hex formatters ×23, tab strip, CSP shell,
+  65816 opcode table ×2, crc32, room-table pointer `0x1ffde7` ×3; the script decoder's `addressing.ts` went with
+  step 2). Each one gets one owner.
+  Done: v0.234.0 `platform/snes/hirom.ts` (bus→file, read16/24), `platform/crc32.ts` (6 → 1), `platform/png.ts`
+  (2 → 1), `platform/snes/opcodes-65816.ts` (the one matrix), ROM history identifies through the ROM library;
+  `platform/snes/tiles.ts` (`tile4bpp`, `bgr555`); alchemy math → one file (5.2); v0.292.0–v0.293.0 the emulator page
+  loads the host's sprite and character-record readers as the `EvsRom` bundle (same pixels on all 4,903 sprites,
+  same values for all 142 records); v0.294.0 `platform/hex.ts` (28 copies); v0.296.0 + v0.314.0 every
+  `& 0x3FFFFF` in TS host code is `hiromFileOffset`; v0.297.0 the host's HTML escapes → `core/webview/html.ts`.
+  Left (re-measured v0.314.1):
+  - **The room table: a bug, not only a copy.** Three host readers hard-code the US offset `0x1ffde7`:
+    `emulator/address-lookup.ts` `_getRoomTriggers`, `emulator/room-triggers.ts` `parseRoomTriggers` (the emulator's
+    trigger boxes) and `rom-readers.ts` `readRomMapHeaderFrom` (the room header). `cdl/regions.ts` and
+    `rom/model/catalog.ts` use the US constant `MAP_LIST_ADDR`. The owner already exists: `maps/rom.ts`
+    `mapTableOffset(rom)` / `roomBlobOffset(rom, id)` (US `0x1FFDE7`, PAL `0x20FDE5`). On the five PAL builds these
+    readers read the wrong bytes. Tracked: [todo/variant-vfs-and-consumers.md](todo/variant-vfs-and-consumers.md) §2.1.
+  - Page scripts, waiting on 5.3: HTML escape (`core/roms/webview/rom-panel.js`, `view-chips.js`,
+    `sprites-script.js`, `sprites-view/01-state.js`), hex (`rooms/webview/metatile-palette.js` `hex4`, `utils.js` `hexNum`), `& 0x3FFFFF`
+    (`overlays/02-render-objects-overlay.js`, `script-debug.js`, `rom-tab.js`); tab strip, CSP shell → `core/webview`.
+  - `tools/` JS, going with their port: `variants/variant-scans.js` (`hex`, the mask), `table-hack/build.js` (the mask).
+    The table hack's own `0x1FFDE7` is correct by design: it builds from the US base ROM.
 - [x] **5.2** `npm run check:dup` (jscpd, `.jscpd.json`: clones of 30+ lines in `src/` and `tools/`), blocking.
   The only such clone was the alchemy math (×3): one copy now, `src/games/evermore/scaling/webview/alchemy-math.js`,
   loaded by the radar page and required by the tests. The short helpers of 5.1 are below its threshold.

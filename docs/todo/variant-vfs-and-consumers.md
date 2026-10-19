@@ -46,6 +46,14 @@ soe://strings/*                Dynamic map_tile_graphics    Dynamic script_point
   - Updated `decompressTile16x16(rom, tileId)`: dynamic via `getMapTileGraphicsOffset(rom)` (US/Family B `0x2E0000` vs Family A `0x2F0000`).
 - [x] **Rooms Tab & Webview Editor (`src/games/evermore/rooms/`)**:
   - Verified room decoding, metatile decompression, and palette extraction across all PAL retail variants.
+- [ ] **The readers that still use the US map table** (re-measured v0.314.1, [cleanup.md](../cleanup.md) 5.1): hand them to
+  `roomBlobOffset(rom, id)` / `mapTableOffset(rom)` and drop each one's own pointer walk and copier-header guess.
+  - `src/games/evermore/emulator/room-triggers.ts` `parseRoomTriggers` and `emulator/address-lookup.ts`
+    `_getRoomTriggers`: `headerOffset + 0x1ffde7` (the emulator's trigger boxes and address lookup).
+  - `src/games/evermore/rom-readers.ts` `readRomMapHeaderFrom`: `0x1ffde7` (the room header and camera bounds).
+  - `src/games/evermore/cdl/regions.ts` (the map-table region and blob carving) and `rom/model/catalog.ts` (the ROM
+    tab's "Room pointer table" row): the US constant `MAP_LIST_ADDR`.
+  - Test: one PAL ROM through each (skips when the library has none).
 
 ### 2.2 Text & Dialogue Subsystem (`src/games/evermore/language/`, `src/resources/`)
 - [x] **String Key Lookup**:
