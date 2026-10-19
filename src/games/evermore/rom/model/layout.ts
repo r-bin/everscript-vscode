@@ -7,7 +7,7 @@
 
 import { bus } from './util';
 
-/** A claimed region of the ROM (rom/build.js collects them through `Claim`). */
+/** A claimed region of the ROM (rom/build.ts collects them through `Claim`). */
 interface Region { s: number; e: number; cat: string; name: string; notes: string; area?: string; prio: number; room?: unknown; warn?: boolean }
 interface Point { s: number; cat: string | null; name: string; notes: string }
 interface Cdl { code: number; data: number }
@@ -139,4 +139,5 @@ function layoutHalves(rom: Uint8Array, regions: Region[], points: Point[], cdl: 
     return { halves, totals };
 }
 
+export type { Region, Point, Half, Row, Cdl };
 export { annotateOverlaps, layoutHalves };

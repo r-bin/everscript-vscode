@@ -19,14 +19,14 @@ Usage (record → export → `build.sh` → `recomp.sh`): `docs/reverse-engineer
 | `mesen-export.ts` | Mesen2 files: `mesen/labels.mlb` (labels + comments for ROM and WRAM, `memtype:addr[-end]:label[:comment]`) and `mesen/rom.cdl` (`CDLv2` + CRC32 + flags, asset ranges as data) |
 | `asar-build.ts` | `rom.cdl`, `export.json` (labels + original offsets), `build.sh` + standalone `build-cdl.js` (ROM + CDL, flags follow labels; both copied from `asar-kit/`, plain files run by the user's shell and node, so JS by design), appends `STEPS.md` once per export |
 | `tables.js` | ROM lookup tables (HP per level, curves, dispatch tables) from indexed ROM reads: base, entry size, fields, index source, result → `tables.md` + header comments |
-| `table-assets.js` | Safe tables → `tables/tbl_*.asm` (incsrc'd known regions), `tables.json`, `tables.h` |
+| `table-assets.ts` | Safe tables → `tables/tbl_*.asm` (incsrc'd known regions), `tables.json`, `tables.h` |
 | `structs.ts` | WRAM struct inference (indexed / pointer / D-relative accesses) → `structs.asm`, `structs.h`, `structs.json` |
-| `enums.js` | Enums, states (value → handler) and bit flags → `enums.asm`, `enums.json` |
+| `enums.ts` | Enums, states (value → handler) and bit flags → `enums.asm`, `enums.json` |
 | `bus-report.ts` | `bus.json` / `bus.md`: ExHiROM and SA-1 audits from the bus-form stream (`bus.cdl`, `bus-sites.bin`), bytes per bank and form, top functions by cycles (`rom-cycles.bin`) |
 | `library-values.ts` | Value streams: `io-values.bin` (values written per I/O register), `sram-flags.bin`, `word-ranges.bin` (16-bit WRAM stores: min / max / value list, natural and cheated sets); merge laws are tested in `tests/debugger/cdl-values.test.js` |
 | `functions.ts` | `functions.json`: per-function widths, DB/D, WRAM / I/O footprint, SA-1 blockers |
 | `wram-export.ts` | `ram.asm`: every WRAM address, accessors, values seen, enum / bit-flag guesses |
-| `lookup.js` | "who calls / who touches" answers for the CDL tab |
+| `lookup.ts` | "who calls / who touches" answers for the CDL tab |
 | `host.js` | Panel glue (the only file that needs `vscode`): seed, snapshot, merge deltas, flush policy; export and lookup when given `tools.js`; remembers whether recording was on |
 | `tools.js` | Exports, lookup and script naming for the CDL tab, handed to the panel by Everscript (`configureEmulator({ cdlTools })`); not in the SNES CDL Recorder |
 | `bundle.ts` | Recording bundles: zip one library + its replays (`buildBundle`), merge one in (`importBundle`); summed streams add only the growth since that install's last bundle |

@@ -6,7 +6,7 @@ import { hexId } from './resource-uri';
 interface AnimOption { key?: string; label?: string; purpose?: string | null; offset?: number }
 interface CharacterInfo {
     id: number; name: string; disposition: { label: string }; paletteAddrHex: string; anims: AnimOption[];
-    stats: { hp: number; attack: number; defense: number; aggro_range: number };
+    stats: Record<string, number>;
     hitbox: { width: number; height: number; radius: number };
 }
 interface AnimationInfo {

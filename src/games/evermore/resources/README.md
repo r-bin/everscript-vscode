@@ -52,7 +52,7 @@ binds the same key and wins on extension load order; a user keybinding
 | `rom-files.js` | `soe://rom/`: `rom.sfc`, `header.json`, offset slices, `<offset>.json`, top-level aliases |
 | `rom-assets.js` | `soe://rom/assets/`: icons, items by name, alchemy, strings; routes the other kinds |
 | `map-files.js` | `assets/maps/`: every room's index, header and grids, renders, info page |
-| `character-files.js` | `characters/`, `animations/`: records, sprites, animation GIFs, frames, tile blocks |
+| `character-files.ts` | `characters/`, `animations/`: records, sprites, animation GIFs, frames, tile blocks |
 | `tile-files.js` | `assets/tiles/`: 16×16 CHR tile graphics table ($EE0000); room metatile atlas/tiles |
 | `audio-files.js`, `audio-songs.js` | `audio/`: music tracks, playable `.spc` snapshots, sound effects, descriptors (one song's records, SPC and page: `audio-songs.js`) |
 | `table-files.ts` | `tables/`: engine lookup and pointer tables with `data.bin` and `data.json` |
@@ -62,7 +62,7 @@ binds the same key and wins on extension load order; a user keybinding
 | `sound-source.js` | Who sent a sound effect (the emulator hook's event) as names, pictures and links, for the Music tab |
 | `page-links.ts` | link targets of generated pages: into a mount, relative to the page |
 | `ram-files.js` | `soe://ram/`: `status.json`, `wram.bin`, slices, `<addr>.json`, flags, symbols |
-| `tag-model.js` | `soe://tags/` graph: merges generated + `tags/tags.json`, inheritance, aliases, conflicts, validation |
+| `tag-model.ts` | `soe://tags/` graph: merges generated + `tags/tags.json`, inheritance, aliases, conflicts, validation |
 | `tag-generate.ts` | generated tags (rooms, areas, enemies, music, sounds, flags, RAM names, tables, items) from shipped data |
 | `tag-files.js` | `soe://tags/`: routing, directory listings, live values, search, `check.json` |
 | `tag-markdown.ts` | tag pages as Markdown / JSON |

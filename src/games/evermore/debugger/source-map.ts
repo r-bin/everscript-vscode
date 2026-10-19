@@ -28,7 +28,7 @@ import { hiromFileOffset as romOffset } from '../../../platform';
 import type { Constants } from './value-types';
 
 /** A compiled function in out/source_map.json. */
-interface MapFunction { address: number; size: number; file?: number; line: number; endLine?: number; name?: string }
+interface MapFunction { address: number; size: number; file?: number; line: number; endLine?: number; name: string }
 /** One compiled statement; `callers` are the inlining call sites, innermost first. */
 interface MapStatement { address: number; function: string; file: number; line: number; callers?: { function: string; file: number; line: number }[] }
 interface MapSymbol { name: string; address: number; size: number; flag?: number }

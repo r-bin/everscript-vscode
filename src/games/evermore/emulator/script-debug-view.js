@@ -16,7 +16,7 @@ const { pageFile } = require('./page-file');
  * right after that one CPU instruction, before the script instruction runs.
  *
  * A stop is wanted on a breakpoint address (ROM offset), a requested pause,
- * or when a step's predicate says so (debugger/script-frames.js):
+ * or when a step's predicate says so (debugger/script-frames.ts):
  *   { slot, scope, parent, parentScope, ranges: [[start, end)], into, callerOnly }
  *
  * Invariant: ASCII only, and no backslashes in the client script (it is

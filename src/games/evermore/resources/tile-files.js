@@ -294,7 +294,7 @@ function resolveRoomTiles(room, rom, subSegments) {
     }
 
     if (name === 'atlas_collision.png' || name === 'collision.png') {
-        const { renderMetatileAtlasCollision } = require('./map-layers');
+        const { renderMetatileAtlasCollision } = require('../../../../dist/games/evermore/resources/map-layers');
         return file(() => encodePng(renderMetatileAtlasCollision(room).image));
     }
 
@@ -341,7 +341,7 @@ function resolveRoomTiles(room, rom, subSegments) {
     if (leaf === 'layer1.png') return file(() => renderSingleMetatile(rom, room, idx, 'layer1'));
     if (leaf === 'layer2.png') return file(() => renderSingleMetatile(rom, room, idx, 'layer2'));
     if (leaf === 'collision.png') {
-        const { renderMetatileCollision } = require('./map-layers');
+        const { renderMetatileCollision } = require('../../../../dist/games/evermore/resources/map-layers');
         return file(() => encodePng(renderMetatileCollision(room, idx)));
     }
 

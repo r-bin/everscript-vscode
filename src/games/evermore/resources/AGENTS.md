@@ -19,7 +19,7 @@ Kind: **platform** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: 
 - Existing exceptions (do not add more; move the code down into a library instead):
   - `audio-songs.js` → `music/model/catalog`, `music/model/rom-audio`, `music/webview/music-view`
   - `map-objects.js` → `rooms/rendering/deco-catalogue`, `rooms/rendering/deco-preview`
-  - `character-files.js` → `sprites/animation-decoder`, `sprites/character-model`
+  - `character-files.ts` → `sprites/animation-decoder`, `sprites/character-model`
   - `sound-source.js` → `sprites`
 
 ## Invariants

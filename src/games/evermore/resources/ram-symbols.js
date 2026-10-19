@@ -8,7 +8,7 @@
 //   ramBlocks():  { addr, size, tags } — records longer than 4 bytes (entity, stats block)
 
 const NAMES = require('../script-model/names.json');
-const { tagModel } = require('./tag-model');
+const { tagModel } = require('../../../../dist/games/evermore/resources/tag-model');
 
 const TYPE = { 1: 'byte', 2: 'word', 3: 'long', 4: 'dword' };
 const WRAM = 0x7E0000;

@@ -11,7 +11,7 @@ const os     = require('os');
 const path   = require('path');
 
 const { SourceMap, findSourceMap } = require('../../dist/games/evermore/debugger/source-map');
-const frames = require('../../src/games/evermore/debugger/script-frames');
+const frames = require('../../dist/games/evermore/debugger/script-frames');
 const { EmulatorDebugSession } = require('../../src/games/evermore/debugger/emulator-session');
 const memory = require('../../dist/games/evermore/debugger/memory-access');
 const { inferTypes } = require('../../dist/games/evermore/debugger/value-types');

@@ -139,7 +139,7 @@ module.exports = {
       comment: 'The one converter between the games (games/evermore/imports/mana): the Mana decoder, the Evermore maps library and shared helpers, nothing else.',
       severity: 'error',
       from: { path: '^src/games/evermore/imports/mana/' },
-      to: { path: '^src/(?!games/evermore/imports/mana/|games/mana/decoder/|games/evermore/maps/|games/evermore/rom-readers\.js$|shared/)' },
+      to: { path: '^src/(?!games/evermore/imports/mana/|games/mana/decoder/|games/evermore/maps/|games/evermore/rom-readers\.ts$|shared/)' },
     },
 
     {

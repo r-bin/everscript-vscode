@@ -27,7 +27,7 @@ rooms/
     custom-export.js          — Export map: the .zip (blob, map.json, sample .evs, stamps.json, README)
   data/
     widget-store.ts           — the user's own widgets: <globalStorage>/widgets.json (list, save, delete)
-    vanilla-data.js           — VANILLA_ROOMS catalogue + buildVanillaRoomContent/Details + ROM backing
+    vanilla-data.ts           — VANILLA_ROOMS catalogue + buildVanillaRoomContent/Details + ROM backing
     lua-watchers.ts           — getMapEnum, readLuaWatchers, readScriptAllTriggers + caches
     custom-store.ts           — custom maps on disk: one folder per map (map.json + history.json)
 ```

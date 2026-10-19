@@ -8,7 +8,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const { renderRadarHtml } = require('../../src/games/evermore/memory/render-radar');
-const { buildScriptsTabHtml } = require('../../src/games/evermore/scripts-tab');
+const { buildScriptsTabHtml } = require('../../dist/games/evermore/scripts-tab');
 
 const ROM = require('../../dist/games').romPath('evermore');
 
@@ -19,7 +19,7 @@ async function test(name, fn) {
 }
 
 function hostDeps(rom, posted) {
-    const sprites = require('../../src/games/evermore/sprites');
+    const sprites = require('../../dist/games/evermore/sprites');
     const music = require('../../src/games/evermore/music');
     let bundle = null;
     return {
@@ -95,7 +95,7 @@ async function romChecks(rom) {
         assert.ok(tl.notes.every((n) => n.f1 > n.f0));
     });
     await test('host: index, room, animation and simulation answers', async () => {
-        const { handleScriptsMessage } = require('../../src/games/evermore/scripts-tab');
+        const { handleScriptsMessage } = require('../../dist/games/evermore/scripts-tab');
         const posted = [];
         const deps = hostDeps(rom, posted);
         handleScriptsMessage({ command: 'scriptsInit' }, deps);
@@ -120,7 +120,7 @@ async function dom(rom) {
     let browser;
     try { browser = await chromium.launch(); } catch (e) { console.log('\nScripts tab DOM: no browser — skipped'); return; }
     console.log('\nScripts tab — DOM');
-    const { handleScriptsMessage } = require('../../src/games/evermore/scripts-tab');
+    const { handleScriptsMessage } = require('../../dist/games/evermore/scripts-tab');
     const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
     const errors = [];
     page.on('pageerror', (e) => errors.push(String(e)));

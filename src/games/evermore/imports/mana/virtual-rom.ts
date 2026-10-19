@@ -25,7 +25,7 @@ interface ConvertedRoom {
     cells: number[]; cut?: number[][];
     objects: (NonNullable<OwnRoomInput['objects']>[number] & { w: number; h: number; flag: number })[];
     stepOn?: OwnRoomInput['stepOn'];
-    stats: { droppedObjects?: { flag: number; w: number; h: number }[] };
+    stats: { droppedObjects?: { flag: number; w: number; h: number }[]; [counter: string]: unknown };
 }
 
 function header(soeRom: Uint8Array, room: ConvertedRoom): Uint8Array {

@@ -153,30 +153,30 @@ function maps(rom, name, leaf, deps) {
         return file(() => renderRoomAnimationGif(rom, d));
     }
     if (cleanLeaf === 'layer1.png') {
-        const { renderRoomLayer } = require('./map-layers');
+        const { renderRoomLayer } = require('../../../../dist/games/evermore/resources/map-layers');
         return file(() => encodePng(renderRoomLayer(rom, d, 'layer1')));
     }
     if (cleanLeaf === 'layer1.gif') {
         if (!hasL1Anim) return null;
-        const { renderRoomLayerGif } = require('./map-layers');
+        const { renderRoomLayerGif } = require('../../../../dist/games/evermore/resources/map-layers');
         return file(() => renderRoomLayerGif(rom, d, 'layer1'));
     }
     if (cleanLeaf === 'layer2.png') {
-        const { renderRoomLayer } = require('./map-layers');
+        const { renderRoomLayer } = require('../../../../dist/games/evermore/resources/map-layers');
         return file(() => encodePng(renderRoomLayer(rom, d, 'layer2')));
     }
     if (cleanLeaf === 'layer2.gif') {
         if (!hasL2Anim) return null;
-        const { renderRoomLayerGif } = require('./map-layers');
+        const { renderRoomLayerGif } = require('../../../../dist/games/evermore/resources/map-layers');
         return file(() => renderRoomLayerGif(rom, d, 'layer2'));
     }
     if (cleanLeaf === 'collision.png') {
-        const { renderRoomCollision } = require('./map-layers');
+        const { renderRoomCollision } = require('../../../../dist/games/evermore/resources/map-layers');
         return file(() => encodePng(renderRoomCollision(d)));
     }
     if (cleanLeaf === 'collision.gif') {
         if (!hasCollAnim) return null;
-        const { renderRoomCollisionGif } = require('./map-layers');
+        const { renderRoomCollisionGif } = require('../../../../dist/games/evermore/resources/map-layers');
         return file(() => renderRoomCollisionGif(d));
     }
     if (cleanLeaf === 'info.md') return text(() => roomMarkdown(rom, id));

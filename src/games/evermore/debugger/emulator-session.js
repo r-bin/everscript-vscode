@@ -26,7 +26,7 @@
 
 const path = require('path');
 const { loadSourceMap, isStale } = require('../../../../dist/games/evermore/debugger/source-map');
-const frames = require('./script-frames');
+const frames = require('../../../../dist/games/evermore/debugger/script-frames');
 const memory = require('../../../../dist/games/evermore/debugger/memory-access');
 const { inferTypes } = require('../../../../dist/games/evermore/debugger/value-types');
 

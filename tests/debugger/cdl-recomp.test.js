@@ -19,9 +19,9 @@ const { exportAsar } = require('../../src/games/evermore/cdl/tools');
 const { createRomMap } = require('../../dist/platform/cdl/rom-map');
 const { buildIndex, SPACE } = require('../../dist/platform/cdl/xref-index');
 const { inferStructs } = require('../../dist/platform/cdl/structs');
-const { buildEnums } = require('../../src/platform/cdl/enums');
+const { buildEnums } = require('../../dist/platform/cdl/enums');
 const { buildFunctions } = require('../../dist/platform/cdl/functions');
-const { lookup } = require('../../src/platform/cdl/lookup');
+const { lookup } = require('../../dist/platform/cdl/lookup');
 
 let passed = 0;
 let failed = 0;

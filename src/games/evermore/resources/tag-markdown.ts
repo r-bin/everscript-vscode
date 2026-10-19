@@ -7,7 +7,7 @@ const IMAGE = /\.(png|gif)(\?.*)?$/i;
 /** A link from a tag to a soe:// resource. */
 interface TagLink { uri: string; role?: string; status?: string; source?: string; id?: string }
 interface TagClaim { uri: string; text: string; source?: string; status?: string; id?: string }
-/** One tag as the model holds it (tag-model.js). */
+/** One tag as the model holds it (tag-model.ts). */
 interface Tag {
     altTitles: string[]; parents: string[]; size?: number; source?: string; status?: string;
     links: TagLink[]; claims: TagClaim[]; see: string[]; origins: Iterable<string>;

@@ -1,7 +1,7 @@
 // Ownership: the generated half of `soe://tags/` — one tag per room, area,
 // enemy, song, sound, flag, named RAM address, engine table and item, built
 // from data the plugin already ships. Pure: no ROM, no emulator, no .evs files.
-// Returns definitions in the same shape as tags/tags.json (tag-model.js merges
+// Returns definitions in the same shape as tags/tags.json (tag-model.ts merges
 // both). docs/soe-tags-spec.md §5.3.
 
 import { VANILLA_MAPS } from '../localizations/maps';

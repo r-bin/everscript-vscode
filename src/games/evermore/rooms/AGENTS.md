@@ -28,7 +28,7 @@ Related skills: `rooms-tab`, `map-editor-rules`, `map-construction`, `map-entiti
 | State | File | Notes |
 |---|---|---|
 | Lua watcher POI cache | `data/lua-watchers.ts` | Invalidated by `invalidateLuaWatcherCaches()` |
-| Vanilla data cache | `data/vanilla-data.js` | Invalidated by `invalidateVanillaDataCaches()` |
+| Vanilla data cache | `data/vanilla-data.ts` | Invalidated by `invalidateVanillaDataCaches()` |
 | Room tree cache | `extension.js` `_radarRoomTree` | Rooms module is STATELESS; cache owned by caller |
 | Webview globals | one owner file each | see README's client-side list and `webview/STATE.md` |
 

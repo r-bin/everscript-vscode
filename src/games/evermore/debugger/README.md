@@ -29,7 +29,7 @@ VS Code debug UI ── DAP (in-process) ── emulator-session.js
 3. **Stops** land between two script instructions: on a breakpoint address, at
    the end of a step, or on a pause (next instruction; with no script running,
    the CPU pauses where it is after 300 ms). The webview sends a snapshot of the
-   20 script slots; `script-frames.js` turns it into threads and frames.
+   20 script slots; `script-frames.ts` turns it into threads and frames.
 4. **Steps** are data, because the decision has to be made synchronously inside
    the core: `{ slot, scope, parent, parentScope, ranges, into, callerOnly }`.
    Step over runs until the slot leaves the line's address ranges. Step into an
@@ -54,7 +54,7 @@ VS Code debug UI ── DAP (in-process) ── emulator-session.js
 |---|---|
 | `inline-adapter.js` | Registers the `everscript` debug type (launch / attach), the only file using the VS Code API |
 | `emulator-session.js` | DAP session: breakpoints, stops, steps, threads, stack, variables, evaluate |
-| `script-frames.js` | Pure: snapshot → threads / frames / variables; step predicates |
+| `script-frames.ts` | Pure: snapshot → threads / frames / variables; step predicates |
 | `source-map.ts` | Pure: reads `out/source_map.json`; address ↔ line, inline levels, step ranges, memory symbols |
 | `value-types.ts` | Pure: which enum a memory value holds (`// @type ENUM` on its declaration, else inferred from the sources) |
 | `conditions.ts` | Pure: evaluates an `if` / `while` condition against live memory |

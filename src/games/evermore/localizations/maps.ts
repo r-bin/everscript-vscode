@@ -34,7 +34,7 @@ for (const m of VANILLA_MAPS) {
 }
 
 /**
- * Catalogue grouped by area, identical to vanilla-data.js structure.
+ * Catalogue grouped by area, identical to vanilla-data.ts structure.
  */
 const AREAS = ['Prehistoria', 'Antiqua', 'Gothica', 'Omnitopia', 'Podunk'];
 const VANILLA_ROOMS = AREAS.map(area => ({

@@ -6,7 +6,7 @@
 
 const vscode = require('vscode');
 const romReaders = require('../../../../dist/games/evermore/rom-readers');
-const { renderAnimation, renderRawSprite, listPalettes, renderInPalettes, thumbFor } = require('./index');
+const { renderAnimation, renderRawSprite, listPalettes, renderInPalettes, thumbFor } = require('../../../../dist/games/evermore/sprites');
 const { missingRomText } = require('../../../../dist/platform/roms/library');
 
 const HANDLERS = {

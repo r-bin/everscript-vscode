@@ -13,7 +13,7 @@ const {
     getRawSpriteIndex,
     renderRawSprite,
     buildSpritesTabHtml,
-} = require('../../src/games/evermore/sprites');
+} = require('../../dist/games/evermore/sprites');
 
 let passed = 0;
 let failed = 0;
@@ -200,7 +200,7 @@ if (rom) {
     const { disassembleScript } = require('../../dist/games/evermore/maps/animation-opcodes');
     const { walkAnimationScript } = require('../../dist/games/evermore/maps/character-animation');
     const { animationScript } = require('../../dist/games/evermore/maps/character-record');
-    const { buildAnimationCatalog } = require('../../src/games/evermore/sprites');
+    const { buildAnimationCatalog } = require('../../dist/games/evermore/sprites');
 
     test('record table splits into 783 animations over 1752 records', () => {
         const groups = animationGroups(rom);
@@ -516,7 +516,7 @@ if (rom) {
     });
 
     test('character list thumbnails: resting pose south and east; palettes listed', () => {
-        const { characterThumbs, listPalettes, renderInPalettes } = require('../../src/games/evermore/sprites');
+        const { characterThumbs, listPalettes, renderInPalettes } = require('../../dist/games/evermore/sprites');
         const chars = readAllCharacters(rom);
         const boy = characterThumbs(rom, chars[0]);
         assert(boy && boy.s && boy.e && boy.s.startsWith('data:image/png;base64,'));
@@ -553,7 +553,7 @@ if (rom) {
     });
 
     test('thumbFor renders a record, a raw sprite, and falls back to the standing sprite', () => {
-        const { thumbFor } = require('../../src/games/evermore/sprites');
+        const { thumbFor } = require('../../dist/games/evermore/sprites');
         assert(thumbFor(rom, { record: 0x411e, facing: 4, character: 0, paletteAddr: 0xad8b }).startsWith('data:image/png;base64,'));
         assert(thumbFor(rom, { sprite: 0xca0003, paletteAddr: 0x90b00b }));
         assert(thumbFor(rom, { record: 0x3e6a, facing: 0, character: 0 }), 'the knock-back keeps the standing sprite');

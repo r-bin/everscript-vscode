@@ -22,7 +22,7 @@ const { handlesCustomMapMessage, handleCustomMapMessage }           = require('.
 const { relatedTiles, neighbourTiles, vanillaExamples, proceduralFill } = require('./rendering/vanilla-index');
 const { buildItemIcons }                                            = require('../../../../dist/games/evermore/rooms/data/item-icons');
 const { VANILLA_ROOMS, buildVanillaRoomContent,
-        buildVanillaRoomDetails, invalidateVanillaDataCaches }      = require('./data/vanilla-data');
+        buildVanillaRoomDetails, invalidateVanillaDataCaches }      = require('../../../../dist/games/evermore/rooms/data/vanilla-data');
 const { getMapEnum, readLuaWatchers, readScriptAllTriggers,
         invalidateLuaWatcherCaches }                                = require('../../../../dist/games/evermore/rooms/data/lua-watchers');
 

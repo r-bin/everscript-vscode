@@ -6,7 +6,7 @@ import { parseEvsNum } from '../../radar-utils';
 
 /** What a map block holds, each with the 0-based line it is on (-1: implied by a later object). */
 interface RoomContent {
-    initMap: { x1: number; y1: number; x2: number; y2: number; line: number } | null;
+    initMap: { x1: number; y1: number; x2: number; y2: number; line?: number } | null;
     entrances: { name: string; x: number; y: number; dir: string; line: number }[];
     enemies: { type: string; x: number; y: number; dynamic: boolean; line: number }[];
     objects: { index: string; line: number; desc: string }[];

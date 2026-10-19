@@ -11,12 +11,12 @@
 // palette the entity had loaded (each weapon and act has its own; the hook
 // reads the entity's palette slot from $7E1278).
 
-const { readAllCharacters, readCharacter, renderRawSprite, thumbFor } = require('../sprites');
+const { readAllCharacters, readCharacter, renderRawSprite, thumbFor } = require('../../../../dist/games/evermore/sprites');
 const { animationGroups } = require('../../../../dist/games/evermore/maps/animation-table');
 const { disassembleScript } = require('../../../../dist/games/evermore/maps/animation-opcodes');
 const vm = require('../../../../dist/games/evermore/script-vm');
 const { printNames } = require('../../../../dist/games/evermore/script-model');
-const { resolveCharacters } = require('./character-files');
+const { resolveCharacters } = require('../../../../dist/games/evermore/resources/character-files');
 const { asmAroundCall, lineText } = require('../../../../dist/games/evermore/resources/asm-view');
 const { renderCharacterSprite } = require('../../../../dist/games/evermore/maps/characters');
 const { encodePng } = require('../../../../dist/games/evermore/maps/png');

@@ -1,5 +1,5 @@
 'use strict';
-// Ownership: `soe://tags/` — the tag graph (tag-model.js) as files.
+// Ownership: `soe://tags/` — the tag graph (tag-model.ts) as files.
 // docs/soe-tags-spec.md. Reads other `soe://` files only through the injected
 // `read(uri)` / `exists(uri)`, which fs-provider.js wires to itself.
 //
@@ -11,7 +11,7 @@
 //   soe://tags/map/5c.md                 alias → map/jungle_raptors.md (link, unlisted)
 //   soe://tags/search/<word>.md, .json   tags whose id or title contains <word>
 
-const { tagModel } = require('./tag-model');
+const { tagModel } = require('../../../../dist/games/evermore/resources/tag-model');
 const { pageUri, formatValue, tagJson, tagMarkdown, rootMarkdown, searchMarkdown } = require('../../../../dist/games/evermore/resources/tag-markdown');
 const { dir, link, json, text } = require('../../../../dist/games/evermore/resources/nodes');
 

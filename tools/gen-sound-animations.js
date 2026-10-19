@@ -23,7 +23,7 @@ const ROOT = path.join(__dirname, '..');
 const romPath = require('./rom').romOrExit('evermore', process.argv[2]);
 const { animationGroups } = require('../dist/games/evermore/maps/animation-table');
 const { disassembleScript } = require('../dist/games/evermore/maps/animation-opcodes');
-const { readAllCharacters, buildAnimationCatalog } = require('../src/games/evermore/sprites');
+const { readAllCharacters, buildAnimationCatalog } = require('../dist/games/evermore/sprites');
 const { hex } = require('../dist/platform');
 
 const SCRIPT_SFX = 0x0C8362;

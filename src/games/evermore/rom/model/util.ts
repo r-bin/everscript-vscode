@@ -12,7 +12,7 @@ function bus(off: number): string {
 const busToFile = hiromFileOffset;
 
 /**
- * Claims a ROM region for the map (rom/build.js): file offsets s..e, its category icon and name, notes,
+ * Claims a ROM region for the map (rom/build.ts): file offsets s..e, its category icon and name, notes,
  * the area (world) it belongs to, its priority (a higher one wins where claims overlap) and extra fields.
  */
 type Claim = (s: number, e: number, cat: string, name: string, notes?: string, area?: string, prio?: number, extra?: object) => void;

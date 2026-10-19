@@ -10,7 +10,7 @@
  * This object is the `bridge` of debugger/emulator-session.js:
  *   attach(listener) -> detach()    listener: { onStop, onContinued, onUnavailable, onRomLoad }
  *   configure({ breakpoints })      ROM offsets to stop at
- *   resume(step | null)             step: stop predicate (debugger/script-frames.js)
+ *   resume(step | null)             step: stop predicate (debugger/script-frames.ts)
  *   pause()
  *   read(snesAddress, length) -> Promise<number[]>
  *   write(snesAddress, bytes) -> Promise          (resolves once the webview wrote them)

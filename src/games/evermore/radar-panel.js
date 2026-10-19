@@ -14,7 +14,7 @@ const romReaders = require('../../../dist/games/evermore/rom-readers');
 const platform = require('../../../dist/platform');
 const { detectScaleEnemies } = require('../../../dist/games/evermore/rom-readers');
 const { renderRadarHtml } = require('./memory/render-radar');
-const { readAllCharacters, getRawSpriteIndex, buildAnimationCatalog, characterThumbs } = require('./sprites');
+const { readAllCharacters, getRawSpriteIndex, buildAnimationCatalog, characterThumbs } = require('../../../dist/games/evermore/sprites');
 const { radarReadMemoryMap, radarDetectScope, radarAnalyzeScope } = require('../../../dist/games/evermore/memory/scope-analysis');
 
 // ── Memory Radar ─────────────────────────────────────────────────────────────

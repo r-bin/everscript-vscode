@@ -9,7 +9,7 @@ Rules: [AGENTS.md](AGENTS.md). Translation table and budgets:
 | `pieces.ts` | event-flag pieces as Evermore objects: one per flag, a state per flag value that changes cells |
 | `virtual-rom.ts` | `buildVirtualRom(soeRom, room, salt)`: the Evermore ROM copied, with the room's graphics, colours and blob (`maps` `buildOwnRoomBlob`: grid, cuttable layer, objects) in slot `0x7E` |
 | `ids.ts` | where those go, and the graphic, family and tab-room ids that follow |
-| `rooms.js` | `createManaRooms({soeRom, manaRom})`: the rail's groups, a room's details for the tab, and which image answers a request for a converted room or family (4 rooms cached) |
+| `rooms.ts` | `createManaRooms({soeRom, manaRom})`: the rail's groups, a room's details for the tab, and which image answers a request for a converted room or family (4 rooms cached) |
 | `index.js` | facade |
 
 `convert.js` is 265 lines: one map's cells, graphics, families, cuts and object frames share

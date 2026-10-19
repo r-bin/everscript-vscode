@@ -29,7 +29,7 @@ function resolveAssets(segments, rom, deps) {
         return resolveScripts(segments.slice(1), rom);
     }
     if (kind === 'characters') {
-        const { resolveCharacters } = require('./character-files');
+        const { resolveCharacters } = require('../../../../dist/games/evermore/resources/character-files');
         return resolveCharacters(segments.slice(1), rom);
     }
     if (kind === 'tiles') {

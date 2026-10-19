@@ -1,5 +1,5 @@
 'use strict';
-// soe://tags/: the tag graph (tag-model.js), the hand-authored tags.json and
+// soe://tags/: the tag graph (tag-model.ts), the hand-authored tags.json and
 // the provider's tags/ authority (against a stubbed vscode). Link checks that
 // need ROM routes use the test ROM and are skipped without it.
 
@@ -37,7 +37,7 @@ require.cache.vscode = { id: 'vscode', filename: 'vscode', loaded: true, exports
     Uri: { parse: uri },
 } };
 
-const { buildTagModel, tagModel } = require('../../src/games/evermore/resources/tag-model');
+const { buildTagModel, tagModel } = require('../../dist/games/evermore/resources/tag-model');
 const { SoeFileSystem } = require('../../src/games/evermore/resources/fs-provider');
 const AUTHORED = require('../../src/games/evermore/resources/tags/tags.json');
 

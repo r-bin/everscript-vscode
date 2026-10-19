@@ -155,7 +155,7 @@ function neighbourTiles(rom, graphic) {
     return out;
 }
 
-const { VANILLA_ROOMS } = require('../data/vanilla-data');
+const { VANILLA_ROOMS } = require('../../../../../dist/games/evermore/rooms/data/vanilla-data');
 
 let roomMetaMap = null;
 function getRoomMeta(roomId) {

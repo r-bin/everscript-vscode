@@ -9,14 +9,14 @@ const fs     = require('fs');
 const { VANILLA_ROOMS, buildVanillaRoomDetails, buildRoomTree, setRoomImageUris, handlesCustomMapMessage, handleCustomMapMessage } = require('./rooms');
 const { handlesRomMessage, handleRomMessage } = require('./rom');
 const { handlesMusicMessage, handleMusicMessage } = require('./music');
-const { handlesScriptsMessage, handleScriptsMessage } = require('./scripts-tab');
+const { handlesScriptsMessage, handleScriptsMessage } = require('../../../dist/games/evermore/scripts-tab');
 const { handlesEditorMessage, handleEditorMessage } = require('./rooms/editor-host');
 const { handlesSpritesMessage, handleSpritesMessage } = require('./sprites/radar-host');
 const romReaders = require('../../../dist/games/evermore/rom-readers');
 const gameViews = require('../../../dist/core/game-views');
 const { readRomCharacters, readRomHitLookup, detectScaleEnemies } = require('../../../dist/games/evermore/rom-readers');
 const { renderRadarHtml } = require('./memory/render-radar');
-const { renderAnimation } = require('./sprites');
+const { renderAnimation } = require('../../../dist/games/evermore/sprites');
 const { radarDetectScope, radarAnalyzeScope } = require('../../../dist/games/evermore/memory/scope-analysis');
 const { radar, getMapExportChannel, getRadarMap, getRadarEnums, getSpritesBundle, getExtConfig, radarItemIcons, refreshRadar, ROOMS_UI_PREFS_KEY, radarImportedRooms, radarRoomRom } = require('./radar-panel');
 

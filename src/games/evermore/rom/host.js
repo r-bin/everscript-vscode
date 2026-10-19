@@ -8,7 +8,7 @@
 // executed bank halves, WRAM usage).
 
 const crypto = require('crypto');
-const { buildRomModel, stripCopierHeader } = require('./build');
+const { buildRomModel, stripCopierHeader } = require('../../../../dist/games/evermore/rom/build');
 const { readersOf } = require('../../../../dist/games/evermore/rom/model/readers');
 const { executedByHalf, wramStrip } = require('../../../../dist/games/evermore/rom/model/bus-usage');
 const { missingRomText } = require('../../../../dist/platform/roms/library');
