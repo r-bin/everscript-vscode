@@ -4,7 +4,7 @@
 const vscode = require('vscode');
 const { getRepoAutofillUpdates } = require('../../../dist/games/evermore/language/config');
 const lp = require('../../../dist/games/evermore/language/language-providers');
-const { buildVanillaRoomDetails, buildRoomTree, setRoomImageUris } = require('./rooms');
+const { buildVanillaRoomDetails, buildRoomTree, setRoomImageUris } = require('../../../dist/games/evermore/rooms');
 const romReaders = require('../../../dist/games/evermore/rom-readers');
 const roms = require('../../../dist/core/roms/host');
 const gameViews = require('../../../dist/core/game-views');

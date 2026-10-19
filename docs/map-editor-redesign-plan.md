@@ -521,7 +521,7 @@ search, no footer action.
   split, so nothing was added there; nothing went into `shared.css` either,
   which every radar tab renders with. `shared.css` in fact *lost* three
   rules (`.rm-ph`/`.rm-mode`/`.rmm`) that died with the mode toggle.
-  `tree-renderer.js` gained `buildRoomRailHtml()` so `render-radar.js` stays
+  `tree-renderer.ts` gained `buildRoomRailHtml()` so `render-radar.js` stays
   an orchestrator.
 - **Verified visually and by pixel diff.** The rail was screenshotted from
   the real `renderRadarHtml()` output in headless Playwright in six states

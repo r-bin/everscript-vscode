@@ -10,7 +10,7 @@ rooms/
     content-parser.ts         — parseRoomContent(filePath, startLine, endLine) → room data object
     file-scanner.ts           — buildRoomTree, collectRoomsFromDir, findRoomImage, setRoomImageUris
   rendering/
-    tree-renderer.js          — renderVanillaTree(rooms), renderRoomsTree(nodes), buildRoomRailHtml(live, vanilla), buildRoomsJson(tree)
+    tree-renderer.ts          — renderVanillaTree(rooms), renderRoomsTree(nodes), buildRoomRailHtml(live, vanilla), buildRoomsJson(tree)
     tile-overlay.ts           — buildRoomTileOverlay: the map raster, the canopy, and the canopy overlay
     object-previews.ts        — Section 3 objects: states, thumbnails, the selection wire form
     family-sets.ts            — alternate family sets: each family's colours and the MAP_PALETTE values the room's scripts write

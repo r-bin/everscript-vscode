@@ -303,7 +303,7 @@ function invalidateRoomRenders() { RENDER_CACHE.clear(); invalidateObjectPreview
  *                                 '20:1'. Objects not listed show state 0.
  * @param {boolean} [animate]      Include the Section 2 animation overlays.
  */
-function buildRoomTileOverlay(rom: Uint8Array | Buffer, roomId: number, originX: number, originY: number, layer: string, overlay: string, objectStates: string, animate: boolean, header?: unknown) {
+function buildRoomTileOverlay(rom: Uint8Array | Buffer, roomId: number, originX: number, originY: number, layer: string, overlay?: string, objectStates?: string, animate = false, header?: unknown) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const which: Layer = LAYERS.indexOf(layer as Layer) >= 0 ? layer as Layer : 'composite';
     const ov = overlayOptions(overlay);

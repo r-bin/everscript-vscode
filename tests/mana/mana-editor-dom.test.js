@@ -24,7 +24,7 @@ async function main() {
     let browser;
     try { browser = await chromium.launch(); } catch { console.log('\nMana editor DOM: no browser — skipped'); return; }
 
-    const rooms = require('../../src/games/evermore/rooms');
+    const rooms = require('../../dist/games/evermore/rooms');
     const bridge = require('../../dist/games/evermore/imports/mana');
     const { renderRadarHtml } = require('../../src/games/evermore/memory/render-radar');
     const soe = fs.readFileSync(SOE), som = new Uint8Array(fs.readFileSync(SOM));

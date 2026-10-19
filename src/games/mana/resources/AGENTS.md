@@ -8,7 +8,7 @@ system: Secret of Mana's data plane. What the folder does: [README.md](README.md
 - `som://` is separate from `soe://`: no Evermore path ever serves Mana data and back.
 
 ## Dependencies
-- `decoder/` only (plus `vscode` in `index.js`/`fs-provider.js`). Never the Evermore `resources/`,
+- `decoder/` only (plus `vscode` in `index.js`/`fs-provider.ts`). Never the Evermore `resources/`,
   `maps/` or any Evermore domain (`.depcruise.js` `mana-resources-only-mana`).
 - Settings arrive injected from `extension.js` (`where()`); this domain reads no config.
 

@@ -7,12 +7,15 @@ import { join } from 'node:path';
 
 const ROOT = join(import.meta.dirname, '..');
 
-/** name → [entry, global] */
-const PAGES: Record<string, [string, string]> = {
+/** name → [entry, global, globals]: with `globals` the module's exports are also set on the page's global object, for the page scripts that call them by name. */
+const PAGES: Record<string, [string, string, boolean?]> = {
     'evermore-rom': ['src/games/evermore/emulator/page-rom.ts', 'EvsRom'],
+    'shell-frame': ['src/core/map-editor/shell/frame.ts', 'ShellFrame', true],
+    'music-view': ['src/games/evermore/music/webview/music-view.ts', 'MusicView', true],
+    'music-engine': ['src/games/evermore/music/webview/music-engine.ts', 'MusicEngine', true],
 };
 
-for (const [name, [entry, globalName]] of Object.entries(PAGES)) {
+for (const [name, [entry, globalName, globals]] of Object.entries(PAGES)) {
     await build({
         entryPoints: [join(ROOT, entry)],
         outfile: join(ROOT, 'dist', 'webview', name + '.js'),
@@ -23,6 +26,7 @@ for (const [name, [entry, globalName]] of Object.entries(PAGES)) {
         target: 'es2020',
         charset: 'ascii',
         legalComments: 'none',
+        footer: globals ? { js: `Object.assign(globalThis, ${globalName});` } : undefined,
         logLevel: 'warning',
     });
 }

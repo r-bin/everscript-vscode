@@ -127,7 +127,7 @@
 /* ── Room rows (the mock's `rowStyle` / `accentBarStyle` / `labelStyle`) ──
  * One rule set for both trees: a vanilla row is `li.rn-map.vn-map`, a live
  * one is `li.rn-map`, and `.rsel` means selected in either. The 2px accent
- * bar is a pseudo-element, so `tree-renderer.js` does not have to emit a
+ * bar is a pseudo-element, so `tree-renderer.ts` does not have to emit a
  * spacer span the old flat look never needed. */
 .rg-rail li.rn-map{
   position:relative;

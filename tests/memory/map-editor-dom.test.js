@@ -28,7 +28,8 @@ const MAP_VIEW = path.join(__dirname, '..', '..', 'src', 'core', 'map-editor', '
 const CORE = path.join(__dirname, '..', '..', 'src', 'core', 'map-editor', 'core');
 const SHARED_JS = ['tile-animation.js', 'view-chips.js'].map((f) => fs.readFileSync(path.join(MAP_VIEW, f), 'utf8'))
   .concat(['edit-session.js'].map((f) => fs.readFileSync(path.join(CORE, f), 'utf8')))
-  .concat(['frame.js', 'layout.js', 'zoom-pan.js', 'pan.js', 'rail.js', 'status.js'].map((f) => fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'core', 'map-editor', 'shell', f), 'utf8'))).join('\n');
+  .concat([fs.readFileSync(path.join(__dirname, '..', '..', 'dist', 'webview', 'shell-frame.js'), 'utf8')])
+  .concat(['frame-dock.js', 'layout.js', 'zoom-pan.js', 'pan.js', 'rail.js', 'status.js'].map((f) => fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'core', 'map-editor', 'shell', f), 'utf8'))).join('\n');
 
 /** The editor's files, in the order the bundle concatenates them. */
 const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-history.js', 'map-editor-stamps.js', 'map-editor-paint.js',

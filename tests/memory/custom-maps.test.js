@@ -216,7 +216,7 @@ try {
 if (!rom) {
     console.log(`SKIP archive ROM checks: ${ROM_PATH} not found or unreadable`);
 } else {
-    const rooms = require('../../src/games/evermore/rooms');
+    const rooms = require('../../dist/games/evermore/rooms');
     const maps = require('../../dist/games/evermore/maps');
     test('the archive holds the blob, the editor file, the .evs, the stamps and a README', () => {
         const w = 16; const h = 14; const cells = [];
@@ -252,7 +252,7 @@ if (!rom) {
 
     // A vanilla room in the editor: its triggers and objects as the palette
     // hands them over (src/games/evermore/rooms/rendering/metatile-palette.ts).
-    const { buildRoomMetatilePalette } = require('../../src/games/evermore/rooms');
+    const { buildRoomMetatilePalette } = require('../../dist/games/evermore/rooms');
     test('a vanilla room\'s triggers arrive as inclusive map cells, on the objects they belong to', () => {
         // Room 0x38 (origin 17,11): each gourd's B-trigger covers exactly its
         // 2x2 object. Read raw, the boxes were 17,11 cells off and one too big.
@@ -270,14 +270,14 @@ if (!rom) {
     test('the Tile tab\'s deflect filter needs most placements to carry the Deflect gate', () => {
         // Any one placement used to be enough, so blank canopy art and grass
         // gated once somewhere were listed as deflect tiles.
-        const { buildFamilySheet } = require('../../src/games/evermore/rooms');
+        const { buildFamilySheet } = require('../../dist/games/evermore/rooms');
         const sheet = buildFamilySheet(rom, 32);
         assert.strictEqual(sheet.slots.filter((s) => s[16] & 2).length, 0, 'family 32 has no deflect art');
     });
 
     test('a header edit redraws: main screen without the front layer changes the stamps and the room image', () => {
         // Room 0x34's TM is $17; $16 turns BG1 (the front) off, as room 0x4B does.
-        const { buildRoomTileOverlay } = require('../../src/games/evermore/rooms');
+        const { buildRoomTileOverlay } = require('../../dist/games/evermore/rooms');
         const own = buildRoomMetatilePalette(rom, 0x34);
         const off = buildRoomMetatilePalette(rom, 0x34, undefined, undefined, { displayTm: 0x16 });
         assert.notStrictEqual(off.imageUri, own.imageUri, 'the stamps are drawn without their front art');

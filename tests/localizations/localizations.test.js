@@ -29,7 +29,7 @@ const {
     resolveLocalizedName,
 } = require('../../dist/games/evermore/localizations');
 
-const { VANILLA_ROOMS: ROOMS_EXPORT } = require('../../src/games/evermore/rooms');
+const { VANILLA_ROOMS: ROOMS_EXPORT } = require('../../dist/games/evermore/rooms');
 
 test('localizations maps: covers all 127 vanilla rooms', () => {
     assert.equal(VANILLA_MAPS.length, 127);

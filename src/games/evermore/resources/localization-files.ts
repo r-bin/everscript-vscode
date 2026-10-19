@@ -29,7 +29,7 @@ type Kind = 'npc' | 'abs' | 'global';
 const CATEGORIES = ['scripts', 'maps', 'sounds', 'tables', 'functions', 'strings', 'knowledge'];
 const STRING_COUNT = 3002;
 
-function resolveLocalization(segments: string[], rom: Rom) {
+function resolveLocalization(segments: string[], rom: Rom | null) {
     const [cat, sub, leaf, ...extra] = segments;
     if (extra.length) return null;
     if (cat === undefined) return rootDir();

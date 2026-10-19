@@ -120,10 +120,10 @@ module.exports = {
 
     {
       name: 'mana-maps-reads-som-only',
-      comment: 'The Mana Maps panel reads Mana data through som:// only (platform/ helpers allowed).',
+      comment: 'The Mana Maps panel reads Mana data through som:// only (platform/ helpers and core/webview/ page helpers allowed).',
       severity: 'error',
       from: { path: '^src/games/mana/maps/' },
-      to: { path: '^src/(?!games/mana/maps/|platform/)' },
+      to: { path: '^src/(?!games/mana/maps/|platform/|core/webview/)' },
     },
 
     {

@@ -10,7 +10,7 @@ const fs = require('fs');
 const path = require('path');
 const Module = require('module');
 
-// ── vscode stub (fs-provider.js only) ────────────────────────────────────────
+// ── vscode stub (fs-provider.ts only) ────────────────────────────────────────
 class FileSystemError extends Error {
     static FileNotFound(m) { return Object.assign(new FileSystemError(String(m)), { code: 'FileNotFound' }); }
     static Unavailable(m) { return Object.assign(new FileSystemError(String(m)), { code: 'Unavailable' }); }
@@ -30,10 +30,10 @@ require.cache.vscode = { id: 'vscode', filename: 'vscode', loaded: true, exports
 } };
 
 const { parseSoeParts, parseAddressName, slugify } = require('../../dist/games/evermore/resources/resource-uri');
-const { resolveRom, toFileOffset } = require('../../src/games/evermore/resources/rom-files');
+const { resolveRom, toFileOffset } = require('../../dist/games/evermore/resources/rom-files');
 const { resolveRam } = require('../../dist/games/evermore/resources/ram-files');
-const { SoeFileSystem } = require('../../src/games/evermore/resources/fs-provider');
-const { busTarget } = require('../../src/games/evermore/resources/bus-files');
+const { SoeFileSystem } = require('../../dist/games/evermore/resources/fs-provider');
+const { busTarget } = require('../../dist/games/evermore/resources/bus-files');
 
 const romPath = require('../../dist/games').romPath('evermore');
 const rom = fs.existsSync(romPath) ? new Uint8Array(fs.readFileSync(romPath)) : null;

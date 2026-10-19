@@ -1,5 +1,5 @@
 // Ownership: `soe://rom/assets/maps/` — every room: its index, decoded header and grids, renders
-// (composite, layers, overlays, object states) and its info page. Pure. rom-assets.js routes here.
+// (composite, layers, overlays, object states) and its info page. Pure. rom-assets.ts routes here.
 
 import { encodePng, decodeRoom, renderRoomComposite, renderStandaloneOverlay, applyObjectStates, MAX_ROOMS } from '../maps';
 import { getMapName, getMapArea } from '../localizations';
@@ -242,4 +242,5 @@ function plain(value: unknown) {
     return JSON.parse(JSON.stringify(value, (_, v: unknown) => ArrayBuffer.isView(v) ? Array.from(v as unknown as ArrayLike<number>) : v));
 }
 
+export type { Deps as MapsDeps };
 export { maps, cell };

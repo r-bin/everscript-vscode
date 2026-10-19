@@ -23,7 +23,7 @@
 // decoded yet, so the bytes are returned as they are.
 
 const createSpcEngine = require('../engine/spc-engine.js');
-const { MusicSpc } = require('../webview/music-engine.js');
+const { MusicSpc } = require('../../../../../dist/games/evermore/music/webview/music-engine');
 const { buildMusicModel, packageData } = require('../../../../../dist/games/evermore/music/model/catalog');
 
 const CLOCKS_PER_FRAME = Math.round(1024000 / 60);

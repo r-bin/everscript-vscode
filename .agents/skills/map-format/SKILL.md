@@ -58,7 +58,7 @@ of a blob belongs to a field; the blob ends at its furthest object record or sta
   `collision.ts`. Write path (custom rooms, Export / Play ROM): `encode.ts`, `encode-streams.ts`,
   `object-encode.ts`, `custom-room.ts`. JS requires the compiled `dist/games/evermore/maps/`
   through `maps/index.ts`.
-- The Rooms tab decodes on demand per room (`rooms/editor-host.js` `requestRoomTiles` →
+- The Rooms tab decodes on demand per room (`rooms/editor-host.ts` `requestRoomTiles` →
   `rooms/rendering/tile-overlay.ts`, which caches the 12 latest renders); the room tree carries no
   tile data. `rom-readers.ts` caches the ROM by path and mtime.
 - Python-side runbook (inspect, round-trip, render): `everscript/tools/dump_room.py`,

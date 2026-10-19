@@ -213,7 +213,7 @@ function extractScript(html) {
 const fs   = require('fs');
 const path = require('path');
 const { renderRadarHtml: _renderRadarHtml } = require('../../src/games/evermore/memory/render-radar');
-const { buildRoomsJson: _buildRoomsJson, renderRoomsTree: _renderRoomsTree } = require('../../src/games/evermore/rooms');
+const { buildRoomsJson: _buildRoomsJson, renderRoomsTree: _renderRoomsTree } = require('../../dist/games/evermore/rooms');
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 

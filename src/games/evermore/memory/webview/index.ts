@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { sourceDir } from '../../../../platform/source-dir';
+import { pageBundle } from '../../../../core/webview/page-bundle';
 
 // The page files stay in src/; this module runs from dist/.
 const HERE = sourceDir(__dirname);
@@ -177,7 +178,7 @@ const EDITOR_CORE_JS_FILES = ['edit-session.js'];
 // The shared editor shell (src/core/map-editor/shell/): layout, zoom/pan, rail, tabs, pill, status bar.
 const EDITOR_SHELL_DIR = path.join(MAP_EDITOR_DIR, 'shell');
 const EDITOR_SHELL_JS_FILES = [
-  'frame.js',     // markup: page frame, rail, header, canvas column, pill, status bar, tab strip, dock mount
+  'frame-dock.js', // mounting the dock beside the canvas (the markup builders are the shell-frame page bundle, loaded before)
   'layout.js',    // the rail and dock resize handles, collapsed and compact states (_layoutWidths)
   'zoom-pan.js',  // setupZoomPan: scale, pan offset, pinch and two-finger panning
   'pan.js',       // dragging the map to pan it
@@ -188,6 +189,7 @@ const EDITOR_SHELL_JS_FILES = [
 function loadRoomsJs() {
   return MAP_VIEW_JS_FILES.map(function(f) { return loadFile(path.join(MAP_VIEW_DIR, f)); })
     .concat(EDITOR_CORE_JS_FILES.map(function(f) { return loadFile(path.join(EDITOR_CORE_DIR, f)); }))
+    .concat([pageBundle('shell-frame')])   // markup: page frame, rail, header, canvas column, pill, status bar, tab strip (core/map-editor/shell/frame.ts)
     .concat(EDITOR_SHELL_JS_FILES.map(function(f) { return loadFile(path.join(EDITOR_SHELL_DIR, f)); }))
     .concat(ROOMS_JS_FILES.map(function(f) { return loadFile(path.join(roomsDir, f)); }))
     .join('\n');
@@ -219,9 +221,9 @@ export const docsJs = loadFile(path.join(docsDir, 'docs-tab.js'));
 export const rngJs = loadFile(path.join(docsDir, 'rng-tab.js'));
 export const romJs = ['rom-tab.js', 'rom-bus-map.js', 'rom-bus-view.js', 'rom-compare.js', 'rom-init.js']
     .map(function(f) { return loadFile(path.join(romDir, f)); }).join('\n');
-export const musicJs = [path.join(musicDir, '..', 'engine', 'spc-engine.js')]
-    .concat(['music-view.js', 'music-engine.js', 'music-audio.js', 'music-tab.js', 'music-timeline.js', 'music-hover.js', 'music-forecast.js', 'music-lists.js', 'music-init.js'].map(function(f) { return path.join(musicDir, f); }))
-    .map(loadFile).join('\n');
+export const musicJs = [loadFile(path.join(musicDir, '..', 'engine', 'spc-engine.js')), pageBundle('music-view'), pageBundle('music-engine')]
+    .concat(['music-audio.js', 'music-tab.js', 'music-timeline.js', 'music-hover.js', 'music-forecast.js', 'music-lists.js', 'music-init.js'].map(function(f) { return loadFile(path.join(musicDir, f)); }))
+    .join('\n');
 export const scriptsJs = ['scripts-tab.js', 'scripts-room.js', 'scripts-anim.js', 'scripts-music.js', 'scripts-init.js']
     .map(function(f) { return loadFile(path.join(scriptsDir, f)); }).join('\n');
 export { buildMainJs };

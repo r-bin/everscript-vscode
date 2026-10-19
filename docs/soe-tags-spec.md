@@ -116,8 +116,8 @@ The tree comes from what the extension already decodes, so most tags are generat
 | `character`, `player`, `boy`, `dog`, `enemy` | the tag graph of §5.2: attributes, stats, equipment, sprite, animations | `src/games/evermore/resources/tags/tags.json` |
 | `enemy.<name>` | one per character record (`enemy.raptor`): sprite, animations, stats | `maps/characters.ts`, `names.json enemies` |
 | `map` | `map.<name>` per room | `localizations/maps.ts` |
-| `item`, `ingredient`, `alchemy` | per entry | `rom-assets.js` (same names it already serves) |
-| `music`, `sound` | per track / effect; a sound links the characters whose animations play it (≤ 12) and sees `boy` / `dog` | `localizations/sounds.ts`, `localizations/data/sound-animations.json` (`tools/gen-sound-animations.js`), `audio-files.js` |
+| `item`, `ingredient`, `alchemy` | per entry | `rom-assets.ts` (same names it already serves) |
+| `music`, `sound` | per track / effect; a sound links the characters whose animations play it (≤ 12) and sees `boy` / `dog` | `localizations/sounds.ts`, `localizations/data/sound-animations.json` (`tools/gen-sound-animations.js`), `audio-files.ts` |
 | `flag` | `flag.<name>` per named flag | `names.json flags` |
 | `table` | per engine table | `table-files.ts` |
 | `script` | per named script | `localizations/data/scripts.json` |
@@ -136,7 +136,7 @@ The tree comes from what the extension already decodes, so most tags are generat
 
 ### 4.2 Names
 
-Names are the lowercased display name with non-alphanumerics folded to `_` (`Prehistoria - Raptors` → room `name` `Raptors` → `raptors`). The area is a parent only when a name is ambiguous across areas. The rule is the same one `rom-assets.js` applies to item names (`mud_pepper`).
+Names are the lowercased display name with non-alphanumerics folded to `_` (`Prehistoria - Raptors` → room `name` `Raptors` → `raptors`). The area is a parent only when a name is ambiguous across areas. The rule is the same one `rom-assets.ts` applies to item names (`mud_pepper`).
 
 ### 4.3 Ambiguity and aliases
 

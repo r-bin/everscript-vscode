@@ -98,7 +98,7 @@ try {
 if (!rom) {
     console.log(`SKIP collision ROM checks: ${ROM_PATH} not found or unreadable`);
 } else {
-    const rooms = require('../../src/games/evermore/rooms');
+    const rooms = require('../../dist/games/evermore/rooms');
     const index = maps.buildVanillaIndex(rom);
 
     test('suggestGeometry votes on the shape, with its share of vanilla', () => {

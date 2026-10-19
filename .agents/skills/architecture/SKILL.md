@@ -35,11 +35,11 @@ never cross games (root AGENTS.md §0.4).
 ## Splitting a file
 
 Over 400 lines must split, 250–400 needs a reason. Name files after what they **own**
-(`editor-host.js`, `scope-analysis.ts`), never `utils`/`helpers`. Order: pure functions, then
+(`editor-host.ts`, `scope-analysis.ts`), never `utils`/`helpers`. Order: pure functions, then
 readers, then renderers; the original keeps only orchestration (requires, `registerCommand`,
 watchers, thin calls). A panel's message switch becomes `handlesXMessage(cmd)` /
 `handleXMessage(msg, ctx)` in the owning folder, with `ctx` holding what the panel owns
-(`post`, ROM loader, …) — see `games/evermore/rooms/editor-host.js`. Delete the original code;
+(`post`, ROM loader, …) — see `games/evermore/rooms/editor-host.ts`. Delete the original code;
 no shims. No shared helper for one user, no base class for fewer than three.
 
 ## State

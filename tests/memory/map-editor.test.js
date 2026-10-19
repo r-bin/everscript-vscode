@@ -766,7 +766,7 @@ const ui = new Function(`
   ${read('map-editor-flag-overlays.js')}
   ${read('map-editor-trigger-select.js')}
   ${read('map-editor-trigger-panel.js')}
-  ${fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'core', 'map-editor', 'shell', 'frame.js'), 'utf8') /* the shell's markup builders the pill, tabs and status bar use */}
+  ${fs.readFileSync(path.join(__dirname, '..', '..', 'dist', 'webview', 'shell-frame.js'), 'utf8') /* the shell's markup builders the pill, tabs and status bar use */}
   ${read('map-editor-toolbar.js') /* the floating tool pill, split out of map-editor-ui.js in Phase 7a */}
   ${read('map-editor-filterbar.js') /* the docked filter bar + status bar, likewise Phase 7a */}
   ${read('map-editor-trigger-scripts.js') /* the scripts in the Trigger tab's rows */}

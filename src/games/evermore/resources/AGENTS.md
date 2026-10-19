@@ -17,7 +17,7 @@ Kind: **platform** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: 
   `extension.js` (`emulatorRom`, `readMemory`), as `rom/` gets the CDL library.
   `.depcruise.js` rule `no-resources-to-emulator`.
 - Existing exceptions (do not add more; move the code down into a library instead):
-  - `audio-songs.js` → `music/model/catalog`, `music/model/rom-audio`, `music/webview/music-view`
+  - `audio-songs.ts` → `music/model/catalog`, `music/model/rom-audio`, `music/webview/music-view`
   - `map-objects.ts` → `rooms/rendering/deco-catalogue`, `rooms/rendering/deco-preview`
   - `character-files.ts` → `sprites/animation-decoder`, `sprites/character-model`
   - `sound-source.js` → `sprites`

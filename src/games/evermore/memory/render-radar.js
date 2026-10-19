@@ -8,13 +8,13 @@
 const { buildMemoryTabHtml }     = require('../../../../dist/games/evermore/memory/render-memory-tab');
 const { buildDocsTabHtml, buildRngTabHtml } = require('../../../../dist/games/evermore/docs-tab/render-docs-tab');
 const { renderRoomsTree, renderVanillaTree, buildRoomRailHtml,
-        buildRoomsJson, VANILLA_ROOMS } = require('../rooms');
+        buildRoomsJson, VANILLA_ROOMS } = require('../../../../dist/games/evermore/rooms');
 const { buildSpritesTabHtml }    = require('../../../../dist/games/evermore/sprites');
 const { buildRomTabHtml }        = require('../../../../dist/games/evermore/rom');
 const { buildMusicTabHtml }      = require('../music');
 const { buildScriptsTabHtml }    = require('../../../../dist/games/evermore/scripts-tab');
 const radarWebview               = require('../../../../dist/games/evermore/memory/webview');
-const { shellFrameHtml }         = require('../../../core/map-editor/shell/frame');
+const { shellFrameHtml }         = require('../../../../dist/core/map-editor/shell/frame');
 
 /**
  * Build the complete radar webview HTML.

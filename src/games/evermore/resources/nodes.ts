@@ -1,5 +1,5 @@
 // Ownership: the two shapes a resolved `soe://` path can take. Handlers return
-// these; fs-provider.js turns them into VS Code file-system answers.
+// these; fs-provider.ts turns them into VS Code file-system answers.
 //
 //   { kind: 'dir',  entries: [[name, 'file' | 'dir' | 'link'], ...], index? }
 //   { kind: 'file', live, read: () => Buffer | Promise<Buffer>, link? }

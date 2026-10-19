@@ -1,7 +1,7 @@
 // TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The radar's host-side message handlers outside extension.js: the map editor
-// (rooms/editor-host.js) and the Characters tab (sprites/radar-host.ts). Unit checks always;
+// (rooms/editor-host.ts) and the Characters tab (sprites/radar-host.ts). Unit checks always;
 // ROM checks with the Evermore base ROM from the ROM library, else skipped.
 // Run: node tests/memory/radar-hosts.test.js
 
@@ -23,7 +23,7 @@ require.cache.vscode = {
     },
 };
 
-const editor = require('../../src/games/evermore/rooms/editor-host');
+const editor = require('../../dist/games/evermore/rooms/editor-host');
 const sprites = require('../../dist/games/evermore/sprites/radar-host');
 const ROM = require('../../dist/games').romPath('evermore');
 

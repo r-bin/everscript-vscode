@@ -2,7 +2,7 @@
 // Ownership: the Rooms tab's left rail — what selecting a row does, following an exit link, and wiring
 // the rail to the shared shell. The rail's own behaviour (group and area collapse, the search filter, the
 // click binding) is the shell's: src/core/map-editor/shell/rail.js, shared with the Secret of
-// Mana editor; its markup is shellRailHtml (tree-renderer.js buildRoomRailHtml).
+// Mana editor; its markup is shellRailHtml (tree-renderer.ts buildRoomRailHtml).
 //
 // A row says which tree it came from itself: `data-vid` is a ROM catalogue room, `data-map` is a room
 // declared in the active .evs file, `data-import` a converted one, `data-custom` a custom map.

@@ -1,6 +1,6 @@
 // Ownership: `soe://tags/` — the tag graph (tag-model.ts) as files.
 // docs/soe-tags-spec.md. Reads other `soe://` files only through the injected
-// `read(uri)` / `exists(uri)`, which fs-provider.js wires to itself.
+// `read(uri)` / `exists(uri)`, which fs-provider.ts wires to itself.
 //
 //   soe://tags/index.md, index.json      roots, every id, aliases
 //   soe://tags/check.json                load errors, broken links      (live)
@@ -142,4 +142,5 @@ function check(model: TagModel, ctx: Ctx) {
     };
 }
 
+export type { Ctx as TagContext };
 export { resolveTags };

@@ -7,11 +7,11 @@
 const vscode = require('vscode');
 const path   = require('path');
 const fs     = require('fs');
-const { VANILLA_ROOMS, buildVanillaRoomDetails, buildRoomTree, setRoomImageUris, handlesCustomMapMessage, handleCustomMapMessage } = require('./rooms');
+const { VANILLA_ROOMS, buildVanillaRoomDetails, buildRoomTree, setRoomImageUris, handlesCustomMapMessage, handleCustomMapMessage } = require('../../../dist/games/evermore/rooms');
 const { handlesRomMessage, handleRomMessage } = require('../../../dist/games/evermore/rom');
 const { handlesMusicMessage, handleMusicMessage } = require('./music');
 const { handlesScriptsMessage, handleScriptsMessage } = require('../../../dist/games/evermore/scripts-tab');
-const { handlesEditorMessage, handleEditorMessage } = require('./rooms/editor-host');
+const { handlesEditorMessage, handleEditorMessage } = require('../../../dist/games/evermore/rooms/editor-host');
 const { handlesSpritesMessage, handleSpritesMessage } = require('../../../dist/games/evermore/sprites/radar-host');
 const romReaders = require('../../../dist/games/evermore/rom-readers');
 const gameViews = require('../../../dist/core/game-views');
@@ -134,7 +134,7 @@ async function openMemoryRadar(doc, startLine) {
             prefs[msg.key] = msg.value;
             context.globalState.update(ROOMS_UI_PREFS_KEY, prefs);
         } else if (handlesEditorMessage(msg.command)) {
-            // The map editor (rooms/editor-host.js).
+            // The map editor (rooms/editor-host.ts).
             handleEditorMessage(msg, {
                 post: (m) => radar.panel?.webview.postMessage(m),
                 roomRom: radarRoomRom,

@@ -6,6 +6,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { sourceDir } from '../../../platform/source-dir';
+import { pageBundlePath } from '../../../core/webview/page-bundle';
 
 const HERE = sourceDir(__dirname);
 const SRC = path.join(HERE, '..', '..', '..');
@@ -34,14 +35,14 @@ const CSS: Record<string, string> = {
 const SCRIPTS = [
     path.join(MAP_VIEW, 'tile-animation.js'), path.join(MAP_VIEW, 'view-chips.js'),
     path.join(CORE, 'edit-history.js'), path.join(CORE, 'edit-session.js'), path.join(CORE, 'edit-tools.js'),
-    path.join(SHELL, 'frame.js'), path.join(SHELL, 'layout.js'), path.join(SHELL, 'zoom-pan.js'),
+    pageBundlePath('shell-frame'), path.join(SHELL, 'frame-dock.js'), path.join(SHELL, 'layout.js'), path.join(SHELL, 'zoom-pan.js'),
     path.join(SHELL, 'pan.js'), path.join(SHELL, 'rail.js'), path.join(SHELL, 'status.js'),
     ...['editor-model.js', 'editor-props.js', 'map-svg.js', 'editor-overlays.js', 'editor-stage.js', 'editor-tools.js', 'editor-dock.js',
         'editor-dock-cells.js', 'editor.js', 'main.js'].map(f => path.join(WEBVIEW, f)),
 ];
 
 /** Every directory the page reads from (the host's localResourceRoots). */
-const ROOTS = [WEBVIEW, MAP_VIEW, CORE, SHELL, SHARED];
+const ROOTS = [WEBVIEW, MAP_VIEW, CORE, SHELL, SHARED, path.dirname(pageBundlePath('shell-frame'))];
 
 /** The page's HTML; `uriOf` turns a file path into the URI the page uses for it. */
 function pageHtml(uriOf: (file: string) => string, v: { cspSource: string; nonce: string; init: object; }): string {

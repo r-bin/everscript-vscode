@@ -8,8 +8,8 @@ Related skills: `rooms-tab`, `map-editor-rules`, `map-construction`, `map-entiti
 - All Rooms-tab server-side logic: room tree building, room content parsing, vanilla data,
   lua-watcher POIs, server-side HTML/JSON rendering, custom maps and widgets on disk.
 - `export-maps.ts`: Export Room Maps as PNG.
-- `editor-host.js`: the map editor's ROM-backed messages (tiles, stamps, PNG export; drafts and export / play
-  ROM in `editor-host-rom.js`, families, suggestions and deco in `editor-host-suggest.js`); `radar-open.js`
+- `editor-host.ts`: the map editor's ROM-backed messages (tiles, stamps, PNG export; drafts and export / play
+  ROM in `editor-host-rom.ts`, families, suggestions and deco in `editor-host-suggest.ts`); `radar-open.js`
   routes them here with an injected `ctx`.
 - Client-side room interactions and SVG rendering live in `webview/`.
 - Does NOT own: ROM map decoding (`../maps/`, a pure model), emulator state, memory-map state.
@@ -17,7 +17,7 @@ Related skills: `rooms-tab`, `map-editor-rules`, `map-construction`, `map-entiti
 ## Dependencies
 - Allowed: libraries (`../maps/`, `../script/`, `../localizations/`) and
   platform read APIs (`soe://`).
-- Always import rooms functionality through `rooms/index.js`, never bypass to internal files.
+- Always import rooms functionality through `rooms/index.ts`, never bypass to internal files.
 - Forbidden: `rooms/` → `extension.js` (no upward call), `../debugger/`, `vscode` (VS Code
   API is injected, e.g. `custom-host.ts`), and any other feature (`.depcruise.js`:
   `no-sibling-tabs` rooms ↛ scaling).

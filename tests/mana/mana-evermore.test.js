@@ -15,7 +15,7 @@ const fs = require('fs');
 const mana = require('../../dist/games/mana/decoder');
 const maps = require('../../dist/games/evermore/maps');
 const bridge = require('../../dist/games/evermore/imports/mana');
-const rooms = require('../../src/games/evermore/rooms');
+const rooms = require('../../dist/games/evermore/rooms');
 
 let passed = 0, failed = 0;
 function test(name, fn) {
