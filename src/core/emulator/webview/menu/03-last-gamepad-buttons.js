@@ -71,10 +71,9 @@
         return;
       }
 
-      // When gameplay is active: Start button opens menu if controllable
+      // When gameplay is active: Start button opens menu if enabled (doing the same as Esc)
       if (gp.buttons[9] && gp.buttons[9].pressed && !lastGamepadButtons[9]) {
-        const m = getModule();
-        if (isPlayerControllable(m)) {
+        if (typeof startOpensMenu !== 'undefined' && startOpensMenu) {
           openEmulatorMenu();
         }
       }
@@ -121,6 +120,7 @@
       if (zmEl) zmEl.textContent = MENU_ZOOM_LABELS[menuZoomIndex];
 
       setPillState('menu-val-focus', keepFocusOnBreak);
+      setPillState('menu-val-start-menu', typeof startOpensMenu !== 'undefined' && startOpensMenu);
       const soundPill = document.getElementById('menu-val-sound');
       if (soundPill) {
         soundPill.textContent = emuMuted ? 'Muted' : 'Normal';

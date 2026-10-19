@@ -185,13 +185,21 @@ ${parts.panelsHtml || ''}
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
-            <div class="menu-row" data-row="3" data-action="action-reset-rom">
+            <div class="menu-row" data-row="3" data-action="toggle-start-menu" title="Start button on keyboard or gamepad opens the menu (same as Esc)">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Start button opens menu</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-start-menu" class="menu-pill">OFF</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="4" data-action="action-reset-rom">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Reset / Power-Cycle ROM</div>
               <div class="menu-row-value">
                 <span class="menu-action-pill">[B] Reset</span>
               </div>
             </div>
-            <div class="menu-row" data-row="4" data-action="action-soft-reset">
+            <div class="menu-row" data-row="5" data-action="action-soft-reset">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Soft Reset (keeps RAM and save)</div>
               <div class="menu-row-value">
                 <span class="menu-action-pill">[B] Reset</span>

@@ -48,6 +48,11 @@
             syncMenuValuesFromRuntime();
             playMenuSound('click_toggle');
             break;
+          case 3:
+            setStartOpensMenu(delta > 0);
+            syncMenuValuesFromRuntime();
+            playMenuSound('click_toggle');
+            break;
         }
       }
     }
@@ -94,13 +99,18 @@
             playMenuSound('click_toggle');
             break;
           case 3:
+            setStartOpensMenu(!startOpensMenu);
+            syncMenuValuesFromRuntime();
+            playMenuSound('click_toggle');
+            break;
+          case 4:
             playMenuSound('click_confirm');
             if (loadedRomData) {
               bootRom(loadedRomData, loadedRomName);
               closeEmulatorMenu();
             }
             break;
-          case 4:
+          case 5:
             if (typeof tasSoftReset === 'function' && tasSoftReset()) {
               playMenuSound('click_confirm');
               closeEmulatorMenu();
@@ -199,14 +209,18 @@
       const tag = e.target && e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
-      // 1. Esc ALWAYS pauses/resumes the emulator & toggles menu
-      if (e.key === 'Escape') {
+      const startKey = userKeyMap['Start'] || 'Enter';
+      const isStartKey = e.key === startKey || (startKey === 'Enter' && e.key === 'Enter');
+
+      // 1. Esc ALWAYS pauses/resumes the emulator & toggles menu.
+      // When startOpensMenu is ON, Start button does the exact same thing as Esc.
+      if (e.key === 'Escape' || (typeof startOpensMenu !== 'undefined' && startOpensMenu && isStartKey && !menuListeningBtn)) {
         if (menuListeningBtn) {
           cancelKeybindListen();
           e.preventDefault();
           return;
         }
-        togglePauseMenu('Escape');
+        togglePauseMenu(e.key === 'Escape' ? 'Escape' : 'Start');
         e.preventDefault();
         return;
       }
@@ -313,16 +327,6 @@
         return;
       }
 
-      // 3. Menu is CLOSED: Check Start button for controllable player
-      const startKey = userKeyMap['Start'] || 'Enter';
-      if (e.key === startKey || (startKey === 'Enter' && e.key === 'Enter')) {
-        const m = getModule();
-        if (isPlayerControllable(m)) {
-          openEmulatorMenu();
-          e.preventDefault();
-          return;
-        }
-      }
-
+      // 3. Menu is CLOSED: When startOpensMenu is OFF, Start passes through to the game.
       // Normal SNES game keys pass through to panel-webview.ts input listener.
     }, true);

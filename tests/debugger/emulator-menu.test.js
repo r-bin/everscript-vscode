@@ -123,6 +123,7 @@ test('getMenuHtml defines 7 tabs with Lens default, Objects list, Loot list, Che
     assert.ok(html.includes('id="menu-val-speed"'), 'missing speed control');
     assert.ok(html.includes('id="menu-val-sound"'), 'missing sound control');
     assert.ok(html.includes('id="menu-val-focus"'), 'missing breakpoint focus control');
+    assert.ok(html.includes('id="menu-val-start-menu"'), 'missing start button opens menu control');
 
     // Tab 6: Controls & Remapper
     assert.ok(html.includes('id="menu-panel-6"'), 'missing controls panel');
@@ -167,6 +168,7 @@ test('getMenuClientScript defines isPlayerControllable, unified pause, objects, 
     assert.ok(script.includes('cheatNoclipEnabled'), 'missing cheatNoclipEnabled integration');
     assert.ok(script.includes('cheatInvincibleEnabled'), 'missing cheatInvincibleEnabled integration');
     assert.ok(script.includes('healParty'), 'missing healParty integration');
+    assert.ok(script.includes('function setStartOpensMenu(on)'), 'missing setStartOpensMenu function');
 });
 
 // 6. Sound source positioning (script sound mapping to object center, trigger, or enter script)

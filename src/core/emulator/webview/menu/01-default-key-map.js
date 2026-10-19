@@ -80,6 +80,24 @@
     let menuListeningBtn = null;
     let menuListeningTimeout = null;
 
+    function isRecorderProfile() {
+      if (typeof emuProfile !== 'undefined' && emuProfile === 'recorder') return true;
+      if (document.body && document.body.classList.contains('profile-recorder')) return true;
+      try {
+        const el = document.getElementById('emu-config');
+        const cfg = el ? JSON.parse(el.textContent || '{}') : {};
+        return cfg.profile === 'recorder';
+      } catch (_) {
+        return false;
+      }
+    }
+    let startOpensMenu = !isRecorderProfile();
+    function setStartOpensMenu(on) {
+      startOpensMenu = !!on;
+      if (typeof emuSettingsChanged === 'function') emuSettingsChanged();
+      syncMenuValuesFromRuntime();
+    }
+
     // Start opens the menu only where the game says the player is in control (gameStartAllowed); other
     // games and ROMs keep Start for themselves.
     function isPlayerControllable(m) {

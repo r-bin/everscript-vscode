@@ -94,6 +94,7 @@ function emuCollectSettings() {
     muted: !!emuMuted,
     panels: typeof emuCollectPanels === 'function' ? emuCollectPanels() : undefined,
     keybinds: Object.assign({}, userKeyMap),
+    startOpensMenu: typeof startOpensMenu !== 'undefined' ? !!startOpensMenu : undefined,
   };
 }
 
@@ -147,6 +148,13 @@ function emuApplySettings(saved) {
     if (!binds) { binds = emuLegacyKeybinds(); migrated = !!binds; }
     userKeyMap = Object.assign({}, DEFAULT_KEY_MAP, binds || {});
     rebuildKeyBitMap();
+    if (typeof setStartOpensMenu === 'function') {
+      if (emuProfile === 'recorder') {
+        setStartOpensMenu(false);
+      } else if (typeof s.startOpensMenu === 'boolean') {
+        setStartOpensMenu(s.startOpensMenu);
+      }
+    }
     if (typeof syncMenuValuesFromRuntime === 'function') syncMenuValuesFromRuntime();
   } finally {
     emuApplying = false;
