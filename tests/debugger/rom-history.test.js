@@ -180,6 +180,67 @@ test('detectRomDetails detects custom map ROM by path name (Evermore describes i
   setRomDescriber(null);
 });
 
+test('getRecentRoms filters by active game and deduplicates by SHA-1 and path', () => {
+  const testDir = path.join(os.tmpdir(), 'evs_test_filter_' + Date.now());
+  fs.mkdirSync(testDir, { recursive: true });
+  const mockContext = { globalStorageUri: { fsPath: testDir } };
+  try {
+    const fileEvermore = path.join(testDir, 'evermore.sfc');
+    const fileMana = path.join(testDir, 'mana.sfc');
+    fs.writeFileSync(fileEvermore, 'evermore_data');
+    fs.writeFileSync(fileMana, 'mana_data');
+
+    recordRomUsage({ path: fileEvermore, name: 'evermore.sfc', game: 'evermore', sha1: 'sha1_ev' }, mockContext);
+    recordRomUsage({ path: fileMana, name: 'mana.sfc', game: 'mana', sha1: 'sha1_mana' }, mockContext);
+
+    // Duplicate evermore under same sha1
+    recordRomUsage({ path: path.join(testDir, 'evermore_dup.sfc'), name: 'evermore_dup.sfc', game: 'evermore', sha1: 'sha1_ev' }, mockContext);
+
+    const all = getRecentRoms(testDir);
+    assert.strictEqual(all.length, 2, 'Must deduplicate entries with identical sha1');
+
+    const filteredEv = getRecentRoms(testDir, 'evermore');
+    assert.strictEqual(filteredEv.length, 1, 'Evermore view must filter out Mana ROM');
+    assert.strictEqual(filteredEv[0].game, 'evermore');
+
+    const filteredMana = getRecentRoms(testDir, 'mana');
+    assert.strictEqual(filteredMana.length, 1, 'Mana view must filter out Evermore ROM');
+    assert.strictEqual(filteredMana[0].game, 'mana');
+  } finally {
+    try {
+      const files = fs.readdirSync(testDir);
+      for (const f of files) fs.unlinkSync(path.join(testDir, f));
+      fs.rmdirSync(testDir);
+    } catch (_) {}
+  }
+});
+
+test('savePersistentSram and loadPersistentSram save and retrieve per-hash SRAM', () => {
+  const { savePersistentSram, loadPersistentSram } = require('../../dist/core/emulator/rom-history');
+  const testDir = path.join(os.tmpdir(), 'evs_test_sram_' + Date.now());
+  fs.mkdirSync(testDir, { recursive: true });
+  try {
+    const hash = 'test_rom_hash_123';
+    const sampleB64 = Buffer.from('save_game_state_data').toString('base64');
+    savePersistentSram(testDir, hash, sampleB64);
+
+    const loaded = loadPersistentSram(testDir, hash);
+    assert.strictEqual(loaded, sampleB64, 'Loaded SRAM must match saved base64 SRAM');
+
+    const missing = loadPersistentSram(testDir, 'non_existent_hash');
+    assert.strictEqual(missing, null, 'Non-existent hash must return null');
+  } finally {
+    try {
+      const savesDir = path.join(testDir, 'saves');
+      if (fs.existsSync(savesDir)) {
+        for (const f of fs.readdirSync(savesDir)) fs.unlinkSync(path.join(savesDir, f));
+        fs.rmdirSync(savesDir);
+      }
+      fs.rmdirSync(testDir);
+    } catch (_) {}
+  }
+});
+
 console.log(`\nResults: ${passed} passed, ${failed} failed\n`);
 if (failed > 0) process.exit(1);
 

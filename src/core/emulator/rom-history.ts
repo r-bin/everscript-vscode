@@ -28,15 +28,17 @@ import * as platform from '../../platform';
 interface RomDetails {
   known: boolean; isCustomMap: boolean; region: string; regionName: string; icon: string; flag: string;
   sha1?: string; crc32?: string; customName?: string; vfsUri?: string; previewDataUri?: string;
+  game?: string;
 }
 type RomDescriber = (clean: Uint8Array, target: unknown, hintPath?: string | null) => RomDetails | null;
 /** A stored history entry (recent-roms.json). */
 interface HistoryItem {
   path: string; name: string; kind: string; lastUsed: number; size: number; customName?: string; vfsUri?: string;
   icon?: string; region?: string; regionName?: string; isCustomMap?: boolean; previewDataUri?: string;
+  sha1?: string; game?: string;
 }
 /** What the panel reports when a ROM was loaded. */
-interface RomUsage { path?: string; name?: string; kind?: string; dataUrl?: unknown; romBuffer?: Uint8Array; size?: number }
+interface RomUsage { path?: string; name?: string; kind?: string; dataUrl?: unknown; romBuffer?: Uint8Array; size?: number; game?: string; sha1?: string; }
 /** For getStorageDir: the extension context, or anything with its global storage folder. */
 type StorageContext = { globalStorageUri?: { fsPath?: string } } | null | undefined;
 
@@ -72,6 +74,7 @@ function detectRomDetails(target: unknown, hintPath?: string | null): RomDetails
       const code = variant.id.toUpperCase();
       return {
         known: true,
+        game: id.game || undefined,
         isCustomMap: false,
         region: code,
         regionName: variant.name,
@@ -258,10 +261,15 @@ function recordRomUsage(entry: RomUsage | null | undefined, context: StorageCont
     try { size = fs.statSync(filePath).size; } catch (_) {}
   }
 
-  // Remove duplicate by path or name
+  const sha1 = (details && details.sha1) || entry.sha1 || '';
+  const game = (details && details.game) || entry.game || '';
+  const canonicalPath = filePath ? path.resolve(filePath) : '';
+
+  // Remove duplicate by canonical path, sha1, or name
   const filtered = list.filter(item => {
-    if (filePath && item.path === filePath) return false;
-    if (!filePath && item.name === name) return false;
+    if (canonicalPath && item.path && path.resolve(item.path) === canonicalPath) return false;
+    if (sha1 && item.sha1 && item.sha1 === sha1) return false;
+    if (!filePath && !sha1 && item.name === name) return false;
     return true;
   });
 
@@ -278,36 +286,46 @@ function recordRomUsage(entry: RomUsage | null | undefined, context: StorageCont
     regionName: (details && details.regionName) || 'Unknown ROM',
     isCustomMap: !!(details && details.isCustomMap),
     previewDataUri: (details && details.previewDataUri) || '',
+    sha1: sha1,
+    game: game,
   });
 
   writeHistoryFile(storageDir, filtered);
 }
 
-function getRecentRoms(storageDir: string) {
+function getRecentRoms(storageDir: string, activeGame?: string | null) {
   const stored = readHistoryFile(storageDir);
   const tempEditorRoms = scanEditorTempRoms(storageDir);
 
-  const byPath = new Map<string, HistoryItem>();
+  const byKey = new Map<string, HistoryItem>();
   for (const item of stored) {
-    if (item.path) byPath.set(item.path, item);
+    const k = item.path ? path.resolve(item.path) : (item.sha1 || item.name);
+    byKey.set(k, item);
   }
 
   // Merge any scanned temp ROMs from editor that aren't recorded or have newer mtime
   for (const temp of tempEditorRoms) {
-    const existing = byPath.get(temp.path);
+    const k = temp.path ? path.resolve(temp.path) : temp.name;
+    const existing = byKey.get(k);
     if (!existing) {
-      byPath.set(temp.path, temp);
+      byKey.set(k, temp);
     } else if (temp.lastUsed > (existing.lastUsed || 0)) {
       existing.lastUsed = temp.lastUsed;
       existing.size = temp.size;
     }
   }
 
-  const merged = Array.from(byPath.values());
+  const merged = Array.from(byKey.values());
   merged.sort((a, b) => (b.lastUsed || 0) - (a.lastUsed || 0));
 
   let changed = false;
-  const result = merged.slice(0, 10).map(item => {
+
+  // Deduplicate entries by sha1 and canonical path
+  const seenSha1 = new Set<string>();
+  const seenPath = new Set<string>();
+  const uniqueList: HistoryItem[] = [];
+
+  for (const item of merged) {
     let exists = false;
     let size = item.size || 0;
     if (item.path) {
@@ -315,7 +333,7 @@ function getRecentRoms(storageDir: string) {
         if (fs.existsSync(item.path)) {
           exists = true;
           if (!size) size = fs.statSync(item.path).size;
-          if (!item.icon || item.icon === '?' || (item.isCustomMap && !item.previewDataUri)) {
+          if (!item.icon || item.icon === '?' || !item.sha1 || (item.isCustomMap && !item.previewDataUri)) {
             const d = detectRomDetails(item.path, item.path || item.name);
             if (d) {
               item.icon = d.icon;
@@ -325,12 +343,34 @@ function getRecentRoms(storageDir: string) {
               if (d.customName) item.customName = d.customName;
               if (d.vfsUri) item.vfsUri = d.vfsUri;
               if (d.previewDataUri) item.previewDataUri = d.previewDataUri;
+              if (d.sha1) item.sha1 = d.sha1;
+              if (d.game) item.game = d.game;
               changed = true;
             }
           }
         }
       } catch (_) {}
     }
+
+    const normPath = item.path ? path.resolve(item.path) : '';
+    if (item.sha1 && seenSha1.has(item.sha1)) continue;
+    if (normPath && seenPath.has(normPath)) continue;
+
+    if (item.sha1) seenSha1.add(item.sha1);
+    if (normPath) seenPath.add(normPath);
+    item.size = size;
+    uniqueList.push(item);
+  }
+
+  // Filter by selected game: show matching game + unknown/custom maps; hide other games
+  const filtered = uniqueList.filter(item => {
+    if (!activeGame) return true;
+    if (!item.game || item.isCustomMap) return true;
+    return item.game === activeGame;
+  });
+
+  const result = filtered.slice(0, 10).map(item => {
+    const exists = !!(item.path && fs.existsSync(item.path));
     return {
       path: item.path || '',
       name: item.name || (item.path ? path.basename(item.path) : 'ROM'),
@@ -340,14 +380,16 @@ function getRecentRoms(storageDir: string) {
       badge: getBadge(item.kind),
       lastUsed: item.lastUsed || 0,
       timeFormatted: formatRelativeTime(item.lastUsed),
-      size: size,
-      sizeFormatted: formatBytes(size),
+      size: item.size || 0,
+      sizeFormatted: formatBytes(item.size || 0),
       exists: exists,
       icon: item.icon || '?',
       region: item.region || '?',
       regionName: item.regionName || '',
       isCustomMap: !!item.isCustomMap,
       previewDataUri: item.previewDataUri || '',
+      sha1: item.sha1 || '',
+      game: item.game || '',
     };
   });
 
@@ -358,12 +400,41 @@ function getRecentRoms(storageDir: string) {
   return result;
 }
 
-function getRomOfferData(context: StorageContext, wsRoot?: string | null, cfgRomPath?: string | null) {
+function getRomOfferData(context: StorageContext, wsRoot?: string | null, cfgRomPath?: string | null, activeGame?: string | null) {
   const storageDir = getStorageDir(context);
   const vanilla = getVanillaRom(wsRoot, cfgRomPath);
-  const recent = getRecentRoms(storageDir);
+  const recent = getRecentRoms(storageDir, activeGame);
   return { vanilla, recent };
 }
 
+function getSramPath(storageDir: string, romHash: string): string {
+  const savesDir = path.join(storageDir, 'saves');
+  try {
+    if (!fs.existsSync(savesDir)) fs.mkdirSync(savesDir, { recursive: true });
+  } catch (_) {}
+  return path.join(savesDir, romHash.replace(/[^a-zA-Z0-9_-]/g, '_') + '.srm');
+}
+
+function savePersistentSram(storageDir: string, romHash: string, sramBase64: string): void {
+  if (!romHash || !sramBase64) return;
+  try {
+    const srmPath = getSramPath(storageDir, romHash);
+    const buf = Buffer.from(sramBase64, 'base64');
+    fs.writeFileSync(srmPath, buf);
+  } catch (_) {}
+}
+
+function loadPersistentSram(storageDir: string, romHash: string): string | null {
+  if (!romHash) return null;
+  try {
+    const srmPath = getSramPath(storageDir, romHash);
+    if (fs.existsSync(srmPath)) {
+      const buf = fs.readFileSync(srmPath);
+      return buf.toString('base64');
+    }
+  } catch (_) {}
+  return null;
+}
+
 export type { RomDetails, RomDescriber, HistoryItem };
-export { formatBytes, formatRelativeTime, getBadge, getStorageDir, getVanillaRom, scanEditorTempRoms, recordRomUsage, getRecentRoms, getRomOfferData, clearRecentRoms, detectRomDetails, setRomDescriber };
+export { formatBytes, formatRelativeTime, getBadge, getStorageDir, getVanillaRom, scanEditorTempRoms, recordRomUsage, getRecentRoms, getRomOfferData, clearRecentRoms, detectRomDetails, setRomDescriber, savePersistentSram, loadPersistentSram };

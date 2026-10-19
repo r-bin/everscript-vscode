@@ -138,9 +138,71 @@
     // -- ROM offer, quick launch & drag-and-drop ------------------------------
     let currentOfferData = //@@romOffer;
 
+    let overlayFocusCol = 0; // 0 = Center, 1 = Right
+    let overlayCol0Idx = 0;
+    let overlayCol1Idx = 0;
+
+    let selectedCore = 'fork';
+    let selectedPreset = 'default';
+    let isolatedSramEnabled = false;
+    let currentRomSha1 = '';
+    let currentIsolatedSram = false;
+    let lastSavedSramB64 = '';
+
+    function getLaunchOptions() {
+      return {
+        core: selectedCore,
+        preset: selectedPreset,
+        isolatedSram: isolatedSramEnabled
+      };
+    }
+
+    function initSidebarControls() {
+      const coreSel = document.getElementById('coreSelector');
+      if (coreSel) {
+        coreSel.value = selectedCore;
+        coreSel.onchange = () => {
+          selectedCore = coreSel.value;
+          if (vscodeApi) vscodeApi.postMessage({ command: 'setSessionSettings', core: selectedCore });
+        };
+      }
+
+      const presetBtns = document.querySelectorAll('.preset-btn');
+      presetBtns.forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          presetBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          selectedPreset = btn.getAttribute('data-preset') || 'default';
+          if (vscodeApi) vscodeApi.postMessage({ command: 'setSessionSettings', preset: selectedPreset });
+        };
+      });
+
+      const sramToggle = document.getElementById('isolatedSramToggle');
+      if (sramToggle) {
+        sramToggle.checked = isolatedSramEnabled;
+        sramToggle.onchange = () => {
+          isolatedSramEnabled = sramToggle.checked;
+          if (vscodeApi) vscodeApi.postMessage({ command: 'setSessionSettings', isolatedSram: isolatedSramEnabled });
+        };
+      }
+
+      const clearBtn = document.getElementById('clearRecentBtn');
+      if (clearBtn) {
+        clearBtn.onclick = (e) => {
+          e.stopPropagation();
+          if (vscodeApi) vscodeApi.postMessage({ command: 'clearRecentRoms' });
+          const statusEl = document.getElementById('load-status');
+          if (statusEl) statusEl.textContent = 'Recent ROMs cleared.';
+        };
+      }
+    }
+
     function renderRomOffer(data) {
       if (!data) return;
       currentOfferData = data;
+      initSidebarControls();
+
       const vBtn = document.getElementById('vanillaBtn');
       const vDesc = document.getElementById('vanilla-desc');
       if (vBtn && vDesc) {
@@ -156,16 +218,6 @@
           vDesc.textContent = 'Not found (Everscript: Switch ROM)';
           vBtn.title = 'No base ROM for this game in the ROM library. Add yours with Everscript: Switch ROM.';
         }
-      }
-
-      const clearBtn = document.getElementById('clearRecentBtn');
-      if (clearBtn) {
-        clearBtn.onclick = (e) => {
-          e.stopPropagation();
-          vscodeApi.postMessage({ command: 'clearRecentRoms' });
-          const statusEl = document.getElementById('load-status');
-          if (statusEl) statusEl.textContent = 'Recent ROMs cleared.';
-        };
       }
 
       const recentSection = document.getElementById('recent-roms-section');
@@ -233,7 +285,7 @@
               if (item.exists) {
                 try { initAudio(); } catch (_) {}
                 try { ensureAudioRunning(); } catch (_) {}
-                if (vscodeApi) vscodeApi.postMessage({ command: 'loadRecentRom', path: item.path, name: item.name, kind: item.kind });
+                if (vscodeApi) vscodeApi.postMessage(Object.assign({ command: 'loadRecentRom', path: item.path, name: item.name, kind: item.kind }, getLaunchOptions()));
                 const statusEl = document.getElementById('load-status');
                 if (statusEl) statusEl.textContent = 'Loading ' + item.name + '...';
               } else {
@@ -254,38 +306,55 @@
           recentSection.style.display = 'none';
         }
         if (!romLoaded) {
-          setOverlayFocus(0);
+          setOverlayFocus(0, 0);
         }
       }
     }
 
-    let overlayFocusedIdx = -1;
-
-    function getOverlayFocusables() {
+    function getOverlayCol0Focusables() {
       const list = [];
+      const dropZone = document.getElementById('rom-drop-zone');
+      if (dropZone) list.push(dropZone);
       const vBtn = document.getElementById('vanillaBtn');
       if (vBtn && !vBtn.disabled) list.push(vBtn);
-      const pBtn = document.getElementById('pickBtn');
-      if (pBtn) list.push(pBtn);
-      const clearBtn = document.getElementById('clearRecentBtn');
-      const recentSec = document.getElementById('recent-roms-section');
-      if (clearBtn && recentSec && recentSec.style.display !== 'none') list.push(clearBtn);
       const items = document.querySelectorAll('.recent-rom-item:not(.missing)');
       items.forEach(it => list.push(it));
       return list;
     }
 
-    function setOverlayFocus(idx) {
-      const items = getOverlayFocusables();
-      if (!items.length) {
-        overlayFocusedIdx = -1;
-        return;
-      }
-      items.forEach(el => el.classList.remove('keyboard-focused'));
+    function getOverlayCol1Focusables() {
+      const list = [];
+      const coreSel = document.getElementById('coreSelector');
+      if (coreSel) list.push(coreSel);
+      const presetBtns = document.querySelectorAll('.preset-btn');
+      presetBtns.forEach(btn => list.push(btn));
+      const sramToggle = document.getElementById('isolatedSramToggle');
+      if (sramToggle) list.push(sramToggle);
+      const clearBtn = document.getElementById('clearRecentBtn');
+      if (clearBtn) list.push(clearBtn);
+      return list;
+    }
+
+    function getOverlayFocusables() {
+      return overlayFocusCol === 0 ? getOverlayCol0Focusables() : getOverlayCol1Focusables();
+    }
+
+    function setOverlayFocus(idx, col) {
+      if (typeof col === 'number') overlayFocusCol = col;
+      const items0 = getOverlayCol0Focusables();
+      const items1 = getOverlayCol1Focusables();
+      items0.concat(items1).forEach(el => el.classList.remove('keyboard-focused'));
+
+      const activeItems = overlayFocusCol === 0 ? items0 : items1;
+      if (!activeItems.length) return;
+
       if (idx < 0) idx = 0;
-      if (idx >= items.length) idx = items.length - 1;
-      overlayFocusedIdx = idx;
-      const target = items[overlayFocusedIdx];
+      if (idx >= activeItems.length) idx = activeItems.length - 1;
+
+      if (overlayFocusCol === 0) overlayCol0Idx = idx;
+      else overlayCol1Idx = idx;
+
+      const target = activeItems[idx];
       if (target) {
         target.classList.add('keyboard-focused');
         if (typeof target.focus === 'function') {
@@ -295,4 +364,12 @@
           try { target.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' }); } catch (_) {}
         }
       }
+    }
+
+    function switchOverlayColumn(col) {
+      if (typeof col !== 'number') col = overlayFocusCol === 0 ? 1 : 0;
+      if (col === overlayFocusCol) return;
+      overlayFocusCol = col;
+      const targetIdx = overlayFocusCol === 0 ? overlayCol0Idx : overlayCol1Idx;
+      setOverlayFocus(targetIdx, overlayFocusCol);
     }

@@ -2,8 +2,17 @@
 
     function activateOverlayFocused() {
       const items = getOverlayFocusables();
-      if (overlayFocusedIdx >= 0 && overlayFocusedIdx < items.length) {
-        items[overlayFocusedIdx].click();
+      const idx = overlayFocusCol === 0 ? overlayCol0Idx : overlayCol1Idx;
+      if (idx >= 0 && idx < items.length) {
+        const el = items[idx];
+        if (el.tagName === 'SELECT') {
+          el.focus();
+        } else if (el.tagName === 'INPUT' && el.type === 'checkbox') {
+          el.checked = !el.checked;
+          if (typeof el.onchange === 'function') el.onchange();
+        } else if (typeof el.click === 'function') {
+          el.click();
+        }
       }
     }
 
@@ -24,45 +33,61 @@
       const dDown = (pad.buttons[13] && pad.buttons[13].pressed) || (pad.axes[1] && pad.axes[1] > 0.5);
       const dLeft = (pad.buttons[14] && pad.buttons[14].pressed) || (pad.axes[0] && pad.axes[0] < -0.5);
       const dRight = (pad.buttons[15] && pad.buttons[15].pressed) || (pad.axes[0] && pad.axes[0] > 0.5);
+      const btnL = (pad.buttons[4] && pad.buttons[4].pressed);
+      const btnR = (pad.buttons[5] && pad.buttons[5].pressed);
       const btnA = (pad.buttons[0] && pad.buttons[0].pressed) || (pad.buttons[9] && pad.buttons[9].pressed);
       const btnB = (pad.buttons[1] && pad.buttons[1].pressed);
 
-      if (dUp || dDown) {
+      if (btnL) {
+        lastOverlayGamepadPoll = now;
+        switchOverlayColumn(0);
+      } else if (btnR) {
+        lastOverlayGamepadPoll = now;
+        switchOverlayColumn(1);
+      } else if (dUp || dDown) {
         lastOverlayGamepadPoll = now;
         const items = getOverlayFocusables();
         if (items.length) {
+          const curIdx = overlayFocusCol === 0 ? overlayCol0Idx : overlayCol1Idx;
           const delta = dUp ? -1 : 1;
-          const next = overlayFocusedIdx < 0 ? 0 : (overlayFocusedIdx + delta + items.length) % items.length;
+          const next = curIdx < 0 ? 0 : (curIdx + delta + items.length) % items.length;
           setOverlayFocus(next);
         }
-      } else if (dLeft || dRight) {
+      } else if (dLeft) {
         lastOverlayGamepadPoll = now;
-        if (overlayFocusedIdx === 0 && dRight) setOverlayFocus(1);
-        else if (overlayFocusedIdx === 1 && dLeft) setOverlayFocus(0);
+        switchOverlayColumn(0);
+      } else if (dRight) {
+        lastOverlayGamepadPoll = now;
+        switchOverlayColumn(1);
       } else if (btnA) {
         lastOverlayGamepadPoll = now + 160;
-        if (overlayFocusedIdx >= 0) activateOverlayFocused();
-        else setOverlayFocus(0);
+        activateOverlayFocused();
       } else if (btnB) {
         lastOverlayGamepadPoll = now;
         const items = getOverlayFocusables();
         items.forEach(el => el.classList.remove('keyboard-focused'));
-        overlayFocusedIdx = -1;
       }
     }
 
-    document.getElementById('pickBtn').addEventListener('click', () => {
+    function triggerPickRom() {
       try { initAudio(); } catch (_) {}
       try { ensureAudioRunning(); } catch (_) {}
-      if (vscodeApi) vscodeApi.postMessage({ command: 'pickRom' });
+      if (vscodeApi) vscodeApi.postMessage(Object.assign({ command: 'pickRom' }, getLaunchOptions()));
       const statusEl = document.getElementById('load-status');
       if (statusEl) statusEl.textContent = 'Waiting for file picker...';
-    });
+    }
+
+    const pickBtn = document.getElementById('pickBtn');
+    if (pickBtn) pickBtn.addEventListener('click', triggerPickRom);
 
     const dropZone = document.getElementById('rom-drop-zone');
     if (dropZone) {
-      dropZone.addEventListener('click', () => {
-        document.getElementById('pickBtn').click();
+      dropZone.addEventListener('click', triggerPickRom);
+      dropZone.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          triggerPickRom();
+        }
       });
     }
 
@@ -72,7 +97,7 @@
         if (vanillaBtn.disabled) return;
         try { initAudio(); } catch (_) {}
         try { ensureAudioRunning(); } catch (_) {}
-        if (vscodeApi) vscodeApi.postMessage({ command: 'loadVanillaRom' });
+        if (vscodeApi) vscodeApi.postMessage(Object.assign({ command: 'loadVanillaRom' }, getLaunchOptions()));
         const statusEl = document.getElementById('load-status');
         if (statusEl) statusEl.textContent = 'Loading Vanilla ROM...';
       });
@@ -124,13 +149,13 @@
       const reader = new FileReader();
       reader.onload = function(e) {
         const dataUrl = e.target.result;
-        vscodeApi.postMessage({
+        vscodeApi.postMessage(Object.assign({
           command: 'romDropped',
           name: fileName,
           path: filePath,
           dataUrl: dataUrl,
           size: file.size,
-        });
+        }, getLaunchOptions()));
         startWithRom(dataUrl, fileName);
       };
       reader.onerror = function(err) {
@@ -145,7 +170,7 @@
 
     window.addEventListener('load', () => {
       try { window.focus(); } catch (_) {}
-      if (!romLoaded) setOverlayFocus(0);
+      if (!romLoaded) setOverlayFocus(0, 0);
     });
 
     window.addEventListener('message', evt => {
@@ -168,7 +193,10 @@
         if (evt.data.gameData && typeof gameRomData === 'function') gameRomData(evt.data.gameData, false);
         if (evt.data.scriptDebug && typeof sdbgConfigure === 'function') sdbgConfigure(evt.data.scriptDebug);
         romStage('loadRom received: ' + (evt.data.name || 'game'));
-        startWithRom(evt.data.dataUrl, evt.data.name);
+        currentRomSha1 = evt.data.romSha1 || '';
+        currentIsolatedSram = !!evt.data.isolatedSram;
+        if (evt.data.preset) applyLaunchPreset(evt.data.preset);
+        startWithRom(evt.data.dataUrl, evt.data.name, evt.data.sramData);
       }
     });
 

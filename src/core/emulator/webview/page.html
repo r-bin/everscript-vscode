@@ -22,39 +22,67 @@
 </head>
 <body class="profile-//@@profile">
   <div id="overlay">
-    <div class="overlay-card">
-      <div class="overlay-header">
-        <h2 data-needs="full">Everscript Emulator</h2>
-        <h2 data-needs="recorder">SNES CDL Recorder</h2>
-        <div class="overlay-subtitle">snes9x2005-wasm</div>
-      </div>
+    <div class="overlay-main-wrap">
+      <div class="overlay-card" id="overlay-col-center">
+        <div class="overlay-header">
+          <h2 data-needs="full">Everscript Emulator</h2>
+          <h2 data-needs="recorder">SNES CDL Recorder</h2>
+          <div class="overlay-subtitle">snes9x2005-wasm</div>
+        </div>
 
-      <div id="rom-drop-zone" class="rom-drop-zone" title="Drag and drop a SNES ROM here, or click to browse">
-        <div class="drop-zone-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="12" rx="4"></rect><path d="M6 12h4m-2-2v4"></path><circle cx="15" cy="11" r="1" fill="currentColor"></circle><circle cx="18" cy="13" r="1" fill="currentColor"></circle></svg></div>
-        <div class="drop-zone-title">Drop SNES ROM here</div>
-        <div class="drop-zone-sub">Drag &amp; drop any .smc / .sfc file, or click to browse</div>
-      </div>
+        <div id="rom-drop-zone" class="rom-drop-zone merged-load-zone" role="button" tabindex="0" title="Load ROM: Drag and drop a SNES ROM here, or click to browse">
+          <div class="drop-zone-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path><polyline points="12 11 12 17"></polyline><polyline points="9 14 12 11 15 14"></polyline></svg></div>
+          <div class="drop-zone-title">Load ROM (Browse / Drop here)</div>
+          <div class="drop-zone-sub">Click to select .smc / .sfc, or drag &amp; drop a file</div>
+        </div>
 
-      <div class="overlay-action-row">
-        <button id="vanillaBtn" class="rom-action-btn primary" type="button" title="Load the base ROM of the selected game (ROM library)">
+        <button id="vanillaBtn" class="rom-action-btn primary vanilla-full-btn" type="button" title="Load the base ROM of the selected game (ROM library)">
           <div class="btn-main"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg> <span>Load Vanilla ROM</span></div>
           <div class="btn-meta" id="vanilla-desc">Base ROM</div>
         </button>
-        <button id="pickBtn" class="rom-action-btn secondary" type="button" title="Choose a ROM file from disk">
-          <div class="btn-main"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path></svg> <span>Load ROM...</span></div>
-          <div class="btn-meta">Browse files</div>
-        </button>
-      </div>
+        <button id="pickBtn" style="display:none;" type="button" aria-hidden="true"></button>
 
-      <div id="load-status">Select a SNES ROM (.smc / .sfc) to begin.</div>
+        <div id="load-status">Select a SNES ROM (.smc / .sfc) to begin.</div>
 
-      <div id="recent-roms-section" class="recent-roms-section" style="display:none;">
-        <div class="recent-roms-header">
-          <span>Recent &amp; Generated ROMs</span>
-          <button id="clearRecentBtn" class="clear-recent-btn" type="button" title="Clear recent ROMs history">Clear</button>
+        <div id="recent-roms-section" class="recent-roms-section" style="display:none;">
+          <div class="recent-roms-header">
+            <span>Recent &amp; Generated ROMs</span>
+          </div>
+          <div id="recent-roms-list" class="recent-roms-list"></div>
         </div>
-        <div id="recent-roms-list" class="recent-roms-list"></div>
       </div>
+
+      <aside class="overlay-sidebar" id="overlay-col-right" aria-label="Session Settings">
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Core</div>
+          <select id="coreSelector" class="sidebar-select" title="Emulator core build">
+            <option value="fork" selected>snes9x-wasm fork</option>
+            <option value="vanilla">snes9x-wasm</option>
+          </select>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Preset</div>
+          <div class="sidebar-preset-group" role="radiogroup" aria-label="Preset mode">
+            <button type="button" class="preset-btn active" data-preset="default" title="Standard default emulator settings">Default</button>
+            <button type="button" class="preset-btn" data-preset="everscript" title="Everscript left sidebar, triggers on">Everscript</button>
+            <button type="button" class="preset-btn" data-preset="cdl" title="CDL left sidebar, CDL on, game features off, start = pause off">CDL</button>
+            <button type="button" class="preset-btn" data-preset="clean" title="Clean gameplay, all debug overlays and sidebars off">Clean</button>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Options</div>
+          <label class="sidebar-toggle-row" title="When enabled, SRAM starts empty and is never saved to disk.">
+            <input type="checkbox" id="isolatedSramToggle">
+            <span class="sidebar-toggle-label">Isolated SRAM</span>
+          </label>
+        </div>
+
+        <div class="sidebar-section sidebar-bottom-actions">
+          <button id="clearRecentBtn" class="clear-recent-btn sidebar-clear-btn" type="button" title="Clear recent ROMs history">Clear Recent ROMs</button>
+        </div>
+      </aside>
     </div>
   </div>
 

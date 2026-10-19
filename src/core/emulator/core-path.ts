@@ -49,7 +49,11 @@ function remapLegacyCorePath(rawPath: string, extensionPath: string): string {
  * into a checkout rather than the extension, so the legacy remap cannot
  * catch it. Falling back keeps the emulator working and still says so.
  */
-function resolveCore(extensionPath: string): CoreChoice {
+function resolveCore(extensionPath: string, corePreference?: 'fork' | 'vanilla' | null): CoreChoice {
+    if (corePreference === 'vanilla') {
+        const vanilla = vanillaCore(extensionPath);
+        if (vanilla.path) return vanilla;
+    }
     const bundled = bundledCore(extensionPath);
     const raw = vscode.workspace.getConfiguration('everscript').get<string>('snesCorePath', '').trim();
     if (!raw) return bundled;
@@ -72,23 +76,26 @@ function customCore(raw: string, extensionPath: string): CoreChoice {
     return { path: resolved, wasmPath, label: path.basename(resolved), source: 'custom' };
 }
 
+function vanillaCore(extensionPath: string): CoreChoice {
+    const jsPath   = path.join(extensionPath, CORE_SUBDIR, CORE_JS);
+    const wasmPath = path.join(extensionPath, CORE_SUBDIR, CORE_WASM);
+    if (!fs.existsSync(jsPath)) {
+      return { path: '', wasmPath: '', label: '', warning: `Bundled vanilla core JS missing: ${jsPath}` };
+    }
+    if (!fs.existsSync(wasmPath)) {
+      return { path: '', wasmPath: '', label: '', warning: `Bundled vanilla core WASM missing: ${wasmPath}` };
+    }
+    return { path: jsPath, wasmPath, label: CORE_JS + ' (vanilla)', source: 'vanilla-bundled' };
+}
+
 function bundledCore(extensionPath: string): CoreChoice {
     const customJs   = path.join(extensionPath, CUSTOM_CORE_SUBDIR, CORE_JS);
     const customWasm = path.join(extensionPath, CUSTOM_CORE_SUBDIR, CORE_WASM);
     if (fs.existsSync(customJs) && fs.existsSync(customWasm)) {
       return { path: customJs, wasmPath: customWasm, label: CORE_JS + ' (debugger core)', source: 'custom-bundled' };
     }
-    const jsPath   = path.join(extensionPath, CORE_SUBDIR, CORE_JS);
-    const wasmPath = path.join(extensionPath, CORE_SUBDIR, CORE_WASM);
-    if (!fs.existsSync(jsPath)) {
-      return { path: '', wasmPath: '', label: '', warning: `Bundled core JS missing: ${jsPath}` };
-    }
-    if (!fs.existsSync(wasmPath)) {
-      return { path: '', wasmPath: '', label: '', warning: `Bundled core WASM missing: ${wasmPath}` };
-    }
-    return { path: jsPath, wasmPath, label: CORE_JS + ' (bundled)', source: 'bundled' };
+    return vanillaCore(extensionPath);
 }
 
-
 export type { CoreChoice };
-export { resolveCore, CORE_SUBDIR };
+export { resolveCore, CORE_SUBDIR, vanillaCore, bundledCore };

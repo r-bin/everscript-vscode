@@ -12,7 +12,8 @@ import { resolveCore } from './core-path';
 import { describeFile as _describeFile, log as _log } from './emulator-log';
 import { MemoryBridge } from './memory-bridge';
 import { ApuStream } from './apu-stream';
-import { getRomOfferData, recordRomUsage } from './rom-history';
+import { getRomOfferData, recordRomUsage, loadPersistentSram, getStorageDir } from './rom-history';
+import * as platform from '../../platform';
 import type { CdlHost, CdlTools } from './cdl/host';
 import type { TasHost } from './tas/host';
 
@@ -43,6 +44,7 @@ interface EmuState {
     readyTimeout: ReturnType<typeof setTimeout> | null; romTimeout: ReturnType<typeof setTimeout> | null; webviewReady: boolean;
     cdl: CdlHost | null; tas: TasHost | null; options: EmuOptions; reopenTried: boolean;
     sessionProfile: string | null; sessionTitle: string | null;
+    sessionCore: 'fork' | 'vanilla' | null; sessionPreset: string | null; sessionIsolatedSram: boolean;
 }
 
 /** The panel's state: the panel itself, the ROM it runs, the timers and hosts that live with it. */
@@ -61,6 +63,9 @@ const emu: EmuState = {
     tas: null,              // TasHost: input recordings and replays
     sessionProfile: null,   // profile override for the current open panel
     sessionTitle: null,     // title override for the current open panel
+    sessionCore: null,      // in-session core selection ('fork' | 'vanilla')
+    sessionPreset: null,    // in-session preset ('default' | 'everscript' | 'cdl' | 'clean')
+    sessionIsolatedSram: false, // in-session isolated SRAM toggle
     /**
      * What the extension that hosts the panel wants (configureEmulator):
      *   profile        'full' (Everscript) or 'recorder' (SNES CDL Recorder: CDL and REPLAYS only)
@@ -174,12 +179,28 @@ function _dispatchPendingRom() {
   _log(`Sending ROM to webview: ${romName}`);
   _armRomTimeout(romName);
   const gameData = emu.options.game && emu.options.game.romData ? emu.options.game.romData(emu.currentRomBuffer) : null;
+
+  let sramData: string | null = null;
+  let romSha1 = '';
+  if (emu.currentRomBuffer) {
+    const clean = (emu.currentRomBuffer.length % 1024 === 512) ? emu.currentRomBuffer.subarray(512) : emu.currentRomBuffer;
+    romSha1 = require('crypto').createHash('sha1').update(clean).digest('hex').toLowerCase();
+    if (!emu.sessionIsolatedSram) {
+      const storageDir = getStorageDir(emu.context);
+      sramData = loadPersistentSram(storageDir, romSha1);
+    }
+  }
+
   emu.panel.webview.postMessage({
     command: 'loadRom',
     dataUrl: emu.pending.dataUrl,
     name: emu.pending.name,
     gameData,
     scriptDebug: _scriptDebug.beforeRomLoad(),
+    romSha1,
+    sramData,
+    isolatedSram: !!emu.sessionIsolatedSram,
+    preset: emu.sessionPreset || 'default',
   });
   return true;
 }
@@ -187,7 +208,7 @@ function _dispatchPendingRom() {
 function _resetPanelHtml() {
     if (!emu.panel || !emu.extensionPath) return;
   emu.webviewReady = false;
-    const core = resolveCore(emu.extensionPath);
+    const core = resolveCore(emu.extensionPath, emu.sessionCore);
     if (!core.path) {
     if (core.warning) _log(core.warning, true);
     if (core.warning) _notifyWebviewStatus('error', core.warning);
@@ -198,8 +219,9 @@ function _resetPanelHtml() {
     const coreWasmUri = emu.panel.webview.asWebviewUri(vscode.Uri.file(core.wasmPath)).toString();
     _log(`Core webview URIs: js=${coreJsUri} wasm=${coreWasmUri}`);
     const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+    const activeGame = emu.options.game ? (platform.selectedRom()?.game || 'evermore') : null;
     // The vanilla ROM comes from the ROM library (src/core/roms).
-    const romOfferData = getRomOfferData(emu.context, wsRoot, '');
+    const romOfferData = getRomOfferData(emu.context, wsRoot, '', activeGame);
     const panel = emu.panel;
     const file = (name: string) => panel.webview.asWebviewUri(vscode.Uri.file(path.join(emu.extensionPath, 'src', 'core', 'emulator', 'webview', name))).toString();
     const isRecorder = (emu.sessionProfile || emu.options.profile) === 'recorder';
@@ -222,8 +244,9 @@ function _broadcastRomOffer() {
   if (!emu.panel) return;
   try {
     const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+    const activeGame = emu.options.game ? (platform.selectedRom()?.game || 'evermore') : null;
     // The vanilla ROM comes from the ROM library (src/core/roms).
-    const romOfferData = getRomOfferData(emu.context, wsRoot, '');
+    const romOfferData = getRomOfferData(emu.context, wsRoot, '', activeGame);
     emu.panel.webview.postMessage({ command: 'romOfferInfo', data: romOfferData });
   } catch (_) {}
 }
