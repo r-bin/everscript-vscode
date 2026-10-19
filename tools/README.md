@@ -15,7 +15,6 @@ Node 26 runs the `.mts` files directly. Tools find a ROM through the ROM library
 | `recomp/` | The static recompilation ([README](recomp/README.md)) | `npm run recomp` |
 | `exhirom/` | Evermore as an 8 MB ExHiROM and its proof ([README](exhirom/README.md)) | `npm run exhirom` |
 | `table-hack/` | Content tables moved into the 4th MB and the proof ([README](table-hack/README.md)) | `npm run table-hack` |
-| `recorder/` | Packages the SNES CDL Recorder extension | `npm run build:recorder` |
 | `cdl/` | Replay a movie headless on our core, with the CDL recorder | `node tools/cdl/replay.js` |
 | `playbacks/` | Record the vanilla attract loop as a sample playback | `node tools/playbacks/record-attract.js` |
 | `simulation/` | Sweep every room with the simulation; trace the real scheduler; exit cut-offs | `node tools/simulation/*.js` |

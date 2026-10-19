@@ -67,11 +67,6 @@ workflow.
 
 One prompt = one commit. Do not batch unrelated changes.
 
-**The SNES CDL Recorder** (the second extension, `src/recorder/`) is not built or installed by
-`npm run deploy`. After a change under `src/core/emulator/`, `src/recorder/`, `recorder/` or
-`tools/recorder/`, run `npm run build:recorder` too (it fails when a file it needs is missing) and say
-where the `.vsix` is; install it only when the user asks (`code --install-extension out/snes-cdl-recorder-<version>.vsix --force`).
-
 ---
 
 ## npm / vsce path

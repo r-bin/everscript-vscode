@@ -48,13 +48,29 @@
       if (el) el.textContent = text;
     }
 
+    function cdlIsRecorderMode() {
+      return typeof emuProfile !== 'undefined' && emuProfile === 'recorder';
+    }
+
     function cdlCoverageText(s) {
       return s ? (100 * (s.code + s.data) / s.romSize).toFixed(1) + '%' : '';
     }
 
     function cdlRefreshUi() {
       const t = document.getElementById('cdl-toggle');
-      if (t) { t.textContent = cdlWanted ? 'stop recording' : 'start recording'; t.classList.toggle('active', cdlWanted); }
+      if (t) {
+        if (cdlIsRecorderMode()) {
+          t.textContent = 'recording';
+          t.classList.add('active');
+          t.setAttribute('disabled', 'true');
+          t.setAttribute('title', 'Recording cannot be disabled in CDL Recorder mode');
+        } else {
+          t.removeAttribute('disabled');
+          t.removeAttribute('title');
+          t.textContent = cdlWanted ? 'stop recording' : 'start recording';
+          t.classList.toggle('active', cdlWanted);
+        }
+      }
       setControlEnabled('cdl-flush', cdlOn);
       const badge = document.getElementById('ss-cdl-count');
       if (badge) badge.textContent = !cdlOn ? 'off' : cdlPaused ? 'paused' : (cdlCoverageText(cdlSummary) || 'rec');
@@ -75,7 +91,21 @@
 
     function cdlMenuSync() {
       const rec = document.getElementById('menu-val-cdl-rec');
-      if (rec) { rec.textContent = cdlWanted ? 'ON' : 'OFF'; rec.classList.toggle('active', cdlWanted); }
+      if (rec) {
+        const on = cdlIsRecorderMode() || cdlWanted;
+        rec.textContent = on ? 'ON' : 'OFF';
+        rec.classList.toggle('active', on);
+        const recRow = document.getElementById('menu-row-8-1');
+        if (recRow) {
+          if (cdlIsRecorderMode()) {
+            recRow.setAttribute('title', 'Recording cannot be disabled in CDL Recorder mode');
+            recRow.classList.add('disabled');
+          } else {
+            recRow.removeAttribute('title');
+            recRow.classList.remove('disabled');
+          }
+        }
+      }
       const ex = document.getElementById('menu-val-cdl-export');
       const choices = cdlExportChoices();
       cdlExportPick = Math.max(0, Math.min(cdlExportPick, choices.length - 1));
@@ -84,6 +114,7 @@
 
     function cdlMenuStep(row, delta) {
       if (row === 1) {
+        if (cdlIsRecorderMode()) return;
         if ((delta > 0) !== cdlWanted) { if (cdlWanted) cdlStop(); else cdlStart(); }
       } else if (row === 2) {
         cdlExportPick += delta;
@@ -96,6 +127,7 @@
 
     function cdlMenuActivate(row) {
       if (row === 1) {
+        if (cdlIsRecorderMode()) return;
         cdlMenuStep(1, cdlWanted ? -1 : 1);
       } else if (row === 2) {
         const pick = cdlExportChoices()[cdlExportPick];
@@ -229,6 +261,7 @@
     }
 
     function cdlStop() {
+      if (cdlIsRecorderMode()) return;
       cdlWanted = false;
       cdlHalt();
       vscodeApi.postMessage({ command: 'cdlDisabled' });
@@ -294,7 +327,10 @@
       const toggle = document.getElementById('cdl-toggle');
       if (!toggle || toggle.getAttribute('data-bound')) return;
       toggle.setAttribute('data-bound', '1');
-      toggle.addEventListener('click', () => { if (cdlWanted) cdlStop(); else cdlStart(); });
+      toggle.addEventListener('click', () => {
+        if (cdlIsRecorderMode()) return;
+        if (cdlWanted) cdlStop(); else cdlStart();
+      });
       document.getElementById('cdl-flush').addEventListener('click', () => {
         const sent = cdlDrain();
         vscodeApi.postMessage({ command: 'cdlPause' });
@@ -337,7 +373,7 @@
     function handleCdlMessage(data) {
       if (data.command === 'cdlConfig') {
         initCdlTab();
-        if (data.autoEnable || cdlWanted) cdlStart();
+        if (cdlIsRecorderMode() || data.autoEnable || cdlWanted) cdlStart();
         else { cdlRefreshUi(); if (emuPanelVisible('cdl')) cdlRequestSnapshot(); }
       } else if (data.command === 'cdlSeed') {
         cdlOnSeed(data);

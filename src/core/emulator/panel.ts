@@ -45,13 +45,17 @@ function configureEmulator(options?: Partial<EmuOptions> | null) {
   setRomDescriber(emu.options.game ? emu.options.game.describeRom : null);
 }
 
+/** Options when opening the emulator panel. */
+interface OpenEmulatorOptions { profile?: 'full' | 'recorder'; title?: string; }
+
 /**
  * Open (or reveal) the emulator panel.
  * @param {object} context   VS Code extension context.
  * @param {object} [rom]     Optional { dataUrl, name } to auto-load.
  * @param {object} [channel] Optional OutputChannel for build log.
+ * @param {object} [options] Optional { profile, title } for this session.
  */
-function openEmulatorPanel(context: vscode.ExtensionContext, rom?: RomToOpen | null, channel?: vscode.OutputChannel) {
+function openEmulatorPanel(context: vscode.ExtensionContext, rom?: RomToOpen | null, channel?: vscode.OutputChannel, options?: OpenEmulatorOptions) {
     emu.context = context;
     if (rom) {
       emu.pending = rom;
@@ -85,6 +89,9 @@ function openEmulatorPanel(context: vscode.ExtensionContext, rom?: RomToOpen | n
         return;
     }
 
+    emu.sessionProfile = options?.profile || emu.options.profile;
+    emu.sessionTitle = options?.title || (options?.profile === 'recorder' ? 'SNES CDL Recorder' : emu.options.title);
+
     const core    = resolveCore(emu.extensionPath);
     if (core.warning) {
       _log(core.warning, true);
@@ -96,7 +103,7 @@ function openEmulatorPanel(context: vscode.ExtensionContext, rom?: RomToOpen | n
 
     emu.panel = vscode.window.createWebviewPanel(
         'everscriptEmulator',
-        emu.options.title,
+        emu.sessionTitle || emu.options.title,
         vscode.ViewColumn.Beside,
         {
             enableScripts:          true,
@@ -108,13 +115,17 @@ function openEmulatorPanel(context: vscode.ExtensionContext, rom?: RomToOpen | n
         },
     );
 
+    const isRecorder = emu.sessionProfile === 'recorder' || emu.options.profile === 'recorder';
     emu.cdl = new CdlHost(
       context.globalStorageUri ? context.globalStorageUri.fsPath : path.join(context.extensionPath, '.storage'),
       (m: object) => { if (emu.panel) emu.panel.webview.postMessage(m); },
       _log,
       {
         tools: emu.options.cdlTools,
-        wanted: { get: () => !!_state(CDL_WANTED_KEY, emu.options.profile === 'recorder'), set: (on: boolean) => _saveState(CDL_WANTED_KEY, !!on) },
+        wanted: {
+          get: () => (isRecorder ? true : !!_state(CDL_WANTED_KEY, false)),
+          set: (on: boolean) => { if (!isRecorder) _saveState(CDL_WANTED_KEY, !!on); },
+        },
       },
     );
     emu.tas = new TasHost(
@@ -144,6 +155,8 @@ function openEmulatorPanel(context: vscode.ExtensionContext, rom?: RomToOpen | n
       emu.currentRomName = '';
       emu.activeDraft = null;
       emu.reopenTried = false;
+      emu.sessionProfile = null;
+      emu.sessionTitle = null;
       if (emu.options.game) emu.options.game.clearCaches();
     }, null, context.subscriptions);
 }
@@ -225,3 +238,4 @@ function getLogHistory() {
 }
 
 export { configureEmulator, flushRecording, reloadRecording, recordingFolders, openEmulatorPanel, _sendRomFile as sendRomFile, injectEverscript, getScriptDebugBridge, runRomFile, getCurrentRom, readMemory, getStatus, apuStream, getLogHistory };
+export type { OpenEmulatorOptions };

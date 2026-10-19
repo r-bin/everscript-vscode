@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.314.4",
+  "version": "0.315.0",
   "publisher": "rbin",
   "main": "./bundle/extension.js",
   "engines": {
@@ -29,7 +29,8 @@
     "onCommand:everscript.toggleSoeMarkdown",
     "onMcpCollection:everscript-soe",
     "onCommand:everscript.switchRom",
-    "onCommand:everscript.addRom"
+    "onCommand:everscript.addRom",
+    "onCommand:everscript.cdlRecorder"
   ],
   "categories": [
     "Programming Languages",
@@ -55,7 +56,6 @@
     "check:dup": "jscpd -c .jscpd.json --silent",
     "check:knowledge": "npm run -s build:ts && node tools/check-knowledge.mts",
     "check:ai-context": "node tools/check-ai-context.mts",
-    "build:recorder": "npm run build:ts && node tools/recorder/build.js",
     "build:ts": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.build.json && node tools/bundle-pages.mts",
     "build:bundle": "npm run build:ts && node tools/bundle.mts",
     "check:collision": "node tools/measure-collision.js",
@@ -296,6 +296,11 @@
       {
         "command": "everscript.addRom",
         "title": "Add ROM…",
+        "category": "Everscript"
+      },
+      {
+        "command": "everscript.cdlRecorder",
+        "title": "CDL Recorder",
         "category": "Everscript"
       }
     ],

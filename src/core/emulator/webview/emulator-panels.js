@@ -283,6 +283,12 @@ function emuApplyPanels(saved) {
       for (const n of on.slice(1)) p[n] = 'hidden';
     }
   }
+  if (typeof emuProfile !== 'undefined' && emuProfile === 'recorder') {
+    p.cdl = 'left';
+    for (const n of EMU_PANELS) {
+      if (n !== 'cdl' && p[n] === 'left') p[n] = 'hidden';
+    }
+  }
   emuPanelPlace = p;
   emuPanelsLayout();
 }

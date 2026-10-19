@@ -191,8 +191,18 @@ function activate(context) {
 
     // ── Emulator Panel ───────────────────────────────────────────────────────
     const { openEmulatorPanel } = require('../../../dist/core/emulator/panel');
+    const exportBundle = () => {
+        const tool = { name: 'everscript', version: context.extension ? context.extension.packageJSON.version : '' };
+        return require('../../../dist/core/emulator/bundle-commands').exportRecordingBundle(context, tool).catch(err =>
+            vscode.window.showErrorMessage('Export failed: ' + (err && err.message ? err.message : err)));
+    };
     // The full profile: every tab, and the CDL tab's exports and lookups.
-    require('../../../dist/core/emulator/panel').configureEmulator({ profile: 'full', cdlTools: require('../../../dist/games/evermore/cdl/tools'), game: require('../../../dist/games/evermore/emulator/host') });
+    require('../../../dist/core/emulator/panel').configureEmulator({
+        profile: 'full',
+        cdlTools: require('../../../dist/games/evermore/cdl/tools'),
+        game: require('../../../dist/games/evermore/emulator/host'),
+        onExportBundle: exportBundle,
+    });
     // The emulator's sound chip, frame by frame, to the radar's Music tab.
     require('../../../dist/core/emulator/panel').apuStream.setListener(f => {
         if (radar.panel) radar.panel.webview.postMessage({ command: 'musicFrame', view: f.view, pkg: f.pkg, starts: f.starts, drv: f.drv, src: f.src, frame: f.frame, paused: !!f.paused });
@@ -212,6 +222,9 @@ function activate(context) {
     context.subscriptions.push(
         vscode.commands.registerCommand('everscript.openEmulator', () => {
             openEmulatorPanel(context);
+        }),
+        vscode.commands.registerCommand('everscript.cdlRecorder', () => {
+            openEmulatorPanel(context, null, null, { profile: 'recorder', title: 'SNES CDL Recorder' });
         }),
         // A SNES CDL Recorder's zip (CDL library + replays) merged into this install's.
         vscode.commands.registerCommand('everscript.importRecordingBundle', () =>

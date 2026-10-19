@@ -37,9 +37,7 @@ Inside a game, every folder is one of two kinds:
 `src/extension.js` is the composition root: the ROM library, the one list of games, the game
 views and MCP. Each game's `src/games/<game>/extension.js` registers that game's commands and
 injects cross-feature capabilities (e.g. the emulator's `readMemory` into Evermore's `resources`).
-They own no logic (Evermore's radar state is `radar-panel.js`). `src/recorder/extension.ts` is the second one, for the second extension
-built from this repo (SNES CDL Recorder): it may use only the emulator, and its package holds
-only what it requires.
+They own no logic (Evermore's radar state is `radar-panel.js`).
 
 ---
 

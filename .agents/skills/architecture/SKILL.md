@@ -57,7 +57,7 @@ toggles) stays in the webview. Caches live with their owner and expose a `clear(
 - `dist/` twins: a TS file moves its compiled output (`dist/<same path>`); JS requires it from there;
   a TS file requiring JS needs the path from `dist/` (`src/games/evermore/script-model/names.ts`);
 - `package.json` (grammar, theme, snippets, `main`), `.vscodeignore`, `knip.json`, `tsconfig.json`
-  excludes, `tools/recorder/package-files.js`, shell scripts with relative paths;
+  excludes, shell scripts with relative paths;
 - `.depcruise.js` lookaheads (`'^src/(?!foo/)'`) and alternations — a plain rename skips them;
 - tests that read or patch source text (`smoke`, `ui`, `scaling-rom`, `emulator-health`);
 - `path.join(ROOT|_extensionPath, 'src', ...)` (only `__dirname` joins are easy to find); users' saved

@@ -29,10 +29,10 @@ Embedded snes9x2005 WASM emulator panel integrated into VS Code.
 
 ## Profiles and games
 
-Two extensions open this panel. `src/extension.js` configures the **full** profile (every tab,
-the CDL exports and lookups through `cdl/tools.ts`); `src/recorder/extension.ts` the
-**recorder** profile (SNES CDL Recorder: CDL in the left side bar and recording, REPLAYS in the
-pause menu, the last ROM reopens, "export bundle" in the CDL tab). The profile reaches the page as data (`#emu-config`).
+The panel supports two launch modes. `everscript.openEmulator` opens the **full** profile (every tab,
+the CDL exports and lookups through `cdl/tools.ts`); `everscript.cdlRecorder` ("CDL Recorder") opens the
+**recorder** profile (focused recording view: CDL pre-selected in the left side bar and recording locked ON,
+REPLAYS in the pause menu, "export bundle" in the CDL tab). The profile reaches the page as data (`#emu-config`).
 
 Per ROM, `emuGateRom` (`webview/emulator-profile.js`, at every boot) decides whether the ROM is
 the game's (`emuGameRom`, from the game's `gameDetectRom`; Evermore: Secret of Evermore (U) or built on it, its page file

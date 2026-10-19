@@ -102,45 +102,13 @@ function recordInto(root, rom, hits) {
         assert.strictEqual(CdlLibrary.open(dst, lib.hash, rom.length).romHits[0x10], 12);
     });
 
-    await test('recorder files: complete, nothing outside src/, tools/ and dist/, and every staged file loads', () => {
-        const { recorderFiles, ASSETS } = require('../../tools/recorder/package-files');
-        const { files } = recorderFiles();
-        for (const a of ASSETS) assert.ok(files.includes(a), 'asset listed: ' + a);
-        assert.ok(files.every(f => /^(src|tools|dist)\//.test(f)), 'only src/, tools/ and the dist/ build');
-        assert.ok(!files.some(f => /^src\/(memory|rooms\/webview|debugger|mana|music)\//.test(f)), 'no editor, radar or debugger domains');
-        assert.ok(!files.includes('src/platform/cdl/asar-export.js'), 'no Asar export in the recorder');
-        const missing = files.filter(f => !fs.existsSync(path.join(ROOT, f)) && !/\/core\//.test(f));
-        assert.deepStrictEqual(missing, []);
-
-        const stage = path.join(tmp, 'stage');
-        for (const f of files) {
-            if (!fs.existsSync(path.join(ROOT, f))) continue;
-            fs.mkdirSync(path.dirname(path.join(stage, f)), { recursive: true });
-            fs.copyFileSync(path.join(ROOT, f), path.join(stage, f));
-        }
-        const registered = [];
-        const vscodeMock = {
-            workspace: { getConfiguration: () => ({ get: (k, d) => d }), workspaceFolders: null },
-            window: { createOutputChannel: () => ({ appendLine() {}, show() {} }), showErrorMessage() {}, showInformationMessage() {} },
-            commands: { registerCommand: (id) => { registered.push(id); return { dispose() {} }; }, executeCommand() {} },
-            Uri: { file: p => ({ fsPath: p }) },
-            ViewColumn: { Beside: 2, One: 1 },
-        };
-        const origLoad = Module._load;
-        Module._load = function (req, ...rest) { return req === 'vscode' ? vscodeMock : origLoad.call(this, req, ...rest); };
-        try {
-            for (const f of files) {
-                if (!/^src\/.*\.js$/.test(f) || /\/(core|webview)\//.test(f)) continue;
-                require(path.join(stage, f));
-            }
-            require(path.join(stage, 'dist/recorder/extension.js')).activate({ subscriptions: [], globalState: { get: (k, d) => d, update() {} } });
-        } finally {
-            Module._load = origLoad;
-        }
-        const manifest = require('../../recorder/package.json');
-        const contributed = manifest.contributes.commands.map(c => c.command).sort();
-        assert.deepStrictEqual(registered.slice().sort(), contributed);
-        for (const c of contributed) assert.ok(manifest.activationEvents.includes('onCommand:' + c), c);
+    await test('manifest & registration: everscript.cdlRecorder is contributed and registered', () => {
+        const manifest = require('../../package.json');
+        assert.ok(manifest.activationEvents.includes('onCommand:everscript.cdlRecorder'));
+        const cmd = manifest.contributes.commands.find(c => c.command === 'everscript.cdlRecorder');
+        assert.ok(cmd, 'command found in contributes.commands');
+        assert.strictEqual(cmd.title, 'CDL Recorder');
+        assert.strictEqual(cmd.category, 'Everscript');
     });
 
     await test('buildHtml: the recorder profile is data, marks what it hides, offers the bundle export', () => {
@@ -193,6 +161,8 @@ function recordInto(root, rom, hits) {
             const gated = (p, id) => p.evaluate(i => emuShown(document.getElementById(i)), id);
             assert.strictEqual(await gated(rec.p, 'cdl-export-asm'), false);
             assert.strictEqual(await gated(rec.p, 'cdl-export-bundle'), true);
+            assert.strictEqual(await rec.p.evaluate(() => document.getElementById('cdl-toggle')?.getAttribute('disabled')), 'true');
+            assert.strictEqual(await rec.p.evaluate(() => document.getElementById('cdl-toggle')?.getAttribute('title')), 'Recording cannot be disabled in CDL Recorder mode');
 
             const full = await page('full');
             assert.deepStrictEqual(full.errors, []);

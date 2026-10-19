@@ -42,6 +42,7 @@ interface EmuState {
     currentRomBuffer: Uint8Array | null; currentRomName: string; activeDraft: unknown; extensionPath: string;
     readyTimeout: ReturnType<typeof setTimeout> | null; romTimeout: ReturnType<typeof setTimeout> | null; webviewReady: boolean;
     cdl: CdlHost | null; tas: TasHost | null; options: EmuOptions; reopenTried: boolean;
+    sessionProfile: string | null; sessionTitle: string | null;
 }
 
 /** The panel's state: the panel itself, the ROM it runs, the timers and hosts that live with it. */
@@ -58,6 +59,8 @@ const emu: EmuState = {
     webviewReady: false,
     cdl: null,              // CdlHost: per-ROM code/data log library
     tas: null,              // TasHost: input recordings and replays
+    sessionProfile: null,   // profile override for the current open panel
+    sessionTitle: null,     // title override for the current open panel
     /**
      * What the extension that hosts the panel wants (configureEmulator):
      *   profile        'full' (Everscript) or 'recorder' (SNES CDL Recorder: CDL and REPLAYS only)
@@ -200,7 +203,7 @@ function _resetPanelHtml() {
     const panel = emu.panel;
     const file = (name: string) => panel.webview.asWebviewUri(vscode.Uri.file(path.join(emu.extensionPath, 'src', 'core', 'emulator', 'webview', name))).toString();
     const html = buildHtml(emu.panel.webview, coreJsUri, coreWasmUri, core.label, core.path, romOfferData, {
-      profile: emu.options.profile,
+      profile: emu.sessionProfile || emu.options.profile,
       gameView: emu.options.game && emu.options.game.webview ? emu.options.game.webview() : null,
       styles: [file('emulator-profile.css'), file('emulator-panels.css')],
       // The game's page files first (Evermore: its ROM detector), then the emulator's.
