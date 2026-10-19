@@ -28,7 +28,7 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
   `Machine.layoutErrors` and the instruction runs as opaque — `room.test.js` requires the
   set to stay empty over every room.
 - Do not read the legacy decoder's opcode cases while changing `operand.ts`/`step.ts`;
-  their spec is the sibling compiler's operand table and our docs (`docs/plans/script-decoder-from-game-code.md`).
+  their spec is the sibling compiler's operand table and our docs (`docs/game-research/script-vm/`, clean room as in `docs/cleanup.md` D3).
 - Merging: only paths at the same instruction, frame stack and operand stack merge; a merge
   keeps only conditions both sides assumed alike and lists the rest as `either`.
 - Values stay bounded: memoise anything that walks a `Sym` (merged values are DAGs) and

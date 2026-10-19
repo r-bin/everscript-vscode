@@ -37,7 +37,7 @@ Inside a game, every folder is one of two kinds:
 `src/extension.js` is the composition root: the ROM library, the one list of games, the game
 views and MCP. Each game's `src/games/<game>/extension.js` registers that game's commands and
 injects cross-feature capabilities (e.g. the emulator's `readMemory` into Evermore's `resources`).
-They own no logic; Evermore's still holds radar state (cleanup 5.4). `src/recorder/extension.ts` is the second one, for the second extension
+They own no logic (Evermore's radar state is `radar-panel.js`). `src/recorder/extension.ts` is the second one, for the second extension
 built from this repo (SNES CDL Recorder): it may use only the emulator, and its package holds
 only what it requires.
 
@@ -105,9 +105,9 @@ MCP, tests, AI) is exposed under the game's VFS scheme (`soe://`, `som://`) firs
 - Forbidden: grab-bag `utils.js`/`common.js`, helpers-of-helpers, DI containers, plugin
   registries with discovery or lifecycle.
 - Known canonical homes: SNES addressing and byte reads, CRC-32, PNG, the 65816 opcode matrix,
-  the cartridge header → `src/platform/`; Evermore graphics decode (BGR555, 2/4bpp, sprite
-  blocks) → `games/evermore/maps/`; webview helpers (`escH`, hex format, tab strip, CSP shell,
-  theme) → `src/core/webview/` (cleanup 5.1, 5.3).
+  the cartridge header, hex formatting, SNES graphics formats (4bpp, BGR555: `snes/tiles.ts`) →
+  `src/platform/`; Evermore sprite blocks and records → `games/evermore/maps/`; webview helpers
+  (`escapeHtml`, tab strip, CSP shell, theme) → `src/core/webview/` (`docs/cleanup.md` 5.1).
 
 ### 3.7 Language hierarchy: wasm > ts (default) > js **[target: strict everywhere]**
 - `wasm` for compute-heavy, performance-critical tasks (e.g. emulator core, audio synthesis).
@@ -126,7 +126,7 @@ MCP, tests, AI) is exposed under the game's VFS scheme (`soe://`, `som://`) firs
   our own disassembly, written in our own words, and be checkable by a test against the ROM.
 - Do not copy code, data tables, structure definitions or names from other projects
   (SoETilesViewer, SoEScriptDumper, …) and do not read their source while implementing the
-  same thing. Legacy exceptions are being replaced (`docs/plans/script-decoder-from-game-code.md`).
+  same thing. The ported parts were rebuilt this way (`docs/cleanup.md` D3).
   Names already in the repo stay for now and are rewritten in our own style (`docs/cleanup.md`
   D4); don't add more.
 - No runtime or test path may point into another repository's checkout; the ROM comes only from

@@ -3,7 +3,9 @@
 Language rule (AGENTS.md §0.8): wasm > ts (strict, the default) > js. Every JS file that is left carries
 `// TODO port to TS (docs/todo/port-to-ts.md)` as its first line (after a `#!` line), so
 `grep -rl "TODO port to TS" src tools tests scripts` is the live list. Remove the line when you port the file.
-History and counts: [../cleanup.md](../cleanup.md) 5.5 (host modules), 5.3 (page scripts), 5.1 (page-side copies).
+This file owns what the cleanup left (it concluded at v0.314.2; history: [../cleanup.md](../cleanup.md) 5.1, 5.3, 5.5).
+Done means: no `TODO port to TS` line left, one esbuild bundle per page from real `.ts` (the page scripts stop being
+spliced as text by `page-file.ts`, and knip's `src/**/webview/**` ignore goes), and the short copies below gone.
 
 | Group | Files | Blocked by |
 |---|---|---|
@@ -11,6 +13,15 @@ History and counts: [../cleanup.md](../cleanup.md) 5.5 (host modules), 5.3 (page
 | Page scripts (`src/**/webview/`) | 173 | 5.3: they are spliced into the page as text (`page-file`), not built; they need one esbuild bundle per page from real `.ts` with DOM typings, then the knip webview ignore goes |
 | `tools/`, `scripts/` | 42 | host modules they `require` from `dist/` |
 | `tests/` | 77 | last: they require the ports from `dist/` already |
+
+## Copies that go with the port (from cleanup 5.1)
+Each has one owner already; the page scripts and `tools/` JS still carry their own copy until they are TS:
+- HTML escape → `core/webview/html.ts` `escapeHtml`: `core/roms/webview/rom-panel.js`, `core/map-editor/view/view-chips.js`,
+  `sprites/webview/sprites-script.js`, `sprites/webview/sprites-view/01-state.js`.
+- Hex → `platform/hex.ts`: `rooms/webview/metatile-palette.js` `hex4`, `rooms/webview/utils.js` `hexNum`, `tools/variants/variant-scans.js` `hex`.
+- `& 0x3FFFFF` → `platform/snes/hirom.ts` `hiromFileOffset`: `emulator/webview/overlays/02-render-objects-overlay.js`,
+  `emulator/webview/script-debug.js`, `rom/webview/rom-tab.js`, `tools/table-hack/build.js`, `tools/variants/variant-scans.js`.
+- Tab strip and CSP shell → `core/webview/`.
 
 ## How a module is ported
 

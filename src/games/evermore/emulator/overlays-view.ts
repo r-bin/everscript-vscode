@@ -8,14 +8,13 @@
  * scripts where they always ran (the order of the page's top-level code matters) and calls into them
  * only behind typeof guards (gameRomReset, gameOnRoomMap, renderExtendedMapAndOverlays, ...).
  *
- * The two scripts are real files in webview/ (overlays.js, overlay-toggles.js); the three trigger helpers
- * the page shares with the host are spliced in where overlays.js marks them.
+ * The two scripts are real files in webview/ (overlays/, overlay-toggles.js); the trigger readers they
+ * share with the host come from the EvsRom bundle (page-rom.ts).
  *
  * Invariant: Must remain strictly ASCII-only.
  */
 
 import { pageFile } from './page-file';
-import { parseRoomTriggers, calculateTriggerBox, resolveScriptIdToSnes } from './room-triggers';
 
 function getScreenChipsHtml() {
   return `<button id="screen-extend-toggle" class="screen-chip" data-needs="game" type="button" title="Toggle Extended Map">MAP EXT OFF</button>
@@ -26,10 +25,8 @@ function getScreenChipsHtml() {
         <button id="screen-fog-toggle" class="screen-chip" data-needs="game" type="button" title="Toggle Fog of War outside emulator">FOG OFF</button>`;
 }
 
-const helper = { parseRoomTriggers, calculateTriggerBox, resolveScriptIdToSnes };
-
 function getOverlaysScript() {
-  return pageFile('overlays', Object.fromEntries(Object.entries(helper).map(([name, fn]) => [name, fn.toString()])));
+  return pageFile('overlays');
 }
 
 function getOverlayTogglesScript() {

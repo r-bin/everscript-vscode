@@ -1,14 +1,23 @@
 // Ownership: the room trigger tables as the emulator page reads them (step-on and B triggers of a map,
-// their boxes on the screen, a script id's bus address). Plain functions, spliced into the page with
-// .toString() by overlays-view.ts and required by tests.
+// their boxes on the screen, a script id's bus address), for every release: the map table and the script
+// bank come from the ROM's variant (variants.json). Bundled for the page into EvsRom (page-rom.ts) and
+// required by tests. The ROM may carry a 512-byte copier header.
+
+import { mapTableOffset } from '../maps/rom';
+import { getScriptHeaderOffset } from '../variant-resolver';
+
+/** 512 when the ROM carries a copier header, else 0. */
+function copierHeader(rom: Uint8Array): number {
+    return (rom.length % 1024 === 512) ? 512 : 0;
+}
 
 /** One step-on or B trigger: its box in map tiles and the script it runs. */
 interface RoomTrigger { y1: number; x1: number; y2: number; x2: number; scriptId: number; index: number; kind: 'stepOn' | 'bTrigger' }
 
 function parseRoomTriggers(rom: Uint8Array | null | undefined, mapId: unknown): { offX: number; offY: number; stepOn: RoomTrigger[]; bTrigger: RoomTrigger[] } | null {
     if (!rom || typeof mapId !== 'number' || mapId < 0 || mapId > 0x90) return null;
-    const headerOffset = (rom.length % 1024 === 512) ? 512 : 0;
-    const mapTableRom = headerOffset + 0x1ffde7;
+    const headerOffset = copierHeader(rom);
+    const mapTableRom = headerOffset + mapTableOffset(rom);
     const ptrAddr = mapTableRom + mapId * 4;
     if (ptrAddr + 3 >= rom.length) return null;
     const dataSnes = rom[ptrAddr] | (rom[ptrAddr + 1] << 8) | (rom[ptrAddr + 2] << 16);
@@ -82,19 +91,22 @@ function calculateTriggerBox(trigger: Pick<RoomTrigger, 'x1' | 'y1' | 'x2' | 'y2
     };
 }
 
+/** A trigger's script id (a byte offset into the script table) as a bus address. The table and the packed
+ * pointers are relative to the script bank's header: $92:8000 in the US layout, $93:8000 in PAL. */
 function resolveScriptIdToSnes(rom: Uint8Array | null | undefined, scriptId: unknown): number {
-    if (scriptId === 477) return 0x92A42F;
+    const headerFile = rom ? getScriptHeaderOffset(rom) : 0x128000; // no ROM: the US layout, as everywhere
+    if (scriptId === 477 && headerFile === 0x128000) return 0x92A42F; // a bare END (US)
     if (!rom || typeof scriptId !== 'number') return 0;
-    const headerOffset = (rom.length % 1024 === 512) ? 512 : 0;
-    const startRom = 0x128000 + headerOffset;
+    const headerOffset = copierHeader(rom);
+    const startRom = headerFile + headerOffset;
     if (startRom + 2 > rom.length) return 0;
     const tableOffset = rom[startRom] | (rom[startRom + 1] << 8);
     const mapscriptTableRom = startRom + tableOffset;
     const ptr = mapscriptTableRom + scriptId;
     if (ptr + 2 >= rom.length) return 0;
     const packed = rom[ptr] | (rom[ptr + 1] << 8) | (rom[ptr + 2] << 16);
-    if (!packed) return 0;
-    return (0x928000 + (packed & 0x007fff) + ((packed & 0xff8000) << 1)) >>> 0;
+    if (!packed || packed === 0xFFFFFF) return 0;
+    return (((headerFile | 0x800000) >>> 0) + (packed & 0x007fff) + ((packed & 0xff8000) << 1)) >>> 0;
 }
 
 export type { RoomTrigger };

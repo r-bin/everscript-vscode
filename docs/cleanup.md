@@ -1,63 +1,47 @@
 # Repo cleanup
 
-Decided 2026-10-16 in a design interview with the owner. This file is the plan and the backlog;
-the game-neutral target architecture it works towards is [architecture/multi-game.md](architecture/multi-game.md).
-It replaces the v0.199.0 audit `docs/architecture-state.md` (read it with
-`git show daeb17a:docs/architecture-state.md`); the findings still worth acting on are carried
-over below, each marked "re-measure" because the tree has moved since.
-
-Work happens in this repo (no fresh repo), one work item per session, in the order of §3. Tick
-an item only when its check passes.
-
-**State (2026-10-19, v0.314.1).** Steps 1–4, 6 and 7 are done; in step 5, 5.2, 5.4, 5.6 and 5.7 are
-done, and 5.1, 5.3 and 5.5 are open (each lists what is left; the TS list is
-[todo/port-to-ts.md](todo/port-to-ts.md)). All seven checks pass and block: `check:legal` (1,755 files, baseline
-empty), `check:ai-context` (0, allow list empty), `check:dup` (0 clones), `check:deps` (919 modules),
-`check:circular`, `check:dead` (files clean; 157 unused-export *warnings*, mostly exports used only in their own
-file, which compiled CommonJS writes as `exports.x`), `check:knowledge` (no new gaps). `npm test`: 36 files,
-9.6 s, green. How far each §1 goal has got:
-
-| Goal | Where it stands |
-|---|---|
-| Licences, nothing ported | met |
-| Dead code, lean tools | files met; unused exports are a warning, not counted |
-| Duplication | 30+ line clones met; short copies left in 5.1, including one real bug (the room table, below) |
-| TypeScript | 222 host modules strict TS; left: 9 host modules, 173 page scripts (5.3), 42 in `tools/` + `scripts/`, 77 tests |
-| Addresses documented | 40.4 % of code addresses (316 left, baseline 368), 220/420 CDL routines (52.4 %), 5.9 % of touched WRAM bytes. The baseline only shrinks; the `re-curator` agent works it down |
-| Docs, AI context, multi-game | met (what multi-game.md §7 leaves open is listed there) |
+Decided 2026-10-16 in a design interview with the owner; **concluded 2026-10-19 at v0.314.2.** This file is the
+record: the decisions (§2), which are still the rules, and what each work item ended as (§3). The step-by-step logs
+are in git: `git log -- docs/cleanup.md`, and the full plan as it last stood is `git show 3b4437f:docs/cleanup.md`.
+The game-neutral architecture it built is [architecture/multi-game.md](architecture/multi-game.md). The work that is
+left is ordinary backlog in [todo/](todo/README.md): the JS still to port and the per-page webview bundles
+([todo/port-to-ts.md](todo/port-to-ts.md), which owns 5.1, 5.3 and 5.5 now), the address backlog (§1) and the
+variant consumers ([todo/variant-vfs-and-consumers.md](todo/variant-vfs-and-consumers.md)).
 
 ---
 
-## 1. Goals and the check that proves each
+## 1. Goals and how they ended
 
-| Goal | Done when |
-|---|---|
-| No licence violations in the tree | `npm run check:legal` passes on `git ls-files` (§3 step 1) |
-| Nothing ported from SoETilesViewer / SoEScriptDumper | No file in `src/`, `tools/`, `tests/`, `docs/` declares itself a port, reads upstream output or points into an upstream checkout (`check:legal`); names are the one exception (D3) |
-| No dead code, lean tools | `npm run check:dead` (knip, no blanket ignores) is clean; every file in `tools/` is reached by an npm script, a skill or a doc workflow |
-| No code duplication | `npm run check:dup` (jscpd): no clone ≥ 30 lines, ≤ 5 % per domain |
-| TypeScript wherever it makes sense | Every `.js` outside the exceptions in D9 is `.ts`; `strict` on |
-| Every address and name documented | `npm run check:knowledge`: 100 % of CDL-recorded routines and of WRAM addresses the code uses have a knowledge entry with a name (D11) |
-| Docs current, no stale docs | Every domain has a true `README.md` + `AGENTS.md`; no doc points at a missing path; finished plans and dossiers deleted |
-| Skills for everything we need, AI context slim | `npm run check:ai-context` passes (D10) |
-| Any game, not just Evermore | `src/` is `platform/` + `core/` + `games/<game>/` with the dependency rules of multi-game.md §2 enforced by `check:deps` |
+Every check below passes and blocks in the release ritual (measured at v0.314.2).
+
+| Goal | Check | End state |
+|---|---|---|
+| No licence violations in the tree | `check:legal` on `git ls-files` | met: 0 findings, baseline empty |
+| Nothing ported from SoETilesViewer / SoEScriptDumper | `check:legal` (no file declares a port, reads upstream output or points into a checkout) | met; names are the one exception (D3, D4) |
+| No dead code, lean tools | `check:dead` (knip), `check:circular` | met for files; unused exports are reported as warnings (157, mostly exports used only in their own file, which compiled CommonJS writes as `exports.x`) |
+| No code duplication | `check:dup` (jscpd, 30+ lines) | met: 0 clones; shorter page-side copies go with the page bundles (5.1) |
+| TypeScript wherever it makes sense | every `.js` outside D9's exceptions carries `// TODO port to TS` | 222 host modules strict TS; left: 9 host modules, 173 page scripts, 42 in `tools/` + `scripts/`, 77 tests → [todo/port-to-ts.md](todo/port-to-ts.md) |
+| Every address and name documented | `check:knowledge` (new gaps block; the baseline only shrinks) | 40.7 % of code addresses (from 12.4 %; 315 left), 220/420 CDL routines (from 11), 5.9 % of touched WRAM bytes; the `re-curator` agent works the backlog |
+| Docs current, no stale docs | `check:ai-context` link check; D13 | met |
+| Skills for everything, AI context slim | `check:ai-context` (D10) | met: allow list empty |
+| Any game, not just Evermore | `check:deps` (multi-game.md §2) | met: `platform/` + `core/` + `games/<game>/` + `recorder/` |
 
 ---
 
 ## 2. Decisions
 
-- **D1 — This file is the plan.** One work item per finding, each with its check.
+- **D1 — This file was the plan.** One work item per finding, each with its check; now the record.
 - **D2 — Git history is kept for now.** The repo is on GitHub (`r-bin/everscript-vscode`).
   Commits that added problem content are listed in §4 as a known future problem; no history
   rewrite is part of this cleanup.
 - **D3 — The re-do (clean room).** Everything ported from SoETilesViewer / SoEScriptDumper is
   re-implemented from the game: the script decoder, `sprites.ts`, the character record readers.
-  Procedure and phases: [plans/script-decoder-from-game-code.md](plans/script-decoder-from-game-code.md).
   1. Write what the part does as a black-box spec in our own words (inputs, outputs, users).
   2. Delete the ported code and data.
   3. Rebuild from game evidence (ROM, CDL, headless runs, `soe://`) against that spec, with tests.
   A rebuilt part is checked against the game only — never against the old ported output.
-  Whoever rebuilds a part has not read the upstream source.
+  Whoever rebuilds a part has not read the upstream source, nor the old ported code it replaces (comparing
+  test *outputs*, such as lengths and stop points, is allowed); goldens hold observed facts, never ROM bytes.
 - **D4 — Names.** Labels only (room, enemy, item, flag names); groupings and layouts are
   structure and are re-derived.
   - Room names stay for now but are **rewritten in our own style**:
@@ -106,284 +90,80 @@ file, which compiled CommonJS writes as `exports.x`), `check:knowledge` (no new 
 
 ---
 
-## 3. Order of work
+## 3. What each work item ended as
 
 ### Step 1 — Legal check and the rules agents read
-- [x] **1.1** `tools/check-legal.mts` + `npm run check:legal` (tree; `--staged`; `--history` writes
-  [legal-history.md](legal-history.md); `--baseline` rewrites `tools/check-legal.baseline.json`, the
-  known findings that later steps remove — it only shrinks). Fails on: ROM/save/patch/audio/image extensions and magic bytes; `data:`
-  URIs or 200+-char base64 runs; 64+ consecutive numeric literals or 8+ hex-dump lines; ROM file
-  names or home-directory paths; mentions of SoETilesViewer / SoEScriptDumper / `data.h` /
-  `list-rooms.cpp` / `characterdata.h` outside this file, the plan and `AGENTS.md`. Run in the
-  release ritual on staged files.
-- [x] **1.2** One rule on names in `AGENTS.md`, `AI_ARCHITECTURE_GUIDE.md` §3.8 and the plan (D4).
-- [x] **1.3** `docs/release-checklist.md` (called the upstream tool MIT; stale) deleted.
-  `LICENSE`/README: MIT covers our code only; the snes9x2005 core and the SPC engine are
-  non-commercial and keep their `copyright`/`NOTICE` files. README §License: no `file://` links into a home directory
-  links.
-- [x] **1.4** `.vscodeignore` and `.gitignore`: ROM/save/patch/audio globs, `docs/**`, `wiki/**`,
-  `.agents/**`, `tools/**`, `.emscripten_cache/**` (re-measure the VSIX; at v0.199 it was 37 MB,
-  ~30 MB of it the emscripten cache; now 614 files, 7.6 MB).
-- [x] **1.5** Trim the short ROM byte excerpts in `docs/map-format/map_decompression_trace_analysis.md`
-  and `docs/render-script-93.md`.
+- [x] **1.1** `tools/check-legal.mts`, `npm run check:legal` (tree; `--staged` in the release ritual; `--history` writes
+  [legal-history.md](legal-history.md); `--baseline`, which only shrinks and is empty). Fails on ROM/save/patch/audio/image
+  files and magic bytes, `data:` URIs and long base64, number runs and hex dumps, ROM file names and home paths, and
+  mentions of the upstream projects outside the policy files.
+- [x] **1.2** One rule on names (D4) in `AGENTS.md` and `AI_ARCHITECTURE_GUIDE.md` §3.8.
+- [x] **1.3** MIT covers our code only; the snes9x2005 core and the SPC engine keep their own licence files.
+- [x] **1.4** `.vscodeignore` / `.gitignore` keep ROMs, saves, docs, tools and caches out of the package and the tree.
+- [x] **1.5** ROM byte excerpts trimmed from the docs.
 
-### Step 2 — The re-do (D3, D4)
-Scope, from the inventory of 2026-10-16:
+### Step 2 — The re-do (D3, D4), done v0.280.0–v0.285.0
+- [x] **2.1** Sprites and character records rebuilt from the game's renderer, loaders and spawn code (`maps/sprites.ts`,
+  `maps/character-record.ts`, knowledge `rom/8eb678.md` and what it links).
+- [x] **2.2** The script VM (`src/games/evermore/script-vm/`, spec in `docs/game-research/script-vm/`) from the
+  interpreter at `$8C:D0A6`, checked against goldens the running game produced; printed in the compiler's notation.
+- [x] **2.3** Room names in our style with evidence per part (`localizations/data/rooms.json`).
+- [x] **2.4** Every ported file, test and data set deleted; `check:legal` clean with an empty baseline.
 
-| Part | Files | Rebuilt as |
-|---|---|---|
-| Script decoder | `src/games/evermore/script/{addressing,decoder,expression,loot,ops-entity,ops-flow,ops-memory,ops-system,index}.ts` (~1.7 k lines) | `src/games/evermore/script-vm/` from the interpreter at `$8C:D0A6`, printing compiler spelling (D4) |
-| Sprites | `src/games/evermore/maps/sprites.ts` | from the routines that walk the sprite pools |
-| Character record | `src/games/evermore/maps/character-record.ts`, `src/games/evermore/sprites/character-model.js` | from the game's own reads of the records |
-| Names | `src/games/evermore/script/names.json`, `names.ts`, `src/games/evermore/localizations/{maps,scripts}.js`, `src/games/evermore/localizations/data/scripts.json` | kept (D4); room names rewritten in our style; `tools/generate-script-names.js` deleted (it reads an upstream checkout) |
-| Upstream-output tests | `tests/memory/script-parity.test.js`, `script-loot.test.js`, the upstream parts of `script-units.test.js`, `map-parity.test.js:365,372` | goldens from the running game (plan phase 2) |
-| Upstream-output data | `script_parser/generated/**` (incl. the 2.3 MB `opcode-corpus.json` with raw ROM bytes + dumper text), `script_parser/tests/generated/**`, `sandbox/{,opcodes/}corpus`, `sandbox/{,opcodes/}boundaries` | deleted |
-| Upstream paths | `src/games/evermore/maps/render-script-model.js:8`, `script_parser/src/scripts-all-model.ts:56` | `soe://` (D5) |
-| Attribution in docs/comments | `src/README.md:17`, `src/games/evermore/script/README.md`, `src/games/evermore/maps/README.md:82`, `src/games/evermore/sprites/README.md:7`, `src/games/evermore/sprites/animation-decoder.js:113`, `src/games/evermore/docs-tab/render-docs-tab.js:136` (user-visible), the "OBJ n" comments in `rom-overlay.js:35`, `overlay-features.ts:48`, `collision-overlay.ts:185`, `docs/script-format/*`, `docs/room-simulation.md:107`, `.agents/agents/script-parser-generator.md:128` | rewritten with the code they describe |
+### Step 3 — Dead code and tools (D7), done
+- [x] **3.1–3.3** Superseded, one-off, broken and unreferenced tools deleted (`script_parser/`, the sandboxes, the Python).
+- [x] **3.4** Loose design notes moved to `docs/plans/` and `docs/todo/`.
+- [x] **3.5** Dead handlers, pages, the Route mock tab and `everscript.patchesPath` removed.
+- [x] **3.6** knip and madge blocking, without blanket ignores (the `webview/**` ignore goes with the page bundles).
+- [x] **3.7** `npm run package` uses `vsce` from `PATH`.
 
-- [x] **2.1** Sprites + character record (plan part B). v0.283.0: `maps/sprites.ts`, `maps/character-record.ts` and
-  `sprites/character-model.js` rewritten from the game's code: the sprite renderer `$80:9033` (record, 5-byte chunks,
-  culling box), the block loaders `$80:9742` / `$80:A4FC` (tables, banks, mask-per-group compression) and the NMI
-  upload (tile order); the spawn `$8F:B094`, the animation choice `$90:8240`-`$90:8317` and start `$90:8124`, the
-  palette loader `$90:CF3A`, the overlap test `$8F:B4AB`, the weapon and Dog form loaders `$8F:81C9` / `$8F:9471`
-  (knowledge `rom/8eb678.md` and the entries it links). The sprite list is now what the animation scripts name
-  (4,903 that draw), not a walk of the banks; block pixels agree with the old reader on all 8,000 checked, chunks on
-  every shared sprite. Colours now use the full 8-bit range like the map palettes. Left: the emulator webview's own
-  copy of the sprite readers (`overlays-view.js`, 5.1/5.3).
-- [x] **2.2** Script VM phases 1–5 of the plan, with the compiler-spelled output. v0.280.0: phases 1–3 —
-  `docs/game-research/script-vm/` (the interpreter, packed pointers, expressions, the tables that name
-  scripts, one row per opcode; a knowledge entry per handler), `src/games/evermore/script-vm/` (strict TS,
-  from that spec), `tools/script-vm/record-goldens.js` → `tests/script-vm/goldens.json` (2,130
-  instructions the game ran in the intro and 32 recorded sessions, addresses only). A walk from every
-  table reaches 64,839 instructions, none the game cannot run, all 2,130 among them; sizes agree with the
-  legacy decoder on every one (compared once, not kept as a test). v0.281.0: `facts.ts` (writes, flags, calls, map
-  changes, sound, music, text, spawns, sleeps) and `print.ts` (one line per instruction in the compiler's notation,
-  `code(...)` with it as a comment for the exact form); 25 more opcodes named from their handlers; every handler's
-  knowledge entry lists the addresses it uses, and `soe://rom/assets/scripts/opcodes/` serves one page per opcode.
-  v0.282.0: the consumers moved (2.4); phases done.
-- [x] **2.3** Room names in the new style, each with evidence. v0.285.0: `localizations/data/rooms.json` (written by
-  `tools/rooms/write-room-names.js`): `region › place › part` with a path id and each part's source. The region
-  comes from the Dog form the room's enter script requests (`$2443`, knowledge `ram/7e2443.md`; 76 rooms, all
-  agreeing with the old areas), else the old area; the place is the game's own text where it names one (string
-  ids), else our wording. Doors alone cannot place the rest: the game reuses some maps in two acts.
-- [x] **2.4** Delete every row's old files; `check:legal` clean. v0.284.0: clean, baseline empty — the policy
-  statements name "the third-party tools the root `AGENTS.md` names", home paths are relative or generic, the
-  Rooms tab finds the ROM through the ROM library, `instruction_set.md` / `operand_grammar.md` gave way to
-  `docs/game-research/script-vm/`, the kept names say so (D4). v0.282.0, the script decoder row: `script-model/`
-  (room listings in the compiler's notation, loot and doors read per path, spawns, arrivals, the kept names) on
-  script-vm; every consumer moved (Rooms tab, `soe://` scripts, sound sources, palettes, export checks, trace, the
-  simulation through `simulation/decoder.ts`, tools); `src/games/evermore/script/` and the upstream-output tests
-  (`script-parity`, `script-loot`, `script-units`) deleted. Loot differs from the legacy reading where it was wrong
-  (Ebon Keep's branched pickups, `$98:CCCC`) and finds 42 more pickups. Left: the other rows (sprites, character
-  record, attribution in docs and comments, `map-parity.test.js` upstream parts), `docs/script-format/*` — all done by v0.284.0.
+### Step 4 — Multi-game restructure (D5, D6), done v0.271.0–v0.303.0
+- [x] ROM library and resolver, game descriptors, layer rules in `check:deps`, the derived-ROM marker, ROM panel and status
+  bar; `$SOE_ROM` / `romPath` gone. Status and what it leaves open on purpose: multi-game.md §7. Two variants side by side
+  is a feature in [todo/variant-vfs-and-consumers.md](todo/variant-vfs-and-consumers.md).
 
-### Step 3 — Dead code and tools (D7)
-Inventory of 2026-10-16. Move the ROM out of `script_parser/dependencies/` first: 7 tests,
-`src/games/evermore/rom-readers.js:15`, `src/games/evermore/emulator/script-trace.js:29` and
-`tools/gen-sound-animations.js` look for it there — they go through the resolver (D5) instead.
+### Step 5 — Duplication, big files, TypeScript
+- [x] **5.1 Short copies, one owner each.** `platform/snes/hirom.ts` (bus→file, read16/24; every `& 0x3FFFFF` in TS host
+  code), `platform/crc32.ts`, `platform/png.ts`, `platform/hex.ts`, `platform/snes/tiles.ts` (4bpp, BGR555),
+  `platform/snes/opcodes-65816.ts`, `core/webview/html.ts` (`escapeHtml`); the emulator page uses the host's sprite,
+  character-record and room-trigger readers through the `EvsRom` bundle. v0.314.2: the room table had five readers of
+  its own that took the US offset `0x1FFDE7` for every ROM, so on the five PAL builds the emulator's trigger boxes,
+  its address lookup, the room header, the CDL regions and the ROM tab read no room at all; they now go through
+  `maps/rom.ts` `mapTableOffset` / `roomBlobOffset`, and script ids through the ROM's own script bank
+  (`$93:8000` on PAL). Handed to [todo/port-to-ts.md](todo/port-to-ts.md): the copies left in page scripts and `tools/`
+  JS (HTML escape, hex, the bus mask), which go with their port.
+- [x] **5.2** `check:dup` blocking; the one 30+ line clone (alchemy math ×3) is one file.
+- [x] **5.3 One build.** One TS build (`tsconfig.build.json` → `dist/`), the esbuild host bundle (`bundle/extension.js`, the
+  `main`), a package of ~480 files instead of 785, and no page code in template literals: every page script, style
+  sheet and HTML part is a real file (`page-file.ts`), and page code the host shares is a TS module bundled per page
+  (`tools/bundle-pages.mts`). Handed to [todo/port-to-ts.md](todo/port-to-ts.md): one esbuild bundle per page from
+  real `.ts`, which ends the `readFileSync` splicing and the knip webview ignore.
+- [x] **5.4** No file in `src/` or `tools/` over 400 lines, CSS included (v0.302.0).
+- [x] **5.5 TypeScript (D9).** `@types/vscode`, `strict` for every TS file; 222 host modules ported (v0.303.0–v0.313.0),
+  the types found 10 real bugs on the way. Every JS file left is marked; the list, the order and the way to port is
+  [todo/port-to-ts.md](todo/port-to-ts.md).
+- [x] **5.6 WASM scouting (D12).** Measured v0.277.0 (Node 26, Apple M4): room decoding (127 rooms, 42 ms), rendering
+  (~8 ms a room), Mana maps, CDL analysis and the asar export are all fast enough in JS; the one slow path was the
+  script simulation, and that was algorithmic. No WASM needed now.
+- [x] **5.7** The simulation's hot spots fixed (all-pairs longest-path table, memoized merges, shared path state):
+  all rooms 308 → 201 s, byte-identical output; fewer paths is the next lever
+  ([todo/research-and-visualizations.md](todo/research-and-visualizations.md) §3).
 
-- [x] **3.1 Delete, superseded:** `script_parser/` (tracked files; its untracked `dependencies/` and
-  `tests/` stay on disk for you to delete — nothing reads them now), `sandbox/opcodes`,
-  `sandbox/corpus`, `sandbox/boundaries` (broken: import the missing `tests/parity/failure-types`),
-  `tools/snes9x_wram.py`, `tools/pack_snes_core.py`, `tools/generate_data.py`,
-  `tools/dump_proto_spc.py`, `tools/check-encode.js` + npm `check:encode`.
-- [x] **3.2 Delete, one-off or broken:** `tools/_extract_webview.py`, `tools/_patch_extension.py`,
-  `tools/extract_modules.py`, `tools/slice_montage.py`, `tools/run_slicer.py`,
-  `tools/process_maps.sh`, `tools/render-script-dump-93.js` (imports the missing
-  `memory_radar/`), `tools/call-graph-galaxy/`, `sandbox/room-data/`.
-- [x] **3.3 Delete, unreferenced:** tracked `tools/__pycache__/*.pyc`, `.gemini/` (duplicates
-  `.mcp.json`; Gemini users keep their own). Untracked leftovers to delete by hand (git cannot
-  restore them, so agents leave them): `experimental/`, `.storage/`, `dependencies/` (Finder
-  aliases), `.github/`, `last_run_report.json`, `tools/__pycache__/`, `tools/call-graph-galaxy/`.
-- [x] **3.4 Move:** `call-log/design.md` → `docs/plans/call-log.md`, `simulation/*.md` →
-  `docs/plans/simulation/`, `todo.md` → `docs/todo/scratch.md`.
-- [x] **3.5 Dead code:** emulator handlers with no sender (`wramDelta`, `getRomOfferInfo`),
-  unreferenced `src/core/emulator/webview/index.html`, the Route mock tab (`src/routes/`, its HTML, CSS
-  and logic in `docs-tab.js`; the plan stays in `docs/route-planner.md`), setting
-  `everscript.patchesPath`. Checked and kept: the vanilla core is the default bundled core.
-- [x] **3.6** knip: one `src/**/webview/**` ignore instead of nine folders, stale entries gone, clean.
-  The webview ignore goes with esbuild (5.3), because those files are spliced as strings and knip
-  cannot follow them. `check:circular` covers `.ts` (`.madgerc`, type-only imports skipped); the one
-  cycle (`maps/animation → render → room`) was type-only. Both checks are now blocking.
-- [x] **3.7** `npm run package`: `vsce` from `PATH` (`build:script` already ran via `build:simulation`).
+### Step 6 — Docs and knowledge (D8, D11, D13), done
+- [x] **6.1** `check:knowledge`, wired into the release ritual (new gaps block; `tools/check-knowledge.baseline.json` only shrinks).
+- [x] **6.2** `functions.js`, `tables.js` and the RAM side of `tags.json` are knowledge entries; the RAM/ROM map is
+  generated from them (`soe://localization/knowledge/`).
+- [x] **6.3** Entries name the Asar export's labels and the recomp's C functions (`tools/recomp/names.js`).
+- [x] **6.4** Stale docs, finished plans and dossiers deleted (v0.255.0, v0.263.0; the script-decoder plan in v0.314.2,
+  its rules are D3).
+- [x] **6.5** README per domain and for `tools/`, `tests/`; no file name with a space; every relative Markdown link checked.
+- [x] **6.6** Test tiers (`tests/tiers.json`, `tools/test.mts`): `npm test` ~7–10 s; `rom`, `dom`, `emulator`, `all` on demand.
 
-### Step 4 — Multi-game restructure (D5, D6)
-Done (v0.271.0, closed v0.303.0): [architecture/multi-game.md](architecture/multi-game.md) §7 "Status" — ROM library,
-game descriptors, layer rules, the derived-ROM marker, and the domains moved (`src/` is `platform/`, `core/`, `games/<game>/`,
-`recorder/` and the composition root). Two variants side by side is a feature, now in `docs/todo/variant-vfs-and-consumers.md`.
-Follow [architecture/multi-game.md](architecture/multi-game.md) §7. In short: resolver + ROM
-library + game descriptor; move domains into `platform/`, `core/`, `games/evermore/`,
-`games/mana/`; ROM panel and status bar; depcruise rules; `$SOE_ROM`/`romPath` gone. Each domain
-converts to TS as it moves (D9).
-
-### Step 5 — Duplication, big files, TypeScript (re-measure all)
-What is duplicated between Evermore and Mana is what becomes `core/`.
-
-- [ ] **5.1 Short copies below the jscpd threshold** (found at v0.199: bus→file ~11, read16/24 ~20, BGR555 / 4bpp,
-  the emulator page's sprite readers, alchemy math ×3, HTML escape ×6, hex formatters ×23, tab strip, CSP shell,
-  65816 opcode table ×2, crc32, room-table pointer `0x1ffde7` ×3; the script decoder's `addressing.ts` went with
-  step 2). Each one gets one owner.
-  Done: v0.234.0 `platform/snes/hirom.ts` (bus→file, read16/24), `platform/crc32.ts` (6 → 1), `platform/png.ts`
-  (2 → 1), `platform/snes/opcodes-65816.ts` (the one matrix), ROM history identifies through the ROM library;
-  `platform/snes/tiles.ts` (`tile4bpp`, `bgr555`); alchemy math → one file (5.2); v0.292.0–v0.293.0 the emulator page
-  loads the host's sprite and character-record readers as the `EvsRom` bundle (same pixels on all 4,903 sprites,
-  same values for all 142 records); v0.294.0 `platform/hex.ts` (28 copies); v0.296.0 + v0.314.0 every
-  `& 0x3FFFFF` in TS host code is `hiromFileOffset`; v0.297.0 the host's HTML escapes → `core/webview/html.ts`.
-  Left (re-measured v0.314.1):
-  - **The room table: a bug, not only a copy.** Three host readers hard-code the US offset `0x1ffde7`:
-    `emulator/address-lookup.ts` `_getRoomTriggers`, `emulator/room-triggers.ts` `parseRoomTriggers` (the emulator's
-    trigger boxes) and `rom-readers.ts` `readRomMapHeaderFrom` (the room header). `cdl/regions.ts` and
-    `rom/model/catalog.ts` use the US constant `MAP_LIST_ADDR`. The owner already exists: `maps/rom.ts`
-    `mapTableOffset(rom)` / `roomBlobOffset(rom, id)` (US `0x1FFDE7`, PAL `0x20FDE5`). On the five PAL builds these
-    readers read the wrong bytes. Tracked: [todo/variant-vfs-and-consumers.md](todo/variant-vfs-and-consumers.md) §2.1.
-  - Page scripts, waiting on 5.3: HTML escape (`core/roms/webview/rom-panel.js`, `view-chips.js`,
-    `sprites-script.js`, `sprites-view/01-state.js`), hex (`rooms/webview/metatile-palette.js` `hex4`, `utils.js` `hexNum`), `& 0x3FFFFF`
-    (`overlays/02-render-objects-overlay.js`, `script-debug.js`, `rom-tab.js`); tab strip, CSP shell → `core/webview`.
-  - `tools/` JS, going with their port: `variants/variant-scans.js` (`hex`, the mask), `table-hack/build.js` (the mask).
-    The table hack's own `0x1FFDE7` is correct by design: it builds from the US base ROM.
-- [x] **5.2** `npm run check:dup` (jscpd, `.jscpd.json`: clones of 30+ lines in `src/` and `tools/`), blocking.
-  The only such clone was the alchemy math (×3): one copy now, `src/games/evermore/scaling/webview/alchemy-math.js`,
-  loaded by the radar page and required by the tests. The short helpers of 5.1 are below its threshold.
-- [ ] **5.3 esbuild:** (v0.266.0: the game's part of the emulator page comes in through `game.webview()`; the
-  bottom bar (ENTITIES / ALCHEMY / PALETTES, cheats) moved to `games/evermore/emulator/`, so the recorder no longer
-  ships it; v0.267.0: pause-menu tabs 1-4 → `games/evermore/emulator/menu-tabs.js` (menu-view.js 2479 → 1581
-  lines); v0.268.0: the screen layer (extended map, overlays, entity sprites, inspector, the per-frame RAM sample,
-  overlay toggles and chips) → `games/evermore/emulator/overlays-view.js`, the trigger helpers → `room-triggers.js`
-  (`panel-webview.js` 5342 → 2867 lines); v0.269.0: the script VM (STACK, TRACE, the script debugger's page side,
-  who sent each sound) → `stack-view.js`, `script-debug-view.js`, `sound-source-view.js` (`panel-webview.js` → 2101); VIEW's room line → `gameLensInfo()`. v0.270.0: the Evermore detector (`rom-game.js`) → a game page file
-  (`webviewFiles()`), the music package byte → `gameMusicPackage`, the camera entity → `gameCameraWorld`, the
-  launcher names no game; the emulator holds no Evermore facts (the gate's name `emuEvermore` / `data-needs="evermore"`
-  stays until v0.276.0: `emuGameRom` / `data-needs="game"`, the detector hook `gameDetectRom`, the ALCHEMY icons through `game.romData()` → `gameRomData`). v0.271.0: `src/emulator` → `src/core/emulator` (cores and submodules too). v0.272.0: esbuild
-  host bundle (`tools/bundle.mts` → `bundle/extension.js`, the `main`; 361 modules; `__dirname` rewritten per
-  module, `tests/memory/bundle.test.js` activates it). v0.274.0: the package leaves out the 243 JS files the bundle holds
-  (`bundle/.vscodeignore`; `tests/memory/package-files.test.js` records the files every page and table reads from
-  disk and fails if one is left out): 785 → ~540 files. v0.275.0: no repo tooling, configs, submodule folders or folder READMEs ship (the test holds the package root to an allowlist): 480 files. v0.287.0: Evermore's part of the emulator page is no longer code in template literals: the 12 scripts, 2 style sheets and 2 HTML parts of `overlays-view.js`, `stack-view.js`, `script-debug-view.js`, `sound-source-view.js`, `bottom-bar-views.js` and `menu-tabs.js` are real files in `games/evermore/emulator/webview/` (read by `page-file.js`; the page text is byte-identical); `games/evermore/emulator/*.js` 6.8 k → 1.8 k lines. v0.288.0: the same for the core emulator page (`tas-view`, `cdl-view`, `cdl-float`, `cdl-strips`, `fps-meter`, `memory-bridge-view`, `apu-stream-view`, `menu/menu-sound`, `menu/menu-view`: 20 scripts and style sheets in `core/emulator/webview/`, through `core/webview/page-file.js`; `menu-view.js` 1572 → 241 lines). v0.289.0: the page itself (`panel-webview.js` 2097 → 78 lines) is `webview/page.html` + `page.css` + `page.js`, the parts put in at `//@@name` marks; the built page is byte-identical. No emulator page code is in a template literal now (the menu, bottom bar and tab HTML parts are small strings). v0.290.0: the long page scripts are folders of parts at statement boundaries (`overlays/`, `bottom-bar/`, `menu-tabs/`, `stack/`, `page/`, `menu/`, `tas/`: `01-…js`, `02-…js`; `pageFile('overlays')` joins them, byte-identical). v0.291.0: `core/emulator/panel.js` 862 → 683 (`emulator-log.js`: channels, crash report, histories; `core-path.js`: which core loads; the message handler of `openEmulatorPanel`, 330 lines in one closure, is what is left). v0.295.0: the TS over 400 split by what they own: `maps/animation-vm.ts` 494 → 406 + `animation-table.ts` (the record and id tables; `character-record.ts`'s copy of `recordScript` gone), `maps/vanilla-index.ts` 420 → 314 + `vanilla-queries.ts`, `maps/animation.ts` 420 → 159 + `animation-groups.ts`, `simulation/state.ts` 410 → 333 + `state-types.ts`. v0.298.0: `maps/render-script-model.js` (404, the maps folder's one file reader) → TS `render-trace.ts` + `render-trace-93.ts`, pure, same output on the trace. v0.299.0: `resources/audio-files.js` 540 → 227 (the paths) + `audio-songs.js` 324 (one song: records, SPC, page); all 586 audio nodes byte-identical. v0.300.0: the rest of the host JS over 400 lines, split by what each part owns (same output checked per file: `soe://` trees, room maps, the analyzer's output, the Terra page): `games/evermore/extension.js` 764 → 281 (the radar's state object `radar` + helpers → `radar-panel.js`, the `openMemoryRadar` handler → `radar-open.js`), `core/emulator/panel.js` 683 → 224 (state object `emu` + helpers → `panel-state.js`, the page's messages → `panel-messages.js`), `emulator/host.js` 542 → 79 (`room-meta.js`, `room-map.js`), `rooms/editor-host.js` 484 → 195 (`editor-host-rom.js`, `editor-host-suggest.js`), `rooms/rendering/room-draft.js` 477 → 380 (`graphic-traits.js`), `resources/rom-assets.js` 462 → 224 (`map-files.js`), `terra/maps/page.js` 573 → 34 (`webview/page.html` + `page.css` + `page.js`), `tools/variants/analyze-variant.js` 538 → 206 (`variant-scans.js`). No host JS over 400 lines now. v0.301.0: the page side too: `sprites/webview/sprites-view.js` 1409 → `sprites-view/01-state.js` … `05-raw-sprites.js` (the IIFE's body as parts; the radar's loader wraps them, same script), the two chunked parts over 400 cut once more (`page/03b-render-loop.js`, `bottom-bar/01b-cheats.js`), the stranded-cell model → `map-editor-stranded.js`, the lock list → `map-editor-actions.js`, `maps/animation-vm.ts` 406 → 339 (its result types → `animation-vm-types.ts`). No JS or TS file in `src/` or `tools/` is over 400 lines; v0.302.0: the CSS too, cut at its section headers in cascade order: `shared.css` 575 → 305 + `shared-map-editor.css` + `shared-tabs.css` (the radar and the Mana page load all three), `sprites-layout.css` 809 → 354 + `sprites-stage.css` + `sprites-views.css`, the emulator's `page.css` and `menu.css` → folders of parts `page-style/`, `menu-style/` (joined by `pageFile`, byte-identical). No file in `src/` or `tools/` is over 400 lines. Next: the webview bundles (one bundle per page from real `.ts`). First part done in v0.231.0: one TypeScript build, `tsconfig.build.json` →
-  `dist/` mirroring `src/`, `npm run build:ts`; the five per-domain builds are gone) one host bundle and one bundle per webview from real `.ts`/`.css`/`.html`;
-  no code in template literals (~9.5 k lines at v0.199: `emulator/panel-webview.js`,
-  `menu/menu-view.js`, `bottom-bar-views.js`, the emulator `*-view.js` files) and no
-  `readFileSync` concatenation of ~70 webview files.
-- [x] **5.4 Split files > 400 lines** (done v0.302.0: no file in `src/` or `tools/` over 400 lines, CSS included; the steps are in 5.3's log above) (v0.249.0: `src/extension.js` 1791 → the 25-line composition root +
-  `games/evermore/extension.js` 1250; the map editor's and Characters tab's messages → `rooms/editor-host.js`,
-  `sprites/radar-host.js`, unit-tested in `tests/memory/radar-hosts.test.js`; v0.250.0: scope analysis → `memory/scope-analysis.js`, Build and Run → `language/build-and-run.js`,
-  Export Room Maps → `rooms/export-maps.js`: `games/evermore/extension.js` 1250 → 776) (19 at v0.199; largest `emulator/panel-webview.js` 4115,
-  `menu-view.js` 1925, `extension.js` 1627, `bottom-bar-views.js` 1422, `sprites-view.js` 1409,
-  `emulator/panel.js` 1130). The split lines are in the old audit §7.
-- [ ] **5.5 TS everywhere (D9)** with `@types/vscode` and `strict`; typed host↔webview message
-  unions per panel. Measured at v0.199: 4 360 strict errors over the JS. v0.303.0 (re-measured: 6 925 strict errors in
-  263 of 407 `src/` JS files, 3 935 of them untyped parameters): `@types/vscode` 1.85.0 (the engine's) in both tsconfigs; the five
-  JS facades over `dist/` are gone (`maps`, `script-model`, `script-vm`, `simulation`, `mana/decoder`: JS requires
-  `dist/…` directly, as for every other TS module); 35 host modules ported to strict TS. The way: bottom-up (the build
-  has no `allowJs`, so a module moves once everything it requires is TS, JSON, a Node built-in or `vscode`); its JS
-  users, tests and tools require it from `dist/`; types written out (TS's "infer from usage" fix writes structural
-  junk like `{ getHours(): number … }` for a `Date`, so it is not used; "types from JSDoc" is). A module that reads
-  files beside it (`__dirname`) needs the source folder, not `dist/`. v0.304.0: 26 more
-  (61 in all); `platform/source-dir.ts` `sourceDir(__dirname)` maps a compiled module's folder back to `src/` (also in the
-  bundle, where `__dirname` is the `dist/` folder); the Asar export's `build.sh` / `build-cdl.js` are real files
-  (`platform/cdl/asar-kit/`, copied as they are; the string version had `__dirname` in it, which the bundle rewrote to a
-  helper the exported script does not have); `build:ts` empties `dist/` first (3 stale modules had outlived their source);
-  `check:dead` runs knip on `dist/` too (it could not follow `dist/` requires back to `.ts`, so TS was never checked; the
-  114 unused-export warnings it now lists are mostly in-file uses, which compiled CommonJS writes as `exports.x`); the
-  Mana depcruise rules allow `platform/`. Types found one bug: the emulator's loot markers never had their trigger's
-  index (`trig.index` did not exist; now each has its table's kind and index). v0.305.0: 20 more (81 in all): the ROM
-  tab's model (`Claim`, the region callback, typed once in `rom/model/util.ts`), the CDL disassembler, known regions
-  and value streams, the language providers, the script and sound names, the trace formatter, the room map, the
-  script debugger's host half. v0.306.0: 18 more (99 in all): the som:// provider, the Music host, the emulator log, the
-  MCP protocol, the ROM history, the CDL stream extension, the Evermore CDL regions, the room parser, the object previews, the
-  animation catalog, ROM readers, hover and tag/localization pages. Types found a bug: the MCP handler looked a method up in
-  a plain object, so a request for `toString` reached `Object.prototype` (now own methods only). v0.307.0: 24 more (123 in all): the CDL library (`CdlLibrary`), xref index, bus report and recomp analysis, TAS movies, the MCP server, the room scripts and file scanner, the Rooms tile overlay, the Memory tab renderer, the Sprites character model, thumbnails and target, the opcode and localization pages, map animation GIFs and the address lookup. Types found five real bugs: Build and Run threw a `ReferenceError` (it used `roms` and `roomTree`, which the v0.250.0 extraction left behind; both are now injected), the knowledge pages of `soe://localization/` threw (`hex6` was removed in v0.294.0 with its uses left), the tables and functions pages printed `undefined` as the address, the Scripts tab's door list (`to`) read fields a transition does not have and was always empty, and the address lookup read `known-scripts.json` beside `dist/` where it is not (now imported). v0.308.0: 18 more (141 in all): the CDL tools (bundles, tables, structs, functions, WRAM export, recomp seeds), the CDL and TAS hosts of the emulator, the source map and memory access of the debugger, the animation decoder, the tag generator, the Mana converter, the script pages and the ROM layout. v0.309.0: 12 more (153 in all): the CDL enums, lookup and table assets, the ROM tab's build, the tag model, character pages, map layers, vanilla room data, the Mana rooms and the debugger's script frames. v0.310.0: 11 more (164 in all): the ROM tab's host, the Sprites radar host, the tag, tile and sound-source pages, the RAM symbol list, the deco catalogue and vanilla index of the Rooms tab, the Asar export and the debugger's emulator session. The session now answers only the DAP commands it lists (a request named `respond` or `event` used to reach the helper methods). Left: 73 host JS modules (21 ready to port now, the rest wait on those), the page scripts (5.3), `tools/` (41), `tests/` (77). v0.311.0: 8 more (172 in all): the ROM tab entry, the CDL tools, the stamp animations, the RAM files, the debug adapter, the deco preview, the ROM export and the room drafts. Every JS file left starts with `// TODO port to TS (docs/todo/port-to-ts.md)`; that file lists them and says how to port them. v0.312.0: 35 more (207 in all): the emulator panel (`panel`, `panel-state`, `panel-messages`, `panel-webview`, the page-file readers and the CDL, TAS, menu, fps, APU and memory-bridge page parts), the recorder's entry (`dist/recorder/extension.js` is now its `main`) and bundle commands, the Evermore emulator host and its page parts, the radar's page builder, the Docs tab renderer, the room metatile palette, draft and ROM export, the custom-map host and archive, the map and object file pages and the Terranigma Maps panel. Types found two bugs: the `widgets/` pages of a room listed none (they compared against a room id that the decoded room does not carry; it is passed in now) and `front` / `back` on a widget read a field only the Rooms index builds (`isFront` / `isBack` compute it). Modules that read files beside them use `sourceDir(__dirname)` because they run from `dist/`. Left: 21 host modules (all wait on `frame.js`, `music-view.js`, `music-engine.js` or `spc-engine.js`, which are page code the host also `require`s: they port with 5.3), 175 page scripts, `tools/` (42), `tests/` (77). v0.313.0: 15 more (222 in all): the soe:// file system (`fs-provider`, `rom-files`, `rom-assets`, `bus-files`, `audio-files`, `audio-songs`, `custom-map-files`), the Rooms tab's rail renderer, `rooms/index` and the editor host (`editor-host*`), and the first page code that is also host code: `core/map-editor/shell/frame.ts`, `music-view.ts` and `music-engine.ts` are real TypeScript modules now, bundled for the page into `dist/webview/` by `tools/bundle-pages.mts` (the page's global names are set from their exports; `frame-dock.js` keeps the DOM half of the frame). Types found a bug: the Export ROM log printed `Metatiles: undefined` (the report field is `metatiles`). Left: 9 host modules (all portable now), 173 page scripts, `tools/` (42), `tests/` (77).
-- [x] **5.6 WASM scouting (D12):** profile and list candidates with numbers — room decompression
-  and encoding (`maps/lzss.ts`, `chr.ts`), the collision/special solver, CDL library analysis and
-  xrefs, the script VM if it runs simulations at scale. Output: a table in this file, no code.
-  Measured v0.277.0 (2026-10-18), Node 26, Apple M4, the user's US ROMs, `node --cpu-prof`:
-
-  | Work | Time | Where the time goes | Verdict |
-  |---|---|---|---|
-  | Evermore `decodeRoom`, 127 rooms (LZSS, Markov, CHR) | 42 ms | spread | no |
-  | `decompressTile16x16` ×4096 | 6 ms | — | no |
-  | `modelFromRom` + `buildBlob`, all rooms; `lzssCompress` 16 KB | 3 ms; 2–3 ms | — | no |
-  | Evermore `renderRoomComposite`, all rooms (100 Mpx per layer) | 1.03 s (~8 ms a room) | `compositeLayers` 47 %, `renderVramLayer` 37 % (2.2 ns/px) | no: 32-bit pixel writes alone 2.2 → 1.6 ns/px, same bytes |
-  | Mana `renderMap`, 408 maps (304 Mpx) | 4.7 s (median 6 ms, max 72 ms) | `pick` / `rgb` allocate 2 objects + 2 arrays per pixel (15 ns/px) | no: JS without per-pixel allocation |
-  | Mana `loadMap` ×512, `mapCatalog` | 53 ms, 25 ms | — | no |
-  | CDL: open the library, `buildIndex`, the whole asar export | 91 ms, 57 ms, 0.73 s | string building, spread | no |
-  | Script simulation `sim.room()`, 127 rooms | 278 s (0x25: 5 s, 0x5a: 48 s) | see below | **no, algorithm** |
-
-  The simulation is the only slow path, and both hot spots are algorithmic. `Clock.longest`
-  (`simulation/time.ts`) runs Bellman–Ford over string-keyed edges, splitting `"a>b"` for every edge on every pass,
-  and `project` calls it for every pair of points (80 % of room 0x25). Swapping in a cached
-  all-pairs table (Floyd–Warshall, reset on `add`) gives identical `room()` output for 0x0a, 0x25, 0x35 and 0x5a and
-  takes 0x25 from 5.0 s to 0.52 s. The slow rooms then spend 55 % in `mergeGroup`'s `shared` (`turn.ts`):
-  each merge looks at every pair of paths for the longest shared history (cubic in the group size)
-  and recurses when a pair will not rejoin; a trie of the shared step arrays finds the pair directly.
-  WASM would buy a constant factor on top of these; nothing here needs it. Follow-ups: 5.7.
-- [x] **5.7 The simulation's hot spots (from 5.6):** (closed v0.303.0: what is left is an algorithm, not a hot spot — fewer paths — now `docs/todo/research-and-visualizations.md` §3) v0.278.0: `Clock` answers from one all-pairs
-  longest-path table, built on the first question after a change and shared by clones (a positive cycle
-  falls back to the bounded search; `tests/simulation/sim-units.test.js` checks it against one search per
-  question on random graphs); `mergeGroup` keeps each path's best partner and memoizes shared lengths
-  instead of trying every pair on every merge (group sizes up to 737 in room 0x5a). `room()` output is
-  byte-identical for all 127 rooms (sha1 of the JSON, before and after); all rooms 308 → 221 s, 0x25 5.0 →
-  0.5 s, 0x5a 44 → 20 s, 0x35 31 → 12 s. v0.279.0: `PathState.clone` spent 83 % of its time copying
-  `conds` and `known` (0x5a, timed per field): `conds` (rendering → condition, grow-only) is now one map for
-  a path and its clones, `known` is shared until a clone writes; still byte-identical, all rooms → 201 s,
-  0x5a → 16 s. Left: no single hot spot; the slowest rooms (0x48 20 s, 0x0a 20 s) spend ~30 % in GC and the
-  rest across stepping, the scheduler and symbolic keys (`sym.ts` `memo` / `key`) over many paths: fewer
-  paths (earlier merging) is what would move them, not faster code.
-
-### Step 6 — Docs and knowledge (D8, D11, D13)
-- [x] **6.1** `tools/check-knowledge.mts` + `npm run check:knowledge` (2026-10-16: 580 addresses in code,
-  12.4 % documented; CDL: 11/420 called routines, 4.7 % of touched WRAM bytes; the 508 known gaps are
-  in `tools/check-knowledge.baseline.json`, which only shrinks): scan `src/`, `tools/`, docs
-  for `$7E…`/`$7F…` and `$XX:XXXX` addresses and the CDL library for routines; report the ones
-  without an entry and the coverage %. Wire into the release ritual (new uncovered = block).
-- [x] **6.2** (v0.262.0: 130 entries generated from `functions.js` / `tables.js` / the table sizes, which are now views of
-  the entries (`localizations/knowledge.js`); the boy/dog stats blocks and record fields from `tags.json` are entries;
-  the radar's temp/session bounds are `compiler-region` entries; `soe://localization/knowledge/{ram,rom}/index.md`
-  is the generated RAM/ROM map; the ROM tab's wiki overlay is gone; knowledge coverage 12.4 % → 27.7 % of code
-  addresses, CDL routines 11 → 49) Migrate `functions.js`, `tables.js` and the RAM side of `tags.json` into knowledge
-  entries; generate the RAM/ROM map overviews from the entries; drop the runtime wiki overlay
-  (`rom/model/wiki-overlay.js`) and the RAM bounds hard-coded in `extension.js`.
-- [x] **6.3** Names and comments for recomp: entries feed the Asar export labels and the recomp's
-  C names (`tools/recomp/names.js`, since v0.262.0; v0.286.0: `tests/debugger/cdl-recomp.test.js` holds every
-  name a valid, unique identifier).
-- [x] **6.4** (v0.263.0: revert notes, the emulator integration logs and plans (`emulator-integration`, `web-emulator-plan`,
-  `snes9x_integration`, `embedded-emulator-panel-concept`), finished dossiers (`room-script-parser`,
-  `rooms-settings-cleanup-dossier`), `compiler-bundling`, `future-features` (its open ideas → `docs/todo/`), the
-  `sprite-rendering` stub, `ingredient-icons` (its facts → `item-icons.md`) and the two pre-build map editor design
-  docs deleted; `docs/features/` was never tracked. The docs layout mirroring the code (`docs/games/<game>/`) moves
-  to 5.x with the rest of the moves. v0.255.0: `STATE_FLOW.md` → its map-editor rows in `games/evermore/rooms/webview/STATE.md`, the rest
-  deleted; `docs/architecture/{domain-overview,migration-plan,target-architecture,dependency-rules}.md` and
-  `docs/emulator-status-and-roadmap.md` deleted) Delete or merge stale docs: `STATE_FLOW.md`, `docs/architecture/{domain-overview,
-  migration-plan,target-architecture}.md`, `docs/roadmap-and-vision.md` (empty),
-  `emulator-status-and-roadmap.md`, `future-features.md`, revert notes, `docs/features/`,
-  finished dossiers. Docs layout mirrors the code: `docs/platform/`, `docs/games/<game>/`,
-  `docs/plans/`, `docs/todo/`.
-- [x] **6.5** (v0.261.0: READMEs for `platform/`, `core/`, `games/`, `games/evermore/`, `games/mana/`, `tools/`, `tests/`; AGENTS.md
-  for `games/evermore/` and `games/mana/`; no file name with a space; `check:ai-context` checks every relative link
-  in every tracked Markdown file, 26 broken ones fixed; `tools/generate-script-names.js` (read SoEScriptDumper's
-  `data.h`) deleted, its names frozen per D4) README per domain and for `tools/`, `tests/`; file names without spaces; no doc
-  links a missing path (add a link check to `check:ai-context`).
-- [x] **6.6** (v0.260.0: `tests/tiers.json` + `tools/test.mts`; `npm test` = grammar + unit in ~7 s, was ~4 min with
-  core builds; `test:rom` / `test:dom` / `test:emulator` / `test:all`; four forgotten tests back in a tier;
-  the two slowest unit tests 24.6 s → 1.8 s and 4.9 s → 1.9 s by fixing the code they test) Tests tiered (`unit` / `rom` / `dom` / `emulator` / `slow`), `npm test` < 10 s without
-  Emscripten, ROM tests skip when the library has no base ROM (old audit §17).
-
-### Step 7 — AI files last (D10)
-- [x] **7.1** `tools/check-ai-context.mts` + `npm run check:ai-context` (limits of D10, broken links; the 42
-  known overruns are in `tools/check-ai-context.allow.json`, which step 7 empties).
-- [x] **7.2** (v0.254.0–v0.255.0: 85 lines; guide §2 rewritten) Root `AGENTS.md` to ≤ 150 lines; `AI_ARCHITECTURE_GUIDE.md` updated to the
-  `platform/core/games` kinds; no rule in two places.
-- [x] **7.3 Skills:** (v0.251.0: the five architecture skills are one, `architecture`; v0.252.0: `map-format` absorbs `rom-map-data`,
-  `memory-map` replaces `snes-memory-mapping` + `wram-memory-mapping`, `grammar-rules` absorbs `colour-theme`,
-  `animation-script` absorbs `sprites-subsystem`; v0.257.0: new `games-and-roms` skill for adding a game, the
-  ROM library and identification; v0.258.0: `map-editor-rules` 444 → 194 (detail in `docs/map-format/map-editor-reference.md`),
-  `memory-radar` split off `rooms-tab`, `webview-dom-safety` 257 → 195; `check:ai-context` allow list empty) merge the five architecture skills (`compress-architecture`,
-  `isolate-subsystem`, `split-orchestration`, `stabilize-state-flow`, `code-quality`) into one;
-  `map-format` + `rom-map-data`; `wram-memory-mapping` + `snes-memory-mapping`; `grammar-rules` +
-  `colour-theme`; `animation-script` + `sprites-subsystem`. Split `map-editor-rules` (444 lines),
-  `memory-radar` (282), `webview-dom-safety` (257), `rom-map-data` (242). New skills for what has
-  none: the game descriptor / adding a game, the ROM library and resolver.
-- [x] **7.4 Personas:** (v0.251.0: `architecture-compressor` dropped; v0.259.0: `everscript-plugin-builder` 335 → 43
-  lines, `mechanics-modeler` 260 → 43, pointing at the guide and skills instead of restating them) drop `architecture-compressor` (covered by the merged skill); trim the rest.
-  (`script-parser-generator` is gone with its package.)
+### Step 7 — AI files (D10), done
+- [x] **7.1** `check:ai-context` (limits of D10, broken links); allow list empty.
+- [x] **7.2** Root `AGENTS.md` ≤ 150 lines, the guide on the `platform/core/games` kinds.
+- [x] **7.3** Skills merged and split to their limits; new `games-and-roms`.
+- [x] **7.4** Personas trimmed to pointers.
 
 ---
 

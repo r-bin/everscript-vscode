@@ -148,7 +148,7 @@ does too (registered in `src/games/terra/`, European base ROM title `TERRANIGMA 
   selection. v0.265.0: every panel, file system and command says the same thing when its game has no ROM
   (`missingRomText(game)` in `platform/roms/library.ts`: "No Secret of Mana ROM in the ROM library. Add your own
   with Everscript: Switch ROM."); the old `everscript.romPath` / workspace-root hints are gone. A panel for a
-  capability its game lacks only exists in the emulator (ENTITIES, ALCHEMY), which moves with cleanup 5.3.
+  capability its game lacks only exists in the emulator (ENTITIES, ALCHEMY), which is Evermore's part of the emulator page (v0.266.0).
   `openManaMaps` is merged (v0.236.0): Open Memory Radar opens the Mana Maps panel when the selected ROM is
   a Mana ROM, and opens Terranigma Maps (v0.240.0) when a Terranigma ROM is selected.
 - Built in part, 3: one TypeScript build (`tsconfig.build.json`, `dist/` mirrors `src/`, v0.231.0); Secret of

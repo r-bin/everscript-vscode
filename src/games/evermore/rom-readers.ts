@@ -5,6 +5,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { romPath } from '..';
+import { mapTableOffset, roomBlobOffset } from './maps/rom';
 
 /** A room header and its trigger tables, as the Rooms tab shows them (null fields: the data ran out). */
 interface RomMapHeader {
@@ -140,12 +141,9 @@ function readRomMapHeader(wsRoot: unknown, mapId: number, romPathOverride = ''):
 function readRomMapHeaderFrom(romBuf: Uint8Array | null, mapId: number): RomMapHeader | null {
     if (!romBuf || mapId == null) return null;
     try {
-        // Map pointer table at SNES 0x9ffde7 = ROM 0x1ffde7 (HiROM no header)
-        const mapTableRom = 0x1ffde7;
-        const ptrAddr = mapTableRom + mapId * 4;
-        if (ptrAddr + 3 >= romBuf.length) return null;
-        const dataSnes = romBuf[ptrAddr] | (romBuf[ptrAddr + 1] << 8) | (romBuf[ptrAddr + 2] << 16);
-        const dataRom  = ((dataSnes >> 16) & 0x3f) * 0x10000 + (dataSnes & 0xffff);
+        // The map pointer table: $9F:FDE7 (US) or $A0:FDE5 (PAL), resolved per variant (maps/rom.ts).
+        if (mapTableOffset(romBuf) + mapId * 4 + 3 >= romBuf.length) return null;
+        const dataRom = roomBlobOffset(romBuf, mapId);
         if (dataRom + 20 >= romBuf.length) return null;
         const h   = (off: number): number => romBuf[dataRom + off];
         const h16 = (off: number): number => romBuf[dataRom + off] | (romBuf[dataRom + off + 1] << 8);

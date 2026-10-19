@@ -51,6 +51,10 @@ Because the European localizations required larger string tables (~3,085 keys vs
 2. **`room_enter_scripts`** and **`script_pointers`** shifted from bank `$92` to bank `$93`:
    - `room_enter_scripts`: `$93:801B` (`0x13801B`)
    - `script_pointers`: `$93:8294` (`0x138294`), header at `$93:8000` (word offset `0x0294`)
+   - The packed 3-byte pointers keep the US form, relative to the new header: bus = `$93:8000` + (`v & $7FFF`) +
+     ((`v & $FF8000`) << 1). Evidence (v0.314.2, all five PAL builds): every step-on and B trigger's script id (2,252)
+     resolves to a ROM address, and 1,231 of the first 1,917 ids land on the same 6 opening bytes as in the US ROM.
+     The US bare END for id 477 (`$92:A42F`) has no PAL counterpart recorded yet.
 3. **`script_opcode_table`** shifted by `0x401` bytes from `$8C:E8BD` to `$8C:ECBE` (`0x0CECBE`). Reader at `$CC:D493` (`jsr ($ECBE,x)`).
 4. **`map_table`** shifted by 2 bytes from `$9F:FDE7` to `$A0:FDE5` (`0x20FDE5`), crossing into bank `$A0`. Reader at `$D0:8F6E`.
 5. **`map_palettes`** shifted by 1 byte from `$9C:C322` to `$9D:C323` (`0x1DC323`), crossing into bank `$9D`. Reader at `$90:D073` / `$90:D083` (`adc #$C323`, `lda #$9D`).

@@ -43,15 +43,9 @@
 
     function decodeTriggerScriptPreview(rom, scriptId) {
       if (!rom || typeof scriptId !== 'number') return ['(ROM not loaded)'];
+      const scriptSnes = resolveScriptIdToSnes(rom, scriptId);
+      if (!scriptSnes) return ['(No script pointer for this id)'];
       const headerOffset = (rom.length % 1024 === 512) ? 512 : 0;
-      const scriptsStartRom = headerOffset + 0x128000;
-      if (scriptsStartRom + 2 >= rom.length) return ['(Invalid script table)'];
-      const tableOffset = rom[scriptsStartRom] | (rom[scriptsStartRom + 1] << 8);
-      const tableRom = scriptsStartRom + tableOffset;
-      if (tableRom + scriptId + 2 >= rom.length) return ['(Script ID out of range)'];
-      const rawPtr = rom[tableRom + scriptId] | (rom[tableRom + scriptId + 1] << 8) | (rom[tableRom + scriptId + 2] << 16);
-      if (rawPtr === 0 || rawPtr === 0xFFFFFF) return ['(Empty script pointer)'];
-      const scriptSnes = (0x928000 + (rawPtr & 0x7FFF) + ((rawPtr & 0xFF8000) << 1)) >>> 0;
       const scriptRom = headerOffset + (((scriptSnes >> 16) & 0x3F) * 0x10000 + (scriptSnes & 0xFFFF));
       if (scriptRom >= rom.length) return ['(Script address out of range)'];
 

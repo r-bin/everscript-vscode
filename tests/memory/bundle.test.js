@@ -35,14 +35,6 @@ test('the bundle activates and registers every command (activation test)', () =>
     assert.strictEqual(r.status, 0, (r.stdout || '') + (r.stderr || ''));
 });
 
-test('functions spliced with .toString() keep their names', () => {
-    const text = fs.readFileSync(BUNDLE, 'utf8');
-    for (const name of ['parseRoomTriggers', 'calculateTriggerBox', 'resolveScriptIdToSnes']) {
-        assert.ok(text.includes(`function ${name}(`), `${name} is renamed in the bundle`);
-        assert.ok(!new RegExp(`function ${name}\\d+\\(`).test(text), `${name} has a renamed twin`);
-    }
-});
-
 test('__dirname points at each module\'s own folder', () => {
     const text = fs.readFileSync(BUNDLE, 'utf8');
     assert.ok(!/(^|[^\w$])__dirname\b(?!, '\.\.', p\))/m.test(text.replace(/const __evsPath = \(p\) => require\('path'\)\.join\(__dirname, '\.\.', p\);/, '')), 'a bare __dirname is left');

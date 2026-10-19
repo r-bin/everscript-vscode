@@ -21,7 +21,7 @@ Kind: **platform** — knows SNES hardware and our machinery, no game (docs/arch
   the same code runs in the extension, the MCP server, tests and node tools.
 
 ## Invariants
-- New code is strict TypeScript (the moved CDL / TAS JS converts in cleanup 5.5), built to `dist/platform` by `npm run build:ts`; JS callers require `dist/`.
+- New code is strict TypeScript (`cdl/asar-kit/` is copied into exports as it is), built to `dist/platform` by `npm run build:ts`; JS callers require `dist/`.
 - No game name, title, hash or address in this folder. A game's facts live in its descriptor.
 - The library stores paths, never ROM bytes or copies.
 

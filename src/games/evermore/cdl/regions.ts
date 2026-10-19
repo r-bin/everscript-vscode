@@ -34,8 +34,9 @@ function roomRegions(rom: Uint8Array, map: RomMap, steps: string[]): KnownRegion
     const regions: KnownRegion[] = [];
     const skipped: string[] = [];
     const nameOf = (id: number): string => 'room_' + hex(id, 2);
+    const mapTable = maps.mapTableOffset(rom);
     for (let id = 0; id < maps.MAX_ROOMS; id++) {
-        const ptr = rom[maps.MAP_LIST_ADDR + id * 4] | (rom[maps.MAP_LIST_ADDR + id * 4 + 1] << 8) | (rom[maps.MAP_LIST_ADDR + id * 4 + 2] << 16);
+        const ptr = rom[mapTable + id * 4] | (rom[mapTable + id * 4 + 1] << 8) | (rom[mapTable + id * 4 + 2] << 16);
         const off = map.busToRom(ptr);
         try {
             if (off < 0) throw new Error('pointer $' + hex(ptr, 6) + ' is not ROM');
@@ -47,7 +48,7 @@ function roomRegions(rom: Uint8Array, map: RomMap, steps: string[]): KnownRegion
         }
     }
     const entry = (i: number) => {
-        const o = maps.MAP_LIST_ADDR + i * 4;
+        const o = mapTable + i * 4;
         return { ptr: rom[o] | (rom[o + 1] << 8) | (rom[o + 2] << 16), pad: rom[o + 3], name: nameOf(i) };
     };
     const lines: string[] = [];
@@ -58,11 +59,11 @@ function roomRegions(rom: Uint8Array, map: RomMap, steps: string[]): KnownRegion
         lines.push(`    dl ${expr} : db $${hex(e.pad, 2)}`);
     }
     const table: KnownRegion = {
-        start: maps.MAP_LIST_ADDR, end: maps.MAP_LIST_ADDR + maps.MAX_ROOMS * 4, kind: 'table', name: 'map_table',
+        start: mapTable, end: mapTable + maps.MAX_ROOMS * 4, kind: 'table', name: 'map_table',
         note: 'room id -> blob (dl pointer, db pad); slot $7F onward is not a room', lines,
     };
     const bytes = regions.reduce((s, r) => s + r.end - r.start, 0);
-    steps.push(`Rooms: map table at $${hex(map.canonical(maps.MAP_LIST_ADDR), 6)}, ${regions.length}/${maps.MAX_ROOMS} blobs carved to rooms/ (${bytes} bytes), ends from the blob layout + object area.` +
+    steps.push(`Rooms: map table at $${hex(map.canonical(mapTable), 6)}, ${regions.length}/${maps.MAX_ROOMS} blobs carved to rooms/ (${bytes} bytes), ends from the blob layout + object area.` +
         (skipped.length ? ' Skipped: ' + skipped.join('; ') + '.' : ''));
     return [table, ...regions];
 }
@@ -171,7 +172,7 @@ function stringKeyReaders(rom: Uint8Array, map: RomMap, steps: string[]): KnownR
 
 /** Evermore's regions, or null when the ROM is not Evermore (title) or too small. */
 function evermoreRegions(rom: Uint8Array, map: RomMap, cdl: Uint8Array | null | undefined, steps: string[]): { regions: KnownRegion[]; defines: string[] } | null {
-    if (!isEvermore(map) || rom.length <= STRING_KEYS + STRING_COUNT * 3 || rom.length <= maps.MAP_LIST_ADDR + maps.MAX_ROOMS * 4) return null;
+    if (!isEvermore(map) || rom.length <= STRING_KEYS + STRING_COUNT * 3 || rom.length <= maps.mapTableOffset(rom) + maps.MAX_ROOMS * 4) return null;
     try {
         const regions = [...roomRegions(rom, map, steps), ...enterScriptRegion(rom, map, steps), ...stringRegions(rom, map, cdl, steps), ...stringKeyReaders(rom, map, steps)];
         return { regions, defines: [STRKEY_FN] };

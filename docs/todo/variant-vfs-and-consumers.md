@@ -46,14 +46,11 @@ soe://strings/*                Dynamic map_tile_graphics    Dynamic script_point
   - Updated `decompressTile16x16(rom, tileId)`: dynamic via `getMapTileGraphicsOffset(rom)` (US/Family B `0x2E0000` vs Family A `0x2F0000`).
 - [x] **Rooms Tab & Webview Editor (`src/games/evermore/rooms/`)**:
   - Verified room decoding, metatile decompression, and palette extraction across all PAL retail variants.
-- [ ] **The readers that still use the US map table** (re-measured v0.314.1, [cleanup.md](../cleanup.md) 5.1): hand them to
-  `roomBlobOffset(rom, id)` / `mapTableOffset(rom)` and drop each one's own pointer walk and copier-header guess.
-  - `src/games/evermore/emulator/room-triggers.ts` `parseRoomTriggers` and `emulator/address-lookup.ts`
-    `_getRoomTriggers`: `headerOffset + 0x1ffde7` (the emulator's trigger boxes and address lookup).
-  - `src/games/evermore/rom-readers.ts` `readRomMapHeaderFrom`: `0x1ffde7` (the room header and camera bounds).
-  - `src/games/evermore/cdl/regions.ts` (the map-table region and blob carving) and `rom/model/catalog.ts` (the ROM
-    tab's "Room pointer table" row): the US constant `MAP_LIST_ADDR`.
-  - Test: one PAL ROM through each (skips when the library has none).
+- [x] **Every map-table reader** (v0.314.2): the emulator's trigger boxes and script ids (`emulator/room-triggers.ts`,
+  bundled into the page's `EvsRom`), its address lookup (`emulator/address-lookup.ts`: script bank from the ROM, the
+  US-address names only on the US layout), the room header (`rom-readers.ts`), the CDL regions and the ROM tab's
+  table row go through `mapTableOffset` / `roomBlobOffset`. Checked on all six releases: 127/127 rooms and every
+  trigger's script resolve (before: 0 rooms on PAL); `tests/debugger/trigger-overlay.test.js` holds a PAL layout.
 
 ### 2.2 Text & Dialogue Subsystem (`src/games/evermore/language/`, `src/resources/`)
 - [x] **String Key Lookup**:
@@ -89,9 +86,11 @@ soe://strings/*                Dynamic map_tile_graphics    Dynamic script_point
   - Read from `$81:9903` (71 packages, count at `$81:9900`) across all releases.
   - Accommodate PAL sound driver entry points.
 
-### 2.6 ROM Catalog & Memory Radar (`src/games/evermore/rom/model/catalog.ts`, `src/games/evermore/memory/`)
-- [ ] **`catalog.js`**:
-  - Refactor `roomRegions`, `textRegions`, and `entityRegions` to obtain table regions dynamically from `variants.json` based on the loaded ROM.
+### 2.6 ROM Catalog, CDL regions & Memory Radar (`src/games/evermore/rom/model/catalog.ts`, `cdl/regions.ts`, `memory/`)
+- [ ] **`catalog.ts`**: `roomRegions`, `textRegions`, `entityRegions` take their tables from `variants.json`. Still US:
+  the background palettes `0x1CC322` and the script bank `0x128000` / `$92:8000` (`scriptRegions`); the room table
+  is per variant since v0.314.2.
+- [ ] **`cdl/regions.ts`**: the enter-script table `SCRIPT_BANK = 0x128000` (`$92:801B`; PAL `$93:801B`).
 
 ---
 

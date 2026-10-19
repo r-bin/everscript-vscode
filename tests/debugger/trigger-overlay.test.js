@@ -125,6 +125,28 @@ test('parseRoomTriggers shifts addresses correctly for 512-byte headered ROMs', 
     assert.strictEqual(res.bTrigger.length, 0);
 });
 
+// 3b. PAL layout: the map table sits at $A0:FDE5 and the script bank at $93:8000 (variants.json)
+test('parseRoomTriggers and resolveScriptIdToSnes follow a PAL ROM\'s tables', () => {
+    const { resolveScriptIdToSnes } = require('../../dist/games/evermore/emulator/room-triggers');
+    const rom = new Uint8Array(0x300000);
+    const title = 'SECRET OF EVERMORE   ';
+    for (let i = 0; i < 21; i++) rom[0xffc0 + i] = title.charCodeAt(i);
+    rom[0xffd5] = 0x31; rom[0xffd9] = 0x02; // HiROM FastROM, Europe
+    rom[0xffdc] = 0x00; rom[0xffdd] = 0x00; rom[0xffde] = 0xff; rom[0xffdf] = 0xff;
+    const mapId = 0x03, dataRom = 0x1f9000, ptrAddr = 0x20fde5 + mapId * 4;
+    rom[ptrAddr] = 0x00; rom[ptrAddr + 1] = 0x90; rom[ptrAddr + 2] = 0xdf; // $DF:9000
+    rom[dataRom] = 7; rom[dataRom + 1] = 9;
+    rom[dataRom + 0x0d] = 6; // one step-on trigger
+    rom.set([1, 2, 3, 4, 0x30, 0x00], dataRom + 0x0f);
+    const res = parseRoomTriggers(rom, mapId);
+    assert.ok(res, 'PAL room not found');
+    assert.deepStrictEqual([res.offX, res.offY, res.stepOn.length, res.stepOn[0].scriptId], [7, 9, 1, 0x30]);
+    // the script table: header word at $93:8000 is the table's offset; packed pointer 0x000123 → $93:8123
+    rom[0x138000] = 0x00; rom[0x138001] = 0x01;
+    rom.set([0x23, 0x01, 0x00], 0x138100 + 0x30);
+    assert.strictEqual(resolveScriptIdToSnes(rom, 0x30), 0x938123);
+});
+
 // 4. Trigger box coordinate transform
 test('calculateTriggerBox computes 2x canvas coordinates with room offset and camera scroll', () => {
     const trigger = { x1: 36, y1: 10, x2: 38, y2: 12, scriptId: 0x94 };

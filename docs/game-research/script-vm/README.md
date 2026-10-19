@@ -2,7 +2,7 @@
 
 How Secret of Evermore (US) runs its event scripts, read from the interpreter's own code and
 checked against the running game. This is the spec `src/games/evermore/script-vm/` is written
-from (`docs/plans/script-decoder-from-game-code.md`, `docs/cleanup.md` D3). Per-opcode table:
+from (`docs/cleanup.md` D3). Per-opcode table:
 [opcodes.md](opcodes.md). Each handler's knowledge entry (`knowledge/rom/<handler>.md`) holds what it
 does in plain words and the addresses it uses (calls, WRAM, ROM tables, record fields); `soe://` serves one
 page per opcode from them, with the uses in the user's ROM: `soe://rom/assets/scripts/opcodes/<xx>.md`.

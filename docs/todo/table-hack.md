@@ -44,8 +44,8 @@
 - 🔴 **everscript compiler**: string keys (`0x91d000`), the room and script tables it writes,
   `ENEMY` ids past 143. Today `build.js` redirects its IPS writes.
 - 🟢 **The directory at `$F1:0000`** ([table-hack.md §3](../table-hack.md)) and one resolver in the
-  plugin. `maps/rom.ts` `mapTableOffset(rom)` resolves the map table per variant; the readers that still hard-code
-  `0x1FFDE7` are listed in [variant-vfs-and-consumers.md](variant-vfs-and-consumers.md) §2.1.
+  plugin. every map-table reader goes through `maps/rom.ts` `mapTableOffset(rom)` (per variant, v0.314.2), so the
+  directory only has to teach that one function where a moved table is.
   `src/games/evermore/maps` also hard-codes `$EC0000`, `$D80000` and `$C43C92`.
 - 🟢 **A generated used/free md** (`LAYOUT.md`) per built ROM ([table-hack.md §5](../table-hack.md)).
 

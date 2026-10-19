@@ -3,7 +3,7 @@
 // dog forms, alchemy tables — each claimed with its measured size. Pure.
 // Sources: wiki/rom/Rom-Map.md §2 (the everscript wiki's ROM map).
 
-import { decodeRoom, parseBlobLayout, objectAreaEnd, MAP_LIST_ADDR, MAX_ROOMS } from '../../maps';
+import { decodeRoom, parseBlobLayout, objectAreaEnd, mapTableOffset, MAX_ROOMS } from '../../maps';
 import { hex } from './util';
 import type { Claim } from './util';
 import { hiromFileOffset } from '../../../../platform/snes/hirom';
@@ -42,8 +42,10 @@ function roomRegions(rom: Uint8Array, R: Claim, rooms: Map<number, { name?: stri
             if (world) worlds.add(world);
         }
     }
-    R(MAP_LIST_ADDR, MAP_LIST_ADDR + MAX_ROOMS * 4, '📋', 'Room pointer table', `${MAX_ROOMS} × [ptr:24, pad:8], room id × 4`, '', 2);
-    R(MAP_LIST_ADDR + MAX_ROOMS * 4, MAP_LIST_ADDR + MAX_ROOMS * 4 + 4, '📋', 'Slot `0x7F` (not a room)', 'pad `$CC`, points at `$C9:CF89`, which does not parse as a blob', '', 2);
+    const mapTable = mapTableOffset(rom);
+    const slot7f = rom[mapTable + MAX_ROOMS * 4] | (rom[mapTable + MAX_ROOMS * 4 + 1] << 8) | (rom[mapTable + MAX_ROOMS * 4 + 2] << 16);
+    R(mapTable, mapTable + MAX_ROOMS * 4, '📋', 'Room pointer table', `${MAX_ROOMS} × [ptr:24, pad:8], room id × 4`, '', 2);
+    R(mapTable + MAX_ROOMS * 4, mapTable + MAX_ROOMS * 4 + 4, '📋', 'Slot `0x7F` (not a room)', `pad \`$${hex(rom[mapTable + MAX_ROOMS * 4 + 3], 2)}\`, points at \`$${hex(slot7f >> 16, 2)}:${hex(slot7f & 0xffff, 4)}\`, which does not parse as a blob`, '', 2);
     R(0x1CC322, 0x1CC322 + 32 * (maxFamily + 1), '🎨', 'Background palettes (tile families)', `${maxFamily + 1} × 32 bytes, \`$9C:C322 + 32·family\`; up to 7 loaded per room by \`$90:D020\``);
     return worldsOfGraphic;
 }

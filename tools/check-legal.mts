@@ -36,7 +36,6 @@ const POLICY_FILES = new Set([
     'AI_ARCHITECTURE_GUIDE.md',
     'docs/cleanup.md',
     'docs/legal-history.md',
-    'docs/plans/script-decoder-from-game-code.md',
     'tools/check-legal.mts',
     'tools/check-legal.baseline.json',
     '.gitignore',

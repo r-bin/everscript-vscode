@@ -192,10 +192,8 @@
       return true;
     }
 
-    //@@parseRoomTriggers
-
-    //@@calculateTriggerBox
-    //@@resolveScriptIdToSnes
+    // The trigger readers are the host's own (room-triggers.ts), bundled into EvsRom (page-rom.ts).
+    const { parseRoomTriggers, calculateTriggerBox, resolveScriptIdToSnes } = EvsRom;
 
     function renderTriggersOverlay(overlayCtx, layout, preState) {
       if (!overlayCtx) return;

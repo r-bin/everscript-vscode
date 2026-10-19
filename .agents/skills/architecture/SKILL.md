@@ -70,7 +70,7 @@ toggles) stays in the webview. Caches live with their owner and expose a `clear(
 New code is TypeScript (`strict`); JS converts when it is touched for real work, one file at a
 time, local interfaces only, no giant shared types file. One build: `tsconfig.build.json` →
 `dist/` mirroring `src/` (`npm run build:ts`); the root `tsconfig.json` is typecheck-only.
-Webview files are browser-side and excluded until the esbuild step (cleanup 5.3).
+Webview files are browser-side: they port with the per-page bundles (`docs/todo/port-to-ts.md`).
 Porting a module: only once everything it requires is TS, JSON, a Node built-in or `vscode`
 (the build has no `allowJs`); `require` → `import`, `module.exports` → `export`; its JS users,
 tests and tools then require `dist/<same path>` (no JS facades). Write the types; never TS's
