@@ -14,7 +14,7 @@ interface ScriptPageInfo {
     room?: { id: string | number; name?: string; area?: string } | null;
     trigger?: { kind: string; index: number; rect?: number[]; scriptId?: number } | null;
     transitions?: { mapId: number | string; mapName?: string; x: number; y: number }[];
-    spawns?: { npc: number | string; name?: string; romName?: string; character: number | string; x: number; y: number }[];
+    spawns?: { npc: number | string; name?: string | null; romName?: string | null; character: number | string | null; x: number | null; y: number | null }[];
 }
 
 function fmtSnes(addr: number | undefined): string {

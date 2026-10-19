@@ -41,8 +41,8 @@ const TWO32 = 0x100000000;
 const CHUNK = 0x10000;
 
 /** ROM bytes without a 512-byte copier header. */
-function stripCopierHeader(rom: Buffer): Buffer {
-    return (rom.length % 1024 === 512) ? rom.subarray(512) : rom;
+function stripCopierHeader<B extends Uint8Array>(rom: B): B {
+    return (rom.length % 1024 === 512) ? rom.subarray(512) as B : rom;
 }
 
 function romHash(rom: Buffer): string {

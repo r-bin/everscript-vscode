@@ -12,7 +12,7 @@ const T = require('../../dist/platform/tas/movie');
 const REPO = path.resolve(__dirname, '..', '..');
 const CORE = path.join(REPO, 'src/core/emulator/core/snes9x2005-wasm/snes9x_2005.js');
 const DEFAULT_OUT = path.join(REPO, '.agents/skills/sample-playbacks/playbacks/attract-loop.evsmv');
-// tas/host.js coreId(): a replay only trusts a movie recorded on the same core build
+// tas/host.ts coreId(): a replay only trusts a movie recorded on the same core build
 const coreId = () => crypto.createHash('sha256').update(fs.readFileSync(CORE.replace(/\.js$/, '.wasm'))).digest('hex').slice(0, 16);
 const MATCH = 120;                     // frames that must repeat to call it the start of the loop
 const CURRENT_MAP_ID = 0x7E0ADB;       // knowledge/ram/7e0adb.md

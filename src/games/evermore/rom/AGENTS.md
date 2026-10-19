@@ -12,7 +12,7 @@ Related skills: `memory-map`, `map-format`, `cdl-recorder` (`.agents/skills/`).
 - May use `../maps` (room, sprite and animation decoders) and `../localizations` (names).
 - Must **not** import `../emulator`: `extension.js` loads the CDL library and injects
   `{cdl, xrefs, stats}`; the model only takes plain arrays and maps.
-- Names: the knowledge entries (`localizations`, through `functions.js` / `tables.js`); room
+- Names: the knowledge entries (`localizations`, through `functions.ts` / `tables.js`); room
   names are injected by `extension.js` from the Rooms tab's catalogue. No wiki text is read.
 
 Existing exceptions (do not add more):

@@ -21,7 +21,7 @@ pick the one recording that does. Do not replay the whole folder.
 
 Each playback carries the movie's own WRAM checks: `S|` every 60 frames and `T|` (VRAM, CGRAM, OAM,
 SRAM, ARAM) every 600. A replay on the clean ROM that misses a check has lost sync. The `# core:`
-header names the core build (`tas/host.js coreId()`, the first 16 hex digits of the `.wasm`'s
+header names the core build (`tas/host.ts coreId()`, the first 16 hex digits of the `.wasm`'s
 SHA-256). After a core rebuild the checks may no longer hold: re-record the playback (below) and
 update the table.
 

@@ -24,7 +24,7 @@ const { buildItemIcons }                                            = require('.
 const { VANILLA_ROOMS, buildVanillaRoomContent,
         buildVanillaRoomDetails, invalidateVanillaDataCaches }      = require('./data/vanilla-data');
 const { getMapEnum, readLuaWatchers, readScriptAllTriggers,
-        invalidateLuaWatcherCaches }                                = require('./data/lua-watchers');
+        invalidateLuaWatcherCaches }                                = require('../../../../dist/games/evermore/rooms/data/lua-watchers');
 
 function invalidateRoomDataCaches() {
     invalidateVanillaDataCaches();

@@ -6,7 +6,7 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 - Subjective names across the game: room names (`maps.ts`), music/SFX names
   (`sounds.ts`), script names (`scripts.ts`, `data/scripts.json`), in-game string resolution
   (`strings.ts`), and the knowledge entries (`knowledge/`, loaded by `knowledge.ts`; `tables.js` and
-  `functions.js` are views of them — add a routine or table as an entry, never as a JS line).
+  `functions.ts` are views of them — add a routine or table as an entry, never as a JS line).
 
 ## Dependencies
 - Libraries only (guide §2). Currently requires no other `src/` domain.

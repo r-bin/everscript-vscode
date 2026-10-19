@@ -52,8 +52,8 @@ function withVscodeStub(config, fn) {
         return origLoad.call(this, req, ...rest);
     };
     try {
-        delete require.cache[require.resolve('../../src/core/emulator/tas/host')];
-        return fn(require('../../src/core/emulator/tas/host'));
+        delete require.cache[require.resolve('../../dist/core/emulator/tas/host')];
+        return fn(require('../../dist/core/emulator/tas/host'));
     } finally {
         Module._load = origLoad;
     }

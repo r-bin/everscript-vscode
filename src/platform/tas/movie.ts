@@ -19,7 +19,7 @@
  *                           first mismatch as a desync
  * A power-cycle is not an event: it starts a new recording.
  *
- * Two header-style lines may be appended to a finished recording (tas/host.js), and once there
+ * Two header-style lines may be appended to a finished recording (tas/host.ts), and once there
  * they stay: "# desync: <frame> <detail>" (the first replay that lost sync, or a failed replay
  * check while recording) and "# synced: <ISO date>" (a replay to the end matched every checksum).
  * A desync wins: the recording is not trusted again.

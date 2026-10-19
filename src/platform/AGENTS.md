@@ -10,7 +10,7 @@ Kind: **platform** — knows SNES hardware and our machinery, no game (docs/arch
 - `snes/opcodes-65816.ts`: the 65816 opcode matrix (mnemonic, mode, length, flow); `tools/gen-cdl-optable.js`
   generates the core's C table from it.
 - `cdl/`: the CDL engine (library, xrefs, disassembly, Asar / Mesen / recomp exports) — JS until cleanup
-  5.5; a game's seeds come in as `gameRegions`, the VS Code side is `src/core/emulator/cdl/host.js`.
+  5.5; a game's seeds come in as `gameRegions`, the VS Code side is `src/core/emulator/cdl/host.ts`.
 - `tas/`: movie format and verification (`movie.ts`, `verify.ts`); `zip.ts`.
 - `crc32.ts`, `png.ts`: CRC-32 and the RGBA PNG encoder, one copy each.
 - `snes/hirom.ts`: HiROM bus → file offset and little-endian reads, the one copy (cleanup 5.1).

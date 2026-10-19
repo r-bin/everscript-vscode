@@ -39,7 +39,7 @@ core (WASM, per instruction / access)        webview (every 15 s)        host (N
 - **Hit counts are the one exception: they are summed** (user decision, v0.173.0: having counts
   matters more than idempotence). Correct only because the core drains them as **deltas**
   (`cdl-count.c` zeroes what it hands out). Never seed counts back, never merge a library into itself.
-  Other players' libraries arrive as **recording bundles** (`cdl/bundle.js`, from the SNES CDL Recorder):
+  Other players' libraries arrive as **recording bundles** (`cdl/bundle.ts`, from the SNES CDL Recorder):
   the summed streams (`rom-hits.bin`, `wram-hits.bin`, `rom-cycles.bin`) are imported as the growth since
   that install's last bundle, never added whole. A new summed stream must join `SUMMED` there.
 - **`wram-code.bin` keeps the first bytes seen**; a later session with different bytes only sets
@@ -124,13 +124,13 @@ work behind a "seen lately" or "already marked" check.
 
 | File | Module | Derived from |
 |---|---|---|
-| `recomp/cfg/bankXX.cfg` | `recomp-seeds.js`, `recomp-analysis.ts` | `func … entry_mx exit_mx`, `exit_mx_variant` / `exit_mx_set` from rets; `indirect_dispatch … idx:X` for `jmp/jsr (abs,X)` (count = highest table entry that is an observed target); `ptrtail` / `ptrcall` (PEA before) for `jmp (abs)` / `jml [abs]`; `rtsstack` for `pei ; rts`; `ram_routine` for unchanged WRAM code; comments for PHA/PEA+RTS dispatch, adjusted returns, never-returning callees |
+| `recomp/cfg/bankXX.cfg` | `recomp-seeds.ts`, `recomp-analysis.ts` | `func … entry_mx exit_mx`, `exit_mx_variant` / `exit_mx_set` from rets; `indirect_dispatch … idx:X` for `jmp/jsr (abs,X)` (count = highest table entry that is an observed target); `ptrtail` / `ptrcall` (PEA before) for `jmp (abs)` / `jml [abs]`; `rtsstack` for `pei ; rts`; `ram_routine` for unchanged WRAM code; comments for PHA/PEA+RTS dispatch, adjusted returns, never-returning callees |
 | `tables.md`, `tables/tbl_*.asm`, `tables.json`, `tables.h` | `tables.js`, `table-assets.js` | indexed ROM reads. Asset only when dense (≥1 recorded index per 8 entries), no executed byte inside, no overlap, one bank; else comment only. Code operands into an asset become `tbl_X+$n` |
 | `enums.asm`, `enums.json` | `enums.js` | ram.asm classification; a state that feeds `asl / tax / jsr (abs,X)` maps each value to its handler |
-| `structs.asm`, `structs.h`, `structs.json` | `structs.js` | indexed absolute accesses, pointer bases + Y, D ≠ 0. Sets merge when they share ≥ half the smaller one and sit on the larger one's stride; byte-stride groups that overlap are dropped |
-| `functions.json` | `functions.js` | per function: entries, callers/callees, widths, DB/D, WRAM ranges, I/O by class, ROM data, pointer bases, SA-1 blockers (direct + through callees), `cycles`, `execForms` / `readForms` (mirrors used) |
+| `structs.asm`, `structs.h`, `structs.json` | `structs.ts` | indexed absolute accesses, pointer bases + Y, D ≠ 0. Sets merge when they share ≥ half the smaller one and sit on the larger one's stride; byte-stride groups that overlap are dropped |
+| `functions.json` | `functions.ts` | per function: entries, callers/callees, widths, DB/D, WRAM ranges, I/O by class, ROM data, pointer bases, SA-1 blockers (direct + through callees), `cycles`, `execForms` / `readForms` (mirrors used) |
 | `bus.md`, `bus.json` | `bus-report.ts` | ExHiROM audit (bytes/instructions/edges through `$00-$3F`, `$40-$7D`), SA-1 audit (every form but `$C0-$FF`), bytes per file bank and form, top functions by cycles |
-| `ram.asm` | `wram-export.js` | every WRAM address, accessors, values, hit counts |
+| `ram.asm` | `wram-export.ts` | every WRAM address, accessors, values, hit counts |
 | `spc/aram.cdl` | `asar-export.js` | ARAM coverage |
 | `mesen/labels.mlb`, `mesen/rom.cdl` | `mesen-export.ts` | export comments + curated names (option `names`, `wramNames`), asset ranges (`assets`); formats in docs/reverse-engineering/formats.md §3 |
 

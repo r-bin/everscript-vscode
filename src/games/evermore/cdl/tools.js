@@ -11,9 +11,9 @@
 
 const asar = require('../../../platform/cdl/asar-export');
 const { evermoreRegions } = require('../../../../dist/games/evermore/cdl/regions');
-const { exportWram } = require('../../../platform/cdl/wram-export');
+const { exportWram } = require('../../../../dist/platform/cdl/wram-export');
 const { lookup } = require('../../../platform/cdl/lookup');
-const { findTables } = require('../../../platform/cdl/tables');
+const { findTables } = require('../../../../dist/platform/cdl/tables');
 const { buildIndex } = require('../../../../dist/platform/cdl/xref-index');
 const { getActiveAddressLookup } = require('../../../../dist/games/evermore/emulator/address-lookup');
 const { hex } = require('../../../../dist/platform/cdl/rom-map');

@@ -10,7 +10,7 @@
 
 const mana = require('../../../../../dist/games/mana/decoder');
 const { readRomMapHeaderFrom } = require('../../../../../dist/games/evermore/rom-readers');
-const { convertManaMap } = require('./convert');
+const { convertManaMap } = require('../../../../../dist/games/evermore/imports/mana/convert');
 const { buildVirtualRom } = require('../../../../../dist/games/evermore/imports/mana/virtual-rom');
 const ids = require('../../../../../dist/games/evermore/imports/mana/ids');
 

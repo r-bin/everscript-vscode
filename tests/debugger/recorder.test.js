@@ -18,7 +18,7 @@ const Module = require('module');
 const ROOT = path.resolve(__dirname, '../..');
 const { gameDetectRom } = require('../../src/games/evermore/emulator/webview/rom-game');
 const { CdlLibrary } = require('../../dist/platform/cdl/library');
-const { buildBundle, importBundle, readBundle } = require('../../src/platform/cdl/bundle');
+const { buildBundle, importBundle, readBundle } = require('../../dist/platform/cdl/bundle');
 const { evsmvHeader } = require('../../dist/platform/tas/movie');
 
 let passed = 0;

@@ -15,7 +15,7 @@
  * toggles at once; play and delete ask first (B again does it, A or moving away cancels).
  * A click on an action is the same as choosing it and pressing B.
  *
- * Whether a recording syncs is written into the recording by the host (tas/host.js): the first
+ * Whether a recording syncs is written into the recording by the host (tas/host.ts): the first
  * desync of a replay ("# desync:") stays for good, a full replay without one adds "# synced:".
  */
 
@@ -95,7 +95,7 @@ function replayCommandRow(kind, label, pill) {
 }
 
 /**
- * The tab's rows. items: the host's list (tas/host.js list()); playingId: the recording being
+ * The tab's rows. items: the host's list (tas/host.ts list()); playingId: the recording being
  * replayed, or null.
  */
 function replaysListHtml(items, playingId) {

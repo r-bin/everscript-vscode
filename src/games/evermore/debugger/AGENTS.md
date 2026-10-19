@@ -10,15 +10,15 @@ Kind: **platform** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: 
   `games/evermore/emulator/script-debug-view.js`; the bridge to them is injected.
 
 ## Dependencies
-- `inline-adapter.js` → `vscode`, `emulator-session.js`, `source-map.js`. It is the only
+- `inline-adapter.js` → `vscode`, `emulator-session.js`, `source-map.ts`. It is the only
   file using the VS Code API; everything else is plain Node.
 - No import of `emulator/` or `memory/`: the emulator bridge is injected by `extension.js`.
   `.depcruise.js` rule `no-debugger-to-memory`.
 - Existing exceptions: none (no `require('../…')` in this folder).
 
 ## Invariants
-- `script-frames.js`, `source-map.js`, `value-types.ts`, `conditions.ts`,
-  `memory-access.js` are pure.
+- `script-frames.js`, `source-map.ts`, `value-types.ts`, `conditions.ts`,
+  `memory-access.ts` are pure.
 - Steps are data (`{ slot, scope, parent, parentScope, ranges, into, callerOnly }`): the
   decision is made synchronously inside the core's `Module.onBreakpointHit`, which keeps
   running when it returns `false`.

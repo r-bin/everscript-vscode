@@ -16,7 +16,7 @@
  */
 
 const { hex } = require('../../../dist/platform/cdl/rom-map');
-const { tableTitle } = require('./tables');
+const { tableTitle } = require('../../../dist/platform/cdl/tables');
 
 const CDL_CODE = 0x01;
 const MIN_BYTES = 4;

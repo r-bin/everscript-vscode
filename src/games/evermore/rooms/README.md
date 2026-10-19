@@ -28,7 +28,7 @@ rooms/
   data/
     widget-store.ts           — the user's own widgets: <globalStorage>/widgets.json (list, save, delete)
     vanilla-data.js           — VANILLA_ROOMS catalogue + buildVanillaRoomContent/Details + ROM backing
-    lua-watchers.js           — getMapEnum, readLuaWatchers, readScriptAllTriggers + caches
+    lua-watchers.ts           — getMapEnum, readLuaWatchers, readScriptAllTriggers + caches
     custom-store.ts           — custom maps on disk: one folder per map (map.json + history.json)
 ```
 

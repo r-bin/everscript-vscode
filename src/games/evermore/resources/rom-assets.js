@@ -25,7 +25,7 @@ function resolveAssets(segments, rom, deps) {
         return dir(['icons', ...Object.keys(CATEGORIES), 'alchemy', 'strings', 'maps', 'scripts', 'characters', 'tiles', 'audio', 'tables'].map(n => [n, 'dir']));
     }
     if (kind === 'scripts') {
-        const { resolveScripts } = require('./script-files');
+        const { resolveScripts } = require('../../../../dist/games/evermore/resources/script-files');
         return resolveScripts(segments.slice(1), rom);
     }
     if (kind === 'characters') {
@@ -45,7 +45,7 @@ function resolveAssets(segments, rom, deps) {
         return resolveTables(segments.slice(1), rom);
     }
     if (kind === 'maps' && (leaf === 'scripts' || extra.includes('scripts'))) {
-        const { resolveScripts } = require('./script-files');
+        const { resolveScripts } = require('../../../../dist/games/evermore/resources/script-files');
         const sIdx = segments.indexOf('scripts');
         return resolveScripts(['rooms', id, ...segments.slice(sIdx + 1)], rom);
     }

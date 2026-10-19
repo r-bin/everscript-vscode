@@ -3,7 +3,7 @@
 /**
  * emulator/bundle-commands.js
  *
- * VS Code side of recording bundles (cdl/bundle.js):
+ * VS Code side of recording bundles (cdl/bundle.ts):
  *   exportRecordingBundle  SNES CDL Recorder: zip one ROM's CDL library and its replays
  *   importRecordingBundle  Everscript: merge a bundle into this install's library and replays
  */
@@ -12,7 +12,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { buildBundle, importBundle } = require('../../platform/cdl/bundle');
+const { buildBundle, importBundle } = require('../../../dist/platform/cdl/bundle');
 const { parseMovie } = require('../../../dist/platform/tas/movie');
 const { flushRecording, reloadRecording, recordingFolders, getCurrentRom } = require('./panel');
 const { stripCopierHeader } = require('../../../dist/platform/cdl/library');

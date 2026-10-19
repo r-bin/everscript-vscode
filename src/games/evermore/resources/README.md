@@ -63,7 +63,7 @@ binds the same key and wins on extension load order; a user keybinding
 | `page-links.ts` | link targets of generated pages: into a mount, relative to the page |
 | `ram-files.js` | `soe://ram/`: `status.json`, `wram.bin`, slices, `<addr>.json`, flags, symbols |
 | `tag-model.js` | `soe://tags/` graph: merges generated + `tags/tags.json`, inheritance, aliases, conflicts, validation |
-| `tag-generate.js` | generated tags (rooms, areas, enemies, music, sounds, flags, RAM names, tables, items) from shipped data |
+| `tag-generate.ts` | generated tags (rooms, areas, enemies, music, sounds, flags, RAM names, tables, items) from shipped data |
 | `tag-files.js` | `soe://tags/`: routing, directory listings, live values, search, `check.json` |
 | `tag-markdown.ts` | tag pages as Markdown / JSON |
 | `tags/tags.json` | hand-authored tags: `character` → `player` → `boy` / `dog`, `enemy`, precompiled WRAM links |

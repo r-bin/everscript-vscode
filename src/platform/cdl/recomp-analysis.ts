@@ -154,7 +154,7 @@ const DISPATCH_EXCLUSIONS = new Map([
  * When left to the LLE interpreter fallback, they execute coherently with exact 65816 stack pushes/pulls.
  *
  * Dropping the root is not enough on its own: snesrecomp rediscovers a routine as the JSL target of a compiled
- * caller and compiles it anyway, so recomp-seeds.js also emits `force_lle` for each of these. Without it
+ * caller and compiles it anyway, so recomp-seeds.ts also emits `force_lle` for each of these. Without it
  * $90:D749 (effect sprites) called a compiled $80:9033 and corrupted the OBJ tile LRU lists at $7E9727 /
  * $7E96A5 within one fight, which handed out OBJ tile $81 and overwrote the HUD portrait (v0.201.19).
  *

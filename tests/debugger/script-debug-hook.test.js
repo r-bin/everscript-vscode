@@ -13,7 +13,7 @@ const vm     = require('vm');
 // The page as Everscript builds it: with Evermore's part (games/evermore/emulator/host.js webview()).
 const _gameView = require('../../src/games/evermore/emulator/host').webview();
 const buildHtml = (w, js, wasm, label, p, offer, opts) => require('../../src/core/emulator/panel-webview').buildHtml(w, js, wasm, label, p, offer || null, Object.assign({ gameView: _gameView }, opts || {}));
-const { loadSourceMap, romOffset } = require('../../src/games/evermore/debugger/source-map');
+const { loadSourceMap, romOffset } = require('../../dist/games/evermore/debugger/source-map');
 const frames = require('../../src/games/evermore/debugger/script-frames');
 
 const REPO = process.env.EVERSCRIPT_REPO || path.join(__dirname, '..', '..', '..', 'everscript');

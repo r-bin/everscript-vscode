@@ -1,0 +1,159 @@
+/**
+ * platform/cdl/wram-export.ts
+ *
+ * CDL library -> ram.asm: one Asar define per WRAM address the CPU touched,
+ * with its width, the instructions that read / write it (grouped by
+ * function), the values seen, and an enum / bit-flag guess:
+ *   - bit flags : written by TSB / TRB
+ *   - state     : loaded, then used as a jump-table index (ASL / TAX / JMP (abs,X))
+ *   - enum      : few distinct small values, or compared against immediates
+ */
+
+import * as fs from 'fs';
+import * as path from 'path';
+import { hex, countText } from './rom-map';
+import { buildIndex, flagText, SPACE, XR } from './xref-index';
+import { createRomMap } from './rom-map';
+import { decodeAt } from './disasm';
+import { WVAL_BYTES } from './library';
+import type { CdlLibrary } from './library';
+import type { RomMap } from './rom-map';
+import type { Instruction } from './disasm';
+
+type Accessor = ReturnType<ReturnType<typeof buildIndex>['accessorsOf']>[number];
+
+const EXT_HEAD = 0x04;
+const ACCESSOR_MAX = 12;
+const SCRIPT_MAX = 8;
+const plainScript = (s: number): string => '$' + hex(s, 6);
+const ENUM_MAX_VALUES = 16;
+
+function valuesSeen(wvals: Uint8Array | null, addr: number): number[] | null {
+    if (!wvals) return null;
+    const out: number[] = [];
+    const base = addr * WVAL_BYTES;
+    for (let b = 0; b < WVAL_BYTES; b++) {
+        const byte = wvals[base + b];
+        if (!byte) continue;
+        for (let i = 0; i < 8; i++) if (byte & (1 << i)) out.push(b * 8 + i);
+    }
+    return out;
+}
+
+/** Up to `count` instructions following the one at `off` (CDL heads only). */
+function following(rom: Uint8Array, lib: CdlLibrary, off: number, count: number): Instruction[] {
+    const out: Instruction[] = [];
+    let p = off;
+    for (let n = 0; n <= count && p < rom.length; n++) {
+        if (!(lib.ext[p] & EXT_HEAD)) break;
+        const ins = decodeAt(rom, p, lib.cdl[p], lib.ext[p]);
+        if (!ins) break;
+        out.push(ins);
+        p += ins.len;
+    }
+    return out;
+}
+
+function classify(rom: Uint8Array, lib: CdlLibrary, map: RomMap, accessors: Accessor[], values: number[] | null): string[] {
+    const notes: string[] = [];
+    const compares = new Set<number>();
+    let bitOps = false, jumpIndex = false;
+    for (const a of accessors) {
+        const off = map.busToRom(a.pc);
+        if (off < 0 || !(lib.ext[off] & EXT_HEAD)) continue;
+        const run = following(rom, lib, off, 4);
+        if (!run.length) continue;
+        const first = run[0];
+        if ((first.mnemonic === 'TSB' || first.mnemonic === 'TRB') && (a.flags & XR.WRITE)) bitOps = true;
+        if (!/^LD[AXY]$/.test(first.mnemonic) || !(a.flags & XR.READ)) continue;
+        for (const ins of run.slice(1)) {
+            if (/^(CMP|CPX|CPY)$/.test(ins.mnemonic) && (ins.mode === 'immM' || ins.mode === 'immX')) compares.add(ins.operand);
+            if ((ins.mnemonic === 'JMP' || ins.mnemonic === 'JSR') && ins.mode === 'iabsx') jumpIndex = true;
+            if (/^(ST|RT|JS|JM|BR)/.test(ins.mnemonic) && ins.mode !== 'iabsx') break;
+        }
+    }
+    if (bitOps) notes.push('bit flags (TSB/TRB)');
+    const fewValues = values && values.length >= 2 && values.length <= 64;
+    if (jumpIndex && (fewValues || !values || !values.length)) notes.push('state: jump-table index' + (values && values.length && values.every(v => v % 2 === 0) ? ' (x2)' : ''));
+    const smallSet = values && values.length >= 2 && values.length <= ENUM_MAX_VALUES && Math.max(...values) < 0x40;
+    // a small written set is the evidence; compares alone hit every counter
+    if (!bitOps && smallSet && (compares.size || values.length <= 8)) {
+        notes.push('enum candidate' + (compares.size ? ': compared with #' + [...compares].sort((x, y) => x - y).map(v => '$' + hex(v, 2)).join(',#') : ''));
+    }
+    return notes;
+}
+
+function formatValues(values: number[] | null): string {
+    if (!values || !values.length) return '';
+    if (values.length > ENUM_MAX_VALUES) return values.length + ' distinct values, $' + hex(values[0], 2) + '-$' + hex(values[values.length - 1], 2);
+    return 'values {' + values.map(v => '$' + hex(v, 2)).join(',') + '}';
+}
+
+function buildWramReport(lib: CdlLibrary, romInput: Uint8Array) {
+    const rom = romInput.length % 1024 === 512 ? romInput.subarray(512) : romInput;
+    const map = createRomMap(rom);
+    const index = buildIndex(lib, map);
+    const addrs = [...index.byAddr.keys()].filter(k => (k >>> 24) === SPACE.WRAM).map(k => k & 0xFFFFFF).sort((a, b) => a - b);
+    const covered = new Set<number>();
+    const entries: { addr: number; flags: number; acc: Accessor[]; values: number[] | null; notes: string[] }[] = [];
+    for (const addr of addrs) {
+        const acc = index.accessorsOf(SPACE.WRAM, addr).filter(a => !a.bulk);
+        let flags = 0;
+        for (const a of acc) flags |= a.flags;
+        // the high byte of a word only gets its own entry when accessed on its own
+        if (covered.has(addr) && !(flags & XR.BYTE)) continue;
+        if (flags & XR.WORD) covered.add(addr + 1);
+        const values = valuesSeen(lib.wvals, addr);
+        entries.push({ addr, flags, acc, values, notes: classify(rom, lib, map, acc, values) });
+    }
+    return { entries, index, map };
+}
+
+/**
+ * @param opts.describeScript (address) -> text for a script instruction
+ */
+function exportWram(lib: CdlLibrary, romInput: Uint8Array, outDir: string, opts?: { describeScript?: (address: number) => string }) {
+    const describeScript = (opts && opts.describeScript) || plainScript;
+    const { entries, index } = buildWramReport(lib, romInput);
+    const lines = [
+        '; Generated by Everscript from the CDL library (' + (lib.hash || '') + ')',
+        '; Every WRAM address the CPU touched while recording, with who reads / writes it.',
+        '; Widths come from the accessing instructions; values are every byte value ever written;',
+        '; hits are read / write counts summed over every recorded session (when recorded).',
+        '; Usage: incsrc "ram.asm", then rename the defines you identify.',
+        '',
+    ];
+    let enums = 0;
+    for (const e of entries) {
+        const width = (e.flags & XR.WORD) && (e.flags & XR.BYTE) ? 'byte/word' : (e.flags & XR.WORD) ? 'word' : 'byte';
+        const rw = (e.flags & XR.READ ? 'R' : '') + (e.flags & XR.WRITE ? 'W' : '');
+        const name = '!wram_' + hex(0x7E0000 + e.addr, 6);
+        const hits = lib.hasHits ? 'hits R' + countText(lib.wramReads[e.addr]) + ' W' + countText(lib.wramWrites[e.addr]) : '';
+        const desc = [width, rw, hits, formatValues(e.values), ...e.notes].filter(Boolean).join('  ');
+        if (e.notes.some(n => n.startsWith('enum'))) enums++;
+        lines.push((name + ' = $' + hex(0x7E0000 + e.addr, 6)).padEnd(32) + '; ' + desc);
+        const shown = e.acc.slice(0, ACCESSOR_MAX);
+        for (const a of shown) lines.push(';   ' + flagText(a.flags).padEnd(10) + index.describePc(a.pc));
+        if (e.acc.length > shown.length) lines.push(';   +' + (e.acc.length - shown.length) + ' more');
+        const scripts = index.scriptAccessorsOf(e.addr);
+        const exact = scripts.filter(s => !s.bulk);
+        for (const s of exact.slice(0, SCRIPT_MAX)) lines.push(';   ' + ('script ' + flagText(s.flags)).padEnd(17) + describeScript(s.script));
+        if (exact.length > SCRIPT_MAX) lines.push(';   +' + (exact.length - SCRIPT_MAX) + ' more scripts');
+        const bulkScripts = scripts.length - exact.length;
+        if (bulkScripts) lines.push(';   + ' + bulkScripts + ' bulk script' + (bulkScripts > 1 ? 's' : '') + ' (room loads / copies touching > 64 addresses)');
+    }
+    const bulkWram = index.bulk.filter(b => b.space === SPACE.WRAM).sort((a, b) => a.lo - b.lo);
+    if (bulkWram.length) {
+        lines.push('', '; Bulk accessors: instructions that touched more than 128 WRAM addresses', '; (clears, copies, decompression, table walks), listed by range.');
+        for (const b of bulkWram) {
+            lines.push(';   $' + hex(0x7E0000 + b.lo, 6) + '-$' + hex(0x7E0000 + b.hi, 6) + '  ' + flagText(b.flags).padEnd(10) + index.describePc(b.pc));
+        }
+    }
+    lines.splice(4, 0, '; ' + entries.length + ' addresses, ' + enums + ' enum candidates, ' + bulkWram.length + ' bulk accessors');
+    fs.mkdirSync(outDir, { recursive: true });
+    const file = path.join(outDir, 'ram.asm');
+    fs.writeFileSync(file, lines.join('\n') + '\n');
+    return { file, addresses: entries.length, enums };
+}
+
+export { exportWram, buildWramReport, valuesSeen };

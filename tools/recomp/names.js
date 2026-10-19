@@ -54,7 +54,7 @@ function collectNames(map, romLength) {
         counts[key]++;
     };
 
-    // Every routine and table name is a knowledge entry (functions.js / tables.js are views of them).
+    // Every routine and table name is a knowledge entry (functions.ts / tables.js are views of them).
     for (const e of readEntries('rom')) {
         const key = e.kind === 'table' || e.kind === 'data' ? 'tables' : e.kind === 'code' || e.kind === 'script' ? 'functions' : 'romEntries';
         addRom(e.addr, (key === 'tables' ? 'tbl_' : '') + (e.name || e.title), [e.title, e.purpose].filter(Boolean).join(' - '), key);

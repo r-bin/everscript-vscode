@@ -20,14 +20,14 @@
  *
  * Stops come from the interpreter hook, so they always land between two
  * script instructions. A statement can be several instructions and inlined
- * functions add levels (see source-map.js); one step therefore runs as many
+ * functions add levels (see source-map.ts); one step therefore runs as many
  * instructions as it takes to reach another line.
  */
 
 const path = require('path');
-const { loadSourceMap, isStale } = require('./source-map');
+const { loadSourceMap, isStale } = require('../../../../dist/games/evermore/debugger/source-map');
 const frames = require('./script-frames');
-const memory = require('./memory-access');
+const memory = require('../../../../dist/games/evermore/debugger/memory-access');
 const { inferTypes } = require('../../../../dist/games/evermore/debugger/value-types');
 
 const NO_SCRIPT_THREAD = { id: 1000, name: 'no script running' };

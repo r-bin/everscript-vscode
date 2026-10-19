@@ -18,7 +18,7 @@
 
 3. **Knowledge entries (`knowledge/{ram,rom}/<addr>.md`, loaded by `knowledge.ts`)**
    - Everything known about an address: what it is, its fields, how it is known (`game-knowledge` skill).
-   - `tables.js` and `functions.js` are views of the ROM entries with a `category` (tables, routines);
+   - `tables.js` and `functions.ts` are views of the ROM entries with a `category` (tables, routines);
      `soe://localization/knowledge/` serves every entry and the generated RAM and ROM maps.
 
 4. **Compiler regions** — RAM entries tagged `compiler-region` give the radar its temp / session ranges.

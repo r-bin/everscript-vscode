@@ -17,7 +17,7 @@ const {
   processScriptTraceBatch,
   loadFallbackRom,
   isValidScriptAddr,
-} = require('../../src/games/evermore/emulator/script-trace');
+} = require('../../dist/games/evermore/emulator/script-trace');
 
 let passed = 0;
 let failed = 0;
@@ -112,7 +112,7 @@ test('script-trace.js, panel.js, panel-webview.js, and grammar files are strictl
   const files = [
     path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'address-lookup.ts'),
     path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'trace-formatter.ts'),
-    path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'script-trace.js'),
+    path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'script-trace.ts'),
     path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'panel.js'),
     path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'panel-webview.js'),
     path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'bottom-bar-views.js'),

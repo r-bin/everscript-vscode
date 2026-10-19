@@ -6,7 +6,7 @@
 
 const maps = require('../../../../dist/games/evermore/maps');
 const { buildItemIcons } = require('../../../../dist/games/evermore/rooms/data/item-icons');
-const { processScriptTraceBatch } = require('./script-trace');
+const { processScriptTraceBatch } = require('../../../../dist/games/evermore/emulator/script-trace');
 const { describeCustomMapRom } = require('../../../../dist/games/evermore/emulator/custom-map-rom');
 const { roomMap, clearCaches } = require('../../../../dist/games/evermore/emulator/room-map');
 

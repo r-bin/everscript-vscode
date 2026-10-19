@@ -55,10 +55,10 @@ VS Code debug UI ── DAP (in-process) ── emulator-session.js
 | `inline-adapter.js` | Registers the `everscript` debug type (launch / attach), the only file using the VS Code API |
 | `emulator-session.js` | DAP session: breakpoints, stops, steps, threads, stack, variables, evaluate |
 | `script-frames.js` | Pure: snapshot → threads / frames / variables; step predicates |
-| `source-map.js` | Pure: reads `out/source_map.json`; address ↔ line, inline levels, step ranges, memory symbols |
+| `source-map.ts` | Pure: reads `out/source_map.json`; address ↔ line, inline levels, step ranges, memory symbols |
 | `value-types.ts` | Pure: which enum a memory value holds (`// @type ENUM` on its declaration, else inferred from the sources) |
 | `conditions.ts` | Pure: evaluates an `if` / `while` condition against live memory |
-| `memory-access.js` | Pure: memory by name or `.evs` notation (type, read, write), the Memory scope, DAP readMemory / writeMemory |
+| `memory-access.ts` | Pure: memory by name or `.evs` notation (type, read, write), the Memory scope, DAP readMemory / writeMemory |
 
 ## Launch
 

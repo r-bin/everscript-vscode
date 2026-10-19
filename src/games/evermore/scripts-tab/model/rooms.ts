@@ -58,7 +58,7 @@ function scriptView(s: RoomScript | RoomTrigger, kind: string, index: number | n
 }
 
 /** One room's scripts: { id, name, scripts: [view] } or { id, error }. */
-function roomScripts(rom: Buffer, id: number) {
+function roomScripts(rom: Uint8Array, id: number) {
     let model: ReturnType<typeof buildRoomScriptModel>;
     let room: ReturnType<typeof maps.decodeRoom>;
     try {
@@ -75,7 +75,7 @@ function roomScripts(rom: Buffer, id: number) {
 }
 
 /** The room as the game draws it, as a PNG data URI: { uri, width, height } or { error }. */
-function roomPicture(rom: Buffer, id: number) {
+function roomPicture(rom: Uint8Array, id: number) {
     try {
         const img = maps.renderRoomComposite(rom, maps.decodeRoom(rom, id));
         return { uri: maps.encodePngDataUri(img), width: img.width, height: img.height };

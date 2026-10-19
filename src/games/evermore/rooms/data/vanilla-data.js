@@ -4,7 +4,7 @@
 // Depends on: readRomMapHeader (rom-readers), readScriptAllTriggers (lua-watchers).
 
 const { readRomMapHeader } = require('../../../../../dist/games/evermore/rom-readers');
-const { readScriptAllTriggers } = require('./lua-watchers');
+const { readScriptAllTriggers } = require('../../../../../dist/games/evermore/rooms/data/lua-watchers');
 
 let _radarVanillaRoomsCache    = null;
 let _radarVanillaRoomsCacheKey = '';

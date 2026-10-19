@@ -15,7 +15,7 @@ open "out/recomp/SecretOfEvermore-macos-arm64/play.command"       # play (Linux:
 
 | Step | Input | Output (in `out/recomp/`, git-ignored) |
 |---|---|---|
-| 1. Inputs | CDL library for the ROM (`<globalStorage>/rbin.everscript/cdl-library/<sha1>/`), asset regions from the ROM tab (`src/games/evermore/rom`), curated names (`functions.js`, `tables.js`, `knowledge/{ram,rom}/*.md`, `ram-symbols`) | – |
+| 1. Inputs | CDL library for the ROM (`<globalStorage>/rbin.everscript/cdl-library/<sha1>/`), asset regions from the ROM tab (`src/games/evermore/rom`), curated names (`functions.ts`, `tables.js`, `knowledge/{ram,rom}/*.md`, `ram-symbols`) | – |
 | 2. Export | the above | `asar/`: `main.asm`, `banks/*.asm` with **our function names** and **line comments** (callers, accesses, jump targets, curated descriptions), `ram.asm`, `structs.h`, `tables/`, `functions.json`; `asar/mesen/labels.mlb` + `asar/mesen/rom.cdl` (Mesen2); `asar/recomp/cfg/` (snesrecomp seeds, named) |
 | 3. Rebuild | `asar/` | `asar/build/out.sfc` (must equal the ROM byte for byte), `out.sym` (WLA symbols), `out.cdl`; `asar.log` |
 | 4. Host project | seeds + clean ROM + `tools/recomp/host/` | `project/`: snesrecomp's scaffold (first run or `--fresh`; clones the framework submodules), our glue laid over it, seeds in `project/recomp/`, generated C in `project/src/gen/`, build in `project/build/`; `recomp-host.log` |

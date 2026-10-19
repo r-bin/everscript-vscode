@@ -1,6 +1,6 @@
 // Ownership: which known ROM addresses the ROM tab marks as points (routine entries and tables whose
 // length nobody has measured). The names are the knowledge entries' (localizations/knowledge/rom/,
-// through functions.js / tables.js); this file only picks which of them are points.
+// through functions.ts / tables.js); this file only picks which of them are points.
 //
 // Bus addresses as the game uses them. `cat` is the entry's category: 🧠 code, 📋 table,
 // ⚗️ alchemy, 📜 script.

@@ -38,6 +38,6 @@ C code (pseudocode is noise on 65816), asset boundaries, or anything the extensi
 ## 3. Rules
 
 - Keep projects, listings, pseudocode and dossiers outside the repo; write findings in our own
-  words into `functions.js` / knowledge entries (skill `game-knowledge`).
+  words into `functions.ts` / knowledge entries (skill `game-knowledge`).
 - Seeds and context files are generated from our name sources and the CDL library, never hand-edited.
 - Ghidra facts reach `soe://` only via the library (`static.json`, planned), never a live Ghidra.

@@ -181,7 +181,7 @@ function maps(rom, name, leaf, deps) {
     }
     if (cleanLeaf === 'info.md') return text(() => roomMarkdown(rom, id));
     if (cleanLeaf === 'scripts') {
-        const { resolveScripts } = require('./script-files');
+        const { resolveScripts } = require('../../../../dist/games/evermore/resources/script-files');
         return resolveScripts(['rooms', hexId(id, 2)], rom);
     }
     if (cleanLeaf === 'tiles' || cleanLeaf === 'metatiles') {

@@ -1,5 +1,5 @@
 'use strict';
-// Ownership: the `soe://tags/` graph — merges generated tags (tag-generate.js)
+// Ownership: the `soe://tags/` graph — merges generated tags (tag-generate.ts)
 // with the hand-authored tags/tags.json, resolves inheritance, aliases,
 // back-links and conflicts, and validates. Pure. docs/soe-tags-spec.md §5–§6.
 //
@@ -12,7 +12,7 @@
 // "not mapped yet".
 
 const AUTHORED = require('./tags/tags.json');
-const { generatedTags } = require('./tag-generate');
+const { generatedTags } = require('../../../../dist/games/evermore/resources/tag-generate');
 
 const ID = /^[a-z0-9_]+(\.[a-z0-9_]+)*$/;
 const SOE_LINK = /^soe:\/\/(rom|ram|bus|localization|localizations|tags)\/\S*$/;

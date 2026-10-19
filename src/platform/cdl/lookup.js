@@ -9,8 +9,8 @@
 
 const { hex, busName, countText } = require('../../../dist/platform/cdl/rom-map');
 const { flagText, SPACE } = require('../../../dist/platform/cdl/xref-index');
-const { valuesSeen } = require('./wram-export');
-const { tableAt, tableTitle } = require('./tables');
+const { valuesSeen } = require('../../../dist/platform/cdl/wram-export');
+const { tableAt, tableTitle } = require('../../../dist/platform/cdl/tables');
 const { regsByPc, basesByPc } = require('../../../dist/platform/cdl/library-ext');
 const { returnsByEntry } = require('../../../dist/platform/cdl/recomp-analysis');
 

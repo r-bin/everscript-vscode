@@ -1,5 +1,5 @@
 // Ownership: the knowledge entries (knowledge/{ram,rom}/<addr>.md, `game-knowledge` skill) as data.
-// The one source of what the plugin knows about an address: functions.js and tables.js are views of
+// The one source of what the plugin knows about an address: functions.ts and tables.js are views of
 // these entries, and the ROM tab, soe://, the asm view and the exports read them through those.
 
 import * as fs from 'fs';

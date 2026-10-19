@@ -8,7 +8,7 @@ const { renderCharacterSprite } = require('../../../../dist/games/evermore/maps/
 const { characterPalette, paletteAt } = require('../../../../dist/games/evermore/maps/character-record');
 const { decodeSpriteBlock } = require('../../../../dist/games/evermore/maps/sprites');
 const { readCharacter, readAllCharacters, CHARACTER_COUNT } = require('../../../../dist/games/evermore/sprites/character-model');
-const { renderAnimation } = require('../sprites/animation-decoder');
+const { renderAnimation } = require('../../../../dist/games/evermore/sprites/animation-decoder');
 const { encodeGif } = require('../../../../dist/games/evermore/resources/gif');
 const { dir, file, json, text } = require('../../../../dist/games/evermore/resources/nodes');
 const {

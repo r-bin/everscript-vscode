@@ -5,7 +5,7 @@ const { pageFile } = require('./page-file');
 /**
  * emulator/tas-view.js
  *
- * Input recording and replay, webview half (host half: tas/host.js):
+ * Input recording and replay, webview half (host half: tas/host.ts):
  *  - every boot of a ROM starts an input recording; each emulated frame's pad
  *    word is buffered and sent to the host in batches (and on pause / ROM
  *    change / tab hide), so the SSD sees one small append per two seconds;

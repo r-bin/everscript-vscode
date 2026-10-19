@@ -21,7 +21,7 @@ Reference: the everscript wiki's ROM map (`wiki/rom/Rom-Map.md`), whose §4 this
 | `model/catalog.ts` | Fixed-place content: header, rooms, palettes, strings, scripts, entities, alchemy |
 | `model/assets.ts` | Map graphics, sprite infos/blocks, animation bytecode, measured item by item |
 | `model/audio.ts` | Song descriptors and every byte each song loads |
-| `model/layout.js` | One owner per byte, rows per half, gaps, overlap notes, strips, CDL counts |
+| `model/layout.ts` | One owner per byte, rows per half, gaps, overlap notes, strips, CDL counts |
 | `model/points.ts` | Curated routine / table names (points without a size) |
 | `model/readers.ts` | "Which code reads these bytes", from the CDL library's xrefs |
 | `model/bus-usage.ts` | CDL facts on the bus side: bank halves code executed from (pcstats + edges), WRAM strip |

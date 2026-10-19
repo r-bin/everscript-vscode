@@ -29,8 +29,8 @@
 const vscode = require('vscode');
 const path   = require('path');
 const fs     = require('fs');
-const { CdlHost } = require('./cdl/host');
-const { TasHost, recordingsDir } = require('./tas/host');
+const { CdlHost } = require('../../../dist/core/emulator/cdl/host');
+const { TasHost, recordingsDir } = require('../../../dist/core/emulator/tas/host');
 const { resolveCore, CORE_SUBDIR } = require('../../../dist/core/emulator/core-path');
 const { setBuildChannel, ensureBuildChannel: _ensureBuildChannel, log: _log, crashHistory: _crashHistory, launchHistory: _launchHistory, scriptTraceHistory: _scriptTraceHistory } = require('../../../dist/core/emulator/emulator-log');
 const { recordRomUsage, setRomDescriber } = require('../../../dist/core/emulator/rom-history');

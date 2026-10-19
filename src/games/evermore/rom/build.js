@@ -8,7 +8,7 @@
 const { headerRegions, roomRegions, textRegions, entityRegions } = require('../../../../dist/games/evermore/rom/model/catalog');
 const { assetRegions, graphicSpans } = require('../../../../dist/games/evermore/rom/model/assets');
 const { audioRegions } = require('../../../../dist/games/evermore/rom/model/audio');
-const { annotateOverlaps, layoutHalves } = require('./model/layout');
+const { annotateOverlaps, layoutHalves } = require('../../../../dist/games/evermore/rom/model/layout');
 const { knownPoints } = require('../../../../dist/games/evermore/rom/model/points');
 const { busToFile } = require('../../../../dist/games/evermore/rom/model/util');
 

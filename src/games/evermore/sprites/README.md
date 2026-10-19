@@ -16,7 +16,7 @@ The radar tab is called **Characters** (it was "Sprites"); inside it, three mode
 | File | Responsibility | Max LOC |
 |---|---|---|
 | `character-model.ts` | Reads all 142 characters, stats, and animation catalog from ROM | < 250 |
-| `animation-decoder.js` | Runs an animation script (via `maps/animation-vm`), aligns frames, renders PNGs, returns the script listing | < 200 |
+| `animation-decoder.ts` | Runs an animation script (via `maps/animation-vm`), aligns frames, renders PNGs, returns the script listing | < 200 |
 | `animation-catalog.ts` | Every animation in the ROM's record table ($C43E3A), who uses it (character fields, weapons, `animate()` ids via $C43C92), and its palette | < 150 |
 | `frame-compose.ts` | Composes a run's frames into PNGs aligned on one feet origin | < 80 |
 | `projectile-render.ts` | Projectile spawns on the playback timeline, their flight and their own animation | < 100 |

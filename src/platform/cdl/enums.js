@@ -4,7 +4,7 @@
  * platform/cdl/enums.js
  *
  * WRAM enums, states and bit flags as export assets, from ram.asm's guesses
- * (wram-export.js classify) plus the values each address was seen holding:
+ * (wram-export.ts classify) plus the values each address was seen holding:
  *   enums.asm   `!enum_7E0ADB_05 = $05` per value; for a state that indexes a
  *               jump table, each value names the handler it dispatches to
  *   enums.json  the same for tools
@@ -14,7 +14,7 @@
 
 const { hex } = require('../../../dist/platform/cdl/rom-map');
 const { decodeAt } = require('../../../dist/platform/cdl/disasm');
-const { buildWramReport } = require('./wram-export');
+const { buildWramReport } = require('../../../dist/platform/cdl/wram-export');
 const { EXT_HEAD, XR } = require('../../../dist/platform/cdl/xref-index');
 
 const WALK = 6;

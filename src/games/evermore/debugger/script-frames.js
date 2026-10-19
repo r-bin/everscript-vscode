@@ -22,7 +22,7 @@
  *     slots: [{ index, ptr, loc, state, parent, entity, timer, args: [16 words] }] }
  */
 
-const { romOffset, sameLocation } = require('./source-map');
+const { romOffset, sameLocation } = require('../../../../dist/games/evermore/debugger/source-map');
 const { hex } = require('../../../../dist/platform');
 
 const STATE_RUN = 2;

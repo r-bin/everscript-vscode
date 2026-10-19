@@ -19,7 +19,7 @@ const { OPCODES, instructionLength, flowKind, FLOW } = require('../../dist/platf
 const { CdlLibrary, romHash } = require('../../dist/platform/cdl/library');
 const { decodeAt, formatInstruction } = require('../../dist/platform/cdl/disasm');
 const { exportAsar } = require('../../src/games/evermore/cdl/tools');
-const { exportWram } = require('../../src/platform/cdl/wram-export');
+const { exportWram } = require('../../dist/platform/cdl/wram-export');
 const { parseQuery, lookup } = require('../../src/platform/cdl/lookup');
 const { createRomMap } = require('../../dist/platform/cdl/rom-map');
 const { buildIndex, SPACE } = require('../../dist/platform/cdl/xref-index');
@@ -267,7 +267,7 @@ test('hit counts sum drained deltas and survive a flush', () => {
 });
 
 test('lookup tables: base, entry size, curve, index source and result', () => {
-    const { findTables, tablesReport } = require('../../src/platform/cdl/tables');
+    const { findTables, tablesReport } = require('../../dist/platform/cdl/tables');
     const rom = makeRom();
     //   A000 AF 10 00 7E  lda.l $7E0010 / A004 0A asl / A005 AA tax
     //   A006 BF 00 B0 C0  lda.l $C0B000,x / A00A 8F 20 00 7E sta.l $7E0020 / A00E 60 rts
@@ -311,7 +311,7 @@ test('host decodes webview deltas (base64 words) into the library', () => {
         return origLoad.call(this, req, ...rest);
     };
     try {
-        const { CdlHost } = require('../../src/core/emulator/cdl/host');
+        const { CdlHost } = require('../../dist/core/emulator/cdl/host');
         const posted = [];
         let wanted = false;
         const host = new CdlHost(path.join(tmp, 'host'), m => posted.push(m), () => {},
@@ -378,7 +378,7 @@ test('script accessors show up in ram.asm and lookup; interpreter found by patte
     const origLoad = Module._load;
     Module._load = function (req, ...rest) { return req === 'vscode' ? {} : origLoad.call(this, req, ...rest); };
     try {
-        const { findScriptContext, parseRanges } = require('../../src/core/emulator/cdl/host');
+        const { findScriptContext, parseRanges } = require('../../dist/core/emulator/cdl/host');
         const withVm = makeRom();
         withVm.set([0xA7, 0x82, 0xE6, 0x82, 0x29, 0xFF, 0x00, 0x0A, 0xAA, 0xFC, 0xBD, 0xE8], 0xD0A6);
         assert.deepStrictEqual(findScriptContext(withVm), { fetchRomOff: 0xD0A6, ptr: 0x82 });

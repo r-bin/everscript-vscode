@@ -22,8 +22,8 @@
 
 const vscode = require('vscode');
 const { EmulatorDebugSession } = require('./emulator-session');
-const { findSourceMap } = require('./source-map');
-const { NAME_PATTERN, MEMORY_PATTERN } = require('./memory-access');
+const { findSourceMap } = require('../../../../dist/games/evermore/debugger/source-map');
+const { NAME_PATTERN, MEMORY_PATTERN } = require('../../../../dist/games/evermore/debugger/memory-access');
 const { conditionOf } = require('../../../../dist/games/evermore/debugger/conditions');
 
 class InlineAdapter {
