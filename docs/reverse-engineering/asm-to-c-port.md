@@ -4,7 +4,7 @@
 > relocation in v0.158.0, and the stage 3 lift via snesrecomp in v0.159.x. Where this
 > stands and what comes next: §11.
 > Prerequisite reading: [cdl-design-history.md](cdl-design-history.md).
-> Step-by-step usage: [cdl-export-build-recomp.md](cdl-export-build-recomp.md) and [incremental-decomp-guide.md](incremental-decomp-guide.md).
+> Step-by-step usage: [cdl-export-build-recomp.md](cdl-export-build-recomp.md), [incremental-decomp-guide.md](incremental-decomp-guide.md), and [c-compilation-hirom-memory-map.md](c-compilation-hirom-memory-map.md).
 
 ---
 
@@ -465,4 +465,3 @@ verified function at a time, and the generated C shrinks accordingly.
 4. **Widen the room id:** verify in compat mode first, then extend (§8.4).
 5. **In parallel, on the ROM side:** symbolise more pointer forms (§8.1) with the padding
    test (§4) as the check. This is what moving code and data beyond rooms and strings needs.
-

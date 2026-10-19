@@ -10,7 +10,7 @@
 | | `structs.h`, `tables.h` | C headers | ✅ already compatible: Ghidra parses C headers, snesrecomp and C ports include them |
 | | `functions.json`, `tables.json`, `enums.json`, `structs.json` | our JSON | ✅ fine; candidates for one canonical symbol file (§2) |
 | | `recomp/cfg/bankXX.cfg` | snesrecomp's directive format | ✅ required by its parser (`recompiler/v2/cfg_loader.py`) |
-| Names | `functions.js`, `tables.js`, `src/games/evermore/script-model/names.json`, `knowledge/{ram,rom}/*.md` | JS tables, JSON, Markdown with front matter | ⚠️ four sources. Markdown entries are the target format (skill `game-knowledge`), but nothing loads them yet |
+| Names | `functions.ts`, `tables.ts`, `src/games/evermore/script-model/names.json`, `knowledge/{ram,rom}/*.md` | JS tables, JSON, Markdown with front matter | ⚠️ four sources. Markdown entries are the target format (skill `game-knowledge`), but nothing loads them yet |
 
 Overall the internal formats are sound. What is missing is **interchange**: our names and facts
 reach only our own tools. Mesen2, Ghidra, REA, bsnes-plus and snesrecomp each want their own
@@ -22,8 +22,8 @@ Generate one file, `symbols.json`, from the name sources and the library. Write 
 format from it, never by hand.
 
 ```text
-functions.js ─┐
-tables.js ────┤                          ┌─► Mesen2 labels (.mlb)
+functions.ts ─┐
+tables.ts ────┤                          ┌─► Mesen2 labels (.mlb)
 names.json ───┼─► symbols.json ──────────┼─► Ghidra seeds (TSV) + context (TSV) + structs.h
 knowledge/*.md┤   (canonical, generated) ├─► REA seeds (same TSV)
 CDL library ──┘                          ├─► WLA-DX style .sym (bsnes-plus and others)

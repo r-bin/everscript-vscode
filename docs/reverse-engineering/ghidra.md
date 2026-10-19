@@ -12,7 +12,7 @@ drives the same Ghidra underneath). Agent how-to: skill `ghidra-analysis`.
 |---|---|---|
 | **Static fill**: functions and direct-call edges in code the CDL never saw | Flow analysis from known entries reaches unplayed code. In the spike: 556 functions from 449 seeds, 234/361 with real callers | ROM map (G1), Asar export (code instead of `incbin`), snesrecomp seeds |
 | **Accessors of long WRAM addresses** (`LDA $7E:xxxx`) in unplayed code | Static xrefs | RAM map (G1) |
-| **Reading and naming** routines (GUI for humans, scripts/REA for agents) | Listing + callers + callees + named refs in one place, persistent project | `functions.js`, knowledge entries (G2) |
+| **Reading and naming** routines (GUI for humans, scripts/REA for agents) | Listing + callers + callees + named refs in one place, persistent project | `functions.ts`, knowledge entries (G2) |
 | **Type-aware reading** | Parses C headers: our `structs.h` → struct fields in the listing | Naming, decomp prep |
 
 **Do not use it for:**
@@ -74,7 +74,7 @@ and the name sources. Nothing in them comes from the ROM.
    ```
    Expect `Using Loader: SNES ROM Loader`, `65816:LE:24:snes:default`, `mode=HiROM`.
 6. **Seed from the CDL** before analysis: functions at their *execution* address (`$8x` for
-   upper-half code), names from `functions.js`, WRAM labels from `ram-symbols`. Today the seed
+   upper-half code), names from `functions.ts`, WRAM labels from `ram-symbols`. Today the seed
    generator lives in the local spike (`scripts/gen-seeds.js`); planned in-repo as an export
    (see [formats.md](formats.md)). Without seeds Ghidra finds 1 function.
 7. Keep projects, exports and listings **outside the repo**.
@@ -98,7 +98,7 @@ and what not.
   already outside the repo and already read by `soe://`, the ROM tab and the Asar export, so the
   static facts show up everywhere without new plumbing.
 - `soe://` gains nothing Ghidra-specific. It shows "callers: 3 recorded, 2 static".
-- Disassembly in `soe://` keeps coming from our own `disasm.js`, run on the user's ROM.
+- Disassembly in `soe://` keeps coming from our own `disasm.ts`, run on the user's ROM.
 
 ## 6. Ghidra alone vs. REA
 

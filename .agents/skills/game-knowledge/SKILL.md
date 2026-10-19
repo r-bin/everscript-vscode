@@ -95,7 +95,7 @@ the room id.
 - **Evidence makes it trustworthy.** Say how you know. `confirmed` needs a trace, test or
   disassembly you actually looked at.
 - **Entries are the one source.** `localizations/knowledge.ts` loads them; `functions.ts` and
-  `tables.js` are views of the ROM entries of kind `code`/`script` and `table`/`data` that have a
+  `tables.ts` are views of the ROM entries of kind `code`/`script` and `table`/`data` that have a
   `category` (🧠 code, 📜 script, 📋 table, ⚗️ alchemy, 👾 enemies, 🎞️ animation, ⚔️ weapons,
   🎒 items) — that is how a routine or table reaches the ROM tab, `soe://localization`, the asm
   view, the Asar/recomp exports. A new routine or table name is an entry with a `category`; never

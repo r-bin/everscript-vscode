@@ -96,7 +96,7 @@ new to us, not checked yet.
 | `$8E:B55A` | 143 words | Enemy id → record | known (`rom/8eb55a.md`) |
 | `$8E:B678` | 142 × 74 B | Character records (§4) | known; field names extend ours |
 | `$8F:936D` | 6 × 40 B | **Dog form record**: default standing animation, status icon, palette, aggro range, then animation ids (stand, walk, run, block, recoil, L0–L3 attack, sniff, sniff move, sleep, sit, own action, bark) | partly known (`docs/adding-animations.md`) |
-| `$8F:B090` | bytes | Bookmark "1 byte numbers" | in `tables.js` |
+| `$8F:B090` | bytes | Bookmark "1 byte numbers" | in `tables.ts` |
 | `$8F:BAE3` | 26 × 52 B | Unnamed word arrays | lead |
 | `$90:D441` | 2 × 32 B | Unnamed | lead |
 | `$90:D9A6` | 21 × 24 B | **Projectile record**: +0 script, +2 palette, +C type, +E velocity, +10 lifespan, +12 upward velocity, +14 attack calc type, +16 fixed attack | lead (the `animation_script.md` reference there names the record start only) |

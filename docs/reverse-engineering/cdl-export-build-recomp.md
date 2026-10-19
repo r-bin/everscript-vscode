@@ -31,7 +31,7 @@ npm run recomp     # also builds the playable game, see docs/recomp/README.md
 ```
 
 `tools/recomp/build.js` runs §3–§5 below without VS Code. It reads the recorded library from
-globalStorage, adds our curated names (`functions.js`, `tables.js`, knowledge entries) as labels,
+globalStorage, adds our curated names (`functions.ts`, `tables.ts`, knowledge entries) as labels,
 adds the ROM tab's asset regions to a Mesen2 CDL, writes Mesen2 labels and comments, checks
 that the rebuild is byte-identical, runs snesrecomp with the seeds, and writes
 `out/recomp/REPORT.md`, a prioritised list of what still blocks a recomp. Details:

@@ -125,7 +125,7 @@ work behind a "seen lately" or "already marked" check.
 | File | Module | Derived from |
 |---|---|---|
 | `recomp/cfg/bankXX.cfg` | `recomp-seeds.ts`, `recomp-analysis.ts` | `func … entry_mx exit_mx`, `exit_mx_variant` / `exit_mx_set` from rets; `indirect_dispatch … idx:X` for `jmp/jsr (abs,X)` (count = highest table entry that is an observed target); `ptrtail` / `ptrcall` (PEA before) for `jmp (abs)` / `jml [abs]`; `rtsstack` for `pei ; rts`; `ram_routine` for unchanged WRAM code; comments for PHA/PEA+RTS dispatch, adjusted returns, never-returning callees |
-| `tables.md`, `tables/tbl_*.asm`, `tables.json`, `tables.h` | `tables.js`, `table-assets.ts` | indexed ROM reads. Asset only when dense (≥1 recorded index per 8 entries), no executed byte inside, no overlap, one bank; else comment only. Code operands into an asset become `tbl_X+$n` |
+| `tables.md`, `tables/tbl_*.asm`, `tables.json`, `tables.h` | `tables.ts`, `table-assets.ts` | indexed ROM reads. Asset only when dense (≥1 recorded index per 8 entries), no executed byte inside, no overlap, one bank; else comment only. Code operands into an asset become `tbl_X+$n` |
 | `enums.asm`, `enums.json` | `enums.ts` | ram.asm classification; a state that feeds `asl / tax / jsr (abs,X)` maps each value to its handler |
 | `structs.asm`, `structs.h`, `structs.json` | `structs.ts` | indexed absolute accesses, pointer bases + Y, D ≠ 0. Sets merge when they share ≥ half the smaller one and sit on the larger one's stride; byte-stride groups that overlap are dropped |
 | `functions.json` | `functions.ts` | per function: entries, callers/callees, widths, DB/D, WRAM ranges, I/O by class, ROM data, pointer bases, SA-1 blockers (direct + through callees), `cycles`, `execForms` / `readForms` (mirrors used) |

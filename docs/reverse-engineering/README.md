@@ -16,6 +16,7 @@ Last updated 2026-10-12 (v0.201.9).
 | [cdl-design-history.md](cdl-design-history.md) | Original design and what was built (§9) |
 | [asm-to-c-port.md](asm-to-c-port.md) | **snesrecomp + lockstep `hle_func`**: the path to C, room ids, status |
 | [incremental-decomp-guide.md](incremental-decomp-guide.md) | **Step-by-step incremental decomp**: from mechanical C to verified idiomatic C with examples |
+| [c-compilation-hirom-memory-map.md](c-compilation-hirom-memory-map.md) | **C compilation & HiROM memory map**: lessons from zelda3, LoROM vs HiROM, and linker/RTL architecture |
 | [ghidra.md](ghidra.md) | **Ghidra + ghidra-snes**: what for, plugin gaps, setup with workarounds, VFS |
 | [docs/recomp/](../recomp/README.md) | **Static recompilation (snesrecomp)**: [setup](../recomp/setup.md), [Game RTL glue](../recomp/game-rtl.md), [debugging](../recomp/debugging.md), [bugs & roadmap](../recomp/bugs-and-todos.md) |
 | [recomp-bug-hunt.md](recomp-bug-hunt.md) | *(Moved to [docs/recomp/bugs-and-todos.md](../recomp/bugs-and-todos.md))* |
@@ -74,7 +75,7 @@ complement, REA optional.**
 | 1. Raise coverage from ~5 % | CDL + headless harness: scripted inputs from a save state per room, menu, boss, death | harness exists; scripted runs and save-state set to build ([cdl.md](cdl.md) §3) |
 | 2. Record context | CDL improvements 1–3: room/mode/NMI tags, data lineage, DMA destinations | to build ([cdl.md](cdl.md) §2) |
 | 3. Fill unplayed code statically | Ghidra headless, seeded + context-applied from the CDL, exports `static.json` into the library | loader patch done locally; seed/context export and Ghidra scripts to build ([ghidra.md](ghidra.md)) |
-| 4. Name and explain | `re-curator` agent passes over the gaps, writing `functions.js` / knowledge entries with evidence | agent defined (§7) |
+| 4. Name and explain | `re-curator` agent passes over the gaps, writing `functions.ts` / knowledge entries with evidence | agent defined (§7) |
 | 5. Publish the maps | generator: knowledge entries + library + ROM tab model → RAM map and ROM map (wiki §4 and `soe://`) | ROM tab exists; entry loader and map generator to build |
 
 ### G2 — Named recomp + every asset decoded (highest priority)
@@ -139,7 +140,7 @@ and tools; both games' data comes from the user's ROMs at runtime.
        └──────────► Ghidra + ghidra-snes ─────────────────┘
                           │ dossiers (or REA)
                           ▼
-   re-curator ─► functions.js / tables.js / knowledge entries   (single name source)
+   re-curator ─► functions.ts / tables.ts / knowledge entries   (single name source)
                           │
            ┌──────────────┼───────────────┬──────────────┐
            ▼              ▼               ▼              ▼
@@ -170,7 +171,7 @@ entries with confidence and evidence and report what still needs the emulator. I
 
 It is only as good as its inputs. Missing pieces that would make it fully streamlined:
 `symbols.json`, an in-repo seed/dossier export, the entry loader, and the map generator (§3 G1).
-Until then it writes `functions.js` / `tables.js` lines and RAM entries by hand, which is how
+Until then it writes `functions.ts` / `tables.ts` lines and RAM entries by hand, which is how
 the first 12 names and 7 entries were made (rea.md §10.3).
 
 ## 8. Legal
