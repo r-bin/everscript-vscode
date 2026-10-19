@@ -133,7 +133,7 @@ function recordInto(root, rom, hits) {
                 if (!/^src\/.*\.js$/.test(f) || /\/(core|webview)\//.test(f)) continue;
                 require(path.join(stage, f));
             }
-            require(path.join(stage, 'src/recorder/extension.js')).activate({ subscriptions: [], globalState: { get: (k, d) => d, update() {} } });
+            require(path.join(stage, 'dist/recorder/extension.js')).activate({ subscriptions: [], globalState: { get: (k, d) => d, update() {} } });
         } finally {
             Module._load = origLoad;
         }
@@ -144,7 +144,7 @@ function recordInto(root, rom, hits) {
     });
 
     await test('buildHtml: the recorder profile is data, marks what it hides, offers the bundle export', () => {
-        const { buildHtml } = require('../../src/core/emulator/panel-webview');
+        const { buildHtml } = require('../../dist/core/emulator/panel-webview');
         const html = buildHtml({ cspSource: '' }, 'core.js', 'core.wasm', 'core', 'core', null, { profile: 'recorder' });
         assert.ok(html.includes('<body class="profile-recorder">'));
         assert.ok(html.includes('<script type="application/json" id="emu-config">{"profile":"recorder"}</script>'));
@@ -161,13 +161,13 @@ function recordInto(root, rom, hits) {
         let browser;
         try { browser = await chromium.launch(); } catch (e) { console.log('    (no browser: skipped)'); return; }
         try {
-            const { buildHtml } = require('../../src/core/emulator/panel-webview');
+            const { buildHtml } = require('../../dist/core/emulator/panel-webview');
             const dataUri = (file, type) => `data:${type};base64,` + fs.readFileSync(path.join(ROOT, 'src/core/emulator/webview', file)).toString('base64');
             const page = async profile => {
                 const html = buildHtml({ cspSource: '' }, 'core.js', 'core.wasm', 'core', 'core', null, {
                     profile,
                     // As the extensions pass it: Everscript hands in Evermore's part of the page, the recorder none.
-                    gameView: profile === 'full' ? require('../../src/games/evermore/emulator/host').webview() : null,
+                    gameView: profile === 'full' ? require('../../dist/games/evermore/emulator/host').webview() : null,
                     styles: [dataUri('emulator-profile.css', 'text/css'), dataUri('emulator-panels.css', 'text/css')],
                     // As the extensions pass them: Everscript's page gets Evermore's ROM detector first, the recorder's none.
                     scripts: (profile === 'full' ? ['data:text/javascript;base64,' + fs.readFileSync(path.join(ROOT, 'src/games/evermore/emulator/webview/rom-game.js')).toString('base64')] : []).concat([dataUri('emulator-profile.js', 'text/javascript'), dataUri('emulator-panels.js', 'text/javascript'), dataUri('replays-list.js', 'text/javascript')]),

@@ -1,8 +1,8 @@
 // TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Custom maps on disk and their export archive:
-// src/games/evermore/rooms/data/custom-store.ts, src/games/evermore/rooms/custom-host.js,
-// src/games/evermore/rooms/rendering/custom-export.js, src/platform/zip.ts.
+// src/games/evermore/rooms/data/custom-store.ts, src/games/evermore/rooms/custom-host.ts,
+// src/games/evermore/rooms/rendering/custom-export.ts, src/platform/zip.ts.
 // The format is docs/map-format/custom-map-files.md.
 //
 // The archive checks need the ROM and skip, not fail, without it.
@@ -15,8 +15,8 @@ const assert = require('assert');
 const store = require('../../dist/games/evermore/rooms/data/custom-store');
 const widgetStore = require('../../dist/games/evermore/rooms/data/widget-store');
 const { buildZip, readZip } = require('../../dist/platform/zip');
-const { handleCustomMapMessage, handlesCustomMapMessage } = require('../../src/games/evermore/rooms/custom-host');
-const { mapSlug, sampleEvs } = require('../../src/games/evermore/rooms/rendering/custom-export');
+const { handleCustomMapMessage, handlesCustomMapMessage } = require('../../dist/games/evermore/rooms/custom-host');
+const { mapSlug, sampleEvs } = require('../../dist/games/evermore/rooms/rendering/custom-export');
 
 const ROM_PATH = require('../../dist/games').romPath('evermore');
 
@@ -99,7 +99,7 @@ test('maps saved the old way, in the UI prefs, move into folders once', () => {
 });
 
 
-/** A fake of the bits of the VS Code API custom-host.js uses. */
+/** A fake of the bits of the VS Code API custom-host.ts uses. */
 function fakeHost(root, answer) {
     const posted = [];
     let prefs = { customMaps: [{ key: 'custom-p-1', name: 'From prefs', borrow: 0x34, w: 16, h: 14, saved: {} }], other: 1 };
@@ -251,7 +251,7 @@ if (!rom) {
     });
 
     // A vanilla room in the editor: its triggers and objects as the palette
-    // hands them over (src/games/evermore/rooms/rendering/metatile-palette.js).
+    // hands them over (src/games/evermore/rooms/rendering/metatile-palette.ts).
     const { buildRoomMetatilePalette } = require('../../src/games/evermore/rooms');
     test('a vanilla room\'s triggers arrive as inclusive map cells, on the objects they belong to', () => {
         // Room 0x38 (origin 17,11): each gourd's B-trigger covers exactly its

@@ -391,15 +391,15 @@ test('script accessors show up in ram.asm and lookup; interpreter found by patte
 });
 
 test('webview exposes the CDL tab and its script parses', () => {
-    const src = fs.readFileSync(path.join(ROOT, 'src', 'core', 'emulator', 'cdl-view.js'), 'utf8');
-    assert.ok(!/[^\x09\x0A\x0D\x20-\x7E]/.test(src), 'cdl-view.js must be ASCII');
-    const { buildHtml } = require('../../src/core/emulator/panel-webview');
+    const src = fs.readFileSync(path.join(ROOT, 'src', 'core', 'emulator', 'cdl-view.ts'), 'utf8');
+    assert.ok(!/[^\x09\x0A\x0D\x20-\x7E]/.test(src), 'cdl-view.ts must be ASCII');
+    const { buildHtml } = require('../../dist/core/emulator/panel-webview');
     const html = buildHtml({ cspSource: '' }, 'core.js', 'core.wasm', 'core', 'core');
     assert.ok(html.includes('id="ss-tab-cdl"') && html.includes('id="ss-view-cdl"'));
     assert.ok(html.includes('id="emu-slot-cdl"') && html.includes('id="menu-val-place-cdl"'), 'CDL has a pause-menu tab with its placement');
     assert.ok(html.includes('id="cdl-float-layer"'), 'floating coverage text layer');
     assert.ok(html.includes('cdlOnPauseChanged(paused)'), 'frame loop reports pause changes');
-    for (const f of ['cdl-float.js', 'cdl-strips.js']) {
+    for (const f of ['cdl-float.ts', 'cdl-strips.ts']) {
         const text = fs.readFileSync(path.join(ROOT, 'src', 'core', 'emulator', f), 'utf8');
         assert.ok(!/[^\x09\x0A\x0D\x20-\x7E]/.test(text), f + ' must be ASCII');
     }

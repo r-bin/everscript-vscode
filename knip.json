@@ -1,6 +1,6 @@
 {
   "entry": [
-    "src/recorder/extension.js",
+    "dist/recorder/extension.js",
     "src/games/evermore/language/config.ts",
     "tests/**/*.test.js",
     "tools/**/*.{js,mts}",

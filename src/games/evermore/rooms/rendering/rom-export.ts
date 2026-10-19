@@ -224,7 +224,7 @@ function buildExportRom(vanilla: ArrayLike<number>, asDrawn: ExportDraft) {
     return {
         rom,
         // The map's own bytes, as written into room 0x15 — the export archive's
-        // `.bin` (custom-export.js), checked by the same round trip as the ROM.
+        // `.bin` (custom-export.ts), checked by the same round trip as the ROM.
         blob: built.blob,
         report: {
             room: BRIAN_ROOM,
@@ -321,4 +321,5 @@ function verifyExport(rom: Uint8Array, built: ReturnType<typeof maps.buildCustom
     }
 }
 
+export type { ExportDraft };
 export { buildExportRom, withTriggerGates, BRIAN_ROOM, INTRO_FIRST_CODE, BLOB_OFFSET, SCRIPT_OFFSET, EXPANDED_SIZE };

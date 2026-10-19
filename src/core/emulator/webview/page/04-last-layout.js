@@ -100,7 +100,7 @@
       m.onBreakpointHit = function(event) {
         // The VS Code script debugger's interpreter hook decides for itself (false = keep running).
         if (event.type === 'exec' && typeof sdbgOnHit === 'function' && event.address === SDBG_DISPATCH && sdbg.armed) return sdbgOnHit(m);
-        // Who sent a sound effect (sound-source-view.js): record, keep running.
+        // Who sent a sound effect (sound-source-view.ts): record, keep running.
         if (event.type === 'exec' && typeof sndOnHit === 'function' && event.address === SND_SEND && sndArmed) return sndOnHit(m);
         const addrText = event.type === 'write'
           ? '7E' + fmtHex(event.address, 4)
@@ -163,7 +163,7 @@
           } else {
             polledWhilePaused = false;
           }
-          // The game's script VM (Evermore: stack-view.js); without one only the debugger status updates.
+          // The game's script VM (Evermore: stack-view.ts); without one only the debugger status updates.
           const src = typeof readScriptStackRegion === 'function' ? readScriptStackRegion() : { mode: hasDebuggerApi(m) ? 'debugger' : 'unavailable', bytes: null };
           refreshDebuggerUi(m, src.mode);
           if (src.bytes) {

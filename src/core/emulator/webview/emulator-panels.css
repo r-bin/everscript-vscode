@@ -86,7 +86,7 @@
 #emu-slot-stack #ss-table { margin: 4px 0; }
 #emu-slot-stack #ss-table th, #emu-slot-stack #ss-table td { padding-left: 14px; }
 #emu-slot-palettes .pal-title { width: 170px; }
-/* The selected panel row (Up / Down; menu-view.js menuSelectableRows) */
+/* The selected panel row (Up / Down; menu-view.ts menuSelectableRows) */
 .emu-panel-slot .menu-pick.selected { background: rgba(78, 201, 176, 0.14); box-shadow: inset 3px 0 #4ec9b0; }
 .emu-panel-slot tr.menu-pick.selected > td { background: rgba(78, 201, 176, 0.14); }
 .emu-panel-slot tr.menu-pick.selected > td:first-child { box-shadow: inset 3px 0 #4ec9b0; }
@@ -96,7 +96,7 @@
 .menu-panel-host.scrolling .menu-row.selected .menu-row-cursor { opacity: 0; }
 .menu-panel-host.scrolling .emu-panel-slot { box-shadow: inset 3px 0 #4ec9b0; }
 
-/* CDL in its pause-menu tab: its buttons are menu rows (menu-view.js), so only the status
+/* CDL in its pause-menu tab: its buttons are menu rows (menu-view.ts), so only the status
    line and the strips stay. */
 #emu-slot-cdl #cdl-body { flex: none; overflow: visible; }
 #emu-slot-cdl #cdl-banks { flex: 1; overflow: visible; padding: 0 0 4px; }

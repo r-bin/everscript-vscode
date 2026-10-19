@@ -2992,7 +2992,7 @@ test('prediction card supports relationship +, vanilla examples, and procedural 
     ui.setNbMode('cross');
 });
 
-// What custom-host.js sends with the library for the urn's and the fan's art (ROM counts).
+// What custom-host.ts sends with the library for the urn's and the fan's art (ROM counts).
 const URN_FAMILIES = {
     643: [[115, 49], [35, 11], [127, 8], [139, 7], [159, 6], [188, 2], [158, 1]],
     644: [[115, 49], [35, 11], [127, 7], [139, 7], [159, 6], [188, 2], [158, 1]],

@@ -15,7 +15,7 @@
 
 ## Dependency Check
 
-- Validated model availability: byte-script execution state comes from the custom SNES core bridge in [src/core/emulator/panel.js](../src/core/emulator/panel.js).
+- Validated model availability: byte-script execution state comes from the custom SNES core bridge in [src/core/emulator/panel.ts](../src/core/emulator/panel.ts).
 - Data sources: active emulator session, configured vanilla ROM, decoded room-script model from [src/games/evermore/script-model/](../src/games/evermore/script-model/README.md), current open `.evs` file for mock-source debugging.
 - Live byte-script addresses map back to `.evs` lines through the compiler's `out/source_map.json`.
 

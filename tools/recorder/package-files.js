@@ -19,9 +19,9 @@ const path = require('path');
 const Module = require('module');
 
 const ROOT = path.resolve(__dirname, '..', '..');
-const ENTRIES = ['src/recorder/extension.js', 'tools/cdl/replay.js'];
-// Loaded by path, not by require: the cores (panel.js _bundledCore) and the
-// webview's own files (panel.js _resetPanelHtml).
+const ENTRIES = ['dist/recorder/extension.js', 'tools/cdl/replay.js'];
+// Loaded by path, not by require: the cores (panel.ts _bundledCore) and the
+// webview's own files (panel.ts _resetPanelHtml).
 const ASSETS = [
     'src/core/emulator/core/snes9x2005-wasm/snes9x_2005.js',
     'src/core/emulator/core/snes9x2005-wasm/snes9x_2005.wasm',

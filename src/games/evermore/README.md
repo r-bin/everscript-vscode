@@ -16,6 +16,6 @@ Rules: [AGENTS.md](AGENTS.md). Every folder below has its own `AGENTS.md` and `R
 | `language/` | feature | Grammar, theme, hover, completion, Build and Run |
 | `debugger/` | feature | Debugging `.evs` scripts in the emulator |
 | `memory/`, `rooms/`, `sprites/`, `scripts-tab/`, `music/`, `rom/`, `scaling/`, `docs-tab/` | feature | The radar panel and its tabs |
-| `emulator/` | feature | Evermore's half of the emulator panel: host side (room pictures, sprites, icons, script trace) and its part of the page, `webview()` (ENTITIES / ALCHEMY / PALETTES and the cheats, `bottom-bar-views.js`; pause-menu tabs 1-4, `menu-tabs.js`; the screen overlays, entity sprites, inspector and per-frame RAM sample, `overlays-view.js` with `room-triggers.ts`) |
+| `emulator/` | feature | Evermore's half of the emulator panel: host side (room pictures, sprites, icons, script trace) and its part of the page, `webview()` (ENTITIES / ALCHEMY / PALETTES and the cheats, `bottom-bar-views.ts`; pause-menu tabs 1-4, `menu-tabs.ts`; the screen overlays, entity sprites, inspector and per-frame RAM sample, `overlays-view.ts` with `room-triggers.ts`) |
 | `cdl/` | feature | The CDL export's Evermore seeds and the CDL tab's tools |
 | `imports/mana/` | bridge | Secret of Mana maps as Evermore rooms (`docs/mana/evermore-rooms.md`) |

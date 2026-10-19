@@ -27,7 +27,7 @@ The radar panel's **Music** tab: one screen (no page scroll) that shows the SNES
   note at `$0981`), in 1/20 semitone (−256 = −12.8). Animation commands `0x40 n` send a fixed `n`;
   `0x3F` sends −(Boy's stamina `$7E4EB7` / 4), so the Boy's swing drops with his stamina. Boxes show
   `↓0.8` / `↑6.4`; rows mark `~pitch` for effects an animation varies.
-- **Who sent a sound** (emulator only, custom core): `emulator/sound-source-view.js` hooks
+- **Who sent a sound** (emulator only, custom core): `emulator/sound-source-view.ts` hooks
   `$8C:81FD` while the stream runs or the emulator's SOUNDS chip is on (the chip also switches the
   rings, labelled with the effect's name). The box label says `← Boy (animation)`, `← script $93D386`
   or `← engine code $8F95C1`; the sidebar row says *sent by*; the emulator rings the entity for
@@ -49,7 +49,7 @@ engine on the host), injected by `extension.js`. Opcodes are still undecoded: `d
 ## The driver's own bookkeeping (disassembly of the ROM driver, verified in the engine)
 
 The emulator stream sends these ARAM bytes with every frame (`drv`,
-`emulator/apu-stream-view.js` `APU_DRIVER_RANGES`); `music-view.js` decodes them:
+`emulator/apu-stream-view.ts` `APU_DRIVER_RANGES`); `music-view.js` decodes them:
 
 | ARAM | Meaning |
 |---|---|
@@ -78,7 +78,7 @@ so the read-ahead never blinks empty. What the game will send next it cannot kno
 - **Emulator:** the custom core exports `getApuView()` (`core/.../source/exports.c`). This is
   224 bytes: SPC700 registers, the four ports in both directions, timers, the 128 DSP
   registers (ENVX/OUTX filled from the mixer) and the ARAM address. The emulator page posts
-  it after every emulated frame while the tab wants it (`emulator/apu-stream-view.js`), with
+  it after every emulated frame while the tab wants it (`emulator/apu-stream-view.ts`), with
   the loaded package (WRAM `$7E0E4B`), each voice's sample start (ARAM at DIR·256 + SRCN·4) and
   the driver bytes below. The tab asks for all 64 KB of ARAM when the package changes, and for
   the read-ahead.

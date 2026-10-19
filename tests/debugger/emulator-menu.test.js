@@ -4,15 +4,15 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
-const menuView = require('../../src/core/emulator/menu/menu-view');
-// The menu as Everscript shows it: with Evermore's tabs 1-4 (games/evermore/emulator/menu-tabs.js).
-const tabs = require('../../src/games/evermore/emulator/menu-tabs');
+const menuView = require('../../dist/core/emulator/menu/menu-view');
+// The menu as Everscript shows it: with Evermore's tabs 1-4 (games/evermore/emulator/menu-tabs.ts).
+const tabs = require('../../dist/games/evermore/emulator/menu-tabs');
 const getMenuCss = () => menuView.getMenuCss() + tabs.getMenuTabsCss();
 const getMenuHtml = () => menuView.getMenuHtml({ tabButtonsHtml: tabs.getMenuTabButtonsHtml(), panelsHtml: tabs.getMenuPanelsHtml() });
 const getMenuClientScript = () => menuView.getMenuClientScript() + tabs.getMenuTabsClientScript();
-const { getMenuSoundScript } = require('../../src/core/emulator/menu/menu-sound');
-const { getSoundSourceClientScript } = require('../../src/games/evermore/emulator/sound-source-view');
-const { buildHtml } = require('../../src/core/emulator/panel-webview');
+const { getMenuSoundScript } = require('../../dist/core/emulator/menu/menu-sound');
+const { getSoundSourceClientScript } = require('../../dist/games/evermore/emulator/sound-source-view');
+const { buildHtml } = require('../../dist/core/emulator/panel-webview');
 
 let passed = 0;
 let failed = 0;
@@ -34,11 +34,11 @@ console.log('Emulator Quick Menu Tests:');
 // 1. ASCII-only verification
 test('menu-view.js, menu-sound.js, and sound-source-view.js are strictly ASCII-only', () => {
     const files = [
-        path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'menu', 'menu-view.js'),
-        path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'menu-tabs.js'),
-        path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'menu', 'menu-sound.js'),
-        path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'sound-source-view.js'),
-        path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'panel-webview.js'),
+        path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'menu', 'menu-view.ts'),
+        path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'menu-tabs.ts'),
+        path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'menu', 'menu-sound.ts'),
+        path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'sound-source-view.ts'),
+        path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'panel-webview.ts'),
     ];
     for (const dir of [path.join('src', 'core', 'emulator', 'webview'), path.join('src', 'games', 'evermore', 'emulator', 'webview')]) {
         const walk = (d) => { for (const f of fs.readdirSync(d)) { const full = path.join(d, f); if (fs.statSync(full).isDirectory()) walk(full); else files.push(full); } };

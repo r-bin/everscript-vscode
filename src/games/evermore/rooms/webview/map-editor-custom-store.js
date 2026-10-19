@@ -4,7 +4,7 @@
 // reopening the map that was open when the panel was rebuilt, exporting a
 // map as a .zip and deleting one.
 //
-// The host side is rooms/custom-host.js; the files are
+// The host side is rooms/custom-host.ts; the files are
 // docs/map-format/custom-map-files.md. Split out of map-editor-custom.js,
 // which owns the rail rows and binding a map to the draft.
 //

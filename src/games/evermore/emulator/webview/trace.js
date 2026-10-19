@@ -35,7 +35,7 @@
 
     let lastStepOnScriptId = 0xFFFF;
     let lastStepOnIndex = -1;
-    // A (re)started ROM (panel-webview.js bootRom).
+    // A (re)started ROM (panel-webview.ts bootRom).
     function gameTraceReset() {
       lastStepOnScriptId = 0xFFFF;
       lastStepOnIndex = -1;

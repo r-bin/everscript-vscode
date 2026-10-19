@@ -7,7 +7,7 @@
 const GAMES = [
     require('./games/evermore/extension'),
     require('./games/mana/extension'),
-    require('./games/terra/extension'),
+    require('../dist/games/terra/extension'),
 ];
 
 function activate(context) {

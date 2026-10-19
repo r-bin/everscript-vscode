@@ -4,9 +4,9 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
-// The page as Everscript builds it: with Evermore's part (games/evermore/emulator/host.js webview()).
-const _gameView = require('../../src/games/evermore/emulator/host').webview();
-const buildHtml = (w, js, wasm, label, p, offer, opts) => require('../../src/core/emulator/panel-webview').buildHtml(w, js, wasm, label, p, offer || null, Object.assign({ gameView: _gameView }, opts || {}));
+// The page as Everscript builds it: with Evermore's part (games/evermore/emulator/host.ts webview()).
+const _gameView = require('../../dist/games/evermore/emulator/host').webview();
+const buildHtml = (w, js, wasm, label, p, offer, opts) => require('../../dist/core/emulator/panel-webview').buildHtml(w, js, wasm, label, p, offer || null, Object.assign({ gameView: _gameView }, opts || {}));
 
 let passed = 0;
 let failed = 0;
@@ -28,8 +28,8 @@ console.log('Emulator Map Overlays (Objects, Animated Tiles, & Collision Lines) 
 // 1. ASCII-only verification
 test('panel.js and panel-webview.js are strictly ASCII-only', () => {
     const files = [
-        path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'panel.js'),
-        path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'panel-webview.js'),
+        path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'panel.ts'),
+        path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'panel-webview.ts'),
     ];
     for (const f of files) {
         const content = fs.readFileSync(f, 'utf8');
@@ -74,7 +74,7 @@ test('panel-webview contains renderObjectsOverlay, renderAnimTilesOverlay, and r
 
 // 4. Panel.js passes objects, animTiles, and collisionUri in roomMapRendered
 test('the Evermore emulator host computes and passes objects, animTiles, and collisionUri in roomMapRendered data', () => {
-    const panelContent = ['host.js', 'room-meta.ts', 'room-map.ts']
+    const panelContent = ['host.ts', 'room-meta.ts', 'room-map.ts']
         .map((f) => fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', f), 'utf8')).join('\n');
 
     assert.ok(/roomObjects(: [\w[\]]+)? = \[\]/.test(panelContent), 'roomObjects extraction missing');
@@ -88,7 +88,7 @@ test('the Evermore emulator host computes and passes objects, animTiles, and col
 
 // 5. The page draws sprites with the host's readers, bundled (tools/bundle-pages.mts), not a copy of them.
 test('the page loads the host sprite readers as EvsRom and keeps no copy', () => {
-    const files = require('../../src/games/evermore/emulator/host').webviewFiles();
+    const files = require('../../dist/games/evermore/emulator/host').webviewFiles();
     const bundle = files.find((f) => f.endsWith('evermore-rom.js'));
     assert.ok(bundle && fs.existsSync(bundle), 'dist/webview/evermore-rom.js is built by npm run build:ts');
     const ctx = {};

@@ -10,7 +10,7 @@ of what exists.
 
 Code lives in `src/games/evermore/rooms/webview/map-editor-*.js` (the webview, plain scripts
 sharing one global scope, loaded in the order listed in
-`src/games/evermore/memory/webview/index.js`) and `src/games/evermore/rooms/rendering/` (the host side). The
+`src/games/evermore/memory/webview/index.ts`) and `src/games/evermore/rooms/rendering/` (the host side). The
 draft is one object, `_edit` (`map-editor.js`).
 
 ---

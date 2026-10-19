@@ -158,7 +158,7 @@
     }
 
     // Called once per emulated frame by apuStreamTick: the events since the last frame.
-    // The music package loaded into the sound driver ($7E:0E4B), for the Music tab (apu-stream-view.js).
+    // The music package loaded into the sound driver ($7E:0E4B), for the Music tab (apu-stream-view.ts).
     function gameMusicPackage(m) {
       return typeof m.readMemory === 'function' ? m.readMemory(0x7E0E4B) : -1;
     }

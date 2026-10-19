@@ -15,7 +15,7 @@
   "categories": [
     "Other"
   ],
-  "main": "./src/recorder/extension.js",
+  "main": "./dist/recorder/extension.js",
   "activationEvents": [
     "onCommand:cdlRecorder.openEmulator",
     "onCommand:cdlRecorder.openRom",

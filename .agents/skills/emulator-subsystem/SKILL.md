@@ -7,7 +7,7 @@ applyTo: "src/core/emulator/**"
 # Skill: Emulator Subsystem
 
 Use this skill when modifying or releasing the embedded SNES emulator core (`src/core/emulator/core/`),
-the host panel (`src/core/emulator/panel.js`), or the webview runner (`src/core/emulator/panel-webview.js`).
+the host panel (`src/core/emulator/panel.ts`), or the webview runner (`src/core/emulator/panel-webview.ts`).
 
 ---
 
@@ -107,7 +107,7 @@ Standard keyboard layout:
   - Select: `Space` (`' '`)
   - Pause / Resume: `Escape`
 
-The joypad is set only by `tasApplyInput()` (`src/core/emulator/tas-view.js`), once per
+The joypad is set only by `tasApplyInput()` (`src/core/emulator/tas-view.ts`), once per
 `_mainLoop()`: live keys, or a replay's recorded frame.
 
 ### `EVS_TAS` (input recording / replay determinism)

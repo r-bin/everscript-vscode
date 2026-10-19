@@ -9,7 +9,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 
-/** A crash the page reports (panel-messages.js): the error, where, the CPU and the script slots. */
+/** A crash the page reports (panel-messages.ts): the error, where, the CPU and the script slots. */
 interface CrashReport {
   message?: string; error?: string; type?: string; source?: string; line?: number; col?: number;
   frame?: number; mapId?: number; camX?: number; camY?: number; stack?: string;

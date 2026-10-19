@@ -2,7 +2,7 @@
  * core/emulator/script-debug-host.ts
  *
  * Host half of the VS Code script debugger's emulator hook (webview half:
- * script-debug-view.js). One instance lives as long as the extension, not the
+ * script-debug-view.ts). One instance lives as long as the extension, not the
  * panel: a debug session can attach before the panel opens, and its
  * configuration rides along with every ROM load so breakpoints are armed
  * before the first frame.

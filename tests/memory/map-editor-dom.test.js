@@ -23,7 +23,7 @@ const assert = require('assert');
 
 const WEBVIEW = path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'rooms', 'webview');
 const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
-/** Map-view pieces the bundle puts in front of the rooms files (src/games/evermore/memory/webview/index.js). */
+/** Map-view pieces the bundle puts in front of the rooms files (src/games/evermore/memory/webview/index.ts). */
 const MAP_VIEW = path.join(__dirname, '..', '..', 'src', 'core', 'map-editor', 'view');
 const CORE = path.join(__dirname, '..', '..', 'src', 'core', 'map-editor', 'core');
 const SHARED_JS = ['tile-animation.js', 'view-chips.js'].map((f) => fs.readFileSync(path.join(MAP_VIEW, f), 'utf8'))

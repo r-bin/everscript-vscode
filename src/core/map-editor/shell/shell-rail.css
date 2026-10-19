@@ -4,7 +4,7 @@
  * `map-editor-canvas.css` (395 lines, one rule from the limit) or to
  * `shared.css` (which every radar tab renders with, so a font or colour
  * rule there would bleed into memory/scaling/docs/route). Concatenated onto
- * the `css` export in `src/games/evermore/memory/webview/index.js` after
+ * the `css` export in `src/games/evermore/memory/webview/index.ts` after
  * `map-editor-theme.css`, which is where the `--rg-*` tokens this file
  * consumes are declared.
  *

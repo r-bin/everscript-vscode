@@ -5,7 +5,7 @@
 ```
 rooms/
   index.js                    — Public API + backwards-compat adapters
-  custom-host.js              — custom maps: the webview's list/save/delete/export messages (VS Code API injected)
+  custom-host.ts              — custom maps: the webview's list/save/delete/export messages (VS Code API injected)
   parsing/
     content-parser.ts         — parseRoomContent(filePath, startLine, endLine) → room data object
     file-scanner.ts           — buildRoomTree, collectRoomsFromDir, findRoomImage, setRoomImageUris
@@ -24,7 +24,7 @@ rooms/
     deco-catalogue.ts         — the deco library: vanilla's Section 3 objects as portable, floor-free entries
     deco-preview.ts           — one entry rendered on nothing, so the thumbnail is the thing not the place
     rom-export.ts             — Export ROM: a custom map in room 0x15, the intro jumping there
-    custom-export.js          — Export map: the .zip (blob, map.json, sample .evs, stamps.json, README)
+    custom-export.ts          — Export map: the .zip (blob, map.json, sample .evs, stamps.json, README)
   data/
     widget-store.ts           — the user's own widgets: <globalStorage>/widgets.json (list, save, delete)
     vanilla-data.ts           — VANILLA_ROOMS catalogue + buildVanillaRoomContent/Details + ROM backing
@@ -82,7 +82,7 @@ segmented-pill builders the filter bar uses; their CSS and the `--rg-*` tokens i
 `map-view.css`). The Secret of Mana Maps panel uses the same files.
 
 The client-side room interactions live in `webview/`, concatenated into one
-script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
+script by `memory/webview/index.ts` (`ROOMS_JS_FILES` fixes the order):
 - `bootstrap.js` — message listener, byte-script focus
 - `utils.js` — escH, hexNum, tsvg, helpers
 - `svg-spawns.js` — `buildSpawnLayers()` → `{behind, front, marks}`: the NPCs
@@ -359,7 +359,7 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   each popup's own id is dropdown-specific), the status bar (`.rg-statusbar`)
   and the resize grip. Consumes theme.css's tokens, so it must be
   concatenated after it — both are appended to `shared.css` in
-  `src/games/evermore/memory/webview/index.js`'s `css` export, not part of the
+  `src/games/evermore/memory/webview/index.ts`'s `css` export, not part of the
   `ROOMS_JS_FILES` bundle (they are CSS, not JS)
 - `map-editor-tile-tab.css` — the Tile tab's own chrome (§8a), in its own
   file for the same size reason `rooms-rail.css` is: the family cards and

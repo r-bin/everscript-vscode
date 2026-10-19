@@ -39,7 +39,7 @@ const EVSMV_MAGIC = '# Everscript movie 3';
 const EVSMV_MAGIC_V2 = '# Everscript movie 2';
 const EVSMV_MAGIC_V1 = '# Everscript movie 1';
 const CHECK_EVERY = 60;      // frames between S lines (WRAM)
-// The sample rate the emulator panel boots the core with (panel-webview.js AUDIO_FREQ; a test keeps them
+// The sample rate the emulator panel boots the core with (panel-webview.ts AUDIO_FREQ; a test keeps them
 // equal). The rate leaks into emulation: the SPC700 sees DSP state that depends on it, so a few ARAM bytes
 // differ between rates. A replay must boot with the rate the movie was recorded at.
 const AUDIO_RATE = 44100;
@@ -86,7 +86,7 @@ function parseMeta(text: string): Record<string, string> {
     return meta;
 }
 
-// CRC-32 (IEEE), platform/crc32.ts. The webview script carries the same algorithm (tas-view.js); a test keeps them equal.
+// CRC-32 (IEEE), platform/crc32.ts. The webview script carries the same algorithm (tas-view.ts); a test keeps them equal.
 import { crc32, crc32Update as crcUpdate, crc32Finish as crcFinish } from '..';
 const crcText = (crc: number): string => crc.toString(16).toUpperCase().padStart(8, '0');
 

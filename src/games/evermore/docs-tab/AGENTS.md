@@ -4,7 +4,7 @@ Kind: **feature** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 Related skills: `alchemy-spell-mechanics` (`.agents/skills/`).
 
 ## Owns
-- The radar panel's **Docs** and **RNG** tabs: `render-docs-tab.js` (host-side HTML,
+- The radar panel's **Docs** and **RNG** tabs: `render-docs-tab.ts` (host-side HTML,
   `buildDocsTabHtml`, `buildRngTabHtml`), `docs-tab.js` and `rng-tab.js` (page scripts).
 
 ## Dependencies
@@ -18,7 +18,7 @@ Existing exceptions (do not add more):
   `alchemySpellBonusBaseAtLevel`, `alchemySpellPowerAtLevel`, `effectiveMdef`).
 
 ## Invariants
-- `render-docs-tab.js` builds HTML by string concatenation, a §3.5 legacy form; do not add
+- `render-docs-tab.ts` builds HTML by string concatenation, a §3.5 legacy form; do not add
   to it.
 
 ## Tests

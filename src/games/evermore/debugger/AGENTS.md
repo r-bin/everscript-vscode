@@ -7,7 +7,7 @@ Kind: **platform** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: 
   scripts running in the emulator panel: breakpoints, stops, steps, threads, stack,
   variables, evaluate, readMemory / writeMemory.
 - Not the webview side: `src/core/emulator/script-debug-host.ts` (the emulator's) and
-  `games/evermore/emulator/script-debug-view.js`; the bridge to them is injected.
+  `games/evermore/emulator/script-debug-view.ts`; the bridge to them is injected.
 
 ## Dependencies
 - `inline-adapter.ts` → `vscode`, `emulator-session.ts`, `source-map.ts`. It is the only

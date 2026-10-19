@@ -20,7 +20,7 @@ bytes are tables, how WRAM is laid out, and what each function touches.
 
 ```text
 core (WASM, per instruction / access)        webview (every 15 s)        host (Node)
-  cdl.c        rom.cdl/ext, edges, xrefs, ─► cdl-view.js drains only ──► library.ts + library-ext.ts merge
+  cdl.c        rom.cdl/ext, edges, xrefs, ─► cdl-view.ts drains only ──► library.ts + library-ext.ts merge
                pcstats, wvals, DMA/HDMA/$2180    changed chunks /           flush 60 s after last change
   cdl-wram.c   wflags, script-xrefs, WRAM code   new table entries          (max every 5 min, at once on pause/stop)
   cdl-count.c  hit counters (deltas)                                        ▼
@@ -113,7 +113,7 @@ work behind a "seen lately" or "already marked" check.
 2. `debugger-post.js` `cdlDrain` (guard with `typeof Module._x === 'function'` so older cores
    still work), then **rebuild the core** (`sh tools/build_snes_core.sh custom`) — the glue is
    part of the build output.
-3. `cdl-view.js` posts it, `host.js` decodes it, `library.ts` / `library-ext.ts` merge and store it.
+3. `cdl-view.ts` posts it, `host.js` decodes it, `library.ts` / `library-ext.ts` merge and store it.
 4. Consumers read through `xref-index.ts` / `library-ext.ts` helpers (`retsList`, `regsByPc`, `basesByPc`).
 5. Tests: `tests/debugger/cdl.test.js` (core streams, export) and `tests/debugger/cdl-recomp.test.js`
    (new streams, directives, assets, structs, enums, functions). Check `-DEVS_CDL=0` still compiles.

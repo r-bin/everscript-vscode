@@ -21,6 +21,6 @@ Rules for agents: [AGENTS.md](AGENTS.md).
 | `index.js` | registers the provider; returns `manaRom()` / `refresh()` to `extension.js` |
 | `fs-provider.js` | VS Code `FileSystemProvider`, cache of produced files (64 per ROM) |
 | `files.ts` | pure path → content resolver and the map/area catalogue |
-| `map-files.js` | the files of one map (pictures, data, collision, animation) |
+| `map-files.ts` | the files of one map (pictures, data, collision, animation) |
 | `rom-source.ts` | reads the Mana ROM the ROM library names (title-checked, cached) |
 | `png.js` | RGBA → PNG |

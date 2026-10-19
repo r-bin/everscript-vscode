@@ -114,9 +114,9 @@ test('script-trace.js, panel.js, panel-webview.js, and grammar files are strictl
     path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'address-lookup.ts'),
     path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'trace-formatter.ts'),
     path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'script-trace.ts'),
-    path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'panel.js'),
-    path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'panel-webview.js'),
-    path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'bottom-bar-views.js'),
+    path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'panel.ts'),
+    path.join(__dirname, '..', '..', 'src', 'core', 'emulator', 'panel-webview.ts'),
+    path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'emulator', 'bottom-bar-views.ts'),
     path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'language', 'syntaxes', 'everscript-trace.tmLanguage.json'),
     path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'language', 'trace-language-configuration.json'),
   ];

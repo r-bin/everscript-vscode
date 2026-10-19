@@ -4,7 +4,7 @@
 // Run: node tests/terra/terra-maps-page.test.js
 
 const assert = require('assert');
-const { renderTerraMapsHtml } = require('../../src/games/terra/maps/page');
+const { renderTerraMapsHtml } = require('../../dist/games/terra/maps/page');
 
 let passed = 0, failed = 0;
 function test(name, fn) {

@@ -24,7 +24,7 @@ The radar tab is called **Characters** (it was "Sprites"); inside it, three mode
 | `dog-forms.ts` | The Dog's six forms (bank `$CF`), shaped like Boy weapons | < 90 |
 | `raw-sprites.ts` | Walks and indexes all raw sprites from `$CA0003`, renders chunk tables | < 150 |
 | `sprites-tab.ts` | Server-side tab pane HTML scaffold | < 200 |
-| `webview/sprites-view/` | Client-side webview controller, rAF animation loop, canvas drawing: one IIFE kept as parts (`01-state.js` … `05-raw-sprites.js`), wrapped by `memory/webview/index.js` | < 400 each |
+| `webview/sprites-view/` | Client-side webview controller, rAF animation loop, canvas drawing: one IIFE kept as parts (`01-state.js` … `05-raw-sprites.js`), wrapped by `memory/webview/index.ts` | < 400 each |
 | `webview/sprites-script.js` | Script listing panel (current-frame highlight, owners) and the Animations rail list; loaded before `sprites-view/` | < 200 |
 | `webview/sprites-motion.js` | Stage geometry: walk path, jump height, projectile flight, and the scene box the canvas must hold | < 160 |
 | `webview/sprites-lazy.js` | Resizable splitters and lazy list thumbnails (`window.SpritesThumbs`) | < 120 |

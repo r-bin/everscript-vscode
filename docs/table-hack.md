@@ -141,7 +141,7 @@ The directory sits at `$F1:0000`. Our tools read it; the game never does.
   once, to create the hack.
 - Without a directory, tools fall back to the vanilla addresses.
 - The plugin reads the directory through one resolver. Today `0x1FFDE7` is hard-coded in three
-  places: `maps/rom.ts`, `shared/rom-readers.js` and `emulator/panel-webview.js`.
+  places: `maps/rom.ts`, `shared/rom-readers.js` and `emulator/panel-webview.ts`.
 - The everscript compiler (`0x91d000`) follows later, in that repo.
 
 ## 4. Adding and removing

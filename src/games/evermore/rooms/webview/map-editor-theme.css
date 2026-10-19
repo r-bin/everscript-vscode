@@ -8,7 +8,7 @@
  * the zoom chip, the docked filter bar and its dropdowns, the status bar and
  * the resize grip — is map-editor-canvas.css, split out in Phase 7a when
  * this file crossed 400 lines. Tokens are declared here and consumed there:
- * both are concatenated onto shared.css by src/games/evermore/memory/webview/index.js, in
+ * both are concatenated onto shared.css by src/games/evermore/memory/webview/index.ts, in
  * that order.
  *
  * Scoped under `.rg-theme`, a class `renderRoomDetail` puts on `#room-detail`

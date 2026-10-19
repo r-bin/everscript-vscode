@@ -6,7 +6,7 @@
  * and it owns four *other* tabs' chrome) or map-editor-canvas.css (395 — §7a
  * said the next rule added there triggers a split, so none were). Tokens are
  * declared in theme.css, which is concatenated first by
- * src/games/evermore/memory/webview/index.js; nothing here declares a value of its own.
+ * src/games/evermore/memory/webview/index.ts; nothing here declares a value of its own.
  *
  * Scoped under `.rg-theme` like everything else in this column, so the
  * memory/scaling/docs/route tabs cannot see any of it. The tile swatches

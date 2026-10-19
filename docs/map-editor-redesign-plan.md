@@ -72,7 +72,7 @@ duplicated here to avoid drift between two copies.
   Manrope/JetBrains Mono without an offline-breaking dependency.
 - **Token scoping**: new CSS custom properties go in a **new file**,
   `src/games/evermore/rooms/webview/map-editor-theme.css`, concatenated onto the existing
-  `css` export in `src/games/evermore/memory/webview/index.js` (one extra `loadFile` call) —
+  `css` export in `src/games/evermore/memory/webview/index.ts` (one extra `loadFile` call) —
   not appended into `shared.css`. Keeps ownership with `rooms/` and guarantees
   zero visual change to the memory/scaling/docs/route tabs. Variables scoped
   under a single root class so nothing leaks.
@@ -92,7 +92,7 @@ explicitly run in isolated worktrees.
 
 | # | Phase | Touches | New state owned | Exit criteria | Suggested owner |
 |---|---|---|---|---|---|
-| 0 | Design tokens | new `map-editor-theme.css`, `src/games/evermore/memory/webview/index.js` (+1 loadFile) | none | Vars available; zero diff on other tabs' rendering | direct edit (small) |
+| 0 | Design tokens | new `map-editor-theme.css`, `src/games/evermore/memory/webview/index.ts` (+1 loadFile) | none | Vars available; zero diff on other tabs' rendering | direct edit (small) |
 | 1 | Layout shell | `map-editor-ui.js` (toolbar → floating pill, bottom filter bar split out of the inline row) | none | All existing tools still work; pill floats above canvas; filter bar spans only canvas column | `everscript-plugin-builder` + `webview-dom-safety` |
 | 2 | Tab shell | `map-editor-panels.js` (likely split off a `map-editor-tabs.js`), re-home existing families/tiles/composer/budget content under Tile/Info tabs, existing trigger tables under Trigger tab | `activeTab` | Tab switching works; no functional regression, just re-homed DOM | `everscript-plugin-builder`, then `split-orchestration` if a file crosses 400 LOC |
 | 3 | Special tab (net-new) | new `map-editor-special.js`; edits to `map-editor-phases.js`, `map-editor-paint.js`, `map-editor-ui.js` (dropdown chip) | `currentSpecialId`, `specialCells` | Stairs/Gate/Entrance chips paint/erase glyphs on the grid; filter-bar gating works | `everscript-plugin-builder` |
@@ -278,7 +278,7 @@ machinery (`map-editor-constructs.js`) or needs its own.
   and `tests/memory/map-editor-dom.test.js`'s two dropdown-close checks now
   also assert `getComputedStyle(...).display === 'none'` so this class of
   bug cannot regress silently again. Caught by rendering the real bundle
-  (`src/games/evermore/memory/webview/index.js`'s `roomsJs`/`css` exports) with Playwright
+  (`src/games/evermore/memory/webview/index.ts`'s `roomsJs`/`css` exports) with Playwright
   and looking at a screenshot, exactly as this phase's brief asked for —
   the existing DOM test suite's own `.hidden`-only assertions would never
   have caught it on their own.

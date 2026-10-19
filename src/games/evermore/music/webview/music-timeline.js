@@ -8,7 +8,7 @@
 // the driver's queue, so a sound effect is seen even when several arrive in one
 // frame. A box is one run of a voice owned by one effect; it restarts when the
 // effect is sent again and the driver reloads the voice. Who sent it (the
-// emulator's sound-source hook, emulator/sound-source-view.js) rides on the run.
+// emulator's sound-source hook, emulator/sound-source-view.ts) rides on the run.
 
 var MU_PAST_MS = 4500;               // history left of the playhead
 var MU_FUTURE_MS = 1500;             // read-ahead right of it (playhead at 75%)

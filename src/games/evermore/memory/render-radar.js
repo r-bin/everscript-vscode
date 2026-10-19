@@ -6,14 +6,14 @@
 // No VS Code dependency — all external state arrives as parameters.
 
 const { buildMemoryTabHtml }     = require('../../../../dist/games/evermore/memory/render-memory-tab');
-const { buildDocsTabHtml, buildRngTabHtml } = require('../docs-tab/render-docs-tab');
+const { buildDocsTabHtml, buildRngTabHtml } = require('../../../../dist/games/evermore/docs-tab/render-docs-tab');
 const { renderRoomsTree, renderVanillaTree, buildRoomRailHtml,
         buildRoomsJson, VANILLA_ROOMS } = require('../rooms');
 const { buildSpritesTabHtml }    = require('../../../../dist/games/evermore/sprites');
 const { buildRomTabHtml }        = require('../../../../dist/games/evermore/rom');
 const { buildMusicTabHtml }      = require('../music');
 const { buildScriptsTabHtml }    = require('../../../../dist/games/evermore/scripts-tab');
-const radarWebview               = require('./webview');
+const radarWebview               = require('../../../../dist/games/evermore/memory/webview');
 const { shellFrameHtml }         = require('../../../core/map-editor/shell/frame');
 
 /**
@@ -95,9 +95,9 @@ function renderRadarHtml(
         'var SC_MAX_LEVEL=37;';
 
     // ── JS bundle ───────────────────────────────────────────────────────────
-    const scalingJs = radarWebview.scalingJs;
-    const roomsJs   = radarWebview.roomsJs;
-    const spritesJs = radarWebview.spritesJs;
+    const scalingJs = radarWebview.scalingJs();
+    const roomsJs   = radarWebview.roomsJs();
+    const spritesJs = radarWebview.spritesJs();
     const docsJs    = radarWebview.docsJs;
     const rngJs     = radarWebview.rngJs;
 

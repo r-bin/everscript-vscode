@@ -24,7 +24,7 @@ The extension provides a full VS Code debugger registered under type `everscript
 
 ## 2. Extended Map Engine
 
-The emulator panel (`src/core/emulator/panel.js`, `panel-webview.js`) seamlessly renders the surrounding game map beyond the SNES 256×224 screen boundaries:
+The emulator panel (`src/core/emulator/panel.ts`, `panel-webview.ts`) seamlessly renders the surrounding game map beyond the SNES 256×224 screen boundaries:
 
 ### 2.1 Multi-Layer Architecture
 - **Layer 0 (`#extended-map`):** Mode 1 composite background plus dynamic Section 2 animated tile cycles.
@@ -45,7 +45,7 @@ The engine reads the following verified WRAM registers every frame tick:
 
 ### 3.1 Sound-Chip Telemetry (`src/core/emulator/apu-stream.ts`)
 - Streams 44.1kHz audio samples and full 64 KB ARAM snapshots directly to the Radar Music tab (`src/games/evermore/music/`).
-- Arms non-pausing breakpoint at `$8C:81FD` (`src/games/evermore/emulator/sound-source-view.js`) to log which entity, animation, or script triggered each sound effect.
+- Arms non-pausing breakpoint at `$8C:81FD` (`src/games/evermore/emulator/sound-source-view.ts`) to log which entity, animation, or script triggered each sound effect.
 
 ### 3.2 TAS Input Recording & Playback (`src/core/emulator/tas/`)
 - Frame-exact joypad input recording and replay saved in `.evsmv` format.

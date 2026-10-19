@@ -127,7 +127,7 @@
       if (typeof isMenuOpen !== 'undefined' && isMenuOpen && menuActiveTab === 7) updateMenuRowSelection(false);
     }
 
-    // The pause menu's keys on the REPLAYS tab (menu-view.js).
+    // The pause menu's keys on the REPLAYS tab (menu-view.ts).
     function tasMenuStep(rowIdx, delta) {
       if (replaysStep(rowIdx, delta)) { playMenuSound('click_nav'); tasRenderList(); }
     }

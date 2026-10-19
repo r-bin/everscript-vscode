@@ -19,9 +19,9 @@ Related skills: `rooms-tab`, `map-editor-rules`, `map-construction`, `map-entiti
   platform read APIs (`soe://`).
 - Always import rooms functionality through `rooms/index.js`, never bypass to internal files.
 - Forbidden: `rooms/` → `extension.js` (no upward call), `../debugger/`, `vscode` (VS Code
-  API is injected, e.g. `custom-host.js`), and any other feature (`.depcruise.js`:
+  API is injected, e.g. `custom-host.ts`), and any other feature (`.depcruise.js`:
   `no-sibling-tabs` rooms ↛ scaling).
-- Existing exceptions (do not add more): none in `rooms/`. Inbound: `emulator/panel.js` →
+- Existing exceptions (do not add more): none in `rooms/`. Inbound: `emulator/panel.ts` →
   `data/item-icons`; `memory/` requires `rooms/` and reads `webview/` as the radar host.
 
 ## State owned

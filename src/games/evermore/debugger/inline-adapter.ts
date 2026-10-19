@@ -136,7 +136,7 @@ interface Emulator { bridge: Deps['bridge']; runRom(romPath: string): void }
 
 /**
  * @param context
- * @param emulator { bridge, runRom(romPath) }   from emulator/panel.js
+ * @param emulator { bridge, runRom(romPath) }   from emulator/panel.ts
  * @param repoPath () => string                  everscript.repoPath
  * @param lookupSymbol (name) -> "(Byte) <0x0ADA>" | null   fallback memory names
  */

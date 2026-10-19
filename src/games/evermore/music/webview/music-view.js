@@ -142,7 +142,7 @@ function muPackageBytes(pkgLayout) {
 /*
  * The driver's own bookkeeping (disassembly of the ROM driver, src/games/evermore/music/README.md).
  * `drv` holds these ARAM ranges in this order, as the emulator's stream sends
- * them (emulator/apu-stream-view.js APU_DRIVER_RANGES) and muDriverBytes reads them:
+ * them (emulator/apu-stream-view.ts APU_DRIVER_RANGES) and muDriverBytes reads them:
  *   $6C+v   owner of voice v: $80 a sound effect, $01 a music track, $00 free
  *   $D1+v   music track of voice v ($80 | track)
  *   $011B+v sound effect of voice v (written by the $04 handler, $0CC2)

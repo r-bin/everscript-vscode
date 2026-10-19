@@ -18,7 +18,7 @@ Kind: **platform** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: 
   `.depcruise.js` rule `no-resources-to-emulator`.
 - Existing exceptions (do not add more; move the code down into a library instead):
   - `audio-songs.js` → `music/model/catalog`, `music/model/rom-audio`, `music/webview/music-view`
-  - `map-objects.js` → `rooms/rendering/deco-catalogue`, `rooms/rendering/deco-preview`
+  - `map-objects.ts` → `rooms/rendering/deco-catalogue`, `rooms/rendering/deco-preview`
   - `character-files.ts` → `sprites/animation-decoder`, `sprites/character-model`
   - `sound-source.js` → `sprites`
 

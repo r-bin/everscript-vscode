@@ -61,7 +61,7 @@
       cdlMenuSync();
     }
 
-    // -- pause-menu rows (menu/menu-view.js: 1 Recording, 2 Export, then the banks) --
+    // -- pause-menu rows (menu/menu-view.ts: 1 Recording, 2 Export, then the banks) --
     // The exports are the panel's buttons: only those this profile shows are offered.
     const CDL_EXPORTS = [['cdl-export-asm', 'Asar project'], ['cdl-export-wram', 'WRAM map'], ['cdl-export-bundle', 'Bundle']];
     let cdlExportPick = 0;

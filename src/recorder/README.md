@@ -5,7 +5,7 @@ editing. Its user-facing README is `recorder/README.md`, its manifest `recorder/
 
 | | |
 |---|---|
-| Entry | `extension.js`: configures the emulator panel (`../emulator/panel.js`) with `profile: 'recorder'` and registers four commands |
+| Entry | `extension.js`: configures the emulator panel (`../emulator/panel.ts`) with `profile: 'recorder'` and registers four commands |
 | Commands | `cdlRecorder.openEmulator`, `cdlRecorder.openRom`, `cdlRecorder.exportBundle`, `cdlRecorder.openDataFolder` |
 | What the panel shows | CDL in the left side bar (movable from its pause-menu tab); CDL tab: record, flush, export bundle (no Asar / WRAM export, no lookup); REPLAYS in the pause menu; pause menu as in Everscript |
 | Defaults | CDL recording on (remembered after the first switch), replays recorded every session, the last ROM reopens |

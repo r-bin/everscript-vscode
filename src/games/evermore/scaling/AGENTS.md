@@ -20,7 +20,7 @@ Existing exceptions (do not add more):
   called by the Docs tab (`src/games/evermore/docs-tab/docs-tab.js`).
 
 ## Invariants
-- Load order is `SCALING_JS_FILES` in `src/games/evermore/memory/webview/index.js`: `alchemy-math.js` in
+- Load order is `SCALING_JS_FILES` in `src/games/evermore/memory/webview/index.ts`: `alchemy-math.js` in
   the outer scope, `state.js` first, `tab-init.js` last.
 
 ## Tests

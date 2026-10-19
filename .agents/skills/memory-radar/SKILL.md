@@ -132,7 +132,7 @@ rendering, state, IPC, parsing, interactions, and tests:
 - `src/games/evermore/rooms/webview/`, `src/games/evermore/rooms/rendering/`, `src/games/evermore/rooms/parsing/`, `src/games/evermore/rooms/data/` — rooms tab
 - `src/games/evermore/sprites/` — Characters tab (characters, animations, raw sprites)
 - `src/games/evermore/memory/render-memory-tab.ts` — memory tab rendering
-- `src/games/evermore/docs-tab/render-docs-tab.js` — docs/RNG tab rendering
+- `src/games/evermore/docs-tab/render-docs-tab.ts` — docs/RNG tab rendering
 
 Rules:
 - Future work on a tab should reason only inside that tab's own directory.

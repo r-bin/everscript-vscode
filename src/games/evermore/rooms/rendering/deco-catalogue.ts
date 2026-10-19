@@ -342,6 +342,11 @@ function buildDecoCatalogue(rom: Rom | Buffer): DecoEntry[] {
     return CATALOGUE;
 }
 
+/** Every cell draws on the canopy only: foreground over whatever floor it lands on. */
+const isFront = (d: Pick<DecoEntry, 'cells'>) => d.cells.every((c) => !c.terrain);
+/** Every cell draws on the terrain only, nothing above it: floor decoration. */
+const isBack = (d: Pick<DecoEntry, 'cells'>) => d.cells.length > 0 && d.cells.every((c) => !!c.terrain && !c.canopy);
+
 /** The catalogue without the cell data — small enough to send whole. */
 function decoIndex(rom: Rom) {
     return buildDecoCatalogue(rom).map((d) => ({
@@ -365,7 +370,7 @@ function decoIndex(rom: Rom) {
          * 352 of the 532 are like this: pure foreground over whatever floor
          * they land on, which is what a gourd should be.
          */
-        front: d.cells.every((c) => !c.terrain),
+        front: isFront(d),
         /**
          * True when every cell draws on the terrain only, drawing nothing on
          * the canopy — the same test as `front`, mirrored. 33 of the 532 are
@@ -374,7 +379,7 @@ function decoIndex(rom: Rom) {
          * (map-editor-deco.js) to group entries into Foreground/Background/
          * Misc, since the ROM has no category of its own to read out.
          */
-        back: d.cells.length > 0 && d.cells.every((c) => !!c.terrain && !c.canopy),
+        back: isBack(d),
         scriptId: d.trigger ? d.trigger.scriptId : null,
     }));
 }
@@ -394,4 +399,4 @@ function decoCells(rom: Rom, id: unknown) {
 function invalidateDecoCatalogue() { CATALOGUE = null; CATALOGUE_KEY = -1; ART.clear(); }
 
 export type { Part, Cell, DecoEntry };
-export { buildDecoCatalogue, decoIndex, decoCells, invalidateDecoCatalogue };
+export { isFront, isBack, buildDecoCatalogue, decoIndex, decoCells, invalidateDecoCatalogue };

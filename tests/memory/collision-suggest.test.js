@@ -112,7 +112,7 @@ if (!rom) {
     });
 
     test('the widget library carries every family vanilla draws its graphics in', () => {
-        const { widgetGraphicFamilies } = require('../../src/games/evermore/rooms/custom-host');
+        const { widgetGraphicFamilies } = require('../../dist/games/evermore/rooms/custom-host');
         const urn = { cells: [{ dx: 0, dy: 0, canopy: { graphic: 643, family: 115 } }],
             frames: [{ cells: [] }, { cells: [{ dx: 0, dy: 0, terrain: { graphic: 4739, family: 220 } }] }] };
         const got = widgetGraphicFamilies([urn], { loadRom: () => ({ romBuf: rom }) });

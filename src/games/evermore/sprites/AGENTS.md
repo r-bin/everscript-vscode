@@ -30,7 +30,7 @@ Existing exceptions (do not add more):
   from the ROM with a test (guide §3.8).
 - Keep each file under the Max LOC listed in the README's file table.
 - `webview/` load order: `sprites-lazy.js`, `sprites-script.js`, `sprites-motion.js`,
-  then `sprites-view.js` (`src/games/evermore/memory/webview/index.js`).
+  then `sprites-view.js` (`src/games/evermore/memory/webview/index.ts`).
 
 ## Tests
 - `tests/memory/sprites.test.js` — unit (tab HTML scaffold) and rom tier (ROM-backed

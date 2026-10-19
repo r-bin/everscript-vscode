@@ -6,23 +6,23 @@ Embedded snes9x2005 WASM emulator panel integrated into VS Code.
 
 | File | Description |
 |---|---|
-| `panel.js` | WebviewPanel host: loads core WASM, dispatches ROMs; `configureEmulator` (profile, title, CDL tools, bundle button, reopen last ROM); the API the extension calls |
-| `panel-state.js`, `panel-messages.js` | The panel's state and helpers (settings in `globalState`, timeouts, ROM offer); every message the page sends |
+| `panel.ts` | WebviewPanel host: loads core WASM, dispatches ROMs; `configureEmulator` (profile, title, CDL tools, bundle button, reopen last ROM); the API the extension calls |
+| `panel-state.ts`, `panel-messages.ts` | The panel's state and helpers (settings in `globalState`, timeouts, ROM offer); every message the page sends |
 | `core-path.ts`, `emulator-log.ts` | Which core loads; the output channels and the crash report |
-| `panel-webview.js` | Webview HTML generator for the emulator panel |
+| `panel-webview.ts` | Webview HTML generator for the emulator panel |
 | `webview/emulator-profile.js` / `.css` | The page's profile and game gating (`data-needs`), saved settings (overlays, mute, keybinds, panel placement), Keep Focus for Tab |
 | `webview/emulator-panels.js` / `.css` | Where each panel is shown: its pause-menu tab, a side bar over the picture, the bottom bar or nowhere (README "Panels") |
-| `bundle-commands.js` | Export (recorder) and import (Everscript) of recording bundles: dialogs, which library, which replays |
-| `cdl-view.js` | CDL panel: record toggle, ROM + WRAM strips, last-flush snapshot, Asar/WRAM export, xref lookup |
+| `bundle-commands.ts` | Export (recorder) and import (Everscript) of recording bundles: dialogs, which library, which replays |
+| `cdl-view.ts` | CDL panel: record toggle, ROM + WRAM strips, last-flush snapshot, Asar/WRAM export, xref lookup |
 | `cdl-strips.js` | CDL panel strips: per-chunk painting and hover descriptions |
 | `cdl-float.js` | Scrolling-combat-text style floating coverage gains above the active character |
 | `cdl/` | CDL library, xref index, 65816 disassembler, Asar + `ram.asm` export (see `cdl/README.md`) |
-| `tas-view.js` | REPLAYS pause-menu tab (this ROM's recordings) and its REC / PLAY / DESYNC chip on the screen, input overlay, per-frame joypad feed (`tasApplyInput`) and session recording buffer |
+| `tas-view.ts` | REPLAYS pause-menu tab (this ROM's recordings) and its REC / PLAY / DESYNC chip on the screen, input overlay, per-frame joypad feed (`tasApplyInput`) and session recording buffer |
 | `webview/replays-list.js` | The REPLAYS tab's rows (when, length, sync; no file name) and their keys: Left / Right choose favourite / play / delete, B does it, play and delete ask first |
-| `script-debug-host.ts` | VS Code debugger hook, host bridge (outlives the panel); its page side is Evermore's `games/evermore/emulator/script-debug-view.js` (exec breakpoint on the interpreter fetch `$8C:D0A6`, see `src/games/evermore/debugger/README.md`) |
-| `apu-stream.js` / `apu-stream-view.js` | Sound-chip stream for the radar's Music tab: host side (on/off, frame listener, ARAM snapshots) and page side (posts the core's `getApuView` + package + voice samples after each frame while on). See `src/games/evermore/music/README.md` |
-| (Evermore) | `games/evermore/emulator/`: `overlays-view.js` (screen layer), `stack-view.js` (STACK, TRACE), `script-debug-view.js`, `sound-source-view.js` (who sent each sound effect, the SOUNDS chip), `menu-tabs.js`, `bottom-bar-views.js`: handed in through `host.js` `webview()` |
-| `fps-meter.js` | Screen chip: frames emulated per second and frames the game read input in (lag), frozen while paused |
+| `script-debug-host.ts` | VS Code debugger hook, host bridge (outlives the panel); its page side is Evermore's `games/evermore/emulator/script-debug-view.ts` (exec breakpoint on the interpreter fetch `$8C:D0A6`, see `src/games/evermore/debugger/README.md`) |
+| `apu-stream.js` / `apu-stream-view.ts` | Sound-chip stream for the radar's Music tab: host side (on/off, frame listener, ARAM snapshots) and page side (posts the core's `getApuView` + package + voice samples after each frame while on). See `src/games/evermore/music/README.md` |
+| (Evermore) | `games/evermore/emulator/`: `overlays-view.ts` (screen layer), `stack-view.ts` (STACK, TRACE), `script-debug-view.ts`, `sound-source-view.ts` (who sent each sound effect, the SOUNDS chip), `menu-tabs.ts`, `bottom-bar-views.ts`: handed in through `host.js` `webview()` |
+| `fps-meter.ts` | Screen chip: frames emulated per second and frames the game read input in (lag), frozen while paused |
 | `tas/` | Input recordings: `.evsmv` format, recording files, replay list and pins (see `tas/README.md`) |
 | `core/snes9x2005-wasm/` | Custom emulator core (git submodule) |
 | `core/snes9x2005-wasm-vanilla/` | Vanilla emulator core (git submodule) |
@@ -30,7 +30,7 @@ Embedded snes9x2005 WASM emulator panel integrated into VS Code.
 ## Profiles and games
 
 Two extensions open this panel. `src/extension.js` configures the **full** profile (every tab,
-the CDL exports and lookups through `cdl/tools.ts`); `src/recorder/extension.js` the
+the CDL exports and lookups through `cdl/tools.ts`); `src/recorder/extension.ts` the
 **recorder** profile (SNES CDL Recorder: CDL in the left side bar and recording, REPLAYS in the
 pause menu, the last ROM reopens, "export bundle" in the CDL tab). The profile reaches the page as data (`#emu-config`).
 
@@ -51,7 +51,7 @@ loaded first; Evermore: its detector and `EvsRom`, the host's sprite and record 
 `tools/bundle-pages.mts` into `dist/webview/`) and `game.webview()` (markup, CSS and scripts spliced into the page,
 each where the emulator's own code once ran: bottom bar, menu tabs 1-4, screen layer, script VM). The page
 itself and every part are real files (`webview/page.html`, `page-style/`, `page/`, `menu-style/`, the views' `webview/` folders),
-put together by `core/webview/page-file.js` at `//@@name` marks; a folder is one script or style sheet kept as parts. The page
+put together by `core/webview/page-file.ts` at `//@@name` marks; a folder is one script or style sheet kept as parts. The page
 calls the game only behind `typeof` guards, so without one (the recorder) it runs as a plain SNES emulator.
 The game gets data built from the ROM on the host with each ROM (`game.romData(buffer)` → the page's
 `gameRomData(data, redraw)`; Evermore: the ALCHEMY icons). The hooks: `gameDetectRom`, `gameRomData`, `gameRomReset`, `gameOnRoomMap`, `gameTraceReset`, `gameStartAllowed`, `gameMenuOpened` /
@@ -91,7 +91,7 @@ selectable - see `menu/README.md`) and the side bars are leaner.
   bytes. Menu tab: time, source, script (the trace scrolls inside the card). Side bar: time and
   source on one line, the script on the next, no title.
 - STACK, ENTITIES, ALCHEMY, PALETTES have no button bar either: what ENTITIES / ALCHEMY /
-  PALETTES list is the menu tab's "Show" row (`panelFilterStep` in `games/evermore/emulator/bottom-bar-views.js`), the
+  PALETTES list is the menu tab's "Show" row (`panelFilterStep` in `games/evermore/emulator/bottom-bar-views.ts`), the
   entity search and its "live" switch are gone (pausing stops the updates). In the menu B on a
   character pings it; the bottom bar keeps its ping column.
 - REPLAYS is a menu tab only, with the usual card size (not a panel). It lists the recordings
@@ -103,7 +103,7 @@ selectable - see `menu/README.md`) and the side bars are leaner.
 ## Extended map: what it follows
 
 The layers drawn round the screen (map, entities, foreground) read the engine's
-own state each frame (`samplePreLoopState` in `panel-webview.js`):
+own state each frame (`samplePreLoopState` in `panel-webview.ts`):
 
 | WRAM | What | Used for |
 |---|---|---|

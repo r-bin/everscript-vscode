@@ -12,7 +12,7 @@
  *   B) WASM binary has correct magic bytes
  *   C) Core JS contains all required Emscripten exports
  *   D) Core JS does NOT define EJS_Runtime (it is NOT a libretro wrapper)
- *   E) panel.js does not reference the old EmulatorJS vendor paths
+ *   E) panel.ts does not reference the old EmulatorJS vendor paths
  */
 
 const assert = require('assert');
@@ -23,8 +23,9 @@ const ROOT      = path.resolve(__dirname, '../..');
 const CORE_DIR  = path.join(ROOT, 'src', 'core', 'emulator', 'core', 'snes9x2005-wasm-vanilla');
 const CORE_JS   = path.join(CORE_DIR, 'snes9x_2005.js');
 const CORE_WASM = path.join(CORE_DIR, 'snes9x_2005.wasm');
-const PANEL_JS         = path.join(ROOT, 'src', 'core', 'emulator', 'panel.js');
-const PANEL_WEBVIEW_JS = path.join(ROOT, 'src', 'core', 'emulator', 'panel-webview.js');
+const PANEL_JS         = path.join(ROOT, 'src', 'core', 'emulator', 'panel.ts');
+const PANEL_DIST       = path.join(ROOT, 'dist', 'core', 'emulator', 'panel.js');
+const PANEL_WEBVIEW_JS = path.join(ROOT, 'src', 'core', 'emulator', 'panel-webview.ts');
 
 // WebAssembly binary magic: \0asm  (00 61 73 6D)
 const WASM_MAGIC = Buffer.from([0x00, 0x61, 0x73, 0x6d]);
@@ -116,16 +117,16 @@ test('core JS does NOT define EJS_Runtime', () => {
         'snes9x_2005.js unexpectedly defines EJS_Runtime \u2014 wrong core bundled (should be lrusso standalone build)');
 });
 
-// ── E. panel.js sanity ────────────────────────────────────────────────────────
+// ── E. panel.ts sanity ────────────────────────────────────────────────────────
 console.log('\nE. panel.js:');
 
 let panelContent = null;
 try {
-    panelContent = fs.readFileSync(PANEL_JS, 'utf8') + '\n' + ['core-path.ts', 'panel-state.js', 'panel-messages.js'].map((f) => fs.readFileSync(path.join(ROOT, 'src', 'core', 'emulator', f), 'utf8')).join('\n');
-    // Append panel-webview.js so tests that scan the HTML template still pass.
-    // The page with Evermore's part spliced in (games/evermore/emulator/: the script VM is stack-view.js).
-    const webviewContent = fs.readFileSync(PANEL_WEBVIEW_JS, 'utf8') + '\n' + ['page.html', 'page-style', 'page'].map((f) => require('../../src/core/webview/page-file').pageFiles(path.join(ROOT, 'src', 'core', 'emulator', 'webview'))(f, new Proxy({}, { has: () => true, get: (_, k) => '//@@' + String(k) }))).join('\n')
-        + (({ getStackScript, getTraceScript }) => getStackScript() + getTraceScript())(require('../../src/games/evermore/emulator/stack-view'));
+    panelContent = fs.readFileSync(PANEL_JS, 'utf8') + '\n' + ['core-path.ts', 'panel-state.ts', 'panel-messages.ts'].map((f) => fs.readFileSync(path.join(ROOT, 'src', 'core', 'emulator', f), 'utf8')).join('\n');
+    // Append panel-webview.ts so tests that scan the HTML template still pass.
+    // The page with Evermore's part spliced in (games/evermore/emulator/: the script VM is stack-view.ts).
+    const webviewContent = fs.readFileSync(PANEL_WEBVIEW_JS, 'utf8') + '\n' + ['page.html', 'page-style', 'page'].map((f) => require('../../dist/core/webview/page-file').pageFiles(path.join(ROOT, 'src', 'core', 'emulator', 'webview'))(f, new Proxy({}, { has: () => true, get: (_, k) => '//@@' + String(k) }))).join('\n')
+        + (({ getStackScript, getTraceScript }) => getStackScript() + getTraceScript())(require('../../dist/games/evermore/emulator/stack-view'));
     panelContent += '\n' + webviewContent;
 } catch (_) {}
 
@@ -149,7 +150,7 @@ test('panel.js references CORE_JS constant', () => {
 
 test('panel.js exports openEmulatorPanel', () => {
     if (!panelContent) { assert.fail('panel.js could not be read'); return; }
-    assert.ok(panelContent.includes('module.exports') && panelContent.includes('openEmulatorPanel'),
+    assert.ok(panelContent.includes('export {') && panelContent.includes('openEmulatorPanel'),
         'panel.js does not export openEmulatorPanel');
 });
 
@@ -438,9 +439,9 @@ test('webview sends gameStarted after startWithRom success', () => {
         if (req === 'vscode') return mockVscode;
         return origLoad(req, parent, isMain);
     };
-    delete require.cache[require.resolve(PANEL_JS)];
+    delete require.cache[require.resolve(PANEL_DIST)];
     var pmod = null;
-    try { pmod = require(PANEL_JS); } catch(e) { /* load error handled in test */ }
+    try { pmod = require(PANEL_DIST); } catch(e) { /* load error handled in test */ }
     OrigMod._load = origLoad;
 
     test('mock: panel module loads and exports openEmulatorPanel', function() {
@@ -516,10 +517,10 @@ test('a missing snesCorePath falls back to the bundled core, with a warning', ()
         debug: { activeDebugSession: null, startDebugging: async () => false },
     };
     Mod._load = (req, parent, isMain) => (req === 'vscode' ? vscodeMock : load(req, parent, isMain));
-    const fresh = () => { for (const m of [PANEL_JS, '../../../dist/core/emulator/core-path.js', '../../../dist/core/emulator/emulator-log.js', 'panel-state.js', 'panel-messages.js']) delete require.cache[require.resolve(path.resolve(path.dirname(PANEL_JS), m))]; };
+    const fresh = () => { for (const m of ['panel.js', 'core-path.js', 'emulator-log.js', 'panel-state.js', 'panel-messages.js']) delete require.cache[require.resolve(path.join(path.dirname(PANEL_DIST), m))]; };
     fresh();
     try {
-        require(PANEL_JS).openEmulatorPanel({ extensionPath: ROOT, subscriptions: [] }, null, null);
+        require(PANEL_DIST).openEmulatorPanel({ extensionPath: ROOT, subscriptions: [] }, null, null);
     } finally {
         Mod._load = load;
         fresh();

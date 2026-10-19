@@ -108,7 +108,7 @@ function editorObjects(rom: Uint8Array, room: RoomData) {
         // of its descriptor; maps/room.ts ObjectState.hold), by state.
         const holds = obj.states.map((st) => st.hold);
         return { index, x: box.x, y: box.y, w: box.w, h: box.h, frames, holds };
-    }).filter(Boolean);
+    }).filter((o): o is NonNullable<typeof o> => o !== null);
 }
 
 /**

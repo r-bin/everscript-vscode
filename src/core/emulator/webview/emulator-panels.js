@@ -5,10 +5,10 @@
  * emulator/webview/emulator-panels.js
  *
  * Where the emulator's panels are shown. Loaded after emulator-profile.js and before the
- * panel's inline script (panel-webview.js); its functions run later.
+ * panel's inline script (panel-webview.ts); its functions run later.
  *
  * Panels: CDL, TRACE, STACK, ENTITIES, ALCHEMY, PALETTES (the #ss-view-<name> elements).
- * Each has a pause-menu tab (menu/menu-view.js) that shows it in full, with a placement
+ * Each has a pause-menu tab (menu/menu-view.ts) that shows it in full, with a placement
  * row on top: hidden, left side bar, right side bar or bottom bar.
  *   - Side bars are drawn over the picture (#emu-side-left / #emu-side-right), as narrow as
  *     their content and at most a third of the screen, in a compact read-only form
@@ -27,7 +27,7 @@
  * trace a page per press (emuPanelMenuMove).
  * What a panel shows depends on where it is: only the bottom bar shows everything
  * (emulator-panels.css; TRACE: time + source + script in the menu, time + script in a side bar).
- * REPLAYS lives in the menu only (its tab, its status chip on the screen: tas-view.js); it is
+ * REPLAYS lives in the menu only (its tab, its status chip on the screen: tas-view.ts); it is
  * not a panel: its rows are menu rows (replays-list.js) and its tab has the usual card size.
  *
  * Defaults: CDL in the left side bar, everything else hidden. The placement is saved
@@ -40,7 +40,7 @@ const EMU_PANELS = ['cdl', 'trace', 'stack', 'entities', 'alchemy', 'palettes'];
 const EMU_PANEL_TITLES = { cdl: 'CDL', trace: 'TRACE', stack: 'STACK', entities: 'ENTITIES', alchemy: 'ALCHEMY', palettes: 'PALETTES' };
 const EMU_PLACES = ['hidden', 'left', 'right', 'bottom'];
 const EMU_PLACE_LABELS = { hidden: 'Hidden', left: 'Left side bar', right: 'Right side bar', bottom: 'Bottom bar' };
-/** Pause-menu tab of each panel (menu/menu-view.js MENU_TAB_ORDER). */
+/** Pause-menu tab of each panel (menu/menu-view.ts MENU_TAB_ORDER). */
 const EMU_PANEL_MENU_TAB = { cdl: 8, trace: 9, stack: 10, entities: 11, alchemy: 12, palettes: 13 };
 
 function emuDefaultPlaces() {
@@ -204,7 +204,7 @@ function emuSetPanelScroll(tab) {
   document.querySelectorAll('.menu-panel-host').forEach(el => el.classList.toggle('scrolling', el.id === 'menu-panel-' + tab));
 }
 
-/** The selectable rows of a panel's menu tab (menu-view.js menuSelectableRows). */
+/** The selectable rows of a panel's menu tab (menu-view.ts menuSelectableRows). */
 function emuPanelMenuRows(tab) {
   const panel = document.getElementById('menu-panel-' + tab);
   if (!panel) return [];

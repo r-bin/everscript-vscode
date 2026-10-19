@@ -9,7 +9,7 @@ in the emulator panel, through VS Code's debugger UI (F5).
 VS Code debug UI ── DAP (in-process) ── emulator-session.ts
                                             │  bridge (injected by extension.js)
                                             ▼
-                     emulator/script-debug-host.ts ── postMessage ── script-debug-view.js (webview)
+                     emulator/script-debug-host.ts ── postMessage ── script-debug-view.ts (webview)
                                                                           │ exec breakpoint $8C:D0A6
                                                                           ▼
                                                                   custom snes9x core

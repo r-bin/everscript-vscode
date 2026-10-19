@@ -331,4 +331,5 @@ class CdlHost {
     dispose() { this.flushNow(); }
 }
 
+export type { CdlTools };
 export { CdlHost, findScriptContext, parseRanges };

@@ -11,7 +11,7 @@ const { decodeRomString } = require('../../../../dist/games/evermore/localizatio
 const { slugify, hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
 const { gallery, href } = require('../../../../dist/games/evermore/resources/autoindex');
 const { dir, file, link, json, text } = require('../../../../dist/games/evermore/resources/nodes');
-const { maps, cell } = require('./map-files');
+const { maps, cell } = require('../../../../dist/games/evermore/resources/map-files');
 
 /** Reward categories with ring-menu icons (as in rooms/data/item-icons.ts). */
 const CATEGORIES = { ingredients: 0x0200, armor: 0x0400, consumables: 0x0800 };
@@ -73,22 +73,22 @@ function resolveAssets(segments, rom, deps) {
         return null;
     }
     if (kind === 'maps' && (leaf === 'objects' || extra.includes('objects'))) {
-        const { resolveRoomObjects } = require('./map-objects');
+        const { resolveRoomObjects } = require('../../../../dist/games/evermore/resources/map-objects');
         const oIdx = segments.indexOf('objects');
         const subSegments = segments.slice(oIdx + 1);
         const rId = parseInt(id, 16);
         if (Number.isInteger(rId) && rId >= 0 && rId < MAX_ROOMS) {
-            return resolveRoomObjects(decodeRoom(rom, rId), rom, subSegments);
+            return resolveRoomObjects(decodeRoom(rom, rId), rom, subSegments, rId);
         }
         return null;
     }
     if (kind === 'maps' && (leaf === 'widgets' || extra.includes('widgets'))) {
-        const { resolveRoomWidgets } = require('./map-objects');
+        const { resolveRoomWidgets } = require('../../../../dist/games/evermore/resources/map-objects');
         const wIdx = segments.indexOf('widgets');
         const subSegments = segments.slice(wIdx + 1);
         const rId = parseInt(id, 16);
         if (Number.isInteger(rId) && rId >= 0 && rId < MAX_ROOMS) {
-            return resolveRoomWidgets(decodeRoom(rom, rId), rom, subSegments);
+            return resolveRoomWidgets(decodeRoom(rom, rId), rom, subSegments, rId);
         }
         return null;
     }
@@ -98,7 +98,7 @@ function resolveAssets(segments, rom, deps) {
         const subSegments = segments.slice(tileIdx + 1);
         const rId = parseInt(id, 16);
         if (Number.isInteger(rId) && rId >= 0 && rId < MAX_ROOMS) {
-            return resolveRoomTiles(decodeRoom(rom, rId), rom, subSegments);
+            return resolveRoomTiles(decodeRoom(rom, rId), rom, subSegments, rId);
         }
         return null;
     }

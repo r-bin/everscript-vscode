@@ -6,9 +6,9 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..', '..');
-const PANEL_JS = path.join(ROOT, 'src', 'core', 'emulator', 'panel.js');
-const PANEL_WEBVIEW_JS = path.join(ROOT, 'src', 'core', 'emulator', 'panel-webview.js');
-const MENU_VIEW_JS = path.join(ROOT, 'src', 'core', 'emulator', 'menu', 'menu-view.js');
+const PANEL_JS = path.join(ROOT, 'src', 'core', 'emulator', 'panel.ts');
+const PANEL_WEBVIEW_JS = path.join(ROOT, 'src', 'core', 'emulator', 'panel-webview.ts');
+const MENU_VIEW_JS = path.join(ROOT, 'src', 'core', 'emulator', 'menu', 'menu-view.ts');
 
 let passed = 0;
 let failed = 0;
@@ -26,15 +26,15 @@ function test(name, fn) {
 
 console.log('Emulator Crash Logging & Fixes Tests:');
 
-const panelCode = fs.readFileSync(PANEL_JS, 'utf8') + ['emulator-log.ts', 'panel-state.js', 'panel-messages.js'].map((f) => fs.readFileSync(path.join(ROOT, 'src', 'core', 'emulator', f), 'utf8')).join('\n');
-const webviewCode = fs.readFileSync(PANEL_WEBVIEW_JS, 'utf8') + '\n' + ['page.html', 'page-style', 'page'].map((f) => require('../../src/core/webview/page-file').pageFiles(path.join(ROOT, 'src', 'core', 'emulator', 'webview'))(f, new Proxy({}, { has: () => true, get: (_, k) => '//@@' + String(k) }))).join('\n')
-  // Evermore's screen layer is spliced into the page (games/evermore/emulator/overlays-view.js).
-  + (({ getOverlaysScript, getOverlayTogglesScript }) => getOverlaysScript() + getOverlayTogglesScript())(require('../../src/games/evermore/emulator/overlays-view'));
-const menuCode = (({ getMenuCss, getMenuHtml, getMenuClientScript }) => getMenuCss() + getMenuHtml() + getMenuClientScript())(require('../../src/core/emulator/menu/menu-view'))
+const panelCode = fs.readFileSync(PANEL_JS, 'utf8') + ['emulator-log.ts', 'panel-state.ts', 'panel-messages.ts'].map((f) => fs.readFileSync(path.join(ROOT, 'src', 'core', 'emulator', f), 'utf8')).join('\n');
+const webviewCode = fs.readFileSync(PANEL_WEBVIEW_JS, 'utf8') + '\n' + ['page.html', 'page-style', 'page'].map((f) => require('../../dist/core/webview/page-file').pageFiles(path.join(ROOT, 'src', 'core', 'emulator', 'webview'))(f, new Proxy({}, { has: () => true, get: (_, k) => '//@@' + String(k) }))).join('\n')
+  // Evermore's screen layer is spliced into the page (games/evermore/emulator/overlays-view.ts).
+  + (({ getOverlaysScript, getOverlayTogglesScript }) => getOverlaysScript() + getOverlayTogglesScript())(require('../../dist/games/evermore/emulator/overlays-view'));
+const menuCode = (({ getMenuCss, getMenuHtml, getMenuClientScript }) => getMenuCss() + getMenuHtml() + getMenuClientScript())(require('../../dist/core/emulator/menu/menu-view'))
   // Evermore's tabs 1-4 live in the game's part of the page (handed in through host.js webview()).
-  + (({ getMenuTabsClientScript, getMenuPanelsHtml, getMenuTabButtonsHtml }) => getMenuTabsClientScript() + getMenuPanelsHtml() + getMenuTabButtonsHtml())(require('../../src/games/evermore/emulator/menu-tabs'));
+  + (({ getMenuTabsClientScript, getMenuPanelsHtml, getMenuTabButtonsHtml }) => getMenuTabsClientScript() + getMenuPanelsHtml() + getMenuTabButtonsHtml())(require('../../dist/games/evermore/emulator/menu-tabs'));
 
-// 1. Output Channel & Crash Reporting in panel.js
+// 1. Output Channel & Crash Reporting in panel.ts
 test('panel.js defines dedicated Everscript Emulator output channel', () => {
   assert.ok(panelCode.includes("_ensureEmulatorChannel"), 'missing _ensureEmulatorChannel helper');
   assert.ok(panelCode.includes("createOutputChannel('Everscript Emulator')"), 'missing Everscript Emulator output channel creation');
@@ -54,7 +54,7 @@ test('panel.js formats comprehensive crash report with CPU state and script slot
   assert.ok(panelCode.includes('Show Crash Log'), 'missing action button to reveal crash log');
 });
 
-// 2. Webview crash hooks in panel-webview.js
+// 2. Webview crash hooks in panel-webview.ts
 test('panel-webview.js defines collectCrashContext and reportEmulatorCrash', () => {
   assert.ok(webviewCode.includes('function collectCrashContext('), 'missing collectCrashContext');
   assert.ok(webviewCode.includes('function reportEmulatorCrash('), 'missing reportEmulatorCrash');
@@ -82,7 +82,7 @@ test('panel-webview.js uses applyCanvasLayersFilter for hardware-accelerated ren
   assert.ok(!webviewCode.includes('extFgCtx.filter = mapFilter'), 'extFgCtx still sets slow CPU filter');
 });
 
-// 3. Opcode 0x5C injection fixes in menu-view.js
+// 3. Opcode 0x5C injection fixes in menu-view.ts
 test('menu-view.js uses proper Everscript expression encoding (0x82) for opcode 0x5C', () => {
   assert.ok(menuCode.includes("'5c 82 ' + hexObj + ' 82 ' + hexVal"), 'opcode 0x5C not using 0x82 sub-instruction prefix in stepObjectState');
   assert.ok(menuCode.includes("'5c 82 ' + loot.objectId.toString(16)"), 'opcode 0x5C not using 0x82 sub-instruction prefix in lootables');
@@ -140,7 +140,7 @@ test('menu-view.js gates Start button only on opening screen and name entry', ()
 });
 
 test('the Evermore emulator host caches static room metadata; the panel clears it on disposal', () => {
-  const hostCode = ['host.js', 'room-meta.ts', 'room-map.ts'].map((f) => fs.readFileSync(path.join(__dirname, '../../src/games/evermore/emulator', f), 'utf8')).join('\n');
+  const hostCode = ['host.ts', 'room-meta.ts', 'room-map.ts'].map((f) => fs.readFileSync(path.join(__dirname, '../../src/games/evermore/emulator', f), 'utf8')).join('\n');
   assert.ok(/const roomMetaCache = new Map(<[^>]*>)?\(\);/.test(hostCode), 'the host must keep a room meta cache');
   assert.ok(hostCode.includes('roomMeta(rom, mapId)'), 'the host must use roomMeta to avoid re-encoding animation groups on every frame');
   assert.ok(hostCode.includes('roomMetaCache.clear();'), 'clearCaches must clear the room meta cache');

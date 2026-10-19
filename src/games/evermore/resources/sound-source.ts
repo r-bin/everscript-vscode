@@ -1,5 +1,5 @@
 // Ownership: what the Music tab shows about who sent a sound effect: the
-// sender the emulator's hook recorded (emulator/sound-source-view.js) turned
+// sender the emulator's hook recorded (emulator/sound-source-view.ts) turned
 // into names, pictures and soe:// links. Pure: ROM bytes + the event in, a
 // JSON-ready object out. extension.js injects it into the Music host.
 //

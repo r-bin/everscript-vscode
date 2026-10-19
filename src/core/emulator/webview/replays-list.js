@@ -8,7 +8,7 @@
  * ../tas-view.js). Loaded as a file before the panel's inline script; its functions run later.
  *
  * Every row is a .menu-row of the pause menu, so Up / Down jumps from row to row like in any
- * other tab (menu/menu-view.js). Rows, top to bottom:
+ * other tab (menu/menu-view.ts). Rows, top to bottom:
  *   - "Take over" (only while a replay runs) and "Open recordings folder": B does it;
  *   - one row per recording of this ROM (pinned first): when it was recorded, how long it is,
  *     and whether it replays in sync. The file name is only in the tooltip.

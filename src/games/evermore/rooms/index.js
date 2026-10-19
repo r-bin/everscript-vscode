@@ -11,15 +11,15 @@ const { renderVanillaTree, renderRoomsTree, buildRoomRailHtml,
         buildRoomsJson }                                            = require('./rendering/tree-renderer');
 const { buildRoomTileOverlay, invalidateRoomRenders }               = require('../../../../dist/games/evermore/rooms/rendering/tile-overlay');
 const { buildRoomMetatilePalette, buildComposedPreview,
-        invalidateMetatilePalettes }                               = require('./rendering/metatile-palette');
+        invalidateMetatilePalettes }                               = require('../../../../dist/games/evermore/rooms/rendering/metatile-palette');
 const { buildBlankRoom, buildDraftCollision, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews,
         invalidateRoomDrafts }                                     = require('../../../../dist/games/evermore/rooms/rendering/room-draft');
 const { decoIndex, decoCells,
         invalidateDecoCatalogue }                                  = require('../../../../dist/games/evermore/rooms/rendering/deco-catalogue');
 const { buildDecoPreviews, buildWidgetPreviews, buildConstructGhost } = require('../../../../dist/games/evermore/rooms/rendering/deco-preview');
 const { buildExportRom }                                            = require('../../../../dist/games/evermore/rooms/rendering/rom-export');
-const { buildCustomMapArchive }                                     = require('./rendering/custom-export');
-const { handlesCustomMapMessage, handleCustomMapMessage }           = require('./custom-host');
+const { buildCustomMapArchive }                                     = require('../../../../dist/games/evermore/rooms/rendering/custom-export');
+const { handlesCustomMapMessage, handleCustomMapMessage }           = require('../../../../dist/games/evermore/rooms/custom-host');
 const { relatedTiles, neighbourTiles, vanillaExamples, proceduralFill } = require('../../../../dist/games/evermore/rooms/rendering/vanilla-index');
 const { buildItemIcons }                                            = require('../../../../dist/games/evermore/rooms/data/item-icons');
 const { VANILLA_ROOMS, buildVanillaRoomContent,

@@ -1,7 +1,7 @@
 // TODO port to TS (docs/todo/port-to-ts.md)
 
     // ---- Evermore's pause-menu tabs 1-4 (OVERLAYS, OBJECTS, LOOT, CHEATS): the hooks the emulator's
-    // menu calls behind typeof guards (src/core/emulator/menu/menu-view.js), and what they need.
+    // menu calls behind typeof guards (src/core/emulator/menu/menu-view.ts), and what they need.
     const menuLocalObjStates = new Map();
 
     // Controllable Player Gate:
@@ -52,7 +52,7 @@
       return 0;
     }
 
-    // VIEW's line: the room (number and name) and the Boy's position (menu-view.js updateLensTabInfo).
+    // VIEW's line: the room (number and name) and the Boy's position (menu-view.ts updateLensTabInfo).
     function gameLensInfo() {
       const mapName = (typeof activeRoomMap !== 'undefined' && activeRoomMap && activeRoomMap.name) ? activeRoomMap.name : '';
       const hex = (typeof cachedMapId === 'number' && cachedMapId >= 0) ? ('0x' + cachedMapId.toString(16).toUpperCase().padStart(2, '0')) : '0x00';
@@ -97,7 +97,7 @@
       else if (tab === 4) syncMenuValuesFromRuntime();
     }
 
-    // The pills of OVERLAYS and CHEATS (menu-view.js syncMenuValuesFromRuntime).
+    // The pills of OVERLAYS and CHEATS (menu-view.ts syncMenuValuesFromRuntime).
     function gameMenuSync() {
       setPillState('menu-val-extend', extendMapEnabled);
       setPillState('menu-val-triggers', triggersOverlayEnabled);
@@ -114,7 +114,7 @@
       setPillState('menu-val-cheat-atlas', typeof cheatAtlasEnabled !== 'undefined' && !!cheatAtlasEnabled);
     }
 
-    // Left / right on a row of tabs 1-4 (menu-view.js changeMenuValue).
+    // Left / right on a row of tabs 1-4 (menu-view.ts changeMenuValue).
     function gameMenuStep(tab, row, delta) {
       if (tab === 1) {
         // Tab 1: OVERLAYS
@@ -237,7 +237,7 @@
       }
     }
 
-    // B on a row of tabs 1-4 (menu-view.js activateMenuRow).
+    // B on a row of tabs 1-4 (menu-view.ts activateMenuRow).
     function gameMenuActivate(tab, row) {
       if (tab === 1) {
         switch (row) {

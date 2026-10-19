@@ -12,7 +12,7 @@
       const center = { x: layout.emuX + layout.emuW / 2, y: layout.emuY + layout.emuH / 2 };
       const m = getModule();
       const ps = lastSampledPreState;
-      // Where the game's camera follows (Evermore: overlays-view.js gameCameraWorld), in world pixels.
+      // Where the game's camera follows (Evermore: overlays-view.ts gameCameraWorld), in world pixels.
       const at = m && ps && typeof gameCameraWorld === 'function' ? gameCameraWorld(m, ps) : null;
       if (!at) return center;
       const px = layout.emuX + (at.x - layout.camX) * layout.scaleSnes;

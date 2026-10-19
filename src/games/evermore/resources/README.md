@@ -51,7 +51,7 @@ binds the same key and wins on extension load order; a user keybinding
 | `bus-files.js` | `soe://bus/`: maps a bus address to its `ram/` or `rom/` file (no data of its own) |
 | `rom-files.js` | `soe://rom/`: `rom.sfc`, `header.json`, offset slices, `<offset>.json`, top-level aliases |
 | `rom-assets.js` | `soe://rom/assets/`: icons, items by name, alchemy, strings; routes the other kinds |
-| `map-files.js` | `assets/maps/`: every room's index, header and grids, renders, info page |
+| `map-files.ts` | `assets/maps/`: every room's index, header and grids, renders, info page |
 | `character-files.ts` | `characters/`, `animations/`: records, sprites, animation GIFs, frames, tile blocks |
 | `tile-files.ts` | `assets/tiles/`: 16×16 CHR tile graphics table ($EE0000); room metatile atlas/tiles |
 | `audio-files.js`, `audio-songs.js` | `audio/`: music tracks, playable `.spc` snapshots, sound effects, descriptors (one song's records, SPC and page: `audio-songs.js`) |

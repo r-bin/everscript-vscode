@@ -4,7 +4,7 @@
 //   index.md, info.json             the ROM: title, map and area counts
 //   maps/index.md, maps/index.json  every map: id, size, area
 //   maps/<id>.png, .a.png, .b.png   the map as the game shows it (frame 0), or one layer
-//   maps/<id>.json, .collision.json, .anim.json   data, collision, animation (map-files.js)
+//   maps/<id>.json, .collision.json, .anim.json   data, collision, animation (map-files.ts)
 //   areas/index.md, areas/index.json  the areas, their map ids (+ "other") and which
 //                                   ids share one picture (same sets and pieces)
 //   areas/<slug>.md                 an area's maps as images

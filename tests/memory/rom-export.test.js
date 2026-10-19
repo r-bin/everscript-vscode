@@ -178,7 +178,7 @@ if (!rom) {
     });
 
     test('palette sets: room 0x18 stores two, its script switches to 7, and the render follows MAP_PALETTE', () => {
-        const { buildRoomMetatilePalette } = require('../../src/games/evermore/rooms/rendering/metatile-palette');
+        const { buildRoomMetatilePalette } = require('../../dist/games/evermore/rooms/rendering/metatile-palette');
         const { withHeader } = require('../../dist/games/evermore/rooms/rendering/header-overrides');
         const pal = buildRoomMetatilePalette(rom, 0x18, 'composite', 1, null);
         assert.strictEqual(pal.tileFamilies.length, 14);

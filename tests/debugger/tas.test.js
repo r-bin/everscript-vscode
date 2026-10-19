@@ -167,11 +167,11 @@ test('REPLAYS rows: when, length and sync, no file name; play and delete ask fir
 
 test('webview: REPLAYS tab, inputs + FPS chips, frame loop routes joypads through tasApplyInput; script parses', () => {
     for (const file of ['tas', 'fps.js']) {
-        const src = require('../../src/core/webview/page-file').pageFiles(path.join(ROOT, 'src', 'core', 'emulator', 'webview'))(file);
+        const src = require('../../dist/core/webview/page-file').pageFiles(path.join(ROOT, 'src', 'core', 'emulator', 'webview'))(file);
         assert.ok(!/[^\x09\x0A\x0D\x20-\x7E]/.test(src), file + ' must be ASCII');
         assert.ok(!src.includes('\\'), 'no backslashes in ' + file);
     }
-    const { buildHtml } = require('../../src/core/emulator/panel-webview');
+    const { buildHtml } = require('../../dist/core/emulator/panel-webview');
     const html = buildHtml({ cspSource: '' }, 'core.js', 'core.wasm', 'core', 'core');
     assert.ok(!html.includes('id="ss-tab-tas"') && html.includes('id="ss-view-tas"') && html.includes('id="emu-slot-tas"'), 'REPLAYS is a pause-menu tab only');
     assert.ok(html.includes('id="tas-rec-badge"'), 'the replay status chip is on the screen');

@@ -324,5 +324,5 @@
         }
       }
 
-      // Normal SNES game keys pass through to panel-webview.js input listener.
+      // Normal SNES game keys pass through to panel-webview.ts input listener.
     }, true);

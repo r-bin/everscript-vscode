@@ -31,13 +31,13 @@
     }
 
     function apuLoadedPackage(m) {
-      // The music package the game loaded (Evermore: sound-source-view.js gameMusicPackage), -1 when unknown.
+      // The music package the game loaded (Evermore: sound-source-view.ts gameMusicPackage), -1 when unknown.
       try { return typeof gameMusicPackage === 'function' ? gameMusicPackage(m) : -1; } catch (e) { return -1; }
     }
 
     // Called once per displayed frame, after mainLoop().
     function apuStreamTick(m, paused) {
-      // Who sent each sound effect: the game's (Evermore: sound-source-view.js), none without it.
+      // Who sent each sound effect: the game's (Evermore: sound-source-view.ts), none without it.
       const hasSnd = typeof sndSync === 'function';
       if (hasSnd) sndSync(m, romLoaded && emuGameRom && (apuStreamOn || sndShow));
       const src = hasSnd ? sndTake(paused) : [];

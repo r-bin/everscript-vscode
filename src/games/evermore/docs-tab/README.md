@@ -6,7 +6,7 @@ Renders the Docs and RNG tabs in the Memory Radar webview panel.
 
 | File | Description |
 |---|---|
-| `render-docs-tab.js` | Server-side rendering of the Docs/RNG tab HTML |
+| `render-docs-tab.ts` | Server-side rendering of the Docs/RNG tab HTML |
 | `docs-tab.js` | Webview asset — alchemy/docs tab client-side JS |
 | `rng-tab.js` | Webview asset — RNG simulator client-side JS |
 

@@ -3,7 +3,7 @@
 
 /**
  * Movie events (writes, soft resets, WRAM checksums): the format in movie.ts, the webview half
- * (tas-view.js) driven against a fake core, and, when a local Secret of Evermore ROM is found, the
+ * (tas-view.ts) driven against a fake core, and, when a local Secret of Evermore ROM is found, the
  * headless replay tool (tools/cdl/replay.js) on the real core: checksums match across processes
  * and a changed input is reported as a desync.
  * ROM: the Evermore ROM of the ROM library (npm run roms). The ROM is only read.
@@ -18,7 +18,7 @@ const { execFileSync, spawnSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '../..');
 const movie = require('../../dist/platform/tas/movie');
-const { getTasClientScript } = require('../../src/core/emulator/tas-view');
+const { getTasClientScript } = require('../../dist/core/emulator/tas-view');
 
 let passed = 0;
 let failed = 0;
@@ -214,7 +214,7 @@ test('while recording by hand the webview asks the host for a replay check every
 });
 
 test('the movie sample rate is the one the emulator panel boots with', () => {
-    const panel = require('../../src/core/webview/page-file').pageFiles(path.join(ROOT, 'src/core/emulator/webview'))('page', new Proxy({}, { has: () => true, get: (_, k) => '//@@' + String(k) }));
+    const panel = require('../../dist/core/webview/page-file').pageFiles(path.join(ROOT, 'src/core/emulator/webview'))('page', new Proxy({}, { has: () => true, get: (_, k) => '//@@' + String(k) }));
     assert.ok(new RegExp('AUDIO_FREQ\\s*=\\s*' + movie.AUDIO_RATE + '\\b').test(panel));
 });
 

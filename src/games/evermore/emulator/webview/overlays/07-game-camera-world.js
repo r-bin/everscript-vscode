@@ -14,7 +14,7 @@
       return { x, y: y - 40 };
     }
 
-    // A (re)started ROM: forget the room and the sprites of the last one (panel-webview.js bootRom).
+    // A (re)started ROM: forget the room and the sprites of the last one (panel-webview.ts bootRom).
     function gameRomReset() {
       idleSprites.clear();
       idleSpritesWanted = new Set();

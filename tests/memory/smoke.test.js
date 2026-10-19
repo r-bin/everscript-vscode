@@ -554,7 +554,7 @@ test('webview source is pasted into the bundle literally, not as a replacement p
     // `$'` in a String.replace replacement means "everything after the
     // match", so one dollar-quote in the webview source used to swallow the
     // rest of the bundle and leave an unterminated string.
-    const rw = require('../../src/games/evermore/memory/webview');
+    const rw = require('../../dist/games/evermore/memory/webview');
     const bundle = rw.buildMainJs({
         jsData: '', roomsData: '', scalingData: '',
         roomsJs: "var probe='flag $'+1;", scalingJs: '', docsJs: '', rngJs: '',

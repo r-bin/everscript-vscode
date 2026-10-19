@@ -6,7 +6,7 @@ Related skills: `memory-radar`, `webview-dom-safety`, `memory-map`
 
 ## Owns
 - The radar panel HTML: `render-radar.js` (tabs, layout, webview entry),
-  `render-memory-tab.ts` (WRAM grid + detail table), `webview/index.js` (loads the tabs'
+  `render-memory-tab.ts` (WRAM grid + detail table), `webview/index.ts` (loads the tabs'
   webview JS/CSS into the panel), `scope-analysis.ts` (the cursor's scope in an .evs file and the RAM
   it reads and writes; pure).
 
@@ -17,7 +17,7 @@ Related skills: `memory-radar`, `webview-dom-safety`, `memory-map`
   `no-memory-to-debugger-dap`; the debugger reaches the radar only through `extension.js`).
 - Existing exceptions (do not add more) — the radar hosts the other tabs by requiring them:
   - `render-radar.js` → `../docs/render-docs-tab`, `../rooms`, `../sprites`, `../rom`, `../music`.
-  - `webview/index.js` reads files from `../../scaling/webview`, `../../rooms/webview`,
+  - `webview/index.ts` reads files from `../../scaling/webview`, `../../rooms/webview`,
     `../../sprites/webview`, `../../docs`, `../../routes`, `../../rom/webview`,
     `../../music/webview`.
   - Target (guide §3.1): tabs handed to the host as a list of
@@ -28,7 +28,7 @@ Related skills: `memory-radar`, `webview-dom-safety`, `memory-map`
   live in `src/games/evermore/extension.js` (its state is listed at the top of that file).
 
 ## Invariants
-- `webview/index.js`'s concatenation is a legacy §3.5 offender: convert when touched, do
+- `webview/index.ts`'s concatenation is a legacy §3.5 offender: convert when touched, do
   not add to it. New tab code goes in the owning feature's `webview/` as real files.
 
 ## Tests

@@ -61,7 +61,7 @@ async function openMemoryRadar(doc, startLine) {
             },
         );
         radar.panel.onDidDispose(() => {
-            require('../../core/emulator/panel').apuStream.setOn(false);
+            require('../../../dist/core/emulator/panel').apuStream.setOn(false);
             radar.panel = null;
             radar.pinned = false;
             radar.currentScope = null;
@@ -140,12 +140,12 @@ async function openMemoryRadar(doc, startLine) {
                 roomRom: radarRoomRom,
                 manaRooms: radar.manaRooms,
                 exportChannel: getMapExportChannel,
-                openEmulator: (rom) => require('../../core/emulator/panel').openEmulatorPanel(context, rom),
+                openEmulator: (rom) => require('../../../dist/core/emulator/panel').openEmulatorPanel(context, rom),
                 context,
             });
         } else if (handlesCustomMapMessage(msg.command)) {
             // Custom maps on disk: list, save, delete, export
-            // (rooms/custom-host.js, docs/map-format/custom-map-files.md).
+            // (rooms/custom-host.ts, docs/map-format/custom-map-files.md).
             handleCustomMapMessage(msg, {
                 vscode,
                 root: path.join(context.globalStorageUri.fsPath, 'custom-maps'),
@@ -169,7 +169,7 @@ async function openMemoryRadar(doc, startLine) {
             handleMusicMessage(msg, {
                 post: (m) => radar.panel?.webview.postMessage(m),
                 loadRom: () => romReaders.loadRomBuffer(_ws, ''),
-                apu: require('../../core/emulator/panel').apuStream,
+                apu: require('../../../dist/core/emulator/panel').apuStream,
                 describeSource: (rom, src) => require('../../../dist/games/evermore/resources/sound-source').describeSoundSource(rom, src),
                 open: (uri) => vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(uri)),
             });

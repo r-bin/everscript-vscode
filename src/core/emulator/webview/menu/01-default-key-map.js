@@ -245,7 +245,7 @@
       const coordsEl = document.getElementById('menu-lens-coords');
       const zoomPill = document.getElementById('menu-val-lens-zoom');
 
-      // The room and the player: the game's (gameLensInfo, Evermore: menu-tabs.js); the line is data-needs="game".
+      // The room and the player: the game's (gameLensInfo, Evermore: menu-tabs.ts); the line is data-needs="game".
       const info = typeof gameLensInfo === 'function' ? gameLensInfo() : null;
       if (roomTitleEl && info) roomTitleEl.textContent = info.room;
       if (coordsEl) {

@@ -4,7 +4,7 @@
 /**
  * emulator/webview/emulator-profile.js
  *
- * Loaded before the panel's inline script (panel-webview.js); its functions run
+ * Loaded before the panel's inline script (panel-webview.ts); its functions run
  * later, from that script and from messages.
  *
  * Profile and game:
@@ -130,7 +130,7 @@ function emuApplySettings(saved) {
   let migrated = false;
   emuApplying = true;
   try {
-    // The overlays are the game's (games/evermore/emulator/overlays-view.js): absent without it.
+    // The overlays are the game's (games/evermore/emulator/overlays-view.ts): absent without it.
     const set = (fn, on) => { try { if (fn) fn(!!on); } catch (_) { /* a layer not ready yet redraws on the next frame */ } };
     set(typeof setExtendMap === 'function' ? setExtendMap : null, o.extend);
     set(typeof setTriggersOverlay === 'function' ? setTriggersOverlay : null, o.triggers);

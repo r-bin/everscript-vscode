@@ -169,7 +169,7 @@ test('detectRomDetails returns ? for unknown ROM buffers', () => {
 
 test('detectRomDetails detects custom map ROM by path name (Evermore describes its own test ROMs)', () => {
   const { detectRomDetails, setRomDescriber } = require('../../dist/core/emulator/rom-history');
-  setRomDescriber(require('../../src/games/evermore/emulator/host').describeRom);
+  setRomDescriber(require('../../dist/games/evermore/emulator/host').describeRom);
   const dummy = Buffer.alloc(0x300000);
   const details = detectRomDetails(dummy, '/path/to/Copy_of_Shops_emulator.sfc');
   assert.ok(details);

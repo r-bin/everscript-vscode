@@ -1,6 +1,6 @@
 // Ownership: the room trigger tables as the emulator page reads them (step-on and B triggers of a map,
 // their boxes on the screen, a script id's bus address). Plain functions, spliced into the page with
-// .toString() by overlays-view.js and required by tests.
+// .toString() by overlays-view.ts and required by tests.
 
 /** One step-on or B trigger: its box in map tiles and the script it runs. */
 interface RoomTrigger { y1: number; x1: number; y2: number; x2: number; scriptId: number; index: number; kind: 'stepOn' | 'bTrigger' }

@@ -3,7 +3,7 @@
 // each part with the channel it moves on (`anim`) or none. Colourings
 // (`variations`) are derived from the art, never stored or painted: one per family vanilla draws any of its
 // graphics in, read off what the host sends with the library
-// (`graphicFamilies`, rooms/custom-host.js). Split out of
+// (`graphicFamilies`, rooms/custom-host.ts). Split out of
 // map-editor-widgets.js.
 //
 // Owns: _widgetFamilies.
@@ -16,7 +16,7 @@ var _widgetFamilies = {};
  * graphics is drawn in, most-placed (summed over the graphics) first. A
  * union, not an intersection — the urn's top half in #127 is a colouring
  * worth having. Read off what the host sends with the library
- * (`_widgetFamilies`, custom-host.js), never a hand-kept list: one of those
+ * (`_widgetFamilies`, custom-host.ts), never a hand-kept list: one of those
  * offered three urn colours no room ever used. null until it is known.
  */
 function widgetAttestedFamilies(cells) {
