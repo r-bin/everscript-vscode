@@ -40,8 +40,8 @@ ours; an empty one means only the operands are known so far.
 | `26` | `$8C:DC18` | — | continues |  | No operands; writes $0B83 = $800F (and $0106 = 0 unless $0105 says otherwise). |
 | `27` | `$8C:DC10` | — | continues |  | No operands; writes $0B83 = $8000. |
 | `29` | `$8C:D3C9` | `u24` | calls (yields) | `call` | Call the script at a packed pointer: it runs in this thread, this one resumes after it returns. |
-| `2A` | `$8C:DB67` | `E` | continues |  | Entity expression ($8C:EC8E), then $8F:CD78. |
-| `2B` | `$8C:DB11` | `E` | continues |  | Entity expression, then $8F:CD4D. |
+| `2A` | `$8C:DB67` | `E` | continues | `freeze_entity` | Entity expression ($8C:EC8E), then $8F:CD78 (freeze/immobilize). |
+| `2B` | `$8C:DB11` | `E` | continues | `unfreeze_entity` | Entity expression, then $8F:CD4D (unfreeze/mobilize). |
 | `2C` | `$8C:DB2A` | `u8` | continues |  | One byte of bits; bit 3 applies $8F:CD78 to the slot's entity. |
 | `2D` | `$8C:DAD4` | `u8` | continues |  | One byte of bits; bit 3 applies $8F:CD4D to the slot's entity. |
 | `2E` | `$8C:D244` | `E` | yields | `wait` | Wait: an entity expression; yields until it is done (see knowledge rom/8cd244). |
@@ -139,7 +139,7 @@ ours; an empty one means only the operands are known so far.
 | `9A` | `$8C:E6CF` | `E` | continues |  |  |
 | `9B` | `$8C:DD33` | `E` | continues |  |  |
 | `9C` | `$8C:DD41` | `E` | continues |  |  |
-| `9D` | `$8C:DA88` | `E E E` | continues |  |  |
+| `9D` | `$8C:DA88` | `E E E` | continues | `set_entity_position` | Set entity position: entity, x, y expressions (calls $8F:AA82 / $8F:AAD3). |
 | `9E` | `$8C:D0D0` | `E E E Z` | continues |  | Entity expression, two expressions, then expressions up to one that is 0 (stored to a free slot from $91:9759). Without a free slot it reads three more expressions and the list from where it stands: the same end only for lists of three or more. |
 | `9F` | `$8C:E5B0` | — | continues |  |  |
 | `A0` | `$8C:E628` | — | continues |  |  |
@@ -169,10 +169,10 @@ ours; an empty one means only the operands are known so far.
 | `B9` | `$8C:E040` | `E E E` | continues |  |  |
 | `BA` | `$8C:DCD9` | `u8 u8 u8` | continues | `spawn` | As 0x3C with an ENEMY value byte (doubled by the handler) and state 0. |
 | `BB` | `$8C:E467` | `E E` | continues |  |  |
-| `BC` | `$8C:DB1B` | — | continues |  |  |
-| `BD` | `$8C:DAC5` | — | continues |  |  |
-| `BE` | `$8C:DB20` | — | continues |  |  |
-| `BF` | `$8C:DACA` | — | continues |  |  |
-| `C0` | `$8C:DB25` | — | continues |  |  |
-| `C1` | `$8C:DACF` | — | continues |  |  |
+| `BC` | `$8C:DB1B` | — | continues | `unfreeze_boy` | Unfreeze Boy character ($8F:CD4D). |
+| `BD` | `$8C:DAC5` | — | continues | `unfreeze_dog` | Unfreeze Dog character ($8F:CD4D). |
+| `BE` | `$8C:DB20` | — | continues | `unfreeze` | Unfreeze bound entity ($8F:CD4D). |
+| `BF` | `$8C:DACA` | — | continues | `freeze_boy` | Freeze Boy character ($8F:CD78). |
+| `C0` | `$8C:DB25` | — | continues | `freeze` | Freeze bound entity ($8F:CD78). |
+| `C1` | `$8C:DACF` | — | continues | `freeze_dog` | Freeze Dog character ($8F:CD78). |
 | `C2` | `$8C:DCC3` | `u8 u8 u8` | continues | `spawn_spawner` | As 0xBA with state $8000: places a spawner. |

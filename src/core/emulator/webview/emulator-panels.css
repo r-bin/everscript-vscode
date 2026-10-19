@@ -56,12 +56,25 @@
 .emu-side[data-panel="trace"]::before { display: none; }
 #emu-slot-trace .ss-trace-sub .ss-trace-time { visibility: hidden; }
 #emu-slot-trace .ss-trace-lookup { width: 110px; min-width: 110px; }
-#emu-slot-trace .ss-trace-time { width: 80px; min-width: 80px; }
+#emu-slot-trace .ss-trace-time { width: 80px; min-width: 80px; flex-shrink: 0; }
 #emu-slot-trace #ss-trace-log { flex: none; height: 300px; padding: 4px 14px; }
+#emu-slot-trace .ss-trace-row,
+#emu-slot-trace .ss-trace-sub {
+  white-space: normal;
+  flex-wrap: wrap;
+  gap: 0 6px;
+}
+#emu-slot-trace .ss-trace-text {
+  flex: 1 1 0%;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
 .emu-side #ss-view-trace { width: 260px; max-width: 100%; }
 .emu-side .ss-trace-row { white-space: normal; flex-wrap: wrap; gap: 0 6px; }
 .emu-side .ss-trace-time, .emu-side .ss-trace-lookup { width: auto; min-width: 0; font-size: 9px; }
-.emu-side .ss-trace-text { flex-basis: 100%; }
+.emu-side .ss-trace-text { flex-basis: 100%; word-break: break-word; overflow-wrap: anywhere; white-space: normal; }
 
 /* STACK: no header (the "active / scheduler / last slot" lines) outside the bottom bar */
 .emu-side #ss-detail, #emu-slot-stack #ss-detail { display: none; }
