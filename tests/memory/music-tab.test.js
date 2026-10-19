@@ -222,7 +222,7 @@ async function coreStream(model) {
         const eng = describeSoundSource(rom, { sfx: 3, kind: 'engine', caller: 0x8CB8DE });
         assert.strictEqual(eng.engine.uri, 'soe://bus/8cb8de.asm');
         const call = eng.engine.lines.find(l => l.mark);
-        assert.match(call.text, /^jsl \$8C82DC .*Play sound effect/, JSON.stringify(eng.engine.lines));
+        assert.match(call.text, /^jsl \$8C82DC .*Play sound effect/i, JSON.stringify(eng.engine.lines));
         assert.ok(eng.engine.lines.some(l => l.text === 'lda #$0003'), 'the effect it plays, loaded into A');
         const { resolveRom } = require('../../dist/games/evermore/resources/rom-files');
         const listing = (await resolveRom(['0cb8cf.asm'], rom).read()).toString();

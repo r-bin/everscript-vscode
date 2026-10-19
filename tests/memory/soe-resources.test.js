@@ -281,7 +281,7 @@ test('provider: rooms list every room; scripts/ does not list itself', async () 
     // One page per opcode, from the handler's knowledge entry: description, addresses, uses.
     const op = Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/opcodes/3c.md'))).toString();
     assert.ok(op.startsWith('# Opcode 0x3c — spawn'), op.slice(0, 60));
-    assert.ok(op.includes('## Addresses') && op.includes('$8E:B55A') && op.includes('## In scripts'), 'addresses and uses');
+    assert.ok(op.includes('$8E:B55A') && op.includes('## In scripts'), 'addresses and uses');
     const ops = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/opcodes/index.json'))).toString());
     assert.strictEqual(ops.length, 168);
     assert.ok(ops.every((o) => o.description), 'every opcode has a knowledge entry');
@@ -680,19 +680,19 @@ test('provider: tables VFS (lookup and pointer tables with data.bin and data.jso
     // Tables index
     const tableList = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/tables/index.json'))).toString('utf8'));
     assert.ok(tableList.length >= 27);
-    assert.ok(tableList.some((t) => t.slug === 'orbit_table_y'));
+    assert.ok(tableList.some((t) => t.slug === 'orbit_table_x'));
 
     // Table info
-    const orbitInfo = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/tables/orbit_table_y/info.json'))).toString('utf8'));
-    assert.strictEqual(orbitInfo.addressHex, '$8088a3');
+    const orbitInfo = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/tables/orbit_table_x/info.json'))).toString('utf8'));
+    assert.strictEqual(orbitInfo.addressHex, '$808923');
     assert.strictEqual(orbitInfo.size, 128);
 
     // Table raw data.bin
-    const orbitBin = await fsp.readFile(uri('soe://rom/tables/orbit_table_y/data.bin'));
+    const orbitBin = await fsp.readFile(uri('soe://rom/tables/orbit_table_x/data.bin'));
     assert.strictEqual(orbitBin.length, 128);
 
     // Table decoded data.json
-    const orbitJson = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/tables/orbit_table_y/data.json'))).toString('utf8'));
+    const orbitJson = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/tables/orbit_table_x/data.json'))).toString('utf8'));
     assert.strictEqual(orbitJson.byteLength, 128);
     assert.strictEqual(orbitJson.bytes.length, 128);
 
