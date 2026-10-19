@@ -2,29 +2,11 @@
 // the tag model and already-read live values. Every link is an absolute
 // `soe://` address, so an AI reading through MCP can open it as written.
 
+import type { TagModel, TagLink, Tag } from './tag-model';
+
 const IMAGE = /\.(png|gif)(\?.*)?$/i;
 
-/** A link from a tag to a soe:// resource. */
-interface TagLink { uri: string; role?: string; status?: string; source?: string; id?: string }
-interface TagClaim { uri: string; text: string; source?: string; status?: string; id?: string }
-/** One tag as the model holds it (tag-model.ts). */
-interface Tag {
-    altTitles: string[]; parents: string[]; size?: number; source?: string; status?: string;
-    links: TagLink[]; claims: TagClaim[]; see: string[]; origins: Iterable<string>;
-}
-/** What these pages ask of the tag model. */
-interface TagModel {
-    tags: Map<string, Tag>;
-    isDir(id: string): boolean;
-    title(id: string): string;
-    children(id: string): Map<string, { id: string; from: string[] }>;
-    ancestors(id: string): string[];
-    conflicts(id: string): { uri: string; claim: TagClaim & { id: string }; link: TagLink & { id: string } }[];
-    referencedBy(id: string): string[];
-    resolve(name: string): { id: string } | null | undefined;
-    roots(): string[];
-    search(word: string): string[];
-}
+type TagClaim = TagLink;
 type Values = Map<string, string | null | undefined>;
 
 const cell = (s: unknown): string => String(s ?? '').replace(/\|/g, '\\|').replace(/\n/g, ' ');

@@ -199,7 +199,7 @@ var _animPresetMemo = { n: -1, by: {} };
 
 function animPresetsFor(seq) {
   var lo = Math.min.apply(null, seq), key = animCycleKey(seq);
-  // Vanilla's table, with the palette (vanilla-index.js vanillaCycleTimings): every cycle, whatever sheets are loaded.
+  // Vanilla's table, with the palette (vanilla-index.ts vanillaCycleTimings): every cycle, whatever sheets are loaded.
   var table = _mtPalette && _mtPalette.cycles && _mtPalette.cycles[key];
   if (table && table.length) {
     var canon = key.split(',').map(Number);

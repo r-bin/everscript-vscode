@@ -69,7 +69,7 @@ function collectNames(map, romLength) {
     for (const e of readEntries('ram')) {
         addWram(e.addr - 0x7E0000, e.name, [e.title, e.purpose].filter(Boolean).join(' - '), e.end - e.addr + 1);
     }
-    const { ramSymbols, ramBlocks } = require(path.join(REPO, 'src', 'games', 'evermore', 'resources', 'ram-symbols.js'));
+    const { ramSymbols, ramBlocks } = require(path.join(REPO, 'dist', 'games', 'evermore', 'resources', 'ram-symbols.js'));
     for (const b of ramBlocks()) addWram(b.addr, b.tags[0], 'record (' + b.size + ' bytes)', b.size);
     for (const s of ramSymbols()) addWram(s.addr, s.name || s.tags[0], (s.tags || []).join(', '), s.size || 1);
 

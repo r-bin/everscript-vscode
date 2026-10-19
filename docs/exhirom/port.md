@@ -120,7 +120,7 @@ ROM until step 5, so every existing tool (CDL, recomp seeds, patches) keeps work
    **Full result** (v0.216.0, §7): the same, plus one read the intro never makes — `$80:D113` reads
    `$B0:E653+`, past the end of the 3 MB ROM.
 2. **Fix the hits** in an Asar patch (`patches/`, `snes-asm-asar-patching` skill) using
-   the `exhirom` mapper (`src/platform/cdl/asar-export.js` already emits it). Re-run step 1 until
+   the `exhirom` mapper (`src/platform/cdl/asar-export.ts` already emits it). Re-run step 1 until
    zero hits across a full playthrough route and the intro/attract loop.
 3. **Header + vectors + stubs** at `0x40FFC0`, `0x40FFE0`, `0x408000+`. Boot headless
    (`reference_headless_boot` method: bundled core under node) and compare against the original

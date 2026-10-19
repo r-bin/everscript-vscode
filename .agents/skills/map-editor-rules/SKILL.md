@@ -1,7 +1,7 @@
 ---
 name: map-editor-rules
 description: Use before changing the Rooms map editor (rooms/webview/map-editor*): the ROM budgets, tilemap and collision word layouts, stamps, and never inventing data the ROM does not have.
-applyTo: "src/games/evermore/rooms/webview/map-editor*,src/games/evermore/rooms/rendering/room-draft.js,src/games/evermore/rooms/rendering/vanilla-index.js"
+applyTo: "src/games/evermore/rooms/webview/map-editor*,src/games/evermore/rooms/rendering/room-draft.js,src/games/evermore/rooms/rendering/vanilla-index.ts"
 ---
 
 # Map Editor Rules

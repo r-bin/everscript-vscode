@@ -7,7 +7,7 @@
  * configuration rides along with every ROM load so breakpoints are armed
  * before the first frame.
  *
- * This object is the `bridge` of debugger/emulator-session.js:
+ * This object is the `bridge` of debugger/emulator-session.ts:
  *   attach(listener) -> detach()    listener: { onStop, onContinued, onUnavailable, onRomLoad }
  *   configure({ breakpoints })      ROM offsets to stop at
  *   resume(step | null)             step: stop predicate (debugger/script-frames.ts)

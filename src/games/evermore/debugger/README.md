@@ -6,7 +6,7 @@ in the emulator panel, through VS Code's debugger UI (F5).
 ## How it works
 
 ```
-VS Code debug UI ── DAP (in-process) ── emulator-session.js
+VS Code debug UI ── DAP (in-process) ── emulator-session.ts
                                             │  bridge (injected by extension.js)
                                             ▼
                      emulator/script-debug-host.ts ── postMessage ── script-debug-view.js (webview)
@@ -53,7 +53,7 @@ VS Code debug UI ── DAP (in-process) ── emulator-session.js
 | File | Role |
 |---|---|
 | `inline-adapter.js` | Registers the `everscript` debug type (launch / attach), the only file using the VS Code API |
-| `emulator-session.js` | DAP session: breakpoints, stops, steps, threads, stack, variables, evaluate |
+| `emulator-session.ts` | DAP session: breakpoints, stops, steps, threads, stack, variables, evaluate |
 | `script-frames.ts` | Pure: snapshot → threads / frames / variables; step predicates |
 | `source-map.ts` | Pure: reads `out/source_map.json`; address ↔ line, inline levels, step ranges, memory symbols |
 | `value-types.ts` | Pure: which enum a memory value holds (`// @type ENUM` on its declaration, else inferred from the sources) |

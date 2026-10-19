@@ -185,7 +185,7 @@ function maps(rom, name, leaf, deps) {
         return resolveScripts(['rooms', hexId(id, 2)], rom);
     }
     if (cleanLeaf === 'tiles' || cleanLeaf === 'metatiles') {
-        const { resolveRoomTiles } = require('./tile-files');
+        const { resolveRoomTiles } = require('../../../../dist/games/evermore/resources/tile-files');
         return resolveRoomTiles(decodeRoom(rom, id), rom, undefined);
     }
     if (cleanLeaf === 'objects') {

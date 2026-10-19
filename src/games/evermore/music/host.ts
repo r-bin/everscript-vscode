@@ -27,7 +27,7 @@ interface MusicDeps {
         isOpen(): boolean;
         point?(entity: number, label?: string): void;
     };
-    /** Who sent a sound (resources/sound-source.js). */
+    /** Who sent a sound (resources/sound-source.ts). */
     describeSource?(rom: Buffer, src: unknown): unknown;
     open?(uri: string): void;
 }

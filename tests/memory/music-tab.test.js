@@ -212,7 +212,7 @@ async function coreStream(model) {
         assert.strictEqual(page.armed(), false, 'off with the chip and the stream');
         const anims = hooks.filter(e => e.kind === 'anim');
         assert.ok(anims.every(e => [0x2E, 0x2F].includes(rom[e.at & 0x3FFFFF] & 0x7F)), 'at = the animation\'s sound command');
-        const { describeSoundSource } = require('../../src/games/evermore/resources/sound-source');
+        const { describeSoundSource } = require('../../dist/games/evermore/resources/sound-source');
         const boy = describeSoundSource(rom, anims.find(e => e.name === 'Boy'));
         assert.strictEqual(boy.who.uri, 'soe://tags/boy.md');
         assert.match(boy.who.image, /^data:image\/png/);

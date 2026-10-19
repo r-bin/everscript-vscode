@@ -24,7 +24,7 @@
 const maps = require('../../../../../dist/games/evermore/maps');
 const vm = require('../../../../../dist/games/evermore/script-vm');
 const { buildRoomScriptModel } = require('../../../../../dist/games/evermore/script-model');
-const { vanillaIndex } = require('./vanilla-index');
+const { vanillaIndex } = require('../../../../../dist/games/evermore/rooms/rendering/vanilla-index');
 const { hiromFileOffset: snesOffset } = require('../../../../../dist/platform');
 
 /** Brian's Test Ground — a developer room, empty, never reached in play. */

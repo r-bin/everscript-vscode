@@ -39,7 +39,7 @@ draft is one object, `_edit` (`map-editor.js`).
 |---|---|---|---|
 | **Widget** | a portable construct in the library every map shares (`<globalStorage>/widgets.json`). Cells are `{graphic, family, flags, anim}` per layer, or `null` for "keep the floor", because a raw word is room-relative (its `chr` and palette mean something only in the room it came from). Colourings are derived from every family vanilla draws its graphics in, never stored | an editing convenience; stamping one writes ordinary stamps | `map-editor-widgets.js`, `-widget-edit.js`, `-widget-colours.js`; `src/games/evermore/rooms/data/widget-store.ts` |
 | **Construct** | a saved rectangle of map with the triggers and objects inside it, in the same portable form | same | `map-editor-constructs.js` |
-| **Deco library** | vanilla's own Section 3 objects (655 distinct) offered as floor-free widgets | same | `map-editor-deco.js`; host `deco-catalogue.js`, `deco-preview.js` |
+| **Deco library** | vanilla's own Section 3 objects (655 distinct) offered as floor-free widgets | same | `map-editor-deco.js`; host `deco-catalogue.ts`, `deco-preview.js` |
 | **Group** (placed widget) | a stamped widget/construct kept as **one movable thing over the map**, stored apart from `_edit.cells` (`_edit.groups`). What a cell shows = the map + every group over it (`editCellAt`); drawing and export bake it (`editBakedCells`). Its triggers and objects are locked to it until **disbanded** | baked into cells at export | `map-editor-groups.js`, `-placed-list.js` |
 | **Entrance** | where the player arrives. Not in the room: it is a `CHANGE MAP` in another room's script, indexed by `src/games/evermore/script/arrivals.ts` and drawn as an arrow marker. The Special tab's Entrance glyphs are visual notes only (not exported) | the game has no such field | `arrivals.ts`; `map-editor-special.js` |
 | **Boy start** | a custom map's one start marker (`_edit.start`), always inside the map. Export ROM turns it into the intro's `load_map(0x15, x, y)` | becomes a script operand, not room data | `map-editor-start.js`; `rom-export.md` |
@@ -47,7 +47,7 @@ draft is one object, `_edit` (`map-editor.js`).
 | **Locked** | a vanilla room opens read-only; unlocking lets its draft change | view state | `editLocked` |
 | **Palette set preview** | the Info tab's Header sub-tab shows the map with another MAP_PALETTE value (rooms with 8–14 families) | a view: the host renders with `mapPalette` in the header overrides | `map-editor-family-sets.js`, host `family-sets.ts`, `header-overrides.ts` |
 | **Undo history** | one stack for everything, one step per gesture, saved with the map (`history.json`) | — | `map-editor.js`, `-history.js` |
-| **Vanilla index** | adjacency, layer preference, suggested collision, animation patterns, stairs, measured over all 127 rooms and every object state and animation frame | advice, never data (map-construction skill) | `src/games/evermore/maps/vanilla-*.ts`, host `vanilla-index.js` |
+| **Vanilla index** | adjacency, layer preference, suggested collision, animation patterns, stairs, measured over all 127 rooms and every object state and animation frame | advice, never data (map-construction skill) | `src/games/evermore/maps/vanilla-*.ts`, host `vanilla-index.ts` |
 
 ---
 

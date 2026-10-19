@@ -3,7 +3,7 @@
 // State owned: _rom (model, layer, mode, selected half, open row, search, readers,
 // the host's bus facts and the selected bus address). Wiring: rom-init.js.
 // Runs inside the panel's shared IIFE (`vs` = the VS Code API). The model comes
-// from the host (src/games/evermore/rom/host.js) on demand: the tab asks the first time it shows.
+// from the host (src/games/evermore/rom/host.ts) on demand: the tab asks the first time it shows.
 
 var _rom = { model: null, error: '', layer: 'content', mode: 'file', sel: -1, open: '', query: '', showTiny: false, readers: {}, requested: false, xrefs: false,
   bus: null, busSel: null };

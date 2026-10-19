@@ -26,7 +26,7 @@
 
 ### 1.4 Cross-Map Tile References
 - **Status: 🟡 feature gap**
-- Host index (`index.graphicRooms` in `vanilla-index.js`) maps every graphic to rooms where it appears.
+- Host index (`index.graphicRooms` in `vanilla-index.ts`) maps every graphic to rooms where it appears.
 - **Requirement:** Surface this data in the Tile tab UI as a "Used in rooms..." drawer showing room thumbnails and placement counts.
 
 ---

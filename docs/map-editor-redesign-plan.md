@@ -36,7 +36,7 @@ restyle of the current docked sidebar.
   equivalent exists.** Entrances are currently only parsed/read-only room
   metadata (`content-parser.ts`), not an editable tile-adjacent concept.
 - **Widgets tab**: no equivalent tab, but `map-editor-deco.js` +
-  `rooms/rendering/deco-catalogue.js` / `deco-preview.js` already implement
+  `rooms/rendering/deco-catalogue.ts` / `deco-preview.js` already implement
   almost exactly what the mock calls "widgets" (vanilla Section-3 objects as
   portable, floor-free, stampable entries with previews). **This is very
   likely a reskin of an existing subsystem, not a new one** — audit before
@@ -97,7 +97,7 @@ explicitly run in isolated worktrees.
 | 2 | Tab shell | `map-editor-panels.js` (likely split off a `map-editor-tabs.js`), re-home existing families/tiles/composer/budget content under Tile/Info tabs, existing trigger tables under Trigger tab | `activeTab` | Tab switching works; no functional regression, just re-homed DOM | `everscript-plugin-builder`, then `split-orchestration` if a file crosses 400 LOC |
 | 3 | Special tab (net-new) | new `map-editor-special.js`; edits to `map-editor-phases.js`, `map-editor-paint.js`, `map-editor-ui.js` (dropdown chip) | `currentSpecialId`, `specialCells` | Stairs/Gate/Entrance chips paint/erase glyphs on the grid; filter-bar gating works | `everscript-plugin-builder` |
 | 4 | Trigger tab upgrade — **landed** (see §5.2) | `map-editor-gestures.js` (select/move/copy/paste), new `map-editor-trigger-select.js` (model) + `map-editor-trigger-panel.js` (list UI), `map-editor.js` (undo-step extension), `map-editor-paint.js` (outline rendering) | `_edit.selectedTriggerRef`, `_edit.removedTriggers`, `_triggerDrag`, `_triggerClipboard` (instance field, not state) | Click-select, drag-move (clamped), Backspace/Delete, Cmd/Ctrl+C/V, capacity read-outs | `everscript-plugin-builder` + `webview-dom-safety` (input-focus guard on shortcuts) |
-| 5 | Widgets tab — **landed** (see §5.3) | `map-editor-tabs.js` (new tab), `map-editor-panels.js` (deco moved out of Tile), `map-editor-deco.js` (category grouping, visible warnings, ready-only toggle), `deco-catalogue.js` (`back` field), `map-editor-theme.css` | none new — see §5.3 for why "Ready only" is not a new boolean | Existing deco/widget stamping reachable through the new tab; cards grouped by category; warnings visible as text; Widget Editor Mode explicitly deferred, not half-built | `everscript-plugin-builder` |
+| 5 | Widgets tab — **landed** (see §5.3) | `map-editor-tabs.js` (new tab), `map-editor-panels.js` (deco moved out of Tile), `map-editor-deco.js` (category grouping, visible warnings, ready-only toggle), `deco-catalogue.ts` (`back` field), `map-editor-theme.css` | none new — see §5.3 for why "Ready only" is not a new boolean | Existing deco/widget stamping reachable through the new tab; cards grouped by category; warnings visible as text; Widget Editor Mode explicitly deferred, not half-built | `everscript-plugin-builder` |
 | 6 | Polish — **landed** (see §5.4) | Triggers filter dropdown (detail-renderer.js/map-editor-trigger-panel.js), zoom chip/resize grip restyle (map-editor-theme.css), `rooms/README.md` client-side list + `STATE_FLOW.md` backfilled with every remaining state owner, full anti-entropy checklist | none | All 7 mock screens visually/behaviorally matched; `npm run typecheck && check:circular && check:dead && check:deps && test` green | direct edit |
 
 ## 5. Open questions to resolve during Phase 3/5
@@ -590,7 +590,7 @@ best match 62%`).
 
 The mock's `LIKELY NEIGHBORS` is a **plus-shape**: centre tile, N/E/S/W
 candidates. Until v0.61.0 the adjacency model was **undirected** —
-`relatedTiles()` (`rendering/vanilla-index.js`) returns `[graphic, score,
+`relatedTiles()` (`rendering/vanilla-index.ts`) returns `[graphic, score,
 uses]` scoring "drawn beside", with no per-direction breakdown — so the card
 was a ranked list, because compass points over it would have fabricated a
 distinction never measured (the §5.1 "stairs" mistake). Unlike stairs, it was

@@ -6,7 +6,7 @@ const { pageFile } = require('./page-file');
  * emulator/script-debug-view.js
  *
  * Webview half of the VS Code script debugger (host: script-debug-host.ts,
- * session: debugger/emulator-session.js).
+ * session: debugger/emulator-session.ts).
  *
  * The script interpreter fetches every opcode at $8C:D0A6 (lda [$82]), with
  * the instruction's address in $82-$84 and the running slot's pointer in $7E.

@@ -21,7 +21,7 @@ The radar panel's **Music** tab: one screen (no page scroll) that shows the SNES
   opens the `soe://` page: who (the Boy in the weapon / the Dog in the act whose palette was
   loaded), the animation (GIF and the script lines around the `sound` command), the frame, the
   pitch, the variations, the script excerpt, or the engine code (an asm excerpt around the call,
-  `soe://bus/<addr>.asm`). `resources/sound-source.js` builds them (injected).
+  `soe://bus/<addr>.asm`). `resources/sound-source.ts` builds them (injected).
 - **Variations:** an effect can be pitched for one play: driver command `$30` before `$04` sets
   `$0241/2`, which the `$04` handler copies to each voice's pitch offset (`$D9+2v`, added to the
   note at `$0981`), in 1/20 semitone (−256 = −12.8). Animation commands `0x40 n` send a fixed `n`;

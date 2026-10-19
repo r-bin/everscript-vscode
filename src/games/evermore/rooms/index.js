@@ -14,12 +14,12 @@ const { buildRoomMetatilePalette, buildComposedPreview,
 const { buildBlankRoom, buildDraftCollision, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews,
         invalidateRoomDrafts }                                     = require('./rendering/room-draft');
 const { decoIndex, decoCells,
-        invalidateDecoCatalogue }                                  = require('./rendering/deco-catalogue');
+        invalidateDecoCatalogue }                                  = require('../../../../dist/games/evermore/rooms/rendering/deco-catalogue');
 const { buildDecoPreviews, buildWidgetPreviews, buildConstructGhost } = require('./rendering/deco-preview');
 const { buildExportRom }                                            = require('./rendering/rom-export');
 const { buildCustomMapArchive }                                     = require('./rendering/custom-export');
 const { handlesCustomMapMessage, handleCustomMapMessage }           = require('./custom-host');
-const { relatedTiles, neighbourTiles, vanillaExamples, proceduralFill } = require('./rendering/vanilla-index');
+const { relatedTiles, neighbourTiles, vanillaExamples, proceduralFill } = require('../../../../dist/games/evermore/rooms/rendering/vanilla-index');
 const { buildItemIcons }                                            = require('../../../../dist/games/evermore/rooms/data/item-icons');
 const { VANILLA_ROOMS, buildVanillaRoomContent,
         buildVanillaRoomDetails, invalidateVanillaDataCaches }      = require('../../../../dist/games/evermore/rooms/data/vanilla-data');

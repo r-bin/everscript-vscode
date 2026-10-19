@@ -11,7 +11,7 @@ const { handlesRomMessage, handleRomMessage } = require('./rom');
 const { handlesMusicMessage, handleMusicMessage } = require('./music');
 const { handlesScriptsMessage, handleScriptsMessage } = require('../../../dist/games/evermore/scripts-tab');
 const { handlesEditorMessage, handleEditorMessage } = require('./rooms/editor-host');
-const { handlesSpritesMessage, handleSpritesMessage } = require('./sprites/radar-host');
+const { handlesSpritesMessage, handleSpritesMessage } = require('../../../dist/games/evermore/sprites/radar-host');
 const romReaders = require('../../../dist/games/evermore/rom-readers');
 const gameViews = require('../../../dist/core/game-views');
 const { readRomCharacters, readRomHitLookup, detectScaleEnemies } = require('../../../dist/games/evermore/rom-readers');
@@ -169,7 +169,7 @@ async function openMemoryRadar(doc, startLine) {
                 post: (m) => radar.panel?.webview.postMessage(m),
                 loadRom: () => romReaders.loadRomBuffer(_ws, ''),
                 apu: require('../../core/emulator/panel').apuStream,
-                describeSource: (rom, src) => require('./resources/sound-source').describeSoundSource(rom, src),
+                describeSource: (rom, src) => require('../../../dist/games/evermore/resources/sound-source').describeSoundSource(rom, src),
                 open: (uri) => vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(uri)),
             });
         } else if (handlesScriptsMessage(msg.command)) {
@@ -262,7 +262,7 @@ async function openMemoryRadar(doc, startLine) {
                 refreshRadar(vscode.window.activeTextEditor);
             });
         } else if (handlesSpritesMessage(msg.command)) {
-            // The Characters tab (sprites/radar-host.js).
+            // The Characters tab (sprites/radar-host.ts).
             handleSpritesMessage(msg, {
                 post: (m) => radar.panel?.webview.postMessage(m),
                 spritesBundle: getSpritesBundle,

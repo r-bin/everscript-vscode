@@ -11,7 +11,7 @@
 const maps = require('../../../../../dist/games/evermore/maps');
 const { romFingerprint } = require('../../../../../dist/games/evermore/rooms/rendering/rom-fingerprint');
 const { headerSpec, withHeader } = require('../../../../../dist/games/evermore/rooms/rendering/header-overrides');
-const { annotateGraphics, budgetSummary, invalidateVanillaIndex, vanillaGeometry, vanillaCycleTimings } = require('./vanilla-index');
+const { annotateGraphics, budgetSummary, invalidateVanillaIndex, vanillaGeometry, vanillaCycleTimings } = require('../../../../../dist/games/evermore/rooms/rendering/vanilla-index');
 const { groupRoomGraphics } = require('./room-draft');
 const { buildStampAnimations } = require('./stamp-animation');
 const { editorObjects } = require('../../../../../dist/games/evermore/rooms/rendering/object-previews');
@@ -109,7 +109,7 @@ function buildRoomMetatilePalette(rom, roomId, layer, bgPalette, header) {
          */
         channels: room.animation.map((ch, i) => [room.tilePalette.length + i, ch.delay,
             ch.frames.map((f) => [f.tileId, f.delay])]),
-        /** Vanilla's patterns per cycle (vanilla-index.js): how the tab letters every animated tile. */
+        /** Vanilla's patterns per cycle (vanilla-index.ts): how the tab letters every animated tile. */
         cycles: vanillaCycleTimings(buf),
         // The room's own grid, as dictionary indices rather than WRAM ids.
         // The editor needs it to pick a stamp off the map, to fill, and to

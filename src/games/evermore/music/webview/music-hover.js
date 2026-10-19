@@ -10,7 +10,7 @@
 // soe:// page. Both float above the whole page (position: fixed). The tooltip
 // can be entered: a hit is held while the pointer moves to it and frozen while
 // it is inside. Who sent an effect is described by the host
-// (resources/sound-source.js), cached in _music.srcInfo.
+// (resources/sound-source.ts), cached in _music.srcInfo.
 // State: _music.hoverPt, hoverClient, hoverKey, hoverHeld, tipPinned, srcInfo.
 
 var MU_TIP_HOLD_MS = 450;

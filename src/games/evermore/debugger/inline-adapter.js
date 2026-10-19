@@ -3,7 +3,7 @@
 /**
  * debugger/inline-adapter.js
  *
- * Registers the 'everscript' debug type. The DAP session (emulator-session.js)
+ * Registers the 'everscript' debug type. The DAP session (emulator-session.ts)
  * runs inside the extension host so it can reach the emulator panel; this
  * file is the only part of the debugger that touches the VS Code API.
  *
@@ -21,7 +21,7 @@
  */
 
 const vscode = require('vscode');
-const { EmulatorDebugSession } = require('./emulator-session');
+const { EmulatorDebugSession } = require('../../../../dist/games/evermore/debugger/emulator-session');
 const { findSourceMap } = require('../../../../dist/games/evermore/debugger/source-map');
 const { NAME_PATTERN, MEMORY_PATTERN } = require('../../../../dist/games/evermore/debugger/memory-access');
 const { conditionOf } = require('../../../../dist/games/evermore/debugger/conditions');

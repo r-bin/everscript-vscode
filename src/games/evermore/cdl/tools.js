@@ -9,7 +9,7 @@
  * not, so none of it - nor what it requires - ships in the recorder.
  */
 
-const asar = require('../../../platform/cdl/asar-export');
+const asar = require('../../../../dist/platform/cdl/asar-export');
 const { evermoreRegions } = require('../../../../dist/games/evermore/cdl/regions');
 const { exportWram } = require('../../../../dist/platform/cdl/wram-export');
 const { lookup } = require('../../../../dist/platform/cdl/lookup');

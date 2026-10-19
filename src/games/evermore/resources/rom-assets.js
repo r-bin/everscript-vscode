@@ -33,7 +33,7 @@ function resolveAssets(segments, rom, deps) {
         return resolveCharacters(segments.slice(1), rom);
     }
     if (kind === 'tiles') {
-        const { resolveTiles } = require('./tile-files');
+        const { resolveTiles } = require('../../../../dist/games/evermore/resources/tile-files');
         return resolveTiles(segments.slice(1), rom);
     }
     if (kind === 'audio') {
@@ -92,7 +92,7 @@ function resolveAssets(segments, rom, deps) {
         return null;
     }
     if (kind === 'maps' && (leaf === 'tiles' || leaf === 'metatiles' || extra.includes('tiles') || extra.includes('metatiles'))) {
-        const { resolveRoomTiles } = require('./tile-files');
+        const { resolveRoomTiles } = require('../../../../dist/games/evermore/resources/tile-files');
         const tileIdx = segments.indexOf('tiles') !== -1 ? segments.indexOf('tiles') : segments.indexOf('metatiles');
         const subSegments = segments.slice(tileIdx + 1);
         const rId = parseInt(id, 16);

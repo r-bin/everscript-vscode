@@ -208,7 +208,7 @@ cycle a graphic runs in (`animations.cycles`, not only `byFirst`), so a ROM room
 own channel always has its letter. The select tool drags a placement to new cells
 (one undo step). Tile, Collision and Animation are sub-tabs of the `Tile` tab
 (map-editor-tabs.js `EDIT_TILE_SUBTABS`); each is still its own `_editActiveTab`. The table travels with the palette (`cycles`,
-vanilla-index.js `vanillaCycleTimings`), so letters never depend on which family sheets
+vanilla-index.ts `vanillaCycleTimings`), so letters never depend on which family sheets
 are loaded: a vanilla channel is never `custom`. Touching animated cells running the
 same pattern (same ticks, same countdown) are one row and one outline on the map,
 with a dotted bounding box when the shape is not a rectangle; an edit on that row

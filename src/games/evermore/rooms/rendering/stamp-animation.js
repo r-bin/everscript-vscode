@@ -18,7 +18,7 @@
 // Pure apart from the vanilla index cache. Consumes src/games/evermore/maps.
 
 const maps = require('../../../../../dist/games/evermore/maps');
-const { vanillaIndex } = require('./vanilla-index'); // animationFor, for callers that still ask by graphic
+const { vanillaIndex } = require('../../../../../dist/games/evermore/rooms/rendering/vanilla-index'); // animationFor, for callers that still ask by graphic
 
 /** A guard against a runaway cycle; vanilla's longest (room 0x25) has 24 frames. */
 const MAX_STEPS = 32;

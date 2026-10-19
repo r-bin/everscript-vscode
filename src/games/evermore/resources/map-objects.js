@@ -4,7 +4,7 @@
 // and map widgets (portable deco stamps, composition, and previews).
 
 const maps = require('../../../../dist/games/evermore/maps');
-const { buildDecoCatalogue } = require('../rooms/rendering/deco-catalogue');
+const { buildDecoCatalogue } = require('../../../../dist/games/evermore/rooms/rendering/deco-catalogue');
 const { entryRoom } = require('../rooms/rendering/deco-preview');
 const { encodeGif } = require('../../../../dist/games/evermore/resources/gif');
 const { dir, file, json, text } = require('../../../../dist/games/evermore/resources/nodes');

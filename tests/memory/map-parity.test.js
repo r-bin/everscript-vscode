@@ -1114,13 +1114,13 @@ function checkBudget(rom) {
  * See docs/map-format/building-a-room-from-a-picture.md §9.
  */
 function checkDecoLibrary(rom) {
-    const { buildDecoCatalogue, decoIndex } = require('../../src/games/evermore/rooms/rendering/deco-catalogue');
+    const { buildDecoCatalogue, decoIndex } = require('../../dist/games/evermore/rooms/rendering/deco-catalogue');
     const { entryRoom } = require('../../src/games/evermore/rooms/rendering/deco-preview');
     const cat = buildDecoCatalogue(rom);
 
     check('the library has 532 distinct objects', cat.length, 532);
     // 68 while trigger records were read raw: they count from the header's
-    // origin and end exclusive, so most never met their object (deco-catalogue.js).
+    // origin and end exclusive, so most never met their object (deco-catalogue.ts).
     const trig = cat.filter((e) => e.trigger);
     check('188 of them come with a B-trigger script', trig.length, 188);
     check('123 of those cover exactly the object', trig.filter((e) => e.trigger.dx === 0 && e.trigger.dy === 0

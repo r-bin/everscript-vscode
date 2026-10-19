@@ -10,7 +10,7 @@ Kind: **platform** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: 
   `games/evermore/emulator/script-debug-view.js`; the bridge to them is injected.
 
 ## Dependencies
-- `inline-adapter.js` → `vscode`, `emulator-session.js`, `source-map.ts`. It is the only
+- `inline-adapter.js` → `vscode`, `emulator-session.ts`, `source-map.ts`. It is the only
   file using the VS Code API; everything else is plain Node.
 - No import of `emulator/` or `memory/`: the emulator bridge is injected by `extension.js`.
   `.depcruise.js` rule `no-debugger-to-memory`.

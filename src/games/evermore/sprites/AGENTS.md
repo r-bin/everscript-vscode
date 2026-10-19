@@ -8,7 +8,7 @@ Related skills: `animation-script`, `map-entities` (`.agents/skills/`).
   hitboxes, raw ROM sprites, the animation catalog, and the animation player.
 - Host side: `character-model.ts`, `animation-*.js`, `frame-compose.ts`,
   `projectile-render.ts`, `target.ts`, `dog-forms.ts`, `raw-sprites.ts`, `thumbnails.ts`,
-  `sprites-tab.ts`, `index.js`, `radar-host.js` (the tab's messages, routed by `extension.js`). Browser side: `webview/` (concatenated into the radar page).
+  `sprites-tab.ts`, `index.js`, `radar-host.ts` (the tab's messages, routed by `extension.js`). Browser side: `webview/` (concatenated into the radar page).
 
 ## Dependencies
 - `src/games/evermore/maps/` (pure ROM functions: `rom.ts`, `sprites.ts`, `character-record.ts`,

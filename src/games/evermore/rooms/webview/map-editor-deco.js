@@ -277,7 +277,7 @@ function decoLazyObserve() {
 /**
  * The three groups the Widgets tab cards it into.
  *
- * `front`/`back` are computed server-side (deco-catalogue.js's `decoIndex`)
+ * `front`/`back` are computed server-side (deco-catalogue.ts's `decoIndex`)
  * from the same per-cell canopy/terrain split that already backs the
  * "front" filter flag — there is no ROM category to read out, so this is
  * derived, not invented: an entry that draws only on the canopy is

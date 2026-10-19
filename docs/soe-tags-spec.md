@@ -267,7 +267,7 @@ Uses of the same data outside `soe://`:
 
 | Phase | Scope |
 |---|---|
-| 1 ✓ | `soe://tags/` provider (`src/games/evermore/resources/tag-files.js`); generated `map.*`, `area.*`, `enemy.*`, `music.*`, `sound.*`, `flag.*`, `ram.*`, `table.*`, `ingredient.*` / `armor.*` / `consumable.*` (`tag-generate.ts`); `index.md` + `index.json` per directory; `.md` + `.json` per tag |
+| 1 ✓ | `soe://tags/` provider (`src/games/evermore/resources/tag-files.ts`); generated `map.*`, `area.*`, `enemy.*`, `music.*`, `sound.*`, `flag.*`, `ram.*`, `table.*`, `ingredient.*` / `armor.*` / `consumable.*` (`tag-generate.ts`); `index.md` + `index.json` per directory; `.md` + `.json` per tag |
 | 2 ✓ | `tags.json` with `character` / `player` / `boy` / `dog` / `enemy` and their precompiled sub-tags; multiple inheritance (`tag-model.ts`); back-links; live values; `check.json` and a row in `Everscript: Check soe:// Resources` |
 | 3 | ✓ claims with the Conflicts section, ✓ `search/`; open: more claims from the Data Crystals list |
 | 4 | `asm` facts from CDL / disassembly, `script` facts from decompiled room scripts; hover and Memory Radar integration |

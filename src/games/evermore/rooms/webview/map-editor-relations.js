@@ -8,7 +8,7 @@
 //
 // **Two models, two seeds, never mixed.**
 // - `_related` is **undirected**: `relatedTiles()` (src/games/evermore/rooms/rendering/
-//   vanilla-index.js) scores "drawn beside, any side", seeded from what the
+//   vanilla-index.ts) scores "drawn beside, any side", seeded from what the
 //   draft has *placed*. It sorts every family's tile grid.
 // - `_nbAnswer` is **directional**: `neighbourTiles()` answers "what does
 //   vanilla draw north / east / south / west of this one graphic, on this

@@ -13,12 +13,12 @@
 //   soe://ram/flags.json            every flag byte, its bits set or not (live)
 //   soe://ram/status.json           emulator open/running, ROM, paused (live, no game needed)
 //   soe://ram/symbols.json          every known address (size, type, name, tags) and flag byte
-// Known addresses: ram-symbols.js (names.json + soe://tags/ WRAM links).
+// Known addresses: ram-symbols.ts (names.json + soe://tags/ WRAM links).
 
 const { parseAddressName, hexId } = require('../../../../dist/games/evermore/resources/resource-uri');
 const NAMES = require('../script-model/names.json');
 const { dir, file, json, text } = require('../../../../dist/games/evermore/resources/nodes');
-const { ramSymbols, ramSymbol, ramBlocks } = require('./ram-symbols');
+const { ramSymbols, ramSymbol, ramBlocks } = require('../../../../dist/games/evermore/resources/ram-symbols');
 const { tagModel } = require('../../../../dist/games/evermore/resources/tag-model');
 const { pageUri } = require('../../../../dist/games/evermore/resources/tag-markdown');
 

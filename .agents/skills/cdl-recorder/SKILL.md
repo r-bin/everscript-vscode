@@ -131,7 +131,7 @@ work behind a "seen lately" or "already marked" check.
 | `functions.json` | `functions.ts` | per function: entries, callers/callees, widths, DB/D, WRAM ranges, I/O by class, ROM data, pointer bases, SA-1 blockers (direct + through callees), `cycles`, `execForms` / `readForms` (mirrors used) |
 | `bus.md`, `bus.json` | `bus-report.ts` | ExHiROM audit (bytes/instructions/edges through `$00-$3F`, `$40-$7D`), SA-1 audit (every form but `$C0-$FF`), bytes per file bank and form, top functions by cycles |
 | `ram.asm` | `wram-export.ts` | every WRAM address, accessors, values, hit counts |
-| `spc/aram.cdl` | `asar-export.js` | ARAM coverage |
+| `spc/aram.cdl` | `asar-export.ts` | ARAM coverage |
 | `mesen/labels.mlb`, `mesen/rom.cdl` | `mesen-export.ts` | export comments + curated names (option `names`, `wramNames`), asset ranges (`assets`); formats in docs/reverse-engineering/formats.md §3 |
 
 **Curated names** reach the export only through options (`exportAsar(lib, rom, dir, { names, wramNames, assets })`): the cdl domain may not import `src/games/evermore/localizations`. `tools/recomp/` (`npm run recomp`) collects them and runs export → asar → snesrecomp → `out/recomp/REPORT.md`. A name must be a valid Asar/C identifier; `buildIndex(lib, map, { names })` makes `labelName()` return it.

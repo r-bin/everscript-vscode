@@ -18,10 +18,10 @@ rooms/
     rom-fingerprint.ts        — romFingerprint(rom): the cache key every render cache shares
     metatile-palette.js       — buildRoomMetatilePalette: the dictionary atlas + one packed row per stamp
     stamp-animation.js        — animated stamps' later frames (`anim`), so a placed torch flickers on the canvas
-    vanilla-index.js          — the vanilla index + room budget, cached per ROM, packaged for the tab
+    vanilla-index.ts          — the vanilla index + room budget, cached per ROM, packaged for the tab
     room-draft.js             — blank rooms, family sheets, the family catalogue and its preview strips
     graphic-traits.ts         — one graphic's animation, shape class, stairs and special flags, for the sheets
-    deco-catalogue.js         — the deco library: vanilla's Section 3 objects as portable, floor-free entries
+    deco-catalogue.ts         — the deco library: vanilla's Section 3 objects as portable, floor-free entries
     deco-preview.js           — one entry rendered on nothing, so the thumbnail is the thing not the place
     rom-export.js             — Export ROM: a custom map in room 0x15, the intro jumping there
     custom-export.js          — Export map: the .zip (blob, map.json, sample .evs, stamps.json, README)
@@ -143,7 +143,7 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   itself is `map-editor-widgets.js`). One scrolling list, with thumbnails
   loaded lazily; owns `_deco` / `_decoFilter` / `_decoArt` / `_decoPick` /
   `_decoSaveWanted`. Cards are grouped into Foreground/Background/Misc by
-  `front`/`back`, two booleans `deco-catalogue.js`'s `decoIndex` derives
+  `front`/`back`, two booleans `deco-catalogue.ts`'s `decoIndex` derives
   from the same per-cell canopy/terrain split the `front` filter flag
   already used — there is no ROM-native category. The tab's "Ready only"
   toggle is not new state: it reads/writes the same `_decoFlags.works`

@@ -18,7 +18,7 @@
 //   deleteWidget {id, name}         -> widgets {widgets, graphicFamilies, deleted} (after a modal confirm)
 //
 // `graphicFamilies` is what vanilla attests for every graphic the widgets
-// draw (rendering/vanilla-index.js): their colourings are read off it.
+// draw (rendering/vanilla-index.ts): their colourings are read off it.
 //
 // Widgets (data/widget-store.ts) live beside the maps, in one file every map
 // shares: `deps.widgetsFile`.
@@ -30,7 +30,7 @@ const path = require('path');
 const store = require('../../../../dist/games/evermore/rooms/data/custom-store');
 const widgetStore = require('../../../../dist/games/evermore/rooms/data/widget-store');
 const { buildCustomMapArchive } = require('./rendering/custom-export');
-const { graphicFamilies } = require('./rendering/vanilla-index');
+const { graphicFamilies } = require('../../../../dist/games/evermore/rooms/rendering/vanilla-index');
 const { missingRomText } = require('../../../../dist/platform/roms/library');
 
 const COMMANDS = new Set(['requestCustomMaps', 'saveCustomMap', 'setCustomActive', 'deleteCustomMap', 'exportCustomMap',

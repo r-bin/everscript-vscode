@@ -144,7 +144,7 @@ function activate(context) {
         getLogs: () => emulatorPanel.getLogHistory(),
     });
     // Converted Secret of Mana rooms (games/evermore/imports/mana) read the Mana ROM from the ROM library.
-    radar.manaRooms = require('./imports/mana').createManaRooms({
+    radar.manaRooms = require('../../../dist/games/evermore/imports/mana').createManaRooms({
         soeRom: () => romReaders.loadRomBuffer(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null, ''),
         manaRom: () => {
             const entry = platform.romFor('mana');
