@@ -12,7 +12,7 @@ editing. Its user-facing README is `recorder/README.md`, its manifest `recorder/
 | Storage | its own `globalStorage`: `cdl-library/<sha1>/`, `tas-recordings/`, settings in `globalState` |
 | Sharing | `exportBundle` zips one ROM's library and its replays (`../emulator/cdl/bundle.js`); Everscript's `Import Recording Bundle` merges it |
 
-Build: `npm run build:recorder` (`scripts/build-recorder.sh [--install]`) copies only the files
+Build: `npm run build:recorder` (then `code --install-extension out/snes-cdl-recorder-<version>.vsix --force`) copies only the files
 `tools/recorder/package-files.js` lists (the `require()` closure of this entry and of
 `tools/cdl/replay.js`, plus the cores, their `copyright` files and the webview files) into
 `out/recorder-stage/` and packages `out/snes-cdl-recorder-<version>.vsix`. It has the main

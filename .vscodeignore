@@ -77,7 +77,6 @@ bundle/.vscodeignore
 
 # Repo tooling and submodules (tests/memory/package-files.test.js keeps the package root to an allowlist)
 dependencies/**
-script_parser/**
 .*
 *.json
 !package.json

@@ -11,7 +11,7 @@ spliced as text by `page-file.ts`, and knip's `src/**/webview/**` ignore goes), 
 |---|---|---|
 | Host modules (`src/**`, not `webview/`) | 9 | nothing now: the composition roots (`src/extension.js`, the three `extension.js`), the radar (`radar-open`, `radar-panel`, `render-radar`), `music/index`, `music/model/track-timeline` and `resources/index` can all be ported; start with the leaves |
 | Page scripts (`src/**/webview/`) | 173 | 5.3: they are spliced into the page as text (`page-file`), not built; they need one esbuild bundle per page from real `.ts` with DOM typings, then the knip webview ignore goes |
-| `tools/`, `scripts/` | 42 | host modules they `require` from `dist/` |
+| `tools/` | 42 | host modules they `require` from `dist/` |
 | `tests/` | 77 | last: they require the ports from `dist/` already |
 
 ## Copies that go with the port (from cleanup 5.1)
@@ -75,9 +75,8 @@ Page code the host also uses is a TypeScript module that `tools/bundle-pages.mts
 - `src/games/terra/maps/webview/`: `page.js`
 - `src/platform/cdl/asar-kit/`: `build-cdl.js`
 
-### tools/ and scripts/
-- `scripts/`: `auto-decompile.js`
-- `tools/`: `derived-marker.js`, `gen-cdl-optable.js`, `gen-sound-animations.js`, `measure-collision.js`, `rom.js`, `roms.js`
+### tools/
+- `tools/`: `auto-decompile.js`, `derived-marker.js`, `gen-cdl-optable.js`, `gen-sound-animations.js`, `measure-collision.js`, `rom.js`, `roms.js`
 - `tools/cdl/`: `replay-states.js`, `replay.js`
 - `tools/exhirom/`: `convert.js`, `mesen.js`, `prove.js`, `run.js`
 - `tools/mana/`: `check-events.js`, `check-map.js`, `find-picture.js`

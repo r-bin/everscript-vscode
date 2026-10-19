@@ -12,8 +12,6 @@ Why, the bus map and the full write-up of how this was built and proven:
 
 ```sh
 npm run exhirom -- "/path/Secret of Evermore (U) [!].smc"      # → out/soe-exhirom.sfc
-scripts/build-exhirom.sh "/path/Secret of Evermore (U) [!].smc" # same, via scripts/
-scripts/build-exhirom.sh "/path/Secret of Evermore (U) [!].smc" --prove   # build + proof
 npm run exhirom:prove -- --rom "/path/Secret of Evermore (U) [!].smc" \
      --movies "$HOME/Library/Application Support/Code/User/globalStorage/rbin.everscript/tas-recordings"
 ```

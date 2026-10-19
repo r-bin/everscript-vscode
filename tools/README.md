@@ -21,6 +21,7 @@ Node 26 runs the `.mts` files directly. Tools find a ROM through the ROM library
 | `simulation/` | Sweep every room with the simulation; trace the real scheduler; exit cut-offs | `node tools/simulation/*.js` |
 | `mana/` | Compare a Mana map's picture / step events with the running game; find a map by picture | `node tools/mana/*.js` |
 | `variants/` | Find table addresses in other Evermore releases (the scans: `variant-scans.js`) | `node tools/variants/analyze-variant.js` |
+| `auto-decompile.js` | The autonomous decompilation loop: runs "continue the decompilation" (`decomp-curator`) with parallel agents until the quota or `docs/disassembly/PROGRESS.md` is done | `node tools/auto-decompile.js --concurrency 3` |
 | `gen-cdl-optable.js` | Writes the core's `cdl-optable.h` from the opcode matrix | after changing the matrix |
 | `gen-sound-animations.js` | Writes `localizations/data/sound-animations.json` | after changing the animation catalogue |
 | `measure-collision.js` | How well a tile predicts its collision (the editor's suggestion) | `npm run check:collision` |

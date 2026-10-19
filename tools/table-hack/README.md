@@ -30,7 +30,6 @@ code in `$FA`). The hook works, but it changes the game's RNG timing (docs/exten
 npm run table-hack -- --rom "/path/Secret of Evermore (U) [!].smc"                 # all tables
 npm run table-hack -- --rom "/path/…smc" --tables map_table,string_keys --out out/x.sfc
 npm run table-hack:prove -- --rom "/path/…smc"   # inputs: .agents/skills/sample-playbacks/playbacks
-scripts/build-table-hack.sh "/path/…smc" --prove
 ```
 
 Table names: `map_table`, `room_enter_scripts`, `string_keys`, `script_pointers`, `enemy_index`,

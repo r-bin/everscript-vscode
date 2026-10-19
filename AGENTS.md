@@ -78,7 +78,6 @@ visualize all game data (map editor, music player, script editor, sprite viewer)
 | `docs/map-format/`, `docs/script-format/`, `docs/mana/`, `docs/terra/` | Each game's formats, with evidence |
 | `docs/reverse-engineering/README.md`, `docs/recomp/README.md`, `docs/exhirom/README.md` | RE approaches; the static recompilation; ExHiROM, the table hack and layouts |
 | `docs/evermore-releases.md` | The Evermore ROMs that exist, how they are identified, why US addresses do not apply to PAL builds |
-| `scripts/README.md` | Shell wrappers for the npm commands (build, test, recomp, ExHiROM, release) |
 | `tools/` | `check-*.mts` (the checks), `roms.js` (the ROM library), `recomp/`, `exhirom/`, `table-hack/`, `recorder/`, `mana/` |
 
 ---

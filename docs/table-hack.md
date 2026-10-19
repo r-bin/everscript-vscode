@@ -164,7 +164,7 @@ The directory sits at `$F1:0000`. Our tools read it; the game never does.
 
 ## 5. Build, proof and output
 
-- `tools/table-hack/`, `npm run table-hack` (with a `scripts/` wrapper), modelled on
+- `tools/table-hack/`, `npm run table-hack`, modelled on
   `tools/exhirom/`. It builds the hack from the user's clean ROM and writes:
   - `out/table-hack/soe-tables.sfc`;
   - `LAYOUT.md`, the generated used/free md;

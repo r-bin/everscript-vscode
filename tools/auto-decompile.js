@@ -15,8 +15,7 @@
  *   working on distinct routines simultaneously without merge conflicts.
  *
  * Usage:
- *   node scripts/auto-decompile.js [--runner "claude -p"] [--concurrency 3] [--max-iterations N]
- *   ./scripts/auto-decompile.sh --concurrency 3
+ *   node tools/auto-decompile.js [--runner "claude -p"] [--concurrency 3] [--max-iterations N]
  */
 
 const fs = require('fs');
