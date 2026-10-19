@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: main redraw function for the Scaling tab.
 // References state vars from state.js and all helper/math functions.
   function redraw(){

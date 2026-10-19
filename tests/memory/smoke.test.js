@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 /**
  * Smoke test: render the full webview HTML and execute the embedded JS

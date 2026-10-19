@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Build and Run drops every ROM-derived cache after a successful build
 // (src/extension.js). A throw there aborts the build before the ROM reaches

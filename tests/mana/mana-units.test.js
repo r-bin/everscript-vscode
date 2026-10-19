@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Unit tests for the Secret of Mana library (src/games/mana/decoder) on synthetic ROM images:
 // every piece opcode, the metatile bit codes, the character formats and the

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Secret of Mana editor's tools — the floating pill (the shell's shellPillHtml, with the same
 // glyphs as the Evermore editor's), what each tool does on a mouse stroke, and the keys. Like the Evermore
 // pencil, the open dock tab decides what Paint, Erase and Pick work on: a metatile on Tile › Tiles, the

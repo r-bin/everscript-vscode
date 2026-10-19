@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 /**
  * memory_radar/tests/ui.test.js — UI tests for the Scaling and Docs tabs.

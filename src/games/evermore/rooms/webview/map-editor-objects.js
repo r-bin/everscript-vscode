@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Object tab — objects on a map, their frames (states), and the tiles drawn over them.
 // An object cluster (dotted blue line) marks the rectangle we work in.
 // Inside the cluster, an object has frames (states 0..N):

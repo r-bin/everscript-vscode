@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Which Secret of Mana map a picture shows, and where (docs/mana/verifying.md).
 //   node tools/mana/find-picture.js <picture.png> <cell px> [left] [top]   (the Mana ROM of the ROM library)
 // <cell px> is how wide one 16x16 map cell is in the picture (122 for a Rooms-tab

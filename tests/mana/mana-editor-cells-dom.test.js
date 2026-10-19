@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The Secret of Mana editor's filter chips and the tabs that edit what a cell is (Tile › Collision, Special,
 // Trigger), in headless Chromium on the synthetic map b1 (a cuttable bush, a strike cell, an exit, stairs):

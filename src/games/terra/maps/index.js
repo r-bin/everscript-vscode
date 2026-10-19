@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Terranigma Maps & Room Explorer Webview Panel.
 // Follows multi-game.md §6 and §8: provides the Terranigma map view,

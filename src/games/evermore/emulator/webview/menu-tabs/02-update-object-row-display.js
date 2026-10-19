@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
     // -- Section 3 Map Objects Dynamic View -------------------------------------
     function updateObjectRowDisplay(objIndex, newState, maxState) {

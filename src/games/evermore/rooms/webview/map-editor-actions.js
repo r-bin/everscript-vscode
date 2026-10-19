@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the editor's toolbar actions — undo, compose, save a
 // construct, hand the draft over.
 //

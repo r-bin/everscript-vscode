@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: everything the emulator page sends the host: readiness, ROM load stages, crashes and stderr,
 // CDL / REPLAYS / script debugger traffic, the game's requests (room maps, sprites, traces), settings.
@@ -188,7 +189,7 @@ function onWebviewMessage(msg) {
           break;
 
         case 'connectDebugger':
-          // Attach a VS Code debug session to the running ROM (debugger/inline-adapter.js).
+          // Attach a VS Code debug session to the running ROM (debugger/inline-adapter.ts).
           Promise.resolve(vscode.commands.executeCommand('everscript.attachDebugger')).then(ok => {
             const text = ok ? 'VS Code debugger attached' : 'VS Code debugger not started';
             _log(text);

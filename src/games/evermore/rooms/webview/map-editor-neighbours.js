@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the LIKELY NEIGHBORS card — the mock's plus-shaped mini grid
 // (docs/map-editor-redesign-plan.md §8b). The armed brush sits in the
 // centre, and each side shows what vanilla draws on that side of it.

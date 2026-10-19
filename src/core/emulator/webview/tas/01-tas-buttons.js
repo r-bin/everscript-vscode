@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
     // -- TAS: recording, replay, input overlay ------------------------------------
     const TAS_BUTTONS = 'BYsSudlrAXLR0123';

@@ -38,7 +38,7 @@ frames as layers over it (frame 0 is what the map shows), plus
   frame chips, ticks per frame) in the expanded row.
 - **Still frames.** A tile picked in the Tile tab's `frames` mode is placed
   still: its graphic is adopted into a slot no channel drives. Today any
-  placed graphic vanilla animates plays (stamp-animation.js) and is exported
+  placed graphic vanilla animates plays (stamp-animation.ts) and is exported
   with a channel (custom-animation.ts) — that is the "frames still animate"
   bug, and both have to key on the slot's channel, not on the graphic.
 - **Export** (custom-animation.ts): per group, per cell and layer, the

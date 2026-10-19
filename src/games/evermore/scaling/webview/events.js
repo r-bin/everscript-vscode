@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: scaling tab event listener setup.
 // References state vars from state.js and helpers from helpers.js.
   srcSel.addEventListener('change',function(){

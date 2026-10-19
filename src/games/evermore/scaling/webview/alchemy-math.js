@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: pure damage and stat calculation: alchemy, and the physical damage range for one
 // RNG-scaled base value. The one copy: it runs in the shared.js outer IIFE scope (no inner IIFE
 // wrapper), so the scaling and docs tabs both call it, and node (tests) requires it.

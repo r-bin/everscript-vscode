@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the SVG for the NPCs a room's enter script can place — the
 // sprite, the tile tint that says whether it fights back, and the collision
 // box. Pure: takes the spawn array, returns HTML strings.

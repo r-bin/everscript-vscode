@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Composition root (docs/architecture/multi-game.md §2): the game-neutral layers, then the one list
 // of games. Each game's extension.js registers what it offers; removing a game is deleting its folder,

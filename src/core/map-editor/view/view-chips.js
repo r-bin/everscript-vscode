@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the map views' filter-bar controls — a toggle chip, the segmented
 // pill (BG | FG | Collision in Evermore's Rooms tab, Layer 1 | Layer 2 | Collision
 // in the Secret of Mana Maps panel) and a chip with a caret menu. Shared by both;

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Tests for Terranigma Maps Page HTML rendering.
 // Run: node tests/terra/terra-maps-page.test.js

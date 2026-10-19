@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: drafting a room that is not in the ROM.
 //
 // A new custom map is made from the rail's `+ New Map` (roomsNewMap) at one

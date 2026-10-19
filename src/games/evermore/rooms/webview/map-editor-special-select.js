@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: selecting and moving a cell's specials with the Select tool,
 // while the Special tab is open.
 //

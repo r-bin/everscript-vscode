@@ -1,10 +1,11 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: collision in the editor — the shape a tile is suggested to
 // have, drawn on its swatch, and the collision layer of a drafted map.
 //
 // Both follow the bottom bar's Collision toggle (the `c` feature flag,
 // rom-overlay.js). The suggestion is the collision *shape* vanilla gives the
 // graphic on that layer (maps/vanilla-suggest.ts suggestGeometry; the family
-// sheet carries it per slot, room-draft.js). Painting a tile writes that
+// sheet carries it per slot, room-draft.ts). Painting a tile writes that
 // shape into the stamp it makes (editUseFamilyTile), so the map then shows
 // it — drawn by the host with the same renderer as a ROM room
 // (buildDraftCollision), because a custom map has no ROM render to carry it.
@@ -46,7 +47,7 @@ function collisionOn() {
 /**
  * What a family-sheet slot suggests on the layer it would be painted on:
  * `{shape, pct}`, or null when vanilla never drew it there. Slot rows are
- * room-draft.js's `[.., groundShape, groundPct, frontShape, frontPct]`.
+ * room-draft.ts's `[.., groundShape, groundPct, frontShape, frontPct]`.
  */
 function tileCollisionFor(slot, layer) {
   if (!slot || slot.length < 10) return null;

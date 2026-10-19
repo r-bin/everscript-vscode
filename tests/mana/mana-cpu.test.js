@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The 65816 interpreter and SNES bus the Secret of Mana library uses to run the
 // game's own animation code (src/games/mana/decoder/cpu65816.ts, snes-bus.ts). Small programs on

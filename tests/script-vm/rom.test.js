@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The script VM decoder on the user's ROM, checked against the game only:
 //  - goldens.json: every script instruction the interpreter ran in the intro, the attract demo

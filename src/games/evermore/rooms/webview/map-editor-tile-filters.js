@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Tile tab's filter row — which layer a pick lands on, its
 // mirror, and the two list filters:
 //
@@ -16,7 +17,7 @@
 //   [13..15]: kind (1 first frame, 2 later frame), frame 0, frame number.
 //
 // They combine. A family with nothing to show is left out without
-// fetching its sheet: the catalogue carries every count (room-draft.js).
+// fetching its sheet: the catalogue carries every count (room-draft.ts).
 //
 // Split out of map-editor-tiles.js (400-line limit).
 //

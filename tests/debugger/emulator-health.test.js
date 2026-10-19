@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 /**
  * debugger/tests/emulator-health.test.js
@@ -330,7 +331,7 @@ test('panel.js is ASCII-only to avoid webview parser/encoding issues', () => {
 
 test('Evermore\'s extension.js registers the emulator debugger with the panel bridge', () => {
     const extContent = fs.readFileSync(path.join(ROOT, 'src', 'games', 'evermore', 'extension.js'), 'utf8');
-    assert.ok(extContent.includes("require('./debugger/inline-adapter').registerDebugger")
+    assert.ok(extContent.includes("require('../../../dist/games/evermore/debugger/inline-adapter').registerDebugger")
         && extContent.includes('getScriptDebugBridge()'),
         'extension.js does not connect the debugger to the emulator');
 });

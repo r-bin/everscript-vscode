@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the dock tabs that edit what a Secret of Mana cell is, not what it shows — Tile › Collision
 // (shapes, floor level, the 8 px pen), Special (stairs, push, layer switch) and Trigger (sub-tabs step on, walk
 // into, exits and on hit, enter) — and their clicks. The user picks what a cell should be; the solver (editor-props.js)

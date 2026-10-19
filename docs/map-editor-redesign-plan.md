@@ -36,7 +36,7 @@ restyle of the current docked sidebar.
   equivalent exists.** Entrances are currently only parsed/read-only room
   metadata (`content-parser.ts`), not an editable tile-adjacent concept.
 - **Widgets tab**: no equivalent tab, but `map-editor-deco.js` +
-  `rooms/rendering/deco-catalogue.ts` / `deco-preview.js` already implement
+  `rooms/rendering/deco-catalogue.ts` / `deco-preview.ts` already implement
   almost exactly what the mock calls "widgets" (vanilla Section-3 objects as
   portable, floor-free, stampable entries with previews). **This is very
   likely a reskin of an existing subsystem, not a new one** — audit before
@@ -974,7 +974,7 @@ tables, ROM triggers and both grids moved to **More**.
 **The Boy's green club.** His idle sprite's 8px piece at the left hand
 (block `$D3`) is the weapon, which the game draws in the equipped weapon's
 palette. In the character palette it came out bright green, so the start
-marker now leaves that piece out (`BOY_WEAPON_BLOCK`, room-draft.js). The
+marker now leaves that piece out (`BOY_WEAPON_BLOCK`, room-draft.ts). The
 chunk flags do not mark it (`$90` is flip-Y plus priority), so the piece is
 identified by its block. This is measured on this one pose, and the marker
 falls back to the whole sprite if the block ever moves.

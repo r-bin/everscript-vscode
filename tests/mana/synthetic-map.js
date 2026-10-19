@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // A made-up Secret of Mana map for the page tests: 6x2 cells, a hand-made metatile sheet (metatile n is a
 // solid colour, n=0 clear), collision, one step event, one object, an animation; map b1 also a cuttable bush,

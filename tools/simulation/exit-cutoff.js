@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Which room scripts can be cut off by leaving the room (docs/cheats.md § Leaving a
 // room cuts every running script). A map change ends every script thread, so a

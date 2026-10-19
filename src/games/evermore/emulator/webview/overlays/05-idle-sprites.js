@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
     // Standing sprites for entities that have not been activated yet, from
     // the host (resolveCharacterSprite). undefined = not asked yet, null = none.

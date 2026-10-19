@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: groups — a stamped construct or widget kept as one thing, over
 // the map, so a gourd stamped into a hut can be selected, moved and deleted
 // whole without touching the hut.

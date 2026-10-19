@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: the map editor's suggestion messages — tile families (sheet, catalogue, previews),
 // related and neighbouring tiles, vanilla examples, procedural fill, decorations. editor-host.js

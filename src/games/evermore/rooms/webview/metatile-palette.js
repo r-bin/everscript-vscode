@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the room's metatile dictionary as the host sends it — the map
 // editor's stamps. The sheet that used to be drawn under the map is gone
 // (the editor's Tile tab is the picker); this is the request, the reply and

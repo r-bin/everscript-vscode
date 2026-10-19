@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Object tab's list — one row per object, drawn like the
 // Trigger tab's rows (map-editor-trigger-panel.js): grip, where in the room,
 // how it looks on the map now, `#n · size at x,y`, remove. Drag a row by its

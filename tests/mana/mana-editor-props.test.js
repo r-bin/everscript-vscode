@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The Mana editor's cell properties and solver (src/games/mana/maps/webview/editor-props.js) on a made-up map: what a
 // cell's bytes mean, and how a drawn wish becomes a metatile — reused, copied into a free slot, or "?" when no

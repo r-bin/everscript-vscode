@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Scripts tab's wiring — one delegated click listener on the
 // pane, the filter, the host messages, and the first request when the tab is
 // opened. Loaded last: every render function it calls is defined by then.

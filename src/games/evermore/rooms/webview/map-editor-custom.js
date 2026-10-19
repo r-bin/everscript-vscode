@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: custom maps — rooms that are not in the ROM, each its own entry
 // under the rail's **Custom rooms** group.
 //

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Music tab's slower-changing parts, redrawn when the loaded
 // package or ARAM changes: instruments + keyboard, sound effects, the ARAM map.
 // Live markers on the ARAM map (the samples voices play) are redrawn per frame.

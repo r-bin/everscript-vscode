@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The host bundle (tools/bundle.mts -> bundle/extension.js, the package's main): it builds, it
 // activates like src/extension.js (the activation test run against it), and the functions the pages

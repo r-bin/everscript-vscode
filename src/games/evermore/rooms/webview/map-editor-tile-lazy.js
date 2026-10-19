@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: lazy loading of the Tile tab's family groups — fetching a
 // family's sheet as its placeholder nears the view, and putting it in place
 // when it arrives.

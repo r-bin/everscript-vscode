@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the order of the Trigger tab's lists, and dragging rows to
 // change it — within a list, or onto the other kind's sub-tab to turn a
 // B-trigger into a step trigger or back (the design mock's "drag-to-reorder

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Secret of Mana Maps page — its data (the #init block and the som:// files the host reads on
 // request: {command:'read', path} -> 'file'), the rail of areas and maps, and opening a map in the editor
 // (editor.js). The page frame, rail behaviour, layout, zoom and pan are the shared editor shell's

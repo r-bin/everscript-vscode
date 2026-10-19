@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the editor page's two resizable columns — the rail on the left and the dock on the
 // right — dragged by their handles (`[data-split="rail"]`, shellFrameHtml; `[data-split="dock"]`,
 // shellDockMount), their collapsed states and the compact (narrow window) overlay mode. Widths are

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The map editor's state model, run headless.
 //
@@ -3185,7 +3186,7 @@ const TORCH = { frames: [2742, 2743, 2744, 2745, 2746, 2744], delays: [5, 5, 5, 
 const chrOf = (slot) => (slot >> 3) * 0x20 + (slot & 7) * 2;
 const slotOfWord = (w) => { const c = w & 0x3ff; return (c >> 5) * 8 + ((c & 0x1f) >> 1); };
 const VENT_SHEET = { family: 115, count: 1, columns: 16, cell: 16, imageUri: 'data:,',
-    // [13] 1: an animation's frame 0, [14] its first graphic (room-draft.js)
+    // [13] 1: an animation's frame 0, [14] its first graphic (room-draft.ts)
     slots: [[0, 0, 2742, 10, 0, 0, -1, 0, -1, 0, 0, 0, 0, 1, 2742, 0]],
     animations: { 2742: { frames: TORCH.frames, delays: [7, 7, 7, 7, 7, 4], pick: 1,
         timings: [{ delays: [5, 5, 5, 5, 3, 3], channels: 17 }, { delays: [7, 7, 7, 7, 7, 4], channels: 2 }] } } };

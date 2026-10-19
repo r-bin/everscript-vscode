@@ -35,7 +35,7 @@
 
 ### 2.1 Direct Save to ROM Slot for Edited Vanilla Rooms
 - **Status: 🟢 designed, not built**
-- `rom-export.js` currently exports custom rooms into developer room `0x15` in an expanded 4MB ROM.
+- `rom-export.ts` currently exports custom rooms into developer room `0x15` in an expanded 4MB ROM.
 - **Requirement:** Direct in-place "Save to ROM" for existing vanilla room slots with blob relocation logic when reconstructed compressed payloads grow.
 
 ### 2.2 Object / Trigger Tabular Editor

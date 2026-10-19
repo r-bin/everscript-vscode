@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the editor's docked tile sidebar, the metatile composer, the
 // construct library, and the chrome refresh that keeps all of it agreeing
 // with the draft.

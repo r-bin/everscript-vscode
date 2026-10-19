@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the SNES bus side of the ROM tab — what a 24-bit address reaches
 // (WRAM, I/O, SRAM, a ROM window, open bus) and the bank × offset canvas both
 // the Bus and the Compare view draw. Stateless: reads _rom (rom-tab.js).

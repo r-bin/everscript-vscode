@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Boy's start marker on a drafted map — where it goes when
 // the map is made, how it is drawn, and the Special-tab pick that moves it.
 //
@@ -13,7 +14,7 @@
 //
 // Not in the JSON draft (entrances are room metadata, not tile-grid state,
 // docs/map-format/map-editor-reference.md §3) — but Export ROM uses it: it is where the intro's
-// `load_map` puts the Boy (map-editor-rom-export.js, rom-export.js).
+// `load_map` puts the Boy (map-editor-rom-export.js, rom-export.ts).
 //
 // Selecting him: the Select tool (or the Special tab's Boy pick) — a click
 // on him selects and highlights him, a drag moves him (one undo step, the
@@ -26,7 +27,7 @@
 var START_SPECIAL_ID = 'start';
 
 /**
- * The Boy facing south, from the host (room-draft.js's `boySprite`):
+ * The Boy facing south, from the host (room-draft.ts's `boySprite`):
  * `{uri, w, h, ox, oy}` in pixels, or null to draw the glyph instead.
  */
 var _startSprite = null;

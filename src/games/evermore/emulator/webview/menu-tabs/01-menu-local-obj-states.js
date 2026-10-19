@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
     // ---- Evermore's pause-menu tabs 1-4 (OVERLAYS, OBJECTS, LOOT, CHEATS): the hooks the emulator's
     // menu calls behind typeof guards (src/core/emulator/menu/menu-view.js), and what they need.

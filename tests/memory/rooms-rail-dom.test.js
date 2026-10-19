@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The Rooms tab's left rail, driven in a real browser against the real page.
 //

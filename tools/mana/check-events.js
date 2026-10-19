@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Check which event the running game runs for each step-event cell of a map
 // (docs/mana/README.md "Step events").
 //   node tools/mana/check-events.js <map id, hex>   (the Mana ROM of the ROM library)

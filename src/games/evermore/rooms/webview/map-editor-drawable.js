@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: what the pencil draws. The pencil is one tool, and the dock
 // tab decides what it puts down:
 //

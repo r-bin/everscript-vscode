@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
     function renderObjectsOverlay(overlayCtx, layout, objects, objStateBuf) {
       if (!overlayCtx || !objects || !objects.length) return;

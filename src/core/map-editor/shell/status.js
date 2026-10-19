@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: tracking the pointer's cell into the status bar. Game-neutral: a page says how a mouse event
 // maps to its cell and what to say about it. Plain browser script: globals. Markup: shellStatusbarHtml (frame.js).
 

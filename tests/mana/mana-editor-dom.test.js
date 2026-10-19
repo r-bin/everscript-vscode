@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // A converted Secret of Mana room in the real Rooms-tab editor, end to end: the real radar
 // page in headless Chromium, and a host stub that answers the page's requests the way

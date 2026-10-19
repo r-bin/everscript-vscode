@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: clicks on the editor's *chrome* — the tool bar, the panels,
 // the composer — routed to whatever they mean, plus the status line and
 // the edit-mode toggle. The map's own pointer gestures are

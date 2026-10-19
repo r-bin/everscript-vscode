@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Special tab (Stairs & Drift / Gate / Entrance) — its
 // catalog, its collision-word bit math, the tab's own markup, and the
 // filter bar's "special" chip + dropdown. State (`currentSpecialId`,

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// TODO port to TS (docs/todo/port-to-ts.md)
 // One headless run for prove.js: boot <rom> in the extension's snes9x core (the debugger build), feed it a movie
 // (or no input), and write a trace that two ROMs can be compared by.
 //   node tools/exhirom/run.js <rom> <movie.evsmv | none> <frames | all> <trace out> [--cdl <touched out>] [--probe <json out>]

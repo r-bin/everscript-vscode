@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: which of the editor's five tabs is showing, and the tab strip
 // that switches between them.
 //

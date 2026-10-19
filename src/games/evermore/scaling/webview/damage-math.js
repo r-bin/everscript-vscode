@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: physical and Atlas Ring damage calculation functions.
 // All are function declarations hoisted to the inner IIFE scope.
   var _dmgCache={};

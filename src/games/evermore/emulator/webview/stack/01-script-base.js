@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
     const SCRIPT_BASE              = 0x28FC;
     const SLOT_SIZE                = 0x4F;

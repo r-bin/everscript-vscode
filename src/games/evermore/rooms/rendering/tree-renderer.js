@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: server-side HTML/JSON rendering for the Rooms tab tree panel.
 // Pure functions: take data structures, return HTML strings or JS variable declarations.

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The ROM library (src/platform/roms/library.ts): which ROM each game's panels show. Synthetic
 // headers only, in a temporary library; never the user's library or a real ROM.

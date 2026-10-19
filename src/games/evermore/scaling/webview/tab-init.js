@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: scaling tab initialization sequence — must be LAST in SCALING_JS_FILES.
 // Calls helper functions and redraw() to set initial state, then closes the inner IIFE.
   updateLevelFields();

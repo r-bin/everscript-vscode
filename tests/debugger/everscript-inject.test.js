@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 
 // Runs injectEverscript as the webview gets it: extracted from the generated

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the scripts behind the Trigger tab's rows, and its Enter tab.
 //
 // A trigger row (map-editor-trigger-panel.js) starts collapsed: its box, its

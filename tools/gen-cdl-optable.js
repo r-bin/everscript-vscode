@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 
 // Writes src/core/emulator/core/snes9x2005-wasm/source/cdl-optable.h from

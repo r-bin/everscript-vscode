@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // How node tools find a ROM: through the ROM library, the same one VS Code uses
 // (docs/architecture/multi-game.md §5; `npm run roms` lists and adds). No environment variables.

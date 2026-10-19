@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The soe:// MCP server over real HTTP (src/core/mcp/protocol.ts + server.ts),
 // with a stub file system: handshake, tools, resources, errors and the

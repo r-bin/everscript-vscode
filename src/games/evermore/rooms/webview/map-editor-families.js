@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the seven tile families — which are loaded, and what each one
 // would buy. The *chooser* is map-editor-chips.js; this is the state behind
 // it and the one action that matters, picking a tile out of a family.

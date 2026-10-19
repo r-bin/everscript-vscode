@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the floating tool pill above the canvas card — which tools
 // exist and their icons — and the room's actions on its name line: the
 // overflow menu and the lock.

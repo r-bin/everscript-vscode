@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: what a Secret of Mana cell *is* — its 4 collision bytes read as properties (shape, floor level,
 // stairs, push, layer switch, return cell, step-on/walk-into, cut, strike) — and what the user wants a cell to
 // be. The user never edits bytes: they draw a wish per cell (a shape, an effect, a switch, how its trigger

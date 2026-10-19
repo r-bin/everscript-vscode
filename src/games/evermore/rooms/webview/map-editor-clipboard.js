@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: copy and paste of map regions and stamped objects.
 //
 // The copy tool selects a region; Cmd/Ctrl+C copies it (its cells, and the

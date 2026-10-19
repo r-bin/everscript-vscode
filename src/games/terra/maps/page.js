@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Terranigma Maps & Room Explorer HTML Page Builder.
 // Renders a CSP-compliant webview with the Terranigma celestial-indigo theme,

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // The table hack (docs/table-hack.md §0): move Evermore's content tables, one at a time or together, into the
 // 4th MB of a 4 MB HiROM image, rewrite the operands that read them, and wipe the old copy. No content moves.
 // Everything is read from the user's ROM; this file holds only addresses and instruction patterns.

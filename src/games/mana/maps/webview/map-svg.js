@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: drawing a Secret of Mana map into an SVG — the picture URL, the collision overlay and the tile
 // animation. Pixels are SVG units (16 per cell); the zoom is the shell's
 // (zoom-pan.js sets the SVG's width/height), so nothing is scaled by CSS (VS Code's default

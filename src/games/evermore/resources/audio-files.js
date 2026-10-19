@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: `soe://rom/assets/audio/` and `soe://rom/audio/` —
 // music, sound effects, song descriptors, and assembled SNES SPC files. Pure. One song's

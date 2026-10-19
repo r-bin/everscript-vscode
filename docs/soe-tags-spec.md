@@ -272,7 +272,7 @@ Uses of the same data outside `soe://`:
 | 3 | ✓ claims with the Conflicts section, ✓ `search/`; open: more claims from the Data Crystals list |
 | 4 | `asm` facts from CDL / disassembly, `script` facts from decompiled room scripts; hover and Memory Radar integration |
 
-Dependency rules follow `src/games/evermore/resources/README.md`: tag files may use `platform/`, `maps/`, `script/` and `localizations/`, never `emulator/`. Live values come through the injected `readMemory`, the same path `ram-files.js` uses.
+Dependency rules follow `src/games/evermore/resources/README.md`: tag files may use `platform/`, `maps/`, `script/` and `localizations/`, never `emulator/`. Live values come through the injected `readMemory`, the same path `ram-files.ts` uses.
 
 ---
 

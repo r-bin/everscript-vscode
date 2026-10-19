@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 
 // The runnable recomp: scaffold a snesrecomp host project (out/recomp/project, generated, never

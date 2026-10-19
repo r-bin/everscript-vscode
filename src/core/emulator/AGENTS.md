@@ -18,7 +18,7 @@ Related skills: `emulator-subsystem`, `cdl-recorder`, `webview-dom-safety`, `deb
   `vscode`. **No game** (`.depcruise.js` `emulator-knows-no-game`): the game's host-side half comes in
   through `configureEmulator({ game, cdlTools })` — Evermore's is `src/games/evermore/emulator/host.js`
   (room pictures, idle sprites, alchemy/loot icons, script trace, describing its own test ROMs) and
-  `src/games/evermore/cdl/tools.js`. The recorder passes neither, so its package has no game code.
+  `src/games/evermore/cdl/tools.ts`. The recorder passes neither, so its package has no game code.
 - The ROM, Music and soe:// domains get emulator data injected by `src/games/evermore/extension.js`
   (`.depcruise.js`: `no-rom-to-emulator`, `no-music-to-emulator`, `no-resources-to-emulator`).
 - The game's part of the page too: `game.webview()` → `{ css, tabButtonsHtml, viewsHtml, clientScript }`

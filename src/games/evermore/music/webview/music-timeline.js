@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Music tab's timeline: one frame per emulated frame (or per
 // engine chunk while a track plays in the tab) in _music.history, the
 // read-ahead after it (music-forecast.js), and the canvas that draws both.

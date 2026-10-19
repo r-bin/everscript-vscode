@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the deco library — vanilla's own objects, as things to stamp —
 // and its section of the Widgets tab (decoLibraryHtml, under the user's own
 // widgets: map-editor-widgets.js's widgetsTabHtml).

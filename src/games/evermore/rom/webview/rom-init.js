@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the ROM tab's wiring — one delegated click / input / hover listener
 // per node, the host messages, and switching between the File, Bus and Compare
 // views. Loaded last: every render function it calls is defined by then.

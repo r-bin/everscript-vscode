@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: the host side of custom maps — the webview's requests to list,
 // save, delete and export them, answered against the folder store

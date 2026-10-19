@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the ROM map view's top-bar controls.
 // Owns _currentLayer / _currentOverlay — which render is on screen and which
 // features are baked into it. Called from detail-renderer.js.

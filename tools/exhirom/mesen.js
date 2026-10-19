@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Second-emulator check for prove.js: run a ROM in Mesen2's headless test runner (`Mesen --testrunner rom script.lua`)
 // with the same pad input as a movie (or none), and return a trace that two ROMs can be compared by.
 // Mesen and our snes9x core do not agree frame for frame (lag frames differ), so only runs inside Mesen are compared.

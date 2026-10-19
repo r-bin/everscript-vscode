@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Sprites tab's animation-script panel (listing, current-frame highlight, owners)
 // and the Animations rail list. Exposes window.SpritesScript; sprites-view.js drives it.
 (function() {

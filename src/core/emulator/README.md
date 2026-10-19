@@ -30,7 +30,7 @@ Embedded snes9x2005 WASM emulator panel integrated into VS Code.
 ## Profiles and games
 
 Two extensions open this panel. `src/extension.js` configures the **full** profile (every tab,
-the CDL exports and lookups through `cdl/tools.js`); `src/recorder/extension.js` the
+the CDL exports and lookups through `cdl/tools.ts`); `src/recorder/extension.js` the
 **recorder** profile (SNES CDL Recorder: CDL in the left side bar and recording, REPLAYS in the
 pause menu, the last ROM reopens, "export bundle" in the CDL tab). The profile reaches the page as data (`#emu-config`).
 

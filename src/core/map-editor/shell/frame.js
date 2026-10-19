@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the markup of the editor shell — the page frame (rail | splitter | detail), the rail, the
 // detail header, the canvas column (card, svg, zoom chip, filter bar, status bar), the floating tool
 // pill and its buttons, the status bar, the dock's tab strip, and mounting the dock beside the canvas.

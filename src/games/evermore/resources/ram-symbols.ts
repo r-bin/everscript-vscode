@@ -92,4 +92,5 @@ function ramSymbol(addr: number): RamSymbol | null {
     return ramSymbols().find(e => e.addr === addr) || null;
 }
 
+export type { RamSymbol, RamBlock };
 export { ramSymbols, ramSymbol, ramBlocks };

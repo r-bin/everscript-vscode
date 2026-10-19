@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The ROM tab (src/games/evermore/rom): the model against the vanilla ROM, the reader lookup
 // on synthetic xrefs, and the real panel page driven in a browser.
@@ -7,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 
-const { buildRomModel } = require('../../src/games/evermore/rom');
+const { buildRomModel } = require('../../dist/games/evermore/rom');
 const { readersOf } = require('../../dist/games/evermore/rom/model/readers');
 const { executedByHalf, wramStrip } = require('../../dist/games/evermore/rom/model/bus-usage');
 const { renderRadarHtml } = require('../../src/games/evermore/memory/render-radar');

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the stamp dictionary — composing and deduplicating the draft's
 // own metatile combinations, and adopting graphics into Block 1 so a word
 // can name one it did not start with.

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The Music tab (src/games/evermore/music): the ROM model, the tab's own sound engine driving
 // the ROM's driver, the emulator core's sound-chip stream (real core, real page

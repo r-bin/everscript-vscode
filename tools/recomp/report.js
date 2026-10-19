@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 
 // REPORT.md + report.json for the recomp build: what is done, what blocks a recomp, what to work on.

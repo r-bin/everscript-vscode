@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Scripts tab's Everscript view — a room's scripts (enter,
 // step-on, B-triggers) as decoded bytes or as the simulation's Everscript,
 // grouped by kind or by the simulation's clusters, and the room picture with

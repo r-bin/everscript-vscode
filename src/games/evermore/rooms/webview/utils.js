@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: shared utility functions for the Rooms tab webview.
 // No DOM dependencies. No state. Imported by all other rooms/ webview modules via global scope.
 

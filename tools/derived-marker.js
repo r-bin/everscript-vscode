@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Builders mark their output as derived from a base ROM (docs/architecture/multi-game.md §4).
 // The format lives in src/games/evermore/derived.ts; run `npm run build:ts` first.

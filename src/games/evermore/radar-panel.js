@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: the Memory Radar's state (its panel, what it last showed, the ROM reads it caches) and the
 // helpers around it — the memory map and enum caches, the sprites bundle, the configuration, the

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Build the ExHiROM images and prove they behave like the HiROM original (docs/exhirom/port.md §6).
 //   node tools/exhirom/prove.js --rom <clean HiROM rom> [--movies <dir|file>...] [--boot-frames 6000] [--out dir]
 //                               [--jobs N] [--no-mesen]

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: what an editor keeps per map while its page is open — the model being edited and its
 // history — and the "not saved" notice. Game-neutral. Plain browser script: defines globals (and
 // `module.exports` under Node, for the unit test).

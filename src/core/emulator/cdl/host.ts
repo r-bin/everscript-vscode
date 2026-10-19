@@ -6,7 +6,7 @@
  * something changed: IDLE_FLUSH_MS after the last change, at least every
  * MAX_FLUSH_MS while changes keep coming, and at once on pause / stop / ROM
  * change / panel close. Also runs exports and lookups when the panel was given
- * the tools for them (tools.js; the SNES CDL Recorder has none).
+ * the tools for them (tools.ts; the SNES CDL Recorder has none).
  *
  * Messages (webview -> host): cdlEnable, cdlDelta, cdlPause, cdlDisabled,
  *   cdlRequestSnapshot, cdlExport, cdlLookup
@@ -26,7 +26,7 @@ import type { Table } from '../../../platform/cdl/tables';
 type Index = ReturnType<typeof buildIndex>;
 type B64 = string | null | undefined;
 type Chunk = { index: number; data: B64 };
-/** What the game hands the panel for exports and lookups (src/games/evermore/cdl/tools.js); absent in the recorder. */
+/** What the game hands the panel for exports and lookups (src/games/evermore/cdl/tools.ts); absent in the recorder. */
 interface CdlTools {
     scriptNamer(rom: Uint8Array): (address: number) => string;
     buildIndex(lib: CdlLibrary, map: RomMap): Index;
@@ -99,7 +99,7 @@ class CdlHost {
      * @param {(msg: object) => void} post  sends to the webview
      * @param {(line: string, show?: boolean) => void} log
      * @param {{ tools?: object, wanted?: { get: () => boolean, set: (on: boolean) => void } }} [opts]
-     *   tools: exports and lookup (tools.js), absent in the recorder;
+     *   tools: exports and lookup (tools.ts), absent in the recorder;
      *   wanted: whether recording was on when the user last switched it (kept across sessions)
      */
     constructor(storageDir: string, post: (msg: object) => void, log: (line: string, show?: boolean) => void, opts?: { tools?: CdlTools | null; wanted?: Wanted }) {

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Rooms tab's left rail — what selecting a row does, following an exit link, and wiring
 // the rail to the shared shell. The rail's own behaviour (group and area collapse, the search filter, the
 // click binding) is the shell's: src/core/map-editor/shell/rail.js, shared with the Secret of

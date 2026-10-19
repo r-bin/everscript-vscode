@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: what a gesture *would* do, shown before it does it — the hover
 // ghost of every tool that changes the map (pencil, stamp, eraser, on every
 // tab), and the outline of the size a resize drag would make.
@@ -7,7 +8,7 @@
 // and leave stamps nothing uses. So a ghost draws only from pictures that
 // already exist — the brush's own stamp, the Special tab's glyphs — and a
 // widget, whose cells would need new stamps and families to picture, is
-// rendered by the host at 1:1 from its portable cells (deco-preview.js
+// rendered by the host at 1:1 from its portable cells (deco-preview.ts
 // buildConstructGhost), cached per construct.
 //
 // Drawn in its own group, `#rg-edit-preview`, last in the SVG, so a hover

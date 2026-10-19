@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
     // Sampled each frame while the game's ROM runs (samplePreLoopState); read by the overlays and the game's panels.
     let lastSampledPreState = null;
     // -- Boot: register error handlers BEFORE acquiring vscode API so any

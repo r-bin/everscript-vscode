@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the map on screen in the Secret of Mana editor — what goes inside the shell's `#rg-svg`: the
 // map's own picture, the animation, the cells the user changed or a selected state changes (redrawn from the
 // metatile sheets), the grid, the overlays (drawn by editor-overlays.js; the characters and the hovered

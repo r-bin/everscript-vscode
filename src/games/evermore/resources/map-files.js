@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: `soe://rom/assets/maps/` — every room: its index, decoded header and grids, renders
 // (composite, layers, overlays, object states) and its info page. Pure. rom-assets.js routes here.

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: animated tiles on the map — the purple marks (a border and the
 // pattern letter on every cell showing one), the frames of an unfinished one
 // drawn over its cells, the Tile tab's pencil tiling those frames, and the

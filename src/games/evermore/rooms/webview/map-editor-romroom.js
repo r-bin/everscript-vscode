@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: a vanilla (ROM) room in the editor — what makes editing one look
 // and behave like editing a custom map (docs/map-format/map-editor-reference.md §4): whether the
 // palette in hand is the room's own, the room's objects brought into its

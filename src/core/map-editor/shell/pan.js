@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: dragging the map to pan it — the gesture's start, and the window-level handlers that carry
 // it past the edge of the SVG. The pan offset itself is zoom-pan.js's (`p._applyPan` / `p._getPan`).
 // Game-neutral: the Evermore Rooms tab and the Secret of Mana editor call shellPanStart from their own

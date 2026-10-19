@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Tile tab's TILE FAMILIES section — the seven families this
 // draft has loaded.
 //
@@ -37,7 +38,7 @@ var _chipPreviews = null;
  * Ask for every family's chip art.
  *
  * Two tiles each, and that is a host constraint rather than a taste one:
- * `buildFamilyPreviews` (room-draft.js) caps the sheet at 40 families unless
+ * `buildFamilyPreviews` (room-draft.ts) caps the sheet at 40 families unless
  * `columns <= CHIP_TILES` (2), and all 329 have to fit one PNG. So a card
  * shows two swatches where the mock draws three.
  */

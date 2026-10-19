@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Secret of Mana maps as Evermore rooms (src/games/evermore/imports/mana), end to end on both real
 // ROMs: converted, encoded with Evermore's own encoder, decoded and drawn by Evermore's

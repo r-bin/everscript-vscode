@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
     // -- VS Code script debugger -----------------------------------------------
     const SDBG_DISPATCH = 0x8CD0A6;

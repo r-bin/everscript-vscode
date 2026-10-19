@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Shared by the Secret of Mana Maps page tests: the real page (src/games/mana/maps/page.ts, the same file list the
 // host uses) with `file://` URIs, written to a temp dir. The page is the shared editor shell plus the Mana editor.

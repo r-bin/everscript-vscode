@@ -1,9 +1,10 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: animated stamps on the map canvas.
 //
 // A stamp whose words name an animated graphic (a torch, water, a flame) is
 // drawn as all its frames stacked in one cell, each shown in its turn at
 // vanilla's timing — the host renders the later frames with the stamp
-// (rendering/stamp-animation.js; `anim` on the palette and on the composed
+// (rendering/stamp-animation.ts; `anim` on the palette and on the composed
 // preview). Every frame is a whole picture, so only one is visible at a time:
 // a later frame laid over frame 0 would leave frame 0's flame showing
 // through its transparent pixels.

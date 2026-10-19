@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: unifying the room's own ROM-sourced triggers
 // (`_mtPalette.attachments.bTrigger`/`.stepOn`, tuples `[x1,y1,x2,y2,scriptId]`)
 // with this draft's own additions (`_edit.placed`, `{kind,x,y,w,h,scriptId,uid}`)

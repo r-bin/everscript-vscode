@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the parts of an undo step that are not cells, specials,
 // triggers, groups, the header or the Boy (those are map-editor.js's) —
 // the seven family slots with the animations riding on the same snapshot

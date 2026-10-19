@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Static scans of an Evermore ROM for the tables a release keeps elsewhere: the content tables
 // (string keys, map table, room enter scripts, script pointers) and the asset tables found by their

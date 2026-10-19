@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: `soe://rom/` — the cartridge as files. Pure apart from the ROM
 // buffer it is handed; never reads the emulator.

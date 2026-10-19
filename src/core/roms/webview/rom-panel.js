@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // The ROM panel page: your ROMs per game (base marked ★), a feature table per ROM, a drop zone.
 // State comes from src/core/roms/host.ts; every action goes back as a message.
 (function () {

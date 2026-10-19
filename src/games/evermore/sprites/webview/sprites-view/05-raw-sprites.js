@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
   function sceneBoxFor(walk) {
     var key = walk + ':' + projectilesOn() + ':' + !!(currentAnimData && currentAnimData.target) + ':' + aggroRange();

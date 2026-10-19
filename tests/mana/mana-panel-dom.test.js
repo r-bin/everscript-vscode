@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The Secret of Mana Maps page in headless Chromium: the real page (src/games/mana/maps/page.ts), built from the shared
 // editor shell, with a synthetic map and a stub host answering som:// reads. Checks the page is the shell the Evermore

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 (function(){
   // Alchemy math: src/games/evermore/scaling/webview/alchemy-math.js (outer scope of the radar page).
   // Sub-tab navigation

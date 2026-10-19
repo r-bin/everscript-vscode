@@ -3,7 +3,7 @@
  *
  * Debug Adapter Protocol session for .evs scripts running in the embedded
  * emulator. Transport-agnostic: handleMessage(request) in, send(message) out
- * (inline-adapter.js connects it to VS Code). No VS Code API, no emulator
+ * (inline-adapter.ts connects it to VS Code). No VS Code API, no emulator
  * internals: everything outside the protocol comes in through `deps`:
  *
  *   bridge     emulator script hook (emulator/script-debug-host.ts):
@@ -406,4 +406,5 @@ class EmulatorDebugSession {
     _writeMemory(args: Parameters<typeof memory.writeMemoryRequest>[0]) { return memory.writeMemoryRequest(args, this.deps.bridge); }
 }
 
+export type { Deps, Config, DapRequest, Message };
 export { EmulatorDebugSession };

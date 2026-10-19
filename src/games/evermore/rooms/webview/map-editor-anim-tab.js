@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Animation tab — its rows (one per animated tile on the
 // map), the open row's patterns, frames and ticks, and what the pencil and
 // eraser do on this tab. The model is map-editor-animations.js; the purple on

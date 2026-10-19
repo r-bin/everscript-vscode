@@ -17,13 +17,13 @@ rooms/
     header-overrides.ts       — the Info tab's header fields (and a previewed palette set) applied before a render
     rom-fingerprint.ts        — romFingerprint(rom): the cache key every render cache shares
     metatile-palette.js       — buildRoomMetatilePalette: the dictionary atlas + one packed row per stamp
-    stamp-animation.js        — animated stamps' later frames (`anim`), so a placed torch flickers on the canvas
+    stamp-animation.ts        — animated stamps' later frames (`anim`), so a placed torch flickers on the canvas
     vanilla-index.ts          — the vanilla index + room budget, cached per ROM, packaged for the tab
-    room-draft.js             — blank rooms, family sheets, the family catalogue and its preview strips
+    room-draft.ts             — blank rooms, family sheets, the family catalogue and its preview strips
     graphic-traits.ts         — one graphic's animation, shape class, stairs and special flags, for the sheets
     deco-catalogue.ts         — the deco library: vanilla's Section 3 objects as portable, floor-free entries
-    deco-preview.js           — one entry rendered on nothing, so the thumbnail is the thing not the place
-    rom-export.js             — Export ROM: a custom map in room 0x15, the intro jumping there
+    deco-preview.ts           — one entry rendered on nothing, so the thumbnail is the thing not the place
+    rom-export.ts             — Export ROM: a custom map in room 0x15, the intro jumping there
     custom-export.js          — Export map: the .zip (blob, map.json, sample .evs, stamps.json, README)
   data/
     widget-store.ts           — the user's own widgets: <globalStorage>/widgets.json (list, save, delete)

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Secret of Mana map being edited, as plain data — its two layers' metatile numbers,
 // the objects and the step events — and the changes that can be made to it. No DOM here, so the
 // same file runs under Node in the unit test. Plain browser script: defines globals (and

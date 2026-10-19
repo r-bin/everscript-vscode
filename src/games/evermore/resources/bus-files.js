@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: `soe://bus/` — the 24-bit SNES CPU bus as a router. It holds no
 // data: each address names the canonical file under `soe://ram/` or

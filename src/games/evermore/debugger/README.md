@@ -52,7 +52,7 @@ VS Code debug UI ── DAP (in-process) ── emulator-session.ts
 
 | File | Role |
 |---|---|
-| `inline-adapter.js` | Registers the `everscript` debug type (launch / attach), the only file using the VS Code API |
+| `inline-adapter.ts` | Registers the `everscript` debug type (launch / attach), the only file using the VS Code API |
 | `emulator-session.ts` | DAP session: breakpoints, stops, steps, threads, stack, variables, evaluate |
 | `script-frames.ts` | Pure: snapshot → threads / frames / variables; step predicates |
 | `source-map.ts` | Pure: reads `out/source_map.json`; address ↔ line, inline levels, step ranges, memory symbols |

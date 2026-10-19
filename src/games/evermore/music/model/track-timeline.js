@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: a music track played silently in the tab's own engine (blargg's
 // SPC700 + S-DSP, engine/spc-engine.js) on the host, for the Scripts tab's

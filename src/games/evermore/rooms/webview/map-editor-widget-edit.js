@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: Widget Editor Mode — editing one of the user's own widgets on
 // its own W×H canvas, with every tool the map has.
 // A widget is its cells. Its colourings are derived from its art

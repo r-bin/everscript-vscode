@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the overlays of the Secret of Mana editor that read a cell's properties (editor-props.js) — the
 // collision of the picked layer with the 8 px drawings and the cells no metatile fits, the Special tab's
 // properties (stairs, push, layer switch), the triggers (step-on, walk-into, on hit) and the cuttable cells

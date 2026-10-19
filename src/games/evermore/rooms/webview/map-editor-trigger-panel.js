@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Trigger tab's list UI — step/B trigger rows as the design
 // mock draws them (grip, where in the room, the tiles covered, `#n · W×H
 // tiles`, what the script does, remove), click-to-select; opened, the

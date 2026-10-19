@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Writes src/games/evermore/localizations/data/rooms.json: every room's name in our style
 // (docs/cleanup.md D4) — region › place › part — with where each part comes from.

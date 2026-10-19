@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Secret of Mana library + som:// files against the real ROM. Skips without it.
 // Run: node tests/mana/mana-rom.test.js  (the Mana ROM from the ROM library: npm run roms)

@@ -402,4 +402,5 @@ function exportAsar(lib: CdlLibrary, romInput: Uint8Array, outDir: string, opts:
     return { mainPath, build, recomp, mesen, known, tables: tables.length, banks: includes.length, functions: index.entries.length, codeLines, commentedLines: comments.filter(c => !c.label).length, index, map, regions: known.regions };
 }
 
+export type { ExportOptions };
 export { exportAsar };

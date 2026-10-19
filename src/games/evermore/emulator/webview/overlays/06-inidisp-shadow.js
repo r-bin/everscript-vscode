@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
     // The engine's INIDISP shadow (NMI copies it to $2100): bit 7 forced
     // blank, low nibble brightness. Room loads and fade_in()/fade_out() and

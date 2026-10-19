@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: the emulator panel's state (the panel, the ROM it runs, its timers, the CDL / REPLAYS / script
 // debugger / APU / memory hosts) and the helpers that act on it: saved settings, status to the page,
@@ -33,7 +34,7 @@ const emu = {
      * What the extension that hosts the panel wants (configureEmulator):
      *   profile        'full' (Everscript) or 'recorder' (SNES CDL Recorder: CDL and REPLAYS only)
      *   title          the panel's title
-     *   cdlTools       exports and lookups for the CDL tab (games/evermore/cdl/tools.js); none in the recorder
+     *   cdlTools       exports and lookups for the CDL tab (games/evermore/cdl/tools.ts); none in the recorder
      *   game           the game half of the host side: room pictures, idle sprites, icons, script trace
      *                  (games/evermore/emulator/host.js); none in the recorder
      *   onExportBundle the CDL tab's "export bundle" button (recorder)

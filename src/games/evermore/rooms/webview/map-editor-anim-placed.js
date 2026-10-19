@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: a placed widget's pattern — the Placed list's A/B/C chips
 // (map-editor-placed-list.js shows them) and moving one placed widget's
 // animated tiles onto another of vanilla's patterns. The model is

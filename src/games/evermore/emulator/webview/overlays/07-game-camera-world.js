@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
     // Just above the entity the camera follows ($7E:0F42 points into the entity records sampled at
     // $7E:3DDF): x, and y minus the elevation; for the CDL float (cdl-float.js). Null when unknown.

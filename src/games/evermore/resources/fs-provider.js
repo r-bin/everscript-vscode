@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: the read-only `soe://` FileSystemProvider. Routes a URI to the
 // rom/, ram/, bus/, localization/ or tags/ handler, picks the ROM, caches what it produced, adds an
@@ -12,7 +13,7 @@
 const vscode = require('vscode');
 const { parseSoeParts } = require('../../../../dist/games/evermore/resources/resource-uri');
 const { resolveRom } = require('./rom-files');
-const { resolveRam } = require('./ram-files');
+const { resolveRam } = require('../../../../dist/games/evermore/resources/ram-files');
 const { busTarget, indexMarkdown: busIndex } = require('./bus-files');
 const { resolveLocalization } = require('../../../../dist/games/evermore/resources/localization-files');
 const { resolveTags } = require('../../../../dist/games/evermore/resources/tag-files');

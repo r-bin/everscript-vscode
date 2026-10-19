@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 
 /**
@@ -15,7 +16,7 @@ const { execFileSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '../..');
 const { CdlLibrary } = require('../../dist/platform/cdl/library');
-const { exportAsar } = require('../../src/games/evermore/cdl/tools');
+const { exportAsar } = require('../../dist/games/evermore/cdl/tools');
 const { createRomMap } = require('../../dist/platform/cdl/rom-map');
 const { buildIndex, SPACE } = require('../../dist/platform/cdl/xref-index');
 const { inferStructs } = require('../../dist/platform/cdl/structs');

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the cuttable layer — tiles drawn over the map that the player
 // can cut away, and the bottom bar's `Cuttable` toggle that paints on it.
 //

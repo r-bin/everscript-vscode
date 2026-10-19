@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Record what the real game's script scheduler does, tick by tick, so the
 // simulation can be checked against it (tests/simulation/scheduler.test.js).

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Analyse every room with the simulation, one process per room (a room that runs
 // away cannot take the others down), and print time, scenarios and what was capped.

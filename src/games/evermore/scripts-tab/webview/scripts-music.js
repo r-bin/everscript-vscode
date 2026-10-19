@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Scripts tab's Music view — a track's sequence as its package
 // uploads it (pointer, header, one byte run per track; the opcodes are not
 // decoded yet, bytes >= $F0 are marked as commands), and a silent player on

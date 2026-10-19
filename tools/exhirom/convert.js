@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Convert a HiROM Secret of Evermore image into an 8 MB ExHiROM image (docs/exhirom/port.md).
 //   npm run exhirom -- [clean rom] [out.sfc] [--fill ff|db] [--upper hardware|snes9x2005|fill]
 //   (ROM: argument, else the base ROM of the ROM library; output: out/soe-exhirom.sfc)

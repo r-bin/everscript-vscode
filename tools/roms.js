@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The ROM library from the command line (docs/architecture/multi-game.md §5): the same file VS Code uses.
 //   npm run roms                  list

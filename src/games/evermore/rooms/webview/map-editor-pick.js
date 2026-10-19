@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the smart eyedropper — a click on the map picks up what is
 // there *with the tab, the tool and the settings that draw it*:
 //

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
     function renderInspectSelection(overlayCtx, layout, preState) {
       if (!overlayCtx || !inspectedTarget || !layout) return;

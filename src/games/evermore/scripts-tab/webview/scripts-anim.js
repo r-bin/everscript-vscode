@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Scripts tab's Animations and Alchemy views, and the animation
 // player both use on the right: the frames the host renders (sprites'
 // renderAnimation, injected), played at 60 ticks a second, wrapping to the

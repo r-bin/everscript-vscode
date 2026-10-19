@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: all mouse and keyboard interaction setup for the SVG map panel.
 // Called from detail-renderer.js after panel.innerHTML is set.
 // Requires globals: escH (utils.js), vs (shared.js), goToLine (shared.js).

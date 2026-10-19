@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: sound out of the Music tab: the engine's samples through WebAudio
 // (32 kHz, the S-DSP's own rate) and instrument previews decoded from BRR.
 // Owns _muAudio. Browsers only start audio after a click, so everything here

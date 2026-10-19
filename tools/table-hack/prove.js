@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Prove the table hack (docs/table-hack.md §0): build one image per moved table, one with all of them and a base with
 // none, then run the original and every image on the same inputs and compare. A table passes when its image never
 // differs from the original: same WRAM every frame, same screen every 60 frames.

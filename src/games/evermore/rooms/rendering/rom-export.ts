@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: exporting a custom map as a playable ROM — the vanilla ROM,
 // extended, with the map in Brian's Test Ground's slot and the game sent
 // straight there. Pure: takes the ROM buffer, returns a new one.
@@ -21,11 +20,19 @@
 // the Rooms tab uses and compared with what was asked for before it is
 // returned. See docs/map-format/rom-export.md.
 
-const maps = require('../../../../../dist/games/evermore/maps');
-const vm = require('../../../../../dist/games/evermore/script-vm');
-const { buildRoomScriptModel } = require('../../../../../dist/games/evermore/script-model');
-const { vanillaIndex } = require('../../../../../dist/games/evermore/rooms/rendering/vanilla-index');
-const { hiromFileOffset: snesOffset } = require('../../../../../dist/platform');
+import * as maps from '../../maps';
+import * as vm from '../../script-vm';
+import { buildRoomScriptModel } from '../../script-model';
+import { vanillaIndex } from './vanilla-index';
+import type { CustomRoomInput } from '../../maps';
+
+/** A trigger rectangle as the editor draws it (corners inclusive). */
+interface DraftTrigger { x1?: number; y1?: number; x2?: number; y2?: number; scriptId?: number }
+/** The Export ROM payload: the custom room's input plus the editor's start marker and loosely drawn triggers. */
+type ExportDraft = Omit<CustomRoomInput, 'stepOn' | 'bTrigger'> & {
+    stepOn?: DraftTrigger[]; bTrigger?: DraftTrigger[]; start?: { x?: number; y?: number } | null;
+};
+import { hiromFileOffset as snesOffset } from '../../../../platform';
 
 /** Brian's Test Ground — a developer room, empty, never reached in play. */
 const BRIAN_ROOM = 0x15;
@@ -74,9 +81,9 @@ const HEADER_CHECKSUM = 0xffde;
  * Where the Boy lands, in the 8px units opcode 0x22 takes: the middle of
  * the start marker's 16px metatile.
  */
-function startUnits(start, widthTiles, heightTiles) {
-    const sx = start && Number.isInteger(start.x) ? start.x : Math.floor(widthTiles / 2);
-    const sy = start && Number.isInteger(start.y) ? start.y : Math.floor(heightTiles / 2);
+function startUnits(start: ExportDraft['start'], widthTiles: number, heightTiles: number) {
+    const sx = start && Number.isInteger(start.x) ? start.x! : Math.floor(widthTiles / 2);
+    const sy = start && Number.isInteger(start.y) ? start.y! : Math.floor(heightTiles / 2);
     return {
         x: Math.max(0, Math.min(widthTiles - 1, sx)) * 2 + 1,
         y: Math.max(0, Math.min(heightTiles - 1, sy)) * 2 + 1,
@@ -86,7 +93,7 @@ function startUnits(start, widthTiles, heightTiles) {
 /** HiROM: the file offset of a bus address (the top two bank bits drop out). */
 
 /** Recompute the header checksum over the whole image. */
-function fixChecksum(rom) {
+function fixChecksum(rom: Uint8Array) {
     rom[HEADER_COMPLEMENT] = 0xff; rom[HEADER_COMPLEMENT + 1] = 0xff;
     rom[HEADER_CHECKSUM] = 0x00; rom[HEADER_CHECKSUM + 1] = 0x00;
     let sum = 0;
@@ -105,7 +112,7 @@ function fixChecksum(rom) {
  * See docs/map-format/gourds-and-map-objects.md §6 and
  * map_collision_mechanics.md §7.2.
  */
-const TRIGGER_GATE = { bTrigger: 0x8000, stepOn: 0x4000 };
+const TRIGGER_GATE = { bTrigger: 0x8000, stepOn: 0x4000 } as const;
 
 /**
  * The draft with each trigger's gate bit on every cell it covers, so every
@@ -113,11 +120,11 @@ const TRIGGER_GATE = { bTrigger: 0x8000, stepOn: 0x4000 };
  * object's later states keep their own words, so an opened gourd stops
  * answering B, as vanilla's does. `x2`/`y2` are inclusive here.
  */
-function withTriggerGates(draft) {
+function withTriggerGates(draft: ExportDraft): ExportDraft {
     const w = Number(draft.widthTiles);
     const h = Number(draft.heightTiles);
-    const rects = [];
-    for (const kind of Object.keys(TRIGGER_GATE)) {
+    const rects: { bit: number; x1: number; y1: number; x2: number; y2: number }[] = [];
+    for (const kind of Object.keys(TRIGGER_GATE) as (keyof typeof TRIGGER_GATE)[]) {
         for (const t of draft[kind] || []) {
             const x1 = Number(t.x1) || 0, y1 = Number(t.y1) || 0;
             rects.push({
@@ -127,7 +134,7 @@ function withTriggerGates(draft) {
         }
     }
     if (!rects.length || !Array.isArray(draft.cells)) return draft;
-    const gate = (x, y) => rects.reduce((bits, r) =>
+    const gate = (x: number, y: number) => rects.reduce((bits, r) =>
         (x >= r.x1 && x <= r.x2 && y >= r.y1 && y <= r.y2 ? bits | r.bit : bits), 0);
     const cells = draft.cells.slice();
     for (let y = 0; y < h; y++) {
@@ -149,7 +156,7 @@ function withTriggerGates(draft) {
  * Returns `{ rom, report }`; throws with a readable message when the map
  * cannot be encoded or the result does not decode back to it.
  */
-function buildExportRom(vanilla, asDrawn) {
+function buildExportRom(vanilla: ArrayLike<number>, asDrawn: ExportDraft) {
     // A private copy: the caller's buffer is the extension's cached ROM, and
     // nothing an export does may ever reach it.
     const src = Uint8Array.from(vanilla);
@@ -238,7 +245,7 @@ function buildExportRom(vanilla, asDrawn) {
 }
 
 /** Decode what was written and compare it with what was asked for. */
-function verifyExport(rom, built, draft, at) {
+function verifyExport(rom: Uint8Array, built: ReturnType<typeof maps.buildCustomRoomBlob>, draft: ExportDraft, at: { x: number; y: number }) {
     const room = maps.decodeRoom(rom, BRIAN_ROOM);
     // What the room shows on load: the cuttable layer where there is one.
     const shown = maps.draftTopCells({ widthTiles: Number(draft.widthTiles), cells: draft.cells, cut: draft.cut || [] });
@@ -270,7 +277,7 @@ function verifyExport(rom, built, draft, at) {
     }
     const S = room.metatileSlices;
     for (const [x, y] of grass.tiles) {
-        const dst = (grass.table.swaps.get(room.layer1MetatileIds[y][x]) - room.baseMetatile) / 8;
+        const dst = (grass.table.swaps.get(room.layer1MetatileIds[y][x])! - room.baseMetatile) / 8;
         const i = (y * w + x) * 3;
         if (S.layer1[dst] !== built.remap(draft.cells[i]) || S.layer2[dst] !== built.remap(draft.cells[i + 1])
             || S.collision[dst] !== (draft.cells[i + 2] & 0xffff)) {
@@ -314,6 +321,4 @@ function verifyExport(rom, built, draft, at) {
     }
 }
 
-module.exports = {
-    buildExportRom, withTriggerGates, BRIAN_ROOM, INTRO_FIRST_CODE, BLOB_OFFSET, SCRIPT_OFFSET, EXPANDED_SIZE,
-};
+export { buildExportRom, withTriggerGates, BRIAN_ROOM, INTRO_FIRST_CODE, BLOB_OFFSET, SCRIPT_OFFSET, EXPANDED_SIZE };

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: what vanilla draws beside what — the adjacency model behind the
 // tile list's ordering and the LIKELY NEIGHBORS card.
 //

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Collision tab — a cell's collision shape set by hand.
 //
 // A painted tile gets the shape vanilla most often gives its graphic

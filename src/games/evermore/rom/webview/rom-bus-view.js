@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the ROM tab's Bus view — the 24-bit address-space map and the
 // resolver for the selected bus address (what it reaches, its mirrors, what the
 // CDL saw). Reads/writes _rom.busSel (rom-tab.js owns _rom).

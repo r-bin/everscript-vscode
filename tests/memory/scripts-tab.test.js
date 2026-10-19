@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Scripts tab (src/games/evermore/scripts-tab): the models against the ROM, the host with the
 // injected sprites/music capabilities, and the page in a browser answered by

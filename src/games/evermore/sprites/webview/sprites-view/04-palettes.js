@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
   /** The hurt offset on this tick: a segmented body's follows its head, others the frame's. */
   function hurtOffsetNow(frame) {

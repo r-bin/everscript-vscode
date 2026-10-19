@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: `soe://maps/` — maps virtual file system at root level.
 // Supports both custom maps (`soe://maps/custom/<name>`) and maps overall.

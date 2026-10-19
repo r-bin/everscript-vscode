@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Scripts tab's page state (_scr) and the parts every view
 // shares: escaping, the host requests, the left rail and the dispatch to the
 // view that draws the middle and the right side. The views live in

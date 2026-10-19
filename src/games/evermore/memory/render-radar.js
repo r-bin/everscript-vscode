@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Owner: memory_radar/render-radar.js
 // Orchestrates full radar webview HTML: assembles per-tab renderers,
@@ -9,7 +10,7 @@ const { buildDocsTabHtml, buildRngTabHtml } = require('../docs-tab/render-docs-t
 const { renderRoomsTree, renderVanillaTree, buildRoomRailHtml,
         buildRoomsJson, VANILLA_ROOMS } = require('../rooms');
 const { buildSpritesTabHtml }    = require('../../../../dist/games/evermore/sprites');
-const { buildRomTabHtml }        = require('../rom');
+const { buildRomTabHtml }        = require('../../../../dist/games/evermore/rom');
 const { buildMusicTabHtml }      = require('../music');
 const { buildScriptsTabHtml }    = require('../../../../dist/games/evermore/scripts-tab');
 const radarWebview               = require('./webview');

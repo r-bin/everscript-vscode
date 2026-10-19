@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: constructs — a saved rectangle of map, with whatever triggers
 // and objects sat inside it, in a form that survives being moved.
 //

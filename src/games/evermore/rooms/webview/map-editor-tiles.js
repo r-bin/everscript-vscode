@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the tile browser — every graphic you could place, grouped by
 // the family that colours it and ordered by what it is drawn beside — plus
 // the two brush modifiers the Tile tab's segmented row carries.

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: the host side of the Rooms tab's map editor — every message the editor sends that
 // needs the ROM: room tiles and stamps, converted Mana rooms, families, vanilla suggestions, deco,

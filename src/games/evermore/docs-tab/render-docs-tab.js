@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Owner: memory_radar/render-docs-tab.js
 // Renders the static Docs and RNG tab HTML.

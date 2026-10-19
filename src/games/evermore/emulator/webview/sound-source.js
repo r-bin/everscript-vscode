@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
     const SND_SEND = /*@@SND_SEND*/0;
     const SND_SFX_TAIL = /*@@SND_SFX_TAIL*/0;

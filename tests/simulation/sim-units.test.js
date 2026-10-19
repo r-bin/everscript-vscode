@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Unit tests for the script simulation, without a ROM: hand-assembled scripts
 // in an otherwise empty buffer. The ROM tests (loot, rooms, operand layout)

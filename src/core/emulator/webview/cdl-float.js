@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
     // -- CDL coverage floating text ----------------------------------------------
     const CDL_FLOAT_MAX = 6;          // banks shown per tick; the rest wait for the next one

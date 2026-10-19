@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Music tab's read-ahead (_muFc): a second sound chip, loaded
 // with a copy of the one being shown (the tab's engine, or an emulator
 // snapshot) and run ahead of the playhead, so the timeline can draw what the

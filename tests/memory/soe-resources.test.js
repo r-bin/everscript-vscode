@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // soe:// resources: the address grammar, the rom/ and ram/ handlers, and the
 // FileSystemProvider (against a stubbed vscode). ROM-backed cases use the
@@ -30,7 +31,7 @@ require.cache.vscode = { id: 'vscode', filename: 'vscode', loaded: true, exports
 
 const { parseSoeParts, parseAddressName, slugify } = require('../../dist/games/evermore/resources/resource-uri');
 const { resolveRom, toFileOffset } = require('../../src/games/evermore/resources/rom-files');
-const { resolveRam } = require('../../src/games/evermore/resources/ram-files');
+const { resolveRam } = require('../../dist/games/evermore/resources/ram-files');
 const { SoeFileSystem } = require('../../src/games/evermore/resources/fs-provider');
 const { busTarget } = require('../../src/games/evermore/resources/bus-files');
 

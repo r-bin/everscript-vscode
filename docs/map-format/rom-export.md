@@ -9,7 +9,7 @@ embedded emulator panel (`openEmulatorPanel`). That panel uses the same
 snes9x core the export was boot-tested on.
 
 Code: `src/games/evermore/maps/encode.ts` (a port of `everscript/tools/encode_room.py`),
-`src/games/evermore/maps/custom-room.ts`, `src/games/evermore/rooms/rendering/rom-export.js`,
+`src/games/evermore/maps/custom-room.ts`, `src/games/evermore/rooms/rendering/rom-export.ts`,
 `src/games/evermore/rooms/webview/map-editor-rom-export.js`. Tests:
 `tests/memory/rom-export.test.js`.
 

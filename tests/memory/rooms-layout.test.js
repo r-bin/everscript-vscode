@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 /**
  * tests/memory/rooms-layout.test.js — responsive layout and compact overlay sidebar tests.

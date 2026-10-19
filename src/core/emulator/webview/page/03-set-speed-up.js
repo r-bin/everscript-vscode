@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
     function setSpeedUp(on) {
       setSpeedMultiplier(on ? 4.0 : 1.0);

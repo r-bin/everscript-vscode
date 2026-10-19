@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: inner IIFE opener, state variable declarations, DOM refs, character select initialization.
 // Must be FIRST in SCALING_JS_FILES (after alchemy-math.js which is in outer scope).
 (function(){

@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: rooms that are not in the ROM — a blank draft to build on, and
 // the per-family tile sheets the family picker shows.
 //
@@ -9,12 +8,14 @@
 //
 // See docs/map-format/building-a-room-from-a-picture.md §5.
 
-const maps = require('../../../../../dist/games/evermore/maps');
-const { romFingerprint } = require('../../../../../dist/games/evermore/rooms/rendering/rom-fingerprint');
-const { vanillaIndex, budgetSummary } = require('../../../../../dist/games/evermore/rooms/rendering/vanilla-index');
-const { VANILLA_ROOMS } = require('../../../../../dist/games/evermore/rooms/data/vanilla-data');
-const { overlayOptions } = require('../../../../../dist/games/evermore/rooms/rendering/tile-overlay');
-const { animationOf, sheetAnimations, shapeCounts, stairsOf, specialFlagsOf } = require('../../../../../dist/games/evermore/rooms/rendering/graphic-traits');
+import * as maps from '../../maps';
+import type { RoomData, CustomRoomInput } from '../../maps';
+import type { PixelBuffer } from '../../maps/render';
+import { romFingerprint } from './rom-fingerprint';
+import { vanillaIndex, budgetSummary } from './vanilla-index';
+import { VANILLA_ROOMS } from '../data/vanilla-data';
+import { overlayOptions } from './tile-overlay';
+import { animationOf, sheetAnimations, shapeCounts, stairsOf, specialFlagsOf } from './graphic-traits';
 
 /** Tiles per sheet row, matching the metatile atlas. */
 const COLUMNS = 16;
@@ -27,7 +28,11 @@ const COLUMNS = 16;
  */
 const MAX_FAMILY_TILES = 256;
 
-const SHEETS = new Map();
+type Rom = Uint8Array | ArrayBuffer;
+/** The Export ROM payload as far as the draft renderers read it; the webview sends loose values. */
+type RoomDraft = Partial<CustomRoomInput> & { mode?: string };
+
+const SHEETS = new Map<string, Record<string, unknown>>();
 const SHEETS_MAX = 24;
 
 /**
@@ -37,7 +42,7 @@ const SHEETS_MAX = 24;
  * problems `roomProblems` found, so a draft that could not be encoded says
  * so before the user invests in it.
  */
-function buildBlankRoom(rom, opts) {
+function buildBlankRoom(rom: Rom, opts: { widthTiles?: unknown; heightTiles?: unknown; borrowFrom?: unknown; minTiles?: unknown }) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const room = maps.blankRoom(buf, {
         widthTiles: Number(opts.widthTiles) || 16,
@@ -100,7 +105,7 @@ const BOY_WEAPON_BLOCK = 0xd3;
  * who arrives there rather than an icon. Null when the pose cannot be read;
  * the marker falls back to a glyph.
  */
-function boySprite(rom) {
+function boySprite(rom: Uint8Array) {
     try {
         const walk = maps.characterAnimation(rom, BOY_CHARACTER);
         const address = walk.frames.length ? walk.frames[0].sprite : maps.resolveCharacterSprite(rom, BOY_CHARACTER);
@@ -132,7 +137,7 @@ function boySprite(rom) {
  * a single-layer render needs no compositing decisions, but the renderer
  * still reads a header.
  */
-function buildFamilySheet(rom, familyId, borrowFrom) {
+function buildFamilySheet(rom: Rom, familyId: unknown, borrowFrom: unknown) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const family = Number(familyId);
     const borrow = Number(borrowFrom) || 0x76;
@@ -145,7 +150,7 @@ function buildFamilySheet(rom, familyId, borrowFrom) {
     const base = maps.decodeRoom(buf, borrow);
     const ids = attested.map((a) => a.value);
 
-    const out = {
+    const out: Record<string, unknown> & { imageUri: string | null; imageWidth: number; imageHeight: number; rows?: number } = {
         family,
         count: ids.length,
         // How many rooms list this family at all — the picker shows it so a
@@ -187,7 +192,7 @@ function buildFamilySheet(rom, familyId, borrowFrom) {
     }
 
     SHEETS.set(key, out);
-    if (SHEETS.size > SHEETS_MAX) SHEETS.delete(SHEETS.keys().next().value);
+    if (SHEETS.size > SHEETS_MAX) SHEETS.delete(SHEETS.keys().next().value!);
     return out;
 }
 
@@ -200,11 +205,11 @@ function buildFamilySheet(rom, familyId, borrowFrom) {
  * into the room's tile list so the caller can reuse the sheet it already
  * has.
  */
-function groupRoomGraphics(rom, room) {
+function groupRoomGraphics(rom: Rom, room: RoomData) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const index = vanillaIndex(buf);
     const ids = room.tilePalette.concat(room.animatedTiles);
-    const slotOf = new Map();
+    const slotOf = new Map<number, number>();
     ids.forEach((id, i) => { if (!slotOf.has(id)) slotOf.set(id, i); });
 
     return maps.groupByRooms(index, ids).map((g) => ({
@@ -214,7 +219,7 @@ function groupRoomGraphics(rom, room) {
 }
 
 /** Room id -> `{ area, name }`, from the tab's own vanilla room list. */
-let ROOM_NAMES = null;
+let ROOM_NAMES: Map<number, { area: string; name: string }> | null = null;
 function roomNames() {
     if (ROOM_NAMES) return ROOM_NAMES;
     ROOM_NAMES = new Map();
@@ -234,15 +239,15 @@ function roomNames() {
  * `{ id, tiles, rooms, areas, names }`, biggest first. 329 families have at
  * least one graphic drawn in them (365 are listed by some room).
  */
-function buildFamilyCatalogue(rom) {
+function buildFamilyCatalogue(rom: Rom) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const index = vanillaIndex(buf);
     const names = roomNames();
     const out = [];
     for (const [family, list] of index.graphics) {
         const ids = index.rooms.get(family) || [];
-        const areas = [];
-        const roomLabels = [];
+        const areas: string[] = [];
+        const roomLabels: string[] = [];
         for (const id of ids) {
             const info = names.get(id);
             if (!info) continue;
@@ -295,7 +300,7 @@ const CHIP_TILES = 2;
  * once — and the single-row results are blitted into one sheet, one row per
  * family, in the order asked for.
  */
-function buildFamilyPreviews(rom, familyIds, tilesPerFamily) {
+function buildFamilyPreviews(rom: Rom, familyIds: unknown[], tilesPerFamily: unknown) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const index = vanillaIndex(buf);
     const columns = Math.max(1, Math.min(PREVIEW_TILES, Number(tilesPerFamily) || PREVIEW_TILES));
@@ -305,7 +310,7 @@ function buildFamilyPreviews(rom, familyIds, tilesPerFamily) {
     const ids = (familyIds || []).map(Number).filter((n) => !isNaN(n)).slice(0, cap);
     const width = columns * 16;
     const height = Math.max(1, ids.length) * 16;
-    const sheet = { width, height, data: new Uint8Array(width * height * 4) };
+    const sheet: PixelBuffer = { width, height, data: new Uint8Array(width * height * 4) };
     const base = maps.decodeRoom(buf, 0x76);
 
     ids.forEach((family, row) => {
@@ -330,7 +335,7 @@ function buildFamilyPreviews(rom, familyIds, tilesPerFamily) {
 }
 
 /** Copy `src` into `dst` at (x, y). Both are RGBA PixelBuffers. */
-function blit(dst, src, x, y) {
+function blit(dst: PixelBuffer, src: PixelBuffer, x: number, y: number) {
     const rows = Math.min(src.height, dst.height - y);
     const cols = Math.min(src.width, dst.width - x);
     for (let r = 0; r < rows; r++) {
@@ -348,7 +353,7 @@ function blit(dst, src, x, y) {
  * `draft` is the Export ROM payload (map-editor-rom-export.js): three words
  * per cell. Only collision is read; the picture is the editor's own.
  */
-function buildDraftCollision(rom, draft) {
+function buildDraftCollision(rom: Rom, draft: RoomDraft) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const w = Number(draft.widthTiles);
     const h = Number(draft.heightTiles);
@@ -358,7 +363,7 @@ function buildDraftCollision(rom, draft) {
     const room = maps.blankRoom(buf, { widthTiles: w, heightTiles: h, borrowFrom: Number(draft.borrowFrom) || 0x76, minTiles: 1 });
     // The collision the room loads with: uncut grass where there is some.
     const shown = maps.draftTopCells({ widthTiles: w, cells, cut: draft.cut || [] });
-    const collisionWords = [];
+    const collisionWords: number[][] = [];
     for (let y = 0; y < h; y++) {
         const row = [];
         for (let x = 0; x < w; x++) row.push(shown[(y * w + x) * 3 + 2] & 0xffff);
@@ -373,7 +378,4 @@ function buildDraftCollision(rom, draft) {
 
 function invalidateRoomDrafts() { SHEETS.clear(); }
 
-module.exports = {
-    buildBlankRoom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews,
-    groupRoomGraphics, invalidateRoomDrafts, buildDraftCollision,
-};
+export { buildBlankRoom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, groupRoomGraphics, invalidateRoomDrafts, buildDraftCollision };

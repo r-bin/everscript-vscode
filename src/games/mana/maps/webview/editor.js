@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Secret of Mana editor for one map — the sessions (one per map, kept while the page lives)
 // and putting the page together from the shared editor shell: the name line, the canvas column (the shell's
 // card, pill, zoom chip, filter bar and status bar), the dock. The pieces: editor-stage.js (what is on the

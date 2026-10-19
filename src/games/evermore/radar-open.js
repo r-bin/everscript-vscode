@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: the everscript.openMemoryRadar command — the radar for the scope at the cursor: build or
 // reuse the panel, render it, and route every message the page sends to the feature that owns it.
@@ -7,7 +8,7 @@ const vscode = require('vscode');
 const path   = require('path');
 const fs     = require('fs');
 const { VANILLA_ROOMS, buildVanillaRoomDetails, buildRoomTree, setRoomImageUris, handlesCustomMapMessage, handleCustomMapMessage } = require('./rooms');
-const { handlesRomMessage, handleRomMessage } = require('./rom');
+const { handlesRomMessage, handleRomMessage } = require('../../../dist/games/evermore/rom');
 const { handlesMusicMessage, handleMusicMessage } = require('./music');
 const { handlesScriptsMessage, handleScriptsMessage } = require('../../../dist/games/evermore/scripts-tab');
 const { handlesEditorMessage, handleEditorMessage } = require('./rooms/editor-host');

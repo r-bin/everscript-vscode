@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the right-hand dock of the Secret of Mana editor — its tab strip (the shell's
 // shellTabStripHtml) and its tabs: Tile › Tiles (the metatile picker and what the picked metatile is), Object
 // (the list, drawn with the shell's rows and cards, and an inspector for the selected one) and Info (what the

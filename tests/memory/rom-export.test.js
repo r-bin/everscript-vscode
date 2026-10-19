@@ -1,6 +1,7 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The room blob write path (src/games/evermore/maps/encode.ts, custom-room.ts) and Export
-// ROM (src/games/evermore/rooms/rendering/rom-export.js, map-editor-rom-export.js).
+// ROM (src/games/evermore/rooms/rendering/rom-export.ts, map-editor-rom-export.js).
 //
 // The encoder is a port of everscript/tools/encode_room.py, so it is held to
 // upstream's own two checks — `--verify` (byte-exact container) and
@@ -139,7 +140,7 @@ if (!rom) {
 } else {
     const vm = require('../../dist/games/evermore/script-vm');
     const { buildRoomScriptModel } = require('../../dist/games/evermore/script-model');
-    const { buildExportRom, BRIAN_ROOM, INTRO_FIRST_CODE } = require('../../src/games/evermore/rooms/rendering/rom-export');
+    const { buildExportRom, BRIAN_ROOM, INTRO_FIRST_CODE } = require('../../dist/games/evermore/rooms/rendering/rom-export');
 
     test('buildBlob(modelFromRom()) is byte-exact for all 127 rooms (upstream --verify)', () => {
         for (let id = 0; id < maps.MAX_ROOMS; id++) {

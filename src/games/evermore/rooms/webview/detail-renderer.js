@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: renderRoomDetail coordinator, and the request/response cycle for
 // the host-rendered ROM map image.
 // Orchestrates: the header line and the editor (SVG section, filter bar,

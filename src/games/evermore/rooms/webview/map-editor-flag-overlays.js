@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the two trigger bits of a collision word, as overlays and as
 // per-cell state — bit 15 (Interact: B searches the B-triggers, `$8FCE43`) and
 // bit 14 (Step-on: the step-on table is only searched over these cells,

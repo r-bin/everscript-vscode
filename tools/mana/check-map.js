@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Check a Secret of Mana map picture against the running game (docs/mana/verifying.md).
 //   node tools/mana/check-map.js <map id, decimal> [outdir]   (the Mana ROM of the ROM library)
 // Plays the opening headless on the extension's emulator core up to the fall from

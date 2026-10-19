@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the canvas column's two docked bars — the view-filter bar under
 // the canvas card, and the status bar under that.
 //

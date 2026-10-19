@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: animated tiles taken together — a *set* (several cells drawn as
 // one, a 2×2 fan: one animated tile per cell, sharing their timing), the
 // frames a set holds one graphic over (runs), what the Animation tab lists

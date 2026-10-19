@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 
 // Recomp build: CDL library + asset knowledge + curated names -> Asar project (byte-identical,

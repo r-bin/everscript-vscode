@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: the map editor's draft messages that build a ROM — the draft handed over as JSON, its
 // collision, Export ROM and Play ROM. editor-host.js dispatches; `ctx` is described there.

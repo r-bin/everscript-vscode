@@ -27,8 +27,8 @@ Usage (record → export → `build.sh` → `recomp.sh`): `docs/reverse-engineer
 | `functions.ts` | `functions.json`: per-function widths, DB/D, WRAM / I/O footprint, SA-1 blockers |
 | `wram-export.ts` | `ram.asm`: every WRAM address, accessors, values seen, enum / bit-flag guesses |
 | `lookup.ts` | "who calls / who touches" answers for the CDL tab |
-| `host.js` | Panel glue (the only file that needs `vscode`): seed, snapshot, merge deltas, flush policy; export and lookup when given `tools.js`; remembers whether recording was on |
-| `tools.js` | Exports, lookup and script naming for the CDL tab, handed to the panel by Everscript (`configureEmulator({ cdlTools })`); not in the SNES CDL Recorder |
+| `host.js` | Panel glue (the only file that needs `vscode`): seed, snapshot, merge deltas, flush policy; export and lookup when given `tools.ts`; remembers whether recording was on |
+| `tools.ts` | Exports, lookup and script naming for the CDL tab, handed to the panel by Everscript (`configureEmulator({ cdlTools })`); not in the SNES CDL Recorder |
 | `bundle.ts` | Recording bundles: zip one library + its replays (`buildBundle`), merge one in (`importBundle`); summed streams add only the growth since that install's last bundle |
 
 The webview half is `../cdl-view.js` (tab, tick / drain), `../cdl-strips.js` (ROM + WRAM strips) and `../cdl-float.js` (floating coverage gains over the active character).

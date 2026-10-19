@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Unit tests for the map decoder/renderer modules in isolation.
 //

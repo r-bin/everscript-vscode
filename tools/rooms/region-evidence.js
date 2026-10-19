@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The region of a room, from the game: the Dog's form is the act's, and a room's enter script
 // requests it ($2443: Wolf, Greyhound, Poodle, Toaster, the plain dog at home). Rooms that request

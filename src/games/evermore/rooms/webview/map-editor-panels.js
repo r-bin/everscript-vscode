@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the editor's information panels — what the draft still needs
 // and anything that would stop it encoding — plus which tab's content is
 // assembled into the docked panel column.

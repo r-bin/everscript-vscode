@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: one-time initialization of the radar panel's top-level tab strip.
 //
 // The Rooms tab's left rail — group collapse, area collapse, search, room

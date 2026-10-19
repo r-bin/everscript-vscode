@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Replay an Everscript movie (.evsmv) headless on the extension's snes9x core, optionally with the CDL recorder on.
 //   node tools/cdl/replay.js <movie.evsmv> <rom> [--cdl <library root>] [--drain <frames>] [--until <frame>]
 //                            [--collect <every>] [--quiet] [--states <dir>] [--state-spacing <n>] [--state-every <n>]

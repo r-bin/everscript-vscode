@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: pointer and key gestures on the map itself — a stroke, a
 // drag, undo/redo. The chrome's clicks are map-editor-input.js; the draft
 // is map-editor.js; the map layer is map-editor-paint.js.

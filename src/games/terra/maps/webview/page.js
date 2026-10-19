@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
         const vscode = acquireVsCodeApi();
         const DATA = /*@@init*/0;
 

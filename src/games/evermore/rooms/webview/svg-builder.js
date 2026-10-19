@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: build the SVG map grid + entity elements for a room detail panel.
 // Pure function: receives entity arrays and config, returns an HTML string.
 // Uses utils.js globals: escH, tsvg, trigItemName, itemEmoji, itemSvgImg (ITEM_ICONS).

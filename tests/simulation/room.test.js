@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Rooms, simulated: Fire Eyes' Village checked against what is known about it
 // (the sibling everscript repo's hand-written room analysis lists the same

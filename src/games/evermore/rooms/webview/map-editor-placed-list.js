@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Widgets tab's Placed list — one row per widget stamped on
 // the map (a group, map-editor-groups.js), drawn like the Object tab's rows
 // (map-editor-object-list.js): grip, where in the room, how it looks,

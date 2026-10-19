@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the user's own widgets — the library every map shares (on the
 // host: `<globalStorage>/widgets.json`, rooms/data/widget-store.ts) and the
 // Widgets tab that lists them first.

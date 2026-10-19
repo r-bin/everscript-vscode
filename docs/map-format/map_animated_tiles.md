@@ -229,7 +229,7 @@ frames and delays), and the catalogue carries a `frames` count.
 ## On the editor's map canvas
 
 A stamp is drawn from an atlas the host renders, which shows only what the
-slot holds now: frame 0. `rooms/rendering/stamp-animation.js` renders the rest.
+slot holds now: frame 0. `rooms/rendering/stamp-animation.ts` renders the rest.
 For every stamp whose tilemap word names an animated graphic, it renders the
 stamp once more per later frame, with that slot holding the frame the channel
 would put there at that step. Both the room's palette and the draft's composed
@@ -248,7 +248,7 @@ its transparent pixels.
 The editor now keeps animation the way the format does: per slot. A slot
 animates exactly while an animation group lists it
 (`src/games/evermore/rooms/webview/map-editor-animations.js`), and the canvas
-(`stamp-animation.js`, told the channels by the composed-preview request)
+(`stamp-animation.ts`, told the channels by the composed-preview request)
 and the export (`channels` in the draft) both read those groups. A ROM
 room's own channels are its groups, grouped by touching cells of one timing.
 A frame picked on its own in the Tile tab's `frames` view is still. See

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
     // -- strips -------------------------------------------------------------------
     // Every bank row is a .menu-pick: in the pause menu Up / Down selects it, B does nothing.

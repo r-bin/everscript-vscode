@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The radar's host-side message handlers outside extension.js: the map editor
 // (rooms/editor-host.js) and the Characters tab (sprites/radar-host.ts). Unit checks always;

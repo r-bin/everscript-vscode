@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: levels — the elevation plane (collision bits 5..4, 0..3) new
 // tiles are drawn on, and the vertical bar at the left of the canvas that
 // picks it.

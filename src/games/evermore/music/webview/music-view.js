@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: pure helpers of the Music tab: reading the 224-byte sound-chip
 // view (the emulator core's getApuView and the engine's se_view share it),
 // BRR samples, the instrument list and who owns each ARAM byte. No DOM.

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
     function soeReadBus(m, addr, len) {
       if (typeof m.readMemoryRange === 'function') {

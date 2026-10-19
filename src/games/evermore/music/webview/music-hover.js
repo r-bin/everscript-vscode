@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the timeline's hover: what is under the pointer (a note or an
 // effect's box, in history or the read-ahead), its highlight, the tooltip, and
 // pointing the emulator at the entity that sent the effect. Works paused too:

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Custom maps on disk and their export archive:
 // src/games/evermore/rooms/data/custom-store.ts, src/games/evermore/rooms/custom-host.js,
@@ -243,7 +244,7 @@ if (!rom) {
     });
 
     test('a widget gets a thumbnail drawn from its portable cells', () => {
-        const { buildWidgetPreviews } = require('../../src/games/evermore/rooms/rendering/deco-preview');
+        const { buildWidgetPreviews } = require('../../dist/games/evermore/rooms/rendering/deco-preview');
         const p = buildWidgetPreviews(rom, [WIDGET, { id: 'w-empty', w: 1, h: 1, cells: [] }]);
         assert.deepStrictEqual(p.ids, ['w-abc', 'w-empty']);
         assert.ok(/^data:image\/png;base64,/.test(p.imageUri));

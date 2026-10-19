@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // soe://tags/: the tag graph (tag-model.ts), the hand-authored tags.json and
 // the provider's tags/ authority (against a stubbed vscode). Link checks that

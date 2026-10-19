@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
   document.querySelectorAll('.sp-scale-btn').forEach(function(b) {
     b.addEventListener('click', function() {

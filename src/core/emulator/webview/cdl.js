@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
     // -- CDL tab ----------------------------------------------------------------
     const CDL_TICK_MS = 1000;

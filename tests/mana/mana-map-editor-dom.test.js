@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The Secret of Mana map editor (editor-*.js on the shared shell and core) in headless Chromium: the real page, a
 // synthetic map with a hand-made metatile sheet, a stub host. Drives the pill, the dock tabs and the map with real

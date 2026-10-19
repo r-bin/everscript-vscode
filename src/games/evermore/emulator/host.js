@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: the Evermore half of the emulator panel's host side — what the panel asks the game for:
 // the room under the running game as pictures (map view), standing sprites of entities not yet

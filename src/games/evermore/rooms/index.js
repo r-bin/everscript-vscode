@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Rooms subsystem root — re-exports all public APIs from sub-modules.
 // Import this when you need multiple rooms functions.
@@ -12,11 +13,11 @@ const { buildRoomTileOverlay, invalidateRoomRenders }               = require('.
 const { buildRoomMetatilePalette, buildComposedPreview,
         invalidateMetatilePalettes }                               = require('./rendering/metatile-palette');
 const { buildBlankRoom, buildDraftCollision, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews,
-        invalidateRoomDrafts }                                     = require('./rendering/room-draft');
+        invalidateRoomDrafts }                                     = require('../../../../dist/games/evermore/rooms/rendering/room-draft');
 const { decoIndex, decoCells,
         invalidateDecoCatalogue }                                  = require('../../../../dist/games/evermore/rooms/rendering/deco-catalogue');
-const { buildDecoPreviews, buildWidgetPreviews, buildConstructGhost } = require('./rendering/deco-preview');
-const { buildExportRom }                                            = require('./rendering/rom-export');
+const { buildDecoPreviews, buildWidgetPreviews, buildConstructGhost } = require('../../../../dist/games/evermore/rooms/rendering/deco-preview');
+const { buildExportRom }                                            = require('../../../../dist/games/evermore/rooms/rendering/rom-export');
 const { buildCustomMapArchive }                                     = require('./rendering/custom-export');
 const { handlesCustomMapMessage, handleCustomMapMessage }           = require('./custom-host');
 const { relatedTiles, neighbourTiles, vanillaExamples, proceduralFill } = require('../../../../dist/games/evermore/rooms/rendering/vanilla-index');

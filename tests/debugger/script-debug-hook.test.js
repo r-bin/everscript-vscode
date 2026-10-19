@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 
 // The VS Code script debugger's interpreter hook, end to end: the webview code

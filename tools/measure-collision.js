@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // How well does a tile predict its collision? The measurement behind the
 // editor's suggested collision (maps/vanilla-suggest.ts suggestGeometry).

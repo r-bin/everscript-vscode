@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: one song of the music package — its transfer records read from the ROM, the assembled
 // SPC file (driver + records into ARAM), and its info page. Pure. audio-files.js serves the paths.

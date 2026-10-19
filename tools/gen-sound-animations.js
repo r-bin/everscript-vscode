@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Writes src/games/evermore/localizations/data/sound-animations.json: which animations play
 // which sound. Run after a change to the animation catalogue:

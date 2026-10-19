@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the undo/redo history of one edited map, whatever the game. Steps are lists of
 // changes; what a change means is the adapter's `apply(change, 'before' | 'after')`.
 // Plain browser script: defines globals (and `module.exports` under Node, for the unit test).

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the left rail's own behaviour — open and close a group, collapse an area, the search
 // filter over the rows, and binding the clicks. Game-neutral: the Evermore Rooms tab and the Secret of
 // Mana editor both bind their rail through shellRailBind and say what selecting a row does. The rail's

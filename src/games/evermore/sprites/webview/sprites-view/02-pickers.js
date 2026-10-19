@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
   /**
    * The second character, when the Target box is on: enemies are shown against the Boy

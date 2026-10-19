@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 (function(){
 var vs=typeof acquireVsCodeApi==='function'?acquireVsCodeApi():null;
 __JS_DATA__

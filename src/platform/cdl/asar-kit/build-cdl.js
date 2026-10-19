@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // build-cdl.js <out.sym> <out.sfc> <out.cdl>
 // Every label in export.json owns the bytes up to the next label. Its flags in

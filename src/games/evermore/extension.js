@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 
 const vscode = require('vscode');
@@ -123,7 +124,7 @@ function activate(context) {
 
     // ── Debugger: .evs scripts in the emulator (src/games/evermore/debugger/README.md) ────
     const emulatorPanel = require('../../core/emulator/panel');
-    require('./debugger/inline-adapter').registerDebugger(context, {
+    require('../../../dist/games/evermore/debugger/inline-adapter').registerDebugger(context, {
         bridge: emulatorPanel.getScriptDebugBridge(),
         runRom: romPath => emulatorPanel.runRomFile(context, romPath),
     }, () => getExtConfig().repoPath || '', name => {
@@ -191,7 +192,7 @@ function activate(context) {
     // ── Emulator Panel ───────────────────────────────────────────────────────
     const { openEmulatorPanel } = require('../../core/emulator/panel');
     // The full profile: every tab, and the CDL tab's exports and lookups.
-    require('../../core/emulator/panel').configureEmulator({ profile: 'full', cdlTools: require('./cdl/tools'), game: require('./emulator/host') });
+    require('../../core/emulator/panel').configureEmulator({ profile: 'full', cdlTools: require('../../../dist/games/evermore/cdl/tools'), game: require('./emulator/host') });
     // The emulator's sound chip, frame by frame, to the radar's Music tab.
     require('../../core/emulator/panel').apuStream.setListener(f => {
         if (radar.panel) radar.panel.webview.postMessage({ command: 'musicFrame', view: f.view, pkg: f.pkg, starts: f.starts, drv: f.drv, src: f.src, frame: f.frame, paused: !!f.paused });

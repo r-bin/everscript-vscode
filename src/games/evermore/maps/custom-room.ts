@@ -225,7 +225,7 @@ export function buildCustomRoomBlob(rom: Uint8Array, input: CustomRoomInput): Cu
 }
 
 /** The words every cell shows when the room loads: the cuttable layer where there is one. */
-export function draftTopCells(input: CustomRoomInput): number[] {
+export function draftTopCells(input: Pick<CustomRoomInput, 'widthTiles' | 'cells' | 'cut'>): number[] {
     const w = input.widthTiles | 0;
     const top = input.cells.slice();
     for (const c of input.cut || []) {

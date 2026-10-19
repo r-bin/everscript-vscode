@@ -393,4 +393,5 @@ function decoCells(rom: Rom, id: unknown) {
 
 function invalidateDecoCatalogue() { CATALOGUE = null; CATALOGUE_KEY = -1; ART.clear(); }
 
+export type { Part, Cell, DecoEntry };
 export { buildDecoCatalogue, decoIndex, decoCells, invalidateDecoCatalogue };

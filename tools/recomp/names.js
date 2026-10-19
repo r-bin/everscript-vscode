@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 
 // Curated names for the recomp build: the knowledge entries and the WRAM symbols, turned into identifiers that are valid in Asar, C (snesrecomp) and Mesen2 labels.

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: rooms converted from another game (the host's src/games/evermore/imports/mana) —
 // opening one from the rail, and the family labels they bring.
 //

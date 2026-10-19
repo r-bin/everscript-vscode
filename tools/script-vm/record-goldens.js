@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Record what the game's script interpreter does, as goldens for the script VM decoder
 // (src/games/evermore/script-vm, tests/script-vm/goldens.test.js).

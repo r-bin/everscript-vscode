@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: custom maps on the host — loading the list, saving the map on
 // screen (its data and its whole history) a moment after every edit,
 // reopening the map that was open when the panel was rebuilt, exporting a

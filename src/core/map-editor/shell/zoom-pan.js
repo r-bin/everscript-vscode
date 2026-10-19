@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the map's zoom and pan — the scale, the pan offset (its single
 // owner, read back through `_getPan`), the zoom chip, the trackpad pinch and
 // two-finger panning. Game-neutral: the Evermore Rooms tab and the Secret of Mana editor both

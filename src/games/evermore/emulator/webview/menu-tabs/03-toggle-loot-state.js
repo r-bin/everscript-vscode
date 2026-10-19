@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
     function toggleLootState(lootIdx) {
       if (!cachedLootables || !cachedLootables[lootIdx]) return;

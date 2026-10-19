@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Sprites tab's resizable splitters and its lazy list thumbnails — rows ask
 // the extension for their preview only once they scroll into view. Exposes
 // window.SpritesThumbs; splitters wire themselves.

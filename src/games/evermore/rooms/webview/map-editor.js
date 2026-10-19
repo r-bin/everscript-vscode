@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the map editor's **state** — what has been drawn, what has
 // been composed, and the undo stack. No DOM, no markup: map-editor-ui.js
 // draws it and map-editor-paint.js drives it.

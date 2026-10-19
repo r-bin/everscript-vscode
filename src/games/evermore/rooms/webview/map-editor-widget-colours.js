@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: a widget's stored shape and its colourings. Stored: `cells`,
 // each part with the channel it moves on (`anim`) or none. Colourings
 // (`variations`) are derived from the art, never stored or painted: one per family vanilla draws any of its

@@ -65,7 +65,7 @@ The **Info tab (Header sub-tab)** exposes editable PPU registers:
 
 ---
 
-## 8. Playable ROM Export (`src/games/evermore/rooms/rendering/rom-export.js`)
+## 8. Playable ROM Export (`src/games/evermore/rooms/rendering/rom-export.ts`)
 
 - Extends vanilla 3MB ROM to 4MB (`0x300000..0x3FFFFF`).
 - Repoints developer room `0x15` (Brian's Test Ground) pointer table to custom map payload.

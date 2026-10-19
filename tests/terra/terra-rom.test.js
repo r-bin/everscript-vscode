@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Terranigma library tests against synthetic buffers and the real ROM (if present).
 // Run: node tests/terra/terra-rom.test.js

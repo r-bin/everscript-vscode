@@ -1,7 +1,5 @@
-'use strict';
-
 /**
- * debugger/inline-adapter.js
+ * debugger/inline-adapter.ts
  *
  * Registers the 'everscript' debug type. The DAP session (emulator-session.ts)
  * runs inside the extension host so it can reach the emulator panel; this
@@ -20,22 +18,25 @@
  * if / else if / while condition evaluates to right now.
  */
 
-const vscode = require('vscode');
-const { EmulatorDebugSession } = require('../../../../dist/games/evermore/debugger/emulator-session');
-const { findSourceMap } = require('../../../../dist/games/evermore/debugger/source-map');
-const { NAME_PATTERN, MEMORY_PATTERN } = require('../../../../dist/games/evermore/debugger/memory-access');
-const { conditionOf } = require('../../../../dist/games/evermore/debugger/conditions');
+import * as vscode from 'vscode';
+import { EmulatorDebugSession } from './emulator-session';
+import type { Deps, Config, DapRequest, Message } from './emulator-session';
+import { findSourceMap } from './source-map';
+import { NAME_PATTERN, MEMORY_PATTERN } from './memory-access';
+import { conditionOf } from './conditions';
 
-class InlineAdapter {
-    constructor(deps) {
-        this.emitter = new vscode.EventEmitter();
-        this.onDidSendMessage = this.emitter.event;
+class InlineAdapter implements vscode.DebugAdapter {
+    emitter = new vscode.EventEmitter<Message>();
+    onDidSendMessage = this.emitter.event;
+    session: EmulatorDebugSession;
+
+    constructor(deps: Deps) {
         this.session = new EmulatorDebugSession(deps);
-        this.session.send = message => this.emitter.fire(message);
+        this.session.send = (message: Message) => this.emitter.fire(message);
     }
 
-    handleMessage(message) {
-        this.session.handleMessage(message);
+    handleMessage(message: vscode.DebugProtocolMessage) {
+        this.session.handleMessage(message as DapRequest);
     }
 
     dispose() {
@@ -57,12 +58,12 @@ const HOVER_PATTERNS = [
 ];
 
 /** The memory expression under the cursor (debug hover). */
-function expressionAt(document, position) {
+function expressionAt(document: vscode.TextDocument, position: vscode.Position) {
     const text = document.lineAt(position.line).text;
     for (const pattern of HOVER_PATTERNS) {
         for (const m of text.matchAll(new RegExp(pattern.source, 'g'))) {
-            if (position.character < m.index || position.character > m.index + m[0].length) continue;
-            const range = new vscode.Range(position.line, m.index, position.line, m.index + m[0].length);
+            if (position.character < m.index! || position.character > m.index! + m[0].length) continue;
+            const range = new vscode.Range(position.line, m.index!, position.line, m.index! + m[0].length);
             return new vscode.EvaluatableExpression(range, m[0]);
         }
     }
@@ -70,7 +71,7 @@ function expressionAt(document, position) {
 }
 
 /** Lines [start, end] of the fun / map block around a line (brace matched). */
-function functionRange(document, line) {
+function functionRange(document: vscode.TextDocument, line: number) {
     let start = line;
     while (start > 0 && line - start < 600 && !/^\s*(?:fun|map)\b/.test(document.lineAt(start).text)) start--;
     let depth = 0;
@@ -93,10 +94,10 @@ function functionRange(document, line) {
  * before execution gets there). In an if / else-if chain, the branches after
  * the taken one say so instead.
  */
-async function inlineValues(document, context, session, isMemory) {
+async function inlineValues(document: vscode.TextDocument, context: vscode.InlineValueContext, session: EmulatorDebugSession | null, isMemory: (name: string) => boolean) {
     const { start, end } = functionRange(document, context.stoppedLocation.end.line);
-    const values = [];
-    const takenAtIndent = new Map(); // indentation of an if chain -> a branch already taken
+    const values: vscode.InlineValue[] = [];
+    const takenAtIndent = new Map<number, boolean>(); // indentation of an if chain -> a branch already taken
     for (let line = start; line <= end; line++) {
         const text = document.lineAt(line).text;
         const comment = text.indexOf('//');
@@ -106,7 +107,7 @@ async function inlineValues(document, context, session, isMemory) {
             for (const m of code.matchAll(new RegExp(pattern.source, 'g'))) {
                 if (seen.has(m[0]) || (pattern === NAME_PATTERN && !isMemory(m[0]))) continue;
                 seen.add(m[0]);
-                const range = new vscode.Range(line, m.index, line, m.index + m[0].length);
+                const range = new vscode.Range(line, m.index!, line, m.index! + m[0].length);
                 values.push(new vscode.InlineValueEvaluatableExpression(range, m[0]));
             }
         }
@@ -115,7 +116,7 @@ async function inlineValues(document, context, session, isMemory) {
         const indent = code.search(/\S/);
         const chained = condition.kind === 'else if';
         if (!chained) takenAtIndent.delete(indent);
-        let hint;
+        let hint: string;
         if (chained && takenAtIndent.get(indent)) {
             hint = '⇒ skipped (an earlier branch runs)';
         } else {
@@ -130,30 +131,34 @@ async function inlineValues(document, context, session, isMemory) {
     return values;
 }
 
+/** What the emulator panel hands the debugger. */
+interface Emulator { bridge: Deps['bridge']; runRom(romPath: string): void }
+
 /**
  * @param context
  * @param emulator { bridge, runRom(romPath) }   from emulator/panel.js
  * @param repoPath () => string                  everscript.repoPath
  * @param lookupSymbol (name) -> "(Byte) <0x0ADA>" | null   fallback memory names
  */
-function registerDebugger(context, emulator, repoPath, lookupSymbol) {
-    const sessions = new Set();
+function registerDebugger(context: vscode.ExtensionContext, emulator: Emulator, repoPath: () => string, lookupSymbol?: (name: string) => string | null | undefined) {
+    const sessions = new Set<EmulatorDebugSession>();
     // A name is memory when the running session's source map (or the language index) says so.
-    const isMemory = name => [...sessions].some(session => session.memory.locate(name))
+    const isMemory = (name: string) => [...sessions].some(session => session.memory.locate(name))
         || (!!lookupSymbol && /</.test(lookupSymbol(name) || ''));
-    const deps = {
+    const deps: Deps = {
         bridge: emulator.bridge,
         lookupSymbol,
-        async build(config) {
+        async build(config: Config) {
             const result = await vscode.commands.executeCommand('everscript.buildAndRun', { inputPath: config.program, run: false });
-            config.rom = result && result.outputRom;
-            return !!(result && result.ok);
+            const built = result as { ok?: boolean; outputRom?: string } | undefined;
+            config.rom = built && built.outputRom;
+            return !!(built && built.ok);
         },
-        async run(config) {
-            if (config.rom) emulator.runRom(config.rom);
+        async run(config: Config) {
+            if (config.rom) emulator.runRom(config.rom as string);
         },
-        findMap(config) {
-            return findSourceMap({ sourceMap: config.sourceMap, repoPath: repoPath(), program: config.program });
+        findMap(config: Config) {
+            return findSourceMap({ sourceMap: config.sourceMap as string | undefined, repoPath: repoPath(), program: config.program });
         },
     };
 
@@ -181,7 +186,7 @@ function registerDebugger(context, emulator, repoPath, lookupSymbol) {
                     { type: 'everscript', request: 'attach', name: 'Attach to emulator', program: '${file}' },
                 ];
             },
-            resolveDebugConfiguration(folder, config) {
+            resolveDebugConfiguration(_folder: unknown, config: vscode.DebugConfiguration) {
                 // F5 without launch.json: build and debug the active .evs file
                 if (!config.type && !config.request && !config.name) {
                     const program = activeEvsFile();
@@ -204,4 +209,4 @@ function registerDebugger(context, emulator, repoPath, lookupSymbol) {
     );
 }
 
-module.exports = { registerDebugger };
+export { registerDebugger };

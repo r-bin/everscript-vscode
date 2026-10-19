@@ -1,8 +1,9 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: "Export ROM" and "Play in emulator" — handing a custom map to
 // the host as a fully resolved grid, and reporting what came back. Play is
 // the same ROM, loaded into the embedded emulator instead of saved.
 //
-// The host (rooms/rendering/rom-export.js) builds the blob, puts it in
+// The host (rooms/rendering/rom-export.ts) builds the blob, puts it in
 // Brian's Test Ground's slot, points the intro at it and re-decodes the
 // result; this file only says what the map *is*. So it sends words, not
 // dictionary indices: every cell's Layer 1, Layer 2 and collision word,

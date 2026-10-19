@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Music tab's state (_music) and its drawing. The sound chip it
 // shows is either the emulator's (frames from the host, ARAM from snapshots) or
 // the tab's own engine playing a chosen track (music-engine.js).

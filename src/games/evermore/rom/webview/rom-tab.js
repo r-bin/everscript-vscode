@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the ROM tab in the webview — bank strips, the selected half's
 // table, search, the CDL layer, and row details with CDL readers.
 // State owned: _rom (model, layer, mode, selected half, open row, search, readers,

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
     // -- input -------------------------------------------------------------------------
     // Sets the joypad for the frame about to run and records it.

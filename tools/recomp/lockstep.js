@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 
 // Lockstep check: run the ROM in our snes9x core and in a snesrecomp build without input, align

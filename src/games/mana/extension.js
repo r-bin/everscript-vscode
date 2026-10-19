@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: Secret of Mana inside VS Code — the read-only som:// file system and the Maps panel as
 // the game's main view (core/game-views.ts). Called from src/extension.js.

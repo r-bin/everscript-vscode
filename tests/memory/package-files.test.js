@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The package leaves out the JS the host bundle holds (tools/bundle.mts -> bundle/drop.json). This
 // test builds every page and loads every table the way the extension does, records each package file

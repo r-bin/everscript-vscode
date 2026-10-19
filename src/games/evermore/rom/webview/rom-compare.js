@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the ROM tab's Compare view — file halves beside the bus map. The
 // selected file half (_rom.sel) is outlined everywhere it appears on the bus;
 // clicking the map selects the file half under it. Tables: that half's bus

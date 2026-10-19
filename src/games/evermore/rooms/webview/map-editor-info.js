@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Info tab, as three sub-tabs (map-editor-tabs.js `_editInfoSub`):
 //   Header  the room header's 13 bytes, in words; the fields the map does
 //           not decide are editable (`_edit.header`, one undo step each).

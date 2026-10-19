@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
     function readScriptStackRegion() {
       const m = getModule();

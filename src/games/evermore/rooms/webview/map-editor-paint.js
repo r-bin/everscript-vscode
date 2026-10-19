@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: drawing the draft onto the map, and the mouse gestures that
 // produce it. State lives in map-editor.js; markup lives in
 // map-editor-ui.js.

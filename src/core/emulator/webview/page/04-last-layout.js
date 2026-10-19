@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
     // Where the screen sits (set by the game's renderer each frame; read by the CDL float and the clicks).
     let lastLayout = null;

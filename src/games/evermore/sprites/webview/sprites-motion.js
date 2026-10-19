@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: where things are on the Sprites stage at a given tick — the entity's walk
 // path and jump height, the projectiles it throws and their hit boxes, the target
 // character and its hurt region, and the box the canvas must hold to show all of it.

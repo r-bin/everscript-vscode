@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The script model on the user's ROM: room listings, loot read per path, doors, arrivals.
 // The expectations are game facts (knowledge ram/7e2391, ram/7e2461), not another tool's output.

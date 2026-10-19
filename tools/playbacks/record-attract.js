@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Record the vanilla attract loop as a playback: power-on, no input, through the intro and the demo scenes, cut off
 // when the intro starts again. The loop is found from the screen: the first frame after the demos whose next
 // MATCH frames show exactly the intro's first non-black frames again.

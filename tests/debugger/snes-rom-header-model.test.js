@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The cartridge header reader (src/platform/roms/header.ts): where the header is and what it says.
 

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Parity harness: the TypeScript map decoder in src/games/evermore/maps/ vs. the verified
 // Python implementation in the sibling everscript repo.
 //
@@ -1115,7 +1116,7 @@ function checkBudget(rom) {
  */
 function checkDecoLibrary(rom) {
     const { buildDecoCatalogue, decoIndex } = require('../../dist/games/evermore/rooms/rendering/deco-catalogue');
-    const { entryRoom } = require('../../src/games/evermore/rooms/rendering/deco-preview');
+    const { entryRoom } = require('../../dist/games/evermore/rooms/rendering/deco-preview');
     const cat = buildDecoCatalogue(rom);
 
     check('the library has 532 distinct objects', cat.length, 532);

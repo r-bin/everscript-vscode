@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The editor core (src/core/map-editor/core/) and the Mana editor model
 // (src/games/mana/maps/webview/editor-model.js): plain data, no DOM, no ROM. Run: node tests/mana/mana-editor-core.test.js

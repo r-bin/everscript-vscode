@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Run a recomp headless input script (docs/recomp/debugging.md §5.1) on the extension's snes9x core, so the
 // same inputs can be compared between the recomp and a reference emulator.
 //   node tools/recomp/s9x-run.js <rom> <sram file | -> <script> <outdir>

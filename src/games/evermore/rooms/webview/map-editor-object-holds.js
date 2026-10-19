@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: an object's timing — how long it holds each state while a script
 // steps it through them — and playing that on the map.
 //

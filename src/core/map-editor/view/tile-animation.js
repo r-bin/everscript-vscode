@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: playing tile animations over an SVG map — shared by the Evermore Rooms
 // tab (src/games/evermore/rooms/webview/animation.js) and the Secret of Mana Maps panel.
 // Plain browser script: defines globals, loaded as a file or concatenated.

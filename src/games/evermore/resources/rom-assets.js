@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: `soe://rom/assets/` — decoded ROM content, one directory per
 // kind. Ids are hex. Icons live once, in `icons/<id>.png`; items are named by

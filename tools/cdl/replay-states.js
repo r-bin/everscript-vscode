@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Save states taken while a movie replays headless (tools/cdl/replay.js --states), and loading one to resume.
 //
 // A state is the core's whole saveState() buffer (about 530 KB, mostly zeros, so ~100 KB gzipped). It holds ROM-derived

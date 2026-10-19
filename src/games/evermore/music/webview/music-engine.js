@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Music tab's own sound chip (engine/spc-engine.js, blargg's
 // SPC700 + S-DSP) and the 65816's side of the port protocol, as bank $8C
 // speaks it (everscript docs/audio_music_sound_formats.md §3):

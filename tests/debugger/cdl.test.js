@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 
 /**
@@ -18,7 +19,7 @@ const ROOT = path.resolve(__dirname, '../..');
 const { OPCODES, instructionLength, flowKind, FLOW } = require('../../dist/platform/snes/opcodes-65816');
 const { CdlLibrary, romHash } = require('../../dist/platform/cdl/library');
 const { decodeAt, formatInstruction } = require('../../dist/platform/cdl/disasm');
-const { exportAsar } = require('../../src/games/evermore/cdl/tools');
+const { exportAsar } = require('../../dist/games/evermore/cdl/tools');
 const { exportWram } = require('../../dist/platform/cdl/wram-export');
 const { parseQuery, lookup } = require('../../dist/platform/cdl/lookup');
 const { createRomMap } = require('../../dist/platform/cdl/rom-map');
@@ -315,7 +316,7 @@ test('host decodes webview deltas (base64 words) into the library', () => {
         const posted = [];
         let wanted = false;
         const host = new CdlHost(path.join(tmp, 'host'), m => posted.push(m), () => {},
-            { tools: require('../../src/games/evermore/cdl/tools'), wanted: { get: () => wanted, set: on => { wanted = on; } } });
+            { tools: require('../../dist/games/evermore/cdl/tools'), wanted: { get: () => wanted, set: on => { wanted = on; } } });
         host.romStarted(makeRom());
         assert.strictEqual(posted[0].command, 'cdlConfig');
         assert.strictEqual(posted[0].autoEnable, false, 'recording is off by default');

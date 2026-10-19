@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: SVG chart rendering for the Scaling tab (renderTrendChart, attachSvgEvents).
 // Function declarations hoisted to inner IIFE scope.
   var _CW=400,_CH=200,_ml=40,_mt=12,_mr=8,_mb=28;

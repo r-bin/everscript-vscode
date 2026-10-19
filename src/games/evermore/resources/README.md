@@ -61,7 +61,7 @@ binds the same key and wins on extension load order; a user keybinding
 | `asm-view.ts` | `<offset>.asm` / `soe://bus/<addr>.asm`: a 65816 listing (16-bit A/X assumed until REP/SEP), and the excerpt around a call |
 | `sound-source.js` | Who sent a sound effect (the emulator hook's event) as names, pictures and links, for the Music tab |
 | `page-links.ts` | link targets of generated pages: into a mount, relative to the page |
-| `ram-files.js` | `soe://ram/`: `status.json`, `wram.bin`, slices, `<addr>.json`, flags, symbols |
+| `ram-files.ts` | `soe://ram/`: `status.json`, `wram.bin`, slices, `<addr>.json`, flags, symbols |
 | `tag-model.ts` | `soe://tags/` graph: merges generated + `tags/tags.json`, inheritance, aliases, conflicts, validation |
 | `tag-generate.ts` | generated tags (rooms, areas, enemies, music, sounds, flags, RAM names, tables, items) from shipped data |
 | `tag-files.ts` | `soe://tags/`: routing, directory listings, live values, search, `check.json` |

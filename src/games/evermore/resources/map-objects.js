@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: `soe://rom/assets/maps/<id>/objects/` and `.../widgets/`.
 // Section 3 map objects (composition, states, rendered PNG and animated GIF)
@@ -5,7 +6,7 @@
 
 const maps = require('../../../../dist/games/evermore/maps');
 const { buildDecoCatalogue } = require('../../../../dist/games/evermore/rooms/rendering/deco-catalogue');
-const { entryRoom } = require('../rooms/rendering/deco-preview');
+const { entryRoom } = require('../../../../dist/games/evermore/rooms/rendering/deco-preview');
 const { encodeGif } = require('../../../../dist/games/evermore/resources/gif');
 const { dir, file, json, text } = require('../../../../dist/games/evermore/resources/nodes');
 const { hexId } = require('../../../../dist/games/evermore/resources/resource-uri');

@@ -1,4 +1,3 @@
-'use strict';
 // Ownership: what a deco entry looks like, with nothing behind it.
 //
 // The first version cropped the thumbnail out of a render of the room the
@@ -15,8 +14,21 @@
 //
 // See docs/map-format/building-a-room-from-a-picture.md §9.
 
-const maps = require('../../../../../dist/games/evermore/maps');
-const { buildDecoCatalogue } = require('../../../../../dist/games/evermore/rooms/rendering/deco-catalogue');
+import * as maps from '../../maps';
+import { buildDecoCatalogue } from './deco-catalogue';
+import type { Part } from './deco-catalogue';
+import type { RoomData } from '../../maps';
+import type { PixelBuffer } from '../../maps/render';
+
+type Rom = Uint8Array;
+/** A cell as the picker and the widgets carry it: layers are portable parts or nothing. */
+interface PortableCell { dx: number; dy: number; canopy: Part | null; terrain: Part | null }
+/** What entryRoom packs: a deco entry, or the same shape built from widget cells. */
+interface PackEntry { w: number; h: number; cells: PortableCell[]; graphics: number[]; families: number[] }
+interface PreviewItem { entry: PackEntry; room: number }
+/** A widget or construct as the webview sends it: cells may hold raw words no room could explain. */
+interface WidgetCell { dx: number; dy: number; canopy?: Partial<Part> | null; terrain?: Partial<Part> | null }
+interface Widget { id: unknown; w: number; h: number; cells?: WidgetCell[] }
 
 /** Thumbnails per row in the preview sheet. */
 const PREVIEW_COLUMNS = 6;
@@ -33,7 +45,7 @@ const MAX_PREVIEWS = 48;
  */
 const EMPTY_GRAPHIC = 489;
 
-function emptyGraphicFor(rom, room) {
+function emptyGraphicFor(rom: Rom, room: RoomData) {
     for (const id of room.tilePalette) {
         try {
             if (!maps.decodeTilePixels(maps.decompressTile16x16(rom, id)).some((p) => p !== 0)) return id;
@@ -51,20 +63,20 @@ function emptyGraphicFor(rom, room) {
  * same rebuild the editor does when stamping — if the two ever disagree the
  * preview is lying.
  */
-function entryRoom(rom, entry, base) {
+function entryRoom(rom: Rom, entry: PackEntry, base: RoomData) {
     const blank = emptyGraphicFor(rom, base);
     const graphics = [blank].concat(entry.graphics);
-    const slotOfGraphic = new Map(entry.graphics.map((g, i) => [g, i + 1]));
-    const palOfFamily = new Map(entry.families.map((f, i) => [f, i + 1]));
+    const slotOfGraphic = new Map(entry.graphics.map((g, i): [number, number] => [g, i + 1]));
+    const palOfFamily = new Map(entry.families.map((f, i): [number, number] => [f, i + 1]));
     const blankWord = maps.tileSlotChr(0) | (1 << 10);
 
-    const word = (part) => (part
-        ? (maps.tileSlotChr(slotOfGraphic.get(part.graphic))
-            | (palOfFamily.get(part.family) << 10) | part.flags) & 0xffff
+    const word = (part: Part | null) => (part
+        ? (maps.tileSlotChr(slotOfGraphic.get(part.graphic)!)
+            | (palOfFamily.get(part.family)! << 10) | part.flags) & 0xffff
         : blankWord);
 
-    const l1 = [];
-    const l2 = [];
+    const l1: number[][] = [];
+    const l2: number[][] = [];
     for (let y = 0; y < entry.h; y += 1) {
         l1.push(new Array(entry.w).fill(blankWord));
         l2.push(new Array(entry.w).fill(blankWord));
@@ -86,14 +98,14 @@ function entryRoom(rom, entry, base) {
 }
 
 /** The largest power of two that fits `w x h` pixels inside one cell. */
-function shrinkFactor(w, h) {
+function shrinkFactor(w: number, h: number) {
     let n = 1;
     while (w / n > PREVIEW_CELL || h / n > PREVIEW_CELL) n *= 2;
     return n;
 }
 
 /** Copy `src` into `sheet` at (ox, oy), taking every `n`th pixel. */
-function blitScaled(sheet, src, ox, oy, n) {
+function blitScaled(sheet: PixelBuffer, src: PixelBuffer, ox: number, oy: number, n: number) {
     const w = Math.floor(src.width / n);
     const h = Math.floor(src.height / n);
     for (let y = 0; y < h; y += 1) {
@@ -115,7 +127,7 @@ function blitScaled(sheet, src, ox, oy, n) {
  * shows through and "what is this object" and "what will it cover" are the
  * same question.
  */
-function buildDecoPreviews(rom, ids) {
+function buildDecoPreviews(rom: Rom | ArrayBuffer, ids: unknown[]) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const catalogue = buildDecoCatalogue(buf);
     const want = (ids || []).map(Number).filter((n) => !isNaN(n)).slice(0, MAX_PREVIEWS);
@@ -126,9 +138,9 @@ function buildDecoPreviews(rom, ids) {
 }
 
 /** Graphic and family lists of portable cells, as entryRoom wants them. */
-function portableLists(cells) {
-    const graphics = [];
-    const families = [];
+function portableLists(cells: PortableCell[]) {
+    const graphics: number[] = [];
+    const families: number[] = [];
     for (const c of cells || []) {
         for (const part of [c.canopy, c.terrain]) {
             if (!part || part.graphic === undefined) continue;
@@ -145,14 +157,14 @@ function portableLists(cells) {
  * same packing, against the default donor's display registers. A cell kept
  * as a raw word (`{word}`, one no room could explain) is drawn blank.
  */
-function buildWidgetPreviews(rom, widgets) {
+function buildWidgetPreviews(rom: Rom | ArrayBuffer, widgets: Widget[]) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const list = (widgets || []).slice(0, MAX_PREVIEWS);
     return previewSheet(buf, list.map((w) => w.id), list.map((w) => {
         const cells = (w.cells || []).map((c) => ({
             dx: c.dx, dy: c.dy,
-            canopy: c.canopy && c.canopy.graphic !== undefined ? c.canopy : null,
-            terrain: c.terrain && c.terrain.graphic !== undefined ? c.terrain : null,
+            canopy: c.canopy && c.canopy.graphic !== undefined ? c.canopy as Part : null,
+            terrain: c.terrain && c.terrain.graphic !== undefined ? c.terrain as Part : null,
         }));
         const lists = portableLists(cells);
         if (lists.families.length > 7) return null;
@@ -164,15 +176,15 @@ function buildWidgetPreviews(rom, widgets) {
 const WIDGET_BASE = 0x34;
 
 /** Render `items[i]` (`{entry, room}` or null) into cell i of one sheet named by `ids`. */
-function previewSheet(buf, ids, items) {
+function previewSheet(buf: Rom, ids: unknown[], items: (PreviewItem | null)[]) {
     const columns = PREVIEW_COLUMNS;
     const rows = Math.max(1, Math.ceil(ids.length / columns));
     const width = columns * PREVIEW_CELL;
     const height = rows * PREVIEW_CELL;
-    const sheet = { width, height, data: new Uint8Array(width * height * 4) };
+    const sheet: PixelBuffer = { width, height, data: new Uint8Array(width * height * 4) };
 
     // One decode per source room, reused by every entry that came from it.
-    const bases = new Map();
+    const bases = new Map<number, RoomData>();
     items.forEach((item, i) => {
         if (!item) return;
         const entry = item.entry;
@@ -181,7 +193,7 @@ function previewSheet(buf, ids, items) {
             try { base = maps.decodeRoom(buf, item.room); } catch { return; }
             bases.set(item.room, base);
         }
-        let image;
+        let image: PixelBuffer;
         try {
             image = maps.renderRoomComposite(buf, entryRoom(buf, entry, base), { backdrop: [0, 0, 0, 0] });
         } catch { return; }
@@ -211,12 +223,12 @@ function previewSheet(buf, ids, items) {
  * the webview can only picture a cell by making its stamp, and a preview must
  * never add one.
  */
-function buildConstructGhost(rom, construct) {
+function buildConstructGhost(rom: Rom | ArrayBuffer, construct: Widget) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const cells = (construct.cells || []).map((c) => ({
         dx: c.dx, dy: c.dy,
-        canopy: c.canopy && c.canopy.graphic !== undefined ? c.canopy : null,
-        terrain: c.terrain && c.terrain.graphic !== undefined ? c.terrain : null,
+        canopy: c.canopy && c.canopy.graphic !== undefined ? c.canopy as Part : null,
+        terrain: c.terrain && c.terrain.graphic !== undefined ? c.terrain as Part : null,
     }));
     const lists = portableLists(cells);
     if (lists.families.length > 7) return null;
@@ -226,4 +238,4 @@ function buildConstructGhost(rom, construct) {
     return { imageUri: maps.encodePngDataUri(image), width: image.width, height: image.height };
 }
 
-module.exports = { buildDecoPreviews, buildWidgetPreviews, buildConstructGhost, entryRoom };
+export { buildDecoPreviews, buildWidgetPreviews, buildConstructGhost, entryRoom };

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 /**
  * memory_radar/tests/radar.test.js — unit tests for radar-utils.ts pure functions.

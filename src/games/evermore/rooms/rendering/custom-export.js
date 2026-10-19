@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: a custom map's export archive — one .zip with the room blob,
 // the editor document, a sample everscript file, the stamps it uses and a
@@ -6,7 +7,7 @@
 //
 // The format is docs/map-format/custom-map-files.md §4.
 
-const { buildExportRom, BRIAN_ROOM } = require('./rom-export');
+const { buildExportRom, BRIAN_ROOM } = require('../../../../../dist/games/evermore/rooms/rendering/rom-export');
 const { mapDocument } = require('../../../../../dist/games/evermore/rooms/data/custom-store');
 const { buildZip } = require('../../../../../dist/platform/zip');
 const { hexLower } = require('../../../../../dist/platform');

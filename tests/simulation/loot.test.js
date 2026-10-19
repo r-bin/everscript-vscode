@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Loot, understood by simulation: run each pickup through the game's own loot
 // scripts and read what changed in WRAM. Two kinds of check:

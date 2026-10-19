@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Build a table-hack ROM (docs/table-hack.md §0), optionally with an everscript IPS patch applied on top.
 //   node tools/table-hack/build.js --rom <clean rom> [--tables all|name,name] [--ips everscript.ips] [--out file]
 //                                  [--add-enemy <record>,..] [--recolor-room <room>,..]   (test content, see testContent)

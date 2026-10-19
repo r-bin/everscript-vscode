@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Header sub-tab's palette sets — a room whose family list runs
 // past seven entries, and previewing the map in another set.
 //

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: animated tiles — a tile that changes over time. In the ROM that
 // is a Section 2 channel: it swaps the graphic in one *slot* on a timer
 // (docs/map-format/map_animated_tiles.md), so every cell naming the slot
@@ -183,7 +184,7 @@ function animTurn(xs, r) { return xs.slice(r).concat(xs.slice(0, r)); }
 /**
  * Vanilla's patterns for an animated tile's frames, turned to its phase:
  * `[{delays, channels, letter}]` in the global order. Only when vanilla runs
- * exactly this cycle (the family sheets' `animations`, room-draft.js) — a
+ * exactly this cycle (the family sheets' `animations`, room-draft.ts) — a
  * drawn animation of other frames has none.
  */
 function editAnimPresets(e) {
@@ -211,7 +212,7 @@ function animPresetsFor(seq) {
   if (typeof _famSheets === 'undefined') return [];
   for (var f in _famSheets) {
     var anims = _famSheets[f] && _famSheets[f].animations;
-    // The cycle the Tile tab lists for `lo`, then every other cycle vanilla names by it (room-draft.js).
+    // The cycle the Tile tab lists for `lo`, then every other cycle vanilla names by it (room-draft.ts).
     var cands = anims ? [anims[lo]].concat((anims._others && anims._others[lo]) || []) : [];
     for (var c = 0; c < cands.length; c++) {
       var a = cands[c];

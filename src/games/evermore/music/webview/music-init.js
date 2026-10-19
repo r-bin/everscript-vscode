@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Music tab's wiring: tab visibility (and with it the
 // emulator stream), the source picker, Play, instrument and key clicks, sound
 // effect triggers, host messages and the per-frame loop. Loaded last; bound

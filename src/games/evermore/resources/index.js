@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: entry point of the resources domain — registers the `soe://`
 // file system and its commands. The ROM and emulator access are injected

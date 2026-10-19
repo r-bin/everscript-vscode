@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Ownership: the room's metatile dictionary, packaged for the Rooms tab —
 // one atlas PNG plus a compact row per entry.
@@ -12,8 +13,8 @@ const maps = require('../../../../../dist/games/evermore/maps');
 const { romFingerprint } = require('../../../../../dist/games/evermore/rooms/rendering/rom-fingerprint');
 const { headerSpec, withHeader } = require('../../../../../dist/games/evermore/rooms/rendering/header-overrides');
 const { annotateGraphics, budgetSummary, invalidateVanillaIndex, vanillaGeometry, vanillaCycleTimings } = require('../../../../../dist/games/evermore/rooms/rendering/vanilla-index');
-const { groupRoomGraphics } = require('./room-draft');
-const { buildStampAnimations } = require('./stamp-animation');
+const { groupRoomGraphics } = require('../../../../../dist/games/evermore/rooms/rendering/room-draft');
+const { buildStampAnimations } = require('../../../../../dist/games/evermore/rooms/rendering/stamp-animation');
 const { editorObjects } = require('../../../../../dist/games/evermore/rooms/rendering/object-previews');
 const { familySetInfo } = require('../../../../../dist/games/evermore/rooms/rendering/family-sets');
 
@@ -101,7 +102,7 @@ function buildRoomMetatilePalette(rom, roomId, layer, bgPalette, header) {
         imageWidth: atlas.image.width,
         imageHeight: atlas.image.height,
         entries: packEntries(table),
-        /** Animated stamps' later frames, for the editor's map canvas (stamp-animation.js). */
+        /** Animated stamps' later frames, for the editor's map canvas (stamp-animation.ts). */
         anim: buildStampAnimations(buf, room, table, { columns: COLUMNS, layer: which }),
         /**
          * The room's Section 2 channels, for the Animation tab

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 
     function handleMapInspectClick(worldX, worldY, mouseX, mouseY) {
       if (lastSampledPreState && lastSampledPreState.entBuf) {

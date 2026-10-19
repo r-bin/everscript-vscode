@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: what a stroke actually writes, and what the eraser puts back.
 //
 // Split out of map-editor.js to keep it under the 400-line limit. Through

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Everscript round trip: decompile room scripts into structured Everscript and
 // compile them back with the sibling everscript compiler. The bytes must equal

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: bootstrap globals for the Rooms tab webview.
 // Must be loaded LAST (after all other rooms/ files).
 // Sets up the byteScriptFocus global and the message listener.

@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: play the Section 2 tile animation over the rendered map, through the
 // shared player. Owns the room's player handle and the enemy idle animations.
 //

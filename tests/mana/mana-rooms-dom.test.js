@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Converted Secret of Mana rooms in the Rooms tab's rail, on the real radar page in
 // headless Chromium: their group sits under the vanilla rooms, a row asks the host for

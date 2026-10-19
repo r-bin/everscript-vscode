@@ -1,3 +1,4 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: character/weapon/spell/UI helper functions for the Scaling tab.
 // All are function declarations — hoisted to the inner IIFE scope.
   function isScalable(id){return SC_SCALABLE.hasOwnProperty(+id);}

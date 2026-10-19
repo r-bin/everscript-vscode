@@ -1,5 +1,6 @@
+// TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
-// Suggested collision (maps/vanilla-suggest.ts suggestGeometry, room-draft.js,
+// Suggested collision (maps/vanilla-suggest.ts suggestGeometry, room-draft.ts,
 // map-editor-collision.js) and a drafted map's collision layer.
 //
 // The ROM checks skip, not fail, when the ROM is unavailable.
@@ -122,7 +123,7 @@ if (!rom) {
     });
 
     test('the canvas animates the slots it is told about, and a ROM room its own channels only', () => {
-        const { buildStampAnimations } = require('../../src/games/evermore/rooms/rendering/stamp-animation');
+        const { buildStampAnimations } = require('../../dist/games/evermore/rooms/rendering/stamp-animation');
         const room = maps.decodeRoom(rom, 0x2d);
         const base = room.tilePalette.length;
         const torch = room.animation.findIndex((c) => c.frames[0].tileId === 2742);
