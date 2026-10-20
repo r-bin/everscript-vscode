@@ -57,6 +57,8 @@
         // Start button (Enter or userKeyMap Start): launches the ROM selected in center
         const isStart = (k === 'Enter' || (typeof userKeyMap !== 'undefined' && userKeyMap['Start'] && k.toLowerCase() === userKeyMap['Start'].toLowerCase()));
         if (isStart) {
+          window.startKeySuppressedUntilRelease = true;
+          window.ignoreStartUntil = performance.now() + 600;
           if (overlayFocusCol === 1 && overlayCol1Idx === 4 && clearRecentConfirming) {
             handleClearRecentAction();
           } else {
@@ -66,9 +68,10 @@
           return;
         }
 
-        // Action button A (v, space, userKeyMap A): activates focused item
-        const isActionA = (k === 'v' || k === 'V' || k === ' ' || (typeof userKeyMap !== 'undefined' && userKeyMap['A'] && k.toLowerCase() === userKeyMap['A'].toLowerCase()));
-        if (isActionA) {
+        // Action / Confirm button (c, C, Space, userKeyMap['B']): interacts / confirms focused item
+        const keyB = (typeof userKeyMap !== 'undefined' && userKeyMap['B']) ? userKeyMap['B'] : 'c';
+        const isActionB = (k === 'c' || k === 'C' || k === ' ' || k.toLowerCase() === keyB.toLowerCase() || (typeof userKeyMap !== 'undefined' && e.code === userKeyMap['B']));
+        if (isActionB) {
           if (overlayFocusCol === 0) {
             launchSelectedRom();
           } else {
@@ -82,9 +85,10 @@
           return;
         }
 
-        // Cancel button B (c, C, b, B, Escape, userKeyMap B): cancels confirmation, never jumps columns
-        const isCancelB = (k === 'Escape' || k === 'c' || k === 'C' || k === 'b' || k === 'B' || (typeof userKeyMap !== 'undefined' && userKeyMap['B'] && k.toLowerCase() === userKeyMap['B'].toLowerCase()));
-        if (isCancelB) {
+        // Cancel / Back button (v, V, Escape, userKeyMap['A']): cancels confirmation, never jumps columns
+        const keyA = (typeof userKeyMap !== 'undefined' && userKeyMap['A']) ? userKeyMap['A'] : 'v';
+        const isCancelA = (k === 'Escape' || k === 'v' || k === 'V' || k.toLowerCase() === keyA.toLowerCase() || (typeof userKeyMap !== 'undefined' && e.code === userKeyMap['A']));
+        if (isCancelA) {
           if (overlayFocusCol === 1 && clearRecentConfirming) {
             cancelClearRecentConfirm();
           }
@@ -99,6 +103,10 @@
       if (bit) { keyInput |= bit; e.preventDefault(); }
     });
     document.addEventListener('keyup', e => {
+      const startKey = (typeof userKeyMap !== 'undefined' && userKeyMap['Start']) ? userKeyMap['Start'] : 'Enter';
+      if (e.key === startKey || (startKey === 'Enter' && e.key === 'Enter')) {
+        window.startKeySuppressedUntilRelease = false;
+      }
       if (!romLoaded) return;
       if (typeof isMenuOpen !== 'undefined' && isMenuOpen) return;
       const bit = (typeof dynamicKeyToBit !== 'undefined' && dynamicKeyToBit[e.key]) ? dynamicKeyToBit[e.key] : KEY_MAP[e.key];
@@ -122,12 +130,10 @@
         if (typeof setAnimTilesOverlay === 'function') setAnimTilesOverlay(false);
         if (typeof setCollisionOverlay === 'function') setCollisionOverlay(false);
         if (typeof setFogOfWar === 'function') setFogOfWar(false);
-        if (typeof cdlSetRecording === 'function') cdlSetRecording(false);
       } else if (preset === 'cdl') {
         if (typeof emuApplyPanels === 'function') {
           emuApplyPanels({ cdl: 'left', trace: 'hidden', stack: 'hidden', entities: 'hidden', alchemy: 'hidden', palettes: 'hidden' });
         }
-        if (typeof cdlSetRecording === 'function') cdlSetRecording(true);
         if (typeof setGameFeaturesEnabled === 'function') setGameFeaturesEnabled(false);
         if (typeof setExtendMap === 'function') setExtendMap(false);
         if (typeof setTriggersOverlay === 'function') setTriggersOverlay(false);
@@ -149,7 +155,6 @@
         if (typeof setFogOfWar === 'function') setFogOfWar(false);
         if (typeof setThinHpBar === 'function') setThinHpBar(false);
         if (typeof setThinStaminaBar === 'function') setThinStaminaBar(false);
-        if (typeof cdlSetRecording === 'function') cdlSetRecording(false);
       }
     }
 
@@ -235,6 +240,8 @@
         romStage('core start complete');
 
         romLoaded = true;
+        window.startKeySuppressedUntilRelease = true;
+        window.ignoreStartUntil = performance.now() + 600;
         loadedRomData = romData;
         loadedRomName = name || 'game';
         if (typeof gameTraceReset === 'function') gameTraceReset();

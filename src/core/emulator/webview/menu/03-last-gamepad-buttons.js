@@ -72,12 +72,20 @@
       }
 
       // When gameplay is active: Start button opens menu if enabled (doing the same as Esc)
-      if (gp.buttons[9] && gp.buttons[9].pressed && !lastGamepadButtons[9]) {
+      const isStartHeld = !!(gp.buttons[9] && gp.buttons[9].pressed);
+      if (window.startKeySuppressedUntilRelease || (typeof window.ignoreStartUntil === 'number' && performance.now() < window.ignoreStartUntil)) {
+        if (!isStartHeld && (typeof window.ignoreStartUntil !== 'number' || performance.now() >= window.ignoreStartUntil)) {
+          window.startKeySuppressedUntilRelease = false;
+        }
+        lastGamepadButtons[9] = isStartHeld;
+        return;
+      }
+      if (isStartHeld && !lastGamepadButtons[9]) {
         if (typeof startOpensMenu !== 'undefined' && startOpensMenu) {
           openEmulatorMenu();
         }
       }
-      lastGamepadButtons[9] = gp.buttons[9] && gp.buttons[9].pressed;
+      lastGamepadButtons[9] = isStartHeld;
     }
     window.pollGamepadMenu = pollGamepadMenu;
 

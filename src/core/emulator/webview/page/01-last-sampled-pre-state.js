@@ -139,8 +139,28 @@
     let currentOfferData = //@@romOffer;
 
     let overlayFocusCol = 0; // 0 = Center, 1 = Right
-    let overlayCol0Idx = 0;
+    let overlayCol0Idx = 1;  // Start at Vanilla ROM
     let overlayCol1Idx = 0;
+    let selectedCore = 'fork';
+    let selectedPreset = 'default';
+    let isolatedSramEnabled = false;
+    let alwaysRecordEnabled = true;
+    let currentRomSha1 = '';
+    let currentIsolatedSram = false;
+    let lastSavedSramB64 = '';
+    let clearRecentConfirming = false;
+
+    window.startKeySuppressedUntilRelease = false;
+    window.ignoreStartUntil = 0;
+
+    function getInitialCol0Index(items) {
+      const vBtn = document.getElementById('vanillaBtn');
+      if (vBtn && !vBtn.disabled) {
+        const vIdx = items.indexOf(vBtn);
+        if (vIdx >= 0) return vIdx;
+      }
+      return 0;
+    }
 
     try {
       const savedCol = sessionStorage.getItem('evs_overlayCol');
@@ -158,15 +178,6 @@
       const savedRec = sessionStorage.getItem('evs_alwaysRecord');
       if (savedRec !== null) alwaysRecordEnabled = savedRec === 'true';
     } catch (_) {}
-
-    let selectedCore = 'fork';
-    let selectedPreset = 'default';
-    let isolatedSramEnabled = false;
-    let alwaysRecordEnabled = true;
-    let currentRomSha1 = '';
-    let currentIsolatedSram = false;
-    let lastSavedSramB64 = '';
-    let clearRecentConfirming = false;
 
     function getLaunchOptions() {
       return {
@@ -210,7 +221,7 @@
       clearRecentConfirming = false;
       const btn = document.getElementById('clearRecentBtn');
       if (btn) {
-        btn.textContent = '[A] Clear';
+        btn.textContent = '[B] Clear';
         btn.className = 'menu-action-pill';
       }
     }
@@ -226,7 +237,7 @@
         clearRecentConfirming = true;
         const btn = document.getElementById('clearRecentBtn');
         if (btn) {
-          btn.textContent = 'Confirm? [A] Yes / [B] No';
+          btn.textContent = 'Confirm? [B] Yes / [A] No';
           btn.className = 'menu-action-pill danger confirming';
         }
         if (typeof playMenuSound === 'function') playMenuSound('click_nav');
@@ -244,6 +255,8 @@
       const idx = Math.max(0, Math.min(overlayCol0Idx, items.length - 1));
       const el = items[idx];
       if (el && typeof el.click === 'function') {
+        window.startKeySuppressedUntilRelease = true;
+        window.ignoreStartUntil = performance.now() + 600;
         el.click();
         if (typeof playMenuSound === 'function') playMenuSound('click_confirm');
       }
@@ -393,8 +406,10 @@
           recentSection.style.display = 'none';
         }
         if (!romLoaded) {
-          const targetIdx = overlayFocusCol === 0 ? overlayCol0Idx : overlayCol1Idx;
-          setOverlayFocus(targetIdx, overlayFocusCol);
+          const items0 = getOverlayCol0Focusables();
+          overlayCol0Idx = getInitialCol0Index(items0);
+          overlayFocusCol = 0;
+          setOverlayFocus(overlayCol0Idx, overlayFocusCol);
         }
       }
     }
@@ -488,26 +503,13 @@
         const nextIdx = Math.max(0, Math.min(curIdx + step, PRESETS.length - 1));
         if (nextIdx !== curIdx) {
           selectedPreset = PRESETS[nextIdx];
-          if (selectedPreset === 'cdl') {
-            selectedCore = 'fork';
-            alwaysRecordEnabled = true;
-          } else if (selectedPreset === 'everscript') {
-            selectedCore = 'fork';
-            alwaysRecordEnabled = false;
-          } else if (selectedPreset === 'clean') {
-            alwaysRecordEnabled = false;
-          }
           try {
             sessionStorage.setItem('evs_selectedPreset', selectedPreset);
-            sessionStorage.setItem('evs_selectedCore', selectedCore);
-            sessionStorage.setItem('evs_alwaysRecord', String(alwaysRecordEnabled));
           } catch (_) {}
           updateSidebarUi();
           if (vscodeApi) vscodeApi.postMessage({
             command: 'setSessionSettings',
-            preset: selectedPreset,
-            core: selectedCore,
-            alwaysRecord: alwaysRecordEnabled
+            preset: selectedPreset
           });
           if (typeof playMenuSound === 'function') playMenuSound('click_toggle');
         }

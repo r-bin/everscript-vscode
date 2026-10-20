@@ -31,12 +31,14 @@
       const dRight = (pad.buttons[15] && pad.buttons[15].pressed) || (pad.axes[0] && pad.axes[0] > 0.5);
       const btnL = (pad.buttons[4] && pad.buttons[4].pressed);
       const btnR = (pad.buttons[5] && pad.buttons[5].pressed);
-      const btnA = (pad.buttons[0] && pad.buttons[0].pressed);
-      const btnB = (pad.buttons[1] && pad.buttons[1].pressed);
+      const btnB = (pad.buttons[0] && pad.buttons[0].pressed); // SNES B = Confirm / Interact
+      const btnA = (pad.buttons[1] && pad.buttons[1].pressed); // SNES A = Cancel / Back
       const btnStart = (pad.buttons[9] && pad.buttons[9].pressed);
 
       if (btnStart) {
         lastOverlayGamepadPoll = now + 200;
+        window.startKeySuppressedUntilRelease = true;
+        window.ignoreStartUntil = performance.now() + 600;
         if (overlayFocusCol === 1 && overlayCol1Idx === 4 && clearRecentConfirming) {
           handleClearRecentAction();
         } else {
@@ -53,10 +55,10 @@
         if (overlayFocusCol === 1) {
           changeOverlayValue(dLeft ? -1 : 1);
         }
-      } else if (btnA) {
+      } else if (btnB) {
         lastOverlayGamepadPoll = now + 160;
         activateOverlayFocused();
-      } else if (btnB) {
+      } else if (btnA) {
         lastOverlayGamepadPoll = now + 160;
         if (overlayFocusCol === 1 && clearRecentConfirming) {
           cancelClearRecentConfirm();
@@ -159,8 +161,10 @@
     window.addEventListener('load', () => {
       try { window.focus(); } catch (_) {}
       if (!romLoaded) {
-        const targetIdx = overlayFocusCol === 0 ? overlayCol0Idx : overlayCol1Idx;
-        setOverlayFocus(targetIdx, overlayFocusCol);
+        const items0 = getOverlayCol0Focusables();
+        overlayCol0Idx = getInitialCol0Index(items0);
+        overlayFocusCol = 0;
+        setOverlayFocus(overlayCol0Idx, overlayFocusCol);
       }
     });
 

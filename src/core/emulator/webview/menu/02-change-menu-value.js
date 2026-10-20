@@ -216,11 +216,17 @@
 
     // -- Keyboard Event Interception -------------------------------------------
     window.addEventListener('keydown', function(e) {
+      if (typeof romLoaded !== 'undefined' && !romLoaded) return;
       const tag = e.target && e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
       const startKey = userKeyMap['Start'] || 'Enter';
       const isStartKey = e.key === startKey || (startKey === 'Enter' && e.key === 'Enter');
+
+      if (isStartKey && (window.startKeySuppressedUntilRelease || (typeof window.ignoreStartUntil === 'number' && performance.now() < window.ignoreStartUntil))) {
+        e.preventDefault();
+        return;
+      }
 
       // 1. Esc ALWAYS pauses/resumes the emulator & toggles menu.
       // When startOpensMenu is ON, Start button does the exact same thing as Esc.
