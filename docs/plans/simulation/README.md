@@ -54,9 +54,9 @@ Real, tested, and reusable — this is not a green field:
   [docs/alchemy-damage.md](../../alchemy-damage.md).
 - **The map model** — collision, planes, triggers, objects and their states,
   arrivals, hitboxes, attack boxes, sprite priority. See
-  [docs/script-format/](../../script-format/README.md).
+  [docs/entities/](../../entities/README.md).
 - **Prior notes to fold in, not duplicate** —
-  [docs/room-simulation.md](../../room-simulation.md) (the enter-script
+  [docs/scripts/room-simulation.md](../../scripts/room-simulation.md) (the enter-script
   problem and the two unknowns the encoder already settled) and
   [docs/route-planner.md](../../route-planner.md) (an earlier sketch of 6).
 

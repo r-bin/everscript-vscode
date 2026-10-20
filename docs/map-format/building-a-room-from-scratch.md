@@ -473,7 +473,7 @@ Two independent things have to line up for "walks behind" to actually happen:
 2. The **collision word's bit 12 must be clear**. `$8FC773` reads the
    collision of the tile the player stands on; bit 12 set means "draw the
    player in front of everything." `walk` = `0x0010` has it clear, so the
-   player goes behind. See [sprite_priority.md](../script-format/sprite_priority.md).
+   player goes behind. See [sprite_priority.md](../entities/sprite_priority.md).
 
 Get (2) wrong — use `0x1010` instead of `0x0010` — and the leaves render but
 the player walks over the top of them.

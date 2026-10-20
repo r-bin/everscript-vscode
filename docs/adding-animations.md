@@ -20,7 +20,7 @@ sprite info chunk ──16-bit block id──▶ block pointer table ──23-bi
 
 "Who plays it" is one of:
 
-- a character record's animation fields (`+0x32…`, [character_table.md](script-format/character_table.md));
+- a character record's animation fields (`+0x32…`, [character_table.md](entities/character_table.md));
 - a Dog form slot (`$CF945F` lists six forms, slot `s` at `+10 + 2s`, `src/games/evermore/sprites/dog-forms.ts`);
 - a global `animate()` id (`$C43C92 + 2·id`, read by `$8C:E13C`);
 - a weapon (`$C438E6`).

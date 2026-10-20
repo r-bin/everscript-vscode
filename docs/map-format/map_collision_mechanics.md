@@ -157,7 +157,7 @@ Across all vanilla rooms the nibble only ever takes the values 1, 3, 5, 7, 9.
 Nibble `4` (bit 8 clear, so no movement gate) is read by the sprite depth code
 `$8FC780`: with bit 12 clear it splits a character in two by each chunk's own
 priority bits — the wading effect no vanilla room uses.
-See `docs/script-format/sprite_priority.md`.
+See `docs/entities/sprite_priority.md`.
 
 ---
 

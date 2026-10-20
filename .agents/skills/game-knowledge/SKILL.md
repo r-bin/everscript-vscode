@@ -28,7 +28,7 @@ sentence beats nothing. No permission needed — this is part of every task.
 | an asm routine, script, script function, table or data block in the ROM | `src/games/evermore/localizations/knowledge/rom/<addr>.md` |
 | a script opcode byte (what, why, group tags, Everscript name) | `src/games/evermore/localizations/knowledge/opcodes/<xx>.md` (its handler: `rom/`) |
 | anything about **Secret of Mana** (a different game) | `docs/mana/README.md` and the comment of the `src/games/mana/decoder/` file that reads it — never `knowledge/`, never mixed with Evermore entries |
-| a format or mechanism spanning many addresses | `docs/game-research/…` (prose), linked from the entries |
+| a format or mechanism spanning many addresses | the topic's `docs/` folder (`docs/scripts/`, `docs/entities/`, `docs/map-format/`, …), linked from the entries |
 | a workflow trap, a tool fact, or a skill/AGENTS.md statement that is wrong | fix that skill / `AGENTS.md` directly |
 
 Correcting is as important as adding: if an entry is wrong, fix it and say what the old
@@ -51,7 +51,7 @@ lifetime: room
 confidence: likely
 tags: [room, scratch, script]
 evidence: ["write: cleared on screen transition (watched in emulator, v0.200.0)", "read: room scripts of 0x33 and 0x5c use it differently"]
-see: [docs/game-research/room-scratch.md]
+see: [docs/scripts/room-scratch.md]
 ---
 Temporary RAM for whatever the current room needs. Reset on every screen transition.
 Multi-purpose with no fixed structure: each room's scripts lay it out their own way

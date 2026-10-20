@@ -6,12 +6,10 @@ name: script_op_5e_set_object_state_unless_flag
 title: Script opcode 0x5e — set object state unless flag
 confidence: likely
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E u16, continues in the same turn (docs/game-research/script-vm/opcodes.md)", "disasm: $8C:DE67 after this handler is a second copy of the 0x5C handler that no table entry points to"]
-see: [docs/game-research/script-vm/opcodes.md]
+evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E u16, continues in the same turn (docs/scripts/opcodes.md)", "disasm: $8C:DE67 after this handler is a second copy of the 0x5C handler that no table entry points to"]
+see: [docs/scripts/opcodes.md]
 ---
-The same as opcode `0x5D` with the flag's meaning reversed: highest state (`$7F`, clamped) when the save flag is clear, 0 when it is set.
-
-Right after it, `$8C:DE67`-`$DE76` is an unreachable copy of the `0x5C` handler (object = expression, state = expression, `$90:A36D`): dead code from a removed opcode.
+Handler of script opcode [0x5E](soe://rom/assets/scripts/opcodes/5e.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/5e.md`, served at `soe://rom/assets/scripts/opcodes/5e.md`.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

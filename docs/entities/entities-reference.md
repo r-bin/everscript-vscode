@@ -40,7 +40,7 @@ here reads them yet.
 
 Not in the room blob. The room's **enter script** (`$928000 + 0x1B + 5·room`)
 places them with four opcodes, whose layout comes from the everscript encoder
-([enemy_spawns.md](enemy_spawns.md), `src/games/evermore/script/entities.ts`):
+([enemy_spawns.md](../scripts/enemy_spawns.md), `src/games/evermore/script/entities.ts`):
 
 | Opcode | Operands | Position |
 |---|---|---|

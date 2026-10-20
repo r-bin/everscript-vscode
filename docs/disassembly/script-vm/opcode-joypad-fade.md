@@ -3,11 +3,7 @@
 ## Overview
 During dialogue, scripted cutscenes, and room transitions, the *Secret of Evermore* Script VM uses a cluster of opcodes in bank `$8C` to control screen brightness fading (`$7E:0B83` / `$7E:0106`), center the camera on the active actor, and synchronize rendering.
 
-- **Opcode `0x26` (`$8C:DC18`)**: `fade_in()` — Clears screen brightness to 0 black (`$7E:0106 = 0`), centers/clamps camera via `$90:94AB`, and sets target brightness to 15 (`$7E:0B83 = 0x800F`) to initiate stepped fade-in.
-- **Opcode `0x27` (`$8C:DC10`)**: `fade_out()` — Sets target brightness to 0 black (`$7E:0B83 = 0x8000`) to initiate stepped fade-out.
-- **Opcode `0x90` (`$8C:DC35`)**: `fade_to(level)` — Evaluates expression argument `E` (target brightness 0–15), centers camera, and sets `$7E:0B83 = 0x8000 | E`.
-- **Opcode `0x91` (`$8C:DC56`)**: `set_brightness(level)` — Evaluates expression argument `E` and writes it directly to the PPU `INIDISP` shadow `$7E:0106` (instant brightness change without stepping).
-- **Opcodes `0x58` (`$8C:DC87`) / `0x59` (`$8C:DC74`)** are *not* screen fades: they set the music volume step DP `$9B` (`$10` / `$F0`) and call `$8C:8619`, which adds it to the music volume `$9A` and sends sound driver command `$28` (`music_fade_in` / `music_fade_out`, `knowledge/opcodes/58.md`). Previously documented here as palette fades.
+What each opcode does is described once, on its opcode page; this file keeps the routines' code: [`0x26` fade_in](soe://rom/assets/scripts/opcodes/26.md), [`0x27` fade_out](soe://rom/assets/scripts/opcodes/27.md), [`0x90` fade_to](soe://rom/assets/scripts/opcodes/90.md), [`0x91` set_brightness](soe://rom/assets/scripts/opcodes/91.md), [`0x58` music_fade_in](soe://rom/assets/scripts/opcodes/58.md), [`0x59` music_fade_out](soe://rom/assets/scripts/opcodes/59.md).
 
 ---
 

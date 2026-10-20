@@ -6,12 +6,10 @@ name: script_op_77_face_4
 title: Script opcode 0x77 — face 4
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E, continues in the same turn (docs/game-research/script-vm/opcodes.md)", "trace: the game ran 26 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
-see: [docs/game-research/script-vm/opcodes.md]
+evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E, continues in the same turn (docs/scripts/opcodes.md)", "trace: the game ran 26 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
+see: [docs/scripts/opcodes.md]
 ---
-Entity faces direction 4 (+$22 = 4).
-
-Operands: `E` (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
+Handler of script opcode [0x77](soe://rom/assets/scripts/opcodes/77.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/77.md`, served at `soe://rom/assets/scripts/opcodes/77.md`.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

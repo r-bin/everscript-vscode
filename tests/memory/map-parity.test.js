@@ -361,7 +361,7 @@ function checkObjectStamps(rom) {
 const OVERLAY_DIFF_BUDGET = 0; // exact — the port draws every pass upstream does
 
 /**
- * The sprite decoder (docs/script-format/sprite_format.md): the sprites are the ones the
+ * The sprite decoder (docs/entities/sprite_format.md): the sprites are the ones the
  * animation scripts name (opcodes 0x22-0x2C and the long forms), read as $80:9033 reads them.
  */
 function checkSprites(rom) {
@@ -599,7 +599,7 @@ function checkStrikeBoxes(rom) {
 
 /**
  * Sprite palettes: the slot a character asks for is its `+0x09`, and two
- * characters with the same value share one. See docs/script-format/palettes.md.
+ * characters with the same value share one. See docs/entities/palettes.md.
  */
 function checkPalettes(rom) {
     // The Mosquito's palette is the one the trace watched being loaded into
@@ -661,7 +661,7 @@ function checkForeground(rom) {
  * stands on, written there by `$8FAFE5` — and gives OAM priority 3 when bit
  * 12 is set. `walking_against_flower.txt` loads four such words in room
  * 0x38; they are the pin, because they prove `+0x3C` is the word this
- * decoder already produces. See docs/script-format/sprite_priority.md.
+ * decoder already produces. See docs/entities/sprite_priority.md.
  */
 function checkSpriteDepth(rom) {
     const room = decodeRoom(rom, 0x38);

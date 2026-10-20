@@ -8,7 +8,7 @@ everscript: ["call (builtin, with arguments)"]
 evidence: ["disasm: handler at the table entry $8C:D3C6"]
 see: ["rom/8cd3c6.md"]
 ---
-Count byte and expressions to `$0E80`, then as `0x29`.
+Count byte and that many expressions to `$0E80` (`$8C:D315`), then as `0x29`; the callee reads them as its arguments.
 
 ## Why it exists
 

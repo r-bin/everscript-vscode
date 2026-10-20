@@ -1,5 +1,5 @@
 // Ownership: what an instruction does, as structured facts read from its operands by the
-// meaning of its handler (docs/game-research/script-vm/opcodes.md). Pure.
+// meaning of its handler (docs/scripts/opcodes.md). Pure.
 //
 // Only what a handler was read for is a fact here: memory writes, calls and starts, map changes,
 // sounds, music, text, spawns, waits. Everything else is `other`, with its operands.

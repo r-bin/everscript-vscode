@@ -8,7 +8,7 @@ everscript: ["add_enemy()"]
 evidence: ["disasm: handler at the table entry $8C:DCD9"]
 see: ["rom/8cdcd9.md"]
 ---
-As `0x3C` with a byte ENEMY value and state 0.
+As `0x3C` with a byte ENEMY value (doubled by the handler) and state 0.
 
 ## Why it exists
 

@@ -122,7 +122,7 @@ function info(rom: Rom, op: number) {
         description: oe ? oe.body.trim() : null,
         tableEntry: bus(TABLE + 2 * op), handler: bus(handler),
         handlerRegion: status === 'garbage' ? region(handler) : null,
-        handlerTitle: e ? e.title : null, handlerDescription: e ? e.body.trim() : null,
+        handlerTitle: e ? e.title : null, handlerDescription: e ? handlerDetails(e.body) : null,
         knowledge: `soe://localization/knowledge/rom/${handler.toString(16)}.md`,
         handlerAliases: aliases,
         behaviorEvidence: e ? e.confidence : 'undocumented',
@@ -133,6 +133,12 @@ function info(rom: Rom, op: number) {
         },
         combinations: { previous: neighbors(previous), next: neighbors(next) },
     };
+}
+
+/** A handler entry without its pointer back to the opcode pages: its history and addresses. */
+function handlerDetails(body: string): string | null {
+    const rest = body.trim().replace(/^Handler of script opcode[^\n]*\n*/, '').trim();
+    return rest || null;
 }
 
 const tagLinks = (tags: string[]): string => tags.map((t) => `[${t}](soe://tags/${t}.md)`).join(', ');
@@ -147,7 +153,7 @@ function opcodeMarkdown(rom: Rom, op: number): string {
     lines.push(`Static reachability: **${i.usage.staticReachableInstructions} instruction(s)**${i.usage.unused ? ' — unused by the original scripts' : ''} (static walk from the script tables, not an execution count).`);
     if (i.handlerAliases.length) lines.push(`Same handler as ${i.handlerAliases.map((alias) => `[0x${hex2(alias)}](./${hex2(alias)}.md)`).join(', ')}.`);
     lines.push('', i.description || 'No opcode entry yet.', '');
-    if (i.handlerDescription) lines.push(`## Handler \`${i.handler}\`${i.handlerTitle ? ` — ${i.handlerTitle}` : ''}`, '', i.handlerDescription, '');
+    if (i.handlerDescription) lines.push(`## Handler \`${i.handler}\``, '', i.handlerDescription.replace(/^## Addresses\n/m, ''), '');
     if (i.usage.examples.length) lines.push('## Reachable examples', '', ...i.usage.examples.map((x) => `- \`${x.address}\` ${x.text}`), '');
     const pairLines = (direction: 'previous' | 'next') => {
         const pairs = i.combinations[direction];
@@ -161,7 +167,7 @@ function opcodeMarkdown(rom: Rom, op: number): string {
     if (i.combinations.previous.length || i.combinations.next.length) {
         lines.push('## Nearby commands', '', 'Counts below are static control-flow edges in the reachable script walk, not observed runtime frequencies.', '', ...pairLines('previous'), ...pairLines('next'));
     }
-    lines.push(`Opcode entry: \`src/games/evermore/localizations/knowledge/opcodes/${hex2(op)}.md\`${i.status === 'handled' ? ` · handler entry: [${i.knowledge}](${i.knowledge})` : ''} · operand tokens: docs/game-research/script-vm/README.md`);
+    lines.push(`Opcode entry: \`src/games/evermore/localizations/knowledge/opcodes/${hex2(op)}.md\`${i.status === 'handled' ? ` · handler entry: [${i.knowledge}](${i.knowledge})` : ''} · operand tokens: docs/scripts/vm.md`);
     return lines.join('\n') + '\n';
 }
 

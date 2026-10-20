@@ -15,8 +15,8 @@
 >   ([todo/table-hack.md](table-hack.md)).
 > - **Correction:** slot `s` is at `$CF936D + 10 + 2s`, so bark (slot 14) is `$CF9393`. The
 >   `$CF938F` below is slot 12 (sit).
-> Background: [animation_script.md § The Dog's forms](../script-format/animation_script.md#the-dogs-forms),
-> [sprite_format.md](../script-format/sprite_format.md).
+> Background: [animation_script.md § The Dog's forms](../entities/animation_script.md#the-dogs-forms),
+> [sprite_format.md](../entities/sprite_format.md).
 
 ## The problem
 
@@ -144,7 +144,7 @@ but our tools do.
   `strike` boxes and `mode` bits (invulnerable frames, `end_check!` endings),
   and swap only the `sprite` operands. The strike/hurt boxes may need shrinking
   for the smaller mutt
-  ([attack_boxes.md](../script-format/attack_boxes.md), [hitboxes.md](../script-format/hitboxes.md)).
+  ([attack_boxes.md](../entities/attack_boxes.md), [hitboxes.md](../entities/hitboxes.md)).
   Run every new script through `runAnimation()` and require it to reach `loop`
   or `end_check!`, as the census does.
 - **Records** are the hard constraint. A record id is a 16-bit offset into bank
@@ -192,7 +192,7 @@ fires, the form header is the likely list for it. Its `+0` is a sprite pointer
 that case the header must be filled in too, and VRAM space for the extra poses
 may run out. Trace this with a Mesen VRAM-write breakpoint on the OBJ
 area while the Dog changes pose, and record the result in
-[animation_script.md § The Dog's forms](../script-format/animation_script.md#the-dogs-forms)
+[animation_script.md § The Dog's forms](../entities/animation_script.md#the-dogs-forms)
 (the form loader is also still untraced there).
 
 ## Build steps

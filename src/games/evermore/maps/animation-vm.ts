@@ -2,7 +2,7 @@
 // does. Pure. The ROM's catalogue of animations (the record table, the global
 // id table) is ./animation-table.
 //
-// The machine is docs/script-format/animation_script.md § The machine:
+// The machine is docs/entities/animation_script.md § The machine:
 // commands run until one with bit 7 set; a hold loads the frame timer *and*
 // saves the resume pointer after itself, so later ticks of the same frame
 // restart there. Running it — rather than reading it linearly as

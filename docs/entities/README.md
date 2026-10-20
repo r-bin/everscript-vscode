@@ -1,8 +1,8 @@
-# Everscript & entity formats
+# Entity formats
 
-What the decoder in [`src/games/evermore/script-vm/`](../../src/games/evermore/script-vm/README.md) and the
-sprite/character code in [`src/games/evermore/maps/`](../../src/games/evermore/maps/README.md) know about
-the ROM, and how each fact was established.
+What the sprite/character code in [`src/games/evermore/maps/`](../../src/games/evermore/maps/README.md)
+knows about everything on a map that moves, and how each fact was established. Event scripts (the
+interpreter, opcodes, loot, doors, spawns, triggers) are in [../scripts/](../scripts/README.md).
 
 Every page here follows the same rule: **a claim is either measured against a
 reference, read out of the encoder, or traced — and if it is none of those it
@@ -12,10 +12,6 @@ ruled out, so the next attempt starts further along.
 | Page | Topic | Status |
 |---|---|---|
 | **[entities-reference.md](entities-reference.md)** | **Start here** for anything on a map that moves: the character record, placement, sprites, palettes and depth, bodies, attacks, damage, animation, entity WRAM fields | Index |
-| [../game-research/script-vm/](../game-research/script-vm/README.md) | The script interpreter: opcodes, operands, expressions, read from the game | Solved |
-| [loot.md](loot.md) | What a pickup gives, and writing it back as Everscript | Solved |
-| [map_transitions.md](map_transitions.md) | Doors: where a trigger sends the player | Solved |
-| [enemy_spawns.md](enemy_spawns.md) | Which NPCs a script places, and where | Solved |
 | [character_table.md](character_table.md) | Stats, palette and animation pointers per character | Solved |
 | [enemy_ai.md](enemy_ai.md) | How enemy AI identifies targets, state transitions, attack selection, behaviour table | Solved |
 | [runtime_stats.md](runtime_stats.md) | Which record stats a script can change at runtime, and how | Mostly derived |
@@ -26,9 +22,6 @@ ruled out, so the next attempt starts further along.
 | [hitboxes.md](hitboxes.md) | How big a character's body is, and what blocks a move | Solved |
 | [attack_boxes.md](attack_boxes.md) | What a swing sweeps, and what it can land on | Solved |
 | [palettes.md](palettes.md) | How many enemies fit in a room before their colours glitch | Solved |
-| [arrivals.md](arrivals.md) | The doors that lead *into* a room | Solved |
-| [trigger-modernization.md](trigger-modernization.md) | Trigger exit detection, companion/enemy triggers, context registers, performance | Architecture Spec |
-| [../room-simulation.md](../room-simulation.md) | Deciding which branch an enter script takes | **Not built** — see [/simulation](../plans/simulation/README.md) |
 | [../item-icons.md](../item-icons.md) | Where the menu's item icons live | Solved |
 
 ## Two lessons that keep repaying

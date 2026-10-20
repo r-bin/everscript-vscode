@@ -129,7 +129,7 @@ function attachSprites(rom: Rom, spawns: Spawn[]): void {
  * in front rather than hidden under the canopy, because a marker you cannot
  * find is worse than one placed on the optimistic side.
  *
- * See docs/script-format/sprite_priority.md.
+ * See docs/entities/sprite_priority.md.
  */
 function attachTileDepth(rom: Rom, mapId: number, spawns: Spawn[]): void {
     let room: ReturnType<typeof decodeRoom>;
@@ -156,7 +156,7 @@ function attachTileDepth(rom: Rom, mapId: number, spawns: Spawn[]): void {
  * palettes, not the number of enemies**. Four of the five are handed out to
  * whoever asks; the fifth is the one `$90CE92` overwrites when nothing is
  * free, which is where a palette gets stolen by the next effect that needs
- * one. See docs/script-format/palettes.md.
+ * one. See docs/entities/palettes.md.
  */
 const PALETTE_SLOTS = 4;
 

@@ -12,12 +12,12 @@ Facts are marked *(disasm)*, *(test)* (measured headless in the bundled snes9x c
 ### 1.1 From a script id to a record
 
 1. A script spawns an enemy with `0x3C`, `0xBA`, `0xA2` or `0xC2` and an `ENEMY` id
-   ([enemy_spawns.md](script-format/enemy_spawns.md)).
+   ([enemy_spawns.md](scripts/enemy_spawns.md)).
 2. The spawn handler (`$8C:DC9A`, `$8C:DCC3`, `$8C:DCD9`, `$8C:DCEC`) reads `lda.l $8EB55A,x` with
    X = id·2 *(disasm)*. That is the **enemy index**:
    - 143 words, right before the character table;
    - each word is the 16-bit address of a character record (`knowledge/rom/8eb55a.md`).
-3. The record is 74 bytes ([character_table.md](script-format/character_table.md)). The engine
+3. The record is 74 bytes ([character_table.md](entities/character_table.md)). The engine
    keeps the record's 16-bit address, and every reader takes the record as `$8E00xx,X`: the field
    offset is the operand and X is the record address.
 
@@ -44,7 +44,7 @@ In vanilla, other data follows both tables directly, so neither can grow in plac
 | Step | Where | What |
 |---|---|---|
 | ROM | `$90:xxxx`, 32 bytes | Record `+0x09` (and `+0x0B`, a second palette) is a 16-bit address in bank `$90`. Word 0 is not copied; words 1–15 are the colours. Every vanilla palette is at `$8000` or above. |
-| slot | `$7E1278`, 8 words | `$90:CD80` picks a slot. First it reuses a slot that already holds the same address (offsets 8, 10, 0, 2, 4). Then it takes a free one (8, 10, 0, 2). Otherwise it steals offset 4. Offsets 12 and 14 are the Boy's and the Dog's ([palettes.md](script-format/palettes.md)). |
+| slot | `$7E1278`, 8 words | `$90:CD80` picks a slot. First it reuses a slot that already holds the same address (offsets 8, 10, 0, 2, 4). Then it takes a free one (8, 10, 0, 2). Otherwise it steals offset 4. Offsets 12 and 14 are the Boy's and the Dog's ([palettes.md](entities/palettes.md)). |
 | WRAM | `$7E6187 + 32·(8 + offset/2)`, colours from `+2` | `$90:CF3A` copies the 15 colours into the CGRAM shadow (§4) with DB = `$90` (`phb : phk : plb`) *(disasm)*. |
 | CGRAM | colour `128 + 16·(offset/2) + 1` | `$90:CFB8` points a DMA at the **ROM** palette, not the WRAM copy: `$26` = address + 2, `$28` = `#$0090` at `$90:CFD2`. `$C0:85FA` uploads 30 bytes *(disasm)*. |
 

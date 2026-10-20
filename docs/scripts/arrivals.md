@@ -46,4 +46,4 @@ Room `0x76` has two: from `0x6C` walking west, and from `0x7B` walking south.
 Still the **superset**, like the spawns: a script that branches can reach
 several destinations and all of them are indexed. A door that only opens
 after a story flag is listed the same as one that always works. Deciding that
-needs [the simulation](../room-simulation.md).
+needs [the simulation](room-simulation.md).

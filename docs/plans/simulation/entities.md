@@ -6,7 +6,7 @@
 
 ## What a placement already carries
 
-From [character_table.md](../../script-format/character_table.md) and the
+From [character_table.md](../../entities/character_table.md) and the
 spawn opcodes:
 
 | | Source | Shown today |

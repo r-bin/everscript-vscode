@@ -21,8 +21,8 @@ ring icon id ─► $CE8000 + id ─► entry (8 bytes, bank $CE)
 ```
 
 Everything after "script" is already solved and ported:
-[script-format/animation_format.md](script-format/animation_format.md) and
-[script-format/sprite_format.md](script-format/sprite_format.md),
+[entities/animation_format.md](entities/animation_format.md) and
+[entities/sprite_format.md](entities/sprite_format.md),
 `src/games/evermore/maps/character-animation.ts` and `src/games/evermore/maps/sprites.ts`. The two new
 pieces are the `$CE8000` table and the palette word.
 
@@ -108,7 +108,7 @@ $C8029F  56 2a 00   30   24 0e 40  10  80   24 15 40  10  80   2d
 Neither command was in the animation walker's table before. Both widths come
 from their handlers (`INX INX` after the operand in `0x56`; `0x30` touches
 nothing but `$5D`), the method
-[animation_format.md](script-format/animation_format.md) uses for the rest.
+[animation_format.md](entities/animation_format.md) uses for the rest.
 
 So an alchemy icon is **two frames, 16 ticks each**, with a greyed variant.
 A static view can use frame A.

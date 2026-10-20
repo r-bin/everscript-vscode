@@ -7,9 +7,9 @@ title: Move an entity by expression offsets
 confidence: confirmed
 tags: [script-vm]
 evidence: ["disasm: handler evaluates the entity and two offsets, scales each offset by 16, adds them to entity fields +$1A/+$1C, then enters the shared position helper", "trace: the game ran 1 distinct instruction with this opcode (tests/script-vm/goldens.json)"]
-see: [docs/game-research/script-vm/README.md, docs/game-research/script-vm/opcodes.md]
+see: [docs/scripts/vm.md, docs/scripts/opcodes.md]
 ---
-Evaluates an entity followed by X and Y expressions. Each offset is shifted left four bits and added to the entity's current coordinate fields `+$1A` and `+$1C`; the resulting pixel destination goes through the same tile/elevation and movement helper as `0x6C`. Returns Carry Set.
+Handler of script opcode [0x6D](soe://rom/assets/scripts/opcodes/6d.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/6d.md`, served at `soe://rom/assets/scripts/opcodes/6d.md`.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

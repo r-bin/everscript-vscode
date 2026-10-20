@@ -4,9 +4,9 @@ Can enemy graphics be drawn on a map, or used as tiles in the map editor? Short
 answer: **drawing them on top of a map works today; painting them as map tiles does
 not, and would need a new import feature.**
 
-Format detail lives in [../script-format/sprite_format.md](../script-format/sprite_format.md),
-[../script-format/character_table.md](../script-format/character_table.md) and
-[../script-format/animation_format.md](../script-format/animation_format.md). The
+Format detail lives in [../entities/sprite_format.md](../entities/sprite_format.md),
+[../entities/character_table.md](../entities/character_table.md) and
+[../entities/animation_format.md](../entities/animation_format.md). The
 editor's budgets are in the `map-editor-rules` skill.
 
 ---

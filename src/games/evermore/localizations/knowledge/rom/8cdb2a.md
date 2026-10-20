@@ -7,15 +7,9 @@ title: Script opcode 0x2c
 confidence: confirmed
 tags: [script-vm, cutscene, immobilization]
 evidence: ["disasm: handler from opcode table at $8C:E8BD; operand u8 mask (bit 3: bound entity, bit 0: boy, bit 1: dog); invokes $8F:CD78; returns SEC (continue turn)", "docs/disassembly/script-vm/opcode-freeze.md"]
-see: [docs/disassembly/script-vm/opcode-freeze.md, docs/game-research/script-vm/opcodes.md]
+see: [docs/disassembly/script-vm/opcode-freeze.md, docs/scripts/opcodes.md]
 ---
-Script opcode 0x2C cutscene immobilization handler. Reads an 8-bit mask operand:
-- Bit 3 (`0x08`): Freezes the entity bound to current thread slot (`+$0D`).
-- Bit 0 (`0x01`): Freezes Boy player character (`$7E:4E89`).
-- Bit 1 (`0x02`): Freezes Dog companion character (`$7E:4F37`).
-
-Invokes `entity_freeze_immobilize` (`$8F:CD78`) for each matched entity, which halts physics/motion and sets status flag bit 5 (`0x0020`).
-Returns Carry Set (`SEC`) to continue executing instructions within the same turn.
+Handler of script opcode [0x2C](soe://rom/assets/scripts/opcodes/2c.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/2c.md`, served at `soe://rom/assets/scripts/opcodes/2c.md`.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

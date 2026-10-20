@@ -264,7 +264,7 @@ cell never fires by walking onto it. Anything that writes or moves step-on
 triggers must set bit 14 under them. The editor treats it like Interact: the
 Special tab's Step-on group, a Step-on overlay, and a check on the Info tab.
 
-Entities collide with each other by a separate rule (`docs/script-format/hitboxes.md`).
+Entities collide with each other by a separate rule (`docs/entities/hitboxes.md`).
 
 ---
 
@@ -290,8 +290,8 @@ The editor converts records to inclusive map cells (`collision-overlay.ts`,
 
 | Thing | Where it really is |
 |---|---|
-| **Entrances** | Nowhere in the destination room. An entrance is a `CHANGE MAP` (`0x22`, `[x>>3][y>>3][room:16]`, 8px units) in some *other* room's trigger script. `src/games/evermore/script/arrivals.ts` walks every room's triggers and indexes them by destination (605 transitions); the arrow comes from the "Prepare room change? South exit…" call. `docs/script-format/arrivals.md`, `map_transitions.md` |
-| **Enemies, NPCs** | placed by the room's **enter script** (`add_enemy` opcodes `0x3C/0xBA/0xA2/0xC2`); every branch is a candidate. `docs/script-format/entities-reference.md` |
+| **Entrances** | Nowhere in the destination room. An entrance is a `CHANGE MAP` (`0x22`, `[x>>3][y>>3][room:16]`, 8px units) in some *other* room's trigger script. `src/games/evermore/script/arrivals.ts` walks every room's triggers and indexes them by destination (605 transitions); the arrow comes from the "Prepare room change? South exit…" call. `docs/scripts/arrivals.md`, `map_transitions.md` |
+| **Enemies, NPCs** | placed by the room's **enter script** (`add_enemy` opcodes `0x3C/0xBA/0xA2/0xC2`); every branch is a candidate. `docs/entities/entities-reference.md` |
 | **Music, story state** | enter and trigger scripts |
 | **Widgets, groups, levels, specials, the Boy's start** | editor concepts: `docs/map-format/editor-concepts.md` |
 

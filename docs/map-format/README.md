@@ -47,6 +47,6 @@ the independent re-derivations that failed here before.
 ## Related
 
 Script, entity and sprite formats are documented in
-[../script-format/](../script-format/README.md); its index across sprites, bodies,
+[../entities/](../entities/README.md); its index across sprites, bodies,
 attacks, damage and animation is
-[entities-reference.md](../script-format/entities-reference.md).
+[entities-reference.md](../entities/entities-reference.md).

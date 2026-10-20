@@ -3,7 +3,7 @@
 //
 // Solved from Mesen traces of spawning a Mosquito, a Wimpy Flower and a
 // Lizard, plus the interpreter's own handlers where no trace runs a command.
-// docs/script-format/animation_format.md carries the trace lines each step
+// docs/entities/animation_format.md carries the trace lines each step
 // came from.
 //
 //   character record + 0x32   anim_stand, a 16-bit index
@@ -112,7 +112,7 @@ const END_FRAME = 0x80;
  * Only the two segmented bosses use it, and they stop the walk rather than
  * being given a length that does not exist. `0x3b` is an unconditional
  * jump and is left out for the same reason: stepping over it reads the wrong
- * bytes. Every opcode is listed in docs/script-format/animation_script.md.
+ * bytes. Every opcode is listed in docs/entities/animation_script.md.
  */
 
 const STRIKE = 0x47;

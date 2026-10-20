@@ -8,7 +8,7 @@ title: Script VM — stop every thread
 confidence: likely
 tags: [script-vm]
 evidence: ["disasm: clears bit 0 of $22EE, writes $4000 to $4EC7 and $4F75, zeroes byte +3 of every slot from $28FC in steps of $4F up to $2F28, empties the run list (DP $86 = 0, $2F28 = 0)"]
-see: [docs/game-research/script-vm/README.md]
+see: [docs/scripts/vm.md]
 ---
 Ends all scripts: every slot's pointer bank byte (+3) becomes 0 (a free slot) and the run list is
 emptied. The warp and map-change handlers (`0x21` at `$8C:DBB9`, `0x22` at `$8C:DB71`) call it before

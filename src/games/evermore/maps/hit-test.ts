@@ -1,5 +1,5 @@
 // Ownership: whether a strike box reaches a target — the geometry and height
-// rules of the hit test at `$8FB5F2`. Pure. docs/script-format/attack_boxes.md.
+// rules of the hit test at `$8FB5F2`. Pure. docs/entities/attack_boxes.md.
 //
 //   8FB5F4  LDA #$0280 / SBC $4A / STA $4A     ; $4A = $280 - attack height
 //   8FB63D  LDA $001C,Y / ADC #$10 / ADC $0044,Y / SBC $48   ; target y + 16 + hurt y - strike y

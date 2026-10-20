@@ -106,7 +106,7 @@ $$\text{Final Power} = \text{Min Power} + \text{Random Add}$$
 - **The effect animations are ordinary animation scripts**: records in the same table
   (`$C43E3A`), the same bytecode and interpreter (`$9080D0`) as characters, enemies and
   weapons. Opcodes, widths and the frame-end bit: the `animation-script` skill and
-  `docs/script-format/animation_script.md` — that table is canonical; do not keep a second
+  `docs/entities/animation_script.md` — that table is canonical; do not keep a second
   opcode list here (an older one here had `0x00` as "terminate" (it is `nop`), `0x2C` as
   "switch sheet" (second sprite slot) and `0xDD` as "palette flash" — `0xDD` is `0x5D`
   with bit 7 set).

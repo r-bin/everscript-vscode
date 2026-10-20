@@ -7,9 +7,9 @@ title: Unfreeze Boy and Dog
 confidence: confirmed
 tags: [script-vm]
 evidence: ["disasm: wrapper selects actor bits 1 and 2; shared helper $8C:DADB calls $8F:CD4D for Boy ($4E89) and Dog ($4F37)", "trace: the game ran 1 distinct instruction with this opcode (tests/script-vm/goldens.json)"]
-see: [rom/8fcd4d.md, docs/game-research/script-vm/opcodes.md]
+see: [rom/8fcd4d.md, docs/scripts/opcodes.md]
 ---
-With no operands, selects both Boy and Dog actor bits in the shared unfreeze dispatcher. It calls `$8F:CD4D` for `$4E89` and `$4F37`, restoring their motion and clearing immobilization state. Returns Carry Set.
+Handler of script opcode [0xC1](soe://rom/assets/scripts/opcodes/c1.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/c1.md`, served at `soe://rom/assets/scripts/opcodes/c1.md`.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

@@ -1,5 +1,7 @@
 # Script Opcode 0x8D & Screen Shake Engine ($8C:E385, $90:988E, $90:9897, $90:98A5)
 
+What each opcode does is described once, on its opcode page; this file keeps the routines' code: [`0x8D` shake_screen](soe://rom/assets/scripts/opcodes/8d.md).
+
 - **ROM Locations**:
   - `script_op_8d`: `$8C:E385` – `$8C:E399` (Opcode 0x8D: Screen shake control)
   - `screen_shake_stop`: `$90:988E` – `$90:9896` (Clear shake flags & offsets)

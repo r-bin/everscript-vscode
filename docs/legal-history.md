@@ -201,7 +201,7 @@ paths or ROM file names. The way out is in docs/cleanup.md §4.
 - `e6749ab5` 2026-05-27 v0.3.2: [Debugger/Rooms] restore practical room decode and add manual breakpoints
   `CHANGELOG.md` upstream, `extension.js` upstream
 - `727acffe` 2026-05-28 v0.3.3: [Debugger/Rooms] fix byte-script breakpoints
-  `CHANGELOG.md` upstream, `docs/byte-script-debugging.md` upstream, `extension.js` upstream
+  `CHANGELOG.md` upstream, `docs/scripts/debugging.md` upstream, `extension.js` upstream
 - `330c4e96` 2026-05-28 v0.3.4: [Architecture] Extract ROM readers, room data, and room tree modules
   `CHANGELOG.md` upstream, `extension.js` upstream
 - `6dd230bf` 2026-05-28 v0.3.5: [Activation] fix RadarCodeLensProvider deletion and add activation smoke test
@@ -257,7 +257,7 @@ paths or ROM file names. The way out is in docs/cleanup.md §4.
 - `305a8834` 2026-09-20 v0.16.0: [script] port the Everscript operand grammar from SoEScriptDumper · message names upstream
   `CHANGELOG.md` upstream, `src/script/README.md` upstream, `src/script/addressing.ts` upstream, `src/script/decoder.ts` upstream, `src/script/expression.ts` upstream, `src/script/index.ts` upstream, `src/script/opcodes.ts` number-run, `src/script/opcodes.ts` upstream, `tests/memory/script-parity.test.js` upstream, `tests/memory/script-units.test.js` upstream
 - `2cb25399` 2026-09-20 v0.17.0: [script/Rooms] port instruction summaries, retire the old decoder
-  `CHANGELOG.md` upstream, `docs/architecture/domain-overview.md` upstream, `docs/byte-script-debugging.md` upstream, `src/README.md` upstream, `src/script/README.md` upstream, `src/script/decoder.ts` upstream, `src/script/expression.ts` upstream, `src/script/index.ts` upstream, `src/script/names.json` upstream, `src/script/names.ts` upstream, `src/script/ops-entity.ts` upstream, `src/script/ops-flow.ts` upstream, … (+5)
+  `CHANGELOG.md` upstream, `docs/architecture/domain-overview.md` upstream, `docs/scripts/debugging.md` upstream, `src/README.md` upstream, `src/script/README.md` upstream, `src/script/decoder.ts` upstream, `src/script/expression.ts` upstream, `src/script/index.ts` upstream, `src/script/names.json` upstream, `src/script/names.ts` upstream, `src/script/ops-entity.ts` upstream, `src/script/ops-flow.ts` upstream, … (+5)
 - `5842066d` 2026-09-20 v0.18.0: [script/Rooms] read what every pickup gives, emit it as Everscript
   `CHANGELOG.md` upstream, `docs/architecture/domain-overview.md` upstream, `src/script/README.md` upstream, `src/script/decoder.ts` upstream, `src/script/index.ts` upstream, `src/script/loot.ts` upstream, `src/script/names.json` upstream, `src/script/names.ts` upstream, `src/script/ops-flow.ts` upstream, `src/script/ops-memory.ts` upstream, `tests/memory/script-loot.test.js` upstream, `tests/memory/script-units.test.js` upstream, … (+1)
 - `cf13b0e6` 2026-09-20 v0.19.0: [Rooms] draw the decoded reward on vanilla loot triggers
@@ -269,9 +269,9 @@ paths or ROM file names. The way out is in docs/cleanup.md §4.
 - `465adc00` 2026-09-21 v0.20.0: [script/Rooms] read where doors lead, and make them clickable
   `CHANGELOG.md` upstream, `src/script/index.ts` upstream, `src/script/ops-entity.ts` upstream, `src/script/ops-system.ts` upstream, `tests/memory/script-units.test.js` upstream
 - `9d3b76f9` 2026-09-21 v0.21.0: [script/Rooms] report the NPCs an enter script can place
-  `CHANGELOG.md` upstream, `docs/room-simulation.md` upstream, `src/script/README.md` upstream, `src/script/index.ts` upstream, `src/script/ops-entity.ts` upstream, `tests/memory/script-units.test.js` upstream
+  `CHANGELOG.md` upstream, `docs/scripts/room-simulation.md` upstream, `src/script/README.md` upstream, `src/script/index.ts` upstream, `src/script/ops-entity.ts` upstream, `tests/memory/script-units.test.js` upstream
 - `14c6700e` 2026-09-21 v0.22.0: [script/Rooms] name every NPC a script places, and plot it
-  `CHANGELOG.md` upstream, `docs/room-simulation.md` upstream, `src/script/names.json` upstream, `src/script/names.ts` upstream, `src/script/ops-entity.ts` upstream, `tests/memory/script-units.test.js` upstream, `tools/generate-script-names.js` upstream
+  `CHANGELOG.md` upstream, `docs/scripts/room-simulation.md` upstream, `src/script/names.json` upstream, `src/script/names.ts` upstream, `src/script/ops-entity.ts` upstream, `tests/memory/script-units.test.js` upstream, `tools/generate-script-names.js` upstream
 - `6eeee0cb` 2026-09-21 v0.23.0: [maps] port the ROM sprite decoder
   `CHANGELOG.md` upstream, `docs/sprite-rendering.md` upstream, `src/maps/README.md` upstream, `src/maps/sprites.ts` upstream, `tests/memory/map-parity.test.js` upstream
 - `ce773d32` 2026-09-21 v0.23.1: [docs] locate the animation table from the mosquito trace
@@ -281,25 +281,25 @@ paths or ROM file names. The way out is in docs/cleanup.md §4.
 - `35d0a8fc` 2026-09-21 v0.25.0: [maps] render the purple flower — bit 7 is end-of-frame, not an opcode
   `CHANGELOG.md` upstream, `docs/sprite-rendering.md` upstream, `src/maps/sprites.ts` upstream, `tests/memory/map-parity.test.js` upstream
 - `1b34beb6` 2026-09-21 v0.26.0: [maps/Rooms] animate enemies, and write up every researched format
-  `CHANGELOG.md` upstream, `docs/script-format/README.md` upstream, `docs/script-format/character_table.md` upstream, `docs/script-format/instruction_set.md` upstream, `docs/script-format/operand_grammar.md` upstream, `docs/script-format/sprite_format.md` upstream, `docs/sprite-rendering.md` upstream, `src/maps/README.md` upstream, `src/maps/characters.ts` upstream, `src/maps/sprites.ts` upstream, `src/script/README.md` upstream
+  `CHANGELOG.md` upstream, `docs/entities/README.md` upstream, `docs/entities/character_table.md` upstream, `docs/entities/instruction_set.md` upstream, `docs/entities/operand_grammar.md` upstream, `docs/entities/sprite_format.md` upstream, `docs/sprite-rendering.md` upstream, `src/maps/README.md` upstream, `src/maps/characters.ts` upstream, `src/maps/sprites.ts` upstream, `src/script/README.md` upstream
 - `18ca51e4` 2026-09-21 v0.27.0: [maps/Rooms] face enemies south and place them on their feet
   `CHANGELOG.md` upstream, `src/maps/characters.ts` upstream, `tests/memory/map-parity.test.js` upstream
 - `e2555ac0` 2026-09-21 v0.28.0: [maps] fix mirroring, facing and idle animation
-  `CHANGELOG.md` upstream, `docs/script-format/sprite_format.md` upstream, `src/maps/characters.ts` upstream, `src/maps/sprites.ts` upstream, `tests/memory/map-parity.test.js` upstream
+  `CHANGELOG.md` upstream, `docs/entities/sprite_format.md` upstream, `src/maps/characters.ts` upstream, `src/maps/sprites.ts` upstream, `tests/memory/map-parity.test.js` upstream
 - `23048059` 2026-09-21 v0.29.0: [maps] draw chunks in OAM order, loop the idle, flag hostility
-  `CHANGELOG.md` upstream, `docs/script-format/README.md` upstream, `docs/script-format/character_table.md` upstream, `docs/script-format/sprite_format.md` upstream, `src/maps/characters.ts` upstream, `src/maps/sprites.ts` upstream, `tests/memory/map-parity.test.js` upstream
+  `CHANGELOG.md` upstream, `docs/entities/README.md` upstream, `docs/entities/character_table.md` upstream, `docs/entities/sprite_format.md` upstream, `src/maps/characters.ts` upstream, `src/maps/sprites.ts` upstream, `tests/memory/map-parity.test.js` upstream
 - `2b5056ec` 2026-09-21 v0.30.0: [maps/Rooms] hitboxes, from the collision routine the trace runs
-  `CHANGELOG.md` upstream, `docs/script-format/README.md` upstream, `docs/script-format/hitboxes.md` upstream, `src/maps/README.md` upstream, `src/maps/character-record.ts` upstream, `tests/memory/map-parity.test.js` upstream
+  `CHANGELOG.md` upstream, `docs/entities/README.md` upstream, `docs/entities/hitboxes.md` upstream, `src/maps/README.md` upstream, `src/maps/character-record.ts` upstream, `tests/memory/map-parity.test.js` upstream
 - `060584c2` 2026-09-21 v0.31.0: [maps] attack boxes — animation command 0x47, not the collision box
-  `CHANGELOG.md` upstream, `docs/script-format/README.md` upstream, `docs/script-format/attack_boxes.md` upstream, `docs/script-format/hitboxes.md` upstream, `src/maps/character-record.ts` upstream, `tests/memory/map-parity.test.js` upstream
+  `CHANGELOG.md` upstream, `docs/entities/README.md` upstream, `docs/entities/attack_boxes.md` upstream, `docs/entities/hitboxes.md` upstream, `src/maps/character-record.ts` upstream, `tests/memory/map-parity.test.js` upstream
 - `8174fcef` 2026-09-21 v0.32.0: [maps/Rooms] canopy over enemies, palette budget, arrivals
-  `CHANGELOG.md` upstream, `docs/script-format/README.md` upstream, `src/maps/README.md` upstream, `src/maps/character-record.ts` upstream, `src/script/index.ts` upstream, `tests/memory/map-parity.test.js` upstream, `tests/memory/script-units.test.js` upstream
+  `CHANGELOG.md` upstream, `docs/entities/README.md` upstream, `src/maps/README.md` upstream, `src/maps/character-record.ts` upstream, `src/script/index.ts` upstream, `tests/memory/map-parity.test.js` upstream, `tests/memory/script-units.test.js` upstream
 - `ee3bf429` 2026-09-21 v0.33.0: [maps/Rooms] the canopy covers only the characters it should
-  `CHANGELOG.md` upstream, `docs/script-format/README.md` upstream, `docs/script-format/sprite_format.md` upstream, `src/maps/README.md` upstream, `src/maps/collision-overlay.ts` upstream, `tests/memory/map-parity.test.js` upstream
+  `CHANGELOG.md` upstream, `docs/entities/README.md` upstream, `docs/entities/sprite_format.md` upstream, `src/maps/README.md` upstream, `src/maps/collision-overlay.ts` upstream, `tests/memory/map-parity.test.js` upstream
 - `98629b48` 2026-09-21 v0.34.0: [maps/Rooms] plane before bit 12, weight instead of dash
   `CHANGELOG.md` upstream, `src/maps/README.md` upstream, `src/maps/overlay-features.ts` upstream, `tests/memory/map-parity.test.js` upstream
 - `d387752a` 2026-09-21 v0.35.0: [maps/Rooms] dotted covered collision; /simulation design notes
-  `CHANGELOG.md` upstream, `CLAUDE.md` upstream, `docs/room-simulation.md` upstream, `docs/script-format/README.md` upstream, `src/maps/README.md` upstream, `src/maps/overlay-features.ts` upstream, `tests/memory/map-parity.test.js` upstream
+  `CHANGELOG.md` upstream, `CLAUDE.md` upstream, `docs/scripts/room-simulation.md` upstream, `docs/entities/README.md` upstream, `src/maps/README.md` upstream, `src/maps/overlay-features.ts` upstream, `tests/memory/map-parity.test.js` upstream
 - `bd31c6fc` 2026-09-21 v0.35.1: [maps] cut the dash along the contour, not across the screen
   `CHANGELOG.md` upstream, `tests/memory/map-parity.test.js` upstream
 - `e0663d16` 2026-09-21 v0.36.0: [maps/Rooms] the tile palette, and a checked write path
@@ -571,7 +571,7 @@ paths or ROM file names. The way out is in docs/cleanup.md §4.
 - `b3f7f51c` 2026-10-02 v0.117.2: [Rooms / Object] state 0's step shows as a greyed-out 1
   `CHANGELOG.md` upstream
 - `d13efe1e` 2026-10-02 docs: [Rooms] room, editor and entity references; collision bit 14 is the step-on gate
-  `CLAUDE.md` upstream, `GEMINI.md` upstream, `docs/script-format/README.md` upstream, `docs/script-format/entities-reference.md` upstream
+  `CLAUDE.md` upstream, `GEMINI.md` upstream, `docs/entities/README.md` upstream, `docs/entities/entities-reference.md` upstream
 - `b63cd6df` 2026-10-02 v0.118.0: [Rooms / Special, Info] Step-on as a special, palette sets, Info as Header / Budget / Map
   `CHANGELOG.md` upstream
 - `8b07a5ef` 2026-10-02 v0.118.1: [Rooms / Animation] animated tiles no longer covered by their still frame
@@ -583,7 +583,7 @@ paths or ROM file names. The way out is in docs/cleanup.md §4.
 - `320eb905` 2026-10-03 v0.119.2: [sprites] fix boy weapon animations, missing opcodes, facings & hitboxes
   `CHANGELOG.md` upstream, `src/sprites/animation-decoder.js` upstream, `src/sprites/character-model.js` upstream
 - `8cbbacd4` 2026-10-03 v0.119.3: [Sprites] docs: the animation script language
-  `CHANGELOG.md` upstream, `docs/script-format/README.md` upstream, `docs/script-format/attack_boxes.md` upstream
+  `CHANGELOG.md` upstream, `docs/entities/README.md` upstream, `docs/entities/attack_boxes.md` upstream
 - `931c922a` 2026-10-03 v0.120.0: [Sprites] all 783 animations, run tick by tick, with their scripts
   `CHANGELOG.md` upstream, `CLAUDE.md` upstream, `GEMINI.md` upstream, `src/maps/README.md` upstream, `src/sprites/README.md` upstream, `src/sprites/animation-decoder.js` upstream, `src/sprites/character-model.js` upstream
 - `2c1f331f` 2026-10-03 v0.121.0: [Sprites] projectiles: decoded, launched on their tick, flown
@@ -595,19 +595,19 @@ paths or ROM file names. The way out is in docs/cleanup.md §4.
 - `f3bebec4` 2026-10-03 v0.124.0: [Sprites] damage keeps its sprite, fliers hover, Tar Skull snake
   `CHANGELOG.md` upstream, `src/sprites/animation-decoder.js` upstream, `src/sprites/character-model.js` upstream
 - `7dab1f09` 2026-10-03 v0.125.0: [Sprites] smooth segment easing, hurt offsets, hit cooldown, fields
-  `CHANGELOG.md` upstream, `docs/script-format/character_table.md` upstream, `src/sprites/animation-decoder.js` upstream, `src/sprites/character-model.js` upstream
+  `CHANGELOG.md` upstream, `docs/entities/character_table.md` upstream, `src/sprites/animation-decoder.js` upstream, `src/sprites/character-model.js` upstream
 - `e8df41f4` 2026-10-03 v0.126.0: [Sprites] aggro square, no-visuals tags, everscript names, leap fix
-  `CHANGELOG.md` upstream, `docs/script-format/character_table.md` upstream, `docs/script-format/entities-reference.md` upstream, `src/sprites/animation-decoder.js` upstream, `src/sprites/character-model.js` upstream
+  `CHANGELOG.md` upstream, `docs/entities/character_table.md` upstream, `docs/entities/entities-reference.md` upstream, `src/sprites/animation-decoder.js` upstream, `src/sprites/character-model.js` upstream
 - `d5699bed` 2026-10-03 v0.127.0: [Sprites] contact damage, list thumbnails, all-palettes view
-  `CHANGELOG.md` upstream, `docs/script-format/entities-reference.md` upstream, `src/sprites/animation-decoder.js` upstream
+  `CHANGELOG.md` upstream, `docs/entities/entities-reference.md` upstream, `src/sprites/animation-decoder.js` upstream
 - `002a9955` 2026-10-03 v0.128.0: [Sprites] sidebar tabs, movement-aware hits, palette fixes, labels
   `CHANGELOG.md` upstream, `src/sprites/animation-decoder.js` upstream, `src/sprites/character-model.js` upstream
 - `f64df632` 2026-10-03 docs: runtime-writable character stats table
-  `docs/script-format/README.md` upstream
+  `docs/entities/README.md` upstream
 - `5ce68831` 2026-10-03 v0.129.0: [Sprites] resizable sidebars, lazy previews, Animations tab, HUD ops
   `CHANGELOG.md` upstream, `src/sprites/README.md` upstream
 - `66c6fd29` 2026-10-03 docs: document weapon table, animation opcodes, hitboxes, and sprites tab ownership
-  `docs/script-format/character_table.md` upstream, `docs/script-format/entities-reference.md` upstream
+  `docs/entities/character_table.md` upstream, `docs/entities/entities-reference.md` upstream
 - `9edf887a` 2026-10-03 v0.130.0: [Sprites] compass + overlay column, bottom seek bar, tiles; fixes
   `CHANGELOG.md` upstream, `src/maps/sprites.ts` upstream, `src/sprites/README.md` upstream, `src/sprites/animation-decoder.js` upstream
 - `b8eb124a` 2026-10-03 v0.131.0: [Sprites] movement speed, stage overlays, inferred palettes
@@ -619,7 +619,7 @@ paths or ROM file names. The way out is in docs/cleanup.md §4.
 - `88dec380` 2026-10-03 v0.134.0: [Characters] stamina selector, character centred on the stage
   `CHANGELOG.md` upstream
 - `342d4c7a` 2026-10-03 docs: [Characters] palette home slot, character and animation skills reconciled
-  `CLAUDE.md` upstream, `docs/script-format/character_table.md` upstream, `docs/script-format/entities-reference.md` upstream, `src/sprites/README.md` upstream
+  `CLAUDE.md` upstream, `docs/entities/character_table.md` upstream, `docs/entities/entities-reference.md` upstream, `src/sprites/README.md` upstream
 - `fd8de50c` 2026-10-03 v0.135.0: [Characters] diagonal movement speeds
   `CHANGELOG.md` upstream, `src/sprites/animation-decoder.js` upstream
 - `32568845` 2026-10-03 v0.136.0: [Docs] Cheats section: the diagonal speed boost
@@ -675,9 +675,9 @@ paths or ROM file names. The way out is in docs/cleanup.md §4.
 - `1ed1354b` 2026-10-05 v0.155.2: [ai-config] unify all AI instructions into AGENTS.md and .agents/skills/
   `.agents/agents/script-parser-generator.md` upstream, `docs/architecture/domain-overview.md` upstream, `docs/release-checklist.md` upstream, `src/sprites/README.md` upstream
 - `9e9030b2` 2026-10-07 v0.166.0: [Emulator] Debug .evs scripts in the emulator from VS Code (breakpoints, stepping, call stacks)
-  `docs/architecture/domain-overview.md` upstream, `docs/byte-script-debugging.md` upstream, `src/README.md` upstream
+  `docs/architecture/domain-overview.md` upstream, `docs/scripts/debugging.md` upstream, `src/README.md` upstream
 - `3aa9d064` 2026-10-07 v0.171.0: [emulator] Add objects and animated tiles overlay visualizations matching map editor
-  `docs/script-format/character_table.md` upstream
+  `docs/entities/character_table.md` upstream
 - `38da20b8` 2026-10-08 v0.175.0: [ROM] New ROM tab: every bank's content, gaps and CDL coverage
   `src/README.md` upstream
 - `9f822a67` 2026-10-08 v0.177.0: [localizations] Centralize subjective names and add ROM string resolution
@@ -695,7 +695,7 @@ paths or ROM file names. The way out is in docs/cleanup.md §4.
 - `909e6022` 2026-10-09 v0.185.0: [Resources] connect characters, animations with GIF/frames/tiles, map tiles, audio SPC/sounds, and lookup tables to soe://
   `src/sprites/animation-decoder.js` upstream
 - `4a8412f0` 2026-10-09 docs: [docs] Document Secret of Evermore enemy AI architecture and behaviours
-  `docs/script-format/README.md` upstream, `docs/script-format/entities-reference.md` upstream
+  `docs/entities/README.md` upstream, `docs/entities/entities-reference.md` upstream
 - `d7c6b5c2` 2026-10-09 v0.188.0: [Music] New Music tab: the sound chip live from the emulator or playing a track
   `docs/architecture/domain-overview.md` upstream, `src/README.md` upstream
 - `63337d23` 2026-10-10 v0.190.0: [music tab] exact sfx frames from the driver, read-ahead, animation→sound tags, resizable sfx sidebar
@@ -719,9 +719,9 @@ paths or ROM file names. The way out is in docs/cleanup.md §4.
 - `02798d24` 2026-10-13 docs: consolidate task clusters into docs/todo/
   `docs/architecture-state.md` upstream, `docs/architecture/domain-overview.md` upstream
 - `4e69e6c0` 2026-10-13 feat(emulator): fix trigger attribution for step-on and b-triggers, add trigger modernization architecture spec
-  `docs/script-format/README.md` upstream
+  `docs/entities/README.md` upstream
 - `073ce72c` 2026-10-14 v0.202.0: [simulation] Simulate scripts: loot cases, room scenarios, NPC tracking, byte-identical Everscript
-  `docs/room-simulation.md` upstream, `src/README.md` upstream
+  `docs/scripts/room-simulation.md` upstream, `src/README.md` upstream
 - `3507816e` 2026-10-14 v0.203.0: [scripts] New Scripts tab: Everscript + map, animation and alchemy scripts + animation, music sequences + silent player
   `src/README.md` upstream
 - `63b02777` 2026-10-14 v0.204.0: [mana maps] Secret of Mana maps drawn as the game draws them, in their own panel and som:// file system
@@ -735,7 +735,7 @@ paths or ROM file names. The way out is in docs/cleanup.md §4.
 - `2ca9d7fe` 2026-10-16 v0.219.0: [emulator] SNES CDL Recorder (second extension); Evermore-only features need an Evermore ROM; everything optional off and remembered
   `src/README.md` upstream
 - `61f49aa1` 2026-10-16 docs: [sprites] Gate nibble 4 splits a sprite by its chunks' priority marks (unused wading effect)
-  `docs/script-format/sprite_format.md` upstream
+  `docs/entities/sprite_format.md` upstream
 - `daeb17a4` 2026-10-16 docs: [rom] Old community Ghidra notes analysed: terms vs ours, tables, record fields, formulas, leads to check
   `docs/reverse-engineering/community-ghidra-notes.md` upstream
 - `cda3479c` 2026-10-16 docs: [architecture] Repo cleanup plan and multi-game target

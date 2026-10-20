@@ -1,7 +1,7 @@
 ---
 name: animation-script
 description: Use before changing anything that walks, runs, lists, names or renders a Secret of Evermore animation script, or the sprites domain (maps/animation-*.ts, sprites/). Rules a change must keep.
-applyTo: "src/games/evermore/maps/animation-*.ts,src/games/evermore/maps/character-animation.ts,src/games/evermore/sprites/**,docs/script-format/animation_*.md"
+applyTo: "src/games/evermore/maps/animation-*.ts,src/games/evermore/maps/character-animation.ts,src/games/evermore/sprites/**,docs/entities/animation_*.md"
 ---
 
 # Animation scripts and sprites: rules
@@ -11,8 +11,8 @@ The sprites domain (`src/games/evermore/sprites/`, its AGENTS.md) decodes SNES O
 and renders thumbnails and animations for the Characters tab. The animation language it runs:
 
 The language, with every handler address and the evidence for each width, is
-`docs/script-format/animation_script.md`. How idle frames feed the room view is
-`docs/script-format/animation_format.md`. This skill is what a change must not get
+`docs/entities/animation_script.md`. How idle frames feed the room view is
+`docs/entities/animation_format.md`. This skill is what a change must not get
 wrong.
 
 ## 1. Where things are
@@ -116,7 +116,7 @@ else; the linear walker reads `opcode()` too.
   for the Boy and Dog.
 - **Hit cooldown**: the same attacker re-hits only after 21 ticks (`+0x36/+0x38`).
   Knock-back is not invulnerable.
-- Character record fields and their readers: `docs/script-format/character_table.md`.
+- Character record fields and their readers: `docs/entities/character_table.md`.
 
 - **One-shots** (attack, damage, death, cast — record fields from `+0x38` on) pass
   `oneShot`: still airborne at `loop`, they hold their last frame until they land.

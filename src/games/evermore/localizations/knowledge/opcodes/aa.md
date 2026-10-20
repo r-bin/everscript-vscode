@@ -8,7 +8,7 @@ everscript: ["cure()","clear_status_effects()"]
 evidence: ["disasm: handler at the table entry $8C:E7EF"]
 see: ["rom/8ce7ef.md"]
 ---
-`$91:B9A7` for Boy and Dog clears their status-effect slots (`+$46`...); `$23C7` (one-shot) picks the other mode.
+Calls `$91:B9A7` for the Boy and for the Dog to clear their status effects (slots at `+$46`, `+$4C`, ...; `$FFFF` = empty). Carry is set for both calls, unless the one-shot `$23C7` is set: then it is cleared and the calls run with carry clear.
 
 ## Why it exists
 

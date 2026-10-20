@@ -6,7 +6,7 @@ name: test_entity_pair_overlap
 title: Test pair overlap using 2:1 isometric ellipse formula (|dx| < sum and 2*|dy| < sum)
 confidence: confirmed
 tags: [physics, collision, isometric, math]
-evidence: ["disasm: loads candidate radius, adds mover radius ($18), tests doubled vertical difference ASL |dy| < $18, tests horizontal difference |dx| < $18", "docs: docs/script-format/hitboxes.md; clean C in docs/disassembly/combat/hitbox-intersections.md"]
+evidence: ["disasm: loads candidate radius, adds mover radius ($18), tests doubled vertical difference ASL |dy| < $18, tests horizontal difference |dx| < $18", "docs: docs/entities/hitboxes.md; clean C in docs/disassembly/combat/hitbox-intersections.md"]
 see: [rom/8fb46d.md]
 ---
 Core isometric body collision algorithm:

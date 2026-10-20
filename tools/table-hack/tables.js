@@ -12,7 +12,7 @@ const { fileU16: u16, fileU24: u24 } = require('../../dist/platform');
 const put24 = (img, o, v) => { img[o] = v & 0xFF; img[o + 1] = (v >> 8) & 0xFF; img[o + 2] = (v >> 16) & 0xFF; };
 
 const SCRIPT_BANK = 0x128000;                 // $92:8000, the script bank header
-/** File offset of a packed script pointer (docs/game-research/script-vm/README.md, "Script addresses"). */
+/** File offset of a packed script pointer (docs/scripts/vm.md, "Script addresses"). */
 const unpackScript = v => (0x128000 + (v & 0x7FFF) + ((v & 0xFF8000) << 1)) & 0xFFFFFF;
 
 /**
@@ -99,7 +99,7 @@ const TABLES = {
             operand(0x0CDCE2, 0xBF, 0x8EB55A), operand(0x0CDCF3, 0xBF, 0x8EB55A)],
     },
     characters: {
-        what: 'character records, 74 bytes (docs/script-format/character_table.md), addressed by their 16-bit address',
+        what: 'character records, 74 bytes (docs/entities/character_table.md), addressed by their 16-bit address',
         // Records keep their 16-bit addresses (enemy index values, WRAM entity fields), so they move to the same
         // offset in another bank and every reader changes only its bank byte: $8E -> $B8 (a $80-$BF bank, so
         // X = $0A26/$0A70 still reaches the Boy's and Dog's records in WRAM) and $CE -> $F8. New records follow the

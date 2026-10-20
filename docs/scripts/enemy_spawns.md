@@ -40,7 +40,7 @@ carries no literal position.
 The conversion is exact, with nothing to round: every entity in a trace of
 room `0x38` sits at pixel `8 * x` for the script's `x`, so a spawn stands on
 the unit itself rather than in the middle of its cell. See
-[hitboxes.md](hitboxes.md#where-a-spawn-actually-stands).
+[hitboxes.md](../entities/hitboxes.md#where-a-spawn-actually-stands).
 
 **`$2433` is `ENEMY_SPAWNER_QUANTITY`**, which is why it is written just
 before a spawner. It is a count, not a character id.
@@ -54,5 +54,5 @@ South jungle resolves to 7 Mosquitoes and 14 Wimpy Flowers.
 
 A room's enter script branches on save state — the same room is reused with
 different enemies as the story moves on — and the walk follows every branch.
-Deciding which one runs needs [a simulation](../room-simulation.md) that
+Deciding which one runs needs [a simulation](room-simulation.md) that
 does not exist yet, so the UI labels them accordingly.

@@ -75,7 +75,8 @@ visualize all game data (map editor, music player, script editor, sprite viewer)
 | `docs/architecture/multi-game.md` | The target and its status: platform / core / games, game descriptors, variants and base ROM, the ROM library, game views, the one map editor (§8) |
 | `docs/cleanup.md` | The cleanup: decisions D1–D13 and the open work — read before deleting, moving, deduplicating or porting to TS |
 | `docs/todo/README.md` | Open work and ideas, by topic |
-| `docs/map-format/`, `docs/script-format/`, `docs/mana/`, `docs/terra/` | Each game's formats, with evidence |
+| `docs/scripts/` | Evermore's event scripts: the VM, the opcode overview (one description per opcode: `soe://rom/assets/scripts/opcodes/`), loot, doors, spawns |
+| `docs/map-format/`, `docs/entities/`, `docs/mana/`, `docs/terra/` | Each game's formats (maps, entities), with evidence |
 | `docs/reverse-engineering/README.md`, `docs/recomp/README.md`, `docs/exhirom/README.md` | RE approaches; the static recompilation; ExHiROM, the table hack and layouts |
 | `docs/evermore-releases.md` | The Evermore ROMs that exist, how they are identified, why US addresses do not apply to PAL builds |
 | `tools/` | `check-*.mts` (the checks), `roms.js` (the ROM library), `recomp/`, `exhirom/`, `table-hack/`, `recorder/`, `mana/` |

@@ -1,13 +1,9 @@
 # Script VM Camera Positioning, Map Transitions & Character Spawning
 
 ## Overview
-Transitions between map rooms, cutscene camera pans, and doorway warps in Secret of Evermore are managed by three core Script VM opcodes:
+Three opcodes place the party: `0x20` in the room, `0x21` restarting the room, `0x22` loading another map; all three end in `$8F:B434`.
 
-- **Opcode `0x20` (`$8C:DBF0`)**: Instantaneous camera repositioning to `(X * 8, Y * 8)`.
-- **Opcode `0x21` (`$8C:DBB9`)**: Camera warp with screen fade-out, audio muting, and thread yield.
-- **Opcode `0x22` (`$8C:DB71`)**: Full room transition — screen fade-out, room state re-initialization (`$90:8E90`), entity spawning, and camera centering.
-
-All three handlers invoke the camera and character spawn master subroutine `$8F:B434`.
+What each opcode does is described once, on its opcode page; this file keeps the routines' code: [`0x20` teleport_party](soe://rom/assets/scripts/opcodes/20.md), [`0x21` restart_room_at](soe://rom/assets/scripts/opcodes/21.md), [`0x22` load_map](soe://rom/assets/scripts/opcodes/22.md).
 
 ---
 
@@ -41,8 +37,8 @@ typedef struct {
 } Entity;
 
 #define DP_SCRIPT_PC         (*(volatile uint8_t**)0x82)
-#define DP_SCRIPT_FLAGS      (*(volatile uint16_t*)0x83)
-#define DP_THREAD_SLEEP      (*(volatile int16_t*)0x80)
+#define DP_SCRIPT_BANK       (*(volatile uint16_t*)0x83)   // pointer bytes $83-$84; 0 = this script has ended
+#define DP_RUN_LIST_INDEX    (*(volatile int16_t*)0x80)    // position in the run list $2F28
 
 #define DP_POS_Z             (*(volatile uint16_t*)0x44)
 #define DP_POS_X             (*(volatile uint16_t*)0x46)
@@ -55,8 +51,8 @@ typedef struct {
 
 // External Subroutines
 extern void screen_fade_to_black(void);                       // $80:85D8
-extern void script_thread_pause(void);                        // $8C:CEE9
-extern void script_thread_resume(void);                       // $8C:CE99
+extern void script_stop_all_threads(void);                    // $8C:CEE9
+extern void script_start_room_enter_script(void);             // $8C:CE99
 extern void audio_stop_all(void);                             // $8F:B38E
 extern void reset_per_room_state(uint16_t room_id);           // $90:8E90
 extern void coord_clamp_boundaries(uint16_t *x, uint16_t *y); // $90:9815
@@ -127,11 +123,11 @@ bool script_op_camera_scroll_instant(void) {
 
 /**
  * $8C:DBB9 - Script VM Opcode 0x21: camera_warp_fade(x_tiles, y_tiles)
- * Fades screen to black, silences sound, moves camera/actors, and yields 2 frames.
+ * Stops every thread, places the party, starts the room's enter script again; ends this script.
  */
 bool script_op_camera_warp_fade(void) {
     screen_fade_to_black();
-    script_thread_pause();
+    script_stop_all_threads();
     audio_stop_all();
 
     uint16_t x_tiles = *DP_SCRIPT_PC++;
@@ -143,22 +139,22 @@ bool script_op_camera_warp_fade(void) {
 
     spawn_characters_and_position_camera(DP_POS_X, DP_POS_Y);
 
-    script_thread_resume();
-    DP_SCRIPT_FLAGS = 0;
-    DP_THREAD_SLEEP = -2; // Wait 2 frames
+    script_start_room_enter_script();
+    DP_SCRIPT_BANK = 0;       // this script is over
+    DP_RUN_LIST_INDEX = -2;   // the scheduler restarts at the head of the (new) run list
 
-    // CLC: Yield thread
+    // CLC: this thread's turn ends (the script is already over)
     return false;
 }
 
 /**
  * $8C:DB71 - Script VM Opcode 0x22: map_transition(x_tiles, y_tiles, room_id)
- * Full room change: fades screen, unloads previous map, loads new room geometry,
- * spawns characters, and yields thread across the load boundary.
+ * Full room change: stops every thread, writes the map word to $0ADB, resets the per-room state,
+ * places the party and starts the new room's enter script; ends this script.
  */
 bool script_op_map_transition_room(void) {
     screen_fade_to_black();
-    script_thread_pause();
+    script_stop_all_threads();
     audio_stop_all();
 
     uint16_t x_tiles = *DP_SCRIPT_PC++;
@@ -178,11 +174,11 @@ bool script_op_map_transition_room(void) {
 
     spawn_characters_and_position_camera(DP_POS_X, DP_POS_Y);
 
-    script_thread_resume();
-    DP_SCRIPT_FLAGS = 0;
-    DP_THREAD_SLEEP = -2; // Wait 2 frames
+    script_start_room_enter_script();
+    DP_SCRIPT_BANK = 0;       // this script is over
+    DP_RUN_LIST_INDEX = -2;   // the scheduler restarts at the head of the (new) run list
 
-    // CLC: Yield thread
+    // CLC: this thread's turn ends (the script is already over)
     return false;
 }
 ```

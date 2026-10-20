@@ -298,7 +298,7 @@ computed. Before changing it, list every place the id appears:
 4. **Sentinels.** Does `$FF` (or `$7F`) mean "no room"? Widening silently breaks a
    sentinel comparison.
 5. **Script bytecode.** `CHANGE MAP` (`0x22`) already carries a 16-bit map id
-   ([map_transitions.md](../script-format/map_transitions.md)); the engine and the reference
+   ([map_transitions.md](../scripts/map_transitions.md)); the engine and the reference
    only use the low byte. Audit every other opcode that takes a room id.
 6. **Save data (SRAM).** If the current room is saved, the save format needs a version
    bump.

@@ -1,6 +1,6 @@
 // TODO port to TS (docs/todo/port-to-ts.md)
 // Hooks: the one place the table hack adds code. A sprite palette is a 16-bit address in bank $90 (character record
-// +0x09/+0x0B, docs/script-format/character_table.md), and bank $90 has no free space. Two routines read a palette:
+// +0x09/+0x0B, docs/entities/character_table.md), and bank $90 has no free space. Two routines read a palette:
 //   $90:CF3A  copies its 15 colours to WRAM $7E6289+ with DB = its own bank (`phb : phk : plb : phy`)
 //   $90:CFB8  points a CGRAM DMA at it with the bank hard-coded (`lda.w #$0090 : sta $28` at $90:CFD2)
 // Every vanilla palette address is >= $8000 (upper half). The hooks read an address below $8000 as "bank $FA", where

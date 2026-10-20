@@ -242,7 +242,7 @@ In order of value:
 4. **Animation record names** (`$C4:3E3A`): about 1000 group names to compare with our
    generated ones (`re-curator` pass).
 5. **Combat formulas** (§6): trace each in the emulator and record it under
-   `docs/game-research/`.
+   `docs/scripts/`.
 
 Evidence for anything recorded from here is our own `trace`/`disasm`/`read` line. The
 evidence may add "(lead: old community Ghidra notes)". A fact backed only by the note is

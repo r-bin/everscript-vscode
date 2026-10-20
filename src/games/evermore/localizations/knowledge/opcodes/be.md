@@ -8,4 +8,4 @@ everscript: ["control()"]
 evidence: ["disasm: handler at the table entry $8C:DB20"]
 see: ["rom/8cdb20.md"]
 ---
-Mask 2 into `0x2C`.
+`0x2C` with mask 2: freezes the Dog.

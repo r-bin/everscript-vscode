@@ -38,7 +38,7 @@ it. See the `map-format` skill.
 | `custom-room.ts` | A custom map's resolved grid → a room blob, borrowing a donor's graphics ([rom-export.md](../../../../docs/map-format/rom-export.md)) |
 | `custom-animation.ts` | A custom map's Section 2: a channel per placed animated graphic, the slot order and word renumbering that make it play |
 | `budget.ts` | The four ceilings (graphics, families, stamps, WRAM) and what an edit adds to them |
-| `animation-opcodes.ts` | The animation bytecode's instruction set — the one width table — and a disassembler ([animation_script.md](../../../../docs/script-format/animation_script.md)) |
+| `animation-opcodes.ts` | The animation bytecode's instruction set — the one width table — and a disassembler ([animation_script.md](../../../../docs/entities/animation_script.md)) |
 | `animation-vm.ts` | Runs an animation script tick by tick like the engine; the record table (783 animations) and the `animate()` id table |
 | `projectiles.ts` | Projectile records (`$900000 + id`), their setup and per-tick behaviours, and the flight path tick by tick (straight, aimed, the boomerang ellipse) |
 | `hit-test.ts` | Whether a strike box reaches a target: the feet-centred hurt region and the height rule of `$8FB5F2` |
@@ -78,7 +78,7 @@ room.triggers.stepOn[i].scriptId; // byte offset into the script pointer table
 
 `sprites.ts` decodes character and object sprites — sprite records, block tables, the
 mask-per-group compression and chunk composition — read from the game's sprite renderer
-`$80:9033` and block loaders (docs/script-format/sprite_format.md). The sprites are the ones the
+`$80:9033` and block loaders (docs/entities/sprite_format.md). The sprites are the ones the
 animation scripts name.
 
 Going from a character to a picture is three layers, each its own file:
@@ -91,13 +91,13 @@ Going from a character to a picture is three layers, each its own file:
 | `item-icons.ts` | the ring menu's icon table at `$CE8000` — an icon's record and palette, and which icon a loot reward or alchemy formula shows ([item-icons.md](../../../../docs/item-icons.md)) |
 
 See
-[docs/script-format/sprite_format.md](../../../../docs/script-format/sprite_format.md),
-[animation_format.md](../../../../docs/script-format/animation_format.md),
-[character_table.md](../../../../docs/script-format/character_table.md),
-[hitboxes.md](../../../../docs/script-format/hitboxes.md),
-[attack_boxes.md](../../../../docs/script-format/attack_boxes.md),
-[palettes.md](../../../../docs/script-format/palettes.md) and
-[sprite_priority.md](../../../../docs/script-format/sprite_priority.md).
+[docs/entities/sprite_format.md](../../../../docs/entities/sprite_format.md),
+[animation_format.md](../../../../docs/entities/animation_format.md),
+[character_table.md](../../../../docs/entities/character_table.md),
+[hitboxes.md](../../../../docs/entities/hitboxes.md),
+[attack_boxes.md](../../../../docs/entities/attack_boxes.md),
+[palettes.md](../../../../docs/entities/palettes.md) and
+[sprite_priority.md](../../../../docs/entities/sprite_priority.md).
 
 `render.ts` also renders the **canopy** — `renderRoomForeground`, the pixels
 a character standing in the room *can* be drawn behind. In Mode 1 that is
@@ -108,7 +108,7 @@ Whether a given character is actually behind it is a per-tile question:
 and then tests bit 12, which is set on 84% of vanilla tiles. Use
 `spawnDepth()` for a resting spawn and `spriteDepth()` when the character's
 own plane is known — see
-[docs/script-format/sprite_priority.md](../../../../docs/script-format/sprite_priority.md).
+[docs/entities/sprite_priority.md](../../../../docs/entities/sprite_priority.md).
 
 `hiddenTileMask()` answers the other half of the same picture: which
 metatiles the player genuinely cannot see the ground of — the foreground

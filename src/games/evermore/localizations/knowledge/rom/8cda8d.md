@@ -7,9 +7,9 @@ title: Script opcode 0x73: walk an entity to a point, ignoring terrain
 confidence: confirmed
 tags: [script-vm]
 evidence: ["trace: the game ran 2 distinct instructions with this opcode (tests/script-vm/goldens.json)", "disasm: PEA $0001 -> DP $12 selects $8F:AAD3 (v0.320.0)"]
-see: [docs/game-research/script-vm/README.md, docs/game-research/script-vm/opcodes.md]
+see: [docs/scripts/vm.md, docs/scripts/opcodes.md]
 ---
-Entity, x and y pixel expressions; walks there through `$8F:AAD3` like opcode `0x6F`.
+Handler of script opcode [0x73](soe://rom/assets/scripts/opcodes/73.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/73.md`, served at `soe://rom/assets/scripts/opcodes/73.md`.
 
 Previously believed: the coordinates were only staged.
 

@@ -4,7 +4,7 @@
 // `0x4c` (`$908725`) reads a word and three signed bytes, puts the spawn point
 // at (x + dx, y + dy, height + dz * 16), and calls `$90DCA4` with the word in
 // `$06`. Everything that routine and `$90DC35` read is `$900000 + id`, a
-// 24-byte record. docs/script-format/animation_script.md § Projectiles.
+// 24-byte record. docs/entities/animation_script.md § Projectiles.
 
 import { snesToRom, readByte } from './rom';
 

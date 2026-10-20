@@ -56,9 +56,9 @@ and sourcing it is the only real unknown left on this page.
 
 **4. Whether a swing connects at all.** Damage is not the whole answer — an
 attack has to land. That is already solved and documented:
-[attack_boxes.md](../../script-format/attack_boxes.md) (animation command
+[attack_boxes.md](../../entities/attack_boxes.md) (animation command
 `0x47`, the `2(|dx|-r) < w` test) and
-[hitboxes.md](../../script-format/hitboxes.md). A fight simulation that
+[hitboxes.md](../../entities/hitboxes.md). A fight simulation that
 ignores reach will report odds for a swing that misses.
 
 ## How we would know it is right

@@ -14,7 +14,7 @@ straight N.
 
 1. **Animations move the character.** A walk or run is an animation script, and
    its `step n` commands move the entity `n/4` px per tick
-   ([animation_script.md § Movement speed](script-format/animation_script.md#movement-speed)).
+   ([animation_script.md § Movement speed](entities/animation_script.md#movement-speed)).
    Each facing has its own script, and they don't use the same `n`: the spear
    walk steps 6 going north or south and 8 going east or west.
 2. **Walk and run animations have only four poses.** The record's flags (bit 6)

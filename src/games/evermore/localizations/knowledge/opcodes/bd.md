@@ -8,4 +8,4 @@ everscript: ["control()"]
 evidence: ["disasm: handler at the table entry $8C:DAC5"]
 see: ["rom/8cdac5.md"]
 ---
-Mask 1 into `0x2D`.
+`0x2D` with mask 1: unfreezes the Boy (`$8F:CD4D`).

@@ -1,6 +1,6 @@
 # Simulating a room's enter script
 
-> Status: **built** in [`src/games/evermore/simulation/`](../src/games/evermore/simulation/README.md)
+> Status: **built** in [`src/games/evermore/simulation/`](../../src/games/evermore/simulation/README.md)
 > (v0.202.0): enter scripts become scenarios with a flag tree, and each placed
 > NPC carries the condition that places it. The text below is the history.
 > The decoder still reports which NPCs an enter script *can* place. The two things that *were* unknown — what the NPC index means and
@@ -9,7 +9,7 @@
 ## Why a simulation is the right tool here
 
 Loot did not need one — a pickup writes its reward down as a literal, so
-reading the bytes was enough ([src/games/evermore/script-model/README.md](../src/games/evermore/script-model/README.md)).
+reading the bytes was enough ([src/games/evermore/script-model/README.md](../../src/games/evermore/script-model/README.md)).
 Room population is different. Rooms are reused: the same map id is entered at
 several points in the story with different enemies, and the enter script picks
 between them with `IF` on saved flags. There is no literal answer in the
@@ -97,16 +97,16 @@ described above. Until then the Rooms tab shows the superset of reachable
 spawns and labels it as such.
 
 The plan that grew out of this note lives in
-[/simulation](plans/simulation/README.md) — this page stays as the record of
+[/simulation](../plans/simulation/README.md) — this page stays as the record of
 the enter-script problem and the two unknowns the encoder settled;
-[spawn-scenarios.md](plans/simulation/spawn-scenarios.md) is where picking a
+[spawn-scenarios.md](../plans/simulation/spawn-scenarios.md) is where picking a
 branch is designed.
 
 ## Then: drawing them
 
 The sprites and the character record are read from the game's own code
-([script-format/sprite_format.md](script-format/sprite_format.md),
-[script-format/character_table.md](script-format/character_table.md)), animation
+([entities/sprite_format.md](../entities/sprite_format.md),
+[entities/character_table.md](../entities/character_table.md)), animation
 pointers included, so rendering an idle animation needs no new reverse engineering. The character is now identified for
 every spawn, so this is unblocked: `enemyName(index).character` gives the
 record, and record 109's `anim_stand` is `0x495e`. It is a separate piece of

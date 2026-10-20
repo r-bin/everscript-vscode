@@ -2,7 +2,7 @@
 
 > Status: **found in the code, not yet seen in the game.** The engine and the sprite
 > art support it; no vanilla room uses it, and the plugin cannot place it yet.
-> Engine details: [sprite_priority.md](../script-format/sprite_priority.md) ("The split").
+> Engine details: [sprite_priority.md](../entities/sprite_priority.md) ("The split").
 
 A character standing in water with only its upper body showing. Evermore can draw that
 with no new art and no engine patch: one tile setting makes the engine split each sprite

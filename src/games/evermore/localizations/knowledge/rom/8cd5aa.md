@@ -7,9 +7,9 @@ title: Script opcode 0x7E: exchange money between currencies
 confidence: confirmed
 tags: [script-vm]
 evidence: ["disasm: four expressions; $4202/$4203 multiply each byte of $0AC6+src by the multiplier, $4204/$4206 divide by the divisor; quotient added to $0AC6+dst, remainder stored back to the source (v0.320.0)"]
-see: [docs/game-research/script-vm/opcodes.md]
+see: [docs/scripts/opcodes.md]
 ---
-Exchanges money. Expressions: divisor, source currency offset (0, 3, 6, 9 into the 3-byte amounts at `$0AC6`), multiplier, destination currency offset. The source amount times the multiplier is divided by the divisor with the SNES math registers, byte by byte; the quotient is added to the destination and the source keeps the remainder. Returns Carry Set.
+Handler of script opcode [0x7E](soe://rom/assets/scripts/opcodes/7e.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/7e.md`, served at `soe://rom/assets/scripts/opcodes/7e.md`.
 
 Previously believed: a palette transfer through `$90:D34C` (that is opcode `0x97`).
 

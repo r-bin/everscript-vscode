@@ -8,14 +8,14 @@ differences are only in what each thing is and what its result looks like.
 
 ## The interactions
 
-**Exits.** Solved already — [map_transitions.md](../../script-format/map_transitions.md)
-gives the destination and landing tile, [arrivals.md](../../script-format/arrivals.md)
+**Exits.** Solved already — [map_transitions.md](../../scripts/map_transitions.md)
+gives the destination and landing tile, [arrivals.md](../../scripts/arrivals.md)
 gives the direction and is already clickable in the tab. Walking through one
 means: run the transition's script, set the map and position in WRAM, and
 re-derive the new room's scenario. This is the cheapest interaction to build
 and the one that makes the rest feel like a game rather than a viewer.
 
-**Ingredients.** [loot.md](../../script-format/loot.md) already reads what
+**Ingredients.** [loot.md](../../scripts/loot.md) already reads what
 a pickup gives and can write it back as Everscript. Looting is: run the
 B-trigger's script, add to inventory, set the taken flag. **The dog's fake
 pickup** is the interesting case — the dog can trigger the animation without
@@ -38,7 +38,7 @@ A locked door should say *which* key it reads, not just "locked".
 [damage.md](damage.md): pick physical or alchemy, and see the **distribution
 of swings needed**, live. Not an average — a curve, because "13 hits, 70%"
 is the shape of the question. The window must account for reach
-([attack_boxes.md](../../script-format/attack_boxes.md)), for `INVINCIBLE`
+([attack_boxes.md](../../entities/attack_boxes.md)), for `INVINCIBLE`
 (see [entities.md](entities.md)), and it must apply the reward: XP, weapon
 and alchemy skill, written into WRAM like everything else.
 

@@ -6,12 +6,10 @@ name: script_op_11_15_write_temp_byte
 title: Script opcodes 0x11, 0x15 — write temp byte
 confidence: likely
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands u16 E, continues in the same turn (docs/game-research/script-vm/opcodes.md)"]
-see: [docs/game-research/script-vm/opcodes.md]
+evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands u16 E, continues in the same turn (docs/scripts/opcodes.md)"]
+see: [docs/scripts/opcodes.md]
 ---
-Byte at $2834 + offset = expression.
-
-Operands: `u16 E` (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
+Handler of script opcodes [0x11](soe://rom/assets/scripts/opcodes/11.md), [0x15](soe://rom/assets/scripts/opcodes/15.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/11.md`, served at `soe://rom/assets/scripts/opcodes/11.md`.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

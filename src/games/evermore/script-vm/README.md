@@ -2,7 +2,7 @@
 
 Reads Evermore's event scripts the way the interpreter at `$8C:D0A6` does: which bytes each
 instruction takes and where control goes after it. Written from the handlers' code, not from
-any other decoder ([docs/game-research/script-vm/](../../../../docs/game-research/script-vm/README.md)
+any other decoder ([docs/scripts/](../../../../docs/scripts/vm.md)
 is the spec; `docs/cleanup.md` D3).
 
 | File | Owns |

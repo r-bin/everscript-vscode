@@ -1,5 +1,5 @@
 // Ownership: what each script opcode and expression sub-op reads and where control goes after
-// it, written from the game's interpreter (docs/game-research/script-vm/opcodes.md). Pure data.
+// it, written from the game's interpreter (docs/scripts/opcodes.md). Pure data.
 //
 // Operand tokens:
 //   u8 u16           immediate byte / little-endian word

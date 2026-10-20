@@ -67,7 +67,7 @@ sufficient. Two more things have to line up for the world to stay consistent:
    understanding transition-script coordinate operands — before mirroring can be more
    than tile-deep.
 
-Sprite/NPC facing (see `docs/script-format/sprite_format.md`'s flip-X chunk bit) and
+Sprite/NPC facing (see `docs/entities/sprite_format.md`'s flip-X chunk bit) and
 any script logic that branches on a literal left/right (`DIRECTION.LEFT` etc.) sit in
 the same bucket as #2: real, but explicitly out of scope for a first pass, since
 they're script-level rather than map-level.

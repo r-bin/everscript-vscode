@@ -3,10 +3,7 @@
 ## Overview
 In Secret of Evermore, scripted actor instantiation, enemy spawning, and projectile generation are driven by four related Script VM opcodes in Bank `$8C`, converging on a shared commit dispatcher (`$8C:DD19`):
 
-- **Opcode `0xA2` (`$8C:DC9A`)**: `script_op_spawn_character_at_expr` — Spawns an actor using evaluated pixel expression coordinates `(expr_X, expr_Y)`.
-- **Opcode `0xC2` (`$8C:DCC3`)**: `script_op_spawn_spawner` — Spawns a deferred spawner record at tile coordinates `(tile_X * 8, tile_Y * 8)` with spawner flag `0x8000` enforced.
-- **Opcode `0xBA` (`$8C:DCD9`)**: `script_op_spawn_default` — Spawns an active entity or projectile at tile coordinates `(tile_X * 8, tile_Y * 8)` with flags cleared to 0.
-- **Opcode `0x3C` (`$8C:DCEC`)**: `script_op_spawn_with_args` — General tile spawn taking explicit word flags/state and tile coordinates `(tile_X * 8, tile_Y * 8)`.
+What each opcode does is described once, on its opcode page; this file keeps the routines' code: [`0xA2` spawn_at](soe://rom/assets/scripts/opcodes/a2.md), [`0xC2` add_enemy_spawner](soe://rom/assets/scripts/opcodes/c2.md), [`0xBA` spawn](soe://rom/assets/scripts/opcodes/ba.md), [`0x3C` spawn](soe://rom/assets/scripts/opcodes/3c.md).
 
 All handlers query the master character record pointer table at `$8E:B55A` (`enemy_index`), calculate the target tile plane elevation via `$8F:A933`, and branch based on bit 15 (`0x8000`) of the spawn flags:
 1. **Bit 15 Set (`0x8000`)**: Stages the actor into the deferred spawn table in WRAM at `$7E:0EC0` via `$8F:DE98` (`spawn_stage_deferred_entity`).

@@ -49,7 +49,7 @@ of a blob belongs to a field; the blob ends at its furthest object record or sta
 | Cuttable grass / objects / animated tiles | `docs/map-format/cuttable_grass_mechanics.md`, `map_objects.md`, `map_animated_tiles.md` |
 | Rendering, CHR graphics, palettes | `docs/map-format/map_rendering_pipeline.md`, `map_tile_graphics_decompression.md`, `map_palette_extraction.md` |
 | What the editor adds (stamps, widgets, levels, entrances) | `docs/map-format/editor-concepts.md`, `map-editor-rules` skill |
-| Characters, sprites, bodies, damage | `docs/script-format/entities-reference.md`, `map-entities` skill |
+| Characters, sprites, bodies, damage | `docs/entities/entities-reference.md`, `map-entities` skill |
 | Open questions | `docs/map-format/room-reference.md` §12, `docs/map-port-gap-analysis.md` |
 
 ## In this repo

@@ -1,5 +1,5 @@
 // Ownership: public API of the script VM decoder, written from the game's interpreter at
-// $8C:D0A6 (docs/game-research/script-vm/). Pure: takes the user's ROM, returns data.
+// $8C:D0A6 (docs/scripts/). Pure: takes the user's ROM, returns data.
 
 export { SCRIPT_BANK, SCRIPT_HEADER, pack, unpack, advance, distance, ScriptRom } from './address';
 export { OPCODES, SUB_OPS, smallConstant } from './spec';

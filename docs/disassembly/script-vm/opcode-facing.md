@@ -3,12 +3,7 @@
 ## Overview
 In Secret of Evermore, scripted actor facing, compass orientations, and dynamic entity-to-entity tracking are controlled by a dedicated family of Script VM opcodes in Bank `$8C`:
 
-- **Opcode `0x74` (`$8C:DEDF`)**: `script_op_face_north` — Sets target entity facing direction to North (`0`).
-- **Opcode `0x77` (`$8C:DEE9`)**: `script_op_face_east` — Sets target entity facing direction to East (`4`).
-- **Opcode `0x75` (`$8C:DEF5`)**: `script_op_face_south` — Sets target entity facing direction to South (`8`).
-- **Opcode `0x76` (`$8C:DF01`)**: `script_op_face_west` — Sets target entity facing direction to West (`12`).
-- **Opcode `0x70` (`$8C:DF0D`)**: `script_op_face_towards_entity` — Evaluates two entity expressions `(target, source)`, computes the dominant angular delta, and orients the source entity to face directly toward the target.
-- **Opcode `0x71` (`$8C:DF1D`)**: `script_op_face_away_from_entity` — Computes the orientation toward the target, then inverts it by 180° (`EOR #$0008`) to turn the source entity directly away from the target.
+What each opcode does is described once, on its opcode page; this file keeps the routines' code: [`0x74` face_north](soe://rom/assets/scripts/opcodes/74.md), [`0x77` face_east](soe://rom/assets/scripts/opcodes/77.md), [`0x75` face_south](soe://rom/assets/scripts/opcodes/75.md), [`0x76` face_west](soe://rom/assets/scripts/opcodes/76.md), [`0x70` face_target](soe://rom/assets/scripts/opcodes/70.md), [`0x71` face_away](soe://rom/assets/scripts/opcodes/71.md).
 
 All orientation vector calculations converge on the core subroutine `$8C:DF33` (`entity_compute_facing_towards`).
 

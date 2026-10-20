@@ -8,7 +8,7 @@ everscript: ["control()"]
 evidence: ["disasm: handler at the table entry $8C:DB1B"]
 see: ["rom/8cdb1b.md"]
 ---
-Mask 1 into `0x2C`.
+`0x2C` with mask 1: freezes the Boy (`$8F:CD78`).
 
 ## Why it exists
 

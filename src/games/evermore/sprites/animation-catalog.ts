@@ -1,7 +1,7 @@
 // Ownership: the catalogue of every animation in the ROM for the Sprites tab — each
 // record of the table at $C43E3A, who uses it, and which palette to draw it in. Pure.
 //
-// Four things point at records (docs/script-format/animation_script.md): a character's
+// Four things point at records (docs/entities/animation_script.md): a character's
 //   fields +0x32..+0x46, the Boy's weapon table, the global id table at $C43C92 that
 //   `animate(entity, mode, id)` reads for ids below 0x8000, and the projectile records
 //   ($900000 + id) that animation command 0x4c throws.

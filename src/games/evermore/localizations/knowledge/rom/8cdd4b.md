@@ -6,10 +6,10 @@ name: script_op_3d_attach_talk_script
 title: Script opcode 0x3D: give an entity a talk script
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E u16, continues in the same turn (docs/game-research/script-vm/opcodes.md)", "trace: the game ran 20 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)", "disasm: $8F:AC0E tests +$68 bit $0040 and the Boy's distance (< $21 px) before running +$66 (v0.320.0)"]
-see: [docs/game-research/script-vm/opcodes.md]
+evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E u16, continues in the same turn (docs/scripts/opcodes.md)", "trace: the game ran 20 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)", "disasm: $8F:AC0E tests +$68 bit $0040 and the Boy's distance (< $21 px) before running +$66 (v0.320.0)"]
+see: [docs/scripts/opcodes.md]
 ---
-Entity expression and a word: the word (a trigger id, an offset into the script pointer table at `$92:8000`) goes to the entity's event script `+$66`, and its event mask `+$68` becomes `$0040` (talk: B button near the entity). The 4-byte short form of opcode `0x3F` for NPCs.
+Handler of script opcode [0x3D](soe://rom/assets/scripts/opcodes/3d.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/3d.md`, served at `soe://rom/assets/scripts/opcodes/3d.md`.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

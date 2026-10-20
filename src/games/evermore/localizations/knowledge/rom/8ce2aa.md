@@ -7,9 +7,9 @@ title: Reset catalog parameter state
 confidence: confirmed
 tags: [script-vm]
 evidence: ["disasm: no-operand handler writes $FFFF to $0B95, clears $0E6C, and returns Carry Set"]
-see: [docs/game-research/script-vm/README.md, docs/game-research/script-vm/opcodes.md]
+see: [docs/scripts/vm.md, docs/scripts/opcodes.md]
 ---
-With no operands, initializes `$0B95` to `$FFFF` and clears `$0E6C`, then returns Carry Set. These state fields are also consumed by opcodes `0x89` and `0x8A`, including the shop-catalog dispatch path; the broader subsystem role is not fully named here.
+Handler of script opcode [0x88](soe://rom/assets/scripts/opcodes/88.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/88.md`, served at `soe://rom/assets/scripts/opcodes/88.md`.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

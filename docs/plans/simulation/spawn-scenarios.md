@@ -2,7 +2,7 @@
 
 > Status: **not built.** The superset is shipped and labelled as such;
 > picking among it is the job here. Builds on
-> [docs/room-simulation.md](../../room-simulation.md), which settled what
+> [docs/scripts/room-simulation.md](../../scripts/room-simulation.md), which settled what
 > a spawn's index and coordinates mean.
 
 ## The problem, restated
@@ -35,7 +35,7 @@ Three things make this honest:
 
 **Name scenarios from the ROM, never from a guess.** A branch's name comes
 from the flag's own label where the script has one, or from the global
-script it calls — the same trick [arrivals.md](../../script-format/arrivals.md)
+script it calls — the same trick [arrivals.md](../../scripts/arrivals.md)
 uses to get "walking south" out of a prepare script's name. A branch with
 nothing to name it is "branch 3", not "outro".
 

@@ -8,7 +8,7 @@ everscript: ["cast()"]
 evidence: ["disasm: handler at the table entry $8C:D0C3"]
 see: ["rom/8cd0c3.md"]
 ---
-As `0x9E`, but a Dog with 0 HP is left out of the targets (`$3BC1`).
+As `0x9E`, but first `$3BC1` = the Dog (`$4F37`) when its HP is 0, so a dead Dog is not a target.
 
 ## Why it exists
 

@@ -1,18 +1,20 @@
 # Script opcodes
 
 All 256 opcode bytes, read from the handlers (`$8C:D0A6` doubles the byte and calls `JSR ($E8BD,x)`).
-This page is the overview; the facts live in one place each:
+This page is the overview. Each opcode is described once, in its entry; read it at
+`soe://rom/assets/scripts/opcodes/<xx>.md`, which adds the handler's addresses, the uses in your ROM and
+the neighbouring commands. Where each fact lives:
 
 | What | Where |
 |---|---|
 | one entry per opcode byte (all 256): what it does, why it exists, groups, Everscript names, evidence | `src/games/evermore/localizations/knowledge/opcodes/<xx>.md` |
-| what each handler does, with its addresses | `src/games/evermore/localizations/knowledge/rom/<handler>.md` |
+| the handler's addresses (generated `## Addresses`) and its history | `src/games/evermore/localizations/knowledge/rom/<handler>.md` (a pointer to the opcode entry) |
 | operands, flow and the script viewer's name | `src/games/evermore/script-vm/spec.ts` |
 | the table of all 256, usage counts, examples, shared handlers | `soe://rom/assets/scripts/opcodes/index.md` (and `<xx>.md`, `index.json`) |
 | the groups | `soe://tags/opcode.<group>` (generated from the entries' `tags:`) |
 
 Usage counts are computed from the user's ROM (static walk from the script tables), never stored.
-Operand tokens and flow words: [README.md](README.md).
+Operand tokens and flow words: [README.md](vm.md).
 
 ## The 256 bytes
 

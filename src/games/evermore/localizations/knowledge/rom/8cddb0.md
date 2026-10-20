@@ -6,12 +6,10 @@ name: script_op_4e_bind_entity
 title: Script opcode 0x4e — bind entity
 confidence: likely
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E, continues in the same turn (docs/game-research/script-vm/opcodes.md)"]
-see: [docs/game-research/script-vm/opcodes.md]
+evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E, continues in the same turn (docs/scripts/opcodes.md)"]
+see: [docs/scripts/opcodes.md]
 ---
-The slot's entity (slot + $0D) becomes the entity expression (reference counts at entity +$3E follow).
-
-Operands: `E` (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
+Handler of script opcode [0x4E](soe://rom/assets/scripts/opcodes/4e.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/4e.md`, served at `soe://rom/assets/scripts/opcodes/4e.md`.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

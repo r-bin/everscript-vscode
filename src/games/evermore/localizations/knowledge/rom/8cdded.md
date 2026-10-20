@@ -6,12 +6,10 @@ name: script_op_61_previous_object_state
 title: Script opcode 0x61 — previous object state
 confidence: likely
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E, continues in the same turn (docs/game-research/script-vm/opcodes.md)"]
-see: [docs/game-research/script-vm/opcodes.md]
+evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E, continues in the same turn (docs/scripts/opcodes.md)"]
+see: [docs/scripts/opcodes.md]
 ---
-Map object (expression) goes to its target state - 1.
-
-Operands: `E` (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
+Handler of script opcode [0x61](soe://rom/assets/scripts/opcodes/61.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/61.md`, served at `soe://rom/assets/scripts/opcodes/61.md`.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

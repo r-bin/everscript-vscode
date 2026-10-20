@@ -4,7 +4,7 @@
 // the operand table in the sibling `everscript` compiler (`Operand._operands`
 // in compiler/ast_core.py, which is the side that *emits* these bytes and
 // documents each one as "res = pulled OP res"), and
-// docs/game-research/script-vm/README.md (Expressions). Byte widths the compiler leaves open
+// docs/scripts/vm.md (Expressions). Byte widths the compiler leaves open
 // were fixed by measurement: tests/simulation/operand-parity.test.js parses
 // every operand of every executed instruction in the ROM and requires the
 // length to agree with the decoder's instruction boundaries.

@@ -81,7 +81,7 @@ function buildBlankRoom(rom: Rom, opts: { widthTiles?: unknown; heightTiles?: un
  * whose name pointer is into WRAM (`$7E2210`, the name the player typed) —
  * record 2 is the villager called "Boy", with ROM text and the INVINCIBLE
  * flag every townsperson carries. Record 0's flags are `0x0000`, the value
- * docs/script-format/character_table.md gives for "the Boy and the Dog".
+ * docs/entities/character_table.md gives for "the Boy and the Dog".
  */
 const BOY_CHARACTER = 0;
 

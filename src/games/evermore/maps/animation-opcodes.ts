@@ -2,7 +2,7 @@
 // mnemonic and operand layout — and a disassembler over it. Pure.
 //
 // The table is read out of the interpreter's dispatch table at $908000 and the
-// handlers it points to; docs/script-format/animation_script.md gives the
+// handlers it points to; docs/entities/animation_script.md gives the
 // handler and the evidence for every row. This is the one place widths live:
 // ./character-animation and ./animation-vm both ask `opcode()`.
 
@@ -184,7 +184,7 @@ export function jumpTarget(rom: Uint8Array, p: number, kind: OpKind): number {
 export interface ScriptLine {
     address: number;
     bytes: number[];
-    /** The notation of docs/script-format/animation_script.md, `!` marking a frame end. */
+    /** The notation of docs/entities/animation_script.md, `!` marking a frame end. */
     text: string;
     endFrame: boolean;
     /** False for a command whose width is unknown — the listing stops there. */

@@ -16,5 +16,5 @@ Related skills: `architecture`, `game-knowledge`, `map-format`, `memory-map`.
 
 ## Invariants
 - Facts come from the game itself and are written down (root AGENTS.md §0.1, §0.2): addresses in
-  `localizations/knowledge/`, formats in `docs/map-format/`, `docs/script-format/`.
+  `localizations/knowledge/`, formats in `docs/map-format/`, `docs/entities/`.
 - Address facts are for the base variant (`us`); other releases go through `variants.json`.

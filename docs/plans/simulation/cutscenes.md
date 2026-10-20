@@ -12,7 +12,7 @@ of the verbs:
 |---|---|
 | place / remove an entity | [entities.md](entities.md) |
 | set a facing, play an animation | [`character-animation.ts`](../../../src/games/evermore/maps/character-animation.ts) |
-| change the map | [map_transitions.md](../../script-format/map_transitions.md) |
+| change the map | [map_transitions.md](../../scripts/map_transitions.md) |
 | rewrite the scenery | object stamps, `src/games/evermore/maps/objects.ts` |
 | set a flag | [virtual-wram.md](virtual-wram.md) |
 | show text | **missing** — the same gap as dialog |
@@ -21,9 +21,9 @@ of the verbs:
 
 **Movement over time.** Placing an entity is a write; *walking* it from A to
 B is a routine running for N frames. The frame timer is understood
-([animation_format.md](../../script-format/animation_format.md): entity
+([animation_format.md](../../entities/animation_format.md): entity
 `+0x05`, `$908100`), and so is the collision that would stop it
-([hitboxes.md](../../script-format/hitboxes.md)) — but nothing yet steps a
+([hitboxes.md](../../entities/hitboxes.md)) — but nothing yet steps a
 simulation forward one frame at a time. Everything else in this folder is
 event-driven and does not need a clock.
 

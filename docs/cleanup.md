@@ -105,7 +105,7 @@ Every check below passes and blocks in the release ritual (measured at v0.314.2)
 ### Step 2 — The re-do (D3, D4), done v0.280.0–v0.285.0
 - [x] **2.1** Sprites and character records rebuilt from the game's renderer, loaders and spawn code (`maps/sprites.ts`,
   `maps/character-record.ts`, knowledge `rom/8eb678.md` and what it links).
-- [x] **2.2** The script VM (`src/games/evermore/script-vm/`, spec in `docs/game-research/script-vm/`) from the
+- [x] **2.2** The script VM (`src/games/evermore/script-vm/`, spec in `docs/scripts/`) from the
   interpreter at `$8C:D0A6`, checked against goldens the running game produced; printed in the compiler's notation.
 - [x] **2.3** Room names in our style with evidence per part (`localizations/data/rooms.json`).
 - [x] **2.4** Every ported file, test and data set deleted; `check:legal` clean with an empty baseline.

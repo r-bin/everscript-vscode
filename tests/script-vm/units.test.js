@@ -1,7 +1,7 @@
 // TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The script VM decoder on hand-assembled bytes in an otherwise empty buffer (no ROM): one
-// check per rule of docs/game-research/script-vm/, so a regression is named.
+// check per rule of docs/scripts/, so a regression is named.
 
 const assert = require('assert');
 const V = require('../../dist/games/evermore/script-vm');

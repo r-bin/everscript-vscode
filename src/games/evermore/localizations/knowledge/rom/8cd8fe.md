@@ -6,10 +6,10 @@ name: script_op_48_4b_open_default_message_box
 title: Script opcodes 0x48-0x4B: open the default message box
 confidence: likely
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands none, continues in the same turn (docs/game-research/script-vm/opcodes.md)", "disasm: fixed geometry written to $0361-$0377, then the 0x44 tail at $8C:D941 (v0.320.0)"]
-see: [docs/game-research/script-vm/opcodes.md]
+evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands none, continues in the same turn (docs/scripts/opcodes.md)", "disasm: fixed geometry written to $0361-$0377, then the 0x44 tail at $8C:D941 (v0.320.0)"]
+see: [docs/scripts/opcodes.md]
 ---
-No operands. Locks the player (`$8C:C543`) and sets up the default window `$034D` at x 2, y 2, 28 x 10 with the player's style `$0B15`, then builds it like opcode `0x44`.
+Handler of script opcodes [0x48](soe://rom/assets/scripts/opcodes/48.md), [0x49](soe://rom/assets/scripts/opcodes/49.md), [0x4A](soe://rom/assets/scripts/opcodes/4a.md), [0x4B](soe://rom/assets/scripts/opcodes/4b.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/48.md`, served at `soe://rom/assets/scripts/opcodes/48.md`.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

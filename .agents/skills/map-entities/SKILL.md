@@ -1,13 +1,13 @@
 ---
 name: map-entities
 description: Use before changing how characters, enemies or NPCs are placed, drawn, sized or fought on an Evermore map: character record, enter-script placement, palettes, boxes, damage.
-applyTo: "src/games/evermore/maps/character-*.ts,src/games/evermore/maps/characters.ts,src/games/evermore/maps/sprites.ts,src/games/evermore/scaling/webview/alchemy-math.js,src/games/evermore/script/entities.ts,src/games/evermore/script/arrivals.ts,src/games/evermore/script/transition.ts,docs/script-format/**,simulation/**,src/games/evermore/sprites/character-model.ts,src/games/evermore/sprites/dog-forms.ts,src/games/evermore/sprites/target.ts"
+applyTo: "src/games/evermore/maps/character-*.ts,src/games/evermore/maps/characters.ts,src/games/evermore/maps/sprites.ts,src/games/evermore/scaling/webview/alchemy-math.js,src/games/evermore/script/entities.ts,src/games/evermore/script/arrivals.ts,src/games/evermore/script/transition.ts,docs/entities/**,simulation/**,src/games/evermore/sprites/character-model.ts,src/games/evermore/sprites/dog-forms.ts,src/games/evermore/sprites/target.ts"
 ---
 
 # Map entities: rules
 
 The detail, with every address and limit, is
-`docs/script-format/entities-reference.md`; each section there links the page that
+`docs/entities/entities-reference.md`; each section there links the page that
 holds the evidence. This skill is what a change must not get wrong.
 
 ## 1. An entity is a character record plus a placement
@@ -74,7 +74,7 @@ separate questions.
 - **Four-pose attacks round the facing** to E/W (`$908343`); projectiles follow it.
 - **`palette` (`0x4B`) moves an entity's home palette slot** (`+0x75`): playing an
   animation that loads a palette recolours the entity for good. Reset all three of
-  `+0x0C`, `+0x74`, `+0x75` (`docs/script-format/runtime_stats.md` § Three palette fields).
+  `+0x0C`, `+0x74`, `+0x75` (`docs/entities/runtime_stats.md` § Three palette fields).
 - The full language, the record and id tables, and the interpreter are the
   `animation-script` skill.
 
