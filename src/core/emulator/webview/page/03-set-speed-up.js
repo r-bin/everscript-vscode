@@ -160,23 +160,41 @@
 
     function getSramBytes() {
       try {
+        const heap = (typeof HEAPU8 !== 'undefined' ? HEAPU8 : (typeof Module !== 'undefined' && Module.HEAP8 ? new Uint8Array(Module.HEAP8.buffer) : null));
+        if (!heap) return null;
         if (typeof Module._saveSramRequest === 'function' && typeof Module._getSaveSramSize === 'function' && typeof Module._getSaveSram === 'function') {
           Module._saveSramRequest();
           const sz = Module._getSaveSramSize();
           const ptr = Module._getSaveSram();
-          if (sz && ptr) return new Uint8Array(Module.HEAPU8.subarray(ptr, ptr + sz));
+          if (sz && ptr) return new Uint8Array(heap.subarray(ptr, ptr + sz));
+        }
+        if (typeof Module._getSpacePtr === 'function' && typeof Module._getSpaceSize === 'function') {
+          const sz = Module._getSpaceSize(3);
+          const ptr = Module._getSpacePtr(3);
+          if (sz && ptr) return new Uint8Array(heap.subarray(ptr, ptr + sz));
         }
       } catch (_) {}
       return null;
     }
 
     function putSramBytes(bytes) {
-      if (!bytes || !bytes.length || typeof Module._loadSram !== 'function') return;
+      if (!bytes || !bytes.length) return;
       try {
-        const ptr = Module._my_malloc(bytes.length);
-        Module.HEAPU8.set(bytes, ptr);
-        Module._loadSram(bytes.length, ptr);
-        Module._my_free(ptr);
+        const heap = (typeof HEAPU8 !== 'undefined' ? HEAPU8 : (typeof Module !== 'undefined' && Module.HEAP8 ? new Uint8Array(Module.HEAP8.buffer) : null));
+        if (!heap) return;
+        if (typeof Module._getSpacePtr === 'function') {
+          const sramPtr = Module._getSpacePtr(3);
+          const maxSz = typeof Module._getSpaceSize === 'function' ? Module._getSpaceSize(3) : 0x20000;
+          if (sramPtr && bytes.length <= maxSz) {
+            heap.set(bytes, sramPtr);
+          }
+        }
+        if (typeof Module._loadSram === 'function' && typeof Module._my_malloc === 'function') {
+          const ptr = Module._my_malloc(bytes.length);
+          heap.set(bytes, ptr);
+          Module._loadSram(bytes.length, ptr);
+          if (typeof Module._my_free === 'function') Module._my_free(ptr);
+        }
       } catch (_) {}
     }
 
@@ -192,8 +210,9 @@
         if (vscodeApi) vscodeApi.postMessage({ command: 'saveSram', hash: currentRomSha1, data: b64 });
       }
     }
-    setInterval(persistSramIfNeeded, 4000);
+    setInterval(persistSramIfNeeded, 1000);
     window.addEventListener('beforeunload', persistSramIfNeeded);
+    window.addEventListener('pagehide', persistSramIfNeeded);
 
     // -- ROM loading -----------------------------------------------------------
     // (ROM state is declared at boot, above romStage: the ROM offer and crash
@@ -217,6 +236,7 @@
     // (Re)start the core with a ROM: a power-on, also used to start a replay.
     function bootRom(romData, name, sramData) {
       try {
+        persistSramIfNeeded();
         if (typeof gameRomReset === 'function') gameRomReset();
         if (typeof emuGateRom === 'function') emuGateRom(romData);
         romStage('core start begin');
@@ -236,11 +256,14 @@
             for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
             putSramBytes(u8);
             lastStartingSramB64 = sramData;
+            lastSavedSramB64 = sramData;
           } catch (_) {
             lastStartingSramB64 = '';
+            lastSavedSramB64 = '';
           }
         } else {
           lastStartingSramB64 = '';
+          lastSavedSramB64 = '';
         }
 
         if (typeof sdbgOnBoot === 'function') sdbgOnBoot();

@@ -121,6 +121,7 @@
       if (isMenuOpen) return;
       isMenuOpen = true;
       keyInput = 0;
+      if (typeof persistSramIfNeeded === 'function') persistSramIfNeeded();
       if (typeof gameMenuOpened === 'function') gameMenuOpened();
       const menuEl = document.getElementById('emulator-menu');
       if (menuEl) menuEl.classList.remove('hidden');
@@ -148,6 +149,7 @@
       const menuBody = document.getElementById('menu-body');
       if (menuBody) tabScrollTops[menuActiveTab] = menuBody.scrollTop;
       tabSelectedRows[menuActiveTab] = menuSelectedRow;
+      if (typeof persistSramIfNeeded === 'function') persistSramIfNeeded();
       if (typeof gameMenuClosed === 'function') gameMenuClosed();
       isMenuOpen = false;
       isLensModeActive = false;

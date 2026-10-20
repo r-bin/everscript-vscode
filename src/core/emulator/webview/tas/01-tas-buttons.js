@@ -163,6 +163,7 @@
       if (typeof m._softReset !== 'function') { tasSetStatus('this core has no soft reset'); return false; }
       if (tasPlay) { tasSetStatus('take over first: a replay is running'); return false; }
       tasRecordEvent('R|soft');
+      if (typeof persistSramIfNeeded === 'function') persistSramIfNeeded();
       m._softReset();
       tasSetStatus('soft reset');
       return true;
