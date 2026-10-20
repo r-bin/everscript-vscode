@@ -2,16 +2,14 @@
 addr: 8CDEB4
 kind: code
 category: 🧠
-name: script_op_65
-title: Script opcode 0x65
-confidence: likely
+name: poll_field_state_1
+title: Poll field state mode 1
+confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands none, continues in the same turn (docs/game-research/script-vm/opcodes.md)"]
+evidence: ["disasm: handler sets X to 1 and calls $8C:C627; that helper polls $0B79 and services field ticks on selected wait conditions"]
 see: [docs/game-research/script-vm/opcodes.md]
 ---
-Only the operands and the flow are traced so far; what the handler does with them is not.
-
-Operands: none (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
+With no operands, calls `$8C:C627` with X set to 1. The helper polls selected `$0B79` bits and advances a field tick while waiting on its internal conditions. This handler returns Carry Set; it does not itself yield the script thread.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

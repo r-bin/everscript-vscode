@@ -2,16 +2,14 @@
 addr: 8CDE9B
 kind: code
 category: 🧠
-name: script_op_64
-title: Script opcode 0x64
-confidence: likely
+name: set_0b73_and_poll_state
+title: Set $0B73 and poll field state
+confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E, continues in the same turn (docs/game-research/script-vm/opcodes.md)"]
+evidence: ["disasm: handler evaluates E into $0B73, sets X to 1 and calls $8C:C627; that helper polls $0B79 and services field ticks on selected wait conditions"]
 see: [docs/game-research/script-vm/opcodes.md]
 ---
-Only the operands and the flow are traced so far; what the handler does with them is not.
-
-Operands: `E` (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
+Evaluates its `E` operand into `$0B73`, then calls `$8C:C627` with X set to 1. That helper checks selected bits in `$0B79` and calls the field-tick routine while its wait conditions hold. The opcode itself returns Carry Set after the helper returns; the exact meaning of `$0B73` is not established here.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

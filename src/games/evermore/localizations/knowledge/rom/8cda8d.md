@@ -2,16 +2,14 @@
 addr: 8CDA8D
 kind: code
 category: 🧠
-name: script_op_73
-title: Script opcode 0x73
+name: stage_entity_absolute_position
+title: Stage expression coordinates for an entity
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E E E, continues in the same turn (docs/game-research/script-vm/opcodes.md)", "trace: the game ran 2 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
-see: [docs/game-research/script-vm/opcodes.md]
+evidence: ["disasm: handler evaluates an entity and two coordinate expressions into DP $46/$48, selects the shared coordinate path's skip mode, and returns without calling its position helper", "trace: the game ran 2 distinct instructions with this opcode (tests/script-vm/goldens.json)"]
+see: [docs/game-research/script-vm/README.md, docs/game-research/script-vm/opcodes.md]
 ---
-Only the operands and the flow are traced so far; what the handler does with them is not.
-
-Operands: `E E E` (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
+Evaluates an entity expression and two coordinate expressions, storing the latter in DP `$46`/`$48` without scaling or applying an entity-relative offset. It selects the shared continuation's skip mode, so `$8F:AA82` is not called and the opcode path makes no entity-coordinate write. The reason for staging these values is not yet established. Returns Carry Set.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

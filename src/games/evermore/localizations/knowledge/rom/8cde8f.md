@@ -6,10 +6,10 @@ name: script_op_5a
 title: Script opcode 0x5a
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands none, continues in the same turn (docs/game-research/script-vm/opcodes.md)", "trace: the game ran 1 distinct instruction with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
-see: [docs/game-research/script-vm/opcodes.md]
+evidence: ["disasm: handler calls $8C:C5E2; that routine activates the cutscene pause guard, resets dialogue queue indices, and polls $0B79 while advancing field ticks through $8E:E41E", "evs: clear_subtext emits opcode 0x5a in in/core/[group] 02_functions/[group] 02_everscript_commands/06_strings.evs"]
+see: [docs/game-research/script-vm/opcodes.md, rom/8cc543.md, rom/8cc4f6.md]
 ---
-Only the operands and the flow are traced so far; what the handler does with them is not.
+Runs the cutscene dialogue reset/wait path through `$8C:C5E2`: it enables the cutscene pause guard, clears the active text window and queued dialogue indices, then services field ticks while polling text-state word `$0B79`. The exact meanings of the tested `$0B79` bits are not established here. The opcode itself returns Carry Set and does not yield the script thread.
 
 Operands: none (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
 

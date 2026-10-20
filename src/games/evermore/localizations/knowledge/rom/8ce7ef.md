@@ -2,16 +2,14 @@
 addr: 8CE7EF
 kind: code
 category: 🧠
-name: script_op_aa
-title: Script opcode 0xaa
-confidence: likely
+name: call_helper_for_boy_and_dog
+title: Call a helper for Boy and Dog when enabled
+confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands none, continues in the same turn (docs/game-research/script-vm/opcodes.md)"]
-see: [docs/game-research/script-vm/opcodes.md]
+evidence: ["disasm: if $23C7 is zero, calls $91:B9A7 with Y=$4E89 and then Y=$4F37, setting carry before each call; otherwise returns without either call"]
+see: [docs/game-research/script-vm/README.md, docs/game-research/script-vm/opcodes.md]
 ---
-Only the operands and the flow are traced so far; what the handler does with them is not.
-
-Operands: none (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
+With no operands, checks `$23C7`. If zero, calls `$91:B9A7` first with the Boy pointer (`Y=$4E89`) and then with the Dog pointer (`Y=$4F37`), setting Carry before each call; otherwise neither call runs. The handler establishes these calls but not their broader effect. Returns Carry Set.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

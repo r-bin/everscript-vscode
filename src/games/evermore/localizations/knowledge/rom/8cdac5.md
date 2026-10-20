@@ -2,14 +2,13 @@
 addr: 8CDAC5
 kind: code
 category: 🧠
-name: companion_input_ai_dispatcher
-title: Party input and companion AI dispatcher (Boy $4E89 and Dog $4F37)
+name: unfreeze_boy
+title: Unfreeze Boy
 confidence: confirmed
-tags: [entities, companion, dog, boy, input]
-evidence: ["disasm: tests active control bits in DP $02; routes Boy ($4E89) or Dog ($4F37) to companion_entity_update $8F:CD4D or controller input", "recomp: func_CCDAC5_M0X0 in bank8c_part0b_v2.c; clean C in docs/disassembly/entities/dog-ai.md"]
-see: [rom/8fcd4d.md, ram/7e4e89.md, ram/7e4f37.md]
+tags: [script-vm, entities, boy]
+evidence: ["disasm: handler at $8C:DAC5 selects actor bit 1 and enters shared unfreeze helper $8C:DADB, which calls $8F:CD4D for Boy ($4E89)"]
+see: [rom/8fcd4d.md, docs/game-research/script-vm/opcodes.md]
 ---
-Called once per frame to tick active player control and companion following/combat AI:
-1. Tests player index at DP `$02`: bit 0 for Boy (`$7E:4E89`), bit 1 for Dog (`$7E:4F37`).
-2. If character is player-controlled, parses controller input register `$7E:000D`.
-3. If character is companion, sets active actor `$4C` and executes follower AI routine `$8F:CD4D`.
+Unfreezes Boy by selecting actor bit 1 in the shared unfreeze dispatcher. The dispatcher sets DP `$4C` to `$4E89` and calls `$8F:CD4D` to restore autonomous motion and clear immobilization state.
+
+Previously believed: this address was the per-frame party input/companion AI dispatcher. The opcode-table entry and instructions at `$8C:DAC5` show that this address is the 0xBD unfreeze-Boy handler.

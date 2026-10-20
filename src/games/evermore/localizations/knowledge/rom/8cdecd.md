@@ -2,16 +2,14 @@
 addr: 8CDECD
 kind: code
 category: 🧠
-name: script_op_6a
-title: Script opcode 0x6a
-confidence: likely
+name: poll_field_state_2_alternate
+title: Poll alternate field state mode 2
+confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands none, continues in the same turn (docs/game-research/script-vm/opcodes.md)"]
+evidence: ["disasm: handler sets X to 2 and calls $8C:C67C; that helper polls $0B79 using a different set of wait conditions from $8C:C627"]
 see: [docs/game-research/script-vm/opcodes.md]
 ---
-Only the operands and the flow are traced so far; what the handler does with them is not.
-
-Operands: none (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
+With no operands, calls `$8C:C67C` with X set to 2. This helper polls `$0B79` using a distinct condition set and services field ticks while waiting. The handler returns Carry Set; the game-state meaning of the bit combinations remains unresolved.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

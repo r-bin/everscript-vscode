@@ -2,16 +2,14 @@
 addr: 8CDA2F
 kind: code
 category: 🧠
-name: script_op_6d
-title: Script opcode 0x6d
+name: move_entity_by_tile_delta
+title: Move an entity by expression offsets
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E E E, continues in the same turn (docs/game-research/script-vm/opcodes.md)", "trace: the game ran 1 distinct instruction with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
-see: [docs/game-research/script-vm/opcodes.md]
+evidence: ["disasm: handler evaluates the entity and two offsets, scales each offset by 16, adds them to entity fields +$1A/+$1C, then enters the shared position helper", "trace: the game ran 1 distinct instruction with this opcode (tests/script-vm/goldens.json)"]
+see: [docs/game-research/script-vm/README.md, docs/game-research/script-vm/opcodes.md]
 ---
-Only the operands and the flow are traced so far; what the handler does with them is not.
-
-Operands: `E E E` (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
+Evaluates an entity followed by X and Y expressions. Each offset is shifted left four bits and added to the entity's current coordinate fields `+$1A` and `+$1C`; the resulting pixel destination goes through the same tile/elevation and movement helper as `0x6C`. Returns Carry Set.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

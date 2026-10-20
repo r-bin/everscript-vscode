@@ -2,16 +2,14 @@
 addr: 8CDFCF
 kind: code
 category: 🧠
-name: script_op_62
-title: Script opcode 0x62
+name: activate_background_tile_animation
+title: Activate a background tile animation channel
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands u8 u16 u16, continues in the same turn (docs/game-research/script-vm/opcodes.md)", "trace: the game ran 4 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
-see: [docs/game-research/script-vm/opcodes.md]
+evidence: ["disasm: handler reads a byte into DP $06 and two words into DP $0A/$0C, then calls $90:A2A2; that routine searches and activates a matching room tile-animation channel", "trace: the game ran 4 distinct instructions with this opcode (tests/script-vm/goldens.json)"]
+see: [rom/90a2a2.md, docs/game-research/script-vm/README.md, docs/game-research/script-vm/opcodes.md]
 ---
-Only the operands and the flow are traced so far; what the handler does with them is not.
-
-Operands: `u8 u16 u16` (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
+Uses its byte operand as the tile-animation channel key and copies the following two words to DP `$0A` and `$0C`. It passes these values and the key in DP `$06` to `$90:A2A2`, which searches the current room's animation descriptors and activates the matching channel when found. The handler returns Carry Set, so the script continues in the same turn.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

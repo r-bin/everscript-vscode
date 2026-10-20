@@ -2,16 +2,14 @@
 addr: 8CDACF
 kind: code
 category: 🧠
-name: script_op_c1
-title: Script opcode 0xc1
+name: unfreeze_boy_and_dog
+title: Unfreeze Boy and Dog
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands none, continues in the same turn (docs/game-research/script-vm/opcodes.md)", "trace: the game ran 1 distinct instruction with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
-see: [docs/game-research/script-vm/opcodes.md]
+evidence: ["disasm: wrapper selects actor bits 1 and 2; shared helper $8C:DADB calls $8F:CD4D for Boy ($4E89) and Dog ($4F37)", "trace: the game ran 1 distinct instruction with this opcode (tests/script-vm/goldens.json)"]
+see: [rom/8fcd4d.md, docs/game-research/script-vm/opcodes.md]
 ---
-Only the operands and the flow are traced so far; what the handler does with them is not.
-
-Operands: none (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
+With no operands, selects both Boy and Dog actor bits in the shared unfreeze dispatcher. It calls `$8F:CD4D` for `$4E89` and `$4F37`, restoring their motion and clearing immobilization state. Returns Carry Set.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

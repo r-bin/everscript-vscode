@@ -2,16 +2,14 @@
 addr: 8CDB1B
 kind: code
 category: 🧠
-name: script_op_bc
-title: Script opcode 0xbc
+name: freeze_boy
+title: Freeze Boy
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands none, continues in the same turn (docs/game-research/script-vm/opcodes.md)", "trace: the game ran 3 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
-see: [docs/game-research/script-vm/opcodes.md]
+evidence: ["disasm: wrapper selects actor bit 1 and shared helper $8C:DB31 calls $8F:CD78 to halt motion and set the immobilized flag", "trace: the game ran 3 distinct instructions with this opcode (tests/script-vm/goldens.json)"]
+see: [rom/8fcd78.md, docs/game-research/script-vm/opcodes.md]
 ---
-Only the operands and the flow are traced so far; what the handler does with them is not.
-
-Operands: none (tokens: docs/game-research/script-vm/README.md). Flow: continues in the same turn.
+With no operands, selects Boy's actor bit in the shared freeze dispatcher. The dispatcher sets DP `$4C` to Boy (`$4E89`) and calls `$8F:CD78` to halt his motion and set the immobilized flag. Returns Carry Set.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
