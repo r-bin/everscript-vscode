@@ -235,7 +235,8 @@
       tasInstallWriteHook(getModule());
       if (tasAutoRecord) {
         tasRec = { frames: 0, unsent: 0, lines: [], live: false, cheats: false };
-        vscodeApi.postMessage({ command: 'tasRecStart', name: name || 'game', source: tasPlay ? tasPlay.title : '' });
+        const startingSram = (typeof lastStartingSramB64 === 'string') ? lastStartingSramB64 : '';
+        vscodeApi.postMessage({ command: 'tasRecStart', name: name || 'game', source: tasPlay ? tasPlay.title : '', sram: startingSram });
       }
       if (tasPlay) tasSetStatus('replaying ' + tasPlay.title);
       tasRefreshBadge();

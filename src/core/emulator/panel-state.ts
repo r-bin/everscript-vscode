@@ -44,7 +44,7 @@ interface EmuState {
     readyTimeout: ReturnType<typeof setTimeout> | null; romTimeout: ReturnType<typeof setTimeout> | null; webviewReady: boolean;
     cdl: CdlHost | null; tas: TasHost | null; options: EmuOptions; reopenTried: boolean;
     sessionProfile: string | null; sessionTitle: string | null;
-    sessionCore: 'fork' | 'vanilla' | null; sessionPreset: string | null; sessionIsolatedSram: boolean;
+    sessionCore: 'fork' | 'vanilla' | null; sessionPreset: string | null; sessionSramMode: 'default' | 'individual'; sessionIsolatedSram: boolean;
     sessionAlwaysRecord: boolean;
     loadedCore: 'fork' | 'vanilla' | null;
 }
@@ -67,7 +67,8 @@ const emu: EmuState = {
     sessionTitle: null,     // title override for the current open panel
     sessionCore: null,      // in-session core selection ('fork' | 'vanilla')
     sessionPreset: null,    // in-session preset ('default' | 'everscript' | 'cdl' | 'clean')
-    sessionIsolatedSram: false, // in-session isolated SRAM toggle
+    sessionSramMode: 'default', // in-session SRAM mode ('default' | 'individual')
+    sessionIsolatedSram: false, // in-session isolated SRAM toggle (legacy)
     sessionAlwaysRecord: true,  // in-session always record toggle (default on)
     loadedCore: null,       // the core build currently loaded in the webview
     /**
@@ -195,11 +196,16 @@ function _dispatchPendingRom() {
   if (emu.currentRomBuffer) {
     const clean = (emu.currentRomBuffer.length % 1024 === 512) ? emu.currentRomBuffer.subarray(512) : emu.currentRomBuffer;
     romSha1 = require('crypto').createHash('sha1').update(clean).digest('hex').toLowerCase();
-    if (!emu.sessionIsolatedSram) {
+    const isCdl = emu.sessionPreset === 'cdl';
+    const effectiveSramMode = isCdl ? 'individual' : (emu.sessionSramMode || (emu.sessionIsolatedSram ? 'individual' : 'default'));
+    if (effectiveSramMode === 'default') {
       const storageDir = getStorageDir(emu.context);
       sramData = loadPersistentSram(storageDir, romSha1);
     }
   }
+
+  const isCdlLaunch = emu.sessionPreset === 'cdl';
+  const effectiveSramMode = isCdlLaunch ? 'individual' : (emu.sessionSramMode || (emu.sessionIsolatedSram ? 'individual' : 'default'));
 
   emu.panel.webview.postMessage({
     command: 'loadRom',
@@ -209,8 +215,9 @@ function _dispatchPendingRom() {
     scriptDebug: _scriptDebug.beforeRomLoad(),
     romSha1,
     sramData,
-    isolatedSram: !!emu.sessionIsolatedSram,
-    alwaysRecord: emu.sessionAlwaysRecord !== false,
+    sramMode: effectiveSramMode,
+    isolatedSram: effectiveSramMode === 'individual',
+    alwaysRecord: isCdlLaunch ? true : emu.sessionAlwaysRecord !== false,
     preset: emu.sessionPreset || 'default',
   });
   return true;
@@ -260,11 +267,14 @@ function _broadcastRomOffer() {
     // The vanilla ROM comes from the ROM library (src/core/roms).
     const romOfferData: any = getRomOfferData(emu.context, wsRoot, '', activeGame);
     if (romOfferData) {
+      const isCdl = emu.sessionPreset === 'cdl';
+      const effectiveSramMode = isCdl ? 'individual' : (emu.sessionSramMode || (emu.sessionIsolatedSram ? 'individual' : 'default'));
       romOfferData.sessionSettings = {
         core: emu.sessionCore || 'fork',
         preset: emu.sessionPreset || 'default',
-        isolatedSram: !!emu.sessionIsolatedSram,
-        alwaysRecord: emu.sessionAlwaysRecord !== false,
+        sramMode: effectiveSramMode,
+        isolatedSram: effectiveSramMode === 'individual',
+        alwaysRecord: isCdl ? true : emu.sessionAlwaysRecord !== false,
       };
     }
     emu.panel.webview.postMessage({ command: 'romOfferInfo', data: romOfferData });

@@ -143,10 +143,12 @@
     let overlayCol1Idx = 0;
     let selectedCore = 'fork';
     let selectedPreset = 'default';
-    let isolatedSramEnabled = false;
+    let sramMode = 'default';
     let alwaysRecordEnabled = true;
     let currentRomSha1 = '';
+    let currentSramMode = 'default';
     let currentIsolatedSram = false;
+    let lastStartingSramB64 = '';
     let lastSavedSramB64 = '';
     let clearRecentConfirming = false;
 
@@ -173,18 +175,26 @@
       if (savedCore) selectedCore = savedCore;
       const savedPreset = sessionStorage.getItem('evs_selectedPreset');
       if (savedPreset) selectedPreset = savedPreset;
-      const savedSram = sessionStorage.getItem('evs_isolatedSram');
-      if (savedSram !== null) isolatedSramEnabled = savedSram === 'true';
+      const savedSramMode = sessionStorage.getItem('evs_sramMode');
+      if (savedSramMode === 'default' || savedSramMode === 'individual') {
+        sramMode = savedSramMode;
+      } else {
+        const savedSram = sessionStorage.getItem('evs_isolatedSram');
+        if (savedSram !== null) sramMode = savedSram === 'true' ? 'individual' : 'default';
+      }
       const savedRec = sessionStorage.getItem('evs_alwaysRecord');
       if (savedRec !== null) alwaysRecordEnabled = savedRec === 'true';
     } catch (_) {}
 
     function getLaunchOptions() {
+      const isCdl = selectedPreset === 'cdl';
+      const effectiveSram = isCdl ? 'individual' : sramMode;
       return {
         core: selectedCore,
         preset: selectedPreset,
-        isolatedSram: isolatedSramEnabled,
-        alwaysRecord: alwaysRecordEnabled
+        sramMode: effectiveSram,
+        isolatedSram: effectiveSram === 'individual',
+        alwaysRecord: isCdl ? true : alwaysRecordEnabled
       };
     }
 
@@ -204,16 +214,28 @@
         presetPill.classList.add('active');
       }
 
+      const isCdl = selectedPreset === 'cdl';
+
+      const recRow = document.getElementById('launcher-row-2');
       const recPill = document.getElementById('launcher-val-record');
+      const recBtns = recRow ? recRow.querySelectorAll('.menu-stepper-btn') : [];
+      if (recRow) recRow.classList.toggle('disabled', isCdl);
+      for (let i = 0; i < recBtns.length; i++) recBtns[i].disabled = isCdl;
       if (recPill) {
-        recPill.textContent = alwaysRecordEnabled ? 'ON' : 'OFF';
-        recPill.classList.toggle('active', alwaysRecordEnabled);
+        const effectiveRec = isCdl ? true : alwaysRecordEnabled;
+        recPill.textContent = effectiveRec ? 'ON' : 'OFF';
+        recPill.classList.toggle('active', effectiveRec);
       }
 
+      const sramRow = document.getElementById('launcher-row-3');
       const sramPill = document.getElementById('launcher-val-sram');
+      const sramBtns = sramRow ? sramRow.querySelectorAll('.menu-stepper-btn') : [];
+      if (sramRow) sramRow.classList.toggle('disabled', isCdl);
+      for (let i = 0; i < sramBtns.length; i++) sramBtns[i].disabled = isCdl;
       if (sramPill) {
-        sramPill.textContent = isolatedSramEnabled ? 'ON' : 'OFF';
-        sramPill.classList.toggle('active', isolatedSramEnabled);
+        const effectiveSram = isCdl ? 'individual' : sramMode;
+        sramPill.textContent = effectiveSram === 'individual' ? 'Individual' : 'Default';
+        sramPill.classList.toggle('active', effectiveSram === 'default');
       }
     }
 
@@ -272,6 +294,7 @@
             overlayFocusCol = 1;
             overlayCol1Idx = r;
             setOverlayFocus(r, 1);
+            if (row.classList.contains('disabled')) return;
 
             const stepper = e.target.closest('.menu-stepper-btn');
             if (stepper) {
@@ -303,7 +326,8 @@
       if (data.sessionSettings) {
         if (data.sessionSettings.core) selectedCore = data.sessionSettings.core;
         if (data.sessionSettings.preset) selectedPreset = data.sessionSettings.preset;
-        if (typeof data.sessionSettings.isolatedSram === 'boolean') isolatedSramEnabled = data.sessionSettings.isolatedSram;
+        if (data.sessionSettings.sramMode === 'default' || data.sessionSettings.sramMode === 'individual') sramMode = data.sessionSettings.sramMode;
+        else if (typeof data.sessionSettings.isolatedSram === 'boolean') sramMode = data.sessionSettings.isolatedSram ? 'individual' : 'default';
         if (typeof data.sessionSettings.alwaysRecord === 'boolean') alwaysRecordEnabled = data.sessionSettings.alwaysRecord;
       }
       initSidebarControls();
@@ -515,17 +539,19 @@
         }
       } else if (overlayCol1Idx === 2) {
         // Row 2: Always record (toggle)
+        if (selectedPreset === 'cdl') return;
         alwaysRecordEnabled = !alwaysRecordEnabled;
         try { sessionStorage.setItem('evs_alwaysRecord', String(alwaysRecordEnabled)); } catch (_) {}
         updateSidebarUi();
         if (vscodeApi) vscodeApi.postMessage({ command: 'setSessionSettings', alwaysRecord: alwaysRecordEnabled });
         if (typeof playMenuSound === 'function') playMenuSound('click_toggle');
       } else if (overlayCol1Idx === 3) {
-        // Row 3: Isolated SRAM (toggle)
-        isolatedSramEnabled = !isolatedSramEnabled;
-        try { sessionStorage.setItem('evs_isolatedSram', String(isolatedSramEnabled)); } catch (_) {}
+        // Row 3: SRAM (Default / Individual)
+        if (selectedPreset === 'cdl') return;
+        sramMode = (sramMode === 'default') ? 'individual' : 'default';
+        try { sessionStorage.setItem('evs_sramMode', sramMode); } catch (_) {}
         updateSidebarUi();
-        if (vscodeApi) vscodeApi.postMessage({ command: 'setSessionSettings', isolatedSram: isolatedSramEnabled });
+        if (vscodeApi) vscodeApi.postMessage({ command: 'setSessionSettings', sramMode: sramMode, isolatedSram: sramMode === 'individual' });
         if (typeof playMenuSound === 'function') playMenuSound('click_toggle');
       }
     }

@@ -170,6 +170,15 @@
       border-left: 3px solid #4ec9b0;
       padding-left: 9px;
     }
+    .overlay-sidebar .menu-row.disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .overlay-sidebar .menu-row.disabled .menu-stepper-btn,
+    .overlay-sidebar .menu-row.disabled .menu-pill {
+      cursor: not-allowed;
+      pointer-events: none;
+    }
     .overlay-sidebar .menu-row-label {
       display: flex;
       align-items: center;

@@ -181,7 +181,8 @@
         if (evt.data.scriptDebug && typeof sdbgConfigure === 'function') sdbgConfigure(evt.data.scriptDebug);
         romStage('loadRom received: ' + (evt.data.name || 'game'));
         currentRomSha1 = evt.data.romSha1 || '';
-        currentIsolatedSram = !!evt.data.isolatedSram;
+        currentSramMode = evt.data.sramMode || (evt.data.isolatedSram ? 'individual' : 'default');
+        currentIsolatedSram = currentSramMode === 'individual';
         if (evt.data.preset) applyLaunchPreset(evt.data.preset);
         startWithRom(evt.data.dataUrl, evt.data.name, evt.data.sramData);
       }

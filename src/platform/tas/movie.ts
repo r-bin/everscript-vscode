@@ -191,14 +191,20 @@ function parseMovie(text: string, fileName?: string) {
         version,
         events,
         meta: { rom: m.rom || '', romSha256: (m['rom.sha256'] || '').toLowerCase(), core: m.core || '', audio: parseInt(m.audio, 10) || AUDIO_RATE, started: m.started || '', source: m.source || '', cheats: m.cheats || '',
-            desync: m.desync || '', synced: m.synced || '' },
+            desync: m.desync || '', synced: m.synced || '', sram: m.sram || '' },
         warnings: version === 1 && m.cheats === 'yes' ? ['cheats were on while recording: may not sync'] : [],
     };
 }
 
-function evsmvHeader({ rom, romSha256, started, source, core }: { rom?: string; romSha256?: string; started: string; source?: string; core?: string }): string {
-    const lines = [EVSMV_MAGIC, '# rom: ' + (rom || ''), '# rom.sha256: ' + (romSha256 || ''), '# started: ' + started,
-        '# start: power-on, empty SRAM', '# check: WRAM every ' + CHECK_EVERY + ' frames, other spaces every ' + SPACES_EVERY];
+function evsmvHeader({ rom, romSha256, started, source, core, sram }: { rom?: string; romSha256?: string; started: string; source?: string; core?: string; sram?: string }): string {
+    const lines = [EVSMV_MAGIC, '# rom: ' + (rom || ''), '# rom.sha256: ' + (romSha256 || ''), '# started: ' + started];
+    if (sram) {
+        lines.push('# sram: ' + sram);
+        lines.push('# start: power-on, initial SRAM');
+    } else {
+        lines.push('# start: power-on, empty SRAM');
+    }
+    lines.push('# check: WRAM every ' + CHECK_EVERY + ' frames, other spaces every ' + SPACES_EVERY);
     if (core) lines.push('# core: ' + core);
     lines.push('# audio: ' + AUDIO_RATE);
     if (source) lines.push('# source: ' + source);

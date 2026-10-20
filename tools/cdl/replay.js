@@ -51,6 +51,14 @@ function run(moviePath, romPath, opts) {
     bootCore(romBuf, M => {
         const p = M._my_malloc(romBuf.length); HEAPU8.set(romBuf, p);
         M._startWithRom(p, romBuf.length, movie.meta.audio);   // the rate it was recorded at: it leaks into ARAM
+        if (movie.meta.sram && typeof M._getSaveSram === 'function') {
+            const sramBuf = Buffer.from(movie.meta.sram, 'base64');
+            const sramPtr = M._getSaveSram();
+            const maxSram = typeof M._getSaveSramSize === 'function' ? M._getSaveSramSize() : 0x20000;
+            if (sramPtr && sramBuf.length <= maxSram) {
+                HEAPU8.set(sramBuf, sramPtr);
+            }
+        }
         let lib = null;
         if (opts.cdl) {
             const { CdlLibrary, stripCopierHeader } = require('../../dist/platform/cdl/library');

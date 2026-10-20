@@ -36,7 +36,13 @@ function onWebviewMessage(msg: PageMessage) {
         case 'setSessionSettings': {
             if (msg.core) emu.sessionCore = msg.core;
             if (msg.preset) emu.sessionPreset = msg.preset;
-            if (typeof msg.isolatedSram === 'boolean') emu.sessionIsolatedSram = msg.isolatedSram;
+            if (msg.sramMode === 'default' || msg.sramMode === 'individual') {
+                emu.sessionSramMode = msg.sramMode;
+                emu.sessionIsolatedSram = (msg.sramMode === 'individual');
+            } else if (typeof msg.isolatedSram === 'boolean') {
+                emu.sessionIsolatedSram = msg.isolatedSram;
+                emu.sessionSramMode = msg.isolatedSram ? 'individual' : 'default';
+            }
             if (typeof msg.alwaysRecord === 'boolean') {
                 emu.sessionAlwaysRecord = msg.alwaysRecord;
                 _saveState(ALWAYS_RECORD_KEY, msg.alwaysRecord);
@@ -45,7 +51,9 @@ function onWebviewMessage(msg: PageMessage) {
         }
 
         case 'saveSram': {
-            if (!emu.sessionIsolatedSram && msg.hash && msg.data) {
+            const isCdl = emu.sessionPreset === 'cdl';
+            const effectiveSramMode = isCdl ? 'individual' : (emu.sessionSramMode || (emu.sessionIsolatedSram ? 'individual' : 'default'));
+            if (effectiveSramMode === 'default' && msg.hash && msg.data) {
                 savePersistentSram(getStorageDir(emu.context), msg.hash, msg.data);
             }
             break;
@@ -54,7 +62,13 @@ function onWebviewMessage(msg: PageMessage) {
         case 'loadVanillaRom': {
             if (msg.core) emu.sessionCore = msg.core;
             if (msg.preset) emu.sessionPreset = msg.preset;
-            if (typeof msg.isolatedSram === 'boolean') emu.sessionIsolatedSram = msg.isolatedSram;
+            if (msg.sramMode === 'default' || msg.sramMode === 'individual') {
+                emu.sessionSramMode = msg.sramMode;
+                emu.sessionIsolatedSram = (msg.sramMode === 'individual');
+            } else if (typeof msg.isolatedSram === 'boolean') {
+                emu.sessionIsolatedSram = msg.isolatedSram;
+                emu.sessionSramMode = msg.isolatedSram ? 'individual' : 'default';
+            }
             if (typeof msg.alwaysRecord === 'boolean') {
                 emu.sessionAlwaysRecord = msg.alwaysRecord;
                 _saveState(ALWAYS_RECORD_KEY, msg.alwaysRecord);
@@ -76,7 +90,13 @@ function onWebviewMessage(msg: PageMessage) {
         case 'loadRecentRom': {
             if (msg.core) emu.sessionCore = msg.core;
             if (msg.preset) emu.sessionPreset = msg.preset;
-            if (typeof msg.isolatedSram === 'boolean') emu.sessionIsolatedSram = msg.isolatedSram;
+            if (msg.sramMode === 'default' || msg.sramMode === 'individual') {
+                emu.sessionSramMode = msg.sramMode;
+                emu.sessionIsolatedSram = (msg.sramMode === 'individual');
+            } else if (typeof msg.isolatedSram === 'boolean') {
+                emu.sessionIsolatedSram = msg.isolatedSram;
+                emu.sessionSramMode = msg.isolatedSram ? 'individual' : 'default';
+            }
             if (typeof msg.alwaysRecord === 'boolean') {
                 emu.sessionAlwaysRecord = msg.alwaysRecord;
                 _saveState(ALWAYS_RECORD_KEY, msg.alwaysRecord);
@@ -94,7 +114,13 @@ function onWebviewMessage(msg: PageMessage) {
         case 'romDropped': {
             if (msg.core) emu.sessionCore = msg.core;
             if (msg.preset) emu.sessionPreset = msg.preset;
-            if (typeof msg.isolatedSram === 'boolean') emu.sessionIsolatedSram = msg.isolatedSram;
+            if (msg.sramMode === 'default' || msg.sramMode === 'individual') {
+                emu.sessionSramMode = msg.sramMode;
+                emu.sessionIsolatedSram = (msg.sramMode === 'individual');
+            } else if (typeof msg.isolatedSram === 'boolean') {
+                emu.sessionIsolatedSram = msg.isolatedSram;
+                emu.sessionSramMode = msg.isolatedSram ? 'individual' : 'default';
+            }
             if (typeof msg.alwaysRecord === 'boolean') {
                 emu.sessionAlwaysRecord = msg.alwaysRecord;
                 _saveState(ALWAYS_RECORD_KEY, msg.alwaysRecord);

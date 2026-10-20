@@ -27,7 +27,7 @@ import { verifyMovieSafely } from '../../../platform/tas/verify';
 
 /** A webview message (the fields each command uses). */
 interface TasMessage {
-    command: string; id?: string; name?: string; source?: string; text?: string; frames?: number; live?: boolean; cheats?: boolean;
+    command: string; id?: string; name?: string; source?: string; sram?: string; text?: string; frames?: number; live?: boolean; cheats?: boolean;
     pinned?: boolean; confirmed?: boolean; frame?: number; expected?: string; got?: string; fair?: boolean; overlay?: boolean;
 }
 /** The recording being written. */
@@ -150,7 +150,7 @@ class TasHost {
         const file = path.join(this.dir(), `${safeName(msg.name)}_${stamp(started)}.evsmv`);
         this.rec = {
             file, fd: null, frames: 0, live: false, cheats: false,
-            header: evsmvHeader({ rom: msg.name, romSha256: this.romSha, started: started.toISOString(), source: msg.source, core: this.coreId() }),
+            header: evsmvHeader({ rom: msg.name, romSha256: this.romSha, started: started.toISOString(), source: msg.source, core: this.coreId(), sram: typeof msg.sram === 'string' && msg.sram ? msg.sram : undefined }),
         };
     }
 
@@ -285,6 +285,7 @@ class TasHost {
                 count: movie.count,
                 pads: pads.toString('base64'),
                 events: movie.events,
+                sram: movie.meta.sram || '',
                 romMatch: movie.meta.romSha256 && this.romSha ? movie.meta.romSha256 === this.romSha : null,
                 coreMatch: this._coreMatch(movie),
                 warnings: movie.warnings,

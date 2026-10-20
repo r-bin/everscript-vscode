@@ -181,7 +181,7 @@
     }
 
     function persistSramIfNeeded() {
-      if (currentIsolatedSram || !romLoaded || !currentRomSha1) return;
+      if (currentIsolatedSram || !romLoaded || !currentRomSha1 || (typeof tasPlay !== 'undefined' && tasPlay) || (typeof tasPendingMovie !== 'undefined' && tasPendingMovie)) return;
       const sram = getSramBytes();
       if (!sram || !sram.length) return;
       let b64 = '';
@@ -227,13 +227,20 @@
         Module._startWithRom(ptr, romData.length, AUDIO_FREQ);
         Module._my_free(ptr);
 
-        if (sramData && !currentIsolatedSram) {
+        const isReplay = !!(typeof tasPendingMovie !== 'undefined' && tasPendingMovie);
+        const shouldApplySram = sramData && (!currentIsolatedSram || isReplay);
+        if (shouldApplySram) {
           try {
             const bin = atob(sramData);
             const u8 = new Uint8Array(bin.length);
             for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
             putSramBytes(u8);
-          } catch (_) {}
+            lastStartingSramB64 = sramData;
+          } catch (_) {
+            lastStartingSramB64 = '';
+          }
+        } else {
+          lastStartingSramB64 = '';
         }
 
         if (typeof sdbgOnBoot === 'function') sdbgOnBoot();

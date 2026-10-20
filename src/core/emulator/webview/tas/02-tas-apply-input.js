@@ -59,7 +59,7 @@
       // Only a replay that should sync says anything about the recording.
       movie.fair = !(m && typeof m._takeInputPolled !== 'function') && msg.romMatch !== false && msg.coreMatch !== false;
       tasPendingMovie = movie;
-      bootRom(loadedRomData, loadedRomName);
+      bootRom(loadedRomData, loadedRomName, msg.sram || null);
       if (tasNotice) tasSetStatus('replaying ' + movie.title + ' - ' + tasNotice);
     }
 

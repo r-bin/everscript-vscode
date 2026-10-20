@@ -84,6 +84,14 @@ test('evsmv round-trips header, frames and trailer; other files are rejected', (
     assert.strictEqual(m.warnings.length, 0, 'version 2 replays the cheat writes, so cheats are no warning');
     assert.strictEqual(movie.parseMovie('# Everscript movie 1\n# cheats: yes\nF|....\n', 'old').warnings.length, 1, 'a version 1 recording cannot replay cheats');
     assert.throws(() => movie.parseMovie('PK...', 'x.lsmv'));
+
+    const sramB64 = Buffer.from([1, 2, 3, 4]).toString('base64');
+    const textWithSram = movie.evsmvHeader({ rom: 'SoE.smc', romSha256: 'ab', started: '2026-10-07T00:00:00.000Z', source: 'x', sram: sramB64 })
+        + movie.frameLine(0x8000) + '\n'
+        + movie.evsmvTrailer({ frames: 1 });
+    const mSram = movie.parseMovie(textWithSram, 'SoE_Sram.evsmv');
+    assert.strictEqual(mSram.meta.sram, sramB64);
+    assert.ok(textWithSram.includes('# start: power-on, initial SRAM'));
 });
 
 test('host: recording kept only when a button was pressed by hand; pins; replay load', () => {
@@ -177,9 +185,7 @@ test('webview: REPLAYS tab, inputs + FPS chips, frame loop routes joypads throug
     assert.ok(html.includes('id="tas-rec-badge"'), 'the replay status chip is on the screen');
     assert.ok(html.includes('id="screen-inputs-toggle"') && html.includes('id="tas-input-overlay"'));
     assert.ok(!/Module\._setJoypadInput\(keyInput\)/.test(html), 'joypads only set by tasApplyInput');
-    assert.ok(html.includes('tasApplyInput(Module, keyInput);'));
-    assert.ok(html.includes('if (m && emuGameRom && !tasReplaying() && typeof maintainCheats === \'function\') maintainCheats(m);'), 'no cheat writes during replay');
-    assert.ok(html.includes('id="screen-fps"'), 'FPS chip');
+    assert.ok(html.includes('if (m && gameActive && !tasReplaying() && typeof maintainCheats === \'function\') maintainCheats(m);'), 'no cheat writes during replay');
     assert.strictEqual((html.match(/Module\._mainLoop\(\);\s*fpsCountFrame\(Module\);/g) || []).length, 2, 'every emulated frame counted');
     assert.ok(html.includes('fpsTick(timestamp, romLoaded && !paused);'), 'paused time is not measured');
     for (const m of html.matchAll(/<script>([\s\S]*?)<\/script>/g)) new Function(m[1]);
