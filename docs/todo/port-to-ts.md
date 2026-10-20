@@ -51,7 +51,7 @@ Page code the host also uses is a TypeScript module that `tools/bundle-pages.mts
 - `src/core/emulator/webview/`: `apu-stream.js`, `cdl-float.js`, `cdl-strips.js`, `cdl.js`, `emulator-panels.js`, `emulator-profile.js`, `fps.js`, `memory-bridge.js`, `menu-sound.js`, `replays-list.js`
 - `src/core/emulator/webview/menu/`: `01-default-key-map.js`, `02-change-menu-value.js`, `03-last-gamepad-buttons.js`
 - `src/core/emulator/webview/page/`: `01-last-sampled-pre-state.js`, `01a-rom-sessions.js`, `02-activate-overlay-focused.js`, `03-set-speed-up.js`, `03b-render-loop.js`, `04-last-layout.js`
-- `src/core/emulator/webview/tas/`: `01-tas-buttons.js`, `02-tas-apply-input.js`
+- `src/core/emulator/webview/tas/`: `01-tas-buttons.js`, `02-tas-apply-input.js`, `03-tas-rewind.js`
 - `src/core/map-editor/core/`: `edit-history.js`, `edit-session.js`, `edit-tools.js`
 - `src/core/map-editor/shell/`: `frame-dock.js`, `layout.js`, `pan.js`, `rail.js`, `status.js`, `zoom-pan.js`
 - `src/core/map-editor/view/`: `tile-animation.js`, `view-chips.js`

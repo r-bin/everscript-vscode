@@ -210,6 +210,24 @@ test('sessions shorter than the REPLAYS threshold are deleted when they end; a c
     }
 });
 
+test('rewinds: K / L lines parse, the host gzips L states the page sends raw and hands them back raw', () => {
+    const { packRewinds, rawRewinds, nextMarker } = require('../../dist/core/emulator/tas/resume');
+    const state = Buffer.from(Array.from({ length: 2048 }, (_, i) => (i * 7) & 255));
+    const packed = packRewinds('F|................\nK|3\nL|3|raw:' + state.toString('base64') + '\nF|................\n');
+    assert.ok(!packed.includes('raw:') && packed.includes('\nL|3|H4sI'), 'gzipped in the file');
+    const text = movie.evsmvHeader({ rom: 'G', romSha256: '', started: 'x' }) + packed;
+    const m = movie.parseMovie(text, 'x');
+    assert.deepStrictEqual(m.events.map(e => [e.frame, e.kind, e.n]), [[1, 'K', 3], [1, 'L', 3]]);
+    assert.strictEqual(m.count, 2);
+    const raw = rawRewinds(m.events).find(e => e.kind === 'L');
+    assert.ok(Buffer.from(raw.data, 'base64').equals(state));
+    assert.strictEqual(nextMarker(m.events), 4);
+    assert.deepStrictEqual(movie.movieStates(text.replace('L|3|', 'Z|AA\nL|3|')).map(s => s.skip), [1], 'a K line counts as an event before a Z line');
+    const prefs = require('../../dist/core/emulator/tas/prefs');
+    assert.deepStrictEqual(prefs.mergePrefs({}, { rewinds: 'load' }), { rewinds: 'load' });
+    assert.deepStrictEqual(prefs.mergePrefs({}, { rewinds: 'maybe' }), {});
+});
+
 test('a sync mark above the last continue no longer counts', () => {
     const head = movie.evsmvHeader({ rom: 'G', romSha256: 'ab', started: 'x' }) + frames(2, 0);
     assert.ok(movie.parseMovie(head + '# synced: 2026-10-20\n', 'a').meta.synced);

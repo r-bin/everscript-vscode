@@ -5,13 +5,14 @@
  *   overlay      the input overlay is on
  *   pinned       favourite recordings (file names)
  *   minSeconds   a session shorter than this is deleted when it ends (0 = keep every session with input)
+ *   rewinds      how a replay does a recorded rewind: 'calc' its own state at the marker (default), 'load' the recorded one
  * No vscode here (tests load it under node).
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
 
-interface Prefs { overlay?: boolean; pinned?: string[]; minSeconds?: number }
+interface Prefs { overlay?: boolean; pinned?: string[]; minSeconds?: number; rewinds?: 'calc' | 'load' }
 
 const PREFS_FILE = 'tas-prefs.json';
 const MIN_SECONDS = [0, 10, 60, 600];
@@ -31,7 +32,8 @@ function minSeconds(prefs: Prefs): number {
 }
 
 /** The page's tasPrefs message merged into prefs: only the fields it sends, only offered values. */
-function mergePrefs(prefs: Prefs, msg: { overlay?: boolean; minSeconds?: number }): Prefs {
+function mergePrefs(prefs: Prefs, msg: { overlay?: boolean; minSeconds?: number; rewinds?: string }): Prefs {
+    if (msg.rewinds === 'calc' || msg.rewinds === 'load') prefs.rewinds = msg.rewinds;
     if (msg.overlay !== undefined) prefs.overlay = !!msg.overlay;
     if (MIN_SECONDS.includes(Number(msg.minSeconds))) prefs.minSeconds = Number(msg.minSeconds);
     return prefs;

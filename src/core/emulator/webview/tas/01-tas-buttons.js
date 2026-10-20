@@ -195,6 +195,8 @@
         } else if (ev.kind === 'R') {
           if (typeof m._softReset === 'function') m._softReset();
           tasRecordEvent('R|soft');
+        } else if (ev.kind === 'K' || ev.kind === 'L') {
+          tasPlayRewindEvent(m, ev);
         } else if (ev.kind === 'S') {
           const got = tasWramCrc(m);
           if (got !== null) {
@@ -293,6 +295,7 @@
       tasPendingW = null;
       tasDesync = null;
       tasRec = { frames: msg.count, unsent: 0, lines: [], live: true, cheats: false };
+      tasRewindReset(msg.nextMarker);
       vscodeApi.postMessage({ command: 'tasRecContinue', id: msg.id });
       if (msg.count > msg.frame) {
         const pads = tasUnB64(msg.pads);
@@ -301,8 +304,8 @@
           if (!events.has(ev.frame)) events.set(ev.frame, []);
           events.get(ev.frame).push(ev);
         }
-        tasPlay = { id: msg.id, title: msg.title, resume: true, fair: false, base: msg.frame, pos: msg.frame, count: msg.count, events: events,
-          pads: new Uint16Array(pads.buffer, 0, pads.length >> 1) };
+        tasPlay = tasRewindPlayback({ id: msg.id, title: msg.title, resume: true, fair: false, base: msg.frame, pos: msg.frame, count: msg.count, events: events,
+          pads: new Uint16Array(pads.buffer, 0, pads.length >> 1) }, events);
         tasSetStatus('continuing ' + msg.title + ': catching up ' + (msg.count - msg.frame) + ' frames');
         tasCatchingUp = true;
         setTimeout(tasCatchUpSlice, 0);
@@ -340,6 +343,7 @@
       tasLastSnapshotFrame = -1;
       tasPlay = tasPendingMovie;
       tasPendingMovie = null;
+      tasRewindReset(tasPlay ? tasPlay.nextMarker : 0);
       tasSessionFrame = 0;
       tasLastPad = 0;
       tasPendingW = null;

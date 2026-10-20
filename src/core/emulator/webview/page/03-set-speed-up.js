@@ -24,7 +24,7 @@
         const isR = k === 'e' || k === 'E' || k === 'PageDown' || k === 'r' || k === 'R' || k === ']' || k.toLowerCase() === keyR.toLowerCase() || (typeof userKeyMap !== 'undefined' && e.code === userKeyMap['R']);
 
         if (isL || isR || k === 'Tab') {
-          switchOverlayColumn();
+          cycleOverlayGroup(isL || (k === 'Tab' && e.shiftKey) ? -1 : 1);
           e.preventDefault();
           return;
         }
@@ -102,7 +102,9 @@
       if (typeof isMenuOpen !== 'undefined' && isMenuOpen) return;
       if (e.repeat) return;
       const bit = (typeof dynamicKeyToBit !== 'undefined' && dynamicKeyToBit[e.key]) ? dynamicKeyToBit[e.key] : KEY_MAP[e.key];
-      if (bit) { keyInput |= bit; e.preventDefault(); }
+      if (bit) { keyInput |= bit; e.preventDefault(); return; }
+      // Backspace (when no pad button is bound to it): rewind (tas/03-tas-rewind.js).
+      if (e.key === 'Backspace') { tasRewind(); e.preventDefault(); }
     });
     document.addEventListener('keyup', e => {
       const startKey = (typeof userKeyMap !== 'undefined' && userKeyMap['Start']) ? userKeyMap['Start'] : 'Enter';

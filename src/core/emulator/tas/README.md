@@ -74,6 +74,15 @@ game frame rates.
   one is also written into the movie as `Z|<base64 gzip>` (~100 KB a line, so ~6 MB per hour of hand play), so an
   exported `.evsmv` carries them. Replays ignore Z lines; `tools/cdl/replay.js --from-frame <n>` starts from the
   newest one at or before n (checked: from frame 5400 of a 7054-frame session, every later checksum matches).
+- **Rewind** (v0.318.0, Backspace or pause menu EMULATION > Rewind; `webview/tas/03-tas-rewind.js`): while played by
+  hand the page keeps a save state every 300 frames of the current timeline (the last 24 = 2 min, in memory) and
+  writes `K|<n>` there; Rewind loads the newest one at least 60 frames back (again right away: the one before),
+  drops the later ones and writes `L|<n>|<state>` (the page sends it raw, `packRewinds` gzips it). Frames keep
+  counting through a rewind (an event's frame = frames emulated before it). A replay rewinds too; REPLAYS setting
+  "Rewinds in replays": **Calculate** (default) loads the state the replay computed itself at `K|<n>` (a desync shows),
+  **Load state** the one the line carries (puts a drifted replay back on track); with no state of its own (started from
+  a snapshot) it loads the line's. `tools/cdl/replay.js --rewinds calc|load` does the same; checked: a movie with 3
+  rewinds replays in both modes, headless and in the page, all 66 checksums.
 - **Length threshold** (v0.317.0, REPLAYS tab row "Delete recordings shorter than": keep all / 10 s / 1 min /
   10 min, default 10 s, `tas-prefs.json` `minSeconds`): a session shorter than that is deleted with its snapshot
   when it ends; a continued session existed before and always stays.

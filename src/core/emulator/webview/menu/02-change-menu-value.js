@@ -126,6 +126,10 @@
               closeEmulatorMenu();
             }
             break;
+          case 7:
+            // Stays open: B again goes further back (tas/03-tas-rewind.js).
+            if (typeof tasRewind === 'function') tasRewind();
+            break;
           default:
             changeMenuValue(1);
             break;

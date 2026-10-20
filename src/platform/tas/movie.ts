@@ -34,6 +34,12 @@
  * and the header names the core build (# core:), which a replay compares: a core that
  * emulates differently cannot replay a movie. Version 1 and 2 movies still load and replay.
  *
+ * Rewinds (v0.318.0): "K|<n>" marks the point where the page kept rewind state n (every REWIND_EVERY
+ * frames of hand play); "L|<n>|<base64 gzip>" = the player rewound to state n, which the line carries.
+ * A replay either loads that data ("load") or the state it computed itself at K|<n> ("calculate": the same
+ * when in sync, and a drifted replay is not quietly corrected); without its own state it loads the data.
+ * Frames keep counting through a rewind: an event's frame is the number of frames emulated before it.
+ *
  * Save states (v0.317.0) ride along in the same file as "Z|<base64 of the gzipped saveState() buffer>"
  * lines, at the boundary where the page took them (tas/resume.ts; at most one per STATE_EVERY frames).
  * Replaying ignores them (they change nothing); movieStates() lists them so a tool can start from one
@@ -60,7 +66,9 @@ type MovieEvent =
     | { kind: 'R' }
     | { kind: 'S'; crc: number }
     | { kind: 'T'; crcs: Record<string, number> }
-    | { kind: 'W'; addr: number; bytes: number[] };
+    | { kind: 'W'; addr: number; bytes: number[] }
+    | { kind: 'K'; n: number }
+    | { kind: 'L'; n: number; data: string };
 type PlacedEvent = MovieEvent & { frame: number };
 const WRAM_BASE = 0x7E0000;
 const WRAM_SIZE = 0x20000;
@@ -125,6 +133,8 @@ const spacesLine = (crcs: Record<string, number>): string => 'T|' + SPACES.map((
 function parseEvent(line: string): MovieEvent | null {
     const parts = line.trim().split('|');
     if (parts[0] === 'R') return { kind: 'R' };
+    if (parts[0] === 'K' && /^\d+$/.test(parts[1] || '')) return { kind: 'K', n: parseInt(parts[1], 10) };
+    if (parts[0] === 'L' && /^\d+$/.test(parts[1] || '')) return { kind: 'L', n: parseInt(parts[1], 10), data: parts[2] || '' };
     if (parts[0] === 'S' && /^[0-9A-F]{8}$/i.test(parts[1] || '')) return { kind: 'S', crc: parseInt(parts[1], 16) >>> 0 };
     if (parts[0] === 'T') {
         const crcs: Record<string, number> = {};
@@ -141,6 +151,9 @@ function parseEvent(line: string): MovieEvent | null {
     }
     return null;
 }
+
+/** Frames of hand play between two rewind states (K lines). */
+const REWIND_EVERY = 300;
 
 /** Frames between two save states kept in a recording (Z lines). */
 const STATE_EVERY = 3600;
@@ -159,7 +172,7 @@ function movieStates(text: string): { frame: number; data: string; skip: number 
             count += star < 0 ? 1 : Math.max(1, parseInt(line.slice(star + 1), 10) || 1);
             seen = 0;
         } else if (c === 'Z') out.push({ frame: count, data: line.slice(2).trim(), skip: seen });
-        else if ((c === 'W' || c === 'R' || c === 'S' || c === 'T') && parseEvent(line)) seen++;
+        else if ('WRSTKL'.includes(c) && c && parseEvent(line)) seen++;
     }
     return out;
 }
@@ -208,7 +221,7 @@ function parseMovie(text: string, fileName?: string) {
             const n = star < 0 ? 1 : Math.max(1, parseInt(body.slice(star + 1), 10) || 1);
             for (let i = 0; i < n; i++) { if (count >= pads.length) break; pads[count++] = pad; }
         }
-        else if (c === 'W' || c === 'R' || c === 'S' || c === 'T') {
+        else if (c && 'WRSTKL'.includes(c)) {
             const ev = parseEvent(line);
             if (ev) events.push({ frame: count, ...ev });
         }
@@ -258,4 +271,4 @@ function groupEvents<E extends { frame: number }>(events: E[]): Map<number, E[]>
 }
 
 export type { MovieEvent, PlacedEvent };
-export { BUTTONS, EVSMV_MAGIC, CHECK_EVERY, SPACES_EVERY, AUDIO_RATE, SPACES, spaceCrcs, spacesLine, WRAM_BASE, WRAM_SIZE, padToText, textToPad, frameLine, parseMovie, evsmvHeader, evsmvTrailer, rleFrames, crc32, crcUpdate, crcFinish, crcText, wramCrc, writeLine, resetLine, checkLine, parseEvent, groupEvents, movieStates, STATE_EVERY };
+export { BUTTONS, EVSMV_MAGIC, CHECK_EVERY, SPACES_EVERY, AUDIO_RATE, SPACES, spaceCrcs, spacesLine, WRAM_BASE, WRAM_SIZE, padToText, textToPad, frameLine, parseMovie, evsmvHeader, evsmvTrailer, rleFrames, crc32, crcUpdate, crcFinish, crcText, wramCrc, writeLine, resetLine, checkLine, parseEvent, groupEvents, movieStates, STATE_EVERY, REWIND_EVERY };

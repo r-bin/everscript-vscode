@@ -143,7 +143,8 @@ function resumeMessage(id: string, movieFile: string, romSha256: string, coreId:
     const pads = Buffer.from(r.pads.buffer, r.pads.byteOffset, r.pads.byteLength);
     return {
         command: 'tasResume', id, title: path.basename(movieFile).replace(/\.evsmv$/i, ''), frame: r.frame, count: r.count,
-        state: r.state.toString('base64'), pads: pads.toString('base64'), events: r.events,
+        state: r.state.toString('base64'), pads: pads.toString('base64'), events: rawRewinds(r.events),
+        nextMarker: nextMarker(parseMovie(fs.readFileSync(movieFile, 'utf8')).events),
     };
 }
 
@@ -156,5 +157,29 @@ function openToContinue(movieFile: string) {
     return { fd, frames: movie.count, lastState: movie.count, continued: true, cheats: movie.meta.cheats === 'yes', rom: movie.meta.rom, started: movie.meta.started, desync: !!movie.meta.desync };
 }
 
+// -- rewinds (movie.ts K / L lines) ------------------------------------------------------
+
+/** The page writes a rewind as "L|<n>|raw:<base64 state>": the file keeps it gzipped. */
+function packRewinds(text: string): string {
+    if (text.indexOf('|raw:') < 0) return text;
+    return text.replace(/^L\|(\d+)\|raw:([A-Za-z0-9+/=]*)$/gm, (_, n: string, b64: string) =>
+        'L|' + n + '|' + zlib.gzipSync(Buffer.from(b64, 'base64'), { level: 6 }).toString('base64'));
+}
+
+type MovieEvents = ReturnType<typeof parseMovie>['events'];
+
+/** Events for the page: L data unzipped (the page loads it between two frames, it cannot wait). */
+function rawRewinds(events: MovieEvents): MovieEvents {
+    return events.map(ev => ev.kind === 'L' && ev.data
+        ? Object.assign({}, ev, { data: zlib.gunzipSync(Buffer.from(ev.data, 'base64')).toString('base64') }) : ev);
+}
+
+/** The first rewind marker number a recording has not used yet. */
+function nextMarker(events: MovieEvents): number {
+    let next = 0;
+    for (const ev of events) if (ev.kind === 'K' || ev.kind === 'L') next = Math.max(next, ev.n + 1);
+    return next;
+}
+
 export type { ResumeMeta, ResumableSession, ResumeData };
-export { MIN_RESUME_FRAME, writeResume, saveSnapshot, readResume, deleteResume, listResumable, loadResume, resumeMessage, openToContinue };
+export { MIN_RESUME_FRAME, writeResume, saveSnapshot, readResume, deleteResume, listResumable, loadResume, resumeMessage, openToContinue, packRewinds, rawRewinds, nextMarker };

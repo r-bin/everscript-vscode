@@ -29,6 +29,7 @@
           if (crcs) tasRecordEvent(tasSpacesLine(crcs));
         }
       }
+      tasRewindTick(m);
       m._setJoypadInput(pad);
       tasLastPad = pad;
       tasSessionFrame++;
@@ -48,8 +49,8 @@
         if (!events.has(ev.frame)) events.set(ev.frame, []);
         events.get(ev.frame).push(ev);
       }
-      const movie = { id: msg.id, title: msg.title, count: msg.count, pos: 0, events: events,
-        pads: new Uint16Array(bytes.buffer, 0, bytes.length >> 1) };
+      const movie = tasRewindPlayback({ id: msg.id, title: msg.title, count: msg.count, pos: 0, events: events, nextMarker: msg.nextMarker || 0,
+        pads: new Uint16Array(bytes.buffer, 0, bytes.length >> 1) }, events);
       if (!movie.count) { tasSetStatus('empty recording'); return; }
       const m = getModule();
       // takeInputPolled marks an EVS_TAS core: only there is a restart a power-on.
@@ -130,15 +131,23 @@
     function tasRenderList() {
       const list = document.getElementById('tas-list');
       if (!list || typeof replaysListHtml !== 'function') return;
-      list.innerHTML = replaysListHtml(tasItems, tasPlay ? tasPlay.id : null, tasMinSeconds);
+      list.innerHTML = replaysListHtml(tasItems, tasPlay ? tasPlay.id : null, tasMinSeconds, tasRewindMode);
       if (typeof isMenuOpen !== 'undefined' && isMenuOpen && menuActiveTab === 7) updateMenuRowSelection(false);
     }
 
     // The pause menu's keys on the REPLAYS tab (menu-view.ts).
     function tasMenuStep(rowIdx, delta) {
+      if (replaysRowKind(rowIdx) === 'rewinds') { tasSetRewindMode(tasRewindMode === 'calc' ? 'load' : 'calc'); return; }
       const next = replaysMinSecondsStep(rowIdx, tasMinSeconds, delta);
       if (next !== null) { tasSetMinSeconds(next); return; }
       if (replaysStep(rowIdx, delta)) { playMenuSound('click_nav'); tasRenderList(); }
+    }
+
+    function tasSetRewindMode(mode) {
+      tasRewindMode = mode;
+      vscodeApi.postMessage({ command: 'tasPrefs', rewinds: mode });
+      playMenuSound('click_toggle');
+      tasRenderList();
     }
 
     function tasSetMinSeconds(seconds) {
@@ -164,6 +173,7 @@
       if (r.act === 'takeover') tasStopPlayback();
       else if (r.act === 'reveal') vscodeApi.postMessage({ command: 'tasReveal' });
       else if (r.act === 'minlen') tasSetMinSeconds(replaysMinSecondsNext(tasMinSeconds, 1, true));
+      else if (r.act === 'rewinds') tasSetRewindMode(tasRewindMode === 'calc' ? 'load' : 'calc');
       else if (r.act === 'pin') vscodeApi.postMessage({ command: 'tasPin', id: r.id, pinned: r.on });
       else if (r.act === 'delete') { tasRenderList(); vscodeApi.postMessage({ command: 'tasDelete', id: r.id, confirmed: true }); }
       else if (r.act === 'play') {
@@ -230,6 +240,7 @@
         tasVerifyEvery = Math.max(0, Math.floor((data.verifyEveryMinutes || 0) * 60 * 60.0988 / TAS_CHECK_EVERY)) * TAS_CHECK_EVERY;
         tasSetOverlay(!!data.overlay, false);
         if (typeof data.minSeconds === 'number') tasMinSeconds = data.minSeconds;
+        if (data.rewinds === 'calc' || data.rewinds === 'load') tasRewindMode = data.rewinds;
         tasRequestList();
       } else if (data.command === 'tasListResult') {
         tasItems = data.items || [];

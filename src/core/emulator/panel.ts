@@ -90,6 +90,8 @@ function openEmulatorPanel(context: vscode.ExtensionContext, rom?: RomToOpen | n
     }
 
     emu.sessionProfile = options?.profile || emu.options.profile;
+    // The SNES CDL Recorder opens on the CDL preset.
+    if (emu.sessionProfile === 'recorder') emu.sessionPreset = 'cdl';
     emu.sessionTitle = options?.title || (options?.profile === 'recorder' ? 'SNES CDL Recorder' : emu.options.title);
 
     const core    = resolveCore(emu.extensionPath);
@@ -157,6 +159,7 @@ function openEmulatorPanel(context: vscode.ExtensionContext, rom?: RomToOpen | n
       emu.currentRomName = '';
       emu.activeDraft = null;
       emu.reopenTried = false;
+      if (emu.sessionProfile === 'recorder') emu.sessionPreset = null;
       emu.sessionProfile = null;
       emu.sessionTitle = null;
       emu.loadedCore = null;

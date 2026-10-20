@@ -12,7 +12,8 @@
  *   - "Take over" (only while a replay runs) and "Open recordings folder": B does it;
  *   - one row per recording of this ROM (pinned first): when it was recorded, how long it is,
  *     and whether it replays in sync. The file name is only in the tooltip;
- *   - last, "Delete recordings shorter than": Left / Right (or B, wrapping) pick keep all / 10 s / 1 min / 10 min.
+ *   - last, "Delete recordings shorter than": Left / Right (or B, wrapping) pick keep all / 10 s / 1 min / 10 min,
+ *     and "Rewinds in replays": Calculate / Load state (tas/03-tas-rewind.js).
  * On a recording row Left / Right choose favourite, play or delete; B does it. Favourite
  * toggles at once; play and delete ask first (B again does it, A or moving away cancels).
  * A click on an action is the same as choosing it and pressing B.
@@ -107,11 +108,26 @@ function replaysMinSecondsNext(seconds, delta, wrap) {
   return REPLAY_MIN_SECONDS[next];
 }
 
+/** The data-kind of row rowIdx ('' when there is none). */
+function replaysRowKind(rowIdx) {
+  const row = replayRows()[rowIdx];
+  return row ? row.getAttribute('data-kind') || '' : '';
+}
+
 /** Left / Right on the threshold row: the new value, or null when rowIdx is another row. */
 function replaysMinSecondsStep(rowIdx, seconds, delta) {
   const row = replayRows()[rowIdx];
   if (!row || row.getAttribute('data-kind') !== 'minlen') return null;
   return replaysMinSecondsNext(seconds, delta, false);
+}
+
+function replayRewindsRow(mode) {
+  return '<div class="menu-row" data-kind="rewinds" title="A rewind in a recording: Calculate = load the state this replay computed itself at that point'
+    + ' (shows a desync honestly); Load = load the state the recording carries (a drifted replay is put back on track)">'
+    + '<div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Rewinds in replays</div>'
+    + '<div class="menu-row-value"><button class="menu-stepper-btn" data-step="-1" type="button" tabindex="-1">&lt;</button>'
+    + '<span class="menu-pill active">' + (mode === 'load' ? 'Load state' : 'Calculate') + '</span>'
+    + '<button class="menu-stepper-btn" data-step="1" type="button" tabindex="-1">&gt;</button></div></div>';
 }
 
 function replayMinSecondsRow(seconds) {
@@ -126,7 +142,7 @@ function replayMinSecondsRow(seconds) {
  * The tab's rows. items: the host's list (tas/host.ts list()); playingId: the recording being
  * replayed, or null; minSeconds: the threshold setting.
  */
-function replaysListHtml(items, playingId, minSeconds) {
+function replaysListHtml(items, playingId, minSeconds, rewinds) {
   const mine = items.filter(it => it.romMatch === true || it.recording);
   const others = items.length - mine.length;
   const pinned = mine.filter(it => it.pinned), rest = mine.filter(it => !it.pinned);
@@ -138,7 +154,8 @@ function replaysListHtml(items, playingId, minSeconds) {
     : '<div id="tas-empty">No recordings of this ROM yet: play and press some buttons.</div>');
   if (others) html += '<div class="rp-group">' + others + ' recording' + (others === 1 ? '' : 's') + ' of other ROMs not listed</div>';
   // Last: Down from "Open recordings folder" goes straight to the recordings.
-  html += '<div class="rp-group">SETTINGS</div>' + replayMinSecondsRow(typeof minSeconds === 'number' ? minSeconds : 10);
+  html += '<div class="rp-group">SETTINGS</div>' + replayMinSecondsRow(typeof minSeconds === 'number' ? minSeconds : 10)
+    + replayRewindsRow(rewinds === 'load' ? 'load' : 'calc');
   return html;
 }
 

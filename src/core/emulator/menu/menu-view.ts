@@ -11,7 +11,7 @@ import { pageFile } from '../page-file';
  *     2: OBJECTS (Section 3 objects list, state 0...max, stepper alters WRAM & engine)
  *     3: LOOT (Chests, Gourds & Sniff spots, preview icon, looted toggle, safe script run)
  *     4: CHEATS
- *     5: EMULATION (Speed 1/4x..4x, Master Audio, Keep Focus, Reset, Soft Reset)
+ *     5: EMULATION (Speed 1/4x..4x, Master Audio, Keep Focus, Reset, Soft Reset, Rewind)
  *     6: CONTROLS (Interactive keybinds & gamepad remapper, presets)
  * Tabs 1-4 need Secret of Evermore (data-needs="game", webview/emulator-profile.js).
  * - Non-looping stepped values (Speed: 1/4x, 1/2x, 1x, 2x, 4x; Zoom, toggles)
@@ -211,6 +211,12 @@ ${parts.panelsHtml || ''}
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Soft Reset (keeps RAM and save)</div>
               <div class="menu-row-value">
                 <span class="menu-action-pill">[B] Reset</span>
+              </div>
+            </div>
+            <div class="menu-row" data-row="7" data-action="action-rewind" title="Back to the previous rewind point: one every 5 s of play, the last 2 minutes; B again goes further back. Recorded, so a replay rewinds too. Key: Backspace">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Rewind (Backspace)</div>
+              <div class="menu-row-value">
+                <span class="menu-action-pill">[B] Rewind</span>
               </div>
             </div>
           </div>

@@ -46,7 +46,7 @@
         }
       } else if (btnL || btnR) {
         lastOverlayGamepadPoll = now;
-        switchOverlayColumn();
+        cycleOverlayGroup(btnL ? -1 : 1);
       } else if (dUp || dDown) {
         lastOverlayGamepadPoll = now;
         moveOverlaySelection(dUp ? -1 : 1);

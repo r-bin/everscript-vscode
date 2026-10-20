@@ -27,15 +27,14 @@ import * as crypto from 'crypto';
 import { parseMovie, evsmvHeader, evsmvTrailer, rleFrames } from '../../../platform/tas/movie';
 import { stripCopierHeader } from '../../../platform/cdl/library';
 import { verifyMovieSafely } from '../../../platform/tas/verify';
-import { readPrefs, savePrefs, minSeconds, mergePrefs } from './prefs';
-import type { Prefs } from './prefs';
-import { saveSnapshot, deleteResume, resumeMessage, openToContinue } from './resume';
+import { readPrefs, savePrefs, minSeconds, mergePrefs, type Prefs } from './prefs';
+import { saveSnapshot, deleteResume, resumeMessage, openToContinue, packRewinds, rawRewinds, nextMarker } from './resume';
 
 /** A webview message (the fields each command uses). */
 interface TasMessage {
     command: string; id?: string; name?: string; source?: string; sram?: string; text?: string; frames?: number; live?: boolean; cheats?: boolean;
     pinned?: boolean; confirmed?: boolean; frame?: number; expected?: string; got?: string; fair?: boolean; overlay?: boolean;
-    state?: string; thumb?: string; minSeconds?: number;
+    state?: string; thumb?: string; minSeconds?: number; rewinds?: string;
 }
 /** The recording being written. */
 interface Recording { file: string; fd: number | null; frames: number; live: boolean; cheats: boolean; header: string; desync?: boolean; rom?: string; started?: string; lastState?: number; continued?: boolean }
@@ -119,6 +118,7 @@ class TasHost {
             autoRecord: !!this._config().get('tas.autoRecord', true),
             overlay: !!this._prefs().overlay,
             minSeconds: this._minSeconds(),
+            rewinds: this._prefs().rewinds === 'load' ? 'load' : 'calc',
             verifyEveryMinutes: Number(this._config().get('tas.verifyEveryMinutes', 30)) || 0,
         });
     }
@@ -168,7 +168,7 @@ class TasHost {
                 rec.fd = fs.openSync(rec.file, 'a');
                 fs.writeSync(rec.fd, rec.header);
             }
-            fs.writeSync(rec.fd, rleFrames(msg.text));
+            fs.writeSync(rec.fd, rleFrames(packRewinds(msg.text)));
         } catch (e) {
             this.log('TAS recording write failed: ' + errText(e), true);
             this.rec = null;
@@ -332,7 +332,8 @@ class TasHost {
                 title: movie.title,
                 count: movie.count,
                 pads: pads.toString('base64'),
-                events: movie.events,
+                events: rawRewinds(movie.events),
+                nextMarker: nextMarker(movie.events),
                 sram: movie.meta.sram || '',
                 romMatch: movie.meta.romSha256 && this.romSha ? movie.meta.romSha256 === this.romSha : null,
                 coreMatch: this._coreMatch(movie),
