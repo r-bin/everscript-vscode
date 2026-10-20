@@ -168,7 +168,7 @@ ours; an empty one means only the operands are known so far.
 | `B7` | `$8C:E88A` | `E` | continues |  |  |
 | `B9` | `$8C:E040` | `E E E` | continues |  |  |
 | `BA` | `$8C:DCD9` | `u8 u8 u8` | continues | `spawn` | As 0x3C with an ENEMY value byte (doubled by the handler) and state 0. |
-| `BB` | `$8C:E467` | `E E` | continues |  |  |
+| `BB` | `$8C:E467` | `E E` | continues | `queue_damage` | Entity and amount expressions; if current HP is nonzero and entity flag bit `$1000` is clear, adds the amount to pending damage at `+$76` and sets state bits `$0018` at `+$12`. HP loss and damage-number display are handled downstream. |
 | `BC` | `$8C:DB1B` | — | continues | `unfreeze_boy` | Unfreeze Boy character ($8F:CD4D). |
 | `BD` | `$8C:DAC5` | — | continues | `unfreeze_dog` | Unfreeze Dog character ($8F:CD4D). |
 | `BE` | `$8C:DB20` | — | continues | `unfreeze` | Unfreeze bound entity ($8F:CD4D). |

@@ -142,7 +142,7 @@ One row per opcode handled by the US script VM dispatch table. Other byte values
 | `0xB6` | Used (3) | Behavior not yet described in the opcode research. | Start tile flashing | `tile_flashing()` | Needs handler research before grounded names can be recommended. |
 | `0x87` | Used (2) | Behavior not yet described in the opcode research. | Set audio speed | Not verified | Needs handler research before grounded names can be recommended. |
 | `0xAB` | Used (2) | Jumps to $80:84C9: screen off, interrupts off, stack reset, the reset entry at $80:8034. | Reset game | `reboot()` | Provisional existing label: `reset_game`; alternatives need grounded review | 
-| `0xBB` | Used (2) | Behavior not yet described in the opcode research. | Show damage number | Not verified | Needs handler research before grounded names can be recommended. |
+| `0xBB` | Used (2) | Queue an amount as pending entity damage when current HP is nonzero and entity flag bit $1000 is clear; later damage processing applies it and handles the display. | Show damage number | Not verified | `queue_damage`; `add_pending_damage`; `request_entity_damage` |
 | `0x7F` | Used (1) | Behavior not yet described in the opcode research. | Show text/name input | Not verified | Needs handler research before grounded names can be recommended. |
 | `0x82` | Used (1) | Behavior not yet described in the opcode research. | UNTRACED (change visible layers?) | `fade_out_black()`; `hide_non_dialog_layers()` | Needs handler research before grounded names can be recommended. |
 | `0x8F` | Used (1) | Two expressions, then a jump offset like 0x09. | If currency < amount; SKIP target | Not verified | Needs handler research before grounded names can be recommended. |
