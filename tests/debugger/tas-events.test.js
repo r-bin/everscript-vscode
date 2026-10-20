@@ -225,6 +225,21 @@ test('the webview CRC code equals movie.js', () => {
     assert.strictEqual(got, movie.crc32(data));
 });
 
+test('vanilla core without readMemoryRange runs frame loop and TAS recording without throwing', () => {
+    const w = makeWebview();
+    delete w.m.readMemoryRange;
+    delete w.m.writeMemory;
+    delete w.m.readSpace;
+    w.call('tasOnBoot("vanilla-test")');
+    assert.doesNotThrow(() => {
+        for (let i = 0; i < 150; i++) frameStep(w, 0);
+    });
+    w.call('tasFlush()');
+    const text = w.posted.filter(p => p.command === 'tasRecFrames').map(p => p.text).join('');
+    assert.ok(text.includes('F|'), 'frames were recorded');
+    assert.ok(!text.includes('S|'), 'no S lines when core lacks readMemoryRange');
+});
+
 // ---- the headless tool on the real core -----------------------------------------------------
 function findRom() {
     return require('../../dist/games').romPath('evermore');

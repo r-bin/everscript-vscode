@@ -45,6 +45,7 @@ interface EmuState {
     cdl: CdlHost | null; tas: TasHost | null; options: EmuOptions; reopenTried: boolean;
     sessionProfile: string | null; sessionTitle: string | null;
     sessionCore: 'fork' | 'vanilla' | null; sessionPreset: string | null; sessionIsolatedSram: boolean;
+    sessionAlwaysRecord: boolean;
 }
 
 /** The panel's state: the panel itself, the ROM it runs, the timers and hosts that live with it. */
@@ -66,6 +67,7 @@ const emu: EmuState = {
     sessionCore: null,      // in-session core selection ('fork' | 'vanilla')
     sessionPreset: null,    // in-session preset ('default' | 'everscript' | 'cdl' | 'clean')
     sessionIsolatedSram: false, // in-session isolated SRAM toggle
+    sessionAlwaysRecord: true,  // in-session always record toggle (default on)
     /**
      * What the extension that hosts the panel wants (configureEmulator):
      *   profile        'full' (Everscript) or 'recorder' (SNES CDL Recorder: CDL and REPLAYS only)
@@ -93,6 +95,7 @@ const KEEP_FOCUS_MS = 2000;
 const SETTINGS_KEY = 'everscript.emulator.settings';
 // Whether CDL recording was on when last switched.
 const CDL_WANTED_KEY = 'everscript.emulator.cdlWanted';
+const ALWAYS_RECORD_KEY = 'everscript.emulator.alwaysRecord';
 
 function _state(key: string, fallback: unknown) {
   return emu.context && emu.context.globalState ? emu.context.globalState.get(key, fallback) : fallback;
@@ -200,6 +203,7 @@ function _dispatchPendingRom() {
     romSha1,
     sramData,
     isolatedSram: !!emu.sessionIsolatedSram,
+    alwaysRecord: emu.sessionAlwaysRecord !== false,
     preset: emu.sessionPreset || 'default',
   });
   return true;
@@ -246,7 +250,15 @@ function _broadcastRomOffer() {
     const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     const activeGame = emu.options.game ? (platform.selectedRom()?.game || 'evermore') : null;
     // The vanilla ROM comes from the ROM library (src/core/roms).
-    const romOfferData = getRomOfferData(emu.context, wsRoot, '', activeGame);
+    const romOfferData: any = getRomOfferData(emu.context, wsRoot, '', activeGame);
+    if (romOfferData) {
+      romOfferData.sessionSettings = {
+        core: emu.sessionCore || 'fork',
+        preset: emu.sessionPreset || 'default',
+        isolatedSram: !!emu.sessionIsolatedSram,
+        alwaysRecord: emu.sessionAlwaysRecord !== false,
+      };
+    }
     emu.panel.webview.postMessage({ command: 'romOfferInfo', data: romOfferData });
   } catch (_) {}
 }
@@ -298,4 +310,4 @@ function _handleRoomMapRequest(mapId: unknown, objectStates: unknown, cutGrassTi
 }
 
 export type { EmuState, EmuOptions, GameHost, TraceEntry };
-export { emu, _scriptDebug, _apu, _memory, KEEP_FOCUS_KEY, SETTINGS_KEY, CDL_WANTED_KEY, _state, _saveState, _keepFocusSetting, _notifyWebviewStatus, _estimateDataUrlBytes, _clearReadyTimeout, _clearRomTimeout, _dispatchPendingRom, _resetPanelHtml, _broadcastRomOffer, _reopenLastRom, _sendRomFile, _handleRoomMapRequest };
+export { emu, _scriptDebug, _apu, _memory, KEEP_FOCUS_KEY, SETTINGS_KEY, CDL_WANTED_KEY, ALWAYS_RECORD_KEY, _state, _saveState, _keepFocusSetting, _notifyWebviewStatus, _estimateDataUrlBytes, _clearReadyTimeout, _clearRomTimeout, _dispatchPendingRom, _resetPanelHtml, _broadcastRomOffer, _reopenLastRom, _sendRomFile, _handleRoomMapRequest };

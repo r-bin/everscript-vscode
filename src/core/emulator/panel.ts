@@ -32,7 +32,7 @@ import { TasHost, recordingsDir } from './tas/host';
 import { resolveCore, CORE_SUBDIR } from './core-path';
 import { setBuildChannel, ensureBuildChannel as _ensureBuildChannel, log as _log, crashHistory as _crashHistory, launchHistory as _launchHistory, scriptTraceHistory as _scriptTraceHistory } from './emulator-log';
 import { recordRomUsage, setRomDescriber } from './rom-history';
-import { emu, _scriptDebug, _apu, _memory, CDL_WANTED_KEY, _state, _saveState, _estimateDataUrlBytes, _clearReadyTimeout, _clearRomTimeout, _dispatchPendingRom, _resetPanelHtml, _sendRomFile } from './panel-state';
+import { emu, _scriptDebug, _apu, _memory, CDL_WANTED_KEY, ALWAYS_RECORD_KEY, _state, _saveState, _estimateDataUrlBytes, _clearReadyTimeout, _clearRomTimeout, _dispatchPendingRom, _resetPanelHtml, _sendRomFile } from './panel-state';
 import { onWebviewMessage } from './panel-messages';
 import type { EmuOptions } from './panel-state';
 import type { ApuFrame } from './apu-stream';
@@ -116,6 +116,7 @@ function openEmulatorPanel(context: vscode.ExtensionContext, rom?: RomToOpen | n
     );
 
     const isRecorder = emu.sessionProfile === 'recorder' || emu.options.profile === 'recorder';
+    emu.sessionAlwaysRecord = !!_state(ALWAYS_RECORD_KEY, true);
     emu.cdl = new CdlHost(
       context.globalStorageUri ? context.globalStorageUri.fsPath : path.join(context.extensionPath, '.storage'),
       (m: object) => { if (emu.panel) emu.panel.webview.postMessage(m); },
@@ -123,7 +124,7 @@ function openEmulatorPanel(context: vscode.ExtensionContext, rom?: RomToOpen | n
       {
         tools: emu.options.cdlTools,
         wanted: {
-          get: () => (isRecorder ? true : !!_state(CDL_WANTED_KEY, false)),
+          get: () => (emu.sessionAlwaysRecord !== false && (isRecorder ? true : !!_state(CDL_WANTED_KEY, true))),
           set: (on: boolean) => { if (!isRecorder) _saveState(CDL_WANTED_KEY, !!on); },
         },
       },

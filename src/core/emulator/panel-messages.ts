@@ -7,7 +7,7 @@ import * as fs from 'fs';
 import { ensureEmulatorChannel as _ensureEmulatorChannel, log as _log, logCrash, launchHistory as _launchHistory, scriptTraceHistory as _scriptTraceHistory } from './emulator-log';
 import type { CrashReport } from './emulator-log';
 import { recordRomUsage, getVanillaRom, clearRecentRoms, getStorageDir, savePersistentSram } from './rom-history';
-import { emu, _scriptDebug, _apu, _memory, KEEP_FOCUS_KEY, SETTINGS_KEY, _state, _saveState, _keepFocusSetting, _notifyWebviewStatus, _clearReadyTimeout, _clearRomTimeout, _dispatchPendingRom, _broadcastRomOffer, _reopenLastRom, _sendRomFile, _handleRoomMapRequest, _resetPanelHtml } from './panel-state';
+import { emu, _scriptDebug, _apu, _memory, KEEP_FOCUS_KEY, SETTINGS_KEY, ALWAYS_RECORD_KEY, _state, _saveState, _keepFocusSetting, _notifyWebviewStatus, _clearReadyTimeout, _clearRomTimeout, _dispatchPendingRom, _broadcastRomOffer, _reopenLastRom, _sendRomFile, _handleRoomMapRequest, _resetPanelHtml } from './panel-state';
 
 /** Everything the page sends: readiness, ROM load stages, crashes, CDL / REPLAYS / debugger traffic, the game's requests. */
 /** A message from the page: the command and its fields (the wire format is the page's, see webview/page/). */
@@ -40,6 +40,10 @@ function onWebviewMessage(msg: PageMessage) {
             }
             if (msg.preset) emu.sessionPreset = msg.preset;
             if (typeof msg.isolatedSram === 'boolean') emu.sessionIsolatedSram = msg.isolatedSram;
+            if (typeof msg.alwaysRecord === 'boolean') {
+                emu.sessionAlwaysRecord = msg.alwaysRecord;
+                _saveState(ALWAYS_RECORD_KEY, msg.alwaysRecord);
+            }
             break;
         }
 
@@ -54,6 +58,10 @@ function onWebviewMessage(msg: PageMessage) {
             if (msg.core) emu.sessionCore = msg.core;
             if (msg.preset) emu.sessionPreset = msg.preset;
             if (typeof msg.isolatedSram === 'boolean') emu.sessionIsolatedSram = msg.isolatedSram;
+            if (typeof msg.alwaysRecord === 'boolean') {
+                emu.sessionAlwaysRecord = msg.alwaysRecord;
+                _saveState(ALWAYS_RECORD_KEY, msg.alwaysRecord);
+            }
             const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             // The vanilla ROM comes from the ROM library (src/core/roms).
             const v = getVanillaRom(wsRoot, '');
@@ -72,6 +80,10 @@ function onWebviewMessage(msg: PageMessage) {
             if (msg.core) emu.sessionCore = msg.core;
             if (msg.preset) emu.sessionPreset = msg.preset;
             if (typeof msg.isolatedSram === 'boolean') emu.sessionIsolatedSram = msg.isolatedSram;
+            if (typeof msg.alwaysRecord === 'boolean') {
+                emu.sessionAlwaysRecord = msg.alwaysRecord;
+                _saveState(ALWAYS_RECORD_KEY, msg.alwaysRecord);
+            }
             if (msg.path && fs.existsSync(msg.path)) {
                 recordRomUsage({ path: msg.path, name: msg.name, kind: msg.kind || 'file' }, emu.context);
                 _sendRomFile(msg.path);
@@ -86,6 +98,10 @@ function onWebviewMessage(msg: PageMessage) {
             if (msg.core) emu.sessionCore = msg.core;
             if (msg.preset) emu.sessionPreset = msg.preset;
             if (typeof msg.isolatedSram === 'boolean') emu.sessionIsolatedSram = msg.isolatedSram;
+            if (typeof msg.alwaysRecord === 'boolean') {
+                emu.sessionAlwaysRecord = msg.alwaysRecord;
+                _saveState(ALWAYS_RECORD_KEY, msg.alwaysRecord);
+            }
             _log(`Dropped ROM: ${msg.name}`);
             recordRomUsage({
                 path: msg.path || '',

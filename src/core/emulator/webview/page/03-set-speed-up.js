@@ -17,39 +17,41 @@
         if (tag === 'INPUT' || tag === 'TEXTAREA') return;
         const k = e.key;
 
-        // Hotkey for L / R shoulder buttons and directional column jumping
+        // L / R Shoulder navigation to move focus between center and right column
         const keyL = (typeof userKeyMap !== 'undefined' && userKeyMap['L']) ? userKeyMap['L'] : 'a';
         const keyR = (typeof userKeyMap !== 'undefined' && userKeyMap['R']) ? userKeyMap['R'] : 's';
+        const isL = k === 'q' || k === 'Q' || k === 'PageUp' || k === 'l' || k === 'L' || k === '[' || k.toLowerCase() === keyL.toLowerCase() || (typeof userKeyMap !== 'undefined' && e.code === userKeyMap['L']);
+        const isR = k === 'e' || k === 'E' || k === 'PageDown' || k === 'r' || k === 'R' || k === ']' || k.toLowerCase() === keyR.toLowerCase() || (typeof userKeyMap !== 'undefined' && e.code === userKeyMap['R']);
 
-        if (k === 'ArrowLeft' || k === 'l' || k === 'L' || (k.toLowerCase() === keyL.toLowerCase() && overlayFocusCol === 1)) {
-          switchOverlayColumn(0);
-          e.preventDefault();
-          return;
-        }
-        if (k === 'ArrowRight' || k === 'r' || k === 'R' || (k.toLowerCase() === keyR.toLowerCase() && overlayFocusCol === 0 && k !== 's' && k !== 'S')) {
-          switchOverlayColumn(1);
+        if (isL || isR || k === 'Tab') {
+          switchOverlayColumn();
           e.preventDefault();
           return;
         }
 
-        if (k === 'ArrowDown' || k === 's' || k === 'S') {
-          const items = getOverlayFocusables();
-          if (items.length) {
-            const curIdx = overlayFocusCol === 0 ? overlayCol0Idx : overlayCol1Idx;
-            const next = curIdx < 0 ? 0 : (curIdx + 1) % items.length;
-            setOverlayFocus(next);
-            e.preventDefault();
-          }
+        const keyUp = (typeof userKeyMap !== 'undefined' && userKeyMap['Up']) ? userKeyMap['Up'] : 'ArrowUp';
+        const keyDown = (typeof userKeyMap !== 'undefined' && userKeyMap['Down']) ? userKeyMap['Down'] : 'ArrowDown';
+        if (k === 'ArrowDown' || k.toLowerCase() === keyDown.toLowerCase()) {
+          moveOverlaySelection(1);
+          e.preventDefault();
           return;
         }
-        if (k === 'ArrowUp' || k === 'w' || k === 'W') {
-          const items = getOverlayFocusables();
-          if (items.length) {
-            const curIdx = overlayFocusCol === 0 ? overlayCol0Idx : overlayCol1Idx;
-            const next = curIdx < 0 ? 0 : (curIdx - 1 + items.length) % items.length;
-            setOverlayFocus(next);
-            e.preventDefault();
-          }
+        if (k === 'ArrowUp' || k === 'w' || k === 'W' || k.toLowerCase() === keyUp.toLowerCase()) {
+          moveOverlaySelection(-1);
+          e.preventDefault();
+          return;
+        }
+
+        const keyLeft = (typeof userKeyMap !== 'undefined' && userKeyMap['Left']) ? userKeyMap['Left'] : 'ArrowLeft';
+        const keyRight = (typeof userKeyMap !== 'undefined' && userKeyMap['Right']) ? userKeyMap['Right'] : 'ArrowRight';
+        if (k === 'ArrowLeft' || k.toLowerCase() === keyLeft.toLowerCase()) {
+          if (overlayFocusCol === 1) changeOverlayValue(-1);
+          e.preventDefault();
+          return;
+        }
+        if (k === 'ArrowRight' || k.toLowerCase() === keyRight.toLowerCase()) {
+          if (overlayFocusCol === 1) changeOverlayValue(1);
+          e.preventDefault();
           return;
         }
         if (k === 'Enter' || k === ' ' || k === 'v' || k === 'V') {
@@ -58,9 +60,14 @@
           return;
         }
         if (k === 'Escape' || k === 'c' || k === 'C' || k === 'b' || k === 'B') {
-          const items0 = getOverlayCol0Focusables();
-          const items1 = getOverlayCol1Focusables();
-          items0.concat(items1).forEach(el => el.classList.remove('keyboard-focused'));
+          if (overlayFocusCol === 1 && overlayCol1Idx === 4) {
+            activateOverlayFocused();
+          } else {
+            const items0 = getOverlayCol0Focusables();
+            const items1 = getOverlayCol1Focusables();
+            items0.forEach(el => el.classList.remove('keyboard-focused'));
+            items1.forEach(el => el.classList.remove('selected'));
+          }
           e.preventDefault();
           return;
         }

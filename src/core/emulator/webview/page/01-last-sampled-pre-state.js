@@ -145,6 +145,7 @@
     let selectedCore = 'fork';
     let selectedPreset = 'default';
     let isolatedSramEnabled = false;
+    let alwaysRecordEnabled = true;
     let currentRomSha1 = '';
     let currentIsolatedSram = false;
     let lastSavedSramB64 = '';
@@ -153,54 +154,79 @@
       return {
         core: selectedCore,
         preset: selectedPreset,
-        isolatedSram: isolatedSramEnabled
+        isolatedSram: isolatedSramEnabled,
+        alwaysRecord: alwaysRecordEnabled
       };
     }
 
+    const PRESETS = ['default', 'everscript', 'cdl', 'clean'];
+    const PRESET_LABELS = { default: 'Default', everscript: 'Everscript', cdl: 'CDL', clean: 'Clean' };
+
+    function updateSidebarUi() {
+      const corePill = document.getElementById('launcher-val-core');
+      if (corePill) {
+        corePill.textContent = selectedCore === 'vanilla' ? 'snes9x-wasm' : 'snes9x-wasm fork';
+        corePill.classList.toggle('active', selectedCore === 'fork');
+      }
+
+      const presetPill = document.getElementById('launcher-val-preset');
+      if (presetPill) {
+        presetPill.textContent = PRESET_LABELS[selectedPreset] || selectedPreset;
+        presetPill.classList.add('active');
+      }
+
+      const recPill = document.getElementById('launcher-val-record');
+      if (recPill) {
+        recPill.textContent = alwaysRecordEnabled ? 'ON' : 'OFF';
+        recPill.classList.toggle('active', alwaysRecordEnabled);
+      }
+
+      const sramPill = document.getElementById('launcher-val-sram');
+      if (sramPill) {
+        sramPill.textContent = isolatedSramEnabled ? 'ON' : 'OFF';
+        sramPill.classList.toggle('active', isolatedSramEnabled);
+      }
+    }
+
     function initSidebarControls() {
-      const coreSel = document.getElementById('coreSelector');
-      if (coreSel) {
-        coreSel.value = selectedCore;
-        coreSel.onchange = () => {
-          selectedCore = coreSel.value;
-          if (vscodeApi) vscodeApi.postMessage({ command: 'setSessionSettings', core: selectedCore });
-        };
-      }
+      updateSidebarUi();
 
-      const presetBtns = document.querySelectorAll('.preset-btn');
-      presetBtns.forEach(btn => {
-        btn.onclick = (e) => {
-          e.stopPropagation();
-          presetBtns.forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          selectedPreset = btn.getAttribute('data-preset') || 'default';
-          if (vscodeApi) vscodeApi.postMessage({ command: 'setSessionSettings', preset: selectedPreset });
-        };
-      });
-
-      const sramToggle = document.getElementById('isolatedSramToggle');
-      if (sramToggle) {
-        sramToggle.checked = isolatedSramEnabled;
-        sramToggle.onchange = () => {
-          isolatedSramEnabled = sramToggle.checked;
-          if (vscodeApi) vscodeApi.postMessage({ command: 'setSessionSettings', isolatedSram: isolatedSramEnabled });
-        };
-      }
-
-      const clearBtn = document.getElementById('clearRecentBtn');
-      if (clearBtn) {
-        clearBtn.onclick = (e) => {
-          e.stopPropagation();
-          if (vscodeApi) vscodeApi.postMessage({ command: 'clearRecentRoms' });
-          const statusEl = document.getElementById('load-status');
-          if (statusEl) statusEl.textContent = 'Recent ROMs cleared.';
-        };
+      for (let r = 0; r < 5; r++) {
+        const row = document.getElementById('launcher-row-' + r);
+        if (row) {
+          row.onclick = (e) => {
+            const stepper = e.target.closest('.menu-stepper-btn');
+            if (stepper) {
+              const step = parseInt(stepper.getAttribute('data-step') || '1', 10);
+              overlayFocusCol = 1;
+              overlayCol1Idx = r;
+              setOverlayFocus(r, 1);
+              changeOverlayValue(step);
+            } else if (r === 4 || e.target.closest('#clearRecentBtn')) {
+              overlayFocusCol = 1;
+              overlayCol1Idx = 4;
+              setOverlayFocus(4, 1);
+              activateOverlayFocused();
+            } else {
+              overlayFocusCol = 1;
+              overlayCol1Idx = r;
+              setOverlayFocus(r, 1);
+              changeOverlayValue(1);
+            }
+          };
+        }
       }
     }
 
     function renderRomOffer(data) {
       if (!data) return;
       currentOfferData = data;
+      if (data.sessionSettings) {
+        if (data.sessionSettings.core) selectedCore = data.sessionSettings.core;
+        if (data.sessionSettings.preset) selectedPreset = data.sessionSettings.preset;
+        if (typeof data.sessionSettings.isolatedSram === 'boolean') isolatedSramEnabled = data.sessionSettings.isolatedSram;
+        if (typeof data.sessionSettings.alwaysRecord === 'boolean') alwaysRecordEnabled = data.sessionSettings.alwaysRecord;
+      }
       initSidebarControls();
 
       const vBtn = document.getElementById('vanillaBtn');
@@ -324,14 +350,10 @@
 
     function getOverlayCol1Focusables() {
       const list = [];
-      const coreSel = document.getElementById('coreSelector');
-      if (coreSel) list.push(coreSel);
-      const presetBtns = document.querySelectorAll('.preset-btn');
-      presetBtns.forEach(btn => list.push(btn));
-      const sramToggle = document.getElementById('isolatedSramToggle');
-      if (sramToggle) list.push(sramToggle);
-      const clearBtn = document.getElementById('clearRecentBtn');
-      if (clearBtn) list.push(clearBtn);
+      for (let i = 0; i < 5; i++) {
+        const row = document.getElementById('launcher-row-' + i);
+        if (row) list.push(row);
+      }
       return list;
     }
 
@@ -343,7 +365,9 @@
       if (typeof col === 'number') overlayFocusCol = col;
       const items0 = getOverlayCol0Focusables();
       const items1 = getOverlayCol1Focusables();
-      items0.concat(items1).forEach(el => el.classList.remove('keyboard-focused'));
+
+      items0.forEach(el => el.classList.remove('keyboard-focused'));
+      items1.forEach(el => el.classList.remove('selected'));
 
       const activeItems = overlayFocusCol === 0 ? items0 : items1;
       if (!activeItems.length) return;
@@ -356,7 +380,11 @@
 
       const target = activeItems[idx];
       if (target) {
-        target.classList.add('keyboard-focused');
+        if (overlayFocusCol === 0) {
+          target.classList.add('keyboard-focused');
+        } else {
+          target.classList.add('selected');
+        }
         if (typeof target.focus === 'function') {
           try { target.focus(); } catch (_) {}
         }
@@ -366,10 +394,53 @@
       }
     }
 
+    function moveOverlaySelection(delta) {
+      const items = getOverlayFocusables();
+      if (!items.length) return;
+      const curIdx = overlayFocusCol === 0 ? overlayCol0Idx : overlayCol1Idx;
+      const next = curIdx < 0 ? 0 : (curIdx + delta + items.length) % items.length;
+      setOverlayFocus(next);
+      if (typeof playMenuSound === 'function') playMenuSound('click_nav');
+    }
+
+    function changeOverlayValue(delta) {
+      if (overlayFocusCol !== 1) return;
+      const step = delta >= 0 ? 1 : -1;
+      if (overlayCol1Idx === 0) {
+        // Row 0: Core (toggle between fork and vanilla)
+        selectedCore = (selectedCore === 'fork') ? 'vanilla' : 'fork';
+        updateSidebarUi();
+        if (vscodeApi) vscodeApi.postMessage({ command: 'setSessionSettings', core: selectedCore });
+        if (typeof playMenuSound === 'function') playMenuSound('click_toggle');
+      } else if (overlayCol1Idx === 1) {
+        // Row 1: Preset
+        const curIdx = Math.max(0, PRESETS.indexOf(selectedPreset));
+        const nextIdx = Math.max(0, Math.min(curIdx + step, PRESETS.length - 1));
+        if (nextIdx !== curIdx) {
+          selectedPreset = PRESETS[nextIdx];
+          updateSidebarUi();
+          if (vscodeApi) vscodeApi.postMessage({ command: 'setSessionSettings', preset: selectedPreset });
+          if (typeof playMenuSound === 'function') playMenuSound('click_toggle');
+        }
+      } else if (overlayCol1Idx === 2) {
+        // Row 2: Always record (toggle)
+        alwaysRecordEnabled = !alwaysRecordEnabled;
+        updateSidebarUi();
+        if (vscodeApi) vscodeApi.postMessage({ command: 'setSessionSettings', alwaysRecord: alwaysRecordEnabled });
+        if (typeof playMenuSound === 'function') playMenuSound('click_toggle');
+      } else if (overlayCol1Idx === 3) {
+        // Row 3: Isolated SRAM (toggle)
+        isolatedSramEnabled = !isolatedSramEnabled;
+        updateSidebarUi();
+        if (vscodeApi) vscodeApi.postMessage({ command: 'setSessionSettings', isolatedSram: isolatedSramEnabled });
+        if (typeof playMenuSound === 'function') playMenuSound('click_toggle');
+      }
+    }
+
     function switchOverlayColumn(col) {
       if (typeof col !== 'number') col = overlayFocusCol === 0 ? 1 : 0;
-      if (col === overlayFocusCol) return;
       overlayFocusCol = col;
       const targetIdx = overlayFocusCol === 0 ? overlayCol0Idx : overlayCol1Idx;
       setOverlayFocus(targetIdx, overlayFocusCol);
+      if (typeof playMenuSound === 'function') playMenuSound('wheel_turn');
     }

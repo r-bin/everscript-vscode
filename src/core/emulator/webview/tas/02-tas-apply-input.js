@@ -17,7 +17,8 @@
         }
       }
       if (!fromMovie && tasRec && tasSessionFrame > 0 && tasSessionFrame % TAS_CHECK_EVERY === 0) {
-        tasRecordEvent('S|' + tasHex(tasWramCrc(m), 8));
+        const crc = tasWramCrc(m);
+        if (crc !== null) tasRecordEvent('S|' + tasHex(crc, 8));
         if (tasRec.live && tasVerifyEvery && tasSessionFrame % tasVerifyEvery === 0) {
           tasFlush();
           vscodeApi.postMessage({ command: 'tasVerify' });

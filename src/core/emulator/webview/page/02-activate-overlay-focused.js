@@ -1,17 +1,23 @@
 // TODO port to TS (docs/todo/port-to-ts.md)
 
     function activateOverlayFocused() {
-      const items = getOverlayFocusables();
-      const idx = overlayFocusCol === 0 ? overlayCol0Idx : overlayCol1Idx;
-      if (idx >= 0 && idx < items.length) {
-        const el = items[idx];
-        if (el.tagName === 'SELECT') {
-          el.focus();
-        } else if (el.tagName === 'INPUT' && el.type === 'checkbox') {
-          el.checked = !el.checked;
-          if (typeof el.onchange === 'function') el.onchange();
-        } else if (typeof el.click === 'function') {
+      if (overlayFocusCol === 1) {
+        if (overlayCol1Idx >= 0 && overlayCol1Idx <= 3) {
+          changeOverlayValue(1);
+        } else if (overlayCol1Idx === 4) {
+          if (vscodeApi) vscodeApi.postMessage({ command: 'clearRecentRoms' });
+          const statusEl = document.getElementById('load-status');
+          if (statusEl) statusEl.textContent = 'Recent ROMs cleared.';
+          if (typeof playMenuSound === 'function') playMenuSound('click_confirm');
+        }
+        return;
+      }
+      const items = getOverlayCol0Focusables();
+      if (overlayCol0Idx >= 0 && overlayCol0Idx < items.length) {
+        const el = items[overlayCol0Idx];
+        if (el && typeof el.click === 'function') {
           el.click();
+          if (typeof playMenuSound === 'function') playMenuSound('click_confirm');
         }
       }
     }
@@ -38,34 +44,20 @@
       const btnA = (pad.buttons[0] && pad.buttons[0].pressed) || (pad.buttons[9] && pad.buttons[9].pressed);
       const btnB = (pad.buttons[1] && pad.buttons[1].pressed);
 
-      if (btnL) {
+      if (btnL || btnR) {
         lastOverlayGamepadPoll = now;
-        switchOverlayColumn(0);
-      } else if (btnR) {
-        lastOverlayGamepadPoll = now;
-        switchOverlayColumn(1);
+        switchOverlayColumn();
       } else if (dUp || dDown) {
         lastOverlayGamepadPoll = now;
-        const items = getOverlayFocusables();
-        if (items.length) {
-          const curIdx = overlayFocusCol === 0 ? overlayCol0Idx : overlayCol1Idx;
-          const delta = dUp ? -1 : 1;
-          const next = curIdx < 0 ? 0 : (curIdx + delta + items.length) % items.length;
-          setOverlayFocus(next);
+        moveOverlaySelection(dUp ? -1 : 1);
+      } else if (dLeft || dRight) {
+        lastOverlayGamepadPoll = now;
+        if (overlayFocusCol === 1) {
+          changeOverlayValue(dLeft ? -1 : 1);
         }
-      } else if (dLeft) {
-        lastOverlayGamepadPoll = now;
-        switchOverlayColumn(0);
-      } else if (dRight) {
-        lastOverlayGamepadPoll = now;
-        switchOverlayColumn(1);
-      } else if (btnA) {
+      } else if (btnA || btnB) {
         lastOverlayGamepadPoll = now + 160;
         activateOverlayFocused();
-      } else if (btnB) {
-        lastOverlayGamepadPoll = now;
-        const items = getOverlayFocusables();
-        items.forEach(el => el.classList.remove('keyboard-focused'));
       }
     }
 

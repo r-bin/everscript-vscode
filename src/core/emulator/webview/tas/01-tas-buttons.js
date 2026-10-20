@@ -135,6 +135,7 @@
     }
 
     function tasWramCrc(m) {
+      if (!m || typeof m.readMemoryRange !== 'function') return null;
       let crc = 0xFFFFFFFF;
       for (let off = 0; off < 0x20000; off += 4096) crc = tasCrcUpdate(crc, m.readMemoryRange(0x7E0000 + off, 4096));
       return (crc ^ 0xFFFFFFFF) >>> 0;
@@ -174,7 +175,11 @@
       for (const ev of list) {
         if (ev.kind === 'W') {
           tasApplying = true;
-          try { for (let i = 0; i < ev.bytes.length; i++) m.writeMemory(ev.addr + i, ev.bytes[i]); }
+          try {
+            if (typeof m.writeMemory === 'function') {
+              for (let i = 0; i < ev.bytes.length; i++) m.writeMemory(ev.addr + i, ev.bytes[i]);
+            }
+          }
           finally { tasApplying = false; }
           tasRecordEvent('W|' + tasHex(ev.addr, 6) + '|' + ev.bytes.map(b => tasHex(b, 2)).join(''));
         } else if (ev.kind === 'R') {
@@ -182,12 +187,14 @@
           tasRecordEvent('R|soft');
         } else if (ev.kind === 'S') {
           const got = tasWramCrc(m);
-          if (got !== ev.crc && !tasDesync) {
-            tasDesync = { frame: frame, expected: tasHex(ev.crc, 8), got: tasHex(got, 8) };
-            tasSetStatus('DESYNC at frame ' + frame + ' (expected ' + tasDesync.expected + ', got ' + tasDesync.got + ')');
-            tasReportDesync();
+          if (got !== null) {
+            if (got !== ev.crc && !tasDesync) {
+              tasDesync = { frame: frame, expected: tasHex(ev.crc, 8), got: tasHex(got, 8) };
+              tasSetStatus('DESYNC at frame ' + frame + ' (expected ' + tasDesync.expected + ', got ' + tasDesync.got + ')');
+              tasReportDesync();
+            }
+            tasRecordEvent('S|' + tasHex(got, 8));
           }
-          tasRecordEvent('S|' + tasHex(got, 8));
         } else if (ev.kind === 'T') {
           const got = tasSpaceCrcs(m);
           if (!got) continue;
