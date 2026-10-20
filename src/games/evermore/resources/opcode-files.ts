@@ -27,20 +27,49 @@ function entryOf(handler: number) {
 }
 
 type Uses = Map<number, { count: number; examples: Instruction[] }>;
-let usesCache: { rom: Rom; byOp: Uses } | null = null;
-/** Instructions per opcode in a walk over every script the tables name (the first few addresses). */
-function uses(rom: Rom): Uses {
-    if (usesCache && usesCache.rom === rom) return usesCache.byOp;
+interface PairUse {
+    count: number;
+    examples: Array<{ before: Instruction; after: Instruction }>;
+}
+interface OpcodeAnalysis {
+    byOp: Uses;
+    byHandler: Map<number, number[]>;
+    pairs: Map<number, Map<number, PairUse>>;
+}
+let usesCache: { rom: Rom; analysis: OpcodeAnalysis } | null = null;
+/** Static reachability, handler aliases and adjacent reachable control-flow pairs for this ROM. */
+function analyze(rom: Rom): OpcodeAnalysis {
+    if (usesCache && usesCache.rom === rom) return usesCache.analysis;
     const sr = new V.ScriptRom(rom);
     const byOp: Uses = new Map();
-    for (const ins of V.walk(sr, V.allEntries(sr)).instructions.values()) {
+    const byHandler = new Map<number, number[]>();
+    for (const op of V.OPCODES.keys()) {
+        const handler = handlerOf(rom, op);
+        const group = byHandler.get(handler) || [];
+        group.push(op);
+        byHandler.set(handler, group);
+    }
+    const pairs = new Map<number, Map<number, PairUse>>();
+    const walk = V.walk(sr, V.allEntries(sr));
+    for (const ins of walk.instructions.values()) {
         let u = byOp.get(ins.opcode);
         if (!u) byOp.set(ins.opcode, u = { count: 0, examples: [] });
         u.count++;
         if (u.examples.length < 5) u.examples.push(ins);
+        for (const nextAddress of V.successors(ins)) {
+            const after = walk.instructions.get(nextAddress);
+            if (!after) continue;
+            let following = pairs.get(ins.opcode);
+            if (!following) pairs.set(ins.opcode, following = new Map());
+            let pair = following.get(after.opcode);
+            if (!pair) following.set(after.opcode, pair = { count: 0, examples: [] });
+            pair.count++;
+            if (pair.examples.length < 3) pair.examples.push({ before: ins, after });
+        }
     }
-    usesCache = { rom, byOp };
-    return byOp;
+    const analysis = { byOp, byHandler, pairs };
+    usesCache = { rom, analysis };
+    return analysis;
 }
 
 function info(rom: Rom, op: number) {
@@ -48,32 +77,68 @@ function info(rom: Rom, op: number) {
     if (!spec) return null;
     const handler = handlerOf(rom, op);
     const e = entryOf(handler);
-    const u = rom ? uses(rom).get(op) : null;
+    const analysis = analyze(rom);
+    const u = analysis.byOp.get(op);
+    const neighbors = (rows: Array<[number, PairUse]>) => rows
+        .map(([opcode, pair]) => ({
+            opcode, count: pair.count,
+            examples: pair.examples.map(({ before, after }) => ({
+                before: { address: bus(before.address), text: V.text(before) },
+                after: { address: bus(after.address), text: V.text(after) },
+            })),
+        }))
+        .sort((a, b) => b.count - a.count || a.opcode - b.opcode)
+        .slice(0, 5);
+    const previous = [...analysis.pairs.entries()]
+        .flatMap(([opcode, following]) => following.has(op) ? [[opcode, following.get(op)!] as [number, PairUse]] : []);
+    const next = [...(analysis.pairs.get(op) || new Map<number, PairUse>()).entries()];
+    const aliases = (analysis.byHandler.get(handler) || []).filter((other) => other !== op).sort((a, b) => a - b);
     return {
         opcode: op, name: spec.name || null, operands: spec.operands, flow: spec.flow,
         handler: bus(handler), title: e ? e.title : null, confidence: e ? e.confidence : null,
         description: e ? e.body.trim() : null, knowledge: `soe://localization/knowledge/rom/${handler.toString(16)}.md`,
-        uses: u ? u.count : 0, examples: u ? u.examples.map((i) => ({ address: bus(i.address), text: V.text(i) })) : [],
+        handlerAliases: aliases,
+        behaviorEvidence: e ? e.confidence : 'undocumented',
+        usage: {
+            staticReachableInstructions: u ? u.count : 0,
+            scope: 'static walk from configured script tables; not execution frequency',
+            examples: u ? u.examples.map((i) => ({ address: bus(i.address), text: V.text(i) })) : [],
+        },
+        combinations: { previous: neighbors(previous), next: neighbors(next) },
     };
 }
 
 function opcodeMarkdown(rom: Rom, op: number): string {
     const i = info(rom, op)!;
     const lines = [`# Opcode 0x${hex2(op)}${i.name ? ` — ${i.name}` : ''}`, '',
-        `Handler \`${i.handler}\` · operands ${i.operands.length ? '`' + i.operands.join(' ') + '`' : 'none'} · ${i.flow} · ${i.uses} uses in this ROM`, ''];
+        `Handler \`${i.handler}\` · operands ${i.operands.length ? '`' + i.operands.join(' ') + '`' : 'none'} · ${i.flow}`, '',
+        `Static reachability: **${i.usage.staticReachableInstructions} instruction(s)** in the configured script-table walk. This is not an execution frequency; zero means no occurrence was found in that walk.`,
+        `Handler assessment: ${i.behaviorEvidence}${i.handlerAliases.length ? `; shares its handler with ${i.handlerAliases.map((alias) => `[0x${hex2(alias)}](./${hex2(alias)}.md)`).join(', ')}` : '; no other listed opcode shares this handler'}. A mapped handler or a low count alone does not establish that code is garbage or runtime-tested.`, ''];
     lines.push(i.description || 'No knowledge entry for the handler yet.', '');
-    if (i.examples.length) lines.push('## In scripts', '', ...i.examples.map((x) => `- \`${x.address}\` ${x.text}`), '');
+    if (i.usage.examples.length) lines.push('## Reachable examples', '', ...i.usage.examples.map((x) => `- \`${x.address}\` ${x.text}`), '');
+    const pairLines = (direction: 'previous' | 'next') => {
+        const pairs = i.combinations[direction];
+        if (!pairs.length) return [];
+        return [`### ${direction === 'previous' ? 'Often follows' : 'Often precedes'}`, '',
+            ...pairs.flatMap((pair) => {
+                const examples = pair.examples.map((example) => `  - \`${example.before.address}\` ${example.before.text} → \`${example.after.address}\` ${example.after.text}`);
+                return [`- [0x${hex2(pair.opcode)}](./${hex2(pair.opcode)}.md) · ${pair.count} reachable control-flow edge(s)`, ...examples];
+            }), ''];
+    };
+    lines.push('## Nearby commands', '', 'Counts below are static control-flow edges in the reachable script walk, not observed runtime frequencies.', '', ...pairLines('previous'), ...pairLines('next'));
+    if (!i.usage.examples.length && !i.combinations.previous.length && !i.combinations.next.length) lines.push('No reachable instruction examples or neighboring commands were found.', '');
     lines.push(`Knowledge entry: [${i.knowledge}](${i.knowledge}) · operand tokens: docs/game-research/script-vm/README.md`);
     return lines.join('\n') + '\n';
 }
 
 function indexMarkdown(rom: Rom): string {
     const lines = ['# Script opcodes', '', 'Every opcode the game\'s interpreter has a handler for (dispatch `$8C:D0A6`, table `$8C:E8BD`).',
-        'Each page: what the handler does, its operands and flow, the addresses it uses, where scripts use it.', '',
-        '| op | name | operands | flow | uses | title |', '|---|---|---|---|---|---|'];
+        'Reachable counts are unique instruction locations in the static walk from configured script tables, not runtime execution frequencies. Shared-handler opcodes are aliases; evidence confidence describes the handler knowledge entry and does not by itself prove runtime correctness or garbage code.',
+        'Each page also shows reachable examples and common adjacent opcodes along decoded control-flow edges.', '',
+        '| op | name | operands | flow | reachable | shared handler | evidence | title |', '|---|---|---|---|---:|---|---|---|'];
     for (const op of V.OPCODES.keys()) {
         const i = info(rom, op)!;
-        lines.push(`| [0x${hex2(op)}](${hex2(op)}.md) | ${i.name ? '`' + i.name + '`' : ''} | ${i.operands.join(' ') || '—'} | ${i.flow} | ${i.uses} | ${i.title || ''} |`);
+        lines.push(`| [0x${hex2(op)}](${hex2(op)}.md) | ${i.name ? '`' + i.name + '`' : ''} | ${i.operands.join(' ') || '—'} | ${i.flow} | ${i.usage.staticReachableInstructions} | ${i.handlerAliases.length ? i.handlerAliases.map((alias) => `0x${hex2(alias)}`).join(', ') : '—'} | ${i.behaviorEvidence} | ${i.title || ''} |`);
     }
     return lines.join('\n') + '\n';
 }

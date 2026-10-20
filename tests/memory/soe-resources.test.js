@@ -278,13 +278,19 @@ test('provider: a ~mount reads that ROM file; autoindex stays inside the mount',
 test('provider: rooms list every room; scripts/ does not list itself', async () => {
     const fsp = new SoeFileSystem({ vanillaRom: () => rom, emulatorRom: () => null, readMemory });
     assert.deepStrictEqual(fsp.readDirectory(uri('soe://rom/assets/scripts/')).map(([n]) => n), ['index.md', 'index.json', 'rooms', 'opcodes']);
-    // One page per opcode, from the handler's knowledge entry: description, addresses, uses.
+    // One page per opcode, combining handler knowledge with ROM-derived reachability and neighbors.
     const op = Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/opcodes/3c.md'))).toString();
     assert.ok(op.startsWith('# Opcode 0x3c — spawn'), op.slice(0, 60));
-    assert.ok(op.includes('$8E:B55A') && op.includes('## In scripts'), 'addresses and uses');
+    assert.ok(op.includes('$8E:B55A') && op.includes('## Reachable examples') && op.includes('## Nearby commands'), 'handler details and script examples');
     const ops = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/opcodes/index.json'))).toString());
     assert.strictEqual(ops.length, 168);
     assert.ok(ops.every((o) => o.description), 'every opcode has a knowledge entry');
+    const sound = ops.find((o) => o.opcode === 0x30);
+    assert.ok(sound.handlerAliases.includes(0x31) && sound.handlerAliases.includes(0x32), 'shared handler aliases');
+    assert.ok(sound.usage.scope.includes('not execution frequency'));
+    assert.ok(sound.usage.staticReachableInstructions > 0 && sound.usage.examples.length > 0, 'static usage and examples');
+    assert.ok(sound.combinations.previous.length > 0 || sound.combinations.next.length > 0, 'neighboring command patterns');
+    assert.ok(ops.every((o) => ['confirmed', 'likely', 'guess', 'undocumented'].includes(o.behaviorEvidence)));
     const md = Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/rooms/index.md'))).toString();
     assert.ok(/# Room Scripts \(127\)/.test(md), md.slice(0, 80));
     assert.ok(md.includes('[38/index.md](38/index.md)'));
