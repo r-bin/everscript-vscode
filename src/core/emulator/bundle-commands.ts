@@ -123,7 +123,8 @@ async function importRecordingBundle(context: vscode.ExtensionContext) {
     for (const uri of uris) {
         const name = path.basename(uri.fsPath);
         try {
-            const r = importBundle(fs.readFileSync(uri.fsPath), cdlRoot, replayDir);
+            // This install's own id: its own export (or one forwarded back) is not counted twice.
+            const r = importBundle(fs.readFileSync(uri.fsPath), cdlRoot, replayDir, installId(context));
             if (r.duplicate) lines.push(`${name}: already imported`);
             else lines.push(`${name}: ${r.title || r.sha1.slice(0, 8)} ${r.changed ? 'merged' : 'had nothing new'}, ${r.replays} new replay${r.replays === 1 ? '' : 's'}`);
         } catch (err) {

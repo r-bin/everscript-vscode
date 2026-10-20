@@ -38,10 +38,11 @@ core (WASM, per instruction / access)        webview (every 15 s)        host (N
   a merge rule before it ships.
 - **Hit counts are the one exception: they are summed** (user decision, v0.173.0: having counts
   matters more than idempotence). Correct only because the core drains them as **deltas**
-  (`cdl-count.c` zeroes what it hands out). Never seed counts back, never merge a library into itself.
-  Other players' libraries arrive as **recording bundles** (`cdl/bundle.ts`, from the SNES CDL Recorder):
-  the summed streams (`rom-hits.bin`, `wram-hits.bin`, `rom-cycles.bin`) are imported as the growth since
-  that install's last bundle, never added whole. A new summed stream must join `SUMMED` there.
+  (`cdl-count.c` zeroes what it hands out). Never seed counts back, never merge library files into each other
+  directly: go through a **recording bundle** (`cdl/bundle.ts`). There the summed streams (`rom-hits.bin`,
+  `wram-hits.bin`, `rom-cycles.bin`) are one counter per install, max-merged per key; the import takes the
+  importer's own install id (`importBundle(..., selfId)`), so own exports, restores and forwarded bundles are
+  counted once. A new summed stream must join `SUMMED` there.
 - **`wram-code.bin` keeps the first bytes seen**; a later session with different bytes only sets
   `CHANGED` in `wram-code.state`. Never emit a `ram_routine` for a CHANGED byte range.
 - **New library files are optional.** Old libraries must load unchanged; bump nothing, add a file.

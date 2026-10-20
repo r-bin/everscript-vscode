@@ -385,4 +385,4 @@ class CdlLibrary {
     }
 }
 
-export { CdlLibrary, romHash, stripCopierHeader, parseRecords, xrefKey, edgeKey, scriptKey, WF, WRAM_SIZE, WVAL_BYTES };
+export { CdlLibrary, romHash, stripCopierHeader, parseRecords, packRecords, xrefKey, edgeKey, scriptKey, WF, WRAM_SIZE, WVAL_BYTES };

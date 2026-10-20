@@ -9,13 +9,20 @@
  *   cdl/<file>      the library files (manifest.json, rom.cdl, xrefs.bin, ...)
  *   replays/<name>  .evsmv recordings
  *
+ *   counts/<installId>/<file>   (v0.319.0) the summed streams split by the install that recorded them
+ *
  * Importing merges every OR / min / max / union stream as usual (merging twice
  * changes nothing). The summed streams (rom-hits.bin, wram-hits.bin, rom-cycles.bin)
- * are cumulative per recorder install: a newer bundle from the same install holds
- * the older one's counts too. So the import adds only what grew since that
- * install's last imported bundle (kept in <library>/imports/<installId>/) - the
- * library then counts each install's latest totals once. The same bundle twice is
- * refused (<library>/imports/bundles.json).
+ * are kept as one counter per install, merged by per-key maximum (a G-counter):
+ *   - <library>/imports/<installId>/<file> holds the latest totals of each other install;
+ *   - this install's own counts are the library's total minus all of those;
+ *   - a bundle carries every counter it knows (its own under counts/<its id>/, the ones it
+ *     imported under theirs), so it can be forwarded (A -> B -> C counts A once);
+ *   - an import raises each counter to the bundle's value per key and adds what grew. Its own
+ *     counter (selfId) is compared with its own counts: importing your own export changes
+ *     nothing, and importing it into an empty (deleted) library brings the counts back.
+ * A bundle without counts/ (before v0.319.0) is the exporter's install counter, as before.
+ * The same bundle twice is refused (<library>/imports/bundles.json).
  *
  * No VS Code dependency.
  */
@@ -24,7 +31,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import { buildZip, readZip } from '../zip';
-import { CdlLibrary, parseRecords } from './library';
+import { CdlLibrary, parseRecords, packRecords } from './library';
 
 type Replay = { name: string; data: Buffer };
 type Totals = Map<number, number[]>;
@@ -38,6 +45,9 @@ const FORMAT = 1;
 const TWO32 = 0x100000000;
 const SUMMED = ['rom-hits.bin', 'wram-hits.bin', 'rom-cycles.bin'];
 const SAFE_NAME = /^[A-Za-z0-9 _()[\]!.,+-]+$/;
+const INSTALL = /^[A-Za-z0-9-]+$/;
+/** install id -> summed stream file -> its raw file. */
+type Counters = Map<string, Map<string, Buffer>>;
 
 const sha256 = (buf: Uint8Array): string => crypto.createHash('sha256').update(buf).digest('hex');
 
@@ -72,6 +82,9 @@ function buildBundle(opts: { libDir: string; replays: Replay[]; installId: strin
         ...files.map(n => ({ name: 'cdl/' + n, data: fs.readFileSync(path.join(opts.libDir, n)) })),
         ...replays.map(r => ({ name: 'replays/' + r.name, data: r.data })),
     ];
+    for (const [id, byFile] of libraryCounters(opts.libDir, INSTALL.test(opts.installId || '') ? opts.installId : 'unknown')) {
+        for (const [f, data] of byFile) entries.push({ name: 'counts/' + id + '/' + f, data });
+    }
     return { zip: buildZip(entries, when), manifest };
 }
 
@@ -88,13 +101,20 @@ function readBundle(buf: Buffer) {
     if (!/^[0-9a-f]{40}$/.test(rom.sha1 || '') || !(rom.romSize > 0)) throw new Error('bundle manifest has no ROM hash / size');
     const cdl = new Map<string, Buffer>();
     const replays: Replay[] = [];
+    const counters: Counters = new Map();
     for (const e of entries) {
+        const c = /^counts\/([^/]+)\/([^/]+)$/.exec(e.name);
+        if (c && INSTALL.test(c[1]) && SUMMED.includes(c[2])) {
+            if (!counters.has(c[1])) counters.set(c[1], new Map());
+            counters.get(c[1])!.set(c[2], e.data);
+            continue;
+        }
         const m = /^(cdl|replays)\/([^/]+)$/.exec(e.name);
         if (!m || !SAFE_NAME.test(m[2])) continue;
         if (m[1] === 'cdl') cdl.set(m[2], e.data);
         else if (/\.evsmv$/i.test(m[2])) replays.push({ name: m[2], data: e.data });
     }
-    return { manifest, cdl, replays };
+    return { manifest, cdl, replays, counters };
 }
 
 /** Totals of a summed stream: Map key -> [values...]. */
@@ -110,25 +130,76 @@ function totals(buf: Buffer | undefined, name: string): Totals {
     return out;
 }
 
-/** What grew from `before` to `now` (both totals), as flat [key, d0, d1, ...] rows. */
-function growth(now: Totals, before: Totals): number[] {
-    const rows: number[] = [];
-    for (const [key, vals] of now) {
-        const old = before.get(key) || [];
-        const d = vals.map((v, i) => Math.max(0, v - (old[i] || 0)));
-        if (d.some(x => x > 0)) rows.push(key, ...d);
+/** Per key and value: f(a, b) over the keys of both (missing = 0); keys whose values are all 0 are dropped. */
+function combine(a: Totals, b: Totals, f: (x: number, y: number) => number): Totals {
+    const out: Totals = new Map();
+    for (const key of new Set([...a.keys(), ...b.keys()])) {
+        const x = a.get(key) || [], y = b.get(key) || [];
+        const v = Array.from({ length: Math.max(x.length, y.length) }, (_, i) => f(x[i] || 0, y[i] || 0));
+        if (v.some(n => n > 0)) out.set(key, v);
     }
-    return rows;
+    return out;
+}
+const sumOf = (a: Totals, b: Totals) => combine(a, b, (x, y) => x + y);
+const minus = (a: Totals, b: Totals) => combine(a, b, (x, y) => Math.max(0, x - y));
+const maxOf = (a: Totals, b: Totals) => combine(a, b, Math.max);
+
+/** Totals back into a summed stream file (keys ascending, 53-bit values as lo / hi words). */
+function packTotals(name: string, t: Totals): Buffer {
+    const values = name === 'wram-hits.bin' ? 2 : 1;
+    const rows = [...t.keys()].sort((x, y) => x - y).map(key => {
+        const v = t.get(key)!, row = [key];
+        for (let i = 0; i < values; i++) row.push((v[i] || 0) % TWO32, Math.floor((v[i] || 0) / TWO32));
+        return row;
+    });
+    return packRecords(name === 'wram-hits.bin' ? 'EVWH' : name === 'rom-hits.bin' ? 'EVRH' : 'EVRY', rows, 1 + values * 2);
 }
 
-/** A delta for CdlLibrary.applyDelta from a bundle's library files (summed streams: growth only). */
-function deltaFromFiles(cdl: Map<string, Buffer>, snapshot: Map<string, Buffer>, romSize: number) {
+/** Flat [key, d0, d1, ...] rows for CdlLibrary.applyDelta. */
+function rows(t: Totals): number[] {
+    const out: number[] = [];
+    for (const [key, v] of t) out.push(key, ...v);
+    return out;
+}
+
+/** The other installs' counters a library imported (<library>/imports/<id>/). */
+function importedCounters(libDir: string): Counters {
+    const out: Counters = new Map();
+    const dir = path.join(libDir, 'imports');
+    if (!fs.existsSync(dir)) return out;
+    for (const id of fs.readdirSync(dir).filter(n => INSTALL.test(n))) {
+        const byFile = new Map<string, Buffer>();
+        for (const f of SUMMED) if (fs.existsSync(path.join(dir, id, f))) byFile.set(f, fs.readFileSync(path.join(dir, id, f)));
+        if (byFile.size) out.set(id, byFile);
+    }
+    return out;
+}
+
+/** This install's own counts of one summed stream: the library's total minus the imported counters (except selfId's). */
+function ownTotals(libDir: string, f: string, imported: Counters, selfId: string): Totals {
+    const file = path.join(libDir, f);
+    let own = totals(fs.existsSync(file) ? fs.readFileSync(file) : undefined, f);
+    for (const [id, byFile] of imported) if (id !== selfId) own = minus(own, totals(byFile.get(f), f));
+    return own;
+}
+
+/** Every counter a library holds: its own under selfId, the imported ones under theirs. */
+function libraryCounters(libDir: string, selfId: string): Counters {
+    const imported = importedCounters(libDir);
+    const out: Counters = new Map();
+    for (const [id, byFile] of imported) if (id !== selfId) out.set(id, byFile);
+    out.set(selfId, new Map(SUMMED.filter(f => fs.existsSync(path.join(libDir, f))).map(f => [f, packTotals(f, ownTotals(libDir, f, imported, selfId))])));
+    return out;
+}
+
+/** A delta for CdlLibrary.applyDelta from a bundle's library files; `grown` = the summed streams' growth. */
+function deltaFromFiles(cdl: Map<string, Buffer>, grownBy: Map<string, Totals>, romSize: number) {
     const rec = (name: string, magic: string, words: number) => parseRecords(cdl.get(name), magic, words);
     const bytes = (name: string): Uint8Array | null => (cdl.has(name) ? new Uint8Array(cdl.get(name)!) : null);
     const whole = (name: string) => { const b = bytes(name); return b ? [{ index: 0, data: b }] : []; };
     const code = bytes('wram-code.bin'), state = bytes('wram-code.state');
     const words = bytes('word-ranges.bin');
-    const grown = (name: string) => growth(totals(cdl.get(name), name), totals(snapshot.get(name), name));
+    const grown = (name: string) => rows(grownBy.get(name) || new Map());
     const romImage = bytes('rom.cdl'), extImage = bytes('rom.ext');
     return {
         chunks: romImage || extImage ? [{ index: 0, cdl: romImage?.subarray(0, romSize), ext: extImage?.subarray(0, romSize) }] : [],
@@ -178,8 +249,8 @@ function addReplays(dir: string, replays: Replay[]): number {
  * Merge a bundle into the library root and the replay folder.
  * @returns {{ duplicate: boolean, sha1: string, title: string, libDir: string, changed: boolean, replays: number, summary?: object }}
  */
-function importBundle(buf: Buffer, root: string, replayDir: string): { duplicate: boolean; sha1: string; title: string; libDir: string; changed: boolean; replays: number; summary?: object } {
-    const { manifest, cdl, replays } = readBundle(buf);
+function importBundle(buf: Buffer, root: string, replayDir: string, selfId = ''): { duplicate: boolean; sha1: string; title: string; libDir: string; changed: boolean; replays: number; summary?: object } {
+    const { manifest, cdl, replays, counters } = readBundle(buf);
     const rom = manifest.rom;
     const lib = CdlLibrary.open(root, rom.sha1, rom.romSize, { title: rom.title, mapType: rom.mapType, sha256: rom.sha256 });
     const importsDir = path.join(lib.dir, 'imports');
@@ -189,15 +260,30 @@ function importBundle(buf: Buffer, root: string, replayDir: string): { duplicate
     const result: { duplicate: boolean; sha1: string; title: string; libDir: string; changed: boolean; replays: number; summary?: object } = { duplicate: false, sha1: rom.sha1, title: rom.title, libDir: lib.dir, changed: false, replays: 0 };
     if (manifest.bundleId && seen.includes(manifest.bundleId)) return Object.assign(result, { duplicate: true });
 
-    const install = /^[A-Za-z0-9-]+$/.test(manifest.installId || '') ? manifest.installId : 'unknown';
-    const snapDir = path.join(importsDir, install);
-    const snapshot = new Map<string, Buffer>();
-    for (const n of SUMMED) if (fs.existsSync(path.join(snapDir, n))) snapshot.set(n, fs.readFileSync(path.join(snapDir, n)));
+    // A bundle from before counters/: its summed files are the exporter's install counter.
+    if (!counters.size) {
+        const install = INSTALL.test(manifest.installId || '') ? manifest.installId : 'unknown';
+        counters.set(install, new Map(SUMMED.filter(f => cdl.has(f)).map(f => [f, cdl.get(f)!])));
+    }
+    const imported = importedCounters(lib.dir);
+    const grownBy = new Map<string, Totals>();
+    const raised: { id: string; f: string; t: Totals }[] = [];
+    for (const [id, byFile] of counters) {
+        for (const [f, data] of byFile) {
+            const theirs = totals(data, f);
+            const mine = id === selfId ? ownTotals(lib.dir, f, imported, selfId) : totals(imported.get(id)?.get(f), f);
+            grownBy.set(f, sumOf(grownBy.get(f) || new Map(), minus(theirs, mine)));
+            if (id !== selfId) raised.push({ id, f, t: maxOf(mine, theirs) });
+        }
+    }
 
-    result.changed = lib.applyDelta(deltaFromFiles(cdl, snapshot, rom.romSize));
+    result.changed = lib.applyDelta(deltaFromFiles(cdl, grownBy, rom.romSize));
     lib.flush();
-    fs.mkdirSync(snapDir, { recursive: true });
-    for (const n of SUMMED) if (cdl.has(n)) fs.writeFileSync(path.join(snapDir, n), cdl.get(n)!);
+    for (const { id, f, t } of raised) {
+        fs.mkdirSync(path.join(importsDir, id), { recursive: true });
+        fs.writeFileSync(path.join(importsDir, id, f), packTotals(f, t));
+    }
+    fs.mkdirSync(importsDir, { recursive: true });
     if (manifest.bundleId) fs.writeFileSync(seenFile, JSON.stringify(seen.concat([manifest.bundleId]), null, 2));
     result.replays = addReplays(replayDir, replays);
     result.summary = lib.summary();

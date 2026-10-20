@@ -564,30 +564,13 @@
       }
     }
 
-    // L / R (and Tab / Shift+Tab) walk three stops and wrap: Load ROM + base ROM, Recent ROMs, Settings.
-    // Each stop keeps the row it was left on.
-    const overlayGroupRow = { launch: -1, recent: -1 };
-    function overlayGroupOf(col, idx) {
-      if (col === 1) return 'settings';
-      const el = getOverlayCol0Focusables()[idx];
-      return el && el.classList.contains('recent-rom-item') ? 'recent' : 'launch';
-    }
-
-    function cycleOverlayGroup(delta) {
-      resetClearRecentButton();
-      const items0 = getOverlayCol0Focusables();
-      const firstRecent = items0.findIndex(el => el.classList.contains('recent-rom-item'));
-      const groups = firstRecent >= 0 ? ['launch', 'recent', 'settings'] : ['launch', 'settings'];
-      const cur = overlayGroupOf(overlayFocusCol, overlayCol0Idx);
-      if (cur !== 'settings') overlayGroupRow[cur] = overlayCol0Idx;
-      const next = groups[(groups.indexOf(cur) + (delta < 0 ? groups.length - 1 : 1)) % groups.length];
-      if (next === 'settings') setOverlayFocus(overlayCol1Idx, 1);
-      else {
-        const lo = next === 'recent' ? firstRecent : 0, hi = next === 'recent' ? items0.length - 1 : (firstRecent >= 0 ? firstRecent - 1 : items0.length - 1);
-        const keep = overlayGroupRow[next];
-        setOverlayFocus(keep >= lo && keep <= hi ? keep : (next === 'launch' ? getInitialCol0Index(items0) : lo), 0);
-      }
-      if (typeof playMenuSound === 'function') playMenuSound('wheel_turn');
+    // L / R move the focus between the two panels by direction and stop at the edge: L = the ROM column
+    // (center), R = Settings (right); pressing toward the side already focused does nothing. Tab toggles.
+    // Each panel keeps the row it was left on (switchOverlayColumn).
+    function moveOverlayColumn(delta) {
+      const col = delta < 0 ? 0 : 1;
+      if (col === overlayFocusCol) return;
+      switchOverlayColumn(col);
     }
 
     function switchOverlayColumn(col) {

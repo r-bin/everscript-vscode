@@ -29,7 +29,7 @@ Usage (record → export → `build.sh` → `recomp.sh`): `docs/reverse-engineer
 | `lookup.ts` | "who calls / who touches" answers for the CDL tab |
 | `host.ts` | Panel glue (the only file that needs `vscode`): seed, snapshot, merge deltas, flush policy; export and lookup when given `tools.ts`; remembers whether recording was on |
 | `tools.ts` | Exports, lookup and script naming for the CDL tab, handed to the panel by Everscript (`configureEmulator({ cdlTools })`); not in the SNES CDL Recorder |
-| `bundle.ts` | Recording bundles: zip one library + its replays (`buildBundle`), merge one in (`importBundle`); summed streams add only the growth since that install's last bundle |
+| `bundle.ts` | Recording bundles: zip one library + its replays (`buildBundle`), merge one in (`importBundle`); summed streams are one counter per install (max-merged), so any export can be imported again anywhere |
 
 The webview half is `../cdl-view.ts` (tab, tick / drain), `../cdl-strips.ts` (ROM + WRAM strips) and `../cdl-float.ts` (floating coverage gains over the active character).
 
@@ -39,9 +39,12 @@ The webview half is `../cdl-view.ts` (tab, tick / drain), `../cdl-strips.ts` (RO
   the SNES CDL Recorder; the last switch of the toggle is remembered (`globalState` `everscript.emulator.cdlWanted`).
 - A library's manifest records the ROM's `sha256` (since v0.219.0): replays (`# rom.sha256`) find their
   library by it when a bundle is exported.
-- A bundle never holds ROM bytes. Importing the same bundle twice is refused; a newer bundle from the
-  same recorder install replaces that install's hit / cycle counts instead of adding them again
-  (`<library>/imports/<installId>/`).
+- A bundle never holds ROM bytes. Importing the same bundle twice is refused. Hit / cycle counts are one
+  counter per install (`<library>/imports/<installId>/` for the others, the rest is this install's own), raised
+  per key to the bundle's value (v0.319.0): a bundle carries every counter it knows (`counts/<id>/`), and the
+  importer passes its own install id, so importing your own export, restoring a deleted library from it,
+  and forwarding (A -> B -> C, then A again) all count each install once. Verified on a real 7054-frame
+  library: restore is byte-identical and exports the same Asar project; merge order does not matter.
 - The SSD is never touched per instruction: the core records into WASM memory, the
   webview drains only changed chunks / new table entries every 15 s, and the host writes
   only files that changed: 60 s after the last change, at most every 5 min while changes

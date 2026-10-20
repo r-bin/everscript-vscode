@@ -102,6 +102,45 @@ function recordInto(root, rom, hits) {
         assert.strictEqual(CdlLibrary.open(dst, lib.hash, rom.length).romHits[0x10], 12);
     });
 
+    await test('bundle round trips: own export into itself, delete + restore, forwarding A -> B -> C, old format', () => {
+        const rom = fakeRom('SECRET OF EVERMORE', 1);
+        const rt = path.join(tmp, 'rt');
+        const files = dir => fs.readdirSync(dir).filter(n => n !== 'manifest.json' && n !== 'imports').sort();
+        const same = (a, b) => files(a).length === files(b).length && files(a).every(n => fs.readFileSync(path.join(a, n)).equals(fs.readFileSync(path.join(b, n))));
+        const hits = (root, lib) => CdlLibrary.open(root, lib.hash, rom.length).romHits[0x10];
+        const zipOf = (lib, id) => buildBundle({ libDir: lib.dir, replays: [], installId: id }).zip;
+        const A = recordInto(path.join(rt, 'A'), rom, 5);
+        const ref = path.join(rt, 'ref');
+        fs.cpSync(A.dir, ref, { recursive: true });
+
+        importBundle(zipOf(A, 'install-a'), path.join(rt, 'A'), path.join(rt, 'rp'), 'install-a');
+        assert.ok(same(ref, A.dir), 'importing your own export changes nothing');
+        assert.strictEqual(hits(path.join(rt, 'A'), A), 5);
+
+        importBundle(zipOf(A, 'install-a'), path.join(rt, 'restored'), path.join(rt, 'rp'), 'install-a');
+        assert.ok(same(ref, path.join(rt, 'restored', A.hash)), 'deleted, then imported: the library is back byte for byte');
+
+        importBundle(zipOf(A, 'install-a'), path.join(rt, 'B'), path.join(rt, 'rp'), 'install-b');
+        const B = CdlLibrary.open(path.join(rt, 'B'), A.hash, rom.length);
+        B.applyDelta({ romHits: [0x10, 2] }); B.flush();
+        const fromB = zipOf(B, 'install-b');
+        assert.ok(readBundle(fromB).counters.get('install-a') && readBundle(fromB).counters.get('install-b'), 'a bundle carries every counter it knows');
+        importBundle(fromB, path.join(rt, 'C'), path.join(rt, 'rp'), 'install-c');
+        importBundle(zipOf(A, 'install-a'), path.join(rt, 'C'), path.join(rt, 'rp'), 'install-c');
+        assert.strictEqual(hits(path.join(rt, 'C'), A), 7, 'A via B and A directly: A counted once, B once');
+        importBundle(fromB, path.join(rt, 'A'), path.join(rt, 'rp'), 'install-a');
+        assert.strictEqual(hits(path.join(rt, 'A'), A), 7, 'A gets B\'s counts, not its own again');
+        importBundle(fromB, path.join(rt, 'B'), path.join(rt, 'rp'), 'install-b');
+        assert.strictEqual(hits(path.join(rt, 'B'), A), 7, 'B importing its own export changes nothing');
+
+        const { readZip, buildZip } = require('../../dist/platform/zip');
+        const E = recordInto(path.join(rt, 'E'), rom, 5);
+        const oldFormat = () => buildZip(readZip(zipOf(E, 'install-e')).filter(e => !e.name.startsWith('counts/')), new Date());
+        importBundle(oldFormat(), path.join(rt, 'D'), path.join(rt, 'rp'), 'install-d');
+        importBundle(oldFormat(), path.join(rt, 'D'), path.join(rt, 'rp'), 'install-d');
+        assert.strictEqual(hits(path.join(rt, 'D'), E), 5, 'bundles from before counts/ still count their install once');
+    });
+
     await test('manifest & registration: everscript.cdlRecorder is contributed and registered', () => {
         const manifest = require('../../package.json');
         assert.ok(manifest.activationEvents.includes('onCommand:everscript.cdlRecorder'));

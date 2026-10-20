@@ -24,7 +24,8 @@
         const isR = k === 'e' || k === 'E' || k === 'PageDown' || k === 'r' || k === 'R' || k === ']' || k.toLowerCase() === keyR.toLowerCase() || (typeof userKeyMap !== 'undefined' && e.code === userKeyMap['R']);
 
         if (isL || isR || k === 'Tab') {
-          cycleOverlayGroup(isL || (k === 'Tab' && e.shiftKey) ? -1 : 1);
+          if (k === 'Tab') switchOverlayColumn();
+          else moveOverlayColumn(isL ? -1 : 1);
           e.preventDefault();
           return;
         }
