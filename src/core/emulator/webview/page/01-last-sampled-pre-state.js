@@ -202,6 +202,7 @@
     const PRESET_LABELS = { default: 'Default', everscript: 'Everscript', cdl: 'CDL', clean: 'Clean' };
 
     function updateSidebarUi() {
+      updateOpenModeUi();
       const corePill = document.getElementById('launcher-val-core');
       if (corePill) {
         corePill.textContent = selectedCore === 'vanilla' ? 'snes9x-wasm' : 'snes9x-wasm fork';
@@ -287,7 +288,7 @@
     function initSidebarControls() {
       updateSidebarUi();
 
-      for (let r = 0; r < 5; r++) {
+      for (let r = 0; r < 6; r++) {
         const row = document.getElementById('launcher-row-' + r);
         if (row) {
           row.onclick = (e) => {
@@ -303,7 +304,7 @@
               return;
             }
 
-            if (r === 4 || e.target.closest('#clearRecentBtn')) {
+            if (r === 5 || e.target.closest('#clearRecentBtn')) {
               handleClearRecentAction();
               return;
             }
@@ -329,6 +330,7 @@
         if (data.sessionSettings.sramMode === 'default' || data.sessionSettings.sramMode === 'individual') sramMode = data.sessionSettings.sramMode;
         else if (typeof data.sessionSettings.isolatedSram === 'boolean') sramMode = data.sessionSettings.isolatedSram ? 'individual' : 'default';
         if (typeof data.sessionSettings.alwaysRecord === 'boolean') alwaysRecordEnabled = data.sessionSettings.alwaysRecord;
+        if (data.sessionSettings.openMode === 'new' || data.sessionSettings.openMode === 'continue') openMode = data.sessionSettings.openMode;
       }
       initSidebarControls();
 
@@ -341,6 +343,8 @@
           const regPrefix = data.vanilla.region ? '[' + data.vanilla.region + '] ' : '';
           vDesc.textContent = regPrefix + (data.vanilla.name || 'Vanilla ROM') + (data.vanilla.sizeFormatted ? ' (' + data.vanilla.sizeFormatted + ')' : '');
           vBtn.title = 'Load the base ROM: ' + (data.vanilla.path || '');
+          vDesc.setAttribute('data-base', vDesc.textContent);
+          updateVanillaOpenNote();
         } else {
           vBtn.classList.add('disabled');
           vBtn.disabled = true;
@@ -409,12 +413,13 @@
 
             row.appendChild(square);
             row.appendChild(info);
+            romSessionAttach(row, item, detailsEl);
 
             row.addEventListener('click', () => {
               if (item.exists) {
                 try { initAudio(); } catch (_) {}
                 try { ensureAudioRunning(); } catch (_) {}
-                if (vscodeApi) vscodeApi.postMessage(Object.assign({ command: 'loadRecentRom', path: item.path, name: item.name, kind: item.kind }, getLaunchOptions()));
+                if (vscodeApi) vscodeApi.postMessage(Object.assign({ command: 'loadRecentRom', path: item.path, name: item.name, kind: item.kind, resume: romSessionResumeId(item) }, getLaunchOptions()));
               }
             });
             row.addEventListener('keydown', (e) => {
@@ -451,7 +456,7 @@
 
     function getOverlayCol1Focusables() {
       const list = [];
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 6; i++) {
         const row = document.getElementById('launcher-row-' + i);
         if (row) list.push(row);
       }
@@ -545,6 +550,9 @@
         updateSidebarUi();
         if (vscodeApi) vscodeApi.postMessage({ command: 'setSessionSettings', alwaysRecord: alwaysRecordEnabled });
         if (typeof playMenuSound === 'function') playMenuSound('click_toggle');
+      } else if (overlayCol1Idx === 4) {
+        // Row 4: Open ROM (New game / Continue)
+        toggleOpenMode();
       } else if (overlayCol1Idx === 3) {
         // Row 3: SRAM (Default / Individual)
         if (selectedPreset === 'cdl') return;

@@ -53,7 +53,7 @@ Related skills: `emulator-subsystem`, `cdl-recorder`, `webview-dom-safety`, `deb
 
 ## Tests
 - `npm test` runs `tests/debugger/*` for the hook, trace, overlays, bottom bar, menu, CDL, TAS (core test
-  needs a ROM from the ROM library), recorder (profiles, gating, bundles, file list), ROM history;
+  needs a ROM from the ROM library), recorder (profiles, gating, bundles, file list), ROM history; `tas-resume.test.js` the ROM picker's continue (snapshot, tail, append);
   `tests/memory/music-tab.test.js` covers the APU stream. Built cores: `emulator-health.test.js`
   (`npm run test:emulator`). Stale, not run: `emulator-runtime.test.js` (waits for removed buttons).
 

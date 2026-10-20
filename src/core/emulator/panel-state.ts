@@ -12,10 +12,12 @@ import { resolveCore } from './core-path';
 import { describeFile as _describeFile, log as _log } from './emulator-log';
 import { MemoryBridge } from './memory-bridge';
 import { ApuStream } from './apu-stream';
-import { getRomOfferData, recordRomUsage, loadPersistentSram, getStorageDir } from './rom-history';
+import { getRomOfferData, recordRomUsage, loadPersistentSram, getStorageDir, formatRelativeTime } from './rom-history';
 import * as platform from '../../platform';
 import type { CdlHost, CdlTools } from './cdl/host';
 import type { TasHost } from './tas/host';
+import { recordingsDir } from './tas/host';
+import { listResumable } from './tas/resume';
 
 /** One formatted script-trace line (the game decides the rest of the fields). */
 interface TraceEntry {
@@ -45,7 +47,7 @@ interface EmuState {
     cdl: CdlHost | null; tas: TasHost | null; options: EmuOptions; reopenTried: boolean;
     sessionProfile: string | null; sessionTitle: string | null;
     sessionCore: 'fork' | 'vanilla' | null; sessionPreset: string | null; sessionSramMode: 'default' | 'individual'; sessionIsolatedSram: boolean;
-    sessionAlwaysRecord: boolean;
+    sessionAlwaysRecord: boolean; sessionOpenMode: 'new' | 'continue'; pendingResume: string | null;
     loadedCore: 'fork' | 'vanilla' | null;
 }
 
@@ -70,6 +72,8 @@ const emu: EmuState = {
     sessionSramMode: 'default', // in-session SRAM mode ('default' | 'individual')
     sessionIsolatedSram: false, // in-session isolated SRAM toggle (legacy)
     sessionAlwaysRecord: true,  // in-session always record toggle (default on)
+    sessionOpenMode: 'new',     // ROM picker: what a ROM opens to ('new' = clean boot, 'continue' = its last session)
+    pendingResume: null,        // recording id to continue once the ROM the picker sent has booted
     loadedCore: null,       // the core build currently loaded in the webview
     /**
      * What the extension that hosts the panel wants (configureEmulator):
@@ -99,6 +103,8 @@ const SETTINGS_KEY = 'everscript.emulator.settings';
 // Whether CDL recording was on when last switched.
 const CDL_WANTED_KEY = 'everscript.emulator.cdlWanted';
 const ALWAYS_RECORD_KEY = 'everscript.emulator.alwaysRecord';
+// ROM picker: what opening a ROM does ('new' clean boot / 'continue' its last session).
+const OPEN_MODE_KEY = 'everscript.emulator.openMode';
 
 function _state(key: string, fallback: unknown) {
   return emu.context && emu.context.globalState ? emu.context.globalState.get(key, fallback) : fallback;
@@ -240,7 +246,7 @@ function _resetPanelHtml() {
     const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     const activeGame = emu.options.game ? (platform.selectedRom()?.game || 'evermore') : null;
     // The vanilla ROM comes from the ROM library (src/core/roms).
-    const romOfferData = getRomOfferData(emu.context, wsRoot, '', activeGame);
+    const romOfferData = _romOffer(wsRoot, activeGame);
     const panel = emu.panel;
     const file = (name: string) => panel.webview.asWebviewUri(vscode.Uri.file(path.join(emu.extensionPath, 'src', 'core', 'emulator', 'webview', name))).toString();
     const isRecorder = (emu.sessionProfile || emu.options.profile) === 'recorder';
@@ -265,20 +271,36 @@ function _broadcastRomOffer() {
     const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     const activeGame = emu.options.game ? (platform.selectedRom()?.game || 'evermore') : null;
     // The vanilla ROM comes from the ROM library (src/core/roms).
-    const romOfferData: any = getRomOfferData(emu.context, wsRoot, '', activeGame);
-    if (romOfferData) {
-      const isCdl = emu.sessionPreset === 'cdl';
-      const effectiveSramMode = isCdl ? 'individual' : (emu.sessionSramMode || (emu.sessionIsolatedSram ? 'individual' : 'default'));
-      romOfferData.sessionSettings = {
-        core: emu.sessionCore || 'fork',
-        preset: emu.sessionPreset || 'default',
-        sramMode: effectiveSramMode,
-        isolatedSram: effectiveSramMode === 'individual',
-        alwaysRecord: isCdl ? true : emu.sessionAlwaysRecord !== false,
-      };
-    }
-    emu.panel.webview.postMessage({ command: 'romOfferInfo', data: romOfferData });
+    emu.panel.webview.postMessage({ command: 'romOfferInfo', data: _romOffer(wsRoot, activeGame) });
   } catch (_) {}
+}
+
+/** Sessions the picker offers per ROM: the newest few, each with its screenshot. */
+const SESSIONS_PER_ROM = 8;
+
+/** The ROM picker's data: base ROM, recent ROMs with the sessions that can be continued, the session settings. */
+function _romOffer(wsRoot: string | null, activeGame: string | null) {
+    const offer: any = getRomOfferData(emu.context, wsRoot, '', activeGame);
+    try {
+      const byRom = listResumable(emu.tas ? emu.tas.dir() : recordingsDir(getStorageDir(emu.context)));
+      const sessionsOf = (sha256: string | undefined) => (byRom.get(sha256 || '') || []).slice(0, SESSIONS_PER_ROM)
+        .map(x => Object.assign({}, x, { savedFormatted: formatRelativeTime(Date.parse(x.saved)) }));
+      for (const item of offer.recent || []) item.sessions = sessionsOf(item.sha256);
+      if (offer.vanilla) offer.vanilla.sessions = sessionsOf(offer.vanilla.sha256);
+    } catch (e) {
+      _log('ROM picker: cannot list the sessions to continue: ' + (e instanceof Error ? e.message : e));
+    }
+    const isCdl = emu.sessionPreset === 'cdl';
+    const effectiveSramMode = isCdl ? 'individual' : (emu.sessionSramMode || (emu.sessionIsolatedSram ? 'individual' : 'default'));
+    offer.sessionSettings = {
+      core: emu.sessionCore || 'fork',
+      preset: emu.sessionPreset || 'default',
+      sramMode: effectiveSramMode,
+      isolatedSram: effectiveSramMode === 'individual',
+      alwaysRecord: isCdl ? true : emu.sessionAlwaysRecord !== false,
+      openMode: emu.sessionOpenMode,
+    };
+    return offer;
 }
 
 /** reopenLastRom: the newest recent ROM file that still exists, once per panel. */
@@ -328,4 +350,4 @@ function _handleRoomMapRequest(mapId: unknown, objectStates: unknown, cutGrassTi
 }
 
 export type { EmuState, EmuOptions, GameHost, TraceEntry };
-export { emu, _scriptDebug, _apu, _memory, KEEP_FOCUS_KEY, SETTINGS_KEY, CDL_WANTED_KEY, ALWAYS_RECORD_KEY, _state, _saveState, _keepFocusSetting, _notifyWebviewStatus, _estimateDataUrlBytes, _clearReadyTimeout, _clearRomTimeout, _dispatchPendingRom, _resetPanelHtml, _broadcastRomOffer, _reopenLastRom, _sendRomFile, _handleRoomMapRequest };
+export { emu, _scriptDebug, _apu, _memory, KEEP_FOCUS_KEY, SETTINGS_KEY, CDL_WANTED_KEY, ALWAYS_RECORD_KEY, OPEN_MODE_KEY, _state, _saveState, _keepFocusSetting, _notifyWebviewStatus, _estimateDataUrlBytes, _clearReadyTimeout, _clearRomTimeout, _dispatchPendingRom, _resetPanelHtml, _broadcastRomOffer, _reopenLastRom, _sendRomFile, _handleRoomMapRequest };

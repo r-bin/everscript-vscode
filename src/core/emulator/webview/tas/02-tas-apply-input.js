@@ -4,13 +4,14 @@
     // Sets the joypad for the frame about to run and records it.
     function tasApplyInput(m, live) {
       let pad = live, fromMovie = false;
+      if (!tasPlay && tasRec && tasRec.live && tasSessionFrame > 0 && tasSessionFrame % TAS_SNAPSHOT_EVERY === 0) tasSnapshot();
       if (tasPlay) {
         tasPlayEvents(m, tasPlay.pos);
         if (tasPlay.pos >= tasPlay.count) {
           if (!tasDesync && tasPlay.fair) vscodeApi.postMessage({ command: 'tasReplayed', id: tasPlay.id, frames: tasPlay.count });
           tasStopPlayback('replay finished at frame ' + tasPlay.count + (tasDesync ? ' - DESYNCED at frame ' + tasDesync.frame : ' - keyboard has control'));
         } else {
-          pad = tasPlay.pads[tasPlay.pos];
+          pad = tasPlay.pads[tasPlay.pos - (tasPlay.base || 0)];
           fromMovie = true;
           tasPlay.pos++;
           if (tasPlay.pos % 60 === 0) tasRefreshBadge();
@@ -65,6 +66,13 @@
 
     function tasStopPlayback(text) {
       if (!tasPlay) return;
+      // A continue cannot be taken over before it caught up: the file holds those frames already.
+      if (tasPlay.resume && tasPlay.pos < tasPlay.count) { tasSetStatus('still catching up with the session...'); return; }
+      if (tasPlay.resume) {
+        if (tasSpeedBeforeResume !== null) setSpeedMultiplier(tasSpeedBeforeResume);
+        tasSpeedBeforeResume = null;
+        text = 'continued ' + tasPlay.title + ' at ' + tasFmtTime(tasPlay.count) + (tasDesync ? ' - DESYNCED at frame ' + tasDesync.frame : ' - keyboard has control');
+      }
       tasPlay = null;
       tasSetStatus(text || 'took over - keyboard has control, still recording');
       tasRefreshBadge();
@@ -188,13 +196,13 @@
         const screenCanvas = document.getElementById('screen');
         if (screenCanvas) screenCanvas.focus();
       });
-      document.addEventListener('visibilitychange', () => { if (document.hidden) tasFlush(); });
+      document.addEventListener('visibilitychange', () => { if (document.hidden) { tasSnapshot(); tasFlush(); } });
       tasRefreshBadge();
     }
 
     // Called by the frame loop whenever the emulator pauses or resumes.
     function tasOnPauseChanged(paused) {
-      if (paused) tasFlush();
+      if (paused) { tasSnapshot(); tasFlush(); }
     }
 
     function handleTasMessage(data) {
@@ -209,6 +217,8 @@
         tasRenderList();
       } else if (data.command === 'tasMovie') {
         tasStartPlayback(data);
+      } else if (data.command === 'tasResume') {
+        tasStartResume(data);
       } else if (data.command === 'tasStatus') {
         tasSetStatus(data.text);
       } else {

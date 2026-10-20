@@ -2,9 +2,9 @@
 
     function activateOverlayFocused() {
       if (overlayFocusCol === 1) {
-        if (overlayCol1Idx === 2 || overlayCol1Idx === 3) {
+        if (overlayCol1Idx >= 2 && overlayCol1Idx <= 4) {
           changeOverlayValue(1);
-        } else if (overlayCol1Idx === 4) {
+        } else if (overlayCol1Idx === 5) {
           handleClearRecentAction();
         }
         return;
@@ -39,7 +39,7 @@
         lastOverlayGamepadPoll = now + 200;
         window.startKeySuppressedUntilRelease = true;
         window.ignoreStartUntil = performance.now() + 600;
-        if (overlayFocusCol === 1 && overlayCol1Idx === 4 && clearRecentConfirming) {
+        if (overlayFocusCol === 1 && overlayCol1Idx === 5 && clearRecentConfirming) {
           handleClearRecentAction();
         } else {
           launchSelectedRom();
@@ -54,6 +54,8 @@
         lastOverlayGamepadPoll = now;
         if (overlayFocusCol === 1) {
           changeOverlayValue(dLeft ? -1 : 1);
+        } else {
+          romSessionStepFocused(dLeft ? -1 : 1);
         }
       } else if (btnB) {
         lastOverlayGamepadPoll = now + 160;
@@ -92,7 +94,10 @@
         if (vanillaBtn.disabled) return;
         try { initAudio(); } catch (_) {}
         try { ensureAudioRunning(); } catch (_) {}
-        if (vscodeApi) vscodeApi.postMessage(Object.assign({ command: 'loadVanillaRom' }, getLaunchOptions()));
+        // "Open ROM: Continue" continues the base ROM's newest session too.
+        const v = currentOfferData && currentOfferData.vanilla;
+        const resume = openMode === 'continue' && v && v.sessions && v.sessions.length ? v.sessions[0].id : '';
+        if (vscodeApi) vscodeApi.postMessage(Object.assign({ command: 'loadVanillaRom', resume: resume }, getLaunchOptions()));
       });
     }
 

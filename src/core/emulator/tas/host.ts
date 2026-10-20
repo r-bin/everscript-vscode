@@ -10,11 +10,14 @@
  * (tasRecEnd). A session in which no button was pressed by hand (an idle boot,
  * or a replay watched to its end without taking over) is deleted on close.
  *
+ * Continuing a session (ROM picker): snapshots, resume() and appending to the same file are resume.ts.
+ *
  * Messages (webview -> host): tasRecStart, tasRecFrames, tasRecEnd, tasList,
  *   tasLoad, tasPin, tasDelete (confirmed: the pause menu asked already), tasReveal, tasPrefs,
  *   tasDesync / tasReplayed (a replay lost sync / reached the end in sync: written into the
- *   recording when the replay was fair), tasVerify (replay the session so far headless, see verify.ts)
- * Messages (host -> webview): tasConfig, tasListResult, tasMovie, tasStatus
+ *   recording when the replay was fair), tasVerify (replay the session so far headless, see verify.ts),
+ *   tasSnapshot, tasRecContinue
+ * Messages (host -> webview): tasConfig, tasListResult, tasMovie, tasResume, tasStatus
  */
 
 import * as vscode from 'vscode';
@@ -24,14 +27,16 @@ import * as crypto from 'crypto';
 import { parseMovie, evsmvHeader, evsmvTrailer, rleFrames } from '../../../platform/tas/movie';
 import { stripCopierHeader } from '../../../platform/cdl/library';
 import { verifyMovieSafely } from '../../../platform/tas/verify';
+import { saveSnapshot, deleteResume, resumeMessage, openToContinue } from './resume';
 
 /** A webview message (the fields each command uses). */
 interface TasMessage {
     command: string; id?: string; name?: string; source?: string; sram?: string; text?: string; frames?: number; live?: boolean; cheats?: boolean;
     pinned?: boolean; confirmed?: boolean; frame?: number; expected?: string; got?: string; fair?: boolean; overlay?: boolean;
+    state?: string; thumb?: string;
 }
 /** The recording being written. */
-interface Recording { file: string; fd: number | null; frames: number; live: boolean; cheats: boolean; header: string; desync?: boolean }
+interface Recording { file: string; fd: number | null; frames: number; live: boolean; cheats: boolean; header: string; desync?: boolean; rom?: string; started?: string }
 interface Prefs { overlay?: boolean; pinned?: string[] }
 
 const MOVIE_EXT = /\.evsmv$/i;
@@ -136,6 +141,8 @@ class TasHost {
                 break;
             case 'tasReplayed': this._markSync(msg.id, 'synced', new Date().toISOString()); break;
             case 'tasPrefs': this._savePrefs(Object.assign(this._prefs(), { overlay: !!msg.overlay })); break;
+            case 'tasSnapshot': this._snapshot(msg); break;
+            case 'tasRecContinue': this._recContinue(msg.id); break;
             default: return false;
         }
         return true;
@@ -149,7 +156,7 @@ class TasHost {
         const started = new Date();
         const file = path.join(this.dir(), `${safeName(msg.name)}_${stamp(started)}.evsmv`);
         this.rec = {
-            file, fd: null, frames: 0, live: false, cheats: false,
+            file, fd: null, frames: 0, live: false, cheats: false, rom: String(msg.name || ''), started: started.toISOString(),
             header: evsmvHeader({ rom: msg.name, romSha256: this.romSha, started: started.toISOString(), source: msg.source, core: this.coreId(), sram: typeof msg.sram === 'string' && msg.sram ? msg.sram : undefined }),
         };
     }
@@ -184,6 +191,45 @@ class TasHost {
             else this.log(`TAS recording saved: ${rec.file} (${rec.frames} frames)`);
         } catch (e) {
             this.log('TAS recording close failed: ' + errText(e), true);
+        }
+    }
+
+    // -- continuing a session -------------------------------------------------------
+    _snapshot(msg: TasMessage): void {
+        const rec = this.rec;
+        if (!rec || rec.fd === null || !rec.live || rec.desync) return;
+        try {
+            saveSnapshot(rec.file, rec.fd, rec.frames, msg, { core: this.coreId(), rom: rec.rom || '', romSha256: this.romSha, started: rec.started || '' });
+        } catch (e) {
+            this.log('TAS: cannot save the session snapshot: ' + errText(e));
+        }
+    }
+
+    /** After the ROM picker's boot: send the page the snapshot of recording `id` and the frames after it. */
+    resume(id: string): void {
+        const ref = this._resolve(id);
+        if (!ref || !fs.existsSync(ref.file)) { this.post({ command: 'tasStatus', text: 'session not found: ' + id }); return; }
+        try {
+            const msg = resumeMessage(id, ref.file, this.romSha, this.coreId());
+            this.post(msg);
+            this.log(`TAS: continuing ${ref.file} at frame ${msg.frame} (${msg.count - msg.frame} frames to catch up)`);
+        } catch (e) {
+            const text = 'cannot continue that session: ' + errText(e) + ' (started fresh)';
+            this.post({ command: 'tasStatus', text });
+            this.log('TAS: ' + text, true);
+        }
+    }
+
+    /** From now on the recording appends to the continued session's file. */
+    _recContinue(id: string | undefined): void {
+        const ref = this._resolve(id);
+        this._recEnd();
+        if (!ref || !fs.existsSync(ref.file)) return;
+        try {
+            // live: the file existed before, it is never deleted at the end.
+            this.rec = Object.assign({ file: ref.file, live: true, header: '' }, openToContinue(ref.file));
+        } catch (e) {
+            this.log('TAS: cannot continue the recording: ' + errText(e), true);
         }
     }
 
@@ -341,6 +387,7 @@ class TasHost {
             if (ok !== 'Delete') return;
         }
         fs.unlinkSync(ref.file);
+        deleteResume(ref.file);
         this._pin(id, false);
     }
 

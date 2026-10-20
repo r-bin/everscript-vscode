@@ -7,7 +7,7 @@ import * as fs from 'fs';
 import { ensureEmulatorChannel as _ensureEmulatorChannel, log as _log, logCrash, launchHistory as _launchHistory, scriptTraceHistory as _scriptTraceHistory } from './emulator-log';
 import type { CrashReport } from './emulator-log';
 import { recordRomUsage, getVanillaRom, clearRecentRoms, getStorageDir, savePersistentSram } from './rom-history';
-import { emu, _scriptDebug, _apu, _memory, KEEP_FOCUS_KEY, SETTINGS_KEY, ALWAYS_RECORD_KEY, _state, _saveState, _keepFocusSetting, _notifyWebviewStatus, _clearReadyTimeout, _clearRomTimeout, _dispatchPendingRom, _broadcastRomOffer, _reopenLastRom, _sendRomFile, _handleRoomMapRequest, _resetPanelHtml } from './panel-state';
+import { emu, _scriptDebug, _apu, _memory, KEEP_FOCUS_KEY, SETTINGS_KEY, ALWAYS_RECORD_KEY, OPEN_MODE_KEY, _state, _saveState, _keepFocusSetting, _notifyWebviewStatus, _clearReadyTimeout, _clearRomTimeout, _dispatchPendingRom, _broadcastRomOffer, _reopenLastRom, _sendRomFile, _handleRoomMapRequest, _resetPanelHtml } from './panel-state';
 
 /** Everything the page sends: readiness, ROM load stages, crashes, CDL / REPLAYS / debugger traffic, the game's requests. */
 /** A message from the page: the command and its fields (the wire format is the page's, see webview/page/). */
@@ -47,6 +47,10 @@ function onWebviewMessage(msg: PageMessage) {
                 emu.sessionAlwaysRecord = msg.alwaysRecord;
                 _saveState(ALWAYS_RECORD_KEY, msg.alwaysRecord);
             }
+            if (msg.openMode === 'new' || msg.openMode === 'continue') {
+                emu.sessionOpenMode = msg.openMode;
+                _saveState(OPEN_MODE_KEY, msg.openMode);
+            }
             break;
         }
 
@@ -77,6 +81,8 @@ function onWebviewMessage(msg: PageMessage) {
             // The vanilla ROM comes from the ROM library (src/core/roms).
             const v = getVanillaRom(wsRoot, '');
             if (v && v.available && v.path) {
+                // The ROM picker may ask to continue one of its sessions once it has booted.
+                emu.pendingResume = typeof msg.resume === 'string' && msg.resume ? msg.resume : null;
                 recordRomUsage({ path: v.path, name: v.name, kind: 'vanilla' }, emu.context);
                 _sendRomFile(v.path);
             } else {
@@ -102,6 +108,7 @@ function onWebviewMessage(msg: PageMessage) {
                 _saveState(ALWAYS_RECORD_KEY, msg.alwaysRecord);
             }
             if (msg.path && fs.existsSync(msg.path)) {
+                emu.pendingResume = typeof msg.resume === 'string' && msg.resume ? msg.resume : null;
                 recordRomUsage({ path: msg.path, name: msg.name, kind: msg.kind || 'file' }, emu.context);
                 _sendRomFile(msg.path);
             } else {
@@ -173,6 +180,8 @@ function onWebviewMessage(msg: PageMessage) {
             if (emu.pending) emu.pending = null;
             if (emu.cdl && emu.currentRomBuffer) emu.cdl.romStarted(emu.currentRomBuffer);
             if (emu.tas) emu.tas.romStarted(emu.currentRomBuffer);
+            if (emu.tas && emu.pendingResume) emu.tas.resume(emu.pendingResume);
+            emu.pendingResume = null;
             vscode.window.setStatusBarMessage(`$(check) Emulator: ${msg.name} running`, 5000);
             break;
 

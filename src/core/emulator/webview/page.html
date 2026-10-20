@@ -90,7 +90,16 @@
           </div>
         </div>
 
-        <div class="menu-row" id="launcher-row-4" data-row="4" title="Enter / B or click: clear recent ROMs history">
+        <div class="menu-row" id="launcher-row-4" data-row="4" title="Left / Right or B: what opening a ROM does (New game = power-on, Continue = its last session); Left / Right on a ROM picks another session">
+          <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Open ROM</div>
+          <div class="menu-row-value">
+            <button class="menu-stepper-btn" data-step="-1" type="button" tabindex="-1">&lt;</button>
+            <span id="launcher-val-open" class="menu-pill">New game</span>
+            <button class="menu-stepper-btn" data-step="1" type="button" tabindex="-1">&gt;</button>
+          </div>
+        </div>
+
+        <div class="menu-row" id="launcher-row-5" data-row="5" title="Enter / B or click: clear recent ROMs history">
           <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Recent ROMs</div>
           <div class="menu-row-value">
             <span id="clearRecentBtn" class="menu-action-pill">[B] Clear</span>

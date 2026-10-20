@@ -46,11 +46,13 @@
         const keyRight = (typeof userKeyMap !== 'undefined' && userKeyMap['Right']) ? userKeyMap['Right'] : 'ArrowRight';
         if (k === 'ArrowLeft' || k.toLowerCase() === keyLeft.toLowerCase()) {
           if (overlayFocusCol === 1) changeOverlayValue(-1);
+          else romSessionStepFocused(-1);
           e.preventDefault();
           return;
         }
         if (k === 'ArrowRight' || k.toLowerCase() === keyRight.toLowerCase()) {
           if (overlayFocusCol === 1) changeOverlayValue(1);
+          else romSessionStepFocused(1);
           e.preventDefault();
           return;
         }
@@ -59,7 +61,7 @@
         if (isStart) {
           window.startKeySuppressedUntilRelease = true;
           window.ignoreStartUntil = performance.now() + 600;
-          if (overlayFocusCol === 1 && overlayCol1Idx === 4 && clearRecentConfirming) {
+          if (overlayFocusCol === 1 && overlayCol1Idx === 5 && clearRecentConfirming) {
             handleClearRecentAction();
           } else {
             launchSelectedRom();
@@ -75,9 +77,9 @@
           if (overlayFocusCol === 0) {
             launchSelectedRom();
           } else {
-            if (overlayCol1Idx === 2 || overlayCol1Idx === 3) {
+            if (overlayCol1Idx >= 2 && overlayCol1Idx <= 4) {
               changeOverlayValue(1);
-            } else if (overlayCol1Idx === 4) {
+            } else if (overlayCol1Idx === 5) {
               handleClearRecentAction();
             }
           }
@@ -241,6 +243,7 @@
         if (typeof emuGateRom === 'function') emuGateRom(romData);
         romStage('core start begin');
         cdlBeforeRomChange();
+        tasSnapshot();   // the session ends here: keep where it stood, so it can be continued
         tasFlush();
         const ptr = Module._my_malloc(romData.length);
         HEAPU8.set(romData, ptr);

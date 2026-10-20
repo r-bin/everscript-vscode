@@ -27,7 +27,7 @@ import * as platform from '../../platform';
 /** What the list shows about a ROM; a game's describer may add more (custom map name, preview). */
 interface RomDetails {
   known: boolean; isCustomMap: boolean; region: string; regionName: string; icon: string; flag: string;
-  sha1?: string; crc32?: string; customName?: string; vfsUri?: string; previewDataUri?: string;
+  sha1?: string; sha256?: string; crc32?: string; customName?: string; vfsUri?: string; previewDataUri?: string;
   game?: string;
 }
 type RomDescriber = (clean: Uint8Array, target: unknown, hintPath?: string | null) => RomDetails | null;
@@ -35,7 +35,7 @@ type RomDescriber = (clean: Uint8Array, target: unknown, hintPath?: string | nul
 interface HistoryItem {
   path: string; name: string; kind: string; lastUsed: number; size: number; customName?: string; vfsUri?: string;
   icon?: string; region?: string; regionName?: string; isCustomMap?: boolean; previewDataUri?: string;
-  sha1?: string; game?: string;
+  sha1?: string; sha256?: string; game?: string;
 }
 /** What the panel reports when a ROM was loaded. */
 interface RomUsage { path?: string; name?: string; kind?: string; dataUrl?: unknown; romBuffer?: Uint8Array; size?: number; game?: string; sha1?: string; }
@@ -61,11 +61,13 @@ function detectRomDetails(target: unknown, hintPath?: string | null): RomDetails
 
     const clean = (buf.length % 1024 === 512) ? buf.subarray(512) : buf;
     const sha1 = crypto.createHash('sha1').update(clean).digest('hex').toLowerCase();
+    // The recordings name their ROM by SHA-256 (tas/host.ts): sessions to continue are found by it.
+    const sha256 = crypto.createHash('sha256').update(clean).digest('hex').toLowerCase();
     const crc = platform.crc32(clean).toString(16).padStart(8, '0').toLowerCase();
 
     // 1. A ROM the game itself built (e.g. a map editor test ROM)
     const own = _describeRom ? _describeRom(clean, target, hintPath) : null;
-    if (own) return Object.assign(own, { sha1: sha1, crc32: crc });
+    if (own) return Object.assign(own, { sha1: sha1, sha256: sha256, crc32: crc });
 
     // 2. A known variant of a registered game
     const id = platform.identifyRom(clean);
@@ -81,6 +83,7 @@ function detectRomDetails(target: unknown, hintPath?: string | null): RomDetails
         icon: code,
         flag: code,
         sha1: sha1,
+        sha256: sha256,
         crc32: crc,
       };
     }
@@ -94,6 +97,7 @@ function detectRomDetails(target: unknown, hintPath?: string | null): RomDetails
       icon: '?',
       flag: '?',
       sha1: sha1,
+      sha256: sha256,
       crc32: crc,
     };
   } catch (_) {
@@ -165,6 +169,7 @@ function getVanillaRom(wsRoot?: string | null, cfgRomPath?: string | null) {
         icon: (details && details.icon) || 'US',
         region: (details && details.region) || 'US',
         regionName: (details && details.regionName) || 'USA',
+        sha256: (details && details.sha256) || '',
       };
     }
   } catch (_) {}
@@ -301,6 +306,7 @@ function recordRomUsage(entry: RomUsage | null | undefined, context: StorageCont
     isCustomMap: !!(details && details.isCustomMap),
     previewDataUri: (details && details.previewDataUri) || '',
     sha1: sha1,
+    sha256: (details && details.sha256) || '',
     game: game,
   });
 
@@ -347,7 +353,7 @@ function getRecentRoms(storageDir: string, activeGame?: string | null) {
         if (fs.existsSync(item.path)) {
           exists = true;
           if (!size) size = fs.statSync(item.path).size;
-          if (!item.icon || item.icon === '?' || !item.sha1 || (item.isCustomMap && !item.previewDataUri)) {
+          if (!item.icon || item.icon === '?' || !item.sha1 || !item.sha256 || (item.isCustomMap && !item.previewDataUri)) {
             const d = detectRomDetails(item.path, item.path || item.name);
             if (d) {
               item.icon = d.icon;
@@ -358,6 +364,7 @@ function getRecentRoms(storageDir: string, activeGame?: string | null) {
               if (d.vfsUri) item.vfsUri = d.vfsUri;
               if (d.previewDataUri) item.previewDataUri = d.previewDataUri;
               if (d.sha1) item.sha1 = d.sha1;
+              if (d.sha256) item.sha256 = d.sha256;
               if (d.game) item.game = d.game;
               changed = true;
             }
@@ -403,6 +410,7 @@ function getRecentRoms(storageDir: string, activeGame?: string | null) {
       isCustomMap: !!item.isCustomMap,
       previewDataUri: item.previewDataUri || '',
       sha1: item.sha1 || '',
+      sha256: item.sha256 || '',
       game: item.game || '',
     };
   });

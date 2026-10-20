@@ -23,6 +23,9 @@
  * they stay: "# desync: <frame> <detail>" (the first replay that lost sync, or a failed replay
  * check while recording) and "# synced: <ISO date>" (a replay to the end matched every checksum).
  * A desync wins: the recording is not trusted again.
+ * A continued session (ROM picker, tas/resume.ts) appends more frames to its recording after
+ * "# continued: <ISO date> at frame <n>" (the old trailer lines stay above it): a "# synced:" above
+ * the last "# continued:" no longer covers the whole recording, so it does not count.
  *
  * Version 3 (the one written now) checks more, and more often:
  *   S|<crc8>                every CHECK_EVERY (60) frames instead of every 600
@@ -184,6 +187,8 @@ function parseMovie(text: string, fileName?: string) {
         }
     }
     const m = parseMeta(text);
+    // A sync mark above the last continue covers only the part before it.
+    const synced = m.synced && text.lastIndexOf('\n# continued: ') > text.lastIndexOf('\n# synced: ') ? '' : (m.synced || '');
     return {
         title: String(fileName || 'movie').replace(/\.evsmv$/i, ''),
         pads: pads.subarray(0, count),
@@ -191,7 +196,7 @@ function parseMovie(text: string, fileName?: string) {
         version,
         events,
         meta: { rom: m.rom || '', romSha256: (m['rom.sha256'] || '').toLowerCase(), core: m.core || '', audio: parseInt(m.audio, 10) || AUDIO_RATE, started: m.started || '', source: m.source || '', cheats: m.cheats || '',
-            desync: m.desync || '', synced: m.synced || '', sram: m.sram || '' },
+            desync: m.desync || '', synced, continued: m.continued || '', sram: m.sram || '' },
         warnings: version === 1 && m.cheats === 'yes' ? ['cheats were on while recording: may not sync'] : [],
     };
 }

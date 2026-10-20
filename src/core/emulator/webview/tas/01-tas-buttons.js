@@ -20,6 +20,12 @@
     let tasDesync = null;        // { frame, expected, got } after the first mismatch
     let tasCrcTable = null;
     let tasVerifyEvery = 0;      // frames between replay checks while recording (0 = off)
+    // Continuing a session (ROM picker): a snapshot (save state + screenshot) goes to the host now and
+    // then while a session is played by hand (tas/resume.ts keeps it next to the recording).
+    const TAS_SNAPSHOT_EVERY = 1800;   // frames (30 s) between snapshots while playing
+    const TAS_SNAPSHOT_MIN = 600;      // earlier states do not reproduce the run (tools/cdl/replay-states.js)
+    let tasLastSnapshotFrame = -1;
+    let tasSpeedBeforeResume = null;   // the speed to restore when a continue has caught up
 
     function tasPadText(w) {
       let s = '';
@@ -68,6 +74,8 @@
 
     function tasRecordFrame(pad, fromMovie) {
       if (!tasRec) return;
+      // A continue catching up replays frames that are in the file already.
+      if (tasPlay && tasPlay.resume) return;
       tasFlushWrite();
       tasRec.lines.push('F|' + tasPadText(pad));
       tasRec.frames++;
@@ -79,7 +87,7 @@
 
     // An event line between two frame lines (see movie.ts).
     function tasRecordEvent(line) {
-      if (!tasRec) return;
+      if (!tasRec || (tasPlay && tasPlay.resume)) return;
       tasFlushWrite();
       tasRec.lines.push(line);
     }
@@ -217,6 +225,93 @@
       tasRefreshBadge();
     }
 
+    // -- snapshots and continuing a session ------------------------------------------------
+    function tasB64(bytes) {
+      let bin = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+      return btoa(bin);
+    }
+
+    function tasUnB64(text) {
+      const bin = atob(text || '');
+      const out = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+      return out;
+    }
+
+    // The picture on screen at half the SNES's 256x224, as WebP (a few KB: the ROM picker lists many).
+    function tasThumbnail() {
+      const screen = document.getElementById('screen');
+      if (!screen) return '';
+      try {
+        const c = document.createElement('canvas');
+        c.width = 128;
+        c.height = 112;
+        const ctx = c.getContext('2d');
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(screen, 0, 0, screen.width, screen.height, 0, 0, 128, 112);
+        return c.toDataURL('image/webp', 0.85);
+      } catch (_) {
+        return '';
+      }
+    }
+
+    // A snapshot of the session being played by hand, at this frame boundary: everything recorded so
+    // far is flushed first, so the host knows where in the file the state stands.
+    function tasSnapshot() {
+      const m = getModule();
+      if (!tasRec || !tasRec.live || tasPlay || !romLoaded || !m) return;
+      if (tasSessionFrame < TAS_SNAPSHOT_MIN || tasSessionFrame === tasLastSnapshotFrame) return;
+      if (typeof m._saveState !== 'function' || typeof m._getStateSaveSize !== 'function') return;
+      tasFlush();
+      const size = m._getStateSaveSize();
+      const ptr = m._saveState();
+      if (!ptr) return;
+      const state = HEAPU8.slice(ptr, ptr + size);
+      if (typeof m._my_free === 'function') m._my_free(ptr);
+      tasLastSnapshotFrame = tasSessionFrame;
+      vscodeApi.postMessage({ command: 'tasSnapshot', frame: tasSessionFrame, state: tasB64(state), thumb: tasThumbnail() });
+    }
+
+    // The host's answer to the ROM picker's "continue": load the snapshot, append to that recording,
+    // and catch up on the frames recorded after the snapshot before the keyboard takes over.
+    function tasStartResume(msg) {
+      const m = getModule();
+      if (!romLoaded || !m || typeof m._loadState !== 'function') { tasSetStatus('cannot continue: this core has no save states'); return; }
+      const state = tasUnB64(msg.state);
+      if (state.length !== m._getStateSaveSize()) { tasSetStatus('cannot continue: the session was saved by another core build (started fresh)'); return; }
+      tasEndRecording();   // the empty session of the boot that brought the ROM up
+      const ptr = m._my_malloc(state.length);
+      HEAPU8.set(state, ptr);
+      const ok = m._loadState(ptr, state.length);
+      m._my_free(ptr);
+      if (!ok) { tasSetStatus('cannot continue: the core refused the saved state'); tasOnBoot(loadedRomName); return; }
+      tasSessionFrame = msg.frame;
+      tasLastSnapshotFrame = msg.frame;
+      tasLastPad = 0;
+      tasPendingW = null;
+      tasDesync = null;
+      tasRec = { frames: msg.count, unsent: 0, lines: [], live: true, cheats: false };
+      vscodeApi.postMessage({ command: 'tasRecContinue', id: msg.id });
+      if (msg.count > msg.frame) {
+        const pads = tasUnB64(msg.pads);
+        const events = new Map();
+        for (const ev of (msg.events || [])) {
+          if (!events.has(ev.frame)) events.set(ev.frame, []);
+          events.get(ev.frame).push(ev);
+        }
+        tasPlay = { id: msg.id, title: msg.title, resume: true, fair: false, base: msg.frame, pos: msg.frame, count: msg.count, events: events,
+          pads: new Uint16Array(pads.buffer, 0, pads.length >> 1) };
+        tasSpeedBeforeResume = speedMultiplier;
+        setSpeedMultiplier(4.0);
+        tasSetStatus('continuing ' + msg.title + ': catching up ' + (msg.count - msg.frame) + ' frames');
+      } else {
+        tasSetStatus('continuing ' + msg.title + ' at ' + tasFmtTime(msg.frame));
+      }
+      tasRefreshBadge();
+      tasRenderList();
+    }
+
     function tasEndRecording() {
       if (!tasRec) return;
       tasFlush();
@@ -227,6 +322,8 @@
     // Called by bootRom() right after the core (re)started: frame 0 of a new session.
     function tasOnBoot(name) {
       tasEndRecording();
+      if (tasPlay && tasPlay.resume && tasSpeedBeforeResume !== null) { setSpeedMultiplier(tasSpeedBeforeResume); tasSpeedBeforeResume = null; }
+      tasLastSnapshotFrame = -1;
       tasPlay = tasPendingMovie;
       tasPendingMovie = null;
       tasSessionFrame = 0;
