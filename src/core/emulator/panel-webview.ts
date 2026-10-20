@@ -57,9 +57,14 @@ function _buildHtml(webview: unknown, coreJsUri: string, coreWasmUri: string, co
     const config = JSON.stringify({ profile }).replace(/</g, '\\u003c');
     const files = (opts.styles || []).map((u) => `<link rel="stylesheet" href="${u}">`)
         .concat((opts.scripts || []).map((u) => `<script src="${u}"></script>`)).join('\n  ');
+    const sessionSettings = (romOfferData as any)?.sessionSettings || {};
+    const initialCoreLabel = sessionSettings.core === 'vanilla' ? 'snes9x-wasm' : 'snes9x-wasm fork';
+    const presetLabels: Record<string, string> = { default: 'Default', everscript: 'Everscript', cdl: 'CDL', clean: 'Clean' };
+    const initialPresetLabel = presetLabels[sessionSettings.preset] || 'Default';
 
     const values: Record<string, unknown> = {
         config, files, profile, coreJsUri, coreWasmUri, romOffer: JSON.stringify(romOfferData || null),
+        initialCoreLabel, initialPresetLabel,
         game_css: game.css, game_menuCss: game.menuCss, game_tabButtonsHtml: game.tabButtonsHtml, game_viewsHtml: game.viewsHtml,
         game_screenChipsHtml: game.screenChipsHtml, game_soundChipHtml: game.soundChipHtml,
         game_clientScript: game.clientScript, game_overlaysScript: game.overlaysScript, game_overlayTogglesScript: game.overlayTogglesScript,

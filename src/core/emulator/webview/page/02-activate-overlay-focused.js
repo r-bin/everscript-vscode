@@ -68,8 +68,6 @@
       try { initAudio(); } catch (_) {}
       try { ensureAudioRunning(); } catch (_) {}
       if (vscodeApi) vscodeApi.postMessage(Object.assign({ command: 'pickRom' }, getLaunchOptions()));
-      const statusEl = document.getElementById('load-status');
-      if (statusEl) statusEl.textContent = 'Waiting for file picker...';
     }
 
     const pickBtn = document.getElementById('pickBtn');
@@ -93,8 +91,6 @@
         try { initAudio(); } catch (_) {}
         try { ensureAudioRunning(); } catch (_) {}
         if (vscodeApi) vscodeApi.postMessage(Object.assign({ command: 'loadVanillaRom' }, getLaunchOptions()));
-        const statusEl = document.getElementById('load-status');
-        if (statusEl) statusEl.textContent = 'Loading Vanilla ROM...';
       });
     }
 
@@ -138,8 +134,6 @@
 
       try { initAudio(); } catch (_) {}
       try { ensureAudioRunning(); } catch (_) {}
-      const statusEl = document.getElementById('load-status');
-      if (statusEl) statusEl.textContent = 'Reading dropped ROM: ' + fileName + '...';
 
       const reader = new FileReader();
       reader.onload = function(e) {
@@ -151,10 +145,9 @@
           dataUrl: dataUrl,
           size: file.size,
         }, getLaunchOptions()));
-        startWithRom(dataUrl, fileName);
       };
       reader.onerror = function(err) {
-        if (statusEl) statusEl.textContent = 'Failed to read dropped file: ' + (err && err.message || '');
+        console.error('[EVS] Failed to read dropped file:', err);
       };
       reader.readAsDataURL(file);
     });
@@ -173,14 +166,6 @@
 
     window.addEventListener('message', evt => {
       if (evt.data.command === 'hostStatus') {
-        const el = document.getElementById('load-status');
-        if (!el) return;
-        const level = evt.data.level || 'info';
-        el.textContent = evt.data.text || '';
-        el.style.color =
-          level === 'error'
-            ? '#ff8c8c'
-            : (level === 'ok' ? '#7ad67a' : '#c8c8c8');
         return;
       }
       if (evt.data.command === 'romOfferInfo') {

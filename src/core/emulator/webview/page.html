@@ -41,9 +41,6 @@
           <div class="btn-meta" id="vanilla-desc">Base ROM</div>
         </button>
         <button id="pickBtn" style="display:none;" type="button" aria-hidden="true"></button>
-
-        <div id="load-status">Select a SNES ROM (.smc / .sfc) to begin.</div>
-
         <div id="recent-roms-section" class="recent-roms-section" style="display:none;">
           <div class="recent-roms-header">
             <span>Recent &amp; Generated ROMs</span>
@@ -61,7 +58,7 @@
           <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Core</div>
           <div class="menu-row-value">
             <button class="menu-stepper-btn" data-step="-1" type="button" tabindex="-1">&lt;</button>
-            <span id="launcher-val-core" class="menu-pill active">snes9x-wasm fork</span>
+            <span id="launcher-val-core" class="menu-pill active">//@@initialCoreLabel</span>
             <button class="menu-stepper-btn" data-step="1" type="button" tabindex="-1">&gt;</button>
           </div>
         </div>
@@ -70,7 +67,7 @@
           <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Preset</div>
           <div class="menu-row-value">
             <button class="menu-stepper-btn" data-step="-1" type="button" tabindex="-1">&lt;</button>
-            <span id="launcher-val-preset" class="menu-pill active">Default</span>
+            <span id="launcher-val-preset" class="menu-pill active">//@@initialPresetLabel</span>
             <button class="menu-stepper-btn" data-step="1" type="button" tabindex="-1">&gt;</button>
           </div>
         </div>
@@ -93,10 +90,10 @@
           </div>
         </div>
 
-        <div class="menu-row" id="launcher-row-4" data-row="4" title="Enter / B or click: clear recent ROMs history">
+        <div class="menu-row" id="launcher-row-4" data-row="4" title="Enter / A or click: clear recent ROMs history">
           <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Recent ROMs</div>
           <div class="menu-row-value">
-            <span id="clearRecentBtn" class="menu-action-pill">[B] Clear</span>
+            <span id="clearRecentBtn" class="menu-action-pill">[A] Clear</span>
           </div>
         </div>
       </aside>

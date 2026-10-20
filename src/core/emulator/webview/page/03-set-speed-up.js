@@ -109,31 +109,46 @@
     window.addEventListener('blur', () => { keyInput = 0; });
     document.addEventListener('visibilitychange', () => { if (document.hidden) keyInput = 0; });
 
-    // -- Presets & SRAM persistence --------------------------------------------
     function applyLaunchPreset(preset) {
       if (!preset || preset === 'default') return;
       if (preset === 'everscript') {
         if (typeof emuApplyPanels === 'function') {
-          emuApplyPanels({ cdl: 'hidden', trace: 'hidden', stack: 'hidden', entities: 'hidden', alchemy: 'hidden', palettes: 'hidden' });
+          emuApplyPanels({ cdl: 'hidden', trace: 'bottom', stack: 'bottom', entities: 'hidden', alchemy: 'hidden', palettes: 'hidden' });
         }
-        if (typeof emuSetGameFeatures === 'function') emuSetGameFeatures(true);
+        if (typeof setGameFeaturesEnabled === 'function') setGameFeaturesEnabled(true);
+        if (typeof setExtendMap === 'function') setExtendMap(true);
         if (typeof setTriggersOverlay === 'function') setTriggersOverlay(true);
+        if (typeof setObjectsOverlay === 'function') setObjectsOverlay(true);
+        if (typeof setAnimTilesOverlay === 'function') setAnimTilesOverlay(false);
+        if (typeof setCollisionOverlay === 'function') setCollisionOverlay(false);
+        if (typeof setFogOfWar === 'function') setFogOfWar(false);
+        if (typeof cdlSetRecording === 'function') cdlSetRecording(false);
       } else if (preset === 'cdl') {
         if (typeof emuApplyPanels === 'function') {
           emuApplyPanels({ cdl: 'left', trace: 'hidden', stack: 'hidden', entities: 'hidden', alchemy: 'hidden', palettes: 'hidden' });
         }
         if (typeof cdlSetRecording === 'function') cdlSetRecording(true);
-        if (typeof emuSetGameFeatures === 'function') emuSetGameFeatures(false);
-        if (typeof setMenuEnabled === 'function') setMenuEnabled(false);
-      } else if (preset === 'clean') {
-        if (typeof emuApplyPanels === 'function') {
-          emuApplyPanels({ cdl: 'hidden', trace: 'hidden', stack: 'hidden', entities: 'hidden', alchemy: 'hidden', palettes: 'hidden' });
-        }
-        if (typeof setExtendMapOverlay === 'function') setExtendMapOverlay(false);
+        if (typeof setGameFeaturesEnabled === 'function') setGameFeaturesEnabled(false);
+        if (typeof setExtendMap === 'function') setExtendMap(false);
         if (typeof setTriggersOverlay === 'function') setTriggersOverlay(false);
         if (typeof setObjectsOverlay === 'function') setObjectsOverlay(false);
         if (typeof setAnimTilesOverlay === 'function') setAnimTilesOverlay(false);
         if (typeof setCollisionOverlay === 'function') setCollisionOverlay(false);
+        if (typeof setFogOfWar === 'function') setFogOfWar(false);
+        if (typeof setThinHpBar === 'function') setThinHpBar(false);
+        if (typeof setThinStaminaBar === 'function') setThinStaminaBar(false);
+      } else if (preset === 'clean') {
+        if (typeof emuApplyPanels === 'function') {
+          emuApplyPanels({ cdl: 'hidden', trace: 'hidden', stack: 'hidden', entities: 'hidden', alchemy: 'hidden', palettes: 'hidden' });
+        }
+        if (typeof setExtendMap === 'function') setExtendMap(false);
+        if (typeof setTriggersOverlay === 'function') setTriggersOverlay(false);
+        if (typeof setObjectsOverlay === 'function') setObjectsOverlay(false);
+        if (typeof setAnimTilesOverlay === 'function') setAnimTilesOverlay(false);
+        if (typeof setCollisionOverlay === 'function') setCollisionOverlay(false);
+        if (typeof setFogOfWar === 'function') setFogOfWar(false);
+        if (typeof setThinHpBar === 'function') setThinHpBar(false);
+        if (typeof setThinStaminaBar === 'function') setThinStaminaBar(false);
         if (typeof cdlSetRecording === 'function') cdlSetRecording(false);
       }
     }
@@ -191,7 +206,6 @@
       } catch (e) {
         romStage('launch failed: ' + e.message);
         vscodeApi.postMessage({ command: 'ejsError', error: 'ROM load failed: ' + e.message });
-        document.getElementById('load-status').textContent = 'Error: ' + e.message;
       }
     }
 
@@ -239,6 +253,5 @@
       } catch (e) {
         romStage('launch failed: ' + e.message);
         vscodeApi.postMessage({ command: 'ejsError', error: 'ROM load failed: ' + e.message });
-        document.getElementById('load-status').textContent = 'Error: ' + e.message;
       }
     }

@@ -271,6 +271,14 @@
       if (emuPanelVisible('cdl')) cdlRequestSnapshot();
     }
 
+    function cdlSetRecording(on) {
+      if (on) {
+        if (!cdlWanted) cdlStart();
+      } else {
+        if (cdlWanted) cdlStop();
+      }
+    }
+
     // Called before the core is restarted with another ROM: flush what belongs to the old one.
     function cdlBeforeRomChange() {
       cdlHalt();

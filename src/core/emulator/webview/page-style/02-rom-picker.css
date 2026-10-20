@@ -108,10 +108,6 @@
       max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
 
-    #load-status {
-      font-size: 11px; color: #888; text-align: center; min-height: 15px; flex-shrink: 0;
-    }
-
     /* Right Column: Settings Card (Pause-menu style) */
     .overlay-sidebar {
       grid-column: 3;

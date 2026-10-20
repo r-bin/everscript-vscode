@@ -158,6 +158,7 @@ function openEmulatorPanel(context: vscode.ExtensionContext, rom?: RomToOpen | n
       emu.reopenTried = false;
       emu.sessionProfile = null;
       emu.sessionTitle = null;
+      emu.loadedCore = null;
       if (emu.options.game) emu.options.game.clearCaches();
     }, null, context.subscriptions);
 }

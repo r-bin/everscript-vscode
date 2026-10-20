@@ -46,6 +46,7 @@ interface EmuState {
     sessionProfile: string | null; sessionTitle: string | null;
     sessionCore: 'fork' | 'vanilla' | null; sessionPreset: string | null; sessionIsolatedSram: boolean;
     sessionAlwaysRecord: boolean;
+    loadedCore: 'fork' | 'vanilla' | null;
 }
 
 /** The panel's state: the panel itself, the ROM it runs, the timers and hosts that live with it. */
@@ -68,6 +69,7 @@ const emu: EmuState = {
     sessionPreset: null,    // in-session preset ('default' | 'everscript' | 'cdl' | 'clean')
     sessionIsolatedSram: false, // in-session isolated SRAM toggle
     sessionAlwaysRecord: true,  // in-session always record toggle (default on)
+    loadedCore: null,       // the core build currently loaded in the webview
     /**
      * What the extension that hosts the panel wants (configureEmulator):
      *   profile        'full' (Everscript) or 'recorder' (SNES CDL Recorder: CDL and REPLAYS only)
@@ -177,6 +179,11 @@ function _armRomTimeout(romName: string) {
 
 function _dispatchPendingRom() {
   if (!emu.pending || !emu.panel) return false;
+  const desiredCore: 'fork' | 'vanilla' = emu.sessionCore === 'vanilla' ? 'vanilla' : 'fork';
+  if (emu.loadedCore && emu.loadedCore !== desiredCore) {
+    _resetPanelHtml();
+    return true;
+  }
   if (!emu.webviewReady) return true;
   const romName = emu.pending.name || 'game';
   _log(`Sending ROM to webview: ${romName}`);
@@ -218,6 +225,7 @@ function _resetPanelHtml() {
     if (core.warning) _notifyWebviewStatus('error', core.warning);
         return;
     }
+    emu.loadedCore = (emu.sessionCore === 'vanilla' ? 'vanilla' : 'fork');
     _log(`Core selected (${core.source || 'unknown'}): JS ${_describeFile(core.path)}; WASM ${_describeFile(core.wasmPath)}`);
     const coreJsUri   = emu.panel.webview.asWebviewUri(vscode.Uri.file(core.path)).toString();
     const coreWasmUri = emu.panel.webview.asWebviewUri(vscode.Uri.file(core.wasmPath)).toString();

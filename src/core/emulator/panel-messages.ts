@@ -34,10 +34,7 @@ function onWebviewMessage(msg: PageMessage) {
             break;
 
         case 'setSessionSettings': {
-            if (msg.core && msg.core !== emu.sessionCore) {
-                emu.sessionCore = msg.core;
-                _resetPanelHtml();
-            }
+            if (msg.core) emu.sessionCore = msg.core;
             if (msg.preset) emu.sessionPreset = msg.preset;
             if (typeof msg.isolatedSram === 'boolean') emu.sessionIsolatedSram = msg.isolatedSram;
             if (typeof msg.alwaysRecord === 'boolean') {

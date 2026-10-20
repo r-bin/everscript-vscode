@@ -149,6 +149,14 @@
       if (savedCol0 !== null) overlayCol0Idx = parseInt(savedCol0, 10);
       const savedCol1 = sessionStorage.getItem('evs_overlayCol1');
       if (savedCol1 !== null) overlayCol1Idx = parseInt(savedCol1, 10);
+      const savedCore = sessionStorage.getItem('evs_selectedCore');
+      if (savedCore) selectedCore = savedCore;
+      const savedPreset = sessionStorage.getItem('evs_selectedPreset');
+      if (savedPreset) selectedPreset = savedPreset;
+      const savedSram = sessionStorage.getItem('evs_isolatedSram');
+      if (savedSram !== null) isolatedSramEnabled = savedSram === 'true';
+      const savedRec = sessionStorage.getItem('evs_alwaysRecord');
+      if (savedRec !== null) alwaysRecordEnabled = savedRec === 'true';
     } catch (_) {}
 
     let selectedCore = 'fork';
@@ -202,7 +210,7 @@
       clearRecentConfirming = false;
       const btn = document.getElementById('clearRecentBtn');
       if (btn) {
-        btn.textContent = '[B] Clear';
+        btn.textContent = '[A] Clear';
         btn.className = 'menu-action-pill';
       }
     }
@@ -210,8 +218,6 @@
     function cancelClearRecentConfirm() {
       if (!clearRecentConfirming) return;
       resetClearRecentButton();
-      const statusEl = document.getElementById('load-status');
-      if (statusEl) statusEl.textContent = 'Clear cancelled.';
       if (typeof playMenuSound === 'function') playMenuSound('click_cancel');
     }
 
@@ -223,16 +229,12 @@
           btn.textContent = 'Confirm? [A] Yes / [B] No';
           btn.className = 'menu-action-pill danger confirming';
         }
-        const statusEl = document.getElementById('load-status');
-        if (statusEl) statusEl.textContent = 'Clear recent & generated ROMs? Press [A] to confirm, [B] to cancel.';
         if (typeof playMenuSound === 'function') playMenuSound('click_nav');
         return;
       }
 
       resetClearRecentButton();
       if (vscodeApi) vscodeApi.postMessage({ command: 'clearRecentRoms' });
-      const statusEl = document.getElementById('load-status');
-      if (statusEl) statusEl.textContent = 'Recent ROMs cleared.';
       if (typeof playMenuSound === 'function') playMenuSound('click_confirm');
     }
 
@@ -376,11 +378,6 @@
                 try { initAudio(); } catch (_) {}
                 try { ensureAudioRunning(); } catch (_) {}
                 if (vscodeApi) vscodeApi.postMessage(Object.assign({ command: 'loadRecentRom', path: item.path, name: item.name, kind: item.kind }, getLaunchOptions()));
-                const statusEl = document.getElementById('load-status');
-                if (statusEl) statusEl.textContent = 'Loading ' + item.name + '...';
-              } else {
-                const statusEl = document.getElementById('load-status');
-                if (statusEl) statusEl.textContent = 'File missing: ' + (item.path || item.name);
               }
             });
             row.addEventListener('keydown', (e) => {
@@ -481,6 +478,7 @@
       if (overlayCol1Idx === 0) {
         // Row 0: Core (toggle between fork and vanilla)
         selectedCore = (selectedCore === 'fork') ? 'vanilla' : 'fork';
+        try { sessionStorage.setItem('evs_selectedCore', selectedCore); } catch (_) {}
         updateSidebarUi();
         if (vscodeApi) vscodeApi.postMessage({ command: 'setSessionSettings', core: selectedCore });
         if (typeof playMenuSound === 'function') playMenuSound('click_toggle');
@@ -490,19 +488,40 @@
         const nextIdx = Math.max(0, Math.min(curIdx + step, PRESETS.length - 1));
         if (nextIdx !== curIdx) {
           selectedPreset = PRESETS[nextIdx];
+          if (selectedPreset === 'cdl') {
+            selectedCore = 'fork';
+            alwaysRecordEnabled = true;
+          } else if (selectedPreset === 'everscript') {
+            selectedCore = 'fork';
+            alwaysRecordEnabled = false;
+          } else if (selectedPreset === 'clean') {
+            alwaysRecordEnabled = false;
+          }
+          try {
+            sessionStorage.setItem('evs_selectedPreset', selectedPreset);
+            sessionStorage.setItem('evs_selectedCore', selectedCore);
+            sessionStorage.setItem('evs_alwaysRecord', String(alwaysRecordEnabled));
+          } catch (_) {}
           updateSidebarUi();
-          if (vscodeApi) vscodeApi.postMessage({ command: 'setSessionSettings', preset: selectedPreset });
+          if (vscodeApi) vscodeApi.postMessage({
+            command: 'setSessionSettings',
+            preset: selectedPreset,
+            core: selectedCore,
+            alwaysRecord: alwaysRecordEnabled
+          });
           if (typeof playMenuSound === 'function') playMenuSound('click_toggle');
         }
       } else if (overlayCol1Idx === 2) {
         // Row 2: Always record (toggle)
         alwaysRecordEnabled = !alwaysRecordEnabled;
+        try { sessionStorage.setItem('evs_alwaysRecord', String(alwaysRecordEnabled)); } catch (_) {}
         updateSidebarUi();
         if (vscodeApi) vscodeApi.postMessage({ command: 'setSessionSettings', alwaysRecord: alwaysRecordEnabled });
         if (typeof playMenuSound === 'function') playMenuSound('click_toggle');
       } else if (overlayCol1Idx === 3) {
         // Row 3: Isolated SRAM (toggle)
         isolatedSramEnabled = !isolatedSramEnabled;
+        try { sessionStorage.setItem('evs_isolatedSram', String(isolatedSramEnabled)); } catch (_) {}
         updateSidebarUi();
         if (vscodeApi) vscodeApi.postMessage({ command: 'setSessionSettings', isolatedSram: isolatedSramEnabled });
         if (typeof playMenuSound === 'function') playMenuSound('click_toggle');
