@@ -4,7 +4,8 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 
 ## Owns
 - The script instruction format: opcode table, expressions, packed pointers, the tables that
-  name scripts. Spec: `docs/game-research/script-vm/` (prose + one row per opcode).
+  name scripts. Spec: `docs/game-research/script-vm/` (prose); one entry per opcode byte in
+  `localizations/knowledge/opcodes/<xx>.md` (all 256), one per handler in `knowledge/rom/`.
 
 ## Dependencies
 - `platform/snes/` and `../variant-resolver` only (`.depcruise.js` `script-vm-from-the-game`).
@@ -15,10 +16,12 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 - Written from the game. Never read the legacy decoder (`../script/decoder.ts`, `expression.ts`,
   `ops-*.ts`) or the third-party tools the root `AGENTS.md` names while changing this folder; comparing outputs
   (lengths, stop points) is allowed.
-- A rule change starts in the handler's code (`$8C:E8BD` table), goes into
-  `docs/game-research/script-vm/` and the handler's knowledge entry, then `spec.ts`. The entries are
-  the opcodes' descriptions for `soe://rom/assets/scripts/opcodes/` (`resources/opcode-files.ts`): what
-  the handler does in plain words, then `## Addresses` (calls, WRAM, ROM tables, fields).
+- A rule change starts in the handler's code (`$8C:E8BD` table), goes into the handler's knowledge
+  entry (what it does, then `## Addresses`) and the opcode's entry (`knowledge/opcodes/<xx>.md`: title,
+  `tags: [opcode.<group>]` for `soe://tags/`, `everscript:`, why it exists, garbage operands), then
+  `spec.ts`. `soe://rom/assets/scripts/opcodes/` (`resources/opcode-files.ts`) joins them.
+- `spec.ts` names are the script viewer's: the Everscript name when it says what the handler does,
+  else ours (`docs/game-research/script-vm/opcodes.md` § Names).
 - Never guess a length: an opcode without a handler or a sub-op the game cannot run is a
   `DecodeError` at its address.
 - US layout only: `ScriptRom` refuses a ROM whose script header is elsewhere.

@@ -145,8 +145,20 @@ test('text: the compiler\'s notation, our names, the caller\'s names', () => {
     assert.strictEqual(V.text(decode([0x09, 0x85, 0x08, 0x00, 0x06, 0x00])), 'if! (<0x2259, 0x01>) goto $94:800c;');
     assert.strictEqual(V.text(decode([0x10, 0x39, 0x01, 0x07, 0x39, 0x01, 0x29, 0x33, 0x9a])), '(Byte)<0x2391> = (Byte)<0x2391> + 3;');
     assert.strictEqual(V.text(decode([0x29, 0x10, 0x00, 0x01]), { script: (a) => (a === 0x948010 ? 'gourd' : '') }), 'call gourd;');
-    assert.strictEqual(V.text(decode([0x8d, 0x01])), 'op_8d(0x01);', 'an opcode without a name says so');
+    assert.strictEqual(V.text(decode([0x8d, 0x01])), 'shake_screen(0x01);', 'other opcodes: name(operands)');
     assert.strictEqual(V.everscript(decode([0xa7, 5]), [0xa7, 5]), 'code(0xa7, 0x05); // sleep(5);');
+});
+
+test('every handled opcode has a viewer name; every byte has an opcode entry with known groups', () => {
+    for (const [op, spec] of V.OPCODES) assert.ok(/^[a-z][a-z0-9_]*$/.test(spec.name), `0x${op.toString(16)} has no name`);
+    const { entries } = require('../../dist/games/evermore/localizations/knowledge');
+    const ops = entries('opcodes');
+    for (let op = 0; op < 256; op++) {
+        const e = ops.find((x) => op >= x.addr && op <= x.end);
+        assert.ok(e && e.title && e.body, `0x${op.toString(16)} has no entry`);
+        assert.ok(e.tags.length && e.tags.every((t) => /^opcode\.[a-z_]+$/.test(t)), `0x${op.toString(16)} tags`);
+        assert.strictEqual(e.tags.includes('opcode.invalid'), !V.OPCODES.has(op), `0x${op.toString(16)}: invalid <=> no handler`);
+    }
 });
 
 console.log(`\nscript-vm units: ${passed} passed, ${failed} failed`);

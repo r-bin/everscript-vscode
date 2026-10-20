@@ -1,6 +1,7 @@
-// Ownership: `soe://rom/assets/scripts/opcodes/` — one page per script opcode: what the game's handler
-// does (its knowledge entry, src/games/evermore/localizations/knowledge/rom/<handler>.md), its operands
-// and flow (src/games/evermore/script-vm spec), the addresses it uses, and where scripts use it.
+// Ownership: `soe://rom/assets/scripts/opcodes/` — one page per script opcode byte, all 256: what the
+// opcode is (its entry, src/games/evermore/localizations/knowledge/opcodes/<xx>.md), what its handler
+// does (knowledge/rom/<handler>.md), its operands and flow and our name (src/games/evermore/script-vm
+// spec), the bytes sharing its handler, and where scripts use it. Groups are `soe://tags/opcode.*`.
 // Pure apart from the ROM buffer it is handed.
 
 import * as V from '../script-vm';
@@ -9,22 +10,40 @@ import { dir, json, text } from './nodes';
 import { hexLower as hex2 } from '../../../platform';
 import type { Entry } from './nodes';
 import type { Instruction } from '../script-vm';
+import type { KnowledgeEntry } from '../localizations/knowledge';
 import { hiromFileOffset } from '../../../platform/snes/hirom';
 
 type Rom = Uint8Array;
 
 const TABLE = 0x8CE8BD;
+const TRAPS = [0x8CE8B5, 0x8CE8BC];   // the STP bytes in front of the table
+const ALL = Array.from({ length: 256 }, (_, i) => i);
 const bus = (a: number): string => '$' + (a >>> 16).toString(16).toUpperCase().padStart(2, '0') + ':' + (a & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
 
-/** The handler of `op`: the word in the opcode table (bank $8C). */
+/** Where the dispatcher sends `op`: the word at `$8C:E8BD + 2 * op` (bank $8C). Past `0xC2` that word is code, not a table entry. */
 function handlerOf(rom: Rom, op: number): number {
     const off = (hiromFileOffset(TABLE)) + 2 * op;
     return (TABLE & 0xFF0000) | rom[off] | (rom[off + 1] << 8);
 }
 
-function entryOf(handler: number) {
-    return entries('rom').find((e) => e.addr === handler) || null;
+type Status = 'handled' | 'trap' | 'garbage';
+function statusOf(rom: Rom, op: number): Status {
+    if (V.OPCODES.has(op)) return 'handled';
+    const h = handlerOf(rom, op);
+    return h >= TRAPS[0] && h <= TRAPS[1] ? 'trap' : 'garbage';
 }
+
+/** Where a garbage pointer lands in bank $8C. */
+function region(addr: number): string {
+    const a = addr & 0xFFFF;
+    if (a < 0x2000) return 'low WRAM (runs RAM contents)';
+    if (a < 0x8000) return 'hardware registers / open bus';
+    return 'inside bank $8C code (not a routine start)';
+}
+
+const romEntry = (addr: number): KnowledgeEntry | null => entries('rom').find((e) => e.addr === addr) || null;
+const opEntry = (op: number): KnowledgeEntry | null => entries('opcodes').find((e) => op >= e.addr && op <= e.end) || null;
+const list = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : []);
 
 type Uses = Map<number, { count: number; examples: Instruction[] }>;
 interface PairUse {
@@ -73,10 +92,11 @@ function analyze(rom: Rom): OpcodeAnalysis {
 }
 
 function info(rom: Rom, op: number) {
-    const spec = V.OPCODES.get(op);
-    if (!spec) return null;
+    const spec = V.OPCODES.get(op) || null;
+    const status = statusOf(rom, op);
     const handler = handlerOf(rom, op);
-    const e = entryOf(handler);
+    const e = status === 'handled' ? romEntry(handler) : null;
+    const oe = opEntry(op);
     const analysis = analyze(rom);
     const u = analysis.byOp.get(op);
     const neighbors = (rows: Array<[number, PairUse]>) => rows
@@ -92,15 +112,22 @@ function info(rom: Rom, op: number) {
     const previous = [...analysis.pairs.entries()]
         .flatMap(([opcode, following]) => following.has(op) ? [[opcode, following.get(op)!] as [number, PairUse]] : []);
     const next = [...(analysis.pairs.get(op) || new Map<number, PairUse>()).entries()];
-    const aliases = (analysis.byHandler.get(handler) || []).filter((other) => other !== op).sort((a, b) => a - b);
+    const aliases = status === 'handled' ? (analysis.byHandler.get(handler) || []).filter((other) => other !== op).sort((a, b) => a - b) : [];
+    const count = u ? u.count : 0;
     return {
-        opcode: op, name: spec.name || null, operands: spec.operands, flow: spec.flow,
-        handler: bus(handler), title: e ? e.title : null, confidence: e ? e.confidence : null,
-        description: e ? e.body.trim() : null, knowledge: `soe://localization/knowledge/rom/${handler.toString(16)}.md`,
+        opcode: op, name: spec ? spec.name : null, status,
+        operands: spec ? spec.operands : [], flow: spec ? spec.flow : null,
+        title: oe ? oe.title : null, tags: oe ? oe.tags : [], everscript: oe ? list(oe.meta.everscript) : [],
+        confidence: oe ? oe.confidence : null,
+        description: oe ? oe.body.trim() : null,
+        tableEntry: bus(TABLE + 2 * op), handler: bus(handler),
+        handlerRegion: status === 'garbage' ? region(handler) : null,
+        handlerTitle: e ? e.title : null, handlerDescription: e ? e.body.trim() : null,
+        knowledge: `soe://localization/knowledge/rom/${handler.toString(16)}.md`,
         handlerAliases: aliases,
         behaviorEvidence: e ? e.confidence : 'undocumented',
         usage: {
-            staticReachableInstructions: u ? u.count : 0,
+            staticReachableInstructions: count, unused: count === 0,
             scope: 'static walk from configured script tables; not execution frequency',
             examples: u ? u.examples.map((i) => ({ address: bus(i.address), text: V.text(i) })) : [],
         },
@@ -108,13 +135,19 @@ function info(rom: Rom, op: number) {
     };
 }
 
+const tagLinks = (tags: string[]): string => tags.map((t) => `[${t}](soe://tags/${t}.md)`).join(', ');
+
 function opcodeMarkdown(rom: Rom, op: number): string {
-    const i = info(rom, op)!;
-    const lines = [`# Opcode 0x${hex2(op)}${i.name ? ` — ${i.name}` : ''}`, '',
-        `Handler \`${i.handler}\` · operands ${i.operands.length ? '`' + i.operands.join(' ') + '`' : 'none'} · ${i.flow}`, '',
-        `Static reachability: **${i.usage.staticReachableInstructions} instruction(s)** in the configured script-table walk. This is not an execution frequency; zero means no occurrence was found in that walk.`,
-        `Handler assessment: ${i.behaviorEvidence}${i.handlerAliases.length ? `; shares its handler with ${i.handlerAliases.map((alias) => `[0x${hex2(alias)}](./${hex2(alias)}.md)`).join(', ')}` : '; no other listed opcode shares this handler'}. A mapped handler or a low count alone does not establish that code is garbage or runtime-tested.`, ''];
-    lines.push(i.description || 'No knowledge entry for the handler yet.', '');
+    const i = info(rom, op);
+    const lines = [`# Opcode 0x${hex2(op)}${i.name ? ` — ${i.name}` : ''}`, ''];
+    if (i.title) lines.push(`**${i.title}**${i.confidence ? ` (${i.confidence})` : ''}`, '');
+    const shape = i.status === 'handled' ? `operands ${i.operands.length ? '`' + i.operands.join(' ') + '`' : 'none'} · ${i.flow}` : i.status === 'trap' ? 'invalid: STP' : `invalid: lands in ${i.handlerRegion}`;
+    lines.push(`Table entry \`${i.tableEntry}\` → \`${i.handler}\` · ${shape}`, '');
+    lines.push(`Groups: ${i.tags.length ? tagLinks(i.tags) : 'none'}${i.everscript.length ? ` · Everscript: ${i.everscript.map((x) => '`' + x + '`').join(', ')}` : ''}`, '');
+    lines.push(`Static reachability: **${i.usage.staticReachableInstructions} instruction(s)**${i.usage.unused ? ' — unused by the original scripts' : ''} (static walk from the script tables, not an execution count).`);
+    if (i.handlerAliases.length) lines.push(`Same handler as ${i.handlerAliases.map((alias) => `[0x${hex2(alias)}](./${hex2(alias)}.md)`).join(', ')}.`);
+    lines.push('', i.description || 'No opcode entry yet.', '');
+    if (i.handlerDescription) lines.push(`## Handler \`${i.handler}\`${i.handlerTitle ? ` — ${i.handlerTitle}` : ''}`, '', i.handlerDescription, '');
     if (i.usage.examples.length) lines.push('## Reachable examples', '', ...i.usage.examples.map((x) => `- \`${x.address}\` ${x.text}`), '');
     const pairLines = (direction: 'previous' | 'next') => {
         const pairs = i.combinations[direction];
@@ -125,37 +158,40 @@ function opcodeMarkdown(rom: Rom, op: number): string {
                 return [`- [0x${hex2(pair.opcode)}](./${hex2(pair.opcode)}.md) · ${pair.count} reachable control-flow edge(s)`, ...examples];
             }), ''];
     };
-    lines.push('## Nearby commands', '', 'Counts below are static control-flow edges in the reachable script walk, not observed runtime frequencies.', '', ...pairLines('previous'), ...pairLines('next'));
-    if (!i.usage.examples.length && !i.combinations.previous.length && !i.combinations.next.length) lines.push('No reachable instruction examples or neighboring commands were found.', '');
-    lines.push(`Knowledge entry: [${i.knowledge}](${i.knowledge}) · operand tokens: docs/game-research/script-vm/README.md`);
+    if (i.combinations.previous.length || i.combinations.next.length) {
+        lines.push('## Nearby commands', '', 'Counts below are static control-flow edges in the reachable script walk, not observed runtime frequencies.', '', ...pairLines('previous'), ...pairLines('next'));
+    }
+    lines.push(`Opcode entry: \`src/games/evermore/localizations/knowledge/opcodes/${hex2(op >= 0xC3 ? 0xC3 : op)}.md\`${i.status === 'handled' ? ` · handler entry: [${i.knowledge}](${i.knowledge})` : ''} · operand tokens: docs/game-research/script-vm/README.md`);
     return lines.join('\n') + '\n';
 }
 
 function indexMarkdown(rom: Rom): string {
-    const lines = ['# Script opcodes', '', 'Every opcode the game\'s interpreter has a handler for (dispatch `$8C:D0A6`, table `$8C:E8BD`).',
-        'Reachable counts are unique instruction locations in the static walk from configured script tables, not runtime execution frequencies. Shared-handler opcodes are aliases; evidence confidence describes the handler knowledge entry and does not by itself prove runtime correctness or garbage code.',
-        'Each page also shows reachable examples and common adjacent opcodes along decoded control-flow edges.', '',
-        '| op | name | operands | flow | reachable | shared handler | evidence | title |', '|---|---|---|---|---:|---|---|---|'];
-    for (const op of V.OPCODES.keys()) {
-        const i = info(rom, op)!;
-        lines.push(`| [0x${hex2(op)}](${hex2(op)}.md) | ${i.name ? '`' + i.name + '`' : ''} | ${i.operands.join(' ') || '—'} | ${i.flow} | ${i.usage.staticReachableInstructions} | ${i.handlerAliases.length ? i.handlerAliases.map((alias) => `0x${hex2(alias)}`).join(', ') : '—'} | ${i.behaviorEvidence} | ${i.title || ''} |`);
+    const rows = ALL.map((op) => info(rom, op));
+    const handled = rows.filter((r) => r.status === 'handled');
+    const lines = ['# Script opcodes', '',
+        'All 256 opcode bytes. The interpreter (`$8C:D0A6`) doubles the byte and calls through the table at `$8C:E8BD`: '
+        + `${handled.length} bytes reach a handler (${handled.filter((r) => r.usage.unused).length} of them unused by the original scripts), `
+        + `${rows.filter((r) => r.status === 'trap').length} stop the CPU (STP), and ${rows.filter((r) => r.status === 'garbage').length} (\`0xC3\`-\`0xFF\`) read past the table into code.`,
+        'Name = the script viewer\'s spelling. Reachable = instructions in a static walk from the script tables (not an execution count). Groups: `soe://tags/opcode.*`.', '',
+        '| op | name | what | groups | operands | reachable | same handler | Everscript | confidence |', '|---|---|---|---|---|---:|---|---|---|'];
+    for (const r of rows) {
+        const what = r.title || (r.status === 'trap' ? 'Invalid (STP)' : 'Invalid (past the table)');
+        lines.push(`| [0x${hex2(r.opcode)}](${hex2(r.opcode)}.md) | ${r.name ? '`' + r.name + '`' : '—'} | ${what} | ${r.tags.map((t) => t.replace(/^opcode\./, '')).join(', ')} | ${r.status === 'handled' ? (r.operands.join(' ') || '—') : '—'} | ${r.usage.staticReachableInstructions} | ${r.handlerAliases.map((a) => `0x${hex2(a)}`).join(', ') || '—'} | ${r.everscript.map((x) => '`' + x + '`').join(', ')} | ${r.confidence || ''} |`);
     }
     return lines.join('\n') + '\n';
 }
 
 function resolveOpcodes(rest: string[], rom: Rom) {
-    const ops = [...V.OPCODES.keys()];
     if (rest.length === 0) {
-        return dir([['index.md', 'file'], ['index.json', 'file'], ...ops.flatMap((o): Entry[] => [[hex2(o) + '.md', 'file'], [hex2(o) + '.json', 'file']])], () => indexMarkdown(rom));
+        return dir([['index.md', 'file'], ['index.json', 'file'], ...ALL.flatMap((o): Entry[] => [[hex2(o) + '.md', 'file'], [hex2(o) + '.json', 'file']])], () => indexMarkdown(rom));
     }
     if (rest.length > 1) return null;
     const leaf = rest[0];
     if (leaf === 'index.md') return text(() => indexMarkdown(rom));
-    if (leaf === 'index.json') return json(() => ops.map((o) => info(rom, o)));
+    if (leaf === 'index.json') return json(() => ALL.map((o) => info(rom, o)));
     const m = /^([0-9a-f]{2})\.(md|json)$/i.exec(leaf);
     if (!m) return null;
     const op = parseInt(m[1], 16);
-    if (!V.OPCODES.has(op)) return null;
     return m[2] === 'md' ? text(() => opcodeMarkdown(rom, op)) : json(() => info(rom, op));
 }
 

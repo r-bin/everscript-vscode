@@ -7,8 +7,7 @@ During dialogue, scripted cutscenes, and room transitions, the *Secret of Evermo
 - **Opcode `0x27` (`$8C:DC10`)**: `fade_out()` — Sets target brightness to 0 black (`$7E:0B83 = 0x8000`) to initiate stepped fade-out.
 - **Opcode `0x90` (`$8C:DC35`)**: `fade_to(level)` — Evaluates expression argument `E` (target brightness 0–15), centers camera, and sets `$7E:0B83 = 0x8000 | E`.
 - **Opcode `0x91` (`$8C:DC56`)**: `set_brightness(level)` — Evaluates expression argument `E` and writes it directly to the PPU `INIDISP` shadow `$7E:0106` (instant brightness change without stepping).
-- **Opcode `0x58` (`$8C:DC87`)**: `fade_in_screen()` — Stepped palette fade-in via DP `$9B = 0x10`.
-- **Opcode `0x59` (`$8C:DC74`)**: `fade_out_screen()` — Stepped palette fade-out via DP `$9B = 0xF0`.
+- **Opcodes `0x58` (`$8C:DC87`) / `0x59` (`$8C:DC74`)** are *not* screen fades: they set the music volume step DP `$9B` (`$10` / `$F0`) and call `$8C:8619`, which adds it to the music volume `$9A` and sends sound driver command `$28` (`music_fade_in` / `music_fade_out`, `knowledge/opcodes/58.md`). Previously documented here as palette fades.
 
 ---
 
@@ -23,7 +22,7 @@ During dialogue, scripted cutscenes, and room transitions, the *Secret of Evermo
   - Bit 7: Forced blanking flag.
   - Copied to hardware register `$2100` on every VBLANK / NMI interrupt (`$80:823A`).
 - `$7E:0105`: `joypad_edge_state` (High byte of newly pressed controller buttons).
-- `DP $9B`: Palette fade target brightness (`0x10` = full bright, `0xF0` = black).
+- `DP $9B`: music volume step for `$8C:8619` (`0x10` up, `0xF0` down); `DP $9A` the music volume. Not a screen fade.
 
 ---
 
@@ -77,12 +76,12 @@ $80:DEC2  60          RTS
 #define WRAM_SCREEN_FADE_TARGET   (*(volatile uint16_t*)0x7E0B83)
 #define WRAM_JOYPAD_EDGE_STATE    (*(volatile uint16_t*)0x7E0105)
 #define WRAM_PPU_INIDISP_SHADOW   (*(volatile uint8_t*)0x7E0106)
-#define DP_FADE_TARGET_BRIGHTNESS (*(volatile uint8_t*)0x9B)
+#define DP_MUSIC_VOLUME_STEP      (*(volatile uint8_t*)0x9B)
 
 extern uint16_t script_eval_expression(void);            // $8C:EA43
 extern void     screen_sync_palette(void);               // $80:85D8
 extern void     camera_center_and_clamp(void);           // $90:94AB
-extern void     palette_step_fade(void);                 // $8C:8619
+extern void     music_volume_step(void);                 // $8C:8619 (volume $9A += $9B, driver command $28)
 
 /**
  * Shared camera centering and edge check helper for opcodes 0x26, 0x90, 0x91.

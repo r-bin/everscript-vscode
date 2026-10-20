@@ -1,5 +1,6 @@
 // Ownership: the generated half of `soe://tags/` — one tag per room, area,
-// enemy, song, sound, flag, named RAM address, engine table and item, built
+// enemy, song, sound, flag, named RAM address, engine table, item and script
+// opcode group (the `tags:` of knowledge/opcodes/<xx>.md), built
 // from data the plugin already ships. Pure: no ROM, no emulator, no .evs files.
 // Returns definitions in the same shape as tags/tags.json (tag-model.ts merges
 // both). docs/soe-tags-spec.md §5.3.
@@ -7,6 +8,7 @@
 import { VANILLA_MAPS } from '../localizations/maps';
 import { MUSIC, SOUNDS, getSoundAnimations } from '../localizations/sounds';
 import { TABLES } from '../localizations/tables';
+import { entries } from '../localizations/knowledge';
 import { lootRewardName } from '../script-model';
 import NAMES from '../script-model/names.json';
 import { slugify, hexId } from './resource-uri';
@@ -226,9 +228,46 @@ function items() {
     return out;
 }
 
+/** Titles of the opcode groups; the members are the opcode entries tagged `opcode.<group>`. */
+const OPCODE_GROUPS: Record<string, string> = {
+    flow: 'Control flow: end, jumps, branches, reset',
+    wait: 'Waiting: yield, sleep, wait for actors and dialogue',
+    call: 'Calling scripts and starting threads',
+    variable: 'Writing flags and variables (save, temp, argument areas)',
+    spawn: 'Spawning and removing enemies and NPCs',
+    actor_control: 'Who controls an actor: freeze, event scripts, switching characters',
+    movement: 'Teleporting and walking actors',
+    facing: 'Turning actors',
+    animation: 'Actor animations and attributes',
+    combat: 'HP, damage, healing, spells, projectiles',
+    map: 'Map changes, map objects, tile animations',
+    text: 'Text boxes, dialogue, fonts',
+    screen: 'Fades, brightness, colour, layers, shake, Mode 7',
+    audio: 'Music and sound effects',
+    money: 'Currencies, shops, the money window',
+    menu: 'Full-screen menus: alchemy, names, saving, shops',
+    filler: 'Opcodes that do nothing',
+    duplicate: 'A second byte for a handler another opcode already has',
+    unused: 'Valid or not, never used by the original scripts',
+    invalid: 'Bytes with no handler: STP or past the table',
+};
+
+function opcodes() {
+    const sub: Record<string, TagDef> = {};
+    for (const [group, title] of Object.entries(OPCODE_GROUPS)) {
+        const links: { uri: string; role: string }[] = [];
+        for (const e of entries('opcodes')) {
+            if (!e.tags.includes('opcode.' + group)) continue;
+            for (let op = e.addr; op <= e.end; op++) links.push({ uri: `${ROM}scripts/opcodes/${hexId(op, 2)}.md`, role: `0x${hexId(op, 2)} ${e.title}` });
+        }
+        sub[group] = { title, links };
+    }
+    return { opcode: { title: 'Script opcodes by group (soe://rom/assets/scripts/opcodes/)', sub } };
+}
+
 /** Every generated tag family, keyed by root id. */
 function generatedTags() {
-    return { ...maps(), ...enemies(), ...audio(), ...flags(), ...ram(), ...tables(), ...items() };
+    return { ...maps(), ...enemies(), ...audio(), ...flags(), ...ram(), ...tables(), ...items(), ...opcodes() };
 }
 
 export { generatedTags };

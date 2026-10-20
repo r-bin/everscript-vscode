@@ -118,13 +118,13 @@ export function text(ins: Instruction, names: Names = {}): string {
         }
         case 'start': return `${withArgs(`async ${target(f.target, names)}`)};`;
         case 'changeMap': {
-            if (f.map === null) return `warp(${f.x}, ${f.y});`;
+            if (f.map === null) return `restart_room_at(${f.x}, ${f.y});`;
             const notes = [names.map?.(f.map) || '', f.word !== null && f.word > 0xFF ? `word ${hex(f.word, 4)}` : ''].filter(Boolean);
-            return `change_map(${hex(f.map)}, ${f.x}, ${f.y});${notes.length ? ` // ${notes.join(', ')}` : ''}`;
+            return `load_map(${hex(f.map)}, ${f.x}, ${f.y});${notes.length ? ` // ${notes.join(', ')}` : ''}`;
         }
         case 'sound': return `sound(${hex(f.index)});`;
         case 'music': return `music(${hex(f.index)});`;
-        case 'text': return `${f.message ? 'message' : 'text'}(${f.window !== null ? f.window + ', ' : ''}${hex(f.key, 4)});`;
+        case 'text': return `${f.message ? 'subtext' : 'text'}(${f.window !== null ? f.window + ', ' : ''}${hex(f.key, 4)});`;
         case 'spawn': return `${f.spawner ? 'spawner' : 'spawn'}(${names.enemy?.(f.index) || hex(f.index)}, ${f.x === null ? `${E(2)}, ${E(3)}` : `${f.x}, ${f.y}`}${f.state ? ', ' + hex(f.state, 4) : ''});`;
         case 'sleep': return `sleep(${f.ticks === null ? E(0) : f.ticks});`;
         case 'yield': return 'yield();';
@@ -135,8 +135,10 @@ export function text(ins: Instruction, names: Names = {}): string {
         case 0x04: case 0x05: return `goto ${bus(ins.target!)};`;
         case 0x08: return `if (${E(0)}) goto ${bus(ins.target!)};`;
         case 0x09: return `if! (${E(0)}) goto ${bus(ins.target!)};`;
-        case 0x0A: return `if (amount[${E(0)}] >= ${hex(num(o[1]) | (num(o[2]) << 16), 6)}) goto ${bus(ins.target!)};`;
-        case 0x0B: return `if (amount[${E(0)}] < ${hex(num(o[1]) | (num(o[2]) << 16), 6)}) goto ${bus(ins.target!)};`;
+        case 0x0A: return `if (currency[${E(0)}] >= ${hex(num(o[1]) | (num(o[2]) << 16), 6)}) goto ${bus(ins.target!)};`;
+        case 0x0B: return `if (currency[${E(0)}] < ${hex(num(o[1]) | (num(o[2]) << 16), 6)}) goto ${bus(ins.target!)};`;
+        case 0x8E: return `if (currency[${E(0)}] >= ${E(1)}) goto ${bus(ins.target!)};`;
+        case 0x8F: return `if (currency[${E(0)}] < ${E(1)}) goto ${bus(ins.target!)};`;
         case 0x5C: return `object[${E(0)}] = ${E(1)};`;
         case 0x5F: return `object[${E(0)}] += ${hex(num(o[1]), 4)};`;
         case 0x60: return `object[${E(0)}]++;`;
@@ -145,7 +147,7 @@ export function text(ins: Instruction, names: Names = {}): string {
         case 0x75: return `face(${E(0)}, SOUTH);`;
         case 0x76: return `face(${E(0)}, WEST);`;
         case 0x77: return `face(${E(0)}, EAST);`;
-        case 0xAB: return 'reset();';
+        case 0xAB: return 'reset_game();';
         default: break;
     }
     const name = ins.spec.name || `op_${ins.opcode.toString(16).padStart(2, '0')}`;

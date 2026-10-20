@@ -16,6 +16,8 @@ interface KnowledgeEntry {
     addr: number; end: number; size: number | null; kind: string | null; name: string | null; title: string;
     category: string | null; confidence: string | null; tags: string[]; evidence: string[]; see: string[];
     lifetime: string | null; purpose: string; body: string; file: string;
+    /** Every front-matter key, for spaces with keys of their own (`opcodes`: `everscript`). */
+    meta: FrontMatter;
 }
 
 const one = (v: string | string[] | undefined): string | null => (typeof v === 'string' && v ? v : null);
@@ -52,13 +54,13 @@ function parseEntry(file: string): KnowledgeEntry | null {
         category: one(meta.category), confidence: one(meta.confidence), tags: list(meta.tags),
         evidence: list(meta.evidence), see: list(meta.see), lifetime: one(meta.lifetime),
         purpose: body.split(/\n\s*\n/)[0].replace(/\s+/g, ' ').trim(), body,
-        file: path.relative(path.join(HERE, '..', '..', '..', '..'), file),
+        file: path.relative(path.join(HERE, '..', '..', '..', '..'), file), meta,
     };
 }
 
 const cache: Record<string, KnowledgeEntry[]> = {};
 
-/** Every entry of one space (`ram` or `rom`), sorted by address. */
+/** Every entry of one space (`ram`, `rom`, or `opcodes`: one per script opcode, `addr` = the opcode), sorted by address. */
 function entries(space: string): KnowledgeEntry[] {
     if (!cache[space]) {
         const dir = path.join(DIR, space);

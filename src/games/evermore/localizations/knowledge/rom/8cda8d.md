@@ -2,14 +2,16 @@
 addr: 8CDA8D
 kind: code
 category: 🧠
-name: stage_entity_absolute_position
-title: Stage expression coordinates for an entity
+name: script_op_73_walk_to_direct
+title: Script opcode 0x73: walk an entity to a point, ignoring terrain
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler evaluates an entity and two coordinate expressions into DP $46/$48, selects the shared coordinate path's skip mode, and returns without calling its position helper", "trace: the game ran 2 distinct instructions with this opcode (tests/script-vm/goldens.json)"]
+evidence: ["trace: the game ran 2 distinct instructions with this opcode (tests/script-vm/goldens.json)", "disasm: PEA $0001 -> DP $12 selects $8F:AAD3 (v0.320.0)"]
 see: [docs/game-research/script-vm/README.md, docs/game-research/script-vm/opcodes.md]
 ---
-Evaluates an entity expression and two coordinate expressions, storing the latter in DP `$46`/`$48` without scaling or applying an entity-relative offset. It selects the shared continuation's skip mode, so `$8F:AA82` is not called and the opcode path makes no entity-coordinate write. The reason for staging these values is not yet established. Returns Carry Set.
+Entity, x and y pixel expressions; walks there through `$8F:AAD3` like opcode `0x6F`.
+
+Previously believed: the coordinates were only staged.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

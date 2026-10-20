@@ -2,14 +2,14 @@
 addr: 8CE7EF
 kind: code
 category: 🧠
-name: call_helper_for_boy_and_dog
-title: Call a helper for Boy and Dog when enabled
-confidence: confirmed
+name: script_op_aa_cure
+title: Script opcode 0xAA: cure Boy and Dog
+confidence: likely
 tags: [script-vm]
-evidence: ["disasm: if $23C7 is zero, calls $91:B9A7 with Y=$4E89 and then Y=$4F37, setting carry before each call; otherwise returns without either call"]
+evidence: ["disasm: if $23C7 is zero, calls $91:B9A7 with Y=$4E89 and then Y=$4F37, setting carry before each call; otherwise returns without either call", "disasm: $91:B9A7 walks the status slots at +$46/+$4C (empty = $FFFF); carry set jumps to $91:BA4D; evs: Everscript cure()"]
 see: [docs/game-research/script-vm/README.md, docs/game-research/script-vm/opcodes.md]
 ---
-With no operands, checks `$23C7`. If zero, calls `$91:B9A7` first with the Boy pointer (`Y=$4E89`) and then with the Dog pointer (`Y=$4F37`), setting Carry before each call; otherwise neither call runs. The handler establishes these calls but not their broader effect. Returns Carry Set.
+Calls `$91:B9A7` for the Boy and for the Dog to clear their status effects (slots at `+$46`, `+$4C`, ...; `$FFFF` = empty). Carry is set for both calls, unless the one-shot `$23C7` is set: then it is cleared and the calls run with carry clear.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

@@ -2,10 +2,11 @@
 
 How Secret of Evermore (US) runs its event scripts, read from the interpreter's own code and
 checked against the running game. This is the spec `src/games/evermore/script-vm/` is written
-from (`docs/cleanup.md` D3). Per-opcode table:
-[opcodes.md](opcodes.md). Each handler's knowledge entry (`knowledge/rom/<handler>.md`) holds what it
-does in plain words and the addresses it uses (calls, WRAM, ROM tables, record fields); `soe://` serves one
-page per opcode from them, with the uses in the user's ROM: `soe://rom/assets/scripts/opcodes/<xx>.md`.
+from (`docs/cleanup.md` D3). Overview of all 256 opcode bytes: [opcodes.md](opcodes.md). Each opcode has
+an entry (`knowledge/opcodes/<xx>.md`: what, why, groups, Everscript names) and each handler one
+(`knowledge/rom/<handler>.md`: what it does, the addresses it uses); `soe://` serves one page per opcode
+from both, with the uses in the user's ROM: `soe://rom/assets/scripts/opcodes/<xx>.md`, grouped by
+`soe://tags/opcode.<group>`.
 
 ## The interpreter
 
@@ -36,7 +37,7 @@ window space: bank = `$92 + (p >> 15)`, address = `$8000 | (p & $7FFF)`. The cal
 
 ## Operands
 
-Tokens used in [opcodes.md](opcodes.md):
+Tokens used in `spec.ts` and the `soe://` opcode pages:
 
 | token | bytes | meaning |
 |---|---|---|

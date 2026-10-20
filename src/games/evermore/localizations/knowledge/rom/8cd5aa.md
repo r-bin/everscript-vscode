@@ -2,14 +2,16 @@
 addr: 8CD5AA
 kind: code
 category: 🧠
-name: prepare_palette_transfer
-title: Prepare a palette transfer
+name: script_op_7e_currency_convert
+title: Script opcode 0x7E: exchange money between currencies
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler evaluates four expressions, uses $4202/$4204/$4206 and $4214/$4216 for arithmetic, stages data through $90:D34C, holds palette uploads via $0F3C, then calls $80:85FA to transfer palette data; exact expression roles are unresolved"]
+evidence: ["disasm: four expressions; $4202/$4203 multiply each byte of $0AC6+src by the multiplier, $4204/$4206 divide by the divisor; quotient added to $0AC6+dst, remainder stored back to the source (v0.320.0)"]
 see: [docs/game-research/script-vm/opcodes.md]
 ---
-Evaluates four expressions and uses the SNES math registers to calculate values for a palette-data staging loop. The loop updates data through `$90:D34C` and `$7E:65F1`, increments/decrements the palette-upload hold at `$0F3C`, then calls `$80:85FA` to transfer palette data. The expression-to-field mapping and the exact arithmetic meaning remain unresolved. Returns Carry Set.
+Exchanges money. Expressions: divisor, source currency offset (0, 3, 6, 9 into the 3-byte amounts at `$0AC6`), multiplier, destination currency offset. The source amount times the multiplier is divided by the divisor with the SNES math registers, byte by byte; the quotient is added to the destination and the source keeps the remainder. Returns Carry Set.
+
+Previously believed: a palette transfer through `$90:D34C` (that is opcode `0x97`).
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

@@ -26,6 +26,7 @@ sentence beats nothing. No permission needed — this is part of every task.
 |---|---|
 | a WRAM address, struct, flag byte or region | `src/games/evermore/localizations/knowledge/ram/<addr>.md` |
 | an asm routine, script, script function, table or data block in the ROM | `src/games/evermore/localizations/knowledge/rom/<addr>.md` |
+| a script opcode byte (what, why, group tags, Everscript name) | `src/games/evermore/localizations/knowledge/opcodes/<xx>.md` (its handler: `rom/`) |
 | anything about **Secret of Mana** (a different game) | `docs/mana/README.md` and the comment of the `src/games/mana/decoder/` file that reads it — never `knowledge/`, never mixed with Evermore entries |
 | a format or mechanism spanning many addresses | `docs/game-research/…` (prose), linked from the entries |
 | a workflow trap, a tool fact, or a skill/AGENTS.md statement that is wrong | fix that skill / `AGENTS.md` directly |
