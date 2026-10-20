@@ -5,7 +5,7 @@ This page is the overview; the facts live in one place each:
 
 | What | Where |
 |---|---|
-| one entry per opcode: what it does, why it exists, groups, Everscript names, evidence | `src/games/evermore/localizations/knowledge/opcodes/<xx>.md` (`c3.md` covers `0xC3`-`0xFF`) |
+| one entry per opcode byte (all 256): what it does, why it exists, groups, Everscript names, evidence | `src/games/evermore/localizations/knowledge/opcodes/<xx>.md` |
 | what each handler does, with its addresses | `src/games/evermore/localizations/knowledge/rom/<handler>.md` |
 | operands, flow and the script viewer's name | `src/games/evermore/script-vm/spec.ts` |
 | the table of all 256, usage counts, examples, shared handlers | `soe://rom/assets/scripts/opcodes/index.md` (and `<xx>.md`, `index.json`) |
@@ -44,9 +44,9 @@ The 16 zero bytes after `0x4D` (`$8C:D880`-`$D88F`) and the unreachable copy of 
 | `facing` | `70 71 74-77` |
 | `animation` | `78 79 A9` |
 | `combat` | `92-95 BB AA 9E AC B5 A9` |
-| `map` | `21 22 5C-62 B6 B7` |
-| `text` | `44-4B 50-55 5A 5B 64-6A 80 81 9A` |
-| `screen` | `26 27 90 91 82 83 97 8D 99` |
+| `map` | `21 22 5C-62` |
+| `text` | `44-4B 50-55 5A 5B 64-6A 80 81 9A` (`64-6A`: speaker figures) |
+| `screen` | `26 27 90 91 82 83 97 8D 99 B6 B7` (`B6 B7`: palette cycles) |
 | `audio` | `30-33 58 59 86 87` |
 | `money` | `0A 0B 8E 8F 7C-7E 84 85 88-8A 9F-A1` |
 | `menu` | `63 7F 8C 8A` |
@@ -94,6 +94,9 @@ differ, the entry's `everscript:` lists the Everscript spelling.
 | `0x9E` / `0xAC` | `cast_all` / `cast` | `cast` (= `0xAC`) | `0xAC` leaves out a dead Dog |
 | `0x92`, `0x93`, `0xBB` | `damage`, `damage_no_reaction`, `damage_no_knockback` | `damage` | three handlers |
 | `0x99` | `mode7_scene` | — | runs `$80:BC00` (BGMODE 7) |
+| `0x64`-`0x6A` | `show/reshow/hide_left/right_speaker` | — | speaker figures at the bottom left/right (`$0B73`/`$0B75`) |
+| `0x87` | `music_tempo` | — | driver command `$2A` = SPC timer 1 |
+| `0xB6`, `0xB7` | `palette_cycle`, `palette_cycle_stop` | `tile_flashing` | rotates a palette's colours (`$90:D50F`) |
 | `0x7F` | `name_entry` | — | |
 | `0x8C` | `save_menu` | `save` | |
 | `0x0E`, `0x12`, `0x1A`, `0xAE` | `*_arg_*` | `arg[n]` | was `*_local_*`; the printer already says `arg` |
@@ -105,4 +108,4 @@ music volume (was "screen fade"); `0x6E`, `0x6F`, `0x73` walk through `$8F:AAD3`
 coordinates"); `0x8D` with 0 stops the shake (was "does nothing"); `0x92` with `$23D5` set runs as `0xBB`
 (was "skips"). Newly described: `0x2C`/`0x2D` masks, `0x3D`/`0x3F` event scripts (`+$66`/`+$68`), `0x42`/`0x43`
 (`$23DB`), `0x47`, `0x63`, `0x78`/`0x79`, `0x7F`, `0x8C`, `0x8E`/`0x8F`, `0x99`, `0x9A`, `0x9E`/`0xAC`,
-`0xA9`, `0xAA`, the 27 `STP` bytes and `0xC3`-`0xFF`.
+`0xA9`, `0xAA`, the 27 `STP` bytes and `0xC3`-`0xFF`. v0.320.1: `0x64`-`0x6A` show and hide the speaker figures (were "wait for dialogue"), `0x87` is the music tempo (checked in the SPC700 interpreter), `0xB6`/`0xB7` cycle palette colours (`$90:D50F` was "reserve extra graphics").

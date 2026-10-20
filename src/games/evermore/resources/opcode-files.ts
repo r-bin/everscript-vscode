@@ -42,7 +42,7 @@ function region(addr: number): string {
 }
 
 const romEntry = (addr: number): KnowledgeEntry | null => entries('rom').find((e) => e.addr === addr) || null;
-const opEntry = (op: number): KnowledgeEntry | null => entries('opcodes').find((e) => op >= e.addr && op <= e.end) || null;
+const opEntry = (op: number): KnowledgeEntry | null => entries('opcodes').find((e) => e.addr === op) || null;
 const list = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : []);
 
 type Uses = Map<number, { count: number; examples: Instruction[] }>;
@@ -161,7 +161,7 @@ function opcodeMarkdown(rom: Rom, op: number): string {
     if (i.combinations.previous.length || i.combinations.next.length) {
         lines.push('## Nearby commands', '', 'Counts below are static control-flow edges in the reachable script walk, not observed runtime frequencies.', '', ...pairLines('previous'), ...pairLines('next'));
     }
-    lines.push(`Opcode entry: \`src/games/evermore/localizations/knowledge/opcodes/${hex2(op >= 0xC3 ? 0xC3 : op)}.md\`${i.status === 'handled' ? ` · handler entry: [${i.knowledge}](${i.knowledge})` : ''} · operand tokens: docs/game-research/script-vm/README.md`);
+    lines.push(`Opcode entry: \`src/games/evermore/localizations/knowledge/opcodes/${hex2(op)}.md\`${i.status === 'handled' ? ` · handler entry: [${i.knowledge}](${i.knowledge})` : ''} · operand tokens: docs/game-research/script-vm/README.md`);
     return lines.join('\n') + '\n';
 }
 
