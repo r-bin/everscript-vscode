@@ -194,6 +194,59 @@
       align-items: center;
       gap: 5px;
     }
+    .overlay-sidebar .menu-stepper-btn {
+      width: 22px;
+      height: 22px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.1s, transform 0.05s;
+    }
+    .overlay-sidebar .menu-stepper-btn:hover {
+      background: #353545;
+      color: #fff;
+    }
+    .overlay-sidebar .menu-stepper-btn:active {
+      transform: scale(0.92);
+      background: #4ec9b0;
+      color: #111;
+    }
+    .overlay-sidebar .menu-pill {
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.1s, border-color 0.1s;
+    }
+    .overlay-sidebar .menu-pill:hover {
+      border-color: #555566;
+      color: #eee;
+    }
+    .overlay-sidebar .menu-action-pill {
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.12s, border-color 0.12s, transform 0.05s;
+    }
+    .overlay-sidebar .menu-action-pill:hover {
+      background: #383850;
+      color: #fff;
+    }
+    .overlay-sidebar .menu-action-pill:active {
+      transform: scale(0.95);
+    }
+    .overlay-sidebar .menu-action-pill.danger {
+      background: rgba(220, 50, 50, 0.2);
+      border-color: #e04444;
+      color: #ff9999;
+    }
+    .overlay-sidebar .menu-action-pill.danger:hover {
+      background: rgba(220, 50, 50, 0.4);
+      color: #fff;
+    }
+    .overlay-sidebar .menu-action-pill.confirming {
+      animation: pulse-danger 1s infinite alternate;
+    }
+    @keyframes pulse-danger {
+      from { box-shadow: 0 0 4px rgba(220, 50, 50, 0.4); }
+      to { box-shadow: 0 0 10px rgba(220, 50, 50, 0.9); }
+    }
 
     /* Recent ROMs Section */
     .recent-roms-section {

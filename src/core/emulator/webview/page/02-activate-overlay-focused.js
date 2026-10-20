@@ -2,24 +2,14 @@
 
     function activateOverlayFocused() {
       if (overlayFocusCol === 1) {
-        if (overlayCol1Idx >= 0 && overlayCol1Idx <= 3) {
+        if (overlayCol1Idx === 2 || overlayCol1Idx === 3) {
           changeOverlayValue(1);
         } else if (overlayCol1Idx === 4) {
-          if (vscodeApi) vscodeApi.postMessage({ command: 'clearRecentRoms' });
-          const statusEl = document.getElementById('load-status');
-          if (statusEl) statusEl.textContent = 'Recent ROMs cleared.';
-          if (typeof playMenuSound === 'function') playMenuSound('click_confirm');
+          handleClearRecentAction();
         }
         return;
       }
-      const items = getOverlayCol0Focusables();
-      if (overlayCol0Idx >= 0 && overlayCol0Idx < items.length) {
-        const el = items[overlayCol0Idx];
-        if (el && typeof el.click === 'function') {
-          el.click();
-          if (typeof playMenuSound === 'function') playMenuSound('click_confirm');
-        }
-      }
+      launchSelectedRom();
     }
 
     let lastOverlayGamepadPoll = 0;
@@ -41,10 +31,18 @@
       const dRight = (pad.buttons[15] && pad.buttons[15].pressed) || (pad.axes[0] && pad.axes[0] > 0.5);
       const btnL = (pad.buttons[4] && pad.buttons[4].pressed);
       const btnR = (pad.buttons[5] && pad.buttons[5].pressed);
-      const btnA = (pad.buttons[0] && pad.buttons[0].pressed) || (pad.buttons[9] && pad.buttons[9].pressed);
+      const btnA = (pad.buttons[0] && pad.buttons[0].pressed);
       const btnB = (pad.buttons[1] && pad.buttons[1].pressed);
+      const btnStart = (pad.buttons[9] && pad.buttons[9].pressed);
 
-      if (btnL || btnR) {
+      if (btnStart) {
+        lastOverlayGamepadPoll = now + 200;
+        if (overlayFocusCol === 1 && overlayCol1Idx === 4 && clearRecentConfirming) {
+          handleClearRecentAction();
+        } else {
+          launchSelectedRom();
+        }
+      } else if (btnL || btnR) {
         lastOverlayGamepadPoll = now;
         switchOverlayColumn();
       } else if (dUp || dDown) {
@@ -55,9 +53,14 @@
         if (overlayFocusCol === 1) {
           changeOverlayValue(dLeft ? -1 : 1);
         }
-      } else if (btnA || btnB) {
+      } else if (btnA) {
         lastOverlayGamepadPoll = now + 160;
         activateOverlayFocused();
+      } else if (btnB) {
+        lastOverlayGamepadPoll = now + 160;
+        if (overlayFocusCol === 1 && clearRecentConfirming) {
+          cancelClearRecentConfirm();
+        }
       }
     }
 
@@ -162,7 +165,10 @@
 
     window.addEventListener('load', () => {
       try { window.focus(); } catch (_) {}
-      if (!romLoaded) setOverlayFocus(0, 0);
+      if (!romLoaded) {
+        const targetIdx = overlayFocusCol === 0 ? overlayCol0Idx : overlayCol1Idx;
+        setOverlayFocus(targetIdx, overlayFocusCol);
+      }
     });
 
     window.addEventListener('message', evt => {

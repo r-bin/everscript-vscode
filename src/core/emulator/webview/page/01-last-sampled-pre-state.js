@@ -142,6 +142,15 @@
     let overlayCol0Idx = 0;
     let overlayCol1Idx = 0;
 
+    try {
+      const savedCol = sessionStorage.getItem('evs_overlayCol');
+      if (savedCol !== null) overlayFocusCol = parseInt(savedCol, 10);
+      const savedCol0 = sessionStorage.getItem('evs_overlayCol0');
+      if (savedCol0 !== null) overlayCol0Idx = parseInt(savedCol0, 10);
+      const savedCol1 = sessionStorage.getItem('evs_overlayCol1');
+      if (savedCol1 !== null) overlayCol1Idx = parseInt(savedCol1, 10);
+    } catch (_) {}
+
     let selectedCore = 'fork';
     let selectedPreset = 'default';
     let isolatedSramEnabled = false;
@@ -149,6 +158,7 @@
     let currentRomSha1 = '';
     let currentIsolatedSram = false;
     let lastSavedSramB64 = '';
+    let clearRecentConfirming = false;
 
     function getLaunchOptions() {
       return {
@@ -188,6 +198,55 @@
       }
     }
 
+    function resetClearRecentButton() {
+      clearRecentConfirming = false;
+      const btn = document.getElementById('clearRecentBtn');
+      if (btn) {
+        btn.textContent = '[B] Clear';
+        btn.className = 'menu-action-pill';
+      }
+    }
+
+    function cancelClearRecentConfirm() {
+      if (!clearRecentConfirming) return;
+      resetClearRecentButton();
+      const statusEl = document.getElementById('load-status');
+      if (statusEl) statusEl.textContent = 'Clear cancelled.';
+      if (typeof playMenuSound === 'function') playMenuSound('click_cancel');
+    }
+
+    function handleClearRecentAction() {
+      if (!clearRecentConfirming) {
+        clearRecentConfirming = true;
+        const btn = document.getElementById('clearRecentBtn');
+        if (btn) {
+          btn.textContent = 'Confirm? [A] Yes / [B] No';
+          btn.className = 'menu-action-pill danger confirming';
+        }
+        const statusEl = document.getElementById('load-status');
+        if (statusEl) statusEl.textContent = 'Clear recent & generated ROMs? Press [A] to confirm, [B] to cancel.';
+        if (typeof playMenuSound === 'function') playMenuSound('click_nav');
+        return;
+      }
+
+      resetClearRecentButton();
+      if (vscodeApi) vscodeApi.postMessage({ command: 'clearRecentRoms' });
+      const statusEl = document.getElementById('load-status');
+      if (statusEl) statusEl.textContent = 'Recent ROMs cleared.';
+      if (typeof playMenuSound === 'function') playMenuSound('click_confirm');
+    }
+
+    function launchSelectedRom() {
+      const items = getOverlayCol0Focusables();
+      if (!items.length) return;
+      const idx = Math.max(0, Math.min(overlayCol0Idx, items.length - 1));
+      const el = items[idx];
+      if (el && typeof el.click === 'function') {
+        el.click();
+        if (typeof playMenuSound === 'function') playMenuSound('click_confirm');
+      }
+    }
+
     function initSidebarControls() {
       updateSidebarUi();
 
@@ -195,24 +254,29 @@
         const row = document.getElementById('launcher-row-' + r);
         if (row) {
           row.onclick = (e) => {
+            overlayFocusCol = 1;
+            overlayCol1Idx = r;
+            setOverlayFocus(r, 1);
+
             const stepper = e.target.closest('.menu-stepper-btn');
             if (stepper) {
               const step = parseInt(stepper.getAttribute('data-step') || '1', 10);
-              overlayFocusCol = 1;
-              overlayCol1Idx = r;
-              setOverlayFocus(r, 1);
               changeOverlayValue(step);
-            } else if (r === 4 || e.target.closest('#clearRecentBtn')) {
-              overlayFocusCol = 1;
-              overlayCol1Idx = 4;
-              setOverlayFocus(4, 1);
-              activateOverlayFocused();
-            } else {
-              overlayFocusCol = 1;
-              overlayCol1Idx = r;
-              setOverlayFocus(r, 1);
-              changeOverlayValue(1);
+              return;
             }
+
+            if (r === 4 || e.target.closest('#clearRecentBtn')) {
+              handleClearRecentAction();
+              return;
+            }
+
+            const pill = e.target.closest('.menu-pill');
+            if (pill) {
+              changeOverlayValue(1);
+              return;
+            }
+
+            // Clicking row label or background only focuses the row, does not step
           };
         }
       }
@@ -332,7 +396,8 @@
           recentSection.style.display = 'none';
         }
         if (!romLoaded) {
-          setOverlayFocus(0, 0);
+          const targetIdx = overlayFocusCol === 0 ? overlayCol0Idx : overlayCol1Idx;
+          setOverlayFocus(targetIdx, overlayFocusCol);
         }
       }
     }
@@ -378,6 +443,12 @@
       if (overlayFocusCol === 0) overlayCol0Idx = idx;
       else overlayCol1Idx = idx;
 
+      try {
+        sessionStorage.setItem('evs_overlayCol', String(overlayFocusCol));
+        sessionStorage.setItem('evs_overlayCol0', String(overlayCol0Idx));
+        sessionStorage.setItem('evs_overlayCol1', String(overlayCol1Idx));
+      } catch (_) {}
+
       const target = activeItems[idx];
       if (target) {
         if (overlayFocusCol === 0) {
@@ -395,6 +466,7 @@
     }
 
     function moveOverlaySelection(delta) {
+      resetClearRecentButton();
       const items = getOverlayFocusables();
       if (!items.length) return;
       const curIdx = overlayFocusCol === 0 ? overlayCol0Idx : overlayCol1Idx;
@@ -438,6 +510,7 @@
     }
 
     function switchOverlayColumn(col) {
+      resetClearRecentButton();
       if (typeof col !== 'number') col = overlayFocusCol === 0 ? 1 : 0;
       overlayFocusCol = col;
       const targetIdx = overlayFocusCol === 0 ? overlayCol0Idx : overlayCol1Idx;

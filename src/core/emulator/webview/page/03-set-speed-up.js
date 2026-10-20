@@ -54,19 +54,39 @@
           e.preventDefault();
           return;
         }
-        if (k === 'Enter' || k === ' ' || k === 'v' || k === 'V') {
-          activateOverlayFocused();
+        // Start button (Enter or userKeyMap Start): launches the ROM selected in center
+        const isStart = (k === 'Enter' || (typeof userKeyMap !== 'undefined' && userKeyMap['Start'] && k.toLowerCase() === userKeyMap['Start'].toLowerCase()));
+        if (isStart) {
+          if (overlayFocusCol === 1 && overlayCol1Idx === 4 && clearRecentConfirming) {
+            handleClearRecentAction();
+          } else {
+            launchSelectedRom();
+          }
           e.preventDefault();
           return;
         }
-        if (k === 'Escape' || k === 'c' || k === 'C' || k === 'b' || k === 'B') {
-          if (overlayFocusCol === 1 && overlayCol1Idx === 4) {
-            activateOverlayFocused();
+
+        // Action button A (v, space, userKeyMap A): activates focused item
+        const isActionA = (k === 'v' || k === 'V' || k === ' ' || (typeof userKeyMap !== 'undefined' && userKeyMap['A'] && k.toLowerCase() === userKeyMap['A'].toLowerCase()));
+        if (isActionA) {
+          if (overlayFocusCol === 0) {
+            launchSelectedRom();
           } else {
-            const items0 = getOverlayCol0Focusables();
-            const items1 = getOverlayCol1Focusables();
-            items0.forEach(el => el.classList.remove('keyboard-focused'));
-            items1.forEach(el => el.classList.remove('selected'));
+            if (overlayCol1Idx === 2 || overlayCol1Idx === 3) {
+              changeOverlayValue(1);
+            } else if (overlayCol1Idx === 4) {
+              handleClearRecentAction();
+            }
+          }
+          e.preventDefault();
+          return;
+        }
+
+        // Cancel button B (c, C, b, B, Escape, userKeyMap B): cancels confirmation, never jumps columns
+        const isCancelB = (k === 'Escape' || k === 'c' || k === 'C' || k === 'b' || k === 'B' || (typeof userKeyMap !== 'undefined' && userKeyMap['B'] && k.toLowerCase() === userKeyMap['B'].toLowerCase()));
+        if (isCancelB) {
+          if (overlayFocusCol === 1 && clearRecentConfirming) {
+            cancelClearRecentConfirm();
           }
           e.preventDefault();
           return;

@@ -224,6 +224,20 @@ function writeHistoryFile(storageDir: string, list: HistoryItem[]): void {
 
 function clearRecentRoms(storageDir: string): void {
   writeHistoryFile(storageDir, []);
+  const dirs = [storageDir, os.tmpdir()].filter(Boolean);
+  for (const dir of dirs) {
+    try {
+      if (!fs.existsSync(dir)) continue;
+      const files = fs.readdirSync(dir);
+      for (const f of files) {
+        if (f.endsWith('_emulator.sfc') || f.endsWith('_emulator.smc') || f.startsWith('dropped_')) {
+          try {
+            fs.unlinkSync(path.join(dir, f));
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+  }
 }
 
 function recordRomUsage(entry: RomUsage | null | undefined, context: StorageContext): void {
