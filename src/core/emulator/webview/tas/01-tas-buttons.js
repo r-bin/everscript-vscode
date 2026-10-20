@@ -25,7 +25,8 @@
     const TAS_SNAPSHOT_EVERY = 1800;   // frames (30 s) between snapshots while playing
     const TAS_SNAPSHOT_MIN = 600;      // earlier states do not reproduce the run (tools/cdl/replay-states.js)
     let tasLastSnapshotFrame = -1;
-    let tasSpeedBeforeResume = null;   // the speed to restore when a continue has caught up
+    let tasCatchingUp = false;         // a continue runs the recorded tail as fast as it can (frame loop idles)
+    let tasMinSeconds = 10;            // REPLAYS setting: shorter sessions are deleted when they end (host)
 
     function tasPadText(w) {
       let s = '';
@@ -302,14 +303,27 @@
         }
         tasPlay = { id: msg.id, title: msg.title, resume: true, fair: false, base: msg.frame, pos: msg.frame, count: msg.count, events: events,
           pads: new Uint16Array(pads.buffer, 0, pads.length >> 1) };
-        tasSpeedBeforeResume = speedMultiplier;
-        setSpeedMultiplier(4.0);
         tasSetStatus('continuing ' + msg.title + ': catching up ' + (msg.count - msg.frame) + ' frames');
+        tasCatchingUp = true;
+        setTimeout(tasCatchUpSlice, 0);
       } else {
         tasSetStatus('continuing ' + msg.title + ' at ' + tasFmtTime(msg.frame));
       }
       tasRefreshBadge();
       tasRenderList();
+    }
+
+    // The tail of a continue, without drawing or sound, in slices that leave the page responsive.
+    function tasCatchUpSlice() {
+      const m = getModule();
+      const t0 = performance.now();
+      while (m && tasPlay && tasPlay.resume && performance.now() - t0 < 40) {
+        if (tasPlay.pos >= tasPlay.count) { tasPlayEvents(m, tasPlay.pos); tasStopPlayback(); break; }
+        tasApplyInput(m, 0);
+        m._mainLoop();
+      }
+      tasCatchingUp = !!(m && tasPlay && tasPlay.resume);
+      if (tasCatchingUp) setTimeout(tasCatchUpSlice, 0);
     }
 
     function tasEndRecording() {
@@ -322,7 +336,7 @@
     // Called by bootRom() right after the core (re)started: frame 0 of a new session.
     function tasOnBoot(name) {
       tasEndRecording();
-      if (tasPlay && tasPlay.resume && tasSpeedBeforeResume !== null) { setSpeedMultiplier(tasSpeedBeforeResume); tasSpeedBeforeResume = null; }
+      tasCatchingUp = false;
       tasLastSnapshotFrame = -1;
       tasPlay = tasPendingMovie;
       tasPendingMovie = null;

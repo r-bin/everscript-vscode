@@ -2,7 +2,7 @@
 // Replay an Everscript movie (.evsmv) headless on the extension's snes9x core, optionally with the CDL recorder on.
 //   node tools/cdl/replay.js <movie.evsmv> <rom> [--cdl <library root>] [--drain <frames>] [--until <frame>]
 //                            [--collect <every>] [--quiet] [--states <dir>] [--state-spacing <n>] [--state-every <n>]
-//                            [--from-state <file>]
+//                            [--from-state <file>] [--from-frame <n>]
 // Applies the movie's events (memory writes, soft resets) at the recorded frame boundaries and compares the WRAM
 // checksums (S lines). Exit code: 0 ok, 2 desync (first mismatch is reported, replay stops), 1 error.
 //   --cdl      record into the library under <root> (same layout as the extension's; flushed every --drain frames)
@@ -11,14 +11,15 @@
 //   --states   save a state at every room change (at least --state-spacing frames apart, default 3600) and, with
 //              --state-every, every N frames; files and index.json go in <dir> (outside git: see replay-states.js)
 //   --from-state  boot, load that state and continue the movie from its frame (events before it are not applied)
+//   --from-frame  boot, load the newest save state the movie carries (Z lines, v0.317.0) at or before frame n, go on from there
 //   --force    replay although the movie names another emulator core build (# core:) than the one in use
 //   --collect  print the WRAM checksum and the other spaces' every N frames as "frame wram vram=..|cgram=..|..." lines instead of comparing (movie without S lines)
 // The movie is the source of truth and the CDL library is derived: rerun this whenever the recorder gains streams.
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const crypto = require('crypto');
-const { StateWriter, loadStateFile } = require('./replay-states');
-const { parseMovie, groupEvents, wramCrc, spaceCrcs, spacesLine, SPACES, crcText } = require('../../dist/platform/tas/movie');
+const { StateWriter, loadStateFile, loadStateBytes } = require('./replay-states');
+const { parseMovie, groupEvents, wramCrc, spaceCrcs, spacesLine, SPACES, crcText, movieStates } = require('../../dist/platform/tas/movie');
 
 // Word ranges (cdl-values.c) go to set 1 for CHEAT_WINDOW frames after a memory write the movie recorded (cheat, menu
 // toggle, injected script): the game's own stores right after one see values it would not produce by itself.
@@ -65,8 +66,16 @@ function run(moviePath, romPath, opts) {
             lib = new CdlLibrary(opts.cdl, new Uint8Array(stripCopierHeader(romBuf)));
             if (!M.cdlEnable()) { console.error('the core has no CDL recorder'); process.exit(1); }
         }
-        let startFrame = 0;
-        if (opts.fromState) {
+        let startFrame = 0, skipAtStart = 0;
+        if (opts.fromFrame !== undefined) {
+            const states = movieStates(fs.readFileSync(moviePath, 'utf8')).filter(st => st.frame <= opts.fromFrame);
+            if (!states.length) { console.error('the movie has no save state at or before frame ' + opts.fromFrame); process.exit(1); }
+            const st = states[states.length - 1];
+            loadStateBytes(M, require('zlib').gunzipSync(Buffer.from(st.data, 'base64')), 'the state at frame ' + st.frame);
+            startFrame = st.frame;
+            skipAtStart = st.skip;   // that boundary's events above the Z line are in the state already
+            if (!opts.quiet) console.log('starting from the save state at frame ' + st.frame);
+        } else if (opts.fromState) {
             startFrame = loadStateFile(M, opts.fromState);
             if (startFrame > movie.count) { console.error('the state is from frame ' + startFrame + ', the movie has ' + movie.count); process.exit(1); }
         }
@@ -75,7 +84,7 @@ function run(moviePath, romPath, opts) {
         const read = (addr, n) => M.readMemoryRange(addr, n);
         let desync = null, checked = 0, lastWrite = -Infinity;
         const boundary = k => {
-            for (const ev of events.get(k) || []) {
+            for (const ev of (events.get(k) || []).slice(k === startFrame ? skipAtStart : 0)) {
                 if (ev.kind === 'W') { lastWrite = k; for (let i = 0; i < ev.bytes.length; i++) M.writeMemory(ev.addr + i, ev.bytes[i]); }
                 else if (ev.kind === 'R') M._softReset();
                 else if (ev.kind === 'S' && !opts.collect) {
@@ -130,7 +139,7 @@ if (require.main === module) {
         run(moviePath, romPath, {
             cdl: arg('cdl'), drainEvery: parseInt(arg('drain', '3600'), 10), until: parseInt(arg('until', '0'), 10) || 0,
             collect: parseInt(arg('collect', '0'), 10) || 0, quiet: flag('quiet'), force: flag('force'),
-            states: arg('states'), stateSpacing: parseInt(arg('state-spacing', '3600'), 10), stateEvery: parseInt(arg('state-every', '0'), 10) || 0, fromState: arg('from-state'),
+            states: arg('states'), stateSpacing: parseInt(arg('state-spacing', '3600'), 10), stateEvery: parseInt(arg('state-every', '0'), 10) || 0, fromState: arg('from-state'), fromFrame: arg('from-frame') === undefined ? undefined : parseInt(arg('from-frame'), 10),
         });
     } catch (e) { console.error(e.message); process.exit(1); }
 }

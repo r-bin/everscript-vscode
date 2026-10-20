@@ -270,6 +270,8 @@
             lastPausedFrame = timestamp;
           }
 
+          // A continue is catching up on its recorded tail (tas: tasCatchUpSlice runs those frames).
+          if (romLoaded && tasCatchingUp) return;
           resizeCanvas(false);
           const gameActive = emuGameRom && (typeof gameFeaturesEnabled === 'undefined' || gameFeaturesEnabled);
           if (romLoaded && paused) {

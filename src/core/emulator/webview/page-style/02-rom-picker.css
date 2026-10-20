@@ -276,7 +276,9 @@
     }
     .recent-roms-list {
       display: flex; flex-direction: column; gap: 4px;
-      flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px;
+      flex: 1; min-height: 0; overflow-y: auto;
+      /* room for the focused row's outline and glow: the scroll box clips what sticks out */
+      padding: 5px 8px 5px 5px;
     }
     .recent-rom-item {
       display: flex; align-items: center; gap: 10px;

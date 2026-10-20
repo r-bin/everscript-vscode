@@ -154,7 +154,8 @@ a new movie. The replay boots at the movie's audio rate (44100): the rate leaks 
 Recording the CDL never changes emulation (tested: same checksums with `--cdl`).
 `--states <dir>` saves a state at room changes (`$7E0ADB`, at least 60 s apart, none before frame 600: a state taken at
 frame 1 does not reproduce the run) and `--from-state <file>` resumes from one (`tools/cdl/replay-states.js`,
-`tests/debugger/tas-states.test.js`); states hold ROM-derived memory and stay out of git. While you record by hand the
+`tests/debugger/tas-states.test.js`); `--from-frame <n>` starts from the newest state the movie itself carries
+(`Z|` lines, one per minute of hand play, `movieStates()` in `movie.ts`); states hold ROM-derived memory and stay out of git. While you record by hand the
 extension replays the session headless every `everscript.tas.verifyEveryMinutes` (default 30) and reports OK / desync
 (`src/platform/tas/verify.ts`); a failure after resuming from a state is repeated from power-on before it is believed.
 

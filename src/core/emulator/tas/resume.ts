@@ -5,6 +5,8 @@
  * took while that session was played by hand:
  *   <name>.evsmv.resume.json   { frame, offset, core, rom, romSha256, started, saved, thumb }
  *   <name>.evsmv.state.gz      the core's saveState() buffer at that frame boundary
+ * Every snapshot at least STATE_EVERY frames after the previous kept one also goes into the movie itself as a
+ * "Z|" line (movie.ts), so an exported recording carries its save states.
  * `offset` is the movie's byte length when the snapshot was taken: everything after it (frames and
  * events recorded after the snapshot, e.g. until the panel closed) is the tail a continue replays
  * on top of the state before the keyboard takes over. The state is a cache: the movie stays the
@@ -16,7 +18,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as zlib from 'zlib';
-import { parseMovie } from '../../../platform/tas/movie';
+import { parseMovie, STATE_EVERY } from '../../../platform/tas/movie';
 
 const RESUME_SUFFIX = '.resume.json';
 const STATE_SUFFIX = '.state.gz';
@@ -48,15 +50,22 @@ function writeResume(movieFile: string, meta: ResumeMeta, state: Uint8Array): vo
 /**
  * The page's snapshot (tasSnapshot: frame, base64 state, thumb) of the recording open as fd, which
  * holds `frames` frames. Ignored before MIN_RESUME_FRAME, or when the page's frame is not the file's
- * end (the page flushes every frame before it snapshots: anything else is stale).
+ * end (the page flushes every frame before it snapshots: anything else is stale). The state also goes
+ * into the movie (Z line) when lastState is STATE_EVERY frames back. Returns the frame of the state in
+ * the movie now (frame, or lastState).
  */
 function saveSnapshot(movieFile: string, fd: number, frames: number, msg: { frame?: number; state?: string; thumb?: string },
-    info: { core: string; rom: string; romSha256: string; started: string }): boolean {
+    info: { core: string; rom: string; romSha256: string; started: string }, lastState: number): number {
     const frame = Number(msg.frame);
-    if (typeof msg.state !== 'string' || !(frame >= MIN_RESUME_FRAME) || frame !== frames) return false;
+    if (typeof msg.state !== 'string' || !(frame >= MIN_RESUME_FRAME) || frame !== frames) return lastState;
+    const state = Buffer.from(msg.state, 'base64');
+    if (frame - lastState >= STATE_EVERY) {
+        fs.writeSync(fd, 'Z|' + zlib.gzipSync(state, { level: 6 }).toString('base64') + '\n');
+        lastState = frame;
+    }
     writeResume(movieFile, Object.assign({ frame, offset: fs.fstatSync(fd).size, saved: new Date().toISOString(),
-        thumb: typeof msg.thumb === 'string' ? msg.thumb : '' }, info), Buffer.from(msg.state, 'base64'));
-    return true;
+        thumb: typeof msg.thumb === 'string' ? msg.thumb : '' }, info), state);
+    return lastState;
 }
 
 function readResume(movieFile: string): ResumeMeta | null {
@@ -144,7 +153,7 @@ function openToContinue(movieFile: string) {
     const movie = parseMovie(text, path.basename(movieFile));
     const fd = fs.openSync(movieFile, 'a');
     fs.writeSync(fd, `${text.endsWith('\n') ? '' : '\n'}# continued: ${new Date().toISOString()} at frame ${movie.count}\n`);
-    return { fd, frames: movie.count, cheats: movie.meta.cheats === 'yes', rom: movie.meta.rom, started: movie.meta.started, desync: !!movie.meta.desync };
+    return { fd, frames: movie.count, lastState: movie.count, continued: true, cheats: movie.meta.cheats === 'yes', rom: movie.meta.rom, started: movie.meta.started, desync: !!movie.meta.desync };
 }
 
 export type { ResumeMeta, ResumableSession, ResumeData };

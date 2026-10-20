@@ -34,6 +34,11 @@
  * and the header names the core build (# core:), which a replay compares: a core that
  * emulates differently cannot replay a movie. Version 1 and 2 movies still load and replay.
  *
+ * Save states (v0.317.0) ride along in the same file as "Z|<base64 of the gzipped saveState() buffer>"
+ * lines, at the boundary where the page took them (tas/resume.ts; at most one per STATE_EVERY frames).
+ * Replaying ignores them (they change nothing); movieStates() lists them so a tool can start from one
+ * (tools/cdl/replay.js --from-frame). Events above a Z line at its boundary are already in the state.
+ *
  * Pure: no vscode, no fs (callers pass buffers / text).
  */
 
@@ -137,6 +142,28 @@ function parseEvent(line: string): MovieEvent | null {
     return null;
 }
 
+/** Frames between two save states kept in a recording (Z lines). */
+const STATE_EVERY = 3600;
+
+/**
+ * The save states in a recording: { frame, data (base64 gzip), skip } where skip = how many events of
+ * that boundary come before it (already applied in the state).
+ */
+function movieStates(text: string): { frame: number; data: string; skip: number }[] {
+    const out: { frame: number; data: string; skip: number }[] = [];
+    let count = 0, seen = 0;
+    for (const line of text.split('\n')) {
+        const c = line[0];
+        if (c === 'F') {
+            const star = line.indexOf('*');
+            count += star < 0 ? 1 : Math.max(1, parseInt(line.slice(star + 1), 10) || 1);
+            seen = 0;
+        } else if (c === 'Z') out.push({ frame: count, data: line.slice(2).trim(), skip: seen });
+        else if ((c === 'W' || c === 'R' || c === 'S' || c === 'T') && parseEvent(line)) seen++;
+    }
+    return out;
+}
+
 /** Frame lines may carry a repeat count ("F|....*5" = 5 frames): the frames in these lines. */
 function totalFrames(lines: string[]): number {
     let n = 0;
@@ -231,4 +258,4 @@ function groupEvents<E extends { frame: number }>(events: E[]): Map<number, E[]>
 }
 
 export type { MovieEvent, PlacedEvent };
-export { BUTTONS, EVSMV_MAGIC, CHECK_EVERY, SPACES_EVERY, AUDIO_RATE, SPACES, spaceCrcs, spacesLine, WRAM_BASE, WRAM_SIZE, padToText, textToPad, frameLine, parseMovie, evsmvHeader, evsmvTrailer, rleFrames, crc32, crcUpdate, crcFinish, crcText, wramCrc, writeLine, resetLine, checkLine, parseEvent, groupEvents };
+export { BUTTONS, EVSMV_MAGIC, CHECK_EVERY, SPACES_EVERY, AUDIO_RATE, SPACES, spaceCrcs, spacesLine, WRAM_BASE, WRAM_SIZE, padToText, textToPad, frameLine, parseMovie, evsmvHeader, evsmvTrailer, rleFrames, crc32, crcUpdate, crcFinish, crcText, wramCrc, writeLine, resetLine, checkLine, parseEvent, groupEvents, movieStates, STATE_EVERY };

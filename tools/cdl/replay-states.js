@@ -32,15 +32,19 @@ function takeState(M) {
     return Buffer.from(HEAPU8.slice(ptr, ptr + size));
 }
 
-/** Loads a state file into the (booted) core; returns the frame it was taken at. */
-function loadStateFile(M, file) {
-    const raw = zlib.gunzipSync(fs.readFileSync(file));
+/** Loads a raw saveState() buffer into the (booted) core; `what` names it in errors. */
+function loadStateBytes(M, raw, what) {
     if (raw.length !== M._getStateSaveSize()) throw new Error('state size ' + raw.length + ' does not fit this core');
     const ptr = M._my_malloc(raw.length);
     HEAPU8.set(raw, ptr);
     const ok = M._loadState(ptr, raw.length);
     M._my_free(ptr);
-    if (!ok) throw new Error('loadState refused ' + file);
+    if (!ok) throw new Error('loadState refused ' + what);
+}
+
+/** Loads a state file into the (booted) core; returns the frame it was taken at. */
+function loadStateFile(M, file) {
+    loadStateBytes(M, zlib.gunzipSync(fs.readFileSync(file)), file);
     return frameOfStateFile(file);
 }
 
@@ -81,4 +85,4 @@ class StateWriter {
     }
 }
 
-module.exports = { MIN_FRAME, StateWriter, loadStateFile, frameOfStateFile, takeState, ROOM_ADDR };
+module.exports = { MIN_FRAME, StateWriter, loadStateFile, loadStateBytes, frameOfStateFile, takeState, ROOM_ADDR };

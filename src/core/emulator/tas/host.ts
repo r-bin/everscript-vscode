@@ -27,20 +27,20 @@ import * as crypto from 'crypto';
 import { parseMovie, evsmvHeader, evsmvTrailer, rleFrames } from '../../../platform/tas/movie';
 import { stripCopierHeader } from '../../../platform/cdl/library';
 import { verifyMovieSafely } from '../../../platform/tas/verify';
+import { readPrefs, savePrefs, minSeconds, mergePrefs } from './prefs';
+import type { Prefs } from './prefs';
 import { saveSnapshot, deleteResume, resumeMessage, openToContinue } from './resume';
 
 /** A webview message (the fields each command uses). */
 interface TasMessage {
     command: string; id?: string; name?: string; source?: string; sram?: string; text?: string; frames?: number; live?: boolean; cheats?: boolean;
     pinned?: boolean; confirmed?: boolean; frame?: number; expected?: string; got?: string; fair?: boolean; overlay?: boolean;
-    state?: string; thumb?: string;
+    state?: string; thumb?: string; minSeconds?: number;
 }
 /** The recording being written. */
-interface Recording { file: string; fd: number | null; frames: number; live: boolean; cheats: boolean; header: string; desync?: boolean; rom?: string; started?: string }
-interface Prefs { overlay?: boolean; pinned?: string[] }
+interface Recording { file: string; fd: number | null; frames: number; live: boolean; cheats: boolean; header: string; desync?: boolean; rom?: string; started?: string; lastState?: number; continued?: boolean }
 
 const MOVIE_EXT = /\.evsmv$/i;
-const PREFS_FILE = 'tas-prefs.json';
 
 const sha256 = (buf: Uint8Array): string => crypto.createHash('sha256').update(buf).digest('hex');
 
@@ -93,13 +93,11 @@ class TasHost {
         return dir;
     }
 
-    _prefs(): Prefs {
-        try { return JSON.parse(fs.readFileSync(path.join(this.dir(), PREFS_FILE), 'utf8')); } catch (_) { return {}; }
-    }
+    _prefs(): Prefs { return readPrefs(this.dir()); }
 
-    _savePrefs(prefs: Prefs): void {
-        fs.writeFileSync(path.join(this.dir(), PREFS_FILE), JSON.stringify(prefs, null, 2));
-    }
+    _minSeconds(): number { return minSeconds(this._prefs()); }
+
+    _savePrefs(prefs: Prefs): void { savePrefs(this.dir(), prefs); }
 
     /** Short hash of the core's wasm: a core that emulates differently cannot replay a movie. */
     coreId() {
@@ -120,6 +118,7 @@ class TasHost {
             command: 'tasConfig',
             autoRecord: !!this._config().get('tas.autoRecord', true),
             overlay: !!this._prefs().overlay,
+            minSeconds: this._minSeconds(),
             verifyEveryMinutes: Number(this._config().get('tas.verifyEveryMinutes', 30)) || 0,
         });
     }
@@ -140,7 +139,7 @@ class TasHost {
                 if (msg.fair) this._markSync(msg.id, 'desync', `${msg.frame} expected ${msg.expected}, got ${msg.got}`);
                 break;
             case 'tasReplayed': this._markSync(msg.id, 'synced', new Date().toISOString()); break;
-            case 'tasPrefs': this._savePrefs(Object.assign(this._prefs(), { overlay: !!msg.overlay })); break;
+            case 'tasPrefs': this._savePrefs(mergePrefs(this._prefs(), msg)); break;
             case 'tasSnapshot': this._snapshot(msg); break;
             case 'tasRecContinue': this._recContinue(msg.id); break;
             default: return false;
@@ -184,11 +183,13 @@ class TasHost {
         const rec = this.rec;
         this.rec = null;
         if (!rec || rec.fd === null) return;
+        // Too short to keep (REPLAYS setting); a continued session existed before and always stays.
+        const keep = rec.live && (rec.continued || rec.frames >= this._minSeconds() * 60.0988);
         try {
-            if (rec.live) fs.writeSync(rec.fd, evsmvTrailer(rec));
+            if (keep) fs.writeSync(rec.fd, evsmvTrailer(rec));
             fs.closeSync(rec.fd);
-            if (!rec.live) fs.unlinkSync(rec.file);
-            else this.log(`TAS recording saved: ${rec.file} (${rec.frames} frames)`);
+            if (!keep) { fs.unlinkSync(rec.file); deleteResume(rec.file); }
+            this.log(keep ? `TAS recording saved: ${rec.file} (${rec.frames} frames)` : `TAS recording discarded (${rec.frames} frames${rec.live ? ', under ' + this._minSeconds() + ' s' : ''})`);
         } catch (e) {
             this.log('TAS recording close failed: ' + errText(e), true);
         }
@@ -199,7 +200,8 @@ class TasHost {
         const rec = this.rec;
         if (!rec || rec.fd === null || !rec.live || rec.desync) return;
         try {
-            saveSnapshot(rec.file, rec.fd, rec.frames, msg, { core: this.coreId(), rom: rec.rom || '', romSha256: this.romSha, started: rec.started || '' });
+            rec.lastState = saveSnapshot(rec.file, rec.fd, rec.frames, msg,
+                { core: this.coreId(), rom: rec.rom || '', romSha256: this.romSha, started: rec.started || '' }, rec.lastState ?? -Infinity);
         } catch (e) {
             this.log('TAS: cannot save the session snapshot: ' + errText(e));
         }

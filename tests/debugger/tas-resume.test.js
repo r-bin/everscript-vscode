@@ -147,6 +147,69 @@ test('no snapshot before frame 600 or of an idle session', () => {
     }
 });
 
+test('save states go into the movie (Z lines) at most every STATE_EVERY frames; movieStates finds them', () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'evs-resume-'));
+    try {
+        const { TasHost } = loadHost();
+        const host = new TasHost(tmp, () => {}, () => {});
+        host.romStarted(Buffer.alloc(1024, 7));
+        const snap = (n, fill) => host.handle({ command: 'tasSnapshot', frame: n, state: Buffer.alloc(64, fill).toString('base64'), thumb: '' });
+        host.handle({ command: 'tasRecStart', name: 'Game.smc' });
+        host.handle({ command: 'tasRecFrames', text: 'W|7E0100|05\n' + frames(700, 0x8000), frames: 700, live: true });
+        snap(700, 1);
+        host.handle({ command: 'tasRecFrames', text: frames(600, 0), frames: 600, live: true });
+        snap(1300, 2);   // too close to the last kept state: only the resume snapshot moves
+        host.handle({ command: 'tasRecFrames', text: frames(3100, 0), frames: 3100, live: true });
+        host.handle({ command: 'tasRecFrames', text: 'S|00000001\n', frames: 0, live: true });
+        snap(4400, 3);
+        host.handle({ command: 'tasRecEnd' });
+        const dir = path.join(tmp, 'tas-recordings');
+        const file = path.join(dir, fs.readdirSync(dir).find(n => n.endsWith('.evsmv')));
+        const text = fs.readFileSync(file, 'utf8');
+        const states = movie.movieStates(text);
+        assert.deepStrictEqual(states.map(s => [s.frame, s.skip]), [[700, 0], [4400, 1]], 'the S line at 4400 is above its Z line');
+        assert.ok(require('zlib').gunzipSync(Buffer.from(states[1].data, 'base64')).equals(Buffer.alloc(64, 3)));
+        assert.strictEqual(movie.parseMovie(text, 'x').count, 4400, 'Z lines are no frames');
+        assert.ok(!movie.parseMovie(text, 'x').events.some(e => e.kind === 'Z'), 'nor events: a replay ignores them');
+        assert.strictEqual(readResume(file).frame, 4400);
+    } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+    }
+});
+
+test('sessions shorter than the REPLAYS threshold are deleted when they end; a continued one stays', () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'evs-resume-'));
+    try {
+        const { TasHost } = loadHost();
+        const posted = [];
+        const host = new TasHost(tmp, m => posted.push(m), () => {});
+        host.romStarted(Buffer.alloc(1024, 7));
+        const dir = path.join(tmp, 'tas-recordings');
+        const movies = () => fs.readdirSync(dir).filter(n => n.endsWith('.evsmv'));
+        const session = n => {
+            host.handle({ command: 'tasRecStart', name: 'Game.smc' });
+            host.handle({ command: 'tasRecFrames', text: frames(n, 0x8000), frames: n, live: true });
+            host.handle({ command: 'tasRecEnd' });
+        };
+        session(500);                                   // 8 s < 10 s default
+        assert.deepStrictEqual(movies(), []);
+        host.handle({ command: 'tasPrefs', minSeconds: 60 });
+        host.handle({ command: 'tasPrefs', minSeconds: 7 });   // not an offered value: ignored
+        session(3000);                                  // 50 s < 1 min
+        assert.deepStrictEqual(movies(), []);
+        session(3700);
+        assert.strictEqual(movies().length, 1);
+        host.romStarted(Buffer.alloc(1024, 7));
+        assert.strictEqual(posted.filter(m => m.command === 'tasConfig').pop().minSeconds, 60);
+        host.handle({ command: 'tasRecContinue', id: 'file:' + movies()[0] });
+        host.handle({ command: 'tasRecFrames', text: frames(5, 0), frames: 5, live: true });
+        host.handle({ command: 'tasRecEnd' });
+        assert.strictEqual(movies().length, 1, 'continuing for 5 frames does not delete the session');
+    } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+    }
+});
+
 test('a sync mark above the last continue no longer counts', () => {
     const head = movie.evsmvHeader({ rom: 'G', romSha256: 'ab', started: 'x' }) + frames(2, 0);
     assert.ok(movie.parseMovie(head + '# synced: 2026-10-20\n', 'a').meta.synced);

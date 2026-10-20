@@ -69,8 +69,6 @@
       // A continue cannot be taken over before it caught up: the file holds those frames already.
       if (tasPlay.resume && tasPlay.pos < tasPlay.count) { tasSetStatus('still catching up with the session...'); return; }
       if (tasPlay.resume) {
-        if (tasSpeedBeforeResume !== null) setSpeedMultiplier(tasSpeedBeforeResume);
-        tasSpeedBeforeResume = null;
         text = 'continued ' + tasPlay.title + ' at ' + tasFmtTime(tasPlay.count) + (tasDesync ? ' - DESYNCED at frame ' + tasDesync.frame : ' - keyboard has control');
       }
       tasPlay = null;
@@ -132,13 +130,23 @@
     function tasRenderList() {
       const list = document.getElementById('tas-list');
       if (!list || typeof replaysListHtml !== 'function') return;
-      list.innerHTML = replaysListHtml(tasItems, tasPlay ? tasPlay.id : null);
+      list.innerHTML = replaysListHtml(tasItems, tasPlay ? tasPlay.id : null, tasMinSeconds);
       if (typeof isMenuOpen !== 'undefined' && isMenuOpen && menuActiveTab === 7) updateMenuRowSelection(false);
     }
 
     // The pause menu's keys on the REPLAYS tab (menu-view.ts).
     function tasMenuStep(rowIdx, delta) {
+      const next = replaysMinSecondsStep(rowIdx, tasMinSeconds, delta);
+      if (next !== null) { tasSetMinSeconds(next); return; }
       if (replaysStep(rowIdx, delta)) { playMenuSound('click_nav'); tasRenderList(); }
+    }
+
+    function tasSetMinSeconds(seconds) {
+      if (seconds === tasMinSeconds) return;
+      tasMinSeconds = seconds;
+      vscodeApi.postMessage({ command: 'tasPrefs', minSeconds: seconds });
+      playMenuSound('click_toggle');
+      tasRenderList();
     }
 
     function tasMenuCancel() {
@@ -155,6 +163,7 @@
       playMenuSound('click_confirm');
       if (r.act === 'takeover') tasStopPlayback();
       else if (r.act === 'reveal') vscodeApi.postMessage({ command: 'tasReveal' });
+      else if (r.act === 'minlen') tasSetMinSeconds(replaysMinSecondsNext(tasMinSeconds, 1, true));
       else if (r.act === 'pin') vscodeApi.postMessage({ command: 'tasPin', id: r.id, pinned: r.on });
       else if (r.act === 'delete') { tasRenderList(); vscodeApi.postMessage({ command: 'tasDelete', id: r.id, confirmed: true }); }
       else if (r.act === 'play') {
@@ -181,6 +190,8 @@
         const btn = evt.target.closest('button[data-act]');
         if (btn && btn.disabled) return;
         if (menuSelectedRow !== idx) { replaysCancel(); menuSelectedRow = idx; updateMenuRowSelection(); }
+        const stepper = evt.target.closest('.menu-stepper-btn[data-step]');
+        if (stepper) { tasMenuStep(idx, parseInt(stepper.getAttribute('data-step'), 10)); return; }
         if (btn) tasMenuActivate(idx, btn.getAttribute('data-act'));
         else if (list.querySelectorAll('.menu-row')[idx].getAttribute('data-kind') !== 'replay') tasMenuActivate(idx);
       });
@@ -197,6 +208,13 @@
         if (screenCanvas) screenCanvas.focus();
       });
       document.addEventListener('visibilitychange', () => { if (document.hidden) { tasSnapshot(); tasFlush(); } });
+      // Closing the tab gives the page no last word: snapshot on the way out it does see (the click on
+      // the tab's X blurs the page first; Cmd/Ctrl+W is a key the page sees; pagehide when it is torn down).
+      window.addEventListener('blur', () => { tasSnapshot(); tasFlush(); });
+      window.addEventListener('pagehide', () => { tasSnapshot(); tasFlush(); });
+      document.addEventListener('keydown', evt => {
+        if ((evt.metaKey || evt.ctrlKey) && (evt.key === 'w' || evt.key === 'W')) { tasSnapshot(); tasFlush(); }
+      }, true);
       tasRefreshBadge();
     }
 
@@ -211,6 +229,7 @@
         tasAutoRecord = data.autoRecord !== false;
         tasVerifyEvery = Math.max(0, Math.floor((data.verifyEveryMinutes || 0) * 60 * 60.0988 / TAS_CHECK_EVERY)) * TAS_CHECK_EVERY;
         tasSetOverlay(!!data.overlay, false);
+        if (typeof data.minSeconds === 'number') tasMinSeconds = data.minSeconds;
         tasRequestList();
       } else if (data.command === 'tasListResult') {
         tasItems = data.items || [];

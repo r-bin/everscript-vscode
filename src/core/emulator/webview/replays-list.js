@@ -11,7 +11,8 @@
  * other tab (menu/menu-view.ts). Rows, top to bottom:
  *   - "Take over" (only while a replay runs) and "Open recordings folder": B does it;
  *   - one row per recording of this ROM (pinned first): when it was recorded, how long it is,
- *     and whether it replays in sync. The file name is only in the tooltip.
+ *     and whether it replays in sync. The file name is only in the tooltip;
+ *   - last, "Delete recordings shorter than": Left / Right (or B, wrapping) pick keep all / 10 s / 1 min / 10 min.
  * On a recording row Left / Right choose favourite, play or delete; B does it. Favourite
  * toggles at once; play and delete ask first (B again does it, A or moving away cancels).
  * A click on an action is the same as choosing it and pressing B.
@@ -95,11 +96,37 @@ function replayCommandRow(kind, label, pill) {
     + '<div class="menu-row-value"><span class="menu-action-pill">[B] ' + pill + '</span></div></div>';
 }
 
+const REPLAY_MIN_SECONDS = [0, 10, 60, 600];
+const REPLAY_MIN_LABELS = { 0: 'keep all', 10: '10 s', 60: '1 min', 600: '10 min' };
+
+/** The threshold after `seconds` one step in `delta`'s direction (clamped, or wrapping). */
+function replaysMinSecondsNext(seconds, delta, wrap) {
+  const at = Math.max(0, REPLAY_MIN_SECONDS.indexOf(seconds));
+  const n = REPLAY_MIN_SECONDS.length;
+  const next = wrap ? (at + (delta < 0 ? n - 1 : 1)) % n : Math.max(0, Math.min(n - 1, at + (delta < 0 ? -1 : 1)));
+  return REPLAY_MIN_SECONDS[next];
+}
+
+/** Left / Right on the threshold row: the new value, or null when rowIdx is another row. */
+function replaysMinSecondsStep(rowIdx, seconds, delta) {
+  const row = replayRows()[rowIdx];
+  if (!row || row.getAttribute('data-kind') !== 'minlen') return null;
+  return replaysMinSecondsNext(seconds, delta, false);
+}
+
+function replayMinSecondsRow(seconds) {
+  return '<div class="menu-row" data-kind="minlen" title="A session shorter than this is deleted when it ends (a continued one always stays)">'
+    + '<div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Delete recordings shorter than</div>'
+    + '<div class="menu-row-value"><button class="menu-stepper-btn" data-step="-1" type="button" tabindex="-1">&lt;</button>'
+    + '<span class="menu-pill' + (seconds ? ' active' : '') + '">' + (REPLAY_MIN_LABELS[seconds] || seconds + ' s') + '</span>'
+    + '<button class="menu-stepper-btn" data-step="1" type="button" tabindex="-1">&gt;</button></div></div>';
+}
+
 /**
  * The tab's rows. items: the host's list (tas/host.ts list()); playingId: the recording being
- * replayed, or null.
+ * replayed, or null; minSeconds: the threshold setting.
  */
-function replaysListHtml(items, playingId) {
+function replaysListHtml(items, playingId, minSeconds) {
   const mine = items.filter(it => it.romMatch === true || it.recording);
   const others = items.length - mine.length;
   const pinned = mine.filter(it => it.pinned), rest = mine.filter(it => !it.pinned);
@@ -110,6 +137,8 @@ function replaysListHtml(items, playingId) {
   html += '<div class="rp-group">RECORDINGS</div>' + (rest.length ? rest.map(it => replayRowHtml(it, playingId)).join('')
     : '<div id="tas-empty">No recordings of this ROM yet: play and press some buttons.</div>');
   if (others) html += '<div class="rp-group">' + others + ' recording' + (others === 1 ? '' : 's') + ' of other ROMs not listed</div>';
+  // Last: Down from "Open recordings folder" goes straight to the recordings.
+  html += '<div class="rp-group">SETTINGS</div>' + replayMinSecondsRow(typeof minSeconds === 'number' ? minSeconds : 10);
   return html;
 }
 
@@ -165,5 +194,5 @@ function replaysRowIndex(el) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { replaysListHtml, replaysStep, replaysActivate, replaysCancel, replayLength, replaySync };
+  module.exports = { replaysListHtml, replaysStep, replaysActivate, replaysCancel, replayLength, replaySync, replaysMinSecondsNext };
 }

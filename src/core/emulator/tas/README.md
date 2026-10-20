@@ -8,6 +8,7 @@ game frame rates.
 |---|---|
 | `movie.ts` (`src/platform/tas/`) | Pure: `.evsmv` parsing / writing, pad word ⇄ `BYsSudlrAXLR0123` text |
 | `host.js` | Panel glue (the only file that needs `vscode`): recording file per session, replay list, pins, load |
+| `prefs.ts` | The REPLAYS settings (`tas-prefs.json`): overlay, favourites, length threshold |
 | `resume.ts` | Continuing a session from the ROM picker: the snapshot files next to a recording, listing them by ROM, the resume message, appending |
 
 ## Model
@@ -57,16 +58,25 @@ game frame rates.
   copy every `everscript.tas.verifyEveryMinutes`. A failure after resuming from a state is repeated from power-on.
 - Version 1 recordings still replay (without events); their cheat warning stays.
 - **Continuing a session** (v0.316.0, ROM picker): while a session is played by hand the page sends a
-  snapshot (`tasSnapshot`: the core's save state + a 128x112 WebP of the screen) at most every 1800 frames, on
-  pause, when the panel is hidden and before another boot; none before frame 600 (`replay-states.js`
-  MIN_FRAME). The host keeps the newest next to the recording: `<name>.evsmv.state.gz` and
+  snapshot (`tasSnapshot`: the core's save state + a 128x112 WebP of the screen) every 1800 frames, on
+  pause, when the panel is hidden, on blur, Cmd/Ctrl+W and pagehide (closing the tab: the click on its X blurs
+  the page first; the host cannot ask a page that is gone), and before another boot; none before frame 600
+  (`replay-states.js` MIN_FRAME). The host keeps the newest next to the recording: `<name>.evsmv.state.gz` and
   `<name>.evsmv.resume.json` (frame, the movie's byte length then, core, ROM SHA-256, thumb). The picker
   shows each ROM's sessions in a preview square (Left / Right: NEW, newest, older; setting "Open ROM": New
   game / Continue). Continuing boots the ROM, loads the state, replays at 4x what was recorded after the
-  snapshot (not recorded again; take over waits), then the keyboard plays on and the frames are appended to
+  snapshot (not recorded again; take over waits; v0.317.0: in 40 ms slices without drawing, the frame loop idles
+  on `tasCatchingUp`, so a few seconds of tail are instant), then the keyboard plays on and the frames are appended to
   the same file after `# continued: <date> at frame <n>`. So the movie still replays from power-on (checked
   headless: 3530 frames, 63 checksums, after a 504-frame catch-up), and a `# synced:` above the continue
   no longer counts (`movie.ts`). A state only fits its core build: another core starts fresh.
+- **Save states in the recording** (v0.317.0): a snapshot at least `STATE_EVERY` (3600) frames after the last kept
+  one is also written into the movie as `Z|<base64 gzip>` (~100 KB a line, so ~6 MB per hour of hand play), so an
+  exported `.evsmv` carries them. Replays ignore Z lines; `tools/cdl/replay.js --from-frame <n>` starts from the
+  newest one at or before n (checked: from frame 5400 of a 7054-frame session, every later checksum matches).
+- **Length threshold** (v0.317.0, REPLAYS tab row "Delete recordings shorter than": keep all / 10 s / 1 min /
+  10 min, default 10 s, `tas-prefs.json` `minSeconds`): a session shorter than that is deleted with its snapshot
+  when it ends; a continued session existed before and always stays.
 - Headless: `node tools/cdl/replay.js <movie> <rom> [--cdl <library root>]` replays on the same
   core, verifies the checksums (exit 2 on desync) and can record the CDL library meanwhile. The
   movie is the source of truth and the CDL library is derived from it.

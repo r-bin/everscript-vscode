@@ -103,6 +103,8 @@ test('host: recording kept only when a button was pressed by hand; pins; replay 
             host.romStarted(Buffer.alloc(1024, 1));
             assert.strictEqual(posted[0].command, 'tasConfig');
             assert.strictEqual(posted[0].autoRecord, true);
+            assert.strictEqual(posted[0].minSeconds, 10, 'sessions under 10 s are deleted by default');
+            host.handle({ command: 'tasPrefs', minSeconds: 0 });   // these sessions are frames long: keep them
             const dir = path.join(tmp, 'tas-recordings');
 
             // idle boot: no live input -> discarded
