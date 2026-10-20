@@ -37,8 +37,8 @@ ours; an empty one means only the operands are known so far.
 | `21` | `$8C:DBB9` | `u8 u8` | ends | `warp_in_room` | Like 0x20 after stopping the field ($80:85D8, $8C:CEE9, $8F:B38E); then stops the scripts ($8C:CE99) and ends this one. |
 | `22` | `$8C:DB71` | `u8 u8 u16` | ends | `change_map` | Like 0x21 with a map word written to $0ADB first ($90:8E90): enter another map at the tile position. |
 | `23` | `$8C:E405` | `u16` | continues | `set_0e6e` | Word to $0E6E. |
-| `26` | `$8C:DC18` | — | continues |  | No operands; writes $0B83 = $800F (and $0106 = 0 unless $0105 says otherwise). |
-| `27` | `$8C:DC10` | — | continues |  | No operands; writes $0B83 = $8000. |
+| `26` | `$8C:DC18` | — | continues | `fade_in` | Fade screen in to full brightness ($0B83 = $800F), clearing $0106 to 0 and centering camera ($90:94AB). |
+| `27` | `$8C:DC10` | — | continues | `fade_out` | Fade screen out to black ($0B83 = $8000). |
 | `29` | `$8C:D3C9` | `u24` | calls (yields) | `call` | Call the script at a packed pointer: it runs in this thread, this one resumes after it returns. |
 | `2A` | `$8C:DB67` | `E` | continues | `freeze_entity` | Entity expression ($8C:EC8E), then $8F:CD78 (freeze/immobilize). |
 | `2B` | `$8C:DB11` | `E` | continues | `unfreeze_entity` | Entity expression, then $8F:CD4D (unfreeze/mobilize). |
@@ -126,8 +126,8 @@ ours; an empty one means only the operands are known so far.
 | `8D` | `$8C:E385` | `u8` | continues |  |  |
 | `8E` | `$8C:D483` | `E E r16` | branches |  | Two expressions, then a jump offset like 0x08. |
 | `8F` | `$8C:D4C2` | `E E r16` | branches |  | Two expressions, then a jump offset like 0x09. |
-| `90` | `$8C:DC35` | `E` | continues |  |  |
-| `91` | `$8C:DC56` | `E` | continues |  |  |
+| `90` | `$8C:DC35` | `E` | continues | `fade_to` | Fade screen to expression brightness ($0B83 = $8000 \| E), centering camera as 0x26. |
+| `91` | `$8C:DC56` | `E` | continues | `set_brightness` | Set INIDISP brightness shadow directly ($0106 = E), centering camera as 0x26. |
 | `92` | `$8C:E430` | `E E` | continues |  |  |
 | `93` | `$8C:E486` | `E E` | continues |  |  |
 | `94` | `$8C:E410` | `E E` | continues |  |  |
