@@ -16,7 +16,7 @@ Legend: 🟡 open · 💡 idea · 🔴 risk to check
 | `0x3F` with index 1–5 | Room-level hooks `$0EA2`/`$0EAC` instead of an entity (vanilla: `attach_script(4, 0x0001, …)`). Who reads them is not traced. | `UNKNOWN_1/2` | 🟡 trace the readers of `$0EA2`/`$0EAC` |
 | `0xA9` selectors `$00`-`$0E` | Facing set directly, **diagonals included** (2, 6, 10, 14); `face()` has four directions. | missing in `ATTRIBUTE_BITS` | 🟡 enum values / `face_diagonal` |
 | `0xA9` `$1C/$1E`, `$24/$26`, `$2C`-`$36` | Further entity flag bits (`+$12` `$4000`, `+$10` `$80`, `+$14` `$20`/`$40`/`$800`); meanings untested. | `UNKNOWN_*` | 💡 test each on an enemy: new boss behaviours? |
-| `0x6E` / `0x6F` / `0x73` | Walk ignoring terrain (`$8F:AAD3`): bosses crossing pits, walls, levels. About 1,400 vanilla uses. | no wrapper | 🟡 `walk_direct` wrappers |
+| `0x6E` / `0x6F` / `0x73` | Walk ignoring terrain (`$8F:AAD3`): bosses crossing pits, walls, levels. About 1,400 vanilla uses. | `walk()` with `WALK_TYPE.*_DIRECT` ✅ | 💡 use it for boss movement |
 | `0xB9` teleport_relative | Moves only if the spot is free; `$23E3` = 1 moved / nothing to do, 0 blocked. | wrapper, result unused | 💡 knockback and push puzzles that test `$23E3` |
 | One-shot `$23DB` | Next `teleport` (`0x43`) lands on that layer. | — | 💡 multi-level arenas |
 | One-shot `$23D9` | Next `animate` (`0x78`) plays on a dead enemy. | — | 💡 custom death animations |
@@ -33,8 +33,8 @@ free space gives Kaizo a native opcode (a damage formula, "all enemies dead?", a
 script).
 
 - **27 STP opcodes** nothing can use: `01-03 06 0F 13 1F 24 25 28 2F 34-37 3E 40 41 4F 53 56 57 67 6B 72 8B B8`.
-- **About 14 unused by vanilla**: the second forms `15 16 31 32 38 39 45 46 49-4B`, plus `23` (dead write)
-  and `4C`. 🔴 Check that no Everscript wrapper emits them before taking one.
+- **13 unused by vanilla and not emitted by Everscript** (checked v0.320.2): the second forms
+  `15 16 31 32 38 39 45 46 49-4B`, plus `23` (dead write) and `4C`. Details: [custom-opcodes.md](custom-opcodes.md).
 - `0xC3`-`0xFF` are **not** usable without moving the table first (their entries are the code of `$8C:EA43`).
 
 Tasks: 🟡 an `opcode_table.asm` patch helper (repoint entry `n`); 🟡 teach the plugin's decoder
@@ -52,8 +52,8 @@ Tasks: 🟡 an `opcode_table.asm` patch helper (repoint entry `n`); 🟡 teach t
 
 ## Suggested order
 
-1. Wrappers in `everscript/in/core`: `restart_room_at`, `music_tempo`, `walk_direct`, diagonal facing,
-   `tile_flashing_stop`.
+1. Wrappers in `everscript/in/core`: `restart_room_at`, `music_tempo`, diagonal facing,
+   `tile_flashing_stop` (direct walking already exists: `walk()` with `WALK_TYPE.*_DIRECT`).
 2. Emulator tests: `0x21`, `0x64`-`0x6A`, the unknown `0xA9` bits.
 3. Audit Kaizo's boss scripts for the traps in §3.
 4. The custom-opcode patch helper (§2).

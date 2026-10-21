@@ -29,7 +29,7 @@ unused vanilla features are given up). C makes the count unlimited.
 - No range check: `0xC3`-`0xFF` read their "pointers" from the code of the expression evaluator
   (`$8C:EA43`...), so they cannot be repointed without moving the table.
 - Bank `$8C` is full. Free bytes: **16 at `$8C:D880`-`$D88F`** (zero padding after the `0x4D` handler;
-  nothing references it ✅) and 30 zero bytes at `$8C:A1FF` (🔴 not checked whether it is data).
+  nothing references it, and no Everscript patch writes there ✅) and 30 zero bytes at `$8C:A1FF` (🔴 not checked whether it is data).
   Handlers therefore live in an extension bank, reached through a stub in that padding.
 
 ### The stub (one for all custom opcodes)
@@ -60,8 +60,9 @@ Point the table word at `$8C:E8BD + 2 × op` to `$D888`.
 for hacks ([kaizo-opcodes.md](kaizo-opcodes.md)), so take them last.
 
 Not free: `4D` (Everscript `nop()` emits it) and everything vanilla scripts use.
-🔴 Before taking a byte, check that no Everscript wrapper or builtin emits it
-(`grep -r "code(0x.." everscript/in`, `compiler/ast_core.py` opcode tables).
+✅ Checked (v0.320.2): no Everscript wrapper, enum used as an opcode (`WALK_TYPE`, `MESSAGE_BOX_TYPE`) or
+compiler builtin emits any byte of either list. Repeat the check when Everscript grows:
+`grep -rhoiE "code\(\s*0x[0-9a-f]{1,2}" everscript/in` plus the enums passed to `code(...)`.
 
 ## 4. Way B: append `0xC3`-`0xFF` (one engine patch)
 
@@ -148,11 +149,12 @@ tests and sets `flag(arg)`. That is slower but needs no special `loot_done`. The
 
 ✅ SRAM is 8 KB at `$30:6000`-`$7FFF` (header `$03`). The four save slots are `$30:6002` +
 n × `$0331`, 815 bytes each with a checksum (`$8D:B478`, `$8D:C905`), ending near `$30:6CC6`. About
-**4.9 KB after them is outside every checksum** (🔴 check that Kaizo's `save_file_growth` patch does not
-use it).
+**4.9 KB after them is outside every checksum**. Kaizo's `save_file_growth` patch grows each slot by 68
+bytes (stride `$0375`, slots at `$6002`/`$6377`/`$66EC`/`$6A61`), so there the slots end at `$30:6DD6` ✅.
+**Use `$30:7000`-`$7FFF` (4 KB)**: free with and without the patch.
 
-- `sram_write(E offset, E value)` (opcode): `sta.l $306CC8,x`.
-- `sram(E offset)` (unary term, way D): `lda.l $306CC8,x`.
+- `sram_write(E offset, E value)` (opcode): `sta.l $307000,x`.
+- `sram(E offset)` (unary term, way D): `lda.l $307000,x`.
 - New Game+: the outro sets `sram_write(NG_PLUS, 1)`; the new-game script checks
   `if (sram(NG_PLUS))` and grants items, sets flags or raises the difficulty. Write a magic word next to
   it so a blank cartridge (random or `$FF` bytes) does not count as unlocked.
@@ -207,7 +209,7 @@ argument bytes or WRAM).
 
 ## Tasks
 
-1. 🔴 Confirm the free list against Everscript (§3) and Kaizo's patches (SRAM, `$8C:D880`).
+1. ✅ Free list confirmed against Everscript (§3); SRAM and `$8C:D880` against Kaizo's patches (§2, §8.2).
 2. 🟡 `custom_opcodes.asm`: stub, `ext_dispatch`, one trivial opcode (e.g. `sram_write`), headless test.
 3. 🟡 Decoder support for custom opcodes (§9).
 4. 💡 `loot` + `loot_done`, `flag_set` / `flag()`, `sram()`, `set_palette`, `room_clear()`.
