@@ -14,6 +14,10 @@ Kind: **platform** — knows SNES hardware and our machinery, no game (docs/arch
 - `tas/`: movie format and verification (`movie.ts`, `verify.ts`); `zip.ts`.
 - `crc32.ts`, `png.ts`: CRC-32 and the RGBA PNG encoder, one copy each.
 - `snes/hirom.ts`: HiROM bus → file offset and little-endian reads, the one copy (cleanup 5.1).
+- `snes/cpu65816.ts` + `snes/snes-bus.ts`: a 65816 interpreter (native mode, no interrupts, traps) and a
+  minimal HiROM bus (WRAM, VRAM/CGRAM ports, DMA, multiply/divide, PPU register shadows) that games run
+  their own routines on (Mana animation, Terranigma room loading). `cpu65816.ts` is one table-like switch
+  over the 256 opcodes: splitting it would scatter one instruction set over files.
 - `roms/library.ts`: the ROM library file (paths only), selected ROM, base ROM per game, `romFor`.
 
 ## Dependencies

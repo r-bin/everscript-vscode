@@ -1,0 +1,29 @@
+/* Ownership: the Terranigma Maps page's own look — what the shared shell (src/core/map-editor/shell/) and the
+ * map-view tokens do not cover: the cell-type overlay, the grid, the hovered and selected cell, the metatile
+ * picker and the dock's rows. Everything else is the shell's, so the page looks like the other games' editors.
+ * Scoped under `.rg-theme` where it uses the shell's tokens. */
+
+/* The map is crisp at any zoom. */
+#rg-img, .tm-picker image { image-rendering: pixelated; }
+
+/* Cell types (editor.dom.ts stageTypes): a tint per type, its number on top. */
+.tm-type { opacity: 0.45; }
+.tm-type-label { fill: #fff; stroke: #000; stroke-width: 1.5px; paint-order: stroke; font: bold 7px monospace; text-anchor: middle; }
+.tm-grid { fill: none; stroke: rgba(255, 255, 255, 0.25); stroke-width: 0.5; }
+.tm-hover { fill: rgba(255, 255, 255, 0.12); stroke: rgba(255, 255, 255, 0.5); stroke-width: 0.8; }
+.tm-sel { fill: none; stroke: var(--rg-accent, #4c8dff); stroke-width: 1.5; }
+
+/* The Tile tab's picker. */
+.tm-picker-box { max-height: 340px; overflow-y: auto; border: 1px solid var(--rg-border); border-radius: 6px; }
+.tm-picker { display: block; width: 100%; height: auto; cursor: pointer; background: var(--rg-bg-app); }
+.tm-picked { fill: none; stroke: var(--rg-accent); stroke-width: 1.5; pointer-events: none; }
+.rg-theme .rdf.disabled { opacity: 0.4; pointer-events: none; }
+
+/* The dock's rows. */
+.tm-row { font-family: var(--rg-font-mono); font-size: 11px; color: var(--rg-text-secondary); padding: 2px 0; white-space: pre-wrap; }
+.tm-tiles { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--rg-border); }
+.tm-info-row { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; padding: 2px 0; color: var(--rg-text-secondary); }
+.tm-info-row b { font-weight: 500; color: var(--rg-text-primary); }
+.tm-rooms { display: flex; flex-wrap: wrap; gap: 4px; }
+.rg-theme .tm-rooms .rdf { min-width: 0; padding: 2px 6px; font-size: 11px; font-family: var(--rg-font-mono); }
+.message { padding: 24px; opacity: 0.8; }

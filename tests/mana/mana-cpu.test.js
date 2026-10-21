@@ -1,12 +1,12 @@
 // TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // The 65816 interpreter and SNES bus the Secret of Mana library uses to run the
-// game's own animation code (src/games/mana/decoder/cpu65816.ts, snes-bus.ts). Small programs on
+// game's own animation code (src/platform/snes/cpu65816.ts, snes-bus.ts). Small programs on
 // a synthetic ROM image; no ROM needed. Run: node tests/mana/mana-cpu.test.js
 
 const assert = require('assert');
-const { Cpu65816 } = require('../../dist/games/mana/decoder/cpu65816');
-const { SnesBus } = require('../../dist/games/mana/decoder/snes-bus');
+const { Cpu65816 } = require('../../dist/platform/snes/cpu65816');
+const { SnesBus } = require('../../dist/platform/snes/snes-bus');
 const mana = require('../../dist/games/mana/decoder');
 
 let passed = 0, failed = 0;
@@ -102,6 +102,32 @@ test('floor classes, diagonals, level switch, specials', () => {
     assert.strictEqual(mana.switchesLevel(0x18), true);
     assert.strictEqual(mana.switchesLevel(0x10), false);
     assert.deepStrictEqual([0x80, 0x87, 0x06].map(mana.specialOf), [0x80, 0x87, 0]);
+});
+
+test('a trap replaces the instruction at its address; returnFrom leaves the routine as RTS / RTL would', () => {
+    const { bus, cpu } = machine([
+        0xA9, 0x01,             // $8000 LDA #$01
+        0x20, 0x10, 0x80,       // $8002 JSR $8010 (trapped: never runs)
+        0x85, 0x10,             // $8005 STA $10
+        0x6B,                   // $8007 RTL
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0xA9, 0xEE,             // $8010 LDA #$EE (the trap skips it)
+        0x60,                   // RTS
+    ]);
+    let hits = 0;
+    cpu.traps.set(0xC08010, c => { hits++; c.returnFrom(); });
+    cpu.call(0xC08000);
+    assert.strictEqual(hits, 1);
+    assert.strictEqual(bus.wram[0x10], 0x01);
+});
+
+test('the bus keeps the last value written to each PPU register and builds the fixed colour per channel', () => {
+    const { bus } = machine([]);
+    bus.write(0x002105, 0x09);
+    bus.write(0x802132, 0x20 | 0x1F);   // red 31
+    bus.write(0x002132, 0xC0 | 0x05);   // green and blue 5
+    assert.strictEqual(bus.ppuReg(0x2105), 0x09);
+    assert.deepStrictEqual(bus.fixedColor, [31, 5, 5]);
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

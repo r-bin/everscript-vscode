@@ -17,8 +17,8 @@ A map is **ONLY** considered working if:
 1. **It is embedded in our core map editor** (`src/core/map-editor/`). It does not show an ad-hoc,
    isolated canvas; it must use our tested map editor shell and core.
 2. **It renders identical to the game / internet map dumps.** If a map renders blank, black, or
-   glitched (e.g. Terranigma currently rendering nothing), it is **NOT WORKING**, regardless of
-   whether the decoder returns JSON without throwing.
+   glitched, it is **NOT WORKING**, regardless of whether the decoder returns JSON without throwing.
+   Compare with the running game: `tools/mana/check-map.js`, `tools/terra/check-room.mts` (screen vs render).
 
 ### Multi-game map feature alignment:
 - New game maps must be compared against existing core editor capabilities.

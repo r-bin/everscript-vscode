@@ -16,8 +16,8 @@ ROM bytes in, map data and pictures out. What the folder does: [README.md](READM
   routine address in the file comment ([docs/mana/README.md](../../../../docs/mana/README.md)).
   Never from Evermore knowledge, other projects' code, or guesses.
 - Map pictures show frame 0 of animations and flag value 0 for event pieces.
-- Animation is the game's own code run on `cpu65816.ts`; do not re-implement its modes by
-  hand. The interpreter and bus model generic SNES hardware only.
+- Animation is the game's own code run on `platform/snes/cpu65816.ts`; do not re-implement its modes by
+  hand. The interpreter and bus model generic SNES hardware only (they live in `platform/`, shared with Terranigma).
 - `areas.ts` holds area names and map ids only — never the reference pictures or their layout.
 
 ## Tests

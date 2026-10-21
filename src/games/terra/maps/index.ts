@@ -1,188 +1,72 @@
-// Terranigma Maps & Room Explorer Webview Panel.
-// Follows multi-game.md §6 and §8: provides the Terranigma map view,
-// Table A room browser, and multi-game capability empty-state notices.
+// Ownership: the Terranigma Maps panel (lifecycle + data). It reads only `terra://` through
+// vscode.workspace.fs; the page itself lives in webview/ (built from the shared editor shell).
+// State owned here: the one open panel.
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as crypto from 'crypto';
 import * as vscode from 'vscode';
-import * as lib from '../../../platform';
-import * as terra from '..';
-import { renderTerraMapsHtml } from './page';
+
+import { pageHtml, ROOTS } from './page';
+
+const ROOT = vscode.Uri.parse('terra://rom/');
 
 let panel: vscode.WebviewPanel | null = null;
 
-const KNOWN_ROOM_NAMES: Record<number, string> = {
-    0x0000: 'Underworld Intro',
-    0x0004: 'Savescreen',
-    0x0008: 'Unused',
-    0x0009: 'Unused',
-    0x000A: 'Crysta',
-};
-
-function formatHex(n: number | null | undefined, len: number, prefix = '0x') {
-    if (n === null || n === undefined) return '—';
-    return prefix + n.toString(16).padStart(len, '0').toUpperCase();
+async function readJson(p: string) {
+    const bytes = await vscode.workspace.fs.readFile(vscode.Uri.parse(`terra://rom/${p}`));
+    return JSON.parse(Buffer.from(bytes).toString('utf8'));
 }
 
-function formatBusHex(bus: number | null | undefined) {
-    if (bus === null || bus === undefined) return '—';
-    const bank = (bus >> 16) & 0xFF;
-    const addr = bus & 0xFFFF;
-    return `$${bank.toString(16).padStart(2, '0').toUpperCase()}:${addr.toString(16).padStart(4, '0').toUpperCase()}`;
-}
-
-/**
- * Builds the initialization state for the Terranigma Maps page from the ROM.
- */
-function buildInitData() {
-    const sel = lib.selectedRom();
-    const entry = (sel && sel.game === 'terra') ? sel : lib.romFor('terra');
-    const romPath = entry && entry.path ? entry.path : null;
-
-    let rom = null;
-    if (romPath && fs.existsSync(romPath)) {
-        try {
-            rom = new Uint8Array(fs.readFileSync(romPath));
-        } catch (_) {
-            rom = null;
-        }
-    }
-
-    const rooms = [];
-    let usedCount = 0;
-    let unusedCount = 0;
-
-    for (let id = 0; id < terra.TERRA_ROOM_COUNT; id++) {
-        const hexId = '0x' + id.toString(16).padStart(4, '0').toUpperCase();
-        if (!rom) {
-            rooms.push({
-                id,
-                hexId,
-                name: KNOWN_ROOM_NAMES[id] || `Room ${hexId}`,
-                busAddress: null,
-                busHex: '—',
-                fileOffset: null,
-                fileHex: '—',
-                isUsed: false,
-                spcTrack: null,
-                rawBytes: [],
-                opcodes: [],
-            });
-            continue;
-        }
-
-        const bus = terra.readRoomBusAddress(rom, id);
-        const file = terra.readRoomFileOffset(rom, id);
-        const used = terra.isRoomSlotUsed(rom, id);
-        const decoded = terra.decodeRoomHeader(rom, id);
-
-        if (used) usedCount++;
-        else unusedCount++;
-
-        const defaultName = used ? (KNOWN_ROOM_NAMES[id] || `Room ${hexId}`) : 'Unused Slot';
-
-        rooms.push({
-            id,
-            hexId,
-            name: KNOWN_ROOM_NAMES[id] || defaultName,
-            busAddress: bus,
-            busHex: formatBusHex(bus),
-            fileOffset: file,
-            fileHex: file !== null ? formatHex(file, 6, '0x') : '—',
-            isUsed: used,
-            spcTrack: decoded && decoded.spcTrack !== undefined ? decoded.spcTrack : null,
-            rawBytes: decoded && decoded.rawBytes ? decoded.rawBytes : [],
-            opcodes: decoded && decoded.opcodes ? decoded.opcodes : [],
-        });
-    }
-
-    return {
-        title: 'Terranigma — Maps',
-        variant: entry && entry.variant ? `Terranigma · ${entry.variant}` : 'Terranigma · eu',
-        romPath,
-        roomCount: terra.TERRA_ROOM_COUNT,
-        usedCount: rom ? usedCount : 0,
-        unusedCount: rom ? unusedCount : terra.TERRA_ROOM_COUNT,
-        tableAOffset: `$0D:${(terra.TERRA_BASE_ROOM_TABLE_OFFSET & 0xFFFF).toString(16).toUpperCase()} (0x${terra.TERRA_BASE_ROOM_TABLE_OFFSET.toString(16).toUpperCase()})`,
-        tableBOffset: `$0D:${(terra.TERRA_BASE_TABLE_B_OFFSET & 0xFFFF).toString(16).toUpperCase()} (0x${terra.TERRA_BASE_TABLE_B_OFFSET.toString(16).toUpperCase()})`,
-        rooms,
-    };
-}
-
-function handleMessage(msg: { command?: string } | null) {
-    if (!msg || !msg.command) return;
-    if (msg.command === 'switchRom') {
-        vscode.commands.executeCommand('everscript.switchRom');
-    } else if (msg.command === 'openDocs') {
-        const ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-        const docsPath = ws ? path.join(ws, 'docs/terra/README.md') : null;
-        if (docsPath && fs.existsSync(docsPath)) {
-            vscode.commands.executeCommand('vscode.open', vscode.Uri.file(docsPath));
-        } else {
-            vscode.window.showInformationMessage('Terranigma facts & architecture docs: docs/terra/README.md');
-        }
+/** Everything the page needs, or an error to show instead. */
+async function loadInit(webview: vscode.Webview) {
+    try {
+        const info = await readJson('info.json');
+        if (!info.supported) return { error: 'This Terranigma release is recognised, but only the European ROM (eu) is decoded. Pick it with Everscript: Switch ROM.' };
+        const [rooms, groups] = await Promise.all([readJson('rooms/index.json'), readJson('groups/index.json')]);
+        return { supported: true, rooms, groups, terraBase: String(webview.asWebviewUri(ROOT)) };
+    } catch (err) {
+        const why = err instanceof Error ? err.message : String(err);
+        return { error: `No Terranigma ROM found (${why}). Add it with Everscript: Switch ROM.` };
     }
 }
 
-/**
- * Open (or reveal) the Terranigma Maps panel.
- */
+function render(webview: vscode.Webview, init: object) {
+    return pageHtml(file => String(webview.asWebviewUri(vscode.Uri.file(file))),
+        { cspSource: webview.cspSource, nonce: crypto.randomBytes(16).toString('hex'), init });
+}
+
+/** The page asks for a terra://rom/ file (a room's data); send its text back. */
+async function answer(p: vscode.WebviewPanel | null, msg: { command?: string; path?: unknown } | null) {
+    if (!p || !msg || msg.command !== 'read' || typeof msg.path !== 'string' || msg.path.includes('..')) return;
+    let text: string | null = null;
+    try { text = Buffer.from(await vscode.workspace.fs.readFile(vscode.Uri.parse('terra://rom/' + msg.path))).toString('utf8'); }
+    catch { text = null; }
+    p.webview.postMessage({ command: 'file', path: msg.path, text });
+}
+
+/** Open (or reveal) the Maps panel. */
 async function openTerraMaps(column = vscode.ViewColumn.Active) {
-    if (panel) {
-        panel.reveal(column);
-        refreshTerraMaps();
-        return panel;
-    }
-
-    panel = vscode.window.createWebviewPanel('everscript.terraMaps', 'Terranigma — Maps', column, {
+    if (panel) { panel.reveal(column); return panel; }
+    const created = vscode.window.createWebviewPanel('everscript.terraMaps', 'Terranigma — Maps', column, {
         enableScripts: true,
         retainContextWhenHidden: true,
+        localResourceRoots: [...ROOTS.map(r => vscode.Uri.file(r)), ROOT],
     });
-
-    panel.onDidDispose(() => {
-        panel = null;
-    });
-
-    panel.webview.onDidReceiveMessage(handleMessage);
-    refreshTerraMaps();
-    return panel;
+    panel = created;
+    created.onDidDispose(() => { panel = null; });
+    created.webview.onDidReceiveMessage(msg => answer(panel, msg));
+    created.webview.html = '<!DOCTYPE html><html><body style="padding:24px;opacity:.8">Reading the room table…</body></html>';
+    created.webview.html = render(created.webview, await loadInit(created.webview));
+    return created;
 }
 
-/**
- * Re-renders the Terranigma Maps panel with current library/ROM state.
- */
-function refreshTerraMaps() {
+/** Re-read `terra://` (e.g. after the ROM changed). */
+async function refreshTerraMaps() {
     if (!panel) return;
-    const init = buildInitData();
-    panel.webview.html = renderTerraMapsHtml({
-        cspSource: panel.webview.cspSource,
-        nonce: Math.random().toString(36).slice(2),
-        init,
-    });
+    panel.webview.html = render(panel.webview, await loadInit(panel.webview));
 }
 
-/**
- * Closes the Terranigma Maps panel if open.
- */
-function closeTerraMaps() {
-    if (!panel) return;
-    panel.dispose();
-    panel = null;
-}
-
-/**
- * True when the Terranigma Maps panel is open.
- */
-function isTerraMapsOpen() {
-    return panel !== null;
-}
-
-/**
- * Returns the open panel or null.
- */
 function getTerraMapsPanel() {
     return panel;
 }
 
-export { openTerraMaps, refreshTerraMaps, closeTerraMaps, isTerraMapsOpen, getTerraMapsPanel };
-
+export { openTerraMaps, refreshTerraMaps, getTerraMapsPanel };

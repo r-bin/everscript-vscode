@@ -13,6 +13,7 @@ const PAGES: Record<string, [string, string, boolean?]> = {
     'shell-frame': ['src/core/map-editor/shell/frame.ts', 'ShellFrame', true],
     'music-view': ['src/games/evermore/music/webview/music-view.ts', 'MusicView', true],
     'music-engine': ['src/games/evermore/music/webview/music-engine.ts', 'MusicEngine', true],
+    'terra-maps': ['src/games/terra/maps/webview/page.dom.ts', 'TerraMaps'],
 };
 
 for (const [name, [entry, globalName, globals]] of Object.entries(PAGES)) {

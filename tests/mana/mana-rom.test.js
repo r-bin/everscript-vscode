@@ -110,8 +110,8 @@ test('map 128 collision: walls, level-2 floors, a few level-1 and shared floors'
 });
 
 test('the game\'s own loaders, run on the interpreter, build the same tables and layers', () => {
-    const { Cpu65816 } = require('../../dist/games/mana/decoder/cpu65816');
-    const { SnesBus } = require('../../dist/games/mana/decoder/snes-bus');
+    const { Cpu65816 } = require('../../dist/platform/snes/cpu65816');
+    const { SnesBus } = require('../../dist/platform/snes/snes-bus');
     for (const id of [16, 113, 128]) {
         const bus = new SnesBus(rom), cpu = new Cpu65816(bus);
         const h = mana.readHeader(rom, id).bytes, m = mana.loadMap(rom, id);
@@ -139,8 +139,8 @@ test('step events: map $10 runs the events the game ran (tools/mana/check-events
 });
 
 test('cutting: the game\'s $01:D293 turns map $81\'s bush into $5F for weapon types 1 and 2 only', () => {
-    const { Cpu65816 } = require('../../dist/games/mana/decoder/cpu65816');
-    const { SnesBus } = require('../../dist/games/mana/decoder/snes-bus');
+    const { Cpu65816 } = require('../../dist/platform/snes/cpu65816');
+    const { SnesBus } = require('../../dist/platform/snes/snes-bus');
     const id = 0x81, m = mana.loadMap(rom, id), h = mana.readHeader(rom, id).bytes;
     const cut = (x, y, weapon) => {
         const bus = new SnesBus(rom), cpu = new Cpu65816(bus);

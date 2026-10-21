@@ -72,7 +72,6 @@ Page code the host also uses is a TypeScript module that `tools/bundle-pages.mts
 - `src/games/evermore/sprites/webview/`: `sprites-lazy.js`, `sprites-motion.js`, `sprites-script.js`
 - `src/games/evermore/sprites/webview/sprites-view/`: `01-state.js`, `02-pickers.js`, `03-playback.js`, `04-palettes.js`, `05-raw-sprites.js`
 - `src/games/mana/maps/webview/`: `editor-dock-cells.js`, `editor-dock.js`, `editor-model.js`, `editor-overlays.js`, `editor-props.js`, `editor-stage.js`, `editor-tools.js`, `editor.js`, `main.js`, `map-svg.js`
-- `src/games/terra/maps/webview/`: `page.js`
 - `src/platform/cdl/asar-kit/`: `build-cdl.js`
 
 ### tools/
@@ -97,4 +96,3 @@ Page code the host also uses is a TypeScript module that `tools/bundle-pages.mts
 - `tests/script-model/`: `rom.test.js`
 - `tests/script-vm/`: `rom.test.js`, `units.test.js`
 - `tests/simulation/`: `everscript.test.js`, `loot.test.js`, `room.test.js`, `scheduler.test.js`, `sim-units.test.js`
-- `tests/terra/`: `terra-maps-page.test.js`, `terra-rom.test.js`

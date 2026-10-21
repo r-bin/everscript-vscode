@@ -6,8 +6,9 @@
 //   node tools/check-knowledge.mts --baseline  rewrite tools/check-knowledge.baseline.json (only shrinks)
 //
 // Coverage of the game itself comes from the CDL library (routines called, WRAM touched) when it is
-// there; the code scan (src/, tools/) always runs. Evermore only, for now: other games get their own
-// knowledge stores when they have entries.
+// there; the code scan (src/, tools/) always runs. Another game's code is checked against that game's own
+// store: an address in src/games/<game>/ or tools/<game>/ is documented when docs/<game>/ names it (GAME_DOCS);
+// no game's addresses are ever written into another's knowledge.
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -17,6 +18,10 @@ import { homedir } from 'node:os';
 const ROOT = join(import.meta.dirname, '..');
 const KNOWLEDGE = join(ROOT, 'src/games/evermore/localizations/knowledge');
 const BASELINE = join(ROOT, 'tools/check-knowledge.baseline.json');
+/** Games whose facts live in docs/<game>/ instead of knowledge entries (Secret of Mana's code is still checked
+ * the old way, its gaps in the baseline, until docs/mana/ names them: then add 'mana'). */
+const GAME_DOCS = ['terra'];
+const gameOf = (f: string) => /^(?:src\/games|tools)\/([a-z]+)\//.exec(f)?.[1] ?? '';
 
 type Range = { from: number; to: number; name: string };
 
@@ -45,20 +50,28 @@ const ROM = /(?:\$|0x)([89A-F][0-9A-F])[:]?([0-9A-F]{4})\b/gi;
 function scanCode(): Map<string, string> {
     const files = execFileSync('git', ['ls-files', 'src', 'tools'], { cwd: ROOT }).toString().split('\n')
         .filter((f) => /\.(js|ts|mts)$/.test(f) && !f.includes('/dist/') && !f.startsWith('src/core/emulator/core/'));
-    const found = new Map<string, string>(); // "ram:7E2834" -> first file
+    const found = new Map<string, string>(); // "ram:7E2834" (or "terra:rom:86959C" for another game) -> first file
     for (const f of files) {
         if (!existsSync(join(ROOT, f))) continue;
         const text = readFileSync(join(ROOT, f), 'utf8');
-        for (const m of text.matchAll(WRAM)) {
-            const k = `ram:${(m[1] + m[2]).toUpperCase()}`;
-            if (!found.has(k)) found.set(k, f);
-        }
-        for (const m of text.matchAll(ROM)) {
-            const k = `rom:${(m[1] + m[2]).toUpperCase()}`;
+        const game = GAME_DOCS.includes(gameOf(f)) ? gameOf(f) + ':' : '';
+        for (const [space, re] of [['ram', WRAM], ['rom', ROM]] as const) for (const m of text.matchAll(re)) {
+            const k = `${game}${space}:${(m[1] + m[2]).toUpperCase()}`;
             if (!found.has(k)) found.set(k, f);
         }
     }
     return found;
+}
+
+/** The addresses a game's docs/<game>/*.md name ("ram:7E0480", "rom:86959C"). */
+function docAddresses(game: string): Set<string> {
+    const dir = join(ROOT, 'docs', game), out = new Set<string>();
+    if (!existsSync(dir)) return out;
+    for (const f of readdirSync(dir).filter((n) => n.endsWith('.md'))) {
+        const text = readFileSync(join(dir, f), 'utf8');
+        for (const [space, re] of [['ram', WRAM], ['rom', ROM]] as const) for (const m of text.matchAll(re)) out.add(`${space}:${(m[1] + m[2]).toUpperCase()}`);
+    }
+    return out;
 }
 
 /** Routines the game called and WRAM it touched, from the CDL library of the base ROM (if any). */
@@ -91,8 +104,11 @@ const pct = (a: number, b: number) => (b ? (100 * a / b).toFixed(1) : '—') + '
 function main(): number {
     const ram = loadEntries('ram'), rom = loadEntries('rom');
     const code = scanCode();
+    const docs = new Map(GAME_DOCS.map((g) => [g, docAddresses(g)]));
     const missing = [...code.keys()].filter((k) => {
-        const [space, hex] = k.split(':');
+        const parts = k.split(':');
+        if (parts.length === 3) return !docs.get(parts[0])!.has(parts[1] + ':' + parts[2]);
+        const [space, hex] = parts;
         return !covered(space === 'ram' ? ram : rom, parseInt(hex, 16));
     }).sort();
 
@@ -118,7 +134,8 @@ function main(): number {
     } else {
         console.log('CDL: no library for the base ROM — game coverage not measured');
     }
-    for (const k of fresh) console.log(`new undocumented address ${k} (${code.get(k)}) — write a knowledge entry (game-knowledge skill)`);
+    for (const k of fresh) console.log(`new undocumented address ${k} (${code.get(k)}) — ` + (k.split(':').length === 3
+        ? `name it in docs/${k.split(':')[0]}/ with its evidence` : 'write a knowledge entry (game-knowledge skill)'));
     return fresh.length ? 1 : 0;
 }
 

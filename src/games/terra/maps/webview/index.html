@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src {{cspSource}} data:; style-src {{cspSource}} 'unsafe-inline'; script-src 'nonce-{{nonce}}';">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- The same stylesheets, in the same order, as the other games' map pages: the page is built from the shared editor shell. -->
+<link rel="stylesheet" href="{{sharedCss}}">
+<link rel="stylesheet" href="{{sharedEditorCss}}">
+<link rel="stylesheet" href="{{sharedTabsCss}}">
+<link rel="stylesheet" href="{{shellTabsCss}}">
+<link rel="stylesheet" href="{{shellCanvasCss}}">
+<link rel="stylesheet" href="{{mapViewCss}}">
+<link rel="stylesheet" href="{{coreCss}}">
+<link rel="stylesheet" href="{{shellRailCss}}">
+<link rel="stylesheet" href="{{shellLayoutCss}}">
+<link rel="stylesheet" href="{{styleUri}}">
+<title>Terranigma Maps</title>
+</head>
+<body class="hrest hideargs">
+<div class="tab-pane" id="app"></div>
+<script type="application/json" id="init">{{init}}</script>
+{{scripts}}
+</body>
+</html>

@@ -1,13 +1,14 @@
-// Ownership: a minimal SNES bus for running game routines on cpu65816.ts.
+// Ownership: a minimal SNES bus for running game routines on cpu65816.ts (any game).
 //
 // Generic SNES hardware: HiROM cartridge mapping, 128 KB WRAM (bank $7E/$7F,
 // mirrored at $00-$3F/$80-$BF:0000-1FFF), VRAM through $2115-$2119/$2139-$213A,
 // CGRAM through $2121/$2122/$213B, the multiply/divide unit ($4202-$4206,
 // $4214-$4217) and general DMA ($420B, $43x0-$43x6) in both directions.
-// Everything else reads 0 and ignores writes.
+// Everything else reads 0 and ignores writes; the last value written to each $21xx
+// register is kept (`ppuReg`), and the fixed colour $2132 builds one channel at a time.
 
 import { Bus } from './cpu65816';
-import { hiromFileOffset } from '../../../platform/snes/hirom';
+import { hiromFileOffset } from './hirom';
 
 export class SnesBus implements Bus {
     readonly wram = new Uint8Array(0x20000);
@@ -24,6 +25,8 @@ export class SnesBus implements Bus {
     private mulA = 0xFF;
     private mulResult = 0;
     private divQuot = 0;
+    /** The colour-math fixed colour as $2132 writes set it: 5-bit red, green, blue. */
+    readonly fixedColor = [0, 0, 0];
 
     constructor(private rom: Uint8Array) {}
 
@@ -32,6 +35,9 @@ export class SnesBus implements Bus {
         this.dirty.clear();
         return out;
     }
+
+    /** The last value the code wrote to PPU register `$21xx` (0 if never written). */
+    ppuReg(addr: number): number { return this.io[(addr - 0x2100) & 0xFF]; }
 
     private romRead(off: number): number { return this.rom[off % this.rom.length] ?? 0; }
 
@@ -111,6 +117,7 @@ export class SnesBus implements Bus {
                 if ((a === 0x2119) === highInc) this.vmaddr = (this.vmaddr + this.vmStep()) & 0xFFFF;
                 return;
             }
+            case 0x2132: for (let c = 0; c < 3; c++) if (v & (0x20 << c)) this.fixedColor[c] = v & 0x1F; return;
             case 0x2121: this.cgaddr = v; this.cglatch = -1; this.cgreadHigh = false; return;
             case 0x2122:
                 if (this.cglatch < 0) { this.cglatch = v; return; }

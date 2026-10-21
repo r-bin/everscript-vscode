@@ -119,6 +119,30 @@ module.exports = {
     },
 
     {
+      name: 'terra-decoder-is-alone',
+      comment: 'games/terra/decoder is a pure Terranigma library: no other game, no VS Code; SNES facts and ROM headers from platform/ only.',
+      severity: 'error',
+      from: { path: '^src/games/terra/decoder/' },
+      to: { path: '^(src|dist)/(?!games/terra/(decoder/|descriptor)|platform/)' },
+    },
+
+    {
+      name: 'terra-resources-reads-decoder',
+      comment: 'terra:// is the decoder served as files: games/terra/resources uses the decoder, platform/ and the game-neutral provider in core/resources/.',
+      severity: 'error',
+      from: { path: '^src/games/terra/resources/' },
+      to: { path: '^src/(?!games/terra/(resources|decoder)/|platform/|core/resources/)' },
+    },
+
+    {
+      name: 'terra-maps-reads-terra-only',
+      comment: 'The Terranigma Maps panel reads Terranigma data through terra:// only (platform/ helpers and core/webview/ page helpers allowed).',
+      severity: 'error',
+      from: { path: '^src/games/terra/maps/' },
+      to: { path: '^src/(?!games/terra/maps/|platform/|core/webview/)' },
+    },
+
+    {
       name: 'mana-maps-reads-som-only',
       comment: 'The Mana Maps panel reads Mana data through som:// only (platform/ helpers and core/webview/ page helpers allowed).',
       severity: 'error',

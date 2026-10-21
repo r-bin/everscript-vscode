@@ -22,13 +22,9 @@ Built by `npm run build:ts` (`tsconfig.build.json`) into `dist/games/mana/decode
 | `objects.ts` | the map's objects: cell, kind word, flag bits (records after the header) | `$00:C481`, `$00:DD55` |
 | `events.ts` | the map's own event and each cell's step event | `$C8:4000`, `$00:B637`, `$00:D03A` |
 | `collision.ts` | layer A collision bytes per cell, floor class / diagonal / layer switch / special | `$02:A043`, `$01:BE15` |
-| `cpu65816.ts` | a 65816 interpreter (native mode, no interrupts) to run game routines | — |
-| `snes-bus.ts` | HiROM, WRAM, VRAM/CGRAM ports, DMA, multiply/divide for it | — |
-| `animate.ts` | runs the game's animation setup and per-frame code, records what changes | `$01:B0EC`, `$01:B17E`, `$02:BC7E`, `$00:B0BB`, `$00:C304` |
+| `animate.ts` | runs the game's animation setup and per-frame code on `platform/snes/cpu65816.ts` + `snes-bus.ts`, records what changes | `$01:B0EC`, `$01:B17E`, `$02:BC7E`, `$00:B0BB`, `$00:C304` |
 | `anim-cells.ts` | turns a trace into frames per cell kind (cells with equal tile words) | — |
 
 `loadMap` + `renderMap` take ~30 ms per map; `mapSize` decodes nothing, `pictureKey` only the pieces (all 512 maps in ~40 ms);
 `traceAnimation` ~20 ms, `animateCells` up to ~200 ms (map 128).
 
-`cpu65816.ts` is 376 lines: one table-like switch over the 256 opcodes plus the
-addressing modes; splitting it would scatter one instruction set over files.

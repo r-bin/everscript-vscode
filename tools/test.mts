@@ -1,7 +1,7 @@
 // Runs test tiers (tests/tiers.json; docs/cleanup.md 6.6, AI_ARCHITECTURE_GUIDE.md §4).
 //   node tools/test.mts unit             one tier; several: unit rom dom; all: every tier
 // Each test file runs in its own node process, in order; the run fails if any file fails, and
-// before running it fails if a tests/**/*.test.js is in no tier (or in two), so none is forgotten.
+// before running it fails if a tests/**/*.test.js or .test.mts is in no tier (or in two), so none is forgotten.
 // A file still running after a minute is reported each minute; after TEST_TIMEOUT seconds (default
 // 900) it is killed and counted as stuck. Node 26 can deadlock in process.exit() (a V8 compile
 // worker waits on a GC the exiting thread never runs), so tests end with process.exitCode instead.
@@ -22,7 +22,7 @@ for (const name of [...NAMES, 'manual']) {
         seen.set(f, name);
     }
 }
-const tracked = execFileSync('git', ['ls-files', 'tests'], { cwd: ROOT }).toString().split('\n').filter((f) => f.endsWith('.test.js'));
+const tracked = execFileSync('git', ['ls-files', 'tests'], { cwd: ROOT }).toString().split('\n').filter((f) => f.endsWith('.test.js') || f.endsWith('.test.mts'));
 for (const f of tracked) if (!seen.has(f)) problems.push(`${f} is in no tier (tests/tiers.json)`);
 for (const f of seen.keys()) if (!tracked.includes(f)) problems.push(`${f} is listed but not a tracked test`);
 if (problems.length) {

@@ -14,6 +14,9 @@ Kind: **core** — game-neutral features and UI shells (docs/architecture/multi-
   view's title names its ROM.
 - `emulator/`: the embedded SNES emulator (own AGENTS.md); the recorder ships it alone.
 - `mcp/`: the localhost MCP server serving the games' file systems to AI clients (own AGENTS.md).
+- `resources/rom-file-system.ts`: a read-only `FileSystemProvider` over a game's ROM; the game passes its scheme,
+  its ROM getter and a pure `resolve(segments, rom)`. Used by `terra://`; `soe://` and `som://` keep their own copies
+  until they move onto it.
 
 ## Dependencies
 - `platform/` only (through `dist/platform`) and `vscode`; `map-editor/` and `mcp/` import nothing

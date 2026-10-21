@@ -28,6 +28,8 @@
         "src/games/evermore/docs-tab",
         "src/core/emulator/webview",
         "src/games/evermore/sprites/webview",
-        "tests"
+        "tests",
+        "src/**/*.dom.ts",
+        "src/**/*.dom.d.ts"
     ]
 }

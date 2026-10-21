@@ -1,0 +1,11 @@
+// Terranigma decoder: pure TypeScript, ROM bytes in, rooms and pictures out (docs/terra/README.md).
+// Imports only platform/ (SNES hardware, ROM headers); never another game.
+export * from './rom';
+export { SECTION_NAMES, newTerraBus, runRoomLoader } from './loader';
+export type { LoaderRun } from './loader';
+export { loadRoom, contextRooms, headerRun, roomSections } from './room';
+export type { TerraRoom, TerraLayer, TerraPpu, HeaderSummary } from './room';
+export { renderRoom, renderMetatileSheet, roomSize, layerBg, rgbOf } from './render';
+export type { Picture } from './render';
+export { roomCatalog, hex3 } from './catalog';
+export type { TerraCatalog, TerraRoomEntry, TerraGroup } from './catalog';

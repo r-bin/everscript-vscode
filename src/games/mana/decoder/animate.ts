@@ -1,5 +1,5 @@
 // Ownership: what a map's animated tiles and palettes do over time, by running the
-// game's own code on cpu65816.ts / snes-bus.ts.
+// game's own code on platform/snes/cpu65816.ts / snes-bus.ts.
 //
 // Load ($00:C481 order): $01:F403 (chars, palettes; $1C = header byte 0, $1B = byte 1),
 // $01:B0EC (animated character blocks) and $01:B17E (character pixel effects), both
@@ -11,8 +11,8 @@
 
 import { Rom } from './rom';
 import { ManaHeader } from './header';
-import { Cpu65816 } from './cpu65816';
-import { SnesBus } from './snes-bus';
+import { Cpu65816 } from '../../../platform/snes/cpu65816';
+import { SnesBus } from '../../../platform/snes/snes-bus';
 
 /** One moment where something on screen changes: new character data and colours. */
 export interface AnimationStep {

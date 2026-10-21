@@ -200,6 +200,13 @@ Undo / Redo, Characters and Map-changes object cards (read-only), and the collis
 Copy map works for a converted Mana room in the Evermore tab. In the new layout both folders are
 `core/map-editor/`.
 
+**Terranigma (v0.321):** the Terranigma Maps panel (`src/games/terra/maps/`) is the same shell, read-only: rail of
+rooms (one row per picture, variants on the card's side bar), Select / Pick, BG1 / BG2 / Cell types / Grid, a Tile
+dock (metatile picker, the picked metatile's tile words, the selected cell's map words) and Info. Its data is
+`terra://` (`games/terra/resources`, on the game-neutral `core/resources/rom-file-system.ts`); rooms come from the
+game's own room loader run on `platform/snes/cpu65816.ts` (docs/terra/README.md). Page code is TypeScript
+(`*.dom.ts`, `tsconfig.webview.json`). Editing is not built.
+
 **Left, on purpose (do not assume it done):**
 - The action registry replacing the Evermore `editAction` switch and the click router
   (`map-editor-actions.js`, `map-editor-input.js`), and moving the Evermore draft's undo onto

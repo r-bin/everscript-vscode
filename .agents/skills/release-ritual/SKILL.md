@@ -32,7 +32,7 @@ workflow.
    npm run check:deps                  # depcruise domain boundary rules (warn level)
    npm run check:legal -- --staged     # no game data, upstream code or home paths staged
    npm run check:dup                   # no clone of 30+ lines (jscpd)
-   npm run check:knowledge             # no new WRAM/ROM address in code without a knowledge entry
+   npm run check:knowledge             # no new WRAM/ROM address in code without a knowledge entry (Terranigma code: named in docs/terra/)
    npm run check:ai-context            # AI files within budget, their links resolve
    ```
    All of these must pass before proceeding (`check:deps` warnings are reported, errors fail).

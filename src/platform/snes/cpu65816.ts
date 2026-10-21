@@ -1,9 +1,11 @@
 // Ownership: a 65816 CPU interpreter, enough to run self-contained game routines.
 //
-// Generic SNES knowledge only (WDC 65C816 instruction set, native mode). Used to run
-// Secret of Mana's own animation routines (animate.ts) instead of re-deriving every
-// effect by hand. No interrupts, no cycle timing, no emulation mode: a routine is
-// entered with `call` (as by JSL) and runs until it returns to the sentinel.
+// Generic SNES knowledge only (WDC 65C816 instruction set, native mode). Games run their own
+// routines on it instead of re-deriving them by hand: Secret of Mana's animation
+// (games/mana/decoder/animate.ts), Terranigma's room loader (games/terra/decoder/loader.ts).
+// No interrupts, no cycle timing, no emulation mode: a routine is entered with `call` (as by
+// JSL) and runs until it returns to the sentinel. A trap replaces the instruction at an address
+// with the caller's code (e.g. skip a routine that waits for hardware the bus does not have).
 
 export interface Bus {
     read(addr: number): number;
@@ -16,7 +18,15 @@ const SENTINEL = 0xFFFFFF;
 export class Cpu65816 {
     a = 0; x = 0; y = 0; s = 0x1FFF; d = 0; db = 0; pb = 0; pc = 0; p = M | X | I;
     steps = 0;
+    /** 24-bit address -> code run instead of the instruction there (it must move `pc` on itself). */
+    readonly traps = new Map<number, (cpu: Cpu65816) => void>();
     constructor(private bus: Bus) {}
+
+    /** Return from the current routine as RTS (or RTL with `long`) would: for traps. */
+    returnFrom(long = false): void {
+        this.pc = (this.pull16() + 1) & 0xFFFF;
+        if (long) this.pb = this.pull8();
+    }
 
     /** Run the routine at `addr` (24-bit) as if called by JSL; stop at its RTL (or RTS for `rts`). */
     call(addr: number, opts: { rts?: boolean; maxSteps?: number } = {}): void {
@@ -31,8 +41,10 @@ export class Cpu65816 {
         this.pb = (addr >> 16) & 0xFF;
         const limit = opts.maxSteps ?? 2_000_000;
         for (let n = 0; n < limit; n++) {
-            if (((this.pb << 16) | this.pc) === SENTINEL || (opts.rts && this.pc === 0xFFFF)) return;
-            this.step();
+            const at = (this.pb << 16) | this.pc;
+            if (at === SENTINEL || (opts.rts && this.pc === 0xFFFF)) return;
+            const trap = this.traps.get(at);
+            if (trap) { this.steps++; trap(this); } else this.step();
         }
         throw new Error(`65816: no return from ${addr.toString(16)} after ${limit} steps`);
     }

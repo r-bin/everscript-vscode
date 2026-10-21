@@ -1,25 +1,25 @@
 ---
 name: supported-games
 description: Use whenever a prompt is about Secret of Mana or Terranigma, or touches more than one game: which file system to read, no facts across games, where each game's facts live.
-applyTo: "src/games/mana/**,src/games/evermore/imports/mana/**,docs/mana/**,tools/mana/**,tests/mana/**"
+applyTo: "src/games/mana/**,src/games/terra/**,src/games/evermore/imports/mana/**,docs/mana/**,docs/terra/**,tools/mana/**,tools/terra/**,tests/mana/**,tests/terra/**"
 ---
 
-# Supported games: Secret of Evermore and Secret of Mana
+# Supported games: Secret of Evermore, Secret of Mana, Terranigma
 
-The extension supports two games. They share the SNES and nothing else.
+The extension supports three games. They share the SNES and nothing else.
 
 ## 1. Read each game through its own plane
 
-| | Secret of Evermore | Secret of Mana |
-|---|---|---|
-| file system (MCP, editor) | `soe://` (`src/games/evermore/resources`, MCP `everscript-soe`) | `som://` (`src/games/mana/resources`): `som://rom/maps/<hex>.png/.json/.collision.json/.anim.json/.objects.json/.edit.json/.tiles.a.png`, `areas/` |
-| library | `src/games/evermore/maps`, `src/games/evermore/script`, … | `src/games/mana/decoder` (pure TS: header, pieces, metatiles, collision, events, objects, cuttable cells, animation on `cpu65816.ts`) |
-| Which ROM | the ROM library (Everscript: Switch ROM; headless `npm run roms`): selected Evermore ROM, else the base `us` | the same library: selected Mana ROM, else the base `us` |
-| facts written to | `src/games/evermore/localizations/knowledge/` (`game-knowledge` skill) | `docs/mana/README.md` + the `src/games/mana/decoder` file that reads it |
-| checked with | CDL, recomp, headless runs | `tools/mana/check-map.js` (screen vs render), `check-events.js` (step events), `find-picture.js` (which map a screenshot shows), the game's own routines run on `cpu65816.ts` (rom tests); `docs/mana/verifying.md` |
-| RAM map | `src/games/evermore/localizations/knowledge/` | `docs/mana/wram.md` |
+| | Secret of Evermore | Secret of Mana | Terranigma |
+|---|---|---|---|
+| file system (MCP, editor) | `soe://` (`src/games/evermore/resources`, MCP `everscript-soe`) | `som://` (`src/games/mana/resources`): `som://rom/maps/<hex>.png/.json/.collision.json/.anim.json/.objects.json/.edit.json/.tiles.a.png`, `areas/` | `terra://` (`src/games/terra/resources`): `terra://rom/rooms/<hex>.png/.l0.png/.json/.tiles.l0.png`, `groups/` |
+| library | `src/games/evermore/maps`, `src/games/evermore/script`, … | `src/games/mana/decoder` (pure TS: header, pieces, metatiles, collision, events, objects, cuttable cells, animation on `platform/snes/cpu65816.ts`) | `src/games/terra/decoder` (pure TS: the game's room loader run on `platform/snes/cpu65816.ts`; layers, metatiles, picture, catalog) |
+| Which ROM | the ROM library (Everscript: Switch ROM; headless `npm run roms`): selected Evermore ROM, else the base `us` | the same library: selected Mana ROM, else the base `us` | the same library; only the base `eu` is decoded |
+| facts written to | `src/games/evermore/localizations/knowledge/` (`game-knowledge` skill) | `docs/mana/README.md` + the `src/games/mana/decoder` file that reads it | `docs/terra/README.md` + the decoder file that reads it |
+| checked with | CDL, recomp, headless runs | `tools/mana/check-map.js` (screen vs render), `check-events.js` (step events), `find-picture.js` (which map a screenshot shows), the game's own routines run on `cpu65816.ts` (rom tests); `docs/mana/verifying.md` | `tools/terra/check-room.mts` (screen vs render, docs/terra/README.md §5), the headless core's breakpoints and CDL |
+| RAM map | `src/games/evermore/localizations/knowledge/` | `docs/mana/wram.md` | `docs/terra/README.md` §3.4 |
 
-For a Mana question, start with `som://rom/index.md` or `docs/mana/README.md`, not soe://.
+For a Mana question, start with `som://rom/index.md` or `docs/mana/README.md`; for Terranigma, `docs/terra/README.md` and `terra://rom/index.md` — not soe://.
 
 ## 2. Never carry a fact across
 
@@ -67,7 +67,7 @@ game supports it, not through a second tool:
 - **som://** for anything an agent or the user wants to read as files.
 - **The Core Map Editor Rule:** A map from any game (Evermore, Mana, Terranigma) is ONLY working
   if it is embedded into our core map editor (`src/core/map-editor/`) AND renders to what you see in the
-  game or internet map dumps. Terranigma currently renders nothing; treating it as "working" is a defect.
+  game or internet map dumps. Terranigma's Maps panel (`src/games/terra/maps/`) is the shared shell, read-only.
 - **Connect concepts to core:** Mana has objects, so Mana connects to the objects system made for
   Evermore. If a game has features not supported in core, discuss and extend core instead of creating
   a disconnected, ad-hoc viewer.
@@ -85,3 +85,9 @@ rooms") and `docs/mana/README.md` ("Not done yet") before building a parallel pa
   writes the cell through `[$00]`, not the metatile tables — a search for table writes
   once wrongly concluded Mana had no cuttable tiles.
 - VS Code's webview CSS `img { max-width: 100% }` squashes wide maps (`webview-dom-safety` §8).
+- Terranigma: `$0480` is room × 2 (`$047E` the room): the room table is read at their sum and the room
+  properties (display mode) by `$0480` alone — setting `$0480` = room × 3 renders every room with the wrong
+  display. Old notes put the tables in bank `$0D` (a LoROM reading); they are `$86:959C` / `$86:A28C`.
+- Terranigma's loader waits for vblank (`$4210`) and the sound CPU (music section): the decoder's bus and a
+  trap stand in. A room can keep graphics, palette or display mode from the room before; VRAM written below
+  word `$3800` is background characters, above `$4000` sprites and the font.

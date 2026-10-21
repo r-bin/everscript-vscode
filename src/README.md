@@ -28,6 +28,9 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `games/mana/decoder/` | Secret of Mana maps: header, pieces, metatiles, characters, palettes, Mode 1 picture, areas (TypeScript, pure; nothing Evermore) |
 | `games/mana/resources/` | Read-only `som://` file system: Secret of Mana maps and areas as files |
 | `games/mana/maps/` | Secret of Mana Maps panel: area list and map pictures, read from `som://` |
+| `games/terra/decoder/` | Terranigma rooms: the room table, the game's room loader run on `platform/snes/cpu65816.ts`, layers, metatiles, picture, catalog (TypeScript, pure) |
+| `games/terra/resources/` | Read-only `terra://` file system: Terranigma rooms as files |
+| `games/terra/maps/` | Terranigma Maps panel on the shared editor shell, read from `terra://` |
 
 Entry point: `extension.js` (composition root, registered as `main` in package.json): the game-neutral layers, then
 the one list of games, each with its own `games/<game>/extension.js`. Evermore's wiring (commands, injection) is
@@ -50,6 +53,7 @@ Below, `language/`, `maps/`, … without a prefix are under `games/evermore/`.
 - `script-model/` → `script-vm/`, `localizations/`; `script-vm/` → `variant-resolver`, `platform/snes/`
 - `resources/` → may use `maps/`, `script-vm/`, `script-model/`, `simulation/`, `localizations/`; never `emulator/` (ROM and memory reads are injected by `games/evermore/extension.js`)
 - `platform/` → no `core/`, no game; `core/` → `platform/` only; a game never imports another game except through `games/<game>/imports/<other>/`
+- `games/terra/decoder/` → `platform/` and its own descriptor; `games/terra/resources/` → the decoder and `core/resources/`; `games/terra/maps/` → `terra://` only
 - `games/mana/decoder/` → nothing in `src/`; `games/mana/resources/` → the decoder only; `games/mana/maps/` → `som://` only; `games/evermore/imports/mana/` → the Mana decoder, Evermore `maps/` and `rom-readers.ts`; no Evermore domain uses any of them (only `extension.js` wires them)
 - No circular dependencies allowed
 

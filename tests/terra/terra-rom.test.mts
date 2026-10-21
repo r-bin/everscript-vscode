@@ -1,0 +1,122 @@
+// The Terranigma decoder (src/games/terra/decoder) and terra:// (src/games/terra/resources): ROM identification on
+// synthetic headers, then — with the European ROM from the ROM library — the room table, the catalog, one room as
+// the game's own loader builds it (checked against the running game: docs/terra/README.md §5), the context of a
+// room that keeps graphics from before, the pictures. Skips the ROM part without the ROM.
+// Run: node tests/terra/terra-rom.test.mts
+import assert from 'node:assert';
+import * as fs from 'node:fs';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const { identifyRom } = require('../../dist/platform');
+const terra = require('../../dist/games/terra');
+const { resolveTerra } = require('../../dist/games/terra/resources/files');
+
+let passed = 0, failed = 0;
+function test(name: string, fn: () => void) {
+    try { fn(); console.log('  ✓ ' + name); passed++; }
+    catch (e) { console.error('  ✗ ' + name + '\n    ' + ((e as Error).stack || e)); failed++; }
+}
+
+console.log('\nTerranigma — synthetic:');
+
+test('isTerraRom detects Terranigma titles and rejects others', () => {
+    const rom = new Uint8Array(0x100000);
+    rom.set(Buffer.from('TERRANIGMA P         '), 0xFFC0);
+    rom[0xFFD5] = 0x31;
+    rom[0xFFDE] = 0xFF; rom[0xFFDF] = 0xFF;
+    assert.strictEqual(terra.isTerraRom(rom), true);
+    rom.set(Buffer.from('TENCHI-JPN           '), 0xFFC0);
+    assert.strictEqual(terra.isTerraRom(rom), true);
+    rom.set(Buffer.from('SECRET OF EVERMORE   '), 0xFFC0);
+    assert.strictEqual(terra.isTerraRom(rom), false);
+});
+
+test('room table bounds; a ROM other than the base one is not decoded', () => {
+    assert.strictEqual(terra.TERRA_ROOM_COUNT, 1104);
+    const small = new Uint8Array(100);
+    assert.strictEqual(terra.readRoomBusAddress(small, 0), null);
+    assert.strictEqual(terra.readRoomBusAddress(small, -1), null);
+    assert.strictEqual(terra.readRoomBusAddress(small, 2000), null);
+    const other = new Uint8Array(0x400000);
+    other.set([0x50, 0x83, 0x9A], terra.TERRA_BASE_ROOM_TABLE_OFFSET);
+    assert.strictEqual(terra.isBaseTerraRom(other), false);
+    assert.strictEqual(terra.loadRoom(other, 0), null);
+    assert.strictEqual(terra.roomCatalog(other).supported, false);
+});
+
+const romPath: string = require('../../dist/games').romPath('terra') || '';
+const rom = romPath && fs.existsSync(romPath) ? new Uint8Array(fs.readFileSync(romPath)) : null;
+
+if (!rom) {
+    console.log('\nTerranigma ROM tests skipped (add the ROM with npm run roms -- add <path>).');
+} else {
+    console.log('\nTerranigma — ROM (' + romPath + '):');
+
+    test('the ROM is the European base release, HiROM FastROM PAL', () => {
+        const id = identifyRom(rom);
+        assert.strictEqual(id.game, 'terra');
+        assert.strictEqual(id.variant, 'eu');
+        assert.strictEqual(terra.isBaseTerraRom(rom), true);
+        const h = terra.readTerraHeader(rom);
+        assert.strictEqual(h.title, 'TERRANIGMA P');
+        assert.strictEqual(h.mapMode, 0x31);
+    });
+
+    test('room table: script pointers, unused slots ($000002)', () => {
+        assert.strictEqual(terra.readRoomBusAddress(rom, 0x00A), 0x9A8350);
+        assert.strictEqual(terra.readRoomFileOffset(rom, 0x00A), 0x1A8350);
+        assert.strictEqual(terra.isRoomSlotUsed(rom, 0x008), false);
+        assert.strictEqual(terra.readRoomFileOffset(rom, 0x008), null);
+    });
+
+    let catalog: { rooms: { id: number; w: number; context: number[] }[]; pictures: number[][]; groups: unknown[]; used: number; unused: number };
+    test('the catalog: every used room, which load a map, the pictures they show (header-only runs, fast)', () => {
+        const t0 = Date.now();
+        catalog = terra.roomCatalog(rom);
+        const ms = Date.now() - t0;
+        assert.strictEqual(catalog.used, 903);
+        assert.strictEqual(catalog.unused, 201);
+        assert.strictEqual(catalog.rooms.filter(r => r.w).length, 881);
+        assert.ok(catalog.pictures.length > 380 && catalog.pictures.length < 881, String(catalog.pictures.length));
+        assert.ok(catalog.pictures.some(p => p.includes(0x00C) && p.includes(0x00D)), 'rooms $00C and $00D share a picture');
+        assert.strictEqual(catalog.groups.length, 18);
+        assert.ok(ms < 10000, ms + ' ms');
+    });
+
+    test('room $00F (Ark’s house) as the loader builds it: layers, sizes, display registers (as in the running game)', () => {
+        const r = terra.loadRoom(rom, 0x00F);
+        assert.ok(r);
+        assert.deepStrictEqual(r.layers.map((l: { index: number; bg: number; w: number; h: number }) => [l.index, l.bg, l.w, l.h]), [[0, 2, 32, 64], [1, 1, 32, 64]]);
+        assert.deepStrictEqual(r.context, []);
+        assert.deepStrictEqual([r.ppu.mode, r.ppu.main, r.ppu.sub, r.ppu.cgwsel, r.ppu.cgadsub], [0x09, 0x17, 0x12, 0x82, 0x21]);
+        for (const s of [0x80, 0x40, 0x20, 0x10]) assert.ok(r.run.sections.includes(s), 'section $' + s.toString(16));
+        assert.ok(r.run.sets.includes(1), 'enters shared script 1');
+        assert.strictEqual(r.palette[0], r.palette[32], 'the backdrop is colour 32 ($8D:8C52)');
+        const pic = terra.renderRoom(r);
+        assert.deepStrictEqual([pic.width, pic.height], [512, 1024]);
+        const colours = new Set<number>();
+        for (let i = 0; i < pic.rgba.length; i += 4) colours.add(pic.rgba[i] << 16 | pic.rgba[i + 1] << 8 | pic.rgba[i + 2]);
+        assert.ok(colours.size > 60, colours.size + ' colours');
+    });
+
+    test('a room that keeps graphics from before is loaded after the closest rooms that load them', () => {
+        assert.deepStrictEqual(terra.contextRooms(rom, 0x041), [0x025, 0x040]);
+        assert.deepStrictEqual(terra.contextRooms(rom, 0x00F), []);
+        assert.deepStrictEqual(terra.contextRooms(rom, 0x03C), [], 'no map of its own: no context');
+    });
+
+    test('terra://: info, rooms, a room’s data and pictures', () => {
+        const read = (p: string) => { const n = resolveTerra(p.split('/').filter(Boolean), rom); return n && n.kind === 'file' ? n.read() : null; };
+        assert.strictEqual(JSON.parse(read('info.json')!.toString()).rooms, 903);
+        const data = JSON.parse(read('rooms/00f.json')!.toString());
+        assert.deepStrictEqual([data.w, data.h, data.layers.length, data.layers[0].cells.length, data.layers[0].metatiles.length], [32, 64, 2, 2048, 2048]);
+        assert.deepStrictEqual([...read('rooms/00f.png')!.subarray(1, 4)], [0x50, 0x4E, 0x47]);
+        assert.ok(read('rooms/00f.tiles.l1.png'));
+        assert.strictEqual(resolveTerra(['rooms', '008.png'], rom), null, 'unused slot');
+        assert.strictEqual(resolveTerra(['rooms', '03c.png'], rom), null, 'no map of its own');
+    });
+}
+
+console.log(`\n${passed} passed, ${failed} failed`);
+process.exit(failed > 0 ? 1 : 0);

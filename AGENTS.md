@@ -41,7 +41,7 @@ External resources:
    right before bumping it.
 6. **Multi-game core reuse & map standard.** All games reuse `src/core/map-editor/` and core UI
    shells. A map is ONLY working if it is embedded in our core map editor and renders to what you see
-   in-game / internet map dumps (blank renders are broken; e.g. Terranigma). Compare new game features
+   in-game / internet map dumps (blank renders are broken). Compare new game features
    against core (Mana objects -> Evermore object system; extend core after discussion). (`feature-validation` skill).
 7. **Empirical validation & global styling.** Never call a tab or feature working without visual
    verification (headless Chromium). All tabs share cohesive look-and-feel using shared CSS (`src/core/webview/`).
