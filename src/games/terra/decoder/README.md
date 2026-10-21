@@ -9,5 +9,7 @@ Rules: [../AGENTS.md](../AGENTS.md). Facts and routine addresses: [docs/terra/RE
 | `room.ts` | a room from the WRAM / VRAM / registers the loader leaves: layers, metatiles, palette, display; header-only summaries; the rooms loaded before a room that keeps parts from before | `$0826-$0850`, `$7F:0600`, `$8D:8C52` |
 | `render.ts` | the picture (BG priority, main / sub screen, colour math, repeating backgrounds) and a layer's metatile sheet | — |
 | `catalog.ts` | every used room and which show the same picture, from header-only runs (~1 s), in groups of 64 ids | — |
+| `collision.ts` | what each of the 32 cell types does to a move up / down / left / right, read from the movement code's jump tables; the ground table | `$80:D542`, `$80:D8E8`, `$80:DC60`, `$80:DFDC`, `$80:E11C` |
+| `exits.ts` | a room's exits: rectangles, targets, choices by event flag | `$81:8000`, `$8D:8797`, `$8D:8911` |
 
 `loadRoom` + `renderRoom`: ~20 ms for a small room, up to ~140 ms for the biggest maps; `roomCatalog`: ~1 s.

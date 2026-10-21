@@ -8,51 +8,17 @@
 import { createRequire } from 'node:module';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import * as vm from 'node:vm';
+import { bootIntoRoom, ROOT } from './boot.mts';
 
 const require = createRequire(import.meta.url);
-const ROOT = path.join(import.meta.dirname, '..', '..');
 const terra = require(path.join(ROOT, 'dist/games/terra'));
 const { encodePng } = require(path.join(ROOT, 'dist/platform'));
-const { romOrExit } = require(path.join(ROOT, 'tools/rom'));
 
 const id = parseInt(process.argv[2] ?? '', 16);
 const outDir = process.argv[3] || '.';
 if (!Number.isInteger(id)) { console.error('usage: node tools/terra/check-room.mts <room id, hex> [outdir]'); process.exit(2); }
-const romPath: string = romOrExit('terra');
-const CORE = path.join(ROOT, 'src/core/emulator/core/snes9x2005-wasm/snes9x_2005.js');
-const START = 0x1000, A = 0x80;
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const g = globalThis as any;
-g.Module = { locateFile: (f: string) => path.join(path.dirname(CORE), f), onRuntimeInitialized: main };
-g.require = require; g.__dirname = path.dirname(CORE); g.__filename = CORE;
-vm.runInThisContext(fs.readFileSync(CORE, 'utf8'), { filename: CORE });
-
-function main() {
-    const M = g.Module, heap = () => g.HEAPU8 as Uint8Array;
-    const rom = new Uint8Array(fs.readFileSync(romPath));
-    const p = M._my_malloc(rom.length); heap().set(rom, p);
-    M._startWithRom(p, rom.length, 32040);
-    const step = (pad: number) => { M._setJoypadInput(pad); M._mainLoop(); };
-    const wait = (n: number) => { for (let i = 0; i < n; i++) step(0); };
-    const press = (pad: number) => { for (let i = 0; i < 3; i++) step(pad); step(0); step(0); };
-    let forced = false;
-    M.onBreakpointHit = () => {
-        if (!forced) {
-            M.writeMemory(0x7E047E, id & 0xFF); M.writeMemory(0x7E047F, id >> 8);
-            M.writeMemory(0x7E0480, (id * 2) & 0xFF); M.writeMemory(0x7E0481, (id * 2) >> 8);
-            forced = true;
-        }
-        return false;
-    };
-    // Title, Restart → New Game, the name (Ark), the chapter card: alternate START and A, one a second.
-    for (let t = 0; t < 30; t++) { wait(60); if (t > 5) press(t % 2 ? A : START); }
-    M.addExecBreakpoint(0x8686ED); M.addExecBreakpoint(0xC686ED);
-    for (let t = 0; t < 600 && !forced; t++) step(0);
-    if (!forced) { console.error('the room loader never ran'); process.exit(1); }
-    wait(240);
-
+bootIntoRoom(id).then(({ M, heap, rom }) => {
     const sb = M._getScreenBuffer();     // 512x448, the 256x224 picture doubled
     const shot = new Uint8Array(256 * 224 * 4);
     for (let y = 0; y < 224; y++) for (let x = 0; x < 256; x++) {
@@ -83,4 +49,4 @@ function main() {
     const ctx = room.context.length ? ` (loaded after ${room.context.map(terra.hex3).join(', ')})` : '';
     console.log(`room ${terra.hex3(id)}${ctx}: screen found at ${ox},${oy} in the ${img.width}×${img.height} render; ${(100 * same / (256 * 224)).toFixed(1)}% of pixels agree`);
     process.exit(0);
-}
+}).catch(e => { console.error(e.message); process.exit(1); });

@@ -3,10 +3,10 @@
 // The page frame, rail behaviour, layout, zoom and pan are the shared editor shell's (src/core/map-editor/shell/),
 // the same files the Evermore Rooms tab and the Secret of Mana Maps page run on. Bundled by tools/bundle-pages.mts
 // as dist/webview/terra-maps.js. State owned here: the open room and the view prefs (vscode.setState).
-import { hex, railAreas, variantsOf, type GroupData, type RoomData, type RoomEntry } from './model';
+import { hex, railAreas, variantsOf, type CellTypeRule, type GroupData, type RoomData, type RoomEntry } from './model';
 import { openEditor, type ViewState } from './editor.dom';
 
-interface Init { error?: string; supported?: boolean; rooms?: RoomEntry[]; groups?: GroupData[]; terraBase?: string }
+interface Init { error?: string; supported?: boolean; rooms?: RoomEntry[]; groups?: GroupData[]; cellTypes?: CellTypeRule[]; terraBase?: string }
 interface PageState { room: number | null; prefs: Record<string, unknown>; view: Partial<ViewState> }
 
 (function () {
@@ -80,7 +80,7 @@ interface PageState { room: number | null; prefs: Record<string, unknown>; view:
             const variants = variantsOf(pictures, id);
             editor = openEditor({
                 entry: { id, hex: r.hex, name: 'Room $' + hex(id, 3), variants },
-                data: data as RoomData, base: init.terraBase || '', st: state.view, save,
+                data: data as RoomData, base: init.terraBase || '', st: state.view, save, rules: init.cellTypes || [],
                 openRoom: (other: number) => { const li = rowFor(other); if (li) select(li, other); },
             });
         });

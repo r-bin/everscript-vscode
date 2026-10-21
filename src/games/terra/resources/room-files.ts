@@ -5,7 +5,7 @@
 //   <hex>.tiles.l0.png / .tiles.l1.png        a layer's 512 metatiles, 16 per row (colour 0 clear)
 //   <hex>.json                                everything the Maps page starts from: sizes, both layers' map
 //                                             words and metatile tile words, palette, display registers,
-//                                             what the load ran and which room was loaded before it
+//                                             what the load ran and which room was loaded before it, its exits
 
 import * as terra from '../decoder';
 import { encodePng } from '../../../platform/png';
@@ -53,6 +53,7 @@ function data(rom: Uint8Array, id: number): Buffer {
             index: l.index, bg: terra.layerBg(l), w: l.w, h: l.h,
             cells: Array.from(l.cells), metatiles: Array.from(l.metatiles),
         })),
+        exits: terra.roomExits(rom, id),
     });
 }
 

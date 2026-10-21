@@ -106,11 +106,48 @@ if (!rom) {
         assert.deepStrictEqual(terra.contextRooms(rom, 0x03C), [], 'no map of its own: no context');
     });
 
+    test('collision: the movement tables give each cell type a rule per direction ($80:D542, $80:D8E8, $80:DC60, $80:DFDC)', () => {
+        const rules = terra.cellTypeRules(rom);
+        const look = (t: number) => terra.cellClass(rules[t]);
+        assert.strictEqual(rules.length, 32);
+        assert.strictEqual(look(0), 'open', 'floor in Ark’s house');
+        assert.strictEqual(look(2), 'open', 'the door gap');
+        assert.strictEqual(look(14), 'wall');
+        assert.strictEqual(look(12), 'wall', 'furniture');
+        assert.strictEqual(look(6), 'diagonal');
+        assert.strictEqual(look(7), 'diagonal');
+        assert.deepStrictEqual(rules[31].moves, { up: 'wall', down: 'open', left: 'wall', right: 'wall' }, 'a drop: passes moving down only');
+        assert.deepStrictEqual(rules[26].moves, { up: 'wall', down: 'wall', left: 'open', right: 'open' });
+        assert.strictEqual(rules[8].moves.up, 'gated');
+        assert.deepStrictEqual([rules[0].ground, rules[2].ground, rules[14].ground], ['open', 'flagged', 'blocked']);
+    });
+
+    test('exits ($81:8000): rooms $00F and $00A as the running game takes them, and they lead back', () => {
+        const ark = terra.roomExits(rom, 0x00F);
+        assert.deepStrictEqual(ark.map((e: { x: number; y: number; w: number; h: number; targets: { room: number }[] }) => [e.x, e.y, e.w, e.h, e.targets[0].room]),
+            [[24, 12, 1, 2, 0x010], [27, 5, 1, 1, 0x122]]);
+        const crysta = terra.roomExits(rom, 0x00A);
+        assert.strictEqual(crysta.length, 9);
+        assert.deepStrictEqual(crysta[0].targets[0], { flag: null, room: 0x01D, x: 368, y: 432, style: [0, 6] });
+        assert.deepStrictEqual(terra.roomExits(rom, 0x001), []);
+        // Across the game nearly every exit has one back from the room it leads to.
+        let all = 0, back = 0;
+        for (let id = 0; id < terra.TERRA_ROOM_COUNT; id++) for (const e of terra.roomExits(rom, id)) for (const t of e.targets) {
+            all++;
+            if (terra.roomExits(rom, t.room).some((b: { targets: { room: number }[] }) => b.targets.some(u => u.room === id))) back++;
+        }
+        assert.ok(all > 2000 && back / all > 0.95, back + ' of ' + all);
+        assert.ok(terra.roomExits(rom, 0x00A).every((e: { at: number }) => e.at >> 16 === 0x81));
+    });
+
     test('terra://: info, rooms, a room’s data and pictures', () => {
         const read = (p: string) => { const n = resolveTerra(p.split('/').filter(Boolean), rom); return n && n.kind === 'file' ? n.read() : null; };
         assert.strictEqual(JSON.parse(read('info.json')!.toString()).rooms, 903);
         const data = JSON.parse(read('rooms/00f.json')!.toString());
         assert.deepStrictEqual([data.w, data.h, data.layers.length, data.layers[0].cells.length, data.layers[0].metatiles.length], [32, 64, 2, 2048, 2048]);
+        assert.strictEqual(data.exits.length, 2);
+        const types = JSON.parse(read('cell-types.json')!.toString());
+        assert.deepStrictEqual([types.length, types[14].look, types[31].look], [32, 'wall', 'one-way']);
         assert.deepStrictEqual([...read('rooms/00f.png')!.subarray(1, 4)], [0x50, 0x4E, 0x47]);
         assert.ok(read('rooms/00f.tiles.l1.png'));
         assert.strictEqual(resolveTerra(['rooms', '008.png'], rom), null, 'unused slot');

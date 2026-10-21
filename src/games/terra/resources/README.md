@@ -10,7 +10,8 @@ Rules: [../AGENTS.md](../AGENTS.md). The read-only file system over the Terranig
 | `terra://rom/rooms/index.md`, `index.json` | every used room: id, script, sections, size, the rooms loaded before it, picture key |
 | `terra://rom/rooms/<hex>.png`, `.l0.png`, `.l1.png` | a room's map, both layers / one |
 | `terra://rom/rooms/<hex>.tiles.l0.png`, `.tiles.l1.png` | a layer's 512 metatiles, 16 per row |
-| `terra://rom/rooms/<hex>.json` | what the Maps page starts from: sizes, both layers' map and tile words, palette, display registers, the load |
+| `terra://rom/rooms/<hex>.json` | what the Maps page starts from: sizes, both layers' map and tile words, palette, display registers, the load, the exits |
 | `terra://rom/groups/index.json` | the rail: rooms by id range, as pictures |
+| `terra://rom/cell-types.json` | the 32 cell types: what each does to a move in each direction, the ground table, the overlay's look |
 
 Ids are three lower-case hex digits. A room without a map of its own has no files.

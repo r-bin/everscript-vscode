@@ -18,7 +18,7 @@ A map is **ONLY** considered working if:
    isolated canvas; it must use our tested map editor shell and core.
 2. **It renders identical to the game / internet map dumps.** If a map renders blank, black, or
    glitched, it is **NOT WORKING**, regardless of whether the decoder returns JSON without throwing.
-   Compare with the running game: `tools/mana/check-map.js`, `tools/terra/check-room.mts` (screen vs render).
+   Compare with the running game: `tools/mana/check-map.js`, `tools/terra/check-room.mts` (screen vs render), `tools/terra/check-exit.mts` (an exit taken in the game vs the table).
 
 ### Multi-game map feature alignment:
 - New game maps must be compared against existing core editor capabilities.

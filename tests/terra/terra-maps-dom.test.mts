@@ -1,8 +1,9 @@
 // The Terranigma Maps page in headless Chromium: the real page (src/games/terra/maps/page.ts) built from the shared
 // editor shell, with a stub host answering terra:// reads from the ROM of the ROM library (the pictures written
 // to a temp dir as the page asks for a room). Checks the shell's frame, rail and search, a room's picture, the
-// filter chips, Pick and the Tile tab's details, the Info tab, the variant bar, and that a second room does not
-// double the clicks (webview-dom-safety §1). Skips without the ROM or playwright.
+// filter chips, Pick and the Tile tab's details, the Collision and Trigger tabs with their overlays (an exit
+// clicked on the map, its target opened), the Info tab, the variant bar, and that a second room does not double
+// the clicks (webview-dom-safety §1). Skips without the ROM or playwright.
 // Run: node tests/terra/terra-maps-dom.test.mts
 import * as fs from 'node:fs';
 import * as os from 'node:os';
@@ -35,7 +36,8 @@ async function main() {
     const base = path.join(tmp, 'terra');
     fs.mkdirSync(path.join(base, 'rooms'), { recursive: true });
     const url = (p: string) => 'file://' + p;
-    const init = { supported: true, rooms: JSON.parse(read('rooms/index.json')!.toString()), groups: JSON.parse(read('groups/index.json')!.toString()), terraBase: url(base) + '/' };
+    const init = { supported: true, rooms: JSON.parse(read('rooms/index.json')!.toString()), groups: JSON.parse(read('groups/index.json')!.toString()),
+        cellTypes: JSON.parse(read('cell-types.json')!.toString()), terraBase: url(base) + '/' };
     const page = path.join(tmp, 'page.html');
     fs.writeFileSync(page, pageHtml(url, { cspSource: "file: 'self'", nonce: 'n1', init }));
 
@@ -88,8 +90,9 @@ async function main() {
     });
     check('a room opens on the canvas card with its picture (512×1024 for $00F)', opened.name === 'Room $00F' && /00f\.png$/.test(opened.href)
         && JSON.stringify(opened.size) === '[512,1024]', opened);
-    check('the pill (Select, Pick), the filter bar (BG1, BG2, Cell types, Grid) and the dock (Tile, Info) with the metatile picker',
-        opened.pill.join() === 'select,pick' && opened.chips.join() === 'BG1,BG2,Cell types,Grid' && opened.tabs.join() === 'Tile,Info' && opened.picker, opened);
+    check('the pill (Select, Pick), the filter bar (BG1, BG2, Cell types, Collision, Triggers, Grid) and the dock (Tile, Collision, Trigger, Info) with the metatile picker',
+        opened.pill.join() === 'select,pick' && opened.chips.join() === 'BG1,BG2,Cell types,Collision,Triggers,Grid'
+        && opened.tabs.join() === 'Tile,Collision,Trigger,Info' && opened.picker, opened);
 
     await p.click('[data-edit-tool="pick"]');
     const box = await p.$eval('#rg-svg', el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; });
@@ -110,6 +113,37 @@ async function main() {
     const href = await p.$eval('#rg-img', el => el.getAttribute('href'));
     check('turning BG1 off shows layer 0 alone', /00f\.l0\.png$/.test(href || ''), href);
     await p.click('.rg-view-filters [data-toggle="l1"]');
+
+    await p.click('[data-terra-tab="collision"]');
+    const coll = await p.evaluate(() => ({
+        forced: document.querySelector('.rg-view-filters [data-toggle="collision"]')?.className || '',
+        walls: document.querySelectorAll('#tm-coll .tm-wall').length,
+        cards: [...document.querySelectorAll('[data-terra-ctype]')].map(b => (b as HTMLElement).dataset.terraCtype),
+    }));
+    check('the Collision tab turns the Collision chip on (locked), draws the walls and lists the room’s cell types',
+        /\bon\b/.test(coll.forced) && /forced/.test(coll.forced) && coll.walls > 0 && coll.cards.includes('0') && coll.cards.includes('14'), coll);
+    await p.click('[data-terra-ctype="14"]');
+    const ctype = await p.evaluate(() => ({ text: document.getElementById('rg-panels')?.textContent || '', outlined: document.querySelectorAll('#tm-coll .tm-ctype').length }));
+    check('a type card shows what the type does and outlines its cells', /TYPE 14/.test(ctype.text) && /wall: every move stops/.test(ctype.text) && ctype.outlined === 1, ctype.text.slice(0, 200));
+
+    await p.click('[data-terra-tab="trigger"]');
+    const rowsT = await p.$$eval('[data-exit]', l => l.map(e => e.textContent));
+    check('the Trigger tab lists the room’s exits ($00F: to $010 and $122)', rowsT.length === 2 && /→ \$010/.test(rowsT[0] || '') && /→ \$122/.test(rowsT[1] || ''), rowsT);
+    await p.click('[data-terra-tab="tile"]');
+    await p.click('[data-edit-tool="select"]');
+    await p.click('.rg-view-filters [data-toggle="triggers"]');
+    const exits = await p.$$eval('#tm-exits .tm-exit', l => l.length);
+    await p.mouse.click(box.x + box.w * (24.5 / 32), box.y + box.h * (12.5 / 64));
+    await p.waitForTimeout(200);
+    const hit = await p.evaluate(() => ({ tab: document.querySelector('.rg-tab.on')?.textContent, sel: document.querySelectorAll('#tm-exits .tm-exit.sel').length,
+        text: document.getElementById('rg-panels')?.textContent || '' }));
+    check('with Triggers on, clicking an exit on the map selects it in the Trigger tab', exits === 2 && hit.tab === 'Trigger' && hit.sel === 1
+        && /room \$010 at 384,336/.test(hit.text), { exits, ...hit, text: hit.text.slice(0, 200) });
+    await p.click('.rg-object-expanded [data-open-room="16"]');
+    await p.waitForTimeout(800);
+    check('an exit’s button opens the room it leads to', await p.$eval('.rd-name', el => el.textContent) === 'Room $010');
+    await p.click('li.rn-map[data-room="15"]');
+    await p.waitForTimeout(800);
 
     await p.click('[data-terra-tab="info"]');
     const info = await p.$eval('#rg-panels', el => el.textContent || '');

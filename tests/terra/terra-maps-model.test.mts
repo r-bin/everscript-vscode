@@ -1,5 +1,6 @@
 // The Terranigma Maps page's model (src/games/terra/maps/webview/model.ts): map and tile words, a metatile's use
-// and tiles, a cell, the rail, variants, the cell-type overlay, the display registers. Synthetic rooms; no ROM.
+// and tiles, a cell, the rail, variants, the cell-type, collision and exit overlays, the display registers.
+// Synthetic rooms and rules; no ROM.
 // Run: node tests/terra/terra-maps-model.test.mts
 import assert from 'node:assert';
 import { createRequire } from 'node:module';
@@ -25,7 +26,22 @@ function room() {
             { index: 0, bg: 2, w: 2, h: 2, cells: [0x0001, 0x1C02, 0x0001, 0x9C02], metatiles },
             { index: 1, bg: 1, w: 1, h: 1, cells: [0x0003], metatiles },
         ],
+        exits: [
+            { x: 1, y: 0, w: 1, h: 2, inverted: false, at: 0x818E3C, targets: [{ room: 0x10, x: 384, y: 336, style: [0, 5], flag: null }] },
+            { x: 0, y: 1, w: 1, h: 1, inverted: true, at: 0x818E48, targets: [{ room: 0x11, x: 16, y: 32, style: [0, 6], flag: 0x160 }, { room: 0x12, x: 0, y: 0, style: [0, 6], flag: 0 }] },
+        ],
     };
+}
+
+/** Rules as cell-types.json has them: 0 open, 14 wall, 6 diagonal, 31 passes moving down only, 8 gated moving up. */
+function rules() {
+    const all = (r: string) => ({ up: r, down: r, left: r, right: r });
+    const out = Array.from({ length: 32 }, (_, type) => ({ type, moves: all('open'), ground: 'open', groundWord: 0, look: 'open' }));
+    out[14] = { type: 14, moves: all('wall'), ground: 'blocked', groundWord: 0xFFFF, look: 'wall' };
+    out[6] = { type: 6, moves: all('diagonal'), ground: 'blocked', groundWord: 0xFFFF, look: 'diagonal' };
+    out[31] = { type: 31, moves: { up: 'wall', down: 'open', left: 'wall', right: 'wall' }, ground: 'blocked', groundWord: 0xFFFF, look: 'one-way' };
+    out[8] = { type: 8, moves: { up: 'gated', down: 'open', left: 'open', right: 'open' }, ground: 'blocked', groundWord: 0xFFFF, look: 'one-way' };
+    return out;
 }
 
 console.log('\nTerranigma Maps page model:');
@@ -85,6 +101,33 @@ test('the overlay lists layer 0 cells with a non-zero type', () => {
 
 test('the display registers in words', () => {
     assert.deepStrictEqual(m.describeDisplay(room()), ['BG mode 1', 'main screen: BG1 BG2 BG3 OBJ', 'sub screen: BG2 OBJ', 'colour math: add sub screen on BG1, backdrop']);
+});
+
+test('collision: layer 0 cells per type, the cells that are not open, and the edges a move cannot cross', () => {
+    assert.deepStrictEqual([...m.typeCounts(room())], [[0, 2], [14, 2]]);
+    assert.deepStrictEqual(m.collisionCells(room(), rules()), [[1, 0, 14], [1, 1, 14]]);
+    assert.deepStrictEqual(m.collisionCells(room(), []), [], 'no rules: nothing drawn');
+    assert.deepStrictEqual(m.blockedEdges(rules()[31]).map((e: { side: string }) => e.side), ['bottom', 'right', 'left'], 'moving up stops at the bottom edge');
+    assert.deepStrictEqual(m.blockedEdges(rules()[8]), [{ side: 'bottom', gated: true }]);
+});
+
+test('collision: a type in words', () => {
+    assert.strictEqual(m.moveSummary(rules()[0]), 'open: every move passes');
+    assert.strictEqual(m.moveSummary(rules()[14]), 'wall: every move stops');
+    assert.strictEqual(m.moveSummary(rules()[31]), 'passes ↓ · stops ↑ ← →');
+    assert.strictEqual(m.moveSummary(rules()[8]), 'passes ↓ ← → · ↑ only while $097C bit 2 is set');
+    const rows = m.describeType(rules()[31]);
+    assert.strictEqual(rows[0], 'moving up into it ↑: stops at its edge');
+    assert.match(rows[4], /^ground table \(\$80:E11C\): \$FFFF — characters without bit \$0400 cannot enter$/);
+});
+
+test('exits: which hold a cell, their targets, and a choice by flag in words', () => {
+    assert.deepStrictEqual(m.exitsAt(room(), 1, 1), [0]);
+    assert.deepStrictEqual(m.exitsAt(room(), 0, 1), [1]);
+    assert.deepStrictEqual(m.exitsAt(room(), 0, 0), []);
+    assert.strictEqual(m.exitTargets(room().exits[1]), '$011 / $012');
+    assert.deepStrictEqual(m.describeExit(room().exits[0]), ['cells 1,0 · 1×2 · record $81:8E3C', 'room $010 at 384,336 (cell 24,21) · style $00 $05']);
+    assert.deepStrictEqual(m.describeExit(room().exits[1]).slice(1), ['flag $160 clear: room $011 at 16,32 (cell 1,2) · style $00 $06', 'otherwise: room $012 at 0,0 (cell 0,0) · style $00 $06']);
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

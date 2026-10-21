@@ -1,25 +1,30 @@
 // Ownership: one Terranigma room on the shared editor shell — the name line, the canvas column (the shell's
-// card, pill, zoom chip, filter bar, status bar), what is on the map (the picture, the cell-type overlay, the
-// grid, the hovered and selected cell) and the pointer: Select (click a cell, drag to pan) and Pick (take a
-// cell's metatile into the Tile tab). The dock's tabs are dock.dom.ts'. Read-only: nothing here changes a room.
+// card, pill, zoom chip, filter bar, status bar), what is on the map (the picture, the cell-type, collision and
+// exit overlays, the grid, the hovered and selected cell) and the pointer: Select (click a cell or an exit, drag
+// to pan) and Pick (take a cell's metatile into the Tile tab). The dock's tabs are dock.dom.ts'. Read-only: nothing here changes a room.
 // One svg unit is 8 px, as in the other games' editors; the pixel-sized content sits in `#rg-px`, scaled 1/8.
-import { hex, layerOf, mapWord, cellWord, typeColor, typedCells, type RoomData } from './model';
+import { blockedEdges, collisionCells, exitsAt, exitTargets, hex, layerOf, mapWord, cellWord, typeColor, typedCells,
+    type CellTypeRule, type RoomData } from './model';
 import { dockBind, dockRender } from './dock.dom';
 
 export interface ViewState {
-    tool: 'select' | 'pick'; tab: 'tile' | 'info';
+    tool: 'select' | 'pick'; tab: 'tile' | 'collision' | 'trigger' | 'info';
     /** The layer the Tile tab shows (0 or 1) and its picked metatile. */
     layer: number; tile: number;
     /** The selected cell, or null. */
     cell: [number, number] | null;
-    /** Filter chips: each layer's picture, the cell types, the grid. */
-    l0: boolean; l1: boolean; types: boolean; grid: boolean;
+    /** The selected exit (index into the room's exits) and the cell type the Collision tab shows, or null. */
+    exit: number | null; ctype: number | null;
+    /** Filter chips: each layer's picture, the cell types, collision, the exits, the grid. */
+    l0: boolean; l1: boolean; types: boolean; collision: boolean; triggers: boolean; grid: boolean;
     panelOpen: Record<string, boolean>;
 }
 
 export interface EditorCtx {
     entry: { id: number; hex: string; name: string; variants: number[] };
     data: RoomData; base: string; st: Partial<ViewState>; save(): void; openRoom(id: number): void;
+    /** What each cell type does (terra://rom/cell-types.json); empty if it could not be read. */
+    rules: CellTypeRule[];
 }
 
 export interface Editor {
@@ -28,10 +33,16 @@ export interface Editor {
     zp: ShellZoomPan; pan: ShellPan;
     /** The cell the button went down on (a click selects it only if it comes up there, without a pan). */
     down: [number, number] | null;
+    /** Redraw the chips and overlays that follow the open tab and the selection (the dock calls it). */
+    redraw(): void;
 }
 
 const UNIT = 8, CELL = 2;
-const DEFAULTS: ViewState = { tool: 'select', tab: 'tile', layer: 0, tile: 0, cell: null, l0: true, l1: true, types: false, grid: false, panelOpen: {} };
+const DEFAULTS: ViewState = { tool: 'select', tab: 'tile', layer: 0, tile: 0, cell: null, exit: null, ctype: null,
+    l0: true, l1: true, types: false, collision: false, triggers: false, grid: false, panelOpen: {} };
+type Chip = 'l0' | 'l1' | 'types' | 'collision' | 'triggers' | 'grid';
+/** The overlay each dock tab shows while it is open (its chip is on and locked, as in the other games' editors). */
+const FORCED_BY: Partial<Record<Chip, [ViewState['tab'], string]>> = { collision: ['collision', 'Collision'], triggers: ['trigger', 'Trigger'] };
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 function svgEl(tag: string, attrs: Record<string, string | number>): SVGElement {
@@ -54,13 +65,27 @@ function filtersHtml(E: Editor): string {
         return mapViewChipHtml({ label: l ? 'BG' + l.bg : 'Layer ' + i, on: !!l && (i === 0 ? E.st.l0 : E.st.l1), attrs: { toggle: 'l' + i },
             cls: l ? '' : 'disabled', title: l ? `Layer ${i}, shown on BG${l.bg} (${l.w}×${l.h} cells)` : 'This room has no layer ' + i });
     };
-    const chip = (label: string, key: 'types' | 'grid', title: string) => mapViewChipHtml({ label, on: E.st[key], attrs: { toggle: key }, title });
+    const chip = (label: string, key: Chip, title: string) => {
+        const by = forcedBy(E, key);
+        return mapViewChipHtml({ label, on: chipOn(E, key), attrs: { toggle: key }, cls: by ? 'forced' : '',
+            title: title + (by ? ' — shown while the ' + by + ' tab is open' : '') });
+    };
     // BG1 first, as in the other games' filter bars.
     const order = [0, 1].sort((a, b) => (layerOf(E.data, a)?.bg ?? 9) - (layerOf(E.data, b)?.bg ?? 9));
     return '<div class="rd-filters rg-view-filters">' + mapViewSegHtml(order.map(layerChip))
         + chip('Cell types', 'types', 'Layer 0’s cell types (bits 9-13 of each map word, what the movement code reads); type 0 is not drawn')
+        + chip('Collision', 'collision', 'What stops a character: walls, diagonal corners, and the edges of cells only some moves pass (the Collision tab)')
+        + chip('Triggers', 'triggers', 'The exits: rectangles that take the player to another room (the Trigger tab)')
         + chip('Grid', 'grid', 'The 16 px grid') + '</div>';
 }
+
+function forcedBy(E: Editor, key: Chip): string {
+    const f = FORCED_BY[key];
+    return f && E.st.tab === f[0] ? f[1] : '';
+}
+
+/** Whether an overlay shows: its chip is on, or the open tab shows it. */
+export function chipOn(E: Editor, key: Chip): boolean { return !!E.st[key] || !!forcedBy(E, key); }
 
 function pillHtml(E: Editor): string {
     const tools = [['select', 'select', 'Select a cell (drag to pan)'], ['pick', 'pick', 'Pick: take a cell’s metatile into the Tile tab']]
@@ -76,7 +101,10 @@ function pillHtml(E: Editor): string {
 function stageInner(E: Editor): string {
     return '<g id="rg-px" transform="scale(0.125)"><image class="room-img tm-picture" id="rg-img" x="0" y="0" width="' + E.W + '" height="' + E.H
         + '" preserveAspectRatio="none" href="' + pictureHref(E) + '"/>'
-        + '<g id="tm-types" pointer-events="none"></g><g id="rg-grid" pointer-events="none"></g>'
+        + '<defs><pattern id="tm-hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">'
+        + '<rect width="4" height="4" class="tm-hatch-bg"/><rect width="1.6" height="4" class="tm-hatch-line"/></pattern></defs>'
+        + '<g id="tm-types" pointer-events="none"></g><g id="tm-coll" pointer-events="none"></g>'
+        + '<g id="tm-exits" pointer-events="none"></g><g id="rg-grid" pointer-events="none"></g>'
         + '<rect id="tm-sel" class="tm-sel" x="0" y="0" width="16" height="16" display="none" pointer-events="none"/>'
         + '<rect id="rg-hover" class="tm-hover" x="0" y="0" width="16" height="16" display="none" pointer-events="none"/></g>';
 }
@@ -92,6 +120,52 @@ export function stageTypes(E: Editor): void {
         label.textContent = String(t);
         g.appendChild(label);
     }
+}
+
+const EDGE: Record<string, (x: number, y: number) => string> = {
+    top: (x, y) => `M${x} ${y + 1}H${x + 16}`, bottom: (x, y) => `M${x} ${y + 15}H${x + 16}`,
+    left: (x, y) => `M${x + 1} ${y}V${y + 16}`, right: (x, y) => `M${x + 15} ${y}V${y + 16}`,
+};
+
+/**
+ * Collision of layer 0: walls filled, the two diagonal corners as triangles (type 6 solid toward the upper left,
+ * 7 the upper right — where they sit on the maps), and for a type only some moves pass, the edges that stop a move
+ * (dashed: only without a flag). The type the Collision tab shows is outlined.
+ */
+export function stageCollision(E: Editor): void {
+    const g = document.getElementById('tm-coll');
+    if (!g) return;
+    g.textContent = '';
+    if (!chipOn(E, 'collision')) return;
+    let walls = '', diag = '', edges = '', gated = '', picked = '';
+    for (const [cx, cy, t] of collisionCells(E.data, E.ctx.rules)) {
+        const x = cx * 16, y = cy * 16, rule = E.ctx.rules[t];
+        if (rule.look === 'wall') walls += `M${x} ${y}h16v16h-16z`;
+        else if (rule.look === 'diagonal') diag += t === 7 ? `M${x} ${y}h16v16z` : `M${x} ${y}h16L${x} ${y + 16}z`;
+        else for (const e of blockedEdges(rule)) { if (e.gated) gated += EDGE[e.side](x, y); else edges += EDGE[e.side](x, y); }
+        if (t === E.st.ctype) picked += `M${x + 0.5} ${y + 0.5}h15v15h-15z`;
+    }
+    if (E.st.ctype !== null && E.ctx.rules[E.st.ctype]?.look === 'open') {
+        const l = layerOf(E.data, 0);
+        if (l) l.cells.forEach((w, i) => { if (mapWord(w).type === E.st.ctype) picked += `M${(i % l.w) * 16 + 0.5} ${Math.floor(i / l.w) * 16 + 0.5}h15v15h-15z`; });
+    }
+    const add = (d: string, cls: string) => { if (d) g.appendChild(svgEl('path', { d, class: cls })); };
+    add(walls, 'tm-wall'); add(diag, 'tm-wall'); add(edges, 'tm-edge'); add(gated, 'tm-edge tm-gated'); add(picked, 'tm-ctype');
+}
+
+/** The exits: each rectangle with the room it leads to; the selected one is outlined. */
+export function stageExits(E: Editor): void {
+    const g = document.getElementById('tm-exits');
+    if (!g) return;
+    g.textContent = '';
+    if (!chipOn(E, 'triggers')) return;
+    (E.data.exits || []).forEach((e, i) => {
+        const cls = 'tm-exit' + (e.targets.length > 1 || e.targets[0]?.flag !== null ? ' tm-exit-flag' : '') + (i === E.st.exit ? ' sel' : '');
+        g.appendChild(svgEl('rect', { x: e.x * 16 + 1, y: e.y * 16 + 1, width: e.w * 16 - 2, height: e.h * 16 - 2, rx: 2, class: cls }));
+        const label = svgEl('text', { x: e.x * 16 + 3, y: e.y * 16 + 10, class: 'tm-exit-label' });
+        label.textContent = '→' + exitTargets(e);
+        g.appendChild(label);
+    });
 }
 
 function stageGrid(E: Editor): void {
@@ -140,16 +214,35 @@ function refreshPill(E: Editor): void {
     if (pill) pill.outerHTML = pillHtml(E);
 }
 
-/** A cell clicked with Select or Pick: select it; Pick also takes its metatile into the Tile tab. */
+/**
+ * A cell clicked with Select or Pick: select it; Pick also takes its metatile into the Tile tab. With the exits
+ * shown, a click on one selects it and opens the Trigger tab; on the Collision tab a click shows the cell's type.
+ */
 function clickCell(E: Editor, c: [number, number]): void {
     E.st.cell = c;
+    const hit = chipOn(E, 'triggers') ? exitsAt(E.data, c[0], c[1]) : [];
+    if (hit.length && E.st.tool === 'select') {
+        E.st.exit = hit.includes(E.st.exit ?? -1) && hit.length > 1 ? hit[(hit.indexOf(E.st.exit!) + 1) % hit.length] : hit[0];
+        E.st.tab = 'trigger';
+    } else if (E.st.tab === 'collision') {
+        const w = cellWord(E.data, 0, c[0], c[1]);
+        if (w >= 0) E.st.ctype = mapWord(w).type;
+    }
     if (E.st.tool === 'pick') {
         const w = cellWord(E.data, E.st.layer, c[0], c[1]);
         if (w >= 0) { E.st.tile = mapWord(w).metatile; E.st.tab = 'tile'; }
     }
     E.ctx.save();
     stageSelection(E);
+    refreshOverlays(E);
     dockRender(E);
+}
+
+/** Redraw what depends on the open tab and the selection: the chips (forced ones), collision, exits. */
+export function refreshOverlays(E: Editor): void {
+    refreshFilters(E);
+    stageCollision(E);
+    stageExits(E);
 }
 
 /**
@@ -161,6 +254,7 @@ export function openEditor(ctx: EditorCtx): { close(): void } {
     (Object.keys(DEFAULTS) as (keyof ViewState)[]).forEach(k => { if (st[k] === undefined) (st as unknown as Record<string, unknown>)[k] = DEFAULTS[k]; });
     if (!layerOf(ctx.data, st.layer)) st.layer = ctx.data.layers[0]?.index ?? 0;
     st.cell = null;
+    st.exit = null;
     const panel = document.getElementById('room-detail')!;
     const E = { ctx, st, data: ctx.data, W: ctx.data.w * 16, H: ctx.data.h * 16, panels: null, closed: false, down: null,
         pan: { panX: 0, panY: 0, panActive: false, panMoved: false, panCX: 0, panCY: 0, panBX: 0, panBY: 0 } } as unknown as Editor;
@@ -183,6 +277,7 @@ export function openEditor(ctx: EditorCtx): { close(): void } {
     };
     (w.renderEditHeadActs as () => void)();
 
+    E.redraw = () => refreshOverlays(E);
     E.wrap = document.getElementById('rg-wrap')!;
     E.svg = document.getElementById('rg-svg') as unknown as SVGSVGElement;
     document.getElementById('rg-canvas-card')!.insertAdjacentHTML('afterbegin', pillHtml(E));
@@ -193,12 +288,14 @@ export function openEditor(ctx: EditorCtx): { close(): void } {
     layoutUpdateCompact();
     E.zp = { svg: E.svg, canvas: document.getElementById('rg-canvas')!, wrap: E.wrap, W: E.W / UNIT, H: E.H / UNIT, dispW, dispH, zoomState: { scale: 0 }, panX: 0, panY: 0 };
     setupZoomPan(E.zp);
-    stageTypes(E); stageGrid(E); stageSelection(E);
+    stageTypes(E); stageCollision(E); stageExits(E); stageGrid(E); stageSelection(E);
     shellStatusBind(e => {
         const c = cellAt(E, e);
         if (!c) return null;
         const word = cellWord(E.data, 0, c[0], c[1]);
-        return 'x: ' + statusPad2(c[0]) + ' y: ' + statusPad2(c[1]) + (word >= 0 ? ' · $' + hex(mapWord(word).metatile, 3) + ' · type ' + mapWord(word).type : '');
+        const exits = exitsAt(E.data, c[0], c[1]).map(i => 'exit → ' + exitTargets(E.data.exits[i]));
+        return 'x: ' + statusPad2(c[0]) + ' y: ' + statusPad2(c[1]) + (word >= 0 ? ' · $' + hex(mapWord(word).metatile, 3) + ' · type ' + mapWord(word).type : '')
+            + (exits.length ? ' · ' + exits.join(', ') : '');
     });
 
     const onDown = (e: MouseEvent) => {
@@ -231,14 +328,16 @@ export function openEditor(ctx: EditorCtx): { close(): void } {
         if (d.terraRoom) { ctx.openRoom(Number(d.terraRoom)); return; }
         if (d.editAct === 'toggle-rail') { editToggleRail(); return; }
         if (d.editAct === 'toggle-dock') { editToggleDock(); return; }
-        const k = d.toggle as 'l0' | 'l1' | 'types' | 'grid' | undefined;
-        if (!k || b.classList.contains('disabled')) return;
+        const k = d.toggle as Chip | undefined;
+        if (!k || b.classList.contains('disabled') || b.classList.contains('forced')) return;
         E.st[k] = !E.st[k];
         if (!E.st.l0 && !E.st.l1) E.st[k === 'l0' ? 'l1' : 'l0'] = true;   // there is no picture of nothing
         ctx.save();
         refreshFilters(E);
         if (k === 'l0' || k === 'l1') document.getElementById('rg-img')?.setAttribute('href', pictureHref(E));
         else if (k === 'types') stageTypes(E);
+        else if (k === 'collision') stageCollision(E);
+        else if (k === 'triggers') stageExits(E);
         else stageGrid(E);
     };
     panel.addEventListener('click', onClick);

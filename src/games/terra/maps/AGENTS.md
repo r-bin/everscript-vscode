@@ -20,8 +20,10 @@ Kind: **feature** (see `/AI_ARCHITECTURE_GUIDE.md` §2). The Terranigma Maps pan
   dock's is bound once per dock node (`webview-dom-safety` §1).
 - Pictures are SVG `<image>`s sized by the shell (one svg unit = 8 px; pixel content in `#rg-px`, scaled 1/8);
   never scale them with CSS.
-- The page says what is a guess: a room drawn after the rooms before it (Info › ROOM), what is not drawn (Info), what
-  the cell types mean (not decoded).
+- The page says what is a guess: a room drawn after the rooms before it (Info › ROOM), what is not drawn (Info), the
+  diagonal corners' shape (Collision tab note), events that are not decoded (Trigger tab).
+- Collision and exits come from `terra://rom/cell-types.json` and the room's `exits`; the page never hard-codes a
+  cell type's meaning.
 - Read-only: nothing changes a room. Editing would follow the Mana panel's model (`edit-history`, sessions, "not saved").
 
 ## Tests

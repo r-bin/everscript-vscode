@@ -1,12 +1,14 @@
 // Ownership: the right-hand dock of the Terranigma Maps page — its tab strip (the shell's shellTabStripHtml)
-// and its tabs: Tile (the layer, the metatile picker, what the picked metatile is, the selected cell) and Info
-// (what the room is, what its load ran, its display registers, the rooms that show the same map). The dock
+// and its tabs: Tile (the layer, the metatile picker, what the picked metatile is, the selected cell), Collision
+// (the cell types of the room and what each does to a move), Trigger (the room's exits) and Info (what the room
+// is, what its load ran, its display registers, the rooms that show the same map). The dock
 // node itself is the shell's (shellDockMount); this file fills it and handles its clicks. State lives on the
 // editor `E` (editor.dom.ts); nothing is owned here.
-import { describeCell, describeDisplay, hex, layerOf, metatileTiles, metatileUse, sheetRows, type RoomData } from './model';
+import { blockedEdges, describeCell, describeDisplay, describeExit, describeType, exitTargets, hex, layerOf, mapWord, cellWord,
+    metatileTiles, metatileUse, moveSummary, sheetRows, typeCounts, type CellTypeRule, type RoomData } from './model';
 import type { Editor } from './editor.dom';
 
-const TABS: [Editor['st']['tab'], string][] = [['tile', 'Tile'], ['info', 'Info']];
+const TABS: [Editor['st']['tab'], string][] = [['tile', 'Tile'], ['collision', 'Collision'], ['trigger', 'Trigger'], ['info', 'Info']];
 /** Metatiles per row of the sheet (terra://rom/rooms/<hex>.tiles.l<n>.png), and rows. */
 const SHEET_COLS = 16, SHEET_ROWS = 32;
 
@@ -50,8 +52,58 @@ function tileTab(E: Editor): string {
         + panelHtml(E, 'picked', 'PICKED', picked)
         + panelHtml(E, 'cell', 'CELL', cell, c ? c[0] + ',' + c[1] : '')
         + '<div class="rs-note">A map word is the metatile (bits 0-8) and the cell type (bits 9-13) the movement code reads; '
-        + 'a tile word is the SNES character, palette, priority and flips. What each cell type does is not decoded yet.</div>'
+        + 'a tile word is the SNES character, palette, priority and flips. What each cell type does: the Collision tab.</div>'
         + '</div>';
+}
+
+/** A cell type's swatch, as the overlay draws it (walls red, a diagonal corner, the edges some moves cannot cross). */
+function typeSwatch(rule: CellTypeRule | undefined): string {
+    if (!rule || rule.look === 'open') return shellSwatchSvg();
+    if (rule.look === 'wall') return shellSwatchSvg('M0 0h16v16h-16z', 'var(--tm-wall)');
+    if (rule.look === 'diagonal') return shellSwatchSvg(rule.type === 7 ? 'M0 0h16v16z' : 'M0 0h16L0 16z', 'var(--tm-wall)');
+    const edge: Record<string, string> = { top: 'M0 0h16v2h-16z', bottom: 'M0 14h16v2h-16z', left: 'M0 0h2v16h-2z', right: 'M14 0h2v16h-2z' };
+    const e = blockedEdges(rule);
+    return shellSwatchSvg(e.filter(x => !x.gated).map(x => edge[x.side]).join(''), 'var(--tm-wall)',
+        e.filter(x => x.gated).map(x => '<path d="' + edge[x.side] + '" fill="var(--tm-gated)"/>').join(''));
+}
+
+function collisionTab(E: Editor): string {
+    const rules = E.ctx.rules, counts = typeCounts(E.data), sel = E.st.ctype;
+    if (!rules.length) return '<div class="rs-note">The cell-type rules could not be read (terra://rom/cell-types.json).</div>';
+    if (!layerOf(E.data, 0)) return '<div class="rs-note">This room has no layer 0, the map the movement code reads.</div>';
+    const keys = shellKeysHtml([['red', 'stops every move'], ['edge', 'stops a move across it'], ['dashed', 'only without a flag'], ['click', 'a cell shows its type']]);
+    const cards = shellSwatchGridHtml([...counts].map(([t, n]) => ({
+        attrs: { 'terra-ctype': t }, swatch: typeSwatch(rules[t]), label: 'type ' + t, sub: n + ' cell' + (n === 1 ? '' : 's'),
+        on: t === sel, title: moveSummary(rules[t]) + ' — click to outline its cells',
+    })));
+    const rule = sel !== null ? rules[sel] : undefined;
+    const detail = rule ? rows([moveSummary(rule), ...describeType(rule)])
+        : '<div class="rs-note">Pick a type above, or click a cell on the map.</div>';
+    const c = E.st.cell, w = c ? cellWord(E.data, 0, c[0], c[1]) : -1;
+    const cell = w >= 0 ? rows([`cell ${c![0]},${c![1]} · type ${mapWord(w).type}`, moveSummary(rules[mapWord(w).type])]) : '';
+    return keys + panelHtml(E, 'ctypes', 'TYPES IN THIS ROOM', cards, String(counts.size))
+        + panelHtml(E, 'ctype', rule ? 'TYPE ' + rule.type : 'TYPE', detail, rule ? '$' + hex(rule.type, 2) : '')
+        + (cell ? panelHtml(E, 'ccell', 'CELL', cell) : '')
+        + '<div class="rs-note">Read from the movement code ($80:D0F9): a 32-entry jump table per direction, by the type of the cell a move enters, '
+        + 'on layer 0 (the map at $7E:A000). In line with a single cell a move passes or stops as shown; straddling two cells it also slides around a corner. '
+        + 'Types 6 and 7 slide the character along a diagonal; the triangles are where they sit on the maps. Bit 14 of a map word is not decoded.</div>';
+}
+
+function triggerTab(E: Editor): string {
+    const exits = E.data.exits || [], sel = E.st.exit;
+    if (!exits.length) return '<div class="rs-note">This room has no exits in the exit table ($81:8000). Events (characters, chests, cutscenes) are not decoded yet.</div>';
+    const list = exits.map((e, i) => {
+        const on = i === sel, flagged = e.targets.some(t => t.flag !== null);
+        const body = on ? '<div class="rg-object-expanded">' + rows(describeExit(e))
+            + '<div class="tm-rooms">' + e.targets.map(t => '<button class="rdf" data-open-room="' + t.room + '" title="Open room $' + hex(t.room, 3) + '">open $' + hex(t.room, 3) + '</button>').join('') + '</div></div>' : '';
+        return '<div class="rg-trigger-card' + (on ? ' on' : '') + '"><div class="rg-trigger-row' + (on ? ' on' : '') + '" data-exit="' + i + '" title="Select this exit">'
+            + '<span class="rg-trigger-label">#' + i + ' · ' + e.x + ',' + e.y + (e.w > 1 || e.h > 1 ? ' · ' + e.w + '×' + e.h : '') + ' → ' + shellEscape(exitTargets(e))
+            + (flagged ? ' · by flag' : '') + '</span></div>' + body + '</div>';
+    }).join('');
+    return panelHtml(E, 'exits', 'EXITS', '<div class="rg-trigger-list">' + list + '</div>', String(exits.length))
+        + '<div class="rs-note">An exit is a rectangle of cells: the room change starts when the player’s 16 px box is inside it ($8D:8797, every frame). '
+        + 'Its target is a room and an arrival point in that room’s pixels, or a list of choices by event flag ($8D:8911). '
+        + 'Click an exit on the map or a row here; events run by characters and objects are not decoded yet.</div>';
 }
 
 function infoTab(E: Editor): string {
@@ -80,10 +132,11 @@ function infoTab(E: Editor): string {
 export function dockRender(E: Editor): void {
     if (!E.panels || E.closed) return;
     const scrollOf = () => E.panels!.querySelector(E.st.tab === 'tile' ? '.rg-tile-scroll' : '.rg-tab-body');
+    const tab = E.st.tab === 'info' ? infoTab(E) : E.st.tab === 'collision' ? collisionTab(E) : E.st.tab === 'trigger' ? triggerTab(E) : tileTab(E);
     const scroll = scrollOf();
     const top = scroll ? scroll.scrollTop : 0;
     E.panels.innerHTML = shellTabStripHtml(TABS.map(([value, label]) => ({ value, label, on: E.st.tab === value })), 'terra-tab')
-        + '<div class="rg-tab-body" id="rg-tab-body" data-tab="' + E.st.tab + '">' + (E.st.tab === 'info' ? infoTab(E) : tileTab(E)) + '</div>';
+        + '<div class="rg-tab-body" id="rg-tab-body" data-tab="' + E.st.tab + '">' + tab + '</div>';
     const again = scrollOf();
     if (again && top) again.scrollTop = top;
 }
@@ -109,14 +162,17 @@ export function dockBind(E: Editor): void {
             E.ctx.save(); dockRender(E);
             return;
         }
-        const el = t.closest('[data-terra-tab],[data-layer],[data-panel],[data-open-room]') as HTMLElement | null;
+        const el = t.closest('[data-terra-tab],[data-layer],[data-panel],[data-open-room],[data-terra-ctype],[data-exit]') as HTMLElement | null;
         if (!el || el.classList.contains('disabled')) return;
         const d = el.dataset;
         if (d.terraTab) E.st.tab = d.terraTab as Editor['st']['tab'];
+        else if (d.terraCtype !== undefined) E.st.ctype = E.st.ctype === Number(d.terraCtype) ? null : Number(d.terraCtype);
+        else if (d.exit !== undefined) E.st.exit = E.st.exit === Number(d.exit) ? null : Number(d.exit);
         else if (d.layer !== undefined) E.st.layer = Number(d.layer);
         else if (d.panel) E.st.panelOpen[d.panel] = E.st.panelOpen[d.panel] === false;
         else if (d.openRoom) { E.ctx.openRoom(Number(d.openRoom)); return; }
         E.ctx.save();
+        E.redraw();
         dockRender(E);
     });
 }

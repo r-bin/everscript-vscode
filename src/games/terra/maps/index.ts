@@ -21,8 +21,8 @@ async function loadInit(webview: vscode.Webview) {
     try {
         const info = await readJson('info.json');
         if (!info.supported) return { error: 'This Terranigma release is recognised, but only the European ROM (eu) is decoded. Pick it with Everscript: Switch ROM.' };
-        const [rooms, groups] = await Promise.all([readJson('rooms/index.json'), readJson('groups/index.json')]);
-        return { supported: true, rooms, groups, terraBase: String(webview.asWebviewUri(ROOT)) };
+        const [rooms, groups, cellTypes] = await Promise.all([readJson('rooms/index.json'), readJson('groups/index.json'), readJson('cell-types.json')]);
+        return { supported: true, rooms, groups, cellTypes, terraBase: String(webview.asWebviewUri(ROOT)) };
     } catch (err) {
         const why = err instanceof Error ? err.message : String(err);
         return { error: `No Terranigma ROM found (${why}). Add it with Everscript: Switch ROM.` };

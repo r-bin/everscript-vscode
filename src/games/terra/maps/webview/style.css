@@ -1,5 +1,5 @@
 /* Ownership: the Terranigma Maps page's own look — what the shared shell (src/core/map-editor/shell/) and the
- * map-view tokens do not cover: the cell-type overlay, the grid, the hovered and selected cell, the metatile
+ * map-view tokens do not cover: the cell-type, collision and exit overlays, the grid, the hovered and selected cell, the metatile
  * picker and the dock's rows. Everything else is the shell's, so the page looks like the other games' editors.
  * Scoped under `.rg-theme` where it uses the shell's tokens. */
 
@@ -9,6 +9,21 @@
 /* Cell types (editor.dom.ts stageTypes): a tint per type, its number on top. */
 .tm-type { opacity: 0.45; }
 .tm-type-label { fill: #fff; stroke: #000; stroke-width: 1.5px; paint-order: stroke; font: bold 7px monospace; text-anchor: middle; }
+/* Collision (editor.dom.ts stageCollision): walls and diagonal corners filled, the edges some moves cannot cross. */
+.rg-theme { --tm-wall: rgba(230, 60, 60, 0.85); --tm-gated: rgba(255, 190, 60, 0.95); }
+/* Walls are hatched, so they read over red foliage and roofs as well as over floors. */
+.tm-wall { fill: url(#tm-hatch); }
+.tm-hatch-bg { fill: rgba(230, 60, 60, 0.3); }
+.tm-hatch-line { fill: rgba(255, 235, 235, 0.75); }
+.tm-edge { fill: none; stroke: rgba(230, 60, 60, 0.95); stroke-width: 2; }
+.tm-edge.tm-gated { stroke: rgba(255, 190, 60, 0.95); stroke-dasharray: 3 2; }
+.tm-ctype { fill: none; stroke: #fff; stroke-width: 1; stroke-dasharray: 2 1; }
+
+/* Exits (editor.dom.ts stageExits): a rectangle with the room it leads to; dashed when it depends on a flag. */
+.tm-exit { fill: color-mix(in oklch, var(--rg-trigger-step, #e05aa0) 22%, transparent); stroke: var(--rg-trigger-step, #e05aa0); stroke-width: 1.5; }
+.tm-exit.tm-exit-flag { stroke-dasharray: 4 2; }
+.tm-exit.sel { stroke: #fff; stroke-width: 2.5; }
+.tm-exit-label { fill: #fff; stroke: #000; stroke-width: 1.5px; paint-order: stroke; font: bold 8px monospace; }
 .tm-grid { fill: none; stroke: rgba(255, 255, 255, 0.25); stroke-width: 0.5; }
 .tm-hover { fill: rgba(255, 255, 255, 0.12); stroke: rgba(255, 255, 255, 0.5); stroke-width: 0.8; }
 .tm-sel { fill: none; stroke: var(--rg-accent, #4c8dff); stroke-width: 1.5; }

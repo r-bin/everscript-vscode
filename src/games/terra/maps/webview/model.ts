@@ -1,11 +1,17 @@
 // Ownership: what the Terranigma Maps page knows about a room as plain data — no DOM, unit-tested
-// (tests/terra/terra-maps-model.test.js): reading map and tile words, describing a metatile and a cell,
-// the rail's rows, which rooms show the same picture, the cell-type overlay. The page (page.dom.ts) and
+// (tests/terra/terra-maps-model.test.mts): reading map and tile words, describing a metatile and a cell,
+// the rail's rows, which rooms show the same picture, the cell-type, collision and exit overlays. The page (page.dom.ts) and
 // the room files (terra://rom/rooms/<hex>.json, games/terra/resources/room-files.ts) are its two ends.
 // Facts: docs/terra/README.md §4.
 
 /** One layer of `<hex>.json`. */
 export interface LayerData { index: number; bg: number; w: number; h: number; cells: number[]; metatiles: number[] }
+
+/** Where an exit leads (games/terra/decoder/exits.ts): a room, the arrival pixel, two style bytes, a choice's flag. */
+export interface ExitTarget { room: number; x: number; y: number; style: number[]; flag: number | null }
+
+/** An exit: a rectangle in cells and its target, or its choices by event flag. */
+export interface ExitData { x: number; y: number; w: number; h: number; targets: ExitTarget[]; inverted: boolean; at: number }
 
 /** `terra://rom/rooms/<hex>.json`. */
 export interface RoomData {
@@ -14,6 +20,18 @@ export interface RoomData {
     backdrop: number[]; palette: number[];
     ppu: { mode: number; main: number; sub: number; cgwsel: number; cgadsub: number; fixed: number[] };
     layers: LayerData[];
+    exits: ExitData[];
+}
+
+export type Move = 'up' | 'down' | 'left' | 'right';
+export type CellLook = 'open' | 'wall' | 'diagonal' | 'one-way';
+
+/** A row of `terra://rom/cell-types.json` (games/terra/decoder/collision.ts). */
+export interface CellTypeRule {
+    type: number;
+    moves: Record<Move, 'open' | 'wall' | 'diagonal' | 'gated'>;
+    ground: 'open' | 'blocked' | 'flagged'; groundWord: number;
+    look: CellLook;
 }
 
 /** A row of `terra://rom/rooms/index.json`. */
@@ -131,4 +149,75 @@ export function describeDisplay(room: RoomData): string[] {
             + [1, 2, 3, 4].filter(b => (p.cgadsub >> (b - 1)) & 1).map(b => 'BG' + b).concat(p.cgadsub & 0x20 ? ['backdrop'] : []).join(', ')
         : 'none';
     return [`BG mode ${p.mode & 7}`, `main screen: ${bgs(p.main) || '—'}`, `sub screen: ${bgs(p.sub) || '—'}`, `colour math: ${math}`];
+}
+
+const MOVES: Move[] = ['up', 'down', 'left', 'right'];
+const ARROW: Record<Move, string> = { up: '↑', down: '↓', left: '←', right: '→' };
+
+/** Cells of layer 0 (the map the movement code reads, $7E:A000) per cell type, by type. */
+export function typeCounts(room: RoomData): Map<number, number> {
+    const l = layerOf(room, 0), out = new Map<number, number>();
+    if (!l) return out;
+    for (const w of l.cells) { const t = mapWord(w).type; out.set(t, (out.get(t) ?? 0) + 1); }
+    return new Map([...out].sort((a, b) => a[0] - b[0]));
+}
+
+/** The layer 0 cells whose type is not open in every direction, for the overlay: [x, y, type]. */
+export function collisionCells(room: RoomData, rules: CellTypeRule[]): [number, number, number][] {
+    const l = layerOf(room, 0), out: [number, number, number][] = [];
+    if (!l || !rules.length) return out;
+    for (let y = 0; y < l.h; y++) for (let x = 0; x < l.w; x++) {
+        const t = mapWord(l.cells[y * l.w + x]).type;
+        if (rules[t] && rules[t].look !== 'open') out.push([x, y, t]);
+    }
+    return out;
+}
+
+/**
+ * The edges of a cell a character cannot cross into it, as the overlay draws them: moving up into the cell stops
+ * at its bottom edge, and so on. `gated` edges stop the move unless a flag is set.
+ */
+export function blockedEdges(rule: CellTypeRule): { side: 'top' | 'bottom' | 'left' | 'right'; gated: boolean }[] {
+    const side: Record<Move, 'top' | 'bottom' | 'left' | 'right'> = { up: 'bottom', down: 'top', left: 'right', right: 'left' };
+    return MOVES.filter(m => rule.moves[m] === 'wall' || rule.moves[m] === 'gated').map(m => ({ side: side[m], gated: rule.moves[m] === 'gated' }));
+}
+
+/** One line: what a cell type does to a move into it. */
+export function moveSummary(rule: CellTypeRule): string {
+    const by = (r: string) => MOVES.filter(m => rule.moves[m] === r).map(m => ARROW[m]).join(' ');
+    if (rule.look === 'open') return 'open: every move passes';
+    if (rule.look === 'wall') return 'wall: every move stops';
+    if (rule.look === 'diagonal') return 'diagonal corner: a move slides along its edge';
+    const parts = ['passes ' + by('open'), 'stops ' + by('wall')];
+    if (by('gated')) parts.push(by('gated') + ' only while $097C bit 2 is set');
+    return parts.filter(p => !/ $/.test(p)).join(' · ');
+}
+
+/** The rows of the Collision tab for one type: each direction, then the ground table. */
+export function describeType(rule: CellTypeRule): string[] {
+    const what = { open: 'passes', wall: 'stops at its edge', diagonal: 'slides along the diagonal', gated: 'stops unless $097C bit 2 is set' };
+    const ground = { open: 'can enter', blocked: 'cannot enter', flagged: 'can enter only while $048A bit 15 is set' };
+    return MOVES.map(m => `moving ${m} into it ${ARROW[m]}: ${what[rule.moves[m]]}`)
+        .concat(`ground table ($80:E11C): $${hex(rule.groundWord, 4)} — characters without bit $0400 ${ground[rule.ground]}`);
+}
+
+/** The exits whose rectangle holds cell (x, y), by index. */
+export function exitsAt(room: RoomData, x: number, y: number): number[] {
+    return (room.exits || []).flatMap((e, i) => x >= e.x && x < e.x + e.w && y >= e.y && y < e.y + e.h ? [i] : []);
+}
+
+/** The short label of an exit's target(s): `$010`, or `$010 / $011` for choices. */
+export function exitTargets(e: ExitData): string {
+    return e.targets.map(t => '$' + hex(t.room, 3)).join(' / ') || 'none';
+}
+
+/** The rows of the Trigger tab for one exit. */
+export function describeExit(e: ExitData): string[] {
+    const rows = [`cells ${e.x},${e.y} · ${e.w}×${e.h} · record $${hex(e.at >> 16, 2)}:${hex(e.at & 0xFFFF, 4)}`];
+    for (const t of e.targets) {
+        const when = t.flag === null ? '' : t.flag === 0 ? 'otherwise: ' : `flag $${hex(t.flag, 3)} ${e.inverted ? 'clear' : 'set'}: `;
+        rows.push(`${when}room $${hex(t.room, 3)} at ${t.x},${t.y} (cell ${t.x >> 4},${t.y >> 4}) · style $${hex(t.style[0], 2)} $${hex(t.style[1], 2)}`);
+    }
+    if (e.targets.length && e.targets[e.targets.length - 1].flag) rows.push('no flag matches: no exit');
+    return rows;
 }
