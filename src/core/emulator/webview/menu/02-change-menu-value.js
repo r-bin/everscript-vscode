@@ -169,7 +169,8 @@
         const badge = document.createElement('span');
         badge.className = 'menu-bind-badge' + (menuListeningBtn === btnName ? ' listening' : '');
         badge.id = 'menu-badge-' + btnName;
-        badge.textContent = menuListeningBtn === btnName ? '[PRESS KEY]' : formatKeyDisplay(userKeyMap[btnName]);
+        badge.textContent = menuListeningBtn === btnName ? (bindPage === 'gamepad' ? '[PRESS BUTTON]' : '[PRESS KEY]')
+          : bindPage === 'gamepad' ? formatPadButton(userPadMap[btnName]) : formatKeyDisplay(userKeyMap[btnName]);
 
         val.appendChild(badge);
         row.appendChild(label);
@@ -193,6 +194,32 @@
       return k.toUpperCase();
     }
 
+    // Standard-mapping button index -> what it is called on a pad (face buttons by position).
+    const PAD_BUTTON_NAMES = ['Bottom', 'Right', 'Left', 'Top', 'LB', 'RB', 'LT', 'RT', 'Back', 'Start', 'L3', 'R3', 'D-Up', 'D-Down', 'D-Left', 'D-Right', 'Home'];
+    function formatPadButton(i) {
+      if (typeof i !== 'number') return 'None';
+      return PAD_BUTTON_NAMES[i] || 'Btn ' + i;
+    }
+
+    function setBindPage(page) {
+      bindPage = page === 'gamepad' ? 'gamepad' : 'keyboard';
+      if (menuListeningBtn) cancelKeybindListen();
+      syncBindPageUi();
+      renderKeybindRows();
+    }
+
+    function syncBindPageUi() {
+      const pad = bindPage === 'gamepad';
+      for (const [id, on] of [['menu-bindpage-keyboard', !pad], ['menu-bindpage-gamepad', pad]]) {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('active', on);
+      }
+      for (const id of ['menu-preset-arrows', 'menu-preset-wasd']) {
+        const el = document.getElementById(id);
+        if (el) el.hidden = pad;
+      }
+    }
+
     function startKeybindListen(btnName) {
       menuListeningBtn = btnName;
       playMenuSound('click_nav');
@@ -207,9 +234,11 @@
       renderKeybindRows();
     }
 
+    // keyStr is a key (keyboard page) or a pad button index (gamepad page).
     function applyKeybind(keyStr) {
       if (!menuListeningBtn) return;
-      userKeyMap[menuListeningBtn] = keyStr;
+      if (bindPage === 'gamepad') userPadMap[menuListeningBtn] = keyStr;
+      else userKeyMap[menuListeningBtn] = keyStr;
       if (typeof emuSettingsChanged === 'function') emuSettingsChanged();
       rebuildKeyBitMap();
       playMenuSound('click_confirm');
@@ -248,6 +277,8 @@
       // 2. Menu is OPEN: Input belongs to menu
       if (isMenuOpen) {
         if (menuListeningBtn) {
+          // On the gamepad page only a pad button binds (pollGamepadMenu); Esc cancelled above.
+          if (bindPage === 'gamepad') { e.preventDefault(); return; }
           applyKeybind(e.key);
           e.preventDefault();
           e.stopPropagation();

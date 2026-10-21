@@ -25,7 +25,7 @@ Owns the on-screen display (OSD) Quick Menu for the embedded SNES emulator.
 
 ## Keys
 
-- Gameplay gamepad (`gamepadJoypad()`, OR-ed with the keyboard in the frame loop): standard-mapping pad in SNES layout — bottom face = B, right = A, left = Y, top = X, shoulders = L/R, Back = Select, Start = Start, D-pad or left stick = the cross. Start is withheld while it opens the menu; buttons held across a menu close stay masked until released.
+- Gameplay gamepad (`gamepadJoypad()`, OR-ed with the keyboard in the frame loop): standard-mapping pad, default in SNES layout — bottom face = B, right = A, left = Y, top = X, shoulders = L/R, Back = Select, Start = Start, D-pad or left stick = the cross. The CONTROLS tab has two pages (Keyboard, default | Gamepad) that bind independently (`userKeyMap`, `userPadMap`, both saved); both are live at once and may bind the same SNES button. Menu navigation by pad stays fixed. Start is withheld while it opens the menu; buttons held across a menu close stay masked until released.
 - **B** (keyboard B, gamepad bottom face button) is the action button: toggles, "[B] Reset", "[B] Open", play / delete. On VIEW it resumes.
 - **A** / Esc / Start: back. On REPLAYS A first drops a pending play / delete question; otherwise it resumes the game.
 - L / R tabs, up / down rows, left / right values.

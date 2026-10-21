@@ -18,6 +18,16 @@
       'Start': 'Enter',
     };
 
+    // The gamepad page: SNES button -> button index of a "standard" mapping pad, laid out like the
+    // SNES pad under the thumbs (bottom face = B, right = A, left = Y, top = X). The cross is also
+    // read from the left stick, always.
+    const DEFAULT_PAD_MAP = {
+      'Up': 12, 'Down': 13, 'Left': 14, 'Right': 15,
+      'B': 0, 'A': 1, 'Y': 2, 'X': 3,
+      'L': 4, 'R': 5,
+      'Select': 8, 'Start': 9,
+    };
+
     const SNES_BUTTON_NAMES = [
       'Up', 'Down', 'Left', 'Right',
       'B', 'A', 'Y', 'X',
@@ -50,6 +60,10 @@
 
     // The saved keybinds arrive with the host's settings (emulator-profile.js emuApplySettings).
     let userKeyMap = Object.assign({}, DEFAULT_KEY_MAP);
+
+    // Both pages are live at once; this only says which one the CONTROLS tab edits ('keyboard' | 'gamepad').
+    let userPadMap = Object.assign({}, DEFAULT_PAD_MAP);
+    let bindPage = 'keyboard';
 
     let dynamicKeyToBit = {};
     function rebuildKeyBitMap() {

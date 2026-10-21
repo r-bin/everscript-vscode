@@ -224,8 +224,12 @@ ${parts.panelsHtml || ''}
           <!-- Tab 6: CONTROLS -->
           <div id="menu-panel-6" class="menu-tab-panel">
             <div class="menu-device-banner">
-              <span id="menu-device-name">Input: Keyboard &amp; Gamepad</span>
+              <span id="menu-device-name">Input: Keyboard &amp; Gamepad (both active)</span>
               <span id="menu-device-status" class="menu-device-status">Active</span>
+            </div>
+            <div class="menu-preset-row menu-bindpage-row">
+              <button id="menu-bindpage-keyboard" class="menu-preset-btn active" type="button" title="Edit the keyboard hotkeys">Keyboard</button>
+              <button id="menu-bindpage-gamepad" class="menu-preset-btn" type="button" title="Edit the gamepad buttons (both work at the same time)">Gamepad</button>
             </div>
             <div id="menu-bind-list" class="menu-keybind-list"></div>
             <div class="menu-preset-row">

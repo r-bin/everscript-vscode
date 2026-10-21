@@ -15,6 +15,18 @@
         devNameEl.textContent = 'Pad: ' + gp.id.slice(0, 24);
       }
 
+      if (isMenuOpen && menuListeningBtn && bindPage === 'gamepad') {
+        // Binding a pad button: the first new press is the answer and does nothing else.
+        let hit = -1;
+        for (let i = 0; i < gp.buttons.length; i++) {
+          const down = !!(gp.buttons[i] && gp.buttons[i].pressed);
+          if (down && !lastGamepadButtons[i] && hit < 0) hit = i;
+          lastGamepadButtons[i] = down;
+        }
+        if (hit >= 0) applyKeybind(hit);
+        return;
+      }
+
       if (isMenuOpen) {
         const now = Date.now();
         // L / R shoulders: buttons 4 and 5
@@ -72,7 +84,8 @@
       }
 
       // When gameplay is active: Start button opens menu if enabled (doing the same as Esc)
-      const isStartHeld = !!(gp.buttons[9] && gp.buttons[9].pressed);
+      const startBtn = gp.buttons[userPadMap.Start];
+      const isStartHeld = !!(startBtn && startBtn.pressed);
       if (window.startKeySuppressedUntilRelease || (typeof window.ignoreStartUntil === 'number' && performance.now() < window.ignoreStartUntil)) {
         if (!isStartHeld && (typeof window.ignoreStartUntil !== 'number' || performance.now() >= window.ignoreStartUntil)) {
           window.startKeySuppressedUntilRelease = false;
@@ -90,15 +103,9 @@
     window.pollGamepadMenu = pollGamepadMenu;
 
     // -- Gamepad as the SNES joypad ----------------------------------------------
-    // A "standard" mapping pad (Xbox, PlayStation, 8BitDo...) in the SNES's own layout: the
-    // bottom face button is B, the right one A, the left one Y, the top one X (what
-    // an SNES pad looks like under the thumbs); shoulders L / R, Back = Select, Start = Start,
-    // D-pad or left stick = the cross. Every gamepad bit is OR-ed with the keyboard's keyInput.
-    const PAD_BUTTON_BITS = [
-      [0, SNES_BIT_MASKS.B], [1, SNES_BIT_MASKS.A], [2, SNES_BIT_MASKS.Y], [3, SNES_BIT_MASKS.X],
-      [4, SNES_BIT_MASKS.L], [5, SNES_BIT_MASKS.R], [8, SNES_BIT_MASKS.Select], [9, SNES_BIT_MASKS.Start],
-      [12, SNES_BIT_MASKS.Up], [13, SNES_BIT_MASKS.Down], [14, SNES_BIT_MASKS.Left], [15, SNES_BIT_MASKS.Right],
-    ];
+    // A "standard" mapping pad (Xbox, PlayStation, 8BitDo...) read through userPadMap (the CONTROLS
+    // tab's gamepad page; DEFAULT_PAD_MAP is the SNES layout) plus the left stick as the cross.
+    // Every gamepad bit is OR-ed with the keyboard's keyInput: both work at once.
     // Held while the menu was open: not sent to the game until released (the B that closes the menu).
     let padHeldInMenu = 0;
     function readGamepadJoypad() {
@@ -106,8 +113,9 @@
       const gp = pads && (pads[0] || pads[1] || pads[2] || pads[3]);
       if (!gp || !gp.connected) return 0;
       let bits = 0;
-      for (const [idx, bit] of PAD_BUTTON_BITS) {
-        if (gp.buttons[idx] && gp.buttons[idx].pressed) bits |= bit;
+      for (const btn of SNES_BUTTON_NAMES) {
+        const b = gp.buttons[userPadMap[btn]];
+        if (b && b.pressed) bits |= SNES_BIT_MASKS[btn];
       }
       const ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
       if (ax < -0.5) bits |= SNES_BIT_MASKS.Left; else if (ax > 0.5) bits |= SNES_BIT_MASKS.Right;
@@ -236,6 +244,11 @@
         });
 
         // Keybind Presets
+        const pageKb = document.getElementById('menu-bindpage-keyboard');
+        const pagePad = document.getElementById('menu-bindpage-gamepad');
+        if (pageKb) pageKb.addEventListener('click', function() { playMenuSound('click_nav'); setBindPage('keyboard'); });
+        if (pagePad) pagePad.addEventListener('click', function() { playMenuSound('click_nav'); setBindPage('gamepad'); });
+        syncBindPageUi();
         const pArrows = document.getElementById('menu-preset-arrows');
         const pWasd = document.getElementById('menu-preset-wasd');
         const pReset = document.getElementById('menu-preset-reset');
@@ -262,7 +275,8 @@
         }
         if (pReset) {
           pReset.addEventListener('click', function() {
-            userKeyMap = Object.assign({}, DEFAULT_KEY_MAP);
+            if (bindPage === 'gamepad') userPadMap = Object.assign({}, DEFAULT_PAD_MAP);
+            else userKeyMap = Object.assign({}, DEFAULT_KEY_MAP);
             if (typeof emuSettingsChanged === 'function') emuSettingsChanged();
             rebuildKeyBitMap();
             playMenuSound('click_confirm');

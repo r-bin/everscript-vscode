@@ -122,6 +122,7 @@ function emuCollectSettings() {
     muted: !!emuMuted,
     panels: typeof emuCollectPanels === 'function' ? emuCollectPanels() : undefined,
     keybinds: Object.assign({}, userKeyMap),
+    padBinds: Object.assign({}, userPadMap),
     startOpensMenu: typeof startOpensMenu !== 'undefined' ? !!startOpensMenu : undefined,
     gameFeatures: typeof gameFeaturesEnabled !== 'undefined' ? !!gameFeaturesEnabled : undefined,
   };
@@ -176,6 +177,7 @@ function emuApplySettings(saved) {
     let binds = s.keybinds && typeof s.keybinds === 'object' ? s.keybinds : null;
     if (!binds) { binds = emuLegacyKeybinds(); migrated = !!binds; }
     userKeyMap = Object.assign({}, DEFAULT_KEY_MAP, binds || {});
+    userPadMap = Object.assign({}, DEFAULT_PAD_MAP, s.padBinds && typeof s.padBinds === 'object' ? s.padBinds : {});
     rebuildKeyBitMap();
     if (typeof setStartOpensMenu === 'function') {
       if (emuProfile === 'recorder') {
