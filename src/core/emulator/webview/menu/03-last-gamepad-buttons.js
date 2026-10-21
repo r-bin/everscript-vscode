@@ -83,6 +83,16 @@
         return;
       }
 
+      // Rewind and the speed toggle, on the pad page's buttons (the keyboard's are in page/03-set-speed-up.js).
+      if (typeof romLoaded !== 'undefined' && romLoaded) {
+        const rw = !!(gp.buttons[userPadMap.Rewind] && gp.buttons[userPadMap.Rewind].pressed);
+        const sp = !!(gp.buttons[userPadMap.Speed] && gp.buttons[userPadMap.Speed].pressed);
+        if (rw && !lastGamepadButtons['rewind'] && typeof tasRewind === 'function') tasRewind();
+        if (sp && !lastGamepadButtons['speed'] && typeof setSpeedUp === 'function') setSpeedUp(!speedUp);
+        lastGamepadButtons['rewind'] = rw;
+        lastGamepadButtons['speed'] = sp;
+      }
+
       // When gameplay is active: Start button opens menu if enabled (doing the same as Esc)
       const startBtn = gp.buttons[userPadMap.Start];
       const isStartHeld = !!(startBtn && startBtn.pressed);
@@ -244,10 +254,6 @@
         });
 
         // Keybind Presets
-        const pageKb = document.getElementById('menu-bindpage-keyboard');
-        const pagePad = document.getElementById('menu-bindpage-gamepad');
-        if (pageKb) pageKb.addEventListener('click', function() { playMenuSound('click_nav'); setBindPage('keyboard'); });
-        if (pagePad) pagePad.addEventListener('click', function() { playMenuSound('click_nav'); setBindPage('gamepad'); });
         syncBindPageUi();
         const pArrows = document.getElementById('menu-preset-arrows');
         const pWasd = document.getElementById('menu-preset-wasd');

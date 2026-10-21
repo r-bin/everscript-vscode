@@ -227,9 +227,13 @@ ${parts.panelsHtml || ''}
               <span id="menu-device-name">Input: Keyboard &amp; Gamepad (both active)</span>
               <span id="menu-device-status" class="menu-device-status">Active</span>
             </div>
-            <div class="menu-preset-row menu-bindpage-row">
-              <button id="menu-bindpage-keyboard" class="menu-preset-btn active" type="button" title="Edit the keyboard hotkeys">Keyboard</button>
-              <button id="menu-bindpage-gamepad" class="menu-preset-btn" type="button" title="Edit the gamepad buttons (both work at the same time)">Gamepad</button>
+            <div class="menu-row" data-row="0" data-action="step-bindpage" title="Which device's buttons are edited below; both work at the same time">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Bindings For</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-bindpage" class="menu-pill active">Keyboard</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
             </div>
             <div id="menu-bind-list" class="menu-keybind-list"></div>
             <div class="menu-preset-row">

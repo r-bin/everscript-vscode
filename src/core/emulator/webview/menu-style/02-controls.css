@@ -220,13 +220,7 @@
       font-size: 10px;
       cursor: pointer;
     }
-    .menu-preset-btn.active {
-      background: #2a3a4a;
-      border-color: #4ec9b0;
-      color: #fff;
-    }
     .menu-preset-btn[hidden] { display: none; }
-    .menu-bindpage-row { justify-content: flex-start; border-top: 0; border-bottom: 1px solid #20202a; }
     .menu-preset-btn:hover {
       background: #2c2c36;
       color: #fff;

@@ -25,6 +25,11 @@
           updateLensTabInfo();
           playMenuSound('click_toggle');
         }
+      } else if (menuActiveTab === 6) {
+        if (menuSelectedRow === 0) {
+          setBindPage(delta > 0 ? 'gamepad' : 'keyboard');
+          playMenuSound('click_toggle');
+        }
       } else if (menuActiveTab >= 1 && menuActiveTab <= 4) {
         if (typeof gameMenuStep === 'function') gameMenuStep(menuActiveTab, menuSelectedRow, delta);
       } else if (menuActiveTab === 5) {
@@ -136,9 +141,9 @@
         }
       } else if (menuActiveTab === 6) {
         // Tab 6: CONTROLS
-        if (menuSelectedRow >= 0 && menuSelectedRow < SNES_BUTTON_NAMES.length) {
-          startKeybindListen(SNES_BUTTON_NAMES[menuSelectedRow]);
-        }
+        // Row 0 picks the page; the rows below bind the SNES buttons, then the actions.
+        if (menuSelectedRow === 0) changeMenuValue(1);
+        else if (menuSelectedRow <= BIND_ROW_NAMES.length) startKeybindListen(BIND_ROW_NAMES[menuSelectedRow - 1]);
       }
     }
 
@@ -154,14 +159,15 @@
       if (!container) return;
       container.innerHTML = '';
 
-      SNES_BUTTON_NAMES.forEach(function(btnName, idx) {
+      BIND_ROW_NAMES.forEach(function(btnName, i) {
+        const idx = i + 1;   // row 0 is the page picker
         const row = document.createElement('div');
         row.className = 'menu-row' + (idx === menuSelectedRow ? ' selected' : '');
         row.setAttribute('data-row', String(idx));
 
         const label = document.createElement('div');
         label.className = 'menu-row-label';
-        label.innerHTML = '<span class="menu-row-cursor">&gt;</span> ' + btnName;
+        label.innerHTML = '<span class="menu-row-cursor">&gt;</span> ' + (ACTION_LABELS[btnName] || btnName);
 
         const val = document.createElement('div');
         val.className = 'menu-row-value';
@@ -187,6 +193,8 @@
       });
     }
 
+    const BIND_ROW_NAMES = SNES_BUTTON_NAMES.concat(ACTION_NAMES);
+
     function formatKeyDisplay(k) {
       if (!k) return 'None';
       if (k === ' ') return 'Space';
@@ -210,10 +218,8 @@
 
     function syncBindPageUi() {
       const pad = bindPage === 'gamepad';
-      for (const [id, on] of [['menu-bindpage-keyboard', !pad], ['menu-bindpage-gamepad', pad]]) {
-        const el = document.getElementById(id);
-        if (el) el.classList.toggle('active', on);
-      }
+      const pill = document.getElementById('menu-val-bindpage');
+      if (pill) pill.textContent = pad ? 'Gamepad' : 'Keyboard';
       for (const id of ['menu-preset-arrows', 'menu-preset-wasd']) {
         const el = document.getElementById(id);
         if (el) el.hidden = pad;

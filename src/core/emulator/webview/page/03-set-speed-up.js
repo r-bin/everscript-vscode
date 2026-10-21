@@ -4,7 +4,7 @@
       setSpeedMultiplier(on ? 4.0 : 1.0);
     }
     document.addEventListener('keydown', e => {
-      if (e.key === '#' && !e.repeat) {
+      if (e.key === ((typeof userKeyMap !== 'undefined' && userKeyMap.Speed) || '#') && !e.repeat) {
         const tag = e.target && e.target.tagName;
         if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
           setSpeedUp(!speedUp);
@@ -104,8 +104,8 @@
       if (e.repeat) return;
       const bit = (typeof dynamicKeyToBit !== 'undefined' && dynamicKeyToBit[e.key]) ? dynamicKeyToBit[e.key] : KEY_MAP[e.key];
       if (bit) { keyInput |= bit; e.preventDefault(); return; }
-      // Backspace (when no pad button is bound to it): rewind (tas/03-tas-rewind.js).
-      if (e.key === 'Backspace') { tasRewind(); e.preventDefault(); }
+      // The Rewind key (Backspace unless rebound; when no pad button is bound to it): tas/03-tas-rewind.js.
+      if (e.key === ((typeof userKeyMap !== 'undefined' && userKeyMap.Rewind) || 'Backspace')) { tasRewind(); e.preventDefault(); }
     });
     document.addEventListener('keyup', e => {
       const startKey = (typeof userKeyMap !== 'undefined' && userKeyMap['Start']) ? userKeyMap['Start'] : 'Enter';

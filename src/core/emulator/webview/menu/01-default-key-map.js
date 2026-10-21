@@ -16,6 +16,9 @@
       'R': 's',
       'Select': ' ',
       'Start': 'Enter',
+      // Emulator actions (no SNES bit; ACTION_NAMES below).
+      'Rewind': 'Backspace',
+      'Speed': '#',
     };
 
     // The gamepad page: SNES button -> button index of a "standard" mapping pad, laid out like the
@@ -26,6 +29,7 @@
       'B': 0, 'A': 1, 'Y': 2, 'X': 3,
       'L': 4, 'R': 5,
       'Select': 8, 'Start': 9,
+      'Rewind': 6, 'Speed': 7,
     };
 
     const SNES_BUTTON_NAMES = [
@@ -33,6 +37,10 @@
       'B', 'A', 'Y', 'X',
       'L', 'R', 'Select', 'Start'
     ];
+
+    // Hotkeys that are not SNES buttons: rewind (tas/03-tas-rewind.js) and the 4x speed toggle.
+    const ACTION_NAMES = ['Rewind', 'Speed'];
+    const ACTION_LABELS = { 'Rewind': 'Rewind', 'Speed': 'Speed Up (4x)' };
 
     const SNES_BIT_MASKS = {
       'R': 1 << 4,
