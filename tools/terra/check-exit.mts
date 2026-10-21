@@ -1,6 +1,6 @@
 // Check a Terranigma exit against the running game (docs/terra/README.md §3.7, §5).
 //   node tools/terra/check-exit.mts <room id, hex> [exit index] [--flag <hex>]   (npm run build:ts first)
-// Brings the room up (boot.mts), presses A until the player's character (`$0DEE`) has a position, then stands it
+// Brings the room up (boot.mts), presses A until the player's character (`$7E:1000`) has a position, then stands it
 // inside the exit's rectangle — its entity at the rectangle's top-left cell, the position words the exit check
 // reads (`$095E`/`$0960` pixels, `$0962`/`$0964` cells) held there — and waits for the exit check ($8D:8797)
 // to set the next room (`$047C`). Prints the room the game took and the one roomExits reads from the ROM.
@@ -22,7 +22,7 @@ if (!Number.isInteger(id)) { console.error('usage: node tools/terra/check-exit.m
 bootIntoRoom(id).then(({ M, rom, step, wait, press, r16, w16 }) => {
     const exit = terra.roomExits(rom, id)[which];
     if (!exit) { console.error(`room ${terra.hex3(id)} has no exit #${which}`); process.exit(2); }
-    const player = () => (0x7E << 16) | r16(0x7E0DEE);   // the record is in bank $7E
+    const player = () => 0x7E1000;   // the player's character record
     for (let t = 0; t < 60 && !(r16(player()) && r16(player() + 2)); t++) { press(PAD.A); wait(20); }
     if (!r16(player())) { console.error('the player character never got a position (an event still runs)'); process.exit(1); }
     if (flag !== null) M.writeMemory(0x7E06C0 + (flag >> 3), M.readMemory(0x7E06C0 + (flag >> 3)) | (1 << (flag & 7)));

@@ -121,6 +121,24 @@ test('collision: a type in words', () => {
     assert.match(rows[4], /^ground table \(\$80:E11C\): \$FFFF — characters without bit \$0400 cannot enter$/);
 });
 
+test('a diagonal’s solid half faces the walls next to it (type 6 `/`, type 7 `\\`)', () => {
+    const metatiles = new Array(512 * 4).fill(0);
+    const w = (t: number) => t << 9;
+    // 3×3: walls (14) across the top and down the left, type 6 in the middle: solid toward the upper left.
+    const inner = { ...room(), w: 3, h: 3, layers: [{ index: 0, bg: 2, w: 3, h: 3, metatiles,
+        cells: [w(14), w(14), w(14), w(14), w(6), 0, w(14), 0, 0] }] };
+    assert.strictEqual(m.diagonalSide(inner, rules(), 1, 1), 'ul');
+    // The canopy's corner: walls below and to the right.
+    const outer = { ...inner, layers: [{ ...inner.layers[0], cells: [0, 0, 0, 0, w(6), w(14), 0, w(14), w(14)] }] };
+    assert.strictEqual(m.diagonalSide(outer, rules(), 1, 1), 'dr');
+    const seven = { ...inner, layers: [{ ...inner.layers[0], cells: [0, 0, 0, w(14), w(7), 0, 0, w(14), 0] }] };
+    const r7 = rules(); r7[7] = { ...r7[6], type: 7 };
+    assert.strictEqual(m.diagonalSide(seven, r7, 1, 1), 'dl');
+    const open = { ...inner, layers: [{ ...inner.layers[0], cells: [0, 0, 0, 0, w(6), 0, 0, 0, 0] }] };
+    assert.strictEqual(m.diagonalSide(open, rules(), 1, 1), null, 'no walls: just the line');
+    assert.match(m.moveSummary(rules()[6]), /^diagonal \/: a move slides along it/);
+});
+
 test('exits: which hold a cell, their targets, and a choice by flag in words', () => {
     assert.deepStrictEqual(m.exitsAt(room(), 1, 1), [0]);
     assert.deepStrictEqual(m.exitsAt(room(), 0, 1), [1]);

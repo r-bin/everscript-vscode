@@ -3,7 +3,7 @@
 // exit overlays, the grid, the hovered and selected cell) and the pointer: Select (click a cell or an exit, drag
 // to pan) and Pick (take a cell's metatile into the Tile tab). The dock's tabs are dock.dom.ts'. Read-only: nothing here changes a room.
 // One svg unit is 8 px, as in the other games' editors; the pixel-sized content sits in `#rg-px`, scaled 1/8.
-import { blockedEdges, collisionCells, exitsAt, exitTargets, hex, layerOf, mapWord, cellWord, typeColor, typedCells,
+import { blockedEdges, collisionCells, diagonalSide, exitsAt, exitTargets, hex, layerOf, mapWord, cellWord, typeColor, typedCells,
     type CellTypeRule, type RoomData } from './model';
 import { dockBind, dockRender } from './dock.dom';
 
@@ -128,20 +128,28 @@ const EDGE: Record<string, (x: number, y: number) => string> = {
 };
 
 /**
- * Collision of layer 0: walls filled, the two diagonal corners as triangles (type 6 solid toward the upper left,
- * 7 the upper right — where they sit on the maps), and for a type only some moves pass, the edges that stop a move
- * (dashed: only without a flag). The type the Collision tab shows is outlined.
+ * Collision of layer 0: walls hatched; the diagonals (type 6 `/`, 7 `\`) as the triangle on the side facing the
+ * walls next to them (model diagonalSide; just the line when the neighbours do not tell); for a type only some moves
+ * pass, the edges that stop a move (dashed: only without a flag). The type the Collision tab shows is outlined.
  */
+const DIAG: Record<string, (x: number, y: number) => string> = {
+    ul: (x, y) => `M${x} ${y}h16L${x} ${y + 16}z`, dr: (x, y) => `M${x + 16} ${y}v16h-16z`,
+    ur: (x, y) => `M${x} ${y}h16v16z`, dl: (x, y) => `M${x} ${y}v16h16z`,
+};
 export function stageCollision(E: Editor): void {
     const g = document.getElementById('tm-coll');
     if (!g) return;
     g.textContent = '';
     if (!chipOn(E, 'collision')) return;
-    let walls = '', diag = '', edges = '', gated = '', picked = '';
+    let walls = '', diag = '', lines = '', edges = '', gated = '', picked = '';
     for (const [cx, cy, t] of collisionCells(E.data, E.ctx.rules)) {
         const x = cx * 16, y = cy * 16, rule = E.ctx.rules[t];
         if (rule.look === 'wall') walls += `M${x} ${y}h16v16h-16z`;
-        else if (rule.look === 'diagonal') diag += t === 7 ? `M${x} ${y}h16v16z` : `M${x} ${y}h16L${x} ${y + 16}z`;
+        else if (rule.look === 'diagonal') {
+            const side = diagonalSide(E.data, E.ctx.rules, cx, cy);
+            if (side) diag += DIAG[side](x, y);
+            else lines += t === 7 ? `M${x} ${y}l16 16` : `M${x} ${y + 16}l16 -16`;
+        }
         else for (const e of blockedEdges(rule)) { if (e.gated) gated += EDGE[e.side](x, y); else edges += EDGE[e.side](x, y); }
         if (t === E.st.ctype) picked += `M${x + 0.5} ${y + 0.5}h15v15h-15z`;
     }
@@ -150,7 +158,7 @@ export function stageCollision(E: Editor): void {
         if (l) l.cells.forEach((w, i) => { if (mapWord(w).type === E.st.ctype) picked += `M${(i % l.w) * 16 + 0.5} ${Math.floor(i / l.w) * 16 + 0.5}h15v15h-15z`; });
     }
     const add = (d: string, cls: string) => { if (d) g.appendChild(svgEl('path', { d, class: cls })); };
-    add(walls, 'tm-wall'); add(diag, 'tm-wall'); add(edges, 'tm-edge'); add(gated, 'tm-edge tm-gated'); add(picked, 'tm-ctype');
+    add(walls, 'tm-wall'); add(diag, 'tm-wall'); add(lines, 'tm-edge'); add(edges, 'tm-edge'); add(gated, 'tm-edge tm-gated'); add(picked, 'tm-ctype');
 }
 
 /** The exits: each rectangle with the room it leads to; the selected one is outlined. */

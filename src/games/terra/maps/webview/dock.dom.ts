@@ -56,11 +56,11 @@ function tileTab(E: Editor): string {
         + '</div>';
 }
 
-/** A cell type's swatch, as the overlay draws it (walls red, a diagonal corner, the edges some moves cannot cross). */
+/** A cell type's swatch, as the overlay draws it (walls red, a diagonal's line, the edges some moves cannot cross). */
 function typeSwatch(rule: CellTypeRule | undefined): string {
     if (!rule || rule.look === 'open') return shellSwatchSvg();
     if (rule.look === 'wall') return shellSwatchSvg('M0 0h16v16h-16z', 'var(--tm-wall)');
-    if (rule.look === 'diagonal') return shellSwatchSvg(rule.type === 7 ? 'M0 0h16v16z' : 'M0 0h16L0 16z', 'var(--tm-wall)');
+    if (rule.look === 'diagonal') return shellSwatchSvg('', '', '<path d="' + (rule.type === 7 ? 'M0 0L16 16' : 'M0 16L16 0') + '" stroke="var(--tm-wall)" stroke-width="2.5"/>');
     const edge: Record<string, string> = { top: 'M0 0h16v2h-16z', bottom: 'M0 14h16v2h-16z', left: 'M0 0h2v16h-2z', right: 'M14 0h2v16h-2z' };
     const e = blockedEdges(rule);
     return shellSwatchSvg(e.filter(x => !x.gated).map(x => edge[x.side]).join(''), 'var(--tm-wall)',
@@ -86,7 +86,7 @@ function collisionTab(E: Editor): string {
         + (cell ? panelHtml(E, 'ccell', 'CELL', cell) : '')
         + '<div class="rs-note">Read from the movement code ($80:D0F9): a 32-entry jump table per direction, by the type of the cell a move enters, '
         + 'on layer 0 (the map at $7E:A000). In line with a single cell a move passes or stops as shown; straddling two cells it also slides around a corner. '
-        + 'Types 6 and 7 slide the character along a diagonal; the triangles are where they sit on the maps. Bit 14 of a map word is not decoded.</div>';
+        + 'Types 6 (/) and 7 (\\) slide the character along a diagonal from either side; the overlay fills the half facing the walls next to the cell. Bit 14 of a map word is not decoded.</div>';
 }
 
 function triggerTab(E: Editor): string {

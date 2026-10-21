@@ -130,9 +130,16 @@ map at `$7E:A000` — layer 0 in every room (the loader always leaves `$0832` = 
 In line with one cell (`$0E` = 0) an open handler lets the move through (`CLC`) and a wall handler stops it at the
 cell's edge (`$80:D3FD`). Straddling two cells the second-level tables (`$80:D582`, `$80:D5C2`, `$80:D602` and their
 twins) take the other cell's type and either pass, stop, or nudge the character one pixel round the corner. Types 6
-and 7 are also tested before the tables (`$80:D364`, `$80:D772`); on the maps they sit in a wall's upper inner
-corners (6 at the left, 7 at the right: `e 6 . 7 e`), so they are the two diagonal corners. `$80:D506`: moving up into
-type 8 is a wall unless bit 2 of `$097C` is set.
+and 7 are also tested before the tables (`$80:D364`, `$80:D772`). They are slopes: 6 a `/` diagonal, 7 a `\`
+diagonal, and the character slides along the line from whichever side it comes — the type does not say which half
+is solid; the walls around the cell do. On the maps both kinds of place are as common: of the type 6 cells, 1944 have
+walls above and to the left (a room's inner corner, `e 6 .`) and 1968 below and to the right (a tree canopy's or a
+roof's outer corner); type 7 the same mirrored. Walked in the running game (`tools/terra/check-walk.mts`, room
+`$00A`): into type 6 at (8, 41), a canopy's top-left corner, moving down the player stops at the cell's top edge and
+slides down-left, moving right it slides up-right (solid: the lower right); into type 6 at (60, 11), walls above and
+left, moving up it slides up-right, moving left it slides down-left (solid: the upper left); into type 7 at (14, 41),
+moving down it slides down-right, moving left up-left (solid: the lower left). `$80:D506`: moving up into type 8 is a
+wall unless bit 2 of `$097C` is set.
 
 The base ROM's tables give: open in every direction 0, 1, 2, `$11-$14`, `$16-$18`, `$1D`, `$1E`; a wall in every
 direction 3, 4, 5, 9, `$0A-$10`, `$15`, `$19`, `$1B`, `$1C`; `$1A` stops moves up and down only; `$1F` lets only a
@@ -159,7 +166,7 @@ clear: inside an exit), called from character scripts.
 |---|---|
 | `$7E:095E` / `$7E:0960` | the player's 16 px box, top-left, in pixels (the character's position − 8, − 16) |
 | `$7E:0962` / `$7E:0964` | the player's cell (the box's top-left / 16) |
-| `$7E:0DEE` | the player character's record (bank `$7E`): word +0 x, +2 y (the box's bottom centre), +4 flags |
+| `$7E:1000` | the player's character record (the first record; it moves with the pad): word +0 x, +2 y (the box's bottom centre), +4 flags |
 | `$7E:047C` | the next room (0: none); `$7E:0484`, `$7E:0490` the style bytes, `$7E:0492` / `$7E:0494` the arrival point |
 | `$7E:097C` | state bits: 4 = no exits, 2 = type 8 passable moving up (§3.6) |
 
@@ -209,6 +216,9 @@ player in an exit and prints the room the game goes to. October 2026: exits of `
 (#0, #1, #3), `$012` (#0, #1), `$06A` (#0, #1) agree with the table; `$0D1` #0 goes to `$0BE`, with flag `$078` to
 `$0D3`, with flag `$079` to `$0F0`, as its choices say. Room `$00F`'s opening event holds the player (the tool takes
 no exit there); holding the position words with the event running, its exit #0 went to `$010`.
+
+`node tools/terra/check-walk.mts <room hex> <x> <y> <up|down|left|right>` puts the player on a cell and holds a
+direction, printing the box's path: how the diagonals of §3.6 were checked.
 
 The loader on the interpreter leaves the same metatile tables, layer maps and VRAM background characters
 as the emulator for room `$00F` (byte for byte, `$7E:2000-$3FFF`, `$7E:A000`, `$7E:E000`, VRAM `$0000-$5FFF`),

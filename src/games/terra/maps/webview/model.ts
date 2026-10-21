@@ -182,12 +182,30 @@ export function blockedEdges(rule: CellTypeRule): { side: 'top' | 'bottom' | 'le
     return MOVES.filter(m => rule.moves[m] === 'wall' || rule.moves[m] === 'gated').map(m => ({ side: side[m], gated: rule.moves[m] === 'gated' }));
 }
 
+/**
+ * Which half of a diagonal cell is solid, as the overlay draws it. Type 6 is a `/` slope, 7 a `\\` slope: the game
+ * slides a character along the line from whichever side it comes (docs/terra/README.md §3.6), so the solid half is
+ * the side facing the walls next to the cell — for 6 the upper left ('ul') or the lower right ('dr'), for 7 the upper
+ * right ('ur') or the lower left ('dl'); null when the neighbours do not tell (only the line is drawn). Off the map
+ * counts as wall.
+ */
+export function diagonalSide(room: RoomData, rules: CellTypeRule[], x: number, y: number): 'ul' | 'dr' | 'ur' | 'dl' | null {
+    const l = layerOf(room, 0);
+    if (!l) return null;
+    const t = mapWord(l.cells[y * l.w + x]).type;
+    const wall = (cx: number, cy: number) => cx < 0 || cy < 0 || cx >= l.w || cy >= l.h
+        || rules[mapWord(l.cells[cy * l.w + cx]).type]?.look === 'wall' ? 1 : 0;
+    const up = wall(x, y - 1), down = wall(x, y + 1), left = wall(x - 1, y), right = wall(x + 1, y);
+    const [a, b, sa, sb] = t === 7 ? [up + right, down + left, 'ur', 'dl'] as const : [up + left, down + right, 'ul', 'dr'] as const;
+    return a > b ? sa : b > a ? sb : null;
+}
+
 /** One line: what a cell type does to a move into it. */
 export function moveSummary(rule: CellTypeRule): string {
     const by = (r: string) => MOVES.filter(m => rule.moves[m] === r).map(m => ARROW[m]).join(' ');
     if (rule.look === 'open') return 'open: every move passes';
     if (rule.look === 'wall') return 'wall: every move stops';
-    if (rule.look === 'diagonal') return 'diagonal corner: a move slides along its edge';
+    if (rule.look === 'diagonal') return `diagonal ${rule.type === 7 ? '\\' : '/'}: a move slides along it; the solid half faces the walls next to it`;
     const parts = ['passes ' + by('open'), 'stops ' + by('wall')];
     if (by('gated')) parts.push(by('gated') + ' only while $097C bit 2 is set');
     return parts.filter(p => !/ $/.test(p)).join(' · ');

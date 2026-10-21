@@ -4,8 +4,8 @@
 // A character's move ($80:D0F9) checks the cell its leading edge enters, on the map at $7E:A000 (always layer 0):
 // the cell type ((word >> 9) & $1F, $80:DA28) indexes one 32-entry jump table per direction. Each entry is one
 // of a few handlers: let the move through, stop it (and, when the character straddles two cells, slide it around
-// a corner by the second cell's type), the two diagonal corner handlers (types 6 and 7, also tested before the
-// table at $80:D772), and one gated handler. Which handler means what was read from the code; which entry holds
+// a corner by the second cell's type), the diagonal handlers (type 6 a `/` slope, 7 a `\` slope, also tested
+// before the table at $80:D772: the character slides along the line from either side), and one gated handler. Which handler means what was read from the code; which entry holds
 // which handler is read from the ROM here.
 
 /** The four directions a character moves, and the jump table each reads ($80 bank, by cell type). */
@@ -17,7 +17,7 @@ const MOVES = Object.keys(MOVE_TABLES) as Move[];
  * What a direction's handler does with a character in line with the cell:
  *   open      the move goes through
  *   wall      the move stops at the cell's edge ($80:D3FD and its twins)
- *   diagonal  the corner handlers of types 6 / 7: the character slides along a diagonal edge
+ *   diagonal  types 6 (/) and 7 (\): the character slides along the diagonal, from whichever side it comes
  *   gated     moving up into type 8 ($80:D506): a wall unless bit 2 of `$097C` is set
  */
 export type MoveRule = 'open' | 'wall' | 'diagonal' | 'gated';
@@ -62,7 +62,7 @@ export function cellTypeRules(rom: Uint8Array): CellTypeRule[] {
     });
 }
 
-/** How the overlay draws a type: no mark, a wall, a diagonal corner, or a cell some directions pass. */
+/** How the overlay draws a type: no mark, a wall, a diagonal, or a cell some directions pass. */
 export function cellClass(rule: CellTypeRule): CellClass {
     const v = MOVES.map(m => rule.moves[m]);
     if (v.includes('diagonal')) return 'diagonal';
