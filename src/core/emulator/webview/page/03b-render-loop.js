@@ -299,13 +299,13 @@
               speedAccumulator -= 1.0;
             }
             for (let extra = (speedMultiplier > 1.0 ? Math.floor(speedMultiplier) - 1 : 0); extra > 0 && !isEmulatorPaused(); extra--) {
-              tasApplyInput(Module, keyInput);
+              tasApplyInput(Module, keyInput | gamepadJoypad());
               Module._mainLoop();
               fpsCountFrame(Module);
               romFrameCount++;
               apuStreamTick(Module, false);
             }
-            tasApplyInput(Module, keyInput);
+            tasApplyInput(Module, keyInput | gamepadJoypad());
             Module._mainLoop();
             fpsCountFrame(Module);
             const fbPtr = Module._getScreenBuffer();

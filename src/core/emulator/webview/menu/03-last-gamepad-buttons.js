@@ -89,6 +89,42 @@
     }
     window.pollGamepadMenu = pollGamepadMenu;
 
+    // -- Gamepad as the SNES joypad ----------------------------------------------
+    // A "standard" mapping pad (Xbox, PlayStation, 8BitDo...) in the SNES's own layout: the
+    // bottom face button is B, the right one A, the left one Y, the top one X (what
+    // an SNES pad looks like under the thumbs); shoulders L / R, Back = Select, Start = Start,
+    // D-pad or left stick = the cross. Every gamepad bit is OR-ed with the keyboard's keyInput.
+    const PAD_BUTTON_BITS = [
+      [0, SNES_BIT_MASKS.B], [1, SNES_BIT_MASKS.A], [2, SNES_BIT_MASKS.Y], [3, SNES_BIT_MASKS.X],
+      [4, SNES_BIT_MASKS.L], [5, SNES_BIT_MASKS.R], [8, SNES_BIT_MASKS.Select], [9, SNES_BIT_MASKS.Start],
+      [12, SNES_BIT_MASKS.Up], [13, SNES_BIT_MASKS.Down], [14, SNES_BIT_MASKS.Left], [15, SNES_BIT_MASKS.Right],
+    ];
+    // Held while the menu was open: not sent to the game until released (the B that closes the menu).
+    let padHeldInMenu = 0;
+    function readGamepadJoypad() {
+      const pads = typeof navigator.getGamepads === 'function' ? navigator.getGamepads() : null;
+      const gp = pads && (pads[0] || pads[1] || pads[2] || pads[3]);
+      if (!gp || !gp.connected) return 0;
+      let bits = 0;
+      for (const [idx, bit] of PAD_BUTTON_BITS) {
+        if (gp.buttons[idx] && gp.buttons[idx].pressed) bits |= bit;
+      }
+      const ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
+      if (ax < -0.5) bits |= SNES_BIT_MASKS.Left; else if (ax > 0.5) bits |= SNES_BIT_MASKS.Right;
+      if (ay < -0.5) bits |= SNES_BIT_MASKS.Up; else if (ay > 0.5) bits |= SNES_BIT_MASKS.Down;
+      return bits;
+    }
+    function gamepadJoypad() {
+      const held = readGamepadJoypad();
+      if (typeof isMenuOpen !== 'undefined' && isMenuOpen) { padHeldInMenu = held; return 0; }
+      padHeldInMenu &= held;
+      let bits = held & ~padHeldInMenu;
+      // Start belongs to the menu when it opens it (and until released after a menu close).
+      if ((typeof startOpensMenu !== 'undefined' && startOpensMenu) || window.startKeySuppressedUntilRelease) bits &= ~SNES_BIT_MASKS.Start;
+      return bits;
+    }
+    window.gamepadJoypad = gamepadJoypad;
+
     // Helper utilities for UI
     function setPillState(id, on) {
       const el = document.getElementById(id);

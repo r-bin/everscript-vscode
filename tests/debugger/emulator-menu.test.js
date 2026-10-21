@@ -194,6 +194,8 @@ test('buildHtml embeds menu, hides old overlay bar, and wires wheel event isolat
     assert.ok(html.includes('playMenuSound'), 'playMenuSound missing from buildHtml');
     assert.ok(html.includes('menuCard.contains(e.target)'), 'wheel event should check if target is inside menu');
     assert.ok(html.includes('pollGamepadMenu()'), 'frame loop must poll gamepad menu');
+    assert.ok(html.includes('tasApplyInput(Module, keyInput | gamepadJoypad())'), 'gameplay input must OR the gamepad into the keyboard pad');
+    assert.ok(html.includes('[0, SNES_BIT_MASKS.B], [1, SNES_BIT_MASKS.A], [2, SNES_BIT_MASKS.Y], [3, SNES_BIT_MASKS.X]'), 'gamepad face buttons must follow the SNES pad layout');
     assert.ok(html.includes('isLens = (typeof isMenuOpen !== \'undefined\' && isMenuOpen && typeof menuActiveTab !== \'undefined\' && menuActiveTab === 0)'), 'isLens must require isMenuOpen to prevent swallowing clicks');
     assert.ok(html.includes('id="menu-inspect-card"'), 'menu-inspect-card must be present in buildHtml');
     assert.ok(html.includes('menu-state-pill'), 'menu-state-pill styles must be present in menu CSS');
