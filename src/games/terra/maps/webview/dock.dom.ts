@@ -1,14 +1,16 @@
 // Ownership: the right-hand dock of the Terranigma Maps page — its tab strip (the shell's shellTabStripHtml)
 // and its tabs: Tile (the layer, the metatile picker, what the picked metatile is, the selected cell), Collision
-// (the cell types of the room and what each does to a move), Trigger (the room's exits) and Info (what the room
-// is, what its load ran, its display registers, the rooms that show the same map). The dock
+// (the cell types of the room and what each does to a move), Object (the room's map changes, one previewed on the
+// map), Trigger (the room's exits and chests) and Info (what the room is, what its load ran, its display registers,
+// the rooms that show the same map). The dock
 // node itself is the shell's (shellDockMount); this file fills it and handles its clicks. State lives on the
 // editor `E` (editor.dom.ts); nothing is owned here.
-import { blockedEdges, describeCell, describeDisplay, describeExit, describeType, exitTargets, hex, layerOf, mapWord, cellWord,
-    metatileTiles, metatileUse, moveSummary, sheetRows, typeCounts, type CellTypeRule, type RoomData } from './model';
+import { blockedEdges, chestKind, contentsText, describeCell, describeChange, describeChest, describeDisplay, describeExit, describeType,
+    exitTargets, hex, layerOf, mapWord, cellWord, metatileTiles, metatileUse, moveSummary, sheetRows, typeCounts,
+    type CellTypeRule, type RoomData } from './model';
 import type { Editor } from './editor.dom';
 
-const TABS: [Editor['st']['tab'], string][] = [['tile', 'Tile'], ['collision', 'Collision'], ['trigger', 'Trigger'], ['info', 'Info']];
+const TABS: [Editor['st']['tab'], string][] = [['tile', 'Tile'], ['collision', 'Collision'], ['object', 'Object'], ['trigger', 'Trigger'], ['info', 'Info']];
 /** Metatiles per row of the sheet (terra://rom/rooms/<hex>.tiles.l<n>.png), and rows. */
 const SHEET_COLS = 16, SHEET_ROWS = 32;
 
@@ -89,21 +91,56 @@ function collisionTab(E: Editor): string {
         + 'Types 6 (/) and 7 (\\) slide the character along a diagonal from either side; the overlay fills the half facing the walls next to the cell. Bit 14 of a map word is not decoded.</div>';
 }
 
-function triggerTab(E: Editor): string {
-    const exits = E.data.exits || [], sel = E.st.exit;
-    if (!exits.length) return '<div class="rs-note">This room has no exits in the exit table ($81:8000). Events (characters, chests, cutscenes) are not decoded yet.</div>';
-    const list = exits.map((e, i) => {
-        const on = i === sel, flagged = e.targets.some(t => t.flag !== null);
-        const body = on ? '<div class="rg-object-expanded">' + rows(describeExit(e))
-            + '<div class="tm-rooms">' + e.targets.map(t => '<button class="rdf" data-open-room="' + t.room + '" title="Open room $' + hex(t.room, 3) + '">open $' + hex(t.room, 3) + '</button>').join('') + '</div></div>' : '';
-        return '<div class="rg-trigger-card' + (on ? ' on' : '') + '"><div class="rg-trigger-row' + (on ? ' on' : '') + '" data-exit="' + i + '" title="Select this exit">'
-            + '<span class="rg-trigger-label">#' + i + ' · ' + e.x + ',' + e.y + (e.w > 1 || e.h > 1 ? ' · ' + e.w + '×' + e.h : '') + ' → ' + shellEscape(exitTargets(e))
-            + (flagged ? ' · by flag' : '') + '</span></div>' + body + '</div>';
-    }).join('');
-    return panelHtml(E, 'exits', 'EXITS', '<div class="rg-trigger-list">' + list + '</div>', String(exits.length))
+/** A selectable card of a list: its row and, when selected, its rows and buttons underneath. */
+function card(attr: string, i: number, on: boolean, label: string, body: string): string {
+    return '<div class="rg-trigger-card' + (on ? ' on' : '') + '"><div class="rg-trigger-row' + (on ? ' on' : '') + '" data-' + attr + '="' + i
+        + '" title="Select it (it is outlined on the map)"><span class="rg-trigger-label">' + shellEscape(label) + '</span></div>'
+        + (on ? '<div class="rg-object-expanded">' + body + '</div>' : '') + '</div>';
+}
+
+const openRooms = (rooms: number[]) => '<div class="tm-rooms">' + rooms.map(r => '<button class="rdf" data-open-room="' + r + '" title="Open room $'
+    + hex(r, 3) + '">open $' + hex(r, 3) + '</button>').join('') + '</div>';
+
+function exitsList(E: Editor): string {
+    const exits = E.data.exits || [];
+    if (!exits.length) return '<div class="rs-note">This room has no exits in the exit table ($81:8000).</div>';
+    return '<div class="rg-trigger-list">' + exits.map((e, i) => card('exit', i, i === E.st.exit,
+        '#' + i + ' · ' + e.x + ',' + e.y + (e.w > 1 || e.h > 1 ? ' · ' + e.w + '×' + e.h : '') + ' → ' + exitTargets(e) + (e.targets.some(t => t.flag !== null) ? ' · by flag' : ''),
+        rows(describeExit(e)) + openRooms(e.targets.map(t => t.room)))).join('') + '</div>'
         + '<div class="rs-note">An exit is a rectangle of cells: the room change starts when the player’s 16 px box is inside it ($8D:8797, every frame). '
-        + 'Its target is a room and an arrival point in that room’s pixels, or a list of choices by event flag ($8D:8911). '
-        + 'Click an exit on the map or a row here; events run by characters and objects are not decoded yet.</div>';
+        + 'Its target is a room and an arrival point in that room’s pixels, or a list of choices by event flag ($8D:8911).</div>';
+}
+
+function chestsList(E: Editor): string {
+    const chests = E.ctx.data.chests || [];
+    if (!chests.length) return '<div class="rs-note">This room has no chests in the chest table ($99:D859).</div>';
+    return '<div class="rg-trigger-list">' + chests.map((c, i) => card('chest', i, i === E.st.chest,
+        '#' + i + ' · ' + c.x + ',' + c.y + ' · ' + contentsText(c.contents).replace(/ \(.*$/, '') + (chestKind(E.ctx.data, c) === 'chest' ? '' : ' · ' + chestKind(E.ctx.data, c)),
+        rows(describeChest(E.ctx.data, c)))).join('') + '</div>'
+        + '<div class="rs-note">The A button checks the cell in front of the player ($87:9199): a character there is talked to; '
+        + 'else a closed chest (metatile $0F0, faced from below), metatiles $0F3 and $0FA–$0FC, or a cell of type 4 is looked up in the room’s list '
+        + '($87:C7AE). Opening sets the chest’s flag and draws metatile $0F1; a room load draws it open again once the flag is set ($8D:912B). '
+        + 'Item names are not decoded.</div>';
+}
+
+function triggerTab(E: Editor): string {
+    const n = { exits: (E.data.exits || []).length, chests: (E.ctx.data.chests || []).length };
+    const subs = '<div class="rg-subtabs" role="tablist">' + ([['exits', 'Exits'], ['chests', 'Chests']] as const).map(([k, label]) =>
+        '<button class="rg-subtab' + (E.st.trigSub === k ? ' on' : '') + '" role="tab" aria-selected="' + (E.st.trigSub === k) + '" data-trig-sub="' + k + '">'
+        + label + ' <span class="rs-note">' + n[k] + '</span></button>').join('') + '</div>';
+    return subs + (E.st.trigSub === 'chests' ? chestsList(E) : exitsList(E));
+}
+
+function objectTab(E: Editor): string {
+    const changes = E.ctx.data.changes || [];
+    if (!changes.length) return '<div class="rs-note">No map change of the table ($99:D4E7) is for this room.</div>';
+    const list = changes.map((c, i) => card('change', i, i === E.st.change,
+        'bit ' + c.bit + ' · ' + c.edits.map(e => 'layer ' + e.layer + (e.kind === 'set' ? ' cell ' + e.x + ',' + e.y : ' ' + e.w + '×' + e.h + ' at ' + e.x + ',' + e.y)).join(', '),
+        rows([...describeChange(c), 'the map shows the room with it applied; click again for the room as it loads']))).join('');
+    return panelHtml(E, 'changes', 'MAP CHANGES', '<div class="rg-trigger-list">' + list + '</div>', String(changes.length))
+        + '<div class="rs-note">The game’s parts of a map that the story switches: change n is on while bit n of $7E:0710 is set, and every room load '
+        + 're-applies the room’s changes that are on ($8D:8FB4, table $99:D4E7) — a cell set to a metatile, or a block copied from elsewhere in the same layer. '
+        + 'What sets the bits (the events) is not decoded.</div>';
 }
 
 function infoTab(E: Editor): string {
@@ -132,7 +169,8 @@ function infoTab(E: Editor): string {
 export function dockRender(E: Editor): void {
     if (!E.panels || E.closed) return;
     const scrollOf = () => E.panels!.querySelector(E.st.tab === 'tile' ? '.rg-tile-scroll' : '.rg-tab-body');
-    const tab = E.st.tab === 'info' ? infoTab(E) : E.st.tab === 'collision' ? collisionTab(E) : E.st.tab === 'trigger' ? triggerTab(E) : tileTab(E);
+    const tabs: Record<string, (e: Editor) => string> = { info: infoTab, collision: collisionTab, trigger: triggerTab, object: objectTab };
+    const tab = (tabs[E.st.tab] ?? tileTab)(E);
     const scroll = scrollOf();
     const top = scroll ? scroll.scrollTop : 0;
     E.panels.innerHTML = shellTabStripHtml(TABS.map(([value, label]) => ({ value, label, on: E.st.tab === value })), 'terra-tab')
@@ -162,10 +200,16 @@ export function dockBind(E: Editor): void {
             E.ctx.save(); dockRender(E);
             return;
         }
-        const el = t.closest('[data-terra-tab],[data-layer],[data-panel],[data-open-room],[data-terra-ctype],[data-exit]') as HTMLElement | null;
+        const el = t.closest('[data-terra-tab],[data-layer],[data-panel],[data-open-room],[data-terra-ctype],[data-exit],[data-chest],[data-change],[data-trig-sub]') as HTMLElement | null;
         if (!el || el.classList.contains('disabled')) return;
         const d = el.dataset;
-        if (d.terraTab) E.st.tab = d.terraTab as Editor['st']['tab'];
+        if (d.terraTab) {
+            E.st.tab = d.terraTab as Editor['st']['tab'];
+            if (E.st.tab !== 'object' && E.st.change !== null) E.pickChange(null);   // the preview belongs to the Object tab
+        }
+        else if (d.trigSub) E.st.trigSub = d.trigSub as Editor['st']['trigSub'];
+        else if (d.chest !== undefined) E.st.chest = E.st.chest === Number(d.chest) ? null : Number(d.chest);
+        else if (d.change !== undefined) E.pickChange(E.st.change === Number(d.change) ? null : Number(d.change));
         else if (d.terraCtype !== undefined) E.st.ctype = E.st.ctype === Number(d.terraCtype) ? null : Number(d.terraCtype);
         else if (d.exit !== undefined) E.st.exit = E.st.exit === Number(d.exit) ? null : Number(d.exit);
         else if (d.layer !== undefined) E.st.layer = Number(d.layer);

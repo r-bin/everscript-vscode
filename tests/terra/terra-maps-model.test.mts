@@ -1,5 +1,5 @@
 // The Terranigma Maps page's model (src/games/terra/maps/webview/model.ts): map and tile words, a metatile's use
-// and tiles, a cell, the rail, variants, the cell-type, collision and exit overlays, the display registers.
+// and tiles, a cell, the rail, variants, the cell-type, collision, exit, chest and map-change overlays, the display registers.
 // Synthetic rooms and rules; no ROM.
 // Run: node tests/terra/terra-maps-model.test.mts
 import assert from 'node:assert';
@@ -30,6 +30,9 @@ function room() {
             { x: 1, y: 0, w: 1, h: 2, inverted: false, at: 0x818E3C, targets: [{ room: 0x10, x: 384, y: 336, style: [0, 5], flag: null }] },
             { x: 0, y: 1, w: 1, h: 1, inverted: true, at: 0x818E48, targets: [{ room: 0x11, x: 16, y: 32, style: [0, 6], flag: 0x160 }, { room: 0x12, x: 0, y: 0, style: [0, 6], flag: 0 }] },
         ],
+        chests: [{ x: 0, y: 1, flags: 0, gate: null, contents: 0x10, opened: 0x580, at: 0x99E142 },
+            { x: 1, y: 1, flags: 0x88, gate: 0x47, contents: 0x8378, opened: null, at: 0x99E149 }],
+        changes: [{ bit: 6, edits: [{ layer: 0, kind: 'set', x: 0, y: 0, metatile: 0xFF }], cells: [[0, 0, 0, 0x1CFF]] }],
     };
 }
 
@@ -137,6 +140,32 @@ test('a diagonal’s solid half faces the walls next to it (type 6 `/`, type 7 `
     const open = { ...inner, layers: [{ ...inner.layers[0], cells: [0, 0, 0, 0, w(6), 0, 0, 0, 0] }] };
     assert.strictEqual(m.diagonalSide(open, rules(), 1, 1), null, 'no walls: just the line');
     assert.match(m.moveSummary(rules()[6]), /^diagonal \/: a move slides along it/);
+});
+
+test('chests: which sit on a cell, what is drawn there at load, the contents and flags in words', () => {
+    const r = room();
+    r.layers[0].cells[2] = 0x00F0;                                   // a closed chest at 0,1
+    assert.deepStrictEqual(m.chestsAt(r, 0, 1), [0]);
+    assert.deepStrictEqual(m.chestsAt(r, 0, 0), []);
+    assert.strictEqual(m.chestKind(r, r.chests[0]), 'chest');
+    assert.strictEqual(m.chestKind(r, r.chests[1]), 'nothing at load', 'metatile 2, type 14');
+    assert.strictEqual(m.contentsText(0), 'empty');
+    assert.strictEqual(m.contentsText(0x10), 'item $10');
+    assert.strictEqual(m.contentsText(0x8378), 'not an item: $8378 (BCD 378, most likely money)');
+    assert.deepStrictEqual(m.describeChest(r, r.chests[0]), ['cell 0,1 · chest · record $99:E142', 'contents: item $10',
+        'opened: event flag $580 (the room draws it open once set)']);
+    assert.deepStrictEqual(m.describeChest(r, r.chests[1]).slice(2), ['no opened flag', 'gives nothing until event flag $047 is set', 'variant 1']);
+});
+
+test('map changes: which write a cell, in words, and the room with one applied', () => {
+    const r = room();
+    assert.deepStrictEqual(m.changesAt(r, 0, 0), [0]);
+    assert.deepStrictEqual(m.changesAt(r, 1, 0), []);
+    assert.deepStrictEqual(m.describeChange(r.changes[0]), ['layer 0: cell 0,0 becomes metatile $0FF', 'writes 1 cell; on while bit 6 of $7E:0710 is set']);
+    const on = m.changedRoom(r, r.changes[0]);
+    assert.strictEqual(on.layers[0].cells[0], 0x1CFF);
+    assert.strictEqual(r.layers[0].cells[0], 0x0001, 'the room itself is not changed');
+    assert.strictEqual(on.layers[1], r.layers[1], 'an untouched layer is shared');
 });
 
 test('exits: which hold a cell, their targets, and a choice by flag in words', () => {

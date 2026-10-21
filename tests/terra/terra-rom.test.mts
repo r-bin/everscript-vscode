@@ -140,12 +140,42 @@ if (!rom) {
         assert.ok(terra.roomExits(rom, 0x00A).every((e: { at: number }) => e.at >> 16 === 0x81));
     });
 
+    test('chests ($99:D859): room $103’s chest as the running game opens it; every list', () => {
+        assert.deepStrictEqual(terra.roomChests(rom, 0x103), [{ x: 12, y: 37, flags: 0, gate: null, contents: 0x10, opened: 0x580, at: 0x99E142 }]);
+        assert.deepStrictEqual(terra.roomChests(rom, 0x00F), []);
+        let n = 0, rooms = 0, gated = 0;
+        for (let id = 0; id < terra.TERRA_ROOM_COUNT; id++) {
+            const c = terra.roomChests(rom, id);
+            if (c.length) rooms++;
+            n += c.length; gated += c.filter((x: { gate: number | null }) => x.gate !== null).length;
+        }
+        assert.deepStrictEqual([n, rooms, gated], [132, 96, 2]);
+    });
+
+    test('map changes ($99:D4E7): rooms $101 and $109 as the running game applies them', () => {
+        const c101 = terra.roomChanges(rom, 0x101);
+        assert.deepStrictEqual(c101.map((c: { bit: number }) => c.bit), [0, 1]);
+        assert.deepStrictEqual(c101[0].edits, [{ layer: 0, kind: 'copy', from: [0, 47], w: 2, h: 1, x: 7, y: 4 }]);
+        const room = terra.loadRoom(rom, 0x101);
+        // In the game, with bit 0 set: cell 7,4 of layer 0 becomes $00C4 (8,4 already holds $0EC5).
+        assert.deepStrictEqual(terra.changeCells(room, c101[0]), [[0, 7, 4, 0x00C4], [0, 8, 4, 0x0EC5]]);
+        // With bit 6 set: room $109's cell 16,8 becomes metatile $0FF with its type from the type table ($1CFF).
+        const c109 = terra.roomChanges(rom, 0x109);
+        assert.deepStrictEqual(terra.changeCells(terra.loadRoom(rom, 0x109), c109[0]), [[0, 16, 8, 0x1CFF]]);
+        const after = terra.withChange(room, c101[0]);
+        assert.strictEqual(after.layers[0].cells[4 * 16 + 7], 0x00C4);
+        assert.notStrictEqual(room.layers[0].cells[4 * 16 + 7], 0x00C4, 'the loaded room is untouched');
+    });
+
     test('terra://: info, rooms, a room’s data and pictures', () => {
         const read = (p: string) => { const n = resolveTerra(p.split('/').filter(Boolean), rom); return n && n.kind === 'file' ? n.read() : null; };
         assert.strictEqual(JSON.parse(read('info.json')!.toString()).rooms, 903);
         const data = JSON.parse(read('rooms/00f.json')!.toString());
         assert.deepStrictEqual([data.w, data.h, data.layers.length, data.layers[0].cells.length, data.layers[0].metatiles.length], [32, 64, 2, 2048, 2048]);
         assert.strictEqual(data.exits.length, 2);
+        assert.deepStrictEqual([data.chests.length, data.changes.length], [0, 0]);
+        assert.ok(read('rooms/101.c1.png'), 'a room with a map change applied');
+        assert.strictEqual(resolveTerra(['rooms', '101.c2.png'], rom), null, 'room $101 has two map changes');
         const types = JSON.parse(read('cell-types.json')!.toString());
         assert.deepStrictEqual([types.length, types[14].look, types[31].look], [32, 'wall', 'one-way']);
         assert.deepStrictEqual([...read('rooms/00f.png')!.subarray(1, 4)], [0x50, 0x4E, 0x47]);

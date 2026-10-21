@@ -23,6 +23,14 @@
 .tm-exit { fill: color-mix(in oklch, var(--rg-trigger-step, #e05aa0) 22%, transparent); stroke: var(--rg-trigger-step, #e05aa0); stroke-width: 1.5; }
 .tm-exit.tm-exit-flag { stroke-dasharray: 4 2; }
 .tm-exit.sel { stroke: #fff; stroke-width: 2.5; }
+/* Chests (stageTriggers): the cell, gold; dashed when no closed chest is drawn there at load. */
+.tm-chest { fill: rgba(255, 200, 60, 0.18); stroke: #ffc83c; stroke-width: 1.5; }
+.tm-chest.tm-chest-other { stroke-dasharray: 3 2; }
+.tm-chest.sel { stroke: #fff; stroke-width: 2.5; }
+/* Map changes (stageChanges): the cells each writes; the picked one filled, a copy's source dashed. */
+.tm-change { fill: none; stroke: #5ad1ff; stroke-width: 1; }
+.tm-change.sel { fill: rgba(90, 209, 255, 0.25); stroke: #fff; stroke-width: 1.5; }
+.tm-change-src { fill: none; stroke: #5ad1ff; stroke-width: 1.5; stroke-dasharray: 3 2; }
 .tm-exit-label { fill: #fff; stroke: #000; stroke-width: 1.5px; paint-order: stroke; font: bold 8px monospace; }
 .tm-grid { fill: none; stroke: rgba(255, 255, 255, 0.25); stroke-width: 0.5; }
 .tm-hover { fill: rgba(255, 255, 255, 0.12); stroke: rgba(255, 255, 255, 0.5); stroke-width: 0.8; }

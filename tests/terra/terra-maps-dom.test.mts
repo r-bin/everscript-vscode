@@ -2,7 +2,7 @@
 // editor shell, with a stub host answering terra:// reads from the ROM of the ROM library (the pictures written
 // to a temp dir as the page asks for a room). Checks the shell's frame, rail and search, a room's picture, the
 // filter chips, Pick and the Tile tab's details, the Collision and Trigger tabs with their overlays (an exit
-// clicked on the map, its target opened), the Info tab, the variant bar, and that a second room does not double
+// clicked on the map, its target opened; a chest), the Object tab (a map change previewed), the Info tab, the variant bar, and that a second room does not double
 // the clicks (webview-dom-safety §1). Skips without the ROM or playwright.
 // Run: node tests/terra/terra-maps-dom.test.mts
 import * as fs from 'node:fs';
@@ -46,7 +46,10 @@ async function main() {
     p.on('pageerror', e => errors.push(e.message));
     await p.exposeFunction('hostRead', (f: string) => {
         const hit = /^rooms\/([0-9a-f]{3})\.json$/.exec(f);
-        if (hit) for (const ext of ROOM_FILE_EXTS) if (ext !== 'json') fs.writeFileSync(path.join(base, 'rooms', hit[1] + '.' + ext), read('rooms/' + hit[1] + '.' + ext)!);
+        if (hit) {
+            const changes = JSON.parse(read(f)!.toString()).changes.map((_: unknown, k: number) => 'c' + k + '.png');
+            for (const ext of [...ROOM_FILE_EXTS, ...changes]) if (ext !== 'json') fs.writeFileSync(path.join(base, 'rooms', hit[1] + '.' + ext), read('rooms/' + hit[1] + '.' + ext)!);
+        }
         const b = read(f);
         return b ? b.toString('utf8') : null;
     });
@@ -90,9 +93,9 @@ async function main() {
     });
     check('a room opens on the canvas card with its picture (512×1024 for $00F)', opened.name === 'Room $00F' && /00f\.png$/.test(opened.href)
         && JSON.stringify(opened.size) === '[512,1024]', opened);
-    check('the pill (Select, Pick), the filter bar (BG1, BG2, Cell types, Collision, Triggers, Grid) and the dock (Tile, Collision, Trigger, Info) with the metatile picker',
-        opened.pill.join() === 'select,pick' && opened.chips.join() === 'BG1,BG2,Cell types,Collision,Triggers,Grid'
-        && opened.tabs.join() === 'Tile,Collision,Trigger,Info' && opened.picker, opened);
+    check('the pill (Select, Pick), the filter bar (BG1, BG2, Cell types, Collision, Objects, Triggers, Grid) and the dock (Tile, Collision, Object, Trigger, Info) with the metatile picker',
+        opened.pill.join() === 'select,pick' && opened.chips.join() === 'BG1,BG2,Cell types,Collision,Objects,Triggers,Grid'
+        && opened.tabs.join() === 'Tile,Collision,Object,Trigger,Info' && opened.picker, opened);
 
     await p.click('[data-edit-tool="pick"]');
     const box = await p.$eval('#rg-svg', el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; });
@@ -142,6 +145,47 @@ async function main() {
     await p.click('.rg-object-expanded [data-open-room="16"]');
     await p.waitForTimeout(800);
     check('an exit’s button opens the room it leads to', await p.$eval('.rd-name', el => el.textContent) === 'Room $010');
+    const openById = async (id: number) => {
+        await p.evaluate(r => { document.querySelector('li.rn-map[data-room="' + r + '"]')?.closest('li.rn-area')?.classList.remove('collapsed'); }, id);
+        await p.click('li.rn-map[data-room="' + id + '"]');
+        await p.waitForTimeout(900);
+    };
+    const svgBox = async () => p.$eval('#rg-svg', el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; });
+
+    await openById(0x103);
+    await p.click('[data-terra-tab="trigger"]');
+    await p.click('[data-trig-sub="chests"]');
+    const chests = await p.$$eval('[data-chest]', l => l.map(e => e.textContent));
+    check('room $103: the Trigger tab’s Chests list has its chest (12,37, item $10)', chests.length === 1 && /12,37 · item \$10/.test(chests[0] || ''), chests);
+    await p.click('[data-trig-sub="exits"]');
+    await p.click('[data-terra-tab="tile"]');
+    const b103 = await svgBox();
+    await p.mouse.click(b103.x + b103.w * (12.5 / 64), b103.y + b103.h * (37.5 / 64));
+    await p.waitForTimeout(200);
+    const chest = await p.evaluate(() => ({ tab: document.querySelector('.rg-tab.on')?.textContent, sub: document.querySelector('.rg-subtab.on')?.textContent || '',
+        sel: document.querySelectorAll('#tm-exits .tm-chest.sel').length, text: document.getElementById('rg-panels')?.textContent || '' }));
+    check('with Triggers on, clicking the chest selects it: contents, opened flag $580', chest.tab === 'Trigger' && /Chests/.test(chest.sub) && chest.sel === 1
+        && /opened: event flag \$580/.test(chest.text), { ...chest, text: chest.text.slice(0, 200) });
+    await p.click('.rg-view-filters [data-toggle="triggers"]');
+
+    await openById(0x101);
+    await p.click('[data-terra-tab="object"]');
+    const changes = await p.$$eval('[data-change]', l => l.map(e => e.textContent));
+    const forced = await p.$eval('.rg-view-filters [data-toggle="objects"]', el => el.className);
+    check('room $101: the Object tab lists its two map changes and forces the Objects chip', changes.length === 2 && /^bit 0/.test(changes[0] || '') && /forced/.test(forced), { changes, forced });
+    await p.click('[data-change="0"]');
+    await p.waitForTimeout(300);
+    const preview = await p.evaluate(async () => {
+        const href = document.getElementById('rg-img')?.getAttribute('href') || '';
+        const ok = await new Promise(res => { const i = new Image(); i.onload = () => res(i.naturalWidth > 0); i.onerror = () => res(false); i.src = href; });
+        return { href, ok, sel: document.querySelectorAll('#tm-changes .tm-change.sel').length, src: document.querySelectorAll('#tm-changes .tm-change-src').length };
+    });
+    check('picking a map change shows the room with it applied and outlines its cells and the copy’s source',
+        /101\.c0\.png$/.test(preview.href) && preview.ok && preview.sel === 1 && preview.src === 1, preview);
+    await p.click('[data-terra-tab="info"]');
+    const back = await p.$eval('#rg-img', el => el.getAttribute('href'));
+    check('leaving the Object tab shows the room as it loads again', /101\.png$/.test(back || ''), back);
+
     await p.click('li.rn-map[data-room="15"]');
     await p.waitForTimeout(800);
 

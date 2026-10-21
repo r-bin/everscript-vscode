@@ -25,6 +25,9 @@ export interface TerraLayer {
     cells: Uint16Array;
     /** 512 metatiles × 4 tile words. */
     metatiles: Uint16Array;
+    /** The layer's cell-type table: one byte per metatile (bank $7F at `$084E` / `$0850`); a map change that sets a
+     *  metatile takes the cell's type from it ($8D:905A). */
+    types: Uint8Array;
 }
 
 export interface TerraPpu {
@@ -77,10 +80,12 @@ function readLayers(bus: TerraBus): TerraLayer[] {
         for (let k = 0; k < cells.length; k++) cells[k] = rw(w, (map + k * 2) & 0xFFFF);
         const metatiles = new Uint16Array(512 * 4);
         for (let k = 0; k < metatiles.length; k++) metatiles[k] = rw(w, (meta + k * 2) & 0xFFFF);
+        const typeAt = 0x10000 + rw(w, 0x084E + i * 2);
+        const types = w.slice(typeAt, typeAt + 512);
         const vmap = rw(w, 0x0836 + i * 2);
         let bg = 0;
         for (let b = 0; b < 4; b++) if (((bus.ppuReg(0x2107 + b) & 0xFC) << 8) === vmap) { bg = b + 1; break; }
-        out.push({ index: i, bg, w: cw, h: ch, cells, metatiles });
+        out.push({ index: i, bg, w: cw, h: ch, cells, metatiles, types });
     }
     return out;
 }

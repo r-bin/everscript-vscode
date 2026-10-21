@@ -35,7 +35,8 @@ export function resolveTerra(segments: string[], rom: Uint8Array): RomNode | nul
     }
     if (top === 'rooms') {
         if (name === undefined) return { kind: 'dir', entries: [['index.md', 'file'], ['index.json', 'file'],
-            ...c.rooms.filter(r => r.w).flatMap(r => ROOM_FILE_EXTS.map(e => [r.hex + '.' + e, 'file'] as [string, 'file']))] };
+            ...c.rooms.filter(r => r.w).flatMap(r => ROOM_FILE_EXTS.map(e => [r.hex + '.' + e, 'file'] as [string, 'file'])
+                .concat(terra.roomChanges(rom, r.id).map((_, k) => [r.hex + '.c' + k + '.png', 'file'] as [string, 'file'])))] };
         if (name === 'index.json') return file(() => json(c.rooms));
         if (name === 'index.md') return file(() => buf(roomsIndex(c)));
         const hit = /^([0-9a-f]{3})\.(.+)$/.exec(name);

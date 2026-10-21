@@ -88,7 +88,7 @@ After the load the room change copies colour 32 (`$7F:0640`) into colour 0, the 
 
 | Address | What |
 |---|---|
-| `$0826/$0828` | layer 0/1 width in pixels (0 = no such layer); `$082A/$082C` height |
+| `$0826/$0828` | layer 0/1 width in pixels (0 = no such layer; `$7E:0826` / `$7E:0828`); `$082A/$082C` height |
 | `$082E/$0830` | layer 0/1 cell count |
 | `$0832/$0834` | layer 0/1 map (bank `$7E`), one word per 16 px cell, row by row |
 | `$0836/$0838` | layer 0/1 VRAM tilemap word address (which BG shows it) |
@@ -169,6 +169,11 @@ clear: inside an exit), called from character scripts.
 | `$7E:1000` | the player's character record (the first record; it moves with the pad): word +0 x, +2 y (the box's bottom centre), +4 flags |
 | `$7E:047C` | the next room (0: none); `$7E:0484`, `$7E:0490` the style bytes, `$7E:0492` / `$7E:0494` the arrival point |
 | `$7E:097C` | state bits: 4 = no exits, 2 = type 8 passable moving up (§3.6) |
+| `$7E:0454` | the joypad buttons pressed this frame (bit 7: A) |
+| `$7E:0956` | the player's facing (1: up) |
+| `$7E:06C0` | event flags, a bit each (§3.7) |
+| `$7E:0710` | map-change bits, one per change of `$99:D4E7` (§3.8) |
+| `$7E:09C7` / `$7E:09C9` | a chest being opened: its contents word, and its flag in set-flag form (§3.9) |
 
 A room word with bit 15 set points (bank `$81`) at choices instead (`$8D:8911`): 10 bytes each — an event flag,
 the room, the two style bytes, the arrival x and y — ending with flag `$FFFF` (no exit). The first choice whose
@@ -178,6 +183,49 @@ flag is set is taken (clear, when bit 7 of the exit's byte 6 is set); flag 0 alw
 
 875 rooms have a list, 2087 exits in all (room `$002`, the world map, has 87) with 2123 targets; 2067 targets are
 rooms with an exit back, 2029 arrive within 2 cells of it. 57 exits in 38 rooms with a map are choices by flag.
+
+### 3.8 Map changes (the counterpart of map objects)
+
+Parts of a map the story switches — a gate gone, a passage open — are one global table, `$99:D4E7`
+(up to `$99:D857`), not per room. After a room loads, the room change runs `$8D:8FB4` (called at `$8D:8C0C`): for each
+set bit n of the bit array at `$7E:0710` (LSB first) it applies change n if the change's room is the room loaded.
+A change is one or more 8-byte records; a record whose first word has bit 14 set continues the change before it,
+bit 15 ends the table:
+
+| Bytes | What |
+|---|---|
+| +0 word | the room (bits 0-12); bit 13: layer 1 (map `$7E:E000`), else layer 0 (`$7E:A000`) |
+| +2 = `$FFFF` | set one cell (`$8D:9036`): +4 word the metatile, +6 / +7 the cell; the cell type comes from the layer's cell-type table (`$7F:0000` / `$7F:0200`, read at `$8D:905A`) |
+| else | copy a block of the same layer (`$8D:90A1`): +2 / +3 the source cell, +4 / +5 width and height (to `$0912`), +6 / +7 the destination cell |
+
+74 changes (110 records) for 47 rooms. Nothing else draws them: the room picture is the map without them. What sets
+the bits (events) is not decoded. Checked in the running game (`tools/terra/check-change.mts`, §5).
+
+### 3.9 The check action, chests
+
+There are no per-room "B triggers": cells carry no event, and exits (§3.7) are the only rectangles. Pressing A
+(new presses in `$0454`; the player's script tests them with `COP #$2D` — the script interpreter's operations are
+`COP #n`, dispatched by `$80:8378` through the table at `$80:83B2`; `$80:906F` for `$2D`) runs `$87:9199`: by the
+player's facing (`$0956`) it takes the point in front and tries, in order:
+
+1. a character there (`$87:C740`) — talk to it (`$87:9313`);
+2. `$87:C7AE`: the cell's metatile is `$0F0` (a closed chest, only while facing up, `$0956` = 1), `$0F3`, or
+   `$0FA-$0FC`, or the cell is of type 4 — then look the cell up in the room's chest list; found → `$87:939E`;
+3. a cell of type `$10` in front (a counter): look for a character 32 px further.
+
+The chest list: `$99:D859 + room × 2` points (bank `$99`) at records up to an `$FF` byte: the cell (x, y), a flags
+byte, then — 7 bytes in all; 9 when bit 7 of the flags is set (a gate flag word comes first: the chest gives nothing
+until that event flag is set, `$87:93E1`); 11 when bit 6 is (two contents by a flag; none in the base ROM) — the
+contents word (to `$09C7`: an item; with bit 15 set no item — its low bits read as BCD digits, 30, 100, 378 …, most
+likely money, not checked; 0 empty) and the opened flag n. Opening (`$87:939E`) puts a helper character on the cell
+(here record `$1280`; its script `$87:941A` sets the cell's metatile to `$0F1` with `COP #$44`, `$80:949B` → `$80:94EE`
+→ `$8D:8DF8`, which stores the map word at `$8D:8E16`) and sets event flag `$500 + n` (`$09C9` = n + `$8500`, the
+set-flag form of `$80:BB77`, built at `$87:93FF`). Every room load redraws the cells of the chests whose flag is set as open
+(`$8D:912B`, called at `$8D:8C10`; `$8D:91A2`). Bits 3-4 of the flags pick a variant of the opening (`$7F:102C`).
+
+132 records in 96 rooms: 120 on a closed chest, 6 on a type-4 cell (the opening script takes another path,
+`$87:9471`, and changes no tile), 6 where the loaded map has neither (a map change or an event puts the chest
+there). Item names are not decoded.
 
 ## 4. How the decoder gets a room
 
@@ -220,12 +268,21 @@ no exit there); holding the position words with the event running, its exit #0 w
 `node tools/terra/check-walk.mts <room hex> <x> <y> <up|down|left|right>` puts the player on a cell and holds a
 direction, printing the box's path: how the diagonals of §3.6 were checked.
 
+`node tools/terra/check-chest.mts <room hex> [chest]` stands the player below a chest and presses A: room `$103`'s
+chest (12,37) turned from `$18F0` to `$18F1` and its flag `$580` was set; entering the room again with the flag set
+draws it open, without it closed. `node tools/terra/check-change.mts <room hex> <bit>` sets a map-change bit and
+enters the room: changes 0 and 1 (room `$101`, a block copy on each layer), 2 (`$102`), 6 (`$109`), 8 and 14 (`$10A`,
+one cell, and an 8×15 block) left exactly the cells the table says (room `$10A` also changes 8 cells itself on entry,
+with or without the bits).
+
 The loader on the interpreter leaves the same metatile tables, layer maps and VRAM background characters
 as the emulator for room `$00F` (byte for byte, `$7E:2000-$3FFF`, `$7E:A000`, `$7E:E000`, VRAM `$0000-$5FFF`),
 and the same display registers (`$2105=$09`, BG1 `$3C00`, BG2 `$3800`, main `$17`, sub `$12`, `$2130=$82`, `$2131=$21`).
 
 ## 6. Not decoded yet
 
+* What sets the map-change bits and most event flags (events), item names, whether bit 15 contents are money, the
+  `$0F3` / `$0FA-$0FC` lookups' own handling (`$87:9724`).
 * Bit 14 of a map word, which characters the ground table `$80:E11C` applies to, what `$097C` bit 2 and `$048A`
   bit 15 stand for, the style byte `$0484` and the high nibble of `$0490`.
 * The `08` commands `FC`/`FD`/`F8`/`F9`, sections `$04`/`$01`.

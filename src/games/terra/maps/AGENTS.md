@@ -22,8 +22,9 @@ Kind: **feature** (see `/AI_ARCHITECTURE_GUIDE.md` §2). The Terranigma Maps pan
   never scale them with CSS.
 - The page says what is a guess: a room drawn after the rooms before it (Info › ROOM), what is not drawn (Info), the
   diagonal corners' shape (Collision tab note), events that are not decoded (Trigger tab).
-- Collision and exits come from `terra://rom/cell-types.json` and the room's `exits`; the page never hard-codes a
-  cell type's meaning.
+- Collision, exits, chests and map changes come from `terra://rom/cell-types.json` and the room's json (`exits`,
+  `chests`, `changes` with the cells each writes); the page never hard-codes a cell type's meaning. A map change is
+  previewed only while the Object tab is open.
 - Read-only: nothing changes a room. Editing would follow the Mana panel's model (`edit-history`, sessions, "not saved").
 
 ## Tests

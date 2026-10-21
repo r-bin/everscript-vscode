@@ -11,4 +11,5 @@ Rules for agents: [AGENTS.md](AGENTS.md). Facts: [docs/terra/README.md](../../..
 | `extension.ts` | registers `terra://`, the panel command and the game view (Open Memory Radar with a Terranigma ROM selected) |
 
 Checked against the running game with `node tools/terra/check-room.mts <room>` (pictures) and
-`node tools/terra/check-exit.mts <room> [exit] [--flag <hex>]` (exits) (docs/terra/README.md §5).
+`node tools/terra/check-exit.mts <room> [exit] [--flag <hex>]` (exits), `check-walk.mts` (collision), `check-chest.mts`
+(chests), `check-change.mts` (map changes) (docs/terra/README.md §5).

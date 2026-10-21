@@ -3,9 +3,11 @@
 //
 //   <hex>.png / <hex>.l0.png / <hex>.l1.png   the room's map with both layers / layer 0 / layer 1 only
 //   <hex>.tiles.l0.png / .tiles.l1.png        a layer's 512 metatiles, 16 per row (colour 0 clear)
+//   <hex>.c<k>.png                            the map with the room's map change k applied (k: its index in the json)
 //   <hex>.json                                everything the Maps page starts from: sizes, both layers' map
 //                                             words and metatile tile words, palette, display registers,
-//                                             what the load ran and which room was loaded before it, its exits
+//                                             what the load ran and which room was loaded before it, its exits,
+//                                             chests and map changes (with the cells each one writes)
 
 import * as terra from '../decoder';
 import { encodePng } from '../../../platform/png';
@@ -54,6 +56,8 @@ function data(rom: Uint8Array, id: number): Buffer {
             cells: Array.from(l.cells), metatiles: Array.from(l.metatiles),
         })),
         exits: terra.roomExits(rom, id),
+        chests: terra.roomChests(rom, id),
+        changes: terra.roomChanges(rom, id).map(c => ({ ...c, cells: terra.changeCells(room, c) })),
     });
 }
 
@@ -67,5 +71,8 @@ export function roomFile(rom: Uint8Array, id: number, ext: string): (() => Buffe
         case 'tiles.l1.png': return () => png(terra.renderMetatileSheet(load(rom, id), 1));
         case 'json': return () => data(rom, id);
     }
+    const change = /^c(\d+)\.png$/.exec(ext);
+    const c = change ? terra.roomChanges(rom, id)[Number(change[1])] : undefined;
+    if (c) return () => png(terra.renderRoom(terra.withChange(load(rom, id), c)));
     return null;
 }

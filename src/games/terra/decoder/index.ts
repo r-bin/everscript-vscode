@@ -13,3 +13,7 @@ export { cellTypeRules, cellClass } from './collision';
 export type { CellTypeRule, CellClass, Move, MoveRule, GroundRule } from './collision';
 export { roomExits } from './exits';
 export type { TerraExit, ExitTarget } from './exits';
+export { roomChanges, changeCells, withChange } from './changes';
+export type { MapChange, ChangeEdit } from './changes';
+export { roomChests } from './chests';
+export type { TerraChest } from './chests';

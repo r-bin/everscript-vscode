@@ -1,6 +1,6 @@
 // Ownership: what the Terranigma Maps page knows about a room as plain data — no DOM, unit-tested
 // (tests/terra/terra-maps-model.test.mts): reading map and tile words, describing a metatile and a cell,
-// the rail's rows, which rooms show the same picture, the cell-type, collision and exit overlays. The page (page.dom.ts) and
+// the rail's rows, which rooms show the same picture, the cell-type, collision, exit, chest and map-change overlays. The page (page.dom.ts) and
 // the room files (terra://rom/rooms/<hex>.json, games/terra/resources/room-files.ts) are its two ends.
 // Facts: docs/terra/README.md §4.
 
@@ -13,6 +13,17 @@ export interface ExitTarget { room: number; x: number; y: number; style: number[
 /** An exit: a rectangle in cells and its target, or its choices by event flag. */
 export interface ExitData { x: number; y: number; w: number; h: number; targets: ExitTarget[]; inverted: boolean; at: number }
 
+/** A chest of the room's list (games/terra/decoder/chests.ts). */
+export interface ChestData { x: number; y: number; flags: number; gate: number | null; contents: number; opened: number | null; at: number }
+
+/** One edit of a map change (games/terra/decoder/changes.ts). */
+export type ChangeEdit =
+    | { layer: number; kind: 'set'; x: number; y: number; metatile: number }
+    | { layer: number; kind: 'copy'; from: [number, number]; w: number; h: number; x: number; y: number };
+
+/** A map change: the `$7E:0710` bit that switches it on, its edits, and the cells it writes ([layer, x, y, word]). */
+export interface ChangeData { bit: number; edits: ChangeEdit[]; cells: [number, number, number, number][] }
+
 /** `terra://rom/rooms/<hex>.json`. */
 export interface RoomData {
     id: number; hex: string; w: number; h: number; script: number | null; context: number[];
@@ -21,6 +32,8 @@ export interface RoomData {
     ppu: { mode: number; main: number; sub: number; cgwsel: number; cgadsub: number; fixed: number[] };
     layers: LayerData[];
     exits: ExitData[];
+    chests: ChestData[];
+    changes: ChangeData[];
 }
 
 export type Move = 'up' | 'down' | 'left' | 'right';
@@ -238,4 +251,68 @@ export function describeExit(e: ExitData): string[] {
     }
     if (e.targets.length && e.targets[e.targets.length - 1].flag) rows.push('no flag matches: no exit');
     return rows;
+}
+
+/** The chests whose cell is (x, y), by index. */
+export function chestsAt(room: RoomData, x: number, y: number): number[] {
+    return (room.chests || []).flatMap((c, i) => c.x === x && c.y === y ? [i] : []);
+}
+
+/** The map changes that write cell (x, y) on either layer, by index. */
+export function changesAt(room: RoomData, x: number, y: number): number[] {
+    return (room.changes || []).flatMap((c, i) => c.cells.some(([, cx, cy]) => cx === x && cy === y) ? [i] : []);
+}
+
+/**
+ * What the check action finds on a chest's cell as the room loads ($87:C7AE): a closed chest (metatile $0F0, opened
+ * facing up), one of the other kinds it looks up ($0F3, $0FA-$0FC, a cell of type 4: no chest is drawn), or nothing
+ * it would look up (a map change or an event puts the chest there later).
+ */
+export function chestKind(room: RoomData, c: ChestData): string {
+    const w = cellWord(room, 0, c.x, c.y);
+    if (w < 0) return 'off the map';
+    const { metatile, type } = mapWord(w);
+    if (metatile === 0xF0) return 'chest';
+    if (metatile === 0xF1) return 'chest (drawn open)';
+    if (metatile === 0xF3) return 'metatile $0F3';
+    if (metatile >= 0xFA && metatile <= 0xFC) return 'metatile $' + hex(metatile, 3);
+    if (type === 4) return 'a spot (cell type 4)';
+    return 'nothing at load';
+}
+
+/** The contents word in words: an item, empty, or (bit 15) not an item — its low bits read as BCD digits. */
+export function contentsText(v: number): string {
+    if (!v) return 'empty';
+    if (v & 0x8000) return 'not an item: $' + hex(v, 4) + ' (BCD ' + (v & 0x7FFF).toString(16) + ', most likely money)';
+    return 'item $' + hex(v, 2);
+}
+
+/** The rows of the Trigger tab for one chest. */
+export function describeChest(room: RoomData, c: ChestData): string[] {
+    return [
+        `cell ${c.x},${c.y} · ${chestKind(room, c)} · record $${hex(c.at >> 16, 2)}:${hex(c.at & 0xFFFF, 4)}`,
+        'contents: ' + contentsText(c.contents),
+        c.opened === null ? 'no opened flag' : `opened: event flag $${hex(c.opened, 3)} (the room draws it open once set)`,
+        ...(c.gate !== null ? [`gives nothing until event flag $${hex(c.gate, 3)} is set`] : []),
+        ...(c.flags & 0x18 ? [`variant ${(c.flags >> 3) & 3}`] : []),
+    ];
+}
+
+/** The rows of the Object tab for one map change. */
+export function describeChange(c: ChangeData): string[] {
+    return c.edits.map(e => e.kind === 'set'
+        ? `layer ${e.layer}: cell ${e.x},${e.y} becomes metatile $${hex(e.metatile, 3)}`
+        : `layer ${e.layer}: the ${e.w}×${e.h} cells at ${e.from[0]},${e.from[1]} are copied to ${e.x},${e.y}`)
+        .concat(`writes ${c.cells.length} cell${c.cells.length === 1 ? '' : 's'}; on while bit ${c.bit} of $7E:0710 is set`);
+}
+
+/** The room with map change `c` applied: its layers' cells patched (for the overlays and the dock). */
+export function changedRoom(room: RoomData, c: ChangeData): RoomData {
+    return { ...room, layers: room.layers.map(l => {
+        const mine = c.cells.filter(([layer]) => layer === l.index);
+        if (!mine.length) return l;
+        const cells = l.cells.slice();
+        for (const [, x, y, w] of mine) cells[y * l.w + x] = w;
+        return { ...l, cells };
+    }) };
 }
