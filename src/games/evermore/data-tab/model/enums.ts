@@ -1,92 +1,172 @@
-// Ownership: the Data tab's Enums view — every enum the Everscript core
-// library declares (the language data file, generated from the compiler's
-// in/core/*.evs), grouped by what its values are: ROM addresses, WRAM
-// addresses, plain values; and the game's own lists read from the ROM:
-// character blobs (the WRAM entity slots and the ROM records) and map blobs
-// (the map pointer table). Pure apart from the ROM buffer and the character
-// names the host hands in (the sprites tab's, injected).
+// Ownership: the Data tab's Enums view — id lists the game itself defines,
+// read from the user's ROM or from a knowledge entry that says how it was
+// found. Nothing comes from the compiler's .evs enums: those were partly
+// guessed and carry hack-specific entries. Each list says where it is read
+// (`source`), so every value can be checked. Pure apart from the ROM buffer
+// and the character list the host hands in.
 
-import indexJson from '../../language/data/index.json';
 import * as maps from '../../maps';
 import { CHARACTER_TABLE, CHARACTER_STRIDE } from '../../maps/character-record';
-import { getMapName, getMapArea } from '../../localizations';
+import { getMapName, getMapArea, FUNCTION_BY_ADDRESS } from '../../localizations';
+import { entries as knowledgeEntries } from '../../localizations/knowledge';
 import { hex } from '../../../../platform';
+import type { CharacterInfo } from './palettes';
 
-interface Entry { name: string; value: string; comment: string; vfs?: string }
-interface EnumList { id: string; group: string; title: string; entries: Entry[] }
-/** A character as the host knows it: its record index and name. */
-interface CharacterName { id: number; name: string }
+interface Entry { cells: string[]; vfs?: string; icon?: string; detail?: [string, string][] }
+interface EnumList { id: string; group: string; title: string; source: string; columns: string[]; entries: Entry[] }
 
-type RawEntry = { name: string; value: string; comment: string };
-const ENUMS = (indexJson as { enums: Record<string, RawEntry[]> }).enums;
-/** Enums whose plain values are WRAM offsets (the others mark theirs `<0x…>`). */
-const WRAM_VALUED = new Set(['CHARACTER_ADDRESS']);
+const RECORD_COUNT = 142;
+/** Record +$03 (AI script) and +$30 (what touching it does), as rom/8eb678.md lists them. */
+const FIELD_AI = 0x03;
+const FIELD_CONTACT = 0x30;
+/** `JSR ($B6AE,x)`: one word per even id; 15 handlers, the 16th word is not code. */
+const CONTACT_TABLE = 0x8fb6ae;
+const CONTACT_COUNT = 15;
+/** Alchemy text and the cast tables in bank $C4 (knowledge rom/c45d09.md, c45f97.md, c45fc5.md). */
+const FORMULA_NAMES = 0xc45d09;
+const FORMULA_DESCRIPTIONS = 0xc45d51;
+const FORMULA_BLOCKS = 0xc45ddf;
+const FORMULA_COUNT = 35;
+const CAST_BLOCKS = 0xc45f97;
+const CAST_NAMES = 0xc45fc5;
+const CAST_COUNT = 23;
+const INGREDIENT_NAMES = CAST_NAMES + CAST_COUNT * 2;
+const INGREDIENT_COUNT = 22;
+/** Block offset → `$91` block address: the word at `$91:80A6 + offset`. */
+const BLOCK_TABLE = 0x9180a6;
+const BLOCK_BANK = 0x91;
+/** WRAM character blobs the knowledge base describes. */
+const WRAM_BLOBS = [0x7e0a26, 0x7e0a70, 0x7e4e89, 0x7e4f37, 0x7e3ddf];
 
-const ROM_BANK = 0x800000;
 const bus = (addr: number): string => 'soe://bus/' + hex(addr, 6).toLowerCase();
+const word = (rom: Uint8Array, snes: number): number => maps.read16(rom, maps.snesToRom(snes));
+const h = (v: number, d = 4): string => '$' + hex(v, d);
 
-function parse(v: string): number {
-    const s = v.replace(/[<>\s]/g, '');
-    if (/^0x/i.test(s)) return parseInt(s, 16);
-    if (/^0d/i.test(s)) return parseInt(s.slice(2), 10);
-    return /^-?\d+$/.test(s) ? parseInt(s, 10) : NaN;
+/** Zero-ended text in the ROM, as the menus print it (printable ASCII only). */
+function text(rom: Uint8Array, snes: number): string {
+    let s = '';
+    for (let p = maps.snesToRom(snes); p < rom.length && rom[p] && s.length < 80; p++) s += rom[p] >= 0x20 && rom[p] < 0x7f ? String.fromCharCode(rom[p]) : '·';
+    return s;
 }
+const textAt = (rom: Uint8Array, table: number, i: number): string => text(rom, 0xc40000 | word(rom, table + i * 2));
+const blockOf = (rom: Uint8Array, offset: number): number => (BLOCK_BANK << 16) | word(rom, BLOCK_TABLE + offset);
+const recordWord = (rom: Uint8Array, c: number, field: number): number => word(rom, CHARACTER_TABLE + c * CHARACTER_STRIDE + field);
+const charName = (chars: CharacterInfo[], c: number): string => hex(c, 2) + ' ' + (chars[c]?.name || '');
 
-/** ROM / WRAM / value, and the bus address of an entry when it is one. WRAM: most values are marked `<0x…>`. */
-function classify(id: string, list: RawEntry[]): { group: string; addr: (e: RawEntry) => number | null } {
-    if (WRAM_VALUED.has(id) || list.filter((e) => e.value.trim().startsWith('<')).length * 2 > list.length) {
-        return { group: 'WRAM addresses', addr: (e) => { const n = parse(e.value); return Number.isFinite(n) ? 0x7e0000 + (n & 0x1ffff) : null; } };
+function characterBlobs(rom: Uint8Array, chars: CharacterInfo[]): EnumList {
+    const ram = knowledgeEntries('ram');
+    const wram: Entry[] = WRAM_BLOBS.map((a) => ram.find((e) => e.addr === a)).filter(Boolean).map((e) => ({
+        cells: ['WRAM', e!.title, h(e!.addr, 6), (e!.size || e!.end - e!.addr + 1) + ' bytes'], vfs: bus(e!.addr),
+    }));
+    const rec: Entry[] = [];
+    for (let c = 0; c < RECORD_COUNT; c++) {
+        const a = CHARACTER_TABLE + c * CHARACTER_STRIDE;
+        rec.push({ cells: ['ROM', charName(chars, c), h(a, 6), CHARACTER_STRIDE + ' bytes'], vfs: bus(a), icon: chars[c]?.thumbs?.s || chars[c]?.thumbs?.e || undefined });
     }
-    const nums = list.map((e) => parse(e.value)).filter(Number.isFinite);
-    if (nums.length && nums.every((n) => n >= ROM_BANK)) return { group: 'ROM addresses', addr: (e) => { const n = parse(e.value); return Number.isFinite(n) ? n : null; } };
-    return { group: 'Values', addr: () => null };
+    return {
+        id: 'blobs', group: 'Characters', title: 'Character blobs', columns: ['where', 'name', 'address', 'size'], entries: wram.concat(rec),
+        source: 'ROM: the 142 records at $8E:B678, 74 bytes each, named by the text their +$00 pointer names. WRAM: the Boy\'s and Dog\'s own records ($0A26, $0A70 — rewritten by the weapon and Dog-form loaders), their entities and the head of the entity list (knowledge entries). The other entity slots are not verified yet.',
+    };
 }
 
-function coreEnums(): EnumList[] {
-    return Object.keys(ENUMS).filter((id) => ENUMS[id].length).map((id) => {
-        const c = classify(id, ENUMS[id]);
-        return {
-            id: 'e:' + id, group: c.group, title: id,
-            entries: ENUMS[id].map((e) => {
-                const a = c.addr(e);
-                return { name: e.name, value: e.value, comment: e.comment, ...(a != null ? { vfs: bus(a) } : {}) };
-            }),
-        };
-    });
+/** The character record's fields, as the knowledge entry rom/8eb678.md lists them with their readers. */
+function recordFields(): EnumList {
+    const e = knowledgeEntries('rom').find((x) => x.addr === CHARACTER_TABLE);
+    const rows = (e?.body || '').split('\n').filter((l) => /^\| `\+\$/.test(l));
+    return {
+        id: 'fields', group: 'Characters', title: 'Character record fields', columns: ['field', 'read by', 'what the game does'],
+        entries: rows.map((l) => ({ cells: l.split('|').slice(1, 4).map((c) => c.trim().replace(/`/g, '')) })),
+        source: 'Knowledge entry rom/8eb678.md: every long-indexed read of the records, grouped by field, with the routine that reads it.',
+    };
 }
 
-function characterBlobs(rom: Uint8Array, names: CharacterName[]): EnumList {
-    const slots = (ENUMS.CHARACTER_ADDRESS || []).map((e): Entry => {
-        const a = 0x7e0000 + (parse(e.value) & 0xffff);
-        return { name: 'WRAM · ' + e.name, value: '$' + hex(a, 6), comment: 'entity slot', vfs: bus(a) };
-    });
-    const records: Entry[] = [];
-    for (let i = 0; i < names.length && maps.snesToRom(CHARACTER_TABLE + (i + 1) * CHARACTER_STRIDE) <= rom.length; i++) {
-        const a = CHARACTER_TABLE + i * CHARACTER_STRIDE;
-        records.push({ name: 'ROM · ' + hex(i, 2) + ' ' + (names[i]?.name || ''), value: '$' + hex(a, 6), comment: CHARACTER_STRIDE + '-byte record', vfs: bus(a) });
+function usedBy(rom: Uint8Array, chars: CharacterInfo[], field: number): Map<number, string[]> {
+    const out = new Map<number, string[]>();
+    for (let c = 0; c < RECORD_COUNT; c++) {
+        const v = recordWord(rom, c, field);
+        out.set(v, (out.get(v) || []).concat(charName(chars, c)));
     }
-    return { id: 'characters', group: 'Game lists', title: 'Character blobs', entries: slots.concat(records) };
+    return out;
 }
 
-function mapBlobs(rom: Uint8Array): EnumList {
+function contactHandlers(rom: Uint8Array, chars: CharacterInfo[]): EnumList {
+    const users = usedBy(rom, chars, FIELD_CONTACT);
+    const entries: Entry[] = [];
+    for (let i = 0; i < CONTACT_COUNT; i++) {
+        const id = i * 2, target = 0x8f0000 | word(rom, CONTACT_TABLE + id);
+        const u = users.get(id) || [];
+        entries.push({ cells: [h(id, 2), h(target, 6), FUNCTION_BY_ADDRESS.get(target)?.name || '', u.length ? u.length + ' records' : '—'], vfs: bus(target), detail: u.length ? [['records', u.join(', ')]] : undefined });
+    }
+    return {
+        id: 'contact', group: 'Characters', title: 'Contact handler (record +$30)', columns: ['id', 'handler', 'what it does', 'used by'], entries,
+        source: 'Record +$30 picks a handler from the word table $8F:B6AE (JSR ($B6AE,x), rom/8fb6ae.md): 15 handlers, ids 0–$1C. Projectiles use the same table.',
+    };
+}
+
+function aiSelectors(rom: Uint8Array, chars: CharacterInfo[]): EnumList {
+    const users = usedBy(rom, chars, FIELD_AI);
+    return {
+        id: 'ai', group: 'Characters', title: 'AI selector (record +$03)', columns: ['value', 'records', 'used by'],
+        entries: [...users.keys()].sort((a, b) => a - b).map((v) => ({ cells: [h(v), String(users.get(v)!.length), users.get(v)!.slice(0, 4).join(', ') + (users.get(v)!.length > 4 ? ' …' : '')], detail: [['records', users.get(v)!.join(', ')]] })),
+        source: 'The values the 142 records hold at +$03, which $8F:CD1A reads to pick the AI script. What each value does is not decoded yet.',
+    };
+}
+
+function formulas(rom: Uint8Array, icons: (string | null)[]): EnumList {
+    const casts = new Map<number, number>();
+    for (let i = 0; i < CAST_COUNT; i++) casts.set(word(rom, CAST_BLOCKS + i * 2), i * 2);
+    const entries: Entry[] = [];
+    for (let i = 0; i < FORMULA_COUNT; i++) {
+        const off = word(rom, FORMULA_BLOCKS + i * 2), block = blockOf(rom, off), cast = casts.get(off);
+        entries.push({ cells: [String(i), textAt(rom, FORMULA_NAMES, i), h(block, 6), cast != null ? h(cast, 2) : '—'], icon: icons[i] || undefined,
+            detail: [['description', textAt(rom, FORMULA_DESCRIPTIONS, i)], ['block offset', h(off, 2) + ' ($C4:5DDF)']], vfs: bus(block) });
+    }
+    return {
+        id: 'formulas', group: 'Alchemy', title: 'Formulas', columns: ['index', 'name', '$91 block', 'cast id'], entries,
+        source: 'Names: pointers at $C4:5D09 (35), descriptions at $C4:5D51; the $91 block: offset at $C4:5DDF into the table $91:80A6. The cast id is the CAST entry with the same block.',
+    };
+}
+
+function castIds(rom: Uint8Array): EnumList {
+    const entries: Entry[] = [];
+    for (let i = 0; i < CAST_COUNT; i++) {
+        const off = word(rom, CAST_BLOCKS + i * 2), block = blockOf(rom, off);
+        entries.push({ cells: [h(i * 2, 2), textAt(rom, CAST_NAMES, i), h(block, 6)], vfs: bus(block) });
+    }
+    return {
+        id: 'cast', group: 'Alchemy', title: 'CAST (spell id of opcodes $9E / $AC)', columns: ['id', 'name', '$91 block'], entries,
+        source: 'The script opcodes $9E and $AC take a spell id and read $C4:5F97 (its $91 block offset) and $C4:5FC5 (its name), 23 even ids. Some are enemy-only spells with no formula. Ids past $2C read the ingredient names that follow.',
+    };
+}
+
+function ingredients(rom: Uint8Array): EnumList {
+    const entries: Entry[] = [];
+    for (let i = 0; i < INGREDIENT_COUNT; i++) entries.push({ cells: [String(i), textAt(rom, INGREDIENT_NAMES, i)] });
+    return {
+        id: 'ingredients', group: 'Alchemy', title: 'Ingredient names', columns: ['index', 'name'], entries,
+        source: 'The 22 name pointers right after the cast names ($C4:5FF3). Which item id each belongs to is not traced yet.',
+    };
+}
+
+function rooms(rom: Uint8Array): EnumList {
     const entries: Entry[] = [];
     for (let id = 0; id < maps.MAX_ROOMS; id++) {
-        try {
-            const blob = maps.roomBlobOffset(rom, id);
-            const end = maps.objectAreaEnd(rom, maps.parseBlobLayout(rom, blob));
-            entries.push({ name: hex(id, 2) + ' ' + (getMapName(id) || 'Room $' + hex(id, 2)), value: '$' + hex(0xc00000 + blob, 6),
-                comment: (end - blob) + ' bytes · ' + (getMapArea(id) || ''), vfs: bus(0xc00000 + blob) });
-        } catch (err) {
-            entries.push({ name: hex(id, 2) + ' ' + (getMapName(id) || ''), value: '?', comment: String(err instanceof Error ? err.message : err) });
-        }
+        const blob = maps.roomBlobOffset(rom, id), snes = 0xc00000 + blob;
+        let size = '?';
+        try { size = String(maps.objectAreaEnd(rom, maps.parseBlobLayout(rom, blob)) - blob); } catch { /* listed without a size */ }
+        entries.push({ cells: [h(id, 2), getMapName(id) || '', getMapArea(id) || '', h(snes, 6), size], vfs: bus(snes) });
     }
-    return { id: 'maps', group: 'Game lists', title: 'Map blobs', entries };
+    return {
+        id: 'rooms', group: 'Rooms', title: 'Rooms (map pointer table)', columns: ['id', 'name (ours)', 'area (ours)', 'blob', 'bytes'], entries,
+        source: 'The 127 pointers at $9F:FDE7, 4 bytes each; the size is the blob\'s walked length. Names and areas are our own descriptions.',
+    };
 }
 
-/** Every list the view shows: the game's lists first, then the core enums by kind. */
-function enumsModel(rom: Uint8Array, names: CharacterName[]): EnumList[] {
-    return [characterBlobs(rom, names), mapBlobs(rom)].concat(coreEnums());
+/** Every list the view shows. `icons` are the formulas' ring-menu icons (PNG data URIs) in formula order. */
+function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | null)[] = []): EnumList[] {
+    return [characterBlobs(rom, chars), recordFields(), contactHandlers(rom, chars), aiSelectors(rom, chars),
+        formulas(rom, icons), castIds(rom), ingredients(rom), rooms(rom)];
 }
 
 export { enumsModel };
-export type { EnumList, Entry, CharacterName };
+export type { EnumList, Entry };

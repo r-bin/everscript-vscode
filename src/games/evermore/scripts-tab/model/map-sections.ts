@@ -1,18 +1,22 @@
 // Ownership: the Scripts tab's Maps view, middle column — one room blob as the
 // bytes the game reads, cut into the sections the room loader walks
 // (maps/blob-layout.ts; docs/map-format/map_encoding.md). Each section carries
-// its bytes, the fields it decodes to and the items in it (a trigger, an
-// animation channel, an object, a swap record) that the right column draws
-// (./map-views.ts). Pure apart from the ROM buffer it is handed.
+// its bytes, the fields it decodes to and its items (a trigger, a palette slot,
+// an animation channel, an object and each of its state steps, a swap chain, a
+// metatile). An item lists every byte range that belongs to it — an object's
+// record, its step descriptors and the stamp blocks they point at — so the page
+// can light all of them and link them to the picture (./map-views.ts).
+// Pure apart from the ROM buffer it is handed.
 
 import * as maps from '../../maps';
 import { getMapName, getMapArea } from '../../localizations';
 import { hex } from '../../../../platform';
+import { metatileFacts } from './map-tiles';
 
 /** One decoded field: where it sits in the section, its name and value. */
 interface Field { at: number; size: number; name: string; value: string }
-/** A selectable part of a section; `key` is what the page sends back (./map-views.ts). */
-interface Item { key: string; label: string; at: number; size: number }
+/** A selectable part of a section; `key` is what the page sends back. Ranges are [offset in the section, length]. */
+interface Item { key: string; label: string; ranges: [number, number][]; sub?: boolean }
 interface Section {
     key: string; title: string; note: string;
     /** ROM file offset and SNES bus address of the section's first byte. */
@@ -23,6 +27,8 @@ interface Section {
 }
 
 const SUB_FLAG: Record<number, string> = { 0x00: 'raw copy', 0x03: 'LZSS', 0x07: 'Markov' };
+/** `$90:D020` loads at most this many palettes, from the set `$7E:2437` starts at. */
+const PALETTE_SET = 7;
 
 const toSnes = (offset: number): string => '$' + hex(0xc00000 + offset, 6);
 const h2 = (v: number): string => '$' + hex(v, 2);
@@ -44,9 +50,61 @@ function blockFields(b: maps.PayloadBlock, what: string): Field[] {
 function triggerItems(room: maps.RoomData, kind: 'step' | 'b'): Item[] {
     const list = kind === 'step' ? room.triggers.stepOn : room.triggers.bTrigger;
     return list.map((t, i) => ({
-        key: kind + ':' + i, at: 2 + i * 6, size: 6,
+        key: kind + ':' + i, ranges: [[2 + i * 6, 6]],
         label: (kind === 'step' ? 'S' : 'B') + i + ' (' + t.x1 + ',' + t.y1 + ')–(' + t.x2 + ',' + t.y2 + ') script ' + h4(t.scriptId),
     }));
+}
+
+/** The palette list as sets of 7: set n is what `$7E:2437` = 7n loads into BG palettes 1–7. */
+function paletteItems(families: number[]): { fields: Field[]; items: Item[] } {
+    const fields: Field[] = [{ at: 0, size: 1, name: 'count', value: families.length + (families.length > PALETTE_SET ? ' · ' + Math.ceil(families.length / PALETTE_SET) + ' sets, picked by $7E:2437' : '') }];
+    const items: Item[] = families.map((f, i) => ({
+        key: 'fam:' + i, ranges: [[1 + i * 2, 2]],
+        label: 'set ' + (Math.floor(i / PALETTE_SET) + 1) + ' ($7E:2437 = ' + Math.floor(i / PALETTE_SET) * PALETTE_SET + ') · BG palette ' + (i % PALETTE_SET + 1) + ' ← map palette #' + f,
+    }));
+    const sets = Math.max(1, Math.ceil(families.length / PALETTE_SET));
+    const empty = sets * PALETTE_SET - families.length;
+    if (empty) fields.push({ at: 0, size: 0, name: 'empty slots', value: empty + ' (BG palette ' + (families.length % PALETTE_SET + 1) + '–7 of the last set is not loaded and keeps what CGRAM held)' });
+    return { fields, items };
+}
+
+function animItems(rom: Uint8Array, room: maps.RoomData, L: maps.BlobLayout): Item[] {
+    return room.animation.map((c) => {
+        const off = maps.read16(rom, L.section2 + 3 + c.index * 4 + 2);
+        return {
+            key: 'anim:' + c.index, ranges: [[3 + c.index * 4, 4], [3 + off, c.frames.length * 3]],
+            label: 'channel ' + c.index + ' · ' + c.frames.length + ' frames · descriptor + frame list',
+        };
+    });
+}
+
+/** An object: its record (state count), each step descriptor, and the stamp block each step points at. */
+function objectItems(rom: Uint8Array, room: maps.RoomData): Item[] {
+    const out: Item[] = [];
+    room.objects.forEach((o) => {
+        const stamps = o.states.map((s) => maps.parseObjectStamp(rom, room.objectArea, s.metatileId));
+        const steps = o.states.map((s, k): [number, number][] => [[o.relativeOffset + 1 + k * 5, 5], [s.metatileId, stamps[k].byteLength]]);
+        out.push({
+            key: 'obj:' + o.objectIndex, ranges: ([[o.relativeOffset, 1]] as [number, number][]).concat(...steps),
+            label: 'object ' + o.objectIndex + ' · ' + maps.objectStateCount(o) + ' states · ' + o.states.length + ' steps, each a descriptor (5 bytes) and a stamp',
+        });
+        o.states.forEach((s, k) => out.push({
+            key: 'obj:' + o.objectIndex + ':' + k, ranges: steps[k], sub: true,
+            label: 'step ' + k + ' → ' + (k + 1) + ': hold ' + s.hold + ' ticks · stamp ' + stamps[k].tw + '×' + stamps[k].th + ' at (' + s.tileX + ',' + s.tileY + ') · ' + stamps[k].tileCount + ' tiles changed',
+        }));
+    });
+    return out;
+}
+
+function grassItems(room: maps.RoomData): Item[] {
+    // Records follow the counter: steps, then words up to a $0000 (maps/cuttable-grass.ts walks them the same way).
+    let p = 3;
+    return room.cuttableGrass.table.records.map((r, i) => {
+        const size = 1 + (2 + r.sequence.length) * 2;
+        const item: Item = { key: 'grass:' + i, ranges: [[p, size]], label: 'swap ' + i + ' · ' + h4(r.source) + ' → ' + r.sequence.map(h4).join(' → ') + ' · ' + r.steps + ' steps' };
+        p += size;
+        return item;
+    });
 }
 
 /** Every section of room `id`'s blob, in ROM order: { id, …, sections } or { id, error }. */
@@ -88,30 +146,23 @@ function mapSections(rom: Uint8Array, id: number) {
     b.items = triggerItems(room, 'b');
     out.push(b);
 
-    const fam = section(rom, 'families', 'Tile families', 'Count, then one palette family per background palette 1–7', L.payloadOffset, L.extrasOffset);
-    fam.fields = room.tileFamilies.map((f, i) => ({ at: 1 + i * 2, size: 2, name: 'palette ' + (i + 1), value: 'family ' + h4(f) }));
+    const fam = section(rom, 'families', 'Map palettes ("tile families")', 'Count, then one map palette id ($9C:C322) per BG palette, in sets of 7', L.payloadOffset, L.extrasOffset);
+    Object.assign(fam, paletteItems(room.tileFamilies));
     out.push(fam);
     const extras = section(rom, 'extras', 'CHR descriptors', 'Count, then 3 bytes each', L.extrasOffset, L.block1.offset);
     for (let i = 0; i < L.extraCount; i++) {
-        const p = L.extrasOffset + 1 + i * 3;
-        extras.fields.push({ at: 1 + i * 3, size: 3, name: 'descriptor ' + i, value: '$' + hex(maps.read24(rom, p), 6) });
+        extras.fields.push({ at: 1 + i * 3, size: 3, name: 'descriptor ' + i, value: '$' + hex(maps.read24(rom, L.extrasOffset + 1 + i * 3), 6) });
     }
     out.push(extras);
 
     const b1 = section(rom, 'block1', 'Block 1 · graphics list', 'The 16×16 graphics the room loads, as deltas', L.block1.offset, L.section2);
     b1.fields = blockFields(L.block1, room.tilePalette.length + ' graphics');
     out.push(b1);
-    const s2 = section(rom, 'anim', 'Section 2 · animated tiles', 'Count, length, then delay, frame count and offset per channel', L.section2, L.section3);
-    s2.items = room.animation.map((c) => ({
-        key: 'anim:' + c.index, at: 3 + c.index * 4, size: 4,
-        label: 'channel ' + c.index + ' · ' + c.frames.length + ' frames · first delay ' + c.delay,
-    }));
+    const s2 = section(rom, 'anim', 'Section 2 · animated tiles', 'Count, length, then delay, frame count and offset per channel; then the frames (delay, graphic)', L.section2, L.section3);
+    s2.items = animItems(rom, room, L);
     out.push(s2);
     const s3 = section(rom, 'objects', 'Section 3 · object list', 'Count, then each object\'s offset in the object area', L.section3, L.block2.offset);
-    s3.items = room.objects.map((o) => ({
-        key: 'obj:' + o.objectIndex, at: 1 + o.objectIndex * 2, size: 2,
-        label: 'object ' + o.objectIndex + ' → +' + h4(o.relativeOffset) + ' · ' + maps.objectStateCount(o) + ' states',
-    }));
+    s3.items = room.objects.map((o) => ({ key: 'obj:' + o.objectIndex, ranges: [[1 + o.objectIndex * 2, 2]], label: 'object ' + o.objectIndex + ' → +' + h4(o.relativeOffset) }));
     out.push(s3);
 
     const b2 = section(rom, 'block2', 'Block 2 · map', 'The grid of metatile ids, Markov coded', L.block2.offset, L.section4);
@@ -120,24 +171,15 @@ function mapSections(rom: Uint8Array, id: number) {
     const s4 = section(rom, 's4', 'Section 4 · cuttable tiles', 'Length, a start counter, then a metatile swap chain per source', L.section4, L.block3.offset);
     s4.fields = [{ at: 0, size: 2, name: 'length', value: String(L.section4Len) }];
     if (L.section4Len) s4.fields.push({ at: 2, size: 1, name: 'start counter ($0FC4)', value: h2(L.fc4) });
-    // Records follow the counter: steps, then words up to a $0000 (maps/cuttable-grass.ts walks them the same way).
-    let p = 3;
-    s4.items = room.cuttableGrass.table.records.map((r, i) => {
-        const size = 1 + (2 + r.sequence.length) * 2;
-        const item = { key: 'grass:' + i, at: p, size, label: 'swap ' + i + ' · ' + h4(r.source) + ' → ' + r.sequence.map(h4).join(' → ') + ' · ' + r.steps + ' steps' };
-        p += size;
-        return item;
-    });
+    s4.items = grassItems(room);
     out.push(s4);
-    const b3 = section(rom, 'block3', 'Block 3 · metatiles', 'BG1 words, BG2 words, collision words: one of each per metatile', L.block3.offset, L.objectArea);
+    const b3 = section(rom, 'block3', 'Block 3 · metatiles', 'BG1 words, BG2 words, collision words: one of each per metatile (LZSS, so no byte maps to one metatile)', L.block3.offset, L.objectArea);
     b3.fields = blockFields(L.block3, room.metatileCount + ' metatiles');
+    b3.items = metatileFacts(rom, room).map((m) => ({ key: 'mt:' + m.index, ranges: [], label: m.label }));
     out.push(b3);
 
-    const area = section(rom, 'area', 'Object area', 'Each object\'s states (hold, x, y, stamp) and the stamps they apply', L.objectArea, end);
-    area.items = room.objects.map((o) => ({
-        key: 'obj:' + o.objectIndex, at: o.relativeOffset, size: 1 + o.maxState * 5,
-        label: 'object ' + o.objectIndex + ' · ' + o.states.map((s) => '(' + s.tileX + ',' + s.tileY + ') ' + s.targetWidth + '×' + s.targetHeight).join(' · '),
-    }));
+    const area = section(rom, 'area', 'Object area', 'Per object: its state count, a 5-byte descriptor per step (hold, x, y, stamp pointer), and the stamps (XOR deltas)', L.objectArea, end);
+    area.items = objectItems(rom, room);
     out.push(area);
 
     return {

@@ -88,6 +88,21 @@
 .scr-mframes img{width:32px;height:32px;border:1px solid transparent}
 .scr-mframes img.scr-on{border-color:var(--vscode-focusBorder,#007acc)}
 .scr-box-obj{stroke:#4fc1ff}
+.scr-sub-item{padding-left:24px;font-size:12px;color:var(--scr-dim)}
+.scr-dump .scr-hot{background:var(--vscode-editor-findMatchHighlightBackground,rgba(234,92,0,.33));color:var(--vscode-editor-foreground,#fff)}
+.scr-item.scr-hot{background:var(--vscode-list-hoverBackground,#2a2d2e);outline:1px solid var(--vscode-focusBorder,#007acc)}
+.scr-box.scr-hot{fill:rgba(255,255,255,.3);stroke-width:3}
+.scr-mfig[data-mk]{cursor:pointer;padding:2px;border:1px solid transparent;border-radius:3px}
+.scr-mfig.scr-on,.scr-mfig.scr-hot{border-color:var(--vscode-focusBorder,#007acc)}
+.scr-mset{margin:8px 0 12px}
+.scr-mset-h{font-weight:600;font-size:12px}
+.scr-mpal{display:flex;align-items:center;gap:8px;padding:2px 4px;border:1px solid transparent;border-radius:3px;cursor:pointer}
+.scr-mpal.scr-on,.scr-mpal.scr-hot{border-color:var(--vscode-focusBorder,#007acc)}
+.scr-mpal-sw{display:inline-flex;gap:1px;min-width:225px;height:14px}
+.scr-mpal-sw i{width:14px;height:14px;border-radius:2px}
+.scr-empty-slot{cursor:default}
+.scr-empty-slot .scr-mpal-sw{border:1px dashed var(--vscode-editorWarning-foreground,#cca700);border-radius:2px}
+.scr-empty-slot .scr-dim{color:var(--vscode-editorWarning-foreground,#cca700)}
 .scr-pal span{width:14px;font-size:10px}
 .scr-track{margin:8px 0}
 .scr-track-h{border-left:3px solid;padding-left:6px;font-size:12px;margin-bottom:3px}

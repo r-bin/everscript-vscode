@@ -8,9 +8,11 @@
 
 interface Series { name: string; points: [number, number][] }
 interface Table { id: string; group: string; title: string; addr: string; note: string; columns: string[]; rows: (string | number)[][]; chart?: { series: Series[]; x: string; y: string; xy?: boolean }; vfs?: string }
-interface Entry { name: string; value: string; comment: string; vfs?: string }
-interface EnumList { id: string; group: string; title: string; entries: Entry[] }
-interface Palette { id: string; group: string; title: string; addr: string; colors: string[]; users: string[]; vfs?: string }
+interface Entry { cells: string[]; vfs?: string; icon?: string; detail?: [string, string][] }
+interface EnumList { id: string; group: string; title: string; source: string; columns: string[]; entries: Entry[] }
+interface User { name: string; icon?: string; room?: number; slot?: number }
+interface Palette { id: string; group: string; title: string; addr: string; colors: string[]; users: User[]; note: string; vfs?: string }
+type Samples = { room: number; slot: number; images: string[] }[];
 interface Index { tables: Table[]; enums: EnumList[]; palettes: Palette[] }
 type ViewName = 'tables' | 'enums' | 'palettes';
 type Item = Table | EnumList | Palette;
@@ -43,13 +45,14 @@ function setupDataTab(post: (msg: object) => void, activeTab: string): void {
     const pane = document.querySelector<HTMLElement>('.dat-pane');
     if (!pane || !pane.dataset || pane.dataset.datBound) return;
     pane.dataset.datBound = '1';
-    const st = { view: 'tables' as ViewName, index: null as Index | null, error: '', requested: false, query: '', sel: {} as Record<ViewName, string>, entry: -1 };
+    const st = { view: 'tables' as ViewName, index: null as Index | null, error: '', requested: false, query: '', sel: {} as Record<ViewName, string>, entry: -1,
+        samples: {} as Record<string, Samples | 'pending' | { error: string }> };
     const $ = (id: string) => document.getElementById(id)!;
 
     const list = (): Item[] => (st.index ? st.index[st.view] : []);
     const current = (): Item | undefined => list().find((x) => x.id === st.sel[st.view]);
     const haystack = (x: Item): string => x.title + ' ' + x.group + ' ' + ('addr' in x ? x.addr : '') +
-        ('entries' in x ? ' ' + x.entries.map((e) => e.name + ' ' + e.value).join(' ') : '') + ('users' in x ? ' ' + x.users.join(' ') : '');
+        ('entries' in x ? ' ' + x.entries.map((e) => e.cells.join(' ')).join(' ') : '') + ('users' in x ? ' ' + x.users.map((u) => u.name).join(' ') : '');
 
     function railHtml(): string {
         const q = st.query.toLowerCase();
@@ -116,9 +119,10 @@ function setupDataTab(post: (msg: object) => void, activeTab: string): void {
         tip.style.top = Math.max(0, (my / H) * r.height - 20) + 'px';
     }
 
-    function swatchesHtml(p: Palette, big: boolean): string {
-        return '<div class="dat-swatches' + (big ? ' dat-big' : '') + '">' + p.colors.map((c, i) =>
-            '<div class="dat-sw"><i style="background:' + (i ? c : 'transparent') + '"' + (i ? '' : ' class="dat-clear"') + '></i><span>' + i + (big ? ' ' + (i ? c : 'transparent') : '') + '</span></div>').join('') + '</div>';
+    /** 16 boxes of one size, each with its index and colour on two fixed lines. */
+    function swatchesHtml(p: Palette): string {
+        return '<div class="dat-swatches">' + p.colors.map((c, i) =>
+            '<div class="dat-sw"><i style="background:' + (i ? c : 'transparent') + '"' + (i ? '' : ' class="dat-clear"') + '></i><span>' + i + '</span><span>' + (i ? c : 'clear') + '</span></div>').join('') + '</div>';
     }
 
     function renderMain(): void {
@@ -130,18 +134,38 @@ function setupDataTab(post: (msg: object) => void, activeTab: string): void {
             mid.innerHTML = head + '<div class="scr-sub">' + esc(x.note) + ' ' + vfsLink(x.vfs) + '</div>' + gridHtml(x.columns, x.rows.map((r) => r.map((c) => esc(typeof c === 'number' ? fmt(c) : c))));
             side.innerHTML = x.chart ? '<div class="scr-side-h">' + esc(x.title) + '</div>' + chartHtml(x) : '<div class="scr-empty">The raw words of a table the knowledge base names; no chart.</div>';
         } else if ('entries' in x) {
-            mid.innerHTML = head + '<div class="scr-sub">' + x.entries.length + ' entries · click one for details</div>' +
-                gridHtml(['name', 'value', 'comment'], x.entries.map((e) => [esc(e.name), '<code>' + esc(e.value) + '</code>', esc(e.comment) + ' ' + vfsLink(e.vfs, '↗')]));
+            const icons = x.entries.some((e) => e.icon);
+            mid.innerHTML = head + '<div class="scr-sub">' + esc(x.source) + '</div>' +
+                gridHtml((icons ? [''] : []).concat(x.columns, ['']), x.entries.map((e) => (icons ? [e.icon ? '<img class="scr-px dat-icon" src="' + e.icon + '" alt="">' : ''] : [])
+                    .concat(e.cells.map((c, i) => i === 0 || /^\$[0-9A-F]+$/.test(c) ? '<code>' + esc(c) + '</code>' : esc(c)), [vfsLink(e.vfs, '↗')])));
             const e = x.entries[st.entry];
-            side.innerHTML = e ? '<div class="scr-side-h">' + esc(x.title) + '.' + esc(e.name) + '</div><table class="scr-rows scr-fields"><tbody>' +
-                '<tr><td>value</td><td class="scr-s"><code>' + esc(e.value) + '</code></td></tr>' + (e.comment ? '<tr><td>comment</td><td class="scr-s">' + esc(e.comment) + '</td></tr>' : '') +
+            side.innerHTML = e ? '<div class="scr-side-h">' + esc(x.title) + '</div>' + (e.icon ? '<img class="scr-px dat-icon-big" src="' + e.icon + '" alt="">' : '') +
+                '<table class="scr-rows scr-fields"><tbody>' + x.columns.map((c, i) => '<tr><td>' + esc(c) + '</td><td class="scr-s">' + esc(e.cells[i]) + '</td></tr>').join('') +
+                (e.detail || []).map((d) => '<tr><td>' + esc(d[0]) + '</td><td class="scr-s">' + esc(d[1]) + '</td></tr>').join('') +
                 (e.vfs ? '<tr><td>soe://</td><td class="scr-s">' + vfsLink(e.vfs, e.vfs) + '</td></tr>' : '') + '</tbody></table>'
-                : '<div class="scr-empty">' + esc(x.group) + ' · ' + x.entries.length + ' entries. Pick one in the middle.</div>';
+                : '<div class="scr-empty">' + x.entries.length + ' entries. Pick one in the middle.</div>';
         } else {
-            mid.innerHTML = head + swatchesHtml(x, true) + (x.vfs ? '<div class="scr-sub">' + vfsLink(x.vfs) + '</div>' : '');
-            side.innerHTML = '<div class="scr-side-h">Used by · ' + x.users.length + '</div>' +
-                (x.users.length ? '<div class="dat-users">' + x.users.map((u) => '<div>' + esc(u) + '</div>').join('') + '</div>' : '<div class="scr-note">Named by an animation script only.</div>');
+            mid.innerHTML = head + '<div class="scr-sub">' + esc(x.note) + ' ' + vfsLink(x.vfs) + '</div>' + swatchesHtml(x);
+            side.innerHTML = '<div class="scr-side-h">Used by · ' + x.users.length + '</div>' + usersHtml(x);
         }
+    }
+
+    /** One card per user: a square picture (the sprite, or the room's tiles in this palette) and its name. */
+    function usersHtml(p: Palette): string {
+        if (!p.users.length) return '<div class="scr-note">' + esc(p.note) + '</div>';
+        let samples: Samples | null = null;
+        if (p.id.startsWith('m:')) {
+            const fam = p.id.slice(2), got = st.samples[fam];
+            if (!got) { st.samples[fam] = 'pending'; post({ command: 'dataPaletteSamples', family: Number(fam) }); }
+            if (got && got !== 'pending' && !('error' in got)) samples = got;
+        }
+        return '<div class="dat-users">' + p.users.map((u) => {
+            const smp = samples && samples.find((x) => x.room === u.room && x.slot === u.slot);
+            const pic = u.icon ? '<img class="scr-px" src="' + u.icon + '" alt="">'
+                : smp ? '<span class="dat-tiles">' + smp.images.map((i) => '<img class="scr-px" src="' + i + '" alt="">').join('') + '</span>'
+                : '<span class="dat-nopic">' + (samples || !p.id.startsWith('m:') ? '' : '…') + '</span>';
+            return '<div class="dat-user"><div class="dat-pic">' + pic + '</div><div class="dat-uname">' + esc(u.name) + '</div></div>';
+        }).join('') + '</div>';
     }
 
     function render(): void {
@@ -171,6 +195,11 @@ function setupDataTab(post: (msg: object) => void, activeTab: string): void {
     document.querySelector('.tab[data-tab="data"]')?.addEventListener('click', () => { if (!st.index && !st.requested) request(); });
     window.addEventListener('message', (ev) => {
         const msg = ev.data || {};
+        if (msg.command === 'dataPaletteSamples') {
+            st.samples[msg.family] = msg.error ? { error: msg.error } : msg.samples;
+            if (st.view === 'palettes' && st.sel.palettes === 'm:' + msg.family) renderMain();
+            return;
+        }
         if (msg.command !== 'dataIndex') return;
         if (msg.error) { st.error = msg.error; st.requested = false; } else st.index = { tables: msg.tables, enums: msg.enums, palettes: msg.palettes };
         render();

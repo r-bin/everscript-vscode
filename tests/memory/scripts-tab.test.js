@@ -84,6 +84,19 @@ async function romChecks(rom) {
         assert.strictEqual(m.sections.find((x) => x.key === 'step').items.length, 2);
         assert.strictEqual(m.sections.find((x) => x.key === 's4').items.length, 94);
     });
+    await test('maps: every object\'s items cover its whole object area (record, step descriptors, stamps)', () => {
+        const { mapSections } = require('../../dist/games/evermore/scripts-tab/model/map-sections');
+        for (let id = 0; id < 127; id++) {
+            const a = mapSections(rom, id).sections.find((x) => x.key === 'area');
+            const cov = new Uint8Array(a.size);
+            a.items.filter((i) => !i.sub).forEach((i) => i.ranges.forEach(([o, n]) => cov.fill(1, o, o + n)));
+            assert.strictEqual(cov.reduce((x, y) => x + y, 0), a.size, 'room ' + id);
+        }
+        const fam = mapSections(rom, 0x44).sections.find((x) => x.key === 'families');
+        assert.strictEqual(fam.items.length, 12);
+        assert.ok(fam.items[7].label.includes('set 2 ($7E:2437 = 7)'));
+        assert.ok(fam.fields.some((f) => f.name === 'empty slots'));
+    });
     await test('maps: a metatile taken apart, a channel\'s frames, an object\'s states', () => {
         const { mapView } = require('../../dist/games/evermore/scripts-tab/model/map-views');
         const mt = mapView(rom, 0x38, 'mt:3').panels[0];
@@ -91,9 +104,21 @@ async function romChecks(rom) {
         assert.ok(mt.rows.some((r) => r[0] === 'collision word'));
         const ch = mapView(rom, 0x38, 'anim:0').panels[0];
         assert.ok(ch.frames.length > 1 && ch.frames[0].uri.startsWith('data:image/png'));
-        const obj = mapView(rom, 0x38, 'obj:0').panels;
-        assert.ok(obj[0].images.length >= 2);
+        const obj = mapView(rom, 0x03, 'obj:0').panels;
+        assert.strictEqual(obj[0].images.length, 6, 'five steps, six states');
+        assert.strictEqual(obj[0].frames.length, 6);
         assert.strictEqual(obj[1].image.uri, '@room');
+        assert.ok(obj[1].image.boxes.some((b) => b.key === 'obj:0' && b.on));
+        const sets = mapView(rom, 0x44, 'families').panels[0].sets;
+        assert.strictEqual(sets.length, 2);
+        assert.strictEqual(sets[1].rows.filter((r) => !r.colors).length, 2, 'set 2 loads 5 of 7');
+    });
+    await test('maps: a cuttable metatile shows its whole swap chain', () => {
+        const { mapView } = require('../../dist/games/evermore/scripts-tab/model/map-views');
+        const p = mapView(rom, 0x38, 'grass:0').panels;
+        assert.ok(p.some((x) => x.title.startsWith('Cut: swap chain') && x.images.length >= 2));
+        const anim = mapView(rom, 0x38, 'anim:0').panels[0];
+        assert.ok(/\d+ metatiles use it/.test(anim.note));
     });
     await test('alchemy: 35 formulas, Acid Rain and Laser share $91:86F0, which names $583E', () => {
         const m = alchemyModel(rom);
@@ -134,6 +159,7 @@ async function romChecks(rom) {
         handleScriptsMessage({ command: 'scriptsMap', id: 0x38 }, deps);
         const map = posted.pop();
         assert.strictEqual(map.map.sections.length, 12);
+        assert.ok(map.map.sections.find((x) => x.key === 'block3').items.length > 1000, 'every metatile is an item');
         assert.ok(map.picture.uri.startsWith('data:image/png'));
         handleScriptsMessage({ command: 'scriptsMapView', id: 0x38, key: 'cell:5:5' }, deps);
         assert.ok(posted.pop().panels[0].title.startsWith('Cell (5,5)'));
@@ -229,8 +255,24 @@ async function dom(rom) {
         // Frame 0 holds 127 ticks (about 2 s), then the player moves on.
         await page.waitForSelector('[data-scr-frame="0"].scr-on');
         await page.waitForSelector('[data-scr-frame="1"].scr-on', { timeout: 4000 });
-        assert.ok(await page.locator('.scr-dump .scr-lit').count() === 4, 'the channel\'s 4 descriptor bytes are lit');
+        assert.ok(await page.locator('.scr-dump .scr-lit').count() > 4, 'the channel\'s descriptor and its frame list are lit');
         await shot('map-animation');
+    });
+    await test('hovering an object\'s box lights its item and its bytes; its states play', async () => {
+        await page.click('[data-scr-pick="map:3"]');
+        await pump();
+        await page.click('.scr-msec-h[data-scr-msel="area"]');
+        await pump();
+        await page.hover('#scr-side rect[data-mk="obj:0"]');
+        assert.ok(await page.locator('#scr-mid .scr-item.scr-hot').count() >= 6, 'the object and its five steps');
+        assert.ok(await page.locator('#scr-mid .scr-dump .scr-hot').count() > 10);
+        await page.click('#scr-side rect[data-mk="obj:0"]');
+        await pump();
+        assert.strictEqual(await page.locator('#scr-side .scr-mframes img').count(), 6);
+        await shot('map-object');
+        await page.click('.scr-msec-h[data-scr-msel="families"]');
+        await pump();
+        await shot('map-palettes');
     });
     await test('a music track shows its sequence and the silent player', async () => {
         await page.click('[data-scr-view="music"]');

@@ -20,7 +20,10 @@ async function test(name, fn) {
 
 function hostDeps(rom, posted) {
     const { readAllCharacters } = require('../../dist/games/evermore/sprites/character-model');
-    return { post: (m) => posted.push(m), loadRom: () => rom, characters: (r) => readAllCharacters(r) };
+    const { characterThumbs } = require('../../dist/games/evermore/sprites/thumbnails');
+    let chars = null;
+    const characters = (r) => chars || (chars = readAllCharacters(r).map((c) => Object.assign(c, { thumbs: characterThumbs(r, c) })));
+    return { post: (m) => posted.push(m), loadRom: () => rom, characters };
 }
 
 async function unit() {
@@ -48,37 +51,46 @@ async function romChecks(rom) {
     const posted = [];
     handleDataMessage({ command: 'dataInit' }, hostDeps(rom, posted));
     const ix = posted[0];
-    await test('tables: XP per level, sine, boomerang orbit, then the knowledge tables', () => {
-        assert.deepStrictEqual(ix.tables.slice(0, 3).map((t) => t.id), ['xp', 'sine', 'boomerang']);
+    await test('tables: XP per level, character stats, sine, boomerang orbit — decoded ones only', () => {
+        assert.deepStrictEqual(ix.tables.map((t) => t.id), ['xp', 'stats', 'sine', 'boomerang']);
+        const boy = ix.tables[1].rows[2];
+        assert.strictEqual(boy[1], 'Boy');
         const xp = ix.tables[0];
         assert.deepStrictEqual(xp.rows.slice(0, 4).map((r) => [r[1], r[2]]), [[0, 0], [20, 35], [70, 115], [175, 271]]);
         assert.strictEqual(xp.rows[99][1], '$FFFFFF (cap)');
-        const sine = ix.tables[1].chart.series[0].points;
+        const sine = ix.tables[2].chart.series[0].points;
         assert.deepStrictEqual([sine[0][1], sine[64][1], sine[128][1], sine[192][1], sine[256][1]], [0, 256, 0, -255, 0]);
-        const orbit = ix.tables[2].chart.series[0].points;
+        const orbit = ix.tables[3].chart.series[0].points;
         assert.deepStrictEqual(orbit[0], [128, 0]);
         assert.deepStrictEqual(orbit[64], [0, 64]);
-        assert.ok(ix.tables.length > 10 && !ix.tables.some((t) => t.id === 'k:ORBIT_TABLE_X'));
     });
-    await test('enums: character and map blobs, then every core enum by kind', () => {
-        assert.deepStrictEqual(ix.enums.slice(0, 2).map((e) => e.id), ['characters', 'maps']);
-        assert.strictEqual(ix.enums[1].entries.length, 127);
-        assert.strictEqual(ix.enums[1].entries[0x38].value, '$DE8000');
-        const chars = ix.enums[0].entries;
-        assert.ok(chars.some((e) => e.name === 'WRAM · BOY' && e.value === '$7E4E89'));
-        assert.ok(chars.some((e) => e.value === '$8EB678'));
-        const group = (id) => ix.enums.find((e) => e.id === 'e:' + id).group;
-        assert.strictEqual(group('ADDRESS'), 'ROM addresses');
-        assert.strictEqual(group('MEMORY'), 'WRAM addresses');
-        assert.strictEqual(group('ANIMATION'), 'Values');
-        assert.strictEqual(group('MAP'), 'Values');
+    await test('enums: only lists read from the ROM or a knowledge entry', () => {
+        assert.deepStrictEqual(ix.enums.map((e) => e.id), ['blobs', 'fields', 'contact', 'ai', 'formulas', 'cast', 'ingredients', 'rooms']);
+        const e = (id) => ix.enums.find((x) => x.id === id);
+        assert.ok(e('blobs').entries.some((x) => x.cells[0] === 'WRAM' && x.cells[2] === '$7E0A26'));
+        assert.ok(!e('blobs').entries.some((x) => /ENTITY_/.test(x.cells[1])), 'no unverified entity slots');
+        assert.strictEqual(e('blobs').entries.filter((x) => x.cells[0] === 'ROM').length, 142);
+        assert.strictEqual(e('contact').entries.length, 15);
+        assert.strictEqual(e('contact').entries[0].cells[3], '127 records');
+        assert.strictEqual(e('formulas').entries[0].cells[1], 'Acid Rain');
+        assert.strictEqual(e('formulas').entries[34].cells[1], 'Super Heal');
+        assert.strictEqual(e('formulas').entries[0].detail[0][1], 'Showers enemies with acid');
+        assert.deepStrictEqual(e('cast').entries.slice(0, 2).map((x) => x.cells[1]), ['Acid Rain', 'Flash']);
+        assert.strictEqual(e('cast').entries.length, 23);
+        assert.deepStrictEqual([e('ingredients').entries[0].cells[1], e('ingredients').entries[21].cells[1]], ['Wax', 'Acorn']);
+        assert.strictEqual(e('rooms').entries[0x38].cells[3], '$DE8000');
+        assert.ok(e('fields').entries.some((x) => x.cells[0] === '+$30'));
     });
     await test('palettes: the sprite palettes in bank $90 with their users, the map tile families', () => {
         const sprites = ix.palettes.filter((p) => p.id.startsWith('s:'));
         assert.ok(sprites.length > 100);
         assert.ok(sprites.every((p) => p.colors.length === 16));
-        assert.ok(sprites.some((p) => p.users.some((u) => /Boy Name/.test(u))));
+        assert.ok(sprites.some((p) => p.users.some((u) => /Boy Name/.test(u.name))));
         assert.ok(ix.palettes.filter((p) => p.id.startsWith('m:')).every((p) => p.users.length > 0));
+        const posted = [];
+        handleDataMessage({ command: 'dataPaletteSamples', family: 0xe2 }, hostDeps(rom, posted));
+        assert.deepStrictEqual(posted[0].samples.map((x) => [x.room, x.slot]), [[0x44, 0], [0x44, 4]]);
+        assert.ok(posted[0].samples.every((x) => x.images.length > 0));
     });
     return ix;
 }
@@ -99,7 +111,7 @@ async function dom(rom) {
     const deps = hostDeps(rom, out);
     const pump = async () => {
         const asked = await page.evaluate(() => window.__posted.splice(0));
-        for (const m of asked) if (m.command === 'dataInit') handleDataMessage(m, deps);
+        for (const m of asked) if (String(m.command).startsWith('data')) handleDataMessage(m, deps);
         for (const m of out.splice(0)) await page.evaluate((x) => window.postMessage(x, '*'), m);
         await page.waitForTimeout(50);
         return asked;
@@ -108,7 +120,7 @@ async function dom(rom) {
     await test('opening the tab loads every list; XP is drawn with both series', async () => {
         await page.click('.tab[data-tab="data"]');
         await pump();
-        assert.ok(await page.locator('#dat-rail [data-dat-pick]').count() > 10);
+        assert.strictEqual(await page.locator('#dat-rail [data-dat-pick]').count(), 4);
         assert.strictEqual(await page.locator('#dat-side svg polyline').count(), 2);
         const svg = await page.locator('#dat-side svg').boundingBox();
         await page.mouse.move(svg.x + svg.width * 0.5, svg.y + svg.height * 0.5);
@@ -120,24 +132,32 @@ async function dom(rom) {
         assert.strictEqual(await page.locator('#dat-side svg polyline').count(), 1);
         await shot('boomerang');
     });
-    await test('enums: map blobs list every room; an entry opens on the right', async () => {
+    await test('enums: rooms list every room; an entry opens on the right', async () => {
         await page.click('[data-dat-view="enums"]');
-        await page.click('[data-dat-pick="maps"]');
+        await page.click('[data-dat-pick="rooms"]');
         assert.strictEqual(await page.locator('#dat-mid tr[data-dat-row]').count(), 127);
         await page.click('#dat-mid tr[data-dat-row="56"]');
         assert.ok((await page.textContent('#dat-side')).includes('$DE8000'));
         await page.click('#dat-side [data-dat-vfs]');
         assert.deepStrictEqual(await page.evaluate(() => window.__posted.pop()), { command: 'openVfs', uri: 'soe://bus/de8000' });
-        await page.fill('#dat-search', 'BOY_LEVEL');
-        assert.ok((await page.textContent('#dat-rail')).includes('MEMORY'));
+        await page.fill('#dat-search', 'Super Heal');
+        assert.ok((await page.textContent('#dat-rail')).includes('Formulas'));
         await page.fill('#dat-search', '');
+        await page.click('[data-dat-pick="cast"]');
         await shot('enums');
     });
-    await test('palettes: 16 swatches and who uses them', async () => {
+    await test('palettes: 16 equal swatches; users as cards with a sprite or the room\'s tiles', async () => {
         await page.click('[data-dat-view="palettes"]');
         assert.strictEqual(await page.locator('#dat-mid .dat-sw').count(), 16);
-        assert.ok((await page.textContent('#dat-side')).includes('Used by'));
+        const sizes = await page.$$eval('#dat-mid .dat-sw i', (l) => [...new Set(l.map((i) => i.offsetWidth + 'x' + i.offsetHeight))]);
+        assert.strictEqual(sizes.length, 1, 'one box size: ' + sizes);
+        await page.click('[data-dat-pick="s:44299"]');
+        assert.ok(await page.locator('#dat-side .dat-user img').count() > 0, 'the Boy\'s sprite');
         await shot('palettes');
+        await page.click('[data-dat-pick="m:226"]');
+        await pump();
+        await page.waitForSelector('#dat-side .dat-tiles img');
+        await shot('palettes-map');
     });
     await test('no page errors', () => assert.deepStrictEqual(errors, []));
     await browser.close();

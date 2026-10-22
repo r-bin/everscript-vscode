@@ -1,12 +1,12 @@
 // Ownership: the Data tab's Tables view — ROM tables read from the user's ROM:
 // the decoded ones (XP per level, the sine table, the boomerang's orbit) with
-// a chart, then every knowledge entry of kind `table` that has a size, as its
-// raw words. Pure apart from the ROM buffer it is handed. Each address here
-// has its knowledge entry (localizations/knowledge/rom/), which says how it
-// was found.
+// a chart, and the character records' stats. Only tables decoded into
+// readable values are listed; the rest stay in soe://rom/tables/. Pure apart
+// from the ROM buffer it is handed. Each address here has its knowledge entry
+// (localizations/knowledge/rom/), which says how it was found.
 
 import { snesToRom, read16, read24 } from '../../maps';
-import { TABLES } from '../../localizations';
+import { CHARACTER_TABLE, CHARACTER_STRIDE } from '../../maps/character-record';
 import { hex } from '../../../../platform';
 
 type Cell = string | number;
@@ -30,7 +30,7 @@ const SINE_WORDS = 320;
 const COSINE = 0x808923;
 /** The boomerang orbit (`$90DF44`): x = cos · 8, y = sin · 4 in 1/16 px (maps/projectiles.ts). */
 const ORBIT_STEPS = 256;
-const MAX_RAW_BYTES = 4096;
+const CHARACTER_COUNT = 142;
 
 const s16 = (v: number): number => (v >= 0x8000 ? v - 0x10000 : v);
 const word = (rom: Uint8Array, snes: number): number => s16(read16(rom, snesToRom(snes)));
@@ -81,29 +81,29 @@ function boomerangTable(rom: Uint8Array): Table {
     };
 }
 
-/** A knowledge table as raw words, 8 per row. */
-function rawTable(rom: Uint8Array, t: (typeof TABLES)[number]): Table {
-    const size = Math.min(Number(t.size) || 0, MAX_RAW_BYTES);
-    const at = snesToRom(t.address);
+/** Record fields as rom/8eb678.md lists them: [label, offset, bytes]. */
+const STAT_FIELDS: [string, number, number][] = [
+    ['HP', 0x0f, 2], ['attack', 0x19, 2], ['defence', 0x1b, 2], ['magic def.', 0x1d, 2], ['evade', 0x1f, 2], ['hit rate', 0x21, 2],
+    ['XP', 0x23, 4], ['money', 0x27, 2], ['drop chance', 0x29, 1],
+];
+
+function statsTable(rom: Uint8Array, names: { id: number; name: string }[]): Table {
     const rows: Cell[][] = [];
-    for (let o = 0; o < size; o += 16) {
-        const words: string[] = [];
-        for (let k = o; k < Math.min(size, o + 16); k += 2) words.push(k + 1 < size ? hex(read16(rom, at + k), 4) : hex(rom[at + k], 2));
-        rows.push(['+' + hex(o, 3), words.join(' ')]);
+    for (let c = 0; c < CHARACTER_COUNT; c++) {
+        const at = snesToRom(CHARACTER_TABLE + c * CHARACTER_STRIDE);
+        rows.push((['$' + hex(c, 2), names[c]?.name || ''] as Cell[]).concat(STAT_FIELDS.map(([, off, n]) =>
+            n === 1 ? rom[at + off] : n === 4 ? read16(rom, at + off) + read16(rom, at + off + 2) * 0x10000 : read16(rom, at + off))));
     }
     return {
-        id: 'k:' + t.id, group: 'ROM tables ' + t.category, title: t.name, addr: '$' + hex(t.address, 6),
-        note: (t.notes || '') + (Number(t.size) > MAX_RAW_BYTES ? ' (first ' + MAX_RAW_BYTES + ' of ' + t.size + ' bytes)' : ''),
-        columns: ['offset', 'words'], rows, vfs: vfs(t.address),
+        id: 'stats', group: 'Characters', title: 'Character stats', addr: '$8E:B678',
+        note: 'The 142 character records, 74 bytes each: the fields rom/8eb678.md names with the routine that reads each. The Boy\'s and Dog\'s rows are templates; their live stats are in WRAM ($0A26, $0A70).',
+        columns: ['id', 'name'].concat(STAT_FIELDS.map((f) => f[0] + ' +$' + hex(f[1], 2))), rows, vfs: vfs(CHARACTER_TABLE),
     };
 }
 
-/** Every table the view lists, the decoded ones first. */
-function tablesModel(rom: Uint8Array): Table[] {
-    const known = new Set([XP_BOY, XP_DOG, SINE, COSINE]);
-    const raw = TABLES.filter((t) => Number(t.size) > 0 && !known.has(t.address) && snesToRom(t.address) + Number(t.size) <= rom.length)
-        .sort((a, b) => a.address - b.address).map((t) => rawTable(rom, t));
-    return [xpTable(rom), sineTable(rom), boomerangTable(rom)].concat(raw);
+/** Every table the view lists: only the ones decoded into readable values. */
+function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Table[] {
+    return [xpTable(rom), statsTable(rom, names), sineTable(rom), boomerangTable(rom)];
 }
 
 export { tablesModel };

@@ -7,12 +7,20 @@
 .dat-pane .dat-grid td:nth-child(2){font-variant-numeric:tabular-nums}
 .dat-mini{display:inline-flex}
 .dat-mini i{width:5px;height:10px}
-.dat-swatches{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin:8px 0}
-.dat-sw{display:flex;flex-direction:column;align-items:center;gap:2px;font:10.5px var(--scr-mono);color:var(--scr-dim)}
-.dat-sw i{width:100%;height:28px;border-radius:3px;border:1px solid var(--scr-line)}
-.dat-big .dat-sw i{height:44px}
+.dat-swatches{display:grid;grid-template-columns:repeat(8,56px);gap:10px 8px;margin:10px 0}
+.dat-sw{display:flex;flex-direction:column;align-items:flex-start;font:10.5px/1.35 var(--scr-mono);color:var(--scr-dim)}
+.dat-sw i{width:56px;height:56px;border-radius:4px;border:1px solid var(--scr-line);margin-bottom:3px;box-sizing:border-box}
 .dat-sw i.dat-clear{background:repeating-conic-gradient(rgba(128,128,128,.3) 0 25%,transparent 0 50%) 0 0/8px 8px!important}
-.dat-users{font-size:12px;line-height:1.6;max-height:70vh;overflow:auto}
+.dat-users{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:12px;max-height:80vh;overflow:auto}
+.dat-user{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11.5px;text-align:center}
+.dat-pic{width:72px;height:72px;display:flex;align-items:center;justify-content:center;border:1px solid var(--scr-line);border-radius:4px;background:repeating-conic-gradient(rgba(128,128,128,.12) 0 25%,transparent 0 50%) 0 0/12px 12px;overflow:hidden}
+.dat-pic>img{width:64px;height:64px;object-fit:contain;image-rendering:pixelated}
+.dat-tiles{display:grid;grid-template-columns:repeat(2,32px);grid-auto-rows:32px}
+.dat-tiles img{width:32px;height:32px;image-rendering:pixelated}
+.dat-nopic{color:var(--scr-dim)}
+.dat-uname{line-height:1.3;word-break:break-word}
+.dat-icon{width:16px;height:16px;image-rendering:pixelated;vertical-align:middle}
+.dat-icon-big{width:48px;height:48px;image-rendering:pixelated;margin:4px 0 8px}
 .dat-chart{position:relative}
 .dat-chart svg{display:block;width:100%;height:auto;overflow:visible}
 .dat-gridline{stroke:var(--scr-line);stroke-width:1;opacity:.6}

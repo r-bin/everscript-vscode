@@ -53,6 +53,9 @@ function setupScriptsTab() {
   pane.dataset.scrBound = '1';
   pane.addEventListener('click', function (e) { scrOnClick(e, pane); });
   pane.addEventListener('change', scrOnChange);
+  // Maps: hovering an item, a byte, a box or a picture lights everything with the same key.
+  pane.addEventListener('mouseover', function (e) { if (_scr.view === 'map') ScriptsMaps.mapHover(e.target, pane); });
+  pane.addEventListener('mouseleave', function () { ScriptsMaps.mapHover(null, pane); });
   document.getElementById('scr-search').addEventListener('input', function (e) {
     _scr.query = e.target.value.trim();
     var rail = document.getElementById('scr-rail');

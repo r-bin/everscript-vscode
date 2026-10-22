@@ -17,7 +17,8 @@ Not to be confused with `src/games/evermore/script-vm/` (the bytecode decoder), 
 
 ## State owned
 - `host.ts`: `_rooms` (room scripts + picture per room, for one ROM). `model/map-views.ts`:
-  `_cache` (decoded room + picture per room, for one ROM).
+  `_cache` (decoded room + picture per room, for one ROM). `model/map-tiles.ts`: `_facts`
+  (metatile facts per decoded room).
 - `model/alchemy.ts`: `_cache` (alchemy model per ROM). `model/simulation.ts`: `_sim`
   (the simulator per ROM, clusters per room).
 - `webview/scripts-tab.js`: `_scr` (view, selections, toggles, per-key caches, players).
@@ -26,6 +27,9 @@ Not to be confused with `src/games/evermore/script-vm/` (the bytecode decoder), 
 - Trigger boxes are in the room picture's pixels: `(x - originX) * 16`, x2/y2 exclusive.
 - The Maps view's sections are `maps/blob-layout.ts`'s walk and add up to the blob byte for
   byte (tested for all 127 rooms); fields nobody decoded are labelled so, not named.
+- A Maps item lists every byte range that is its (an object: record + step descriptors + stamps;
+  tested to cover each object area fully), and the same key marks its list row, bytes, box and
+  pictures (`data-mk`), so hover links them. `model/map-tiles.ts` caches metatile facts per room.
 - Every Maps picture goes through the maps library's renderer (`renderVramLayer`,
   `compositeLayers`); the room picture is sent once (`scriptsMap`) and panels name it `@room`.
 - New page code is TypeScript: `webview/scripts-maps.dom.ts` is bundled (`ScriptsMaps`) into
