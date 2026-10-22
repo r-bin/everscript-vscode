@@ -6,8 +6,10 @@
 //
 // State owned: `_rooms` (room scripts + picture per room id, for the loaded ROM).
 //
-//   page -> scriptsInit                 host -> scriptsIndex { rooms, animations, formulas, music } | { error }
+//   page -> scriptsInit                 host -> scriptsIndex { rooms, animations, music } | { error }
 //   page -> scriptsRoom { id }          host -> scriptsRoom { id, room, picture }
+//   page -> scriptsMap { id }           host -> scriptsMap { id, map, picture }
+//   page -> scriptsMapView { id, key }  host -> scriptsMapView { id, key, panels } | { id, key, error }
 //   page -> scriptsAnim { key, record, facing }   host -> scriptsAnim { key, anim } | { key, error }
 //   page -> scriptsMusic { id, seconds }          host -> scriptsMusic { id, sequence, timeline } | { id, error }
 //   page -> scriptsSim { room, key }    host -> scriptsSim { room, key, everscript, clusters } | { error }
@@ -15,6 +17,8 @@
 import { roomList, roomScripts, roomPicture } from './model/rooms';
 import { alchemyModel } from './model/alchemy';
 import { simulateScript, roomClusters } from './model/simulation';
+import { mapSections } from './model/map-sections';
+import { mapView, mapPicture } from './model/map-views';
 import { missingRomText } from '../../../platform/roms/library';
 
 const FACING_SOUTH = 8;
@@ -86,7 +90,6 @@ function index(rom: Rom, deps: Deps) {
     return {
         rooms: roomList(),
         animations,
-        formulas: alchemy.formulas,
         music: deps.music.list(rom),
     };
 }
@@ -123,6 +126,15 @@ function handleScriptsMessage(msg: Message, deps: Deps): void {
                 const facing = Number.isInteger(Number(msg.facing)) ? Number(msg.facing) : FACING_SOUTH;
                 const anim = deps.renderAnimation(rom, entry.paletteCharacter, opt, facing);
                 deps.post({ command: 'scriptsAnim', key: msg.key, anim: slimAnimation(anim) });
+                return;
+            }
+            case 'scriptsMap': {
+                const id = Number(msg.id);
+                deps.post({ command: 'scriptsMap', id, map: mapSections(rom, id), picture: mapPicture(rom, id) });
+                return;
+            }
+            case 'scriptsMapView': {
+                deps.post({ command: 'scriptsMapView', ...mapView(rom, Number(msg.id), String(msg.key || 'header')) });
                 return;
             }
             case 'scriptsMusic': {

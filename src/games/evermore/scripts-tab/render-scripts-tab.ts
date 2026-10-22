@@ -7,8 +7,8 @@ function buildScriptsTabHtml() {
         '<span class="scr-title">Scripts</span>' +
         '<div class="scr-seg" role="group" title="Which kind of script">' +
         '<button class="scr-seg-btn scr-on" data-scr-view="room" title="Everscript: room enter scripts, step-on and B-triggers">Everscript</button>' +
-        '<button class="scr-seg-btn" data-scr-view="anim" title="Animation scripts: the 783 records at $C43E3A">Animations</button>' +
-        '<button class="scr-seg-btn" data-scr-view="alchemy" title="Alchemy: each formula\'s block in bank $91 and the effect animations it names">Alchemy</button>' +
+        '<button class="scr-seg-btn" data-scr-view="map" title="Maps: each room blob as the bytes the room loader reads, section by section, and what each part draws">Maps</button>' +
+        '<button class="scr-seg-btn" data-scr-view="anim" title="Animation scripts: the 783 records at $C43E3A (⚗ marks alchemy effects)">Animations</button>' +
         '<button class="scr-seg-btn" data-scr-view="music" title="Music: each track\'s sequence and a silent player">Music</button>' +
         '</div>' +
         '<input class="scr-search" id="scr-search" type="text" placeholder="Filter…" autocomplete="off" spellcheck="false">' +

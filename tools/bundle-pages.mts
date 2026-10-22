@@ -14,6 +14,8 @@ const PAGES: Record<string, [string, string, boolean?]> = {
     'music-view': ['src/games/evermore/music/webview/music-view.ts', 'MusicView', true],
     'music-engine': ['src/games/evermore/music/webview/music-engine.ts', 'MusicEngine', true],
     'terra-maps': ['src/games/terra/maps/webview/page.dom.ts', 'TerraMaps'],
+    'scripts-maps': ['src/games/evermore/scripts-tab/webview/scripts-maps.dom.ts', 'ScriptsMaps'],
+    'data-tab': ['src/games/evermore/data-tab/webview/data-tab.dom.ts', 'DataTab'],
 };
 
 for (const [name, [entry, globalName, globals]] of Object.entries(PAGES)) {

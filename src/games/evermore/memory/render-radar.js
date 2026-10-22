@@ -13,6 +13,7 @@ const { buildSpritesTabHtml }    = require('../../../../dist/games/evermore/spri
 const { buildRomTabHtml }        = require('../../../../dist/games/evermore/rom');
 const { buildMusicTabHtml }      = require('../music');
 const { buildScriptsTabHtml }    = require('../../../../dist/games/evermore/scripts-tab');
+const { buildDataTabHtml }       = require('../../../../dist/games/evermore/data-tab');
 const radarWebview               = require('../../../../dist/games/evermore/memory/webview');
 const { shellFrameHtml }         = require('../../../../dist/core/map-editor/shell/frame');
 
@@ -108,7 +109,7 @@ function renderRadarHtml(
         '\nvar SPRITES_RAW_INDEX=' + JSON.stringify(spritesBundle?.rawIndex || []).replace(/<\/script>/gi, '<\\/script>') + ';' +
         '\nvar SPRITES_ANIMATIONS=' + JSON.stringify(spritesBundle?.animations || []).replace(/<\/script>/gi, '<\\/script>') + ';';
 
-    const js = radarWebview.buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, rngJs, romJs: radarWebview.romJs, musicJs: radarWebview.musicJs, scriptsJs: radarWebview.scriptsJs });
+    const js = radarWebview.buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, rngJs, romJs: radarWebview.romJs, musicJs: radarWebview.musicJs, scriptsJs: radarWebview.scriptsJs, dataJs: radarWebview.dataJs });
 
     // ── Rooms tab HTML ──────────────────────────────────────────────────────
     const roomsTabHtml =
@@ -153,6 +154,7 @@ function renderRadarHtml(
         '<button class="tab" data-tab="rom">\ud83d\udcbe ROM</button>' +
         '<button class="tab" data-tab="music">\ud83c\udfb5 Music</button>' +
         '<button class="tab" data-tab="scripts">\ud83d\udcdc Scripts</button>' +
+        '<button class="tab" data-tab="data">\ud83d\uddc3 Data</button>' +
         '</div>' +
         memoryTabHtml +
         roomsTabHtml +
@@ -163,6 +165,7 @@ function renderRadarHtml(
         buildRomTabHtml() +
         buildMusicTabHtml() +
         buildScriptsTabHtml() +
+        buildDataTabHtml() +
         '<script>' + js + '<\/script></body></html>';
 }
 

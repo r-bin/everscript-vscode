@@ -19,7 +19,8 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `games/evermore/resources/` | Read-only `soe://` file system: ROM, decoded assets and live WRAM as files |
 | `games/evermore/rom/` | ROM tab: every bank's content, gaps and CDL coverage, measured from the ROM |
 | `games/evermore/sprites/` | Sprites tab and the character pictures: frames, animations, projectiles, palettes (from `maps/` sprites + character record) |
-| `games/evermore/scripts-tab/` | Scripts tab: Everscript (room scripts + map, simulation toggle, clusters), animation and alchemy scripts with their animation, music sequences with a silent player |
+| `games/evermore/scripts-tab/` | Scripts tab: Everscript (room scripts + map, simulation toggle, clusters), Maps (a room blob section by section, each part drawn), animation scripts with their animation, music sequences with a silent player |
+| `games/evermore/data-tab/` | Data tab: ROM tables (XP per level, sine, boomerang orbit, every known table), every core enum and the character/map blobs, sprite palettes and map tile families |
 | `games/evermore/music/` | Music tab: the sound chip live from the emulator or playing a track in its own engine; voices, instruments, sound effects, ARAM |
 | `games/evermore/docs-tab/` | The radar's Docs and RNG tabs (alchemy reference, RNG) |
 | `games/evermore/scaling/` | Scaling/Alchemy tab: damage math, charts, state, webview assets |
@@ -44,6 +45,7 @@ Below, `language/`, `maps/`, … without a prefix are under `games/evermore/`.
 - `memory/` → may use `docs-tab/`, `rooms/`, `maps/`, `rom/`, `core/map-editor/`, `core/webview/`
 - `rom/` → may use `maps/`; never `emulator/` (the CDL library is injected by `games/evermore/extension.js`)
 - `scripts-tab/` → libraries only (`script-model/`, `maps/`, `localizations/`, `simulation/`); sprites and music capabilities are injected by `games/evermore/extension.js`
+- `data-tab/` → libraries only (`maps/`, `localizations/`, the language data file); the character list is injected by `games/evermore/radar-open.js`
 - `music/` → may use `localizations/`; never `emulator/` (the sound-chip stream is injected by `games/evermore/extension.js`)
 - `recorder/` → only `core/emulator/`; nothing imports it
 - `core/emulator/` → `platform/` only; no game (`emulator-knows-no-game`); a game hands in its part

@@ -32,7 +32,7 @@ Inside a game, every folder is one of two kinds:
 | Kind | Examples (Evermore) | May depend on |
 |---|---|---|
 | **Library** (pure, no `vscode`, no UI) | `maps`, `script`, `simulation`, `localizations` | other libraries of the game, `platform/` |
-| **Feature** (a tab, panel, file system or language service) | `memory`, `rooms`, `sprites`, `music`, `scripts-tab`, `rom`, `scaling`, `docs-tab`, `resources` (soe://), `language`, `debugger` | libraries, `core/`, read APIs (`soe://`) |
+| **Feature** (a tab, panel, file system or language service) | `memory`, `rooms`, `sprites`, `music`, `scripts-tab`, `data-tab`, `rom`, `scaling`, `docs-tab`, `resources` (soe://), `language`, `debugger` | libraries, `core/`, read APIs (`soe://`) |
 
 `src/extension.js` is the composition root: the ROM library, the one list of games, the game
 views and MCP. Each game's `src/games/<game>/extension.js` registers that game's commands and

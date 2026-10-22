@@ -67,10 +67,28 @@
 .scr-ctl{display:flex;align-items:center;gap:6px;margin:8px 0}
 .scr-pal{display:flex;gap:2px;margin-top:6px}
 .scr-pal i{width:12px;height:12px;border-radius:2px}
-.scr-words{display:flex;flex-wrap:wrap;gap:3px;font:11.5px var(--scr-mono);margin:4px 0}
-.scr-word{padding:1px 4px;border-radius:3px;background:var(--scr-card);color:var(--scr-dim);border:1px solid transparent;font:inherit}
-.scr-word.scr-rec{color:inherit;border-color:var(--vscode-button-background,#0e639c);cursor:pointer}
-.scr-word.scr-rec.scr-on{background:var(--vscode-button-background,#0e639c);color:var(--vscode-button-foreground,#fff)}
+/* Maps view: the blob's sections (middle) and the selection's panels (right) */
+.scr-msec{border:1px solid var(--scr-line);border-radius:4px;margin:0 0 6px}
+.scr-msec.scr-on{border-color:var(--vscode-focusBorder,#007acc)}
+.scr-msec-h{padding:5px 8px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scr-msec-h:hover{background:var(--scr-hover)}
+.scr-msec .scr-fields,.scr-mitems,.scr-dump,.scr-dump-more{margin:4px 8px 8px}
+.scr-mitems{max-height:220px;overflow:auto;border:1px solid var(--scr-line);border-radius:3px;background:var(--vscode-editor-background,#1e1e1e)}
+.scr-dump{font:11.5px/1.5 var(--scr-mono);color:var(--vscode-textPreformat-foreground,#d7ba7d);white-space:nowrap;overflow-x:auto}
+.scr-dump .scr-lit{color:inherit;outline:1px solid var(--vscode-focusBorder,#007acc)}
+.scr-dump-more{display:block}
+.scr-fields td:nth-child(3){color:var(--scr-dim)}
+.scr-mpanel{margin-bottom:14px}
+.scr-mfig{margin:6px 0}
+.scr-mfig figcaption{font-size:11px;margin-top:2px}
+.scr-mgallery{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.scr-mgallery .scr-mfig{margin:0}
+.scr-pickable img{cursor:crosshair}
+.scr-mframes{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}
+.scr-mframes img{width:32px;height:32px;border:1px solid transparent}
+.scr-mframes img.scr-on{border-color:var(--vscode-focusBorder,#007acc)}
+.scr-box-obj{stroke:#4fc1ff}
+.scr-pal span{width:14px;font-size:10px}
 .scr-track{margin:8px 0}
 .scr-track-h{border-left:3px solid;padding-left:6px;font-size:12px;margin-bottom:3px}
 .scr-seq{font:11.5px/1.6 var(--scr-mono);word-break:break-word}

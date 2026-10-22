@@ -1,0 +1,26 @@
+/* Data tab (src/games/evermore/data-tab). The pane is also .scr-pane, so it shares the Scripts tab's
+   tool bar, rail and columns; only what the Data tab adds is here (dat- prefix). */
+.dat-grid{font-size:12px}
+.dat-pane .dat-grid th{position:sticky;top:0;background:var(--vscode-editor-background,#1e1e1e);text-align:left;font-weight:600;color:var(--scr-dim);padding:2px 6px;border-bottom:1px solid var(--scr-line)}
+.dat-pane .dat-grid td{white-space:normal;word-break:break-word}
+.dat-grid tr[data-dat-row]{cursor:pointer}
+.dat-pane .dat-grid td:nth-child(2){font-variant-numeric:tabular-nums}
+.dat-mini{display:inline-flex}
+.dat-mini i{width:5px;height:10px}
+.dat-swatches{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin:8px 0}
+.dat-sw{display:flex;flex-direction:column;align-items:center;gap:2px;font:10.5px var(--scr-mono);color:var(--scr-dim)}
+.dat-sw i{width:100%;height:28px;border-radius:3px;border:1px solid var(--scr-line)}
+.dat-big .dat-sw i{height:44px}
+.dat-sw i.dat-clear{background:repeating-conic-gradient(rgba(128,128,128,.3) 0 25%,transparent 0 50%) 0 0/8px 8px!important}
+.dat-users{font-size:12px;line-height:1.6;max-height:70vh;overflow:auto}
+.dat-chart{position:relative}
+.dat-chart svg{display:block;width:100%;height:auto;overflow:visible}
+.dat-gridline{stroke:var(--scr-line);stroke-width:1;opacity:.6}
+.dat-axis{stroke:var(--scr-dim);stroke-width:1}
+.dat-cross{stroke:var(--scr-dim);stroke-width:1;stroke-dasharray:3 3}
+.dat-dot{stroke:var(--vscode-editor-background,#1e1e1e);stroke-width:2}
+.dat-tick{fill:var(--scr-dim);font:10px var(--scr-mono)}
+.dat-tip{position:absolute;pointer-events:none;background:var(--vscode-editorWidget-background,#252526);border:1px solid var(--vscode-widget-border,#454545);border-radius:4px;padding:4px 7px;font:11px var(--scr-mono);white-space:nowrap}
+.dat-legend{display:flex;gap:14px;font-size:12px;margin:4px 0}
+.dat-legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.dat-axes{font-size:11px;margin-top:2px}

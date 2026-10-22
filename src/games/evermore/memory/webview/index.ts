@@ -15,6 +15,7 @@ const docsDir    = path.join(HERE, '../../docs-tab');
 const romDir     = path.join(HERE, '../../rom/webview');
 const musicDir   = path.join(HERE, '../../music/webview');
 const scriptsDir = path.join(HERE, '../../scripts-tab/webview');
+const dataDir    = path.join(HERE, '../../data-tab/webview');
 
 const fileCache = new Map<string, string>();
 
@@ -45,13 +46,13 @@ function inject(text: string, placeholder: string, content: string) {
   return text.replace(placeholder, () => content);
 }
 
-/** The page script's parts, each already read; `spritesData`, `romJs`, `musicJs` and `scriptsJs` may be absent. */
+/** The page script's parts, each already read; `spritesData`, `romJs`, `musicJs`, `scriptsJs` and `dataJs` may be absent. */
 interface MainJsParts {
   jsData: string; roomsData: string; scalingData: string; spritesData?: string; roomsJs: string; scalingJs: string; spritesJs?: string;
-  docsJs: string; rngJs: string; romJs?: string; musicJs?: string; scriptsJs?: string;
+  docsJs: string; rngJs: string; romJs?: string; musicJs?: string; scriptsJs?: string; dataJs?: string;
 }
 
-function buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, rngJs, romJs, musicJs, scriptsJs }: MainJsParts) {
+function buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, rngJs, romJs, musicJs, scriptsJs, dataJs }: MainJsParts) {
   let out = loadFile(path.join(HERE, 'shared.js'));
   for (const [placeholder, content] of [
     ['__JS_DATA__', jsData],
@@ -66,6 +67,7 @@ function buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, sca
     ['__ROM_JS__', romJs || ''],
     ['__MUSIC_JS__', musicJs || ''],
     ['__SCRIPTS_JS__', scriptsJs || ''],
+    ['__DATA_JS__', dataJs || ''],
   ]) {
     out = inject(out, placeholder, content);
   }
@@ -213,7 +215,8 @@ export const css = loadFile(path.join(coreWebviewDir, 'shared.css')) + '\n'
     + loadFile(path.join(spritesDir, 'sprites-views.css')) + '\n'
     + loadFile(path.join(romDir, 'rom-tab.css')) + '\n'
     + loadFile(path.join(musicDir, 'music-tab.css')) + '\n'
-    + loadFile(path.join(scriptsDir, 'scripts-tab.css'));
+    + loadFile(path.join(scriptsDir, 'scripts-tab.css')) + '\n'
+    + loadFile(path.join(dataDir, 'data-tab.css'));
 export function scalingJs() { return loadScalingJs(); }
 export function roomsJs() { return loadRoomsJs(); }
 export function spritesJs() { return loadFile(path.join(spritesDir, 'sprites-lazy.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-script.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-motion.js')) + '\n' + spritesViewJs(); }
@@ -224,6 +227,9 @@ export const romJs = ['rom-tab.js', 'rom-bus-map.js', 'rom-bus-view.js', 'rom-co
 export const musicJs = [loadFile(path.join(musicDir, '..', 'engine', 'spc-engine.js')), pageBundle('music-view'), pageBundle('music-engine')]
     .concat(['music-audio.js', 'music-tab.js', 'music-timeline.js', 'music-hover.js', 'music-forecast.js', 'music-lists.js', 'music-init.js'].map(function(f) { return loadFile(path.join(musicDir, f)); }))
     .join('\n');
-export const scriptsJs = ['scripts-tab.js', 'scripts-room.js', 'scripts-anim.js', 'scripts-music.js', 'scripts-init.js']
-    .map(function(f) { return loadFile(path.join(scriptsDir, f)); }).join('\n');
+// The Maps view's builders are TypeScript (scripts-maps.dom.ts): its bundle declares `ScriptsMaps` inside the page's IIFE.
+export const scriptsJs = [pageBundle('scripts-maps')].concat(['scripts-tab.js', 'scripts-room.js', 'scripts-anim.js', 'scripts-music.js', 'scripts-init.js']
+    .map(function(f) { return loadFile(path.join(scriptsDir, f)); })).join('\n');
+// The Data tab is TypeScript (data-tab.dom.ts): its bundle declares `DataTab` inside the page's IIFE, which hands it `vs`.
+export const dataJs = pageBundle('data-tab') + '\nDataTab.setupDataTab(function (m) { if (vs) vs.postMessage(m); }, typeof ACTIVE_TAB !== \'undefined\' ? ACTIVE_TAB : \'\');';
 export { buildMainJs };

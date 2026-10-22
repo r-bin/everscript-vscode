@@ -66,6 +66,7 @@
   "tests/memory/rooms-rail-dom.test.js",
   "tests/memory/rom-tab.test.js",
   "tests/memory/scripts-tab.test.js",
+  "tests/memory/data-tab.test.js",
   "tests/mana/mana-panel-dom.test.js",
   "tests/mana/mana-map-editor-dom.test.js",
   "tests/mana/mana-editor-cells-dom.test.js",

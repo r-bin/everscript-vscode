@@ -38,9 +38,10 @@ function hostDeps(rom, posted) {
 
 async function unit() {
     console.log('\nScripts tab — unit');
-    await test('scaffold has the four views and the three columns', () => {
+    await test('scaffold has the four views and the three columns; Alchemy is gone', () => {
         const html = buildScriptsTabHtml();
-        for (const v of ['room', 'anim', 'alchemy', 'music']) assert.ok(html.includes('data-scr-view="' + v + '"'), v);
+        for (const v of ['room', 'map', 'anim', 'music']) assert.ok(html.includes('data-scr-view="' + v + '"'), v);
+        assert.ok(!html.includes('data-scr-view="alchemy"'));
         for (const id of ['scr-rail', 'scr-mid', 'scr-side']) assert.ok(html.includes('id="' + id + '"'), id);
     });
     await test('the radar page carries the tab and its script', () => {
@@ -48,6 +49,7 @@ async function unit() {
         assert.ok(html.includes('data-tab="scripts"'));
         assert.ok(html.includes('function setupScriptsTab'));
         assert.ok(!html.includes('__SCRIPTS_JS__'));
+        assert.ok(html.includes('ScriptsMaps'));
     });
 }
 
@@ -69,6 +71,29 @@ async function romChecks(rom) {
         const p = rooms.roomPicture(rom, 0x25);
         assert.ok(p.uri.startsWith('data:image/png'));
         assert.ok(s0.box.x + s0.box.w <= p.width && s0.box.y + s0.box.h <= p.height);
+    });
+    await test('maps: every room blob splits into sections that add up to the blob', () => {
+        const { mapSections } = require('../../dist/games/evermore/scripts-tab/model/map-sections');
+        for (let id = 0; id < 127; id++) {
+            const m = mapSections(rom, id);
+            assert.ok(!m.error, id + ': ' + m.error);
+            assert.strictEqual(m.sections.reduce((a, x) => a + x.size, 0), m.blob.size, 'room ' + id);
+            assert.strictEqual(m.sections.reduce((a, x) => a + x.bytes.length / 2, 0), m.blob.size, 'room ' + id + ' bytes');
+        }
+        const m = mapSections(rom, 0x38);
+        assert.strictEqual(m.sections.find((x) => x.key === 'step').items.length, 2);
+        assert.strictEqual(m.sections.find((x) => x.key === 's4').items.length, 94);
+    });
+    await test('maps: a metatile taken apart, a channel\'s frames, an object\'s states', () => {
+        const { mapView } = require('../../dist/games/evermore/scripts-tab/model/map-views');
+        const mt = mapView(rom, 0x38, 'mt:3').panels[0];
+        assert.strictEqual(mt.images.length, 4);
+        assert.ok(mt.rows.some((r) => r[0] === 'collision word'));
+        const ch = mapView(rom, 0x38, 'anim:0').panels[0];
+        assert.ok(ch.frames.length > 1 && ch.frames[0].uri.startsWith('data:image/png'));
+        const obj = mapView(rom, 0x38, 'obj:0').panels;
+        assert.ok(obj[0].images.length >= 2);
+        assert.strictEqual(obj[1].image.uri, '@room');
     });
     await test('alchemy: 35 formulas, Acid Rain and Laser share $91:86F0, which names $583E', () => {
         const m = alchemyModel(rom);
@@ -95,7 +120,7 @@ async function romChecks(rom) {
         assert.ok(new Set(tl.notes.map((n) => n.v)).size >= 5);
         assert.ok(tl.notes.every((n) => n.f1 > n.f0));
     });
-    await test('host: index, room, animation and simulation answers', async () => {
+    await test('host: index, room, map, animation and simulation answers', async () => {
         const { handleScriptsMessage } = require('../../dist/games/evermore/scripts-tab');
         const posted = [];
         const deps = hostDeps(rom, posted);
@@ -103,8 +128,15 @@ async function romChecks(rom) {
         const ix = posted.pop();
         assert.strictEqual(ix.command, 'scriptsIndex');
         assert.strictEqual(ix.animations.length, 783);
-        assert.strictEqual(ix.formulas.length, 35);
+        assert.strictEqual(ix.formulas, undefined);
         assert.strictEqual(ix.music.length, 70);
+        assert.ok(ix.animations.some((a) => a.effect) && ix.animations.some((a) => /^alchemy · /.test(a.label)), 'alchemy effects stay marked in Animations');
+        handleScriptsMessage({ command: 'scriptsMap', id: 0x38 }, deps);
+        const map = posted.pop();
+        assert.strictEqual(map.map.sections.length, 12);
+        assert.ok(map.picture.uri.startsWith('data:image/png'));
+        handleScriptsMessage({ command: 'scriptsMapView', id: 0x38, key: 'cell:5:5' }, deps);
+        assert.ok(posted.pop().panels[0].title.startsWith('Cell (5,5)'));
         handleScriptsMessage({ command: 'scriptsAnim', key: 'k', record: 0x583E, facing: 8 }, deps);
         const a = posted.pop();
         assert.ok(a.anim && a.anim.frames.length > 0 && a.anim.frames[0].png.startsWith('data:image/png'));
@@ -173,15 +205,32 @@ async function dom(rom) {
         assert.ok(await page.locator('.scr-anim-rows tr.scr-lit').count() > 0);
         await shot('animation');
     });
-    await test('an alchemy formula shows its block and plays the record it names', async () => {
+    await test('a map shows its sections; picking a cell takes its metatile apart', async () => {
         await page.fill('#scr-search', '');
-        await page.click('[data-scr-view="alchemy"]');
-        await page.click('[data-scr-pick="formula:0"]');
+        await page.click('[data-scr-view="map"]');
+        await page.click('[data-scr-pick="map:56"]');
         await pump();
-        assert.ok((await page.textContent('#scr-mid')).includes('$91:86F0'));
-        assert.strictEqual(await page.locator('.scr-word.scr-rec').count(), 1);
-        await page.waitForFunction(() => { const i = document.getElementById('scr-anim-img'); return i && i.src.startsWith('data:image/png'); });
-        await shot('alchemy');
+        assert.strictEqual(await page.locator(".scr-msec").count(), 12);
+        assert.ok((await page.textContent('#scr-side')).includes('83×91'));
+        await page.click('.scr-msec-h[data-scr-msel="block2"]');
+        await pump();
+        const img = page.locator('#scr-side img[data-scr-mpick="cell"]');
+        const box = await img.boundingBox();
+        await page.mouse.click(box.x + box.width * 5.5 / 83, box.y + box.height * 5.5 / 91);
+        await pump();
+        assert.ok((await page.textContent('#scr-side')).includes('Cell (5,5)'));
+        assert.strictEqual(await page.locator('#scr-side .scr-mgallery img').count(), 4);
+        await shot('map-metatile');
+    });
+    await test('a map\'s animation channel plays its frames', async () => {
+        await page.click('.scr-msec-h[data-scr-msel="anim"]');
+        await page.click('[data-scr-msel="anim:0"]');
+        await pump();
+        // Frame 0 holds 127 ticks (about 2 s), then the player moves on.
+        await page.waitForSelector('[data-scr-frame="0"].scr-on');
+        await page.waitForSelector('[data-scr-frame="1"].scr-on', { timeout: 4000 });
+        assert.ok(await page.locator('.scr-dump .scr-lit').count() === 4, 'the channel\'s 4 descriptor bytes are lit');
+        await shot('map-animation');
     });
     await test('a music track shows its sequence and the silent player', async () => {
         await page.click('[data-scr-view="music"]');

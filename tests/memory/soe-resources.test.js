@@ -697,16 +697,16 @@ test('provider: tables VFS (lookup and pointer tables with data.bin and data.jso
     // Table info
     const orbitInfo = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/tables/orbit_table_x/info.json'))).toString('utf8'));
     assert.strictEqual(orbitInfo.addressHex, '$808923');
-    assert.strictEqual(orbitInfo.size, 128);
+    assert.strictEqual(orbitInfo.size, 512);
 
     // Table raw data.bin
     const orbitBin = await fsp.readFile(uri('soe://rom/tables/orbit_table_x/data.bin'));
-    assert.strictEqual(orbitBin.length, 128);
+    assert.strictEqual(orbitBin.length, 512);
 
     // Table decoded data.json
     const orbitJson = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/tables/orbit_table_x/data.json'))).toString('utf8'));
-    assert.strictEqual(orbitJson.byteLength, 128);
-    assert.strictEqual(orbitJson.bytes.length, 128);
+    assert.strictEqual(orbitJson.byteLength, 512);
+    assert.strictEqual(orbitJson.bytes.length, 512);
 
     fsp.dispose();
 }, true);

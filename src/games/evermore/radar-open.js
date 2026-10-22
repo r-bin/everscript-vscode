@@ -11,6 +11,7 @@ const { VANILLA_ROOMS, buildVanillaRoomDetails, buildRoomTree, setRoomImageUris,
 const { handlesRomMessage, handleRomMessage } = require('../../../dist/games/evermore/rom');
 const { handlesMusicMessage, handleMusicMessage } = require('./music');
 const { handlesScriptsMessage, handleScriptsMessage } = require('../../../dist/games/evermore/scripts-tab');
+const { handlesDataMessage, handleDataMessage } = require('../../../dist/games/evermore/data-tab');
 const { handlesEditorMessage, handleEditorMessage } = require('../../../dist/games/evermore/rooms/editor-host');
 const { handlesSpritesMessage, handleSpritesMessage } = require('../../../dist/games/evermore/sprites/radar-host');
 const romReaders = require('../../../dist/games/evermore/rom-readers');
@@ -190,6 +191,15 @@ async function openMemoryRadar(doc, startLine) {
                     sequence: music.trackSequence,
                     timeline: music.trackTimeline,
                 },
+            });
+        } else if (handlesDataMessage(msg.command)) {
+            // The Data tab (src/games/evermore/data-tab/README.md). The character list is the
+            // Characters tab's bundle, injected so the data-tab domain never imports it.
+            const _ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+            handleDataMessage(msg, {
+                post: (m) => radar.panel?.webview.postMessage(m),
+                loadRom: () => romReaders.loadRomBuffer(_ws, ''),
+                characters: (rom) => getSpritesBundle(rom).characters,
             });
         } else if (handlesRomMessage(msg.command)) {
             // The ROM tab: map of every bank, CDL coverage, readers

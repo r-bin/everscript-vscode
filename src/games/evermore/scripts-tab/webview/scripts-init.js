@@ -12,8 +12,8 @@ function scrClosest(el, attr, root) {
 function scrPick(value) {
   var i = value.indexOf(':'), kind = value.slice(0, i), v = Number(value.slice(i + 1));
   if (kind === 'room') scrSelectRoom(v);
+  else if (kind === 'map') scrSelectMap(v);
   else if (kind === 'record') { _scr.record = v; _scr.player.playing = true; }
-  else if (kind === 'formula') { _scr.formula = v; _scr.record = null; _scr.player.playing = true; }
   else if (kind === 'track') scrSelectTrack(v);
   scrRender();
 }
@@ -24,7 +24,9 @@ function scrOnClick(e, pane) {
   if ((t = scrClosest(e.target, 'scrPick', pane))) { scrPick(t.dataset.scrPick); return; }
   if ((t = scrClosest(e.target, 'scrScript', pane))) { _scr.script = t.dataset.scrScript; scrAskSim(); scrRenderMain(); return; }
   if ((t = scrClosest(e.target, 'scrFacing', pane))) { _scr.facing = Number(t.dataset.scrFacing); _scr.player.key = ''; scrRender(); return; }
-  if ((t = scrClosest(e.target, 'scrRec', pane))) { _scr.record = Number(t.dataset.scrRec); _scr.player.playing = true; scrRenderMain(); return; }
+  if ((t = scrClosest(e.target, 'scrMsel', pane))) { scrSelectMapPart(t.dataset.scrMsel); return; }
+  if ((t = scrClosest(e.target, 'scrMall', pane))) { _scr.mapAll[t.dataset.scrMall] = true; scrRenderMain(); return; }
+  if ((t = scrClosest(e.target, 'scrMpick', pane))) { var key = ScriptsMaps.mapPickKey(t, e); if (key) scrSelectMapPart(key); return; }
   if ((t = scrClosest(e.target, 'scrPlay', pane))) { _scr.player.playing = !_scr.player.playing; t.textContent = _scr.player.playing ? '❚❚' : '▶'; return; }
   if ((t = scrClosest(e.target, 'scrStep', pane))) { scrStepFrame(Number(t.dataset.scrStep)); return; }
   if ((t = scrClosest(e.target, 'scrMplay', pane))) {
@@ -62,9 +64,10 @@ function setupScriptsTab() {
     var msg = ev.data || {};
     if (msg.command === 'scriptsIndex') {
       if (msg.error) { _scr.error = msg.error; _scr.requested = false; }
-      else _scr.index = { rooms: msg.rooms, animations: msg.animations, formulas: msg.formulas, music: msg.music };
+      else _scr.index = { rooms: msg.rooms, animations: msg.animations, music: msg.music };
       scrRender();
     } else if (msg.command === 'scriptsRoom' || msg.command === 'scriptsSim') scrOnRoomMessage(msg);
+    else if (msg.command === 'scriptsMap' || msg.command === 'scriptsMapView') scrOnMapMessage(msg);
     else if (msg.command === 'scriptsAnim') scrOnAnimMessage(msg);
     else if (msg.command === 'scriptsMusic') scrOnMusicMessage(msg);
   });

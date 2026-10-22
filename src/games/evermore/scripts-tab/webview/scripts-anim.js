@@ -1,9 +1,9 @@
 // TODO port to TS (docs/todo/port-to-ts.md)
-// Ownership: the Scripts tab's Animations and Alchemy views, and the animation
-// player both use on the right: the frames the host renders (sprites'
+// Ownership: the Scripts tab's Animations view, and the animation player on
+// the right: the frames the host renders (sprites'
 // renderAnimation, injected), played at 60 ticks a second, wrapping to the
 // tick the script loops from; the script lines the current frame ran are lit
-// in the listing. State: _scr.record / formula / facing / anims / player.
+// in the listing. State: _scr.record / facing / anims / player.
 
 var SCR_SCALE = 3;
 
@@ -20,13 +20,9 @@ function scrAskAnim(record, paletteAddr) {
   scrPost({ command: 'scriptsAnim', key: k, record: record, facing: _scr.facing, paletteAddr: pal });
 }
 
-/** The record the right side plays: the picked one, or the formula's first. */
+/** The record the right side plays. */
 function scrPlayingRecord() {
-  if (_scr.view === 'anim') return _scr.record;
-  var f = _scr.index && _scr.index.formulas[_scr.formula];
-  if (!f) return null;
-  if (_scr.record != null && f.records.some(function (r) { return r.record === _scr.record; })) return _scr.record;
-  return f.records.length ? f.records[0].record : null;
+  return _scr.view === 'anim' ? _scr.record : null;
 }
 
 function scrCommandHtml(l) {
@@ -131,36 +127,6 @@ function scrRenderAnim(mid, side) {
   scrStartPlayer(a);
 }
 
-function scrBlockHtml(f) {
-  var at = {};
-  f.records.forEach(function (r) { at[r.at] = r; });
-  var cells = [];
-  for (var i = 0; i + 1 < f.bytes.length; i += 2) {
-    var r = at[i], word = scrHex(f.bytes[i] | f.bytes[i + 1] << 8, 4);
-    cells.push(r ? '<button class="scr-word scr-rec' + (r.record === scrPlayingRecord() ? ' scr-on' : '') + '" data-scr-rec="' + r.record + '" title="+' + scrHex(i) +
-      ': animation record ' + r.recHex + (r.effect ? ' (signals effect_done)' : '') + '">' + word + '</button>'
-      : '<span class="scr-word" title="+' + scrHex(i) + '">' + word + '</span>');
-  }
-  return '<div class="scr-words">' + cells.join('') + '</div>';
-}
-
-function scrRenderAlchemy(mid, side) {
-  var f = _scr.index.formulas[_scr.formula];
-  if (!f) { mid.innerHTML = '<div class="scr-empty">Pick a formula on the left.</div>'; side.innerHTML = ''; scrStopPlayer(); return; }
-  var rec = scrPlayingRecord();
-  if (rec != null) scrAskAnim(rec);
-  var a = rec == null ? null : _scr.anims[scrAnimKey(rec)];
-  var shared = _scr.index.formulas.filter(function (g) { return g.block === f.block && g.index !== f.index; }).map(function (g) { return g.name; });
-  mid.innerHTML = '<div class="scr-h">' + scrEsc(f.name) + ' <span class="scr-dim">formula ' + f.index + ' · block <code>' + f.blockHex + '</code></span></div>' +
-    '<div class="scr-sub">ALCHEMY_ANIM_MAP[' + f.index + '] = <code>$' + scrHex(f.offset) + '</code> → <code>$91:80A6</code> + ' + f.offset + ' → <code>' + f.blockHex + '</code>' +
-    (shared.length ? ' · shared with ' + scrEsc(shared.join(', ')) : '') + '<br>The block\'s words (' + f.length + ' bytes); the lit ones are animation records — click to play.</div>' +
-    scrBlockHtml(f) +
-    (rec == null ? '<div class="scr-note">This block names no animation record.</div>'
-      : '<div class="scr-sub" style="margin-top:12px">Record <code>$' + scrHex(rec, 4) + '</code></div>' + (a && a.script ? scrListingHtml(a) : '<div class="scr-note">Disassembling…</div>'));
-  side.innerHTML = rec == null ? '<div class="scr-empty">Nothing to play.</div>' : scrPlayerHtml(a, rec);
-  scrStartPlayer(a);
-}
-
 // ── Player ───────────────────────────────────────────────────────────────────
 function scrStopPlayer() {
   if (_scr.player.raf) cancelAnimationFrame(_scr.player.raf);
@@ -230,7 +196,7 @@ function scrStepFrame(dir) {
 
 function scrOnAnimMessage(msg) {
   _scr.anims[msg.key] = msg.error ? { error: msg.error } : (msg.anim || { error: 'Nothing to play for this facing.' });
-  if ((_scr.view === 'anim' || _scr.view === 'alchemy') && msg.key === scrAnimKey(scrPlayingRecord())) scrRenderMain();
+  if (_scr.view === 'anim' && msg.key === scrAnimKey(scrPlayingRecord())) scrRenderMain();
 }
 
 // ── Rich Tooltip for Scripts Tab ─────────────────────────────────────────────
