@@ -9,6 +9,7 @@
   "tests/memory/variants.test.js",
   "tests/script-vm/units.test.js",
   "tests/simulation/sim-units.test.js",
+  "tests/simulation/combat.test.js",
   "tests/memory/damage.test.js",
   "tests/memory/map-editor.test.js",
   "tests/memory/rooms-layout.test.js",

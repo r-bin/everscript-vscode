@@ -1,6 +1,6 @@
-// Ownership: a route played step by step against one WRAM (docs/plans/simulation/interaction.md:
-// "run its script against the WRAM, show what changed"). Pure: each trigger's cases come from the
-// simulation (simulation/ `analyze`), handed in.
+// Ownership: playing a step against one WRAM (docs/plans/simulation/interaction.md: "run its script
+// against the WRAM, show what changed"): the case of a trigger's analysis (`analyze`, trigger.ts)
+// whose conditions hold in the state is applied. Pure; the Routes tab plays routes with it.
 //
 // A step that names a trigger (`at`) runs it: the case whose conditions hold in the current state
 // is applied — the loot goes into its inventory byte, its taken flag is set, the room object is
@@ -8,17 +8,30 @@
 // assumption every route states. What the scripts do not decide (enemy drops, a move between rooms
 // no script makes) is applied as drafted and labelled so.
 
-/** What playing a step reads of it (model/route.ts RouteStep). */
+import type { ScriptAnalysis } from './trigger';
+
+/** What playing a step reads of it (routes/model/route.ts RouteStep). */
 interface PlayedStep { room: number; who?: string; at?: string; talons?: number; to?: number }
 
-/** A symbolic value as the simulation writes it (simulation/sym.ts), as far as this reads it. */
-export interface Sym { k: string; v?: number; addr?: number; size?: number; label?: string; name?: string; op?: string; a?: Sym; b?: Sym; bit?: number }
-export interface Condition { cond: Sym; value: boolean; text: string }
-export interface TriggerCase {
-    label: string; when: Condition[]; mapId: number | null;
-    loot: { itemName: string | null; object: number | null; looted: boolean; amount: Sym; slot: number | null; flagsSet: { addr: number; bit: number }[] } | null;
+/** A symbolic value (sym.ts), as far as playing reads it. */
+export interface PlayValue { k: string; v?: number; addr?: number; size?: number; label?: string; name?: string; op?: string; a?: PlayValue; b?: PlayValue; bit?: number }
+export interface PlayCondition { cond: PlayValue; value: boolean; text: string }
+export interface PlayCase {
+    label: string; when: PlayCondition[]; mapId: number | null;
+    loot: { itemName: string | null; object: number | null; looted: boolean; amount: PlayValue; slot: number | null; flagsSet: { addr: number; bit: number }[] } | null;
 }
-export interface TriggerAnalysis { cases: TriggerCase[]; always: Condition[]; otherwise: { when: Condition[]; note: string }[] }
+export interface PlayTrigger { cases: PlayCase[]; always: PlayCondition[]; otherwise: { when: PlayCondition[]; note: string }[] }
+
+/** A trigger's analysis cut to what playing reads (the rest — paths, parts — stays behind). */
+export function playableTrigger(a: ScriptAnalysis): PlayTrigger {
+    return {
+        cases: a.cases.map((x) => ({ label: x.label, when: x.when as PlayCondition[], mapId: x.mapId, loot: x.loot ? {
+            itemName: x.loot.itemName, object: x.loot.object, looted: x.loot.looted, amount: x.loot.amount as unknown as PlayValue,
+            slot: x.loot.slot, flagsSet: x.loot.flagsSet,
+        } : null })),
+        always: a.always as PlayCondition[], otherwise: a.otherwise.map((o) => ({ when: o.when as PlayCondition[], note: o.note })),
+    };
+}
 
 export interface RouteState {
     room: number;
@@ -55,7 +68,7 @@ const word = (item: string): string => item.charAt(0) + item.slice(1).toLowerCas
 
 type Val = number | 'boy' | 'dog' | null;
 
-function value(e: Sym | undefined, s: RouteState, who: 'boy' | 'dog'): Val {
+function value(e: PlayValue | undefined, s: RouteState, who: 'boy' | 'dog'): Val {
     if (!e) return null;
     if (e.k === 'c' && typeof e.v === 'number') return e.v;
     if (e.k === 'mem' && typeof e.addr === 'number') {
@@ -68,7 +81,7 @@ function value(e: Sym | undefined, s: RouteState, who: 'boy' | 'dog'): Val {
 }
 
 /** Whether a condition holds in the state: true, false, or null when the state cannot say. */
-export function holds(c: Sym, s: RouteState, who: 'boy' | 'dog'): boolean | null {
+export function holds(c: PlayValue, s: RouteState, who: 'boy' | 'dog'): boolean | null {
     if (c.k === 'bit' && typeof c.bit === 'number') {
         const v = value(c.a, s, who);
         return typeof v === 'number' ? ((v >> c.bit) & 1) === 1 : null;
@@ -85,8 +98,8 @@ export function holds(c: Sym, s: RouteState, who: 'boy' | 'dog'): boolean | null
 }
 
 /** The case that applies: every condition holds, or cannot be decided (then it is listed as assumed). */
-function pick(t: TriggerAnalysis, s: RouteState, who: 'boy' | 'dog'): { c: TriggerCase; assumed: string[] } | null {
-    let best: { c: TriggerCase; assumed: string[] } | null = null;
+function pick(t: PlayTrigger, s: RouteState, who: 'boy' | 'dog'): { c: PlayCase; assumed: string[] } | null {
+    let best: { c: PlayCase; assumed: string[] } | null = null;
     for (const c of t.cases) {
         const assumed: string[] = [];
         let fails = false;
@@ -101,13 +114,13 @@ function pick(t: TriggerAnalysis, s: RouteState, who: 'boy' | 'dog'): { c: Trigg
 }
 
 /** The name the trigger's own conditions give a flag ("Gourd in south Jungle"), or its address. */
-function flagName(t: TriggerAnalysis, addr: number, bit: number): string {
+function flagName(t: PlayTrigger, addr: number, bit: number): string {
     const tag = ram(addr).toLowerCase() + '&0x' + (1 << bit).toString(16).padStart(2, '0');
     const text = t.always.concat(...t.cases.map((c) => c.when)).map((c) => c.text).find((x) => x.toLowerCase().indexOf(tag) >= 0);
     return text ? text.replace(/^not /, '') : ram(addr) + ' bit ' + bit;
 }
 
-function apply(t: TriggerAnalysis, c: TriggerCase, s: RouteState, effects: string[]): void {
+function apply(t: PlayTrigger, c: PlayCase, s: RouteState, effects: string[]): void {
     const l = c.loot;
     if (l) {
         const n = l.amount.k === 'c' && typeof l.amount.v === 'number' ? l.amount.v : 1;
@@ -135,7 +148,7 @@ function apply(t: TriggerAnalysis, c: TriggerCase, s: RouteState, effects: strin
 
 /** One step from a state: its effects, what had to be assumed, and whether the draft agrees. */
 /** `trigger`: the cases of the trigger the step names; null when the room has none, undefined without a ROM. */
-export function playStep(step: PlayedStep, before: RouteState, trigger: TriggerAnalysis | null | undefined): StepResult {
+export function playStep(step: PlayedStep, before: RouteState, trigger: PlayTrigger | null | undefined): StepResult {
     const s = clone(before);
     const effects: string[] = [];
     const who = step.who && /^dog/i.test(step.who) ? 'dog' : 'boy';

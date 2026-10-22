@@ -5,7 +5,7 @@
 > them from a fresh game against one WRAM: a step naming a trigger applies the
 > case of its script that holds (loot, taken flag, opened object, map change),
 > shown on the room's map step by step. A fight or death step can be simulated
-> (`model/fight.ts`): the time it takes and the hits it needs as distributions, from
+> (`src/games/evermore/simulation/combat/`, the game's rules in [docs/entities/combat.md](../../entities/combat.md)): the time it takes and the hits it needs as distributions, from
 > the ROM's records, animations and hit table and the route's party. Checked in
 > the game for a Wimpy Flower killing the Boy (`tools/routes/fight-in-game.mts`);
 > other fights not yet. Drops are still the draft's numbers. An earlier sketch

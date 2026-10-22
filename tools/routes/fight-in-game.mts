@@ -1,5 +1,5 @@
 // Play an enemy killing the Boy in the real game, many times, headless: the check of the Routes tab's
-// fight model (src/games/evermore/routes/model/fight.ts) against the game itself.
+// fight model (src/games/evermore/simulation/combat/, docs/entities/combat.md) against the game itself.
 //   node tools/routes/fight-in-game.mts [--trials 80] [--room 0x38] [--enemy 109] [--gap 16] [--speed 2.5] [--json <file>]
 // The ROM (from the ROM library) is patched in memory only: the intro's first code jumps to the room
 // (docs/map-format/rom-export.md row 6), so the room comes up with a fresh game's party. Then, per trial:

@@ -202,8 +202,16 @@ module.exports = {
       name: 'simulation-is-a-library',
       comment: 'src/games/evermore/simulation is pure: it may use the script decoder (script-vm), the script model, the SNES helpers and the hex formatter, nothing else in src/.',
       severity: 'error',
-      from: { path: '^src/games/evermore/simulation/' },
+      from: { path: '^src/games/evermore/simulation/(?!combat/)' },
       to: { path: '^src/(?!games/evermore/(simulation|script-vm|script-model)/|platform/snes/|platform/hex)' },
+    },
+
+    {
+      name: 'simulation-combat-is-a-library',
+      comment: 'src/games/evermore/simulation/combat is pure too; it reads character records and animation timings through maps/ (animation VM, character record), nothing else in src/.',
+      severity: 'error',
+      from: { path: '^src/games/evermore/simulation/combat/' },
+      to: { path: '^src/(?!games/evermore/(simulation|maps)/|platform/snes/)' },
     },
 
     {

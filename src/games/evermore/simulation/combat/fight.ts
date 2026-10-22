@@ -1,5 +1,6 @@
 // Ownership: a melee fight played tick by tick, many times, into distributions. Pure: every
-// number comes in as `Fighter` (host.ts reads them from the ROM and the route's party).
+// number comes in as `Fighter` (inputs.ts reads them from the ROM and the party). The game's rules
+// behind each step: docs/entities/combat.md.
 //
 // What one tick does, from the game's own code (knowledge rom/8fcc40, rom/8fba06, rom/8fd69b):
 // - Charge: +speed a tick up to $400 while not attacking (the attack's `mode` has bit $10,

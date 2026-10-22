@@ -8,6 +8,9 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 - Reading meaning out of a run: loot, changes, cases, scenarios, parts, clusters
   (`understand`, `trigger`, `room`, `segments`), the reports and the Everscript round trip
   (`report`, `everscript`).
+- Playing a step against one WRAM: a trigger's case that holds is applied (`play`).
+- Fights: time, hits and odds by many tick-by-tick runs (`combat/`, its own README); the game's
+  rules in `docs/entities/combat.md`. Skill: `simulation`.
 
 ## Dependencies
 - Library: no VS Code API, no filesystem, no rendering.
@@ -16,6 +19,8 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
   Only that file imports outside this folder. Values and conditions are computed by `operand.ts`.
   Which opcodes touch text, sound or the screen is in `reach.ts` / `por.ts` as opcode sets, never
   read from the instruction text. `.depcruise.js` rule `simulation-is-a-library`.
+- `combat/` may also read `../maps` (character records, the animation VM) and nothing else
+  outside; rule `simulation-combat-is-a-library`. The engine files never import `combat/`.
 - Consumers `require('../simulation')`, never `./dist`. `soe://` serves it
   (`src/games/evermore/resources/simulation-files.ts`).
 
@@ -40,9 +45,13 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 - Exact runs (trace/snapshot, oracles) never use `abstractVisual`; analysis runs say when they
   did, and every unknown timing order that matters is a recorded condition.
 - Budgets (steps, ticks, paths) end runs as `capped`/`horizon`, never silently.
+- Combat: every rule is read from the game's code and written in `docs/entities/combat.md`; a
+  number nobody traced does not go in. Change a rule only with `tools/routes/fight-in-game.mts`
+  still matching. Report what runs show (fastest, median), not floors no run reaches.
 
 ## Tests
-- Unit: `tests/simulation/sim-units.test.js` (no ROM).
+- Unit: `tests/simulation/sim-units.test.js` (no ROM); `tests/simulation/combat.test.js` (play
+  and the combat model, no ROM). Combat's ROM inputs: `tests/memory/routes-tab.test.js`.
 - ROM (skip without it; ROM library): `loot.test.js` (910/910 pickups agree with the
   decoded loot), `room.test.js` (Fire Eyes' Village; layout over every room).
 - ROM + everscript checkout with `.venv` (`EVERSCRIPT_REPO`): `everscript.test.js` compiles

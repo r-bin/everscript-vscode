@@ -12,14 +12,14 @@
 
 Secret of Evermore adopts the *Secret of Mana* real-time stamina bar combat model, with specific adaptations:
 - **Stamina Gauge (`+0x2E`)**: Each entity tracks its weapon stamina in field `+0x2E`. A full 100% meter corresponds to `0x0400` (1024 decimal).
-- **Per-Tick Recharge (`$8F:CC5D`)**: During the main entity tick loop, entities not currently attacking or stunned increment their stamina meter by their assigned recharge speed until reaching `0x0400`.
+- **Per-Tick Recharge (`$8F:CC5D`)**: During the main entity tick loop, entities whose `mode` (`+$16`) has neither bit `$10` nor `$08` add the character record's `+$2E` (charge speed; not entity `+$2C`) until reaching `0x0400`.
 - **Attack Level Selection (`$90:82D8`)**:
   - `Stamina < 0x0400` (< 100%): Level 0 basic weak jab/thrust.
   - `0x0400 <= Stamina < 0x0800` (100%): Standard weapon attack (Level 1).
   - `0x0800 <= Stamina < 0x0C00` (200%): Charged attack (Level 2).
   - `Stamina >= 0x0C00` (300%): Full weapon charge special attack (Level 3).
 - **Attack Power Scaling (`$8F:C02B`)**: Attacking below 50% stamina (`< 0x0200`) divides attack power by 4 ($\div 4$), producing negligible chip damage. Full 100% stamina yields $1.0\times$ baseline damage. Higher charge tiers apply level multipliers.
-- **Attack Swing Discharge (`$90:8461` / `$90:8498`)**: When an attack initiates, animation VM opcode `0x4E` or `0x52` forces `STZ $002E,X` to immediately empty the stamina meter to 0.
+- **Attack Swing Discharge (`$90:8495`)**: animation command `0x4E`, the **last** command of an attack script, empties the meter (`+$2E` = 0). While the attack plays its `mode` has bit `$10`, which stops recharging; an attack cut short by a hit never reaches `0x4E` and keeps its charge (corrected; see [docs/entities/combat.md](../../entities/combat.md) §2).
 - **Name Profanity Check (`$80:B173`)**: The naming screen checks Boy and Dog names against forbidden substrings ("FUCK" / "fuck" case-insensitive) and sets flag bit 5 (`0x20`) in `$7E:22E9`.
 
 ---
@@ -28,17 +28,28 @@ Secret of Evermore adopts the *Secret of Mana* real-time stamina bar combat mode
 
 ```assembly
 ; ==============================================================================
-; $8F:CC5D: Recharge Entity Stamina Gauge
+; $8F:CC44: Recharge Entity Stamina Gauge (listing checked against the ROM; an earlier
+; version here showed `ADC $002C,Y`, which is not what the ROM holds)
 ; ==============================================================================
-$8F:CC5D  B9 2E 00     LDA $002E,Y      ; Current stamina meter
-$8F:CC60  C9 00 04     CMP #$0400       ; Is stamina already at 100%?
-$8F:CC63  B0 09        BCS $CC6E        ; If >= 100%, skip recharge
-$8F:CC65  18           CLC
-$8F:CC66  79 2C 00     ADC $002C,Y      ; Add charge_speed points
-$8F:CC69  C9 00 04     CMP #$0400       ; Cap at 0x0400 (100%)
-$8F:CC6C  90 03        BCC $CC6F
-$8F:CC6E  A9 00 04     LDA #$0400
-$8F:CC6F  99 2E 00     STA $002E,Y      ; Store updated stamina
+$8F:CC44  B9 2A 00     LDA $002A,Y      ; HP
+$8F:CC47  F0 2B        BEQ $CC74        ; dead: store A (0)
+$8F:CC49  BE 60 00     LDX $0060,Y      ; character record
+$8F:CC4C  B9 16 00     LDA $0016,Y      ; mode
+$8F:CC4F  89 18 00     BIT #$0018       ; attacking ($10) or $08: no recharge
+$8F:CC52  D0 23        BNE $CC77
+$8F:CC54  B9 2E 00     LDA $002E,Y      ; current stamina
+$8F:CC57  C9 00 04     CMP #$0400
+$8F:CC5A  10 1B        BPL $CC77        ; already full
+$8F:CC5C  18           CLC
+$8F:CC5D  7F 2E 00 8E  ADC $8E002E,X    ; + the record's charge speed
+$8F:CC61  C9 00 04     CMP #$0400
+$8F:CC64  30 0E        BMI $CC74
+$8F:CC66  CC 42 0F     CPY $0F42        ; the controlled character reaching full:
+$8F:CC69  D0 06        BNE $CC71
+$8F:CC6B  A9 0F 00     LDA #$000F       ;   $0B47 = 15
+$8F:CC6E  8D 47 0B     STA $0B47
+$8F:CC71  A9 00 04     LDA #$0400
+$8F:CC74  99 2E 00     STA $002E,Y      ; store updated stamina
 
 ; ==============================================================================
 ; $90:82D8: Select Attack Level by Current Stamina

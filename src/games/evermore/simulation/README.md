@@ -72,6 +72,8 @@ are followed for 5 seconds of game time (`ROOM_HORIZON`). Both are reported.
 | `room.ts` | Scenarios (endings + branches that leave or play a scene), flag tree, clusters. |
 | `everscript.ts` | Neutral tree from the script's own flow; Everscript out. |
 | `report.ts` | Markdown report, JSON summary, room Everscript. |
+| `play.ts` | One step against one WRAM: the case of a trigger's analysis that holds is applied (loot into its byte, flags, opened objects, map change); the Routes tab plays routes with it. |
+| `combat/` | Fights simulated tick by tick many times: time, hits, odds ([README](combat/README.md); the game's rules: [docs/entities/combat.md](../../../../docs/entities/combat.md)). |
 
 `sym.ts` is ~330 lines: the value algebra, its memoisation and size bound interlock (every
 constructor uses them), so splitting it would only scatter one set of rules. `state.ts`

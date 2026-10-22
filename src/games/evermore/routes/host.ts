@@ -18,18 +18,15 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { parseRoute, routeViews } from './model/route';
 import type { RouteView } from './model/route';
-import { triggerOf } from './model/simulate';
-import type { Sym, TriggerAnalysis } from './model/simulate';
 import { buildRoomScriptModel } from '../script-model';
 import type { RoomScriptModel } from '../script-model';
-import { createSimulator, PINS_BETWEEN_PICKUPS } from '../simulation';
-import type { Simulator } from '../simulation';
+import { createSimulator, PINS_BETWEEN_PICKUPS, playableTrigger, triggerOf } from '../simulation';
+import type { Simulator, PlayTrigger } from '../simulation';
 import * as maps from '../maps';
 import { getMapName, getMapArea } from '../localizations';
 import { sourceDir } from '../../../platform/source-dir';
 import anyPercent from './data/any-percent.route.json';
-import { fightFor } from './fight-inputs';
-import { simulateFight } from './model/fight';
+import { fightFor, simulateFight } from '../simulation/combat';
 
 type Rom = Uint8Array;
 interface Deps {
@@ -55,7 +52,7 @@ const COMMANDS = new Set(['routesInit', 'routesPicture', 'routesFight', 'routesO
 const handlesRoutesMessage = (command: unknown): boolean => COMMANDS.has(String(command));
 const hex = (n: number): string => '0x' + n.toString(16).padStart(2, '0').toUpperCase();
 
-let _cache: { rom: Rom | null; sim: Simulator | null; models: Map<number, RoomScriptModel | null>; triggers: Map<string, TriggerAnalysis | null>; pictures: Map<string, object> } =
+let _cache: { rom: Rom | null; sim: Simulator | null; models: Map<number, RoomScriptModel | null>; triggers: Map<string, PlayTrigger | null>; pictures: Map<string, object> } =
     { rom: null, sim: null, models: new Map(), triggers: new Map(), pictures: new Map() };
 
 function cacheFor(rom: Rom) {
@@ -70,23 +67,16 @@ function model(rom: Rom, room: number): RoomScriptModel | null {
 }
 
 /** The simulation's cases of one trigger, cut to what playing a step reads. */
-function trigger(rom: Rom, room: number, at: string): TriggerAnalysis | null {
+function trigger(rom: Rom, room: number, at: string): PlayTrigger | null {
     const c = cacheFor(rom), key = room + ':' + at;
     if (c.triggers.has(key)) return c.triggers.get(key)!;
     const t = triggerOf(at), m = model(rom, room);
     const list = !t || !m ? [] : t.type === 'b-button' ? m.bTrigger : m.stepOn;
     const script = t ? list[t.index] : undefined;
-    let out: TriggerAnalysis | null = null;
+    let out: PlayTrigger | null = null;
     if (script && script.scriptAddressSnes) {
         c.sim = c.sim || createSimulator(rom);
-        const a = c.sim.analyze(script.scriptAddressSnes, PINS_BETWEEN_PICKUPS);
-        out = {
-            cases: a.cases.map((x) => ({ label: x.label, when: x.when, mapId: x.mapId, loot: x.loot ? {
-                itemName: x.loot.itemName, object: x.loot.object, looted: x.loot.looted, amount: x.loot.amount as Sym,
-                slot: x.loot.slot, flagsSet: x.loot.flagsSet,
-            } : null })),
-            always: a.always, otherwise: a.otherwise.map((o) => ({ when: o.when, note: o.note })),
-        } as TriggerAnalysis;
+        out = playableTrigger(c.sim.analyze(script.scriptAddressSnes, PINS_BETWEEN_PICKUPS));
     }
     c.triggers.set(key, out);
     return out;

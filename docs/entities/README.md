@@ -21,6 +21,7 @@ ruled out, so the next attempt starts further along.
 | [sprite_priority.md](sprite_priority.md) | Which characters the scenery is drawn over | Solved |
 | [hitboxes.md](hitboxes.md) | How big a character's body is, and what blocks a move | Solved |
 | [attack_boxes.md](attack_boxes.md) | What a swing sweeps, and what it can land on | Solved |
+| [combat.md](combat.md) | A fight in time: ticks, charge, when enemies attack, one roll per swing, damage and knockback rolls; checked in the game | Traced, one fight checked |
 | [palettes.md](palettes.md) | How many enemies fit in a room before their colours glitch | Solved |
 | [../item-icons.md](../item-icons.md) | Where the menu's item icons live | Solved |
 

@@ -48,3 +48,5 @@ export type { EmittedScript, Neutral } from './everscript';
 export type { Sym } from './sym';
 export type { SimResult, SimPath, SimOptions } from './explore';
 export type { SimEvent, Step, SimEntity } from './state';
+export { freshState, playStep, playableTrigger, holds, triggerOf } from './play';
+export type { PlayTrigger, RouteState, StepResult, Verdict } from './play';

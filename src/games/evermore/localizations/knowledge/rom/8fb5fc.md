@@ -19,3 +19,5 @@ invulnerable (`+$16 & $20`), the one this attacker already struck (`+$36`) and c
 
 Trap: starting the game straight in a room (the intro hook) skips the opening scene, and the Boy
 keeps `+$10` bit 5 — no enemy can hit him until it is cleared.
+
+The whole fight, its random rolls and the in-game check: `docs/entities/combat.md`.

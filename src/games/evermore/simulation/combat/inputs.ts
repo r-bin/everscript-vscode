@@ -1,15 +1,15 @@
-// Ownership: the numbers a fight simulation (model/fight.ts) needs, read from the ROM: an enemy's
+// Ownership: the numbers a fight simulation (fight.ts) needs, read from the ROM: an enemy's
 // character record, the Boy's weapon entry and the Dog's form entry (their attack and knockback
 // animations, timed by the animation VM), and the hit-chance table. The party's stats come from
 // the route (they live in WRAM: records $0A26 / $0A70).
 
-import { busU16 } from '../../../platform/snes/hirom';
-import { runAnimation } from '../maps/animation-vm';
-import { facingScript } from '../maps/animation-table';
-import { CHARACTER_TABLE, CHARACTER_STRIDE, ANIMATION_FIELDS, FACING_SOUTH } from '../maps/character-record';
-import { damageTable } from './model/fight';
-import type { Duration, Fighter, FightSetup, HitChance } from './model/fight';
-import type { Party } from './model/route';
+import { busU16 } from '../../../../platform/snes/hirom';
+import { runAnimation } from '../../maps/animation-vm';
+import { facingScript } from '../../maps/animation-table';
+import { CHARACTER_TABLE, CHARACTER_STRIDE, ANIMATION_FIELDS, FACING_SOUTH } from '../../maps/character-record';
+import { damageTable } from './fight';
+import type { Duration, Fighter, FightSetup, HitChance } from './fight';
+import type { Party } from './party';
 
 /** The party member as the route states it (WRAM at the route's start). */
 export interface PartyMember { name: string; hp: number; atk: number; def: number; evade: number; hitRate: number; chargeSpeed: number }

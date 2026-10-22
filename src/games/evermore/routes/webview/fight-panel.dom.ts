@@ -1,5 +1,5 @@
 // Ownership: the Routes tab's simulation sub-panel — one fight or death step simulated many times
-// (`routesFight`, host.ts → model/fight.ts): the time it takes as a histogram with the fastest fight and
+// (`routesFight`, host.ts → simulation/combat): the time it takes as a histogram with the fastest fight and
 // the median marked, hits and swings, the inputs read from the ROM and the route, and what the
 // model assumes. Pure HTML builders; routes-tab.dom.ts owns the state and the events.
 

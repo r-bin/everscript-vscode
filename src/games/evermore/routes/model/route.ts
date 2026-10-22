@@ -1,19 +1,18 @@
 // Ownership: a route as the Routes tab reads it — the file format (`*.route.json`), its
-// validation, and the route played step by step (model/simulate.ts) into the view the page draws.
+// validation, and the route played step by step (simulation/play.ts) into the view the page draws.
 // Pure: room names and the triggers' cases are handed in.
 //
 // A route is an ordered list of actions (docs/plans/simulation/routes.md). A variant shares the
 // route's first `after` steps and adds its own; without steps it is the route itself, named.
 
 export type StepKind = 'start' | 'loot' | 'fight' | 'death' | 'exit' | 'wait' | 'enter';
-import { freshState, playStep, triggerOf } from './simulate';
-import type { RouteState, TriggerAnalysis, Verdict } from './simulate';
+import { freshState, playStep, triggerOf } from '../../simulation';
+import type { RouteState, PlayTrigger, Verdict } from '../../simulation';
+import { PARTY_STAT_KEYS } from '../../simulation/combat';
+import type { Party, PartyStats } from '../../simulation/combat';
 
-/** The party at the route's start, as WRAM holds it (records $0A26 / $0A70): what a fight simulation starts from. */
-export interface PartyStats { hp: number; atk: number; def: number; evade: number; hitRate: number; chargeSpeed: number }
-export interface Party { source: string; weapon: number; dogForm: number; boy: PartyStats; dog: PartyStats }
-
-const STAT_KEYS: (keyof PartyStats)[] = ['hp', 'atk', 'def', 'evade', 'hitRate', 'chargeSpeed'];
+/** The party at the route's start, as WRAM holds it: what a fight simulation starts from. */
+const STAT_KEYS = PARTY_STAT_KEYS;
 
 function parseParty(raw: unknown, file: string, problems: string[]): Party | null {
     if (raw === undefined) return null;
@@ -149,7 +148,7 @@ export interface RouteView {
 
 export interface Names { name(room: number): string; area(room: number): string }
 /** The simulation's cases of one trigger of a room; null when the room has no such trigger, undefined without a ROM. */
-export type Triggers = (room: number, at: string) => TriggerAnalysis | null | undefined;
+export type Triggers = (room: number, at: string) => PlayTrigger | null | undefined;
 
 /** The route and each variant, played from a fresh game: every step with its effects and the state after it. */
 export function routeViews(route: Route, names: Names, triggers: Triggers): RouteView[] {

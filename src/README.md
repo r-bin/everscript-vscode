@@ -15,7 +15,7 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `games/evermore/maps/` | ROM map models: pipeline, blob evidence, render-script, alchemy |
 | `games/evermore/script-model/` | Rooms' scripts as the editor shows them, on script-vm: listings, loot, doors, spawns, arrivals; the kept names (`names.json`, D4) |
 | `games/evermore/script-vm/` | The script decoder written from the game's interpreter: opcodes, expressions, packed pointers, the tables that name scripts (TypeScript, pure) |
-| `games/evermore/simulation/` | Runs scripts symbolically: loot cases, room scenarios + flag tree, NPC tracking, clusters, byte-identical Everscript (TypeScript, pure) |
+| `games/evermore/simulation/` | Runs scripts symbolically: loot cases, room scenarios + flag tree, NPC tracking, clusters, byte-identical Everscript; a step played against one WRAM; fights simulated (`combat/`) (TypeScript, pure) |
 | `games/evermore/resources/` | Read-only `soe://` file system: ROM, decoded assets and live WRAM as files |
 | `games/evermore/rom/` | ROM tab: every bank's content, gaps and CDL coverage, measured from the ROM |
 | `games/evermore/sprites/` | Sprites tab and the character pictures: frames, animations, projectiles, palettes (from `maps/` sprites + character record) |
@@ -53,7 +53,7 @@ Below, `language/`, `maps/`, … without a prefix are under `games/evermore/`.
 - `core/emulator/` → `platform/` only; no game (`emulator-knows-no-game`); a game hands in its part
 - `debugger/` → no memory, no emulator internals (the emulator bridge is injected by `games/evermore/extension.js`)
 - `core/mcp/` → `vscode` only; reads `soe://` through `vscode.workspace.fs`, never another domain
-- `simulation/` → `script-vm/` and `script-model/` only, through its `decoder.ts`
+- `simulation/` → `script-vm/` and `script-model/` only, through its `decoder.ts`; `simulation/combat/` → also `maps/`
 - `script-model/` → `script-vm/`, `localizations/`; `script-vm/` → `variant-resolver`, `platform/snes/`
 - `resources/` → may use `maps/`, `script-vm/`, `script-model/`, `simulation/`, `localizations/`; never `emulator/` (ROM and memory reads are injected by `games/evermore/extension.js`)
 - `platform/` → no `core/`, no game; `core/` → `platform/` only; a game never imports another game except through `games/<game>/imports/<other>/`

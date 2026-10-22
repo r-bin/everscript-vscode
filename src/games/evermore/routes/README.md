@@ -14,7 +14,7 @@ gourd again does nothing, the Dog gets nothing, an exit follows the story flags.
 | Right | The current step's room drawn as the state leaves it (opened gourds open), its trigger boxes and the enemies the enter script places; the step's target lit, the hovered step's outlined; Fit / 1× / 2×; the step's result; ◀ Prev / Next ▶ (also ← →) |
 
 **simulate** on a fight or death step (one with an `enemy`) opens a panel in place of the map:
-the fight played 10,000 times tick by tick (`model/fight.ts`) — the time it takes as a histogram
+the fight played 10,000 times tick by tick (`simulation/combat/`) — the time it takes as a histogram
 with the best case and the median, hits and swings, the inputs and what is assumed. Fight: the
 party members the step names (`Both` = Boy and Dog) attack until the enemy dies. Death: the one it
 names stands in reach until the enemy kills it. The enemy is the step's spawn (its character
@@ -55,10 +55,7 @@ problem in a file is listed in the route notes, never guessed around.
 | `index.ts` | Public API: `handlesRoutesMessage` / `handleRoutesMessage`, `buildRoutesTabHtml` |
 | `host.ts` | `routesInit` (read, play, answer with the room overlays), `routesPicture`, `routesOpen`; trigger analyses, overlays and pictures cached per ROM |
 | `render-routes-tab.ts` | The pane scaffold |
-| `model/route.ts` | The file format, `parseRoute`, `routeViews` (every step with its effects and the state after it) |
-| `model/simulate.ts` | The state, conditions evaluated against it, `playStep` (pure) |
-| `model/fight.ts` | A melee fight tick by tick: charge, engage, swing, to-hit, damage, knockback; `simulateFight` → distributions (pure) |
-| `fight-inputs.ts` | The fighters from the ROM: an enemy's record, the Boy's weapon entry, the Dog's form entry, timed by the animation VM; the hit-chance table |
+| `model/route.ts` | The file format, `parseRoute`, `routeViews` (every step played with `simulation/play.ts`: its effects and the state after it) |
 | `webview/fight-panel.dom.ts` | The simulation panel (histogram, counts, inputs, assumptions) |
 | `data/any-percent.route.json` | The Any% opening draft (from `docs/plans/simulation/any-percent-opening.md`) |
 | `webview/routes-tab.dom.ts` | The page (bundle `RoutesTab`, set up inside the radar's script) |
