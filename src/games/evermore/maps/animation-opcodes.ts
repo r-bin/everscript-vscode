@@ -23,7 +23,7 @@ export type OpKind =
     | 'plain' | 'hold' | 'hold_operand' | 'hold_random' | 'sprite' | 'sprite2' | 'reset'
     | 'loop' | 'restart_here' | 'jump' | 'dec_jnz' | 'jump_pos' | 'jump_if_linked'
     | 'set8' | 'set16' | 'set24' | 'add8' | 'add16' | 'clear'
-    | 'strike' | 'step' | 'sprite_long' | 'sprite_aim' | 'projectile'
+    | 'strike' | 'step' | 'step0' | 'sprite_long' | 'sprite_aim' | 'projectile'
     | 'hop' | 'hop_maybe' | 'wait_landed' | 'hover_hold' | 'mode' | 'segments' | 'segment' | 'segment_step' | 'hurtbox'
     | 'hud' | 'palette' | 'effect_done';
 
@@ -64,7 +64,7 @@ const OPCODES: Record<number, Opcode> = {
     0x3e: op(9, 'op_3e'),              // four words, then $90D408
     0x3f: op(3, 'op_3f'),
     0x40: op(3, 'op_40'),
-    0x41: op(1, 'step0'),
+    0x41: op(1, 'step', 'step0'),
     0x42: op(2, 'step', 'step'),
     0x43: op(1, 'wait_landed', 'wait_landed'),
     0x44: op(1, 'sleep_hover', 'hover_hold'),   // +1 tick while height >= $0E96 (a random hover height)
@@ -191,15 +191,37 @@ export interface ScriptLine {
     known: boolean;
 }
 
-function operands(rom: Uint8Array, p: number, o: Opcode): string {
+export interface IndexResolvers {
+    spriteIndex?: (rom: Uint8Array, addr: number) => number;
+    paletteIndex?: (rom: Uint8Array, addr: number) => number;
+}
+
+let defaultResolvers: IndexResolvers | null = null;
+
+export function setDefaultIndexResolvers(resolvers: IndexResolvers | null): void {
+    defaultResolvers = resolvers;
+}
+
+function operands(rom: Uint8Array, p: number, o: Opcode, options?: IndexResolvers): string {
     const b = (i: number) => at(rom, p + i);
     const w = (i: number) => word(rom, p + i);
+    const getSpriteIdx = options?.spriteIndex ?? defaultResolvers?.spriteIndex;
+    const getPaletteIdx = options?.paletteIndex ?? defaultResolvers?.paletteIndex;
+
     switch (o.kind) {
         case 'hold': return String(at(rom, p) & COMMAND_MASK);
         case 'hold_operand': return String(b(1));
         case 'hold_random': return `${b(1)}, ${b(2)}`;
-        case 'sprite': return '$' + hex(spriteOperand(rom, p), 6);
-        case 'sprite2': return '$' + hex(sprite2Operand(rom, p), 6);
+        case 'sprite': {
+            const addr = spriteOperand(rom, p);
+            const idx = getSpriteIdx ? getSpriteIdx(rom, addr) : -1;
+            return idx >= 0 ? `#${idx}` : '$' + hex(addr, 6);
+        }
+        case 'sprite2': {
+            const addr = sprite2Operand(rom, p);
+            const idx = getSpriteIdx ? getSpriteIdx(rom, addr) : -1;
+            return idx >= 0 ? `#${idx}` : '$' + hex(addr, 6);
+        }
         case 'set8': case 'add8': return `var[$${hex(b(1), 2)}], ${b(2)}`;
         case 'set16': case 'add16': return `var[$${hex(b(1), 2)}], ${signed16(w(2))}`;
         case 'set24': return `var[$${hex(b(1), 2)}], $${hex(b(2) | (w(3) << 8), 6)}`;
@@ -207,6 +229,7 @@ function operands(rom: Uint8Array, p: number, o: Opcode): string {
         case 'dec_jnz': case 'jump_pos': return `var[$${hex(b(1), 2)}], $${hex(jumpTarget(rom, p, o.kind), 6)}`;
         case 'jump': case 'jump_if_linked': return '$' + hex(jumpTarget(rom, p, o.kind), 6);
         case 'strike': return `${signed8(b(1))}, ${signed8(b(2))}, ${b(3)}, ${b(4)}`;
+        case 'step0': return '0';
         case 'step': return String(signed8(b(1)));
         case 'hud': {
             const n = (o.length - 1) / 3;
@@ -217,17 +240,29 @@ function operands(rom: Uint8Array, p: number, o: Opcode): string {
             const sg = segmentsAt(rom, p);
             return sg.total + ': ' + sg.groups.map((g) => `${g.count}×$${hex(g.sprite, 6)}`).join(', ');
         }
-        case 'sprite_long': return '$' + hex(sprite24At(rom, p + 1), 6);
+        case 'sprite_long': {
+            const addr = sprite24At(rom, p + 1);
+            const idx = getSpriteIdx ? getSpriteIdx(rom, addr) : -1;
+            return idx >= 0 ? `#${idx}` : '$' + hex(addr, 6);
+        }
         case 'sprite_aim': {
             const all: string[] = [];
-            for (let i = 0; i < 8; i++) all.push('$' + hex(sprite24At(rom, p + 1 + i * 3), 6));
+            for (let i = 0; i < 8; i++) {
+                const addr = sprite24At(rom, p + 1 + i * 3);
+                const idx = getSpriteIdx ? getSpriteIdx(rom, addr) : -1;
+                all.push(idx >= 0 ? `#${idx}` : '$' + hex(addr, 6));
+            }
             return all.join(', ');
         }
         default: break;
     }
     if (o.kind === 'hop' || o.kind === 'hop_maybe') return String(signed16(w(1)));
     if (o.mnemonic === 'mode') return '$' + hex(w(1), 4);
-    if (o.kind === 'palette') return '$' + hex(w(1), 4);
+    if (o.kind === 'palette') {
+        const addr = w(1);
+        const idx = getPaletteIdx ? getPaletteIdx(rom, addr) : -1;
+        return idx >= 0 ? `#${idx}` : '$' + hex(addr, 4);
+    }
     if (o.mnemonic === 'sound' || o.mnemonic === 'sound_maybe') return '$' + hex(b(1), 2);
     if (o.mnemonic === 'hurtbox') return `${signed16(w(1))}, ${signed16(w(3))}`;
     if (o.kind === 'projectile') return `$${hex(w(1), 4)}, ${signed8(b(3))}, ${signed8(b(4))}, ${signed8(b(5))}`;
@@ -237,7 +272,7 @@ function operands(rom: Uint8Array, p: number, o: Opcode): string {
 }
 
 /** Disassemble the single command at `p`. */
-export function disassembleAt(rom: Uint8Array, p: number): ScriptLine {
+export function disassembleAt(rom: Uint8Array, p: number, options?: IndexResolvers): ScriptLine {
     const raw = at(rom, p);
     const o = opcode(raw);
     const endFrame = (raw & END_FRAME) !== 0;
@@ -247,12 +282,36 @@ export function disassembleAt(rom: Uint8Array, p: number): ScriptLine {
     const bytes: number[] = [];
     const len = lengthAt(rom, p);
     for (let i = 0; i < len; i++) bytes.push(at(rom, p + i));
-    const args = operands(rom, p, o);
+    const args = operands(rom, p, o, options);
     const text = `${o.mnemonic}(${args})${endFrame ? '!' : ''}`;
     return { address: p, bytes, text, endFrame, known: true };
 }
 
 const MAX_LINES = 512;
+
+/**
+ * Fast traversal of every command reachable from `script`, calling `callback(address, rawCommandByte)`.
+ * Pure and non-allocating.
+ */
+export function walkScriptCommands(rom: Uint8Array, script: number, onCommand: (address: number, raw: number) => void): void {
+    const seen = new Set<number>();
+    const work = [script];
+    while (work.length && seen.size < MAX_LINES) {
+        let p = work.pop() as number;
+        while (!seen.has(p) && seen.size < MAX_LINES) {
+            seen.add(p);
+            const raw = at(rom, p);
+            onCommand(p, raw);
+            const o = opcode(raw);
+            if (!o || o.kind === 'loop') break;
+            if (o.kind === 'jump') { p = jumpTarget(rom, p, o.kind); continue; }
+            if (o.kind === 'dec_jnz' || o.kind === 'jump_pos' || o.kind === 'jump_if_linked') {
+                work.push(jumpTarget(rom, p, o.kind));
+            }
+            p += lengthAt(rom, p);
+        }
+    }
+}
 
 /**
  * Every command reachable from `script`, in address order.
@@ -261,13 +320,13 @@ const MAX_LINES = 512;
  * an unconditional `jump`, or a command of unknown width. Nothing past those
  * is listed, because nothing past them is this script.
  */
-export function disassembleScript(rom: Uint8Array, script: number): ScriptLine[] {
+export function disassembleScript(rom: Uint8Array, script: number, options?: IndexResolvers): ScriptLine[] {
     const lines = new Map<number, ScriptLine>();
     const work = [script];
     while (work.length && lines.size < MAX_LINES) {
         let p = work.pop() as number;
         while (!lines.has(p) && lines.size < MAX_LINES) {
-            const line = disassembleAt(rom, p);
+            const line = disassembleAt(rom, p, options);
             lines.set(p, line);
             const o = opcode(line.bytes[0]);
             if (!o || o.kind === 'loop') break;

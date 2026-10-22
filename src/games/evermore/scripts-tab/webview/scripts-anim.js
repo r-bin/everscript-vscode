@@ -7,14 +7,17 @@
 
 var SCR_SCALE = 3;
 
-function scrAnimKey(record) { return record + ':' + _scr.facing; }
+function scrAnimKey(record) {
+  return record + ':' + _scr.facing + (_scr.paletteOverride ? ':' + _scr.paletteOverride : '');
+}
 
-function scrAskAnim(record) {
+function scrAskAnim(record, paletteAddr) {
   if (record == null) return;
+  var pal = paletteAddr || _scr.paletteOverride || 0;
   var k = scrAnimKey(record);
   if (_scr.anims[k]) return;
   _scr.anims[k] = 'pending';
-  scrPost({ command: 'scriptsAnim', key: k, record: record, facing: _scr.facing });
+  scrPost({ command: 'scriptsAnim', key: k, record: record, facing: _scr.facing, paletteAddr: pal });
 }
 
 /** The record the right side plays: the picked one, or the formula's first. */
@@ -26,12 +29,75 @@ function scrPlayingRecord() {
   return f.records.length ? f.records[0].record : null;
 }
 
+function scrCommandHtml(l) {
+  var html = scrEsc(l.text);
+  if (l.spriteInfo) {
+    var spr = l.spriteInfo.addr;
+    var sprIdx = '#' + l.spriteInfo.index;
+    var hex = l.spriteInfo.addrHex;
+    var linkText = html.indexOf(sprIdx) >= 0 ? sprIdx : hex;
+    var linkTitle = 'sprite #' + l.spriteInfo.index + ' (' + l.spriteInfo.addrHex + ')\nClick: open VFS | Hover: details';
+    var linkHtml = '<a href="#" class="scr-script-link scr-sprite-link" data-sprite="' + spr + '" data-line-addr="' + l.address + '" title="' + scrEsc(linkTitle) + '">' + linkText + '</a>';
+    if (html.indexOf(sprIdx) >= 0) html = html.replace(sprIdx, linkHtml);
+    else if (html.indexOf(hex) >= 0) html = html.replace(hex, linkHtml);
+  }
+  if (l.palette) {
+    var pal = l.palette.addr;
+    var palIdx = '#' + (l.palette.index != null ? l.palette.index : '?');
+    var palHex = '$' + pal.toString(16).padStart(4, '0');
+    var palLinkText = html.indexOf(palIdx) >= 0 ? palIdx : palHex;
+    var palTitle = 'palette #' + (l.palette.index != null ? l.palette.index : '?') + ' (' + palHex + ')\nClick: open VFS | Hover: details';
+    var palLink = '<a href="#" class="scr-script-link scr-pal-link" data-palette="' + pal + '" data-line-addr="' + l.address + '" title="' + scrEsc(palTitle) + '">' + palLinkText + '</a>';
+    if (html.indexOf(palIdx) >= 0) html = html.replace(palIdx, palLink);
+    else if (html.indexOf(palHex) >= 0) html = html.replace(palHex, palLink);
+  }
+  return html;
+}
+
+function scrDetailHtml(l) {
+  if (l.spriteInfo && l.spriteInfo.png) {
+    return '<div class="scr-script-detail"><img src="' + l.spriteInfo.png + '" class="scr-px" style="max-width:54px; max-height:54px;" /></div>';
+  }
+  if (l.palette && l.palette.colors) {
+    var chips = l.palette.colors.map(function(c, i) {
+      return '<span style="background:' + (i === 0 ? 'transparent' : c) + '"></span>';
+    }).join('');
+    return '<div class="scr-script-detail"><div class="scr-script-swatch">' + chips + '</div></div>';
+  }
+  return '';
+}
+
 function scrListingHtml(a) {
   return '<table class="scr-rows scr-anim-rows"><tbody>' + a.script.map(function (l) {
+    var detail = scrDetailHtml(l);
     return '<tr data-scr-line="' + l.address + '" class="' + (l.known ? '' : 'scr-unk') + (l.endFrame ? ' scr-endf' : '') + '">' +
       '<td class="scr-a">$' + l.addrHex.toUpperCase() + '</td><td class="scr-b">' + scrEsc(l.bytesHex) + '</td>' +
-      '<td class="scr-s">' + scrEsc(l.text) + (l.endFrame ? ' <span class="scr-dim">⏎</span>' : '') + '</td></tr>';
+      '<td class="scr-s"><div class="scr-cmd-wrap">' + scrCommandHtml(l) + (l.endFrame ? ' <span class="scr-dim">⏎</span>' : '') + '</div>' + detail + '</td></tr>';
   }).join('') + '</tbody></table>';
+}
+
+function scrCandidatePalettesHtml(a) {
+  var cands = a.candidatePalettes || [];
+  if (!cands.length) return '';
+  var rows = cands.map(function (p) {
+    var activeClass = p.isCurrent ? ' scr-pal-choice-active' : '';
+    var swatches = p.colors.map(function (c, i) {
+      return '<i style="background:' + (i === 0 ? 'transparent' : c) + '"></i>';
+    }).join('');
+    return '<div class="scr-pal-choice-row' + activeClass + '" data-scr-pal="' + p.addr + '" title="Click to apply this palette">' +
+      '<div class="scr-pal-choice-swatch">' + swatches + '</div>' +
+      '<div class="scr-pal-choice-info">' +
+        '<span class="scr-pal-choice-idx">#' + p.index + '</span> ' +
+        '<span class="scr-pal-choice-addr">(' + p.addrHex + ')</span> ' +
+        '<span class="scr-pal-choice-label">(' + scrEsc(p.label) + ')</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  return '<div class="scr-candidate-palettes">' +
+    '<div class="scr-candidate-title">Inferred Palettes</div>' +
+    '<div class="scr-candidate-list">' + rows + '</div>' +
+  '</div>';
 }
 
 function scrPlayerHtml(a, record) {
@@ -50,7 +116,7 @@ function scrPlayerHtml(a, record) {
     '<div class="scr-ctl"><button class="scr-btn" data-scr-play>' + (_scr.player.playing ? '❚❚' : '▶') + '</button>' +
     '<button class="scr-btn" data-scr-step="-1" title="Previous frame">◀︎</button><button class="scr-btn" data-scr-step="1" title="Next frame">▶︎</button>' +
     '<span class="scr-dim" id="scr-anim-pos"></span></div>' +
-    (a.paletteColors ? '<div class="scr-pal">' + a.paletteColors.map(function (c) { return '<i style="background:' + c + '"></i>'; }).join('') + '</div>' : '');
+    scrCandidatePalettesHtml(a);
 }
 
 function scrRenderAnim(mid, side) {
@@ -166,3 +232,144 @@ function scrOnAnimMessage(msg) {
   _scr.anims[msg.key] = msg.error ? { error: msg.error } : (msg.anim || { error: 'Nothing to play for this facing.' });
   if ((_scr.view === 'anim' || _scr.view === 'alchemy') && msg.key === scrAnimKey(scrPlayingRecord())) scrRenderMain();
 }
+
+// ── Rich Tooltip for Scripts Tab ─────────────────────────────────────────────
+var scrTipEl = null;
+var scrTipTimeout = null;
+
+function scrGetTipEl() {
+  if (!scrTipEl) {
+    scrTipEl = document.getElementById('scr-rich-tooltip');
+    if (!scrTipEl) {
+      scrTipEl = document.createElement('div');
+      scrTipEl.id = 'scr-rich-tooltip';
+      scrTipEl.className = 'evs-rich-tooltip';
+      scrTipEl.style.display = 'none';
+      document.body.appendChild(scrTipEl);
+      scrTipEl.addEventListener('mouseenter', function() {
+        if (scrTipTimeout) { clearTimeout(scrTipTimeout); scrTipTimeout = null; }
+      });
+      scrTipEl.addEventListener('mouseleave', function() {
+        scrHideRichTooltip();
+      });
+    }
+  }
+  return scrTipEl;
+}
+
+function scrShowRichTooltip(html, x, y) {
+  var tip = scrGetTipEl();
+  if (!tip) return;
+  if (scrTipTimeout) { clearTimeout(scrTipTimeout); scrTipTimeout = null; }
+  tip.innerHTML = html;
+  tip.style.display = 'block';
+  var pad = 12;
+  var tw = tip.offsetWidth || 270;
+  var th = tip.offsetHeight || 160;
+  var left = x + pad;
+  var top = y + pad;
+  if (left + tw > window.innerWidth - 10) left = Math.max(10, x - tw - pad);
+  if (top + th > window.innerHeight - 10) top = Math.max(10, y - th - pad);
+  tip.style.left = left + 'px';
+  tip.style.top = top + 'px';
+}
+
+function scrHideRichTooltip() {
+  if (scrTipTimeout) clearTimeout(scrTipTimeout);
+  scrTipTimeout = setTimeout(function() {
+    var tip = scrGetTipEl();
+    if (tip) tip.style.display = 'none';
+  }, 250);
+}
+
+function scrSpriteTipHtml(info) {
+  var tagsHtml = (info.tags || []).map(function(t) { return '<span class="evs-tip-badge">' + scrEsc(t) + '</span>'; }).join('');
+  var chars = (info.characters || []).map(function(c) { return scrEsc(c.name); }).join(', ') || '—';
+  var anims = (info.animations || []).slice(0, 3).map(function(a) { return scrEsc(a.label); }).join(', ') || '—';
+  var vfsUri = 'soe://rom/assets/sprites/' + info.addr.toString(16).padStart(6, '0');
+  var imgHtml = info.png ? '<div class="evs-tip-preview"><img src="' + info.png + '" class="evs-tip-img" style="image-rendering:pixelated; max-width:80px; max-height:80px;" /></div>' : '';
+
+  return '<div class="evs-tip-header">' +
+    '<span>Sprite <strong>#' + info.index + '</strong></span>' +
+    '<code>' + info.addrHex + '</code>' +
+  '</div>' +
+  imgHtml +
+  '<div class="evs-tip-meta">' +
+    '<div class="evs-tip-row"><span class="evs-tip-label">Size:</span><span class="evs-tip-val">~' + info.widthPx + '×' + info.heightPx + ' px (' + (info.chunkCount || 0) + ' chunks)</span></div>' +
+    (tagsHtml ? '<div class="evs-tip-row"><span class="evs-tip-label">Tags:</span><span class="evs-tip-val">' + tagsHtml + '</span></div>' : '') +
+    '<div class="evs-tip-row"><span class="evs-tip-label">Characters:</span><span class="evs-tip-val">' + chars + '</span></div>' +
+    '<div class="evs-tip-row"><span class="evs-tip-label">Animations:</span><span class="evs-tip-val">' + anims + '</span></div>' +
+  '</div>' +
+  '<div class="evs-tip-vfs"><a href="#" data-vfs="' + vfsUri + '">Open VFS: ' + vfsUri + '</a></div>';
+}
+
+function scrPaletteTipHtml(pal) {
+  var tagsHtml = (pal.tags || []).map(function(t) { return '<span class="evs-tip-badge">' + scrEsc(t) + '</span>'; }).join('');
+  var chars = (pal.characters || []).map(function(c) { return scrEsc(c.name + (c.role ? ' (' + c.role + ')' : '')); }).join(', ') || '—';
+  var anims = (pal.animations || []).slice(0, 3).map(function(a) { return scrEsc(a.label); }).join(', ') || '—';
+  var vfsUri = 'soe://rom/assets/palettes/' + pal.addr.toString(16).padStart(4, '0');
+  var swatches = (pal.colors || []).map(function(c, i) {
+    return '<span style="background:' + (i === 0 ? 'transparent' : c) + '" title="' + c + '"></span>';
+  }).join('');
+
+  return '<div class="evs-tip-header">' +
+    '<span>Palette <strong>#' + pal.index + '</strong></span>' +
+    '<code>' + pal.addrHex + '</code>' +
+  '</div>' +
+  '<div class="evs-tip-swatch">' + swatches + '</div>' +
+  '<div class="evs-tip-meta">' +
+    '<div class="evs-tip-row"><span class="evs-tip-label">Address:</span><span class="evs-tip-val"><code>$90' + pal.addr.toString(16).padStart(4, '0') + '</code></span></div>' +
+    (tagsHtml ? '<div class="evs-tip-row"><span class="evs-tip-label">Tags:</span><span class="evs-tip-val">' + tagsHtml + '</span></div>' : '') +
+    '<div class="evs-tip-row"><span class="evs-tip-label">Characters:</span><span class="evs-tip-val">' + chars + '</span></div>' +
+    '<div class="evs-tip-row"><span class="evs-tip-label">Animations:</span><span class="evs-tip-val">' + anims + '</span></div>' +
+  '</div>' +
+  '<div class="evs-tip-vfs"><a href="#" data-vfs="' + vfsUri + '">Open VFS: ' + vfsUri + '</a></div>';
+}
+
+document.addEventListener('mouseover', function(e) {
+  var a = e.target.closest('.scr-sprite-link, .scr-pal-link');
+  if (!a) return;
+  var rec = scrPlayingRecord();
+  var anim = rec != null ? _scr.anims[scrAnimKey(rec)] : null;
+  if (!anim || !anim.script) return;
+  var lineAddr = parseInt(a.dataset.lineAddr, 10);
+  var line = anim.script.find(function(x) { return x.address === lineAddr; });
+  if (!line) return;
+  if (a.classList.contains('scr-sprite-link') && line.spriteInfo) {
+    scrShowRichTooltip(scrSpriteTipHtml(line.spriteInfo), e.clientX, e.clientY);
+  } else if (a.classList.contains('scr-pal-link') && line.palette) {
+    scrShowRichTooltip(scrPaletteTipHtml(line.palette), e.clientX, e.clientY);
+  }
+});
+
+document.addEventListener('mouseout', function(e) {
+  var a = e.target.closest('.scr-sprite-link, .scr-pal-link');
+  if (a) scrHideRichTooltip();
+});
+
+document.addEventListener('click', function(e) {
+  var vfsLink = e.target.closest('[data-vfs]');
+  if (vfsLink) {
+    e.preventDefault();
+    scrPost({ command: 'openVfs', uri: vfsLink.dataset.vfs });
+    return;
+  }
+  var palLink = e.target.closest('[data-scr-pal]');
+  if (palLink) {
+    var addr = parseInt(palLink.dataset.scrPal, 10);
+    var rec = scrPlayingRecord();
+    if (rec != null && addr) {
+      _scr.paletteOverride = addr;
+      scrAskAnim(rec, addr);
+      var curAnim = _scr.anims[scrAnimKey(rec)];
+      if (curAnim) scrRenderMain();
+    }
+    return;
+  }
+  var sprLink = e.target.closest('.scr-sprite-link');
+  if (sprLink && sprLink.dataset.sprite) {
+    e.preventDefault();
+    var hex6 = parseInt(sprLink.dataset.sprite, 10).toString(16).padStart(6, '0');
+    scrPost({ command: 'openVfs', uri: 'soe://rom/assets/sprites/' + hex6 });
+  }
+});

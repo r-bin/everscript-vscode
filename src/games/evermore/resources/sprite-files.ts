@@ -1,74 +1,14 @@
 // Ownership: `soe://rom/assets/sprites/` — all sprites referenced in the ROM. Pure.
 
-import { spriteAddresses, readSpriteInfo } from '../maps/sprites';
-import { readAllCharacters } from '../sprites/character-model';
-import { buildAnimationCatalog } from '../sprites/animation-catalog';
 import { dir, json, text } from './nodes';
 import type { Entry, VfsNode } from './nodes';
+import { assetRelations, SpriteRelation } from '../sprites/asset-relations';
 
 type Rom = Uint8Array;
-
-interface SpriteModel {
-    address: number;
-    addrHex: string;
-    index: number;
-    widthPx: number;
-    heightPx: number;
-    chunkCount: number;
-    animations: { record: number; label: string; scriptHex: string }[];
-}
-
-const spriteModelCache = new WeakMap<Rom, Map<number, SpriteModel>>();
+export type SpriteModel = SpriteRelation;
 
 function buildSpriteModels(rom: Rom): Map<number, SpriteModel> {
-    let cached = spriteModelCache.get(rom);
-    if (cached) return cached;
-
-    const allAddrs = spriteAddresses(rom);
-    const chars = readAllCharacters(rom);
-    const catalog = buildAnimationCatalog(rom, chars);
-
-    const map = new Map<number, SpriteModel>();
-
-    for (let idx = 0; idx < allAddrs.length; idx++) {
-        const addr = allAddrs[idx];
-        const hexStr = addr.toString(16).padStart(6, '0');
-
-        let widthPx = 0, heightPx = 0, chunkCount = 0;
-        try {
-            const info = readSpriteInfo(rom, addr);
-            chunkCount = info.chunks.length;
-            let minX = 0, minY = 0, maxX = 1, maxY = 1;
-            for (const c of info.chunks) {
-                const sz = c.large ? 16 : 8;
-                if (c.x < minX) minX = c.x;
-                if (c.y < minY) minY = c.y;
-                if (c.x + sz > maxX) maxX = c.x + sz;
-                if (c.y + sz > maxY) maxY = c.y + sz;
-            }
-            widthPx = maxX - minX;
-            heightPx = maxY - minY;
-        } catch (_) {}
-
-        map.set(addr, {
-            address: addr,
-            addrHex: '$' + hexStr,
-            index: idx,
-            widthPx,
-            heightPx,
-            chunkCount,
-            animations: [],
-        });
-    }
-
-    // Connect animations that reference this sprite
-    for (const entry of catalog) {
-        // Search entry script
-        // catalog entries don't list all individual sprites, but we can associate them if known
-    }
-
-    spriteModelCache.set(rom, map);
-    return map;
+    return assetRelations(rom).sprites;
 }
 
 function spriteMarkdown(model: SpriteModel): string {
@@ -81,13 +21,39 @@ function spriteMarkdown(model: SpriteModel): string {
         '',
     ];
 
-    if (model.animations.length) {
-        lines.push('## Animations referencing this sprite');
+    if (model.tags && model.tags.length) {
+        lines.push('## Tags', ...model.tags.map((t) => `- \`${t}\``), '');
+    }
+
+    lines.push('## Characters using this sprite');
+    if (model.characters && model.characters.length) {
+        for (const ch of model.characters) {
+            lines.push(`- [${ch.name} (id #${ch.id})](soe://rom/assets/characters/${ch.id}/)`);
+        }
+    } else {
+        lines.push('*No character records directly point to this sprite.*');
+    }
+    lines.push('');
+
+    lines.push('## Palettes used with this sprite');
+    if (model.palettes && model.palettes.length) {
+        for (const p of model.palettes) {
+            lines.push(`- [Palette #${p.index} (${p.addrHex})](soe://rom/assets/palettes/${p.address.toString(16).padStart(4, '0')}/)`);
+        }
+    } else {
+        lines.push('*No known palettes associated with this sprite.*');
+    }
+    lines.push('');
+
+    lines.push('## Animations referencing this sprite');
+    if (model.animations && model.animations.length) {
         for (const anim of model.animations) {
             lines.push(`- **${anim.label}** (record \`$${anim.record.toString(16).padStart(4, '0')}\`, script \`${anim.scriptHex}\`)`);
         }
-        lines.push('');
+    } else {
+        lines.push('*No catalog animations directly reference this sprite.*');
     }
+    lines.push('');
 
     return lines.join('\n');
 }
@@ -138,3 +104,4 @@ export function resolveSprites(segments: string[], rom: Rom): VfsNode | null {
 
     return null;
 }
+

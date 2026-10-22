@@ -25,11 +25,11 @@ interface CatalogEntry { record: number; recHex: string; label: string; facingCo
 /** A rendered animation (sprites/animation-decoder.ts): only the fields the slim copy keeps are typed. */
 interface RenderedAnimation {
     width: number; height: number; originX: number; originY: number; complete: boolean; scriptHex: string; totalTicks: number; loopFrom: number;
-    stoppedAtHex: string; facing: number; paletteColors: string[]; script: unknown; shadow: unknown;
+    stoppedAtHex: string; facing: number; paletteColors: string[]; paletteAddr?: number; paletteIndex?: number; candidatePalettes?: unknown[]; script: unknown; shadow: unknown;
     frames: { png: string; ticks: number; lines: number[]; shadowPng?: string | null }[];
 }
 /** The page's request. */
-interface Message { command: string; key?: string; id?: number | string; room?: number | string; record?: number | string; facing?: number | string; seconds?: number | string }
+interface Message { command: string; key?: string; id?: number | string; room?: number | string; record?: number | string; facing?: number | string; seconds?: number | string; paletteAddr?: number }
 interface Deps {
     post(message: object): void;
     loadRom(): Buffer | Uint8Array | null;
@@ -62,6 +62,8 @@ function slimAnimation(a: RenderedAnimation | null) {
         width: a.width, height: a.height, originX: a.originX, originY: a.originY,
         complete: a.complete, scriptHex: a.scriptHex, totalTicks: a.totalTicks, loopFrom: a.loopFrom,
         stoppedAtHex: a.stoppedAtHex, facing: a.facing, paletteColors: a.paletteColors,
+        paletteAddr: a.paletteAddr, paletteIndex: a.paletteIndex,
+        candidatePalettes: a.candidatePalettes || [],
         script: a.script,
         frames: a.frames.map((f) => ({ png: f.png, ticks: f.ticks, lines: f.lines, shadow: f.shadowPng || null })),
         shadow: a.shadow,
@@ -117,7 +119,7 @@ function handleScriptsMessage(msg: Message, deps: Deps): void {
             case 'scriptsAnim': {
                 const entry = deps.animations(rom).find((e) => e.record === Number(msg.record));
                 if (!entry) { deps.post({ command: 'scriptsAnim', key: msg.key, error: 'No animation record ' + msg.record }); return; }
-                const opt = { key: 'record', category: 'external', animRec: entry.record, paletteAddr: entry.paletteAddr || 0 };
+                const opt = { key: 'record', category: 'external', animRec: entry.record, paletteAddr: msg.paletteAddr || entry.paletteAddr || 0, paletteForced: !!msg.paletteAddr };
                 const facing = Number.isInteger(Number(msg.facing)) ? Number(msg.facing) : FACING_SOUTH;
                 const anim = deps.renderAnimation(rom, entry.paletteCharacter, opt, facing);
                 deps.post({ command: 'scriptsAnim', key: msg.key, anim: slimAnimation(anim) });

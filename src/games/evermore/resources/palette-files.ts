@@ -1,84 +1,14 @@
 // Ownership: `soe://rom/assets/palettes/` — all palettes referenced in the ROM. Pure.
 
-import { paletteAt, paletteAddresses } from '../maps/character-record';
-import { readAllCharacters } from '../sprites/character-model';
-import { buildAnimationCatalog } from '../sprites/animation-catalog';
 import { dir, json, text } from './nodes';
 import type { Entry, VfsNode } from './nodes';
+import { assetRelations, PaletteRelation } from '../sprites/asset-relations';
 
 type Rom = Uint8Array;
-
-const colourHex = ([r, g, b]: [number, number, number]): string =>
-    '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
-
-interface PaletteModel {
-    address: number;
-    addrHex: string;
-    index: number;
-    colors: string[];
-    tags: string[];
-    characters: { id: number; name: string; role: string }[];
-    animations: { record: number; label: string; scriptHex: string }[];
-}
-
-const modelCache = new WeakMap<Rom, Map<number, PaletteModel>>();
+export type PaletteModel = PaletteRelation;
 
 function buildPaletteModels(rom: Rom): Map<number, PaletteModel> {
-    let cached = modelCache.get(rom);
-    if (cached) return cached;
-
-    const allAddresses = paletteAddresses(rom);
-    const chars = readAllCharacters(rom);
-    const catalog = buildAnimationCatalog(rom, chars);
-
-    const map = new Map<number, PaletteModel>();
-
-    for (let idx = 0; idx < allAddresses.length; idx++) {
-        const addr = allAddresses[idx];
-        const hexStr = addr.toString(16).padStart(4, '0');
-        const colors = paletteAt(rom, addr).map(colourHex);
-
-        const characters: PaletteModel['characters'] = [];
-        const tags = new Set<string>();
-
-        for (const c of chars) {
-            if ((c.stats.palette & 0xffff) === addr) {
-                characters.push({ id: c.id, name: c.name, role: 'primary palette (+0x09)' });
-                if (c.id === 0) tags.add('BOY');
-                if (c.id === 1) tags.add('DOG');
-            }
-            if ((c.stats.palette2 & 0xffff) === addr) {
-                characters.push({ id: c.id, name: c.name, role: 'secondary palette (+0x0B)' });
-            }
-            for (const w of c.weapons || []) {
-                if (((w.paletteAddr || 0) & 0xffff) === addr) {
-                    characters.push({ id: c.id, name: c.name, role: (c.id === 1 ? 'Dog Form: ' : 'Weapon: ') + w.name });
-                    if (c.id === 0) tags.add('BOY');
-                    if (c.id === 1) tags.add('DOG');
-                }
-            }
-        }
-
-        const animations: PaletteModel['animations'] = [];
-        for (const entry of catalog) {
-            if ((entry.paletteAddr & 0xffff) === addr) {
-                animations.push({ record: entry.record, label: entry.label, scriptHex: entry.scriptHex });
-            }
-        }
-
-        map.set(addr, {
-            address: addr,
-            addrHex: '$' + hexStr,
-            index: idx,
-            colors,
-            tags: [...tags],
-            characters,
-            animations,
-        });
-    }
-
-    modelCache.set(rom, map);
-    return map;
+    return assetRelations(rom).palettes;
 }
 
 function paletteMarkdown(model: PaletteModel): string {
@@ -116,6 +46,15 @@ function paletteMarkdown(model: PaletteModel): string {
         lines.push('*No catalog animations directly reference this palette.*');
     }
     lines.push('');
+
+    if (model.sprites && model.sprites.length) {
+        lines.push('## Sprites drawn with this palette');
+        for (const s of model.sprites.slice(0, 24)) {
+            lines.push(`- [Sprite #${s.index} (${s.addrHex})](soe://rom/assets/sprites/${s.address.toString(16).padStart(6, '0')}/)`);
+        }
+        if (model.sprites.length > 24) lines.push(`*... and ${model.sprites.length - 24} more sprites*`);
+        lines.push('');
+    }
 
     return lines.join('\n');
 }
@@ -166,3 +105,4 @@ export function resolvePalettes(segments: string[], rom: Rom): VfsNode | null {
 
     return null;
 }
+

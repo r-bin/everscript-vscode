@@ -167,6 +167,11 @@ function buildSpritesTabHtml(): string {
             </div>
           </div>
 
+          <div class="sp-candidate-palettes-wrap" id="sp-candidate-palettes-wrap">
+            <div class="sp-candidate-title">Inferred Palettes</div>
+            <div class="sp-candidate-list" id="sp-candidate-list"></div>
+          </div>
+
         </div>
 
         <div class="sp-split sp-split-right" data-resize="side" title="Drag to resize"></div>
@@ -312,6 +317,7 @@ function buildSpritesTabHtml(): string {
       </div>
     </div>
   </div>
+  <div class="evs-rich-tooltip" id="sp-rich-tooltip" style="display:none"></div>
 </div>`;
 }
 

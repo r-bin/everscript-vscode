@@ -14,7 +14,7 @@
 import { busU8, busU16 } from '../../../platform/snes/hirom';
 import { bgr555 } from '../../../platform/snes/tiles';
 import { ANIMATION_TABLE, facingScript, animationGroups } from './animation-table';
-import { disassembleScript } from './animation-opcodes';
+import { walkScriptCommands } from './animation-opcodes';
 import { getPaletteBankSnes } from '../variant-resolver';
 
 /** A 16-bit little-endian value at a bus address. */
@@ -160,12 +160,12 @@ export function paletteAddresses(rom: Uint8Array): number[] {
         for (const script of g.scripts) {
             if (!script || seenScripts.has(script)) continue;
             seenScripts.add(script);
-            for (const l of disassembleScript(rom, script)) {
-                if (l.known && (l.bytes[0] & 0x7f) === PALETTE_OP) {
-                    const addr = (l.bytes[1] | (l.bytes[2] << 8)) & 0xffff;
+            walkScriptCommands(rom, script, (p, raw) => {
+                if ((raw & 0x7f) === PALETTE_OP) {
+                    const addr = read16At(rom, p + 1) & 0xffff;
                     if (addr) found.add(addr);
                 }
-            }
+            });
         }
     }
 

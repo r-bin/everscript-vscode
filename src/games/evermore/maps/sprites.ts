@@ -18,7 +18,7 @@
 import { busU8, busU16 } from '../../../platform/snes/hirom';
 import { tile4bpp } from '../../../platform/snes/tiles';
 import { animationGroups } from './animation-table';
-import { disassembleScript, opcode, segmentsAt, spriteOperand, sprite2Operand, sprite24At } from './animation-opcodes';
+import { walkScriptCommands, opcode, segmentsAt, spriteOperand, sprite2Operand, sprite24At } from './animation-opcodes';
 import { getSpriteBankRange } from '../variant-resolver';
 
 /** Palette indices, row-major, `size` x `size`. */
@@ -115,17 +115,16 @@ export function readSpriteInfo(rom: Uint8Array, address: number): SpriteInfo {
 /** Sprite addresses an animation script names, in the sprite banks: every sprite-setting command it can reach. */
 export function scriptSprites(rom: Uint8Array, script: number): number[] {
     const found: number[] = [];
-    for (const line of disassembleScript(rom, script)) {
-        const o = opcode(line.bytes[0]);
-        if (!o) continue;
-        const p = line.address;
+    walkScriptCommands(rom, script, (p, raw) => {
+        const o = opcode(raw);
+        if (!o) return;
         if (o.kind === 'sprite') found.push(spriteOperand(rom, p));
         else if (o.kind === 'sprite2') found.push(sprite2Operand(rom, p));
         else if (o.kind === 'sprite_long') found.push(sprite24At(rom, p + 1));
         else if (o.kind === 'sprite_aim') for (let i = 0; i < 8; i++) found.push(sprite24At(rom, p + 1 + 3 * i));
         else if (o.kind === 'hud') for (let i = 0; i < (o.length - 1) / 3; i++) found.push(sprite24At(rom, p + 1 + 3 * i));
         else if (o.kind === 'segments') for (const s of segmentsAt(rom, p).groups) found.push(s.sprite);
-    }
+    });
     const { minBank, maxBank } = getSpriteBankRange(rom);
     return found.filter((a) => (a >>> 16) >= minBank && (a >>> 16) <= maxBank && (a & 0xffff) !== 0);
 }

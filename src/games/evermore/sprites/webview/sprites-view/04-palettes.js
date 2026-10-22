@@ -232,6 +232,41 @@
         if (vsApi && palAddr) vsApi.postMessage({ command: 'openVfs', uri: vfsUri });
       };
     }
+    renderCandidatePalettes(a);
+  }
+
+  function renderCandidatePalettes(a) {
+    var listEl = document.getElementById('sp-candidate-list');
+    if (!listEl) return;
+    var cands = a.candidatePalettes || [];
+    if (!cands.length) {
+      listEl.innerHTML = '<span class="sp-dim" style="font-size:11px">No inferred palettes</span>';
+      return;
+    }
+    listEl.innerHTML = cands.map(function(p) {
+      var activeClass = p.isCurrent ? ' sp-pal-choice-active' : '';
+      var swatches = p.colors.map(function(c, i) {
+        return '<span style="background:' + (i === 0 ? 'transparent' : c) + '"></span>';
+      }).join('');
+      return '<div class="sp-pal-choice-row' + activeClass + '" data-pal-addr="' + p.addr + '" title="Click to apply this palette">' +
+        '<div class="sp-pal-choice-swatch">' + swatches + '</div>' +
+        '<div class="sp-pal-choice-info">' +
+          '<span class="sp-pal-choice-idx">#' + p.index + '</span> ' +
+          '<span class="sp-pal-choice-addr">(' + p.addrHex + ')</span> ' +
+          '<span class="sp-pal-choice-label">(' + p.label + ')</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    listEl.querySelectorAll('.sp-pal-choice-row').forEach(function(row) {
+      row.onclick = function() {
+        var addr = parseInt(row.dataset.palAddr, 10);
+        if (addr) {
+          paletteOverride = addr;
+          loadCurrentAnimation();
+        }
+      };
+    });
   }
 
   /** The palette the stage is drawn in right now: a chosen one, the weapon/form's, or 0 (own). */

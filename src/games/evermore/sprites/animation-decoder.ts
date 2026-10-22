@@ -1,17 +1,19 @@
 // Ownership: running an animation script, aligning and rendering its frames, and its script listing for the Sprites tab. Pure.
 
-import { animationScript, characterPalette, characterPaletteAddress, characterHitbox, paletteAt, paletteAddresses, FACING_SOUTH } from '../maps/character-record';
+import { animationScript, characterPalette, characterPaletteAddress, characterHitbox, paletteAt, paletteAddresses, FACING_SOUTH, read16At } from '../maps/character-record';
 import { runAnimation, MODE_INVULNERABLE } from '../maps/animation-vm';
 import { facingScript } from '../maps/animation-table';
 import { resolveCharacterSprite } from '../maps/character-animation';
 import { MODE_CONTACT } from '../maps/hit-test';
-import { disassembleScript } from '../maps/animation-opcodes';
+import { disassembleScript, spriteOperand, sprite2Operand, sprite24At } from '../maps/animation-opcodes';
 import { readSpriteInfo, spriteAddresses } from '../maps/sprites';
 import { composeAligned } from './frame-compose';
 import { snesToRom } from '../maps/rom';
 import { renderProjectiles } from './projectile-render';
 import { projectileRecord } from '../maps/projectiles';
 import { targetFor, buildTarget, hitTicks, DEFAULT_DISTANCE, OUT_OF_REACH_ABOVE, OUT_OF_REACH_BELOW } from './target';
+import { assetRelations } from './asset-relations';
+import { readAllCharacters } from './character-model';
 import { hexLower } from '../../../platform';
 import type { VmFrame, VmStrike } from '../maps/animation-vm-types';
 
@@ -28,8 +30,28 @@ type Target = ReturnType<typeof buildTarget> & { hits?: ReturnType<typeof hitTic
 /** A listed script line; `palette` and `projectile` carry what the tab previews under it. */
 interface ListedLine {
     address: number; addrHex: string; bytesHex: string; text: string; endFrame: boolean; known: boolean;
-    palette?: { addr: number; index: number; colors: string[] };
-    spriteInfo?: { addr: number; addrHex: string; index: number; widthPx: number; heightPx: number };
+    palette?: {
+        addr: number;
+        addrHex: string;
+        index: number;
+        colors: string[];
+        characters?: Array<{ id: number; name: string; role?: string }>;
+        animations?: Array<{ record: number; label: string; scriptHex: string }>;
+        tags?: string[];
+    };
+    spriteInfo?: {
+        addr: number;
+        addrHex: string;
+        index: number;
+        widthPx: number;
+        heightPx: number;
+        chunkCount?: number;
+        png?: string;
+        characters?: Array<{ id: number; name: string }>;
+        animations?: Array<{ record: number; label: string; scriptHex: string }>;
+        palettes?: Array<{ address: number; addrHex: string; index: number }>;
+        tags?: string[];
+    };
     projectile?: { id: number; animRec: number; paletteAddr: number };
 }
 
@@ -105,20 +127,85 @@ function renderAnimation(rom: Rom, characterId: number, animOpt: AnimArg = {}, r
     // hurt offsets; until that is explained their hurt region stays at the default.
     const playerSlot = characterId === 0 || characterId === 1;
     const run = runAnimation(rom, scriptAddr, facing, { initialSprite, oneShot: isOneShot(animOpt) });
-    const script = scriptListing(rom, scriptAddr);
-    if (!run.frames.length) {
-        return { projectiles: [], width: 0, height: 0, originX: 0, originY: 0, complete: run.complete, scriptAddr,
-            scriptHex: hex6(scriptAddr), frames: [], strikeBoxes: [], script, totalTicks: run.totalTicks,
-            stoppedAtHex: run.stoppedAt ? hex6(run.stoppedAt) : null };
-    }
 
-    const strikes = distinctStrikes(run.frames);
     // A palette the viewer picked wins; then one the script loads itself (command 0x4b).
     const optObj: AnimOpt = typeof animOpt === 'object' ? animOpt : {};
     const paletteAddr = optObj.paletteForced ? optObj.paletteAddr : run.palette || optObj.paletteAddr;
     const colours = paletteAddr ? paletteAt(rom, paletteAddr) : characterPalette(rom, characterId);
     // Harry and Vigor draw some chunks with their second palette (+0x0B).
     const colours2 = secondPalette(rom, characterId);
+
+    const allPals = paletteAddresses(rom);
+    const candidatePalettes: Array<{
+        addr: number;
+        addrHex: string;
+        index: number;
+        label: string;
+        colors: string[];
+        isCurrent: boolean;
+    }> = [];
+
+    const effectivePalAddr = (paletteAddr || characterPaletteAddress(rom, characterId)) & 0xffff;
+    const seenPalAddrs = new Set<number>();
+    const addCandidate = (pAddr: number, label: string) => {
+        const a = pAddr & 0xffff;
+        if (!a) return;
+        if (seenPalAddrs.has(a)) {
+            const existing = candidatePalettes.find((x) => x.addr === a);
+            if (existing && !existing.label.includes(label)) {
+                existing.label += ` / ${label}`;
+            }
+            return;
+        }
+        seenPalAddrs.add(a);
+        const pIdx = allPals.indexOf(a);
+        candidatePalettes.push({
+            addr: a,
+            addrHex: '$' + a.toString(16).padStart(4, '0'),
+            index: pIdx >= 0 ? pIdx : 0,
+            label,
+            colors: paletteAt(rom, a).map(colourHex),
+            isCurrent: a === effectivePalAddr,
+        });
+    };
+
+    // 1. Character palette (+0x09) & Secondary (+0x0B)
+    if (Number.isInteger(characterId)) {
+        const charPal = characterPaletteAddress(rom, characterId) & 0xffff;
+        if (charPal) addCandidate(charPal, 'character');
+        const secPal = read16At(rom, 0x8eb678 + characterId * 74 + 0x0b) & 0xffff;
+        if (secPal) addCandidate(secPal, 'secondary');
+    }
+
+    // 2. Animation script palette (command 0x4b)
+    if (run.palette) {
+        addCandidate(run.palette, 'animation script');
+    }
+
+    // 3. Current weapon / form palette
+    if (optObj.paletteAddr && optObj.paletteAddr !== run.palette) {
+        addCandidate(optObj.paletteAddr, 'selected weapon/form');
+    }
+
+    // 4. Other weapons / forms for this character
+    if (Number.isInteger(characterId)) {
+        const chars = readAllCharacters(rom);
+        const c = chars[characterId];
+        if (c && c.weapons) {
+            for (const w of c.weapons) {
+                if (w.paletteAddr) addCandidate(w.paletteAddr, (characterId === 1 ? 'form: ' : 'weapon: ') + w.name);
+            }
+        }
+    }
+
+    const script = scriptListing(rom, scriptAddr, colours, colours2);
+    if (!run.frames.length) {
+        return { projectiles: [], width: 0, height: 0, originX: 0, originY: 0, complete: run.complete, scriptAddr,
+            scriptHex: hex6(scriptAddr), frames: [], strikeBoxes: [], script, totalTicks: run.totalTicks,
+            stoppedAtHex: run.stoppedAt ? hex6(run.stoppedAt) : null, candidatePalettes };
+    }
+
+    const strikes = distinctStrikes(run.frames);
     const { width, height, originX, originY, images, buffers, infos } = composeAligned(rom, run.frames, colours, colours2);
     // The second sprite slot (usually the shadow) as its own layer: it stays on the
     // ground while height lifts the main sprite.
@@ -222,6 +309,7 @@ function renderAnimation(rom: Rom, characterId: number, animOpt: AnimArg = {}, r
         paletteAddr: paletteAddr || characterPaletteAddress(rom, characterId),
         paletteIndex: paletteAddresses(rom).indexOf((paletteAddr || characterPaletteAddress(rom, characterId)) & 0xffff),
         paletteColors: colours.map(([r, g, b]) => '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')),
+        candidatePalettes,
         facing,
         facingRounded: facing !== requestedFacing,
         shadow: shadow ? { width: shadow.width, height: shadow.height, originX: shadow.originX, originY: shadow.originY } : null,
@@ -304,9 +392,11 @@ const colourHex = ([r, g, b]: [number, number, number]): string => '#' + [r, g, 
  * previews under them: `palette` (address and its 16 colours), `projectile` (the record's
  * own animation and palette, 0 = the thrower's).
  */
-function scriptListing(rom: Rom, scriptAddr: number) {
+function scriptListing(rom: Rom, scriptAddr: number, colours?: Colours, secondPaletteFor?: Colours | null) {
     const allPals = paletteAddresses(rom);
     const allSprites = spriteAddresses(rom);
+    const relations = assetRelations(rom);
+
     return disassembleScript(rom, scriptAddr).map((l) => {
         const line: ListedLine = {
             address: l.address,
@@ -318,20 +408,47 @@ function scriptListing(rom: Rom, scriptAddr: number) {
         };
         const op = l.bytes[0] & 0x7f;
         if (l.known && op === PALETTE_OP) {
-            const addr = l.bytes[1] | (l.bytes[2] << 8);
-            const pIdx = allPals.indexOf(addr & 0xffff);
-            line.palette = { addr, index: pIdx >= 0 ? pIdx : 0, colors: paletteAt(rom, addr).map(colourHex) };
+            const addr = (l.bytes[1] | (l.bytes[2] << 8)) & 0xffff;
+            const pIdx = allPals.indexOf(addr);
+            const pRel = relations.getPaletteRelation(addr);
+            line.palette = {
+                addr,
+                addrHex: '$' + addr.toString(16).padStart(4, '0'),
+                index: pIdx >= 0 ? pIdx : 0,
+                colors: paletteAt(rom, addr).map(colourHex),
+                characters: pRel ? pRel.characters : [],
+                animations: pRel ? pRel.animations.slice(0, 6) : [],
+                tags: pRel ? pRel.tags : [],
+            };
         } else if (l.known && op === PROJECTILE_OP) {
             const p = projectileRecord(rom, l.bytes[1] | (l.bytes[2] << 8));
             line.projectile = { id: p.id, animRec: p.animRecord, paletteAddr: p.palette };
         }
-        // Extract sprite address if this line sets a sprite
-        const sprMatch = /\$([0-9a-f]{6})/i.exec(l.text);
-        if (l.known && sprMatch && /^(sprite|hud_|segments)/.test(l.text)) {
-            const sprAddr = parseInt(sprMatch[1], 16);
+
+        // Extract sprite address
+        let sprAddr = 0;
+        if (l.known) {
+            if (op >= 0x22 && op <= 0x2b) sprAddr = spriteOperand(rom, l.address);
+            else if (op === 0x2c) sprAddr = sprite2Operand(rom, l.address);
+            else if (op === 0x5f) sprAddr = sprite24At(rom, l.address + 1);
+            else {
+                const sprMatch = /\$([0-9a-f]{6})/i.exec(l.text);
+                if (sprMatch && /^(sprite|hud_|segments)/.test(l.text)) sprAddr = parseInt(sprMatch[1], 16);
+            }
+        }
+
+        if (sprAddr) {
             const sprIdx = allSprites.indexOf(sprAddr);
+            const sRel = relations.getSpriteRelation(sprAddr);
+            let widthPx = 0, heightPx = 0, chunkCount = 0;
+            let png = '';
             try {
+                if (colours) {
+                    const comp = composeAligned(rom, [{ sprite: sprAddr }], colours, secondPaletteFor);
+                    if (comp.images[0]) png = comp.images[0];
+                }
                 const info = readSpriteInfo(rom, sprAddr);
+                chunkCount = info.chunks.length;
                 let minX = 0, minY = 0, maxX = 1, maxY = 1;
                 for (const c of info.chunks) {
                     const sz = c.large ? 16 : 8;
@@ -340,22 +457,23 @@ function scriptListing(rom: Rom, scriptAddr: number) {
                     if (c.x + sz > maxX) maxX = c.x + sz;
                     if (c.y + sz > maxY) maxY = c.y + sz;
                 }
-                line.spriteInfo = {
-                    addr: sprAddr,
-                    addrHex: '$' + sprAddr.toString(16).padStart(6, '0'),
-                    index: sprIdx >= 0 ? sprIdx : 0,
-                    widthPx: maxX - minX,
-                    heightPx: maxY - minY,
-                };
-            } catch (_) {
-                line.spriteInfo = {
-                    addr: sprAddr,
-                    addrHex: '$' + sprAddr.toString(16).padStart(6, '0'),
-                    index: sprIdx >= 0 ? sprIdx : 0,
-                    widthPx: 0,
-                    heightPx: 0,
-                };
-            }
+                widthPx = maxX - minX;
+                heightPx = maxY - minY;
+            } catch (_) {}
+
+            line.spriteInfo = {
+                addr: sprAddr,
+                addrHex: '$' + sprAddr.toString(16).padStart(6, '0'),
+                index: sprIdx >= 0 ? sprIdx : 0,
+                widthPx,
+                heightPx,
+                chunkCount,
+                png,
+                characters: sRel ? sRel.characters : [],
+                animations: sRel ? sRel.animations.slice(0, 6) : [],
+                palettes: sRel ? sRel.palettes : [],
+                tags: sRel ? sRel.tags : [],
+            };
         }
         return line;
     });

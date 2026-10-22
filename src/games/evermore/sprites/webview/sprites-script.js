@@ -42,22 +42,28 @@
   /** The command text, with sprite, palette and projectile addresses as links. */
   function commandHtml(l) {
     var html = esc(l.text);
-    var spr = spriteOf(l.text);
-    if (spr && lastCtx.onSprite) {
-      var hex = '$' + spr.toString(16).padStart(6, '0');
-      var sprTitle = 'Open this sprite in the Sprites view';
-      if (l.spriteInfo) {
-        var sInfo = l.spriteInfo;
-        sprTitle = 'sprite #' + sInfo.index + ' (' + sInfo.addrHex + ')' +
-          (sInfo.widthPx ? ' · ~' + sInfo.widthPx + '×' + sInfo.heightPx + ' px' : '') +
-          '\nClick: view sprite | soe://rom/assets/sprites/' + spr.toString(16).padStart(6, '0');
-      }
-      html = html.replace(hex, '<a href="#" class="sp-script-link sp-sprite-link" data-sprite="' + spr + '" title="' + esc(sprTitle) + '">' + hex + '</a>');
+    if (l.spriteInfo) {
+      var spr = l.spriteInfo.addr;
+      var sprIdx = '#' + l.spriteInfo.index;
+      var hex = l.spriteInfo.addrHex;
+      var linkText = html.indexOf(sprIdx) >= 0 ? sprIdx : hex;
+      var sInf = l.spriteInfo;
+      var sprTitle = 'sprite #' + sInf.index + ' (' + sInf.addrHex + ')' +
+        (sInf.widthPx ? ' · ~' + sInf.widthPx + '×' + sInf.heightPx + ' px' : '') +
+        '\nClick: view sprite | Hover: details';
+      var linkHtml = '<a href="#" class="sp-script-link sp-sprite-link" data-sprite="' + spr + '" data-line-addr="' + l.address + '" title="' + esc(sprTitle) + '">' + linkText + '</a>';
+      if (html.indexOf(sprIdx) >= 0) html = html.replace(sprIdx, linkHtml);
+      else if (html.indexOf(hex) >= 0) html = html.replace(hex, linkHtml);
     }
     if (l.palette) {
-      var palAddrHex = '$' + l.palette.addr.toString(16).padStart(4, '0');
-      var palTitle = 'palette #' + (l.palette.index != null ? l.palette.index : '?') + ' (' + palAddrHex + ')\nClick to open VFS entry: soe://rom/assets/palettes/' + l.palette.addr.toString(16).padStart(4, '0');
-      html = html.replace(palAddrHex, '<a href="#" class="sp-script-link sp-pal-link" data-palette="' + l.palette.addr + '" title="' + esc(palTitle) + '">' + palAddrHex + '</a>');
+      var pal = l.palette.addr;
+      var palIdx = '#' + (l.palette.index != null ? l.palette.index : '?');
+      var palHex = '$' + pal.toString(16).padStart(4, '0');
+      var palLinkText = html.indexOf(palIdx) >= 0 ? palIdx : palHex;
+      var palTitle = 'palette #' + (l.palette.index != null ? l.palette.index : '?') + ' (' + palHex + ')\nClick: open VFS | Hover: details';
+      var palLink = '<a href="#" class="sp-script-link sp-pal-link" data-palette="' + pal + '" data-line-addr="' + l.address + '" title="' + esc(palTitle) + '">' + palLinkText + '</a>';
+      if (html.indexOf(palIdx) >= 0) html = html.replace(palIdx, palLink);
+      else if (html.indexOf(palHex) >= 0) html = html.replace(palHex, palLink);
     }
     if (l.projectile && l.projectile.animRec && lastCtx.onRecord) {
       var id = '$' + l.projectile.id.toString(16).padStart(4, '0');
@@ -77,16 +83,23 @@
       });
     }
     if (showPreviews) {
-      var spr = spriteOf(l.text);
-      var pal = lastCtx.paletteAddr || 0;
-      if (spr) box.appendChild(window.SpritesThumbs.box({
-        key: 'spr:' + spr + ':' + (pal || 'c' + lastCtx.character), sprite: spr,
-        character: lastCtx.character, paletteAddr: pal,
-      }));
+      if (l.spriteInfo && l.spriteInfo.png) {
+        var sprBox = document.createElement('div');
+        sprBox.className = 'sp-script-sprite-box';
+        sprBox.innerHTML = '<img src="' + l.spriteInfo.png + '" class="sp-script-img" style="image-rendering:pixelated; max-width:64px; max-height:64px" />';
+        box.appendChild(sprBox);
+      } else {
+        var spr = l.spriteInfo ? l.spriteInfo.addr : spriteOf(l.text);
+        var pal = lastCtx.paletteAddr || 0;
+        if (spr && window.SpritesThumbs) box.appendChild(window.SpritesThumbs.box({
+          key: 'spr:' + spr + ':' + (pal || 'c' + lastCtx.character), sprite: spr,
+          character: lastCtx.character, paletteAddr: pal,
+        }));
+      }
       if (l.palette) {
         var sw = document.createElement('div');
         sw.className = 'sp-script-swatch';
-        sw.title = 'Palette $' + l.palette.addr.toString(16);
+        sw.title = 'Palette #' + l.palette.index + ' ($' + l.palette.addr.toString(16) + ')';
         l.palette.colors.forEach(function(c, i) {
           var span = document.createElement('span');
           span.style.background = i === 0 ? 'transparent' : c;
@@ -95,8 +108,8 @@
         });
         box.appendChild(sw);
       }
-      if (l.projectile && l.projectile.animRec) {
-        var pp = l.projectile.paletteAddr || pal;
+      if (l.projectile && l.projectile.animRec && window.SpritesThumbs) {
+        var pp = l.projectile.paletteAddr || (lastCtx.paletteAddr || 0);
         box.appendChild(window.SpritesThumbs.box({
           key: 'proj:' + l.projectile.animRec + ':' + (pp || 'c' + lastCtx.character),
           record: l.projectile.animRec, facing: lastCtx.facing != null ? lastCtx.facing : 8,
@@ -153,20 +166,136 @@
     }
   }
 
-  if (bodyEl) bodyEl.addEventListener('click', function(e) {
-    var a = e.target;
-    while (a && a !== bodyEl && !(a.classList && a.classList.contains('sp-script-link'))) a = a.parentNode;
-    if (!a || a === bodyEl) return;
-    e.preventDefault();
-    if (a.dataset.palette) {
-      var palNum = parseInt(a.dataset.palette, 10);
-      var palHex4 = palNum.toString(16).padStart(4, '0');
+  var tipEl = document.getElementById('sp-rich-tooltip');
+  var tipTimeout = null;
+
+  function showRichTooltip(html, x, y) {
+    if (!tipEl) tipEl = document.getElementById('sp-rich-tooltip');
+    if (!tipEl) return;
+    if (tipTimeout) { clearTimeout(tipTimeout); tipTimeout = null; }
+    tipEl.innerHTML = html;
+    tipEl.style.display = 'block';
+    var pad = 12;
+    var tw = tipEl.offsetWidth || 270;
+    var th = tipEl.offsetHeight || 160;
+    var left = x + pad;
+    var top = y + pad;
+    if (left + tw > window.innerWidth - 10) left = Math.max(10, x - tw - pad);
+    if (top + th > window.innerHeight - 10) top = Math.max(10, y - th - pad);
+    tipEl.style.left = left + 'px';
+    tipEl.style.top = top + 'px';
+  }
+
+  function hideRichTooltip() {
+    if (tipTimeout) clearTimeout(tipTimeout);
+    tipTimeout = setTimeout(function() {
+      if (tipEl) tipEl.style.display = 'none';
+    }, 250);
+  }
+
+  if (tipEl) {
+    tipEl.addEventListener('mouseenter', function() {
+      if (tipTimeout) { clearTimeout(tipTimeout); tipTimeout = null; }
+    });
+    tipEl.addEventListener('mouseleave', function() {
+      hideRichTooltip();
+    });
+  }
+
+  function spriteTipHtml(info) {
+    var tagsHtml = (info.tags || []).map(function(t) { return '<span class="evs-tip-badge">' + esc(t) + '</span>'; }).join('');
+    var chars = (info.characters || []).map(function(c) { return esc(c.name); }).join(', ') || '—';
+    var anims = (info.animations || []).slice(0, 3).map(function(a) { return esc(a.label); }).join(', ') || '—';
+    var vfsUri = 'soe://rom/assets/sprites/' + info.addr.toString(16).padStart(6, '0');
+    var imgHtml = info.png ? '<div class="evs-tip-preview"><img src="' + info.png + '" class="evs-tip-img" style="image-rendering:pixelated; max-width:80px; max-height:80px;" /></div>' : '';
+
+    return '<div class="evs-tip-header">' +
+      '<span>Sprite <strong>#' + info.index + '</strong></span>' +
+      '<code>' + info.addrHex + '</code>' +
+    '</div>' +
+    imgHtml +
+    '<div class="evs-tip-meta">' +
+      '<div class="evs-tip-row"><span class="evs-tip-label">Size:</span><span class="evs-tip-val">~' + info.widthPx + '×' + info.heightPx + ' px (' + (info.chunkCount || 0) + ' chunks)</span></div>' +
+      (tagsHtml ? '<div class="evs-tip-row"><span class="evs-tip-label">Tags:</span><span class="evs-tip-val">' + tagsHtml + '</span></div>' : '') +
+      '<div class="evs-tip-row"><span class="evs-tip-label">Characters:</span><span class="evs-tip-val">' + chars + '</span></div>' +
+      '<div class="evs-tip-row"><span class="evs-tip-label">Animations:</span><span class="evs-tip-val">' + anims + '</span></div>' +
+    '</div>' +
+    '<div class="evs-tip-vfs"><a href="#" class="evs-vfs-link" data-vfs="' + vfsUri + '">Open VFS: ' + vfsUri + '</a></div>';
+  }
+
+  function paletteTipHtml(pal) {
+    var tagsHtml = (pal.tags || []).map(function(t) { return '<span class="evs-tip-badge">' + esc(t) + '</span>'; }).join('');
+    var chars = (pal.characters || []).map(function(c) { return esc(c.name + (c.role ? ' (' + c.role + ')' : '')); }).join(', ') || '—';
+    var anims = (pal.animations || []).slice(0, 3).map(function(a) { return esc(a.label); }).join(', ') || '—';
+    var vfsUri = 'soe://rom/assets/palettes/' + pal.addr.toString(16).padStart(4, '0');
+    var swatches = (pal.colors || []).map(function(c, i) {
+      return '<span style="background:' + (i === 0 ? 'transparent' : c) + '" title="' + c + '"></span>';
+    }).join('');
+
+    return '<div class="evs-tip-header">' +
+      '<span>Palette <strong>#' + pal.index + '</strong></span>' +
+      '<code>' + pal.addrHex + '</code>' +
+    '</div>' +
+    '<div class="evs-tip-swatch">' + swatches + '</div>' +
+    '<div class="evs-tip-meta">' +
+      '<div class="evs-tip-row"><span class="evs-tip-label">Address:</span><span class="evs-tip-val"><code>$90' + pal.addr.toString(16).padStart(4, '0') + '</code></span></div>' +
+      (tagsHtml ? '<div class="evs-tip-row"><span class="evs-tip-label">Tags:</span><span class="evs-tip-val">' + tagsHtml + '</span></div>' : '') +
+      '<div class="evs-tip-row"><span class="evs-tip-label">Characters:</span><span class="evs-tip-val">' + chars + '</span></div>' +
+      '<div class="evs-tip-row"><span class="evs-tip-label">Animations:</span><span class="evs-tip-val">' + anims + '</span></div>' +
+    '</div>' +
+    '<div class="evs-tip-vfs"><a href="#" class="evs-vfs-link" data-vfs="' + vfsUri + '">Open VFS: ' + vfsUri + '</a></div>';
+  }
+
+  if (bodyEl) {
+    bodyEl.addEventListener('mouseover', function(e) {
+      var a = e.target;
+      while (a && a !== bodyEl && !(a.classList && (a.classList.contains('sp-sprite-link') || a.classList.contains('sp-pal-link')))) a = a.parentNode;
+      if (!a || a === bodyEl) return;
+      var lineAddr = parseInt(a.dataset.lineAddr, 10);
+      var line = lastAnim && lastAnim.script ? lastAnim.script.find(function(x) { return x.address === lineAddr; }) : null;
+      if (!line) return;
+      if (a.classList.contains('sp-sprite-link') && line.spriteInfo) {
+        showRichTooltip(spriteTipHtml(line.spriteInfo), e.clientX, e.clientY);
+      } else if (a.classList.contains('sp-pal-link') && line.palette) {
+        showRichTooltip(paletteTipHtml(line.palette), e.clientX, e.clientY);
+      }
+    });
+
+    bodyEl.addEventListener('mouseout', function(e) {
+      hideRichTooltip();
+    });
+
+    bodyEl.addEventListener('click', function(e) {
+      var vfsLink = e.target.closest('[data-vfs]');
+      if (vfsLink) {
+        e.preventDefault();
+        var vsApi = (typeof vs !== 'undefined' && vs) ? vs : (typeof acquireVsCodeApi === 'function' ? (function() { try { return acquireVsCodeApi(); } catch(e) { return null; } })() : null);
+        if (vsApi) vsApi.postMessage({ command: 'openVfs', uri: vfsLink.dataset.vfs });
+        return;
+      }
+      var a = e.target;
+      while (a && a !== bodyEl && !(a.classList && a.classList.contains('sp-script-link'))) a = a.parentNode;
+      if (!a || a === bodyEl) return;
+      e.preventDefault();
+      if (a.dataset.palette) {
+        var palNum = parseInt(a.dataset.palette, 10);
+        var palHex4 = palNum.toString(16).padStart(4, '0');
+        var vsApi = (typeof vs !== 'undefined' && vs) ? vs : (typeof acquireVsCodeApi === 'function' ? (function() { try { return acquireVsCodeApi(); } catch(e) { return null; } })() : null);
+        if (vsApi) vsApi.postMessage({ command: 'openVfs', uri: 'soe://rom/assets/palettes/' + palHex4 });
+        return;
+      }
+      if (a.dataset.sprite && lastCtx.onSprite) lastCtx.onSprite(parseInt(a.dataset.sprite, 10));
+      if (a.dataset.record && lastCtx.onRecord) lastCtx.onRecord(parseInt(a.dataset.record, 10));
+    });
+  }
+
+  document.addEventListener('click', function(e) {
+    var vfsLink = e.target.closest('[data-vfs]');
+    if (vfsLink) {
+      e.preventDefault();
       var vsApi = (typeof vs !== 'undefined' && vs) ? vs : (typeof acquireVsCodeApi === 'function' ? (function() { try { return acquireVsCodeApi(); } catch(e) { return null; } })() : null);
-      if (vsApi) vsApi.postMessage({ command: 'openVfs', uri: 'soe://rom/assets/palettes/' + palHex4 });
-      return;
+      if (vsApi) vsApi.postMessage({ command: 'openVfs', uri: vfsLink.dataset.vfs });
     }
-    if (a.dataset.sprite && lastCtx.onSprite) lastCtx.onSprite(parseInt(a.dataset.sprite, 10));
-    if (a.dataset.record && lastCtx.onRecord) lastCtx.onRecord(parseInt(a.dataset.record, 10));
   });
 
   /** Mark the commands that ran during `frame`, and keep the first in view. */

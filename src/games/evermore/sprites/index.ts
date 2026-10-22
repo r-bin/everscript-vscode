@@ -5,6 +5,7 @@ import { renderAnimation, resolveExternalScript } from './animation-decoder';
 import { getRawSpriteIndex, renderRawSprite, SPRITE_LIST_START } from './raw-sprites';
 import { buildSpritesTabHtml } from './sprites-tab';
 import { buildAnimationCatalog } from './animation-catalog';
+import { assetRelations } from './asset-relations';
 import { characterThumbs, listPalettes, renderInPalettes, thumbFor } from './thumbnails';
 
-export { readCharacter, readAllCharacters, CHARACTER_TABLE, CHARACTER_COUNT, renderAnimation, resolveExternalScript, getRawSpriteIndex, renderRawSprite, SPRITE_LIST_START, buildSpritesTabHtml, buildAnimationCatalog, characterThumbs, listPalettes, renderInPalettes, thumbFor };
+export { readCharacter, readAllCharacters, CHARACTER_TABLE, CHARACTER_COUNT, renderAnimation, resolveExternalScript, getRawSpriteIndex, renderRawSprite, SPRITE_LIST_START, buildSpritesTabHtml, buildAnimationCatalog, assetRelations, characterThumbs, listPalettes, renderInPalettes, thumbFor };
