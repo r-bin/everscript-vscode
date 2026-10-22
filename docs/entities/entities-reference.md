@@ -238,7 +238,7 @@ The entity struct, as far as the traces and handlers read it:
 | `+0x05` | animation frame timer | animation_script.md |
 | `+0x06`..`+0x0A` | current sprite, second sprite slot | animation_script.md |
 | `+0x0C` | palette slot | palettes.md |
-| `+0x10` | flags from the record's `+0x05` (everscript `FLAG_ENEMY`: invincible `$0002`, party `$0004`, inactive `$0020`, phasing `$0400`…) | character_table.md |
+| `+0x10` | flags from the record's `+0x05` (everscript `FLAG_ENEMY`: invincible `$0002`, party `$0004`, inactive `$0020`, phasing `$0400`…); every bit below | [§ +0x10 bits](#entity-0x10-bits) |
 | `+0x12` | state (`|= $0438` when damaged, `$8FC0F9`) | animation_script.md |
 | `+0x14` | closed states: the hit test skips `& $070D` (aura, barrier, atlas, dead…) | `$8FB632` |
 | `+0x16` | mode, set by `mode` (everscript `FLAGS_7`): `$01` knockback, `$04` walking, `$08` running, `$10` attacking, **`$20` casting/dodging = invulnerable** | animation_script.md |
@@ -269,3 +269,30 @@ The entity struct, as far as the traces and handlers read it:
 | damage | `src/games/evermore/scaling/webview/alchemy-math.js`; physical in `tests/memory/damage.test.js` | `damage.test.js` |
 | Characters tab (viewer, animations, stats) | `src/games/evermore/sprites/` (`character-model.ts`, `animation-catalog.ts`, `animation-decoder.ts`, `sprites-tab.ts`) | `tests/memory/sprites.test.js` |
 | drawing enemies over a map | `docs/map-format/enemy-sprites-on-maps.md` | |
+
+### Entity +0x10 bits
+
+The spawn flags (character record `+0x05`, OR'd in at `$8F:B0C3`), traced (v0.332) by scanning every
+instruction the CDL library saw execute with operand `$0010,X` / `$0010,Y` and reading the masks it
+tests, sets or clears. A few of the 95 sites may index another structure; the names below rest on
+sites inside routines that work on entities. `?` marks a role seen but not understood.
+
+| Bit | Name (Characters tab) | Evidence |
+|---|---|---|
+| `$0001` | hidden and paused | everscript `INACTIVE_INVISIBLE`; the stamina meter (`$8F:CCFF`) and gravity (`$8F:B070`) skip `& $21`; `$8F:CD51` clears it with `$20` |
+| `$0002` | invincible (friendly) | everscript `INVINCIBLE`; no contact handler (`$8F:B564`); part of the hit test's side mask `$5006` (`$8F:B615`) |
+| `$0004` | party side | everscript `PARTY`; the hit test compares attacker and target with `eor #4` (`$8F:B5FC`) |
+| `$0008` | keeps its place? | set at spawn when `$0100` is (`$8F:B313`); script opcode `0x43` (teleport) skips its follow-up (`$8C:E022`); the position setter skips its tile check (`$8F:C470`) |
+| `$0010` | — | no site tests it |
+| `$0020` | inactive | everscript `INACTIVE`; set by the halt routine (`$8F:CD7E`), cleared by its counterpart (`$8F:CD51`); the aggro filter leaves it out (`$8F:D8D2`) |
+| `$0040` | in an animation | set by script opcode `0x78` (`$8C:E0E8`) and the animation VM (`$90:811B`), cleared at the end (`$90:83F5`); the hit reaction sets (`$8F:C29E`) and tests it (`$8F:C27F`). everscript calls it `MOSQUITO` |
+| `$0080` | ? (movement probe) | tested with `$0400` by the movement probe (`$8F:AF55`) |
+| `$0100` | ? (layer pair, low) | tested by script opcode `0x2E` (`$8C:D267`), at spawn (`$8F:B30B`, `$8F:B332`) and by the position setter (`$8F:C411`); swapped with `$0200` (`eor #$300`, `$8F:C4E3`, `$8F:C541`) |
+| `$0200` | ? (layer pair, high) | the other half of `$0300` (`$8F:B3AE`, `$8F:DCAE`, `$90:CCC8`) |
+| `$0400` | phasing | everscript `PHASING`; the movement probe's body check (`$8F:AF5A`), sprite priority (`$8F:C773`), the aggro filter (`$8F:DA77`) |
+| `$0800` | following a trail | the companion follower sets and clears it (`$8F:9C19`, `$8F:9C38`); the movement probe is skipped (`$8F:AF50`) |
+| `$1000` | no gravity | gravity skips it (`$8F:B01F`); everscript `INVISIBLE_INVINCIBLE_INACTIVE` |
+| `$2000` | hides after a fall | set on the opcode `0x78` path (`$8C:E130`); gravity turns it into `$0001` (`$8F:B043`–`$8F:B053`) |
+| `$4000` | takes no damage | set by script opcode `0xA9` (`$8C:E73A`); the hit reaction skips the entity (`$8F:C0D6`, `$8F:C146`) |
+| `$8000` | — | no site tests it |
+

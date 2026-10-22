@@ -25,8 +25,8 @@
    * empty ones too; the Boy's weapon ($8F:81C9) or the Dog's form ($8F:9471) overwrites nine of
    * them, as in WRAM. Form: the Dog form's other six slots (they go to $1443-$144D, not the
    * record). animate(): the compiler's named ids; ids from $8000 read the ROM record
-   * ($8C:E139), so no weapon or form changes them. An entry whose record an earlier one already
-   * plays says which (`repeats`: "→ Idle").
+   * ($8C:E139), so no weapon or form changes them. A record shows once: later entries that play it
+   * fold into the first one's tile (`also`, shown as "+n" and named in its tooltip; `merged`).
    */
   function effectiveAnims(c) {
     var out = [];
@@ -48,9 +48,16 @@
     var first = {};
     out.forEach(function(e) {
       var r = e.anim.animRec;
-      if (r && first[r]) e.repeats = first[r]; else if (r) first[r] = e.label;
+      if (!r) return;
+      if (first[r]) { first[r].also.push(e.label); e.merged = true; } else { first[r] = e; e.also = []; }
     });
     return out;
+  }
+
+  /** Whether the selected key is one of the entries folded into tile `e` (same record). */
+  function isAlso(c, e, key) {
+    var hit = effectiveAnims(c).find(function(x) { return x.key === key; });
+    return !!(hit && hit.merged && hit.anim.animRec === e.anim.animRec);
   }
 
   /** The hidden select keeps the keys (stamina and facing code ask it which attack keys exist). */
@@ -131,7 +138,9 @@
     var group = '';
     effectiveAnims(c).forEach(function(e) {
       var a = e.anim;
-      if (!animMatches(q, e.label, a.animRec ? animIndexOf(a.animRec) : -1)) return;
+      if (e.merged) return;
+      var names = [e.label].concat(e.also || []).join(' ');
+      if (!animMatches(q, names, a.animRec ? animIndexOf(a.animRec) : -1)) return;
       if (e.group !== group) {
         group = e.group;
         var head = document.createElement('div');
@@ -141,8 +150,9 @@
         animGrid.appendChild(head);
       }
       var pal = paletteOverride || homePalette || variantPal || a.paletteAddr || 0;
-      var sub = (e.repeats ? '(→ ' + e.repeats + ')' : '') + (a.animRec ? '' : 'none');
-      var tile = animTile(e.key, e.label, sub, a.animRec || 0, !pickedRecord && e.key === selectedAnimKey,
+      var also = e.also || [];
+      var sub = (also.length ? '+' + also.length : '') + (a.animRec ? '' : 'none');
+      var tile = animTile(e.key, e.label, sub, a.animRec || 0, !pickedRecord && (e.key === selectedAnimKey || also.length && isAlso(c, e, selectedAnimKey)),
         { key: 'anim:' + c.id + ':' + a.animRec + ':' + selectedFacing + ':' + pal, record: a.animRec, facing: selectedFacing, character: c.id, paletteAddr: pal },
         function() {
           pickedRecord = null;
@@ -151,7 +161,7 @@
           syncStaminaTo(e.key);
           loadCurrentAnimation();
         });
-      if (e.repeats) tile.classList.add('sp-anim-repeat');
+      if (also.length) { tile.classList.add('sp-anim-repeat'); tile.title += '\nAlso played as: ' + also.join(', '); }
       if (!a.animRec) tile.classList.add('sp-anim-empty');
       if (e.weapon) tile.title += '\nFrom the ' + e.weapon + ' (equipping it overwrites this field)';
       animGrid.appendChild(tile);

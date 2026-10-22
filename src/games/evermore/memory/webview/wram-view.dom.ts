@@ -36,6 +36,10 @@ function applyView(view: View): void {
     document.querySelectorAll<HTMLElement>('.mem-sub-pane').forEach((p) => {
         p.style.display = (p.dataset.mem === 'wram') === (view === 'wram') ? 'flex' : 'none';
     });
+    // The bar's search field follows the view: WRAM's own, or the ROM feature's for Bus and ROM.
+    const wram = document.getElementById('wram-search'), rom = document.getElementById('rom-search') as HTMLInputElement | null;
+    if (wram) wram.style.display = view === 'wram' ? '' : 'none';
+    if (rom) { rom.style.display = view === 'wram' ? 'none' : ''; rom.placeholder = view === 'bus' ? 'Search bus address ($9F:D600)…' : 'Search address, room, table…'; }
 }
 
 /** Draw the shown view: WRAM asks for its coverage once, Bus and ROM are drawn by the ROM feature. */

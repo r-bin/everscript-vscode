@@ -26,7 +26,8 @@
   /** The knob at the playing tick, and the frame under it lit. */
   function syncScrub() {
     if (!scrubber || !currentAnimData || !currentAnimData.frames.length) return;
-    scrubber.value = String(Math.min(scrubTotal(), (frameStartTicks[currentFrameIdx] || 0) + tickCounter));
+    // One frame: the bar is disabled and the knob stays put.
+    scrubber.value = String(scrubber.disabled ? 0 : Math.min(scrubTotal(), (frameStartTicks[currentFrameIdx] || 0) + tickCounter));
     if (scrubTicks) scrubTicks.querySelectorAll('.sp-seg').forEach(function(s) { s.classList.toggle('sp-seg-on', +s.dataset.seg === currentFrameIdx); });
   }
   if (scrubber) {

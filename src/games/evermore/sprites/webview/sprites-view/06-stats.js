@@ -5,30 +5,86 @@
 // native tooltip (no hover popup: those clipped at the panel's edge). The tab reads the ROM only, so
 // a drop-down shows the ROM's value among the others and a pick changes nothing.
 
-  /** Spawn flags (+0x05 → entity +0x10) by everscript's FLAG_ENEMY names. */
-  var SPAWN_FLAG_BITS = [[0x0001, 'inactive+invisible'], [0x0002, 'invincible'], [0x0004, 'party/bombable'], [0x0020, 'inactive'], [0x0040, 'mosquito'], [0x0400, 'phasing'], [0x1000, 'invisible+invincible+inactive']];
+  /**
+   * Spawn flags (+0x05 → entity +0x10): every bit, named by what the code that tests it does
+   * (traced, docs/entities/entities-reference.md § Entity +0x10 bits); `?` where only a role is seen.
+   */
+  var SPAWN_FLAG_BITS = [
+    [0x0001, 'hidden and paused', 'stamina and gravity skip it; everscript INACTIVE_INVISIBLE'],
+    [0x0002, 'invincible (friendly)', 'no contact handler; the tab counts it as an NPC'],
+    [0x0004, 'party side', 'the hit test compares attacker and target sides'],
+    [0x0008, 'keeps its place?', 'teleport and the position setter skip their tile follow-up'],
+    [0x0010, '—', 'no code tests it'],
+    [0x0020, 'inactive', 'halted; left out of targeting'],
+    [0x0040, 'in an animation', 'set by animate() and the animation VM; the hit reaction tests it'],
+    [0x0080, '? (movement probe)', 'tested with $0400 by the movement probe'],
+    [0x0100, '? (layer pair, low)', 'swapped with $0200 by the position setter'],
+    [0x0200, '? (layer pair, high)', 'the other half of $0300'],
+    [0x0400, 'phasing', 'no body collision; sprite priority; aggro filter'],
+    [0x0800, 'following a trail', 'set by the companion follower; skips the movement probe'],
+    [0x1000, 'no gravity', 'gravity skips it'],
+    [0x2000, 'hides after a fall', 'gravity turns it into $0001'],
+    [0x4000, 'takes no damage', 'the hit reaction skips it; set by attribute()'],
+    [0x8000, '—', 'no code tests it'],
+  ];
   /** Flags +0x07, as the code tests them ($8FC4BA, $8FBA46, $8C86A6 / $8C86DA, $8FB9FB). */
-  var FLAGS2_BITS = [[0x01, 'listed at $58AF'], [0x02, '−30 hit rate'], [0x04, 'script bit 2'], [0x08, 'script bit 3'], [0x10, 'immune to projectiles']];
+  var FLAGS2_BITS = [
+    [0x01, 'listed', 'registered in the list at $58AF'], [0x02, '−30 hit rate', ''], [0x04, 'script bit 2', 'tested by the script engine'],
+    [0x08, 'script bit 3', 'tested by the script engine'], [0x10, 'immune to projectiles', 'an automatic miss'],
+    [0x20, '—', ''], [0x40, '—', ''], [0x80, '—', ''],
+  ];
+  var FLAG_TABLES = { spawn: SPAWN_FLAG_BITS, flags2: FLAGS2_BITS };
 
-  function bitNames(v, table) {
-    var names = table.filter(function(b) { return v & b[0]; }).map(function(b) { return b[1]; });
-    var rest = v & ~table.reduce(function(m, b) { return m | b[0]; }, 0);
-    if (rest) names.push('$' + rest.toString(16));
-    return names;
-  }
-  function spawnFlagsText(v) { var n = bitNames(v, SPAWN_FLAG_BITS); return n.length ? n.join(', ') : 'none'; }
-
-  /** `width` bits, high first, in groups of four; a set bit is lit and every bit names itself on hover. */
-  function bitsHtml(v, width, table) {
+  function bitsText(v, width) {
     var out = '';
-    for (var b = width - 1; b >= 0; b--) {
-      var mask = 1 << b, named = table.find(function(t) { return t[0] === mask; });
-      out += '<span class="sp-bit' + (v & mask ? ' sp-bit-on' : '') + '" title="bit ' + b + ' ($' + mask.toString(16) + ')' + (named ? ': ' + named[1] : '') + '">' + (v & mask ? 1 : 0) + '</span>';
-      if (b && b % 4 === 0) out += '<span class="sp-bit-gap"></span>';
-    }
-    var names = bitNames(v, table);
-    return '<span class="sp-bits">' + out + '</span><span class="sp-stat-note">' + escHtml(names.length ? names.join(', ') : 'none') + '</span>';
+    for (var b = width - 1; b >= 0; b--) out += (v >> b & 1) + (b && b % 4 === 0 ? ' ' : '');
+    return out;
   }
+  function flagNames(v, table) {
+    var n = table.filter(function(t) { return v & t[0]; }).map(function(t) { return t[1]; });
+    return n.length ? n.join(', ') : 'none';
+  }
+
+  /** The flags as their bits on a drop-down button; it opens a list of every bit with a checkbox (flagsPopup). */
+  function flagsHtml(v, kind) {
+    var table = FLAG_TABLES[kind], width = kind === 'spawn' ? 16 : 8;
+    return '<button class="sp-select sp-flag-btn" data-flags="' + v + '" data-kind="' + kind + '" title="' + escHtml(flagNames(v, table)) + '">' +
+      '<span class="sp-bits">' + bitsText(v, width) + '</span></button>';
+  }
+
+  /** One list for the open flags button, fixed to the viewport so the panel edge never clips it. */
+  var flagPop = null;
+  function closeFlags() { if (flagPop) { flagPop.remove(); flagPop = null; } }
+  function openFlags(btn) {
+    closeFlags();
+    var kind = btn.dataset.kind, table = FLAG_TABLES[kind], width = kind === 'spawn' ? 16 : 8;
+    flagPop = document.createElement('div');
+    flagPop.className = 'sp-flag-pop';
+    flagPop.innerHTML = table.map(function(t) {
+      return '<label title="' + escHtml(t[2]) + '"><input type="checkbox" data-bit="' + t[0] + '"' + (+btn.dataset.flags & t[0] ? ' checked' : '') + '>' +
+        '<code>$' + t[0].toString(16).padStart(width / 4, '0') + '</code> ' + escHtml(t[1]) + '</label>';
+    }).join('') + '<div class="sp-flag-note">The ROM\'s bits are ticked; the tab saves nothing.</div>';
+    document.body.appendChild(flagPop);
+    var r = btn.getBoundingClientRect(), pw = flagPop.offsetWidth, ph = flagPop.offsetHeight;
+    flagPop.style.left = Math.max(4, Math.min(r.left, window.innerWidth - pw - 4)) + 'px';
+    flagPop.style.top = (r.bottom + ph + 4 > window.innerHeight ? Math.max(4, r.top - ph - 2) : r.bottom + 2) + 'px';
+    flagPop.addEventListener('change', function(e) {
+      var bit = +e.target.dataset.bit, v = +btn.dataset.flags;
+      v = e.target.checked ? v | bit : v & ~bit;
+      btn.dataset.flags = String(v);
+      btn.title = flagNames(v, table);
+      btn.firstChild.textContent = bitsText(v, width);
+    });
+  }
+  if (statsGrid) statsGrid.addEventListener('click', function(e) {
+    var btn = e.target.closest && e.target.closest('.sp-flag-btn');
+    if (!btn) return;
+    e.stopPropagation();
+    if (flagPop && flagPop.__for === btn) { closeFlags(); return; }
+    openFlags(btn);
+    flagPop.__for = btn;
+  });
+  document.addEventListener('click', function(e) { if (flagPop && !flagPop.contains(e.target)) closeFlags(); });
 
   /** A palette as its index and its colours (the first, transparent, left out). */
   function paletteHtml(index, addr, colours) {
@@ -77,6 +133,7 @@
 
   function renderStats(c) {
     if (!statsGrid) return;
+    closeFlags();
     statsGrid.innerHTML = '';
     var s = c.stats || {};
     var m = c.statMeanings || {};
@@ -100,8 +157,8 @@
       { label: 'Palette 2', html: paletteHtml(c.palette2Index, s.palette2, c.palette2Colors), raw: hex(s.palette2), desc: m.palette2 },
       { label: 'Behaviour', html: namedSelect('behaviour', s.ai_script), raw: hex(s.ai_script), desc: m.ai_script },
       { label: 'Attack Proc', html: namedSelect('attackProc', s.attack_proc), raw: hex(s.attack_proc), desc: m.attack_proc },
-      { label: 'Spawn Flags', html: bitsHtml(s.flags, 16, SPAWN_FLAG_BITS), raw: hex(s.flags), desc: m.flags },
-      { label: 'Flags', html: bitsHtml(s.flags2, 8, FLAGS2_BITS), raw: hex(s.flags2), desc: m.flags2 },
+      { label: 'Spawn Flags', html: flagsHtml(s.flags, 'spawn'), raw: hex(s.flags), desc: m.flags },
+      { label: 'Flags', html: flagsHtml(s.flags2, 'flags2'), raw: hex(s.flags2), desc: m.flags2 },
       { label: 'Charge Limit', html: chargeHtml(s.charge_limit), raw: hex(s.charge_limit), desc: m.charge_limit },
       { label: 'Charge Speed', val: s.charge_speed, raw: hex(s.charge_speed), desc: m.charge_speed },
       { label: '+0x11', val: s.unknown11, raw: hex(s.unknown11), desc: m.unknown11 },

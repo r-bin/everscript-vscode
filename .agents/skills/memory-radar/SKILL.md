@@ -103,7 +103,7 @@ consumed. Do NOT attempt to infer addresses from call sites.
   to their high byte (`wd0`/`wd1`), named or not. Word starts come from 16-bit xrefs, not
   `wram.flags` (which sets WORD on both bytes, so `$10-11` and `$11-12` look alike); overlapping
   starts chain into longer joins. A rest row with coverage (`gcdl`) shows with `rest` hidden.
-- Search box — a hex address (`2258`, `$7E2258`) selects it; other text marks matching cells
+- Search box (top right of the Bus | WRAM | ROM bar; Bus and ROM use `#rom-search` there) — a hex address (`2258`, `$7E2258`) selects it; other text marks matching cells
   (`.cq`) and hides non-matching detail rows.
 - Detail columns: Addr | Name | T | Rgn | Notes | Lines.
 

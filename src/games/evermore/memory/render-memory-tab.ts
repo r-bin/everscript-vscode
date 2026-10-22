@@ -291,7 +291,6 @@ function buildMemoryTabHtml(
         '<button class="fb fglobal" id="btn-global" title="Global scope: show whole file instead of current function">global</button>' +
         '<span class="sep"></span>' +
         '<button class="fb fcdl on" id="btn-cdl" title="CDL coverage: what the recorder saw read, written or run (bar under each byte), and where it saw 16-bit accesses start (bytes joined into words), named or not">cdl</button>' +
-        '<input class="mem-search" id="wram-search" type="text" placeholder="Search $addr or name…" autocomplete="off" spellcheck="false">' +
         '<span class="mem-cdl-note" id="wram-cdl-note"></span>';
 
     const tabHtml =

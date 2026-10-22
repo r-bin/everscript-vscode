@@ -164,7 +164,7 @@ else; the linear walker reads `opcode()` too.
   animate() = the compiler's ids. The Boy's weapon picker starts at Default (no weapon, own palette with
   green placeholders); a weapon (`$8F:81C9`) or Dog form (`$8F:9471`, slots 0-8) **overwrites**
   fields (`field` on each anim), never adds a second Idle; form slots 9-14 are their own group. A
-  record listed twice is marked `→ first`. Stats: no `+0x2A` ("level"), a kaizo experiment, not vanilla.
+  record shows once: later entries playing it fold into its tile ("+n", named in the tooltip). Stats: no `+0x2A` ("level"), a kaizo experiment, not vanilla.
 - A played script palette (`scriptPalette`) becomes the stage's kept palette (`homePalette`, the game's
   `+0x75`) until Reset, another weapon or another character.
 - The script listing (`scriptListing`) attaches `palette` (address + colours) and `projectile`

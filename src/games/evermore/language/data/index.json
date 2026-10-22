@@ -14352,13 +14352,13 @@
       },
       {
         "name": "RAISE_SPEAR",
-        "value": "0x017a",
-        "comment": ""
+        "value": "0x017c",
+        "comment": "was 0x017a in the compiler (that record raises the bazooka); 0x017c raises the spear"
       },
       {
         "name": "RAISE_BAZOOKA",
-        "value": "0x0178",
-        "comment": ""
+        "value": "0x017a",
+        "comment": "was 0x0178 in the compiler (the bone's id); 0x017a raises the bazooka"
       }
     ],
     "ANIMATION_DOG": [

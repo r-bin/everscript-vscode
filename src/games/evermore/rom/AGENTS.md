@@ -7,7 +7,7 @@ Related skills: `memory-map`, `map-format`, `cdl-recorder` (`.agents/skills/`).
 - The radar's **Memory › ROM** (File, Compare) and **Memory › Bus** views: the pure model (`build.js`,
   `model/`), the `romMapRequest` / `romReaders` requests and the WRAM view's `wramCdlRequest`
   (`host.js`, `model/bus-usage.ts`), the pane scaffold, and the page code in `webview/`
-  (`romShow` is what the Memory bar calls).
+  (`romShow` is what the Memory bar calls; its search field `#rom-search` lives on that bar).
 
 ## Dependencies
 - May use `../maps` (room, sprite and animation decoders) and `../localizations` (names).

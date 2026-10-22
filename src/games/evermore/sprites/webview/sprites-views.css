@@ -173,16 +173,25 @@
 /* ── Animations tab: repeats and empty record fields; Stats: palettes, bits, behaviour ── */
 .sp-anim-tile.sp-anim-repeat .sp-anim-sub { color: var(--vscode-editorWarning-foreground, #cca700); opacity: 0.85; }
 .sp-anim-tile.sp-anim-empty { opacity: 0.45; }
-.sp-stat-swatch { display: inline-flex; vertical-align: middle; margin-left: 6px; border: 1px solid rgba(255,255,255,0.15); }
-.sp-stat-swatch span { width: 8px; height: 14px; }
 .sp-bits { font-family: var(--vscode-editor-font-family, monospace); letter-spacing: 1px; }
 .sp-bit { opacity: 0.35; cursor: default; }
 .sp-bit.sp-bit-on { opacity: 1; color: var(--vscode-textLink-foreground, #4daafc); }
 .sp-bit-gap { display: inline-block; width: 6px; }
-.sp-stat-note { display: block; font-size: 10px; font-weight: normal; opacity: 0.6; margin-top: 2px; }
 .sp-stat-select { width: 100%; font-size: 12px; margin-top: 2px; }
 .sp-pal-reset { margin-right: 8px; }
 .sp-header .sp-char-name, .sp-header .sp-palette-hex, .sp-header .sp-palette-label, .sp-pal-reset { white-space: nowrap; }
 .sp-stat-raw { opacity: 0.6; text-transform: none; letter-spacing: 0; }
 .sp-stat-card .sp-bits { font-size: 12px; letter-spacing: 0; }
 .sp-stat-card .sp-stat-select { font-size: 11px; padding: 1px 2px; }
+/* Stats: every card is the label (top left), the raw value (top right) and one value row */
+.sp-stat-card .sp-stat-val { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; min-height: 22px; }
+.sp-stat-swatch { display: inline-flex; flex: 0 1 auto; min-width: 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); }
+.sp-stat-swatch span { flex: 0 0 6px; width: 6px; height: 12px; }
+.sp-flag-btn { width: 100%; text-align: left; cursor: pointer; font-size: 11px; padding: 1px 4px; }
+.sp-flag-btn::after { content: '▾'; float: right; opacity: 0.7; }
+.sp-flag-pop { position: fixed; z-index: 1000; background: var(--vscode-dropdown-background, #252526); border: 1px solid var(--vscode-dropdown-border, #454545);
+  border-radius: 3px; padding: 4px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.5); font-size: 12px; max-height: 70vh; overflow-y: auto; }
+.sp-flag-pop label { display: flex; align-items: center; gap: 6px; padding: 2px 10px; white-space: nowrap; cursor: pointer; }
+.sp-flag-pop label:hover { background: var(--vscode-list-hoverBackground, #2a2d2e); }
+.sp-flag-pop code { opacity: 0.7; font-size: 11px; }
+.sp-flag-note { font-size: 10px; opacity: 0.55; padding: 4px 10px 2px; border-top: 1px solid rgba(255,255,255,0.08); margin-top: 4px; }

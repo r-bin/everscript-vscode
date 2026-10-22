@@ -1,6 +1,7 @@
 // Ownership: the ROM and Bus views' pane scaffold, one sub-pane of the Memory tab
 // (memory/render-radar.js puts it beside WRAM under the Bus | WRAM | ROM bar). Pure;
 // the content arrives later from the host (`romMap` message) and is drawn by webview/rom-tab.js.
+// Its search field (#rom-search) sits on the Memory bar, beside WRAM's, so every view has it top right.
 
 function buildRomTabHtml() {
     return '<div class="mem-sub-pane rom-pane" data-mem="rom" style="display:none">' +
@@ -15,7 +16,6 @@ function buildRomTabHtml() {
         '<button class="rom-seg-btn rom-on" data-rom-layer="content">Content</button>' +
         '<button class="rom-seg-btn" data-rom-layer="cdl">CDL</button>' +
         '</div>' +
-        '<input class="rom-search" id="rom-search" type="text" placeholder="Search address, room, table…" autocomplete="off" spellcheck="false">' +
         '<button class="rom-btn" id="rom-refresh" title="Rebuild the map, reloading the CDL library">↻</button>' +
         '</div>' +
         '<div class="rom-body" id="rom-file-view">' +

@@ -62,6 +62,11 @@ Of the 207 global ids named in `index.json`, 206 land on a group head. The
 other one, Dog `ACT1_STICK_RUNNING` (`0x30`), lands on `$42DA`. That is the
 west record of the 4-facing group at `$42CE`, used as a one-pose animation.
 
+**The RAISE ids** (the Boy holding up a new weapon, `$92:BF33` RAISE_CURRENT_WEAPON) are five
+neighbouring records, `$3E9A`–`$3EAA`, by rendering each: `0x176` axe, `0x178` bone, `0x17A`
+bazooka, `0x17C` spear, `0x17E` sword. The compiler's `ANIMATION_BOY` had `RAISE_SPEAR = 0x17A`
+and `RAISE_BAZOOKA = 0x178` (the bone's); the extension's `index.json` is corrected.
+
 **`$910000` is not this table.** It is font glyph bitplanes, and an earlier
 decoder read ids through it. Not one of the 140 ids tried there landed on a
 record head. The one that seemed to work, `MAGMAR_ENTER`, was a coincidence.

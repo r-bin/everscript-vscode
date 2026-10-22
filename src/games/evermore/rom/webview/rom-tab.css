@@ -11,7 +11,6 @@
 .rom-seg-btn{background:transparent;color:var(--rom-dim);border:0;padding:4px 10px;cursor:pointer;font:inherit;font-size:12px}
 .rom-seg-btn.rom-on{background:var(--vscode-button-secondaryBackground,#3a3d41);color:var(--vscode-button-secondaryForeground,#fff)}
 .rom-seg-btn:disabled{opacity:.35;cursor:default}
-.rom-search{background:var(--vscode-input-background,#3c3c3c);color:var(--vscode-input-foreground,#ccc);border:1px solid var(--vscode-input-border,#4a4a4a);border-radius:3px;padding:5px 10px;width:260px;font:inherit}
 .rom-btn{border:1px solid var(--rom-line);border-radius:3px;padding:3px 10px;color:inherit;background:var(--vscode-button-secondaryBackground,#333);cursor:pointer;font:inherit;font-size:12px}
 .rom-body{display:grid;grid-template-columns:minmax(300px,430px) 1fr;flex:1;min-height:0}
 .rom-left{border-right:1px solid var(--rom-line);padding:10px 12px;overflow-y:auto}

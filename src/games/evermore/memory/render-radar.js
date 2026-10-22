@@ -161,6 +161,9 @@ function renderRadarHtml(
         '<button class="mem-sub" data-mem-view="bus" title="The CPU\'s 24-bit bus: what every bank and address reaches">Bus</button>' +
         '<button class="mem-sub mem-sub-on" data-mem-view="wram" title="Work RAM: the memory map, this scope\'s reads and writes, CDL coverage">WRAM</button>' +
         '<button class="mem-sub" data-mem-view="rom" title="The ROM file: every bank half, what fills it, CDL coverage">ROM</button>' +
+        // One search field top right for every view: WRAM's, or the ROM feature's (rom-init.js binds #rom-search).
+        '<input class="mem-search" id="wram-search" type="text" placeholder="Search $addr or name…" autocomplete="off" spellcheck="false">' +
+        '<input class="mem-search" id="rom-search" type="text" placeholder="Search address, room, table…" autocomplete="off" spellcheck="false" style="display:none">' +
         '</div>' +
         memoryTabHtml +
         buildRomTabHtml() +
