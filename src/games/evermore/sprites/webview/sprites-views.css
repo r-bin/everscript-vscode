@@ -173,7 +173,6 @@
 /* ── Animations tab: repeats and empty record fields; Stats: palettes, bits, behaviour ── */
 .sp-anim-tile.sp-anim-repeat .sp-anim-sub { color: var(--vscode-editorWarning-foreground, #cca700); opacity: 0.85; }
 .sp-anim-tile.sp-anim-empty { opacity: 0.45; }
-.sp-stats-grid .sp-stat-wide { grid-column: 1 / -1; }
 .sp-stat-swatch { display: inline-flex; vertical-align: middle; margin-left: 6px; border: 1px solid rgba(255,255,255,0.15); }
 .sp-stat-swatch span { width: 8px; height: 14px; }
 .sp-bits { font-family: var(--vscode-editor-font-family, monospace); letter-spacing: 1px; }
@@ -184,3 +183,6 @@
 .sp-stat-select { width: 100%; font-size: 12px; margin-top: 2px; }
 .sp-pal-reset { margin-right: 8px; }
 .sp-header .sp-char-name, .sp-header .sp-palette-hex, .sp-header .sp-palette-label, .sp-pal-reset { white-space: nowrap; }
+.sp-stat-raw { opacity: 0.6; text-transform: none; letter-spacing: 0; }
+.sp-stat-card .sp-bits { font-size: 12px; letter-spacing: 0; }
+.sp-stat-card .sp-stat-select { font-size: 11px; padding: 1px 2px; }

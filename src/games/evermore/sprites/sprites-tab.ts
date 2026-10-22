@@ -151,9 +151,9 @@ function buildSpritesTabHtml(): string {
 
           <!-- Playback bar: the seek bar on its own full-width row, the controls and readout beneath -->
           <div class="sp-player-bar">
-            <div class="sp-scrub-track" title="Each mark is a frame, spaced by how many ticks it holds; dragging snaps to them">
+            <div class="sp-scrub-track" title="One segment per frame, as long as it holds (in ticks); the knob moves with time">
               <div class="sp-scrub-ticks" id="sp-scrub-ticks"></div>
-              <input type="range" class="sp-scrubber" id="sp-scrubber" min="0" max="0" value="0" />
+              <input type="range" class="sp-scrubber" id="sp-scrubber" min="0" max="0" step="any" value="0" />
             </div>
             <div class="sp-player-row">
             <div class="sp-player-btns">

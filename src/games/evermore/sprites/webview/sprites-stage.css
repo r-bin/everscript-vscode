@@ -101,16 +101,46 @@
 
 .sp-scrub-ticks {
   position: absolute;
-  inset: 0;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 10px;
+  margin-top: -5px;
 }
 
-.sp-scrub-ticks i {
+/* A frame's segment: alternating shades with a gap between, the frame under the knob lit */
+.sp-scrub-ticks .sp-seg {
   position: absolute;
-  top: 1px;
-  width: 1px;
-  height: 5px;
-  background: var(--vscode-descriptionForeground, #888);
-  opacity: 0.8;
+  top: 0;
+  bottom: 0;
+  background: #3b4a5c;
+  border-right: 2px solid var(--vscode-sideBar-background, #1e1e1e);
+  box-sizing: border-box;
+}
+
+.sp-scrub-ticks .sp-seg-odd { background: #4b5e74; }
+.sp-scrub-ticks .sp-seg-on { background: var(--vscode-button-background, #0e639c); }
+
+/* The range draws only its knob; the segments are the track */
+.sp-scrub-track .sp-scrubber {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  height: 18px;
+  margin: 0;
+}
+
+.sp-scrub-track .sp-scrubber::-webkit-slider-runnable-track { height: 10px; background: transparent; }
+
+.sp-scrub-track .sp-scrubber::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -2px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--vscode-button-background, #0e639c);
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.6);
 }
 
 .sp-frame-info {

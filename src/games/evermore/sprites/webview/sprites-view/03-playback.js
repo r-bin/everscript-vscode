@@ -96,6 +96,7 @@
         return;
       }
     }
+    syncScrub();
     // Walking, jumping and projectiles change between frame changes: redraw every tick.
     if (animatesBetweenFrames()) drawFrame();
   }
@@ -118,8 +119,8 @@
 
     if (scrubber) {
       scrubber.max = String(scrubTotal());
-      scrubber.value = String(frameStartTicks[currentFrameIdx] || 0);
       scrubber.disabled = currentAnimData.frames.length < 2;    // one frame: nothing to seek
+      syncScrub();
     }
 
     if (frameInfo) {

@@ -31,6 +31,9 @@ const SLOT_LABELS = [
     null, null, 'Sleep', 'Sit', null, 'Bark',
 ];
 
+/** The Dog's record field each slot overwrites ($8F:9471); slots 9-14 go to $1443-$144D instead. */
+const SLOT_FIELDS = [0x32, 0x34, 0x36, 0x48, 0x40, 0x38, 0x3a, 0x3c, 0x3e];
+
 const SLOT_PURPOSES = [
     'idle', 'walk', 'run', null, 'knockback',
     'attack_0', 'attack_1', 'attack_2', 'attack_3',
@@ -54,6 +57,7 @@ function readDogForm(rom: Uint8Array, index: number) {
             animRec,
             category: 'weapon',
             paletteAddr,
+            field: SLOT_FIELDS[s],
         });
     }
     return { id: index, name: FORM_NAMES[index], paletteAddr, entryHex: '$' + entry.toString(16), anims };

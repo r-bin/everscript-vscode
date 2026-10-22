@@ -38,7 +38,8 @@ else; the linear walker reads `opcode()` too.
   weapon field and id lands on a group head.
 - **Global ids** (`animate(entity, mode, id)`, `id < 0x8000`): record =
   `$C43C92 + id` (`$8CE13C`). 212 entries. `id >= 0x8000` means the character's own
-  field `+0x32 + (id & 0x7FFF)`.
+  field `+0x32 + (id & 0x7FFF)` of its **ROM** record (`lda $8E0032,x`): a weapon or Dog form
+  does not change it. Enum values can be references (`ANIMATION_ALL.SLASH_1` = `0x8006`): resolve them.
 - **Projectiles**: `0x4C` throws record `$900000 + id` (24 bytes, `$90D9A6`..`$90DB86`):
   `+0x00` animation record, `+0x02` palette (`0` = thrower's), `+0x08` routine, `+0x0E`
   speed (1/16 px/tick), `+0x16` power (`0` = thrower's). Only routines 2 and 4 fly
@@ -152,7 +153,8 @@ else; the linear walker reads `opcode()` too.
 - The Stamina selector maps to attack levels and shows the power factor.
 - Palette precedence: viewer's choice (`paletteForced`) > script `palette` > weapon/form
   of the first owner > character > inferred (shared sprites, neighbouring sprites,
-  nearest record). The Dog's own fields keep its Act 1 palette; `ACTn_` ids use form n.
+  nearest record). animate() loads no palette: an `ACTn_` id draws in the Dog's current one
+  (its own Act 1 palette, or the selected form's, which `$8F:9471` writes to `+0x09`).
 - List previews face south (8) and fall back to the fullest frame when the last is a wisp.
 - Indices, not addresses, label things: a character `#id`, an animation `#n` = its place in the
   record catalogue (record order), a sprite `#n` = `spriteAddresses(rom)`, a chunk its place in the frame.
@@ -160,8 +162,9 @@ else; the linear walker reads `opcode()` too.
   thumbnails too, even where the game would never: that is the point. The seek bar runs in ticks.
 - **Default** lists the record as stored: General = all 12 fields `+0x32..+0x48` (empty ones too),
   animate() = the compiler's ids. The Boy's weapon picker starts at Default (no weapon, own palette with
-  green placeholders); a weapon **overwrites** fields as `$8F:81C9` does (`field` on each weapon anim),
-  never adds a second Idle. A record listed twice is marked `→ first`.
+  green placeholders); a weapon (`$8F:81C9`) or Dog form (`$8F:9471`, slots 0-8) **overwrites**
+  fields (`field` on each anim), never adds a second Idle; form slots 9-14 are their own group. A
+  record listed twice is marked `→ first`. Stats: no `+0x2A` ("level"), a kaizo experiment, not vanilla.
 - A played script palette (`scriptPalette`) becomes the stage's kept palette (`homePalette`, the game's
   `+0x75`) until Reset, another weapon or another character.
 - The script listing (`scriptListing`) attaches `palette` (address + colours) and `projectile`

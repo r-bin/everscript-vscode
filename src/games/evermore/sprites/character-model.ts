@@ -59,7 +59,6 @@ const STAT_MEANINGS: Record<string, string> = {
     palette2: 'Second palette (+0x0B): when non-zero, loaded into palette slot 2 ($90CD01, $90CF3A).',
     unknown11: '+0x11: copied into entity +0x2C at spawn ($8FB162). Meaning open.',
     unknown17: '+0x17: copied into entity +0x40 at spawn unless $23DD overrides it ($8FB169). Meaning open.',
-    unknown2a: 'Level (+0x2A): the compiler\'s ATTRIBUTE_GENERAL.LEVEL. No code reads it directly from the record.',
 };
 
 /** Record fields: name, offset, width in bytes. */
@@ -68,7 +67,7 @@ const STATS: [string, number, number][] = [
     ['aggro_range', 0x13, 2], ['aggro_chance', 0x15, 2], ['exp', 0x23, 4], ['money', 0x27, 2], ['prize_chance', 0x29, 1],
     ['radius', 0x0d, 2], ['flags', 0x05, 2], ['palette', 0x09, 2], ['charge_limit', 0x2c, 2], ['charge_speed', 0x2e, 2],
     ['attack_proc', 0x30, 2], ['ai_script', 0x03, 2], ['flags2', 0x07, 2], ['palette2', 0x0b, 2], ['unknown11', 0x11, 2],
-    ['unknown17', 0x17, 2], ['unknown2a', 0x2a, 2],
+    ['unknown17', 0x17, 2],   // not +0x2A ("level"): no vanilla code reads it; it belongs to kaizo experiments
 ];
 
 /**
@@ -149,7 +148,7 @@ function readWeaponAnimations(rom: Rom): (Form & { anims: Anim[] })[] {
 }
 
 /** The compiler's named animations for this character (ANIMATION_BOY, ANIMATION_DOG, its prefix in ANIMATION_ENEMY). */
-function externalAnimations(rom: Rom, id: number, name: string, record: number, forms: Form[]): Anim[] {
+function externalAnimations(rom: Rom, id: number, name: string, record: number): Anim[] {
     const enums = (indexJson.enums || {}) as unknown as Record<string, { name: string; value: string; comment?: string }[]>;
     let list: { name: string; value: string; comment?: string }[] = [];
     if (id === BOY) list = enums.ANIMATION_BOY || [];
@@ -159,18 +158,33 @@ function externalAnimations(rom: Rom, id: number, name: string, record: number, 
         list = (enums.ANIMATION_ENEMY || []).filter((e) => e.name.startsWith(prefix));
     }
     return list.map((e) => {
-        const num = parseInt(e.value, 16);
-        // Ids from $8000 name a field of the character's own record; below, the global id table.
-        const animRec = num >= 0x8000 ? read16At(rom, record + (num & 0x7fff)) : animationIdRecord(rom, num);
+        const num = enumValue(enums, e.value);
+        // $8C:E139: ids from $8000 read the character's ROM record at +0x32 + (id & $7FFF) (a long read in bank $8E,
+        // so an equipped weapon or Dog form does not change them); below, the global id table $C4:3C92.
+        const animRec = !isFinite(num) ? 0 : num >= 0x8000 ? read16At(rom, record + 0x32 + (num & 0x7fff)) : animationIdRecord(rom, num);
         const purpose = /RUN/.test(e.name) ? 'run' : /WALK/.test(e.name) ? 'walk' : /ATTACK/.test(e.name) ? 'attack' : /STAND|IDLE/.test(e.name) ? 'idle' : /DAMAGE/.test(e.name) ? 'knockback' : 'external';
-        const out = anim(rom, { animRec }, {
+        // animate() changes no palette: an ACTn_ id plays in whatever palette the character has.
+        return anim(rom, { animRec }, {
             key: e.name, label: e.name.replace(/_/g, ' '), purpose, valueHex: '0x' + num.toString(16), num, category: 'external', comment: e.comment || '',
         });
-        const act = /^ACT(\d)_/.exec(e.name);
-        const form = act && forms.find((f) => f.name.startsWith('Act ' + act[1]));
-        if (form) out.paletteAddr = form.paletteAddr;
-        return out;
     }).filter((a) => a.animRec);
+}
+
+/** An enum value: a hex literal, or another enum's member (`ANIMATION_ALL.SLASH_1`, as Vigor's ids are written). */
+function enumValue(enums: Record<string, { name: string; value: string }[]>, value: string): number {
+    const ref = /^([A-Z0-9_]+)\.([A-Z0-9_]+)$/.exec(value.trim());
+    if (ref) {
+        const hit = (enums[ref[1]] || []).find((m) => m.name === ref[2]);
+        return hit ? enumValue(enums, hit.value) : NaN;
+    }
+    return parseInt(value, 16);
+}
+
+/** Attack proc (+$30) values by the compiler's ATTACK_PROC names (what a hit by the character does, $8FB6A5). */
+function attackProcNames(): { value: number; name: string; note: string }[] {
+    const enums = (indexJson.enums || {}) as unknown as Record<string, { name: string; value: string; comment?: string }[]>;
+    return (enums.ATTACK_PROC || []).map((e) => ({ value: parseInt(e.value, 16), name: e.name, note: e.comment || '' }))
+        .sort((a, b) => a.value - b.value);
 }
 
 /** Whether a script names a sprite that draws something. */
@@ -208,7 +222,7 @@ function readCharacter(rom: Rom, id: number) {
     const boyWeapons = id === BOY ? readWeaponAnimations(rom) : null;
     const weapons: Form[] | null = boyWeapons || (id === DOG ? readDogForms(rom) : null);
     // The Boy's own fields are his record as stored (no weapon); an equipped weapon overwrites them (`field`).
-    const anims = [...own, ...externalAnimations(rom, id, name, record, weapons || [])];
+    const anims = [...own, ...externalAnimations(rom, id, name, record)];
     const drawn = own.filter((a) => a.purpose !== 'death' && a.purpose !== 'spoils');
     const noVisuals = !drawn.some((a) => showsSprite(rom, a.scriptAddr)) && !(id === BOY || id === DOG);
     const flags = stats.flags;
@@ -233,4 +247,4 @@ function readAllCharacters(rom: Rom) {
     return out;
 }
 
-export { behaviourNames, CHARACTER_TABLE, CHARACTER_STRIDE, CHARACTER_COUNT, STAT_MEANINGS, STANDARD_ANIM_FIELDS, WEAPON_NAMES, readWeaponAnimations, readCharacter, readAllCharacters };
+export { behaviourNames, attackProcNames, CHARACTER_TABLE, CHARACTER_STRIDE, CHARACTER_COUNT, STAT_MEANINGS, STANDARD_ANIM_FIELDS, WEAPON_NAMES, readWeaponAnimations, readCharacter, readAllCharacters };

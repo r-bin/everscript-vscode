@@ -15,7 +15,7 @@ const romReaders = require('../../../dist/games/evermore/rom-readers');
 const platform = require('../../../dist/platform');
 const { detectScaleEnemies } = require('../../../dist/games/evermore/rom-readers');
 const { renderRadarHtml } = require('./memory/render-radar');
-const { readAllCharacters, buildAnimationCatalog, characterThumbs, behaviourNames } = require('../../../dist/games/evermore/sprites');
+const { readAllCharacters, buildAnimationCatalog, characterThumbs, behaviourNames, attackProcNames } = require('../../../dist/games/evermore/sprites');
 const { radarReadMemoryMap, radarDetectScope, radarAnalyzeScope } = require('../../../dist/games/evermore/memory/scope-analysis');
 
 // ── Memory Radar ─────────────────────────────────────────────────────────────
@@ -47,7 +47,7 @@ const radar = {
     hitLookup: null,        // precomputed hit% table {hit_rate:{evade:pct}} from ROM
     scaleActive: false,     // whether scale_enemies is active in workspace
     byteScriptFocus: '',    // currently focused byte-script address from emulator panel
-    spritesBundle: null,    // cached sprites bundle {characters, animations, behaviours}
+    spritesBundle: null,    // cached sprites bundle {characters, animations, statNames}
     mapExportChannel: null, // output channel for ROM build and compilation logs
     // Secret of Mana maps as Evermore rooms (imports/mana): the Rooms tab lists them under the vanilla
     // rooms when a Mana ROM is found beside the Evermore one. Set in activate(), where the Mana ROM
@@ -119,13 +119,13 @@ function invalidateRoomCaches() {
 
 function getSpritesBundle(rom) {
     if (radar.spritesBundle) return radar.spritesBundle;
-    if (!rom) return { characters: [], animations: [], behaviours: behaviourNames() };
+    if (!rom) return { characters: [], animations: [], statNames: { behaviour: behaviourNames(), attackProc: attackProcNames() } };
     const characters = readAllCharacters(rom);
     for (const c of characters) c.thumbs = characterThumbs(rom, c);
     radar.spritesBundle = {
         characters,
         animations: buildAnimationCatalog(rom, characters),
-        behaviours: behaviourNames(),
+        statNames: { behaviour: behaviourNames(), attackProc: attackProcNames() },
     };
     return radar.spritesBundle;
 }

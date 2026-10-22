@@ -21,30 +21,29 @@
   }
 
   /**
-   * The Default list, in groups. Form: the Dog's selected form. General: every animation field
-   * of the record (+0x32..+0x48), empty ones too; an equipped weapon overwrites nine of them
-   * ($8F:81C9: stand … attack 3, knockback +0x40, dodge +0x48), as it does in WRAM. animate():
-   * the compiler's named ids; ids from $8000 read a record field, so they follow the weapon too.
-   * An entry whose record an earlier one already plays says which (`repeats`: "→ Idle").
+   * The Default list, in groups. General: every animation field of the record (+0x32..+0x48),
+   * empty ones too; the Boy's weapon ($8F:81C9) or the Dog's form ($8F:9471) overwrites nine of
+   * them, as in WRAM. Form: the Dog form's other six slots (they go to $1443-$144D, not the
+   * record). animate(): the compiler's named ids; ids from $8000 read the ROM record
+   * ($8C:E139), so no weapon or form changes them. An entry whose record an earlier one already
+   * plays says which (`repeats`: "→ Idle").
    */
   function effectiveAnims(c) {
     var out = [];
     var w = hasVariants(c) ? c.weapons[selectedWeaponId] : null;
     var byField = {};
-    if (w && c.id !== DOG) (w.anims || []).forEach(function(a) { if (a.field) byField[a.field] = a; });
-    if (w && c.id === DOG) (w.anims || []).forEach(function(a) { out.push({ key: a.key, label: a.label, group: 'Form: ' + w.name, anim: a }); });
+    if (w) (w.anims || []).forEach(function(a) { if (a.field) byField[a.field] = a; });
     (c.anims || []).filter(function(a) { return a.category === 'standard'; })
       .concat((c.emptyFields || []).map(function(f) { return { key: f.key, label: f.label, offset: f.offset, animRec: 0, category: 'standard' }; }))
       .sort(function(a, b) { return a.offset - b.offset; })
       .forEach(function(f) {
         var wa = byField[f.offset];
-        out.push({ key: f.key, label: wa ? wa.label : f.label, group: 'General', anim: wa || f, weapon: wa ? w.name : '' });
+        // A form slot nothing names yet ("Slot 3") keeps the field's name.
+        out.push({ key: f.key, label: wa && !/^Slot /.test(wa.label) ? wa.label : f.label, group: 'General', anim: wa || f, weapon: wa ? w.name : '' });
       });
+    if (w) (w.anims || []).forEach(function(a) { if (!a.field) out.push({ key: a.key, label: a.label, group: 'Form: ' + w.name, anim: a }); });
     (c.anims || []).forEach(function(a) {
-      if (a.category !== 'external') return;
-      var wa = a.num >= 0x8000 ? byField[a.num & 0x7fff] : null;
-      out.push({ key: a.key, label: a.label + (a.valueHex ? ' (' + a.valueHex + ')' : ''), group: 'animate()',
-        anim: wa ? Object.assign({}, a, { animRec: wa.animRec, paletteAddr: wa.paletteAddr }) : a });
+      if (a.category === 'external') out.push({ key: a.key, label: a.label + (a.valueHex ? ' (' + a.valueHex + ')' : ''), group: 'animate()', anim: a });
     });
     var first = {};
     out.forEach(function(e) {
@@ -109,7 +108,7 @@
     var variantPal = hasVariants(c) && c.weapons[selectedWeaponId] ? c.weapons[selectedWeaponId].paletteAddr : 0;
     if (animFilter === 'all') {
       // Played on this character: its palette (the Boy's weapon's), not the record owner's.
-      var pal = paletteOverride || homePalette || (c.id === DOG ? 0 : variantPal) || 0;
+      var pal = paletteOverride || homePalette || variantPal || 0;
       var shown = 0, matched = 0;
       getAnimations().forEach(function(a, i) {
         if (!animMatches(q, a.label, i)) return;
@@ -137,11 +136,11 @@
         group = e.group;
         var head = document.createElement('div');
         head.className = 'sp-anim-group';
-        var wpn = c.id === 0 && hasVariants(c) ? c.weapons[selectedWeaponId] : null;
-        head.textContent = group === 'General' && c.id === 0 ? 'General · ' + (wpn ? wpn.name : 'no weapon') : group;
+        var wpn = hasVariants(c) ? c.weapons[selectedWeaponId] : null;
+        head.textContent = group === 'General' && hasVariants(c) ? 'General · ' + (wpn ? wpn.name : c.id === DOG ? 'own record' : 'no weapon') : group;
         animGrid.appendChild(head);
       }
-      var pal = paletteOverride || homePalette || a.paletteAddr || (c.id === DOG ? 0 : variantPal) || 0;
+      var pal = paletteOverride || homePalette || variantPal || a.paletteAddr || 0;
       var sub = (e.repeats ? '(→ ' + e.repeats + ')' : '') + (a.animRec ? '' : 'none');
       var tile = animTile(e.key, e.label, sub, a.animRec || 0, !pickedRecord && e.key === selectedAnimKey,
         { key: 'anim:' + c.id + ':' + a.animRec + ':' + selectedFacing + ':' + pal, record: a.animRec, facing: selectedFacing, character: c.id, paletteAddr: pal },
@@ -184,11 +183,11 @@
       var entry = effectiveAnims(c).find(function(e) { return e.key === selectedAnimKey; });
       animOpt = entry ? entry.anim : { key: 'stand', offset: 0x32 };
     }
-    // Palette, weakest first: the character's own; the Boy's equipped weapon's (weapon +0x04 → +0x09;
-    // the Dog's own fields are its Act 1 wolf, so only form animations take the form's); a palette an
-    // earlier animation loaded and the character kept (homePalette); the script's own (server side);
-    // one picked in the Palettes tab (forced).
-    if (hasVariants(c) && c.id !== DOG && c.weapons[selectedWeaponId] && !animOpt.paletteAddr) {
+    // Palette, weakest first: the character's own; the Boy's weapon's or the Dog's form's (each loader
+    // writes it to +0x09, so every animation draws in it, animate() ids too); a palette an earlier
+    // animation loaded and the character kept (homePalette); the script's own (server side); one
+    // picked in the Palettes tab (forced).
+    if (hasVariants(c) && c.weapons[selectedWeaponId]) {
       animOpt = Object.assign({}, animOpt, { paletteAddr: c.weapons[selectedWeaponId].paletteAddr });
     }
     if (homePalette) animOpt = Object.assign({}, animOpt, { paletteAddr: homePalette });

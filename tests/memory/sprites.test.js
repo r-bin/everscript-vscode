@@ -140,6 +140,14 @@ if (!rom) {
         assert.deepStrictEqual(fieldsOf(boy.weapons[0]), { w_stand: 0x32, w_walk: 0x34, w_run: 0x36, w_atk0: 0x38, w_atk1: 0x3a, w_atk2: 0x3c, w_atk3: 0x3e, w_charge: 0x48, w_damage: 0x40 });
         const listed = boy.anims.filter((a) => a.category === 'standard').length + boy.emptyFields.length;
         assert.strictEqual(listed, 12, 'every animation field of the record, empty ones too');
+        const dogForm = readCharacter(rom, 1).weapons[2];
+        assert.deepStrictEqual(dogForm.anims.filter((a) => a.field).map((a) => a.field), [0x32, 0x34, 0x36, 0x48, 0x40, 0x38, 0x3a, 0x3c, 0x3e], '$8F:9471: slots 0-8 overwrite record fields');
+        // $8C:E139: an id from $8000 reads the ROM record at +0x32 + (id & $7FFF); Vigor's are written as ANIMATION_ALL.SLASH_n.
+        const vigor = readAllCharacters(rom).find((c) => c.name === 'Vigor');
+        const rec = (key) => vigor.anims.find((a) => a.key === key).animRec;
+        assert.strictEqual(rec('VIGOR_BIDENT'), rec('atk0'));
+        assert.strictEqual(rec('VIGOR_BOOMERANG'), rec('atk1'));
+        assert.ok(!readCharacter(rom, 1).anims.some((a) => a.category === 'external' && a.paletteAddr), 'animate() ids load no palette');
         const names = behaviourNames();
         assert.strictEqual(names.find((n) => n.value === 0x10).name, 'MAGMAR_ROLL_SHOOT');
     });
