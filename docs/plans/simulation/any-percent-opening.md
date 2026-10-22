@@ -77,6 +77,21 @@ the flower spawn 7, the hut door step-on #6 — each a guess to confirm):
   "Gourd in south Jungle" ($2268 bit 6) and "Gourd in Act1 Huts" ($2265 bit 3) are
   set, and the only Talons are the drafted flower drop (2).
 
+## The fights, simulated
+
+The Routes tab's **simulate** (model, not yet checked against a recorded fight; party from WRAM
+at the end of the Podunk opening: Boy 30 HP, attack 17 with the Bone Crusher, defence 5; Dog 36 HP,
+attack 17):
+
+- **Step 3, Boy and Dog kill a Wimpy Flower** (18 HP, defence 28): each hit does 7–12 and always
+  lands (evade 0). Both swinging at once kill it with their first hits 79% of the time, 0.22 s
+  after the first swing (the Dog's strike comes at tick 12); otherwise a third hit comes with the
+  Boy's next full charge, about 2.2 s. The flower drops 2 money by its record (`+$27`), which
+  matches the draft's "+2 Talons".
+- **Step 4, a flower kills the Boy**: it hits for 6–10 at 58.8%, so 4 hits (72%) or 5 (28%),
+  needing 4–20+ attacks. Median 15.9 s, 10–90% 9.7–25.6 s; the best rolls 3.6 s. The waits are
+  random: after each attack it recharges for 69 ticks, then engages on a 5/256 roll per tick.
+
 ## Route Variants
 
 Routes should be named variants over a shared action sequence, not separate

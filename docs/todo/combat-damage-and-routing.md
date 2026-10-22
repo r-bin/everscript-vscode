@@ -19,5 +19,5 @@
   - Replace the current hardcoded approximation (`attack - 480`) with a trace-backed live-status formula.
 
 ### 1.2 Route Tab Progression Simulation
-- **Status: 🟢 Routes tab shipped (route files, room-script checks); progression simulation open**
+- **Status: 🟢 Routes tab shipped (route replay, fight/death simulation per step); open: check the fight model against a recorded fight (a state in room 0x38 — the fresh-game recordings end in 0x46), XP and levels carried between fights, reach and movement**
 - Ground route progression and speedrun routing simulation in verified physical and spell damage models once Atlas traces are integrated.

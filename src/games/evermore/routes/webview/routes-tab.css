@@ -67,3 +67,30 @@
 .rte-nav .scr-btn{font-size:12px;padding:3px 12px}
 .rte-nav .scr-btn[disabled]{opacity:.4;cursor:default}
 .rte-nav-at{flex:1;text-align:center;font-size:12.5px}
+/* The simulation sub-panel (webview/fight-panel.dom.ts) */
+.rte-sim{font-size:10.5px;padding:0 6px;margin-right:4px;vertical-align:1px}
+.rte-sim.rte-sim-on{outline:1px solid var(--vscode-focusBorder,#007acc)}
+.rte-fhead{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+.rte-fhead b{flex:1;min-width:0}
+.rte-fbody{flex:1;min-height:0;overflow:auto;padding-right:4px}
+.rte-ftiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:2px 0 12px}
+.rte-ftiles>div{border:1px solid var(--scr-line);border-radius:4px;padding:6px 8px;display:flex;flex-direction:column;gap:2px}
+.rte-ftiles span{font-size:11px;color:var(--scr-dim)}
+.rte-ftiles b{font-size:15px;font-variant-numeric:tabular-nums}
+.rte-fchart{display:block;width:100%;height:auto;overflow:visible;margin:4px 0}
+.rte-fgrid{stroke:var(--scr-line);stroke-width:1;opacity:.6}
+.rte-ftick,.rte-flabel{fill:var(--scr-dim);font:10px var(--scr-mono)}
+.rte-flabel{fill:var(--vscode-foreground,#ccc)}
+.rte-fmark{stroke-width:1.5;stroke-dasharray:4 3}
+.rte-fbest{stroke:var(--vscode-charts-green,#89d185)}
+.rte-fmedian{stroke:var(--vscode-foreground,#ccc)}
+.rte-fbar:hover{opacity:.75}
+.rte-fcols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.rte-fsec{margin:12px 0}
+.rte-fcounts{border-collapse:collapse;width:100%;font-size:12px}
+.rte-pane .rte-fcounts td{padding:1px 4px;border:0;background:transparent;white-space:nowrap;font-variant-numeric:tabular-nums}
+.rte-fcbar{width:60%}
+.rte-fcbar i{display:block;height:9px;border-radius:2px;min-width:2px}
+.rte-ftable{border-collapse:collapse;width:100%;font-size:12px;margin-bottom:8px}
+.rte-pane .rte-ftable th{background:transparent;text-align:left;font-weight:600;font-size:11px;color:var(--scr-dim);padding:2px 5px;border:0;border-bottom:1px solid var(--scr-line);position:static}
+.rte-pane .rte-ftable td{padding:2px 5px;border:0;background:transparent;white-space:nowrap;font-variant-numeric:tabular-nums}

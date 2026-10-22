@@ -9,6 +9,24 @@ export type StepKind = 'start' | 'loot' | 'fight' | 'death' | 'exit' | 'wait' | 
 import { freshState, playStep, triggerOf } from './simulate';
 import type { RouteState, TriggerAnalysis, Verdict } from './simulate';
 
+/** The party at the route's start, as WRAM holds it (records $0A26 / $0A70): what a fight simulation starts from. */
+export interface PartyStats { hp: number; atk: number; def: number; evade: number; hitRate: number; chargeSpeed: number }
+export interface Party { source: string; weapon: number; dogForm: number; boy: PartyStats; dog: PartyStats }
+
+const STAT_KEYS: (keyof PartyStats)[] = ['hp', 'atk', 'def', 'evade', 'hitRate', 'chargeSpeed'];
+
+function parseParty(raw: unknown, file: string, problems: string[]): Party | null {
+    if (raw === undefined) return null;
+    const stats = (v: unknown, who: string): PartyStats | null => {
+        if (!isObj(v) || !STAT_KEYS.every((k) => typeof v[k] === 'number')) { problems.push(file + ': start.party.' + who + ' needs ' + STAT_KEYS.join(', ')); return null; }
+        return Object.fromEntries(STAT_KEYS.map((k) => [k, v[k] as number])) as unknown as PartyStats;
+    };
+    if (!isObj(raw)) { problems.push(file + ': start.party is not an object'); return null; }
+    const boy = stats(raw.boy, 'boy'), dog = stats(raw.dog, 'dog');
+    if (!boy || !dog) return null;
+    return { source: str(raw.source) || '', weapon: typeof raw.weapon === 'number' ? raw.weapon : 1, dogForm: typeof raw.dogForm === 'number' ? raw.dogForm : 0, boy, dog };
+}
+
 const KINDS: StepKind[] = ['start', 'loot', 'fight', 'death', 'exit', 'wait', 'enter'];
 
 export interface RouteStep {
@@ -38,7 +56,7 @@ export interface Route {
     status: string;
     game: string;
     version: string;
-    start: { room: number; note: string };
+    start: { room: number; note: string; party: Party | null };
     endpoint: string;
     source?: string;
     assumptions: string[];
@@ -107,7 +125,7 @@ export function parseRoute(raw: unknown, file: string): { route: Route | null; p
     return {
         route: {
             id, title, status: str(raw.status) || 'draft', game: str(raw.game) || 'evermore', version: str(raw.version) || 'not stated',
-            start: { room: startRoom, note: str(start.note) || '' }, endpoint: str(raw.endpoint) || 'not specified', source: str(raw.source),
+            start: { room: startRoom, note: str(start.note) || '', party: parseParty(start.party, file, problems) }, endpoint: str(raw.endpoint) || 'not specified', source: str(raw.source),
             assumptions: strs(raw.assumptions), steps, variants, questions: strs(raw.questions),
         },
         problems,

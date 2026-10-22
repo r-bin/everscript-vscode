@@ -5,7 +5,16 @@
   "game": "evermore",
   "version": "us",
   "source": "docs/plans/simulation/any-percent-opening.md",
-  "start": { "room": "0x38", "note": "The normal fresh-game arrival after the opening sequence; the exact position and the first controllable frame are still to measure." },
+  "start": {
+    "room": "0x38",
+    "note": "The normal fresh-game arrival after the opening sequence; the exact position and the first controllable frame are still to measure.",
+    "party": {
+      "source": "WRAM at the end of the Podunk opening, room 0x46, of a fresh game (records $0A26 / $0A70; the Boy holds the Bone Crusher). Arriving in Prehistoria turns the Dog into its Act 1 form; its stats are assumed to stay.",
+      "weapon": 1, "dogForm": 0,
+      "boy": { "hp": 30, "atk": 17, "def": 5, "evade": 34, "hitRate": 30, "chargeSpeed": 10 },
+      "dog": { "hp": 36, "atk": 17, "def": 10, "evade": 38, "hitRate": 33, "chargeSpeed": 10 }
+    }
+  },
   "endpoint": "not specified yet",
   "assumptions": [
     "Fresh-game state: no route preset.",
@@ -16,7 +25,7 @@
     { "room": "0x38", "kind": "start", "action": "Start at the normal fresh-game arrival.", "who": "Boy", "check": "Use the game's own start position, not a hand-picked tile." },
     { "room": "0x38", "kind": "loot", "action": "Interact with the Petal Gourd.", "who": "Boy", "claim": "+10 Talons", "talons": 10, "at": "b1", "check": "Which gourd: B-trigger #1 is a guess; the room's Petal gourds give a Petal, its money gourd (B #0) 15 Talons." },
     { "room": "0x38", "kind": "fight", "action": "Kill the first flower.", "who": "Both", "claim": "+2 Talons", "talons": 2, "enemy": 7, "check": "The first Wimpy Flower the enter script places, nearest the gourd: a guess. What \"both\" means for control, damage and reward." },
-    { "room": "0x38", "kind": "death", "action": "Let the flower kill the Boy.", "who": "Boy", "enemy": 7, "check": "Hits to death and elapsed time; what the Dog does meanwhile." },
+    { "room": "0x38", "kind": "death", "action": "Let the flower kill the Boy.", "who": "Boy", "enemy": 9, "check": "Which flower: spawn 9 is the nearest one left (spawn 7 died in step 3), a guess. Hits to death and elapsed time; what the Dog does meanwhile." },
     { "room": "0x38", "kind": "exit", "action": "Take the north exit to the raptor screen: park the Dog on the trigger, press Select when the Boy dies.", "who": "Dog", "at": "step0", "to": "0x5c", "check": "The exact input order." },
     { "room": "0x5c", "kind": "wait", "action": "Wait.", "who": "Dog", "check": "A fixed time, an enemy, or a transition condition?" },
     { "room": "0x51", "kind": "loot", "action": "Interact with the Nectar Gourd.", "claim": "+100 Talons", "talons": 100, "at": "b19", "who": "Boy", "check": "How the route gets from the raptors into the hut; which gourd gives the Talons." },

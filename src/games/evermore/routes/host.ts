@@ -5,12 +5,14 @@
 //
 //   page -> routesInit                           host -> routesIndex { routes, rooms, files, problems, rom }
 //   page -> routesPicture { room, opened: [] }   host -> routesPicture { room, key, uri, width, height } | { room, key, error }
+//   page -> routesFight { route, n }             host -> routesFight { route, n, report, inputs } | { route, n, error }
 //   page -> routesOpen { file }                  host opens the route file (or its source notes) in the editor
 //
 // Routes: the bundled drafts (data/), then every `*.route.json` in the workspace root and its
 // `routes/` folder (routes.md: saved next to the workspace).
 //
-// State owned: `_cache` (room overlays, trigger analyses and pictures, for one ROM).
+// State owned: `_cache` (room overlays, trigger analyses and pictures, for one ROM); `_routes` (the
+// routes last sent, for `routesFight`).
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -26,6 +28,8 @@ import * as maps from '../maps';
 import { getMapName, getMapArea } from '../localizations';
 import { sourceDir } from '../../../platform/source-dir';
 import anyPercent from './data/any-percent.route.json';
+import { fightFor } from './fight-inputs';
+import { simulateFight } from './model/fight';
 
 type Rom = Uint8Array;
 interface Deps {
@@ -47,7 +51,7 @@ export interface RoomOverlay {
 const BUNDLED: { file: string; raw: unknown }[] = [
     { file: 'src/games/evermore/routes/data/any-percent.route.json', raw: anyPercent },
 ];
-const COMMANDS = new Set(['routesInit', 'routesPicture', 'routesOpen']);
+const COMMANDS = new Set(['routesInit', 'routesPicture', 'routesFight', 'routesOpen']);
 const handlesRoutesMessage = (command: unknown): boolean => COMMANDS.has(String(command));
 const hex = (n: number): string => '0x' + n.toString(16).padStart(2, '0').toUpperCase();
 
@@ -139,7 +143,21 @@ function romOf(deps: Deps): Rom | null {
     return !buf ? null : buf.length % 0x8000 === 0x200 ? buf.subarray(0x200) : buf;
 }
 
-function handleRoutesMessage(msg: { command: string; file?: string; room?: number; opened?: number[] }, deps: Deps): void {
+let _routes: RouteView[] = [];
+
+/** A fight or death step simulated: the enemy is the step's spawn in its room, the party the route's. */
+function fight(rom: Rom, routeId: string, n: number): object {
+    const r = _routes.find((x) => x.id === routeId), s = r && r.steps[n - 1];
+    if (!r || !s) return { error: 'No such step.' };
+    if (!r.route.start.party) return { error: 'The route states no party (start.party): nothing to fight with.' };
+    const m = model(rom, s.room), spawn = m && s.enemy !== undefined ? m.enter.spawns[s.enemy] : undefined;
+    if (!spawn || spawn.character === null) return { error: 'The step names no enemy the room places (enemy).' };
+    const f = fightFor(rom, r.route.start.party, s, spawn.character, spawn.romName || spawn.name || 'enemy');
+    if (!f) return { error: 'Only fight and death steps simulate.' };
+    return { report: simulateFight(f.setup), inputs: f.inputs, until: f.setup.until, party: r.route.start.party.source };
+}
+
+function handleRoutesMessage(msg: { command: string; file?: string; room?: number; opened?: number[]; route?: string; n?: number }, deps: Deps): void {
     if (msg.command === 'routesOpen') {
         if (typeof msg.file !== 'string') return;
         // A bundled file or its notes are repo paths: resolved from the extension's own tree.
@@ -151,6 +169,12 @@ function handleRoutesMessage(msg: { command: string; file?: string; room?: numbe
         const room = Number(msg.room);
         const opened = Array.isArray(msg.opened) ? msg.opened.map(Number) : [];
         deps.post(rom ? { command: 'routesPicture', ...picture(rom, room, opened) } : { command: 'routesPicture', room, key: room + ':' + opened.join(','), error: 'No ROM' });
+        return;
+    }
+    if (msg.command === 'routesFight') {
+        const head = { command: 'routesFight', route: msg.route, n: msg.n };
+        try { deps.post({ ...head, ...(rom ? fight(rom, String(msg.route), Number(msg.n)) : { error: 'No ROM' }) }); }
+        catch (e) { deps.post({ ...head, error: String(e instanceof Error ? e.message : e) }); }
         return;
     }
     const problems: string[] = [];
@@ -168,6 +192,7 @@ function handleRoutesMessage(msg: { command: string; file?: string; room?: numbe
         files.push({ id: route.id, file: s.file, source: route.source });
         routes.push(...routeViews(route, names, (room, at) => rom ? trigger(rom, room, at) : undefined));
     }
+    _routes = routes;
     const rooms: Record<string, RoomOverlay> = {};
     for (const r of routes) for (const s of r.steps) if (!rooms[s.room]) rooms[s.room] = overlay(rom, s.room);
     deps.post({ command: 'routesIndex', routes, rooms, files, problems, rom: !!rom });

@@ -6,6 +6,9 @@
 // Bundled by tools/bundle-pages.mts as dist/webview/routes-tab.js (global RoutesTab); the radar
 // page calls RoutesTab.setupRoutesTab(post, activeTab, gotoRoom) inside its own script.
 
+import { fightPanelHtml } from './fight-panel.dom';
+import type { FightResult } from './fight-panel.dom';
+
 type Verdict = 'ok' | 'differs' | 'missing' | 'none';
 interface State { room: number; talons: number; items: Record<string, number>; flags: { addr: number; bit: number; name: string }[]; opened: Record<string, number[]> }
 interface Step {
@@ -40,7 +43,9 @@ function setupRoutesTab(post: (msg: object) => void, activeTab: string, gotoRoom
     const pane = document.querySelector<HTMLElement>('.rte-pane');
     if (!pane || !pane.dataset || pane.dataset.rteBound) return;
     pane.dataset.rteBound = '1';
-    const st = { index: null as Index | null, error: '', requested: false, sel: '', step: 1, hover: 0, query: '', pictures: {} as Record<string, Picture | 'pending'>, zoom: 1 as number | 'fit' };
+    const st = { index: null as Index | null, error: '', requested: false, sel: '', step: 1, hover: 0, query: '', pictures: {} as Record<string, Picture | 'pending'>, zoom: 1 as number | 'fit',
+        /** The step whose simulation the right column shows (0: the map), and the results by route and step. */
+        sim: 0, fights: {} as Record<string, FightResult | 'pending'> };
     const $ = (id: string) => document.getElementById(id)!;
 
     const current = (): Route | undefined => st.index?.routes.find((r) => r.id === st.sel);
@@ -81,7 +86,8 @@ function setupRoutesTab(post: (msg: object) => void, activeTab: string, gotoRoom
         return head + '<tr data-rte-step="' + s.n + '" class="' + (s.n === st.step ? 'rte-cur' : '') + '"' + (s.inherited ? ' data-rte-inherited' : '') + '>' +
             '<td class="rte-n">' + s.n + '</td>' +
             '<td><span class="rte-kind rte-k-' + esc(s.kind) + '">' + esc(s.kind) + '</span></td>' +
-            '<td class="rte-act">' + esc(s.action) + (s.who ? ' <span class="scr-dim">· ' + esc(s.who) + '</span>' : '') +
+            '<td class="rte-act">' + ((s.kind === 'fight' || s.kind === 'death') && s.enemy !== undefined
+                ? '<button class="scr-btn rte-sim' + (st.sim === s.n ? ' rte-sim-on' : '') + '" data-rte-sim="' + s.n + '" title="Simulate this ' + s.kind + ' 10,000 times">simulate</button> ' : '') + esc(s.action) + (s.who ? ' <span class="scr-dim">· ' + esc(s.who) + '</span>' : '') +
             (s.effects.length ? '<div class="rte-fx">' + s.effects.map(esc).join(' · ') + '</div>' : '') + '</td>' +
             '<td class="rte-mark rte-' + s.verdict + '" title="' + esc(title) + '">' + m + '</td></tr>';
     }
@@ -174,9 +180,17 @@ function setupRoutesTab(post: (msg: object) => void, activeTab: string, gotoRoom
         box.scrollLeft += r.left - b.left - b.width / 2 + r.width / 2;
     }
 
+    /** The simulation sub-panel of step `st.sim`: asks the host once per route and step. */
+    function simSide(r: Route): string {
+        const s = stepOf(r, st.sim)!, key = r.id + '#' + s.n;
+        if (!st.fights[key]) { st.fights[key] = 'pending'; post({ command: 'routesFight', route: r.id, n: s.n }); }
+        return fightPanelHtml('Step ' + s.n + ' · ' + s.action, st.fights[key]);
+    }
+
     function renderSide(reset: boolean): void {
         const r = current(), side = $('rte-side');
         if (!r || !stepOf(r, st.step)) { side.innerHTML = ''; return; }
+        if (st.sim && stepOf(r, st.sim)) { side.innerHTML = simSide(r); return; }
         const keep = document.getElementById('rte-map');
         const top = keep ? keep.scrollTop : 0, left = keep ? keep.scrollLeft : 0;
         side.innerHTML = mapHtml(r, stepOf(r, st.step)!);
@@ -206,28 +220,44 @@ function setupRoutesTab(post: (msg: object) => void, activeTab: string, gotoRoom
         renderMain();
     }
 
+    /** Go to step n; an open simulation follows when that step can be simulated, else the map comes back. */
+    function moveTo(n: number): void {
+        const r = current(), s = r && stepOf(r, n);
+        if (!r || !s) return;
+        st.step = n;
+        if (st.sim) st.sim = (s.kind === 'fight' || s.kind === 'death') && s.enemy !== undefined ? n : 0;
+        renderMain();
+    }
+
     function go(delta: number): void {
         const r = current();
         if (!r) return;
         const n = Math.min(r.steps.length, Math.max(1, st.step + delta));
-        if (n !== st.step) { st.step = n; renderMain(); }
+        if (n !== st.step) moveTo(n);
     }
 
     function request(): void { st.requested = true; post({ command: 'routesInit' }); }
 
     pane.addEventListener('click', (e) => {
-        const t = (e.target as HTMLElement).closest<HTMLElement>('[data-rte-pick],[data-rte-step],[data-rte-room],[data-rte-open],[data-rte-go],[data-rte-zoom]');
+        const t = (e.target as HTMLElement).closest<HTMLElement>('[data-rte-sim],[data-rte-pick],[data-rte-step],[data-rte-room],[data-rte-open],[data-rte-go],[data-rte-zoom]');
         if (!t) return;
         if (t.dataset.rteZoom) { st.zoom = t.dataset.rteZoom === 'fit' ? 'fit' : Number(t.dataset.rteZoom); renderSide(true); return; }
         if (t.dataset.rteOpen) { post({ command: 'routesOpen', file: t.dataset.rteOpen }); return; }
+        if (t.dataset.rteSim !== undefined) {
+            const n = Number(t.dataset.rteSim);
+            st.sim = n === st.sim ? 0 : n;
+            if (n) st.step = n;
+            renderMain();
+            return;
+        }
         if (t.dataset.rteGo) { go(Number(t.dataset.rteGo)); return; }
         if (t.dataset.rteRoom) {
             document.querySelector<HTMLElement>('.tab[data-tab="rooms"]')?.click();
             if (gotoRoom) gotoRoom(Number(t.dataset.rteRoom));
             return;
         }
-        if (t.dataset.rtePick) { st.sel = t.dataset.rtePick; st.step = 1; render(); return; }
-        if (t.dataset.rteStep) { st.step = Number(t.dataset.rteStep); renderMain(); }
+        if (t.dataset.rtePick) { st.sel = t.dataset.rtePick; st.step = 1; st.sim = 0; render(); return; }
+        if (t.dataset.rteStep) { moveTo(Number(t.dataset.rteStep)); }
     });
     pane.addEventListener('mouseover', (e) => {
         const row = (e.target as HTMLElement).closest<HTMLElement>('[data-rte-step]');
@@ -247,6 +277,11 @@ function setupRoutesTab(post: (msg: object) => void, activeTab: string, gotoRoom
         if (msg.command === 'routesPicture') {
             st.pictures[msg.key] = msg.error ? { error: msg.error } : { uri: msg.uri, width: msg.width, height: msg.height };
             renderSide(true);
+            return;
+        }
+        if (msg.command === 'routesFight') {
+            st.fights[msg.route + '#' + msg.n] = msg;
+            if (current()?.id === msg.route && st.sim === msg.n) renderSide(false);
             return;
         }
         if (msg.command !== 'routesIndex') return;

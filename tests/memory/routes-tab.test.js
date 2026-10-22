@@ -11,6 +11,7 @@ const { renderRadarHtml } = require('../../src/games/evermore/memory/render-rada
 const { buildRoutesTabHtml, handleRoutesMessage } = require('../../dist/games/evermore/routes');
 const { parseRoute, routeViews } = require('../../dist/games/evermore/routes/model/route');
 const { playStep, freshState, holds } = require('../../dist/games/evermore/routes/model/simulate');
+const { damageTable, simulateFight, bestCase } = require('../../dist/games/evermore/routes/model/fight');
 
 const ROM = require('../../dist/games').romPath('evermore');
 
@@ -89,6 +90,22 @@ async function unit() {
         assert.strictEqual(w.totals.steps, 3);
         assert.strictEqual(v.id, 'r/v');
     });
+    // Two attackers on one target, fixed timings: the shape the flower fight has.
+    const fighter = (o) => Object.assign({ name: 'x', hp: 18, atk: 17, def: 28, evade: 0, hitRate: 99, chargeSpeed: 10, chance: null, swing: { ticks: 24, strikeAt: 5 }, knockback: { ticks: 1, random: { base: 40, range: 40 } } }, o);
+    await test('fight model: the damage roll, the best case, reproducible runs', () => {
+        const t = damageTable(17, 28);
+        assert.deepStrictEqual([Math.min(...t), Math.max(...t)], [7, 12], 'w = 17 - 28/4 = 10');
+        assert.deepStrictEqual([Math.min(...damageTable(9, 5)), Math.max(...damageTable(9, 5))], [6, 10]);
+        assert.deepStrictEqual([Math.min(...damageTable(1, 28)), Math.max(...damageTable(1, 28))], [0, 1], 'clamped to w = 1');
+        const enemy = fighter({ name: 'flower', atk: 9, def: 28, chance: 5, chargeSpeed: 15, swing: { ticks: 34, strikeAt: 6 } });
+        const setup = { enemy, party: [{ f: fighter({ name: 'Boy', def: 5, evade: 34 }), attacks: true }, { f: fighter({ name: 'Dog', chance: 255, swing: { ticks: 33, strikeAt: 12 } }), attacks: true }], until: 'enemy', hitChance: () => 1 };
+        assert.strictEqual(bestCase(setup), 13, 'both strike once, 12 + 12 ≥ 18, the later strike at tick 12');
+        const a = simulateFight(setup, 500, 7), b = simulateFight(setup, 500, 7);
+        assert.deepStrictEqual(a, b);
+        assert.ok(a.seconds.stats.min >= bestCase(setup) / 60);
+        const death = simulateFight({ enemy, party: [{ f: fighter({ name: 'Boy', hp: 30, def: 5 }), attacks: false }], until: 'party', hitChance: () => 1 }, 500, 7);
+        assert.deepStrictEqual(death.hits.map((h) => h[0]).filter((h) => h < 3 || h > 5), [], '30 HP at 6-10 a hit: 3 to 5 hits');
+    });
     await test('without a ROM the bundled draft loads, scripts not run', () => {
         const posted = [];
         handleRoutesMessage({ command: 'routesInit' }, deps(null, posted));
@@ -125,6 +142,29 @@ async function romChecks(rom) {
         handleRoutesMessage({ command: 'routesPicture', room: 0x38, opened: [0] }, deps(rom, out));
         assert.strictEqual(out[0].width, 1328);
         assert.notStrictEqual(out[0].uri, out[1].uri, 'the opened gourd changes the picture');
+    });
+    await test('fight inputs from the ROM: the Wimpy Flower, the Bone Crusher, the Act 1 Dog', () => {
+        const { fightFor } = require('../../dist/games/evermore/routes/fight-inputs');
+        const party = ix.routes[0].route.start.party;
+        const { setup, inputs } = fightFor(rom.length % 0x8000 === 0x200 ? rom.subarray(0x200) : rom, party, { kind: 'fight', who: 'Both' }, 109, 'Wimpy Flower');
+        const e = setup.enemy;
+        assert.deepStrictEqual([e.hp, e.atk, e.def, e.evade, e.hitRate, e.chargeSpeed, e.chance], [18, 9, 28, 0, 40, 15, 5]);
+        assert.deepStrictEqual(e.swing, { ticks: 34, strikeAt: 6 });
+        assert.deepStrictEqual(e.knockback, { ticks: 1, random: { base: 40, range: 40 } }, 'sleep_random(40, 40)');
+        assert.deepStrictEqual(setup.party.map((p) => p.f.swing), [{ ticks: 24, strikeAt: 5 }, { ticks: 33, strikeAt: 12 }]);
+        assert.deepStrictEqual(setup.party[0].f.knockback, { ticks: 54, random: { base: 8, range: 40 } });
+        const hit = Object.fromEntries(inputs.pairs.map((p) => [p.from + '>' + p.to, Math.round(p.hit * 1000) / 10]));
+        assert.deepStrictEqual(hit, { 'Boy>Wimpy Flower': 100, 'Wimpy Flower>Boy': 58.8, 'Dog>Wimpy Flower': 100, 'Wimpy Flower>Dog': 54.3 });
+    });
+    await test('step 3 and step 4 simulated', () => {
+        const out = [];
+        handleRoutesMessage({ command: 'routesFight', route: 'any-percent', n: 3 }, deps(rom, out));
+        handleRoutesMessage({ command: 'routesFight', route: 'any-percent', n: 4 }, deps(rom, out));
+        const [kill, death] = out;
+        assert.strictEqual(kill.report.seconds.best, 13 / 60);
+        assert.ok(kill.report.hits.find((h) => h[0] === 2)[1] / kill.report.runs > 0.7, 'two hits kill most of the time');
+        assert.deepStrictEqual(death.report.hits.map((h) => h[0]), [3, 4, 5]);
+        assert.ok(death.report.seconds.stats.median > 5 && death.report.seconds.stats.median < 40);
     });
     return ix;
 }
@@ -186,6 +226,21 @@ async function dom(rom) {
         }
         await page.keyboard.press('ArrowLeft');
         assert.ok((await page.textContent('.rte-state')).includes('After step 2'));
+    });
+    await test('simulate: the fight panel replaces the map, Map ↩ brings it back', async () => {
+        if (!rom) return;
+        await page.click('#rte-mid [data-rte-sim="3"]');
+        await pump(); await pump();
+        assert.ok(await page.locator('#rte-side .rte-fchart rect.rte-fbar').count() > 0);
+        assert.ok((await page.textContent('#rte-side')).includes('best rolls'));
+        await shot('sim-kill');
+        await page.keyboard.press('ArrowRight');
+        await pump(); await pump();
+        assert.ok((await page.textContent('#rte-side')).includes('Time until it dies'));
+        await shot('sim-death');
+        await page.click('#rte-side [data-rte-sim="0"]');
+        await pump(); await waitPicture();
+        assert.ok(await page.locator('#rte-map img').count() === 1);
     });
     await test('Maps ↗ opens the Maps tab; filter; variant; notes link', async () => {
         await page.click('#rte-side [data-rte-room]');

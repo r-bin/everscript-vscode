@@ -4,7 +4,8 @@ Kind: **feature** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 
 ## Owns
 - The radar panel's **Routes** tab: the route file format (`model/route.ts`), playing a route
-  against one WRAM (`model/simulate.ts`), the `routes*` requests (`host.ts`), the pane scaffold
+  against one WRAM (`model/simulate.ts`), fights simulated many times (`model/fight.ts`, inputs
+  `fight-inputs.ts`, panel `webview/fight-panel.dom.ts`), the `routes*` requests (`host.ts`), the pane scaffold
   and `webview/`.
 
 ## Dependencies
@@ -20,8 +21,10 @@ Kind: **feature** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
   typed here. What no script decides (drops, an unexplained room change) is applied as drafted
   and labelled so; where the script disagrees with the draft, show it, never correct silently.
 - A condition the state cannot decide is listed as assumed, not dropped.
-- No odds, damage or timing until the models behind them are validated (routes.md); the tab
-  says "not built".
+- Odds and timings are a model (`model/fight.ts`), not yet checked against a recorded fight: the
+  panel always shows its inputs (from the ROM and the route's party) and what it assumes. Every
+  mechanic in it is read from the game's code (knowledge `rom/8fcc40`, `rom/8fba06`); a number
+  nobody traced does not go in.
 - Route files hold our own descriptions of actions, never game text or data.
 
 ## Tests
