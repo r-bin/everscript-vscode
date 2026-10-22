@@ -10,17 +10,17 @@
   "assumptions": [
     "Fresh-game state: no route preset.",
     "The Boy is the active character unless a step says otherwise.",
-    "Talons are the draft's numbers until the room scripts confirm them."
+    "Bytes no step has written are 0 (a fresh game); enemy drops are the draft's numbers, not simulated."
   ],
   "steps": [
     { "room": "0x38", "kind": "start", "action": "Start at the normal fresh-game arrival.", "who": "Boy", "check": "Use the game's own start position, not a hand-picked tile." },
-    { "room": "0x38", "kind": "loot", "action": "Interact with the Petal Gourd.", "who": "Boy", "claim": "+10 Talons", "talons": 10, "loot": "PETAL", "check": "Which gourd: the room's Petal gourds give a Petal, its money gourd 15 Talons." },
-    { "room": "0x38", "kind": "fight", "action": "Kill the first flower.", "who": "Both", "claim": "+2 Talons", "talons": 2, "check": "What \"both\" means for control, damage and reward." },
-    { "room": "0x38", "kind": "death", "action": "Let the flower kill the Boy.", "who": "Boy", "check": "Hits to death and elapsed time; what the Dog does meanwhile." },
-    { "room": "0x38", "kind": "exit", "action": "Take the north exit to the raptor screen: park the Dog on the trigger, press Select when the Boy dies.", "who": "Dog", "to": "0x5c", "check": "The exact input order." },
+    { "room": "0x38", "kind": "loot", "action": "Interact with the Petal Gourd.", "who": "Boy", "claim": "+10 Talons", "talons": 10, "at": "b1", "check": "Which gourd: B-trigger #1 is a guess; the room's Petal gourds give a Petal, its money gourd (B #0) 15 Talons." },
+    { "room": "0x38", "kind": "fight", "action": "Kill the first flower.", "who": "Both", "claim": "+2 Talons", "talons": 2, "enemy": 7, "check": "The first Wimpy Flower the enter script places, nearest the gourd: a guess. What \"both\" means for control, damage and reward." },
+    { "room": "0x38", "kind": "death", "action": "Let the flower kill the Boy.", "who": "Boy", "enemy": 7, "check": "Hits to death and elapsed time; what the Dog does meanwhile." },
+    { "room": "0x38", "kind": "exit", "action": "Take the north exit to the raptor screen: park the Dog on the trigger, press Select when the Boy dies.", "who": "Dog", "at": "step0", "to": "0x5c", "check": "The exact input order." },
     { "room": "0x5c", "kind": "wait", "action": "Wait.", "who": "Dog", "check": "A fixed time, an enemy, or a transition condition?" },
-    { "room": "0x51", "kind": "loot", "action": "Interact with the Nectar Gourd.", "claim": "+100 Talons", "talons": 100, "loot": "NECTAR", "check": "How the route gets from the raptors into the hut; which gourd gives the Talons." },
-    { "room": "0x51", "kind": "exit", "action": "Take the exit to Fire Eyes' village.", "to": "0x25", "check": "Which of the hut doors, and the landing point." },
+    { "room": "0x51", "kind": "loot", "action": "Interact with the Nectar Gourd.", "claim": "+100 Talons", "talons": 100, "at": "b19", "who": "Boy", "check": "How the route gets from the raptors into the hut; which gourd gives the Talons." },
+    { "room": "0x51", "kind": "exit", "action": "Take the exit to Fire Eyes' village.", "at": "step6", "to": "0x25", "check": "Which of the hut doors (step-on #6 is the one under the Nectar gourd's hut: a guess), and the landing point." },
     { "room": "0x25", "kind": "enter", "action": "Enter the next hut.", "check": "Which hut; the route is not drafted past here." }
   ],
   "variants": [

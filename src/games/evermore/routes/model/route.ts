@@ -1,11 +1,14 @@
 // Ownership: a route as the Routes tab reads it — the file format (`*.route.json`), its
-// validation, the check of each step against what the room's scripts do, and the view the page
-// draws. Pure: room names and room facts are handed in.
+// validation, and the route played step by step (model/simulate.ts) into the view the page draws.
+// Pure: room names and the triggers' cases are handed in.
 //
 // A route is an ordered list of actions (docs/plans/simulation/routes.md). A variant shares the
 // route's first `after` steps and adds its own; without steps it is the route itself, named.
 
 export type StepKind = 'start' | 'loot' | 'fight' | 'death' | 'exit' | 'wait' | 'enter';
+import { freshState, playStep, triggerOf } from './simulate';
+import type { RouteState, TriggerAnalysis, Verdict } from './simulate';
+
 const KINDS: StepKind[] = ['start', 'loot', 'fight', 'death', 'exit', 'wait', 'enter'];
 
 export interface RouteStep {
@@ -17,8 +20,10 @@ export interface RouteStep {
     claim?: string;
     /** Talons the draft says the step gives. */
     talons?: number;
-    /** The reward a loot step expects, as the room scripts name it (PETAL, NECTAR, MONEY). */
-    loot?: string;
+    /** The trigger the step runs: "b1" (B-trigger #1), "step0" (step-on #0). */
+    at?: string;
+    /** The enemy the step is about: its index in the room's enter-script spawns. */
+    enemy?: number;
     /** The room an exit step leads to. */
     to?: number;
     /** What is still to verify. */
@@ -41,15 +46,6 @@ export interface Route {
     variants: RouteVariant[];
     questions: string[];
 }
-
-/** What a room's scripts give and where they lead (script-model loot and doors), per trigger. */
-export interface RoomFacts {
-    loot: { trigger: string; kind: string; item: string; amount: number }[];
-    exits: { trigger: string; to: number }[];
-}
-
-export type CheckState = 'ok' | 'differs' | 'missing' | 'none';
-export interface StepCheck { state: CheckState; text: string }
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const str = (v: unknown): string | undefined => typeof v === 'string' && v.trim() ? v : undefined;
@@ -77,7 +73,8 @@ function parseSteps(raw: unknown, where: string, problems: string[]): RouteStep[
         if (str(s.who)) step.who = s.who as string;
         if (str(s.claim)) step.claim = s.claim as string;
         if (typeof s.talons === 'number') step.talons = s.talons;
-        if (str(s.loot)) step.loot = (s.loot as string).toUpperCase();
+        if (str(s.at)) { if (triggerOf(s.at as string)) step.at = s.at as string; else problems.push(at + ': at must be a trigger like "b1" or "step0"'); }
+        if (typeof s.enemy === 'number' && s.enemy >= 0) step.enemy = s.enemy;
         if (str(s.check)) step.check = s.check as string;
         if (s.to !== undefined) {
             const to = roomId(s.to);
@@ -118,45 +115,26 @@ export function parseRoute(raw: unknown, file: string): { route: Route | null; p
 }
 
 const hex = (n: number): string => '0x' + n.toString(16).padStart(2, '0').toUpperCase();
-const itemWord = (item: string): string => item.charAt(0) + item.slice(1).toLowerCase().replace(/_/g, ' ');
-const lootText = (l: RoomFacts['loot'][number]): string => l.item === 'MONEY' ? l.amount + ' Talons' : l.amount + ' × ' + itemWord(l.item);
 
-/** A step against its room's scripts: does the loot it names exist and give what it says, does the exit lead there. */
-export function checkStep(step: RouteStep, facts: RoomFacts | null): StepCheck {
-    if (!facts) return { state: 'none', text: 'No ROM: not checked.' };
-    if (step.kind === 'exit' && step.to !== undefined) {
-        const hits = facts.exits.filter((e) => e.to === step.to);
-        return hits.length
-            ? { state: 'ok', text: 'Leads to ' + hex(step.to) + ': ' + hits.map((h) => h.trigger).join(', ') + '.' }
-            : { state: 'missing', text: 'No script in ' + hex(step.room) + ' changes the map to ' + hex(step.to) + '; the move comes from elsewhere (a global or cutscene script), or the step is wrong.' };
-    }
-    if (step.kind === 'loot' && step.loot) {
-        const hits = facts.loot.filter((l) => l.item === step.loot);
-        if (!hits.length) return { state: 'missing', text: 'No pickup in ' + hex(step.room) + ' gives ' + itemWord(step.loot) + '.' };
-        const gives = hits.map((h) => h.trigger + ' gives ' + lootText(h)).join('; ');
-        const talonsOk = step.talons === undefined || hits.some((h) => h.item === 'MONEY' && h.amount === step.talons);
-        if (talonsOk) return { state: 'ok', text: gives + '.' };
-        const money = facts.loot.filter((l) => l.item === 'MONEY');
-        return { state: 'differs', text: 'The draft says +' + step.talons + ' Talons; ' + gives + '.' +
-            (money.length ? ' Money in this room: ' + money.map((m) => m.trigger + ' ' + m.amount + ' Talons').join(', ') + '.' : '') };
-    }
-    return { state: 'none', text: 'Nothing in the room scripts to check this against.' };
+export interface StepView extends RouteStep {
+    n: number; inherited: boolean; toName?: string;
+    effects: string[]; assumed: string[]; verdict: Verdict; note: string;
+    /** The state after the step. */
+    after: RouteState;
 }
-
-export interface StepView extends RouteStep { n: number; tally: number; toName?: string; rom: StepCheck; inherited: boolean }
-export interface RoomRun { room: number; hex: string; name: string; area: string; steps: StepView[] }
 export interface RouteView {
     id: string; routeId: string; title: string; note: string; base: string | null;
     route: Omit<Route, 'steps' | 'variants'>; startName: string;
-    runs: RoomRun[];
+    steps: StepView[];
     totals: { steps: number; rooms: number; talons: number; open: number; ok: number; differs: number; missing: number };
-    facts: Record<string, RoomFacts>;
 }
 
 export interface Names { name(room: number): string; area(room: number): string }
+/** The simulation's cases of one trigger of a room; null when the room has no such trigger, undefined without a ROM. */
+export type Triggers = (room: number, at: string) => TriggerAnalysis | null | undefined;
 
-/** The route and each variant as the page draws them: steps in runs of one room, the drafted Talons carried forward, each step checked. */
-export function routeViews(route: Route, names: Names, factsOf: (room: number) => RoomFacts | null): RouteView[] {
+/** The route and each variant, played from a fresh game: every step with its effects and the state after it. */
+export function routeViews(route: Route, names: Names, triggers: Triggers): RouteView[] {
     const { steps, variants, ...meta } = route;
     const lines: { id: string; title: string; note: string; base: string | null; steps: RouteStep[]; shared: number }[] = [
         { id: route.id, title: route.title, note: '', base: null, steps, shared: 0 },
@@ -166,25 +144,19 @@ export function routeViews(route: Route, names: Names, factsOf: (room: number) =
         }),
     ];
     return lines.map((l) => {
-        const facts: Record<string, RoomFacts> = {};
-        const runs: RoomRun[] = [];
-        let tally = 0;
+        let state = freshState(route.start.room);
         const totals = { steps: l.steps.length, rooms: 0, talons: 0, open: 0, ok: 0, differs: 0, missing: 0 };
-        l.steps.forEach((s, i) => {
-            const f = factsOf(s.room);
-            if (f) facts[hex(s.room)] = f;
-            tally += s.talons || 0;
-            const rom = checkStep(s, f);
-            if (rom.state === 'ok' || rom.state === 'differs' || rom.state === 'missing') totals[rom.state]++;
+        const views = l.steps.map((s, i): StepView => {
+            const r = playStep(s, state, s.at ? triggers(s.room, s.at) : null);
+            state = r.state;
+            if (r.verdict !== 'none') totals[r.verdict]++;
             if (s.check) totals.open++;
-            const view: StepView = { ...s, n: i + 1, tally, rom, inherited: l.base !== null && i < l.shared };
+            const view: StepView = { ...s, n: i + 1, inherited: l.base !== null && i < l.shared, effects: r.effects, assumed: r.assumed, verdict: r.verdict, note: r.note, after: r.state };
             if (s.to !== undefined) view.toName = names.name(s.to);
-            const last = runs[runs.length - 1];
-            if (last && last.room === s.room) last.steps.push(view);
-            else runs.push({ room: s.room, hex: hex(s.room), name: names.name(s.room), area: names.area(s.room), steps: [view] });
+            return view;
         });
-        totals.rooms = new Set(runs.map((r) => r.room)).size;
-        totals.talons = tally;
-        return { id: l.id, routeId: route.id, title: l.title, note: l.note, base: l.base, route: meta, startName: names.name(route.start.room), runs, totals, facts };
+        totals.rooms = new Set(l.steps.map((s) => s.room)).size;
+        totals.talons = state.talons;
+        return { id: l.id, routeId: route.id, title: l.title, note: l.note, base: l.base, route: meta, startName: names.name(route.start.room), steps: views, totals };
     });
 }

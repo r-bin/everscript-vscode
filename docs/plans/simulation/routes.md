@@ -1,9 +1,10 @@
 # 6. Routes — saving a run and replaying its odds
 
-> Status: **route list built, replay and odds not built.** The radar's Routes
-> tab (`src/games/evermore/routes/`) reads route files (`*.route.json`), shows
-> them as runs of steps per room with the drafted Talons carried forward, and
-> checks loot and exit steps against the room scripts. An earlier sketch
+> Status: **replay of script steps built, odds not built.** The radar's Routes
+> tab (`src/games/evermore/routes/`) reads route files (`*.route.json`) and plays
+> them from a fresh game against one WRAM: a step naming a trigger applies the
+> case of its script that holds (loot, taken flag, opened object, map change),
+> shown on the room's map step by step. Fights are drafted numbers only. An earlier sketch
 > exists as [docs/route-planner.md](../../route-planner.md), from before the
 > simulation was on the table; this supersedes its scope but keeps its data
 > model.

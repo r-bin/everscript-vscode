@@ -58,9 +58,9 @@ Room names and ids come from
 
 ## What the room scripts say
 
-The Routes tab checks this draft against the US ROM's room scripts
-(`src/games/evermore/routes/data/any-percent.route.json`, read through
-`script-model` loot and doors):
+The Routes tab plays this draft against the US ROM's room scripts
+(`src/games/evermore/routes/data/any-percent.route.json`; the gourd is B-trigger #1,
+the flower spawn 7, the hut door step-on #6 — each a guess to confirm):
 
 - **0x38's Petal gourds give Petals, not Talons**: the enter script and B-triggers
   #1 (56,74) and #2 (28,37) each give 1 Petal. The room's one money gourd is B #0
@@ -73,6 +73,9 @@ The Routes tab checks this draft against the US ROM's room scripts
 - **0x51's Nectar gourd gives Nectar** (B #19, 37,7); money there is B #15 (11,26)
   18 Talons and B #20 (26,6) 30 Talons. Step 7's "+100 Talons" matches neither.
 - **0x51 → 0x25**: eight step-on doors lead back to the village.
+- **Played**: after the draft the party holds 1 Petal ($2315) and 1 Nectar ($2316),
+  "Gourd in south Jungle" ($2268 bit 6) and "Gourd in Act1 Huts" ($2265 bit 3) are
+  set, and the only Talons are the drafted flower drop (2).
 
 ## Route Variants
 

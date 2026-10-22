@@ -1,30 +1,35 @@
 /* Routes tab (src/games/evermore/routes). The pane is also .scr-pane, so it shares the Scripts tab's
    tool bar, rail and columns; only what the Routes tab adds is here (rte- prefix). */
-.rte-pane .scr-body{grid-template-columns:minmax(180px,240px) minmax(420px,2fr) minmax(260px,1fr)}
+.rte-pane .scr-body{grid-template-columns:minmax(170px,220px) minmax(360px,1fr) minmax(420px,1.25fr)}
+.rte-pane .scr-side{display:flex;flex-direction:column;overflow:hidden;padding:8px 10px}
 .rte-top-note{font-size:12px;flex:1;min-width:0}
 .rte-variant{padding-left:22px}
-.rte-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0 12px}
+.rte-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0 10px}
 .rte-chip{border:1px solid var(--scr-line);border-radius:10px;padding:1px 8px;font-size:11.5px}
 .rte-chip b{color:inherit;font-weight:600;font-variant-numeric:tabular-nums}
 .rte-chips-sep{font-size:11px;color:var(--scr-dim);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
 .rte-chip.rte-ok{border-color:var(--vscode-charts-green,#89d185)}
 .rte-chip.rte-differs{border-color:var(--vscode-charts-orange,#d18616)}
 .rte-chip.rte-missing{border-color:var(--vscode-charts-red,#f14c4c)}
-.rte-run{border:1px solid var(--scr-line);border-radius:4px;margin:0 0 10px;overflow:hidden}
-.rte-run-h{display:flex;align-items:baseline;gap:8px;padding:5px 8px;background:rgba(128,128,128,.12);border:0;border-bottom:1px solid var(--scr-line)}
-.rte-run-h .rte-goto{margin-left:auto}
+/* The state after the current step */
+.rte-state{border:1px solid var(--scr-line);border-radius:4px;padding:6px 10px 8px;margin:0 0 10px;background:rgba(128,128,128,.08)}
+.rte-state-h{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--scr-dim);margin-bottom:4px}
+.rte-state-grid{display:grid;grid-template-columns:64px 1fr;gap:3px 10px;font-size:12.5px}
+.rte-state-grid>span:nth-child(odd){color:var(--scr-dim)}
+.rte-item{display:inline-block;border:1px solid var(--scr-line);border-radius:3px;padding:0 6px;margin:0 4px 2px 0}
+/* Steps */
 .rte-steps{border-collapse:collapse;width:100%;font-size:12.5px;table-layout:fixed}
-.rte-steps th:nth-child(1){width:28px}.rte-steps th:nth-child(2){width:64px}.rte-steps th:nth-child(4){width:110px}.rte-steps th:nth-child(5){width:56px}.rte-steps th:nth-child(6){width:40px}
-.rte-pane .rte-steps th{background:transparent;text-align:left;font-weight:600;font-size:11px;color:var(--scr-dim);padding:3px 8px;border:0;border-bottom:1px solid var(--scr-line)}
-.rte-pane .rte-steps td{padding:4px 8px;vertical-align:top;border:0;border-top:1px solid var(--scr-line);background:transparent}
-.rte-pane .rte-steps tbody tr:first-child td{border-top:0}
+.rte-pane .rte-steps td{padding:4px 6px;vertical-align:top;border:0;border-top:1px solid var(--scr-line);background:transparent}
+.rte-c-n{width:24px}.rte-c-kind{width:58px}.rte-c-mark{width:24px}
+.rte-pane .rte-steps tr.rte-room-row td{padding:10px 6px 3px;border-top:0;font-size:11.5px;color:var(--scr-dim)}
 .rte-steps tr[data-rte-step]{cursor:pointer}
 .rte-steps tr[data-rte-step]:hover{background:var(--scr-hover)}
+.rte-pane .rte-steps tr.rte-cur td{background:var(--scr-lit)}
+.rte-pane .rte-steps tr.rte-cur td:first-child{box-shadow:inset 3px 0 0 var(--vscode-focusBorder,#007acc)}
 .rte-steps tr[data-rte-inherited] .rte-n{opacity:.6}
-.rte-n,.rte-tally{font-variant-numeric:tabular-nums;color:var(--scr-dim);white-space:nowrap}
-.rte-tally{text-align:right}
-.rte-claim{word-break:break-word}
+.rte-n{font-variant-numeric:tabular-nums;color:var(--scr-dim)}
 .rte-act{word-break:break-word}
+.rte-fx{font:11.5px var(--scr-mono);color:var(--scr-dim);margin-top:2px}
 .rte-kind{display:inline-block;font:10.5px var(--scr-mono);border-radius:3px;padding:0 5px;border:1px solid var(--scr-line);color:var(--scr-dim)}
 .rte-k-loot{border-color:var(--scr-b);color:var(--scr-b)}
 .rte-k-exit,.rte-k-enter{border-color:var(--scr-step);color:var(--scr-step)}
@@ -34,10 +39,31 @@
 .rte-differs{color:var(--vscode-charts-orange,#d18616)}
 .rte-missing{color:var(--vscode-charts-red,#f14c4c)}
 .rte-none{color:var(--scr-dim)}
-.rte-rom{font-size:12.5px;line-height:1.45}
-.rte-rom.rte-none{font-style:italic}
-.rte-sec{margin:12px 0}
-.rte-list{margin:0;padding-left:18px;font-size:12.5px}
+.rte-notes{margin:14px 0 4px;font-size:12.5px}
+.rte-notes summary{cursor:pointer;color:var(--scr-dim)}
+.rte-notes .scr-side-h{margin-top:10px}
+.rte-files{margin:6px 0}
+.rte-list{margin:0;padding-left:18px}
 .rte-list li{margin:2px 0}
-.rte-action{margin:0 0 8px}
-.rte-back{margin-bottom:8px;font-size:12px}
+/* The map of the current step's room */
+.rte-map-h{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+.rte-map-h .rte-zoom{margin-left:auto}
+.rte-map-h .scr-seg-btn{padding:2px 8px}
+.rte-map{flex:1;min-height:0;overflow:auto;border:1px solid var(--scr-line);border-radius:4px;background:#000}
+.rte-map-in{position:relative;width:100%;max-width:none}
+.rte-map-in img{display:block;width:100%;height:100%;image-rendering:pixelated}
+.rte-map-in svg{position:absolute;inset:0;width:100%;height:100%}
+.rte-box{fill:none;stroke-width:2;opacity:.45}
+.rte-box-step{stroke:var(--scr-step)}
+.rte-box-b{stroke:var(--scr-b)}
+.rte-spawn{fill:rgba(241,76,76,.25);stroke:#f14c4c;stroke-width:2;opacity:.6}
+.rte-box.rte-hov,.rte-spawn.rte-hov{opacity:1;stroke:#fff;stroke-width:4;stroke-dasharray:6 4}
+.rte-box.rte-lit,.rte-spawn.rte-lit{opacity:1;stroke:#4fc1ff;stroke-width:4;fill:rgba(79,193,255,.3);animation:rte-pulse 1.2s ease-in-out infinite}
+.rte-spawn.rte-lit{r:16px}
+@keyframes rte-pulse{50%{stroke-width:8}}
+.rte-detail{font-size:12.5px;padding:8px 2px 4px;display:flex;flex-direction:column;gap:4px}
+.rte-rom{line-height:1.4}
+.rte-nav{display:flex;align-items:center;gap:10px;padding:6px 0 2px;border-top:1px solid var(--scr-line)}
+.rte-nav .scr-btn{font-size:12px;padding:3px 12px}
+.rte-nav .scr-btn[disabled]{opacity:.4;cursor:default}
+.rte-nav-at{flex:1;text-align:center;font-size:12.5px}
