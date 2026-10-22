@@ -19,6 +19,7 @@ import { busU8, busU16 } from '../../../platform/snes/hirom';
 import { tile4bpp } from '../../../platform/snes/tiles';
 import { animationGroups } from './animation-table';
 import { disassembleScript, opcode, segmentsAt, spriteOperand, sprite2Operand, sprite24At } from './animation-opcodes';
+import { getSpriteBankRange } from '../variant-resolver';
 
 /** Palette indices, row-major, `size` x `size`. */
 export interface SpriteBlockPixels {
@@ -125,7 +126,8 @@ export function scriptSprites(rom: Uint8Array, script: number): number[] {
         else if (o.kind === 'hud') for (let i = 0; i < (o.length - 1) / 3; i++) found.push(sprite24At(rom, p + 1 + 3 * i));
         else if (o.kind === 'segments') for (const s of segmentsAt(rom, p).groups) found.push(s.sprite);
     }
-    return found.filter((a) => (a >>> 16) >= 0xca && (a >>> 16) <= 0xd3 && (a & 0xffff) !== 0);
+    const { minBank, maxBank } = getSpriteBankRange(rom);
+    return found.filter((a) => (a >>> 16) >= minBank && (a >>> 16) <= maxBank && (a & 0xffff) !== 0);
 }
 
 /** The first sprite an animation names that draws something. */

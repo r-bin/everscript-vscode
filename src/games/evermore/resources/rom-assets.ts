@@ -12,6 +12,8 @@ import { dir, file, link, json, text } from './nodes';
 import type { Entry, VfsNode } from './nodes';
 import { resolveAudio } from './audio-files';
 import { resolveCharacters } from './character-files';
+import { resolvePalettes } from './palette-files';
+import { resolveSprites } from './sprite-files';
 import { resolveRoomObjects, resolveRoomWidgets } from './map-objects';
 import { resolveScripts } from './script-files';
 import { resolveTables } from './table-files';
@@ -33,13 +35,19 @@ const ICONS = 'soe://rom/assets/icons/';
 function resolveAssets(segments: string[], rom: Rom, deps?: MapsDeps): VfsNode | null {
     const [kind, id, leaf, ...extra] = segments;
     if (kind === undefined) {
-        return dir(['icons', ...Object.keys(CATEGORIES), 'alchemy', 'strings', 'maps', 'scripts', 'characters', 'tiles', 'audio', 'tables'].map((n): Entry => [n, 'dir']));
+        return dir(['icons', ...Object.keys(CATEGORIES), 'alchemy', 'strings', 'maps', 'scripts', 'characters', 'palettes', 'sprites', 'tiles', 'audio', 'tables'].map((n): Entry => [n, 'dir']));
     }
     if (kind === 'scripts') {
         return resolveScripts(segments.slice(1), rom);
     }
     if (kind === 'characters') {
         return resolveCharacters(segments.slice(1), rom);
+    }
+    if (kind === 'palettes') {
+        return resolvePalettes(segments.slice(1), rom);
+    }
+    if (kind === 'sprites') {
+        return resolveSprites(segments.slice(1), rom);
     }
     if (kind === 'tiles') {
         return resolveTiles(segments.slice(1), rom);

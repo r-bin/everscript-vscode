@@ -9,7 +9,7 @@ import { renderAnimation, renderRawSprite, listPalettes, renderInPalettes, thumb
 import { missingRomText } from '../../../platform/roms/library';
 
 /** The radar's request and what it gives the handlers. */
-interface Message { characterId: number; animOpt: Parameters<typeof renderAnimation>[2]; facing: number; sprite: number; target?: string; items?: { key: string }[]; address: number; paletteAddr?: number; command: string }
+interface Message { characterId: number; animOpt: Parameters<typeof renderAnimation>[2]; facing: number; sprite: number; target?: string; items?: { key: string }[]; address: number; paletteAddr?: number; uri?: string; command: string }
 interface Context { post(message: object): void; spritesBundle(rom: Buffer | null): { characters: Parameters<typeof listPalettes>[0] } }
 const errText = (err: unknown): string => String(err instanceof Error ? err.message : err);
 
@@ -63,6 +63,13 @@ const HANDLERS: Record<string, (msg: Message, ctx: Context) => void> = {
             ctx.post({ command: 'rawSpriteData', sprite });
         } catch (err) {
             ctx.post({ command: 'rawSpriteData', sprite: null, error: errText(err) });
+        }
+    },
+    openVfs(msg) {
+        if (msg.uri) {
+            try {
+                vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(msg.uri));
+            } catch (_) {}
         }
     },
 };

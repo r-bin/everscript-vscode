@@ -13,7 +13,9 @@
 
 import { busU8, busU16 } from '../../../platform/snes/hirom';
 import { bgr555 } from '../../../platform/snes/tiles';
-import { ANIMATION_TABLE, facingScript } from './animation-table';
+import { ANIMATION_TABLE, facingScript, animationGroups } from './animation-table';
+import { disassembleScript } from './animation-opcodes';
+import { getPaletteBankSnes } from '../variant-resolver';
 
 /** A 16-bit little-endian value at a bus address. */
 export function read16At(rom: Uint8Array, snes: number): number {
@@ -93,8 +95,9 @@ export function characterPalette(rom: Uint8Array, character: number): Array<[num
 
 /** 16 BGR555 colours at `address` in bank $90, as RGB. `$90:CF3A` loads words 1-15; 0 is transparent. */
 export function paletteAt(rom: Uint8Array, address: number): Array<[number, number, number]> {
+    const bank = getPaletteBankSnes(rom);
     const out: Array<[number, number, number]> = [];
-    for (let i = 0; i < 16; i++) out.push(i === 0 ? [0, 0, 0] : bgr555(read16At(rom, PALETTE_BANK | ((address + 2 * i) & 0xffff))));
+    for (let i = 0; i < 16; i++) out.push(i === 0 ? [0, 0, 0] : bgr555(read16At(rom, bank | ((address + 2 * i) & 0xffff))));
     return out;
 }
 
@@ -137,4 +140,44 @@ export function entitiesCollide(a: { x: number; y: number; radius: number }, b: 
     if (!a.radius || !b.radius) return false;
     const s = a.radius + b.radius;
     return Math.abs(a.x - b.x) < s && 2 * Math.abs(a.y - b.y) < s;
+}
+
+const PALETTE_OP = 0x4b;
+const palettesCache = new WeakMap<Uint8Array, number[]>();
+
+/**
+ * Every palette address referenced in the ROM — by animation scripts (0x4B palette commands)
+ * and character records (+0x09 and +0x0B fields) — sorted ascending by 16-bit address in bank $90.
+ */
+export function paletteAddresses(rom: Uint8Array): number[] {
+    const cached = palettesCache.get(rom);
+    if (cached) return cached;
+    const found = new Set<number>();
+
+    // 1. Palettes referenced by animation scripts
+    const seenScripts = new Set<number>();
+    for (const g of animationGroups(rom)) {
+        for (const script of g.scripts) {
+            if (!script || seenScripts.has(script)) continue;
+            seenScripts.add(script);
+            for (const l of disassembleScript(rom, script)) {
+                if (l.known && (l.bytes[0] & 0x7f) === PALETTE_OP) {
+                    const addr = (l.bytes[1] | (l.bytes[2] << 8)) & 0xffff;
+                    if (addr) found.add(addr);
+                }
+            }
+        }
+    }
+
+    // 2. Character record palettes (+0x09 and +0x0B)
+    for (let c = 0; c < 142; c++) {
+        const pal1 = characterPaletteAddress(rom, c) & 0xffff;
+        if (pal1) found.add(pal1);
+        const pal2 = read16At(rom, recordAt(c) + 0x0b) & 0xffff;
+        if (pal2) found.add(pal2);
+    }
+
+    const out = [...found].sort((a, b) => a - b);
+    palettesCache.set(rom, out);
+    return out;
 }

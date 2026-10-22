@@ -26,7 +26,7 @@
   /** The sprite a listing line loads, if it is a sprite command: the first $xxxxxx operand. */
   function spriteOf(text) {
     if (!/^(sprite|hud_|segments)/.test(text)) return 0;
-    var m = /\$([0-9a-f]{6})/.exec(text);
+    var m = /\$([0-9a-f]{6})/i.exec(text);
     return m ? parseInt(m[1], 16) : 0;
   }
 
@@ -39,13 +39,25 @@
     return out.length ? out : ['none: back to idle'];
   }
 
-  /** The command text, with sprite and projectile addresses as links. */
+  /** The command text, with sprite, palette and projectile addresses as links. */
   function commandHtml(l) {
     var html = esc(l.text);
     var spr = spriteOf(l.text);
     if (spr && lastCtx.onSprite) {
       var hex = '$' + spr.toString(16).padStart(6, '0');
-      html = html.replace(hex, '<a href="#" class="sp-script-link" data-sprite="' + spr + '" title="Open this sprite in the Sprites view">' + hex + '</a>');
+      var sprTitle = 'Open this sprite in the Sprites view';
+      if (l.spriteInfo) {
+        var sInfo = l.spriteInfo;
+        sprTitle = 'sprite #' + sInfo.index + ' (' + sInfo.addrHex + ')' +
+          (sInfo.widthPx ? ' · ~' + sInfo.widthPx + '×' + sInfo.heightPx + ' px' : '') +
+          '\nClick: view sprite | soe://rom/assets/sprites/' + spr.toString(16).padStart(6, '0');
+      }
+      html = html.replace(hex, '<a href="#" class="sp-script-link sp-sprite-link" data-sprite="' + spr + '" title="' + esc(sprTitle) + '">' + hex + '</a>');
+    }
+    if (l.palette) {
+      var palAddrHex = '$' + l.palette.addr.toString(16).padStart(4, '0');
+      var palTitle = 'palette #' + (l.palette.index != null ? l.palette.index : '?') + ' (' + palAddrHex + ')\nClick to open VFS entry: soe://rom/assets/palettes/' + l.palette.addr.toString(16).padStart(4, '0');
+      html = html.replace(palAddrHex, '<a href="#" class="sp-script-link sp-pal-link" data-palette="' + l.palette.addr + '" title="' + esc(palTitle) + '">' + palAddrHex + '</a>');
     }
     if (l.projectile && l.projectile.animRec && lastCtx.onRecord) {
       var id = '$' + l.projectile.id.toString(16).padStart(4, '0');
@@ -146,6 +158,13 @@
     while (a && a !== bodyEl && !(a.classList && a.classList.contains('sp-script-link'))) a = a.parentNode;
     if (!a || a === bodyEl) return;
     e.preventDefault();
+    if (a.dataset.palette) {
+      var palNum = parseInt(a.dataset.palette, 10);
+      var palHex4 = palNum.toString(16).padStart(4, '0');
+      var vsApi = (typeof vs !== 'undefined' && vs) ? vs : (typeof acquireVsCodeApi === 'function' ? (function() { try { return acquireVsCodeApi(); } catch(e) { return null; } })() : null);
+      if (vsApi) vsApi.postMessage({ command: 'openVfs', uri: 'soe://rom/assets/palettes/' + palHex4 });
+      return;
+    }
     if (a.dataset.sprite && lastCtx.onSprite) lastCtx.onSprite(parseInt(a.dataset.sprite, 10));
     if (a.dataset.record && lastCtx.onRecord) lastCtx.onRecord(parseInt(a.dataset.record, 10));
   });

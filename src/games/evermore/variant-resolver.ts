@@ -245,3 +245,22 @@ export function getStringDecoder(variantOrRom?: string | Uint8Array): VariantTab
 export function getRoomLoader(variantOrRom?: string | Uint8Array): VariantTableVariantInfo | null {
     return getTableInfo('room_loader', variantOrRom);
 }
+
+export function getPaletteBankOffset(variantOrRom?: string | Uint8Array): number {
+    return getTableFileOffset('palette_bank', variantOrRom);
+}
+
+export function getPaletteBankSnes(variantOrRom?: string | Uint8Array): number {
+    const info = getTableInfo('palette_bank', variantOrRom);
+    if (!info?.snes) return 0x900000;
+    const clean = info.snes.replace(/[^0-9a-fA-F]/g, '');
+    return parseInt(clean, 16) || 0x900000;
+}
+
+export function getSpriteBankRange(variantOrRom?: string | Uint8Array): { minBank: number; maxBank: number } {
+    const info = getTableInfo('sprite_banks', variantOrRom) as (VariantTableVariantInfo & { minBank?: string; maxBank?: string }) | null;
+    return {
+        minBank: info?.minBank ? parseInt(info.minBank, 16) : 0xca,
+        maxBank: info?.maxBank ? parseInt(info.maxBank, 16) : 0xd3,
+    };
+}

@@ -42,8 +42,8 @@ const op = (length: number, mnemonic: string, kind: OpKind = 'plain'): Opcode =>
  */
 const OPCODES: Record<number, Opcode> = {
     0x00: op(1, 'nop'), 0x21: op(1, 'nop'),
-    0x1f: op(3, 'hold_random', 'hold_random'),
-    0x20: op(2, 'hold', 'hold_operand'),
+    0x1f: op(3, 'sleep_random', 'hold_random'),
+    0x20: op(2, 'sleep', 'hold_operand'),
     0x2c: op(4, 'sprite2', 'sprite2'),
     0x2d: op(1, 'loop', 'loop'),
     0x2e: op(2, 'sound'),
@@ -67,7 +67,7 @@ const OPCODES: Record<number, Opcode> = {
     0x41: op(1, 'step0'),
     0x42: op(2, 'step', 'step'),
     0x43: op(1, 'wait_landed', 'wait_landed'),
-    0x44: op(1, 'hover_hold', 'hover_hold'),   // +1 tick while height >= $0E96 (a random hover height)
+    0x44: op(1, 'sleep_hover', 'hover_hold'),   // +1 tick while height >= $0E96 (a random hover height)
     0x45: op(3, 'hop', 'hop'),
     0x46: op(3, 'hop_maybe', 'hop_maybe'),
     0x47: op(5, 'strike', 'strike'),
@@ -154,7 +154,7 @@ export function lengthAt(rom: Uint8Array, p: number): number {
 export function opcode(cmd: number): Opcode | null {
     const c = cmd & COMMAND_MASK;
     if (c === SEGMENTS) return SEGMENTS_OP;
-    if (c >= HOLD_FIRST && c <= HOLD_LAST) return { length: 1, mnemonic: 'hold', kind: 'hold' };
+    if (c >= HOLD_FIRST && c <= HOLD_LAST) return { length: 1, mnemonic: 'sleep', kind: 'hold' };
     if (c >= SPRITE_FIRST && c <= SPRITE_LAST) return { length: 3, mnemonic: 'sprite', kind: 'sprite' };
     return OPCODES[c] ?? null;
 }
@@ -248,7 +248,7 @@ export function disassembleAt(rom: Uint8Array, p: number): ScriptLine {
     const len = lengthAt(rom, p);
     for (let i = 0; i < len; i++) bytes.push(at(rom, p + i));
     const args = operands(rom, p, o);
-    const text = o.mnemonic + (args ? ' ' + args : '') + (endFrame ? '!' : '');
+    const text = `${o.mnemonic}(${args})${endFrame ? '!' : ''}`;
     return { address: p, bytes, text, endFrame, known: true };
 }
 

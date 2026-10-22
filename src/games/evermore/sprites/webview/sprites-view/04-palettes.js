@@ -218,8 +218,20 @@
     if (!a || !a.paletteColors) return;
     var palHex = document.getElementById('sp-palette-hex');
     var swatch = document.getElementById('sp-palette-swatch');
-    if (palHex) palHex.textContent = '$' + (a.paletteAddr || 0).toString(16).padStart(4, '0');
-    if (swatch) swatch.innerHTML = a.paletteColors.map(function(hex) { return '<span style="background-color:' + hex + '" title="' + hex + '"></span>'; }).join('');
+    var palAddr = a.paletteAddr || 0;
+    var palHexStr = '$' + palAddr.toString(16).padStart(4, '0');
+    var palIdxStr = a.paletteIndex != null && a.paletteIndex >= 0 ? '#' + a.paletteIndex : '';
+    if (palHex) palHex.textContent = palIdxStr ? palIdxStr + ' (' + palHexStr + ')' : palHexStr;
+    if (swatch) {
+      swatch.innerHTML = a.paletteColors.map(function(hex) { return '<span style="background-color:' + hex + '" title="' + hex + '"></span>'; }).join('');
+      var vfsUri = 'soe://rom/assets/palettes/' + palAddr.toString(16).padStart(4, '0');
+      var tooltip = 'Palette ' + (palIdxStr ? palIdxStr + ' ' : '') + '(' + palHexStr + ')\n' + vfsUri + '\nClick to open in VFS';
+      swatch.title = tooltip;
+      swatch.style.cursor = 'pointer';
+      swatch.onclick = function() {
+        if (vsApi && palAddr) vsApi.postMessage({ command: 'openVfs', uri: vfsUri });
+      };
+    }
   }
 
   /** The palette the stage is drawn in right now: a chosen one, the weapon/form's, or 0 (own). */

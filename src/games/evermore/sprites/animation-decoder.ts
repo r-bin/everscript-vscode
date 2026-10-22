@@ -1,11 +1,12 @@
 // Ownership: running an animation script, aligning and rendering its frames, and its script listing for the Sprites tab. Pure.
 
-import { animationScript, characterPalette, characterPaletteAddress, characterHitbox, paletteAt, FACING_SOUTH } from '../maps/character-record';
+import { animationScript, characterPalette, characterPaletteAddress, characterHitbox, paletteAt, paletteAddresses, FACING_SOUTH } from '../maps/character-record';
 import { runAnimation, MODE_INVULNERABLE } from '../maps/animation-vm';
 import { facingScript } from '../maps/animation-table';
 import { resolveCharacterSprite } from '../maps/character-animation';
 import { MODE_CONTACT } from '../maps/hit-test';
 import { disassembleScript } from '../maps/animation-opcodes';
+import { readSpriteInfo, spriteAddresses } from '../maps/sprites';
 import { composeAligned } from './frame-compose';
 import { snesToRom } from '../maps/rom';
 import { renderProjectiles } from './projectile-render';
@@ -27,7 +28,9 @@ type Target = ReturnType<typeof buildTarget> & { hits?: ReturnType<typeof hitTic
 /** A listed script line; `palette` and `projectile` carry what the tab previews under it. */
 interface ListedLine {
     address: number; addrHex: string; bytesHex: string; text: string; endFrame: boolean; known: boolean;
-    palette?: { addr: number; colors: string[] }; projectile?: { id: number; animRec: number; paletteAddr: number };
+    palette?: { addr: number; index: number; colors: string[] };
+    spriteInfo?: { addr: number; addrHex: string; index: number; widthPx: number; heightPx: number };
+    projectile?: { id: number; animRec: number; paletteAddr: number };
 }
 
 /** Resolve script address for a record, taking facing into account if directional. */
@@ -217,6 +220,7 @@ function renderAnimation(rom: Rom, characterId: number, animOpt: AnimArg = {}, r
         scriptPalette: run.palette ? '$' + run.palette.toString(16) : null,
         // The palette the frames are drawn in, for the header swatch.
         paletteAddr: paletteAddr || characterPaletteAddress(rom, characterId),
+        paletteIndex: paletteAddresses(rom).indexOf((paletteAddr || characterPaletteAddress(rom, characterId)) & 0xffff),
         paletteColors: colours.map(([r, g, b]) => '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')),
         facing,
         facingRounded: facing !== requestedFacing,
@@ -301,6 +305,8 @@ const colourHex = ([r, g, b]: [number, number, number]): string => '#' + [r, g, 
  * own animation and palette, 0 = the thrower's).
  */
 function scriptListing(rom: Rom, scriptAddr: number) {
+    const allPals = paletteAddresses(rom);
+    const allSprites = spriteAddresses(rom);
     return disassembleScript(rom, scriptAddr).map((l) => {
         const line: ListedLine = {
             address: l.address,
@@ -313,10 +319,43 @@ function scriptListing(rom: Rom, scriptAddr: number) {
         const op = l.bytes[0] & 0x7f;
         if (l.known && op === PALETTE_OP) {
             const addr = l.bytes[1] | (l.bytes[2] << 8);
-            line.palette = { addr, colors: paletteAt(rom, addr).map(colourHex) };
+            const pIdx = allPals.indexOf(addr & 0xffff);
+            line.palette = { addr, index: pIdx >= 0 ? pIdx : 0, colors: paletteAt(rom, addr).map(colourHex) };
         } else if (l.known && op === PROJECTILE_OP) {
             const p = projectileRecord(rom, l.bytes[1] | (l.bytes[2] << 8));
             line.projectile = { id: p.id, animRec: p.animRecord, paletteAddr: p.palette };
+        }
+        // Extract sprite address if this line sets a sprite
+        const sprMatch = /\$([0-9a-f]{6})/i.exec(l.text);
+        if (l.known && sprMatch && /^(sprite|hud_|segments)/.test(l.text)) {
+            const sprAddr = parseInt(sprMatch[1], 16);
+            const sprIdx = allSprites.indexOf(sprAddr);
+            try {
+                const info = readSpriteInfo(rom, sprAddr);
+                let minX = 0, minY = 0, maxX = 1, maxY = 1;
+                for (const c of info.chunks) {
+                    const sz = c.large ? 16 : 8;
+                    if (c.x < minX) minX = c.x;
+                    if (c.y < minY) minY = c.y;
+                    if (c.x + sz > maxX) maxX = c.x + sz;
+                    if (c.y + sz > maxY) maxY = c.y + sz;
+                }
+                line.spriteInfo = {
+                    addr: sprAddr,
+                    addrHex: '$' + sprAddr.toString(16).padStart(6, '0'),
+                    index: sprIdx >= 0 ? sprIdx : 0,
+                    widthPx: maxX - minX,
+                    heightPx: maxY - minY,
+                };
+            } catch (_) {
+                line.spriteInfo = {
+                    addr: sprAddr,
+                    addrHex: '$' + sprAddr.toString(16).padStart(6, '0'),
+                    index: sprIdx >= 0 ? sprIdx : 0,
+                    widthPx: 0,
+                    heightPx: 0,
+                };
+            }
         }
         return line;
     });

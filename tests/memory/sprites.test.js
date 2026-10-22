@@ -259,10 +259,10 @@ if (rom) {
 
     test('disassembler lists the Flowering Death loop in the doc notation', () => {
         const text = disassembleScript(rom, 0xc701dc).map(l => l.text);
-        assert(text.includes('set var[$7e], 2'));
-        assert(text.includes('dec_jnz var[$7e], $c701f5'));
-        assert(text.includes('end_check!'));
-        assert.strictEqual(text[text.length - 1], 'loop');
+        assert(text.includes('set(var[$7e], 2)'));
+        assert(text.includes('dec_jnz(var[$7e], $c701f5)'));
+        assert(text.includes('end_check!()'));
+        assert.strictEqual(text[text.length - 1], 'loop()');
     });
 
     test('animation catalogue covers every record with owners and a palette', () => {
@@ -546,7 +546,7 @@ if (rom) {
     test('HUD opcodes 0x60-0x64 have measured widths; every record script completes', () => {
         const { lengthAt, disassembleScript } = require('../../dist/games/evermore/maps/animation-opcodes');
         assert.strictEqual(lengthAt(rom, 0xc8008d), 49, '0x60 hud_bar: 16 sprites of 3 bytes');
-        assert.strictEqual(disassembleScript(rom, 0xc8008d)[0].text, 'hud_bar 16 sprites, first $cc3be6');
+        assert.strictEqual(disassembleScript(rom, 0xc8008d)[0].text, 'hud_bar(16 sprites, first $cc3be6)');
         let all = 0, complete = 0;
         for (const g of animationGroups(rom)) for (const sc of g.scripts) { all++; if (runAnimation(rom, sc, 8).complete) complete++; }
         assert.strictEqual(all, 1752);

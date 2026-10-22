@@ -284,5 +284,31 @@
       "spain1": { "snes": "$90:80D0", "file": "0x1080D0", "readers": [{ "pc": "$90:80E5", "file": "0x1080E5", "asm": "jsr ($8000,x)" }] },
       "spain2": { "snes": "$90:80D0", "file": "0x1080D0", "readers": [{ "pc": "$90:80E5", "file": "0x1080E5", "asm": "jsr ($8000,x)" }] }
     }
+  },
+  "palette_bank": {
+    "name": "Character & Animation Palette Bank",
+    "description": "Base SNES address where character and animation palettes reside ($90:0000 in all known retail releases)",
+    "entrySize": 32,
+    "variants": {
+      "us": { "snes": "$90:0000", "file": "0x100000" },
+      "europe": { "snes": "$90:0000", "file": "0x100000" },
+      "germany": { "snes": "$90:0000", "file": "0x100000" },
+      "france": { "snes": "$90:0000", "file": "0x100000" },
+      "spain1": { "snes": "$90:0000", "file": "0x100000" },
+      "spain2": { "snes": "$90:0000", "file": "0x100000" }
+    }
+  },
+  "sprite_banks": {
+    "name": "Sprite Graphics Bank Range",
+    "description": "Valid SNES bank range for sprite graphics (0xCA to 0xD3)",
+    "entrySize": 1,
+    "variants": {
+      "us": { "snes": "$CA:0000", "file": "0x0A0000", "minBank": "0xca", "maxBank": "0xd3" },
+      "europe": { "snes": "$CA:0000", "file": "0x0A0000", "minBank": "0xca", "maxBank": "0xd3" },
+      "germany": { "snes": "$CA:0000", "file": "0x0A0000", "minBank": "0xca", "maxBank": "0xd3" },
+      "france": { "snes": "$CA:0000", "file": "0x0A0000", "minBank": "0xca", "maxBank": "0xd3" },
+      "spain1": { "snes": "$CA:0000", "file": "0x0A0000", "minBank": "0xca", "maxBank": "0xd3" },
+      "spain2": { "snes": "$CA:0000", "file": "0x0A0000", "minBank": "0xca", "maxBank": "0xd3" }
+    }
   }
 }
