@@ -16,6 +16,7 @@ const romDir     = path.join(HERE, '../../rom/webview');
 const musicDir   = path.join(HERE, '../../music/webview');
 const scriptsDir = path.join(HERE, '../../scripts-tab/webview');
 const dataDir    = path.join(HERE, '../../data-tab/webview');
+const routesDir  = path.join(HERE, '../../routes/webview');
 
 const fileCache = new Map<string, string>();
 
@@ -49,10 +50,10 @@ function inject(text: string, placeholder: string, content: string) {
 /** The page script's parts, each already read; `spritesData`, `romJs`, `musicJs`, `scriptsJs`, `dataJs` and `wramJs` may be absent. */
 interface MainJsParts {
   jsData: string; roomsData: string; scalingData: string; spritesData?: string; roomsJs: string; scalingJs: string; spritesJs?: string;
-  docsJs: string; rngJs: string; romJs?: string; musicJs?: string; scriptsJs?: string; dataJs?: string; wramJs?: string;
+  docsJs: string; rngJs: string; romJs?: string; musicJs?: string; scriptsJs?: string; dataJs?: string; routesJs?: string; wramJs?: string;
 }
 
-function buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, rngJs, romJs, musicJs, scriptsJs, dataJs, wramJs }: MainJsParts) {
+function buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, rngJs, romJs, musicJs, scriptsJs, dataJs, routesJs, wramJs }: MainJsParts) {
   let out = loadFile(path.join(HERE, 'shared.js'));
   for (const [placeholder, content] of [
     ['__JS_DATA__', jsData],
@@ -68,6 +69,7 @@ function buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, sca
     ['__MUSIC_JS__', musicJs || ''],
     ['__SCRIPTS_JS__', scriptsJs || ''],
     ['__DATA_JS__', dataJs || ''],
+    ['__ROUTES_JS__', routesJs || ''],
     ['__WRAM_JS__', wramJs || ''],
   ]) {
     out = inject(out, placeholder, content);
@@ -217,7 +219,8 @@ export const css = loadFile(path.join(coreWebviewDir, 'shared.css')) + '\n'
     + loadFile(path.join(romDir, 'rom-tab.css')) + '\n'
     + loadFile(path.join(musicDir, 'music-tab.css')) + '\n'
     + loadFile(path.join(scriptsDir, 'scripts-tab.css')) + '\n'
-    + loadFile(path.join(dataDir, 'data-tab.css'));
+    + loadFile(path.join(dataDir, 'data-tab.css')) + '\n'
+    + loadFile(path.join(routesDir, 'routes-tab.css'));
 export function scalingJs() { return loadScalingJs(); }
 export function roomsJs() { return loadRoomsJs(); }
 export function spritesJs() { return loadFile(path.join(spritesDir, 'sprites-lazy.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-script.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-motion.js')) + '\n' + spritesViewJs(); }
@@ -233,6 +236,9 @@ export const scriptsJs = [pageBundle('scripts-maps')].concat(['scripts-tab.js', 
     .map(function(f) { return loadFile(path.join(scriptsDir, f)); })).join('\n');
 // The Data tab is TypeScript (data-tab.dom.ts): its bundle declares `DataTab` inside the page's IIFE, which hands it `vs`.
 export const dataJs = pageBundle('data-tab') + '\nDataTab.setupDataTab(function (m) { if (vs) vs.postMessage(m); }, typeof ACTIVE_TAB !== \'undefined\' ? ACTIVE_TAB : \'\');';
+// The Routes tab is TypeScript (routes-tab.dom.ts): its bundle declares `RoutesTab`; the page hands it `vs` and the Maps tab's room opener.
+export const routesJs = pageBundle('routes-tab') + '\nRoutesTab.setupRoutesTab(function (m) { if (vs) vs.postMessage(m); }, typeof ACTIVE_TAB !== \'undefined\' ? ACTIVE_TAB : \'\',' +
+  ' typeof gotoVanillaRoom === \'function\' ? gotoVanillaRoom : null);';
 // The Memory tab's sub-bar and WRAM coverage are TypeScript (wram-view.dom.ts): its bundle declares `WramView` inside the
 // page's IIFE; `memShowView` is declared there for rom-init.js, and the page hands it the row filter and the ROM views' switch.
 export const wramJs = pageBundle('wram-view') + '\nvar memShowView = WramView.memShowView;\n' +

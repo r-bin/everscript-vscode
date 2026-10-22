@@ -19,5 +19,5 @@
   - Replace the current hardcoded approximation (`attack - 480`) with a trace-backed live-status formula.
 
 ### 1.2 Route Tab Progression Simulation
-- **Status: 🟢 UI mock shipped; progression simulation open**
+- **Status: 🟢 Routes tab shipped (route files, room-script checks); progression simulation open**
 - Ground route progression and speedrun routing simulation in verified physical and spell damage models once Atlas traces are integrated.

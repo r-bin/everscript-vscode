@@ -1,0 +1,43 @@
+/* Routes tab (src/games/evermore/routes). The pane is also .scr-pane, so it shares the Scripts tab's
+   tool bar, rail and columns; only what the Routes tab adds is here (rte- prefix). */
+.rte-pane .scr-body{grid-template-columns:minmax(180px,240px) minmax(420px,2fr) minmax(260px,1fr)}
+.rte-top-note{font-size:12px;flex:1;min-width:0}
+.rte-variant{padding-left:22px}
+.rte-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0 12px}
+.rte-chip{border:1px solid var(--scr-line);border-radius:10px;padding:1px 8px;font-size:11.5px}
+.rte-chip b{color:inherit;font-weight:600;font-variant-numeric:tabular-nums}
+.rte-chips-sep{font-size:11px;color:var(--scr-dim);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+.rte-chip.rte-ok{border-color:var(--vscode-charts-green,#89d185)}
+.rte-chip.rte-differs{border-color:var(--vscode-charts-orange,#d18616)}
+.rte-chip.rte-missing{border-color:var(--vscode-charts-red,#f14c4c)}
+.rte-run{border:1px solid var(--scr-line);border-radius:4px;margin:0 0 10px;overflow:hidden}
+.rte-run-h{display:flex;align-items:baseline;gap:8px;padding:5px 8px;background:rgba(128,128,128,.12);border:0;border-bottom:1px solid var(--scr-line)}
+.rte-run-h .rte-goto{margin-left:auto}
+.rte-steps{border-collapse:collapse;width:100%;font-size:12.5px;table-layout:fixed}
+.rte-steps th:nth-child(1){width:28px}.rte-steps th:nth-child(2){width:64px}.rte-steps th:nth-child(4){width:110px}.rte-steps th:nth-child(5){width:56px}.rte-steps th:nth-child(6){width:40px}
+.rte-pane .rte-steps th{background:transparent;text-align:left;font-weight:600;font-size:11px;color:var(--scr-dim);padding:3px 8px;border:0;border-bottom:1px solid var(--scr-line)}
+.rte-pane .rte-steps td{padding:4px 8px;vertical-align:top;border:0;border-top:1px solid var(--scr-line);background:transparent}
+.rte-pane .rte-steps tbody tr:first-child td{border-top:0}
+.rte-steps tr[data-rte-step]{cursor:pointer}
+.rte-steps tr[data-rte-step]:hover{background:var(--scr-hover)}
+.rte-steps tr[data-rte-inherited] .rte-n{opacity:.6}
+.rte-n,.rte-tally{font-variant-numeric:tabular-nums;color:var(--scr-dim);white-space:nowrap}
+.rte-tally{text-align:right}
+.rte-claim{word-break:break-word}
+.rte-act{word-break:break-word}
+.rte-kind{display:inline-block;font:10.5px var(--scr-mono);border-radius:3px;padding:0 5px;border:1px solid var(--scr-line);color:var(--scr-dim)}
+.rte-k-loot{border-color:var(--scr-b);color:var(--scr-b)}
+.rte-k-exit,.rte-k-enter{border-color:var(--scr-step);color:var(--scr-step)}
+.rte-k-fight,.rte-k-death{border-color:var(--vscode-charts-red,#f14c4c);color:var(--vscode-charts-red,#f14c4c)}
+.rte-mark{text-align:center;font-weight:700}
+.rte-ok{color:var(--vscode-charts-green,#89d185)}
+.rte-differs{color:var(--vscode-charts-orange,#d18616)}
+.rte-missing{color:var(--vscode-charts-red,#f14c4c)}
+.rte-none{color:var(--scr-dim)}
+.rte-rom{font-size:12.5px;line-height:1.45}
+.rte-rom.rte-none{font-style:italic}
+.rte-sec{margin:12px 0}
+.rte-list{margin:0;padding-left:18px;font-size:12.5px}
+.rte-list li{margin:2px 0}
+.rte-action{margin:0 0 8px}
+.rte-back{margin-bottom:8px;font-size:12px}

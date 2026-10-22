@@ -1,9 +1,16 @@
 # 6. Routes — saving a run and replaying its odds
 
-> Status: **not built.** An earlier sketch exists as
-> [docs/route-planner.md](../../route-planner.md), from before the
+> Status: **route list built, replay and odds not built.** The radar's Routes
+> tab (`src/games/evermore/routes/`) reads route files (`*.route.json`), shows
+> them as runs of steps per room with the drafted Talons carried forward, and
+> checks loot and exit steps against the room scripts. An earlier sketch
+> exists as [docs/route-planner.md](../../route-planner.md), from before the
 > simulation was on the table; this supersedes its scope but keeps its data
 > model.
+
+Opening example: [Any% route draft](any-percent-opening.md). It records the
+Southern Jungle start through the first Fire Eyes' village hut and lists the
+combat and route-variant support the planner needs.
 
 ## What a route is
 

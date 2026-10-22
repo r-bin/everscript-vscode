@@ -101,6 +101,14 @@ module.exports = {
     },
 
     {
+      name: 'routes-no-features',
+      comment: 'The Routes tab reads the room scripts through script-model; it imports libraries only.',
+      severity: 'error',
+      from: { path: '^src/games/evermore/routes/' },
+      to: { path: '^src/core/(emulator|mcp)/|^src/games/evermore/(rooms|memory|docs-tab|sprites|music|rom|scaling|debugger|resources|scripts-tab|data-tab)/' },
+    },
+
+    {
       name: 'no-resources-to-emulator',
       comment: 'The soe:// file system gets the emulator ROM and memory reads injected by extension.js.',
       severity: 'warn',

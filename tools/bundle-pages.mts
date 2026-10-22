@@ -16,6 +16,7 @@ const PAGES: Record<string, [string, string, boolean?]> = {
     'terra-maps': ['src/games/terra/maps/webview/page.dom.ts', 'TerraMaps'],
     'scripts-maps': ['src/games/evermore/scripts-tab/webview/scripts-maps.dom.ts', 'ScriptsMaps'],
     'data-tab': ['src/games/evermore/data-tab/webview/data-tab.dom.ts', 'DataTab'],
+    'routes-tab': ['src/games/evermore/routes/webview/routes-tab.dom.ts', 'RoutesTab'],
     'wram-view': ['src/games/evermore/memory/webview/wram-view.dom.ts', 'WramView'],
 };
 

@@ -12,6 +12,7 @@ const { handlesRomMessage, handleRomMessage } = require('../../../dist/games/eve
 const { handlesMusicMessage, handleMusicMessage } = require('./music');
 const { handlesScriptsMessage, handleScriptsMessage } = require('../../../dist/games/evermore/scripts-tab');
 const { handlesDataMessage, handleDataMessage } = require('../../../dist/games/evermore/data-tab');
+const { handlesRoutesMessage, handleRoutesMessage } = require('../../../dist/games/evermore/routes');
 const { handlesEditorMessage, handleEditorMessage } = require('../../../dist/games/evermore/rooms/editor-host');
 const { handlesSpritesMessage, handleSpritesMessage } = require('../../../dist/games/evermore/sprites/radar-host');
 const romReaders = require('../../../dist/games/evermore/rom-readers');
@@ -200,6 +201,17 @@ async function openMemoryRadar(doc, startLine) {
                 post: (m) => radar.panel?.webview.postMessage(m),
                 loadRom: () => romReaders.loadRomBuffer(_ws, ''),
                 characters: (rom) => getSpritesBundle(rom).characters,
+            });
+        } else if (handlesRoutesMessage(msg.command)) {
+            // The Routes tab (src/games/evermore/routes/README.md): route files, checked against the room scripts.
+            const _ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+            handleRoutesMessage(msg, {
+                post: (m) => radar.panel?.webview.postMessage(m),
+                loadRom: () => romReaders.loadRomBuffer(_ws, ''),
+                workspace: () => _ws,
+                open: (file) => fs.existsSync(file)
+                    ? vscode.window.showTextDocument(vscode.Uri.file(file))
+                    : vscode.window.showWarningMessage('Not in this install: ' + path.basename(file) + ' (the notes ship with the repository only).'),
             });
         } else if (handlesRomMessage(msg.command)) {
             // The ROM tab: map of every bank, CDL coverage, readers

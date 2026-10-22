@@ -23,6 +23,7 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `games/evermore/data-tab/` | Data tab: ROM tables (XP per level, sine, boomerang orbit, every known table), every core enum and the character/map blobs, sprite palettes and map tile families |
 | `games/evermore/music/` | Music tab: the sound chip live from the emulator or playing a track in its own engine; voices, instruments, sound effects, ARAM |
 | `games/evermore/docs-tab/` | The radar's Docs and RNG tabs (alchemy reference, RNG) |
+| `games/evermore/routes/` | Routes tab: route files (`*.route.json`) as runs of steps per room, checked against the room scripts |
 | `games/evermore/scaling/` | Scaling/Alchemy tab: damage math, charts, state, webview assets |
 | `games/evermore/debugger/` | VS Code debugger for .evs scripts in the emulator: DAP session, compiler source map, step logic |
 | `games/evermore/imports/mana/` | The one bridge: a Mana map converted into a real Evermore room (cells, graphics, families, collision, step-on boxes) for the Rooms tab |
@@ -46,6 +47,7 @@ Below, `language/`, `maps/`, … without a prefix are under `games/evermore/`.
 - `rom/` → may use `maps/`; never `emulator/` (the CDL library is injected by `games/evermore/extension.js`)
 - `scripts-tab/` → libraries only (`script-model/`, `maps/`, `localizations/`, `simulation/`); sprites and music capabilities are injected by `games/evermore/extension.js`
 - `data-tab/` → libraries only (`maps/`, `localizations/`, the language data file); the character list is injected by `games/evermore/radar-open.js`
+- `routes/` → libraries only (`script-model/`, `localizations/`)
 - `music/` → may use `localizations/`; never `emulator/` (the sound-chip stream is injected by `games/evermore/extension.js`)
 - `recorder/` → only `core/emulator/`; nothing imports it
 - `core/emulator/` → `platform/` only; no game (`emulator-knows-no-game`); a game hands in its part
