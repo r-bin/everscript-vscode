@@ -21,8 +21,10 @@ Kind: **feature** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
   typed here. What no script decides (drops, an unexplained room change) is applied as drafted
   and labelled so; where the script disagrees with the draft, show it, never correct silently.
 - A condition the state cannot decide is listed as assumed, not dropped.
-- Odds and timings are a model (`model/fight.ts`), not yet checked against a recorded fight: the
-  panel always shows its inputs (from the ROM and the route's party) and what it assumes. Every
+- Odds and timings are a model (`model/fight.ts`), checked in the game only for a Wimpy Flower
+  killing the Boy (`tools/routes/fight-in-game.mts`; rerun it after changing the model): the
+  panel always shows its inputs (from the ROM and the route's party) and what it assumes. Lead
+  with what the runs show (fastest, median), never with a floor no run reaches. Every
   mechanic in it is read from the game's code (knowledge `rom/8fcc40`, `rom/8fba06`); a number
   nobody traced does not go in.
 - Route files hold our own descriptions of actions, never game text or data.

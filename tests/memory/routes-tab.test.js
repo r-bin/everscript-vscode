@@ -232,7 +232,7 @@ async function dom(rom) {
         await page.click('#rte-mid [data-rte-sim="3"]');
         await pump(); await pump();
         assert.ok(await page.locator('#rte-side .rte-fchart rect.rte-fbar').count() > 0);
-        assert.ok((await page.textContent('#rte-side')).includes('best rolls'));
+        assert.ok((await page.textContent('#rte-side')).includes('fastest of'));
         await shot('sim-kill');
         await page.keyboard.press('ArrowRight');
         await pump(); await pump();

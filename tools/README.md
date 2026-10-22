@@ -18,6 +18,7 @@ Node 26 runs the `.mts` files directly. Tools find a ROM through the ROM library
 | `cdl/` | Replay a movie headless on our core, with the CDL recorder | `node tools/cdl/replay.js` |
 | `playbacks/` | Record the vanilla attract loop as a sample playback | `node tools/playbacks/record-attract.js` |
 | `simulation/` | Sweep every room with the simulation; trace the real scheduler; exit cut-offs | `node tools/simulation/*.js` |
+| `routes/` | Play an enemy killing the Boy in the real game many times: the check of the Routes tab's fight model | `node tools/routes/fight-in-game.mts --trials 80` |
 | `mana/` | Compare a Mana map's picture / step events with the running game; find a map by picture | `node tools/mana/*.js` |
 | `variants/` | Find table addresses in other Evermore releases (the scans: `variant-scans.js`) | `node tools/variants/analyze-variant.js` |
 | `auto-decompile.js` | The autonomous decompilation loop: runs "continue the decompilation" (`decomp-curator`) with parallel agents until the quota or `docs/disassembly/PROGRESS.md` is done | `node tools/auto-decompile.js --concurrency 3` |
