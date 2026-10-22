@@ -1,7 +1,8 @@
 // TODO port to TS (docs/todo/port-to-ts.md)
-// Ownership: the ROM tab's wiring — one delegated click / input / hover listener
+// Ownership: the ROM and Bus views' wiring — one delegated click / input / hover listener
 // per node, the host messages, and switching between the File, Bus and Compare
-// views. Loaded last: every render function it calls is defined by then.
+// views. The Memory tab's sub-bar picks Bus or ROM through `romShow` (memory/webview/
+// wram-view.dom.ts). Loaded last: every render function it calls is defined by then.
 // Bound once per page (the panel rebuilds the page on every re-render).
 
 function romRenderView() {
@@ -11,12 +12,22 @@ function romRenderView() {
     if (el) el.style.display = k === _rom.mode ? '' : 'none';
   });
   document.querySelectorAll('[data-rom-mode]').forEach(function (b) { b.classList.toggle('rom-on', b.dataset.romMode === _rom.mode); });
+  var seg = document.getElementById('rom-mode-seg');
+  if (seg) seg.style.display = _rom.mode === 'bus' ? 'none' : '';
   if (_rom.mode === 'bus') romRenderBus();
   else if (_rom.mode === 'cmp') romRenderCompare();
   else { romRenderStrips(); romRenderDetail(); }
 }
 
 function romRenderAll() { romRenderTop(); romRenderView(); }
+
+/** The Memory tab's sub-bar: 'bus' shows the Bus view, 'rom' the File (or Compare) view; the map loads the first time. */
+function romShow(view) {
+  var mode = view === 'bus' ? 'bus' : (_rom.mode === 'bus' ? 'file' : _rom.mode);
+  if (mode !== _rom.mode) { _rom.mode = mode; romClearSearch(); }
+  romRenderView();
+  if (!_rom.model && !_rom.requested) romRequest(false);
+}
 
 function romRowByKey(key) {
   var h = _rom.model && _rom.model.halves[_rom.sel], hit = null;
@@ -55,7 +66,7 @@ function romOnClick(e, pane) {
     if (typeof gotoVanillaRoom === 'function') gotoVanillaRoom(Number(t.dataset.romGotoRoom));
     return;
   }
-  if ((t = romClosest(e.target, 'romOpenMemory', pane))) { var mem = document.querySelector('.tab[data-tab="radar"]'); if (mem) mem.click(); return; }
+  if ((t = romClosest(e.target, 'romOpenMemory', pane))) { if (typeof memShowView === 'function') memShowView('wram'); return; }
   if ((t = romClosest(e.target, 'romShowFile', pane))) { _rom.mode = 'file'; romFind(Number(t.dataset.romShowFile)); romRenderView(); return; }
   if ((t = romClosest(e.target, 'romTiny', pane))) { e.preventDefault(); _rom.showTiny = true; romRenderDetail(); return; }
   if ((t = romClosest(e.target, 'romJump', pane))) { romClearSearch(); romFind(Number(t.dataset.romJump)); romRenderView(); return; }
@@ -99,8 +110,6 @@ function setupRomTab() {
   pane.addEventListener('mousemove', romOnHover);
   document.getElementById('rom-refresh').addEventListener('click', function () { _rom.readers = {}; romRequest(true); });
   document.getElementById('rom-search').addEventListener('input', function (e) { romOnSearch(e.target.value.trim()); });
-  var tab = document.querySelector('.tab[data-tab="rom"]');
-  if (tab) tab.addEventListener('click', function () { if (!_rom.model && !_rom.requested) romRequest(false); });
   window.addEventListener('message', function (ev) {
     var msg = ev.data || {};
     if (msg.command === 'romMap') {
@@ -112,7 +121,6 @@ function setupRomTab() {
       if (_rom.open === msg.key && _rom.mode === 'file') romRenderDetail();
     }
   });
-  if (typeof ACTIVE_TAB !== 'undefined' && ACTIVE_TAB === 'rom') romRequest(false);
 }
 
 setupRomTab();

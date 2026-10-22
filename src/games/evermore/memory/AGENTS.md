@@ -5,8 +5,9 @@ does: [README.md](README.md).
 Related skills: `memory-radar`, `webview-dom-safety`, `memory-map`
 
 ## Owns
-- The radar panel HTML: `render-radar.js` (tabs, layout, webview entry),
-  `render-memory-tab.ts` (WRAM grid + detail table), `webview/index.ts` (loads the tabs'
+- The radar panel HTML: `render-radar.js` (tabs, layout, webview entry, the Memory tab's
+  Bus | WRAM | ROM bar), `render-memory-tab.ts` (WRAM grid + detail table),
+  `webview/wram-view.dom.ts` (the bar, WRAM CDL coverage / word starts, search; page bundle `wram-view`), `webview/index.ts` (loads the tabs'
   webview JS/CSS into the panel), `scope-analysis.ts` (the cursor's scope in an .evs file and the RAM
   it reads and writes; pure).
 

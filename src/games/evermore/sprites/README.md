@@ -22,16 +22,16 @@ The radar tab is called **Characters** (it was "Sprites"); inside it, three mode
 | `projectile-render.ts` | Projectile spawns on the playback timeline, their flight and their own animation | < 100 |
 | `target.ts` | The second character on stage: who, where, its standing frame, and which ticks hit it | < 120 |
 | `dog-forms.ts` | The Dog's six forms (bank `$CF`), shaped like Boy weapons | < 90 |
-| `raw-sprites.ts` | Walks and indexes all raw sprites from `$CA0003`, renders chunk tables | < 150 |
+| `raw-sprites.ts` | Walks and indexes all raw sprites from `$CA0003`, renders chunk tables (the tab's raw sprite view is gone since v0.329: `getRawSprite` has no page caller; sprites open as `soe://rom/assets/sprites/`) | < 150 |
 | `sprites-tab.ts` | Server-side tab pane HTML scaffold | < 200 |
-| `webview/sprites-view/` | Client-side webview controller, rAF animation loop, canvas drawing: one IIFE kept as parts (`01-state.js` … `05-raw-sprites.js`), wrapped by `memory/webview/index.ts` | < 400 each |
+| `webview/sprites-view/` | Client-side webview controller, rAF animation loop, canvas drawing: one IIFE kept as parts (`01-state.js` … `05-messages.js`), wrapped by `memory/webview/index.ts` | < 400 each |
 | `webview/sprites-script.js` | Script listing panel (current-frame highlight, owners) and the Animations rail list; loaded before `sprites-view/` | < 200 |
 | `webview/sprites-motion.js` | Stage geometry: walk path, jump height, projectile flight, and the scene box the canvas must hold | < 160 |
 | `webview/sprites-lazy.js` | Resizable splitters and lazy list thumbnails (`window.SpritesThumbs`) | < 120 |
 | `thumbnails.ts` | List previews (south/east), sprites in every palette, chunk tiles | < 200 |
 | `webview/sprites-layout.css` | Styling adhering to VS Code theme tokens: rail, splitter, main panel, toolbar | < 400 |
 | `webview/sprites-stage.css` | Stage canvas, player bar, stat cards, chunk table | < 400 |
-| `webview/sprites-views.css` | Raw sprites view, script panel, thumbnails, resizable sidebars | < 400 |
+| `webview/sprites-views.css` | Script panel, thumbnails, animation tiles and their Default/All filter, resizable sidebars | < 400 |
 | `index.js` | Public API exports | < 50 |
 
 ## Rules for changing this folder

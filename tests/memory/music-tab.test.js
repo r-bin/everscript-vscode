@@ -250,7 +250,7 @@ async function dom(model) {
     const posted = cmd => page.evaluate(c => window.__posted.filter(m => m.command === c), cmd);
     await step('the tab asks for its model once and switches the emulator stream on and off', async () => {
         await page.click('.tab[data-tab="music"]');
-        await page.click('.tab[data-tab="rom"]');
+        await page.click('.tab[data-tab="scripts"]');
         await page.click('.tab[data-tab="music"]');
         assert.strictEqual((await posted('musicInit')).length, 1);
         assert.deepStrictEqual((await posted('musicStream')).map(m => m.on), [true, false, true]);

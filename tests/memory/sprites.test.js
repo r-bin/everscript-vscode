@@ -46,7 +46,9 @@ test('buildSpritesTabHtml produces expected DOM containers', () => {
     assert(typeof html === 'string');
     assert(html.includes('data-tab="sprites"'));
     assert(html.includes('id="sp-canvas"'));
-    assert(html.includes('id="sp-raw-canvas"'));
+    assert(!html.includes('id="sp-raw-canvas"'), 'the raw sprite view is gone (sprites open in soe://)');
+    assert(html.includes('data-anim-filter="all"'));
+    assert(html.includes('id="sp-scrub-ticks"'));
     assert(html.includes('id="sp-list"'));
     assert(html.includes('id="sp-stats-grid"'));
     assert(html.includes('id="sp-chunks-table"'));

@@ -46,13 +46,13 @@ function inject(text: string, placeholder: string, content: string) {
   return text.replace(placeholder, () => content);
 }
 
-/** The page script's parts, each already read; `spritesData`, `romJs`, `musicJs`, `scriptsJs` and `dataJs` may be absent. */
+/** The page script's parts, each already read; `spritesData`, `romJs`, `musicJs`, `scriptsJs`, `dataJs` and `wramJs` may be absent. */
 interface MainJsParts {
   jsData: string; roomsData: string; scalingData: string; spritesData?: string; roomsJs: string; scalingJs: string; spritesJs?: string;
-  docsJs: string; rngJs: string; romJs?: string; musicJs?: string; scriptsJs?: string; dataJs?: string;
+  docsJs: string; rngJs: string; romJs?: string; musicJs?: string; scriptsJs?: string; dataJs?: string; wramJs?: string;
 }
 
-function buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, rngJs, romJs, musicJs, scriptsJs, dataJs }: MainJsParts) {
+function buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, rngJs, romJs, musicJs, scriptsJs, dataJs, wramJs }: MainJsParts) {
   let out = loadFile(path.join(HERE, 'shared.js'));
   for (const [placeholder, content] of [
     ['__JS_DATA__', jsData],
@@ -68,6 +68,7 @@ function buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, sca
     ['__MUSIC_JS__', musicJs || ''],
     ['__SCRIPTS_JS__', scriptsJs || ''],
     ['__DATA_JS__', dataJs || ''],
+    ['__WRAM_JS__', wramJs || ''],
   ]) {
     out = inject(out, placeholder, content);
   }
@@ -232,4 +233,9 @@ export const scriptsJs = [pageBundle('scripts-maps')].concat(['scripts-tab.js', 
     .map(function(f) { return loadFile(path.join(scriptsDir, f)); })).join('\n');
 // The Data tab is TypeScript (data-tab.dom.ts): its bundle declares `DataTab` inside the page's IIFE, which hands it `vs`.
 export const dataJs = pageBundle('data-tab') + '\nDataTab.setupDataTab(function (m) { if (vs) vs.postMessage(m); }, typeof ACTIVE_TAB !== \'undefined\' ? ACTIVE_TAB : \'\');';
+// The Memory tab's sub-bar and WRAM coverage are TypeScript (wram-view.dom.ts): its bundle declares `WramView` inside the
+// page's IIFE; `memShowView` is declared there for rom-init.js, and the page hands it the row filter and the ROM views' switch.
+export const wramJs = pageBundle('wram-view') + '\nvar memShowView = WramView.memShowView;\n' +
+  'WramView.setupWramView(function (m) { if (vs) vs.postMessage(m); }, typeof ACTIVE_TAB !== \'undefined\' ? ACTIVE_TAB : \'\',' +
+  ' { recomputeRows: recomputeRows, romShow: typeof romShow === \'function\' ? romShow : null });';
 export { buildMainJs };

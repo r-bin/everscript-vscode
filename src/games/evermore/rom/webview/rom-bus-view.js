@@ -42,13 +42,13 @@ function romBusResolverHtml() {
         (r.area ? ' <span class="rom-dim">· ' + romEsc(r.area) + '</span>' : '') + '</div>' +
         '<div class="rom-k" style="margin-top:6px">' + r.addr + ' + $' + romHex(at.file - r.a, 4) + ' of ' + romNum(r.n) + ' B · ' +
         '<button class="rom-btn" data-rom-show-file="' + at.file + '">Show in File view</button>' +
-        (r.room != null ? ' <button class="rom-btn" data-rom-goto-room="' + r.room + '">Open in Rooms</button>' : '') + '</div></div>';
+        (r.room != null ? ' <button class="rom-btn" data-rom-goto-room="' + r.room + '">Open in Maps</button>' : '') + '</div></div>';
     }
     html += romBusMirrorsHtml(at.file);
   } else if (at.k === 'wram') {
     html += '<div class="rom-sub">WRAM' + (at.mirror ? ' (mirror of the first 8 KB in every system bank)' : '') + ' → <code>$' + romHex(0x7E0000 + at.wram, 6) + '</code></div>' +
       '<div class="rom-card rom-wide"><div class="rom-k">Work RAM</div><div class="rom-v">128 KB at <code>$7E:0000–$7F:FFFF</code>; <code>$0000–$1FFF</code> of banks <code>$00–$3F</code> / <code>$80–$BF</code> show its first 8 KB.</div>' +
-      '<div style="margin-top:6px"><button class="rom-btn" data-rom-open-memory="1">Open Memory tab</button></div></div>';
+      '<div style="margin-top:6px"><button class="rom-btn" data-rom-open-memory="1">Open WRAM</button></div></div>';
   } else if (at.k === 'io') {
     html += '<div class="rom-sub">Hardware registers · ' + romIoName(s.a) + '</div><div class="rom-card rom-wide"><div class="rom-v">Not memory: reads and writes go to the PPU, APU, CPU or DMA hardware.</div></div>';
   } else if (at.k === 'sram') {

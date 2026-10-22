@@ -12,7 +12,8 @@ var COLS=16;
 function recomputeRows(){
   document.querySelectorAll('.gr').forEach(function(row){
     var isGar=row.classList.contains('gar');
-    if(isGar){row.classList.toggle('hrow',hidden.has('rest'));return;}
+    // A row of undocumented bytes the CDL saw used (gcdl, wram-view.dom.ts) shows with the rest hidden.
+    if(isGar){row.classList.toggle('hrow',hidden.has('rest')&&!row.classList.contains('gcdl'));return;}
     var lcs=(row.dataset.lcs||'').split(' ').filter(Boolean);
     var allHidden=lcs.length>0&&lcs.every(function(lc){return hidden.has(lc);});
     var isUsed=row.dataset.used==='1';
@@ -270,9 +271,9 @@ __ROM_JS__
 __MUSIC_JS__
 __SCRIPTS_JS__
 __DATA_JS__
-// Init active tab and selected map highlight
+// Init active tab and selected map highlight. The old ROM tab is the Memory tab's ROM view now.
 (function(){
-  var t=ACTIVE_TAB||'radar';
+  var t=ACTIVE_TAB==='rom'?'radar':(ACTIVE_TAB||'radar');
   document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('tab-active');});
   var at=document.querySelector('.tab[data-tab="'+t+'"]');
   if(at)at.classList.add('tab-active');
@@ -288,4 +289,5 @@ __DATA_JS__
     }
   }
 })();
+__WRAM_JS__
 })();

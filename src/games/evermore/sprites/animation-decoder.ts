@@ -243,6 +243,7 @@ function renderAnimation(rom: Rom, characterId: number, animOpt: AnimArg = {}, r
             ticks: f.ticks,
             spriteAddr: f.sprite || 0,
             spriteHex: f.sprite ? hex6(f.sprite) : '—',
+            spriteIndex: f.sprite ? spriteAddresses(rom).indexOf(f.sprite) : -1,
             strikeBox: f.strikeBox || null,
             lines: f.lines,
             step: f.step,

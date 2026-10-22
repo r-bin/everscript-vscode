@@ -79,58 +79,106 @@
   }
 
   /**
-   * The Animations tab: the dropdown's entries as tiles, grouped the same way, each with a
-   * lazily rendered preview of its resting pose at the current facing and palette.
+   * The Animations tab. Default: the character's own animations (and the Boy's weapon / the
+   * Dog's form), as tiles. All: every record in the ROM, previewed as it looks played on this
+   * character in its palette, even where that is not the palette the game would use. Each tile
+   * names the animation and its index (#n, the record's place in the record table).
    */
   var animGrid = document.getElementById('sp-anim-grid');
+  var animFilter = 'default';
+  var animSearch = document.getElementById('sp-anim-search');
+  var ALL_LIMIT = 240;              // tiles drawn at once in All; the search narrows the rest
+  function animMatches(q, label, index) {
+    if (!q) return true;
+    var idx = q.replace(/^#/, '');
+    return label.toLowerCase().indexOf(q) >= 0 || (/^\d+$/.test(idx) && String(index) === idx);
+  }
+  function animTile(key, label, sub, record, active, thumb, onPick) {
+    var tile = document.createElement('div');
+    tile.className = 'sp-anim-tile' + (active ? ' sp-active' : '');
+    tile.dataset.key = key;
+    var index = record ? animIndexOf(record) : -1;
+    tile.title = label + (sub ? ' ' + sub : '') + (record ? '\nRecord $' + record.toString(16) : '');
+    if (record && window.SpritesThumbs) tile.appendChild(window.SpritesThumbs.box(thumb));
+    else { var empty = document.createElement('span'); empty.className = 'sp-li-thumb'; tile.appendChild(empty); }
+    var name = document.createElement('span'); name.className = 'sp-anim-label'; name.textContent = label; tile.appendChild(name);
+    var idx = document.createElement('span'); idx.className = 'sp-anim-sub'; idx.textContent = (index >= 0 ? '#' + index : '—') + (sub ? ' ' + sub : ''); tile.appendChild(idx);
+    tile.addEventListener('click', function() {
+      animGrid.querySelectorAll('.sp-anim-tile').forEach(function(t) { t.classList.toggle('sp-active', t === tile); });
+      onPick();
+    });
+    return tile;
+  }
   function renderAnimGrid(c) {
     if (!animGrid || !animSel) return;
     animGrid.innerHTML = '';
-    if (currentMode === 'anims') {
-      animGrid.innerHTML = '<div class="sp-anim-group">The list on the left picks the animation in this mode.</div>';
+    document.querySelectorAll('[data-anim-filter]').forEach(function(b) { b.classList.toggle('sp-active', b.dataset.animFilter === animFilter); });
+    var q = animSearch && animSearch.value ? animSearch.value.toLowerCase().trim() : '';
+    var variantPal = hasVariants(c) && c.weapons[selectedWeaponId] ? c.weapons[selectedWeaponId].paletteAddr : 0;
+    if (animFilter === 'all') {
+      // Played on this character: its palette (the Boy's weapon's), not the record owner's.
+      var pal = paletteOverride || (c.id === DOG ? 0 : variantPal) || 0;
+      var shown = 0, matched = 0;
+      getAnimations().forEach(function(a, i) {
+        if (!animMatches(q, a.label, i)) return;
+        matched++;
+        if (shown >= ALL_LIMIT) return;
+        shown++;
+        animGrid.appendChild(animTile('rec:' + a.record, a.label, a.facingCount > 1 ? '×' + a.facingCount : '', a.record,
+          !!(pickedRecord && pickedRecord.record === a.record),
+          { key: 'anim:' + c.id + ':' + a.record + ':' + selectedFacing + ':' + pal, record: a.record, facing: selectedFacing, character: c.id, paletteAddr: pal },
+          function() { pickedRecord = a; loadCurrentAnimation(); }));
+      });
+      if (matched > shown) {
+        var more = document.createElement('div');
+        more.className = 'sp-anim-group';
+        more.textContent = (matched - shown) + ' more — search to narrow';
+        animGrid.appendChild(more);
+      }
       return;
     }
     var byKey = {};
     (c.anims || []).forEach(function(a) { byKey[a.key] = a; });
     if (hasVariants(c) && c.weapons[selectedWeaponId]) (c.weapons[selectedWeaponId].anims || []).forEach(function(a) { byKey[a.key] = a; });
-    var variantPal = hasVariants(c) && c.weapons[selectedWeaponId] ? c.weapons[selectedWeaponId].paletteAddr : 0;
-    Array.prototype.forEach.call(animSel.children, function(group, gi) {
-      var isVariant = gi === 0 && variantPal !== undefined && hasVariants(c) && /^(Weapon|Form): /.test(group.label || '');
-      if (!isVariant) {
-        var head = document.createElement('div');
-        head.className = 'sp-anim-group';
-        head.textContent = group.label || '';
-        animGrid.appendChild(head);
-      }
-      Array.prototype.forEach.call(group.children, function(opt) {
-        var a = byKey[opt.value] || {};
-        var pal = paletteOverride || a.paletteAddr || (c.id === DOG ? 0 : variantPal) || 0;
-        var tile = document.createElement('div');
-        tile.className = 'sp-anim-tile' + (opt.value === selectedAnimKey ? ' sp-active' : '');
-        tile.dataset.key = opt.value;
-        tile.title = opt.textContent + (a.animRec ? ' — record $' + a.animRec.toString(16) : '');
-        if (a.animRec && window.SpritesThumbs) {
-          tile.appendChild(window.SpritesThumbs.box({
-            key: 'anim:' + c.id + ':' + a.animRec + ':' + selectedFacing + ':' + pal,
-            record: a.animRec, facing: selectedFacing, character: c.id, paletteAddr: pal,
-          }));
-        } else {
-          var empty = document.createElement('span'); empty.className = 'sp-li-thumb'; tile.appendChild(empty);
-        }
-        var m = /^(.*?)(\s\(→ .*\))$/.exec(opt.textContent);
-        var label = document.createElement('span'); label.className = 'sp-anim-label'; label.textContent = m ? m[1] : opt.textContent;
-        tile.appendChild(label);
-        if (m) { var sub = document.createElement('span'); sub.className = 'sp-anim-sub'; sub.textContent = m[2].trim(); tile.appendChild(sub); }
-        tile.addEventListener('click', function() {
+    var shownRecords = {};          // one tile per record: a field that reuses an earlier one's ("→ Idle") is not repeated
+    Array.prototype.forEach.call(animSel.querySelectorAll('option'), function(opt) {
+      var a = byKey[opt.value] || {};
+      if (a.animRec && shownRecords[a.animRec]) return;
+      if (a.animRec) shownRecords[a.animRec] = true;
+      var m = /^(.*?)(\s\(→ .*\))$/.exec(opt.textContent);
+      var label = m ? m[1] : opt.textContent;
+      if (!animMatches(q, label, a.animRec ? animIndexOf(a.animRec) : -1)) return;
+      var pal = paletteOverride || a.paletteAddr || (c.id === DOG ? 0 : variantPal) || 0;
+      animGrid.appendChild(animTile(opt.value, label, m ? m[2].trim() : '', a.animRec || 0, !pickedRecord && opt.value === selectedAnimKey,
+        { key: 'anim:' + c.id + ':' + a.animRec + ':' + selectedFacing + ':' + pal, record: a.animRec, facing: selectedFacing, character: c.id, paletteAddr: pal },
+        function() {
+          pickedRecord = null;
           animSel.value = opt.value;
           selectedAnimKey = opt.value;
           syncStaminaTo(opt.value);
-          animGrid.querySelectorAll('.sp-anim-tile').forEach(function(t) { t.classList.toggle('sp-active', t === tile); });
           loadCurrentAnimation();
-        });
-        animGrid.appendChild(tile);
-      });
+        }));
     });
+  }
+  document.querySelectorAll('[data-anim-filter]').forEach(function(b) {
+    b.addEventListener('click', function() {
+      animFilter = b.dataset.animFilter;
+      var fc = getCharacters().find(function(x) { return x.id === selectedCharId; });
+      if (fc) renderAnimGrid(fc);
+    });
+  });
+  if (animSearch) animSearch.addEventListener('input', function() {
+    var fc = getCharacters().find(function(x) { return x.id === selectedCharId; });
+    if (fc) renderAnimGrid(fc);
+  });
+
+  /** A stat's tooltip: its field and what the game does with it, in one short line (addresses left out). */
+  function statTip(desc, raw) {
+    var m = /^[^(]*\((\+0x[0-9a-f]+)\)\.?\s*([\s\S]*)$/i.exec(desc || '');
+    var field = m ? m[1] : '';
+    var text = (m ? m[2] : desc || '').replace(/\s*\((?:\$|\+0x)[^)]*\)/gi, '').split(/(?<=\.)\s/)[0].trim();
+    if (text.length > 90) text = text.slice(0, 87) + '…';
+    return [field, raw, text].filter(Boolean).join(' · ');
   }
 
   // ── Stats Cards ─────────────────────────────────────────────────────────────
@@ -166,13 +214,13 @@
       { key: 'unknown2a', label: 'Level (+0x2A)', val: s.unknown2a, hex: '$' + s.unknown2a.toString(16), desc: m.unknown2a },
     ];
 
+    // A card is the label and the value; the raw value shows in the tooltip only where it differs.
     fields.forEach(function(f) {
       var card = document.createElement('div');
       card.className = 'sp-stat-card';
-      card.innerHTML = 
-        '<div class="sp-stat-header"><span>' + f.label + '</span><span>' + f.hex + '</span></div>' +
-        '<div class="sp-stat-val">' + f.val + '</div>' +
-        '<div class="sp-stat-tooltip"><strong>' + f.label + ':</strong> ' + f.desc + '</div>';
+      card.title = statTip(f.desc, String(f.val) === String(parseInt(f.hex.slice(1), 16)) || f.val === f.hex ? '' : 'raw ' + f.hex);
+      card.innerHTML = '<div class="sp-stat-header"><span>' + escHtml(f.label) + '</span></div>' +
+        '<div class="sp-stat-val">' + escHtml(f.val) + '</div>';
       statsGrid.appendChild(card);
     });
   }
@@ -194,10 +242,9 @@
     var c = chars.find(function(x) { return x.id === selectedCharId; });
     if (!c) return;
 
+    // A record picked under All plays on this character, in its palette (below).
     var animOpt = null;
-    if (currentMode === 'anims' && pinnedRecord) {
-      animOpt = { key: 'record', category: 'external', animRec: pinnedRecord.record, paletteAddr: pinnedRecord.paletteAddr || 0 };
-    }
+    if (pickedRecord) animOpt = { key: 'record', category: 'external', animRec: pickedRecord.record };
     if (!animOpt && hasVariants(c) && c.weapons[selectedWeaponId]) {
       animOpt = (c.weapons[selectedWeaponId].anims || []).find(function(a) { return a.key === selectedAnimKey; });
     }
@@ -207,7 +254,7 @@
     if (!animOpt) animOpt = { key: 'stand', offset: 0x32 };
     // The Boy is drawn in the equipped weapon's palette (weapon +0x04), whatever he is doing.
     // The Dog's own fields are its Act 1 wolf, so only its form animations take the form's.
-    if (currentMode === 'chars' && hasVariants(c) && c.id !== DOG && c.weapons[selectedWeaponId] && !animOpt.paletteAddr) {
+    if (hasVariants(c) && c.id !== DOG && c.weapons[selectedWeaponId] && !animOpt.paletteAddr) {
       animOpt = Object.assign({}, animOpt, { paletteAddr: c.weapons[selectedWeaponId].paletteAddr });
     }
     if (paletteOverride) animOpt = Object.assign({}, animOpt, { paletteAddr: paletteOverride, paletteForced: true });
@@ -219,7 +266,7 @@
       vsApi.postMessage({
         command: 'getSpriteAnimation',
         characterId: selectedCharId,
-        animKey: selectedAnimKey,
+        animKey: pickedRecord ? 'record' : selectedAnimKey,
         animOpt: animOpt,
         facing: selectedFacing,
       });

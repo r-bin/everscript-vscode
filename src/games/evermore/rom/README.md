@@ -1,6 +1,7 @@
-# rom/ — ROM tab
+# rom/ — Memory › ROM and Bus
 
-The radar panel's **ROM** tab, in three views:
+Two of the radar's **Memory** tab views (its Bus | WRAM | ROM bar, `memory/webview/wram-view.dom.ts`);
+the ROM view has File and Compare, the Bus view is its own entry on the bar:
 
 - **File**: every 64 KB bank of the loaded ROM, split into its two 32 KB halves (nothing in Secret
   of Evermore crosses a half line), with what each region is, how big it is, which world uses it,
@@ -16,7 +17,7 @@ Reference: the everscript wiki's ROM map (`wiki/rom/Rom-Map.md`), whose §4 this
 |---|---|
 | `index.js` | Public API: `buildRomModel`, `handlesRomMessage` / `handleRomMessage`, `buildRomTabHtml` |
 | `build.js` | ROM bytes (+ CDL, room names) → model. Pure |
-| `host.js` | The webview's `romMapRequest` / `romReaders`; caches one model per ROM hash. No `vscode` |
+| `host.js` | The webview's `romMapRequest` / `romReaders`, and the WRAM view's `wramCdlRequest` (access flags + word starts from the CDL library); caches one model per ROM hash. No `vscode` |
 | `render-rom-tab.ts` | The pane scaffold; content arrives by message |
 | `model/catalog.ts` | Fixed-place content: header, rooms, palettes, strings, scripts, entities, alchemy |
 | `model/assets.ts` | Map graphics, sprite infos/blocks, animation bytecode, measured item by item |

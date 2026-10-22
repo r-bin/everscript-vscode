@@ -1,6 +1,6 @@
 // TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Sprites tab's animation-script panel (listing, current-frame highlight, owners)
-// and the Animations rail list. Exposes window.SpritesScript; sprites-view.js drives it.
+// and the record catalogue lookup. Exposes window.SpritesScript; sprites-view/ drives it.
 (function() {
   var bodyEl = document.getElementById('sp-script-body');
   var wrapEl = document.getElementById('sp-script-wrap');
@@ -343,43 +343,6 @@
         : entry.paletteInferred ? ' · palette inferred: ' + esc(entry.paletteInferred) : '');
   }
 
-  /** The Animations rail: every record, filtered by the search box. */
-  function renderCatalogList(listEl, query, selectedRecord, onSelect) {
-    var all = getAnimations();
-    if (!all.length) {
-      var empty = document.createElement('div');
-      empty.className = 'sp-empty-notice';
-      empty.innerHTML = '<strong>No animations loaded.</strong><br><span style="opacity:0.75">No Secret of Evermore ROM in the ROM library. Add your own with Everscript: Switch ROM.</span>';
-      listEl.appendChild(empty);
-      return;
-    }
-    var q = (query || '').toLowerCase();
-    var frag = document.createDocumentFragment();
-    all.forEach(function(a) {
-      if (q) {
-        var hay = (a.recHex + ' ' + a.scriptHex + ' ' + a.label + ' ' + (a.owners || []).map(ownerText).join(' ')).toLowerCase();
-        if (hay.indexOf(q) < 0) return;
-      }
-      var li = document.createElement('li');
-      li.className = 'sp-list-item' + (a.record === selectedRecord ? ' sp-selected' : '');
-      li.dataset.record = String(a.record);
-      li.innerHTML = '<span class="sp-li-name">' + esc(a.label) + '</span>' +
-        '<span class="sp-li-addr">' + a.recHex + (a.facingCount > 1 ? ' ×' + a.facingCount : '') + '</span>';
-      if (window.SpritesThumbs) {
-        var tw = document.createElement('span');
-        tw.className = 'sp-li-thumbs';
-        tw.appendChild(window.SpritesThumbs.box({
-          key: 'rec:' + a.record + ':' + (a.paletteAddr || 'c' + a.paletteCharacter),
-          record: a.record, facing: 8, character: a.paletteCharacter, paletteAddr: a.paletteAddr || 0,
-        }));
-        li.insertBefore(tw, li.firstChild);
-      }
-      li.addEventListener('click', function() { onSelect(a); });
-      frag.appendChild(li);
-    });
-    listEl.appendChild(frag);
-  }
-
   function findRecord(record) {
     var all = getAnimations();
     for (var i = 0; i < all.length; i++) if (all[i].record === record) return all[i];
@@ -390,7 +353,6 @@
     renderScript: renderScript,
     highlight: highlight,
     renderOwners: renderOwners,
-    renderCatalogList: renderCatalogList,
     findRecord: findRecord,
     count: function() { return getAnimations().length; },
   };

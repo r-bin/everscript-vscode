@@ -298,8 +298,9 @@ test('ROOMS var populated in webview JS', () => {
 
 test('args section appears above WRAM in HTML', () => {
     const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree, 'radar', null);
-    const argsPos = html.indexOf('Args');
-    const wramPos = html.indexOf('WRAM');
+    // The grid headers, not the Memory tab's WRAM sub-bar button.
+    const argsPos = html.indexOf('<div class="ph">Args');
+    const wramPos = html.indexOf('<div class="ph">WRAM');
     assert.ok(argsPos < wramPos, `Args (${argsPos}) should appear before WRAM (${wramPos})`);
 });
 

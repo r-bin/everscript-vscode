@@ -7,8 +7,11 @@ applyTo: "src/games/evermore/memory/**,src/games/evermore/radar-utils.ts,src/gam
 # Memory Radar and its Memory tab
 
 The radar is one webview panel (`everscript.openMemoryRadar`, Evermore's main view in
-`core/game-views.ts`) with tabs: Memory, Rooms (`rooms-tab` skill), Characters
-(`games/evermore/sprites/`), Scripts, Music, ROM, Scaling, Docs/RNG. The panel is
+`core/game-views.ts`) with tabs: Memory, Maps (the Rooms tab, `data-tab="rooms"`; `rooms-tab` skill),
+Characters (`games/evermore/sprites/`), Scaling, Docs/RNG, Music, Scripts, Data. Memory has its own
+bar, **Bus | WRAM | ROM** (`memory/webview/wram-view.dom.ts`): WRAM is this skill's grid; Bus and ROM
+are the ROM feature's views (`games/evermore/rom/`, switched through `romShow`). A saved
+`activeTab` of `rom` opens Memory › ROM. The panel is
 `games/evermore/extension.js`; rendering `memory/render-radar.js`, `memory/render-memory-tab.ts`,
 `memory/webview/`; scope analysis `memory/scope-analysis.ts`; pure helpers `radar-utils.ts`.
 
@@ -95,6 +98,13 @@ consumed. Do NOT attempt to infer addresses from call sites.
 - `boring` — hide rows unused in current scope.
 - `emoji` — overlay first emoji from entry name/notes onto each cell.
 - `pin` — freezes radar to current scope, ignoring editor/scope changes.
+- `cdl` (default ON) — what the CDL library saw (`wramCdlRequest`, answered by `rom/host.ts`):
+  a 2px bar per byte (read blue, written red, both amber, run purple) and **word starts** joined
+  to their high byte (`wd0`/`wd1`), named or not. Word starts come from 16-bit xrefs, not
+  `wram.flags` (which sets WORD on both bytes, so `$10-11` and `$11-12` look alike); overlapping
+  starts chain into longer joins. A rest row with coverage (`gcdl`) shows with `rest` hidden.
+- Search box — a hex address (`2258`, `$7E2258`) selects it; other text marks matching cells
+  (`.cq`) and hides non-matching detail rows.
 - Detail columns: Addr | Name | T | Rgn | Notes | Lines.
 
 ## Enum cross-reference
@@ -130,7 +140,7 @@ Radar tabs are first-class ownership domains — each tab increasingly owns its 
 rendering, state, IPC, parsing, interactions, and tests:
 - `src/games/evermore/scaling/webview/` — scaling tab
 - `src/games/evermore/rooms/webview/`, `src/games/evermore/rooms/rendering/`, `src/games/evermore/rooms/parsing/`, `src/games/evermore/rooms/data/` — rooms tab
-- `src/games/evermore/sprites/` — Characters tab (characters, animations, raw sprites)
+- `src/games/evermore/sprites/` — Characters tab (characters and their animations)
 - `src/games/evermore/memory/render-memory-tab.ts` — memory tab rendering
 - `src/games/evermore/docs-tab/render-docs-tab.ts` — docs/RNG tab rendering
 

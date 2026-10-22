@@ -94,7 +94,7 @@ function romMoreHtml(r) {
   var lines = [];
   lines.push('<div><b>File</b> <code>0x' + romHex(r.a, 6) + '</code>' + (r.n != null ? ' – <code>0x' + romHex(r.a + r.n - 1, 6) + '</code> · ' + romNum(r.n) + ' bytes ($' + romHex(r.n, 4) + ')' : ' · point (routine entry or unmeasured table)') + '</div>');
   if (r.notes) lines.push('<div class="rom-fullnote">' + romMd(r.notes) + '</div>');
-  if (r.room != null) lines.push('<div><button class="rom-btn" data-rom-goto-room="' + r.room + '">Open in Rooms</button></div>');
+  if (r.room != null) lines.push('<div><button class="rom-btn" data-rom-goto-room="' + r.room + '">Open in Maps</button></div>');
   if (r.n != null && _rom.model.hasCdl) {
     lines.push('<div><b>CDL</b> ' + romNum(r.cdl.code) + ' B executed · ' + romNum(r.cdl.data) + ' B read · ' + romNum(r.n - r.cdl.code - r.cdl.data) + ' B not seen</div>');
     var rd = _rom.readers[romRowKey(r)];

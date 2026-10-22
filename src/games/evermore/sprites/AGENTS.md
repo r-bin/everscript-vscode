@@ -5,7 +5,8 @@ Related skills: `animation-script`, `map-entities` (`.agents/skills/`).
 
 ## Owns
 - The radar panel's **Characters** tab: characters/enemies/NPCs and their stats and
-  hitboxes, raw ROM sprites, the animation catalog, and the animation player.
+  hitboxes, the animation catalog, and the animation player. Raw sprites are host-side only
+  (`raw-sprites.ts`); the page opens a sprite as `soe://rom/assets/sprites/<addr>/`.
 - Host side: `character-model.ts`, `animation-*.js`, `frame-compose.ts`,
   `projectile-render.ts`, `target.ts`, `dog-forms.ts`, `raw-sprites.ts`, `thumbnails.ts`,
   `sprites-tab.ts`, `index.js`, `radar-host.ts` (the tab's messages, routed by `extension.js`). Browser side: `webview/` (concatenated into the radar page).

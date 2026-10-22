@@ -4,9 +4,10 @@ Kind: **feature** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 Related skills: `memory-map`, `map-format`, `cdl-recorder` (`.agents/skills/`).
 
 ## Owns
-- The radar panel's **ROM** tab (File, Bus, Compare views): the pure model (`build.js`,
-  `model/`), the `romMapRequest` / `romReaders` requests (`host.js`), the pane scaffold,
-  and the page code in `webview/`.
+- The radar's **Memory › ROM** (File, Compare) and **Memory › Bus** views: the pure model (`build.js`,
+  `model/`), the `romMapRequest` / `romReaders` requests and the WRAM view's `wramCdlRequest`
+  (`host.js`, `model/bus-usage.ts`), the pane scaffold, and the page code in `webview/`
+  (`romShow` is what the Memory bar calls).
 
 ## Dependencies
 - May use `../maps` (room, sprite and animation decoders) and `../localizations` (names).

@@ -1,13 +1,13 @@
-// Ownership: the ROM tab's pane scaffold. Pure; the content arrives later from
-// the host (`romMap` message) and is drawn by webview/rom-tab.js.
+// Ownership: the ROM and Bus views' pane scaffold, one sub-pane of the Memory tab
+// (memory/render-radar.js puts it beside WRAM under the Bus | WRAM | ROM bar). Pure;
+// the content arrives later from the host (`romMap` message) and is drawn by webview/rom-tab.js.
 
 function buildRomTabHtml() {
-    return '<div class="tab-pane rom-pane" data-tab="rom" style="display:none">' +
+    return '<div class="mem-sub-pane rom-pane" data-mem="rom" style="display:none">' +
         '<div class="rom-top">' +
         '<span class="rom-title" id="rom-title">ROM</span>' +
-        '<div class="rom-seg" role="group" title="File offsets, the CPU\'s bus addresses, or both side by side">' +
+        '<div class="rom-seg" id="rom-mode-seg" role="group" title="File offsets, or file and bus side by side">' +
         '<button class="rom-seg-btn rom-on" data-rom-mode="file">File</button>' +
-        '<button class="rom-seg-btn" data-rom-mode="bus">Bus</button>' +
         '<button class="rom-seg-btn" data-rom-mode="cmp">Compare</button>' +
         '</div>' +
         '<span class="rom-stats" id="rom-stats"></span>' +

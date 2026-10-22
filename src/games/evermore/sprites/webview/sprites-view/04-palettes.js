@@ -107,46 +107,6 @@
     loadCurrentAnimation();
   });
 
-  // ── Sprites view sidebar: Chunks, Palettes ─────────────────────────────────
-  var rawSideTab = 'chunks';
-  var rawPaletteGrid = document.getElementById('sp-raw-palette-grid');
-  var rawPaletteStatus = document.getElementById('sp-raw-palette-status');
-  function setRawSideTab(name) {
-    rawSideTab = name;
-    document.querySelectorAll('[data-rawside]').forEach(function(el) {
-      if (el.classList.contains('sp-side-tab')) el.classList.toggle('sp-active', el.dataset.rawside === name);
-      else el.style.display = el.dataset.rawside === name ? '' : 'none';
-    });
-    if (name === 'palettes') requestRawPaletteGrid();
-  }
-  document.querySelectorAll('.sp-side-tab[data-rawside]').forEach(function(b) {
-    b.addEventListener('click', function() { setRawSideTab(b.dataset.rawside); });
-  });
-  function requestRawPaletteGrid() {
-    if (rawPaletteStatus) rawPaletteStatus.textContent = 'rendering…';
-    if (vsApi) vsApi.postMessage({ command: 'getPaletteGrid', sprite: selectedRawAddr, target: 'raw' });
-  }
-  function renderRawPaletteGrid(grid) {
-    if (!rawPaletteGrid) return;
-    rawPaletteGrid.innerHTML = '';
-    if (rawPaletteStatus) rawPaletteStatus.textContent = grid.length + ' palettes · click to use one';
-    grid.forEach(function(p) {
-      var tile = document.createElement('div');
-      tile.className = 'sp-pal-tile' + ((0x900000 | p.addr) === rawPalette ? ' sp-active' : '');
-      tile.title = '#' + p.index + ' (' + p.addrHex + ') — ' + p.owners.join(', ');
-      tile.innerHTML = '<img src="' + p.png + '" alt=""><span class="sp-pal-tile-idx">#' + p.index + '</span><span>' + escHtml(p.owners[0] || '') + '</span>';
-      tile.addEventListener('click', function() {
-        rawPalette = 0x900000 | p.addr;
-        rawPaletteGrid.querySelectorAll('.sp-pal-tile').forEach(function(t) { t.classList.remove('sp-active'); });
-        tile.classList.add('sp-active');
-        if (rawPaletteSel) rawPaletteSel.value = String(rawPalette);
-        loadRawSprite(selectedRawAddr);
-        renderList();                    // list thumbnails follow the palette
-      });
-      rawPaletteGrid.appendChild(tile);
-    });
-  }
-
   if (typeof ResizeObserver === 'function' && canvas && canvas.parentElement) {
     new ResizeObserver(function() { drawFrame(); }).observe(canvas.parentElement);
   }

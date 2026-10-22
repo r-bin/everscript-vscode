@@ -10,7 +10,7 @@ const assert = require('assert');
 
 const { buildRomModel } = require('../../dist/games/evermore/rom');
 const { readersOf } = require('../../dist/games/evermore/rom/model/readers');
-const { executedByHalf, wramStrip } = require('../../dist/games/evermore/rom/model/bus-usage');
+const { executedByHalf, wramStrip, wramWordStarts, wramCoverage } = require('../../dist/games/evermore/rom/model/bus-usage');
 const { renderRadarHtml } = require('../../src/games/evermore/memory/render-radar');
 
 let passed = 0, failed = 0;
@@ -48,6 +48,19 @@ check('bus usage: executed bank halves from pcstats and edges, WRAM strip from f
     const w = wramStrip(flags);
     assert.deepStrictEqual(w.strip, [[3, 1], [2, 1], [1, 1], [0, 253]]);
     assert.strictEqual(w.touched, 3);
+});
+
+check('WRAM coverage: word starts from 16-bit xrefs, flags for the grid rows', () => {
+    const key = (pc, space, addr) => pc * 0x4000000 + (space << 24 | addr);
+    const xrefs = new Map([[key(0x808000, 0, 0x2258), 8 | 1], [key(0x808003, 0, 0x2300), 2], [key(0x808006, 1, 0x8000), 8]]);
+    const words = wramWordStarts(xrefs);
+    assert.deepStrictEqual([...words], [0x2258], 'only space 0 (WRAM) with the word flag');
+    const flags = new Uint8Array(0x20000); flags[0x2258] = 9; flags[0x2259] = 9; flags[0x2300] = 2;
+    const cov = wramCoverage(flags, words, 0x2250, 0x225F);
+    assert.strictEqual(cov.flags.length, 16);
+    assert.deepStrictEqual(cov.flags.slice(8, 10), [9, 9]);
+    assert.deepStrictEqual(cov.words, [0x2258]);
+    assert.deepStrictEqual(wramCoverage(flags, words, 0x2300, 0x2300).words, []);
 });
 
 check('a non-Evermore ROM still gets halves, header and gaps', () => {
@@ -123,9 +136,12 @@ async function dom() {
         try { await fn(); console.log('  ✓ ' + name); passed++; }
         catch (e) { console.error('  ✗ ' + name + '\n    ' + (e.stack || e.message)); failed++; }
     };
-    await step('the ROM tab exists and asks the host once when first shown', async () => {
-        await page.click('.tab[data-tab="rom"]');
-        await page.click('.tab[data-tab="rom"]');
+    await step('Memory opens on WRAM; its ROM view asks the host once when first shown', async () => {
+        assert.strictEqual(await page.locator('.tab[data-tab="rom"]').count(), 0, 'ROM is a Memory view, not a tab');
+        assert.strictEqual(await page.evaluate(() => getComputedStyle(document.querySelector('.rom-pane')).display), 'none');
+        assert.ok(await page.evaluate(() => window.__posted.some(m => m.command === 'wramCdlRequest')), 'WRAM asks for its CDL coverage');
+        await page.click('[data-mem-view="rom"]');
+        await page.click('[data-mem-view="rom"]');
         const asks = await page.evaluate(() => window.__posted.filter(m => m.command === 'romMapRequest').length);
         assert.strictEqual(asks, 1);
         assert.strictEqual(await page.evaluate(() => getComputedStyle(document.querySelector('.rom-pane')).display), 'flex');
@@ -154,7 +170,8 @@ async function dom() {
             assert.ok(await page.locator('[data-rom-goto-room="72"]').count() === 1);
         });
         await step('Bus view: a bus address resolves to its room and four mirrors', async () => {
-            await page.click('[data-rom-mode="bus"]');
+            await page.click('[data-mem-view="bus"]');
+            assert.ok(!(await page.locator('#rom-mode-seg').isVisible()), 'File / Compare belong to the ROM view');
             assert.strictEqual(await page.evaluate(() => getComputedStyle(document.getElementById('rom-file-view')).display), 'none');
             await page.fill('#rom-search', '$9F:D600');
             assert.match(await page.textContent('#rom-bus-view .rom-h2'), /\$9F:D600/);
@@ -172,6 +189,7 @@ async function dom() {
             assert.match(await page.textContent('#rom-bus-view'), /Strings/);
         });
         await step('Compare view: a file half shows its bus windows; a map click selects the half', async () => {
+            await page.click('[data-mem-view="rom"]');
             await page.click('[data-rom-mode="cmp"]');
             await page.click('#rom-cmp-view .rom-half[data-rom-half="25"]');
             assert.match(await page.textContent('#rom-cmp-view .rom-h2'), /0x0C8000/);

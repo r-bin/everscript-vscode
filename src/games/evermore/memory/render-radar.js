@@ -106,10 +106,9 @@ function renderRadarHtml(
     const spritesTabHtml = buildSpritesTabHtml();
     const spritesData =
         'var SPRITES_CHARACTERS_DATA=' + JSON.stringify(spritesBundle?.characters || []).replace(/<\/script>/gi, '<\\/script>') + ';' +
-        '\nvar SPRITES_RAW_INDEX=' + JSON.stringify(spritesBundle?.rawIndex || []).replace(/<\/script>/gi, '<\\/script>') + ';' +
         '\nvar SPRITES_ANIMATIONS=' + JSON.stringify(spritesBundle?.animations || []).replace(/<\/script>/gi, '<\\/script>') + ';';
 
-    const js = radarWebview.buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, rngJs, romJs: radarWebview.romJs, musicJs: radarWebview.musicJs, scriptsJs: radarWebview.scriptsJs, dataJs: radarWebview.dataJs });
+    const js = radarWebview.buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, rngJs, romJs: radarWebview.romJs, musicJs: radarWebview.musicJs, scriptsJs: radarWebview.scriptsJs, dataJs: radarWebview.dataJs, wramJs: radarWebview.wramJs });
 
     // ── Rooms tab HTML ──────────────────────────────────────────────────────
     const roomsTabHtml =
@@ -146,23 +145,30 @@ function renderRadarHtml(
         '<body class="hrest">' +
         '<div class="tabs">' +
         '<button class="tab tab-active" data-tab="radar">\u26a1 Memory</button>' +
-        '<button class="tab" data-tab="rooms">\ud83d\uddfa Rooms</button>' +
+        '<button class="tab" data-tab="rooms">\ud83d\uddfa Maps</button>' +
         '<button class="tab" data-tab="sprites">\ud83d\udc7e Characters</button>' +
         '<button class="tab" data-tab="scaling">\u2694\ufe0f Scaling</button>' +
         '<button class="tab" data-tab="docs">\ud83d\udcda Docs</button>' +
         '<button class="tab" data-tab="rng">\ud83c\udfb2 RNG</button>' +
-        '<button class="tab" data-tab="rom">\ud83d\udcbe ROM</button>' +
         '<button class="tab" data-tab="music">\ud83c\udfb5 Music</button>' +
         '<button class="tab" data-tab="scripts">\ud83d\udcdc Scripts</button>' +
         '<button class="tab" data-tab="data">\ud83d\uddc3 Data</button>' +
         '</div>' +
+        // Memory: one tab, three address spaces under its own bar (memory/webview/wram-view.dom.ts).
+        '<div class="tab-pane mem-pane" data-tab="radar">' +
+        '<div class="mem-subbar" role="group">' +
+        '<button class="mem-sub" data-mem-view="bus" title="The CPU\'s 24-bit bus: what every bank and address reaches">Bus</button>' +
+        '<button class="mem-sub mem-sub-on" data-mem-view="wram" title="Work RAM: the memory map, this scope\'s reads and writes, CDL coverage">WRAM</button>' +
+        '<button class="mem-sub" data-mem-view="rom" title="The ROM file: every bank half, what fills it, CDL coverage">ROM</button>' +
+        '</div>' +
         memoryTabHtml +
+        buildRomTabHtml() +
+        '</div>' +
         roomsTabHtml +
         spritesTabHtml +
         scalingTabHtml +
         buildDocsTabHtml() +
         buildRngTabHtml() +
-        buildRomTabHtml() +
         buildMusicTabHtml() +
         buildScriptsTabHtml() +
         buildDataTabHtml() +

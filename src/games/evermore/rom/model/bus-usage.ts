@@ -9,6 +9,29 @@
 
 const WF_READ = 1, WF_WRITE = 2, WF_EXEC = 0x10;
 const WRAM_CELL = 512;
+const XREF_WORD = 8;                  // xref flags: the access was 16 bits wide
+
+/**
+ * Where the CDL saw 16-bit WRAM accesses start: every xref in space 0 (WRAM) with the word
+ * flag names the low byte of a word. `wram.flags` marks both bytes, so it cannot tell
+ * `$10-11` from `$11-12`; the xref address can.
+ */
+function wramWordStarts(xrefs: Map<number, number> | null | undefined): Set<number> {
+    const out = new Set<number>();
+    for (const [key, flags] of xrefs || new Map<number, number>()) {
+        const spaceAddr = key % 0x4000000;
+        if ((spaceAddr >>> 24) !== 0 || !(flags & XREF_WORD)) continue;
+        out.add(spaceAddr & 0x1FFFF);
+    }
+    return out;
+}
+
+/** The Memory tab's WRAM grid, `lo..hi` (bank $7E offsets): the access flags per byte and the word starts in range. */
+function wramCoverage(wflags: ArrayLike<number> | null | undefined, words: Set<number>, lo: number, hi: number): { flags: number[]; words: number[] } {
+    const flags: number[] = [];
+    for (let a = lo; a <= hi; a++) flags.push(wflags && a < wflags.length ? wflags[a] : 0);
+    return { flags, words: [...words].filter((a) => a >= lo && a <= hi).sort((a, b) => a - b) };
+}
 
 /** { "<bank*2+upper>": distinct instruction addresses seen there } */
 function executedByHalf(stats: Map<number, unknown> | null | undefined, edges: Map<number, unknown> | null | undefined): Record<number, number> {
@@ -41,4 +64,4 @@ function wramStrip(wflags: ArrayLike<number> | null | undefined): { strip: [numb
     return { strip: out, touched };
 }
 
-export { executedByHalf, wramStrip };
+export { executedByHalf, wramStrip, wramWordStarts, wramCoverage };

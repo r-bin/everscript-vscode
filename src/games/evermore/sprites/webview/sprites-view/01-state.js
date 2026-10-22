@@ -1,11 +1,10 @@
 // TODO port to TS (docs/todo/port-to-ts.md)
-// Ownership: client-side interaction, animation playback loop, canvas drawing, stat cards, and chunk inspector for the Sprites tab.
+// Ownership: client-side interaction, animation playback loop, canvas drawing, stat cards, and chunk inspector for the Characters tab.
   // Reuse the vscode API instance already acquired by shared.js (acquireVsCodeApi can only be called once)
   var vsApi = (typeof vs !== 'undefined' && vs) ? vs : (typeof acquireVsCodeApi === 'function' ? (function() { try { return acquireVsCodeApi(); } catch(e) { return null; } })() : null);
 
   // State variables
-  var currentMode = 'chars'; // 'chars', 'anims' or 'raw'
-  var pinnedRecord = null;   // Animations mode: the catalogue entry being played
+  var pickedRecord = null;   // All filter: the catalogue entry played on the selected character
   var requestedRecord = 0;   // the record behind the last animation request
   var charFilter = 'all';
   var selectedCharId = 0;
@@ -26,28 +25,18 @@
   var lastRafTime = 0;
   var loadedImages = {}; // cache of Image objects for PNGs
 
-  var selectedRawAddr = 0xca0003;
-  var rawBg = 'dark';
-  var rawPalette = 0x90b00b;
-
   // DOM Elements
-  var btnChars = document.getElementById('sp-btn-mode-chars');
-  var btnRaw = document.getElementById('sp-btn-mode-raw');
-  var btnAnims = document.getElementById('sp-btn-mode-anims');
   var script = (typeof window !== 'undefined' && window.SpritesScript) || null;
-  var charView = document.getElementById('sp-char-view');
-  var rawView = document.getElementById('sp-raw-view');
   var charFilters = document.getElementById('sp-char-filters');
   var searchInput = document.getElementById('sp-search');
   var listEl = document.getElementById('sp-list');
 
   var canvas = document.getElementById('sp-canvas');
   var ctx = (canvas && typeof canvas.getContext === 'function') ? canvas.getContext('2d') : null;
-  var rawCanvas = document.getElementById('sp-raw-canvas');
-  var rawCtx = (rawCanvas && typeof rawCanvas.getContext === 'function') ? rawCanvas.getContext('2d') : null;
 
   var animSel = document.getElementById('sp-anim-sel');
   var scrubber = document.getElementById('sp-scrubber');
+  var scrubTicks = document.getElementById('sp-scrub-ticks');
   var frameInfo = document.getElementById('sp-frame-info');
   var btnPlay = document.getElementById('sp-btn-play');
   var btnPrev = document.getElementById('sp-btn-step-prev');
@@ -77,12 +66,6 @@
   var chunksBody = document.getElementById('sp-chunks-body');
   var chunksCount = document.getElementById('sp-chunks-count');
 
-  var rawPaletteSel = document.getElementById('sp-raw-palette-sel');
-  var rawBgSel = document.getElementById('sp-raw-bg-sel');
-  var rawChunksBody = document.getElementById('sp-raw-chunks-body');
-  var rawName = document.getElementById('sp-raw-name');
-  var rawBadge = document.getElementById('sp-raw-badge');
-
   /** Names like "<Boy Name>" must not be parsed as tags. */
   function escHtml(v) {
     return String(v).replace(/[&<>"]/g, function(ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]; });
@@ -92,57 +75,24 @@
     return (typeof SPRITES_CHARACTERS_DATA !== 'undefined' ? SPRITES_CHARACTERS_DATA : (typeof window !== 'undefined' ? window.SPRITES_CHARACTERS_DATA : [])) || [];
   }
 
-  function getRawIndex() {
-    return (typeof SPRITES_RAW_INDEX !== 'undefined' ? SPRITES_RAW_INDEX : (typeof window !== 'undefined' ? window.SPRITES_RAW_INDEX : [])) || [];
+  /** Every animation record, in record order: its position is the animation's index (#n). */
+  function getAnimations() {
+    return (typeof SPRITES_ANIMATIONS !== 'undefined' ? SPRITES_ANIMATIONS : (typeof window !== 'undefined' ? window.SPRITES_ANIMATIONS : [])) || [];
   }
-
-  // ── Mode Switching ──────────────────────────────────────────────────────────
-  function setMode(mode) {
-    currentMode = mode;
-    if (btnChars) btnChars.classList.toggle('sp-active', mode === 'chars');
-    if (btnRaw) btnRaw.classList.toggle('sp-active', mode === 'raw');
-    if (btnAnims) btnAnims.classList.toggle('sp-active', mode === 'anims');
-    if (charView) charView.style.display = mode === 'chars' || mode === 'anims' ? 'flex' : 'none';
-    if (rawView) rawView.style.display = mode === 'raw' ? 'flex' : 'none';
-    if (charFilters) charFilters.style.display = mode === 'chars' ? 'flex' : 'none';
-    if (animSel) animSel.disabled = mode === 'anims';
-    // A catalogue record has no character to list animations or stats for.
-    document.querySelectorAll('.sp-side-tab[data-side="anims"], .sp-side-tab[data-side="stats"]').forEach(function(b) {
-      b.style.display = mode === 'anims' ? 'none' : '';
-    });
-    if (mode === 'anims' && (sideTab === 'anims' || sideTab === 'stats')) setSideTab('script');
-    renderList();
-    if (mode === 'raw') loadRawSprite(selectedRawAddr);
-    if (mode === 'chars' && pinnedRecord) { pinnedRecord = null; selectCharacter(selectedCharId); }
-    if (mode === 'chars') { var mc = getCharacters().find(function(x) { return x.id === selectedCharId; }); if (mc) renderAnimGrid(mc); }
-    if (mode === 'anims' && !pinnedRecord && script && script.count()) {
-      selectAnimationRecord(script.findRecord(getAnimationsFirst()));
+  var animIndexByRecord = null;
+  function animIndexOf(record) {
+    if (!animIndexByRecord) {
+      animIndexByRecord = {};
+      getAnimations().forEach(function(a, i) { animIndexByRecord[a.record] = i; });
     }
+    return record in animIndexByRecord ? animIndexByRecord[record] : -1;
   }
 
-  function getAnimationsFirst() {
-    var all = (typeof SPRITES_ANIMATIONS !== 'undefined' ? SPRITES_ANIMATIONS : []) || [];
-    return all.length ? all[0].record : null;
+  /** A list row's text: the name, and its index on a second line. */
+  function twoLineHtml(name, index, tag) {
+    return '<span class="sp-li-text"><span class="sp-li-name">' + escHtml(name) + (tag || '') + '</span>' +
+      '<span class="sp-li-idx">' + escHtml(index) + '</span></span>';
   }
-
-  /** Animations mode: play one catalogue record, drawn in its owner's palette. */
-  function selectAnimationRecord(entry) {
-    if (!entry) return;
-    pinnedRecord = entry;
-    selectCharacter(entry.paletteCharacter);
-    var nameEl = document.getElementById('sp-char-name');
-    if (nameEl) nameEl.textContent = entry.label + ' (' + entry.recHex + ')';
-    if (weaponGroup) weaponGroup.style.display = 'none';
-    if (listEl) {
-      listEl.querySelectorAll('.sp-list-item').forEach(function(el) {
-        el.classList.toggle('sp-selected', parseInt(el.dataset.record) === entry.record);
-      });
-    }
-  }
-
-  if (btnChars) btnChars.addEventListener('click', function() { setMode('chars'); });
-  if (btnRaw) btnRaw.addEventListener('click', function() { setMode('raw'); });
-  if (btnAnims) btnAnims.addEventListener('click', function() { setMode('anims'); });
 
   // ── Search & Filters ────────────────────────────────────────────────────────
   if (searchInput) {
@@ -172,78 +122,39 @@
       chipAll.textContent = 'All (' + chars.length + ')';
     }
 
-    if (currentMode === 'anims') {
-      if (script) script.renderCatalogList(listEl, q, pinnedRecord ? pinnedRecord.record : null, selectAnimationRecord);
+    if (!chars || chars.length === 0) {
+      var emptyEl = document.createElement('div');
+      emptyEl.className = 'sp-empty-notice';
+      emptyEl.innerHTML = '<strong>No characters loaded.</strong><br><span style="opacity:0.75">No Secret of Evermore ROM in the ROM library. Add your own with Everscript: Switch ROM.</span>';
+      listEl.appendChild(emptyEl);
       return;
     }
 
-    if (currentMode === 'chars') {
-      if (!chars || chars.length === 0) {
-        var emptyEl = document.createElement('div');
-        emptyEl.className = 'sp-empty-notice';
-        emptyEl.innerHTML = '<strong>No characters loaded.</strong><br><span style="opacity:0.75">No Secret of Evermore ROM in the ROM library. Add your own with Everscript: Switch ROM.</span>';
-        listEl.appendChild(emptyEl);
-        return;
-      }
+    chars.forEach(function(c) {
+      if (!c) return;
+      var disp = c.disposition || {};
+      if (charFilter === 'enemies' && !disp.hostile) return;
+      if (charFilter === 'npcs' && disp.hostile) return;
+      if (charFilter === 'heroes' && c.id !== 0 && c.id !== 1) return;
 
-      chars.forEach(function(c) {
-        if (!c) return;
-        var disp = c.disposition || {};
-        if (charFilter === 'enemies' && !disp.hostile) return;
-        if (charFilter === 'npcs' && disp.hostile) return;
-        if (charFilter === 'heroes' && c.id !== 0 && c.id !== 1) return;
+      var nameStr = (c.name || '').toLowerCase();
+      var idStr = String(c.id);
+      var snesStr = (c.snesHex || '').toLowerCase();
 
-        var nameStr = (c.name || '').toLowerCase();
-        var idStr = String(c.id);
-        var snesStr = (c.snesHex || '').toLowerCase();
+      if (q && !nameStr.includes(q) && idStr !== q.replace(/^#/, '') && !snesStr.includes(q)) return;
 
-        if (q && !nameStr.includes(q) && !idStr.includes(q) && !snesStr.includes(q)) return;
+      var li = document.createElement('li');
+      li.className = 'sp-list-item' + (c.id === selectedCharId ? ' sp-selected' : '') + (c.noVisuals ? ' sp-li-novis' : '');
+      li.dataset.id = String(c.id);
+      li.title = (c.snesHex ? 'Record ' + c.snesHex : '') + (c.noVisuals ? '\nNo visuals: none of its own animations shows a sprite (death is the shared dust puff)' : '');
+      // Two square boxes per row, filled or empty, so every name starts at the same x.
+      var box = function(src, title) { return '<span class="sp-li-thumb" title="' + title + '">' + (src ? '<img src="' + src + '" alt="">' : '') + '</span>'; };
+      var thumbs = '<span class="sp-li-thumbs">' + box(c.thumbs && c.thumbs.s, 'south') + box(c.thumbs && c.thumbs.e, 'east') + '</span>';
+      li.innerHTML = thumbs + twoLineHtml(c.name || '#' + c.id, '#' + c.id, c.noVisuals ? '<span class="sp-li-tag">no visuals</span>' : '');
 
-        var li = document.createElement('li');
-        li.className = 'sp-list-item' + (c.id === selectedCharId ? ' sp-selected' : '') + (c.noVisuals ? ' sp-li-novis' : '');
-        li.dataset.id = String(c.id);
-        li.title = c.noVisuals ? 'No visuals: none of its own animations shows a sprite (death is the shared dust puff)' : '';
-        // Two square boxes per row, filled or empty, so every name starts at the same x.
-        var box = function(src, title) { return '<span class="sp-li-thumb" title="' + title + '">' + (src ? '<img src="' + src + '" alt="">' : '') + '</span>'; };
-        var thumbs = '<span class="sp-li-thumbs">' + box(c.thumbs && c.thumbs.s, 'south') + box(c.thumbs && c.thumbs.e, 'east') + '</span>';
-        li.innerHTML = thumbs + '<span class="sp-li-name">' + escHtml(c.name || '#' + c.id) + (c.noVisuals ? '<span class="sp-li-tag">no visuals</span>' : '') + '</span>' +
-          '<span class="sp-li-addr">' + (c.snesHex || '') + '</span>';
-
-        li.addEventListener('click', function() { selectCharacter(c.id); });
-        listEl.appendChild(li);
-      });
-    } else {
-      var rawList = getRawIndex();
-      if (!rawList || rawList.length === 0) {
-        var emptyRawEl = document.createElement('div');
-        emptyRawEl.className = 'sp-empty-notice';
-        emptyRawEl.innerHTML = '<strong>No raw sprites loaded.</strong><br><span style="opacity:0.75">No Secret of Evermore ROM in the ROM library. Add your own with Everscript: Switch ROM.</span>';
-        listEl.appendChild(emptyRawEl);
-        return;
-      }
-
-      rawList.forEach(function(s) {
-        if (!s) return;
-        var addrStr = (s.addrHex || '').toLowerCase();
-        var idxStr = String(s.index);
-        if (q && !addrStr.includes(q) && !idxStr.includes(q)) return;
-
-        var li = document.createElement('li');
-        li.className = 'sp-list-item' + (s.address === selectedRawAddr ? ' sp-selected' : '');
-        li.dataset.addr = String(s.address);
-        li.innerHTML = '<span class="sp-li-name">' + s.addrHex + '</span>' +
-          '<span class="sp-li-addr">' + s.width + '×' + s.height + ' (' + s.chunkCount + ')</span>';
-        if (window.SpritesThumbs) {
-          var tw = document.createElement('span');
-          tw.className = 'sp-li-thumbs';
-          tw.appendChild(window.SpritesThumbs.box({ key: 'spr:' + s.address + ':' + rawPalette, sprite: s.address, paletteAddr: rawPalette }));
-          li.insertBefore(tw, li.firstChild);
-        }
-
-        li.addEventListener('click', function() { selectRawSprite(s.address); });
-        listEl.appendChild(li);
-      });
-    }
+      li.addEventListener('click', function() { selectCharacter(c.id); });
+      listEl.appendChild(li);
+    });
   }
 
   // ── Character Selection ─────────────────────────────────────────────────────
@@ -255,9 +166,11 @@
     if (!c) c = chars[0];
     if (!c) return;
     selectedCharId = c.id;
+    // A record picked under All stays on stage for the next character; a Default pick does not.
+    if (animFilter !== 'all') pickedRecord = null;
 
     // Update list selection highlight
-    if (listEl && currentMode === 'chars') {
+    if (listEl) {
       listEl.querySelectorAll('.sp-list-item').forEach(function(el) {
         el.classList.toggle('sp-selected', parseInt(el.dataset.id) === selectedCharId);
       });
@@ -271,7 +184,7 @@
     var swatch = document.getElementById('sp-palette-swatch');
 
     if (idEl) idEl.textContent = '#' + c.id;
-    if (nameEl) nameEl.textContent = (c.name || '#' + c.id) + ' (' + (c.snesHex || '') + ')';
+    if (nameEl) { nameEl.textContent = c.name || '#' + c.id; nameEl.title = c.snesHex ? 'Record ' + c.snesHex : ''; }
     paletteOverride = 0;
     paletteOverrideChar = c.id;
     if (paletteGrid) paletteGrid.querySelectorAll('.sp-pal-tile').forEach(function(t) { t.classList.remove('sp-active'); });

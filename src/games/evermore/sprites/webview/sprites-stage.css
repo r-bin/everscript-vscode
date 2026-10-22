@@ -86,6 +86,30 @@
   cursor: pointer;
 }
 
+/* The seek bar's frame marks, spaced by ticks (03-playback.js renderScrubTicks) */
+.sp-scrub-track {
+  position: relative;
+  flex: 1;
+  display: flex;
+  min-width: 0;
+}
+
+.sp-scrub-track .sp-scrubber { width: 100%; position: relative; z-index: 1; }
+
+.sp-scrub-ticks {
+  position: absolute;
+  inset: 0;
+}
+
+.sp-scrub-ticks i {
+  position: absolute;
+  top: 1px;
+  width: 1px;
+  height: 5px;
+  background: var(--vscode-descriptionForeground, #888);
+  opacity: 0.8;
+}
+
 .sp-frame-info {
   font-size: 11px;
   font-family: var(--vscode-editor-font-family, monospace);
@@ -172,9 +196,7 @@
   background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: 3px;
-  position: relative;
-  cursor: help;
-  transition: all 0.1s;
+  min-width: 0;
 }
 
 .sp-stat-card:hover {
@@ -192,38 +214,11 @@
 }
 
 .sp-stat-val {
+  overflow-wrap: anywhere;
   font-size: 14px;
   font-weight: bold;
   font-family: var(--vscode-editor-font-family, monospace);
   margin-top: 2px;
-}
-
-.sp-stat-sub {
-  font-size: 9px;
-  opacity: 0.5;
-  margin-top: 1px;
-}
-
-.sp-stat-tooltip {
-  display: none;
-  position: absolute;
-  bottom: 100%;
-  left: 0;
-  width: 220px;
-  background: #252526;
-  border: 1px solid #454545;
-  border-radius: 4px;
-  padding: 8px;
-  font-size: 11px;
-  line-height: 1.4;
-  color: #eee;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-  z-index: 100;
-  pointer-events: none;
-}
-
-.sp-stat-card:hover .sp-stat-tooltip {
-  display: block;
 }
 
 /* ── Chunks Table ── */

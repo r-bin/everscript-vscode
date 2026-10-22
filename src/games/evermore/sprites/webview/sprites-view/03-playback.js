@@ -50,9 +50,28 @@
     });
   }
 
+  // The seek bar runs in ticks: each frame takes as much of it as it holds, and dragging snaps
+  // to the start of the frame under the knob.
+  function frameAtTick(t) {
+    var i = 0;
+    for (var k = 0; k < frameStartTicks.length; k++) if (frameStartTicks[k] <= t) i = k;
+    return i;
+  }
+  function scrubTotal() {
+    var n = currentAnimData ? currentAnimData.frames.length : 0;
+    if (!n) return 0;
+    return frameStartTicks[n - 1] + Math.max(1, currentAnimData.frames[n - 1].ticks) + flightTail;
+  }
+  function renderScrubTicks() {
+    if (!scrubTicks) return;
+    var total = scrubTotal();
+    scrubTicks.innerHTML = total ? frameStartTicks.map(function(t, i) {
+      return '<i style="left:calc(7px + (100% - 14px) * ' + (t / total) + ')" title="Frame ' + (i + 1) + ' · tick ' + t + '"></i>';
+    }).join('') : '';
+  }
   if (scrubber) {
     scrubber.addEventListener('input', function() {
-      currentFrameIdx = parseInt(scrubber.value);
+      currentFrameIdx = frameAtTick(parseInt(scrubber.value, 10) || 0);
       tickCounter = 0;
       updateFrameUI();
     });
@@ -64,12 +83,14 @@
     });
   }
 
+  /** A sprite opens as its soe:// page (soe://rom/assets/sprites/<address>/). */
+  function openSprite(addr) {
+    if (addr && vsApi) vsApi.postMessage({ command: 'openVfs', uri: 'soe://rom/assets/sprites/' + addr.toString(16).padStart(6, '0') + '/' });
+  }
   if (spriteAddrLink) {
     spriteAddrLink.addEventListener('click', function() {
-      if (!currentAnimData || !currentAnimData.frames[currentFrameIdx]) return;
-      var f = currentAnimData.frames[currentFrameIdx];
-      setMode('raw');
-      selectRawSprite(f.spriteAddr);
+      var f = currentAnimData && currentAnimData.frames[currentFrameIdx];
+      if (f) openSprite(f.spriteAddr);
     });
   }
 
@@ -133,8 +154,8 @@
     if (!cur) return;
 
     if (scrubber) {
-      scrubber.max = currentAnimData.frames.length - 1;
-      scrubber.value = currentFrameIdx;
+      scrubber.max = String(scrubTotal());
+      scrubber.value = String(frameStartTicks[currentFrameIdx] || 0);
     }
 
     if (frameInfo) {
@@ -147,7 +168,8 @@
     }
 
     if (spriteAddrLink) {
-      spriteAddrLink.textContent = cur.spriteHex;
+      spriteAddrLink.textContent = cur.spriteIndex >= 0 ? '#' + cur.spriteIndex : cur.spriteHex;
+      spriteAddrLink.title = cur.spriteAddr ? 'Sprite ' + cur.spriteHex + ' · click to open in soe://' : '';
     }
 
     // Update Chunks table and the script lines behind this frame
@@ -208,7 +230,7 @@
     chunksBody.innerHTML = '';
     if (chunksCount) chunksCount.textContent = '(' + chunks.length + ' chunks)';
     var pal = currentPaletteAddr();
-    chunks.forEach(function(ch) {
+    chunks.forEach(function(ch, i) {
       var tr = document.createElement('tr');
       var props = [];
       if (ch.large) props.push('16×16'); else props.push('8×8');
@@ -218,12 +240,13 @@
       var palBits = (ch.flags >> 1) & 7;
       if (palBits) props.push('Palette 2');
       tr.innerHTML =
+        '<td>#' + i + '</td>' +
         '<td></td>' +
         '<td>' + ch.blockHex + '</td>' +
         '<td>' + ch.x + ', ' + ch.y + '</td>' +
         '<td>' + ch.flagsHex + '</td>' +
         '<td>' + props.join(', ') + '</td>';
-      if (window.SpritesThumbs) tr.firstChild.appendChild(window.SpritesThumbs.box({
+      if (window.SpritesThumbs) tr.children[1].appendChild(window.SpritesThumbs.box({
         key: 'blk:' + ch.block + ':' + (ch.large ? 1 : 0) + ':' + (ch.flipX ? 1 : 0) + (ch.flipY ? 1 : 0) + ':' + palBits + ':' + selectedCharId + ':' + pal,
         block: ch.block, large: ch.large, flipX: ch.flipX, flipY: ch.flipY, pal: palBits, character: selectedCharId, paletteAddr: pal,
       }));

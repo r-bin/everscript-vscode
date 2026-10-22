@@ -1,5 +1,5 @@
 // Owner: memory_radar/render-memory-tab.js
-// Renders the WRAM grid, arg grid, and detail table tab-pane HTML.
+// Renders the WRAM grid, arg grid, and detail table: the Memory tab's WRAM sub-pane.
 // Pure function — no state, no VS Code dependency.
 
 import { radarH, radarEsc, radarLifecycle, radarExtractEmoji } from '../radar-utils';
@@ -22,7 +22,8 @@ interface DetailEntry {
 const COLS = 16;
 
 /**
- * Build the full `<div class="tab-pane" data-tab="radar">` HTML string.
+ * Build the WRAM sub-pane (`<div class="mem-sub-pane" data-mem="wram">`); render-radar.js puts it under the Memory tab's sub-bar.
+ * CDL coverage, word starts and the search box are filled in on the page (webview/wram-view.dom.ts).
  * @param scope      { kind, name, startLine, endLine }
  * @param refs       addr → { reads, writes }
  * @param pools      declared pools
@@ -287,10 +288,14 @@ function buildMemoryTabHtml(
         '<button class="fb fgroup" id="btn-group" title="Group coloring: color-stripe cells in same multi-byte entry (off by default)">group</button>' +
         '<button class="fb fhideargs on" id="btn-hideargs" title="Hide arg slots with no usage in scope">hide unused args</button>' +
         '<button class="fb fpin" id="btn-pin" title="Pin: lock to current scope, stop auto-update">pin</button>' +
-        '<button class="fb fglobal" id="btn-global" title="Global scope: show whole file instead of current function">global</button>';
+        '<button class="fb fglobal" id="btn-global" title="Global scope: show whole file instead of current function">global</button>' +
+        '<span class="sep"></span>' +
+        '<button class="fb fcdl on" id="btn-cdl" title="CDL coverage: what the recorder saw read, written or run (bar under each byte), and where it saw 16-bit accesses start (bytes joined into words), named or not">cdl</button>' +
+        '<input class="mem-search" id="wram-search" type="text" placeholder="Search $addr or name…" autocomplete="off" spellcheck="false">' +
+        '<span class="mem-cdl-note" id="wram-cdl-note"></span>';
 
     const tabHtml =
-        '<div class="tab-pane" data-tab="radar">' +
+        '<div class="mem-sub-pane" data-mem="wram">' +
         '<div class="head">' +
         '<div class="sm">Scope: <strong>' + radarEsc(scope.kind) + ' ' + radarEsc(scope.name) +
         '</strong> | Lines: ' + (scope.startLine + 1) + '\u2013' + (scope.endLine + 1) + '</div>' +
@@ -304,7 +309,7 @@ function buildMemoryTabHtml(
         '<div class="left-panel">' +
         (argHtml ? '<div class="ph">Args <span class="ph-sub">word</span></div><div class="gw arg-gw">' + argHtml + '</div>' : '') +
         '<div class="ph">WRAM ' + radarH(rowStart) + '\u2013' + radarH(rowEnd - 1) + '</div>' +
-        '<div class="gw">' + gridHtml + '</div>' +
+        '<div class="gw" id="wram-grid" data-lo="' + rowStart + '" data-hi="' + (rowEnd - 1) + '">' + gridHtml + '</div>' +
         '</div>' +
         '<div class="right-panel"><div class="dt-wrap">' +
         '<table><thead><tr><th>Addr</th><th>Name</th><th>T</th><th>Notes</th><th>Lines</th></tr></thead>' +
