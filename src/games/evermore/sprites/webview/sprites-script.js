@@ -227,7 +227,7 @@
     var tagsHtml = (pal.tags || []).map(function(t) { return '<span class="evs-tip-badge">' + esc(t) + '</span>'; }).join('');
     var chars = (pal.characters || []).map(function(c) { return esc(c.name + (c.role ? ' (' + c.role + ')' : '')); }).join(', ') || '—';
     var anims = (pal.animations || []).slice(0, 3).map(function(a) { return esc(a.label); }).join(', ') || '—';
-    var vfsUri = 'soe://rom/assets/palettes/' + pal.addr.toString(16).padStart(4, '0');
+    var vfsUri = 'soe://rom/assets/palettes/' + (pal.index != null ? pal.index : pal.addr.toString(16).padStart(4, '0'));
     var swatches = (pal.colors || []).map(function(c, i) {
       return '<span style="background:' + (i === 0 ? 'transparent' : c) + '" title="' + c + '"></span>';
     }).join('');
@@ -280,8 +280,9 @@
       if (a.dataset.palette) {
         var palNum = parseInt(a.dataset.palette, 10);
         var palHex4 = palNum.toString(16).padStart(4, '0');
+        var uri = 'soe://rom/assets/palettes/' + (a.dataset.paletteIndex != null ? a.dataset.paletteIndex : palHex4);
         var vsApi = (typeof vs !== 'undefined' && vs) ? vs : (typeof acquireVsCodeApi === 'function' ? (function() { try { return acquireVsCodeApi(); } catch(e) { return null; } })() : null);
-        if (vsApi) vsApi.postMessage({ command: 'openVfs', uri: 'soe://rom/assets/palettes/' + palHex4 });
+        if (vsApi) vsApi.postMessage({ command: 'openVfs', uri: uri });
         return;
       }
       if (a.dataset.sprite && lastCtx.onSprite) lastCtx.onSprite(parseInt(a.dataset.sprite, 10));
@@ -338,7 +339,7 @@
     ownersEl.innerHTML = '<strong>Record ' + esc(entry.recHex) + '</strong> · ' + entry.facingCount +
       (entry.facingCount === 1 ? ' facing' : ' facings') + ' · used by: ' +
       (list.length ? list.map(function(o) { return esc(ownerText(o)); }).join('; ') : 'no character, weapon or animate id') +
-      (entry.paletteFromScript ? ' · palette $' + (entry.paletteAddr || 0).toString(16) + ' loaded by the script'
+      (entry.paletteFromScript ? ' · palette ' + (entry.paletteIndex != null ? '#' + entry.paletteIndex + ' ' : '') + '($' + (entry.paletteAddr || 0).toString(16) + ') loaded by the script'
         : entry.paletteInferred ? ' · palette inferred: ' + esc(entry.paletteInferred) : '');
   }
 

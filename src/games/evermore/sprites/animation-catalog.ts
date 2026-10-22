@@ -11,6 +11,7 @@ import { runAnimation } from '../maps/animation-vm';
 import { animationGroups, animationIdRecord, ANIMATION_ID_COUNT } from '../maps/animation-table';
 import { disassembleScript } from '../maps/animation-opcodes';
 import { projectileRecord } from '../maps/projectiles';
+import { paletteAddresses } from '../maps/character-record';
 import { hexLower as hex } from '../../../platform';
 
 const PROJECTILE_OP = 0x4c;
@@ -220,6 +221,9 @@ function buildAnimationCatalog(rom: Uint8Array, characters: CatalogCharacter[]) 
         const own = paletteOf(g.record);
         const inferred = own === null && !t ? inferPalette(g) : null;
         const paletteCharacter = own !== null ? own : t && t.paletteCharacter !== null ? t.paletteCharacter : inferred ? inferred.paletteCharacter : BOY;
+        const palAddr = ownPalette || (own === null && t ? t.paletteAddr : inferred ? inferred.paletteAddr : weaponPaletteOf(g.record));
+        const allPals = paletteAddresses(rom);
+        const palIdx = palAddr ? allPals.indexOf(palAddr & 0xffff) : -1;
         return {
             record: g.record,
             recHex: '$' + hex(g.record, 4),
@@ -229,7 +233,8 @@ function buildAnimationCatalog(rom: Uint8Array, characters: CatalogCharacter[]) 
             owners: list,
             label: catalogLabel(list),
             paletteCharacter,
-            paletteAddr: ownPalette || (own === null && t ? t.paletteAddr : inferred ? inferred.paletteAddr : weaponPaletteOf(g.record)),
+            paletteAddr: palAddr,
+            paletteIndex: palIdx >= 0 ? palIdx : null,
             paletteInferred: ownPalette ? null : inferred ? inferred.inferredBy : null,
             paletteFromScript: ownPalette !== 0,
         };

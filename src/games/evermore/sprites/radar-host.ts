@@ -6,6 +6,7 @@
 import * as vscode from 'vscode';
 import * as romReaders from '../rom-readers';
 import { renderAnimation, renderRawSprite, listPalettes, renderInPalettes, thumbFor } from '.';
+import { assetRelations } from './asset-relations';
 import { missingRomText } from '../../../platform/roms/library';
 
 /** The radar's request and what it gives the handlers. */
@@ -33,7 +34,40 @@ const HANDLERS: Record<string, (msg: Message, ctx: Context) => void> = {
             const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             const romBuf = romReaders.loadRomBuffer(_ws, '');
             const bundle = ctx.spritesBundle(romBuf);
-            const grid = romBuf ? renderInPalettes(romBuf, msg.sprite, listPalettes(bundle.characters)) : [];
+            const defaultAddrs = new Set<number>();
+            if (romBuf) {
+                const relations = assetRelations(romBuf);
+                if (msg.target === 'raw' && msg.sprite) {
+                    const sprRel = relations.sprites.get(msg.sprite);
+                    if (sprRel) {
+                        for (const p of sprRel.palettes) defaultAddrs.add(p.address & 0xffff);
+                    }
+                } else if (msg.characterId != null) {
+                    const charId = msg.characterId;
+                    const c = bundle.characters?.[charId];
+                    if (c) {
+                        if (c.stats.palette) defaultAddrs.add(c.stats.palette & 0xffff);
+                        if (c.stats.palette2) defaultAddrs.add(c.stats.palette2 & 0xffff);
+                        for (const w of c.weapons || []) {
+                            if (w.paletteAddr) defaultAddrs.add(w.paletteAddr & 0xffff);
+                        }
+                        for (const a of c.anims || []) {
+                            if (a.paletteAddr) defaultAddrs.add(a.paletteAddr & 0xffff);
+                        }
+                    }
+                    for (const [pAddr, rel] of relations.palettes.entries()) {
+                        if (rel.characters.some((ch) => ch.id === charId)) {
+                            defaultAddrs.add(pAddr & 0xffff);
+                        }
+                    }
+                    for (const sprRel of relations.sprites.values()) {
+                        if (sprRel.characters.some((ch) => ch.id === charId)) {
+                            for (const p of sprRel.palettes) defaultAddrs.add(p.address & 0xffff);
+                        }
+                    }
+                }
+            }
+            const grid = romBuf ? renderInPalettes(romBuf, msg.sprite, listPalettes(bundle.characters, romBuf), defaultAddrs) : [];
             ctx.post({ command: 'paletteGridData', sprite: msg.sprite, grid, target: msg.target || 'char' });
         } catch (err) {
             ctx.post({ command: 'paletteGridData', sprite: msg.sprite, grid: [], error: errText(err) });

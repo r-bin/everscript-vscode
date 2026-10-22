@@ -38,7 +38,7 @@ function spriteMarkdown(model: SpriteModel): string {
     lines.push('## Palettes used with this sprite');
     if (model.palettes && model.palettes.length) {
         for (const p of model.palettes) {
-            lines.push(`- [Palette #${p.index} (${p.addrHex})](soe://rom/assets/palettes/${p.address.toString(16).padStart(4, '0')}/)`);
+            lines.push(`- [Palette #${p.index} (${p.addrHex})](soe://rom/assets/palettes/${p.index}/)`);
         }
     } else {
         lines.push('*No known palettes associated with this sprite.*');

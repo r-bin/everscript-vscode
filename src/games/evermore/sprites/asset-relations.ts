@@ -27,6 +27,7 @@ export interface RelatedAnimation {
     record: number;
     label: string;
     scriptHex: string;
+    uri?: string;
 }
 
 export interface RelatedPalette {
@@ -175,10 +176,24 @@ export function assetRelations(rom: Uint8Array): AssetRelations {
 
     // 4. Connect Animations to Characters, Sprites, and Palettes
     for (const entry of catalog) {
+        let animUri: string | undefined;
+        for (const c of characters) {
+            const a = c.anims.find((x) => x.animRec === entry.record);
+            if (a) {
+                const key = a.key || (a.offset ? a.offset.toString(16) : '');
+                animUri = `soe://rom/assets/characters/${c.id}/animations/${key}/`;
+                break;
+            }
+        }
+        if (!animUri && entry.paletteCharacter != null) {
+            animUri = `soe://rom/assets/characters/${entry.paletteCharacter}/animations/`;
+        }
+
         const animInfo: RelatedAnimation = {
             record: entry.record,
             label: entry.label,
             scriptHex: entry.scriptHex,
+            uri: animUri,
         };
 
         const palAddr = entry.paletteAddr & 0xffff;
@@ -267,3 +282,4 @@ export function assetRelations(rom: Uint8Array): AssetRelations {
     relationsCache.set(rom, result);
     return result;
 }
+

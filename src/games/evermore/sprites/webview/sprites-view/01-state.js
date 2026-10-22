@@ -272,13 +272,19 @@
 
     if (idEl) idEl.textContent = '#' + c.id;
     if (nameEl) nameEl.textContent = (c.name || '#' + c.id) + ' (' + (c.snesHex || '') + ')';
-    if (c.id !== paletteOverrideChar) { paletteOverride = 0; paletteOverrideChar = c.id; }
+    paletteOverride = 0;
+    paletteOverrideChar = c.id;
+    if (paletteGrid) paletteGrid.querySelectorAll('.sp-pal-tile').forEach(function(t) { t.classList.remove('sp-active'); });
     if (badgeEl) {
       var disp = c.disposition || {};
       badgeEl.textContent = c.id === 0 || c.id === 1 ? 'Hero' : (disp.label || '');
       badgeEl.className = 'sp-badge ' + (c.id === 0 || c.id === 1 ? 'sp-badge-hero' : disp.hostile ? 'sp-badge-enemy' : 'sp-badge-npc');
     }
-    if (palHex) palHex.textContent = c.paletteAddrHex || '$0000';
+    if (palHex) {
+      var pIdx = c.paletteIndex != null && c.paletteIndex >= 0 ? '#' + c.paletteIndex : '';
+      var pHex = c.paletteAddrHex ? '$' + parseInt(c.paletteAddrHex.replace(/^0x/, ''), 16).toString(16).padStart(4, '0') : '';
+      palHex.textContent = pIdx ? pIdx + (pHex ? ' (' + pHex + ')' : '') : pHex;
+    }
     if (swatch && c.paletteColors) {
       swatch.innerHTML = c.paletteColors.map(function(hex) {
         return '<span style="background-color:' + hex + '" title="' + hex + '"></span>';
@@ -312,4 +318,5 @@
 
     // Request animation data from backend
     loadCurrentAnimation();
+    if (typeof sideTab !== 'undefined' && sideTab === 'palettes' && typeof requestPaletteGrid === 'function') requestPaletteGrid();
   }

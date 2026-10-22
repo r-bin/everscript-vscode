@@ -307,7 +307,7 @@ function scrPaletteTipHtml(pal) {
   var tagsHtml = (pal.tags || []).map(function(t) { return '<span class="evs-tip-badge">' + scrEsc(t) + '</span>'; }).join('');
   var chars = (pal.characters || []).map(function(c) { return scrEsc(c.name + (c.role ? ' (' + c.role + ')' : '')); }).join(', ') || '—';
   var anims = (pal.animations || []).slice(0, 3).map(function(a) { return scrEsc(a.label); }).join(', ') || '—';
-  var vfsUri = 'soe://rom/assets/palettes/' + pal.addr.toString(16).padStart(4, '0');
+  var vfsUri = 'soe://rom/assets/palettes/' + (pal.index != null ? pal.index : pal.addr.toString(16).padStart(4, '0'));
   var swatches = (pal.colors || []).map(function(c, i) {
     return '<span style="background:' + (i === 0 ? 'transparent' : c) + '" title="' + c + '"></span>';
   }).join('');

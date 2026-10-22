@@ -167,11 +167,6 @@ function buildSpritesTabHtml(): string {
             </div>
           </div>
 
-          <div class="sp-candidate-palettes-wrap" id="sp-candidate-palettes-wrap">
-            <div class="sp-candidate-title">Inferred Palettes</div>
-            <div class="sp-candidate-list" id="sp-candidate-list"></div>
-          </div>
-
         </div>
 
         <div class="sp-split sp-split-right" data-resize="side" title="Drag to resize"></div>
@@ -197,7 +192,10 @@ function buildSpritesTabHtml(): string {
         <!-- Every palette: the current frame recoloured, click to apply -->
         <div class="sp-palette-panel sp-side-pane" data-side="palettes" id="sp-palette-panel" style="display:none">
           <div class="sp-col-title">
-            <span>All palettes</span>
+            <div class="sp-pal-filter-group" id="sp-pal-filter-group">
+              <button class="sp-chip-btn sp-active" id="sp-btn-pal-default" data-pal-filter="default">Default</button>
+              <button class="sp-chip-btn" id="sp-btn-pal-all" data-pal-filter="all">All</button>
+            </div>
             <span class="sp-col-sub" id="sp-palette-status"></span>
             <button class="sp-chip-btn" id="sp-btn-palette-own" title="Back to the character's own palette">Own palette</button>
           </div>

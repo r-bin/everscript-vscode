@@ -14,11 +14,15 @@
   var paletteOverride = 0;        // a palette chosen from the grid, until the character changes
   var keepPlayback = false;       // the next reply only recolours: keep frame and tick
   var paletteOverrideChar = -1;
+  var paletteFilter = 'default';  // 'default' (character/animation/shadow palettes) or 'all'
+  var lastPaletteGrid = [];
   var palettePanel = document.getElementById('sp-palette-panel');
   var paletteGrid = document.getElementById('sp-palette-grid');
   var paletteStatus = document.getElementById('sp-palette-status');
   var btnPalettes = document.getElementById('sp-btn-palettes');
   var btnPaletteOwn = document.getElementById('sp-btn-palette-own');
+  var btnPalDefault = document.getElementById('sp-btn-pal-default');
+  var btnPalAll = document.getElementById('sp-btn-pal-all');
 
   function requestPaletteGrid() {
     var cur = currentAnimData && currentAnimData.frames[currentFrameIdx];
@@ -31,20 +35,34 @@
     }
     paletteGridFor = selectedCharId;
     if (paletteStatus) paletteStatus.textContent = 'rendering…';
-    if (vsApi) vsApi.postMessage({ command: 'getPaletteGrid', sprite: sprite });
+    if (vsApi) vsApi.postMessage({ command: 'getPaletteGrid', characterId: selectedCharId, sprite: sprite });
   }
 
   function renderPaletteGrid(grid) {
     if (!paletteGrid) return;
+    lastPaletteGrid = grid || [];
     paletteGrid.innerHTML = '';
-    if (paletteStatus) paletteStatus.textContent = grid.length + ' palettes · click to play in one';
-    grid.forEach(function(p) {
+
+    if (btnPalDefault) btnPalDefault.classList.toggle('sp-active', paletteFilter === 'default');
+    if (btnPalAll) btnPalAll.classList.toggle('sp-active', paletteFilter === 'all');
+
+    var items = paletteFilter === 'default'
+      ? lastPaletteGrid.filter(function(p) { return p.isDefault; })
+      : lastPaletteGrid;
+    if (paletteFilter === 'default' && (!items || !items.length)) items = lastPaletteGrid;
+
+    if (paletteStatus) {
+      paletteStatus.textContent = items.length + (paletteFilter === 'default' ? ' default palettes' : ' palettes') + ' · click to play in one';
+    }
+
+    items.forEach(function(p) {
       var tile = document.createElement('div');
       tile.className = 'sp-pal-tile' + (p.addr === paletteOverride ? ' sp-active' : '');
-      tile.title = p.addrHex + ' — ' + p.owners.join(', ');
-      tile.innerHTML = '<img src="' + p.png + '" alt=""><span>' + p.addrHex + '</span><span>' + escHtml(p.owners[0] || '') + '</span>';
+      tile.title = '#' + p.index + ' (' + p.addrHex + ') — ' + p.owners.join(', ');
+      tile.innerHTML = '<img src="' + p.png + '" alt=""><span class="sp-pal-tile-idx">#' + p.index + '</span><span>' + escHtml(p.owners[0] || '') + '</span>';
       tile.addEventListener('click', function() {
         paletteOverride = p.addr;
+        paletteOverrideChar = selectedCharId;
         paletteGrid.querySelectorAll('.sp-pal-tile').forEach(function(t) { t.classList.remove('sp-active'); });
         tile.classList.add('sp-active');
         keepPlayback = true;            // a recolour, not a new animation: stay on this frame
@@ -53,6 +71,19 @@
         if (pc) renderAnimGrid(pc);
       });
       paletteGrid.appendChild(tile);
+    });
+  }
+
+  if (btnPalDefault) {
+    btnPalDefault.addEventListener('click', function() {
+      paletteFilter = 'default';
+      renderPaletteGrid(lastPaletteGrid);
+    });
+  }
+  if (btnPalAll) {
+    btnPalAll.addEventListener('click', function() {
+      paletteFilter = 'all';
+      renderPaletteGrid(lastPaletteGrid);
     });
   }
 
@@ -102,8 +133,8 @@
     grid.forEach(function(p) {
       var tile = document.createElement('div');
       tile.className = 'sp-pal-tile' + ((0x900000 | p.addr) === rawPalette ? ' sp-active' : '');
-      tile.title = p.addrHex + ' — ' + p.owners.join(', ');
-      tile.innerHTML = '<img src="' + p.png + '" alt=""><span>' + p.addrHex + '</span><span>' + escHtml(p.owners[0] || '') + '</span>';
+      tile.title = '#' + p.index + ' (' + p.addrHex + ') — ' + p.owners.join(', ');
+      tile.innerHTML = '<img src="' + p.png + '" alt=""><span class="sp-pal-tile-idx">#' + p.index + '</span><span>' + escHtml(p.owners[0] || '') + '</span>';
       tile.addEventListener('click', function() {
         rawPalette = 0x900000 | p.addr;
         rawPaletteGrid.querySelectorAll('.sp-pal-tile').forEach(function(t) { t.classList.remove('sp-active'); });
@@ -224,15 +255,15 @@
     if (palHex) palHex.textContent = palIdxStr ? palIdxStr + ' (' + palHexStr + ')' : palHexStr;
     if (swatch) {
       swatch.innerHTML = a.paletteColors.map(function(hex) { return '<span style="background-color:' + hex + '" title="' + hex + '"></span>'; }).join('');
-      var vfsUri = 'soe://rom/assets/palettes/' + palAddr.toString(16).padStart(4, '0');
+      var palIdx = a.paletteIndex != null && a.paletteIndex >= 0 ? a.paletteIndex : null;
+      var vfsUri = 'soe://rom/assets/palettes/' + (palIdx !== null ? palIdx : palAddr.toString(16).padStart(4, '0'));
       var tooltip = 'Palette ' + (palIdxStr ? palIdxStr + ' ' : '') + '(' + palHexStr + ')\n' + vfsUri + '\nClick to open in VFS';
       swatch.title = tooltip;
       swatch.style.cursor = 'pointer';
       swatch.onclick = function() {
-        if (vsApi && palAddr) vsApi.postMessage({ command: 'openVfs', uri: vfsUri });
+        if (vsApi && (palIdx !== null || palAddr)) vsApi.postMessage({ command: 'openVfs', uri: vfsUri });
       };
     }
-    renderCandidatePalettes(a);
   }
 
   function renderCandidatePalettes(a) {

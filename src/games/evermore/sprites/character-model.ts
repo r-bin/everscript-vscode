@@ -12,7 +12,7 @@
 //   Dog forms   $8F:9471 copies a form's entry into the Dog's ($0A70) (./dog-forms)
 
 import indexJson from '../language/data/index.json';
-import { CHARACTER_TABLE, CHARACTER_STRIDE, ANIMATION_TABLE, characterPalette, characterHitbox, read16At } from '../maps/character-record';
+import { CHARACTER_TABLE, CHARACTER_STRIDE, ANIMATION_TABLE, characterPalette, characterHitbox, paletteAddresses, read16At } from '../maps/character-record';
 import { animationIdRecord, recordScript } from '../maps/animation-table';
 import { readSpriteInfo, scriptSprites } from '../maps/sprites';
 import { readDogForms } from './dog-forms';
@@ -202,6 +202,7 @@ function readCharacter(rom: Rom, id: number) {
         hurtbox: { radius: hitbox.radius, width: 2 * hitbox.radius, height: 2 * hitbox.radius },
         disposition: { hostile, inactive: (flags & 0x0020) !== 0, phasing: (flags & 0x0400) !== 0, label: hostile ? 'Enemy' : 'NPC / Friendly' },
         paletteAddrHex: '0x' + stats.palette.toString(16),
+        paletteIndex: paletteAddresses(rom).indexOf(stats.palette & 0xffff),
         paletteColors: characterPalette(rom, id).map(hexColour),
         weapons, anims, statMeanings: STAT_MEANINGS,
     };

@@ -1,7 +1,7 @@
 // Ownership: small preview images for the Sprites tab — a character's resting pose per
 // facing, and one sprite shown in every palette the game's characters use. Pure.
 
-import { animationScript, characterPalette, paletteAt, FACING_SOUTH } from '../maps/character-record';
+import { animationScript, characterPalette, paletteAt, paletteAddresses, FACING_SOUTH } from '../maps/character-record';
 import { runAnimation } from '../maps/animation-vm';
 import { facingScript } from '../maps/animation-table';
 import { readSpriteInfo, composeSprite, decodeSpriteBlock } from '../maps/sprites';
@@ -66,31 +66,56 @@ import { busU16 as read16 } from '../../../platform';
 import { hexLower } from '../../../platform';
 
 /**
- * Every distinct palette the characters use — record +0x09 and +0x0B, the Boy's weapon
- * palettes, the Dog's forms — each with who uses it.
+ * The palettes the Sprites tab palette panel shows: all unique palettes in the ROM,
+ * with character owners when known.
  */
-function listPalettes(characters: Character[]) {
-    const byAddr = new Map<number, string[]>();
+function listPalettes(characters: Character[], rom?: Rom) {
+    const allPals = rom ? paletteAddresses(rom) : [];
+    const byAddr = new Map<number, { owners: string[]; index: number }>();
     const add = (addr: number, who: string) => {
         if (!addr) return;
-        if (!byAddr.has(addr)) byAddr.set(addr, []);
-        const list = byAddr.get(addr)!;
-        if (!list.includes(who)) list.push(who);
+        const a = addr & 0xffff;
+        if (!byAddr.has(a)) {
+            const idx = allPals.indexOf(a);
+            byAddr.set(a, { owners: [], index: idx >= 0 ? idx : byAddr.size });
+        }
+        const entry = byAddr.get(a)!;
+        if (who && !entry.owners.includes(who)) entry.owners.push(who);
     };
     for (const c of characters) {
         add(c.stats.palette, c.name);
         add(c.stats.palette2, c.name + ' (2nd)');
         for (const w of c.weapons || []) add(w.paletteAddr, (c.id === 1 ? 'Dog · ' : 'Boy · ') + w.name);
     }
-    return [...byAddr.entries()].sort((a, b) => a[0] - b[0]).map(([addr, owners]) => ({ addr, addrHex: hex4(addr), owners }));
+    for (let i = 0; i < allPals.length; i++) {
+        const a = allPals[i];
+        if (!byAddr.has(a)) {
+            byAddr.set(a, { owners: [], index: i });
+        } else {
+            byAddr.get(a)!.index = i;
+        }
+    }
+    return [...byAddr.entries()].sort((a, b) => a[1].index - b[1].index).map(([addr, val]) => ({
+        addr,
+        addrHex: hex4(addr),
+        index: val.index,
+        owners: val.owners.length ? val.owners : ['#' + val.index],
+    }));
 }
 
 /** One sprite coloured with each palette — composed once, recoloured per palette. */
-function renderInPalettes(rom: Rom, sprite: number, palettes: { addr: number; addrHex: string; owners: string[] }[]) {
+function renderInPalettes(
+    rom: Rom,
+    sprite: number,
+    palettes: { addr: number; addrHex: string; index?: number; owners: string[] }[],
+    defaultAddrs?: Set<number>
+) {
     if (!sprite) return [];
     const c = composeSprite(rom, readSpriteInfo(rom, sprite));
     if (!c.width || !c.height) return [];
+    const allPals = paletteAddresses(rom);
     return palettes.map((p) => {
+        const idx = p.index != null ? p.index : allPals.indexOf(p.addr & 0xffff);
         const colours = paletteAt(rom, p.addr);
         const data = new Uint8Array(c.width * c.height * 4);
         for (let i = 0; i < c.pixels.length; i++) {
@@ -100,7 +125,14 @@ function renderInPalettes(rom: Rom, sprite: number, palettes: { addr: number; ad
             data[i * 4] = r; data[i * 4 + 1] = g; data[i * 4 + 2] = b; data[i * 4 + 3] = 255;
         }
         const png = 'data:image/png;base64,' + encodePng({ width: c.width, height: c.height, data }).toString('base64');
-        return { addr: p.addr, addrHex: p.addrHex, owners: p.owners, png };
+        return {
+            addr: p.addr,
+            addrHex: p.addrHex,
+            index: idx >= 0 ? idx : 0,
+            owners: p.owners,
+            png,
+            isDefault: defaultAddrs ? defaultAddrs.has(p.addr & 0xffff) : false,
+        };
     });
 }
 

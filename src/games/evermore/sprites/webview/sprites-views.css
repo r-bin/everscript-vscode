@@ -95,6 +95,9 @@
 .sp-list-item .sp-li-name { flex: 1; }
 .sp-chip-btn { margin-left: 10px; font-size: 11px; padding: 2px 8px; border-radius: 3px; border: 1px solid var(--vscode-panel-border, #444); background: transparent; color: inherit; cursor: pointer; }
 .sp-chip-btn:hover { background: rgba(255,255,255,0.06); }
+.sp-chip-btn.sp-active { background: var(--vscode-button-background, #0e639c); color: var(--vscode-button-foreground, #fff); border-color: var(--vscode-button-background, #0e639c); }
+.sp-pal-filter-group { display: inline-flex; gap: 4px; align-items: center; }
+.sp-pal-filter-group .sp-chip-btn { margin-left: 0; }
 .sp-palette-panel { background: var(--vscode-sideBar-background, #1e1e1e); border: 1px solid var(--vscode-panel-border, #333); border-radius: 4px; padding: 12px; margin: 16px 16px 0; }
 .sp-palette-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; max-height: 320px; overflow: auto; }
 .sp-pal-tile { display: flex; flex-direction: column; align-items: center; padding: 4px; border: 1px solid transparent; border-radius: 3px; cursor: pointer; background: #141414; }
