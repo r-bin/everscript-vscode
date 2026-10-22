@@ -50,47 +50,9 @@
     });
   }
 
-  // The seek bar runs in ticks: each frame takes as much of it as it holds, and dragging snaps
-  // to the start of the frame under the knob.
-  function frameAtTick(t) {
-    var i = 0;
-    for (var k = 0; k < frameStartTicks.length; k++) if (frameStartTicks[k] <= t) i = k;
-    return i;
-  }
-  function scrubTotal() {
-    var n = currentAnimData ? currentAnimData.frames.length : 0;
-    if (!n) return 0;
-    return frameStartTicks[n - 1] + Math.max(1, currentAnimData.frames[n - 1].ticks) + flightTail;
-  }
-  function renderScrubTicks() {
-    if (!scrubTicks) return;
-    var total = scrubTotal();
-    scrubTicks.innerHTML = total ? frameStartTicks.map(function(t, i) {
-      return '<i style="left:calc(7px + (100% - 14px) * ' + (t / total) + ')" title="Frame ' + (i + 1) + ' · tick ' + t + '"></i>';
-    }).join('') : '';
-  }
-  if (scrubber) {
-    scrubber.addEventListener('input', function() {
-      currentFrameIdx = frameAtTick(parseInt(scrubber.value, 10) || 0);
-      tickCounter = 0;
-      updateFrameUI();
-    });
-  }
-
   if (speedSel) {
     speedSel.addEventListener('change', function() {
       playbackSpeed = parseFloat(speedSel.value) || 1;
-    });
-  }
-
-  /** A sprite opens as its soe:// page (soe://rom/assets/sprites/<address>/). */
-  function openSprite(addr) {
-    if (addr && vsApi) vsApi.postMessage({ command: 'openVfs', uri: 'soe://rom/assets/sprites/' + addr.toString(16).padStart(6, '0') + '/' });
-  }
-  if (spriteAddrLink) {
-    spriteAddrLink.addEventListener('click', function() {
-      var f = currentAnimData && currentAnimData.frames[currentFrameIdx];
-      if (f) openSprite(f.spriteAddr);
     });
   }
 
@@ -146,6 +108,7 @@
       if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
       if (frameInfo) frameInfo.textContent = currentAnimData ? 'Draws nothing' : 'No animation';
       if (spriteAddrLink) spriteAddrLink.textContent = '—';
+      if (scrubber) { scrubber.value = '0'; scrubber.disabled = true; }
       renderChunks([]);
       if (script) script.highlight(null);
       return;
@@ -156,6 +119,7 @@
     if (scrubber) {
       scrubber.max = String(scrubTotal());
       scrubber.value = String(frameStartTicks[currentFrameIdx] || 0);
+      scrubber.disabled = currentAnimData.frames.length < 2;    // one frame: nothing to seek
     }
 
     if (frameInfo) {
@@ -191,15 +155,6 @@
     var names = MODE_BITS.filter(function(b) { return mode & b[0]; }).map(function(b) { return b[1]; });
     if (mode & 0x3fc0) names.push('$' + (mode & 0x3fc0).toString(16));
     return ' · mode ' + names.join(', ');
-  }
-
-  /** Spawn flags (+0x05 → entity +0x10) by everscript's FLAG_ENEMY names. */
-  var SPAWN_FLAG_BITS = [[0x0001, 'inactive+invisible'], [0x0002, 'invincible'], [0x0004, 'party/bombable'], [0x0020, 'inactive'], [0x0040, 'mosquito'], [0x0400, 'phasing'], [0x1000, 'invisible+invincible+inactive']];
-  function spawnFlagsText(v) {
-    var names = SPAWN_FLAG_BITS.filter(function(b) { return v & b[0]; }).map(function(b) { return b[1]; });
-    var rest = v & ~SPAWN_FLAG_BITS.reduce(function(m, b) { return m | b[0]; }, 0);
-    if (rest) names.push('$' + rest.toString(16));
-    return names.length ? names.join(', ') : 'none';
   }
 
   /** Which ticks of this frame reach the target, if one is on stage. */

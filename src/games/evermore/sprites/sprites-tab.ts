@@ -48,6 +48,7 @@ function buildSpritesTabHtml(): string {
             </div>
           </div>
           <div class="sp-header-right">
+            <button class="sp-chip-btn sp-pal-reset" id="sp-btn-pal-reset" style="display:none" title="An animation loaded this palette (command 0x4B) and, as in the game, the character kept it. Click to go back to its own">↺ Reset</button>
             <span class="sp-palette-label">Palette:</span>
             <span class="sp-palette-hex" id="sp-palette-hex">$0000</span>
             <div class="sp-palette-swatch" id="sp-palette-swatch"></div>
@@ -148,8 +149,13 @@ function buildSpritesTabHtml(): string {
           </div>
         </div>
 
-          <!-- Playback Bar -->
+          <!-- Playback bar: the seek bar on its own full-width row, the controls and readout beneath -->
           <div class="sp-player-bar">
+            <div class="sp-scrub-track" title="Each mark is a frame, spaced by how many ticks it holds; dragging snaps to them">
+              <div class="sp-scrub-ticks" id="sp-scrub-ticks"></div>
+              <input type="range" class="sp-scrubber" id="sp-scrubber" min="0" max="0" value="0" />
+            </div>
+            <div class="sp-player-row">
             <div class="sp-player-btns">
               <button class="sp-ctrl-btn" id="sp-btn-step-prev" title="Step backward">⏮</button>
               <button class="sp-ctrl-btn sp-btn-play" id="sp-btn-play" title="Play / Pause">⏸</button>
@@ -157,17 +163,12 @@ function buildSpritesTabHtml(): string {
               <button class="sp-ctrl-btn sp-active" id="sp-btn-loop" title="Loop animation">🔁</button>
             </div>
 
-            <div class="sp-scrubber-wrap" title="Each mark is a frame, spaced by how many ticks it holds; dragging snaps to them">
-              <div class="sp-scrub-track">
-                <div class="sp-scrub-ticks" id="sp-scrub-ticks"></div>
-                <input type="range" class="sp-scrubber" id="sp-scrubber" min="0" max="0" value="0" />
-              </div>
-              <span class="sp-frame-info" id="sp-frame-info">Frame 1/1 (0 ticks)</span>
-            </div>
+            <span class="sp-frame-info" id="sp-frame-info">Frame 1/1 (0 ticks)</span>
 
             <div class="sp-current-sprite">
               <span class="sp-label">Sprite:</span>
               <span class="sp-sprite-link" id="sp-cur-sprite-addr" title="Click to open the sprite in soe://">—</span>
+            </div>
             </div>
           </div>
 

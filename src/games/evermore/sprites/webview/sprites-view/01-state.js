@@ -11,7 +11,21 @@
   var selectedAnimKey = 'w_atk0';
   var selectedFacing = 8; // South: the direction tables move facing 8 down the screen
   var animScale = 3;
-  var selectedWeaponId = 0;
+  var selectedWeaponId = -1;   // index into c.weapons (the Boy's weapon / the Dog's form); -1 = Default, the record as stored
+  // A palette an animation loaded (command 0x4B): the game keeps it as the entity's home palette
+  // (+0x75), so later animations draw in it too, until Reset, another weapon or another character.
+  var homePalette = 0;
+  var btnPalReset = document.getElementById('sp-btn-pal-reset');
+  function setHomePalette(addr) {
+    homePalette = addr || 0;
+    if (btnPalReset) btnPalReset.style.display = homePalette ? '' : 'none';
+  }
+  if (btnPalReset) btnPalReset.addEventListener('click', function() {
+    setHomePalette(0);
+    var rc = getCharacters().find(function(x) { return x.id === selectedCharId; });
+    if (rc) renderAnimGrid(rc);
+    loadCurrentAnimation();
+  });
   var weaponGroup = document.getElementById('sp-weapon-group');
   var weaponSel = document.getElementById('sp-weapon-sel');
   var weaponLabel = document.querySelector('label[for="sp-weapon-sel"]');
@@ -159,6 +173,7 @@
 
   // ── Character Selection ─────────────────────────────────────────────────────
   function selectCharacter(id) {
+    var prevCharId = selectedCharId;
     selectedCharId = id;
     var chars = getCharacters();
     if (!chars || !chars.length) return;
@@ -168,6 +183,7 @@
     selectedCharId = c.id;
     // A record picked under All stays on stage for the next character; a Default pick does not.
     if (animFilter !== 'all') pickedRecord = null;
+    if (c.id !== prevCharId) setHomePalette(0);
 
     // Update list selection highlight
     if (listEl) {
@@ -207,10 +223,11 @@
     // Weapon selection for the Boy, form selection for the Dog
     if (weaponGroup && weaponSel) {
       if (hasVariants(c)) {
-        if (selectedWeaponId >= c.weapons.length) selectedWeaponId = 0;
+        if (selectedWeaponId >= c.weapons.length) selectedWeaponId = -1;
         if (weaponLabel) weaponLabel.textContent = c.id === 1 ? 'Form:' : 'Weapon:';
         weaponGroup.style.display = '';
-        weaponSel.innerHTML = '';
+        // Default: the record's own fields and palette (the Boy's leaves the weapon colours placeholder green).
+        weaponSel.innerHTML = '<option value="-1">' + (c.id === 1 ? 'Default (own record)' : 'Default (no weapon)') + '</option>';
         c.weapons.forEach(function(w) {
           var opt = document.createElement('option');
           opt.value = String(w.id);

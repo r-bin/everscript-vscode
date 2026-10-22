@@ -20,60 +20,52 @@
     return (c.id === 0 || c.id === 1) && c.weapons && c.weapons.length > 0;
   }
 
+  /**
+   * The Default list, in groups. Form: the Dog's selected form. General: every animation field
+   * of the record (+0x32..+0x48), empty ones too; an equipped weapon overwrites nine of them
+   * ($8F:81C9: stand … attack 3, knockback +0x40, dodge +0x48), as it does in WRAM. animate():
+   * the compiler's named ids; ids from $8000 read a record field, so they follow the weapon too.
+   * An entry whose record an earlier one already plays says which (`repeats`: "→ Idle").
+   */
+  function effectiveAnims(c) {
+    var out = [];
+    var w = hasVariants(c) ? c.weapons[selectedWeaponId] : null;
+    var byField = {};
+    if (w && c.id !== DOG) (w.anims || []).forEach(function(a) { if (a.field) byField[a.field] = a; });
+    if (w && c.id === DOG) (w.anims || []).forEach(function(a) { out.push({ key: a.key, label: a.label, group: 'Form: ' + w.name, anim: a }); });
+    (c.anims || []).filter(function(a) { return a.category === 'standard'; })
+      .concat((c.emptyFields || []).map(function(f) { return { key: f.key, label: f.label, offset: f.offset, animRec: 0, category: 'standard' }; }))
+      .sort(function(a, b) { return a.offset - b.offset; })
+      .forEach(function(f) {
+        var wa = byField[f.offset];
+        out.push({ key: f.key, label: wa ? wa.label : f.label, group: 'General', anim: wa || f, weapon: wa ? w.name : '' });
+      });
+    (c.anims || []).forEach(function(a) {
+      if (a.category !== 'external') return;
+      var wa = a.num >= 0x8000 ? byField[a.num & 0x7fff] : null;
+      out.push({ key: a.key, label: a.label + (a.valueHex ? ' (' + a.valueHex + ')' : ''), group: 'animate()',
+        anim: wa ? Object.assign({}, a, { animRec: wa.animRec, paletteAddr: wa.paletteAddr }) : a });
+    });
+    var first = {};
+    out.forEach(function(e) {
+      var r = e.anim.animRec;
+      if (r && first[r]) e.repeats = first[r]; else if (r) first[r] = e.label;
+    });
+    return out;
+  }
+
+  /** The hidden select keeps the keys (stamina and facing code ask it which attack keys exist). */
   function populateAnimationDropdown(c) {
     if (!animSel) return;
     animSel.innerHTML = '';
-    // An animation that reuses an earlier one's record says which: "Walk (→ Idle)".
-    var firstByRecord = {};
-    var labelFor = function(a) {
-      var base = a.label + (a.valueHex ? ' (' + a.valueHex + ')' : '');
-      if (!a.animRec) return base;
-      if (firstByRecord[a.animRec]) return a.label + ' (→ ' + firstByRecord[a.animRec] + ')';
-      firstByRecord[a.animRec] = a.label;
-      return base;
-    };
-
-    var defaultKey = 'stand';
-
-    // The Boy's weapon or the Dog's form:
-    if (hasVariants(c) && c.weapons[selectedWeaponId]) {
-      var w = c.weapons[selectedWeaponId];
-      var wGroup = document.createElement('optgroup');
-      wGroup.label = (c.id === 1 ? 'Form: ' : 'Weapon: ') + w.name;
-      (w.anims || []).forEach(function(a) {
-        var opt = document.createElement('option');
-        opt.value = a.key;
-        opt.textContent = labelFor(a);
-        opt.dataset.category = 'weapon';
-        wGroup.appendChild(opt);
-      });
-      if (wGroup.children.length) animSel.appendChild(wGroup);
-      defaultKey = c.id === 1 ? 'd_slot0' : 'w_atk0';
-    }
-
-    var stdGroup = document.createElement('optgroup');
-    stdGroup.label = c.id === 0 ? 'General Actions' : 'Standard Animations';
-    var extGroup = document.createElement('optgroup');
-    extGroup.label = 'Special / Opcode Triggers';
-
-    (c.anims || []).forEach(function(a) {
-      if (a.category === 'weapon') return;
+    var list = effectiveAnims(c);
+    list.forEach(function(e) {
       var opt = document.createElement('option');
-      opt.value = a.key;
-      opt.textContent = labelFor(a);
-      opt.dataset.category = a.category;
-      if (a.category === 'external') extGroup.appendChild(opt);
-      else stdGroup.appendChild(opt);
+      opt.value = e.key;
+      opt.textContent = e.label;
+      animSel.appendChild(opt);
     });
-
-    if (stdGroup.children.length) animSel.appendChild(stdGroup);
-    if (extGroup.children.length) animSel.appendChild(extGroup);
-
-    var hasCur = false;
-    for (var i = 0; i < animSel.options.length; i++) {
-      if (animSel.options[i].value === selectedAnimKey) { hasCur = true; break; }
-    }
-    if (!hasCur) selectedAnimKey = defaultKey;
+    if (!list.some(function(e) { return e.key === selectedAnimKey; })) selectedAnimKey = list.length ? list[0].key : 'stand';
     animSel.value = selectedAnimKey;
     renderAnimGrid(c);
   }
@@ -102,7 +94,7 @@
     if (record && window.SpritesThumbs) tile.appendChild(window.SpritesThumbs.box(thumb));
     else { var empty = document.createElement('span'); empty.className = 'sp-li-thumb'; tile.appendChild(empty); }
     var name = document.createElement('span'); name.className = 'sp-anim-label'; name.textContent = label; tile.appendChild(name);
-    var idx = document.createElement('span'); idx.className = 'sp-anim-sub'; idx.textContent = (index >= 0 ? '#' + index : '—') + (sub ? ' ' + sub : ''); tile.appendChild(idx);
+    var idx = document.createElement('span'); idx.className = 'sp-anim-sub'; idx.textContent = record ? (index >= 0 ? '#' + index : '—') + (sub ? ' ' + sub : '') : sub || '—'; tile.appendChild(idx);
     tile.addEventListener('click', function() {
       animGrid.querySelectorAll('.sp-anim-tile').forEach(function(t) { t.classList.toggle('sp-active', t === tile); });
       onPick();
@@ -117,7 +109,7 @@
     var variantPal = hasVariants(c) && c.weapons[selectedWeaponId] ? c.weapons[selectedWeaponId].paletteAddr : 0;
     if (animFilter === 'all') {
       // Played on this character: its palette (the Boy's weapon's), not the record owner's.
-      var pal = paletteOverride || (c.id === DOG ? 0 : variantPal) || 0;
+      var pal = paletteOverride || homePalette || (c.id === DOG ? 0 : variantPal) || 0;
       var shown = 0, matched = 0;
       getAnimations().forEach(function(a, i) {
         if (!animMatches(q, a.label, i)) return;
@@ -137,27 +129,33 @@
       }
       return;
     }
-    var byKey = {};
-    (c.anims || []).forEach(function(a) { byKey[a.key] = a; });
-    if (hasVariants(c) && c.weapons[selectedWeaponId]) (c.weapons[selectedWeaponId].anims || []).forEach(function(a) { byKey[a.key] = a; });
-    var shownRecords = {};          // one tile per record: a field that reuses an earlier one's ("→ Idle") is not repeated
-    Array.prototype.forEach.call(animSel.querySelectorAll('option'), function(opt) {
-      var a = byKey[opt.value] || {};
-      if (a.animRec && shownRecords[a.animRec]) return;
-      if (a.animRec) shownRecords[a.animRec] = true;
-      var m = /^(.*?)(\s\(→ .*\))$/.exec(opt.textContent);
-      var label = m ? m[1] : opt.textContent;
-      if (!animMatches(q, label, a.animRec ? animIndexOf(a.animRec) : -1)) return;
-      var pal = paletteOverride || a.paletteAddr || (c.id === DOG ? 0 : variantPal) || 0;
-      animGrid.appendChild(animTile(opt.value, label, m ? m[2].trim() : '', a.animRec || 0, !pickedRecord && opt.value === selectedAnimKey,
+    var group = '';
+    effectiveAnims(c).forEach(function(e) {
+      var a = e.anim;
+      if (!animMatches(q, e.label, a.animRec ? animIndexOf(a.animRec) : -1)) return;
+      if (e.group !== group) {
+        group = e.group;
+        var head = document.createElement('div');
+        head.className = 'sp-anim-group';
+        var wpn = c.id === 0 && hasVariants(c) ? c.weapons[selectedWeaponId] : null;
+        head.textContent = group === 'General' && c.id === 0 ? 'General · ' + (wpn ? wpn.name : 'no weapon') : group;
+        animGrid.appendChild(head);
+      }
+      var pal = paletteOverride || homePalette || a.paletteAddr || (c.id === DOG ? 0 : variantPal) || 0;
+      var sub = (e.repeats ? '(→ ' + e.repeats + ')' : '') + (a.animRec ? '' : 'none');
+      var tile = animTile(e.key, e.label, sub, a.animRec || 0, !pickedRecord && e.key === selectedAnimKey,
         { key: 'anim:' + c.id + ':' + a.animRec + ':' + selectedFacing + ':' + pal, record: a.animRec, facing: selectedFacing, character: c.id, paletteAddr: pal },
         function() {
           pickedRecord = null;
-          animSel.value = opt.value;
-          selectedAnimKey = opt.value;
-          syncStaminaTo(opt.value);
+          animSel.value = e.key;
+          selectedAnimKey = e.key;
+          syncStaminaTo(e.key);
           loadCurrentAnimation();
-        }));
+        });
+      if (e.repeats) tile.classList.add('sp-anim-repeat');
+      if (!a.animRec) tile.classList.add('sp-anim-empty');
+      if (e.weapon) tile.title += '\nFrom the ' + e.weapon + ' (equipping it overwrites this field)';
+      animGrid.appendChild(tile);
     });
   }
   document.querySelectorAll('[data-anim-filter]').forEach(function(b) {
@@ -172,69 +170,6 @@
     if (fc) renderAnimGrid(fc);
   });
 
-  /** A stat's tooltip: its field and what the game does with it, in one short line (addresses left out). */
-  function statTip(desc, raw) {
-    var m = /^[^(]*\((\+0x[0-9a-f]+)\)\.?\s*([\s\S]*)$/i.exec(desc || '');
-    var field = m ? m[1] : '';
-    var text = (m ? m[2] : desc || '').replace(/\s*\((?:\$|\+0x)[^)]*\)/gi, '').split(/(?<=\.)\s/)[0].trim();
-    if (text.length > 90) text = text.slice(0, 87) + '…';
-    return [field, raw, text].filter(Boolean).join(' · ');
-  }
-
-  // ── Stats Cards ─────────────────────────────────────────────────────────────
-  function renderStats(c) {
-    if (!statsGrid) return;
-    statsGrid.innerHTML = '';
-    var s = c.stats || {};
-    var m = c.statMeanings || {};
-
-    var fields = [
-      { key: 'hp', label: 'HP', val: s.hp, hex: '$' + s.hp.toString(16), desc: m.hp },
-      { key: 'attack', label: 'Attack', val: s.attack, hex: '$' + s.attack.toString(16), desc: m.attack },
-      { key: 'defense', label: 'Defense', val: s.defense, hex: '$' + s.defense.toString(16), desc: m.defense },
-      { key: 'magic_defense', label: 'M. Defense', val: s.magic_defense, hex: '$' + s.magic_defense.toString(16), desc: m.magic_defense },
-      { key: 'evade', label: 'Evade', val: s.evade, hex: '$' + s.evade.toString(16), desc: m.evade },
-      { key: 'hit_rate', label: 'Hit Rate', val: s.hit_rate, hex: '$' + s.hit_rate.toString(16), desc: m.hit_rate },
-      { key: 'aggro_range', label: 'Aggro Range', val: s.aggro_range + ' px', hex: '$' + s.aggro_range.toString(16), desc: m.aggro_range },
-      { key: 'aggro_chance', label: 'Aggro Chance', val: Math.round(s.aggro_chance / 256 * 100) + '%', hex: '$' + s.aggro_chance.toString(16), desc: m.aggro_chance },
-      { key: 'exp', label: 'EXP', val: s.exp, hex: '$' + s.exp.toString(16), desc: m.exp },
-      { key: 'money', label: 'Money (Talons)', val: s.money, hex: '$' + s.money.toString(16), desc: m.money },
-      { key: 'prize_chance', label: 'Prize Chance', val: Math.round(s.prize_chance / 128 * 100) + '%', hex: '$' + s.prize_chance.toString(16), desc: m.prize_chance },
-      { key: 'radius', label: 'Collision Radius', val: s.radius + ' px (' + (s.radius*2) + '×' + s.radius + ')', hex: '$' + s.radius.toString(16), desc: m.radius },
-      { key: 'flags', label: 'Spawn Flags', val: spawnFlagsText(s.flags), hex: '$' + s.flags.toString(16), desc: m.flags },
-      { key: 'palette', label: 'Palette', val: '$' + s.palette.toString(16), hex: '$' + s.palette.toString(16), desc: m.palette },
-      { key: 'charge_limit', label: 'Charge Limit', val: s.charge_limit, hex: '$' + s.charge_limit.toString(16), desc: m.charge_limit },
-      { key: 'charge_speed', label: 'Charge Speed', val: s.charge_speed, hex: '$' + s.charge_speed.toString(16), desc: m.charge_speed },
-      { key: 'attack_proc', label: 'Attack Proc', val: '$' + s.attack_proc.toString(16), hex: '$' + s.attack_proc.toString(16), desc: m.attack_proc },
-      { key: 'ai_script', label: 'Behaviour', val: '$' + s.ai_script.toString(16), hex: '$' + s.ai_script.toString(16), desc: m.ai_script },
-      { key: 'flags2', label: 'Flags (+0x07)', val: flags2Text(s.flags2), hex: '$' + s.flags2.toString(16), desc: m.flags2 },
-      { key: 'palette2', label: 'Palette 2', val: s.palette2 ? '$' + s.palette2.toString(16) : '—', hex: '$' + s.palette2.toString(16), desc: m.palette2 },
-      { key: 'unknown11', label: '+0x11', val: s.unknown11, hex: '$' + s.unknown11.toString(16), desc: m.unknown11 },
-      { key: 'unknown17', label: '+0x17', val: s.unknown17, hex: '$' + s.unknown17.toString(16), desc: m.unknown17 },
-      { key: 'unknown2a', label: 'Level (+0x2A)', val: s.unknown2a, hex: '$' + s.unknown2a.toString(16), desc: m.unknown2a },
-    ];
-
-    // A card is the label and the value; the raw value shows in the tooltip only where it differs.
-    fields.forEach(function(f) {
-      var card = document.createElement('div');
-      card.className = 'sp-stat-card';
-      card.title = statTip(f.desc, String(f.val) === String(parseInt(f.hex.slice(1), 16)) || f.val === f.hex ? '' : 'raw ' + f.hex);
-      card.innerHTML = '<div class="sp-stat-header"><span>' + escHtml(f.label) + '</span></div>' +
-        '<div class="sp-stat-val">' + escHtml(f.val) + '</div>';
-      statsGrid.appendChild(card);
-    });
-  }
-
-  /** Flags +0x07, as the code tests them. */
-  function flags2Text(v) {
-    var bits = [];
-    if (v & 0x01) bits.push('listed');
-    if (v & 0x02) bits.push('−30 hit');
-    if (v & 0x0c) bits.push('script ' + ((v >> 2) & 3));
-    if (v & 0x10) bits.push('projectile-proof');
-    return bits.length ? bits.join(', ') : 'none';
-  }
-
   // ── Load Animation Data ─────────────────────────────────────────────────────
   function loadCurrentAnimation() {
     syncStaminaTo(selectedAnimKey);
@@ -245,18 +180,18 @@
     // A record picked under All plays on this character, in its palette (below).
     var animOpt = null;
     if (pickedRecord) animOpt = { key: 'record', category: 'external', animRec: pickedRecord.record };
-    if (!animOpt && hasVariants(c) && c.weapons[selectedWeaponId]) {
-      animOpt = (c.weapons[selectedWeaponId].anims || []).find(function(a) { return a.key === selectedAnimKey; });
-    }
     if (!animOpt) {
-      animOpt = (c.anims || []).find(function(a) { return a.key === selectedAnimKey; });
+      var entry = effectiveAnims(c).find(function(e) { return e.key === selectedAnimKey; });
+      animOpt = entry ? entry.anim : { key: 'stand', offset: 0x32 };
     }
-    if (!animOpt) animOpt = { key: 'stand', offset: 0x32 };
-    // The Boy is drawn in the equipped weapon's palette (weapon +0x04), whatever he is doing.
-    // The Dog's own fields are its Act 1 wolf, so only its form animations take the form's.
+    // Palette, weakest first: the character's own; the Boy's equipped weapon's (weapon +0x04 → +0x09;
+    // the Dog's own fields are its Act 1 wolf, so only form animations take the form's); a palette an
+    // earlier animation loaded and the character kept (homePalette); the script's own (server side);
+    // one picked in the Palettes tab (forced).
     if (hasVariants(c) && c.id !== DOG && c.weapons[selectedWeaponId] && !animOpt.paletteAddr) {
       animOpt = Object.assign({}, animOpt, { paletteAddr: c.weapons[selectedWeaponId].paletteAddr });
     }
+    if (homePalette) animOpt = Object.assign({}, animOpt, { paletteAddr: homePalette });
     if (paletteOverride) animOpt = Object.assign({}, animOpt, { paletteAddr: paletteOverride, paletteForced: true });
     requestedRecord = animOpt.animRec || 0;
     var target = targetRequest(c);
@@ -276,7 +211,9 @@
   // ── Animation Playback Controls ─────────────────────────────────────────────
   if (weaponSel) {
     weaponSel.addEventListener('change', function() {
-      selectedWeaponId = parseInt(weaponSel.value) || 0;
+      selectedWeaponId = parseInt(weaponSel.value, 10);
+      if (!isFinite(selectedWeaponId)) selectedWeaponId = -1;
+      setHomePalette(0);               // equipping loads the weapon's palette (+0x09) over any kept one
       var chars = getCharacters();
       var c = chars.find(function(x) { return x.id === selectedCharId; });
       if (c) populateAnimationDropdown(c);

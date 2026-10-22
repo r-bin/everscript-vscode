@@ -158,9 +158,8 @@
 .sp-hud-speeds:empty { display: none; }
 .sp-hud-speeds .sp-hud-head { grid-column: 1 / -1; opacity: 0.65; text-transform: uppercase; letter-spacing: 0.05em; font-size: 10px; }
 .sp-hud-speeds .sp-hud-cur { color: #9fd1ff; }
-.sp-char-main > .sp-player-bar { height: 52px; flex: none; overflow: hidden; }
-.sp-char-main > .sp-player-bar .sp-frame-info { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%; }
-.sp-char-main > .sp-player-bar .sp-scrubber-wrap { flex: 1; min-width: 0; }
+.sp-char-main > .sp-player-bar { flex: none; overflow: hidden; }
+.sp-char-main > .sp-player-bar .sp-frame-info { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 .sp-hud-speeds .sp-hud-note { color: #ffd479; text-transform: none; letter-spacing: 0; font-size: 11px; opacity: 1; }
 /* script listing: what a command loads, beneath it */
 .sp-script-table .sp-script-detail { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; margin: 3px 0 2px; font-size: 10px; opacity: 0.8; }
@@ -170,3 +169,18 @@
 .sp-script-swatch span { width: 10px; height: 10px; }
 .sp-script-link { color: #6cb6ff; text-decoration: none; }
 .sp-script-link:hover { text-decoration: underline; }
+
+/* ── Animations tab: repeats and empty record fields; Stats: palettes, bits, behaviour ── */
+.sp-anim-tile.sp-anim-repeat .sp-anim-sub { color: var(--vscode-editorWarning-foreground, #cca700); opacity: 0.85; }
+.sp-anim-tile.sp-anim-empty { opacity: 0.45; }
+.sp-stats-grid .sp-stat-wide { grid-column: 1 / -1; }
+.sp-stat-swatch { display: inline-flex; vertical-align: middle; margin-left: 6px; border: 1px solid rgba(255,255,255,0.15); }
+.sp-stat-swatch span { width: 8px; height: 14px; }
+.sp-bits { font-family: var(--vscode-editor-font-family, monospace); letter-spacing: 1px; }
+.sp-bit { opacity: 0.35; cursor: default; }
+.sp-bit.sp-bit-on { opacity: 1; color: var(--vscode-textLink-foreground, #4daafc); }
+.sp-bit-gap { display: inline-block; width: 6px; }
+.sp-stat-note { display: block; font-size: 10px; font-weight: normal; opacity: 0.6; margin-top: 2px; }
+.sp-stat-select { width: 100%; font-size: 12px; margin-top: 2px; }
+.sp-pal-reset { margin-right: 8px; }
+.sp-header .sp-char-name, .sp-header .sp-palette-hex, .sp-header .sp-palette-label, .sp-pal-reset { white-space: nowrap; }

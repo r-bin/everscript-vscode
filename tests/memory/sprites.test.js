@@ -7,6 +7,7 @@ const path = require('path');
 
 const {
     readCharacter,
+    behaviourNames,
     readAllCharacters,
     CHARACTER_COUNT,
     CHARACTER_TABLE,
@@ -130,6 +131,17 @@ if (!rom) {
         assert(anim.width > 0);
         assert(anim.height > 0);
         assert(anim.frames[0].png.startsWith('data:image/png;base64,'));
+    });
+
+    test('the Boy lists his record as stored; an equipped weapon overwrites fields ($8F:81C9)', () => {
+        const boy = readCharacter(rom, 0);
+        assert.ok(!boy.anims.some((a) => a.category === 'weapon'), 'no weapon set mixed into his own list');
+        const fieldsOf = (w) => Object.fromEntries(w.anims.map((a) => [a.key, a.field]));
+        assert.deepStrictEqual(fieldsOf(boy.weapons[0]), { w_stand: 0x32, w_walk: 0x34, w_run: 0x36, w_atk0: 0x38, w_atk1: 0x3a, w_atk2: 0x3c, w_atk3: 0x3e, w_charge: 0x48, w_damage: 0x40 });
+        const listed = boy.anims.filter((a) => a.category === 'standard').length + boy.emptyFields.length;
+        assert.strictEqual(listed, 12, 'every animation field of the record, empty ones too');
+        const names = behaviourNames();
+        assert.strictEqual(names.find((n) => n.value === 0x10).name, 'MAGMAR_ROLL_SHOOT');
     });
 
     test('getRawSpriteIndex indexes raw sprites starting at $CA0003', () => {

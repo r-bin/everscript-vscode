@@ -70,7 +70,7 @@ Page code the host also uses is a TypeScript module that `tools/bundle-pages.mts
 - `src/games/evermore/scaling/webview/`: `alchemy-math.js`, `chart.js`, `damage-math.js`, `events.js`, `helpers.js`, `redraw.js`, `state.js`, `tab-init.js`
 - `src/games/evermore/scripts-tab/webview/`: `scripts-anim.js`, `scripts-init.js`, `scripts-music.js`, `scripts-room.js`, `scripts-tab.js`
 - `src/games/evermore/sprites/webview/`: `sprites-lazy.js`, `sprites-motion.js`, `sprites-script.js`
-- `src/games/evermore/sprites/webview/sprites-view/`: `01-state.js`, `02-pickers.js`, `03-playback.js`, `04-palettes.js`, `05-messages.js`
+- `src/games/evermore/sprites/webview/sprites-view/`: `01-state.js`, `02-pickers.js`, `03-playback.js`, `04-palettes.js`, `05-messages.js`, `06-stats.js`, `07-seek.js`, `09-init.js`
 - `src/games/mana/maps/webview/`: `editor-dock-cells.js`, `editor-dock.js`, `editor-model.js`, `editor-overlays.js`, `editor-props.js`, `editor-stage.js`, `editor-tools.js`, `editor.js`, `main.js`, `map-svg.js`
 - `src/platform/cdl/asar-kit/`: `build-cdl.js`
 

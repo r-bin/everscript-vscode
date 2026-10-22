@@ -106,7 +106,8 @@ function renderRadarHtml(
     const spritesTabHtml = buildSpritesTabHtml();
     const spritesData =
         'var SPRITES_CHARACTERS_DATA=' + JSON.stringify(spritesBundle?.characters || []).replace(/<\/script>/gi, '<\\/script>') + ';' +
-        '\nvar SPRITES_ANIMATIONS=' + JSON.stringify(spritesBundle?.animations || []).replace(/<\/script>/gi, '<\\/script>') + ';';
+        '\nvar SPRITES_ANIMATIONS=' + JSON.stringify(spritesBundle?.animations || []).replace(/<\/script>/gi, '<\\/script>') + ';' +
+        '\nvar SPRITES_BEHAVIOURS=' + JSON.stringify(spritesBundle?.behaviours || []).replace(/<\/script>/gi, '<\\/script>') + ';';
 
     const js = radarWebview.buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, rngJs, romJs: radarWebview.romJs, musicJs: radarWebview.musicJs, scriptsJs: radarWebview.scriptsJs, dataJs: radarWebview.dataJs, wramJs: radarWebview.wramJs });
 

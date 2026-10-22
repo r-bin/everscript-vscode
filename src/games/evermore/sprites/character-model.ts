@@ -12,7 +12,7 @@
 //   Dog forms   $8F:9471 copies a form's entry into the Dog's ($0A70) (./dog-forms)
 
 import indexJson from '../language/data/index.json';
-import { CHARACTER_TABLE, CHARACTER_STRIDE, ANIMATION_TABLE, characterPalette, characterHitbox, paletteAddresses, read16At } from '../maps/character-record';
+import { CHARACTER_TABLE, CHARACTER_STRIDE, ANIMATION_TABLE, characterPalette, characterHitbox, paletteAddresses, paletteAt, read16At } from '../maps/character-record';
 import { animationIdRecord, recordScript } from '../maps/animation-table';
 import { readSpriteInfo, scriptSprites } from '../maps/sprites';
 import { readDogForms } from './dog-forms';
@@ -22,11 +22,11 @@ type Rom = Uint8Array;
 /** An animation as the Sprites tab lists it. `category` says where it comes from. */
 interface Anim {
     key: string; label: string; purpose: string | null; animRec: number; scriptAddr: number; flags: number; category: string;
-    offset?: number; paletteAddr?: number; valueHex?: string; num?: number; comment?: string;
+    offset?: number; paletteAddr?: number; valueHex?: string; num?: number; comment?: string; field?: number;
 }
 /** The Boy's held weapons and the Dog's forms share this shape. */
 interface Form { id: number; name: string; paletteAddr: number; entryHex: string; anims: { animRec: number; paletteAddr?: number }[] }
-type AnimField = { key: string; label: string; offset: number; purpose: string };
+type AnimField = { key: string; label: string; offset: number; purpose: string; field?: number };
 
 /** Records the ENEMY table reaches (the last ROM entry is record 141). */
 const CHARACTER_COUNT = 142;
@@ -91,18 +91,31 @@ const STANDARD_ANIM_FIELDS: AnimField[] = [
     { key: 'x48', label: 'Dodge (+0x48)', offset: 0x48, purpose: 'special' },
 ];
 
-/** A weapon entry's animation words ($8F:81C9) and the record field each one fills. */
+/**
+ * A weapon entry's animation words and the Boy's record field each one overwrites when the weapon
+ * is equipped ($8F:81C9, knowledge rom/8f81c9.md): +$08-+$14 → +$32-+$3E, +$16 → +$48, +$18 → +$40.
+ */
 const WEAPON_ANIMS: AnimField[] = [
-    { key: 'w_stand', label: 'Idle', purpose: 'idle', offset: 0x08 },
-    { key: 'w_walk', label: 'Walk', purpose: 'walk', offset: 0x0a },
-    { key: 'w_run', label: 'Run', purpose: 'run', offset: 0x0c },
-    { key: 'w_atk0', label: 'Attack Lvl 0', purpose: 'attack_0', offset: 0x0e },
-    { key: 'w_atk1', label: 'Attack Lvl 1', purpose: 'attack_1', offset: 0x10 },
-    { key: 'w_atk2', label: 'Attack Lvl 2', purpose: 'attack_2', offset: 0x12 },
-    { key: 'w_atk3', label: 'Attack Lvl 3', purpose: 'attack_3', offset: 0x14 },
-    { key: 'w_charge', label: 'Dodge (invulnerable)', purpose: 'dodge', offset: 0x16 },
-    { key: 'w_damage', label: 'Knockback', purpose: 'knockback', offset: 0x18 },
+    { key: 'w_stand', label: 'Idle', purpose: 'idle', offset: 0x08, field: 0x32 },
+    { key: 'w_walk', label: 'Walk', purpose: 'walk', offset: 0x0a, field: 0x34 },
+    { key: 'w_run', label: 'Run', purpose: 'run', offset: 0x0c, field: 0x36 },
+    { key: 'w_atk0', label: 'Attack Lvl 0', purpose: 'attack_0', offset: 0x0e, field: 0x38 },
+    { key: 'w_atk1', label: 'Attack Lvl 1', purpose: 'attack_1', offset: 0x10, field: 0x3a },
+    { key: 'w_atk2', label: 'Attack Lvl 2', purpose: 'attack_2', offset: 0x12, field: 0x3c },
+    { key: 'w_atk3', label: 'Attack Lvl 3', purpose: 'attack_3', offset: 0x14, field: 0x3e },
+    { key: 'w_charge', label: 'Dodge (invulnerable)', purpose: 'dodge', offset: 0x16, field: 0x48 },
+    { key: 'w_damage', label: 'Knockback', purpose: 'knockback', offset: 0x18, field: 0x40 },
 ];
+
+/**
+ * Behaviour (+$03) values by the compiler's IDLE_BEHAVIOR names, with what uses each: the word
+ * index into the AI jump table $8FCBE0 that $8FCD1A dispatches through (docs/entities/enemy_ai.md).
+ */
+function behaviourNames(): { value: number; name: string; note: string }[] {
+    const enums = (indexJson.enums || {}) as unknown as Record<string, { name: string; value: string; comment?: string }[]>;
+    return (enums.IDLE_BEHAVIOR || []).map((e) => ({ value: parseInt(e.value, 16), name: e.name, note: (e.comment || '').replace(/^used:\s*/, '') }))
+        .sort((a, b) => a.value - b.value);
+}
 
 /** Weapon entries in $C4:3874 order (index 0 is no weapon), then the Bazooka's three by its ammo. */
 const WEAPON_TABLE = 0xc43874, BAZOOKA_TABLE = 0xc4388e, WEAPON_BANK = 0xc40000;
@@ -188,10 +201,14 @@ function readCharacter(rom: Rom, id: number) {
         stats[key] = width === 1 ? u8(rom, record + off) : width === 4 ? (read16At(rom, record + off) | (read16At(rom, record + off + 2) << 16)) >>> 0 : read16At(rom, record + off);
     }
     const hitbox = characterHitbox(rom, id);
-    const own = STANDARD_ANIM_FIELDS.map((f) => anim(rom, { animRec: read16At(rom, record + f.offset) }, { ...f, category: 'standard' })).filter((a) => a.animRec);
+    const fields = STANDARD_ANIM_FIELDS.map((f) => anim(rom, { animRec: read16At(rom, record + f.offset) }, { ...f, category: 'standard' }));
+    const own = fields.filter((a) => a.animRec);
+    // Record fields that hold no animation: listed too, so every field of the record shows.
+    const emptyFields = fields.filter((a) => !a.animRec).map((a) => ({ key: a.key, label: a.label, offset: a.offset }));
     const boyWeapons = id === BOY ? readWeaponAnimations(rom) : null;
     const weapons: Form[] | null = boyWeapons || (id === DOG ? readDogForms(rom) : null);
-    const anims = [...(boyWeapons ? boyWeapons[0].anims : []), ...own, ...externalAnimations(rom, id, name, record, weapons || [])];
+    // The Boy's own fields are his record as stored (no weapon); an equipped weapon overwrites them (`field`).
+    const anims = [...own, ...externalAnimations(rom, id, name, record, weapons || [])];
     const drawn = own.filter((a) => a.purpose !== 'death' && a.purpose !== 'spoils');
     const noVisuals = !drawn.some((a) => showsSprite(rom, a.scriptAddr)) && !(id === BOY || id === DOG);
     const flags = stats.flags;
@@ -204,7 +221,9 @@ function readCharacter(rom: Rom, id: number) {
         paletteAddrHex: '0x' + stats.palette.toString(16),
         paletteIndex: paletteAddresses(rom).indexOf(stats.palette & 0xffff),
         paletteColors: characterPalette(rom, id).map(hexColour),
-        weapons, anims, statMeanings: STAT_MEANINGS,
+        palette2Index: stats.palette2 ? paletteAddresses(rom).indexOf(stats.palette2 & 0xffff) : -1,
+        palette2Colors: stats.palette2 ? paletteAt(rom, stats.palette2).map(hexColour) : null,
+        weapons, anims, emptyFields, statMeanings: STAT_MEANINGS,
     };
 }
 
@@ -214,4 +233,4 @@ function readAllCharacters(rom: Rom) {
     return out;
 }
 
-export { CHARACTER_TABLE, CHARACTER_STRIDE, CHARACTER_COUNT, STAT_MEANINGS, STANDARD_ANIM_FIELDS, WEAPON_NAMES, readWeaponAnimations, readCharacter, readAllCharacters };
+export { behaviourNames, CHARACTER_TABLE, CHARACTER_STRIDE, CHARACTER_COUNT, STAT_MEANINGS, STANDARD_ANIM_FIELDS, WEAPON_NAMES, readWeaponAnimations, readCharacter, readAllCharacters };

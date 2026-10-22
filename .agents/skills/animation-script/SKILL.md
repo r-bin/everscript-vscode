@@ -158,6 +158,12 @@ else; the linear walker reads `opcode()` too.
   record catalogue (record order), a sprite `#n` = `spriteAddresses(rom)`, a chunk its place in the frame.
 - The Animations tab's **All** plays any record on the selected character in its (weapon's) palette,
   thumbnails too, even where the game would never: that is the point. The seek bar runs in ticks.
+- **Default** lists the record as stored: General = all 12 fields `+0x32..+0x48` (empty ones too),
+  animate() = the compiler's ids. The Boy's weapon picker starts at Default (no weapon, own palette with
+  green placeholders); a weapon **overwrites** fields as `$8F:81C9` does (`field` on each weapon anim),
+  never adds a second Idle. A record listed twice is marked `→ first`.
+- A played script palette (`scriptPalette`) becomes the stage's kept palette (`homePalette`, the game's
+  `+0x75`) until Reset, another weapon or another character.
 - The script listing (`scriptListing`) attaches `palette` (address + colours) and `projectile`
   (its animation record and palette) to those lines; the Script tab previews them beneath the
   command and explains `mode` bits. Keep that data server-side: the webview has no ROM.

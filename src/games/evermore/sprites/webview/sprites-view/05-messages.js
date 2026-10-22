@@ -35,6 +35,13 @@
         var prevFrame = currentFrameIdx;
         var prevTick = tickCounter;
         currentAnimData = data.animation;
+        // A script that loads a palette leaves the character in it, as the game does (+0x75).
+        var loaded = currentAnimData && currentAnimData.scriptPalette ? parseInt(currentAnimData.scriptPalette.slice(1), 16) : 0;
+        if (loaded && !paletteOverride && loaded !== homePalette) {
+          setHomePalette(loaded);
+          var hc = getCharacters().find(function(x) { return x.id === selectedCharId; });
+          if (hc) renderAnimGrid(hc);
+        }
         showStagePalette(currentAnimData);
         currentFrameIdx = 0;
         tickCounter = 0;
@@ -80,17 +87,4 @@
         if (window.SpritesThumbs) window.SpritesThumbs.onData(data.thumbs);
       }
     });
-  }
-
-  // ── Init on page load ───────────────────────────────────────────────────────
-  try {
-    renderList();
-    var initChars = getCharacters();
-    if (initChars && initChars.length > 0) {
-      selectCharacter(initChars[0].id);
-    }
-  } catch (err) {
-    if (typeof console !== 'undefined' && console.error) {
-      console.error('[Sprites] Init error:', err);
-    }
   }
