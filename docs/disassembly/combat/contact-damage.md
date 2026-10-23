@@ -46,6 +46,14 @@ flowchart TD
     ExecYAttack --> End
 ```
 
+### When it fires (v0.342.1)
+
+Not on any overlap: only when a step is refused by a body (`$8F:AF48` → `$8F:B46D` → `$8F:B4AB`): the
+new position overlaps and the old one did not. The full rule is in
+[animation_script.md § The mode word](../../entities/animation_script.md#the-mode-word).
+`$0016 & $C000`: `$4000` and `$8000` are never told apart. `+$10 & $5022` is hidden, friendly,
+no gravity, takes no damage (`docs/entities/entities-reference.md`), not "petrification or sleep".
+
 ### Key Principles of Contact Collisions
 1. **Charge Threshold Requirement**:
    - Contact damage only triggers if the attacker has accumulated at least `0x0400` (1,024 units) of stamina/momentum in `+$2E`.

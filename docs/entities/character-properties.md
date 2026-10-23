@@ -72,10 +72,10 @@ spaces, wider than the half-width card (cut off in the narrow panel).
 
 | bit | read by | what it does |
 |---|---|---|
-| 0 | `$8F:C4BA` | on a layer change the entity takes one of ten `$82`-byte side records at `$58AF` (pointer in entity `+$86`, cleared by `$8F:C554`); its use is open. Records 105, 106 |
+| 0 | `$8F:C4BA` | segmented body: when it wakes (`+$10` `$0100`) it takes one of ten `$82`-byte segment lists at `$58AF` (pointer in entity `+$86`, where `0x57`/`0x59` write the segments). Records 105, 106 (Tar Skull, Salabog) |
 | 1 | `$8F:BA46` | its hit rate drops by 30 **only against the party member the player does not control** (the target is `$0F42 ^ $01BE`). 8 records |
-| 2 | `$8C:86DA` | the target filter `$8C:8658` may pick it although it is friendly (`+$10` bit 1), when the request mask `$05AD` has `$0020`. Record 23 |
-| 3 | `$8C:86A6` | required by the target filter when the mask has `$4000`. Record 28 |
+| 2 | `$8C:86DA` | the target filter `$8C:8658` may pick it although it is friendly (`+$10` bit 1), when the request mask `$05AD` has `$0020`. The ring menu sets that mask (`$0022` at `$8E:881E`). Record 23 (a rock) |
+| 3 | `$8C:86A6` | required by the target filter when the mask has `$4000` (`$4002` is a word of the ring menu's mask data at `$C4:5C2D`; which item uses it is not traced). Record 28 (the bridge) |
 | 4 | `$8F:B9FB` | projectiles cannot hit it (`$8F:B9F8`, only the projectile procs 2, 4, 6 call it). Record 135 |
 
 ```c
@@ -83,7 +83,7 @@ spaces, wider than the half-width card (cut off in the narrow panel).
 hit = (target == other_party_member(controlled) && arec->flags07 & 2) ? arec->hit - 29 : arec->hit + 1;
 ```
 
-Bits 5–7 are never set. Tab: an 8-bit drop-down. ✔ (bits 2–3 relabelled "target filter").
+Bits 5–7 are set by no record and read by no code: unused. Tab: an 8-bit drop-down.
 
 ### +$09 palette, +$0B second palette
 
@@ -314,7 +314,6 @@ request bit is set) and the AI (`$8F:D322`, `$8F:DBDF` walk; `$8F:D4BB` attack 3
 
 ## Still open
 
-- what the `$58AF` side records (flags bit 0) hold;
-- who sets the target mask `$05AD`, so which requests use flags bits 2 and 3;
+- which ring-menu item uses the target mask `$4000` (flags bit 3, the bridge);
 - what `$2261` bits 0–1 (no experience) and `$2262` bit 5 (−10 enemy hit) are named in game terms;
 - a run in the emulator for the leash, the magic-defence edge cases and the Speed status.

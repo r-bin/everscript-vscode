@@ -282,17 +282,17 @@ sites inside routines that work on entities. `?` marks a role seen but not under
 | `$0001` | hidden and paused | everscript `INACTIVE_INVISIBLE`; the stamina meter (`$8F:CCFF`) and gravity (`$8F:B070`) skip `& $21`; `$8F:CD51` clears it with `$20` |
 | `$0002` | invincible (friendly) | everscript `INVINCIBLE`; no contact handler (`$8F:B564`); part of the hit test's side mask `$5006` (`$8F:B615`) |
 | `$0004` | party side | everscript `PARTY`; the hit test compares attacker and target with `eor #4` (`$8F:B5FC`) |
-| `$0008` | keeps its place? | set at spawn when `$0100` is (`$8F:B313`); script opcode `0x43` (teleport) skips its follow-up (`$8C:E022`); the position setter skips its tile check (`$8F:C470`) |
-| `$0010` | — | no site tests it |
+| `$0008` | parked | the remove routine (`$8F:B2FB`) zeroes HP and, when another entity still links to this one (`+$3E`), sets `$0008` and puts it to sleep instead of freeing the slot; asleep with `$0008` it never wakes (`$8F:C470`); teleport (`0x43`) then skips the height fix-up (`$8C:E022`). Previously named "keeps its place?" (v0.342.1) |
+| `$0010` | never sleeps | the sleep test skips `& $0030` (`$8F:C419`) and a sleeper with `& $0070` wakes at once (`$8F:C475`): it keeps running off screen. Records: Salabog, record 75. Previously "no site tests it" (v0.342.1) |
 | `$0020` | inactive | everscript `INACTIVE`; set by the halt routine (`$8F:CD7E`), cleared by its counterpart (`$8F:CD51`); the aggro filter leaves it out (`$8F:D8D2`) |
 | `$0040` | in an animation | set by script opcode `0x78` (`$8C:E0E8`) and the animation VM (`$90:811B`), cleared at the end (`$90:83F5`); the hit reaction sets (`$8F:C29E`) and tests it (`$8F:C27F`). everscript calls it `MOSQUITO` |
-| `$0080` | ? (movement probe) | tested with `$0400` by the movement probe (`$8F:AF55`) |
-| `$0100` | ? (layer pair, low) | tested by script opcode `0x2E` (`$8C:D267`), at spawn (`$8F:B30B`, `$8F:B332`) and by the position setter (`$8F:C411`); swapped with `$0200` (`eor #$300`, `$8F:C4E3`, `$8F:C541`) |
-| `$0200` | ? (layer pair, high) | the other half of `$0300` (`$8F:B3AE`, `$8F:DCAE`, `$90:CCC8`) |
-| `$0400` | phasing | everscript `PHASING`; the movement probe's body check (`$8F:AF5A`), sprite priority (`$8F:C773`), the aggro filter (`$8F:DA77`) |
-| `$0800` | following a trail | the companion follower sets and clears it (`$8F:9C19`, `$8F:9C38`); the movement probe is skipped (`$8F:AF50`) |
+| `$0080` | through bodies | the movement probe (`$8F:AF55`) still checks walls and room bounds but skips body collision `$8F:B46D` (v0.342.1) |
+| `$0100` | awake | the entity is simulated; counted in `$1070`. `$8F:C40F` puts an awake one to sleep (`$8F:C514`: `eor #$0300`, `$1070`−1, `$1072`+1) when it is more than 48 px off screen and `$1070` has reached the limit `$1076`. Companion targeting (`$8F:D834`) and `jump_if_linked` (`$90:8C10`) need it. Previously "layer pair" (v0.342.1) |
+| `$0200` | asleep | set aside, counted in `$1072`; wakes (`$8F:C4B1`) when there is room (`$1070` + 2 < `$1076`) or it comes within 16 px of the screen; dead sleepers are freed (`$8F:B31E`). Exactly one of `$0100`/`$0200` is set (v0.342.1) |
+| `$0400` | phasing | everscript `PHASING`; the movement probe only keeps it in view of the camera (`$8F:AF5F` → `$90:9545`): no walls, no bodies; sprite priority (`$8F:C773`); approach heads straight for the target (`$8F:DA77`) |
+| `$0800` | following a trail | the companion follower sets and clears it (`$8F:9C19`, `$8F:9C38`); the movement probe checks nothing at all (`$8F:AF50`) |
 | `$1000` | no gravity | gravity skips it (`$8F:B01F`); everscript `INVISIBLE_INVINCIBLE_INACTIVE` |
 | `$2000` | hides after a fall | set on the opcode `0x78` path (`$8C:E130`); gravity turns it into `$0001` (`$8F:B043`–`$8F:B053`) |
 | `$4000` | takes no damage | set by script opcode `0xA9` (`$8C:E73A`); the hit reaction skips the entity (`$8F:C0D6`, `$8F:C146`) |
-| `$8000` | — | no site tests it |
+| `$8000` | unused | no executed instruction tests it (CDL xrefs of every entity's `+$10`, v0.342.1) and no record sets it |
 

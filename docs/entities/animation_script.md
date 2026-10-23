@@ -328,8 +328,21 @@ weapon's scripts.
 | `$0020` | invulnerable | `$8F:B623`, `$8F:B53C`, `$8F:B59A` | strikes skip it; body contact skips it | the dodge, casting (`$0120`) |
 | `$0040` | link | `$90:8C18` | `jump_if_linked` (`54`) jumps when the linked entity has it | no vanilla script sets it |
 | `$0100` | cast | `$91:99DA` | the effect code tests it on the caster | casting (`$0100`, `$0120`) |
-| `$4000`, `$8000` | contact | `$8F:B52C`, `$8F:B58A` | always tested together: with full charge, touching another entity runs its attack proc on it and empties the charge | Rimsala, slimes, Mini-Taur, Rat, FootKnight… |
-| `$0002`, `$0200`, `$0800`, `$1000`, `$2000` | — | nothing found | set by scripts, never read | deaths (`$0002`, `$1000`), plants and Rimsala (`$0800`), the Boy's weapons (`$2010`, `$2210`) |
+| `$4000`, `$8000` | contact | `$8F:B52C`, `$8F:B58A` | always tested together (`& $C000`), nowhere apart: the two behave the same. See *When contact fires* below | `$4000`: the rollers, slimes, Rimsala, Wisp, Tumble Weed, fan; `$8000`: Rat, Mini-Taur, FootKnight, Widowmaker, Dancin' Fool, Vigor |
+| `$0800` | rooted | nothing found | a marker only: set on exactly the characters that do not walk (stone cobras, flowers, claws, Sphere Bot, Carniflower, Rimsala's stand, the floating fan), in every script they have, and read by no code | as listed |
+| `$0002`, `$0200`, `$1000`, `$2000` | — | nothing found | set by scripts, never read | deaths (`$0002`, `$1000`), the Boy's weapons (`$2010`, `$2210`) |
+
+**When contact fires** (`$8F:AF48` → `$8F:B46D`). Only when a step is refused by a body: an
+entity tries to move, its new position overlaps another body (`2·|dy| < r₁+r₂` and `|dx| < r₁+r₂`,
+`|Δz| < $230`, same layer), and the two were not already overlapping. An enemy is tested against
+the Boy and Dog, the Boy or Dog against every enemy. Then the mover's contact is tried on the one it
+bumped (`$8F:B52C`), and the bumped one's on the mover (`$8F:B587`). Each needs the contact bits in
+its mode, a full charge, a target that is not knocked back or invulnerable (`+0x16 & $21`), not
+hidden / friendly / no-gravity / undamageable (`+0x10 & $5022`), alive, with no damage pending and
+not struck by it in the last 20 ticks, and must not itself be friendly. The toucher's attack proc
+runs and its charge is emptied, so a rat hurts once per full charge: walk into it (or let it walk
+into you) when its meter is full. A radius of 0 never collides, so never touches. Entities walking
+through bodies (`+0x10` `$0080`, `$0400`, `$0800`) never get here.
 
 `$0002`, `$1000` and the rest may be read by code the library never ran: the scan covers the
 absolute-indexed forms everywhere, the CDL any form but only what ran.

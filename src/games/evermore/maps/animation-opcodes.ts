@@ -127,15 +127,16 @@ const SEGMENTS_OP: Opcode = { length: 0, mnemonic: 'segments', kind: 'segments' 
 
 /**
  * `mode` (0x4D) bits named by what the code that tests entity +0x16 does
- * (docs/entities/animation_script.md § mode). `contact` and `contact2` are always tested together.
- * $0002, $0200, $0800, $1000 and $2000 are set by scripts but read by nothing, so they stay hex.
+ * (docs/entities/animation_script.md § The mode word). `contact` and `contact2` are always tested
+ * together and behave the same. `rooted` ($0800) is read by nothing: it is named for the characters
+ * that set it. $0002, $0200, $1000 and $2000 are set by scripts but read by nothing, so they stay hex.
  */
 const MODE_BITS: [number, string][] = [
     [0x0001, 'knockback'], [0x0004, 'walk'], [0x0008, 'run'], [0x0010, 'attack'], [0x0020, 'invulnerable'],
-    [0x0040, 'link'], [0x0100, 'cast'], [0x4000, 'contact'], [0x8000, 'contact2'],
+    [0x0040, 'link'], [0x0100, 'cast'], [0x0800, 'rooted'], [0x4000, 'contact'], [0x8000, 'contact2'],
 ];
 
-/** A mode word as its named bits, the unnamed ones as one hex value: `walk | contact`, `attack | $0800`. */
+/** A mode word as its named bits, the unnamed ones as one hex value: `walk | contact`, `attack | $2200`. */
 export function modeText(v: number): string {
     const parts = MODE_BITS.filter(([bit]) => v & bit).map(([, name]) => name);
     const rest = MODE_BITS.reduce((r, [bit]) => r & ~bit, v);
