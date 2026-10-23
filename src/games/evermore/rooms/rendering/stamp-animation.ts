@@ -82,13 +82,21 @@ function buildStampAnimations(rom: Uint8Array, room: RoomData, entries: Metatile
     const palCycles = (room.paletteCycles || []).filter(
         (c) => c.paletteIndex >= 1 && c.paletteIndex <= 7 && c.span > 1 && c.rate !== 0,
     );
+    const blankCanopy = maps.emptyStamp(room).layer1;
+    const allGraphics = room.tilePalette.concat(room.animatedTiles);
+    const matchWordCycle = (word: number, isLayer1: boolean) => {
+        if (isLayer1 && word === blankCanopy) return null;
+        const pal = (word >> 10) & 7;
+        const graphic = allGraphics[wordSlot(word)];
+        if (graphic === undefined) return null;
+        const tMask = maps.tileColorMask(rom, graphic);
+        return palCycles.find((c) => c.paletteIndex === pal && (tMask & maps.paletteCycleMask(c)) !== 0) || null;
+    };
 
     const animated: { i: number; e: MetatileDraft; n: number; delays: number[] }[] = [];
     entries.forEach((e, i) => {
         const slots = [wordSlot(e.layer1), wordSlot(e.layer2)].filter((s) => slotAnim(s));
-        const pal1 = (e.layer1 >> 10) & 7;
-        const pal2 = (e.layer2 >> 10) & 7;
-        const matchedCycle = palCycles.find((c) => c.paletteIndex === pal1 || c.paletteIndex === pal2);
+        const matchedCycle = matchWordCycle(e.layer2, false) || matchWordCycle(e.layer1, true);
         if (!slots.length && !matchedCycle) return;
 
         let n = 0;
@@ -99,7 +107,7 @@ function buildStampAnimations(rom: Uint8Array, room: RoomData, entries: Metatile
             for (let k = 0; k < n; k++) delays.push(lead.delays[(lead.at + k) % lead.frames.length] || 1);
         } else if (matchedCycle) {
             n = Math.min(MAX_STEPS, matchedCycle.span);
-            const d = Math.max(1, Math.abs(matchedCycle.rate));
+            const d = Math.max(1, Math.abs(matchedCycle.rate)) * 3;
             for (let k = 0; k < n; k++) delays.push(d);
         }
         if (n > 1) animated.push({ i, e, n, delays });
@@ -120,24 +128,9 @@ function buildStampAnimations(rom: Uint8Array, room: RoomData, entries: Metatile
             else animatedTiles[slot - tilePalette.length] = g;
         }
 
-        let cgramPalettes: maps.Rgba[][] | undefined;
-        if (palCycles.length) {
-            cgramPalettes = maps.buildRoomCgramPalettes(rom, room.tileFamilies).map((p) => p.slice());
-            for (const pc of palCycles) {
-                const p = pc.paletteIndex;
-                if (!cgramPalettes[p] || p - 1 >= room.tileFamilies.length) continue;
-                const orig = maps.extractTileFamilyPalette(rom, room.tileFamilies[p - 1]);
-                const span = pc.span;
-                const start = pc.colorStart;
-                const shift = k % span;
-                for (let c = 0; c < span; c++) {
-                    const srcIdx = pc.rate > 0
-                        ? (c - shift + span) % span
-                        : (c + shift) % span;
-                    cgramPalettes[p][start + c] = orig[start + srcIdx];
-                }
-            }
-        }
+        const cgramPalettes = palCycles.length
+            ? maps.shiftCgramPalettes(rom, room.tileFamilies, palCycles, k)
+            : undefined;
 
         const staged = maps.withMetatiles(
             { ...room, tilePalette, animatedTiles, ...(cgramPalettes ? { cgramPalettes } : {}) },

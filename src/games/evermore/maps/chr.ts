@@ -150,3 +150,25 @@ export function decodeTilePixels(tileBytes: Uint8Array, hflip = false, vflip = f
 
     return pixels;
 }
+
+const _colorMaskCache = new WeakMap<Uint8Array, Map<number, number>>();
+
+/**
+ * 16-bit bitmask of which palette colour indices (1..15) appear in a 16x16 graphic.
+ */
+export function tileColorMask(rom: Uint8Array, tileId: number): number {
+    let byTile = _colorMaskCache.get(rom);
+    if (!byTile) {
+        byTile = new Map<number, number>();
+        _colorMaskCache.set(rom, byTile);
+    }
+    const hit = byTile.get(tileId);
+    if (hit !== undefined) return hit;
+    const px = decodeTilePixels(decompressTile16x16(rom, tileId));
+    let mask = 0;
+    for (let i = 0; i < px.length; i++) {
+        if (px[i] > 0) mask |= 1 << px[i];
+    }
+    byTile.set(tileId, mask);
+    return mask;
+}

@@ -61,3 +61,44 @@ export function buildRoomCgramPalettes(rom: Uint8Array, tileFamilies: number[]):
     }
     return palettes;
 }
+
+export interface PaletteCycleSpec {
+    paletteIndex: number;
+    colorStart: number;
+    span: number;
+    rate: number;
+}
+
+/**
+ * 16-bit bitmask of palette colour indices (1..15) rotated by a palette cycle.
+ */
+export function paletteCycleMask(c: PaletteCycleSpec): number {
+    if (c.span <= 1 || c.rate === 0 || c.paletteIndex < 1 || c.paletteIndex > 7) return 0;
+    return (((1 << c.span) - 1) << c.colorStart) & 0xfffe;
+}
+
+/**
+ * Build a room's 8 CGRAM sub-palettes with Section 4.3 colour cycles shifted at `step`.
+ */
+export function shiftCgramPalettes(
+    rom: Uint8Array,
+    tileFamilies: number[],
+    cycles: readonly PaletteCycleSpec[],
+    step: number,
+): Rgba[][] {
+    const cgram = buildRoomCgramPalettes(rom, tileFamilies).map((p) => p.slice());
+    for (const pc of cycles) {
+        const p = pc.paletteIndex;
+        if (p < 1 || p > 7 || pc.span <= 1 || pc.rate === 0 || !cgram[p] || p - 1 >= tileFamilies.length) continue;
+        const orig = extractTileFamilyPalette(rom, tileFamilies[p - 1]);
+        const span = pc.span;
+        const start = pc.colorStart;
+        const shift = ((step % span) + span) % span;
+        for (let c = 0; c < span; c++) {
+            if (start + c >= 16) break;
+            const srcIdx = pc.rate > 0 ? (c - shift + span) % span : (c + shift) % span;
+            if (start + srcIdx < 16) cgram[p][start + c] = orig[start + srcIdx];
+        }
+    }
+    return cgram;
+}

@@ -6,7 +6,7 @@ import { geometryMask, isAlwaysWalkable, tilePlane } from '../maps/collision';
 import { PLANE_COLORS } from '../maps/collision-overlay';
 import { renderMetatileAtlas, metatileTable } from '../maps/metatiles';
 import { encodeGif } from './gif';
-import { getAnimationSchedule } from './map-animation';
+import { activePaletteCycles, getAnimationSchedule, stageRoomStep } from './map-animation';
 import type { RoomData } from '../maps/room';
 import type { PixelBuffer } from '../maps/render';
 
@@ -96,8 +96,9 @@ function renderRoomLayerGif(rom: Uint8Array, room: RoomData, layerName: Layer): 
     const w = room.header.widthTiles * 16;
     const h = room.header.heightTiles * 16;
     const channels = room.animation || [];
+    const palCycles = activePaletteCycles(room);
 
-    if (!channels.length) {
+    if (!channels.length && !palCycles.length) {
         const base = renderRoomLayer(rom, room, layerName);
         const gif = encodeGif(w, h, [{ data: base.data, ticks: 60 }]);
         map.set(key, gif);
@@ -109,14 +110,7 @@ function renderRoomLayerGif(rom: Uint8Array, room: RoomData, layerName: Layer): 
     const frames: Frame[] = [];
 
     for (let s = 0; s < steps; s++) {
-        const tiles = room.animatedTiles.slice();
-        for (let c = 0; c < channels.length; c++) {
-            const f = channels[c].frames;
-            if (f.length > 0) {
-                tiles[c] = f[s % f.length].tileId;
-            }
-        }
-        const staged = { ...room, animatedTiles: tiles };
+        const staged = stageRoomStep(rom, room, s);
         const words = layerName === 'layer1' ? staged.layer1VramWords : staged.layer2VramWords;
         const img = renderVramLayer(rom, staged, words);
         frames.push({ data: img.data, ticks });

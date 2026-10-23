@@ -3,6 +3,8 @@
 
 import { renderRoomComposite } from '../maps/render';
 import { renderMetatileAtlas } from '../maps/metatiles';
+import { shiftCgramPalettes } from '../maps/palette';
+import { emptyStamp } from '../maps/blank-room';
 import { encodeGif } from './gif';
 import type { RoomData } from '../maps/room';
 
@@ -16,21 +18,48 @@ const _metatileGifCache = new WeakMap<Uint8Array, Map<string, Buffer>>();
 function gcd(a: number, b: number): number { return b ? gcd(b, a % b) : a; }
 function lcm(a: number, b: number): number { return a && b ? (a / gcd(a, b)) * b : (a || b || 1); }
 
+function activePaletteCycles(room: RoomData) {
+    return (room.paletteCycles || []).filter(
+        (c) => c.paletteIndex >= 1 && c.paletteIndex <= 7 && c.span > 1 && c.rate !== 0,
+    );
+}
+
+function stageRoomStep(rom: Uint8Array, room: RoomData, step: number): RoomData {
+    const channels = room.animation || [];
+    const tiles = room.animatedTiles.slice();
+    for (let c = 0; c < channels.length; c++) {
+        const f = channels[c].frames;
+        if (f.length > 0) tiles[c] = f[step % f.length].tileId;
+    }
+    const palCycles = activePaletteCycles(room);
+    const cgramPalettes = palCycles.length
+        ? shiftCgramPalettes(rom, room.tileFamilies, palCycles, step)
+        : undefined;
+    return { ...room, animatedTiles: tiles, ...(cgramPalettes ? { cgramPalettes } : {}) };
+}
+
 function getAnimationSchedule(room: RoomData, maxSteps = 12) {
     const channels = room.animation || [];
-    if (!channels.length) return { steps: 1, ticks: 60 };
+    const palCycles = activePaletteCycles(room);
+    if (!channels.length && !palCycles.length) return { steps: 1, ticks: 60 };
 
-    const frameCounts = channels.map((c) => c.frames.length).filter((n) => n > 1);
+    const frameCounts = [
+        ...channels.map((c) => c.frames.length),
+        ...palCycles.map((c) => c.span),
+    ].filter((n) => n > 1);
     if (!frameCounts.length) return { steps: 1, ticks: 60 };
 
     let steps = frameCounts.reduce((a, b) => lcm(a, b), 1);
     if (steps > maxSteps) {
         const smaller = frameCounts.filter((n) => n <= maxSteps);
-        steps = smaller.length > 0 ? Math.min(...smaller) : maxSteps;
+        steps = smaller.length > 0 ? Math.max(...smaller) : maxSteps;
     }
     if (!Number.isFinite(steps) || steps < 2) steps = Math.min(maxSteps, 2);
 
-    const delays = channels.flatMap((c) => c.frames.map((f) => f.delay)).filter((d) => d > 0);
+    const delays = [
+        ...channels.flatMap((c) => c.frames.map((f) => f.delay)),
+        ...palCycles.map((c) => Math.max(1, Math.abs(c.rate)) * 3),
+    ].filter((d) => d > 0);
     const avgTicks = delays.length ? Math.round(delays.reduce((a, b) => a + b, 0) / delays.length) : 8;
     const ticks = Math.max(4, Math.min(30, avgTicks));
 
@@ -49,8 +78,9 @@ function renderRoomAnimationGif(rom: Uint8Array, room: RoomData): Buffer {
     const w = room.header.widthTiles * 16;
     const h = room.header.heightTiles * 16;
     const channels = room.animation || [];
+    const palCycles = activePaletteCycles(room);
 
-    if (!channels.length) {
+    if (!channels.length && !palCycles.length) {
         const base = renderRoomComposite(rom, room);
         const gif = encodeGif(w, h, [{ data: base.data, ticks: 60 }]);
         map.set(rId, gif);
@@ -63,14 +93,7 @@ function renderRoomAnimationGif(rom: Uint8Array, room: RoomData): Buffer {
     const frames: Frame[] = [];
 
     for (let s = 0; s < steps; s++) {
-        const tiles = room.animatedTiles.slice();
-        for (let c = 0; c < channels.length; c++) {
-            const f = channels[c].frames;
-            if (f.length > 0) {
-                tiles[c] = f[s % f.length].tileId;
-            }
-        }
-        const staged = { ...room, animatedTiles: tiles };
+        const staged = stageRoomStep(rom, room, s);
         const img = renderRoomComposite(rom, staged);
         frames.push({ data: img.data, ticks });
     }
@@ -90,7 +113,8 @@ function renderMetatileAtlasAnimationGif(rom: Uint8Array, room: RoomData): Buffe
     if (map.has(rId)) return map.get(rId)!;
 
     const channels = room.animation || [];
-    if (!channels.length) {
+    const palCycles = activePaletteCycles(room);
+    if (!channels.length && !palCycles.length) {
         const atlas = renderMetatileAtlas(rom, room);
         const gif = encodeGif(atlas.image.width, atlas.image.height, [{ data: atlas.image.data, ticks: 60 }]);
         map.set(rId, gif);
@@ -103,14 +127,7 @@ function renderMetatileAtlasAnimationGif(rom: Uint8Array, room: RoomData): Buffe
     let atlasHeight = 0;
 
     for (let s = 0; s < steps; s++) {
-        const tiles = room.animatedTiles.slice();
-        for (let c = 0; c < channels.length; c++) {
-            const f = channels[c].frames;
-            if (f.length > 0) {
-                tiles[c] = f[s % f.length].tileId;
-            }
-        }
-        const staged = { ...room, animatedTiles: tiles };
+        const staged = stageRoomStep(rom, room, s);
         const atlas = renderMetatileAtlas(rom, staged);
         atlasWidth = atlas.image.width;
         atlasHeight = atlas.image.height;
@@ -140,15 +157,18 @@ function isLayerAnimated(room: RoomData, layerName: 'layer1' | 'layer2'): boolea
     const active = new Set(
         channels.map((c, i) => (c.frames && c.frames.length > 1 ? i : -1)).filter((i) => i >= 0)
     );
-    if (!active.size) return false;
+    const cycledPals = new Set(activePaletteCycles(room).map((c) => c.paletteIndex));
+    if (!active.size && !cycledPals.size) return false;
 
     const words = layerName === 'layer1' ? room.layer1VramWords : room.layer2VramWords;
     if (!words) return false;
+    const blank = layerName === 'layer1' ? emptyStamp(room).layer1 : -1;
 
     for (const row of words) {
         for (const w of row) {
             const ch = getWordChannel(room, w);
             if (active.has(ch)) return true;
+            if (w !== blank && cycledPals.has((w >> 10) & 7)) return true;
         }
     }
     return false;
@@ -168,8 +188,12 @@ function isMetatileAnimated(room: RoomData, m: { layer1: number; layer2: number 
     const channels: number[] = [];
     if (ch1 >= 0 && isChannelActive(room, ch1)) channels.push(ch1);
     if (ch2 >= 0 && ch2 !== ch1 && isChannelActive(room, ch2)) channels.push(ch2);
+    const cycledPals = new Set(activePaletteCycles(room).map((c) => c.paletteIndex));
+    const blank = emptyStamp(room).layer1;
+    const palAnimated = (m.layer1 !== blank && cycledPals.has((m.layer1 >> 10) & 7)) ||
+        cycledPals.has((m.layer2 >> 10) & 7);
     return {
-        animated: channels.length > 0,
+        animated: channels.length > 0 || palAnimated,
         channels,
     };
 }
@@ -185,9 +209,10 @@ function renderMetatileAnimationGif(rom: Uint8Array, room: RoomData, idx: number
     if (map.has(key)) return map.get(key)!;
 
     const channels = room.animation || [];
+    const palCycles = activePaletteCycles(room);
     const cell = 16;
 
-    if (!channels.length) {
+    if (!channels.length && !palCycles.length) {
         const atlas = renderMetatileAtlas(rom, room);
         const col = idx % atlas.columns;
         const row = Math.floor(idx / atlas.columns);
@@ -201,14 +226,7 @@ function renderMetatileAnimationGif(rom: Uint8Array, room: RoomData, idx: number
     const frames: Frame[] = [];
 
     for (let s = 0; s < steps; s++) {
-        const tiles = room.animatedTiles.slice();
-        for (let c = 0; c < channels.length; c++) {
-            const f = channels[c].frames;
-            if (f.length > 0) {
-                tiles[c] = f[s % f.length].tileId;
-            }
-        }
-        const staged = { ...room, animatedTiles: tiles };
+        const staged = stageRoomStep(rom, room, s);
         const atlas = renderMetatileAtlas(rom, staged);
         const col = idx % atlas.columns;
         const row = Math.floor(idx / atlas.columns);
@@ -238,4 +256,4 @@ function extractCell(image: Image, col: number, row: number, cell: number): Uint
     return data;
 }
 
-export { getAnimationSchedule, renderRoomAnimationGif, renderMetatileAtlasAnimationGif, renderMetatileAnimationGif, isMetatileAnimated, isLayerAnimated, isRoomAnimated, isCollisionAnimated };
+export { getAnimationSchedule, activePaletteCycles, stageRoomStep, renderRoomAnimationGif, renderMetatileAtlasAnimationGif, renderMetatileAnimationGif, isMetatileAnimated, isLayerAnimated, isRoomAnimated, isCollisionAnimated };

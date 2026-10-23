@@ -103,7 +103,10 @@ function tileSlotPasses(slot) {
  */
 function tileAnimMarkHtml(sheet, slot) {
   var kind = slot[13];
-  if (!kind) return '';
+  if (!kind) {
+    var pc = sheet && sheet.paletteCycle && sheet.paletteCycle.tiles ? sheet.paletteCycle.tiles[slot[2]] : null;
+    return pc ? '<b class="rg-anim-mark" aria-hidden="true">' + (pc.letter || '▶') + '</b>' : '';
+  }
   var a = sheet && sheet.animations && sheet.animations[slot[14]];
   var n = a ? a.frames.length : 0;
   // Listed frame by frame, the first frame is frame 1 of n like the others.
@@ -118,6 +121,8 @@ function tileAnimTitle(sheet, slot) {
   if (slot[13] === 1 && _tileFramesSplit) return '\nframe 1' + (n ? ' of ' + n : '') + ' — the frame the game places; it plays the rest in place';
   if (slot[13] === 1) return '\nanimation: ' + n + ' frames, played in place by the game — its frames are never placed on their own';
   if (slot[13] === 2) return '\nframe ' + (slot[15] + 1) + (n ? ' of ' + n : '') + ' of the animation starting at graphic ' + slot[14];
+  var pc = sheet && sheet.paletteCycle && sheet.paletteCycle.tiles ? sheet.paletteCycle.tiles[slot[2]] : null;
+  if (pc) return '\npalette animation: ' + pc.span + ' colour steps, played in place by CGRAM colour cycling';
   return '';
 }
 
@@ -130,13 +135,15 @@ function tileAnimTitle(sheet, slot) {
 function tileAnimPlay(sheet, slot) {
   if (_tileFramesSplit) return { css: '', style: '' };
   var a = slot[13] === 1 && sheet.animations ? sheet.animations[slot[2]] : null;
-  if (!a && sheet.paletteCycle) {
-    var pc = sheet.paletteCycle;
+  var pc = !a && sheet.paletteCycle
+    ? (sheet.paletteCycle.tiles ? sheet.paletteCycle.tiles[slot[2]] : sheet.paletteCycle)
+    : null;
+  if (pc) {
     var at = sheet.slots.indexOf(slot);
     if (at < 0) return { css: '', style: '' };
     var x = (at % sheet.columns) * sheet.cell;
     var y0 = Math.floor(at / sheet.columns) * sheet.cell;
-    var sliceHeight = pc.rows * sheet.cell;
+    var sliceHeight = sheet.paletteCycle.rows * sheet.cell;
     var total = pc.span * pc.rate;
     var name = 'rg-pal-anim-' + sheet.family + '-' + slot[2];
     var css = '@keyframes ' + name + '{';

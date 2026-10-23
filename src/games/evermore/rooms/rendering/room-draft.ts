@@ -187,40 +187,40 @@ function buildFamilySheet(rom: Rom, familyId: unknown, borrowFrom: unknown) {
         const atlas = maps.renderTileListAtlas(buf, sheetRoom, { columns: COLUMNS, palette: 1 });
 
         const famIdx = base.tileFamilies.indexOf(family);
-        const palCycle = famIdx >= 0
-            ? (base.paletteCycles || []).find((c) => c.paletteIndex === famIdx + 1 && c.span > 1 && c.rate !== 0)
-            : null;
+        const activeCycles = (base.paletteCycles || []).filter(
+            (c) => c.paletteIndex >= 1 && c.paletteIndex <= 7 && c.span > 1 && c.rate !== 0,
+        );
+        const famCycles = famIdx >= 0 ? activeCycles.filter((c) => c.paletteIndex === famIdx + 1) : [];
 
-        if (palCycle) {
-            const span = palCycle.span;
+        if (famCycles.length) {
+            const maxSpan = famCycles.reduce((m, c) => Math.max(m, c.span), 1);
             const singleH = atlas.image.height;
             const width = atlas.image.width;
-            const combinedData = new Uint8Array(width * singleH * span * 4);
+            const combinedData = new Uint8Array(width * singleH * maxSpan * 4);
             combinedData.set(atlas.image.data, 0);
+            const sheetCycles = famCycles.map((c) => ({ ...c, paletteIndex: 1 }));
 
-            for (let k = 1; k < span; k++) {
-                const cgramPalettes = maps.buildRoomCgramPalettes(buf, [family]).map((p) => p.slice());
-                const orig = maps.extractTileFamilyPalette(buf, family);
-                const shift = k % span;
-                for (let c = 0; c < span; c++) {
-                    const srcIdx = palCycle.rate > 0
-                        ? (c - shift + span) % span
-                        : (c + shift) % span;
-                    cgramPalettes[1][palCycle.colorStart + c] = orig[palCycle.colorStart + srcIdx];
-                }
+            for (let k = 1; k < maxSpan; k++) {
+                const cgramPalettes = maps.shiftCgramPalettes(buf, [family], sheetCycles, k);
                 const atlasK = maps.renderTileListAtlas(buf, { ...sheetRoom, cgramPalettes }, { columns: COLUMNS, palette: 1 });
                 combinedData.set(atlasK.image.data, k * width * singleH * 4);
             }
 
-            out.imageUri = maps.encodePngDataUri({ width, height: singleH * span, data: combinedData });
+            const tiles: Record<number, { span: number; rate: number; letter: string }> = {};
+            for (const id of ids) {
+                const tMask = maps.tileColorMask(buf, id);
+                const hit = famCycles.find((c) => (tMask & maps.paletteCycleMask(c)) !== 0);
+                if (hit) {
+                    const letter = String.fromCharCode(65 + Math.max(0, activeCycles.indexOf(hit)));
+                    tiles[id] = { span: hit.span, rate: Math.max(1, Math.abs(hit.rate)) * 3, letter };
+                }
+            }
+
+            out.imageUri = maps.encodePngDataUri({ width, height: singleH * maxSpan, data: combinedData });
             out.imageWidth = width;
-            out.imageHeight = singleH * span;
+            out.imageHeight = singleH * maxSpan;
             out.rows = atlas.rows;
-            out.paletteCycle = {
-                span,
-                rate: Math.max(1, Math.abs(palCycle.rate)),
-                rows: atlas.rows,
-            };
+            out.paletteCycle = { rows: atlas.rows, tiles };
         } else {
             out.imageUri = maps.encodePngDataUri(atlas.image);
             out.imageWidth = atlas.image.width;

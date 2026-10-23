@@ -65,15 +65,18 @@ function animUnderSvg(e, c, a) {
  */
 function editAnimSvg(origin) {
   var p = _mtPalette;
-  if (!p || (!editAnims().length && !(typeof _animStroke !== 'undefined' && _animStroke))) return '';
+  if (!p) return '';
   var onTab = typeof _editActiveTab !== 'undefined' && _editActiveTab === 'anim';
   var marks = _animMarks || onTab, html = '';
-  if (onTab && typeof _editAnimSub !== 'undefined' && _editAnimSub === 'palette' && typeof _paletteAnimSel !== 'undefined' && _paletteAnimSel != null && typeof paletteAnimFindByTile === 'function') {
-    var palEntry = paletteAnimFindByTile(_paletteAnimSel);
-    if (palEntry && palEntry.cells && palEntry.cells.length) {
-      html += animShapeSvg(origin, palEntry.cells, true, '');
-    }
+  if (onTab && typeof _editAnimSub !== 'undefined' && _editAnimSub === 'palette' && typeof editPaletteAnimsListed === 'function') {
+    var palList = editPaletteAnimsListed(p);
+    var palOpen = typeof paletteAnimOpenEntry === 'function' ? paletteAnimOpenEntry(palList) : null;
+    palList.forEach(function (entry) {
+      html += animShapeSvg(origin, entry.cells, entry === palOpen, entry.letter || '');
+    });
+    return html;
   }
+  if (!editAnims().length && !(typeof _animStroke !== 'undefined' && _animStroke)) return '';
   editAnimsListed(p).forEach(function (entry) {
     var sel = entry.members.some(function (m) { return m.uid === _animSel; });
     var letter = marks && editAnimSetComplete(entry.g, entry.members) ? (editAnimLetter(entry.g) || '*') : '';

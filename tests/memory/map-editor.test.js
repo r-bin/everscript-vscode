@@ -3598,40 +3598,46 @@ test('palette animation: empty state when room has zero palette cycles', () => {
     assert.ok(html.includes('This room has no palette cycles. The water and scenery use static palettes.'));
 });
 
-test('palette animation: lists placed tiles using cycling palettes with preview and expansion', () => {
+test('palette animation: lists placed tiles using cycling palettes with per-instance rows and expansion', () => {
     const p = animPalette();
     p.tileFamilies = [105, 352, 324, 106];
     p.paletteCycles = [
-        { b0: 0x1b, b1: 4, b2: 5, stateSlot: 2, startColor: 0x2b, paletteIndex: 2, colorStart: 11, span: 4, rate: 5 },
+        { b0: 0x2b, b1: 4, b2: 5, stateSlot: 4, startColor: 0x2b, paletteIndex: 2, colorStart: 11, span: 4, rate: 5 },
     ];
-    // Entry 0 in animPalette has layer2Word with palette 2 (e.g. 0x4c62 -> pal = (0x4c62 >> 10) & 7 = 3; let's force pal 2)
-    // pal 2 in layer2Word: (2 << 10)
     p.entries[0] = [0, 0xa800, (2 << 10) | 4, 0x0010, 0xa800, (2 << 10) | 4];
     ui.setPalette(p);
     ui.setTab('anim');
     ui.setAnimSub('palette');
 
     const listed = ui.editPaletteAnimsListed(p);
-    assert.strictEqual(listed.length, 1);
+    assert.strictEqual(listed.length, 2, 'two disconnected clusters in the 3x2 grid list as two instance rows');
     assert.strictEqual(listed[0].paletteIndex, 2);
     assert.strictEqual(listed[0].span, 4);
     assert.strictEqual(listed[0].rate, 5);
-    assert.strictEqual(listed[0].cells.length, 4); // 2x2 grid
+    assert.strictEqual(listed[0].part, 0);
+    assert.strictEqual(listed[0].parts, 2);
+    assert.strictEqual(listed[0].cells.length, 3);
+    assert.strictEqual(listed[1].part, 1);
+    assert.strictEqual(listed[1].parts, 2);
+    assert.strictEqual(listed[1].cells.length, 1);
 
     let html = ui.animTabHtml();
-    assert.ok(html.includes('An animated palette cycles colors over time'));
-    assert.ok(html.includes('Pal 2'));
+    assert.ok(html.includes('An animated palette cycles colours over time'));
+    assert.ok(html.includes('1 of 2'));
+    assert.ok(html.includes('2 of 2'));
     assert.ok(html.includes('4 frames'));
+    assert.ok(html.includes('🔒'));
 
-    // Open/uncollapse the row
-    ui.paletteAnimClick({ dataset: { palAnimSel: String(listed[0].tileId) } });
+    // Open/uncollapse the first row
+    ui.paletteAnimClick({ dataset: { palAnimSel: listed[0].key, palAnimPart: listed[0].cells[0] } });
     html = ui.animTabHtml();
+    assert.ok(html.includes('rg-object-expanded rg-anim-timing'));
     assert.ok(html.includes('data-pal-anim-cycle="0"'));
-    assert.ok(html.includes('State 0 of 4'));
-    assert.ok(html.includes('State 3 of 4'));
+    assert.ok(html.includes('Frame 0 of 4'));
+    assert.ok(html.includes('Frame 3 of 4'));
 
-    // Edit ticks per shift step
-    ui.paletteAnimInputChange({ dataset: { palAnimCycle: '0' }, value: '8' });
+    // Edit ticks per shift step (24 ticks -> rate = 24 / 3 = 8)
+    ui.paletteAnimInputChange({ dataset: { palAnimCycle: '0' }, value: '24' });
     assert.strictEqual(p.paletteCycles[0].rate, 8);
 });
 
@@ -3641,7 +3647,7 @@ test('tile picker: swatch animates when family has active palette cycle', () => 
         columns: 16,
         cell: 16,
         slots: [[0, 0, 100]],
-        paletteCycle: { span: 4, rate: 5, rows: 2 },
+        paletteCycle: { rows: 2, tiles: { 100: { span: 4, rate: 15, letter: 'A' } } },
     };
     const play = ui.tileAnimPlay(mockSheet, mockSheet.slots[0]);
     assert.ok(play.css.includes('@keyframes rg-pal-anim-352-100'));

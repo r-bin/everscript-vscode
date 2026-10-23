@@ -128,6 +128,10 @@ function buildRoomMetatilePalette(rom: Rom, roomId: number, layer?: string, bgPa
         tileFamilies: room.tileFamilies,
         /** Palette-cycle descriptors (Section 4.3 CGRAM colour cycling). */
         paletteCycles: room.paletteCycles || [],
+        /** 16-bit colour-index mask per graphic in the room, so palette cycles match only tiles using those colours. */
+        tileColorMasks: Object.fromEntries(
+            room.tilePalette.concat(room.animatedTiles).map((id) => [id, maps.tileColorMask(buf, id)]),
+        ),
         /** Alternate family sets past the seventh entry: colours and script values (family-sets.ts), or null. */
         familySets: familySetInfo(buf, room, roomId, String(romFingerprint(buf))),
         paletteCount: room.tilePalette.length,

@@ -158,20 +158,10 @@ function readPaletteCycles(rom: Uint8Array, layout: BlobLayout): PaletteCycle[] 
         const b1 = rom[p + 1];
         const b2 = (rom[p + 2] << 24) >> 24; // signed 8-bit rate
         const stateSlot = (b0 & 0x70) >> 3;
-        const startColor = (b0 + (b0 & 0x70)) & 0xff;
-        const paletteIndex = startColor >> 4;
-        const colorStart = startColor & 0x0f;
-        out.push({
-            b0,
-            b1,
-            b2,
-            stateSlot,
-            startColor,
-            paletteIndex,
-            colorStart,
-            span: b1,
-            rate: b2,
-        });
+        const startColor = b0 & 0x7f;
+        const paletteIndex = (b0 >> 4) & 0x07;
+        const colorStart = b0 & 0x0f;
+        out.push({ b0, b1, b2, stateSlot, startColor, paletteIndex, colorStart, span: b1, rate: b2 });
     }
     return out;
 }
