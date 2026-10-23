@@ -129,6 +129,11 @@ class SoeFileSystem implements vscode.FileSystemProvider {
     /** A bus address is served as the ram/ or rom/ file it names, marked as a link to it. */
     _routeBus(uri: vscode.Uri, segments: string[]): Routed {
         if (segments.length === 0) return { node: dir([], busIndex), rom: null };
+        if (segments[0] === 'code' && segments.length === 2) {
+            const target = uri.with({ authority: 'rom', path: '/code/' + segments[1] });
+            const r = this._route(target);
+            return { node: r.node && { ...r.node, link: target.toString() } as VfsNode, rom: r.rom };
+        }
         const t = segments.length === 1 ? busTarget(segments[0]) : null;
         if (!t) return { node: null, rom: null };
         const target = uri.with({ authority: t.authority, path: '/' + t.name });

@@ -55,146 +55,16 @@ flowchart TD
 
 ## 2. Disassembly & Annotations
 
-```assembly
-; ==============================================================================
-; sprite_palette_allocator ($90:CD80)
-; ==============================================================================
-$90CD80  DA          PHX
-$90CD81  5A          PHY
-$90CD82  B9 22 00    LDA $0022,y       ; Palette asset ID from sprite descriptor
-$90CD85  85 12       STA $12
-$90CD87  20 AF CD    JSR $CDAF         ; palette_free_slot_search
-$90CD8A  90 0C       BCC $90CD98       ; Carry Clear -> slot successfully found!
+> **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/90CD80](soe://rom/code/90CD80?asm=1&c=0)
 
-; All dynamic slots full: steal slot 4:
-$90CD8C  20 92 CE    JSR $CE92         ; palette_steal_slot_4
-$90CD8F  A9 04 00    LDA #$0004        ; Assigned to stolen slot 4
-$90CD92  99 24 00    STA $0024,y       ; Store palette index in entity +0x24
-$90CD95  7A          PLY
-$90CD96  FA          PLX
-$90CD97  6B          RTL
-
-$90CD98  8A          TXA               ; Slot index returned in X (2..7)
-$90CD99  99 24 00    STA $0024,y       ; Store allocated palette index
-$90CD9C  7A          PLY
-$90CD9D  FA          PLX
-$90CD9E  6B          RTL
-
-; ==============================================================================
-; palette_free_slot_search ($90:CDAF)
-; ==============================================================================
-$90CDAF  A2 02 00    LDX #$0002        ; Start at dynamic slot 2 (skip Boy/Dog)
-$90CDB2  8A          TXA
-$90CDB3  0A          ASL A             ; 2 bytes per palette ID
-$90CDB4  A8          TAY
-$90CDB5  B9 E0 0D    LDA $0DE0,y       ; Loaded palette asset ID
-$90CDB8  C5 12       CMP $12           ; Matches target asset ID?
-$90CDBA  F0 18       BEQ $90CDD4       ; Reuse match!
-
-$90CDBC  E8          INX
-$90CDBD  E0 08 00    CPX #$0008        ; Scanned all 8 slots?
-$90CDC0  90 F0       BCC $90CDB2
-
-; Second pass: scan for empty slot (ID == 0):
-$90CDC2  A2 02 00    LDX #$0002
-$90CDC5  8A          TXA
-$90CDC6  0A          ASL A
-$90CDC7  A8          TAY
-$90CDC8  B9 E0 0D    LDA $0DE0,y
-$90CDCB  F0 07       BEQ $90CDD4       ; Empty slot found!
-$90CDCD  E8          INX
-$90CDCE  E0 08 00    CPX #$0008
-$90CDD1  90 F2       BCC $90CDC5
-$90CDD3  38          SEC               ; No slots available -> steal required
-$90CDD4  18          CLC               ; Slot found in X
-$90CDD5  60          RTS
-
-; ==============================================================================
-; palette_steal_slot_4 ($90:CE92)
-; ==============================================================================
-$90CE92  A5 12       LDA $12           ; New palette asset ID
-$90CE94  8D E8 0D    STA $0DE8         ; Overwrite slot 4 in $7E:0DE0 + 4*2
-$90CE97  22 40 86 80 JSL $808640       ; Queue 16-color CGRAM DMA upload
-$90CE9B  60          RTS
-```
 
 ---
 
 ## 3. Reconstructed Clean C Implementation
 
-```c
-#include <stdint.h>
-#include <stdbool.h>
+> **Reconstructed C Decompilation**:
+> Source moved to [`reconstructed-c/90/90CD80_palette_allocator.c`](../../../reconstructed-c/90/90CD80_palette_allocator.c).
+> [View in VFS: soe://rom/code/90CD80](soe://rom/code/90CD80?c=1&asm=0)
 
-#define TOTAL_SPRITE_PALETTES 8
-#define DYNAMIC_PALETTE_START 2 // Slots 0 and 1 are pinned for Boy & Dog
-#define STOLEN_PALETTE_SLOT   4
-
-typedef struct {
-    uint16_t asset_id;      // Unique palette identifier
-    uint16_t ref_count;     // Active entities using this palette
-    uint32_t last_used_age; // LRU eviction timestamp
-} PaletteSlot;
-
-extern PaletteSlot g_sprite_palettes[TOTAL_SPRITE_PALETTES]; // $7E:0DE0
-extern uint32_t g_palette_frame_counter;                     // $7E:0DF8
-
-extern void queue_cgram_palette_dma(uint8_t slot_idx, uint16_t asset_id); // $80:8640
-
-/**
- * Searches for an existing loaded palette or a completely free slot.
- * Corresponds to $90:CDAF.
- */
-static int8_t palette_free_slot_search(uint16_t asset_id) {
-    // Pass 1: Deduplication search for identical loaded palette
-    for (int i = DYNAMIC_PALETTE_START; i < TOTAL_SPRITE_PALETTES; i++) {
-        if (g_sprite_palettes[i].asset_id == asset_id) {
-            g_sprite_palettes[i].ref_count++;
-            g_sprite_palettes[i].last_used_age = g_palette_frame_counter;
-            return i;
-        }
-    }
-
-    // Pass 2: Search for empty slot (ref_count == 0)
-    for (int i = DYNAMIC_PALETTE_START; i < TOTAL_SPRITE_PALETTES; i++) {
-        if (g_sprite_palettes[i].ref_count == 0) {
-            g_sprite_palettes[i].asset_id = asset_id;
-            g_sprite_palettes[i].ref_count = 1;
-            g_sprite_palettes[i].last_used_age = g_palette_frame_counter;
-            queue_cgram_palette_dma(i, asset_id);
-            return i;
-        }
-    }
-
-    return -1; // No free slots available
-}
-
-/**
- * Steals slot 4 (or oldest LRU slot) when palette capacity is exceeded.
- * Corresponds to $90:CE92.
- */
-static uint8_t palette_steal_slot_4(uint16_t asset_id) {
-    uint8_t slot = STOLEN_PALETTE_SLOT;
-
-    g_sprite_palettes[slot].asset_id = asset_id;
-    g_sprite_palettes[slot].ref_count = 1;
-    g_sprite_palettes[slot].last_used_age = g_palette_frame_counter;
-
-    queue_cgram_palette_dma(slot, asset_id);
-    return slot;
-}
-
-/**
- * Dynamic sprite palette allocator: deduplicates, allocates, or evicts.
- * Corresponds to $90:CD80.
- */
-uint8_t sprite_palette_allocator(uint16_t asset_id) {
-    int8_t slot = palette_free_slot_search(asset_id);
-    if (slot >= 0) {
-        return (uint8_t)slot;
-    }
-
-    // All dynamic slots exhausted: steal slot 4
-    return palette_steal_slot_4(asset_id);
-}
-```

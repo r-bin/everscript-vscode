@@ -61,105 +61,16 @@ flowchart TD
 
 ## 2. Disassembly & Annotations
 
-```assembly
-; ==============================================================================
-; reads_an_effect_s_done_bit_set_by_animation_opco ($91:9BCC)
-; ==============================================================================
-$919BCC  A4 26       LDY $26           ; Load animation VM flags from slot +0x26
-$919BCE  89 02 00    BIT #$0002        ; Test bit 1 (effect_done from opcode 0x5D)
-$919BD1  F0 10       BEQ $919BE3       ; If 0, animation still playing -> yield
-$919BD3  98          TYA
-$919BD4  29 FD FF    AND #$FFFD        ; Clear done bit
-$919BD7  85 26       STA $26
-$919BD9  18          CLC               ; Signal success / phase finished
-$919BDA  6B          RTL
+> **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/919BCC](soe://rom/code/919BCC?asm=1&c=0)
 
-$919BE3  38          SEC               ; Signal still busy
-$919BE4  6B          RTL
-
-; ==============================================================================
-; spell_heal_clamp_to_max_hp_999 ($91:9D16)
-; ==============================================================================
-$919D16  18          CLC
-$919D17  6D B3 4E    ADC $4EB3         ; Add current target HP
-$919D1A  CD 35 0A    CMP $0A35         ; Compare against Max HP ($7E:0A35)
-$919D1D  90 03       BCC $919D22
-$919D1F  AD 35 0A    LDA $0A35         ; Clamp to Max HP
-$919D22  C9 E7 03    CMP #$03E7        ; Enforce absolute 999 ceiling
-$919D25  90 03       BCC $919D2A
-$919D27  A9 E7 03    LDA #$03E7        ; Clamp to 999
-$919D2A  8D B3 4E    STA $4EB3         ; Store final HP
-$919D2D  6B          RTL
-
-; ==============================================================================
-; reads_an_effect_s_done_bit ($91:9D2E)
-; ==============================================================================
-$919D2E  A4 26       LDY $26           ; Restorative effect phase completion
-$919D30  89 02 00    BIT #$0002
-$919D33  F0 0B       BEQ $919D40
-$919D35  98          TYA
-$919D36  29 FD FF    AND #$FFFD
-$919D39  85 26       STA $26
-$919D3B  18          CLC
-$919D3C  6B          RTL
-
-$919D40  38          SEC
-$919D41  6B          RTL
-```
 
 ---
 
 ## 3. Reconstructed Clean C Implementation
 
-```c
-#include <stdint.h>
-#include <stdbool.h>
+> **Reconstructed C Decompilation**:
+> Source moved to [`reconstructed-c/91/919BCC_spell_targeting.c`](../../../reconstructed-c/91/919BCC_spell_targeting.c).
+> [View in VFS: soe://rom/code/919BCC](soe://rom/code/919BCC?c=1&asm=0)
 
-#define MAX_HP_CAP 999
-#define EFFECT_DONE_BIT 0x0002
-
-typedef struct {
-    uint16_t x;
-    uint16_t y;
-    uint16_t flags_26;      // +0x26: VM synchronization flags
-    uint16_t formula_id;    // +0x28
-    uint16_t output_value;  // +0x2A
-    uint16_t *target_list;  // +0x2E
-} SpellEffectSlot;
-
-extern uint16_t g_max_hp;       // $7E:0A35
-extern uint16_t g_target_hp;    // $7E:4EB3
-
-/**
- * Checks if the animation script has signaled phase completion (opcode 0x5D).
- * Corresponds to $91:9BCC and $91:9D2E.
- * Returns true if done, false if still animating.
- */
-bool reads_an_effect_done_bit(SpellEffectSlot *slot) {
-    if ((slot->flags_26 & EFFECT_DONE_BIT) != 0) {
-        slot->flags_26 &= ~EFFECT_DONE_BIT; // Acknowledge and clear
-        return true;                        // Phase done, proceed with combat resolution
-    }
-    return false; // Still animating, yield
-}
-
-/**
- * Applies healing value to target, clamping to Max HP and the hard 999 ceiling.
- * Corresponds to $91:9D16.
- */
-void spell_heal_clamp_to_max_hp_999(uint16_t heal_amount) {
-    uint16_t new_hp = g_target_hp + heal_amount;
-
-    // 1. Clamp to target Max HP
-    if (new_hp > g_max_hp) {
-        new_hp = g_max_hp;
-    }
-
-    // 2. Enforce hard 999 ceiling
-    if (new_hp > MAX_HP_CAP) {
-        new_hp = MAX_HP_CAP;
-    }
-
-    g_target_hp = new_hp;
-}
-```

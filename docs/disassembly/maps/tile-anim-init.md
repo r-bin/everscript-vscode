@@ -73,106 +73,19 @@ Total WRAM initialized: $160 + 80 = 240$ bytes (`0xF0`), cleanly spanning `$7E:1
 
 ## 3. Clean C Decompilation
 
-```c
-#include "maps/tile-anim-init.h"
-#include <string.h>
+> **Reconstructed C Decompilation**:
+> Source moved to [`reconstructed-c/90/90A320_tile_anim_init.c`](../../../reconstructed-c/90/90A320_tile_anim_init.c).
+> [View in VFS: soe://rom/code/90A320](soe://rom/code/90A320?c=1&asm=0)
 
-// ----------------------------------------------------------------------------
-// WRAM Global State Variables
-// ----------------------------------------------------------------------------
-#define TERRAIN_MUTATION_MAX_CHANNELS  80
-
-// Status & Cursor registers
-extern uint16_t g_terrain_mutation_active;       // $7E:0FB0
-extern uint16_t g_terrain_cut_dp_cursor;         // DP $00B0
-extern uint16_t g_vram_tile_staging_cursor;      // $7E:1170 (0x0000..0x007E)
-extern uint16_t g_vram_tile_staging_pending;     // $7E:1172
-
-// 80-channel terrain mutation arrays
-extern uint8_t  g_terrain_slot_frame_index[TERRAIN_MUTATION_MAX_CHANNELS]; // $7E:107E..$7E:10CD
-extern uint8_t  g_terrain_slot_frame_limit[TERRAIN_MUTATION_MAX_CHANNELS]; // $7E:10CE..$7E:111D
-extern uint8_t  g_terrain_slot_countdown[TERRAIN_MUTATION_MAX_CHANNELS];   // $7E:111E..$7E:116D
-
-// ----------------------------------------------------------------------------
-// Hardware Constants
-// ----------------------------------------------------------------------------
-#define TERRAIN_SLOT_INACTIVE_SENTINEL  0xFF
-
-/**
- * map_tile_anim_and_cuttable_terrain_init ($90:A320)
- *
- * Flushes active terrain mutation sequences, resets VRAM staging ring buffer
- * write cursors, and initializes all 80 terrain animation channel slots using
- * two hardware DMA transfers into WRAM Bank $7E.
- */
-void map_tile_anim_and_cuttable_terrain_init(void) {
-    // 1. Reset master subsystem active flags and staging cursors
-    g_terrain_mutation_active   = 0;
-    g_terrain_cut_dp_cursor     = 0;
-    g_vram_tile_staging_cursor  = 0;
-    g_vram_tile_staging_pending = 0;
-
-    // 2. Hardware DMA Channel 1 Phase 1: Zero-fill 160 bytes ($7E:107E..$7E:111D)
-    // In SNES hardware, this reads 0x00 from $80:8000 via fixed-source DMA to $2180.
-    memset((void*)g_terrain_slot_frame_index, 0x00, TERRAIN_MUTATION_MAX_CHANNELS);
-    memset((void*)g_terrain_slot_frame_limit, 0x00, TERRAIN_MUTATION_MAX_CHANNELS);
-
-    // 3. Hardware DMA Channel 1 Phase 2: Sentinel-fill 80 bytes ($7E:111E..$7E:116D)
-    // In SNES hardware, this reads 0xFF from $80:8DB2 via fixed-source DMA to $2180.
-    // Marks every slot as inactive/free.
-    memset((void*)g_terrain_slot_countdown, TERRAIN_SLOT_INACTIVE_SENTINEL, TERRAIN_MUTATION_MAX_CHANNELS);
-}
-```
 
 ---
 
 ## 4. Annotated 65816 Assembly Implementation
 
-```assembly
-; ==============================================================================
-; map_tile_anim_and_cuttable_terrain_init ($90:A320 – $90:A36C)
-; Resets cuttable grass / terrain mutation state tables and VRAM staging queues.
-; Input:  None
-; Output: Terrain buffers reset in WRAM Bank $7E
-; ==============================================================================
-$90:A320  9C B0 0F    STZ $0FB0         ; Clear terrain mutation active flag ($7E:0FB0 = 0)
-$90:A323  64 B0       STZ $B0           ; Clear Direct Page scratch pointer ($B0 = 0)
-$90:A325  9C 70 11    STZ $1170         ; Reset VRAM staging buffer write cursor ($7E:1170 = 0)
-$90:A328  9C 72 11    STZ $1172         ; Reset VRAM staging pending update counter ($7E:1172 = 0)
+> **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/90A320](soe://rom/code/90A320?asm=1&c=0)
 
-$90:A32B  E2 20       SEP #$20          ; Switch Accumulator to 8-bit mode (X/Y remain 16-bit)
-
-; --- DMA Channel 1 Phase 1: Zero-fill 160 bytes ($7E:107E..$7E:111D) ---
-$90:A32D  A2 A0 00    LDX #$00A0        ; Transfer size = 160 bytes (0x00A0)
-$90:A330  8E 15 43    STX $4315         ; Set DMA1 Transfer Byte Count (DAS1L / DAS1H)
-$90:A333  A2 08 80    LDX #$8008        ; Low byte 0x08 = DMAP1 (Transfer Mode 0, fixed source)
-                                        ; High byte 0x80 = BBAD1 ($2180 WMDATA)
-$90:A336  8E 10 43    STX $4310         ; Set DMA1 Control & Target B-Bus Register
-$90:A339  A2 00 80    LDX #$8000        ; Source A-Bus Offset = $8000 (contains byte 0x00)
-$90:A33C  8E 12 43    STX $4312         ; Set DMA1 Source Address (A1T1L / A1T1H)
-$90:A33F  A9 80       LDA #$80          ; Source Bank = $80
-$90:A341  8D 14 43    STA $4314         ; Set DMA1 Source Bank (A1B1)
-$90:A344  A2 7E 10    LDX #$107E        ; WRAM Destination Address = $107E
-$90:A347  8E 81 21    STX $2181         ; Set WRAM Port Address Low/Mid (WMADDL / WMADDM)
-$90:A34A  A9 00       LDA #$00          ; WRAM Destination Bank = $00 (Bank $7E)
-$90:A34C  8D 83 21    STA $2183         ; Set WRAM Port Address High (WMADDH)
-$90:A34F  A9 02       LDA #$02          ; DMA Channel 1 Enable Bit (1 << 1)
-$90:A351  8D 0B 42    STA $420B         ; Fire DMA Channel 1 (Transfers 160 bytes of 0x00)
-
-; --- DMA Channel 1 Phase 2: Sentinel-fill 80 bytes ($7E:111E..$7E:116D) ---
-$90:A354  A2 50 00    LDX #$0050        ; Transfer size = 80 bytes (0x0050)
-$90:A357  8E 15 43    STX $4315         ; Set DMA1 Transfer Byte Count
-$90:A35A  A2 B2 8D    LDX #$8DB2        ; Source A-Bus Offset = $8DB2 (contains byte 0xFF)
-$90:A35D  8E 12 43    STX $4312         ; Set DMA1 Source Address
-$90:A360  A9 80       LDA #$80          ; Source Bank = $80
-$90:A362  8D 14 43    STA $4314         ; Set DMA1 Source Bank
-; Notice: WMADD ($2181-$2183) has automatically incremented to $111E, and DMAP1 is still 0x08
-$90:A365  A9 02       LDA #$02          ; DMA Channel 1 Enable Bit
-$90:A367  8D 0B 42    STA $420B         ; Fire DMA Channel 1 (Transfers 80 bytes of 0xFF)
-
-$90:A36A  C2 20       REP #$20          ; Restore Accumulator to 16-bit mode
-$90:A36C  6B          RTL               ; Return Long
-```
 
 ---
 

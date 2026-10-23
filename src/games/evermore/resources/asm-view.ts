@@ -11,11 +11,12 @@
 import { OPCODES, instructionLength, endsFlow } from '../../../platform/snes/opcodes-65816';
 import { getFunction } from '../localizations/functions';
 import { getTable } from '../localizations/tables';
+import { getRomComment } from '../localizations/comments';
 import { getDecompiledC } from './decomp-view';
 import { hiromFileOffset } from '../../../platform/snes/hirom';
 
 /** One listed instruction: where, its bytes, the opcode, the text; `name` of what it calls, `mark` on the call. */
-interface AsmLine { addr: number; bytes: number[]; op: number; text: string; name?: string; mark?: boolean }
+interface AsmLine { addr: number; bytes: number[]; op: number; text: string; name?: string; comment?: string; mark?: boolean }
 /** The CPU widths the decode assumes; `stopAtEnd` stops after a return or jump. */
 interface DecodeState { m8: boolean; x8: boolean; stopAtEnd?: boolean }
 
@@ -118,13 +119,30 @@ function asmAroundCall(rom: Uint8Array, ret: number, before = 7) {
 
 function lineText(l: AsmLine): string {
     const bytes = l.bytes.map(b => b.toString(16).padStart(2, '0')).join(' ');
-    return h(l.addr, 6) + '  ' + bytes.padEnd(12) + l.text.padEnd(22) + (l.name ? '; ' + l.name : '') + (l.mark ? '   <- here' : '');
+    let note = '';
+    if (l.name && l.comment) {
+        note = l.comment.includes(l.name) ? l.comment : `${l.name} - ${l.comment}`;
+    } else if (l.name) {
+        note = l.name;
+    } else if (l.comment) {
+        note = l.comment;
+    }
+    return h(l.addr, 6) + '  ' + bytes.padEnd(12) + l.text.padEnd(22) + (note ? '; ' + note : '') + (l.mark ? '   <- here' : '');
 }
 
 /** The listing file: 48 instructions from `bus`, stopping after a return. */
-function asmListing(rom: Uint8Array, bus: number, options: { wantsC?: boolean } = {}): string {
+function asmListing(rom: Uint8Array, bus: number, options: { wantsC?: boolean; comments?: boolean } = {}): string {
     const name = nameOf(bus);
     const lines = decode(rom, bus, 48, { m8: false, x8: false, stopAtEnd: true });
+    if (options.comments !== false) {
+        for (const l of lines) {
+            const c = getRomComment(l.addr);
+            if (c) {
+                if (c.label && !l.name) l.name = c.label;
+                if (c.comment) l.comment = c.comment;
+            }
+        }
+    }
     let out = '; ' + h(bus, 6) + (name ? '  ' + name : '') + '\n; 65816, 16-bit A/X assumed until a REP/SEP\n\n' + lines.map(lineText).join('\n') + '\n';
     if (options.wantsC) {
         const decomp = getDecompiledC(bus);

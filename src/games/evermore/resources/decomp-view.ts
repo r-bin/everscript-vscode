@@ -2,9 +2,10 @@
 // `soe://rom/<addr>.asm?pseudocode=1` (and `soe://bus/<addr>`).
 //
 // Sources (in order of preference):
-// 1. Curated clean C decompilation (docs/disassembly/ or knowledge/rom/<addr>.md)
-// 2. Mechanical C lift from snesrecomp (out/recomp/project/src/gen/)
-// 3. Ghidra pseudocode exports (out/ghidra/ or traces/ghidra/)
+// 1. Reconstructed C files (reconstructed-c/<bank>/<addr>_<name>.c)
+// 2. Curated clean C decompilation (docs/disassembly/ or knowledge/rom/<addr>.md)
+// 3. Mechanical C lift from snesrecomp (out/recomp/project/src/gen/)
+// 4. Ghidra pseudocode exports (out/ghidra/ or traces/ghidra/)
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -19,6 +20,51 @@ interface DecompiledC { source: string; title: string; code: string; path: strin
 
 /** Hex formatting helper. */
 const h = (v: number, d: number): string => (v >>> 0).toString(16).toUpperCase().padStart(d, '0');
+
+/** Search reconstructed-c/<bank>/<addr>_<name>.c for a routine C file. */
+function findReconstructedC(bus: number): DecompiledC | null {
+    const fn = getFunction(bus) || getFunction((hiromFileOffset(bus)) | 0x800000) || getFunction((hiromFileOffset(bus)) | 0xC00000);
+    const reconDir = path.join(REPO, 'reconstructed-c');
+    if (!fs.existsSync(reconDir)) return null;
+
+    const bank = (bus >> 16) & 0xFF;
+    const hexBank = bank.toString(16).toUpperCase().padStart(2, '0');
+    const hexAddr = (bus & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+    const hexFull = bus.toString(16).toUpperCase().padStart(6, '0');
+    const off = hiromFileOffset(bus);
+    const hexOff = off.toString(16).toUpperCase().padStart(6, '0');
+
+    const dirsToCheck = [
+        path.join(reconDir, hexBank),
+        path.join(reconDir, hexBank.toLowerCase()),
+        reconDir,
+    ];
+
+    for (const dir of dirsToCheck) {
+        if (!fs.existsSync(dir)) continue;
+        try {
+            const files = fs.readdirSync(dir);
+            for (const f of files) {
+                if (!f.endsWith('.c')) continue;
+                const base = f.replace(/\.c$/, '');
+                const matchAddr = base.startsWith(hexFull) || base.startsWith(hexOff) || base.startsWith(hexAddr);
+                const matchName = fn && (base.includes(fn.name) || base.endsWith(`_${fn.name}`));
+                if (matchAddr || matchName) {
+                    const code = fs.readFileSync(path.join(dir, f), 'utf8');
+                    return {
+                        source: 'reconstructed-c',
+                        title: base,
+                        code: code.trim(),
+                        path: path.relative(REPO, path.join(dir, f)),
+                    };
+                }
+            }
+        } catch {
+            // Ignored
+        }
+    }
+    return null;
+}
 
 /** Search docs/disassembly/ for a C code block covering this routine. */
 function findCuratedC(bus: number): DecompiledC | null {
@@ -115,6 +161,9 @@ function findRecompC(bus: number): DecompiledC | null {
 
 /** Find decompiled C or pseudocode from any available source. */
 function getDecompiledC(bus: number): DecompiledC | null {
+    const recon = findReconstructedC(bus);
+    if (recon) return recon;
+
     const curated = findCuratedC(bus);
     if (curated) return curated;
 

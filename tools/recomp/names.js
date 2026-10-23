@@ -61,6 +61,20 @@ function collectNames(map, romLength) {
         addRom(e.addr, (key === 'tables' ? 'tbl_' : '') + (e.name || e.title), [e.title, e.purpose].filter(Boolean).join(' - '), key);
     }
 
+    // Centralized ASM comments and labels
+    const commentsPath = path.join(REPO, 'src', 'games', 'evermore', 'localizations', 'data', 'asm-comments.json');
+    if (require('fs').existsSync(commentsPath)) {
+        try {
+            const raw = JSON.parse(require('fs').readFileSync(commentsPath, 'utf8'));
+            for (const [k, v] of Object.entries(raw.rom || {})) {
+                const off = parseInt(k, 16);
+                if (!isNaN(off) && v.label) {
+                    addRom(off, v.label, v.comment, 'functions');
+                }
+            }
+        } catch {}
+    }
+
     const wramNames = new Map();
     const addWram = (addr, name, note, size) => {
         if (addr < 0 || addr >= 0x20000 || wramNames.has(addr) || !name) return;

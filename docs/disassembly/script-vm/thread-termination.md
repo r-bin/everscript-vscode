@@ -51,124 +51,16 @@ flowchart TD
 
 ## 2. Disassembly & Annotations
 
-```asm
-; ==============================================================================
-; script_op_00_end ($8C:D2E1)
-; Ends the current script: returns to caller or terminates the thread.
-; ==============================================================================
-$8CD2E1  a4 7e          ldy $7E            ; Y = Current thread slot pointer ($7E:xxxx)
-$8CD2E3  7b             tdc                ; A = 0
-$8CD2E4  99 03 00       sta $0003,y        ; thread->state = SCRIPT_STATE_INACTIVE (0)
-$8CD2E7  be 0d 00       ldx $000D,y        ; X = Parent slot pointer / return bank
-$8CD2EA  f0 03          beq $8CD2EF        ; If 0: no parent link
-$8CD2EC  de 3e 00       dec $003E,x        ; Decrement parent's child wait count (+0x3E)
+> **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/8CD2E1](soe://rom/code/8CD2E1?asm=1&c=0)
 
-$8CD2EF  a6 80          ldx $80            ; DP $80 = current run-list offset
-$8CD2F1  ca             dex
-$8CD2F2  ca             dex                ; Rewind 1 word in run-list
-$8CD2F3  86 80          stx $80
-
-$8CD2F5  b9 0b 00       lda $000B,y        ; thread->return_pc
-$8CD2F8  d0 14          bne $8CD30E        ; If return PC != 0: resume caller in run-list
-
-; ------------------------------------------------------------------------------
-; Root thread termination: Compact run-list array ($7E:2F28)
-; ------------------------------------------------------------------------------
-$8CD2FA  e8             inx
-$8CD2FB  e8             inx
-$8CD2FC  bd 2a 2f       lda $2F2A,x        ; Shift forward: slot[i] = slot[i+1]
-$8CD2FF  9d 28 2f       sta $2F28,x
-$8CD302  d0 f6          bne $8CD2FA        ; Loop until null terminator (0x0000)
-
-$8CD304  a5 86          lda $86            ; Active threads count (bytes/words)
-$8CD306  3a             dec a
-$8CD307  3a             dec a              ; Decrement active thread count by 2
-$8CD308  85 86          sta $86
-$8CD30A  64 83          stz $83            ; Clear current thread slot ID
-$8CD30C  18             clc                ; CLC = yield turn
-$8CD30D  60             rts
-
-; ------------------------------------------------------------------------------
-; Subroutine return: Place parent caller slot into run-list
-; ------------------------------------------------------------------------------
-$8CD30E  e8             inx
-$8CD30F  e8             inx
-$8CD310  9d 28 2f       sta $2F28,x        ; Resume caller slot in run list
-$8CD313  18             clc                ; CLC = yield turn
-$8CD314  60             rts
-```
 
 ---
 
 ## 3. Clean C Decompilation
 
-```c
-#include <stdint.h>
-#include <stdbool.h>
+> **Reconstructed C Decompilation**:
+> Source moved to [`reconstructed-c/8C/8CD2E1_thread_termination.c`](../../../reconstructed-c/8C/8CD2E1_thread_termination.c).
+> [View in VFS: soe://rom/code/8CD2E1](soe://rom/code/8CD2E1?c=1&asm=0)
 
-#define MAX_SCRIPT_THREADS 32
-
-typedef struct {
-    uint8_t  _pad0[3];
-    uint16_t state;             // +0x03: 0 = inactive/free
-    uint8_t  _pad1[6];
-    uint16_t return_pc;         // +0x0B: Caller return PC
-    uint16_t parent_slot_ptr;   // +0x0D: Caller parent slot pointer (or 0 if root)
-    uint8_t  _pad2[47];
-    uint16_t child_wait_count;  // +0x3E: Child threads wait counter
-} ScriptThreadSlot;
-
-// WRAM script scheduler registers
-extern uint16_t g_active_thread_run_list[]; // $7E:2F28
-extern uint16_t g_current_run_list_offset;  // DP $80
-extern uint16_t g_current_thread_id;        // DP $83
-extern uint16_t g_total_active_threads;     // DP $86
-
-/**
- * script_op_00_end ($8C:D2E1)
- * Terminates the current script thread or returns from a called subroutine.
- * 
- * @param current_thread Pointer to the executing thread slot.
- * @return Always returns false to yield execution to the next thread.
- */
-bool script_op_00_end(ScriptThreadSlot *current_thread) {
-    // 1. Mark current thread slot free / inactive
-    current_thread->state = 0;
-
-    // 2. If this was a spawned child thread, notify parent
-    if (current_thread->parent_slot_ptr != 0) {
-        ScriptThreadSlot *parent = (ScriptThreadSlot *)(uintptr_t)current_thread->parent_slot_ptr;
-        if (parent->child_wait_count > 0) {
-            parent->child_wait_count--;
-        }
-    }
-
-    // Rewind run-list pointer by 1 slot
-    uint16_t offset = g_current_run_list_offset - 2;
-    g_current_run_list_offset = offset;
-
-    // 3. Check if returning to caller or terminating root thread
-    if (current_thread->return_pc != 0) {
-        // Subroutine return: reinsert parent caller into active run-list
-        offset += 2;
-        g_active_thread_run_list[offset / 2] = current_thread->return_pc;
-        return false;
-    }
-
-    // 4. Root thread termination: Compact active run-list array ($7E:2F28)
-    do {
-        offset += 2;
-        uint16_t next_slot = g_active_thread_run_list[(offset + 2) / 2];
-        g_active_thread_run_list[offset / 2] = next_slot;
-    } while (g_active_thread_run_list[offset / 2] != 0);
-
-    // Decrement total active threads count
-    g_total_active_threads -= 2;
-
-    // Clear active thread slot ID
-    g_current_thread_id = 0;
-
-    // Yield current turn to scheduler
-    return false;
-}
-```

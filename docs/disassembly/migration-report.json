@@ -1,0 +1,1416 @@
+{
+  "timestamp": "2026-10-23T10:18:35.532Z",
+  "routinesCount": 186,
+  "extractedC": 21,
+  "extractedComments": 0,
+  "uniqueOffsets": 1937,
+  "unresolvable": [
+    "docs/5-status-effects-bug.md",
+    "docs/alchemy-damage.md",
+    "docs/animation-enum-links.md",
+    "docs/animation-tab-plan.md",
+    "docs/architecture/multi-game.md",
+    "docs/atlas-trace-request.md",
+    "docs/ceramic_pot_chocobo_egg_logic_markdown.md",
+    "docs/disassembly/entities/entity-position.md",
+    "docs/disassembly/ui/ring-menu-rotation.md",
+    "docs/entities/README.md",
+    "docs/entities/animation_format.md",
+    "docs/entities/attack_boxes.md",
+    "docs/entities/enemy_ai.md",
+    "docs/entities/palettes.md",
+    "docs/entities/runtime_stats.md",
+    "docs/entities/sprite_priority.md",
+    "docs/exhirom/README.md",
+    "docs/language-features.md",
+    "docs/legal-history.md",
+    "docs/mana/verifying.md",
+    "docs/mana/wram.md",
+    "docs/map-editor-redesign-plan.md",
+    "docs/map-foreground-and-parallax.md",
+    "docs/map-format/README.md",
+    "docs/map-format/building-a-room-from-a-picture.md",
+    "docs/map-format/building-a-room-from-scratch.md",
+    "docs/map-format/collision-suggestions.md",
+    "docs/map-format/custom-map-files.md",
+    "docs/map-format/cuttable_grass_mechanics.md",
+    "docs/map-format/editor-concepts.md",
+    "docs/map-format/enemy-sprites-on-maps.md",
+    "docs/map-format/gourds-and-map-objects.md",
+    "docs/map-format/map-editor-features.md",
+    "docs/map-format/map-editor-reference.md",
+    "docs/map-format/map-editor-window.md",
+    "docs/map-format/map_animated_tiles.md",
+    "docs/map-format/map_collision_mechanics.md",
+    "docs/map-format/map_decompression_trace_analysis.md",
+    "docs/map-format/map_editor_architecture_and_limitations.md",
+    "docs/map-format/map_editor_ui.md",
+    "docs/map-format/map_encoding.md",
+    "docs/map-format/map_objects.md",
+    "docs/map-format/map_palette_extraction.md",
+    "docs/map-format/map_rendering_pipeline.md",
+    "docs/map-format/map_tile_graphics_decompression.md",
+    "docs/map-format/room-reference.md",
+    "docs/map-format/wading.md",
+    "docs/map-port-gap-analysis.md",
+    "docs/mirror-romhack-idea.md",
+    "docs/naris-super-heal-logic.md",
+    "docs/plans/call-log.md",
+    "docs/plans/simulation/README.md",
+    "docs/plans/simulation/any-percent-opening.md",
+    "docs/plans/simulation/cutscenes.md",
+    "docs/plans/simulation/damage.md",
+    "docs/plans/simulation/entities.md",
+    "docs/plans/simulation/interaction.md",
+    "docs/plans/simulation/routes.md",
+    "docs/plans/simulation/spawn-scenarios.md",
+    "docs/plans/simulation/virtual-wram.md",
+    "docs/prophet-bronze-armor-logic.md",
+    "docs/recomp/README.md",
+    "docs/recomp/enhancements.md",
+    "docs/recomp/experimental-renderer.md",
+    "docs/recomp/headless-exploration.md",
+    "docs/recomp/setup.md",
+    "docs/render-script-93.md",
+    "docs/resource-paths-and-assets-spec.md",
+    "docs/reverse-engineering/README.md",
+    "docs/reverse-engineering/cdl-design-history.md",
+    "docs/reverse-engineering/cdl-export-build-recomp.md",
+    "docs/reverse-engineering/cdl.md",
+    "docs/reverse-engineering/formats.md",
+    "docs/reverse-engineering/incremental-decomp-guide.md",
+    "docs/reverse-engineering/other-tools.md",
+    "docs/reverse-engineering/recomp-bug-hunt.md",
+    "docs/reverse-engineering/recomp-host.md",
+    "docs/rooms-map-coordinates.md",
+    "docs/route-planner.md",
+    "docs/scaling-scenarios.md",
+    "docs/scripts/README.md",
+    "docs/scripts/arrivals.md",
+    "docs/scripts/debugging.md",
+    "docs/scripts/enemy_spawns.md",
+    "docs/scripts/map_transitions.md",
+    "docs/scripts/room-simulation.md",
+    "docs/scripts/trigger-modernization.md",
+    "docs/soe-filesystem-spec.md",
+    "docs/soe-tags-spec.md",
+    "docs/todo/audio-and-music.md",
+    "docs/todo/build-output-to-out.md",
+    "docs/todo/combat-damage-and-routing.md",
+    "docs/todo/emulator-and-runtime.md",
+    "docs/todo/language-tools-and-lsp.md",
+    "docs/todo/map-editor.md",
+    "docs/todo/merge-into-everscript.md",
+    "docs/todo/palette-cycling-preview.md",
+    "docs/todo/port-to-ts.md",
+    "docs/todo/resource-tags-system.md",
+    "docs/todo/romhacks-and-ports.md",
+    "docs/todo/scratch.md",
+    "docs/todo/static-recompilation.md",
+    "docs/vscode-highlighter-spec.md"
+  ],
+  "routines": [
+    {
+      "name": "adding_animations",
+      "address": "$8CE13C",
+      "fileOffset": "$0CE13C",
+      "source": "docs/adding-animations.md",
+      "hasC": false
+    },
+    {
+      "name": "alchemy_animation_coordination",
+      "address": "$C45DDF",
+      "fileOffset": "$045DDF",
+      "source": "docs/alchemy-animation-coordination.md",
+      "hasC": false
+    },
+    {
+      "name": "cheats",
+      "address": "$8CCFFD",
+      "fileOffset": "$0CCFFD",
+      "source": "docs/cheats.md",
+      "hasC": false
+    },
+    {
+      "name": "cleanup",
+      "address": "$8CD0A6",
+      "fileOffset": "$0CD0A6",
+      "source": "docs/cleanup.md",
+      "hasC": false
+    },
+    {
+      "name": "PROGRESS",
+      "address": "$808020",
+      "fileOffset": "$008020",
+      "source": "docs/disassembly/PROGRESS.md",
+      "hasC": false
+    },
+    {
+      "name": "animation_vm",
+      "address": "$9080CE",
+      "fileOffset": "$1080CE",
+      "source": "docs/disassembly/animation/animation-vm.md",
+      "hasC": false
+    },
+    {
+      "name": "positional_audio",
+      "address": "$8C8328",
+      "fileOffset": "$0C8328",
+      "source": "docs/disassembly/audio/positional-audio.md",
+      "hasC": false
+    },
+    {
+      "name": "sfx_arbitration",
+      "address": "$8C81FD",
+      "fileOffset": "$0C81FD",
+      "source": "docs/disassembly/audio/sfx-arbitration.md",
+      "hasC": true
+    },
+    {
+      "name": "sfx_queue",
+      "address": "$819900",
+      "fileOffset": "$019900",
+      "source": "docs/disassembly/audio/sfx-queue.md",
+      "hasC": false
+    },
+    {
+      "name": "soundbank_streamer",
+      "address": "$8C8236",
+      "fileOffset": "$0C8236",
+      "source": "docs/disassembly/audio/soundbank-streamer.md",
+      "hasC": true
+    },
+    {
+      "name": "spc_block_uploader",
+      "address": "$8C805C",
+      "fileOffset": "$0C805C",
+      "source": "docs/disassembly/audio/spc-block-uploader.md",
+      "hasC": false
+    },
+    {
+      "name": "spc_handshake",
+      "address": "$8C81FD",
+      "fileOffset": "$0C81FD",
+      "source": "docs/disassembly/audio/spc-handshake.md",
+      "hasC": false
+    },
+    {
+      "name": "alchemy_formulas",
+      "address": "$91CCD8",
+      "fileOffset": "$11CCD8",
+      "source": "docs/disassembly/combat/alchemy-formulas.md",
+      "hasC": false
+    },
+    {
+      "name": "alchemy_ingredients",
+      "address": "$91D800",
+      "fileOffset": "$11D800",
+      "source": "docs/disassembly/combat/alchemy-ingredients.md",
+      "hasC": false
+    },
+    {
+      "name": "alchemy_xp_growth",
+      "address": "$91CE38",
+      "fileOffset": "$11CE38",
+      "source": "docs/disassembly/combat/alchemy-xp-growth.md",
+      "hasC": false
+    },
+    {
+      "name": "attack_procs",
+      "address": "$8FB6AE",
+      "fileOffset": "$0FB6AE",
+      "source": "docs/disassembly/combat/attack-procs.md",
+      "hasC": false
+    },
+    {
+      "name": "boss_engine",
+      "address": "$8FD5D2",
+      "fileOffset": "$0FD5D2",
+      "source": "docs/disassembly/combat/boss-engine.md",
+      "hasC": false
+    },
+    {
+      "name": "boss_multipart",
+      "address": "$8F9817",
+      "fileOffset": "$0F9817",
+      "source": "docs/disassembly/combat/boss-multipart.md",
+      "hasC": false
+    },
+    {
+      "name": "consumable_effects",
+      "address": "$8E9298",
+      "fileOffset": "$0E9298",
+      "source": "docs/disassembly/combat/consumable-effects.md",
+      "hasC": false
+    },
+    {
+      "name": "contact_damage",
+      "address": "$8FB52C",
+      "fileOffset": "$0FB52C",
+      "source": "docs/disassembly/combat/contact-damage.md",
+      "hasC": false
+    },
+    {
+      "name": "damage_mitigation",
+      "address": "$919C90",
+      "fileOffset": "$119C90",
+      "source": "docs/disassembly/combat/damage-mitigation.md",
+      "hasC": false
+    },
+    {
+      "name": "damage_reaction",
+      "address": "$908124",
+      "fileOffset": "$108124",
+      "source": "docs/disassembly/combat/damage-reaction.md",
+      "hasC": false
+    },
+    {
+      "name": "defense_barrier",
+      "address": "$8FC237",
+      "fileOffset": "$0FC237",
+      "source": "docs/disassembly/combat/defense-barrier.md",
+      "hasC": false
+    },
+    {
+      "name": "defense_buffs",
+      "address": "$8F8398",
+      "fileOffset": "$0F8398",
+      "source": "docs/disassembly/combat/defense-buffs.md",
+      "hasC": false
+    },
+    {
+      "name": "exp_level_up",
+      "address": "$8F8692",
+      "fileOffset": "$0F8692",
+      "source": "docs/disassembly/combat/exp-level-up.md",
+      "hasC": false
+    },
+    {
+      "name": "healing_spells",
+      "address": "$919D16",
+      "fileOffset": "$119D16",
+      "source": "docs/disassembly/combat/healing-spells.md",
+      "hasC": false
+    },
+    {
+      "name": "hit_recoil_physics",
+      "address": "$8FC09A",
+      "fileOffset": "$0FC09A",
+      "source": "docs/disassembly/combat/hit-recoil-physics.md",
+      "hasC": true
+    },
+    {
+      "name": "hitbox_intersections",
+      "address": "$8FB46D",
+      "fileOffset": "$0FB46D",
+      "source": "docs/disassembly/combat/hitbox-intersections.md",
+      "hasC": false
+    },
+    {
+      "name": "projectiles",
+      "address": "$909815",
+      "fileOffset": "$109815",
+      "source": "docs/disassembly/combat/projectiles.md",
+      "hasC": false
+    },
+    {
+      "name": "special_attack_procs",
+      "address": "$8FB75A",
+      "fileOffset": "$0FB75A",
+      "source": "docs/disassembly/combat/special-attack-procs.md",
+      "hasC": false
+    },
+    {
+      "name": "spell_collision",
+      "address": "$8FC824",
+      "fileOffset": "$0FC824",
+      "source": "docs/disassembly/combat/spell-collision.md",
+      "hasC": true
+    },
+    {
+      "name": "spell_targeting",
+      "address": "$919BCC",
+      "fileOffset": "$119BCC",
+      "source": "docs/disassembly/combat/spell-targeting.md",
+      "hasC": false
+    },
+    {
+      "name": "status_effects",
+      "address": "$91B632",
+      "fileOffset": "$11B632",
+      "source": "docs/disassembly/combat/status-effects.md",
+      "hasC": false
+    },
+    {
+      "name": "strike_hittest",
+      "address": "$8FB5E6",
+      "fileOffset": "$0FB5E6",
+      "source": "docs/disassembly/combat/strike-hittest.md",
+      "hasC": false
+    },
+    {
+      "name": "to_hit_accuracy",
+      "address": "$8FB75A",
+      "fileOffset": "$0FB75A",
+      "source": "docs/disassembly/combat/to-hit-accuracy.md",
+      "hasC": false
+    },
+    {
+      "name": "weapon_charge",
+      "address": "$8FCC5D",
+      "fileOffset": "$0FCC5D",
+      "source": "docs/disassembly/combat/weapon-charge.md",
+      "hasC": false
+    },
+    {
+      "name": "weapon_equip_buffs",
+      "address": "$8F9210",
+      "fileOffset": "$0F9210",
+      "source": "docs/disassembly/combat/weapon-equip-buffs.md",
+      "hasC": false
+    },
+    {
+      "name": "README",
+      "address": "$808020",
+      "fileOffset": "$008020",
+      "source": "docs/disassembly/engine-core/README.md",
+      "hasC": false
+    },
+    {
+      "name": "boot_reset",
+      "address": "$808020",
+      "fileOffset": "$008020",
+      "source": "docs/disassembly/engine-core/boot-reset.md",
+      "hasC": false
+    },
+    {
+      "name": "camera_smooth_tracking",
+      "address": "$909F21",
+      "fileOffset": "$109F21",
+      "source": "docs/disassembly/engine-core/camera-smooth-tracking.md",
+      "hasC": false
+    },
+    {
+      "name": "camera_system",
+      "address": "$9094AB",
+      "fileOffset": "$1094AB",
+      "source": "docs/disassembly/engine-core/camera-system.md",
+      "hasC": false
+    },
+    {
+      "name": "camera_viewport_scroll",
+      "address": "$909E93",
+      "fileOffset": "$109E93",
+      "source": "docs/disassembly/engine-core/camera-viewport-scroll.md",
+      "hasC": false
+    },
+    {
+      "name": "flight_controller",
+      "address": "$8EAF80",
+      "fileOffset": "$0EAF80",
+      "source": "docs/disassembly/engine-core/flight-controller.md",
+      "hasC": false
+    },
+    {
+      "name": "flight_horizon",
+      "address": "$8EB200",
+      "fileOffset": "$0EB200",
+      "source": "docs/disassembly/engine-core/flight-horizon.md",
+      "hasC": false
+    },
+    {
+      "name": "hardware_dma_and_prng",
+      "address": "$808597",
+      "fileOffset": "$008597",
+      "source": "docs/disassembly/engine-core/hardware-dma-and-prng.md",
+      "hasC": false
+    },
+    {
+      "name": "hardware_utilities",
+      "address": "$8086B2",
+      "fileOffset": "$0086B2",
+      "source": "docs/disassembly/engine-core/hardware-utilities.md",
+      "hasC": false
+    },
+    {
+      "name": "hdma_gradients",
+      "address": "$80A1B4",
+      "fileOffset": "$00A1B4",
+      "source": "docs/disassembly/engine-core/hdma-gradients.md",
+      "hasC": false
+    },
+    {
+      "name": "lzss_decompression",
+      "address": "$8C988D",
+      "fileOffset": "$0C988D",
+      "source": "docs/disassembly/engine-core/lzss-decompression.md",
+      "hasC": false
+    },
+    {
+      "name": "macro_tile_allocator",
+      "address": "$8096FE",
+      "fileOffset": "$0096FE",
+      "source": "docs/disassembly/engine-core/macro-tile-allocator.md",
+      "hasC": false
+    },
+    {
+      "name": "main_loop",
+      "address": "$808B66",
+      "fileOffset": "$008B66",
+      "source": "docs/disassembly/engine-core/main-loop.md",
+      "hasC": false
+    },
+    {
+      "name": "mode7_flight",
+      "address": "$8EB02C",
+      "fileOffset": "$0EB02C",
+      "source": "docs/disassembly/engine-core/mode7-flight.md",
+      "hasC": false
+    },
+    {
+      "name": "mode7_landing",
+      "address": "$8EB14B",
+      "fileOffset": "$0EB14B",
+      "source": "docs/disassembly/engine-core/mode7-landing.md",
+      "hasC": false
+    },
+    {
+      "name": "mode7_takeoff",
+      "address": "$8EB268",
+      "fileOffset": "$0EB268",
+      "source": "docs/disassembly/engine-core/mode7-takeoff.md",
+      "hasC": false
+    },
+    {
+      "name": "nmi_vblank",
+      "address": "$80823A",
+      "fileOffset": "$00823A",
+      "source": "docs/disassembly/engine-core/nmi-vblank.md",
+      "hasC": false
+    },
+    {
+      "name": "player_movement",
+      "address": "$8FCD88",
+      "fileOffset": "$0FCD88",
+      "source": "docs/disassembly/engine-core/player-movement.md",
+      "hasC": false
+    },
+    {
+      "name": "room_enter",
+      "address": "$8EE4E2",
+      "fileOffset": "$0EE4E2",
+      "source": "docs/disassembly/engine-core/room-enter.md",
+      "hasC": false
+    },
+    {
+      "name": "save_system",
+      "address": "$808B6C",
+      "fileOffset": "$008B6C",
+      "source": "docs/disassembly/engine-core/save-system.md",
+      "hasC": false
+    },
+    {
+      "name": "screen_effects",
+      "address": "$80A100",
+      "fileOffset": "$00A100",
+      "source": "docs/disassembly/engine-core/screen-effects.md",
+      "hasC": false
+    },
+    {
+      "name": "screen_flash",
+      "address": "$809741",
+      "fileOffset": "$009741",
+      "source": "docs/disassembly/engine-core/screen-flash.md",
+      "hasC": false
+    },
+    {
+      "name": "viewport_culling",
+      "address": "$909545",
+      "fileOffset": "$109545",
+      "source": "docs/disassembly/engine-core/viewport-culling.md",
+      "hasC": false
+    },
+    {
+      "name": "weather_blending",
+      "address": "$80A1B4",
+      "fileOffset": "$00A1B4",
+      "source": "docs/disassembly/engine-core/weather-blending.md",
+      "hasC": true
+    },
+    {
+      "name": "weather_palette",
+      "address": "$809E93",
+      "fileOffset": "$009E93",
+      "source": "docs/disassembly/engine-core/weather-palette.md",
+      "hasC": false
+    },
+    {
+      "name": "weather_particles",
+      "address": "$80A305",
+      "fileOffset": "$00A305",
+      "source": "docs/disassembly/engine-core/weather-particles.md",
+      "hasC": false
+    },
+    {
+      "name": "weather_physics",
+      "address": "$809DF8",
+      "fileOffset": "$009DF8",
+      "source": "docs/disassembly/engine-core/weather-physics.md",
+      "hasC": false
+    },
+    {
+      "name": "weather_preset",
+      "address": "$80A2E0",
+      "fileOffset": "$00A2E0",
+      "source": "docs/disassembly/engine-core/weather-preset.md",
+      "hasC": false
+    },
+    {
+      "name": "wram_map",
+      "address": "$808F8C",
+      "fileOffset": "$008F8C",
+      "source": "docs/disassembly/engine-core/wram-map.md",
+      "hasC": false
+    },
+    {
+      "name": "actor_lifecycle",
+      "address": "$809685",
+      "fileOffset": "$009685",
+      "source": "docs/disassembly/entities/actor-lifecycle.md",
+      "hasC": false
+    },
+    {
+      "name": "companion_breadcrumb_queue",
+      "address": "$8F9E49",
+      "fileOffset": "$0F9E49",
+      "source": "docs/disassembly/entities/companion-breadcrumb-queue.md",
+      "hasC": true
+    },
+    {
+      "name": "companion_form_stats",
+      "address": "$8F857D",
+      "fileOffset": "$0F857D",
+      "source": "docs/disassembly/entities/companion-form-stats.md",
+      "hasC": false
+    },
+    {
+      "name": "companion_leash",
+      "address": "$8FD018",
+      "fileOffset": "$0FD018",
+      "source": "docs/disassembly/entities/companion-leash.md",
+      "hasC": false
+    },
+    {
+      "name": "companion_navigation",
+      "address": "$8F9937",
+      "fileOffset": "$0F9937",
+      "source": "docs/disassembly/entities/companion-navigation.md",
+      "hasC": false
+    },
+    {
+      "name": "companion_steering",
+      "address": "$8F9EA3",
+      "fileOffset": "$0F9EA3",
+      "source": "docs/disassembly/entities/companion-steering.md",
+      "hasC": true
+    },
+    {
+      "name": "dog_ai",
+      "address": "$8CDAC5",
+      "fileOffset": "$0CDAC5",
+      "source": "docs/disassembly/entities/dog-ai.md",
+      "hasC": true
+    },
+    {
+      "name": "enemy_ai",
+      "address": "$8FCD17",
+      "fileOffset": "$0FCD17",
+      "source": "docs/disassembly/entities/enemy-ai.md",
+      "hasC": false
+    },
+    {
+      "name": "enemy_spawn_matrix",
+      "address": "$8F8AE4",
+      "fileOffset": "$0F8AE4",
+      "source": "docs/disassembly/entities/enemy-spawn-matrix.md",
+      "hasC": true
+    },
+    {
+      "name": "entity_movement",
+      "address": "$8FAD51",
+      "fileOffset": "$0FAD51",
+      "source": "docs/disassembly/entities/entity-movement.md",
+      "hasC": false
+    },
+    {
+      "name": "item_notifications",
+      "address": "$8F86C0",
+      "fileOffset": "$0F86C0",
+      "source": "docs/disassembly/entities/item-notifications.md",
+      "hasC": false
+    },
+    {
+      "name": "level_growth",
+      "address": "$8F8600",
+      "fileOffset": "$0F8600",
+      "source": "docs/disassembly/entities/level-growth.md",
+      "hasC": false
+    },
+    {
+      "name": "oam_builder",
+      "address": "$80919E",
+      "fileOffset": "$00919E",
+      "source": "docs/disassembly/entities/oam-builder.md",
+      "hasC": false
+    },
+    {
+      "name": "obj_tile_allocator",
+      "address": "$80A4B5",
+      "fileOffset": "$00A4B5",
+      "source": "docs/disassembly/entities/obj-tile-allocator.md",
+      "hasC": false
+    },
+    {
+      "name": "palette_allocator",
+      "address": "$90CD80",
+      "fileOffset": "$10CD80",
+      "source": "docs/disassembly/entities/palette-allocator.md",
+      "hasC": false
+    },
+    {
+      "name": "physics_integration",
+      "address": "$8096BB",
+      "fileOffset": "$0096BB",
+      "source": "docs/disassembly/entities/physics-integration.md",
+      "hasC": false
+    },
+    {
+      "name": "sprite_clip_cull",
+      "address": "$809033",
+      "fileOffset": "$009033",
+      "source": "docs/disassembly/entities/sprite-clip-cull.md",
+      "hasC": false
+    },
+    {
+      "name": "sprite_slicer",
+      "address": "$90CEED",
+      "fileOffset": "$10CEED",
+      "source": "docs/disassembly/entities/sprite-slicer.md",
+      "hasC": true
+    },
+    {
+      "name": "conveyor_physics",
+      "address": "$8FADAA",
+      "fileOffset": "$0FADAA",
+      "source": "docs/disassembly/maps/conveyor-physics.md",
+      "hasC": false
+    },
+    {
+      "name": "cuttable_grass",
+      "address": "$90A6EF",
+      "fileOffset": "$10A6EF",
+      "source": "docs/disassembly/maps/cuttable-grass.md",
+      "hasC": false
+    },
+    {
+      "name": "cuttable_insert",
+      "address": "$90A36D",
+      "fileOffset": "$10A36D",
+      "source": "docs/disassembly/maps/cuttable-insert.md",
+      "hasC": false
+    },
+    {
+      "name": "elevation_transfer",
+      "address": "$8FA906",
+      "fileOffset": "$0FA906",
+      "source": "docs/disassembly/maps/elevation-transfer.md",
+      "hasC": false
+    },
+    {
+      "name": "heat_shimmer",
+      "address": "$909D45",
+      "fileOffset": "$109D45",
+      "source": "docs/disassembly/maps/heat-shimmer.md",
+      "hasC": false
+    },
+    {
+      "name": "palette_families",
+      "address": "$90D020",
+      "fileOffset": "$10D020",
+      "source": "docs/disassembly/maps/palette-families.md",
+      "hasC": false
+    },
+    {
+      "name": "palette_swap",
+      "address": "$90CBB3",
+      "fileOffset": "$10CBB3",
+      "source": "docs/disassembly/maps/palette-swap.md",
+      "hasC": false
+    },
+    {
+      "name": "ramp_elevation",
+      "address": "$8FA93B",
+      "fileOffset": "$0FA93B",
+      "source": "docs/disassembly/maps/ramp-elevation.md",
+      "hasC": true
+    },
+    {
+      "name": "room_spawn_align",
+      "address": "$8EE508",
+      "fileOffset": "$0EE508",
+      "source": "docs/disassembly/maps/room-spawn-align.md",
+      "hasC": false
+    },
+    {
+      "name": "slope_collision",
+      "address": "$909DE8",
+      "fileOffset": "$109DE8",
+      "source": "docs/disassembly/maps/slope-collision.md",
+      "hasC": false
+    },
+    {
+      "name": "step_triggers",
+      "address": "$8FACB1",
+      "fileOffset": "$0FACB1",
+      "source": "docs/disassembly/maps/step-triggers.md",
+      "hasC": false
+    },
+    {
+      "name": "tile_anim_init",
+      "address": "$90A320",
+      "fileOffset": "$10A320",
+      "source": "docs/disassembly/maps/tile-anim-init.md",
+      "hasC": false
+    },
+    {
+      "name": "tile_animation",
+      "address": "$90A1B4",
+      "fileOffset": "$10A1B4",
+      "source": "docs/disassembly/maps/tile-animation.md",
+      "hasC": false
+    },
+    {
+      "name": "tile_collision",
+      "address": "$909DE8",
+      "fileOffset": "$109DE8",
+      "source": "docs/disassembly/maps/tile-collision.md",
+      "hasC": false
+    },
+    {
+      "name": "trigger_scanner",
+      "address": "$8FACCE",
+      "fileOffset": "$0FACCE",
+      "source": "docs/disassembly/maps/trigger-scanner.md",
+      "hasC": false
+    },
+    {
+      "name": "callback_dispatch",
+      "address": "$8CD331",
+      "fileOffset": "$0CD331",
+      "source": "docs/disassembly/script-vm/callback-dispatch.md",
+      "hasC": false
+    },
+    {
+      "name": "cutscene_scheduler",
+      "address": "$8CC4F6",
+      "fileOffset": "$0CC4F6",
+      "source": "docs/disassembly/script-vm/cutscene-scheduler.md",
+      "hasC": false
+    },
+    {
+      "name": "dispatcher",
+      "address": "$8CCFFD",
+      "fileOffset": "$0CCFFD",
+      "source": "docs/disassembly/script-vm/dispatcher.md",
+      "hasC": false
+    },
+    {
+      "name": "expression_eval",
+      "address": "$8CD315",
+      "fileOffset": "$0CD315",
+      "source": "docs/disassembly/script-vm/expression-eval.md",
+      "hasC": false
+    },
+    {
+      "name": "opcode_camera_room",
+      "address": "$8FB434",
+      "fileOffset": "$0FB434",
+      "source": "docs/disassembly/script-vm/opcode-camera-room.md",
+      "hasC": false
+    },
+    {
+      "name": "opcode_facing",
+      "address": "$8CDF33",
+      "fileOffset": "$0CDF33",
+      "source": "docs/disassembly/script-vm/opcode-facing.md",
+      "hasC": false
+    },
+    {
+      "name": "opcode_freeze",
+      "address": "$8CDB2A",
+      "fileOffset": "$0CDB2A",
+      "source": "docs/disassembly/script-vm/opcode-freeze.md",
+      "hasC": true
+    },
+    {
+      "name": "opcode_joypad_fade",
+      "address": "$80823A",
+      "fileOffset": "$00823A",
+      "source": "docs/disassembly/script-vm/opcode-joypad-fade.md",
+      "hasC": false
+    },
+    {
+      "name": "opcode_shake",
+      "address": "$8CE385",
+      "fileOffset": "$0CE385",
+      "source": "docs/disassembly/script-vm/opcode-shake.md",
+      "hasC": false
+    },
+    {
+      "name": "opcode_spawning",
+      "address": "$8CDD19",
+      "fileOffset": "$0CDD19",
+      "source": "docs/disassembly/script-vm/opcode-spawning.md",
+      "hasC": false
+    },
+    {
+      "name": "sleep_wait",
+      "address": "$8CD220",
+      "fileOffset": "$0CD220",
+      "source": "docs/disassembly/script-vm/sleep-wait.md",
+      "hasC": false
+    },
+    {
+      "name": "thread_termination",
+      "address": "$8CD2E1",
+      "fileOffset": "$0CD2E1",
+      "source": "docs/disassembly/script-vm/thread-termination.md",
+      "hasC": false
+    },
+    {
+      "name": "dialogue_box_frame",
+      "address": "$8CC436",
+      "fileOffset": "$0CC436",
+      "source": "docs/disassembly/ui/dialogue-box-frame.md",
+      "hasC": true
+    },
+    {
+      "name": "dialogue_choice_box",
+      "address": "$8CB647",
+      "fileOffset": "$0CB647",
+      "source": "docs/disassembly/ui/dialogue-choice-box.md",
+      "hasC": true
+    },
+    {
+      "name": "dialogue_digraph_huffman",
+      "address": "$8CCDC6",
+      "fileOffset": "$0CCDC6",
+      "source": "docs/disassembly/ui/dialogue-digraph-huffman.md",
+      "hasC": true
+    },
+    {
+      "name": "dialogue_glyph_streamer",
+      "address": "$8C9E03",
+      "fileOffset": "$0C9E03",
+      "source": "docs/disassembly/ui/dialogue-glyph-streamer.md",
+      "hasC": true
+    },
+    {
+      "name": "dialogue_glyphs",
+      "address": "$8CA5AC",
+      "fileOffset": "$0CA5AC",
+      "source": "docs/disassembly/ui/dialogue-glyphs.md",
+      "hasC": false
+    },
+    {
+      "name": "dialogue_text_decoder",
+      "address": "$8CCD33",
+      "fileOffset": "$0CCD33",
+      "source": "docs/disassembly/ui/dialogue-text-decoder.md",
+      "hasC": false
+    },
+    {
+      "name": "dialogue_typewriter",
+      "address": "$8CA800",
+      "fileOffset": "$0CA800",
+      "source": "docs/disassembly/ui/dialogue-typewriter.md",
+      "hasC": false
+    },
+    {
+      "name": "dialogue_window",
+      "address": "$8CCCF5",
+      "fileOffset": "$0CCCF5",
+      "source": "docs/disassembly/ui/dialogue-window.md",
+      "hasC": false
+    },
+    {
+      "name": "entity_name_text",
+      "address": "$8C89DF",
+      "fileOffset": "$0C89DF",
+      "source": "docs/disassembly/ui/entity-name-text.md",
+      "hasC": false
+    },
+    {
+      "name": "equipment_stats",
+      "address": "$8E99D2",
+      "fileOffset": "$0E99D2",
+      "source": "docs/disassembly/ui/equipment-stats.md",
+      "hasC": false
+    },
+    {
+      "name": "minimap_blip_sync",
+      "address": "$90A5BA",
+      "fileOffset": "$10A5BA",
+      "source": "docs/disassembly/ui/minimap-blip-sync.md",
+      "hasC": false
+    },
+    {
+      "name": "minimap_projection",
+      "address": "$90A4EC",
+      "fileOffset": "$10A4EC",
+      "source": "docs/disassembly/ui/minimap-projection.md",
+      "hasC": false
+    },
+    {
+      "name": "minimap_radar",
+      "address": "$909876",
+      "fileOffset": "$109876",
+      "source": "docs/disassembly/ui/minimap-radar.md",
+      "hasC": false
+    },
+    {
+      "name": "ring_menu_builder",
+      "address": "$8E9DF9",
+      "fileOffset": "$0E9DF9",
+      "source": "docs/disassembly/ui/ring-menu-builder.md",
+      "hasC": false
+    },
+    {
+      "name": "ring_menu_icons",
+      "address": "$8E8000",
+      "fileOffset": "$0E8000",
+      "source": "docs/disassembly/ui/ring-menu-icons.md",
+      "hasC": true
+    },
+    {
+      "name": "ring_menu_sprites",
+      "address": "$8EAE85",
+      "fileOffset": "$0EAE85",
+      "source": "docs/disassembly/ui/ring-menu-sprites.md",
+      "hasC": true
+    },
+    {
+      "name": "ring_menu",
+      "address": "$8E8000",
+      "fileOffset": "$0E8000",
+      "source": "docs/disassembly/ui/ring-menu.md",
+      "hasC": false
+    },
+    {
+      "name": "shop_catalogs",
+      "address": "$8E9C68",
+      "fileOffset": "$0E9C68",
+      "source": "docs/disassembly/ui/shop-catalogs.md",
+      "hasC": false
+    },
+    {
+      "name": "shop_mode_selector",
+      "address": "$8E9140",
+      "fileOffset": "$0E9140",
+      "source": "docs/disassembly/ui/shop-mode-selector.md",
+      "hasC": false
+    },
+    {
+      "name": "shop_system",
+      "address": "$C45ABE",
+      "fileOffset": "$045ABE",
+      "source": "docs/disassembly/ui/shop-system.md",
+      "hasC": false
+    },
+    {
+      "name": "shop_transactions",
+      "address": "$8E8DC5",
+      "fileOffset": "$0E8DC5",
+      "source": "docs/disassembly/ui/shop-transactions.md",
+      "hasC": false
+    },
+    {
+      "name": "string_dictionary",
+      "address": "$8CCD84",
+      "fileOffset": "$0CCD84",
+      "source": "docs/disassembly/ui/string-dictionary.md",
+      "hasC": false
+    },
+    {
+      "name": "string_digraphs",
+      "address": "$8C9E03",
+      "fileOffset": "$0C9E03",
+      "source": "docs/disassembly/ui/string-digraphs.md",
+      "hasC": false
+    },
+    {
+      "name": "weapon_level_tables",
+      "address": "$8EAC9B",
+      "fileOffset": "$0EAC9B",
+      "source": "docs/disassembly/ui/weapon-level-tables.md",
+      "hasC": false
+    },
+    {
+      "name": "weapon_select",
+      "address": "$8E8F50",
+      "fileOffset": "$0E8F50",
+      "source": "docs/disassembly/ui/weapon-select.md",
+      "hasC": false
+    },
+    {
+      "name": "emulator_and_debugging",
+      "address": "$8CD0A6",
+      "fileOffset": "$0CD0A6",
+      "source": "docs/emulator-and-debugging.md",
+      "hasC": false
+    },
+    {
+      "name": "enemies_and_palettes",
+      "address": "$8CDC9A",
+      "fileOffset": "$0CDC9A",
+      "source": "docs/enemies-and-palettes.md",
+      "hasC": false
+    },
+    {
+      "name": "animation_script",
+      "address": "$92BF33",
+      "fileOffset": "$12BF33",
+      "source": "docs/entities/animation_script.md",
+      "hasC": false
+    },
+    {
+      "name": "character_table",
+      "address": "$8EB55A",
+      "fileOffset": "$0EB55A",
+      "source": "docs/entities/character_table.md",
+      "hasC": false
+    },
+    {
+      "name": "combat",
+      "address": "$8FCC44",
+      "fileOffset": "$0FCC44",
+      "source": "docs/entities/combat.md",
+      "hasC": false
+    },
+    {
+      "name": "entities_reference",
+      "address": "$8FB0C3",
+      "fileOffset": "$0FB0C3",
+      "source": "docs/entities/entities-reference.md",
+      "hasC": false
+    },
+    {
+      "name": "hitboxes",
+      "address": "$8FB4AB",
+      "fileOffset": "$0FB4AB",
+      "source": "docs/entities/hitboxes.md",
+      "hasC": false
+    },
+    {
+      "name": "sprite_format",
+      "address": "$C40000",
+      "fileOffset": "$040000",
+      "source": "docs/entities/sprite_format.md",
+      "hasC": false
+    },
+    {
+      "name": "evermore_releases",
+      "address": "$8EB678",
+      "fileOffset": "$0EB678",
+      "source": "docs/evermore-releases.md",
+      "hasC": false
+    },
+    {
+      "name": "evermore_variants",
+      "address": "$91D000",
+      "fileOffset": "$11D000",
+      "source": "docs/evermore-variants.md",
+      "hasC": false
+    },
+    {
+      "name": "combo_rom",
+      "address": "$BF8000",
+      "fileOffset": "$3F8000",
+      "source": "docs/exhirom/combo-rom.md",
+      "hasC": false
+    },
+    {
+      "name": "layout_options",
+      "address": "$B08000",
+      "fileOffset": "$308000",
+      "source": "docs/exhirom/layout-options.md",
+      "hasC": false
+    },
+    {
+      "name": "port",
+      "address": "$FF0000",
+      "fileOffset": "$3F0000",
+      "source": "docs/exhirom/port.md",
+      "hasC": false
+    },
+    {
+      "name": "extension_tables",
+      "address": "$B18000",
+      "fileOffset": "$318000",
+      "source": "docs/extension-tables.md",
+      "hasC": false
+    },
+    {
+      "name": "item_icons",
+      "address": "$C41F74",
+      "fileOffset": "$041F74",
+      "source": "docs/item-icons.md",
+      "hasC": false
+    },
+    {
+      "name": "README",
+      "address": "$CCE270",
+      "fileOffset": "$0CE270",
+      "source": "docs/mana/README.md",
+      "hasC": false
+    },
+    {
+      "name": "evermore_rooms",
+      "address": "$C80100",
+      "fileOffset": "$080100",
+      "source": "docs/mana/evermore-rooms.md",
+      "hasC": false
+    },
+    {
+      "name": "rom_export",
+      "address": "$BD8000",
+      "fileOffset": "$3D8000",
+      "source": "docs/map-format/rom-export.md",
+      "hasC": false
+    },
+    {
+      "name": "rom_map",
+      "address": "$808000",
+      "fileOffset": "$008000",
+      "source": "docs/map-format/rom-map.md",
+      "hasC": false
+    },
+    {
+      "name": "README",
+      "address": "$C0847A",
+      "fileOffset": "$00847A",
+      "source": "docs/patches/README.md",
+      "hasC": false
+    },
+    {
+      "name": "bugfixes_and_engine_fixes",
+      "address": "$91B7FA",
+      "fileOffset": "$11B7FA",
+      "source": "docs/patches/bugfixes-and-engine-fixes.md",
+      "hasC": false
+    },
+    {
+      "name": "gameplay_balance_patches",
+      "address": "$C45B9C",
+      "fileOffset": "$045B9C",
+      "source": "docs/patches/gameplay-balance-patches.md",
+      "hasC": false
+    },
+    {
+      "name": "public_patches",
+      "address": "$C45B9C",
+      "fileOffset": "$045B9C",
+      "source": "docs/patches/public-patches.md",
+      "hasC": false
+    },
+    {
+      "name": "system_and_tooling_patches",
+      "address": "$C0847A",
+      "fileOffset": "$00847A",
+      "source": "docs/patches/system-and-tooling-patches.md",
+      "hasC": false
+    },
+    {
+      "name": "bugs_and_todos",
+      "address": "$8F9F46",
+      "fileOffset": "$0F9F46",
+      "source": "docs/recomp/bugs-and-todos.md",
+      "hasC": false
+    },
+    {
+      "name": "debugging",
+      "address": "$808020",
+      "fileOffset": "$008020",
+      "source": "docs/recomp/debugging.md",
+      "hasC": false
+    },
+    {
+      "name": "game_rtl",
+      "address": "$808020",
+      "fileOffset": "$008020",
+      "source": "docs/recomp/game-rtl.md",
+      "hasC": true
+    },
+    {
+      "name": "lessons_from_mmx_and_lufia2",
+      "address": "$8F9F46",
+      "fileOffset": "$0F9F46",
+      "source": "docs/recomp/lessons-from-mmx-and-lufia2.md",
+      "hasC": false
+    },
+    {
+      "name": "snesmod_addons",
+      "address": "$8CD0A6",
+      "fileOffset": "$0CD0A6",
+      "source": "docs/recomp/snesmod-addons.md",
+      "hasC": false
+    },
+    {
+      "name": "asm_to_c_port",
+      "address": "$B1A000",
+      "fileOffset": "$31A000",
+      "source": "docs/reverse-engineering/asm-to-c-port.md",
+      "hasC": false
+    },
+    {
+      "name": "c_compilation_hirom_memory_map",
+      "address": "$FFFFFF",
+      "fileOffset": "$3FFFFF",
+      "source": "docs/reverse-engineering/c-compilation-hirom-memory-map.md",
+      "hasC": true
+    },
+    {
+      "name": "community_ghidra_notes",
+      "address": "$8CD000",
+      "fileOffset": "$0CD000",
+      "source": "docs/reverse-engineering/community-ghidra-notes.md",
+      "hasC": false
+    },
+    {
+      "name": "ghidra",
+      "address": "$BF8000",
+      "fileOffset": "$3F8000",
+      "source": "docs/reverse-engineering/ghidra.md",
+      "hasC": false
+    },
+    {
+      "name": "how_to_create_a_game_decomp",
+      "address": "$808100",
+      "fileOffset": "$008100",
+      "source": "docs/reverse-engineering/how-to-create-a-game-decomp.md",
+      "hasC": true
+    },
+    {
+      "name": "rea",
+      "address": "$908F6A",
+      "fileOffset": "$108F6A",
+      "source": "docs/reverse-engineering/rea.md",
+      "hasC": false
+    },
+    {
+      "name": "loot",
+      "address": "$98CCCC",
+      "fileOffset": "$18CCCC",
+      "source": "docs/scripts/loot.md",
+      "hasC": false
+    },
+    {
+      "name": "opcodes",
+      "address": "$8CD0A6",
+      "fileOffset": "$0CD0A6",
+      "source": "docs/scripts/opcodes.md",
+      "hasC": false
+    },
+    {
+      "name": "vm",
+      "address": "$8CCFFD",
+      "fileOffset": "$0CCFFD",
+      "source": "docs/scripts/vm.md",
+      "hasC": false
+    },
+    {
+      "name": "soe_2player_patch_analysis",
+      "address": "$F00000",
+      "fileOffset": "$300000",
+      "source": "docs/soe-2player-patch-analysis.md",
+      "hasC": false
+    },
+    {
+      "name": "soe_prototype_chip1",
+      "address": "$C80000",
+      "fileOffset": "$080000",
+      "source": "docs/soe-prototype-chip1.md",
+      "hasC": false
+    },
+    {
+      "name": "table_hack",
+      "address": "$B88000",
+      "fileOffset": "$388000",
+      "source": "docs/table-hack.md",
+      "hasC": false
+    },
+    {
+      "name": "README",
+      "address": "$86959C",
+      "fileOffset": "$06959C",
+      "source": "docs/terra/README.md",
+      "hasC": false
+    },
+    {
+      "name": "README",
+      "address": "$8F8D80",
+      "fileOffset": "$0F8D80",
+      "source": "docs/todo/README.md",
+      "hasC": false
+    },
+    {
+      "name": "act0_dog_animations",
+      "address": "$C43C92",
+      "fileOffset": "$043C92",
+      "source": "docs/todo/act0-dog-animations.md",
+      "hasC": false
+    },
+    {
+      "name": "custom_opcodes",
+      "address": "$8CD0A6",
+      "fileOffset": "$0CD0A6",
+      "source": "docs/todo/custom-opcodes.md",
+      "hasC": false
+    },
+    {
+      "name": "engine_decompilation",
+      "address": "$8F8D80",
+      "fileOffset": "$0F8D80",
+      "source": "docs/todo/engine-decompilation.md",
+      "hasC": false
+    },
+    {
+      "name": "kaizo_opcodes",
+      "address": "$8CCE4D",
+      "fileOffset": "$0CCE4D",
+      "source": "docs/todo/kaizo-opcodes.md",
+      "hasC": false
+    },
+    {
+      "name": "research_and_visualizations",
+      "address": "$90B54B",
+      "fileOffset": "$10B54B",
+      "source": "docs/todo/research-and-visualizations.md",
+      "hasC": false
+    },
+    {
+      "name": "table_hack",
+      "address": "$90B54B",
+      "fileOffset": "$10B54B",
+      "source": "docs/todo/table-hack.md",
+      "hasC": false
+    },
+    {
+      "name": "variant_vfs_and_consumers",
+      "address": "$9FFDE7",
+      "fileOffset": "$1FFDE7",
+      "source": "docs/todo/variant-vfs-and-consumers.md",
+      "hasC": false
+    }
+  ]
+}

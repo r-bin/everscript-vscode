@@ -26,109 +26,16 @@ What each opcode does is described once, on its opcode page; this file keeps the
 
 Every frame during the main field update tick, the engine executes `$80:DE95`:
 
-```assembly
-; ==============================================================================
-; $80:DE95 - Per-Frame Screen Fade Stepper
-; ==============================================================================
-$80:DE95  AD 83 0B    LDA $0B83         ; Load screen fade controller
-$80:DE98  30 01       BMI .active       ; Bit 15 set: fade active
-$80:DE9A  60          RTS               ; Otherwise, idle
+> **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/80823A](soe://rom/code/80823A?asm=1&c=0)
 
-.active:
-$80:DE9B  E2 20       SEP #$20          ; 8-bit accumulator
-$80:DE9D  AD 83 0B    LDA $0B83         ; Read target brightness (bits 0-3)
-$80:DEA0  CD 06 01    CMP $0106         ; Compare with current INIDISP brightness
-$80:DEA3  F0 18       BEQ .reached      ; Target reached?
-$80:DEA5  10 0B       BPL .step_up      ; If target > current, increment
-
-.step_down:
-$80:DEA7  CE 06 01    DEC $0106         ; Current brightness -= 1
-$80:DEAA  CD 06 01    CMP $0106         ; Target reached on this step?
-$80:DEAD  F0 0E       BEQ .reached
-$80:DEAF  C2 30       REP #$30
-$80:DEB1  60          RTS
-
-.step_up:
-$80:DEB2  EE 06 01    INC $0106         ; Current brightness += 1
-$80:DEB5  CD 06 01    CMP $0106         ; Target reached on this step?
-$80:DEB8  F0 03       BEQ .reached
-$80:DEBA  C2 30       REP #$30
-$80:DEBC  60          RTS
-
-.reached:
-$80:DEBD  C2 30       REP #$30          ; 16-bit A/X
-$80:DEBF  9C 83 0B    STZ $0B83         ; Clear fade controller (fade complete)
-$80:DEC2  60          RTS
-```
 
 ---
 
 ## Decompiled C Code
 
-```c
-#include <stdint.h>
-#include <stdbool.h>
+> **Reconstructed C Decompilation**:
+> Source moved to [`reconstructed-c/80/80823A_opcode_joypad_fade.c`](../../../reconstructed-c/80/80823A_opcode_joypad_fade.c).
+> [View in VFS: soe://rom/code/80823A](soe://rom/code/80823A?c=1&asm=0)
 
-#define WRAM_SCREEN_FADE_TARGET   (*(volatile uint16_t*)0x7E0B83)
-#define WRAM_JOYPAD_EDGE_STATE    (*(volatile uint16_t*)0x7E0105)
-#define WRAM_PPU_INIDISP_SHADOW   (*(volatile uint8_t*)0x7E0106)
-#define DP_MUSIC_VOLUME_STEP      (*(volatile uint8_t*)0x9B)
-
-extern uint16_t script_eval_expression(void);            // $8C:EA43
-extern void     screen_sync_palette(void);               // $80:85D8
-extern void     camera_center_and_clamp(void);           // $90:94AB
-extern void     music_volume_step(void);                 // $8C:8619 (volume $9A += $9B, driver command $28)
-
-/**
- * Shared camera centering and edge check helper for opcodes 0x26, 0x90, 0x91.
- */
-static void script_fade_sync_camera(void) {
-    uint16_t edge = WRAM_JOYPAD_EDGE_STATE;
-    if ((int16_t)edge >= 0 && (edge & 0x0F00) == 0) {
-        screen_sync_palette();
-    }
-    camera_center_and_clamp();
-    WRAM_PPU_INIDISP_SHADOW = 0;
-}
-
-/**
- * $8C:DC10 - Script VM Opcode 0x27: fade_out()
- * Fades screen out to black (target brightness 0).
- */
-bool script_op_fade_out(void) {
-    WRAM_SCREEN_FADE_TARGET = 0x8000;
-    return true; // SEC: Continue in same tick
-}
-
-/**
- * $8C:DC18 - Script VM Opcode 0x26: fade_in()
- * Clears brightness to 0, centers camera, and fades in to full brightness 15.
- */
-bool script_op_fade_in(void) {
-    script_fade_sync_camera();
-    WRAM_SCREEN_FADE_TARGET = 0x800F;
-    return true; // SEC: Continue in same tick
-}
-
-/**
- * $8C:DC35 - Script VM Opcode 0x90: fade_to(target_brightness)
- * Evaluates expression argument and fades to the specified brightness (0-15).
- */
-bool script_op_fade_to(void) {
-    script_fade_sync_camera();
-    uint16_t level = script_eval_expression();
-    WRAM_SCREEN_FADE_TARGET = 0x8000 | (level & 0x000F);
-    return true; // SEC: Continue in same tick
-}
-
-/**
- * $8C:DC56 - Script VM Opcode 0x91: set_brightness(level)
- * Evaluates expression argument and writes directly to INIDISP shadow.
- */
-bool script_op_set_brightness(void) {
-    script_fade_sync_camera();
-    uint16_t level = script_eval_expression();
-    WRAM_PPU_INIDISP_SHADOW = (uint8_t)level;
-    return true; // SEC: Continue in same tick
-}
-```

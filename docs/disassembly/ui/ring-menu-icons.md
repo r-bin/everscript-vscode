@@ -8,27 +8,16 @@ The ring menu display slots reside in WRAM starting at `$7E:06A3`. Each item slo
 ## Memory Map & Data Structures
 
 ### Ring Menu Item Display Slot (`WRAM $7E:06A3`)
-```c
-typedef struct {
-    uint16_t item_id;          // +0x00: Master item index / alchemy index
-    uint16_t angle;            // +0x02: Radial rotation angle (0 - 0x01FF)
-    uint16_t radius;           // +0x04: Orbital distance from ring center
-    int16_t  x_offset;         // +0x06: Projected screen X offset
-    int16_t  y_offset;         // +0x08: Projected screen Y offset
-    uint16_t anim_frame;       // +0x0A: Wobble / pulse animation phase
-    uint16_t palette_attr;     // +0x0C: Allocated CGRAM palette attribute / OAM bits
-    uint16_t flags;            // +0x0E: Slot activity and selection flags
-} RingSlotDisplay; // sizeof = 0x10 (16 bytes)
-```
+> **Reconstructed C Decompilation**:
+> Source moved to [`reconstructed-c/8E/8E8000_ring_menu_icons.c`](../../../reconstructed-c/8E/8E8000_ring_menu_icons.c).
+> [View in VFS: soe://rom/code/8E8000](soe://rom/code/8E8000?c=1&asm=0)
+
 
 ### Ring Menu Category Descriptor (`DP $95`)
-```c
-typedef struct {
-    uint16_t item_count;       // +0x00: Total items available in this category
-    uint16_t active_index;     // +0x02: Currently highlighted item index
-    uint16_t item_ids[];       // +0x04: Array of item IDs in ring order
-} RingCategoryHeader;
-```
+> **Reconstructed C Decompilation**:
+> Source moved to [`reconstructed-c/8E/8E8000_ring_menu_icons.c`](../../../reconstructed-c/8E/8E8000_ring_menu_icons.c).
+> [View in VFS: soe://rom/code/8E8000](soe://rom/code/8E8000?c=1&asm=0)
+
 
 ### Item Master Definition Header (`ROM $8E:8000 + (ID * 2)`)
 Each item points to an item descriptor in bank `$8E`:

@@ -16,6 +16,7 @@ import { parseAddressName, hexId } from './resource-uri';
 import { dir, file, json, text } from './nodes';
 import { asmListing } from './asm-view';
 import { cListing } from './decomp-view';
+import { resolveCode } from './code-view';
 import { resolveAssets } from './rom-assets';
 import type { MapsDeps } from './map-files';
 
@@ -33,9 +34,11 @@ function resolveRom(segments: string[], rom: Rom, deps?: MapsDeps) {
             ['index.md', 'file'],
             ['rom.sfc', 'file'],
             ['header.json', 'file'],
+            ['code', 'dir'],
             ['assets', 'dir'],
         ]);
     }
+    if (head === 'code') return resolveCode(rest, rom, deps);
     if (head === 'assets') return resolveAssets(rest, rom, deps);
     // Backward-compatibility: route unlisted direct asset categories to resolveAssets
     if (head === 'maps' || head === 'scripts' || head === 'characters' || head === 'audio' || head === 'tables' || head === 'tiles') {

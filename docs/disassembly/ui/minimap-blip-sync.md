@@ -56,20 +56,10 @@ Before committing modified metatiles into field map memory and staging new graph
 
 ## 3. Disassembly & Instruction-Level Walkthrough
 
-```assembly
-; ==============================================================================
-; hud_minimap_vram_blit_flush_loop ($90:A5BA - $90:A5CF)
-; Synchronous flush loop for minimap radar tile blit queue.
-; ==============================================================================
-$90:A5BA 20 A6 A4    JSR $A4A6       ; Invoke hud_minimap_vram_blit to test / process staging
-$90:A5BD 90 10       BCC $A5CF       ; If Carry == 0, blit queue is empty; return immediately
-$90:A5BF A9 1E 00    LDA #$001E      ; Load 30 (0x1E) into Accumulator
-$90:A5C2 8D 6E 11    STA $116E       ; Set remaining chunk budget register $7E:116E
-$90:A5C5 20 A6 A4    JSR $A4A6       ; Process up to 30 chunks via hud_minimap_vram_blit
-$90:A5C8 22 8C 85 80 JSL $80858C     ; JSL wait_for_frame (spin until NMI increments $0100)
-$90:A5CC 80 EC       BRA $A5BA       ; Branch back to A5BA to re-verify queue status
-$90:A5CF 60          RTS             ; Return to caller
-```
+> **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/90A5BA](soe://rom/code/90A5BA?asm=1&c=0)
+
 
 ### Detailed Operational Logic
 1. **Initial Queue Query (`$90:A5BA` – `$90:A5BD`)**:
@@ -85,58 +75,10 @@ $90:A5CF 60          RTS             ; Return to caller
 
 ## 4. Clean C Decompilation
 
-```c
-#include <stdint.h>
-#include <stdbool.h>
+> **Reconstructed C Decompilation**:
+> Source moved to [`reconstructed-c/90/90A5BA_minimap_blip_sync.c`](../../../reconstructed-c/90/90A5BA_minimap_blip_sync.c).
+> [View in VFS: soe://rom/code/90A5BA](soe://rom/code/90A5BA?c=1&asm=0)
 
-/**
- * WRAM layout relevant to the minimap radar subsystem.
- */
-typedef struct {
-    uint16_t vram_transfer_lock;    /* $7E:0F3A */
-    uint16_t dma_commit_trigger;    /* $7E:0FC2 */
-    uint16_t minimap_chunk_budget;  /* $7E:116E */
-    uint16_t staging_buffer_cursor; /* $7E:1170 */
-} MinimapState;
-
-extern MinimapState g_minimap_state;
-
-/**
- * Advances minimap radar tile blitting into staging buffers.
- *
- * @return true if additional chunks remain pending (Carry Set),
- *         false if the transfer queue is completely flushed (Carry Clear).
- */
-extern bool hud_minimap_vram_blit(void);
-
-/**
- * Halts CPU execution until the NMI interrupt increments the frame counter.
- * Synchronizes with vertical blanking DMA transfers.
- */
-extern void wait_for_frame(void);
-
-/**
- * Synchronously flushes all pending minimap radar VRAM tile blits.
- *
- * Ensures that tile staging and DMA transfers complete across vertical
- * blanking intervals before the caller proceeds with terrain mutations.
- */
-void hud_minimap_vram_blit_flush_loop(void) {
-    /* Step 1: Initial check - if queue is empty, exit immediately */
-    while (hud_minimap_vram_blit()) {
-        /* Step 2: Set burst chunk budget to 30 entries */
-        g_minimap_state.minimap_chunk_budget = 0x001E;
-
-        /* Step 3: Stage up to 30 chunks into VRAM upload buffers */
-        hud_minimap_vram_blit();
-
-        /* Step 4: Synchronize with next VBLANK to let DMA commit tiles */
-        wait_for_frame();
-
-        /* Step 5: Loop back until Carry is clear */
-    }
-}
-```
 
 ---
 

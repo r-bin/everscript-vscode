@@ -1,0 +1,5831 @@
+{
+  "//": "Centralized ASM comments for Secret of Evermore routines. Compiled to mesen/labels.mlb and infused at runtime via VFS.",
+  "rom": {
+    "108792": {
+      "comment": "Advance bytecode pointer by 2 bytes"
+    },
+    "108794": {
+      "comment": "Call alchemy_formula_calc_available_casts"
+    },
+    "108798": {
+      "comment": "Restore DB"
+    },
+    "108799": {
+      "comment": "At least 1 cast available?"
+    },
+    "109460": {
+      "comment": "Read Metatile ID (e.g. $0280) | Y = base_metatile + (i * 8)"
+    },
+    "109463": {
+      "comment": "Lookup corresponding VRAM Word ($30C0) | Direct lookup at $7F0000 + Y ($26 = $7F0000)"
+    },
+    "109465": {
+      "comment": "Stream to SNES PPU VRAM! | Stream directly to PPU VRAM register ($2118)"
+    },
+    "0FB4FD": {
+      "comment": "mover (Boy)"
+    },
+    "0FB4FF": {
+      "comment": "candidate Y (Enemy)"
+    },
+    "0FB503": {
+      "comment": "mover current Y (Boy current Y)"
+    },
+    "0FB50C": {
+      "comment": "2 * |dy_current|"
+    },
+    "0FB50D": {
+      "comment": "was current |dy| < (r1 + r2) / 2?"
+    },
+    "0FB51E": {
+      "comment": "was current |dx| < (r1 + r2)?"
+    },
+    "0FB522": {
+      "comment": "IF BOTH WERE ALREADY INSIDE: ALLOW MOVE!"
+    },
+    "10A097": {
+      "comment": "Test passability at (dest_X, dest_Y) on plane $44"
+    },
+    "10A09B": {
+      "comment": "IF IMPASSABLE / BLOCKED: SKIP MOVE!"
+    },
+    "10A09D": {
+      "comment": "IF PASSABLE: commit position to entity +$1A, +$1C"
+    },
+    "0FAD15": {
+      "comment": "Is this trigger already active?"
+    },
+    "0FAD18": {
+      "comment": "If yes: SKIP EXECUTION"
+    },
+    "0C805C": {
+      "comment": "Preserve processor status"
+    },
+    "0C805D": {
+      "comment": "8-bit Accumulator"
+    },
+    "0C805F": {
+      "comment": "16-bit Index registers"
+    },
+    "0C8061": {
+      "comment": "Check APU lock"
+    },
+    "0C8064": {
+      "comment": "Acquire lock"
+    },
+    "0C8067": {
+      "comment": "Preserve previous lock state"
+    },
+    "0C8068": {
+      "comment": "Set HiROM bank flag (ensure $80..$FF)"
+    },
+    "0C806A": {
+      "comment": "DP $A2 = source descriptor bank"
+    },
+    "0C806E": {
+      "comment": "DP $A0..$A1 = 0"
+    },
+    "0C8070": {
+      "comment": "$7E:0E49 = descriptor table offset"
+    },
+    "0C8074": {
+      "comment": "16-bit Accumulator"
+    },
+    "0C8076": {
+      "comment": "Load total number of audio blocks"
+    },
+    "0C8078": {
+      "comment": "$7E:0E47 = block counter"
+    },
+    "0C807B": {
+      "comment": "Advance descriptor pointer by 2 bytes"
+    },
+    "0C8085": {
+      "comment": "Sony SPC700 IPL ready constant"
+    },
+    "0C8088": {
+      "comment": "Check ports $2140-$2141"
+    },
+    "0C808D": {
+      "comment": "Initial block handshake token (0xCC)"
+    },
+    "0C8090": {
+      "comment": "16-bit Accumulator"
+    },
+    "0C8092": {
+      "comment": "Decrement block counter"
+    },
+    "0C8095": {
+      "comment": "8-bit Accumulator"
+    },
+    "0C8097": {
+      "comment": "If negative, all blocks transferred!"
+    },
+    "0C8099": {
+      "comment": "Save transfer handshake token"
+    },
+    "0C809C": {
+      "comment": "Restore descriptor cursor"
+    },
+    "0C809F": {
+      "comment": "Check block length"
+    },
+    "0C80AA": {
+      "comment": "Advance ROM descriptor bank"
+    },
+    "0C80B8": {
+      "comment": "X = block byte count"
+    },
+    "0C80B9": {
+      "comment": "Advance cursor by 2"
+    },
+    "0C80BC": {
+      "comment": "Read 16-bit source data address"
+    },
+    "0C80BE": {
+      "comment": "Save data address"
+    },
+    "0C80C2": {
+      "comment": "8-bit Accumulator"
+    },
+    "0C80C4": {
+      "comment": "Read source data ROM bank"
+    },
+    "0C80C6": {
+      "comment": "DP $9E = source bank"
+    },
+    "0C80C8": {
+      "comment": "Advance cursor by 1"
+    },
+    "0C80CB": {
+      "comment": "Read SPC700 destination address low"
+    },
+    "0C80CD": {
+      "comment": "Write destination low to port $2142"
+    },
+    "0C80D3": {
+      "comment": "Read SPC700 destination address high"
+    },
+    "0C80D5": {
+      "comment": "Write destination high to port $2143"
+    },
+    "0C80DB": {
+      "comment": "Save updated descriptor cursor"
+    },
+    "0C80DE": {
+      "comment": "Y = source data offset"
+    },
+    "0C80DF": {
+      "comment": "Non-zero write trigger"
+    },
+    "0C80E1": {
+      "comment": "Port $2141 = 0x01 (Trigger block write mode)"
+    },
+    "0C80E4": {
+      "comment": "Restore transfer token"
+    },
+    "0C80E5": {
+      "comment": "Write token to port $2140"
+    },
+    "0C80E8": {
+      "comment": "Wait for SPC700 to echo token back"
+    },
+    "0C80ED": {
+      "comment": "Stream block payload bytes!"
+    },
+    "0C80F3": {
+      "comment": "SPC700 driver entry address"
+    },
+    "0C80F6": {
+      "comment": "Write execution address to ports $2142-$2143"
+    },
+    "0C80F9": {
+      "comment": "Port $2141 = 0x00 (Signals Execution Launch)"
+    },
+    "0C80FC": {
+      "comment": "Write final token to port $2140"
+    },
+    "0C8106": {
+      "comment": "DP $9F = 1 (Initialize sequence counter)"
+    },
+    "0C8109": {
+      "comment": "Restore APU lock"
+    },
+    "0C810C": {
+      "comment": "Restore processor status"
+    },
+    "0C819E": {
+      "comment": "Load first payload byte from [$9C:$9E]"
+    },
+    "0C81A3": {
+      "comment": "Bank rollover at 32KB / 64KB boundary"
+    },
+    "0C81A8": {
+      "comment": "Put payload byte into high byte of Accumulator"
+    },
+    "0C81A9": {
+      "comment": "Low byte = sequence counter (0)"
+    },
+    "0C81AD": {
+      "comment": "Swap counter back"
+    },
+    "0C81AE": {
+      "comment": "Load next payload byte"
+    },
+    "0C81B8": {
+      "comment": "Payload in high byte, counter in low byte"
+    },
+    "0C81B9": {
+      "comment": "Check port $2140 echo"
+    },
+    "0C81BE": {
+      "comment": "Advance handshake counter"
+    },
+    "0C81BF": {
+      "comment": "16-bit Accumulator"
+    },
+    "0C81C1": {
+      "comment": "Write Counter to $2140 AND Payload to $2141 atomically!"
+    },
+    "0C81C4": {
+      "comment": "8-bit Accumulator"
+    },
+    "0C81C6": {
+      "comment": "Wait for SPC700 to echo counter on port $2140"
+    },
+    "0C81CB": {
+      "comment": "Decrement byte counter"
+    },
+    "0C81CF": {
+      "comment": "Counter += 4 (space protocol for next block)"
+    },
+    "0C81D1": {
+      "comment": "Avoid zero"
+    },
+    "0C81D8": {
+      "comment": "Check lock"
+    },
+    "0C81DF": {
+      "comment": "Timeout counter = 65,536 iterations"
+    },
+    "0C81E2": {
+      "comment": "Expected sequence counter"
+    },
+    "0C81E4": {
+      "comment": "Delay padding"
+    },
+    "0C81E9": {
+      "comment": "Compare port $2142"
+    },
+    "0C81EC": {
+      "comment": "Acknowledged!"
+    },
+    "0C81F1": {
+      "comment": "Timeout recovery: read raw port value"
+    },
+    "0C81F4": {
+      "comment": "Re-sync expected sequence tag"
+    },
+    "0C81F7": {
+      "comment": "Restore lock"
+    },
+    "11D805": {
+      "comment": "Set Data Bank = $7E"
+    },
+    "11D806": {
+      "comment": "Formula index * 4"
+    },
+    "11D808": {
+      "comment": "Index into $C4:601F"
+    },
+    "11D809": {
+      "comment": "Load Ing1_ID (low) and Ing2_ID (high)"
+    },
+    "11D80F": {
+      "comment": "Load Qty1 (low) and Qty2 (high)"
+    },
+    "11D815": {
+      "comment": "Ing1 ID"
+    },
+    "11D81B": {
+      "comment": "Load inventory count"
+    },
+    "11D821": {
+      "comment": "Compare with Qty1"
+    },
+    "11D823": {
+      "comment": "Insufficient quantity -> abort cast"
+    },
+    "11D827": {
+      "comment": "Ing2 ID"
+    },
+    "11D82B": {
+      "comment": "No second ingredient"
+    },
+    "11D834": {
+      "comment": "Qty2"
+    },
+    "11D838": {
+      "comment": "Insufficient -> abort cast"
+    },
+    "11D850": {
+      "comment": "Load current XP ($7E:2F52)"
+    },
+    "11D854": {
+      "comment": "Add XP gain for current level"
+    },
+    "11D858": {
+      "comment": "Reached 100 XP?"
+    },
+    "11D85E": {
+      "comment": "XP -= 100"
+    },
+    "11D861": {
+      "comment": "Level up formula!"
+    },
+    "11D865": {
+      "comment": "Store updated XP"
+    },
+    "11CE38": {
+      "comment": "Multiply by 2 -> stride 4 table index"
+    },
+    "11CE3A": {
+      "comment": "Load Ing1_Qty (low) and Ing2_Qty (high)"
+    },
+    "11CE3E": {
+      "comment": "DP $04 = Ing1_Qty, DP $05 = Ing2_Qty"
+    },
+    "11CE40": {
+      "comment": "Load Ing1_ID (low) and Ing2_ID (high)"
+    },
+    "11CE44": {
+      "comment": "DP $02 = Ing1_ID, DP $03 = Ing2_ID"
+    },
+    "11CE46": {
+      "comment": "Mask Ing1_ID"
+    },
+    "11CE4A": {
+      "comment": "8-bit accumulator"
+    },
+    "11CE4C": {
+      "comment": "Load player inventory of Ing 1"
+    },
+    "11CE50": {
+      "comment": "SNES dividend low byte"
+    },
+    "11CE55": {
+      "comment": "SNES dividend high byte = 0"
+    },
+    "11CE58": {
+      "comment": "Required quantity of Ing 1"
+    },
+    "11CE5A": {
+      "comment": "SNES divisor (initiates 16-cycle division)"
+    },
+    "11CE5D": {
+      "comment": "16-bit accumulator"
+    },
+    "11CE5F": {
+      "comment": "Wait hardware division cycles"
+    },
+    "11CE63": {
+      "comment": "Load hardware quotient (available casts from Ing 1)"
+    },
+    "11CE66": {
+      "comment": "Save quotient 1 into DP $12"
+    },
+    "11CE68": {
+      "comment": "Load Ing2_ID from DP $03"
+    },
+    "11CE6E": {
+      "comment": "8-bit accumulator"
+    },
+    "11CE70": {
+      "comment": "Load player inventory of Ing 2"
+    },
+    "11CE74": {
+      "comment": "Dividend low byte"
+    },
+    "11CE79": {
+      "comment": "Dividend high byte = 0"
+    },
+    "11CE7C": {
+      "comment": "Required quantity of Ing 2"
+    },
+    "11CE7E": {
+      "comment": "Divisor"
+    },
+    "11CE81": {
+      "comment": "16-bit accumulator"
+    },
+    "11CE87": {
+      "comment": "Load hardware quotient 2"
+    },
+    "11CE8A": {
+      "comment": "Compare Q2 with Q1"
+    },
+    "11CE8C": {
+      "comment": "If Q2 < Q1, keep Q2 in A"
+    },
+    "11CE8E": {
+      "comment": "Otherwise, take Q1 from DP $12"
+    },
+    "11CE90": {
+      "comment": "Return available casts in A"
+    },
+    "10878E": {
+      "comment": "Set DB = $90"
+    },
+    "10878F": {
+      "comment": "Read formula index argument"
+    },
+    "10879C": {
+      "comment": "If >= 1, keep normal color palette"
+    },
+    "10879E": {
+      "comment": "Disabled greyscale palette offset ($D0:A8EB)"
+    },
+    "1087A1": {
+      "comment": "Assign palette override to icon entity +$0C"
+    },
+    "11CD45": {
+      "comment": "Current formula level (0..9)"
+    },
+    "11CD4B": {
+      "comment": "XP gain per cast for this level"
+    },
+    "11CD54": {
+      "comment": "Add to formula XP counter ($7E:2F52)"
+    },
+    "11CD58": {
+      "comment": "Reached 100 XP?"
+    },
+    "11CD5B": {
+      "comment": "If < 100, no level up"
+    },
+    "11CD5E": {
+      "comment": "Carry over excess XP"
+    },
+    "11CD65": {
+      "comment": "Current level"
+    },
+    "11CD69": {
+      "comment": "Level up!"
+    },
+    "11CD6A": {
+      "comment": "Max Level 9"
+    },
+    "11CD72": {
+      "comment": "Store new level"
+    },
+    "11CD76": {
+      "comment": "Trigger level-up chime sound"
+    },
+    "0FD5D2": {
+      "comment": "Current entity mode/phase flags"
+    },
+    "0FD5D5": {
+      "comment": "Is Magmar in charging roll phase?"
+    },
+    "0FD5D8": {
+      "comment": "Yes -> handle rolling physics & wall bounce"
+    },
+    "0FD5DA": {
+      "comment": "Current Boss HP"
+    },
+    "0FD5DD": {
+      "comment": "HP < 512 (Enrage Phase threshold)?"
+    },
+    "0FD5E0": {
+      "comment": "Switch to fast rolling attack"
+    },
+    "0FD5E2": {
+      "comment": "Phase timer / state counter"
+    },
+    "0FD5E5": {
+      "comment": "Decrement phase timer"
+    },
+    "0FD5E9": {
+      "comment": "Timer active -> remain in current stance"
+    },
+    "0FD5EB": {
+      "comment": "Submerge / Surface transition trigger"
+    },
+    "0FD76A": {
+      "comment": "Read Boss Part HP"
+    },
+    "0FD76D": {
+      "comment": "HP == 0 -> Trigger destruction cutscene"
+    },
+    "0FD76F": {
+      "comment": "Check parent orchestration status"
+    },
+    "0F9817": {
+      "comment": "Preserve current data bank"
+    },
+    "0F9818": {
+      "comment": "Push Bank $7E"
+    },
+    "0F981B": {
+      "comment": "Set Data Bank = $7E"
+    },
+    "0F981D": {
+      "comment": "Read frame counter latch"
+    },
+    "0F9820": {
+      "comment": "Push initial frame count to stack ($01,s)"
+    },
+    "0F9821": {
+      "comment": "Read live frame counter"
+    },
+    "0F9824": {
+      "comment": "Did NMI interrupt increment the frame counter?"
+    },
+    "0F9826": {
+      "comment": "Yes -> Frame completed; exit loop!"
+    },
+    "0F9828": {
+      "comment": "Load slot offset cursor"
+    },
+    "0F982C": {
+      "comment": "Advance by 89 bytes (stride of child slot record)"
+    },
+    "0F982F": {
+      "comment": "Reached pool ceiling (6 slots * 89 = 534 bytes)?"
+    },
+    "0F9832": {
+      "comment": "If within pool bounds, keep offset"
+    },
+    "0F9834": {
+      "comment": "Wrap-around: load task index selector"
+    },
+    "0F9837": {
+      "comment": "Step selector index"
+    },
+    "0F9839": {
+      "comment": "Mask 8-entry word table (0, 2, 4..14)"
+    },
+    "0F983C": {
+      "comment": "Save task index"
+    },
+    "0F983F": {
+      "comment": "Reset slot offset cursor to 0"
+    },
+    "0F9842": {
+      "comment": "Save updated slot cursor"
+    },
+    "0F9845": {
+      "comment": "Index register X = child slot offset"
+    },
+    "0F9846": {
+      "comment": "Load child state / navigation flags"
+    },
+    "0F9849": {
+      "comment": "Check bit 9 (suppress / suspended flag)"
+    },
+    "0F984C": {
+      "comment": "If bit set, slot is suspended; skip"
+    },
+    "0F984E": {
+      "comment": "Load parent entity pointer"
+    },
+    "0F9851": {
+      "comment": "If zero, slot has no active parent; skip"
+    },
+    "0F9853": {
+      "comment": "DP $4E = child slot offset"
+    },
+    "0F9855": {
+      "comment": "DP $4C = parent entity pointer"
+    },
+    "0F9857": {
+      "comment": "Load task index"
+    },
+    "0F985A": {
+      "comment": "Push Program Bank $8F"
+    },
+    "0F985B": {
+      "comment": "Push return address ($8F:9820)"
+    },
+    "0F985E": {
+      "comment": "Indirect jump to task handler!"
+    },
+    "0F9861": {
+      "comment": "Pop initial frame counter from stack"
+    },
+    "0F9862": {
+      "comment": "Restore original Data Bank"
+    },
+    "0F9863": {
+      "comment": "Jump to start-of-frame field loop"
+    },
+    "0F9877": {
+      "comment": "Y = parent entity pointer"
+    },
+    "0F9879": {
+      "comment": "Read primary child attachment slot"
+    },
+    "0F987C": {
+      "comment": "If negative (-1), no child attached; allocate!"
+    },
+    "0F987E": {
+      "comment": "Store child index"
+    },
+    "0F9880": {
+      "comment": "A = child index"
+    },
+    "0F9881": {
+      "comment": "Return"
+    },
+    "0F9882": {
+      "comment": "Pop from free list head"
+    },
+    "0F9885": {
+      "comment": "If negative, free list exhausted -> failure!"
+    },
+    "0F9887": {
+      "comment": "Read next pointer link in free slot"
+    },
+    "0F988A": {
+      "comment": "Update free list head"
+    },
+    "0F988D": {
+      "comment": "Parent pointer"
+    },
+    "0F988E": {
+      "comment": "Set child->parent pointer"
+    },
+    "0F9891": {
+      "comment": "Child slot index"
+    },
+    "0F9892": {
+      "comment": "Set parent->child primary attachment"
+    },
+    "0F9895": {
+      "comment": "Save child index to DP $4E"
+    },
+    "0F9897": {
+      "comment": "Clear child state flags"
+    },
+    "0F989A": {
+      "comment": "Initialize companion waypoint anchor"
+    },
+    "0F989E": {
+      "comment": "X = newly allocated child index"
+    },
+    "0F98A1": {
+      "comment": "Save sentinel error (-1)"
+    },
+    "0F98A4": {
+      "comment": "Get or create primary child"
+    },
+    "0F98A8": {
+      "comment": "If allocation failed, return"
+    },
+    "0F98AA": {
+      "comment": "Load child state flags"
+    },
+    "0F98AD": {
+      "comment": "Set bit 12: sticky leash tether lock"
+    },
+    "0F98B0": {
+      "comment": "Store back"
+    },
+    "0F98B3": {
+      "comment": "Return child index"
+    },
+    "0F98B5": {
+      "comment": "Y = parent entity pointer"
+    },
+    "0F98B7": {
+      "comment": "Read secondary child attachment slot"
+    },
+    "0F98BA": {
+      "comment": "If none, allocate!"
+    },
+    "0F98BC": {
+      "comment": "Save child index"
+    },
+    "0F98BE": {
+      "comment": "Set Carry: Success!"
+    },
+    "0F98C0": {
+      "comment": "Pop from free list"
+    },
+    "0F98C3": {
+      "comment": "If exhausted, try detach-transfer"
+    },
+    "0F98C5": {
+      "comment": "Read next pointer link"
+    },
+    "0F98C8": {
+      "comment": "Update free list head"
+    },
+    "0F98CB": {
+      "comment": "Parent pointer"
+    },
+    "0F98CC": {
+      "comment": "child->parent = parent"
+    },
+    "0F98CF": {
+      "comment": "Child index"
+    },
+    "0F98D0": {
+      "comment": "parent->child_secondary = child"
+    },
+    "0F98D3": {
+      "comment": "Save child index to DP $4E"
+    },
+    "0F98D5": {
+      "comment": "Clear child state flags"
+    },
+    "0F98D8": {
+      "comment": "Initialize waypoint anchor"
+    },
+    "0F98DC": {
+      "comment": "Return Carry Set (Success)"
+    },
+    "0F98DE": {
+      "comment": "Clear A"
+    },
+    "0F98DF": {
+      "comment": "X = 0 (first slot offset)"
+    },
+    "0F98E0": {
+      "comment": "Read parent of slot X"
+    },
+    "0F98E3": {
+      "comment": "Does parent's primary child match this slot?"
+    },
+    "0F98E6": {
+      "comment": "Yes -> Detach and transfer!"
+    },
+    "0F98E8": {
+      "comment": "Advance to next slot"
+    },
+    "0F98EA": {
+      "comment": "Stride = 89 bytes"
+    },
+    "0F98ED": {
+      "comment": "End of pool?"
+    },
+    "0F98F0": {
+      "comment": "Loop through all 6 slots"
+    },
+    "0F98F2": {
+      "comment": "Clear Carry: Failed to allocate/transfer"
+    },
+    "0F98F4": {
+      "comment": "Detach primary attachment"
+    },
+    "0F98F7": {
+      "comment": "parent->child_primary = -1"
+    },
+    "0F98FA": {
+      "comment": "Reload parent pointer"
+    },
+    "0F98FC": {
+      "comment": "Jump to link into secondary attachment slot!"
+    },
+    "0F98FE": {
+      "comment": "Read primary child slot"
+    },
+    "0F9901": {
+      "comment": "If -1, no child attached; return"
+    },
+    "0F9903": {
+      "comment": "child->parent = 0"
+    },
+    "0F9906": {
+      "comment": "Load current free list head"
+    },
+    "0F9909": {
+      "comment": "child->next = old head"
+    },
+    "0F990C": {
+      "comment": "free list head = child slot"
+    },
+    "0F990F": {
+      "comment": "Detach from parent"
+    },
+    "0F9912": {
+      "comment": "parent->child_primary = -1"
+    },
+    "0F9916": {
+      "comment": "child->parent = 0"
+    },
+    "0F9919": {
+      "comment": "Push slot X onto free list"
+    },
+    "0F9922": {
+      "comment": "Return sentinel -1"
+    },
+    "0FB472": {
+      "comment": "DB = $7E"
+    },
+    "0FB473": {
+      "comment": "Mover's collision radius (+0x0D)"
+    },
+    "0FB477": {
+      "comment": "Radius == 0 (no body) -> never blocks"
+    },
+    "0FB479": {
+      "comment": "Store mover radius in DP $16"
+    },
+    "0FB47B": {
+      "comment": "Start at first entity"
+    },
+    "0FB47E": {
+      "comment": "Read entity status"
+    },
+    "0FB481": {
+      "comment": "Active flag?"
+    },
+    "0FB484": {
+      "comment": "Inactive -> next"
+    },
+    "0FB486": {
+      "comment": "Test overlap with candidate"
+    },
+    "0FB489": {
+      "comment": "No collision"
+    },
+    "0FB48B": {
+      "comment": "Collision detected: move BLOCKED!"
+    },
+    "0FB4AB": {
+      "comment": "Candidate's collision radius"
+    },
+    "0FB4AF": {
+      "comment": "Radius == 0 -> pass through"
+    },
+    "0FB4B2": {
+      "comment": "Sum of radii: r1 + r2"
+    },
+    "0FB4B4": {
+      "comment": "Store sum in DP $18"
+    },
+    "0FB4B6": {
+      "comment": "Candidate Y"
+    },
+    "0FB4BA": {
+      "comment": "Target Y"
+    },
+    "0FB4BE": {
+      "comment": "Absolute value |dy|"
+    },
+    "0FB4C2": {
+      "comment": "Double |dy|! (2:1 isometric aspect)"
+    },
+    "0FB4C5": {
+      "comment": "2 * |dy| >= sum -> miss"
+    },
+    "0FB4C7": {
+      "comment": "Candidate X"
+    },
+    "0FB4CB": {
+      "comment": "Target X"
+    },
+    "0FB4CF": {
+      "comment": "Absolute value |dx|"
+    },
+    "0FB4D5": {
+      "comment": "|dx| >= sum -> miss"
+    },
+    "0FB4FB": {
+      "comment": "Newly blocked!"
+    },
+    "0FCC44": {
+      "comment": "HP"
+    },
+    "0FCC47": {
+      "comment": "dead: store A (0)"
+    },
+    "0FCC49": {
+      "comment": "character record"
+    },
+    "0FCC4C": {
+      "comment": "mode"
+    },
+    "0FCC4F": {
+      "comment": "attacking ($10) or $08: no recharge"
+    },
+    "0FCC54": {
+      "comment": "current stamina"
+    },
+    "0FCC5A": {
+      "comment": "already full"
+    },
+    "0FCC5D": {
+      "comment": "+ the record's charge speed"
+    },
+    "0FCC66": {
+      "comment": "the controlled character reaching full:"
+    },
+    "0FCC6B": {
+      "comment": "$0B47 = 15"
+    },
+    "0FCC74": {
+      "comment": "store updated stamina"
+    },
+    "1082D8": {
+      "comment": "Load stamina"
+    },
+    "1082DB": {
+      "comment": "< 100%?"
+    },
+    "1082DE": {
+      "comment": "Select attack Level 0 (+0x38)"
+    },
+    "1082E0": {
+      "comment": "< 200%?"
+    },
+    "1082E3": {
+      "comment": "Select attack Level 1 (+0x3A)"
+    },
+    "1082E5": {
+      "comment": "< 300%?"
+    },
+    "1082E8": {
+      "comment": "Select attack Level 2 (+0x3C)"
+    },
+    "1082EA": {
+      "comment": "Select attack Level 3 (+0x3E)"
+    },
+    "00B173": {
+      "comment": "8-bit accumulator"
+    },
+    "00B176": {
+      "comment": "Bank of target string"
+    },
+    "00B17A": {
+      "comment": "16-bit accumulator"
+    },
+    "00B17C": {
+      "comment": "Pointer to name string"
+    },
+    "00B17E": {
+      "comment": "First character"
+    },
+    "00B184": {
+      "comment": "Null terminator reached -> no match"
+    },
+    "00B186": {
+      "comment": "'F'?"
+    },
+    "00B18B": {
+      "comment": "'f'?"
+    },
+    "00B18E": {
+      "comment": "No match -> advance Y"
+    },
+    "00B190": {
+      "comment": "Second character"
+    },
+    "00B196": {
+      "comment": "'U'?"
+    },
+    "00B19B": {
+      "comment": "'u'?"
+    },
+    "00B1A2": {
+      "comment": "Third character"
+    },
+    "00B1A8": {
+      "comment": "'C'?"
+    },
+    "00B1AD": {
+      "comment": "'c'?"
+    },
+    "00B1B4": {
+      "comment": "Fourth character"
+    },
+    "00B1BA": {
+      "comment": "'K'?"
+    },
+    "00B1BD": {
+      "comment": "Match found!"
+    },
+    "00B1BF": {
+      "comment": "'k'?"
+    },
+    "00B1C2": {
+      "comment": "Match found!"
+    },
+    "00B1C6": {
+      "comment": "Advance to next character"
+    },
+    "00B1CB": {
+      "comment": "Restore data bank"
+    },
+    "00B1CC": {
+      "comment": "Set bit 5 of flag register"
+    },
+    "0F9210": {
+      "comment": "Active Buff Latch ($7E:243D)"
+    },
+    "0F9213": {
+      "comment": "If negative, no buff request"
+    },
+    "0F9215": {
+      "comment": "Target WRAM byte offset table"
+    },
+    "0F921A": {
+      "comment": "Buff bitmask table"
+    },
+    "0F921E": {
+      "comment": "OR into persistence byte ($7E:2261..$7E:2263)"
+    },
+    "0F9227": {
+      "comment": "Clear buff request latch"
+    },
+    "0F922A": {
+      "comment": "Recalculate Boy armor and stats"
+    },
+    "0F922E": {
+      "comment": "Recalculate Dog stats and form"
+    },
+    "0F9235": {
+      "comment": "Verify Boy active status conditions"
+    },
+    "0F923C": {
+      "comment": "Verify Dog active status conditions"
+    },
+    "0F9240": {
+      "comment": "Remove Buff Latch ($7E:243F)"
+    },
+    "0F924E": {
+      "comment": "Invert bitmask"
+    },
+    "0F9251": {
+      "comment": "Clear bit in persistence byte"
+    },
+    "0F9273": {
+      "comment": "Weapon Equip Request ($7E:2441)"
+    },
+    "0F9276": {
+      "comment": "No request"
+    },
+    "0F9278": {
+      "comment": "If > 0, equip weapon!"
+    },
+    "0F927F": {
+      "comment": "Weapon equipped bitfield table"
+    },
+    "0F928B": {
+      "comment": "Clear weapon bit"
+    },
+    "0F92A1": {
+      "comment": "Set weapon transition flag"
+    },
+    "0F92A6": {
+      "comment": "Clear request"
+    },
+    "0F92A9": {
+      "comment": "Active weapon ID = 0"
+    },
+    "0F92D8": {
+      "comment": "Set weapon bit in persistence WRAM"
+    },
+    "0F92DE": {
+      "comment": "Active weapon ID ($7E:0ABA)"
+    },
+    "0F92EF": {
+      "comment": "Did weapon transition occur?"
+    },
+    "0F9300": {
+      "comment": "Base weapon might"
+    },
+    "0F9322": {
+      "comment": "1024 = 100.0% charge"
+    },
+    "0F9325": {
+      "comment": "Boy charge stamina ($7E:4EB7)"
+    },
+    "0F9328": {
+      "comment": "Dog charge stamina ($7E:4F65)"
+    },
+    "0F932E": {
+      "comment": "Clear lock bit 11 in Boy"
+    },
+    "0F9331": {
+      "comment": "Clear lock bit 11 in Dog"
+    },
+    "0F934D": {
+      "comment": "Weapon slice descriptor offset"
+    },
+    "0F9359": {
+      "comment": "Assemble sprite slices via sprite_slice_descriptor_composite"
+    },
+    "008020": {
+      "comment": "Force Blank (Screen brightness 0, display OFF)"
+    },
+    "008022": {
+      "comment": "Write INIDISP"
+    },
+    "008025": {
+      "comment": "Clear carry"
+    },
+    "008026": {
+      "comment": "Exchange Carry with Emulation bit -> Native Mode!"
+    },
+    "008027": {
+      "comment": "16-bit Accumulator (M=0), 16-bit Index (X=0)"
+    },
+    "008029": {
+      "comment": "Jump into FastROM space (Bank $80)"
+    },
+    "00802D": {
+      "comment": "Set stack pointer to $1FFF (top of Bank $7E mirror)"
+    },
+    "008031": {
+      "comment": "Push $0000 to stack (used later as boot flag)"
+    },
+    "008037": {
+      "comment": "Direct Page (D) = $0000"
+    },
+    "008038": {
+      "comment": "Push Program Bank ($80)"
+    },
+    "008039": {
+      "comment": "Data Bank (B) = $80"
+    },
+    "00803A": {
+      "comment": "8-bit A, 8-bit X/Y for hardware MMIO registers"
+    },
+    "00803C": {
+      "comment": "OBSEL: Sprite base = 0, size = 8x8 / 16x16"
+    },
+    "00803F": {
+      "comment": "BGMODE: Mode 0"
+    },
+    "008042": {
+      "comment": "MOSAIC: Off"
+    },
+    "008045": {
+      "comment": "BG1SC: Tilemap base 0"
+    },
+    "008048": {
+      "comment": "BG2SC"
+    },
+    "00804B": {
+      "comment": "BG3SC"
+    },
+    "00804E": {
+      "comment": "BG4SC"
+    },
+    "008051": {
+      "comment": "BG12NBA"
+    },
+    "008054": {
+      "comment": "BG34NBA"
+    },
+    "008059": {
+      "comment": "BG1HOFS = 0 (low byte)"
+    },
+    "00805C": {
+      "comment": "BG1HOFS = 0 (high byte)"
+    },
+    "00805F": {
+      "comment": "BG1VOFS = -1 (two writes of $FF)"
+    },
+    "008065": {
+      "comment": "BG2HOFS = 0"
+    },
+    "00806B": {
+      "comment": "BG2VOFS = -1"
+    },
+    "008071": {
+      "comment": "BG3HOFS = 0"
+    },
+    "008077": {
+      "comment": "BG3VOFS = -1"
+    },
+    "00807D": {
+      "comment": "BG4HOFS = 0"
+    },
+    "008083": {
+      "comment": "BG4VOFS = -1"
+    },
+    "008089": {
+      "comment": "VMAIN: Increment after writing high byte ($2119)"
+    },
+    "00808E": {
+      "comment": "M7SEL"
+    },
+    "008091": {
+      "comment": "M7A (Matrix A = 0x0100 Identity)"
+    },
+    "008099": {
+      "comment": "M7B = 0"
+    },
+    "00809F": {
+      "comment": "M7C = 0"
+    },
+    "0080A5": {
+      "comment": "M7D (Matrix D = 0x0100 Identity)"
+    },
+    "0080AD": {
+      "comment": "M7X = 0"
+    },
+    "0080B3": {
+      "comment": "M7Y = 0"
+    },
+    "0080B9": {
+      "comment": "W12SEL: Disable window masking"
+    },
+    "0080BC": {
+      "comment": "W34SEL"
+    },
+    "0080BF": {
+      "comment": "WOBJSEL"
+    },
+    "0080C2": {
+      "comment": "WH0"
+    },
+    "0080C5": {
+      "comment": "WH1"
+    },
+    "0080C8": {
+      "comment": "WH2"
+    },
+    "0080CB": {
+      "comment": "WH3"
+    },
+    "0080CE": {
+      "comment": "WBGLOG"
+    },
+    "0080D1": {
+      "comment": "WOBJLOG"
+    },
+    "0080D4": {
+      "comment": "TM: Main screen designation = 0"
+    },
+    "0080D7": {
+      "comment": "TS: Sub screen designation = 0"
+    },
+    "0080DA": {
+      "comment": "TMW"
+    },
+    "0080DD": {
+      "comment": "TSW"
+    },
+    "0080E0": {
+      "comment": "CGWSEL: Direct color off, subscreen add off"
+    },
+    "0080E5": {
+      "comment": "CGADSUB: Disable color math"
+    },
+    "0080E8": {
+      "comment": "COLDATA: Master RGB brightness clear"
+    },
+    "0080ED": {
+      "comment": "SETINI: Non-interlaced, Mode 7 wrap off"
+    },
+    "0080F0": {
+      "comment": "NMITIMEN: Disable NMI & Auto-Joypad"
+    },
+    "0080F5": {
+      "comment": "WRIO: Programmable I/O port"
+    },
+    "0080F8": {
+      "comment": "HTIMEL"
+    },
+    "0080FB": {
+      "comment": "HTIMEH"
+    },
+    "0080FE": {
+      "comment": "VTIMEL"
+    },
+    "008101": {
+      "comment": "VTIMEH"
+    },
+    "008104": {
+      "comment": "MDMAEN: Disable all DMA channels"
+    },
+    "008107": {
+      "comment": "HDMAEN: Disable all HDMA channels"
+    },
+    "00810C": {
+      "comment": "MEMSEL: Enable FastROM (2.68 MHz access to banks $80+)"
+    },
+    "00810F": {
+      "comment": "16-bit Accumulator"
+    },
+    "008111": {
+      "comment": "8-bit Index"
+    },
+    "008113": {
+      "comment": "Transfer size $0000 = 65,536 bytes"
+    },
+    "008116": {
+      "comment": "Mode $09: Fixed source, 2 registers ($2118, $2119)"
+    },
+    "008119": {
+      "comment": "Set DMAP0 / BBAD0 ($2118)"
+    },
+    "00811C": {
+      "comment": "Source address: $8008 in Bank $80 (contains $00)"
+    },
+    "00811F": {
+      "comment": "A1T0L / A1T0H"
+    },
+    "008122": {
+      "comment": "Source bank $80"
+    },
+    "008124": {
+      "comment": "A1B0"
+    },
+    "008127": {
+      "comment": "VMADDL/VMADDH = $0000 (Start at VRAM word 0)"
+    },
+    "00812A": {
+      "comment": "Trigger DMA Channel 0"
+    },
+    "00812C": {
+      "comment": "MDMAEN -> Clear 64 KB VRAM!"
+    },
+    "00812F": {
+      "comment": "Size 65,536 bytes"
+    },
+    "008132": {
+      "comment": "Mode $08: Fixed source, 1 register write to $2180 (WMDATA)"
+    },
+    "008138": {
+      "comment": "Source: $8008 ($00)"
+    },
+    "00813E": {
+      "comment": "Bank $80"
+    },
+    "008143": {
+      "comment": "WRAM target address = $0000 (WMADDL)"
+    },
+    "008146": {
+      "comment": "Bank $7E (WMADDH / WMADDM)"
+    },
+    "008150": {
+      "comment": "Trigger DMA Channel 0 -> Clear WRAM Bank $7E!"
+    },
+    "008153": {
+      "comment": "Size 65,536 bytes"
+    },
+    "008156": {
+      "comment": "Mode $08: Fixed source, write to $2180"
+    },
+    "008167": {
+      "comment": "WRAM target address = $0000"
+    },
+    "00816A": {
+      "comment": "Bank $7F"
+    },
+    "008174": {
+      "comment": "Trigger DMA Channel 0 -> Clear WRAM Bank $7F!"
+    },
+    "008177": {
+      "comment": "Shadow $0106 = Screen off / force blank"
+    },
+    "00817D": {
+      "comment": "Default scroll shadows: -1 ($00FF)"
+    },
+    "008180": {
+      "comment": "BG2VOFS shadow"
+    },
+    "008183": {
+      "comment": "BG4VOFS shadow"
+    },
+    "008186": {
+      "comment": "BG2HOFS shadow"
+    },
+    "008189": {
+      "comment": "Window shadow"
+    },
+    "00818F": {
+      "comment": "BG3HOFS shadow"
+    },
+    "008195": {
+      "comment": "Invalidate active script slot mailbox"
+    },
+    "008198": {
+      "comment": "Initialize palette/CGRAM shadow buffer ($80:857F)"
+    },
+    "00819C": {
+      "comment": "Magic base constant"
+    },
+    "00819F": {
+      "comment": "8-bit A"
+    },
+    "0081A3": {
+      "comment": "Latch PPU H/V counters (SLHV)"
+    },
+    "0081A6": {
+      "comment": "OAMDATA read"
+    },
+    "0081AE": {
+      "comment": "OPHCT: Horizontal counter read"
+    },
+    "0081B3": {
+      "comment": "Exchange A bytes"
+    },
+    "0081B4": {
+      "comment": "OPVCT: Vertical counter read"
+    },
+    "0081B9": {
+      "comment": "MPYH"
+    },
+    "0081BC": {
+      "comment": "16-bit A, 16-bit X/Y"
+    },
+    "0081BE": {
+      "comment": "XOR with $DEAD"
+    },
+    "0081C4": {
+      "comment": "Store PRNG Seed Word 0 ($7E0133)"
+    },
+    "0081C7": {
+      "comment": "XOR with $BABE"
+    },
+    "0081CD": {
+      "comment": "Store PRNG Seed Word 1 ($7E0135)"
+    },
+    "0081D0": {
+      "comment": "XOR with $BEEF"
+    },
+    "0081D6": {
+      "comment": "Store PRNG Seed Word 2 ($7E0137)"
+    },
+    "0081D9": {
+      "comment": "XOR with $FACE"
+    },
+    "0081DF": {
+      "comment": "Store PRNG Seed Word 3 ($7E0139)"
+    },
+    "0081E5": {
+      "comment": "Invalidate music track ID"
+    },
+    "0081E8": {
+      "comment": "Pull boot flag pushed at $80:8031 ($0000)"
+    },
+    "0081E9": {
+      "comment": "If non-zero (warm reset), skip initial hardware setup"
+    },
+    "0081EB": {
+      "comment": "Audio driver initialization"
+    },
+    "0081EF": {
+      "comment": "Graphics buffer / OAM table allocation"
+    },
+    "0081F3": {
+      "comment": "Sound effect dispatcher setup"
+    },
+    "0081F7": {
+      "comment": "DMA channel queues clear"
+    },
+    "008227": {
+      "comment": "8-bit A"
+    },
+    "008229": {
+      "comment": "Bit 7 = Enable NMI, Bit 0 = Enable Auto-Joypad"
+    },
+    "00822B": {
+      "comment": "NMITIMEN"
+    },
+    "00822E": {
+      "comment": "Shadow copy of $4200"
+    },
+    "008231": {
+      "comment": "16-bit A, 16-bit Index"
+    },
+    "008233": {
+      "comment": "Decrement engine pause counter"
+    },
+    "008236": {
+      "comment": "Jump directly to Main Loop Entry!"
+    },
+    "109F21": {
+      "comment": "Load camera speed config word"
+    },
+    "109F24": {
+      "comment": "Shift right 4 times to extract whole pixel speed"
+    },
+    "109F28": {
+      "comment": "DP $16 = base max panning speed"
+    },
+    "109F2A": {
+      "comment": "Reload speed config"
+    },
+    "109F2D": {
+      "comment": "Mask low 4 bits: fractional sub-pixel rate"
+    },
+    "109F31": {
+      "comment": "Add sub-pixel carry accumulator ($7E:0F38)"
+    },
+    "109F34": {
+      "comment": "Test for overflow >= 16"
+    },
+    "109F37": {
+      "comment": "If no carry, skip"
+    },
+    "109F39": {
+      "comment": "Carry increments maximum panning speed (DP $16++)"
+    },
+    "109F3B": {
+      "comment": "Mask remainder"
+    },
+    "109F3E": {
+      "comment": "Store updated fractional remainder to $7E:0F38"
+    },
+    "109F41": {
+      "comment": "Load candidate Camera X"
+    },
+    "109F44": {
+      "comment": "A = DX = candidate_X - old_X"
+    },
+    "109F46": {
+      "comment": "If DX == 0, skip to vertical axis"
+    },
+    "109F48": {
+      "comment": "If DX < 0, branch to negative clamp"
+    },
+    "109F4A": {
+      "comment": "DX > 0: decrement for threshold comparison"
+    },
+    "109F4B": {
+      "comment": "Compare (DX - 1) against max_speed (DP $16)"
+    },
+    "109F4D": {
+      "comment": "If within limit, keep candidate X"
+    },
+    "109F4F": {
+      "comment": "Else clamp: new_X = old_X + max_speed"
+    },
+    "109F58": {
+      "comment": "Negative clamp: negate DX to find absolute value"
+    },
+    "109F5B": {
+      "comment": "Compare |DX| against max_speed"
+    },
+    "109F5D": {
+      "comment": "If within limit, keep candidate X"
+    },
+    "109F5F": {
+      "comment": "Else clamp: new_X = old_X - max_speed"
+    },
+    "109F66": {
+      "comment": "Load candidate Camera Y"
+    },
+    "109F69": {
+      "comment": "A = DY = candidate_Y - old_Y"
+    },
+    "109F6B": {
+      "comment": "If DY == 0, skip to screen shake"
+    },
+    "109F6D": {
+      "comment": "If DY < 0, branch to negative clamp"
+    },
+    "109F6F": {
+      "comment": "DY > 0: decrement for threshold comparison"
+    },
+    "109F70": {
+      "comment": "Compare (DY - 1) against max_speed"
+    },
+    "109F72": {
+      "comment": "If within limit, keep candidate Y"
+    },
+    "109F74": {
+      "comment": "Else clamp: new_Y = old_Y + max_speed"
+    },
+    "109F7D": {
+      "comment": "Negative clamp: negate DY"
+    },
+    "109F80": {
+      "comment": "Compare |DY| against max_speed"
+    },
+    "109F82": {
+      "comment": "If within limit, keep candidate Y"
+    },
+    "109F84": {
+      "comment": "Else clamp: new_Y = old_Y - max_speed"
+    },
+    "109F8B": {
+      "comment": "Load filtered Camera X"
+    },
+    "109F8E": {
+      "comment": "Add horizontal screen shake offset (DP $C5)"
+    },
+    "109F90": {
+      "comment": "Guard against negative underflow"
+    },
+    "109F92": {
+      "comment": "Clamp to 0"
+    },
+    "109F94": {
+      "comment": "Persist final Camera X"
+    },
+    "109F96": {
+      "comment": "Store Viewport Left Bound ($7E:2401)"
+    },
+    "109F9A": {
+      "comment": "Add 256 pixels screen width"
+    },
+    "109F9D": {
+      "comment": "Store Viewport Right Bound ($7E:2403)"
+    },
+    "109FA0": {
+      "comment": "Load filtered Camera Y"
+    },
+    "109FA3": {
+      "comment": "Add vertical screen shake offset (DP $C7)"
+    },
+    "109FA5": {
+      "comment": "Guard against negative underflow"
+    },
+    "109FA7": {
+      "comment": "Clamp to 0"
+    },
+    "109FA9": {
+      "comment": "Persist final Camera Y"
+    },
+    "109FAB": {
+      "comment": "Store Viewport Top Bound ($7E:2405)"
+    },
+    "109FAF": {
+      "comment": "Add 224 scanlines screen height"
+    },
+    "109FB2": {
+      "comment": "Store Viewport Bottom Bound ($7E:2407)"
+    },
+    "109FB5": {
+      "comment": "Restore Data Bank"
+    },
+    "109FB6": {
+      "comment": "Return Long"
+    },
+    "109E93": {
+      "comment": "Preserve current data bank"
+    },
+    "109E94": {
+      "comment": "Push Bank $7E"
+    },
+    "109E97": {
+      "comment": "Data Bank = $7E"
+    },
+    "109E99": {
+      "comment": "Load previous frame Camera X"
+    },
+    "109E9B": {
+      "comment": "Save to DP $12"
+    },
+    "109E9D": {
+      "comment": "Load previous frame Camera Y"
+    },
+    "109E9F": {
+      "comment": "Save to DP $14"
+    },
+    "109EA1": {
+      "comment": "Load stationary camera anchor X"
+    },
+    "109EA4": {
+      "comment": "If negative ($FFFF), engage entity tracking!"
+    },
+    "109EA6": {
+      "comment": "Overwrite Camera X with fixed target"
+    },
+    "109EA8": {
+      "comment": "Load stationary camera anchor Y"
+    },
+    "109EAB": {
+      "comment": "Overwrite Camera Y with fixed target"
+    },
+    "109EAD": {
+      "comment": "Skip entity tracking and jump to PPU stepper"
+    },
+    "109EB0": {
+      "comment": "Primary player entity pointer (Boy/Dog)"
+    },
+    "109EB3": {
+      "comment": "If null, skip"
+    },
+    "109EB5": {
+      "comment": "Load entity world X coordinate"
+    },
+    "109EB8": {
+      "comment": "Load entity world Y coordinate"
+    },
+    "109EBB": {
+      "comment": "Filter coordinates through deadzone window"
+    },
+    "109EBE": {
+      "comment": "Secondary companion / 2-player entity pointer"
+    },
+    "109EC1": {
+      "comment": "If inactive, skip"
+    },
+    "109EC3": {
+      "comment": "Load companion world X coordinate"
+    },
+    "109EC6": {
+      "comment": "Load companion world Y coordinate"
+    },
+    "109EC9": {
+      "comment": "Filter companion through deadzone window"
+    },
+    "109ECC": {
+      "comment": "Load room header flags word"
+    },
+    "109ECF": {
+      "comment": "Check bit 14: Flight altitude horizon bias"
+    },
+    "109ED2": {
+      "comment": "If clear, skip horizon adjustment"
+    },
+    "109ED4": {
+      "comment": "Read vehicle flight altitude"
+    },
+    "109ED8": {
+      "comment": "Subtract 96 pixels horizon bias"
+    },
+    "109EDB": {
+      "comment": "Compare against current camera vertical origin"
+    },
+    "109EDD": {
+      "comment": "If altitude - 96 >= C1, keep origin"
+    },
+    "109EDF": {
+      "comment": "Lower camera origin to clamp horizon"
+    },
+    "109EE1": {
+      "comment": "Load candidate Camera X"
+    },
+    "109EE3": {
+      "comment": "Compare with room minimum X"
+    },
+    "109EE8": {
+      "comment": "Clamp to left room margin"
+    },
+    "109EF0": {
+      "comment": "Camera X + 256 (right edge)"
+    },
+    "109EF3": {
+      "comment": "Compare with room maximum X"
+    },
+    "109EF8": {
+      "comment": "Right limit"
+    },
+    "109EFC": {
+      "comment": "Clamp: X = room_max_x - 256"
+    },
+    "109F01": {
+      "comment": "Load candidate Camera Y"
+    },
+    "109F03": {
+      "comment": "Compare with room minimum Y"
+    },
+    "109F08": {
+      "comment": "Clamp to top room margin"
+    },
+    "109F10": {
+      "comment": "Camera Y + 224 (bottom edge)"
+    },
+    "109F13": {
+      "comment": "Compare with room maximum Y"
+    },
+    "109F18": {
+      "comment": "Bottom limit"
+    },
+    "109F1C": {
+      "comment": "Clamp: Y = room_max_y - 224"
+    },
+    "109FCA": {
+      "comment": "A = Entity X - Deadzone Left ($7E:240F)"
+    },
+    "109FCE": {
+      "comment": "Is Entity X - D_L < Camera X?"
+    },
+    "109FD0": {
+      "comment": "Yes -> Pan camera left to keep entity inside!"
+    },
+    "109FD3": {
+      "comment": "Restore Entity X"
+    },
+    "109FD7": {
+      "comment": "Add Deadzone Right ($7E:2411)"
+    },
+    "109FDB": {
+      "comment": "Subtract 256 (#$FF00 = -256)"
+    },
+    "109FDE": {
+      "comment": "Is Entity X + D_R - 256 > Camera X?"
+    },
+    "109FE0": {
+      "comment": "No -> Within horizontal deadzone"
+    },
+    "109FE2": {
+      "comment": "Update Camera X"
+    },
+    "109FE4": {
+      "comment": "Load Entity Y"
+    },
+    "109FE6": {
+      "comment": "A = Entity Y - Deadzone Top ($7E:2413)"
+    },
+    "109FEA": {
+      "comment": "Is Entity Y - D_T < Camera Y?"
+    },
+    "109FEC": {
+      "comment": "Yes -> Pan camera up!"
+    },
+    "109FEF": {
+      "comment": "Restore Entity Y"
+    },
+    "109FF3": {
+      "comment": "Add Deadzone Bottom ($7E:2415)"
+    },
+    "109FF7": {
+      "comment": "Subtract 224 (#$FF20 = -224)"
+    },
+    "109FFA": {
+      "comment": "Is Entity Y + D_B - 224 > Camera Y?"
+    },
+    "109FFC": {
+      "comment": "No -> Within vertical deadzone"
+    },
+    "109FFE": {
+      "comment": "Update Camera Y"
+    },
+    "008597": {
+      "comment": "Test and Reset Bits in $7E:0104 against Accumulator"
+    },
+    "00859A": {
+      "comment": "Return long (Z flag set if all tested bits were 0)"
+    },
+    "00859B": {
+      "comment": "Load Seed Word 3"
+    },
+    "00859E": {
+      "comment": "Rotate left into Carry"
+    },
+    "00859F": {
+      "comment": "If no overflow, skip compensation"
+    },
+    "0085A1": {
+      "comment": "Cross-seed feedback: Increment Seed Word 2"
+    },
+    "0085A4": {
+      "comment": "Add Seed Word 1 with Carry"
+    },
+    "0085A7": {
+      "comment": "Store updated Seed Word 3"
+    },
+    "0085AA": {
+      "comment": "Load Seed Word 2"
+    },
+    "0085AD": {
+      "comment": "Rotate left into Carry"
+    },
+    "0085B0": {
+      "comment": "Cross-seed feedback: Increment Seed Word 1"
+    },
+    "0085B3": {
+      "comment": "Add Seed Word 0 with Carry"
+    },
+    "0085B6": {
+      "comment": "Store updated Seed Word 2"
+    },
+    "0085B9": {
+      "comment": "Load Seed Word 1"
+    },
+    "0085BC": {
+      "comment": "Rotate left into Carry"
+    },
+    "0085BF": {
+      "comment": "Cross-seed feedback: Increment Seed Word 0"
+    },
+    "0085C2": {
+      "comment": "Add Seed Word 2 with Carry"
+    },
+    "0085C5": {
+      "comment": "Store updated Seed Word 1"
+    },
+    "0085C8": {
+      "comment": "Load Seed Word 0"
+    },
+    "0085CB": {
+      "comment": "Rotate left into Carry"
+    },
+    "0085CE": {
+      "comment": "Cross-seed feedback: Increment Seed Word 3"
+    },
+    "0085D1": {
+      "comment": "Add Seed Word 3 with Carry"
+    },
+    "0085D4": {
+      "comment": "Store updated Seed Word 0"
+    },
+    "0085D7": {
+      "comment": "Return random 16-bit integer in Accumulator"
+    },
+    "0085D8": {
+      "comment": "Frame wait 1: spin until NMI advances $0100"
+    },
+    "0085DC": {
+      "comment": "Initialize NMI vector at $0128"
+    },
+    "0085E0": {
+      "comment": "Standard input enable mask"
+    },
+    "0085E3": {
+      "comment": "Store input filter mask into $7E:0106"
+    },
+    "0085E6": {
+      "comment": "Frame wait 2: spin until next VBLANK"
+    },
+    "0085EA": {
+      "comment": "Clear scratch counter DP $72"
+    },
+    "0085EC": {
+      "comment": "Return to caller"
+    },
+    "0085FA": {
+      "comment": "8-bit Accumulator"
+    },
+    "0085FC": {
+      "comment": "Test DMA control flag"
+    },
+    "0085FF": {
+      "comment": "If bit 7 clear, branch to deferred queue mode"
+    },
+    "008601": {
+      "comment": "Acquire CGRAM lock $7E:0F3C"
+    },
+    "008604": {
+      "comment": "CGRAM start color index"
+    },
+    "008606": {
+      "comment": "Write PPU CGADD ($2121)"
+    },
+    "008609": {
+      "comment": "Set DMA1 byte count from X"
+    },
+    "00860C": {
+      "comment": "DMA1 source address lower 16 bits"
+    },
+    "00860E": {
+      "comment": "Set DMA1 source address (A1T1)"
+    },
+    "008611": {
+      "comment": "DMA1 source bank"
+    },
+    "008613": {
+      "comment": "Set DMA1 source bank (A1B1)"
+    },
+    "008616": {
+      "comment": "DMAP1 = 0x00, BBAD1 = 0x22 (CGDATA $2122)"
+    },
+    "008619": {
+      "comment": "Set DMA1 mode and destination"
+    },
+    "00861C": {
+      "comment": "Bit 1 = DMA Channel 1"
+    },
+    "00861E": {
+      "comment": "Trigger hardware DMA via MDMAEN"
+    },
+    "008621": {
+      "comment": "Release CGRAM lock $7E:0F3C"
+    },
+    "008624": {
+      "comment": "Restore 16-bit Accumulator/Index"
+    },
+    "008627": {
+      "comment": "Save byte count into scratch DP $12"
+    },
+    "008629": {
+      "comment": "Load current queue cursor"
+    },
+    "00862C": {
+      "comment": "Source bank"
+    },
+    "00862E": {
+      "comment": "Write to queue entry +$02"
+    },
+    "008631": {
+      "comment": "16-bit A/X, Carry clear"
+    },
+    "008633": {
+      "comment": "Destination CGRAM address"
+    },
+    "008635": {
+      "comment": "Write to queue entry +$03"
+    },
+    "008638": {
+      "comment": "Source address"
+    },
+    "00863A": {
+      "comment": "Write to queue entry +$00"
+    },
+    "00863D": {
+      "comment": "Byte count"
+    },
+    "00863F": {
+      "comment": "Write to queue entry +$05"
+    },
+    "008642": {
+      "comment": "Advance queue cursor"
+    },
+    "008643": {
+      "comment": "Stride = 7 bytes"
+    },
+    "008646": {
+      "comment": "Queue limit: 32 entries * 7 = 224 bytes"
+    },
+    "008649": {
+      "comment": "If within capacity, keep cursor"
+    },
+    "00864B": {
+      "comment": "Reset cursor to 0"
+    },
+    "00864C": {
+      "comment": "Update queue cursor $7E:128E"
+    },
+    "0086B2": {
+      "comment": "8-bit A"
+    },
+    "0086B4": {
+      "comment": "Check gating / filter flag ($7E:0106)"
+    },
+    "0086B7": {
+      "comment": "If bit 7 clear, take slow path with stack frame"
+    },
+    "0086B9": {
+      "comment": "Increment VRAM lock counter ($7E:0F3A)"
+    },
+    "0086BC": {
+      "comment": "A = VMAIN mode"
+    },
+    "0086BD": {
+      "comment": "PPU VMAIN = mode"
+    },
+    "0086C0": {
+      "comment": "DMA Channel 1 size = X"
+    },
+    "0086C3": {
+      "comment": "X = destination VRAM word address"
+    },
+    "0086C5": {
+      "comment": "PPU VMADD = X"
+    },
+    "0086C8": {
+      "comment": "X = source pointer low word"
+    },
+    "0086CA": {
+      "comment": "DMA Channel 1 source addr = X"
+    },
+    "0086CD": {
+      "comment": "A = source pointer bank"
+    },
+    "0086CF": {
+      "comment": "DMA Channel 1 source bank = A"
+    },
+    "0086D2": {
+      "comment": "DMA mode: 2 registers, PPU $2118/$2119"
+    },
+    "0086D8": {
+      "comment": "Trigger Channel 1"
+    },
+    "0086DA": {
+      "comment": "MDMAEN = 0x02"
+    },
+    "0086DD": {
+      "comment": "Decrement VRAM lock counter"
+    },
+    "0086E0": {
+      "comment": "16-bit A, X, Y"
+    },
+    "00870C": {
+      "comment": "8-bit X, Y"
+    },
+    "008712": {
+      "comment": "DB = $80"
+    },
+    "008713": {
+      "comment": "X = 1 digit default"
+    },
+    "008718": {
+      "comment": "A < 10 -> 1 digit"
+    },
+    "00871A": {
+      "comment": "X = 2"
+    },
+    "00871E": {
+      "comment": "A < 100 -> 2 digits"
+    },
+    "008720": {
+      "comment": "X = 3"
+    },
+    "008724": {
+      "comment": "A < 1000 -> 3 digits"
+    },
+    "008726": {
+      "comment": "X = 4"
+    },
+    "00872A": {
+      "comment": "A < 10000 -> 4 digits"
+    },
+    "00872C": {
+      "comment": "X = 5 digits"
+    },
+    "00872D": {
+      "comment": "Push digit count",
+      "label": "L_872D"
+    },
+    "00872E": {
+      "comment": "Push input number"
+    },
+    "008731": {
+      "comment": "Write $FF terminator at end of digit buffer"
+    },
+    "008733": {
+      "comment": "Move cursor to last digit slot"
+    },
+    "008734": {
+      "comment": "A = current dividend",
+      "label": "L_8734"
+    },
+    "008735": {
+      "comment": "Hardware WRDIVL = dividend"
+    },
+    "00873A": {
+      "comment": "Hardware WRDIVB = 10 (Divisor)"
+    },
+    "008740": {
+      "comment": "Wait 16 machine cycles for division pipeline"
+    },
+    "008741": {
+      "comment": "A = Quotient (new dividend)"
+    },
+    "008744": {
+      "comment": "Save quotient on stack"
+    },
+    "008745": {
+      "comment": "Y = Remainder (Modulo 10)"
+    },
+    "008748": {
+      "comment": "Store digit in DP $02,X"
+    },
+    "00874A": {
+      "comment": "Move to previous digit"
+    },
+    "00874B": {
+      "comment": "Repeat until all digits extracted"
+    },
+    "00874D": {
+      "comment": "Pop remaining quotient"
+    },
+    "00874E": {
+      "comment": "Restore digit count in X"
+    },
+    "00874F": {
+      "comment": "16-bit X, Y"
+    },
+    "008751": {
+      "comment": "Restore Data Bank"
+    },
+    "008838": {
+      "comment": "If A == 0, reset typematic timer"
+    },
+    "00883A": {
+      "comment": "Compare against held buttons ($7E:0345)"
+    },
+    "00883D": {
+      "comment": "If mismatch, reset repeat timer"
+    },
+    "00883F": {
+      "comment": "Decrement repeat countdown timer ($7E:0343)"
+    },
+    "008842": {
+      "comment": "Expired -> fire typematic repeat!"
+    },
+    "008844": {
+      "comment": "Suppress repeat this frame"
+    },
+    "008848": {
+      "comment": "Preserve button mask",
+      "label": "L_8848"
+    },
+    "008849": {
+      "comment": "Load sustained repeat rate ($7E:0349)"
+    },
+    "00884C": {
+      "comment": "Reload repeat timer"
+    },
+    "00884F": {
+      "comment": "Return button mask"
+    },
+    "008851": {
+      "comment": "Latch new button mask into $7E:0345",
+      "label": "L_8851"
+    },
+    "008854": {
+      "comment": "Load initial hold delay ($7E:0347)"
+    },
+    "008857": {
+      "comment": "Initialize countdown timer"
+    },
+    "00885A": {
+      "comment": "Return button mask"
+    },
+    "0096FE": {
+      "comment": "Unlink least-recently-used slot Y"
+    },
+    "009701": {
+      "comment": "Update LRU tail pointer"
+    },
+    "009709": {
+      "comment": "Read current queue head"
+    },
+    "00970C": {
+      "comment": "Link old head as next of slot Y"
+    },
+    "009710": {
+      "comment": "Slot Y becomes new head"
+    },
+    "009711": {
+      "comment": "Update previous head backward link"
+    },
+    "009714": {
+      "comment": "Store new head pointer"
+    },
+    "00971C": {
+      "comment": "16-bit Index Registers"
+    },
+    "00971E": {
+      "comment": "Direct Page $DD = Block ID"
+    },
+    "009720": {
+      "comment": "A = Slot Index Y"
+    },
+    "009721": {
+      "comment": "Forward map: $7E:97A9[block_id] = slot"
+    },
+    "009724": {
+      "comment": "16-bit Accumulator & Index"
+    },
+    "009727": {
+      "comment": "Slot word offset"
+    },
+    "009729": {
+      "comment": "Block ID"
+    },
+    "00972B": {
+      "comment": "Reverse map: $7E:AA58[slot] = block_id"
+    },
+    "00972E": {
+      "comment": "Lookup VRAM target address for this slot"
+    },
+    "009732": {
+      "comment": "VRAM upload queue write cursor"
+    },
+    "009734": {
+      "comment": "Queue VRAM address in $7E:163C"
+    },
+    "009739": {
+      "comment": "Advance upload queue cursor"
+    },
+    "00973B": {
+      "comment": "Block ID"
+    },
+    "00973D": {
+      "comment": "Multiply by 3: A = (block_id * 2) + block_id"
+    },
+    "009740": {
+      "comment": "X = 3-byte entry offset in table $EC:0000"
+    },
+    "009742": {
+      "comment": "Read descriptor flags and bank | Read preset descriptor flags"
+    },
+    "009746": {
+      "comment": "If bit 15 set -> sparse bitmask decompressor"
+    },
+    "009748": {
+      "comment": "Otherwise -> raw copy | Otherwise -> raw copy loader"
+    },
+    "008B66": {
+      "comment": "16-bit A, 16-bit Index"
+    },
+    "008B68": {
+      "comment": "Initialize memory structures"
+    },
+    "008B6C": {
+      "comment": "Read SRAM save slot header byte"
+    },
+    "008B70": {
+      "comment": "Mask save slot index (0..3)"
+    },
+    "008B73": {
+      "comment": "Store active save slot ($7E0B3B)"
+    },
+    "008B76": {
+      "comment": "Validate SRAM checksums"
+    },
+    "008B7A": {
+      "comment": "If valid save found, skip slot initialization"
+    },
+    "008B7F": {
+      "comment": "Mark battery SRAM as freshly initialized"
+    },
+    "008B8A": {
+      "comment": "Set save slot magic byte"
+    },
+    "008B8F": {
+      "comment": "Read audio configuration parameter"
+    },
+    "008B9A": {
+      "comment": "APU Handshake: Spinlock on $2140 until SPC700 ready"
+    },
+    "008B9E": {
+      "comment": "Proceed to first room initialization"
+    },
+    "008C70": {
+      "comment": "Initialize collision and camera subsystems"
+    },
+    "008C74": {
+      "comment": "Clear sprite priority buffers"
+    },
+    "008C78": {
+      "comment": "Read Default Starting Room ID from ROM"
+    },
+    "008C7C": {
+      "comment": "Store to Current Map ID ($7E0ADB)"
+    },
+    "008C7F": {
+      "comment": "ENTER ROOM:"
+    },
+    "008C93": {
+      "comment": "Jump into main per-frame execution loop!"
+    },
+    "008BB5": {
+      "comment": "Entity & sprite position calculation"
+    },
+    "008BB9": {
+      "comment": "Fade effects & screen color palette driver"
+    },
+    "008BBD": {
+      "comment": "Source pointer setup for memory blocks"
+    },
+    "008BD1": {
+      "comment": "Copy animation state buffers"
+    },
+    "008BE9": {
+      "comment": "Copy sound queue tables"
+    },
+    "008BED": {
+      "comment": "Check map transition request flags"
+    },
+    "008BF6": {
+      "comment": "Handle room change / transition!"
+    },
+    "008C02": {
+      "comment": "Update player HUD and alchemy ring menus"
+    },
+    "008C06": {
+      "comment": "Run Script VM turn dispatcher ($8C:CFFD)"
+    },
+    "008C0D": {
+      "comment": "Music driver update"
+    },
+    "008C11": {
+      "comment": "Turn screen ON (shadow $0106 = 0, full brightness)"
+    },
+    "008C24": {
+      "comment": "Queue VRAM tile transfers"
+    },
+    "00858C": {
+      "comment": "Snapshot current frame counter"
+    },
+    "00858F": {
+      "comment": "Loop until $0100 changes"
+    },
+    "008592": {
+      "comment": "(Guarantees we begin right after VBLANK)"
+    },
+    "008594": {
+      "comment": "Run post-VBLANK task reset ($80:8F85)"
+    },
+    "008F8A": {
+      "comment": "Clear frame VRAM queue ready flag"
+    },
+    "008F8D": {
+      "comment": "Set Data Bank = $7E"
+    },
+    "008F92": {
+      "comment": "Reset DMA queue write index ($7E:00CB)"
+    },
+    "008F94": {
+      "comment": "Reset auxiliary buffer pointers"
+    },
+    "008FD0": {
+      "comment": "Restore caller Data Bank"
+    },
+    "00823A": {
+      "comment": "Jump to FastROM handler in Bank $80"
+    },
+    "00823E": {
+      "comment": "16-bit A, 16-bit Index"
+    },
+    "008240": {
+      "comment": "Save Data Bank"
+    },
+    "008242": {
+      "comment": "Data Bank = $80"
+    },
+    "008243": {
+      "comment": "Save Accumulator"
+    },
+    "008244": {
+      "comment": "Save X"
+    },
+    "008245": {
+      "comment": "Save Y"
+    },
+    "008246": {
+      "comment": "Save Direct Page"
+    },
+    "00824A": {
+      "comment": "Direct Page (D) = $0000"
+    },
+    "00824B": {
+      "comment": "Re-enable IRQ (permits raster timers if active)"
+    },
+    "00824C": {
+      "comment": "8-bit Index"
+    },
+    "00824E": {
+      "comment": "RDNMI: Acknowledge NMI (reading bit 7 clears latch)"
+    },
+    "008253": {
+      "comment": "HDMAEN = 0 (Disable HDMA during VBLANK)"
+    },
+    "008256": {
+      "comment": "Read PPU Display Control shadow ($7E:0106)"
+    },
+    "008259": {
+      "comment": "INIDISP: Update brightness / screen blank state"
+    },
+    "00825C": {
+      "comment": "Read VRAM Queue Lock flag ($7E0F3A)"
+    },
+    "00825F": {
+      "comment": "If lock active ($0F3A != 0), SKIP VRAM UPLOADS!"
+    },
+    "008261": {
+      "comment": "Read Frame DMA ready flag ($7E:00D9)"
+    },
+    "008263": {
+      "comment": "If frame data ready, process VRAM DMA transfers"
+    },
+    "008265": {
+      "comment": "Skip to PPU shadow register flush"
+    },
+    "008268": {
+      "comment": "Run queued VRAM tile and map uploads"
+    },
+    "00830C": {
+      "comment": "16-bit A, 16-bit Index"
+    },
+    "00830E": {
+      "comment": "VTIME shadow ($7E:010A)"
+    },
+    "008311": {
+      "comment": "VTIMEL / VTIMEH"
+    },
+    "008314": {
+      "comment": "HTIME shadow ($7E:0108)"
+    },
+    "008317": {
+      "comment": "HTIMEL / HTIMEH"
+    },
+    "00831A": {
+      "comment": "8-bit A for PPU byte registers"
+    },
+    "00831C": {
+      "comment": "BG3VOFS low byte"
+    },
+    "00831F": {
+      "comment": "BG3VOFS write 1"
+    },
+    "008322": {
+      "comment": "BG3VOFS high byte"
+    },
+    "008325": {
+      "comment": "BG3VOFS write 2"
+    },
+    "008328": {
+      "comment": "BG3HOFS low byte"
+    },
+    "00832B": {
+      "comment": "BG3HOFS write 1"
+    },
+    "00832E": {
+      "comment": "BG3HOFS high byte"
+    },
+    "008331": {
+      "comment": "BG3HOFS write 2"
+    },
+    "008334": {
+      "comment": "BG2VOFS low byte"
+    },
+    "008337": {
+      "comment": "BG2VOFS write 1"
+    },
+    "00833A": {
+      "comment": "BG2VOFS high byte"
+    },
+    "00833D": {
+      "comment": "BG2VOFS write 2"
+    },
+    "008340": {
+      "comment": "BG2HOFS low byte"
+    },
+    "008343": {
+      "comment": "BG2HOFS write 1"
+    },
+    "008346": {
+      "comment": "BG2HOFS high byte"
+    },
+    "008349": {
+      "comment": "BG2HOFS write 2"
+    },
+    "00834C": {
+      "comment": "BG1VOFS low byte"
+    },
+    "00834F": {
+      "comment": "BG1VOFS write 1"
+    },
+    "008352": {
+      "comment": "BG1VOFS high byte"
+    },
+    "008355": {
+      "comment": "BG1VOFS write 2"
+    },
+    "008358": {
+      "comment": "BG1HOFS low byte"
+    },
+    "00835B": {
+      "comment": "BG1HOFS write 1"
+    },
+    "00835E": {
+      "comment": "BG1HOFS high byte"
+    },
+    "008361": {
+      "comment": "BG1HOFS write 2"
+    },
+    "008364": {
+      "comment": "BG4HOFS"
+    },
+    "008370": {
+      "comment": "BG4VOFS"
+    },
+    "00837F": {
+      "comment": "W12SEL"
+    },
+    "008385": {
+      "comment": "W34SEL"
+    },
+    "00838B": {
+      "comment": "WOBJSEL"
+    },
+    "008460": {
+      "comment": "16-bit A, 16-bit Index"
+    },
+    "008462": {
+      "comment": "Increment lower 16-bit frame counter"
+    },
+    "008465": {
+      "comment": "If no overflow, continue"
+    },
+    "008467": {
+      "comment": "Increment upper 16-bit frame counter"
+    },
+    "00846A": {
+      "comment": "8-bit A"
+    },
+    "00846C": {
+      "comment": "Read active HDMA channel mask ($7E:0072)"
+    },
+    "00846E": {
+      "comment": "HDMAEN: Re-enable HDMA channels for active scan"
+    },
+    "008473": {
+      "comment": "HVBJOY: Check auto-joypad busy flag (Bit 0)"
+    },
+    "008476": {
+      "comment": "Wait until joypad auto-read finishes!"
+    },
+    "008478": {
+      "comment": "16-bit A, 16-bit Index"
+    },
+    "00847A": {
+      "comment": "Previous frame's joypad state"
+    },
+    "008483": {
+      "comment": "Stored raw controller state"
+    },
+    "008486": {
+      "comment": "Joypad port read"
+    },
+    "00848F": {
+      "comment": "JOY1L / JOY1H: Read Joypad 1 buttons"
+    },
+    "008492": {
+      "comment": "Store Joypad 1 buttons to $7E:0EC6"
+    },
+    "008495": {
+      "comment": "Restore Direct Page"
+    },
+    "008496": {
+      "comment": "Restore Y"
+    },
+    "008497": {
+      "comment": "Restore X"
+    },
+    "008498": {
+      "comment": "Restore Accumulator"
+    },
+    "008499": {
+      "comment": "Restore Data Bank"
+    },
+    "0084A0": {
+      "comment": "Return from Interrupt!"
+    },
+    "0EE4E2": {
+      "comment": "Ensure interrupts are unmasked"
+    },
+    "0EE4E3": {
+      "comment": "APU Command $1A: Stop current music track"
+    },
+    "0EE4E9": {
+      "comment": "APU Handshake via $2140 spinlock"
+    },
+    "0EE4F0": {
+      "comment": "APU Command $1C: Fade out sound effects"
+    },
+    "0EE4F7": {
+      "comment": "Reset per-room state (camera, collision, scratch)"
+    },
+    "0EE4FB": {
+      "comment": "Start room enter script ($92:801B + 5 * map)"
+    },
+    "0EE502": {
+      "comment": "Initialize room timer"
+    },
+    "0EE505": {
+      "comment": "Increment room transition counter"
+    },
+    "0EE508": {
+      "comment": "Test and reset Bit 1 (Player spawn requested)"
+    },
+    "0EE50E": {
+      "comment": "If not set, check Dog"
+    },
+    "0EE51A": {
+      "comment": "Script address for Boy initialization | Script entry offset: Boy Room Spawn"
+    },
+    "0EE520": {
+      "comment": "Spawn script thread for Boy | Launch script thread for Boy"
+    },
+    "0EE527": {
+      "comment": "Test and reset Bit 2 (Dog spawn requested)"
+    },
+    "0EE52D": {
+      "comment": "If not set, advance to frame tick"
+    },
+    "0EE539": {
+      "comment": "Script address for Dog initialization | Script entry offset: Dog Room Spawn"
+    },
+    "0EE53F": {
+      "comment": "Spawn script thread for Dog | Launch script thread for Dog"
+    },
+    "0EE543": {
+      "comment": "Run 1 frame field tick (physics, script VM turn) | Advance 1 field frame tick"
+    },
+    "0EE547": {
+      "comment": "Check system state flags | System readiness flags"
+    },
+    "0EE54B": {
+      "comment": "Bit 3: Map metatiles & collision loaded?"
+    },
+    "0EE54E": {
+      "comment": "If not ready, continue frame loop | If not, repeat frame pre-roll"
+    },
+    "0EE554": {
+      "comment": "Bit 4: Character entities positioned? | Bit 4: Entities placed and facing set?"
+    },
+    "0EE55D": {
+      "comment": "Bit 5: Palette fade initialized? | Bit 5: Palette fade ready?"
+    },
+    "0EE562": {
+      "comment": "Initialize camera focus and collision vectors | Execute audio fadeout & DSP reset"
+    },
+    "0EE566": {
+      "comment": "Return to Main Loop! | Return to main game loop!"
+    },
+    "0EE567": {
+      "comment": "Repeat pre-roll loop | Repeat until fully ready"
+    },
+    "108E92": {
+      "comment": "Set Data Bank = $90"
+    },
+    "108E93": {
+      "comment": "Enable NMI and auto-joypad ($4200 = $81)"
+    },
+    "108E97": {
+      "comment": "Clear entity collision grid lists"
+    },
+    "108E9B": {
+      "comment": "Clear step-on trigger line tables"
+    },
+    "108EA5": {
+      "comment": "Direct Page screen shake flags"
+    },
+    "108EBF": {
+      "comment": "Camera horizontal lead margin (72 px)"
+    },
+    "108ECD": {
+      "comment": "Camera vertical lead margin (104 px)"
+    },
+    "108ED4": {
+      "comment": "Camera vertical lower margin (56 px)"
+    },
+    "108EDB": {
+      "comment": "Camera tracking speed"
+    },
+    "108F17": {
+      "comment": "Camera target X = -1"
+    },
+    "108F1B": {
+      "comment": "Camera target Y = -1"
+    },
+    "108F33": {
+      "comment": "Increment $7E:0F3A (NMI skips VRAM uploads)"
+    },
+    "108F63": {
+      "comment": "Read current room ID"
+    },
+    "108F66": {
+      "comment": "Multiply room ID by 4"
+    },
+    "108F69": {
+      "comment": "Read pointer to room metatile record"
+    },
+    "108F77": {
+      "comment": "Bank $7F"
+    },
+    "108F80": {
+      "comment": "Read room width (in 16x16 metatiles)"
+    },
+    "108F86": {
+      "comment": "Store room width ($7E:0F86)"
+    },
+    "108F9B": {
+      "comment": "width * 2"
+    },
+    "108FA1": {
+      "comment": "width * 16 (stride in bytes)"
+    },
+    "108F89": {
+      "comment": "Read room height"
+    },
+    "108F8F": {
+      "comment": "Store room height ($7E:0F88)"
+    },
+    "00974B": {
+      "comment": "Set source data bank in Bank $EC"
+    },
+    "009751": {
+      "comment": "Read source data stream offset"
+    },
+    "009756": {
+      "comment": "Target destination offset"
+    },
+    "009759": {
+      "comment": "Advance destination cursor by 128 bytes"
+    },
+    "00975E": {
+      "comment": "Read chunk compression flag"
+    },
+    "009761": {
+      "comment": "If non-zero -> bitmask decompressor"
+    },
+    "00979B": {
+      "comment": "CLC; ADC #$0010; TAY"
+    },
+    "0097A1": {
+      "comment": "Advance to Block 1"
+    },
+    "0097A4": {
+      "comment": "Store compression bitmask in DP $12"
+    },
+    "0097A6": {
+      "comment": "Shift bit 0"
+    },
+    "0097AA": {
+      "comment": "Shift bit 1"
+    },
+    "0097AE": {
+      "comment": "A = 0x0000"
+    },
+    "0097B9": {
+      "comment": "Bit 0 was 0: check bit 1"
+    },
+    "0097C9": {
+      "comment": "INY"
+    },
+    "0097D9": {
+      "comment": "INY"
+    },
+    "0097EB": {
+      "comment": "CLC; ADC #$0004; TAY"
+    },
+    "009E93": {
+      "comment": "Load next rotated color word"
+    },
+    "009E96": {
+      "comment": "Write to CGRAM shadow slot 1"
+    },
+    "009E9D": {
+      "comment": "Write to CGRAM shadow slot 2"
+    },
+    "009EA4": {
+      "comment": "Write to CGRAM shadow slot 3"
+    },
+    "009EAB": {
+      "comment": "Write to CGRAM shadow slot 4"
+    },
+    "00A006": {
+      "comment": "Shadow slot group 2"
+    },
+    "00A2E0": {
+      "comment": "Screen shake active flag"
+    },
+    "00A2E2": {
+      "comment": "If 0, no active shake"
+    },
+    "00A2E4": {
+      "comment": "Shake timer / intensity"
+    },
+    "00A2E7": {
+      "comment": "Decay intensity"
+    },
+    "00A2EB": {
+      "comment": "Decayed to zero -> stop shake"
+    },
+    "00A2ED": {
+      "comment": "Call RNG"
+    },
+    "00A2F1": {
+      "comment": "-4..+3 displacement"
+    },
+    "00A2F8": {
+      "comment": "Store displacement in $7E:2437"
+    },
+    "00A302": {
+      "comment": "Clear shake flag"
+    },
+    "0F8582": {
+      "comment": "Set Data Bank = $7E"
+    },
+    "0F8583": {
+      "comment": "Dog Level ($7E:0A9A)"
+    },
+    "0F8586": {
+      "comment": "Word index"
+    },
+    "0F8588": {
+      "comment": "Permanent Charms Bitfield 1"
+    },
+    "0F858C": {
+      "comment": "Bit 6: Chocobo Egg Charm?"
+    },
+    "0F8591": {
+      "comment": "Boosted HP curve from Bank $8C"
+    },
+    "0F8597": {
+      "comment": "Base Dog HP curve"
+    },
+    "0F859B": {
+      "comment": "Clamp to 999 Max HP"
+    },
+    "0F85A3": {
+      "comment": "Dog Max HP ($7E:0A7F)"
+    },
+    "0F85A6": {
+      "comment": "Current HP ($7E:4F61)"
+    },
+    "0F85AB": {
+      "comment": "Clamp current HP if exceeding new Max"
+    },
+    "0F85AE": {
+      "comment": "Charms Bitfield 3"
+    },
+    "0F85B2": {
+      "comment": "Magic Charm?"
+    },
+    "0F85B7": {
+      "comment": "Boosted M.Def curve"
+    },
+    "0F85BD": {
+      "comment": "Base M.Def curve"
+    },
+    "0F85C2": {
+      "comment": "Add gear bonus"
+    },
+    "0F85C5": {
+      "comment": "Dog Magic Defense ($7E:0A89)"
+    },
+    "0F85C8": {
+      "comment": "Charms Bitfield 2"
+    },
+    "0F85CC": {
+      "comment": "Armor Polish Charm?"
+    },
+    "0F85D1": {
+      "comment": "Boosted P.Def curve"
+    },
+    "0F85D7": {
+      "comment": "Base P.Def curve"
+    },
+    "0F85DC": {
+      "comment": "Add gear bonus"
+    },
+    "0F85DF": {
+      "comment": "Dog Physical Defense ($7E:0A8B)"
+    },
+    "0F85E6": {
+      "comment": "Evade Charm?"
+    },
+    "0F85F9": {
+      "comment": "Dog Evade ($7E:0A8D)"
+    },
+    "0F8600": {
+      "comment": "Accuracy Charm?"
+    },
+    "0F8613": {
+      "comment": "Clamp to 99 max"
+    },
+    "0F861B": {
+      "comment": "Dog Hit Rate ($7E:0A91)"
+    },
+    "0F8622": {
+      "comment": "Atlas Charm?"
+    },
+    "0F8635": {
+      "comment": "Clamp to 99 max"
+    },
+    "0F863D": {
+      "comment": "Dog Attack Power ($7E:0A8F)"
+    },
+    "0F8643": {
+      "comment": "Equipped Collar Item ID ($7E:0ABE)"
+    },
+    "0F8646": {
+      "comment": "No collar equipped"
+    },
+    "0F8649": {
+      "comment": "Read armor defense value from Bank $C4"
+    },
+    "0F864D": {
+      "comment": "DP $12 = base armor defense"
+    },
+    "0F8652": {
+      "comment": "Charmed defense multiplier?"
+    },
+    "0F8659": {
+      "comment": "Defense >> 4 (+25%)"
+    },
+    "0F8665": {
+      "comment": "Add to companion defense"
+    },
+    "0F866B": {
+      "comment": "Dog Transformation Form ($7E:2363)"
+    },
+    "0F866E": {
+      "comment": "Form 0x000C = Toaster Dog!"
+    },
+    "0F8671": {
+      "comment": "Standard form"
+    },
+    "0F8673": {
+      "comment": "+80 Magic Defense"
+    },
+    "0F867D": {
+      "comment": "+250 Physical Defense"
+    },
+    "0CDADB": {
+      "comment": "Store active control mask in DP $02"
+    },
+    "0CDADD": {
+      "comment": "Test companion freeze / disable bit"
+    },
+    "0CDAE2": {
+      "comment": "Load player controller buffer pointer"
+    },
+    "0CDAE4": {
+      "comment": "Check controller input validity"
+    },
+    "0CDAE9": {
+      "comment": "Set active actor pointer to Boy ($4E89)"
+    },
+    "0CDAEB": {
+      "comment": "Update companion/player physics"
+    },
+    "0CDB01": {
+      "comment": "Check if Dog slot is enabled / companion"
+    },
+    "0CDB06": {
+      "comment": "Set active actor pointer to Dog ($4F37)"
+    },
+    "0CDB0B": {
+      "comment": "Update Dog companion physics & AI"
+    },
+    "0CDB0F": {
+      "comment": "Frame pass complete"
+    },
+    "0FCD4D": {
+      "comment": "Pre-update collision bounding box"
+    },
+    "0FCD51": {
+      "comment": "Read entity flags"
+    },
+    "0FCD54": {
+      "comment": "Clear transient collision bits"
+    },
+    "0FCD63": {
+      "comment": "Compare entity address"
+    },
+    "0FCD64": {
+      "comment": "Is entity the Boy?"
+    },
+    "0FCD69": {
+      "comment": "Load companion waypoint index"
+    },
+    "0FCD6D": {
+      "comment": "If negative, no active waypoint target"
+    },
+    "0FCD71": {
+      "comment": "Navigate companion towards waypoint"
+    },
+    "0FCD17": {
+      "comment": "Load character record offset (+0x60)"
+    },
+    "0FCD1A": {
+      "comment": "Read behavior word from ROM bank $8E"
+    },
+    "0FCD1E": {
+      "comment": "Word offset into jump table (0, 2, 4, ..)"
+    },
+    "0FCD1F": {
+      "comment": "Indirect jump through AI jump table"
+    },
+    "0FD69B": {
+      "comment": "Current stamina / charge meter"
+    },
+    "0FD69E": {
+      "comment": "Must be >= 100% (1024)"
+    },
+    "0FD6A1": {
+      "comment": "If not full, abort aggro evaluation"
+    },
+    "0FD6A3": {
+      "comment": "Load character record pointer"
+    },
+    "0FD6A6": {
+      "comment": "Call RNG"
+    },
+    "0FD6AA": {
+      "comment": "0..255"
+    },
+    "0FD6AD": {
+      "comment": "Compare with aggro_chance (+0x15)"
+    },
+    "0FD6B1": {
+      "comment": "If rand >= chance -> abort"
+    },
+    "0FD6B3": {
+      "comment": "Load aggro_range (+0x13)"
+    },
+    "0FD6B7": {
+      "comment": "Store range threshold in DP $06"
+    },
+    "0FD6B9": {
+      "comment": "Load Boy entity pointer"
+    },
+    "0FD6BE": {
+      "comment": "Test proximity to Boy"
+    },
+    "0FD6C1": {
+      "comment": "Load Dog entity pointer"
+    },
+    "0FD6C6": {
+      "comment": "Test proximity to Dog"
+    },
+    "0FD6CA": {
+      "comment": "Exit to animation/frame step"
+    },
+    "0FD6CE": {
+      "comment": "Target HP"
+    },
+    "0FD6D1": {
+      "comment": "If dead (HP == 0), ignore"
+    },
+    "0FD6D3": {
+      "comment": "Target X coordinate"
+    },
+    "0FD6D7": {
+      "comment": "Subtract Enemy X"
+    },
+    "0FD6DA": {
+      "comment": "If positive, dx is valid"
+    },
+    "0FD6DC": {
+      "comment": "Absolute value: negate"
+    },
+    "0FD6E2": {
+      "comment": "Compare |dx| with aggro_range"
+    },
+    "0FD6E4": {
+      "comment": "Outside horizontal range"
+    },
+    "0FD6E6": {
+      "comment": "Target Y coordinate"
+    },
+    "0FD6EA": {
+      "comment": "Subtract Enemy Y"
+    },
+    "0FD6F5": {
+      "comment": "Compare |dy| with aggro_range"
+    },
+    "0FD6F7": {
+      "comment": "Outside vertical range"
+    },
+    "0FD6F9": {
+      "comment": "Target acquired! Store target pointer in +0x24"
+    },
+    "009033": {
+      "comment": "8-bit registers"
+    },
+    "009039": {
+      "comment": "Read slice count N from descriptor"
+    },
+    "00903B": {
+      "comment": "If N != 0, begin culling check"
+    },
+    "00903F": {
+      "comment": "Empty descriptor, return"
+    },
+    "00904A": {
+      "comment": "DP $E0 = remaining slice count"
+    },
+    "009050": {
+      "comment": "Set Data Bank = $7E"
+    },
+    "009051": {
+      "comment": "If slice count < 3, bypass bounding box check"
+    },
+    "009058": {
+      "comment": "16-bit A, clear carry"
+    },
+    "00905C": {
+      "comment": "Relative X offset"
+    },
+    "00905E": {
+      "comment": "Sign extend"
+    },
+    "009069": {
+      "comment": "Box X = ScreenX + rel_x"
+    },
+    "00906B": {
+      "comment": "DP $12 = Box X"
+    },
+    "00906D": {
+      "comment": "Compare with 256"
+    },
+    "009070": {
+      "comment": "If X < 256, test width"
+    },
+    "009072": {
+      "comment": "If >= 256, offscreen!"
+    },
+    "009076": {
+      "comment": "Bounding box width"
+    },
+    "00907C": {
+      "comment": "Box X + width"
+    },
+    "00907E": {
+      "comment": "If right edge < 0, completely offscreen!"
+    },
+    "009082": {
+      "comment": "Relative Y offset"
+    },
+    "009090": {
+      "comment": "Box Y = ScreenY + rel_y"
+    },
+    "009092": {
+      "comment": "DP $14 = Box Y"
+    },
+    "009094": {
+      "comment": "Compare with 224 (SNES screen height)"
+    },
+    "009097": {
+      "comment": "If Y < 224, visible!"
+    },
+    "009099": {
+      "comment": "Offscreen!"
+    },
+    "00909D": {
+      "comment": "Bounding box height"
+    },
+    "0090A3": {
+      "comment": "Box Y + height"
+    },
+    "0090A5": {
+      "comment": "If bottom edge < 0, completely offscreen!"
+    },
+    "0090FA": {
+      "comment": "Slice descriptor base offset"
+    },
+    "0090FC": {
+      "comment": "DP $E1 = descriptor byte cursor"
+    },
+    "009103": {
+      "comment": "Decrement remaining slice counter"
+    },
+    "009105": {
+      "comment": "All slices done, return!"
+    },
+    "009109": {
+      "comment": "Advance descriptor cursor by 4 bytes"
+    },
+    "00910E": {
+      "comment": "OAM slot limit check"
+    },
+    "009112": {
+      "comment": "OAM table full, abort"
+    },
+    "009114": {
+      "comment": "Byte 0: Flags (Bit 0 = 16x16 size bit)"
+    },
+    "009116": {
+      "comment": "DP $DF = slice attribute byte"
+    },
+    "009119": {
+      "comment": "If size == 0, 8x8 slice"
+    },
+    "00911B": {
+      "comment": "If size == 1, 16x16 slice"
+    },
+    "00911F": {
+      "comment": "Byte 1: Relative X offset"
+    },
+    "00912D": {
+      "comment": "Slice X = ScreenX + rel_x"
+    },
+    "00912F": {
+      "comment": "X >= -7?"
+    },
+    "009132": {
+      "comment": "Culled left"
+    },
+    "009134": {
+      "comment": "X < 256?"
+    },
+    "009137": {
+      "comment": "Culled right"
+    },
+    "009139": {
+      "comment": "DP $16 = Slice X"
+    },
+    "00913C": {
+      "comment": "Byte 2: Relative Y offset"
+    },
+    "00914A": {
+      "comment": "Slice Y = ScreenY + rel_y"
+    },
+    "00914C": {
+      "comment": "Y >= -7?"
+    },
+    "00914F": {
+      "comment": "Culled top"
+    },
+    "009151": {
+      "comment": "Y < 224?"
+    },
+    "009154": {
+      "comment": "Culled bottom"
+    },
+    "009156": {
+      "comment": "DP $18 = Slice Y"
+    },
+    "0091B6": {
+      "comment": "Low OAM byte index ($7E:ABDE,X)"
+    },
+    "0091B8": {
+      "comment": "Slice X coordinate"
+    },
+    "0091BA": {
+      "comment": "OAM X"
+    },
+    "0091BE": {
+      "comment": "Slice Y coordinate"
+    },
+    "0091C0": {
+      "comment": "OAM Y"
+    },
+    "0091C4": {
+      "comment": "Allocated VRAM tile ID"
+    },
+    "0091C6": {
+      "comment": "OAM Tile ID"
+    },
+    "0091CA": {
+      "comment": "Attributes"
+    },
+    "0091CF": {
+      "comment": "Add entity base palette"
+    },
+    "0091D1": {
+      "comment": "OAM Attributes"
+    },
+    "0091D9": {
+      "comment": "Update OAM cursor"
+    },
+    "0FADAA": {
+      "comment": "Collision tile attributes ($003C,Y) | Mask low nibble (direction index)"
+    },
+    "0FADAD": {
+      "comment": "Bit 13: Conveyor / Stair ramp active? | Index * 2"
+    },
+    "0FADB2": {
+      "comment": "Normal linear movement | Entity world X coordinate"
+    },
+    "0FADB5": {
+      "comment": "16 directional impulse presets | XOR with world Y coordinate"
+    },
+    "0FADBA": {
+      "comment": "Jump indirect through conveyor table"
+    },
+    "0FAE46": {
+      "comment": "Check dx"
+    },
+    "0FAE48": {
+      "comment": "Check dy"
+    },
+    "0FAE4A": {
+      "comment": "Moving?"
+    },
+    "0FAE50": {
+      "comment": "Stationary commit"
+    },
+    "0FAE53": {
+      "comment": "Entity X coordinate"
+    },
+    "0FAE57": {
+      "comment": "Proposed X = entity->x + dx"
+    },
+    "0FAE59": {
+      "comment": "DP $46 = target X"
+    },
+    "0FAE5B": {
+      "comment": "Entity Y coordinate"
+    },
+    "0FAE5F": {
+      "comment": "Proposed Y = entity->y + dy"
+    },
+    "0FAE61": {
+      "comment": "DP $48 = target Y"
+    },
+    "0FAE63": {
+      "comment": "Composite collision probe"
+    },
+    "0FAE67": {
+      "comment": "If path blocked, try shear!"
+    },
+    "0FAE71": {
+      "comment": "Skip shear if override active"
+    },
+    "0FAE7F": {
+      "comment": "Is dx == 0?"
+    },
+    "0FAE86": {
+      "comment": "Target X = entity->x + dy"
+    },
+    "0FAE8A": {
+      "comment": "Probe (entity->x + dy, target_y)"
+    },
+    "0FAE8E": {
+      "comment": "Blocked!"
+    },
+    "0FAE94": {
+      "comment": "Target X = entity->x - dy"
+    },
+    "0FAE98": {
+      "comment": "Probe (entity->x - dy, target_y)"
+    },
+    "0FAE9E": {
+      "comment": "Shear succeeded!"
+    },
+    "0FAEA0": {
+      "comment": "Is dy == 0?"
+    },
+    "0FAEA8": {
+      "comment": "Target Y = entity->y - dx"
+    },
+    "0FAEAC": {
+      "comment": "Probe (target_x, entity->y - dx)"
+    },
+    "0FAEB6": {
+      "comment": "Target Y = entity->y + dx"
+    },
+    "0FAEBA": {
+      "comment": "Probe (target_x, entity->y + dx)"
+    },
+    "0FAEC1": {
+      "comment": "Hold Y constant"
+    },
+    "0FAEC6": {
+      "comment": "Probe horizontal only (target_x, entity->y)"
+    },
+    "0FAECC": {
+      "comment": "Hold X constant"
+    },
+    "0FAED4": {
+      "comment": "Target Y = entity->y + dy"
+    },
+    "0FAED8": {
+      "comment": "Probe vertical only (entity->x, target_y)"
+    },
+    "0FAEE1": {
+      "comment": "Assert Wall Obstacle Collided flag"
+    },
+    "0FAEE7": {
+      "comment": "Trigger collision recoil handler"
+    },
+    "0FAF11": {
+      "comment": "Assert Step Success flag"
+    },
+    "0FAF48": {
+      "comment": "Elevation plane ($0018,Y) | Load entity current elevation plane"
+    },
+    "0FAF4B": {
+      "comment": "DP $44 | DP $44 = entity plane"
+    },
+    "0FAF4D": {
+      "comment": "Movement mode flags ($0010,Y) | Load entity status flags"
+    },
+    "0FAF50": {
+      "comment": "Bit 11: Flying / Ethereal? | Is entity Flying / Ethereal (bit 11)?"
+    },
+    "0FAF55": {
+      "comment": "Bit 10 or 7: Ignore terrain? | Test ground collision bits"
+    },
+    "0FAF67": {
+      "comment": "Target X"
+    },
+    "0FAF69": {
+      "comment": "Target Y"
+    },
+    "0FAF6B": {
+      "comment": "Map cell lookup"
+    },
+    "0FAF6F": {
+      "comment": "Update elevation plane bits"
+    },
+    "0FAF73": {
+      "comment": "Restore entity pointer"
+    },
+    "0FAF75": {
+      "comment": "Permitted"
+    },
+    "0FAF92": {
+      "comment": "Fetch map cell word"
+    },
+    "0FAF96": {
+      "comment": "Test elevation ramp boundary"
+    },
+    "0FAF9A": {
+      "comment": "Blocked!"
+    },
+    "0FAF9C": {
+      "comment": "Viewport boundary check"
+    },
+    "0FAFA2": {
+      "comment": "Solid actor hitbox collision"
+    },
+    "0FAFAA": {
+      "comment": "Carry Set: Permitted!"
+    },
+    "0FAFAD": {
+      "comment": "Carry Clear: Blocked!"
+    },
+    "10A6EF": {
+      "comment": "Load round-robin batch cursor"
+    },
+    "10A6F2": {
+      "comment": "Process 4 slots per frame"
+    },
+    "10A6F5": {
+      "comment": "Store batch loop counter"
+    },
+    "10A6F7": {
+      "comment": "Y = sequence pointer offset into room blob"
+    },
+    "10A6FA": {
+      "comment": "If Y == 0, slot is inactive; advance to next"
+    },
+    "10A6FC": {
+      "comment": "Load next metatile ID word from room sequence"
+    },
+    "10A6FE": {
+      "comment": "If 0x0000, sequence terminator reached -> free slot"
+    },
+    "10A700": {
+      "comment": "DP $02 = new replacement metatile ID"
+    },
+    "10A702": {
+      "comment": "Advance sequence cursor by 2 bytes"
+    },
+    "10A705": {
+      "comment": "Store advanced sequence offset back to slot"
+    },
+    "10A708": {
+      "comment": "Load destination WRAM metatile grid offset"
+    },
+    "10A70B": {
+      "comment": "Store to DP $04"
+    },
+    "10A70D": {
+      "comment": "Load packed coordinates"
+    },
+    "10A710": {
+      "comment": "Mask low byte: Tile X coordinate"
+    },
+    "10A713": {
+      "comment": "DP $46 = Tile X"
+    },
+    "10A715": {
+      "comment": "Load packed coordinates (+1 byte)"
+    },
+    "10A718": {
+      "comment": "Mask high byte: Tile Y coordinate"
+    },
+    "10A71B": {
+      "comment": "DP $48 = Tile Y"
+    },
+    "10A71D": {
+      "comment": "Preserve slot index"
+    },
+    "10A71E": {
+      "comment": "Execute tile mutation and VRAM staging"
+    },
+    "10A721": {
+      "comment": "Restore slot index"
+    },
+    "10A722": {
+      "comment": "Slot stride = 2 bytes"
+    },
+    "10A724": {
+      "comment": "Decrement batch counter"
+    },
+    "10A726": {
+      "comment": "Loop until 4 slots processed"
+    },
+    "10A728": {
+      "comment": "Reached end of 24 slots (48 bytes)?"
+    },
+    "10A72B": {
+      "comment": "If not, store cursor"
+    },
+    "10A72D": {
+      "comment": "Wrap cursor back to 0"
+    },
+    "10A730": {
+      "comment": "Persist updated round-robin cursor"
+    },
+    "10A733": {
+      "comment": "Return far to caller"
+    },
+    "10A734": {
+      "comment": "Clear slot sequence offset (free slot)"
+    },
+    "10A737": {
+      "comment": "Jump to advance slot"
+    },
+    "10A739": {
+      "comment": "X = destination metatile grid byte offset"
+    },
+    "10A73B": {
+      "comment": "Load OLD metatile ID from field map grid"
+    },
+    "10A73F": {
+      "comment": "Transfer old metatile ID to index register"
+    },
+    "10A740": {
+      "comment": "Read OLD Layer 1 tilemap word from metatile def"
+    },
+    "10A744": {
+      "comment": "DP $12 = Old Layer 1 tile"
+    },
+    "10A746": {
+      "comment": "Read OLD Layer 2 tilemap word from metatile def"
+    },
+    "10A74A": {
+      "comment": "DP $14 = Old Layer 2 tile"
+    },
+    "10A74C": {
+      "comment": "Reload grid destination offset"
+    },
+    "10A74E": {
+      "comment": "Load NEW replacement metatile ID"
+    },
+    "10A750": {
+      "comment": "STAMP NEW METATILE INTO LIVE MAP GRID!"
+    },
+    "10A754": {
+      "comment": "Index register = New metatile ID"
+    },
+    "10A755": {
+      "comment": "Read NEW Layer 1 tilemap word"
+    },
+    "10A759": {
+      "comment": "Compare with Old Layer 1 tile"
+    },
+    "10A75B": {
+      "comment": "If identical, skip Layer 1 VRAM update"
+    },
+    "10A75D": {
+      "comment": "Save new Layer 1 tile word to DP $12"
+    },
+    "10A75F": {
+      "comment": "Tile X coordinate"
+    },
+    "10A761": {
+      "comment": "Compare with L1 left viewport bound"
+    },
+    "10A764": {
+      "comment": "If X < X_min, off-screen; skip"
+    },
+    "10A766": {
+      "comment": "Compare with L1 right viewport bound"
+    },
+    "10A769": {
+      "comment": "If X >= X_max, off-screen; skip"
+    },
+    "10A76B": {
+      "comment": "Tile Y coordinate"
+    },
+    "10A76D": {
+      "comment": "Compare with L1 top viewport bound"
+    },
+    "10A770": {
+      "comment": "If Y < Y_min, off-screen; skip"
+    },
+    "10A772": {
+      "comment": "Compare with L1 bottom viewport bound"
+    },
+    "10A775": {
+      "comment": "If Y >= Y_max, off-screen; skip"
+    },
+    "10A777": {
+      "comment": "Y in high byte"
+    },
+    "10A778": {
+      "comment": "Shift right 3 bits -> (Y & 0x1F) << 5"
+    },
+    "10A77B": {
+      "comment": "Mask 5-bit row index"
+    },
+    "10A77E": {
+      "comment": "Merge X coordinate"
+    },
+    "10A783": {
+      "comment": "VRAM Tile Offset = ((Y & 0x1F) << 5) | (X & 0x1F)"
+    },
+    "10A785": {
+      "comment": "Load DMA staging buffer cursor"
+    },
+    "10A788": {
+      "comment": "Store screen VRAM target offset"
+    },
+    "10A78B": {
+      "comment": "Load new Layer 1 tile word"
+    },
+    "10A78D": {
+      "comment": "Store tile pattern word"
+    },
+    "10A790": {
+      "comment": "Advance staging cursor"
+    },
+    "10A792": {
+      "comment": "Staging buffer full (128 bytes = 64 entries)?"
+    },
+    "10A797": {
+      "comment": "Wrap staging cursor to beginning"
+    },
+    "10A79A": {
+      "comment": "Persist staging cursor"
+    },
+    "10A79D": {
+      "comment": "X = new metatile ID"
+    },
+    "10A79F": {
+      "comment": "Read NEW Layer 2 tilemap word"
+    },
+    "10A7A3": {
+      "comment": "Compare with Old Layer 2 tile"
+    },
+    "10A7A5": {
+      "comment": "If identical, skip Layer 2 update -> RTS"
+    },
+    "10A7A7": {
+      "comment": "Save new Layer 2 tile word"
+    },
+    "10A7A9": {
+      "comment": "Tile X coordinate"
+    },
+    "10A7AB": {
+      "comment": "Compare with L2 left viewport bound"
+    },
+    "10A7AE": {
+      "comment": "If X < X_min, off-screen; skip"
+    },
+    "10A7B0": {
+      "comment": "Compare with L2 right viewport bound"
+    },
+    "10A7B3": {
+      "comment": "If X >= X_max, off-screen; skip"
+    },
+    "10A7B5": {
+      "comment": "Tile Y coordinate"
+    },
+    "10A7B7": {
+      "comment": "Compare with L2 top viewport bound"
+    },
+    "10A7BA": {
+      "comment": "If Y < Y_min, off-screen; skip"
+    },
+    "10A7BC": {
+      "comment": "Compare with L2 bottom viewport bound"
+    },
+    "10A7BF": {
+      "comment": "If Y >= Y_max, off-screen; skip"
+    },
+    "10A7C8": {
+      "comment": "Set bit 10: Layer 2 tilemap screen base offset"
+    },
+    "10A7D0": {
+      "comment": "Offset = ((Y & 0x1F) << 5) | (X & 0x1F) | 0x0400"
+    },
+    "10A7D2": {
+      "comment": "Load DMA staging cursor"
+    },
+    "10A7D5": {
+      "comment": "Store screen VRAM target offset"
+    },
+    "10A7D8": {
+      "comment": "Load new Layer 2 tile word"
+    },
+    "10A7DA": {
+      "comment": "Store tile pattern word"
+    },
+    "10A7DF": {
+      "comment": "Staging buffer full?"
+    },
+    "10A7E7": {
+      "comment": "Persist staging cursor"
+    },
+    "10A7EA": {
+      "comment": "Subroutine return"
+    },
+    "10A36D": {
+      "comment": "Save requested target step in DP $12"
+    },
+    "10A372": {
+      "comment": "Mark terrain mutation subsystem active ($7E:0FB0 = 1)"
+    },
+    "10A375": {
+      "comment": "A = slot index X"
+    },
+    "10A376": {
+      "comment": "A = X * 2"
+    },
+    "10A377": {
+      "comment": "Add Object Pointer Table base in room blob"
+    },
+    "10A37A": {
+      "comment": "Y = table byte offset"
+    },
+    "10A37B": {
+      "comment": "Load 16-bit sequence record pointer from room blob"
+    },
+    "10A37D": {
+      "comment": "Y = sequence pointer into [$AA]"
+    },
+    "10A37E": {
+      "comment": "8-bit Accumulator"
+    },
+    "10A380": {
+      "comment": "Reload target step"
+    },
+    "10A382": {
+      "comment": "If target >= 0, branch"
+    },
+    "10A384": {
+      "comment": "Else clamp negative target to 0"
+    },
+    "10A385": {
+      "comment": "Compare with max sequence step from room descriptor"
+    },
+    "10A387": {
+      "comment": "If target < max, branch"
+    },
+    "10A389": {
+      "comment": "Else clamp target to max step"
+    },
+    "10A38B": {
+      "comment": "DP $12 = clamped target step"
+    },
+    "10A38D": {
+      "comment": "Store new target step -> $7E:107E,X"
+    },
+    "10A390": {
+      "comment": "Compare target with current step ($7E:10CE,X)"
+    },
+    "10A393": {
+      "comment": "If already at target, jump to finish"
+    },
+    "10A395": {
+      "comment": "Arm slot countdown timer ($7E:111E,X = 0)"
+    },
+    "10A398": {
+      "comment": "Test modifier flag bit 7"
+    },
+    "10A39A": {
+      "comment": "If set, trigger immediate step loop"
+    },
+    "10A39C": {
+      "comment": "Load joypad edge state"
+    },
+    "10A39F": {
+      "comment": "If button edge active, trigger immediate step loop"
+    },
+    "10A3A1": {
+      "comment": "Else restore 16-bit Accumulator"
+    },
+    "10A3A3": {
+      "comment": "Return Long (stepping deferred to frame tick)"
+    },
+    "10A3A6": {
+      "comment": "Mark slot countdown as idle sentinel (0xFF)"
+    },
+    "10A3AE": {
+      "comment": "Set Data Bank = $90"
+    },
+    "10A3B1": {
+      "comment": "Mark slot busy during transition ($FF)"
+    },
+    "10A3B4": {
+      "comment": "Load current frame"
+    },
+    "10A3B7": {
+      "comment": "Compare with target frame"
+    },
+    "10A3BA": {
+      "comment": "If current >= target, branch to backward step loop"
+    },
+    "10A3BC": {
+      "comment": "16-bit A, 16-bit X"
+    },
+    "10A3BE": {
+      "comment": "Preserve object slot X"
+    },
+    "10A3BF": {
+      "comment": "Update minimap radar blip for current state"
+    },
+    "10A3C3": {
+      "comment": "Load current frame"
+    },
+    "10A3C9": {
+      "comment": "Commit replacement VRAM tile and map grid word"
+    },
+    "10A3CC": {
+      "comment": "8-bit A"
+    },
+    "10A3D0": {
+      "comment": "Trigger cut foliage sfx"
+    },
+    "10A3D3": {
+      "comment": "Trigger environmental particle impulse"
+    },
+    "10A3D6": {
+      "comment": "Secondary audio parameter"
+    },
+    "10A3D9": {
+      "comment": "Increment current frame ($7E:10CE,X++)"
+    },
+    "10A3DC": {
+      "comment": "Compare against target frame"
+    },
+    "10A3E4": {
+      "comment": "Loop until current == target"
+    },
+    "10A3E6": {
+      "comment": "Final radar blip update"
+    },
+    "10A3EC": {
+      "comment": "Decrement frame"
+    },
+    "10A3ED": {
+      "comment": "Store decremented frame to $7E:10CE,X"
+    },
+    "10A3F3": {
+      "comment": "Update radar blip"
+    },
+    "10A3FD": {
+      "comment": "Commit replacement VRAM tile"
+    },
+    "10A40D": {
+      "comment": "Check if reached target"
+    },
+    "10A413": {
+      "comment": "Loop until current == target"
+    },
+    "10A417": {
+      "comment": "Final radar blip update"
+    },
+    "0FA906": {
+      "comment": "Test bit 13 (walkable) and bit 6 (bridge)"
+    },
+    "0FA909": {
+      "comment": "If either set -> bridge / ramp transition"
+    },
+    "0FA90B": {
+      "comment": "Isolate elevation plane (bits 5..4)"
+    },
+    "0FA90E": {
+      "comment": "Store into DP $44"
+    },
+    "0FA910": {
+      "comment": "Return Long"
+    },
+    "0FA911": {
+      "comment": "Test bit 6 (Bridge Transparency)"
+    },
+    "0FA914": {
+      "comment": "If already on bridge, clear bridge flag"
+    },
+    "0FA916": {
+      "comment": "Isolate plane bits 5..4"
+    },
+    "0FA919": {
+      "comment": "Set bit 6 (enable multi-plane transparency)"
+    },
+    "0FA91C": {
+      "comment": "Latch transparent plane into DP $44"
+    },
+    "0FA91F": {
+      "comment": "Bitmask 0x0040"
+    },
+    "0FA922": {
+      "comment": "Clear bridge bit 6 from DP $44"
+    },
+    "0FA946": {
+      "comment": "Assume success (Carry = 1)"
+    },
+    "0FA947": {
+      "comment": "Test bit 13 and bit 6"
+    },
+    "0FA94A": {
+      "comment": "If conveyor/bridge, branch to bridge updater"
+    },
+    "0FA94C": {
+      "comment": "Compare candidate plane with entity plane"
+    },
+    "0FA94E": {
+      "comment": "Is bridge transparency active?"
+    },
+    "0FA951": {
+      "comment": "If yes, transition allowed!"
+    },
+    "0FA953": {
+      "comment": "Any plane mismatch in bits 5..4?"
+    },
+    "0FA956": {
+      "comment": "If non-zero mismatch -> block movement!"
+    },
+    "0FA958": {
+      "comment": "Matched: Return with Carry Set"
+    },
+    "0FA959": {
+      "comment": "Restore candidate plane bits"
+    },
+    "0FA95B": {
+      "comment": "Isolate new plane"
+    },
+    "0FA95E": {
+      "comment": "Latch entity into new elevation plane"
+    },
+    "0FA960": {
+      "comment": "Return with Carry Set"
+    },
+    "0FA961": {
+      "comment": "Clear Carry = Movement Blocked!"
+    },
+    "0FAF53": {
+      "comment": "If flying -> bypass all terrain collision!"
+    },
+    "0FAF5A": {
+      "comment": "Target X"
+    },
+    "0FAF5C": {
+      "comment": "Target Y"
+    },
+    "0FAF5E": {
+      "comment": "Fetch metatile under target position"
+    },
+    "0FAF62": {
+      "comment": "Update elevation plane"
+    },
+    "0FAF66": {
+      "comment": "Restore entity pointer"
+    },
+    "0FAF68": {
+      "comment": "Allow step!"
+    },
+    "0FAF6E": {
+      "comment": "Fetch metatile collision word"
+    },
+    "0FAF72": {
+      "comment": "Elevation plane transition test"
+    },
+    "0FAF76": {
+      "comment": "If Carry Clear -> elevation blocked!"
+    },
+    "0FAF78": {
+      "comment": "Viewport & room boundary limit test"
+    },
+    "0FAF7C": {
+      "comment": "If Carry Clear -> room edge blocked!"
+    },
+    "0FAF7E": {
+      "comment": "Solid actor hitbox collision test"
+    },
+    "0FAF82": {
+      "comment": "If Carry Clear -> actor overlap blocked!"
+    },
+    "0FAF84": {
+      "comment": "Restore entity pointer"
+    },
+    "0FAF86": {
+      "comment": "Return with Carry Set (Step Allowed!)"
+    },
+    "0FAF89": {
+      "comment": "Return with Carry Clear (Step Blocked!)"
+    },
+    "0FAFB3": {
+      "comment": "Set Data Bank = $7E"
+    },
+    "0FAFB4": {
+      "comment": "Load step dither phase"
+    },
+    "0FAFB7": {
+      "comment": "Sequence through 4-step motion dither table"
+    },
+    "0FAFBE": {
+      "comment": "Update dither phase"
+    },
+    "0FAFC1": {
+      "comment": "Y = head of active entity linked list"
+    },
+    "0FAFC4": {
+      "comment": "If no entities active, exit"
+    },
+    "0FAFC6": {
+      "comment": "DP $4C = current entity"
+    },
+    "0FAFC8": {
+      "comment": "Load metatile index under entity"
+    },
+    "0FAFCA": {
+      "comment": "Load metatile word"
+    },
+    "0FAFCF": {
+      "comment": "Read metatile collision word"
+    },
+    "0FAFD3": {
+      "comment": "Cache collision word into entity slot record +$3C"
+    },
+    "0FAFD7": {
+      "comment": "Load gravity acceleration counter"
+    },
+    "0FAFDA": {
+      "comment": "Decrement gravity timer"
+    },
+    "0FAFDC": {
+      "comment": "Add vertical velocity"
+    },
+    "0FAFDF": {
+      "comment": "If zero -> landed on ground plane!"
+    },
+    "0FAFE1": {
+      "comment": "If positive -> still in air"
+    },
+    "0FAFE3": {
+      "comment": "Clamp gravity to 0"
+    },
+    "0FAFE6": {
+      "comment": "Clamp vertical velocity to 0 (Grounded!)"
+    },
+    "0FAFEB": {
+      "comment": "Store updated downward velocity"
+    },
+    "0FAFEE": {
+      "comment": "Read next entity link pointer"
+    },
+    "0FAFF1": {
+      "comment": "Y = next entity"
+    },
+    "0FAFF2": {
+      "comment": "Loop until end of list"
+    },
+    "109D45": {
+      "comment": "Load Camera Y"
+    },
+    "109D47": {
+      "comment": "Decrement for 1-line PPU timing offset"
+    },
+    "109D48": {
+      "comment": "BG1VOFS shadow = Camera Y - 1"
+    },
+    "109D4B": {
+      "comment": "BG2VOFS shadow = Camera Y - 1"
+    },
+    "109D4E": {
+      "comment": "Load Camera X"
+    },
+    "109D50": {
+      "comment": "BG1HOFS shadow = Camera X"
+    },
+    "109D53": {
+      "comment": "BG2HOFS shadow = Camera X"
+    },
+    "109D56": {
+      "comment": "Default table A address = $7E:151A"
+    },
+    "109D59": {
+      "comment": "Is current pointer set to table A?"
+    },
+    "109D5C": {
+      "comment": "If not, select table A ($151A)"
+    },
+    "109D5E": {
+      "comment": "Else select ping-pong table B ($153E)"
+    },
+    "109D61": {
+      "comment": "DP $0C = target HDMA table address"
+    },
+    "109D63": {
+      "comment": "Wave oscillation phase counter"
+    },
+    "109D67": {
+      "comment": "Sum with Camera X position"
+    },
+    "109D69": {
+      "comment": "Modulo 1024 angular range"
+    },
+    "109D6C": {
+      "comment": "DP $0A = wave phase angle"
+    },
+    "109D6E": {
+      "comment": "Target table address"
+    },
+    "109D71": {
+      "comment": "Skip 2 bytes for header scanline count"
+    },
+    "109D72": {
+      "comment": "Y = write pointer"
+    },
+    "109D73": {
+      "comment": "Preserve table base on stack"
+    },
+    "109D74": {
+      "comment": "X = 2 (first table entry offset)"
+    },
+    "109D77": {
+      "comment": "Load wave phase angle"
+    },
+    "109D79": {
+      "comment": "DP $06 = angle input for trig routine"
+    },
+    "109D7B": {
+      "comment": "Load Layer 1 amplitude coefficient"
+    },
+    "109D7F": {
+      "comment": "If $FFFF (negative), terminate wave loop"
+    },
+    "109D81": {
+      "comment": "Compute scaled sine displacement"
+    },
+    "109D85": {
+      "comment": "DP $03 = integer sine displacement"
+    },
+    "109D87": {
+      "comment": "Store Layer 1 displacement offset into HDMA table"
+    },
+    "109D8A": {
+      "comment": "Load wave phase angle"
+    },
+    "109D8C": {
+      "comment": "DP $06 = angle input"
+    },
+    "109D8E": {
+      "comment": "Load Layer 2 amplitude / frequency coefficient"
+    },
+    "109D92": {
+      "comment": "Compute scaled sine displacement"
+    },
+    "109D96": {
+      "comment": "DP $03 = integer sine displacement"
+    },
+    "109D98": {
+      "comment": "Store Layer 2 displacement offset into HDMA table"
+    },
+    "109D9C": {
+      "comment": "Advance ROM coefficient table pointer by 2"
+    },
+    "109D9E": {
+      "comment": "Advance HDMA table write cursor by 2"
+    },
+    "109DA1": {
+      "comment": "Reset coefficient table index to 2"
+    },
+    "109DA4": {
+      "comment": "Restore Y = target HDMA table base + 2"
+    },
+    "109DA5": {
+      "comment": "Load scanline threshold from band table"
+    },
+    "109DA9": {
+      "comment": "If negative ($FFFF), end of band list"
+    },
+    "109DAC": {
+      "comment": "Subtract Camera Y ($5B)"
+    },
+    "109DAE": {
+      "comment": "If relative Y < 0 (offscreen above), terminate"
+    },
+    "109DB0": {
+      "comment": "Compare with 223 (visible SNES scanline limit 224 - 1)"
+    },
+    "109DB3": {
+      "comment": "If relative Y >= 223 (offscreen below), terminate"
+    },
+    "109DB5": {
+      "comment": "Write scanline count into HDMA table entry"
+    },
+    "109DB9": {
+      "comment": "Next band threshold (+2)"
+    },
+    "109DBB": {
+      "comment": "Next HDMA table slot (+2)"
+    },
+    "109DBE": {
+      "comment": "HDMA table end sentinel ($FFFF)"
+    },
+    "109DC1": {
+      "comment": "Terminate HDMA table"
+    },
+    "00AD28": {
+      "comment": "Preserve multiplier on stack"
+    },
+    "00AD29": {
+      "comment": "Isolate low byte of multiplier"
+    },
+    "00AD2C": {
+      "comment": "Call 8-bit sine multiplier lookup"
+    },
+    "00AD30": {
+      "comment": "Read intermediate product low word"
+    },
+    "00AD32": {
+      "comment": "Store in DP scratch $16"
+    },
+    "00AD34": {
+      "comment": "Read intermediate product high word"
+    },
+    "00AD36": {
+      "comment": "Store in DP scratch $18"
+    },
+    "00AD38": {
+      "comment": "Restore multiplier"
+    },
+    "00AD39": {
+      "comment": "Swap bytes (high byte to low byte)"
+    },
+    "00AD3A": {
+      "comment": "Isolate high byte"
+    },
+    "00AD3D": {
+      "comment": "Call 8-bit sine multiplier lookup"
+    },
+    "00AD41": {
+      "comment": "Read product byte 1"
+    },
+    "00AD43": {
+      "comment": "Mask to high byte"
+    },
+    "00AD47": {
+      "comment": "Accumulate low word product"
+    },
+    "00AD49": {
+      "comment": "Save accumulated low word"
+    },
+    "00AD4A": {
+      "comment": "Read product byte 3"
+    },
+    "00AD4C": {
+      "comment": "Add carry and high word product"
+    },
+    "00AD4E": {
+      "comment": "Store high word into DP $04"
+    },
+    "00AD50": {
+      "comment": "Restore accumulated low word"
+    },
+    "00AD51": {
+      "comment": "Store low word into DP $02"
+    },
+    "00AD53": {
+      "comment": "Return Long"
+    },
+    "0EE50B": {
+      "comment": "Test and reset Bit 1 (Spawn Boy script)"
+    },
+    "0EE510": {
+      "comment": "Script bank pointer high"
+    },
+    "0EE515": {
+      "comment": "Script bank pointer low"
+    },
+    "0EE52A": {
+      "comment": "Test and reset Bit 2 (Spawn Dog script)"
+    },
+    "0EE592": {
+      "comment": "Current master volume ($7E:0106)"
+    },
+    "0EE595": {
+      "comment": "Mask low 4 bits (volume level 0..15)"
+    },
+    "0EE598": {
+      "comment": "Volume loop counter"
+    },
+    "0EE59B": {
+      "comment": "Wait for V-Blank interrupt"
+    },
+    "0EE5A2": {
+      "comment": "Shift left 4 -> 0x00..0xF0"
+    },
+    "0EE5A6": {
+      "comment": "Volume attenuation in Y"
+    },
+    "0EE5A7": {
+      "comment": "APU Command 0x0028: Set Master Volume"
+    },
+    "0EE5AA": {
+      "comment": "Handshake with APU register $2140"
+    },
+    "0EE5B1": {
+      "comment": "Preserve mute bit 7"
+    },
+    "0EE5B7": {
+      "comment": "Update current volume mirror"
+    },
+    "0EE5BA": {
+      "comment": "Decrement volume level"
+    },
+    "0EE5BF": {
+      "comment": "Repeat until 0"
+    },
+    "0EE5C1": {
+      "comment": "Volume zeroed"
+    },
+    "0EE5C4": {
+      "comment": "APU Command 0x001A: Silence SFX"
+    },
+    "0EE5D1": {
+      "comment": "APU Command 0x001C: Reset DSP Echo"
+    },
+    "0EE5D8": {
+      "comment": "Reset sound state latch"
+    },
+    "0EE5FF": {
+      "comment": "Is mute bit active?"
+    },
+    "0EE602": {
+      "comment": "If so, bypass fade"
+    },
+    "0EE604": {
+      "comment": "Target volume latch ($7E:0B83)"
+    },
+    "0EE607": {
+      "comment": "If negative (0xFF), no fade active"
+    },
+    "0EE609": {
+      "comment": "8-bit mode"
+    },
+    "0EE60E": {
+      "comment": "Compare target with current volume"
+    },
+    "0EE611": {
+      "comment": "Target reached!"
+    },
+    "0EE613": {
+      "comment": "If target > current, fade up"
+    },
+    "0EE615": {
+      "comment": "Current volume -= 1"
+    },
+    "0EE621": {
+      "comment": "Current volume += 1"
+    },
+    "0EE62E": {
+      "comment": "Clear target volume latch"
+    },
+    "0FAD9F": {
+      "comment": "Read collision word"
+    },
+    "0FADA2": {
+      "comment": "Is bit 13 (Always-Walkable / Drift) set?"
+    },
+    "0FADA5": {
+      "comment": "Yes -> process drift direction"
+    },
+    "0FADA7": {
+      "comment": "No drift -> jump to neutral exit"
+    },
+    "0FADAF": {
+      "comment": "Indirect jump through table $8F:AF28"
+    },
+    "0FADB8": {
+      "comment": "Check 4-pixel diagonal grid stride"
+    },
+    "0FADBD": {
+      "comment": "Neutral exit"
+    },
+    "0FADC0": {
+      "comment": "Check entity horizontal velocity dx"
+    },
+    "0FADC2": {
+      "comment": "Moving West (dx < 0) -> branch"
+    },
+    "0FADC4": {
+      "comment": "dx == 0 -> neutral"
+    },
+    "0FADC9": {
+      "comment": "Moving East: dy = -2 (push North)"
+    },
+    "0FADE2": {
+      "comment": "Moving West: dy = +2 (push South)"
+    },
+    "0FADE7": {
+      "comment": "Current X"
+    },
+    "0FADEA": {
+      "comment": "Target X"
+    },
+    "0FADEC": {
+      "comment": "Current Y"
+    },
+    "0FADF0": {
+      "comment": "Add proposed vertical drift dy"
+    },
+    "0FADF2": {
+      "comment": "Target Y"
+    },
+    "0FADF4": {
+      "comment": "Probe metatile collision at (target X, target Y)"
+    },
+    "0FADF8": {
+      "comment": "Carry clear = passable -> apply drift"
+    },
+    "0FADFA": {
+      "comment": "Collision blocked -> discard drift"
+    },
+    "10A320": {
+      "comment": "Clear terrain mutation active flag ($7E:0FB0 = 0)"
+    },
+    "10A323": {
+      "comment": "Clear Direct Page scratch pointer ($B0 = 0)"
+    },
+    "10A325": {
+      "comment": "Reset VRAM staging buffer write cursor ($7E:1170 = 0)"
+    },
+    "10A328": {
+      "comment": "Reset VRAM staging pending update counter ($7E:1172 = 0)"
+    },
+    "10A32B": {
+      "comment": "Switch Accumulator to 8-bit mode (X/Y remain 16-bit)"
+    },
+    "10A32D": {
+      "comment": "Transfer size = 160 bytes (0x00A0)"
+    },
+    "10A330": {
+      "comment": "Set DMA1 Transfer Byte Count (DAS1L / DAS1H)"
+    },
+    "10A333": {
+      "comment": "Low byte 0x08 = DMAP1 (Transfer Mode 0, fixed source)"
+    },
+    "10A336": {
+      "comment": "Set DMA1 Control & Target B-Bus Register"
+    },
+    "10A339": {
+      "comment": "Source A-Bus Offset = $8000 (contains byte 0x00)"
+    },
+    "10A33C": {
+      "comment": "Set DMA1 Source Address (A1T1L / A1T1H)"
+    },
+    "10A33F": {
+      "comment": "Source Bank = $80"
+    },
+    "10A341": {
+      "comment": "Set DMA1 Source Bank (A1B1)"
+    },
+    "10A344": {
+      "comment": "WRAM Destination Address = $107E"
+    },
+    "10A347": {
+      "comment": "Set WRAM Port Address Low/Mid (WMADDL / WMADDM)"
+    },
+    "10A34A": {
+      "comment": "WRAM Destination Bank = $00 (Bank $7E)"
+    },
+    "10A34C": {
+      "comment": "Set WRAM Port Address High (WMADDH)"
+    },
+    "10A34F": {
+      "comment": "DMA Channel 1 Enable Bit (1 << 1)"
+    },
+    "10A351": {
+      "comment": "Fire DMA Channel 1 (Transfers 160 bytes of 0x00)"
+    },
+    "10A354": {
+      "comment": "Transfer size = 80 bytes (0x0050)"
+    },
+    "10A357": {
+      "comment": "Set DMA1 Transfer Byte Count"
+    },
+    "10A35A": {
+      "comment": "Source A-Bus Offset = $8DB2 (contains byte 0xFF)"
+    },
+    "10A35D": {
+      "comment": "Set DMA1 Source Address"
+    },
+    "10A360": {
+      "comment": "Source Bank = $80"
+    },
+    "10A362": {
+      "comment": "Set DMA1 Source Bank"
+    },
+    "10A365": {
+      "comment": "DMA Channel 1 Enable Bit"
+    },
+    "10A367": {
+      "comment": "Fire DMA Channel 1 (Transfers 80 bytes of 0xFF)"
+    },
+    "10A36A": {
+      "comment": "Restore Accumulator to 16-bit mode"
+    },
+    "10A36C": {
+      "comment": "Return Long"
+    },
+    "10A1B9": {
+      "comment": "DB = $7E (WRAM Data Bank)"
+    },
+    "10A1BD": {
+      "comment": "DP $02 = 10 (Max tile upload budget per frame)"
+    },
+    "10A1C2": {
+      "comment": "8-bit Accumulator"
+    },
+    "10A1C4": {
+      "comment": "Channel index X++",
+      "label": "L_A1C4"
+    },
+    "10A1C5": {
+      "comment": "Read channel loop counter ($7E:504A,X)"
+    },
+    "10A1C8": {
+      "comment": "If 0, channel is inactive -> skip"
+    },
+    "10A1CA": {
+      "comment": "Compare against active channel count ($7E:106C)"
+    },
+    "10A1CD": {
+      "comment": "If X == count, all channels scanned -> exit"
+    },
+    "10A1CF": {
+      "comment": "Decrement delay timer ($7E:5018,X)"
+    },
+    "10A1D2": {
+      "comment": "If timer >= 0, still ticking -> next channel"
+    },
+    "10A1D4": {
+      "comment": "Timer expired: advance keyframe"
+    },
+    "10A1D6": {
+      "comment": "Branch to completion and budget cleanup",
+      "label": "L_A1D6"
+    },
+    "10A1D9": {
+      "comment": "16-bit A, X, Y",
+      "label": "L_A1D9"
+    },
+    "10A1DD": {
+      "comment": "A = channel * 4"
+    },
+    "10A1DF": {
+      "comment": "8-bit A"
+    },
+    "10A1E1": {
+      "comment": "Y = channel * 4 + 1"
+    },
+    "10A1E2": {
+      "comment": "Load max_frames from descriptor"
+    },
+    "10A1E6": {
+      "comment": "Load current frame index ($7E:4FE6,X)"
+    },
+    "10A1E9": {
+      "comment": "Frame++"
+    },
+    "10A1EA": {
+      "comment": "Compare with max_frames"
+    },
+    "10A1EE": {
+      "comment": "Wraparound to 0"
+    },
+    "10A1EF": {
+      "comment": "Store updated frame index",
+      "label": "L_A1EF"
+    },
+    "10A1F2": {
+      "comment": "16-bit A, X, Y"
+    },
+    "10A1F9": {
+      "comment": "frame * 2"
+    },
+    "10A1FA": {
+      "comment": "frame * 3"
+    },
+    "10A1FD": {
+      "comment": "Add base offset of frame records"
+    },
+    "10A1FF": {
+      "comment": "Y = offset to current 3-byte record"
+    },
+    "10A200": {
+      "comment": "8-bit A"
+    },
+    "10A202": {
+      "comment": "Read frame delay"
+    },
+    "10A204": {
+      "comment": "Add to timer with carry precision"
+    },
+    "10A207": {
+      "comment": "Reload countdown timer"
+    },
+    "10A20A": {
+      "comment": "Read loop counter"
+    },
+    "10A20D": {
+      "comment": "Infinite loop check"
+    },
+    "10A211": {
+      "comment": "Decrement loop counter"
+    },
+    "10A215": {
+      "comment": "Preserve channel index on stack",
+      "label": "L_A215"
+    },
+    "10A216": {
+      "comment": "16-bit A, X, Y, CLC"
+    },
+    "10A219": {
+      "comment": "Add base VRAM tile slot ($7E:106E)"
+    },
+    "10A220": {
+      "comment": "A = tile_slot * 32"
+    },
+    "10A226": {
+      "comment": "DP $2E = tile_slot & 0xE0"
+    },
+    "10A230": {
+      "comment": "DP $2E = VRAM planar destination word"
+    },
+    "10A233": {
+      "comment": "Read 16-bit source tile offset in Bank $EE"
+    },
+    "10A238": {
+      "comment": "X = pointer to graphic chunk"
+    },
+    "10A239": {
+      "comment": "Load source address high word"
+    },
+    "10A23F": {
+      "comment": "Load source address low word"
+    },
+    "10A246": {
+      "comment": "Length = 64 bytes"
+    },
+    "10A249": {
+      "comment": "Upload block 1 via DMA Channel 1"
+    },
+    "10A250": {
+      "comment": "Advance source by 64 bytes"
+    },
+    "10A258": {
+      "comment": "Offset VRAM destination by +0x0100"
+    },
+    "10A25A": {
+      "comment": "Length = 64 bytes"
+    },
+    "10A25D": {
+      "comment": "Upload block 2 via DMA Channel 1"
+    },
+    "10A261": {
+      "comment": "Restore channel index"
+    },
+    "10A262": {
+      "comment": "8-bit A"
+    },
+    "10A264": {
+      "comment": "Deduct from frame update budget"
+    },
+    "10A266": {
+      "comment": "Budget exhausted -> drain timers"
+    },
+    "10A268": {
+      "comment": "Continue scanning next channel"
+    },
+    "10A273": {
+      "label": "L_A273"
+    },
+    "10A283": {
+      "comment": "16-bit A, X, Y",
+      "label": "L_A283"
+    },
+    "10A289": {
+      "comment": "A = 10 - remaining_budget (updates performed)"
+    },
+    "10A28F": {
+      "comment": "Cost in words = updates * 16"
+    },
+    "10A291": {
+      "comment": "Negate cost"
+    },
+    "10A295": {
+      "comment": "Deduct from DP $00D8 VRAM budget"
+    },
+    "10A29A": {
+      "comment": "Clamp to 0"
+    },
+    "10A29D": {
+      "comment": "Store updated budget",
+      "label": "L_A29D"
+    },
+    "10A2A0": {
+      "comment": "Restore Data Bank"
+    },
+    "00DE95": {
+      "comment": "Load screen fade controller"
+    },
+    "00DE98": {
+      "comment": "Bit 15 set: fade active"
+    },
+    "00DE9A": {
+      "comment": "Otherwise, idle"
+    },
+    "00DE9B": {
+      "comment": "8-bit accumulator"
+    },
+    "00DE9D": {
+      "comment": "Read target brightness (bits 0-3)"
+    },
+    "00DEA0": {
+      "comment": "Compare with current INIDISP brightness"
+    },
+    "00DEA3": {
+      "comment": "Target reached?"
+    },
+    "00DEA5": {
+      "comment": "If target > current, increment"
+    },
+    "00DEA7": {
+      "comment": "Current brightness -= 1"
+    },
+    "00DEAA": {
+      "comment": "Target reached on this step?"
+    },
+    "00DEB2": {
+      "comment": "Current brightness += 1"
+    },
+    "00DEB5": {
+      "comment": "Target reached on this step?"
+    },
+    "00DEBD": {
+      "comment": "16-bit A/X"
+    },
+    "00DEBF": {
+      "comment": "Clear fade controller (fade complete)"
+    },
+    "0CCD33": {
+      "comment": "Store string key into DP $26"
+    },
+    "0CCD35": {
+      "comment": "Bank $91"
+    },
+    "0CCD38": {
+      "comment": "DP $28 = bank"
+    },
+    "0CCD3A": {
+      "comment": "Offset $F24A"
+    },
+    "0CCD3D": {
+      "comment": "Load 16-bit string descriptor low word"
+    },
+    "0CCD3F": {
+      "comment": "Mask off bit 15 (offset within ROM bank)"
+    },
+    "0CCD42": {
+      "comment": "DP $22 = text offset"
+    },
+    "0CCD44": {
+      "comment": "Advance to bank descriptor"
+    },
+    "0CCD45": {
+      "comment": "Load bank descriptor"
+    },
+    "0CCD47": {
+      "comment": "Test bit 15 (Compressed String Flag)"
+    },
+    "0CCD48": {
+      "comment": "If Carry Set -> compressed, decode!"
+    },
+    "0CCD4A": {
+      "comment": "Move bank byte to low byte"
+    },
+    "0CCD4B": {
+      "comment": "Isolate bank index"
+    },
+    "0CCD4F": {
+      "comment": "Base ROM bank offset ($C0 + bank)"
+    },
+    "0CCD52": {
+      "comment": "DP $24 = bank"
+    },
+    "0CCD54": {
+      "comment": "Return Long with direct ROM pointer"
+    },
+    "0CCD5A": {
+      "comment": "Compute compressed data ROM source bank"
+    },
+    "0CCD5D": {
+      "comment": "DP $24 = source bank"
+    },
+    "0CCD5F": {
+      "comment": "Read current cyclic write cursor"
+    },
+    "0CCD64": {
+      "comment": "Allocate 80 bytes (1 text line chunk)"
+    },
+    "0CCD67": {
+      "comment": "Ring limit: 640 bytes (8 x 80-byte lines)"
+    },
+    "0CCD6C": {
+      "comment": "Reset cursor to 0 upon reaching 640 bytes"
+    },
+    "0CCD6D": {
+      "comment": "Update allocation cursor"
+    },
+    "0CCD72": {
+      "comment": "Add buffer base offset ($7F:DC1E)"
+    },
+    "0CCD75": {
+      "comment": "Y = destination buffer offset"
+    },
+    "0CCD76": {
+      "comment": "Save destination offset on stack"
+    },
+    "0CCD77": {
+      "comment": "Execute DTE/MTE text decompression!"
+    },
+    "0CCD7B": {
+      "comment": "Restore destination offset"
+    },
+    "0CCD7C": {
+      "comment": "DP $22 = decompressed string offset in WRAM"
+    },
+    "0CCD7E": {
+      "comment": "Bank $7F"
+    },
+    "0CCD81": {
+      "comment": "DP $24 = bank $7F"
+    },
+    "0CCD83": {
+      "comment": "Return Long"
+    },
+    "0CCD84": {
+      "comment": "Preserve caller Data Bank | Save caller data bank"
+    },
+    "0CCD89": {
+      "comment": "Set Data Bank Register to $7F | Clean up second byte"
+    },
+    "0CCD8A": {
+      "comment": "Adjust Y for pre-increment write loop | Pre-decrement Y so INY places first char at $D81E"
+    },
+    "0CCD8C": {
+      "comment": "8-bit Accumulator | 8-bit accumulator (A=8-bit, X/Y=16-bit)"
+    },
+    "0CCD90": {
+      "comment": "Increment source pointer low byte | Advance stream pointer low byte"
+    },
+    "0CCD94": {
+      "comment": "Carry into high byte | Advance stream pointer high byte"
+    },
+    "0CCD96": {
+      "comment": "Read compressed token byte from ROM | Read next token byte"
+    },
+    "0CCD98": {
+      "comment": "If bit 7 is set -> Tiers 3, 4, 5 | If bit 7 is set (>= 0x80) -> branch to Digraph/Dictionary"
+    },
+    "0CCD9A": {
+      "comment": "Test bit 6 | Bit 6 into Carry and bit 7"
+    },
+    "0CCD9B": {
+      "comment": "If bit 6 set -> Tier 2 (Literal Raw Run) | If bit 6 was 1 (0x40..0x7F) -> Tier 2 Literal Run"
+    },
+    "0CCD9D": {
+      "comment": "Advance output cursor | Advance output buffer index"
+    },
+    "0CCD9E": {
+      "comment": "Restore character token code (0x00..0x3F) | Restore token value (0x00..0x3F)"
+    },
+    "0CCD9F": {
+      "comment": "X = token index"
+    },
+    "0CCDA0": {
+      "comment": "Look up decoded ASCII character | Table lookup: single character"
+    },
+    "0CCDA4": {
+      "comment": "Write character to WRAM bank $7F | Write character to $7F:Y"
+    },
+    "0CCDA7": {
+      "comment": "If non-zero, process next token | If character != 0, continue decoding"
+    },
+    "0CCDA9": {
+      "comment": "Restore 16-bit Accumulator | NUL terminator reached! Restore 16-bit A"
+    },
+    "0CCDAB": {
+      "comment": "Restore Data Bank | Restore original caller Data Bank"
+    },
+    "0CCDAC": {
+      "comment": "Return Long (String Complete)"
+    },
+    "0CCDAE": {
+      "comment": "Isolate run length (1..63 bytes) | Mask run length (N bytes)"
+    },
+    "0CCDB0": {
+      "comment": "X = byte counter | Loop counter X = count"
+    },
+    "0CCDB1": {
+      "comment": "Advance source pointer | Advance stream pointer to first literal byte"
+    },
+    "0CCDB7": {
+      "comment": "Read raw character byte | Read literal byte"
+    },
+    "0CCDB9": {
+      "comment": "Advance destination | Advance output buffer index"
+    },
+    "0CCDBA": {
+      "comment": "Store literal byte into output buffer | Write literal byte to $7F:Y"
+    },
+    "0CCDBD": {
+      "comment": "Decrement run counter"
+    },
+    "0CCDBE": {
+      "comment": "Loop until all run bytes copied | Loop until all literal bytes copied"
+    },
+    "0CCDC0": {
+      "comment": "Was the last copied byte null? | Was the last copied byte NUL?"
+    },
+    "0CCDC2": {
+      "comment": "If not null, resume token decoding | If not zero, advance and continue stream"
+    },
+    "0CCDC8": {
+      "comment": "Test bit 6"
+    },
+    "0CCDC9": {
+      "comment": "If bit 6 set -> Tier 4 (MTE) or Tier 5 (Dict) | Advance output buffer"
+    },
+    "0CCDCB": {
+      "comment": "Advance destination cursor | Read first character of pair"
+    },
+    "0CCDCC": {
+      "comment": "X = digram pair offset (token * 2)"
+    },
+    "0CCDCD": {
+      "comment": "Read first character of digram"
+    },
+    "0CCDD1": {
+      "comment": "Write first character"
+    },
+    "0CCDD4": {
+      "comment": "Advance destination cursor"
+    },
+    "0CCDD5": {
+      "comment": "Read second character of digram"
+    },
+    "0CCDD9": {
+      "comment": "Write second character"
+    },
+    "0CCDDC": {
+      "comment": "If null terminator, exit | Advance stream and continue"
+    },
+    "0CCDDE": {
+      "comment": "Continue decoding | Test bits 6..1 | Mask bits 6..1"
+    },
+    "0CCDE0": {
+      "comment": "If zero (0xC0/0xC1) -> Tier 5 (Dictionary Phrase) | If bits 6..1 == 0 (original byte == 0xC0) -> Tier 5 Primary!"
+    },
+    "0CCDE2": {
+      "comment": "X = MTE word table index | X = (byte << 1) & 0x7E (secondary word pointer offset)"
+    },
+    "0CCDE3": {
+      "comment": "Bank $91"
+    },
+    "0CCDE5": {
+      "comment": "DP $28 = word bank | $28 = Bank $91"
+    },
+    "0CCDE7": {
+      "comment": "16-bit Accumulator"
+    },
+    "0CCDE9": {
+      "comment": "Load word offset relative to base $91:F66C | Read 16-bit word offset from table $91:F3EC"
+    },
+    "0CCDEE": {
+      "comment": "Add MTE word base address $F66C | Add base address of secondary word data ($91:F66C)"
+    },
+    "0CCDF1": {
+      "comment": "DP $26 = word source pointer | $26 = 24-bit pointer to word string"
+    },
+    "0CCDF4": {
+      "comment": "8-bit Accumulator"
+    },
+    "0CCDF8": {
+      "comment": "Advance destination | Advance output buffer index"
+    },
+    "0CCDF9": {
+      "comment": "Copy word character to output | Write character to $7F:Y"
+    },
+    "0CCDFC": {
+      "comment": "Advance word source pointer | Advance word pointer"
+    },
+    "0CCE02": {
+      "comment": "Read character of word string | Read next character of word"
+    },
+    "0CCE04": {
+      "comment": "Stream until word null terminator | Continue copying until NUL (0x00)"
+    },
+    "0CCE06": {
+      "comment": "Resume main token decoding loop | Word done -> advance stream pointer and continue"
+    },
+    "0CCE09": {
+      "comment": "Advance source pointer to read phrase index | Advance stream to read word index byte"
+    },
+    "0CCE11": {
+      "comment": "DP $28 = bank $91 | $28 = Bank $91"
+    },
+    "0CCE15": {
+      "comment": "Read 8-bit phrase index | 16-bit A"
+    },
+    "0CCE17": {
+      "comment": "16-bit Accumulator | Index * 2"
+    },
+    "0CCE19": {
+      "comment": "Phrase index * 2 | Read 16-bit word offset from primary table $91:F46C"
+    },
+    "0CCE1A": {
+      "comment": "X = phrase table offset"
+    },
+    "0CCE1B": {
+      "comment": "Load phrase offset relative to base $91:F7D5"
+    },
+    "0CCE20": {
+      "comment": "Add dictionary phrase base address $F7D5"
+    },
+    "0CCE23": {
+      "comment": "DP $26 = phrase source pointer"
+    },
+    "0CCE26": {
+      "comment": "8-bit Accumulator | Jump to word copying loop ($CE02)"
+    },
+    "0CCE28": {
+      "comment": "Stream phrase string to output buffer!"
+    },
+    "0CA800": {
+      "comment": "Preserve character accumulator"
+    },
+    "0CA801": {
+      "comment": "Load character attribute word"
+    },
+    "0CA804": {
+      "comment": "Load active text buffer index"
+    },
+    "0CA806": {
+      "comment": "Render 2bpp glyph into staging buffer ($7F:A000)"
+    },
+    "0CA80A": {
+      "comment": "Push cursor X coordinate to stack"
+    },
+    "0CA80C": {
+      "comment": "Push cursor Y coordinate to stack"
+    },
+    "0CA80E": {
+      "comment": "Run per-frame engine tick (weather, anim, audio)"
+    },
+    "0CA812": {
+      "comment": "Restore cursor Y"
+    },
+    "0CA815": {
+      "comment": "Restore cursor X"
+    },
+    "0CA818": {
+      "comment": "Read controller 1 button status"
+    },
+    "0CA81B": {
+      "comment": "Filter mask"
+    },
+    "0CA81E": {
+      "comment": "Check button edge transition (new press)"
+    },
+    "0CA822": {
+      "comment": "No button pressed -> keep ticking!"
+    },
+    "0CA824": {
+      "comment": "Restore text index"
+    },
+    "0CA828": {
+      "comment": "Check action buttons (A or B pressed)"
+    },
+    "0CA82B": {
+      "comment": "If other button, branch to alternate handler"
+    },
+    "0CA82D": {
+      "comment": "Preserve button mask"
+    },
+    "0CA830": {
+      "comment": "Sound effect #$0003: Dialogue typewriter click"
+    },
+    "0CA833": {
+      "comment": "Play sound effect direct"
+    },
+    "0CA83A": {
+      "comment": "Load character index"
+    },
+    "0CA83C": {
+      "comment": "Decrement character countdown"
+    },
+    "0CA83D": {
+      "comment": "If characters remain, advance to position commit"
+    },
+    "0CA83F": {
+      "comment": "Read typing mode control word"
+    },
+    "0CA842": {
+      "comment": "Fast-forward / auto-complete flag"
+    },
+    "0CA845": {
+      "comment": "If clear, normal finish"
+    },
+    "0CA84A": {
+      "comment": "Clear typing active flag"
+    },
+    "0CA84D": {
+      "comment": "Clear Carry: Complete"
+    },
+    "0CA854": {
+      "comment": "Load packed cursor coordinates"
+    },
+    "0CA857": {
+      "comment": "Low byte = Line / Row"
+    },
+    "0CA85A": {
+      "comment": "DP $48 = Row"
+    },
+    "0CA860": {
+      "comment": "High byte = Column"
+    },
+    "0CA863": {
+      "comment": "DP $46 = Column"
+    },
+    "0CA865": {
+      "comment": "Load character attribute"
+    },
+    "0CA868": {
+      "comment": "Decode glyph and get width"
+    },
+    "0CA86F": {
+      "comment": "Set base tile offset"
+    },
+    "0CA872": {
+      "comment": "Multiplier A: Row offset"
+    },
+    "0CA875": {
+      "comment": "Stride factor"
+    },
+    "0CA879": {
+      "comment": "Add multiplication product"
+    },
+    "0CA87C": {
+      "comment": "X = destination VRAM tile offset"
+    },
+    "0CA87D": {
+      "comment": "Commit tile upload to VRAM"
+    },
+    "0CA929": {
+      "comment": "Subtract ASCII space (0x20)"
+    },
+    "0CA92C": {
+      "comment": "If not space, load glyph bitmap"
+    },
+    "0CA92E": {
+      "comment": "Space: return default space width (4px)"
+    },
+    "0CA932": {
+      "comment": "Save relative glyph index"
+    },
+    "0CA935": {
+      "comment": "Add font table base offset"
+    },
+    "0CA938": {
+      "comment": "Load glyph descriptor from ROM Bank $C4"
+    },
+    "0CA93F": {
+      "comment": "Width = header width + 1"
+    },
+    "0CA940": {
+      "comment": "Store glyph width to DP $08"
+    },
+    "0CA942": {
+      "comment": "Load font bitplane mask"
+    },
+    "0CA947": {
+      "comment": "Row"
+    },
+    "0CA949": {
+      "comment": "Mask sub-tile scanline (0..7)"
+    },
+    "0CA94C": {
+      "comment": "2 bytes per scanline"
+    },
+    "0CA94E": {
+      "comment": "Base bitplane offset"
+    },
+    "0CA952": {
+      "comment": "Column"
+    },
+    "0CA954": {
+      "comment": "Align to 8-pixel tile boundary"
+    },
+    "0CA958": {
+      "comment": "Blend with buffer origin"
+    },
+    "0CCCF6": {
+      "comment": "String table bank ($91)"
+    },
+    "0CCCFB": {
+      "comment": "Base offset $D000"
+    },
+    "0CCCFE": {
+      "comment": "Read 24-bit key descriptor"
+    },
+    "0CCD0A": {
+      "comment": "If bit 23 set -> compressed string decoder"
+    },
+    "0CCD24": {
+      "comment": "Dictionary expander pass"
+    },
+    "0C89DF": {
+      "comment": "Targeting modal flags"
+    },
+    "0C89E2": {
+      "comment": "Multi-target bit active?"
+    },
+    "0C89E5": {
+      "comment": "Branch if single target"
+    },
+    "0C89E7": {
+      "comment": "Pointer to string \"Multiple\\0\""
+    },
+    "0C89F1": {
+      "comment": "Jump to stream dispatch"
+    },
+    "0C89F3": {
+      "comment": "Target selection cursor"
+    },
+    "0C89F6": {
+      "comment": "Target entity pointer"
+    },
+    "0C89F9": {
+      "comment": "Entity +$60: Character record in Bank $8E"
+    },
+    "0C89FD": {
+      "comment": "Record +$00: 24-bit Name Pointer Low"
+    },
+    "0C8A03": {
+      "comment": "Record +$01: 24-bit Name Pointer High"
+    },
+    "0C8A0E": {
+      "comment": "Data Bank = $80"
+    },
+    "0C8A0F": {
+      "comment": "Target name window text buffer offset"
+    },
+    "0C8A12": {
+      "comment": "Copy raw name into window buffer"
+    },
+    "0C8A16": {
+      "comment": "Format and append text line"
+    },
+    "0C8A25": {
+      "comment": "Targeting modal flags"
+    },
+    "0C8A28": {
+      "comment": "Multi-target check"
+    },
+    "0C8A2B": {
+      "comment": "Branch if single target"
+    },
+    "0C8A2D": {
+      "comment": "\"I can only talk about one life at a time!\\0\""
+    },
+    "0C8A3C": {
+      "comment": "DB = $80"
+    },
+    "0C8A3D": {
+      "comment": "Status inspection window buffer offset"
+    },
+    "0C8A4A": {
+      "comment": "Target selection cursor"
+    },
+    "0C8A4D": {
+      "comment": "Entity pointer"
+    },
+    "0C8A55": {
+      "comment": "DB = $80"
+    },
+    "0C8A56": {
+      "comment": "Preserve entity pointer on stack"
+    },
+    "0C8A5A": {
+      "comment": "Stream entity name header"
+    },
+    "0C8A5E": {
+      "comment": "\"HP: \\0\""
+    },
+    "0C8A6B": {
+      "comment": "Append \"HP: \""
+    },
+    "0C8A6F": {
+      "comment": "Reload entity pointer from stack"
+    },
+    "0C8A72": {
+      "comment": "Entity +$2A: Current HP"
+    },
+    "0C8A7A": {
+      "comment": "Decimal ASCII string staging buffer"
+    },
+    "0C8A84": {
+      "comment": "Convert int in $02 to decimal string"
+    },
+    "0C8A8B": {
+      "comment": "Append numeric HP"
+    },
+    "0C8A8F": {
+      "comment": "Newline character '\\n'"
+    },
+    "0C8A92": {
+      "comment": "Append newline code"
+    },
+    "0C8B77": {
+      "comment": "Clean up stack"
+    },
+    "0C8B78": {
+      "comment": "Restore DB"
+    },
+    "0E99D7": {
+      "comment": "Data Bank = $7E"
+    },
+    "0E99D8": {
+      "comment": "Clear physical defense accumulator"
+    },
+    "0E99DB": {
+      "comment": "Clear magic defense accumulator"
+    },
+    "0E99E1": {
+      "comment": "Slot counter"
+    },
+    "0E99E3": {
+      "comment": "Loop index over equipment tables"
+    },
+    "0E99E6": {
+      "comment": "Load equipment pointer offset"
+    },
+    "0E99EB": {
+      "comment": "Load equipped item bitmask"
+    },
+    "0E99EF": {
+      "comment": "Test if item is equipped in inventory"
+    },
+    "0E99F2": {
+      "comment": "Slot empty -> next item"
+    },
+    "0E99FD": {
+      "comment": "Base armor bonus"
+    },
+    "0E9A13": {
+      "comment": "Load base character defense"
+    },
+    "0E9A1A": {
+      "comment": "Physical defense sum"
+    },
+    "0E9A1D": {
+      "comment": "Magic defense sum"
+    },
+    "0E9A24": {
+      "comment": "Accumulate total defense"
+    },
+    "0E9A86": {
+      "comment": "Slot 0: Helmets / Collars"
+    },
+    "0E9A8C": {
+      "comment": "Slot 1: Vests / Body Armor"
+    },
+    "0E9A92": {
+      "comment": "Slot 2: Bracers / Arm Wear"
+    },
+    "0E9A98": {
+      "comment": "Slot 3: Rings / Accessories"
+    },
+    "10A5BA": {
+      "comment": "Invoke hud_minimap_vram_blit to test / process staging"
+    },
+    "10A5BD": {
+      "comment": "If Carry == 0, blit queue is empty; return immediately"
+    },
+    "10A5BF": {
+      "comment": "Load 30 (0x1E) into Accumulator"
+    },
+    "10A5C2": {
+      "comment": "Set remaining chunk budget register $7E:116E"
+    },
+    "10A5C5": {
+      "comment": "Process up to 30 chunks via hud_minimap_vram_blit"
+    },
+    "10A5C8": {
+      "comment": "JSL wait_for_frame (spin until NMI increments $0100)"
+    },
+    "10A5CC": {
+      "comment": "Branch back to A5BA to re-verify queue status"
+    },
+    "10A5CF": {
+      "comment": "Return to caller"
+    },
+    "0CCD85": {
+      "comment": "Push $7F7F"
+    },
+    "0CCD88": {
+      "comment": "Pull into DB -> DB = $7F"
+    },
+    "0CCD8B": {
+      "comment": "Clear A (Transfer Direct Page to A)"
+    },
+    "0CCD8E": {
+      "comment": "Jump to token read"
+    },
+    "0CCDAD": {
+      "comment": "Restore bits 5..0"
+    },
+    "0CCDC4": {
+      "comment": "If zero, terminate string!"
+    },
+    "0CCDC6": {
+      "comment": "Bit 6 into Negative flag"
+    },
+    "0CCDC7": {
+      "comment": "If bit 6 is 1 (>= 0xC0) -> Tier 4/5 Word Dictionary"
+    },
+    "0CCDCA": {
+      "comment": "X = (byte & 0x3F) << 1"
+    },
+    "0CCDCF": {
+      "comment": "Write first char to $7F:Y"
+    },
+    "0CCDD2": {
+      "comment": "Advance output buffer"
+    },
+    "0CCDD3": {
+      "comment": "Read second character of pair"
+    },
+    "0CCDD7": {
+      "comment": "Write second char to $7F:Y"
+    },
+    "0CCDDA": {
+      "comment": "If second character is NUL, terminate!"
+    },
+    "0CCDF3": {
+      "comment": "Clear A"
+    },
+    "0CCDF6": {
+      "comment": "Jump to word copying loop"
+    },
+    "0CCE0F": {
+      "comment": "Bank $91"
+    },
+    "0CCE13": {
+      "comment": "Read word index (0..255)"
+    },
+    "0CCE18": {
+      "comment": "X = index * 2"
+    },
+    "0CCE1E": {
+      "comment": "Add base address of primary word data ($91:F7D5)"
+    },
+    "0CCE21": {
+      "comment": "$26 = 24-bit pointer to word string"
+    },
+    "0CCE24": {
+      "comment": "8-bit A"
+    },
+    "0C9E03": {
+      "comment": "Initialize window layout & line descriptor in DP $8E"
+    },
+    "0C9E07": {
+      "comment": "Window state flags"
+    },
+    "0C9E30": {
+      "comment": "Clear base line pixel offset"
+    },
+    "0C9E3D": {
+      "comment": "Clear trailing word space accumulator"
+    },
+    "0C9E42": {
+      "comment": "Store window text styling attributes"
+    },
+    "0C9E44": {
+      "comment": "Reset character index"
+    },
+    "0C9E47": {
+      "comment": "Current word pixel width = 0"
+    },
+    "0C9E49": {
+      "comment": "Read character byte from [$22]"
+    },
+    "0C9E50": {
+      "comment": "Non-zero character"
+    },
+    "0C9E52": {
+      "comment": "Null terminator reached -> finalize line"
+    },
+    "0C9E58": {
+      "comment": "If < 0x80 -> standard ASCII / printable glyph"
+    },
+    "0C9E5A": {
+      "comment": "Mask token index"
+    },
+    "0C9E5D": {
+      "comment": "Word offset"
+    },
+    "0C9E5F": {
+      "comment": "Jump to control token handler"
+    },
+    "0C9EA3": {
+      "comment": "Newline '\\n'?"
+    },
+    "0C9EA8": {
+      "comment": "Line break"
+    },
+    "0C9EAB": {
+      "comment": "Space ' '?"
+    },
+    "0C9EB0": {
+      "comment": "Add space width to line total"
+    },
+    "0C9EC0": {
+      "comment": "Tab '\\t'?"
+    },
+    "0C9EC7": {
+      "comment": "Calculate tab stop position"
+    },
+    "0C9ED6": {
+      "comment": "Proportional printable glyph:"
+    },
+    "0C9ED7": {
+      "comment": "Convert ASCII to glyph index (starts at ' ')"
+    },
+    "0C9EE5": {
+      "comment": "Read glyph width from table at [$92]"
+    },
+    "0C9EEB": {
+      "comment": "Add to current word width"
+    },
+    "0C9EF1": {
+      "comment": "Add inter-glyph kerning padding"
+    },
+    "0C9EF7": {
+      "comment": "Continue scan loop"
+    },
+    "0CA040": {
+      "comment": "Bank $7E, offset $2210"
+    },
+    "0CA04A": {
+      "comment": "Scan expanded string"
+    },
+    "0CA05B": {
+      "comment": "Bank $7E, offset $2234"
+    },
+    "0CA071": {
+      "comment": "Address of \"player 3\\0\""
+    },
+    "0CA099": {
+      "comment": "Address of \"player 4\\0\""
+    },
+    "108E85": {
+      "comment": "Clear carry before addition",
+      "label": "loop_accumulate"
+    },
+    "108E86": {
+      "comment": "Add 16-bit delta from WRAM"
+    },
+    "108E88": {
+      "comment": "Store accumulated sum in-place"
+    },
+    "108E8A": {
+      "comment": "Increment Y by 2 bytes (16-bit word)"
+    },
+    "108E8C": {
+      "comment": "Decrement counter"
+    },
+    "108E8D": {
+      "comment": "Branch if X >= 0"
+    },
+    "0C9890": {
+      "comment": "Read sub_flag (method tag)"
+    },
+    "0C9896": {
+      "comment": "tag * 2 (table stride)"
+    },
+    "0C9897": {
+      "comment": "Index into dispatch table"
+    },
+    "0C9898": {
+      "comment": "Read 16-bit decomp_size"
+    },
+    "0C989C": {
+      "comment": "Store target size"
+    },
+    "0C989E": {
+      "comment": "Dispatch to algorithm handler!"
+    },
+    "0C98ED": {
+      "comment": "Window write pointer ($7FA000)"
+    },
+    "0C98F3": {
+      "comment": "Window bound ($7FB000)"
+    },
+    "0C9903": {
+      "comment": "Load bitmask (0x8000 >> bit_index)"
+    },
+    "0C9909": {
+      "comment": "Read 16-bit word from ROM bitstream"
+    },
+    "0C990C": {
+      "comment": "Test flag bit"
+    },
+    "0C990E": {
+      "comment": "If 0 -> LZ reference token"
+    },
+    "0C991F": {
+      "comment": "Unaligned bit-extraction table for literal byte",
+      "label": "literal_byte"
+    },
+    "0C9928": {
+      "comment": "Write literal byte to destination ($7FC300)"
+    },
+    "0C992A": {
+      "comment": "Write literal byte to history window ($7FA000)"
+    },
+    "0C992E": {
+      "comment": "Increment output pointer"
+    },
+    "0C9930": {
+      "comment": "Increment window pointer (modulo 4096)"
+    },
+    "0C993D": {
+      "comment": "Next token"
+    },
+    "0C994F": {
+      "label": "lz_reference"
+    },
+    "0C9951": {
+      "comment": "Unaligned bit-extraction table for 16-bit token"
+    },
+    "0C99D3": {
+      "comment": "Token >> 4 gives window offset"
+    },
+    "0C99D4": {
+      "comment": "If offset == 0 -> END OF STREAM SENTINEL"
+    },
+    "0C99D7": {
+      "comment": "Window pointer = (offset - 1) relative to $7FA000"
+    },
+    "0C99DA": {
+      "comment": "X = window source address"
+    },
+    "0C99DF": {
+      "comment": "Length = (Token & 0x0F) + 2"
+    },
+    "0C99E2": {
+      "comment": "Y = copy length counter"
+    },
+    "0C99E5": {
+      "comment": "Read from history window",
+      "label": "lz_copy_loop"
+    },
+    "0C99E8": {
+      "comment": "Write to output"
+    },
+    "0C99EA": {
+      "comment": "Write to current window position"
+    },
+    "0C98E9": {
+      "comment": "Return from subroutine",
+      "label": "lz_exit"
+    },
+    "0CC892": {
+      "comment": "Store tile index"
+    },
+    "0CC894": {
+      "comment": "tile_id * 2"
+    },
+    "0CC895": {
+      "comment": "tile_id * 3 (24-bit pointer stride)"
+    },
+    "0CC898": {
+      "comment": "Read 16-bit address (low/high)"
+    },
+    "0CC8A1": {
+      "comment": "Read 8-bit bank byte"
+    },
+    "0CC958": {
+      "comment": "DMA transfer size (words * 2)"
+    },
+    "0CC969": {
+      "comment": "DMA source address"
+    },
+    "0CC976": {
+      "comment": "DMA source bank"
+    },
+    "0CC97C": {
+      "comment": "DMA mode ($1801 = CPU to VMDATAL $2118)"
+    },
+    "0CC981": {
+      "comment": "Trigger DMA transfer"
+    },
+    "0CCC6D": {
+      "comment": "Direct Page = $2100 (hardware registers)"
+    },
+    "1091B0": {
+      "comment": "Set 16-bit dividend = decompressed byte count S"
+    },
+    "1091B8": {
+      "comment": "Set 8-bit divisor = 6 bytes per metatile definition"
+    },
+    "1091C5": {
+      "comment": "Read 16-bit quotient = N (metatile count)"
+    },
+    "1091C8": {
+      "comment": "$18 = N"
+    }
+  }
+}

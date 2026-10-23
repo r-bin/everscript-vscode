@@ -8,6 +8,7 @@ import * as sounds from './sounds';
 import * as tables from './tables';
 import * as functions from './functions';
 import * as scripts from './scripts';
+import * as comments from './comments';
 
 export const decodeRomString = strings.decodeRomString;
 export const resolveLocalizedName = strings.resolveLocalizedName;
@@ -42,4 +43,7 @@ export const getAbsScriptName = scripts.getAbsScriptName;
 export const getGlobalScript = scripts.getGlobalScript;
 export const getGlobalScriptName = scripts.getGlobalScriptName;
 export const setScriptOverride = scripts.setScriptOverride;
+export const getRomComment = comments.getRomComment;
+export const getWramComment = comments.getWramComment;
+export const getAllRomComments = comments.getAllRomComments;
 
