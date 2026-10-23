@@ -1,7 +1,9 @@
 # Enemy AI in Secret of Evermore
 
-> Status: **solved.** Native 65816 assembly routines dispatched at `$8FCD1A` via the
-> jump table at `$8FCBE0` in Bank `$8F`.
+> Status: **partly superseded (v0.342.0).** The 15 behaviours are decompiled in
+> [ai-behaviours.md](ai-behaviours.md), which replaces §4 and corrects §2 and §8 here: only the
+> stationary behaviours roll the aggro chance; chasers always have a target. Native 65816 routines
+> dispatched at `$8FCD1A` via the jump table at `$8FCBE0` in Bank `$8F`.
 > Character stats at `$8EB678` (stride 74). Animation VM at `$9080D0`.
 > Traced and verified against ROM disassembly.
 
@@ -48,7 +50,7 @@ The character table at `$8EB678` (74 bytes per record; see [character_table.md](
 | `+0x15` | 2 | `aggro_chance` | Threshold (0..255) for the RNG roll to engage |
 | `+0x2C` | 2 | `charge_limit` | Meter cap on entity stamina `+0x2E` (`$400` = 100%) |
 | `+0x2E` | 2 | `charge_speed` | Stamina recharge points added to `+0x2E` every tick (`$8FCC5D`) |
-| `+0x30` | 2 | `attack_proc` | Hit resolution routine (`$8FB6A5`; default `$8FB75A`) |
+| `+0x30` | 2 | `attack_proc` | Hit resolution routine through `$8FB6AE` (0 = `$8FB6CC`, the plain hit) |
 | `+0x32..+0x3E` | 2 each | `stand`, `walk`, `run`, `atk0..atk3` | Animation record pointers in `$C40000` |
 
 ---
@@ -62,7 +64,7 @@ The engine tracks active party members in low WRAM:
 
 ### The Aggro Detection Pipeline (`$8FD69B` – `$8FD6FA`)
 
-Every tick, an active enemy evaluates whether to engage a player character through a strict multi-stage filter:
+The stationary behaviours (`STATIONARY`, `STATIONARY_DIAGONAL`; `STATIONARY_PLAYER` has its own copy) decide whether to engage through this filter. Roaming enemies do not use it: their target pick `$8FD879` has no range and no chance ([ai-behaviours.md](ai-behaviours.md)).
 
 ```
                   ┌──────────────────────────────┐
@@ -261,27 +263,11 @@ When a hit registers:
 
 ---
 
-## 4. Master Table of All 15 Enemy AI Behaviours
+## 4. The 15 behaviours
 
-The engine dispatches enemy behaviour through the jump table at **`$8FCBE0`** in Bank `$8F`. The character record field `+0x03` provides the word index (`0, 2, 4, ..., 28`):
-
-| Index | Routine | Classification | Characters | Typical Examples | Behaviour Summary |
-|---|---|---|---|---|---|
-| `0x00` | `$8FD34B` | **Standard Roaming / Chasing Monster** | 53 | Raptor, Oglin, Son of Set, Hedgadillo, Bone Buzzard, Skelesnail, Frippo, Sand Spider, Neo Greeble, Guardbot, Timberdrake, Sterling, FootKnight, Bad Boy, Bad Dawg | Roams within spawn leash radius (`+0x40`); tests both Boy and Dog proximity against `aggro_range`; rolls `aggro_chance` when stamina $\ge \$400$; turns to face target; advances along 8/16-angle vectors; initiates stamina-level attacks (0–3). |
-| `0x02` | `$8FD76A` | **Static Props & Scripted Boss Parts** | 20 | Rock, Statue, Bridge, Bomb, Face, Mungola, Aquagoth, Aegis, Thraxx Heart, Coleoptera Heart, Fan, Speaker, Carltron's Robot | Stationary (`range=0, chance=0`); zero autonomous roaming or target hunting; awaits room script triggers, hit events, or parent boss orchestration. |
-| `0x04` | `$8FD05E` | **Autonomous Boy Companion** | 1 | The Boy (`#0`) | Runs when the Dog is the actively controlled character (`$0F42`); follows the Dog, maintains formation distance, and attacks the Dog's current combat target. |
-| `0x06` | `$8FD0A8` | **Autonomous Dog Companion** | 1 | The Dog (`#1`) | Runs when the Boy is the actively controlled character; follows the Boy; polls room alchemy sniff coordinates (`$1453..$1459`); navigates to sniff spots; attacks enemies based on behaviour settings. |
-| `0x08` | `$8FD6FB` | **Stationary Plant / Turret Hazard** | 12 | Wimpy Flower, Carniflower, Flowering Death, Tiny Tentacle, Stone Cobra (x2), Thraxx Claws (x4), Sphere Bot | Immobile (no walking/running); waits in idle stance until target enters aggro square; when stamina is full and roll succeeds, turns towards player and fires attack (extended lunge bite, claw swipe, or venom spit). |
-| `0x0A` | `$8FD76E` | **Friendly NPCs & Townsfolk** | 36 | Villagers, Fire Eyes, Horace, Strongheart, Madronius, Professor Ruffleberg, Tinker, Gomi, Tiny, Barker | Flagged `INVINCIBLE` (`0x0002`); wanders slowly or stands idle; non-hostile; triggers dialogue windows upon B-button interaction; completely ignores player aggro checks. |
-| `0x0C` | `$8FD4FB` | **Erratic Aerial / Buzzing Monster** | 5 | Mosquito (x2), Old Nick, Mephista, Floating Fan | Levitates/oscillates vertical height (`+0x1E`); sinusoidal and zigzag flight paths; evasive buzzing; dives into player with strike boxes or contact damage. |
-| `0x0E` | `$8FD715` | **Submerging Swamp Ambush** | 2 | Tar Skull, Salabog | Hides submerged beneath swamp/mud plane; monitors player proximity; breaches surface with segmented lunges to bite (Salabog also fires mud bubble projectile barrage in atk2); submerges to reposition. |
-| `0x10` | `$8FD5D2` | **Magmar (Lava Boss AI)** | 2 | Magmar (both encounters) | Submerges into molten lava; tracks player position under the surface; surfaces to spit projectiles; transitions into rolling fireball attack (`mode $4000` charging contact damage). |
-| `0x12` | `$8FD421` | **Viper (Snake Slither & Strike)** | 2 | Viper, Viper Commander | S-curve slithering pathing; coils defensively; extends rapid tongue flick strikes (`strike 31, -37, 8, 8`); slithers to reposition. |
-| `0x14` | `$8FD394` | **Rimsala (Hovering Boss)** | 3 | Rimsala, Rimsla, Eye of Rimsala | Levitates and tracks player; high-speed charging dashes across the room with charging contact damage (`mode $4000`, `step 10!`); alternates between intangible shadow phase and solid vulnerable phase. |
-| `0x16` | `$8FD3DC` | **Spark / Environmental Hazard** | 1 | Spark (`#75`) | Continuous fast patrol bouncing along collision boundaries and room walls; deals immediate contact damage on impact. |
-| `0x18` | `$8FD380` | **Mini-Taur (Labyrinth Bull)** | 1 | Mini-Taur | Labyrinth corridor tracking; charges along straight lines with `mode $4000`; heavy club smash when target is within close melee reach. |
-| `0x1A` | `$8FD52E` | **Megataur (Colosseum Boss)** | 1 | Megataur | Arena boss routine; curls into a ball and rolls across the arena with bounding hops (`hop 26`, `strike 1, 1, 59, 34`); wide horn strikes. |
-| `0x1C` | `$8FD708` | **Water / Pit Tentacle Hazard** | 2 | Tentacle (both encounters) | Stationed in deep water / swamp holes; erupts upward when player approaches water edge; sweeps shore with whip strikes; submerges to avoid attacks. |
+Moved to [ai-behaviours.md](ai-behaviours.md), decompiled, with the enum names. The table that
+stood here described lava submerging, shadow phases and HP phases; none of that is in the
+behaviour routines (it is animation and room scripts, where it exists at all).
 
 ---
 
@@ -294,9 +280,9 @@ The AI script executed by an entity is **not stored as an AI ID field in the ent
    Each character definition (stride 74 bytes) has its behaviour word at offset `+0x03`.
 2. **Entity Record in WRAM:**
    When an entity spawns (`$8FB0BA`), the engine writes the **character table byte offset** into **`entity +0x60`** in WRAM (`STA $0060,Y`):
-   - Boy: `+0x60` = `$0000` (`0 * 74`)
-   - Dog: `+0x60` = `$004A` (`1 * 74`)
-   - Wimpy Flower: `+0x60` = `$1F7A` (`109 * 74`)
+   - Boy: `+0x60` = `$0A26` (his WRAM record; bank `$8E` mirrors low WRAM)
+   - Dog: `+0x60` = `$0A70`
+   - Wimpy Flower: `+0x60` = `$D5FA` (`$B678 + 109 * 74`)
 3. **The AI Dispatcher (`$8FCD17`):**
    Every single frame that an entity runs AI, the dispatcher performs:
    ```assembly
@@ -350,8 +336,8 @@ Proximity is only the spatial trigger. Enemies react to numerous additional inte
 
 1. **Stamina Meter (`+0x2E`):**
    An enemy will **never** initiate an aggro charge or attack cycle if its stamina meter is below `$0400` (100%). It must wait for its stamina to recharge at the rate defined in character record `+0x2E`.
-2. **Aggro Dice Roll (`+0x15`):**
-   Even with the player standing directly adjacent, an enemy will not engage unless `rand(0..255) < aggro_chance`. For passive enemies like Wimpy Flowers (`aggro_chance = 5`), the roll fails over 98% of the time on any given tick.
+2. **Aggro Dice Roll (`+0x15`), stationary behaviours only:**
+   Even with the player standing directly adjacent, a stationary enemy will not engage unless `rand(0..255) < aggro_chance`. Chasers do not roll it. For passive enemies like Wimpy Flowers (`aggro_chance = 5`), the roll fails over 98% of the time on any given tick.
 3. **Taking Damage (Interrupts & Retaliation):**
    When struck by a weapon or spell:
    - Entity state raises `$0012 |= $0438` (`$8FC0F9`).
@@ -366,8 +352,7 @@ Proximity is only the spatial trigger. Enemies react to numerous additional inte
    The engine checks whether the enemy and player share the same collision elevation plane (bits `0x0030` of the tile collision word). An enemy on low ground cannot engage or strike a player standing on an upper cliff or bridge unless the tile has `PLANE_TRANSPARENT` (`0x0040`).
 6. **Leash Distance (`+0x40`):**
    If pulled too far from its home spawn coordinate, an enemy breaks combat, ceases attacking, and retreats to its spawn origin.
-7. **Boss Phase Timers & HP Thresholds:**
-   Complex bosses (Salabog, Magmar, Megataur) evaluate their remaining HP and phase timers, triggering state transitions such as submerging into lava, burrowing underground, or switching attack patterns.
+7. **No HP thresholds in the AI:** the behaviour routines of Salabog, Magmar and Megataur read no HP. Their phases, where they exist, are room scripts and animation scripts ([ai-behaviours.md](ai-behaviours.md)).
 
 ---
 

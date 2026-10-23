@@ -35,6 +35,14 @@ test('opcode 0xC1 (0x41 with endFrame) disassembles as step(0)!', () => {
     assert.strictEqual(line.endFrame, true);
 });
 
+test('mode prints its bits by name, unread bits as hex (docs/entities/animation_script.md § mode)', () => {
+    const text = (v) => disassembleAt(new Uint8Array([0x4d, v & 0xff, v >> 8, 0x2d]), 0).text;
+    assert.strictEqual(text(0x4004), 'mode(walk | contact)');
+    assert.strictEqual(text(0x0810), 'mode(attack | $0800)');
+    assert.strictEqual(text(0x0120), 'mode(invulnerable | cast)');
+    assert.strictEqual(text(0), 'mode(0)');
+});
+
 test('sprite commands format with virtual index #<idx> when resolver is provided', () => {
     // 0x22 is sprite command with 2-byte operand in bank $ca
     const rom = new Uint8Array([0x22, 0x03, 0x00, 0x2d]); // sprite $ca0003

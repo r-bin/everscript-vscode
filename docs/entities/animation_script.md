@@ -273,7 +273,7 @@ animation uses them. They are presumably for effects and menu scripts.
 | `3F` | 3 | — | If the word is non-zero, calls `$8C81FD` | `$9088BC` | 24 |
 | `40` | 3 | — | A word, then `$8C81FD`. Aborts **without** advancing when off-screen | `$9088F3` | 115 |
 | `4B` | 3 | `palette $p` | Loads palette `$p` into the entity (`$90CD5C` → the loader `$90CD80`, the same one projectile records use) and stores its slot in `+0x0C`. Placeholder effects bring their colours this way; `SPACESHIP_TOP`, which lacks it, "does not load the palette" | `$90885A` | 75 records |
-| `4D` | 3 | `mode n` | Word into `+0x16`. **Bit `$20` makes it invulnerable**: the hit test skips a target with `$0016 & $0020` (`$8FB61E`) | `$908485` | 557 |
+| `4D` | 3 | `mode n` | Replaces the word at `+0x16` with `n`: what the entity is doing, as the combat, charge and movement code sees it. Bits in [§ The mode word](#the-mode-word); the Script view prints them by name | `$908485` | 557 |
 | `4E` | 1 | — | Clears `+0x2E` and bit `$0200` of `+0x14` | `$908495` | 135 |
 | `4F` | 1 | — | Clears bits `~$FB87` of `+0x12`, if `+0x2A` set and `+0x76` clear | `$9084A7` | 194 |
 | `56` | 3 | — | A formula index; greys out a ring-menu icon via `$91CE38` | `$90878C` | — |
@@ -307,6 +307,37 @@ four words, then a colour transfer via `$90D34C`/`$8085FA`.
 
 Census counts in the sprite and control-flow tables cover the 845 character
 scripts. Counts for `3E`, `51`, `5E` and `5F` cover all 1,752 record scripts.
+
+## The mode word
+
+`mode n` (`$90:8485`) writes `n` into entity `+0x16`; `reset` (`$90:8453`) clears it. Nothing else
+in the scripts touches it, and the engine sets one bit itself (`$0010`, on an attacker when it rolls
+to hit, `$8F:BA08`). So a script declares, for each stretch of frames, what the entity is doing,
+and the engine reads that. Each bit below is named by the code that tests it, found two ways:
+every `$0016,x/y` access in the ROM, and every instruction the CDL library recorded reading an
+entity's `+0x16`/`+0x17` (any addressing mode). The Script view prints the names (`modeText`,
+`maps/animation-opcodes.ts`). Census: the operands of every `mode` in every character's and
+weapon's scripts.
+
+| bit | name | read by | what it does | used in |
+|---|---|---|---|---|
+| `$0001` | knockback | `$8F:C229`, `$8F:C277`, `$8F:C1C6`, `$8F:AE69`, `$8F:B53C`, `$8F:B7B2` | no new hit reaction while it plays (with no damage pending, or while in an animation); no dodge; moves without the wall slide; body contact skips it; the swallow proc (`$0C`) deals its damage but does not swallow it | damage scripts (`$0005`, `$0801`) |
+| `$0004` | walk | `$8F:ABAE`, `$8F:ABBE` | the direction routine `$8F:A999` gives a walking entity a new cardinal direction on a coin flip (its callers are not traced) | walks (`$0004`, `$4004`) |
+| `$0008` | run | `$8F:CC4C`, `$90:82B2` | no recharging; the move selector tests it | runs (`$000C`) |
+| `$0010` | attack | `$8F:CC4C`, `$8F:CCEE`, `$90:8459` | no recharging; an entity keeps its attacker link (`+0x80`) only while that attacker has the bit; **`reset` after an animation with the bit empties the charge** and clears `+0x14` bit `$0200` | attacks (`$0010`, `$0014`, `$0810`, `$2210`) |
+| `$0020` | invulnerable | `$8F:B623`, `$8F:B53C`, `$8F:B59A` | strikes skip it; body contact skips it | the dodge, casting (`$0120`) |
+| `$0040` | link | `$90:8C18` | `jump_if_linked` (`54`) jumps when the linked entity has it | no vanilla script sets it |
+| `$0100` | cast | `$91:99DA` | the effect code tests it on the caster | casting (`$0100`, `$0120`) |
+| `$4000`, `$8000` | contact | `$8F:B52C`, `$8F:B58A` | always tested together: with full charge, touching another entity runs its attack proc on it and empties the charge | Rimsala, slimes, Mini-Taur, Rat, FootKnight… |
+| `$0002`, `$0200`, `$0800`, `$1000`, `$2000` | — | nothing found | set by scripts, never read | deaths (`$0002`, `$1000`), plants and Rimsala (`$0800`), the Boy's weapons (`$2010`, `$2210`) |
+
+`$0002`, `$1000` and the rest may be read by code the library never ran: the scan covers the
+absolute-indexed forms everywhere, the CDL any form but only what ran.
+
+**A conflict to settle in the game.** A knockback script runs `4F`, `54`, then `reset`. `reset`
+empties the charge when the mode still has `$0010`, and the hit reaction (`$8F:C2C1`) does not
+clear the mode before it starts the knockback. By the code, an attack cut short by a knockback
+**loses** its charge. [combat.md](combat.md) §2 says it keeps it.
 
 ## Decoded scripts
 

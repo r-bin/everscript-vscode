@@ -103,7 +103,9 @@ else; the linear walker reads `opcode()` too.
 - **Segments**: `0x57` (`2 + 4·groups` bytes, read with `segmentsAt`) lists a body's
   segment sprites; `0x59` (always 7 bytes) places one. Widths of variable commands come
   from `lengthAt(rom, p)`, never from `opcode().length` alone.
-- **Mode bit `$20` = invulnerable**. Procs 2 and 6 consume a projectile on hit; 4 pierces.
+- **`mode` bits** (`+0x16`) are named in `MODE_BITS` (`maps/animation-opcodes.ts`) from the code that
+  tests them; the table and the unread bits are in `docs/entities/animation_script.md` § The mode word.
+  `$20` = invulnerable. Procs 2 and 6 consume a projectile on hit; 4 pierces.
 - A script with no `sprite` keeps the previous one: pass `initialSprite`. A run still
   airborne at `loop` continues; play from `loopFrom`.
 - Entries that came from the Gemini pass (`0x48`–`0x4A`, `0x58`, `0x59`, the weapon

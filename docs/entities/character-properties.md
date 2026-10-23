@@ -152,6 +152,9 @@ Tab: px. ✔
 ### +$15 aggro chance
 
 See above: one roll per idle tick, at full charge only. 256 (used) = every tick. Tab: /256. ✔
+**Only the stationary behaviours roll it** (`$08`, `$0E`, `$1C`). A chaser's target pick (`$8F:D879`)
+has no range and no chance, so for roaming enemies `+$15` does nothing and `+$13` is only the
+attack reach ([ai-behaviours.md](ai-behaviours.md)).
 
 ### +$17 leash radius
 

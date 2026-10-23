@@ -23,6 +23,8 @@ times for each entity over about 209 frames of gameplay, with an occasional doub
   knockback**.
 - The attack script's last command, `4E`, empties the meter. An attack **cut short by a hit never
   reaches `4E` and keeps its charge**, so a struck enemy may attack again right after recovering.
+  *Conflict, not settled:* by the code the knockback script's `reset` empties the charge when the
+  interrupted attack's mode bit `$10` is still set ([animation_script.md](animation_script.md) § The mode word).
 - A spawned enemy starts **full** (`$8F:B14C` writes `$400`).
 - The Boy or Dog the player does not control charges past `$400` (speed − 3 a tick) up to the cap
   its AI setting picks (`$8F:DDB3`: 100 / 200 / 300 %; a fresh game sets both to 100 %).

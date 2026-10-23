@@ -125,6 +125,24 @@ export const SEGMENT_FIRST = 4;
 export const SEGMENT_STRIDE = 14;
 const SEGMENTS_OP: Opcode = { length: 0, mnemonic: 'segments', kind: 'segments' };
 
+/**
+ * `mode` (0x4D) bits named by what the code that tests entity +0x16 does
+ * (docs/entities/animation_script.md § mode). `contact` and `contact2` are always tested together.
+ * $0002, $0200, $0800, $1000 and $2000 are set by scripts but read by nothing, so they stay hex.
+ */
+const MODE_BITS: [number, string][] = [
+    [0x0001, 'knockback'], [0x0004, 'walk'], [0x0008, 'run'], [0x0010, 'attack'], [0x0020, 'invulnerable'],
+    [0x0040, 'link'], [0x0100, 'cast'], [0x4000, 'contact'], [0x8000, 'contact2'],
+];
+
+/** A mode word as its named bits, the unnamed ones as one hex value: `walk | contact`, `attack | $0800`. */
+export function modeText(v: number): string {
+    const parts = MODE_BITS.filter(([bit]) => v & bit).map(([, name]) => name);
+    const rest = MODE_BITS.reduce((r, [bit]) => r & ~bit, v);
+    if (rest) parts.push('$' + hex(rest, 4));
+    return parts.length ? parts.join(' | ') : '0';
+}
+
 export interface SegmentGroup { count: number; sprite: number }
 
 /** The segment groups a `segments` command at `p` lists, and its total width. */
@@ -257,7 +275,7 @@ function operands(rom: Uint8Array, p: number, o: Opcode, options?: IndexResolver
         default: break;
     }
     if (o.kind === 'hop' || o.kind === 'hop_maybe') return String(signed16(w(1)));
-    if (o.mnemonic === 'mode') return '$' + hex(w(1), 4);
+    if (o.mnemonic === 'mode') return modeText(w(1));
     if (o.kind === 'palette') {
         const addr = w(1);
         const idx = getPaletteIdx ? getPaletteIdx(rom, addr) : -1;

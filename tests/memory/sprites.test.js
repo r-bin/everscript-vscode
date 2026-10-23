@@ -149,7 +149,8 @@ if (!rom) {
         assert.strictEqual(rec('VIGOR_BOOMERANG'), rec('atk1'));
         assert.ok(!readCharacter(rom, 1).anims.some((a) => a.category === 'external' && a.paletteAddr), 'animate() ids load no palette');
         const names = behaviourNames();
-        assert.strictEqual(names.find((n) => n.value === 0x10).name, 'MAGMAR_ROLL_SHOOT');
+        assert.strictEqual(names.find((n) => n.value === 0x10).name, 'ROLL_OR_SHOOT');
+        assert.strictEqual(names.filter((n) => /^UNKNOWN/.test(n.name)).length, 0, 'every behaviour is named (docs/entities/ai-behaviours.md)');
     });
 
     test('getRawSpriteIndex indexes raw sprites starting at $CA0003', () => {

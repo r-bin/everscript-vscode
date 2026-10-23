@@ -2892,79 +2892,79 @@
     ],
     "IDLE_BEHAVIOR": [
       {
-        "name": "DEFAULT",
+        "name": "CHASE",
         "value": "0x00",
-        "comment": ""
+        "comment": "wander, then chase the nearer party member; retreat while recharging, attack when lined up within +$13 ($8F:D34B). Compiler: DEFAULT"
       },
       {
-        "name": "HOVERING",
-        "value": "0x0c",
-        "comment": "constant hovering, used: floating fan, puppets, mosquitos"
-      },
-      {
-        "name": "MAGMAR_ROLL_SHOOT",
-        "value": "0x10",
-        "comment": ""
-      },
-      {
-        "name": "MEGATAUR_ROLL",
-        "value": "0x1a",
-        "comment": ""
-      },
-      {
-        "name": "DOG_IDLE",
-        "value": "0x06",
-        "comment": "sniff around (extended with L and R), sit"
-      },
-      {
-        "name": "VIPER_ROLL",
-        "value": "0x12",
-        "comment": "used: vipers"
-      },
-      {
-        "name": "UNKNOWN_1",
+        "name": "NONE",
         "value": "0x02",
-        "comment": "used: carltron, bomb, speaker, fan, face, hearts, mungola, rimsala head, aquagoth, aegis, sitting npcs?, levitate entity, rock"
+        "comment": "does nothing; props, boss parts and the bomb move only by scripts ($8F:D76A). Compiler: UNKNOWN_1"
       },
       {
-        "name": "UNKNOWN_2",
+        "name": "COMPANION_BOY",
         "value": "0x04",
-        "comment": "used: boy"
+        "comment": "the Boy when the Dog is controlled: follows, fights by the AI setting ($8F:D05E). Compiler: UNKNOWN_2"
       },
       {
-        "name": "UNKNOWN_3",
+        "name": "COMPANION_DOG",
+        "value": "0x06",
+        "comment": "the Dog when the Boy is controlled: follows, fights by the AI setting, sniffs (L/R), sits ($8F:D0A8). Compiler: DOG_IDLE"
+      },
+      {
+        "name": "STATIONARY",
         "value": "0x08",
-        "comment": "used: tiny tentacles, sphere bot, claws, flowers, snake statues"
+        "comment": "never moves; engages a party member within +$13 by the +$15 roll, facing 4 ways: flowers, claws, stone cobras ($8F:D6FB). Compiler: UNKNOWN_3"
       },
       {
-        "name": "UNKNOWN_4",
+        "name": "WANDER",
         "value": "0x0a",
-        "comment": "used: walking npcs? (tiny, barker?, prof, tinker, gomi, horace, …)"
+        "comment": "townsfolk: stand and walk at random, follow a path or target if given one ($8F:D76E). Compiler: UNKNOWN_4"
       },
       {
-        "name": "UNKNOWN_5",
+        "name": "CHASE_HOVERING",
+        "value": "0x0c",
+        "comment": "CHASE while bobbing its height by 16: mosquitoes, Old Nick, Mephista, floating fan ($8F:D4FB). Compiler: HOVERING"
+      },
+      {
+        "name": "STATIONARY_PLAYER",
         "value": "0x0e",
-        "comment": "used: salabog, bone snake"
+        "comment": "STATIONARY against the controlled character only, facing 8 ways: Tar Skull, Salabog ($8F:D715). Compiler: UNKNOWN_5"
       },
       {
-        "name": "UNKNOWN_6",
+        "name": "ROLL_OR_SHOOT",
+        "value": "0x10",
+        "comment": "at full charge shoots or curls and rolls at the target: Magmar ($8F:D5D2). Compiler: MAGMAR_ROLL_SHOOT"
+      },
+      {
+        "name": "CHASE_OR_ROLL",
+        "value": "0x12",
+        "comment": "CHASE, but half the time rolls diagonally at the target: vipers ($8F:D421). Compiler: VIPER_ROLL"
+      },
+      {
+        "name": "BOUNCE",
         "value": "0x14",
-        "comment": "used: rimsalas"
+        "comment": "keeps walking, turns at obstacles toward the player or anywhere; never attacks: Rimsala ($8F:D394). Compiler: UNKNOWN_6"
       },
       {
-        "name": "UNKNOWN_7",
+        "name": "DRIFT_EAST",
         "value": "0x16",
-        "comment": "used: \"$0\"?"
+        "comment": "keeps walking, re-picks east (3/4), north or south at obstacles and every 16 px: record 75 ($8F:D3DC). Compiler: UNKNOWN_7"
       },
       {
-        "name": "UNKNOWN_8",
+        "name": "PURSUE_PLAYER",
         "value": "0x18",
-        "comment": "used: minitaur"
+        "comment": "walks at the controlled character when charged, away otherwise; hurts by contact only: Mini-Taur ($8F:D380). Compiler: UNKNOWN_8"
       },
       {
-        "name": "UNKNOWN_9",
+        "name": "ROLL",
+        "value": "0x1a",
+        "comment": "at full charge curls and rolls diagonally at the target: Megataur ($8F:D52E). Compiler: MEGATAUR_ROLL"
+      },
+      {
+        "name": "STATIONARY_DIAGONAL",
         "value": "0x1c",
-        "comment": "used: tentacles"
+        "comment": "STATIONARY facing one of the 4 diagonals: tentacles ($8F:D708). Compiler: UNKNOWN_9"
       }
     ],
     "CHARACTER_FLAG_ENEMY": [
