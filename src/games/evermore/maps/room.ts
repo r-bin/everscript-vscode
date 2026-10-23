@@ -74,6 +74,18 @@ export interface RoomObject {
     states: ObjectState[];
 }
 
+export interface PaletteCycle {
+    b0: number;
+    b1: number;
+    b2: number;
+    stateSlot: number;
+    startColor: number;
+    paletteIndex: number;
+    colorStart: number;
+    span: number;
+    rate: number;
+}
+
 export interface RoomData {
     roomId: number;
     romPointerSnes: number;
@@ -83,6 +95,8 @@ export interface RoomData {
     objects: RoomObject[];
     tileFamilies: number[];
     tilePalette: number[];
+    paletteCycles: PaletteCycle[];
+    cgramPalettes?: readonly (readonly [number, number, number, number])[][];
     /** Frame 0 of each Section 2 channel, appended to the tile palette. */
     animatedTiles: number[];
     /** Section 2 animation channels, in descriptor order. */
@@ -129,6 +143,34 @@ function readTriggers(rom: Uint8Array, start: number, byteLen: number): TriggerR
             y2: rom[p + 2],
             x2: rom[p + 3],
             scriptId: read16(rom, p + 4),
+        });
+    }
+    return out;
+}
+
+function readPaletteCycles(rom: Uint8Array, layout: BlobLayout): PaletteCycle[] {
+    const count = layout.extraCount;
+    const start = layout.extrasOffset + 1;
+    const out: PaletteCycle[] = [];
+    for (let i = 0; i < count; i++) {
+        const p = start + i * 3;
+        const b0 = rom[p];
+        const b1 = rom[p + 1];
+        const b2 = (rom[p + 2] << 24) >> 24; // signed 8-bit rate
+        const stateSlot = (b0 & 0x70) >> 3;
+        const startColor = (b0 + (b0 & 0x70)) & 0xff;
+        const paletteIndex = startColor >> 4;
+        const colorStart = startColor & 0x0f;
+        out.push({
+            b0,
+            b1,
+            b2,
+            stateSlot,
+            startColor,
+            paletteIndex,
+            colorStart,
+            span: b1,
+            rate: b2,
         });
     }
     return out;
@@ -347,6 +389,7 @@ export function decodeRoom(rom: Uint8Array, roomId: number): RoomData {
             read16(rom, layout.payloadOffset + 1 + i * 2),
         ),
         tilePalette,
+        paletteCycles: readPaletteCycles(rom, layout),
         animatedTiles: readAnimatedTiles(rom, layout),
         animation: parseAnimationChannels(rom, {
             table: layout.section2 + 3,

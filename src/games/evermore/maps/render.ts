@@ -92,7 +92,7 @@ export function renderVramLayer(rom: Uint8Array, room: RoomData, vramWords: numb
     const height = hTiles * 16;
     const data = new Uint8Array(width * height * 4);
 
-    const palettes = buildRoomCgramPalettes(rom, room.tileFamilies);
+    const palettes = (room.cgramPalettes as Rgba[][]) || buildRoomCgramPalettes(rom, room.tileFamilies);
     const tileIds = paletteTileIds(room);
     const cache = new TileCache(rom);
 

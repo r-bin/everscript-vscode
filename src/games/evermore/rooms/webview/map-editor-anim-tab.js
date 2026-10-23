@@ -109,6 +109,9 @@ function animOpenHtml(entry, fam, presets, locked) {
 function animTabHtml() {
   var p = _mtPalette;
   if (!p) return '<div class="rs-note">loading the tile palette…</div>';
+  if (typeof _editAnimSub !== 'undefined' && _editAnimSub === 'palette' && typeof paletteAnimTabHtml === 'function') {
+    return paletteAnimTabHtml();
+  }
   var listed = editAnimsListed(p), locked = editLocked(), open = animOpenEntry(listed);
   var used = editAnimChannels(p).length;
   var html = '<div class="rs-note">An animated tile changes over time; every cell showing it changes together. '
@@ -131,6 +134,7 @@ function animRedraw() {
 }
 
 function animClick(t) {
+  if (typeof paletteAnimClick === 'function' && paletteAnimClick(t)) return true;
   var ds = t.dataset;
   if (ds.animTiming) { placedSetTiming(Number(ds.animGroup), Number(ds.animTiming)); animRedraw(); return true; }
   if (ds.animAct === 'place') {
@@ -188,6 +192,7 @@ function animClick(t) {
 /** Tick and countdown fields (map-editor-input.js's input/change events). */
 function animInputHandler(ev) {
   var t = ev && ev.target;
+  if (typeof paletteAnimInputChange === 'function' && paletteAnimInputChange(t)) return true;
   if (!t || !t.dataset || (t.dataset.animDelay == null && !t.dataset.animInit)) return false;
   var e = editAnimFind(_animSel);
   if (!e || editLocked() || ev.type !== 'change') return true;
@@ -279,6 +284,10 @@ function animTile(e, k) {
 
 /** A gesture on the Animation tab. Returns true when it was this tab's. */
 function editAnimGesture(d, cell, phase) {
+  if (typeof _editAnimSub !== 'undefined' && _editAnimSub === 'palette' && typeof paletteAnimGesture === 'function') {
+    var handled = paletteAnimGesture(d, cell, phase);
+    if (handled) return true;
+  }
   var open = editAnimFind(_animSel);
   if (d.tool === 'select') return animSelectGesture(cell, phase);
   if (d.tool !== 'paint' && d.tool !== 'erase') return false;

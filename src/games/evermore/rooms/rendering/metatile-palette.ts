@@ -126,6 +126,8 @@ function buildRoomMetatilePalette(rom: Rom, roomId: number, layer?: string, bgPa
         // What the dictionary is made of, which is what limits it: the CHR
         // banks in VRAM and the tile ids Block 1 selected out of them.
         tileFamilies: room.tileFamilies,
+        /** Palette-cycle descriptors (Section 4.3 CGRAM colour cycling). */
+        paletteCycles: room.paletteCycles || [],
         /** Alternate family sets past the seventh entry: colours and script values (family-sets.ts), or null. */
         familySets: familySetInfo(buf, room, roomId, String(romFingerprint(buf))),
         paletteCount: room.tilePalette.length,

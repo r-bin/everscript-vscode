@@ -68,6 +68,12 @@ function editAnimSvg(origin) {
   if (!p || (!editAnims().length && !(typeof _animStroke !== 'undefined' && _animStroke))) return '';
   var onTab = typeof _editActiveTab !== 'undefined' && _editActiveTab === 'anim';
   var marks = _animMarks || onTab, html = '';
+  if (onTab && typeof _editAnimSub !== 'undefined' && _editAnimSub === 'palette' && typeof _paletteAnimSel !== 'undefined' && _paletteAnimSel != null && typeof paletteAnimFindByTile === 'function') {
+    var palEntry = paletteAnimFindByTile(_paletteAnimSel);
+    if (palEntry && palEntry.cells && palEntry.cells.length) {
+      html += animShapeSvg(origin, palEntry.cells, true, '');
+    }
+  }
   editAnimsListed(p).forEach(function (entry) {
     var sel = entry.members.some(function (m) { return m.uid === _animSel; });
     var letter = marks && editAnimSetComplete(entry.g, entry.members) ? (editAnimLetter(entry.g) || '*') : '';

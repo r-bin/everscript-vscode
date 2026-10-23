@@ -185,10 +185,48 @@ function buildFamilySheet(rom: Rom, familyId: unknown, borrowFrom: unknown) {
     if (ids.length) {
         const sheetRoom = { ...base, tileFamilies: [family], tilePalette: ids, animatedTiles: [] };
         const atlas = maps.renderTileListAtlas(buf, sheetRoom, { columns: COLUMNS, palette: 1 });
-        out.imageUri = maps.encodePngDataUri(atlas.image);
-        out.imageWidth = atlas.image.width;
-        out.imageHeight = atlas.image.height;
-        out.rows = atlas.rows;
+
+        const famIdx = base.tileFamilies.indexOf(family);
+        const palCycle = famIdx >= 0
+            ? (base.paletteCycles || []).find((c) => c.paletteIndex === famIdx + 1 && c.span > 1 && c.rate !== 0)
+            : null;
+
+        if (palCycle) {
+            const span = palCycle.span;
+            const singleH = atlas.image.height;
+            const width = atlas.image.width;
+            const combinedData = new Uint8Array(width * singleH * span * 4);
+            combinedData.set(atlas.image.data, 0);
+
+            for (let k = 1; k < span; k++) {
+                const cgramPalettes = maps.buildRoomCgramPalettes(buf, [family]).map((p) => p.slice());
+                const orig = maps.extractTileFamilyPalette(buf, family);
+                const shift = k % span;
+                for (let c = 0; c < span; c++) {
+                    const srcIdx = palCycle.rate > 0
+                        ? (c - shift + span) % span
+                        : (c + shift) % span;
+                    cgramPalettes[1][palCycle.colorStart + c] = orig[palCycle.colorStart + srcIdx];
+                }
+                const atlasK = maps.renderTileListAtlas(buf, { ...sheetRoom, cgramPalettes }, { columns: COLUMNS, palette: 1 });
+                combinedData.set(atlasK.image.data, k * width * singleH * 4);
+            }
+
+            out.imageUri = maps.encodePngDataUri({ width, height: singleH * span, data: combinedData });
+            out.imageWidth = width;
+            out.imageHeight = singleH * span;
+            out.rows = atlas.rows;
+            out.paletteCycle = {
+                span,
+                rate: Math.max(1, Math.abs(palCycle.rate)),
+                rows: atlas.rows,
+            };
+        } else {
+            out.imageUri = maps.encodePngDataUri(atlas.image);
+            out.imageWidth = atlas.image.width;
+            out.imageHeight = atlas.image.height;
+            out.rows = atlas.rows;
+        }
     }
 
     SHEETS.set(key, out);

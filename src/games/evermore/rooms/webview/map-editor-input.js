@@ -288,6 +288,7 @@ function bindEditControls(panel, room) {
     if (t.dataset.chipAdopt) { chipAdopt(t.dataset.chipAdopt); return; }
     if (t.dataset.headerBit) { infoHeaderBit(t.dataset.headerBit); return; }
     if (t.dataset.editInfoSub) { editInfoSubPick(t.dataset.editInfoSub); return; }
+    if (t.dataset.editAnimSub) { editAnimSubPick(t.dataset.editAnimSub); return; }
     if (t.dataset.familySet !== undefined && t.dataset.familySet !== '') { familySetPick(Number(t.dataset.familySet)); return; }
     if (t.dataset.famAdd) { chipAddFamily(); return; }
     if (t.dataset.brushFlip) { brushFlipToggle(t.dataset.brushFlip); return; }

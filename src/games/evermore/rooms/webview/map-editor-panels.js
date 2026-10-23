@@ -230,6 +230,7 @@ function renderEditPanels() {
   // A widget being edited is named in the app bar above the map, not here.
   host.innerHTML = buildEditTabStripHtml() + '<div class="rg-tab-body" id="rg-tab-body" data-tab="'
     + _editActiveTab + '">' + (typeof editTileSubtabsHtml === 'function' ? editTileSubtabsHtml() : '')
+    + (typeof editAnimSubtabsHtml === 'function' ? editAnimSubtabsHtml() : '')
     + (typeof editInfoSubtabsHtml === 'function' ? editInfoSubtabsHtml() : '') + body + '</div>';
   var newBody = document.getElementById('rg-tab-body');
   panelRestoreScroll(panelScroller(newBody), anchor);

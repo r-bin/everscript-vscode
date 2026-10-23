@@ -138,6 +138,7 @@ const ROOMS_JS_FILES = [
   'map-editor-anim-sets.js', // sets of animated tiles on one timing, runs, the tab's placements, copy/paste (_animClip)
   'map-editor-anim-map.js', // animated tiles on the map: purple marks, unfinished frames, the Animation chip (_animMarks)
   'map-editor-anim-placed.js', // a placed widget's timing chips (A/B/C) and switching them
+  'map-editor-anim-palette.js', // the Palette Animation tab: cycling palettes, cards, states, placing
   'map-editor-objects.js', // the Object tab: areas and their tiles (_objectSel/_objectDraw)
   'map-editor-object-list.js', // the Object tab's rows: open/closed, drag to reorder (_objectOpen/_objectDragRow)
   'map-editor-family-sets.js', // the Header sub-tab's palette sets: previewing MAP_PALETTE (_familySetView)

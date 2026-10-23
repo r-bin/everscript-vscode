@@ -790,6 +790,7 @@ const ui = new Function(`
   ${read('map-editor-anim-sets.js')}
   ${read('map-editor-anim-map.js')}
   ${read('map-editor-anim-placed.js')}
+  ${read('map-editor-anim-palette.js')}
   ${read('map-editor-objects.js')}
   ${read('map-editor-object-list.js')}
   ${read('map-editor-object-holds.js')}
@@ -877,6 +878,11 @@ const ui = new Function(`
     setWidgets: function (ws) { _widgets = ws; },
     editAnims: editAnims, editAnimChannels: editAnimChannels, editAnimsListed: editAnimsListed,
     editAdoptAnimated: editAdoptAnimated, editAdoptGraphic: editAdoptGraphic, editAnimOfSlot: editAnimOfSlot,
+    setAnimSub: function (v) { _editAnimSub = v; }, animSub: function () { return _editAnimSub; },
+    editAnimSubtabsHtml: editAnimSubtabsHtml, editAnimSubPick: editAnimSubPick,
+    paletteAnimTabHtml: paletteAnimTabHtml, editPaletteAnimsListed: editPaletteAnimsListed,
+    paletteAnimClick: paletteAnimClick, paletteAnimInputChange: paletteAnimInputChange,
+    animTabHtml: animTabHtml,
     editSeedRoomAnims: editSeedRoomAnims, animTabHtml: animTabHtml, animClick: animClick, editAnimShownFrame: editAnimShownFrame,
     editAnimPresets: editAnimPresets, editAnimLetter: editAnimLetter, editAnimComplete: editAnimComplete, animTile: animTile,
     setAnimOff: function (v) { _animOff = v; },
@@ -3565,6 +3571,83 @@ test('a widget part keeps its animated tile, and stamping it brings that tile to
     ui.editDraft().families = [115];
     const back = ui.editWordFromPart(p, part);
     assert.deepStrictEqual(ui.editAnimOfSlot(p, slotOfWord(back.word)).frames, TORCH.frames);
+});
+
+test('palette animation: 3rd-level subtabs split tiles and palette animations', () => {
+    ui.setTab('anim');
+    ui.setAnimSub('tiles');
+    let subtabs = ui.editAnimSubtabsHtml();
+    assert.ok(subtabs.includes('data-edit-anim-sub="tiles"'));
+    assert.ok(subtabs.includes('data-edit-anim-sub="palette"'));
+    assert.ok(subtabs.includes('rg-subtab on'));
+
+    ui.editAnimSubPick('palette');
+    assert.strictEqual(ui.animSub(), 'palette');
+    subtabs = ui.editAnimSubtabsHtml();
+    assert.ok(subtabs.includes('class="rg-subtab on"') && subtabs.includes('data-edit-anim-sub="palette"'));
+});
+
+test('palette animation: empty state when room has zero palette cycles', () => {
+    const p = animPalette();
+    p.paletteCycles = [];
+    ui.setPalette(p);
+    ui.setTab('anim');
+    ui.setAnimSub('palette');
+
+    const html = ui.animTabHtml();
+    assert.ok(html.includes('This room has no palette cycles. The water and scenery use static palettes.'));
+});
+
+test('palette animation: lists placed tiles using cycling palettes with preview and expansion', () => {
+    const p = animPalette();
+    p.tileFamilies = [105, 352, 324, 106];
+    p.paletteCycles = [
+        { b0: 0x1b, b1: 4, b2: 5, stateSlot: 2, startColor: 0x2b, paletteIndex: 2, colorStart: 11, span: 4, rate: 5 },
+    ];
+    // Entry 0 in animPalette has layer2Word with palette 2 (e.g. 0x4c62 -> pal = (0x4c62 >> 10) & 7 = 3; let's force pal 2)
+    // pal 2 in layer2Word: (2 << 10)
+    p.entries[0] = [0, 0xa800, (2 << 10) | 4, 0x0010, 0xa800, (2 << 10) | 4];
+    ui.setPalette(p);
+    ui.setTab('anim');
+    ui.setAnimSub('palette');
+
+    const listed = ui.editPaletteAnimsListed(p);
+    assert.strictEqual(listed.length, 1);
+    assert.strictEqual(listed[0].paletteIndex, 2);
+    assert.strictEqual(listed[0].span, 4);
+    assert.strictEqual(listed[0].rate, 5);
+    assert.strictEqual(listed[0].cells.length, 4); // 2x2 grid
+
+    let html = ui.animTabHtml();
+    assert.ok(html.includes('An animated palette cycles colors over time'));
+    assert.ok(html.includes('Pal 2'));
+    assert.ok(html.includes('4 frames'));
+
+    // Open/uncollapse the row
+    ui.paletteAnimClick({ dataset: { palAnimSel: String(listed[0].tileId) } });
+    html = ui.animTabHtml();
+    assert.ok(html.includes('data-pal-anim-cycle="0"'));
+    assert.ok(html.includes('State 0 of 4'));
+    assert.ok(html.includes('State 3 of 4'));
+
+    // Edit ticks per shift step
+    ui.paletteAnimInputChange({ dataset: { palAnimCycle: '0' }, value: '8' });
+    assert.strictEqual(p.paletteCycles[0].rate, 8);
+});
+
+test('tile picker: swatch animates when family has active palette cycle', () => {
+    const mockSheet = {
+        family: 352,
+        columns: 16,
+        cell: 16,
+        slots: [[0, 0, 100]],
+        paletteCycle: { span: 4, rate: 5, rows: 2 },
+    };
+    const play = ui.tileAnimPlay(mockSheet, mockSheet.slots[0]);
+    assert.ok(play.css.includes('@keyframes rg-pal-anim-352-100'));
+    assert.ok(play.css.includes('background-position:-0px -0px'));
+    assert.ok(play.css.includes('background-position:-0px -32px'));
+    assert.ok(play.style.includes('animation:rg-pal-anim-352-100'));
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);

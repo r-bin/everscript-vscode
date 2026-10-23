@@ -28,6 +28,8 @@ var _editActiveTab = 'tile';
 var _editTileSub = 'tile';
 /** The Info tab's sub-tab: 'header', 'budget' or 'map'. */
 var _editInfoSub = 'header';
+/** The Animation tab's sub-tab: 'tiles' (Section 2 CHR swapping) or 'palette' (Section 4.3 CGRAM cycles). */
+var _editAnimSub = 'tiles';
 
 /** The Info tab's sub-tabs (map-editor-info.js draws each). */
 var EDIT_INFO_SUBTABS = [
@@ -41,6 +43,12 @@ var EDIT_TILE_SUBTABS = [
   ['tile', 'Tile', 'Pick and paint tiles'],
   ['collision', 'Collision', 'Collision shapes, drawn by hand over the estimate'],
   ['anim', 'Animation', 'Animated tiles: frames, patterns, timing'],
+];
+
+/** The Animation tab's sub-tabs (third level: tiles vs palette). */
+var EDIT_ANIM_SUBTABS = [
+  ['tiles', 'Tiles', 'Tile-based animations (Section 2 CHR swapping)'],
+  ['palette', 'Palette', 'Palette-based animations (Section 4.3 CGRAM colour cycling)'],
 ];
 
 function editInTileGroup(tab) {
@@ -101,4 +109,21 @@ function editTileSubtabsHtml() {
     return '<button class="rg-subtab' + (on ? ' on' : '') + '" role="tab" aria-selected="' + on + '" data-edit-active-tab="' + t[0]
       + '" title="' + escH(t[2]) + '">' + t[1] + '</button>';
   }).join('') + '</div>';
+}
+
+/** Tiles | Palette, over the Animation tab's body (Level 3 subtabs); '' on the other tabs. */
+function editAnimSubtabsHtml() {
+  if (_editActiveTab !== 'anim') return '';
+  return '<div class="rg-subtabs rg-anim-subtabs" role="tablist">' + EDIT_ANIM_SUBTABS.map(function (t) {
+    var on = _editAnimSub === t[0];
+    return '<button class="rg-subtab' + (on ? ' on' : '') + '" role="tab" aria-selected="' + on + '" data-edit-anim-sub="' + t[0]
+      + '" title="' + escH(t[2]) + '">' + t[1] + '</button>';
+  }).join('') + '</div>';
+}
+
+/** Pick an Animation sub-tab (tiles | palette). */
+function editAnimSubPick(sub) {
+  if (!EDIT_ANIM_SUBTABS.some(function (t) { return t[0] === sub; })) return;
+  _editAnimSub = sub;
+  renderEditChrome();
 }

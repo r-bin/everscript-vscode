@@ -128,8 +128,25 @@ function tileAnimTitle(sheet, slot) {
  * does not hold are skipped. `{css, style}`, both empty when it does not play.
  */
 function tileAnimPlay(sheet, slot) {
-  if (_tileFramesSplit || slot[13] !== 1) return { css: '', style: '' };
-  var a = sheet.animations && sheet.animations[slot[2]];
+  if (_tileFramesSplit) return { css: '', style: '' };
+  var a = slot[13] === 1 && sheet.animations ? sheet.animations[slot[2]] : null;
+  if (!a && sheet.paletteCycle) {
+    var pc = sheet.paletteCycle;
+    var at = sheet.slots.indexOf(slot);
+    if (at < 0) return { css: '', style: '' };
+    var x = (at % sheet.columns) * sheet.cell;
+    var y0 = Math.floor(at / sheet.columns) * sheet.cell;
+    var sliceHeight = pc.rows * sheet.cell;
+    var total = pc.span * pc.rate;
+    var name = 'rg-pal-anim-' + sheet.family + '-' + slot[2];
+    var css = '@keyframes ' + name + '{';
+    for (var k = 0; k < pc.span; k++) {
+      var pct = ((k / pc.span) * 100).toFixed(2);
+      css += pct + '%{background-position:-' + x + 'px -' + (y0 + k * sliceHeight) + 'px}';
+    }
+    css += '}';
+    return { css: css, style: 'animation:' + name + ' ' + (total / 60).toFixed(3) + 's steps(1,end) infinite;' };
+  }
   if (!a) return { css: '', style: '' };
   var steps = [];
   var total = 0;

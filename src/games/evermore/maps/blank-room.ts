@@ -178,6 +178,7 @@ export function blankRoom(rom: Uint8Array, opts: BlankRoomOptions): RoomData {
             tiles: [],
             warnings: [],
         },
+        paletteCycles: base.paletteCycles || [],
         elevationPlanes: planesUsed(collisionWords),
     };
 }
