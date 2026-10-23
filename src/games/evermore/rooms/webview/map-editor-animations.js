@@ -290,9 +290,13 @@ function editAnimShownFrame(palette, index) {
   }
   if (typeof _animPaletteOn !== 'undefined' && !_animPaletteOn) return 0;
   if (typeof _editAnimSub !== 'undefined' && _editAnimSub === 'palette' && typeof _paletteAnimSel !== 'undefined' && _paletteAnimSel != null && !_paletteAnimPlaying) {
-    var openPal = typeof paletteAnimOpenEntry === 'function' && typeof editPaletteAnimsListed === 'function'
-      ? paletteAnimOpenEntry(editPaletteAnimsListed(palette)) : null;
-    if (openPal && openPal.stamps && openPal.stamps.indexOf(index) >= 0) return _paletteAnimFrame;
+    if (typeof editPaletteAnimOpenStamps === 'function') {
+      if (editPaletteAnimOpenStamps(palette)[index]) return _paletteAnimFrame;
+    } else {
+      var openPal = typeof paletteAnimOpenEntry === 'function' && typeof editPaletteAnimsListed === 'function'
+        ? paletteAnimOpenEntry(editPaletteAnimsListed(palette)) : null;
+      if (openPal && openPal.stamps && openPal.stamps.indexOf(index) >= 0) return _paletteAnimFrame;
+    }
   }
   return -1;
 }

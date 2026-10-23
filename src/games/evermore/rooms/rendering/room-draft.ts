@@ -207,14 +207,33 @@ function buildFamilySheet(rom: Rom, familyId: unknown, borrowFrom: unknown) {
             }
 
             const tiles: Record<number, { span: number; rate: number; letter: string }> = {};
-            for (const id of ids) {
+            const cols = atlas.columns || COLUMNS;
+            const cell = atlas.cell || 16;
+            ids.forEach((id, slotIdx) => {
                 const tMask = maps.tileColorMask(buf, id);
                 const hit = famCycles.find((c) => (tMask & maps.paletteCycleMask(c)) !== 0);
-                if (hit) {
+                if (!hit) return;
+                const cx = (slotIdx % cols) * cell;
+                const cy = Math.floor(slotIdx / cols) * cell;
+                let differs = false;
+                for (let k = 1; k < hit.span && !differs; k++) {
+                    const stepOff = k * width * singleH * 4;
+                    for (let dy = 0; dy < cell && !differs; dy++) {
+                        const row0 = ((cy + dy) * width + cx) * 4;
+                        const rowK = stepOff + row0;
+                        for (let b = 0; b < cell * 4; b++) {
+                            if (combinedData[row0 + b] !== combinedData[rowK + b]) {
+                                differs = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (differs) {
                     const letter = String.fromCharCode(65 + Math.max(0, activeCycles.indexOf(hit)));
                     tiles[id] = { span: hit.span, rate: Math.max(1, Math.abs(hit.rate)) * 3, letter };
                 }
-            }
+            });
 
             out.imageUri = maps.encodePngDataUri({ width, height: singleH * maxSpan, data: combinedData });
             out.imageWidth = width;

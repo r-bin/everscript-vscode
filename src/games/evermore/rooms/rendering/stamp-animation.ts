@@ -33,6 +33,20 @@ function wordSlot(word: number) {
     return (chr >> 5) * 8 + ((chr & 0x1f) >> 1);
 }
 
+/** True when any pixel of cell `cellIndex` in `step` differs from `base`. */
+function cellPixelsDiffer(base: maps.PixelBuffer, step: maps.PixelBuffer, cellIndex: number, columns: number, cell: number): boolean {
+    const cx = (cellIndex % columns) * cell;
+    const cy = Math.floor(cellIndex / columns) * cell;
+    const w = base.width;
+    for (let dy = 0; dy < cell; dy++) {
+        const rowOff = ((cy + dy) * w + cx) * 4;
+        for (let b = 0; b < cell * 4; b++) {
+            if (base.data[rowOff + b] !== step.data[rowOff + b]) return true;
+        }
+    }
+    return false;
+}
+
 /** `{frames, delays, at}` of the animation a graphic is part of, or null. */
 function animationFor(index: VanillaIndex, graphic: number): Anim | null {
     const a = index.animations.byFirst.get(graphic);
@@ -93,7 +107,7 @@ function buildStampAnimations(rom: Uint8Array, room: RoomData, entries: Metatile
         return palCycles.find((c) => c.paletteIndex === pal && (tMask & maps.paletteCycleMask(c)) !== 0) || null;
     };
 
-    const animated: { i: number; e: MetatileDraft; n: number; delays: number[] }[] = [];
+    const candidates: { i: number; e: MetatileDraft; n: number; delays: number[] }[] = [];
     entries.forEach((e, i) => {
         const slots = [wordSlot(e.layer1), wordSlot(e.layer2)].filter((s) => slotAnim(s));
         const matchedCycle = matchWordCycle(e.layer1, true) || matchWordCycle(e.layer2, false);
@@ -110,15 +124,11 @@ function buildStampAnimations(rom: Uint8Array, room: RoomData, entries: Metatile
             const d = Math.max(1, Math.abs(matchedCycle.rate)) * 3;
             for (let k = 0; k < n; k++) delays.push(d);
         }
-        if (n > 1) animated.push({ i, e, n, delays });
+        if (n > 1) candidates.push({ i, e, n, delays });
     });
-    if (!animated.length) return null;
+    if (!candidates.length) return null;
 
-    const steps = animated.reduce((m, a) => Math.max(m, a.n), 0);
-    const list = animated.map((a) => a.e);
-    const sheets = [];
-    let atlas = null;
-    for (let k = 1; k < steps; k++) {
+    const renderStepAtlas = (stampList: MetatileDraft[], k: number) => {
         const tilePalette = room.tilePalette.slice();
         const animatedTiles = room.animatedTiles.slice();
         for (const [slot, a] of bySlot) {
@@ -128,15 +138,45 @@ function buildStampAnimations(rom: Uint8Array, room: RoomData, entries: Metatile
             else animatedTiles[slot - tilePalette.length] = g;
         }
 
-        const cgramPalettes = palCycles.length
+        const cgramPalettes = palCycles.length && k > 0
             ? maps.shiftCgramPalettes(rom, room.tileFamilies, palCycles, k)
             : undefined;
 
         const staged = maps.withMetatiles(
             { ...room, tilePalette, animatedTiles, ...(cgramPalettes ? { cgramPalettes } : {}) },
-            list,
+            stampList,
         );
-        atlas = maps.renderMetatileAtlas(rom, staged, { columns: opts.columns, layer: opts.layer });
+        return maps.renderMetatileAtlas(rom, staged, { columns: opts.columns, layer: opts.layer });
+    };
+
+    const candidateSteps = candidates.reduce((m, a) => Math.max(m, a.n), 0);
+    const candidateList = candidates.map((a) => a.e);
+    const baseAtlas = renderStepAtlas(candidateList, 0);
+    const rawStepAtlases: (typeof baseAtlas)[] = [];
+    for (let k = 1; k < candidateSteps; k++) {
+        rawStepAtlases.push(renderStepAtlas(candidateList, k));
+    }
+
+    // Drop any candidate whose composited pixels are identical across all frames
+    // (e.g. a palette-cycling terrain tile completely covered by an opaque canopy wall,
+    // or a tile whose visible pixels only use duplicate colours in the cycle).
+    const animated = candidates.filter((a, cIdx) => {
+        for (let k = 1; k < a.n; k++) {
+            const stepAtlas = rawStepAtlases[k - 1];
+            if (stepAtlas && cellPixelsDiffer(baseAtlas.image, stepAtlas.image, cIdx, baseAtlas.columns, baseAtlas.cell)) {
+                return true;
+            }
+        }
+        return false;
+    });
+    if (!animated.length) return null;
+
+    const steps = animated.reduce((m, a) => Math.max(m, a.n), 0);
+    const list = animated.map((a) => a.e);
+    const sheets = [];
+    let atlas = null;
+    for (let k = 1; k < steps; k++) {
+        atlas = animated.length === candidates.length ? rawStepAtlases[k - 1] : renderStepAtlas(list, k);
         sheets.push({
             imageUri: maps.encodePngDataUri(atlas.image),
             imageWidth: atlas.image.width,

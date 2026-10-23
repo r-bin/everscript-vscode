@@ -3731,6 +3731,48 @@ test('animation pill dropdown toggles tile cycle and palette cycle individually,
     assert.strictEqual(ui.animOff(), false);
 });
 
+test('palette animation: excludes stamps whose rendered pixels are identical across frames, and deduplicates sheet images via <defs>', () => {
+    const p = animPalette();
+    p.tileFamilies = [105, 352, 324, 106];
+    p.paletteCycles = [
+        { b0: 0x2b, b1: 4, b2: 5, stateSlot: 4, startColor: 0x2b, paletteIndex: 2, colorStart: 11, span: 3, rate: 5 },
+    ];
+    // Stamp 0: visible palette-cycling tile (included in p.anim.entries)
+    p.entries[0] = [0, 0xa800, (2 << 10) | chrOf(0), 0x0010, 0xa800, (2 << 10) | chrOf(0)];
+    // Stamp 1: opaque static canopy on Pal 1 covering Pal 2 terrain (excluded from p.anim.entries because pixels never change)
+    p.entries[1] = [1, (1 << 10) | chrOf(1), (2 << 10) | chrOf(0), 0x0010, (1 << 10) | chrOf(1), (2 << 10) | chrOf(0)];
+    p.count = 2;
+    p.grid = [[0, 0, 1], [1, 1, 1]];
+    p.imageUri = 'data:image/png;base64,BASE_ATLAS_URI';
+    p.imageWidth = 32;
+    p.imageHeight = 16;
+    p.anim = {
+        columns: 16,
+        cell: 16,
+        entries: [[0, [15, 15, 15]]],
+        sheets: [
+            { imageUri: 'data:image/png;base64,STEP_1_URI', imageWidth: 16, imageHeight: 16 },
+            { imageUri: 'data:image/png;base64,STEP_2_URI', imageWidth: 16, imageHeight: 16 },
+        ],
+    };
+    ui.setPalette(p);
+    ui.editReset(1).on = true;
+    ui.setTab('anim');
+    ui.setAnimSub('palette');
+
+    const listed = ui.editPaletteAnimsListed(p);
+    assert.strictEqual(listed.length, 1, 'only stamp 0 (whose pixels change across frames) is listed; opaque canopy stamp 1 is excluded');
+    assert.deepStrictEqual(listed[0].cells, ['0,0', '1,0']);
+    assert.strictEqual(ui.editPaletteAnimsListed(p), listed, 'memoized across repeated calls');
+
+    // Open the row and check HTML output uses <defs> + <use> instead of duplicating base64 data URIs
+    ui.paletteAnimClick({ dataset: { palAnimSel: listed[0].key, palAnimPart: listed[0].cells[0] } });
+    const html = ui.animTabHtml();
+    assert.strictEqual(html.split('BASE_ATLAS_URI').length - 1, 1, 'base atlas URI is embedded once in <defs>');
+    assert.strictEqual(html.split('STEP_1_URI').length - 1, 1, 'step 1 sheet URI is embedded once in <defs>');
+    assert.ok(html.includes('<use href="#rg-pa-p0"/>'), 'cells reference <defs> via <use>');
+});
+
 console.log(`\n  ${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);
 
