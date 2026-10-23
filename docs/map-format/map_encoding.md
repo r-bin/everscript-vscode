@@ -15,7 +15,7 @@ The write path for room data: [`tools/encode_room.py`](../../../everscript/tools
 +$0D            step_len:2, step-on records (6 bytes each)
                 b_len:2,    B-trigger records (6 bytes each)
 payload         tile_family_count:1, families (2 bytes each)
-extras          extra_count:1, CHR descriptors (3 bytes each)
+extras          extra_count:1, palette-cycle descriptors (3 bytes each; legacy section name)
 block1          payload_len:2, sub_flag:1, decomp_size:2, data
 section2        count:1, len:2, animated-tile descriptors
 section3        object_count:1, object offsets (2 bytes each)

@@ -45,19 +45,10 @@ Each entity struct contains 4 status slots of 6 bytes, starting at offset `+$46`
 ### The Root Cause at `$91:B7FA`
 When a 5th status is applied, the allocation routine at `$91:B632` searches for an empty slot. Finding none, it picks the first slot holding an older buff to evict. Before writing the new status, it calls a subroutine at `$91:B7FA` to silently clean up the existing buff:
 
-```assembly
-; Vanilla Code at $91:B7FA:
-$91:B7FA:  STA $60          ; Save timer pointer of slot
-           INC : INC
-           STA $62          ; Save param pointer of slot
-           LDX $02          ; <-- BUG: Loads $02 (the NEW status ID!), NOT the slot's ID!
-           PHY : PHX
-           LDA #$FFFF : STA $15D2   ; Set silent flag (suppress "worn off" message)
-           JSR ($AE33,X)    ; Jumps to cleanup handler from table $91:AE31
-           STZ $15D2
-           PLX : PLY : STX $02
-           RTS
-```
+> **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/91B7FA](soe://rom/code/91B7FA?asm=1&c=0)
+
 
 Because `LDX $02` loads the **new** status ID rather than the status ID currently residing in the slot:
 - When refreshing an existing buff (IDs match), it works correctly.
@@ -93,12 +84,10 @@ A collection of targeted 65816 assembly patches created by community reverse-eng
 ### 3.3 Silver Sheath Passive Leak (`assassin_silversheath.ips`)
 - **ROM Target:** `$8F:8464` and `$8F:8480` (Offset `0x0F8464` / `0x0F8480`, 53 bytes).
 - **The Bug:** The Silver Sheath is a charm obtained in Gothica that is supposed to grant a passive +25% attack bonus to sword weapons. The vanilla damage calculation routine:
-  ```assembly
-  ; Vanilla logic at $8F:8480:
-  LDA $7E2262      ; Charm bitfield
-  AND #$0040       ; Test Silver Sheath bit
-  ; BUG: Branch target executes attack boost regardless of flag state!
-  ```
+  > **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/91B7FA](soe://rom/code/91B7FA?asm=1&c=0)
+
   In vanilla SoE, the conditional branch jumped to the wrong target, granting the +25% attack boost from the very start of the game even before the Silver Sheath was acquired.
 - **The Fix:** Corrects the branch target so that the attack boost calculation is skipped unless bit `$40` of charm register `$7E2262` is explicitly set.
 

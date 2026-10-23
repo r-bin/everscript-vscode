@@ -76,24 +76,18 @@ Instead of allocating separate C global variables (e.g. `uint16_t link_x_coord;`
 compiler to reorder, pad, and scatter variables arbitrarily across system memory, `zelda3` defines a single
 flat array for the 128 KB of SNES Work RAM:
 
-```c
-// src/zelda_rtl.c
-uint8 g_ram[131072]; // 128 KB WRAM ($7E:0000 - $7F:FFFF)
-```
+> **Reconstructed C Decompilation**:
+> Source moved to [`reconstructed-c/FF/FFFFFF_c_compilation_hirom_memory_map.c`](../../reconstructed-c/FF/FFFFFF_c_compilation_hirom_memory_map.c).
+> [View in VFS: soe://rom/code/FFFFFF](soe://rom/code/FFFFFF?c=1&asm=0)
+
 
 In `src/variables.h`, each named variable from the original disassembly is defined as a macro casting an offset
 into `g_ram`:
 
-```c
-// src/variables.h
-#define main_module_index           (*(uint8*)(g_ram + 0x10))
-#define submodule_index             (*(uint8*)(g_ram + 0x11))
-#define link_y_coord                (*(uint16*)(g_ram + 0x20))
-#define link_x_coord                (*(uint16*)(g_ram + 0x22))
-#define link_z_coord                (*(uint16*)(g_ram + 0x24))
-#define link_direction_facing       (*(uint8*)(g_ram + 0x2F))
-#define dung_bg2_attr_table         ((uint8*)(g_ram + 0x2000))
-```
+> **Reconstructed C Decompilation**:
+> Source moved to [`reconstructed-c/FF/FFFFFF_c_compilation_hirom_memory_map.c`](../../reconstructed-c/FF/FFFFFF_c_compilation_hirom_memory_map.c).
+> [View in VFS: soe://rom/code/FFFFFF](soe://rom/code/FFFFFF?c=1&asm=0)
+
 
 **Why this pattern is powerful**:
 1. **Zero Layout Drift**: Memory layout remains 100% identical to the original SNES cartridge.
@@ -344,27 +338,15 @@ In 65816 C, pointers come in two widths:
 If you are modifying an existing assembly ROM without recompiling the entire game from scratch:
 1. Compile your C file with Calypsi or GCC-65816 to a standalone binary or relocatable object.
 2. In Asar assembly, insert the compiled C blob into an empty HiROM bank (e.g., expanded ExHiROM bank `$41`):
-   ```assembly
-   org $418000
-   incbin "build/decompiled_combat.bin"
-   ```
-3. Write an assembly **trampoline** to bridge between the original assembly caller and the C ABI:
-   ```assembly
-   ; Hook at original routine entry point ($84:9A12)
-   org $849A12
-   ApplyDamageHook:
-       PHP                 ; Save original processor flags (including M/X)
-       REP #$30            ; Standardize to 16-bit A, 16-bit X/Y
-       PHB                 ; Save Data Bank Register
-       PEA $7E7E : PLB : PLB ; Set DBR to WRAM ($7E)
-       
-       ; Call the compiled C routine in Bank $41
-       JSL $418000         ; C function: void ApplyEntityDamage(int entity_idx, int damage);
+   > **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/FFFFFF](soe://rom/code/FFFFFF?asm=1&c=0)
 
-       PLB                 ; Restore DBR
-       PLP                 ; Restore processor flags
-       RTL
-   ```
+3. Write an assembly **trampoline** to bridge between the original assembly caller and the C ABI:
+   > **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/FFFFFF](soe://rom/code/FFFFFF?asm=1&c=0)
+
 
 ---
 

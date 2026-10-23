@@ -61,7 +61,7 @@ ROM Room Blob ($8B):
   +$0D:        Step-On Trigger Table: [step_len: 2 bytes] + [step_len bytes]
   +...:        B-Trigger Table: [b_len: 2 bytes] + [b_len bytes]
   +...:        Tile Families Table: [fam_count: 1 byte] + [fam_count * 2 bytes]
-  +...:        Section 1 (CHR Descriptors): [desc_count: 1 byte] + [desc_count * 3 bytes]
+  +...:        Palette-cycle descriptors: [desc_count: 1 byte] + [desc_count * 3 bytes]
   +...:        Block 1 (Delta Tile Palette): [b1_len: 2 bytes] + [b1_len bytes]
   +...:        Section 2 (Animated Tiles): [sec2_count: 1 byte] + [sec2_len: 2 bytes] + [sec2_len bytes]
   ========================================================================================

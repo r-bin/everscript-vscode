@@ -139,16 +139,10 @@ This glitch is most commonly observed when running North while an enemy moves So
    Later in the *same tick*, the enemy updates and moves South by 2–3 px. The distance drops to $|dy| \le 8$ px. If the enemy is in an animation that does not trigger contact damage or deflection:
    
    On the **next tick**, the Boy steps North again. His destination $(X', Y')$ is inside the enemy's box. The engine checks whether the prospective destination hits: it does (`CMP $18$`). But then it evaluates the Boy's **starting position** at `$8FB4FD`–`$8FB520`:
-   ```assembly
-   8FB4FD  LDX $4C          ; mover (Boy)
-   8FB4FF  LDA $001C,Y      ; candidate Y (Enemy)
-   8FB503  SBC $001C,X      ; mover current Y (Boy current Y)
-   ...
-   8FB50C  ASL A            ; 2 * |dy_current|
-   8FB50D  CMP $18          ; was current |dy| < (r1 + r2) / 2?
-   8FB51E  CMP $18          ; was current |dx| < (r1 + r2)?
-   8FB522  RTS              ; IF BOTH WERE ALREADY INSIDE: ALLOW MOVE!
-   ```
+   > **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/8CCFFD](soe://rom/code/8CCFFD?asm=1&c=0)
+
    Because the enemy stepped toward the Boy on the previous subframe, the Boy's current position is **already inside** the enemy's collision box.
    
    To ensure that overlapping spawns never permanently trap the player, the engine allows any move that begins inside an existing overlap (`RTS` at `$8FB522`). The move is approved! On subsequent frames, the Boy continues moving North until exiting cleanly on the far side.
@@ -230,15 +224,15 @@ Once the `$8FB4FD` overlap bypass is primed (which a TAS achieves with $100\%$ d
    - **East boundary (col $X = 78$, Triggers #11, #12):** runs script `0x40B`.
 
    When the player crosses row $Y = 33$ walking North, script `0x3F9` executes:
-   ```assembly
-   10 A4 00 06 A4 00 29 31 9A : WRITE $22fc = $22fc + 1   ; Increment Desert Screen Y
-   96 B0 B2                   : Teleport player by 0, +2 screens
-   ```
+   > **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/8CCFFD](soe://rom/code/8CCFFD?asm=1&c=0)
+
    When crossing row $Y = 103$ walking South, script `0x40E` executes:
-   ```assembly
-   10 A4 00 06 A4 00 29 31 9B : WRITE $22fc = $22fc - 1   ; Decrement Desert Screen Y
-   96 B0 CE                   : Teleport player by 0, -2 screens
-   ```
+   > **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/8CCFFD](soe://rom/code/8CCFFD?asm=1&c=0)
+
 
 2. **Opcode `0x96` and the teleport routine (`$90A001`).**
    Opcode `0x96` dispatches to `$8CE49D`, which converts the screen arguments into 512-pixel increments ($2 \text{ screens} = 1024\text{ px} = 64\text{ metatiles}$) and calls `$90A001`:
@@ -247,11 +241,10 @@ Once the `$8FB4FD` overlap bypass is primed (which a TAS achieves with $100\%$ d
    - For each entity, it computes prospective destination coordinates:
      $$\text{dest\_X} = \text{curr\_X} + dX, \quad \text{dest\_Y} = \text{curr\_Y} + dY$$
    - **The Destination Passability Gate (`$90A097`):** Before writing the new coordinates, it calls `$909561` to test whether the destination metatile is passable:
-     ```assembly
-     90A097  JSL $909561      ; Test passability at (dest_X, dest_Y) on plane $44
-     90A09B  BCC $90A0A1      ; IF IMPASSABLE / BLOCKED: SKIP MOVE!
-     90A09D  JSL $8FC2E4      ; IF PASSABLE: commit position to entity +$1A, +$1C
-     ```
+     > **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/8CCFFD](soe://rom/code/8CCFFD?asm=1&c=0)
+
    - **If the destination metatile is solid, `$909561` returns with Carry Clear (`BCC`).**
    - The engine **skips `$8FC2E4` entirely**! The entity's coordinate fields are never updated, and the entity remains at its starting coordinates.
 
@@ -275,10 +268,10 @@ Once the `$8FB4FD` overlap bypass is primed (which a TAS achieves with $100\%$ d
 
 4. **Why the player does not get trapped (`$2429` re-trigger suppression).**
    When the trigger fires, the step-on search routine at `$8FACB1` records the trigger script ID into `$7E2429`. On every frame:
-   ```assembly
-   8FAD15  CPX $2429            ; Is this trigger already active?
-   8FAD18  BEQ $8FAD4F          ; If yes: SKIP EXECUTION
-   ```
+   > **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/8CCFFD](soe://rom/code/8CCFFD?asm=1&c=0)
+
    Because `$2429` matches, the trigger does not re-fire on subsequent ticks while the Boy stands on the trigger line. The Boy continues walking straight in his current direction:
    - Walking North: steps from row $Y = 33$ into $Y = 32$, exiting the trigger line and walking into Nobilia.
    - Walking South: steps from row $Y = 103$ into $Y = 104..106$, walking directly into Trigger #8/#9 at $Y = 106$ to exit to Crustacia.
@@ -295,10 +288,10 @@ Once the `$8FB4FD` overlap bypass is primed (which a TAS achieves with $100\%$ d
 
 6. **The Dog Separation trick explained.**
    When entering the Desert of Doom, the room's enter script normally disables the Dog:
-   ```assembly
-   42 D1 FB FF : Teleport dog off-screen
-   BE          : Stop/disable doggo and SELECT button
-   ```
+   > **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/8CCFFD](soe://rom/code/8CCFFD?asm=1&c=0)
+
    However, if the player separates the party and leaves the Dog outside Nobilia before entering, the Dog is never processed by the desert enter script. As the Boy walks South through the desert and triggers screen wraps, the camera and desert coordinates update, but the Dog remains parked outside Nobilia. Switching to the Dog allows simply walking North into the Nobilia entrance.
 
 ## Leaving a room cuts every running script

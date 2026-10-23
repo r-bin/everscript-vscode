@@ -36,10 +36,10 @@ This document answers:
 - **ROM Size:** Expands ROM from 3.0 MB (HiROM `$C0..$EF`) to 4.0 MB (`$C0..$F7`).
 - **Input Polling Hook (`$C0:847A`):**
   Replaces vanilla single-controller joypad polling with a long jump:
-  ```assembly
-  $C0:847A:  JSL $F00000     ; 2P Input Engine in Bank $F0
-             BRA +$29        ; Skip vanilla Joypad 1 polling
-  ```
+  > **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/C45B9C](soe://rom/code/C45B9C?asm=1&c=0)
+
 - **Bank `$F0` Payload (`$F0:0000..$F0:0A16`):**
   - Reads hardware registers `$4218` (Joypad 1) and `$421A` (Joypad 2).
   - Maintains master 2-player control state in Direct Page `$F2`:
@@ -193,17 +193,16 @@ During development, Square USA built an extensive in-game debug ring menu allowi
 
 ### What does it modify?
 - **Unlocking the Menu:**
-  ```assembly
-  ORG $CEA3EA
-      NOP               ; Neutralize RTS preventing access to debug ring
-  ```
+  > **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/C45B9C](soe://rom/code/C45B9C?asm=1&c=0)
+
 - **Config Ring Hook (`$CE:9A86`):**
   Intercepts the routine loading the config ring and redirects it to extended ROM space (`$FE:0000`):
-  ```assembly
-  ORG $CE9A86
-      JSL $FE0000       ; Jump to extended debug ring builder
-      NOP : NOP
-  ```
+  > **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/C45B9C](soe://rom/code/C45B9C?asm=1&c=0)
+
 - **Extended Ring Builder (`$FE:0000`):**
   Populates ring menu item array `$0F5A..$0F72` with 11 debug command IDs:
   1. Character Presets

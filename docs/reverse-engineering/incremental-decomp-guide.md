@@ -74,47 +74,10 @@ To illustrate, consider an engine routine that calculates and applies damage to 
 
 The original assembly operates on registers (`A`, `X`, `Y`), stack pushes/pulls, and raw WRAM offsets:
 
-```assembly
-; ==============================================================================
-; ApplyEntityDamage ($84:9A12)
-; Input:
-;   X = Entity index (0 = Boy, 1 = Dog, 2..N = Enemies)
-;   A = 16-bit incoming damage amount
-; Modifies:
-;   Entity struct in WRAM at $7E4E45 + (X * 0x70)
-;   Offset +$14: current_hp (16-bit)
-;   Offset +$22: status_flags (16-bit, bit 2 = DEAD)
-; ==============================================================================
-ApplyEntityDamage:
-    REP #$20                ; 16-bit Accumulator
-    PHA                     ; Save incoming damage on stack
-    TXA                     ; A = entity index
-    ; Compute offset: Y = X * 0x70
-    STA $02
-    ASL A : ASL A : ASL A   ; A = X * 8
-    ADC $02                 ; A = X * 9 (approximate stride math)
-    ...
-    TAY                     ; Y = entity byte offset from $4E45
-    PLA                     ; Pull damage back to A
-    STA $00                 ; Store damage in scratchpad $7E0000
+> **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/849A12](soe://rom/code/849A12?asm=1&c=0)
 
-    ; Deduct HP
-    LDA $4E45+0x14, Y       ; Load Entity.current_hp
-    SEC
-    SBC $00                 ; Subtract damage
-    BCS .alive              ; If no borrow (Carry=1), HP > 0
-    LDA #$0000              ; Underflow clamp: HP = 0
-.alive:
-    STA $4E45+0x14, Y       ; Store new HP
-    BNE .done               ; If HP != 0, finish
-
-    ; Entity died: update status flags
-    LDA $4E45+0x22, Y       ; Load Entity.status_flags
-    ORA #$0004              ; Set bit 2 (STATUS_DEAD)
-    STA $4E45+0x22, Y
-.done:
-    RTS
-```
 
 ---
 
@@ -123,45 +86,10 @@ ApplyEntityDamage:
 When `snesrecomp` runs, it translates the assembly instruction-by-instruction into native C.
 **Important:** We do *not* edit this file, as it is automatically regenerated every build.
 
-```c
-// Generated file: out/recomp/project/src/game/bank_84.c (DO NOT EDIT DIRECTLY)
-void func_849A12_M0X0(CpuState *cpu) {
-    // REP #$20
-    cpu->p &= ~FLAG_M;
+> **Reconstructed C Decompilation**:
+> Source moved to [`reconstructed-c/84/849A12_incremental_decomp_guide.c`](../../reconstructed-c/84/849A12_incremental_decomp_guide.c).
+> [View in VFS: soe://rom/code/849A12](soe://rom/code/849A12?c=1&asm=0)
 
-    // PHA
-    cpu_push16(cpu, cpu->a);
-
-    // TXA ; math ...
-    uint16_t ent_idx = cpu->x;
-    uint16_t offset = ent_idx * 0x70;
-    cpu->y = offset;
-
-    // PLA ; STA $00
-    uint16_t damage = cpu_pop16(cpu);
-    wram_write16(0x0000, damage);
-
-    // LDA $4E45+0x14, Y ; SBC $00
-    uint16_t hp = wram_read16(0x4E45 + 0x14 + cpu->y);
-    uint32_t diff = (uint32_t)hp - damage;
-
-    if (diff & 0x10000) {   // Underflow borrow
-        hp = 0;
-    } else {
-        hp = (uint16_t)diff;
-    }
-
-    // STA $4E45+0x14, Y
-    wram_write16(0x4E45 + 0x14 + cpu->y, hp);
-
-    if (hp == 0) {
-        // LDA $4E45+0x22,Y ; ORA #$0004 ; STA $4E45+0x22,Y
-        uint16_t flags = wram_read16(0x4E45 + 0x22 + cpu->y);
-        flags |= 0x0004;
-        wram_write16(0x4E45 + 0x22 + cpu->y, flags);
-    }
-}
-```
 
 ---
 

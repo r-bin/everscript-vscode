@@ -46,22 +46,10 @@ flowchart TD
 
 ### 1.1 Assembly Trace
 
-```assembly
-; Entry state:
-;   A = 0x0000
-;   X = 0x0060 (Loop counter: 96 iterations = 97 entries)
-;   Y = 0x0000 (Byte offset)
-;   [$3A] = Points to WRAM $7FC300
+> **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/80BBFD](soe://rom/code/80BBFD?asm=1&c=0)
 
-loop_accumulate:
-    908E85  CLC                            ; Clear carry before addition
-    908E86  ADC [$3A],Y [$7FC300 + Y]      ; Add 16-bit delta from WRAM
-    908E88  STA [$3A],Y [$7FC300 + Y]      ; Store accumulated sum in-place
-    908E8A  INY                            ; Increment Y by 2 bytes (16-bit word)
-    908E8B  INY
-    908E8C  DEX                            ; Decrement counter
-    908E8D  BPL loop_accumulate            ; Branch if X >= 0
-```
 
 ### 1.2 Pseudocode Translation
 
@@ -110,86 +98,19 @@ Every compressed payload block begins with a 3-byte subheader:
 - **Byte 0 (`sub_flag`)**: Decompression algorithm index (multiplied by 2 for jump table index).
 - **Bytes 1–2 (`decomp_size`)**: Expected decompressed output size in bytes.
 
-```assembly
-; Master Dispatcher Entry at $8C988D:
-8C988D  LDY #$0000
-8C9890  LDA [$36],Y     ; Read sub_flag (method tag)
-8C9892  INY
-8C9893  AND #$00FF
-8C9896  ASL             ; tag * 2 (table stride)
-8C9897  TAX             ; Index into dispatch table
-8C9898  LDA [$36],Y     ; Read 16-bit decomp_size
-8C989A  INY
-8C989B  INY
-8C989C  STA $34         ; Store target size
-8C989E  JMP ($98A1,X)   ; Dispatch to algorithm handler!
+> **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/80BBFD](soe://rom/code/80BBFD?asm=1&c=0)
 
-; Dispatch Table at $8C98A1:
-;   Index 0 ($98A1): $98B1 (Uncompressed copy)
-;   Index 3 ($98A7): $98C9 (LZSS Sliding Window Decompressor)
-;   Index 7 ($98AF): $9B65 (2D Context-Predictive Markov Bitstream Decoder)
-```
 
 ### 2.2 Algorithm 3: LZSS Sliding-Window Decompressor ($8C98C9)
 
 Used for **Payload Block 1** (delta tile palette in 115 of 127 rooms; the remaining 12 rooms use Algorithm 0 Uncompressed Copy `$8C98B1`) and **Payload Block 3** (metatile VRAM words table across all rooms).
 
-```assembly
-; Setup sliding window buffer at $7FA000
-8C98EA  LDA #$A000
-8C98ED  STA $08         ; Window write pointer ($7FA000)
-8C98EF  LDA #$A000
-8C98F2  CLC
-8C98F3  ADC #$1000      ; Window bound ($7FB000)
-8C98F6  STA $0C
+> **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/80BBFD](soe://rom/code/80BBFD?asm=1&c=0)
 
-; Bitstream read loop
-8C98FD  REP #$20
-8C9903  LDA $8C9A46,X   ; Load bitmask (0x8000 >> bit_index)
-8C9907  STA $0E
-8C9909  LDA [$2A],Y     ; Read 16-bit word from ROM bitstream
-8C990B  XBA
-8C990C  BIT $0E         ; Test flag bit
-8C990E  BEQ lz_reference; If 0 -> LZ reference token
-                        ; If 1 -> Literal byte
-
-literal_byte:
-    8C991F  JMP ($9B12,X)   ; Unaligned bit-extraction table for literal byte
-    8C9928  STA ($02)       ; Write literal byte to destination ($7FC300)
-    8C992A  STA ($08)       ; Write literal byte to history window ($7FA000)
-    8C992E  INC $02         ; Increment output pointer
-    8C9930  INC $08         ; Increment window pointer (modulo 4096)
-    8C993D  JMP $8C98FD     ; Next token
-
-lz_reference:
-    8C994F  ASL
-    8C9951  JMP ($9A66,X)   ; Unaligned bit-extraction table for 16-bit token
-    8C99CB  CMP #$FEE0
-    8C99D0  LSR A
-    8C99D1  LSR A
-    8C99D2  LSR A
-    8C99D3  LSR A           ; Token >> 4 gives window offset
-    8C99D4  BEQ lz_exit     ; If offset == 0 -> END OF STREAM SENTINEL
-    8C99D7  ADC #$9FFF      ; Window pointer = (offset - 1) relative to $7FA000
-    8C99DA  TAX             ; X = window source address
-    8C99DC  AND #$000F
-    8C99DF  ADC #$0002      ; Length = (Token & 0x0F) + 2
-    8C99E2  TAY             ; Y = copy length counter
-
-lz_copy_loop:
-    8C99E5  LDA $0000,X     ; Read from history window
-    8C99E8  STA ($02)       ; Write to output
-    8C99EA  STA ($08)       ; Write to current window position
-    8C99EE  INC $02
-    8C99F0  INC $08
-    8C99FD  INX
-    8C99FE  DEY
-    8C99FF  BNE lz_copy_loop
-    8C9A01  JMP $8C98FD
-
-lz_exit:
-    8C98E9  RTL             ; Return from subroutine
-```
 
 ### 2.2 Pseudocode Translation
 
@@ -290,11 +211,10 @@ The engine uploads these words into VRAM at `$2000`, then at `$9091F7` reads the
 ### 3.3 Final PPU Tilemap Streaming ($909460)
 
 During rendering, subroutine `$909460` iterates over the active viewport (18 columns of rows 0..15):
-```assembly
-909460  LDY $0000,X [$7F0000 + offset] ; Read Metatile ID (e.g. $0280)
-909463  LDA ($26),Y [$7F0280 + offset] ; Lookup corresponding VRAM Word ($30C0)
-909465  STA VMDATAL                    ; Stream to SNES PPU VRAM!
-```
+> **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/80BBFD](soe://rom/code/80BBFD?asm=1&c=0)
+
 
 ### 3.4 WRAM Memory Map for Room 0x33 ($20 \times 16 = 320$ tiles)
 
@@ -320,32 +240,10 @@ During rendering, subroutine `$909460` iterates over the active viewport (18 col
 
 ### 4.1 Assembly Trace Breakdown
 
-```assembly
-; Resolve pointer from $EE0000 table:
-;   tile_id in register A
-8CC892  STA $14 [$000014]       ; Store tile index
-8CC894  ASL                     ; tile_id * 2
-8CC895  ADC $14                 ; tile_id * 3 (24-bit pointer stride)
-8CC897  TAX
-8CC898  LDA $EE0000,X           ; Read 16-bit address (low/high)
-8CC89C  STA $12
-8CC8A1  LDA $EE0002,X           ; Read 8-bit bank byte
-8CC8A4  STA $14
-; Result: Source pointer = $14:$12 (e.g. $80:BBFD)
+> **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/80BBFD](soe://rom/code/80BBFD?asm=1&c=0)
 
-; Configure DMA Channel 1:
-8CC958  STA $4315 [DAS1L]       ; DMA transfer size (words * 2)
-8CC969  STA $4312 [A1T1L]       ; DMA source address
-8CC976  STA $4314 [A1B1]        ; DMA source bank
-8CC97C  STX $4310 [DMAP1]       ; DMA mode ($1801 = CPU to VMDATAL $2118)
-8CC981  STA $420B [MDMAEN]      ; Trigger DMA transfer
-
-; Zero-fill padding for partial tiles ($8CCC62):
-8CCC62  ASL
-8CCC6D  LDA #$2100              ; Direct Page = $2100 (hardware registers)
-8CCC70  TCD
-; Repeated STX $18 writes zeroes into VMDATA ($2118) to pad unused tile block
-```
 
 ### 4.2 Pseudocode Translation
 
@@ -444,14 +342,10 @@ Earlier hypotheses assumed that Payload Block 3 held only a single layer of VRAM
 
 1. **Hardware Division by 6 (`$9091B0`):**
    When Block 3 finishes LZSS decompression (`JSL $8C988D`), the decompressed byte count $S$ is loaded into the SNES hardware math registers:
-   ```assembly
-   9091B0  STA $4204          ; Set 16-bit dividend = decompressed byte count S
-   9091B5  LDA #$0006
-   9091B8  STA $4206          ; Set 8-bit divisor = 6 bytes per metatile definition
-   ; 16-cycle hardware wait loop
-   9091C5  LDA $4214          ; Read 16-bit quotient = N (metatile count)
-   9091C8  STA $18            ; $18 = N
-   ```
+   > **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/80BBFD](soe://rom/code/80BBFD?asm=1&c=0)
+
    Each metatile definition in Block 3 requires exactly **6 bytes (3 16-bit words)**:
    - **Slice 0 (Words $0 \dots N-1$):** **Layer 1 (Canopy / BG2)** SNES VRAM tilemap words.
    - **Slice 1 (Words $N \dots 2N-1$):** **Layer 2 (Terrain / BG1)** SNES VRAM tilemap words.
@@ -494,11 +388,10 @@ $$\text{Metatile ID}_i = \text{base\_metatile} + (i \times 8)$$
 - In Room 0x38 ($83 \times 91$): $\text{base\_metatile} = 83 \times 91 \times 2 = 15106 = \text{0x3B02}$. Metatile IDs are `0x3B02, 0x3B0A, 0x3B12...`.
 
 During rendering (`$909460`), the CPU loads the metatile ID straight into index register `Y`:
-```assembly
-909460  LDY $0000,X [$7F0000 + cell_offset] ; Y = base_metatile + (i * 8)
-909463  LDA ($26),Y                         ; Direct lookup at $7F0000 + Y ($26 = $7F0000)
-909465  STA VMDATAL                         ; Stream directly to PPU VRAM register ($2118)
-```
+> **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/80BBFD](soe://rom/code/80BBFD?asm=1&c=0)
+
 This zero-overhead design eliminates table lookup translations entirely during active gameplay rendering.
 
 ---
@@ -513,7 +406,7 @@ ROM Room Blob ($8B):
   +$0D: Step-On Trigger Table: [step_len: 2 bytes] + [step_len bytes records]
   +...: B-Trigger Table: [b_len: 2 bytes] + [b_len bytes records]
   +...: Tile Families Table: [fam_count: 1 byte] + [fam_count * 2 bytes]
-  +...: Section 1 (CHR Descriptors): [desc_count: 1 byte] + [desc_count * 3 bytes]
+    +...: Palette-cycle descriptors: [desc_count: 1 byte] + [desc_count * 3 bytes]
   +...: Block 1 (Tile Palette): [b1_len: 2 bytes] + [b1_len bytes data]
   +...: Section 2: [sec2_count: 1 byte] + [sec2_len: 2 bytes] + [sec2_len bytes data]
   +...: Section 3: [sec3_count: 1 byte] + [sec3_count * 2 bytes]
@@ -542,7 +435,7 @@ $$y_{min} \le (Y_{pix} \gg 4) + origin\_y < y_{max} \quad \text{AND} \quad x_{mi
 #### 3. Deterministic Payload Block Pointers
 Following B-triggers:
 1. **Tile Families**: `fam_off = b_len_off + 2 + b_len`. `fam_count = rom[fam_off]`.
-2. **Section 1 (CHR Descriptors)**: `pos_desc = fam_off + 1 + fam_count * 2`. `desc_count = rom[pos_desc]`.
+2. **Palette-cycle descriptors**: `pos_desc = fam_off + 1 + fam_count * 2`. `desc_count = rom[pos_desc]`; each three-byte record is passed by the room loader to `$90D50F` to configure palette colour cycling.
 3. **Block 1 (Delta Tile Palette)**:
    - Starts at `pos_after_desc = pos_desc + 1 + desc_count * 3`.
    - Length: `b1_len = read16(rom, pos_after_desc)`.

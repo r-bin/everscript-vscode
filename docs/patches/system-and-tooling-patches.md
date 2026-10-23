@@ -85,34 +85,10 @@ The patch applies 27 surgical records across the ROM:
 ### Unlocking the Developer Debug Ring
 Square USA left a complete debug ring menu inside the retail ROM but blocked player access by inserting an `RTS` at `$CEA3EA`. XaserLE's patch unblocks this and builds an extended debug suite:
 
-```assembly
-; Step 1: Neutralize the lock
-ORG $CEA3EA
-    NOP                  ; Allows ring menu handler to reach debug ring code
+> **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/C0847A](soe://rom/code/C0847A?asm=1&c=0)
 
-; Step 2: Intercept config ring loader
-ORG $CE9A86
-    JSL $FE0000          ; Jump to extended debug ring builder in Bank $FE
-    NOP : NOP
-
-; Step 3: Populate debug ring items ($FE:0000)
-ORG $FE0000
-    LDA #$0016 : STA $0814
-    LDA #$000B : STA $0F5A ; Number of debug items
-    ; Populate item command IDs into array $0F5C..$0F72:
-    LDA #$0000 : STA $0F5E ; Command 0: Presets
-    LDA #$0002 : STA $0F60 ; Command 1: Dog setup
-    LDA #$0004 : STA $0F62 ; Command 2: Atlas boost
-    LDA #$0006 : STA $0F64 ; Command 3: Walk through walls (No-Clip)
-    LDA #$0008 : STA $0F66 ; Command 4: Misc
-    LDA #$000A : STA $0F68 ; Command 5: Flags
-    LDA #$000C : STA $0F6A ; Command 6: Spawn Enemy
-    LDA #$000E : STA $0F6C ; Command 7: Unlock Items
-    LDA #$0010 : STA $0F6E ; Command 8: Mode 7 Flight
-    LDA #$0012 : STA $0F70 ; Command 9: Alchemy
-    LDA #$0014 : STA $0F72 ; Command 10: Brian's Test Room
-    RTL
-```
 
 ### High-Level Debug Commands Implemented
 1. **Walk Through Walls (No-Clip at `$FE:0330`):**

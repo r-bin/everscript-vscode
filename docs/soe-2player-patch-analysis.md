@@ -31,10 +31,10 @@ Binary analysis of `SoE2P.ips` against the unheadered North American ROM (`Secre
 Vanilla SoE polls Joypad 1 at `$C0:847A` during vertical blanking, reading `$4218` into `$0104` (held inputs) and `$0EC6` (newly pressed triggers).
 
 The patch replaces this routine with a long jump:
-```assembly
-$C0:847A:  JSL $F00000     ; Jump to FuSoYa's 2P Polling Kernel
-           BRA +$29        ; Skip vanilla Joypad 1 single-read logic
-```
+> **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/F00000](soe://rom/code/F00000?asm=1&c=0)
+
 
 At `$F0:0000`, the patch:
 1. Polls hardware register `$4218` (Joypad 1) and `$421A` (Joypad 2).
@@ -61,22 +61,14 @@ At `$F0:0000`, the patch:
 Vanilla Evermore checks whether an entity matches the active camera target `$7E0F42`. If it does not match, the character is fed into the follower AI routines at `$8FD066` (Boy AI) and `$8FD0B0` (Dog AI).
 
 The patch replaces these checks at `$CF:D05E` and `$CF:D0A8`:
-```assembly
-; Vanilla check at $CF:D05E:
-CPY $0F42
-BNE CompanionAI
+> **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/F00000](soe://rom/code/F00000?asm=1&c=0)
 
-; Patched hook:
-JML $F00270    ; Inspects $4FCF and routes to Human Control ($8FCD88) or AI ($8FD066)
-```
-```assembly
-; Vanilla check at $CF:D0A8:
-CPY $0F42
-BNE CompanionAI
+> **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/F00000](soe://rom/code/F00000?asm=1&c=0)
 
-; Patched hook:
-JML $F002A0    ; Inspects $4F21 and routes to Human Control ($8FCECC) or AI ($8FD0B0)
-```
 
 ### 2.5 Ring Menu & Subsystem Dispatching
 Vanilla reads raw button presses from `$0104` across all ring menu handlers. The patch rewrites these call sites across Banks `$CC` and `$CD`:

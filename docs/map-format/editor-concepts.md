@@ -96,7 +96,7 @@ palettes (4 safe slots per room) are a separate budget on the Rooms tab
   can be previewed but not edited; a vanilla room's draft keeps the first 7.
 - **Collision bit 14** is set by hand (Special tab → Step-on). Nothing sets it
   automatically under a new or moved step-on trigger; the Map checks warn instead.
-- **CHR descriptors** are not shown; custom maps copy the donor's.
+- **Palette-cycle descriptors** are not editable; custom maps copy the donor's values.
 - **Widgets** made from vanilla objects carry no holds: their states take the
   default of 1 tick.
 - Custom-map export writes **no triggers or scripts**.

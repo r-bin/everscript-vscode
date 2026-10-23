@@ -34,10 +34,10 @@ unused vanilla features are given up). C makes the count unlimited.
 
 ### The stub (one for all custom opcodes)
 
-```asm
-org $8CD888
-ext_entry:  jml ext_dispatch        ; 4 bytes; X = 2 * opcode is still set
-```
+> **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/8CD0A6](soe://rom/code/8CD0A6?asm=1&c=0)
+
 
 `ext_dispatch` (any bank) does `jmp (ext_table,x)` into its own 256-entry table. A custom handler
 ends with `jml $8CD87F` — that byte is the `RTS` of the `0x4D` handler — so the `RTS` runs in bank
@@ -69,16 +69,10 @@ compiler builtin emits any byte of either list. Repeat the check when Everscript
 Replace the dispatcher's `JSR ($E8BD,x)` at `$8C:D0AF` (3 bytes) with `JSR $D880` (3 bytes) and put a
 range check in the padding:
 
-```asm
-org $8CD0AF
-    jsr $D880
-org $8CD880
-    cpx #$0186          ; 2 * $C3
-    bcs ext_entry       ; $C3-$FF: ours
-    jmp ($E8BD,x)       ; $00-$C2: the vanilla handler, whose RTS returns to $D0B2
-ext_entry:              ; $D888
-    jml ext_dispatch
-```
+> **Interactive 65816 Assembly**:
+> Centralized comments infused at runtime.
+> [View in VFS: soe://rom/code/8CD0A6](soe://rom/code/8CD0A6?asm=1&c=0)
+
 
 12 of the 16 free bytes. Way A entries point at `$D888` too. The cost is one compare and branch on
 every script instruction (5 cycles).

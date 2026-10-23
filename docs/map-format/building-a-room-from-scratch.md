@@ -67,7 +67,7 @@ This is the complete structure of a room. Everything a room is, is in here:
   "buttonTriggers": [],        // fire when the player presses B inside
 
   "tileFamilies": [105, 352, 324, 106, 353, 43, 60],   // 16-colour PALETTES (sec. 4)
-  "extraGraphics": [],         // extra graphics slots loaded on top (sec. 4.3)
+  "extraGraphics": [],         // palette-cycle descriptors; legacy property name (sec. 4.3)
   "tileIds":      [489, 2648, /* ...122 entries... */], // the 16x16 graphics (Block 1)
 
   "animatedTiles": [],         // Section 2
@@ -95,7 +95,7 @@ On disk the sections appear in a fixed order, each carrying its own length so
 the whole chain can be walked without searching:
 
 ```
-header[13] │ stepOn │ buttonTriggers │ tileFamilies │ extraGraphics
+header[13] │ stepOn │ buttonTriggers │ tileFamilies │ paletteCycles
            │ Block1 │ animatedTiles  │ objectIndex  │ Block2
            │ grassSwaps │ Block3 │ objectArea
 ```
@@ -322,24 +322,29 @@ the Rooms tab now shows exactly which graphics a given room loaded — open
 the *Tile palette* section and switch to **graphics**. Each swatch's tooltip
 gives the `chr` value a tilemap word needs in order to draw it.
 
-### 4.3 `extraGraphics`
+### 4.3 Palette-cycle descriptors (`extraGraphics`)
 
-Three bytes each, read at `$9090A6` and handed to `$90D50F`:
+Three bytes each, read at `$9090A6` and passed to the palette-cycle setup routine `$90D50F`:
 
 | Byte | Bits | Meaning |
 |---|---|---|
-| 0 | 4–6 | slot group — `(b & 0x70) >> 3`, so an even index into a table of 2-byte entries |
-| 0 | 0–3 | entry within that group |
-| 1–2 | — | a 16-bit graphic id, little-endian |
+| 0 | 4–6 | cycle-state table selector; `(b & 0x70) >> 3` gives an even byte offset, 0–14 |
+| 0 | 0–3 | low nibble of the start CGRAM index |
+| 1 | — | number of colours in the cycle |
+| 2 | — | signed cycle rate; negative selects reverse cycling |
 
-`$90D50F` uses them to look up and reserve entries in slot tables at
-`$13D2`/`$1372`/`$13F2`/`$13B2`. They load additional graphics on top of
-what Block 1 already brought in. **71 of 127 rooms have none**; the rest
-have 1–8. Room `0x00`, for instance, has three: `[4d 03 04]`, `[51 04 08]`,
-`[56 04 08]`.
+The loader and setup routine calculate the starting CGRAM index as
+`b0 + (b0 & 0x70)` and use `(b0 & 0x70) >> 3` as a two-byte cycle-state table
+offset. Thus `1B 04 05` selects state offset 2, starts at CGRAM index `$2B`
+(palette 2, colour 11), cycles four colours, and has positive rate 5. `61 09 01`
+selects offset 12, starts at CGRAM index `$C1` (palette 12, colour 1), cycles
+nine colours, and has positive rate 1. `$90D50F` stores the start colour, cycle
+rate, and direction-specific counter state in
+`$1372/$13D2/$13F2/$13B2/$1392`. The engine updates CGRAM colours over time, so
+every tile using those palette entries changes colour; these records do not load
+graphics. **71 of 127 rooms have none**; the rest have 1–8 descriptors.
 
-Use `0` for a new room — everything in this walkthrough is drawn without
-them.
+Use a count of `0` for a new room if it needs no palette cycling.
 
 ## 5. The three tiles used in this walkthrough
 
@@ -605,7 +610,7 @@ nothing in the blob is a mystery:
 
 | Section | Empty value |
 |---|---|
-| **extraGraphics** (§4.3) | count `0` |
+| **paletteCycles** (§4.3; stored in legacy `extraGraphics`) | count `0` |
 | **animatedTiles** (Section 2) | count `0`, length `0` |
 | **objects** (Section 3 + object area) | count `0`, empty area |
 | **grassSwaps** (Section 4) | length `0` |

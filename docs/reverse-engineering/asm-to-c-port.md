@@ -132,16 +132,10 @@ should move them to native code.
 
 The hand-written lifting rules below stay as the reference for reviewing its output.
 
-```c
-// lifted from $908F6A — room loader, entry state M=1 X=0
-void f_908F6A(Cpu *c) {
-    c->A = (c->A & 0xFF00) | ram8(0x0ADB);      // LDA $0ADB
-    asl8(c); asl8(c);                           // ASL ; ASL
-    c->X = c->A;                                // TAX (X=0 → copies all 16 bits, incl. B)
-    c->A = rom16(0x9FFDE7 + c->X);              // LDA $9FFDE7,X
-    ...
-}
-```
+> **Reconstructed C Decompilation**:
+> Source moved to [`reconstructed-c/B1/B1A000_asm_to_c_port.c`](../../reconstructed-c/B1/B1A000_asm_to_c_port.c).
+> [View in VFS: soe://rom/code/B1A000](soe://rom/code/B1A000?c=1&asm=0)
+
 
 Rules:
 

@@ -53,7 +53,7 @@ Section offsets are walked from length fields only, never searched for:
 +0x0D  step-on triggers       [len:2] len/6 × [y1 x1 y2 x2 script:2]   §10
        B-triggers             [len:2] len/6 × (same)                   §10
        tile families          [n:1]   n × family:2                     §5
-       CHR descriptors        [n:1]   n × 3                            §5
+      Palette-cycle descriptors [n:1] n × 3                           §5
        Block 1  graphics      [len:2][sub:1][size:2] data              §5
        Section 2 animation    [n:1][len:2] n×4 descriptors, 0xFF, frames   §6
        Section 3 objects      [n:1]   n × offset:2                     §8
@@ -73,7 +73,7 @@ LZSS streams end on 1–3 zero padding bytes inside their declared length.
 | step-on triggers | 16-bit byte length | 65 (`0x59`); 1205 in all | `room.ts readTriggers` | `encode.ts buildBlob` |
 | B-triggers | 16-bit byte length | 58 (`0x0A`); 1065 in all | same | same |
 | family entries | 1-byte count; **7 loaded at once** | 14 (`0x0D` and 17 more) | `room.ts` | `custom-room.ts` |
-| CHR descriptors | 1-byte count | 8 (`0x53`); 71 rooms have none | opaque (`encode.ts extras`) | copied from the donor |
+| Palette-cycle descriptors (`extraGraphics`) | 1-byte count | 8 (`0x53`); 71 rooms have none | `room.ts` preserves raw values | copied from the donor |
 | graphics (Block 1 + animated) | **264** slots (10-bit `chr`) | 246 Block 1 (`0x37`); 255 with animation (`0x08`) | `room.ts` | `encodeBlock1` |
 | animation channels | 255 (1-byte count) | 42 (`0x18`); 1020 in 95 rooms | `animation.ts` | `custom-animation.ts` |
 | frames per channel / ticks per frame | 255 / 127 kept (vanilla's own maximum; a longer hold is several frames, `editAnimRuns`) | 24 (`0x38`) / 127 | same | same |
@@ -157,10 +157,16 @@ switch sets by writing `MAP_PALETTE` (Thraxx's orange/white, Ebon/Ivor Keep,
 dark rooms), and `$90CBB3` reloads when it changes. A family is a ROM id tied to
 an area, never a friendly name.
 
-**CHR descriptors** (`extraGraphics`): 3 bytes, read at `$9090A6` and handed to
-`$90D50F`: byte 0 bits 4–6 slot group, bits 0–3 entry; bytes 1–2 a graphic id.
-They reserve extra graphics in the slot tables `$13D2/$1372/$13F2/$13B2`
-(`building-a-room-from-scratch.md` §4.3). What draws with them is not traced.
+**Palette-cycle descriptors** (legacy data property `extraGraphics`): 3 bytes each.
+The loader at `$9090A6` passes all three bytes to `$90D50F`. Byte 0 selects a
+two-byte cycle-state slot with `(b0 & 0x70) >> 3` and also determines the starting
+CGRAM colour index as `b0 + (b0 & 0x70)`. Byte 1 is the cycle's colour span; byte
+2 is its signed rate (negative selects reverse cycling). The routine updates
+palette-cycle state at `$1372/$13D2/$13F2/$13B2/$1392`; it does not load CHR
+graphics. For example, `1B 04 05` selects state-table offset 2, starts at CGRAM
+index `$2B` (palette 2, colour 11), cycles a four-colour span, and has positive
+rate 5. The visual effect is that the corresponding CGRAM colours cycle over
+time, changing every tile pixel that uses those colours.
 
 **Cuttable tiles** are not a flag: a cell is cuttable while its metatile id is a
 **source** in Section 4 (§7).
@@ -301,7 +307,7 @@ The editor converts records to inclusive map cells (`collision-overlay.ts`,
 
 | Field | What is known | What is not |
 |---|---|---|
-| CHR descriptors | slot group, entry, graphic id; reserved by `$90D50F` | what draws with them; the editor shows nothing and custom maps copy the donor's |
+| Palette-cycle descriptors (`extraGraphics`) | palette, start colour, span and signed rate; set up by `$90D50F` | exact rate timing; the editor displays the bytes but does not animate them |
 | Families past the 7th | alternate sets switched by `MAP_PALETTE`; previewed on the Info tab's Header sub-tab | the draft keeps only the first 7; sets cannot be edited |
 | cuttable `steps` byte | always 1 | meaning |
 | duplicate cuttable sources | exist in 4 rooms | which record the engine uses |
