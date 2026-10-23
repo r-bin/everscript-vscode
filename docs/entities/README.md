@@ -13,6 +13,7 @@ ruled out, so the next attempt starts further along.
 |---|---|---|
 | **[entities-reference.md](entities-reference.md)** | **Start here** for anything on a map that moves: the character record, placement, sprites, palettes and depth, bodies, attacks, damage, animation, entity WRAM fields | Index |
 | [character_table.md](character_table.md) | Stats, palette and animation pointers per character | Solved |
+| [character-properties.md](character-properties.md) | Every record field decompiled from the code that reads it, with corrections | Derived (static) |
 | [enemy_ai.md](enemy_ai.md) | How enemy AI identifies targets, state transitions, attack selection, behaviour table | Solved |
 | [runtime_stats.md](runtime_stats.md) | Which record stats a script can change at runtime, and how | Mostly derived |
 | [animation_format.md](animation_format.md) | Character → idle sprite and its frames | Solved |

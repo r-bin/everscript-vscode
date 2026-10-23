@@ -22,8 +22,8 @@ own RAM copy of it.
 
 | Card field | Record | Entity copy | Change it at runtime by | Source |
 |---|---|---|---|---|
-| HP | `+0x0F` | `+0x2A` `HP` | `<E>[HP] = n`; `damage(E, n, anim)` (`92`/`93`); `heal(E, n, anim)` (`94`/`95`) | copied at `$8FB15B`; used throughout everscript |
-| max HP | `+0x0F` | — | The Boy and Dog only, through their RAM records ([below](#the-boy-and-the-dog)). For an enemy, the max is whatever HP it spawned with | `<0x23e5>[0x0f]` in the `MAX_HP` comment |
+| HP (spawn value) | `+0x0F` | `+0x2A` `HP` | `<E>[HP] = n`; `damage(E, n, anim)` (`92`/`93`); `heal(E, n, anim)` (`94`/`95`) | copied at `$8FB15B`; used throughout everscript |
+| max HP | `+0x0F` | — | `TYPE` swap; the Boy and Dog through their RAM records ([below](#the-boy-and-the-dog)). Every heal is capped by the record's `+0x0F`, for enemies too | `$8FC0AC` |
 | attack | `+0x19` | — | `TYPE` swap. The Boy and Dog also have `BOOST_ATTACK` `+0xA0` | damage routine `$8FC042` |
 | defense | `+0x1B` | — | `TYPE` swap. The Boy and Dog also have `BOOST_DEFEND` `+0xA2`. `FLAGS_4` bit `$20` (shield) halves damage | `$8FC072` |
 | m. defense | `+0x1D` | — | `TYPE` swap. No boost field is known | `$919CB3` |
@@ -32,7 +32,7 @@ own RAM copy of it.
 | aggro range | `+0x13` | — | `TYPE` swap | `$8FD72D`, `$8FDA25` |
 | aggro chance | `+0x15` | — | `TYPE` swap | `$8FD6AD` |
 | EXP | `+0x23` | — | `TYPE` swap before it dies (the value is read at death) | `$8F8292` |
-| money | `+0x27` | — | `TYPE` swap before it dies | `$8F868E` |
+| money | `+0x27` | — | `TYPE` swap before it dies. Paid in the current era's currency | `$8F868E` |
 | prize chance | `+0x29` | — | `TYPE` swap before it dies | `$908567` |
 | collision radius | `+0x0D` | — | `TYPE` swap | `$8FB472`, `$8FB651` |
 | spawn flags | `+0x05` | `+0x10` `FLAGS_1` (OR'd) | Per spawn: the `flags` argument of `add_enemy` (`3c`/`a2`). Afterwards: `attribute(E, BIT, on)` (`a9`), or a direct write to `FLAGS_1`…`FLAGS_7` (`+0x10`…`+0x16`) | `$8FB0C3` |
@@ -41,10 +41,10 @@ own RAM copy of it.
 | charge limit | `+0x2C` | — | `TYPE` swap | `$91AEDE` |
 | charge speed | `+0x2E` | — | `TYPE` swap. To change the meter itself, write `<E>[STAMINA]` (`+0x2E`, 0…`$400`) | `$8FCC5D` |
 | attack proc | `+0x30` | — | `TYPE` swap | `$8FB6A5` |
-| behaviour | `+0x03` | `+0x00`/`+0x03` (`POINTER_BEHAVIOR_*`)? | *Unverified.* everscript names two behaviour pointers on the entity, so behaviour is probably copied at spawn and not affected by a `TYPE` swap. Use `attach_script` (`3d`/`3f`) for scripted control | `$8FCD1A` |
+| behaviour | `+0x03` | — | `TYPE` swap: it is read through `+0x60` on every idle tick, not copied (corrected, [character-properties.md](character-properties.md)). Use `attach_script` (`3d`/`3f`) for scripted control | `$8FCD1A` |
 | flags (+0x07) | `+0x07` | — | `TYPE` swap. Bit 4 (immune to projectiles) is read when a hit lands | `$8FB9FB` |
-| +0x11 | `+0x11` | `+0x2C` | `<E>[0x2C] = n`. The meaning is still open | `$8FB162` |
-| +0x17 | `+0x17` | `+0x40` | `<E>[0x40] = n`, unless `$23DD` overrides it at spawn | `$8FB169` |
+| +0x11 | `+0x11` | `+0x2C` | Nothing reads the copy: unused in vanilla | `$8FB162` |
+| leash | `+0x17` | `+0x40` | `<E>[0x40] = n` (pixels, \|dx\| + \|dy\| from the spawn point; 0 = none), or for a whole room `$23DD` before the spawns | `$8FB169`, `$8FDAA7` |
 | level (+0x2A) | `+0x2A` | — | The Boy and Dog only, through their RAM records. everscript's `SCALING_LEVEL` `+0x8A` is a **romhack** field, not vanilla | everscript `ATTRIBUTE_GENERAL.LEVEL` |
 | animations | `+0x32…+0x48` | — | `animate(E, mode, id)` for a one-off. A `TYPE` swap changes the whole set | [animation_script.md](animation_script.md) |
 

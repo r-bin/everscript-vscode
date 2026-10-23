@@ -62,8 +62,9 @@ flower (evade 0) 100 %; flower (hit 40) against the Boy (evade 34) 58.8 %, again
 ## 5. How much — the damage roll
 
 `w = attack − defence/4` (at full charge; clamped to 1 when it falls below 1), then one 16-bit
-random number `r`: `a = (w+1)·r/65536 + w`, damage = `(2a + w) / 4`. So damage spans about
-`3w/4` to `3w/2`, nearly uniform. It is taken from HP on the **target's next tick**. Opening
+random number `r`: `a = (w+1)·r/65536 + w`, damage = `(2a + w) / 4`. So damage spans `3w/4` to
+`5w/4`, nearly uniform (corrected from 3w/2; the decompiled routine is in
+[character-properties.md](character-properties.md) § +$19). It is taken from HP on the **target's next tick**. Opening
 values: Boy or Dog (attack 17) on the flower (defence 28): 7–12; flower (attack 9) on the Boy
 (defence 5): 6–10, on the Dog (defence 10): 5–8. The formula and its Atlas variant are in
 `src/games/evermore/scaling/` and [../plans/simulation/damage.md](../plans/simulation/damage.md).

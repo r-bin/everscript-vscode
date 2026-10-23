@@ -37,28 +37,28 @@ const hex = (v: number): string => '$' + (v >>> 0).toString(16);
 
 /** What the game does with each stat field, with the code that does it. */
 const STAT_MEANINGS: Record<string, string> = {
-    hp: "HP (+0x0F). Copied into the entity's HP (+0x2A) when it spawns ($8FB15B).",
-    attack: 'Attack (+0x19). Used by the damage routine $8FC067.',
-    defense: 'Defence (+0x1B). Subtracted in the damage routine $8FC067.',
-    magic_defense: 'Magic defence (+0x1D). Alchemy damage scales by ($40 − m.def) / $40 ($919CB3).',
-    evade: 'Evade (+0x1F). Indexes the to-hit table at $8FBAAF when this character is the target ($8FBA27).',
-    hit_rate: "Hit rate (+0x21). The attacker's side of the to-hit roll ($8FBA53); −30 when flags2 bit 1 is set.",
-    aggro_range: 'Aggro range (+0x13): engages when the target is within this many pixels in x AND in y — a square, not a circle ($8FD72D) — then turns to face it.',
+    hp: "Max HP (+0x0F). The HP an entity spawns with ($8FB15B) and the cap of every heal ($8FC0AC); the entity's own HP is +0x2A.",
+    attack: 'Attack (+0x19). Scaled by the charge: ÷4 below 50 %, ÷2 below 100 %, ×2 from 200 %, ×4 from 300 % ($8FC02B).',
+    defense: 'Defence (+0x1B). A quarter of it is subtracted from the attack; the hit then deals 3/4 to 5/4 of that ($8FC067).',
+    magic_defense: 'Magic defence (+0x1D). Subtracted from alchemy damage on the Boy or Dog; an enemy takes (64 − m.def) / 64 of it, as a signed byte, so 64 or more means 1 damage and $FFC1 (−63) about double ($919C90).',
+    evade: 'Evade (+0x1F). Picks the row of the to-hit table, one per 4 points, when this character is the target ($8FBA27).',
+    hit_rate: "Hit rate (+0x21). Picks the column of the to-hit table, one per 4 points up to 100, when this character attacks ($8FBA06).",
+    aggro_range: 'Aggro range (+0x13): engages when the target is within this many pixels in x and in y, a square ($8FD69B); attacks once it is lined up on one axis within this reach ($8FD9D1). The Boy\'s is his weapon\'s reach.',
     aggro_chance: 'Aggro chance (+0x15): once stamina (entity +0x2E) is full, engages when rand(0..255) < this ($8FD69B); the check covers both party members.',
-    exp: "EXP (+0x23, 32-bit). Added to both the Boy's ($0A49) and the Dog's ($0A93) totals ($8F8292).",
-    money: 'Talons (+0x27).',
-    prize_chance: 'Prize chance (+0x29, byte). On death a drop happens when rand & $7F < this: value / 128 ($908567). With a drop the death animation is +0x44 (spoils), otherwise +0x42.',
+    exp: "EXP (+0x23). 32-bit, added in full to the Boy's ($0A49) and, while it lives, the Dog's ($0A93) totals ($8F8292).",
+    money: "Money (+0x27): added on death to the current era's currency ($8F8689).",
+    prize_chance: 'Prize chance (+0x29). A byte: on death it drops something when rand & $7F < this, value / 128 ($908567); 128 always. With a drop the death animation is +0x44 (spoils), otherwise +0x42.',
     radius: 'Collision radius (+0x0D). Body box 2r × r ($8FB4AB); the hit test\'s hurt region is half-size r around the feet ($8FB651). 0 = walk-through.',
-    flags: 'Spawn flags (+0x05), OR\'d into entity +0x10 at spawn ($8FB0C3). Bit 1: touching it runs no contact handler ($8FB564); bit 5: left out of targeting ($8FD8D2); $0400 phasing. The hit test compares the side bits $5006 ($8FB606), and $4000 on the target blocks damage ($8FC0D9).',
-    palette: 'Palette (+0x09), a 16-colour address in bank $90; the palette-slot allocator $90CD80 reuses a slot for an equal value.',
-    charge_limit: 'Charge limit (+0x2C): the cap on the charge meter (entity +0x2E, $91AEDE). 1024 ($400) is a full charge.',
-    charge_speed: 'Charge speed (+0x2E): added to the charge meter (entity +0x2E) every tick until it reaches $400 ($8FCC5D).',
-    attack_proc: 'Attack proc (+0x30): what a hit by this character does, dispatched at $8FB6A5 through $8FB6AE (0 = to-hit roll and damage).',
-    ai_script: "Behaviour (+0x03): selects the entity's AI script ($8FCD1A).",
-    flags2: 'Flags (+0x07). Bit 0: registered in the list at $58AF ($8FC4BA). Bit 1: −30 hit rate ($8FBA46). Bits 2–3: tested by the script engine ($8C86A6, $8C86DA). Bit 4: immune to projectiles — an automatic miss ($8FB9FB).',
-    palette2: 'Second palette (+0x0B): when non-zero, loaded into palette slot 2 ($90CD01, $90CF3A).',
-    unknown11: '+0x11: copied into entity +0x2C at spawn ($8FB162). Meaning open.',
-    unknown17: '+0x17: copied into entity +0x40 at spawn unless $23DD overrides it ($8FB169). Meaning open.',
+    flags: 'Spawn flags (+0x05). OR\'d into entity +0x10 at spawn ($8FB0C3). Bit 1: touching it runs no contact handler ($8FB564); bit 5: left out of targeting ($8FD8D2); $0400 phasing. The hit test compares the side bits $5006 ($8FB606), and $4000 on the target blocks damage ($8FC0D9).',
+    palette: 'Palette (+0x09). A 16-colour address in bank $90; the palette-slot allocator $90CD80 reuses a slot for an equal value.',
+    charge_limit: 'Charge limit (+0x2C): how far a held charge ($8FCD88) and the Speed status ($91AEDE) fill the meter; $400 is 100 %. The Boy\'s follows his weapon level, the Dog\'s its attack level.',
+    charge_speed: 'Charge speed (+0x2E): added to the charge meter (entity +0x2E) every tick until it reaches $400 ($8FCC5D); a held charge past that adds speed − 3 ($8FCD88).',
+    attack_proc: 'Attack proc (+0x30): what its strikes and its body contact do, through the table $8FB6AE (0 = to-hit roll and damage; others add a status, skill on a kill, or no knockback).',
+    ai_script: "Behaviour (+0x03): the idle AI routine, read on every idle tick through the record ($8FCD1A), so changing TYPE changes it.",
+    flags2: 'Flags (+0x07). Bit 0: takes a side record at $58AF ($8FC4BA). Bit 1: −30 hit rate against the party member the player does not control ($8FBA46). Bits 2–3: the target filter ($8C8658). Bit 4: immune to projectiles — an automatic miss ($8FB9FB).',
+    palette2: 'Second palette (+0x0B): when non-zero, this and the first palette take sprite palette slots 1 and 0 ($90CD01, $90CF3A).',
+    unknown11: '+0x11: copied into entity +0x2C at spawn ($8FB162), which no code reads: unused.',
+    unknown17: 'Leash (+0x17): how far (|dx| + |dy| px) it may stray from its spawn point before it walks back ($8FDAA7); 0 = no limit. A room can override it ($23DD).',
 };
 
 /** Record fields: name, offset, width in bytes. */
@@ -67,7 +67,7 @@ const STATS: [string, number, number][] = [
     ['aggro_range', 0x13, 2], ['aggro_chance', 0x15, 2], ['exp', 0x23, 4], ['money', 0x27, 2], ['prize_chance', 0x29, 1],
     ['radius', 0x0d, 2], ['flags', 0x05, 2], ['palette', 0x09, 2], ['charge_limit', 0x2c, 2], ['charge_speed', 0x2e, 2],
     ['attack_proc', 0x30, 2], ['ai_script', 0x03, 2], ['flags2', 0x07, 2], ['palette2', 0x0b, 2], ['unknown11', 0x11, 2],
-    ['unknown17', 0x17, 2],   // not +0x2A ("level"): no vanilla code reads it; it belongs to kaizo experiments
+    ['unknown17', 0x17, 2],   // not +0x2A: the Boy's and the Dog's level; enemy records hold one that nothing reads
 ];
 
 /**

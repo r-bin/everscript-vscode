@@ -14,7 +14,8 @@ game reads the record through it from then on.
 
 ## Fields
 
-See `rom/8eb678.md` for every field with the code that reads it. In short: the name pointer
+See `rom/8eb678.md` for every field with the code that reads it, and
+[character-properties.md](character-properties.md) for each field decompiled and checked. In short: the name pointer
 (`+$00`), behaviour (`+$03`), flags (`+$05`, `+$07`), two palettes (`+$09`, `+$0B`, addresses in bank
 `$90`), the radius (`+$0D`), HP (`+$0F`), combat stats (`+$13`-`+$21`), experience, money and drop
 chance (`+$23`-`+$29`), the charge limit and speed (`+$2C`, `+$2E`), what touching it does (`+$30`)

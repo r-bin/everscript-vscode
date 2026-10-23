@@ -27,10 +27,11 @@
     [0x4000, 'takes no damage', 'the hit reaction skips it; set by attribute()'],
     [0x8000, '—', 'no code tests it'],
   ];
-  /** Flags +0x07, as the code tests them ($8FC4BA, $8FBA46, $8C86A6 / $8C86DA, $8FB9FB). */
+  /** Flags +0x07, as the code tests them ($8FC4BA, $8FBA46, $8C8658, $8FB9FB; docs/entities/character-properties.md). */
   var FLAGS2_BITS = [
-    [0x01, 'listed', 'registered in the list at $58AF'], [0x02, '−30 hit rate', ''], [0x04, 'script bit 2', 'tested by the script engine'],
-    [0x08, 'script bit 3', 'tested by the script engine'], [0x10, 'immune to projectiles', 'an automatic miss'],
+    [0x01, 'side record', 'takes a side record at $58AF'], [0x02, '−30 hit rate', 'against the party member the player does not control'],
+    [0x04, 'targetable friend', 'the target filter may pick it although it is friendly'],
+    [0x08, 'target filter bit 3', 'required by one kind of target request'], [0x10, 'immune to projectiles', 'an automatic miss'],
     [0x20, '—', ''], [0x40, '—', ''], [0x80, '—', ''],
   ];
   var FLAG_TABLES = { spawn: SPAWN_FLAG_BITS, flags2: FLAGS2_BITS };
@@ -141,16 +142,17 @@
 
     // `html` replaces the escaped value; `raw` goes in the top-right corner.
     var fields = [
-      { label: 'HP', val: s.hp, raw: hex(s.hp), desc: m.hp },
+      { label: 'Max HP', val: s.hp, raw: hex(s.hp), desc: m.hp },
       { label: 'Attack', val: s.attack, raw: hex(s.attack), desc: m.attack },
       { label: 'Defense', val: s.defense, raw: hex(s.defense), desc: m.defense },
-      { label: 'M. Defense', val: s.magic_defense, raw: hex(s.magic_defense), desc: m.magic_defense },
+      // Signed: $FFC1 is −63 to the alchemy damage routine ($919C90).
+      { label: 'M. Defense', val: s.magic_defense >= 0x8000 ? s.magic_defense - 0x10000 : s.magic_defense, raw: hex(s.magic_defense), desc: m.magic_defense },
       { label: 'Evade', val: s.evade, raw: hex(s.evade), desc: m.evade },
       { label: 'Hit Rate', val: s.hit_rate, raw: hex(s.hit_rate), desc: m.hit_rate },
       { label: 'Aggro Range', val: s.aggro_range + ' px', raw: hex(s.aggro_range), desc: m.aggro_range },
       { label: 'Aggro Chance', val: Math.round(s.aggro_chance / 256 * 100) + '%', raw: hex(s.aggro_chance), desc: m.aggro_chance },
       { label: 'EXP', val: s.exp, raw: hex(s.exp), desc: m.exp },
-      { label: 'Money (Talons)', val: s.money, raw: hex(s.money), desc: m.money },
+      { label: 'Money', val: s.money, raw: hex(s.money), desc: m.money },
       { label: 'Prize Chance', val: Math.round(s.prize_chance / 128 * 100) + '%', raw: hex(s.prize_chance), desc: m.prize_chance },
       { label: 'Collision Radius', val: s.radius + ' px (' + (s.radius * 2) + '×' + s.radius + ')', raw: hex(s.radius), desc: m.radius },
       { label: 'Palette', html: paletteHtml(c.paletteIndex, s.palette, c.paletteColors), raw: hex(s.palette), desc: m.palette },
@@ -161,8 +163,8 @@
       { label: 'Flags', html: flagsHtml(s.flags2, 'flags2'), raw: hex(s.flags2), desc: m.flags2 },
       { label: 'Charge Limit', html: chargeHtml(s.charge_limit), raw: hex(s.charge_limit), desc: m.charge_limit },
       { label: 'Charge Speed', val: s.charge_speed, raw: hex(s.charge_speed), desc: m.charge_speed },
-      { label: '+0x11', val: s.unknown11, raw: hex(s.unknown11), desc: m.unknown11 },
-      { label: '+0x17', val: s.unknown17, raw: hex(s.unknown17), desc: m.unknown17 },
+      { label: '+0x11 (unused)', val: s.unknown11, raw: hex(s.unknown11), desc: m.unknown11 },
+      { label: 'Leash', val: s.unknown17 ? s.unknown17 + ' px' : 'none', raw: hex(s.unknown17), desc: m.unknown17 },
     ];
 
     fields.forEach(function(f) {
