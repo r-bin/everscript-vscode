@@ -12,22 +12,72 @@
 //
 // Owns: _animMarks, _animTileTouch.
 
-/** The filter bar's `Animation` chip: borders and letters on the map (saved). */
+/** The filter bar's `Animation` chip: borders and letters on the map (saved), plus individual cycle-type toggles. */
 var _animMarks = true;
+var _animTileOn = true;
+var _animPaletteOn = true;
 /** uid -> the frame a Tile-tab stroke tiles in it, so a drag does not run on into the next frame. */
 var _animTileTouch = {};
 
 function animMarksButtonHtml() {
-  return '<button class="rdf rdf-anim-marks' + (_animMarks ? ' on' : '') + '" data-edit-act="anim-marks" title="'
+  var flat = '<button class="rdf rdf-anim-marks' + (_animMarks ? ' on' : '') + '" data-edit-act="anim-marks" title="'
     + escH('Animated tiles: a purple border and the pattern letter on every cell showing one') + '">Animation</button>';
+  if (typeof filterGroupHtml !== 'function') return flat;
+  return filterGroupHtml({
+    flat: flat,
+    label: 'Animation',
+    menuAttr: 'edit-anim-menu',
+    id: 'rg-anim-dropdown',
+    caretTitle: 'Show or hide tile cycles and palette cycles individually',
+    subs: [
+      '<button class="rdf rdf-anim-tile' + (_animTileOn ? ' on' : '') + '" data-edit-act="anim-tile-toggle" title="'
+        + escH('Tile cycle (Section 2 CHR animation): show/hide marks and animate tile-cycling cells') + '">Tile cycle</button>',
+      '<button class="rdf rdf-anim-palette' + (_animPaletteOn ? ' on' : '') + '" data-edit-act="anim-palette-toggle" title="'
+        + escH('Palette cycle (Section 4.3 colour shifting): show/hide marks and animate palette-cycling cells') + '">Palette cycle</button>',
+    ],
+  });
+}
+
+function syncAnimFilterState() {
+  _animMarks = _animTileOn || _animPaletteOn;
+  _animOff = !_animTileOn && !_animPaletteOn;
+  if (typeof vs !== 'undefined' && vs) {
+    vs.postMessage({ command: 'saveUiPref', key: 'animMarks', value: _animMarks });
+    vs.postMessage({ command: 'saveUiPref', key: 'animateTiles', value: !_animOff });
+  }
+  var btns = document.querySelectorAll('.rdf-anim-marks');
+  for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('on', _animMarks);
+  var tBtns = document.querySelectorAll('.rdf-anim-tile');
+  for (var j = 0; j < tBtns.length; j++) tBtns[j].classList.toggle('on', _animTileOn);
+  var pBtns = document.querySelectorAll('.rdf-anim-palette');
+  for (var k = 0; k < pBtns.length; k++) pBtns[k].classList.toggle('on', _animPaletteOn);
+  if (typeof applyRoomAnimation === 'function' && typeof _lastRoomAnim !== 'undefined' && _lastRoomAnim) {
+    applyRoomAnimation(_lastRoomAnim);
+  } else if (_animOff && typeof stopRoomAnimation === 'function') {
+    stopRoomAnimation();
+  } else if (!_animOff && typeof _romRerender === 'function') {
+    _romRerender();
+  }
+  if (typeof renderEditChrome === 'function') renderEditChrome();
+  renderEditLayer(_mtPalette, _editComposed, _editOrigin);
 }
 
 function editAnimMarksToggle() {
-  _animMarks = !_animMarks;
-  if (typeof vs !== 'undefined' && vs) vs.postMessage({ command: 'saveUiPref', key: 'animMarks', value: _animMarks });
-  var btns = document.querySelectorAll('.rdf-anim-marks');
-  for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('on', _animMarks);
-  renderEditLayer(_mtPalette, _editComposed, _editOrigin);
+  var next = !_animMarks;
+  _animMarks = next;
+  _animTileOn = next;
+  _animPaletteOn = next;
+  syncAnimFilterState();
+}
+
+function editAnimTileToggle() {
+  _animTileOn = !_animTileOn;
+  syncAnimFilterState();
+}
+
+function editAnimPaletteToggle() {
+  _animPaletteOn = !_animPaletteOn;
+  syncAnimFilterState();
 }
 
 /** The frame of an unfinished tile the map shows: the open frame while it is open and paused, else 0. */
@@ -67,20 +117,23 @@ function editAnimSvg(origin) {
   var p = _mtPalette;
   if (!p) return '';
   var onTab = typeof _editActiveTab !== 'undefined' && _editActiveTab === 'anim';
-  var marks = _animMarks || onTab, html = '';
-  if (onTab && typeof _editAnimSub !== 'undefined' && _editAnimSub === 'palette' && typeof editPaletteAnimsListed === 'function') {
+  var onPalTab = onTab && typeof _editAnimSub !== 'undefined' && _editAnimSub === 'palette';
+  var showPalShapes = onPalTab || (!onTab && _animMarks && _animPaletteOn);
+  var showTileShapes = (onTab && !onPalTab) || (!onTab && _animMarks && _animTileOn);
+  var html = '';
+  if (showPalShapes && typeof editPaletteAnimsListed === 'function') {
     var palList = editPaletteAnimsListed(p);
-    var palOpen = typeof paletteAnimOpenEntry === 'function' ? paletteAnimOpenEntry(palList) : null;
+    var palOpen = onPalTab && typeof paletteAnimOpenEntry === 'function' ? paletteAnimOpenEntry(palList) : null;
     palList.forEach(function (entry) {
       html += animShapeSvg(origin, entry.cells, entry === palOpen, entry.letter || '');
     });
-    return html;
   }
-  if (!editAnims().length && !(typeof _animStroke !== 'undefined' && _animStroke)) return '';
+  if (onPalTab) return html;
+  if (!editAnims().length && !(typeof _animStroke !== 'undefined' && _animStroke)) return html;
   editAnimsListed(p).forEach(function (entry) {
     var sel = entry.members.some(function (m) { return m.uid === _animSel; });
-    var letter = marks && editAnimSetComplete(entry.g, entry.members) ? (editAnimLetter(entry.g) || '*') : '';
-    if (marks) html += animShapeSvg(origin, entry.cells, sel, letter);
+    var letter = showTileShapes && editAnimSetComplete(entry.g, entry.members) ? (editAnimLetter(entry.g) || '*') : '';
+    if (showTileShapes) html += animShapeSvg(origin, entry.cells, sel, letter);
     entry.cells.forEach(function (key) {
       // Each cell's own tile: a set's cells are each their own.
       var e = entry.of[key] || entry.g, done = editAnimComplete(e);

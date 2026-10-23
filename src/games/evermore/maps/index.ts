@@ -126,7 +126,7 @@ export { applyObjectStates, renderObjectState, objectStateCount, objectBounds, D
 export type { ObjectStateMap } from './objects';
 export type { ObjectStamp } from './object-stamps';
 export { parseAnimationChannels, buildOverlayTransfer, overlayLayer } from './animation';
-export { buildAnimationGroups, cellChannels, clearAnimatedCells } from './animation-groups';
+export { buildAnimationGroups, cellChannels, cellPaletteCycles, clearAnimatedCells } from './animation-groups';
 export type { AnimationChannel, AnimationFrame, OverlayTransfer, Section2Ref } from './animation';
 export type { AnimationGroup, AnimationLayer, AnimationOptions } from './animation-groups';
 export { drawString3x5, drawLabelInRect, textWidth3x5 } from './font';

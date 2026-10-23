@@ -63,6 +63,8 @@ function editAction(act) {
   if (act === 'export-rom') editExportRom();
   if (act === 'cut-layer') { editCutToggle(); return; }
   if (act === 'anim-marks') { editAnimMarksToggle(); return; }
+  if (act === 'anim-tile-toggle') { if (typeof editAnimTileToggle === 'function') editAnimTileToggle(); return; }
+  if (act === 'anim-palette-toggle') { if (typeof editAnimPaletteToggle === 'function') editAnimPaletteToggle(); return; }
   if (act === 'interact-overlay') { editInteractToggle(); return; }
   if (act === 'stepon-overlay') { editStepOnToggle(); return; }
   if (act === 'play-rom') editPlayRom();

@@ -14,6 +14,7 @@
 // The player itself is shared with the Secret of Mana Maps panel
 // (src/core/map-editor/view/tile-animation.js: mapAnimPlay).
 var _animPlayer=null;
+var _lastRoomAnim=null;
 
 /** Stop playback and drop the overlay. Safe to call when nothing is running. */
 function stopRoomAnimation(){
@@ -34,12 +35,20 @@ function stopRoomAnimation(){
  * flickers in lockstep, which reads as one animation rather than many.
  */
 function applyRoomAnimation(anim){
+  _lastRoomAnim=anim||null;
   stopRoomAnimation();
   if(!anim||!anim.groups||!anim.groups.length)return;
+  if(typeof _animOff!=='undefined'&&_animOff)return;
   var svg=document.getElementById('rg-svg');
   if(!svg)return;
+  var tileOn=typeof _animTileOn==='undefined'||_animTileOn;
+  var palOn=typeof _animPaletteOn==='undefined'||_animPaletteOn;
+  var filtered=anim.groups.filter(function(g){
+    return g.kind==='palette'?palOn:tileOn;
+  });
+  if(!filtered.length)return;
   // Metatile units are 2 SVG units; the map image uses the same scale.
-  var groups=anim.groups.map(function(g){
+  var groups=filtered.map(function(g){
     return {frames:g.frames,delays:g.delays,at:[{x:g.x*2,y:g.y*2,w:g.w*2,h:g.h*2}]};
   });
   _animPlayer=mapAnimPlay(svg,groups,{id:'rg-animlayer',imageClass:'rg-anim',randomPhase:true,

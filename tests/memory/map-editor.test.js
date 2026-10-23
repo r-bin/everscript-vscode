@@ -886,6 +886,13 @@ const ui = new Function(`
     editSeedRoomAnims: editSeedRoomAnims, animTabHtml: animTabHtml, animClick: animClick, editAnimShownFrame: editAnimShownFrame,
     editAnimPresets: editAnimPresets, editAnimLetter: editAnimLetter, editAnimComplete: editAnimComplete, animTile: animTile,
     setAnimOff: function (v) { _animOff = v; },
+    animOff: function () { return _animOff; },
+    animMarksButtonHtml: animMarksButtonHtml,
+    editAnimMarksToggle: editAnimMarksToggle,
+    editAnimTileToggle: editAnimTileToggle,
+    editAnimPaletteToggle: editAnimPaletteToggle,
+    animTileOn: function () { return _animTileOn; },
+    animPaletteOn: function () { return _animPaletteOn; },
     editAnimTileStroke: editAnimTileStroke, editAnimRuns: editAnimRuns, editAnimSetRunTicks: editAnimSetRunTicks,
     animInputHandler: animInputHandler, animClipboardKey: animClipboardKey, setHover: function (c) { _editHover = c; }, editAnimSvg: editAnimSvg, setAnimMarks: function (v) { _animMarks = v; },
     editAnimGesture: editAnimGesture, editWordAnimSpec: editWordAnimSpec, editPartFromWord: editPartFromWord,
@@ -3654,6 +3661,74 @@ test('tile picker: swatch animates when family has active palette cycle', () => 
     assert.ok(play.css.includes('background-position:-0px -0px'));
     assert.ok(play.css.includes('background-position:-0px -32px'));
     assert.ok(play.style.includes('animation:rg-pal-anim-352-100'));
+});
+
+test('palette animation: groups contiguous tiles sharing the same cycle pattern and prefers canopy over terrain', () => {
+    const p = animPalette();
+    p.tileFamilies = [105, 352, 324, 106];
+    p.paletteCycles = [
+        { b0: 0x2b, b1: 4, b2: 5, stateSlot: 4, startColor: 0x2b, paletteIndex: 2, colorStart: 11, span: 4, rate: 5 },
+        { b0: 0x41, b1: 9, b2: 3, stateSlot: 6, startColor: 0x41, paletteIndex: 4, colorStart: 1, span: 9, rate: 3 },
+    ];
+    // Stamp 0 & 1: two different graphics (slot 0 and slot 1) on Palette 2 (cycle A)
+    p.entries[0] = [0, 0xa800, (2 << 10) | chrOf(0), 0x0010, 0xa800, (2 << 10) | chrOf(0)];
+    p.entries[1] = [1, 0xa800, (2 << 10) | chrOf(1), 0x0010, 0xa800, (2 << 10) | chrOf(1)];
+    // Stamp 2: canopy pipe on Palette 2 (cycle A) over lava terrain on Palette 4 (cycle B)
+    p.entries[2] = [2, (2 << 10) | chrOf(0), (4 << 10) | chrOf(1), 0x0010, (2 << 10) | chrOf(0), (4 << 10) | chrOf(1)];
+    p.count = 3;
+    p.grid = [[0, 1, 2], [0, 1, 2]];
+    ui.setPalette(p);
+    ui.editReset(1);
+    ui.setTab('anim');
+    ui.setAnimSub('palette');
+
+    const listed = ui.editPaletteAnimsListed(p);
+    assert.strictEqual(listed.length, 1, 'all 6 contiguous cells on cycle A (including canopy pipe over lava) group into 1 entry');
+    assert.strictEqual(listed[0].cells.length, 6);
+    assert.strictEqual(listed[0].paletteIndex, 2);
+    assert.strictEqual(listed[0].graphics.length, 2, 'tracks the 2 distinct tile graphics in the grouped region');
+
+    const html = ui.animTabHtml();
+    assert.ok(html.includes('2 tiles, Pal 2'), 'displays multi-tile group label with palette index');
+});
+
+test('animation pill dropdown toggles tile cycle and palette cycle individually, and freezes all when both are off', () => {
+    const p = animPalette();
+    p.tileFamilies = [105, 352, 324, 106];
+    p.paletteCycles = [
+        { b0: 0x2b, b1: 4, b2: 5, stateSlot: 4, startColor: 0x2b, paletteIndex: 2, colorStart: 11, span: 4, rate: 5 },
+    ];
+    p.entries[0] = [0, 0xa800, (2 << 10) | chrOf(2), 0x0010, 0xa800, (2 << 10) | chrOf(2)];
+    ui.setPalette(p);
+    ui.editReset(1).on = true;
+
+    const btnHtml = ui.animMarksButtonHtml();
+    assert.ok(btnHtml.includes('id="rg-anim-dropdown"'), 'renders Animation dropdown menu');
+    assert.ok(btnHtml.includes('data-edit-act="anim-tile-toggle"'), 'offers Tile cycle toggle');
+    assert.ok(btnHtml.includes('data-edit-act="anim-palette-toggle"'), 'offers Palette cycle toggle');
+    assert.strictEqual(ui.animTileOn(), true);
+    assert.strictEqual(ui.animPaletteOn(), true);
+    assert.strictEqual(ui.animOff(), false);
+    assert.strictEqual(ui.editAnimShownFrame(p, 0), -1, 'palette-cycling stamp plays when palette cycle is on');
+
+    // Turn off palette cycle only
+    ui.editAction('anim-palette-toggle');
+    assert.strictEqual(ui.animTileOn(), true);
+    assert.strictEqual(ui.animPaletteOn(), false);
+    assert.strictEqual(ui.animOff(), false, 'not completely off while tile cycle is still on');
+    assert.strictEqual(ui.editAnimShownFrame(p, 0), 0, 'palette-cycling stamp freezes on frame 0 when palette cycle is off');
+
+    // Turn off tile cycle too -> everything is off
+    ui.editAction('anim-tile-toggle');
+    assert.strictEqual(ui.animTileOn(), false);
+    assert.strictEqual(ui.animPaletteOn(), false);
+    assert.strictEqual(ui.animOff(), true, 'when both are off, _animOff is true');
+
+    // Restore both on via main Animation button
+    ui.editAction('anim-marks');
+    assert.strictEqual(ui.animTileOn(), true);
+    assert.strictEqual(ui.animPaletteOn(), true);
+    assert.strictEqual(ui.animOff(), false);
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);

@@ -281,10 +281,20 @@ function editSeedRoomAnims(palette) {
 /** The frame a stamp shows on the canvas (map-editor-anim.js): 0 while animation is off, the open tile's frame while paused; -1 plays. */
 function editAnimShownFrame(palette, index) {
   if (_animOff) return 0;
-  if (_animPlaying || _animSel == null) return -1;
   var e = editStampAnim(palette, index);
-  // The whole open row pauses on the frame, not only the tile that was clicked (a 2×2 fan).
-  return e && typeof editAnimOpenUids === 'function' && editAnimOpenUids()[e.uid] ? _animFrame : -1;
+  if (e) {
+    if (typeof _animTileOn !== 'undefined' && !_animTileOn) return 0;
+    if (_animPlaying || _animSel == null) return -1;
+    // The whole open row pauses on the frame, not only the tile that was clicked (a 2×2 fan).
+    return typeof editAnimOpenUids === 'function' && editAnimOpenUids()[e.uid] ? _animFrame : -1;
+  }
+  if (typeof _animPaletteOn !== 'undefined' && !_animPaletteOn) return 0;
+  if (typeof _editAnimSub !== 'undefined' && _editAnimSub === 'palette' && typeof _paletteAnimSel !== 'undefined' && _paletteAnimSel != null && !_paletteAnimPlaying) {
+    var openPal = typeof paletteAnimOpenEntry === 'function' && typeof editPaletteAnimsListed === 'function'
+      ? paletteAnimOpenEntry(editPaletteAnimsListed(palette)) : null;
+    if (openPal && openPal.stamps && openPal.stamps.indexOf(index) >= 0) return _paletteAnimFrame;
+  }
+  return -1;
 }
 
 /** The timing a stamp is drawn with on the canvas: its animated tile's, which the tab edits without a new render. */
@@ -295,7 +305,14 @@ function editAnimTimingOf(palette, index) {
 
 /** Animation on or off, map-wide; saved with the UI prefs. */
 function editAnimToggleOff() {
-  _animOff = !_animOff;
+  var nextOff = !_animOff;
+  _animOff = nextOff;
+  if (typeof _animTileOn !== 'undefined') _animTileOn = !nextOff;
+  if (typeof _animPaletteOn !== 'undefined') _animPaletteOn = !nextOff;
+  if (typeof syncAnimFilterState === 'function') {
+    syncAnimFilterState();
+    return;
+  }
   if (typeof vs !== 'undefined' && vs) vs.postMessage({ command: 'saveUiPref', key: 'animateTiles', value: !_animOff });
   // A ROM room's own frames come with its render (rom-overlay.js roomAnimateOn): ask again, with or without them.
   if (typeof stopRoomAnimation === 'function' && _animOff) stopRoomAnimation();

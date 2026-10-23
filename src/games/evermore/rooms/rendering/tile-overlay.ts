@@ -223,8 +223,14 @@ const ANIM_CACHE = new Map<string, Animation | null>();
 const ANIM_CACHE_MAX = 6;
 
 /** Refuse to ship an animation bigger than this; a patched ROM could be wild. */
-const ANIM_MAX_BYTES = 1.5 * 1024 * 1024;
+const ANIM_MAX_BYTES = 8 * 1024 * 1024;
 const ANIM_MAX_GROUPS = 800;
+
+function roomHasPaletteCycles(room: RoomData): boolean {
+    return (room.paletteCycles || []).some(
+        (c) => c.paletteIndex >= 1 && c.paletteIndex <= 7 && c.span > 1 && c.rate !== 0,
+    );
+}
 
 /**
  * Per-channel animation overlays for the Rooms tab, or null when the room has
@@ -233,7 +239,7 @@ const ANIM_MAX_GROUPS = 800;
  */
 function cachedAnimation(rom: Rom, key: string, layer: Layer, entry: Render): Animation | null {
     const room = entry.room;
-    if (!room.animation.length) return null;
+    if (!room.animation.length && !roomHasPaletteCycles(room)) return null;
     const hit = ANIM_CACHE.get(key);
     if (hit !== undefined) return hit;
 
@@ -253,6 +259,7 @@ function cachedAnimation(rom: Rom, key: string, layer: Layer, entry: Render): An
         let bytes = 0;
         const wire = groups.map((g) => ({
             x: g.x, y: g.y, w: g.w, h: g.h,
+            kind: g.kind || 'tile',
             delays: g.delaysMs,
             frames: g.frames.map((f) => {
                 const uri = maps.encodePngDataUri(f);
@@ -278,10 +285,10 @@ function cachedAnimation(rom: Rom, key: string, layer: Layer, entry: Render): An
  * of a torch's canopy there covered every later frame. Measured once per
  * render and kept with it.
  */
-function foregroundFor(entry: Render, animate: boolean) {
-    if (!animate || !entry.foreground || !entry.room.animation.length) return entry.foregroundUri;
+function foregroundFor(rom: Rom, entry: Render, animate: boolean) {
+    if (!animate || !entry.foreground || (!entry.room.animation.length && !roomHasPaletteCycles(entry.room))) return entry.foregroundUri;
     if (!entry.foregroundAnimUri) {
-        entry.foregroundAnimUri = maps.encodePngDataUri(maps.clearAnimatedCells(entry.foreground, entry.room));
+        entry.foregroundAnimUri = maps.encodePngDataUri(maps.clearAnimatedCells(entry.foreground, entry.room, 'composite', rom));
     }
     return entry.foregroundAnimUri;
 }
@@ -311,7 +318,7 @@ function buildRoomTileOverlay(rom: Uint8Array | Buffer, roomId: number, originX:
     const renderKey = romFingerprint(buf) + ':' + roomId + ':' + which + ':' + ov.flags + ':' + spec + ':' + headerSpec(header);
     const entry = cachedRender(buf, roomId, which, ov, spec, header);
     const { room, features, imageUri, canopyOverlayUri, width, height } = entry;
-    const foregroundUri = foregroundFor(entry, animate);
+    const foregroundUri = foregroundFor(buf, entry, animate);
     const collision = countCollision(room.collisionWords);
 
     return {

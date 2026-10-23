@@ -96,7 +96,7 @@ function buildStampAnimations(rom: Uint8Array, room: RoomData, entries: Metatile
     const animated: { i: number; e: MetatileDraft; n: number; delays: number[] }[] = [];
     entries.forEach((e, i) => {
         const slots = [wordSlot(e.layer1), wordSlot(e.layer2)].filter((s) => slotAnim(s));
-        const matchedCycle = matchWordCycle(e.layer2, false) || matchWordCycle(e.layer1, true);
+        const matchedCycle = matchWordCycle(e.layer1, true) || matchWordCycle(e.layer2, false);
         if (!slots.length && !matchedCycle) return;
 
         let n = 0;

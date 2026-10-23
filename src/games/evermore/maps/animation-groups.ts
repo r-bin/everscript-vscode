@@ -5,6 +5,10 @@
 import type { RoomData } from './room';
 import { PixelBuffer, renderVramLayer, compositeLayers } from './render';
 import type { OverlayTransfer } from './animation';
+import { tileColorMask } from './chr';
+import { paletteCycleMask, shiftCgramPalettes } from './palette';
+import type { PaletteCycleSpec } from './palette';
+import { emptyStamp } from './blank-room';
 
 /** SNES frames per second, for turning a tick delay into milliseconds. */
 const TICK_MS = 1000 / 60.0988;
@@ -49,6 +53,8 @@ export interface AnimationGroup {
     delaysMs: number[];
     /** Channels driving this group, for reporting. */
     channels: number[];
+    /** Whether this group is driven by Section 2 tile channels or Section 4.3 palette cycles. */
+    kind?: 'tile' | 'palette';
 }
 
 /** A cell's animated slots, keyed so identical cells render once. */
@@ -59,6 +65,51 @@ function lcm(a: number, b: number): number { return a / gcd(a, b) * b; }
 
 /** Beyond this the two channels driving one cell are left out of step. */
 const MAX_STEPS = 24;
+
+function activeRoomPaletteCycles(room: RoomData): PaletteCycleSpec[] {
+    return (room.paletteCycles || []).filter(
+        (c) => c.paletteIndex >= 1 && c.paletteIndex <= 7 && c.span > 1 && c.rate !== 0,
+    );
+}
+
+/**
+ * Copy a 16x16 rendered cell into `buf` at offset `(ox, oy)` inside a `bw`-wide
+ * block, re-applying the room's feature `overlay` if present.
+ */
+function blitAnimatedCell(
+    buf: Uint8Array,
+    px: PixelBuffer,
+    cell: CellRef,
+    ox: number,
+    oy: number,
+    bw: number,
+    stride: number,
+    overlay: OverlayTransfer | null,
+): void {
+    for (let py = 0; py < 16; py++) {
+        const dst = ((oy + py) * bw * 16 + ox) * 4;
+        if (!overlay) {
+            buf.set(px.data.subarray(py * 64, py * 64 + 64), dst);
+            continue;
+        }
+        const row = (cell.y * 16 + py) * stride + cell.x * 16;
+        for (let sx = 0; sx < 16; sx++) {
+            const from = py * 64 + sx * 4;
+            const to = dst + sx * 4;
+            const t = (row + sx) * 3;
+            for (let ch = 0; ch < 3; ch++) {
+                const lo = overlay.atZero[t + ch];
+                const hi = overlay.atFull[t + ch];
+                buf[to + ch] = Math.min(255, Math.max(0,
+                    Math.round(px.data[from + ch] * (hi - lo) / 255 + lo)));
+            }
+            const marked = overlay.atZero[t] !== 0 || overlay.atZero[t + 1] !== 0 ||
+                overlay.atZero[t + 2] !== 0 || overlay.atFull[t] !== 255 ||
+                overlay.atFull[t + 1] !== 255 || overlay.atFull[t + 2] !== 255;
+            buf[to + 3] = marked ? 255 : px.data[from + 3];
+        }
+    }
+}
 
 /**
  * Build the per-channel overlays the Rooms tab animates.
@@ -76,44 +127,50 @@ export function buildAnimationGroups(
     opts: AnimationOptions = {},
 ): AnimationGroup[] {
     const channels = room.animation;
-    if (!channels.length) return [];
+    const palCycles = activeRoomPaletteCycles(room);
+    if (!channels.length && !palCycles.length) return [];
     const layer: AnimationLayer = opts.layer || 'composite';
     const overlay = opts.overlay || null;
     const wTiles = room.header.widthTiles;
     const hTiles = room.header.heightTiles;
     const stride = wTiles * 16;
 
-    // 1. Find animated cells and which channels drive each (cellChannels).
-    const byKey = new Map<string, { chans: number[]; cells: CellRef[] }>();
+    // 1. Find animated cells and which channels or palette cycles drive each.
+    const byKey = new Map<string, { chans: number[]; palIdxs: number[]; cells: CellRef[] }>();
+    const byPalKey = new Map<string, { cycleIdxs: number[]; cells: CellRef[] }>();
     for (let y = 0; y < hTiles; y++) {
         for (let x = 0; x < wTiles; x++) {
-            const chans = cellChannels(room, x, y, layer);
-            if (!chans.length) continue;
-            const key = chans.join(',');
-            let g = byKey.get(key);
-            if (!g) { g = { chans, cells: [] }; byKey.set(key, g); }
-            g.cells.push({ x, y, w1: room.layer1VramWords[y][x], w2: room.layer2VramWords[y][x] });
+            const chans = channels.length ? cellChannels(room, x, y, layer) : [];
+            const pCycles = palCycles.length ? cellPaletteCycles(rom, room, x, y, layer, palCycles) : [];
+            if (chans.length) {
+                const key = chans.join(',') + (pCycles.length ? '|p' + pCycles.join(',') : '');
+                let g = byKey.get(key);
+                if (!g) { g = { chans, palIdxs: pCycles, cells: [] }; byKey.set(key, g); }
+                g.cells.push({ x, y, w1: room.layer1VramWords[y][x], w2: room.layer2VramWords[y][x] });
+            } else if (pCycles.length) {
+                const pKey = pCycles.join(',');
+                let pg = byPalKey.get(pKey);
+                if (!pg) { pg = { cycleIdxs: pCycles, cells: [] }; byPalKey.set(pKey, pg); }
+                pg.cells.push({ x, y, w1: room.layer1VramWords[y][x], w2: room.layer2VramWords[y][x] });
+            }
         }
     }
-    if (!byKey.size) return [];
+    if (!byKey.size && !byPalKey.size) return [];
 
     const groups: AnimationGroup[] = [];
     // Cells sharing both tilemap words render identically; the median room has
     // 22 such pairs, so this turns thousands of cells into a few dozen renders.
     const cellCache = new Map<string, PixelBuffer>();
-    for (const { chans, cells } of byKey.values()) {
+    for (const { chans, palIdxs, cells } of byKey.values()) {
         // 2. Step schedule. One channel: its own frames, exactly. Two channels
         //    on one cell (rare — 729 cells ROM-wide): step through the lcm of
         //    their frame counts, which keeps each channel's own order and only
         //    loses the phase between them.
         let steps = chans.reduce((a, c) => lcm(a, channels[c].frames.length), 1);
         if (steps > MAX_STEPS) steps = channels[chans[0]].frames.length;
+        const subPalCycles = palIdxs.map((idx) => palCycles[idx]);
 
-        // 3. Split the cells into blocks before rendering. A channel's cells
-        //    are often scattered across the room (torches down a corridor),
-        //    and one bounding box round all of them would be almost entirely
-        //    transparent padding — an order of magnitude more pixels than the
-        //    animation actually occupies.
+        // 3. Split the cells into blocks before rendering.
         for (const block of blockCells(cells)) {
             let x1 = Infinity; let y1 = Infinity; let x2 = -Infinity; let y2 = -Infinity;
             for (const c of block) {
@@ -131,42 +188,23 @@ export function buildAnimationGroups(
                     const f = channels[c].frames;
                     tiles[c] = f[s % f.length].tileId;
                 }
-                const staged: RoomData = { ...room, animatedTiles: tiles };
+                const cgramPalettes = subPalCycles.length
+                    ? shiftCgramPalettes(rom, room.tileFamilies, subPalCycles, s)
+                    : undefined;
+                const staged: RoomData = {
+                    ...room,
+                    animatedTiles: tiles,
+                    ...(cgramPalettes ? { cgramPalettes } : {}),
+                };
 
                 const buf = new Uint8Array(bw * 16 * bh * 16 * 4);
                 for (const cell of block) {
-                    const ck = s + ':' + cell.w1 + ':' + cell.w2;
+                    const ck = 't' + palIdxs.join(',') + ':' + s + ':' + cell.w1 + ':' + cell.w2;
                     let px = cellCache.get(ck);
                     if (!px) { px = renderCell(rom, staged, cell.w1, cell.w2, layer); cellCache.set(ck, px); }
                     const ox = (cell.x - x1) * 16;
                     const oy = (cell.y - y1) * 16;
-                    for (let py = 0; py < 16; py++) {
-                        const dst = ((oy + py) * bw * 16 + ox) * 4;
-                        if (!overlay) {
-                            buf.set(px.data.subarray(py * 64, py * 64 + 64), dst);
-                            continue;
-                        }
-                        // Put the overlay's own marks back on top of this
-                        // frame, so the tile animates and stays annotated.
-                        const row = (cell.y * 16 + py) * stride + cell.x * 16;
-                        for (let sx = 0; sx < 16; sx++) {
-                            const from = py * 64 + sx * 4;
-                            const to = dst + sx * 4;
-                            const t = (row + sx) * 3;
-                            for (let ch = 0; ch < 3; ch++) {
-                                const lo = overlay.atZero[t + ch];
-                                const hi = overlay.atFull[t + ch];
-                                buf[to + ch] = Math.min(255, Math.max(0,
-                                    Math.round(px.data[from + ch] * (hi - lo) / 255 + lo)));
-                            }
-                            // An overlay mark is opaque; elsewhere the frame's
-                            // own alpha decides, so empty tiles stay clear.
-                            const marked = overlay.atZero[t] !== 0 || overlay.atZero[t + 1] !== 0 ||
-                                overlay.atZero[t + 2] !== 0 || overlay.atFull[t] !== 255 ||
-                                overlay.atFull[t + 1] !== 255 || overlay.atFull[t + 2] !== 255;
-                            buf[to + 3] = marked ? 255 : px.data[from + 3];
-                        }
-                    }
+                    blitAnimatedCell(buf, px, cell, ox, oy, bw, stride, overlay);
                 }
                 frames.push({ width: bw * 16, height: bh * 16, data: buf });
 
@@ -174,9 +212,48 @@ export function buildAnimationGroups(
                 delaysMs.push(Math.max(16, Math.round(lead[s % lead.length].delay * TICK_MS)));
             }
 
-            groups.push({ x: x1, y: y1, w: bw, h: bh, frames, delaysMs, channels: chans });
+            groups.push({ x: x1, y: y1, w: bw, h: bh, frames, delaysMs, channels: chans, kind: 'tile' });
         }
     }
+
+    // 4. Palette-cycle groups (Section 4.3 colour shifting on otherwise static tiles).
+    for (const { cycleIdxs, cells } of byPalKey.values()) {
+        const groupCycles = cycleIdxs.map((idx) => palCycles[idx]);
+        const leadCycle = groupCycles[0];
+        const steps = Math.min(MAX_STEPS, leadCycle.span);
+        const delayMs = Math.max(16, Math.round(Math.max(1, Math.abs(leadCycle.rate)) * 3 * TICK_MS));
+
+        for (const block of blockCells(cells)) {
+            let x1 = Infinity; let y1 = Infinity; let x2 = -Infinity; let y2 = -Infinity;
+            for (const c of block) {
+                x1 = Math.min(x1, c.x); y1 = Math.min(y1, c.y);
+                x2 = Math.max(x2, c.x + 1); y2 = Math.max(y2, c.y + 1);
+            }
+            const bw = x2 - x1;
+            const bh = y2 - y1;
+
+            const frames: PixelBuffer[] = [];
+            const delaysMs: number[] = [];
+            for (let s = 0; s < steps; s++) {
+                const cgramPalettes = shiftCgramPalettes(rom, room.tileFamilies, groupCycles, s);
+                const staged: RoomData = { ...room, cgramPalettes };
+                const buf = new Uint8Array(bw * 16 * bh * 16 * 4);
+                for (const cell of block) {
+                    const ck = 'p' + cycleIdxs.join(',') + ':' + s + ':' + cell.w1 + ':' + cell.w2;
+                    let px = cellCache.get(ck);
+                    if (!px) { px = renderCell(rom, staged, cell.w1, cell.w2, layer); cellCache.set(ck, px); }
+                    const ox = (cell.x - x1) * 16;
+                    const oy = (cell.y - y1) * 16;
+                    blitAnimatedCell(buf, px, cell, ox, oy, bw, stride, overlay);
+                }
+                frames.push({ width: bw * 16, height: bh * 16, data: buf });
+                delaysMs.push(delayMs);
+            }
+
+            groups.push({ x: x1, y: y1, w: bw, h: bh, frames, delaysMs, channels: [], kind: 'palette' });
+        }
+    }
+
     return groups;
 }
 
@@ -200,18 +277,64 @@ export function cellChannels(room: RoomData, x: number, y: number, layer: Animat
 }
 
 /**
+ * Active palette-cycle indices that animate cell (x, y) on `layer`, sorted;
+ * [] for a cell whose pixels do not use any shifted CGRAM colours.
+ */
+export function cellPaletteCycles(
+    rom: Uint8Array,
+    room: RoomData,
+    x: number,
+    y: number,
+    layer: AnimationLayer = 'composite',
+    cycles: PaletteCycleSpec[] = activeRoomPaletteCycles(room),
+): number[] {
+    if (!cycles.length) return [];
+    const blank = emptyStamp(room).layer1;
+    const w1 = room.layer1VramWords[y][x];
+    const w2 = room.layer2VramWords[y][x];
+    const words = layer === 'layer1'
+        ? (w1 !== blank ? [w1] : [])
+        : layer === 'layer2'
+            ? [w2]
+            : (w1 !== blank ? [w1, w2] : [w2]);
+    const hit: number[] = [];
+    const nPal = room.tilePalette.length;
+    for (const w of words) {
+        const pal = (w >> 10) & 7;
+        const slot = paletteSlot(w);
+        const graphic = slot < nPal ? room.tilePalette[slot] : room.animatedTiles[slot - nPal];
+        if (graphic === undefined) continue;
+        const tMask = tileColorMask(rom, graphic);
+        for (let i = 0; i < cycles.length; i++) {
+            if (cycles[i].paletteIndex === pal && (tMask & paletteCycleMask(cycles[i])) !== 0 && hit.indexOf(i) < 0) {
+                hit.push(i);
+            }
+        }
+    }
+    return hit.sort((a, b) => a - b);
+}
+
+/**
  * A copy of `image` (a room-sized render) with every animated cell cleared to
  * transparent. The canopy picture is laid over the animation to cover the
  * characters, and a still copy of an animated canopy tile there — 5008 of
  * the 13338 animated cells ROM-wide have canopy pixels — drew frame 0 over
  * every later frame: a torch burning through a frozen one.
  */
-export function clearAnimatedCells(image: PixelBuffer, room: RoomData, layer: AnimationLayer = 'composite'): PixelBuffer {
+export function clearAnimatedCells(
+    image: PixelBuffer,
+    room: RoomData,
+    layer: AnimationLayer = 'composite',
+    rom?: Uint8Array,
+): PixelBuffer {
     const out = { width: image.width, height: image.height, data: image.data.slice() };
-    if (!room.animation.length) return out;
+    const palCycles = rom ? activeRoomPaletteCycles(room) : [];
+    if (!room.animation.length && !palCycles.length) return out;
     for (let y = 0; y < room.header.heightTiles; y++) {
         for (let x = 0; x < room.header.widthTiles; x++) {
-            if (!cellChannels(room, x, y, layer).length) continue;
+            const hasTile = room.animation.length > 0 && cellChannels(room, x, y, layer).length > 0;
+            const hasPal = !!rom && palCycles.length > 0 && cellPaletteCycles(rom, room, x, y, layer, palCycles).length > 0;
+            if (!hasTile && !hasPal) continue;
             for (let py = 0; py < 16; py++) out.data.fill(0, ((y * 16 + py) * image.width + x * 16) * 4, ((y * 16 + py) * image.width + x * 16 + 16) * 4);
         }
     }

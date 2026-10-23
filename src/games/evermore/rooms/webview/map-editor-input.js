@@ -111,9 +111,9 @@ var EDIT_CLICK_KEYS = ['editTool', 'editAct', 'editPick', 'panel',
   'palAnimSel', 'palAnimAct', 'palAnimFrame',
   'placedSel', 'placedRemove', 'placedDisband', 'placedToggle', 'placedVarIdx', 'placedObjFrame',
   'objectSel', 'objectToggle', 'objectFrame', 'objectAddFrame', 'objectRemove', 'objectRemoveFrame',
-  'objectConfirmRemoveFrame', 'objectCancelRemoveFrame', 'objectMoveFrame', 'objectPlay', 'editInfoSub', 'familySet',
+  'objectConfirmRemoveFrame', 'objectCancelRemoveFrame', 'objectMoveFrame', 'objectPlay', 'editInfoSub', 'editAnimSub', 'familySet',
   'decoFlag', 'mtIndex', 'mtSlot', 'editActiveTab',
-  'editSpecial', 'editSpecialMenu', 'editTriggerMenu', 'editObjectMenu', 'editMoreMenu',
+  'editSpecial', 'editSpecialMenu', 'editTriggerMenu', 'editObjectMenu', 'editAnimMenu', 'editMoreMenu',
   'editToolMenu', 'triggerRef', 'triggerRemove', 'triggerKind', 'triggerEnter', 'triggerToggle', 'listLoot', 'editLevel', 'editCollisionMenu', 'collisionMode', 'collPick', 'collMode', 'collSlide', 'collVanilla'];
 
 /**
@@ -131,6 +131,7 @@ var EDIT_FILTER_MENUS = [
   { key: 'editSpecialMenu', id: 'rg-special-dropdown' },
   { key: 'editTriggerMenu', id: 'rg-trigger-dropdown' },
   { key: 'editObjectMenu', id: 'rg-object-dropdown' },
+  { key: 'editAnimMenu', id: 'rg-anim-dropdown' },
   { key: 'editMoreMenu', id: 'rg-more-dropdown' },
   { key: 'editToolMenu', id: 'rg-tool-dropdown' },
   { key: 'editCollisionMenu', id: 'rg-collision-dropdown' },

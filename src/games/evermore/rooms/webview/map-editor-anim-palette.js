@@ -57,8 +57,8 @@ function paletteAnimMatchWord(p, word, isLayer1, cycles) {
 }
 
 /**
- * Lists every contiguous instance of a palette-cycling tile on the map,
- * clustered the same way `editAnimsListed` clusters tile animations.
+ * Lists every contiguous region of palette-cycling cells on the map,
+ * grouped by their active Section 4.3 colour-cycle pattern.
  */
 function editPaletteAnimsListed(p) {
   var cycles = editPaletteActiveCycles(p);
@@ -73,7 +73,9 @@ function editPaletteAnimsListed(p) {
       if (sIdx < 0) continue;
       var w = editStampWords(p, sIdx);
       if (!w) continue;
-      var hit = paletteAnimMatchWord(p, w.layer2, false, cycles) || paletteAnimMatchWord(p, w.layer1, true, cycles);
+      // Check canopy (layer1) before terrain (layer2) so pipes over lava
+      // group with the pipe's cycle rather than the terrain underneath.
+      var hit = paletteAnimMatchWord(p, w.layer1, true, cycles) || paletteAnimMatchWord(p, w.layer2, false, cycles);
       if (!hit) continue;
       var ck = x + ',' + y;
       cellInfo[ck] = { graphic: hit.graphic, pal: hit.pal, match: hit.match, sIdx: sIdx };
@@ -83,7 +85,7 @@ function editPaletteAnimsListed(p) {
   if (!keys.length) return [];
 
   var joins = function (a, b) {
-    return cellInfo[a].graphic === cellInfo[b].graphic && cellInfo[a].match.idx === cellInfo[b].match.idx;
+    return cellInfo[a].match.idx === cellInfo[b].match.idx;
   };
   var clusters = typeof animClusters === 'function' ? animClusters(keys, joins) : [keys];
   var partsOf = {};
@@ -91,7 +93,15 @@ function editPaletteAnimsListed(p) {
 
   clusters.forEach(function (c) {
     var info = cellInfo[c[0]];
-    var key = info.graphic + ':' + info.match.idx;
+    var graphics = [];
+    var stamps = [];
+    c.forEach(function (ck) {
+      var ci = cellInfo[ck];
+      if (graphics.indexOf(ci.graphic) < 0) graphics.push(ci.graphic);
+      if (stamps.indexOf(ci.sIdx) < 0) stamps.push(ci.sIdx);
+    });
+    graphics.sort(function (a, b) { return a - b; });
+    var key = (graphics.length > 1 ? 'set:' + graphics.join(',') : String(info.graphic)) + ':' + info.match.idx;
     partsOf[key] = (partsOf[key] || 0) + 1;
     var d = Math.max(1, Math.abs(info.match.c.rate)) * 3;
     var delays = [];
@@ -100,6 +110,8 @@ function editPaletteAnimsListed(p) {
     out.push({
       key: key,
       tileId: info.graphic,
+      graphics: graphics,
+      stamps: stamps,
       family: p.tileFamilies && p.tileFamilies[info.pal - 1],
       paletteIndex: info.pal,
       cycle: info.match.c,
@@ -136,61 +148,93 @@ function paletteAnimFindByTile(tileId) {
   return null;
 }
 
+function paletteAnimCellSvg(key, k, a) {
+  var p = _mtPalette, c = key.split(',').map(Number), idx = editCellAt(p, c[0], c[1]);
+  if (idx < 0) return '';
+  if (k == null) return editStampSvg(p, _editComposed, idx, a.x, a.y, 'rg-anim-prev-cell');
+  if (k === 0) return editStampSvg(p, _editComposed, idx, a.x, a.y, 'rg-anim-prev-cell', null, 0);
+  var sheet = idx >= p.count ? _editComposed : p, i = idx >= p.count ? idx - p.count : idx;
+  var hit = sheet && typeof editStampAnimOf === 'function' ? editStampAnimOf(sheet, i) : paletteAnimEntryOfStamp(sheet && sheet.anim, i);
+  var src = hit && sheet.anim && sheet.anim.sheets && sheet.anim.sheets[k - 1];
+  if (!src || !src.imageUri) return editStampSvg(p, _editComposed, idx, a.x, a.y, 'rg-anim-prev-cell', null, 0);
+  return editCropSvg('rg-anim-prev-cell', a.x, a.y, sheet.anim, src.imageUri, src.imageWidth, src.imageHeight, hit.row, '');
+}
+
+/** Renders a 2D preview of a palette-animated cluster (or a compact 2x2/3x3 patch for large regions). */
+function paletteAnimGroupSvg(entry, k, size) {
+  var cells = entry.cells, u = EDIT_UNITS;
+  if (!cells || !cells.length) return '';
+  var xyAll = cells.map(function (key) { return key.split(',').map(Number); });
+  var xs = xyAll.map(function (c) { return c[0]; }), ys = xyAll.map(function (c) { return c[1]; });
+  var pickedKeys = cells, pickedXy = xyAll;
+  if (Math.max.apply(null, xs) - Math.min.apply(null, xs) + 1 > 3 || Math.max.apply(null, ys) - Math.min.apply(null, ys) + 1 > 3) {
+    var ax = xyAll[0][0], ay = xyAll[0][1], subK = [], subXy = [];
+    cells.forEach(function (ck, i) {
+      if (xyAll[i][0] >= ax && xyAll[i][0] < ax + 2 && xyAll[i][1] >= ay && xyAll[i][1] < ay + 2) { subK.push(ck); subXy.push(xyAll[i]); }
+    });
+    if (subK.length < 2) {
+      subK = []; subXy = [];
+      cells.forEach(function (ck, j) {
+        if (Math.abs(xyAll[j][0] - ax) <= 1 && Math.abs(xyAll[j][1] - ay) <= 1) { subK.push(ck); subXy.push(xyAll[j]); }
+      });
+    }
+    if (subK.length) { pickedKeys = subK; pickedXy = subXy; }
+  }
+  var x0 = Math.min.apply(null, pickedXy.map(function (c) { return c[0]; })), y0 = Math.min.apply(null, pickedXy.map(function (c) { return c[1]; }));
+  var W = Math.max.apply(null, pickedXy.map(function (c) { return c[0]; })) - x0 + 1, H = Math.max.apply(null, pickedXy.map(function (c) { return c[1]; })) - y0 + 1;
+  var k1 = size / Math.max(W, H), html = '';
+  pickedKeys.forEach(function (key, idx) {
+    var c = pickedXy[idx], a = { x: (c[0] - x0) * u, y: (c[1] - y0) * u };
+    html += paletteAnimCellSvg(key, k, a);
+  });
+  return '<svg class="rg-anim-sw" width="' + Math.round(W * k1) + '" height="' + Math.round(H * k1) + '" viewBox="0 0 ' + W * u + ' ' + H * u + '">' + html + '</svg>';
+}
+
 function paletteAnimOpenHtml(entry, locked) {
-  var p = _mtPalette;
   var dis = locked ? ' disabled' : '';
   var ticks = Math.max(1, Math.abs(entry.rate)) * 3;
+  var cEnd = entry.cycle.colorStart + entry.span - 1;
   var html = '<div class="rg-object-expanded rg-anim-timing">'
-    + '<div class="rg-anim-presets"><span class="rg-anim-timing-lbl">pattern</span>'
-    + '<span class="ro-chip rg-anim-preset sel" title="' + escH('Palette ' + entry.paletteIndex + ' colours ' + entry.cycle.colorStart + '–' + (entry.cycle.colorStart + entry.span - 1)) + '">' + entry.letter + '</span>'
-    + '<span class="rg-anim-timing-lbl">Pal ' + entry.paletteIndex + ' · colours ' + entry.cycle.colorStart + '–' + (entry.cycle.colorStart + entry.span - 1) + '</span></div>'
+    + '<div class="rg-anim-presets"><span class="rg-anim-timing-lbl">cycle</span>'
+    + '<span class="ro-chip rg-anim-preset sel" title="' + escH('Palette ' + entry.paletteIndex + ' colours ' + entry.cycle.colorStart + '–' + cEnd) + '">' + entry.letter + '</span>'
+    + '<span class="rg-anim-timing-lbl">Palette ' + entry.paletteIndex + ' · colours ' + entry.cycle.colorStart + '–' + cEnd
+    + (entry.graphics && entry.graphics.length > 1 ? ' · tiles ' + entry.graphics.join(', ') : ' · tile ' + entry.tileId) + '</span></div>'
     + '<div class="ro-chips">';
 
   for (var k = 0; k < entry.span; k++) {
     var on = _paletteAnimFrame === k;
-    var swatch = '';
-    if (p.anim && p.anim.sheets && k > 0 && k - 1 < p.anim.sheets.length && entry.animRow >= 0) {
-      var sh = p.anim.sheets[k - 1];
-      swatch = '<svg class="rg-anim-sw" width="44" height="44" viewBox="0 0 ' + EDIT_UNITS + ' ' + EDIT_UNITS + '">'
-        + editCropSvg('rg-anim-prev-cell', 0, 0, p.anim, sh.imageUri, sh.imageWidth, sh.imageHeight, entry.animRow, '')
-        + '</svg>';
-    } else {
-      swatch = '<svg class="rg-anim-sw" width="44" height="44" viewBox="0 0 ' + EDIT_UNITS + ' ' + EDIT_UNITS + '">'
-        + editStampSvg(p, _editComposed, entry.stampIdx, 0, 0, 'rg-anim-prev-cell', null, 0) + '</svg>';
-    }
-
+    var swatch = paletteAnimGroupSvg(entry, k, 44);
     html += '<div class="rg-anim-frame-col">'
       + '<button class="ro-chip' + (on ? ' sel' : '') + '" data-pal-anim-frame="' + k + '" title="Frame ' + k + ' of ' + entry.span + ' — colour shift step ' + k + '">'
       + swatch + '<span class="ro-lbl">' + k + '</span></button>'
-      + '<input type="number" class="rg-anim-ticks" min="1" value="' + ticks + '" data-pal-anim-cycle="' + entry.cycleIndex
-      + '" aria-label="Frame ' + k + ' hold in ticks" title="Hold in 60 Hz ticks (' + Math.round(ticks * 1000 / 60) + ' ms)"' + dis + '/>'
       + '</div>';
   }
 
   html += '</div><div class="rg-anim-bar">'
-    + '<button class="rdf rdf-xs' + (_paletteAnimPlaying ? ' on' : '') + '" data-pal-anim-act="play" title="' + (_paletteAnimPlaying ? 'Stop, and show the selected frame' : 'Play it on the map') + '">'
+    + '<button class="rdf rdf-xs' + (_paletteAnimPlaying ? ' on' : '') + '" data-pal-anim-act="play" title="' + (_paletteAnimPlaying ? 'Stop, and show the selected step' : 'Play it on the map') + '">'
     + (_paletteAnimPlaying ? '■ Stop' : '▶ Play') + '</button>'
+    + '<label>step every <input type="number" class="rg-anim-ticks" min="1" value="' + ticks + '" data-pal-anim-cycle="' + entry.cycleIndex
+    + '" aria-label="Step hold in ticks" title="Hold per colour shift step in 60 Hz ticks (' + Math.round(ticks * 1000 / 60) + ' ms)"' + dis + '/> ticks</label>'
     + '<span>' + entry.span + ' colours · rate ' + (entry.rate > 0 ? '+' : '') + entry.rate + '</span>'
     + '</div></div>';
   return html;
 }
 
 function paletteAnimRowHtml(entry, locked, open, many) {
-  var p = _mtPalette;
-  var svgSize = 30;
-  var prevCell = editStampSvg(p, _editComposed, entry.stampIdx, 0, 0, 'rg-anim-prev-cell');
-  var prevSvg = '<svg class="rg-anim-sw" width="' + svgSize + '" height="' + svgSize + '" viewBox="0 0 '
-    + EDIT_UNITS + ' ' + EDIT_UNITS + '">' + prevCell + '</svg>';
+  var prevSvg = paletteAnimGroupSvg(entry, null, 30);
+  var nTiles = entry.graphics ? entry.graphics.length : 1;
+  var labelText = (nTiles > 1 ? paletteAnimPlural(nTiles, 'tile') : entry.tileId) + ', Pal ' + entry.paletteIndex;
+  var cEnd = entry.cycle.colorStart + entry.span - 1;
 
   var html = '<div class="rg-object-card rg-anim-card' + (open ? ' on' : '') + '">'
     + '<div class="rg-trigger-row rg-anim-row' + (open ? ' on' : '') + '" data-pal-anim-sel="' + entry.key + '" data-pal-anim-part="' + (entry.cells[0] || '') + '" title="'
-    + escH('Palette ' + entry.paletteIndex + ' (colours ' + entry.cycle.colorStart + '–' + (entry.cycle.colorStart + entry.span - 1) + ') · locked in ROM\nclick to ' + (open ? 'close' : 'open it')) + '">'
+    + escH('Palette ' + entry.paletteIndex + ' (colours ' + entry.cycle.colorStart + '–' + cEnd + ') · locked in ROM\nclick to ' + (open ? 'close' : 'open it')) + '">'
     + animWhereSvg(entry.cells, many) + prevSvg
-    + '<span class="rg-trigger-label">' + entry.tileId + ' <span class="rg-anim-lock" aria-label="locked">🔒</span>'
+    + '<span class="rg-trigger-label">' + labelText + ' <span class="rg-anim-lock" aria-label="locked">🔒</span>'
     + '<span class="rg-trigger-what">' + paletteAnimPlural(entry.span, 'frame') + ' · ' + paletteAnimPlural(entry.cells.length, 'cell')
       + (entry.parts > 1 ? ' · <span title="every copy changes together: palette colours and rate are shared">' + (entry.part + 1) + ' of ' + entry.parts + '</span>' : '') + '</span></span>'
     + '<span class="rg-anim-badge" title="' + escH('pattern ' + entry.letter + ' — Palette ' + entry.paletteIndex + ': ' + entry.span + ' colours at rate ' + (entry.rate > 0 ? '+' : '') + entry.rate) + '">' + entry.letter + '</span>'
-    + (locked ? '' : '<button class="rdf rdf-xs' + (_paletteAnimPlace === entry.tileId ? ' on' : '') + '" data-pal-anim-act="place" data-pal-anim-tile="' + entry.tileId
+    + (locked || nTiles > 1 ? '' : '<button class="rdf rdf-xs' + (_paletteAnimPlace === entry.tileId ? ' on' : '') + '" data-pal-anim-act="place" data-pal-anim-tile="' + entry.tileId
       + '" title="' + (_paletteAnimPlace === entry.tileId ? 'Stop placing it' : 'Place it with the pencil, like a tile — every copy changes together') + '">place</button>')
     + '<span class="rg-object-caret">' + (open ? '▾' : '▸') + '</span>'
     + '</div>';
