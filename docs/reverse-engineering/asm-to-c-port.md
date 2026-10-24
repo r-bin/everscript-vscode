@@ -4,7 +4,7 @@
 > relocation in v0.158.0, and the stage 3 lift via snesrecomp in v0.159.x. Where this
 > stands and what comes next: §11.
 > Prerequisite reading: [cdl-design-history.md](cdl-design-history.md).
-> Compiling the C back into the ROM (not a host port): [c-to-rom.md](c-to-rom.md).
+> Turning `reconstructed-c/` into running, verified C (compared with zelda3, smw, Super Metroid): [c-to-rom.md](c-to-rom.md).
 > Step-by-step usage: [cdl-export-build-recomp.md](cdl-export-build-recomp.md), [incremental-decomp-guide.md](incremental-decomp-guide.md), and [c-compilation-hirom-memory-map.md](c-compilation-hirom-memory-map.md).
 
 ---
