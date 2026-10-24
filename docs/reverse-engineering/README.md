@@ -17,6 +17,7 @@ Last updated 2026-10-12 (v0.201.9).
 | [asm-to-c-port.md](asm-to-c-port.md) | **snesrecomp + lockstep `hle_func`**: the path to C, room ids, status |
 | [incremental-decomp-guide.md](incremental-decomp-guide.md) | **Step-by-step incremental decomp**: from mechanical C to verified idiomatic C with examples |
 | [c-compilation-hirom-memory-map.md](c-compilation-hirom-memory-map.md) | **C compilation & HiROM memory map**: lessons from zelda3, LoROM vs HiROM, and linker/RTL architecture |
+| [c-to-rom.md](c-to-rom.md) | **Reconstructed C back into the ROM**: behaviour-exact vs byte-exact, the C dialect, our own compiler, gates per routine |
 | [ghidra.md](ghidra.md) | **Ghidra + ghidra-snes**: what for, plugin gaps, setup with workarounds, VFS |
 | [docs/recomp/](../recomp/README.md) | **Static recompilation (snesrecomp)**: [setup](../recomp/setup.md), [Game RTL glue](../recomp/game-rtl.md), [debugging](../recomp/debugging.md), [bugs & roadmap](../recomp/bugs-and-todos.md) |
 | [recomp-bug-hunt.md](recomp-bug-hunt.md) | *(Moved to [docs/recomp/bugs-and-todos.md](../recomp/bugs-and-todos.md))* |
