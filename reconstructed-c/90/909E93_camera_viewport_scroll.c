@@ -60,37 +60,7 @@ typedef struct {
     CameraDeadzone deadzone;
 } OverworldCameraContext;
 
-/**
- * @brief Subroutine $90:9FC9: Filters candidate actor coordinates through the deadzone box.
- *
- * @param ctx Pointer to the overworld camera context.
- * @param entity_x World pixel X coordinate of the tracked actor.
- * @param entity_y World pixel Y coordinate of the tracked actor.
- */
-void camera_deadzone_window_filter(OverworldCameraContext *ctx, uint16_t entity_x, uint16_t entity_y)
-{
-    /* 1. Horizontal Deadzone Evaluation */
-    int32_t left_bound = (int32_t)entity_x - ctx->deadzone.left;
-    if (left_bound < ctx->camera_x) {
-        ctx->camera_x = (int16_t)left_bound;
-    } else {
-        int32_t right_bound = (int32_t)entity_x + ctx->deadzone.right - SCREEN_WIDTH;
-        if (right_bound > ctx->camera_x) {
-            ctx->camera_x = (int16_t)right_bound;
-        }
-    }
-
-    /* 2. Vertical Deadzone Evaluation */
-    int32_t top_bound = (int32_t)entity_y - ctx->deadzone.top;
-    if (top_bound < ctx->camera_y) {
-        ctx->camera_y = (int16_t)top_bound;
-    } else {
-        int32_t bottom_bound = (int32_t)entity_y + ctx->deadzone.bottom - SCREEN_HEIGHT;
-        if (bottom_bound > ctx->camera_y) {
-            ctx->camera_y = (int16_t)bottom_bound;
-        }
-    }
-}
+/* camera_deadzone_window_filter: exact to the ROM in 909FC9_camera_deadzone_window_filter.c */
 
 /**
  * @brief Routine $90:9E93: Coordinates overworld camera updates, dual-player lead, and clamping.

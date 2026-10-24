@@ -12,7 +12,11 @@
  *    under its knowledge-entry name (soe_ram.h), or in locals;
  *  - tables and assets are read from the ROM image (ROM8/ROM16/ROM24) by bus address, never copied
  *    into C;
- *  - integer types of the width the asm uses, explicit casts where it wraps.
+ *  - integer types of the width the asm uses, explicit casts where it wraps;
+ *  - no comma expressions in conditions (`else if (soe_cmp16(...), r->p & SOE_N)`): built with
+ *    Calypsi 5.18 that took the wrong branch on $8F:C02B; write the compare and the test apart;
+ *  - after a binding's last register restore (PLY, PLX, PLB, TDC ...) set N and Z as that
+ *    instruction does: the asm's exit flags are part of the contract G1 checks.
  */
 #ifndef SOE_H
 #define SOE_H

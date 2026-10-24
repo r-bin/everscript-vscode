@@ -51,31 +51,7 @@ uint8_t select_attack_level_by_stamina(uint16_t stamina) {
     }
 }
 
-/**
- * Scales base attack damage according to stamina percentage ($8F:C02B).
- *
- * @param base_power Raw calculated attack power before stamina scaling.
- * @param stamina    Attacker's stamina gauge (0..1024).
- * @return Scaled effective attack power.
- */
-uint16_t scale_damage_by_stamina(uint16_t base_power, uint16_t stamina) {
-    if (stamina < STAMINA_50_PCT) {
-        // Under 50% stamina: severe quarter-power penalty (chip damage)
-        return (base_power >> 2);
-    } else if (stamina < STAMINA_100_PCT) {
-        // Between 50% and 99%: linear interpolation between 25% and 100%
-        uint32_t fraction = stamina - STAMINA_50_PCT; // 0..511
-        uint32_t bonus = ((uint32_t)base_power * fraction * 3) / (STAMINA_50_PCT * 4);
-        return (uint16_t)((base_power >> 2) + bonus);
-    } else if (stamina >= STAMINA_300_PCT) {
-        // Level 3 charge: 3x power multiplier
-        return base_power * 3;
-    } else if (stamina >= STAMINA_200_PCT) {
-        // Level 2 charge: 2x power multiplier
-        return base_power * 2;
-    }
-    return base_power; // 100% stamina: normal 1x damage
-}
+/* scale_damage_by_stamina: exact to the ROM in 8FC02B_scale_damage_by_stamina.c */
 
 static uint8_t uppercase_ascii(uint8_t value) {
     if (value >= 0x61 && value <= 0x7A) {

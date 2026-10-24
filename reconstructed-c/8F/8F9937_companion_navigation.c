@@ -47,28 +47,7 @@ extern BreadcrumbWaypoint g_waypoint_history[256];
 extern uint8_t entity_compute_angle_between(int16_t x1, int16_t y1, int16_t x2, int16_t y2); // $8F:AA51
 extern void integrate_companion_velocity_step(void); // $8F:9E49
 
-/**
- * Initializes follower navigation anchor, queue tail, and copies leader layer.
- * Corresponds to $8F:9937.
- */
-void companion_waypoint_anchor_init(const EntityState *leader, uint16_t companion_slot) {
-    g_companion_nav.waypoint_anchor = companion_slot;
-    g_companion_nav.waypoint_tail = companion_slot + WAYPOINT_STRIDE_BYTES;
-    g_companion_nav.waypoint_count = 0;
-
-    // Synchronize terrain plane and metatile properties with leader
-    g_companion_nav.target_layer = leader->collision_layer;
-    g_companion_nav.target_metatile = leader->metatile_prop;
-
-    // Clear obstacle descriptor
-    g_companion_nav.latched_obstacle = WAYPOINT_QUEUE_SENTINEL;
-
-    // Retain bit 12 (sticky leash mode), clear arrival/lock bits
-    g_companion_nav.nav_flags &= 0x1000;
-
-    // Poll proximity immediately
-    companion_waypoint_history_poll(leader, companion_slot);
-}
+/* companion_waypoint_anchor_init: exact to the ROM in 8F9937_companion_waypoint_anchor_init.c */
 
 /* companion_waypoint_history_poll: exact to the ROM in 8FA723_companion_waypoint_history_poll.c */
 

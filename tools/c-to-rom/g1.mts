@@ -302,7 +302,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
                 if (m.error || diff(v, m, s.regs.s, Math.min(v.minS, m.minS))) { mutCaught = true; break; }
             }
         }
-        let fz = 0, fzN = 0, fuzzFail = '';
+        let fz = 0, fzN = 0, fuzzFail = '', mutFuzz = false;
         ss.forEach((s0, i) => {
             for (const [k, s] of fuzz(s0, fuzzN, b.addr ^ i).entries()) {
                 const v = run(vanilla, s, 200_000);
@@ -311,11 +311,16 @@ if (import.meta.url === `file://${process.argv[1]}`) {
                 const c = run(built.image, s, 2_000_000);
                 const d = c.error ? `C: ${c.error}` : diff(v, c, s.regs.s, Math.min(v.minS, c.minS));
                 if (!d) fz++; else if (!fuzzFail) fuzzFail = `fuzzed state ${b.name}:${i}:${k} (frame ${s.frame}), entry ${JSON.stringify(s.regs)}: ${d}`;
+                // the real states may never take the mutated path: then a fuzzed one must show it
+                for (const mut of mutCaught || mutFuzz ? [] : muts) {
+                    const m = run(mut.image, s, 200_000);
+                    if (m.error || diff(v, m, s.regs.s, Math.min(v.minS, m.minS))) { mutFuzz = true; break; }
+                }
             }
         });
-        const pass = ok === ss.length && ss.length > 0 && mutCaught && oracle === oracleN && fz === fzN;
+        const pass = ok === ss.length && ss.length > 0 && (mutCaught || mutFuzz) && oracle === oracleN && fz === fzN;
         if (!pass) failed++;
-        lines.push(`| \`${b.name}\` ${hex(b.addr)} | ${ss.length} | ${oracle}/${oracleN} | ${ok}/${ss.length} | ${fz}/${fzN} | ${muts.length ? (mutCaught ? 'yes' : '**no**') : 'no operand'} |`);
+        lines.push(`| \`${b.name}\` ${hex(b.addr)} | ${ss.length} | ${oracle}/${oracleN} | ${ok}/${ss.length} | ${fz}/${fzN} | ${muts.length ? (mutCaught ? 'yes' : mutFuzz ? 'yes (fuzzed)' : '**no**') : 'no operand'} |`);
         if (firstFail) lines.push(`|  | C differs | ${firstFail.replace(/\|/g, '/')} | | | |`);
         if (fuzzFail) lines.push(`|  | fuzzed: C differs | ${fuzzFail.replace(/\|/g, '/')} | | | |`);
         if (oracleFail) lines.push(`|  | interpreter differs | ${oracleFail.replace(/\|/g, '/')} | | | |`);
