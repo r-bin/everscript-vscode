@@ -26,7 +26,11 @@ const CDL_DIR = join(homedir(), 'Library/Application Support/Code/User/globalSto
 /** rom.cdl of this ROM's CDL library (one flag byte per file offset), or null. */
 export function cdlFor(rom: Uint8Array): Uint8Array | null {
     const f = join(CDL_DIR, createHash('sha1').update(rom.subarray(0, 0x300000)).digest('hex'), 'rom.cdl');
-    return existsSync(f) ? new Uint8Array(readFileSync(f)) : null;
+    try {
+        return existsSync(f) ? new Uint8Array(readFileSync(f)) : null;
+    } catch {
+        return null;
+    }
 }
 
 export function disassemble(rom: Uint8Array, pc: number, count: number, m8 = false, x8 = false, cdl: Uint8Array | null = null): Line[] {

@@ -12,6 +12,8 @@ export const CORE = join(REPO, 'src/core/emulator/core/snes9x2005-wasm/snes9x_20
 const movie = require('../../dist/platform/tas/movie');
 export const AUDIO_RATE: number = movie.AUDIO_RATE;
 export const WRAM_SIZE = 0x20000;
+export const VRAM_SIZE = 0x10000;
+export const CGRAM_SIZE = 0x200;
 /** The reference a C-built ROM is compared with: power-on, no input, logo + intro + logo (record-reference.mts). */
 export const REFERENCE = join(REPO, '.agents/skills/sample-playbacks/playbacks/intro-2m20.evsmv');
 export const REFERENCE_FRAMES = 8414;        // 140 s × 60.0988 frames/s (NTSC)
@@ -23,6 +25,10 @@ export interface Core {
     frame(pad?: number): void;
     /** All 128 KB of WRAM, a copy. */
     wram(): Uint8Array;
+    /** All 64 KB of VRAM, a copy. */
+    vram(): Uint8Array;
+    /** All 512 bytes of CGRAM, a copy. */
+    cgram(): Uint8Array;
     cpu(): Cpu;
     screen(): Uint8Array;
 }
@@ -51,6 +57,14 @@ export function boot(rom: Uint8Array): Promise<Core> {
                         const w = new Uint8Array(WRAM_SIZE);
                         for (let o = 0; o < WRAM_SIZE; o += 4096) w.set(M.readMemoryRange(0x7E0000 + o, 4096), o);
                         return w;
+                    },
+                    vram() {
+                        const ptr = M._getSpacePtr(0), len = M._getSpaceSize(0);
+                        return ptr && len ? new Uint8Array(heap().buffer, ptr, len).slice() : new Uint8Array(VRAM_SIZE);
+                    },
+                    cgram() {
+                        const ptr = M._getSpacePtr(1), len = M._getSpaceSize(1);
+                        return ptr && len ? new Uint8Array(heap().buffer, ptr, len).slice() : new Uint8Array(CGRAM_SIZE);
                     },
                     cpu: () => M.getCPUState(),
                     screen: () => new Uint8Array(heap().buffer, M._getScreenBuffer(), 512 * 448 * 4),

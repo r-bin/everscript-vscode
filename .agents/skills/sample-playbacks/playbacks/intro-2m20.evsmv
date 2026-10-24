@@ -1,7 +1,7 @@
 # Everscript movie 3
 # rom: Secret of Evermore (U) [!].smc
 # rom.sha256: 17c864a76d498feb6479eee8e7d6807b951c66225033228622bb66754baab1db
-# started: 2026-10-24T13:20:17.177Z
+# started: 2026-10-24T18:06:09.065Z
 # start: power-on, empty SRAM
 # check: WRAM every 60 frames, other spaces every 600
 # core: 4a0381e352e0abe3

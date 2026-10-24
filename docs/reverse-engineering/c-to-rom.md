@@ -314,8 +314,9 @@ takes the asm's exact cycles on every path, which no stock compiler gives.
 | header | `node tools/c-to-rom/gen-ram-header.mts` | `reconstructed-c/include/soe_ram.h` from `knowledge/ram/` (`--check` for staleness) |
 | build | `node tools/c-to-rom/build.mts` | `out/c-to-rom/soe-c.sfc` |
 | G1 | `node tools/c-to-rom/g1.mts [name ...]` | `out/c-to-rom/G1.md`; `--trace name:i[:k]` prints both instruction traces |
-| 2:20 | `node tools/c-to-rom/compare.mts` | WRAM per frame against `intro-2m20.wram-crc` |
+| 2:20 | `node tools/c-to-rom/compare.mts` | WRAM and VRAM per frame against `intro-2m20.wram-crc` / `.vram-crc` |
 | asm | `node tools/c-to-rom/disasm.mts 8FA963 --walk` | a whole routine, widths from the CDL library |
+| diff asm | `node tools/c-to-rom/diff-asm.mts <name>` | compiles C to 65816 assembly with Calypsi and compares with initial ROM asm |
 
 **Image.** The clean ROM extended to 4 MB as the table hack does it (the 4th MB = what snes9x
 shows past 3 MB). Tables, assets and every routine not in C keep their vanilla bytes. Code goes

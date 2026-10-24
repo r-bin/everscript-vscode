@@ -20,13 +20,14 @@ const out = opt('out') || REFERENCE;
 
 const source = new Uint8Array(readFileSync(romPath));
 const c = await boot(stripHeader(source));
-const body: string[] = [], crcs: string[] = [], rooms: number[] = [];
+const body: string[] = [], crcs: string[] = [], vramCrcs: string[] = [], rooms: number[] = [];
 for (let k = 0; k < frames; k++) {
     c.frame(0);
     body.push(T.frameLine(0));
     const w = c.wram();
     const crc = T.crcText(T.crc32(w));
     crcs.push(crc);
+    vramCrcs.push(T.crcText(T.crc32(c.vram())));
     if (!rooms.includes(w[CURRENT_MAP_ID])) rooms.push(w[CURRENT_MAP_ID]);
     if ((k + 1) % T.CHECK_EVERY === 0) body.push('S|' + crc);
     if ((k + 1) % T.SPACES_EVERY === 0) body.push(T.spacesLine(T.spaceCrcs((id: number) => c.M.readSpace(id))));
@@ -38,5 +39,6 @@ const text = T.evsmvHeader({ rom: basename(romPath), romSha256: sha, started: ne
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, text);
 writeFileSync(out.replace(/\.evsmv$/, '.wram-crc'), crcs.join('\n') + '\n');
+writeFileSync(out.replace(/\.evsmv$/, '.vram-crc'), vramCrcs.join('\n') + '\n');
 console.log(JSON.stringify({ file: relative(REPO, out), frames, rooms: rooms.map(r => r.toString(16).padStart(2, '0')) }));
 process.exit(0);
