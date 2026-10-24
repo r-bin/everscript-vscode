@@ -7,7 +7,7 @@ name: audio_master_volume_fade_tick
 title: Per-frame master volume interpolation tick helper
 confidence: confirmed
 tags: [audio, volume, fade, field-tick]
-evidence: ["disasm: checks mute flag bit 7 of $7E:0106, reads target volume latch $7E:0B83, compares against current volume level, increments or decrements $7E:0106, and zeroes target latch when target reached", "trace: called every frame during per_frame_field_tick at $8E:E470", "c: G1 passed (tools/c-to-rom/g1.mts, v0.349.0): the bound C equals the ROM on 34 entry states sampled from the 2:20 no-input reference and 544 fuzzed ones; snes9x agrees with the interpreter on 34; a mutation is caught"]
+evidence: ["disasm: checks mute flag bit 7 of $7E:0106, reads target volume latch $7E:0B83, compares against current volume level, increments or decrements $7E:0106, and zeroes target latch when target reached", "trace: called every frame during per_frame_field_tick at $8E:E470", "c: G1 passed (tools/c-to-rom/g1.mts, v0.350.0): the bound C equals the ROM on 34 entry states sampled from the 2:20 no-input reference and 544 fuzzed ones; snes9x agrees with the interpreter on 34; a mutation is caught"]
 see: [docs/disassembly/maps/room-spawn-align.md, rom/8ee592.md]
 ---
 Executes per-frame master audio volume interpolation. Runs during `per_frame_field_tick` (`$8E:E470`), smoothly incrementing

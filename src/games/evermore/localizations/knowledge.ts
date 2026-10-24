@@ -23,12 +23,21 @@ interface KnowledgeEntry {
 const one = (v: string | string[] | undefined): string | null => (typeof v === 'string' && v ? v : null);
 const list = (v: string | string[] | undefined): string[] => (Array.isArray(v) ? v : []);
 
-/** Flat front matter: `key: value` or `key: [a, b]` (JSON-ish lists). */
+/** Flat front matter: `key: value`, `key: [a, b]` (JSON-ish lists) or `key:` followed by `  - item` lines. */
 function parseFrontMatter(head: string): FrontMatter {
     const out: FrontMatter = {};
+    let block: string | null = null;
     for (const line of head.split('\n')) {
+        const item = line.match(/^\s+-\s+(.*)$/);
+        if (item && block) {
+            const v = item[1].trim();
+            (out[block] as string[]).push(v.startsWith('"') ? JSON.parse(v) : v);
+            continue;
+        }
+        block = null;
         const m = line.match(/^([A-Za-z_]+):\s*(.*)$/);
         if (!m) continue;
+        if (m[2].trim() === '') { block = m[1]; out[block] = []; continue; }
         let v: string | string[] = m[2].trim();
         if (v.startsWith('[')) {
             const text = v;

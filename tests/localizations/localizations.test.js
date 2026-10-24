@@ -195,3 +195,16 @@ test('localizations scripts: NPC, ABS, and Global script lookups', () => {
     assert.equal(getNpcScriptName(0x17CD), 'Thraxx damage/kill');
 });
 
+
+test('knowledge entries: front-matter lists as one JSON line or as a YAML block', () => {
+    const os = require('os');
+    const { parseEntry } = require('../../dist/games/evermore/localizations/knowledge');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'knowledge-'));
+    const file = path.join(dir, '8f0000.md');
+    fs.writeFileSync(file, '---\naddr: 8F0000\nname: x\nevidence:\n  - "disasm: a, b"\n  - docs/x.md\ntags: [one, two]\nsee:\n---\nBody.\n');
+    const e = parseEntry(file);
+    assert.deepEqual(e.evidence, ['disasm: a, b', 'docs/x.md']);
+    assert.deepEqual(e.tags, ['one', 'two']);
+    assert.deepEqual(e.see, []);
+    fs.rmSync(dir, { recursive: true });
+});
