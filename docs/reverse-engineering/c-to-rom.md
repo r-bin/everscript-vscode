@@ -370,9 +370,18 @@ Is `SOE_OPTIMIZE` needed? No: the documented build runs the whole intro and attr
 rooms of the reference, the credits drawn correctly at frame 13000 of a 20000-frame run), only
 slower. The variants stay off; they are kept, checked by G1, for a playable-speed build.
 
-**Status (v0.351.0).** 27 routines pass G1, the documented code and the variants alike (their
+**Status (v0.351.0–v0.353.0).** 29 routines pass G1, the documented code and the variants alike (their
 knowledge entries carry a `c: G1 passed` line). WRAM first differs from vanilla at frame 374, the
 first RNG call, as the bridges and the C take other cycles than the asm (§7a).
+Detailed diagnostics on frame 375 revealed two root causes:
+1. **Direct Page on Stack & Dead Stack Pollution:** The bridge re-points D to the stack (`TSC; SBC #32; TCD`)
+   to house Calypsi's pseudo-registers. Consequently, accesses to Evermore's DP ($00..$FF) cannot use 1-byte
+   DP instructions and expand into 24-bit far pointers. Furthermore, residual variables left in dead stack
+   ($7E:1F8E..$7E:1FCB) register as WRAM mismatches in full 128 KB hashes even when game state matches.
+2. **Cycle Drift across NMI:** Heavy C instruction expansion (up to 27x in hot functions) in time-critical
+   frames (such as LZSS decompression at frame 374) pushes completion past scanline 224, delaying VRAM uploads.
+   Micro-primitives like `random_number_generator` (25 asm instructions) should remain native ASM, while
+   bound C routines should undergo a pre-ROM benchmark gate targeting ~1:1 instruction parity.
 
 **Open (where the work stopped, 2026-10-24).**
 - 255 of the 282 known routines that run in the 2:20 reference are not in exact C yet. Skipped so

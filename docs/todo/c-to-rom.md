@@ -26,12 +26,27 @@
    D-relative operands, 8-bit wraps, bank carries of indexed operands.
 3. **A compiler's own scratch must not touch WRAM.** Calypsi keeps 20 bytes of pseudo-registers in
    the direct page; the bridge moves D into fresh stack, so only the dead stack below S changes.
-4. **The compiler can be wrong.** Calypsi `-O2` miscompiles a byte sign test; a comma expression in
+   However, moving D to stack means C cannot access Evermore's DP ($00..$FF) via 1-byte direct page
+   instructions, expanding DP accesses into 24-bit far pointers (8–15 instructions per access).
+   Additionally, Calypsi leaves local variables and DP scratch in dead stack below S ($7E:1F8E..$7E:1FCB),
+   causing false-positive WRAM diffs in full-RAM comparisons even when game state is identical.
+4. **Micro-primitives belong in native assembly.** Routines like `random_number_generator` ($80:859B)
+   are 25 instructions (~75 cycles) in ROM. Calling them via C bridge indirection costs ~100 instructions
+   and ~700 cycles. When called in cycle-tight frames (e.g. frame 374 during LZSS tile decompression),
+   this extra overhead delays decompression past the scanline 224 NMI boundary. In `c-to-rom`, unbound
+   routines remain vanilla ASM: high-frequency micro-primitives should stay in ASM, while C targets
+   game logic, script VMs, and entity systems.
+5. **Pre-ROM benchmark gate (~1:1 instruction budget).** Before binding a C function into the ROM,
+   its compiled assembly must be audited against the original ROM disassembly (`diff-asm.mts` and `g1.mts`).
+   If the instruction expansion exceeds a target budget (e.g. >1.5x), iterate on the C (using
+   `SOE_OPTIMIZE`, Calypsi inline assembly `__asm`, direct bank pointers `SOE_BANK(r)`, or eliminating
+   far helper calls like `soe_cmp16`) to approach 1:1 before binding into the image.
+6. **The compiler can be wrong.** Calypsi `-O2` miscompiles a byte sign test; a comma expression in
    a condition took a wrong branch. Only the per-routine check found them.
-5. **Speed is a property, not a goal.** Bridge (~32 instructions) plus Calypsi `-O1` code: 7–60x
+7. **Speed is a property, not a goal.** Bridge (~32 instructions) plus Calypsi `-O1` code: 7–60x
    the asm per call; the intro runs 2.9x slower (room `$31` at frame 7498 instead of 2593).
    Faster variants live only under `#ifdef SOE_OPTIMIZE` (AGENTS.md rule 11).
-6. **The settings were never compared.** Large code and data model, `-O1 --speed`, no
+8. **The settings were never compared.** Large code and data model, `-O1 --speed`, no
    `--target=SNES` were picked for correctness, not measured against alternatives.
 
 ## 3. Next: find a compiler setup that can produce the ROM
