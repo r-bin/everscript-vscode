@@ -5,6 +5,10 @@
 > direct lessons from [`snesrev/zelda3`](https://github.com/snesrev/zelda3), [`snesrev/sm`](https://github.com/snesrev/sm),
 > and modern 65816 C toolchains.
 >
+> **Status (2026-10-24):** the linker script in §5.1 is conceptual and was never run. Measured
+> constraints for a ROM whose WRAM must equal vanilla (cycle-exact code; Calypsi's
+> direct-page pseudo-registers) are in [c-to-rom.md §7a](c-to-rom.md#7a-measured-a-c-built-rom-must-be-cycle-exact-to-keep-wram-per-frame).
+>
 > **Related Reading**:
 > - [asm-to-c-port.md](asm-to-c-port.md) — The Secret of Evermore ASM-to-C pipeline roadmap.
 > - [incremental-decomp-guide.md](incremental-decomp-guide.md) — Step-by-step function decompilation with `snesrecomp`.

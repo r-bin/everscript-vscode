@@ -249,6 +249,41 @@ The rules every routine's C follows to pass G0–G1:
 
 ---
 
+## 7a. Measured: a C-built ROM must be cycle-exact to keep WRAM per frame
+
+Measured 2026-10-24 (v0.344.0) on the bundled snes9x core against the reference recording
+`intro-2m20.evsmv` (power-on, no input, 8414 frames: logo, intro, logo; `tools/c-to-rom/`).
+The owner then asked for C compiled into the ROM after all, with WRAM identical to vanilla
+every frame. These are the facts that goal runs into.
+
+- **The main thread is busy at almost every NMI.** In those 8414 frames the NMI (`$00:823A`)
+  interrupted the main thread inside `wait_for_nmi` (`$80:858C`) 674 times. Everywhere else it
+  hit entity and collision code (`$8F:98xx`, `$8F:A3xx`, `$90:9DE8`). The engine time-slices: how
+  much work lands in a frame depends on how long it takes.
+- **Any cycle difference diverges for good.** A detour through the 4th MB (`JML` out and back,
+  no other change) adds about 8 cycles per call:
+  - on `random_number_generator` (`$80:859B`, 23,509 calls), WRAM differs from frame 474 in
+    7928 of 8414 frames;
+  - on `eval_tile_collision` (`$90:9DE8`, 723,906 calls), with the RNG frozen in both images
+    (state stored as 0, returns 0), WRAM still differs from frame 474. Entity records
+    (`$4E89+`, `$5018+`) differ, and by frame 8413 the scene counter `$0100` differs too
+    (2157 vs 2161).
+  Freezing the RNG removes one source of divergence, not the dependence on time.
+- **So:** WRAM identical every frame requires the compiled code to take exactly the
+  original's master cycles on every path it runs during the recording. A stock compiler
+  cannot promise that.
+- **Calypsi** (checked 2026-10-24, v5.18 of 2026-07-17; closed source, licensed for private
+  use; SNES target since 5.12): the macOS package ships x86_64 binaries, which run on Apple
+  Silicon under Rosetta 2. Its ABI reserves 32 direct-page bytes for pseudo-registers and puts
+  DP and the stack in bank `$00`. On the SNES that is WRAM `$0000–$1FFF`, so its code writes
+  WRAM the original does not, unless every bound function saves and restores those bytes.
+- **The reference is deterministic:** the same ROM replayed in another process gives the
+  same WRAM CRC on all 8414 frames, and a 4 MB image with nothing changed (the 4th MB
+  mirroring the first, as `tools/table-hack/tables.js` builds it) equals vanilla on every frame.
+
+The architecture overview for compiling C into HiROM (linker regions, near/far pointers) is
+[c-compilation-hirom-memory-map.md](c-compilation-hirom-memory-map.md).
+
 ## 8. Not pursued: compiling the C into the ROM
 
 The first version of this page planned a C dialect and our own 65816 compiler to put C into

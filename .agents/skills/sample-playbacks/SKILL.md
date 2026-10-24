@@ -18,6 +18,7 @@ pick the one recording that does. Do not replay the whole folder.
 | File | Frames | What it is | Rooms (`$7E0ADB`) | Table readers reached (count, first frame) |
 |---|---|---|---|---|
 | `playbacks/attract-loop.evsmv` | 6224 (1:44) | Power-on with no input: intro, then the demo scenes. It is cut at the frame where the intro's first picture comes back (frame 66 at the start). | `55 00 61 31 18 0a 19 1a 10 54` | map table 8× @374; enter scripts 8× @413; script pointers 12× @3084; string keys 14× @3104; enemy index (spawns) 63× @1603; character records 296× @374; map palette loader 54× @374; sprite palette loader 49× @374; `animate()` ids 4× @1603; 16×16 blocks 1170× @1603; 8×8 blocks 1026× @1604 |
+| `playbacks/intro-2m20.evsmv` | 8414 (2:20) | Power-on with no input: logo, intro, logo. The reference for C-built ROMs (`tools/c-to-rom/`). `.wram-crc` next to it holds the WRAM CRC after every frame. | same as the attract loop | `random_number_generator` 23,509× @374; `eval_tile_collision` 723,906× @474 |
 
 Each playback carries the movie's own WRAM checks: `S|` every 60 frames and `T|` (VRAM, CGRAM, OAM,
 SRAM, ARAM) every 600. A replay on the clean ROM that misses a check has lost sync. The `# core:`
