@@ -1,7 +1,8 @@
 // TODO port to TS (docs/todo/port-to-ts.md)
 // Ownership: the Scripts tab's Music view — a track's sequence as its package
-// uploads it (pointer, header, one byte run per track; the opcodes are not
-// decoded yet, bytes >= $F0 are marked as commands), and a silent player on
+// uploads it (pointer, header, one byte run per track; only verified commands
+// and runtime-observed driver-state and duration values are annotated), and a
+// silent player on
 // the right: the notes the host's engine played (music/model/track-timeline.js,
 // injected), as 8 voice lanes moving under a playhead. No audio.
 
@@ -16,21 +17,55 @@ function scrSelectTrack(id) {
   if (!_scr.tracks[id]) { _scr.tracks[id] = 'pending'; scrPost({ command: 'scriptsMusic', id: id, seconds: SCR_MUSIC_SECONDS }); }
 }
 
-function scrSeqBytesHtml(bytes) {
-  return bytes.map(function (b) {
-    return '<span class="' + (b >= 0xF0 ? 'scr-cmd' : 'scr-nb') + '">' + scrHex(b) + '</span>';
-  }).join(' ');
+function scrSeqBytesHtml(bytes, address, decoded) {
+  var commands = {};
+  var events = {};
+  decoded.forEach(function (record) {
+    if (record.kind === 'command') commands[record.offset] = true;
+    if (record.kind === 'event') events[record.offset] = true;
+  });
+  var rows = [];
+  for (var start = 0; start < bytes.length; start += 16) {
+    var cells = bytes.slice(start, start + 16).map(function (b, i) {
+      var offset = start + i;
+      var kind = commands[offset] ? 'scr-cmd' : (events[offset] ? 'scr-event' : (b >= 0xF0 ? 'scr-unknown' : 'scr-nb'));
+      return '<span class="scr-seq-byte ' + kind + '">' + scrHex(b) + '</span>';
+    });
+    rows.push('<div class="scr-seq-row"><span class="scr-seq-off">$' + scrHex(address + start, 4) + '</span><span class="scr-seq-bytes">' + cells.join('') + '</span></div>');
+  }
+  return rows.join('');
+}
+
+function scrDecodedCommandsHtml(records) {
+  var commands = records.filter(function (record) { return record.kind !== 'data'; });
+  if (!commands.length) return '';
+  return '<div class="scr-decoded"><div class="scr-decoded-h">Decoded records</div>' + commands.map(function (record) {
+    var label = record.name;
+    var raw = record.bytes;
+    if (record.name === 'Repeat phrase') label += ' $' + scrHex(record.phraseStart, 4) + ' - $' + scrHex(record.phraseEnd, 4) + ' · trailing ' + record.trailing.map(function (b) { return scrHex(b); }).join(' ');
+    else if (record.name === 'Driver state') label += ' $' + scrHex(raw[0]) + ' -> SPC Y $' + scrHex(record.value);
+    else if (record.name === 'Track duration') label += ' ' + record.ticks + ' ticks';
+    else if (record.kind === 'opaque') {
+      label += ' · command meaning or length unknown';
+      raw = record.bytes.slice(0, 8);
+    }
+    else if (record.argument !== undefined) label += ' $' + scrHex(record.argument) + ' · meaning unknown';
+    var preview = raw.map(function (b) { return scrHex(b); }).join(' ');
+    if (record.kind === 'opaque' && record.bytes.length > raw.length) preview += ' … +' + (record.bytes.length - raw.length) + ' bytes';
+    return '<div class="scr-decoded-row"><code>$' + scrHex(record.address, 4) + '</code><span>' + scrEsc(label) + '</span><code>' + preview + '</code></div>';
+  }).join('') + '</div>';
 }
 
 function scrSequenceHtml(seq) {
   if (!seq) return '<div class="scr-note scr-warn">This package carries no sequence pointer.</div>';
   return '<div class="scr-sub">Pointer at <code>$' + scrHex(seq.pointerAt, 4) + '</code> → sequence at <code>$' + scrHex(seq.start, 4) + '</code> (ARAM) · ' +
     seq.tracks.length + ' tracks · header <code>' + seq.header.map(function (b) { return scrHex(b); }).join(' ') + '</code><br>' +
-    'The opcode table is not decoded yet: <span class="scr-cmd">F0+</span> bytes are commands (some take operands), the rest notes and durations.</div>' +
+    'Verified commands and observed driver-state/timer values are annotated; all other stream bytes remain raw.</div>' +
     seq.tracks.map(function (t) {
+      var decoded = t.decoded || [];
       return '<div class="scr-track"><div class="scr-track-h" style="border-color:' + SCR_VOICE_COLORS[t.index % 8] + '">Track ' + t.index +
         ' <code>$' + scrHex(t.aram, 4) + '</code> <span class="scr-dim">' + t.bytes.length + ' bytes</span></div>' +
-        '<div class="scr-seq">' + scrSeqBytesHtml(t.bytes) + '</div></div>';
+        scrDecodedCommandsHtml(decoded) + '<div class="scr-seq">' + scrSeqBytesHtml(t.bytes, t.aram, decoded) + '</div></div>';
     }).join('');
 }
 

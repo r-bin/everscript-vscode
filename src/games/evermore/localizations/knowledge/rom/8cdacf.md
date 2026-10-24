@@ -16,3 +16,5 @@ Read from the handler's code (direct calls only; data bank tracked, default `$7E
 - Calls: `$8F:CD4D`
 - Record fields (indexed by X/Y: a slot, an entity, a window): `+$0D`
 - Opcode table entry: `$8C:EA3F` (0xc1)
+
+The mask-3 Boy-then-Dog dispatch is documented in [opcode-freeze.md](../../../../../../docs/disassembly/script-vm/opcode-freeze.md) and modeled by `script_op_unfreeze_boy_and_dog` in `reconstructed-c/8C/8CDB2A_opcode_freeze.c`.

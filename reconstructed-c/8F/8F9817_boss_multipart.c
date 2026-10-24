@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 /** Maximum number of child entity slots in the multipart pool. */
 #define MULTIPART_POOL_CAPACITY         6
@@ -41,6 +42,52 @@ typedef struct {
     uint16_t child_flags[MULTIPART_POOL_CAPACITY];      /* $7E:3C12,X */
     EntityRecord *child_parent[MULTIPART_POOL_CAPACITY];/* $7E:3C14,X */
 } MultiPartSubsystem;
+
+typedef uint16_t (*ReadFrameCounter)(void);
+typedef uint16_t (*ReadWramWord)(uint16_t address);
+typedef void (*RunChildTask)(uint16_t task_index, uint16_t parent_pointer,
+                             uint16_t child_slot_offset);
+typedef void (*FinishFieldFrame)(void);
+
+/** Reconstructs the spare-time worker loop at $8F:9817-$8F:9866. */
+void field_spare_time_loop(MultiPartSubsystem *ctx,
+                           ReadFrameCounter read_frame_counter,
+                           ReadWramWord read_wram_word,
+                           RunChildTask run_child_task,
+                           FinishFieldFrame finish_field_frame)
+{
+    uint16_t frame_at_entry = read_frame_counter();
+
+    for (;;) {
+        if (read_frame_counter() != frame_at_entry) {
+            finish_field_frame();
+            return;
+        }
+
+        uint16_t next_cursor =
+            (uint16_t)(ctx->slot_cursor + MULTIPART_RECORD_STRIDE);
+        if (next_cursor >= MULTIPART_POOL_SIZE) {
+            ctx->task_index = (uint16_t)((ctx->task_index + 2u) & 0x000Eu);
+            ctx->slot_cursor = 0;
+        } else {
+            ctx->slot_cursor = next_cursor;
+        }
+
+        uint16_t slot_offset = ctx->slot_cursor;
+        uint16_t child_flags = read_wram_word((uint16_t)(0x3C12u + slot_offset));
+        if ((child_flags & CHILD_FLAG_SUSPENDED) != 0) {
+            continue;
+        }
+
+        uint16_t parent_pointer =
+            read_wram_word((uint16_t)(0x3C14u + slot_offset));
+        if (parent_pointer == 0) {
+            continue;
+        }
+
+        run_child_task(ctx->task_index, parent_pointer, slot_offset);
+    }
+}
 
 /**
  * @brief Subroutine $8F:9877: Retrieves or allocates a primary child attachment entity.

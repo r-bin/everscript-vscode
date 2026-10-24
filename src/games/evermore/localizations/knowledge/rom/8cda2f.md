@@ -9,7 +9,7 @@ tags: [script-vm]
 evidence: ["disasm: handler evaluates the entity and two offsets, scales each offset by 16, adds them to entity fields +$1A/+$1C, then enters the shared position helper", "trace: the game ran 1 distinct instruction with this opcode (tests/script-vm/goldens.json)"]
 see: [docs/scripts/vm.md, docs/scripts/opcodes.md]
 ---
-Handler of script opcode [0x6D](soe://rom/assets/scripts/opcodes/6d.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/6d.md`, served at `soe://rom/assets/scripts/opcodes/6d.md`.
+Handler of script opcode [0x6D](soe://rom/assets/scripts/opcodes/6d.md). Evaluates entity, dx, dy; scales offsets by 16 and adds them with 16-bit semantics to entity coordinates `+$1A`/`+$1C`; then enters shared `$8C:DAA6` logic to skip dead non-player entities or schedule pathfinding via `$8F:AA82`. Returns carry set. Host-side model: `docs/disassembly/script-vm/opcode-6d-walk-by.md`.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

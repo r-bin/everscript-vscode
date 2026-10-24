@@ -149,7 +149,7 @@ function mapSections(rom: Uint8Array, id: number) {
     const fam = section(rom, 'families', 'Map palettes ("tile families")', 'Count, then one map palette id ($9C:C322) per BG palette, in sets of 7', L.payloadOffset, L.extrasOffset);
     Object.assign(fam, paletteItems(room.tileFamilies));
     out.push(fam);
-    const extras = section(rom, 'extras', 'CHR descriptors', 'Count, then 3 bytes each', L.extrasOffset, L.block1.offset);
+    const extras = section(rom, 'extras', 'Palette-cycle descriptors', 'Count, then 3 bytes each: palette/start colour, cycle length, signed rate', L.extrasOffset, L.block1.offset);
     for (let i = 0; i < L.extraCount; i++) {
         extras.fields.push({ at: 1 + i * 3, size: 3, name: 'descriptor ' + i, value: '$' + hex(maps.read24(rom, L.extrasOffset + 1 + i * 3), 6) });
     }

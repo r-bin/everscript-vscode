@@ -34,7 +34,7 @@ Not to be confused with `src/games/evermore/script-vm/` (the bytecode decoder), 
   `compositeLayers`); the room picture is sent once (`scriptsMap`) and panels name it `@room`.
 - New page code is TypeScript: `webview/scripts-maps.dom.ts` is bundled (`ScriptsMaps`) into
   the radar IIFE; it takes data as arguments and never reads `_scr`.
-- Music bytes are shown raw; `≥ $F0` is marked as a command, nothing more is claimed.
+- Music bytes remain visible raw; verified commands and the narrowly traced `$9C`/`$D3` driver-state values and `$0A`/`$1E` track timer values may be annotated. Other stream bytes remain unclassified.
 - The simulation is work in progress: its failures come back as `error` and the tab keeps
   showing the decoded bytes. Never hide the bytes behind it.
 - Page files stay ≤ 250 lines each; commands start with `scripts` (music owns `music*`).

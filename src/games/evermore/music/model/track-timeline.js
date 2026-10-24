@@ -25,6 +25,7 @@
 const createSpcEngine = require('../engine/spc-engine.js');
 const { MusicSpc } = require('../../../../../dist/games/evermore/music/webview/music-engine');
 const { buildMusicModel, packageData } = require('../../../../../dist/games/evermore/music/model/catalog');
+const { decodeSequenceTrack } = require('../../../../../dist/games/evermore/music/model/sequence-decoder');
 
 const CLOCKS_PER_FRAME = Math.round(1024000 / 60);
 const DSP = 32;
@@ -105,7 +106,8 @@ function trackSequence(rom, id) {
     for (let i = 0; i < count; i++) pointers.push(header.bytes[1 + 2 * i] | header.bytes[2 + 2 * i] << 8);
     const tracks = pointers.map((aram, index) => {
         const rec = recs.find((r) => r.dest === aram);
-        return { index, aram, bytes: rec ? rec.bytes : [] };
+        const bytes = rec ? Array.from(rec.bytes) : [];
+        return { index, aram, bytes, decoded: decodeSequenceTrack(bytes, aram) };
     });
     return { pointerAt, start, header: header.bytes, tracks };
 }

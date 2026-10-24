@@ -6,7 +6,7 @@ confidence: confirmed
 tags: ["opcode.variable"]
 everscript: ["set_args()"]
 evidence: ["disasm: handler at the table entry $8C:D71F"]
-see: ["rom/8cd71f.md"]
+see: ["rom/8cd71f.md", "docs/disassembly/script-vm/opcode-ae-write-arg-tile-pair.md"]
 ---
 As `0x1B` for the argument bytes (two byte offsets, then x and y).
 

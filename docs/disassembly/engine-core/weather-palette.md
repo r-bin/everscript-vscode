@@ -1,26 +1,17 @@
-# Weather Effects, Palette Cycling & Screen Shake Engine ($80:9E93, $80:A003, $80:A2E0)
+# Animated Palette Copy Routines ($80:9E93, $80:A003)
 
-> **Subsystem**: Ambient Environmental Animation, Weather Particles & Screen Shake  
-> **ROM Addresses**: `$80:9E93` (`cycle_palette_group_1`), `$80:A003` (`cycle_palette_group_2`), `$80:A2E0` (`weather_tick_and_screen_shake`)  
-> **Clean C Module**: `engine-core/weather-palette.c`  
+> **Subsystem**: Palette shadow-buffer staging
+> **ROM Addresses**: `$80:9E93` (group 1 prefix), `$80:A003` (group 2 prefix)
+> **C Model**: `reconstructed-c/80/809E93_weather_palette.c`
 > **Confidence**: Confirmed
 
----
+## Observed Entry Prefixes
 
-## 1. Architectural Role
+`$80:9E93` reads eight words from data-bank offsets `Y+$06, Y+$08, ... Y+$14` and writes them to long WRAM addresses `$7E:7321,X` through `$7E:732F,X`. It advances Y by `$10` and jumps to `$80:9FFE`.
 
-Secret of Evermore maintains real-time atmospheric immersion through three synchronized environmental systems updated during the main frame tick:
-- **Animated Palette Cycling (`$80:9E93` / `$80:A003`)**:
-  - Dynamically rotates color gradients in WRAM shadow buffers `$7E:7321`..`$7E:732F` and `$7E:7331`..`$7E:733F`.
-  - Used for glowing crystals, pulsating acid/swamp rivers, and animated molten lava in Volcano and Underworld maps.
-  - Rotated colors are queued for DMA channel 1 transfer directly into PPU CGRAM (`$2122`) during VBLANK (`$80:8616`).
-- **Weather Particle Simulation (`$80:A2E0`)**:
-  - Simulates falling rain droplets, drifting snow flurries, and volcanic ash embers.
-  - Spawns and updates lightweight particle records with sinusoidal drift and downward terminal velocity.
-- **Screen Shake Engine (`$7E:2435` / `$7E:2437`)**:
-  - Direct Page flag `$C3` enables camera jitter.
-  - Alternates horizontal displacement offset `$7E:2435` and vertical displacement offset `$7E:2437` using an oscillating decay curve.
-  - Added directly to camera viewport coordinates (`$7E:0F44` / `$7E:0F46`) before metatile clamping.
+`$80:A003` reads eight words from offsets `Y+$07, Y+$09, ... Y+$15` and writes them to `$7E:7331,X` through `$7E:733F,X`. It also advances Y by `$10`, then jumps to `$80:A16E`.
+
+These entries stage words; this evidence does not establish a timer, a color-rotation algorithm, or a DMA request. The `$80:9FFE` and `$80:A16E` continuations perform additional conditional work and are represented as callback boundaries in the C model.
 
 ---
 
@@ -33,9 +24,7 @@ Secret of Evermore maintains real-time atmospheric immersion through three synch
 
 ---
 
-## 3. Clean C Implementation
+## C Model Scope
 
-> **Reconstructed C Decompilation**:
-> Source moved to [`reconstructed-c/80/809E93_weather_palette.c`](../../../reconstructed-c/80/809E93_weather_palette.c).
-> [View in VFS: soe://rom/code/809E93](soe://rom/code/809E93?c=1&asm=0)
+The C file models only the two observed load/store prefixes and passes the updated Y, unchanged X, and continuation address to a callback. It does not model the continuation routines or assign meaning to the copied words.
 

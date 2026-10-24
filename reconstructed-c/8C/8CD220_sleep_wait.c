@@ -51,22 +51,11 @@ extern uint16_t g_entity_script_busy[];   // $7E:3C1A
 
 extern uint16_t script_eval_expression(void); // $8C:EA43
 
-/**
- * script_op_39_3b_sleep ($8C:D220)
- * Evaluates duration expression. If > 0, sets thread state to SLEEP (4)
- * with 32-bit wake timestamp and yields the current turn.
- * 
- * @param thread Pointer to active script thread record.
- * @return true if execution continues immediately; false if turn yields.
- */
-bool script_op_39_3b_sleep(ScriptThread *thread) {
-    uint16_t duration = script_eval_expression();
+static bool script_schedule_sleep(ScriptThread *thread, uint16_t duration) {
     if (duration == 0) {
-        // Carry set: duration of 0 ticks continues immediately without yielding
         return true;
     }
 
-    // 32-bit addition with frame counter
     uint32_t current_ticks = ((uint32_t)g_field_frame_counter_hi << 16) | g_field_frame_counter_lo;
     uint32_t wake_ticks = current_ticks + (duration - 1);
 
@@ -74,8 +63,34 @@ bool script_op_39_3b_sleep(ScriptThread *thread) {
     thread->wait_param_hi = (uint16_t)(wake_ticks >> 16);
     thread->state = SCRIPT_STATE_SLEEP;
 
-    // Carry clear: yield current turn to scheduler
     return false;
+}
+
+/**
+ * script_op_39_3b_sleep ($8C:D220)
+ * Evaluates duration expression and schedules the current thread if nonzero.
+ */
+bool script_op_39_3b_sleep(ScriptThread *thread) {
+    return script_schedule_sleep(thread, script_eval_expression());
+}
+
+/**
+ * script_op_a7_sleep ($8C:D217)
+ * Reads a byte duration operand and schedules the current thread if nonzero.
+ */
+bool script_op_a7_sleep(ScriptThread *thread, const uint8_t **script_pc) {
+    uint16_t duration = *(*script_pc)++;
+    return script_schedule_sleep(thread, duration);
+}
+
+/**
+ * script_op_a8_sleep ($8C:D20F)
+ * Reads a little-endian word duration operand and schedules the current thread.
+ */
+bool script_op_a8_sleep(ScriptThread *thread, const uint8_t **script_pc) {
+    uint16_t duration = (*script_pc)[0] | ((uint16_t)(*script_pc)[1] << 8);
+    *script_pc += 2;
+    return script_schedule_sleep(thread, duration);
 }
 
 /**

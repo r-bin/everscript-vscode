@@ -38,6 +38,24 @@ function hostDeps(rom, posted) {
 
 async function unit() {
     console.log('\nScripts tab — unit');
+    await test('music sequence decoder preserves unknown bytes and known operand boundaries', () => {
+        const { decodeSequenceTrack } = require('../../dist/games/evermore/music/model/sequence-decoder');
+        const records = decodeSequenceTrack([0xF5, 0x9C, 0x1E, 0xF4, 0x0A, 0x9C, 0x1E, 0xF3, 0xF0], 0xC000);
+        assert.deepStrictEqual(records.map((r) => [r.kind, r.address, r.bytes]), [
+            ['data', 0xC000, [0xF5]],
+            ['event', 0xC001, [0x9C]],
+            ['event', 0xC002, [0x1E]],
+            ['data', 0xC003, [0xF4]],
+            ['data', 0xC004, [0x0A]],
+            ['event', 0xC005, [0x9C]],
+            ['event', 0xC006, [0x1E]],
+            ['command', 0xC007, [0xF3, 0xF0]],
+        ]);
+        assert.deepStrictEqual(records.filter((r) => r.kind === 'event').slice(0, 2).map((r) => [r.name, r.value, r.ticks]), [
+            ['Driver state', 0x3C, undefined],
+            ['Track duration', undefined, 30],
+        ]);
+    });
     await test('scaffold has the four views and the three columns; Alchemy is gone', () => {
         const html = buildScriptsTabHtml();
         for (const v of ['room', 'map', 'anim', 'music']) assert.ok(html.includes('data-scr-view="' + v + '"'), v);
@@ -138,6 +156,25 @@ async function romChecks(rom) {
         assert.strictEqual(s.start, 0xC231);
         assert.strictEqual(s.tracks.length, 8);
         assert.deepStrictEqual(s.tracks.map((t) => t.aram), [0xC242, 0xC269, 0xC2A7, 0xC2E6, 0xC2FC, 0xC319, 0xC349, 0xC373]);
+        const repeat = s.tracks[0].decoded.find((r) => r.name === 'Repeat phrase');
+        assert.ok(repeat);
+        assert.strictEqual(repeat.phraseStart, 0xC244);
+        assert.strictEqual(repeat.phraseEnd, 0xC24B);
+        assert.strictEqual(repeat.bytes.length, 10);
+        assert.deepStrictEqual(s.tracks[0].decoded.filter((r) => r.kind === 'event').slice(0, 3).map((r) => [r.address, r.name, r.value, r.ticks]), [
+            [0xC246, 'Driver state', 0x73, undefined],
+            [0xC247, 'Driver state', 0x3C, undefined],
+            [0xC248, 'Track duration', undefined, 30],
+        ]);
+        assert.deepStrictEqual(s.tracks[1].decoded.filter((r) => r.kind === 'event').slice(0, 4).map((r) => [r.address, r.name, r.value, r.ticks]), [
+            [0xC270, 'Driver state', 0x3C, undefined],
+            [0xC271, 'Track duration', undefined, 10],
+            [0xC272, 'Driver state', 0x73, undefined],
+            [0xC273, 'Driver state', 0x3C, undefined],
+        ]);
+        for (const track of s.tracks) {
+            for (const record of track.decoded.filter((r) => r.name === 'Repeat phrase')) assert.strictEqual(record.bytes.length, 10);
+        }
     });
     await test('music: Main Title plays silently on several voices', async () => {
         const tl = await music.trackTimeline(rom, 0, 10);
@@ -280,6 +317,17 @@ async function dom(rom) {
         await pump();
         await page.waitForSelector('#scr-lanes');
         assert.strictEqual(await page.locator('.scr-track').count(), 8);
+        const firstTrack = page.locator('.scr-track').first();
+        assert.strictEqual(await firstTrack.locator('.scr-seq-byte').nth(2).textContent(), 'F5');
+        assert.ok(await firstTrack.locator('.scr-seq-byte').nth(2).evaluate((el) => el.classList.contains('scr-unknown')));
+        assert.ok((await firstTrack.textContent()).includes('Repeat phrase'));
+        assert.ok((await firstTrack.textContent()).includes('Driver state $9C -> SPC Y $3C'));
+        assert.ok((await firstTrack.textContent()).includes('Track duration 30 ticks'));
+        assert.deepStrictEqual(await firstTrack.locator('.scr-seq-off').allTextContents(), ['$C242', '$C252', '$C262']);
+        assert.strictEqual(await firstTrack.locator('.scr-seq-byte').count(), 39);
+        assert.ok(await firstTrack.locator('.scr-seq-byte.scr-cmd').count() > 0);
+        assert.ok(await firstTrack.locator('.scr-seq-byte.scr-event').count() >= 2);
+        assert.strictEqual(await firstTrack.locator('.scr-seq-byte.scr-cmd').first().textContent(), 'F6');
         await page.click('[data-scr-mplay]');
         await page.waitForTimeout(400);
         const t = parseFloat(await page.textContent('#scr-mtime'));

@@ -13,6 +13,8 @@ Handler of script opcode [0x7E](soe://rom/assets/scripts/opcodes/7e.md). What it
 
 Previously believed: a palette transfer through `$90:D34C` (that is opcode `0x97`).
 
+Performs currency conversion: multiply the source's 24-bit balance by the low byte of the multiplier, divide by the low byte of the divisor, store the remainder in the source, and add the quotient to the destination balance. The multi-byte arithmetic uses SNES math registers `$4202`-`$4216`; the destination is 24-bit. There is no zero-divisor guard. Host-side model (zero-divisor result intentionally unmodeled): `docs/disassembly/script-vm/opcode-7e-currency-convert.md`.
+
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
 - Operand expressions: `$8C:EA43` (`$8C:EC8E` for an entity: the result also goes to DP `$4C`)

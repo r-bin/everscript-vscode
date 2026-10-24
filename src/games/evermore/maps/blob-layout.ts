@@ -9,7 +9,7 @@
 //     +$0D                step_len:2, step-on records (6 bytes each)
 //                         b_len:2,    B-trigger records (6 bytes each)
 //     payloadOffset       tileFamilyCount:1, families (2 bytes each)
-//     extrasOffset        extraCount:1, CHR descriptors (3 bytes each)
+//     extrasOffset        extraCount:1, palette-cycle descriptors (3 bytes each)
 //     block1              payloadLen:2, subFlag:1, decompSize:2, data
 //     section2            count:1, len:2, animated-tile descriptors
 //     section3            objectCount:1, object offsets (2 bytes each)

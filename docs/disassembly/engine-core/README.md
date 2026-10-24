@@ -54,6 +54,9 @@ All analyses are derived from the clean retail ROM using CDL traces, Ghidra anno
 | [boot-reset.md](boot-reset.md) | **Cold / Warm Boot & Hardware Init**: 65816 native transition, register wiping, VRAM/WRAM clearing DMA, PPU shadow setup, RNG seeding from hardware latches. | `$00:FFE0`, `$80:8020`, `$80:802D`, `$80:857F`, `$80:8227` |
 | [main-loop.md](main-loop.md) | **Game Main Loop & Task Scheduling**: Initial boot orchestration, save data check, APU audio handshake, room enter dispatch, and the continuous frame update loop. | `$80:8B66`, `$80:8BB5`, `$80:8C70`, `$80:858C`, `$80:8F85` |
 | [nmi-vblank.md](nmi-vblank.md) | **V-Blank Interrupt & PPU Transfer**: NMI dispatch, queue gating (`$0F3A`), PPU register shadow flush, frame timing counters, HDMA restoration, and controller auto-polling. | `$80:823A`, `$80:823E`, `$80:8265`, `$80:830C`, `$80:8460` |
+| [nmi-input-setup.md](nmi-input-setup.md) | **NMI & Auto-Joypad Setup**: Temporarily masks interrupts, writes `$4200` and its WRAM mirror, and stores two additional configuration words. | `$80:8507` |
+| [irq-dispatch.md](irq-dispatch.md) | **IRQ Dispatch**: Acknowledge TIMEUP, dispatch through the 24-bit WRAM hook, restore saved registers, and return through RTI. | `$80:84EA`, `$80:84EE`, `$80:858B` |
+| [interrupt-traps.md](interrupt-traps.md) | **COP and BRK Trap Entries**: The indexed entries each execute `STP` and do not return. | `$80:885E`, `$80:885F` |
 | [wram-map.md](wram-map.md) | **Core Engine WRAM Structure**: C struct layout, address offsets, lifetimes, bitmasks, and cross-references for core frame variables. | `$7E:0100`..`$7E:013A`, `$7E:0E65`..`$7E:0EC6`, `$7E:0F3A`, `$7E:22EA` |
 
 ---

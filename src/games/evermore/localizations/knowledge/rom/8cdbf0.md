@@ -1,17 +1,13 @@
 ---
 addr: 8CDBF0
+end: 8CDC0F
 kind: code
 category: 🧠
-name: script_op_20_place_camera_tile
-title: Script opcode 0x20 — place camera tile
+name: script_op_20_teleport_party
+title: Script opcode 0x20 teleports the party to a tile
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands u8 u8, continues in the same turn (docs/scripts/opcodes.md)", "trace: the game ran 5 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
-see: [docs/scripts/opcodes.md, rom/8fb434.md, rom/8cdb71.md, rom/8cdbb9.md, docs/disassembly/script-vm/opcode-camera-room.md]
+evidence: ["disasm: vanilla VFS at $8C:DBF0 converts two u8 tile coordinates to pixel coordinates by multiplying by 8, clears layer DP $44, calls $8F:B434, and returns carry set", "engine: $8F:B434 centers the camera and places Boy and Dog at the spawn coordinates"]
+see: [docs/disassembly/script-vm/opcode-20-teleport-party.md, rom/8fb434.md]
 ---
-Handler of script opcode [0x20](soe://rom/assets/scripts/opcodes/20.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/20.md`, served at `soe://rom/assets/scripts/opcodes/20.md`.
-
-## Addresses
-Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
-- Calls: `$8F:B434`
-- Opcode table entry: `$8C:E8FD` (0x20)
+The handler reads X and Y tile bytes, scales each by eight, selects layer zero, and calls `$8F:B434` to place Boy and Dog and center the camera.

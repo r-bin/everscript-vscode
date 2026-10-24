@@ -95,6 +95,10 @@ Child slots form an intrusive singly-linked list for fast allocation:
 > Source moved to [`reconstructed-c/8F/8F9817_boss_multipart.c`](../../../reconstructed-c/8F/8F9817_boss_multipart.c).
 > [View in VFS: soe://rom/code/8F9817](soe://rom/code/8F9817?c=1&asm=0)
 
+The C model includes the `$8F:9817` spare-time loop. Hardware frame-counter reads, WRAM
+word reads, indirect child-task execution, and the `$80:8F85` frame handoff are explicit
+callbacks; the six task bodies remain separate from this dispatcher reconstruction.
+
 
 ---
 

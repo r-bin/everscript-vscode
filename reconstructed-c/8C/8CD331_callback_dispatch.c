@@ -26,6 +26,8 @@ extern const uint16_t g_global_pointers[];    // $92:8008
 
 extern void script_vm_eval_args(ScriptThread *thread);       // $8C:D315
 extern ScriptThread *script_vm_allocate_slot(void);          // $8C:CF18
+extern void script_vm_link_async_thread(ScriptThread *caller, ScriptThread *child);
+extern void script_vm_add_to_run_list(ScriptThread *thread);  // $8C:CE86
 
 /**
  * Spawns a child thread to execute a subroutine, suspending the caller.
@@ -79,6 +81,35 @@ void script_op_b2_call_back_with_args(ScriptThread *thread, const uint8_t *rom_s
 }
 
 /**
+ * Opcode 0xA5: Call a script up to 256 bytes before this instruction.
+ * Corresponds to $8C:D35C.
+ */
+void script_op_a5_call_back(ScriptThread *caller, const uint8_t *rom_stream) {
+    uint16_t opcode_pc = (uint16_t)(caller->pc - 1);
+    uint8_t encoded_distance = rom_stream[caller->pc++];
+    uint16_t backward_distance = (uint16_t)(0x0100 - encoded_distance);
+    uint32_t packed_opcode = ((uint32_t)caller->bank << 16) | opcode_pc;
+    uint32_t packed_target = (packed_opcode - backward_distance) & 0x00FFFFFFu;
+
+    script_chain_call(caller, (uint8_t)(packed_target >> 16), (uint16_t)packed_target);
+}
+
+/**
+ * Opcode 0xA6: Call a script before this instruction using a 16-bit offset.
+ * Corresponds to $8C:D340.
+ */
+void script_op_a6_call_back_far(ScriptThread *caller, const uint8_t *rom_stream) {
+    uint16_t opcode_pc = (uint16_t)(caller->pc - 1);
+    uint16_t encoded_offset = (uint16_t)(rom_stream[caller->pc]
+        | ((uint16_t)rom_stream[(uint16_t)(caller->pc + 1)] << 8));
+    caller->pc = (uint16_t)(caller->pc + 2);
+
+    uint32_t packed_opcode = ((uint32_t)caller->bank << 16) | opcode_pc;
+    uint32_t packed_target = (packed_opcode + encoded_offset - 0x00010000u) & 0x00FFFFFFu;
+    script_chain_call(caller, (uint8_t)(packed_target >> 16), (uint16_t)packed_target);
+}
+
+/**
  * Opcode 0xA4 & 0xB1: Call room trigger script.
  * Corresponds to $8C:D392 and $8C:D395.
  */
@@ -105,4 +136,43 @@ void script_op_b0_call_global_with_args(ScriptThread *thread, const uint8_t *rom
     uint16_t target_pc = g_global_pointers[global_idx];
 
     script_chain_call(thread, SCRIPT_BANK_92, target_pc);
+}
+
+/**
+ * Opcode 0xAF: evaluate counted arguments, then call a far script target.
+ * Corresponds to $8C:D3C6.
+ */
+void script_op_af_call_with_args(ScriptThread *caller, const uint8_t *rom_stream) {
+    script_vm_eval_args(caller);
+
+    uint16_t target_pc = (uint16_t)(rom_stream[caller->pc]
+        | ((uint16_t)rom_stream[(uint16_t)(caller->pc + 1)] << 8));
+    caller->pc = (uint16_t)(caller->pc + 2);
+    uint8_t target_bank = rom_stream[caller->pc++];
+
+    script_chain_call(caller, target_bank, target_pc);
+}
+
+/**
+ * Opcode 0xB4: evaluate arguments and start an independent far script thread.
+ * Corresponds to $8C:D3FD.
+ */
+void script_op_b4_start_thread_with_args(ScriptThread *caller, const uint8_t *rom_stream) {
+    script_vm_eval_args(caller);
+
+    uint16_t target_pc = (uint16_t)(rom_stream[caller->pc]
+        | ((uint16_t)rom_stream[(uint16_t)(caller->pc + 1)] << 8));
+    caller->pc = (uint16_t)(caller->pc + 2);
+    uint8_t target_bank = rom_stream[caller->pc++];
+
+    ScriptThread *child = script_vm_allocate_slot();
+    if (!child) {
+        return;
+    }
+
+    child->pc = target_pc;
+    child->bank = target_bank;
+    child->is_active = true;
+    script_vm_link_async_thread(caller, child);
+    script_vm_add_to_run_list(child);
 }

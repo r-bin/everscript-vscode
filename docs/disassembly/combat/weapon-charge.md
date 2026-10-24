@@ -22,6 +22,8 @@ Secret of Evermore adopts the *Secret of Mana* real-time stamina bar combat mode
 - **Attack Swing Discharge (`$90:8495`)**: animation command `0x4E`, the **last** command of an attack script, empties the meter (`+$2E` = 0). While the attack plays its `mode` has bit `$10`, which stops recharging; an attack cut short by a hit never reaches `0x4E` and keeps its charge (corrected; see [docs/entities/combat.md](../../entities/combat.md) §2).
 - **Name Profanity Check (`$80:B173`)**: The naming screen checks Boy and Dog names against forbidden substrings ("FUCK" / "fuck" case-insensitive) and sets flag bit 5 (`0x20`) in `$7E:22E9`.
 
+The host model for `$80:B173` is `check_name_profanity` in [`8FCC5D_weapon_charge.c`](../../../reconstructed-c/8F/8FCC5D_weapon_charge.c). It stops at the first NUL even during a partial candidate and retries from the next byte after a mismatch, so overlapping candidates are considered. On a full match, the routine sets bit 5 with a 16-bit `ORA`/`STA` at `$7E:22E9`; the model therefore accepts a pointer to the full flag word and leaves its other bits unchanged.
+
 ---
 
 ## 2. Disassembly Analysis
@@ -36,6 +38,6 @@ Secret of Evermore adopts the *Secret of Mana* real-time stamina bar combat mode
 ## 3. Clean C Implementation
 
 > **Reconstructed C Decompilation**:
-> Source moved to [`reconstructed-c/8F/8FCC5D_weapon_charge.c`](../../../reconstructed-c/8F/8FCC5D_weapon_charge.c).
+> Source: [`reconstructed-c/8F/8FCC5D_weapon_charge.c`](../../../reconstructed-c/8F/8FCC5D_weapon_charge.c), including `check_name_profanity` for `$80:B173`.
 > [View in VFS: soe://rom/code/8FCC5D](soe://rom/code/8FCC5D?c=1&asm=0)
 

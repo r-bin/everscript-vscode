@@ -9,7 +9,7 @@ tags: [script-vm]
 evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E, continues in the same turn (docs/scripts/opcodes.md)"]
 see: [docs/scripts/opcodes.md]
 ---
-Handler of script opcode [0x4E](soe://rom/assets/scripts/opcodes/4e.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/4e.md`, served at `soe://rom/assets/scripts/opcodes/4e.md`.
+Handler of script opcode [0x4E](soe://rom/assets/scripts/opcodes/4e.md). It decrements the old bound entity's `+$3E` reference count when nonzero, increments the evaluated entity's `+$3E` count when nonzero, stores the new entity address at the current slot's `+$0D`, and returns carry set. The host-side model is documented in `docs/disassembly/script-vm/opcode-4e-bind-entity.md`.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

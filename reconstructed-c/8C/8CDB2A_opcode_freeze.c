@@ -19,6 +19,7 @@ typedef struct {
 
 #define DP_TARGET_ENTITY (*(volatile Entity**)0x4C)
 #define ENTITY_BOY_BASE  ((Entity*)0x4E89)
+#define ENTITY_DOG_BASE  ((Entity*)0x4F37)
 
 // External Subroutines
 extern void* script_eval_entity(void);               // $8C:EC8E
@@ -91,5 +92,128 @@ bool script_op_unfreeze_entity(void) {
     entity_unfreeze_mobilize(entity);
 
     // SEC: Continue execution in the current turn
+    return true;
+}
+
+/**
+ * $8C:DB1B - Script VM Opcode 0xBC: freeze_boy()
+ * Selects only the Boy bit in the shared freeze dispatcher.
+ */
+bool script_op_freeze_boy(void) {
+    DP_TARGET_ENTITY = ENTITY_BOY_BASE;
+    entity_freeze_immobilize(ENTITY_BOY_BASE);
+    return true;
+}
+
+/**
+ * $8C:DAC5 - Script VM Opcode 0xBD: unfreeze_boy()
+ * Selects only the Boy bit in the shared unfreeze dispatcher.
+ */
+bool script_op_unfreeze_boy(void) {
+    DP_TARGET_ENTITY = ENTITY_BOY_BASE;
+    entity_unfreeze_mobilize(ENTITY_BOY_BASE);
+    return true;
+}
+
+/**
+ * $8C:DB20 - Script VM Opcode 0xBE: freeze_dog()
+ * Selects only the Dog bit in the shared freeze-mask dispatcher.
+ */
+bool script_op_freeze_dog(void) {
+    DP_TARGET_ENTITY = ENTITY_DOG_BASE;
+    entity_freeze_immobilize(ENTITY_DOG_BASE);
+    return true;
+}
+
+/**
+ * $8C:DACA - Script VM Opcode 0xBF: unfreeze_dog()
+ * Selects only the Dog bit in the shared unfreeze-mask dispatcher.
+ */
+bool script_op_unfreeze_dog(void) {
+    DP_TARGET_ENTITY = ENTITY_DOG_BASE;
+    entity_unfreeze_mobilize(ENTITY_DOG_BASE);
+    return true;
+}
+
+/**
+ * $8C:DB25 - Script VM Opcode 0xC0: freeze_boy_and_dog()
+ * Applies the shared mask-3 order: Boy, then Dog.
+ */
+bool script_op_freeze_boy_and_dog(void) {
+    script_op_freeze_boy();
+    script_op_freeze_dog();
+    return true;
+}
+
+/**
+ * $8C:DACF - Script VM Opcode 0xC1: unfreeze_boy_and_dog()
+ * Applies the shared mask-3 order: Boy, then Dog.
+ */
+bool script_op_unfreeze_boy_and_dog(void) {
+    script_op_unfreeze_boy();
+    script_op_unfreeze_dog();
+    return true;
+}
+
+extern uint8_t script_fetch_u8(void);
+extern uint16_t bus_read_word(uint32_t address);
+
+/**
+ * $8C:DB2A - Script VM Opcode 0x2C: freeze entities selected by mask.
+ */
+bool script_op_2c_freeze_mask(void) {
+    uint8_t mask = script_fetch_u8();
+
+    if ((mask & 0x08) != 0) {
+        uint16_t thread_slot = bus_read_word(0x007E);
+        uint16_t bound_entity_address =
+            bus_read_word(0x7E000D + (uint32_t)thread_slot);
+        if (bound_entity_address != 0) {
+            Entity *entity = (Entity *)(uintptr_t)bound_entity_address;
+            DP_TARGET_ENTITY = entity;
+            entity_freeze_immobilize(entity);
+        }
+    }
+
+    if ((mask & 0x01) != 0) {
+        DP_TARGET_ENTITY = ENTITY_BOY_BASE;
+        entity_freeze_immobilize(ENTITY_BOY_BASE);
+    }
+
+    if ((mask & 0x02) != 0) {
+        DP_TARGET_ENTITY = ENTITY_DOG_BASE;
+        entity_freeze_immobilize(ENTITY_DOG_BASE);
+    }
+
+    return true;
+}
+
+/**
+ * $8C:DAD4 - Script VM Opcode 0x2D: unfreeze entities selected by mask.
+ */
+bool script_op_2d_unfreeze_mask(void) {
+    uint8_t mask = script_fetch_u8();
+
+    if ((mask & 0x08) != 0) {
+        uint16_t thread_slot = bus_read_word(0x007E);
+        uint16_t bound_entity_address =
+            bus_read_word(0x7E000D + (uint32_t)thread_slot);
+        if (bound_entity_address != 0) {
+            Entity *entity = (Entity *)(uintptr_t)bound_entity_address;
+            DP_TARGET_ENTITY = entity;
+            entity_unfreeze_mobilize(entity);
+        }
+    }
+
+    if ((mask & 0x01) != 0) {
+        DP_TARGET_ENTITY = ENTITY_BOY_BASE;
+        entity_unfreeze_mobilize(ENTITY_BOY_BASE);
+    }
+
+    if ((mask & 0x02) != 0) {
+        DP_TARGET_ENTITY = ENTITY_DOG_BASE;
+        entity_unfreeze_mobilize(ENTITY_DOG_BASE);
+    }
+
     return true;
 }

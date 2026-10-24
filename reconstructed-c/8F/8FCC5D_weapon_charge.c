@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 #define STAMINA_100_PCT         0x0400  /* 1024 = 100% stamina */
 #define STAMINA_50_PCT          0x0200  /* 512 = 50% threshold */
@@ -76,33 +77,42 @@ uint16_t scale_damage_by_stamina(uint16_t base_power, uint16_t stamina) {
     return base_power; // 100% stamina: normal 1x damage
 }
 
-/**
- * Scans a null-terminated string for profanity ("FUCK" / "fuck") ($80:B173).
- * If detected, sets flag bit 5 in $7E:22E9.
- *
- * @param str Null-terminated ASCII character string.
- * @return True if profanity detected and flag was set.
- */
-bool check_name_profanity(const char *str) {
-    if (!str) return false;
+static uint8_t uppercase_ascii(uint8_t value) {
+    if (value >= 0x61 && value <= 0x7A) {
+        return (uint8_t)(value - 0x20);
+    }
+    return value;
+}
 
-    for (size_t i = 0; str[i] != '\0'; i++) {
-        char c0 = str[i];
-        if (c0 == 'F' || c0 == 'f') {
-            char c1 = str[i + 1];
-            if (c1 == 'U' || c1 == 'u') {
-                char c2 = str[i + 2];
-                if (c2 == 'C' || c2 == 'c') {
-                    char c3 = str[i + 3];
-                    if (c3 == 'K' || c3 == 'k') {
-                        // Match detected! Set flag bit 5 in $7E:22E9
-                        uint16_t flag = read_wram16(0x22E9);
-                        write_wram16(0x22E9, flag | FLAG_NAME_PROFANITY_BIT);
-                        return true;
-                    }
-                }
+/**
+ * Scans the null-terminated name at $80:B173 and sets bit 5 of $7E:22E9.
+ * A failed candidate advances the scan start by one byte, allowing overlaps.
+ *
+ * @param str Null-terminated byte string read through the caller's DB pointer.
+ * @param name_flags Word at $7E:22E9, updated only when a match is found.
+ * @return True if the filtered sequence was found.
+ */
+bool check_name_profanity(const uint8_t *str, uint16_t *name_flags) {
+    if (!str || !name_flags) return false;
+
+    while (*str != 0) {
+        static const uint8_t expected[] = { 0x46, 0x55, 0x43, 0x4B };
+        bool match = true;
+
+        for (size_t index = 0; index < sizeof(expected); index++) {
+            const uint8_t value = str[index];
+            if (value == 0) return false;
+            if (uppercase_ascii(value) != expected[index]) {
+                match = false;
+                break;
             }
         }
+
+        if (match) {
+            *name_flags |= FLAG_NAME_PROFANITY_BIT;
+            return true;
+        }
+        str++;
     }
     return false;
 }

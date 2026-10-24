@@ -9,7 +9,7 @@ tags: [script-vm]
 evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E E, continues in the same turn (docs/scripts/opcodes.md)", "trace: the game ran 62 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
 see: [docs/scripts/opcodes.md]
 ---
-Handler of script opcode [0x5C](soe://rom/assets/scripts/opcodes/5c.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/5c.md`, served at `soe://rom/assets/scripts/opcodes/5c.md`.
+Handler of script opcode [0x5C](soe://rom/assets/scripts/opcodes/5c.md). Evaluates the object index, then requested state, passes both to `$90:A36D` (index in X, state in A) for state clamping/animation, then returns carry set. Host-side model: `docs/disassembly/script-vm/opcode-5c-set-object-state.md`.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

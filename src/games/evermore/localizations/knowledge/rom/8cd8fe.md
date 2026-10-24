@@ -6,10 +6,10 @@ name: script_op_48_4b_open_default_message_box
 title: Script opcodes 0x48-0x4B: open the default message box
 confidence: likely
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands none, continues in the same turn (docs/scripts/opcodes.md)", "disasm: fixed geometry written to $0361-$0377, then the 0x44 tail at $8C:D941 (v0.320.0)"]
-see: [docs/scripts/opcodes.md]
+evidence: ["opcode table: $8C:E94D, $8C:E94F, $8C:E951, and $8C:E953 dispatch to $8C:D8FE", "disasm: $8C:D8FE locks player input and initializes default window record $7E:034D with fixed fields including +$14=2, +$16=2, +$1C=$001C, +$1E=$000A, +$20=$0050, and style +$26 from $0B15", "disasm: shared initialization tail calls $8C:AC8A, preserves +$12 flags, restores the data bank, and returns carry set"]
+see: [docs/disassembly/script-vm/opcode-44-47-open-message-box.md, docs/scripts/opcodes.md]
 ---
-Handler of script opcodes [0x48](soe://rom/assets/scripts/opcodes/48.md), [0x49](soe://rom/assets/scripts/opcodes/49.md), [0x4A](soe://rom/assets/scripts/opcodes/4a.md), [0x4B](soe://rom/assets/scripts/opcodes/4b.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/48.md`, served at `soe://rom/assets/scripts/opcodes/48.md`.
+Handler of script opcodes [0x48](soe://rom/assets/scripts/opcodes/48.md), [0x49](soe://rom/assets/scripts/opcodes/49.md), [0x4A](soe://rom/assets/scripts/opcodes/4a.md), and [0x4B](soe://rom/assets/scripts/opcodes/4b.md). It opens the fixed default window record; the host-side model is documented in `docs/disassembly/script-vm/opcode-44-47-open-message-box.md`.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

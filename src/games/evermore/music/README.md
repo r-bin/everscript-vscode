@@ -44,7 +44,7 @@ The radar panel's **Music** tab: one screen (no page scroll) that shows the SNES
 Facts: everscript `docs/audio_music_sound_formats.md` (driver protocol, packages, ARAM budget).
 The sequence ("script") view is the Scripts tab's Music view (`src/games/evermore/scripts-tab/`), fed by
 `model/track-timeline.js` (`trackSequence`, `trackTimeline`: the track played silently in the
-engine on the host), injected by `extension.js`. Opcodes are still undecoded: `docs/todo/audio-and-music.md`.
+engine on the host), injected by `extension.js`. It annotates a verified command subset plus a few traced driver-state values and per-track timer values; note names, a complete duration table, and the remaining command table are still open: `docs/todo/audio-and-music.md`.
 
 ## The driver's own bookkeeping (disassembly of the ROM driver, verified in the engine)
 

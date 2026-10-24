@@ -9,7 +9,7 @@ tags: [script-vm]
 evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E u16, continues in the same turn (docs/scripts/opcodes.md)", "disasm: $8C:DE67 after this handler is a second copy of the 0x5C handler that no table entry points to"]
 see: [docs/scripts/opcodes.md]
 ---
-Handler of script opcode [0x5E](soe://rom/assets/scripts/opcodes/5e.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/5e.md`, served at `soe://rom/assets/scripts/opcodes/5e.md`.
+Handler of script opcode [0x5E](soe://rom/assets/scripts/opcodes/5e.md). Evaluates the object index and reads a 16-bit save-flag ID. If set, it leaves the selected flag bit mask in A as requested state; if clear, it requests `$7F`. It delegates to `$90:A36D` and returns carry set. The set path's mask value is distinct from state `0`. Unused by original scripts (0 statically reachable instructions). Host-side model: `docs/disassembly/script-vm/opcode-5e-object-state-unless-flag.md`.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

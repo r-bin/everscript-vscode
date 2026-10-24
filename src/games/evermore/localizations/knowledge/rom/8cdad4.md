@@ -1,18 +1,15 @@
 ---
 addr: 8CDAD4
+end: 8CDB10
 kind: code
 category: 🧠
 name: script_op_2d_unfreeze_mask
-title: Script opcode 0x2D: unfreeze by mask
+title: Script opcode 0x2d unfreezes entities by mask
 confidence: confirmed
-tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands u8, continues in the same turn (docs/scripts/opcodes.md)", "disasm: bits $08 slot entity, $01 Boy ($4E89), $02 Dog ($4F37), each $8F:CD4D (v0.320.0)"]
-see: [docs/scripts/opcodes.md]
+tags: [script-vm, cutscene, immobilization]
+evidence: ["disasm: vanilla VFS at $8C:DAD4 reads a u8 mask; bits 3, 0, and 1 select the current thread's bound entity, Boy, and Dog in that order; selected entities pass through $8F:CD4D; returns SEC", "opcode table: $8C:E917 maps 0x2d to $8C:DAD4"]
+see: [docs/disassembly/script-vm/opcode-freeze.md, docs/disassembly/script-vm/opcode-29-call.md]
 ---
-Handler of script opcode [0x2D](soe://rom/assets/scripts/opcodes/2d.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/2d.md`, served at `soe://rom/assets/scripts/opcodes/2d.md`.
+The handler reads an operand mask and unfreezes the current thread's bound entity, Boy, then Dog according to bits `0x08`, `0x01`, and `0x02`. Before each `$8F:CD4D` call it stores the selected entity pointer in DP `$4C`.
 
-## Addresses
-Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
-- Calls: `$8F:CD4D`
-- Record fields (indexed by X/Y: a slot, an entity, a window): `+$0D`
-- Opcode table entry: `$8C:E917` (0x2d)
+The clean C model is `script_op_2d_unfreeze_mask` in the shared freeze module.

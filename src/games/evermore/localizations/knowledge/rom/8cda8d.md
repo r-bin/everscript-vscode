@@ -11,7 +11,7 @@ see: [docs/scripts/vm.md, docs/scripts/opcodes.md]
 ---
 Handler of script opcode [0x73](soe://rom/assets/scripts/opcodes/73.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/73.md`, served at `soe://rom/assets/scripts/opcodes/73.md`.
 
-Previously believed: the coordinates were only staged.
+Sets direct mode `1`, evaluates the entity and absolute pixel X/Y expressions into DP `$46`/`$48` without scaling, then enters `$8C:DAA6`. Shared logic skips dead non-player entities or calls `$8F:AAD3` for direct movement. Host-side model: `docs/disassembly/script-vm/opcode-73-walk-to-direct.md`.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

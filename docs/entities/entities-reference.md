@@ -292,7 +292,7 @@ sites inside routines that work on entities. `?` marks a role seen but not under
 | `$0400` | phasing | everscript `PHASING`; the movement probe only keeps it in view of the camera (`$8F:AF5F` → `$90:9545`): no walls, no bodies; sprite priority (`$8F:C773`); approach heads straight for the target (`$8F:DA77`) |
 | `$0800` | following a trail | the companion follower sets and clears it (`$8F:9C19`, `$8F:9C38`); the movement probe checks nothing at all (`$8F:AF50`) |
 | `$1000` | no gravity | gravity skips it (`$8F:B01F`); everscript `INVISIBLE_INVINCIBLE_INACTIVE` |
-| `$2000` | hides after a fall | set on the opcode `0x78` path (`$8C:E130`); gravity turns it into `$0001` (`$8F:B043`–`$8F:B053`) |
+| `$2000` | hides after a fall | the adjacent code at `$8C:E130` sets it, but `$E130` is not one of opcode `0x78`'s six mode-table targets; gravity turns it into `$0001` (`$8F:B043`–`$8F:B053`) |
 | `$4000` | takes no damage | set by script opcode `0xA9` (`$8C:E73A`); the hit reaction skips the entity (`$8F:C0D6`, `$8F:C146`) |
 | `$8000` | unused | no executed instruction tests it (CDL xrefs of every entity's `+$10`, v0.342.1) and no record sets it |
 

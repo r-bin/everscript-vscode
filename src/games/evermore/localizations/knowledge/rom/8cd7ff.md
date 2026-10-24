@@ -1,18 +1,13 @@
 ---
 addr: 8CD7FF
+end: 8CD81B
 kind: code
 category: 🧠
 name: script_op_11_15_write_temp_byte
-title: Script opcodes 0x11, 0x15 — write temp byte
-confidence: likely
+title: Script opcodes 0x11 and 0x15 write a temporary byte
+confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands u16 E, continues in the same turn (docs/scripts/opcodes.md)"]
-see: [docs/scripts/opcodes.md]
+evidence: ["disasm: vanilla VFS shows $8C:E8DF and $8C:E8E7 both target $8C:D7FF; handler reads a u16 offset, adds it to $2834, evaluates a value, stores its low byte through DBR $7E, and returns with carry set", "opcode-vfs: entries 0x11 and 0x15 both specify a u16 operand and handler $8C:D7FF"]
+see: [docs/disassembly/script-vm/opcode-11-15-write-temp-byte.md]
 ---
-Handler of script opcodes [0x11](soe://rom/assets/scripts/opcodes/11.md), [0x15](soe://rom/assets/scripts/opcodes/15.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/11.md`, served at `soe://rom/assets/scripts/opcodes/11.md`.
-
-## Addresses
-Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
-- Operand expressions: `$8C:EA43` (`$8C:EC8E` for an entity: the result also goes to DP `$4C`)
-- Record fields (indexed by X/Y: a slot, an entity, a window): `+$00`
-- Opcode table entries: `$8C:E8DF` (0x11), `$8C:E8E7` (0x15)
+Opcodes `0x11` and `0x15` share this handler. It fetches a 16-bit destination offset, adds it to `$2834`, evaluates an expression, stores the expression's low byte to the computed address through data bank `$7E`, and returns carry set for same-turn continuation. The surrounding expression evaluator owns any pointer advancement caused by the expression itself.

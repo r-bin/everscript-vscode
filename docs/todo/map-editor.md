@@ -54,3 +54,11 @@
   upper body in front; 1145 of the 5128 sprites are already marked for it. Steps: prove it headless, a `split`
   answer in `spriteDepth`, a "Wading" special in the editor, the Mana conversion row
   ([../map-format/wading.md](../map-format/wading.md)).
+
+### 2.5 Palette-Cycle Preview
+- **Status: 🟡 feature gap**
+- Room palette-cycle descriptors are read and shown as bytes, but the map preview remains static. Add a
+  decoded inspector and a play/pause preview that cycles the affected palette colours without changing
+  map geometry or tile-animation state. Trace exact tick timing, span/wrap semantics, and the colour-buffer
+  to CGRAM mapping before claiming exact game parity. Details and examples:
+  [palette-cycling-preview.md](palette-cycling-preview.md).

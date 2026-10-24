@@ -84,15 +84,34 @@ flowchart TD
 
 ---
 
-## 3. Data Structures & Memory Layout
+## 3. Fixed-Point Multiply Helper ($80:ACF5)
 
-### 3.1 Direct Page Variables
+The helper called by `$80:AD28` does not read a sine table. It clears DP `$02` and `$04`,
+then writes the 8-bit multiplier and each byte of DP `$06` to the SNES multiplication registers
+`$4202/$4203`. Let `p_lo = multiplier * (angle & 0x00FF)` and
+`p_hi = multiplier * (angle >> 8)`. The 16-bit stores leave DP `$02 = p_lo`,
+DP `$03 = ((p_hi & 0xFF00) | (p_lo >> 8))`, and DP `$04 = p_hi >> 8`.
+The carry branch after adding `p_lo` to the cleared DP `$02` cannot be taken because an 8-by-8
+product fits in 16 bits.
+
+`$80:AD28` runs the helper with the multiplier's low and high bytes. It combines the first call's
+DP `$02` and DP `$04` with the second call's DP `$03`, and also adds the high byte of its incoming
+DP `$01` word. The routine returns DP `$02` in A. The heat-shimmer caller does not use that A
+value: it loads DP `$03` and writes that overlapping word to the HDMA table. Accordingly, the C
+model accepts the ambient DP `$01` value and returns the caller-consumed DP `$03` word.
+
+---
+
+## 4. Data Structures & Memory Layout
+
+### 4.1 Direct Page Variables
 
 | Address | Size | Name | Purpose |
 |---|---|---|---|
-| `DP $02` | 2 bytes | `trig_result_lo` | Fractional low word of scaled sine product |
-| `DP $03` | 2 bytes | `trig_result_int` | **Integer sine displacement** (written to HDMA table) |
-| `DP $04` | 2 bytes | `trig_result_hi` | High word of scaled sine product |
+| `DP $01` | 2 bytes | `direct_page_01` | Ambient input; `$80:AD28` adds its high byte into the DP `$02` sum |
+| `DP $02` | 2 bytes | `trig_result_lo` | Low word returned by `$80:AD28` in A |
+| `DP $03` | 2 bytes | `trig_result_mid` | Overlapping word read by the heat-shimmer caller after `$80:AD28` |
+| `DP $04` | 2 bytes | `trig_result_hi` | High partial sum assembled by `$80:AD28` |
 | `DP $06` | 2 bytes | `trig_angle_phase` | Angle input (0..1023) passed to `$80:ACF5` / `$80:AD28` |
 | `DP $0A` | 2 bytes | `wave_harmonic_phase` | Computed harmonic phase angle: `(timer + camera_x) & 0x03FF` |
 | `DP $0C` | 2 bytes | `target_hdma_buffer` | Active double-buffered HDMA staging buffer address (`0x151A` or `0x153E`) |
@@ -101,7 +120,11 @@ flowchart TD
 | `DP $59` | 2 bytes | `camera_world_x` | Primary viewport world coordinate X |
 | `DP $5B` | 2 bytes | `camera_world_y` | Primary viewport world coordinate Y |
 
-### 3.2 WRAM System Registers
+The `$80:AD28` epilogue stores the low sum to DP `$02` and returns that word in A. DP `$03` is
+not a standalone integer displacement; it overlaps the high byte of DP `$02` and low byte of
+DP `$04`. The heat-shimmer caller explicitly reads this DP `$03` word.
+
+### 4.2 WRAM System Registers
 
 | Address | Size | Name | Purpose |
 |---|---|---|---|
@@ -117,7 +140,7 @@ flowchart TD
 
 ---
 
-## 4. Clean C Reconstruction
+## 5. Clean C Reconstruction
 
 > **Reconstructed C Decompilation**:
 > Source moved to [`reconstructed-c/90/909D45_heat_shimmer.c`](../../../reconstructed-c/90/909D45_heat_shimmer.c).
@@ -126,13 +149,13 @@ flowchart TD
 
 ---
 
-## 5. Verification & Mathematical Behavioral Equivalence
+## 6. Verification & Assembly Behavioral Equivalence
 
 | Requirement | 65816 Assembly Behavior | Clean C Implementation | Status |
 |---|---|---|---|
 | **Scroll Sync** | `STA $0110`, `STA $0114` = `Y - 1`; `STA $010E`, `STA $0112` = `X` | `bg1_scroll_y = camera_y - 1`, `bg1_scroll_x = camera_x` | **Identical** |
 | **Double Buffering** | `CMP #$151A; BNE select_151A; LDA #$153E` | `hdma_active_buf_ptr == 0x151A ? buf_b : buf_a` | **Identical** |
 | **Wave Phase Modulo** | `(timer + camera_x) & 0x03FF` | `(wave_timer + camera_x) & 0x03FF` | **Identical** |
-| **Trig Multiplier** | Dual-byte fixed point sine scaling via `$80:AD28` | `trig_sine_fixed_point_scale` returns integer sine `(full_acc >> 16)` | **Identical** |
+| **Fixed-Point Multiplier** | `$80:AD28` adds DP `$01`'s high byte, returns DP `$02` in A; caller stores DP `$03` | `trig_sine_fixed_point_scale` models the ambient DP `$01` input and caller-consumed DP `$03` | **Matched at the call site** |
 | **Scanline Clipping** | `SBC $5B; BMI term; CMP #$00DF; BCS term` | `rel_y < 0 \|\| rel_y >= 223 -> break` | **Identical** |
 | **HDMA Sentinel** | `LDA #$FFFF; STA 0,Y` | `*table_cursor = HDMA_TERMINATOR (0xFFFF)` | **Identical** |

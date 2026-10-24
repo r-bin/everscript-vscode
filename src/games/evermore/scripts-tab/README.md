@@ -7,11 +7,11 @@ on the right. Three columns: a filterable list, the script, and its preview.
 |---|---|---|---|
 | **Everscript** | rooms by area | the room's scripts (enter, step-on `S`, B-trigger `B`) as chips, then the selected one's decoded instructions | the room picture with every trigger box (magenta step-on, yellow B); click a box to open its script |
 | **Animations** | the 783 records at `$C43E3A` (⚗ = signals `effect_done`, an alchemy effect) | the record's script disassembly; the lines the current frame ran are lit | the animation playing at 60 ticks/s, facings N…NW, step buttons, palette |
-| **Maps** | rooms by area | the room blob as the loader reads it: the map table entry, then each section (header, triggers, map palettes, CHR descriptors, Blocks 1–3, animated tiles, objects, cuttable tiles, object area) with its bytes, decoded fields and items. An item owns every byte range that is its: an object its record, each step's descriptor and stamp; a channel its descriptor and frame list | the selection drawn: the room with every trigger and object box, the map palettes as sets of 7 (`$7E:2437`) with empty slots marked, a channel's frames playing, an object's states playing with each step's hold, every metatile (click one) taken apart with all its states — cut chain, animation frames, the object states that place it |
+| **Maps** | rooms by area | the room blob as the loader reads it: the map table entry, then each section (header, triggers, map palettes, palette-cycle descriptors, Blocks 1–3, animated tiles, objects, cuttable tiles, object area) with its bytes, decoded fields and items. An item owns every byte range that is its: an object its record, each step's descriptor and stamp; a channel its descriptor and frame list | the selection drawn: the room with every trigger and object box, the map palettes as sets of 7 (`$7E:2437`) with empty slots marked, a channel's frames playing, an object's states playing with each step's hold, every metatile (click one) taken apart with all its states — cut chain, animation frames, the object states that place it |
 
 Everything showing the same thing carries one key (`data-mk`): hover an item, a byte, a box or a
 state picture and all of them light up; click to select.
-| **Music** | the 70 tracks | the sequence: pointer at `$2EB6 + 2P`, header, each track's bytes (`≥ $F0` marked as commands; the opcodes are not decoded) | a silent player: 8 voice lanes moving under a playhead, an overview strip to seek, the note each voice sounds |
+| **Music** | the 70 tracks | the sequence: pointer at `$2EB6 + 2P`, header, verified command records and a few runtime-traced driver-state/timer values, with raw track bytes retained | a silent player: 8 voice lanes moving under a playhead, an overview strip to seek, the note each voice sounds |
 
 Everscript view toggles (simulation, `src/games/evermore/simulation`, work in progress):
 - **Everscript (simulation)** — the script as structured Everscript that compiles back to the
@@ -22,7 +22,7 @@ Everscript view toggles (simulation, `src/games/evermore/simulation`, work in pr
 The Alchemy view was removed (v0.327.0): the effect records are marked ⚗ in Animations, and the
 formula → block chain stays in `model/alchemy.ts` (`c45ddf.md`, `9180a6.md`), which labels them.
 Behind the Maps view: `docs/map-format/map_encoding.md` and the `maps/` library.
-Behind the Music view: `docs/todo/audio-and-music.md` §1.1.
+Behind the Music view: `docs/todo/audio-and-music.md` §1.
 
 | File | Role |
 |---|---|

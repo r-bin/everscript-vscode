@@ -9,7 +9,7 @@ tags: [script-vm]
 evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E, continues in the same turn (docs/scripts/opcodes.md)"]
 see: [docs/scripts/opcodes.md]
 ---
-Handler of script opcode [0x61](soe://rom/assets/scripts/opcodes/61.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/61.md`, served at `soe://rom/assets/scripts/opcodes/61.md`.
+Handler of script opcode [0x61](soe://rom/assets/scripts/opcodes/61.md). Evaluates an object index, reads `$7E:107E,X`, masks to the low byte, decrements A using 16-bit semantics (`0` becomes `$FFFF`), then delegates the requested target to `$90:A36D`. Returns carry set. Unused by original scripts (0 statically reachable instructions). Host-side model: `docs/disassembly/script-vm/opcode-61-previous-object-state.md`.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

@@ -41,41 +41,46 @@ typedef struct {
     uint16_t hdma_active_buf_ptr; /* $7E:1518 */
     uint16_t hdma_buffer_a[18];   /* $7E:151A */
     uint16_t hdma_buffer_b[18];   /* $7E:153E */
+    uint16_t direct_page_01;
     uint16_t camera_x;            /* DP $59   */
     uint16_t camera_y;            /* DP $5B   */
 } HeatShimmerEngineState;
 
-/* External sine generator helper ($80:ACF5) */
-extern void snes_trig_lookup_sine_8bit(uint8_t multiplier_byte, uint16_t angle, uint16_t *out_lo, uint16_t *out_hi);
+typedef struct {
+    uint16_t dp02;
+    uint16_t dp03;
+    uint16_t dp04;
+} MultiplyAngleComponentsResult;
 
-/**
- * @brief Fixed-point trigonometric sine scaling multiplier ($80:AD28).
- * 
- * Computes: (multiplier * sin(angle)) >> 8
- * 
- * @param multiplier 16-bit scaling amplitude
- * @param angle      10-bit angular phase (0..1023)
- * @return int16_t   Signed integer displacement (DP $03)
- */
-int16_t trig_sine_fixed_point_scale(uint16_t multiplier, uint16_t angle) {
-    uint16_t prod_lo1, prod_hi1;
-    uint16_t prod_lo2, prod_hi2;
+/* $80:ACF5 stores the two hardware products into overlapping DP words. */
+static MultiplyAngleComponentsResult multiply_angle_components_8bit(
+    uint8_t multiplier_byte, uint16_t angle) {
+    uint16_t low_angle_product = (uint16_t)(multiplier_byte * (uint8_t)angle);
+    uint16_t high_angle_product = (uint16_t)(multiplier_byte * (uint8_t)(angle >> 8));
 
-    /* Low-byte component */
-    uint8_t mult_lo = (uint8_t)(multiplier & 0x00FF);
-    snes_trig_lookup_sine_8bit(mult_lo, angle, &prod_lo1, &prod_hi1);
+    return (MultiplyAngleComponentsResult){
+        .dp02 = low_angle_product,
+        .dp03 = (uint16_t)((low_angle_product >> 8) | (high_angle_product & 0xFF00)),
+        .dp04 = (uint16_t)(high_angle_product >> 8),
+    };
+}
 
-    /* High-byte component */
-    uint8_t mult_hi = (uint8_t)((multiplier >> 8) & 0x00FF);
-    snes_trig_lookup_sine_8bit(mult_hi, angle, &prod_lo2, &prod_hi2);
+/* The shimmer caller reads DP $03 after the scaler; A itself contains DP $02. */
+static uint16_t trig_sine_fixed_point_scale(uint16_t multiplier, uint16_t angle,
+                                            uint16_t direct_page_01) {
+    MultiplyAngleComponentsResult low_byte_product =
+        multiply_angle_components_8bit((uint8_t)multiplier, angle);
+    uint16_t scratch_16 = low_byte_product.dp02;
+    uint16_t scratch_18 = low_byte_product.dp04;
 
-    /* Combine 32-bit partial sums */
-    uint32_t full_acc = prod_lo1 | ((uint32_t)prod_hi1 << 16);
-    full_acc += (uint32_t)(prod_lo2 & 0xFF00) << 8;
-    full_acc += (uint32_t)prod_hi2 << 16;
+    MultiplyAngleComponentsResult high_byte_product =
+        multiply_angle_components_8bit((uint8_t)(multiplier >> 8), angle);
 
-    /* DP $03 represents bits 16..31 shifted down by 8, yielding the 16-bit integer component */
-    return (int16_t)(full_acc >> 16);
+    uint32_t low_sum = (uint32_t)(direct_page_01 & 0xFF00) + scratch_16;
+    uint16_t dp02 = (uint16_t)low_sum;
+    uint16_t dp04 = (uint16_t)(scratch_18 + high_byte_product.dp03 + (low_sum >> 16));
+
+    return (uint16_t)(((dp04 & 0x00FF) << 8) | (dp02 >> 8));
 }
 
 /**
@@ -110,13 +115,13 @@ void room_effect_heat_shimmer_hdma_wave_generator(HeatShimmerEngineState *state)
         }
 
         /* Compute Layer 1 horizontal displacement */
-        int16_t disp_layer1 = trig_sine_fixed_point_scale(amp_layer1, phase_angle);
-        table_cursor[6] = (uint16_t)disp_layer1; /* Stored at +0x0C bytes */
+        table_cursor[6] = trig_sine_fixed_point_scale(
+            amp_layer1, phase_angle, state->direct_page_01); /* Stored at +0x0C bytes */
 
         /* Compute Layer 2 horizontal displacement */
         uint16_t amp_layer2 = tbl_heat_shimmer_wave_amplitudes_layer2[x];
-        int16_t disp_layer2 = trig_sine_fixed_point_scale(amp_layer2, phase_angle);
-        table_cursor[12] = (uint16_t)disp_layer2; /* Stored at +0x18 bytes */
+        table_cursor[12] = trig_sine_fixed_point_scale(
+            amp_layer2, phase_angle, state->direct_page_01); /* Stored at +0x18 bytes */
 
         table_cursor++;
     }

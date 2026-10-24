@@ -88,12 +88,52 @@ flowchart TD
 > Source moved to [`reconstructed-c/8C/8CDB2A_opcode_freeze.c`](../../../reconstructed-c/8C/8CDB2A_opcode_freeze.c).
 > [View in VFS: soe://rom/code/8CDB2A](soe://rom/code/8CDB2A?c=1&asm=0)
 
+The C reconstruction includes `script_op_2c_freeze_mask`: it reads the mask byte, freezes the current thread's bound entity for bit `0x08` when its pointer is nonzero, then applies bit `0x01` to Boy and bit `0x02` to Dog in that order. Each selected entity is written to DP `$4C` before `$8F:CD78`; the opcode returns carry set.
+
+It also includes `script_op_2d_unfreeze_mask` for `$8C:DAD4`–`$8C:DB10`. The inverse handler reads the same mask and processes the bound entity, Boy, and Dog in the same order, calling `$8F:CD4D` for each selected nonzero target. It also returns carry set.
+
 
 ---
 
 ## 4. One entity: opcodes 0x2A / 0x2B (`$8C:DB67`, `$8C:DB11`)
 
 The single-entity forms call the same `$8F:CD78` (freeze) and `$8F:CD4D` (unfreeze) on the entity expression. (Merged from the former `opcode-freeze.md`.)
+
+## 5. Fixed Boy wrapper: opcode 0xBC (`$8C:DB1B`)
+
+Opcode `0xBC` loads mask `1` and branches into the shared freeze-mask dispatcher at
+`$8C:DB31`. This selects the Boy entity at `$7E:4E89`, calls `$8F:CD78`, and returns
+with carry set. The `script_op_freeze_boy` wrapper is included in the shared C
+reconstruction; it has no expression operands.
+
+## 6. Fixed Boy unfreeze wrapper: opcode 0xBD (`$8C:DAC5`)
+
+Opcode `0xBD` loads mask `1` and branches into the shared unfreeze dispatcher at
+`$8C:DADB`. This selects the Boy entity at `$7E:4E89`, calls `$8F:CD4D`, and returns
+with carry set. The `script_op_unfreeze_boy` wrapper is included in the shared C
+reconstruction; it has no expression operands.
+
+## 7. Fixed Dog wrapper: opcode 0xBE (`$8C:DB20`)
+
+Opcode `0xBE` loads mask `2` and branches into the shared freeze-mask dispatcher at
+`$8C:DB31`. This selects the Dog entity at `$7E:4F37`, calls `$8F:CD78`, and returns
+with carry set. The `script_op_freeze_dog` wrapper is included in the shared C
+reconstruction; it has no expression operands.
+
+## 8. Fixed Dog unfreeze wrapper: opcode 0xBF (`$8C:DACA`)
+
+Opcode `0xBF` loads mask `2` and branches into the shared unfreeze dispatcher at
+`$8C:DADB`. This selects the Dog entity at `$7E:4F37`, calls `$8F:CD4D`, and returns
+with carry set. The `script_op_unfreeze_dog` wrapper is included in the shared C
+reconstruction; it has no expression operands.
+
+## 9. Combined Boy and Dog wrappers: opcodes 0xC0 / 0xC1
+
+Opcode `0xC0` loads mask `3` and enters the freeze-mask dispatcher at `$8C:DB31`;
+opcode `0xC1` loads mask `3` and enters the unfreeze-mask dispatcher at `$8C:DADB`.
+Both process Boy at `$7E:4E89` before Dog at `$7E:4F37`, using `$8F:CD78` for freeze
+and `$8F:CD4D` for unfreeze. The combined C wrappers compose the corresponding fixed
+Boy and Dog wrappers in that observed order.
 
 ### Memory Map & Data Structures
 

@@ -3,7 +3,7 @@
 > **Domain:** Complete C Decompilation & Static Reverse Engineering of the Secret of Evermore SNES Engine  
 > **Master Dashboard & Progress Tracker:** [`docs/disassembly/PROGRESS.md`](../disassembly/PROGRESS.md)  
 > **Autonomous Agent Persona & Guidelines:** [`.agents/agents/decomp-curator.md`](../../.agents/agents/decomp-curator.md)  
-> **Current Landmark (Session 66):** **346 / 403** Identified (85.9%) · **344 / 403** Documented (85.4%) · **330 / 403** Clean C Functions (81.9%) · **12,151** WRAM Bytes Mapped (37.6%)  
+> **Current Landmark (Session 67):** **348 / 403** Identified (86.4%) · **346 / 403** Documented (85.9%) · **336 / 403** Clean C Functions (83.4%) · **12,151** WRAM Bytes Mapped (37.6%)
 
 ---
 
@@ -67,50 +67,27 @@ Every agent resuming this work must strictly adhere to repository guidelines:
 
 ### Immediate Queue (Batch 67)
 
-1. **Target 1: Enemy Spawn Archetype Parameter Loader & Hurtbox Bounder (`$8F:8D80` – `$8F:8E50`)**
-   - **Location:** Bank `$8F` (`$8F:8D80` – `$8F:8E50`).
-   - **Functions:** `enemy_spawn_archetype_unpack_and_bind` / `init_enemy_parameters`.
-   - **Purpose:** Archetype parameter unpacking from ROM tables, base HP/defense initialization, hurtbox dimension assignment, and collision mesh placement.
-   - **Target File:** `docs/disassembly/entities/enemy-archetype-spawn.md`.
-   - **Knowledge Records:** `src/games/evermore/localizations/knowledge/rom/8f8d80.md`.
+1. **Audit finding: `$8F:BA27` is inside the melee hit-chance routine `$8F:BA06`–`$8F:BAAE`, not projectile-homing code.** The routine now has a clean C reconstruction in `reconstructed-c/8F/8FBA06_melee_hit_chance.c`; details and limits are in `docs/disassembly/combat/projectile-homing.md`.
 
-2. **Target 2: Special Attack Projectile Pierce & Homing Steering Math (`$8F:BA27` – `$8F:BA95`)**
-   - **Location:** Bank `$8F` (`$8F:BA27` – `$8F:BA95`).
-   - **Functions:** `projectile_piercing_step_and_homing_steer`.
-   - **Purpose:** Physical projectile pierce persistence, target tracking angle vector calculations, trajectory adjustments, and lifetime countdown.
-   - **Target File:** `docs/disassembly/combat/projectile-homing.md`.
-   - **Knowledge Records:** `src/games/evermore/localizations/knowledge/rom/8fba27.md`.
+2. **Audit finding: `$80:A2A2` is inside the existing HDMA gradient builder `$80:A1B4`–`$80:A2DF`.** Its clean C reconstruction is `reconstructed-c/80/80A1B4_hdma_gradients.c`; `$80:A2E0` begins a separate existing routine. The proposed palette-shimmer target was not a missing decompilation.
 
-3. **Target 3: Map Palette Cycle Timer & Shimmer HDMA Table Generator (`$80:A2A2` – `$80:A330`)**
-   - **Location:** Bank `$80` (`$80:A2A2` – `$80:A330`).
-   - **Functions:** `palette_cycle_timer_tick_and_hdma_update`.
-   - **Purpose:** Background palette animation delay counters, multi-frame water shimmer DMA generation, and scanline offset table updates.
-   - **Target File:** `docs/disassembly/engine-core/palette-shimmer.md`.
-   - **Knowledge Records:** `src/games/evermore/localizations/knowledge/rom/80a2a2.md`.
+No verified target remains from this queue. Select the next item from a fresh CDL/function inventory; do not infer a missing routine from an interior address or stale purpose label.
 
 ---
 
 ### Upcoming Batches (The Road to 100% C Decompilation)
 
 #### Batch 68: Boss AI Finite State Machines & Multi-Target Aggro
-- **Addresses:** `$8F:BC00` – `$8F:BEE0`
-- **Subsystems:** Magmar, Viper, Thraxx, and Megataur phase transition state tables, aggro radius evaluation, and multi-part vulnerability windows.
-- **Documentation Target:** `docs/disassembly/combat/boss-state-machines.md`.
+- **Audit result:** `$8F:BC00-$8F:BE22` is the hit-chance pointer/data table, not boss AI code. No routine is established in the remaining `$8F:BE23-$8F:BEE0` range by this audit. Existing boss documentation points to routines in `$8F:Dxxx`.
 
 #### Batch 69: Advanced Ring Menu Sub-Item Layout & Spell Ring Caching
-- **Addresses:** `$8E:A000` – `$8E:A400`
-- **Subsystems:** Sub-item ring spawning, ingredient count rendering, circular position matrix calculations, and spell ring shortcut caching.
-- **Documentation Target:** `docs/disassembly/ui/ring-menu-subitems.md`.
+- **Audit result:** The broad range does not establish the proposed ring-menu behavior. Added evidence-backed reconstructions at `$8E:A091-$8E:A0B2` and `$8E:A3EB-$8E:A443`; the latter's caller and data semantics remain unresolved. `$8E:A400` is inside the `$A3EB` routine.
 
 #### Batch 70: Script VM Secondary Callback Handlers & Far Stack Unwinding
-- **Addresses:** `$8C:E000` – `$8C:E500`
-- **Subsystems:** Far callback execution (`script_op_b3`), interruptible script yield mechanics, stack frame cleanup, and timer-driven script events.
-- **Documentation Target:** `docs/disassembly/script-vm/far-callbacks.md`.
+- **Audit result:** `script_op_b3` is already reconstructed at `$8C:D331-$8C:D34B`. Added opcode reconstructions at `$8C:E040-$8C:E08D` and `$8C:E4B1-$8C:E5A0` (opcodes `0xB9` and `0x97` respectively). `$8C:E000` is interior to an earlier handler.
 
 #### Batch 71: Mode 7 Horizon Pitch Perspective & Vanishing Point Scaling
-- **Addresses:** `$8E:B350` – `$8E:B559`
-- **Subsystems:** Perspective matrix transformations, hardware multiplier pitch coordinate scaling, dynamic horizon line clipping, and ground tile projection.
-- **Documentation Target:** `docs/disassembly/engine-core/mode7-perspective.md`.
+- **Audit result:** `$8E:B350-$8E:B505` is inside the `$8E:B33D` sample-and-sprite-dispatch routine, now control-flow reconstructed in `reconstructed-c/8E/8EB02C_mode7_flight.c`; `$8E:B520-$8E:B559` is a separate sprite projection routine. `$8E:B506-$8E:B51F` is indexed data, not code.
 
 ---
 
@@ -122,7 +99,7 @@ Every agent resuming this work must strictly adhere to repository guidelines:
 | **75% Clean C Functions** | ✅ **Passed** | Broken in Session 63 (304 C functions) |
 | **80% Clean C Functions** | ✅ **Passed** | Broken in Session 65 (323 C functions) |
 | **85% Function Identification** | ✅ **Passed** | Broken in Session 66 (346 identified roots, 85.9%) |
-| **85% Clean C Functions** | 🎯 **In Sight** | Target: 343 C functions (currently 330) |
+| **85% Clean C Functions** | 🎯 **In Sight** | Target: 343 C functions (currently 336) |
 | **90% Function Identification** | 🎯 **Pending** | Target: 363 identified roots |
 | **90% Clean C Functions** | 🎯 **Pending** | Target: 363 C functions |
 | **100% CDL Roots Complete** | 🏆 **Ultimate Goal**| All 403 CDL roots decompiled into verified C |

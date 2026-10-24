@@ -49,7 +49,7 @@ Common entity fields: `+$78` state, `+$7A` timer (a tick deadline against `$0B19
 | `$8F:DAA7` leash | `rom/8fdaa7.md` |
 | `$8F:D917` wander | alternates state 4 (stand 20–147 ticks) and state 5 (walk 30–93 ticks in a random cardinal direction) |
 | `$8F:D988` keep going | if a path is set (`+$6A`), follow it and stop here; otherwise stop here unless the entity hit something and `+$0E` ≥ 20, in which case the caller re-plans |
-| `$80:ADF0` / `$80:AE78` / `$80:AE5C` | facing toward (dx, dy): 8 directions / 4 cardinal / 4 diagonal |
+| `$80:ADF0` / `$80:AE78` / `$80:AE5C` | 8-way / cardinal / diagonal direction-code helpers. `$80:ADF0` reads signed `dx`/`dy` from DP `$02`/`$04` (set as target minus entity at `$8F:D715`); its thresholds are quadrant-specific, and some branches return the live D register via `TDC`. `$80:AE78` reads signed `dx`/`dy` from DP `$02`/`$04` (set as target minus entity at `$8F:D6CE`); it returns N `$00`, E `$04`, S `$08`, or W `$0C` according to the dominant axis. For `dy >= 0`, horizontal wins ties; for `dy < 0`, vertical wins ties. `$80:AE5C` reads the same deltas and returns `$06` for (+,+), `$0A` for (+,-), `$0E` for (-,+), and `$02` for (-,-); zero follows the nonnegative branch. |
 
 So **aggro range and chance are not used by roaming enemies.** A chaser always has a target. Its
 `+$13` is only its attack reach. Chance matters only for the three stationary behaviours.

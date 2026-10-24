@@ -70,7 +70,7 @@ are forms of `0x3C`.
 
 | Opcode | Garbage when |
 |---|---|
-| `0x78`, `0x79` | the mode is odd or above 10: `JMP ($E100,x)` runs past the 6-entry table |
+| `0x78`, `0x79` | the mode is odd (misaligned table read) or above 10 (past the six-entry table at `$8C:E100`) |
 | `0xA9` | the selector is odd or `$38`+: past the table at `$8C:E6F8` |
 | `0x9A` | the font index is above 2 |
 | `0x7F` | the index is not 0 or 3 |

@@ -6,10 +6,10 @@ name: script_op_42_teleport_tile
 title: Script opcode 0x42: teleport an entity to a tile
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E u16, continues in the same turn (docs/scripts/opcodes.md)", "trace: the game ran 15 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)", "disasm: low byte * 8 -> $46, high byte * 8 -> $48, then the 0x43 tail at $8C:E01D (v0.320.0)"]
-see: [docs/scripts/opcodes.md]
+evidence: ["opcode table: $8C:E941 dispatches opcode 0x42 to $8C:DFEE", "disasm: entity expression followed by packed u16 tile coordinate; low and high bytes are each shifted left 3 into DP $46 and $48, then execution joins the shared tail at $8C:E01D", "disasm: shared tail skips when entity +$10 bit $0008 is set; otherwise it uses and clears nonnegative $23DB as the layer override for $8F:C2E4, or calls $8F:C2D1 when the override is negative"]
+see: [docs/disassembly/script-vm/opcode-42-43-teleport.md, docs/scripts/opcodes.md]
 ---
-Handler of script opcode [0x42](soe://rom/assets/scripts/opcodes/42.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/42.md`, served at `soe://rom/assets/scripts/opcodes/42.md`.
+Handler of script opcode [0x42](soe://rom/assets/scripts/opcodes/42.md). It scales the packed tile bytes to pixel coordinates and uses the shared teleport tail. The host-side model is documented in `docs/disassembly/script-vm/opcode-42-43-teleport.md`.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
