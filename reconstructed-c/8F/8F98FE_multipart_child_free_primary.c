@@ -6,6 +6,18 @@
  * slot + $3C14 = 0, and rec + $6A = $FFFF. Leaves X = the slot, A = $FFFF (or as entered), N Z from
  * the last load.
  */
+
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   multipart_child_free_primary ($8F98FE) [RTL]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  9 instructions (24 bytes)
+ * - Compiled C ASM:   159 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   17.7x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      803e5068e73ea946
+ * - Rating Status:    VALID (unmodified since rating)
+ */
 #include "soe.h"
 #include "soe_ram.h"
 

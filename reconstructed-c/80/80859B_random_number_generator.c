@@ -6,6 +6,18 @@
  * caller enters with goes into the first rotate. Leaves A = the new first word, N V Z C from the
  * last ADC; X, Y, DB, D untouched. Entered with a 16-bit accumulator.
  */
+
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   random_number_generator ($80859B) [RTL]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  25 instructions (61 bytes)
+ * - Compiled C ASM:   63 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   2.5x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      eae7dbf03d70b93e
+ * - Rating Status:    VALID (unmodified since rating)
+ */
 #include "soe.h"
 #include "soe_ram.h"
 

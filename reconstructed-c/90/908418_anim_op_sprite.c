@@ -6,6 +6,18 @@
  * at the script pointer, which then steps by 2. Leaves A = that word (16-bit load), X = the new
  * pointer, N Z from the INX, C V from the ADC, an 8-bit accumulator.
  */
+
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   anim_op_sprite ($908418) [RTS]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  13 instructions (23 bytes)
+ * - Compiled C ASM:   178 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   13.7x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      972ec8336ba0a2e4
+ * - Rating Status:    VALID (unmodified since rating)
+ */
 #include "soe.h"
 #include "soe_ram.h"
 

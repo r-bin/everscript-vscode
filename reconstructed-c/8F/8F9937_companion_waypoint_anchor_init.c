@@ -7,6 +7,18 @@
  * then +$62 over its low byte), rec[$3BFC] = $FFFF, rec[$3C12] &= $1000; then the history poll
  * ($8F:A723) runs on it.
  */
+
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   companion_waypoint_anchor_init ($8F9937) [RTL]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  54 instructions (129 bytes)
+ * - Compiled C ASM:   266 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   4.9x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      40c985e043ad28c8
+ * - Rating Status:    VALID (unmodified since rating)
+ */
 #include "soe.h"
 
 void companion_waypoint_history_poll_bind(soe_regs r);

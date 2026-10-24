@@ -7,6 +7,18 @@
  * carry clear (shared tail $8C:D44A with script_jump_relative). Leaving the upper half wraps into the
  * previous bank: $8000 set again and the 16-bit word at $84 decremented. Leaves C = 1 (SEC).
  */
+
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   script_op_05_jump_back ($8CD428) [RTS]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  14 instructions (25 bytes)
+ * - Compiled C ASM:   79 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   5.6x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      eb6208b9138b1e51
+ * - Rating Status:    VALID (unmodified since rating)
+ */
 #include "soe.h"
 
 /* $8C:D44A: pointer += a (+ carry); a backward step below $8000 goes to the bank before */

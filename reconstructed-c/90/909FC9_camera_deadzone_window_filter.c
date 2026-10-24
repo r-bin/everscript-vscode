@@ -8,6 +8,18 @@
  * The comparisons are CMP's N flag (sign of the 16-bit difference). Leaves A = the y candidate,
  * flags from the last CMP or ADC.
  */
+
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   camera_deadzone_window_filter ($909FC9) [RTS]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  24 instructions (56 bytes)
+ * - Compiled C ASM:   90 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   3.8x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      d9af236d78c09973
+ * - Rating Status:    VALID (unmodified since rating)
+ */
 #include "soe.h"
 
 /* one axis: the new camera value, or the old one when inside the window */

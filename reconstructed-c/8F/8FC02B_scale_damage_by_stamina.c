@@ -7,6 +7,18 @@
  * (each "<" is CPY's N flag). X and Y are kept. Leaves A = the value, N Z from the restored Y (PLY),
  * C from the last shift or CPY.
  */
+
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   scale_damage_by_stamina ($8FC02B) [RTL]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  29 instructions (60 bytes)
+ * - Compiled C ASM:   346 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   11.9x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      f235ffca2aff7298
+ * - Rating Status:    VALID (unmodified since rating)
+ */
 #include "soe.h"
 #include "soe_ram.h"
 

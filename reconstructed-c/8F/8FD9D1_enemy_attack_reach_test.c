@@ -9,6 +9,18 @@
  * $8E:0013 + rec[$60] (own) and half the target template's $8E:000D + 5 (DP $12): the answer is the
  * carry of the last CMP. C = 1 means out of reach.
  */
+
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   enemy_attack_reach_test ($8FD9D1) [RTS]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  56 instructions (122 bytes)
+ * - Compiled C ASM:   497 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   8.9x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      1aa2ad185f61c028
+ * - Rating Status:    VALID (unmodified since rating)
+ */
 #include "soe.h"
 #include "soe_ram.h"
 

@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.352.3",
+  "version": "0.352.4",
   "publisher": "rbin",
   "main": "./bundle/extension.js",
   "engines": {
@@ -77,6 +77,7 @@
     "c-to-rom:g1": "npm run -s build:ts && node tools/c-to-rom/g1.mts",
     "c-to-rom:compare": "npm run -s build:ts && node tools/c-to-rom/compare.mts",
     "c-to-rom:diff-asm": "npm run -s build:ts && node tools/c-to-rom/diff-asm.mts",
+    "c-to-rom:rate": "npm run -s build:ts && node tools/c-to-rom/rate-files.mts",
     "roms": "npm run -s build:ts && node tools/roms.js"
   },
   "devDependencies": {

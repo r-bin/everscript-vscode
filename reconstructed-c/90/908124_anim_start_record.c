@@ -8,6 +8,18 @@
  * changes; else the record restarts it: rec+3 = rec+0 = word, rec+$0E = D, rec+2 = byte, rec+5 = 1.
  * Leaves X = the final entry offset, A and N V Z C as the asm does (see the paths below).
  */
+
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   anim_start_record ($908124) [RTL]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  36 instructions (86 bytes)
+ * - Compiled C ASM:   434 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   12.1x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      bbde731f867def40
+ * - Rating Status:    VALID (unmodified since rating)
+ */
 #include "soe.h"
 #include "soe_ram.h"
 

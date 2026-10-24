@@ -12,6 +12,18 @@
  *  - depth = ((plane ^ $30) << 1) + $40 + y-on-screen + carries, + $80; 0 when bit 9.. set (>= $200).
  * With plane 0 and $7E:241F = 2 the position is taken against $010E/$0110 instead (y + 1).
  */
+
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   entity_sprite_depth ($8FC773) [RTL]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  78 instructions (177 bytes)
+ * - Compiled C ASM:   712 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   9.1x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      0d93e76f4488731f
+ * - Rating Status:    VALID (unmodified since rating)
+ */
 #include "soe.h"
 #include "soe_ram.h"
 

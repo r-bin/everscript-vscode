@@ -6,6 +6,18 @@
  * Else the n + 1 bytes after the node move down over it (MVN $7E,$7E from $3BC9+Y+3 to $3BC9+Y).
  * n >= $2D or a negative count halts the CPU (BRK, never seen). Leaves DB = $7E after a move.
  */
+
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   companion_breadcrumb_fifo_delete_node ($8F9E49) [RTL]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  52 instructions (90 bytes)
+ * - Compiled C ASM:   254 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   4.9x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      d6958667b3ea4274
+ * - Rating Status:    VALID (unmodified since rating)
+ */
 #include "soe.h"
 
 #ifndef SOE_OPTIMIZE

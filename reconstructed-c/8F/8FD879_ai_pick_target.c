@@ -8,6 +8,18 @@
  * X = A = the target, DP $02/$04 = its x/y minus the AI's (when the other member was taken, or the
  * first member's offsets from the distance step), DP $12/$14 = the distances.
  */
+
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   ai_pick_target ($8FD879) [RTS]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  74 instructions (158 bytes)
+ * - Compiled C ASM:   698 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   9.4x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      5fbfc2ec5ac7f335
+ * - Rating Status:    VALID (unmodified since rating)
+ */
 #include "soe.h"
 #include "soe_ram.h"
 

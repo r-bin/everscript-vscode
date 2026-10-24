@@ -7,6 +7,18 @@
  * (near-enough mode), when both 8-bit differences + 1 are below 3; else bit 4 of rec[$3C12] is cleared.
  * Leaves A = the new rec[$3C12], N Z from the restored Y (PLY), C and V from the last compare/subtract.
  */
+
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   companion_waypoint_history_poll ($8FA723) [RTL]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  36 instructions (81 bytes)
+ * - Compiled C ASM:   506 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   14.1x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      627231840f907e76
+ * - Rating Status:    VALID (unmodified since rating)
+ */
 #include "soe.h"
 
 SOE_BIND(companion_waypoint_history_poll, 0x8FA723, RTL)

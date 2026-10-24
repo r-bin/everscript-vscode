@@ -5,6 +5,18 @@
  * sets +$44 = $FFF0; when +$16 had bit 4, also clears +$2E and bit 9 of +$14.
  * Leaves A = $FFF0, X = Y, N Z from the LDA #$FFF0.
  */
+
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   anim_op_reset ($908453) [RTS]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  19 instructions (50 bytes)
+ * - Compiled C ASM:   257 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   13.5x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      b35e65bccf7cd8c5
+ * - Rating Status:    VALID (unmodified since rating)
+ */
 #include "soe.h"
 #include "soe_ram.h"
 

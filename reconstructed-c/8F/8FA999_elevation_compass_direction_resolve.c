@@ -5,6 +5,18 @@
  * dx < 0: dy < 0 -> $0E, else $0A; dx >= 0: dy < 0 -> $02, else $06.
  * Leaves A low byte = the code (N and Z as LDA #code sets them), C and V as entered.
  */
+
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   elevation_compass_direction_resolve ($8FA999) [RTS]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  14 instructions (24 bytes)
+ * - Compiled C ASM:   125 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   8.9x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      466fbc8393d94143
+ * - Rating Status:    VALID (unmodified since rating)
+ */
 #include "soe.h"
 
 SOE_BIND(elevation_compass_direction_resolve, 0x8FA999, RTS)

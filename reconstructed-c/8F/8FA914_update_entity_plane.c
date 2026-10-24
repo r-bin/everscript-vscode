@@ -7,6 +7,18 @@
  *  - bit $0040 set: $44 &= ~$0040 (TRB), A = $0040.
  * Leaves A = the value written (or $0040), N Z from it (TRB: Z = no bit 6 in the old $44); X Y C V as entered.
  */
+
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   update_entity_plane ($8FA914) [RTL]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  14 instructions (31 bytes)
+ * - Compiled C ASM:   119 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   8.5x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      a450975ac545a446
+ * - Rating Status:    VALID (unmodified since rating)
+ */
 #include "soe.h"
 
 #ifndef SOE_OPTIMIZE

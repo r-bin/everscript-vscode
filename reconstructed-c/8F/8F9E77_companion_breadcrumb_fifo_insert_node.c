@@ -6,6 +6,18 @@
  * up by 3 (MVP $7E,$7E from $3BC9+old end-1 down). Leaves A = the old end, N Z from it, DB = $7E
  * after a move.
  */
+
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   companion_breadcrumb_fifo_insert_node ($8F9E77) [RTL]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  26 instructions (44 bytes)
+ * - Compiled C ASM:   189 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   7.3x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      a16cb97357bf69bc
+ * - Rating Status:    VALID (unmodified since rating)
+ */
 #include "soe.h"
 
 #ifndef SOE_OPTIMIZE

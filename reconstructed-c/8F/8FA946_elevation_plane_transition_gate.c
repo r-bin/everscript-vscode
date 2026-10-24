@@ -8,6 +8,18 @@
  *  - else the planes must match: (word ^ $44) & $30 != 0 refuses with C = 0, A = that difference.
  * Leaves A, N Z as the last AND/ORA/LDA/TRB leaves them; V as entered.
  */
+
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   elevation_plane_transition_gate ($8FA946) [RTL]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  24 instructions (49 bytes)
+ * - Compiled C ASM:   153 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   6.4x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      90632aa3753a80b8
+ * - Rating Status:    VALID (unmodified since rating)
+ */
 #include "soe.h"
 
 SOE_BIND(elevation_plane_transition_gate, 0x8FA946, RTL)

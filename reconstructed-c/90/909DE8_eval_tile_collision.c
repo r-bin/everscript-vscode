@@ -13,6 +13,18 @@
  * Flags as the asm leaves them: C and V from the last CMP/SBC on the path (or as entered), N Z
  * from the last load/AND; X changes only on the table path.
  */
+
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   eval_tile_collision ($909DE8) [RTL]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  62 instructions (139 bytes)
+ * - Compiled C ASM:   309 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   5.0x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      6426596b925aa1dc
+ * - Rating Status:    VALID (unmodified since rating)
+ */
 #include "soe.h"
 #include "soe_ram.h"
 

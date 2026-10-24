@@ -6,6 +6,18 @@
  * Crossing out of the upper bank half moves to the bank before (backward) or after (forward) and
  * sets $8000 again. Leaves C = 1, A = the new pointer low word, a 16-bit accumulator.
  */
+
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   script_jump_relative ($8CD434) [RTS]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  27 instructions (49 bytes)
+ * - Compiled C ASM:   265 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   9.8x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      e94cab9e1e0f8b1a
+ * - Rating Status:    VALID (unmodified since rating)
+ */
 #include "soe.h"
 
 void soe_script_jump_back_tail(soe_regs r, uint16_t a);

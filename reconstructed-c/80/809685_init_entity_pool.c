@@ -6,6 +6,18 @@
  * and +4 = $FFFF. $7E:1276 = $512F (the end). DB is $7E during the work and restored. Leaves
  * A = $512F, X = Y = $5127, C set (CMP equal), V from the last ADC, N Z from the restored DB (PLB).
  */
+
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   init_entity_pool ($809685) [RTL]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  25 instructions (54 bytes)
+ * - Compiled C ASM:   208 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   8.3x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      0fbb4c198179cb8d
+ * - Rating Status:    VALID (unmodified since rating)
+ */
 #include "soe.h"
 
 SOE_BIND(init_entity_pool, 0x809685, RTL)
