@@ -1,6 +1,6 @@
 ---
 name: code-vfs
-description: Use to find, read or decompile an Evermore routine: soe://rom/code/<name>/ (info, .asm, .c), search by word or WRAM address, the todo worklist, and where C, comments and facts are written.
+description: Use to find, read or decompile an Evermore routine: soe://rom/code/<name>/ (info, .asm, .c), search, the todo worklist, where C and facts go, and the gates C needs to run as Evermore.
 applyTo: "reconstructed-c/**,src/games/evermore/resources/code-*,src/games/evermore/localizations/**"
 ---
 
@@ -43,7 +43,36 @@ Done when `info.md` of the routine shows the C, `Open work` lost the kinds you f
 `todo.md`'s counts went down. A routine named in `todo.md` under *Routines without an entry*
 becomes known by writing its entry; then it gets a folder.
 
-## 4. Traps
+## 4. C that runs as Evermore
+
+The target is C that replaces the ROM routine in the recomp (`hle_func`) and leaves exactly the
+state the asm leaves. That is the zelda3 / Super Metroid recomp / Lufia 2 method. A ROM stays the
+Asar export: no working decomp compiles C into a SNES ROM. Plan, comparison and the worked example
+(`random_below`): `docs/reverse-engineering/c-to-rom.md`.
+
+Write the C in the form the recomp can bind:
+
+- **Interface where the asm keeps it.** Inputs/outputs in registers, DP slots or flags; entry
+  widths, DB/D, `RTS` vs `RTL`: written in the knowledge entry first, from the `.asm`.
+- **Scratch is WRAM.** DP temporaries the asm writes, the C writes the same way.
+- **One name per address** from the shared RAM header over `g_ram`, instead of local `extern`s;
+  ROM data read from the ROM image by table label; `uint8_t`/`uint16_t` with an explicit cast
+  wherever the asm wraps; integer math only (fixed-point as the asm does).
+- **One routine, one file**, its gate in the header comment and the knowledge entry.
+
+A routine's C counts by **gate**, never by "a file exists":
+
+| Gate | Passes when |
+|---|---|
+| G0 | compiles on the host with `-Werror` against the shared headers |
+| G1 | equals the ROM's bytes run in `cpu65816.ts` on captured and edge entry states: registers, flags, S, full WRAM, ordered I/O; a deliberate mutation of the ROM routine is caught |
+| G2 | the recomp with the binding equals the recomp without it, every frame of a playback |
+| G3 | per-frame WRAM/VRAM/CGRAM/OAM equal to vanilla snes9x on recorded playbacks |
+
+State on 2026-10-24: no file has passed G1. The shared header, the G1 harness and the binding
+step are still to build (`c-to-rom.md` §9). Until a file passes G1, call it a *description*.
+
+## 5. Traps
 
 - `$8x` and `$Cx` are the same code: search, calls and C matching fold them.
 - Absolute operands above `$1FFF` count as WRAM only with DB = `$7E`: shown as `(DB $7E)`.
@@ -51,4 +80,6 @@ becomes known by writing its entry; then it gets a folder.
   with other widths can misdecode; check the CDL library (`cdl-recorder`) when it matters.
 - In a PAL ROM `this ROM` may be `—` (code changed: no match for the US bytes) or
   `(ambiguous)`; never write a PAL address into an entry (`docs/evermore-releases.md`).
+- `tools/recomp/lockstep.js` treats DP `$02–$0E` as noise, which is exactly where a C routine's
+  scratch goes wrong unseen. G1 compares every byte.
 - Long-term goals and what is open: `docs/todo/code-vfs.md`.

@@ -14,6 +14,8 @@ READ FIRST
 - `docs/todo/engine-decompilation.md` (Master /goal continuation roadmap and upcoming batches)
 - `docs/reverse-engineering/incremental-decomp-guide.md` (The step-by-step C decompilation pipeline)
 - `docs/reverse-engineering/asm-to-c-port.md` (The 6-stage port roadmap)
+- `docs/reverse-engineering/c-to-rom.md` (How the C becomes code that runs as Evermore: the zelda3 / recomp method, gates G0–G3, the `random_below` example)
+- skill `code-vfs` §4 (The form C must have to be bound, and the gates)
 - skill `game-knowledge` (Where addresses, routines, and structs must be recorded)
 - skill `memory-map` (HiROM vs FastROM bus addressing)
 
@@ -40,7 +42,9 @@ When invoked with *"continue the decompilation"*:
    - Inspect callers and callees in the call graph.
 3. **Delegate Sub-Tasks (If Complex)**:
    - If the routine touches complex sub-functions or requires tracing memory values, invoke subagents using `invoke_subagent` to research the sub-routines concurrently.
-4. **Decompile into Clean C**:
+4. **Decompile into C that can run** (skill `code-vfs` §4):
+   - Write the routine's interface into its knowledge entry first: where inputs and outputs live (registers, DP slots, flags), entry widths, DB/D, `RTS`/`RTL`, DP scratch it writes.
+   - Keep that interface and every WRAM write, scratch included; local names are fine inside the body.
    - Replace mechanical CPU register manipulations with meaningful local variables.
    - Replace raw hexadecimal addresses (`$0100`, `$0ADB`, `$2100`) with named struct fields and enums (from `docs/disassembly/engine-core/wram-map.md`).
    - Reconstruct structured control flow (`if`/`else`, `for`/`while`, `switch`) matching the assembly branch logic.
@@ -48,11 +52,12 @@ When invoked with *"continue the decompilation"*:
    - Write the C to `reconstructed-c/<bank>/` (the US address in the comment right above each function), per-instruction comments to `src/games/evermore/localizations/data/asm-comments.json`, and the walkthrough (no listing) to `docs/disassembly/<subsystem>/<function-name>.md`, linking `soe://rom/code/<name>/`.
    - Create or update knowledge entries under `src/games/evermore/localizations/knowledge/rom/<addr>.md` and `ram/<addr>.md` so they become immediately queryable across the `soe://` VFS.
 6. **Update Progress**:
-   - Recalculate metrics in `docs/disassembly/PROGRESS.md`.
+   - Recalculate metrics in `docs/disassembly/PROGRESS.md`, counting C by gate (G0–G3); a file below G1 is a description.
    - Update the subsystem completion table and append a record to the Session History.
 7. **Verify & Validate**:
    - Run `npm run check:legal` to ensure no illegal ROM bytes or proprietary snippets were checked in.
    - Run fast unit tests (`npm test`).
+   - Record the gate the C reached in its header and knowledge entry; run the G1 harness once it exists.
 8. **Commit Updates Immediately**:
    - Stage and commit only your reverse engineering additions and updates (`git add <paths> && git commit -m '...'`). Do not leave them uncommitted across prompts. Adhere to Standing Rule 0.5 (never `git add .` or `git commit -a`).
 
