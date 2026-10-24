@@ -36,6 +36,7 @@ traces/
 *.jpeg
 *.bmp
 *script_all*
+!reconstructed-c/**
 dumps/
 last_run_report.json
 
