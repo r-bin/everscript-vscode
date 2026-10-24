@@ -41,3 +41,11 @@ last_run_report.json
 
 # TypeScript build output: every src/**/*.ts → dist/ (npm run build:ts)
 dist/
+
+# 65816 C-to-ROM compiler evaluation (keep compiler/README.md, ignore subdirectories)
+compiler/*/
+
+# Standalone C Replay ROM extracted assets (extracted from clean ROM at build time)
+standalone-c-rom/assets.c
+
+

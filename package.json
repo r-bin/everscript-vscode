@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.351.0",
+  "version": "0.352.0",
   "publisher": "rbin",
   "main": "./bundle/extension.js",
   "engines": {
@@ -41,6 +41,8 @@
     "build:core:vanilla": "sh tools/build_snes_core.sh vanilla",
     "build:cores": "npm run build:core:vanilla && npm run build:core:custom",
     "build:music-engine": "sh src/games/evermore/music/engine/build-engine.sh",
+    "build:c-rom": "node standalone-c-rom/build.mts",
+    "verify:c-rom": "node standalone-c-rom/verify.mts",
     "test": "npm run -s build:ts && vscode-tmgrammar-test -g src/games/evermore/language/syntaxes/everscript.tmLanguage.json 'src/games/evermore/language/tests/**/*.test.evs' && node tools/test.mts unit",
     "test:rom": "npm run -s build:ts && node tools/test.mts rom",
     "test:dom": "npm run -s build:ts && node tools/test.mts dom",
