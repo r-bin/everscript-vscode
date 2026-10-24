@@ -186,29 +186,7 @@ bool multipart_child_get_or_create_secondary(MultiPartSubsystem *ctx, EntityReco
     return true;
 }
 
-/**
- * @brief Subroutine $8F:98FE: Frees the primary child entity attached to a parent.
- *
- * @param ctx Pointer to the multi-part subsystem context.
- * @param parent Pointer to the parent entity.
- */
-void multipart_child_free_primary(MultiPartSubsystem *ctx, EntityRecord *parent)
-{
-    int16_t child_idx = parent->primary_child;
-    if (child_idx < 0 || child_idx >= MULTIPART_POOL_CAPACITY) {
-        return;
-    }
-
-    /* Clear child's parent reference */
-    ctx->child_parent[child_idx] = NULL;
-
-    /* Push slot back onto free list */
-    ctx->next_free_slot[child_idx] = ctx->free_list_head;
-    ctx->free_list_head = child_idx;
-
-    /* Detach from parent */
-    parent->primary_child = ENTITY_SLOT_NONE;
-}
+/* multipart_child_free_primary: exact to the ROM in 8F98FE_multipart_child_free_primary.c */
 
 /**
  * @brief Subroutine $8F:9916: Frees a specified child slot and returns it to the free list.

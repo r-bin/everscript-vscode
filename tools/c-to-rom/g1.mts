@@ -34,7 +34,7 @@ const CAPTURE_BATCH = 24;      // routines per capture run, leaving breakpoints 
 
 interface Regs { a: number; x: number; y: number; s: number; d: number; db: number; p: number; pb: number; pc: number }
 interface Sample { frame: number; regs: Regs; wram: Uint8Array; after?: { regs: Regs; wram: Uint8Array } }
-interface Run { regs: Regs; wram: Uint8Array; io: string[]; minS: number; error?: string; stackWrite?: boolean }
+interface Run { regs: Regs; wram: Uint8Array; io: string[]; minS: number; error?: string; stackWrite?: boolean /* loads or stores below S, or loads from the C code banks */ }
 
 // ---------- capture ----------
 
@@ -163,7 +163,15 @@ function run(image: Uint8Array, s: Sample, limit = 3_000_000, trace?: string[]):
     const io: string[] = [];
     let stackWrite = false;
     const logged = {
-        read: (a: number) => bus.read(a),
+        read: (a: number) => {
+            // a load (not a pull: those read at S) from the stack below S: what is there differs by design
+            const bank = a >> 16, off = a & 0xFFFF;
+            const w = (bank & 0x40) === 0 || bank === 0x7E ? off : -1;
+            if (w >= 0 && w < cpu.s && w > s.regs.s - 0x200) stackWrite = true;
+            // the 4th MB holds the C code in one image and mirror bytes in the other
+            if ((bank & 0x3F) >= 0x38 && (bank & 0x3F) <= 0x3B && (bank >= 0xC0 || (bank >= 0x80 && off >= 0x8000))) stackWrite = true;
+            return bus.read(a);
+        },
         write: (a: number, v: number) => {
             const bank = a >> 16, off = a & 0xFFFF;
             // a store (not a push: those write at S) into the stack below S, where the C keeps its frames
@@ -256,10 +264,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const vanilla: Uint8Array = require('../table-hack/tables').build(rom, []).image;
     const cdl = cdlFor(rom);
     if (traceArg) {
-        // --trace <name>:<state index>: both instruction traces of one entry state
-        const [tn, ti] = traceArg.split(':');
+        // --trace <name>:<state index>[:<fuzz variant>]: both instruction traces of one entry state
+        const [tn, ti, tk] = traceArg.split(':');
         const b = list.find(x => x.name === tn)!;
-        const st = loadSamples(cachePath(rom, b, samples, frames))[Number(ti || 0)];
+        let st = loadSamples(cachePath(rom, b, samples, frames))[Number(ti || 0)];
+        if (tk !== undefined) st = fuzz(st, fuzzN, b.addr ^ Number(ti))[Number(tk)];
+        const dp = Array.from(st.wram.subarray(st.regs.d, st.regs.d + 0x100), v => v.toString(16).padStart(2, '0'));
+        for (let row = 0; row < 0x100; row += 32) console.log(`DP+${row.toString(16).padStart(2, '0')}: ${dp.slice(row, row + 32).join(' ')}`);
         for (const [label, img] of [['ROM', vanilla], ['C', built.image]] as const) {
             const t: string[] = [];
             const res = run(img, st, 100_000, t);
@@ -293,13 +304,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         }
         let fz = 0, fzN = 0, fuzzFail = '';
         ss.forEach((s0, i) => {
-            for (const s of fuzz(s0, fuzzN, b.addr ^ i)) {
+            for (const [k, s] of fuzz(s0, fuzzN, b.addr ^ i).entries()) {
                 const v = run(vanilla, s, 200_000);
-                if (v.error || v.stackWrite) continue;     // no return from this state, or it stores into the stack
+                if (v.error || v.stackWrite) continue;     // no return from this state, or it uses the stack below S
                 fzN++;
                 const c = run(built.image, s, 2_000_000);
                 const d = c.error ? `C: ${c.error}` : diff(v, c, s.regs.s, Math.min(v.minS, c.minS));
-                if (!d) fz++; else if (!fuzzFail) fuzzFail = `fuzzed from frame ${s.frame}, entry ${JSON.stringify(s.regs)}: ${d}`;
+                if (!d) fz++; else if (!fuzzFail) fuzzFail = `fuzzed state ${b.name}:${i}:${k} (frame ${s.frame}), entry ${JSON.stringify(s.regs)}: ${d}`;
             }
         });
         const pass = ok === ss.length && ss.length > 0 && mutCaught && oracle === oracleN && fz === fzN;

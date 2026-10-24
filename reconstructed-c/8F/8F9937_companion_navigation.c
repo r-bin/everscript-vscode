@@ -70,27 +70,7 @@ void companion_waypoint_anchor_init(const EntityState *leader, uint16_t companio
     companion_waypoint_history_poll(leader, companion_slot);
 }
 
-/**
- * Checks proximity delta between leader and companion.
- * If within +-2 pixels, flags arrival mode ($3C12 |= 0x0030).
- * Corresponds to $8F:A723.
- */
-void companion_waypoint_history_poll(const EntityState *leader, uint16_t companion_slot) {
-    uint16_t tail_idx = g_companion_nav.waypoint_tail / WAYPOINT_STRIDE_BYTES;
-    BreadcrumbWaypoint target = g_waypoint_history[tail_idx];
-
-    // Compute coordinate delta
-    int16_t delta_x = leader->world_x - target.x;
-    int16_t delta_y = leader->world_y - target.y;
-
-    if (abs(delta_x) <= PROXIMITY_THRESHOLD_PX && abs(delta_y) <= PROXIMITY_THRESHOLD_PX) {
-        // Within 2px proximity: flag arrival (bit 4) and proximity lock (bit 5)
-        g_companion_nav.nav_flags |= 0x0030;
-    } else {
-        // Outside proximity: clear arrival flag, continue path following
-        g_companion_nav.nav_flags &= ~0x0010;
-    }
-}
+/* companion_waypoint_history_poll: exact to the ROM in 8FA723_companion_waypoint_history_poll.c */
 
 /**
  * Steps companion along recorded breadcrumbs, updating directional headings.

@@ -123,6 +123,17 @@ uint8_t *soe_bus(uint32_t addr);
 #define DP16(r, o)  (*(uint16_t *)soe_bus((uint16_t)((r)->d + (o))))
 #endif
 
+/* ---- Any bus address, and the 24-bit pointers the asm keeps in the direct page (LDA [$82]) ---- */
+#ifdef __CALYPSI_TARGET_65816__
+#define LONG8(bus)  (*(uint8_t SOE_FAR *)(uint32_t)(bus))
+#define LONG16(bus) (*(uint16_t SOE_FAR *)(uint32_t)(bus))
+#else
+#define LONG8(bus)  (*soe_bus((uint32_t)(bus)))
+#define LONG16(bus) (*(uint16_t *)soe_bus((uint32_t)(bus)))
+#endif
+/* the pointer in DP o..o+2; [o],y is SOE_DPPTR(r, o) + y, carrying into the next bank */
+#define SOE_DPPTR(r, o) ((uint32_t)DP16(r, o) | (uint32_t)DP8(r, (o) + 2) << 16)
+
 /* ---- The 8-bit accumulator: its low byte; B (the high byte) stays as the caller left it ---- */
 #define SOE_A8(r)   ((uint8_t)(r)->a)
 static inline void soe_set_a8(soe_regs r, uint8_t v) { r->a = (uint16_t)((r->a & 0xFF00) | v); }

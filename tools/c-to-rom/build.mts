@@ -87,8 +87,10 @@ export function checkBindings(rom: Uint8Array, list: Binding[]): string[] {
             if (!m || !/^(B|JMP|BRL)/.test(l.text)) continue;
             const t = parseInt(m[1], 16);
             if (inner(t)) problems.push(`${b.name}: ${hex(l.pc)} ${l.text} lands inside the trampoline`);
-            if (t < b.addr) problems.push(`${b.name}: ${hex(l.pc)} ${l.text} jumps above the entry (a label inside a loop?)`);
         }
+        const own = new Set(body.flatMap(l => l.bytes.map((_, i) => l.pc + i)));
+        for (let k = 0; k < trampSize(b); k++)
+            if (!own.has(b.addr + k)) { problems.push(`${b.name}: shorter than its ${trampSize(b)}-byte trampoline (byte ${hex(b.addr + k)} is not its code)`); break; }
         if (edges) {
             let called = false;
             for (const [k, kind] of edges) {

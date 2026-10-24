@@ -33,7 +33,7 @@ Navigating isometric 2.5D terrain with multiple elevation planes (ground floor, 
 ## 2. Data Structures & Memory Layout
 
 > **Reconstructed C Decompilation**:
-> Source moved to [`reconstructed-c/8F/8FA93B_ramp_elevation.c`](../../../reconstructed-c/8F/8FA93B_ramp_elevation.c).
+> Source, exact to the ROM (gate G1): [`8FA93B_elevation_ramp_plane_project.c`](../../../reconstructed-c/8F/8FA93B_elevation_ramp_plane_project.c), [`8FA963_elevation_vector_shear_step.c`](../../../reconstructed-c/8F/8FA963_elevation_vector_shear_step.c), [`8FA97D_elevation_manhattan_distance_eval.c`](../../../reconstructed-c/8F/8FA97D_elevation_manhattan_distance_eval.c), [`8FA999_elevation_compass_direction_resolve.c`](../../../reconstructed-c/8F/8FA999_elevation_compass_direction_resolve.c).
 > [View in VFS: soe://rom/code/8FA93B](soe://rom/code/8FA93B?c=1&asm=0)
 
 
@@ -42,6 +42,6 @@ Navigating isometric 2.5D terrain with multiple elevation planes (ground floor, 
 ## 3. Clean C Decompilation
 
 > **Reconstructed C Decompilation**:
-> Source moved to [`reconstructed-c/8F/8FA93B_ramp_elevation.c`](../../../reconstructed-c/8F/8FA93B_ramp_elevation.c).
+> Source, exact to the ROM (gate G1): [`8FA93B_elevation_ramp_plane_project.c`](../../../reconstructed-c/8F/8FA93B_elevation_ramp_plane_project.c), [`8FA963_elevation_vector_shear_step.c`](../../../reconstructed-c/8F/8FA963_elevation_vector_shear_step.c), [`8FA97D_elevation_manhattan_distance_eval.c`](../../../reconstructed-c/8F/8FA97D_elevation_manhattan_distance_eval.c), [`8FA999_elevation_compass_direction_resolve.c`](../../../reconstructed-c/8F/8FA999_elevation_compass_direction_resolve.c).
 > [View in VFS: soe://rom/code/8FA93B](soe://rom/code/8FA93B?c=1&asm=0)
 

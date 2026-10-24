@@ -96,34 +96,4 @@ void room_enter_pre_roll_wait_and_entity_spawn(void) {
     }
 }
 
-/**
- * Per-frame master volume interpolation helper ($8E:E5FC).
- * Smoothly ramps master volume toward target level every frame.
- */
-void audio_master_volume_fade_tick(void) {
-    // If master mute flag is set, do not alter volume
-    if (g_room_state.current_volume & 0x0080) {
-        return;
-    }
-
-    // Inactive if target volume latch is negative
-    if (g_room_state.target_volume_fade < 0) {
-        return;
-    }
-
-    uint8_t target = (uint8_t)g_room_state.target_volume_fade;
-    uint8_t current = (uint8_t)(g_room_state.current_volume & 0x000F);
-
-    if (current > target) {
-        current--;
-        g_room_state.current_volume = (g_room_state.current_volume & ~0x000F) | current;
-    } else if (current < target) {
-        current++;
-        g_room_state.current_volume = (g_room_state.current_volume & ~0x000F) | current;
-    }
-
-    // If target has been reached, finalize fade
-    if (current == target) {
-        g_room_state.target_volume_fade = -1; // Clear fade latch
-    }
-}
+/* audio_master_volume_fade_tick: exact to the ROM in 8EE5FC_audio_master_volume_fade_tick.c */

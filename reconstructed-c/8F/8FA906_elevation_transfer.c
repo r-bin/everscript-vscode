@@ -69,35 +69,7 @@ void elevation_plane_update_bits_5_4_kept_on(uint16_t collision_word, ElevationE
     }
 }
 
-/**
- * @brief Validates elevation plane transition eligibility ($8F:A946).
- * 
- * @param candidate_collision 16-bit collision word of candidate cell
- * @param state               Pointer to engine state
- * @return bool True if step permitted, False if blocked by elevation barrier
- */
-bool elevation_plane_transition_gate(uint16_t candidate_collision, ElevationEngineState *state) {
-    if ((candidate_collision & (COLLISION_ALWAYS_WALK | COLLISION_BRIDGE_RAMP)) != 0) {
-        elevation_plane_update_bits_5_4_kept_on(candidate_collision, state);
-        return true;
-    }
-
-    uint16_t plane_diff = candidate_collision ^ state->active_elevation_plane;
-
-    /* Check if bridge transparency is currently active */
-    if ((state->active_elevation_plane & COLLISION_BRIDGE_RAMP) != 0) {
-        /* Latch into the destination elevation plane */
-        state->active_elevation_plane = candidate_collision & COLLISION_PLANE_MASK;
-        return true;
-    }
-
-    /* Strict plane match required */
-    if ((plane_diff & COLLISION_PLANE_MASK) != 0) {
-        return false; /* Elevation barrier mismatch -> Blocked! */
-    }
-
-    return true; /* Planes match -> Allowed */
-}
+/* elevation_plane_transition_gate: exact to the ROM in 8FA946_elevation_plane_transition_gate.c */
 
 /**
  * @brief Composite 3-tier entity movement probe ($8F:AF48).
