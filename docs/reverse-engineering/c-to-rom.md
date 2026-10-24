@@ -371,3 +371,13 @@ slower. The variants stay off; they are kept, checked by G1, for a playable-spee
 **Status (v0.351.0).** 27 routines pass G1, the documented code and the variants alike (their
 knowledge entries carry a `c: G1 passed` line). WRAM first differs from vanilla at frame 374, the
 first RNG call, as the bridges and the C take other cycles than the asm (§7a).
+
+**Open (where the work stopped, 2026-10-24).**
+- 255 of the 282 known routines that run in the 2:20 reference are not in exact C yet. Skipped so
+  far: routines that pull their caller's stack (`$90:9F21`), indirect jump-table exits (`$8F:9F05`,
+  `$8F:9EC3`), and fall-through labels (`$8F:AFF5`, `$90:8E85`, `$90:9460`, `$8F:D8D2`).
+- Should the old description functions be kept next to the exact C? Several were removed when a
+  routine got its exact file (`909DE8_tile_collision.c`, `809685_actor_lifecycle.c`,
+  `8FA93B_ramp_elevation.c`, parts of five others); to be decided by the owner (rule 11).
+- Calypsi: the `-O2` byte sign-test bug and the comma-condition branch are not reduced to minimal
+  cases yet. G2 (recomp A/B) is not built.
