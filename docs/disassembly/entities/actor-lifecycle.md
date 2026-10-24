@@ -43,7 +43,7 @@ The allocator at `$80:9685` formats 17 node headers of 8 bytes each:
 ## 3. Reconstructed Clean C Implementation
 
 > **Reconstructed C Decompilation**:
-> Source moved to [`reconstructed-c/80/809685_actor_lifecycle.c`](../../../reconstructed-c/80/809685_actor_lifecycle.c).
+> Source: [`reconstructed-c/80/809685_init_entity_pool.c`](../../../reconstructed-c/80/809685_init_entity_pool.c), exact to the ROM (gate G1).
 > [View in VFS: soe://rom/code/809685](soe://rom/code/809685?c=1&asm=0)
 
 

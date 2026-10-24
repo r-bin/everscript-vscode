@@ -34,7 +34,7 @@ const CAPTURE_BATCH = 24;      // routines per capture run, leaving breakpoints 
 
 interface Regs { a: number; x: number; y: number; s: number; d: number; db: number; p: number; pb: number; pc: number }
 interface Sample { frame: number; regs: Regs; wram: Uint8Array; after?: { regs: Regs; wram: Uint8Array } }
-interface Run { regs: Regs; wram: Uint8Array; io: string[]; minS: number; error?: string }
+interface Run { regs: Regs; wram: Uint8Array; io: string[]; minS: number; error?: string; stackWrite?: boolean }
 
 // ---------- capture ----------
 
@@ -161,10 +161,14 @@ function run(image: Uint8Array, s: Sample, limit = 3_000_000, trace?: string[]):
     const bus = new SnesBus(image);
     bus.wram.set(s.wram);
     const io: string[] = [];
+    let stackWrite = false;
     const logged = {
         read: (a: number) => bus.read(a),
         write: (a: number, v: number) => {
             const bank = a >> 16, off = a & 0xFFFF;
+            // a store (not a push: those write at S) into the stack below S, where the C keeps its frames
+            const w = (bank & 0x40) === 0 || bank === 0x7E ? off : -1;
+            if (w >= 0 && w < cpu.s && w > s.regs.s - 0x200) stackWrite = true;
             if ((bank & 0x40) === 0 && off >= 0x2000 && off < 0x8000) io.push(`${hex(a)}=${v.toString(16)}`);
             bus.write(a, v);
         },
@@ -185,9 +189,9 @@ function run(image: Uint8Array, s: Sample, limit = 3_000_000, trace?: string[]):
             if (cpu.s > entryS) break;
         }
     } catch (e: any) {
-        return { regs: snap(cpu), wram: bus.wram, io, minS, error: e.message };
+        return { regs: snap(cpu), wram: bus.wram, io, minS, error: e.message, stackWrite };
     }
-    return { regs: snap(cpu), wram: bus.wram, io, minS };
+    return { regs: snap(cpu), wram: bus.wram, io, minS, stackWrite };
 }
 
 const snap = (c: any): Regs => ({ a: c.a, x: c.x, y: c.y, s: c.s, d: c.d, db: c.db, p: c.p, pb: c.pb, pc: c.pc });
@@ -207,16 +211,17 @@ function diff(x: { regs: Regs; wram: Uint8Array; io?: string[] }, y: { regs: Reg
     return null;
 }
 
-/** A copy of `image` with one operand bit of the routine's first instruction with an operand flipped. */
-function mutate(image: Uint8Array, b: Binding, cdl: Uint8Array | null): { image: Uint8Array; what: string } | null {
+/** Copies of `image`, each with one operand bit of one of the routine's first instructions flipped. */
+function mutations(image: Uint8Array, b: Binding, cdl: Uint8Array | null, max = 8): { image: Uint8Array; what: string }[] {
+    const out: { image: Uint8Array; what: string }[] = [];
     for (const l of disassemble(image, b.addr, 64, false, false, cdl)) {
-        if (/^(RTL|RTS|RTI)/.test(l.text)) break;
-        if (l.bytes.length < 2 || /^(B..|BRL|REP|SEP|JSL|JSR|JML|JMP)/.test(l.text)) continue;
+        if (/^(RTL|RTS|RTI)/.test(l.text) || out.length >= max) break;
+        if (l.bytes.length < 2 || /^(B..|BRL|REP|SEP|JSL|JSR|JML|JMP|PEA)/.test(l.text)) continue;
         const m = new Uint8Array(image);
         m[(l.pc & 0x3FFFFF) + 1] ^= 0x01;
-        return { image: m, what: `${hex(l.pc)} ${l.text}, operand bit 0 flipped` };
+        out.push({ image: m, what: `${hex(l.pc)} ${l.text}, operand bit 0 flipped` });
     }
-    return null;
+    return out;
 }
 
 // ---------- main ----------
@@ -270,7 +275,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         const ss = loadSamples(cachePath(rom, b, samples, frames));
         let oracle = 0, oracleN = 0, ok = 0, firstFail = '', oracleFail = '';
         let mutCaught = false;
-        const mut = mutate(vanilla, b, cdl);
+        const muts = mutations(vanilla, b, cdl);
         for (const s of ss) {
             const v = run(vanilla, s), c = run(built.image, s);
             const minS = Math.min(v.minS, c.minS);
@@ -281,16 +286,16 @@ if (import.meta.url === `file://${process.argv[1]}`) {
             }
             const d = v.error ? `vanilla: ${v.error}` : c.error ? `C: ${c.error}` : diff(v, c, s.regs.s, minS);
             if (!d) ok++; else if (!firstFail) firstFail = `frame ${s.frame}, entry ${JSON.stringify(s.regs)}: ${d}`;
-            if (mut && !mutCaught) {
+            for (const mut of mutCaught ? [] : muts) {
                 const m = run(mut.image, s);
-                if (m.error || diff(v, m, s.regs.s, Math.min(v.minS, m.minS))) mutCaught = true;
+                if (m.error || diff(v, m, s.regs.s, Math.min(v.minS, m.minS))) { mutCaught = true; break; }
             }
         }
         let fz = 0, fzN = 0, fuzzFail = '';
         ss.forEach((s0, i) => {
             for (const s of fuzz(s0, fuzzN, b.addr ^ i)) {
                 const v = run(vanilla, s, 200_000);
-                if (v.error) continue;                     // the ROM itself does not return from this state
+                if (v.error || v.stackWrite) continue;     // no return from this state, or it stores into the stack
                 fzN++;
                 const c = run(built.image, s, 2_000_000);
                 const d = c.error ? `C: ${c.error}` : diff(v, c, s.regs.s, Math.min(v.minS, c.minS));
@@ -299,7 +304,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         });
         const pass = ok === ss.length && ss.length > 0 && mutCaught && oracle === oracleN && fz === fzN;
         if (!pass) failed++;
-        lines.push(`| \`${b.name}\` ${hex(b.addr)} | ${ss.length} | ${oracle}/${oracleN} | ${ok}/${ss.length} | ${fz}/${fzN} | ${mut ? (mutCaught ? 'yes' : '**no**') : 'no operand'} |`);
+        lines.push(`| \`${b.name}\` ${hex(b.addr)} | ${ss.length} | ${oracle}/${oracleN} | ${ok}/${ss.length} | ${fz}/${fzN} | ${muts.length ? (mutCaught ? 'yes' : '**no**') : 'no operand'} |`);
         if (firstFail) lines.push(`|  | C differs | ${firstFail.replace(/\|/g, '/')} | | | |`);
         if (fuzzFail) lines.push(`|  | fuzzed: C differs | ${fuzzFail.replace(/\|/g, '/')} | | | |`);
         if (oracleFail) lines.push(`|  | interpreter differs | ${oracleFail.replace(/\|/g, '/')} | | | |`);

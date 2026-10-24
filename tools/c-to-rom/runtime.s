@@ -11,7 +11,7 @@
             .section farcode,text
             .extern _Dp
             .extern soe_rtl_gadgets
-            .public soe_call_rtl, soe_call_rts
+            .public soe_call_rtl, soe_call_rts, soe_stp
 
 soe_call_rts:
             ldy     ##1
@@ -96,3 +96,7 @@ call_return:
             pld
             plb
             rtl
+
+; void soe_stp(void): BRK, COP and STP all end in STP in this game (knowledge/rom/80885e.md)
+soe_stp:
+            stp

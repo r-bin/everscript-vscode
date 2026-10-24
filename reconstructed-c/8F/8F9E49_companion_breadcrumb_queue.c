@@ -19,57 +19,9 @@ extern uint8_t compute_vector_angle_16(int16_t dx, int16_t dy); // $8F:AA51
 extern bool companion_neighbor_cell_collision_test(uint8_t dir, int16_t x, int16_t y, uint8_t plane); // $8F:9EC3
 extern void set_entity_velocity_vector(uint16_t entity_ptr, int16_t target_x, int16_t target_y); // $8F:AB92
 
-/**
- * Removes a consumed waypoint node from the FIFO queue, shifting subsequent nodes downward.
- * Replaces the 65816 hardware `MVN $7E, $7E` block move.
- *
- * @param node_idx The index of the consumed node to remove
- */
-void companion_breadcrumb_fifo_delete_node(uint16_t node_idx) {
-    if (g_queue_tail_offset < WAYPOINT_NODE_SIZE) {
-        g_queue_tail_offset = 0;
-        return;
-    }
+/* companion_breadcrumb_fifo_delete_node: exact to the ROM in 8F9E49_companion_breadcrumb_fifo_delete_node.c */
 
-    g_queue_tail_offset -= WAYPOINT_NODE_SIZE;
-
-    uint16_t byte_offset = node_idx * WAYPOINT_NODE_SIZE;
-    if (byte_offset >= g_queue_tail_offset) {
-        return;
-    }
-
-    // Shift trailing nodes left by 3 bytes
-    uint16_t bytes_to_shift = g_queue_tail_offset - byte_offset;
-    memmove(&g_breadcrumb_buffer[byte_offset],
-            &g_breadcrumb_buffer[byte_offset + WAYPOINT_NODE_SIZE],
-            bytes_to_shift);
-}
-
-/**
- * Inserts a new waypoint node into the FIFO queue, shifting existing nodes upward.
- * Replaces the 65816 hardware `MVP $7E, $7E` block move.
- *
- * @param insert_idx The index where the new node will be inserted
- * @param new_node Pointer to the 3-byte waypoint node data
- */
-void companion_breadcrumb_fifo_insert_node(uint16_t insert_idx, const BreadcrumbNode* new_node) {
-    if (g_queue_tail_offset + WAYPOINT_NODE_SIZE > sizeof(g_breadcrumb_buffer)) {
-        // Queue full: prune oldest node (index 0) to make room
-        companion_breadcrumb_fifo_delete_node(0);
-    }
-
-    uint16_t byte_offset = insert_idx * WAYPOINT_NODE_SIZE;
-    uint16_t bytes_to_shift = g_queue_tail_offset - byte_offset;
-
-    if (bytes_to_shift > 0) {
-        memmove(&g_breadcrumb_buffer[byte_offset + WAYPOINT_NODE_SIZE],
-                &g_breadcrumb_buffer[byte_offset],
-                bytes_to_shift);
-    }
-
-    memcpy(&g_breadcrumb_buffer[byte_offset], new_node, WAYPOINT_NODE_SIZE);
-    g_queue_tail_offset += WAYPOINT_NODE_SIZE;
-}
+/* companion_breadcrumb_fifo_insert_node: exact to the ROM in 8F9E77_companion_breadcrumb_fifo_insert_node.c */
 
 /**
  * Evaluates companion breadcrumb progression, trims stale waypoints, and updates steering.

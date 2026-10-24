@@ -104,6 +104,16 @@ uint8_t *soe_bus(uint32_t addr);
 #define ABS16(r, a) (*(uint16_t *)soe_bus((uint32_t)(r)->db << 16 | (uint16_t)(a)))
 #endif
 
+/* Absolute indexed (LDA $0022,y): DB:base + index as a 24-bit sum, so it carries into the next bank
+ * the way the CPU does. */
+#ifdef __CALYPSI_TARGET_65816__
+#define ABSI8(r, base, i)  (*(uint8_t SOE_FAR *)(((uint32_t)(r)->db << 16 | (uint16_t)(base)) + (uint16_t)(i)))
+#define ABSI16(r, base, i) (*(uint16_t SOE_FAR *)(((uint32_t)(r)->db << 16 | (uint16_t)(base)) + (uint16_t)(i)))
+#else
+#define ABSI8(r, base, i)  (*soe_bus(((uint32_t)(r)->db << 16 | (uint16_t)(base)) + (uint16_t)(i)))
+#define ABSI16(r, base, i) (*(uint16_t *)soe_bus(((uint32_t)(r)->db << 16 | (uint16_t)(base)) + (uint16_t)(i)))
+#endif
+
 /* ---- Direct page as the asm does it: bank $00, D + offset, wrapping in the bank ---- */
 #ifdef __CALYPSI_TARGET_65816__
 #define DP8(r, o)   (*(uint8_t SOE_FAR *)(uint32_t)(uint16_t)((r)->d + (o)))
@@ -160,6 +170,28 @@ static inline uint16_t soe_adc16(soe_regs r, uint16_t a, uint16_t m) {
 static inline uint16_t soe_sbc16(soe_regs r, uint16_t a, uint16_t m) {
     return soe_adc16(r, a, (uint16_t)~m);
 }
+
+/* MVN / MVP with 16-bit index registers: copy A + 1 bytes from src:X to dst:Y, one byte at a time
+ * (so overlapping moves behave as on the CPU), upward (MVN) or downward (MVP). Leaves A = $FFFF,
+ * X and Y past the block, DB = the destination bank; flags as they were. */
+static inline void soe_block_move(soe_regs r, uint8_t dst, uint8_t src, int step) {
+    do {
+#ifdef __CALYPSI_TARGET_65816__
+        *(uint8_t SOE_FAR *)((uint32_t)dst << 16 | r->y) = *(uint8_t SOE_FAR *)((uint32_t)src << 16 | r->x);
+#else
+        *soe_bus((uint32_t)dst << 16 | r->y) = *soe_bus((uint32_t)src << 16 | r->x);
+#endif
+        r->x = (uint16_t)(r->x + step);
+        r->y = (uint16_t)(r->y + step);
+        r->a = (uint16_t)(r->a - 1);
+    } while (r->a != 0xFFFF);
+    r->db = dst;
+}
+#define soe_mvn(r, dst, src) soe_block_move(r, dst, src, 1)
+#define soe_mvp(r, dst, src) soe_block_move(r, dst, src, -1)
+
+/* BRK, COP and STP all halt this game's CPU (knowledge/rom/80885e.md): the C equivalent. */
+void soe_stp(void);
 
 /* SOE_BIND(name, 0x80AD62, RTL) { ... } replaces the ROM routine at that address (its execution
  * address, $8x) with this function; RTS routines are reached through a JSL/RTS trampoline. The build
