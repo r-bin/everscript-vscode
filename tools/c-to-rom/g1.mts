@@ -14,7 +14,8 @@
 // 5. Fuzz: from every captured state, variants with random registers, flags and direct page (`--fuzz N`, 16 each)
 //    reach the paths the reference never takes; both images must still agree where the ROM returns.
 //   node tools/c-to-rom/g1.mts [--rom <clean rom>] [--samples 48] [--frames 8414] [--fuzz 16] [--fresh]
-//                              [--trace name:index] [name ...]
+//                              [--trace name:index[:variant]] [--optimize] [name ...]
+// --optimize checks the SOE_OPTIMIZE variants instead of the documented code.
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
@@ -34,7 +35,7 @@ const CAPTURE_BATCH = 24;      // routines per capture run, leaving breakpoints 
 
 interface Regs { a: number; x: number; y: number; s: number; d: number; db: number; p: number; pb: number; pc: number }
 interface Sample { frame: number; regs: Regs; wram: Uint8Array; after?: { regs: Regs; wram: Uint8Array } }
-interface Run { regs: Regs; wram: Uint8Array; io: string[]; minS: number; error?: string; stackWrite?: boolean /* loads or stores below S, or loads from the C code banks */ }
+interface Run { regs: Regs; wram: Uint8Array; io: string[]; minS: number; steps: number; error?: string; stackWrite?: boolean /* loads or stores below S, or loads from the C code banks */ }
 
 // ---------- capture ----------
 
@@ -197,9 +198,9 @@ function run(image: Uint8Array, s: Sample, limit = 3_000_000, trace?: string[]):
             if (cpu.s > entryS) break;
         }
     } catch (e: any) {
-        return { regs: snap(cpu), wram: bus.wram, io, minS, error: e.message, stackWrite };
+        return { regs: snap(cpu), wram: bus.wram, io, minS, steps: cpu.steps, error: e.message, stackWrite };
     }
-    return { regs: snap(cpu), wram: bus.wram, io, minS, stackWrite };
+    return { regs: snap(cpu), wram: bus.wram, io, minS, steps: cpu.steps, stackWrite };
 }
 
 const snap = (c: any): Regs => ({ a: c.a, x: c.x, y: c.y, s: c.s, d: c.d, db: c.db, p: c.p, pb: c.pb, pc: c.pc });
@@ -236,7 +237,7 @@ function mutations(image: Uint8Array, b: Binding, cdl: Uint8Array | null, max = 
 
 if (import.meta.url === `file://${process.argv[1]}`) {
     const a = process.argv.slice(2), opt = (n: string) => { const i = a.indexOf('--' + n); return i < 0 ? null : a.splice(i, 2)[1]; };
-    const fresh = a.includes('--fresh'), captureOnly = a.includes('--capture-only');
+    const fresh = a.includes('--fresh'), captureOnly = a.includes('--capture-only'), optimize = a.includes('--optimize');
     const romPath: string = require('../rom').baseRomOrExit('evermore', opt('rom'));
     const samples = Number(opt('samples') || 48), frames = Number(opt('frames') || REFERENCE_FRAMES), fuzzN = Number(opt('fuzz') ?? 16);
     const traceArg = opt('trace');
@@ -260,7 +261,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
             p.on('exit', code => (code === 0 ? resolve() : reject(new Error(`capture of ${batch.map(b => b.name).join(' ')}: exit ${code}`))));
         })));
     }
-    const built = await buildImage(rom);
+    const built = await buildImage(rom, undefined, { optimize });
     const vanilla: Uint8Array = require('../table-hack/tables').build(rom, []).image;
     const cdl = cdlFor(rom);
     if (traceArg) {
@@ -279,17 +280,18 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         }
         process.exit(0);
     }
-    const lines = ['# G1: bound C routines against the ROM', '', `Reference: power-on, no input, ${frames} frames. ${samples} sampled entry states per routine.`, '',
-        '| routine | states | interpreter = snes9x | C = ROM | fuzzed: C = ROM | mutation caught |', '|---|---|---|---|---|---|'];
+    const lines = ['# G1: bound C routines against the ROM', '', `Reference: power-on, no input, ${frames} frames. ${samples} sampled entry states per routine. Code: ${optimize ? 'SOE_OPTIMIZE variants' : 'documented (default)'}.`, '',
+        '| routine | states | interpreter = snes9x | C = ROM | fuzzed: C = ROM | mutation caught | instructions per call, ROM / C |', '|---|---|---|---|---|---|---|'];
     let failed = 0;
     for (const b of list) {
         const ss = loadSamples(cachePath(rom, b, samples, frames));
-        let oracle = 0, oracleN = 0, ok = 0, firstFail = '', oracleFail = '';
+        let oracle = 0, oracleN = 0, ok = 0, firstFail = '', oracleFail = '', romSteps = 0, cSteps = 0;
         let mutCaught = false;
         const muts = mutations(vanilla, b, cdl);
         for (const s of ss) {
             const v = run(vanilla, s), c = run(built.image, s);
             const minS = Math.min(v.minS, c.minS);
+            romSteps += v.steps; cSteps += c.steps;
             if (s.after) {
                 oracleN++;
                 const d = v.error || diff(v, s.after, s.regs.s, Math.min(v.minS, s.regs.s - 0x200));
@@ -320,10 +322,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         });
         const pass = ok === ss.length && ss.length > 0 && (mutCaught || mutFuzz) && oracle === oracleN && fz === fzN;
         if (!pass) failed++;
-        lines.push(`| \`${b.name}\` ${hex(b.addr)} | ${ss.length} | ${oracle}/${oracleN} | ${ok}/${ss.length} | ${fz}/${fzN} | ${muts.length ? (mutCaught ? 'yes' : mutFuzz ? 'yes (fuzzed)' : '**no**') : 'no operand'} |`);
-        if (firstFail) lines.push(`|  | C differs | ${firstFail.replace(/\|/g, '/')} | | | |`);
-        if (fuzzFail) lines.push(`|  | fuzzed: C differs | ${fuzzFail.replace(/\|/g, '/')} | | | |`);
-        if (oracleFail) lines.push(`|  | interpreter differs | ${oracleFail.replace(/\|/g, '/')} | | | |`);
+        lines.push(`| \`${b.name}\` ${hex(b.addr)} | ${ss.length} | ${oracle}/${oracleN} | ${ok}/${ss.length} | ${fz}/${fzN} | ${muts.length ? (mutCaught ? 'yes' : mutFuzz ? 'yes (fuzzed)' : '**no**') : 'no operand'} | ${(romSteps / ss.length).toFixed(0)} / ${(cSteps / ss.length).toFixed(0)} |`);
+        if (firstFail) lines.push(`|  | C differs | ${firstFail.replace(/\|/g, '/')} | | | | |`);
+        if (fuzzFail) lines.push(`|  | fuzzed: C differs | ${fuzzFail.replace(/\|/g, '/')} | | | | |`);
+        if (oracleFail) lines.push(`|  | interpreter differs | ${oracleFail.replace(/\|/g, '/')} | | | | |`);
     }
     lines.push('', failed ? `**${failed} routine(s) fail G1.**` : `All ${list.length} routine(s) pass G1.`);
     mkdirSync(OUT, { recursive: true });

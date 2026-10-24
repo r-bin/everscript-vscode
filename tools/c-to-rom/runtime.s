@@ -11,7 +11,7 @@
             .section farcode,text
             .extern _Dp
             .extern soe_rtl_gadgets
-            .public soe_call_rtl, soe_call_rts, soe_stp
+            .public soe_call_rtl, soe_call_rts, soe_stp, soe_mvn_7e, soe_mvp_7e
 
 soe_call_rts:
             ldy     ##1
@@ -100,3 +100,49 @@ call_return:
 ; void soe_stp(void): BRK, COP and STP all end in STP in this game (knowledge/rom/80885e.md)
 soe_stp:
             stp
+
+; void soe_mvn_7e(soe_regs r) / soe_mvp_7e(soe_regs r): the CPU's own MVN/MVP $7E,$7E on the
+; record's A (count - 1), X (source) and Y (destination); A X Y written back, record DB = $7E.
+; The C side's DB is restored (16-bit index registers assumed, as in the callers).
+soe_mvn_7e:
+            ldx     ##0
+            bra     block
+soe_mvp_7e:
+            ldx     ##1
+block:
+            phb
+            phx                         ; 0 = MVN
+            ldy     ##2
+            lda     [.tiny _Dp],y       ; X
+            tax
+            ldy     ##4
+            lda     [.tiny _Dp],y       ; Y
+            pha
+            lda     [.tiny _Dp]         ; A
+            ply
+            pha
+            lda     3,s                 ; the direction flag (under the count)
+            bne     up_mvp
+            pla
+            mvn     #0x7e,#0x7e
+            bra     moved
+up_mvp:
+            pla
+            mvp     #0x7e,#0x7e
+moved:
+            phy                         ; the new Y, before Y indexes the record
+            sta     [.tiny _Dp]
+            txa
+            ldy     ##2
+            sta     [.tiny _Dp],y
+            pla
+            ldy     ##4
+            sta     [.tiny _Dp],y
+            sep     #0x20
+            lda     #0x7e
+            ldy     ##8
+            sta     [.tiny _Dp],y
+            rep     #0x20
+            plx
+            plb
+            rtl

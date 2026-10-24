@@ -6,23 +6,24 @@
  * Leaves A = $FFF0, X = Y, N Z from the LDA #$FFF0.
  */
 #include "soe.h"
+#include "soe_ram.h"
 
 SOE_BIND(anim_op_reset, 0x908453, RTS)
 {
     uint16_t x = r->y;
 
     r->x = x;
-    ABSI16(r, 0x0082, x) = 0;
-    if (ABSI16(r, 0x0016, x) & 0x0010) {
-        ABSI16(r, 0x002E, x) = 0;
-        ABSI16(r, 0x0014, x) = (uint16_t)(ABSI16(r, 0x0014, x) & 0xFDFF);
+    ABSI16(r, ENTITY_RECORD_TICK_HANDLER_OFF, x) = 0;
+    if (ABSI16(r, ENTITY_RECORD_MODE_OFF, x) & 0x0010) {
+        ABSI16(r, ENTITY_RECORD_STAMINA_OFF, x) = 0;
+        ABSI16(r, ENTITY_RECORD_CLOSED_STATES_OFF, x) = (uint16_t)(ABSI16(r, ENTITY_RECORD_CLOSED_STATES_OFF, x) & 0xFDFF);
     }
-    ABSI16(r, 0x0016, x) = 0;
-    ABSI16(r, 0x0042, x) = 0;
-    ABSI16(r, 0x0044, x) = 0xFFF0;
-    ABSI16(r, 0x0006, x) = 0;
-    ABSI16(r, 0x0008, x) = 0;
-    ABSI16(r, 0x000A, x) = 0;
+    ABSI16(r, ENTITY_RECORD_MODE_OFF, x) = 0;
+    ABSI16(r, ENTITY_RECORD_HURT_DX_OFF, x) = 0;
+    ABSI16(r, ENTITY_RECORD_HURT_DY_OFF, x) = 0xFFF0;
+    ABSI16(r, ENTITY_RECORD_SPRITE_OFF, x) = 0;
+    ABSI16(r, ENTITY_RECORD_SPRITE_BANK_OFF, x) = 0;
+    ABSI16(r, 0x000A, x) = 0;                                /* +$0A: meaning not known yet */
     r->a = 0xFFF0;
     soe_nz16(r, 0xFFF0);
     r->p |= SOE_M;

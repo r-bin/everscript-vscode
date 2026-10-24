@@ -53,6 +53,10 @@ External resources:
    deep links to tabs (`vfs-and-knowledge` skill). Propose creative data combinations in Markdown.
 10. **Respect developer time & test tiers.** Run fast unit tests (`npm test` ~7s) during iterations. Slow tiers
     (`rom`, `dom`, `emulator`, `all`) run on demand. Never replay the same file 100 times. Always use timeouts (`test-discipline` skill).
+11. **Reconstructed C preserves the game, it does not improve it.** The C in `reconstructed-c/` documents
+    what the ROM does; never change that documented code to make it faster or nicer. A performance variant
+    goes only under `#ifdef SOE_OPTIMIZE` (off by default) next to it, after measuring that it is needed,
+    with the measurement written down (`code-vfs` skill §4, `docs/reverse-engineering/c-to-rom.md` §10).
 
 ---
 

@@ -14,6 +14,9 @@
  * from the last load/AND; X changes only on the table path.
  */
 #include "soe.h"
+#include "soe_ram.h"
+
+#ifndef SOE_OPTIMIZE
 
 #define SOLID 0x000F
 #define GEOMETRY_TABLE 0x909E73UL
@@ -81,3 +84,64 @@ SOE_BIND(eval_tile_collision, 0x909DE8, RTL)
     if ((a & 0x0010) && (plane & 0x0040)) { geometry(r, word); return; }   /* $30 and entity bit 6 */
     ret_a(r, SOLID);
 }
+
+#else /* SOE_OPTIMIZE: a faster variant of the same behaviour (G1-checked); the code above is the documentation */
+
+#define SOLID 0x000F
+#define GEOMETRY_TABLE 0x909E73UL
+
+SOE_BIND(eval_tile_collision, 0x909DE8, RTL)
+{
+    uint8_t SOE_FAR *dp = SOE_DIRECT(r);
+    uint16_t word = DPB16(dp, 0x50), plane = DPB16(dp, 0x44);
+    uint16_t a = word, d, x = r->x;
+    uint8_t p = r->p;
+    bool table = false;
+
+    if (word & 0x0100) {
+        uint16_t actor = DPB16(dp, 0x4C);
+        int8_t gate = -1;                                    /* 1: blocked, 0: passes, -1: no gate */
+
+        /* CMP leaves N Z C: only C is visible at the exit ($0F loads N Z) */
+        if (((a ^= 0x0300) & 0x0F00) == 0) {
+            p = (uint8_t)((p & ~SOE_C) | (actor >= BOY_ENTITY_RECORD_ADDR ? SOE_C : 0));
+            gate = actor < BOY_ENTITY_RECORD_ADDR;
+        } else if (((a ^= 0x0600) & 0x0F00) == 0) {
+            p = (uint8_t)((p & ~SOE_C) | (actor >= DOG_ENTITY_RECORD_ADDR ? SOE_C : 0));
+            gate = actor == DOG_ENTITY_RECORD_ADDR;
+        } else if (((a ^= 0x0200) & 0x0F00) == 0) {
+            p = (uint8_t)((p & ~SOE_C) | (actor >= BOY_ENTITY_RECORD_ADDR ? SOE_C : 0));
+            gate = actor >= BOY_ENTITY_RECORD_ADDR;
+        }
+        if (gate == 1) { a = SOLID; goto out; }
+        if (gate == 0) a = word;                             /* $9E20 LDA $50 */
+    }
+    if (a & 0x0040) {                                        /* $9E44 */
+        a = ((a ^ plane) & 0x0030) ? r->d : (uint16_t)(word & 0x000F);
+        goto out;
+    }
+    /* $9E27: SEC / SBC $44 / AND #$30 */
+    d = (uint16_t)(a - plane);
+    p = (uint8_t)(p & ~(SOE_V | SOE_C));
+    if (a >= plane) p |= SOE_C;
+    if (((a ^ plane) & (a ^ d)) & 0x8000) p |= SOE_V;
+    d &= 0x0030;
+    if (d == 0 || (!(d & 0x0020) && (word & 0x2000)) || ((d & 0x0010) && (d & 0x0020) && (plane & 0x0040))) {
+        /* the geometry ($9E2F, or $9E68 straight to the table) */
+        a = word & 0x000F;
+        table = (word & 0x2000) != 0;
+    } else {
+        a = SOLID;
+    }
+    if (table) {
+        x = (uint16_t)(a << 1);                              /* ASL A clears C, TAX */
+        p = (uint8_t)(p & ~SOE_C);
+        a = ROM16(GEOMETRY_TABLE + x);
+    }
+out:
+    r->a = a;
+    r->x = x;
+    r->p = soe_p_nz16(p, a);
+}
+
+#endif /* SOE_OPTIMIZE */

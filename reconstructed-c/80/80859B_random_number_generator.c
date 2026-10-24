@@ -9,6 +9,8 @@
 #include "soe.h"
 #include "soe_ram.h"
 
+#ifndef SOE_OPTIMIZE
+
 #define W0 (RNG_STATE_ADDR + 0)
 #define W1 (RNG_STATE_ADDR + 2)
 #define W2 (RNG_STATE_ADDR + 4)
@@ -32,3 +34,38 @@ SOE_BIND(random_number_generator, 0x80859B, RTL)
     step(r, W1, W0, W2, W1);
     r->a = step(r, W0, W3, W3, W0);
 }
+
+#else /* SOE_OPTIMIZE: a faster variant of the same behaviour (G1-checked); the code above is the documentation */
+
+#define W0 (RNG_STATE_ADDR + 0)
+#define W1 (RNG_STATE_ADDR + 2)
+#define W2 (RNG_STATE_ADDR + 4)
+#define W3 (RNG_STATE_ADDR + 6)
+
+SOE_BIND(random_number_generator, 0x80859B, RTL)
+{
+    uint8_t SOE_FAR *bank = SOE_BANK(r);
+    uint16_t c = r->p & SOE_C, a = 0, m = 0, out = 0;
+
+    /* rotate `rot` through carry, carry out bumps `bump`, A + `add` + carry -> `store` */
+#define STEP(rot, bump, add, store)                                     \
+    a = BANK16(bank, rot);                                              \
+    out = (uint16_t)(a << 1 | c);                                       \
+    c = a >> 15;                                                        \
+    if (c) BANK16(bank, bump) = (uint16_t)(BANK16(bank, bump) + 1);     \
+    a = out;                                                            \
+    m = BANK16(bank, add);                                              \
+    out = (uint16_t)(a + m + c);                                        \
+    c = c ? out <= a : out < a;                                         \
+    BANK16(bank, store) = out;
+
+    STEP(W3, W2, W1, W3)
+    STEP(W2, W1, W0, W2)
+    STEP(W1, W0, W2, W1)
+    STEP(W0, W3, W3, W0)
+#undef STEP
+    r->a = out;
+    r->p = soe_flags_add16(r->p, a, m, out, c);
+}
+
+#endif /* SOE_OPTIMIZE */

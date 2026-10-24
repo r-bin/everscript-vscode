@@ -5,13 +5,14 @@
  * steps by 2. Leaves A = the word, X = the new pointer, N Z from the INX.
  */
 #include "soe.h"
+#include "soe_ram.h"
 
 SOE_BIND(anim_op_mode, 0x908485, RTS)
 {
     uint16_t word = LONG16(SOE_DPPTR(r, 0x5D));
     uint16_t x = (uint16_t)(DP16(r, 0x5D) + 2);
 
-    ABSI16(r, 0x0016, r->y) = word;
+    ABSI16(r, ENTITY_RECORD_MODE_OFF, r->y) = word;
     DP16(r, 0x5D) = x;
     r->a = word;
     r->x = x;

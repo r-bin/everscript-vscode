@@ -8,6 +8,7 @@
  * C from the last shift or CPY.
  */
 #include "soe.h"
+#include "soe_ram.h"
 
 SOE_BIND(scale_damage_by_stamina, 0x8FC02B, RTL)
 {
@@ -20,8 +21,8 @@ SOE_BIND(scale_damage_by_stamina, 0x8FC02B, RTL)
         soe_cmp16(r, ABS16(r, 0x0ABA), 0x001A);
         boy_weapon = (r->p & SOE_Z) != 0;
     }
-    a = boy_weapon ? ABS16(r, 0x1468) : LONG16(0x8E0019UL + ABSI16(r, 0x0060, x));
-    charge = ABSI16(r, 0x002E, x);
+    a = boy_weapon ? ABS16(r, 0x1468) : LONG16(0x8E0019UL + ABSI16(r, ENTITY_RECORD_CHARACTER_OFF, x));
+    charge = ABSI16(r, ENTITY_RECORD_STAMINA_OFF, x);
     shift = 0;                                               /* < 0: right, > 0: left */
     soe_cmp16(r, charge, 0x0200);
     if (r->p & SOE_N) {

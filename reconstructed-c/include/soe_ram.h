@@ -216,6 +216,42 @@
 #define ENTITY_LIST_HEAD_SIZE 2
 #define ENTITY_LIST_HEAD RAM16(ENTITY_LIST_HEAD_ADDR)
 
+/* Runtime entity record (one slot; the layout every entity shares) ($7E3DE5-$7E3E72, struct): src/games/evermore/localizations/knowledge/ram/7e3de5.md */
+#define ENTITY_RECORD_ADDR 0x3DE5u
+#define ENTITY_RECORD_SIZE 142
+#define ENTITY_RECORD_ANIM_PTR_OFF 0x00u   /* 3 bytes */
+#define ENTITY_RECORD_ANIM_RESTART_OFF 0x03u   /* 2 bytes */
+#define ENTITY_RECORD_ANIM_TIMER_OFF 0x05u   /* 1 byte */
+#define ENTITY_RECORD_SPRITE_OFF 0x06u   /* 2 bytes */
+#define ENTITY_RECORD_SPRITE_BANK_OFF 0x08u   /* 1 byte */
+#define ENTITY_RECORD_PALETTE_SLOT_OFF 0x0Cu   /* 2 bytes */
+#define ENTITY_RECORD_FLAGS_OFF 0x10u   /* 2 bytes */
+#define ENTITY_RECORD_STATE_OFF 0x12u   /* 2 bytes */
+#define ENTITY_RECORD_CLOSED_STATES_OFF 0x14u   /* 2 bytes */
+#define ENTITY_RECORD_MODE_OFF 0x16u   /* 2 bytes */
+#define ENTITY_RECORD_PLANE_OFF 0x18u   /* 2 bytes */
+#define ENTITY_RECORD_POS_X_OFF 0x1Au   /* 2 bytes */
+#define ENTITY_RECORD_POS_Y_OFF 0x1Cu   /* 2 bytes */
+#define ENTITY_RECORD_HEIGHT_OFF 0x1Eu   /* 2 bytes */
+#define ENTITY_RECORD_VSPEED_OFF 0x20u   /* 2 bytes */
+#define ENTITY_RECORD_FACING_OFF 0x22u   /* 2 bytes */
+#define ENTITY_RECORD_AI_TARGET_OFF 0x24u   /* 2 bytes */
+#define ENTITY_RECORD_HP_OFF 0x2Au   /* 2 bytes */
+#define ENTITY_RECORD_STAMINA_OFF 0x2Eu   /* 2 bytes */
+#define ENTITY_RECORD_LAST_ATTACKER_OFF 0x36u   /* 2 bytes */
+#define ENTITY_RECORD_ATTACKER_COOLDOWN_OFF 0x38u   /* 2 bytes */
+#define ENTITY_RECORD_TILE_UNDER_OFF 0x3Au   /* 2 bytes */
+#define ENTITY_RECORD_TILE_COLLISION_OFF 0x3Cu   /* 2 bytes */
+#define ENTITY_RECORD_HURT_DX_OFF 0x42u   /* 2 bytes */
+#define ENTITY_RECORD_HURT_DY_OFF 0x44u   /* 2 bytes */
+#define ENTITY_RECORD_NEXT_OFF 0x5Eu   /* 2 bytes */
+#define ENTITY_RECORD_CHARACTER_OFF 0x60u   /* 2 bytes */
+#define ENTITY_RECORD_CHILD_SLOT_OFF 0x6Au   /* 2 bytes */
+#define ENTITY_RECORD_PENDING_DAMAGE_OFF 0x76u   /* 2 bytes */
+#define ENTITY_RECORD_TICK_HANDLER_OFF 0x82u   /* 2 bytes */
+#define ENTITY_RECORD_SPRITE_DEPTH_OFF 0x84u   /* 2 bytes */
+#define ENTITY_RECORD_SEGMENTS_OFF 0x86u   /* 2 bytes */
+
 /* Main player entity record (Boy) ($7E4E89-$7E4F36, struct): src/games/evermore/localizations/knowledge/ram/7e4e89.md */
 #define BOY_ENTITY_RECORD_ADDR 0x4E89u
 #define BOY_ENTITY_RECORD_SIZE 174

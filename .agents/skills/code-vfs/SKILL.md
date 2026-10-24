@@ -45,32 +45,40 @@ becomes known by writing its entry; then it gets a folder.
 
 ## 4. C that runs as Evermore
 
-The target is C that replaces the ROM routine in the recomp (`hle_func`) and leaves exactly the
-state the asm leaves. That is the zelda3 / Super Metroid recomp / Lufia 2 method. A ROM stays the
-Asar export: no working decomp compiles C into a SNES ROM. Plan, comparison and the worked example
-(`random_below`): `docs/reverse-engineering/c-to-rom.md`.
+The C replaces its ROM routine and leaves exactly the state the asm leaves. Two ways to run it:
+**in the ROM** (`tools/c-to-rom/`, Calypsi; the owner's choice of 2026-10-24) and in the recomp
+(`hle_func`). Build, ABI and status: `docs/reverse-engineering/c-to-rom.md` §10.
 
-Write the C in the form the recomp can bind:
+Write the C in the bindable form (worked files: `reconstructed-c/80/80859B_*.c`, `90/909DE8_*.c`):
 
-- **Interface where the asm keeps it.** Inputs/outputs in registers, DP slots or flags; entry
-  widths, DB/D, `RTS` vs `RTL`: written in the knowledge entry first, from the `.asm`.
-- **Scratch is WRAM.** DP temporaries the asm writes, the C writes the same way.
-- **One name per address** from the shared RAM header over `g_ram`, instead of local `extern`s;
-  ROM data read from the ROM image by table label; `uint8_t`/`uint16_t` with an explicit cast
-  wherever the asm wraps; integer math only (fixed-point as the asm does).
-- **One routine, one file**, its gate in the header comment and the knowledge entry.
+- `#include "soe.h"` (WRAM, ROM, I/O, DB-relative `ABS16`/`ABSI16`, `DP16`, flag helpers) and
+  `"soe_ram.h"` (generated from `knowledge/ram/`: one name per address, `ENTITY_RECORD_*_OFF`).
+  Name an address by writing its entry, then `node tools/c-to-rom/gen-ram-header.mts`.
+- `SOE_BIND(name, 0x8FA963, RTS) { ... }` on the execution address. The binding reads the registers
+  from `r` and writes back every register and flag the asm leaves: `soe_nz16` after the last load,
+  pull or `TDC`, `soe_carry`, `soe_bit_imm`. Operands as the asm addresses them: `LDA $0139` is
+  `ABS16(r, 0x0139)` (bank DB), `LDA $7E0139` is `RAM16(0x0139)`, `LDA $12` is `DP16(r, 0x12)`.
+- Tables and assets are read from the ROM (`ROM16(0xC40002 + x)`), never copied into C. No static
+  variables (the link fails). No comma expressions in conditions. Call C directly, asm through
+  `soe_call_rtl`/`soe_call_rts`; a halt (BRK/STP) is `soe_stp()`.
+- One routine, one file `<bank>/<addr>_<name>.c`; drop the old description of it from other files.
+- **Preserve, never improve** (AGENTS.md rule 11): the default code follows the asm instruction by
+  instruction and is never rewritten for speed. A faster variant may follow it under
+  `#ifdef SOE_OPTIMIZE` (off; `build.mts --optimize`, `g1.mts --optimize` checks it), only for a
+  measured need written in `c-to-rom.md` §10. The speed helpers (`SOE_BANK`, `BANKI16`, `DPB16`,
+  `soe_flags_*`, `soe_mvn_7e`) exist only under that macro.
 
 A routine's C counts by **gate**, never by "a file exists":
 
-| Gate | Passes when |
-|---|---|
-| G0 | compiles on the host with `-Werror` against the shared headers |
-| G1 | equals the ROM's bytes run in `cpu65816.ts` on captured and edge entry states: registers, flags, S, full WRAM, ordered I/O; a deliberate mutation of the ROM routine is caught |
-| G2 | the recomp with the binding equals the recomp without it, every frame of a playback |
-| G3 | per-frame WRAM/VRAM/CGRAM/OAM equal to vanilla snes9x on recorded playbacks |
+| Gate | Passes when | Tool |
+|---|---|---|
+| G0 | Calypsi compiles it (the build; with `--optimize` too when it has a variant) | `build.mts` |
+| G1 | equals the ROM's bytes on cpu65816.ts from sampled real entry states and fuzzed ones: registers, flags, S, WRAM except the dead stack, ordered I/O; snes9x agrees with the interpreter; a mutation is caught | `g1.mts` |
+| G2 | the recomp with the binding equals the recomp without it | not built |
+| G3 | per-frame WRAM equal to vanilla on the 2:20 reference | `compare.mts`: drifts by design (§7a) |
 
-State on 2026-10-24: no file has passed G1. The shared header, the G1 harness and the binding
-step are still to build (`c-to-rom.md` §9). Until a file passes G1, call it a *description*.
+State on 2026-10-24 (v0.351.0): 27 routines pass G1, recorded as a `c: G1 passed` evidence line in
+each knowledge entry. A file below G1 is a *description*.
 
 ## 5. Traps
 
@@ -80,6 +88,10 @@ step are still to build (`c-to-rom.md` §9). Until a file passes G1, call it a *
   with other widths can misdecode; check the CDL library (`cdl-recorder`) when it matters.
 - In a PAL ROM `this ROM` may be `—` (code changed: no match for the US bytes) or
   `(ambiguous)`; never write a PAL address into an entry (`docs/evermore-releases.md`).
+- Bind only a real routine: the build refuses entries reached only by falling through (a loop
+  label such as `$8F:AFF5`), routines shorter than the trampoline, and trampoline bytes that some
+  recorded jump lands on. Routines that pull their caller's stack (`PLB` of a pushed DB, `$90:9F21`)
+  do not fit the bridge yet.
 - `tools/recomp/lockstep.js` treats DP `$02–$0E` as noise, which is exactly where a C routine's
   scratch goes wrong unseen. G1 compares every byte.
 - Long-term goals and what is open: `docs/todo/code-vfs.md`.

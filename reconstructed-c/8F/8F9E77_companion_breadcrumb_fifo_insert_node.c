@@ -8,6 +8,8 @@
  */
 #include "soe.h"
 
+#ifndef SOE_OPTIMIZE
+
 SOE_BIND(companion_breadcrumb_fifo_insert_node, 0x8F9E77, RTL)
 {
     uint16_t x = DP16(r, 0x4E);
@@ -31,3 +33,36 @@ SOE_BIND(companion_breadcrumb_fifo_insert_node, 0x8F9E77, RTL)
     r->a = old;                                              /* PLA */
     soe_nz16(r, old);
 }
+
+#else /* SOE_OPTIMIZE: a faster variant of the same behaviour (G1-checked); the code above is the documentation */
+
+SOE_BIND(companion_breadcrumb_fifo_insert_node, 0x8F9E77, RTL)
+{
+    uint8_t SOE_FAR *bank = SOE_BANK(r);
+    uint16_t x = DPB16(SOE_DIRECT(r), 0x4E);
+    uint16_t old = BANKI16(bank, 0x3BFF, x), grown, n;
+    uint8_t p = r->p;
+
+    r->x = x;
+    grown = (uint16_t)(old + 3);                             /* PHA / CLC / ADC #3 */
+    BANKI16(bank, 0x3BFF, x) = grown;
+    n = (uint16_t)(old - r->y - 1);                          /* PHY / CLC / SBC $01,s */
+    p = soe_flags_sub16(p, old, r->y, n, 0, false);
+    if (!(n & 0x8000)) {
+        uint16_t sum = (uint16_t)(old + 0x3BC9), src, dst;   /* CLC / ADC #$3BC9 / DEC A / TAX */
+        uint16_t c = sum < old;
+        src = (uint16_t)(sum - 1);
+        dst = (uint16_t)(src + 3 + c);                       /* ADC #3: the carry of the first ADC */
+        p = soe_flags_add16(p, src, 3, dst, c ? dst <= src : dst < src);
+        r->x = src;
+        r->y = dst;
+        r->a = n;
+        r->p = p;
+        soe_mvp_7e(r);
+        p = r->p;
+    }
+    r->a = old;                                              /* PLA */
+    r->p = soe_p_nz16(p, old);
+}
+
+#endif /* SOE_OPTIMIZE */

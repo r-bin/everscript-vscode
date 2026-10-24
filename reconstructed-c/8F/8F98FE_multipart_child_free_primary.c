@@ -7,10 +7,11 @@
  * the last load.
  */
 #include "soe.h"
+#include "soe_ram.h"
 
 SOE_BIND(multipart_child_free_primary, 0x8F98FE, RTL)
 {
-    uint16_t x = ABSI16(r, 0x006A, r->y);
+    uint16_t x = ABSI16(r, ENTITY_RECORD_CHILD_SLOT_OFF, r->y);
 
     r->x = x;
     soe_nz16(r, x);
@@ -20,5 +21,5 @@ SOE_BIND(multipart_child_free_primary, 0x8F98FE, RTL)
     ABS16(r, 0x3BC7) = x;
     r->a = 0xFFFF;
     soe_nz16(r, 0xFFFF);
-    ABSI16(r, 0x006A, r->y) = 0xFFFF;
+    ABSI16(r, ENTITY_RECORD_CHILD_SLOT_OFF, r->y) = 0xFFFF;
 }

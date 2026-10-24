@@ -11,7 +11,9 @@
 // to banks F8-FB (file 0x380000 and up): the 4th MB, away from the one read past 3 MB ($B0:E653, knowledge/rom/80d113.md).
 // The linker gets no RAM besides the pseudo-registers, so a static variable in C fails the link instead of writing
 // WRAM the original does not.
-//   node tools/c-to-rom/build.mts [--rom <clean rom>] [--out out/c-to-rom/soe-c.sfc]
+//   node tools/c-to-rom/build.mts [--rom <clean rom>] [--out out/c-to-rom/soe-c.sfc] [--skip name,name] [--optimize]
+// --skip leaves those routines in asm (a speed experiment: the bridges cost cycles, c-to-rom.md §10).
+// --optimize compiles the SOE_OPTIMIZE variants (off by default: the documented code is what runs).
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, rmSync } from 'node:fs';
 import { join, relative, basename } from 'node:path';
 import { createRequire } from 'node:module';
@@ -52,6 +54,10 @@ export function bindings(files: string[]): Binding[] {
         for (const m of readFileSync(file, 'utf8').matchAll(re))
             out.push({ name: m[1], addr: parseInt(m[2], 16), ret: m[3] as 'RTL' | 'RTS', file: relative(REPO, file) });
     }
+    // a file may bind a routine twice: the documented code and its SOE_OPTIMIZE variant
+    const unique = out.filter((b, i) => out.findIndex(o => o.addr === b.addr && o.name === b.name && o.file === b.file) === i);
+    out.length = 0;
+    out.push(...unique);
     const seen = new Map<number, Binding>();
     for (const b of out) {
         if ((b.addr & 0x8000) === 0 || b.addr >> 16 < 0x80 || b.addr >> 16 > 0xBF)
@@ -193,12 +199,15 @@ function parseHex(text: string): Map<number, number> {
 
 export interface BuildResult { image: Uint8Array; bindings: Binding[]; symbols: Record<string, number>; codeBytes: number }
 
-export async function buildImage(source: Uint8Array, workDir = join(OUT, 'obj')): Promise<BuildResult> {
+export interface BuildOptions { skip?: string[]; optimize?: boolean }
+
+export async function buildImage(source: Uint8Array, workDir = join(OUT, 'obj'), opts: BuildOptions = {}): Promise<BuildResult> {
+    const skip = opts.skip || [];
     const rom = stripHeader(source);
     const { build: base4mb, finish } = require('../table-hack/tables');
     const image: Uint8Array = base4mb(rom, []).image;
     const files = sourceFiles();
-    const list = bindings(files);
+    const list = bindings(files).filter(b => !skip.includes(b.name));
     const problems = checkBindings(rom, list);
     if (problems.length) throw new Error('bindings that cannot be trampolined:\n  ' + problems.join('\n  '));
     rmSync(workDir, { recursive: true, force: true });
@@ -207,7 +216,7 @@ export async function buildImage(source: Uint8Array, workDir = join(OUT, 'obj'))
     const objs: string[] = [];
     for (const f of files) {
         const o = join(workDir, basename(f, '.c') + '.o');
-        execFileSync(cc, [...MODEL, ...OPT, '-I', INCLUDE, f, '-o', o], { stdio: ['ignore', 'pipe', 'pipe'] });
+        execFileSync(cc, [...MODEL, ...OPT, ...(opts.optimize ? ['-DSOE_OPTIMIZE'] : []), '-I', INCLUDE, f, '-o', o], { stdio: ['ignore', 'pipe', 'pipe'] });
         objs.push(o);
     }
     const gen: Record<string, string> = { 'bridges.s': bridgesAsm(list), 'gadgets.s': gadgetsAsm(rom) };
@@ -241,7 +250,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const romPath: string = require('../rom').baseRomOrExit('evermore', opt('rom'));
     const out = opt('out') || IMAGE;
     try {
-        const r = await buildImage(new Uint8Array(readFileSync(romPath)));
+        const skip = (opt('skip') || '').split(',').filter(Boolean);
+        const r = await buildImage(new Uint8Array(readFileSync(romPath)), join(OUT, 'obj'), { skip, optimize: a.includes('--optimize') });
         mkdirSync(OUT, { recursive: true });
         writeFileSync(out, r.image);
         writeFileSync(join(OUT, 'build.json'), JSON.stringify({ bindings: r.bindings, codeBytes: r.codeBytes, symbols: r.symbols }, null, 1));

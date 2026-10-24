@@ -1,7 +1,8 @@
 # From reconstructed C to a game that plays identically
 
-> Status: **plan**, written 2026-10-24 (v0.343.0), revised the same day after comparing with
-> working decomps. The question: how do the C files in `reconstructed-c/` become code that
+> Status: written 2026-10-24 (v0.343.0) as a plan for the recomp path. The same day the owner
+> asked for C compiled **into the ROM**; §7a measures what that means, §10 is the build that
+> exists (v0.345.0+). The question: how do the C files in `reconstructed-c/` become code that
 > runs the game so it looks and plays exactly like the original?
 > Read with: [asm-to-c-port.md](asm-to-c-port.md) (stages, the Asar export, lockstep),
 > [../recomp/lessons-from-mmx-and-lufia2.md](../recomp/lessons-from-mmx-and-lufia2.md) (two more
@@ -28,9 +29,9 @@ So we follow the same method, with the tools we already have:
 3. **Later, optionally:** once the engine is C, the hand-written C can stand alone with
    emulated PPU/APU, as zelda3 and smw do.
 
-**A ROM** still comes from the Asar export, which already rebuilds byte-identically. ROM
-edits remain asm patches (`snes-asm-asar-patching`). Compiling C into 65816 code would be new
-territory: none of these projects does it, so it is not on the plan (§8).
+**A ROM** with C in it: `tools/c-to-rom/` (§10) compiles bound C with Calypsi into the 4th MB
+of the vanilla image. Each routine is exact to the ROM per call (G1); the whole game does not
+stay frame-identical, because the engine's work per frame depends on cycle counts (§7a).
 
 ---
 
@@ -284,22 +285,13 @@ every frame. These are the facts that goal runs into.
 The architecture overview for compiling C into HiROM (linker regions, near/far pointers) is
 [c-compilation-hirom-memory-map.md](c-compilation-hirom-memory-map.md).
 
-## 8. Not pursued: compiling the C into the ROM
+## 8. Compiling the C into the ROM
 
-The first version of this page planned a C dialect and our own 65816 compiler to put C into
-the ROM, byte-exact. No project above does this. Hand-written 65816 has no compiler output
-to match, and stock 65816 C compilers use their own calling conventions and produce slower
-code. That would be research, not a known-working method. What remains:
-
-- **A ROM, byte-exact:** the Asar export (stage 1), already done.
-- **A changed ROM:** asm patches; new code may come from a stock 65816 C compiler in free
-  ExHiROM space behind an asm trampoline (`snes-asm-asar-patching`). None of it replaces
-  original routines.
-- **Romhacks in the C port:** smw reimplements Lunar Magic's features in C, so hacked levels
-  load. For us, the port reads rooms, scripts and tables from the user's ROM at run time,
-  which the recomp already does, and edited ROMs keep working.
-
----
+The first version of this page planned our own C dialect and 65816 compiler and then dropped
+it: no decomp does this, and hand-written 65816 has no compiler output to match. The owner then
+asked for it (2026-10-24) and, after §7a's measurement, chose a stock compiler (Calypsi) with
+exactness **per routine**, not per frame. §10 is that build. Frame identity would need code that
+takes the asm's exact cycles on every path, which no stock compiler gives.
 
 ## 9. Next steps
 
@@ -311,3 +303,71 @@ code. That would be research, not a known-working method. What remains:
 | 4 | Lockstep on recorded input; an A/B mode (with / without bindings) | G2, G3 |
 | 5 | `random_below` through G3 (§3) | the first proof that the pipeline works |
 | 6 | PROGRESS.md and `todo.md` count by gate | honest numbers |
+
+---
+
+## 10. The ROM build (`tools/c-to-rom/`, v0.345.0+)
+
+| Step | Command | What it does |
+|---|---|---|
+| tool chain | `node tools/c-to-rom/calypsi.mts` | fetches Calypsi 5.18 into `out/toolchains/` (personal non-commercial licence, not redistributable: never commit or package it; x86_64, runs under Rosetta 2) |
+| header | `node tools/c-to-rom/gen-ram-header.mts` | `reconstructed-c/include/soe_ram.h` from `knowledge/ram/` (`--check` for staleness) |
+| build | `node tools/c-to-rom/build.mts` | `out/c-to-rom/soe-c.sfc` |
+| G1 | `node tools/c-to-rom/g1.mts [name ...]` | `out/c-to-rom/G1.md`; `--trace name:i[:k]` prints both instruction traces |
+| 2:20 | `node tools/c-to-rom/compare.mts` | WRAM per frame against `intro-2m20.wram-crc` |
+| asm | `node tools/c-to-rom/disasm.mts 8FA963 --walk` | a whole routine, widths from the CDL library |
+
+**Image.** The clean ROM extended to 4 MB as the table hack does it (the 4th MB = what snes9x
+shows past 3 MB). Tables, assets and every routine not in C keep their vanilla bytes. Code goes
+to banks `$F8–$FB`; the linker rules give no RAM besides the pseudo-registers, so a static
+variable in C fails the link instead of writing WRAM the original does not.
+
+**Binding.** `SOE_BIND(name, 0x8FA963, RTS)` in a file that includes `soe.h`. At the routine's
+entry: `JML bridge` (RTL routines, 4 bytes) or `JSL bridge / RTS` (RTS routines, 5 bytes); the rest
+of the old routine stays, so code that jumps into its middle still works. The bridge pushes P,
+DB, D, Y, X, A as a `soe_regs_t` record, moves S down 32 bytes and points D there (Calypsi's
+pseudo-registers live in fresh stack, so the C writes no WRAM but its own stores and the dead
+stack below S), calls the binding with a pointer to the record and pulls everything back, P
+included. `runtime.s` gives C `soe_call_rtl`/`soe_call_rts` into routines still in asm (an RTS
+routine returns through an RTL byte of its own bank) and `soe_stp`. The build refuses bindings
+whose code does not return as declared, that no recorded call or jump reaches, that are shorter
+than the trampoline, or whose trampoline bytes a recorded jump lands on.
+
+**G1.** Entry states are sampled from the 2:20 reference in snes9x (D from the save state, offset
+98; batches of 24 routines, the core allows 64 exec breakpoints). Each state runs on
+`cpu65816.ts` with the vanilla image and the C image until S rises above its entry value; A X Y S
+D DB P PB PC, all WRAM except the dead stack, and the I/O writes in order must match. snes9x's own
+state after the return checks the interpreter (where no NMI came in between). 16 fuzzed variants
+per state (random A X Y, N V Z C, direct page) reach paths the reference never takes; a variant
+is skipped when the ROM does not return, uses the stack below S, or reads banks `$F8–$FB` (both
+differ between the images by construction). A routine passes when every state matches and a
+mutation of its first operands is caught (on fuzzed states if the real ones never take it).
+
+**Traps found by G1.** Calypsi 5.18 `-O2` drops the reload after testing a byte's sign through
+`lda 0,s` (the build uses `-O1`). A comma expression in an `else if` condition took the wrong
+branch on `$8F:C02B`. `PLY`, `PLX`, `PLB` and `TDC` set N and Z, and `BIT #imm` sets only Z: the
+exit flags are part of the contract.
+
+**Preserve, never improve (AGENTS.md rule 11).** The C documents the game: the default code follows
+the asm and is not rewritten for speed. A faster variant of a routine may sit beside it under
+`#ifdef SOE_OPTIMIZE`, off by default (`build.mts --optimize`; `g1.mts --optimize` checks the
+variants), and only for a need measured and written down here.
+
+**Speed, measured 2026-10-24 (v0.351.0).** Every binding costs a bridge (~32 instructions) and
+Calypsi's `-O1` code on top: per call the C runs 7-60x the asm's instructions (`G1.md`, last
+column). The intro is dominated by `eval_tile_collision` (~86 calls per frame) and
+`update_entity_plane` (~68), so the image falls behind vanilla there:
+
+| Build | Reaches room `$31` at frame | vs vanilla (2593) |
+|---|---|---|
+| documented code (default) | 7498 | 2.9x |
+| `--optimize` (6 routines with a variant) | 5519 | 2.1x |
+| documented, `--skip eval_tile_collision,update_entity_plane` | ~4200 | 1.6x |
+
+Is `SOE_OPTIMIZE` needed? No: the documented build runs the whole intro and attract loop (all ten
+rooms of the reference, the credits drawn correctly at frame 13000 of a 20000-frame run), only
+slower. The variants stay off; they are kept, checked by G1, for a playable-speed build.
+
+**Status (v0.351.0).** 27 routines pass G1, the documented code and the variants alike (their
+knowledge entries carry a `c: G1 passed` line). WRAM first differs from vanilla at frame 374, the
+first RNG call, as the bridges and the C take other cycles than the asm (§7a).

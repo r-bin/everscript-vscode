@@ -16,7 +16,9 @@
  *  - no comma expressions in conditions (`else if (soe_cmp16(...), r->p & SOE_N)`): built with
  *    Calypsi 5.18 that took the wrong branch on $8F:C02B; write the compare and the test apart;
  *  - after a binding's last register restore (PLY, PLX, PLB, TDC ...) set N and Z as that
- *    instruction does: the asm's exit flags are part of the contract G1 checks.
+ *    instruction does: the asm's exit flags are part of the contract G1 checks;
+ *  - the C preserves the game, it does not improve it: the default code follows the asm and is
+ *    never changed for speed. Faster variants live only under `#ifdef SOE_OPTIMIZE` (off).
  */
 #ifndef SOE_H
 #define SOE_H
@@ -152,6 +154,10 @@ static inline void soe_cmp16(soe_regs r, uint16_t a, uint16_t m) {
     uint16_t d = (uint16_t)(a - m);
     r->p = (uint8_t)((r->p & ~(SOE_N | SOE_Z | SOE_C)) | (d & 0x8000 ? SOE_N : 0) | (d == 0 ? SOE_Z : 0) | (a >= m ? SOE_C : 0));
 }
+/* BIT #imm: only Z changes (Z = no common bit); N and V stay. */
+static inline void soe_bit_imm(soe_regs r, uint16_t a, uint16_t imm) {
+    r->p = (uint8_t)((r->p & ~SOE_Z) | ((a & imm) == 0 ? SOE_Z : 0));
+}
 /* ADC (8-bit, binary mode): a + m + carry; sets N V Z C. */
 static inline uint8_t soe_adc8(soe_regs r, uint8_t a, uint8_t m) {
     uint16_t sum = (uint16_t)(a + m + (r->p & SOE_C));
@@ -204,7 +210,6 @@ static inline void soe_block_move(soe_regs r, uint8_t dst, uint8_t src, int step
 }
 #define soe_mvn(r, dst, src) soe_block_move(r, dst, src, 1)
 #define soe_mvp(r, dst, src) soe_block_move(r, dst, src, -1)
-
 /* BRK, COP and STP all halt this game's CPU (knowledge/rom/80885e.md): the C equivalent. */
 void soe_stp(void);
 
@@ -218,5 +223,73 @@ void soe_stp(void);
  * its own bank through an RTL byte in that bank (tools/c-to-rom/runtime.s). */
 void soe_call_rtl(uint32_t target, soe_regs r);
 void soe_call_rts(uint32_t target, soe_regs r);
+
+/* ==== SOE_OPTIMIZE (off by default): helpers for faster variants ====
+ * The default code is the documentation of the game and stays as it is. A file may add a faster
+ * variant of a routine under `#ifdef SOE_OPTIMIZE` (build.mts --optimize); G1 checks it like the
+ * default. Add one only when a measured need exists, and write that need down (c-to-rom.md §10). */
+#ifdef SOE_OPTIMIZE
+/* N and Z of a 16-bit value into p (pure: for a local copy of P). */
+static inline uint8_t soe_p_nz16(uint8_t p, uint16_t v) {
+    uint16_t f = p & (uint16_t)~(SOE_N | SOE_Z);
+    if (v & 0x8000) f |= SOE_N;
+    if (v == 0) f |= SOE_Z;
+    return (uint8_t)f;
+}
+
+/* The data bank as a far base pointer: BANK16(bank, a) is DB:a without rebuilding a 24-bit pointer
+ * per access (offsets are 16-bit: no carry into the next bank). For hot routines. */
+#define SOE_BANK(r) ((uint8_t SOE_FAR *)((uint32_t)(r)->db << 16))
+#define BANK8(bank, a)  (*(uint8_t SOE_FAR *)((bank) + (uint16_t)(a)))
+#define BANK16(bank, a) (*(uint16_t SOE_FAR *)((bank) + (uint16_t)(a)))
+/* Indexed (LDA $3BFF,x): base + index carries into the next bank as on the CPU; the 24-bit sum is
+ * only built when the 16-bit one wraps. */
+#ifdef __CALYPSI_TARGET_65816__
+#define SOE_BANKI(bank, base, i) ((uint16_t)((uint16_t)(base) + (uint16_t)(i)) >= (uint16_t)(base) \
+    ? (bank) + (uint16_t)((uint16_t)(base) + (uint16_t)(i)) \
+    : (uint8_t SOE_FAR *)((uint32_t)(bank) + (uint16_t)(base) + (uint16_t)(i)))
+#else
+#define SOE_BANKI(bank, base, i) ((bank) + (uint32_t)(uint16_t)(base) + (uint16_t)(i))
+#endif
+#define BANKI8(bank, base, i)  (*(uint8_t SOE_FAR *)SOE_BANKI(bank, base, i))
+#define BANKI16(bank, base, i) (*(uint16_t SOE_FAR *)SOE_BANKI(bank, base, i))
+
+/* The direct page the same way: SOE_DIRECT(r) points at $00:D, DPB16(dp, o) wraps in bank $00 like
+ * the CPU's direct page does. */
+#define SOE_DIRECT(r)   ((uint8_t SOE_FAR *)(uint32_t)(r)->d)
+#define DPB8(dp, o)     (*(uint8_t SOE_FAR *)((dp) + (uint16_t)(o)))
+#define DPB16(dp, o)    (*(uint16_t SOE_FAR *)((dp) + (uint16_t)(o)))
+
+
+/* P after a 16-bit ADC whose operands, result and carry out the caller already has (no 32-bit
+ * math): N V Z C set, the rest of p kept. Pure: works on a local copy of P too. */
+static inline uint8_t soe_flags_add16(uint8_t p, uint16_t a, uint16_t m, uint16_t out, uint16_t carry) {
+    uint16_t f = p & (uint16_t)~(SOE_N | SOE_V | SOE_Z | SOE_C);
+    if (carry) f |= SOE_C;
+    if ((~(a ^ m) & (a ^ out)) & 0x8000) f |= SOE_V;
+    if (out & 0x8000) f |= SOE_N;
+    if (out == 0) f |= SOE_Z;
+    return (uint8_t)f;
+}
+/* P after a 16-bit SBC/CMP-style subtraction out = a - m - !carry_in (CMP: carry_in = 1, and V
+ * kept: pass keep_v). N V Z C set from the operands, the rest of p kept. Pure. */
+static inline uint8_t soe_flags_sub16(uint8_t p, uint16_t a, uint16_t m, uint16_t out, uint16_t carry_in, bool keep_v) {
+    uint16_t f = p & (uint16_t)~(SOE_N | SOE_Z | SOE_C | (keep_v ? 0 : SOE_V));
+    if (carry_in ? a >= m : a > m) f |= SOE_C;
+    if (!keep_v && (((a ^ m) & (a ^ out)) & 0x8000)) f |= SOE_V;
+    if (out & 0x8000) f |= SOE_N;
+    if (out == 0) f |= SOE_Z;
+    return (uint8_t)f;
+}
+/* MVN / MVP $7E,$7E by the CPU itself (tools/c-to-rom/runtime.s): exact and fast */
+#ifdef __CALYPSI_TARGET_65816__
+void soe_mvn_7e(soe_regs r);
+void soe_mvp_7e(soe_regs r);
+#else
+#define soe_mvn_7e(r) soe_mvn(r, 0x7E, 0x7E)
+#define soe_mvp_7e(r) soe_mvp(r, 0x7E, 0x7E)
+#endif
+
+#endif /* SOE_OPTIMIZE */
 
 #endif /* SOE_H */

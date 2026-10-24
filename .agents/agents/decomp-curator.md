@@ -57,7 +57,7 @@ When invoked with *"continue the decompilation"*:
 7. **Verify & Validate**:
    - Run `npm run check:legal` to ensure no illegal ROM bytes or proprietary snippets were checked in.
    - Run fast unit tests (`npm test`).
-   - Record the gate the C reached in its header and knowledge entry; run the G1 harness once it exists.
+   - Record the gate the C reached in its header and knowledge entry; run `node tools/c-to-rom/g1.mts <name>` (code-vfs skill §4). Never rewrite documented C for speed: a faster variant goes under `#ifdef SOE_OPTIMIZE` only (AGENTS.md rule 11).
 8. **Commit Updates Immediately**:
    - Stage and commit only your reverse engineering additions and updates (`git add <paths> && git commit -m '...'`). Do not leave them uncommitted across prompts. Adhere to Standing Rule 0.5 (never `git add .` or `git commit -a`).
 

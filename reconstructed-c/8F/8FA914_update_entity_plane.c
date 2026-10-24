@@ -9,6 +9,8 @@
  */
 #include "soe.h"
 
+#ifndef SOE_OPTIMIZE
+
 SOE_BIND(update_entity_plane, 0x8FA914, RTL)
 {
     uint16_t a = r->a;
@@ -30,3 +32,32 @@ SOE_BIND(update_entity_plane, 0x8FA914, RTL)
     }
     r->a = a;
 }
+
+#else /* SOE_OPTIMIZE: a faster variant of the same behaviour (G1-checked); the code above is the documentation */
+
+SOE_BIND(update_entity_plane, 0x8FA914, RTL)
+{
+    uint8_t SOE_FAR *dp = SOE_DIRECT(r);
+    uint16_t a = r->a;
+    uint8_t p;
+
+    if ((a & 0x2040) == 0) {
+        a &= 0x0030;
+        DPB16(dp, 0x44) = a;
+        p = soe_p_nz16(r->p, a);
+    } else if ((a & 0x0040) == 0) {
+        a = (uint16_t)((a & 0x0030) | 0x0040);
+        DPB16(dp, 0x44) = a;
+        p = soe_p_nz16(r->p, a);
+    } else {
+        uint16_t old = DPB16(dp, 0x44);
+        a = 0x0040;
+        DPB16(dp, 0x44) = (uint16_t)(old & ~a);
+        p = (uint8_t)(r->p & ~(SOE_N | SOE_Z));              /* LDA #$0040: N clear; TRB: Z */
+        if ((old & a) == 0) p |= SOE_Z;
+    }
+    r->a = a;
+    r->p = p;
+}
+
+#endif /* SOE_OPTIMIZE */
