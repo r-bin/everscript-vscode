@@ -15,13 +15,21 @@ static replay_state_t s_state;
 static uint8_t s_current_scene;
 static uint16_t s_timer;
 
-static void reset_scroll_registers(void) {
-    REG_BG1HOFS = 0; REG_BG1HOFS = 0;
-    REG_BG1VOFS = 0; REG_BG1VOFS = 0;
-    REG_BG2HOFS = 0; REG_BG2HOFS = 0;
-    REG_BG2VOFS = 0; REG_BG2VOFS = 0;
-    REG_BG3HOFS = 0; REG_BG3HOFS = 0;
-    REG_BG3VOFS = 0; REG_BG3VOFS = 0;
+static void apply_scroll_registers(const scene_desc_t *sc) {
+    REG_BG1HOFS = (uint8_t)(sc->bg1_scroll_x & 0xFF);
+    REG_BG1HOFS = (uint8_t)((sc->bg1_scroll_x >> 8) & 0xFF);
+    REG_BG1VOFS = (uint8_t)(sc->bg1_scroll_y & 0xFF);
+    REG_BG1VOFS = (uint8_t)((sc->bg1_scroll_y >> 8) & 0xFF);
+
+    REG_BG2HOFS = (uint8_t)(sc->bg2_scroll_x & 0xFF);
+    REG_BG2HOFS = (uint8_t)((sc->bg2_scroll_x >> 8) & 0xFF);
+    REG_BG2VOFS = (uint8_t)(sc->bg2_scroll_y & 0xFF);
+    REG_BG2VOFS = (uint8_t)((sc->bg2_scroll_y >> 8) & 0xFF);
+
+    REG_BG3HOFS = (uint8_t)(sc->bg3_scroll_x & 0xFF);
+    REG_BG3HOFS = (uint8_t)((sc->bg3_scroll_x >> 8) & 0xFF);
+    REG_BG3VOFS = (uint8_t)(sc->bg3_scroll_y & 0xFF);
+    REG_BG3VOFS = (uint8_t)((sc->bg3_scroll_y >> 8) & 0xFF);
 }
 
 void intro_replay_init(void) {
@@ -45,7 +53,6 @@ void intro_replay_update(void) {
         case STATE_LOAD_SCENE:
             /* 1. Force blank during DMA transfer */
             ppu_set_display(0x80);
-            reset_scroll_registers();
 
             /* 2. Upload Palette to CGRAM */
             if (sc->palette && sc->palette_size > 0) {
@@ -77,6 +84,8 @@ void intro_replay_update(void) {
             REG_CGWSEL  = sc->cgwsel;
             REG_CGADSUB = sc->cgadsub;
 
+            apply_scroll_registers(sc);
+
             /* 5. Start fade-in from brightness 0 */
             ppu_set_display(0x00);
             s_state = STATE_FADE_IN;
@@ -85,6 +94,7 @@ void intro_replay_update(void) {
 
         case STATE_FADE_IN:
             {
+                apply_scroll_registers(sc);
                 uint8_t brightness = (uint8_t)(s_timer / 2);
                 if (brightness > 0x0F) brightness = 0x0F;
                 ppu_set_display(brightness);
@@ -99,6 +109,7 @@ void intro_replay_update(void) {
             break;
 
         case STATE_HOLD:
+            apply_scroll_registers(sc);
             ppu_set_display(0x0F);
             s_timer++;
             if (s_timer >= sc->hold_frames) {
@@ -109,6 +120,7 @@ void intro_replay_update(void) {
 
         case STATE_FADE_OUT:
             {
+                apply_scroll_registers(sc);
                 int16_t b = 15 - (int16_t)(s_timer / 2);
                 if (b < 0) b = 0;
                 ppu_set_display((uint8_t)b);

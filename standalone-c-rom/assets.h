@@ -38,6 +38,14 @@ typedef struct {
     uint8_t cgwsel;
     uint8_t cgadsub;
 
+    /* Camera scroll coordinates */
+    uint16_t bg1_scroll_x;
+    uint16_t bg1_scroll_y;
+    uint16_t bg2_scroll_x;
+    uint16_t bg2_scroll_y;
+    uint16_t bg3_scroll_x;
+    uint16_t bg3_scroll_y;
+
     uint16_t hold_frames;
 } scene_desc_t;
 

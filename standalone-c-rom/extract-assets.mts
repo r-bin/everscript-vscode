@@ -26,14 +26,14 @@ export async function extractAssets(romPath?: string): Promise<void> {
     const core = await boot(rom);
 
     const scenes = [
-        { frame: 120, id: 'logo', name: 'Squaresoft Logo' },
-        { frame: 600, id: 'mansion', name: 'Prologue: Mansion' },
-        { frame: 1000, id: 'lab', name: 'Prologue: Laboratory' },
-        { frame: 2200, id: 'title', name: 'Title Screen' },
-        { frame: 3000, id: 'prehistoria', name: 'Demo 1: Prehistoria' },
-        { frame: 3600, id: 'antiqua', name: 'Demo 2: Antiqua' },
-        { frame: 4800, id: 'gothica', name: 'Demo 3: Gothica' },
-        { frame: 5700, id: 'omnitopia', name: 'Demo 4: Omnitopia' },
+        { frame: 120, id: 'logo', name: 'Squaresoft Logo', hold: 180 },
+        { frame: 600, id: 'mansion', name: 'Prologue: Mansion', hold: 400 },
+        { frame: 1100, id: 'lab', name: 'Prologue: Laboratory', hold: 400 },
+        { frame: 2200, id: 'title', name: 'Title Screen', hold: 600 },
+        { frame: 3000, id: 'prehistoria', name: 'Demo 1: Prehistoria', hold: 400 },
+        { frame: 3600, id: 'antiqua', name: 'Demo 2: Antiqua', hold: 400 },
+        { frame: 4800, id: 'gothica', name: 'Demo 3: Gothica', hold: 400 },
+        { frame: 5700, id: 'omnitopia', name: 'Demo 4: Omnitopia', hold: 400 },
     ];
 
     const extracted: Array<{
@@ -46,6 +46,23 @@ export async function extractAssets(romPath?: string): Promise<void> {
         logoMap3?: Buffer;
         logoTiles1?: Buffer;
         logoTiles3?: Buffer;
+        bgmode: number;
+        bg1sc: number;
+        bg2sc: number;
+        bg3sc: number;
+        bg12nba: number;
+        bg34nba: number;
+        tm: number;
+        ts: number;
+        cgwsel: number;
+        cgadsub: number;
+        bg1_scroll_x: number;
+        bg1_scroll_y: number;
+        bg2_scroll_x: number;
+        bg2_scroll_y: number;
+        bg3_scroll_x: number;
+        bg3_scroll_y: number;
+        hold: number;
     }> = [];
 
     let sceneIdx = 0;
@@ -59,6 +76,24 @@ export async function extractAssets(romPath?: string): Promise<void> {
             const heap = Buffer.from((globalThis as any).HEAPU8.buffer);
 
             const pal = Buffer.from(heap.subarray(cgramPtr, cgramPtr + 512));
+
+            const bgmode = M._readMemory(0x2105);
+            const bg1sc = M._readMemory(0x2107);
+            const bg2sc = M._readMemory(0x2108);
+            const bg3sc = M._readMemory(0x2109);
+            const bg12nba = M._readMemory(0x210B);
+            const bg34nba = M._readMemory(0x210C);
+            const tm = M._readMemory(0x212C);
+            const ts = M._readMemory(0x212D);
+            const cgwsel = M._readMemory(0x2130);
+            const cgadsub = M._readMemory(0x2131);
+
+            const bg1_scroll_x = M._readMemory(0x7E010E) | (M._readMemory(0x7E010F) << 8);
+            const bg1_scroll_y = M._readMemory(0x7E0110) | (M._readMemory(0x7E0111) << 8);
+            const bg2_scroll_x = M._readMemory(0x7E0112) | (M._readMemory(0x7E0113) << 8);
+            const bg2_scroll_y = M._readMemory(0x7E0114) | (M._readMemory(0x7E0115) << 8);
+            const bg3_scroll_x = M._readMemory(0x7E0116) | (M._readMemory(0x7E0117) << 8);
+            const bg3_scroll_y = M._readMemory(0x7E0118) | (M._readMemory(0x7E0119) << 8);
 
             if (sc.id === 'logo') {
                 const logoMap1 = Buffer.from(heap.subarray(vramPtr + 0x0000, vramPtr + 0x0800)); // 2048
@@ -75,8 +110,11 @@ export async function extractAssets(romPath?: string): Promise<void> {
                     logoMap3,
                     logoTiles1,
                     logoTiles3,
+                    bgmode, bg1sc, bg2sc, bg3sc, bg12nba, bg34nba, tm, ts, cgwsel, cgadsub,
+                    bg1_scroll_x, bg1_scroll_y, bg2_scroll_x, bg2_scroll_y, bg3_scroll_x, bg3_scroll_y,
+                    hold: sc.hold,
                 });
-                console.log(`  [${sc.id}] Extracted Squaresoft logo (pal=${pal.length}b, tiles=${logoTiles1.length + logoTiles3.length}b)`);
+                console.log(`  [${sc.id}] Extracted Squaresoft logo (pal=${pal.length}b, tiles=${logoTiles1.length + logoTiles3.length}b, scroll=(${bg1_scroll_x},${bg1_scroll_y}))`);
             } else {
                 const map = Buffer.from(heap.subarray(vramPtr + 0x0000, vramPtr + 0x1800)); // 6144
                 const tiles = Buffer.from(heap.subarray(vramPtr + 0x4000, vramPtr + 0xC000)); // 32768
@@ -86,8 +124,11 @@ export async function extractAssets(romPath?: string): Promise<void> {
                     pal,
                     map,
                     tiles,
+                    bgmode, bg1sc, bg2sc, bg3sc, bg12nba, bg34nba, tm, ts, cgwsel, cgadsub,
+                    bg1_scroll_x, bg1_scroll_y, bg2_scroll_x, bg2_scroll_y, bg3_scroll_x, bg3_scroll_y,
+                    hold: sc.hold,
                 });
-                console.log(`  [${sc.id}] Extracted ${sc.name} (pal=${pal.length}b, map=${map.length}b, tiles=${tiles.length}b)`);
+                console.log(`  [${sc.id}] Extracted ${sc.name} (pal=${pal.length}b, map=${map.length}b, tiles=${tiles.length}b, scroll=(${bg1_scroll_x},${bg1_scroll_y}))`);
             }
             sceneIdx++;
         }
@@ -122,97 +163,30 @@ export async function extractAssets(romPath?: string): Promise<void> {
 
     // 2. Output scene table
     cSource += 'const scene_desc_t g_replay_scenes[NUM_REPLAY_SCENES] = {\n';
-
-    // Scene 0: Logo
-    cSource += '    {\n';
-    cSource += '        "Squaresoft Logo",\n';
-    cSource += '        scene_pal_logo, sizeof(scene_pal_logo),\n';
-    cSource += '        logo_map1, sizeof(logo_map1),\n';
-    cSource += '        logo_map3, sizeof(logo_map3),\n';
-    cSource += '        logo_tiles1, sizeof(logo_tiles1),\n';
-    cSource += '        logo_tiles3, sizeof(logo_tiles3),\n';
-    cSource += '        0, 0, 0, 0,\n';
-    cSource += '        0x79, 0x00, 0x00, 0x08, 0x44, 0x02, 0x05, 0x02, 0x02, 0x63,\n';
-    cSource += '        180 /* hold frames (3 seconds) */\n';
-    cSource += '    },\n';
-
-    // Scene 1: Mansion
-    cSource += '    {\n';
-    cSource += '        "Prologue: Mansion",\n';
-    cSource += '        scene_pal_mansion, sizeof(scene_pal_mansion),\n';
-    cSource += '        0, 0, 0, 0, 0, 0, 0, 0,\n';
-    cSource += '        scene_map_mansion, sizeof(scene_map_mansion),\n';
-    cSource += '        scene_tiles_mansion, sizeof(scene_tiles_mansion),\n';
-    cSource += '        0x39, 0x00, 0x04, 0x08, 0x22, 0x00, 0x17, 0x00, 0x02, 0x00,\n';
-    cSource += '        600 /* hold frames (10 seconds) */\n';
-    cSource += '    },\n';
-
-    // Scene 2: Lab
-    cSource += '    {\n';
-    cSource += '        "Prologue: Laboratory",\n';
-    cSource += '        scene_pal_lab, sizeof(scene_pal_lab),\n';
-    cSource += '        0, 0, 0, 0, 0, 0, 0, 0,\n';
-    cSource += '        scene_map_lab, sizeof(scene_map_lab),\n';
-    cSource += '        scene_tiles_lab, sizeof(scene_tiles_lab),\n';
-    cSource += '        0x39, 0x00, 0x04, 0x08, 0x22, 0x00, 0x17, 0x00, 0x02, 0x00,\n';
-    cSource += '        600 /* hold frames (10 seconds) */\n';
-    cSource += '    },\n';
-
-    // Scene 3: Title Screen
-    cSource += '    {\n';
-    cSource += '        "Title Screen",\n';
-    cSource += '        scene_pal_title, sizeof(scene_pal_title),\n';
-    cSource += '        0, 0, 0, 0, 0, 0, 0, 0,\n';
-    cSource += '        scene_map_title, sizeof(scene_map_title),\n';
-    cSource += '        scene_tiles_title, sizeof(scene_tiles_title),\n';
-    cSource += '        0x39, 0x00, 0x04, 0x08, 0x22, 0x00, 0x17, 0x00, 0x02, 0x00,\n';
-    cSource += '        1200 /* hold frames (20 seconds) */\n';
-    cSource += '    },\n';
-
-    // Scene 4: Prehistoria
-    cSource += '    {\n';
-    cSource += '        "Demo 1: Prehistoria",\n';
-    cSource += '        scene_pal_prehistoria, sizeof(scene_pal_prehistoria),\n';
-    cSource += '        0, 0, 0, 0, 0, 0, 0, 0,\n';
-    cSource += '        scene_map_prehistoria, sizeof(scene_map_prehistoria),\n';
-    cSource += '        scene_tiles_prehistoria, sizeof(scene_tiles_prehistoria),\n';
-    cSource += '        0x39, 0x00, 0x04, 0x08, 0x22, 0x00, 0x17, 0x11, 0x02, 0x02,\n';
-    cSource += '        1000 /* hold frames (16.6 seconds) */\n';
-    cSource += '    },\n';
-
-    // Scene 5: Antiqua
-    cSource += '    {\n';
-    cSource += '        "Demo 2: Antiqua",\n';
-    cSource += '        scene_pal_antiqua, sizeof(scene_pal_antiqua),\n';
-    cSource += '        0, 0, 0, 0, 0, 0, 0, 0,\n';
-    cSource += '        scene_map_antiqua, sizeof(scene_map_antiqua),\n';
-    cSource += '        scene_tiles_antiqua, sizeof(scene_tiles_antiqua),\n';
-    cSource += '        0x39, 0x00, 0x04, 0x08, 0x22, 0x00, 0x17, 0x00, 0x02, 0x00,\n';
-    cSource += '        1000 /* hold frames (16.6 seconds) */\n';
-    cSource += '    },\n';
-
-    // Scene 6: Gothica
-    cSource += '    {\n';
-    cSource += '        "Demo 3: Gothica",\n';
-    cSource += '        scene_pal_gothica, sizeof(scene_pal_gothica),\n';
-    cSource += '        0, 0, 0, 0, 0, 0, 0, 0,\n';
-    cSource += '        scene_map_gothica, sizeof(scene_map_gothica),\n';
-    cSource += '        scene_tiles_gothica, sizeof(scene_tiles_gothica),\n';
-    cSource += '        0x39, 0x00, 0x04, 0x08, 0x22, 0x00, 0x17, 0x00, 0x02, 0x00,\n';
-    cSource += '        1000 /* hold frames (16.6 seconds) */\n';
-    cSource += '    },\n';
-
-    // Scene 7: Omnitopia
-    cSource += '    {\n';
-    cSource += '        "Demo 4: Omnitopia",\n';
-    cSource += '        scene_pal_omnitopia, sizeof(scene_pal_omnitopia),\n';
-    cSource += '        0, 0, 0, 0, 0, 0, 0, 0,\n';
-    cSource += '        scene_map_omnitopia, sizeof(scene_map_omnitopia),\n';
-    cSource += '        scene_tiles_omnitopia, sizeof(scene_tiles_omnitopia),\n';
-    cSource += '        0x39, 0x00, 0x04, 0x08, 0x22, 0x00, 0x17, 0x11, 0x02, 0x02,\n';
-    cSource += '        1000 /* hold frames (16.6 seconds) */\n';
-    cSource += '    },\n';
-
+    for (const sc of extracted) {
+        cSource += '    {\n';
+        cSource += `        "${sc.name}",\n`;
+        cSource += `        scene_pal_${sc.id}, sizeof(scene_pal_${sc.id}),\n`;
+        if (sc.id === 'logo') {
+            cSource += `        logo_map1, sizeof(logo_map1),\n`;
+            cSource += `        logo_map3, sizeof(logo_map3),\n`;
+            cSource += `        logo_tiles1, sizeof(logo_tiles1),\n`;
+            cSource += `        logo_tiles3, sizeof(logo_tiles3),\n`;
+            cSource += `        0, 0, 0, 0,\n`;
+        } else {
+            cSource += `        0, 0, 0, 0, 0, 0, 0, 0,\n`;
+            cSource += `        scene_map_${sc.id}, sizeof(scene_map_${sc.id}),\n`;
+            cSource += `        scene_tiles_${sc.id}, sizeof(scene_tiles_${sc.id}),\n`;
+        }
+        cSource += `        0x${sc.bgmode.toString(16).padStart(2, '0')}, 0x${sc.bg1sc.toString(16).padStart(2, '0')}, 0x${sc.bg2sc.toString(16).padStart(2, '0')}, 0x${sc.bg3sc.toString(16).padStart(2, '0')},\n`;
+        cSource += `        0x${sc.bg12nba.toString(16).padStart(2, '0')}, 0x${sc.bg34nba.toString(16).padStart(2, '0')},\n`;
+        cSource += `        0x${sc.tm.toString(16).padStart(2, '0')}, 0x${sc.ts.toString(16).padStart(2, '0')}, 0x${sc.cgwsel.toString(16).padStart(2, '0')}, 0x${sc.cgadsub.toString(16).padStart(2, '0')},\n`;
+        cSource += `        ${sc.bg1_scroll_x}, ${sc.bg1_scroll_y},\n`;
+        cSource += `        ${sc.bg2_scroll_x}, ${sc.bg2_scroll_y},\n`;
+        cSource += `        ${sc.bg3_scroll_x}, ${sc.bg3_scroll_y},\n`;
+        cSource += `        ${sc.hold} /* hold frames */\n`;
+        cSource += '    },\n';
+    }
     cSource += '};\n';
 
     const outPath = join(REPO, 'standalone-c-rom', 'assets.c');
