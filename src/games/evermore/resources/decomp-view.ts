@@ -11,6 +11,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { getFunction } from '../localizations/functions';
 import { hiromFileOffset } from '../../../platform/snes/hirom';
+import { cFunctionFor } from './code-c-index';
 
 // dist/ mirrors src/ at the same depth, so four folders up is the repo root from either.
 const REPO = path.resolve(__dirname, '..', '..', '..', '..');
@@ -24,6 +25,10 @@ const h = (v: number, d: number): string => (v >>> 0).toString(16).toUpperCase()
 /** Search reconstructed-c/<bank>/<addr>_<name>.c for a routine C file. */
 function findReconstructedC(bus: number): DecompiledC | null {
     const fn = getFunction(bus) || getFunction((hiromFileOffset(bus)) | 0x800000) || getFunction((hiromFileOffset(bus)) | 0xC00000);
+    const indexed = cFunctionFor(bus, fn ? fn.id : null);   // the file that defines this routine (code-c-index.ts)
+    if (indexed) {
+        return { source: 'reconstructed-c', title: path.basename(indexed.file, '.c'), code: fs.readFileSync(path.join(REPO, indexed.file), 'utf8').trim(), path: indexed.file };
+    }
     const reconDir = path.join(REPO, 'reconstructed-c');
     if (!fs.existsSync(reconDir)) return null;
 

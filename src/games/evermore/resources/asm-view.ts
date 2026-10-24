@@ -87,6 +87,37 @@ function decode(rom: Uint8Array, bus: number, count: number, state?: DecodeState
     return out;
 }
 
+/** Where a branch or same-bank jump on `l` goes, or null. */
+function branchTarget(l: AsmLine): number | null {
+    const o = OPCODES[l.op], v = l.bytes.length > 1 ? l.bytes.slice(1).reduceRight((a, b) => a * 256 + b, 0) : 0;
+    if (o.mode === 'rel8') return (l.addr & 0xFF0000) | ((l.addr + 2 + ((v << 24) >> 24)) & 0xFFFF);
+    if (o.mode === 'rel16') return (l.addr & 0xFF0000) | ((l.addr + 3 + ((v << 16) >> 16)) & 0xFFFF);
+    if (o.mnemonic === 'JMP' && o.mode === 'abs') return (l.addr & 0xFF0000) | v;
+    return null;
+}
+
+/**
+ * A whole routine from `bus`: decodes past a return while an earlier branch still lands further on,
+ * and stops at `end` (inclusive), at the start of another routine (`starts`), or after `limit` lines.
+ */
+function routineLines(rom: Uint8Array, bus: number, options: { end?: number | null; starts?: Set<number>; limit?: number } = {}): AsmLine[] {
+    const st: DecodeState = { m8: false, x8: false }, out: AsmLine[] = [], limit = options.limit ?? 600;
+    let addr = bus, furthest = bus;
+    while (out.length < limit) {
+        if (out.length && options.starts && options.starts.has(addr)) break;
+        if (options.end != null && addr > options.end) break;
+        const [l] = decode(rom, addr, 1, st);
+        if (!l) break;
+        out.push(l);
+        const t = branchTarget(l);
+        if (t !== null && t > furthest && (t & 0xFF0000) === (bus & 0xFF0000)) furthest = t;
+        const next = (addr & 0xFF0000) | ((addr + l.bytes.length) & 0xFFFF);
+        if (endsFlow(l.op) && next > furthest && options.end == null) break;
+        addr = next;
+    }
+    return out;
+}
+
 /** The earliest start within SYNC_BYTES before `mark` whose decode lands on it, plausibly. */
 function syncTo(rom: Uint8Array, mark: number): AsmLine[] | null {
     for (let start = mark - SYNC_BYTES; start < mark; start++) {
@@ -157,5 +188,5 @@ function asmListing(rom: Uint8Array, bus: number, options: { wantsC?: boolean; c
 }
 
 export type { AsmLine };
-export { asmListing, asmAroundCall, lineText, busToFile };
+export { asmListing, asmAroundCall, lineText, busToFile, routineLines };
 

@@ -1,159 +1,106 @@
-// Ownership: `soe://rom/code/<address>?c=1&asm=1` — routine-level view
-// showing reconstructed C and 65816 disassembly infused with centralized comments.
+// Ownership: routing of `soe://rom/code/` — routines by name (pages in code-markdown.ts, data in
+// code-catalog.ts). The name is the folder, so a link holds in every ROM:
+//
+//   soe://rom/code/index.md[?q=…&status=…]   all routines with their addresses; search and filters
+//   soe://rom/code/index.json[?…]            the same as data
+//   soe://rom/code/search.md?q=…             link to index.md (same query)
+//   soe://rom/code/todo.md                   the decompilation worklist
+//   soe://rom/code/wram.md, banks.md         WRAM used by known routines; routines per bank
+//   soe://rom/code/<name>/info.md            knowledge entry, place, calls, callers, WRAM, open work
+//   soe://rom/code/<name>/<name>.asm         the whole routine, asm comments infused (?comments=0: raw)
+//   soe://rom/code/<name>/<name>.c           its reconstructed C (?file=1: the whole file)
+//   soe://rom/code/<address>                 old address path: a link to the routine's page
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { dir, text, type Entry } from './nodes';
-import { asmListing } from './asm-view';
+import { dir, text, json, link, type Entry } from './nodes';
+import { asmListing, lineText } from './asm-view';
 import { getDecompiledC } from './decomp-view';
-import { FUNCTIONS, getFunction } from '../localizations/functions';
+import { catalog, findFunction, analyse } from './code-catalog';
+import type { Catalog, CodeFunction } from './code-catalog';
+import { select, todos, hex6 } from './code-search';
+import { indexPage, infoPage, asmFile, cFile, todoPage, wramPage, banksPage } from './code-markdown';
+import { REPO } from './code-c-index';
 import { hiromFileOffset } from '../../../platform/snes/hirom';
 import type { MapsDeps } from './map-files';
 
-const REPO = path.resolve(__dirname, '..', '..', '..', '..');
-const h = (v: number, d: number): string => (v >>> 0).toString(16).toUpperCase().padStart(d, '0');
+type CodeDeps = MapsDeps & { vanillaRom?(): Uint8Array | null };
+const PAGES = ['index.md', 'index.json', 'search.md', 'todo.md', 'wram.md', 'banks.md'];
 
-/** Convert input address string (bus or offset) to { bus, off }. */
-function parseCodeAddress(raw: string): { bus: number; off: number } | null {
-    const clean = raw.replace(/\.(md|c|asm)$/i, '').replace(/^\$/, '');
-    const m = clean.match(/^([0-9A-Fa-f]{4,6})/);
+/** A bus address from an old `code/<address>` segment (6 hex digits, `$` and an extension allowed). */
+function parseCodeAddress(raw: string): number | null {
+    const m = /^\$?([0-9A-Fa-f]{6})(?:\.(?:md|c|asm))?$/.exec(raw);
     if (!m) return null;
-    const val = parseInt(m[1], 16);
-
-    if (val >= 0x800000 && val <= 0xFFFFFF) {
-        return { bus: val, off: hiromFileOffset(val) };
-    }
-    if (val >= 0x400000 && val <= 0x7DFFFF) {
-        return { bus: val, off: hiromFileOffset(val) };
-    }
-    // File offset or bank 00 address
-    if (val < 0x400000) {
-        const bus = (val & 0xFFFF) >= 0x8000 ? (0x800000 | val) : (0xC00000 + val);
-        return { bus, off: val };
-    }
-    return { bus: val, off: hiromFileOffset(val) };
+    const v = parseInt(m[1], 16);
+    return v < 0x400000 ? ((v & 0xFFFF) >= 0x8000 ? 0x800000 | v : 0xC00000 + v) : v;
 }
 
-function listCodeEntries(): Entry[] {
-    const entries: Entry[] = [['index.md', 'file']];
-    const seen = new Set<string>();
-
-    const reconDir = path.join(REPO, 'reconstructed-c');
-    if (fs.existsSync(reconDir)) {
-        try {
-            for (const bank of fs.readdirSync(reconDir)) {
-                const bankDir = path.join(reconDir, bank);
-                if (!fs.statSync(bankDir).isDirectory()) continue;
-                for (const file of fs.readdirSync(bankDir)) {
-                    if (file.endsWith('.c')) {
-                        const name = file.replace(/\.c$/, '.md');
-                        if (!seen.has(name)) {
-                            seen.add(name);
-                            entries.push([name, 'file']);
-                        }
-                    }
-                }
-            }
-        } catch {}
+function functionDir(cat: Catalog, fn: CodeFunction, params: URLSearchParams, rest: string[]) {
+    const [leaf] = rest;
+    if (leaf === undefined) {
+        const entries: Entry[] = [['info.md', 'file'], [fn.name + '.asm', 'file'], [fn.name + '.c', 'file']];
+        return dir(entries, () => infoPage(cat, fn));
     }
-
-    for (const f of FUNCTIONS) {
-        const hex = (f.address >>> 0).toString(16).toUpperCase().padStart(6, '0');
-        const name = `${hex}_${f.name.toLowerCase().replace(/[^a-z0-9]+/g, '_')}.md`;
-        if (!seen.has(name)) {
-            seen.add(name);
-            entries.push([name, 'file']);
-        }
+    if (rest.length > 1) return null;
+    if (leaf === 'info.md' || leaf === 'index.md') return text(() => infoPage(cat, fn));
+    if (leaf === fn.name + '.asm') {
+        if (params.get('comments') !== '0') return text(() => asmFile(cat, fn));
+        return text(() => (analyse(cat, fn)?.lines || []).map(l => lineText({ ...l, comment: undefined })).join('\n') + '\n');
     }
-
-    entries.sort((a, b) => a[0].localeCompare(b[0]));
-    return entries;
+    if (leaf === fn.name + '.c') {
+        const whole = params.get('file') === '1' && fn.c ? fs.readFileSync(path.join(REPO, fn.c.file), 'utf8') : null;
+        return text(() => cFile(fn, whole));
+    }
+    return null;
 }
 
-function codeIndexMarkdown(): string {
-    return `# soe://rom/code/
-
-Routines with reconstructed C and annotated 65816 assembly.
-
-### Usage
-- \`soe://rom/code/<address>\` — Combined view (Reconstructed C and Commented ASM)
-- \`soe://rom/code/<address>?c=1&asm=0\` — Reconstructed C only
-- \`soe://rom/code/<address>?asm=1&c=0\` — Commented ASM only
-- \`soe://rom/code/<address>?comments=0\` — Raw ASM without comment overlay
-
-Examples:
-- [reset_handler ($808020)](soe://rom/code/808020)
-- [main_loop_entry ($808B66)](soe://rom/code/808B66)
-- [script_dispatcher ($8CD0A6)](soe://rom/code/8CD0A6)
-`;
+/** The routine list as data (for panels and agents). */
+function indexJson(cat: Catalog, params: URLSearchParams) {
+    return select(cat, params).map(({ fn, why }) => ({
+        name: fn.name, title: fn.entry.title, kind: fn.entry.kind, category: fn.entry.category, confidence: fn.entry.confidence,
+        us: hex6(fn.vanilla), addr: fn.at.addr === null ? null : hex6(fn.at.addr), located: fn.at.how,
+        c: fn.c ? `${fn.c.file}:${fn.c.from + 1}` : null, entry: fn.entry.file, todo: todos(cat, fn).map(t => t.kind),
+        ...(why.length ? { match: why } : {}),
+    }));
 }
 
-function resolveCode(segments: string[], rom: Uint8Array, deps?: MapsDeps) {
+/** The old combined page for an address no routine entry starts at. */
+function legacyPage(rom: Uint8Array, bus: number, params: URLSearchParams): string {
+    const showC = params.get('c') !== '0' && !(params.has('asm') && !params.has('c'));
+    const showAsm = params.get('asm') !== '0' && !(params.has('c') && !params.has('asm'));
+    let md = `# Routine: ${hex6(bus)}\n\nNo routine entry starts here; [all routines](soe://rom/code/index.md).\n\n`;
+    if (showC) {
+        const decomp = getDecompiledC(bus);
+        md += '## Reconstructed C\n\n```c\n' + (decomp ? `/* Source: ${decomp.source} (${decomp.path}) */\n${decomp.code}` : '// none') + '\n```\n\n';
+    }
+    if (showAsm) md += '## 65816 Disassembly\n\n```assembly\n' + asmListing(rom, bus, { comments: params.get('comments') !== '0' }) + '\n```\n';
+    return md;
+}
+
+function resolveCode(segments: string[], rom: Uint8Array, deps?: CodeDeps) {
+    const params = new URLSearchParams(deps?.query || '');
+    const cat = catalog(rom, deps?.vanillaRom ? deps.vanillaRom() : null);
     const [head, ...rest] = segments;
-
     if (head === undefined) {
-        return dir(listCodeEntries(), () => codeIndexMarkdown());
+        return dir([...PAGES.map((p): Entry => [p, p === 'search.md' ? 'link' : 'file']), ...cat.list.map((f): Entry => [f.name, 'dir'])], () => indexPage(cat, params));
     }
-
-    if (head === 'index.md') {
-        return text(() => codeIndexMarkdown());
+    if (rest.length === 0) {
+        if (head === 'index.md') return text(() => indexPage(cat, params));
+        if (head === 'search.md') return link(text(() => indexPage(cat, params)), 'soe://rom/code/index.md');
+        if (head === 'index.json') return json(() => indexJson(cat, params));
+        if (head === 'todo.md') return text(() => todoPage(cat));
+        if (head === 'wram.md') return text(() => wramPage(cat));
+        if (head === 'banks.md') return text(() => banksPage(cat));
     }
-
-    const addrInfo = parseCodeAddress(head);
-    if (!addrInfo || addrInfo.off >= rom.length) return null;
-
-    const { bus, off } = addrInfo;
-    const query = deps?.query ? new URLSearchParams(deps.query) : null;
-    const hasC = query ? query.get('c') : null;
-    const hasAsm = query ? query.get('asm') : null;
-    const hasComments = query ? query.get('comments') : null;
-
-    let showC = true;
-    let showAsm = true;
-
-    if (hasC !== null && hasAsm === null) {
-        showC = hasC !== '0';
-        showAsm = false;
-    } else if (hasAsm !== null && hasC === null) {
-        showAsm = hasAsm !== '0';
-        showC = false;
-    } else {
-        if (hasC === '0') showC = false;
-        if (hasAsm === '0') showAsm = false;
-    }
-
-    const withComments = hasComments !== '0';
-
-    return text(() => {
-        const fn = getFunction(bus) || getFunction(off | 0x800000) || getFunction(off | 0xC00000);
-        const name = fn ? fn.name : `func_${h(bus, 6)}`;
-        const hexAddr = h(bus, 6);
-
-        let md = `# Routine: $${hexAddr} (${name})\n\n`;
-        md += `[Combined View](soe://rom/code/${hexAddr}?asm=1&c=1) | [C Only](soe://rom/code/${hexAddr}?c=1&asm=0) | [ASM Only](soe://rom/code/${hexAddr}?asm=1&c=0)\n\n`;
-
-        if (showC) {
-            md += `## Reconstructed C\n\n`;
-            const decomp = getDecompiledC(bus);
-            if (decomp && decomp.code) {
-                md += `\`\`\`c\n/* Source: ${decomp.source} (${decomp.path}) */\n${decomp.code}\n\`\`\`\n\n`;
-            } else {
-                md += `\`\`\`c\n// No reconstructed C found for address $${hexAddr}.\n\`\`\`\n\n`;
-            }
-        }
-
-        if (showAsm) {
-            md += `## 65816 Disassembly${withComments ? ' (Infused with Centralized Comments)' : ' (Raw)'}\n\n`;
-            const asm = asmListing(rom, bus, { wantsC: false, comments: withComments });
-            md += `\`\`\`assembly\n${asm}\n\`\`\`\n\n`;
-        }
-
-        if (!showC && !showAsm) {
-            md += `*Both C and ASM views are toggled off via query parameters.*\n`;
-        }
-
-        return md;
-    });
+    const fn = findFunction(cat, head);
+    if (fn) return functionDir(cat, fn, params, rest);
+    const bus = rest.length === 0 ? parseCodeAddress(head) : null;
+    if (bus === null || hiromFileOffset(bus) >= rom.length) return null;
+    const known = cat.list.find(f => f.vanilla === bus || hiromFileOffset(f.vanilla) === hiromFileOffset(bus));
+    if (!known) return text(() => legacyPage(rom, bus, params));
+    const leaf = params.get('asm') === '1' && params.get('c') !== '1' ? known.name + '.asm'
+        : params.get('c') === '1' && params.get('asm') !== '1' ? known.name + '.c' : 'info.md';
+    return link(functionDir(cat, known, params, [leaf]), `soe://rom/code/${known.name}/${leaf}`);
 }
 
-export { resolveCode, parseCodeAddress, listCodeEntries };
+export { resolveCode, parseCodeAddress };

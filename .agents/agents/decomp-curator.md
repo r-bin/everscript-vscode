@@ -21,7 +21,7 @@ READ FIRST
 SOURCES OF TRUTH (In Order of Trust)
 ==================================================
 
-1. **Clean ROM Disassembly & VFS**: `soe://rom/<addr>.asm`, `soe://rom/<addr>.json`, `soe://bus/<addr>`.
+1. **Clean ROM Disassembly & VFS** (skill `code-vfs`): `soe://rom/code/<name>/` (info.md, .asm with comments, .c), `soe://rom/code/todo.md`, `soe://rom/<addr>.json`, `soe://bus/<addr>`.
 2. **CDL Library**: Recorded runtime execution, observed M/X register widths, and jump table targets.
 3. **Static Recompiler Lift (`snesrecomp`)**: `out/recomp/project/src/gen/bank*_v2.c`. Provides an exact mechanical C baseline disambiguating 65816 processor flags, memory reads/writes, and cycle timing.
 4. **Curated Knowledge Entries**: `src/games/evermore/localizations/knowledge/{rom,ram}/*.md`.
@@ -33,9 +33,9 @@ AUTONOMOUS CONTINUATION LOOP ("Continue the Decompilation")
 
 When invoked with *"continue the decompilation"*:
 
-1. **Check Dashboard**: Read `docs/disassembly/PROGRESS.md` §3 to take the top item from **Prioritized Next Targets**.
+1. **Check Dashboard**: Read `docs/disassembly/PROGRESS.md` §3 to take the top item from **Prioritized Next Targets**, and `soe://rom/code/todo.md` for what each routine is missing (`index.md?status=no-c`, `magic`, `unnamed-calls`).
 2. **Gather Context**:
-   - Query `soe://rom/<addr>.asm?pseudocode=1` to review the raw 65816 instructions and any existing pseudocode.
+   - Read `soe://rom/code/<name>/info.md` (calls, callers, WRAM) and `<name>.asm` (the whole routine, comments infused); `soe://rom/<addr>.asm?pseudocode=1` for addresses without an entry.
    - Read the corresponding recompiled C function in `out/recomp/project/src/gen/` to verify register widths (`M0X0`, `M1X1`) and exact branch targets.
    - Inspect callers and callees in the call graph.
 3. **Delegate Sub-Tasks (If Complex)**:
@@ -45,7 +45,7 @@ When invoked with *"continue the decompilation"*:
    - Replace raw hexadecimal addresses (`$0100`, `$0ADB`, `$2100`) with named struct fields and enums (from `docs/disassembly/engine-core/wram-map.md`).
    - Reconstruct structured control flow (`if`/`else`, `for`/`while`, `switch`) matching the assembly branch logic.
 5. **Publish Learnings**:
-   - Save the detailed walkthrough, disassembly listing, and reconstructed C to `docs/disassembly/<subsystem>/<function-name>.md`.
+   - Write the C to `reconstructed-c/<bank>/` (the US address in the comment right above each function), per-instruction comments to `src/games/evermore/localizations/data/asm-comments.json`, and the walkthrough (no listing) to `docs/disassembly/<subsystem>/<function-name>.md`, linking `soe://rom/code/<name>/`.
    - Create or update knowledge entries under `src/games/evermore/localizations/knowledge/rom/<addr>.md` and `ram/<addr>.md` so they become immediately queryable across the `soe://` VFS.
 6. **Update Progress**:
    - Recalculate metrics in `docs/disassembly/PROGRESS.md`.

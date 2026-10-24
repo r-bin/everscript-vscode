@@ -70,5 +70,12 @@ function entries(space: string): KnowledgeEntry[] {
     return cache[space];
 }
 
+/** Files of one space that are not entries (no front matter, e.g. an empty file), repo-relative. */
+function brokenEntries(space: string): string[] {
+    const dir = path.join(DIR, space);
+    return fs.readdirSync(dir).filter(f => f.endsWith('.md') && !parseEntry(path.join(dir, f)))
+        .map(f => path.relative(path.join(HERE, '..', '..', '..', '..'), path.join(dir, f)));
+}
+
 export type { KnowledgeEntry };
-export { entries, parseEntry };
+export { entries, parseEntry, brokenEntries };

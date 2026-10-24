@@ -59,6 +59,12 @@ binds the same key and wins on extension load order; a user keybinding
 | `gif.ts` | pure GIF89a encoder for animated character and sprite sequences |
 | `ram-symbols.ts` | every known WRAM address (names.json + tag links) with size and type; flag bytes; records |
 | `asm-view.ts` | `<offset>.asm` / `soe://bus/<addr>.asm`: a 65816 listing (16-bit A/X assumed until REP/SEP), and the excerpt around a call |
+| `code-view.ts` | `soe://rom/code/`: routines by name — routing, `index.json`, the old `code/<address>` links |
+| `code-catalog.ts` | the routines (code/script knowledge entries) located in the ROM read, and per routine its listing with the asm comments, calls, WRAM, record fields |
+| `code-locate.ts` | finds a routine of the US ROM in another ROM (PAL, rebuilt) by its bytes, address operands masked |
+| `code-c-index.ts` | `reconstructed-c/` as functions, and which entry each implements |
+| `code-search.ts`, `code-markdown.ts` | search and filters of `code/index.md`, the open work per routine (`todo.md`); the pages |
+| `decomp-view.ts` | `<offset>.c` and `?pseudocode=1`: reconstructed, curated, recomp or stub C for an address |
 | `sound-source.js` | Who sent a sound effect (the emulator hook's event) as names, pictures and links, for the Music tab |
 | `page-links.ts` | link targets of generated pages: into a mount, relative to the page |
 | `ram-files.ts` | `soe://ram/`: `status.json`, `wram.bin`, slices, `<addr>.json`, flags, symbols |

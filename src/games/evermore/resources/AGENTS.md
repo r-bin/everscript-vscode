@@ -8,6 +8,8 @@ Kind: **platform** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: 
   in `webview.ts`. Spec: `docs/soe-filesystem-spec.md`.
 - This is the data plane (`/AI_ARCHITECTURE_GUIDE.md` §3.4): ROM/RAM-derived data that more
   than one consumer needs is exposed here first.
+- `soe://rom/code/`: routines **by name** (`code-*.ts`, skill `code-vfs`). The knowledge entry's
+  address is the US one; every other place (PAL, rebuilt ROM) is found by bytes, never assumed.
 - Not the address grammar: `parseSoeParts` / `parseAddressName` are pure and live in
   `src/games/evermore/resources/resource-uri.ts`.
 

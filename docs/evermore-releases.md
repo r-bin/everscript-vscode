@@ -165,6 +165,20 @@ operands) and `$CC` (43%).
 Bank `$C0` code sits 0x34C bytes later in every PAL build than in the US one. The same routines, in the
 same order, were pushed down by the code inserted ahead of them.
 
+Routines move but keep their code. Matching each of the 539 routines with a knowledge entry by its
+first ~32 bytes, address operands masked (`src/games/evermore/resources/code-locate.ts`, v0.343.0):
+
+| | Europe | Germany | France | Spain 1 |
+|---|---:|---:|---:|---:|
+| at the US address | 62 | 62 | 62 | 62 |
+| moved, found by bytes | 424 | 424 | 428 | 428 |
+| not found (code changed) | 53 | 53 | 49 | 49 |
+
+In Germany 484 of the 486 found routines decode to the same instruction sequence as the US ones over
+their first 12 instructions. Shifts seen: `$8C:D220` → `$8C:D609` (+$3E9), `$80:9033` → `$80:9032`
+(−1), and the event-script routines of bank `$92` one bank later (`$92:9FA0` → `$93:9FA0`, §5.2).
+`soe://rom/code/<name>/` shows each routine's place in the ROM read.
+
 ### 5.2 Text system
 
 | | USA | PAL builds |

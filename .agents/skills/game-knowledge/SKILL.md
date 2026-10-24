@@ -13,7 +13,7 @@ that is not written down is lost.** This skill is the one place that says where 
 
 Look it up first — it may already be known:
 1. `src/games/evermore/localizations/knowledge/{ram,rom}/<addr>.md` (and regions containing it — check `end:`)
-2. `soe://ram/<addr>.json`, `soe://bus/<addr>`, `soe://tags/search/<word>.md` (MCP `soe_read`)
+2. `soe://rom/code/index.md?q=<addr or word>` (routines), `soe://ram/<addr>.json`, `soe://bus/<addr>`, `soe://tags/search/<word>.md` (MCP `soe_read`)
 3. `docs/` (`grep -ri "<addr without \$>" docs`)
 
 ## 2. After learning anything — record it in the same commit
@@ -26,6 +26,8 @@ sentence beats nothing. No permission needed — this is part of every task.
 |---|---|
 | a WRAM address, struct, flag byte or region | `src/games/evermore/localizations/knowledge/ram/<addr>.md` |
 | an asm routine, script, script function, table or data block in the ROM | `src/games/evermore/localizations/knowledge/rom/<addr>.md` |
+| an asm comment on one instruction | `src/games/evermore/localizations/data/asm-comments.json` (key: US file offset) — never in docs; served in `soe://rom/code/<name>/<name>.asm` |
+| a routine's C | `reconstructed-c/<bank>/`, the US address in the comment right above the function (`code-vfs` skill) |
 | a script opcode byte (what, why, group tags, Everscript name) | `src/games/evermore/localizations/knowledge/opcodes/<xx>.md` (its handler: `rom/`) |
 | anything about **Secret of Mana** (a different game) | `docs/mana/README.md` and the comment of the `src/games/mana/decoder/` file that reads it — never `knowledge/`, never mixed with Evermore entries |
 | a format or mechanism spanning many addresses | the topic's `docs/` folder (`docs/scripts/`, `docs/entities/`, `docs/map-format/`, …), linked from the entries |
