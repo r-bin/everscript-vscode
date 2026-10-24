@@ -26,9 +26,9 @@ export async function extractAssets(romPath?: string): Promise<void> {
     const core = await boot(rom);
 
     const scenes = [
-        { frame: 120, id: 'logo', name: 'Squaresoft Logo', hold: 180 },
+        { frame: 120, id: 'logo', name: 'Squaresoft Logo', hold: 240 },
         { frame: 600, id: 'mansion', name: 'Prologue: Mansion', hold: 400 },
-        { frame: 1100, id: 'lab', name: 'Prologue: Laboratory', hold: 400 },
+        { frame: 1100, id: 'lab', name: 'Prologue: Laboratory', hold: 650 },
         { frame: 2200, id: 'title', name: 'Title Screen', hold: 600 },
         { frame: 3000, id: 'prehistoria', name: 'Demo 1: Prehistoria', hold: 400 },
         { frame: 3600, id: 'antiqua', name: 'Demo 2: Antiqua', hold: 400 },

@@ -32,6 +32,94 @@ static void apply_scroll_registers(const scene_desc_t *sc) {
     REG_BG3VOFS = (uint8_t)((sc->bg3_scroll_y >> 8) & 0xFF);
 }
 
+static void update_logo_palette_cycle(uint16_t timer) {
+    /* Authentic Squaresoft logo red shimmer:
+       Ramps red intensity 0 -> 20 -> 0 at CGRAM color 2 and color 3 */
+    uint16_t red = 0;
+    if (timer < 70) {
+        red = (timer * 20) / 70;
+    } else if (timer < 180) {
+        red = 20 - ((timer - 70) * 20) / 110;
+    }
+    if (red > 31) red = 31;
+
+    uint16_t c2 = red;        /* BGR555: Red in bits 0-4 */
+    uint16_t c3 = red / 2;
+
+    REG_CGADD = 0x02;
+    REG_CGDATA = (uint8_t)(c2 & 0xFF);
+    REG_CGDATA = (uint8_t)((c2 >> 8) & 0xFF);
+    REG_CGDATA = (uint8_t)(c3 & 0xFF);
+    REG_CGDATA = (uint8_t)((c3 >> 8) & 0xFF);
+}
+
+static void update_dynamic_scene_camera(const scene_desc_t *sc, uint8_t scene_id, uint16_t timer) {
+    if (scene_id == 2) {
+        /* Scene 2: Laboratory Machine Pan (East -> Pause -> North) */
+        uint16_t cur_x = 426;
+        uint16_t cur_y = 527;
+
+        if (timer < 86) {
+            /* 1. Pan East from 426 to 512 */
+            cur_x = 426 + timer;
+            cur_y = 527;
+        } else if (timer < 100) {
+            /* 2. Pause over the machine */
+            cur_x = 512;
+            cur_y = 527;
+        } else if (timer < 628) {
+            /* 3. Pan North from 527 up towards ceiling / title screen */
+            cur_x = 512;
+            int32_t dy = 527 - (int32_t)(timer - 100);
+            cur_y = (dy < 0) ? 0xFFFF : (uint16_t)dy;
+        } else {
+            /* 4. Arrived at Title Screen position */
+            cur_x = 512;
+            cur_y = 0xFFFF;
+        }
+
+        REG_BG1HOFS = (uint8_t)(cur_x & 0xFF);
+        REG_BG1HOFS = (uint8_t)((cur_x >> 8) & 0xFF);
+        REG_BG1VOFS = (uint8_t)(cur_y & 0xFF);
+        REG_BG1VOFS = (uint8_t)((cur_y >> 8) & 0xFF);
+
+        REG_BG2HOFS = (uint8_t)(cur_x & 0xFF);
+        REG_BG2HOFS = (uint8_t)((cur_x >> 8) & 0xFF);
+        REG_BG2VOFS = (uint8_t)(cur_y & 0xFF);
+        REG_BG2VOFS = (uint8_t)((cur_y >> 8) & 0xFF);
+    } else if (scene_id == 5) {
+        /* Scene 5: Antiqua Colosseum Pan (East across desert arena) */
+        uint16_t cur_x = 1 + (uint16_t)((timer * 200) / 400);
+        uint16_t cur_y = 267;
+
+        REG_BG1HOFS = (uint8_t)(cur_x & 0xFF);
+        REG_BG1HOFS = (uint8_t)((cur_x >> 8) & 0xFF);
+        REG_BG1VOFS = (uint8_t)(cur_y & 0xFF);
+        REG_BG1VOFS = (uint8_t)((cur_y >> 8) & 0xFF);
+
+        REG_BG2HOFS = (uint8_t)(cur_x & 0xFF);
+        REG_BG2HOFS = (uint8_t)((cur_x >> 8) & 0xFF);
+        REG_BG2VOFS = (uint8_t)(cur_y & 0xFF);
+        REG_BG2VOFS = (uint8_t)((cur_y >> 8) & 0xFF);
+    } else if (scene_id == 7) {
+        /* Scene 7: Omnitopia Space Station Pan (Pan across hub) */
+        uint16_t cur_x = 544 - (uint16_t)((timer * 200) / 400);
+        uint16_t cur_y = 480;
+
+        REG_BG1HOFS = (uint8_t)(cur_x & 0xFF);
+        REG_BG1HOFS = (uint8_t)((cur_x >> 8) & 0xFF);
+        REG_BG1VOFS = (uint8_t)(cur_y & 0xFF);
+        REG_BG1VOFS = (uint8_t)((cur_y >> 8) & 0xFF);
+
+        REG_BG2HOFS = (uint8_t)(cur_x & 0xFF);
+        REG_BG2HOFS = (uint8_t)((cur_x >> 8) & 0xFF);
+        REG_BG2VOFS = (uint8_t)(cur_y & 0xFF);
+        REG_BG2VOFS = (uint8_t)((cur_y >> 8) & 0xFF);
+    } else {
+        apply_scroll_registers(sc);
+    }
+}
+
 void intro_replay_init(void) {
     s_state = STATE_LOAD_SCENE;
     s_current_scene = 0;
@@ -94,7 +182,10 @@ void intro_replay_update(void) {
 
         case STATE_FADE_IN:
             {
-                apply_scroll_registers(sc);
+                update_dynamic_scene_camera(sc, s_current_scene, s_timer);
+                if (s_current_scene == 0) {
+                    update_logo_palette_cycle(s_timer);
+                }
                 uint8_t brightness = (uint8_t)(s_timer / 2);
                 if (brightness > 0x0F) brightness = 0x0F;
                 ppu_set_display(brightness);
@@ -109,7 +200,10 @@ void intro_replay_update(void) {
             break;
 
         case STATE_HOLD:
-            apply_scroll_registers(sc);
+            update_dynamic_scene_camera(sc, s_current_scene, s_timer);
+            if (s_current_scene == 0) {
+                update_logo_palette_cycle(s_timer);
+            }
             ppu_set_display(0x0F);
             s_timer++;
             if (s_timer >= sc->hold_frames) {
@@ -120,7 +214,7 @@ void intro_replay_update(void) {
 
         case STATE_FADE_OUT:
             {
-                apply_scroll_registers(sc);
+                update_dynamic_scene_camera(sc, s_current_scene, s_timer);
                 int16_t b = 15 - (int16_t)(s_timer / 2);
                 if (b < 0) b = 0;
                 ppu_set_display((uint8_t)b);
