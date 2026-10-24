@@ -80,7 +80,7 @@ Page code the host also uses is a TypeScript module that `tools/bundle-pages.mts
 - `tools/exhirom/`: `convert.js`, `mesen.js`, `prove.js`, `run.js`
 - `tools/mana/`: `check-events.js`, `check-map.js`, `find-picture.js`
 - `tools/playbacks/`: `record-attract.js`
-- `tools/recomp/`: `bisect.js`, `build.js`, `check-obj-tiles.js`, `host.js`, `lockstep.js`, `names.js`, `report.js`, `room-nav.js`, `s9x-run.js`, `verify-intro.js`
+- `tools/recomp/`: `bisect.js`, `build.js`, `check-obj-tiles.js`, `host.js`, `names.js`, `report.js`, `room-nav.js`, `s9x-run.js`, `verify-intro.js`
 - `tools/recorder/`: `build.js`, `package-files.js`
 - `tools/rooms/`: `region-evidence.js`, `write-room-names.js`
 - `tools/script-vm/`: `record-goldens.js`

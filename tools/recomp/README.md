@@ -73,13 +73,16 @@ How they fit together: [docs/recomp/headless-exploration.md](../../docs/recomp/h
 ## Lockstep against snes9x
 
 ```sh
-npm run recomp:lockstep -- --rom <clean rom> [--exe <recomp executable>] [--from 295 --to 479 --step 10]
+npm run recomp:lockstep [-- --rom <clean rom>]            # = npm run compare -- recomp=
+npm run compare -- recomp:<exe>=<rom> recomp:<other exe>=<rom>   # e.g. with hooks against without
 ```
 
-`lockstep.js` runs the ROM in our snes9x core and in the recomp without input, lines both up on
-the NMI frame counter `$7E0100`, copies snes9x's RNG state into the recomp (the reset seeds it
-from PPU timing), and prints how many WRAM bytes differ at each counter value, plus the first
-divergence. Today: identical through counter 305, timing drift from 315.
+`tools/compare` (its README) runs the ROM in our snes9x core and in the recomp without input, lines
+both up on the NMI frame counter `$7E0100`, copies snes9x's RNG state into the recomp (the reset
+seeds it from PPU timing), hashes WRAM + VRAM every 60 counts and reports the first checkpoint
+that differs, with the bytes and snes9x's writers. The recomp hashes through our glue
+(`SOE_COMPARE_*` in `host/src/game_rtl.c`), so a build from before v0.353 reports nothing.
+Today: identical through counter 300, different at 360.
 
 Measured on 2026-10-12 with the current library: byte-identical rebuild; 9.3 % of the ROM
 recorded, 94.0 % known; 38 of 403 recorded functions named; 47.2 % of instruction lines

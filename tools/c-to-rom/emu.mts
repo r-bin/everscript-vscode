@@ -38,8 +38,8 @@ export function coreId(): string {
     return createHash('sha256').update(readFileSync(CORE.replace(/\.js$/, '.wasm'))).digest('hex').slice(0, 16);
 }
 
-/** Load the core, boot `rom` (power-on, empty SRAM) and resolve once it is ready. */
-export function boot(rom: Uint8Array): Promise<Core> {
+/** Load the core, boot `rom` (power-on, empty SRAM) and resolve once it is ready. A replay boots at its own rate. */
+export function boot(rom: Uint8Array, rate = AUDIO_RATE): Promise<Core> {
     return new Promise(resolve => {
         const g = globalThis as any;
         g.Module = {
@@ -48,7 +48,7 @@ export function boot(rom: Uint8Array): Promise<Core> {
                 const M = g.Module, heap = () => g.HEAPU8 as Uint8Array;
                 const p = M._my_malloc(rom.length);
                 heap().set(rom, p);
-                M._startWithRom(p, rom.length, AUDIO_RATE);
+                M._startWithRom(p, rom.length, rate);
                 resolve({
                     M,
                     frame(pad = 0) { M._setJoypadInput(pad); M._mainLoop(); },

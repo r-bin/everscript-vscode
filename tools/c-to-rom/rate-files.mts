@@ -17,6 +17,7 @@ import { REPO, stripHeader, hex } from './emu.mts';
 import { calypsi } from './calypsi.mts';
 import { walk, cdlFor } from './disasm.mts';
 import { bindings, sourceFiles, OUT } from './build.mts';
+import { writeQuality } from './quality.mts';
 
 const require = createRequire(import.meta.url);
 
@@ -146,4 +147,8 @@ if (doCheck) {
     if (staleCount > 0) process.exit(1);
 } else if (doUpdate) {
     console.log(`\nUpdated ratings in ${updatedCount} files.`);
+}
+if (!doCheck) {
+    try { console.log(`bytes per routine: ${writeQuality(romPath)}`); }
+    catch (e) { console.log(`bytes per routine not written: ${(e as Error).message}`); }
 }

@@ -92,6 +92,6 @@ each knowledge entry. A file below G1 is a *description*.
   label such as `$8F:AFF5`), routines shorter than the trampoline, and trampoline bytes that some
   recorded jump lands on. Routines that pull their caller's stack (`PLB` of a pushed DB, `$90:9F21`)
   do not fit the bridge yet.
-- `tools/recomp/lockstep.js` treats DP `$02–$0E` as noise, which is exactly where a C routine's
+- `tools/compare` treats DP `$02–$0E` as noise between different backends, which is exactly where a C routine's
   scratch goes wrong unseen. G1 compares every byte.
 - Long-term goals and what is open: `docs/todo/code-vfs.md`.

@@ -6,7 +6,7 @@ generated and git-ignored. Edit glue **here**, never in `out/recomp/project/`.
 
 | File | Replaces in the project | What it does |
 |---|---|---|
-| `src/game_rtl.c` | the scaffold's `src/game_rtl.c` | frame model + session reset for SoE (today: the framework's beam-aligned driver, which boots SoE into the intro) |
+| `src/game_rtl.c` | the scaffold's `src/game_rtl.c` | frame model + session reset for SoE (today: the framework's beam-aligned driver, which boots SoE into the intro); with `SOE_COMPARE_*` set, hashes memory per NMI count for `tools/compare` (fd 3) |
 | (hook) | one line in the scaffold's generated `src/main.c` | `tools/recomp/host.js` adds `.after_config = SoeAfterConfig` to the host descriptor; `SoeAfterConfig` (in `game_rtl.c`) forces the reference PPU renderer, because the optimized one draws BG mode 4 as mode 7 and SoE's name screen is mode 4 |
 
 Rules:

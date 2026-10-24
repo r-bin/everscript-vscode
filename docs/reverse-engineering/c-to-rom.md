@@ -96,7 +96,7 @@ interface. `random_below` is typical ([8080AD62_random_below.c](../../reconstruc
 
 Both compute the same number. Only the ROM's version can be called by the asm callers that
 remain, though, and only it leaves the same WRAM behind. Our lockstep list of "noise" bytes
-(`tools/recomp/lockstep.js`, `$02–$0E`) would hide exactly that difference. That is the
+(`tools/compare/game.mts`, `$02–$0E`, used only when backends are mixed) would hide exactly that difference. That is the
 reason for a per-routine test (§4, G1) in addition to the frame comparison.
 
 PROGRESS.md counts these files as "clean C". By the gates of §4 none has passed G1 yet.
@@ -314,7 +314,8 @@ takes the asm's exact cycles on every path, which no stock compiler gives.
 | header | `node tools/c-to-rom/gen-ram-header.mts` | `reconstructed-c/include/soe_ram.h` from `knowledge/ram/` (`--check` for staleness) |
 | build | `node tools/c-to-rom/build.mts` | `out/c-to-rom/soe-c.sfc` |
 | G1 | `node tools/c-to-rom/g1.mts [name ...]` | `out/c-to-rom/G1.md`; `--trace name:i[:k]` prints both instruction traces |
-| 2:20 | `node tools/c-to-rom/compare.mts` | WRAM and VRAM per frame against `intro-2m20.wram-crc` / `.vram-crc` |
+| 2:20 | `npm run c-to-rom:compare` | `tools/compare` against vanilla: WRAM + VRAM every 60 frames (`--verbose`: every frame), first differing frame, bytes and the C routine that wrote them |
+| bytes | `npm run c-to-rom:quality` | `out/c-to-rom/quality.md`: ROM bytes against C bytes per routine, worst ratio first (also written by `rate-files.mts` and `c-to-rom:compare`) |
 | asm | `node tools/c-to-rom/disasm.mts 8FA963 --walk` | a whole routine, widths from the CDL library |
 | diff asm | `node tools/c-to-rom/diff-asm.mts <name>` | compiles C to 65816 assembly with Calypsi and compares with initial ROM asm |
 

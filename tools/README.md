@@ -13,6 +13,7 @@ Node 26 runs the `.mts` files directly. Tools find a ROM through the ROM library
 | `roms.js`, `rom.js` | The ROM library from the command line; how tools find a ROM | `npm run roms` |
 | `derived-marker.js` | Marks a built ROM as derived from the base ROM | used by the builders |
 | `recomp/` | The static recompilation ([README](recomp/README.md)) | `npm run recomp` |
+| `compare/` | Run setups (snes9x fork, recomp; any ROMs) side by side: how long they stay in sync, what differs first, who wrote it ([README](compare/README.md)) | `npm run compare -- a.sfc b.sfc` |
 | `exhirom/` | Evermore as an 8 MB ExHiROM and its proof ([README](exhirom/README.md)) | `npm run exhirom` |
 | `table-hack/` | Content tables moved into the 4th MB and the proof ([README](table-hack/README.md)) | `npm run table-hack` |
 | `cdl/` | Replay a movie headless on our core, with the CDL recorder | `node tools/cdl/replay.js` |
