@@ -12,6 +12,9 @@ export const CORE = join(REPO, 'src/core/emulator/core/snes9x2005-wasm/snes9x_20
 const movie = require('../../dist/platform/tas/movie');
 export const AUDIO_RATE: number = movie.AUDIO_RATE;
 export const WRAM_SIZE = 0x20000;
+/** The reference a C-built ROM is compared with: power-on, no input, logo + intro + logo (record-reference.mts). */
+export const REFERENCE = join(REPO, '.agents/skills/sample-playbacks/playbacks/intro-2m20.evsmv');
+export const REFERENCE_FRAMES = 8414;        // 140 s × 60.0988 frames/s (NTSC)
 
 export interface Cpu { pc: number; a: number; x: number; y: number; sp: number; p: number; db: number; pb: number }
 export interface Core {

@@ -49,58 +49,7 @@ uint16_t joypad_acknowledge_or_clear_buttons(uint16_t mask) {
     return (previous & mask);
 }
 
-/**
- * Master Secret of Evermore 64-bit Pseudo-Random Number Generator.
- *
- * Employs a 4-word cross-coupled Fibonacci / Galois additive feedback shift
- * register. Returns the updated Seed 0 word in the Accumulator.
- */
-uint16_t random_number_generator(void) {
-    uint32_t acc;
-    uint8_t carry = 0;
-
-    /* Step 1: Rotate Seed 3 and add Seed 1 */
-    carry = (g_hw.prng_seeds[3] & 0x8000) != 0;
-    acc = ((uint32_t)g_hw.prng_seeds[3] << 1) & 0xFFFF;
-    if (carry) {
-        g_hw.prng_seeds[2]++;
-    }
-    acc += g_hw.prng_seeds[1] + carry;
-    carry = (acc > 0xFFFF);
-    g_hw.prng_seeds[3] = (uint16_t)acc;
-
-    /* Step 2: Rotate Seed 2 and add Seed 0 */
-    carry = (g_hw.prng_seeds[2] & 0x8000) != 0;
-    acc = ((uint32_t)g_hw.prng_seeds[2] << 1) & 0xFFFF;
-    if (carry) {
-        g_hw.prng_seeds[1]++;
-    }
-    acc += g_hw.prng_seeds[0] + carry;
-    carry = (acc > 0xFFFF);
-    g_hw.prng_seeds[2] = (uint16_t)acc;
-
-    /* Step 3: Rotate Seed 1 and add Seed 2 */
-    carry = (g_hw.prng_seeds[1] & 0x8000) != 0;
-    acc = ((uint32_t)g_hw.prng_seeds[1] << 1) & 0xFFFF;
-    if (carry) {
-        g_hw.prng_seeds[0]++;
-    }
-    acc += g_hw.prng_seeds[2] + carry;
-    carry = (acc > 0xFFFF);
-    g_hw.prng_seeds[1] = (uint16_t)acc;
-
-    /* Step 4: Rotate Seed 0 and add Seed 3 */
-    carry = (g_hw.prng_seeds[0] & 0x8000) != 0;
-    acc = ((uint32_t)g_hw.prng_seeds[0] << 1) & 0xFFFF;
-    if (carry) {
-        g_hw.prng_seeds[3]++;
-    }
-    acc += g_hw.prng_seeds[3] + carry;
-    carry = (acc > 0xFFFF);
-    g_hw.prng_seeds[0] = (uint16_t)acc;
-
-    return g_hw.prng_seeds[0];
-}
+/* random_number_generator ($80:859B): reconstructed-c/80/80859B_random_number_generator.c */
 
 /**
  * Suspends thread across two vertical blanking intervals to cleanly apply

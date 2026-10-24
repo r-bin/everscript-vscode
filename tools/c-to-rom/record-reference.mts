@@ -4,15 +4,13 @@
 // compare.mts checks a built ROM against frame by frame.
 //   node tools/c-to-rom/record-reference.mts [--rom <clean rom>] [--frames 8414] [--out <file.evsmv>]
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { basename, dirname, join, relative } from 'node:path';
+import { basename, dirname, relative } from 'node:path';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
-import { boot, coreId, stripHeader, REPO } from './emu.mts';
+import { boot, coreId, stripHeader, REPO, REFERENCE, REFERENCE_FRAMES } from './emu.mts';
 
 const require = createRequire(import.meta.url);
 const T = require('../../dist/platform/tas/movie');
-export const REFERENCE = join(REPO, '.agents/skills/sample-playbacks/playbacks/intro-2m20.evsmv');
-export const REFERENCE_FRAMES = 8414;        // 140 s × 60.0988 frames/s (NTSC)
 const CURRENT_MAP_ID = 0x0ADB;              // knowledge/ram/7e0adb.md
 
 const a = process.argv.slice(2), opt = (n: string) => { const i = a.indexOf('--' + n); return i < 0 ? null : a[i + 1]; };
