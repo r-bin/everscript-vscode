@@ -11,14 +11,18 @@
 //    and the I/O writes in order. The oracle check compares the vanilla run with snes9x the same way.
 // 4. Mutation: flip one operand bit of the vanilla routine's first instruction that has an operand; the comparison
 //    must notice on some state, or the states do not exercise the routine.
-//   node tools/c-to-rom/g1.mts [--rom <clean rom>] [--samples 48] [--frames 8414] [--fresh] [name ...]
+// 5. Fuzz: from every captured state, variants with random registers, flags and direct page (`--fuzz N`, 16 each)
+//    reach the paths the reference never takes; both images must still agree where the ROM returns.
+//   node tools/c-to-rom/g1.mts [--rom <clean rom>] [--samples 48] [--frames 8414] [--fuzz 16] [--fresh]
+//                              [--trace name:index] [name ...]
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
 import { boot, coreId, stripHeader, hex, WRAM_SIZE, REFERENCE_FRAMES, type Core } from './emu.mts';
-import { buildImage, OUT, type Binding } from './build.mts';
-import { disassemble } from './disasm.mts';
+import { buildImage, bindings, sourceFiles, OUT, type Binding } from './build.mts';
+import { disassemble, cdlFor } from './disasm.mts';
 
 const require = createRequire(import.meta.url);
 const { Cpu65816 } = require('../../dist/platform/snes/cpu65816');
@@ -26,6 +30,7 @@ const { SnesBus } = require('../../dist/platform/snes/snes-bus');
 
 const STATE_D = 98;        // the save state's ICPU.Registers block starts at 92: PB DB P A D S X Y PC
 const KEEP_FIRST = 8;
+const CAPTURE_BATCH = 24;      // routines per capture run, leaving breakpoints for their pending returns
 
 interface Regs { a: number; x: number; y: number; s: number; d: number; db: number; p: number; pb: number; pc: number }
 interface Sample { frame: number; regs: Regs; wram: Uint8Array; after?: { regs: Regs; wram: Uint8Array } }
@@ -125,9 +130,34 @@ function loadSamples(file: string): Sample[] {
     });
 }
 
+// ---------- fuzz ----------
+
+/** Variants of a real entry state: random A, X, Y (8-bit index keeps a 0 high byte), N V Z C, and the 256 bytes
+ * of the direct page. Deterministic (seeded by the sample's position). */
+function fuzz(s: Sample, n: number, seed: number): Sample[] {
+    let x = (seed * 2654435761 + 12345) >>> 0;
+    const rnd = () => { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0; return x; };
+    const out: Sample[] = [];
+    for (let i = 0; i < n; i++) {
+        const regs = { ...s.regs };
+        const x8 = (regs.p & 0x10) !== 0;
+        regs.a = rnd() & 0xFFFF;
+        regs.x = rnd() & (x8 ? 0xFF : 0xFFFF);
+        regs.y = rnd() & (x8 ? 0xFF : 0xFFFF);
+        regs.p = (regs.p & ~0xC3) | (rnd() & 0xC3);
+        const wram = new Uint8Array(s.wram);
+        for (let k = 0; k < 0x100; k++) {
+            const at = (regs.d + k) & 0xFFFF;
+            if (at < 0x2000 && (at <= regs.s - 0x40 || at > regs.s)) wram[at] = rnd() & 0xFF;   // not the live stack
+        }
+        out.push({ frame: s.frame, regs, wram });
+    }
+    return out;
+}
+
 // ---------- run ----------
 
-function run(image: Uint8Array, s: Sample, limit = 3_000_000): Run {
+function run(image: Uint8Array, s: Sample, limit = 3_000_000, trace?: string[]): Run {
     const bus = new SnesBus(image);
     bus.wram.set(s.wram);
     const io: string[] = [];
@@ -146,6 +176,10 @@ function run(image: Uint8Array, s: Sample, limit = 3_000_000): Run {
     try {
         for (let n = 0; ; n++) {
             if (n > limit) throw new Error(`no return after ${limit} instructions`);
+            if (trace) {
+                const [l] = disassemble(image, cpu.pb << 16 | cpu.pc, 1, (cpu.p & 0x20) !== 0, (cpu.p & 0x10) !== 0);
+                trace.push(`${hex(cpu.pb << 16 | cpu.pc)} ${l.text.padEnd(18)} A=${hex(cpu.a, 4)} X=${hex(cpu.x, 4)} Y=${hex(cpu.y, 4)} S=${hex(cpu.s, 4)} D=${hex(cpu.d, 4)} P=${hex(cpu.p, 2)}`);
+            }
             cpu.step();
             if (cpu.s < minS) minS = cpu.s;
             if (cpu.s > entryS) break;
@@ -174,8 +208,8 @@ function diff(x: { regs: Regs; wram: Uint8Array; io?: string[] }, y: { regs: Reg
 }
 
 /** A copy of `image` with one operand bit of the routine's first instruction with an operand flipped. */
-function mutate(image: Uint8Array, b: Binding): { image: Uint8Array; what: string } | null {
-    for (const l of disassemble(image, b.addr, 64, (b as any).m8, (b as any).x8)) {
+function mutate(image: Uint8Array, b: Binding, cdl: Uint8Array | null): { image: Uint8Array; what: string } | null {
+    for (const l of disassemble(image, b.addr, 64, false, false, cdl)) {
         if (/^(RTL|RTS|RTI)/.test(l.text)) break;
         if (l.bytes.length < 2 || /^(B..|BRL|REP|SEP|JSL|JSR|JML|JMP)/.test(l.text)) continue;
         const m = new Uint8Array(image);
@@ -189,28 +223,54 @@ function mutate(image: Uint8Array, b: Binding): { image: Uint8Array; what: strin
 
 if (import.meta.url === `file://${process.argv[1]}`) {
     const a = process.argv.slice(2), opt = (n: string) => { const i = a.indexOf('--' + n); return i < 0 ? null : a.splice(i, 2)[1]; };
-    const fresh = a.includes('--fresh');
+    const fresh = a.includes('--fresh'), captureOnly = a.includes('--capture-only');
     const romPath: string = require('../rom').baseRomOrExit('evermore', opt('rom'));
-    const samples = Number(opt('samples') || 48), frames = Number(opt('frames') || REFERENCE_FRAMES);
+    const samples = Number(opt('samples') || 48), frames = Number(opt('frames') || REFERENCE_FRAMES), fuzzN = Number(opt('fuzz') ?? 16);
+    const traceArg = opt('trace');
     const names = a.filter(x => !x.startsWith('--'));
     const rom = stripHeader(new Uint8Array(readFileSync(romPath)));
-    const built = await buildImage(rom);
-    const vanilla: Uint8Array = require('../table-hack/tables').build(rom, []).image;
-    const list = built.bindings.filter(b => !names.length || names.includes(b.name));
+    const list = bindings(sourceFiles()).filter(b => !names.length || names.includes(b.name));
     const toCapture = list.filter(b => fresh || !existsSync(cachePath(rom, b, samples, frames)));
-    if (toCapture.length) {
-        console.log(`capturing entry states of ${toCapture.length} routine(s) over ${frames} frames …`);
+    if (captureOnly) {
+        // child: one batch (the core allows 64 exec breakpoints: the routines plus their pending returns)
         const got = await capture(rom, toCapture, samples, frames);
         for (const b of toCapture) saveSamples(cachePath(rom, b, samples, frames), got.get(b.addr)!);
+        process.exit(0);
+    }
+    if (toCapture.length) {
+        console.log(`capturing entry states of ${toCapture.length} routine(s) over ${frames} frames …`);
+        const batches: Binding[][] = [];
+        for (let i = 0; i < toCapture.length; i += CAPTURE_BATCH) batches.push(toCapture.slice(i, i + CAPTURE_BATCH));
+        await Promise.all(batches.map(batch => new Promise<void>((resolve, reject) => {
+            const args = [process.argv[1], '--capture-only', '--rom', romPath, '--samples', String(samples), '--frames', String(frames), ...(fresh ? ['--fresh'] : []), ...batch.map(b => b.name)];
+            const p = spawn(process.execPath, args, { stdio: ['ignore', 'inherit', 'inherit'] });
+            p.on('exit', code => (code === 0 ? resolve() : reject(new Error(`capture of ${batch.map(b => b.name).join(' ')}: exit ${code}`))));
+        })));
+    }
+    const built = await buildImage(rom);
+    const vanilla: Uint8Array = require('../table-hack/tables').build(rom, []).image;
+    const cdl = cdlFor(rom);
+    if (traceArg) {
+        // --trace <name>:<state index>: both instruction traces of one entry state
+        const [tn, ti] = traceArg.split(':');
+        const b = list.find(x => x.name === tn)!;
+        const st = loadSamples(cachePath(rom, b, samples, frames))[Number(ti || 0)];
+        for (const [label, img] of [['ROM', vanilla], ['C', built.image]] as const) {
+            const t: string[] = [];
+            const res = run(img, st, 100_000, t);
+            console.log(`--- ${label}: ${t.length} instructions${res.error ? ', ' + res.error : ''}`);
+            console.log(t.slice(0, 400).join('\n'));
+        }
+        process.exit(0);
     }
     const lines = ['# G1: bound C routines against the ROM', '', `Reference: power-on, no input, ${frames} frames. ${samples} sampled entry states per routine.`, '',
-        '| routine | states | interpreter = snes9x | C = ROM | mutation caught |', '|---|---|---|---|---|'];
+        '| routine | states | interpreter = snes9x | C = ROM | fuzzed: C = ROM | mutation caught |', '|---|---|---|---|---|---|'];
     let failed = 0;
     for (const b of list) {
         const ss = loadSamples(cachePath(rom, b, samples, frames));
         let oracle = 0, oracleN = 0, ok = 0, firstFail = '', oracleFail = '';
         let mutCaught = false;
-        const mut = mutate(vanilla, b);
+        const mut = mutate(vanilla, b, cdl);
         for (const s of ss) {
             const v = run(vanilla, s), c = run(built.image, s);
             const minS = Math.min(v.minS, c.minS);
@@ -226,11 +286,23 @@ if (import.meta.url === `file://${process.argv[1]}`) {
                 if (m.error || diff(v, m, s.regs.s, Math.min(v.minS, m.minS))) mutCaught = true;
             }
         }
-        const pass = ok === ss.length && ss.length > 0 && mutCaught && oracle === oracleN;
+        let fz = 0, fzN = 0, fuzzFail = '';
+        ss.forEach((s0, i) => {
+            for (const s of fuzz(s0, fuzzN, b.addr ^ i)) {
+                const v = run(vanilla, s, 200_000);
+                if (v.error) continue;                     // the ROM itself does not return from this state
+                fzN++;
+                const c = run(built.image, s, 2_000_000);
+                const d = c.error ? `C: ${c.error}` : diff(v, c, s.regs.s, Math.min(v.minS, c.minS));
+                if (!d) fz++; else if (!fuzzFail) fuzzFail = `fuzzed from frame ${s.frame}, entry ${JSON.stringify(s.regs)}: ${d}`;
+            }
+        });
+        const pass = ok === ss.length && ss.length > 0 && mutCaught && oracle === oracleN && fz === fzN;
         if (!pass) failed++;
-        lines.push(`| \`${b.name}\` ${hex(b.addr)} | ${ss.length} | ${oracle}/${oracleN} | ${ok}/${ss.length} | ${mut ? (mutCaught ? 'yes' : '**no**') : 'no operand'} |`);
-        if (firstFail) lines.push(`|  | C differs | ${firstFail.replace(/\|/g, '/')} | | |`);
-        if (oracleFail) lines.push(`|  | interpreter differs | ${oracleFail.replace(/\|/g, '/')} | | |`);
+        lines.push(`| \`${b.name}\` ${hex(b.addr)} | ${ss.length} | ${oracle}/${oracleN} | ${ok}/${ss.length} | ${fz}/${fzN} | ${mut ? (mutCaught ? 'yes' : '**no**') : 'no operand'} |`);
+        if (firstFail) lines.push(`|  | C differs | ${firstFail.replace(/\|/g, '/')} | | | |`);
+        if (fuzzFail) lines.push(`|  | fuzzed: C differs | ${fuzzFail.replace(/\|/g, '/')} | | | |`);
+        if (oracleFail) lines.push(`|  | interpreter differs | ${oracleFail.replace(/\|/g, '/')} | | | |`);
     }
     lines.push('', failed ? `**${failed} routine(s) fail G1.**` : `All ${list.length} routine(s) pass G1.`);
     mkdirSync(OUT, { recursive: true });

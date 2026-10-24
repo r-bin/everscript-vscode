@@ -18,6 +18,8 @@ import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { REPO, stripHeader, hex } from './emu.mts';
 import { calypsi } from './calypsi.mts';
+import { walk, cdlFor } from './disasm.mts';
+import { homedir } from 'node:os';
 
 const require = createRequire(import.meta.url);
 const C_DIR = join(REPO, 'reconstructed-c');
@@ -28,6 +30,9 @@ export const IMAGE = join(OUT, 'soe-c.sfc');
 const CODE_BANKS = [0xF8, 0xF9, 0xFA, 0xFB];     // file 0x380000-0x3BFFFF
 const DP_SIZE = 32;                               // pseudo-registers (_Dp, _Vfp) live in this much fresh stack
 const MODEL = ['--core=65816', '--code-model=large', '--data-model=large'];
+// -O1, not -O2: Calypsi 5.18 at -O2 drops the reload after testing a byte's sign through `lda 0,s` and computes with
+// the stack byte below it (found by G1 on $8F:A963, c-to-rom.md §10).
+const OPT = ['-O1', '--speed'];
 
 export interface Binding { name: string; addr: number; ret: 'RTL' | 'RTS'; file: string }
 
@@ -58,6 +63,46 @@ export function bindings(files: string[]): Binding[] {
     return out.sort((a, b) => a.addr - b.addr);
 }
 
+/**
+ * Can the routine be replaced by a trampoline at its entry? Its own code from the entry must end in the declared
+ * return (RTL/RTS), never by jumping back above the entry (a loop label is no routine), and nothing may enter the
+ * bytes the trampoline overwrites: no branch of its own, no control-flow edge in the CDL library.
+ */
+export function checkBindings(rom: Uint8Array, list: Binding[]): string[] {
+    const cdl = cdlFor(rom);
+    let edges: Map<number, number> | null = null;
+    try {
+        const { CdlLibrary } = require('../../dist/platform/cdl/library');
+        edges = new CdlLibrary(join(homedir(), 'Library/Application Support/Code/User/globalStorage/rbin.everscript/cdl-library'), rom).edges;
+    } catch { /* no library: only the static checks */ }
+    const problems: string[] = [];
+    for (const b of list) {
+        const body = walk(rom, b.addr, cdl);
+        const inner = (t: number) => t > b.addr && t < b.addr + trampSize(b);
+        const rets = new Set(body.map(l => l.text).filter(t => /^(RTS|RTL|RTI)$/.test(t)));
+        if (!rets.size) problems.push(`${b.name}: no return reachable from ${hex(b.addr)} (a label inside another routine?)`);
+        else if (!rets.has(b.ret) || rets.size > 1) problems.push(`${b.name}: declared ${b.ret}, its code returns with ${[...rets].join('/')}`);
+        for (const l of body) {
+            const m = /\$([0-9A-F]{6})$/.exec(l.text);
+            if (!m || !/^(B|JMP|BRL)/.test(l.text)) continue;
+            const t = parseInt(m[1], 16);
+            if (inner(t)) problems.push(`${b.name}: ${hex(l.pc)} ${l.text} lands inside the trampoline`);
+            if (t < b.addr) problems.push(`${b.name}: ${hex(l.pc)} ${l.text} jumps above the entry (a label inside a loop?)`);
+        }
+        if (edges) {
+            let called = false;
+            for (const [k, kind] of edges) {
+                const from = Math.floor(k / 0x1000000), to = k % 0x1000000;
+                if (to === b.addr && (kind & (FLOW_CALL | FLOW_JUMP))) called = true;
+                if (inner(to) && !(from >= b.addr && from < b.addr + trampSize(b))) problems.push(`${b.name}: recorded flow ${hex(from)} -> ${hex(to)} lands inside the trampoline`);
+            }
+            if (!called) problems.push(`${b.name}: the CDL library has no call or jump to ${hex(b.addr)} (reached only by falling through?)`);
+        }
+    }
+    return problems;
+}
+
+const FLOW_CALL = 1, FLOW_JUMP = 2;      // platform/snes/opcodes-65816.ts FLOW
 const tramp = (b: Binding) => `tramp_${b.addr.toString(16)}`;
 const trampSize = (b: Binding) => (b.ret === 'RTL' ? 4 : 5);
 
@@ -152,13 +197,15 @@ export async function buildImage(source: Uint8Array, workDir = join(OUT, 'obj'))
     const image: Uint8Array = base4mb(rom, []).image;
     const files = sourceFiles();
     const list = bindings(files);
+    const problems = checkBindings(rom, list);
+    if (problems.length) throw new Error('bindings that cannot be trampolined:\n  ' + problems.join('\n  '));
     rmSync(workDir, { recursive: true, force: true });
     mkdirSync(workDir, { recursive: true });
     const [cc, as, ln] = await Promise.all([calypsi('cc65816'), calypsi('as65816'), calypsi('ln65816')]);
     const objs: string[] = [];
     for (const f of files) {
         const o = join(workDir, basename(f, '.c') + '.o');
-        execFileSync(cc, [...MODEL, '-O2', '--speed', '-I', INCLUDE, f, '-o', o], { stdio: ['ignore', 'pipe', 'pipe'] });
+        execFileSync(cc, [...MODEL, ...OPT, '-I', INCLUDE, f, '-o', o], { stdio: ['ignore', 'pipe', 'pipe'] });
         objs.push(o);
     }
     const gen: Record<string, string> = { 'bridges.s': bridgesAsm(list), 'gadgets.s': gadgetsAsm(rom) };

@@ -104,7 +104,41 @@ uint8_t *soe_bus(uint32_t addr);
 #define ABS16(r, a) (*(uint16_t *)soe_bus((uint32_t)(r)->db << 16 | (uint16_t)(a)))
 #endif
 
+/* ---- Direct page as the asm does it: bank $00, D + offset, wrapping in the bank ---- */
+#ifdef __CALYPSI_TARGET_65816__
+#define DP8(r, o)   (*(uint8_t SOE_FAR *)(uint32_t)(uint16_t)((r)->d + (o)))
+#define DP16(r, o)  (*(uint16_t SOE_FAR *)(uint32_t)(uint16_t)((r)->d + (o)))
+#else
+#define DP8(r, o)   (*soe_bus((uint16_t)((r)->d + (o))))
+#define DP16(r, o)  (*(uint16_t *)soe_bus((uint16_t)((r)->d + (o))))
+#endif
+
+/* ---- The 8-bit accumulator: its low byte; B (the high byte) stays as the caller left it ---- */
+#define SOE_A8(r)   ((uint8_t)(r)->a)
+static inline void soe_set_a8(soe_regs r, uint8_t v) { r->a = (uint16_t)((r->a & 0xFF00) | v); }
+
 /* ---- The flag arithmetic of single instructions, for routines whose callers read the flags ---- */
+/* CMP/CPX/CPY: N Z C as a - m leaves them. */
+static inline void soe_cmp8(soe_regs r, uint8_t a, uint8_t m) {
+    uint8_t d = (uint8_t)(a - m);
+    r->p = (uint8_t)((r->p & ~(SOE_N | SOE_Z | SOE_C)) | (d & 0x80) | (d == 0 ? SOE_Z : 0) | (a >= m ? SOE_C : 0));
+}
+static inline void soe_cmp16(soe_regs r, uint16_t a, uint16_t m) {
+    uint16_t d = (uint16_t)(a - m);
+    r->p = (uint8_t)((r->p & ~(SOE_N | SOE_Z | SOE_C)) | (d & 0x8000 ? SOE_N : 0) | (d == 0 ? SOE_Z : 0) | (a >= m ? SOE_C : 0));
+}
+/* ADC (8-bit, binary mode): a + m + carry; sets N V Z C. */
+static inline uint8_t soe_adc8(soe_regs r, uint8_t a, uint8_t m) {
+    uint16_t sum = (uint16_t)(a + m + (r->p & SOE_C));
+    uint8_t out = (uint8_t)sum;
+    r->p = (uint8_t)((r->p & ~(SOE_N | SOE_V | SOE_Z | SOE_C)) | (out & 0x80) | (out == 0 ? SOE_Z : 0)
+        | (sum > 0xFF ? SOE_C : 0) | ((~(a ^ m) & (a ^ out) & 0x80) ? SOE_V : 0));
+    return out;
+}
+/* SBC (8-bit, binary mode): a - m - !carry; sets N V Z C (C = no borrow). */
+static inline uint8_t soe_sbc8(soe_regs r, uint8_t a, uint8_t m) {
+    return soe_adc8(r, a, (uint8_t)~m);
+}
 /* ROL A (16-bit): carry in from P, bit 15 out to P. N and Z as the result. */
 static inline uint16_t soe_rol16(soe_regs r, uint16_t v) {
     uint16_t out = (uint16_t)(v << 1 | (r->p & SOE_C));
@@ -120,6 +154,11 @@ static inline uint16_t soe_adc16(soe_regs r, uint16_t a, uint16_t m) {
     r->p = (uint8_t)((r->p & ~SOE_V) | ((~(a ^ m) & (a ^ out) & 0x8000) ? SOE_V : 0));
     soe_nz16(r, out);
     return out;
+}
+
+/* SBC (16-bit, binary mode): a - m - !carry; sets N V Z C (C = no borrow). */
+static inline uint16_t soe_sbc16(soe_regs r, uint16_t a, uint16_t m) {
+    return soe_adc16(r, a, (uint16_t)~m);
 }
 
 /* SOE_BIND(name, 0x80AD62, RTL) { ... } replaces the ROM routine at that address (its execution

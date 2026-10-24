@@ -24,44 +24,5 @@ uint8_t elevation_ramp_plane_project(uint16_t collision_word, uint8_t current_pl
     return (uint8_t)(collision_word & 0x0030);
 }
 
-/**
- * Calculates the Chebyshev minimum coordinate delta: min(|dx|, |dy|).
- */
-uint8_t elevation_vector_shear_step(int8_t dx, int8_t dy) {
-    uint8_t abs_dx = (dx < 0) ? (uint8_t)(-dx) : (uint8_t)dx;
-    uint8_t abs_dy = (dy < 0) ? (uint8_t)(-dy) : (uint8_t)dy;
-
-    return (abs_dy < abs_dx) ? abs_dy : abs_dx;
-}
-
-/**
- * Evaluates diagonal distance projection across quadrants: |dx ± dy|.
- */
-uint8_t elevation_manhattan_distance_eval(int8_t dx, int8_t dy) {
-    if ((dx ^ dy) < 0) {
-        int16_t sum = dx + dy;
-        return (sum < 0) ? (uint8_t)(-sum) : (uint8_t)sum;
-    } else {
-        int16_t diff = dx - dy;
-        return (diff < 0) ? (uint8_t)(-diff) : (uint8_t)diff;
-    }
-}
-
-/**
- * Resolves 4-way cardinal compass direction from signed coordinate deltas.
- */
-uint8_t elevation_compass_direction_resolve(int8_t dx, int8_t dy) {
-    if (dx < 0) {
-        if (dy < 0) {
-            return HEADING_WEST;
-        } else {
-            return HEADING_NORTH;
-        }
-    } else {
-        if (dy < 0) {
-            return HEADING_SOUTH;
-        } else {
-            return HEADING_EAST;
-        }
-    }
-}
+/* elevation_vector_shear_step ($8F:A963), elevation_manhattan_distance_eval ($8F:A97D) and
+ * elevation_compass_direction_resolve ($8F:A999) are in their own files, exact to the ROM (gate G1). */

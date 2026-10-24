@@ -51,6 +51,8 @@ Secret of Evermore room terrain is composed of $16 \times 16$ metatiles. In WRAM
 ## 3. Reconstructed Clean C Implementation
 
 > **Reconstructed C Decompilation**:
-> Source moved to [`reconstructed-c/90/909DE8_tile_collision.c`](../../../reconstructed-c/90/909DE8_tile_collision.c).
+> Source: [`reconstructed-c/90/909DE8_eval_tile_collision.c`](../../../reconstructed-c/90/909DE8_eval_tile_collision.c) and
+> [`reconstructed-c/8F/8FA914_update_entity_plane.c`](../../../reconstructed-c/8F/8FA914_update_entity_plane.c),
+> both exact to the ROM (gate G1, `tools/c-to-rom/g1.mts`).
 > [View in VFS: soe://rom/code/909DE8](soe://rom/code/909DE8?c=1&asm=0)
 
