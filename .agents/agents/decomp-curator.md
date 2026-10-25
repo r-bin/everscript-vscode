@@ -42,10 +42,14 @@ When invoked with *"continue the decompilation"*:
    - Inspect callers and callees in the call graph.
 3. **Delegate Sub-Tasks (If Complex)**:
    - If the routine touches complex sub-functions or requires tracing memory values, invoke subagents using `invoke_subagent` to research the sub-routines concurrently.
-4. **Decompile into C that can run** (skill `code-vfs` §4):
+4. **Decompile into C that can run** (skill `code-vfs` §4, `compiler/calypsi.md`):
    - Write the routine's interface into its knowledge entry first: where inputs and outputs live (registers, DP slots, flags), entry widths, DB/D, `RTS`/`RTL`, DP scratch it writes.
    - Keep that interface and every WRAM write, scratch included; local names are fine inside the body.
-   - Replace mechanical CPU register manipulations with meaningful local variables.
+   - Strictly follow the C Code Quality Rules (`code-vfs` §4.1):
+     * **Types**: Explicit `uint16_t` and `uint8_t` (never bare 32-bit `int` or `long`).
+     * **No Status Flag Emulation**: Fold condition codes into high-level control flow (`if/else`, `while`, `switch`); do not emit separate boolean flag variables.
+     * **Local Scratch Scoping**: Scratch variables must be local so Calypsi keeps them in virtual Direct Page registers (`_Dp`).
+     * **Compiler Traps**: Avoid `-O2` (sign reload bug); use `-O1 --speed`; avoid comma expressions in conditions.
    - Replace raw hexadecimal addresses (`$0100`, `$0ADB`, `$2100`) with named struct fields and enums (from `docs/disassembly/engine-core/wram-map.md`).
    - Reconstruct structured control flow (`if`/`else`, `for`/`while`, `switch`) matching the assembly branch logic.
 5. **Publish Learnings**:
@@ -57,6 +61,7 @@ When invoked with *"continue the decompilation"*:
 7. **Verify & Validate**:
    - Run `npm run check:legal` to ensure no illegal ROM bytes or proprietary snippets were checked in.
    - Run fast unit tests (`npm test`).
+   - Run the **ASM-to-ASM comparison feedback loop** (`compiler/README.md` §7.6): compile with `cc65816 --assembly-source` and verify instruction ratio <= 1.4x against vanilla assembly. If > 1.5x, refine the C code first.
    - Record the gate the C reached in its header and knowledge entry; run `node tools/c-to-rom/g1.mts <name>` (code-vfs skill §4). Never rewrite documented C for speed: a faster variant goes under `#ifdef SOE_OPTIMIZE` only (AGENTS.md rule 11).
 8. **Commit Updates Immediately**:
    - Stage and commit only your reverse engineering additions and updates (`git add <paths> && git commit -m '...'`). Do not leave them uncommitted across prompts. Adhere to Standing Rule 0.5 (never `git add .` or `git commit -a`).

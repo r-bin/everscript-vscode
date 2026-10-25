@@ -1,10 +1,10 @@
 (define memories
         '((memory DirectPage
-                (address (#x0 . #xff))
+                (address (#x1c0 . #x1df))
                 (type RAM)
                 (section registers ztiny tiny))
         (memory LoRAM
-                (address (#x100 . #x1fff))
+                (address (#x200 . #x1fff))
                 (type RAM)
                 (qualifier near)
                 (section stack data znear near))

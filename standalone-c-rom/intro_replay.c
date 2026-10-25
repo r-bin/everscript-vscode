@@ -10,10 +10,12 @@
 #define REG_BG2VOFS (*(volatile uint8_t *)0x2110)
 #define REG_BG3HOFS (*(volatile uint8_t *)0x2111)
 #define REG_BG3VOFS (*(volatile uint8_t *)0x2112)
+#define REG_NMI_FRAME_COUNTER (*(volatile uint16_t *)0x7E0100)
 
 static replay_state_t s_state;
 static uint8_t s_current_scene;
 static uint16_t s_timer;
+static uint16_t s_scene_frame;
 
 static void apply_scroll_registers(const scene_desc_t *sc) {
     REG_BG1HOFS = (uint8_t)(sc->bg1_scroll_x & 0xFF);
@@ -32,19 +34,37 @@ static void apply_scroll_registers(const scene_desc_t *sc) {
     REG_BG3VOFS = (uint8_t)((sc->bg3_scroll_y >> 8) & 0xFF);
 }
 
-static void update_logo_palette_cycle(uint16_t timer) {
-    /* Authentic Squaresoft logo red shimmer:
-       Ramps red intensity 0 -> 20 -> 0 at CGRAM color 2 and color 3 */
-    uint16_t red = 0;
-    if (timer < 70) {
-        red = (timer * 20) / 70;
-    } else if (timer < 180) {
-        red = 20 - ((timer - 70) * 20) / 110;
-    }
-    if (red > 31) red = 31;
+static void update_logo_palette_cycle(uint16_t frame) {
+    /* Authentic Squaresoft logo red shimmer matching vanilla Evermore:
+     * Frame 0..37: initial palette (c2=0x8, c3=0xc)
+     * Frame 38..75: black (c2=0, c3=0)
+     * Frame 76..153: ramp up red 1 -> 20 (+1 every 4 frames)
+     * Frame 154..305: ramp down red 19 -> 0 (-1 every 8 frames)
+     * Frame 306..374: black (c2=0, c3=0)
+     */
+    uint16_t c2 = 0;
+    uint16_t c3 = 0;
 
-    uint16_t c2 = red;        /* BGR555: Red in bits 0-4 */
-    uint16_t c3 = red / 2;
+    if (frame < 38) {
+        c2 = 0x0008;
+        c3 = 0x000C;
+    } else if (frame < 76) {
+        c2 = 0;
+        c3 = 0;
+    } else if (frame <= 153) {
+        uint16_t step = (frame - 76) / 4 + 1;
+        if (step > 20) step = 20;
+        c2 = step;
+        c3 = step / 2;
+    } else if (frame <= 305) {
+        int16_t step = 19 - (int16_t)((frame - 154) / 8);
+        if (step < 0) step = 0;
+        c2 = (uint16_t)step;
+        c3 = (uint16_t)(step / 2);
+    } else {
+        c2 = 0;
+        c3 = 0;
+    }
 
     REG_CGADD = 0x02;
     REG_CGDATA = (uint8_t)(c2 & 0xFF);
@@ -124,6 +144,7 @@ void intro_replay_init(void) {
     s_state = STATE_LOAD_SCENE;
     s_current_scene = 0;
     s_timer = 0;
+    s_scene_frame = 0;
 }
 
 uint8_t intro_replay_get_scene(void) {
@@ -174,50 +195,79 @@ void intro_replay_update(void) {
 
             apply_scroll_registers(sc);
 
-            /* 5. Start fade-in from brightness 0 */
-            ppu_set_display(0x00);
+            /* 5. Start fade-in / forced blank */
+            ppu_set_display(0x80);
             s_state = STATE_FADE_IN;
             s_timer = 0;
+            s_scene_frame = 0;
             break;
 
         case STATE_FADE_IN:
             {
-                update_dynamic_scene_camera(sc, s_current_scene, s_timer);
+                update_dynamic_scene_camera(sc, s_current_scene, s_scene_frame);
                 if (s_current_scene == 0) {
-                    update_logo_palette_cycle(s_timer);
-                }
-                uint8_t brightness = (uint8_t)(s_timer / 2);
-                if (brightness > 0x0F) brightness = 0x0F;
-                ppu_set_display(brightness);
-
-                s_timer++;
-                if (s_timer >= 30) {
-                    ppu_set_display(0x0F);
-                    s_state = STATE_HOLD;
-                    s_timer = 0;
+                    update_logo_palette_cycle(REG_NMI_FRAME_COUNTER + 1);
+                    if (s_scene_frame < 38) {
+                        ppu_set_display(0x80);
+                    } else {
+                        ppu_set_display(0x0F);
+                    }
+                    s_scene_frame++;
+                    if (s_scene_frame >= 38) {
+                        ppu_set_display(0x0F);
+                        s_state = STATE_HOLD;
+                        s_timer = 0;
+                    }
+                } else {
+                    uint8_t brightness = (uint8_t)(s_timer / 2);
+                    if (brightness > 0x0F) brightness = 0x0F;
+                    ppu_set_display(brightness);
+                    s_scene_frame++;
+                    s_timer++;
+                    if (s_timer >= 30) {
+                        ppu_set_display(0x0F);
+                        s_state = STATE_HOLD;
+                        s_timer = 0;
+                    }
                 }
             }
             break;
 
         case STATE_HOLD:
-            update_dynamic_scene_camera(sc, s_current_scene, s_timer);
+            update_dynamic_scene_camera(sc, s_current_scene, s_scene_frame);
             if (s_current_scene == 0) {
-                update_logo_palette_cycle(s_timer);
-            }
-            ppu_set_display(0x0F);
-            s_timer++;
-            if (s_timer >= sc->hold_frames) {
-                s_state = STATE_FADE_OUT;
-                s_timer = 0;
+                update_logo_palette_cycle(REG_NMI_FRAME_COUNTER + 1);
+                if (s_scene_frame < 318) {
+                    ppu_set_display(0x0F);
+                } else {
+                    ppu_set_display(0x80);
+                }
+                s_scene_frame++;
+                if (s_scene_frame >= 374) {
+                    ppu_set_display(0x80); /* Force blank */
+                    s_current_scene = 1;
+                    s_state = STATE_LOAD_SCENE;
+                    s_timer = 0;
+                    s_scene_frame = 0;
+                }
+            } else {
+                ppu_set_display(0x0F);
+                s_scene_frame++;
+                s_timer++;
+                if (s_timer >= sc->hold_frames) {
+                    s_state = STATE_FADE_OUT;
+                    s_timer = 0;
+                }
             }
             break;
 
         case STATE_FADE_OUT:
             {
-                update_dynamic_scene_camera(sc, s_current_scene, s_timer);
+                update_dynamic_scene_camera(sc, s_current_scene, s_scene_frame);
                 int16_t b = 15 - (int16_t)(s_timer / 2);
                 if (b < 0) b = 0;
                 ppu_set_display((uint8_t)b);
+                s_scene_frame++;
 
                 s_timer++;
                 if (s_timer >= 30) {
@@ -225,6 +275,7 @@ void intro_replay_update(void) {
                     s_current_scene = (s_current_scene + 1) % NUM_REPLAY_SCENES;
                     s_state = STATE_LOAD_SCENE;
                     s_timer = 0;
+                    s_scene_frame = 0;
                 }
             }
             break;

@@ -33,7 +33,15 @@ export async function verifyFullReplayLoop(): Promise<void> {
     let loopWrapped = false;
     let prevScene = -1;
 
-    console.log('Running emulator across the full 2-minute loop (~7,200 frames)...');
+    let sceneAddr = 0x7E208A;
+    const lstPath = join(REPO, 'out/standalone-c-rom/intro-replay.lst');
+    if (existsSync(lstPath)) {
+        const lst = readFileSync(lstPath, 'utf8');
+        const match = lst.match(/s_current_scene\s+in\s+section[^\n]*\n?\s*placed\s+at\s+address\s+([0-9a-fA-F]+)/);
+        if (match) sceneAddr = parseInt(match[1], 16);
+    }
+
+    console.log(`Running emulator across the full 2-minute loop (~7,200 frames, scene tracking at $${sceneAddr.toString(16)})...`);
 
     for (let frame = 1; frame <= 7200; frame++) {
         core.frame(0);
@@ -53,7 +61,7 @@ export async function verifyFullReplayLoop(): Promise<void> {
         }
 
         // Read current scene from WRAM
-        const scene = core.M._readMemory(0x7E2088);
+        const scene = core.M._readMemory(sceneAddr);
 
         if (scene !== prevScene) {
             console.log(`  Frame ${frame.toString().padStart(4, ' ')}: Entered scene ${scene} (${sceneNames[scene] || 'unknown'})`);

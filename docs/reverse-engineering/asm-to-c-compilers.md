@@ -117,3 +117,4 @@ When lifting a vanilla 65816 routine to C:
    - Target ratio: `<= 1.2x`.
    - If ratio `> 1.2x`, inspect emitted assembly via `diff-asm.mts` and eliminate redundant 32-bit math or pointer spills.
    - For micro-primitives, implement an optimized variant under `#ifdef SOE_OPTIMIZE` or retain native ROM ASM.
+

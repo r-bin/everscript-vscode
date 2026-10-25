@@ -6,8 +6,14 @@ void snes_enable_fastrom(void) {
 }
 
 void snes_clear_wram(void) {
-    /* WRAM BSS is already initialized and cleared by Calypsi cstartup.
-     * Clear a 512-byte engine scratchpad buffer in bank $7F. */
+    /* Clear Bank $7E low direct page/scratch memory ($7E0000..$7E01BF).
+     * Calypsi registers reside at $7E01C0..$7E01DF and are initialized by cstartup. */
+    volatile uint8_t *dp = (volatile uint8_t *)0x7E0000;
+    for (uint16_t i = 0; i < 0x01C0; i++) {
+        dp[i] = 0;
+    }
+
+    /* Clear a 512-byte engine scratchpad buffer in bank $7F. */
     volatile uint8_t *scratch = (volatile uint8_t *)0x7F0000;
     for (uint16_t i = 0; i < 512; i++) {
         scratch[i] = 0;
