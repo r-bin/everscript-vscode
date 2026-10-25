@@ -83,9 +83,17 @@ export function checkBindings(rom: Uint8Array, list: Binding[]): string[] {
     } catch { /* no library: only the static checks */ }
     const problems: string[] = [];
     for (const b of list) {
-        const body = walk(rom, b.addr, cdl);
+        let body = walk(rom, b.addr, cdl);
+        let rets = new Set(body.map(l => l.text).filter(t => /^(RTS|RTL|RTI)$/.test(t)));
+        if (!rets.has(b.ret)) {
+            const bodyM8 = walk(rom, b.addr, cdl, true);
+            const retsM8 = new Set(bodyM8.map(l => l.text).filter(t => /^(RTS|RTL|RTI)$/.test(t)));
+            if (retsM8.has(b.ret)) {
+                body = bodyM8;
+                rets = retsM8;
+            }
+        }
         const inner = (t: number) => t > b.addr && t < b.addr + trampSize(b);
-        const rets = new Set(body.map(l => l.text).filter(t => /^(RTS|RTL|RTI)$/.test(t)));
         if (!rets.size) problems.push(`${b.name}: no return reachable from ${hex(b.addr)} (a label inside another routine?)`);
         else if (!rets.has(b.ret) || rets.size > 1) problems.push(`${b.name}: declared ${b.ret}, its code returns with ${[...rets].join('/')}`);
         for (const l of body) {

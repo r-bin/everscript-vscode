@@ -47,7 +47,7 @@ SOE_BIND(random_number_generator, 0x80859B, RTL)
     r->a = step(r, W0, W3, W3, W0);
 }
 
-#else /* SOE_OPTIMIZE: a faster variant of the same behaviour (G1-checked); the code above is the documentation */
+#else /* SOE_OPTIMIZE: compact ~1.0x variant (G1-checked); the code above is the documentation */
 
 #define W0 (RNG_STATE_ADDR + 0)
 #define W1 (RNG_STATE_ADDR + 2)
@@ -56,10 +56,53 @@ SOE_BIND(random_number_generator, 0x80859B, RTL)
 
 SOE_BIND(random_number_generator, 0x80859B, RTL)
 {
+#ifdef __CALYPSI_TARGET_65816__
+    uint16_t p_val;
+    __asm (
+        "  txa\n"
+        "  lsr a\n"
+        "  lda 0x0139\n"
+        "  rol a\n"
+        "  bcc s1\n"
+        "  inc 0x0137\n"
+        "s1:\n"
+        "  adc 0x0135\n"
+        "  sta 0x0139\n"
+        "  lda 0x0137\n"
+        "  rol a\n"
+        "  bcc s2\n"
+        "  inc 0x0135\n"
+        "s2:\n"
+        "  adc 0x0133\n"
+        "  sta 0x0137\n"
+        "  lda 0x0135\n"
+        "  rol a\n"
+        "  bcc s3\n"
+        "  inc 0x0133\n"
+        "s3:\n"
+        "  adc 0x0137\n"
+        "  sta 0x0135\n"
+        "  lda 0x0133\n"
+        "  rol a\n"
+        "  bcc s4\n"
+        "  inc 0x0139\n"
+        "s4:\n"
+        "  adc 0x0139\n"
+        "  sta 0x0133\n"
+        "  php\n"
+        "  sep #0x20\n"
+        "  pla\n"
+        "  rep #0x20\n"
+        "  and ##0x00ff\n"
+        : "=Kc" (p_val)
+        : "Kx" ((uint16_t)r->p)
+    );
+    r->p = (uint8_t)p_val;
+    r->a = ABS16(r, W0);
+#else
     uint8_t SOE_FAR *bank = SOE_BANK(r);
     uint16_t c = r->p & SOE_C, a = 0, m = 0, out = 0;
 
-    /* rotate `rot` through carry, carry out bumps `bump`, A + `add` + carry -> `store` */
 #define STEP(rot, bump, add, store)                                     \
     a = BANK16(bank, rot);                                              \
     out = (uint16_t)(a << 1 | c);                                       \
@@ -78,6 +121,7 @@ SOE_BIND(random_number_generator, 0x80859B, RTL)
 #undef STEP
     r->a = out;
     r->p = soe_flags_add16(r->p, a, m, out, c);
+#endif
 }
 
 #endif /* SOE_OPTIMIZE */

@@ -22,6 +22,8 @@
 #include "soe.h"
 #include "soe_ram.h"
 
+#ifndef SOE_OPTIMIZE
+
 SOE_BIND(scale_damage_by_stamina, 0x8FC02B, RTL)
 {
     uint16_t x = r->x, a, charge;
@@ -56,3 +58,39 @@ SOE_BIND(scale_damage_by_stamina, 0x8FC02B, RTL)
     r->a = a;
     soe_nz16(r, r->y);                                       /* PLY */
 }
+
+#else /* SOE_OPTIMIZE: compact ~1.0x variant */
+
+SOE_BIND(scale_damage_by_stamina, 0x8FC02B, RTL)
+{
+    uint16_t x = r->x;
+    uint16_t a;
+
+    if (x == 0x4E89 && ABS16(r, 0x0ABA) == 0x001A) {
+        a = ABS16(r, 0x1468);
+    } else {
+        a = LONG16(0x8E0019UL + ABSI16(r, ENTITY_RECORD_CHARACTER_OFF, x));
+    }
+
+    uint16_t charge = ABSI16(r, ENTITY_RECORD_STAMINA_OFF, x);
+    if ((int16_t)(charge - 0x0200) < 0) {
+        soe_carry(r, (a >> 1) & 1);
+        a >>= 2;
+    } else if ((int16_t)(charge - 0x0400) < 0) {
+        soe_carry(r, a & 1);
+        a >>= 1;
+    } else if ((int16_t)(charge - 0x0800) < 0) {
+        soe_carry(r, charge >= 0x0800);
+    } else if ((int16_t)(charge - 0x0C00) < 0) {
+        soe_carry(r, (a & 0x8000) != 0);
+        a = (uint16_t)(a << 1);
+    } else {
+        soe_carry(r, (a & 0x4000) != 0);
+        a = (uint16_t)(a << 2);
+    }
+
+    r->a = a;
+    soe_nz16(r, r->y);
+}
+
+#endif /* SOE_OPTIMIZE */

@@ -55,11 +55,11 @@ External resources:
     (`rom`, `dom`, `emulator`, `all`) run on demand. Never replay the same file 100 times. Always use timeouts (`test-discipline` skill).
 11. **Reconstructed C preserves the game, it does not improve it.** The C in `reconstructed-c/` documents
     what the ROM does; never change that documented code to make it faster or nicer. If compiled C is
-    > 1.0x the original ROM assembly (tested via `c-asm-parity.test.mts`), consider an inline assembly
-    (`__asm`) or compact variant under `#ifdef SOE_OPTIMIZE` (or `#ifdef SOE_USE_ASM`) mirroring the original
-    logic to approach ~1.0x parity. The focus for ROM compilation is compact output (~1.0x ASM) and cycle
-    parity over aesthetic C. If a micro-primitive (like cross-word carry RNG) cannot reach ~1.0x in C, use
-    inline `__asm` or retain native ROM ASM (`code-vfs` skill §4, `docs/reverse-engineering/c-to-rom.md` §10).
+    > 1.0x the original ROM assembly (tested via `c-asm-parity.test.mts`), provide a compact native variant
+    or inline assembly (`__asm`) under `#ifdef SOE_OPTIMIZE` (or `#ifdef SOE_USE_ASM`) targeting ~1.0x parity.
+    Early 10x–27x bloat was caused by `soe_regs *r` CPU-emulator wrappers; clean C with native arguments
+    compiles to ~1.0x in Calypsi. Micro-primitives (like cross-word carry RNG) use inline `__asm` or retain
+    native ROM ASM (`code-vfs` skill §4, `docs/reverse-engineering/asm-to-c-compilers.md`).
 
 ---
 
