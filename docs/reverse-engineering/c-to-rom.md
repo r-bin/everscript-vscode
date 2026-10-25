@@ -350,6 +350,74 @@ mutation of its first operands is caught (on fuzzed states if the real ones neve
 branch on `$8F:C02B`. `PLY`, `PLX`, `PLB` and `TDC` set N and Z, and `BIT #imm` sets only Z: the
 exit flags are part of the contract.
 
+---
+
+## 10b. ~1.0x Parity Objective, Inline ASM, and Dynamic ROM Assembly (v0.353.1+)
+
+### 1. The ~1.0x Code Parity Rule (AGENTS.md Rule 11)
+Reconstructed C documents what the ROM does. However, when compiling C into a bootable ROM, code expansion
+and cycle inflation cause NMI slips and desynchronization. If compiled C code size is `> 1.0x` the original
+ROM assembly, we provide an inline assembly (`__asm`) or compact variant under `#ifdef SOE_OPTIMIZE`
+(or `#ifdef SOE_USE_ASM`) targeting `~1.0x` instruction parity.
+
+The parity is measured automatically by the unit test suite:
+```sh
+npm run c-to-rom:asm-parity
+```
+(`tests/memory/c-asm-parity.test.mts`). The test verifies every bound routine, disassembles the original ROM routine,
+compiles the C routine with Calypsi (`-O1 --speed`), counts emitted instructions, and generates clickable VFS links:
+`soe://rom/code/<name>/?asm=1`.
+
+### 2. Why Pure C Blows Up on the 65816 (Root Cause Analysis)
+Empirical analysis of our 29 bound routines revealed why naive C expands by 4x–27x vs 65816 assembly:
+1. **Direct Page Virtualization on Stack:**
+   Calypsi requires 32 bytes of Direct Page for its pseudo-registers (`_Dp`). The bridge re-points `D` to
+   stack space (`tsc; sbc #32; tcs; tcd`). Consequently, Evermore's native Direct Page variables (`$00..$FF`
+   and entity records) cannot use 1-byte direct page opcodes (`lda $82`). Calypsi must compute a 24-bit
+   far address (`(r)->d + 0x82`) and emit indirect long accesses (`lda [.tiny _Dp]`), turning a 2-byte,
+   3-cycle opcode into a 15-instruction, 60-cycle sequence.
+2. **Lack of Hardware Carry/Rotate Primitives in C:**
+   In 65816, `ROL A` (1 byte, 2 cycles) rotates through the hardware Carry flag, and `ADC` (3 bytes, 4 cycles)
+   adds with carry-in and computes carry-out and overflow simultaneously. In standard C, rotating through carry
+   or capturing carry-out requires promoting to 32-bit `uint32_t`, which Calypsi lowers into multi-word stack
+   operations and software branches. For `random_number_generator` ($80:859B), pure C expands the 25-instruction
+   ROM routine to >150 instructions (6x expansion).
+3. **`soe_regs r` Far Struct Indirection:**
+   In the generic `SOE_BIND` ABI, CPU registers are stored in a struct on the stack. Reading or writing `r->a`,
+   `r->y`, `r->db`, or `r->p` emits far indirect loads and stores through `_Dp`.
+
+### 3. Calypsi Inline Assembly Architecture & Constraints
+Calypsi 5.18 supports inline assembly slices via `__asm`:
+- **Indentation rule:** Instructions MUST have leading whitespace (e.g. `"  lda 0x0139\n"`). A token at column 0
+  is parsed as a local label; omitting whitespace causes `fatal error: unknown instruction`.
+- **Constraint classes:**
+  - `"=Kc"`: 16-bit accumulator C (output).
+  - `"=Ka"`: 8-bit accumulator A (output).
+  - `"Kx"`: X register (input).
+  - `"Ky"`: Y register (input).
+  - Note: Calypsi only supports **one output parameter** per `__asm` construct.
+- **Hex constants:** Use `0x0139`, not `$0139`.
+- **Stack balance discipline:** In 16-bit accumulator mode ($M=0$), `php` pushes 1 byte, but `pla` pulls 2 bytes.
+  To capture processor status without unbalancing the stack, use:
+  ```assembly
+  php
+  sep #0x20   ; 8-bit A
+  pla         ; pulls exactly 1 byte
+  rep #0x20   ; restore 16-bit A
+  ```
+
+### 4. Legal Compliance (Rule 0.1) & Dynamic Build-Time ROM Assembly
+Under AGENTS.md Rule 0.1, **no ROM bytes or cloned ROM assembly lines may be committed to git**.
+To achieve `~1.0x` parity in the compiled ROM without violating copyright:
+1. **Loosely-Inspired C / Inline ASM:** For routines where C or clean-room assembly can reach ~1.0x, we write
+   compact code under `#ifdef SOE_OPTIMIZE` / `#ifdef SOE_USE_ASM`.
+2. **Dynamic Build-Time Injection:** For micro-primitives (like cross-word carry RNG) where pure C cannot reach
+   1.0x without byte-for-byte asm, `tools/c-to-rom/build.mts` extracts the routine directly from the user's
+   clean base ROM at build time (`walk(rom, b.addr, cdl)`). The extracted assembly is placed in `out/` (which is
+   gitignored) or the routine is left unbound so the native ROM code runs in-place at full 1.0x speed.
+
+---
+
 **Preserve, never improve (AGENTS.md rule 11).** The C documents the game: the default code follows
 the asm and is not rewritten for speed. A faster variant of a routine may sit beside it under
 `#ifdef SOE_OPTIMIZE`, off by default (`build.mts --optimize`; `g1.mts --optimize` checks the

@@ -68,6 +68,17 @@ Write the C in the bindable form (worked files: `reconstructed-c/80/80859B_*.c`,
   measured need written in `c-to-rom.md` §10. The speed helpers (`SOE_BANK`, `BANKI16`, `DPB16`,
   `soe_flags_*`, `soe_mvn_7e`) exist only under that macro.
 
+### 4.1 Strict C Code Quality Rules (Calypsi 65816 Codegen)
+
+Calypsi (`compiler/calypsi.md`) generates near 1:1 assembly with vanilla 65816 ONLY when C strictly adheres to these rules:
+1. **Integer Width Discipline**: Strictly use `uint16_t` and `uint8_t` (and signed `int16_t`/`int8_t`). NEVER use bare `int`, `long`, or `uint32_t` unless 32-bit arithmetic is required. 32-bit types double instruction count and cycle costs.
+2. **Control Flow over Flags**: Never emit CPU status flag variables (`N`/`Z`/`C` booleans). Fold branches into high-level `if/else`, loops, and switches.
+3. **Clean Signatures for Standalone/Clean Code**: For standalone modules and empty FastROM compilation, pass parameters in registers (`A` and `_Dp`/`X`) and return in `A`. Avoid `soe_regs` struct wrappers outside legacy bridges.
+4. **Typed Structs over Raw Pointer Math**: Use typed structs (`entity->hp`) so Calypsi can generate indexed addressing modes (`lda [dp],y`).
+5. **Local Scoping for Scratch**: Scratch variables must be local so Calypsi keeps them in virtual Direct Page registers (`_Dp`) rather than spilling to global WRAM.
+6. **Compiler Settings & Traps**: Use `-O1 --speed` with `--target=snes` (never `-O2` due to sign reload bug). Use `--force-switch=if-else` or `jump-table`. No comma expressions in conditions. Detail: `compiler/README.md`.
+7. **ASM-to-ASM Feedback Loop & 1.0x Parity**: After compiling C to assembly (`tests/memory/c-asm-parity.test.mts` or `npm run c-to-rom:rate`), compare its instruction count against the original vanilla 65816 routine (`soe://rom/code/<name>/?asm=1`). Target: **~1.0x**. If compiled code size is **> 1.0x**, consider an inline assembly (`__asm`) or compact variant under `#ifdef SOE_OPTIMIZE` (or `#ifdef SOE_USE_ASM`) mirroring the original logic to approach ~1.0x parity. Priority for ROM compilation is compact output (~1.0x ASM) and cycle parity over aesthetic C. If a micro-primitive cannot reach ~1.0x in C, use inline `__asm` or keep native ROM ASM.
+
 A routine's C counts by **gate**, never by "a file exists":
 
 | Gate | Passes when | Tool |

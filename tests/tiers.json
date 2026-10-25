@@ -58,6 +58,7 @@
   "tests/memory/sprites.test.js",
   "tests/memory/soe-resources.test.js",
   "tests/memory/code-vfs.test.js",
+  "tests/memory/c-asm-parity.test.mts",
   "tests/memory/soe-tags.test.js",
   "tests/mana/mana-rom.test.js",
   "tests/mana/mana-evermore.test.js",
