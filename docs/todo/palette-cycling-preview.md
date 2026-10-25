@@ -1,15 +1,14 @@
 # Palette-Cycle Preview in the Map Editor
 
 > Domain: Evermore room palettes and the map editor (`src/games/evermore/maps/`, `src/games/evermore/rooms/`)
-> Status: 🟢 Implemented. Supported in Map Editor (`Tile > Animation > Palette` sub-tab), preview overlays, and tile picker.
-> Format reference: [Room reference](../map-format/room-reference.md) §5; [palette extraction](../map-format/map_palette_extraction.md); [animated tiles](../map-format/map_animated_tiles.md) §6
+> Status: 🟡 feature gap; descriptors are decoded for display but not animated in the map preview.
+> Format reference: [Room reference](../map-format/room-reference.md) §5; [palette extraction](../map-format/map_palette_extraction.md)
 
 ## What It Does
 
-Some room blobs contain a count followed by three-byte palette-cycle descriptors (Section 4.3). The room loader at `$9090A6` reads each record and calls `$90D50F`, which sets up state used to cycle colours over time. This changes colours in the rendered scene without replacing the tile graphics. It is a palette animation, not a tile-animation channel from Section 2.
+Some room blobs contain a count followed by three-byte palette-cycle descriptors. The room loader at `$9090A6` reads each record and calls `$90D50F`, which sets up state used to cycle colours over time. This changes colours in the rendered scene without replacing the tile graphics. It is a palette animation, not a tile-animation channel from Section 2.
 
-The data model parses these records into typed `paletteCycles` objects with active pattern lettering (A, B, C...).
-The map editor provides a dedicated `Tile > Animation > Palette` sub-tab, animates canvas overlays with individual `Tile cycle` and `Palette cycle` toggles, groups contiguous cells sharing cycle patterns, and renders previews using deduplicated `<defs>`/`<use>` sprites and pixel-difference filtering.
+The data model currently preserves these records under the legacy property name `extraGraphics`. The Maps view shows their raw bytes and decoded record boundaries, but the map image is static: the map renderer does not apply the palette cycles.
 
 ## Current Evidence and Confidence
 

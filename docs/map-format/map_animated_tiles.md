@@ -189,15 +189,12 @@ roughly 900 KB.
 
 ---
 
-## 6. CGRAM Colour Cycling (Section 4.3)
+## 6. Still open
 
-In addition to Section 2 CHR tile-swapping channels, Evermore supports **CGRAM palette colour cycling** via 3-byte descriptors in Section 4.3 of room blobs.
-The room loader at `$9090A6` passes these records to `$90D50F`, configuring cycle state in `$1372..$1411` ticked per frame by `$90D569`.
-- Byte 0 specifies the starting CGRAM colour `(b0 & 0x7F)` (palette `(b0 >> 4) & 7`, colour `b0 & 0x0F`) and state slot.
-- Byte 1 specifies the span of cycling colours.
-- Byte 2 specifies the signed rate (ticks per step; negative cycles in reverse).
-This shifts colours in place across CGRAM without altering tile graphics (e.g. running water, shifting lava glow).
-In the editor, the `Tile > Animation > Palette` sub-tab previews and manages these cycles. Stamps with opaque canopy over cycling terrain are pruned when composited pixels remain identical across all cycle steps.
+**CGRAM colour cycling.** Some SNES games animate water by rotating palette
+entries rather than swapping tile graphics. Nothing found so far suggests the
+Evermore map renderer does this — every animation encountered is a Section 2
+tile swap — but it has not been ruled out by tracing.
 
 ---
 
