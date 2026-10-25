@@ -241,6 +241,11 @@
 
       let lastFrameTimestamp = performance.now();
       const FRAME_INTERVAL_MS = 1000 / 60; // 16.666 ms
+      // lastFrameTimestamp moves on by one interval per frame due, so the game runs at 60 frames a
+      // second whatever the screen's rate: frames a late tick skipped (a busy page, a 50 Hz screen)
+      // run on the next one, up to MAX_CATCH_UP more; a longer stall is dropped. Before, a skipped
+      // frame was lost (slow on 50 Hz) and one run up to 2 ms early took no time (fast on 120 Hz).
+      const MAX_CATCH_UP = 4;
       // Paused (Esc, pause button, breakpoint): the core is frozen, so only the
       // extension layers are redrawn - a few times a second, for pan / zoom.
       const PAUSED_FRAME_MS = 250;
@@ -251,7 +256,9 @@
         if (!timestamp) timestamp = performance.now();
         const elapsed = timestamp - lastFrameTimestamp;
         if (elapsed < FRAME_INTERVAL_MS - 2.0) return;
-        lastFrameTimestamp = timestamp - (elapsed % FRAME_INTERVAL_MS);
+        const due = Math.floor((elapsed + 2.0) / FRAME_INTERVAL_MS);
+        const catchUp = Math.min(due - 1, MAX_CATCH_UP);
+        lastFrameTimestamp = due > 1 + MAX_CATCH_UP ? timestamp : lastFrameTimestamp + due * FRAME_INTERVAL_MS;
         if (typeof pollGamepadMenu === 'function') pollGamepadMenu();
         if (typeof pollGamepadOverlay === 'function') pollGamepadOverlay();
 
@@ -298,16 +305,20 @@
               }
               speedAccumulator -= 1.0;
             }
-            for (let extra = (speedMultiplier > 1.0 ? Math.floor(speedMultiplier) - 1 : 0); extra > 0 && !isEmulatorPaused(); extra--) {
+            const perTick = speedMultiplier > 1.0 ? Math.floor(speedMultiplier) : 1;
+            const extraFrames = perTick - 1 + (speedMultiplier >= 1.0 ? catchUp * perTick : 0);
+            for (let extra = extraFrames; extra > 0 && !isEmulatorPaused(); extra--) {
               tasApplyInput(Module, keyInput | gamepadJoypad());
               Module._mainLoop();
               fpsCountFrame(Module);
+              audioTakeFrame(Module);
               romFrameCount++;
               apuStreamTick(Module, false);
             }
             tasApplyInput(Module, keyInput | gamepadJoypad());
             Module._mainLoop();
             fpsCountFrame(Module);
+            audioTakeFrame(Module);
             const fbPtr = Module._getScreenBuffer();
             if (fbPtr) {
               imageData.data.set(new Uint8ClampedArray(HEAPU8.buffer, fbPtr, 512 * 448 * 4));

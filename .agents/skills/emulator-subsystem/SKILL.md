@@ -82,6 +82,15 @@ running `snes9x_2005.js` keeps the old glue.
    - `available_samples` per frame in `S9xSoundCallback` must be calculated dynamically:
      `available_samples = Settings.SoundPlaybackRate / 60` (735 samples/frame at 44.1 kHz).
    - Audio ring buffers must be at least 16,384 samples (`SOUND_BUFFER_SAMPLES`). Under-runs must zero-pad rather than repeating old buffers (to prevent robotic buzzing and clicking).
+   - The page (`webview/page/02a-audio-out.js`) takes each frame's 735 samples right after every
+     `_mainLoop()` (`audioTakeFrame`; a silent catch-up calls `audioDropFrame`) into its own ring, and the
+     ScriptProcessor plays that ring with ~93 ms in reserve and a ±0.5% rate stretch. Never let the node
+     read `_getSoundBuffer()` directly again: the frame loop runs on the display's clock, the sound card
+     on its own, and with no reserve every drift (59.94 Hz screen, busy page) played gaps (v0.353.4, the
+     Windows "choppy" report). The vanilla core keeps the direct read (its buffer works in 2048 halves).
+   - Frame pacing (`03b-render-loop.js`) is a fixed 60 Hz accumulator: a tick runs every frame due, up
+     to 4 extra. The old remainder trick ran a 50 Hz screen at 50 FPS (slow, starved sound) and a
+     144 Hz one at ~80 FPS. A new `_mainLoop()` call site must also call `audioTakeFrame` / `audioDropFrame`.
 2. **Display Scaling**:
    - In standard SNES low-res mode (256×224), `GFX.Screen` pitch is 512 words.
    - `getScreenBuffer()` must scale 2× horizontally and vertically into the 512×448 RGBA buffer, so the active SNES frame fills the full canvas instead of rendering into the top-left quarter.

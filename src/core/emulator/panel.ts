@@ -8,7 +8,7 @@
  *   Module._startWithRom(ptr, size, audioFreq)   start emulation
  *   Module._mainLoop()                            advance one frame
  *   Module._getScreenBuffer()                     ptr -> 512x448 RGBA8888
- *   Module._getSoundBuffer()                      ptr -> stereo Int16 PCM
+ *   Module._getSoundBuffer()                      ptr -> 2048 L then 2048 R Float32 (webview/page/02a-audio-out.js)
  *   Module._setJoypadInput(bits)                  player-1 bitmask
  *   Module._setJoypadInput2(bits)                 player-2 bitmask
  *   Module._my_malloc(size) / Module._my_free(ptr)

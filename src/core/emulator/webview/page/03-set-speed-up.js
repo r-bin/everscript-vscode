@@ -252,6 +252,7 @@
         HEAPU8.set(romData, ptr);
         Module._startWithRom(ptr, romData.length, AUDIO_FREQ);
         Module._my_free(ptr);
+        audioReset();
 
         const isReplay = !!(typeof tasPendingMovie !== 'undefined' && tasPendingMovie);
         const shouldApplySram = sramData && (!currentIsolatedSram || isReplay);

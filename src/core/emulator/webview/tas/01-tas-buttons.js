@@ -324,6 +324,7 @@
         if (tasPlay.pos >= tasPlay.count) { tasPlayEvents(m, tasPlay.pos); tasStopPlayback(); break; }
         tasApplyInput(m, 0);
         m._mainLoop();
+        audioDropFrame(m);
       }
       tasCatchingUp = !!(m && tasPlay && tasPlay.resume);
       if (tasCatchingUp) setTimeout(tasCatchUpSlice, 0);
