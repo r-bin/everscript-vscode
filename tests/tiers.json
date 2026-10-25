@@ -25,6 +25,7 @@
   "tests/terra/terra-maps-model.test.mts",
   "tests/compare/compare-units.test.mts",
   "tests/debugger/emulator-audio.test.mts",
+  "tests/debugger/emulator-gamepad.test.mts",
   "tests/debugger/debugger.test.js",
   "tests/debugger/settings-model.test.js",
   "tests/debugger/snes-rom-header-model.test.js",

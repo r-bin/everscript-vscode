@@ -177,7 +177,10 @@ function emuApplySettings(saved) {
     let binds = s.keybinds && typeof s.keybinds === 'object' ? s.keybinds : null;
     if (!binds) { binds = emuLegacyKeybinds(); migrated = !!binds; }
     userKeyMap = Object.assign({}, DEFAULT_KEY_MAP, binds || {});
-    userPadMap = Object.assign({}, DEFAULT_PAD_MAP, s.padBinds && typeof s.padBinds === 'object' ? s.padBinds : {});
+    userPadMap = Object.assign({}, DEFAULT_PAD_MAP);
+    if (s.padBinds && typeof s.padBinds === 'object') {
+      for (const k of Object.keys(DEFAULT_PAD_MAP)) if (EmuPad.isBind(s.padBinds[k])) userPadMap[k] = s.padBinds[k];
+    }
     rebuildKeyBitMap();
     if (typeof setStartOpensMenu === 'function') {
       if (emuProfile === 'recorder') {

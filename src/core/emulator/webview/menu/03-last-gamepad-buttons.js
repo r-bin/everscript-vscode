@@ -1,139 +1,100 @@
 // TODO port to TS (docs/todo/port-to-ts.md)
 
     // -- Gamepad Polling & Menu Support ----------------------------------------
-    let lastGamepadButtons = {};
+    // Every connected pad counts and reads as one SNES pad through userPadMap (EmuPad, ../../gamepad.ts):
+    // the menu follows the same bindings as the game (B acts, A backs out, L / R page, the cross moves).
+    const padHats = new Set();
+    const padBindHeld = new Set();
+    let padMenuPrev = 0;
+    let padActionPrev = 0;
+    let padStartPrev = false;
     let lastGamepadAxisTick = 0;
+    let lastPadBanner = '';
+    const PAD_ACTION_MASKS = { 'Rewind': 1, 'Speed': 2 };
+
+    function currentPads() { return EmuPad.connectedPads(navigator); }
+    function padSnesBits(pads) { return EmuPad.padBits(pads, userPadMap, SNES_BIT_MASKS, padHats); }
+
+    function showPadBanner(pads) {
+      const text = EmuPad.describePads(pads);
+      if (text === lastPadBanner) return;
+      lastPadBanner = text;
+      const devNameEl = document.getElementById('menu-device-name');
+      if (devNameEl) devNameEl.textContent = text;
+    }
 
     function pollGamepadMenu() {
-      const gamepads = typeof navigator.getGamepads === 'function' ? navigator.getGamepads() : [];
-      if (!gamepads) return;
-      const gp = gamepads[0] || gamepads[1];
-      if (!gp) return;
-
-      const devNameEl = document.getElementById('menu-device-name');
-      if (devNameEl && gp.id) {
-        devNameEl.textContent = 'Pad: ' + gp.id.slice(0, 24);
-      }
+      const pads = currentPads();
+      showPadBanner(pads);
+      if (!pads.length) { padMenuPrev = 0; padActionPrev = 0; padStartPrev = false; padBindHeld.clear(); return; }
 
       if (isMenuOpen && menuListeningBtn && bindPage === 'gamepad') {
-        // Binding a pad button: the first new press is the answer and does nothing else.
-        let hit = -1;
-        for (let i = 0; i < gp.buttons.length; i++) {
-          const down = !!(gp.buttons[i] && gp.buttons[i].pressed);
-          if (down && !lastGamepadButtons[i] && hit < 0) hit = i;
-          lastGamepadButtons[i] = down;
-        }
-        if (hit >= 0) applyKeybind(hit);
+        // Binding: the first newly held control (button, axis or hat direction) is the answer and does nothing else.
+        const hit = EmuPad.newControl(pads, padHats, padBindHeld);
+        if (hit !== null) applyKeybind(hit);
         return;
       }
+      EmuPad.newControl(pads, padHats, padBindHeld);
+
+      const bits = padSnesBits(pads);
+      const pressed = bits & ~padMenuPrev;
+      padMenuPrev = bits;
 
       if (isMenuOpen) {
         const now = Date.now();
-        // L / R shoulders: buttons 4 and 5
-        if (gp.buttons[4] && gp.buttons[4].pressed && !lastGamepadButtons[4]) {
-          switchMenuTab(-1);
-        }
-        if (gp.buttons[5] && gp.buttons[5].pressed && !lastGamepadButtons[5]) {
-          switchMenuTab(1);
-        }
-        // Dpad Up / Down (btn 12, 13) or Left Stick Y
-        const dUp = (gp.buttons[12] && gp.buttons[12].pressed) || gp.axes[1] < -0.5;
-        const dDown = (gp.buttons[13] && gp.buttons[13].pressed) || gp.axes[1] > 0.5;
-        if (dUp && !lastGamepadButtons['up'] && now - lastGamepadAxisTick > 180) {
-          moveMenuSelection(-1);
-          lastGamepadAxisTick = now;
-        }
-        if (dDown && !lastGamepadButtons['down'] && now - lastGamepadAxisTick > 180) {
-          moveMenuSelection(1);
-          lastGamepadAxisTick = now;
-        }
-        // Dpad Left / Right (btn 14, 15) or Left Stick X
-        const dLeft = (gp.buttons[14] && gp.buttons[14].pressed) || gp.axes[0] < -0.5;
-        const dRight = (gp.buttons[15] && gp.buttons[15].pressed) || gp.axes[0] > 0.5;
-        if (dLeft && !lastGamepadButtons['left'] && now - lastGamepadAxisTick > 180) {
-          changeMenuValue(-1);
-          lastGamepadAxisTick = now;
-        }
-        if (dRight && !lastGamepadButtons['right'] && now - lastGamepadAxisTick > 180) {
-          changeMenuValue(1);
-          lastGamepadAxisTick = now;
-        }
-        // Button B (btn 0, the bottom face button): action
-        if (gp.buttons[0] && gp.buttons[0].pressed && !lastGamepadButtons[0]) {
+        const M = SNES_BIT_MASKS;
+        if (pressed & M.L) switchMenuTab(-1);
+        if (pressed & M.R) switchMenuTab(1);
+        // One step per press of the cross, at most every 180 ms (a stick or hat can flicker).
+        const cross = now - lastGamepadAxisTick > 180 ? pressed : 0;
+        if (cross & M.Up) { moveMenuSelection(-1); lastGamepadAxisTick = now; }
+        else if (cross & M.Down) { moveMenuSelection(1); lastGamepadAxisTick = now; }
+        else if (cross & M.Left) { changeMenuValue(-1); lastGamepadAxisTick = now; }
+        else if (cross & M.Right) { changeMenuValue(1); lastGamepadAxisTick = now; }
+        if (pressed & M.B) {
           if (menuActiveTab === 0) closeEmulatorMenu(); else activateMenuRow();
         }
-        // Button A (btn 1): back / resume
-        if (gp.buttons[1] && gp.buttons[1].pressed && !lastGamepadButtons[1]) {
+        if (pressed & M.A) {
           if (!(menuActiveTab === 7 && typeof tasMenuCancel === 'function' && tasMenuCancel())) closeEmulatorMenu();
         }
-        // Start button (btn 9)
-        if (gp.buttons[9] && gp.buttons[9].pressed && !lastGamepadButtons[9]) {
-          closeEmulatorMenu();
-        }
-
-        lastGamepadButtons[4] = gp.buttons[4] && gp.buttons[4].pressed;
-        lastGamepadButtons[5] = gp.buttons[5] && gp.buttons[5].pressed;
-        lastGamepadButtons[0] = gp.buttons[0] && gp.buttons[0].pressed;
-        lastGamepadButtons[1] = gp.buttons[1] && gp.buttons[1].pressed;
-        lastGamepadButtons[9] = gp.buttons[9] && gp.buttons[9].pressed;
-        lastGamepadButtons['up'] = dUp;
-        lastGamepadButtons['down'] = dDown;
-        lastGamepadButtons['left'] = dLeft;
-        lastGamepadButtons['right'] = dRight;
+        if (pressed & M.Start) closeEmulatorMenu();
+        padStartPrev = !!(bits & M.Start);
         return;
       }
 
       // Rewind and the speed toggle, on the pad page's buttons (the keyboard's are in page/03-set-speed-up.js).
       if (typeof romLoaded !== 'undefined' && romLoaded) {
-        const rw = !!(gp.buttons[userPadMap.Rewind] && gp.buttons[userPadMap.Rewind].pressed);
-        const sp = !!(gp.buttons[userPadMap.Speed] && gp.buttons[userPadMap.Speed].pressed);
-        if (rw && !lastGamepadButtons['rewind'] && typeof tasRewind === 'function') tasRewind();
-        if (sp && !lastGamepadButtons['speed'] && typeof setSpeedUp === 'function') setSpeedUp(!speedUp);
-        lastGamepadButtons['rewind'] = rw;
-        lastGamepadButtons['speed'] = sp;
+        const act = EmuPad.padBits(pads, userPadMap, PAD_ACTION_MASKS, padHats, false);
+        const actPressed = act & ~padActionPrev;
+        padActionPrev = act;
+        if ((actPressed & PAD_ACTION_MASKS.Rewind) && typeof tasRewind === 'function') tasRewind();
+        if ((actPressed & PAD_ACTION_MASKS.Speed) && typeof setSpeedUp === 'function') setSpeedUp(!speedUp);
       }
 
-      // When gameplay is active: Start button opens menu if enabled (doing the same as Esc)
-      const startBtn = gp.buttons[userPadMap.Start];
-      const isStartHeld = !!(startBtn && startBtn.pressed);
+      // When gameplay is active: Start opens the menu if enabled (doing the same as Esc).
+      const isStartHeld = !!(bits & SNES_BIT_MASKS.Start);
       if (window.startKeySuppressedUntilRelease || (typeof window.ignoreStartUntil === 'number' && performance.now() < window.ignoreStartUntil)) {
         if (!isStartHeld && (typeof window.ignoreStartUntil !== 'number' || performance.now() >= window.ignoreStartUntil)) {
           window.startKeySuppressedUntilRelease = false;
         }
-        lastGamepadButtons[9] = isStartHeld;
+        padStartPrev = isStartHeld;
         return;
       }
-      if (isStartHeld && !lastGamepadButtons[9]) {
-        if (typeof startOpensMenu !== 'undefined' && startOpensMenu) {
-          openEmulatorMenu();
-        }
-      }
-      lastGamepadButtons[9] = isStartHeld;
+      if (isStartHeld && !padStartPrev && typeof startOpensMenu !== 'undefined' && startOpensMenu) openEmulatorMenu();
+      padStartPrev = isStartHeld;
     }
     window.pollGamepadMenu = pollGamepadMenu;
+    window.addEventListener('gamepadconnected', function() { showPadBanner(currentPads()); });
+    window.addEventListener('gamepaddisconnected', function() { showPadBanner(currentPads()); });
 
     // -- Gamepad as the SNES joypad ----------------------------------------------
-    // A "standard" mapping pad (Xbox, PlayStation, 8BitDo...) read through userPadMap (the CONTROLS
-    // tab's gamepad page; DEFAULT_PAD_MAP is the SNES layout) plus the left stick as the cross.
+    // Every connected pad, read through userPadMap (the CONTROLS tab's gamepad page; DEFAULT_PAD_MAP is
+    // the SNES layout of a standard pad) plus the left stick and any hat as the cross.
     // Every gamepad bit is OR-ed with the keyboard's keyInput: both work at once.
     // Held while the menu was open: not sent to the game until released (the B that closes the menu).
     let padHeldInMenu = 0;
-    function readGamepadJoypad() {
-      const pads = typeof navigator.getGamepads === 'function' ? navigator.getGamepads() : null;
-      const gp = pads && (pads[0] || pads[1] || pads[2] || pads[3]);
-      if (!gp || !gp.connected) return 0;
-      let bits = 0;
-      for (const btn of SNES_BUTTON_NAMES) {
-        const b = gp.buttons[userPadMap[btn]];
-        if (b && b.pressed) bits |= SNES_BIT_MASKS[btn];
-      }
-      const ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
-      if (ax < -0.5) bits |= SNES_BIT_MASKS.Left; else if (ax > 0.5) bits |= SNES_BIT_MASKS.Right;
-      if (ay < -0.5) bits |= SNES_BIT_MASKS.Up; else if (ay > 0.5) bits |= SNES_BIT_MASKS.Down;
-      return bits;
-    }
     function gamepadJoypad() {
-      const held = readGamepadJoypad();
+      const held = padSnesBits(currentPads());
       if (typeof isMenuOpen !== 'undefined' && isMenuOpen) { padHeldInMenu = held; return 0; }
       padHeldInMenu &= held;
       let bits = held & ~padHeldInMenu;

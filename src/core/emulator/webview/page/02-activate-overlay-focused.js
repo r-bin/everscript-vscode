@@ -15,25 +15,20 @@
     let lastOverlayGamepadPoll = 0;
     function pollGamepadOverlay() {
       if (romLoaded) return;
-      const gamepads = typeof navigator.getGamepads === 'function' ? navigator.getGamepads() : [];
-      let pad = null;
-      for (let i = 0; i < gamepads.length; i++) {
-        if (gamepads[i] && gamepads[i].connected) { pad = gamepads[i]; break; }
-      }
-      if (!pad) return;
+      // Every connected pad, through the CONTROLS tab's bindings (menu/03-last-gamepad-buttons.js).
+      const pads = EmuPad.connectedPads(navigator);
+      if (!pads.length) return;
 
       const now = performance.now();
       if (now - lastOverlayGamepadPoll < 160) return;
 
-      const dUp = (pad.buttons[12] && pad.buttons[12].pressed) || (pad.axes[1] && pad.axes[1] < -0.5);
-      const dDown = (pad.buttons[13] && pad.buttons[13].pressed) || (pad.axes[1] && pad.axes[1] > 0.5);
-      const dLeft = (pad.buttons[14] && pad.buttons[14].pressed) || (pad.axes[0] && pad.axes[0] < -0.5);
-      const dRight = (pad.buttons[15] && pad.buttons[15].pressed) || (pad.axes[0] && pad.axes[0] > 0.5);
-      const btnL = (pad.buttons[4] && pad.buttons[4].pressed);
-      const btnR = (pad.buttons[5] && pad.buttons[5].pressed);
-      const btnB = (pad.buttons[0] && pad.buttons[0].pressed); // SNES B = Confirm / Interact
-      const btnA = (pad.buttons[1] && pad.buttons[1].pressed); // SNES A = Cancel / Back
-      const btnStart = (pad.buttons[9] && pad.buttons[9].pressed);
+      const bits = padSnesBits(pads);
+      const M = SNES_BIT_MASKS;
+      const dUp = bits & M.Up, dDown = bits & M.Down, dLeft = bits & M.Left, dRight = bits & M.Right;
+      const btnL = bits & M.L, btnR = bits & M.R;
+      const btnB = bits & M.B; // SNES B = Confirm / Interact
+      const btnA = bits & M.A; // SNES A = Cancel / Back
+      const btnStart = bits & M.Start;
 
       if (btnStart) {
         lastOverlayGamepadPoll = now + 200;

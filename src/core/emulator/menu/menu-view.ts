@@ -1,4 +1,5 @@
 import { pageFile } from '../page-file';
+import { pageBundle } from '../../webview/page-bundle';
 
 /**
  * emulator/menu/menu-view.ts
@@ -259,7 +260,7 @@ ${parts.panelsHtml || ''}
 }
 
 function getMenuClientScript() {
-  return pageFile('menu', { sound: getMenuSoundScript() });
+  return pageFile('menu', { sound: getMenuSoundScript(), gamepad: pageBundle('emulator-gamepad') });
 }
 
 export { getMenuCss, getMenuHtml, getMenuClientScript };

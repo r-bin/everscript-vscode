@@ -2,6 +2,9 @@
 
     //@@sound
 
+    // EmuPad: reading the game controllers as one SNES pad (../../gamepad.ts, bundled).
+    //@@gamepad
+
     // -- Emulator Quick Menu Controller ----------------------------------------
     const DEFAULT_KEY_MAP = {
       'Up': 'ArrowUp',

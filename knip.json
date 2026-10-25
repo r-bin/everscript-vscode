@@ -3,7 +3,8 @@
     "src/games/evermore/language/config.ts",
     "tests/**/*.test.js",
     "tools/**/*.{js,mts}",
-    "dist/games/evermore/emulator/page-rom.js"
+    "dist/games/evermore/emulator/page-rom.js",
+    "dist/core/emulator/gamepad.js"
   ],
   "project": [
     "src/**/*.js",

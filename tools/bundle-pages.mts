@@ -9,6 +9,7 @@ const ROOT = join(import.meta.dirname, '..');
 
 /** name → [entry, global, globals]: with `globals` the module's exports are also set on the page's global object, for the page scripts that call them by name. */
 const PAGES: Record<string, [string, string, boolean?]> = {
+    'emulator-gamepad': ['src/core/emulator/gamepad.ts', 'EmuPad'],
     'evermore-rom': ['src/games/evermore/emulator/page-rom.ts', 'EvsRom'],
     'shell-frame': ['src/core/map-editor/shell/frame.ts', 'ShellFrame', true],
     'music-view': ['src/games/evermore/music/webview/music-view.ts', 'MusicView', true],

@@ -203,10 +203,10 @@
     }
 
     // Standard-mapping button index -> what it is called on a pad (face buttons by position).
-    const PAD_BUTTON_NAMES = ['Bottom', 'Right', 'Left', 'Top', 'LB', 'RB', 'LT', 'RT', 'Back', 'Start', 'L3', 'R3', 'D-Up', 'D-Down', 'D-Left', 'D-Right', 'Home'];
-    function formatPadButton(i) {
-      if (typeof i !== 'number') return 'None';
-      return PAD_BUTTON_NAMES[i] || 'Btn ' + i;
+    // Face names for a standard-mapping pad; a raw one (or none seen yet) shows the numbers it reports.
+    function formatPadButton(bind) {
+      const pads = EmuPad.connectedPads(navigator);
+      return EmuPad.formatBind(bind, !pads.length || pads.some(function(p) { return p.mapping === 'standard'; }));
     }
 
     function setBindPage(page) {
@@ -240,7 +240,7 @@
       renderKeybindRows();
     }
 
-    // keyStr is a key (keyboard page) or a pad button index (gamepad page).
+    // keyStr is a key (keyboard page) or a pad binding (gamepad page: button index, axis or hat direction).
     function applyKeybind(keyStr) {
       if (!menuListeningBtn) return;
       if (bindPage === 'gamepad') userPadMap[menuListeningBtn] = keyStr;
@@ -283,7 +283,7 @@
       // 2. Menu is OPEN: Input belongs to menu
       if (isMenuOpen) {
         if (menuListeningBtn) {
-          // On the gamepad page only a pad button binds (pollGamepadMenu); Esc cancelled above.
+          // On the gamepad page only a pad control binds (pollGamepadMenu); Esc cancelled above.
           if (bindPage === 'gamepad') { e.preventDefault(); return; }
           applyKeybind(e.key);
           e.preventDefault();
