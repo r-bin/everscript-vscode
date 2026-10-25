@@ -4,7 +4,9 @@
 import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync } from 'node:fs';
 import { homedir, platform } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
+import { createHash } from 'node:crypto';
 import { identifyRom, type RomIdentity } from './identify';
+import { stripCopierHeader } from './header';
 import { gameById, baseVariant } from '../games';
 
 export interface LibraryEntry extends Omit<RomIdentity, 'header'> {
@@ -133,6 +135,16 @@ export function setBaseRom(path: string): LibraryEntry | null {
 
 export function listRoms(): LibraryEntry[] {
     return loadLibrary().roms.filter((r) => existsSync(r.path));
+}
+
+/** The library ROM with this SHA-256 (copier header stripped), the hash a replay names its ROM by. */
+export function romBySha256(sha256: string): LibraryEntry | null {
+    const want = sha256.toLowerCase();
+    for (const entry of listRoms()) {
+        const bytes = readRomFile(entry.path);
+        if (bytes && createHash('sha256').update(stripCopierHeader(bytes)).digest('hex') === want) return entry;
+    }
+    return null;
 }
 
 export function selectedRom(): LibraryEntry | null {

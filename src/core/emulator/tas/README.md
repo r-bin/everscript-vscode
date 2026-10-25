@@ -86,6 +86,10 @@ game frame rates.
 - **Length threshold** (v0.317.0, REPLAYS tab row "Delete recordings shorter than": keep all / 10 s / 1 min /
   10 min, default 10 s, `tas-prefs.json` `minSeconds`): a session shorter than that is deleted with its snapshot
   when it ends; a continued session existed before and always stays.
+- **Dropping a replay** (v0.354.0): a `.evsmv` dropped on the player is copied into the recordings folder (once per
+  content, `addDropped`), and the panel boots the library ROM whose SHA-256 the movie names (`romBySha256`), then
+  plays it; with no such ROM it plays on the running ROM (the page warns). Checked with a Windows tester's
+  recording (core `4a0381e352e0abe3`, 3065 frames): it replays headless with all 56 checksums.
 - Headless: `node tools/cdl/replay.js <movie> <rom> [--cdl <library root>]` replays on the same
   core, verifies the checksums (exit 2 on desync) and can record the CDL library meanwhile. The
   movie is the source of truth and the CDL library is derived from it.

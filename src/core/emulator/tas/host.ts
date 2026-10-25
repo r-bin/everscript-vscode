@@ -18,6 +18,7 @@
  *   recording when the replay was fair), tasVerify (replay the session so far headless, see verify.ts),
  *   tasSnapshot, tasRecContinue
  * Messages (host -> webview): tasConfig, tasListResult, tasMovie, tasResume, tasStatus
+ * A .evsmv dropped on the player arrives as replayDropped (panel-messages.ts): addDropped() keeps it, play() starts it.
  */
 
 import * as vscode from 'vscode';
@@ -316,6 +317,29 @@ class TasHost {
     _sendList() {
         this.post({ command: 'tasListResult', items: this.list(), dir: this.dir(), romSha: this.romSha });
     }
+
+    /** A .evsmv dropped on the player: kept in the recordings folder (once per content). Returns its id and ROM hash. */
+    addDropped(name: unknown, text: unknown): { id: string; romSha256: string } {
+        if (typeof text !== 'string' || !text) throw new Error('empty file');
+        const movie = parseMovie(text, String(name || ''));
+        if (!movie.count) throw new Error('no frames recorded');
+        const dir = this.dir();
+        const data = Buffer.from(text, 'utf8');
+        const hash = sha256(data);
+        let file = fs.readdirSync(dir).find(n => MOVIE_EXT.test(n) && fs.statSync(path.join(dir, n)).size === data.length
+            && sha256(fs.readFileSync(path.join(dir, n))) === hash);
+        if (!file) {
+            const base = safeName(name);
+            file = base + '.evsmv';
+            for (let i = 2; fs.existsSync(path.join(dir, file)); i++) file = `${base} (${i}).evsmv`;
+            fs.writeFileSync(path.join(dir, file), data);
+            this._sendList();
+        }
+        return { id: 'file:' + file, romSha256: movie.meta.romSha256 };
+    }
+
+    /** Replay recording `id` on the ROM that is running (the page reboots it). */
+    play(id: string): void { this._load(id); }
 
     _load(id: string | undefined): void {
         const ref = this._resolve(id);

@@ -47,7 +47,7 @@ interface EmuState {
     cdl: CdlHost | null; tas: TasHost | null; options: EmuOptions; reopenTried: boolean;
     sessionProfile: string | null; sessionTitle: string | null;
     sessionCore: 'fork' | 'vanilla' | null; sessionPreset: string | null; sessionSramMode: 'default' | 'individual'; sessionIsolatedSram: boolean;
-    sessionAlwaysRecord: boolean; sessionOpenMode: 'new' | 'continue'; pendingResume: string | null;
+    sessionAlwaysRecord: boolean; sessionOpenMode: 'new' | 'continue'; pendingResume: string | null; pendingReplay: string | null;
     loadedCore: 'fork' | 'vanilla' | null;
 }
 
@@ -74,6 +74,7 @@ const emu: EmuState = {
     sessionAlwaysRecord: true,  // in-session always record toggle (default on)
     sessionOpenMode: 'new',     // ROM picker: what a ROM opens to ('new' = clean boot, 'continue' = its last session)
     pendingResume: null,        // recording id to continue once the ROM the picker sent has booted
+    pendingReplay: null,        // dropped recording id to replay once the ROM it was recorded on has booted
     loadedCore: null,       // the core build currently loaded in the webview
     /**
      * What the extension that hosts the panel wants (configureEmulator):

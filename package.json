@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.353.5",
+  "version": "0.354.0",
   "publisher": "rbin",
   "main": "./bundle/extension.js",
   "engines": {

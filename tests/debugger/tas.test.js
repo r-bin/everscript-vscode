@@ -158,6 +158,31 @@ test('host: recording kept only when a button was pressed by hand; pins; replay 
     }
 });
 
+test('host: a dropped .evsmv is kept once, named its ROM, and plays; the page and panel route it', () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'evs-tas-'));
+    try {
+        withVscodeStub({}, ({ TasHost }) => {
+            const posted = [];
+            const host = new TasHost(tmp, m => posted.push(m), () => {});
+            const romSha = 'ab'.repeat(32);
+            const text = movie.evsmvHeader({ rom: 'x.sfc', romSha256: romSha, started: '2026-10-25T11:37:03.325Z' }) + 'F|B...............\nF|................\n';
+            const a = host.addDropped('tester/../x Secret of Evermore_2026.evsmv', text);
+            assert.strictEqual(a.romSha256, romSha);
+            assert.ok(/^file:[^/]+\.evsmv$/.test(a.id), a.id);
+            assert.deepStrictEqual(host.addDropped('again.evsmv', text), a, 'same content: kept once, same id');
+            assert.throws(() => host.addDropped('bad.evsmv', 'hello'), /not an Everscript recording/);
+            host.play(a.id);
+            assert.strictEqual(posted.find(m => m.command === 'tasMovie').count, 2);
+        });
+    } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+    }
+    const page = fs.readFileSync(path.join(ROOT, 'src/core/emulator/webview/page/02-activate-overlay-focused.js'), 'utf8');
+    assert.ok(/\\\.evsmv\$\/i\.test\(fileName\)[\s\S]*command: 'replayDropped'/.test(page), 'the page sends a dropped replay as text');
+    const panel = fs.readFileSync(path.join(ROOT, 'src/core/emulator/panel-messages.ts'), 'utf8');
+    assert.ok(/case 'replayDropped'[\s\S]*romBySha256[\s\S]*emu\.pendingReplay = id/.test(panel), 'the panel boots the ROM the replay names');
+});
+
 test('REPLAYS rows: when, length and sync, no file name; play and delete ask first', () => {
     const list = require('../../src/core/emulator/webview/replays-list');
     const items = [

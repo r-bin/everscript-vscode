@@ -137,6 +137,14 @@
       try { initAudio(); } catch (_) {}
       try { ensureAudioRunning(); } catch (_) {}
 
+      // A replay (.evsmv): the host keeps it in REPLAYS, boots the ROM it names and plays it.
+      if (/\.evsmv$/i.test(fileName)) {
+        const textReader = new FileReader();
+        textReader.onload = e => vscodeApi.postMessage({ command: 'replayDropped', name: fileName, text: e.target.result });
+        textReader.readAsText(file);
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = function(e) {
         const dataUrl = e.target.result;
