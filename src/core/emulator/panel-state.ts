@@ -338,6 +338,32 @@ function _sendRomFile(romPath: string) {
     }
 }
 
+/**
+ * Play a recording (.evsmv text, dropped on the page or opened as a file): it is kept in REPLAYS, the ROM it
+ * names is booted from the ROM library when another one runs, then it plays. The panel must exist (emu.tas).
+ */
+function _playReplay(name: string, text: unknown) {
+    if (!emu.tas) return;
+    try {
+        const { id, romSha256 } = emu.tas.addDropped(name, text);
+        _log(`Replay: ${name}`);
+        const running = emu.currentRomBuffer ? emu.tas.romSha : '';
+        if (running && (!romSha256 || romSha256 === running)) { emu.tas.play(id); return; }
+        const rom = romSha256 ? platform.romBySha256(romSha256) : null;
+        if (rom) {
+            emu.pendingReplay = id;
+            emu.reopenTried = true;   // the replay's ROM, not the last one
+            _sendRomFile(rom.path);
+        } else if (running) {
+            emu.tas.play(id);   // not in the ROM library: the page warns that another ROM may desync
+        } else {
+            vscode.window.showWarningMessage(`${name}: load the ROM it was recorded on first (none in the ROM library matches it). It is in the REPLAYS list.`);
+        }
+    } catch (e) {
+        vscode.window.showErrorMessage(`Cannot replay ${name}: ${e instanceof Error ? e.message : String(e)}`);
+    }
+}
+
 /** The map view asks for the room under the running game; the game adapter draws it. */
 function _handleRoomMapRequest(mapId: unknown, objectStates: unknown, cutGrassTiles: unknown, layered: unknown) {
   if (!emu.panel || !emu.options.game) return;
@@ -351,4 +377,4 @@ function _handleRoomMapRequest(mapId: unknown, objectStates: unknown, cutGrassTi
 }
 
 export type { EmuState, EmuOptions, GameHost, TraceEntry };
-export { emu, _scriptDebug, _apu, _memory, KEEP_FOCUS_KEY, SETTINGS_KEY, CDL_WANTED_KEY, ALWAYS_RECORD_KEY, OPEN_MODE_KEY, _state, _saveState, _keepFocusSetting, _notifyWebviewStatus, _estimateDataUrlBytes, _clearReadyTimeout, _clearRomTimeout, _dispatchPendingRom, _resetPanelHtml, _broadcastRomOffer, _reopenLastRom, _sendRomFile, _handleRoomMapRequest };
+export { emu, _scriptDebug, _apu, _memory, KEEP_FOCUS_KEY, SETTINGS_KEY, CDL_WANTED_KEY, ALWAYS_RECORD_KEY, OPEN_MODE_KEY, _state, _saveState, _keepFocusSetting, _notifyWebviewStatus, _estimateDataUrlBytes, _clearReadyTimeout, _clearRomTimeout, _dispatchPendingRom, _resetPanelHtml, _broadcastRomOffer, _reopenLastRom, _sendRomFile, _playReplay, _handleRoomMapRequest };

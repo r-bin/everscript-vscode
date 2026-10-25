@@ -60,6 +60,7 @@ const vscodeMock = {
         createStatusBarItem:    () => ({ show() {}, hide() {}, dispose() {} }),
         createOutputChannel:    () => ({ appendLine() {}, show() {} }),
         createTextEditorDecorationType: () => ({ dispose() {} }),
+        registerCustomEditorProvider: () => ({ dispose() {} }),
         createWebviewPanel: () => ({
             webview: { html: '', onDidReceiveMessage: () => ({ dispose() {} }), asWebviewUri: (u) => u },
             onDidDispose: () => ({ dispose() {} }),

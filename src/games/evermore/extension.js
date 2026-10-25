@@ -226,6 +226,9 @@ function activate(context) {
         vscode.commands.registerCommand('everscript.cdlRecorder', () => {
             openEmulatorPanel(context, null, null, { profile: 'recorder', title: 'SNES CDL Recorder' });
         }),
+        // A .evsmv opened (or dropped on VS Code) plays in the emulator.
+        require('../../../dist/core/emulator/replay-editor').registerReplayEditor(context,
+            (name, text) => require('../../../dist/core/emulator/panel').playReplay(context, name, text)),
         // A SNES CDL Recorder's zip (CDL library + replays) merged into this install's.
         vscode.commands.registerCommand('everscript.importRecordingBundle', () =>
             require('../../../dist/core/emulator/bundle-commands').importRecordingBundle(context)

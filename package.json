@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.354.0",
+  "version": "0.354.1",
   "publisher": "rbin",
   "main": "./bundle/extension.js",
   "engines": {
@@ -14,6 +14,7 @@
     "onCommand:everscript.openMemoryRadar",
     "onCommand:everscript.openEmulator",
     "onCommand:everscript.importRecordingBundle",
+    "onCustomEditor:everscript.replay",
     "onCommand:everscript.openSettings",
     "onDebugResolve:everscript",
     "onDebugAdapterProtocol:everscript",
@@ -96,6 +97,14 @@
     "vscode-tmgrammar-test": "^0.1.3"
   },
   "contributes": {
+    "customEditors": [
+      {
+        "viewType": "everscript.replay",
+        "displayName": "Everscript Replay",
+        "selector": [{ "filenamePattern": "*.evsmv" }],
+        "priority": "default"
+      }
+    ],
     "languages": [
       {
         "id": "everscript",

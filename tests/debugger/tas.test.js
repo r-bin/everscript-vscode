@@ -179,8 +179,16 @@ test('host: a dropped .evsmv is kept once, named its ROM, and plays; the page an
     }
     const page = fs.readFileSync(path.join(ROOT, 'src/core/emulator/webview/page/02-activate-overlay-focused.js'), 'utf8');
     assert.ok(/\\\.evsmv\$\/i\.test\(fileName\)[\s\S]*command: 'replayDropped'/.test(page), 'the page sends a dropped replay as text');
-    const panel = fs.readFileSync(path.join(ROOT, 'src/core/emulator/panel-messages.ts'), 'utf8');
-    assert.ok(/case 'replayDropped'[\s\S]*romBySha256[\s\S]*emu\.pendingReplay = id/.test(panel), 'the panel boots the ROM the replay names');
+    const messages = fs.readFileSync(path.join(ROOT, 'src/core/emulator/panel-messages.ts'), 'utf8');
+    assert.ok(/case 'replayDropped':\s*_playReplay\(/.test(messages), 'a drop on the page plays');
+    const state = fs.readFileSync(path.join(ROOT, 'src/core/emulator/panel-state.ts'), 'utf8');
+    assert.ok(/function _playReplay[\s\S]*romBySha256[\s\S]*emu\.pendingReplay = id/.test(state), 'the panel boots the ROM the replay names');
+    // VS Code opens files dropped on a webview itself (without Shift): .evsmv opens in the replay editor, which plays it.
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+    assert.ok(pkg.contributes.customEditors.some(e => e.viewType === 'everscript.replay' && e.selector.some(s => s.filenamePattern === '*.evsmv')));
+    assert.ok(pkg.activationEvents.includes('onCustomEditor:everscript.replay'));
+    const ext = fs.readFileSync(path.join(ROOT, 'src/games/evermore/extension.js'), 'utf8');
+    assert.ok(/registerReplayEditor\(context,[\s\S]*playReplay\(context, name, text\)/.test(ext), 'the extension registers the replay editor');
 });
 
 test('REPLAYS rows: when, length and sync, no file name; play and delete ask first', () => {

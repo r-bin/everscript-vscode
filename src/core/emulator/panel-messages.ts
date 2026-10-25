@@ -6,9 +6,8 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { ensureEmulatorChannel as _ensureEmulatorChannel, log as _log, logCrash, launchHistory as _launchHistory, scriptTraceHistory as _scriptTraceHistory } from './emulator-log';
 import type { CrashReport } from './emulator-log';
-import { romBySha256 } from '../../platform/roms/library';
 import { recordRomUsage, getVanillaRom, clearRecentRoms, getStorageDir, savePersistentSram } from './rom-history';
-import { emu, _scriptDebug, _apu, _memory, KEEP_FOCUS_KEY, SETTINGS_KEY, ALWAYS_RECORD_KEY, OPEN_MODE_KEY, _state, _saveState, _keepFocusSetting, _notifyWebviewStatus, _clearReadyTimeout, _clearRomTimeout, _dispatchPendingRom, _broadcastRomOffer, _reopenLastRom, _sendRomFile, _handleRoomMapRequest, _resetPanelHtml } from './panel-state';
+import { emu, _scriptDebug, _apu, _memory, KEEP_FOCUS_KEY, SETTINGS_KEY, ALWAYS_RECORD_KEY, OPEN_MODE_KEY, _state, _saveState, _keepFocusSetting, _notifyWebviewStatus, _clearReadyTimeout, _clearRomTimeout, _dispatchPendingRom, _broadcastRomOffer, _reopenLastRom, _sendRomFile, _playReplay, _handleRoomMapRequest, _resetPanelHtml } from './panel-state';
 
 /** Everything the page sends: readiness, ROM load stages, crashes, CDL / REPLAYS / debugger traffic, the game's requests. */
 /** A message from the page: the command and its fields (the wire format is the page's, see webview/page/). */
@@ -145,27 +144,9 @@ function onWebviewMessage(msg: PageMessage) {
             break;
         }
 
-        case 'replayDropped': {
-            if (!emu.tas) break;
-            try {
-                const { id, romSha256 } = emu.tas.addDropped(msg.name, msg.text);
-                _log(`Dropped replay: ${msg.name}`);
-                const running = emu.currentRomBuffer ? emu.tas.romSha : '';
-                if (running && (!romSha256 || romSha256 === running)) { emu.tas.play(id); break; }
-                const rom = romSha256 ? romBySha256(romSha256) : null;
-                if (rom) {
-                    emu.pendingReplay = id;
-                    _sendRomFile(rom.path);
-                } else if (running) {
-                    emu.tas.play(id);   // not in the ROM library: the page warns that another ROM may desync
-                } else {
-                    vscode.window.showWarningMessage(`${msg.name}: load the ROM it was recorded on first (none in the ROM library matches it). It is in the REPLAYS list.`);
-                }
-            } catch (e) {
-                vscode.window.showErrorMessage(`Cannot replay ${msg.name}: ${e instanceof Error ? e.message : String(e)}`);
-            }
+        case 'replayDropped':
+            _playReplay(String(msg.name || ''), msg.text);
             break;
-        }
 
         case 'clearRecentRoms': {
             clearRecentRoms(getStorageDir(emu.context));

@@ -32,7 +32,7 @@ import { TasHost, recordingsDir } from './tas/host';
 import { resolveCore, CORE_SUBDIR } from './core-path';
 import { setBuildChannel, ensureBuildChannel as _ensureBuildChannel, log as _log, crashHistory as _crashHistory, launchHistory as _launchHistory, scriptTraceHistory as _scriptTraceHistory } from './emulator-log';
 import { recordRomUsage, setRomDescriber } from './rom-history';
-import { emu, _scriptDebug, _apu, _memory, CDL_WANTED_KEY, ALWAYS_RECORD_KEY, OPEN_MODE_KEY, _state, _saveState, _estimateDataUrlBytes, _clearReadyTimeout, _clearRomTimeout, _dispatchPendingRom, _resetPanelHtml, _sendRomFile } from './panel-state';
+import { emu, _scriptDebug, _apu, _memory, CDL_WANTED_KEY, ALWAYS_RECORD_KEY, OPEN_MODE_KEY, _state, _saveState, _estimateDataUrlBytes, _clearReadyTimeout, _clearRomTimeout, _dispatchPendingRom, _resetPanelHtml, _sendRomFile, _playReplay } from './panel-state';
 import { onWebviewMessage } from './panel-messages';
 import type { EmuOptions } from './panel-state';
 import type { ApuFrame } from './apu-stream';
@@ -187,6 +187,12 @@ function runRomFile(context: vscode.ExtensionContext, romPath: string) {
     openEmulatorPanel(context, { dataUrl, name: path.basename(romPath), filePath: romPath, kind: 'file' });
 }
 
+/** Play a recording (.evsmv text) in the panel, opening it when needed (the replay editor). */
+function playReplay(context: vscode.ExtensionContext, name: string, text: string) {
+    openEmulatorPanel(context);
+    _playReplay(name, text);
+}
+
 /** Write what the CDL recorder holds in memory (before a bundle is zipped). */
 function flushRecording() {
   if (emu.cdl) emu.cdl.flushNow();
@@ -243,5 +249,5 @@ function getLogHistory() {
   };
 }
 
-export { configureEmulator, flushRecording, reloadRecording, recordingFolders, openEmulatorPanel, _sendRomFile as sendRomFile, injectEverscript, getScriptDebugBridge, runRomFile, getCurrentRom, readMemory, getStatus, apuStream, getLogHistory };
+export { configureEmulator, playReplay, flushRecording, reloadRecording, recordingFolders, openEmulatorPanel, _sendRomFile as sendRomFile, injectEverscript, getScriptDebugBridge, runRomFile, getCurrentRom, readMemory, getStatus, apuStream, getLogHistory };
 export type { OpenEmulatorOptions };
