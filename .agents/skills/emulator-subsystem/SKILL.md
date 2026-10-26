@@ -45,6 +45,9 @@ Hooks: instruction dispatch (`cpuexec.c`, all four main loops), `S9xGetByte/GetW
 opcode dispatch (`APU_EXECUTE1` in `spc700.h`) and ARAM access (`apumem.h`). The active APU is
 `spc700.c`; `apu_blargg.c` is compiled out (`USE_BLARGG_APU` undefined). Recording only happens inside `S9xMainLoop` (`cdl.active`), so the
 debugger's own `readMemory` calls are never attributed to the game.
+Trap: write watchpoints (`addWriteBreakpoint`) fire from `S9xSetByte` only; `S9xSetWord` never checks
+them, so 16-bit writes go unseen. Find a word's writer by searching the ROM for the instruction and
+setting exec breakpoints on the hits.
 
 `source/cdl-wram.c` adds the WRAM access map and script attribution (the host names the
 interpreter's opcode fetch; WRAM accesses until that dispatcher frame is left are tied to

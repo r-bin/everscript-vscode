@@ -6,7 +6,7 @@ Reverse-engineering notes for *Terranigma* (Quintet / Enix, 1995, SNES), derived
 of the European base ROM unless a file offset is named. Nothing here comes from other projects.
 
 Code: `src/games/terra/decoder` (pure TS), `terra://` (`src/games/terra/resources`), the Maps panel
-(`src/games/terra/maps`).
+(`src/games/terra/maps`). The player's jump and what is solid in the air: [jumping.md](jumping.md).
 
 ## 1. Cartridge
 
@@ -139,11 +139,11 @@ roof's outer corner); type 7 the same mirrored. Walked in the running game (`too
 slides down-left, moving right it slides up-right (solid: the lower right); into type 6 at (60, 11), walls above and
 left, moving up it slides up-right, moving left it slides down-left (solid: the upper left); into type 7 at (14, 41),
 moving down it slides down-right, moving left up-left (solid: the lower left). `$80:D506`: moving up into type 8 is a
-wall unless bit 2 of `$097C` is set.
+wall unless bit 2 of `$097C` is set (the player is in a jump; type 8 is a ledge, [jumping.md](jumping.md) §3).
 
 The base ROM's tables give: open in every direction 0, 1, 2, `$11-$14`, `$16-$18`, `$1D`, `$1E`; a wall in every
 direction 3, 4, 5, 9, `$0A-$10`, `$15`, `$19`, `$1B`, `$1C`; `$1A` stops moves up and down only; `$1F` lets only a
-move down through (a drop); 8 stops only a move up (gated). In Ark's house type 0 is the floor, `$0E` the walls, `$0C`
+move down through (a drop); 8 stops only a move up (gated: a ledge, crossed only in a jump). In Ark's house type 0 is the floor, `$0E` the walls, `$0C`
 the furniture, 2 the door gap. Types 3, 9-`$0B`, `$17`, `$18`, `$1C` are on no map.
 
 A second table, `$80:E11C` (a word per type), is read by `$80:D295` for characters without bit `$0400` of their
@@ -168,7 +168,8 @@ clear: inside an exit), called from character scripts.
 | `$7E:0962` / `$7E:0964` | the player's cell (the box's top-left / 16) |
 | `$7E:1000` | the player's character record (the first record; it moves with the pad): word +0 x, +2 y (the box's bottom centre), +4 flags |
 | `$7E:047C` | the next room (0: none); `$7E:0484`, `$7E:0490` the style bytes, `$7E:0492` / `$7E:0494` the arrival point |
-| `$7E:097C` | state bits: 4 = no exits, 2 = type 8 passable moving up (§3.6) |
+| `$7E:097C` | state bits: 0 dropping off a ledge, 2 airborne (in a jump; type 8 passable moving up, §3.6), 4 no exits ([jumping.md](jumping.md) §3.2) |
+| `$7E:0970` | the player's jump height, signed px, added to the sprite's y only ([jumping.md](jumping.md) §2) |
 | `$7E:0454` | the joypad buttons pressed this frame (bit 7: A) |
 | `$7E:0956` | the player's facing (1: up) |
 | `$7E:06C0` | event flags, a bit each (§3.7) |
@@ -283,8 +284,7 @@ and the same display registers (`$2105=$09`, BG1 `$3C00`, BG2 `$3800`, main `$17
 
 * What sets the map-change bits and most event flags (events), item names, whether bit 15 contents are money, the
   `$0F3` / `$0FA-$0FC` lookups' own handling (`$87:9724`).
-* Bit 14 of a map word, which characters the ground table `$80:E11C` applies to, what `$097C` bit 2 and `$048A`
-  bit 15 stand for, the style byte `$0484` and the high nibble of `$0490`.
+* Bit 14 of a map word, which characters the ground table `$80:E11C` applies to, what `$048A` bit 15 stands for, the style byte `$0484` and the high nibble of `$0490`.
 * The `08` commands `FC`/`FD`/`F8`/`F9`, sections `$04`/`$01`.
 * The rest of a room's script after the header (events, characters) and the room properties' flags.
 * Tile animation and palette animation. Palette effects are records at `$7F:0100+` (source pointer `+$0A`,
