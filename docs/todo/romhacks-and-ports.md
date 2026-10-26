@@ -29,3 +29,11 @@ Investigating the technical feasibility of porting Secret of Mana rooms, enemies
 
 Moved to [`docs/exhirom/combo-rom.md`](../exhirom/combo-rom.md): where a second game fits, LoROM vs HiROM
 partners, candidate games, SMZ3-shaped architecture, steps. ExHiROM itself: [`docs/exhirom/`](../exhirom/README.md).
+
+---
+
+## 3. Multiplayer mod (2–4 players, drop-in)
+
+Design draft: [`docs/plans/multiplayer-mod.md`](../plans/multiplayer-mod.md). Builds on FuSoYa's
+2P patch ([`soe-2player-patch-analysis.md`](../soe-2player-patch-analysis.md)); phases from a crash-free
+boy + dog 2P to ported Mana/Terranigma characters and netplay.

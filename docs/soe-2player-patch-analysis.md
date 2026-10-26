@@ -1,5 +1,12 @@
 # Secret of Evermore: 2-Player Patch Analysis & Modern Co-Op Architecture
 
+> **Corrections (2026-10-26, vanilla US CDL library):** §4.5 and §5.5 are wrong as written.
+> Vanilla never *reads* DP `$00E6–$00FF` (`wram.flags` = WRITE|DMA only), so the patch's state there
+> is not a proven crash cause. `$7E:28D0–28FF` is **not** free (all 48 bytes are used); use
+> [`unused-wram.md`](unused-wram.md). §2.2 misses a second input hook: `$C0:8597`, vanilla's
+> press-consume routine (`TRB $0104`), is replaced too. The "player reports of hard locks" and the
+> §4 causes are not checked in the emulator. Our plan: [`plans/multiplayer-mod.md`](plans/multiplayer-mod.md).
+
 An in-depth reverse-engineering report on FuSoYa's **Secret of Evermore : 2 Player Edition** (v1.02), analyzing its disassembly, engine modifications, gameplay UX shifts, failure modes (hard locks), and specifications for a modern, rock-solid 2-player cooperative implementation.
 
 ---
