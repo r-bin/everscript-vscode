@@ -59,3 +59,5 @@ Every 64 KB file bank *n* appears twice: whole at `$(C0+n):0000–FFFF`, upper h
 - Measured layout (not assumed): the CDL export (`cdl-recorder` skill) — `structs.json` (record
   bases, strides, fields), `enums.json` (values written), `ram.asm` (readers and writers),
   `functions.json` (ranges each routine touches). Only what was played is recorded.
+- WRAM that the recorded play never touched (~47 KB, best block `$7E:ADFE–FFFD`), and why it is
+  not yet proven free: `docs/unused-wram.md`.
