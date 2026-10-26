@@ -186,6 +186,44 @@ take pool slots (and then lower the enemy limit).
 
 ---
 
+## 8a. Palettes and other sprite limits
+
+**The hard limit:** the SNES has 8 sprite palettes of 15 colours. Evermore keeps slots 6 and 7
+for the boy and the dog. Enemies share slots 4, 5, 0, 1 and 2: the allocator `$90:CD80` reuses a slot
+already holding the same palette, then takes a free one, then steals one
+([`enemies-and-palettes.md`](../enemies-and-palettes.md) §2,
+[`character-properties.md`](../entities/character-properties.md) `+$09`). Slot 3 is in neither
+list; what holds it is not known yet.
+
+What that means here:
+
+| Case | Palette cost | Plan |
+|---|---|---|
+| 2 players, boy + dog | none | vanilla |
+| Two boys | none, they share slot 6 | Both look the same: tell them apart by the pad number above the head, not by colour |
+| Enemy as a player | none if that enemy kind is already in the room, else 1 enemy slot | Fine: in the worst case the allocator steals, so an enemy shows wrong colours (looks wrong, doesn't crash) |
+| Each ported character (Mana, Terranigma) | 1 slot | See below |
+
+**Proposal for ported characters: one shared "guest" palette.** When the mod is built, the tool
+fits all guest characters chosen for the build into **one** set of 15 colours (a joint
+quantisation from the user's own ROMs). It takes slot 3 if that turns out to be free, otherwise
+one enemy slot, permanently. Up to four players then cost at most one slot, and enemy
+variety drops by at most one palette. The fallbacks are worse. One slot per guest costs the
+enemies up to two slots. Recolouring each guest onto the boy's or the dog's palette makes them
+look wrong. Swapping palettes mid-frame with HDMA breaks as soon as two sprites overlap
+vertically, so it is ruled out.
+
+**Before deciding**, measure in vanilla play how many enemy palettes a room actually uses at
+once (the slot table `$7E:1278`). If no room uses all five, taking one costs nothing visible.
+
+**The other sprite limits** are SNES hardware too: 128 sprites, at most 32 sprites and 34 8×8
+tile slices on one line (more flicker or drop out), and the OBJ tile space in VRAM. Evermore loads
+character tiles through its OBJ tile cache (`$7E:96A5`). Extra player characters add tiles and
+sprites on the same lines as the party. This has to be checked in busy rooms (boss fights,
+many enemies) with 4 players before phase 4 is done.
+
+---
+
 ## 9. Characters from other games, and enemies as players
 
 **Rule 4 of `AGENTS.md` applies in full:** nothing known about Mana or Terranigma is assumed
@@ -209,6 +247,8 @@ we copy go through an explicit translation table under `src/games/evermore/impor
 - **Scaling:** the SNES can't scale sprites outside Mode 7. Characters keep their pixel size;
   only hit, hurt and strike boxes are fitted to Evermore's (`map-entities` skill). Measure how
   small Mana characters look next to the boy before deciding whether that is acceptable.
+- **Palettes:** guests share one palette fitted at build time (§8a), so they won't look exactly
+  like their own game.
 - **Enemies as a dog stand-in** is the cheapest of these: the record, animations and strike are
   already Evermore's. It is the best test of "human control on a non-party record" before the
   ports start.
@@ -230,7 +270,7 @@ one seam to keep open now.
 
 | # | Phase | Done when |
 |---|---|---|
-| 0 | Free WRAM confirmed; `$0F42` readers listed; multitap in our core | Guard-pattern playbacks pass; readers documented |
+| 0 | Free WRAM confirmed; `$0F42` readers listed; multitap in our core; enemy palette slots used per room measured, slot 3's owner found | Guard-pattern playbacks pass; readers and palette use documented |
 | 1 | 2 players, boy + dog, join/leave, protagonist on Select, dialog owner | §2 holds; the soe102 trouble-spot movies pass |
 | 2 | Group camera, room-entry placement, edge arrows | Trouble-spot movies + a full playback with a random pad 2 |
 | 3 | Per-player ring state, queued rings | Ring spam in the watchdog run never sticks |
@@ -246,5 +286,7 @@ one seam to keep open now.
 3. Should a non-protagonist on an exit tile *become* the protagonist (one step fewer), or stay
    ignored (vanilla-like, predictable)?
 4. Phase 3 vs. non-pausing rings: is pausing on every ring acceptable with 4 players?
-5. Target ROM for ExHiROM space: is the 4 MB expansion of the table hack the base, or a plain
+5. Guest characters: one shared palette (they look a little off) or one slot each (fewer
+   enemy colours at once)? (§8a)
+6. Target ROM for ExHiROM space: is the 4 MB expansion of the table hack the base, or a plain
    4 MB ROM like soe102?
