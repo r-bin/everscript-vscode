@@ -293,3 +293,42 @@ and the same display registers (`$2105=$09`, BG1 `$3C00`, BG2 `$3800`, main `$17
   colours the loader leaves, so animated water can look wrong (Crysta's river is purple, not blue). What sets
   the records up (probably the room's event script) is not decoded.
 * The world map (mode 7), room names.
+
+## 7. Character scripts: COP commands
+
+Characters (the player, the follower, people, effects) run **character scripts**: ordinary 65816 code, mostly in bank
+`$84`, mixed with `COP n` commands that take argument bytes after them. The native COP vector (`$FFE4` = `$80:800F`)
+jumps to `$80:8378`. It reads `n` through the return address on the stack (`[$36]`) and jumps through the word table at
+`$80:83B2`. The handler reads its arguments the same way and moves the return address past them. A command that ends
+the script's frame (`COP $C1`, `COP $03`) drops the interrupt frame and returns with `RTL` from the script. The
+record's `+$0A` / `+$0C` holds where the script resumes next frame.
+
+| COP | Handler | Argument bytes | What |
+|---|---|---|---|
+| `$00` | `$80:8592` | 3 | call: continue at the address; the return point is kept at `$7F:0004,X` / `$7F:0006,X` |
+| `$01` | `$80:85B8` | 0 | return to that point (none kept: carry on) |
+| `$02` | `$80:85DF` | 2 | loop start: count to `$7F:0002,X`, start to `$7F:0000,X` |
+| `$03` | `$80:85F8` | 0 | loop end: count down; until zero, end the frame and resume at the loop start |
+| `$36` | `$80:91E8` | 1 | the byte to `$04B7` (not decoded; the jump stores `$0F` after landing) |
+| `$AF` | `$80:A965` | 1 | select curve entry n (`$80:BBDB`, [jumping.md](jumping.md) §2.1) |
+| `$C1` | `$80:AB17` | 2 | wait: the word to `+$0E`, the resume point to `+$0A` / `+$0C`, end the frame |
+| `$CB` | `$80:ADBD` | 4 | a flag byte and a 3-byte address of a script or pose (the handler is decoded only up to the flag byte) |
+
+The other commands are not decoded, and their argument lengths are unknown, so a listing stops at the first one (e.g.
+`COP $2B`, `COP $5F`). A record's script state lives in bank `$7F` at the record's own offset: `$7F:0000-$0006,X`
+above, the two curves of the selected entry at `$7F:0010,X` / `$7F:0012,X` (start copies at `$7F:0014,X` /
+`$7F:0016,X`), and the curve table and its bank at `$7F:0022,X` / `$7F:0024,X`. The foot box's offset from the record's x, y is at `$7F:0028,X` / `$7F:002C,X`
+(−8, −16 for the player). The wall-bump code reads a reaction pointer of the player's own at `$7F:1006,X` (X = the
+player record; what sets it is not traced).
+
+The movement and ground code walk the layer-0 map through four helpers, with X the cell's byte offset: `$8D:8CE1` the
+cell to the right, `$8D:8D10` to the left, `$8D:8D3D` below, `$8D:8D55` above. Others named in `terra://rom/code/`:
+`$80:E1DF` picks the player's reaction when a wall stops them (several reactions are not taken while `$097C` bits 0,
+1, 2, 7 or 15 are set); `$80:F0B1` is the part of the sprite builder that adds the jump height; `$84:9861` is a script
+part that keeps the player airborne until the height is back near 0 (which move uses it is not checked); `$84:C23D`
+steps the curve of the record at `$0DF4`.
+
+`terra://rom/code/` lists every routine read so far, by name (`src/games/terra/decoder/code.ts`). Each has an
+`info.md` (what it does, the doc, calls, callers, WRAM, record fields, COP commands) and a listing disassembled from the
+user's ROM, with COP arguments decoded and our comments on the lines (`notes`, by byte offset into the routine). Add a
+routine there when you document one here.

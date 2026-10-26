@@ -5,7 +5,7 @@ and a plan for giving Evermore a jump built the same way. §1–§4 are Terranig
 Evermore that rests on Evermore's own documented facts. Nothing in §1–§4 is evidence about Evermore
 (`AGENTS.md` §0.4).
 
-Addresses are SNES bus addresses. "The player record" is `$7E:1000` (`$0DEA` holds its address);
+Every routine named here has a page in `terra://rom/code/` (an `info.md` and a listing, README §7). Addresses are SNES bus addresses. "The player record" is `$7E:1000` (`$0DEA` holds its address);
 README §3.4–§3.7 has the map words, cell types and movement tables this doc builds on. When tracing it yourself:
 the core's write watchpoints miss 16-bit writes (`emulator-subsystem` skill), and every write to `$0970` is one.
 

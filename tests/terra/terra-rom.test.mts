@@ -45,6 +45,15 @@ test('room table bounds; a ROM other than the base one is not decoded', () => {
     assert.strictEqual(terra.roomCatalog(other).supported, false);
 });
 
+test('a routine listing: REP / SEP widths, COP arguments decoded, an unknown COP stops it', () => {
+    // At bus $80:8000: REP #$20; LDA #$1234; COP $C1 $0002; SEP #$20; LDA #$56; COP $2B (not decoded); NOP.
+    const rom = new Uint8Array(0x10000);
+    rom.set([0xC2, 0x20, 0xA9, 0x34, 0x12, 0x02, 0xC1, 0x02, 0x00, 0xE2, 0x20, 0xA9, 0x56, 0x02, 0x2B, 0xEA], 0x8000);
+    const lines = terra.disassembleRoutine(rom, { name: 't', addr: 0x808000, len: 16, m8: true, title: '', what: '', confidence: 'read', doc: '' });
+    assert.deepStrictEqual(lines.map((l: { text: string }) => l.text), ['REP #$20', 'LDA #$1234', 'COP #$C1  $0002', 'SEP #$20', 'LDA #$56', 'COP #$2B']);
+    assert.match(lines[5].note, /not decoded/);
+});
+
 const romPath: string = require('../../dist/games').romPath('terra') || '';
 const rom = romPath && fs.existsSync(romPath) ? new Uint8Array(fs.readFileSync(romPath)) : null;
 
@@ -182,6 +191,25 @@ if (!rom) {
         assert.ok(read('rooms/00f.tiles.l1.png'));
         assert.strictEqual(resolveTerra(['rooms', '008.png'], rom), null, 'unused slot');
         assert.strictEqual(resolveTerra(['rooms', '03c.png'], rom), null, 'no map of its own');
+    });
+
+    test('terra://rom/code/: every documented routine decodes to its end; jump_start reads as the game runs it', () => {
+        for (const r of terra.TERRA_ROUTINES) {
+            const lines = terra.disassembleRoutine(rom, r);
+            const last = lines[lines.length - 1];
+            assert.strictEqual(last.addr + last.bytes.length, r.addr + r.len, r.name + ' ends where documented');
+            assert.ok(!lines.some((l: { note?: string }) => /not decoded: listing/.test(l.note || '')), r.name + ': no unknown COP');
+            const starts = new Set(lines.map((l: { addr: number }) => l.addr - r.addr));
+            for (const k of Object.keys(r.notes || {})) assert.ok(starts.has(Number(k)), r.name + ': comment at +' + k + ' is on an instruction');
+        }
+        const read = (p: string) => resolveTerra(p.split('/'), rom)?.read().toString();
+        assert.match(read('code/index.md'), /\[jump_start\]\(jump_start\/info\.md\)/);
+        const asm = read('code/jump_start/jump_start.asm');
+        assert.match(asm, /\$84:9993 {2}0C 7C 09 +TSB \$097C/, 'sets airborne');
+        assert.match(asm, /COP #\$AF {2}\$39/, 'curve entry $39');
+        assert.match(read('code/jump_start/info.md'), /called by \(documented routines\) \| \[jump_script\]/);
+        assert.match(read('code/player_ground_check/info.md'), /\[ledge_under_feet\]/);
+        assert.strictEqual(resolveTerra(['code', 'nope', 'info.md'], rom), null);
     });
 }
 

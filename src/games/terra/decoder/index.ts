@@ -17,3 +17,7 @@ export { roomChanges, changeCells, withChange } from './changes';
 export type { MapChange, ChangeEdit } from './changes';
 export { roomChests } from './chests';
 export type { TerraChest } from './chests';
+export { TERRA_ROUTINES, COP_COMMANDS, COP_TABLE, routineByName, routineAt } from './code';
+export type { TerraRoutine, TerraCop } from './code';
+export { disassembleRoutine, routineRefs, routineCallers, busText } from './disasm';
+export type { AsmLine, RoutineRefs } from './disasm';

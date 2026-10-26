@@ -12,10 +12,10 @@ The extension supports three games. They share the SNES and nothing else.
 
 | | Secret of Evermore | Secret of Mana | Terranigma |
 |---|---|---|---|
-| file system (MCP, editor) | `soe://` (`src/games/evermore/resources`, MCP `everscript-soe`) | `som://` (`src/games/mana/resources`): `som://rom/maps/<hex>.png/.json/.collision.json/.anim.json/.objects.json/.edit.json/.tiles.a.png`, `areas/` | `terra://` (`src/games/terra/resources`): `terra://rom/rooms/<hex>.png/.l0.png/.json/.tiles.l0.png`, `groups/` |
-| library | `src/games/evermore/maps`, `src/games/evermore/script`, … | `src/games/mana/decoder` (pure TS: header, pieces, metatiles, collision, events, objects, cuttable cells, animation on `platform/snes/cpu65816.ts`) | `src/games/terra/decoder` (pure TS: the game's room loader run on `platform/snes/cpu65816.ts`; layers, metatiles, picture, catalog) |
+| file system (MCP, editor) | `soe://` (`src/games/evermore/resources`, MCP `everscript-soe`) | `som://` (`src/games/mana/resources`): `som://rom/maps/<hex>.png/.json/.collision.json/.anim.json/.objects.json/.edit.json/.tiles.a.png`, `areas/` | `terra://` (`src/games/terra/resources`): `terra://rom/rooms/<hex>.png/.l0.png/.json/.tiles.l0.png`, `groups/`, `code/<name>/info.md` / `<name>.asm` (routines by name) |
+| library | `src/games/evermore/maps`, `src/games/evermore/script`, … | `src/games/mana/decoder` (pure TS: header, pieces, metatiles, collision, events, objects, cuttable cells, animation on `platform/snes/cpu65816.ts`) | `src/games/terra/decoder` (pure TS: the game's room loader run on `platform/snes/cpu65816.ts`; layers, metatiles, picture, catalog; `code.ts` the routines read so far) |
 | Which ROM | the ROM library (Everscript: Switch ROM; headless `npm run roms`): selected Evermore ROM, else the base `us` | the same library: selected Mana ROM, else the base `us` | the same library; only the base `eu` is decoded |
-| facts written to | `src/games/evermore/localizations/knowledge/` (`game-knowledge` skill) | `docs/mana/README.md` + the `src/games/mana/decoder` file that reads it | `docs/terra/README.md` + the decoder file that reads it |
+| facts written to | `src/games/evermore/localizations/knowledge/` (`game-knowledge` skill) | `docs/mana/README.md` + the `src/games/mana/decoder` file that reads it | `docs/terra/README.md` (topics: `jumping.md`) + the decoder file that reads it; a routine also gets its entry in `src/games/terra/decoder/code.ts` |
 | checked with | CDL, recomp, headless runs | `tools/mana/check-map.js` (screen vs render), `check-events.js` (step events), `find-picture.js` (which map a screenshot shows), the game's own routines run on `cpu65816.ts` (rom tests); `docs/mana/verifying.md` | `tools/terra/check-room.mts` (screen vs render, docs/terra/README.md §5), `check-exit.mts` / `check-walk.mts` / `check-chest.mts` / `check-change.mts` (exits, collision, chests, map changes), the headless core's breakpoints and CDL |
 | RAM map | `src/games/evermore/localizations/knowledge/` | `docs/mana/wram.md` | `docs/terra/README.md` §3.4 |
 
@@ -88,6 +88,13 @@ rooms") and `docs/mana/README.md` ("Not done yet") before building a parallel pa
 - Terranigma: `$0480` is room × 2 (`$047E` the room): the room table is read at their sum and the room
   properties (display mode) by `$0480` alone — setting `$0480` = room × 3 renders every room with the wrong
   display. Old notes put the tables in bank `$0D` (a LoROM reading); they are `$86:959C` / `$86:A28C`.
+- Terranigma's character scripts are 65816 code with `COP n` commands that take argument bytes after them
+  (README §7): a plain disassembly runs into the arguments as code. Use `terra://rom/code/` (decoded arguments) or
+  `COP_COMMANDS`, and decode a command's handler before reading past it. Script state sits in bank `$7F` at the
+  record's offset (`$7F:0012,X` and so on), not in the record.
+- Terranigma's jump height `$0970` is drawn and nothing else: collision always uses the ground position, and only
+  bit 2 of `$097C` (airborne) changes it (`jumping.md`). The core's write watchpoints miss 16-bit writes
+  (`emulator-subsystem` skill), so find a word's writer by searching the ROM and setting exec breakpoints.
 - Terranigma's loader waits for vblank (`$4210`) and the sound CPU (music section): the decoder's bus and a
   trap stand in. A room can keep graphics, palette or display mode from the room before; VRAM written below
   word `$3800` is background characters, above `$4000` sprites and the font.

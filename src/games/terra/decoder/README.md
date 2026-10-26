@@ -12,6 +12,8 @@ Rules: [../AGENTS.md](../AGENTS.md). Facts and routine addresses: [docs/terra/RE
 | `collision.ts` | what each of the 32 cell types does to a move up / down / left / right, read from the movement code's jump tables; the ground table | `$80:D542`, `$80:D8E8`, `$80:DC60`, `$80:DFDC`, `$80:E11C` |
 | `exits.ts` | a room's exits: rectangles, targets, choices by event flag | `$81:8000`, `$8D:8797`, `$8D:8911` |
 | `changes.ts` | the map changes a room's load applies by the bits of `$7E:0710` (set a cell, copy a block); the cells one writes; a room with one applied | `$99:D4E7`, `$8D:8FB4` |
+| `code.ts` | the routines read so far, by name: address, length, entry widths, what each does, its doc, comments on its lines; the COP commands of the character scripts and their argument bytes | `$80:8378`, `$80:83B2` |
+| `disasm.ts` | a routine's listing from the ROM (REP / SEP followed, COP arguments decoded, calls into named routines marked); its calls, WRAM, record fields, COP commands | — |
 | `chests.ts` | a room's chests: cell, contents, opened flag, gate flag | `$99:D859`, `$87:C7AE`, `$87:939E`, `$8D:912B` |
 
 `loadRoom` + `renderRoom`: ~20 ms for a small room, up to ~140 ms for the biggest maps; `roomCatalog`: ~1 s.

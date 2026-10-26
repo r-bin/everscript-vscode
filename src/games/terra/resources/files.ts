@@ -6,10 +6,12 @@
 //   rooms/<hex>.*                     one room's pictures, sheets and data (room-files.ts)
 //   groups/index.json                 the rail: rooms by id range, as pictures (rooms that show the same map)
 //   cell-types.json                   what each of the 32 cell types does to a character moving into it
+//   code/                             the routines we have read, by name: info and listing (code-files.ts)
 // Ids in paths are three hex digits, lower case.
 
 import * as terra from '../decoder';
 import { roomFile, ROOM_FILE_EXTS } from './room-files';
+import { resolveCode } from './code-files';
 import type { RomNode } from '../../../core/resources/rom-file-system';
 
 const buf = (s: string): Buffer => Buffer.from(s, 'utf8');
@@ -19,7 +21,8 @@ const file = (read: () => Buffer): RomNode => ({ kind: 'file', read });
 /** The node at `segments` (the path below terra://rom/), or null. */
 export function resolveTerra(segments: string[], rom: Uint8Array): RomNode | null {
     const [top, name, ...rest] = segments;
-    if (top === undefined) return { kind: 'dir', entries: [['index.md', 'file'], ['info.json', 'file'], ['cell-types.json', 'file'], ['rooms', 'dir'], ['groups', 'dir']] };
+    if (top === undefined) return { kind: 'dir', entries: [['index.md', 'file'], ['info.json', 'file'], ['cell-types.json', 'file'], ['rooms', 'dir'], ['groups', 'dir'], ['code', 'dir']] };
+    if (top === 'code') return terra.isBaseTerraRom(rom) ? resolveCode(segments.slice(1), rom) : null;
     if (rest.length) return null;
     const c = terra.roomCatalog(rom);
     if (top === 'index.md' && name === undefined) return file(() => buf(romIndex(c)));
@@ -50,7 +53,7 @@ export function resolveTerra(segments: string[], rom: Uint8Array): RomNode | nul
 function romIndex(c: terra.TerraCatalog): string {
     if (!c.supported) return '# Terranigma\n\nThis release is recognised, but only the European ROM (`eu`) is decoded.\n';
     return `# Terranigma\n\n${c.used} rooms in the room table (${c.unused} unused slots); ${c.rooms.filter(r => r.w).length} load a map, `
-        + `showing ${c.pictures.length} different pictures.\n\n- [rooms/](rooms/index.md)\n- [groups/index.json](groups/index.json)\n- [cell-types.json](cell-types.json)\n\nFormats: docs/terra/README.md.\n`;
+        + `showing ${c.pictures.length} different pictures.\n\n- [rooms/](rooms/index.md)\n- [groups/index.json](groups/index.json)\n- [cell-types.json](cell-types.json)\n- [code/](code/index.md): the routines we have read, by name\n\nFormats: docs/terra/README.md.\n`;
 }
 
 function roomsIndex(c: terra.TerraCatalog): string {

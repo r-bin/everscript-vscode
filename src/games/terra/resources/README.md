@@ -13,6 +13,9 @@ Rules: [../AGENTS.md](../AGENTS.md). The read-only file system over the Terranig
 | `terra://rom/rooms/<hex>.json` | what the Maps page starts from: sizes, both layers' map and tile words, palette, display registers, the load, the exits, chests and map changes |
 | `terra://rom/rooms/<hex>.c<k>.png` | the map with the room's map change k applied |
 | `terra://rom/groups/index.json` | the rail: rooms by id range, as pictures |
+| `terra://rom/code/index.md`, `index.json` | the routines read so far, by name, and the COP commands (`code-files.ts`, from `decoder/code.ts`) |
+| `terra://rom/code/<name>/info.md` | what the routine does, its doc, what it calls, who calls it, WRAM, record fields, COP commands |
+| `terra://rom/code/<name>/<name>.asm` | its listing, disassembled from the ROM in use |
 | `terra://rom/cell-types.json` | the 32 cell types: what each does to a move in each direction, the ground table, the overlay's look |
 
 Ids are three lower-case hex digits. A room without a map of its own has no files.
