@@ -112,7 +112,8 @@ The sibling `everscript` engine maintains a suite of modular Asar assembly patch
 
 | Patch File | Hook Location | Purpose |
 |---|---|---|
-| `patches/hotkeys.asm` | `$FE:5000` (`_hook_input`) | In-game controller shortcut engine: detects Start+L, Start+R, or B combos to trigger instant memory dumps (`$28CA..$28E2`) and practice toggles. |
+| `patches/hotkeys.asm` | `$FE:5000` (`_hook_input`) | In-game controller shortcut engine: detects Start+L, Start+R, or B combos to trigger instant memory dumps (`$28CA..$28E2`) and practice toggles. Starts scripts inside the NMI (hook `$80:84A3`), which corrupts DP `$26-$28` and the run list when the NMI lands mid-update: the cause of its crashes. |
+| `hacks/hotkeys/hotkey_hack.asm` | `$F8:0000` (hook `$8C:F134`) | Its replacement: Start / L+Start / R+Start start an everscript function once per press, only while the boy is not halted, from the game's own joypad matcher (`$8C:F121`). Cycle-exact, so vanilla replays stay in sync; `main.evs` shows the name as a subtitle without taking a vanilla string key. |
 | `patches/scale_enemies.asm` | Entity spawn handlers | Dynamic monster scaling engine: dynamically adjusts monster HP, attack, defense, and EXP yield to match player level. |
 | `patches/scale_boy.asm` | Character init | Player attribute scaling modifier. |
 | `patches/auto_save.asm` | Room transition scripts | Hooks room exits to automatically serialize active game state to SRAM without visiting an inn. |

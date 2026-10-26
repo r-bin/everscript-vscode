@@ -82,6 +82,21 @@ Writing 65c816 assembly without crashing the SNES requires strict adherence to r
   1. Re-execute the overwritten instructions inside your hook routine before returning.
   2. Use `NOP` (`$EA`) padding if the replacement takes fewer bytes than the original instructions.
 
+### 3.4 More traps (hit by the hotkey hack, everscript `hacks/hotkeys/`)
+- **Never start a script from the NMI.** The old `patches/hotkeys.asm` did (`$80:84A3`); an NMI
+  landing while the main loop used DP `$26-$28` or the run list corrupted them. Start scripts from
+  the main loop the way Select does (`rom/8cf17c.md`: `$8C:CE5C` / `$8C:CF18` + `$8C:CE86`).
+- **Asar sizes `#imm` by the written value.** `AND #!MASK` with `!MASK = $0020|$0010` assembles
+  as one byte (`#$30`) even in 16-bit mode; write `AND.w`.
+- **Any added cycle in the main loop makes vanilla replays drift** (a hook adding ~30 cycles on
+  input-change frames lost sync after 1600 frames). A hook that must keep the game identical
+  replaces a short vanilla path with a specialised copy that spends exactly as many cycles of each
+  speed: with FastROM (`$80:810C`) ROM fetches and internal cycles cost 6 master clocks, WRAM
+  8 — count both per branch, pad with `XBA` (3), `NOP` (2), `LDA ($dp)` (2 + 4 WRAM). Reuse the
+  same `abs,x` instruction where vanilla has one (page-crossing cycles then cancel), keep
+  vanilla's write order, and measure (`sample-playbacks` skill). snes9x2005 charges no page-
+  crossing or store IO cycle for `abs,x`.
+
 ---
 
 ## 3.4 Names and data from the CDL export

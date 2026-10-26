@@ -55,7 +55,7 @@ In HiROM the 4th MB is banks `$F0–$FF`: file `0x3n0000` = `$Fn:0000`. The uppe
 | `$F0` | **reserved**: FuSoYa 2P kernel `0000–0A16`; everscript `room_timer` (`$F00000`); first everscript text | **reserved**: first everscript scripts (`$B0:8000+`); `$80:D113` read target `E653–E6D1` |
 | `$F1` | directory `0000–00FF`; rest free | **tables**, back to back (§2) |
 | `$F2–$F7` | **new strings** (192 KB) | **new scripts** (192 KB), including new enter scripts |
-| `$F8–$FB` | free (build 2: graphics tables) | **new rooms** |
+| `$F8–$FB` | free (build 2: graphics tables); everscript `hacks/hotkeys` uses `$F8:0000–$F8:40FF` | **new rooms** |
 | `$FC–$FD` | **reserved**: everscript `.evs` patches (`connect_acts` from `0x3c0000`); `auto_save` hotkey data `$FD0000` | **reserved**: everscript `.evs` patches; the plugin's room export at `$BC/$BD:8000` |
 | `$FE` | **reserved**: debug menu `$FE0000` (XaserLE / everscript `debug_menu`); hooks `$FE5000` (`room_timer`, `_hook_input`, `auto_save`) | **reserved**: everscript `scale_enemies` from `$FE8000` |
 | `$FF` | **reserved**: `scale_enemies` tables continue to about `$FF9000`; `fix_bridges` from `0x3f0000` | **reserved**: `fix_a4_doors` / `fix_bridges` |

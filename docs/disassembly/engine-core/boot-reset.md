@@ -15,7 +15,7 @@ When the SNES CPU is powered on or reset:
 3. The screen is immediately blanked (`$2100 = $8F`), preventing display noise.
 4. The CPU switches to **65816 Native 16-bit Mode** (`CLC; XCE; REP #$30`).
 5. The stack pointer is initialized to `$1FFF`, Direct Page is set to `$0000`, and Data Bank is set to `$80`.
-6. All PPU hardware registers (`$2101`–`$2133`) and CPU registers (`$4200`–`$420D`) are initialized to safe zero or default states.
+6. All PPU hardware registers (`$2101`–`$2133`) and CPU registers (`$4200`–`$420D`) are initialized to safe zero or default states, except `$420D` = 1 at `$80:810C`: FastROM, so banks `$80`–`$FF` read in 6 master clocks (like internal cycles), WRAM in 8.
 7. DMA Channel 0 performs fixed-source transfers from ROM offset `$80:8008` (containing `$00`) to wipe:
    - 64 KB VRAM (`$0000`–`$FFFF`)
    - 64 KB WRAM Bank `$7E` (`$7E:0000`–`$7E:FFFF`)

@@ -44,7 +44,13 @@ update the table.
   count, and the playback matches frame for frame. A hook adds cycles. The game seems to step its
   RNG while it waits for the next frame, so the playback then drifts (the sprite palette hook: from
   frame 374, the intro's lightning drawn differently). Prove a hook by what it does (screenshot,
-  CGRAM, WRAM at the point of use), not by identity.
+  CGRAM, WRAM at the point of use), not by identity — unless the hook is cycle-exact
+  (`snes-asm-asar-patching` §3.4): then compare the master clocks of each call (save state:
+  `CPU.Cycles` at offset 36, `V_Counter` at 44, 1364 clocks a line). A cycle-exact hook can still
+  differ on a lag frame whose end lands inside it: the half-written scratch shows for one frame.
+- **No sample reaches free play.** The user's recordings
+  `Secret of Evermore (U) [!]_2026-10-11_08-20-51` (control from frame 15869, room `$46`) and
+  `…_2026-10-07_11-40-27` (from 18290) do, both after many Start presses on the title and intro.
 - **A determinism control.** Run the original twice on the same playback; both traces must be
   identical before any other comparison means anything.
 
