@@ -17,6 +17,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 
 | Address | Size | Identifier | Lifetime | Purpose & Behavior |
 |---|---|---|---|---|
+| `$7E:0000` | `Byte×256` | `direct_page_block` | `Frame` | Continuous 256-byte SNES Direct Page scratchpad ($7E:0000..$7E:00FF, CPU D=0x0000) containing math registers, camera coords, metasprite ptrs, VM registers, and loop counters. |
 | `$7E:0002` | 2 bytes | `DP_SCRATCH_02` | Frame | Direct Page 16-bit math scratchpad; actor anchor screen X coordinate in sprite compositor (`func_C09040`); units digit in decimal conversion (`func_C0870C`); destination write pointer in LZSS decompression (`method_0x03`). |
 | `$7E:0003` | 1 byte | `DP_DECIMAL_DIGIT_TENS` | Temp | Tens digit in decimal ASCII conversion (`func_C0870C`); high byte of `DP_SCRATCH_02`. |
 | `$7E:0004` | 2 bytes | `DP_SCRATCH_04` | Frame | Direct Page 16-bit math scratchpad; actor anchor screen Y coordinate in sprite compositor (`func_C09040`); hundreds digit in decimal conversion (`func_C0870C`). |
@@ -644,12 +645,12 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:234F` | 2 bytes | `PRISON_TOWN_EXIT` | Save | Game script variable: PRISON TOWN EXIT |
 | `$7E:2352` | 2 bytes | `QUEEN_S_KEY_ON_DOG` | Save | Game script variable: Queen's Key on Dog |
 | `$7E:2353` | 2 bytes | `QUEEN_S_KEY_ON_BOY` | Save | Game script variable: Queen's Key on Boy |
-| `$7E:235B` | 1 | `SAVED_PPU_MAIN_SCREEN_212C` | Frame | PPU Subsystem: Backup of Main Screen register ($212C shadow) restored by opcode 0x82 ($8C:E20F) |
-| `$7E:235C` | 1 | `SAVED_PPU_SUB_SCREEN_212D` | Frame | PPU Subsystem: Backup of Sub Screen register ($212D shadow) restored by opcode 0x82 ($8C:E20F) |
-| `$7E:235D` | 1 | `SAVED_PPU_COLOR_MATH_2131` | Frame | PPU Subsystem: Backup of Color Math designation register ($2131 shadow) restored by opcode 0x82 |
-| `$7E:235E` | 1 | `SAVED_PPU_ADD_SELECT_2130` | Frame | PPU Subsystem: Backup of Color Addition Select register ($2130 shadow) restored by opcode 0x82 |
-| `$7E:235F` | 1 | `WEAPON_RING_FILTER_MASK_0` | Frame | UI Subsystem: Weapon ring menu active filter bitmask byte 0 ($8F:9299). |
-| `$7E:2360` | 1 byte | `EQUIPPED_WEAPON_CLASS` | Save | Current weapon class (0=Sword, 2=Axe, 4=Spear, 6=Bazooka). |
+| `$7E:235B` | `Byte` | `dog_ai_behavior_command` | `Save` | Dog companion AI behavioral state command (0=follow, 1=heel, 2=sniff/search, 3=attack). |
+| `$7E:235C` | `Byte` | `dog_ai_alert_timer` | `Save` | Timer countdown ticks for dog barking / alert animation when scent is detected. |
+| `$7E:235D` | `Byte` | `dog_ai_leash_distance` | `Save` | Maximum leash tether distance before Dog AI breaks combat to return to player. |
+| `$7E:235E` | `Byte` | `dog_ai_collision_mode` | `Save` | Dog navigation collision mode (wall sliding vs direct waypoint pathing). |
+| `$7E:235F` | `Word` | `dog_companion_attack_mode` | `Save` | Companion attack behavior bitmask (passive, defend player, aggressive attack). |
+| `$7E:2360` | `Word` | `dog_combat_target_priority` | `Save` | Target priority selector for Dog AI (nearest enemy vs player's current target). |
 | `$7E:2363` | 1 byte | `DOG_FORM_INDEX` | Save | Active visual form and breed of dog companion (0=Wolf, 1=Greyhound, 2=Poodle, 3=Toaster). |
 | `$7E:238D` | 2 bytes | `CHANGE_MUSIC` | Save | Game script variable: CHANGE MUSIC |
 | `$7E:2391` | 1 byte | `LOOT_MAILBOX` | Room | Loot mailbox — what the next pickup gives. \ |
@@ -706,7 +707,24 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:2459` | 2 bytes | `INGREDIENT_SHOP` | Save | Game script variable: INGREDIENT SHOP |
 | `$7E:2461` | 2 bytes | `LOOT_AMOUNT` | Room | Loot bonus — amount minus one for the next pickup. The loot script adds `1 + $2461`. Pickups that give more than one write `amount − 1` here before calling the |
 | `$7E:2480` | 64 bytes | `WEATHER_PARTICLES` | Frame | Position, velocity, and lifetime particle physics state array (rain, snow, embers). |
-| `$7E:2834` | 204 bytes | `TEMP_SCRATCH_RAM` | Temp | Compiler temporary scratchpad memory pool ($7E:2834..$7E:28FF); wiped on map reload. |
+| `$7E:2517` | `Word` | `sram_chest_flags_0` | `Save` | Persistent treasure chest / gourd collection bitmask words 0..1 (gourds 0..31 in Cartridge SRAM payload). |
+| `$7E:2519` | `Word` | `sram_chest_flags_1` | `Save` | Persistent treasure chest / gourd collection bitmask words 2..3 (gourds 32..63). |
+| `$7E:251B` | `Word` | `sram_chest_flags_2` | `Save` | Persistent treasure chest / gourd collection bitmask words 4..5 (gourds 64..95). |
+| `$7E:251D` | `Word` | `sram_chest_flags_3` | `Save` | Persistent treasure chest / gourd collection bitmask words 6..7 (gourds 96..127). |
+| `$7E:251F` | `Word` | `sram_chest_flags_4` | `Save` | Persistent treasure chest / gourd collection bitmask words 8..9 (gourds 128..159). |
+| `$7E:2521` | `Word` | `sram_chest_flags_5` | `Save` | Persistent treasure chest / gourd collection bitmask words 10..11 (gourds 160..191). |
+| `$7E:2523` | `Word` | `sram_chest_flags_6` | `Save` | Persistent treasure chest / gourd collection bitmask words 12..13 (gourds 192..223). |
+| `$7E:2525` | `Word` | `sram_chest_flags_7` | `Save` | Persistent treasure chest / gourd collection bitmask words 14..15 (gourds 224..255). |
+| `$7E:2533` | `Word` | `sram_boss_defeated_flags` | `Save` | Persistent campaign boss defeat bitmask (Thraxx, Salabog, Magmar, Vigor, Megataur, Rimsala, Carltron). |
+| `$7E:2834` | `Word` | `script_temp_reg_0` | `Frame` | Script VM temporary evaluation register 0 / script variable base ($8C:D7E1, opcode $10..$18 indexed offset). |
+| `$7E:2836` | `Word` | `script_temp_reg_1` | `Frame` | Script VM temporary evaluation register 1 / loop counter operand ($8C:D860). |
+| `$7E:2838` | `Word` | `script_return_addr` | `Frame` | Script VM subroutine call return instruction pointer ($8C:D863). |
+| `$7E:283A` | `Word` | `script_cond_flag` | `Frame` | Script VM conditional comparison test flag register (stores boolean result of comparisons for conditional branch opcodes). |
+| `$7E:283D` | `Word` | `script_indirect_bank` | `Frame` | Script VM indirect memory bank pointer register ($8C:D872). |
+| `$7E:283F` | `Word` | `script_sleep_accum` | `Frame` | Script VM timer tick accumulator for thread sleep and delay opcodes ($8C:D875). |
+| `$7E:2841` | `Word` | `script_event_trigger_param` | `Frame` | Script VM event trigger identifier parameter word ($8C:ED6C). |
+| `$7E:2843` | `Word` | `script_thread_priority` | `Frame` | Script VM thread scheduling priority override register ($8C:EE2C). |
+| `$7E:2859` | `Word×6` | `script_eval_stack` | `Frame` | Script VM intermediate expression evaluation stack ($7E:2859..$7E:2865) for mathematical and logical opcodes. |
 | `$7E:28FC` | 79 bytes | `SCRIPT_SLOT_00` | Room | Script VM execution thread slot 0 (primary room enter / cutscene script thread, stride 79 bytes). |
 | `$7E:294B` | 79 bytes | `SCRIPT_SLOT_01` | Room | Script VM execution thread slot 1 (stride 79 bytes). |
 | `$7E:299A` | 79 bytes | `SCRIPT_SLOT_02` | Room | Script VM execution thread slot 2 (stride 79 bytes). |
@@ -981,6 +999,9 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:AB7A` | 96 bytes | `VRAM_TILE_LRU_NEXT` | Frame | Forward links for least-recently-used (LRU) dynamic VRAM sprite tile allocator. |
 | `$7E:ABDE` | 512 bytes | `LOW_OAM_TABLE_BUF` | Frame | Low OAM staging buffer (128 hardware sprites × 4 bytes: X low, Y, tile number, attributes); uploaded to SNES OAM via DMA in VBlank. |
 | `$7E:ADDE` | 32 bytes | `HIGH_OAM_TABLE_BUF` | Frame | High OAM staging buffer (32 bytes = 128 sprites × 2 bits: bit 0 = 9th bit of X, bit 1 = sprite size 8x8 vs 16x16/32x32); uploaded via DMA in VBlank. |
-| `$7F:0000` | `Byte×8873` | `room_metatile_grid` | `Frame` | Decompressed 16-bit room metatile index grid in Bank $7F ($7F:0000..$7F:22A8) populated by func_CC988D from ROM. |
-| `$7F:A000` | `Byte×674` | `viewport_tilemap_composite` | `Frame` | Active viewport screen tilemap composite staging buffer in Bank $7F ($7F:A000..$7F:A2A1). |
+| `$7F:0000` | `Byte×40960` | `room_metatile_grid` | `Room` | Primary decompressed 16-bit room metatile grid & collision geometry layer ($7F:0000..$7F:9FFF, up to 64×64 metatiles). |
+| `$7F:A000` | `Byte×674` | `viewport_tilemap_composite` | `Room` | Active viewport screen tilemap composite staging buffer in Bank $7F ($7F:A000..$7F:A2A1). |
+| `$7F:C300` | `Byte×1280` | `room_palette_table` | `Room` | Room tile palette index association table in Bank $7F ($7F:C300..$7F:C4A0). |
+| `$7F:C800` | `Byte×4096` | `shadow_tilemap_buf` | `Room` | Staging buffer in Bank $7F ($7F:C800..$7F:D7FF) for HUD and dialogue text box tilemap transfers. |
 | `$7F:C844` | `Byte×1593` | `hud_textbox_tilemap_staging` | `Frame` | Staging buffer in Bank $7F ($7F:C844..$7F:CE7C) for HUD and dialogue text box tilemap transfers. |
+| `$7F:D81E` | `Byte×10210` | `dialogue_ascii_buffer` | `Room` | Dialogue box decoded ASCII text string rasterization buffer in Bank $7F ($7F:D81E..$7F:FFFE, unpacked by $8C:CCF5). |
