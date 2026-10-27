@@ -24,6 +24,7 @@ Last updated 2026-10-12 (v0.201.9).
 | [recomp-bug-hunt.md](recomp-bug-hunt.md) | *(Moved to [docs/recomp/bugs-and-todos.md](../recomp/bugs-and-todos.md))* |
 | [recomp-host.md](recomp-host.md) | *(Moved to [docs/recomp/game-rtl.md](../recomp/game-rtl.md))* |
 | [rea.md](rea.md) | **REA** (MCP over Ghidra): answers, spike recipe and results |
+| [snes-re-skill.md](snes-re-skill.md) | **Proposal:** a game-neutral `snes-re` skill: grilling-style intake, then a CDL + snesrecomp pipeline to function list, ROM/WRAM maps, tables and script VMs |
 | [formats.md](formats.md) | File formats we use, compatible formats to emit, what REA's formats add |
 | [other-tools.md](other-tools.md) | Mesen2, Asar, DiztinGUIsh, bsnes-plus, everscript, SA-1 investigation |
 | [community-ghidra-notes.md](community-ghidra-notes.md) | Old hand-annotated community Ghidra project: its terms vs ours, tables, field names, formulas, leads to check |
