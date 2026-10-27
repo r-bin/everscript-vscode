@@ -1,7 +1,8 @@
 # Cheats and movement tricks
 
 Behaviour of the unmodified game that a player can use. Each entry says why it
-happens, with the code that does it.
+happens, with the code that does it. What gates the ending, and candidates for reaching
+the credits sooner: [credits-skip-candidates.md](credits-skip-candidates.md).
 
 ## Diagonal speed boost
 
