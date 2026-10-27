@@ -4,6 +4,7 @@
 // No VS Code dependency — all external state arrives as parameters.
 
 import { buildMemoryTabHtml } from './render-memory-tab';
+import { buildCgramTabHtml, buildOamTabHtml, buildVramTabHtml } from './render-ppu-tabs';
 import { buildDocsTabHtml, buildRngTabHtml } from '../docs-tab/render-docs-tab';
 import { renderRoomsTree, renderVanillaTree, buildRoomRailHtml, buildRoomsJson, VANILLA_ROOMS } from '../rooms';
 import { buildSpritesTabHtml } from '../sprites';
@@ -160,18 +161,24 @@ function renderRadarHtml(
         '<button class="tab" data-tab="data">\ud83d\uddc3 Data</button>' +
         '<button class="tab" data-tab="routes">\ud83e\udded Routes</button>' +
         '</div>' +
-        // Memory: one tab, three address spaces under its own bar (memory/webview/wram-view.dom.ts).
+        // Memory: one tab, six address spaces under its own bar (memory/webview/wram-view.dom.ts).
         '<div class="tab-pane mem-pane" data-tab="radar">' +
         '<div class="mem-subbar" role="group">' +
         '<button class="mem-sub" data-mem-view="bus" title="The CPU\'s 24-bit bus: what every bank and address reaches">Bus</button>' +
         '<button class="mem-sub mem-sub-on" data-mem-view="wram" title="Work RAM: the memory map, this scope\'s reads and writes, CDL coverage">WRAM</button>' +
         '<button class="mem-sub" data-mem-view="rom" title="The ROM file: every bank half, what fills it, CDL coverage">ROM</button>' +
+        '<button class="mem-sub" data-mem-view="vram" title="Video RAM: 64 KB pattern tables (CHR) and tilemaps">VRAM</button>' +
+        '<button class="mem-sub" data-mem-view="oam" title="Object Attribute Memory: 128 hardware sprites and positions">OAM</button>' +
+        '<button class="mem-sub" data-mem-view="cgram" title="Color Generator RAM: 16 sub-palettes (128 BG colors + 128 sprite colors)">CGRAM</button>' +
         // One search field top right for every view: WRAM's, or the ROM feature's (rom-init.js binds #rom-search).
         '<input class="mem-search" id="wram-search" type="text" placeholder="Search $addr or name…" autocomplete="off" spellcheck="false">' +
         '<input class="mem-search" id="rom-search" type="text" placeholder="Search address, room, table…" autocomplete="off" spellcheck="false" style="display:none">' +
         '</div>' +
         memoryTabHtml +
         buildRomTabHtml() +
+        buildVramTabHtml() +
+        buildOamTabHtml() +
+        buildCgramTabHtml() +
         '</div>' +
         roomsTabHtml +
         spritesTabHtml +

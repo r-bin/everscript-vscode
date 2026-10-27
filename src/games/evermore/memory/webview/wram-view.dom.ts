@@ -7,7 +7,7 @@
 // radar page hands it shared.js's `recomputeRows` and rom-init.js's `romShow`, and
 // declares `memShowView` for rom-init.js (memory/webview/index.ts).
 
-type View = 'bus' | 'wram' | 'rom';
+type View = 'bus' | 'wram' | 'rom' | 'vram' | 'oam' | 'cgram';
 interface Coverage { lo: number; flags: number[]; words: number[]; none?: string }
 /** The page functions this drives: shared.js's row filter, the ROM feature's view switch. */
 interface Hooks { recomputeRows?: () => void; romShow?: ((view: View) => void) | null }
@@ -16,6 +16,7 @@ interface Hooks { recomputeRows?: () => void; romShow?: ((view: View) => void) |
 const WF = { READ: 1, WRITE: 2, WORD: 8, EXEC: 0x10, SCRIPT: 0x20, POINTER: 0x40, DMA: 0x80 };
 const VIEW_KEY = 'mem-view';
 const CDL_CLASSES = ['cdl-r', 'cdl-w', 'cdl-rw', 'cdl-x', 'wd0', 'wd1'];
+const VIEWS: View[] = ['bus', 'wram', 'rom', 'vram', 'oam', 'cgram'];
 
 const st = { view: 'wram' as View, cov: null as Coverage | null, asked: false, cdlOn: true, post: (_m: object): void => {}, hooks: {} as Hooks };
 
@@ -23,7 +24,7 @@ const hex = (n: number, w: number): string => n.toString(16).toUpperCase().padSt
 const grid = (): HTMLElement | null => document.getElementById('wram-grid');
 
 function loadView(): View | null {
-    try { const v = localStorage.getItem(VIEW_KEY); return v === 'bus' || v === 'wram' || v === 'rom' ? v : null; } catch { return null; }
+    try { const v = localStorage.getItem(VIEW_KEY) as View; return VIEWS.includes(v) ? v : null; } catch { return null; }
 }
 function saveView(v: View): void {
     try { localStorage.setItem(VIEW_KEY, v); } catch { /* storage may be blocked */ }
@@ -34,18 +35,28 @@ function applyView(view: View): void {
     st.view = view;
     document.querySelectorAll<HTMLElement>('[data-mem-view]').forEach((b) => b.classList.toggle('mem-sub-on', b.dataset.memView === view));
     document.querySelectorAll<HTMLElement>('.mem-sub-pane').forEach((p) => {
-        p.style.display = (p.dataset.mem === 'wram') === (view === 'wram') ? 'flex' : 'none';
+        const mem = p.dataset.mem;
+        if (view === 'wram') {
+            p.style.display = mem === 'wram' ? 'flex' : 'none';
+        } else if (view === 'bus' || view === 'rom') {
+            p.style.display = mem === 'rom' ? 'flex' : 'none';
+        } else {
+            p.style.display = mem === view ? 'flex' : 'none';
+        }
     });
     // The bar's search field follows the view: WRAM's own, or the ROM feature's for Bus and ROM.
     const wram = document.getElementById('wram-search'), rom = document.getElementById('rom-search') as HTMLInputElement | null;
     if (wram) wram.style.display = view === 'wram' ? '' : 'none';
-    if (rom) { rom.style.display = view === 'wram' ? 'none' : ''; rom.placeholder = view === 'bus' ? 'Search bus address ($9F:D600)…' : 'Search address, room, table…'; }
+    if (rom) {
+        rom.style.display = (view === 'bus' || view === 'rom') ? '' : 'none';
+        rom.placeholder = view === 'bus' ? 'Search bus address ($9F:D600)…' : 'Search address, room, table…';
+    }
 }
 
 /** Draw the shown view: WRAM asks for its coverage once, Bus and ROM are drawn by the ROM feature. */
 function drawView(): void {
     if (st.view === 'wram') askCoverage();
-    else st.hooks.romShow?.(st.view);
+    else if (st.view === 'bus' || st.view === 'rom') st.hooks.romShow?.(st.view);
 }
 
 /** Show one of the Memory tab's three views, switching to the Memory tab first. */
@@ -151,6 +162,120 @@ function search(q: string): void {
     hit.click();
 }
 
+function setupPpuViews(): void {
+    // ── CGRAM Interactions ──
+    const cgramPane = document.querySelector<HTMLElement>('.cgram-pane');
+    if (cgramPane) {
+        const swatchLarge = document.getElementById('cgram-insp-swatch');
+        const inspName = document.getElementById('cgram-insp-name');
+        const inspIdx = document.getElementById('cgram-insp-idx');
+        const inspBgr = document.getElementById('cgram-insp-bgr');
+        const inspHex = document.getElementById('cgram-insp-hex');
+        const inspRgb5 = document.getElementById('cgram-insp-rgb5');
+        const inspRgb8 = document.getElementById('cgram-insp-rgb8');
+        const inspOffset = document.getElementById('cgram-insp-offset');
+
+        const inspectSwatch = (el: HTMLElement) => {
+            cgramPane.querySelectorAll('.cgram-swatch.cgram-selected').forEach((s) => s.classList.remove('cgram-selected'));
+            el.classList.add('cgram-selected');
+            const d = el.dataset;
+            if (swatchLarge && d.hex) swatchLarge.style.backgroundColor = d.hex;
+            if (inspName && d.pal) inspName.textContent = `${d.pal} #${Number(d.idx) % 16}`;
+            if (inspIdx && d.idx) inspIdx.textContent = `#${d.idx}`;
+            if (inspBgr && d.bgr) inspBgr.textContent = `$${hex(Number(d.bgr), 4)}`;
+            if (inspHex && d.hex) inspHex.textContent = d.hex;
+            if (inspRgb5) inspRgb5.textContent = `R:${d.r5} G:${d.g5} B:${d.b5}`;
+            if (inspRgb8) inspRgb8.textContent = `rgb(${d.r8}, ${d.g8}, ${d.b8})`;
+            if (inspOffset && d.offset) inspOffset.textContent = d.offset;
+        };
+
+        cgramPane.querySelectorAll<HTMLElement>('.cgram-swatch').forEach((s) => {
+            s.addEventListener('mouseenter', () => inspectSwatch(s));
+            s.addEventListener('click', () => inspectSwatch(s));
+        });
+
+        cgramPane.querySelectorAll<HTMLElement>('[data-cgram-filter]').forEach((b) => {
+            b.addEventListener('click', () => {
+                cgramPane.querySelectorAll('[data-cgram-filter]').forEach((btn) => btn.classList.remove('ppu-on'));
+                b.classList.add('ppu-on');
+                const f = b.dataset.cgramFilter;
+                cgramPane.querySelectorAll<HTMLElement>('.cgram-section').forEach((sec) => {
+                    const isBg = sec.dataset.sec === 'bg';
+                    sec.style.display = (f === 'all' || (f === 'bg' && isBg) || (f === 'obj' && !isBg)) ? '' : 'none';
+                });
+            });
+        });
+    }
+
+    // ── OAM Interactions ──
+    const oamPane = document.querySelector<HTMLElement>('.oam-pane');
+    if (oamPane) {
+        const viewport = document.getElementById('oam-viewport');
+        const selectSlot = (slotId: string) => {
+            oamPane.querySelectorAll('.oam-sprite-box.oam-sel, .oam-tr.oam-sel').forEach((el) => el.classList.remove('oam-sel'));
+            const box = oamPane.querySelector<HTMLElement>(`.oam-sprite-box[data-slot="${slotId}"]`);
+            const row = oamPane.querySelector<HTMLElement>(`.oam-tr[data-slot="${slotId}"]`);
+            if (box) box.classList.add('oam-sel');
+            if (row) {
+                row.classList.add('oam-sel');
+                row.scrollIntoView({ block: 'nearest' });
+            }
+        };
+
+        oamPane.querySelectorAll<HTMLElement>('.oam-sprite-box').forEach((box) => {
+            box.addEventListener('mouseenter', () => selectSlot(box.dataset.slot || ''));
+            box.addEventListener('click', () => selectSlot(box.dataset.slot || ''));
+        });
+
+        oamPane.querySelectorAll<HTMLElement>('.oam-tr').forEach((tr) => {
+            tr.addEventListener('mouseenter', () => selectSlot(tr.dataset.slot || ''));
+            tr.addEventListener('click', () => selectSlot(tr.dataset.slot || ''));
+        });
+
+        oamPane.querySelectorAll<HTMLElement>('[data-oam-filter]').forEach((b) => {
+            b.addEventListener('click', () => {
+                oamPane.querySelectorAll('[data-oam-filter]').forEach((btn) => btn.classList.remove('ppu-on'));
+                b.classList.add('ppu-on');
+                const f = b.dataset.oamFilter;
+                oamPane.querySelectorAll<HTMLElement>('.oam-tr.oam-offscreen').forEach((row) => {
+                    row.style.display = f === 'active' ? 'none' : '';
+                });
+            });
+        });
+
+        oamPane.querySelectorAll<HTMLElement>('[data-oam-zoom]').forEach((b) => {
+            b.addEventListener('click', () => {
+                oamPane.querySelectorAll('[data-oam-zoom]').forEach((btn) => btn.classList.remove('ppu-on'));
+                b.classList.add('ppu-on');
+                if (viewport) viewport.classList.toggle('oam-zoom-2', b.dataset.oamZoom === '2');
+            });
+        });
+    }
+
+    // ── VRAM Interactions ──
+    const vramPane = document.querySelector<HTMLElement>('.vram-pane');
+    if (vramPane) {
+        vramPane.querySelectorAll<HTMLElement>('[data-vram-view]').forEach((b) => {
+            b.addEventListener('click', () => {
+                vramPane.querySelectorAll('[data-vram-view]').forEach((btn) => btn.classList.remove('ppu-on'));
+                b.classList.add('ppu-on');
+                const v = b.dataset.vramView;
+                const chr = document.getElementById('vram-subview-chr');
+                const layout = document.getElementById('vram-subview-layout');
+                if (chr) chr.style.display = v === 'chr' ? '' : 'none';
+                if (layout) layout.style.display = v === 'layout' ? '' : 'none';
+            });
+        });
+
+        vramPane.querySelectorAll<HTMLElement>('.vram-tile-cell').forEach((cell) => {
+            cell.addEventListener('click', () => {
+                vramPane.querySelectorAll('.vram-tile-cell.vram-sel').forEach((c) => c.classList.remove('vram-sel'));
+                cell.classList.add('vram-sel');
+            });
+        });
+    }
+}
+
 function setupWramView(post: (m: object) => void, activeTab: string, hooks: Hooks): void {
     const pane = document.querySelector<HTMLElement>('.mem-pane');
     // A node-only harness (tests/memory/ui.test.js) runs the page bundle without a browser.
@@ -159,6 +284,7 @@ function setupWramView(post: (m: object) => void, activeTab: string, hooks: Hook
     st.post = post;
     st.hooks = hooks;
     pane.querySelectorAll<HTMLElement>('[data-mem-view]').forEach((b) => b.addEventListener('click', () => memShowView(b.dataset.memView as View)));
+    setupPpuViews();
     const cdlBtn = document.getElementById('btn-cdl');
     cdlBtn?.addEventListener('click', () => { st.cdlOn = cdlBtn.classList.toggle('on'); paintCoverage(); });
     const input = document.getElementById('wram-search') as HTMLInputElement | null;

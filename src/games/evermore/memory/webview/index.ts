@@ -221,7 +221,8 @@ export const css = loadFile(path.join(coreWebviewDir, 'shared.css')) + '\n'
     + loadFile(path.join(musicDir, 'music-tab.css')) + '\n'
     + loadFile(path.join(scriptsDir, 'scripts-tab.css')) + '\n'
     + loadFile(path.join(dataDir, 'data-tab.css')) + '\n'
-    + loadFile(path.join(routesDir, 'routes-tab.css'));
+    + loadFile(path.join(routesDir, 'routes-tab.css')) + '\n'
+    + loadFile(path.join(HERE, 'ppu-views.css'));
 export function scalingJs() { return loadScalingJs(); }
 export function roomsJs() { return loadRoomsJs(); }
 export function spritesJs() { return loadFile(path.join(spritesDir, 'sprites-lazy.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-script.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-motion.js')) + '\n' + spritesViewJs(); }

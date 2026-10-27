@@ -1,0 +1,479 @@
+/* PPU Views: CGRAM, OAM, VRAM sub-panes in Memory Radar */
+.ppu-pane {
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  font: 12px/1.4 var(--vscode-font-family, -apple-system, "Segoe UI", sans-serif);
+  --ppu-line: var(--vscode-panel-border, #3c3c3c);
+  --ppu-dim: var(--vscode-descriptionForeground, #8b8b8b);
+  --ppu-card: var(--vscode-sideBar-background, #252526);
+  --ppu-hover: var(--vscode-list-hoverBackground, #2a2d2e);
+  --ppu-active: var(--vscode-list-inactiveSelectionBackground, #37373d);
+}
+
+.ppu-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 4px 8px;
+  border-bottom: 1px solid var(--ppu-line);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.ppu-title {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ppu-stats {
+  display: flex;
+  gap: 12px;
+  color: var(--ppu-dim);
+  font-size: 11px;
+}
+
+.ppu-stats b {
+  color: var(--vscode-editor-foreground, #ccc);
+  font-weight: 600;
+}
+
+.ppu-seg {
+  display: inline-flex;
+  border: 1px solid var(--ppu-line);
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.ppu-seg-btn {
+  background: transparent;
+  color: var(--ppu-dim);
+  border: 0;
+  padding: 3px 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+}
+
+.ppu-seg-btn.ppu-on {
+  background: var(--vscode-button-secondaryBackground, #3a3d41);
+  color: var(--vscode-button-secondaryForeground, #fff);
+  font-weight: 500;
+}
+
+.ppu-select {
+  background: var(--vscode-input-background, #1e1e1e);
+  color: inherit;
+  border: 1px solid var(--ppu-line);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font: inherit;
+  font-size: 11px;
+}
+
+.ppu-body {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── CGRAM Layout ── */
+.cgram-body {
+  grid-template-columns: minmax(360px, 1fr) 280px;
+  gap: 12px;
+  padding: 8px 4px;
+  overflow-y: auto;
+}
+
+.cgram-left {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.cgram-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cgram-sec-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ppu-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+.cgram-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
+}
+
+.cgram-row:hover {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.cgram-row-lbl {
+  width: 140px;
+  flex-shrink: 0;
+  font-size: 10.5px;
+  color: var(--ppu-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cgram-swatches {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+}
+
+.cgram-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.cgram-swatch:hover {
+  outline: 2px solid var(--vscode-focusBorder, #388bfd);
+  z-index: 2;
+  transform: scale(1.15);
+}
+
+.cgram-swatch.cgram-selected {
+  outline: 2px solid #fff;
+  z-index: 3;
+}
+
+.cgram-swatch.cgram-trans {
+  background-image: linear-gradient(45deg, #222 25%, transparent 25%),
+                    linear-gradient(-45deg, #222 25%, transparent 25%),
+                    linear-gradient(45deg, transparent 75%, #222 75%),
+                    linear-gradient(-45deg, transparent 75%, #222 75%);
+  background-size: 8px 8px;
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+}
+
+.cgram-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ppu-card {
+  background: var(--ppu-card);
+  border: 1px solid var(--ppu-line);
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cgram-preview-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cgram-swatch-large {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  border: 1px solid var(--ppu-line);
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+
+.cgram-insp-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cgram-insp-tag {
+  font-size: 11px;
+  color: var(--ppu-dim);
+}
+
+.ppu-meta-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  border-top: 1px solid var(--ppu-line);
+  padding-top: 8px;
+}
+
+.ppu-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.ppu-meta-row .k {
+  color: var(--ppu-dim);
+}
+
+.ppu-meta-row .v {
+  font-weight: 500;
+}
+
+.ppu-meta-row code.v {
+  font-family: var(--vscode-editor-font-family, ui-monospace, Menlo, monospace);
+  color: var(--vscode-debugTokenExpression-name, #9cdcfe);
+}
+
+.cgram-note-box {
+  background: rgba(56, 139, 253, 0.06);
+  border: 1px solid rgba(56, 139, 253, 0.18);
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 10.5px;
+  color: var(--ppu-dim);
+  line-height: 1.45;
+}
+
+.cgram-note-box b {
+  color: var(--vscode-editor-foreground, #ddd);
+}
+
+/* ── OAM Layout ── */
+.oam-body {
+  grid-template-columns: minmax(280px, 340px) 1fr;
+  gap: 14px;
+  padding: 8px 4px;
+  overflow: hidden;
+}
+
+.oam-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.oam-screen-wrapper {
+  background: var(--ppu-card);
+  border: 1px solid var(--ppu-line);
+  border-radius: 6px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.oam-screen-hdr {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ppu-dim);
+  letter-spacing: 0.04em;
+}
+
+.oam-screen-viewport {
+  width: 256px;
+  height: 224px;
+  background: #101014;
+  border: 1px solid #444;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.8);
+}
+
+.oam-screen-viewport.oam-zoom-2 {
+  transform: scale(1.5);
+  transform-origin: top center;
+  margin-bottom: 112px;
+}
+
+.oam-sprite-box {
+  position: absolute;
+  border: 1px solid rgba(80, 200, 255, 0.7);
+  background: rgba(80, 200, 255, 0.15);
+  box-sizing: border-box;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  color: #fff;
+  text-shadow: 0 0 2px #000;
+  transition: border-color 0.1s, background 0.1s;
+}
+
+.oam-sprite-box:hover,
+.oam-sprite-box.oam-sel {
+  border-color: #ffe066;
+  background: rgba(255, 224, 102, 0.3);
+  z-index: 10;
+}
+
+.oam-right {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.oam-table-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid var(--ppu-line);
+  border-radius: 6px;
+  background: var(--ppu-card);
+}
+
+.ppu-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.ppu-table th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--ppu-dim);
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--ppu-line);
+  background: var(--ppu-card);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.ppu-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+  vertical-align: middle;
+}
+
+.oam-tr {
+  cursor: pointer;
+}
+
+.oam-tr:hover td {
+  background: var(--ppu-hover);
+}
+
+.oam-tr.oam-sel td {
+  background: var(--ppu-active);
+}
+
+.oam-pal-pip {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 4px;
+  vertical-align: -1px;
+  border: 1px solid rgba(0,0,0,0.5);
+}
+
+/* ── VRAM Layout ── */
+.vram-body {
+  grid-template-columns: 1fr;
+  padding: 8px 4px;
+  overflow-y: auto;
+  gap: 12px;
+}
+
+.vram-subview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vram-chr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(28px, 1fr));
+  gap: 2px;
+  background: var(--ppu-card);
+  border: 1px solid var(--ppu-line);
+  border-radius: 6px;
+  padding: 8px;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.vram-tile-cell {
+  aspect-ratio: 1;
+  background: #141416;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.vram-tile-cell:hover {
+  outline: 1.5px solid var(--vscode-focusBorder, #388bfd);
+  z-index: 2;
+}
+
+.vram-tile-cell.vram-sel {
+  outline: 2px solid #fff;
+  z-index: 3;
+}
+
+.vram-tile-canvas {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.vram-map-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vram-block {
+  background: var(--ppu-card);
+  border: 1px solid var(--ppu-line);
+  border-radius: 6px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vram-block-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vram-block-title {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.vram-block-desc {
+  font-size: 11px;
+  color: var(--ppu-dim);
+}
+
+.vram-block-addr {
+  font-family: var(--vscode-editor-font-family, ui-monospace, Menlo, monospace);
+  color: var(--vscode-debugTokenExpression-name, #9cdcfe);
+  font-size: 11px;
+}
