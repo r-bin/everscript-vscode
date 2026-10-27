@@ -167,7 +167,9 @@ function scrSpritesSvg(d) {
 }
 
 function scrRenderRoomSide(side, d, sel) {
-  var p = d.picture;
+  // The chosen variant's own picture when it sets object states.
+  var got = _scr.variants[_scr.room], vp = got && got !== 'pending' && got.pictures ? got.pictures[_scr.variantPick[_scr.room] || 0] : null;
+  var p = vp && !vp.error ? vp : d.picture;
   if (!p || p.error) { side.innerHTML = '<div class="scr-empty">' + scrEsc(p ? p.error : 'No picture') + '</div>'; return; }
   var boxes = d.room.scripts.filter(function (s) { return s.box; }).map(function (s) {
     var b = s.box;
@@ -183,7 +185,7 @@ function scrOnRoomMessage(msg) {
   if (msg.command === 'scriptsRoom') {
     _scr.rooms[msg.id] = msg.error ? { room: { error: msg.error } } : { room: msg.room, picture: msg.picture };
   } else if (msg.command === 'scriptsVariants') {
-    _scr.variants[msg.id] = { variants: msg.variants || [], error: msg.error || null };
+    _scr.variants[msg.id] = { variants: msg.variants || [], pictures: msg.pictures || [], error: msg.error || null };
   } else if (msg.command === 'scriptsSim') {
     _scr.sims[msg.room + ':' + msg.key] = msg.error ? { everscript: { error: msg.error }, clusters: { error: msg.error } }
       : { everscript: msg.everscript, clusters: msg.clusters };

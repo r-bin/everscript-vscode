@@ -39,7 +39,7 @@ async function main() {
 
     const rom = new Uint8Array(fs.readFileSync(ROM));
     const { renderRadarHtml } = require(path.join(DIST, 'games', 'evermore', 'memory', 'render-radar'));
-    const { buildVanillaRoomContent, roomVariantsFor } = require(path.join(DIST, 'games', 'evermore', 'rooms'));
+    const { buildVanillaRoomContent, roomVariantsFor, buildRoomMetatilePalette, buildRoomTileOverlay } = require(path.join(DIST, 'games', 'evermore', 'rooms'));
     const { mergedEnterScript } = require(path.join(DIST, 'games', 'evermore', 'script-model'));
     const details = {};
     for (const id of ['0x38', '0x18']) {
@@ -66,6 +66,20 @@ async function main() {
             check(`room 0x${id.toString(16)} asks the host for its variants`, asked);
             const before = await shownSprites(page);
             check('  and shows every candidate spawn while it waits', before.length > 0, String(before.length));
+            check('  with a spinner on the bar, not a lone button', await page.$$eval('#rv-bar .rg-side-spin', (e) => e.length) === 1
+                && await page.$$eval('#rv-bar button', (e) => e.length) === 0);
+            // The editor's tile palette, as the host answers it: it brings the room's objects into the draft.
+            const asks = await page.evaluate(() => window.__posted.filter((m) => m.command === 'requestRoomMetatiles'));
+            // And the room picture, so a screenshot shows the map under the objects.
+            const tiles = await page.evaluate(() => window.__posted.filter((m) => m.command === 'requestRoomTiles'));
+            for (const m of tiles.filter((x) => x.roomId === id).slice(-1)) {
+                const overlay = buildRoomTileOverlay(rom, id, Number(m.originX) || 0, Number(m.originY) || 0, m.layer, m.overlay, m.objectStates, false, m.header);
+                await page.evaluate((msg) => window.postMessage(msg, '*'), { command: 'roomTiles', mapName: m.mapName, roomId: id, overlay: { ...overlay, roomId: id } });
+            }
+            for (const m of asks.filter((x) => x.roomId === id).slice(-1)) {
+                const palette = { ...buildRoomMetatilePalette(rom, id, m.layer, m.bgPalette, m.header), roomId: id };
+                await page.evaluate((msg) => window.postMessage(msg, '*'), { command: 'roomMetatiles', mapName: m.mapName, roomId: id, palette });
+            }
             const variants = await roomVariantsFor(rom, id);
             await page.evaluate((msg) => window.postMessage(msg, '*'), { command: 'roomEnterScript', roomId: id, merged: mergedEnterScript(rom, id) });
             await page.evaluate((msg) => window.postMessage(msg, '*'), { command: 'roomVariants', roomId: id, variants });
@@ -117,6 +131,14 @@ async function main() {
         check('  and the map shows exactly its spawns', shown.length === def.spawns.length
             && def.spawns.every((s) => shown.includes(hex(s.at))), JSON.stringify(shown));
         await shoot('thraxx-default');
+        const objectCells = () => page.$$eval('#rg-svg .rg-obj-cell', (els) => els.length);
+        check('  the room as Thraxx: every object at state 0', await objectCells() === 0, String(await objectCells()));
+        await pick(2);
+        check('  Empty: the objects the script sets put the chamber without Thraxx on the map', await objectCells() > 0
+            && JSON.stringify(thraxx[2].objects) === '[[0,2],[1,2],[2,1],[3,1]]', String(await objectCells()));
+        await shoot('thraxx-empty');
+        await pick(0);
+        check('  back to Thraxx: the objects go back to state 0', await objectCells() === 0);
         const cole = thraxx.findIndex((v) => v.only.includes("Coleoptera's heart"));
         check('Coleoptera is a variant of its own', cole > 0, thraxx.map((v) => v.name).join(' | '));
         if (cole > 0) {

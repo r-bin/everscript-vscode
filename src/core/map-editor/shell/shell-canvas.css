@@ -282,3 +282,8 @@
 /* At the right edge the tooltip opens leftward, and a variant's tooltip is several lines (who, when). */
 .rg-theme .rg-variant-bar [data-tip]::after{left:auto;right:calc(100% + 10px);white-space:pre-line;max-width:320px}
 .rg-theme .rg-variant-bar .rg-level-b:disabled{cursor:default;opacity:.6}
+/* Loading: a spinner, not a button (one button would read as one variant). */
+.rg-theme .rg-side-spin{width:14px;height:14px;margin:6px 0;border-radius:50%;border:2px solid var(--rg-border);
+  border-top-color:var(--rg-accent);animation:rg-side-spin .8s linear infinite}
+@keyframes rg-side-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.rg-theme .rg-side-spin{animation:none;border-top-color:var(--rg-border)}}

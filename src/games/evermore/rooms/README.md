@@ -91,7 +91,9 @@ script by `memory/webview/index.ts` (`ROOMS_JS_FILES` fixes the order):
   Mana and Terranigma editors: 1..n, each one's name, conditions and spawns in its
   tooltip, the chosen one's name in the header `#rv-name`): who stands in a ROM room per story
   state (default, outro, Thraxx alive or Coleoptera…). It rides in the tool pill's wrapper, so
-  `buildVariantBarHtml()` rebuilds it from state whenever the pill is rewritten. Asks the host (`requestRoomVariants`,
+  `buildVariantBarHtml()` rebuilds it from state whenever the pill is rewritten. Choosing a
+  variant also sets the draft's ROM objects to its `objects` (the rest to state 0); while the
+  answer is on its way the bar shows a spinner, not a button. Asks the host (`requestRoomVariants`,
   answered from `data/room-variants.ts`, a worker thread over `simulation/variants.ts`) and
   hides the spawns a variant does not place by their `data-at`; "only if" spawns are dimmed.
   The map shows every candidate until the answer arrives, then the default (variant 1).

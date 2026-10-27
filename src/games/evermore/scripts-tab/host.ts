@@ -13,7 +13,8 @@
 //   page -> scriptsAnim { key, record, facing }   host -> scriptsAnim { key, anim } | { key, error }
 //   page -> scriptsMusic { id, seconds }          host -> scriptsMusic { id, sequence, timeline } | { id, error }
 //   page -> scriptsSim { room, key }    host -> scriptsSim { room, key, everscript, clusters } | { error }
-//   page -> scriptsVariants { id }      host -> scriptsVariants { id, variants } | { id, error }   (the Rooms tab's worker, injected)
+//   page -> scriptsVariants { id }      host -> scriptsVariants { id, variants, pictures } | { id, error }   (the Rooms tab's worker, injected;
+//                                       pictures[i]: the room with variant i's object states, null when it sets none)
 
 import { roomList, roomScripts, roomPicture } from './model/rooms';
 import { alchemyModel } from './model/alchemy';
@@ -42,7 +43,7 @@ interface Deps {
     renderAnimation(rom: Rom, characterId: number, animOpt: object, facing: number): RenderedAnimation | null;
     music: { list(rom: Rom): unknown; sequence(rom: Rom, id: number): unknown; timeline(rom: Rom, id: number, seconds: number): Promise<unknown> };
     /** Who stands in a ROM room per story state, and the instructions each runs (simulation/variants.ts, in a worker). */
-    roomVariants(rom: Rom, id: number): Promise<unknown[]>;
+    roomVariants(rom: Rom, id: number): Promise<Array<{ objects?: Array<[number, number]> }>>;
 }
 
 type RoomEntry = { room: ReturnType<typeof roomScripts>; picture: ReturnType<typeof roomPicture> };
@@ -151,7 +152,11 @@ function handleScriptsMessage(msg: Message, deps: Deps): void {
             case 'scriptsVariants': {
                 const id = Number(msg.id);
                 deps.roomVariants(rom, id)
-                    .then((variants) => deps.post({ command: 'scriptsVariants', id, variants }))
+                    .then((variants) => deps.post({
+                        command: 'scriptsVariants', id, variants,
+                        // A variant that sets object states shows its own picture (Thraxx's chamber without Thraxx).
+                        pictures: variants.map((v) => (v.objects && v.objects.length ? roomPicture(rom, id, Object.fromEntries(v.objects)) : null)),
+                    }))
                     .catch((err) => deps.post({ command: 'scriptsVariants', id, variants: [], error: String(err instanceof Error ? err.message : err) }));
                 return;
             }

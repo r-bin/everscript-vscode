@@ -32,12 +32,18 @@
 // each branch the condition the run recorded there (`RoomAnalysis.branches`)
 // under each of the variant's flag assignments. A branch the run never tested,
 // or tested differently each time round a loop, keeps both sides.
+//
+// `objects` is the map as the variant shows it: each object state the enter
+// thread sets before it first waits (`object[i] = v`, constant index and value),
+// on the lines the variant reaches, the last one per object winning. After
+// that the room is running (Thraxx's loop toggles object 0 every 60 ticks).
 
 import { Sym, key, isC, truthy } from './sym';
 import { Decoder, Machine } from './machine';
 import { Condition } from './trigger';
 import { RoomAnalysis, Scenario } from './room';
 import { Part } from './segments';
+import { Step } from './state-types';
 import { describeCondition } from './understand';
 
 /** A scenario is split on at most this many conditions (2^n pieces); past it, conditional characters count as present. */
@@ -75,8 +81,10 @@ export interface RoomVariant {
     spawns: VariantSpawn[];
     /** Indices into `RoomAnalysis.scenarios`. */
     scenarios: number[];
-    /** Every instruction its scenarios ran, in any thread, sorted. */
+    /** Every instruction it can run (the enter script, what it calls and starts), sorted. */
     reached: number[];
+    /** [object index, state] the enter thread sets before it first waits; unset objects stay at state 0. */
+    objects: Array<[number, number]>;
     /** A budget stopped a path it came from: who was placed is known, what came after may not be. */
     cut: boolean;
 }
@@ -124,6 +132,7 @@ export function roomVariants(room: RoomAnalysis, dec: Decoder, splitOn: SplitOn 
         const only = unique.length ? unique : mine.filter((n) => !names.every((o) => o.has(n)));
         const head = f.lead.flags.length ? f.lead.flags.join(' · ') : 'default';
         return {
+            objects: objectsSet(room.scenarios[f.lead.scenario], new Set(f.reached)),
             name: only.length ? `${head} — ${only.slice(0, 3).join(', ')}${only.length > 3 ? ', …' : ''}` : head,
             title: title(f.lead.spawns, only, head),
             flags: f.lead.flags, only, also: f.also, when: f.when,
@@ -186,6 +195,30 @@ function reachedBy(m: Machine, room: RoomAnalysis, ps: Piece[], walks: Map<strin
         }
     }
     return [...out].sort((a, b) => a - b);
+}
+
+/** The object states the enter thread sets before its first wait, on lines in `reached`. */
+function objectsSet(s: Scenario, reached: ReadonlySet<number>): Array<[number, number]> {
+    const out = new Map<number, number>();
+    let waited = false;
+    const steps = (list: Step[]): void => {
+        for (const st of list) {
+            if (waited) return;
+            if (st.kind === 'branch') { steps(st.then); steps(st.else); continue; }
+            if (st.kind !== 'event' || !reached.has(st.event.at)) continue;
+            const e = st.event;
+            if (e.type === 'wait') { waited = true; return; }
+            if (e.type === 'object' && isC(e.index) && isC(e.value) && isC(e.when) && e.when.v !== 0) out.set(e.index.v, e.value.v);
+        }
+    };
+    const parts = (list: Part[]): void => {
+        for (const p of list) {
+            if (waited) return;
+            if (p.kind === 'if') { parts(p.then ?? []); parts(p.else ?? []); } else steps(p.steps);
+        }
+    };
+    parts([...s.prepare, ...s.execute]);
+    return [...out].sort((a, b) => a[0] - b[0]);
 }
 
 /** Jumps that only go to their target (0x04 goto, 0x05 goto_back); other branch effects may fall through. */

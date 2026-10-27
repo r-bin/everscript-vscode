@@ -8,6 +8,15 @@
 // first answer for a room can take seconds, so the map draws every candidate
 // spawn first, as it always did, and narrows once the answer is in.
 //
+// A variant is also the map as it shows it: the object states its enter
+// script sets before it first waits (`objects`), every other object at
+// state 0. Choosing one sets the room's objects in the editor's draft
+// (`objectShowState`, the Object tab's own), so "Empty" in Thraxx's chamber
+// shows the chamber without Thraxx.
+//
+// While the answer is on its way the bar shows a spinner, not a button: one
+// button would read as a room with one variant.
+//
 // The bar is the shell's side bar (shellSideBarHtml), the one the Secret of
 // Mana and Terranigma editors pick their variants with: 1..n, no "All". It
 // rides in the tool pill's wrapper (map-editor-toolbar.js), which is rewritten
@@ -44,6 +53,7 @@ function applyRoomVariants(data) {
   // The first variant is the default (the host sorts it first): that is the room as it is met.
   if (_variantPick[id] == null) _variantPick[id] = 0;
   if (_variantRoom === id) {
+    if (applyVariantObjects(false) && typeof renderEditChrome === 'function') renderEditChrome();
     renderVariantBar();
     if (typeof _triggerEnterView !== 'undefined' && _triggerEnterView && typeof renderEditPanels === 'function') renderEditPanels();
   }
@@ -67,7 +77,9 @@ function buildVariantBarHtml() {
   var got = _roomVariants[id];
   var items;
   if (!got) {
-    items = [{ text: '…', color: VARIANT_COLOR, disabled: true, tip: 'Reading the enter script…' }];
+    return '<div class="rg-level-bar rg-variant-bar rv-bar rv-loading" id="rv-bar" role="status" aria-label="Simulating the enter script">'
+      + '<span class="rg-level-h">Variant</span><span class="rg-side-spin" title="Simulating the enter script: who stands here per story state">'
+      + '</span></div>';
   } else if (got.error) {
     items = [{ text: '!', color: VARIANT_COLOR, disabled: true, tip: 'Could not simulate this room:\n' + got.error }];
   } else if (!got.variants.length) {
@@ -104,6 +116,30 @@ function renderVariantBar() {
   applyVariantFilter(id);
 }
 
+/**
+ * Set the draft's ROM objects (`roomObject`) to the chosen variant's states, every other one to
+ * state 0. Returns whether any changed; the caller redraws (`render` redraws here).
+ */
+function applyVariantObjects(render) {
+  var id = _variantRoom, got = id != null ? _roomVariants[id] : null;
+  var v = got && !got.error ? got.variants[_variantPick[id] || 0] : null;
+  var d = typeof editDraft === 'function' ? editDraft() : null;
+  if (!v || !v.objects || !d || d.roomId !== id || typeof editObjects !== 'function' || typeof objectShowState !== 'function') return false;
+  var want = {};
+  v.objects.forEach(function (o) { want[o[0]] = o[1]; });
+  var changed = false;
+  editObjects().forEach(function (o) {
+    if (o.roomObject == null) return;
+    var n = editObjectFrames(o).length;
+    var s = Math.max(0, Math.min(n, want[o.roomObject] || 0));
+    if ((o.activeFrame || 0) === s) return;
+    objectShowState(o, s);
+    changed = true;
+  });
+  if (changed && render && typeof renderEditChrome === 'function') renderEditChrome();
+  return changed;
+}
+
 /** Hide the spawns the chosen variant does not place; dim the ones it places only under a condition. */
 function applyVariantFilter(id) {
   var svg = document.getElementById('rg-svg');
@@ -132,6 +168,7 @@ if (typeof document !== 'undefined' && document.addEventListener) {
     var bar = document.getElementById('rv-bar');
     if (!bar || !bar.contains(t) || _variantRoom == null) return;
     _variantPick[_variantRoom] = Number(t.dataset.variant);
+    if (applyVariantObjects(false)) { if (typeof renderEditChrome === 'function') renderEditChrome(); }
     renderVariantBar();
     // The Enter tab greys what the chosen variant does not run (room-enter-lines.js).
     if (typeof _triggerEnterView !== 'undefined' && _triggerEnterView && typeof renderEditPanels === 'function') renderEditPanels();

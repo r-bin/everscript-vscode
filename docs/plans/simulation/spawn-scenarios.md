@@ -36,6 +36,12 @@
   each executed instruction with its branch condition instead was tried and dropped: the boss
   loop rejoins every 60 ticks, the conditions grew into opaque values, and the run took 4× as long.
   Both script viewers (Rooms → Trigger → Enter, Scripts → Everscript) grey the rest.
+- **The map per variant** (v0.364). `objects`: the object states the enter thread sets before it
+  first waits, on lines the variant reaches (constant index and value, the last one wins); later
+  the room is running (Thraxx's loop toggles object 0). Choosing a variant sets the editor's ROM
+  objects to them, every other object to state 0, and the Scripts tab draws that variant's own
+  picture. Thraxx's chamber: Thraxx and Coleoptera set none; Empty sets objects 0–3 to 2, 2, 1, 1,
+  the chamber without Thraxx. Not yet compared with the running game.
 - **Polled conditions are the room going on, not a state** (v0.359). After placing Thraxx the
   enter script loops ($93D3CE, every 60 ticks): once `$2260&0x08` ("maggots triggered") is set
   mid-fight it refills up to four maggots, whose handles it keeps in `$2855..$285B` itself.

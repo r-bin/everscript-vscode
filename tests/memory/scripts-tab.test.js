@@ -272,8 +272,11 @@ async function dom(rom) {
         await shot('thraxx');
         await page.click('[data-scr-variant="1"]');
         assert.ok(/scr-off/.test(await rowClass('$93D2A0')) && !/scr-(off|dead)/.test(await rowClass('$93D2FD')));
+        const thraxxPicture = await page.getAttribute('.scr-map img', 'src');
         await page.click('[data-scr-variant="2"]');
         assert.strictEqual(await page.locator('.scr-map image.scr-sprite').count(), 0, 'Empty: nobody');
+        assert.notStrictEqual(await page.getAttribute('.scr-map img', 'src'), thraxxPicture, 'Empty: the objects it sets change the picture');
+        await shot('thraxx-empty');
         await page.click('[data-scr-pick="room:37"]');
         await pump();
         await page.click('.scr-map rect[data-scr-script="step:0"]');

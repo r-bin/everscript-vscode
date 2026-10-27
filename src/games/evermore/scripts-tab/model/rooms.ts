@@ -104,10 +104,14 @@ function spawnSprites(rom: Uint8Array, spawns: SpawnFacts[]): Sprite[] {
     return out;
 }
 
-/** The room as the game draws it, as a PNG data URI: { uri, width, height } or { error }. */
-function roomPicture(rom: Uint8Array, id: number) {
+/**
+ * The room as the game draws it, as a PNG data URI: { uri, width, height } or { error }. `states`:
+ * object index → state (a variant's `objects`), the rest at state 0.
+ */
+function roomPicture(rom: Uint8Array, id: number, states?: Record<number, number>) {
     try {
-        const img = maps.renderRoomComposite(rom, maps.decodeRoom(rom, id));
+        const room = maps.decodeRoom(rom, id);
+        const img = maps.renderRoomComposite(rom, states ? maps.applyObjectStates(rom, room, states) : room);
         return { uri: maps.encodePngDataUri(img), width: img.width, height: img.height };
     } catch (err) {
         return { error: String(err instanceof Error ? err.message : err) };
