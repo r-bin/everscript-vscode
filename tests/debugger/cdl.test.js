@@ -332,10 +332,13 @@ test('host decodes webview deltas (base64 words) into the library', () => {
         const xfile = path.join(host.lib.dir, 'xrefs.bin');
         assert.ok(!fs.existsSync(xfile), 'a delta alone does not touch the disk');
         host.handle({ command: 'cdlPause' });
-        assert.ok(fs.existsSync(xfile), 'pausing writes what changed');
+        assert.ok(!fs.existsSync(xfile), 'pausing waits for the minute too (one write a minute: spare the SSD)');
+        assert.ok(host.flushTimer, 'but the write is due');
+        host.flushNow();
+        assert.ok(fs.existsSync(xfile), 'closing the panel writes what changed');
         const stamp = fs.statSync(path.join(host.lib.dir, 'manifest.json')).mtimeMs;
         host.handle({ command: 'cdlDelta', delta: { xrefs: words, chunks: [] } });
-        host.handle({ command: 'cdlPause' });
+        host.flushNow();
         assert.strictEqual(fs.statSync(path.join(host.lib.dir, 'manifest.json')).mtimeMs, stamp, 'nothing new, nothing written');
         host.handle({ command: 'cdlLookup', query: '7E4E57' });
         assert.ok(posted.some(m => m.command === 'cdlLookupResult'));

@@ -3,9 +3,8 @@
  *
  * Extension-host side of the CDL recorder: owns the per-ROM library, merges
  * the deltas the webview drains from the core, and writes to disk only when
- * something changed: IDLE_FLUSH_MS after the last change, at least every
- * MAX_FLUSH_MS while changes keep coming, and at once on pause / stop / ROM
- * change / panel close. Also runs exports and lookups when the panel was given
+ * something changed, at most once every WRITEBACK_MS (pause included), and
+ * at once on stop / ROM change / panel close / deactivate. Also runs exports and lookups when the panel was given
  * the tools for them (tools.ts; the SNES CDL Recorder has none).
  *
  * Messages (webview -> host): cdlEnable, cdlDelta, cdlPause, cdlDisabled,
@@ -45,10 +44,10 @@ interface WireDelta {
 }
 interface CdlMessage { command: string; delta?: WireDelta; kind?: string; query?: string }
 
-// A dead extension host loses what it merged since the last write: at most MAX_FLUSH_MS of play
-// (5 min before v0.355.2). A write of a big library takes ~0.4 s (2.2 M script xrefs; Windows slower).
-const IDLE_FLUSH_MS = 20 * 1000;
-const MAX_FLUSH_MS = 2 * 60 * 1000;
+// One write a minute at most: a dead extension host loses at most that much play, and the SSD is spared
+// (a write of a big library is ~60 MB and ~0.4 s: 2.2 M script xrefs; Windows slower). The page hands its
+// data over every 5 s, in memory only.
+const WRITEBACK_MS = 60 * 1000;
 // lda [$82] / inc $82 / and #$00FF / asl / tax / jsr ($xxxx,x): the script interpreter's opcode fetch
 const SCRIPT_FETCH_PATTERN = Buffer.from([0xA7, 0x82, 0xE6, 0x82, 0x29, 0xFF, 0x00, 0x0A, 0xAA, 0xFC]);
 const SCRIPT_POINTER_WRAM = 0x82;
@@ -92,7 +91,7 @@ class CdlHost {
     lib: CdlLibrary | null = null;
     indexCache: { map: RomMap; index: Index; tables: Table[] } | null = null;
     flushTimer: ReturnType<typeof setTimeout> | null = null;
-    firstUnflushed = 0;
+    lastWrite = 0;
     describeScript: ((address: number) => string) | null = null;
     droppedWarned = 0;
     /** The last write's error while writes fail (shown over the screen and once as a notification). */
@@ -164,17 +163,16 @@ class CdlHost {
     }
 
     _scheduleFlush() {
-        const now = Date.now();
-        if (!this.firstUnflushed) this.firstUnflushed = now;
-        if (this.flushTimer) clearTimeout(this.flushTimer);
-        const wait = Math.max(0, Math.min(IDLE_FLUSH_MS, this.firstUnflushed + MAX_FLUSH_MS - now));
+        if (this.flushTimer) return;
+        if (!this.lastWrite) this.lastWrite = Date.now();   // the first minute counts from the first change
+        const wait = Math.max(0, this.lastWrite + WRITEBACK_MS - Date.now());
         this.flushTimer = setTimeout(() => { this.flushTimer = null; this.flushNow(); }, wait);
     }
 
     flushNow() {
         if (this.flushTimer) { clearTimeout(this.flushTimer); this.flushTimer = null; }
-        this.firstUnflushed = 0;
         if (!this.lib || !this.lib.dirty.size) return;
+        this.lastWrite = Date.now();
         try {
             const written = this.lib.flush();
             if (written.length) this.log(`CDL flushed: ${written.join(', ')}`);
@@ -280,7 +278,7 @@ class CdlHost {
                 return true;
             }
             case 'cdlPause':
-                this.flushNow();
+                this._scheduleFlush();
                 return true;
             case 'cdlDisabled':
                 this.wanted.set(false);

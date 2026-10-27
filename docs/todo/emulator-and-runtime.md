@@ -13,7 +13,7 @@
 - What happened: a 5 h session kept 1 h. The extension host hung at 19:43 and restarted at 19:57
   (exit code 0, cause unknown); the emulator page played on for 4 h with nothing on the other end.
   Fixed: heartbeat + the page pauses itself (`page/05-host-watch.js`), a restarted host offers to
-  reopen (`session-watch.ts`), loud save failures, CDL drains on blur/close and saves at least every 2 min,
+  reopen (`session-watch.ts`), loud save failures, CDL drains on blur/close (host memory) and is written once a minute,
   deactivate saves, the replay check ships and hides its console, sound back in time after fast forward.
 - 🔴 **Replay desync after a recorded memory write.** The tester's movie (`…_2026-10-25_19-24-07.evsmv`)
   replays in sync up to frame 79887, where it recorded `W|` writes to `$7FFF00…`/`$7E299A…` (an injected

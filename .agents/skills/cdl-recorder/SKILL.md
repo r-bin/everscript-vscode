@@ -21,8 +21,8 @@ bytes are tables, how WRAM is laid out, and what each function touches.
 ```text
 core (WASM, per instruction / access)        webview (every 5 s)         host (Node)
   cdl.c        rom.cdl/ext, edges, xrefs, ─► cdl-view.ts drains only ──► library.ts + library-ext.ts merge
-               pcstats, wvals, DMA/HDMA/$2180    changed chunks /           flush 20 s after last change
-  cdl-wram.c   wflags, script-xrefs, WRAM code   new table entries          (max every 2 min, at once on pause/stop/close)
+               pcstats, wvals, DMA/HDMA/$2180    changed chunks /           (memory) write at most once a minute
+  cdl-wram.c   wflags, script-xrefs, WRAM code   new table entries          (pause too), at once on stop/close/quit
   cdl-count.c  hit counters (deltas)                                        ▼
   cdl-flow.c   shadow call stack -> rets       asar-export ─► banks/, tables/ (assets), ram/enums/structs.asm,
   cdl-regs.c   DB / D, pointer bases + Y                      functions.json, recomp/cfg (snesrecomp), spc/aram.cdl
@@ -34,7 +34,8 @@ core (WASM, per instruction / access)        webview (every 5 s)         host (N
 - **Off by default** and **paused = idle** (no tick, no drain, no write).
 - **Never touch the disk per instruction.** Record into WASM memory; drain only dirty data.
 - **Never lose a session silently.** A flush that fails puts `CDL NOT SAVED` over the screen (`emuAlert`) and
-  retries; the page drains on blur / pagehide / Ctrl+W; deactivate flushes; a page cut off from its host
+  retries; the page drains (to host memory) on blur / pagehide / Ctrl+W; deactivate flushes. Disk writes stay at
+  one a minute (owner: spare the SSD; never write per drain or per pause); a page cut off from its host
   pauses itself (`session-watch.ts`, `page/05-host-watch.js`). A webview outlives its extension host and a
   restarted host never takes it back: v0.353.5 kept 1 h of a 5 h Windows session. A flush of a big library
   (2.2 M script xrefs, ~650 MB heap) blocks the host ~0.4 s on a Mac: keep flushes off the hot path.
