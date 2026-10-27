@@ -153,7 +153,36 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:03F9` | 2 | `SUBWINDOW_CURSOR_STRIDE` | Frame | UI Subsystem: Sub-menu cursor navigation step stride ($0008, $8E:9EF0) |
 | `$7E:03FB` | 2 | `SUBWINDOW_OPTIONS_COUNT` | Frame | UI Subsystem: Sub-menu selectable options item count ($8E:9EF0) |
 | `$7E:0403` | 2 | `SUBWINDOW_STR_TABLE_PTR` | Frame | UI Subsystem: Sub-menu localized menu string key table pointer ($1924, $8E:9EF0) |
+| `$7E:0407` | `Word` | `window_4_border_tile` | `Frame` | Window 4 custom border corner tile index and attribute word ($8C:AB82). |
+| `$7E:0421` | `Word` | `window_4_scroll_offset_x` | `Frame` | Window 4 horizontal text blitter pixel scroll offset ($8D:801B). |
+| `$7E:0423` | `Word` | `window_4_scroll_offset_y` | `Frame` | Window 4 vertical text blitter pixel scroll offset ($8D:804B). |
+| `$7E:0433` | `Word` | `window_5_border_tile` | `Frame` | Window 5 custom border corner tile index and attribute word ($8C:AB85). |
+| `$7E:0435` | `Word` | `window_5_pos_x` | `Frame` | Window 5 screen tile column X origin coordinate ($8C:9E34). |
+| `$7E:0437` | `Word` | `window_5_pos_y` | `Frame` | Window 5 screen tile row Y origin coordinate ($8C:A354). |
+| `$7E:0439` | `Word` | `window_5_width` | `Frame` | Window 5 width in 8x8 character tiles ($8C:9EB5). |
+| `$7E:043B` | `Word` | `window_5_height` | `Frame` | Window 5 height in 8x8 character tiles ($8C:9EB8). |
+| `$7E:043D` | `Word` | `window_5_text_ptr_lo` | `Frame` | Window 5 active text string token read pointer low word ($8C:A35B). |
+| `$7E:043F` | `Word` | `window_5_text_ptr_hi` | `Frame` | Window 5 active text string token read pointer high bank word ($8C:9E0E). |
+| `$7E:0441` | `Word` | `window_5_cursor_line` | `Frame` | Window 5 current typewriter text raster line index ($8C:A361). |
+| `$7E:0443` | `Word` | `window_5_cursor_col` | `Frame` | Window 5 current typewriter text column character position ($8C:9E42). |
+| `$7E:0445` | `Word` | `window_5_flags` | `Frame` | Window 5 display flags bitfield (active, bordered, scrolling, paging). |
+| `$7E:0447` | `Word` | `window_5_font_vram_base` | `Frame` | Window 5 font pattern base tile word offset in VRAM ($8C:9E46). |
+| `$7E:0449` | `Word` | `window_5_bg_tile_attr` | `Frame` | Window 5 background fill tile pattern and palette attribute word ($8C:A370). |
+| `$7E:044F` | `Word` | `window_5_line_pitch` | `Frame` | Window 5 character buffer line pitch / stride in bytes. |
+| `$7E:0451` | `Word` | `window_5_vram_tilemap_dest` | `Frame` | Window 5 hardware VRAM tilemap destination base address ($8C:9E06). |
+| `$7E:0453` | `Word` | `window_5_dismiss_timer` | `Frame` | Window 5 auto-close delay countdown timer ticks. |
+| `$7E:0459` | `Word` | `window_6_pos_x` | `Frame` | Window 6 screen tile column X origin coordinate ($8C:A380). |
+| `$7E:045B` | `Word` | `window_6_pos_y` | `Frame` | Window 6 screen tile row Y origin coordinate ($8C:A384). |
+| `$7E:045D` | `Word` | `window_6_width` | `Frame` | Window 6 width in 8x8 character tiles. |
+| `$7E:045F` | `Word` | `window_6_height` | `Frame` | Window 6 height in 8x8 character tiles. |
+| `$7E:0485` | `Word` | `window_7_pos_x` | `Frame` | Window 7 screen tile column X origin coordinate. |
+| `$7E:0487` | `Word` | `window_7_pos_y` | `Frame` | Window 7 screen tile row Y origin coordinate. |
+| `$7E:0497` | `Word` | `window_7_flags` | `Frame` | Window 7 display flags bitfield. |
+| `$7E:04B1` | `Word` | `window_8_pos_x` | `Frame` | Window 8 screen tile column X origin coordinate. |
+| `$7E:04B3` | `Word` | `window_8_pos_y` | `Frame` | Window 8 screen tile row Y origin coordinate. |
+| `$7E:04C3` | `Word` | `window_8_flags` | `Frame` | Window 8 display flags bitfield. |
 | `$7E:051D` | 68 bytes | `HUD_BOY_STATUS_WIDGET` | Room | HUD graphics descriptor for Boy status bar, HP meter gauge, and numeric digit tilemaps ($7E:051D..$7E:0560). |
+| `$7E:051F` | `Word` | `combat_damage_color_cycle` | `Frame` | HUD damage counter flash color cycle timer ticks ($8F:8755). |
 | `$7E:0561` | 68 bytes | `HUD_DOG_STATUS_WIDGET` | Room | HUD graphics descriptor for Dog status bar, HP meter gauge, and numeric digit tilemaps ($7E:0561..$7E:05A4). |
 | `$7E:05A7` | 2 bytes | `RING_MENU_CALLER_ACTOR` | Room | Pointer to actor entity that opened active ring menu (Boy $7E:4E89 or Dog $7E:4F37). |
 | `$7E:05A9` | 2 bytes | `RING_MENU_STATUS_FLAGS` | Room | Ring menu state and visibility bitflags (bit 15 $8000 set = ring menu active/open). |
@@ -202,6 +231,16 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:08EE` | 2 bytes | `MENU_SFX_INDEX` | Frame | Sound effect cue ID triggered when cursor moves or option is selected in menu/choice box. |
 | `$7E:08F6` | 2 bytes | `CAMERA_MAX_ROOM_X` | Room | Maximum allowed horizontal camera scroll limit based on active room metatile dimensions. |
 | `$7E:08F8` | 2 bytes | `CAMERA_MAX_ROOM_Y` | Room | Maximum allowed vertical camera scroll limit based on active room metatile dimensions. |
+| `$7E:08FA` | `Word×16` | `viewport_collision_row_0` | `Room` | Viewport metatile collision row 0 (16 words: solidity, ledge, stairs, elevation). |
+| `$7E:091A` | `Word×16` | `viewport_collision_row_1` | `Room` | Viewport metatile collision row 1 (16 words: local terrain physics geometry). |
+| `$7E:093A` | `Word×16` | `viewport_collision_row_2` | `Room` | Viewport metatile collision row 2 (16 words: local terrain physics geometry). |
+| `$7E:095A` | `Word×16` | `viewport_collision_row_3` | `Room` | Viewport metatile collision row 3 (16 words: local terrain physics geometry). |
+| `$7E:097A` | `Word×16` | `viewport_collision_row_4` | `Room` | Viewport metatile collision row 4 (16 words: local terrain physics geometry). |
+| `$7E:099A` | `Word×16` | `viewport_collision_row_5` | `Room` | Viewport metatile collision row 5 (16 words: local terrain physics geometry). |
+| `$7E:09BA` | `Word×16` | `viewport_collision_row_6` | `Room` | Viewport metatile collision row 6 (16 words: local terrain physics geometry). |
+| `$7E:09DA` | `Word×16` | `viewport_collision_row_7` | `Room` | Viewport metatile collision row 7 (16 words: local terrain physics geometry). |
+| `$7E:09FA` | `Word×16` | `viewport_collision_row_8` | `Room` | Viewport metatile collision row 8 (16 words: local terrain physics geometry). |
+| `$7E:0A1A` | `Word×6` | `viewport_collision_row_9` | `Room` | Viewport metatile collision row 9 end boundary descriptor ($7E:0A1A..$7E:0A25). |
 | `$7E:0A26` | 74 bytes | `BOY_STATS_BLOCK` | Save | Persistent base stats, experience, equipment, and weapon levels structure for Boy character ($7E:0A26..$7E:0A6F). |
 | `$7E:0A29` | 2 bytes | `BOY_LEVEL` | Save | Boy character current level (1..99). |
 | `$7E:0A2B` | 2 bytes | `BOY_EXP_LOW` | Save | Low 16 bits of Boy character accumulated experience points. |
@@ -431,6 +470,17 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:163E` | 2 | `BG_SEAM_DMA_DEST_1` | Frame | PPU Subsystem: VRAM destination word address 1 for BG metatile seam DMA transfer ($80:82E4) |
 | `$7E:1640` | 2 | `BG_SEAM_DMA_DEST_2` | Frame | PPU Subsystem: VRAM destination word address 2 for BG metatile seam DMA transfer |
 | `$7E:1642` | 2 | `BG_SEAM_DMA_DEST_3` | Frame | PPU Subsystem: VRAM destination word address 3 for BG metatile seam DMA transfer |
+| `$7E:1644` | `Word` | `sprite_vram_dest_slot_2` | `Frame` | Dynamic sprite VRAM slot 2 destination word address ($80:82D6). |
+| `$7E:1646` | `Word` | `sprite_vram_dest_slot_3` | `Frame` | Dynamic sprite VRAM slot 3 destination word address ($80:82D6). |
+| `$7E:1648` | `Word` | `sprite_vram_dest_slot_4` | `Frame` | Dynamic sprite VRAM slot 4 destination word address ($80:9734). |
+| `$7E:164A` | `Word` | `sprite_vram_dest_slot_5` | `Frame` | Dynamic sprite VRAM slot 5 destination word address ($80:9734). |
+| `$7E:164C` | `Word` | `sprite_vram_dest_slot_6` | `Frame` | Dynamic sprite VRAM slot 6 destination word address ($80:82D6). |
+| `$7E:164E` | `Word` | `sprite_vram_dest_slot_7` | `Frame` | Dynamic sprite VRAM slot 7 destination word address ($80:9734). |
+| `$7E:1650` | `Word` | `sprite_vram_dest_slot_8` | `Frame` | Dynamic sprite VRAM slot 8 destination word address ($80:9734). |
+| `$7E:1652` | `Word` | `sprite_vram_dest_slot_9` | `Frame` | Dynamic sprite VRAM slot 9 destination word address ($80:9734). |
+| `$7E:1654` | `Word` | `sprite_vram_dest_slot_10` | `Frame` | Dynamic sprite VRAM slot 10 destination word address ($80:9734). |
+| `$7E:1656` | `Word` | `sprite_vram_dest_slot_11` | `Frame` | Dynamic sprite VRAM slot 11 destination word address ($80:9734). |
+| `$7E:1658` | `Word` | `sprite_vram_dest_slot_12` | `Frame` | Dynamic sprite VRAM slot 12 destination word address ($80:901B). |
 | `$7E:2000` | `Byte` | `audio_chan_vol_atten_0` | `Save` | Audio channel 0 master volume attenuation factor ($0F..$FF initialized by $8C:9DEE). |
 | `$7E:2001` | `Byte` | `audio_chan_vol_atten_1` | `Save` | Audio channel 1 master volume attenuation factor ($1F..$FF). |
 | `$7E:2002` | `Byte` | `audio_chan_vol_atten_2` | `Save` | Audio channel 2 master volume attenuation factor ($2F..$FF). |
@@ -743,6 +793,16 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:3022` | 2 | `FORMULA_USAGE_SUPER_HEAL` | Save | Alchemy Statistics: Total lifetime casts counter for formula Super Heal ($91:D800) |
 | `$7E:3364` | struct AnimAlchemySlot[8] | `ANIM_ALCHEMY_SLOTS_BASE` | Room | Combat Engine: 8-slot Animation Alchemy active array (stride $40=64 bytes; +$0E timer, +$12 spell ID, +$26 active flag, +$28 src, +$2A power) |
 | `$7E:3564` | struct ProjAlchemySlot[8] | `PROJ_ALCHEMY_SLOTS_BASE` | Room | Combat Engine: 8-slot Projectile Alchemy active array (stride $76=118 bytes; +$12 spell ID, +$26 active flag, +$28 src, +$2A power, +$2E target) |
+| `$7E:3578` | `Word` | `particle_slot_0_active` | `Frame` | Particle / projectile animation slot 0 active execution flag (+0x14 in $7E:3564, reset in $91:97AF). |
+| `$7E:35EE` | `Word` | `particle_slot_1_active` | `Frame` | Particle / projectile animation slot 1 active execution flag (+0x14 in $7E:35DA, reset in $91:97AF). |
+| `$7E:3664` | `Word` | `particle_slot_2_active` | `Frame` | Particle / projectile animation slot 2 active execution flag (+0x14 in $7E:3650, reset in $91:97AF). |
+| `$7E:36DA` | `Word` | `particle_slot_3_active` | `Frame` | Particle / projectile animation slot 3 active execution flag (+0x14 in $7E:36C6, reset in $91:97AF). |
+| `$7E:3750` | `Word` | `particle_slot_4_active` | `Frame` | Particle / projectile animation slot 4 active execution flag (+0x14 in $7E:373C, reset in $91:97AF). |
+| `$7E:37C6` | `Word` | `particle_slot_5_active` | `Frame` | Particle / projectile animation slot 5 active execution flag (+0x14 in $7E:37B2, reset in $91:97AF). |
+| `$7E:383C` | `Word` | `particle_slot_6_active` | `Frame` | Particle / projectile animation slot 6 active execution flag (+0x14 in $7E:3828, reset in $91:97AF). |
+| `$7E:38B2` | `Word` | `particle_slot_7_active` | `Frame` | Particle / projectile animation slot 7 active execution flag (+0x14 in $7E:389E, reset in $91:97AF). |
+| `$7E:3A3E` | `Byte×64` | `damage_popup_boy_node` | `Frame` | Player 1 (Boy) floating combat damage numbers & status popup node (stride 64 bytes: screen X, Y, value, lifetime ticks). |
+| `$7E:3A7E` | `Byte×64` | `damage_popup_dog_node` | `Frame` | Player 2 (Dog) floating combat damage numbers & status popup node (stride 64 bytes: screen X, Y, value, lifetime ticks). |
 | `$7E:3ABE` | 1 byte | `JOYPAD_CHORD_HISTORY` | Boot | The joypad matcher's ring of recent button chords. 128 words, newest at `$3ABE + $3BBE`, older chords above it (the index counts down and wraps in 8 bits). A re |
 | `$7E:3BBE` | 1 byte | `JOYPAD_CHORD_INDEX` | Boot | Offset of the newest chord in the joypad chord history. A byte offset into `$3ABE`, always even, moved down by 2 per new chord. `$3BBF` right after it is the te |
 | `$7E:3BBF` | 2 bytes | `DIALOGUE_RING_CURSOR` | Room | Cyclic message buffer index for active dialogue text box rendering. |
@@ -865,3 +925,6 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:AB7A` | 96 bytes | `VRAM_TILE_LRU_NEXT` | Frame | Forward links for least-recently-used (LRU) dynamic VRAM sprite tile allocator. |
 | `$7E:ABDE` | 512 bytes | `LOW_OAM_TABLE_BUF` | Frame | Low OAM staging buffer (128 hardware sprites × 4 bytes: X low, Y, tile number, attributes); uploaded to SNES OAM via DMA in VBlank. |
 | `$7E:ADDE` | 32 bytes | `HIGH_OAM_TABLE_BUF` | Frame | High OAM staging buffer (32 bytes = 128 sprites × 2 bits: bit 0 = 9th bit of X, bit 1 = sprite size 8x8 vs 16x16/32x32); uploaded via DMA in VBlank. |
+| `$7F:0000` | `Byte×8873` | `room_metatile_grid` | `Frame` | Decompressed 16-bit room metatile index grid in Bank $7F ($7F:0000..$7F:22A8) populated by func_CC988D from ROM. |
+| `$7F:A000` | `Byte×674` | `viewport_tilemap_composite` | `Frame` | Active viewport screen tilemap composite staging buffer in Bank $7F ($7F:A000..$7F:A2A1). |
+| `$7F:C844` | `Byte×1593` | `hud_textbox_tilemap_staging` | `Frame` | Staging buffer in Bank $7F ($7F:C844..$7F:CE7C) for HUD and dialogue text box tilemap transfers. |
