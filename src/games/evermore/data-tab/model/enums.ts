@@ -300,13 +300,79 @@ function scriptOpcodes(): EnumList {
     };
 }
 
+const CALL_BEAD_POWERS_ADDR = 0xc45f17;
+const CALL_BEAD_SPELLS_DATA: { id: number; name: string; type: string; desc: string }[] = [
+    { id: 0x00, name: 'Life Spark', type: 'Recovery', desc: 'Restores party HP and revives fallen companion' },
+    { id: 0x02, name: 'Heat Wave', type: 'Fire Elemental', desc: 'Rains incendiary fire across all active enemy targets' },
+    { id: 0x04, name: 'Storm', type: 'Wind / Lightning', desc: 'Electric storm shockwave sweeping all combatants' },
+    { id: 0x06, name: 'Flare', type: 'Fire Burst', desc: 'High-potency focused solar thermal blast' },
+    { id: 0x08, name: 'Time Warp', type: 'Temporal', desc: 'Temporal stasis: halts all enemy movement and attack timers' },
+    { id: 0x0A, name: 'First Aid', type: 'Emergency Recovery', desc: 'Instantly restores critical hit points to player' },
+    { id: 0x0C, name: 'Confound', type: 'Status Debuff', desc: 'Scrambles enemy navigational and targeting vectors' },
+    { id: 0x0E, name: 'Regenerate', type: 'Buff', desc: 'Applies continuous periodic HP regeneration ticks' },
+    { id: 0x10, name: 'Aura', type: 'Invulnerability', desc: 'Forms an impenetrable barrier absorbing all damage' },
+    { id: 0x12, name: 'Shock Wave', type: 'Concussive Impact', desc: 'High-amplitude ground shockwave knocking enemies back' },
+    { id: 0x14, name: 'Shield', type: 'Defensive Buff', desc: 'Doubles physical armor rating against melee strikes' },
+    { id: 0x16, name: 'Plague', type: 'Status Affliction', desc: 'Infects enemy entities with virulent ongoing plague' },
+    { id: 0x18, name: 'Hypnotize', type: 'Mind Control', desc: 'Induces deep sleep and suppression of hostility' },
+    { id: 0x1A, name: 'Disrupt', type: 'Dispel / Arcane', desc: 'Neutralizes hostile magical barriers and dispels buffs' },
+    { id: 0x1C, name: 'Restore', type: 'Complete Restoration', desc: 'Maximum restoration: resurrects companion and fills HP' },
+    { id: 0x1E, name: 'Electra Bolt', type: 'Lightning Strike', desc: 'Devastating high-voltage electric discharge from above' },
+];
+
+function callBeadSpells(rom: Uint8Array): EnumList {
+    const entries: Entry[] = CALL_BEAD_SPELLS_DATA.map((spell, i) => {
+        const at = maps.snesToRom(CALL_BEAD_POWERS_ADDR + i * 2);
+        const power = maps.read16(rom, at);
+        return {
+            cells: [h(spell.id, 2), spell.name, String(power), spell.type, spell.desc],
+            vfs: bus(CALL_BEAD_POWERS_ADDR),
+        };
+    });
+    return {
+        id: 'call-beads-enum', group: 'Alchemy', title: 'Call Bead invocations',
+        columns: ['id', 'spell invocation', 'base power', 'element / type', 'effect description'],
+        entries,
+        source: 'ROM $C4:5F17 (16 words power table) and script invocations ($00..$1E): summoned via Call Bead catalyst items.',
+    };
+}
+
+const FORMULA_TARGETING_ADDR = 0xc45bf5;
+const TARGETING_MODES_DATA: { mask: number; name: string; category: string; formulas: string }[] = [
+    { mask: 0x0008, name: 'TARGET_PARTY_MEMBER', category: 'Ally / Self', formulas: 'Barrier, Defend, Force Field, Heal, Miracle Cure, Reflect, Regrowth, Speed' },
+    { mask: 0x0800, name: 'TARGET_BOY_ONLY', category: 'Boy Only', formulas: 'Atlas, Call Up, One Up' },
+    { mask: 0x0802, name: 'TARGET_PARTY_BOTH', category: 'Party Both', formulas: 'Escape, Super Heal' },
+    { mask: 0x0a00, name: 'TARGET_PARTY_ITEM', category: 'Consumable Item', formulas: 'Petal, Nectar, Honey, Essence, Pixie Dust' },
+    { mask: 0x2010, name: 'TARGET_ENEMY_ALL', category: 'Hostile / Area', formulas: 'Acid Rain, Crush, Double Drain, Drain, Explosion, Fireball, Fire Power, Flash, Hard Ball, Lance, Lightning Storm, Nitro, Slow Burn, Sting, Stop' },
+    { mask: 0x0014, name: 'TARGET_DOG_DEAD', category: 'Fallen Companion', formulas: 'Revive' },
+    { mask: 0x0214, name: 'TARGET_DOG_BISCUIT', category: 'Companion Treat', formulas: 'Dog Biscuit' },
+    { mask: 0x2200, name: 'TARGET_ENVIRONMENT', category: 'Puzzle / World', formulas: 'Levitate' },
+    { mask: 0x0240, name: 'TARGET_REVEALER', category: 'Hidden Passages', formulas: 'Revealer' },
+    { mask: 0x6600, name: 'TARGET_MENU', category: 'Menu Trigger', formulas: 'Call Beads, Pouch' },
+    { mask: 0x2018, name: 'TARGET_PARTY_ENEMY', category: 'Universal', formulas: 'Global area burst' },
+];
+
+function targetingModes(): EnumList {
+    const entries: Entry[] = TARGETING_MODES_DATA.map((tm) => ({
+        cells: [h(tm.mask, 4), tm.name, tm.category, tm.formulas],
+        vfs: bus(FORMULA_TARGETING_ADDR),
+    }));
+    return {
+        id: 'targeting-modes', group: 'Alchemy', title: 'Targeting cursor modes',
+        columns: ['bitmask', 'mode name', 'target category', 'typical formulas'],
+        entries,
+        source: 'Table $C4:5BF5 (35 formula cursor words): reticle locking rules for party, companion, and enemy entities.',
+    };
+}
+
 /** Every list the view shows. `icons` are the formulas' ring-menu icons (PNG data URIs) in formula order. */
 function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | null)[] = []): EnumList[] {
     return [characterBlobs(rom, chars), recordFields(), contactHandlers(rom, chars), aiSelectors(rom, chars),
         formulas(rom, icons), castIds(rom), ingredients(rom), rooms(rom),
         wramStates(), directions(), collisionTypes(),
         statusEffects(), weaponClassesEnum(), ringIconCategories(),
-        musicTracks(), soundEffects(), scriptOpcodes()];
+        musicTracks(), soundEffects(), scriptOpcodes(),
+        callBeadSpells(rom), targetingModes()];
 }
 
 export { enumsModel };

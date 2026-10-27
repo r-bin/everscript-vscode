@@ -165,3 +165,82 @@ typedef enum {
     COLL_WARP_DOORWAY           = 0xF  /* Step-on room transition gateway */
 } CollisionType;
 ```
+
+---
+
+## 6. Call Bead Invocations (`CALL_BEAD_ID`)
+
+The 16 Call Bead spells indexed at `$C4:5F17` (power table) and invoked by script commands:
+
+```c
+typedef enum {
+    CALL_BEAD_LIFE_SPARK        = 0x00, /* Party HP recovery and companion resurrection (Power 300) */
+    CALL_BEAD_HEAT_WAVE         = 0x02, /* Area incendiary bombardment across all enemies (Power 450) */
+    CALL_BEAD_STORM             = 0x04, /* Electrical atmospheric shockwave (Power 550) */
+    CALL_BEAD_FLARE             = 0x06, /* Focused thermal solar blast (Power 600) */
+    CALL_BEAD_TIME_WARP         = 0x08, /* Temporal freeze; halts all hostile actors */
+    CALL_BEAD_FIRST_AID         = 0x0A, /* Emergency health recovery for Boy (Power 250) */
+    CALL_BEAD_CONFOUND          = 0x0C, /* Mass confusion and disorientation */
+    CALL_BEAD_REGENERATE        = 0x0E, /* Continuous HP regeneration buff (Power 150) */
+    CALL_BEAD_AURA              = 0x10, /* Invulnerability barrier */
+    CALL_BEAD_SHOCK_WAVE        = 0x12, /* High-impact kinetic seismic pulse (Power 700) */
+    CALL_BEAD_SHIELD            = 0x14, /* Physical defense hardening buff */
+    CALL_BEAD_PLAGUE            = 0x16, /* Virulent ongoing poison/plague status */
+    CALL_BEAD_HYPNOTIZE         = 0x18, /* Deep sleep inducement */
+    CALL_BEAD_DISRUPT           = 0x1A, /* Dispel hostile magical shields and energy (Power 850) */
+    CALL_BEAD_RESTORE           = 0x1C, /* Complete restoration and full revive (Power 999) */
+    CALL_BEAD_ELECTRA_BOLT      = 0x1E  /* High-voltage vertical lightning strike (Power 900) */
+} CallBeadId;
+```
+
+---
+
+## 7. Projectile Movement Routine Indices (`PROJECTILE_ROUTINE`)
+
+Movement routines in table `$90:D967` called by projectile update loop `$90:DE5E`:
+
+```c
+typedef enum {
+    PROJ_ROUTINE_CUSTOM         = 0, /* Special script-directed path */
+    PROJ_ROUTINE_HOMING         = 1, /* Tracks entity coordinates */
+    PROJ_ROUTINE_STRAIGHT_SCALED= 2, /* Straight flight scaled by thrower attack ($0A3F) */
+    PROJ_ROUTINE_ARCING         = 3, /* Parabolic arc trajectory with gravity */
+    PROJ_ROUTINE_STRAIGHT       = 4, /* Unscaled straight line flight along facing */
+    PROJ_ROUTINE_ORBIT          = 5, /* Elliptical orbit ($90:DF44) */
+    PROJ_ROUTINE_SPREAD         = 6  /* Multi-directional scatter */
+} ProjectileRoutine;
+```
+
+---
+
+## 8. Projectile Lifecycle Behavior Types (`PROJECTILE_BEHAVIOR`)
+
+Field `+0x0C` of projectile records in table `$90:D9A6`:
+
+```c
+typedef enum {
+    PROJ_BEHAVIOR_FALLING       = 0x0E, /* Parabolic drop: z-speed decrements until ground hit */
+    PROJ_BEHAVIOR_TIMED         = 0x12, /* Fixed altitude: lifetime counter decrements */
+    PROJ_BEHAVIOR_PLANE_TIMED   = 0x1A, /* Fixed altitude on thrower's depth plane */
+    PROJ_BEHAVIOR_ORBIT         = 0x1E  /* Angular step increment in ellipse lookup */
+} ProjectileBehavior;
+```
+
+---
+
+## 9. Formula Targeting Cursor Modes (`TARGETING_MODE`)
+
+Bitfield values loaded from `$C4:5BF5` to control targeting reticle behavior:
+
+| Bitmask | Mode Identifier | Target Scope | Representative Formulas |
+|---|---|---|---|
+| `0x0008` | `TARGET_PARTY_MEMBER` | Single party member (Boy or Dog) | Heal, Defend, Barrier, Speed, Regrowth |
+| `0x0800` | `TARGET_BOY_ONLY` | Boy character only | Atlas, Call Up, One Up |
+| `0x0802` | `TARGET_PARTY_BOTH` | Both Boy and Dog simultaneously | Escape, Super Heal |
+| `0x0A00` | `TARGET_PARTY_ITEM` | Consumable item targeting | Petal, Nectar, Honey, Essence, Pixie Dust |
+| `0x2010` | `TARGET_ENEMY_ALL` | Single enemy or all enemies in room | Flash, Fireball, Crush, Sting, Acid Rain, Nitro |
+| `0x0014` | `TARGET_DOG_DEAD` | Defeated / unconscious Dog entity | Revive |
+| `0x0214` | `TARGET_DOG_BISCUIT` | Dog snack reward | Dog Biscuit |
+| `0x2200` | `TARGET_ENVIRONMENT` | Environmental puzzle trigger | Levitate |
+| `0x0240` | `TARGET_REVEALER` | Invisible bridge / secret passage | Revealer |
+| `0x6600` | `TARGET_MENU` | Ring menu trigger invocation | Call Beads, Pouch |

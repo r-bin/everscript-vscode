@@ -21,13 +21,23 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
 | `$8F:B6AE` | `0x07B6AE` | `tbl_contact_handlers` | 2 bytes | 15 | 30 B | Entity melee and projectile contact handler dispatch vectors |
 | `$90:8052` | `0x080052` | `tbl_animation_vm_jump_table` | 2 bytes | 76 | 152 B | Sprite animation engine bytecode execution vector table |
 | `$90:D5CF` | `0x0855CF` | `tbl_anim_tile_channel_bases` | 2 bytes | 4 | 8 B | VRAM destination pattern words for 4 animated tile channels |
+| `$90:D9A6` | `0x08D9A6` | `tbl_projectile_records` | 24 bytes | 21 | 504 B | Projectile archetype definitions (anim, palette, routine, speed, power) |
 | `$90:DF44` | `0x085F44` | `tbl_boomerang_orbit` | 4 bytes | 256 | 1,024 B | Elliptical orbital vector coordinates $(X, Y)$ in $1/16$ px |
 | `$91:80A6` | `0x0880A6` | `tbl_alchemy_spell_blocks` | 2 bytes | 48 | 96 B | Pointers to spell bytecode blocks in Bank `$91` |
 | `$9F:FDE7` | `0x0FFDE7` | `tbl_room_blob_pointers` | 4 bytes | 127 | 508 B | 32-bit far pointers to compressed room data blobs |
+| `$C4:0C02` | `0x220C02` | `tbl_font_glyph_widths` | 1 byte | 95 | 95 B | Proportional character glyph pixel widths (ASCII 32..126) |
 | `$C4:3874` | `0x223874` | `tbl_alchemy_formula_costs` | 6 bytes | 35 | 210 B | Ingredient requirements, count quantities, and formula base damage |
+| `$C4:38E6` | `0x2238E6` | `tbl_boy_weapons` | 36 bytes | 15 | 540 B | Boy melee weapon master records (attack power, knockback) |
+| `$C4:3C92` | `0x223C92` | `tbl_animate_id_records` | 2 bytes | 212 | 424 B | Script `animate(entity, mode, id)` ID to bank `$C4` record pointer |
+| `$C4:5B4A` | `0x225B4A` | `tbl_weapon_charge_xp` | 2 bytes | 16 | 32 B | Weapon charge tier level-up cumulative XP thresholds (tiers 0..3) |
+| `$C4:5B9C` | `0x225B9C` | `tbl_formula_xp_gain` | 1 byte | 10 | 10 B | Formula experience points awarded per cast at spell levels 0..9 |
+| `$C4:5BA5` | `0x225BA5` | `tbl_formula_level_multiplier` | 1 byte | 10 | 10 B | Formula power multiplier percentage across spell levels 0..9 |
+| `$C4:5BF5` | `0x225BF5` | `tbl_formula_targeting` | 2 bytes | 35 | 70 B | Spell targeting cursor bitfields (single, ally, party, enemy) |
 | `$C4:5D09` | `0x225D09` | `tbl_alchemy_formula_names` | 2 bytes | 35 | 70 B | Pointers to zero-terminated formula ASCII name strings |
 | `$C4:5D51` | `0x225D51` | `tbl_formula_descriptions` | 2 bytes | 35 | 70 B | Pointers to zero-terminated formula description strings |
 | `$C4:5DDF` | `0x225DDF` | `tbl_formula_blocks` | 2 bytes | 35 | 70 B | Offsets into `$91:80A6` for formula execution bytecode |
+| `$C4:5E6B` | `0x225E6B` | `tbl_formula_base_power` | 2 bytes | 35 | 70 B | Base power and recovery coefficients for formulas 0..34 |
+| `$C4:5F17` | `0x225F17` | `tbl_call_bead_powers` | 2 bytes | 16 | 32 B | Base spell power coefficients for Call Bead summons 0..15 |
 | `$C4:5F97` | `0x225F97` | `tbl_cast_blocks` | 2 bytes | 23 | 46 B | Offsets into `$91:80A6` for opcode `$9E` and `$AC` spells |
 | `$C4:5FC5` | `0x225FC5` | `tbl_cast_names` | 2 bytes | 23 | 46 B | Pointers to zero-terminated spell name strings |
 | `$C4:5FF3` | `0x225FF3` | `tbl_ingredient_names` | 2 bytes | 22 | 44 B | Pointers to zero-terminated ingredient name strings |
@@ -94,3 +104,52 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
       uint16_t combat_flags;       /* +0x0C: Form special ability bits (e.g., hover / laser) */
   };
   ```
+
+### 2.5 Projectile Archetype Database (`$90:D9A6`)
+- **Format**: `struct ProjectileRecord tbl_projectile_records[21]`, 24 bytes per record (`0x18` stride).
+- **Internal Layout**:
+  ```c
+  struct ProjectileRecord {
+      uint16_t anim_record;        /* +0x00: Animation record offset in bank $C4 (0 = none) */
+      uint16_t palette_group;      /* +0x02: Palette group in bank $90 (0 = keep thrower palette) */
+      uint16_t unknown_04;         /* +0x04: Reserved padding */
+      uint16_t unknown_06;         /* +0x06: Reserved padding */
+      uint16_t routine_index;      /* +0x08: Movement routine selector in tbl_projectile_routines ($90:D967) */
+      uint16_t unknown_0a;         /* +0x0A: Reserved padding */
+      uint16_t behavior_type;      /* +0x0C: Lifecycle behavior: 0x0E falling, 0x12 timed, 0x1A plane timed */
+      uint16_t speed;              /* +0x0E: Flight velocity in 1/16 pixels per tick */
+      uint16_t field_10;           /* +0x10: Entity field +0x1E copy */
+      int16_t  field_12;           /* +0x12: Entity field +0x24 copy (initial vertical velocity) */
+      uint16_t field_14;           /* +0x14: Entity field +0x2A copy */
+      uint16_t base_power;         /* +0x16: Base impact power (0 = inherit from thrower) */
+  };
+  ```
+
+### 2.6 Animate ID Record Vector Table (`$C4:3C92`)
+- **Format**: `uint16_t tbl_animate_id_records[212]`, 2 bytes per ID (424 bytes total).
+- **Purpose**: Maps global `animate(entity, mode, id)` animation ID (0..211) to the 16-bit offset of its animation record in bank `$C4` (`$C4:3E3A`..`$C4:5801`). Read by `$8C:E13C`.
+
+### 2.7 Boy Melee Weapon Master Table (`$C4:38E6`)
+- **Format**: `struct BoyWeaponRecord tbl_boy_weapons[15]`, 36 bytes per weapon (`0x24` stride).
+- **Internal Layout**:
+  ```c
+  struct BoyWeaponRecord {
+      uint16_t attack_power;       /* +0x00: Base physical weapon damage */
+      uint8_t  knockback_dist;     /* +0x02: Target knockback distance in pixels */
+      uint8_t  reserved[33];       /* +0x03..0x23: Strike boxes, animation links, charge timing */
+  };
+  ```
+
+### 2.8 Formula Targeting Cursor Bitfield Table (`$C4:5BF5`)
+- **Format**: `uint16_t tbl_formula_targeting[35]`, 2 bytes per formula (70 bytes total).
+- **Purpose**: Defines reticle locking behavior during alchemy selection:
+  - `0x0008`: Single ally / party member (Heal, Defend, Barrier, Speed, Regrowth)
+  - `0x0800`: Boy only (Atlas, Call Up, One Up)
+  - `0x0802`: Both party members simultaneously (Super Heal, Escape)
+  - `0x0014`: Fallen Dog (Revive)
+  - `0x2010`: All active enemies (Flash, Fireball, Crush, Sting, Acid Rain, Nitro)
+  - `0x2200`: World puzzle point (Levitate)
+
+### 2.9 Call Bead Power Table (`$C4:5F17`)
+- **Format**: `uint16_t tbl_call_bead_powers[16]`, 2 bytes per invocation (32 bytes total).
+- **Purpose**: Base power and restoration coefficients for the 16 Call Bead spells (0 = utility/buff, 250..999 for damaging/recovery spells).

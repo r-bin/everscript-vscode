@@ -266,7 +266,19 @@ function boyWeaponsTable(rom: Uint8Array): Table {
 
 const CALL_BEADS_TABLE = 0xc45f17;
 const CALL_BEADS_COUNT = 16;
+const CALL_BEAD_NAMES = [
+    'Life Spark', 'Heat Wave', 'Storm', 'Flare',
+    'Time Warp', 'First Aid', 'Confound', 'Regenerate',
+    'Aura', 'Shock Wave', 'Shield', 'Plague',
+    'Hypnotize', 'Disrupt', 'Restore', 'Electra Bolt',
+];
 const FONT_WIDTHS_TABLE = 0xc40c02;
+const ANIMATE_RECORDS_TABLE = 0xc43c92;
+const ANIMATE_RECORDS_COUNT = 212;
+const PROJECTILE_RECORDS_TABLE = 0x90d9a6;
+const PROJECTILE_RECORDS_COUNT = 21;
+const PROJECTILE_RECORD_STRIDE = 24;
+const FORMULA_TARGET_TABLE = 0xc45bf5;
 
 function callBeadsTable(rom: Uint8Array): Table {
     const rows: Cell[][] = [];
@@ -274,7 +286,7 @@ function callBeadsTable(rom: Uint8Array): Table {
     for (let i = 0; i < CALL_BEADS_COUNT; i++) {
         const at = snesToRom(CALL_BEADS_TABLE + i * 2);
         const power = read16(rom, at);
-        rows.push([i, 'Call Bead ' + i, power]);
+        rows.push([i, CALL_BEAD_NAMES[i] || ('Call Bead ' + i), power]);
         pts.push([i, power]);
     }
     return {
@@ -305,6 +317,83 @@ function fontWidthsTable(rom: Uint8Array): Table {
     };
 }
 
+function animateRecordsTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < ANIMATE_RECORDS_COUNT; i++) {
+        const at = snesToRom(ANIMATE_RECORDS_TABLE + i * 2);
+        const offset = read16(rom, at);
+        rows.push([i, '$' + hex(offset, 4), '$C4:' + hex(offset, 4)]);
+        pts.push([i, offset]);
+    }
+    return {
+        id: 'animate-records', group: 'Animation', title: 'Animation record pointers (animate ID 0..211)', addr: '$C4:3C92',
+        note: 'Global animate() id -> animation record (212 words, right before the record table at $C4:3E3A): maps script animate(entity, mode, id) parameter to 16-bit offset in bank $C4.',
+        columns: ['id', 'record offset', 'full address'],
+        rows,
+        chart: { x: 'animate id', y: 'record offset', series: [{ name: 'offset', points: pts }] },
+        vfs: vfs(ANIMATE_RECORDS_TABLE),
+    };
+}
+
+function projectilesTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < PROJECTILE_RECORDS_COUNT; i++) {
+        const at = snesToRom(PROJECTILE_RECORDS_TABLE + i * PROJECTILE_RECORD_STRIDE);
+        const anim = read16(rom, at);
+        const palette = read16(rom, at + 2);
+        const routine = read16(rom, at + 8);
+        const behaviour = read16(rom, at + 0x0c);
+        const speed = read16(rom, at + 0x0e);
+        const power = read16(rom, at + 0x16);
+        rows.push([i, '$' + hex(anim, 4), '$' + hex(palette, 4), routine, '$' + hex(behaviour, 2), speed, power]);
+        pts.push([i, speed]);
+    }
+    return {
+        id: 'projectiles', group: 'Projectiles', title: 'Projectile master records', addr: '$90:D9A6',
+        note: 'The 21 projectile records ($90:D9A6, 24 bytes each, bank $90): spawned by script opcode $4C (projectile). Details animation record, palette, movement routine, behavior, and speed.',
+        columns: ['id', 'anim record', 'palette', 'routine', 'behaviour', 'speed (1/16 px)', 'power'],
+        rows,
+        chart: { x: 'projectile id', y: 'speed', series: [{ name: 'speed', points: pts }] },
+        vfs: vfs(PROJECTILE_RECORDS_TABLE),
+    };
+}
+
+function formulaTargetsTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    const TARGET_DESC: Record<number, string> = {
+        0x0008: 'Party member (Boy / Dog)',
+        0x0800: 'Boy only',
+        0x0802: 'Party (Both Boy & Dog)',
+        0x0a00: 'Party item target',
+        0x2010: 'All enemies',
+        0x0014: 'Dog (Revive)',
+        0x0214: 'Dog (Biscuit)',
+        0x2200: 'Environmental (Levitate)',
+        0x0240: 'Hidden bridge (Revealer)',
+        0x6600: 'Menu invocation',
+        0x2018: 'Party + All enemies',
+    };
+    for (let i = 0; i < FORMULA_COUNT; i++) {
+        const at = snesToRom(FORMULA_TARGET_TABLE + i * 2);
+        const target = read16(rom, at);
+        const formulaName = textAt(rom, FORMULA_NAMES, i);
+        const desc = TARGET_DESC[target] || ('Flags $' + hex(target, 4));
+        rows.push([i, formulaName, '$' + hex(target, 4), desc]);
+        pts.push([i, target]);
+    }
+    return {
+        id: 'formula-targets', group: 'Alchemy', title: 'Formula targeting cursor bitfields', addr: '$C4:5BF5',
+        note: 'Target cursor bitfield for each of the 35 formulas ($C4:5BF5, 35 words): determines whether targeting reticle locks onto Boy, Dog, party, or enemy entities.',
+        columns: ['id', 'formula', 'cursor flags', 'targeting scope'],
+        rows,
+        chart: { x: 'formula id', y: 'flags', series: [{ name: 'target flags', points: pts }] },
+        vfs: vfs(FORMULA_TARGET_TABLE),
+    };
+}
+
 /** Every table the view lists: only the ones decoded into readable values. */
 function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Table[] {
     return [
@@ -312,6 +401,7 @@ function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Ta
         formulaCostsTable(rom), dogFormsTable(rom), weaponLevelsTable(rom),
         alchemyGrowthTable(rom), boyWeaponsTable(rom),
         callBeadsTable(rom), fontWidthsTable(rom),
+        animateRecordsTable(rom), projectilesTable(rom), formulaTargetsTable(rom),
     ];
 }
 
