@@ -37,6 +37,12 @@
 - 🟡 **The replay (TAS) has no such rescue:** frames in flight when the host dies are lost; Continue resumes
   from the last snapshot (≤30 s back). Same pattern would fit (`tasRecFrames` numbered, parked, handed over).
 - 🟡 **Flushing the library blocks the host** (~0.4 s for 2.2 M script xrefs on a Mac, slower on Windows).
+- 🔴 **Sound-driver deadlock in the core (2026-10-27):** a music change can hang the game for good when the
+  driver polls ENVX of a voice that already ended (the core keeps its stale envelope; real DSP reads 0).
+  Evidence and addresses: `docs/disassembly/audio/spc-block-uploader.md` (Trap). A one-line `apu.c` fix
+  (ENVX 0 when `SOUND_SILENT`) was checked in a scratch build: the stuck state loads the music and the
+  cutscene goes on. **Not applied: the owner decides core changes** (new core id: old snapshots do not
+  load, old recordings may desync). Workaround: rewind and replay the moment differently.
 
 ### 1.1 Live Painting from Map Editor into Running Game
 - **Status: 🟡 planned, not started**

@@ -75,6 +75,19 @@ flowchart TD
 > Centralized comments infused at runtime.
 > [View in VFS: soe://rom/code/8C805C](soe://rom/code/8C805C?asm=1&c=0)
 
+### Trap: the IPL wait has no timeout
+
+Only the command handshake (`$8C:81FD`, `$2800` tries) and the ready poll (`$8C:81D4`) time out. A soundbank
+load (`$8C:8236`) sends driver command `$0E` (return to the IPL) and then spins at `$8C:8085`–`$808A` for
+`$BBAA` with no limit, so a driver that misses `$0E` hangs the game for good, inside the script that changed
+the music. Seen 2026-10-27 in the embedded snes9x2005 core (hand-played session, frame 45189, room `$51`,
+script `$94:D326` `music(0x12)`): the driver sat in an ARAM loop at `$1076`–`$107D`
+(`mov $F2,#$08; mov a,$F3; and a,#$FC; bne`), waiting for voice 0's ENVX to drop below 4. Voice 0 had
+ended its sample, and that core keeps a silent voice's last envelope (`$30`) as its ENVX (`apu.c`, ENVX
+case; OUTX already reads 0 when silent). Every earlier command (`$1A $2A $2C $1C $1A`) timed out unechoed.
+The run replays deterministically (headless, all WRAM checksums match), so frame pacing and audio output
+play no part. A real DSP reads ENVX 0 for an ended voice. Status: `docs/todo/emulator-and-runtime.md` 1.0.
+
 
 ---
 
