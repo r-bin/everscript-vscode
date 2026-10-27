@@ -1,7 +1,7 @@
 // TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 // Build and Run drops every ROM-derived cache after a successful build
-// (src/extension.js). A throw there aborts the build before the ROM reaches
+// (src/extension.ts). A throw there aborts the build before the ROM reaches
 // the emulator, which is how a stale PREVIEW_CACHE reference broke F5.
 
 const rooms = require('../../dist/games/evermore/rooms');

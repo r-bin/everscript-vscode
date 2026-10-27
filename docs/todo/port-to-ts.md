@@ -9,7 +9,7 @@ spliced as text by `page-file.ts`, and knip's `src/**/webview/**` ignore goes), 
 
 | Group | Files | Blocked by |
 |---|---|---|
-| Host modules (`src/**`, not `webview/`) | 9 | nothing now: the composition roots (`src/extension.js`, the three `extension.js`), the radar (`radar-open`, `radar-panel`, `render-radar`), `music/index`, `music/model/track-timeline` and `resources/index` can all be ported; start with the leaves |
+| Host modules (`src/**`, not `webview/`) | 0 | done (v0.360.0: the composition roots `src/extension.ts` and `games/mana/extension.ts` were the last; `asar-kit/build-cdl.js` stays JS by design) |
 | Page scripts (`src/**/webview/`) | 173 | 5.3: they are spliced into the page as text (`page-file`), not built; they need one esbuild bundle per page from real `.ts` with DOM typings, then the knip webview ignore goes |
 | `tools/` | 42 | host modules they `require` from `dist/` |
 | `tests/` | 77 | last: they require the ports from `dist/` already |
@@ -37,13 +37,7 @@ Each has one owner already; the page scripts and `tools/` JS still carry their o
 ## The list (regenerate with `git ls-files | grep js$ | xargs grep -l "TODO port to TS"`)
 
 ### Host modules
-- `src/`: `extension.js`
-- `src/games/evermore/`: `extension.js`, `radar-open.js`, `radar-panel.js`
-- `src/games/evermore/memory/`: `render-radar.js`
-- `src/games/evermore/music/`: `index.js`
-- `src/games/evermore/music/model/`: `track-timeline.js`
-- `src/games/evermore/resources/`: `index.js`
-- `src/games/mana/`: `extension.js`
+None left. `src/platform/cdl/asar-kit/build-cdl.js` is JS by design (copied into every Asar export, run by the user's node).
 
 ### Page scripts
 Page code the host also uses is a TypeScript module that `tools/bundle-pages.mts` bundles into `dist/webview/<name>.js` (`shell-frame`, `music-view`, `music-engine`, `evermore-rom`); the page loads the bundle (`core/webview/page-bundle.ts`), the host imports the module. That is the pattern for the rest (5.3).
@@ -72,7 +66,6 @@ Page code the host also uses is a TypeScript module that `tools/bundle-pages.mts
 - `src/games/evermore/sprites/webview/`: `sprites-lazy.js`, `sprites-motion.js`, `sprites-script.js`
 - `src/games/evermore/sprites/webview/sprites-view/`: `01-state.js`, `02-pickers.js`, `03-playback.js`, `04-palettes.js`, `05-messages.js`, `06-stats.js`, `07-seek.js`, `09-init.js`
 - `src/games/mana/maps/webview/`: `editor-dock-cells.js`, `editor-dock.js`, `editor-model.js`, `editor-overlays.js`, `editor-props.js`, `editor-stage.js`, `editor-tools.js`, `editor.js`, `main.js`, `map-svg.js`
-- `src/platform/cdl/asar-kit/`: `build-cdl.js`
 
 ### tools/
 - `tools/`: `auto-decompile.js`, `derived-marker.js`, `gen-cdl-optable.js`, `gen-sound-animations.js`, `measure-collision.js`, `rom.js`, `roms.js`

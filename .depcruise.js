@@ -170,7 +170,7 @@ module.exports = {
       name: 'no-evermore-to-mana',
       comment: 'Evermore domains never use Mana code; only Evermore\'s extension.js wires the bridge, and the root lists the games.',
       severity: 'error',
-      from: { path: '^src/', pathNot: '^src/games/mana/|^src/games/evermore/imports/mana/|^src/games/index\\.ts$|^src/extension\\.js$|^src/games/evermore/extension\\.js$' },
+      from: { path: '^src/', pathNot: '^src/games/mana/|^src/games/evermore/imports/mana/|^src/games/index\\.ts$|^src/extension\\.ts$|^src/games/evermore/extension\\.ts$' },
       to: { path: '^src/games/(mana/|evermore/imports/mana/)' },
     },
 

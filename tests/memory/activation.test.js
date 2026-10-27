@@ -145,7 +145,7 @@ console.log('\nActivation: extension loading');
 let ext;
 test('extension.js loads without throwing', () => {
     // EVS_MAIN: another entry to load the same way (tests/memory/bundle.test.js: the host bundle).
-    ext = require(process.env.EVS_MAIN ? path.resolve(process.env.EVS_MAIN) : '../../src/extension.js');
+    ext = require(process.env.EVS_MAIN ? path.resolve(process.env.EVS_MAIN) : '../../dist/extension.js');
 });
 
 test('extension exports activate and deactivate', () => {

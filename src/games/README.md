@@ -10,4 +10,4 @@ Rules: [AGENTS.md](AGENTS.md). How a game is added: the `games-and-roms` skill.
 | `terra/` | Terranigma: decoder (the game's room loader on the 65816 interpreter), `terra://`, the Maps panel ([README](terra/README.md)) |
 
 Each game has `descriptor.ts` (id, header match, variants, capabilities) and `extension.js`
-(what it registers in VS Code, called from `src/extension.js`).
+(what it registers in VS Code, called from `src/extension.ts`).

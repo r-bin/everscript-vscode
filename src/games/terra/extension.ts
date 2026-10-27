@@ -1,5 +1,5 @@
 // Ownership: Terranigma inside VS Code — the read-only terra:// file system and the Maps panel as the
-// game's main view (core/game-views.ts) and its command. Called from src/extension.js.
+// game's main view (core/game-views.ts) and its command. Called from src/extension.ts.
 
 import * as vscode from 'vscode';
 import * as gameViews from '../../core/game-views';

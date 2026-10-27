@@ -1,6 +1,6 @@
-// Bundles the extension host (src/extension.js and everything it requires) into one file,
+// Bundles the extension host (src/extension.ts, compiled to dist/extension.js, and everything it requires) into one file,
 // bundle/extension.js, the package's `main` (docs/cleanup.md 5.3).
-//   node tools/bundle.mts            after npm run build:ts (JS requires compiled TS from dist/)
+//   node tools/bundle.mts            after npm run build:ts (the entry is the compiled dist/extension.js)
 // The files the code reads at runtime (webview pages, cores, knowledge entries, JSON tables) are not
 // bundled: they ship as they are, and each module's __dirname is rewritten to its own folder so those
 // reads still find them. Functions the pages splice in with .toString() keep their names (the
@@ -49,7 +49,7 @@ const unresolved: Plugin = {
 };
 
 const result = await build({
-    entryPoints: [join(ROOT, 'src', 'extension.js')],
+    entryPoints: [join(ROOT, 'dist', 'extension.js')],
     outfile: OUT,
     bundle: true,
     platform: 'node',

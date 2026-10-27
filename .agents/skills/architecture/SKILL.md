@@ -16,7 +16,7 @@ What is still being moved: `docs/cleanup.md`. This skill is how to work inside t
 | `src/platform/` | SNES facts, ROM library and identification, CDL engine, TAS format, PNG/CRC/zip | itself only (`platform-stands-alone`), no `vscode` |
 | `src/core/` | game-neutral VS Code features: ROM panel, game views, map-editor shell, MCP, the emulator (`core/emulator/`: a game hands in its part, `emulator-knows-no-game`) | `platform/`, `vscode`; never a game |
 | `src/games/<game>/` | everything about one game; `extension.js` registers it | `platform/`, `core/`; never another game except `games/<game>/imports/<other>/` |
-| `src/extension.js` | composition root: ROM library, the list of games, game views, MCP | everything, but owns no logic |
+| `src/extension.ts` | composition root: ROM library, the list of games, game views, MCP | everything, but owns no logic |
 
 Inside a game, a **library** (pure: `maps/`, `script/`, `localizations/`) never imports a
 **feature** (a tab or panel), and a feature never imports another feature. What two features

@@ -58,7 +58,7 @@ workflow.
    **Do not use `rsync` to `~/.vscode/extensions/`.** That was the old ritual and it
    left 19 unregistered full-repo copies behind (~9GB) before being cleaned up in
    v0.7.0. It also masked a real bug: `.vscodeignore` excluded `src/**` while `main` was
-   `./src/extension.js`, so the `.vsix` path was broken for a long time without anyone
+   a path under `src/`, so the `.vsix` path was broken for a long time without anyone
    noticing, because the rsync copies were what actually ran.
 
    The deploy path installs to `~/.vscode/extensions/rbin.everscript-<version>/`, which
@@ -94,7 +94,7 @@ Types: `feat` (new token/feature), `fix` (bug), `test` (test-only), `docs` (docs
 ## Anti-entropy checklist (run before every commit)
 
 - [ ] No file exceeds 400 LOC without documented justification
-- [ ] No logic or state added to `src/extension.js` or a game's `extension.js` (use the owning folder)
+- [ ] No logic or state added to `src/extension.ts` or a game's `extension.ts` (use the owning folder)
 - [ ] No new cross-domain `require()` added without checking allowed direction (see
       `src/README.md`, the folder's `AGENTS.md` and `.depcruise.js`)
 - [ ] Every new directory has a `README.md` or is trivially named

@@ -34,7 +34,7 @@ Inside a game, every folder is one of two kinds:
 | **Library** (pure, no `vscode`, no UI) | `maps`, `script`, `simulation`, `localizations` | other libraries of the game, `platform/` |
 | **Feature** (a tab, panel, file system or language service) | `memory`, `rooms`, `sprites`, `music`, `scripts-tab`, `data-tab`, `rom`, `scaling`, `docs-tab`, `resources` (soe://), `language`, `debugger` | libraries, `core/`, read APIs (`soe://`) |
 
-`src/extension.js` is the composition root: the ROM library, the one list of games, the game
+`src/extension.ts` is the composition root: the ROM library, the one list of games, the game
 views and MCP. Each game's `src/games/<game>/extension.js` registers that game's commands and
 injects cross-feature capabilities (e.g. the emulator's `readMemory` into Evermore's `resources`).
 They own no logic (Evermore's radar state is `radar-panel.js`).
@@ -58,7 +58,7 @@ Deleting a feature domain may only break its own registration lines in its game'
 
 ### 3.2 Direction **[now]**
 ```
-platform  ←  core  ←  game library  ←  game feature  ←  game extension.js  ←  src/extension.js
+platform  ←  core  ←  game library  ←  game feature  ←  game extension.js  ←  src/extension.ts
    (parser → model → renderer → UI inside each)
 ```
 Forbidden: renderer → parser, UI mutating models except through explicit action files,

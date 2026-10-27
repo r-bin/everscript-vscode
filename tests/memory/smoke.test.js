@@ -43,7 +43,7 @@ require.cache['vscode'] = {
     }
 };
 
-const ext = require('../../src/extension.js');
+const ext = require('../../dist/extension.js');
 
 // Pull out renderRadarHtml for testing (it's not exported, so we extract from module source)
 // Instead, test via a helper that reconstructs minimal inputs.

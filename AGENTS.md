@@ -76,7 +76,7 @@ visualize all game data (map editor, music player, script editor, sprite viewer)
 
 | Where | What |
 |---|---|
-| `src/README.md` | Every folder under `src/` and its dependency rules: `platform/` (no game, no VS Code), `core/` (game-neutral features, the emulator), `games/<game>/` (each with `extension.js`), `recorder/` (the SNES CDL Recorder, a second extension); `src/extension.js` is the composition root |
+| `src/README.md` | Every folder under `src/` and its dependency rules: `platform/` (no game, no VS Code), `core/` (game-neutral features, the emulator), `games/<game>/` (each with `extension.js`), `recorder/` (the SNES CDL Recorder, a second extension); `src/extension.ts` is the composition root |
 | `src/**/AGENTS.md` | Each folder's kind, ownership, allowed dependencies, invariants and tests — read before working there |
 | `AI_ARCHITECTURE_GUIDE.md` | The laws: dependency direction, removable features, no code in strings, data provenance, file size, types |
 | `docs/architecture/multi-game.md` | The target and its status: platform / core / games, game descriptors, variants and base ROM, the ROM library, game views, the one map editor (§8) |

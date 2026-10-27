@@ -42,7 +42,7 @@ same file. `romFor(game)` = the selected ROM if it is that game's, else the game
    with `romFor(id)` / `romPathFor(id)`, never `selectedRom()`: that is what lets its panels keep their
    ROM while another game is selected.
    With no ROM, it says `missingRomText(id)` (one wording for every panel and file system).
-4. Its line in `src/extension.js` `GAMES`.
+4. Its line in `src/extension.ts` `GAMES`.
 5. `src/games/<id>/AGENTS.md`, `docs/<id>/` with evidence. `games-stay-apart` (depcruise) keeps it
    from importing another game; a bridge is `games/<other>/imports/<id>/` only.
 
@@ -52,7 +52,7 @@ something needs them (multi-game.md §4).
 
 ## Traps
 
-- `registerGames()` must run before identification (`src/extension.js` does it first; `romPath()`
+- `registerGames()` must run before identification (`src/extension.ts` does it first; `romPath()`
   calls it for tests). An unregistered game identifies as `unknown`.
 - A panel follows the selected ROM today; "panels keep their ROM" is still open (multi-game.md §7.5).
 - The emulator and `platform/` never name a game: Evermore's emulator half comes in through
