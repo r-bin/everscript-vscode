@@ -2,7 +2,7 @@
 
     // -- CDL tab ----------------------------------------------------------------
     const CDL_TICK_MS = 1000;
-    const CDL_DRAIN_TICKS = 15;
+    const CDL_DRAIN_TICKS = 5;   // s between drains: what a page cut off from its host (or killed) can lose
     const CDL_CHUNK = 0x10000;
     const CDL_W = 1024;
     const CDL_COLORS = [/*@@colors*/0];
@@ -294,7 +294,7 @@
       if (paused) {
         cdlDrain();
         vscodeApi.postMessage({ command: 'cdlPause' });
-        cdlSetStatus('paused - saved');
+        cdlSetStatus('paused - saving');
       }
       cdlArm();
       cdlRefreshUi();
@@ -401,3 +401,13 @@
       return true;
     }
   
+
+    // Closing the tab gives the page no last word: hand the host what the core has on the ways out the
+    // page does see (the click on the tab's X blurs it first, Cmd/Ctrl+W is a key it sees, pagehide when
+    // it is torn down). The host merges it at once and writes it when the panel closes.
+    window.addEventListener('blur', () => { cdlDrain(); });
+    window.addEventListener('pagehide', () => { cdlDrain(); });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) cdlDrain(); });
+    document.addEventListener('keydown', evt => {
+      if ((evt.metaKey || evt.ctrlKey) && (evt.key === 'w' || evt.key === 'W')) cdlDrain();
+    }, true);

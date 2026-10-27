@@ -152,6 +152,7 @@ class TasHost {
 
     _recStart(msg: TasMessage): void {
         this._recEnd();
+        this.post({ command: 'emuAlert', key: 'tas-save', text: '' });
         if (!this._config().get('tas.autoRecord', true)) return;
         const started = new Date();
         const file = path.join(this.dir(), `${safeName(msg.name)}_${stamp(started)}.evsmv`);
@@ -171,7 +172,11 @@ class TasHost {
             }
             fs.writeSync(rec.fd, rleFrames(packRewinds(msg.text)));
         } catch (e) {
-            this.log('TAS recording write failed: ' + errText(e), true);
+            // A lost batch would desync the rest, so the recording ends here; the page and the user hear of it.
+            const text = `REPLAY RECORDING STOPPED: cannot write ${path.basename(rec.file)}: ${errText(e)}. Play from here on is not recorded.`;
+            this.log(text, true);
+            this.post({ command: 'emuAlert', key: 'tas-save', text });
+            vscode.window.showErrorMessage('Everscript: ' + text);
             this.rec = null;
             return;
         }
@@ -248,7 +253,8 @@ class TasHost {
             const romFile = path.join(this.dir(), '.verify-rom.smc');
             if (!fs.existsSync(romFile) || fs.statSync(romFile).size !== this.rom.length) fs.writeFileSync(romFile, this.rom);
             this.post({ command: 'tasStatus', text: `checking the recording (${frames} frames) on a headless copy...` });
-            const r = await verifyMovieSafely({ node: process.execPath, movie: rec.file, rom: romFile });
+            const core = this.coreWasmPath().replace(/\.wasm$/i, '.js');
+            const r = await verifyMovieSafely({ node: process.execPath, movie: rec.file, rom: romFile, core: fs.existsSync(core) ? core : undefined });
             if (r.ok) {
                 this.post({ command: 'tasStatus', text: `replay check OK: ${frames} frames reproduce every checksum` });
                 this.log(`TAS replay check OK (${frames} frames, ${r.summary}${r.note ? '; ' + r.note : ''})`);

@@ -29,6 +29,11 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'evs-tas-verify-'));
         assert.deepStrictEqual(interpret(0, 'replayed 100 frames, 3 checksums matched\n', ''), { ok: true, summary: 'replayed 100 frames, 3 checksums matched' });
         assert.deepStrictEqual(interpret(2, '', 'DESYNC at frame 600: expected vram AB, got CD\n'), { ok: false, desync: { frame: 600, detail: 'expected vram AB, got CD' } });
         assert.ok(interpret(1, '', 'the movie was recorded on core X\n').error.includes('core X'));
+        // node's own crash (v0.353.5 on Windows: the package had no tools/cdl/replay.js) ends in "}" and "Node.js v24":
+        // the error is the line that names it.
+        const crash = 'node:internal/modules/cjs/loader:1228\n  throw err;\n  ^\n\nError: Cannot find module \'C:\\x\\tools\\cdl\\replay.js\'\n'
+            + '    at Module._resolveFilename (node:internal/modules/cjs/loader:1225:15) {\n  code: \'MODULE_NOT_FOUND\',\n  requireStack: []\n}\n\nNode.js v24.21.0\n';
+        assert.match(interpret(1, '', crash).error, /^Error: Cannot find module/);
         assert.strictEqual(latestState(path.join(tmp, 'nothing')), null);
     });
 

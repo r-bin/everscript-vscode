@@ -1,0 +1,11 @@
+    /* -- Alert over the screen (page/05-host-watch.js): nothing is being saved ------- */
+    #emu-alert {
+      position: absolute; top: 8px; left: 8px; right: 8px; z-index: 50;
+      padding: 8px 12px; border-radius: 4px; white-space: pre-line;
+      font: 12px/1.4 var(--vscode-font-family, sans-serif);
+      color: var(--vscode-inputValidation-errorForeground, #fff);
+      background: var(--vscode-inputValidation-errorBackground, #5a1d1d);
+      border: 1px solid var(--vscode-inputValidation-errorBorder, #be1100);
+      pointer-events: none;
+    }
+    #emu-alert[hidden] { display: none; }

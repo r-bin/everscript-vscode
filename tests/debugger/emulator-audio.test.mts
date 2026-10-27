@@ -148,6 +148,15 @@ test('fast forward overfills the ring: the oldest samples go, the reserve stays 
     assert.strictEqual(ring.w - ring.r, 16383);
 });
 
+test('back from fast forward the sound is in time at once (v0.353.5 lagged ~280 ms for a minute)', () => {
+    const p = ringPlayer();
+    for (let i = 0; i < 100; i++) p.push();
+    const outL = new Float32Array(BLOCK), outR = new Float32Array(BLOCK);
+    assert.strictEqual(page.audioRingPull(p.ring, outL, outR, page.AUDIO_TARGET, page.AUDIO_MAX_SKEW), BLOCK);
+    assert.ok(p.ring.w - p.ring.r <= page.AUDIO_TARGET, `reserve after one block: ${p.ring.w - p.ring.r}`);
+    assert.strictEqual(play(60, 1, 20, p.push, p.pull, 0).short, 0, 'and plays on without a gap');
+});
+
 test('audioTakeFrame takes one frame from the fork core, and nothing from the vanilla core', () => {
     const heap = new Float32Array(8192);
     for (let i = 0; i < 2048; i++) { heap[1024 + i] = i; heap[1024 + 2048 + i] = -i; }

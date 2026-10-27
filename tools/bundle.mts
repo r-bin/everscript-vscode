@@ -63,6 +63,19 @@ const result = await build({
     legalComments: 'inline',
 });
 
+// The replay check's child process (platform/tas/verify.ts): tools/ is not in the package. No `dirnames`: it
+// runs from bundle/ and is given the core's path (EVS_CORE).
+await build({
+    entryPoints: [join(ROOT, 'tools', 'cdl', 'replay.js')],
+    outfile: join(ROOT, 'bundle', 'replay.js'),
+    bundle: true,
+    platform: 'node',
+    format: 'cjs',
+    target: 'node20',
+    logLevel: 'warning',
+    legalComments: 'inline',
+});
+
 const inputs = Object.keys(result.metafile.inputs);
 writeFileSync(join(ROOT, 'bundle', 'inputs.json'), JSON.stringify(inputs.sort(), null, 1) + '\n');
 

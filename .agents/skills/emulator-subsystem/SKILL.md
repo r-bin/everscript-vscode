@@ -94,6 +94,10 @@ running `snes9x_2005.js` keeps the old glue.
    - Frame pacing (`03b-render-loop.js`) is a fixed 60 Hz accumulator: a tick runs every frame due, up
      to 4 extra. The old remainder trick ran a 50 Hz screen at 50 FPS (slow, starved sound) and a
      144 Hz one at ~80 FPS. A new `_mainLoop()` call site must also call `audioTakeFrame` / `audioDropFrame`.
+     More than twice the reserve in the ring (fast forward fills it to ~370 ms) jumps back to the reserve:
+     the stretch alone played the sound ~280 ms late for a minute after every fast forward (v0.353.5).
+     Once a minute of play the page logs `Pace: <fps> FPS at speed <n>x, screen ~<hz> Hz, sound <ms> ms
+     behind` (`fps.js` → Emulator output): ask a tester for that line before theorising about speed.
 2. **Display Scaling**:
    - In standard SNES low-res mode (256×224), `GFX.Screen` pitch is 512 words.
    - `getScreenBuffer()` must scale 2× horizontally and vertically into the 512×448 RGBA buffer, so the active SNES frame fills the full canvas instead of rendering into the top-left quarter.

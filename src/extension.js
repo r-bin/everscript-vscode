@@ -19,8 +19,13 @@ function activate(context) {
     require('../dist/core/game-views').activateGameViews(context);
     // AI clients read the games' file systems over MCP (core/mcp/README.md).
     require('../dist/core/mcp').registerMcpServer(context);
+    // An emulator session a stopped extension host left open (core/emulator/session-watch.ts).
+    require('../dist/core/emulator/panel').checkLastSession(context);
 }
 
-function deactivate() {}
+// VS Code closing: the emulator's CDL and replay in memory go to disk first.
+function deactivate() {
+    require('../dist/core/emulator/panel').emergencySave();
+}
 
 module.exports = { activate, deactivate };

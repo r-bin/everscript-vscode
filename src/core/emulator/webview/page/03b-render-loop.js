@@ -254,6 +254,7 @@
       function frame(timestamp) {
         requestAnimationFrame(frame);
         if (!timestamp) timestamp = performance.now();
+        fpsRefresh();
         const elapsed = timestamp - lastFrameTimestamp;
         if (elapsed < FRAME_INTERVAL_MS - 2.0) return;
         const due = Math.floor((elapsed + 2.0) / FRAME_INTERVAL_MS);

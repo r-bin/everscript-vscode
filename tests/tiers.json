@@ -80,7 +80,8 @@
   "tests/mana/mana-rooms-dom.test.js",
   "tests/mana/mana-editor-dom.test.js",
   "tests/terra/terra-maps-dom.test.mts",
-  "tests/debugger/recorder.test.js"
+  "tests/debugger/recorder.test.js",
+  "tests/debugger/host-watch.test.js"
  ],
  "emulator": [
   "tests/memory/music-tab.test.js",

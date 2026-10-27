@@ -59,12 +59,15 @@
     // Fills outL/outR (one block); returns how many samples came from the ring.
     function audioRingPull(ring, outL, outR, target, maxSkew) {
       const n = outL.length;
-      const fill = ring.w - ring.r;
+      let fill = ring.w - ring.r;
       if (ring.priming && fill < target) {
         audioRingFade(ring, outL, outR, 0);
         return 0;
       }
       ring.priming = false;
+      // More than twice the reserve (fast forward fills the ring to 370 ms): the stretch would take
+      // a minute to play that off, and all that time the sound lags the picture. Jump to the reserve.
+      if (fill > 2 * target) { ring.r = ring.w - target; fill = target; }
       const skew = Math.max(-maxSkew, Math.min(maxSkew, maxSkew * (fill - target) / target));
       const step = 1 + skew;
       let pos = ring.r;

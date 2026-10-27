@@ -34,6 +34,7 @@ import { setBuildChannel, ensureBuildChannel as _ensureBuildChannel, log as _log
 import { recordRomUsage, setRomDescriber } from './rom-history';
 import { emu, _scriptDebug, _apu, _memory, CDL_WANTED_KEY, ALWAYS_RECORD_KEY, OPEN_MODE_KEY, _state, _saveState, _estimateDataUrlBytes, _clearReadyTimeout, _clearRomTimeout, _dispatchPendingRom, _resetPanelHtml, _sendRomFile, _playReplay } from './panel-state';
 import { onWebviewMessage } from './panel-messages';
+import { startSessionWatch, stopSessionWatch, checkLastSession } from './session-watch';
 import type { EmuOptions } from './panel-state';
 import type { ApuFrame } from './apu-stream';
 
@@ -143,8 +144,11 @@ function openEmulatorPanel(context: vscode.ExtensionContext, rom?: RomToOpen | n
 
     _resetPanelHtml();
     _log('Emulator panel opened');
+    startSessionWatch(context, (m: object) => { if (emu.panel) emu.panel.webview.postMessage(m); },
+      isRecorder ? 'everscript.cdlRecorder' : 'everscript.openEmulator');
 
     emu.panel.onDidDispose(() => {
+      stopSessionWatch();
       if (emu.cdl) { emu.cdl.dispose(); emu.cdl = null; }
       if (emu.tas) { emu.tas.dispose(); emu.tas = null; }
       _scriptDebug.panelClosed();
@@ -198,6 +202,13 @@ function flushRecording() {
   if (emu.cdl) emu.cdl.flushNow();
 }
 
+/** The extension deactivates (VS Code closes): save what is in memory, close the session cleanly. */
+function emergencySave() {
+  if (emu.cdl) emu.cdl.flushNow();
+  if (emu.tas) emu.tas.dispose();
+  stopSessionWatch();
+}
+
 /** The CDL library changed on disk (bundle import): the open panel reads it again. */
 function reloadRecording() {
   if (emu.cdl) emu.cdl.reload();
@@ -249,5 +260,5 @@ function getLogHistory() {
   };
 }
 
-export { configureEmulator, playReplay, flushRecording, reloadRecording, recordingFolders, openEmulatorPanel, _sendRomFile as sendRomFile, injectEverscript, getScriptDebugBridge, runRomFile, getCurrentRom, readMemory, getStatus, apuStream, getLogHistory };
+export { configureEmulator, playReplay, flushRecording, emergencySave, checkLastSession, reloadRecording, recordingFolders, openEmulatorPanel, _sendRomFile as sendRomFile, injectEverscript, getScriptDebugBridge, runRomFile, getCurrentRom, readMemory, getStatus, apuStream, getLogHistory };
 export type { OpenEmulatorOptions };

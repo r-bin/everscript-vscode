@@ -45,8 +45,10 @@ interface WireDelta {
 }
 interface CdlMessage { command: string; delta?: WireDelta; kind?: string; query?: string }
 
-const IDLE_FLUSH_MS = 60 * 1000;
-const MAX_FLUSH_MS = 5 * 60 * 1000;
+// A dead extension host loses what it merged since the last write: at most MAX_FLUSH_MS of play
+// (5 min before v0.355.2). A write of a big library takes ~0.4 s (2.2 M script xrefs; Windows slower).
+const IDLE_FLUSH_MS = 20 * 1000;
+const MAX_FLUSH_MS = 2 * 60 * 1000;
 // lda [$82] / inc $82 / and #$00FF / asl / tax / jsr ($xxxx,x): the script interpreter's opcode fetch
 const SCRIPT_FETCH_PATTERN = Buffer.from([0xA7, 0x82, 0xE6, 0x82, 0x29, 0xFF, 0x00, 0x0A, 0xAA, 0xFC]);
 const SCRIPT_POINTER_WRAM = 0x82;
@@ -93,6 +95,8 @@ class CdlHost {
     firstUnflushed = 0;
     describeScript: ((address: number) => string) | null = null;
     droppedWarned = 0;
+    /** The last write's error while writes fail (shown over the screen and once as a notification). */
+    flushError = '';
 
     /**
      * @param {string} storageDir  extension global storage path
@@ -174,8 +178,20 @@ class CdlHost {
         try {
             const written = this.lib.flush();
             if (written.length) this.log(`CDL flushed: ${written.join(', ')}`);
+            if (this.flushError) {
+                this.flushError = '';
+                this.post({ command: 'emuAlert', key: 'cdl-save', text: '' });
+                this.log('CDL saved again');
+            }
+            this._status('saved ' + new Date().toLocaleTimeString());
         } catch (err) {
-            this.log('CDL flush failed: ' + (err instanceof Error ? err.message : err), true);
+            // The data stays in memory (dirty), so the next write tries again; until one works, say so loudly.
+            const why = err instanceof Error ? err.message : String(err);
+            this.log('CDL flush failed: ' + why, true);
+            this.post({ command: 'emuAlert', key: 'cdl-save', text: `CDL NOT SAVED: ${why}. It stays in memory and the next save tries again; do not close the emulator until this goes away.` });
+            if (why !== this.flushError) vscode.window.showErrorMessage(`Everscript: the CDL recording could not be saved: ${why}`);
+            this.flushError = why;
+            this._scheduleFlush();
         }
     }
 

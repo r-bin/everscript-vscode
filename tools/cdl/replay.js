@@ -27,7 +27,8 @@ const { parseMovie, groupEvents, wramCrc, spaceCrcs, spacesLine, SPACES, crcText
 // toggle, injected script): the game's own stores right after one see values it would not produce by itself.
 const CHEAT_WINDOW = 600;
 
-const CORE = path.join(__dirname, '../../src/core/emulator/core/snes9x2005-wasm/snes9x_2005.js');
+// EVS_CORE: the core the extension runs (platform/tas/verify.ts); bundled as bundle/replay.js the repo path below is wrong.
+const CORE = process.env.EVS_CORE || path.join(__dirname, '../../src/core/emulator/core/snes9x2005-wasm/snes9x_2005.js');
 const arg = (name, dflt) => { const i = process.argv.indexOf('--' + name); return i < 0 ? dflt : process.argv[i + 1]; };
 const flag = name => process.argv.includes('--' + name);
 

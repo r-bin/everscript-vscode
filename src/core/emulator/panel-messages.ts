@@ -20,6 +20,17 @@ function onWebviewMessage(msg: PageMessage) {
     if (_memory.handle(msg)) return;
     if (_apu.handle(msg)) return;
     switch (msg.command) {
+        // The page heard nothing from this host for a while and paused the game (session-watch.ts):
+        // the host was busy, or it is the page another host left.
+        case 'hostLost':
+            _log(`The page heard nothing from the extension host for ${Math.round((msg.silentMs || 0) / 1000)} s and paused the game`, true);
+            break;
+
+        // Once a minute while a ROM runs (webview/fps.js): how fast it really ran, for reports of a wrong speed.
+        case 'emuPace':
+            _log(`Pace: ${msg.fps} FPS at speed ${msg.speed}x (${msg.ratio}x real), screen ~${msg.hz} Hz, sound ${msg.soundMs} ms behind`);
+            break;
+
         case 'ready':
         emu.webviewReady = true;
         _apu.pageReady();

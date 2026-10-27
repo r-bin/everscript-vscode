@@ -8,6 +8,23 @@
 
 ## 1. Active Open Tasks
 
+### 1.0 Long recording sessions (Windows tester, v0.353.5, 2026-10-25)
+- **Status: 🔴 partly fixed in v0.355.2**
+- What happened: a 5 h session kept 1 h. The extension host hung at 19:43 and restarted at 19:57
+  (exit code 0, cause unknown); the emulator page played on for 4 h with nothing on the other end.
+  Fixed: heartbeat + the page pauses itself (`page/05-host-watch.js`), a restarted host offers to
+  reopen (`session-watch.ts`), loud save failures, CDL drains on blur/close and saves at least every 2 min,
+  deactivate saves, the replay check ships and hides its console, sound back in time after fast forward.
+- 🔴 **Replay desync after a recorded memory write.** The tester's movie (`…_2026-10-25_19-24-07.evsmv`)
+  replays in sync up to frame 79887, where it recorded `W|` writes to `$7FFF00…`/`$7E299A…` (an injected
+  script, it seems), then desyncs at the checksum of frame 79920. A write recorded at a frame boundary
+  that does not land at the same point when replayed: reproduce with `tools/cdl/replay.js --until 79920`.
+- 🟡 **"4x looks like 10x on a 144 Hz screen":** not reproduced; the pacing simulates to 4.00x at 144 and
+  165 Hz with frames up to 4 ms. The `Pace:` line in the Emulator log (once a minute) will tell.
+- 🟡 **A page cut off from its host loses up to 20 s of CDL record streams** (xrefs, hits: deltas). A
+  rescue path (the page hands its data to the new host) needs a channel VS Code does not give.
+- 🟡 **Flushing the library blocks the host** (~0.4 s for 2.2 M script xrefs on a Mac, slower on Windows).
+
 ### 1.1 Live Painting from Map Editor into Running Game
 - **Status: 🟡 planned, not started**
 - **Goal:** Drawing metatiles in the Map Editor writes them straight into the running game without rebuilding the ROM or restarting emulation.

@@ -19,10 +19,10 @@ bytes are tables, how WRAM is laid out, and what each function touches.
 ## 1. Pipeline
 
 ```text
-core (WASM, per instruction / access)        webview (every 15 s)        host (Node)
+core (WASM, per instruction / access)        webview (every 5 s)         host (Node)
   cdl.c        rom.cdl/ext, edges, xrefs, ─► cdl-view.ts drains only ──► library.ts + library-ext.ts merge
-               pcstats, wvals, DMA/HDMA/$2180    changed chunks /           flush 60 s after last change
-  cdl-wram.c   wflags, script-xrefs, WRAM code   new table entries          (max every 5 min, at once on pause/stop)
+               pcstats, wvals, DMA/HDMA/$2180    changed chunks /           flush 20 s after last change
+  cdl-wram.c   wflags, script-xrefs, WRAM code   new table entries          (max every 2 min, at once on pause/stop/close)
   cdl-count.c  hit counters (deltas)                                        ▼
   cdl-flow.c   shadow call stack -> rets       asar-export ─► banks/, tables/ (assets), ram/enums/structs.asm,
   cdl-regs.c   DB / D, pointer bases + Y                      functions.json, recomp/cfg (snesrecomp), spc/aram.cdl
@@ -33,6 +33,11 @@ core (WASM, per instruction / access)        webview (every 15 s)        host (N
 
 - **Off by default** and **paused = idle** (no tick, no drain, no write).
 - **Never touch the disk per instruction.** Record into WASM memory; drain only dirty data.
+- **Never lose a session silently.** A flush that fails puts `CDL NOT SAVED` over the screen (`emuAlert`) and
+  retries; the page drains on blur / pagehide / Ctrl+W; deactivate flushes; a page cut off from its host
+  pauses itself (`session-watch.ts`, `page/05-host-watch.js`). A webview outlives its extension host and a
+  restarted host never takes it back: v0.353.5 kept 1 h of a 5 h Windows session. A flush of a big library
+  (2.2 M script xrefs, ~650 MB heap) blocks the host ~0.4 s on a Mac: keep flushes off the hot path.
 - **Every field merges commutatively and idempotently** (OR, min, max, set union), so libraries
   from different sessions or players merge to the same result in any order. A new field needs
   a merge rule before it ships.
@@ -159,6 +164,9 @@ frame 1 does not reproduce the run) and `--from-state <file>` resumes from one (
 (`Z|` lines, one per minute of hand play, `movieStates()` in `movie.ts`); states hold ROM-derived memory and stay out of git. While you record by hand the
 extension replays the session headless every `everscript.tas.verifyEveryMinutes` (default 30) and reports OK / desync
 (`src/platform/tas/verify.ts`); a failure after resuming from a state is repeated from power-on before it is believed.
+The package has no `tools/`: the check runs `bundle/replay.js` (`tools/bundle.mts`; core path in `EVS_CORE`),
+spawned with `windowsHide` (Code.exe is a GUI program: without it every check opened a console window).
+Until v0.355.2 every check in an installed extension failed on the missing tool, unnoticed.
 
 ## 6. What each goal still needs
 
