@@ -365,6 +365,56 @@ function targetingModes(): EnumList {
     };
 }
 
+const ARMOR_RECORDS_ADDR = 0xc43b02;
+const ARMOR_RECORDS_NUM = 40;
+const ARMOR_STRIDE_BYTES = 10;
+
+function armorEnums(rom: Uint8Array): EnumList {
+    const entries: Entry[] = [];
+    const ERAS = ['Prehistoric', 'Antiquity', 'Medieval', 'Omnitopia'];
+    for (let i = 0; i < ARMOR_RECORDS_NUM; i++) {
+        const at = maps.snesToRom(ARMOR_RECORDS_ADDR + i * ARMOR_STRIDE_BYTES);
+        const pdef = maps.read16(rom, at);
+        const mdef = maps.read16(rom, at + 2);
+        const namePtr = 0xc40000 | maps.read16(rom, at + 4);
+        const name = text(rom, namePtr);
+        const icon = maps.read16(rom, at + 8);
+        const slot = i < 12 ? 'Chest' : i < 24 ? 'Helmet' : i < 36 ? 'Glove' : 'Collar';
+        const eraIdx = i < 36 ? Math.floor((i % 12) / 3) : (i - 36);
+        const era = ERAS[eraIdx] || 'Special';
+        entries.push({
+            cells: [h(i, 2), name, slot, era, String(pdef), String(mdef), h(icon, 4)],
+            vfs: bus(ARMOR_RECORDS_ADDR),
+        });
+    }
+    return {
+        id: 'armor-items', group: 'Equipment', title: 'Equippable armor catalog',
+        columns: ['id', 'gear name', 'slot', 'era', 'p. def', 'm. def', 'ring icon'],
+        entries,
+        source: 'ROM $C4:3B02 (40 records × 10 bytes) read by calc_equipped_armor_defense ($8E:99D2) and ring menu status compositor.',
+    };
+}
+
+const CURRENCIES_DATA = [
+    { code: 0x00, name: 'Talons', era: 'Prehistoric', addr: 0x7e2309 },
+    { code: 0x03, name: 'Jewels', era: 'Antiquity', addr: 0x7e230c },
+    { code: 0x06, name: 'Gold Coins', era: 'Medieval', addr: 0x7e230f },
+    { code: 0x09, name: 'Credits', era: 'Omnitopia', addr: 0x7e2312 },
+];
+
+function currenciesEnum(): EnumList {
+    const entries: Entry[] = CURRENCIES_DATA.map((c) => ({
+        cells: [h(c.code, 2), c.name, c.era, h(c.addr, 6), 'Opcode 0x7E ($8C:D5AA)'],
+        vfs: bus(c.addr),
+    }));
+    return {
+        id: 'currencies', group: 'Economy', title: 'Era currencies',
+        columns: ['code', 'currency', 'era', 'wram address', 'conversion handler'],
+        entries,
+        source: 'WRAM $7E:2309..$7E:2314 (3 bytes per currency) and script opcode 0x7E currency converter ($8C:D5AA).',
+    };
+}
+
 /** Every list the view shows. `icons` are the formulas' ring-menu icons (PNG data URIs) in formula order. */
 function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | null)[] = []): EnumList[] {
     return [characterBlobs(rom, chars), recordFields(), contactHandlers(rom, chars), aiSelectors(rom, chars),
@@ -372,7 +422,8 @@ function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | nu
         wramStates(), directions(), collisionTypes(),
         statusEffects(), weaponClassesEnum(), ringIconCategories(),
         musicTracks(), soundEffects(), scriptOpcodes(),
-        callBeadSpells(rom), targetingModes()];
+        callBeadSpells(rom), targetingModes(),
+        armorEnums(rom), currenciesEnum()];
 }
 
 export { enumsModel };

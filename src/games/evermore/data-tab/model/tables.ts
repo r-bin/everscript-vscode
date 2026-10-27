@@ -394,6 +394,34 @@ function formulaTargetsTable(rom: Uint8Array): Table {
     };
 }
 
+const ARMOR_RECORDS_TABLE = 0xc43b02;
+const ARMOR_RECORDS_COUNT = 40;
+const ARMOR_RECORD_STRIDE = 10;
+
+function armorTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < ARMOR_RECORDS_COUNT; i++) {
+        const at = snesToRom(ARMOR_RECORDS_TABLE + i * ARMOR_RECORD_STRIDE);
+        const pdef = read16(rom, at);
+        const mdef = read16(rom, at + 2);
+        const namePtr = 0xc40000 | read16(rom, at + 4);
+        const name = text(rom, namePtr);
+        const icon = read16(rom, at + 8);
+        const category = i < 12 ? 'Chest Armor' : i < 24 ? 'Helmet' : i < 36 ? 'Armband / Glove' : 'Dog Collar';
+        rows.push([i, name, category, pdef, mdef, '$' + hex(icon, 4)]);
+        pts.push([i, pdef]);
+    }
+    return {
+        id: 'armor', group: 'Equipment', title: 'Armor & collar defense attributes', addr: '$C4:3B02',
+        note: 'The 40 equippable defense armor records ($C4:3B02, 10 bytes each): physical defense, magic defense, name pointer, and ring icon selector ($00A0..$00EE). Read by defense calculator $8E:99D2.',
+        columns: ['id', 'name', 'category', 'p. defense', 'm. defense', 'icon id'],
+        rows,
+        chart: { x: 'armor id', y: 'p. defense', series: [{ name: 'physical defense', points: pts }] },
+        vfs: vfs(ARMOR_RECORDS_TABLE),
+    };
+}
+
 /** Every table the view lists: only the ones decoded into readable values. */
 function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Table[] {
     return [
@@ -402,6 +430,7 @@ function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Ta
         alchemyGrowthTable(rom), boyWeaponsTable(rom),
         callBeadsTable(rom), fontWidthsTable(rom),
         animateRecordsTable(rom), projectilesTable(rom), formulaTargetsTable(rom),
+        armorTable(rom),
     ];
 }
 

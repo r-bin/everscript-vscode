@@ -28,6 +28,7 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
 | `$C4:0C02` | `0x220C02` | `tbl_font_glyph_widths` | 1 byte | 95 | 95 B | Proportional character glyph pixel widths (ASCII 32..126) |
 | `$C4:3874` | `0x223874` | `tbl_alchemy_formula_costs` | 6 bytes | 35 | 210 B | Ingredient requirements, count quantities, and formula base damage |
 | `$C4:38E6` | `0x2238E6` | `tbl_boy_weapons` | 36 bytes | 15 | 540 B | Boy melee weapon master records (attack power, knockback) |
+| `$C4:3B02` | `0x223B02` | `tbl_armor_records` | 10 bytes | 40 | 400 B | Master armor and collar attributes (pdef, mdef, name, icon) |
 | `$C4:3C92` | `0x223C92` | `tbl_animate_id_records` | 2 bytes | 212 | 424 B | Script `animate(entity, mode, id)` ID to bank `$C4` record pointer |
 | `$C4:5B4A` | `0x225B4A` | `tbl_weapon_charge_xp` | 2 bytes | 16 | 32 B | Weapon charge tier level-up cumulative XP thresholds (tiers 0..3) |
 | `$C4:5B9C` | `0x225B9C` | `tbl_formula_xp_gain` | 1 byte | 10 | 10 B | Formula experience points awarded per cast at spell levels 0..9 |
@@ -153,3 +154,22 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
 ### 2.9 Call Bead Power Table (`$C4:5F17`)
 - **Format**: `uint16_t tbl_call_bead_powers[16]`, 2 bytes per invocation (32 bytes total).
 - **Purpose**: Base power and restoration coefficients for the 16 Call Bead spells (0 = utility/buff, 250..999 for damaging/recovery spells).
+
+### 2.10 Master Armor and Collar Database (`$C4:3B02`)
+- **Format**: `struct ArmorRecord tbl_armor_records[40]`, 10 bytes per piece (`0x0A` stride).
+- **Internal Layout**:
+  ```c
+  struct ArmorRecord {
+      uint16_t physical_defense;   /* +0x00: Base physical defense rating */
+      uint16_t magic_defense;      /* +0x02: Base magic defense rating */
+      uint16_t name_ptr;           /* +0x04: 16-bit far pointer in bank $C4 to zero-terminated ASCII name */
+      uint16_t desc_ptr;           /* +0x06: 16-bit far pointer in bank $C4 to description/status string */
+      uint16_t ring_icon_id;       /* +0x08: 16-bit ring menu icon selector ($00A0..$00EE) */
+  };
+  ```
+- **Categories**:
+  - `0..11`: 12 Chest Armors (Grass Vest through Virtual Vest)
+  - `12..23`: 12 Helmets (Grass Hat through Brainstorm)
+  - `24..35`: 12 Armbands & Gauntlets (Vine Bracelet through Virtual Glove)
+  - `36..39`: 4 Dog Collars (Leather Collar through Spot's Collar)
+- **Readers**: Equipment defense calculation routine `$8E:99D2` (`calc_equipped_armor_defense`) and ring menu status renderers.

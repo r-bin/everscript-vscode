@@ -110,6 +110,14 @@ typedef enum {
     STATUS_ATTACK_DOWN      = 0x0004, /* Reduced physical attack power */
     STATUS_CORROSION        = 0x0005  /* Continuous acidic armor degradation */
 } StatusEffectId;
+
+/* Era Currency Selector ($7E:2309..$7E:2314, Opcode 0x7E) */
+typedef enum {
+    CURRENCY_TALONS         = 0x00, /* Prehistoric Talons ($7E:2309) */
+    CURRENCY_JEWELS         = 0x03, /* Antiquity Jewels ($7E:230C) */
+    CURRENCY_GOLD_COINS     = 0x06, /* Medieval Gold Coins ($7E:230F) */
+    CURRENCY_CREDITS        = 0x09  /* Omnitopia Credits ($7E:2312) */
+} CurrencyId;
 ```
 
 ---
@@ -118,6 +126,10 @@ typedef enum {
 
 | Address | Size | Type / Identifier | Values & Meaning | Handlers & Readers |
 |---|---|---|---|---|
+| `$7E:2309` | 3 bytes | `CurrencyId`<br>`TALONS_BALANCE` | 24-bit integer (`0`..`16,777,215`) | Prehistoric shops, opcode `0x7E` |
+| `$7E:230C` | 3 bytes | `CurrencyId`<br>`JEWELS_BALANCE` | 24-bit integer (`0`..`16,777,215`) | Antiquity / Nobilia market, opcode `0x7E` |
+| `$7E:230F` | 3 bytes | `CurrencyId`<br>`GOLD_COINS_BALANCE`| 24-bit integer (`0`..`16,777,215`) | Medieval shops, opcode `0x7E` |
+| `$7E:2312` | 3 bytes | `CurrencyId`<br>`CREDITS_BALANCE` | 24-bit integer (`0`..`16,777,215`) | Omnitopia terminal shops, opcode `0x7E` |
 | `$7E:0377` | 2 bytes | `WindowState`<br>`WINDOW_0_STATE` | `0` = Closed<br>`1` = Opening<br>`2` = Open<br>`3` = Closing | `func_CCAC8A` (state step)<br>Opcode `$2E` (poll close)<br>Opcode `$44`..`$47` (open) |
 | `$7E:03A3` | 2 bytes | `WindowState`<br>`WINDOW_1_STATE` | `0` = Closed<br>`1` = Opening<br>`2` = Open<br>`3` = Closing | Secondary window compositor (`func_CCB120`) |
 | `$7E:0B2B` | 2 bytes | `ChoiceBoxState`<br>`CHOICE_BOX_STATE` | `0` = Inactive<br>`1` = Opening<br>`2` = Active (awaiting joypad)<br>`3` = Confirmed | Dialogue engine choice selector (`func_CCB4E2`) |

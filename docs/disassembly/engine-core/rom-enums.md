@@ -244,3 +244,61 @@ Bitfield values loaded from `$C4:5BF5` to control targeting reticle behavior:
 | `0x2200` | `TARGET_ENVIRONMENT` | Environmental puzzle trigger | Levitate |
 | `0x0240` | `TARGET_REVEALER` | Invisible bridge / secret passage | Revealer |
 | `0x6600` | `TARGET_MENU` | Ring menu trigger invocation | Call Beads, Pouch |
+
+---
+
+## 10. Equippable Armor & Gear IDs (`ARMOR_ID`)
+
+The 40 pieces of defense equipment defined in table `$C4:3B02` with inventory tracking in `$7E:231D`..`$7E:2344`:
+
+```c
+typedef enum {
+    /* Chest Armors (0..11) */
+    ARMOR_GRASS_VEST            = 0,
+    ARMOR_SHELL_PLATE           = 1,
+    ARMOR_DINO_SKIN             = 2,
+    ARMOR_BRONZE_ARMOR          = 3,
+    ARMOR_STONE_VEST            = 4,
+    ARMOR_CENTURION_CAPE        = 5,
+    ARMOR_SILVER_MAIL           = 6,
+    ARMOR_GOLD_PLATED_VEST      = 7,
+    ARMOR_SHINING_ARMOR         = 8,
+    ARMOR_MAGNA_MAIL            = 9,
+    ARMOR_TITANIUM_VEST         = 10,
+    ARMOR_VIRTUAL_VEST          = 11,
+
+    /* Helmets (12..23) */
+    HELM_GRASS_HAT              = 12,
+    HELM_SHELL_HAT              = 13,
+    HELM_DINO_HELM              = 14,
+    HELM_BRONZE_HELMET          = 15,
+    HELM_OBSIDIAN_HELM          = 16,
+    HELM_CENTURION_HELM         = 17,
+    HELM_TITANS_CROWN           = 18,
+    HELM_DRAGON_HELM            = 19,
+    HELM_KNIGHTS_HELM           = 20,
+    HELM_LIGHTNING_HELM         = 21,
+    HELM_OLD_RELIABLE           = 22,
+    HELM_BRAINSTORM             = 23,
+
+    /* Armbands / Gauntlets (24..35) */
+    GLOVE_VINE_BRACELET         = 24,
+    GLOVE_MAMMOTH_GUARD         = 25,
+    GLOVE_CLAW_GUARD            = 26,
+    GLOVE_SERPENT_BRACER        = 27,
+    GLOVE_BRONZE_GAUNTLET       = 28,
+    GLOVE_GLOVES_OF_RA          = 29,
+    GLOVE_IRON_BRACER           = 30,
+    GLOVE_MAGICIANS_RING        = 31,
+    GLOVE_DRAGONS_CLAW          = 32,
+    GLOVE_CYBERGLOVE            = 33,
+    GLOVE_PROTECTOR_RING        = 34,
+    GLOVE_VIRTUAL_GLOVE         = 35,
+
+    /* Dog Collars (36..39) */
+    COLLAR_LEATHER              = 36,
+    COLLAR_SPIKY                = 37,
+    COLLAR_DEFENDER             = 38,
+    COLLAR_SPOTS                = 39
+} ArmorId;
+```
