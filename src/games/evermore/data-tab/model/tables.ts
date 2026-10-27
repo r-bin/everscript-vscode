@@ -264,12 +264,54 @@ function boyWeaponsTable(rom: Uint8Array): Table {
     };
 }
 
+const CALL_BEADS_TABLE = 0xc45f17;
+const CALL_BEADS_COUNT = 16;
+const FONT_WIDTHS_TABLE = 0xc40c02;
+
+function callBeadsTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < CALL_BEADS_COUNT; i++) {
+        const at = snesToRom(CALL_BEADS_TABLE + i * 2);
+        const power = read16(rom, at);
+        rows.push([i, 'Call Bead ' + i, power]);
+        pts.push([i, power]);
+    }
+    return {
+        id: 'call-beads', group: 'Alchemy', title: 'Call Bead spell powers', addr: '$C4:5F17',
+        note: 'Base spell damage and recovery coefficients for all 16 Call Bead spells ($C4:5F17, 16 words).',
+        columns: ['id', 'spell invocation', 'base power'],
+        rows,
+        chart: { x: 'spell id', y: 'power', series: [{ name: 'power', points: pts }] },
+        vfs: vfs(CALL_BEADS_TABLE),
+    };
+}
+
+function fontWidthsTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let c = 32; c <= 126; c++) {
+        const width = rom[snesToRom(FONT_WIDTHS_TABLE + c)];
+        rows.push(['$' + hex(c, 2), String.fromCharCode(c), width]);
+        pts.push([c, width]);
+    }
+    return {
+        id: 'font-widths', group: 'UI', title: 'Dialogue proportional font character widths', addr: '$C4:0C02',
+        note: 'Proportional pixel widths for printable ASCII characters 0x20..0x7E ($C4:0C02, 128 bytes): read by dialogue text streamer $8C:A753 to advance window cursor X coordinates.',
+        columns: ['code', 'glyph', 'width px'],
+        rows,
+        chart: { x: 'ascii code', y: 'width', series: [{ name: 'width px', points: pts }] },
+        vfs: vfs(FONT_WIDTHS_TABLE),
+    };
+}
+
 /** Every table the view lists: only the ones decoded into readable values. */
 function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Table[] {
     return [
         xpTable(rom), statsTable(rom, names), sineTable(rom), boomerangTable(rom),
         formulaCostsTable(rom), dogFormsTable(rom), weaponLevelsTable(rom),
         alchemyGrowthTable(rom), boyWeaponsTable(rom),
+        callBeadsTable(rom), fontWidthsTable(rom),
     ];
 }
 

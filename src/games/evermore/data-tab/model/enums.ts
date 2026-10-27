@@ -7,7 +7,7 @@
 
 import * as maps from '../../maps';
 import { CHARACTER_TABLE, CHARACTER_STRIDE } from '../../maps/character-record';
-import { getMapName, getMapArea, FUNCTION_BY_ADDRESS, MUSIC } from '../../localizations';
+import { getMapName, getMapArea, FUNCTION_BY_ADDRESS, MUSIC, SOUNDS } from '../../localizations';
 import { entries as knowledgeEntries } from '../../localizations/knowledge';
 import { hex } from '../../../../platform';
 import type { CharacterInfo } from './palettes';
@@ -280,12 +280,33 @@ function musicTracks(): EnumList {
     };
 }
 
+function soundEffects(): EnumList {
+    return {
+        id: 'sounds', group: 'Audio', title: 'Sound effects (opcodes $30..$32)', columns: ['id', 'sound effect name'],
+        entries: SOUNDS.map((s) => ({ cells: [h(s.id, 2), s.name] })),
+        source: 'The 54 master sound effects mapped to opcodes $30..$32 and the audio arbitration queue at $8C:82DC.',
+    };
+}
+
+function scriptOpcodes(): EnumList {
+    const ops = knowledgeEntries('opcodes');
+    return {
+        id: 'opcodes', group: 'Scripts', title: 'Script VM opcodes ($00..$FF)', columns: ['opcode', 'everscript command', 'description'],
+        entries: ops.map((o) => ({
+            cells: [h(o.addr, 2), ([] as string[]).concat(o.meta.everscript as string[] || []).join(', ') || '—', o.title],
+            vfs: 'soe://rom/assets/scripts/opcodes/' + hex(o.addr, 2).toLowerCase() + '.md',
+        })),
+        source: 'The 256 script VM bytecode instructions executed by func_CCD7D1 ($8C:D7E1), documented in opcodes/ and soe://rom/assets/scripts/opcodes/.',
+    };
+}
+
 /** Every list the view shows. `icons` are the formulas' ring-menu icons (PNG data URIs) in formula order. */
 function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | null)[] = []): EnumList[] {
     return [characterBlobs(rom, chars), recordFields(), contactHandlers(rom, chars), aiSelectors(rom, chars),
         formulas(rom, icons), castIds(rom), ingredients(rom), rooms(rom),
         wramStates(), directions(), collisionTypes(),
-        statusEffects(), weaponClassesEnum(), ringIconCategories(), musicTracks()];
+        statusEffects(), weaponClassesEnum(), ringIconCategories(),
+        musicTracks(), soundEffects(), scriptOpcodes()];
 }
 
 export { enumsModel };
