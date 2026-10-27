@@ -211,12 +211,43 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0A89` | 2 bytes | `DOG_BASE_MAGIC_DEFENSE` | Save | Dog base magic defense stat. |
 | `$7E:0A8B` | 2 bytes | `DOG_EQUIPPED_COLLAR` | Save | ID of currently equipped Dog collar / form item (Leather Collar, Spiky Collar, etc.). |
 | `$7E:0A9A` | 2 bytes | `DOG_LEVEL` | Save | Dog companion character level (1..99). |
+| `$7E:0AA2` | 2 | `DOG_FORM_BASE_DEFENSE` | Room | Companion Stats: Active Dog form base physical defense rating ($8F:9471). |
+| `$7E:0AA4` | 2 | `DOG_FORM_BASE_MAGIC_ATK` | Room | Companion Stats: Active Dog form base magic attack power ($8F:9471). |
+| `$7E:0AA6` | 2 | `DOG_FORM_BASE_HIT_RATE` | Room | Companion Stats: Active Dog form base accuracy / hit rate ($8F:9471). |
+| `$7E:0AA8` | 2 | `DOG_FORM_BASE_EVADE_RATE` | Room | Companion Stats: Active Dog form base evasion / dodge rate ($8F:9471). |
+| `$7E:0AAA` | 2 | `DOG_FORM_BASE_MAGIC_DEF` | Room | Companion Stats: Active Dog form base magic defense rating ($8F:9471). |
+| `$7E:0AAC` | 2 | `DOG_FORM_SPEED_FACTOR` | Room | Companion Stats: Active Dog form walking/running movement speed scale factor ($8F:9471). |
+| `$7E:0AAE` | 2 | `DOG_FORM_SCENT_RADIUS` | Room | Companion Stats: Active Dog form hidden alchemy ingredient sniffing detection radius ($8F:9471). |
+| `$7E:0AB0` | 2 | `DOG_FORM_CHARGE_MULT` | Room | Companion Stats: Active Dog form charge attack damage multiplier ($8F:9471). |
+| `$7E:0AB8` | 2 | `DOG_FORM_ATTACK_RANGE` | Room | Companion Stats: Active Dog form physical bite/dash attack hitbox range ($8F:9471). |
 | `$7E:0ABA` | 1 byte | `EQUIPPED_WEAPON` | Save | Equipped weapon index (bone, axe, spear, bazooka, etc.). |
 | `$7E:0AC6` | 2 bytes | `CURRENCY_TALONS` | Save | Prehistoria realm currency balance (Talons). |
 | `$7E:0AC9` | 2 bytes | `CURRENCY_JEWELS` | Save | Antiqua realm currency balance (Jewels). |
 | `$7E:0ACC` | 2 bytes | `CURRENCY_GOLD` | Save | Gothica realm currency balance (Gold Coins). |
 | `$7E:0ACF` | 2 bytes | `CURRENCY_CREDITS` | Save | Omnitopia realm currency balance (Credits). |
+| `$7E:0AD2` | 1 | `RING_EQUIPPED_ALCH_0` | Save | Alchemy Subsystem: Equipped formula ID in active Ring Menu quick-cast slot 0. |
+| `$7E:0AD3` | 1 | `RING_EQUIPPED_ALCH_1` | Save | Alchemy Subsystem: Equipped formula ID in active Ring Menu quick-cast slot 1. |
+| `$7E:0AD4` | 1 | `RING_EQUIPPED_ALCH_2` | Save | Alchemy Subsystem: Equipped formula ID in active Ring Menu quick-cast slot 2. |
+| `$7E:0AD5` | 1 | `RING_EQUIPPED_ALCH_3` | Save | Alchemy Subsystem: Equipped formula ID in active Ring Menu quick-cast slot 3. |
+| `$7E:0AD6` | 1 | `RING_EQUIPPED_ALCH_4` | Save | Alchemy Subsystem: Equipped formula ID in active Ring Menu quick-cast slot 4. |
+| `$7E:0AD7` | 1 | `RING_EQUIPPED_ALCH_5` | Save | Alchemy Subsystem: Equipped formula ID in active Ring Menu quick-cast slot 5. |
+| `$7E:0AD8` | 1 | `RING_EQUIPPED_ALCH_6` | Save | Alchemy Subsystem: Equipped formula ID in active Ring Menu quick-cast slot 6. |
+| `$7E:0AD9` | 1 | `RING_EQUIPPED_ALCH_7` | Save | Alchemy Subsystem: Equipped formula ID in active Ring Menu quick-cast slot 7. |
+| `$7E:0ADA` | 1 | `RING_EQUIPPED_ALCH_8` | Save | Alchemy Subsystem: Equipped formula ID in active Ring Menu quick-cast slot 8. |
 | `$7E:0ADB` | 2 bytes | `CURRENT_ROOM_ID` | Room | Active room / map ID index into master pointer table $9F:FDE7; passed to enter_room ($8E:E4E2). |
+| `$7E:0ADD` | 2 | `WEAPON_SKILL_FIST` | Save | Combat Progression: Unarmed fist combat proficiency level and experience ($0100 default). |
+| `$7E:0ADF` | 2 | `WEAPON_SKILL_BONE_CLUB` | Save | Combat Progression: Bone Club sword skill level and experience ($0100 default, $8F:805A). |
+| `$7E:0AE1` | 2 | `WEAPON_SKILL_SPIDER_CLAW` | Save | Combat Progression: Spider Claw sword skill level and experience ($0100 default, $8F:805D). |
+| `$7E:0AE3` | 2 | `WEAPON_SKILL_GLADIATOR_SWD` | Save | Combat Progression: Gladiator Sword skill level and experience ($0100 default, $8F:8060). |
+| `$7E:0AE5` | 2 | `WEAPON_SKILL_CRUSADER_SWD` | Save | Combat Progression: Crusader Sword skill level and experience ($0100 default, $8F:8063). |
+| `$7E:0AE7` | 2 | `WEAPON_SKILL_BONE_CRUSHER` | Save | Combat Progression: Bone Crusher axe skill level and experience ($0100 default, $8F:8066). |
+| `$7E:0AE9` | 2 | `WEAPON_SKILL_BRONZE_AXE` | Save | Combat Progression: Bronze Axe skill level and experience ($0100 default, $8F:8069). |
+| `$7E:0AEB` | 2 | `WEAPON_SKILL_KNIGHT_BASHER` | Save | Combat Progression: Knight Basher axe skill level and experience ($0100 default, $8F:806C). |
+| `$7E:0AED` | 2 | `WEAPON_SKILL_ATOM_SMASHER` | Save | Combat Progression: Atom Smasher axe skill level and experience ($0100 default, $8F:806F). |
+| `$7E:0AEF` | 2 | `WEAPON_SKILL_HORN_SPEAR` | Save | Combat Progression: Horn Spear skill level and experience ($0100 default, $8F:8072). |
+| `$7E:0AF1` | 2 | `WEAPON_SKILL_BRONZE_SPEAR` | Save | Combat Progression: Bronze Spear skill level and experience ($0100 default, $8F:8075). |
+| `$7E:0AF3` | 2 | `WEAPON_SKILL_LANCE` | Save | Combat Progression: Lance spear skill level and experience ($0100 default, $8F:8078). |
+| `$7E:0AF5` | 2 | `WEAPON_SKILL_LASER_LANCE` | Save | Combat Progression: Laser Lance spear skill level and experience ($0100 default, $8F:807B). |
 | `$7E:0B07` | 2 | `BOY_CHARGE_CAPACITY` | Save | Combat Mechanics: Boy stamina charge gauge capacity ($0100 = 100% full attack power threshold) |
 | `$7E:0B09` | 2 bytes | `BOY_AI_AGGRESSION_SETTING` | Save | Boy companion AI attack setting (0 = never attack, 1..5 = attack radius 50..130 pixels). |
 | `$7E:0B0B` | 2 bytes | `ROOM_STEP_TRIGGER` | Room | Pointer to step-on coordinate trigger descriptor table for current room. |
@@ -303,6 +334,10 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:1432` | 2 bytes | `ANIM_FRAME_HOLD_TIMER` | Frame | Remaining frame duration before advancing to next animated tile phase. |
 | `$7E:1434` | 2 bytes | `PENDING_TALK_TARGET_PTR` | Room | Pointer to NPC actor entity currently being spoken to or interacted with ($FFFF = none). |
 | `$7E:143A` | 2 bytes | `CAMERA_SECONDARY_ACTOR_PTR` | Room | Pointer to secondary actor entity considered for camera framing (Dog at $7E:4F37). |
+| `$7E:143E` | 1 | `DOG_SPRITE_ANIM_RECORD` | Room | Companion Mechanics: Low byte of current Dog sprite animation record offset ($8F:9471). |
+| `$7E:143F` | 1 | `DOG_SPRITE_ANIM_BANK` | Room | Companion Mechanics: High byte / ROM bank of current Dog sprite animation record. |
+| `$7E:1443` | 2 | `DOG_PORTRAIT_TILE_OFFSET` | Room | UI Mechanics: Dog HUD portrait sprite VRAM tile offset ($8F:9471). |
+| `$7E:1445` | 2 | `DOG_PORTRAIT_VRAM_TARGET` | Room | UI Mechanics: Dog HUD portrait VRAM destination word address ($8F:9471). |
 | `$7E:1518` | 2 bytes | `HDMA_ACTIVE_BANK_PTR` | Frame | Pointer to active double-buffer table feeding HDMA channel tables. |
 | `$7E:151A` | 36 bytes | `HDMA_BUFFER_A` | Frame | HDMA scanline table double-buffer Bank A (color gradients / perspective lines). |
 | `$7E:153E` | 36 bytes | `HDMA_BUFFER_B` | Frame | HDMA scanline table double-buffer Bank B (color gradients / perspective lines). |
@@ -342,9 +377,15 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:2261` | 2 bytes | `GAMEPLAY_SETTINGS_FLAGS` | Save | Gameplay settings bitmask (bit 0 = Dog HUD toggle, bit 1 = Boy HUD toggle, bit 2 = stereo sound). |
 | `$7E:2262` | 1 byte | `ACTIVE_BUFFS_MASK` | Room | Bitmask flags for active positive status buffs (Speed, Atlas, Defend). |
 | `$7E:2263` | 1 byte | `ACTIVE_DEBUFFS_MASK` | Room | Bitmask flags for active negative status debuffs (Poison, Confusion, Confounded). |
+| `$7E:2264` | 1 | `EQUIPMENT_OWNED_FLAGS_3` | Save | Inventory Subsystem: Equipment owned bitmask byte 3 (bits 0,1,2,3,4,5: Item IDs 14..19). |
 | `$7E:2284` | 2 bytes | `ALCHEMY_KNOWN_FLAGS` | Save | Bitmask flags tracking which alchemy formulas have been acquired by player. |
+| `$7E:22DA` | 1 | `WEAPONS_OWNED_FLAGS_0` | Save | Combat Subsystem: Weapon unlocked bitmask byte 0 (bits 1..7: Bone Club, Spider Claw, Horn Spear, Gladiator Sword, Bronze Axe, Bronze Spear, Crusader Sword). |
+| `$7E:22DB` | 1 | `WEAPONS_OWNED_FLAGS_1` | Save | Combat Subsystem: Weapon unlocked bitmask byte 1 (bits 0..5: Knight Basher, Lance, Neutron Blade, Atom Smasher, Laser Lance, Bazooka). |
+| `$7E:22E9` | 1 | `ROOM_TRANSITION_MODE` | Room | Engine State: Room transition execution mode flag ($80:8CD3). |
 | `$7E:22EA` | 2 bytes | `SYSTEM_STATE_FLAGS` | Save | Engine system flags; bit 2 (0x0004) marks cold boot SRAM initialization completed. |
 | `$7E:22EB` | 2 bytes | `ROOM_TRANSITION_FLAGS` | Room | Map flags; bit 2 (0x0004) triggers room enter script and tilemap reload. |
+| `$7E:22EC` | 1 | `ROOM_MUSIC_TRANSITION_FLAG` | Room | Engine State: Room change background music transition mode flag ($8C:D860). |
+| `$7E:22EE` | 2 | `ROOM_PRESERVED_FLAGS_WORD` | Room | Engine State: Preserved script and camera flags across room loading boundary ($8C:CEEF). |
 | `$7E:22FA` | 1 byte | `CAMERA_ZOOM_SCALE_X` | Room | Mode 7 horizontal scale factor for rooms utilizing perspective rendering (written to $211C). |
 | `$7E:22FB` | 1 byte | `CAMERA_ZOOM_SCALE_Y` | Room | Mode 7 vertical scale factor for rooms utilizing perspective rendering (written to $211C). |
 | `$7E:22FC` | 2 bytes | `DESERT_WRAP_Y_` | Save | Game script variable: DESERT WRAP Y? |
@@ -379,9 +420,52 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:231A` | 1 | `ING_SATCHEL_SLOT_5` | Save | Alchemy Satchel: Active inventory satchel quick-select slot 5 quantity |
 | `$7E:231B` | 1 | `ING_SATCHEL_SLOT_6` | Save | Alchemy Satchel: Active inventory satchel quick-select slot 6 quantity |
 | `$7E:231C` | 1 | `ING_SATCHEL_SLOT_7` | Save | Alchemy Satchel: Active inventory satchel quick-select slot 7 quantity |
+| `$7E:231D` | 1 | `ARMOR_QTY_CHEST_1_1` | Save | Armor Inventory: Owned quantity of Grass Vest armor piece (Armor ID 0x231D; max 6). |
+| `$7E:231E` | 1 | `ARMOR_QTY_CHEST_1_2` | Save | Armor Inventory: Owned quantity of Shell Armor armor piece (Armor ID 0x231E; max 6). |
+| `$7E:231F` | 1 | `ARMOR_QTY_CHEST_1_3` | Save | Armor Inventory: Owned quantity of Dino Skin armor piece (Armor ID 0x231F; max 6). |
+| `$7E:2320` | 1 | `ARMOR_QTY_CHEST_2_1` | Save | Armor Inventory: Owned quantity of Bronze Armor armor piece (Armor ID 0x2320; max 6). |
+| `$7E:2321` | 1 | `ARMOR_QTY_CHEST_2_2` | Save | Armor Inventory: Owned quantity of Stone Plate armor piece (Armor ID 0x2321; max 6). |
+| `$7E:2322` | 1 | `ARMOR_QTY_CHEST_2_3` | Save | Armor Inventory: Owned quantity of Centurion Cape armor piece (Armor ID 0x2322; max 6). |
+| `$7E:2323` | 1 | `ARMOR_QTY_CHEST_3_1` | Save | Armor Inventory: Owned quantity of Shining Armor armor piece (Armor ID 0x2323; max 6). |
+| `$7E:2324` | 1 | `ARMOR_QTY_CHEST_3_2` | Save | Armor Inventory: Owned quantity of Silver Mail armor piece (Armor ID 0x2324; max 6). |
+| `$7E:2325` | 1 | `ARMOR_QTY_CHEST_3_3` | Save | Armor Inventory: Owned quantity of Gold Plated armor piece (Armor ID 0x2325; max 6). |
+| `$7E:2326` | 1 | `ARMOR_QTY_CHEST_4_1` | Save | Armor Inventory: Owned quantity of Titanium Vest armor piece (Armor ID 0x2326; max 6). |
+| `$7E:2327` | 1 | `ARMOR_QTY_CHEST_4_2` | Save | Armor Inventory: Owned quantity of Virtual Suit armor piece (Armor ID 0x2327; max 6). |
+| `$7E:2328` | 1 | `ARMOR_QTY_CHEST_4_3` | Save | Armor Inventory: Owned quantity of Kevlar Vest armor piece (Armor ID 0x2328; max 6). |
+| `$7E:2329` | 1 | `ARMOR_QTY_HELM_1_1` | Save | Armor Inventory: Owned quantity of Grass Hat armor piece (Armor ID 0x2329; max 6). |
+| `$7E:232A` | 1 | `ARMOR_QTY_HELM_1_2` | Save | Armor Inventory: Owned quantity of Shell Hat armor piece (Armor ID 0x232A; max 6). |
+| `$7E:232B` | 1 | `ARMOR_QTY_HELM_1_3` | Save | Armor Inventory: Owned quantity of Dino Helm armor piece (Armor ID 0x232B; max 6). |
+| `$7E:232C` | 1 | `ARMOR_QTY_HELM_2_1` | Save | Armor Inventory: Owned quantity of Bronze Helm armor piece (Armor ID 0x232C; max 6). |
+| `$7E:232D` | 1 | `ARMOR_QTY_HELM_2_2` | Save | Armor Inventory: Owned quantity of Stone Helm armor piece (Armor ID 0x232D; max 6). |
+| `$7E:232E` | 1 | `ARMOR_QTY_HELM_2_3` | Save | Armor Inventory: Owned quantity of Centurion Helm armor piece (Armor ID 0x232E; max 6). |
+| `$7E:232F` | 1 | `ARMOR_QTY_HELM_3_1` | Save | Armor Inventory: Owned quantity of Knight Helm armor piece (Armor ID 0x232F; max 6). |
+| `$7E:2330` | 1 | `ARMOR_QTY_HELM_3_2` | Save | Armor Inventory: Owned quantity of Silver Helm armor piece (Armor ID 0x2330; max 6). |
+| `$7E:2331` | 1 | `ARMOR_QTY_HELM_3_3` | Save | Armor Inventory: Owned quantity of Gold Helm armor piece (Armor ID 0x2331; max 6). |
+| `$7E:2332` | 1 | `ARMOR_QTY_HELM_4_1` | Save | Armor Inventory: Owned quantity of Titanium Helm armor piece (Armor ID 0x2332; max 6). |
+| `$7E:2333` | 1 | `ARMOR_QTY_HELM_4_2` | Save | Armor Inventory: Owned quantity of Virtual Helm armor piece (Armor ID 0x2333; max 6). |
+| `$7E:2334` | 1 | `ARMOR_QTY_HELM_4_3` | Save | Armor Inventory: Owned quantity of Kevlar Helm armor piece (Armor ID 0x2334; max 6). |
+| `$7E:2335` | 1 | `ARMOR_QTY_GLOVE_1_1` | Save | Armor Inventory: Owned quantity of Vine Bracer armor piece (Armor ID 0x2335; max 6). |
+| `$7E:2336` | 1 | `ARMOR_QTY_GLOVE_1_2` | Save | Armor Inventory: Owned quantity of Shell Bracer armor piece (Armor ID 0x2336; max 6). |
+| `$7E:2337` | 1 | `ARMOR_QTY_GLOVE_1_3` | Save | Armor Inventory: Owned quantity of Dino Bracer armor piece (Armor ID 0x2337; max 6). |
+| `$7E:2338` | 1 | `ARMOR_QTY_GLOVE_2_1` | Save | Armor Inventory: Owned quantity of Bronze Gauntlet armor piece (Armor ID 0x2338; max 6). |
+| `$7E:2339` | 1 | `ARMOR_QTY_GLOVE_2_2` | Save | Armor Inventory: Owned quantity of Stone Arm armor piece (Armor ID 0x2339; max 6). |
+| `$7E:233A` | 1 | `ARMOR_QTY_GLOVE_2_3` | Save | Armor Inventory: Owned quantity of Centurion Guard armor piece (Armor ID 0x233A; max 6). |
+| `$7E:233B` | 1 | `ARMOR_QTY_GLOVE_3_1` | Save | Armor Inventory: Owned quantity of Knight Gauntlet armor piece (Armor ID 0x233B; max 6). |
+| `$7E:233C` | 1 | `ARMOR_QTY_GLOVE_3_2` | Save | Armor Inventory: Owned quantity of Silver Guard armor piece (Armor ID 0x233C; max 6). |
+| `$7E:233D` | 1 | `ARMOR_QTY_GLOVE_3_3` | Save | Armor Inventory: Owned quantity of Gold Gauntlet armor piece (Armor ID 0x233D; max 6). |
+| `$7E:233E` | 1 | `ARMOR_QTY_GLOVE_4_1` | Save | Armor Inventory: Owned quantity of Titanium Guard armor piece (Armor ID 0x233E; max 6). |
+| `$7E:233F` | 1 | `ARMOR_QTY_GLOVE_4_2` | Save | Armor Inventory: Owned quantity of Virtual Guard armor piece (Armor ID 0x233F; max 6). |
+| `$7E:2340` | 1 | `ARMOR_QTY_GLOVE_4_3` | Save | Armor Inventory: Owned quantity of Kevlar Guard armor piece (Armor ID 0x2340; max 6). |
+| `$7E:2341` | 1 | `ARMOR_QTY_COLLAR_1` | Save | Armor Inventory: Owned quantity of Leather Collar armor piece (Armor ID 0x2341; max 6). |
+| `$7E:2342` | 1 | `ARMOR_QTY_COLLAR_2` | Save | Armor Inventory: Owned quantity of Spiky Collar armor piece (Armor ID 0x2342; max 6). |
+| `$7E:2343` | 1 | `ARMOR_QTY_COLLAR_3` | Save | Armor Inventory: Owned quantity of Defender Collar armor piece (Armor ID 0x2343; max 6). |
+| `$7E:2344` | 1 | `ARMOR_QTY_COLLAR_4` | Save | Armor Inventory: Owned quantity of Spots Collar armor piece (Armor ID 0x2344; max 6). |
 | `$7E:2345` | 1 byte | `BAZOOKA_AMMO` | Save | Bazooka ammo counts and the selected ammo. \ |
+| `$7E:2346` | 1 | `AMMO_QTY_PARTICLE_BOMB` | Save | Ammunition Inventory: Owned quantity of Particle Bomb bazooka ammo (caps at 99). |
+| `$7E:2347` | 1 | `AMMO_QTY_CRYO_BLAST` | Save | Ammunition Inventory: Owned quantity of Cryo-Blast bazooka ammo. |
 | `$7E:2348` | 2 | `CURRENCY_WINDOW_ACTIVE_INDEX` | Frame | UI Subsystem: Active currency index for currency display window ($00 = Talons, $03 = Jewels, $06 = Coins, $09 = Credits; $8C:E628) |
 | `$7E:2349` | 2 | `EQUIPMENT_PROFILE_INDEX` | Room | Combat Subsystem: Active equipment/weapon profile index (indexes weapon stats table at $C4:3874, $8F:81C9) |
+| `$7E:234A` | 1 | `CALL_BEADS_CAPACITY` | Save | Inventory Mechanics: Maximum Call Beads inventory capacity limit. |
 | `$7E:234B` | 2 bytes | `HUT_HOUSE_TO_ENTER` | Save | Game script variable: Hut/house to enter |
 | `$7E:234F` | 2 bytes | `PRISON_TOWN_EXIT` | Save | Game script variable: PRISON TOWN EXIT |
 | `$7E:2352` | 2 bytes | `QUEEN_S_KEY_ON_DOG` | Save | Game script variable: Queen's Key on Dog |
@@ -390,6 +474,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:235C` | 1 | `SAVED_PPU_SUB_SCREEN_212D` | Frame | PPU Subsystem: Backup of Sub Screen register ($212D shadow) restored by opcode 0x82 ($8C:E20F) |
 | `$7E:235D` | 1 | `SAVED_PPU_COLOR_MATH_2131` | Frame | PPU Subsystem: Backup of Color Math designation register ($2131 shadow) restored by opcode 0x82 |
 | `$7E:235E` | 1 | `SAVED_PPU_ADD_SELECT_2130` | Frame | PPU Subsystem: Backup of Color Addition Select register ($2130 shadow) restored by opcode 0x82 |
+| `$7E:235F` | 1 | `WEAPON_RING_FILTER_MASK_0` | Frame | UI Subsystem: Weapon ring menu active filter bitmask byte 0 ($8F:9299). |
 | `$7E:2360` | 1 byte | `EQUIPPED_WEAPON_CLASS` | Save | Current weapon class (0=Sword, 2=Axe, 4=Spear, 6=Bazooka). |
 | `$7E:2363` | 1 byte | `DOG_FORM_INDEX` | Save | Active visual form and breed of dog companion (0=Wolf, 1=Greyhound, 2=Poodle, 3=Toaster). |
 | `$7E:238D` | 2 bytes | `CHANGE_MUSIC` | Save | Game script variable: CHANGE MUSIC |
@@ -621,6 +706,8 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:4F61` | 2 bytes | `DOG_COLLISION_RADIUS` | Room | Horizontal collision bounding box half-width for Dog entity (`+$2A` in entity struct). |
 | `$7E:4F71` | 2 bytes | `DOG_ELEVATION_Z` | Room | Dog entity current vertical elevation / Z-height off ground plane (`+$3A` in entity struct). |
 | `$7E:4F73` | 2 bytes | `DOG_MOVEMENT_VELOCITY` | Room | Movement velocity factor applied during Dog walking, running, and sniffing (`+$3C` in entity struct). |
+| `$7E:4FA5` | 2 | `DOG_FORM_SCRIPT_PTR_LOW` | Room | Companion Mechanics: Low 16-bit pointer to active Dog form animation walker script ($8F:9471). |
+| `$7E:4FA6` | 1 | `DOG_FORM_SCRIPT_PTR_BANK` | Room | Companion Mechanics: Bank byte of active Dog form animation walker script. |
 | `$7E:4FE6` | 50 bytes | `MAP_ANIM_FRAMES` | Room | Current animation frame indices for active map animated tile channels. |
 | `$7E:5018` | 50 bytes | `MAP_ANIM_TIMERS` | Room | Countdown hold delay timers for active map animated tile channels. |
 | `$7E:504A` | 50 bytes | `MAP_ANIM_CYCLES` | Room | Loop cycle iteration counters for active map animated tile channels. |
