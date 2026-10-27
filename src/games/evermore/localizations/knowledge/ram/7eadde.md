@@ -14,3 +14,4 @@ Each byte holds attributes for 4 sprites (2 bits per sprite):
 - Bit 0: 9th bit (MSB) of horizontal X position (for values > 255 or off-screen left)
 - Bit 1: Sprite size toggle (8x8 vs 16x16 / 32x32 based on OBSEL)
 Transferred to PPU OAM via DMA immediately after Low OAM during VBlank.
+

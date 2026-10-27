@@ -40,8 +40,12 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0034` | 2 bytes | `DP_DECOMP_PAYLOAD_SIZE` | Temp | Uncompressed payload size in bytes passed to decompression dispatcher (`$8C:988D`). |
 | `$7E:0036` | 3 bytes | `DP_DECOMP_SRC_FAR_PTR` | Temp | 24-bit pointer (`$36..$38`) to compressed source data stream. |
 | `$7E:003A` | 3 bytes | `DP_DECOMP_DST_FAR_PTR` | Temp | 24-bit pointer (`$3A..$3C`) to uncompressed destination memory buffer. |
+| `$7E:0059` | 2 bytes | `CAMERA_FINAL_X` | Frame | Final shaken camera horizontal scroll coordinate in pixels (written to PPU BG1HOFS). |
+| `$7E:005B` | 2 bytes | `CAMERA_FINAL_Y` | Frame | Final shaken camera vertical scroll coordinate in pixels (written to PPU BG1VOFS). |
 | `$7E:0070` | 2 bytes | `DP_SCRATCH_70` | Frame | Direct page scratch pointer; used by decompression and script string decoders. |
 | `$7E:0072` | 1 byte | `HDMA_ENABLE_MASK` | Frame | Restored into $420C by NMI handler at scanline 225 to enable Mode 7 perspective or HDMA color gradients. |
+| `$7E:00BF` | 2 bytes | `CAMERA_BASE_X` | Frame | Base room viewport top-left world X coordinate before screen shake displacement. |
+| `$7E:00C1` | 2 bytes | `CAMERA_BASE_Y` | Frame | Base room viewport top-left world Y coordinate before screen shake displacement. |
 | `$7E:00C3` | 2 bytes | `SCREEN_SHAKING` | Save | Game script variable: SCREEN SHAKING |
 | `$7E:00C5` | 2 bytes | `SHAKE_OFFSET_X` | Frame | Horizontal camera displacement offset applied during active screen shaking. |
 | `$7E:00C7` | 2 bytes | `SHAKE_OFFSET_Y` | Frame | Vertical camera displacement offset applied during active screen shaking. |
@@ -59,28 +63,31 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:00DF` | 1 byte | `DP_SPRITE_SLICE_ATTR_FORMAT` | Frame | Current slice format byte (bit 0 = size 8x8 vs 16x16/32x32, bits 1..3 = palette/priority). |
 | `$7E:00E0` | 1 byte | `DP_SPRITE_SLICE_COUNT` | Frame | Remaining slice count for current actor during sprite composition loop (`func_C09040`). |
 | `$7E:00E1` | 1 byte | `DP_SPRITE_DESCRIPTOR_OFFSET` | Frame | Current byte offset inside active sprite slice descriptor table (`ldy.b #$01; sta.b $E1; adc.b #$04`). |
-| `$7E:0100` | 2 bytes | `FRAME_COUNTER_LO` | Boot | Incremented every NMI interrupt ($80:8462); polled by wait_for_frame ($80:858C) for 60 Hz pacing. |
-| `$7E:0102` | 2 bytes | `FRAME_COUNTER_HI` | Boot | High word of 32-bit frame counter; increments when $7E:0100 wraps from $FFFF to $0000. |
-| `$7E:0104` | 2 bytes | `JOYPAD1_CURRENT` | Frame | Controller 1 button mask; checked for player input, edge triggers, and typematic repeat. |
+| `$7E:0100` | 2 bytes | `PPU_FRAME_COUNTER_LOW` | Frame | Low 16 bits of 32-bit hardware frame counter; incremented every VBlank interrupt by nmi_v_blank_handler ($80:8460). |
+| `$7E:0102` | 2 bytes | `PPU_FRAME_COUNTER_HIGH` | Frame | High 16 bits of 32-bit hardware frame counter; incremented when low word overflows. |
+| `$7E:0104` | 2 bytes | `INPUT_P1_TRIGGERED_BUTTONS` | Frame | Player 1 controller buttons newly pressed this frame (edge-triggered / debounced); computed via ($4218 & ~$0104). |
 | `$7E:0105` | 1 byte | `JOYPAD1_BUTTONS_HI` | Frame | High byte of controller 1 input register (A, X, L, R buttons). |
-| `$7E:0106` | 2 bytes | `INIDISP_SHADOW` | Frame | Shadow of SNES register $2100; $008F = screen off, $000F = screen full brightness. |
-| `$7E:0108` | 2 bytes | `HTIME_SHADOW` | Frame | Shadow of $4207 (HTIMEL/HTIMEH) for raster IRQ horizontal position. |
-| `$7E:010A` | 2 bytes | `VTIME_SHADOW` | Frame | Shadow of $4209 (VTIMEL/VTIMEH) for raster IRQ scanline position. |
-| `$7E:010E` | 2 bytes | `BG4HOFS_SHADOW` | Frame | BG4 horizontal scroll offset; written twice to $210D during NMI. |
-| `$7E:0110` | 2 bytes | `BG4VOFS_SHADOW` | Frame | BG4 vertical scroll offset; written twice to $210E during NMI. |
-| `$7E:0112` | 2 bytes | `BG1VOFS_SHADOW` | Frame | BG1 vertical scroll offset; written twice to $210F during NMI. |
-| `$7E:0114` | 2 bytes | `BG1HOFS_SHADOW` | Frame | BG1 horizontal scroll offset; written twice to $2110 during NMI. |
-| `$7E:0116` | 2 bytes | `BG2VOFS_SHADOW` | Frame | BG2 vertical scroll offset; written twice to $2111 during NMI. |
-| `$7E:0118` | 2 bytes | `BG2HOFS_SHADOW` | Frame | BG2 horizontal scroll offset; written twice to $2112 during NMI. |
-| `$7E:011A` | 2 bytes | `BG3VOFS_SHADOW` | Frame | BG3 vertical scroll offset; written twice to $2113 during NMI. |
-| `$7E:011C` | 2 bytes | `BG3HOFS_SHADOW` | Frame | BG3 horizontal scroll offset; written twice to $2114 during NMI. |
-| `$7E:0122` | 1 byte | `W12SEL_SHADOW` | Frame | Window mask configuration for BG1 and BG2; written to $2123. |
-| `$7E:0123` | 1 byte | `W34SEL_SHADOW` | Frame | Window mask configuration for BG3 and BG4; written to $2124. |
-| `$7E:0124` | 1 byte | `WOBJSEL_SHADOW` | Frame | Window mask configuration for sprites; written to $2125. |
-| `$7E:0133` | 2 bytes | `PRNG_SEED_0` | Boot | 64-bit PRNG seed state word 0; seeded at boot by latching PPU raster counters and XORing with $DEAD/$63C7. |
-| `$7E:0135` | 2 bytes | `PRNG_SEED_1` | Boot | 64-bit PRNG seed state word 1; XORed with $BABE/$E294. |
-| `$7E:0137` | 2 bytes | `PRNG_SEED_2` | Boot | 64-bit PRNG seed state word 2; XORed with $BEEF/$5A0D. |
-| `$7E:0139` | 2 bytes | `PRNG_SEED_3` | Boot | 64-bit PRNG seed state word 3; XORed with $FACE/$18BF. |
+| `$7E:0106` | 2 bytes | `PPU_SHADOW_INIDISP` | Frame | PPU Screen Display Register shadow; low byte copied to hardware register $2100 (INIDISP: bits 0-3 brightness 0..15, bit 7 forced screen blank). |
+| `$7E:0108` | 2 bytes | `PPU_SHADOW_HTIMEL` | Frame | Hardware H-timer IRQ horizontal dot position shadow; copied to $4207 in VBlank. |
+| `$7E:010A` | 2 bytes | `PPU_SHADOW_VTIMEL` | Frame | Hardware V-timer IRQ scanline position shadow; copied to $4209 in VBlank. |
+| `$7E:010E` | 2 bytes | `PPU_SHADOW_BG1HOFS` | Frame | BG1 horizontal scroll offset shadow; low byte written to $210D, high byte written to $210D. |
+| `$7E:0110` | 2 bytes | `PPU_SHADOW_BG1VOFS` | Frame | BG1 vertical scroll offset shadow; low byte written to $210E, high byte written to $210E. |
+| `$7E:0112` | 2 bytes | `PPU_SHADOW_BG2HOFS` | Frame | BG2 horizontal scroll offset shadow; low byte written to $210F, high byte written to $210F. |
+| `$7E:0114` | 2 bytes | `PPU_SHADOW_BG2VOFS` | Frame | BG2 vertical scroll offset shadow; low byte written to $2110, high byte written to $2110. |
+| `$7E:0116` | 2 bytes | `PPU_SHADOW_BG3HOFS` | Frame | BG3 horizontal scroll offset shadow; written to $2111 (twice). |
+| `$7E:0118` | 2 bytes | `PPU_SHADOW_BG3VOFS` | Frame | BG3 vertical scroll offset shadow; written to $2112 (twice). |
+| `$7E:011A` | 2 bytes | `PPU_SHADOW_BG4HOFS` | Frame | BG4 horizontal scroll offset shadow; written to $2113 (twice). |
+| `$7E:011C` | 2 bytes | `PPU_SHADOW_BG4VOFS` | Frame | BG4 vertical scroll offset shadow; written to $2114 (twice). |
+| `$7E:0122` | 1 byte | `PPU_SHADOW_W12SEL` | Frame | Window 1 and 2 mask settings shadow for BG1 and BG2; copied to hardware register $2123. |
+| `$7E:0123` | 1 byte | `PPU_SHADOW_W34SEL` | Frame | Window 1 and 2 mask settings shadow for BG3 and BG4; copied to hardware register $2124. |
+| `$7E:0124` | 1 byte | `PPU_SHADOW_WOBJSEL` | Frame | Window 1 and 2 mask settings shadow for OBJ and Color math; copied to hardware register $2125. |
+| `$7E:0125` | 3 bytes | `VBLANK_CALLBACK_PTR` | Frame | 24-bit indirect execution vector ($7E:0125..$7E:0127) called during NMI via jml [$0125]. |
+| `$7E:0128` | 3 bytes | `VBLANK_QUEUED_CALLBACK_PTR` | Frame | Next 24-bit callback vector queued to replace $7E:0125 at end of current frame. |
+| `$7E:0133` | 2 bytes | `RNG_SEED_0` | Frame | Cross-word carry pseudo-random number generator 16-bit seed word 0 (updated by func_C0859B). |
+| `$7E:0135` | 2 bytes | `RNG_SEED_1` | Frame | Cross-word carry pseudo-random number generator 16-bit seed word 1. |
+| `$7E:0137` | 2 bytes | `RNG_SEED_2` | Frame | Cross-word carry pseudo-random number generator 16-bit seed word 2. |
+| `$7E:0139` | 2 bytes | `RNG_SEED_3` | Frame | Cross-word carry pseudo-random number generator 16-bit seed word 3 (combined $0133..$013A = 64-bit RNG state). |
+| `$7E:013B` | 2 bytes | `VRAM_DMA_QUEUE_TAIL` | Frame | Read cursor index of deferred VRAM DMA queue (processed during VBlank). |
 | `$7E:013D` | 2 bytes | `VRAM_DMA_QUEUE_CURSOR` | Frame | Cursor index into 16-slot deferred VRAM DMA transfer queue. |
 | `$7E:013F` | 128 bytes | `VRAM_DMA_QUEUE` | Frame | 16-slot deferred VRAM DMA queue (8 bytes per descriptor: src bank/addr, dest VRAM addr, length). |
 | `$7E:0341` | 2 bytes | `LAST_SPAWNED_ENTITY` | Room | Entity slot index of most recently allocated or spawned actor. |
@@ -129,7 +136,19 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0621` | 2 bytes | `DIALOGUE_CTRL_STATE` | Room | Dialogue control opcode decoder parser state machine register. |
 | `$7E:062B` | 1 byte | `DIALOGUE_ACTIVE_FLAG` | Room | Set non-zero when a dialogue or text box is currently open on screen. |
 | `$7E:06A3` | 256 bytes | `RING_ICON_SLOTS` | Room | Ring menu items inventory icon array (weapons, alchemy spells, items). |
+| `$7E:0858` | 2 bytes | `AUX_ANIM_CHAN_0_ADDR` | Room | 16-bit bytecode address of auxiliary / spell animation channel 0. |
+| `$7E:085A` | 1 byte | `AUX_ANIM_CHAN_0_BANK` | Room | Bank byte of auxiliary animation channel 0 bytecode. |
+| `$7E:085B` | 2 bytes | `AUX_ANIM_CHAN_0_BASE` | Room | Base bytecode address for looping auxiliary animation channel 0. |
+| `$7E:085D` | 1 byte | `AUX_ANIM_CHAN_0_DELAY` | Room | Frame delay countdown timer for auxiliary animation channel 0. |
+| `$7E:0866` | 2 bytes | `AUX_ANIM_CHAN_0_STEP` | Room | Elapsed animation step counter for auxiliary animation channel 0. |
+| `$7E:0868` | 2 bytes | `AUX_ANIM_CHAN_1_ADDR` | Room | 16-bit bytecode address of auxiliary / spell animation channel 1. |
+| `$7E:086A` | 1 byte | `AUX_ANIM_CHAN_1_BANK` | Room | Bank byte of auxiliary animation channel 1 bytecode. |
+| `$7E:086B` | 2 bytes | `AUX_ANIM_CHAN_1_BASE` | Room | Base bytecode address for looping auxiliary animation channel 1. |
+| `$7E:086D` | 1 byte | `AUX_ANIM_CHAN_1_DELAY` | Room | Frame delay countdown timer for auxiliary animation channel 1. |
+| `$7E:0876` | 2 bytes | `AUX_ANIM_CHAN_1_STEP` | Room | Elapsed animation step counter for auxiliary animation channel 1. |
 | `$7E:08EE` | 2 bytes | `MENU_SFX_INDEX` | Frame | Sound effect cue ID triggered when cursor moves or option is selected in menu/choice box. |
+| `$7E:08F6` | 2 bytes | `CAMERA_MAX_ROOM_X` | Room | Maximum allowed horizontal camera scroll limit based on active room metatile dimensions. |
+| `$7E:08F8` | 2 bytes | `CAMERA_MAX_ROOM_Y` | Room | Maximum allowed vertical camera scroll limit based on active room metatile dimensions. |
 | `$7E:0A26` | 2 bytes | `ACTIVE_PLAYER_PTR` | Room | Direct pointer to active controlled player character entity record in WRAM. |
 | `$7E:0A35` | 2 bytes | `BOY_MAX_HP` | Save | Boy player maximum health points. |
 | `$7E:0A47` | 2 bytes | `BOY_ATTACK_POWER` | Save | Boy player base physical attack damage statistic. |
@@ -173,12 +192,12 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0EB2` | 2 bytes | `DOG_CURRENT_HP` | Save | Dog companion current health points. |
 | `$7E:0EBE` | 2 bytes | `RING_16_CURSOR_0EBE` | Unknown | Cursor of a 16-byte-record ring at $5DC3-$6183. Moves on by 16 bytes per record; what the records are is not known. |
 | `$7E:0EC0` | 32 bytes | `DEFERRED_SPAWN_BUF` | Room | Buffer storing entity spawn parameters queued during map transitions. |
-| `$7E:0EC6` | 2 bytes | `JOYPAD1_BUTTONS` | Frame | Joypad 1 held buttons (B, Y, Select, Start, Up, Down, Left, Right, A, X, L, R) read from $4218. |
+| `$7E:0EC6` | 2 bytes | `INPUT_P1_HELD_BUTTONS` | Frame | Player 1 controller buttons currently held down (raw auto-joypad read from hardware register $4218). |
 | `$7E:0F36` | 2 bytes | `STEP_DITHER_COUNTER` | Frame | Sub-pixel walk step dither accumulator for smooth actor movement. |
 | `$7E:0F38` | 2 bytes | `CAMERA_SUBPIXEL_ACC` | Frame | Camera sub-pixel tracking fractional accumulator. |
 | `$7E:0F3A` | 1 byte | `VRAM_DMA_LOCK` | Frame | In-flight active transfer counter / lock flag for deferred VRAM DMA queue. |
 | `$7E:0F3C` | 1 byte | `CGRAM_DMA_LOCK` | Frame | In-flight active transfer counter / lock flag for deferred CGRAM DMA queue. |
-| `$7E:0F42` | 2 bytes | `VIEWPORT_SCROLL_X` | Frame | Horizontal world coordinate of top-left camera viewport boundary. |
+| `$7E:0F42` | 2 bytes | `CAMERA_TARGET_ACTOR_PTR` | Room | Pointer to primary actor entity record tracked by camera (points to Boy at $7E:4E89). |
 | `$7E:0F44` | 2 bytes | `VIEWPORT_SCROLL_Y` | Frame | Vertical world coordinate of top-left camera viewport boundary. |
 | `$7E:0F84` | 2 bytes | `MAP_HEADER_FLAGS` | Room | Bitmask flags loaded from map header (layering, Mode 7, weather). |
 | `$7E:0F86` | 1 byte | `MAP_LOADED_FLAG` | Room | Set to 1 after room tilemaps, collision, and palettes are fully decompressed. |
@@ -197,11 +216,11 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:107E` | 80 bytes | `TERRAIN_FRAME_INDICES` | Room | Current animation frame indices for 80 terrain mutation channel slots. |
 | `$7E:10CE` | 80 bytes | `TERRAIN_THRESHOLDS` | Room | Frame threshold limits for 80 terrain mutation channel slots. |
 | `$7E:111E` | 80 bytes | `TERRAIN_COUNTDOWNS` | Room | Cycle countdown delay timers for 80 terrain mutation channel slots. |
-| `$7E:116E` | 2 bytes | `MINIMAP_BUDGET_REG` | Frame | Chunk decompression CPU cycle budget limit for minimap rendering. |
-| `$7E:1170` | 2 bytes | `VRAM_STAGING_CURSOR` | Frame | Buffer cursor offset within pending VRAM upload staging area. |
-| `$7E:1172` | 2 bytes | `VRAM_STAGING_PENDING` | Frame | Byte count of dirty tile data awaiting DMA transfer to VRAM. |
-| `$7E:1174` | 64 bytes | `MINI_RADAR_BUFFER` | Room | Decompressed minimap radar display coordinate buffer. |
-| `$7E:11F4` | 2 bytes | `SCRIPT_SLOT_MAILBOX` | Room | Inter-thread script communication mailbox register; initialized to $FFFF at reset. |
+| `$7E:116E` | 2 bytes | `VRAM_SINGLE_TILE_RATE_LIMIT` | Frame | Maximum number of individual 16-bit tile updates dispatched to VRAM per VBlank. |
+| `$7E:1170` | 2 bytes | `VRAM_SINGLE_TILE_QUEUE_TAIL` | Frame | Read cursor index of individual tile VRAM update ring buffer. |
+| `$7E:1172` | 2 bytes | `VRAM_SINGLE_TILE_QUEUE_HEAD` | Frame | Write cursor index of individual tile VRAM update ring buffer. |
+| `$7E:1174` | 128 bytes | `VRAM_SINGLE_TILE_DATA_QUEUE` | Frame | Buffered 16-bit tile word values to be written to $2118 in VBlank. |
+| `$7E:11F4` | 128 bytes | `VRAM_SINGLE_TILE_ADDR_QUEUE` | Frame | Destination VRAM word addresses written to $2116 corresponding to tile data queue. |
 | `$7E:1274` | 2 bytes | `CURRENT_MUSIC_TRACK` | Room | Active background music track index; initialized to $FFFF at reset. |
 | `$7E:1276` | 2 bytes | `SPRITE_FREE_LIST_HEAD` | Frame | Head pointer to available free nodes in dynamic sprite allocation pool (`$7E:50A7..$7E:512F`). |
 | `$7E:1278` | 2 bytes | `SOUND_COMMAND_MAILBOX` | Frame | Sound effect request mailbox evaluated by APU interface routines. |
@@ -211,7 +230,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:1292` | 224 bytes | `CGRAM_DMA_QUEUE_ENTRIES` | Frame | Deferred CGRAM DMA queue buffer (32 slots × 7 bytes: source pointer `$26..$28`, dest word offset `$2E`, size `$12`). |
 | `$7E:13D2` | 30 bytes | `TILE_ANIM_BUFFERS` | Room | Intermediate staging buffers for animated tile family graphics. |
 | `$7E:1432` | 2 bytes | `ANIM_FRAME_HOLD_TIMER` | Frame | Remaining frame duration before advancing to next animated tile phase. |
-| `$7E:143A` | 2 bytes | `DOG_LEAD_DISTANCE` | Room | Target follow distance offset maintaining dog companion spacing behind player. |
+| `$7E:143A` | 2 bytes | `CAMERA_SECONDARY_ACTOR_PTR` | Room | Pointer to secondary actor entity considered for camera framing (Dog at $7E:4F37). |
 | `$7E:1518` | 2 bytes | `HDMA_ACTIVE_BANK_PTR` | Frame | Pointer to active double-buffer table feeding HDMA channel tables. |
 | `$7E:151A` | 36 bytes | `HDMA_BUFFER_A` | Frame | HDMA scanline table double-buffer Bank A (color gradients / perspective lines). |
 | `$7E:153E` | 36 bytes | `HDMA_BUFFER_B` | Frame | HDMA scanline table double-buffer Bank B (color gradients / perspective lines). |
@@ -229,6 +248,8 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:2284` | 2 bytes | `ALCHEMY_KNOWN_FLAGS` | Save | Bitmask flags tracking which alchemy formulas have been acquired by player. |
 | `$7E:22EA` | 2 bytes | `SYSTEM_STATE_FLAGS` | Save | Engine system flags; bit 2 (0x0004) marks cold boot SRAM initialization completed. |
 | `$7E:22EB` | 2 bytes | `ROOM_TRANSITION_FLAGS` | Room | Map flags; bit 2 (0x0004) triggers room enter script and tilemap reload. |
+| `$7E:22FA` | 1 byte | `CAMERA_ZOOM_SCALE_X` | Room | Mode 7 horizontal scale factor for rooms utilizing perspective rendering (written to $211C). |
+| `$7E:22FB` | 1 byte | `CAMERA_ZOOM_SCALE_Y` | Room | Mode 7 vertical scale factor for rooms utilizing perspective rendering (written to $211C). |
 | `$7E:22FC` | 2 bytes | `DESERT_WRAP_Y_` | Save | Game script variable: DESERT WRAP Y? |
 | `$7E:22FD` | 2 bytes | `DESERT_WRAP_X_` | Save | Game script variable: DESERT WRAP X? |
 | `$7E:22FF` | 1 byte | `STORY_FLAGS_OFFSET_0` | Save | Primary story progression event flag byte. |
@@ -255,17 +276,29 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:23BF` | 2 bytes | `CUTSCENE_PENDING_FLAG` | Save | Story cutscene transition pending latch. |
 | `$7E:23C3` | 2 bytes | `COMPANION_TIGHT_TETHER` | Unknown | Non-zero: the companion keeps close (tether limits 4/3/3/1). What sets it is not traced. |
 | `$7E:23DD` | 2 bytes | `SPAWN_LEASH_OVERRIDE` | Room | Leash radius for enemies spawned in this room (overrides record +$17). A room script can set one leash radius for every enemy it spawns afterwards. 0 turns the |
-| `$7E:23E9` | 2 bytes | `MAP_X_START` | Save | Game script variable: MAP X start |
-| `$7E:23EB` | 2 bytes | `MAP_Y_START` | Save | Game script variable: MAP Y start |
-| `$7E:23ED` | 2 bytes | `MAP_X_END` | Save | Game script variable: MAP X end |
-| `$7E:23EF` | 2 bytes | `MAP_Y_END` | Save | Game script variable: MAP Y end |
-| `$7E:2401` | 8 bytes | `VIEWPORT_LIMITS` | Room | Active room camera viewport boundary coordinates (Min X, Max X, Min Y, Max Y). |
-| `$7E:2409` | 2 bytes | `SHAKE_MAGNITUDE_X` | Frame | Maximum horizontal displacement magnitude for active screen shaking. |
+| `$7E:23E9` | 2 bytes | `CAMERA_ROOM_BOUND_LEFT` | Room | Left boundary clamp limit (pixels) for active room camera. |
+| `$7E:23EB` | 2 bytes | `CAMERA_ROOM_BOUND_TOP` | Room | Top boundary clamp limit (pixels) for active room camera. |
+| `$7E:23ED` | 2 bytes | `CAMERA_ROOM_BOUND_RIGHT` | Room | Right boundary clamp limit (pixels) for active room camera. |
+| `$7E:23EF` | 2 bytes | `CAMERA_ROOM_BOUND_BOTTOM` | Room | Bottom boundary clamp limit (pixels) for active room camera. |
+| `$7E:2401` | 2 bytes | `VIEWPORT_LEFT_X` | Room | Active camera on-screen viewport left edge in world pixels ($BF). |
+| `$7E:2403` | 2 bytes | `VIEWPORT_RIGHT_X` | Room | Active camera on-screen viewport right edge in world pixels ($BF + 256). |
+| `$7E:2405` | 2 bytes | `VIEWPORT_TOP_Y` | Room | Active camera on-screen viewport top edge in world pixels ($C1). |
+| `$7E:2407` | 2 bytes | `VIEWPORT_BOTTOM_Y` | Room | Active camera on-screen viewport bottom edge in world pixels ($C1 + 224). |
+| `$7E:2409` | 2 bytes | `CAMERA_SPEED_FACTOR` | Room | Camera panning smoothing and interpolation factor. |
 | `$7E:240B` | 2 bytes | `SHAKE_MAGNITUDE_Y` | Frame | Maximum vertical displacement magnitude for active screen shaking. |
-| `$7E:240F` | 8 bytes | `CAMERA_DEADZONES` | Room | Bounding deadzone coordinates controlling player-driven camera pan thresholds. |
+| `$7E:240F` | 2 bytes | `CAMERA_DEADZONE_LEFT` | Room | Left horizontal deadzone threshold before camera scrolls to follow player. |
+| `$7E:2411` | 2 bytes | `CAMERA_DEADZONE_RIGHT` | Room | Right horizontal deadzone threshold before camera scrolls to follow player. |
+| `$7E:2413` | 2 bytes | `CAMERA_DEADZONE_TOP` | Room | Top vertical deadzone threshold before camera scrolls to follow player. |
+| `$7E:2415` | 2 bytes | `CAMERA_DEADZONE_BOTTOM` | Room | Bottom vertical deadzone threshold before camera scrolls to follow player. |
+| `$7E:2417` | 2 bytes | `CAMERA_WORLD_ORIGIN_X` | Room | Room camera world horizontal origin anchor (metatiles) used in Mode 7 matrix math. |
+| `$7E:2419` | 2 bytes | `CAMERA_WORLD_ORIGIN_Y` | Room | Room camera world vertical origin anchor (metatiles) used in Mode 7 matrix math. |
+| `$7E:241B` | 2 bytes | `CAMERA_SCREEN_CENTER_X` | Room | Screen center horizontal pixel coordinate offset for camera centering. |
+| `$7E:241D` | 2 bytes | `CAMERA_SCREEN_CENTER_Y` | Room | Screen center vertical pixel coordinate offset for camera centering. |
+| `$7E:241F` | 2 bytes | `CAMERA_SCROLL_MODE` | Room | Camera tracking mode enum (0 = Follow target player, 2 = Fixed / scripted focus). |
 | `$7E:2429` | 2 bytes | `TRIGGER_SCRIPT_LOCK` | Room | Execution lock held while a step-on coordinate trigger script is running. |
-| `$7E:242B` | 1 byte | `CAMERA_TARGET` | Room | Fixed camera target (x, y), or follow an entity. Two words that pin the camera to a fixed map point (x at `$242B`, y at `$242D`, top-left of the view). `$FFFF` |
-| `$7E:242F` | 2 bytes | `CAMERA_PAN_SPEED` | Room | Tracking speed multiplier applied during camera smooth pan interpolations. |
+| `$7E:242B` | 2 bytes | `CAMERA_SCRIPTED_TARGET_X` | Room | Forced scripted camera focus target X coordinate (-1 = follow player). |
+| `$7E:242D` | 2 bytes | `CAMERA_SCRIPTED_TARGET_Y` | Room | Forced scripted camera focus target Y coordinate (-1 = follow player). |
+| `$7E:242F` | 2 bytes | `CAMERA_PAN_VELOCITY` | Room | Transition panning speed between scripted camera targets. |
 | `$7E:2435` | 2 bytes | `SHAKE_DECAY_RATE` | Frame | Attenuation decay rate reducing screen shake intensity each frame. |
 | `$7E:2437` | 2 bytes | `MAP_PALETTE_INDEX` | Room | Active map color palette family identifier index. |
 | `$7E:243D` | 2 bytes | `BUFF_REQUEST_1` | Room | Queued alchemy formula stat buff application register 1. |
