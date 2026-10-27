@@ -44,11 +44,16 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:005B` | 2 bytes | `CAMERA_FINAL_Y` | Frame | Final shaken camera vertical scroll coordinate in pixels (written to PPU BG1VOFS). |
 | `$7E:0070` | 2 bytes | `DP_SCRATCH_70` | Frame | Direct page scratch pointer; used by decompression and script string decoders. |
 | `$7E:0072` | 1 byte | `HDMA_ENABLE_MASK` | Frame | Restored into $420C by NMI handler at scanline 225 to enable Mode 7 perspective or HDMA color gradients. |
+| `$7E:007E` | 2 bytes | `SCRIPT_CURRENT_THREAD_PTR` | Frame | Pointer to currently executing ScriptSlot in active script VM thread queue ($7E:28FC..$7E:2F28). |
+| `$7E:0080` | 2 bytes | `SCRIPT_CALL_STACK_PTR` | Frame | Call stack pointer for nested script subroutines (gosub). |
+| `$7E:0082` | 3 bytes | `SCRIPT_PC_FAR_PTR` | Frame | Active 24-bit instruction pointer ($82..$84) consumed by script_vm_opcode_dispatch ($8C:D09C). |
+| `$7E:0086` | 1 byte | `SCRIPT_VM_FREEZE_GATE` | Frame | Global script thread execution freeze flag (non-zero pauses script VM processing). |
 | `$7E:00BF` | 2 bytes | `CAMERA_BASE_X` | Frame | Base room viewport top-left world X coordinate before screen shake displacement. |
 | `$7E:00C1` | 2 bytes | `CAMERA_BASE_Y` | Frame | Base room viewport top-left world Y coordinate before screen shake displacement. |
 | `$7E:00C3` | 2 bytes | `SCREEN_SHAKING` | Save | Game script variable: SCREEN SHAKING |
 | `$7E:00C5` | 2 bytes | `SHAKE_OFFSET_X` | Frame | Horizontal camera displacement offset applied during active screen shaking. |
 | `$7E:00C7` | 2 bytes | `SHAKE_OFFSET_Y` | Frame | Vertical camera displacement offset applied during active screen shaking. |
+| `$7E:00C9` | 2 bytes | `SCREEN_SHAKE_INTENSITY` | Frame | Intensity scaling factor applied to screen shake random displacement. |
 | `$7E:00CB` | 1 byte | `DMA_QUEUE_INDEX` | Frame | Index offset into frame VRAM upload buffer; reset to 0 by $80:8F8C at start of each frame. |
 | `$7E:00CD` | 1 byte | `DP_VRAM_TILE_QUEUE_CURSOR` | Frame | Cursor offset into deferred VRAM tile pattern DMA upload queue (`$7E:163C`). |
 | `$7E:00D1` | 2 bytes | `DP_TILE_GRAPHIC_STAGING_PTR` | Frame | Cursor offset into dynamic sprite tile graphic staging buffer (`$7E:72D1`, 128 bytes per tile). |
@@ -189,7 +194,10 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0E6B` | 1 byte | `NMITIMEN_MIRROR` | Boot | Shadow copy of $4200 ($81 = NMI enabled, Auto-Joypad enabled). |
 | `$7E:0E80` | 2 bytes | `WEAPON_CHARGE_METER` | Frame | Current physical attack charge meter level (0..100%). |
 | `$7E:0EA0` | 2 bytes | `DAMAGE_RESULT_REG` | Frame | Calculated damage output value produced by combat math routines. |
+| `$7E:0EAE` | 2 bytes | `PENDING_MAP_EVENT_0` | Room | Queued map event script ID pending trigger execution ($FFFF = none). |
+| `$7E:0EB0` | 2 bytes | `PENDING_MAP_EVENT_1` | Room | Secondary queued map event script ID ($FFFF = none). |
 | `$7E:0EB2` | 2 bytes | `DOG_CURRENT_HP` | Save | Dog companion current health points. |
+| `$7E:0EB4` | 2 bytes | `PENDING_SWITCH_SCRIPT_SECONDARY` | Room | Secondary pending character Select switch event script ID ($FFFF = none). |
 | `$7E:0EBE` | 2 bytes | `RING_16_CURSOR_0EBE` | Unknown | Cursor of a 16-byte-record ring at $5DC3-$6183. Moves on by 16 bytes per record; what the records are is not known. |
 | `$7E:0EC0` | 32 bytes | `DEFERRED_SPAWN_BUF` | Room | Buffer storing entity spawn parameters queued during map transitions. |
 | `$7E:0EC6` | 2 bytes | `INPUT_P1_HELD_BUTTONS` | Frame | Player 1 controller buttons currently held down (raw auto-joypad read from hardware register $4218). |
@@ -202,6 +210,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0F84` | 2 bytes | `MAP_HEADER_FLAGS` | Room | Bitmask flags loaded from map header (layering, Mode 7, weather). |
 | `$7E:0F86` | 1 byte | `MAP_LOADED_FLAG` | Room | Set to 1 after room tilemaps, collision, and palettes are fully decompressed. |
 | `$7E:0F8A` | 2 bytes | `LOADED_PALETTE_TAG` | Room | Identifier of currently loaded map palette family. |
+| `$7E:0FAC` | 2 bytes | `ROOM_PALETTE_GROUP_ID` | Room | Active room palette group index (initialized to $11 by reset_per_room_state). |
 | `$7E:0FB0` | 1 byte | `TERRAIN_MUT_ACTIVE` | Frame | Set non-zero when animated terrain tile mutations are active. |
 | `$7E:0FB4` | 12 bytes | `CELL_COLLISION_FLAGS` | Room | Current 16x16 metatile cell collision properties and impassable edges. |
 | `$7E:0FB9` | 2 bytes | `ENV_SFX_TRIGGER` | Room | Sound effect ID trigger for environmental audio (wind, waterfall, lava). |
@@ -213,6 +222,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:1032` | 48 bytes | `GRASS_PACKED_COORDS` | Room | Packed world coordinates (X, Y) for cut grass tile locations. |
 | `$7E:106C` | 2 bytes | `ACTIVE_ANIM_CHANNELS` | Room | Count of actively cycling animated tile channels on current map. |
 | `$7E:106E` | 2 bytes | `ANIM_TILE_VRAM_BASE` | Room | Destination base address in VRAM where animated tiles are DMA-streamed. |
+| `$7E:1076` | 2 bytes | `ROOM_FADE_FRAME_COUNT` | Room | Duration in frames of room transition screen brightness fade (default 6 frames). |
 | `$7E:107E` | 80 bytes | `TERRAIN_FRAME_INDICES` | Room | Current animation frame indices for 80 terrain mutation channel slots. |
 | `$7E:10CE` | 80 bytes | `TERRAIN_THRESHOLDS` | Room | Frame threshold limits for 80 terrain mutation channel slots. |
 | `$7E:111E` | 80 bytes | `TERRAIN_COUNTDOWNS` | Room | Cycle countdown delay timers for 80 terrain mutation channel slots. |
@@ -230,10 +240,12 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:1292` | 224 bytes | `CGRAM_DMA_QUEUE_ENTRIES` | Frame | Deferred CGRAM DMA queue buffer (32 slots × 7 bytes: source pointer `$26..$28`, dest word offset `$2E`, size `$12`). |
 | `$7E:13D2` | 30 bytes | `TILE_ANIM_BUFFERS` | Room | Intermediate staging buffers for animated tile family graphics. |
 | `$7E:1432` | 2 bytes | `ANIM_FRAME_HOLD_TIMER` | Frame | Remaining frame duration before advancing to next animated tile phase. |
+| `$7E:1434` | 2 bytes | `PENDING_TALK_TARGET_PTR` | Room | Pointer to NPC actor entity currently being spoken to or interacted with ($FFFF = none). |
 | `$7E:143A` | 2 bytes | `CAMERA_SECONDARY_ACTOR_PTR` | Room | Pointer to secondary actor entity considered for camera framing (Dog at $7E:4F37). |
 | `$7E:1518` | 2 bytes | `HDMA_ACTIVE_BANK_PTR` | Frame | Pointer to active double-buffer table feeding HDMA channel tables. |
 | `$7E:151A` | 36 bytes | `HDMA_BUFFER_A` | Frame | HDMA scanline table double-buffer Bank A (color gradients / perspective lines). |
 | `$7E:153E` | 36 bytes | `HDMA_BUFFER_B` | Frame | HDMA scanline table double-buffer Bank B (color gradients / perspective lines). |
+| `$7E:15CC` | 2 bytes | `DYNAMIC_COLLISION_OVERRIDE_COUNT` | Room | Number of active dynamic collision grid metatile overrides in current room. |
 | `$7E:15D2` | 1 byte | `AUDIO_MUTING_FLAG` | Room | Set non-zero to silence background music during dramatic cutscenes. |
 | `$7E:15D6` | 1 byte | `APU_COMM_STATUS` | Frame | Handshake status register for SPC700 data transfer synchronization. |
 | `$7E:163C` | 64 bytes | `VRAM_TILE_DMA_QUEUE` | Frame | Deferred VRAM tile pattern DMA upload request queue; processed during VBlank. |
@@ -275,7 +287,8 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:23AB` | 2 bytes | `PRIZE_3_QTY` | Save | Game script variable: PRIZE 3 QTY |
 | `$7E:23BF` | 2 bytes | `CUTSCENE_PENDING_FLAG` | Save | Story cutscene transition pending latch. |
 | `$7E:23C3` | 2 bytes | `COMPANION_TIGHT_TETHER` | Unknown | Non-zero: the companion keeps close (tether limits 4/3/3/1). What sets it is not traced. |
-| `$7E:23DD` | 2 bytes | `SPAWN_LEASH_OVERRIDE` | Room | Leash radius for enemies spawned in this room (overrides record +$17). A room script can set one leash radius for every enemy it spawns afterwards. 0 turns the |
+| `$7E:23DB` | 2 bytes | `QUEUED_ROOM_EXIT_TRIGGER_0` | Room | ID of door or boundary exit trigger tripped by player ($FFFF = none). |
+| `$7E:23DD` | 2 bytes | `QUEUED_ROOM_EXIT_TRIGGER_1` | Room | Secondary queued room transition exit trigger ID ($FFFF = none). |
 | `$7E:23E9` | 2 bytes | `CAMERA_ROOM_BOUND_LEFT` | Room | Left boundary clamp limit (pixels) for active room camera. |
 | `$7E:23EB` | 2 bytes | `CAMERA_ROOM_BOUND_TOP` | Room | Top boundary clamp limit (pixels) for active room camera. |
 | `$7E:23ED` | 2 bytes | `CAMERA_ROOM_BOUND_RIGHT` | Room | Right boundary clamp limit (pixels) for active room camera. |
@@ -299,20 +312,39 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:242B` | 2 bytes | `CAMERA_SCRIPTED_TARGET_X` | Room | Forced scripted camera focus target X coordinate (-1 = follow player). |
 | `$7E:242D` | 2 bytes | `CAMERA_SCRIPTED_TARGET_Y` | Room | Forced scripted camera focus target Y coordinate (-1 = follow player). |
 | `$7E:242F` | 2 bytes | `CAMERA_PAN_VELOCITY` | Room | Transition panning speed between scripted camera targets. |
-| `$7E:2435` | 2 bytes | `SHAKE_DECAY_RATE` | Frame | Attenuation decay rate reducing screen shake intensity each frame. |
+| `$7E:2435` | 2 bytes | `ROOM_AMBIENT_LIGHT_LEVEL` | Room | Ambient light/shade color tint parameter applied to room palette (default $15). |
 | `$7E:2437` | 2 bytes | `MAP_PALETTE_INDEX` | Room | Active map color palette family identifier index. |
 | `$7E:243D` | 2 bytes | `BUFF_REQUEST_1` | Room | Queued alchemy formula stat buff application register 1. |
 | `$7E:243F` | 2 bytes | `BUFF_REQUEST_2` | Room | Queued alchemy formula stat buff application register 2. |
-| `$7E:2441` | 2 bytes | `WEAPON_SWITCH_REQ` | Room | Queued weapon swap command register. |
-| `$7E:2443` | 2 bytes | `DOG_FORM_REQUEST` | Room | The Dog form a room asks for (applied and cleared by $8F:946B). Values are the form table's byte index: `2` the act 1 wolf, `4` the wolf with the stick, `6` the |
+| `$7E:2441` | 2 bytes | `ROOM_TILESET_GRAPHIC_BANK` | Room | ROM graphic bank containing compressed 16x16 metatile graphics for current room. |
+| `$7E:2443` | 2 bytes | `ROOM_METATILE_DESCRIPTOR_PTR` | Room | Pointer to room metatile layout descriptor table in ROM. |
 | `$7E:2445` | 2 bytes | `PRESELECT_ALCHEMY` | Save | Game script variable: PRESELECT ALCHEMY |
 | `$7E:2449` | 2 bytes | `SAVE_SPOT` | Save | Game script variable: SAVE SPOT |
 | `$7E:2459` | 2 bytes | `INGREDIENT_SHOP` | Save | Game script variable: INGREDIENT SHOP |
 | `$7E:2461` | 2 bytes | `LOOT_AMOUNT` | Room | Loot bonus — amount minus one for the next pickup. The loot script adds `1 + $2461`. Pickups that give more than one write `amount − 1` here before calling the |
 | `$7E:2480` | 64 bytes | `WEATHER_PARTICLES` | Frame | Position, velocity, and lifetime particle physics state array (rain, snow, embers). |
 | `$7E:2834` | 204 bytes | `TEMP_SCRATCH_RAM` | Temp | Compiler temporary scratchpad memory pool ($7E:2834..$7E:28FF); wiped on map reload. |
-| `$7E:28FC` | 1 byte | `SCRIPT_SLOTS` | Room | Script slots — 20 × 0x4F bytes. \ |
-| `$7E:2F28` | 1 byte | `SCRIPT_RUN_LIST` | Room | Script run list — slots in run order, zero-terminated. One word per running thread: the slot of the script that runs next for it (a callee replaces its caller i |
+| `$7E:28FC` | 79 bytes | `SCRIPT_SLOT_00` | Room | Script VM execution thread slot 0 (primary room enter / cutscene script thread, stride 79 bytes). |
+| `$7E:294B` | 79 bytes | `SCRIPT_SLOT_01` | Room | Script VM execution thread slot 1 (stride 79 bytes). |
+| `$7E:299A` | 79 bytes | `SCRIPT_SLOT_02` | Room | Script VM execution thread slot 2 (stride 79 bytes). |
+| `$7E:29E9` | 79 bytes | `SCRIPT_SLOT_03` | Room | Script VM execution thread slot 3 (stride 79 bytes). |
+| `$7E:2A38` | 79 bytes | `SCRIPT_SLOT_04` | Room | Script VM execution thread slot 4 (stride 79 bytes). |
+| `$7E:2A87` | 79 bytes | `SCRIPT_SLOT_05` | Room | Script VM execution thread slot 5 (stride 79 bytes). |
+| `$7E:2AD6` | 79 bytes | `SCRIPT_SLOT_06` | Room | Script VM execution thread slot 6 (stride 79 bytes). |
+| `$7E:2B25` | 79 bytes | `SCRIPT_SLOT_07` | Room | Script VM execution thread slot 7 (stride 79 bytes). |
+| `$7E:2B74` | 79 bytes | `SCRIPT_SLOT_08` | Room | Script VM execution thread slot 8 (stride 79 bytes). |
+| `$7E:2BC3` | 79 bytes | `SCRIPT_SLOT_09` | Room | Script VM execution thread slot 9 (stride 79 bytes). |
+| `$7E:2C12` | 79 bytes | `SCRIPT_SLOT_10` | Room | Script VM execution thread slot 10 (stride 79 bytes). |
+| `$7E:2C61` | 79 bytes | `SCRIPT_SLOT_11` | Room | Script VM execution thread slot 11 (stride 79 bytes). |
+| `$7E:2CB0` | 79 bytes | `SCRIPT_SLOT_12` | Room | Script VM execution thread slot 12 (stride 79 bytes). |
+| `$7E:2CFF` | 79 bytes | `SCRIPT_SLOT_13` | Room | Script VM execution thread slot 13 (stride 79 bytes). |
+| `$7E:2D4E` | 79 bytes | `SCRIPT_SLOT_14` | Room | Script VM execution thread slot 14 (stride 79 bytes). |
+| `$7E:2D9D` | 79 bytes | `SCRIPT_SLOT_15` | Room | Script VM execution thread slot 15 (stride 79 bytes). |
+| `$7E:2DEC` | 79 bytes | `SCRIPT_SLOT_16` | Room | Script VM execution thread slot 16 (stride 79 bytes). |
+| `$7E:2E3B` | 79 bytes | `SCRIPT_SLOT_17` | Room | Script VM execution thread slot 17 (stride 79 bytes). |
+| `$7E:2E8A` | 79 bytes | `SCRIPT_SLOT_18` | Room | Script VM execution thread slot 18 (stride 79 bytes). |
+| `$7E:2ED9` | 79 bytes | `SCRIPT_SLOT_19` | Room | Script VM execution thread slot 19 (stride 79 bytes). |
+| `$7E:2F28` | 2 bytes | `SCRIPT_SLOT_QUEUE_TAIL` | Room | End sentinel and boundary limit pointer of Script VM thread pool ($7E:28FC..$7E:2F28). |
 | `$7E:3ABE` | 1 byte | `JOYPAD_CHORD_HISTORY` | Boot | The joypad matcher's ring of recent button chords. 128 words, newest at `$3ABE + $3BBE`, older chords above it (the index counts down and wraps in 8 bits). A re |
 | `$7E:3BBE` | 1 byte | `JOYPAD_CHORD_INDEX` | Boot | Offset of the newest chord in the joypad chord history. A byte offset into `$3ABE`, always even, moved down by 2 per new chord. `$3BBF` right after it is the te |
 | `$7E:3BBF` | 2 bytes | `DIALOGUE_RING_CURSOR` | Room | Cyclic message buffer index for active dialogue text box rendering. |
