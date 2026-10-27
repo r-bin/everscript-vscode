@@ -12,6 +12,7 @@ is the spec; `docs/cleanup.md` D3).
 | `expression.ts` | reading one expression; its value tree |
 | `decode.ts` | one instruction: operands, size, next, target; `successors`, `callee` |
 | `walk.ts` | everything reachable from entry points |
+| `highlight.ts` | `highlightScript(line)`: the printer's notation as HTML, tokens in `sx-*` classes after the Everscript theme's scopes; bundled for the radar page (`ScriptHighlight`), used by both script viewers |
 | `rooms.ts` | a room's enter script and triggers; every entry the tables name |
 
 ```js

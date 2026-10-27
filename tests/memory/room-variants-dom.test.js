@@ -148,6 +148,17 @@ async function main() {
                 now.length === thraxx[cole].spawns.length && thraxx[cole].spawns.every((s) => now.includes(hex(s.at)))
                 && !def.spawns.some((s) => /heart/.test(s.name) && now.includes(hex(s.at))), JSON.stringify(now));
             await shoot('thraxx-coleoptera');
+            // Coleoptera's script sets MAP_PALETTE = 7: the map is asked for in that palette set.
+            const lastHeader = () => page.evaluate(() => {
+                const asks = window.__posted.filter((m) => m.command === 'requestRoomTiles' || m.command === 'requestRoomMetatiles');
+                const last = asks[asks.length - 1];
+                return last && last.header ? last.header.mapPalette || 0 : 0;
+            });
+            check('  and shows the room in palette set 7, as its script sets it', thraxx[cole].palette === 7 && await lastHeader() === 7,
+                thraxx[cole].palette + ' / ' + await lastHeader());
+            await pick(0);
+            check('  back to Thraxx: the set the room loads with', await lastHeader() === 0);
+            await pick(cole);
         }
 
         // ── the Enter tab: the merged script, greyed per variant ─────────
@@ -157,6 +168,8 @@ async function main() {
         const lineClass = (addr) => page.$eval(`.rg-enter-body [data-script-addr="${addr}"]`, (e) => e.className).catch(() => null);
         // $93D2A0 places Thraxx's heart, $93D2FD Coleoptera's, $93D247 starts the layout after Thraxx.
         check('the Enter tab lists the merged script', await page.$$eval('.rg-script-merged .rg-script-line', (els) => els.length) > 100);
+        check('  coloured, and indented by its ifs', await page.$$eval('.rg-script-merged .sx-kw', (els) => els.length) > 10
+            && await page.$eval('.rg-enter-body [data-script-addr="93D2A0"]', (e) => parseInt(e.style.marginLeft, 10)) > 0);
         check('  Thraxx: his heart is live, Coleoptera\'s and the empty room\'s lines are greyed',
             !/rg-script-(off|dead)/.test(await lineClass('93D2A0')) && /rg-script-off/.test(await lineClass('93D2FD'))
             && /rg-script-off/.test(await lineClass('93D247')), [await lineClass('93D2A0'), await lineClass('93D2FD'), await lineClass('93D247')].join(' | '));

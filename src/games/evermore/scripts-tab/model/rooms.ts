@@ -106,11 +106,13 @@ function spawnSprites(rom: Uint8Array, spawns: SpawnFacts[]): Sprite[] {
 
 /**
  * The room as the game draws it, as a PNG data URI: { uri, width, height } or { error }. `states`:
- * object index → state (a variant's `objects`), the rest at state 0.
+ * object index → state (a variant's `objects`), the rest at state 0; `palette`: MAP_PALETTE, the
+ * palette set (a variant's `palette`; 0 is the one the room loads with).
  */
-function roomPicture(rom: Uint8Array, id: number, states?: Record<number, number>) {
+function roomPicture(rom: Uint8Array, id: number, states?: Record<number, number>, palette = 0) {
     try {
-        const room = maps.decodeRoom(rom, id);
+        let room = maps.decodeRoom(rom, id);
+        if (palette > 0 && palette < room.tileFamilies.length) room = { ...room, tileFamilies: maps.familiesAt(room.tileFamilies, palette) };
         const img = maps.renderRoomComposite(rom, states ? maps.applyObjectStates(rom, room, states) : room);
         return { uri: maps.encodePngDataUri(img), width: img.width, height: img.height };
     } catch (err) {

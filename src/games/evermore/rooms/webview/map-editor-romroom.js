@@ -45,8 +45,8 @@ function editSeedRoomObjects() {
       w: ro.w, h: ro.h, states: frames.length + 1, frames: frames, layer: {}, activeFrame: 0,
       holds: (ro.holds || []).slice() });
   });
-  // The chosen variant's object states (room-variants.js), when its answer came first.
-  if (typeof applyVariantObjects === 'function') applyVariantObjects(false);
+  // The chosen variant's object states and palette set (room-variants.js), when its answer came first.
+  if (typeof applyVariantRoom === 'function') applyVariantRoom(false);
 }
 
 /**

@@ -14,9 +14,6 @@
 .rg-theme .rg-script-line{white-space:normal;overflow-wrap:anywhere;padding:1px 4px 1px 18px;text-indent:-14px;border-radius:3px}
 .rg-theme .rg-script-line:nth-child(even){background:rgba(255,255,255,.035)}
 /* Colours in a summary (map-editor-trigger-scripts.js scriptHighlight). */
-.rg-theme .sx-kw{color:var(--rg-accent)}
-.rg-theme .sx-num{color:oklch(78% 0.12 55)}
-.rg-theme .sx-str{color:var(--rg-success)}
 .rg-theme .sx-aside{color:var(--rg-text-muted)}
 .rg-theme .sx-aside .sx-num{color:inherit}
 .rg-theme .rg-script-line.rs-guess{opacity:.55}

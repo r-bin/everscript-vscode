@@ -10,9 +10,11 @@
 //
 // A variant is also the map as it shows it: the object states its enter
 // script sets before it first waits (`objects`), every other object at
-// state 0. Choosing one sets the room's objects in the editor's draft
-// (`objectShowState`, the Object tab's own), so "Empty" in Thraxx's chamber
-// shows the chamber without Thraxx.
+// state 0, and the palette set it picks (`palette`, MAP_PALETTE). Choosing
+// one sets the room's objects in the editor's draft (`objectShowState`, the
+// Object tab's own) and the Header tab's palette set (`familySetShow`), so
+// "Empty" in Thraxx's chamber shows the chamber without Thraxx and
+// "Coleoptera" shows it in white.
 //
 // While the answer is on its way the bar shows a spinner, not a button: one
 // button would read as a room with one variant.
@@ -53,7 +55,7 @@ function applyRoomVariants(data) {
   // The first variant is the default (the host sorts it first): that is the room as it is met.
   if (_variantPick[id] == null) _variantPick[id] = 0;
   if (_variantRoom === id) {
-    if (applyVariantObjects(false) && typeof renderEditChrome === 'function') renderEditChrome();
+    if (applyVariantRoom(false) && typeof renderEditChrome === 'function') renderEditChrome();
     renderVariantBar();
     if (typeof _triggerEnterView !== 'undefined' && _triggerEnterView && typeof renderEditPanels === 'function') renderEditPanels();
   }
@@ -118,16 +120,17 @@ function renderVariantBar() {
 
 /**
  * Set the draft's ROM objects (`roomObject`) to the chosen variant's states, every other one to
- * state 0. Returns whether any changed; the caller redraws (`render` redraws here).
+ * state 0, and the palette set to its. Returns whether anything changed; the caller redraws
+ * (`render` redraws here). A palette set redraws through the host (familySetShow).
  */
-function applyVariantObjects(render) {
+function applyVariantRoom(render) {
   var id = _variantRoom, got = id != null ? _roomVariants[id] : null;
   var v = got && !got.error ? got.variants[_variantPick[id] || 0] : null;
   var d = typeof editDraft === 'function' ? editDraft() : null;
   if (!v || !v.objects || !d || d.roomId !== id || typeof editObjects !== 'function' || typeof objectShowState !== 'function') return false;
+  var changed = typeof familySetShow === 'function' && familySetShow(v.palette || 0);
   var want = {};
   v.objects.forEach(function (o) { want[o[0]] = o[1]; });
-  var changed = false;
   editObjects().forEach(function (o) {
     if (o.roomObject == null) return;
     var n = editObjectFrames(o).length;
@@ -168,7 +171,7 @@ if (typeof document !== 'undefined' && document.addEventListener) {
     var bar = document.getElementById('rv-bar');
     if (!bar || !bar.contains(t) || _variantRoom == null) return;
     _variantPick[_variantRoom] = Number(t.dataset.variant);
-    if (applyVariantObjects(false)) { if (typeof renderEditChrome === 'function') renderEditChrome(); }
+    if (applyVariantRoom(false)) { if (typeof renderEditChrome === 'function') renderEditChrome(); }
     renderVariantBar();
     // The Enter tab greys what the chosen variant does not run (room-enter-lines.js).
     if (typeof _triggerEnterView !== 'undefined' && _triggerEnterView && typeof renderEditPanels === 'function') renderEditPanels();

@@ -245,6 +245,19 @@ function readObjects(rom: Uint8Array, layout: BlobLayout): RoomObject[] {
  * failing. Everything upstream verified is vanilla-only — see
  * docs/map-port-gap-analysis.md §1.6.
  */
+/**
+ * The families a room shows with MAP_PALETTE (`$7E2437`) = `start`, as `$90D020` loads them: up
+ * to seven entries from `start` into slots 1.., and nothing else touched — so a short set (8
+ * entries, start 4) leaves slots 5..7 in the colours the room loaded with. `$90CBB3` reloads this
+ * way when a script changes the variable (docs/map-format/room-reference.md §5).
+ */
+export function familiesAt(families: number[], start: number): number[] {
+    const out = families.slice(0, 7);
+    const count = Math.min(7, families.length - start);
+    for (let i = 0; i < count; i++) out[i] = families[start + i];
+    return out;
+}
+
 export function decodeRoom(rom: Uint8Array, roomId: number): RoomData {
     if (!Number.isInteger(roomId) || roomId < 0 || roomId >= MAX_ROOMS) {
         throw new Error(`Room id ${roomId} out of range (expected 0..${MAX_ROOMS - 1})`);

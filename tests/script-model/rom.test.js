@@ -86,6 +86,16 @@ test("merged enter script of Thraxx's chamber: a call's body follows it; short-o
     assert.strictEqual(m.lines[at(0x93d2b6) + 1].addressSnes, 0x93ca75);
 });
 
+test("Thraxx's chamber is indented by its ifs and its loop", () => {
+    const m = M.mergedEnterScript(bytes, 0x18);
+    const ind = (a) => m.lines.find((l) => l.addressSnes === a && !l.note).indent;
+    // $93:D278 if! (!THRAXX_DEAD) holds Thraxx's spawns; the goto back at $93:D4A9 holds the maggot loop from $93:D3C7.
+    assert.ok(ind(0x93d2a0) > ind(0x93d278), 'the spawns sit under their if');
+    assert.ok(ind(0x93d456) > ind(0x93d3c1) && ind(0x93d201) === 0, 'the loop sits deeper than what leads into it');
+    const call = m.lines.findIndex((l) => l.addressSnes === 0x93d2b6 && !l.note);
+    assert.strictEqual(m.lines[call + 1].indent, m.lines[call].indent + 1, 'a merged body sits one deeper than its call');
+});
+
 test("a started thread joins where its starter's turn ends (Fire Eyes' village: $94:CE1A starts $92:D92A)", () => {
     const m = M.mergedEnterScript(bytes, 0x25);
     const head = m.lines.findIndex((l) => l.note && l.opens != null && m.blocks[l.opens].from === 0x94ce1a);

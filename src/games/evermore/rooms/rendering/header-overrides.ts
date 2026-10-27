@@ -8,6 +8,7 @@
 // MAP_PALETTE (`$7E2437`), 0 when a room loads.
 
 import type { RoomData } from '../../maps/room';
+import { familiesAt } from '../../maps';
 
 const RENDER_FIELDS = ['displayTm', 'subscreenTs', 'colorMath'] as const;
 
@@ -23,20 +24,6 @@ function headerOverrides(h: unknown): HeaderOverrides {
         if (given[k] !== null && given[k] !== undefined && Number.isFinite(Number(given[k]))) out[k] = Number(given[k]) & 0xff;
     });
     if (!out.mapPalette) delete out.mapPalette;
-    return out;
-}
-
-/**
- * The families a room shows with MAP_PALETTE = `start`, as `$90D020` loads
- * them: up to seven entries from `start` into slots 1.., and nothing else
- * touched — so a short set (8 entries, start 4) leaves slots 5..7 in the
- * colours the room loaded with. `$90CBB3` reloads this way when a script
- * changes the variable.
- */
-function familiesAt(families: number[], start: number): number[] {
-    const out = families.slice(0, 7);
-    const count = Math.min(7, families.length - start);
-    for (let i = 0; i < count; i++) out[i] = families[start + i];
     return out;
 }
 

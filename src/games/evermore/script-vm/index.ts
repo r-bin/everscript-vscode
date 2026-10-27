@@ -13,6 +13,7 @@ export { roomScripts, roomCount, allEntries } from './rooms';
 export { facts, SAVE_AREA, TEMP_AREA } from './facts';
 export type { Fact, Area } from './facts';
 export { text, expressionText, everscript } from './print';
+export { highlightScript } from './highlight';
 export type { Names } from './print';
 export type { RoomScripts, Trigger, TriggerTable } from './rooms';
 export type { Walk } from './walk';

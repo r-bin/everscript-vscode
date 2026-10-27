@@ -16,6 +16,7 @@ const PAGES: Record<string, [string, string, boolean?]> = {
     'music-engine': ['src/games/evermore/music/webview/music-engine.ts', 'MusicEngine', true],
     'terra-maps': ['src/games/terra/maps/webview/page.dom.ts', 'TerraMaps'],
     'scripts-maps': ['src/games/evermore/scripts-tab/webview/scripts-maps.dom.ts', 'ScriptsMaps'],
+    'script-highlight': ['src/games/evermore/script-vm/highlight.ts', 'ScriptHighlight', true],
     'data-tab': ['src/games/evermore/data-tab/webview/data-tab.dom.ts', 'DataTab'],
     'routes-tab': ['src/games/evermore/routes/webview/routes-tab.dom.ts', 'RoutesTab'],
     'wram-view': ['src/games/evermore/memory/webview/wram-view.dom.ts', 'WramView'],

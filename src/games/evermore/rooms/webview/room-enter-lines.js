@@ -14,7 +14,7 @@
 // State: _enterMerged (room id → merged script or null), _enterFold (room id →
 // {block id: folded}). Reads room-variants.js's _roomVariants, _variantPick,
 // _variantRoom. Uses utils.js globals: escH; map-editor-trigger-scripts.js:
-// scriptHighlight, normScriptAddr, hexNum.
+// scriptHighlight, normScriptAddr, hexNum; script-vm/highlight.ts (page bundle): highlightScript.
 
 var _enterMerged = {};
 var _enterFold = {};
@@ -65,9 +65,9 @@ function enterMergedHtml(id) {
         + (shut ? '▸' : '▾') + '</button>';
     }
     var addr = r.note ? '' : normScriptAddr(hexNum(r.addressSnes, 6));
-    html += '<div class="' + cls + '" style="margin-left:' + (r.depth * 12) + 'px"' + (addr ? ' data-script-addr="' + addr + '"' : '')
+    html += '<div class="' + cls + '" style="margin-left:' + ((r.indent != null ? r.indent : r.depth) * 14) + 'px"' + (addr ? ' data-script-addr="' + addr + '"' : '')
       + ' title="' + escH(r.note ? '' : hexNum(r.addressSnes, 6).replace('&ndash;', '') + '  ' + r.opcodeHex + '  ' + r.bytesHex) + '">'
-      + caret + (r.note ? escH(r.summary) : scriptHighlight(r.summary))
+      + caret + (r.note ? escH(r.summary) : typeof highlightScript === 'function' ? highlightScript(r.summary) : scriptHighlight(r.summary))
       + (r.opens != null && enterFolded(id, m.blocks[r.opens]) ? ' <span class="rs-note">+' + m.blocks[r.opens].size + '</span>' : '')
       + '</div>';
   });

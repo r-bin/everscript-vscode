@@ -41,7 +41,9 @@
   the room is running (Thraxx's loop toggles object 0). Choosing a variant sets the editor's ROM
   objects to them, every other object to state 0, and the Scripts tab draws that variant's own
   picture. Thraxx's chamber: Thraxx and Coleoptera set none; Empty sets objects 0–3 to 2, 2, 1, 1,
-  the chamber without Thraxx. Not yet compared with the running game.
+  the chamber without Thraxx. Not yet compared with the running game. `palette` is the same for
+  MAP_PALETTE ($7E2437): Coleoptera's script sets 7, so choosing it shows the Header tab's palette
+  set 7 (the room in white) and the Scripts tab's picture in it (`maps.familiesAt`).
 - **Polled conditions are the room going on, not a state** (v0.359). After placing Thraxx the
   enter script loops ($93D3CE, every 60 ticks): once `$2260&0x08` ("maggots triggered") is set
   mid-fight it refills up to four maggots, whose handles it keeps in `$2855..$285B` itself.

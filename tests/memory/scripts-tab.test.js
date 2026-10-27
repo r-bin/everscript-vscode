@@ -267,12 +267,14 @@ async function dom(rom) {
         }, addr);
         // $93D2A0 places Thraxx's heart, $93D2FD Coleoptera's.
         assert.ok(!/scr-(off|dead)/.test(await rowClass('$93D2A0')) && /scr-off/.test(await rowClass('$93D2FD')));
+        const thraxxPicture = await page.getAttribute('.scr-map img', 'src');
         assert.strictEqual(await page.locator('.scr-map image.scr-sprite').count(), 3, 'Thraxx: two claws and his heart');
         assert.ok(await page.locator('.scr-fold[aria-expanded="false"]').count() > 0, 'shared helpers start folded');
         await shot('thraxx');
+        assert.ok(await page.locator('.scr-rows .sx-kw').count() > 10, 'the lines are coloured');
         await page.click('[data-scr-variant="1"]');
         assert.ok(/scr-off/.test(await rowClass('$93D2A0')) && !/scr-(off|dead)/.test(await rowClass('$93D2FD')));
-        const thraxxPicture = await page.getAttribute('.scr-map img', 'src');
+        assert.notStrictEqual(await page.getAttribute('.scr-map img', 'src'), thraxxPicture, 'Coleoptera: palette set 7');
         await page.click('[data-scr-variant="2"]');
         assert.strictEqual(await page.locator('.scr-map image.scr-sprite').count(), 0, 'Empty: nobody');
         assert.notStrictEqual(await page.getAttribute('.scr-map img', 'src'), thraxxPicture, 'Empty: the objects it sets change the picture');

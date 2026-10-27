@@ -33,10 +33,11 @@
 // under each of the variant's flag assignments. A branch the run never tested,
 // or tested differently each time round a loop, keeps both sides.
 //
-// `objects` is the map as the variant shows it: each object state the enter
-// thread sets before it first waits (`object[i] = v`, constant index and value),
-// on the lines the variant reaches, the last one per object winning. After
-// that the room is running (Thraxx's loop toggles object 0 every 60 ticks).
+// `objects` and `palette` are the map as the variant shows it: each object
+// state the enter thread sets before it first waits (`object[i] = v`, constant
+// index and value) and the palette set it picks (MAP_PALETTE, $7E2437), on the
+// lines the variant reaches, the last write winning. After that the room is
+// running (Thraxx's loop toggles object 0 every 60 ticks).
 
 import { Sym, key, isC, truthy } from './sym';
 import { Decoder, Machine } from './machine';
@@ -85,6 +86,8 @@ export interface RoomVariant {
     reached: number[];
     /** [object index, state] the enter thread sets before it first waits; unset objects stay at state 0. */
     objects: Array<[number, number]>;
+    /** MAP_PALETTE ($7E2437) as the enter thread leaves it before it first waits: the palette set shown (0 when unset). */
+    palette: number;
     /** A budget stopped a path it came from: who was placed is known, what came after may not be. */
     cut: boolean;
 }
@@ -132,7 +135,7 @@ export function roomVariants(room: RoomAnalysis, dec: Decoder, splitOn: SplitOn 
         const only = unique.length ? unique : mine.filter((n) => !names.every((o) => o.has(n)));
         const head = f.lead.flags.length ? f.lead.flags.join(' · ') : 'default';
         return {
-            objects: objectsSet(room.scenarios[f.lead.scenario], new Set(f.reached)),
+            ...roomStateSet(room.scenarios[f.lead.scenario], new Set(f.reached)),
             name: only.length ? `${head} — ${only.slice(0, 3).join(', ')}${only.length > 3 ? ', …' : ''}` : head,
             title: title(f.lead.spawns, only, head),
             flags: f.lead.flags, only, also: f.also, when: f.when,
@@ -197,9 +200,13 @@ function reachedBy(m: Machine, room: RoomAnalysis, ps: Piece[], walks: Map<strin
     return [...out].sort((a, b) => a - b);
 }
 
-/** The object states the enter thread sets before its first wait, on lines in `reached`. */
-function objectsSet(s: Scenario, reached: ReadonlySet<number>): Array<[number, number]> {
+/** MAP_PALETTE: the first of the seven tile families the room shows (knowledge ram/7e2437). */
+const MAP_PALETTE = 0x2437;
+
+/** The object states and palette set the enter thread leaves before its first wait, on lines in `reached`. */
+function roomStateSet(s: Scenario, reached: ReadonlySet<number>): { objects: Array<[number, number]>; palette: number } {
     const out = new Map<number, number>();
+    let palette = 0;
     let waited = false;
     const steps = (list: Step[]): void => {
         for (const st of list) {
@@ -209,6 +216,7 @@ function objectsSet(s: Scenario, reached: ReadonlySet<number>): Array<[number, n
             const e = st.event;
             if (e.type === 'wait') { waited = true; return; }
             if (e.type === 'object' && isC(e.index) && isC(e.value) && isC(e.when) && e.when.v !== 0) out.set(e.index.v, e.value.v);
+            if (e.type === 'write' && e.addr === MAP_PALETTE && isC(e.value)) palette = e.value.v;
         }
     };
     const parts = (list: Part[]): void => {
@@ -218,7 +226,7 @@ function objectsSet(s: Scenario, reached: ReadonlySet<number>): Array<[number, n
         }
     };
     parts([...s.prepare, ...s.execute]);
-    return [...out].sort((a, b) => a[0] - b[0]);
+    return { objects: [...out].sort((a, b) => a[0] - b[0]), palette };
 }
 
 /** Jumps that only go to their target (0x04 goto, 0x05 goto_back); other branch effects may fall through. */

@@ -275,6 +275,15 @@ tr.dr.qhide{display:none}
 .hide-fg .svge-fg,.hide-fg .svge-canopy-ov{display:none!important}
 /* A spawn on a gate-nibble-8 tile: the engine draws nothing there at all. */
 .svge-spawn-unseen{opacity:.35}
+/* Script lines (script-vm/highlight.ts, both script viewers): the Everscript theme's colours
+   (language/themes/everscript-dark.json), and light ones for a light theme. */
+:root{--sx-kw:#569cd6;--sx-fn:#dcdcaa;--sx-const:#9cdcfe;--sx-type:#4ec9b0;--sx-mem:#ff9900;--sx-label:#c8c8c8;
+  --sx-num:#b5cea8;--sx-str:#ce9178;--sx-com:#6a9955}
+body.vscode-light{--sx-kw:#0000ff;--sx-fn:#795e26;--sx-const:#0070c1;--sx-type:#267f99;--sx-mem:#b35c00;--sx-label:#444;
+  --sx-num:#098658;--sx-str:#a31515;--sx-com:#008000}
+.sx-kw{color:var(--sx-kw);font-weight:600}.sx-fn{color:var(--sx-fn)}.sx-const{color:var(--sx-const)}.sx-type{color:var(--sx-type)}
+.sx-mem{color:var(--sx-mem)}.sx-label{color:var(--sx-label);text-decoration:underline;text-decoration-color:rgba(128,128,128,.5)}
+.sx-num{color:var(--sx-num)}.sx-str{color:var(--sx-str)}.sx-com{color:var(--sx-com);font-style:italic}
 /* Room variants (rooms/webview/room-variants.js): the chosen one's name in the header, and spawns a variant leaves out or places only under a condition. */
 .rv-name{font-size:10px;opacity:.6;margin-left:8px;max-width:48ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:baseline}
 .rv-name:empty{display:none}

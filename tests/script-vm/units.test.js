@@ -161,6 +161,19 @@ test('every handled opcode has a viewer name; every byte has an opcode entry wit
     }
 });
 
+test('highlightScript colours the printer\'s notation and escapes the rest', () => {
+    const h = V.highlightScript('if! (THRAXX_DEAD && <0x22e8, 0x40>) goto $93:d25a; // dead');
+    assert.ok(h.startsWith('<span class="sx-kw">if!</span>'), h);
+    assert.ok(h.includes('<span class="sx-const">THRAXX_DEAD</span>') && h.includes('&amp;&amp;'), h);
+    assert.ok(h.includes('<span class="sx-mem">&lt;0x22e8, 0x40&gt;</span>') && h.includes('<span class="sx-label">$93:d25a</span>'), h);
+    assert.ok(h.endsWith('<span class="sx-com">// dead</span>'), h);
+    const s = V.highlightScript('spawn(THRAXX_HEART, 24, 19);');
+    assert.strictEqual(s, '<span class="sx-fn">spawn</span>(<span class="sx-const">THRAXX_HEART</span>, <span class="sx-num">24</span>, <span class="sx-num">19</span>);');
+    // A name that merely contains a keyword or a number stays one word.
+    assert.ok(!V.highlightScript('entity_0341()').includes('sx-num'));
+    assert.ok(V.highlightScript('object[signed <0x249b>] = 2;').includes('<span class="sx-mem">object</span>[<span class="sx-type">signed</span>'));
+});
+
 console.log(`\nscript-vm units: ${passed} passed, ${failed} failed`);
 // exitCode, not exit(): Node 26 can deadlock in process.exit() (tools/test.mts).
 process.exitCode = failed ? 1 : 0;

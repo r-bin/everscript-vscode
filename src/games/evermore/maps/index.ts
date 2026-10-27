@@ -7,7 +7,7 @@
 // Validate changes with `npm run check:maps`, which diffs this decoder's output
 // against the Python implementation across every room.
 
-export { decodeRoom } from './room';
+export { decodeRoom, familiesAt } from './room';
 export type {
     RoomData,
     RoomHeader,

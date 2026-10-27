@@ -54,4 +54,4 @@ Host protocol:
 | `scriptsAnim { key, record, facing }` | `scriptsAnim { key, anim }` |
 | `scriptsMusic { id, seconds }` | `scriptsMusic { id, sequence, timeline }` |
 | `scriptsSim { room, key }` | `scriptsSim { room, key, everscript, clusters }` |
-| `scriptsVariants { id }` | `scriptsVariants { id, variants, pictures }` (the Rooms tab's worker, injected as `roomVariants`; `pictures[i]` the room with variant i's object states, null when it sets none) |
+| `scriptsVariants { id }` | `scriptsVariants { id, variants, pictures }` (the Rooms tab's worker, injected as `roomVariants`; `pictures[i]` the room with variant i's object states and palette set, null when it sets neither) |

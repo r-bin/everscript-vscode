@@ -94,6 +94,20 @@ function familySetsHtml(p) {
   return html + '</div>';
 }
 
+/**
+ * Show set `start` for the room on screen without redrawing the chrome (a variant choosing its
+ * palette set, room-variants.js). Returns whether it changed; the host redraw is asked for here.
+ */
+function familySetShow(start) {
+  var p = typeof _mtPalette !== 'undefined' ? _mtPalette : null;
+  if (!familySetsOf(p)) return false;
+  var want = start > 0 && start < p.tileFamilies.length ? start : 0;
+  if (familySetStart(p.roomId) === want) return false;
+  _familySetView = want ? { roomId: p.roomId, start: want } : null;
+  if (typeof infoApplyHeader === 'function') infoApplyHeader();
+  return true;
+}
+
 /** Show the map in set `start` (0: the one it loads with). Redraws through the header overrides. */
 function familySetPick(start) {
   var p = typeof _mtPalette !== 'undefined' ? _mtPalette : null;

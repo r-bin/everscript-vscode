@@ -69,11 +69,14 @@ function scrScriptListHtml(room) {
   return out.join('');
 }
 
+/** One script line, coloured (script-vm/highlight.ts, the Rooms tab's too). */
+function scrLine(text) { return typeof highlightScript === 'function' ? highlightScript(text) : scrEsc(text); }
+
 function scrRowsHtml(s) {
   return '<table class="scr-rows"><tbody>' + s.rows.map(function (r) {
     return '<tr class="' + (r.u ? 'scr-unk' : '') + (r.t ? ' scr-term' : '') + '"><td class="scr-a">' + r.a + '</td>' +
       '<td class="scr-b" title="' + scrEsc(r.b) + '">' + scrEsc(r.b.length > 24 ? r.b.slice(0, 23) + '…' : r.b) + '</td>' +
-      '<td class="scr-s" style="padding-left:' + (8 + r.d * 14) + 'px">' + scrEsc(r.s) + '</td></tr>';
+      '<td class="scr-s" style="padding-left:' + (8 + r.d * 14) + 'px">' + scrLine(r.s) + '</td></tr>';
   }).join('') + '</tbody></table>';
 }
 
@@ -150,10 +153,10 @@ function scrMergedHtml(m) {
     var cls = (r.note ? 'scr-note-row' : r.untraced ? 'scr-unk' : '') + (r.terminal ? ' scr-term' : '')
       + (mine && !r.note ? (mine[r.addressSnes] ? '' : any[r.addressSnes] ? ' scr-off' : ' scr-dead') : '');
     return '<tr class="' + cls + '"><td class="scr-a">' + (r.note ? '' : '$' + scrHex(r.addressSnes, 6)) + '</td>'
-      + '<td class="scr-s" style="padding-left:' + (8 + r.depth * 14) + 'px">'
+      + '<td class="scr-s" style="padding-left:' + (8 + (r.indent != null ? r.indent : r.depth) * 14) + 'px">'
       + (b ? '<button class="scr-fold" data-scr-fold="' + b.id + '" aria-expanded="' + !shut + '" title="' + (shut ? 'Show' : 'Hide') + ' the '
         + (b.kind === 'call' ? 'called script' : 'thread') + ' (' + b.size + ' lines)">' + (shut ? '▸' : '▾') + '</button>' : '')
-      + scrEsc(r.summary) + (shut ? ' <span class="scr-dim">+' + b.size + '</span>' : '') + '</td></tr>';
+      + (r.note ? scrEsc(r.summary) : scrLine(r.summary)) + (shut ? ' <span class="scr-dim">+' + b.size + '</span>' : '') + '</td></tr>';
   }).join('') + '</tbody></table>';
 }
 

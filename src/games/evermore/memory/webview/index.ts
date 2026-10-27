@@ -197,7 +197,7 @@ const EDITOR_SHELL_JS_FILES = [
 function loadRoomsJs() {
   return MAP_VIEW_JS_FILES.map(function(f) { return loadFile(path.join(MAP_VIEW_DIR, f)); })
     .concat(EDITOR_CORE_JS_FILES.map(function(f) { return loadFile(path.join(EDITOR_CORE_DIR, f)); }))
-    .concat([pageBundle('shell-frame')])   // markup: page frame, rail, header, canvas column, pill, status bar, tab strip (core/map-editor/shell/frame.ts)
+    .concat([pageBundle('shell-frame'), pageBundle('script-highlight')])   // markup: page frame, rail, header, canvas column, pill, status bar, tab strip (core/map-editor/shell/frame.ts)
     .concat(EDITOR_SHELL_JS_FILES.map(function(f) { return loadFile(path.join(EDITOR_SHELL_DIR, f)); }))
     .concat(ROOMS_JS_FILES.map(function(f) { return loadFile(path.join(roomsDir, f)); }))
     .join('\n');
@@ -236,7 +236,8 @@ export const musicJs = [loadFile(path.join(musicDir, '..', 'engine', 'spc-engine
     .concat(['music-audio.js', 'music-tab.js', 'music-timeline.js', 'music-hover.js', 'music-forecast.js', 'music-lists.js', 'music-init.js'].map(function(f) { return loadFile(path.join(musicDir, f)); }))
     .join('\n');
 // The Maps view's builders are TypeScript (scripts-maps.dom.ts): its bundle declares `ScriptsMaps` inside the page's IIFE.
-export const scriptsJs = [pageBundle('scripts-maps')].concat(['scripts-tab.js', 'scripts-room.js', 'scripts-anim.js', 'scripts-music.js', 'scripts-init.js']
+// `highlightScript` (script-vm/highlight.ts) colours script lines, as in the Rooms tab.
+export const scriptsJs = [pageBundle('scripts-maps'), pageBundle('script-highlight')].concat(['scripts-tab.js', 'scripts-room.js', 'scripts-anim.js', 'scripts-music.js', 'scripts-init.js']
     .map(function(f) { return loadFile(path.join(scriptsDir, f)); })).join('\n');
 // The Data tab is TypeScript (data-tab.dom.ts): its bundle declares `DataTab` inside the page's IIFE, which hands it `vs`.
 export const dataJs = pageBundle('data-tab') + '\nDataTab.setupDataTab(function (m) { if (vs) vs.postMessage(m); }, typeof ACTIVE_TAB !== \'undefined\' ? ACTIVE_TAB : \'\');';
