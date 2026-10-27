@@ -8,7 +8,7 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
-const { renderRadarHtml } = require('../../src/games/evermore/memory/render-radar');
+const { renderRadarHtml } = require('../../dist/games/evermore/memory/render-radar');
 const { buildScriptsTabHtml } = require('../../dist/games/evermore/scripts-tab');
 
 const ROM = require('../../dist/games').romPath('evermore');
@@ -21,7 +21,7 @@ async function test(name, fn) {
 
 function hostDeps(rom, posted) {
     const sprites = require('../../dist/games/evermore/sprites');
-    const music = require('../../src/games/evermore/music');
+    const music = require('../../dist/games/evermore/music');
     let bundle = null;
     return {
         post: (m) => posted.push(m),
@@ -75,7 +75,7 @@ async function romChecks(rom) {
     console.log('\nScripts tab — ROM');
     const rooms = require('../../dist/games/evermore/scripts-tab/model/rooms');
     const { alchemyModel } = require('../../dist/games/evermore/scripts-tab/model/alchemy');
-    const music = require('../../src/games/evermore/music');
+    const music = require('../../dist/games/evermore/music');
 
     await test('every room decodes its scripts', () => {
         for (const r of rooms.roomList()) assert.ok(!rooms.roomScripts(rom, r.id).error, 'room ' + r.idHex);

@@ -1,7 +1,7 @@
 ---
 name: memory-radar
 description: Use when touching the Memory Radar panel and its Memory tab: WRAM grid, address lifecycles, read/write detection, arg tracking, pools, enum cross-reference, auto-update (games/evermore/memory).
-applyTo: "src/games/evermore/memory/**,src/games/evermore/radar-utils.ts,src/games/evermore/extension.js"
+applyTo: "src/games/evermore/memory/**,src/games/evermore/radar-utils.ts,src/games/evermore/extension.ts"
 ---
 
 # Memory Radar and its Memory tab
@@ -12,7 +12,7 @@ Characters (`games/evermore/sprites/`), Scaling, Docs/RNG, Music, Scripts, Data.
 bar, **Bus | WRAM | ROM** (`memory/webview/wram-view.dom.ts`): WRAM is this skill's grid; Bus and ROM
 are the ROM feature's views (`games/evermore/rom/`, switched through `romShow`). A saved
 `activeTab` of `rom` opens Memory › ROM. The panel is
-`games/evermore/extension.js`; rendering `memory/render-radar.js`, `memory/render-memory-tab.ts`,
+`games/evermore/extension.ts`; rendering `memory/render-radar.ts`, `memory/render-memory-tab.ts`,
 `memory/webview/`; scope analysis `memory/scope-analysis.ts`; pure helpers `radar-utils.ts`.
 
 ## Radar data sources
@@ -148,5 +148,5 @@ Rules:
 - Future work on a tab should reason only inside that tab's own directory.
 - Cross-tab shared code must be minimal, generic, ownership-neutral — prefer slight
   duplication over a giant shared abstraction.
-- New tab logic goes in the tab's own directory, never in `src/games/evermore/extension.js` or
-  `src/games/evermore/memory/render-radar.js`.
+- New tab logic goes in the tab's own directory, never in `src/games/evermore/extension.ts` or
+  `src/games/evermore/memory/render-radar.ts`.

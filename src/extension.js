@@ -5,7 +5,7 @@
 // its line here and its line in src/games/index.ts.
 
 const GAMES = [
-    require('./games/evermore/extension'),
+    require('../dist/games/evermore/extension'),
     require('./games/mana/extension'),
     require('../dist/games/terra/extension'),
 ];

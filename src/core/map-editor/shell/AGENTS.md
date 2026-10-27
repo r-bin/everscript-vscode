@@ -8,7 +8,7 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2), part of `src/core/map-e
 
 ## Dependencies
 - Nothing: no imports from `src/` outside this folder (`.depcruise.js` `map-editor-shell-is-game-neutral`).
-  `frame.ts` is also imported by the Rooms host (`rooms/rendering/tree-renderer.ts`, `memory/render-radar.js`) and bundled for the page (`dist/webview/shell-frame.js`).
+  `frame.ts` is also imported by the Rooms host (`rooms/rendering/tree-renderer.ts`, `memory/render-radar.ts`) and bundled for the page (`dist/webview/shell-frame.js`).
 
 ## Invariants
 - No game's words here: no rooms, families, metatiles, collision bits, ROM. A page passes content in; a hook

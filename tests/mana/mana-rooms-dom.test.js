@@ -7,7 +7,7 @@
 // Run: node tests/mana/mana-rooms-dom.test.js
 
 const path = require('path');
-const { renderRadarHtml } = require(path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'memory', 'render-radar'));
+const { renderRadarHtml } = require(path.join(__dirname, '..', '..', 'dist', 'games', 'evermore', 'memory', 'render-radar'));
 
 let passed = 0, failed = 0;
 const check = (name, cond, detail) => {

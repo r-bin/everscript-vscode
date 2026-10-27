@@ -16,7 +16,7 @@ interface ScanDeps {
     readLuaWatchers(wsRoot: string): Map<string, unknown>;
     readRomMapHeader(wsRoot: string, mapId: number, romPath: string): RomMapHeader | null;
 }
-interface ExtConfig { romPath?: string }
+interface ExtConfig { romPath?: string; [setting: string]: unknown }
 /** A room's parsed content plus what the ROM and the watcher list add to it. */
 type ScannedContent = RoomContent & { triggers?: unknown; poi?: unknown; trigOffset?: { offX: number; offY: number }; romHeader?: RomMapHeader };
 interface MapNode {
@@ -68,7 +68,7 @@ function findRoomImage(wsRoot: string | null | undefined, mapName: string, vanil
  * @param {object}   extCfg  Extension config ({ romPath }).
  * @param {object}   deps    Runtime deps: { getMapEnum, readScriptAllTriggers, readLuaWatchers, readRomMapHeader }
  */
-function collectRoomsFromDir(dir: string, wsRoot: string, depth: number, extCfg: ExtConfig, deps?: ScanDeps): RoomNode[] {
+function collectRoomsFromDir(dir: string, wsRoot: string | null, depth: number, extCfg: ExtConfig, deps?: ScanDeps): RoomNode[] {
     if (depth > 8) return [];
     let entries: fs.Dirent[];
     try { entries = fs.readdirSync(dir, { withFileTypes: true }); }
@@ -135,7 +135,7 @@ function collectRoomsFromDir(dir: string, wsRoot: string, depth: number, extCfg:
  * @param {object}              extCfg    Extension config.
  * @param {object}              deps      Runtime deps: { getMapEnum, readScriptAllTriggers, readLuaWatchers, readRomMapHeader }
  */
-function buildRoomTree(document: { uri: { fsPath: string }; lineCount: number; lineAt(line: number): { text: string } }, wsRoot: string, extCfg: ExtConfig, deps?: ScanDeps): RoomNode[] {
+function buildRoomTree(document: { uri: { fsPath: string }; lineCount: number; lineAt(line: number): { text: string } }, wsRoot: string | null, extCfg: ExtConfig, deps?: ScanDeps): RoomNode[] {
     const docPath = document.uri.fsPath;
     const docDir  = path.dirname(docPath);
     const mapRe   = /^\s*map\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\(\s*([^)]*?)\s*\))?\s*\{/;

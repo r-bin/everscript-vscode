@@ -54,21 +54,8 @@ if (!require.cache.vscode) {
     };
 }
 
-// ── Extract renderRadarHtml from patched source ─────────────────────────────
-const src = fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'extension.js'), 'utf8');
-const patchedSrc = src.replace(
-    /module\.exports\s*=\s*\{[^}]+\};?\s*$/,
-    'module.exports = { activate, _renderRadarHtml: renderRadarHtml };'
-);
-const tmpPath = path.join(__dirname, '..', '..', 'src', 'games', 'evermore', '_ui_tmp.js');
-fs.writeFileSync(tmpPath, patchedSrc);
-let _renderRadarHtml;
-try {
-    delete require.cache[require.resolve(tmpPath)];
-    _renderRadarHtml = require(tmpPath)._renderRadarHtml;
-} finally {
-    fs.unlinkSync(tmpPath);
-}
+// ── renderRadarHtml ──────────────────────────────────────────────────────────
+const { renderRadarHtml: _renderRadarHtml } = require('../../dist/games/evermore/memory/render-radar');
 
 // ── Minimal inputs for renderRadarHtml ─────────────────────────────────────
 const scope = { kind:'function', name:'test_fn', startLine:0, endLine:100 };

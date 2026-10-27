@@ -1,5 +1,5 @@
 // Ownership: the ROM and Bus views' pane scaffold, one sub-pane of the Memory tab
-// (memory/render-radar.js puts it beside WRAM under the Bus | WRAM | ROM bar). Pure;
+// (memory/render-radar.ts puts it beside WRAM under the Bus | WRAM | ROM bar). Pure;
 // the content arrives later from the host (`romMap` message) and is drawn by webview/rom-tab.js.
 // Its search field (#rom-search) sits on the Memory bar, beside WRAM's, so every view has it top right.
 

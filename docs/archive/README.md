@@ -22,3 +22,4 @@ deleted. Git history is the last backstop (cleanup D13), but the archive keeps i
 6. **Not for** knowledge entries, `reconstructed-c/`, generated files, or code.
 
 Maintained by the [context-compressor](../../.agents/agents/context-compressor.md) agent.
+

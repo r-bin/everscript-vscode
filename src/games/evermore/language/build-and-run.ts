@@ -11,7 +11,7 @@ import * as cp from 'child_process';
 import * as romReaders from '../rom-readers';
 import { missingRomText } from '../../../platform/roms/library';
 
-interface BuildConfig { repoPath?: string; patchesDir?: string; compilerPath?: string; pythonPath?: string }
+interface BuildConfig { repoPath?: string | null; patchesDir?: string | null; compilerPath?: string | null; pythonPath?: string | null }
 interface BuildDeps {
     getExtConfig(): BuildConfig;
     openEmulatorPanel(context: vscode.ExtensionContext, rom: { dataUrl: string; name: string; filePath: string; kind: string } | undefined, channel: vscode.OutputChannel): void;

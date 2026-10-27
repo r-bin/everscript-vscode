@@ -22,7 +22,7 @@ interface DetailEntry {
 const COLS = 16;
 
 /**
- * Build the WRAM sub-pane (`<div class="mem-sub-pane" data-mem="wram">`); render-radar.js puts it under the Memory tab's sub-bar.
+ * Build the WRAM sub-pane (`<div class="mem-sub-pane" data-mem="wram">`); render-radar.ts puts it under the Memory tab's sub-bar.
  * CDL coverage, word starts and the search box are filled in on the page (webview/wram-view.dom.ts).
  * @param scope      { kind, name, startLine, endLine }
  * @param refs       addr → { reads, writes }

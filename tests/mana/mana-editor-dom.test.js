@@ -26,7 +26,7 @@ async function main() {
 
     const rooms = require('../../dist/games/evermore/rooms');
     const bridge = require('../../dist/games/evermore/imports/mana');
-    const { renderRadarHtml } = require('../../src/games/evermore/memory/render-radar');
+    const { renderRadarHtml } = require('../../dist/games/evermore/memory/render-radar');
     const soe = fs.readFileSync(SOE), som = new Uint8Array(fs.readFileSync(SOM));
     const service = bridge.createManaRooms({ soeRom: () => soe, manaRom: () => som });
     const shots = process.argv[2] || null;

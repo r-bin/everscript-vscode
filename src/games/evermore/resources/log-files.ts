@@ -10,8 +10,8 @@ import type { VfsNode } from './nodes';
 /** One crash report from the emulator panel (emulator-log.ts). */
 interface CrashLog {
     timestamp?: string; error?: string; rom?: string; frame?: number | null; mapId?: number | null;
-    camX?: number | null; camY?: number | null; stack?: string;
-    cpu?: { pc?: number; pb?: number; a?: number; x?: number; y?: number; sp?: number; db?: number; p?: number };
+    camX?: number | null; camY?: number | null; stack?: string | null;
+    cpu?: { pc?: number; pb?: number; a?: number; x?: number; y?: number; sp?: number; db?: number; p?: number } | null;
     scriptSlots?: { slot: number; state: string; loc?: number | null; entity?: number | null }[];
 }
 interface LaunchLog { timestamp?: string; name?: string; size?: number | null }

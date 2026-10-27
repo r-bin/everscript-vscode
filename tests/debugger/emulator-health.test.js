@@ -330,20 +330,20 @@ test('panel.js is ASCII-only to avoid webview parser/encoding issues', () => {
         'panel.js contains non-ASCII characters that may break webview document parsing');
 });
 
-test('Evermore\'s extension.js registers the emulator debugger with the panel bridge', () => {
-    const extContent = fs.readFileSync(path.join(ROOT, 'src', 'games', 'evermore', 'extension.js'), 'utf8');
-    assert.ok(extContent.includes("require('../../../dist/games/evermore/debugger/inline-adapter').registerDebugger")
+test('Evermore\'s extension.ts registers the emulator debugger with the panel bridge', () => {
+    const extContent = fs.readFileSync(path.join(ROOT, 'src', 'games', 'evermore', 'extension.ts'), 'utf8');
+    assert.ok(extContent.includes('registerDebugger')
         && extContent.includes('getScriptDebugBridge()'),
-        'extension.js does not connect the debugger to the emulator');
+        'extension.ts does not connect the debugger to the emulator');
 });
 
-test('extension.js forwards byte-script focus updates to the radar webview', () => {
-    const extPath = path.join(ROOT, 'src', 'games', 'evermore', 'extension.js');
+test('extension.ts forwards byte-script focus updates to the radar webview', () => {
+    const extPath = path.join(ROOT, 'src', 'games', 'evermore', 'extension.ts');
     const extContent = fs.readFileSync(extPath, 'utf8');
     assert.ok(extContent.includes("registerCommand('everscript._scriptFocus'"),
-        'extension.js does not register the internal byte-script focus bridge');
+        'extension.ts does not register the internal byte-script focus bridge');
     assert.ok(extContent.includes("command: 'byteScriptFocus'"),
-        'extension.js does not forward byte-script focus messages to the radar webview');
+        'extension.ts does not forward byte-script focus messages to the radar webview');
 });
 
 // ── G. ROM load simulation ────────────────────────────────────────────────────

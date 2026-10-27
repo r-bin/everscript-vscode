@@ -12,14 +12,14 @@ const assert = require('assert');
 
 const ROOT = path.join(__dirname, '..', '..');
 const { buildMusicModel, packageData } = require('../../dist/games/evermore/music/model/catalog');
-const { handlesMusicMessage, handleMusicMessage } = require('../../src/games/evermore/music');
+const { handlesMusicMessage, handleMusicMessage } = require('../../dist/games/evermore/music');
 const createSpcEngine = require('../../src/games/evermore/music/engine/spc-engine.js');
 const { MusicSpc } = require('../../dist/games/evermore/music/webview/music-engine.js');
 const V = require('../../dist/games/evermore/music/webview/music-view.js');
 const { ApuStream } = require('../../dist/core/emulator/apu-stream');
 const { getApuStreamClientScript } = require('../../dist/core/emulator/apu-stream-view');
 const { getSoundSourceClientScript } = require('../../dist/games/evermore/emulator/sound-source-view');
-const { renderRadarHtml } = require('../../src/games/evermore/memory/render-radar');
+const { renderRadarHtml } = require('../../dist/games/evermore/memory/render-radar');
 
 let passed = 0, failed = 0;
 const step = async (name, fn) => {

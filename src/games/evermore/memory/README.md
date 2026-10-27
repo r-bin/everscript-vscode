@@ -7,7 +7,7 @@ Renders the WRAM memory radar: the grid of 128KB WRAM addresses, lifecycle badge
 | File | Description |
 |---|---|
 | `render-memory-tab.ts` | Renders the Memory tab HTML (WRAM grid + detail table) |
-| `render-radar.js` | Top-level radar HTML assembler: tabs, layout, webview entry |
+| `render-radar.ts` | Top-level radar HTML assembler: tabs, layout, webview entry |
 | `webview/index.ts` | Loads and concatenates all webview asset JS/CSS into the panel HTML |
 
 ## Rules for changing this folder

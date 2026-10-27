@@ -145,7 +145,7 @@ function processScriptTraceBatch(items: TraceItem[], currentRom: Uint8Array | nu
 
   const formatter = new ScriptTraceFormatter();
   const lookupTable = getActiveAddressLookup(rom, customDraft);
-  const formatted: object[] = [];
+  const formatted: Record<string, unknown>[] = [];
 
   for (const item of items) {
     let loc = (item.loc || 0) >>> 0;

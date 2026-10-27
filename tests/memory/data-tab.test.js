@@ -7,7 +7,7 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
-const { renderRadarHtml } = require('../../src/games/evermore/memory/render-radar');
+const { renderRadarHtml } = require('../../dist/games/evermore/memory/render-radar');
 const { buildDataTabHtml, handleDataMessage } = require('../../dist/games/evermore/data-tab');
 
 const ROM = require('../../dist/games').romPath('evermore');

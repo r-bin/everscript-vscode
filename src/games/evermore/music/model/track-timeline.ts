@@ -1,5 +1,3 @@
-// TODO port to TS (docs/todo/port-to-ts.md)
-'use strict';
 // Ownership: a music track played silently in the tab's own engine (blargg's
 // SPC700 + S-DSP, engine/spc-engine.js) on the host, for the Scripts tab's
 // player: which notes each of the 8 voices plays, and when. No audio: the
@@ -22,10 +20,20 @@
 // docs/todo/audio-and-music.md §1.1). The track bytes' opcodes are not
 // decoded yet, so the bytes are returned as they are.
 
-const createSpcEngine = require('../engine/spc-engine.js');
-const { MusicSpc } = require('../../../../../dist/games/evermore/music/webview/music-engine');
-const { buildMusicModel, packageData } = require('../../../../../dist/games/evermore/music/model/catalog');
-const { decodeSequenceTrack } = require('../../../../../dist/games/evermore/music/model/sequence-decoder');
+import { MusicSpc } from '../webview/music-engine';
+import { buildMusicModel, packageData } from './catalog';
+import { decodeSequenceTrack } from './sequence-decoder';
+
+/** The emscripten module factory the engine file exports, typed as far as MusicSpc takes it. */
+type SpcEngineFactory = () => Promise<ConstructorParameters<typeof MusicSpc>[0]>;
+// The engine is a generated JS file that stays in src/ (the TS build does not copy it); five levels up is the repo
+// root from both src/ and dist/, so the one path works for the typecheck, the tests and the esbuild host bundle.
+const createSpcEngine: SpcEngineFactory = require('../../../../../src/games/evermore/music/engine/spc-engine.js');
+
+/** One voice as the engine's view shows it. */
+interface Voice { srcn: number; pitch: number; envx: number }
+/** A note one voice plays: frames f0 (first) to f1 (exclusive), 60 a second. */
+interface Note { v: number; f0: number; f1: number; srcn: number; pitch: number; semi: number | null; peak: number }
 
 const CLOCKS_PER_FRAME = Math.round(1024000 / 60);
 const DSP = 32;
@@ -35,8 +43,8 @@ const POINTER_TABLE = 0x2EB6;
 const MAX_SECONDS = 180;
 
 /** Per-voice { srcn, pitch, envx } from the engine's 224-byte view. */
-function voicesOf(view) {
-    const out = [];
+function voicesOf(view: Uint8Array): Voice[] {
+    const out: Voice[] = [];
     for (let v = 0; v < 8; v++) {
         const b = DSP + v * 16;
         out.push({ srcn: view[b + 4], pitch: (view[b + 2] | view[b + 3] << 8) & 0x3FFF, envx: view[b + 8] & 0x7F });
@@ -45,16 +53,16 @@ function voicesOf(view) {
 }
 
 /** Semitones from the sample's own rate (pitch $1000), one decimal. */
-const semitones = (pitch) => pitch ? Math.round(120 * Math.log2(pitch / 0x1000)) / 10 : null;
+const semitones = (pitch: number): number | null => pitch ? Math.round(120 * Math.log2(pitch / 0x1000)) / 10 : null;
 
 /**
  * Plays music `id` for `seconds` with no sound.
  * @returns Promise<{ id, name, package, seconds, frames, notes: [{ v, f0, f1, srcn, pitch, semi, peak }], error? }>
  *   f0/f1 are frame numbers (60 per second), f1 exclusive.
  */
-async function trackTimeline(rom, id, seconds = 60) {
+async function trackTimeline(rom: Uint8Array, id: number, seconds: number = 60) {
     const model = buildMusicModel(rom);
-    if (model.error) return { id, error: model.error };
+    if ('error' in model) return { id, error: model.error };
     const track = model.music[id];
     if (!track) return { id, error: 'No music $' + Number(id).toString(16) };
     const frames = Math.round(Math.max(1, Math.min(MAX_SECONDS, Number(seconds) || 60)) * 60);
@@ -62,9 +70,9 @@ async function trackTimeline(rom, id, seconds = 60) {
     spc.boot(model.driver, packageData(rom, 0));
     spc.playMusic(id, packageData(rom, track.package));
 
-    const notes = [];
-    const open = new Array(8).fill(null);
-    let prev = null;
+    const notes: Note[] = [];
+    const open: (Note | null)[] = new Array(8).fill(null);
+    let prev: Voice[] | null = null;
     for (let f = 0; f < frames; f++) {
         spc.run(CLOCKS_PER_FRAME);
         const vs = voicesOf(spc.view());
@@ -72,7 +80,7 @@ async function trackTimeline(rom, id, seconds = 60) {
             const cur = vs[v];
             const was = prev ? prev[v] : null;
             const sounding = cur.envx > SILENT;
-            let n = open[v];
+            let n: Note | null = open[v];
             const restart = n && sounding && (cur.srcn !== n.srcn
                 || Math.abs(12 * Math.log2((cur.pitch || 1) / (n.pitch || 1))) >= VIBRATO
                 || (was && cur.envx > was.envx + 16 && was.envx < 48));
@@ -91,9 +99,9 @@ async function trackTimeline(rom, id, seconds = 60) {
  * The sequence a music package uploads: { pointerAt, start, header, tracks: [{ index, aram, bytes }] }
  * or null when the package has no pointer record.
  */
-function trackSequence(rom, id) {
+function trackSequence(rom: Uint8Array, id: number) {
     const model = buildMusicModel(rom);
-    if (model.error || !model.music[id]) return null;
+    if ('error' in model || !model.music[id]) return null;
     const recs = packageData(rom, model.music[id].package);
     const pointerAt = POINTER_TABLE + 2 * model.music[id].package;
     const ptr = recs.find((r) => r.dest === pointerAt && r.bytes.length === 2);
@@ -102,7 +110,7 @@ function trackSequence(rom, id) {
     const header = recs.find((r) => r.dest === start);
     if (!header || !header.bytes.length) return null;
     const count = header.bytes[0];
-    const pointers = [];
+    const pointers: number[] = [];
     for (let i = 0; i < count; i++) pointers.push(header.bytes[1 + 2 * i] | header.bytes[2 + 2 * i] << 8);
     const tracks = pointers.map((aram, index) => {
         const rec = recs.find((r) => r.dest === aram);
@@ -112,4 +120,4 @@ function trackSequence(rom, id) {
     return { pointerAt, start, header: header.bytes, tracks };
 }
 
-module.exports = { trackTimeline, trackSequence };
+export { trackTimeline, trackSequence };

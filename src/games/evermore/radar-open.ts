@@ -1,31 +1,32 @@
-// TODO port to TS (docs/todo/port-to-ts.md)
-'use strict';
 // Ownership: the everscript.openMemoryRadar command — the radar for the scope at the cursor: build or
 // reuse the panel, render it, and route every message the page sends to the feature that owns it.
 // State and helpers: radar-panel.js.
 
-const vscode = require('vscode');
-const path   = require('path');
-const fs     = require('fs');
-const { VANILLA_ROOMS, buildVanillaRoomDetails, buildRoomTree, setRoomImageUris, handlesCustomMapMessage, handleCustomMapMessage } = require('../../../dist/games/evermore/rooms');
-const { handlesRomMessage, handleRomMessage } = require('../../../dist/games/evermore/rom');
-const { handlesMusicMessage, handleMusicMessage } = require('./music');
-const { handlesScriptsMessage, handleScriptsMessage } = require('../../../dist/games/evermore/scripts-tab');
-const { handlesDataMessage, handleDataMessage } = require('../../../dist/games/evermore/data-tab');
-const { handlesRoutesMessage, handleRoutesMessage } = require('../../../dist/games/evermore/routes');
-const { handlesEditorMessage, handleEditorMessage } = require('../../../dist/games/evermore/rooms/editor-host');
-const { handlesSpritesMessage, handleSpritesMessage } = require('../../../dist/games/evermore/sprites/radar-host');
-const romReaders = require('../../../dist/games/evermore/rom-readers');
-const gameViews = require('../../../dist/core/game-views');
-const { readRomCharacters, readRomHitLookup, detectScaleEnemies } = require('../../../dist/games/evermore/rom-readers');
-const { renderRadarHtml } = require('./memory/render-radar');
-const { renderAnimation } = require('../../../dist/games/evermore/sprites');
-const { radarDetectScope, radarAnalyzeScope } = require('../../../dist/games/evermore/memory/scope-analysis');
-const { radar, getMapExportChannel, getRadarMap, getRadarEnums, getSpritesBundle, getExtConfig, radarItemIcons, refreshRadar, ROOMS_UI_PREFS_KEY, radarImportedRooms, radarRoomRom } = require('./radar-panel');
+import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
+import { VANILLA_ROOMS, buildVanillaRoomDetails, buildRoomTree, setRoomImageUris, handlesCustomMapMessage, handleCustomMapMessage } from './rooms';
+import { handlesRomMessage, handleRomMessage } from './rom';
+import { handlesMusicMessage, handleMusicMessage, buildMusicModel, trackSequence, trackTimeline } from './music';
+import { handlesScriptsMessage, handleScriptsMessage } from './scripts-tab';
+import { handlesDataMessage, handleDataMessage } from './data-tab';
+import { handlesRoutesMessage, handleRoutesMessage } from './routes';
+import { handlesEditorMessage, handleEditorMessage } from './rooms/editor-host';
+import { handlesSpritesMessage, handleSpritesMessage } from './sprites/radar-host';
+import * as romReaders from './rom-readers';
+import * as gameViews from '../../core/game-views';
+import { readRomCharacters, readRomHitLookup, detectScaleEnemies } from './rom-readers';
+import { renderRadarHtml } from './memory/render-radar';
+import { renderAnimation } from './sprites';
+import { radarDetectScope, radarAnalyzeScope } from './memory/scope-analysis';
+import { radar, getMapExportChannel, getRadarMap, getRadarEnums, getSpritesBundle, getExtConfig, radarItemIcons, refreshRadar, ROOMS_UI_PREFS_KEY, radarImportedRooms, radarRoomRom } from './radar-panel';
+
+/** One node of the room tree (an area or a map). */
+type RoomNode = NonNullable<typeof radar.roomTree>[number];
 
 /** The Memory Radar for the scope at the cursor (or doc/startLine from a CodeLens): builds or reuses the panel and answers its messages. */
-async function openMemoryRadar(doc, startLine) {
-    const context = radar.context;
+async function openMemoryRadar(doc?: vscode.TextDocument, startLine?: number): Promise<void> {
+    const context = radar.context!;
     // Another game's ROM opens that game's view (multi-game.md §6: one command, any game).
     if (gameViews.openSelectedGameView(undefined, 'evermore')) return;
     const editor   = vscode.window.activeTextEditor;
@@ -59,11 +60,11 @@ async function openMemoryRadar(doc, startLine) {
             {
                 enableScripts: true,
                 retainContextWhenHidden: true,
-                localResourceRoots: [wsRootUri].filter(Boolean),
+                localResourceRoots: wsRootUri ? [wsRootUri] : [],
             },
         );
         radar.panel.onDidDispose(() => {
-            require('../../../dist/core/emulator/panel').apuStream.setOn(false);
+            require('../../core/emulator/panel').apuStream.setOn(false);
             radar.panel = null;
             radar.pinned = false;
             radar.currentScope = null;
@@ -81,7 +82,7 @@ async function openMemoryRadar(doc, startLine) {
     if (radar.roomDocPath !== document.uri.fsPath) {
         radar.roomTree    = buildRoomTree(document, wsRoot, getExtConfig());
         radar.roomDocPath = document.uri.fsPath;
-        setRoomImageUris(radar.roomTree, p => radar.panel.webview.asWebviewUri(vscode.Uri.file(p)).toString());
+        setRoomImageUris(radar.roomTree, (p: string) => radar.panel!.webview.asWebviewUri(vscode.Uri.file(p)).toString());
     }
 
     const selectedMap = scope.kind === 'map' ? scope.name : null;
@@ -90,7 +91,7 @@ async function openMemoryRadar(doc, startLine) {
     const _vrd2 = buildVanillaRoomDetails(_wsRoot2b, '');
     const _romBuf2 = romReaders.loadRomBuffer(_wsRoot2b, '');
     const _spBundle2 = getSpritesBundle(_romBuf2);
-    radar.panel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, radar.roomTree, radar.activeTab, selectedMap, radar.scalingChars || [], radar.scaleActive, radarItemIcons(), radar.hitLookup, getRadarEnums(), _vrd2, radar.byteScriptFocus, _spBundle2, radarImportedRooms());
+    radar.panel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, radar.roomTree ?? [], radar.activeTab, selectedMap, radar.scalingChars || [], radar.scaleActive, radarItemIcons(), radar.hitLookup, getRadarEnums(), _vrd2, radar.byteScriptFocus, _spBundle2, radarImportedRooms());
 
     // `everscript.newMap` asked for a blank room. The webview has just
     // been rebuilt, so this is the first moment it can be told.
@@ -132,7 +133,7 @@ async function openMemoryRadar(doc, startLine) {
         } else if (msg.command === 'tabChange') {
             radar.activeTab = msg.tab || 'radar';
         } else if (msg.command === 'saveUiPref' && typeof msg.key === 'string') {
-            const prefs = { ...context.globalState.get(ROOMS_UI_PREFS_KEY, {}) };
+            const prefs: Record<string, unknown> = { ...context.globalState.get<Record<string, unknown>>(ROOMS_UI_PREFS_KEY, {}) };
             prefs[msg.key] = msg.value;
             context.globalState.update(ROOMS_UI_PREFS_KEY, prefs);
         } else if (handlesEditorMessage(msg.command)) {
@@ -142,7 +143,7 @@ async function openMemoryRadar(doc, startLine) {
                 roomRom: radarRoomRom,
                 manaRooms: radar.manaRooms,
                 exportChannel: getMapExportChannel,
-                openEmulator: (rom) => require('../../../dist/core/emulator/panel').openEmulatorPanel(context, rom),
+                openEmulator: (rom) => require('../../core/emulator/panel').openEmulatorPanel(context, rom),
                 context,
             });
         } else if (handlesCustomMapMessage(msg.command)) {
@@ -171,8 +172,8 @@ async function openMemoryRadar(doc, startLine) {
             handleMusicMessage(msg, {
                 post: (m) => radar.panel?.webview.postMessage(m),
                 loadRom: () => romReaders.loadRomBuffer(_ws, ''),
-                apu: require('../../../dist/core/emulator/panel').apuStream,
-                describeSource: (rom, src) => require('../../../dist/games/evermore/resources/sound-source').describeSoundSource(rom, src),
+                apu: require('../../core/emulator/panel').apuStream,
+                describeSource: (rom, src) => require('./resources/sound-source').describeSoundSource(rom, src),
                 open: (uri) => vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(uri)),
             });
         } else if (handlesScriptsMessage(msg.command)) {
@@ -181,16 +182,17 @@ async function openMemoryRadar(doc, startLine) {
             // Characters and Music tabs; they are injected here so the
             // scripts-tab domain never imports another feature.
             const _ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-            const music = require('./music');
-            handleScriptsMessage(msg, {
+                        handleScriptsMessage(msg, {
                 post: (m) => radar.panel?.webview.postMessage(m),
                 loadRom: () => romReaders.loadRomBuffer(_ws, ''),
-                animations: (rom) => getSpritesBundle(rom).animations,
+                // Effect animations have no character (null at runtime); renderAnimation tells them by `Number.isInteger`,
+                // which its `number` type does not say.
+                animations: (rom) => getSpritesBundle(rom).animations.map(a => ({ ...a, paletteCharacter: a.paletteCharacter as number })),
                 renderAnimation,
                 music: {
-                    list: (rom) => { const m = music.buildMusicModel(rom); return m.error ? [] : m.music; },
-                    sequence: music.trackSequence,
-                    timeline: music.trackTimeline,
+                    list: (rom) => { const m = buildMusicModel(rom); return 'error' in m ? [] : m.music; },
+                    sequence: trackSequence,
+                    timeline: trackTimeline,
                 },
             });
         } else if (handlesDataMessage(msg.command)) {
@@ -222,7 +224,7 @@ async function openMemoryRadar(doc, startLine) {
                 post: (m) => radar.panel?.webview.postMessage(m),
                 loadRom: () => romReaders.loadRomBuffer(_ws, ''),
                 loadCdl: (rom) => {
-                    const { CdlLibrary, romHash } = require('../../../dist/platform/cdl/library');
+                    const { CdlLibrary, romHash } = require('../../platform/cdl/library');
                     const root = path.join(context.globalStorageUri.fsPath, 'cdl-library');
                     return fs.existsSync(path.join(root, romHash(rom))) ? new CdlLibrary(root, rom) : null;
                 },
@@ -231,7 +233,7 @@ async function openMemoryRadar(doc, startLine) {
         } else if (msg.command === 'globalScope') {
             radar.pinned = true; // freeze auto-updates while in global view
             if (radar.doc) {
-                const gscope = { kind: 'global', name: radar.doc.fileName.split(/[\/\\]/).pop(), startLine: 0, endLine: radar.doc.lineCount - 1 };
+                const gscope = { kind: 'global', name: radar.doc.fileName.split(/[\/\\]/).pop() ?? '', startLine: 0, endLine: radar.doc.lineCount - 1 };
                 const { refs, pools, argRefs } = radarAnalyzeScope(radar.doc, 0, radar.doc.lineCount - 1);
                 radar.scaleActive = detectScaleEnemies(wsRoot, radar.doc.uri?.fsPath ?? null);
                 const _extCfg3 = getExtConfig();
@@ -239,8 +241,9 @@ async function openMemoryRadar(doc, startLine) {
                 const _vrd3 = buildVanillaRoomDetails(_wsRoot3, '');
                 const _romBuf3 = romReaders.loadRomBuffer(_wsRoot3, '');
                 const _spBundle3 = getSpritesBundle(_romBuf3);
-                radar.panel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), radar.roomTree || [], radar.activeTab, null, radar.scalingChars || [], radar.scaleActive, radarItemIcons(), radar.hitLookup, getRadarEnums(), _vrd3, radar.byteScriptFocus, _spBundle3, radarImportedRooms());
-                radar.panel.title = 'Radar: (global)';
+                const panel = radar.panel!;
+                panel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), radar.roomTree || [], radar.activeTab, null, radar.scalingChars || [], radar.scaleActive, radarItemIcons(), radar.hitLookup, getRadarEnums(), _vrd3, radar.byteScriptFocus, _spBundle3, radarImportedRooms());
+                panel.title = 'Radar: (global)';
             }
         } else if (msg.command === 'autoScope') {
             radar.pinned = false;
@@ -249,8 +252,8 @@ async function openMemoryRadar(doc, startLine) {
             if (!radar.doc || typeof msg.line !== 'number' || msg.line < 0) return;
             const lineIdx = Math.min(Math.max(0, msg.line), radar.doc.lineCount - 1);
             const lineText = radar.doc.lineAt(lineIdx).text;
-            const fmt = (n) => '0x' + n.toString(16).padStart(2, '0');
-            let newText;
+            const fmt = (n: number) => '0x' + n.toString(16).padStart(2, '0');
+            let newText: string | undefined;
             if (msg.kind === 'entrance') {
                 newText = lineText.replace(
                     /entrance\s*\(\s*[0-9a-fA-Fx]+\s*,\s*[0-9a-fA-Fx]+\s*,/,
@@ -273,15 +276,15 @@ async function openMemoryRadar(doc, startLine) {
                 if (!uris || !uris.length) return;
                 const chosen = uris[0].fsPath;
                 // Find the node in the room tree and update imagePath
-                function patchNode(nodes) {
+                function patchNode(nodes: RoomNode[] | undefined): boolean {
                     for (const n of nodes || []) {
                         if (n.kind === 'map' && n.name === msg.mapName) { n.imagePath = chosen; return true; }
                         if (n.children && patchNode(n.children)) return true;
                     }
                     return false;
                 }
-                patchNode(radar.roomTree);
-                if (radar.panel) setRoomImageUris(radar.roomTree, p => radar.panel.webview.asWebviewUri(vscode.Uri.file(p)).toString());
+                patchNode(radar.roomTree ?? undefined);
+                if (radar.panel && radar.roomTree) setRoomImageUris(radar.roomTree, (p: string) => radar.panel!.webview.asWebviewUri(vscode.Uri.file(p)).toString());
                 refreshRadar(vscode.window.activeTextEditor);
             });
         } else if (handlesSpritesMessage(msg.command)) {
@@ -294,4 +297,4 @@ async function openMemoryRadar(doc, startLine) {
     }, undefined, context.subscriptions);
 }
 
-module.exports = { openMemoryRadar };
+export { openMemoryRadar };

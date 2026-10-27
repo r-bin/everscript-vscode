@@ -7,7 +7,7 @@
 
 const assert = require('assert');
 const path = require('path');
-const { renderRadarHtml } = require('../../src/games/evermore/memory/render-radar');
+const { renderRadarHtml } = require('../../dist/games/evermore/memory/render-radar');
 const { buildRoutesTabHtml, handleRoutesMessage } = require('../../dist/games/evermore/routes');
 const { parseRoute, routeViews } = require('../../dist/games/evermore/routes/model/route');
 

@@ -1,22 +1,33 @@
-// TODO port to TS (docs/todo/port-to-ts.md)
-'use strict';
 // Ownership: the Memory Radar's state (its panel, what it last showed, the ROM reads it caches) and the
 // helpers around it — the memory map and enum caches, the sprites bundle, the configuration, the
 // converted Mana rooms, the CodeLens and the debounced refresh. extension.js wires them; opening the
 // panel and answering its messages is radar-open.js.
 
-const vscode = require('vscode');
-const path   = require('path');
-const fs     = require('fs');
-const { parseEnumsFromContent } = require('../../../dist/games/evermore/radar-utils');
-const { resolveExtConfig } = require('../../../dist/games/evermore/language/config');
-const { buildVanillaRoomDetails, buildItemIcons, invalidateRoomDataCaches, buildRoomTree, setRoomImageUris } = require('../../../dist/games/evermore/rooms');
-const romReaders = require('../../../dist/games/evermore/rom-readers');
-const platform = require('../../../dist/platform');
-const { detectScaleEnemies } = require('../../../dist/games/evermore/rom-readers');
-const { renderRadarHtml } = require('./memory/render-radar');
-const { readAllCharacters, buildAnimationCatalog, characterThumbs, behaviourNames, attackProcNames } = require('../../../dist/games/evermore/sprites');
-const { radarReadMemoryMap, radarDetectScope, radarAnalyzeScope } = require('../../../dist/games/evermore/memory/scope-analysis');
+import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
+import { parseEnumsFromContent } from './radar-utils';
+import { resolveExtConfig } from './language/config';
+import { buildVanillaRoomDetails, buildItemIcons, invalidateRoomDataCaches, buildRoomTree, setRoomImageUris } from './rooms';
+import * as romReaders from './rom-readers';
+import * as platform from '../../platform';
+import { detectScaleEnemies, readRomCharacters } from './rom-readers';
+import { renderRadarHtml } from './memory/render-radar';
+import { readAllCharacters, buildAnimationCatalog, characterThumbs, behaviourNames, attackProcNames } from './sprites';
+import { radarReadMemoryMap, radarDetectScope, radarAnalyzeScope } from './memory/scope-analysis';
+import type { createManaRooms } from './imports/mana';
+
+type RadarMap = ReturnType<typeof radarReadMemoryMap>;
+type RadarEnums = Parameters<typeof renderRadarHtml>[12];
+type RadarScope = ReturnType<typeof radarDetectScope>;
+type RoomTree = ReturnType<typeof buildRoomTree>;
+type RomBuf = Uint8Array | null;
+/** The Characters tab's data: every character with its thumbnails, the animation catalogue, the stat names. */
+interface SpritesBundle {
+    characters: (ReturnType<typeof readAllCharacters>[number] & { thumbs: ReturnType<typeof characterThumbs> })[];
+    animations: ReturnType<typeof buildAnimationCatalog>;
+    statNames: { behaviour: ReturnType<typeof behaviourNames>; attackProc: ReturnType<typeof attackProcNames> };
+}
 
 // ── Memory Radar ─────────────────────────────────────────────────────────────
 // RAM lifecycles (temp / session / sram / system): radar-utils.ts radarLifecycle, from the
@@ -26,7 +37,30 @@ const { radarReadMemoryMap, radarDetectScope, radarAnalyzeScope } = require('../
 // compiler memory pool — addresses cannot be statically inferred from call sites.
 
 /** The Memory Radar's state: its panel, what it last showed, and the ROM reads it caches. */
-const radar = {
+interface RadarState {
+    context: vscode.ExtensionContext | null;
+    panel: (vscode.WebviewPanel & { __radarMessages?: vscode.Disposable }) | null;
+    pinned: boolean;
+    doc: vscode.TextDocument | null;
+    currentScope: RadarScope | null;
+    mapCache: RadarMap | null;
+    enumCache: RadarEnums | null;
+    updateTimer: ReturnType<typeof setTimeout> | null;
+    roomTree: RoomTree | null;
+    roomDocPath: string | null;
+    activeTab: string;
+    column: vscode.ViewColumn;
+    pendingNewMap: boolean;
+    scalingChars: ReturnType<typeof readRomCharacters> | null;
+    hitLookup: object | null;
+    scaleActive: boolean;
+    byteScriptFocus: string;
+    spritesBundle: SpritesBundle | null;
+    mapExportChannel: vscode.OutputChannel | null;
+    manaRooms: ReturnType<typeof createManaRooms> | null;
+}
+
+const radar: RadarState = {
     context: null,          // the extension context (set in activate)
     panel: null,            // active radar webview panel
     pinned: false,          // when true, radar ignores editor/scope changes
@@ -74,18 +108,18 @@ function invalidateRadarMap() { radar.mapCache = null; }
 
 /** Parse core evs files for enum entries mapping <0xNNNN> addresses to enum names.
  *  Returns Map<addr, [{cls, name}]> — cls is the enum class name, name is the member. */
-function radarReadEnums(wsFolder) {
-    const cache = new Map();
+function radarReadEnums(wsFolder: string): RadarEnums {
+    const cache: RadarEnums = new Map();
     const coreDir = path.join(wsFolder, 'in', 'core');
     if (!fs.existsSync(coreDir)) return cache;
-    const scanContent = (content) => {
+    const scanContent = (content: string): void => {
         for (const [addr, entries] of parseEnumsFromContent(content)) {
             if (!cache.has(addr)) cache.set(addr, []);
-            for (const e of entries) cache.get(addr).push(e);
+            for (const e of entries) cache.get(addr)!.push(e);
         }
     };
-    const scanDir = (dir) => {
-        let entries;
+    const scanDir = (dir: string): void => {
+        let entries: string[];
         try { entries = fs.readdirSync(dir); } catch { return; }
         for (const f of entries) {
             const fp = path.join(dir, f);
@@ -117,11 +151,10 @@ function invalidateRoomCaches() {
     invalidateRoomDataCaches();
 }
 
-function getSpritesBundle(rom) {
+function getSpritesBundle(rom: RomBuf): SpritesBundle {
     if (radar.spritesBundle) return radar.spritesBundle;
     if (!rom) return { characters: [], animations: [], statNames: { behaviour: behaviourNames(), attackProc: attackProcNames() } };
-    const characters = readAllCharacters(rom);
-    for (const c of characters) c.thumbs = characterThumbs(rom, c);
+    const characters = readAllCharacters(rom).map(c => ({ ...c, thumbs: characterThumbs(rom, c) }));
     radar.spritesBundle = {
         characters,
         animations: buildAnimationCatalog(rom, characters),
@@ -161,7 +194,7 @@ function radarItemIcons() {
     return buildItemIcons(romReaders.loadRomBuffer(ws, ''));
 }
 
-function refreshRadar(editor) {
+function refreshRadar(editor: vscode.TextEditor | undefined): void {
     if (!radar.panel || radar.pinned) return;
     if (!editor || editor.document.languageId !== 'everscript') return;
     const doc   = editor.document;
@@ -177,7 +210,7 @@ function refreshRadar(editor) {
     if (radar.roomDocPath !== doc.uri.fsPath) {
         radar.roomTree    = buildRoomTree(doc, wsRoot2, getExtConfig());
         radar.roomDocPath = doc.uri.fsPath;
-        if (radar.panel) setRoomImageUris(radar.roomTree, p => radar.panel.webview.asWebviewUri(vscode.Uri.file(p)).toString());
+        if (radar.panel) setRoomImageUris(radar.roomTree, (p: string) => radar.panel!.webview.asWebviewUri(vscode.Uri.file(p)).toString());
     }
     radar.scaleActive = detectScaleEnemies(wsRoot2, doc.uri.fsPath);
     const selectedMap = scope.kind === 'map' ? scope.name : null;
@@ -192,10 +225,10 @@ function refreshRadar(editor) {
 
 // ── Radar CodeLens provider ───────────────────────────────────────────────────
 class RadarCodeLensProvider {
-    provideCodeLenses(document) {
+    provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
         if (document.languageId !== 'everscript') return [];
         const declRe = /^\s*(fun|map|area|group)\s+([A-Za-z_][A-Za-z0-9_]*)\b/;
-        const lenses = [];
+        const lenses: vscode.CodeLens[] = [];
         for (let i = 0; i < document.lineCount; i++) {
             if (!declRe.test(document.lineAt(i).text)) continue;
             lenses.push(new vscode.CodeLens(document.lineAt(i).range, {
@@ -225,7 +258,7 @@ function radarImportedRooms() {
  * ROM for a ROM room (0..0x7E), a converted room's own image otherwise. Null when
  * neither applies (`error` says why).
  */
-function radarRoomRom(roomId) {
+function radarRoomRom(roomId: unknown) {
     const id = Number(roomId);
     if (Number.isInteger(id) && id >= 0 && id <= 0x7e) {
         const ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
@@ -236,4 +269,5 @@ function radarRoomRom(roomId) {
     return hit ? { romBuf: hit.rom, roomId: hit.roomId } : { error: 'invalid room id' };
 }
 
-module.exports = { radar, getMapExportChannel, getRadarMap, invalidateRadarMap, getRadarEnums, invalidateRadarEnums, invalidateRoomCaches, getSpritesBundle, getExtConfig, radarItemIcons, refreshRadar, RadarCodeLensProvider, ROOMS_UI_PREFS_KEY, radarImportedRooms, radarRoomRom };
+export type { SpritesBundle };
+export { radar, getMapExportChannel, getRadarMap, invalidateRadarMap, getRadarEnums, invalidateRadarEnums, invalidateRoomCaches, getSpritesBundle, getExtConfig, radarItemIcons, refreshRadar, RadarCodeLensProvider, ROOMS_UI_PREFS_KEY, radarImportedRooms, radarRoomRom };

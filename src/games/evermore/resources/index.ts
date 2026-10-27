@@ -1,23 +1,17 @@
-// TODO port to TS (docs/todo/port-to-ts.md)
-'use strict';
 // Ownership: entry point of the resources domain — registers the `soe://`
 // file system and its commands. The ROM and emulator access are injected
 // by extension.js; this domain never requires src/core/emulator/.
 
-const path = require('path');
-const vscode = require('vscode');
-const { SCHEME, parseSoeParts, mountSegment } = require('../../../../dist/games/evermore/resources/resource-uri');
-const { SoeFileSystem } = require('../../../../dist/games/evermore/resources/fs-provider');
-const { checkSoeResources } = require('../../../../dist/games/evermore/resources/check-panel');
+import * as path from 'path';
+import * as vscode from 'vscode';
+import { SCHEME, parseSoeParts, mountSegment } from './resource-uri';
+import { SoeFileSystem } from './fs-provider';
+import { checkSoeResources } from './check-panel';
 
-/**
- * @param {vscode.ExtensionContext} context
- * @param {{ vanillaRom: () => Uint8Array|null, emulatorRom: () => Uint8Array|null,
- *           romFile: (path: string) => Uint8Array|null,
- *           readMemory: (bus: number, len: number) => Promise<Uint8Array>,
- *           emulatorStatus: () => Promise<object> }} deps
- */
-function registerSoeResources(context, deps) {
+/** What the extension hands the soe:// file system: the ROMs, the emulator's memory and status, its logs. */
+type SoeDeps = ConstructorParameters<typeof SoeFileSystem>[0];
+
+function registerSoeResources(context: vscode.ExtensionContext, deps: SoeDeps): void {
     const fsProvider = new SoeFileSystem(deps);
     context.subscriptions.push(
         fsProvider,
@@ -29,11 +23,11 @@ function registerSoeResources(context, deps) {
     );
 }
 
-async function openSoeResource(address) {
+async function openSoeResource(address?: unknown) {
     const value = typeof address === 'string' ? address : await vscode.window.showInputBox({
         prompt: 'soe:// address to open',
         value: 'soe://rom/index.md',
-        validateInput: v => /^soe:\/\/(rom|ram|bus|tags|localization|maps|logs)(\/|$)/.test(v) ? null : 'Starts with soe://rom/, ram/, bus/, tags/, localization/, maps/ or logs/',
+        validateInput: (v: string) => /^soe:\/\/(rom|ram|bus|tags|localization|maps|logs)(\/|$)/.test(v) ? null : 'Starts with soe://rom/, ram/, bus/, tags/, localization/, maps/ or logs/',
     });
     if (!value) return;
     const target = /^soe:\/\/[a-z]+\/?$/.test(value) ? value.replace(/\/?$/, '/index.md') : value;
@@ -52,10 +46,10 @@ const MD_PREVIEW = 'vscode.markdown.preview.editor';
  */
 async function toggleSoeMarkdown() {
     const tab = vscode.window.tabGroups.activeTabGroup.activeTab;
-    const input = tab && tab.input;
+    const input = tab && (tab.input as { uri?: vscode.Uri; viewType?: string } | undefined);
     const uri = input && input.uri;
-    if (!uri) return;
-    const toPreview = !(input instanceof vscode.TabInputCustom && input.viewType === MD_PREVIEW);
+    if (!tab || !uri) return;
+    const toPreview = !(tab.input instanceof vscode.TabInputCustom && tab.input.viewType === MD_PREVIEW);
     await vscode.commands.executeCommand('vscode.openWith', uri, toPreview ? MD_PREVIEW : 'default', { viewColumn: tab.group.viewColumn });
     if (!tab.isPinned) await vscode.window.tabGroups.close(tab).then(undefined, () => {});
 }
@@ -69,7 +63,7 @@ async function toggleSoeMarkdown() {
  * strips), so a root with a query lets the Markdown preview load no image.
  * Already mounted → just reveal it; an older `?rom=` mount is replaced.
  */
-async function openRomAsFolder(fileUri) {
+async function openRomAsFolder(fileUri?: unknown) {
     if (!(fileUri instanceof vscode.Uri)) {
         const picked = await vscode.window.showOpenDialog({
             canSelectMany: false, openLabel: 'Open as Folder',
@@ -77,7 +71,7 @@ async function openRomAsFolder(fileUri) {
         });
         fileUri = picked && picked[0];
     }
-    if (!fileUri) return;
+    if (!(fileUri instanceof vscode.Uri)) return;
     if (fileUri.scheme !== 'file') {
         return vscode.window.showErrorMessage(`Only ROMs on disk can be opened as a folder (${fileUri.toString()})`);
     }
@@ -85,7 +79,7 @@ async function openRomAsFolder(fileUri) {
     const name = path.basename(romPath);
     const uri = vscode.Uri.from({ scheme: SCHEME, authority: 'rom', path: `/${mountSegment(romPath)}/` });
     const folders = vscode.workspace.workspaceFolders || [];
-    const sameRom = f => f.uri.scheme === SCHEME && f.uri.authority === 'rom'
+    const sameRom = (f: vscode.WorkspaceFolder) => f.uri.scheme === SCHEME && f.uri.authority === 'rom'
         && parseSoeParts(f.uri.authority, f.uri.path, f.uri.query).rom === romPath;
     const at = folders.findIndex(sameRom);
     if (at < 0 || folders[at].uri.toString() !== uri.toString()) {
@@ -98,4 +92,4 @@ async function openRomAsFolder(fileUri) {
     return vscode.commands.executeCommand('revealInExplorer', vscode.Uri.joinPath(uri, 'index.md'));
 }
 
-module.exports = { registerSoeResources };
+export { registerSoeResources };

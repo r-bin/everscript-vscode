@@ -11,7 +11,7 @@ const assert = require('assert');
 const { buildRomModel } = require('../../dist/games/evermore/rom');
 const { readersOf } = require('../../dist/games/evermore/rom/model/readers');
 const { executedByHalf, wramStrip, wramWordStarts, wramCoverage } = require('../../dist/games/evermore/rom/model/bus-usage');
-const { renderRadarHtml } = require('../../src/games/evermore/memory/render-radar');
+const { renderRadarHtml } = require('../../dist/games/evermore/memory/render-radar');
 
 let passed = 0, failed = 0;
 const check = (name, fn) => {

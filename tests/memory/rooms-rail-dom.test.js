@@ -18,7 +18,7 @@
 
 const path = require('path');
 
-const { renderRadarHtml } = require(path.join(__dirname, '..', '..', 'src', 'games', 'evermore', 'memory', 'render-radar'));
+const { renderRadarHtml } = require(path.join(__dirname, '..', '..', 'dist', 'games', 'evermore', 'memory', 'render-radar'));
 
 /** A live tree with one area node and one bare map node, like a real file. */
 const ROOM_TREE = [

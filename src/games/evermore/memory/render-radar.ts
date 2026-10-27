@@ -1,22 +1,24 @@
-// TODO port to TS (docs/todo/port-to-ts.md)
-'use strict';
 // Owner: memory_radar/render-radar.js
 // Orchestrates full radar webview HTML: assembles per-tab renderers,
 // injects JS data blobs, and wraps in page shell.
 // No VS Code dependency — all external state arrives as parameters.
 
-const { buildMemoryTabHtml }     = require('../../../../dist/games/evermore/memory/render-memory-tab');
-const { buildDocsTabHtml, buildRngTabHtml } = require('../../../../dist/games/evermore/docs-tab/render-docs-tab');
-const { renderRoomsTree, renderVanillaTree, buildRoomRailHtml,
-        buildRoomsJson, VANILLA_ROOMS } = require('../../../../dist/games/evermore/rooms');
-const { buildSpritesTabHtml }    = require('../../../../dist/games/evermore/sprites');
-const { buildRomTabHtml }        = require('../../../../dist/games/evermore/rom');
-const { buildMusicTabHtml }      = require('../music');
-const { buildScriptsTabHtml }    = require('../../../../dist/games/evermore/scripts-tab');
-const { buildDataTabHtml }       = require('../../../../dist/games/evermore/data-tab');
-const { buildRoutesTabHtml }     = require('../../../../dist/games/evermore/routes');
-const radarWebview               = require('../../../../dist/games/evermore/memory/webview');
-const { shellFrameHtml }         = require('../../../../dist/core/map-editor/shell/frame');
+import { buildMemoryTabHtml } from './render-memory-tab';
+import { buildDocsTabHtml, buildRngTabHtml } from '../docs-tab/render-docs-tab';
+import { renderRoomsTree, renderVanillaTree, buildRoomRailHtml, buildRoomsJson, VANILLA_ROOMS } from '../rooms';
+import { buildSpritesTabHtml } from '../sprites';
+import { buildRomTabHtml } from '../rom';
+import { buildMusicTabHtml } from '../music';
+import { buildScriptsTabHtml } from '../scripts-tab';
+import { buildDataTabHtml } from '../data-tab';
+import { buildRoutesTabHtml } from '../routes';
+import * as radarWebview from './webview';
+import { shellFrameHtml } from '../../../core/map-editor/shell/frame';
+
+type MemoryArgs = Parameters<typeof buildMemoryTabHtml>;
+type RoomTree = Parameters<typeof buildRoomsJson>[0];
+/** The Sprites tab's data (characters, animations, stat names) as the host hands it over; absent without a ROM. */
+interface SpritesBundle { characters?: readonly unknown[]; animations?: readonly unknown[]; statNames?: object }
 
 /**
  * Build the complete radar webview HTML.
@@ -26,12 +28,13 @@ const { shellFrameHtml }         = require('../../../../dist/core/map-editor/she
  * rely on the defaults.
  */
 function renderRadarHtml(
-    scope, refs, pools, argRefs, mapByAddr,
-    roomTree = [], activeTab = 'radar', selectedMap = null,
-    chars = [], scaleActive = false, itemIcons = null, hitLookup = null,
-    enumByAddr = new Map(), vanillaRoomDetails = {}, byteScriptFocus = '',
-    spritesBundle = null, importedRooms = []
-) {
+    scope: MemoryArgs[0], refs: MemoryArgs[1], pools: MemoryArgs[2], argRefs: MemoryArgs[3], mapByAddr: MemoryArgs[4],
+    roomTree: RoomTree = [], activeTab: string = 'radar', selectedMap: string | null = null,
+    chars: unknown[] = [], scaleActive: boolean = false, itemIcons: { loot: object; alchemy: object } | null = null,
+    hitLookup: object | null = null,
+    enumByAddr: MemoryArgs[5] = new Map(), vanillaRoomDetails: object = {}, byteScriptFocus: string = '',
+    spritesBundle: SpritesBundle | null = null, importedRooms: Parameters<typeof buildRoomRailHtml>[2] = [],
+): string {
     // ── Memory tab (grid + detail table) ───────────────────────────────────
     const { html: memoryTabHtml, cellData } = buildMemoryTabHtml(
         scope, refs, pools, argRefs, mapByAddr, enumByAddr
@@ -182,4 +185,5 @@ function renderRadarHtml(
         '<script>' + js + '<\/script></body></html>';
 }
 
-module.exports = { renderRadarHtml };
+export { renderRadarHtml };
+export type { SpritesBundle };

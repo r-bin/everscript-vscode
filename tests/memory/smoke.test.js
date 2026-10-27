@@ -212,7 +212,7 @@ function extractScript(html) {
 // ── The functions under test, from the modules that own them ─────────────────
 const fs   = require('fs');
 const path = require('path');
-const { renderRadarHtml: _renderRadarHtml } = require('../../src/games/evermore/memory/render-radar');
+const { renderRadarHtml: _renderRadarHtml } = require('../../dist/games/evermore/memory/render-radar');
 const { buildRoomsJson: _buildRoomsJson, renderRoomsTree: _renderRoomsTree } = require('../../dist/games/evermore/rooms');
 
 // ── Tests ─────────────────────────────────────────────────────────────────────

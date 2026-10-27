@@ -187,7 +187,7 @@ test('host: a dropped .evsmv is kept once, named its ROM, and plays; the page an
     const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
     assert.ok(pkg.contributes.customEditors.some(e => e.viewType === 'everscript.replay' && e.selector.some(s => s.filenamePattern === '*.evsmv')));
     assert.ok(pkg.activationEvents.includes('onCustomEditor:everscript.replay'));
-    const ext = fs.readFileSync(path.join(ROOT, 'src/games/evermore/extension.js'), 'utf8');
+    const ext = fs.readFileSync(path.join(ROOT, 'src/games/evermore/extension.ts'), 'utf8');
     assert.ok(/registerReplayEditor\(context,[\s\S]*playReplay\(context, name, text\)/.test(ext), 'the extension registers the replay editor');
 });
 
