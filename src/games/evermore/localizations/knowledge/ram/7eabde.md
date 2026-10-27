@@ -1,13 +1,18 @@
 ---
 addr: 7EABDE
-end: 7EADFE
-kind: buffer
-name: OAM_MIRROR_BUFFER
-title: SNES OAM mirror buffer (544 bytes)
+size: 512
+kind: array
+name: LOW_OAM_TABLE_BUF
+title: Low OAM staging buffer (128 hardware sprites × 4 bytes)
 lifetime: frame
-confidence: confirmed
-tags: [sprites, oam, ppu]
-evidence: ["disasm: $80:9033 (direct_sprite_draw_oam) writes 544 bytes into $7E:ABDE, transferred to PPU OAM via DMA during V-blank"]
+confidence: verified
+tags: [sprites, oam, rendering]
+evidence: ["disasm: func_C09040 writes sprite X, Y, tile index, and attribute byte to $7E:ABDE,x (x = 0, 4, ... 508)", "disasm: NMI DMA transfers $0200 bytes from $7E:ABDE to SNES OAMADDL"]
 ---
-Main CPU mirror of SNES hardware OAM. Comprises 512 bytes of sprite attribute data (128 sprites x 4 bytes: X, Y, Tile, Attributes) followed by 32 bytes of upper X coordinate and size bits. Inverted/DMA-copied to $2104 during V-blank.
-
+The main CPU staging buffer for SNES Low OAM:
+Each sprite occupies 4 bytes:
+- Byte 0: X coordinate (bits 0-7)
+- Byte 1: Y coordinate
+- Byte 2: Starting tile number
+- Byte 3: Attribute flags (palette, priority, h-flip, v-flip)
+Transferred to PPU OAM via DMA channel at the start of VBlank.
