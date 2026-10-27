@@ -68,9 +68,8 @@ that game's folder and docs (AGENTS.md §0.4).
 3. **CDL plan:** if coverage is low, which parts of the game to record next, and by whom (the
    user playing, a stored playback, scripted input from save states). **This is the one input
    only the user can produce**, so the intake must end with a concrete recording list.
-4. **Outside maps** (community RAM/ROM maps): treat them as leads to check against the running
-   game, never copy them (AGENTS.md §0.1). Whether a given source may be read at all is the
-   user's call, per source and per licence.
+4. **Outside maps** (community RAM/ROM maps): which sources may be read at all, per source and
+   per licence. Whatever is read enters as `lead`s (§3.4), never as facts, never copied (AGENTS.md §0.1).
 5. **Confidence bar:** is `guess` acceptable in a first pass, or only `likely` and above?
 
 ### 3.2 Phase 2: the pipeline
@@ -102,6 +101,60 @@ functions before anyone reads their game logic.
 | Map editor | A, D (room tables, tile/collision formats), C (room state) | renders in the core map editor like the game (AGENTS.md §0.6) |
 | Engine docs | A, B, C, D around one subsystem | a doc per mechanic, checked in the running game |
 
+### 3.4 Truths vs guesses
+
+Community maps, old forum posts, an AI's reading of the assembly and our own recordings all end
+up as "facts" unless the skill keeps them apart. Two separate questions decide how much a claim
+can be trusted: **who says so** (its origin) and **what we checked** (its status). Today an entry
+has only `confidence` and `evidence` (`game-knowledge` skill), so a community claim that an
+agent copied in as `likely` cannot be told apart from one we measured.
+
+**Origin.** Every claim records where it came from. Origin never changes, even after a claim is checked.
+
+| Origin | Example | Trust on its own |
+|---|---|---|
+| `runtime` | CDL accessors, a trace, a WRAM watch, a test we ran | high, but only for what was executed |
+| `static` | our disassembly, Ghidra / REA call graph | medium: no M/X/DB/D, misses jump targets |
+| `inference` | the agent's reading of a routine ("looks like the RNG") | low until checked |
+| `community` | a public RAM map, a wiki, an old Ghidra project, a forum post | **lead only**: never a fact by itself |
+
+**Status.** A claim moves `lead → checked → confirmed`, or ends as `contradicted`.
+
+| Status | Means | Allowed in |
+|---|---|---|
+| `lead` | someone claims it; we have not looked | the leads register only (below), **never** a knowledge entry, a name in `functions.ts`, or the exports |
+| `checked` | our own `static` or `inference` evidence agrees | knowledge entry with `confidence: guess` / `likely` |
+| `confirmed` | our own `runtime` evidence agrees | knowledge entry with `confidence: confirmed` |
+| `contradicted` | our evidence disagrees | kept in the register with the counter-evidence; the entry, if any, gets `Previously believed: …` |
+
+**Rules:**
+- **Promotion needs our own evidence.** Agreement between two community sources is still a
+  `lead`. So is an AI paraphrase of one. A `community` lead can only point at where to look.
+- **Runtime beats static beats inference.** When our evidence disagrees with a lead, ours wins.
+  The disagreement is recorded, because a lead that is wrong in one place may be wrong elsewhere,
+  so the register keeps a hit rate per source.
+- **Legal:** a lead is written in our own words: an address, a one-line claim and a citation
+  (title or URL, no copied tables or comments). Importing a whole community map as leads is
+  copying, so it is not allowed (AGENTS.md §0.1). Whether a source may be read at all is decided
+  per source in the intake.
+- **Agents never upgrade their own guesses silently.** `inference` reaches `confirmed` only via
+  a runtime experiment named in the worklist (§3.5).
+
+The skill's report always splits its findings into three lists: confirmed this session, checked
+but not confirmed, and contradicted leads.
+
+### 3.5 What the skill writes down (nothing lives only in the context)
+
+`/grill-me` keeps its decision tree in the conversation, and REA forgets everything on close. This
+skill writes its state to files so a later session (or another agent) resumes instead of starting over.
+
+| File (per game, generated outside the repo where it holds ROM-derived data) | Holds |
+|---|---|
+| `intake.md` | answers to the intake round: goals, scope, confidence bar, allowed sources, recording list |
+| `leads.md` (in the repo, our words only) | one line per lead: address, claim, origin + citation, status, the evidence that settled it; hit rate per source |
+| `worklist.md` | per function / WRAM range / table: done, pending, and **the experiment that would settle it** |
+| knowledge entries, `docs/<game>/` | only `checked` and `confirmed` claims, as today |
+
 ## 4. Why this would be efficient, point by point
 
 | From | Kept as |
@@ -110,7 +163,8 @@ functions before anyone reads their game logic.
 | grilling: facts vs decisions | the agent finds ROM type, coverage and tools itself; the user decides goals and does the recording |
 | REA: one front end, many narrow queries | a dossier per function from the library (and `soe://`-style VFS) instead of reading banks |
 | REA: evidence per claim | every name carries evidence and a confidence level (`game-knowledge` rules) |
-| *not* REA: no persistence, no 65816 context | the CDL library supplies M/X, DB/D and jump targets, and results stay in the library and the knowledge files |
+| *not* REA: no persistence, no 65816 context | the CDL library supplies M/X, DB/D and jump targets; results, intake answers and the worklist are written down (§3.5) |
+| *neither*: a source of a claim | origin and status per claim; community claims stay leads until our evidence agrees (§3.4) |
 
 ## 5. What exists and what to build
 
@@ -124,6 +178,7 @@ functions before anyone reads their game logic.
 | **Hardware-register hints** (§3.2) | ❌ to build in `src/platform/` |
 | **Struct / enum / bytecode-VM detectors** (stages C, D) | ❌ to build; Evermore's script VM is the test case (we know the answer) |
 | **The skill file** (intake round + stage recipes + per-game output paths) | ❌ `.agents/skills/snes-re/SKILL.md` once the generator exists |
+| **`origin` field on knowledge entries** + a leads register; `check:knowledge` rejects an entry whose only evidence is `community` | ❌ to build; existing entries default to `origin: runtime/static` from their evidence kinds, the community-Ghidra-derived ones are re-tagged |
 | A game-neutral `re-curator` (per-game sources as a parameter) | ❌ generalize after the skill proves itself on a second game |
 
 **Proving it:** run the skill on Evermore first, where the answers are known (functions,
@@ -143,6 +198,10 @@ which have little code knowledge today, and see what it finds.
 
 ❓ **Q4 — Outside RAM/ROM maps: leads only, decided per source?**
 ➡️ Yes. This is AGENTS.md §0.1 applied as written.
+
+❓ **Q4b — Add `origin` to the knowledge-entry schema now (for Evermore too), and enforce "no
+community-only entries" in `check:knowledge`?**
+➡️ Yes. It is cheap now and expensive to back-fill later.
 
 ❓ **Q5 — Should the skill be allowed to launch a playback/recording run on its own (headless,
 time-boxed) to raise coverage, instead of only handing the user a recording list?**
