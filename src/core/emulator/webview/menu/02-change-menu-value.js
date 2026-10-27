@@ -63,6 +63,10 @@
             syncMenuValuesFromRuntime();
             playMenuSound('click_toggle');
             break;
+          case 5:
+            setClickToWalk(delta > 0);
+            playMenuSound('click_toggle');
+            break;
         }
       }
     }
@@ -119,19 +123,23 @@
             playMenuSound('click_toggle');
             break;
           case 5:
+            setClickToWalk(!clickToWalk);
+            playMenuSound('click_toggle');
+            break;
+          case 6:
             playMenuSound('click_confirm');
             if (loadedRomData) {
               bootRom(loadedRomData, loadedRomName);
               closeEmulatorMenu();
             }
             break;
-          case 6:
+          case 7:
             if (typeof tasSoftReset === 'function' && tasSoftReset()) {
               playMenuSound('click_confirm');
               closeEmulatorMenu();
             }
             break;
-          case 7:
+          case 8:
             // Stays open: B again goes further back (tas/03-tas-rewind.js).
             if (typeof tasRewind === 'function') tasRewind();
             break;

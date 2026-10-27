@@ -144,6 +144,7 @@
 
       setPillState('menu-val-focus', keepFocusOnBreak);
       setPillState('menu-val-start-menu', typeof startOpensMenu !== 'undefined' && startOpensMenu);
+      setPillState('menu-val-click-walk', typeof clickToWalk !== 'undefined' && clickToWalk);
       setPillState('menu-val-game-features', typeof gameFeaturesEnabled !== 'undefined' && gameFeaturesEnabled);
       const soundPill = document.getElementById('menu-val-sound');
       if (soundPill) {

@@ -124,6 +124,7 @@ function emuCollectSettings() {
     keybinds: Object.assign({}, userKeyMap),
     padBinds: Object.assign({}, userPadMap),
     startOpensMenu: typeof startOpensMenu !== 'undefined' ? !!startOpensMenu : undefined,
+    clickToWalk: typeof clickToWalk !== 'undefined' ? !!clickToWalk : undefined,
     gameFeatures: typeof gameFeaturesEnabled !== 'undefined' ? !!gameFeaturesEnabled : undefined,
   };
 }
@@ -189,6 +190,8 @@ function emuApplySettings(saved) {
         setStartOpensMenu(s.startOpensMenu);
       }
     }
+    // Off unless switched on (never in the recorder).
+    if (typeof setClickToWalk === 'function') setClickToWalk(emuProfile !== 'recorder' && s.clickToWalk === true);
     if (typeof setGameFeaturesEnabled === 'function') {
       if (emuProfile === 'recorder') {
         setGameFeaturesEnabled(false);

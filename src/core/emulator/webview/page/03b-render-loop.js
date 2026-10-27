@@ -140,6 +140,8 @@
       });
       wrap.addEventListener('contextmenu', (e) => {
         e.preventDefault();
+        // EMULATION > "Right-click walks there", off by default (menu/01-default-key-map.js).
+        if (typeof clickToWalk === 'undefined' || !clickToWalk) return;
         if (!romLoaded || !lastLayout || typeof injectEverscript !== 'function') return;
         const rect = wrap.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;

@@ -58,6 +58,7 @@ Related skills: `emulator-subsystem`, `cdl-recorder`, `webview-dom-safety`, `deb
   (`npm run test:emulator`). Stale, not run: `emulator-runtime.test.js` (waits for removed buttons).
 
 ## Pitfalls
+- A disposed webview throws on postMessage: post via `_postToPage`; `onDidDispose` clears `emu.panel` first (`emulator-reopen.test.js`).
 - `window.prompt` / `confirm` / `alert` are inert in a VS Code webview (no throw); use an
   inline form (`webview-dom-safety` §3). Verify click bugs in a real headless browser (§5).
 - `panel-webview.ts` is one big script: a `let` read before its declaration (even via

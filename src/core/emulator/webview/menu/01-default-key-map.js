@@ -123,6 +123,15 @@
       syncMenuValuesFromRuntime();
     }
 
+    // Right-click on the screen walks the player there (03b-render-loop.js, the game's injectEverscript).
+    // Off by default: it writes a script into the game (a replay records it), and a stray click should not.
+    let clickToWalk = false;
+    function setClickToWalk(on) {
+      clickToWalk = !!on;
+      if (typeof emuSettingsChanged === 'function') emuSettingsChanged();
+      syncMenuValuesFromRuntime();
+    }
+
     // Start opens the menu only where the game says the player is in control (gameStartAllowed); other
     // games and ROMs keep Start for themselves.
     function isPlayerControllable(m) {

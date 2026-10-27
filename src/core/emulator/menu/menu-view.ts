@@ -202,19 +202,27 @@ ${parts.panelsHtml || ''}
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
-            <div class="menu-row" data-row="5" data-action="action-reset-rom">
+            <div class="menu-row" data-row="5" data-action="toggle-click-walk" title="Right-click on the screen walks the player there (an injected script: it changes the game, and a replay records it)">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Right-click walks there</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-click-walk" class="menu-pill">OFF</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="6" data-action="action-reset-rom">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Reset / Power-Cycle ROM</div>
               <div class="menu-row-value">
                 <span class="menu-action-pill">[B] Reset</span>
               </div>
             </div>
-            <div class="menu-row" data-row="6" data-action="action-soft-reset">
+            <div class="menu-row" data-row="7" data-action="action-soft-reset">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Soft Reset (keeps RAM and save)</div>
               <div class="menu-row-value">
                 <span class="menu-action-pill">[B] Reset</span>
               </div>
             </div>
-            <div class="menu-row" data-row="7" data-action="action-rewind" title="Back to the previous rewind point: one every 5 s of play, the last 2 minutes; B again goes further back. Recorded, so a replay rewinds too. Key: Backspace">
+            <div class="menu-row" data-row="8" data-action="action-rewind" title="Back to the previous rewind point: one every 5 s of play, the last 2 minutes; B again goes further back. Recorded, so a replay rewinds too. Key: Backspace">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Rewind (Backspace)</div>
               <div class="menu-row-value">
                 <span class="menu-action-pill">[B] Rewind</span>

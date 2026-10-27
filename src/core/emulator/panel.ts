@@ -123,7 +123,7 @@ function openEmulatorPanel(context: vscode.ExtensionContext, rom?: RomToOpen | n
     emu.sessionOpenMode = _state(OPEN_MODE_KEY, 'new') === 'continue' ? 'continue' : 'new';
     emu.cdl = new CdlHost(
       context.globalStorageUri ? context.globalStorageUri.fsPath : path.join(context.extensionPath, '.storage'),
-      (m: object) => { if (emu.panel) emu.panel.webview.postMessage(m); },
+      _postToPage,
       _log,
       {
         tools: emu.options.cdlTools,
@@ -135,7 +135,7 @@ function openEmulatorPanel(context: vscode.ExtensionContext, rom?: RomToOpen | n
     );
     emu.tas = new TasHost(
       context.globalStorageUri ? context.globalStorageUri.fsPath : path.join(context.extensionPath, '.storage'),
-      (m: object) => { if (emu.panel) emu.panel.webview.postMessage(m); },
+      _postToPage,
       _log,
       () => resolveCore(emu.extensionPath).wasmPath,
     );
@@ -144,10 +144,14 @@ function openEmulatorPanel(context: vscode.ExtensionContext, rom?: RomToOpen | n
 
     _resetPanelHtml();
     _log('Emulator panel opened');
-    startSessionWatch(context, (m: object) => { if (emu.panel) emu.panel.webview.postMessage(m); },
+    startSessionWatch(context, _postToPage,
       isRecorder ? 'everscript.cdlRecorder' : 'everscript.openEmulator');
 
     emu.panel.onDidDispose(() => {
+      // First: what the closing hosts still send (a CDL save says "saved") must not reach the disposed
+      // webview: that threw "Webview is disposed", cut this handler short and left emu.panel set, so the
+      // next Open Emulator failed (v0.355.5).
+      emu.panel = null;
       stopSessionWatch();
       if (emu.cdl) { emu.cdl.dispose(); emu.cdl = null; }
       if (emu.tas) { emu.tas.dispose(); emu.tas = null; }
@@ -169,6 +173,11 @@ function openEmulatorPanel(context: vscode.ExtensionContext, rom?: RomToOpen | n
       emu.loadedCore = null;
       if (emu.options.game) emu.options.game.clearCaches();
     }, null, context.subscriptions);
+}
+
+/** A message to the page, if there is one; a panel being closed is not an error. */
+function _postToPage(m: object) {
+  try { if (emu.panel) emu.panel.webview.postMessage(m); } catch (_) { /* disposed */ }
 }
 
 function injectEverscript(code: string) {

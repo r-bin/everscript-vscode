@@ -37,6 +37,7 @@
   "tests/debugger/cdl.test.js",
   "tests/debugger/cdl-rescue.test.js",
   "tests/debugger/cheats.test.js",
+  "tests/debugger/emulator-reopen.test.js",
   "tests/debugger/cdl-recomp.test.js",
   "tests/debugger/exhirom.test.js",
   "tests/debugger/emulator-menu.test.js",
@@ -83,7 +84,8 @@
   "tests/mana/mana-editor-dom.test.js",
   "tests/terra/terra-maps-dom.test.mts",
   "tests/debugger/recorder.test.js",
-  "tests/debugger/host-watch.test.js"
+  "tests/debugger/host-watch.test.js",
+  "tests/debugger/click-walk.test.js"
  ],
  "emulator": [
   "tests/memory/music-tab.test.js",
