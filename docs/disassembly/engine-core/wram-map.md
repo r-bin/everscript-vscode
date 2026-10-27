@@ -17,7 +17,6 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 
 | Address | Size | Identifier | Lifetime | Purpose & Behavior |
 |---|---|---|---|---|
-| `$7F:0000` | 49920 bytes | `ROOM_METATILE_GRID` | Room | Decompressed active room 16x16 metatile layout grid buffer. |
 | `$7E:0002` | 2 bytes | `DP_SCRATCH_02` | Frame | Direct Page 16-bit math scratchpad; actor anchor screen X coordinate in sprite compositor (`func_C09040`); units digit in decimal conversion (`func_C0870C`); destination write pointer in LZSS decompression (`method_0x03`). |
 | `$7E:0003` | 1 byte | `DP_DECIMAL_DIGIT_TENS` | Temp | Tens digit in decimal ASCII conversion (`func_C0870C`); high byte of `DP_SCRATCH_02`. |
 | `$7E:0004` | 2 bytes | `DP_SCRATCH_04` | Frame | Direct Page 16-bit math scratchpad; actor anchor screen Y coordinate in sprite compositor (`func_C09040`); hundreds digit in decimal conversion (`func_C0870C`). |
@@ -48,6 +47,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0080` | 2 bytes | `SCRIPT_CALL_STACK_PTR` | Frame | Call stack pointer for nested script subroutines (gosub). |
 | `$7E:0082` | 3 bytes | `SCRIPT_PC_FAR_PTR` | Frame | Active 24-bit instruction pointer ($82..$84) consumed by script_vm_opcode_dispatch ($8C:D09C). |
 | `$7E:0086` | 1 byte | `SCRIPT_VM_FREEZE_GATE` | Frame | Global script thread execution freeze flag (non-zero pauses script VM processing). |
+| `$7E:009F` | 1 | `AUDIO_APU_SYNC_COUNTER` | Frame | Audio Engine: Handshake sequence synchronization counter byte verified against APU port $2142 ($8C:81E4) |
 | `$7E:00BF` | 2 bytes | `CAMERA_BASE_X` | Frame | Base room viewport top-left world X coordinate before screen shake displacement. |
 | `$7E:00C1` | 2 bytes | `CAMERA_BASE_Y` | Frame | Base room viewport top-left world Y coordinate before screen shake displacement. |
 | `$7E:00C3` | 2 bytes | `SCREEN_SHAKING` | Save | Game script variable: SCREEN SHAKING |
@@ -132,6 +132,12 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:039F` | 2 bytes | `WINDOW_1_SELECTION_CURSOR` | Room | Selection arrow position in secondary choice window 1. |
 | `$7E:03A1` | 2 bytes | `WINDOW_1_SELECTED_CHOICE` | Room | Selected choice index in secondary choice window 1. |
 | `$7E:03A3` | 2 bytes | `WINDOW_1_STATE` | Room | Secondary window 1 lifecycle state enum (0 = Closed, 1 = Opening, 2 = Open, 3 = Closing). |
+| `$7E:03E1` | 2 | `SUBWINDOW_WIDTH` | Frame | UI Subsystem: Sub-menu window horizontal columns width (e.g. 4 columns, $8E:9EF0) |
+| `$7E:03E3` | 2 | `SUBWINDOW_HEIGHT` | Frame | UI Subsystem: Sub-menu window vertical rows height (e.g. 1 row, $8E:9EF0) |
+| `$7E:03F1` | 2 | `SUBWINDOW_VRAM_TILE_OFFSET` | Frame | UI Subsystem: Sub-menu window base VRAM tile offset ($0014, $8E:9EF0) |
+| `$7E:03F9` | 2 | `SUBWINDOW_CURSOR_STRIDE` | Frame | UI Subsystem: Sub-menu cursor navigation step stride ($0008, $8E:9EF0) |
+| `$7E:03FB` | 2 | `SUBWINDOW_OPTIONS_COUNT` | Frame | UI Subsystem: Sub-menu selectable options item count ($8E:9EF0) |
+| `$7E:0403` | 2 | `SUBWINDOW_STR_TABLE_PTR` | Frame | UI Subsystem: Sub-menu localized menu string key table pointer ($1924, $8E:9EF0) |
 | `$7E:051D` | 68 bytes | `HUD_BOY_STATUS_WIDGET` | Room | HUD graphics descriptor for Boy status bar, HP meter gauge, and numeric digit tilemaps ($7E:051D..$7E:0560). |
 | `$7E:0561` | 68 bytes | `HUD_DOG_STATUS_WIDGET` | Room | HUD graphics descriptor for Dog status bar, HP meter gauge, and numeric digit tilemaps ($7E:0561..$7E:05A4). |
 | `$7E:05A7` | 2 bytes | `RING_MENU_CALLER_ACTOR` | Room | Pointer to actor entity that opened active ring menu (Boy $7E:4E89 or Dog $7E:4F37). |
@@ -211,9 +217,11 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0ACC` | 2 bytes | `CURRENCY_GOLD` | Save | Gothica realm currency balance (Gold Coins). |
 | `$7E:0ACF` | 2 bytes | `CURRENCY_CREDITS` | Save | Omnitopia realm currency balance (Credits). |
 | `$7E:0ADB` | 2 bytes | `CURRENT_ROOM_ID` | Room | Active room / map ID index into master pointer table $9F:FDE7; passed to enter_room ($8E:E4E2). |
+| `$7E:0B07` | 2 | `BOY_CHARGE_CAPACITY` | Save | Combat Mechanics: Boy stamina charge gauge capacity ($0100 = 100% full attack power threshold) |
 | `$7E:0B09` | 2 bytes | `BOY_AI_AGGRESSION_SETTING` | Save | Boy companion AI attack setting (0 = never attack, 1..5 = attack radius 50..130 pixels). |
 | `$7E:0B0B` | 2 bytes | `ROOM_STEP_TRIGGER` | Room | Pointer to step-on coordinate trigger descriptor table for current room. |
 | `$7E:0B0D` | 2 bytes | `DOG_AI_AGGRESSION_SETTING` | Save | Dog companion AI attack setting (0 = never attack, 1..5 = widest search radius). |
+| `$7E:0B0F` | 2 | `DOG_STAMINA_RECOVERY_RATE` | Save | Combat Mechanics: Dog stamina recovery rate per frame tick (defaults to 2 in $8F:81BE) |
 | `$7E:0B19` | 2 bytes | `WAVE_PHASE_COUNTER` | Frame | Wave phase counter incremented per frame for HDMA underwater distortion. |
 | `$7E:0B1F` | 2 bytes | `RING_MENU_SAVED_STACK_PTR` | Frame | Saved CPU stack pointer (S register) snapshot restored on ring menu closure. |
 | `$7E:0B29` | 2 bytes | `HUD_DIRTY_UPDATE_FLAGS` | Frame | HUD refresh latch flags (bit 0 = tilemap redraw required, bit 2 = HUD hidden). |
@@ -233,13 +241,16 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0BF9` | 2 bytes | `RING_MENU_CURSOR_SECTOR` | Room | Latched cursor sector index during ring menu item selection ($FFFF = unlatched). |
 | `$7E:0DFB` | 24 bytes | `DIALOGUE_QUEUE` | Room | FIFO message queue buffering pending dialogue box display requests. |
 | `$7E:0E47` | 2 bytes | `APU_BLOCKS_LEFT` | Frame | Remaining audio data transfer blocks during SPC700 sound loading. |
+| `$7E:0E48` | 1 | `AUDIO_TRANSFER_HIGH_FLAG` | Frame | Audio Engine: High byte transfer flag for SPC700 block stream ($00 / $FF) |
 | `$7E:0E49` | 2 bytes | `APU_DESC_CURSOR` | Frame | Index offset into audio sample block descriptor table. |
 | `$7E:0E4B` | 1 byte | `APU_PORT0_MIRROR` | Frame | Shadow mirror of APU I/O port 0 ($2140). |
 | `$7E:0E4D` | 1 byte | `APU_PORT1_MIRROR` | Frame | Shadow mirror of APU I/O port 1 ($2141). |
 | `$7E:0E4F` | 1 byte | `APU_PORT2_MIRROR` | Frame | Shadow mirror of APU I/O port 2 ($2142). |
 | `$7E:0E51` | 1 byte | `APU_PORT3_MIRROR` | Frame | Shadow mirror of APU I/O port 3 ($2143). |
+| `$7E:0E52` | 1 | `AUDIO_APU_SPINLOCK_HIGH` | Frame | Audio Engine: High byte of APU spinlock word register ($7E:0E51..$7E:0E52) |
 | `$7E:0E65` | 2 bytes | `ENGINE_PAUSE_COUNTER` | Boot | Pause counter decremented at boot; engine skips actor simulation if > 0. |
 | `$7E:0E6B` | 1 byte | `NMITIMEN_MIRROR` | Boot | Shadow copy of $4200 ($81 = NMI enabled, Auto-Joypad enabled). |
+| `$7E:0E6C` | 2 | `SHOP_MODE_CONFIG_MASK` | Frame | Shop Subsystem: Shop mode configuration bitmask (bit 2: standard weapons/armor, bit 3: alchemy ingredients satchel) |
 | `$7E:0E80` | 2 bytes | `WEAPON_CHARGE_METER` | Frame | Current physical attack charge meter level (0..100%). |
 | `$7E:0EA0` | 2 bytes | `DAMAGE_RESULT_REG` | Frame | Calculated damage output value produced by combat math routines. |
 | `$7E:0EAE` | 2 bytes | `PENDING_MAP_EVENT_0` | Room | Queued map event script ID pending trigger execution ($FFFF = none). |
@@ -254,6 +265,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0F3A` | 1 byte | `VRAM_DMA_LOCK` | Frame | In-flight active transfer counter / lock flag for deferred VRAM DMA queue. |
 | `$7E:0F3C` | 1 byte | `CGRAM_DMA_LOCK` | Frame | In-flight active transfer counter / lock flag for deferred CGRAM DMA queue. |
 | `$7E:0F3E` | 1 byte | `HUD_DRAW_SUPPRESSION_LOCK` | Frame | In-flight lock counter suppressing HUD tilemap rendering when non-zero. |
+| `$7E:0F40` | 2 | `ENTITY_PTR_DOG` | Boot | Entity Subsystem: Address pointer to Companion (Dog) entity slot in WRAM (defaults to $4F37; initialized in $8F:8144) |
 | `$7E:0F42` | 2 bytes | `CAMERA_TARGET_ACTOR_PTR` | Room | Pointer to primary actor entity record tracked by camera (points to Boy at $7E:4E89). |
 | `$7E:0F44` | 2 bytes | `VIEWPORT_SCROLL_Y` | Frame | Vertical world coordinate of top-left camera viewport boundary. |
 | `$7E:0F84` | 2 bytes | `MAP_HEADER_FLAGS` | Room | Bitmask flags loaded from map header (layering, Mode 7, weather). |
@@ -297,11 +309,35 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:15CC` | 2 bytes | `DYNAMIC_COLLISION_OVERRIDE_COUNT` | Room | Number of active dynamic collision grid metatile overrides in current room. |
 | `$7E:15D2` | 1 byte | `AUDIO_MUTING_FLAG` | Room | Set non-zero to silence background music during dramatic cutscenes. |
 | `$7E:15D6` | 1 byte | `APU_COMM_STATUS` | Frame | Handshake status register for SPC700 data transfer synchronization. |
+| `$7E:15D8` | 2 | `BG_TILEMAP_DMA_DEST_1` | Frame | PPU Subsystem: VRAM destination word address 1 for BG tilemap row/col DMA transfer ($80:829C) |
+| `$7E:15DA` | 2 | `BG_TILEMAP_DMA_DEST_2` | Frame | PPU Subsystem: VRAM destination word address 2 for BG tilemap row/col DMA transfer |
+| `$7E:15DC` | 2 | `BG_TILEMAP_DMA_DEST_3` | Frame | PPU Subsystem: VRAM destination word address 3 for BG tilemap row/col DMA transfer |
+| `$7E:15DE` | 2 | `BG_TILEMAP_DMA_DEST_4` | Frame | PPU Subsystem: VRAM destination word address 4 for BG tilemap row/col DMA transfer |
+| `$7E:15E0` | 2 | `BG_TILEMAP_DMA_DEST_5` | Frame | PPU Subsystem: VRAM destination word address 5 for BG tilemap row/col DMA transfer |
+| `$7E:15E2` | 2 | `BG_TILEMAP_DMA_DEST_6` | Frame | PPU Subsystem: VRAM destination word address 6 for BG tilemap row/col DMA transfer |
+| `$7E:15E4` | 2 | `BG_TILEMAP_DMA_DEST_7` | Frame | PPU Subsystem: VRAM destination word address 7 for BG tilemap row/col DMA transfer |
+| `$7E:15E6` | 2 | `BG_TILEMAP_DMA_DEST_8` | Frame | PPU Subsystem: VRAM destination word address 8 for BG tilemap row/col DMA transfer |
+| `$7E:15E8` | 2 | `BG_TILEMAP_DMA_DEST_9` | Frame | PPU Subsystem: VRAM destination word address 9 for BG tilemap row/col DMA transfer |
+| `$7E:15EA` | 2 | `BG_TILEMAP_DMA_DEST_10` | Frame | PPU Subsystem: VRAM destination word address 10 for BG tilemap row/col DMA transfer |
+| `$7E:15EC` | 2 | `BG_TILEMAP_DMA_DEST_11` | Frame | PPU Subsystem: VRAM destination word address 11 for BG tilemap row/col DMA transfer |
+| `$7E:15EE` | 2 | `BG_TILEMAP_DMA_DEST_12` | Frame | PPU Subsystem: VRAM destination word address 12 for BG tilemap row/col DMA transfer |
+| `$7E:15F0` | 2 | `BG_TILEMAP_DMA_DEST_13` | Frame | PPU Subsystem: VRAM destination word address 13 for BG tilemap row/col DMA transfer |
+| `$7E:15F2` | 2 | `BG_TILEMAP_DMA_DEST_14` | Frame | PPU Subsystem: VRAM destination word address 14 for BG tilemap row/col DMA transfer |
+| `$7E:15F4` | 2 | `BG_TILEMAP_DMA_DEST_15` | Frame | PPU Subsystem: VRAM destination word address 15 for BG tilemap row/col DMA transfer |
+| `$7E:15F6` | 2 | `BG_TILEMAP_DMA_DEST_16` | Frame | PPU Subsystem: VRAM destination word address 16 for BG tilemap row/col DMA transfer |
+| `$7E:15F8` | 2 | `BG_TILEMAP_DMA_DEST_17` | Frame | PPU Subsystem: VRAM destination word address 17 for BG tilemap row/col DMA transfer |
 | `$7E:163C` | 64 bytes | `VRAM_TILE_DMA_QUEUE` | Frame | Deferred VRAM tile pattern DMA upload request queue; processed during VBlank. |
+| `$7E:163E` | 2 | `BG_SEAM_DMA_DEST_1` | Frame | PPU Subsystem: VRAM destination word address 1 for BG metatile seam DMA transfer ($80:82E4) |
+| `$7E:1640` | 2 | `BG_SEAM_DMA_DEST_2` | Frame | PPU Subsystem: VRAM destination word address 2 for BG metatile seam DMA transfer |
+| `$7E:1642` | 2 | `BG_SEAM_DMA_DEST_3` | Frame | PPU Subsystem: VRAM destination word address 3 for BG metatile seam DMA transfer |
 | `$7E:2200` | 2 bytes | `SRAM_START_MARKER` | Save | Boundary marking start of battery-backed persistent save RAM ($7E:2200..$7E:27FF). |
 | `$7E:2210` | 36 bytes | `BOY_NAME_BUFFER` | Save | Custom player character name string buffer (ASCII/tile indices). |
 | `$7E:2234` | 36 bytes | `DOG_NAME_BUFFER` | Save | Custom dog companion name string buffer (ASCII/tile indices). |
 | `$7E:2258` | 424 bytes | `STORY_FLAGS_ARRAY` | Save | Master bit-packed array of persistent world progression, boss, and chest flags. |
+| `$7E:2259` | 1 | `ALCHEMY_KNOWN_FLAGS_1` | Save | Alchemy Subsystem: Formula learned bitmask byte 1 (bits 0..7: Double Drain, Drain, Energize, Escape, Explosion, Fireball, Fire Power, Flash) |
+| `$7E:225A` | 1 | `ALCHEMY_KNOWN_FLAGS_2` | Save | Alchemy Subsystem: Formula learned bitmask byte 2 (bits 0..7: Force Field, Hard Ball, Heal, Lance, Laser, Levitate, Lightning Storm, Miracle Cure) |
+| `$7E:225B` | 1 | `ALCHEMY_KNOWN_FLAGS_3` | Save | Alchemy Subsystem: Formula learned bitmask byte 3 (bits 0..7: Nitro, One Up, Reflect, Regrowth, Revealer, Revive, Slow Burn, Speed) |
+| `$7E:225C` | 1 | `ALCHEMY_KNOWN_FLAGS_4` | Save | Alchemy Subsystem: Formula learned bitmask byte 4 (bits 0..2: Sting, Stop, Super Heal) |
 | `$7E:2260` | 1 byte | `BOSS_FLAGS_1` | Save | Boss defeat bitmask flags (bit 0x10 = Thraxx defeated). |
 | `$7E:2261` | 2 bytes | `GAMEPLAY_SETTINGS_FLAGS` | Save | Gameplay settings bitmask (bit 0 = Dog HUD toggle, bit 1 = Boy HUD toggle, bit 2 = stereo sound). |
 | `$7E:2262` | 1 byte | `ACTIVE_BUFFS_MASK` | Room | Bitmask flags for active positive status buffs (Speed, Atlas, Defend). |
@@ -314,11 +350,46 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:22FC` | 2 bytes | `DESERT_WRAP_Y_` | Save | Game script variable: DESERT WRAP Y? |
 | `$7E:22FD` | 2 bytes | `DESERT_WRAP_X_` | Save | Game script variable: DESERT WRAP X? |
 | `$7E:22FF` | 1 byte | `STORY_FLAGS_OFFSET_0` | Save | Primary story progression event flag byte. |
+| `$7E:2300` | 1 | `ING_QTY_WATER` | Save | Alchemy Inventory: Owned quantity of Water (Ingredient ID $01; max 99) |
+| `$7E:2301` | 1 | `ING_QTY_VINEGAR` | Save | Alchemy Inventory: Owned quantity of Vinegar (Ingredient ID $02; max 99) |
+| `$7E:2302` | 1 | `ING_QTY_ROOT` | Save | Alchemy Inventory: Owned quantity of Root (Ingredient ID $03; max 99) |
+| `$7E:2303` | 1 | `ING_QTY_OIL` | Save | Alchemy Inventory: Owned quantity of Oil (Ingredient ID $04; max 99) |
+| `$7E:2304` | 1 | `ING_QTY_MUSHROOM` | Save | Alchemy Inventory: Owned quantity of Mushroom (Ingredient ID $05; max 99) |
+| `$7E:2305` | 1 | `ING_QTY_MUD_PEPPER` | Save | Alchemy Inventory: Owned quantity of Mud Pepper (Ingredient ID $06; max 1) |
+| `$7E:2306` | 1 | `ING_QTY_METEORITE` | Save | Alchemy Inventory: Owned quantity of Meteorite (Ingredient ID $07; max 99) |
+| `$7E:2307` | 1 | `ING_QTY_LIMESTONE` | Save | Alchemy Inventory: Owned quantity of Limestone (Ingredient ID $08; max 99) |
+| `$7E:2308` | 1 | `ING_QTY_IRON` | Save | Alchemy Inventory: Owned quantity of Iron (Ingredient ID $09; max 99) |
+| `$7E:2309` | 1 | `ING_QTY_GUNPOWDER` | Save | Alchemy Inventory: Owned quantity of Gunpowder (Ingredient ID $0A; max 99) |
+| `$7E:230A` | 1 | `ING_QTY_GREASE` | Save | Alchemy Inventory: Owned quantity of Grease (Ingredient ID $0B; max 99) |
+| `$7E:230B` | 1 | `ING_QTY_FEATHER` | Save | Alchemy Inventory: Owned quantity of Feather (Ingredient ID $0C; max 99) |
+| `$7E:230C` | 1 | `ING_QTY_ETHANOL` | Save | Alchemy Inventory: Owned quantity of Ethanol / Alcohol (Ingredient ID $0D; max 99) |
+| `$7E:230D` | 1 | `ING_QTY_DRY_ICE` | Save | Alchemy Inventory: Owned quantity of Dry Ice (Ingredient ID $0E; max 99) |
+| `$7E:230E` | 1 | `ING_QTY_CRYSTAL` | Save | Alchemy Inventory: Owned quantity of Crystal (Ingredient ID $0F; max 99) |
+| `$7E:230F` | 1 | `ING_QTY_CLAY` | Save | Alchemy Inventory: Owned quantity of Clay (Ingredient ID $10; max 99) |
+| `$7E:2310` | 1 | `ING_QTY_BRIMSTONE` | Save | Alchemy Inventory: Owned quantity of Brimstone (Ingredient ID $11; max 99) |
+| `$7E:2311` | 1 | `ING_QTY_BONE` | Save | Alchemy Inventory: Owned quantity of Bone (Ingredient ID $12; max 99) |
+| `$7E:2312` | 1 | `ING_QTY_ATLAS_MEDALLION` | Save | Alchemy Inventory: Owned quantity of Atlas Medallion (Ingredient ID $13; max 99) |
+| `$7E:2313` | 1 | `ING_QTY_ASH` | Save | Alchemy Inventory: Owned quantity of Ash (Ingredient ID $14; max 99) |
+| `$7E:2314` | 1 | `ING_QTY_ACORN` | Save | Alchemy Inventory: Owned quantity of Acorn (Ingredient ID $15; max 99) |
+| `$7E:2315` | 1 | `ING_SATCHEL_SLOT_0` | Save | Alchemy Satchel: Active inventory satchel quick-select slot 0 quantity ($8E:9140) |
+| `$7E:2316` | 1 | `ING_SATCHEL_SLOT_1` | Save | Alchemy Satchel: Active inventory satchel quick-select slot 1 quantity |
+| `$7E:2317` | 1 | `ING_SATCHEL_SLOT_2` | Save | Alchemy Satchel: Active inventory satchel quick-select slot 2 quantity |
+| `$7E:2318` | 1 | `ING_SATCHEL_SLOT_3` | Save | Alchemy Satchel: Active inventory satchel quick-select slot 3 quantity |
+| `$7E:2319` | 1 | `ING_SATCHEL_SLOT_4` | Save | Alchemy Satchel: Active inventory satchel quick-select slot 4 quantity |
+| `$7E:231A` | 1 | `ING_SATCHEL_SLOT_5` | Save | Alchemy Satchel: Active inventory satchel quick-select slot 5 quantity |
+| `$7E:231B` | 1 | `ING_SATCHEL_SLOT_6` | Save | Alchemy Satchel: Active inventory satchel quick-select slot 6 quantity |
+| `$7E:231C` | 1 | `ING_SATCHEL_SLOT_7` | Save | Alchemy Satchel: Active inventory satchel quick-select slot 7 quantity |
 | `$7E:2345` | 1 byte | `BAZOOKA_AMMO` | Save | Bazooka ammo counts and the selected ammo. \ |
+| `$7E:2348` | 2 | `CURRENCY_WINDOW_ACTIVE_INDEX` | Frame | UI Subsystem: Active currency index for currency display window ($00 = Talons, $03 = Jewels, $06 = Coins, $09 = Credits; $8C:E628) |
+| `$7E:2349` | 2 | `EQUIPMENT_PROFILE_INDEX` | Room | Combat Subsystem: Active equipment/weapon profile index (indexes weapon stats table at $C4:3874, $8F:81C9) |
 | `$7E:234B` | 2 bytes | `HUT_HOUSE_TO_ENTER` | Save | Game script variable: Hut/house to enter |
 | `$7E:234F` | 2 bytes | `PRISON_TOWN_EXIT` | Save | Game script variable: PRISON TOWN EXIT |
 | `$7E:2352` | 2 bytes | `QUEEN_S_KEY_ON_DOG` | Save | Game script variable: Queen's Key on Dog |
 | `$7E:2353` | 2 bytes | `QUEEN_S_KEY_ON_BOY` | Save | Game script variable: Queen's Key on Boy |
+| `$7E:235B` | 1 | `SAVED_PPU_MAIN_SCREEN_212C` | Frame | PPU Subsystem: Backup of Main Screen register ($212C shadow) restored by opcode 0x82 ($8C:E20F) |
+| `$7E:235C` | 1 | `SAVED_PPU_SUB_SCREEN_212D` | Frame | PPU Subsystem: Backup of Sub Screen register ($212D shadow) restored by opcode 0x82 ($8C:E20F) |
+| `$7E:235D` | 1 | `SAVED_PPU_COLOR_MATH_2131` | Frame | PPU Subsystem: Backup of Color Math designation register ($2131 shadow) restored by opcode 0x82 |
+| `$7E:235E` | 1 | `SAVED_PPU_ADD_SELECT_2130` | Frame | PPU Subsystem: Backup of Color Addition Select register ($2130 shadow) restored by opcode 0x82 |
 | `$7E:2360` | 1 byte | `EQUIPPED_WEAPON_CLASS` | Save | Current weapon class (0=Sword, 2=Axe, 4=Spear, 6=Bazooka). |
 | `$7E:2363` | 1 byte | `DOG_FORM_INDEX` | Save | Active visual form and breed of dog companion (0=Wolf, 1=Greyhound, 2=Poodle, 3=Toaster). |
 | `$7E:238D` | 2 bytes | `CHANGE_MUSIC` | Save | Game script variable: CHANGE MUSIC |
@@ -336,8 +407,12 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:23AB` | 2 bytes | `PRIZE_3_QTY` | Save | Game script variable: PRIZE 3 QTY |
 | `$7E:23BF` | 2 bytes | `CUTSCENE_PENDING_FLAG` | Save | Story cutscene transition pending latch. |
 | `$7E:23C3` | 2 bytes | `COMPANION_TIGHT_TETHER` | Unknown | Non-zero: the companion keeps close (tether limits 4/3/3/1). What sets it is not traced. |
+| `$7E:23D5` | 2 | `SCRIPT_DAMAGE_REDIRECT_FLAG` | Frame | Script VM: Opcode 0x92 damage redirect flag (0 = standard knockback damage, non-zero = redirect to opcode 0xBB damage without knockback) |
+| `$7E:23D7` | 2 | `SCRIPT_DAMAGE_TRANSFORM_FLAG` | Frame | Script VM: Opcode 0x92 damage transform flag (0 = raw immediate damage, non-zero = transform damage through entity defense math) |
 | `$7E:23DB` | 2 bytes | `QUEUED_ROOM_EXIT_TRIGGER_0` | Room | ID of door or boundary exit trigger tripped by player ($FFFF = none). |
 | `$7E:23DD` | 2 bytes | `QUEUED_ROOM_EXIT_TRIGGER_1` | Room | Secondary queued room transition exit trigger ID ($FFFF = none). |
+| `$7E:23E5` | 2 | `STATS_PTR_BOY` | Boot | Entity Subsystem: Pointer to Boy persistent base stats block ($0A26; initialized in $8F:8090) |
+| `$7E:23E7` | 2 | `STATS_PTR_DOG` | Boot | Entity Subsystem: Pointer to Dog persistent base stats block ($0A70; initialized in $8F:8130) |
 | `$7E:23E9` | 2 bytes | `CAMERA_ROOM_BOUND_LEFT` | Room | Left boundary clamp limit (pixels) for active room camera. |
 | `$7E:23EB` | 2 bytes | `CAMERA_ROOM_BOUND_TOP` | Room | Top boundary clamp limit (pixels) for active room camera. |
 | `$7E:23ED` | 2 bytes | `CAMERA_ROOM_BOUND_RIGHT` | Room | Right boundary clamp limit (pixels) for active room camera. |
@@ -392,8 +467,115 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:2DEC` | 79 bytes | `SCRIPT_SLOT_16` | Room | Script VM execution thread slot 16 (stride 79 bytes). |
 | `$7E:2E3B` | 79 bytes | `SCRIPT_SLOT_17` | Room | Script VM execution thread slot 17 (stride 79 bytes). |
 | `$7E:2E8A` | 79 bytes | `SCRIPT_SLOT_18` | Room | Script VM execution thread slot 18 (stride 79 bytes). |
+| `$7E:2ED6` | 2 | `FORMULA_LVL_ACID_RAIN` | Save | Alchemy Progression: Current level (0..9) for formula Acid Rain ($91:D850) |
+| `$7E:2ED8` | 2 | `FORMULA_LVL_ATLAS` | Save | Alchemy Progression: Current level (0..9) for formula Atlas ($91:D850) |
 | `$7E:2ED9` | 79 bytes | `SCRIPT_SLOT_19` | Room | Script VM execution thread slot 19 (stride 79 bytes). |
+| `$7E:2EDA` | 2 | `FORMULA_LVL_BARRIER` | Save | Alchemy Progression: Current level (0..9) for formula Barrier ($91:D850) |
+| `$7E:2EDC` | 2 | `FORMULA_LVL_CALL_UP` | Save | Alchemy Progression: Current level (0..9) for formula Call Up ($91:D850) |
+| `$7E:2EDE` | 2 | `FORMULA_LVL_CORROSION` | Save | Alchemy Progression: Current level (0..9) for formula Corrosion ($91:D850) |
+| `$7E:2EE0` | 2 | `FORMULA_LVL_CRUSH` | Save | Alchemy Progression: Current level (0..9) for formula Crush ($91:D850) |
+| `$7E:2EE2` | 2 | `FORMULA_LVL_CURE` | Save | Alchemy Progression: Current level (0..9) for formula Cure ($91:D850) |
+| `$7E:2EE4` | 2 | `FORMULA_LVL_DEFEND` | Save | Alchemy Progression: Current level (0..9) for formula Defend ($91:D850) |
+| `$7E:2EE6` | 2 | `FORMULA_LVL_DOUBLE_DRAIN` | Save | Alchemy Progression: Current level (0..9) for formula Double Drain ($91:D850) |
+| `$7E:2EE8` | 2 | `FORMULA_LVL_DRAIN` | Save | Alchemy Progression: Current level (0..9) for formula Drain ($91:D850) |
+| `$7E:2EEA` | 2 | `FORMULA_LVL_ENERGIZE` | Save | Alchemy Progression: Current level (0..9) for formula Energize ($91:D850) |
+| `$7E:2EEC` | 2 | `FORMULA_LVL_ESCAPE` | Save | Alchemy Progression: Current level (0..9) for formula Escape ($91:D850) |
+| `$7E:2EEE` | 2 | `FORMULA_LVL_EXPLOSION` | Save | Alchemy Progression: Current level (0..9) for formula Explosion ($91:D850) |
+| `$7E:2EF0` | 2 | `FORMULA_LVL_FIREBALL` | Save | Alchemy Progression: Current level (0..9) for formula Fireball ($91:D850) |
+| `$7E:2EF2` | 2 | `FORMULA_LVL_FIRE_POWER` | Save | Alchemy Progression: Current level (0..9) for formula Fire Power ($91:D850) |
+| `$7E:2EF4` | 2 | `FORMULA_LVL_FLASH` | Save | Alchemy Progression: Current level (0..9) for formula Flash ($91:D850) |
+| `$7E:2EF6` | 2 | `FORMULA_LVL_FORCE_FIELD` | Save | Alchemy Progression: Current level (0..9) for formula Force Field ($91:D850) |
+| `$7E:2EF8` | 2 | `FORMULA_LVL_HARD_BALL` | Save | Alchemy Progression: Current level (0..9) for formula Hard Ball ($91:D850) |
+| `$7E:2EFA` | 2 | `FORMULA_LVL_HEAL` | Save | Alchemy Progression: Current level (0..9) for formula Heal ($91:D850) |
+| `$7E:2EFC` | 2 | `FORMULA_LVL_LANCE` | Save | Alchemy Progression: Current level (0..9) for formula Lance ($91:D850) |
+| `$7E:2EFE` | 2 | `FORMULA_LVL_LASER` | Save | Alchemy Progression: Current level (0..9) for formula Laser ($91:D850) |
+| `$7E:2F00` | 2 | `FORMULA_LVL_LEVITATE` | Save | Alchemy Progression: Current level (0..9) for formula Levitate ($91:D850) |
+| `$7E:2F02` | 2 | `FORMULA_LVL_LIGHTNING_STORM` | Save | Alchemy Progression: Current level (0..9) for formula Lightning Storm ($91:D850) |
+| `$7E:2F04` | 2 | `FORMULA_LVL_MIRACLE_CURE` | Save | Alchemy Progression: Current level (0..9) for formula Miracle Cure ($91:D850) |
+| `$7E:2F06` | 2 | `FORMULA_LVL_NITRO` | Save | Alchemy Progression: Current level (0..9) for formula Nitro ($91:D850) |
+| `$7E:2F08` | 2 | `FORMULA_LVL_ONE_UP` | Save | Alchemy Progression: Current level (0..9) for formula One Up ($91:D850) |
+| `$7E:2F0A` | 2 | `FORMULA_LVL_REFLECT` | Save | Alchemy Progression: Current level (0..9) for formula Reflect ($91:D850) |
+| `$7E:2F0C` | 2 | `FORMULA_LVL_REGROWTH` | Save | Alchemy Progression: Current level (0..9) for formula Regrowth ($91:D850) |
+| `$7E:2F0E` | 2 | `FORMULA_LVL_REVEALER` | Save | Alchemy Progression: Current level (0..9) for formula Revealer ($91:D850) |
+| `$7E:2F10` | 2 | `FORMULA_LVL_REVIVE` | Save | Alchemy Progression: Current level (0..9) for formula Revive ($91:D850) |
+| `$7E:2F12` | 2 | `FORMULA_LVL_SLOW_BURN` | Save | Alchemy Progression: Current level (0..9) for formula Slow Burn ($91:D850) |
+| `$7E:2F14` | 2 | `FORMULA_LVL_SPEED` | Save | Alchemy Progression: Current level (0..9) for formula Speed ($91:D850) |
+| `$7E:2F16` | 2 | `FORMULA_LVL_STING` | Save | Alchemy Progression: Current level (0..9) for formula Sting ($91:D850) |
+| `$7E:2F18` | 2 | `FORMULA_LVL_STOP` | Save | Alchemy Progression: Current level (0..9) for formula Stop ($91:D850) |
+| `$7E:2F1A` | 2 | `FORMULA_LVL_SUPER_HEAL` | Save | Alchemy Progression: Current level (0..9) for formula Super Heal ($91:D850) |
 | `$7E:2F28` | 2 bytes | `SCRIPT_SLOT_QUEUE_TAIL` | Room | End sentinel and boundary limit pointer of Script VM thread pool ($7E:28FC..$7E:2F28). |
+| `$7E:2F52` | 2 | `FORMULA_XP_ACID_RAIN` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Acid Rain ($91:D850) |
+| `$7E:2F54` | 2 | `FORMULA_XP_ATLAS` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Atlas ($91:D850) |
+| `$7E:2F56` | 2 | `FORMULA_XP_BARRIER` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Barrier ($91:D850) |
+| `$7E:2F58` | 2 | `FORMULA_XP_CALL_UP` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Call Up ($91:D850) |
+| `$7E:2F5A` | 2 | `FORMULA_XP_CORROSION` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Corrosion ($91:D850) |
+| `$7E:2F5C` | 2 | `FORMULA_XP_CRUSH` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Crush ($91:D850) |
+| `$7E:2F5E` | 2 | `FORMULA_XP_CURE` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Cure ($91:D850) |
+| `$7E:2F60` | 2 | `FORMULA_XP_DEFEND` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Defend ($91:D850) |
+| `$7E:2F62` | 2 | `FORMULA_XP_DOUBLE_DRAIN` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Double Drain ($91:D850) |
+| `$7E:2F64` | 2 | `FORMULA_XP_DRAIN` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Drain ($91:D850) |
+| `$7E:2F66` | 2 | `FORMULA_XP_ENERGIZE` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Energize ($91:D850) |
+| `$7E:2F68` | 2 | `FORMULA_XP_ESCAPE` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Escape ($91:D850) |
+| `$7E:2F6A` | 2 | `FORMULA_XP_EXPLOSION` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Explosion ($91:D850) |
+| `$7E:2F6C` | 2 | `FORMULA_XP_FIREBALL` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Fireball ($91:D850) |
+| `$7E:2F6E` | 2 | `FORMULA_XP_FIRE_POWER` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Fire Power ($91:D850) |
+| `$7E:2F70` | 2 | `FORMULA_XP_FLASH` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Flash ($91:D850) |
+| `$7E:2F72` | 2 | `FORMULA_XP_FORCE_FIELD` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Force Field ($91:D850) |
+| `$7E:2F74` | 2 | `FORMULA_XP_HARD_BALL` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Hard Ball ($91:D850) |
+| `$7E:2F76` | 2 | `FORMULA_XP_HEAL` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Heal ($91:D850) |
+| `$7E:2F78` | 2 | `FORMULA_XP_LANCE` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Lance ($91:D850) |
+| `$7E:2F7A` | 2 | `FORMULA_XP_LASER` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Laser ($91:D850) |
+| `$7E:2F7C` | 2 | `FORMULA_XP_LEVITATE` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Levitate ($91:D850) |
+| `$7E:2F7E` | 2 | `FORMULA_XP_LIGHTNING_STORM` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Lightning Storm ($91:D850) |
+| `$7E:2F80` | 2 | `FORMULA_XP_MIRACLE_CURE` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Miracle Cure ($91:D850) |
+| `$7E:2F82` | 2 | `FORMULA_XP_NITRO` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Nitro ($91:D850) |
+| `$7E:2F84` | 2 | `FORMULA_XP_ONE_UP` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula One Up ($91:D850) |
+| `$7E:2F86` | 2 | `FORMULA_XP_REFLECT` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Reflect ($91:D850) |
+| `$7E:2F88` | 2 | `FORMULA_XP_REGROWTH` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Regrowth ($91:D850) |
+| `$7E:2F8A` | 2 | `FORMULA_XP_REVEALER` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Revealer ($91:D850) |
+| `$7E:2F8C` | 2 | `FORMULA_XP_REVIVE` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Revive ($91:D850) |
+| `$7E:2F8E` | 2 | `FORMULA_XP_SLOW_BURN` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Slow Burn ($91:D850) |
+| `$7E:2F90` | 2 | `FORMULA_XP_SPEED` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Speed ($91:D850) |
+| `$7E:2F92` | 2 | `FORMULA_XP_STING` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Sting ($91:D850) |
+| `$7E:2F94` | 2 | `FORMULA_XP_STOP` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Stop ($91:D850) |
+| `$7E:2F96` | 2 | `FORMULA_XP_SUPER_HEAL` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Super Heal ($91:D850) |
+| `$7E:2FDE` | 2 | `FORMULA_USAGE_ACID_RAIN` | Save | Alchemy Statistics: Total lifetime casts counter for formula Acid Rain ($91:D800) |
+| `$7E:2FE0` | 2 | `FORMULA_USAGE_ATLAS` | Save | Alchemy Statistics: Total lifetime casts counter for formula Atlas ($91:D800) |
+| `$7E:2FE2` | 2 | `FORMULA_USAGE_BARRIER` | Save | Alchemy Statistics: Total lifetime casts counter for formula Barrier ($91:D800) |
+| `$7E:2FE4` | 2 | `FORMULA_USAGE_CALL_UP` | Save | Alchemy Statistics: Total lifetime casts counter for formula Call Up ($91:D800) |
+| `$7E:2FE6` | 2 | `FORMULA_USAGE_CORROSION` | Save | Alchemy Statistics: Total lifetime casts counter for formula Corrosion ($91:D800) |
+| `$7E:2FE8` | 2 | `FORMULA_USAGE_CRUSH` | Save | Alchemy Statistics: Total lifetime casts counter for formula Crush ($91:D800) |
+| `$7E:2FEA` | 2 | `FORMULA_USAGE_CURE` | Save | Alchemy Statistics: Total lifetime casts counter for formula Cure ($91:D800) |
+| `$7E:2FEC` | 2 | `FORMULA_USAGE_DEFEND` | Save | Alchemy Statistics: Total lifetime casts counter for formula Defend ($91:D800) |
+| `$7E:2FEE` | 2 | `FORMULA_USAGE_DOUBLE_DRAIN` | Save | Alchemy Statistics: Total lifetime casts counter for formula Double Drain ($91:D800) |
+| `$7E:2FF0` | 2 | `FORMULA_USAGE_DRAIN` | Save | Alchemy Statistics: Total lifetime casts counter for formula Drain ($91:D800) |
+| `$7E:2FF2` | 2 | `FORMULA_USAGE_ENERGIZE` | Save | Alchemy Statistics: Total lifetime casts counter for formula Energize ($91:D800) |
+| `$7E:2FF4` | String[16] | `CURRENCY_FORMATTED_STRING_BUF` | Frame | UI Subsystem: Formatted decimal string output buffer for currency window ($80:B21F / $8C:E628) |
+| `$7E:2FF6` | 2 | `FORMULA_USAGE_EXPLOSION` | Save | Alchemy Statistics: Total lifetime casts counter for formula Explosion ($91:D800) |
+| `$7E:2FF8` | 2 | `FORMULA_USAGE_FIREBALL` | Save | Alchemy Statistics: Total lifetime casts counter for formula Fireball ($91:D800) |
+| `$7E:2FFA` | 2 | `FORMULA_USAGE_FIRE_POWER` | Save | Alchemy Statistics: Total lifetime casts counter for formula Fire Power ($91:D800) |
+| `$7E:2FFC` | 2 | `FORMULA_USAGE_FLASH` | Save | Alchemy Statistics: Total lifetime casts counter for formula Flash ($91:D800) |
+| `$7E:2FFE` | 2 | `FORMULA_USAGE_FORCE_FIELD` | Save | Alchemy Statistics: Total lifetime casts counter for formula Force Field ($91:D800) |
+| `$7E:3000` | 2 | `FORMULA_USAGE_HARD_BALL` | Save | Alchemy Statistics: Total lifetime casts counter for formula Hard Ball ($91:D800) |
+| `$7E:3002` | 2 | `FORMULA_USAGE_HEAL` | Save | Alchemy Statistics: Total lifetime casts counter for formula Heal ($91:D800) |
+| `$7E:3004` | 2 | `FORMULA_USAGE_LANCE` | Save | Alchemy Statistics: Total lifetime casts counter for formula Lance ($91:D800) |
+| `$7E:3006` | 2 | `FORMULA_USAGE_LASER` | Save | Alchemy Statistics: Total lifetime casts counter for formula Laser ($91:D800) |
+| `$7E:3008` | 2 | `FORMULA_USAGE_LEVITATE` | Save | Alchemy Statistics: Total lifetime casts counter for formula Levitate ($91:D800) |
+| `$7E:300A` | 2 | `FORMULA_USAGE_LIGHTNING_STORM` | Save | Alchemy Statistics: Total lifetime casts counter for formula Lightning Storm ($91:D800) |
+| `$7E:300C` | 2 | `FORMULA_USAGE_MIRACLE_CURE` | Save | Alchemy Statistics: Total lifetime casts counter for formula Miracle Cure ($91:D800) |
+| `$7E:300E` | 2 | `FORMULA_USAGE_NITRO` | Save | Alchemy Statistics: Total lifetime casts counter for formula Nitro ($91:D800) |
+| `$7E:3010` | 2 | `FORMULA_USAGE_ONE_UP` | Save | Alchemy Statistics: Total lifetime casts counter for formula One Up ($91:D800) |
+| `$7E:3012` | 2 | `FORMULA_USAGE_REFLECT` | Save | Alchemy Statistics: Total lifetime casts counter for formula Reflect ($91:D800) |
+| `$7E:3014` | 2 | `FORMULA_USAGE_REGROWTH` | Save | Alchemy Statistics: Total lifetime casts counter for formula Regrowth ($91:D800) |
+| `$7E:3016` | 2 | `FORMULA_USAGE_REVEALER` | Save | Alchemy Statistics: Total lifetime casts counter for formula Revealer ($91:D800) |
+| `$7E:3018` | 2 | `FORMULA_USAGE_REVIVE` | Save | Alchemy Statistics: Total lifetime casts counter for formula Revive ($91:D800) |
+| `$7E:301A` | 2 | `FORMULA_USAGE_SLOW_BURN` | Save | Alchemy Statistics: Total lifetime casts counter for formula Slow Burn ($91:D800) |
+| `$7E:301C` | 2 | `FORMULA_USAGE_SPEED` | Save | Alchemy Statistics: Total lifetime casts counter for formula Speed ($91:D800) |
+| `$7E:301E` | 2 | `FORMULA_USAGE_STING` | Save | Alchemy Statistics: Total lifetime casts counter for formula Sting ($91:D800) |
+| `$7E:3020` | 2 | `FORMULA_USAGE_STOP` | Save | Alchemy Statistics: Total lifetime casts counter for formula Stop ($91:D800) |
+| `$7E:3022` | 2 | `FORMULA_USAGE_SUPER_HEAL` | Save | Alchemy Statistics: Total lifetime casts counter for formula Super Heal ($91:D800) |
+| `$7E:3364` | struct AnimAlchemySlot[8] | `ANIM_ALCHEMY_SLOTS_BASE` | Room | Combat Engine: 8-slot Animation Alchemy active array (stride $40=64 bytes; +$0E timer, +$12 spell ID, +$26 active flag, +$28 src, +$2A power) |
+| `$7E:3564` | struct ProjAlchemySlot[8] | `PROJ_ALCHEMY_SLOTS_BASE` | Room | Combat Engine: 8-slot Projectile Alchemy active array (stride $76=118 bytes; +$12 spell ID, +$26 active flag, +$28 src, +$2A power, +$2E target) |
 | `$7E:3ABE` | 1 byte | `JOYPAD_CHORD_HISTORY` | Boot | The joypad matcher's ring of recent button chords. 128 words, newest at `$3ABE + $3BBE`, older chords above it (the index counts down and wraps in 8 bits). A re |
 | `$7E:3BBE` | 1 byte | `JOYPAD_CHORD_INDEX` | Boot | Offset of the newest chord in the joypad chord history. A byte offset into `$3ABE`, always even, moved down by 2 per new chord. `$3BBF` right after it is the te |
 | `$7E:3BBF` | 2 bytes | `DIALOGUE_RING_CURSOR` | Room | Cyclic message buffer index for active dialogue text box rendering. |
@@ -451,13 +633,13 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:61A7` | 224 bytes | `MAP_TILE_PALETTES` | Room | Tile family CGRAM palette shadow buffers (7 families × 32 bytes). |
 | `$7E:6289` | 28 bytes | `OAM_SLICE_DESCRIPTORS` | Frame | Hardware sprite OAM tile slice position and attribute descriptor array. |
 | `$7E:62A5` | 224 bytes | `TILE_ANIM_VRAM_OFFSETS` | Room | Source VRAM tile offset table for animated tile family cycling. |
+| `$7E:6387` | struct ProjectileSlot[8] | `PROJECTILE_SLOTS_BASE` | Room | Combat Engine: 8-slot active physics projectile array (stride 44 bytes; +$06 sprite, +$10 active, +$14 X, +$16 Y, +$18 Z, +$1E life, +$26 behaviour, +$28 power) |
 | `$7E:72D1` | 1024 bytes | `SPRITE_TILE_STAGING_BUF` | Frame | Staging buffer for 4bpp sprite tile graphics unpacked dynamically before VRAM DMA upload (128 bytes per 16x16 tile). |
 | `$7E:7321` | 16 bytes | `LAVA_PALETTE_ROTATION` | Frame | Animated palette rotation buffer for bubbling molten lava surface glow. |
 | `$7E:7331` | 16 bytes | `CRYSTAL_PALETTE_CYCLE` | Frame | Animated palette cycling buffer for glowing crystalline minerals. |
 | `$7E:96A5` | 1 byte | `OBJ_TILE_LRU_PREV` | Room | OBJ 8x8 tile cache, prev links (130 bytes). `prev[i]` of the OBJ tile cache lists; see `$7E9727`. `$7E9725` = `prev[$80]` (next slot to evict), `$7E9726` = `pre |
 | `$7E:9727` | 1 byte | `OBJ_TILE_LRU_NEXT` | Room | OBJ 8x8 tile cache, next links (130 bytes). Doubly linked list over the 128 dynamic OBJ tile slots; a slot number is the OBJ tile number (VRAM word `$6000 + slo |
 | `$7E:97A9` | 256 bytes | `VRAM_TILE_PATTERN_LOOKUP` | Frame | Lookup table mapping ROM sprite pattern ID to allocated dynamic VRAM slot. |
-| `$7F:A000` | 14366 bytes | `FONT_GLYPH_STAGING` | Room | High WRAM 2bpp font glyph rendering and decompression staging buffer. |
 | `$7E:AA58` | 256 bytes | `VRAM_SLOT_PATTERN_MAP` | Frame | Table mapping dynamic VRAM tile slots back to their active pattern ID. |
 | `$7E:AB18` | 96 bytes | `VRAM_TILE_LRU_PREV` | Frame | Backward links for least-recently-used (LRU) dynamic VRAM sprite tile allocator. |
 | `$7E:AB78` | 1 byte | `VRAM_TILE_LRU_HEAD` | Frame | Head index of LRU dynamic VRAM tile allocator list. |
@@ -465,6 +647,8 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:AB7A` | 96 bytes | `VRAM_TILE_LRU_NEXT` | Frame | Forward links for least-recently-used (LRU) dynamic VRAM sprite tile allocator. |
 | `$7E:ABDE` | 512 bytes | `LOW_OAM_TABLE_BUF` | Frame | Low OAM staging buffer (128 hardware sprites × 4 bytes: X low, Y, tile number, attributes); uploaded to SNES OAM via DMA in VBlank. |
 | `$7E:ADDE` | 32 bytes | `HIGH_OAM_TABLE_BUF` | Frame | High OAM staging buffer (32 bytes = 128 sprites × 2 bits: bit 0 = 9th bit of X, bit 1 = sprite size 8x8 vs 16x16/32x32); uploaded via DMA in VBlank. |
+| `$7F:0000` | 49920 bytes | `ROOM_METATILE_GRID` | Room | Decompressed active room 16x16 metatile layout grid buffer. |
+| `$7F:A000` | 14366 bytes | `FONT_GLYPH_STAGING` | Room | High WRAM 2bpp font glyph rendering and decompression staging buffer. |
 | `$7F:C300` | 1280 bytes | `ROOM_PALETTE_TABLE` | Room | Room tile palette index association table. |
 | `$7F:C800` | 512 bytes | `SHADOW_TILEMAP_BUF` | Room | Staging buffer for HUD and text box background layer tilemap updates. |
 | `$7F:D81E` | 10210 bytes | `DIALOGUE_ASCII_BUFFER` | Room | Dialogue box decoded ASCII text string rasterization buffer. |

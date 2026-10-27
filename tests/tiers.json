@@ -45,7 +45,8 @@
   "tests/debugger/emulator-map-overlays.test.js",
   "tests/localizations/localizations.test.js",
   "tests/debugger/tas-resume.test.js",
-  "tests/memory/animation-relations.test.js"
+  "tests/memory/animation-relations.test.js",
+  "tests/memory/ppu-tabs.test.js"
  ],
  "rom": [
   "tests/script-vm/rom.test.js",
