@@ -33,6 +33,7 @@ function hostDeps(rom, posted) {
             sequence: music.trackSequence,
             timeline: music.trackTimeline,
         },
+        roomVariants: require('../../dist/games/evermore/rooms').roomVariantsFor,
     };
 }
 
@@ -249,6 +250,33 @@ async function dom(rom) {
         assert.strictEqual(await page.locator('.scr-map rect.scr-box').count(), 33);
         await page.click('.scr-map rect[data-scr-script="step:0"]');
         assert.ok((await page.textContent('#scr-mid')).includes('$94BEEA'));
+    });
+    await test('Thraxx\'s chamber: its three variants, the merged enter script greyed per variant, the variant\'s characters on the map', async () => {
+        await page.click('[data-scr-pick="room:24"]');
+        // The variants come from the worker (seconds for this room): wait for that answer.
+        for (let i = 0; i < 600 && !out.some((m) => m.command === 'scriptsVariants' && m.id === 24); i++) {
+            await pump();
+            await new Promise((r) => setTimeout(r, 100));
+        }
+        await pump();
+        const chips = await page.$$eval('[data-scr-variant]', (els) => els.map((e) => e.textContent.trim()));
+        assert.deepStrictEqual(chips, ['1 · Thraxx', '2 · Coleoptera', '3 · Empty']);
+        const rowClass = (addr) => page.$$eval('.scr-rows tr', (trs, a) => {
+            const tr = trs.find((t) => t.querySelector('.scr-a') && t.querySelector('.scr-a').textContent === a);
+            return tr ? tr.className : null;
+        }, addr);
+        // $93D2A0 places Thraxx's heart, $93D2FD Coleoptera's.
+        assert.ok(!/scr-(off|dead)/.test(await rowClass('$93D2A0')) && /scr-off/.test(await rowClass('$93D2FD')));
+        assert.strictEqual(await page.locator('.scr-map image.scr-sprite').count(), 3, 'Thraxx: two claws and his heart');
+        assert.ok(await page.locator('.scr-fold[aria-expanded="false"]').count() > 0, 'shared helpers start folded');
+        await shot('thraxx');
+        await page.click('[data-scr-variant="1"]');
+        assert.ok(/scr-off/.test(await rowClass('$93D2A0')) && !/scr-(off|dead)/.test(await rowClass('$93D2FD')));
+        await page.click('[data-scr-variant="2"]');
+        assert.strictEqual(await page.locator('.scr-map image.scr-sprite').count(), 0, 'Empty: nobody');
+        await page.click('[data-scr-pick="room:37"]');
+        await pump();
+        await page.click('.scr-map rect[data-scr-script="step:0"]');
     });
     await test('the Everscript toggle shows the simulation, Clusters groups the triggers', async () => {
         await page.check('[data-scr-toggle="everscript"]');

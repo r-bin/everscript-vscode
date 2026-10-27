@@ -1,14 +1,19 @@
 // Ownership: the Scripts tab's room scripts — every room's enter script,
 // step-on and B-triggers (the decoder in ../../script), each trigger's box in
-// the room picture's pixels, and the picture itself. Pure apart from the ROM
-// buffer it is handed.
+// the room picture's pixels, and the picture itself; the enter script with its
+// calls merged in, and the characters it can place as sprites in the picture's
+// pixels (a variant shows those it places). Pure apart from the ROM buffer.
+//
+// A spawn stands at pixel 8 * x of the room picture, its sprite's origin on
+// that point (rooms/webview/svg-spawns.js says how that was checked): unlike a
+// trigger box, no header origin is taken off.
 //
 // A trigger box is in 16 px tiles, offset by the room header's origin:
 // pixel = (x - originX) * 16, x2/y2 exclusive (maps/collision-overlay.ts draws
 // them the same way).
 
-import { buildRoomScriptModel } from '../../script-model';
-import type { RoomScript, RoomTrigger } from '../../script-model';
+import { buildRoomScriptModel, mergedEnterScript } from '../../script-model';
+import type { RoomScript, RoomTrigger, SpawnFacts } from '../../script-model';
 import * as maps from '../../maps';
 import { getMapName, getMapArea } from '../../localizations';
 import { hex } from '../../../../platform';
@@ -71,7 +76,32 @@ function roomScripts(rom: Uint8Array, id: number) {
     const scripts = [scriptView(model.enter, 'enter', null, origin)];
     model.stepOn.forEach((t, i) => scripts.push(scriptView(t, 'step', i, origin)));
     model.bTrigger.forEach((t, i) => scripts.push(scriptView(t, 'b', i, origin)));
-    return { id, idHex: hex(id, 2), name: getMapName(id) || '', scripts };
+    let merged: ReturnType<typeof mergedEnterScript> = null;
+    try { merged = mergedEnterScript(rom, id); } catch { merged = null; }
+    return { id, idHex: hex(id, 2), name: getMapName(id) || '', scripts, merged, sprites: spawnSprites(rom, model.enter.spawns) };
+}
+
+type Sprite = { at: number; name: string; uri: string; x: number; y: number; w: number; h: number };
+
+/** Each placement the enter script can make, as its character's first frame facing south, in picture pixels. */
+function spawnSprites(rom: Uint8Array, spawns: SpawnFacts[]): Sprite[] {
+    const pictures = new Map<number, { uri: string; w: number; h: number; ox: number; oy: number } | null>();
+    const out: Sprite[] = [];
+    for (const s of spawns) {
+        if (s.character === null || s.x === null || s.y === null) continue;
+        if (!pictures.has(s.character)) {
+            let p = null;
+            try {
+                const r = maps.renderCharacterFrames(rom, s.character);
+                if (r) p = { uri: maps.encodePngDataUri({ width: r.width, height: r.height, data: r.frames[0].data }), w: r.width, h: r.height, ox: r.originX, oy: r.originY };
+            } catch { p = null; }
+            pictures.set(s.character, p);
+        }
+        const p = pictures.get(s.character);
+        if (!p) continue;
+        out.push({ at: s.at, name: s.romName || s.name || '', uri: p.uri, x: s.x * 8 - p.ox, y: s.y * 8 - p.oy, w: p.w, h: p.h });
+    }
+    return out;
 }
 
 /** The room as the game draws it, as a PNG data URI: { uri, width, height } or { error }. */

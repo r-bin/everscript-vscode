@@ -101,7 +101,8 @@ const ROOMS_JS_FILES = [
   'bootstrap.js',        // globals: _currentByteScriptFocus, _applyByteScriptFocus, message listener
   'utils.js',            // escH, hexNum, normScriptAddr, tsvg, item icon helpers (ITEM_ICONS)
   'svg-spawns.js',       // buildSpawnLayers (the NPC layers svg-builder places)
-  'room-variants.js',    // the room's variants above the canvas: who stands in it per story state (_roomVariants/_variantPick)
+  'room-variants.js',    // the room's variants at the map's right edge: who stands in it per story state (_roomVariants/_variantPick)
+  'room-enter-lines.js', // the Enter tab's merged listing, its folds, the chosen variant's lines (_enterMerged/_enterFold)
   'svg-builder.js',      // buildRoomSvgSection
   'rooms-imported.js',   // rooms converted from another game: opening them, family labels
   'interactions.js',     // setupByteScriptFocus, setupMouseEvents, setupHoverHighlights, setupClickHandlers

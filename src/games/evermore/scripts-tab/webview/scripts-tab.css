@@ -45,6 +45,13 @@
 .scr-b{color:var(--vscode-textPreformat-foreground,#d7ba7d);max-width:190px;overflow:hidden;text-overflow:ellipsis}
 .scr-unk .scr-s{color:var(--vscode-editorWarning-foreground,#cca700)}
 .scr-term .scr-s{opacity:.75}
+/* The merged enter script: lines only another variant runs, lines none does, notes, folds. */
+.scr-rows tr.scr-off{opacity:.38}
+.scr-rows tr.scr-dead{opacity:.22;font-style:italic}
+.scr-note-row .scr-s{color:var(--scr-dim);font-style:italic}
+.scr-fold{background:none;border:0;padding:0 4px 0 0;color:var(--scr-dim);cursor:pointer;font:inherit}
+.scr-fold:hover{color:inherit}
+.scr-sprite{image-rendering:pixelated}
 .scr-pane .scr-endf td{border-bottom:1px dashed var(--scr-line)}
 .scr-lit{background:var(--scr-lit)!important}
 .scr-evs{font:12px/1.45 var(--scr-mono);background:var(--scr-card);border:1px solid var(--scr-line);border-radius:4px;padding:8px 10px;overflow:auto;white-space:pre;margin:0}

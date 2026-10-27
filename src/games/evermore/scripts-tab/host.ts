@@ -13,6 +13,7 @@
 //   page -> scriptsAnim { key, record, facing }   host -> scriptsAnim { key, anim } | { key, error }
 //   page -> scriptsMusic { id, seconds }          host -> scriptsMusic { id, sequence, timeline } | { id, error }
 //   page -> scriptsSim { room, key }    host -> scriptsSim { room, key, everscript, clusters } | { error }
+//   page -> scriptsVariants { id }      host -> scriptsVariants { id, variants } | { id, error }   (the Rooms tab's worker, injected)
 
 import { roomList, roomScripts, roomPicture } from './model/rooms';
 import { alchemyModel } from './model/alchemy';
@@ -40,6 +41,8 @@ interface Deps {
     animations(rom: Rom): CatalogEntry[];
     renderAnimation(rom: Rom, characterId: number, animOpt: object, facing: number): RenderedAnimation | null;
     music: { list(rom: Rom): unknown; sequence(rom: Rom, id: number): unknown; timeline(rom: Rom, id: number, seconds: number): Promise<unknown> };
+    /** Who stands in a ROM room per story state, and the instructions each runs (simulation/variants.ts, in a worker). */
+    roomVariants(rom: Rom, id: number): Promise<unknown[]>;
 }
 
 type RoomEntry = { room: ReturnType<typeof roomScripts>; picture: ReturnType<typeof roomPicture> };
@@ -143,6 +146,13 @@ function handleScriptsMessage(msg: Message, deps: Deps): void {
                 deps.music.timeline(rom, id, Number(msg.seconds) || 60)
                     .then((timeline) => deps.post({ command: 'scriptsMusic', id, sequence, timeline }))
                     .catch((err) => deps.post({ command: 'scriptsMusic', id, sequence, error: String(err instanceof Error ? err.message : err) }));
+                return;
+            }
+            case 'scriptsVariants': {
+                const id = Number(msg.id);
+                deps.roomVariants(rom, id)
+                    .then((variants) => deps.post({ command: 'scriptsVariants', id, variants }))
+                    .catch((err) => deps.post({ command: 'scriptsVariants', id, variants: [], error: String(err instanceof Error ? err.message : err) }));
                 return;
             }
             case 'scriptsSim': {

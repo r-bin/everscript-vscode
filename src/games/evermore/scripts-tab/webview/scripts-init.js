@@ -23,6 +23,8 @@ function scrOnClick(e, pane) {
   if ((t = scrClosest(e.target, 'scrView', pane))) { _scr.view = t.dataset.scrView; scrStopPlayer(); scrStopMusic(); scrRender(); return; }
   if ((t = scrClosest(e.target, 'scrPick', pane))) { scrPick(t.dataset.scrPick); return; }
   if ((t = scrClosest(e.target, 'scrScript', pane))) { _scr.script = t.dataset.scrScript; scrAskSim(); scrRenderMain(); return; }
+  if ((t = scrClosest(e.target, 'scrVariant', pane))) { _scr.variantPick[_scr.room] = Number(t.dataset.scrVariant); scrRenderMain(); return; }
+  if ((t = scrClosest(e.target, 'scrFold', pane))) { scrToggleFold(Number(t.dataset.scrFold)); return; }
   if ((t = scrClosest(e.target, 'scrFacing', pane))) { _scr.facing = Number(t.dataset.scrFacing); _scr.player.key = ''; scrRender(); return; }
   if ((t = scrClosest(e.target, 'scrMsel', pane))) { scrSelectMapPart(t.dataset.scrMsel); return; }
   if ((t = scrClosest(e.target, 'scrMall', pane))) { _scr.mapAll[t.dataset.scrMall] = true; scrRenderMain(); return; }
@@ -69,7 +71,7 @@ function setupScriptsTab() {
       if (msg.error) { _scr.error = msg.error; _scr.requested = false; }
       else _scr.index = { rooms: msg.rooms, animations: msg.animations, music: msg.music };
       scrRender();
-    } else if (msg.command === 'scriptsRoom' || msg.command === 'scriptsSim') scrOnRoomMessage(msg);
+    } else if (msg.command === 'scriptsRoom' || msg.command === 'scriptsSim' || msg.command === 'scriptsVariants') scrOnRoomMessage(msg);
     else if (msg.command === 'scriptsMap' || msg.command === 'scriptsMapView') scrOnMapMessage(msg);
     else if (msg.command === 'scriptsAnim') scrOnAnimMessage(msg);
     else if (msg.command === 'scriptsMusic') scrOnMusicMessage(msg);

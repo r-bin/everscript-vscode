@@ -16,7 +16,8 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 - Meaning comes from script-vm's facts and the knowledge entries (loot: `ram/7e2391`,
   `ram/7e2461`, `rom/92a482`), never from instruction text.
 - Loot and doors are read per path (`paths.ts`): a value staged on one branch never reaches the
-  other. A call by global id is a step, not inlined: those are the shared drivers.
+  other. A call by global id is a step, not inlined: those are the shared drivers. Only the
+  merged *listing* (`merged.ts`, for reading) inlines them, folded.
 - A name lookup that misses returns '' or null, never a placeholder.
 
 ## Tests

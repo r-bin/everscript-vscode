@@ -60,5 +60,42 @@ test('doors land inside the room table; arrivals index them by destination', () 
     assert.ok(arrivals.size > 100, `${arrivals.size} rooms with a way in`);
 });
 
+test('merged enter scripts: every room builds, nothing runs away, every block covers its lines', () => {
+    for (let r = 0; r < 127; r++) {
+        const m = M.mergedEnterScript(bytes, r);
+        if (!m) continue;
+        assert.ok(m.lines.length < 6000, `room ${r.toString(16)}: ${m.lines.length} lines`);
+        for (const b of m.blocks) {
+            const head = m.lines.findIndex((l) => l.opens === b.id);
+            assert.ok(head >= 0, `room ${r.toString(16)}: block ${b.id} has a head`);
+            assert.ok(m.lines.slice(head + 1, head + 1 + b.size).every((l) => l.depth > m.lines[head].depth), `room ${r.toString(16)}: block ${b.id} nests`);
+        }
+    }
+});
+
+test("merged enter script of Thraxx's chamber: a call's body follows it; short-operand callees start folded", () => {
+    const m = M.mergedEnterScript(bytes, 0x18);
+    const at = (a) => m.lines.findIndex((l) => l.addressSnes === a && !l.note);
+    // $93:D22C call_id(0x00) (u8: a global id) and $93:D2B6 call $93:CA75 (cb: a call back) fold; their bodies follow.
+    for (const a of [0x93d22c, 0x93d2b6]) {
+        const i = at(a);
+        const b = m.blocks[m.lines[i].opens];
+        assert.ok(b && b.kind === 'call' && b.folded, a.toString(16));
+        assert.strictEqual(m.lines[i + 1].in, b.id);
+    }
+    assert.strictEqual(m.lines[at(0x93d2b6) + 1].addressSnes, 0x93ca75);
+});
+
+test("a started thread joins where its starter's turn ends (Fire Eyes' village: $94:CE1A starts $92:D92A)", () => {
+    const m = M.mergedEnterScript(bytes, 0x25);
+    const head = m.lines.findIndex((l) => l.note && l.opens != null && m.blocks[l.opens].from === 0x94ce1a);
+    assert.ok(head > 0, 'the thread is merged in');
+    assert.strictEqual(m.blocks[m.lines[head].opens].target, 0x92d92a);
+    // No line between the start and the join ends the turn, and the line before the join does.
+    const start = m.lines.findIndex((l) => l.addressSnes === 0x94ce1a && !l.note);
+    const yields = (l) => !l.note && V.decodeAt(rom, l.addressSnes).flow === 'yield';
+    assert.ok(m.lines.slice(start + 1, head - 1).every((l) => !yields(l)) && yields(m.lines[head - 1]));
+});
+
 console.log(`\nscript-model rom: ${passed} passed, ${failed} failed`);
 process.exitCode = failed ? 1 : 0;

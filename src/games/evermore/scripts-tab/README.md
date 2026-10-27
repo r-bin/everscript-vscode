@@ -5,7 +5,7 @@ on the right. Three columns: a filterable list, the script, and its preview.
 
 | View | List | Middle | Right |
 |---|---|---|---|
-| **Everscript** | rooms by area | the room's scripts (enter, step-on `S`, B-trigger `B`) as chips, then the selected one's decoded instructions | the room picture with every trigger box (magenta step-on, yellow B); click a box to open its script |
+| **Everscript** | rooms by area | the room's scripts (enter, step-on `S`, B-trigger `B`) as chips, then the selected one's decoded instructions. The enter script has its calls and started threads merged in (folds), and the room's variants as chips (`1 · Thraxx`, `2 · Coleoptera`, `3 · Empty`): the lines the chosen one does not run are greyed | the room picture with every trigger box (magenta step-on, yellow B) and the chosen variant's characters; click a box to open its script |
 | **Animations** | the 783 records at `$C43E3A` (⚗ = signals `effect_done`, an alchemy effect) | the record's script disassembly; the lines the current frame ran are lit | the animation playing at 60 ticks/s, facings N…NW, step buttons, palette |
 | **Maps** | rooms by area | the room blob as the loader reads it: the map table entry, then each section (header, triggers, map palettes, palette-cycle descriptors, Blocks 1–3, animated tiles, objects, cuttable tiles, object area) with its bytes, decoded fields and items. An item owns every byte range that is its: an object its record, each step's descriptor and stamp; a channel its descriptor and frame list | the selection drawn: the room with every trigger and object box, the map palettes as sets of 7 (`$7E:2437`) with empty slots marked, a channel's frames playing, an object's states playing with each step's hold, every metatile (click one) taken apart with all its states — cut chain, animation frames, the object states that place it |
 
@@ -29,7 +29,7 @@ Behind the Music view: `docs/todo/audio-and-music.md` §1.
 | `index.js` | Public API: `handlesScriptsMessage` / `handleScriptsMessage`, `buildScriptsTabHtml` |
 | `host.js` | The `scripts*` requests; uses the injected sprites and music capabilities |
 | `render-scripts-tab.ts` | The pane scaffold |
-| `model/rooms.ts` | Room list, a room's scripts with trigger boxes, the room picture |
+| `model/rooms.ts` | Room list, a room's scripts with trigger boxes, the merged enter script, the enter script's characters as sprites, the room picture |
 | `model/alchemy.ts` | Formulas → `$91` blocks → animation records; records that signal `effect_done` (labels Animations) |
 | `model/map-sections.ts` | A room blob cut into its sections: bytes, fields, items |
 | `model/map-views.ts` | What a section or item looks like: the room overlay, triggers, objects; dispatch |
@@ -54,3 +54,4 @@ Host protocol:
 | `scriptsAnim { key, record, facing }` | `scriptsAnim { key, anim }` |
 | `scriptsMusic { id, seconds }` | `scriptsMusic { id, sequence, timeline }` |
 | `scriptsSim { room, key }` | `scriptsSim { room, key, everscript, clusters }` |
+| `scriptsVariants { id }` | `scriptsVariants { id, variants }` (the Rooms tab's worker, injected as `roomVariants`) |

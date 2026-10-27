@@ -95,6 +95,9 @@ script by `memory/webview/index.ts` (`ROOMS_JS_FILES` fixes the order):
   answered from `data/room-variants.ts`, a worker thread over `simulation/variants.ts`) and
   hides the spawns a variant does not place by their `data-at`; "only if" spawns are dimmed.
   The map shows every candidate until the answer arrives, then the default (variant 1).
+- `room-enter-lines.js` — the Trigger tab's Enter view for a ROM room: the enter script with its
+  calls and threads merged in (`roomEnterScript`, script-model/merged.ts), each a fold, and the
+  lines the chosen variant does not run greyed (its `reached`, simulation/variants.ts).
 - `svg-builder.js` — `buildRoomSvgSection()` → `{html, zoomState, ...}`; stacks
   map → spawns behind → canopy → spawns in front → canopy overlay → annotation
 - `metatile-palette.js` — the Tile palette section; owns `_mtPalette` / `_mtLayer` /

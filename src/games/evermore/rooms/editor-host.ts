@@ -15,6 +15,7 @@ import * as os from 'os';
 import * as romReaders from '../rom-readers';
 import { buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildFamilyPreviews, roomVariantsFor } from '.';
 import { missingRomText } from '../../../platform/roms/library';
+import { mergedEnterScript } from '../script-model';
 import { errorText } from './editor-host-types';
 import type { EditorMessage, EditorContext, EditorHandler } from './editor-host-types';
 import { ROM_HANDLERS } from './editor-host-rom';
@@ -165,6 +166,9 @@ const HANDLERS: Record<string, EditorHandler> = {
             ctx.post({ ...reply, variants: [], error: src.error });
             return;
         }
+        // The enter script with its calls merged in, at once: the variants say which of its lines run.
+        try { ctx.post({ command: 'roomEnterScript', roomId, merged: mergedEnterScript(src.romBuf, roomId) }); }
+        catch (err) { ctx.post({ command: 'roomEnterScript', roomId, merged: null, error: errorText(err) }); }
         roomVariantsFor(src.romBuf, roomId).then(
             (variants) => ctx.post({ ...reply, variants }),
             (err) => ctx.post({ ...reply, variants: [], error: errorText(err) }));

@@ -39,7 +39,7 @@ export function createSimulator(rom: Uint8Array, decoder: Decoder = vmDecoder): 
         emit: (entry, name) => emitScript(machine, entry, name),
         room: (mapId, pins) => analyzeRoom(machine, mapId, decoder.buildRoomScriptModel(rom, mapId), pins),
         // Only the enter script places characters: the triggers (the slow part) are left out.
-        variants: (mapId, opts = {}) => roomVariants(opts.room ?? analyzeRoom(machine, mapId, { ...decoder.buildRoomScriptModel(rom, mapId), stepOn: [], bTrigger: [] }), decoder, opts.splitOn),
+        variants: (mapId, opts = {}) => roomVariants(opts.room ?? analyzeRoom(machine, mapId, { ...decoder.buildRoomScriptModel(rom, mapId), stepOn: [], bTrigger: [] }), decoder, opts.splitOn, machine),
     };
 }
 

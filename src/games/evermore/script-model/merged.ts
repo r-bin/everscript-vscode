@@ -1,0 +1,134 @@
+// Ownership: a script as one listing with what it calls merged in — read the way the interpreter
+// runs it (docs/scripts/vm.md, "Flow"). Pure.
+//
+// When each runs is the scheduler's (knowledge rom/8ccffd.md): a call puts the callee in the
+// caller's place in the same pass, so its body follows the call line. A start (`call_async`)
+// appends a thread to the run list and the starter carries on; the new thread first runs once the
+// starter's turn is over, so its body follows the next line that ends the turn — a sleep, a
+// yield, a wait — even inside a callee, or the end of the starter's thread. A call does not end
+// the turn, and neither does the end of a called script (the caller resumes in the same pass).
+//
+// Each merged body is a block the viewer can fold. A callee named by a short operand — a global id
+// (u8), a trigger offset (u16), a call back (cb, c16) — is a shared helper and starts folded; one
+// named by a full pointer (u24) starts open. A callee already being merged further up is not merged
+// again (recursion), and the listing stops merging past MAX_LINES, so nothing here can run away.
+
+import { Instruction, Names, ScriptRom, decodeAt, roomScripts, walk } from '../script-vm';
+import { ScriptRow, row } from './room-model';
+import { printNames } from './names';
+import { hiromFileOffset } from '../../../platform/snes/hirom';
+
+/** Past this many lines no more bodies are merged in. */
+const MAX_LINES = 4000;
+
+export interface MergedLine extends ScriptRow {
+    /** The block this line belongs to (innermost), -1 for the script itself. */
+    in: number;
+    /** The block this line heads: a call's body, or a started thread's. */
+    opens?: number;
+    /** A line that is not an instruction: where a thread joins, why a body is not merged. */
+    note?: boolean;
+}
+
+export interface MergedBlock {
+    id: number;
+    parent: number;
+    kind: 'call' | 'thread';
+    /** The script merged in. */
+    target: number;
+    /** Where it was called or started from. */
+    from: number;
+    /** Starts folded: a shared helper (named by an id, an offset or a call back). */
+    folded: boolean;
+    /** How many lines it holds, its own blocks' included. */
+    size: number;
+}
+
+export interface MergedScript { entry: number; lines: MergedLine[]; blocks: MergedBlock[] }
+
+
+/** The script at `entry`, with every call and start merged in. */
+export function mergedScript(rom: ScriptRom, entry: number, names: Names = printNames(hiromFileOffset)): MergedScript {
+    const lines: MergedLine[] = [];
+    const blocks: MergedBlock[] = [];
+
+    const note = (at: number, depth: number, block: number, summary: string): MergedLine => ({
+        addressSnes: at, opcode: -1, opcodeHex: '', size: 0, bytesHex: '', summary, terminal: false, untraced: false,
+        unsupported: false, depth, in: block, note: true,
+    });
+
+    function open(kind: MergedBlock['kind'], ins: Instruction, parent: number): MergedBlock {
+        const last = ins.operands[ins.operands.length - 1];
+        const b: MergedBlock = { id: blocks.length, parent, kind, target: ins.target!, from: ins.address, folded: kind === 'call' && last?.k !== 'u24', size: 0 };
+        blocks.push(b);
+        return b;
+    }
+
+    /**
+     * One script's lines at `depth`, inside `block`; `stack` the scripts being merged above it.
+     * `waiting` is the thread's starts that have not had a turn yet: shared with the scripts it
+     * calls (same thread), joined in where the turn ends.
+     */
+    function body(at: number, depth: number, block: number, stack: number[], waiting: Instruction[]): void {
+        const list = [...walk(rom, [at], false).instructions.values()].sort((a, b) => a.address - b.address);
+        const join = (): void => {
+            for (const s of waiting.splice(0)) {
+                const b = open('thread', s, block);
+                const head = note(s.address, depth, block, `∥ thread $${hex6(s.target!)} runs alongside from here (started at $${hex6(s.address)})`);
+                head.opens = b.id;
+                lines.push(head);
+                merge(b, s.target!, depth + 1, stack, []);
+            }
+        };
+        for (const ins of list) {
+            lines.push({ ...row(rom, ins, names), depth, in: block });
+            if (ins.flow === 'call' && ins.target !== null && rom.contains(ins.target)) {
+                const b = open('call', ins, block);
+                lines[lines.length - 1].opens = b.id;
+                merge(b, ins.target, depth + 1, stack, waiting);
+            }
+            if (ins.flow === 'start' && ins.target !== null && rom.contains(ins.target)) waiting.push(ins);
+            if (ins.flow === 'yield') join();
+        }
+    }
+
+    /** Merge `target` into block `b`; a thread's own body ends its turn, so what it started joins at its end. */
+    function merge(b: MergedBlock, target: number, depth: number, stack: number[], waiting: Instruction[]): void {
+        const start = lines.length;
+        if (stack.includes(target)) lines.push(note(target, depth, b.id, `↻ $${hex6(target)} is already running above: not merged again`));
+        else if (lines.length > MAX_LINES) lines.push(note(target, depth, b.id, `… $${hex6(target)} not merged: the listing is long enough`));
+        else body(target, depth, b.id, [...stack, target], waiting);
+        if (b.kind === 'thread') joinAtEnd(waiting, depth, b.id, stack);
+        b.size = lines.length - start;
+    }
+
+    /** What a thread started and never yielded after runs once the thread is over. */
+    function joinAtEnd(waiting: Instruction[], depth: number, block: number, stack: number[]): void {
+        for (const s of waiting.splice(0)) {
+            const b = open('thread', s, block);
+            const head = note(s.address, depth, block, `∥ thread $${hex6(s.target!)} runs from here, after the thread that started it (at $${hex6(s.address)})`);
+            head.opens = b.id;
+            lines.push(head);
+            merge(b, s.target!, depth + 1, stack, []);
+        }
+    }
+
+    if (rom.contains(entry)) {
+        try {
+            decodeAt(rom, entry);
+            const waiting: Instruction[] = [];
+            body(entry, 0, -1, [entry], waiting);
+            joinAtEnd(waiting, 0, -1, [entry]);
+        } catch { /* an undecodable entry: no lines */ }
+    }
+    return { entry, lines, blocks };
+}
+
+/** ROM room `mapId`'s enter script, merged; null when it has none. */
+export function mergedEnterScript(bytes: Uint8Array, mapId: number): MergedScript | null {
+    const rom = new ScriptRom(bytes);
+    const entry = roomScripts(rom, mapId).enter;
+    return entry === null ? null : mergedScript(rom, entry);
+}
+
+const hex6 = (v: number): string => v.toString(16).padStart(6, '0');

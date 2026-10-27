@@ -177,10 +177,12 @@ function triggerEnterHtml() {
   var s = (triggerRoomContent().triggers || {}).enter;
   if (!s) return '<div class="rs-note">This room has no enter script — or it is not a ROM room.</div>';
   var what = triggerScriptWhat(s);
+  // A ROM room's listing with its calls merged in and the variant's lines lit (room-enter-lines.js).
+  var merged = typeof enterMergedHtml === 'function' && typeof _variantRoom !== 'undefined' ? enterMergedHtml(_variantRoom) : '';
   return '<div class="rs-note">Runs as the room loads. It has no box, so the pencil cannot draw one.</div>'
     + '<div class="rg-trigger-body rg-enter-body"><div class="rs-note">'
     + (typeof s.scriptAddressSnes === 'number' ? 'at ' + hexNum(s.scriptAddressSnes, 6) : '')
-    + (what ? ' · ' + scriptHighlight(what) : '') + '</div>' + triggerExitsHtml(s) + triggerScriptLinesHtml(s) + '</div>';
+    + (what ? ' · ' + scriptHighlight(what) : '') + '</div>' + triggerExitsHtml(s) + (merged || triggerScriptLinesHtml(s)) + '</div>';
 }
 
 /** Show the Enter tab, or back to a drawable kind. */

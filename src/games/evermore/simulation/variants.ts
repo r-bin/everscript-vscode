@@ -21,10 +21,20 @@
 // variants apart.
 //
 // Names come from the ROM: the story flags that select a variant (their
-// labels), then the characters only it places. Nothing else is guessed.
+// labels), then the characters only it places. Nothing else is guessed. The
+// short `title` is what a list shows: the one or two characters only it
+// places ("Thraxx", "Coleoptera"), "Empty" when nobody stands there, else
+// the flags.
+//
+// `reached` is every instruction the variant can run: what a script viewer
+// shows live for it, the rest greyed. A static walk of the enter script and
+// what it calls and starts (a visited set: loops cannot hold it up), taking at
+// each branch the condition the run recorded there (`RoomAnalysis.branches`)
+// under each of the variant's flag assignments. A branch the run never tested,
+// or tested differently each time round a loop, keeps both sides.
 
-import { Sym, key, isC } from './sym';
-import { Decoder } from './machine';
+import { Sym, key, isC, truthy } from './sym';
+import { Decoder, Machine } from './machine';
 import { Condition } from './trigger';
 import { RoomAnalysis, Scenario } from './room';
 import { Part } from './segments';
@@ -50,8 +60,10 @@ export interface VariantSpawn {
 }
 
 export interface RoomVariant {
-    /** What the list shows: the selecting flags (or "default"), then what only it places. */
+    /** The selecting flags (or "default"), then what only it places. */
     name: string;
+    /** What a list shows: who only it places ("Thraxx"), "Empty", or the flags. */
+    title: string;
     /** Labelled story flags that hold in it, e.g. "In credits". Empty for the default. */
     flags: string[];
     /** Character names only this variant has, e.g. "Thraxx's heart". */
@@ -63,16 +75,19 @@ export interface RoomVariant {
     spawns: VariantSpawn[];
     /** Indices into `RoomAnalysis.scenarios`. */
     scenarios: number[];
+    /** Every instruction its scenarios ran, in any thread, sorted. */
+    reached: number[];
     /** A budget stopped a path it came from: who was placed is known, what came after may not be. */
     cut: boolean;
 }
 
-interface Piece { scenario: number; when: Condition[]; flags: string[]; spawns: VariantSpawn[]; cut: boolean }
+interface Piece { scenario: number; when: Condition[]; flags: string[]; spawns: VariantSpawn[]; cut: boolean; assignments: Array<Map<string, boolean>> }
 
 /** Which placements make a different room when their condition changes; by default, all. */
 export type SplitOn = (spawn: { at: number; npc: number }) => boolean;
 
-export function roomVariants(room: RoomAnalysis, dec: Decoder, splitOn: SplitOn = () => true): RoomVariant[] {
+export function roomVariants(room: RoomAnalysis, dec: Decoder, splitOn: SplitOn = () => true, m?: Machine): RoomVariant[] {
+    const walks = new Map<string, Set<number>>();
     const pieces = room.scenarios.flatMap((s, i) => split(s, i, dec, splitOn));
     // Fold by who stands in the room on entry; the first flagless piece names the fold.
     const byCast = new Map<string, Piece[]>();
@@ -99,6 +114,7 @@ export function roomVariants(room: RoomAnalysis, dec: Decoder, splitOn: SplitOn 
             when: [...new Set(ps.map((p) => p.when.map((w) => w.text).join(' & ') || 'always'))],
             scenarios: [...new Set(ps.map((p) => p.scenario))],
             cut: ps.some((p) => p.cut),
+            reached: m ? reachedBy(m, room, ps, walks) : [],
         };
     });
     const names = folds.map((f) => new Set(f.lead.spawns.filter((s) => !s.later).map((s) => s.name)));
@@ -109,12 +125,24 @@ export function roomVariants(room: RoomAnalysis, dec: Decoder, splitOn: SplitOn 
         const head = f.lead.flags.length ? f.lead.flags.join(' · ') : 'default';
         return {
             name: only.length ? `${head} — ${only.slice(0, 3).join(', ')}${only.length > 3 ? ', …' : ''}` : head,
+            title: title(f.lead.spawns, only, head),
             flags: f.lead.flags, only, also: f.also, when: f.when,
-            spawns: f.lead.spawns, scenarios: f.scenarios, cut: f.cut,
+            spawns: f.lead.spawns, scenarios: f.scenarios, reached: f.reached, cut: f.cut,
         };
     });
     // Default first, then the busiest rooms.
     return variants.sort((a, b) => (a.flags.length ? 1 : 0) - (b.flags.length ? 1 : 0) || b.spawns.length - a.spawns.length);
+}
+
+/**
+ * The short name: the one or two characters only this variant places, a boss by its own name
+ * ("Thraxx's heart" is Thraxx); "Empty" when nobody stands there on entry; else the flags.
+ * Placeholder characters name nothing.
+ */
+function title(spawns: VariantSpawn[], only: string[], head: string): string {
+    if (!spawns.some((s) => !s.later)) return 'Empty';
+    const who = [...new Set(only.filter((n) => !/^(PLACEHOLDER|UNKNOWN)/.test(n)).map((n) => n.replace(/'s heart$/, '')))];
+    return who.length && who.length <= 2 ? who.join(', ') : head;
 }
 
 /** One scenario, cut into pieces by the conditions its `splitOn` characters carry. */
@@ -139,8 +167,67 @@ function split(s: Scenario, index: number, dec: Decoder, splitOn: SplitOn): Piec
         const agreed: Condition[] = list.filter((a) => g.seen.every((m) => m.get(key(a)) === g.seen[0].get(key(a))))
             .map((a) => { const value = g.seen[0].get(key(a))!; return { cond: a, value, text: describeCondition(a, value, dec) }; });
         const when = groups.size > 1 ? [...s.when, ...agreed] : s.when;
-        return { scenario: index, when, flags: storyFlags(when, dec), spawns: g.spawns, cut };
+        const base = new Map<string, boolean>();
+        for (const w of s.when) learn(base, w.cond, w.value);
+        const assignments = g.seen.map((seen) => { const k = new Map(base); for (const [a, v] of seen) k.set(a, v); return k; });
+        return { scenario: index, when, flags: storyFlags(when, dec), spawns: g.spawns, cut, assignments };
     });
+}
+
+/** Every instruction the pieces can run, under any of their assignments, sorted. `walks` keeps walks by assignment. */
+function reachedBy(m: Machine, room: RoomAnalysis, ps: Piece[], walks: Map<string, Set<number>>): number[] {
+    const out = new Set<number>();
+    for (const p of ps) {
+        for (const known of p.assignments) {
+            const k = [...known].map(([a, v]) => (v ? '' : '!') + a).sort().join('&');
+            let w = walks.get(k);
+            if (!w) { w = walk(m, room, known); walks.set(k, w); }
+            for (const pc of w) out.add(pc);
+        }
+    }
+    return [...out].sort((a, b) => a - b);
+}
+
+/** Jumps that only go to their target (0x04 goto, 0x05 goto_back); other branch effects may fall through. */
+const JUMPS = new Set([0x04, 0x05]);
+/** Branch on a condition: 0x08 jumps when it holds, 0x09 when it does not. */
+const JUMP_IF_TRUE = 0x08, JUMP_IF_FALSE = 0x09;
+
+/** The enter script's instructions reachable under `known`, following calls, starts and global calls. */
+function walk(m: Machine, room: RoomAnalysis, known: ReadonlyMap<string, boolean>): Set<number> {
+    const seen = new Set<number>();
+    const todo = [room.enterEntry];
+    while (todo.length) {
+        const at = todo.pop()!;
+        if (seen.has(at)) continue;
+        const ins = m.instruction(at);
+        if (!ins) continue;
+        seen.add(at);
+        const next = at + ins.size;
+        let target: number | null = null;
+        for (const e of ins.effects) {
+            if (e.kind === 'branch') target = e.target;
+            else if (e.kind === 'call') todo.push(e.target);
+            else if (e.kind === 'callGlobal') todo.push(m.globalScript(e.id));
+        }
+        if (ins.terminal) continue;
+        if (target === null) { todo.push(next); continue; }
+        if (JUMPS.has(ins.opcode)) { todo.push(target); continue; }
+        const cond = room.branches.get(at);
+        const t = cond && (ins.opcode === JUMP_IF_TRUE || ins.opcode === JUMP_IF_FALSE) ? truth(cond, known) : null;
+        if (t === null) todo.push(next, target);
+        else todo.push(t === (ins.opcode === JUMP_IF_TRUE) ? target : next);
+    }
+    return seen;
+}
+
+/** Record that `cond` is `value`, and what that settles about its parts (`a && b` true: both true). */
+function learn(known: Map<string, boolean>, cond: Sym, value: boolean): void {
+    known.set(key(cond), value);
+    known.set(key(truthy(cond)), value);
+    if (isC(cond)) return;
+    if (cond.k === 'un' && cond.op === '!') { learn(known, cond.a, !value); return; }
+    if (cond.k === 'bin' && ((cond.op === '&&' && value) || (cond.op === '||' && !value))) { learn(known, cond.a, value); learn(known, cond.b, value); }
 }
 
 /** The characters that can stand here under `known`, one per placing instruction, in script order. */
@@ -296,7 +383,7 @@ export function variantsReport(room: Pick<RoomAnalysis, 'mapId' | 'name' | 'capp
         'enemies carry and folded by who is placed. Named from the flags\' labels, then the characters only one variant has.',
         ...(room.capped ? ['', '> The analysis hit its budget; paths still running then are kept (marked *cut*): who they placed is known.'] : []), ''];
     for (const v of variants) {
-        out.push(`## ${v.name}${v.cut ? ' *(cut)*' : ''}`, '');
+        out.push(`## ${v.title}${v.cut ? ' *(cut)*' : ''}`, '', v.title !== v.name ? `${v.name}.` : '', '');
         if (v.also.length) out.push(`Same characters as: ${v.also.join('; ')}.`, '');
         out.push('When:', ...v.when.map((w) => `- ${w}`), '');
         if (!v.spawns.length) { out.push('Nobody is placed.', ''); continue; }

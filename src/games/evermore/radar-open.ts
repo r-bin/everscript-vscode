@@ -5,7 +5,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { VANILLA_ROOMS, buildVanillaRoomDetails, buildRoomTree, setRoomImageUris, handlesCustomMapMessage, handleCustomMapMessage } from './rooms';
+import { VANILLA_ROOMS, buildVanillaRoomDetails, buildRoomTree, setRoomImageUris, handlesCustomMapMessage, handleCustomMapMessage, roomVariantsFor } from './rooms';
 import { handlesRomMessage, handleRomMessage } from './rom';
 import { handlesMusicMessage, handleMusicMessage, buildMusicModel, trackSequence, trackTimeline } from './music';
 import { handlesScriptsMessage, handleScriptsMessage } from './scripts-tab';
@@ -194,6 +194,8 @@ async function openMemoryRadar(doc?: vscode.TextDocument, startLine?: number): P
                     sequence: trackSequence,
                     timeline: trackTimeline,
                 },
+                // The Rooms tab's variants worker: the Everscript view greys what a variant does not run.
+                roomVariants: (rom, id) => roomVariantsFor(rom, id),
             });
         } else if (handlesDataMessage(msg.command)) {
             // The Data tab (src/games/evermore/data-tab/README.md). The character list is the

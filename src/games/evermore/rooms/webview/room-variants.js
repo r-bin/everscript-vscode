@@ -43,12 +43,15 @@ function applyRoomVariants(data) {
   _roomVariants[id] = { variants: data.variants || [], error: data.error || null };
   // The first variant is the default (the host sorts it first): that is the room as it is met.
   if (_variantPick[id] == null) _variantPick[id] = 0;
-  if (_variantRoom === id) renderVariantBar();
+  if (_variantRoom === id) {
+    renderVariantBar();
+    if (typeof _triggerEnterView !== 'undefined' && _triggerEnterView && typeof renderEditPanels === 'function') renderEditPanels();
+  }
 }
 
 /** One variant's tooltip: its name, when it happens, who it places. */
 function variantTip(v) {
-  return v.name + (v.cut ? '\n(the run hit its budget: who is placed is known, what follows may not be)' : '')
+  return (v.title && v.title !== v.name ? v.title + '\n' : '') + v.name + (v.cut ? '\n(the run hit its budget: who is placed is known, what follows may not be)' : '')
     + '\n\nWhen:\n' + v.when.map(function (w) { return '• ' + w; }).join('\n')
     + (v.also.length ? '\n\nSame characters as: ' + v.also.join('; ') : '')
     + '\n\n' + (v.spawns.length ? v.spawns.map(function (s) {
@@ -95,7 +98,7 @@ function renderVariantBar() {
   var name = document.getElementById('rv-name');
   if (name) {
     var v = got && !got.error ? got.variants[_variantPick[id]] : null;
-    name.textContent = v ? (_variantPick[id] + 1) + ' · ' + v.name : '';
+    name.textContent = v ? (_variantPick[id] + 1) + ' · ' + (v.title || v.name) : '';
     name.title = v ? v.name : '';
   }
   applyVariantFilter(id);
@@ -130,5 +133,7 @@ if (typeof document !== 'undefined' && document.addEventListener) {
     if (!bar || !bar.contains(t) || _variantRoom == null) return;
     _variantPick[_variantRoom] = Number(t.dataset.variant);
     renderVariantBar();
+    // The Enter tab greys what the chosen variant does not run (room-enter-lines.js).
+    if (typeof _triggerEnterView !== 'undefined' && _triggerEnterView && typeof renderEditPanels === 'function') renderEditPanels();
   });
 }

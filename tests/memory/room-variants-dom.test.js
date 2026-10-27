@@ -40,6 +40,7 @@ async function main() {
     const rom = new Uint8Array(fs.readFileSync(ROM));
     const { renderRadarHtml } = require(path.join(DIST, 'games', 'evermore', 'memory', 'render-radar'));
     const { buildVanillaRoomContent, roomVariantsFor } = require(path.join(DIST, 'games', 'evermore', 'rooms'));
+    const { mergedEnterScript } = require(path.join(DIST, 'games', 'evermore', 'script-model'));
     const details = {};
     for (const id of ['0x38', '0x18']) {
         details[id] = { name: 'room ' + id, vanillaId: id, romRoomId: parseInt(id, 16), relPath: 'vanilla (rom)',
@@ -66,6 +67,7 @@ async function main() {
             const before = await shownSprites(page);
             check('  and shows every candidate spawn while it waits', before.length > 0, String(before.length));
             const variants = await roomVariantsFor(rom, id);
+            await page.evaluate((msg) => window.postMessage(msg, '*'), { command: 'roomEnterScript', roomId: id, merged: mergedEnterScript(rom, id) });
             await page.evaluate((msg) => window.postMessage(msg, '*'), { command: 'roomVariants', roomId: id, variants });
             await page.waitForFunction(() => document.querySelectorAll('#rv-bar button[data-variant]').length > 1, null, { timeout: 5000 });
             return variants;
@@ -87,24 +89,24 @@ async function main() {
         const names = await chips();
         const tipText = await tips();
         check('it lists the default with its enemies and the outro by number, no "All"', names.join() === '1,2'
-            && /^default — Mosquito, Wimpy Flower/.test(tipText[0]) && /^Inside outro\?/.test(tipText[1]), JSON.stringify([names, tipText]));
+            && /^Mosquito, Wimpy Flower\ndefault — /.test(tipText[0]) && /^Empty\nInside outro\?/.test(tipText[1]), JSON.stringify([names, tipText]));
         check('the default is chosen when the answer arrives',
             await page.$eval('#rv-bar button.on', (e) => e.dataset.variant) === '0');
-        check('  and its name is in the header', /^1 · default — Mosquito/.test(await headName()), await headName());
+        check('  and its name is in the header', /^1 · Mosquito, Wimpy Flower$/.test(await headName()), await headName());
         check('and every one of its 21 spawns is on the map', (await shownSprites(page)).length === jungle[0].spawns.length
             && jungle[0].spawns.length === 21);
         await shoot('jungle-default');
         await pick(1);
         check('the outro shows nobody', (await shownSprites(page)).length === 0);
-        check('  and the header names it', /^2 · Inside outro\?/.test(await headName()), await headName());
+        check('  and the header names it', /^2 · Empty$/.test(await headName()), await headName());
         await shoot('jungle-outro');
         await pick(0);
         check('the default brings its 21 back', (await shownSprites(page)).length === 21);
 
         // ── Thraxx's chamber ──────────────────────────────────────────────
         const thraxx = await open(0x18);
-        check('Thraxx\'s chamber has its three states: Thraxx, Coleoptera, empty', thraxx.length === 3
-            && thraxx[2].spawns.length === 0, thraxx.map((v) => v.name).join(' | '));
+        check('Thraxx\'s chamber has its three states: Thraxx, Coleoptera, Empty',
+            thraxx.map((v) => v.title).join() === 'Thraxx,Coleoptera,Empty', thraxx.map((v) => v.title).join(' | '));
         check('  the maggots come later, in the fight: on Thraxx, not a state of their own',
             thraxx[0].spawns.some((s) => s.name === 'Maggot' && s.later) && !thraxx.slice(1).some((v) => v.spawns.some((s) => s.name === 'Maggot')));
         const hex = (v) => v.toString(16);
@@ -124,6 +126,30 @@ async function main() {
                 now.length === thraxx[cole].spawns.length && thraxx[cole].spawns.every((s) => now.includes(hex(s.at)))
                 && !def.spawns.some((s) => /heart/.test(s.name) && now.includes(hex(s.at))), JSON.stringify(now));
             await shoot('thraxx-coleoptera');
+        }
+
+        // ── the Enter tab: the merged script, greyed per variant ─────────
+        await pick(0);
+        await page.evaluate(() => document.querySelector('[data-edit-active-tab="trigger"]').click());
+        await page.evaluate(() => document.querySelector('[data-trigger-enter]').click());
+        const lineClass = (addr) => page.$eval(`.rg-enter-body [data-script-addr="${addr}"]`, (e) => e.className).catch(() => null);
+        // $93D2A0 places Thraxx's heart, $93D2FD Coleoptera's, $93D247 starts the layout after Thraxx.
+        check('the Enter tab lists the merged script', await page.$$eval('.rg-script-merged .rg-script-line', (els) => els.length) > 100);
+        check('  Thraxx: his heart is live, Coleoptera\'s and the empty room\'s lines are greyed',
+            !/rg-script-(off|dead)/.test(await lineClass('93D2A0')) && /rg-script-off/.test(await lineClass('93D2FD'))
+            && /rg-script-off/.test(await lineClass('93D247')), [await lineClass('93D2A0'), await lineClass('93D2FD'), await lineClass('93D247')].join(' | '));
+        await shoot('thraxx-enter');
+        await pick(cole);
+        check('  choosing Coleoptera swaps which lines are greyed',
+            /rg-script-off/.test(await lineClass('93D2A0')) && !/rg-script-(off|dead)/.test(await lineClass('93D2FD')),
+            [await lineClass('93D2A0'), await lineClass('93D2FD')].join(' | '));
+        const folds = () => page.$$eval('.rg-script-merged .rg-script-line', (els) => els.length);
+        const before = await folds();
+        const shut = await page.$('.rg-script-fold[aria-expanded="false"]');
+        check('  a shared helper starts folded', !!shut);
+        if (shut) {
+            await shut.click();
+            check('  and opening it shows its lines', (await folds()) > before, before + ' → ' + await folds());
         }
         check('the page threw nothing', errors.length === 0, errors.join('\n'));
     } finally {

@@ -101,7 +101,7 @@ export interface RoomScriptModel {
 const SPAWNER_QUANTITY = 0x2433;
 const hex2 = (v: number): string => '0x' + hexLower(v, 2);
 
-function row(rom: ScriptRom, ins: Instruction, names: Names): ScriptRow {
+export function row(rom: ScriptRom, ins: Instruction, names: Names): ScriptRow {
     const bytes: string[] = [];
     for (let i = 0; i < ins.size; i++) bytes.push(rom.u8(ins.address + i).toString(16).padStart(2, '0').toUpperCase());
     return {

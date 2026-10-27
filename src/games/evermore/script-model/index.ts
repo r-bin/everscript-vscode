@@ -3,6 +3,8 @@
 
 export { buildRoomScriptModel, scriptModel } from './room-model';
 export type { RoomScriptModel, RoomScriptMeta, RoomScript, RoomTrigger, ScriptRow, SpawnFacts, StopReason } from './room-model';
+export { mergedScript, mergedEnterScript } from './merged';
+export type { MergedScript, MergedLine, MergedBlock } from './merged';
 export { lootOf, lootToEverscript, LOOT_CELLS } from './loot';
 export type { LootFacts, LootValue, ValueEncoding } from './loot';
 export { doorsOf } from './doors';

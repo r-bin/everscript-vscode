@@ -26,6 +26,16 @@
   `end: 'cut'`: who they placed is known.
 - **A spawner in a loop** (Thraxx's maggots) is one character with a count; only its first
   placement decides whether it is there.
+- **Short titles and the lines each runs** (v0.362). `title` is what a list shows: the one or two
+  characters only the variant places, a boss by its name (`Thraxx`, `Coleoptera`), `Empty` when
+  nobody stands there, else the flags. `reached` is every instruction the variant can run: a
+  static walk of the enter script (calls, starts and global calls followed; a visited set, so
+  loops cannot hold it) that takes at each branch the condition the run recorded there
+  (`RoomAnalysis.branches`, over the entry state) under each of the variant's flag assignments;
+  a branch never tested, or tested differently each time round a loop, keeps both sides. Tagging
+  each executed instruction with its branch condition instead was tried and dropped: the boss
+  loop rejoins every 60 ticks, the conditions grew into opaque values, and the run took 4× as long.
+  Both script viewers (Rooms → Trigger → Enter, Scripts → Everscript) grey the rest.
 - **Polled conditions are the room going on, not a state** (v0.359). After placing Thraxx the
   enter script loops ($93D3CE, every 60 ticks): once `$2260&0x08` ("maggots triggered") is set
   mid-fight it refills up to four maggots, whose handles it keeps in `$2855..$285B` itself.

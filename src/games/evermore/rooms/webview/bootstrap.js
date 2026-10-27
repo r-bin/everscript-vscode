@@ -18,6 +18,10 @@ if(typeof window!=='undefined'&&window.addEventListener){
     if(data.command==='byteScriptFocus'){
       _currentByteScriptFocus=normScriptAddr(data.address);
       _applyByteScriptFocus();
+    }else if(data.command==='roomEnterScript'){
+      // The enter script with its calls merged in (room-enter-lines.js).
+      if(typeof applyRoomEnterScript==='function')applyRoomEnterScript(data);
+      if(data.error)console.warn('[RoomsRender] roomEnterScript:',data.error);
     }else if(data.command==='roomVariants'){
       // Who stands in the room per story state (room-variants.js).
       if(typeof applyRoomVariants==='function')applyRoomVariants(data);

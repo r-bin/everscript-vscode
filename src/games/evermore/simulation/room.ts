@@ -8,6 +8,7 @@
 // what keeps "Fire Eyes' Village" at a handful of scenarios instead of 2^9.
 
 import { Sym, key, under, isC } from './sym';
+import { Step } from './state-types';
 import { Pin } from './memory';
 import { Machine } from './machine';
 import { simulate, SimPath } from './explore';
@@ -66,6 +67,11 @@ export interface RoomAnalysis {
     name: string;
     pins: readonly Pin[];
     enterEntry: number;
+    /**
+     * What each branch the run took tested, over the room's entry state: one condition per
+     * instruction, or null when it tested different ones (a loop counter) — then either side.
+     */
+    branches: Map<number, Sym | null>;
     scenarios: Scenario[];
     flags: FlagNode;
     triggers: RoomTriggerAnalysis[];
@@ -108,8 +114,19 @@ export function analyzeRoom(m: Machine, mapId: number, tables: RoomTables, pins:
         ...tables.stepOn.map((t, index) => ({ type: 'step-on' as const, index, rect: rect(t), analysis: analyzeScript(m, t.scriptAddressSnes, pins) })),
         ...tables.bTrigger.map((t, index) => ({ type: 'b-button' as const, index, rect: rect(t), analysis: analyzeScript(m, t.scriptAddressSnes, pins) })),
     ];
+    const branches = new Map<number, Sym | null>();
+    const note = (steps: Step[]): void => {
+        for (const st of steps) {
+            if (st.kind === 'branch') { note(st.then); note(st.else); }
+            if ((st.kind !== 'decide' && st.kind !== 'branch') || !st.at) continue;
+            const had = branches.get(st.at);
+            if (had === undefined) branches.set(st.at, st.cond);
+            else if (had !== null && key(had) !== key(st.cond)) branches.set(st.at, null);
+        }
+    };
+    for (const path of sim.paths) note(path.steps);
     return {
-        mapId, name: m.dec.mapName(mapId), pins, enterEntry: tables.enter.scriptAddressSnes,
+        mapId, name: m.dec.mapName(mapId), pins, enterEntry: tables.enter.scriptAddressSnes, branches,
         scenarios, flags: flagTree(scenarios.map((s, i) => ({ when: s.when, i }))),
         triggers, clusters: clusters(triggers, scenarios), capped: sim.capped,
     };

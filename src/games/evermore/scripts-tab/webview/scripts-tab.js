@@ -20,6 +20,9 @@ var _scr = {
   everscript: false,     // show the simulation's Everscript instead of the bytes
   clusters: false,       // group the room's triggers by the simulation's clusters
   sims: {},              // room + ':' + key -> { everscript, clusters } | 'pending'
+  variants: {},          // room id -> { variants, error } | 'pending' (who stands in it per story state)
+  variantPick: {},       // room id -> chosen variant index (0, the default, until picked)
+  folds: {},             // room id -> { block id: folded } (the merged enter script's folds)
   // Maps
   map: null,             // selected room id
   maps: {},              // id -> { map, picture } | 'pending'
