@@ -86,7 +86,9 @@ Every check below passes and blocks in the release ritual (measured at v0.314.2)
 - **D12 — WASM: scout only.** Record candidates and how to measure them (§3 step 5); build
   nothing in this cleanup. A future WASM module keeps a TS twin or a TS test oracle.
 - **D13 — Stale docs are deleted or merged**, not kept: `STATE_FLOW.md`, pre-refactor
-  `docs/architecture/*`, finished plans and dossiers. Git keeps them.
+  `docs/architecture/*`, finished plans and dossiers. Git keeps them. Amended: material that may still
+  hold history or evidence goes to `docs/archive/` with an index row instead of being deleted
+  ([docs/archive/README.md](archive/README.md)); git stays the backstop.
 
 ---
 

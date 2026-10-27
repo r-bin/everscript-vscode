@@ -106,5 +106,6 @@ Canonical files: `.agents/skills/<name>/SKILL.md` (Claude Code reads them throug
   `sample-playbacks`, `ghidra-analysis`, `snes-asm-asar-patching`, `recomp`, `recomp-debugging`
 
 Personas (`.agents/agents/`, `.claude/agents` for Claude Code): `everscript-plugin-builder`,
-`mechanics-modeler`, `re-curator`, `project-auditor`, `emulator-debugger`.
+`mechanics-modeler`, `re-curator`, `project-auditor`, `emulator-debugger`, `context-compressor`
+(merges and archives docs and AI files losslessly; archive: `docs/archive/README.md`).
 
