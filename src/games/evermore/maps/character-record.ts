@@ -115,6 +115,22 @@ export function characterDisposition(rom: Uint8Array, character: number): Charac
     return { flags, hostile: !(flags & NO_CONTACT), inactive: (flags & UNTARGETED) !== 0 };
 }
 
+/**
+ * The placements that are enemies, by instruction address: hostile (bit 1
+ * clear) and active (bit 5 clear), from the spawn's own flags when it names
+ * them (`add_enemy(…, flags)`), else the character's. Townsfolk a cutscene
+ * places with flags 0x20 are inactive, not enemies.
+ */
+export function enemiesAt(rom: Uint8Array, spawns: ReadonlyArray<{ at: number; character: number | null; state: number | null }>): Set<number> {
+    const out = new Set<number>();
+    for (const s of spawns) {
+        if (s.character === null) continue;
+        const flags = s.state ?? characterDisposition(rom, s.character).flags;
+        if (!(flags & (NO_CONTACT | UNTARGETED))) out.add(s.at);
+    }
+    return out;
+}
+
 export interface CharacterHitbox {
     /** Record +$0D, in pixels. */
     radius: number;

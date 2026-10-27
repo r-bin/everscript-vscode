@@ -87,6 +87,11 @@ script by `memory/webview/index.ts` (`ROOMS_JS_FILES` fixes the order):
 - `utils.js` — escH, hexNum, tsvg, helpers
 - `svg-spawns.js` — `buildSpawnLayers()` → `{behind, front, marks}`: the NPCs
   a room can place, split by whether the game draws them over the foreground
+- `room-variants.js` — the variant bar above the canvas: who stands in a ROM room per story
+  state (default, outro, Thraxx alive or Coleoptera…). Asks the host (`requestRoomVariants`,
+  answered from `data/room-variants.ts`, a worker thread over `simulation/variants.ts`) and
+  hides the spawns a variant does not place by their `data-at`; "only if" spawns are dimmed.
+  The map shows every candidate until the answer arrives; "All" keeps that view
 - `svg-builder.js` — `buildRoomSvgSection()` → `{html, zoomState, ...}`; stacks
   map → spawns behind → canopy → spawns in front → canopy overlay → annotation
 - `metatile-palette.js` — the Tile palette section; owns `_mtPalette` / `_mtLayer` /

@@ -59,6 +59,12 @@ export interface SimOptions {
      * every outcome of the script itself apart while helpers still merge.
      */
     joinDepth?: number;
+    /**
+     * When a budget stops the run, keep the paths still running as `end: 'cut'`
+     * instead of dropping them. Room analysis wants them: a boss fight's threads
+     * run past any budget, but the boss was placed long before.
+     */
+    keepCut?: boolean;
 }
 
 export interface SimPath {
@@ -103,7 +109,7 @@ export function simulate(m: Machine, entry: number, opts: SimOptions = {}): SimR
     // Rounds: every live path plays one thread's turn, then the scheduler picks
     // the next turn. Between turns, paths in the same state are one path.
     while (frontier.length) {
-        if (paths.length + frontier.length > maxPaths || counters.steps > maxSteps || counters.over) { capped = true; break; }
+        if (paths.length + frontier.length > maxPaths || counters.steps > maxSteps || counters.over) { capped = true; cut(frontier); break; }
         const next = new Map<string, PathState>();
         const keep = (u: PathState): void => {
             if (u.end) { paths.add(u); return; }
@@ -112,13 +118,21 @@ export function simulate(m: Machine, entry: number, opts: SimOptions = {}): SimR
             const into = next.get(k);
             if (into) into.absorb(u); else next.set(k, u);
         };
+        let played = 0;
         for (const s0 of frontier) {
+            played++;
             for (const t of playTurn(m, s0, opts, counters, paths, keep)) for (const u of between(t, opts)) keep(u);
             if (counters.steps > maxSteps) break;
         }
-        frontier = [...next.values()];
+        // A round the budget broke off leaves paths that never had their turn.
+        frontier = [...next.values(), ...frontier.slice(played)];
         if (opts.debug) opts.debug(frontier);
     }
     return { entry, paths: paths.list(), capped: capped || counters.over, loopsCut: counters.loopsCut };
+
+    function cut(live: PathState[]): void {
+        if (!opts.keepCut) return;
+        for (const s of live) { s.end = 'cut'; paths.add(s); }
+    }
 }
 

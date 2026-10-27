@@ -76,6 +76,21 @@ await build({
     legalComments: 'inline',
 });
 
+// The Rooms tab's variants worker (rooms/data/room-variants.ts): a worker thread needs a file of its own,
+// and the package leaves out the dist/ modules it requires.
+await build({
+    entryPoints: [join(ROOT, 'dist', 'games', 'evermore', 'rooms', 'data', 'room-variants-worker.js')],
+    outfile: join(ROOT, 'bundle', 'room-variants-worker.js'),
+    bundle: true,
+    platform: 'node',
+    format: 'cjs',
+    target: 'node20',
+    plugins: [unresolved, dirnames],
+    banner: { js: "const __evsPath = (p) => require('path').join(__dirname, '..', p);" },
+    logLevel: 'warning',
+    legalComments: 'inline',
+});
+
 const inputs = Object.keys(result.metafile.inputs);
 writeFileSync(join(ROOT, 'bundle', 'inputs.json'), JSON.stringify(inputs.sort(), null, 1) + '\n');
 

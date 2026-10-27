@@ -12,6 +12,7 @@ Everything that predicts what the game does lives in `src/games/evermore/simulat
 | Question | Where |
 |---|---|
 | What does this script do, under which conditions? | the engine: `analyze`, `room`, `emit` ([README](../../../src/games/evermore/simulation/README.md)) |
+| Who stands in this room, per story state? | `variants` (split on enemies via `maps.enemiesAt`); Rooms tab variant bar, `soe://…/rooms/<id>/variants.md` |
 | What changes when the party does this step? | `play.ts` (`playStep` on a trigger's cases, `playableTrigger`) |
 | How long does this fight take, how many hits, what odds? | `combat/` (`fightFor`, `simulateFight`); the game's rules: `docs/entities/combat.md` |
 

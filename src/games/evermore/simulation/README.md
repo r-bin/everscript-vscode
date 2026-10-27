@@ -21,12 +21,13 @@ an unknown save, and reports what happens and under which conditions:
 const sim = require('./src/games/evermore/simulation').createSimulator(rom);
 sim.analyze(0x94e0ed);           // cases of one script
 sim.room(0x25);                  // scenarios, flag tree, triggers, clusters
+sim.variants(0x18, { splitOn }); // default — Thraxx's heart | Thraxx dead · … — Coleoptera's heart | …
 sim.emit(0x94e0ed, 'gourd');     // { tree, everscript, structured }
 require('./src/games/evermore/simulation').roomReport(sim.room(0x25));   // Markdown
 ```
 
-`soe://rom/assets/scripts/rooms/<id>/simulation.md`, `simulation.json` and `decompiled.evs`
-serve the same for AI clients.
+`soe://rom/assets/scripts/rooms/<id>/simulation.md`, `simulation.json`, `variants.md`,
+`variants.json` and `decompiled.evs` serve the same for AI clients.
 
 ## Time: every thread at the tick the SNES runs it
 
@@ -70,6 +71,7 @@ are followed for 5 seconds of game time (`ROOM_HORIZON`). Both are reported.
 | `trigger.ts` | A small script as cases; falls back to merging when it is too branchy, and says so in `detail`. |
 | `segments.ts` | A trace → parts (place NPC, objects, transition, dialog, …); prepare/execute split. |
 | `room.ts` | Scenarios (endings + branches that leave or play a scene), flag tree, clusters. |
+| `variants.ts` | A room as the variants a player meets: scenarios split on the conditions the caller's characters (the Rooms tab: enemies) carry, folded by who is placed, named from flag labels. |
 | `everscript.ts` | Neutral tree from the script's own flow; Everscript out. |
 | `report.ts` | Markdown report, JSON summary, room Everscript. |
 | `play.ts` | One step against one WRAM: the case of a trigger's analysis that holds is applied (loot into its byte, flags, opened objects, map change); the Routes tab plays routes with it. |
@@ -100,7 +102,9 @@ addition splits them (merging into its own file; opcode families as `ops-*.ts`).
   writes WRAM the simulation does not know.
 - Currency comparisons (`0x0a/0x0b/0x8e/0x8f`) fork on a named unknown rather than on money.
 - Engine waits and the engine's RNG draws are unknown without a trace (see Time above).
-- Room analysis stops at 5 s of game time and at a step budget; capped rooms say so.
+- Room analysis stops at 5 s of game time and at a step budget; capped rooms say so. Paths
+  still running at the budget are kept as `end: 'cut'` (`keepCut`): a boss's threads outlast
+  any budget, and who was placed before is still known.
   `node tools/simulation/sweep-rooms.js` lists every room's state.
 - ~18% of room scripts have a condition with no exact Everscript spelling yet; those are
   emitted as raw `code(...)` (still identical bytes).

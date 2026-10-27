@@ -1,6 +1,6 @@
 // Ownership: the host side of the Rooms tab's map editor — every message the editor sends that
-// needs the ROM: room tiles and stamps, converted Mana rooms, families, vanilla suggestions, deco,
-// drafts, export / play ROM, PNG export. The radar (games/evermore/extension.js) routes them here
+// needs the ROM: room tiles and stamps, the room's variants, converted Mana rooms, families,
+// vanilla suggestions, deco, drafts, export / play ROM, PNG export. The radar (games/evermore/extension.js) routes them here
 // and hands in what it owns as `ctx`:
 //   post(message)       to the radar webview
 //   roomRom(roomId)     { romBuf, roomId } for a ROM room or a converted room's image, or { error }
@@ -13,7 +13,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as os from 'os';
 import * as romReaders from '../rom-readers';
-import { buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildFamilyPreviews } from '.';
+import { buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildFamilyPreviews, roomVariantsFor } from '.';
 import { missingRomText } from '../../../platform/roms/library';
 import { errorText } from './editor-host-types';
 import type { EditorMessage, EditorContext, EditorHandler } from './editor-host-types';
@@ -150,6 +150,24 @@ const HANDLERS: Record<string, EditorHandler> = {
         } catch (err) {
             ctx.post({ ...reply, error: errorText(err) });
         }
+    },
+    requestRoomVariants(msg, ctx) {
+        // Who stands in a ROM room per story state (rooms/data/room-variants.ts): simulated in a
+        // worker, so a slow room does not hold the host up; the page shows every spawn meanwhile.
+        const roomId = Number(msg.roomId);
+        const reply = { command: 'roomVariants', roomId };
+        if (!Number.isInteger(roomId) || roomId < 0 || roomId > 0x7e) {
+            ctx.post({ ...reply, variants: [], error: `not a ROM room: ${msg.roomId}` });
+            return;
+        }
+        const src = ctx.roomRom(roomId);
+        if ('error' in src) {
+            ctx.post({ ...reply, variants: [], error: src.error });
+            return;
+        }
+        roomVariantsFor(src.romBuf, roomId).then(
+            (variants) => ctx.post({ ...reply, variants }),
+            (err) => ctx.post({ ...reply, variants: [], error: errorText(err) }));
     },
     requestBlankRoom(msg, ctx) {
         // A room that is not in the ROM. It borrows a real room's

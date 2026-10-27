@@ -87,6 +87,35 @@ test('the report renders', () => {
     assert.ok(md.includes('## Flag tree') && md.includes('**Prepare**') && md.includes('### loot: 20 pickups'));
 });
 
+// Variants, split on enemies as the Rooms tab splits (rooms/data/room-variants-worker.ts).
+const maps = require('../../dist/games/evermore/maps');
+const model = require('../../dist/games/evermore/script-model');
+const variantsOf = (id, room) => {
+    const enemies = maps.enemiesAt(rom, model.buildRoomScriptModel(rom, id).enter.spawns);
+    return S.variants(id, { room, splitOn: (e) => enemies.has(e.at) });
+};
+
+test("Fire Eyes' Village has four variants: the village, the windwalker scene, the credits and the outro", () => {
+    const names = variantsOf(0x25, fe).map((v) => v.name);
+    assert.strictEqual(names.length, 4, names.join(' | '));
+    assert.ok(/^default — /.test(names[0]), names[0]);
+    assert.ok(names.some((n) => /^windwalker scene due in Fire Eyes' village/.test(n)), names.join(' | '));
+    assert.ok(names.some((n) => /^In credits/.test(n)) && names.some((n) => /^Inside outro\?/.test(n)), names.join(' | '));
+});
+
+test('townsfolk behind a flag stay in their variant, marked "only if", instead of splitting it', () => {
+    const def = variantsOf(0x25, fe)[0];
+    const maybe = def.spawns.filter((s) => s.when);
+    assert.ok(maybe.length > 0 && maybe.every((s) => s.when.length > 0), `${maybe.length} conditional spawns`);
+});
+
+test('the jungle where the game starts: its 21 enemies by default, nobody in the outro', () => {
+    const v = variantsOf(0x38);
+    assert.deepStrictEqual(v.map((x) => x.spawns.length), [21, 0], v.map((x) => x.name).join(' | '));
+    assert.ok(v[0].also.includes('running showcase'), 'the showcase places the same enemies, folded in');
+    assert.strictEqual(v[1].name, 'Inside outro?');
+});
+
 test('every room script runs through the simulation, and the operand layout agrees with the decoder everywhere', () => {
     // Small budgets: this checks that every reachable instruction is executed with the
     // right layout, not the analysis itself (tools/simulation/sweep-rooms.js does that).

@@ -2,7 +2,9 @@
 
 > Status: **built** in [`src/games/evermore/simulation/`](../../src/games/evermore/simulation/README.md)
 > (v0.202.0): enter scripts become scenarios with a flag tree, and each placed
-> NPC carries the condition that places it. The text below is the history.
+> NPC carries the condition that places it; since v0.358.0 rooms are also told as
+> *variants* (who stands in the room per story state, [spawn-scenarios.md](../plans/simulation/spawn-scenarios.md)).
+> The text below is the history.
 > The decoder still reports which NPCs an enter script *can* place. The two things that *were* unknown — what the NPC index means and
 > what its coordinates mean — are now settled; see below.
 

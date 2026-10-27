@@ -66,7 +66,8 @@ function buildSpawnLayers(romSpawns) {
     if (v.x == null || v.y == null) return;
     var nm = v.romName || v.name || ('NPC ' + v.npc);
     var tip = escH(spawnTip(v, nm));
-    var id = ' data-idx="' + i + '" data-kind="spawn"';
+    // data-at: the placing instruction, which room-variants.js filters by.
+    var id = ' data-idx="' + i + '" data-kind="spawn"' + (v.at != null ? ' data-at="' + v.at.toString(16) + '"' : '');
     var at = ' (' + v.x + ',' + v.y + ')';
     // A spawn the engine refuses to draw at all still has to be findable, so
     // it keeps its marker and is only dimmed.

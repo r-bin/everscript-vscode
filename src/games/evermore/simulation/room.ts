@@ -88,7 +88,7 @@ function isMajor(p: Part): boolean {
 }
 
 export function analyzeRoom(m: Machine, mapId: number, tables: RoomTables, pins: readonly Pin[] = PINS_BETWEEN_PICKUPS): RoomAnalysis {
-    const sim = simulate(m, tables.enter.scriptAddressSnes, { pins, rejoin: true, maxPaths: 1024, maxSteps: 600000, maxTicks: ROOM_HORIZON, abstractVisual: true });
+    const sim = simulate(m, tables.enter.scriptAddressSnes, { pins, rejoin: true, maxPaths: 1024, maxSteps: 600000, maxTicks: ROOM_HORIZON, abstractVisual: true, keepCut: true });
     const scenarios: Scenario[] = [];
     const seen = new Map<string, Scenario>();
     for (const path of sim.paths) {

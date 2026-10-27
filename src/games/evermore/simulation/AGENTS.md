@@ -6,7 +6,8 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 - Running scripts symbolically: values, WRAM, paths, forks, merges (`sym`, `memory`,
   `operand`, `state`, `step`, `explore`, `cfg`).
 - Reading meaning out of a run: loot, changes, cases, scenarios, parts, clusters
-  (`understand`, `trigger`, `room`, `segments`), the reports and the Everscript round trip
+  (`understand`, `trigger`, `room`, `segments`), variants (`variants`: who stands in a room per
+  story state; which characters split is the caller's `splitOn`), the reports and the Everscript round trip
   (`report`, `everscript`).
 - Playing a step against one WRAM: a trigger's case that holds is applied (`play`).
 - Fights: time, hits and odds by many tick-by-tick runs (`combat/`, its own README); the game's
@@ -44,7 +45,8 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
   `scheduler.test.js` passing — it replays the real game instruction by instruction.
 - Exact runs (trace/snapshot, oracles) never use `abstractVisual`; analysis runs say when they
   did, and every unknown timing order that matters is a recorded condition.
-- Budgets (steps, ticks, paths) end runs as `capped`/`horizon`, never silently.
+- Budgets (steps, ticks, paths) end runs as `capped`/`horizon`, never silently; with `keepCut`
+  the paths still running are kept as `end: 'cut'`, never dropped.
 - Combat: every rule is read from the game's code and written in `docs/entities/combat.md`; a
   number nobody traced does not go in. Change a rule only with `tools/routes/fight-in-game.mts`
   still matching. Report what runs show (fastest, median), not floors no run reaches.

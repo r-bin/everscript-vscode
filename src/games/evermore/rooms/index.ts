@@ -16,6 +16,7 @@ import { handlesCustomMapMessage, handleCustomMapMessage } from './custom-host';
 import { relatedTiles, neighbourTiles, vanillaExamples, proceduralFill } from './rendering/vanilla-index';
 import { readRomMapHeader } from '../rom-readers';
 import { buildItemIcons } from './data/item-icons';
+import { roomVariantsFor } from './data/room-variants';
 import { VANILLA_ROOMS, buildVanillaRoomContent, buildVanillaRoomDetails, invalidateVanillaDataCaches } from './data/vanilla-data';
 import { getMapEnum, readLuaWatchers, readScriptAllTriggers, invalidateLuaWatcherCaches } from './data/lua-watchers';
 
@@ -43,4 +44,4 @@ function renderVanillaTreeCompat() {
     return renderVanillaTree(VANILLA_ROOMS);
 }
 
-export { parseRoomContent, findRoomImage, collectRoomsFromDir, buildRoomTreeWithDeps as buildRoomTree, setRoomImageUris, renderVanillaTreeCompat as renderVanillaTree, renderRoomsTree, buildRoomRailHtml, buildRoomsJson, buildRoomTileOverlay, invalidateRoomRenders, buildRoomMetatilePalette, buildComposedPreview, invalidateMetatilePalettes, buildBlankRoom, buildDraftCollision, buildExportRom, buildCustomMapArchive, handlesCustomMapMessage, handleCustomMapMessage, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, buildWidgetPreviews, buildConstructGhost, relatedTiles, neighbourTiles, vanillaExamples, proceduralFill, VANILLA_ROOMS, getMapEnum, readLuaWatchers, readScriptAllTriggers, buildVanillaRoomContent, buildVanillaRoomDetails, buildItemIcons, invalidateRoomDataCaches };
+export { parseRoomContent, findRoomImage, collectRoomsFromDir, buildRoomTreeWithDeps as buildRoomTree, setRoomImageUris, renderVanillaTreeCompat as renderVanillaTree, renderRoomsTree, buildRoomRailHtml, buildRoomsJson, buildRoomTileOverlay, invalidateRoomRenders, buildRoomMetatilePalette, buildComposedPreview, invalidateMetatilePalettes, buildBlankRoom, buildDraftCollision, buildExportRom, buildCustomMapArchive, handlesCustomMapMessage, handleCustomMapMessage, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, buildWidgetPreviews, buildConstructGhost, relatedTiles, neighbourTiles, vanillaExamples, proceduralFill, VANILLA_ROOMS, getMapEnum, readLuaWatchers, readScriptAllTriggers, buildVanillaRoomContent, buildVanillaRoomDetails, buildItemIcons, roomVariantsFor, invalidateRoomDataCaches };

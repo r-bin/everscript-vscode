@@ -18,6 +18,10 @@ if(typeof window!=='undefined'&&window.addEventListener){
     if(data.command==='byteScriptFocus'){
       _currentByteScriptFocus=normScriptAddr(data.address);
       _applyByteScriptFocus();
+    }else if(data.command==='roomVariants'){
+      // Who stands in the room per story state (room-variants.js).
+      if(typeof applyRoomVariants==='function')applyRoomVariants(data);
+      if(data.error)console.warn('[RoomsRender] roomVariants:',data.error);
     }else if(data.command==='roomTiles'){
       // Decoded collision grid for the room currently shown in the Rooms tab.
       if(typeof applyRoomTileOverlay==='function')applyRoomTileOverlay(data);

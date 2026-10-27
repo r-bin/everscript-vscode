@@ -140,7 +140,7 @@ export {
     resolveCharacterSprite, characterAnimation, strikeBoxes, characterStrikeBoxes,
 } from './character-animation';
 export {
-    characterPalette, characterPaletteAddress, characterDisposition, characterHitbox,
+    characterPalette, characterPaletteAddress, characterDisposition, enemiesAt, characterHitbox,
     entitiesCollide, FACING_SOUTH,
 } from './character-record';
 export {

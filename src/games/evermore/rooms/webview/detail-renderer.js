@@ -98,6 +98,9 @@ function renderRoomDetail(room){
     html+='<div class="rs rs-error"><div class="rs-h">Error</div><div class="rs-note">'+escH(roomError.message)+'</div></div>';
   }
 
+  // ── Variants: who stands in the room per story state (room-variants.js) ──
+  html+='<div id="rv-bar" class="rv-bar" hidden></div>';
+
   // ── SVG section ────────────────────────────────────────────────────────────
   var svgResult=buildRoomSvgSection({
     im:im, entrances:entrances, enemies:enemies,
@@ -113,6 +116,7 @@ function renderRoomDetail(room){
 
   panel.innerHTML=html;
   bindLinks(panel);
+  if(typeof requestRoomVariants==='function')requestRoomVariants(room);
   // The editor: its own draft per room, and gesture handlers that stay out
   // of the way until edit mode is on.
   _editOrigin={x:svgResult.mapX0||0,y:svgResult.mapY0||0};

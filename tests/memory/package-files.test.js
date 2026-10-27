@@ -89,9 +89,10 @@ test('every package file read above ships (vsce ls with bundle/.vscodeignore)', 
     assert.deepStrictEqual(missing, []);
     assert.ok(listed.has('bundle/extension.js'), 'the bundle ships');
     assert.ok(listed.has('bundle/replay.js'), 'the replay check\'s tool ships (platform/tas/verify.ts)');
+    assert.ok(listed.has('bundle/room-variants-worker.js'), 'the Rooms tab\'s variants worker ships (rooms/data/room-variants.ts)');
     // The root holds only the manifest, its pages and the runtime folders: no repo tooling, configs
     // or submodule folders (they have shipped before: knip.json, dependencies/, script_parser/).
-    const ROOT_ALLOWED = /^(package\.json|README\.md|LICENSE|bundle\/(extension|replay)\.js|src\/|dist\/|reconstructed-c\/)/;
+    const ROOT_ALLOWED = /^(package\.json|README\.md|LICENSE|bundle\/(extension|replay|room-variants-worker)\.js|src\/|dist\/|reconstructed-c\/)/;
     assert.deepStrictEqual([...listed].filter((f) => f && !ROOT_ALLOWED.test(f)), [], 'tooling in the package');
     assert.deepStrictEqual([...listed].filter((f) => /(^|\/)(AGENTS|STATE)\.md$|\/README\.md$|\.gitignore$|test\.html$/.test(f)), [], 'developer docs in the package');
 });

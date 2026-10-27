@@ -11,9 +11,6 @@
 const path = require('path');
 const { spawnSync } = require('child_process');
 
-const ROM = require('../rom').romOrExit('evermore', process.argv[2]);
-const LIMIT = (+process.argv[3] || 60) * 1000;
-
 if (process.argv[2] === '--room') {
     const fs = require('fs');
     const sim = require('../../dist/games/evermore/simulation');
@@ -24,6 +21,10 @@ if (process.argv[2] === '--room') {
         triggers: r.triggers.length, triggersCapped: r.triggers.filter((x) => x.analysis.capped).length }));
     process.exit(0);
 }
+
+// After the child branch: there argv[2] is `--room`, not a ROM path.
+const ROM = require('../rom').romOrExit('evermore', process.argv[2]);
+const LIMIT = (+process.argv[3] || 60) * 1000;
 
 let total = 0, clean = 0, failed = 0;
 for (let id = 0; id < 0x7f; id++) {

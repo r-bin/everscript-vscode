@@ -275,6 +275,16 @@ tr.dr.qhide{display:none}
 .hide-fg .svge-fg,.hide-fg .svge-canopy-ov{display:none!important}
 /* A spawn on a gate-nibble-8 tile: the engine draws nothing there at all. */
 .svge-spawn-unseen{opacity:.35}
+/* Room variants (rooms/webview/room-variants.js): the bar above the canvas, and spawns a variant leaves out or places only under a condition. */
+.rv-bar{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:4px 0}
+.rv-bar[hidden]{display:none}
+.rv-label{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-right:2px}
+.rv-note{font-size:9px;color:#888;font-style:italic}
+.rv-count{opacity:.6;margin-left:2px}
+.rv-bar .rv-chip{opacity:.6}
+.rv-bar .rv-chip.on{opacity:1}
+.svge-variant-out{display:none}
+.svge-variant-maybe{opacity:.45}
 .hide-arrival .svge-arrival{display:none!important}
 .rs-pal{display:flex;flex-wrap:wrap;gap:6px;padding:4px 6px}
 .rs-pal-slot{display:flex;align-items:center;gap:4px;font-size:11px;color:#bbb;

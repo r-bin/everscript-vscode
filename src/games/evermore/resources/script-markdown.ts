@@ -149,7 +149,7 @@ function roomScriptsIndexMarkdown(model: RoomScriptModel, mapId: number, roomNam
         `**Area:** ${roomArea || 'Unknown'}`,
         '',
         '**Simulated:** [simulation.md](simulation.md) (scenarios, flag tree, trigger cases) | ' +
-            '[simulation.json](simulation.json) | [decompiled.evs](decompiled.evs) (compiles to the same bytes)',
+            '[simulation.json](simulation.json) | [variants.md](variants.md) (who stands in the room, per story state) | [decompiled.evs](decompiled.evs) (compiles to the same bytes)',
         '',
         '## Enter Script',
         '',

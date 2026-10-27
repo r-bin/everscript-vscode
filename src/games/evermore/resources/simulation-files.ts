@@ -1,11 +1,15 @@
-// Ownership: `soe://rom/assets/scripts/rooms/<id>/simulation.{md,json}` and
-// `decompiled.evs` — a room's scripts simulated (scenarios, flag tree,
-// trigger cases, clusters) and written back as byte-identical Everscript.
+// Ownership: `soe://rom/assets/scripts/rooms/<id>/simulation.{md,json}`,
+// `variants.{md,json}` and `decompiled.evs` — a room's scripts simulated
+// (scenarios, flag tree, trigger cases, clusters), the variants a player meets
+// (who stands in the room per story state), and the scripts written back as
+// byte-identical Everscript.
 // Pure apart from the ROM buffer it is handed; one simulator per ROM buffer.
 
 import { text, json } from './nodes';
 import type { FileNode } from './nodes';
-import type { Simulator, RoomAnalysis } from '../simulation';
+import type { Simulator, RoomAnalysis, RoomVariant } from '../simulation';
+import { enemiesAt } from '../maps';
+import { buildRoomScriptModel } from '../script-model';
 
 const simulators = new WeakMap<Uint8Array, Simulator>();
 const rooms = new WeakMap<Uint8Array, Map<number, RoomAnalysis>>();
@@ -30,10 +34,18 @@ function roomFor(rom: Uint8Array, mapId: number): RoomAnalysis {
     return room;
 }
 
+/** A room's variants, split on its enemies only (as the Rooms tab shows them). */
+function variantsFor(rom: Uint8Array, mapId: number): RoomVariant[] {
+    const enemies = enemiesAt(rom, buildRoomScriptModel(rom, mapId).enter.spawns);
+    return simulatorFor(rom).variants(mapId, { room: roomFor(rom, mapId), splitOn: (e) => enemies.has(e.at) });
+}
+
 /** The node for `leaf` in a room's script folder, or null when it is not one of ours. */
 function resolveSimulationFile(rom: Uint8Array | null, mapId: number, leaf: string): FileNode | null {
     if (leaf === 'simulation.md') return text(() => rom ? simulation().roomReport(roomFor(rom, mapId)) : '(no ROM available)');
     if (leaf === 'simulation.json') return json(() => rom ? simulation().roomSummary(roomFor(rom, mapId)) : { mapId, error: 'no ROM' });
+    if (leaf === 'variants.md') return text(() => rom ? simulation().variantsReport(roomFor(rom, mapId), variantsFor(rom, mapId)) : '(no ROM available)');
+    if (leaf === 'variants.json') return json(() => rom ? variantsFor(rom, mapId) : { mapId, error: 'no ROM' });
     if (leaf === 'decompiled.evs') {
         return text(() => {
             if (!rom) return '// no ROM available';
@@ -44,6 +56,6 @@ function resolveSimulationFile(rom: Uint8Array | null, mapId: number, leaf: stri
     return null;
 }
 
-const SIMULATION_FILES = ['simulation.md', 'simulation.json', 'decompiled.evs'];
+const SIMULATION_FILES = ['simulation.md', 'simulation.json', 'variants.md', 'variants.json', 'decompiled.evs'];
 
 export { resolveSimulationFile, SIMULATION_FILES };

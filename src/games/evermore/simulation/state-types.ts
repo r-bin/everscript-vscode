@@ -83,4 +83,4 @@ export type Step =
      */
     | { kind: 'branch'; at: number; depth: number; cond: Sym; src: string; summary: string; then: Step[]; else: Step[] };
 
-export type EndReason = 'end' | 'map' | 'idle' | 'horizon' | 'loop' | 'recursion' | 'undecodable' | 'budget' | 'depth' | 'fork-cap';
+export type EndReason = 'end' | 'map' | 'idle' | 'horizon' | 'loop' | 'recursion' | 'undecodable' | 'budget' | 'depth' | 'fork-cap' | 'cut';

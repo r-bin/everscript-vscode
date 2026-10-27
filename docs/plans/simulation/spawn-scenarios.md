@@ -1,9 +1,33 @@
 # 2. Spawn scenarios — which enemies a room actually places
 
-> Status: **not built.** The superset is shipped and labelled as such;
-> picking among it is the job here. Builds on
+> Status: **built** (v0.358.0) as *variants*:
+> [`simulation/variants.ts`](../../../src/games/evermore/simulation/variants.ts), shown as
+> the Rooms tab's variant bar above the canvas and as `soe://…/rooms/<id>/variants.md`.
+> Where it differs from the sketch below is recorded under "What was built". Builds on
 > [docs/scripts/room-simulation.md](../../scripts/room-simulation.md), which settled what
 > a spawn's index and coordinates mean.
+
+## What was built
+
+- **Scenarios first, then enemies.** The enter script's scenarios (`room.ts`: branches
+  that end, leave the room or play a scene) are split again on the conditions their
+  *enemies* carry (hostile and active: `maps.enemiesAt`), never on townsfolk. Splitting
+  on every character gave Fire Eyes' Village 30 variants; on enemies it gives the four a
+  player meets (village, windwalker scene, credits, outro). Townsfolk behind a flag stay in
+  their variant with "only if …".
+- **Folded by cast.** Pieces that place the same characters are one variant; the other
+  stories folded in are listed (`also`), e.g. the jungle's showcase.
+- **Named from flag labels**, the ones a condition *requires* set (a condition taken as
+  false names none), then the characters only that variant has: `default — Thraxx's heart`,
+  `Thraxx dead · windwalker unlocked — Coleoptera's heart`.
+- **Budgets keep what they cut.** A boss room's threads run past any step budget, which
+  used to drop the "boss alive" path entirely. `keepCut` keeps paths still running as
+  `end: 'cut'`: who they placed is known.
+- **A spawner in a loop** (Thraxx's maggots) is one character with a count; only its first
+  placement decides whether it is there.
+
+Still open from below: pinning flags to collapse the list (the virtual-WRAM control), and
+the emulator check that a save at a known point meets the variant its flags select.
 
 ## The problem, restated
 

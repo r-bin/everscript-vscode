@@ -55,8 +55,8 @@ Related skills: `rooms-tab`, `map-editor-rules`, `map-construction`, `map-entiti
   `smoke.test.js`, `activation.test.js`, `tests/localizations/localizations.test.js`.
 - ROM (skip without an Evermore ROM in the ROM library): `tests/memory/map-parity.test.js`,
   `rom-export.test.js`, `collision-suggest.test.js`, `custom-maps.test.js`, `soe-resources.test.js`.
-- DOM (Playwright, skips without a browser): `tests/memory/map-editor-dom.test.js`,
-  `tests/memory/rooms-rail-dom.test.js`, `tests/mana/mana-rooms-dom.test.js` (converted rooms).
+- DOM (Playwright, skips without a browser): `tests/memory/map-editor-dom.test.js`, `rooms-rail-dom.test.js`,
+  `room-variants-dom.test.js` (+ ROM), `tests/mana/mana-rooms-dom.test.js` (converted rooms).
 
 ## Pitfalls
 - Delegated handlers bind **once per panel node**: `#room-detail` outlives a re-render, and a
