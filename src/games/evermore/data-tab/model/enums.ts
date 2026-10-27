@@ -7,7 +7,7 @@
 
 import * as maps from '../../maps';
 import { CHARACTER_TABLE, CHARACTER_STRIDE } from '../../maps/character-record';
-import { getMapName, getMapArea, FUNCTION_BY_ADDRESS } from '../../localizations';
+import { getMapName, getMapArea, FUNCTION_BY_ADDRESS, MUSIC } from '../../localizations';
 import { entries as knowledgeEntries } from '../../localizations/knowledge';
 import { hex } from '../../../../platform';
 import type { CharacterInfo } from './palettes';
@@ -272,12 +272,20 @@ function ringIconCategories(): EnumList {
     };
 }
 
+function musicTracks(): EnumList {
+    return {
+        id: 'music', group: 'Audio', title: 'Music tracks (opcode $33)', columns: ['id', 'track name', 'spc rip'],
+        entries: MUSIC.map((m) => ({ cells: [h(m.id, 2), m.name, m.spc || '—'] })),
+        source: 'Master music sequence tracks triggered by script opcode $33 and $CC:8442, matching the reference EMU rips.',
+    };
+}
+
 /** Every list the view shows. `icons` are the formulas' ring-menu icons (PNG data URIs) in formula order. */
 function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | null)[] = []): EnumList[] {
     return [characterBlobs(rom, chars), recordFields(), contactHandlers(rom, chars), aiSelectors(rom, chars),
         formulas(rom, icons), castIds(rom), ingredients(rom), rooms(rom),
         wramStates(), directions(), collisionTypes(),
-        statusEffects(), weaponClassesEnum(), ringIconCategories()];
+        statusEffects(), weaponClassesEnum(), ringIconCategories(), musicTracks()];
 }
 
 export { enumsModel };

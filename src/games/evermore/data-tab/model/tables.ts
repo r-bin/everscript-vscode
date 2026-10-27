@@ -200,9 +200,77 @@ function weaponLevelsTable(rom: Uint8Array): Table {
     };
 }
 
+const FORMULA_XP_TABLE = 0xc45b9c;
+const FORMULA_LEVEL_MULT = 0xc45ba5;
+const BOY_WEAPONS = 0xc438e6;
+const WEAPON_NAMES = [
+    'Bone Crusher', 'Gladiator Sword', 'Crusader Sword', 'Sword 4',
+    'Spider\'s Claw', 'Bronze Axe', 'Knight Basher', 'Axe 4',
+    'Horn Spear', 'Bronze Spear', 'Lance', 'Spear 4',
+    'Bazooka (Thunder Ball)', 'Bazooka (Particle Bomb)', 'Bazooka (Cryo-Blast)',
+];
+
+function alchemyGrowthTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const ptsMult: [number, number][] = [];
+    const ptsXp: [number, number][] = [];
+    for (let lvl = 0; lvl <= 9; lvl++) {
+        const atXp = snesToRom(FORMULA_XP_TABLE + lvl);
+        const atMult = snesToRom(FORMULA_LEVEL_MULT + lvl);
+        const xpPerCast = lvl < 9 ? rom[atXp] : 0;
+        const mult = rom[atMult];
+        const castsNeeded = lvl < 9 ? Math.ceil(100 / xpPerCast) : 0;
+        rows.push([
+            'Level ' + lvl,
+            lvl < 9 ? xpPerCast : '— (Cap)',
+            lvl < 9 ? castsNeeded : '—',
+            mult + '×',
+        ]);
+        ptsMult.push([lvl, mult]);
+        if (lvl < 9) ptsXp.push([lvl, xpPerCast]);
+    }
+    return {
+        id: 'alchemy-growth', group: 'Alchemy', title: 'Formula experience & power scaling', addr: '$C4:5B9C · $C4:5BA5',
+        note: 'Formula experience gain per cast ($C4:5B9C, 9 bytes) and damage/healing power multiplier ($C4:5BA5, 10 bytes) across levels 0..9: evaluated by $91:CD44 on every successful cast.',
+        columns: ['level', 'xp per cast', 'casts to next level', 'power multiplier'],
+        rows,
+        chart: { x: 'level', y: 'multiplier', series: [
+            { name: 'power multiplier', points: ptsMult },
+            { name: 'xp per cast', points: ptsXp },
+        ] },
+        vfs: vfs(FORMULA_XP_TABLE),
+    };
+}
+
+function boyWeaponsTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < WEAPON_NAMES.length; i++) {
+        const at = snesToRom(BOY_WEAPONS + i * 36);
+        const attack = read16(rom, at);
+        const knockback = rom[at + 2];
+        const classId = Math.floor(i / 4) * 2;
+        const className = classId === 0 ? 'Sword' : classId === 2 ? 'Axe' : classId === 4 ? 'Spear' : 'Bazooka';
+        rows.push([i, WEAPON_NAMES[i], className, attack, knockback]);
+        pts.push([i, attack]);
+    }
+    return {
+        id: 'weapons', group: 'Combat', title: 'Boy weapon base attributes', addr: '$C4:38E6',
+        note: 'Base melee attributes for all 15 weapons ($C4:38E6, 36 bytes each): base physical attack power and knockback distance, loaded upon equipping.',
+        columns: ['id', 'weapon', 'class', 'base attack', 'knockback'],
+        rows,
+        chart: { x: 'weapon id', y: 'attack', series: [{ name: 'base attack', points: pts }] },
+        vfs: vfs(BOY_WEAPONS),
+    };
+}
+
 /** Every table the view lists: only the ones decoded into readable values. */
 function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Table[] {
-    return [xpTable(rom), statsTable(rom, names), sineTable(rom), boomerangTable(rom), formulaCostsTable(rom), dogFormsTable(rom), weaponLevelsTable(rom)];
+    return [
+        xpTable(rom), statsTable(rom, names), sineTable(rom), boomerangTable(rom),
+        formulaCostsTable(rom), dogFormsTable(rom), weaponLevelsTable(rom),
+        alchemyGrowthTable(rom), boyWeaponsTable(rom),
+    ];
 }
 
 export { tablesModel };
