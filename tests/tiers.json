@@ -35,6 +35,7 @@
   "tests/debugger/everscript-inject.test.js",
   "tests/debugger/emulator-bottom-bar.test.js",
   "tests/debugger/cdl.test.js",
+  "tests/debugger/cdl-rescue.test.js",
   "tests/debugger/cdl-recomp.test.js",
   "tests/debugger/exhirom.test.js",
   "tests/debugger/emulator-menu.test.js",

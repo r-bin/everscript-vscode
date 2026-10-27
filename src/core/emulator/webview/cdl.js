@@ -206,7 +206,7 @@
           && !(d.bus && d.bus.length) && !(d.busSites && d.busSites.length) && !(d.romCycles && d.romCycles.length)
           && !(d.ioVals && d.ioVals.length) && !(d.sramFlags && d.sramFlags.length) && !(d.wordRanges && d.wordRanges.length)) return false;
       const enc = list => list.map(c => ({ index: c.index, data: cdlBytesToB64(c.data) }));
-      vscodeApi.postMessage({ command: 'cdlDelta', delta: {
+      const delta = {
         chunks: d.chunks.map(c => ({ index: c.index, cdl: cdlBytesToB64(c.cdl), ext: cdlBytesToB64(c.ext) })),
         wvals: enc(d.wvals),
         wflags: enc(d.wflags),
@@ -228,7 +228,10 @@
         sramFlags: enc(d.sramFlags || []),
         wordRanges: (d.wordRanges || []).map(c => ({ set: c.set, index: c.index, data: cdlBytesToB64(c.data) })),
         dropped: d.dropped || 0,
-      } });
+      };
+      // Kept until the host says it is on disk (page/06-cdl-rescue.js).
+      cdlKeep(delta);
+      vscodeApi.postMessage({ command: 'cdlDelta', delta });
       cdlLastDrain = Date.now();
       return true;
     }
@@ -382,10 +385,16 @@
     function handleCdlMessage(data) {
       if (data.command === 'cdlConfig') {
         initCdlTab();
+        cdlRescueSend();
         if (cdlIsRecorderMode() || data.autoEnable || cdlWanted) cdlStart();
         else { cdlRefreshUi(); if (emuPanelVisible('cdl')) cdlRequestSnapshot(); }
       } else if (data.command === 'cdlSeed') {
+        cdlRescueSetLib(data.lib);
         cdlOnSeed(data);
+      } else if (data.command === 'cdlSaved') {
+        cdlRescueSaved(data);
+      } else if (data.command === 'cdlRescued') {
+        cdlRescueDone(data);
       } else if (data.command === 'cdlSnapshot') {
         cdlOnSnapshot(data);
       } else if (data.command === 'cdlStatus') {

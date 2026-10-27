@@ -86,7 +86,10 @@ function packRecords(magic: string, rows: ArrayLike<number>[], words: number): B
 
 type Info = { title?: string; mapType?: string; sha256?: string };
 type Stat = { count: number; lo: number; hi: number; flags: number };
-type Manifest = { format?: number; sha1?: string; created?: string; title?: string; mapType?: string; sha256?: string; romSize?: number; files?: string[]; updated?: string };
+/** delivered: per emulator page session, the last drained delta this write holds (see `delivered` below). */
+type Manifest = { format?: number; sha1?: string; created?: string; title?: string; mapType?: string; sha256?: string; romSize?: number; files?: string[]; updated?: string; delivered?: Record<string, number> };
+/** Sessions `delivered` remembers: a rescue comes from one of the last few pages, not from months ago. */
+const DELIVERED_KEEP = 32;
 type Records = ArrayLike<number> | null | undefined;
 type Chunks = { index: number; data: Uint8Array }[];
 /** A delta from the recorder: chunks of the image plus record lists (the ext streams are ExtDelta). */
@@ -119,6 +122,12 @@ class CdlLibrary {
     wramWrites!: Float64Array;
     hasHits!: boolean;
     manifest!: Manifest | null;
+    /**
+     * The last delta of each emulator page session that is merged here (page session id -> its sequence
+     * number), written into manifest.json with the data it covers. Hit and cycle counters are summed, so a
+     * delta merged twice counts twice: a rescued delta at or below this number is already on disk.
+     */
+    delivered!: Record<string, number>;
     dirty!: Set<string>;
     changes!: number;
 
@@ -160,6 +169,7 @@ class CdlLibrary {
         this.hasHits = false;
         initExt(this);
         this.manifest = null;
+        this.delivered = {};
         this.dirty = new Set();
         this.changes = 0;
         this._load();
@@ -177,6 +187,7 @@ class CdlLibrary {
         if (this.manifest && this.manifest.sha1 && this.manifest.sha1 !== this.hash) {
             throw new Error(`CDL library ${this.dir} belongs to ROM ${this.manifest.sha1}`);
         }
+        this.delivered = Object.assign({}, this.manifest && this.manifest.delivered);
         for (const [name, arr] of [['rom.cdl', this.cdl], ['rom.ext', this.ext]] as [string, Uint8Array][]) {
             if (fs.existsSync(this._file(name))) arr.set(fs.readFileSync(this._file(name)).subarray(0, this.romSize));
         }
@@ -367,6 +378,7 @@ class CdlLibrary {
             romSize: this.romSize,
             files: ['rom.cdl', 'rom.ext', 'wram-values.bin', 'xrefs.bin', 'edges.bin', 'pcstats.bin', 'wram.flags', 'script-xrefs.bin', 'rom-hits.bin', 'wram-hits.bin', ...EXT_FILES],
             updated: now,
+            delivered: Object.fromEntries(Object.entries(this.delivered).slice(-DELIVERED_KEEP)),
         });
         writeAtomic(this._file('manifest.json'), JSON.stringify(this.manifest, null, 2));
         return written;

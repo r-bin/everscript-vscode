@@ -21,10 +21,10 @@ import { createRomMap, hex } from '../../../platform/cdl/rom-map';
 import type { RomMap } from '../../../platform/cdl/rom-map';
 import type { buildIndex } from '../../../platform/cdl/xref-index';
 import type { Table } from '../../../platform/cdl/tables';
+import { decodeDelta, type WireDelta } from './wire';
+import { applyRescue, markDelivered, type RescueMessage } from './rescue';
 
 type Index = ReturnType<typeof buildIndex>;
-type B64 = string | null | undefined;
-type Chunk = { index: number; data: B64 };
 /** What the game hands the panel for exports and lookups (src/games/evermore/cdl/tools.ts); absent in the recorder. */
 interface CdlTools {
     scriptNamer(rom: Uint8Array): (address: number) => string;
@@ -35,14 +35,7 @@ interface CdlTools {
     exportAsar(lib: CdlLibrary, rom: Uint8Array, outDir: string): { mainPath: string; banks: number; functions: number; codeLines: number; tables: number };
 }
 interface Wanted { get: () => boolean; set: (on: boolean) => void }
-/** The delta the webview drains from the core; streams are base64 text. */
-interface WireDelta {
-    chunks?: { index: number; cdl: B64; ext: B64 }[]; wvals?: Chunk[]; wflags?: Chunk[];
-    xrefs?: B64; edges?: B64; stats?: B64; scriptXrefs?: B64; romHits?: B64; wramHits?: B64; rets?: B64; regs?: B64; bases?: B64;
-    wcode?: { index: number; code: B64; state: B64 }[]; aram?: Chunk[]; bus?: Chunk[]; busSites?: B64; romCycles?: B64;
-    ioVals?: Chunk[]; sramFlags?: Chunk[]; wordRanges?: { set: number; index: number; data: B64 }[]; dropped?: number;
-}
-interface CdlMessage { command: string; delta?: WireDelta; kind?: string; query?: string }
+interface CdlMessage extends Partial<RescueMessage> { command: string; delta?: WireDelta; kind?: string; query?: string }
 
 // One write a minute at most: a dead extension host loses at most that much play, and the SSD is spared
 // (a write of a big library is ~60 MB and ~0.4 s: 2.2 M script xrefs; Windows slower). The page hands its
@@ -52,16 +45,6 @@ const WRITEBACK_MS = 60 * 1000;
 const SCRIPT_FETCH_PATTERN = Buffer.from([0xA7, 0x82, 0xE6, 0x82, 0x29, 0xFF, 0x00, 0x0A, 0xAA, 0xFC]);
 const SCRIPT_POINTER_WRAM = 0x82;
 
-const b64ToBytes = (s: B64): Uint8Array | undefined => (s ? new Uint8Array(Buffer.from(s, 'base64')) : undefined);
-/** Bytes of a stream that must be there (an empty stream when missing). */
-const b64Bytes = (s: B64): Uint8Array => new Uint8Array(Buffer.from(s ?? '', 'base64'));
-const b64ToWords = (s: B64): Uint32Array | undefined => {
-    if (!s) return undefined;
-    const buf = Buffer.from(s, 'base64');
-    const out = new Uint32Array(buf.length >> 2);
-    for (let i = 0; i < out.length; i++) out[i] = buf.readUInt32LE(i * 4);
-    return out;
-};
 
 /** "0000-01FF" -> [0, 0x1FF] (WRAM offsets; a $7E/$7F bank prefix is accepted). */
 function parseRanges(list: unknown): [number, number][] {
@@ -92,6 +75,8 @@ class CdlHost {
     indexCache: { map: RomMap; index: Index; tables: Table[] } | null = null;
     flushTimer: ReturnType<typeof setTimeout> | null = null;
     lastWrite = 0;
+    /** The page's last delta merged here and not yet acknowledged (cdlSaved once it is on disk). */
+    pendingAck: { session: string; seq: number } | null = null;
     describeScript: ((address: number) => string) | null = null;
     droppedWarned = 0;
     /** The last write's error while writes fail (shown over the screen and once as a notification). */
@@ -171,10 +156,12 @@ class CdlHost {
 
     flushNow() {
         if (this.flushTimer) { clearTimeout(this.flushTimer); this.flushTimer = null; }
-        if (!this.lib || !this.lib.dirty.size) return;
+        if (!this.lib) return;
+        if (!this.lib.dirty.size) { this._ack(); return; }
         this.lastWrite = Date.now();
         try {
             const written = this.lib.flush();
+            this._ack();
             if (written.length) this.log(`CDL flushed: ${written.join(', ')}`);
             if (this.flushError) {
                 this.flushError = '';
@@ -193,6 +180,37 @@ class CdlHost {
         }
     }
 
+    /** A delta from the page is merged: note its number (written with the data, acknowledged after). */
+    _received(lib: CdlLibrary, d: WireDelta): void {
+        if (typeof d.session !== 'string' || typeof d.seq !== 'number') return;
+        markDelivered(lib, d.session, d.seq);
+        this.pendingAck = { session: d.session, seq: d.seq };
+        // Nothing new in it: what it holds is on disk already.
+        if (!lib.dirty.size) this._ack();
+    }
+
+    /** Tell the page which of its deltas are on disk: it keeps every later one (page/06-cdl-rescue.js). */
+    _ack(): void {
+        if (!this.pendingAck) return;
+        this.post(Object.assign({ command: 'cdlSaved' }, this.pendingAck));
+        this.pendingAck = null;
+    }
+
+    /** Deltas a page kept from a session whose host died (rescue.ts); the page forgets them once written. */
+    _rescue(msg: RescueMessage): void {
+        try {
+            const { applied, skipped } = applyRescue(this.root, this.lib, msg);
+            this.indexCache = null;
+            this._ack();
+            this.post({ command: 'cdlRescued', session: msg.session });
+            const when = new Date(msg.at).toLocaleString();
+            this.log(`CDL rescue: ${applied} deltas from the session cut off at ${when} merged (${skipped} were on disk already)`);
+            if (applied) vscode.window.showInformationMessage(`Everscript: recovered the CDL recording the emulator could not save at ${when}.`);
+        } catch (err) {
+            this.log('CDL rescue failed (the page keeps it and tries again next time): ' + (err instanceof Error ? err.message : err), true);
+        }
+    }
+
     _seed() {
         const lib = this._library();
         if (!lib) { this.post({ command: 'cdlStatus', text: 'no ROM loaded' }); return; }
@@ -204,6 +222,7 @@ class CdlHost {
             cdl: Buffer.from(lib.cdl).toString('base64'),
             ext: Buffer.from(lib.ext).toString('base64'),
             wflags: Buffer.from(lib.wflags).toString('base64'),
+            lib: { hash: lib.hash, romSize: lib.romSize },
             scriptContext: ctx ? { fetchRomOff: ctx.fetchRomOff, ptr: ctx.ptr, excludes } : null,
         });
         if (ctx) this.log(`CDL script attribution: interpreter fetch at ROM $${hex(ctx.fetchRomOff, 6)}`);
@@ -244,28 +263,8 @@ class CdlHost {
                 const lib = this._library();
                 if (!lib || !msg.delta) return true;
                 const d = msg.delta;
-                const changed = lib.applyDelta({
-                    chunks: (d.chunks || []).map(c => ({ index: c.index, cdl: b64ToBytes(c.cdl), ext: b64ToBytes(c.ext) })),
-                    wvals: (d.wvals || []).map(w => ({ index: w.index, data: b64Bytes(w.data) })),
-                    wflags: (d.wflags || []).map(w => ({ index: w.index, data: b64Bytes(w.data) })),
-                    xrefs: b64ToWords(d.xrefs),
-                    edges: b64ToWords(d.edges),
-                    stats: b64ToWords(d.stats),
-                    scriptXrefs: b64ToWords(d.scriptXrefs),
-                    romHits: b64ToWords(d.romHits),
-                    wramHits: b64ToWords(d.wramHits),
-                    rets: b64ToWords(d.rets),
-                    regs: b64ToWords(d.regs),
-                    bases: b64ToWords(d.bases),
-                    wcode: (d.wcode || []).map(c => ({ index: c.index, code: b64Bytes(c.code), state: b64Bytes(c.state) })),
-                    aram: (d.aram || []).map(a => ({ index: a.index, data: b64Bytes(a.data) })),
-                    bus: (d.bus || []).map(a => ({ index: a.index, data: b64Bytes(a.data) })),
-                    busSites: b64ToWords(d.busSites),
-                    romCycles: b64ToWords(d.romCycles),
-                    ioVals: (d.ioVals || []).map(a => ({ index: a.index, data: b64Bytes(a.data) })),
-                    sramFlags: (d.sramFlags || []).map(a => ({ index: a.index, data: b64Bytes(a.data) })),
-                    wordRanges: (d.wordRanges || []).map(a => ({ set: a.set, index: a.index, data: b64Bytes(a.data) })),
-                });
+                const changed = lib.applyDelta(decodeDelta(d));
+                this._received(lib, d);
                 if (d.dropped && d.dropped !== this.droppedWarned) {
                     this.droppedWarned = d.dropped;
                     this.log(`CDL: ${d.dropped} records dropped this session because a recorder table is full`, true);
@@ -277,6 +276,9 @@ class CdlHost {
                 }
                 return true;
             }
+            case 'cdlRescue':
+                if (msg.session && Array.isArray(msg.entries)) this._rescue(msg as RescueMessage);
+                return true;
             case 'cdlPause':
                 this._scheduleFlush();
                 return true;

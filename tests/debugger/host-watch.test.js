@@ -122,6 +122,64 @@ async function test(name, fn) {
         }
     });
 
+    await test('webview: CDL not yet on disk is kept, parked in IndexedDB when the host goes quiet, handed over by the next page (headless Chromium)', async () => {
+        let chromium;
+        try { ({ chromium } = require('playwright')); } catch (_) { console.log('    (playwright not installed: skipped)'); return; }
+        let browser;
+        try { browser = await chromium.launch(); } catch (e) { console.log('    (no browser: skipped)'); return; }
+        try {
+            const { buildHtml } = require('../../dist/core/emulator/panel-webview');
+            const html = buildHtml({ cspSource: '' }, 'core.js', 'core.wasm', 'core', 'core', null, { profile: 'full' })
+                .replace('<head>', '<head><script>window.__sent=[];window.acquireVsCodeApi=()=>({postMessage:m=>window.__sent.push(m)});</script>');
+            // A real origin (IndexedDB is per origin; a VS Code webview keeps one per extension view type).
+            const context = await browser.newContext();
+            await context.route('http://evs.test/**', route => (new URL(route.request().url()).pathname === '/'
+                ? route.fulfill({ contentType: 'text/html', body: html })
+                : route.fulfill({ status: 200, contentType: 'text/javascript', body: '' })));
+            const open = async () => {
+                const p = await context.newPage();
+                const errors = [];
+                p.on('pageerror', e => errors.push(e.message));
+                await p.goto('http://evs.test/');
+                return { p, errors };
+            };
+            const first = await open();
+            await first.p.clock.install();
+            const lib = { hash: 'ab'.repeat(20), romSize: 0x20000 };
+            const session = await first.p.evaluate(l => {
+                romLoaded = true;
+                cdlRescueSetLib(l);
+                for (let i = 0; i < 3; i++) cdlKeep({ romHits: 'AAAA' });
+                cdlRescueSaved({ session: CDL_SESSION, seq: 1 });
+                return CDL_SESSION;
+            }, lib);
+            await first.p.clock.runFor(25000);
+            await first.p.waitForFunction(() => { const el = document.getElementById('emu-alert'); return el && /kept in this page/.test(el.textContent); });
+
+            const second = await open();
+            const sent = await second.p.evaluate(async () => {
+                cdlRescueSend();
+                for (let i = 0; i < 50 && !window.__sent.some(m => m.command === 'cdlRescue'); i++) await new Promise(r => setTimeout(r, 20));
+                return window.__sent.filter(m => m.command === 'cdlRescue');
+            });
+            assert.strictEqual(sent.length, 1);
+            assert.strictEqual(sent[0].session, session);
+            assert.deepStrictEqual(sent[0].entries.map(e => e.seq), [2, 3], 'what the host had not written, numbered');
+            assert.deepStrictEqual(sent[0].entries[0].lib, lib);
+            await second.p.evaluate(s => cdlRescueDone({ session: s }), session);
+            const third = await open();
+            const again = await third.p.evaluate(async () => {
+                cdlRescueSend();
+                await new Promise(r => setTimeout(r, 300));
+                return window.__sent.filter(m => m.command === 'cdlRescue').length;
+            });
+            assert.strictEqual(again, 0, 'written once, forgotten');
+            assert.deepStrictEqual([...first.errors, ...second.errors, ...third.errors], []);
+        } finally {
+            await browser.close();
+        }
+    });
+
     console.log(`\n${passed} passed, ${failed} failed`);
     if (failed) process.exit(1);
 })();

@@ -21,8 +21,10 @@
   that does not land at the same point when replayed: reproduce with `tools/cdl/replay.js --until 79920`.
 - 🟡 **"4x looks like 10x on a 144 Hz screen":** not reproduced; the pacing simulates to 4.00x at 144 and
   165 Hz with frames up to 4 ms. The `Pace:` line in the Emulator log (once a minute) will tell.
-- 🟡 **A page cut off from its host loses up to 20 s of CDL record streams** (xrefs, hits: deltas). A
-  rescue path (the page hands its data to the new host) needs a channel VS Code does not give.
+- ✅ CDL survives a dead host (v0.355.5): deltas kept until written, parked in the page's IndexedDB, handed
+  over by the next page, merged exactly once. Still lost: a crash of the webview or the PC (≤5 s / ≤60 s).
+- 🟡 **The replay (TAS) has no such rescue:** frames in flight when the host dies are lost; Continue resumes
+  from the last snapshot (≤30 s back). Same pattern would fit (`tasRecFrames` numbered, parked, handed over).
 - 🟡 **Flushing the library blocks the host** (~0.4 s for 2.2 M script xrefs on a Mac, slower on Windows).
 
 ### 1.1 Live Painting from Map Editor into Running Game

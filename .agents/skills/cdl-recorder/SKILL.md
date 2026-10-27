@@ -39,9 +39,17 @@ core (WASM, per instruction / access)        webview (every 5 s)         host (N
   pauses itself (`session-watch.ts`, `page/05-host-watch.js`). A webview outlives its extension host and a
   restarted host never takes it back: v0.353.5 kept 1 h of a 5 h Windows session. A flush of a big library
   (2.2 M script xrefs, ~650 MB heap) blocks the host ~0.4 s on a Mac: keep flushes off the hot path.
+- **A drained delta is kept until it is on disk.** The page cannot write files; it numbers each delta
+  (session, seq), keeps it until the host's `cdlSaved` (sent only after the write that holds it), parks
+  the kept ones in its IndexedDB when the host goes quiet (VS Code keeps one webview origin per extension
+  view type: checked in its workbench code) and the next page hands them over (`cdlRescue`,
+  `cdl/rescue.ts`, `page/06-cdl-rescue.js`). Deltas run ~2 MB per 5 s (changed 64 KB chunks resent
+  whole), so a disk journal of them would write more than the minute's flush (~12 MB): park only on failure.
 - **Every field merges commutatively and idempotently** (OR, min, max, set union), so libraries
   from different sessions or players merge to the same result in any order. A new field needs
-  a merge rule before it ships.
+  a merge rule before it ships. Exception: the hit and cycle counters (`romHits`, `wramHits`, `romCycles`)
+  are summed, so a delta must be merged exactly once: `manifest.json` `delivered` holds each page
+  session's last merged delta, written with it, and a rescued delta at or below it is skipped.
 - **Hit counts are the one exception: they are summed** (user decision, v0.173.0: having counts
   matters more than idempotence). Correct only because the core drains them as **deltas**
   (`cdl-count.c` zeroes what it hands out). Never seed counts back, never merge library files into each other

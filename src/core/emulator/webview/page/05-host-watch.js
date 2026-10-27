@@ -49,6 +49,8 @@
       emuAlert('host', 'VS Code has not answered this page for ' + (HOST_LOST_MS / 1000) + ' s: nothing is being saved'
         + ' (replay, CDL), so the game is paused. If this does not clear by itself, the extension host restarted:'
         + ' close this tab and open the emulator again; Continue in the ROM picker resumes the recording.');
+      // What the host has not written yet goes where the next page finds it (06-cdl-rescue.js).
+      cdlRescuePark();
       // Reaches a host that was only busy, for the log.
       if (vscodeApi) vscodeApi.postMessage({ command: 'hostLost', silentMs: Date.now() - hostLastHeard });
     }

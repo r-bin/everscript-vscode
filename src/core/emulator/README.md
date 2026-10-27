@@ -23,6 +23,7 @@ Embedded snes9x2005 WASM emulator panel integrated into VS Code.
 | `apu-stream.js` / `apu-stream-view.ts` | Sound-chip stream for the radar's Music tab: host side (on/off, frame listener, ARAM snapshots) and page side (posts the core's `getApuView` + package + voice samples after each frame while on). See `src/games/evermore/music/README.md` |
 | (Evermore) | `games/evermore/emulator/`: `overlays-view.ts` (screen layer), `stack-view.ts` (STACK, TRACE), `script-debug-view.ts`, `sound-source-view.ts` (who sent each sound effect, the SOUNDS chip), `menu-tabs.ts`, `bottom-bar-views.ts`: handed in through `host.js` `webview()` |
 | `fps-meter.ts` | Screen chip: frames emulated per second and frames the game read input in (lag), frozen while paused; once a minute a `Pace:` line in the Emulator log (FPS, speed, screen Hz, sound lag) |
+| `cdl/wire.ts`, `cdl/rescue.ts`, `webview/page/06-cdl-rescue.js` | CDL deltas reach the disk exactly once: numbered by the page, kept until the host's `cdlSaved`, parked in the page's IndexedDB when the host dies, handed to the next page's host |
 | `session-watch.ts` / `webview/page/05-host-watch.js` | A session never loses its recording unnoticed: heartbeat (the page pauses itself and says so when the host goes quiet: a webview outlives its host), a marker a restarted host reports, `emuAlert` lines over the screen (a save that failed) |
 | `tas/` | Input recordings: `.evsmv` format, recording files, replay list and pins (see `tas/README.md`) |
 | `core/snes9x2005-wasm/` | Custom emulator core (git submodule) |
