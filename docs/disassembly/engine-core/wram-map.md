@@ -95,6 +95,21 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:013B` | 2 bytes | `VRAM_DMA_QUEUE_TAIL` | Frame | Read cursor index of deferred VRAM DMA queue (processed during VBlank). |
 | `$7E:013D` | 2 bytes | `VRAM_DMA_QUEUE_CURSOR` | Frame | Cursor index into 16-slot deferred VRAM DMA transfer queue. |
 | `$7E:013F` | 128 bytes | `VRAM_DMA_QUEUE` | Frame | 16-slot deferred VRAM DMA queue (8 bytes per descriptor: src bank/addr, dest VRAM addr, length). |
+| `$7E:015F` | `Word×16` | `palette_bg_1` | `Room` | Background Palette 1 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
+| `$7E:017F` | `Word×16` | `palette_bg_2` | `Room` | Background Palette 2 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
+| `$7E:019F` | `Word×16` | `palette_bg_3` | `Room` | Background Palette 3 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
+| `$7E:01BF` | `Word×16` | `palette_bg_4` | `Room` | Background Palette 4 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
+| `$7E:01DF` | `Word×16` | `palette_bg_5` | `Room` | Background Palette 5 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
+| `$7E:01FF` | `Word×16` | `palette_bg_6` | `Room` | Background Palette 6 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
+| `$7E:021F` | `Word×16` | `palette_bg_7` | `Room` | Background Palette 7 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
+| `$7E:023F` | `Word×16` | `palette_spr_0` | `Room` | Sprite/OBJ Palette 0 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
+| `$7E:025F` | `Word×16` | `palette_spr_1` | `Room` | Sprite/OBJ Palette 1 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
+| `$7E:027F` | `Word×16` | `palette_spr_2` | `Room` | Sprite/OBJ Palette 2 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
+| `$7E:029F` | `Word×16` | `palette_spr_3` | `Room` | Sprite/OBJ Palette 3 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
+| `$7E:02BF` | `Word×16` | `palette_spr_4` | `Room` | Sprite/OBJ Palette 4 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
+| `$7E:02DF` | `Word×16` | `palette_spr_5` | `Room` | Sprite/OBJ Palette 5 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
+| `$7E:02FF` | `Word×16` | `palette_spr_6` | `Room` | Sprite/OBJ Palette 6 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
+| `$7E:031F` | `Word×16` | `palette_spr_7` | `Room` | Sprite/OBJ Palette 7 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
 | `$7E:0341` | 2 bytes | `LAST_SPAWNED_ENTITY` | Room | Entity slot index of most recently allocated or spawned actor. |
 | `$7E:0343` | 2 bytes | `JOYPAD_REPEAT_TIMER` | Frame | Countdown timer before typematic joypad directional repeat begins. |
 | `$7E:0345` | 2 bytes | `JOYPAD_REPEAT_MASK` | Frame | Bitmask of joypad buttons eligible for typematic auto-repeat. |
@@ -269,21 +284,39 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0B0B` | 2 bytes | `ROOM_STEP_TRIGGER` | Room | Pointer to step-on coordinate trigger descriptor table for current room. |
 | `$7E:0B0D` | 2 bytes | `DOG_AI_AGGRESSION_SETTING` | Save | Dog companion AI attack setting (0 = never attack, 1..5 = widest search radius). |
 | `$7E:0B0F` | 2 | `DOG_STAMINA_RECOVERY_RATE` | Save | Combat Mechanics: Dog stamina recovery rate per frame tick (defaults to 2 in $8F:81BE) |
+| `$7E:0B15` | `Word` | `game_boot_signature` | `Boot` | Warm boot RAM persistence validation signature word ($00A4 initialized in $80:8D30). |
+| `$7E:0B17` | `Word` | `new_game_init_flag` | `Boot` | Assertion flag set during cold start / reset sequence to trigger state clearing ($80:8D33). |
 | `$7E:0B19` | 2 bytes | `WAVE_PHASE_COUNTER` | Frame | Wave phase counter incremented per frame for HDMA underwater distortion. |
+| `$7E:0B1A` | `Byte` | `controller_raw_input_hi` | `Boot` | Upper 8 bits of raw controller button state (Start, Select, D-Pad). |
+| `$7E:0B1B` | `Word` | `controller_prev_input` | `Boot` | Previous frame joypad button state used to calculate edge-triggered presses. |
 | `$7E:0B1F` | 2 bytes | `RING_MENU_SAVED_STACK_PTR` | Frame | Saved CPU stack pointer (S register) snapshot restored on ring menu closure. |
+| `$7E:0B21` | `Word` | `menu_audio_pan_divisor` | `Frame` | Stereo audio panning coordinate factor for ring menu items. |
+| `$7E:0B23` | `Word` | `menu_audio_sfx_pitch` | `Frame` | Pitch divisor passed to SPC700 sound driver when ring menu rotates. |
+| `$7E:0B25` | `Word` | `menu_audio_sfx_volume` | `Frame` | Volume scale factor applied to UI menu sound effects. |
 | `$7E:0B29` | 2 bytes | `HUD_DIRTY_UPDATE_FLAGS` | Frame | HUD refresh latch flags (bit 0 = tilemap redraw required, bit 2 = HUD hidden). |
+| `$7E:0B2A` | `Byte` | `battle_stun_timer` | `Frame` | Hit stun / stagger duration countdown ticks applied to player during attack recovery. |
 | `$7E:0B2B` | 2 bytes | `DIALOGUE_TIMER` | Frame | Delay timer tracking pause duration between dialogue lines. |
+| `$7E:0B2C` | `Byte` | `combat_knockback_angle` | `Frame` | Directional knockback angle index (0..255) applied on incoming heavy hits. |
 | `$7E:0B2F` | 2 bytes | `ACTIVE_PLAYER_CHAR_INDEX` | Room | Index of currently player-controlled character (0 = Boy, 3 = Dog). |
 | `$7E:0B31` | 2 bytes | `DIALOGUE_LINE_IDX` | Room | Active text line index inside dialogue window buffer. |
 | `$7E:0B3B` | 2 bytes | `ACTIVE_SAVE_SLOT` | Boot | SRAM save slot index (0..3); read from battery RAM $30:6001. |
 | `$7E:0B3D` | 2 bytes | `FONT_GLYPH_HEIGHT` | Boot | Height of dialogue text font glyphs in scanlines (default 8). |
 | `$7E:0B3F` | 2 bytes | `FONT_LINE_STRIDE` | Boot | Byte pitch stride between raster text lines in dialogue buffer. |
 | `$7E:0B41` | 2 bytes | `FONT_BUFFER_BASE` | Boot | Base address in High WRAM ($7F:A000) for 2bpp font glyph staging. |
+| `$7E:0B43` | `Byte` | `dialogue_audio_beep_tick` | `Frame` | Cooldown timer ticks between successive speech typewriter sound effect triggers. |
 | `$7E:0B47` | 2 bytes | `WEAPON_CHARGE_PERCENTAGE` | Room | Current physical attack charge meter level (0..100%). |
 | `$7E:0B49` | 2 bytes | `WEAPON_CHARGE_LEVEL_STAGE` | Room | Attack charge stage tier (0 = Normal, 1 = Stage 1, 2 = Stage 2, 3 = Stage 3). |
 | `$7E:0B4D` | 2 bytes | `WEAPON_STAMINA_RECOVERY_TIMER` | Room | Cooldown timer controlling stamina gauge recharge rate after an attack. |
 | `$7E:0B4F` | 2 bytes | `SCREEN_FLASH_COLOR` | Frame | 15-bit BGR color value for active screen flash overlay. |
+| `$7E:0B51` | `Word` | `alchemy_cast_effect_id` | `Frame` | Formula animation effect script identifier loaded into combat VM on cast. |
+| `$7E:0B57` | `Word` | `hud_exp_bar_flash_timer` | `Frame` | Flash color cycle timer ticks when weapon or alchemy skill increases level. |
+| `$7E:0B6F` | `Word` | `dialogue_scroll_timer` | `Frame` | Typewriter text scroll delay counter decremented in per-frame tick ($8C:A229). |
+| `$7E:0B70` | `Byte` | `dialogue_scroll_flags` | `Frame` | Scroll flags controlling instantaneous text paging vs smooth vertical line scrolling. |
+| `$7E:0B77` | `Word` | `joypad_button_hold_timer` | `Frame` | Duration in ticks current button has been held down continuously. |
+| `$7E:0B78` | `Byte` | `joypad_turbo_repeat_phase` | `Frame` | Autofire repeat pulse phase counter for held button inputs. |
+| `$7E:0B79` | `Word` | `joypad_edge_trigger_mask` | `Frame` | Debounced button press event mask: buttons newly asserted on this frame ($8C:C5EA). |
 | `$7E:0B7F` | 2 bytes | `AUDIO_FADE_COUNTER` | Frame | Step counter tracking audio volume fade in/out transitions. |
+| `$7E:0B80` | `Byte` | `window_fade_alpha_level` | `Frame` | Transparency alpha blend coefficient for UI overlay window borders ($8E:E5BA). |
 | `$7E:0B83` | 2 bytes | `AUDIO_TARGET_VOLUME` | Room | Target master audio volume level latch for fade interpolation. |
 | `$7E:0BF9` | 2 bytes | `RING_MENU_CURSOR_SECTOR` | Room | Latched cursor sector index during ring menu item selection ($FFFF = unlatched). |
 | `$7E:0BFB` | 2 | `MODE7_CAMERA_TARGET_OFFSET_X` | Frame | Mode 7 Engine: Camera target anchor X coordinate offset for flight viewport ($8E:B33D). |
@@ -348,6 +381,21 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:128E` | 2 bytes | `CGRAM_DMA_QUEUE_HEAD` | Frame | Head index cursor of deferred CGRAM DMA queue (`$7E:1292`, stride 7, wraps at 32 entries = `$00E0`). |
 | `$7E:1290` | 2 bytes | `TILE_FAMILY_ANIM_TIMER` | Frame | Master frame tick counter synchronizing tile palette cycling and water animation. |
 | `$7E:1292` | 224 bytes | `CGRAM_DMA_QUEUE_ENTRIES` | Frame | Deferred CGRAM DMA queue buffer (32 slots × 7 bytes: source pointer `$26..$28`, dest word offset `$2E`, size `$12`). |
+| `$7E:1299` | `Byte×7` | `cgram_queue_slot_1` | `Frame` | Partial CGRAM DMA slot 1 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:12A0` | `Byte×7` | `cgram_queue_slot_2` | `Frame` | Partial CGRAM DMA slot 2 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:12A7` | `Byte×7` | `cgram_queue_slot_3` | `Frame` | Partial CGRAM DMA slot 3 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:12AE` | `Byte×7` | `cgram_queue_slot_4` | `Frame` | Partial CGRAM DMA slot 4 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:12B5` | `Byte×7` | `cgram_queue_slot_5` | `Frame` | Partial CGRAM DMA slot 5 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:12BC` | `Byte×7` | `cgram_queue_slot_6` | `Frame` | Partial CGRAM DMA slot 6 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:12C3` | `Byte×7` | `cgram_queue_slot_7` | `Frame` | Partial CGRAM DMA slot 7 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:12CA` | `Byte×7` | `cgram_queue_slot_8` | `Frame` | Partial CGRAM DMA slot 8 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:12D1` | `Byte×7` | `cgram_queue_slot_9` | `Frame` | Partial CGRAM DMA slot 9 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:12D8` | `Byte×7` | `cgram_queue_slot_10` | `Frame` | Partial CGRAM DMA slot 10 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:12DF` | `Byte×7` | `cgram_queue_slot_11` | `Frame` | Partial CGRAM DMA slot 11 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:12E6` | `Byte×7` | `cgram_queue_slot_12` | `Frame` | Partial CGRAM DMA slot 12 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:12ED` | `Byte×7` | `cgram_queue_slot_13` | `Frame` | Partial CGRAM DMA slot 13 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:12F4` | `Byte×7` | `cgram_queue_slot_14` | `Frame` | Partial CGRAM DMA slot 14 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:12FB` | `Byte×7` | `cgram_queue_slot_15` | `Frame` | Partial CGRAM DMA slot 15 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
 | `$7E:13D2` | 30 bytes | `TILE_ANIM_BUFFERS` | Room | Intermediate staging buffers for animated tile family graphics. |
 | `$7E:1432` | 2 bytes | `ANIM_FRAME_HOLD_TIMER` | Frame | Remaining frame duration before advancing to next animated tile phase. |
 | `$7E:1434` | 2 bytes | `PENDING_TALK_TARGET_PTR` | Room | Pointer to NPC actor entity currently being spoken to or interacted with ($FFFF = none). |
@@ -383,6 +431,22 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:163E` | 2 | `BG_SEAM_DMA_DEST_1` | Frame | PPU Subsystem: VRAM destination word address 1 for BG metatile seam DMA transfer ($80:82E4) |
 | `$7E:1640` | 2 | `BG_SEAM_DMA_DEST_2` | Frame | PPU Subsystem: VRAM destination word address 2 for BG metatile seam DMA transfer |
 | `$7E:1642` | 2 | `BG_SEAM_DMA_DEST_3` | Frame | PPU Subsystem: VRAM destination word address 3 for BG metatile seam DMA transfer |
+| `$7E:2000` | `Byte` | `audio_chan_vol_atten_0` | `Save` | Audio channel 0 master volume attenuation factor ($0F..$FF initialized by $8C:9DEE). |
+| `$7E:2001` | `Byte` | `audio_chan_vol_atten_1` | `Save` | Audio channel 1 master volume attenuation factor ($1F..$FF). |
+| `$7E:2002` | `Byte` | `audio_chan_vol_atten_2` | `Save` | Audio channel 2 master volume attenuation factor ($2F..$FF). |
+| `$7E:2003` | `Byte` | `audio_chan_vol_atten_3` | `Save` | Audio channel 3 master volume attenuation factor ($3F..$FF). |
+| `$7E:2004` | `Byte` | `audio_chan_vol_atten_4` | `Save` | Audio channel 4 master volume attenuation factor ($4F..$FF). |
+| `$7E:2005` | `Byte` | `audio_chan_vol_atten_5` | `Save` | Audio channel 5 master volume attenuation factor ($5F..$FF). |
+| `$7E:2006` | `Byte` | `audio_chan_vol_atten_6` | `Save` | Audio channel 6 master volume attenuation factor ($6F..$FF). |
+| `$7E:2007` | `Byte` | `audio_chan_vol_atten_7` | `Save` | Audio channel 7 master volume attenuation factor ($7F..$FF). |
+| `$7E:2008` | `Byte` | `audio_chan_vol_atten_8` | `Save` | Audio channel 8 master volume attenuation factor ($8F..$FF). |
+| `$7E:2009` | `Byte` | `audio_chan_vol_atten_9` | `Save` | Audio channel 9 master volume attenuation factor ($9F..$FF). |
+| `$7E:200A` | `Byte` | `audio_chan_vol_atten_a` | `Save` | Audio channel 10 master volume attenuation factor ($AF..$FF). |
+| `$7E:200B` | `Byte` | `audio_chan_vol_atten_b` | `Save` | Audio channel 11 master volume attenuation factor ($BF..$FF). |
+| `$7E:200C` | `Byte` | `audio_chan_vol_atten_c` | `Save` | Audio channel 12 master volume attenuation factor ($CF..$FF). |
+| `$7E:200D` | `Byte` | `audio_chan_vol_atten_d` | `Save` | Audio channel 13 master volume attenuation factor ($DF..$FF). |
+| `$7E:200E` | `Byte` | `audio_chan_vol_atten_e` | `Save` | Audio channel 14 master volume attenuation factor ($EF..$FF). |
+| `$7E:200F` | `Byte` | `audio_chan_vol_atten_f` | `Save` | Audio channel 15 master volume attenuation factor ($FF). |
 | `$7E:2200` | 2 bytes | `SRAM_START_MARKER` | Save | Boundary marking start of battery-backed persistent save RAM ($7E:2200..$7E:27FF). |
 | `$7E:2210` | 36 bytes | `BOY_NAME_BUFFER` | Save | Custom player character name string buffer (ASCII/tile indices). |
 | `$7E:2234` | 36 bytes | `DOG_NAME_BUFFER` | Save | Custom dog companion name string buffer (ASCII/tile indices). |
@@ -761,6 +825,21 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:507D` | 34 bytes | `MAP_ANIM_DESCRIPTORS` | Room | ROM pointers to animated tile sequence descriptor definitions. |
 | `$7E:50A7` | 136 bytes | `SPRITE_ALLOC_POOL` | Frame | Dynamic sprite allocation node pool (17 nodes × 8 bytes: `+$00` prev, `+$02` next, `+$04` state `$FFFF`=free, `+$06` parent). |
 | `$7E:50AD` | 1 byte | `SPRITE_VRAM_ALLOC_TABLE` | Room | Sprite VRAM block allocation table. Used by the dynamic sprite engine in bank $80 to allocate VRAM tile slots for dynamic actors, weapon animations, and particl |
+| `$7E:50AF` | `Byte×8` | `sprite_sort_bucket_1` | `Frame` | Y-sorted sprite display list bucket 1 (Screen Y 64..127): +0 prev, +2 next, +4 key, +6 tail. |
+| `$7E:50B7` | `Byte×8` | `sprite_sort_bucket_2` | `Frame` | Y-sorted sprite display list bucket 2 (Screen Y 128..191): +0 prev, +2 next, +4 key, +6 tail. |
+| `$7E:50BF` | `Byte×8` | `sprite_sort_bucket_3` | `Frame` | Y-sorted sprite display list bucket 3 (Screen Y 192..255): +0 prev, +2 next, +4 key, +6 tail. |
+| `$7E:50C7` | `Byte×8` | `sprite_sort_bucket_4` | `Frame` | Y-sorted sprite display list bucket 4 (Screen Y 256..319): +0 prev, +2 next, +4 key, +6 tail. |
+| `$7E:50CF` | `Byte×8` | `sprite_sort_bucket_5` | `Frame` | Y-sorted sprite display list bucket 5 (Screen Y 320..383): +0 prev, +2 next, +4 key, +6 tail. |
+| `$7E:50D7` | `Byte×8` | `sprite_sort_bucket_6` | `Frame` | Y-sorted sprite display list bucket 6 (Screen Y 384..447): +0 prev, +2 next, +4 key, +6 tail. |
+| `$7E:50DF` | `Byte×8` | `sprite_sort_bucket_7` | `Frame` | Y-sorted sprite display list bucket 7 (Screen Y 448..511): +0 prev, +2 next, +4 key, +6 tail. |
+| `$7E:50E7` | `Byte×8` | `sprite_sort_bucket_8` | `Frame` | Y-sorted sprite display list bucket 8 (Screen Y 512..575): +0 prev, +2 next, +4 key, +6 tail. |
+| `$7E:50EF` | `Byte×8` | `sprite_sort_bucket_9` | `Frame` | Y-sorted sprite display list bucket 9 (Screen Y 576..639): +0 prev, +2 next, +4 key, +6 tail. |
+| `$7E:50F7` | `Byte×8` | `sprite_sort_bucket_10` | `Frame` | Y-sorted sprite display list bucket 10 (Screen Y 640..703): +0 prev, +2 next, +4 key, +6 tail. |
+| `$7E:50FF` | `Byte×8` | `sprite_sort_bucket_11` | `Frame` | Y-sorted sprite display list bucket 11 (Screen Y 704..767): +0 prev, +2 next, +4 key, +6 tail. |
+| `$7E:5107` | `Byte×8` | `sprite_sort_bucket_12` | `Frame` | Y-sorted sprite display list bucket 12 (Screen Y 768..831): +0 prev, +2 next, +4 key, +6 tail. |
+| `$7E:510F` | `Byte×8` | `sprite_sort_bucket_13` | `Frame` | Y-sorted sprite display list bucket 13 (Screen Y 832..895): +0 prev, +2 next, +4 key, +6 tail. |
+| `$7E:5117` | `Byte×8` | `sprite_sort_bucket_14` | `Frame` | Y-sorted sprite display list bucket 14 (Screen Y 896..959): +0 prev, +2 next, +4 key, +6 tail. |
+| `$7E:511F` | `Byte×8` | `sprite_sort_bucket_15` | `Frame` | Y-sorted sprite display list bucket 15 (Screen Y 960..1023): +0 prev, +2 next, +4 key, +6 tail. |
 | `$7E:5127` | 2 bytes | `SPRITE_DRAW_QUEUE_HEAD` | Frame | Head pointer to sorted sprite render queue (`$7E:512F..$7E:516F`); traversed by `func_C096BB`. |
 | `$7E:512F` | 64 bytes | `SPRITE_DRAW_QUEUE_NODES` | Frame | Dynamic sprite draw queue nodes (stride 16 bytes: `+$00` next link, `+$04` state, `+$06` X, `+$08` Y, `+$0A` attr flags, `+$0C..$0E` 24-bit slice table ptr). |
 | `$7E:6187` | 32 bytes | `SPRITE_CGRAM_SHADOW` | Room | Sprite palette shadow buffer DMA-copied to SNES CGRAM during VBLANK. |
@@ -768,10 +847,15 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:6289` | 28 bytes | `OAM_SLICE_DESCRIPTORS` | Frame | Hardware sprite OAM tile slice position and attribute descriptor array. |
 | `$7E:62A5` | 224 bytes | `TILE_ANIM_VRAM_OFFSETS` | Room | Source VRAM tile offset table for animated tile family cycling. |
 | `$7E:6387` | struct ProjectileSlot[8] | `PROJECTILE_SLOTS_BASE` | Room | Combat Engine: 8-slot active physics projectile array (stride 44 bytes; +$06 sprite, +$10 active, +$14 X, +$16 Y, +$18 Z, +$1E life, +$26 behaviour, +$28 power) |
+| `$7E:6C91` | `Byte×1599` | `dynamic_vram_tiles_8x8` | `Frame` | Staging buffer for dynamic 8x8 4bpp SNES sprite tiles ($7E:6C91..$7E:72D0, 32 bytes per tile) queued for VRAM DMA by obj_tile_allocate ($C0:A4B5). |
 | `$7E:72D1` | 1024 bytes | `SPRITE_TILE_STAGING_BUF` | Frame | Staging buffer for 4bpp sprite tile graphics unpacked dynamically before VRAM DMA upload (128 bytes per 16x16 tile). |
 | `$7E:7321` | 16 bytes | `LAVA_PALETTE_ROTATION` | Frame | Animated palette rotation buffer for bubbling molten lava surface glow. |
 | `$7E:7331` | 16 bytes | `CRYSTAL_PALETTE_CYCLE` | Frame | Animated palette cycling buffer for glowing crystalline minerals. |
+| `$7E:7D51` | `Byte×6228` | `tier1_tile_slot_lookup` | `Frame` | Tier 1 dynamic sprite tile frame direct lookup table ($7E:7D51..$7E:95A4), mapping frame/tile ID to allocated cache slot index. |
+| `$7E:95A5` | `Word×128` | `tier1_cache_slot_tiles` | `Frame` | Tier 1 dynamic sprite tile slot table ($7E:95A5..$7E:96A4, 128 words), tracking which tile ID occupies each VRAM slot. |
 | `$7E:96A5` | 1 byte | `OBJ_TILE_LRU_PREV` | Room | OBJ 8x8 tile cache, prev links (130 bytes). `prev[i]` of the OBJ tile cache lists; see `$7E9727`. `$7E9725` = `prev[$80]` (next slot to evict), `$7E9726` = `pre |
+| `$7E:9725` | `Byte` | `tier1_lru_head_node` | `Frame` | Most recently used (MRU) slot index in Tier 1 dynamic sprite tile cache. |
+| `$7E:9726` | `Byte` | `tier1_lru_tail_node` | `Frame` | Least recently used (LRU) slot index in Tier 1 dynamic sprite tile cache (selected for next eviction). |
 | `$7E:9727` | 1 byte | `OBJ_TILE_LRU_NEXT` | Room | OBJ 8x8 tile cache, next links (130 bytes). Doubly linked list over the 128 dynamic OBJ tile slots; a slot number is the OBJ tile number (VRAM word `$6000 + slo |
 | `$7E:97A9` | 256 bytes | `VRAM_TILE_PATTERN_LOOKUP` | Frame | Lookup table mapping ROM sprite pattern ID to allocated dynamic VRAM slot. |
 | `$7E:AA58` | 256 bytes | `VRAM_SLOT_PATTERN_MAP` | Frame | Table mapping dynamic VRAM tile slots back to their active pattern ID. |
@@ -781,8 +865,3 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:AB7A` | 96 bytes | `VRAM_TILE_LRU_NEXT` | Frame | Forward links for least-recently-used (LRU) dynamic VRAM sprite tile allocator. |
 | `$7E:ABDE` | 512 bytes | `LOW_OAM_TABLE_BUF` | Frame | Low OAM staging buffer (128 hardware sprites × 4 bytes: X low, Y, tile number, attributes); uploaded to SNES OAM via DMA in VBlank. |
 | `$7E:ADDE` | 32 bytes | `HIGH_OAM_TABLE_BUF` | Frame | High OAM staging buffer (32 bytes = 128 sprites × 2 bits: bit 0 = 9th bit of X, bit 1 = sprite size 8x8 vs 16x16/32x32); uploaded via DMA in VBlank. |
-| `$7F:0000` | 49920 bytes | `ROOM_METATILE_GRID` | Room | Decompressed active room 16x16 metatile layout grid buffer. |
-| `$7F:A000` | 14366 bytes | `FONT_GLYPH_STAGING` | Room | High WRAM 2bpp font glyph rendering and decompression staging buffer. |
-| `$7F:C300` | 1280 bytes | `ROOM_PALETTE_TABLE` | Room | Room tile palette index association table. |
-| `$7F:C800` | 512 bytes | `SHADOW_TILEMAP_BUF` | Room | Staging buffer for HUD and text box background layer tilemap updates. |
-| `$7F:D81E` | 10210 bytes | `DIALOGUE_ASCII_BUFFER` | Room | Dialogue box decoded ASCII text string rasterization buffer. |

@@ -13,3 +13,4 @@ see: [src/games/evermore/localizations/knowledge/ram/7e2ed6.md, src/games/evermo
 35 contiguous 16-bit word registers storing the lifetime total cast counts for each of the 35 alchemy formulas.
 
 Indexed by `formula_index * 2`. Incremented unconditionally by `alchemy_validate_and_deduct_cost` (`$91:D800`) whenever ingredient deduction succeeds and the spell cast begins. Preserved across saves to record player spell usage statistics.
+
