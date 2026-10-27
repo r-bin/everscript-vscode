@@ -52,7 +52,7 @@ async function romChecks(rom) {
     handleDataMessage({ command: 'dataInit' }, hostDeps(rom, posted));
     const ix = posted[0];
     await test('tables: XP per level, character stats, sine, boomerang orbit — decoded ones only', () => {
-        assert.deepStrictEqual(ix.tables.map((t) => t.id), ['xp', 'stats', 'sine', 'boomerang']);
+        assert.deepStrictEqual(ix.tables.map((t) => t.id), ['xp', 'stats', 'sine', 'boomerang', 'formula-costs', 'dog-forms', 'weapon-levels']);
         const boy = ix.tables[1].rows[2];
         assert.strictEqual(boy[1], 'Boy');
         const xp = ix.tables[0];
@@ -63,9 +63,12 @@ async function romChecks(rom) {
         const orbit = ix.tables[3].chart.series[0].points;
         assert.deepStrictEqual(orbit[0], [128, 0]);
         assert.deepStrictEqual(orbit[64], [0, 64]);
+        assert.strictEqual(ix.tables[4].rows.length, 35);
+        assert.strictEqual(ix.tables[5].rows.length, 4);
+        assert.strictEqual(ix.tables[6].rows.length, 16);
     });
     await test('enums: only lists read from the ROM or a knowledge entry', () => {
-        assert.deepStrictEqual(ix.enums.map((e) => e.id), ['blobs', 'fields', 'contact', 'ai', 'formulas', 'cast', 'ingredients', 'rooms']);
+        assert.deepStrictEqual(ix.enums.map((e) => e.id), ['blobs', 'fields', 'contact', 'ai', 'formulas', 'cast', 'ingredients', 'rooms', 'wram-states', 'directions', 'collision', 'status-effects', 'weapon-classes', 'ring-icons']);
         const e = (id) => ix.enums.find((x) => x.id === id);
         assert.ok(e('blobs').entries.some((x) => x.cells[0] === 'WRAM' && x.cells[2] === '$7E0A26'));
         assert.ok(!e('blobs').entries.some((x) => /ENTITY_/.test(x.cells[1])), 'no unverified entity slots');

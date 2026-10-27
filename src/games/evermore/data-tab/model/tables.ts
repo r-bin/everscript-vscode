@@ -87,6 +87,24 @@ const STAT_FIELDS: [string, number, number][] = [
     ['XP', 0x23, 4], ['money', 0x27, 2], ['drop chance', 0x29, 1],
 ];
 
+const FORMULA_COSTS = 0xc43874;
+const FORMULA_NAMES = 0xc45d09;
+const INGREDIENT_NAMES = 0xc45ff3;
+const INGREDIENT_COUNT = 22;
+const FORMULA_COUNT = 35;
+const DOG_FORMS = 0x8f945d;
+const DOG_FORM_COUNT = 4;
+const DOG_FORM_STRIDE = 14;
+
+function text(rom: Uint8Array, snes: number): string {
+    let s = '';
+    for (let p = snesToRom(snes); p < rom.length && rom[p] && s.length < 80; p++) {
+        s += rom[p] >= 0x20 && rom[p] < 0x7f ? String.fromCharCode(rom[p]) : '·';
+    }
+    return s;
+}
+const textAt = (rom: Uint8Array, table: number, i: number): string => text(rom, 0xc40000 | read16(rom, snesToRom(table + i * 2)));
+
 function statsTable(rom: Uint8Array, names: { id: number; name: string }[]): Table {
     const rows: Cell[][] = [];
     for (let c = 0; c < CHARACTER_COUNT; c++) {
@@ -101,9 +119,90 @@ function statsTable(rom: Uint8Array, names: { id: number; name: string }[]): Tab
     };
 }
 
+function formulaCostsTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    for (let i = 0; i < FORMULA_COUNT; i++) {
+        const at = snesToRom(FORMULA_COSTS + i * 6);
+        const ing1 = rom[at], qty1 = rom[at + 1];
+        const ing2 = rom[at + 2], qty2 = rom[at + 3];
+        const flags = rom[at + 4];
+        const power = rom[at + 5];
+        const ing1Name = ing1 < INGREDIENT_COUNT ? textAt(rom, INGREDIENT_NAMES, ing1) : '—';
+        const ing2Name = ing2 < INGREDIENT_COUNT ? textAt(rom, INGREDIENT_NAMES, ing2) : '—';
+        rows.push([i, textAt(rom, FORMULA_NAMES, i), ing1Name, qty1, ing2Name, qty2, '$' + hex(flags, 2), power]);
+    }
+    return {
+        id: 'formula-costs', group: 'Alchemy', title: 'Formula ingredient costs & power', addr: '$C4:3874',
+        note: 'The 35 alchemy formula cost descriptors ($C4:3874, 6 bytes each): ingredient requirements, quantities, targeting flags, and base power/heal coefficient.',
+        columns: ['id', 'formula', 'ingredient 1', 'qty 1', 'ingredient 2', 'qty 2', 'flags', 'power'],
+        rows,
+        chart: { x: 'formula id', y: 'power', series: [{ name: 'base power', points: rows.map((r, i) => [i, r[7] as number]) }] },
+        vfs: vfs(FORMULA_COSTS),
+    };
+}
+
+function dogFormsTable(rom: Uint8Array): Table {
+    const FORM_NAMES = ['Wolfhound (Prehistoric)', 'Greyhound (Antiquity)', 'Poodle (Medieval)', 'Toaster Dog (Omnitopia)'];
+    const rows: Cell[][] = [];
+    for (let f = 0; f < DOG_FORM_COUNT; f++) {
+        const at = snesToRom(DOG_FORMS + f * DOG_FORM_STRIDE);
+        const atk = read16(rom, at);
+        const def = read16(rom, at + 2);
+        const mdef = read16(rom, at + 4);
+        const scent = read16(rom, at + 6);
+        rows.push([f, FORM_NAMES[f], atk, def, mdef, scent]);
+    }
+    return {
+        id: 'dog-forms', group: 'Characters', title: 'Dog breed form attributes', addr: '$8F:945D',
+        note: 'The 4 era forms of the companion Dog ($8F:945D, 14 bytes each): base physical attack, physical armor, magic defense, and scent detection radius in pixels ($7E:144D).',
+        columns: ['id', 'form', 'attack', 'defence', 'magic def', 'scent radius px'],
+        rows,
+        vfs: vfs(DOG_FORMS),
+    };
+}
+
+const WEAPON_LEVEL_TABLE = 0xc45b4a;
+const WEAPON_LEVEL_COUNT = 16;
+
+function weaponLevelsTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const props = [
+        'Standard uncharged strike (under 100% stamina)',
+        'Full 100% stamina weapon strike',
+        'Charge Level 2 strike / projectile shockwave',
+        'Charge Level 3 master power strike',
+        'Tier 4 Bazooka artillery shell blast',
+        'Tier 5 Bazooka heavy shell blast',
+        'Tier 6 Bazooka particle shell blast',
+        'Tier 7 Bazooka cryo shell burst',
+        'Tier 8 Bazooka high-yield explosion',
+        'Tier 9 Bazooka maximum thermal discharge',
+        'Tier 10 Special projectile tier',
+        'Tier 11 Special projectile tier',
+        'Tier 12 Master shell tier',
+        'Auxiliary calibration threshold 1',
+        'Auxiliary calibration threshold 2',
+        'Auxiliary calibration threshold 3',
+    ];
+    let accum = 0;
+    for (let lvl = 0; lvl < WEAPON_LEVEL_COUNT; lvl++) {
+        const req = read16(rom, snesToRom(WEAPON_LEVEL_TABLE + lvl * 2));
+        accum += req;
+        rows.push([lvl, req, accum, props[lvl] || '—']);
+    }
+    return {
+        id: 'weapon-levels', group: 'Progression', title: 'Weapon skill level thresholds', addr: '$C4:5B4A',
+        note: 'Base experience points required to advance weapon charge tiers ($C4:5B4A, 16 words): read by $8E:AC9B and tested against active weapon XP at $7E:0AC6,x.',
+        columns: ['tier', 'required xp', 'total accumulated', 'unlocked attack property'],
+        rows,
+        chart: { x: 'tier', y: 'required xp', series: [{ name: 'XP to next tier', points: rows.map((r) => [r[0] as number, r[1] as number]) }] },
+        vfs: vfs(WEAPON_LEVEL_TABLE),
+    };
+}
+
 /** Every table the view lists: only the ones decoded into readable values. */
 function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Table[] {
-    return [xpTable(rom), statsTable(rom, names), sineTable(rom), boomerangTable(rom)];
+    return [xpTable(rom), statsTable(rom, names), sineTable(rom), boomerangTable(rom), formulaCostsTable(rom), dogFormsTable(rom), weaponLevelsTable(rom)];
 }
 
 export { tablesModel };

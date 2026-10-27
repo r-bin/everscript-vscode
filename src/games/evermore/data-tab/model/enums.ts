@@ -162,10 +162,122 @@ function rooms(rom: Uint8Array): EnumList {
     };
 }
 
+function wramStates(): EnumList {
+    return {
+        id: 'wram-states', group: 'WRAM', title: 'WRAM state registers', columns: ['address', 'identifier', 'values', 'lifetime', 'purpose'],
+        entries: [
+            { cells: ['$7E:0377', 'WINDOW_0_STATE', '0=Closed, 1=Opening, 2=Open, 3=Closing', 'room', 'Primary dialogue window 0 lifecycle animation and active state'], vfs: bus(0x7e0377) },
+            { cells: ['$7E:03A3', 'WINDOW_1_STATE', '0=Closed, 1=Opening, 2=Open, 3=Closing', 'room', 'Secondary dialogue window 1 lifecycle state'], vfs: bus(0x7e03a3) },
+            { cells: ['$7E:0B2B', 'CHOICE_BOX_STATE', '0=Inactive, 1=Opening, 2=Active, 3=Confirmed', 'room', 'Branching dialogue choice box selection prompt state'], vfs: bus(0x7e0b2b) },
+            { cells: ['$7E:0B7B', 'AUDIO_FADE_STATE', '0=Steady, 1=Fade In, 2=Fade Out', 'frame', 'Master music volume attenuation ramp state'], vfs: bus(0x7e0b7b) },
+            { cells: ['$7E:0E4F', 'APU_SEQ_STATUS', '0=Idle, 1=Streaming, 2=Playing', 'frame', 'APU SPC700 music sequence transfer handshake status'], vfs: bus(0x7e0e4f) },
+            { cells: ['$7E:22EA', 'ROOM_LOAD_STATE', '0=Active, 1=Teardown, 2=Decompressing, 3=Ready', 'room', 'Room transition decompression and readiness state'], vfs: bus(0x7e22ea) },
+            { cells: ['$7E:235B', 'DOG_AI_COMMAND', '0=Follow, 1=Heel, 2=Sniff, 3=Attack', 'save', 'Dog companion behavioral command mode'], vfs: bus(0x7e235b) },
+            { cells: ['$7E:2360', 'EQUIPPED_WEAPON_CLASS', '0=Sword, 2=Axe, 4=Spear, 6=Bazooka', 'save', 'Active weapon class selector'], vfs: bus(0x7e2360) },
+            { cells: ['$7E:2363', 'DOG_FORM_INDEX', '0=Wolf, 1=Greyhound, 2=Poodle, 3=Toaster', 'save', 'Dog companion visual breed form and era'], vfs: bus(0x7e2363) },
+            { cells: ['$7E:241F', 'CAMERA_SCROLL_MODE', '0=Follow Boy, 1=Follow Dog, 2=Fixed/Scripted', 'room', 'Camera viewport tracking target mode'], vfs: bus(0x7e241f) },
+            { cells: ['$7E:3C6F', 'COMPANION_AI_STATE', '0=Idle, 1=Follow, 2=Sniff, 3=Evade, 4=Attack, 5=Return, 6=Stuck', 'room', 'Dog companion autonomous AI behavior state machine'], vfs: bus(0x7e3c6f) },
+        ],
+        source: 'WRAM discrete state machine variables and operational modes identified in the engine core, documented in docs/disassembly/engine-core/wram-enums.md and ram/ knowledge entries.',
+    };
+}
+
+function directions(): EnumList {
+    return {
+        id: 'directions', group: 'WRAM', title: 'Facing directions (entity +$22)', columns: ['id', 'heading', 'degrees', 'vector (dx, dy)'],
+        entries: [
+            { cells: ['$00', 'North', '0°', '(0, -1)'], detail: [['offset', '+$22 in struct Entity']] },
+            { cells: ['$02', 'Northeast', '45°', '(+1, -1)'], detail: [['offset', '+$22 in struct Entity']] },
+            { cells: ['$04', 'East', '90°', '(+1, 0)'], detail: [['offset', '+$22 in struct Entity']] },
+            { cells: ['$06', 'Southeast', '135°', '(+1, +1)'], detail: [['offset', '+$22 in struct Entity']] },
+            { cells: ['$08', 'South', '180°', '(0, +1)'], detail: [['offset', '+$22 in struct Entity']] },
+            { cells: ['$0A', 'Southwest', '225°', '(-1, +1)'], detail: [['offset', '+$22 in struct Entity']] },
+            { cells: ['$0C', 'West', '270°', '(-1, 0)'], detail: [['offset', '+$22 in struct Entity']] },
+            { cells: ['$0E', 'Northwest', '315°', '(-1, -1)'], detail: [['offset', '+$22 in struct Entity']] },
+        ],
+        source: 'The 8-way directional heading word at +$22 in every entity record ($7E:4EAB Boy, $7E:4F59 Dog), used for movement physics, sprite orientation, and projectile launch angles.',
+    };
+}
+
+function collisionTypes(): EnumList {
+    return {
+        id: 'collision', group: 'Maps', title: 'Tile collision physics', columns: ['id', 'name', 'physics behavior'],
+        entries: [
+            { cells: ['$0', 'Passable', 'Standard traversable ground'] },
+            { cells: ['$1', 'Impassable Wall', 'Solid barrier blocking all actor movement'] },
+            { cells: ['$2', 'Deep Water', 'Impassable water body; blocks non-flying actors'] },
+            { cells: ['$3', 'Pitfall', 'Drop hazard triggering fall damage and room respawn'] },
+            { cells: ['$4', 'Conveyor North', 'Continuous physics translation pushing actor north'] },
+            { cells: ['$5', 'Conveyor South', 'Continuous physics translation pushing actor south'] },
+            { cells: ['$6', 'Slope Northwest', '45° diagonal barrier: solid top-left half'] },
+            { cells: ['$7', 'Slope Northeast', '45° diagonal barrier: solid top-right half'] },
+            { cells: ['$8', 'Slope Southwest', '45° diagonal barrier: solid bottom-left half'] },
+            { cells: ['$9', 'Slope Southeast', '45° diagonal barrier: solid bottom-right half'] },
+            { cells: ['$A', 'Shallow Water', 'Traversable wading liquid; halves actor movement speed'] },
+            { cells: ['$B', 'Ledge Jump South', 'One-way elevation drop southward'] },
+            { cells: ['$C', 'Ledge Jump North', 'One-way elevation drop northward'] },
+            { cells: ['$D', 'Cuttable Grass', 'Interactive grass foliage cleared by melee attacks'] },
+            { cells: ['$E', 'Breakable Barrier', 'Solid obstacle destructible via Axe or Bazooka'] },
+            { cells: ['$F', 'Warp Doorway', 'Step-on room transition gateway'] },
+        ],
+        source: 'The 16 metatile collision physics types evaluated by func_90A420 (tile_collision_probe) and slope physics, documented in docs/disassembly/maps/tile-collision.md.',
+    };
+}
+
+function statusEffects(): EnumList {
+    return {
+        id: 'status-effects', group: 'Combat', title: 'Status effect afflictions', columns: ['id', 'name', 'color flash', 'behavior & tick effect'],
+        entries: [
+            { cells: ['$00', 'Normal', 'None', 'Standard healthy condition; no penalties'] },
+            { cells: ['$01', 'Poison', 'Green', 'Periodic health damage ticks every 60 frames (~1 sec)'] },
+            { cells: ['$02', 'Confounded', 'Pink', 'Inverts player D-pad directional movement inputs'] },
+            { cells: ['$03', 'Defense Down', 'Blue', 'Halves physical armor defense rating'] },
+            { cells: ['$04', 'Attack Down', 'Orange', 'Halves physical weapon attack power'] },
+            { cells: ['$05', 'Corrosion', 'Yellow', 'Rapid armor degradation and continuous acid tick damage'] },
+            { cells: ['$06', 'Plague', 'Purple', 'Severe health drain and continuous stat debuff'] },
+            { cells: ['$07', 'Barrier / Shield', 'White', 'Temporary invulnerability barrier absorbing hits'] },
+        ],
+        source: 'Combat status engine at $91:B632 and WRAM registers $7E:0A35 (Boy) and $7E:0A7F (Dog), documented in docs/disassembly/combat/status-effects.md.',
+    };
+}
+
+function weaponClassesEnum(): EnumList {
+    return {
+        id: 'weapon-classes', group: 'Combat', title: 'Weapon classes & animations', columns: ['class id', 'name', 'weapon count', 'special mechanics'],
+        entries: [
+            { cells: ['$00', 'Swords', '3 weapons', 'Rapid slashing; short charge delay; Bone Crusher, Gladiator, Crusader'] },
+            { cells: ['$02', 'Axes', '3 weapons', 'Heavy sweeping arc; clears vegetation and barriers; Spider Claw, Bronze Axe, Knight Basher'] },
+            { cells: ['$04', 'Spears', '3 weapons', 'Long-range forward thrust; penetrates front lines; Horn Spear, Bronze Spear, Lance'] },
+            { cells: ['$06', 'Bazooka', 'Consumes shells', 'Ranged heavy artillery; fires Thunder Ball, Particle Bomb, or Cryo-Blast'] },
+        ],
+        source: 'Equipped weapon class register $7E:2360 evaluated by ring menu equipment routines ($8E:9299) and combat attack animation routines.',
+    };
+}
+
+function ringIconCategories(): EnumList {
+    return {
+        id: 'ring-icons', group: 'UI', title: 'Ring menu icon ranges ($CE:8000)', columns: ['id range', 'category', 'count', 'description'],
+        entries: [
+            { cells: ['$0000–$0026', 'UI labels & reticles', '20', 'Spinning orb, dog marker, numeric digits, STAT/ACT/EDIT/EQUIP/LEVEL labels'] },
+            { cells: ['$0028–$0046', 'Weapons', '16', 'Swords, axes, spears, and bazookas across all tiers'] },
+            { cells: ['$0048–$008C', 'Alchemy formulas (animated)', '35', 'Primary 35 alchemy formula icons with 2-frame active rotation'] },
+            { cells: ['$008E–$009C', 'Consumables', '8', 'Petal, nectar, honey, biscuit, wings, essence, pixie dust, call bead'] },
+            { cells: ['$009E', 'Container', '1', 'Pouch'] },
+            { cells: ['$00A0–$00EE', 'Armour & gear', '40', 'Vests/chests (12), helms (12), gloves (12), collars (4)'] },
+            { cells: ['$00F0–$00F6', 'Portraits', '4', 'Fire Eyes, Horace, Queen, Professor'] },
+            { cells: ['$00F8–$0116', 'Alchemy formulas (secondary)', '16', 'Extended / auxiliary spell icons'] },
+            { cells: ['$0118–$0142', 'Ingredients', '22', 'The 22 catalytic ingredients in alphabetical order (Ash … Wax, Acorn)'] },
+        ],
+        source: 'The 162-word table at $CE:8000 naming the 8-byte descriptors for ring menu item icons, decoded in maps/item-icons.ts and docs/item-icons.md.',
+    };
+}
+
 /** Every list the view shows. `icons` are the formulas' ring-menu icons (PNG data URIs) in formula order. */
 function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | null)[] = []): EnumList[] {
     return [characterBlobs(rom, chars), recordFields(), contactHandlers(rom, chars), aiSelectors(rom, chars),
-        formulas(rom, icons), castIds(rom), ingredients(rom), rooms(rom)];
+        formulas(rom, icons), castIds(rom), ingredients(rom), rooms(rom),
+        wramStates(), directions(), collisionTypes(),
+        statusEffects(), weaponClassesEnum(), ringIconCategories()];
 }
 
 export { enumsModel };

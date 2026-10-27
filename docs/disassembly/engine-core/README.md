@@ -58,6 +58,9 @@ All analyses are derived from the clean retail ROM using CDL traces, Ghidra anno
 | [irq-dispatch.md](irq-dispatch.md) | **IRQ Dispatch**: Acknowledge TIMEUP, dispatch through the 24-bit WRAM hook, restore saved registers, and return through RTI. | `$80:84EA`, `$80:84EE`, `$80:858B` |
 | [interrupt-traps.md](interrupt-traps.md) | **COP and BRK Trap Entries**: The indexed entries each execute `STP` and do not return. | `$80:885E`, `$80:885F` |
 | [wram-map.md](wram-map.md) | **Core Engine WRAM Structure**: C struct layout, address offsets, lifetimes, bitmasks, and cross-references for core frame variables. | `$7E:0100`..`$7E:013A`, `$7E:0E65`..`$7E:0EC6`, `$7E:0F3A`, `$7E:22EA` |
+| [wram-enums.md](wram-enums.md) | **WRAM State Machines & Enums**: C enum definitions, state lifecycle transitions, 8-way facing directions, companion commands, and status IDs. | `$7E:0377`, `$7E:0B2B`, `$7E:235B`, `$7E:2360`, `$7E:241F`, `$7E:4EAB` |
+| [rom-enums.md](rom-enums.md) | **ROM Enumerations & Action Types**: Contact collision handlers, alchemy formulas, cast spell IDs, ingredient catalog, and physics collision nibbles. | `$8F:B6AE`, `$C4:5D09`, `$C4:5F97`, `$C4:5FF3`, `$90:A420` |
+| [rom-tables.md](rom-tables.md) | **Master ROM Data Tables**: Trigonometric sine/cosine, boy/dog XP curves, character record database, dog breed form stats, and script VM jump vectors. | `$80:88A3`, `$8C:8BD0`, `$8E:B678`, `$8F:945D`, `$8C:D7E1`, `$C4:3874` |
 
 ---
 
