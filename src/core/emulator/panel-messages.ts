@@ -26,6 +26,11 @@ function onWebviewMessage(msg: PageMessage) {
             _log(`The page heard nothing from the extension host for ${Math.round((msg.silentMs || 0) / 1000)} s and paused the game`, true);
             break;
 
+        // What the user did in the menu and panels, with the replay frame (webview/page/07-ui-log.js).
+        case 'uiLog':
+            for (const line of Array.isArray(msg.lines) ? msg.lines.slice(0, 200) : []) _log('UI ' + String(line).slice(0, 300));
+            break;
+
         // Once a minute while a ROM runs (webview/fps.js): how fast it really ran, for reports of a wrong speed.
         case 'emuPace':
             _log(`Pace: ${msg.fps} FPS at speed ${msg.speed}x (${msg.ratio}x real), screen ~${msg.hz} Hz, sound ${msg.soundMs} ms behind`);

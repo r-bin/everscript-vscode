@@ -85,7 +85,8 @@
   "tests/terra/terra-maps-dom.test.mts",
   "tests/debugger/recorder.test.js",
   "tests/debugger/host-watch.test.js",
-  "tests/debugger/click-walk.test.js"
+  "tests/debugger/click-walk.test.js",
+  "tests/debugger/ui-log.test.js"
  ],
  "emulator": [
   "tests/memory/music-tab.test.js",
