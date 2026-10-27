@@ -32,7 +32,9 @@
       if (currentMap < 0) {
         const m = getModule();
         if (m && typeof m.readMemory === 'function') {
-          currentMap = m.readMemory(0x7E0B3C) | (m.readMemory(0x7E0B3D) << 8);
+          // CURRENT_MAP_ID, one byte (knowledge ram/7e0adb.md). It read the word at $7E0B3C, asking the host
+          // for rooms like 3072 ("Room id 3072 out of range" in the Windows tester's log).
+          currentMap = m.readMemory(0x7E0ADB);
         }
       }
       return currentMap;
@@ -109,9 +111,7 @@
       setPillState('menu-val-hp-bar', !!thinHpBarEnabled);
       setPillState('menu-val-stamina-bar', !!thinStaminaBarEnabled);
       if (typeof tasOverlayIsOn === 'function') setPillState('menu-val-inputs', tasOverlayIsOn());
-      setPillState('menu-val-cheat-noclip', typeof cheatNoclipEnabled !== 'undefined' && !!cheatNoclipEnabled);
-      setPillState('menu-val-cheat-invincible', typeof cheatInvincibleEnabled !== 'undefined' && !!cheatInvincibleEnabled);
-      setPillState('menu-val-cheat-atlas', typeof cheatAtlasEnabled !== 'undefined' && !!cheatAtlasEnabled);
+      cheatMenuSync();
     }
 
     // Left / right on a row of tabs 1-4 (menu-view.ts changeMenuValue).
@@ -194,46 +194,7 @@
         }
       } else if (tab === 4) {
         // Tab 4: CHEATS
-        const m = getModule();
-        switch (row) {
-          case 0:
-            cheatNoclipEnabled = (delta > 0);
-            if (!cheatNoclipEnabled && m) disableNoclipCheat(m);
-            else if (cheatNoclipEnabled && m) maintainCheats(m);
-            setPillState('menu-val-cheat-noclip', cheatNoclipEnabled);
-            playMenuSound('click_toggle');
-            break;
-          case 1:
-            cheatInvincibleEnabled = (delta > 0);
-            if (!cheatInvincibleEnabled && m) disableInvincibleCheat(m);
-            else if (cheatInvincibleEnabled && m) maintainCheats(m);
-            setPillState('menu-val-cheat-invincible', cheatInvincibleEnabled);
-            playMenuSound('click_toggle');
-            break;
-          case 2:
-            cheatAtlasEnabled = (delta > 0);
-            if (!cheatAtlasEnabled && m) disableAtlasCheat(m);
-            else if (cheatAtlasEnabled && m) maintainCheats(m);
-            setPillState('menu-val-cheat-atlas', cheatAtlasEnabled);
-            playMenuSound('click_toggle');
-            break;
-          case 3:
-            if (m) healParty(m);
-            playMenuSound('click_confirm');
-            break;
-          case 4:
-            cheatNoclipEnabled = false;
-            cheatInvincibleEnabled = false;
-            cheatAtlasEnabled = false;
-            if (m) {
-              disableNoclipCheat(m);
-              disableInvincibleCheat(m);
-              disableAtlasCheat(m);
-            }
-            syncMenuValuesFromRuntime();
-            playMenuSound('click_toggle');
-            break;
-        }
+        cheatMenuRow(row, delta);
       }
     }
 
@@ -308,45 +269,6 @@
         toggleLootState(row);
       } else if (tab === 4) {
         // Tab 4: CHEATS
-        const m = getModule();
-        switch (row) {
-          case 0:
-            cheatNoclipEnabled = !cheatNoclipEnabled;
-            if (!cheatNoclipEnabled && m) disableNoclipCheat(m);
-            else if (cheatNoclipEnabled && m) maintainCheats(m);
-            setPillState('menu-val-cheat-noclip', cheatNoclipEnabled);
-            playMenuSound('click_toggle');
-            break;
-          case 1:
-            cheatInvincibleEnabled = !cheatInvincibleEnabled;
-            if (!cheatInvincibleEnabled && m) disableInvincibleCheat(m);
-            else if (cheatInvincibleEnabled && m) maintainCheats(m);
-            setPillState('menu-val-cheat-invincible', cheatInvincibleEnabled);
-            playMenuSound('click_toggle');
-            break;
-          case 2:
-            cheatAtlasEnabled = !cheatAtlasEnabled;
-            if (!cheatAtlasEnabled && m) disableAtlasCheat(m);
-            else if (cheatAtlasEnabled && m) maintainCheats(m);
-            setPillState('menu-val-cheat-atlas', cheatAtlasEnabled);
-            playMenuSound('click_toggle');
-            break;
-          case 3:
-            if (m) healParty(m);
-            playMenuSound('click_confirm');
-            break;
-          case 4:
-            cheatNoclipEnabled = false;
-            cheatInvincibleEnabled = false;
-            cheatAtlasEnabled = false;
-            if (m) {
-              disableNoclipCheat(m);
-              disableInvincibleCheat(m);
-              disableAtlasCheat(m);
-            }
-            syncMenuValuesFromRuntime();
-            playMenuSound('click_toggle');
-            break;
-        }
+        cheatMenuRow(row);
       }
     }

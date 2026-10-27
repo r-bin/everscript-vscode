@@ -82,7 +82,7 @@
       tasRec.frames++;
       tasRec.unsent++;
       if (!fromMovie && pad) tasRec.live = true;
-      if (typeof cheatAtlasEnabled !== 'undefined' && (cheatAtlasEnabled || cheatInvincibleEnabled || cheatNoclipEnabled)) tasRec.cheats = true;
+      if (typeof cheatsActive === 'function' && cheatsActive()) tasRec.cheats = true;
       if (tasRec.unsent >= TAS_FLUSH_FRAMES) tasFlush();
     }
 

@@ -1,207 +1,138 @@
 // TODO port to TS (docs/todo/port-to-ts.md)
 
-    function disableAtlasCheat(m) {
-      if (!m || !hasDebuggerApi(m)) return;
-      m.writeMemory(0x7E4ECF, 0xFF);
-      m.writeMemory(0x7E4ED0, 0xFF);
-      m.writeMemory(0x7E4F7D, 0xFF);
-      m.writeMemory(0x7E4F7E, 0xFF);
+    // -- Cheats (pause menu CHEATS tab) -----------------------------------------------------
+    // Each cheat is memory it holds, the way the practice ROM does it in Everscript (everscript repo:
+    // in/practice/main.evs; names from in/core/.../03_sprites.evs ATTRIBUTE_FLAGS and 02_ram.evs):
+    //   bit   an entity flag bit, set while on, cleared when switched off
+    //   word  a word held at a value while on; the game's own value is kept and put back when switched off
+    //         (the game may rebuild it meanwhile: a level up or new gear recomputes the stats, $8F:8398 / $8F:8600)
+    //   min   a word held at least at a value (nothing to put back)
+    // maintainCheats() runs before every frame (not during a replay) and writes only what differs, so a
+    // recording gets a W event when the game changed something, not one per byte per frame.
+    const CHEAT_BOY = 0x7E4E89, CHEAT_DOG = 0x7E4F37;   // entity records (knowledge ram/7e4e89.md)
+    const CHEAT_PARTY = [CHEAT_BOY, CHEAT_DOG];
+    const cheatPartyBit = (offset, bit) => CHEAT_PARTY.map(e => ({ kind: 'bit', addr: e + offset, bit: bit }));
+
+    const CHEATS = [
+      // attribute(.., NO_CLIP, True): FLAGS_2 (entity+$11) bit $04
+      { id: 'noclip', holds: cheatPartyBit(0x11, 0x04) },
+      // attribute(.., INVINCIBLE, True): FLAGS_1 (entity+$10) bit $02
+      { id: 'invincible', holds: cheatPartyBit(0x10, 0x02) },
+      // fake_atlas(): the stat words $0A3F / $0A41 (Boy) and $0A89 / $0A8B (Dog) and entity+$A0 / +$A2 at $EFFF
+      // (their names disagree across the repo: attack / defence, evade / magic defence; docs/todo/emulator-and-runtime.md),
+      // plus the atlas-glitch invincibility, FLAGS_5 (entity+$14) bit $08.
+      // (main.evs's unfake_atlas() puts fixed $0010 / $0000 back and clears the Dog's bit in the Boy's flags.)
+      { id: 'atlas', holds: [0x7E0A3F, 0x7E0A41, 0x7E0A89, 0x7E0A8B].concat(CHEAT_PARTY.flatMap(e => [e + 0xA0, e + 0xA2]))
+        .map(a => ({ kind: 'word', addr: a, value: 0xEFFF })).concat(cheatPartyBit(0x14, 0x08)) },
+      // Current HP (entity+$2A, BOY_CURRENT_HP $4EB3) never below 999: hits land, nobody dies.
+      { id: 'hp', holds: CHEAT_PARTY.map(e => ({ kind: 'min', addr: e + 0x2A, value: 999 })) },
+    ];
+    const cheatOn = { noclip: false, invincible: false, atlas: false, hp: false };
+    const cheatKept = new Map();   // word hold address -> the game's own value
+
+    function cheatRead16(m, a) { return m.readMemory(a) | (m.readMemory(a + 1) << 8); }
+    function cheatWrite16(m, a, v) { m.writeMemory(a, v & 0xFF); m.writeMemory(a + 1, (v >> 8) & 0xFF); }
+
+    function cheatHold(m, h) {
+      if (h.kind === 'bit') {
+        const v = m.readMemory(h.addr);
+        if (!(v & h.bit)) m.writeMemory(h.addr, v | h.bit);
+        return;
+      }
+      const v = cheatRead16(m, h.addr);
+      if (h.kind === 'min') {
+        if (v < h.value) cheatWrite16(m, h.addr, h.value);
+        return;
+      }
+      if (v === h.value) return;
+      cheatKept.set(h.addr, v);   // the first time, or the game rebuilt it
+      cheatWrite16(m, h.addr, h.value);
     }
 
-    function disableInvincibleCheat(m) {
-      if (!m || !hasDebuggerApi(m)) return;
-      const bLow = m.readMemory(0x7E4E99);
-      m.writeMemory(0x7E4E99, bLow & ~0x02);
-      const dLow = m.readMemory(0x7E4F47);
-      m.writeMemory(0x7E4F47, dLow & ~0x02);
+    function cheatRelease(m, h) {
+      if (h.kind === 'bit') {
+        const v = m.readMemory(h.addr);
+        if (v & h.bit) m.writeMemory(h.addr, v & ~h.bit);
+      } else if (h.kind === 'word' && cheatKept.has(h.addr)) {
+        // Only while it still holds the cheat's value: after a reset the game owns it again.
+        if (cheatRead16(m, h.addr) === h.value) cheatWrite16(m, h.addr, cheatKept.get(h.addr));
+        cheatKept.delete(h.addr);
+      }
     }
 
-    function disableNoclipCheat(m) {
-      if (!m || !hasDebuggerApi(m)) return;
-      const bHi = m.readMemory(0x7E4E9A);
-      m.writeMemory(0x7E4E9A, bHi & ~0x04);
-      const dHi = m.readMemory(0x7E4F48);
-      m.writeMemory(0x7E4F48, dHi & ~0x04);
+    function cheatModule() {
+      const m = getModule();
+      return m && hasDebuggerApi(m) && romLoaded ? m : null;
     }
 
+    function maintainCheats(m) {
+      if (!m || !hasDebuggerApi(m) || !romLoaded) return;
+      try {
+        for (const c of CHEATS) if (cheatOn[c.id]) c.holds.forEach(h => cheatHold(m, h));
+      } catch (_) {}
+    }
+
+    function setCheat(id, on) {
+      if (!(id in cheatOn)) return;
+      cheatOn[id] = !!on;
+      const m = cheatModule();
+      const c = CHEATS.find(x => x.id === id);
+      if (m) {
+        try { c.holds.forEach(h => (on ? cheatHold(m, h) : cheatRelease(m, h))); } catch (_) {}
+      }
+      setPillState('menu-val-cheat-' + id, cheatOn[id]);
+    }
+
+    /** Any cheat on: the recording says so (tas: `# cheats`). */
+    function cheatsActive() {
+      return Object.keys(cheatOn).some(id => cheatOn[id]);
+    }
+
+    function disableAllCheats() {
+      for (const id of Object.keys(cheatOn)) if (cheatOn[id]) setCheat(id, false);
+    }
+
+    // Full heal: current HP = max HP (stats block: BOY_MAX_HP $0A35, DOG_MAX_HP $0A7F).
     function healParty(m) {
       if (!m || !hasDebuggerApi(m)) return;
-      // Boy HP $7E4EB3 = 999 (0x03E7)
-      m.writeMemory(0x7E4EB3, 0xE7);
-      m.writeMemory(0x7E4EB4, 0x03);
-      // Dog HP $7E4F61 = 999 (0x03E7)
-      m.writeMemory(0x7E4F61, 0xE7);
-      m.writeMemory(0x7E4F62, 0x03);
+      [[CHEAT_BOY, 0x7E0A35], [CHEAT_DOG, 0x7E0A7F]].forEach(([e, max]) => {
+        const hp = cheatRead16(m, max);
+        if (hp) cheatWrite16(m, e + 0x2A, hp);
+      });
       updateCheatsTab(m);
     }
 
-    // -- Update Entities Tab --
-    function updateEntitiesTab(preState, rom) {
-      if (!preState || !preState.entBuf || !rom) return;
-      const buf = preState.entBuf;
-      const tbody = document.getElementById('ent-tbody');
-      if (!tbody) return;
-
-      const entities = entityAddresses(buf); // panel-webview.js: active + inactive lists
-
-      let partyCount = 0;
-      let enemyCount = 0;
-      let npcCount = 0;
-
-      const entList = [];
-      for (let i = 0; i < entities.length; i++) {
-        const addr = entities[i];
-        const rel = addr - 0x3DDF;
-        if (rel < 0 || rel + 0x70 > buf.length) continue;
-
-        const isBoy = (addr === 0x4E89);
-        const isDog = (addr === 0x4F37);
-        const flags = buf[rel + 0x10] | (buf[rel + 0x11] << 8);
-        const isNpc = !isBoy && !isDog && ((flags & 0x0002) !== 0);
-        const isEnemy = !isBoy && !isDog && ((flags & 0x0002) === 0);
-
-        if (isBoy || isDog) partyCount++;
-        else if (isNpc) npcCount++;
-        else enemyCount++;
-
-        const stype = buf[rel + 0x60] | (buf[rel + 0x61] << 8);
-        let name = isBoy ? 'Boy' : isDog ? 'Dog' : '';
-        if (!name && stype >= 0x8000) {
-          const namePtr = EvsRom.entityNamePointer(rom, stype);
-          name = decodeEntityName(rom, namePtr, stype);
-        }
-        if (!name) name = isBoy ? 'Boy' : isDog ? 'Dog' : ('Entity $' + addr.toString(16).toUpperCase());
-
-        const hp = buf[rel + 0x2A] | (buf[rel + 0x2B] << 8);
-        const rawX = buf[rel + 0x1A] | (buf[rel + 0x1B] << 8);
-        const posX = rawX >= 0x8000 ? rawX - 0x10000 : rawX;
-        const rawY = buf[rel + 0x1C] | (buf[rel + 0x1D] << 8);
-        const posY = rawY >= 0x8000 ? rawY - 0x10000 : rawY;
-        const rawZ = buf[rel + 0x1E] | (buf[rel + 0x1F] << 8);
-        const posZ = rawZ >= 0x8000 ? rawZ - 0x10000 : rawZ;
-
-        const spriteBank = buf[rel + 0x08];
-        const spriteAddr = buf[rel + 0x06] | (buf[rel + 0x07] << 8);
-        const spritePtr = (spriteBank >= 0xC0 && spriteBank <= 0xDF && spriteAddr >= 3)
-          ? ((spriteBank << 16) | spriteAddr)
-          : 0;
-
-        const slotOffset = buf[rel + 0x0C] & 0x0E;
-        let palAddr = preState.palSlotBuf ? (preState.palSlotBuf[slotOffset] | (preState.palSlotBuf[slotOffset + 1] << 8)) : 0;
-        if (!palAddr) {
-          if (isBoy) palAddr = 0xAD0B;
-          else if (isDog) palAddr = getDogPalette(preState.mapId, spriteBank);
-          else palAddr = 0xAD0B;
-        }
-
-        const cat = isBoy ? 'Boy' : isDog ? 'Dog' : isNpc ? 'NPC' : 'Enemy';
-        entList.push({
-          addr: addr,
-          name: name,
-          category: cat,
-          hp: hp,
-          x: posX,
-          y: posY,
-          z: posZ,
-          flags: flags,
-          palSlot: buf[rel + 0x0C] & 0x0F,
-          palAddr: palAddr,
-          spritePtr: spritePtr,
-        });
+    // unlock(ITEM.MONEY): 6,666,666 of each currency, the four 24-bit purses TALONS $0AC6, JEWELS $0AC9,
+    // GOLD $0ACC, CREDITS $0ACF (scripts add and take through the same purses: $8C:D557 / $8C:D501).
+    const CHEAT_MONEY = 6666666;
+    function giveMoney(m) {
+      if (!m || !hasDebuggerApi(m)) return;
+      for (const a of [0x7E0AC6, 0x7E0AC9, 0x7E0ACC, 0x7E0ACF]) {
+        m.writeMemory(a, CHEAT_MONEY & 0xFF);
+        m.writeMemory(a + 1, (CHEAT_MONEY >> 8) & 0xFF);
+        m.writeMemory(a + 2, (CHEAT_MONEY >> 16) & 0xFF);
       }
+    }
 
-      // Update counters
-      const elCount = document.getElementById('ss-ent-count');
-      if (elCount) elCount.textContent = String(entList.length);
-      entityCounts.all = entList.length;
-      entityCounts.party = partyCount;
-      entityCounts.enemies = enemyCount;
-      entityCounts.npcs = npcCount;
-      if (typeof emuSyncPlaceRow === 'function') emuSyncPlaceRow('entities');
+    // The CHEATS tab's rows, in menu-tabs.html order: a toggle (cheat id) or an action.
+    const CHEAT_ROWS = ['noclip', 'invincible', 'atlas', 'hp',
+      { act: m => healParty(m), sound: 'click_confirm' },
+      { act: m => giveMoney(m), sound: 'click_confirm' },
+      { act: () => disableAllCheats(), sound: 'click_toggle' }];
 
-      // Filter and render
-      tbody.innerHTML = '';
-      const cat = panelFilter.entities;
-      for (let i = 0; i < entList.length; i++) {
-        const ent = entList[i];
-        if (cat === 'party' && ent.category !== 'Boy' && ent.category !== 'Dog') continue;
-        if (cat === 'enemies' && ent.category !== 'Enemy') continue;
-        if (cat === 'npcs' && ent.category !== 'NPC') continue;
-
-        const ping = () => activeTargetPings.push({ x: ent.x, y: ent.y, birth: performance.now(), duration: 2500 });
-        const tr = document.createElement('tr');
-        // A pause-menu row: Up / Down select it, B pings the character (emulator-panels.js).
-        tr.className = 'menu-pick ent-row';
-        tr.onMenuAction = ping;
-
-        // Icon
-        const tdIcon = document.createElement('td');
-        tdIcon.appendChild(renderEntityIconCanvas(rom, ent.spritePtr, ent.palAddr));
-        tr.appendChild(tdIcon);
-
-        // Address
-        const tdAddr = document.createElement('td');
-        tdAddr.style.color = '#4ec9b0';
-        tdAddr.textContent = '$' + ent.addr.toString(16).toUpperCase();
-        tr.appendChild(tdAddr);
-
-        // Name
-        const tdName = document.createElement('td');
-        tdName.style.fontWeight = 'bold';
-        tdName.textContent = ent.name;
-        tr.appendChild(tdName);
-
-        // Category
-        const tdCat = document.createElement('td');
-        const badge = document.createElement('span');
-        badge.className = (ent.category === 'Boy' || ent.category === 'Dog')
-          ? 'badge-party'
-          : (ent.category === 'NPC' ? 'badge-npc' : 'badge-enemy');
-        badge.textContent = ent.category;
-        tdCat.appendChild(badge);
-        tr.appendChild(tdCat);
-
-        // HP
-        const tdHp = document.createElement('td');
-        tdHp.textContent = String(ent.hp);
-        tr.appendChild(tdHp);
-
-        // Position
-        const tdPos = document.createElement('td');
-        tdPos.textContent = ent.x + ', ' + ent.y + (ent.z ? ' (z:' + ent.z + ')' : '');
-        tr.appendChild(tdPos);
-
-        // Flags
-        const tdFlags = document.createElement('td');
-        if (ent.flags & 0x0002) {
-          const f = document.createElement('span'); f.className = 'flag-chip inv'; f.textContent = 'INV'; tdFlags.appendChild(f);
-        }
-        if (ent.flags & 0x0400) {
-          const f = document.createElement('span'); f.className = 'flag-chip phase'; f.textContent = 'PHASE'; tdFlags.appendChild(f);
-        }
-        if (ent.flags & 0x0020) {
-          const f = document.createElement('span'); f.className = 'flag-chip inact'; f.textContent = 'INACT'; tdFlags.appendChild(f);
-        }
-        if (!tdFlags.children.length) {
-          tdFlags.textContent = '$' + ent.flags.toString(16).toUpperCase();
-        }
-        tr.appendChild(tdFlags);
-
-        // Palette
-        const tdPal = document.createElement('td');
-        tdPal.textContent = 'Pal ' + ent.palSlot + ' ($' + ent.palAddr.toString(16).toUpperCase() + ')';
-        tr.appendChild(tdPal);
-
-        // Ping button
-        const tdPing = document.createElement('td');
-        const btnPing = document.createElement('button');
-        btnPing.className = 'ss-btn';
-        btnPing.textContent = 'ping';
-        btnPing.addEventListener('click', ping);
-        tdPing.appendChild(btnPing);
-        tr.appendChild(tdPing);
-
-        tbody.appendChild(tr);
+    // Left / right (delta) or B (no delta) on a CHEATS row.
+    function cheatMenuRow(row, delta) {
+      const r = CHEAT_ROWS[row];
+      if (typeof r === 'string') {
+        setCheat(r, delta === undefined ? !cheatOn[r] : delta > 0);
+        playMenuSound('click_toggle');
+      } else if (r) {
+        const m = cheatModule();
+        if (m) r.act(m);
+        playMenuSound(r.sound);
       }
-      if (typeof emuPanelRowsChanged === 'function') emuPanelRowsChanged('entities');
+    }
+
+    function cheatMenuSync() {
+      for (const id of Object.keys(cheatOn)) setPillState('menu-val-cheat-' + id, cheatOn[id]);
     }

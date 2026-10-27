@@ -48,11 +48,6 @@
       if (redraw && emuPanelVisible('alchemy')) updateAlchemyTab(lastSampledPreState, bottomBarRom());
     }
 
-    // Cheats state
-    let cheatAtlasEnabled = false;
-    let cheatInvincibleEnabled = false;
-    let cheatNoclipEnabled = false;
-
     // What ENTITIES / ALCHEMY / PALETTES list: chosen in their pause-menu tab ("Show" row,
     // webview/emulator-panels.js emuPanelMenuValue), the same wherever the panel is shown.
     const PANEL_FILTERS = {
@@ -205,36 +200,3 @@
       return charId >= 0 ? ('Char #' + charId) : '$' + (stype || 0).toString(16).toUpperCase();
     }
 
-    function maintainCheats(m) {
-      if (!m || !hasDebuggerApi(m) || !romLoaded) return;
-      try {
-        if (cheatAtlasEnabled) {
-          // Boy status slot 1 ($7E4ECF): id=0x0000, timer=0x7FFF, param=0x01E0 (+480 attack)
-          m.writeMemory(0x7E4ECF, 0x00);
-          m.writeMemory(0x7E4ED0, 0x00);
-          m.writeMemory(0x7E4ED1, 0xFF);
-          m.writeMemory(0x7E4ED2, 0x7F);
-          m.writeMemory(0x7E4ED3, 0xE0);
-          m.writeMemory(0x7E4ED4, 0x01);
-          // Dog status slot 1 ($7E4F7D)
-          m.writeMemory(0x7E4F7D, 0x00);
-          m.writeMemory(0x7E4F7E, 0x00);
-          m.writeMemory(0x7E4F7F, 0xFF);
-          m.writeMemory(0x7E4F80, 0x7F);
-          m.writeMemory(0x7E4F81, 0xE0);
-          m.writeMemory(0x7E4F82, 0x01);
-        }
-        if (cheatInvincibleEnabled) {
-          const bLow = m.readMemory(0x7E4E99);
-          if ((bLow & 0x02) === 0) m.writeMemory(0x7E4E99, bLow | 0x02);
-          const dLow = m.readMemory(0x7E4F47);
-          if ((dLow & 0x02) === 0) m.writeMemory(0x7E4F47, dLow | 0x02);
-        }
-        if (cheatNoclipEnabled) {
-          const bHi = m.readMemory(0x7E4E9A);
-          if ((bHi & 0x04) === 0) m.writeMemory(0x7E4E9A, bHi | 0x04);
-          const dHi = m.readMemory(0x7E4F48);
-          if ((dHi & 0x04) === 0) m.writeMemory(0x7E4F48, dHi | 0x04);
-        }
-      } catch (_) {}
-    }

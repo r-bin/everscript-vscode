@@ -15,10 +15,21 @@
   Fixed: heartbeat + the page pauses itself (`page/05-host-watch.js`), a restarted host offers to
   reopen (`session-watch.ts`), loud save failures, CDL drains on blur/close (host memory) and is written once a minute,
   deactivate saves, the replay check ships and hides its console, sound back in time after fast forward.
-- 🔴 **Replay desync after a recorded memory write.** The tester's movie (`…_2026-10-25_19-24-07.evsmv`)
-  replays in sync up to frame 79887, where it recorded `W|` writes to `$7FFF00…`/`$7E299A…` (an injected
-  script, it seems), then desyncs at the checksum of frame 79920. A write recorded at a frame boundary
-  that does not land at the same point when replayed: reproduce with `tools/cdl/replay.js --until 79920`.
+- 🔴 **Replay desync after an injected script lands one frame late.** The tester's movie
+  (`…_2026-10-25_19-24-07.evsmv`) recorded a right-click walk (`injectEverscript`: bytecode `W|7FFF00…`, slot
+  `$7E299A`, run list `$7E2F2A`, `$86`) before frame 79887 and desyncs at 79920. Moving that W block one frame
+  later (before 79888) replays in sync to 82000 (85 checksums); -2, -1, +2, +3 do not. The page's own order
+  (W flushed before the F line, replay applies W before the frame) looks right on paper and in the fake-core
+  test, so the lost frame is somewhere live: record an injection with the page on the real core, replay it.
+  Reproduce: `tools/cdl/replay.js <movie> <rom> --from-frame 79500 --until 82000`.
+- 🟡 **Collision overlay blank "after a while":** not reproduced. Two weak spots: a room-map request that fails
+  or gets no answer is never repeated (`06-inidisp-shadow.js` asks only when room / objects / cut grass
+  change); after a replay desync the game is in states nobody played. Fixed: the menu's room fallback read
+  the word at `$7E0B3C` (requests for room 3072) instead of `$7E0ADB`.
+- 🟡 **Stat word names disagree:** `$0A3F` / `$0A41` (Boy, `$0A89` / `$0A8B` Dog, $4A apart) are attack /
+  defence in the compiler's `BOY_STATS` layout (knowledge ram/7e0a26.md), evade / magic defence in
+  `docs/disassembly/combat/defense-buffs.md` and `$8F:8398`, magic / physical defence in
+  `companion-form-stats.md` and `$8F:866B` (whose code only adds +80 / +250). Settle it against the game.
 - 🟡 **"4x looks like 10x on a 144 Hz screen":** not reproduced; the pacing simulates to 4.00x at 144 and
   165 Hz with frames up to 4 ms. The `Pace:` line in the Emulator log (once a minute) will tell.
 - ✅ CDL survives a dead host (v0.355.5): deltas kept until written, parked in the page's IndexedDB, handed

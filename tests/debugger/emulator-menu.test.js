@@ -166,9 +166,8 @@ test('getMenuClientScript defines isPlayerControllable, unified pause, objects, 
     assert.ok(script.includes("isL = e.key === 'q'"), 'missing extended L keybind detection');
     assert.ok(script.includes("isR = e.key === 'e'"), 'missing extended R keybind detection');
     assert.ok(script.includes('function startKeybindListen(btnName)'), 'missing startKeybindListen');
-    assert.ok(script.includes('cheatNoclipEnabled'), 'missing cheatNoclipEnabled integration');
-    assert.ok(script.includes('cheatInvincibleEnabled'), 'missing cheatInvincibleEnabled integration');
-    assert.ok(script.includes('healParty'), 'missing healParty integration');
+    assert.ok(script.includes('cheatMenuRow(row, delta)') && script.includes('cheatMenuRow(row)'), 'CHEATS rows go to the cheat module (tests/debugger/cheats.test.js)');
+    assert.ok(script.includes('cheatMenuSync()'), 'CHEATS pills follow the cheat module');
     assert.ok(script.includes('function setStartOpensMenu(on)'), 'missing setStartOpensMenu function');
 });
 

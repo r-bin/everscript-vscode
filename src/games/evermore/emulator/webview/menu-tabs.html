@@ -103,7 +103,7 @@
             <div id="menu-loot-list" class="menu-scroll-list"></div>
           </div>
 
-          <!-- Tab 4: CHEATS -->
+          <!-- Tab 4: CHEATS (rows in bottom-bar/01b-cheats.js CHEAT_ROWS order) -->
           <div id="menu-panel-4" class="menu-tab-panel" data-needs="game">
             <div class="menu-row selected" data-row="0" data-action="toggle-cheat-noclip">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> No Clip / Phasing</div>
@@ -122,20 +122,34 @@
               </div>
             </div>
             <div class="menu-row" data-row="2" data-action="toggle-cheat-atlas">
-              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Atlas Power (+480 ATK)</div>
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Atlas Glitch (stats maxed, invincible)</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
                 <span id="menu-val-cheat-atlas" class="menu-pill">OFF</span>
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
-            <div class="menu-row" data-row="3" data-action="action-cheat-heal">
-              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Full Heal Party (999 HP)</div>
+            <div class="menu-row" data-row="3" data-action="toggle-cheat-hp">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Infinite HP (at least 999)</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-cheat-hp" class="menu-pill">OFF</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="4" data-action="action-cheat-heal">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Full Heal Party (max HP)</div>
               <div class="menu-row-value">
                 <span class="menu-action-pill">[B] Heal</span>
               </div>
             </div>
-            <div class="menu-row" data-row="4" data-action="action-cheat-disable-all">
+            <div class="menu-row" data-row="5" data-action="action-cheat-money">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Money (6,666,666 of each currency)</div>
+              <div class="menu-row-value">
+                <span class="menu-action-pill">[B] Give</span>
+              </div>
+            </div>
+            <div class="menu-row" data-row="6" data-action="action-cheat-disable-all">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Disable All Cheats</div>
               <div class="menu-row-value">
                 <span class="menu-action-pill">[B] Reset</span>

@@ -94,10 +94,7 @@ test('getBottomBarClientScript exports essential functions and spell definitions
     const script = getBottomBarClientScript();
     assert.ok(script.includes('const ALCHEMY_SPELL_MAP'), 'ALCHEMY_SPELL_MAP missing');
     assert.ok(script.includes('maintainCheats'), 'maintainCheats function missing');
-    assert.ok(script.includes('disableAtlasCheat'), 'disableAtlasCheat function missing');
-    assert.ok(script.includes('disableInvincibleCheat'), 'disableInvincibleCheat function missing');
-    assert.ok(script.includes('disableNoclipCheat'), 'disableNoclipCheat function missing');
-    assert.ok(script.includes('healParty'), 'healParty function missing');
+    assert.ok(script.includes('function setCheat(') && script.includes('function giveMoney(') && script.includes('healParty'), 'cheat module missing (tests/debugger/cheats.test.js)');
     assert.ok(script.includes('updateEntitiesTab'), 'updateEntitiesTab function missing');
     assert.ok(script.includes('updateAlchemyTab'), 'updateAlchemyTab function missing');
     assert.ok(script.includes('updatePalettesTab'), 'updatePalettesTab function missing');
