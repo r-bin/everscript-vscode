@@ -435,7 +435,42 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:12ED` | `Byte×7` | `cgram_queue_slot_13` | `Frame` | Partial CGRAM DMA slot 13 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
 | `$7E:12F4` | `Byte×7` | `cgram_queue_slot_14` | `Frame` | Partial CGRAM DMA slot 14 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
 | `$7E:12FB` | `Byte×7` | `cgram_queue_slot_15` | `Frame` | Partial CGRAM DMA slot 15 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:1302` | `Byte×7` | `cgram_queue_slot_16` | `Frame` | Partial CGRAM DMA slot 16 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:1309` | `Byte×7` | `cgram_queue_slot_17` | `Frame` | Partial CGRAM DMA slot 17 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:1310` | `Byte×7` | `cgram_queue_slot_18` | `Frame` | Partial CGRAM DMA slot 18 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:1317` | `Byte×7` | `cgram_queue_slot_19` | `Frame` | Partial CGRAM DMA slot 19 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:131E` | `Byte×7` | `cgram_queue_slot_20` | `Frame` | Partial CGRAM DMA slot 20 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:1325` | `Byte×7` | `cgram_queue_slot_21` | `Frame` | Partial CGRAM DMA slot 21 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:132C` | `Byte×7` | `cgram_queue_slot_22` | `Frame` | Partial CGRAM DMA slot 22 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:1333` | `Byte×7` | `cgram_queue_slot_23` | `Frame` | Partial CGRAM DMA slot 23 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:133A` | `Byte×7` | `cgram_queue_slot_24` | `Frame` | Partial CGRAM DMA slot 24 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:1341` | `Byte×7` | `cgram_queue_slot_25` | `Frame` | Partial CGRAM DMA slot 25 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:1348` | `Byte×7` | `cgram_queue_slot_26` | `Frame` | Partial CGRAM DMA slot 26 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:134F` | `Byte×7` | `cgram_queue_slot_27` | `Frame` | Partial CGRAM DMA slot 27 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:1356` | `Byte×7` | `cgram_queue_slot_28` | `Frame` | Partial CGRAM DMA slot 28 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:135D` | `Byte×7` | `cgram_queue_slot_29` | `Frame` | Partial CGRAM DMA slot 29 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:1364` | `Byte×7` | `cgram_queue_slot_30` | `Frame` | Partial CGRAM DMA slot 30 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:136B` | `Byte×7` | `cgram_queue_slot_31` | `Frame` | Partial CGRAM DMA slot 31 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
+| `$7E:1378` | `Word` | `anim_tile_chan_0_base` | `Room` | Animated background tile channel 0 base pattern VRAM destination word ($90:D5CF). |
+| `$7E:137A` | `Word` | `anim_tile_chan_1_base` | `Room` | Animated background tile channel 1 base pattern VRAM destination word. |
+| `$7E:137C` | `Word` | `anim_tile_chan_2_base` | `Room` | Animated background tile channel 2 base pattern VRAM destination word. |
+| `$7E:1398` | `Byte` | `anim_tile_chan_0_frame` | `Room` | Animated background tile channel 0 current sequence frame index ($90:D59E). |
+| `$7E:1399` | `Byte` | `anim_tile_chan_1_frame` | `Room` | Animated background tile channel 1 current sequence frame index. |
+| `$7E:139A` | `Byte` | `anim_tile_chan_2_frame` | `Room` | Animated background tile channel 2 current sequence frame index. |
+| `$7E:139B` | `Byte` | `anim_tile_chan_3_frame` | `Room` | Animated background tile channel 3 current sequence frame index. |
+| `$7E:13B8` | `Byte` | `anim_tile_chan_0_total` | `Room` | Animated background tile channel 0 total frames in animation cycle ($90:D5AC). |
+| `$7E:13B9` | `Byte` | `anim_tile_chan_1_total` | `Room` | Animated background tile channel 1 total frames in animation cycle. |
+| `$7E:13BA` | `Byte` | `anim_tile_chan_2_total` | `Room` | Animated background tile channel 2 total frames in animation cycle. |
+| `$7E:13BB` | `Byte` | `anim_tile_chan_3_total` | `Room` | Animated background tile channel 3 total frames in animation cycle. |
 | `$7E:13D2` | 30 bytes | `TILE_ANIM_BUFFERS` | Room | Intermediate staging buffers for animated tile family graphics. |
+| `$7E:13D8` | `Byte` | `anim_tile_chan_0_speed` | `Room` | Animated background tile channel 0 frame delay interval ticks ($90:D596). |
+| `$7E:13D9` | `Byte` | `anim_tile_chan_1_speed` | `Room` | Animated background tile channel 1 frame delay interval ticks. |
+| `$7E:13DA` | `Byte` | `anim_tile_chan_2_speed` | `Room` | Animated background tile channel 2 frame delay interval ticks. |
+| `$7E:13DB` | `Byte` | `anim_tile_chan_3_speed` | `Room` | Animated background tile channel 3 frame delay interval ticks. |
+| `$7E:13F8` | `Byte` | `anim_tile_chan_0_timer` | `Room` | Animated background tile channel 0 countdown timer ticks until next frame transition ($90:D58C). |
+| `$7E:13F9` | `Byte` | `anim_tile_chan_1_timer` | `Room` | Animated background tile channel 1 countdown timer ticks until next frame transition. |
+| `$7E:13FA` | `Byte` | `anim_tile_chan_2_timer` | `Room` | Animated background tile channel 2 countdown timer ticks until next frame transition. |
+| `$7E:13FB` | `Byte` | `anim_tile_chan_3_timer` | `Room` | Animated background tile channel 3 countdown timer ticks until next frame transition. |
 | `$7E:1432` | 2 bytes | `ANIM_FRAME_HOLD_TIMER` | Frame | Remaining frame duration before advancing to next animated tile phase. |
 | `$7E:1434` | 2 bytes | `PENDING_TALK_TARGET_PTR` | Room | Pointer to NPC actor entity currently being spoken to or interacted with ($FFFF = none). |
 | `$7E:143A` | 2 bytes | `CAMERA_SECONDARY_ACTOR_PTR` | Room | Pointer to secondary actor entity considered for camera framing (Dog at $7E:4F37). |
@@ -443,6 +478,13 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:143F` | 1 | `DOG_SPRITE_ANIM_BANK` | Room | Companion Mechanics: High byte / ROM bank of current Dog sprite animation record. |
 | `$7E:1443` | 2 | `DOG_PORTRAIT_TILE_OFFSET` | Room | UI Mechanics: Dog HUD portrait sprite VRAM tile offset ($8F:9471). |
 | `$7E:1445` | 2 | `DOG_PORTRAIT_VRAM_TARGET` | Room | UI Mechanics: Dog HUD portrait VRAM destination word address ($8F:9471). |
+| `$7E:1447` | `Word` | `dog_form_base_magic_def` | `Save` | Active dog breed base magic defense stat ($8F:94F0). |
+| `$7E:1449` | `Word` | `dog_form_base_evade` | `Save` | Active dog breed base evasion percentage stat ($8F:94F7). |
+| `$7E:144B` | `Word` | `dog_form_base_hit_rate` | `Save` | Active dog breed base accuracy / hit rate stat ($8F:94FE). |
+| `$7E:144D` | `Word` | `dog_form_scent_radius` | `Save` | Active dog breed ingredient sniffing radius / detection range in pixels ($8F:9505). |
+| `$7E:1459` | `Word` | `dog_ai_target_distance` | `Frame` | Euclidean distance word between Dog companion and active combat target ($8F:DCD0). |
+| `$7E:1460` | `Word` | `dog_sniff_target_x` | `Frame` | World X coordinate of hidden ingredient / sniff spot currently alerted by Dog ($8F:822A). |
+| `$7E:1462` | `Word` | `dog_sniff_target_y` | `Frame` | World Y coordinate of hidden ingredient / sniff spot currently alerted by Dog ($8F:8231). |
 | `$7E:1518` | 2 bytes | `HDMA_ACTIVE_BANK_PTR` | Frame | Pointer to active double-buffer table feeding HDMA channel tables. |
 | `$7E:151A` | 36 bytes | `HDMA_BUFFER_A` | Frame | HDMA scanline table double-buffer Bank A (color gradients / perspective lines). |
 | `$7E:153E` | 36 bytes | `HDMA_BUFFER_B` | Frame | HDMA scanline table double-buffer Bank B (color gradients / perspective lines). |
@@ -824,6 +866,20 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:3C6B` | 2 bytes | `COMPANION_TARGET_Y_LATCH` | Room | Latched goal Y position during companion pathfinding route execution. |
 | `$7E:3C6D` | 2 bytes | `COMPANION_TARGET_ACTOR_PTR` | Room | Pointer to entity record companion is actively following (points to Boy at `$7E:4E89`). |
 | `$7E:3C6F` | 2 bytes | `COMPANION_AI_STATE` | Room | Companion Dog AI behavior state enum (0 = Idle, 1 = Follow Boy, 2 = Sniffing alchemy, 3 = Obstacle evasion, 4 = Combat attack, 5 = Returning, 6 = Stuck retry). |
+| `$7E:3C71` | `Word` | `boss_segment_target_x` | `Room` | Target world X coordinate for tracking boss limb / satellite entity ($8C:D253). |
+| `$7E:3C73` | `Word` | `boss_segment_target_y` | `Room` | Target world Y coordinate for tracking boss limb / satellite entity ($8C:D25D). |
+| `$7E:3C75` | `Word` | `boss_segment_offset_x` | `Room` | Horizontal joint attachment offset X from parent boss body ($8F:9C41). |
+| `$7E:3C77` | `Word` | `boss_segment_offset_y` | `Room` | Vertical joint attachment offset Y from parent boss body ($8F:9C46). |
+| `$7E:3C7B` | `Byte×89` | `boss_segment_slot_2` | `Room` | Boss child segment slot 2 descriptor (89 bytes: joint offset, angle, limb anim state). |
+| `$7E:3CAB` | `Word` | `boss_segment_limb_angle` | `Room` | Rotational articulation angle index for connected boss limb ($8F:A732). |
+| `$7E:3CAC` | `Byte` | `boss_segment_anim_frame` | `Room` | Current sprite animation sequence frame index for boss child segment ($8F:A73A). |
+| `$7E:3CAD` | `Byte` | `boss_segment_flash_timer` | `Room` | Hit flash color inversion timer ticks for multipart boss limb ($8F:A7C8). |
+| `$7E:3CAE` | `Word` | `boss_segment_collision_box` | `Room` | Hitbox / hurtbox boundary dimension flags for child segment ($8F:9958). |
+| `$7E:3CD4` | `Byte×89` | `boss_segment_slot_3` | `Room` | Boss child segment slot 3 descriptor (89 bytes: free link, joint offsets, parent ptr). |
+| `$7E:3D1D` | `Word` | `boss_segment_3_status` | `Room` | Boss segment 3 active status flags / limb damage accumulator. |
+| `$7E:3D1F` | `Word` | `boss_segment_3_parent_ptr` | `Room` | Boss segment 3 pointer referencing primary parent boss entity slot. |
+| `$7E:3D2D` | `Byte×89` | `boss_segment_slot_4` | `Room` | Boss child segment slot 4 descriptor (89 bytes: free link, joint offsets, parent ptr). |
+| `$7E:3D86` | `Byte×89` | `boss_segment_slot_5` | `Room` | Boss child segment slot 5 descriptor (89 bytes: free link, joint offsets, parent ptr). |
 | `$7E:3DDF` | 2 bytes | `ACTIVE_ENTITY_HEAD` | Room | Head pointer of linked list chaining all active entities in current room. |
 | `$7E:3DE5` | 4260 bytes | `ENTITY_SLOTS_POOL` | Room | Actor entity pool (30 slots × 142 bytes); stores positions, animations, stats, and state. |
 | `$7E:3E73` | 142 | `ENTITY_SLOT_01_BASE` | Room | Entity Pool: Actor entity slot 1 base (142 bytes). |
