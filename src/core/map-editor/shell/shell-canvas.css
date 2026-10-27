@@ -279,3 +279,6 @@
 }
 .rg-theme .rg-level-bar [data-tip]:hover::after{visibility:visible;opacity:1;transition:opacity 80ms ease-out 350ms,visibility 0s 350ms}
 .rg-theme .rg-canvas-zone .rg-variant-bar{left:auto;right:8px}
+/* At the right edge the tooltip opens leftward, and a variant's tooltip is several lines (who, when). */
+.rg-theme .rg-variant-bar [data-tip]::after{left:auto;right:calc(100% + 10px);white-space:pre-line;max-width:320px}
+.rg-theme .rg-variant-bar .rg-level-b:disabled{cursor:default;opacity:.6}

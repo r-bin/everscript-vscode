@@ -173,9 +173,11 @@ function buildEditToolbarHtml() {
     shellActButtonHtml({ act: 'undo', icon: '↶', tip: 'Undo the last change', label: 'undo', disabled: dis }),
     shellActButtonHtml({ act: 'redo', icon: '↷', tip: 'Redo', label: 'redo', disabled: dis }),
   ]);
-  // The level bar sits at the map's left edge (map-editor-levels.js); a converted room's changes are
-  // never written anywhere (rooms-imported.js). The markup of the pill is the shell's (shellPillHtml).
+  // The level bar sits at the map's left edge (map-editor-levels.js), the variant bar at its right
+  // (room-variants.js); a converted room's changes are never written anywhere (rooms-imported.js).
+  // The markup of the pill is the shell's (shellPillHtml).
   return shellPillHtml(groups, (typeof buildLevelBarHtml === 'function' ? buildLevelBarHtml() : '')
+    + (typeof buildVariantBarHtml === 'function' ? buildVariantBarHtml() : '')
     + (typeof importedNotSavedHtml === 'function' ? importedNotSavedHtml() : ''));
 }
 

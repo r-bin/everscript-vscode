@@ -1,6 +1,6 @@
 // TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
-// The Rooms tab's variant bar, driven in a real browser against the real page and the real ROM.
+// The Rooms tab's variant bar (the side bar at the map's right edge), driven in a real browser against the real page and the real ROM.
 //
 // Two rooms the bar exists for: the jungle where the game starts (its enemies, or the outro with
 // nobody), and Thraxx's chamber (Thraxx alive, or Coleoptera after he died). The page is
@@ -67,34 +67,49 @@ async function main() {
             check('  and shows every candidate spawn while it waits', before.length > 0, String(before.length));
             const variants = await roomVariantsFor(rom, id);
             await page.evaluate((msg) => window.postMessage(msg, '*'), { command: 'roomVariants', roomId: id, variants });
-            await page.waitForFunction(() => document.querySelectorAll('#rv-bar .rv-chip').length > 1, null, { timeout: 5000 });
+            await page.waitForFunction(() => document.querySelectorAll('#rv-bar button[data-variant]').length > 1, null, { timeout: 5000 });
             return variants;
         };
-        const chips = () => page.$$eval('#rv-bar .rv-chip', (els) => els.map((e) => e.textContent.trim()));
-        const pick = (i) => page.click(`#rv-bar .rv-chip[data-variant="${i}"] .rv-count`);   // the inner span: target walk-up
+        const chips = () => page.$$eval('#rv-bar button[data-variant]', (els) => els.map((e) => e.textContent.trim()));
+        const tips = () => page.$$eval('#rv-bar button[data-variant]', (els) => els.map((e) => e.dataset.tip));
+        const pick = (i) => page.click(`#rv-bar button[data-variant="${i}"]`);
+        const headName = () => page.$eval('#rv-name', (e) => e.textContent);
         const shoot = async (name) => { if (shots) await page.screenshot({ path: path.join(shots, name + '.png') }); };
 
         // ── the jungle where the game starts ──────────────────────────────
         const jungle = await open(0x38);
-        check('the bar is visible above the canvas', await page.$eval('#rv-bar', (e) => getComputedStyle(e).display) === 'flex');
+        const place = await page.evaluate(() => {
+            const bar = document.getElementById('rv-bar').getBoundingClientRect();
+            const card = document.getElementById('rg-canvas-card').getBoundingClientRect();
+            return { display: getComputedStyle(document.getElementById('rv-bar')).display, right: card.right - bar.right, mid: bar.left - (card.left + card.width / 2) };
+        });
+        check('the bar is visible at the map\'s right edge', place.display === 'flex' && place.right >= 0 && place.right < 40 && place.mid > 0, JSON.stringify(place));
         const names = await chips();
-        check('it lists All, the default with its enemies, and the outro', names[0] === 'All'
-            && /^default — Mosquito, Wimpy Flower/.test(names[1]) && /^Inside outro\?/.test(names[2]), JSON.stringify(names));
+        const tipText = await tips();
+        check('it lists the default with its enemies and the outro by number, no "All"', names.join() === '1,2'
+            && /^default — Mosquito, Wimpy Flower/.test(tipText[0]) && /^Inside outro\?/.test(tipText[1]), JSON.stringify([names, tipText]));
         check('the default is chosen when the answer arrives',
-            await page.$eval('#rv-bar .rv-chip.on', (e) => e.dataset.variant) === '0');
+            await page.$eval('#rv-bar button.on', (e) => e.dataset.variant) === '0');
+        check('  and its name is in the header', /^1 · default — Mosquito/.test(await headName()), await headName());
         check('and every one of its 21 spawns is on the map', (await shownSprites(page)).length === jungle[0].spawns.length
             && jungle[0].spawns.length === 21);
         await shoot('jungle-default');
         await pick(1);
         check('the outro shows nobody', (await shownSprites(page)).length === 0);
+        check('  and the header names it', /^2 · Inside outro\?/.test(await headName()), await headName());
         await shoot('jungle-outro');
-        await page.click('#rv-bar .rv-chip[data-variant="-1"]');
-        check('All brings every candidate back', (await shownSprites(page)).length === 21);
+        await pick(0);
+        check('the default brings its 21 back', (await shownSprites(page)).length === 21);
 
         // ── Thraxx's chamber ──────────────────────────────────────────────
         const thraxx = await open(0x18);
+        check('Thraxx\'s chamber has its three states: Thraxx, Coleoptera, empty', thraxx.length === 3
+            && thraxx[2].spawns.length === 0, thraxx.map((v) => v.name).join(' | '));
+        check('  the maggots come later, in the fight: on Thraxx, not a state of their own',
+            thraxx[0].spawns.some((s) => s.name === 'Maggot' && s.later) && !thraxx.slice(1).some((v) => v.spawns.some((s) => s.name === 'Maggot')));
         const hex = (v) => v.toString(16);
-        const def = thraxx[0];
+        // What stands there on entry; the maggots come later and are not a sprite the map draws.
+        const def = { ...thraxx[0], spawns: thraxx[0].spawns.filter((s) => !s.later) };
         check('the default is Thraxx alive', /^default — .*Thraxx's heart/.test(def.name), def.name);
         const shown = await shownSprites(page);
         check('  and the map shows exactly its spawns', shown.length === def.spawns.length

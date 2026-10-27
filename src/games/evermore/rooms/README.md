@@ -87,11 +87,14 @@ script by `memory/webview/index.ts` (`ROOMS_JS_FILES` fixes the order):
 - `utils.js` — escH, hexNum, tsvg, helpers
 - `svg-spawns.js` — `buildSpawnLayers()` → `{behind, front, marks}`: the NPCs
   a room can place, split by whether the game draws them over the foreground
-- `room-variants.js` — the variant bar above the canvas: who stands in a ROM room per story
-  state (default, outro, Thraxx alive or Coleoptera…). Asks the host (`requestRoomVariants`,
+- `room-variants.js` — the variant bar at the map's right edge (the shell's side bar, as in the
+  Mana and Terranigma editors: 1..n, each one's name, conditions and spawns in its
+  tooltip, the chosen one's name in the header `#rv-name`): who stands in a ROM room per story
+  state (default, outro, Thraxx alive or Coleoptera…). It rides in the tool pill's wrapper, so
+  `buildVariantBarHtml()` rebuilds it from state whenever the pill is rewritten. Asks the host (`requestRoomVariants`,
   answered from `data/room-variants.ts`, a worker thread over `simulation/variants.ts`) and
   hides the spawns a variant does not place by their `data-at`; "only if" spawns are dimmed.
-  The map shows every candidate until the answer arrives; "All" keeps that view
+  The map shows every candidate until the answer arrives, then the default (variant 1).
 - `svg-builder.js` — `buildRoomSvgSection()` → `{html, zoomState, ...}`; stacks
   map → spawns behind → canopy → spawns in front → canopy overlay → annotation
 - `metatile-palette.js` — the Tile palette section; owns `_mtPalette` / `_mtLayer` /

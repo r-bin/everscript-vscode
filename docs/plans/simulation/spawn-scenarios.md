@@ -2,7 +2,8 @@
 
 > Status: **built** (v0.358.0) as *variants*:
 > [`simulation/variants.ts`](../../../src/games/evermore/simulation/variants.ts), shown as
-> the Rooms tab's variant bar above the canvas and as `soe://…/rooms/<id>/variants.md`.
+> the Rooms tab's variant bar at the map's right edge (v0.359: the shell's side bar, 1..n,
+> no "All") and as `soe://…/rooms/<id>/variants.md`.
 > Where it differs from the sketch below is recorded under "What was built". Builds on
 > [docs/scripts/room-simulation.md](../../scripts/room-simulation.md), which settled what
 > a spawn's index and coordinates mean.
@@ -25,6 +26,16 @@
   `end: 'cut'`: who they placed is known.
 - **A spawner in a loop** (Thraxx's maggots) is one character with a count; only its first
   placement decides whether it is there.
+- **Polled conditions are the room going on, not a state** (v0.359). After placing Thraxx the
+  enter script loops ($93D3CE, every 60 ticks): once `$2260&0x08` ("maggots triggered") is set
+  mid-fight it refills up to four maggots, whose handles it keeps in `$2855..$285B` itself.
+  Split on that, the chamber had five variants, two of them "maggots triggered" and one
+  impossible (windwalker unlocked with Thraxx alive). A condition of a test one path reaches
+  more than once is *polled*: it never splits, and a character placed only under it is
+  `later` on its variant (not part of the fold key; taken only from the variant's own story,
+  not the stories folded in). Thraxx's chamber: Thraxx (maggots later) / Coleoptera / empty —
+  the three states the game has. Timing could not tell this apart: the enter script tests
+  "Thraxx dead" itself only after an engine wait of unknown length.
 
 Still open from below: pinning flags to collapse the list (the virtual-WRAM control), and
 the emulator check that a save at a known point meets the variant its flags select.

@@ -39,5 +39,5 @@
 .rg-theme .rg-list-filter{margin:6px 0 2px;display:flex;gap:4px}
 
 
-/* The level bar sits against the map's left edge. */
-.rg-theme .rg-canvas-zone .rg-level-bar{left:8px;right:auto}
+/* The level bar sits against the map's left edge (the variant bar, a side bar too, stays at the right). */
+.rg-theme .rg-canvas-zone #rg-level-bar{left:8px;right:auto}

@@ -12,6 +12,14 @@
 // on enemies only, so a village's townsfolk — each behind a flag of its own —
 // stay one room with "only if …" on them instead of 2^n rooms.
 //
+// A condition the scripts *poll* — the same test reached again on one path, a
+// loop waiting for it — is something that changes while the player is in the
+// room, never the state they enter it in. Thraxx's chamber refills its maggots
+// every 60 ticks once "maggots triggered" is set mid-fight; that is the fight
+// going on, not a fourth room. Polled conditions never split, and a character
+// placed only under one is `later` on the variant: shown, but not what tells
+// variants apart.
+//
 // Names come from the ROM: the story flags that select a variant (their
 // labels), then the characters only it places. Nothing else is guessed.
 
@@ -19,6 +27,7 @@ import { Sym, key, isC } from './sym';
 import { Decoder } from './machine';
 import { Condition } from './trigger';
 import { RoomAnalysis, Scenario } from './room';
+import { Part } from './segments';
 import { describeCondition } from './understand';
 
 /** A scenario is split on at most this many conditions (2^n pieces); past it, conditional characters count as present. */
@@ -36,6 +45,8 @@ export interface VariantSpawn {
     count: number;
     /** Set when it stands here only under a condition the variant did not split on. */
     when?: string;
+    /** Placed only once something happens in the room (a polled condition): not part of who the variant is. */
+    later?: boolean;
 }
 
 export interface RoomVariant {
@@ -63,16 +74,25 @@ export type SplitOn = (spawn: { at: number; npc: number }) => boolean;
 
 export function roomVariants(room: RoomAnalysis, dec: Decoder, splitOn: SplitOn = () => true): RoomVariant[] {
     const pieces = room.scenarios.flatMap((s, i) => split(s, i, dec, splitOn));
-    // Fold by who stands in the room; the first flagless piece names the fold.
+    // Fold by who stands in the room on entry; the first flagless piece names the fold.
     const byCast = new Map<string, Piece[]>();
     for (const p of pieces) {
-        const k = p.spawns.map((x) => x.at).join(',');
+        const k = p.spawns.filter((x) => !x.later).map((x) => x.at).join(',');
         byCast.set(k, [...(byCast.get(k) ?? []), p]);
     }
     const folds = [...byCast.values()].map((ps) => {
         const named = ps.filter((p) => p.flags.length);
-        const lead = ps.find((p) => !p.flags.length) ?? named[0];
-        const others = [...new Set(named.filter((p) => p !== lead).map((p) => p.flags.join(' · ')))]
+        const first = ps.find((p) => !p.flags.length) ?? named[0];
+        // What happens later in the variant's own story (its flags) happens in it; the stories folded
+        // in because they start with the same characters keep theirs.
+        const spawns = [...first.spawns];
+        const story = first.flags.join(' · ');
+        for (const p of ps) {
+            if (p.flags.join(' · ') !== story) continue;
+            for (const x of p.spawns) if (x.later && !spawns.some((y) => y.at === x.at)) spawns.push(x);
+        }
+        const lead = { ...first, spawns: spawns.sort((a, b) => a.at - b.at) };
+        const others = [...new Set(named.filter((p) => p !== first).map((p) => p.flags.join(' · ')))]
             .filter((n) => n !== lead.flags.join(' · '));
         return {
             lead, also: others,
@@ -81,7 +101,7 @@ export function roomVariants(room: RoomAnalysis, dec: Decoder, splitOn: SplitOn 
             cut: ps.some((p) => p.cut),
         };
     });
-    const names = folds.map((f) => new Set(f.lead.spawns.map((s) => s.name)));
+    const names = folds.map((f) => new Set(f.lead.spawns.filter((s) => !s.later).map((s) => s.name)));
     const variants = folds.map((f, i): RoomVariant => {
         const mine = [...names[i]];
         const unique = mine.filter((n) => names.every((o, j) => j === i || !o.has(n)));
@@ -99,13 +119,15 @@ export function roomVariants(room: RoomAnalysis, dec: Decoder, splitOn: SplitOn 
 
 /** One scenario, cut into pieces by the conditions its `splitOn` characters carry. */
 function split(s: Scenario, index: number, dec: Decoder, splitOn: SplitOn): Piece[] {
+    const polls = polled(s);
     const atoms = new Map<string, Sym>();
     for (const e of firsts(s.entities)) if (splitOn(e)) conditionsIn(e.when, atoms);
+    for (const k of polls) atoms.delete(k);
     const list = atoms.size <= MAX_SPLIT ? [...atoms.values()] : [];
     const groups = new Map<string, { spawns: VariantSpawn[]; seen: Array<Map<string, boolean>> }>();
     for (let bits = 0; bits < 1 << list.length; bits++) {
         const known = new Map(list.map((a, i) => [key(a), !!(bits & (1 << i))] as [string, boolean]));
-        const spawns = cast(s.entities, known, dec);
+        const spawns = cast(s.entities, known, dec, polls);
         const k = spawns.map((x) => x.at).join(',');
         const g = groups.get(k) ?? { spawns, seen: [] };
         g.seen.push(known);
@@ -122,7 +144,7 @@ function split(s: Scenario, index: number, dec: Decoder, splitOn: SplitOn): Piec
 }
 
 /** The characters that can stand here under `known`, one per placing instruction, in script order. */
-function cast(entities: Scenario['entities'], known: ReadonlyMap<string, boolean>, dec: Decoder): VariantSpawn[] {
+function cast(entities: Scenario['entities'], known: ReadonlyMap<string, boolean>, dec: Decoder, polls: ReadonlySet<string>): VariantSpawn[] {
     const by = new Map<number, VariantSpawn>();
     const decided = new Set<number>();
     for (const e of entities) {
@@ -134,10 +156,36 @@ function cast(entities: Scenario['entities'], known: ReadonlyMap<string, boolean
         const t = truth(e.when, known);
         if (t === false) continue;
         const spawn: VariantSpawn = { at: e.at, name: e.label.replace(/#[0-9a-f]+(\.\d+)?$/, ''), npc: e.npc, x: e.x, y: e.y, count: 1 };
-        if (t === null) spawn.when = conditionText(e.when, dec);
+        if (t === null) {
+            spawn.when = conditionText(e.when, dec);
+            const leaves = new Map<string, Sym>();
+            conditionsIn(e.when, leaves);
+            if ([...leaves.keys()].some((k) => polls.has(k))) spawn.later = true;
+        }
         by.set(e.at, spawn);
     }
     return [...by.values()].sort((a, b) => a.at - b.at);
+}
+
+/**
+ * The leaf conditions the scenario's scripts poll: those of a test (an `if`)
+ * that one path reaches at the same instruction more than once, in the enter
+ * script or a script it started.
+ */
+function polled(s: Scenario): Set<string> {
+    const count = new Map<number, Part[]>();
+    const walk = (parts: Part[]): void => {
+        for (const p of parts) {
+            if (p.kind === 'if' && p.cond) count.set(p.at, [...(count.get(p.at) ?? []), p]);
+            walk(p.then ?? []);
+            walk(p.else ?? []);
+        }
+    };
+    walk([...s.prepare, ...s.execute]);
+    for (const b of s.background) walk(b.parts);
+    const out = new Map<string, Sym>();
+    for (const ps of count.values()) if (ps.length > 1) for (const p of ps) conditionsIn(p.cond!, out);
+    return new Set(out.keys());
 }
 
 /**
@@ -253,7 +301,7 @@ export function variantsReport(room: Pick<RoomAnalysis, 'mapId' | 'name' | 'capp
         out.push('When:', ...v.when.map((w) => `- ${w}`), '');
         if (!v.spawns.length) { out.push('Nobody is placed.', ''); continue; }
         out.push('| at | character | x | y | only if |', '|---|---|---|---|---|',
-            ...v.spawns.map((s) => `| $${hex(s.at, 6)} | ${s.name}${s.count > 1 ? ` ×${s.count}` : ''} | ${s.x ?? '—'} | ${s.y ?? '—'} | ${s.when ? '`' + s.when + '`' : ''} |`), '');
+            ...v.spawns.map((s) => `| $${hex(s.at, 6)} | ${s.name}${s.count > 1 ? ` ×${s.count}` : ''} | ${s.x ?? '—'} | ${s.y ?? '—'} | ${s.when ? (s.later ? 'later, ' : '') + '`' + s.when + '`' : ''} |`), '');
     }
     return out.join('\n');
 }

@@ -53,6 +53,8 @@ function renderRoomDetail(room){
     if(room.vanillaId)tags+='<span class="rd-vid">'+escH(room.vanillaId)+'</span>';
     tags+='<span class="rd-file">'+escH(room.relPath||'')+'</span>';
     if(typeof room.startLine==='number'&&room.startLine>=0)tags+='<a class="ll" data-line="'+room.startLine+'" href="#">go to code</a>';
+    // The variant chosen on the bar at the map's right edge (room-variants.js).
+    tags+='<span class="rv-name" id="rv-name"></span>';
     html=shellHeadHtml({
       name:room.name,
       // A custom map's name is its own to change; a ROM room's is the game's.
@@ -97,9 +99,6 @@ function renderRoomDetail(room){
   if(roomError&&roomError.message){
     html+='<div class="rs rs-error"><div class="rs-h">Error</div><div class="rs-note">'+escH(roomError.message)+'</div></div>';
   }
-
-  // ── Variants: who stands in the room per story state (room-variants.js) ──
-  html+='<div id="rv-bar" class="rv-bar" hidden></div>';
 
   // ── SVG section ────────────────────────────────────────────────────────────
   var svgResult=buildRoomSvgSection({
