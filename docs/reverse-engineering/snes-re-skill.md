@@ -177,7 +177,7 @@ skill writes its state to files so a later session (or another agent) resumes in
 | **Dossier generator from the CDL alone** (no Ghidra): asm + callers + callees + WRAM + hardware registers per function | ❌ to build, game-neutral; the core of stage B |
 | **Hardware-register hints** (§3.2) | ❌ to build in `src/platform/` |
 | **Struct / enum / bytecode-VM detectors** (stages C, D) | ❌ to build; Evermore's script VM is the test case (we know the answer) |
-| **The skill file** (intake round + stage recipes + per-game output paths) | ❌ `.agents/skills/snes-re/SKILL.md` once the generator exists |
+| **The skill file** (intake round + stage recipes + per-game output paths) | ✅ draft: `.agents/skills/snes-re/SKILL.md`; stage B uses the asm export or REA until the generator exists |
 | **`origin` field on knowledge entries** + a leads register; `check:knowledge` rejects an entry whose only evidence is `community` | ❌ to build; existing entries default to `origin: runtime/static` from their evidence kinds, the community-Ghidra-derived ones are re-tagged |
 | A game-neutral `re-curator` (per-game sources as a parameter) | ❌ generalize after the skill proves itself on a second game |
 
