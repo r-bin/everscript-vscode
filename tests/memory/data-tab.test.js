@@ -59,7 +59,8 @@ async function romChecks(rom) {
             'formula-blocks', 'bazooka-ammo', 'formula-descriptions', 'projectile-routines',
             'formula-learned', 'rooms-table', 'contact-handlers', 'ai-behaviours',
             'animation-vm', 'formula-powers', 'script-opcodes-table', 'songs-table',
-            'ring-item-icons', 'dte-digraphs'
+            'ring-item-icons', 'dte-digraphs', 'dog-growth', 'room-enter-scripts',
+            'cast-spells', 'ingredients-table'
         ]);
         const boy = ix.tables[1].rows[2];
         assert.strictEqual(boy[1], 'Boy');
@@ -119,6 +120,13 @@ async function romChecks(rom) {
         assert.strictEqual(ix.tables[29].rows.length, 162);
         assert.strictEqual(ix.tables[30].rows.length, 64);
         assert.strictEqual(ix.tables[30].rows[0][4], 'e ');
+        assert.strictEqual(ix.tables[31].rows.length, 99);
+        assert.strictEqual(ix.tables[31].rows[0][0], 1);
+        assert.strictEqual(ix.tables[32].rows.length, 127);
+        assert.strictEqual(ix.tables[33].rows.length, 23);
+        assert.strictEqual(ix.tables[33].rows[0][2], 'Acid Rain');
+        assert.strictEqual(ix.tables[34].rows.length, 22);
+        assert.strictEqual(ix.tables[34].rows[0][2], 'Wax');
     });
     await test('enums: only lists read from the ROM or a knowledge entry', () => {
         assert.deepStrictEqual(ix.enums.map((e) => e.id), [
@@ -128,7 +136,8 @@ async function romChecks(rom) {
             'armor-items', 'currencies', 'consumables-enum', 'stamina-tiers', 'charms-enum',
             'bazooka-ammo-enum', 'companion-ai-states', 'projectile-routines-enum',
             'projectile-behaviors', 'formula-learned-flags', 'anim-opcodes', 'formula-powers-enum',
-            'camera-scroll-modes', 'window-states', 'audio-fade-states', 'room-load-states'
+            'camera-scroll-modes', 'window-states', 'audio-fade-states', 'room-load-states',
+            'choice-box-states', 'apu-seq-status'
         ]);
         const e = (id) => ix.enums.find((x) => x.id === id);
         assert.ok(e('blobs').entries.some((x) => x.cells[0] === 'WRAM' && x.cells[2] === '$7E0A26'));
@@ -208,7 +217,7 @@ async function dom(rom) {
     await test('opening the tab loads every list; XP is drawn with both series', async () => {
         await page.click('.tab[data-tab="data"]');
         await pump();
-        assert.strictEqual(await page.locator('#dat-rail [data-dat-pick]').count(), 31);
+        assert.strictEqual(await page.locator('#dat-rail [data-dat-pick]').count(), 35);
         assert.strictEqual(await page.locator('#dat-side svg polyline').count(), 2);
         const svg = await page.locator('#dat-side svg').boundingBox();
         await page.mouse.move(svg.x + svg.width * 0.5, svg.y + svg.height * 0.5);

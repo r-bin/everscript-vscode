@@ -745,6 +745,33 @@ function roomLoadStatesEnum(): EnumList {
     };
 }
 
+function choiceBoxStatesEnum(): EnumList {
+    return {
+        id: 'choice-box-states', group: 'Dialogue', title: 'Dialogue choice prompt states ($7E:0B2B)',
+        columns: ['state', 'hex', 'phase', 'description'],
+        entries: [
+            { cells: ['0', '$0000', 'Inactive', 'No active choice prompt dialog; player input uninhibited'] },
+            { cells: ['1', '$0001', 'Opening', 'Choice border frame and background tile composing'] },
+            { cells: ['2', '$0002', 'Active Selection', 'Joypad polling active; cursor navigation over dialogue options'] },
+            { cells: ['3', '$0003', 'Confirmed', 'Player selection committed; closing frame and executing branch'] },
+        ],
+        source: 'WRAM $7E:0B2B (ChoiceBoxState): Governs dialogue yes/no and choice prompt branching in func_CCB4E2.',
+    };
+}
+
+function apuSeqStatusEnum(): EnumList {
+    return {
+        id: 'apu-seq-status', group: 'Audio', title: 'APU sequence transfer states ($7E:0E4F)',
+        columns: ['status', 'hex', 'phase', 'description'],
+        entries: [
+            { cells: ['0', '$0000', 'Idle', 'Communication ports idle; ready to accept new command packets'] },
+            { cells: ['1', '$0001', 'Streaming', 'Data block streaming underway via hardware IO ports $2140..$2143'] },
+            { cells: ['2', '$0002', 'Playing', 'Sound sequence executing on SPC700 audio processor'] },
+        ],
+        source: 'WRAM $7E:0E4F (ApuSeqStatus): Governs music sequence streaming and APU port coordination.',
+    };
+}
+
 /** Every list the view shows. `icons` are the formulas' ring-menu icons (PNG data URIs) in formula order. */
 function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | null)[] = []): EnumList[] {
     return [characterBlobs(rom, chars), recordFields(), contactHandlers(rom, chars), aiSelectors(rom, chars),
@@ -760,7 +787,8 @@ function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | nu
         projectileBehaviorsEnum(), formulaLearnedEnum(rom),
         animOpcodesEnum(rom), formulaPowersEnum(rom, icons),
         cameraScrollModesEnum(), windowStatesEnum(),
-        audioFadeStatesEnum(), roomLoadStatesEnum()];
+        audioFadeStatesEnum(), roomLoadStatesEnum(),
+        choiceBoxStatesEnum(), apuSeqStatusEnum()];
 }
 
 export { enumsModel };

@@ -23,8 +23,8 @@ import { renderSpriteAt } from './characters';
 type Rgba = { width: number; height: number; data: Uint8Array };
 
 /** The HUD setup's operands: the Boy portrait's address word and bank ($8F:810E: `lda #$37AC`, `lda #$CC37`). */
-const BOY_PORTRAIT_LOW = 0xcf810f;
-const BOY_PORTRAIT_BANK = 0xcf8116;
+const BOY_PORTRAIT_LOW = 0x8f810f;
+const BOY_PORTRAIT_BANK = 0x8f8116;
 const HUD_PALETTE = 0xad6b;
 /** The 24-bit sprite list the currency animation script picks from ($C8:00BE: opcode, then 4 × 3 bytes). */
 const CURRENCY_SPRITES = 0xc800c1;

@@ -905,6 +905,135 @@ function dteDigraphsTable(rom: Uint8Array): Table {
     };
 }
 
+const DOG_HP_BASE = 0x8c9515;
+const DOG_HP_EGG = 0x8c951f;
+const DOG_ATK_BASE = 0x8c8fe1;
+const DOG_DEF_BASE = 0x8c95f3;
+const DOG_MDEF_BASE = 0x8c96d1;
+const DOG_EVADE_BASE = 0x8c97af;
+const DOG_HIT_BASE = 0x8c90bf;
+const DOG_LEVEL_COUNT = 99;
+
+function dogGrowthTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const hpBasePts: [number, number][] = [];
+    const hpEggPts: [number, number][] = [];
+    const atkPts: [number, number][] = [];
+    const defPts: [number, number][] = [];
+    const mdefPts: [number, number][] = [];
+
+    for (let i = 0; i < DOG_LEVEL_COUNT; i++) {
+        const lvl = i + 1;
+        const hpBase = read16(rom, snesToRom(DOG_HP_BASE + i * 2));
+        const hpEgg = read16(rom, snesToRom(DOG_HP_EGG + i * 2));
+        const atk = read16(rom, snesToRom(DOG_ATK_BASE + i * 2));
+        const def = read16(rom, snesToRom(DOG_DEF_BASE + i * 2));
+        const mdef = read16(rom, snesToRom(DOG_MDEF_BASE + i * 2));
+        const evade = read16(rom, snesToRom(DOG_EVADE_BASE + i * 2));
+        const hit = read16(rom, snesToRom(DOG_HIT_BASE + i * 2));
+
+        rows.push([lvl, hpBase, hpEgg, atk, def, mdef, evade, hit]);
+        hpBasePts.push([lvl, hpBase]);
+        hpEggPts.push([lvl, hpEgg]);
+        atkPts.push([lvl, atk]);
+        defPts.push([lvl, def]);
+        mdefPts.push([lvl, mdef]);
+    }
+
+    return {
+        id: 'dog-growth', group: 'Characters', title: 'Companion Dog level stat growth curves', addr: '$8C:9515',
+        note: 'Companion Dog progression curves across 99 levels in Bank $8C: Base HP ($8C:9515), Chocobo Egg amplified HP ($8C:951F), Attack ($8C:8FE1), Physical Defense ($8C:95F3), Magic Defense ($8C:96D1), Evade ($8C:97AF), and Hit Rate ($8C:90BF). Evaluated on level up by func_8F857D.',
+        columns: ['level', 'HP base', 'HP egg', 'attack', 'defense', 'magic def', 'evade', 'hit rate'],
+        rows,
+        chart: {
+            x: 'level', y: 'value',
+            series: [
+                { name: 'HP (Base)', points: hpBasePts },
+                { name: 'HP (Egg)', points: hpEggPts },
+                { name: 'Defense', points: defPts },
+                { name: 'Magic Def', points: mdefPts },
+                { name: 'Attack', points: atkPts },
+            ],
+        },
+        vfs: vfs(DOG_HP_BASE),
+    };
+}
+
+const ROOM_ENTER_SCRIPTS_ADDR = 0x92801b;
+
+function roomEnterScriptsTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let r = 0; r < MAX_ROOMS; r++) {
+        const at = snesToRom(ROOM_ENTER_SCRIPTS_ADDR + r * 5);
+        const packed = rom[at] | (rom[at + 1] << 8) | (rom[at + 2] << 16);
+        const flags = rom[at + 3] | (rom[at + 4] << 8);
+        const bank = 0x92 + (packed >>> 15);
+        const snesAddr = (bank << 16) | 0x8000 | (packed & 0x7fff);
+        const busScript = packed === 0 ? '—' : ('$' + hex(snesAddr, 6));
+        const rName = getMapName(r);
+        rows.push([r, '$' + hex(r, 2), rName, packed === 0 ? '—' : ('$' + hex(packed, 6)), busScript, '$' + hex(flags, 4)]);
+        pts.push([r, packed & 0x7fff]);
+    }
+    return {
+        id: 'room-enter-scripts', group: 'Maps', title: 'Room enter scripts table', addr: '$92:801B',
+        note: 'Table $92:801B (127 entries, 5 bytes each, 635 bytes total): Packed 24-bit script pointer and execution flags evaluated by script_start_room_enter_script ($8C:CE99) during room load.',
+        columns: ['room', 'hex', 'name', 'packed pointer', 'script address', 'flags'],
+        rows,
+        chart: { x: 'room id', y: 'packed offset', series: [{ name: 'script offset', points: pts }] },
+        vfs: vfs(ROOM_ENTER_SCRIPTS_ADDR),
+    };
+}
+
+const CAST_BLOCKS_ADDR = 0xc45f97;
+const CAST_NAMES_ADDR = 0xc45fc5;
+const CAST_COUNT = 23;
+
+function castSpellsTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < CAST_COUNT; i++) {
+        const castId = i * 2;
+        const blockOff = read16(rom, snesToRom(CAST_BLOCKS_ADDR + i * 2));
+        const namePtr = read16(rom, snesToRom(CAST_NAMES_ADDR + i * 2));
+        const sName = text(rom, 0xc40000 | namePtr);
+        const blockSnes = 0x9180a6 + blockOff;
+        rows.push([castId, '$' + hex(castId, 2), sName, '$' + hex(blockOff, 4), '$' + hex(blockSnes, 6)]);
+        pts.push([castId, blockOff]);
+    }
+    return {
+        id: 'cast-spells', group: 'Combat', title: 'Script cast spells ($9E / $AC)', addr: '$C4:5F97',
+        note: 'Table $C4:5F97 (23 words, 46 bytes): Spell block offsets into $91:80A6 paired with spell names at $C4:5FC5, executed by script opcodes $9E (cast all) and $AC (cast skip dead companion).',
+        columns: ['cast id', 'hex', 'spell name', 'block offset', 'bank $91 address'],
+        rows,
+        chart: { x: 'cast id', y: 'block offset', series: [{ name: 'block offset', points: pts }] },
+        vfs: vfs(CAST_BLOCKS_ADDR),
+    };
+}
+
+const INGREDIENTS_CATALOG_ADDR = 0xc45ff3;
+const INGREDIENTS_TOTAL = 22;
+
+function ingredientsTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < INGREDIENTS_TOTAL; i++) {
+        const namePtr = read16(rom, snesToRom(INGREDIENTS_CATALOG_ADDR + i * 2));
+        const sName = text(rom, 0xc40000 | namePtr);
+        const snesAddr = 0xc40000 | namePtr;
+        rows.push([i, '$' + hex(i, 2), sName, '$' + hex(namePtr, 4), '$' + hex(snesAddr, 6)]);
+        pts.push([i, namePtr]);
+    }
+    return {
+        id: 'ingredients-table', group: 'Alchemy', title: 'Alchemy ingredients catalog', addr: '$C4:5FF3',
+        note: 'Table $C4:5FF3 (22 pointers, 44 bytes): Pointers into Bank $C4 to zero-terminated ASCII names for all 22 alchemy reagents, indexed by formula cost descriptors ($C4:3874).',
+        columns: ['id', 'hex', 'ingredient name', 'name pointer', 'snes address'],
+        rows,
+        chart: { x: 'ingredient id', y: 'pointer', series: [{ name: 'name offset', points: pts }] },
+        vfs: vfs(INGREDIENTS_CATALOG_ADDR),
+    };
+}
+
 /** Every table the view lists: only the ones decoded into readable values. */
 function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Table[] {
     return [
@@ -922,6 +1051,8 @@ function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Ta
         animationVmTable(rom), formulaPowersTable(rom),
         scriptOpcodesTable(rom), songsTable(rom),
         ringItemIconsTable(rom), dteDigraphsTable(rom),
+        dogGrowthTable(rom), roomEnterScriptsTable(rom),
+        castSpellsTable(rom), ingredientsTable(rom),
     ];
 }
 

@@ -17,6 +17,7 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
 | `$8C:8CFC` | `0x068CFC` | `tbl_xp_dog` | 3 bytes | 99 | 297 B | Cumulative XP progression for companion Dog |
 | `$8C:9700` | `0x069700` | `tbl_weapon_charge_multipliers` | 2 bytes | 16 | 32 B | Charge attack damage multipliers for weapon tiers 0..3 |
 | `$8C:E8BD` | `0x0CE8BD` | `tbl_script_opcode_jump_table` | 2 bytes | 195 | 390 B | Script VM opcode execution jump vectors (`$00`..`$C2`) |
+| `$8C:9515` | `0x0C9515` | `tbl_dog_hp_base` | 2 bytes | 99 | 198 B | Companion Dog base Max HP level progression curve |
 | `$8E:B55A` | `0x07355A` | `tbl_enemy_index` | 2 bytes | 143 | 286 B | ENEMY id to character record address in bank $8E ($8E:B678..) |
 | `$8E:B678` | `0x073678` | `tbl_character_records` | 74 bytes | 142 | 10,508 B | Master character record database (stats, AI, contact, loot) |
 | `$8F:945D` | `0x07945D` | `tbl_dog_form_pointers` | 14 bytes | 4 | 56 B | Companion breed form base stats, sniffing range, palettes |
@@ -27,6 +28,7 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
 | `$90:DF44` | `0x085F44` | `tbl_boomerang_orbit` | 4 bytes | 256 | 1,024 B | Elliptical orbital vector coordinates $(X, Y)$ in $1/16$ px |
 | `$91:80A6` | `0x0880A6` | `tbl_alchemy_spell_blocks` | 2 bytes | 48 | 96 B | Pointers to spell bytecode blocks in Bank `$91` |
 | `$91:F32E` | `0x09732E` | `tbl_dialogue_dte_pairs` | 2 bytes | 64 | 128 B | Dual Tile Encoding (DTE) 2-character English digraph pairs |
+| `$92:801B` | `0x12801B` | `tbl_room_enter_scripts` | 5 bytes | 127 | 635 B | Master room enter script 24-bit packed pointers and flags |
 | `$9F:FDE7` | `0x0FFDE7` | `tbl_room_blob_pointers` | 4 bytes | 127 | 508 B | 32-bit far pointers to compressed room data blobs |
 | `$C4:0C02` | `0x220C02` | `tbl_font_glyph_widths` | 1 byte | 95 | 95 B | Proportional character glyph pixel widths (ASCII 32..126) |
 | `$C4:3874` | `0x223874` | `tbl_alchemy_formula_costs` | 6 bytes | 35 | 210 B | Ingredient requirements, count quantities, and formula base damage |
@@ -341,6 +343,38 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
   - 64 frequent 2-character English digraphs (`"e "`, `" t"`, `"th"`, `"ou"`, `"he"`, `"er"`, `"an"`, etc.).
   - Indexed by dialogue compressed string tokens `0x80` through `0xBF` via `(token - 0x80) * 2`.
 - **Readers**: Narrative dialogue text decompressor `$8C:CD84` and dialogue buffer streamer `$8C:CDC6`.
+
+### 2.27 Companion Dog Stat Progression Curves (`$8C:9515`, `$8C:8FE1`, etc.)
+- **Format**: Parallel 16-bit word arrays across 99 levels (198 bytes each):
+  - Base Max HP: `$8C:9515` (amplified by Chocobo Egg charm to `$8C:951F`)
+  - Attack Power: `$8C:8FE1` (amplified by Atlas Medallion charm to `$8C:8FEB`)
+  - Physical Defense: `$8C:95F3` (amplified by Armor Polish charm to `$8C:95FD`)
+  - Magic Defense: `$8C:96D1` (amplified by Magic Defense charm to `$8C:96DB`)
+  - Evade: `$8C:97AF` (amplified by Evade charm to `$8C:97B9`)
+  - Hit Rate: `$8C:90BF` (amplified by Accuracy charm to `$8C:90C9`)
+- **Readers**: Companion level recalculation routine `companion_stats_scaling_and_form_rebuild` (`$8F:857D`).
+
+### 2.28 Room Enter Script Descriptor Table (`$92:801B`)
+- **Format**: `struct RoomEnterScript tbl_room_enter_scripts[127]`, 5 bytes per room (635 bytes total, `$92:801B`..`$92:8295`).
+- **Internal Layout**:
+  - `+0x00`: 24-bit packed script pointer (0 = room has no enter script; unpacked via `bank = $92 + (packed >> 15)`, `addr = $8000 | (packed & $7FFF)`).
+  - `+0x03`: 16-bit descriptor flags / execution parameter word.
+- **Readers**: Room load orchestration routine `script_start_room_enter_script` (`$8C:CE99`).
+
+### 2.29 Opcode `$9E` / `$AC` Script Cast Spells Table (`$C4:5F97`)
+- **Format**: `uint16_t tbl_cast_blocks[23]`, 2 bytes per entry (46 bytes total, `$C4:5F97`..`$C4:5FC4`).
+- **Internal Layout**:
+  - Word offsets into `$91:80A6` selecting the spell bytecode block in Bank `$91`.
+  - Paired with parallel spell name pointers at `$C4:5FC5` (23 words, 46 bytes).
+  - Includes enemy-only spells lacking formula records (Confound, Heat Wave, Storm, Disrupt, Plague).
+- **Readers**: Script VM cast opcode handlers `$8C:D0D0` (opcode `$9E`) and `$8C:D0C3` (opcode `$AC`).
+
+### 2.30 Master Alchemy Ingredients Catalog Table (`$C4:5FF3`)
+- **Format**: `uint16_t tbl_ingredient_names[22]`, 2 bytes per entry (44 bytes total, `$C4:5FF3`..`$C4:5FFF` + `$C4:6000`..`$C4:601E`).
+- **Internal Layout**:
+  - 16-bit pointers within Bank `$C4` addressing null-terminated ASCII strings for the 22 reagents (Wax, Water, Vinegar, Root, Oil, Mushroom, Mud Pepper, Meteorite, Limestone, Iron, Gunpowder, Grease, Feather, Dry Ice, Clay, Brimstone, Bone, Atlas Medallion, Ash, Acorn, Crystal, Ethanol).
+- **Readers**: Formula cost inspect routines, satchel shop populator (`$8E:9C68`), and ring menu display.
+
 
 
 
