@@ -41,13 +41,15 @@
 
 ## 3. Prioritized Next Targets (For Autonomous Continuations)
 
-When an agent is prompted with *"continue the decompilation"*, work down this ordered queue:
+When an agent is prompted with *"continue the decompilation"*, work down this ordered queue of verified top-caller engine routines and data targets (detailed in [`docs/todo/data-extraction-and-tables.md`](../todo/data-extraction-and-tables.md)):
 
-1. **Audit finding: `$8F:BA27` is not a routine entry or projectile code.** It is inside the melee hit-chance routine `$8F:BA06`–`$8F:BAAE`, now reconstructed in clean C and documented in `docs/disassembly/combat/projectile-homing.md`. The address label was wrong; no projectile-homing behavior was inferred.
-
-2. **Audit finding: `$80:A2A2` is not a routine entry.** It is inside the already documented and reconstructed HDMA gradient builder `$80:A1B4`–`$80:A2DF`; `$80:A2E0` begins a separate existing weather-preset routine. No palette-shimmer gap was found in this range.
-
-No un-decompiled target from the prior queue is confirmed by this audit. Select the next target from a fresh CDL/function inventory rather than extending either mislabeled range.
+1. **`$90:80D2` (9 callers)**: OAM / VBLANK screen restoration dispatcher when exiting overlay menus and flight sub-modes (`ring_menu_close_and_restore_screen`, `mode7_flight_frame_engine`, `mode7_vehicle_landing_touchdown_stepper`).
+2. **`$90:828E` (8 callers)**: Character record melee attack/swing animation track dispatcher (reads record `+$38,X`, companion to `$90:824B`).
+3. **`$8E:AD67` (7 callers)**: Universal inventory satchel quantity subtraction and clamping routine (`ring_menu_select_and_cost_check`, `shop_vendor_buy_commit`, `weapon_equip`).
+4. **`$8E:E08B` (6 callers)**: Field transition recovery, screen fade-in, and camera anchor re-attachment to active actor `$0F3E`.
+5. **`$8C:AB10` (6 callers)**: Joypad button input filter re-arm and typematic repeat reset on menu closure.
+6. **`$90:9815` (6 callers)**: Metatile elevation plane evaluation and collision mesh Z-height binding (`spawn_eval_tile_plane_elevation`, `probe_metatile_collision`).
+7. **Secondary Data Extraction Backlog**: Slope and stair shear elevation vectors (`$8F:A93B`), enemy behavioral transition matrices (`$8F:CBE0`), Mode 7 horizon perspective curves (`$8E:AF80`).
 
 ---
 
