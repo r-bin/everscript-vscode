@@ -174,6 +174,9 @@ async function main() {
             !/rg-script-(off|dead)/.test(await lineClass('93D2A0')) && /rg-script-off/.test(await lineClass('93D2FD'))
             && /rg-script-off/.test(await lineClass('93D247')), [await lineClass('93D2A0'), await lineClass('93D2FD'), await lineClass('93D247')].join(' | '));
         await shoot('thraxx-enter');
+        // A goto's target is a link: $93:D23B `if! (…) goto $93:d25a;` jumps to the line at $93:D25A.
+        await page.evaluate(() => document.querySelector('.rg-enter-body [data-script-addr="93D23B"] [data-goto="93D25A"]').click());
+        check('  a goto target jumps to its line', await page.$eval('.rg-enter-body [data-script-addr="93D25A"]', (e) => e.classList.contains('sx-flash')));
         await pick(cole);
         check('  choosing Coleoptera swaps which lines are greyed',
             /rg-script-off/.test(await lineClass('93D2A0')) && !/rg-script-(off|dead)/.test(await lineClass('93D2FD')),

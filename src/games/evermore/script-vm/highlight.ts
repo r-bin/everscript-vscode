@@ -8,7 +8,8 @@
 //   sx-const  NAMES_IN_CAPS: flags, enemies, directions     variable.other.enummember
 //   sx-type   signed, word, byte                             storage.type
 //   sx-mem    <0x2865>, <0x2834, 0x02>, object[ arg[         variable.other.address
-//   sx-label  a script address, $93:d231                     entity.name.label
+//   sx-label  a script address, $bank:addr                   entity.name.label
+//             (carries data-goto, the address as 6 hex digits: a viewer jumps to that line)
 //   sx-num    0x1f, 42                                       constant.numeric
 //   sx-str    "…"                                            string.quoted.double
 //   sx-com    // to the end of the line                      comment.line
@@ -46,7 +47,8 @@ export function highlightScript(text: string): string {
             }
         }
         if (!hit) { plain += src[i++]; continue; }
-        out += esc(plain) + '<span class="' + hit[1] + '">' + esc(hit[0]) + '</span>';
+        const go = hit[1] === 'sx-label' ? ' data-goto="' + hit[0].replace(/[$:]/g, '').toUpperCase() + '" title="Go to ' + esc(hit[0]) + '"' : '';
+        out += esc(plain) + '<span class="' + hit[1] + '"' + go + '>' + esc(hit[0]) + '</span>';
         plain = '';
         i += hit[0].length;
     }

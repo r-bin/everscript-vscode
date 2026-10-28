@@ -96,6 +96,31 @@ const bitOf = (mask: number): number => 31 - Math.clz32(mask);
 /** The loot mailbox's reward cell (knowledge ram/7e2391): its values are LOOT_REWARD ids. */
 const LOOT_ITEM = 0x2391;
 
+/** What the knowledge entries (soe://localization/knowledge, the `game-knowledge` skill) name, by bus address. */
+let knowledgeNames: { ram: Map<number, string>; rom: Map<number, string> } | null = null;
+function knowledge(): { ram: Map<number, string>; rom: Map<number, string> } {
+    if (!knowledgeNames) {
+        const k = require('../localizations/knowledge') as { entries(space: string): Array<{ addr: number; name: string | null }> };
+        const byAddr = (space: string): Map<number, string> => new Map(k.entries(space).filter((e) => e.name).map((e) => [e.addr, e.name!] as [number, string]));
+        knowledgeNames = { ram: byAddr('ram'), rom: byAddr('rom') };
+    }
+    return knowledgeNames;
+}
+
+/**
+ * The names for reading a listing: printNames, and where it has none for a WRAM cell or a script,
+ * the knowledge entry's name for exactly that address (`<0x2437>` reads MAP_PALETTE_SET). A
+ * listing printed with these may not compile: the compiler knows only printNames'.
+ */
+export function displayNames(file: (bus: number) => number): Names {
+    const p = printNames(file);
+    return {
+        ...p,
+        memory: (addr) => p.memory!(addr) || identifier(knowledge().ram.get(0x7e0000 | addr) ?? ''),
+        script: (bus) => p.script!(bus) || identifier(knowledge().rom.get(bus) ?? ''),
+    };
+}
+
 /** The names above, for script-vm's printer. `file` maps a bus address to a file offset. */
 export function printNames(file: (bus: number) => number): Names {
     return {

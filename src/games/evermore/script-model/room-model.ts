@@ -111,7 +111,8 @@ export function row(rom: ScriptRom, ins: Instruction, names: Names): ScriptRow {
     };
 }
 
-function spawnsOf(list: Instruction[]): SpawnFacts[] {
+/** A spawn's character is the ROM's (the enemy index, ScriptRom.enemyCharacter), not names.json's: that one has 10 ids wrong (both Thraxx's arms swapped). */
+function spawnsOf(rom: ScriptRom, list: Instruction[]): SpawnFacts[] {
     const out: SpawnFacts[] = [];
     let quantity: number | null = null;
     for (const ins of list) {
@@ -120,7 +121,7 @@ function spawnsOf(list: Instruction[]): SpawnFacts[] {
         if (f.k !== 'spawn') continue;
         const n = enemyName(f.index);
         out.push({
-            npc: f.index, name: n?.name ?? null, romName: n?.romName ?? null, character: n?.character ?? null, state: ins.opcode === 0xBA || ins.opcode === 0xC2 ? null : f.state,
+            npc: f.index, name: n?.name ?? null, romName: n?.romName ?? null, character: rom.enemyCharacter(f.index), state: ins.opcode === 0xBA || ins.opcode === 0xC2 ? null : f.state,
             x: f.x, y: f.y, spawner: f.spawner, quantity: f.spawner ? quantity : null, opcode: ins.opcode, at: ins.address,
         });
     }
@@ -159,7 +160,7 @@ export function scriptModel(rom: ScriptRom, entry: number | null, pointer = 0, p
     const loot = lootOf(p);
     return {
         ...empty, instructions: rows, terminated: stopReason === 'terminated', stopReason, label: rows[0]?.summary ?? '',
-        loot, everscript: loot.map(lootToEverscript).filter((s): s is string => s !== null), transitions: doorsOf(p), spawns: spawnsOf(local),
+        loot, everscript: loot.map(lootToEverscript).filter((s): s is string => s !== null), transitions: doorsOf(p), spawns: spawnsOf(rom, local),
     };
 }
 

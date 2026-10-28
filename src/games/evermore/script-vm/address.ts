@@ -14,6 +14,14 @@ import { getScriptHeaderOffset } from '../variant-resolver';
 export const SCRIPT_BANK = 0x92;
 /** Start of the script bank: its header words locate the pointer tables. */
 export const SCRIPT_HEADER = 0x928000;
+/**
+ * The spawn opcode 0x3C's handler ($8C:DCEC) reads the enemy index with `lda.l <table>,x`; its
+ * operand is here (knowledge rom/8eb55a). Read rather than assumed, so a moved table (the table
+ * hack, docs/table-hack.md) is followed.
+ */
+const ENEMY_INDEX_OPERAND = 0x8cdcf4;
+/** Character records start at $xx:B678 in every layout so far (vanilla bank $8E, the table hack's $B8), 74 bytes each (rom/8eb678). */
+const RECORDS_LOW = 0xb678, RECORD_SIZE = 74;
 
 export function pack(bus: number): number {
     return (((bus >>> 16) - SCRIPT_BANK) << 15) | (bus & 0x7FFF);
@@ -68,6 +76,18 @@ export class ScriptRom {
      */
     globalScript(id: number): number {
         return unpack(this.u24Table(id * 3 + this.header(4) + this.header(0)));
+    }
+
+    /**
+     * The character record an ENEMY id spawns, as the spawn handlers find it: the id's word in the
+     * enemy index is the record's 16-bit address. Null for the Boy and the Dog (their records are
+     * in WRAM) and for an entry that is no record.
+     */
+    enemyCharacter(id: number): number | null {
+        const table = busU8(this.rom, ENEMY_INDEX_OPERAND) | (busU8(this.rom, ENEMY_INDEX_OPERAND + 1) << 8) | (busU8(this.rom, ENEMY_INDEX_OPERAND + 2) << 16);
+        const word = busU8(this.rom, table + id * 2) | (busU8(this.rom, table + id * 2 + 1) << 8);
+        const at = word - RECORDS_LOW;
+        return at >= 0 && at % RECORD_SIZE === 0 ? at / RECORD_SIZE : null;
     }
 
     /**

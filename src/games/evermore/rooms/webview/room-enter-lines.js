@@ -65,7 +65,7 @@ function enterMergedHtml(id) {
         + (shut ? '▸' : '▾') + '</button>';
     }
     var addr = r.note ? '' : normScriptAddr(hexNum(r.addressSnes, 6));
-    html += '<div class="' + cls + '" style="margin-left:' + ((r.indent != null ? r.indent : r.depth) * 14) + 'px"' + (addr ? ' data-script-addr="' + addr + '"' : '')
+    html += '<div class="' + cls + '" data-in="' + r.in + '" style="margin-left:' + ((r.indent != null ? r.indent : r.depth) * 14) + 'px"' + (addr ? ' data-script-addr="' + addr + '"' : '')
       + ' title="' + escH(r.note ? '' : hexNum(r.addressSnes, 6).replace('&ndash;', '') + '  ' + r.opcodeHex + '  ' + r.bytesHex) + '">'
       + caret + (r.note ? escH(r.summary) : typeof highlightScript === 'function' ? highlightScript(r.summary) : scriptHighlight(r.summary))
       + (r.opens != null && enterFolded(id, m.blocks[r.opens]) ? ' <span class="rs-note">+' + m.blocks[r.opens].size + '</span>' : '')
@@ -74,9 +74,30 @@ function enterMergedHtml(id) {
   return html + '</div>';
 }
 
+/**
+ * A goto target clicked (highlightScript's `data-goto`): scroll to that line in the same
+ * listing — in the same merged body when the line is in one — and flash it.
+ */
+function scriptGoto(label) {
+  var line = label.closest ? label.closest('.rg-script-line') : null, list = line && line.closest('.rg-script');
+  if (!list) return false;
+  var want = label.getAttribute('data-goto'), inBlock = line.getAttribute('data-in');
+  var all = list.querySelectorAll('.rg-script-line[data-script-addr="' + want + '"]'), hit = null;
+  for (var i = 0; i < all.length && !hit; i++) if (all[i].getAttribute('data-in') === inBlock) hit = all[i];
+  hit = hit || all[0];
+  if (!hit) return false;
+  hit.scrollIntoView({ block: 'center' });
+  hit.classList.remove('sx-flash');
+  void hit.offsetWidth;
+  hit.classList.add('sx-flash');
+  return true;
+}
+
 // Capture phase: the dock's own delegated handlers stop clicks before they bubble to the document.
 if (typeof document !== 'undefined' && document.addEventListener) {
   document.addEventListener('click', function (e) {
+    var g = e.target && e.target.closest ? e.target.closest('[data-goto]') : null;
+    if (g && scriptGoto(g)) { e.stopPropagation(); return; }
     var t = e.target;
     while (t && t !== document && !(t.dataset && t.dataset.enterFold != null)) t = t.parentNode;
     if (!t || t === document) return;

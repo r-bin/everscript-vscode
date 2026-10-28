@@ -69,12 +69,26 @@ function scrScriptListHtml(room) {
   return out.join('');
 }
 
+/** A `goto` target clicked: scroll to that row of the listing (in the same merged body first) and flash it. */
+function scrGoto(label) {
+  var tr = label.closest('tr'), table = tr && tr.closest('.scr-rows');
+  if (!table) return;
+  var all = table.querySelectorAll('tr[data-addr="' + label.getAttribute('data-goto') + '"]'), hit = null;
+  for (var i = 0; i < all.length && !hit; i++) if (all[i].getAttribute('data-in') === tr.getAttribute('data-in')) hit = all[i];
+  hit = hit || all[0];
+  if (!hit) return;
+  hit.scrollIntoView({ block: 'center' });
+  hit.classList.remove('sx-flash');
+  void hit.offsetWidth;
+  hit.classList.add('sx-flash');
+}
+
 /** One script line, coloured (script-vm/highlight.ts, the Rooms tab's too). */
 function scrLine(text) { return typeof highlightScript === 'function' ? highlightScript(text) : scrEsc(text); }
 
 function scrRowsHtml(s) {
   return '<table class="scr-rows"><tbody>' + s.rows.map(function (r) {
-    return '<tr class="' + (r.u ? 'scr-unk' : '') + (r.t ? ' scr-term' : '') + '"><td class="scr-a">' + r.a + '</td>' +
+    return '<tr class="' + (r.u ? 'scr-unk' : '') + (r.t ? ' scr-term' : '') + '" data-in="-1" data-addr="' + r.a.slice(1) + '"><td class="scr-a">' + r.a + '</td>' +
       '<td class="scr-b" title="' + scrEsc(r.b) + '">' + scrEsc(r.b.length > 24 ? r.b.slice(0, 23) + '…' : r.b) + '</td>' +
       '<td class="scr-s" style="padding-left:' + (8 + r.d * 14) + 'px">' + scrLine(r.s) + '</td></tr>';
   }).join('') + '</tbody></table>';
@@ -152,7 +166,7 @@ function scrMergedHtml(m) {
     var b = r.opens != null ? m.blocks[r.opens] : null, shut = b && scrFolded(b);
     var cls = (r.note ? 'scr-note-row' : r.untraced ? 'scr-unk' : '') + (r.terminal ? ' scr-term' : '')
       + (mine && !r.note ? (mine[r.addressSnes] ? '' : any[r.addressSnes] ? ' scr-off' : ' scr-dead') : '');
-    return '<tr class="' + cls + '"><td class="scr-a">' + (r.note ? '' : '$' + scrHex(r.addressSnes, 6)) + '</td>'
+    return '<tr class="' + cls + '" data-in="' + r.in + '"' + (r.note ? '' : ' data-addr="' + scrHex(r.addressSnes, 6) + '"') + '><td class="scr-a">' + (r.note ? '' : '$' + scrHex(r.addressSnes, 6)) + '</td>'
       + '<td class="scr-s" style="padding-left:' + (8 + (r.indent != null ? r.indent : r.depth) * 14) + 'px">'
       + (b ? '<button class="scr-fold" data-scr-fold="' + b.id + '" aria-expanded="' + !shut + '" title="' + (shut ? 'Show' : 'Hide') + ' the '
         + (b.kind === 'call' ? 'called script' : 'thread') + ' (' + b.size + ' lines)">' + (shut ? '▸' : '▾') + '</button>' : '')

@@ -272,6 +272,8 @@ async function dom(rom) {
         assert.ok(await page.locator('.scr-fold[aria-expanded="false"]').count() > 0, 'shared helpers start folded');
         await shot('thraxx');
         assert.ok(await page.locator('.scr-rows .sx-kw').count() > 10, 'the lines are coloured');
+        await page.click('tr[data-addr="93D23B"] [data-goto="93D25A"]');
+        assert.ok(await page.$eval('tr[data-addr="93D25A"]', (e) => e.classList.contains('sx-flash')), 'a goto target jumps to its line');
         await page.click('[data-scr-variant="1"]');
         assert.ok(/scr-off/.test(await rowClass('$93D2A0')) && !/scr-(off|dead)/.test(await rowClass('$93D2FD')));
         assert.notStrictEqual(await page.getAttribute('.scr-map img', 'src'), thraxxPicture, 'Coleoptera: palette set 7');

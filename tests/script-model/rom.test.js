@@ -96,6 +96,21 @@ test("Thraxx's chamber is indented by its ifs and its loop", () => {
     assert.strictEqual(m.lines[call + 1].indent, m.lines[call].indent + 1, 'a merged body sits one deeper than its call');
 });
 
+test("a spawn's character is the ROM's enemy index ($8E:B55A), not names.json's: Thraxx's left claw is record 122", () => {
+    const sp = rooms[0x18].enter.spawns;
+    const ch = (n) => sp.find((s) => s.name === n).character;
+    assert.deepStrictEqual([ch('THRAXX_LEFT_ARM'), ch('THRAXX_RIGHT_ARM'), ch('THRAXX2_LEFT_ARM'), ch('THRAXX2_RIGHT_ARM')], [122, 123, 120, 121]);
+    assert.strictEqual(rom.enemyCharacter(0x0b), 109, 'FLOWER_PURPLE (knowledge rom/8eb55a)');
+});
+
+test('an else-if chain stays on one level; the knowledge entries name what the compiler does not', () => {
+    const m = M.mergedEnterScript(bytes, 0x18);
+    const line = (a) => m.lines.find((l) => l.addressSnes === a && !l.note);
+    // $93:D23B, $93:D25A, $93:D278, $93:D2CC: the room's four cases, each the else of the one before.
+    assert.deepStrictEqual([0x93d23b, 0x93d25a, 0x93d278, 0x93d2cc].map((a) => line(a).indent), [0, 0, 0, 0]);
+    assert.strictEqual(line(0x93d2d8).summary, 'MAP_PALETTE_SET = 7;', 'knowledge ram/7e2437');
+});
+
 test("a started thread joins where its starter's turn ends (Fire Eyes' village: $94:CE1A starts $92:D92A)", () => {
     const m = M.mergedEnterScript(bytes, 0x25);
     const head = m.lines.findIndex((l) => l.note && l.opens != null && m.blocks[l.opens].from === 0x94ce1a);

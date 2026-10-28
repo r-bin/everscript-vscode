@@ -10,7 +10,8 @@
 //
 // Lines are indented by structure: within one script, a forward branch or jump holds the lines it
 // skips (an `if`'s body; the `goto` that ends it holds the else), a backward one the lines it
-// repeats (a loop). A merged body sits one deeper than the line that brought it in.
+// repeats (a loop). An else that is only the next `if` (else-if) holds nothing, so a chain of
+// them stays on one level. A merged body sits one deeper than the line that brought it in.
 //
 // Each merged body is a block the viewer can fold. A callee named by a short operand — a global id
 // (u8), a trigger offset (u16), a call back (cb, c16) — is a shared helper and starts folded; one
@@ -19,7 +20,7 @@
 
 import { Instruction, Names, ScriptRom, decodeAt, roomScripts, walk } from '../script-vm';
 import { ScriptRow, row } from './room-model';
-import { printNames } from './names';
+import { printNames, displayNames } from './names';
 import { hiromFileOffset } from '../../../platform/snes/hirom';
 
 /** Past this many lines no more bodies are merged in. */
@@ -140,9 +141,14 @@ export function mergedScript(rom: ScriptRom, entry: number, names: Names = print
  */
 function nesting(list: Instruction[]): Map<number, number> {
     const at = new Set(list.map((i) => i.address));
+    const byAddr = new Map(list.map((i) => [i.address, i] as [number, Instruction]));
+    // Where an if's else starts: the target of a forward branch.
+    const elseAt = new Set(list.filter((i) => i.flow === 'branch' && i.target !== null && i.target > i.address).map((i) => i.target!));
     const out = new Map<number, number>();
     for (const ins of list) {
         if ((ins.flow !== 'branch' && ins.flow !== 'jump') || ins.target === null || !at.has(ins.target)) continue;
+        // The goto that ends an if's body, where the else is another if: an else-if, no deeper.
+        if (ins.flow === 'jump' && ins.target > ins.address && elseAt.has(ins.next) && byAddr.get(ins.next)?.flow === 'branch') continue;
         const [lo, hi] = ins.target > ins.address ? [ins.address, ins.target] : [ins.target - 1, ins.address + 1];
         for (const i of list) if (i.address > lo && i.address < hi) out.set(i.address, (out.get(i.address) ?? 0) + 1);
     }
@@ -153,7 +159,8 @@ function nesting(list: Instruction[]): Map<number, number> {
 export function mergedEnterScript(bytes: Uint8Array, mapId: number): MergedScript | null {
     const rom = new ScriptRom(bytes);
     const entry = roomScripts(rom, mapId).enter;
-    return entry === null ? null : mergedScript(rom, entry);
+    // For reading: names from the knowledge entries too, where the compiler's have none.
+    return entry === null ? null : mergedScript(rom, entry, displayNames(hiromFileOffset));
 }
 
 const hex6 = (v: number): string => v.toString(16).padStart(6, '0');
