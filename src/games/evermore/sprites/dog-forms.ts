@@ -67,4 +67,7 @@ function readDogForms(rom: Uint8Array) {
     return FORM_NAMES.map((_, i) => readDogForm(rom, i));
 }
 
-export { readDogForms };
+/** How many forms there are (form request values 2, 4, … 2n). */
+const DOG_FORM_COUNT = FORM_NAMES.length;
+
+export { readDogForms, readDogForm, DOG_FORM_COUNT };

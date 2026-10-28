@@ -29,6 +29,7 @@ Behind the Music view: `docs/todo/audio-and-music.md` §1.
 | `index.js` | Public API: `handlesScriptsMessage` / `handleScriptsMessage`, `buildScriptsTabHtml` |
 | `host.js` | The `scripts*` requests; uses the injected sprites and music capabilities |
 | `render-scripts-tab.ts` | The pane scaffold |
+| `model/icons.ts` | The in-game icons a listing's lines name (script-model `icons.ts`): an enemy's first frame, a loot reward's or weapon's ring icon, a dog form's idle frame (injected `dogIcon`); all from the user's ROM, sent with the room as `icons` |
 | `model/rooms.ts` | Room list, a room's scripts with trigger boxes and roles, the merged enter script, its camera-bound writes (a restating one warned), the arrivals, the enter script's characters as sprites, the room picture |
 | `model/alchemy.ts` | Formulas → `$91` blocks → animation records; records that signal `effect_done` (labels Animations) |
 | `model/map-sections.ts` | A room blob cut into its sections: bytes, fields, items |

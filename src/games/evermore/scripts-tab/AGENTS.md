@@ -13,7 +13,8 @@ Not to be confused with `src/games/evermore/script-vm/` (the bytecode decoder), 
   language data file (`../language/data/index.json`, as sprites does).
 - Must **not** import another feature (`sprites`, `music`, `rooms`, `emulator`, …):
   `extension.js` injects `animations(rom)` + `renderAnimation` (sprites) and
-  `music.{list, sequence, timeline}` (music), `roomVariants(rom, id)` (rooms' variants worker).
+  `music.{list, sequence, timeline}` (music), `roomVariants(rom, id)` (rooms' variants worker),
+  `dogIcon(rom, form)` (sprites: a dog form's picture).
   `.depcruise.js` rule `scripts-tab-no-features`.
 
 ## State owned

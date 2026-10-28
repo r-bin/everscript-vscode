@@ -40,7 +40,7 @@ type Box = { x: number; y: number; w: number; h: number };
 type Origin = { x: number; y: number };
 type ScriptView = {
     key: string; kind: string; index: number | null; address: number; addrHex: string; label: string; stop: string;
-    rows: { a: string; op: string; b: string; s: string; d: number; t: boolean; u: boolean; m?: RoomScript['instructions'][number]['marks'] }[];
+    rows: { a: string; op: string; b: string; s: string; d: number; t: boolean; u: boolean; m?: RoomScript['instructions'][number]['marks']; i?: RoomScript['instructions'][number]['icons'] }[];
     loot: string[]; to: string[]; scriptId?: number; box?: Box; role: Role | null;
 };
 
@@ -55,7 +55,7 @@ function scriptView(rom: ScriptRom, s: RoomScript | RoomTrigger, kind: string, i
         stop: s.stopReason,
         rows: s.instructions.map((r) => ({
             a: '$' + hex(r.addressSnes, 6), op: r.opcodeHex, b: r.bytesHex, s: r.summary,
-            d: r.depth, t: r.terminal, u: r.unsupported || r.untraced, ...(r.marks ? { m: r.marks } : {}),
+            d: r.depth, t: r.terminal, u: r.unsupported || r.untraced, ...(r.marks ? { m: r.marks } : {}), ...(r.icons ? { i: r.icons } : {}),
         })),
         loot: s.everscript,
         to: s.transitions.map((t) => `${t.mapName} (${t.x}, ${t.y})`),
@@ -178,7 +178,7 @@ function roomPicture(rom: Uint8Array, id: number, states?: Record<number, number
 }
 
 /** A trigger's script (`key`: `step:0`, `b:1`) with its calls merged: { merged } or { error }. */
-function triggerMerged(rom: Uint8Array, room: ReturnType<typeof roomScripts>, key: string) {
+function triggerMerged(rom: Uint8Array, room: ReturnType<typeof roomScripts>, key: string): { merged: MergedScript } | { error: string } {
     const s = room.scripts?.find((x) => x.key === key);
     if (!s || s.kind === 'enter') return { error: 'No trigger ' + key };
     try { return { merged: mergedRoomScript(rom, s.address) }; } catch (err) { return { error: String(err instanceof Error ? err.message : err) }; }

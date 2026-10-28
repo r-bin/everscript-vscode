@@ -17,7 +17,7 @@ import * as romReaders from './rom-readers';
 import * as gameViews from '../../core/game-views';
 import { readRomCharacters, readRomHitLookup, detectScaleEnemies } from './rom-readers';
 import { renderRadarHtml } from './memory/render-radar';
-import { renderAnimation } from './sprites';
+import { renderAnimation, dogFormIcon } from './sprites';
 import { radarDetectScope, radarAnalyzeScope } from './memory/scope-analysis';
 import { radar, getMapExportChannel, getRadarMap, getRadarEnums, getSpritesBundle, getExtConfig, radarItemIcons, refreshRadar, ROOMS_UI_PREFS_KEY, radarImportedRooms, radarRoomRom } from './radar-panel';
 
@@ -196,6 +196,8 @@ async function openMemoryRadar(doc?: vscode.TextDocument, startLine?: number): P
                 },
                 // The Rooms tab's variants worker: the Everscript view greys what a variant does not run.
                 roomVariants: (rom, id) => roomVariantsFor(rom, id),
+                // A dog form's picture next to CHANGE_DOGGO = WOLF (the sprites feature draws it).
+                dogIcon: dogFormIcon,
             });
         } else if (handlesDataMessage(msg.command)) {
             // The Data tab (src/games/evermore/data-tab/README.md). The character list is the

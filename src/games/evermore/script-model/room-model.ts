@@ -7,6 +7,7 @@ import { Instruction, Mark, Names, SCRIPT_HEADER, ScriptRom, facts, printed, roo
 import { doorsOf, TransitionFacts } from './doors';
 import { LootFacts, lootOf, lootToEverscript } from './loot';
 import { enemyName, printNames } from './names';
+import { IconRef, iconRefs } from './icons';
 import { paths } from './paths';
 import { hexLower } from '../../../platform/hex';
 
@@ -28,6 +29,8 @@ export interface ScriptRow {
     depth: number;
     /** What is wrong with the line (script-vm `printed`), drawn as squiggles; absent when nothing is. */
     marks?: Mark[];
+    /** The in-game icons its line can show (icons.ts). */
+    icons?: IconRef[];
 }
 
 export type StopReason = 'terminated' | 'unknown-opcode' | 'bad-operand' | 'none';
@@ -107,10 +110,12 @@ export function row(rom: ScriptRom, ins: Instruction, names: Names): ScriptRow {
     const bytes: string[] = [];
     for (let i = 0; i < ins.size; i++) bytes.push(rom.u8(ins.address + i).toString(16).padStart(2, '0').toUpperCase());
     const p = printed(ins, names);
+    const icons = iconRefs(ins, names);
     return {
         addressSnes: ins.address, opcode: ins.opcode, opcodeHex: hex2(ins.opcode), size: ins.size, bytesHex: bytes.join(' '),
         summary: p.text, terminal: ins.flow === 'end' || ins.flow === 'reset', untraced: !ins.spec.name,
         unsupported: false, depth: 0, ...(p.marks.length ? { marks: p.marks } : {}),
+        ...(icons.length ? { icons } : {}),
     };
 }
 

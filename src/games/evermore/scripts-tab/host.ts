@@ -7,7 +7,7 @@
 // State owned: `_rooms` (room scripts + picture per room id, for the loaded ROM).
 //
 //   page -> scriptsInit                 host -> scriptsIndex { rooms, animations, music } | { error }
-//   page -> scriptsRoom { id }          host -> scriptsRoom { id, room, picture }
+//   page -> scriptsRoom { id }          host -> scriptsRoom { id, room, picture, icons }   (icons: key → data URI, model/icons.ts)
 //   page -> scriptsMerged { id, key }   host -> scriptsMerged { id, key, merged } | { id, key, error }   (a trigger's
 //                                       script with its calls merged, as the enter script comes in scriptsRoom; one at a time:
 //                                       a room's triggers together can be megabytes)
@@ -20,6 +20,7 @@
 //                                       pictures[i]: the room with variant i's object states and palette set, null when it sets neither)
 
 import { roomList, roomScripts, roomPicture, triggerMerged } from './model/rooms';
+import { iconsFor, iconKeys, DogIcon } from './model/icons';
 import { alchemyModel } from './model/alchemy';
 import { simulateScript, roomClusters } from './model/simulation';
 import { mapSections } from './model/map-sections';
@@ -47,9 +48,11 @@ interface Deps {
     music: { list(rom: Rom): unknown; sequence(rom: Rom, id: number): unknown; timeline(rom: Rom, id: number, seconds: number): Promise<unknown> };
     /** Who stands in a ROM room per story state, and the instructions each runs (simulation/variants.ts, in a worker). */
     roomVariants(rom: Rom, id: number): Promise<Array<{ objects?: Array<[number, number]>; palette?: number }>>;
+    /** A dog form's idle frame as a data URI (the sprites feature draws it); absent: dog forms have no icon. */
+    dogIcon?: DogIcon;
 }
 
-type RoomEntry = { room: ReturnType<typeof roomScripts>; picture: ReturnType<typeof roomPicture>; merged?: Map<string, unknown> };
+type RoomEntry = { room: ReturnType<typeof roomScripts>; picture: ReturnType<typeof roomPicture>; merged?: Map<string, ReturnType<typeof triggerMerged>> };
 let _rooms: { rom: Rom | null; byId: Map<number, RoomEntry> } = { rom: null, byId: new Map() };
 
 const handlesScriptsMessage = (command: unknown): boolean => typeof command === 'string' && command.startsWith('scripts');
@@ -123,7 +126,8 @@ function handleScriptsMessage(msg: Message, deps: Deps): void {
             case 'scriptsRoom': {
                 const id = Number(msg.id);
                 const { room, picture } = roomEntry(rom, id);
-                deps.post({ command: 'scriptsRoom', id, room, picture });
+                const refs = [...(room.merged?.lines ?? []).map((l) => l.icons), ...(room.scripts ?? []).flatMap((s) => s.rows.map((r) => r.i))];
+                deps.post({ command: 'scriptsRoom', id, room, picture, icons: iconsFor(rom, iconKeys(refs), deps.dogIcon ?? null) });
                 return;
             }
             case 'scriptsMerged': {
@@ -131,7 +135,9 @@ function handleScriptsMessage(msg: Message, deps: Deps): void {
                 const entry = roomEntry(rom, id);
                 const cache = entry.merged ?? (entry.merged = new Map());
                 if (!cache.has(key)) cache.set(key, triggerMerged(rom, entry.room, key));
-                deps.post({ command: 'scriptsMerged', id, key, ...(cache.get(key) as object) });
+                const got = cache.get(key)!;
+                const icons = 'merged' in got ? iconsFor(rom, iconKeys(got.merged.lines.map((l: { icons?: Array<{ key: string }> }) => l.icons)), deps.dogIcon ?? null) : {};
+                deps.post({ command: 'scriptsMerged', id, key, ...got, icons });
                 return;
             }
             case 'scriptsAnim': {

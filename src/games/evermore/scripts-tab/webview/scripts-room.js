@@ -78,13 +78,16 @@ function scrScriptListHtml(room) {
 }
 
 /** One script line, coloured (script-vm/highlight.ts, the Rooms tab's too); `marks` drawn as squiggles. */
-function scrLine(text, marks) { return typeof highlightScript === 'function' ? highlightScript(text, marks || []) : scrEsc(text); }
+function scrLine(text, marks, icons) {
+  var html = typeof highlightScript === 'function' ? highlightScript(text, marks || []) : scrEsc(text);
+  return icons ? ScriptsListing.withIcons(html, icons, _scr.icons) : html;
+}
 
 function scrRowsHtml(s) {
   return '<table class="scr-rows"><tbody>' + s.rows.map(function (r) {
     return '<tr class="' + (r.u ? 'scr-unk' : '') + (r.t ? ' scr-term' : '') + '" data-in="-1" data-addr="' + r.a.slice(1) + '"><td class="scr-a">' + r.a + '</td>' +
       '<td class="scr-b" title="' + scrEsc(r.b) + '">' + scrEsc(r.b.length > 24 ? r.b.slice(0, 23) + '…' : r.b) + '</td>' +
-      '<td class="scr-s" style="padding-left:' + (8 + r.d * 14) + 'px">' + scrLine(r.s, r.m) + '</td></tr>';
+      '<td class="scr-s" style="padding-left:' + (8 + r.d * 14) + 'px">' + scrLine(r.s, r.m, r.i) + '</td></tr>';
   }).join('') + '</tbody></table>';
 }
 
@@ -192,7 +195,7 @@ function scrMergedHtml(m, s) {
       + '<td class="scr-s' + (place.bars.length ? ' scr-called' : '') + '" style="' + ScriptsListing.layoutStyle(place) + '">'
       + (b ? '<button class="scr-fold" data-scr-fold="' + b.id + '" aria-expanded="' + !shut + '" title="' + (shut ? 'Show' : 'Hide') + ' the '
         + (b.kind === 'call' ? 'called script' : 'thread') + ' (' + b.size + ' lines)">' + (shut ? '▸' : '▾') + '</button>' : '')
-      + (r.note ? scrEsc(r.summary) : scrLine(text, r.marks)) + (shut ? ' <span class="scr-dim">· ' + b.size + ' lines</span>' : '') + '</td></tr>';
+      + (r.note ? scrEsc(r.summary) : scrLine(text, r.marks, r.icons)) + (shut ? ' <span class="scr-dim">· ' + b.size + ' lines</span>' : '') + '</td></tr>';
   }).join('') + '</tbody></table>';
 }
 
@@ -229,10 +232,12 @@ function scrRenderRoomSide(side, d, sel) {
 function scrOnRoomMessage(msg) {
   if (msg.command === 'scriptsRoom') {
     _scr.rooms[msg.id] = msg.error ? { room: { error: msg.error } } : { room: msg.room, picture: msg.picture };
+    Object.assign(_scr.icons, msg.icons || {});
   } else if (msg.command === 'scriptsVariants') {
     _scr.variants[msg.id] = { variants: msg.variants || [], pictures: msg.pictures || [], error: msg.error || null };
   } else if (msg.command === 'scriptsMerged') {
     _scr.merged[msg.id + ':' + msg.key] = msg.error ? { error: msg.error } : { merged: msg.merged };
+    Object.assign(_scr.icons, msg.icons || {});
   } else if (msg.command === 'scriptsSim') {
     _scr.sims[msg.room + ':' + msg.key] = msg.error ? { everscript: { error: msg.error }, clusters: { error: msg.error } }
       : { everscript: msg.everscript, clusters: msg.clusters };

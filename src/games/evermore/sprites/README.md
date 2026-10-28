@@ -22,6 +22,7 @@ The radar tab is called **Characters** (it was "Sprites"); inside it, three mode
 | `projectile-render.ts` | Projectile spawns on the playback timeline, their flight and their own animation | < 100 |
 | `target.ts` | The second character on stage: who, where, its standing frame, and which ticks hit it | < 120 |
 | `dog-forms.ts` | The Dog's six forms (bank `$CF`), shaped like Boy weapons | < 90 |
+| `dog-form-icon.ts` | A form's idle frame as a data URI, for the script listings (apart: drawing needs the decoder, which reads `dog-forms.ts`) | < 30 |
 | `raw-sprites.ts` | Walks and indexes all raw sprites from `$CA0003`, renders chunk tables (the tab's raw sprite view is gone since v0.329: `getRawSprite` has no page caller; sprites open as `soe://rom/assets/sprites/`) | < 150 |
 | `sprites-tab.ts` | Server-side tab pane HTML scaffold | < 200 |
 | `webview/sprites-view/` | Client-side webview controller, rAF animation loop, canvas drawing: one IIFE kept as parts (`01-state.js` … `09-init.js`: state and list, pickers, playback, palettes, messages, stats, seek bar, start), wrapped by `memory/webview/index.ts` | < 400 each |

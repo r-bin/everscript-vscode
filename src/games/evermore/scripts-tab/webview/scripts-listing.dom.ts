@@ -22,6 +22,24 @@ interface Slice { area: 'local' | 'temp'; thread: number; offset: number; width:
 interface BoundWrite { at: number; edge: 'start' | 'end'; x: number; y: number }
 interface Arrival { fromMap: number; fromName: string; key: string; x: number; y: number; direction: string | null }
 
+/**
+ * A highlighted line with its in-game icons: each after the first `find` token that has none yet
+ * (script-model icons.ts names them, the host draws them from the user's ROM).
+ */
+export function withIcons(html: string, refs: Array<{ key: string; find: string }>, icons: Record<string, string | null>): string {
+    let out = html;
+    for (const r of refs) {
+        const uri = icons[r.key];
+        if (!uri) continue;
+        const token = '>' + esc(r.find) + '</span>';
+        const at = out.indexOf(token);
+        if (at < 0) continue;
+        const end = at + token.length;
+        out = out.slice(0, end) + '<img class="scr-icon" src="' + uri + '" alt="" title="' + esc(r.find) + '">' + out.slice(end);
+    }
+    return out;
+}
+
 /** Entry-state flags: clear when the room is loaded fresh, set by the way some doors bring you in. */
 export const ENTRY_FLAGS = ['IN_ANIMATION', 'DOG_UNAVAILABLE', 'CHANGE_MUSIC'];
 

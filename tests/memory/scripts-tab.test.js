@@ -34,6 +34,7 @@ function hostDeps(rom, posted) {
             timeline: music.trackTimeline,
         },
         roomVariants: require('../../dist/games/evermore/rooms').roomVariantsFor,
+        dogIcon: sprites.dogFormIcon,
     };
 }
 
@@ -312,6 +313,7 @@ async function dom(rom) {
         assert.strictEqual(await page.locator('.scr-arrivals [data-scr-arrive]').count(), 2, 'from the hut inside and the jungle');
         assert.ok(await page.locator('#scr-mid td.scr-called').count() > 0, 'call $92:DE75 is open: its rows carry a bar');
         assert.ok((await page.textContent('#scr-mid')).includes('attach_script(1, B, LOOT_DUST_REWARD);'));
+        assert.strictEqual(await page.locator('#scr-mid img.scr-icon[title="WOLF"]').count(), 1, 'CHANGE_DOGGO = WOLF: the act 1 wolf, drawn from the ROM');
         await shot('hut');
         // A trigger reads like the enter script: merged (scriptsMerged), structured, its calls folded or open.
         await page.click('.scr-chips [data-scr-script="step:0"]');

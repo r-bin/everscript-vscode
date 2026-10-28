@@ -189,3 +189,4 @@
 .evs-tip-vfs a:hover{text-decoration:underline}
 
 @media (max-width:900px){.scr-body{grid-template-columns:200px 1fr}.scr-side{grid-column:1 / -1;border-top:1px solid var(--scr-line)}}
+.scr-icon{height:18px;width:auto;max-width:36px;vertical-align:middle;margin:-3px 2px -3px 4px;image-rendering:pixelated;object-fit:contain}

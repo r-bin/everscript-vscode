@@ -254,3 +254,10 @@ opening the ring menu), still true and not repeated elsewhere:
   (read-mask-write on `$0000,Y`..`$0003,Y`), then DMA'd to VRAM; there is no direct ROM→VRAM copy for them.
 - Mesen trace pitfall: `[REG] = $x` prints the address's *prior* contents, not the value written. The
   written value is the register the store names, at the width the M/X flags give (`P:nvmxdizc`, lowercase = 16-bit).
+
+## Weapons by their index
+
+A weapon index (`$235F`, the value a room writes to `ram/7e2441`) maps to icon id `$26 + index`
+for indices 2 to `$1A`, in the same order: four swords, four axes, four spears, the bazooka
+(checked by eye on six of them, v0.372.0). The bazooka's other shells (`$1C`, `$1E`) have none:
+`$26 + $1E` is not a weapon's icon.
