@@ -376,3 +376,62 @@ typedef enum {
     BAZOOKA_CRYO_BLAST          = 0x04  /* Piercing cryogenic freezing shell ($7E:2347) */
 } BazookaAmmoId;
 ```
+
+---
+
+## 15. Enemy Combat AI Behavioral Modes (`AI_BEHAVIOR`)
+
+Jump table `$8F:CBE0` indexes 15 AI routines dispatched every tick by `$8F:CD17` according to character record `+0x03`:
+
+```c
+typedef enum {
+    AI_CHASE                    = 0x00, /* Aggressive pursuit, combat alignment, retreat while recharging ($8F:D34B) */
+    AI_NONE                     = 0x02, /* Passive idle entity, animated solely by scripts ($8F:D76A) */
+    AI_COMPANION_BOY            = 0x04, /* Autonomous Boy companion following & target selection ($8F:D05E) */
+    AI_COMPANION_DOG            = 0x06, /* Autonomous Dog companion following & sniffing ($8F:D0A8) */
+    AI_STATIONARY               = 0x08, /* 4-cardinal stationary combat turret ($8F:D6FB) */
+    AI_WANDER                   = 0x0A, /* Friendly town NPC random walk and pause sequence ($8F:D76E) */
+    AI_CHASE_HOVERING           = 0x0C, /* Airborne hovering entity with sinusoidal bobbing ($8F:D4FB) */
+    AI_STATIONARY_PLAYER        = 0x0E, /* Stationary boss turret tracking the player in 8 directions ($8F:D715) */
+    AI_ROLL_OR_SHOOT            = 0x10, /* Full-charge projectile launch or curl-and-roll rush (Magmar, $8F:D5D2) */
+    AI_CHASE_OR_ROLL            = 0x12, /* Pursuit with 50% probability of rolling charge attack (Viper, $8F:D421) */
+    AI_BOUNCE                   = 0x14, /* Continuous walking with obstacle reflection bounce (Rimsala, $8F:D394) */
+    AI_DRIFT_EAST               = 0x16, /* Directional eastern drift with northward/southward bias ($8F:D3DC) */
+    AI_PURSUE_PLAYER            = 0x18, /* Continuous pursuit when charged, retreat when uncharged ($8F:D380) */
+    AI_ROLL                     = 0x1A, /* Full-charge rolling assault attack (Megataur, $8F:D52E) */
+    AI_STATIONARY_DIAGONAL      = 0x1C  /* Diagonal-facing stationary entity (Tentacles, $8F:D708) */
+} AiBehavior;
+```
+
+---
+
+## 16. Sprite Animation Engine VM Bytecode (`ANIM_OPCODE`)
+
+Vector jump table `$90:8000` defines the instruction handlers for the animation bytecode interpreter `$90:80CE` (opcodes `0x00`..`0x66`):
+
+```c
+typedef enum {
+    ANIM_NOP                    = 0x00, /* No operation ($90:878A) */
+    ANIM_SLEEP_RANDOM           = 0x1F, /* Hold for random duration between min and max ticks ($90:837C) */
+    ANIM_SLEEP                  = 0x20, /* Hold for operand tick duration ($90:835A) */
+    ANIM_FRAME_NOP              = 0x21, /* Frame-boundary synchronization nop ($90:878B) */
+    ANIM_SPRITE2                = 0x2C, /* Double sprite frame draw with offset coordinates ($90:842F) */
+    ANIM_LOOP                   = 0x2D, /* Reset execution to script beginning ($90:877D) */
+    ANIM_SOUND                  = 0x2E, /* Play audio sound effect ID ($90:8921) */
+    ANIM_SOUND_MAYBE            = 0x2F, /* Conditional sound effect with RNG check ($90:894E) */
+    ANIM_RESTART_HERE           = 0x30, /* Set loop resume point to current PC ($90:8AE0) */
+    ANIM_SET8                   = 0x31, /* Write 8-bit immediate value to entity offset ($90:8AEB) */
+    ANIM_SET16                  = 0x32, /* Write 16-bit immediate value to entity offset ($90:8B00) */
+    ANIM_SET24                  = 0x33, /* Write 24-bit immediate pointer to entity offset ($90:8B1A) */
+    ANIM_POKE                   = 0x34, /* Direct memory poke to bus address ($90:8B3C) */
+    ANIM_ADD8                   = 0x35, /* Add 8-bit immediate to entity offset ($90:8B81) */
+    ANIM_ADD16                  = 0x36, /* Add 16-bit immediate to entity offset ($90:8B99) */
+    ANIM_CLEAR_BITS             = 0x37, /* Bitwise clear entity flag bits ($90:8B5A) */
+    ANIM_DEC_JNZ                = 0x39, /* Decrement loop counter; branch if nonzero ($90:8BBE) */
+    ANIM_JUMP_POS               = 0x3A, /* Branch to instruction address ($90:8BE4) */
+    ANIM_STEP                   = 0x41, /* Movement step advance along facing vector ($90:86A9) */
+    ANIM_HURTBOX                = 0x4B, /* Update entity damage collision hurtbox bounds ($90:885A) */
+    ANIM_PROJECTILE             = 0x56  /* Spawn ballistic projectile archetype ($90:878C) */
+} AnimOpcode;
+```
+

@@ -20,7 +20,7 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
 | `$8E:B678` | `0x073678` | `tbl_character_records` | 74 bytes | 142 | 10,508 B | Master character record database (stats, AI, contact, loot) |
 | `$8F:945D` | `0x07945D` | `tbl_dog_form_pointers` | 14 bytes | 4 | 56 B | Companion breed form base stats, sniffing range, palettes |
 | `$8F:B6AE` | `0x07B6AE` | `tbl_contact_handlers` | 2 bytes | 15 | 30 B | Entity melee and projectile contact handler dispatch vectors |
-| `$90:8052` | `0x080052` | `tbl_animation_vm_jump_table` | 2 bytes | 76 | 152 B | Sprite animation engine bytecode execution vector table |
+| `$90:8000` | `0x080000` | `tbl_animation_vm_jump_table` | 2 bytes | 103 | 206 B | Sprite animation engine bytecode execution vector table |
 | `$90:D5CF` | `0x0855CF` | `tbl_anim_tile_channel_bases` | 2 bytes | 4 | 8 B | VRAM destination pattern words for 4 animated tile channels |
 | `$90:D9A6` | `0x08D9A6` | `tbl_projectile_records` | 24 bytes | 21 | 504 B | Projectile archetype definitions (anim, palette, routine, speed, power) |
 | `$90:DF44` | `0x085F44` | `tbl_boomerang_orbit` | 4 bytes | 256 | 1,024 B | Elliptical orbital vector coordinates $(X, Y)$ in $1/16$ px |
@@ -244,6 +244,66 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
   - 24-bit SNES far pointers (plus 1 padding byte) resolving the file location of the LZSS compressed room data blob for each map ID 0..126.
   - Room data blobs contain the tilemap layer definitions, metatile collision matrices, and enter event bytecode.
 - **Readers**: Master room transition loader `$8E:E4E2` (`enter_room`).
+
+### 2.19 Entity Contact Damage Handler Table (`$8F:B6AE`)
+- **Format**: `uint16_t tbl_contact_handlers[15]`, 2 bytes per vector (30 bytes total, `$8F:B6AE`..`$8F:B6CB`).
+- **Internal Layout**:
+  - Vector table of 16-bit function pointers in Bank `$8F` indexed by even action ID `0x00`..`0x1C` (`JSR ($B6AE,x)`).
+  - Selected by character record `+0x30` and projectile archetype records at `+0x08`.
+  - Entries:
+    - `0x00` (`$8F:B6CC`): Standard melee physical strike.
+    - `0x02` (`$8F:B6E0`): Standard projectile impact; checks immunity `+0x07` bit 4, removes projectile.
+    - `0x04` (`$8F:B724`): Piercing projectile strike; passes through targets.
+    - `0x06` (`$8F:B73C`): Defense-bypassing projectile impact (enters `$8F:C07E`).
+    - `0x08` (`$8F:B75A`): Melee strike; kills grant Boy weapon skill XP (`$8F:973E`).
+    - `0x0A` (`$8F:B77D`): Melee strike; kills grant Dog attack skill XP (`$8F:97C0`).
+    - `0x0C` (`$8F:B7A0`): Melee strike followed by devour/swallow animation (state `$12`).
+    - `0x0E` (`$8F:B7D7`): Melee strike blocked if Insect Incense (`$7E:2261` bit 7) is active.
+    - `0x10` (`$8F:B7DF`): Unconditional melee strike without incense checks.
+    - `0x12` (`$8F:B7FB`): Melee strike with 25% chance of applying poison (`$90`).
+    - `0x14` (`$8F:B7F3`): Melee strike with poison, blocked if Insect Incense is active.
+    - `0x16` (`$8F:B85E`): Melee strike with 12.5% chance of applying plague (`$88`).
+    - `0x18` (`$8F:B82D`): Melee strike with 100% guaranteed poison application.
+    - `0x1A` (`$8F:B8E3`): Pure direct damage from `$0E9C` without to-hit rolls.
+    - `0x1C` (`$8F:B898`): Melee strike with 25% chance of applying plague or confound.
+- **Readers**: Collision handler `$8F:B57B` and strike hit-test loop `$8F:B6A5`.
+
+### 2.20 Enemy AI Behavioral Jump Table (`$8F:CBE0`)
+- **Format**: `uint16_t tbl_ai_behaviours[15]`, 2 bytes per routine (30 bytes total, `$8F:CBE0`..`$8F:CBFD`).
+- **Internal Layout**:
+  - Jump vectors in Bank `$8F` indexed by character record `+0x03` (`JMP ($CBE0,x)` by `$8F:CD17`).
+  - Entries:
+    - `0x00` (`$8F:D34B`): `CHASE` — Aggressive pursuit, combat alignment, retreat during recharge, leash return.
+    - `0x02` (`$8F:D76A`): `NONE` — Passive idle entity, animated solely by room events and scripts.
+    - `0x04` (`$8F:D05E`): `COMPANION_BOY` — Autonomous Boy following, breadcrumb tracking, AI menu setting.
+    - `0x06` (`$8F:D0A8`): `COMPANION_DOG` — Autonomous Dog following, ingredient sniffing, idle sitting.
+    - `0x08` (`$8F:D6FB`): `STATIONARY` — Stationary combat turret; 4-cardinal facing alignment and strike.
+    - `0x0A` (`$8F:D76E`): `WANDER` — Friendly town NPC random walk and pause sequence.
+    - `0x0C` (`$8F:D4FB`): `CHASE_HOVERING` — Airborne hovering entity with sinusoidal bobbing and chase.
+    - `0x0E` (`$8F:D715`): `STATIONARY_PLAYER` — Stationary boss turret tracking the player in 8 directions.
+    - `0x10` (`$8F:D5D2`): `ROLL_OR_SHOOT` — Full-charge projectile launch or curl-and-roll rush (Magmar).
+    - `0x12` (`$8F:D421`): `CHASE_OR_ROLL` — Pursuit with 50% probability of rolling charge attack (Viper).
+    - `0x14` (`$8F:D394`): `BOUNCE` — Continuous walking with obstacle reflection bounce (Rimsala).
+    - `0x16` (`$8F:D3DC`): `DRIFT_EAST` — Directional eastern drift with northward/southward bias.
+    - `0x18` (`$8F:D380`): `PURSUE_PLAYER` — Continuous pursuit when charged, retreat when uncharged.
+    - `0x1A` (`$8F:D52E`): `ROLL` — Full-charge rolling assault attack (Megataur).
+    - `0x1C` (`$8F:D708`): `STATIONARY_DIAGONAL` — Diagonal-facing stationary entity (Tentacles).
+- **Readers**: Main combat tick AI dispatcher `$8F:CD17`.
+
+### 2.21 Animation Bytecode VM Vector Jump Table (`$90:8000`)
+- **Format**: `uint16_t tbl_animation_vm_jump_table[103]`, 2 bytes per vector (206 bytes total, `$90:8000`..`$90:80CD`).
+- **Internal Layout**:
+  - Jump vectors for animation bytecode interpreter `$90:80CE`, indexed by `(cmd & 0x7F) * 2`.
+  - Dispatches control flow (`nop`, `sleep`, `loop`, `jump`), sprite frame display, coordinate offsets, and sound effects.
+- **Readers**: Sprite animation interpreter tick loop `$90:80CE`.
+
+### 2.22 Formula Base Power and Recovery Matrix (`$C4:5E6B`)
+- **Format**: `uint16_t tbl_formula_base_power[35]`, 2 bytes per formula (70 bytes total, `$C4:5E6B`..`$C4:5EB0`).
+- **Internal Layout**:
+  - 16-bit base damage or HP restoration magnitude for all 35 formulas.
+  - Multiplied by formula level percentage scaling from `$C4:5BA5` during alchemy execution `$8F:C067`.
+- **Readers**: Combat damage compositor `$8F:C067` and alchemy spell effect processor.
+
 
 
 

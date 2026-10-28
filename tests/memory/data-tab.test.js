@@ -52,7 +52,14 @@ async function romChecks(rom) {
     handleDataMessage({ command: 'dataInit' }, hostDeps(rom, posted));
     const ix = posted[0];
     await test('tables: XP per level, character stats, sine, boomerang orbit — decoded ones only', () => {
-        assert.deepStrictEqual(ix.tables.map((t) => t.id), ['xp', 'stats', 'sine', 'boomerang', 'formula-costs', 'dog-forms', 'weapon-levels', 'alchemy-growth', 'weapons', 'call-beads', 'font-widths', 'animate-records', 'projectiles', 'formula-targets', 'armor', 'enemy-index', 'consumables', 'formula-blocks', 'bazooka-ammo', 'formula-descriptions', 'projectile-routines', 'formula-learned', 'rooms-table']);
+        assert.deepStrictEqual(ix.tables.map((t) => t.id), [
+            'xp', 'stats', 'sine', 'boomerang', 'formula-costs', 'dog-forms', 'weapon-levels',
+            'alchemy-growth', 'weapons', 'call-beads', 'font-widths', 'animate-records',
+            'projectiles', 'formula-targets', 'armor', 'enemy-index', 'consumables',
+            'formula-blocks', 'bazooka-ammo', 'formula-descriptions', 'projectile-routines',
+            'formula-learned', 'rooms-table', 'contact-handlers', 'ai-behaviours',
+            'animation-vm', 'formula-powers'
+        ]);
         const boy = ix.tables[1].rows[2];
         assert.strictEqual(boy[1], 'Boy');
         const xp = ix.tables[0];
@@ -95,9 +102,25 @@ async function romChecks(rom) {
         assert.strictEqual(ix.tables[21].rows[0][1], 'Acid Rain');
         assert.strictEqual(ix.tables[21].rows[0][2], '$7E:2258');
         assert.strictEqual(ix.tables[22].rows.length, 127);
+        assert.strictEqual(ix.tables[23].rows.length, 15);
+        assert.strictEqual(ix.tables[23].rows[0][3], 'Plain Melee');
+        assert.strictEqual(ix.tables[24].rows.length, 15);
+        assert.strictEqual(ix.tables[24].rows[0][3], 'CHASE');
+        assert.strictEqual(ix.tables[25].rows.length, 103);
+        assert.strictEqual(ix.tables[25].rows[0][3], 'nop');
+        assert.strictEqual(ix.tables[26].rows.length, 35);
+        assert.strictEqual(ix.tables[26].rows[0][1], 'Acid Rain');
+        assert.strictEqual(ix.tables[26].rows[0][2], 17);
     });
     await test('enums: only lists read from the ROM or a knowledge entry', () => {
-        assert.deepStrictEqual(ix.enums.map((e) => e.id), ['blobs', 'fields', 'contact', 'ai', 'formulas', 'cast', 'ingredients', 'rooms', 'wram-states', 'directions', 'collision', 'status-effects', 'weapon-classes', 'ring-icons', 'music', 'sounds', 'opcodes', 'call-beads-enum', 'targeting-modes', 'armor-items', 'currencies', 'consumables-enum', 'stamina-tiers', 'charms-enum', 'bazooka-ammo-enum', 'companion-ai-states', 'projectile-routines-enum', 'projectile-behaviors', 'formula-learned-flags']);
+        assert.deepStrictEqual(ix.enums.map((e) => e.id), [
+            'blobs', 'fields', 'contact', 'ai', 'formulas', 'cast', 'ingredients', 'rooms',
+            'wram-states', 'directions', 'collision', 'status-effects', 'weapon-classes',
+            'ring-icons', 'music', 'sounds', 'opcodes', 'call-beads-enum', 'targeting-modes',
+            'armor-items', 'currencies', 'consumables-enum', 'stamina-tiers', 'charms-enum',
+            'bazooka-ammo-enum', 'companion-ai-states', 'projectile-routines-enum',
+            'projectile-behaviors', 'formula-learned-flags', 'anim-opcodes', 'formula-powers-enum'
+        ]);
         const e = (id) => ix.enums.find((x) => x.id === id);
         assert.ok(e('blobs').entries.some((x) => x.cells[0] === 'WRAM' && x.cells[2] === '$7E0A26'));
         assert.ok(!e('blobs').entries.some((x) => /ENTITY_/.test(x.cells[1])), 'no unverified entity slots');
@@ -127,6 +150,11 @@ async function romChecks(rom) {
         assert.strictEqual(e('projectile-routines-enum').entries.length, 10);
         assert.strictEqual(e('projectile-behaviors').entries.length, 4);
         assert.strictEqual(e('formula-learned-flags').entries.length, 35);
+        assert.strictEqual(e('anim-opcodes').entries.length, 103);
+        assert.strictEqual(e('anim-opcodes').entries[0].cells[2], 'nop');
+        assert.strictEqual(e('formula-powers-enum').entries.length, 35);
+        assert.strictEqual(e('formula-powers-enum').entries[0].cells[1], 'Acid Rain');
+        assert.strictEqual(e('formula-powers-enum').entries[0].cells[2], '17');
     });
     await test('palettes: the sprite palettes in bank $90 with their users, the map tile families', () => {
         const sprites = ix.palettes.filter((p) => p.id.startsWith('s:'));
@@ -167,7 +195,7 @@ async function dom(rom) {
     await test('opening the tab loads every list; XP is drawn with both series', async () => {
         await page.click('.tab[data-tab="data"]');
         await pump();
-        assert.strictEqual(await page.locator('#dat-rail [data-dat-pick]').count(), 23);
+        assert.strictEqual(await page.locator('#dat-rail [data-dat-pick]').count(), 27);
         assert.strictEqual(await page.locator('#dat-side svg polyline').count(), 2);
         const svg = await page.locator('#dat-side svg').boundingBox();
         await page.mouse.move(svg.x + svg.width * 0.5, svg.y + svg.height * 0.5);

@@ -7,6 +7,7 @@
 
 import { snesToRom, read16, read24, mapTableOffset, MAX_ROOMS } from '../../maps';
 import { CHARACTER_TABLE, CHARACTER_STRIDE } from '../../maps/character-record';
+import { opcode } from '../../maps/animation-opcodes';
 import { getMapName, getMapArea } from '../../localizations';
 import { hex } from '../../../../platform';
 
@@ -646,6 +647,154 @@ function roomsTable(rom: Uint8Array): Table {
     };
 }
 
+const CONTACT_HANDLERS_ADDR = 0x8fb6ae;
+const CONTACT_HANDLER_COUNT = 15;
+
+const CONTACT_INFO: Record<number, { name: string; cat: string; desc: string }> = {
+    0x00: { name: 'Plain Melee', cat: 'Melee', desc: 'Standard physical melee attack roll and damage' },
+    0x02: { name: 'Standard Projectile', cat: 'Projectile', desc: 'Projectile hit check; target +$07 bit 4 immune' },
+    0x04: { name: 'Piercing Projectile', cat: 'Projectile', desc: 'Piercing projectile hit; projectile continues' },
+    0x06: { name: 'Defense Piercing', cat: 'Projectile', desc: 'Projectile that ignores target defense' },
+    0x08: { name: 'Boy Weapon Skill', cat: 'Melee', desc: 'Melee hit; kill grants Boy weapon skill XP' },
+    0x0a: { name: 'Dog Attack Skill', cat: 'Melee', desc: 'Melee hit; kill grants Dog attack skill XP' },
+    0x0c: { name: 'Swallow Sequence', cat: 'Melee', desc: 'Melee hit; plays devour animation unless immune' },
+    0x0e: { name: 'Insect Incense Blocked', cat: 'Melee', desc: 'Melee hit blocked if Insect Incense active' },
+    0x10: { name: 'Unconditional Strike', cat: 'Melee', desc: 'Direct melee hit without incense check' },
+    0x12: { name: 'Poison Chance (25%)', cat: 'Melee', desc: 'Melee hit; 25% chance of applying poison' },
+    0x14: { name: 'Poison with Incense', cat: 'Melee', desc: 'Melee poison hit blocked by incense' },
+    0x16: { name: 'Plague Chance (12.5%)', cat: 'Melee', desc: 'Melee hit; 12.5% chance of plague' },
+    0x18: { name: 'Guaranteed Poison', cat: 'Melee', desc: 'Melee hit; 100% poison application' },
+    0x1a: { name: 'Pure Projectile Damage', cat: 'Projectile', desc: 'Direct damage from $0E9C without to-hit roll' },
+    0x1c: { name: 'Plague / Confound', cat: 'Melee', desc: 'Melee hit; 25% chance of plague or confound' },
+};
+
+function contactHandlersTable(rom: Uint8Array, names: { id: number; name: string }[]): Table {
+    const users = new Map<number, string[]>();
+    for (let c = 0; c < CHARACTER_COUNT; c++) {
+        const at = snesToRom(CHARACTER_TABLE + c * CHARACTER_STRIDE + 0x30);
+        const action = read16(rom, at);
+        const label = hex(c, 2) + ' ' + (names[c]?.name || '');
+        users.set(action, (users.get(action) || []).concat(label));
+    }
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < CONTACT_HANDLER_COUNT; i++) {
+        const id = i * 2;
+        const ptr = read16(rom, snesToRom(CONTACT_HANDLERS_ADDR + id));
+        const info = CONTACT_INFO[id] || { name: 'Unknown', cat: 'Unknown', desc: '—' };
+        const u = users.get(id) || [];
+        const uStr = u.length ? (u.length + ' records (' + u.slice(0, 3).join(', ') + (u.length > 3 ? ' …' : '') + ')') : '—';
+        rows.push([id, '+$' + hex(id, 2), '$8F:' + hex(ptr, 4), info.name, info.cat, info.desc, uStr]);
+        pts.push([id, u.length]);
+    }
+    return {
+        id: 'contact-handlers', group: 'Combat', title: 'Contact damage & projectile handlers', addr: '$8F:B6AE',
+        note: 'Table $8F:B6AE (15 words, 30 bytes): Melee and projectile collision dispatch table called via JSR ($B6AE,x), selected by character record +$30 and projectile record +$08.',
+        columns: ['id', 'hex', 'routine vector', 'action name', 'category', 'effect description', 'archetype users'],
+        rows,
+        chart: { x: 'action id', y: 'archetype users', series: [{ name: 'archetype users', points: pts }] },
+        vfs: vfs(CONTACT_HANDLERS_ADDR),
+    };
+}
+
+const AI_BEHAVIOURS_ADDR = 0x8fcbe0;
+const AI_BEHAVIOUR_COUNT = 15;
+
+const AI_INFO: Record<number, { name: string; desc: string }> = {
+    0x00: { name: 'CHASE', desc: 'Aggressive pursuit, combat reach alignment, retreat while recharging' },
+    0x02: { name: 'NONE', desc: 'Passive entity; idle animation, moved solely by scripts' },
+    0x04: { name: 'COMPANION_BOY', desc: 'Autonomous Boy following, breadcrumbs, AI menu settings' },
+    0x06: { name: 'COMPANION_DOG', desc: 'Autonomous Dog following, sniffing, idle sitting' },
+    0x08: { name: 'STATIONARY', desc: 'Stationary 4-cardinal combat turret with reach strike' },
+    0x0a: { name: 'WANDER', desc: 'Friendly town NPC random walk and pause sequence' },
+    0x0c: { name: 'CHASE_HOVERING', desc: 'Airborne hovering entity with sinusoidal bobbing' },
+    0x0e: { name: 'STATIONARY_PLAYER', desc: 'Stationary boss turret tracking player in 8 directions' },
+    0x10: { name: 'ROLL_OR_SHOOT', desc: 'Full-charge projectile launch or curl-and-roll rush' },
+    0x12: { name: 'CHASE_OR_ROLL', desc: 'Pursuit with 50% probability of rolling charge attack' },
+    0x14: { name: 'BOUNCE', desc: 'Continuous walking with obstacle bounce, never attacks' },
+    0x16: { name: 'DRIFT_EAST', desc: 'Directional eastern drift with northward/southward bias' },
+    0x18: { name: 'PURSUE_PLAYER', desc: 'Continuous pursuit when charged, retreat when uncharged' },
+    0x1a: { name: 'ROLL', desc: 'Full-charge rolling assault attack' },
+    0x1c: { name: 'STATIONARY_DIAGONAL', desc: 'Diagonal-facing stationary entity with strike' },
+};
+
+function aiBehavioursTable(rom: Uint8Array, names: { id: number; name: string }[]): Table {
+    const users = new Map<number, string[]>();
+    for (let c = 0; c < CHARACTER_COUNT; c++) {
+        const at = snesToRom(CHARACTER_TABLE + c * CHARACTER_STRIDE + 0x03);
+        const behaviour = read16(rom, at);
+        const label = hex(c, 2) + ' ' + (names[c]?.name || '');
+        users.set(behaviour, (users.get(behaviour) || []).concat(label));
+    }
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < AI_BEHAVIOUR_COUNT; i++) {
+        const id = i * 2;
+        const ptr = read16(rom, snesToRom(AI_BEHAVIOURS_ADDR + id));
+        const info = AI_INFO[id] || { name: 'UNKNOWN', desc: '—' };
+        const u = users.get(id) || [];
+        const uStr = u.length ? (u.length + ' records (' + u.slice(0, 3).join(', ') + (u.length > 3 ? ' …' : '') + ')') : '—';
+        rows.push([id, '+$' + hex(id, 2), '$8F:' + hex(ptr, 4), info.name, info.desc, uStr]);
+        pts.push([id, u.length]);
+    }
+    return {
+        id: 'ai-behaviours', group: 'Entities', title: 'Enemy combat AI behavioral jump table', addr: '$8F:CBE0',
+        note: 'Table $8F:CBE0 (15 words, 30 bytes): Behavior dispatch jump table called via JMP ($CBE0,x) by $8F:CD17, selected by character record +$03.',
+        columns: ['id', 'hex', 'routine vector', 'behavior name', 'description', 'archetype users'],
+        rows,
+        chart: { x: 'behavior id', y: 'archetype users', series: [{ name: 'archetype users', points: pts }] },
+        vfs: vfs(AI_BEHAVIOURS_ADDR),
+    };
+}
+
+const ANIMATION_VM_ADDR = 0x908000;
+const ANIMATION_VM_COUNT = 103;
+
+function animationVmTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < ANIMATION_VM_COUNT; i++) {
+        const ptr = read16(rom, snesToRom(ANIMATION_VM_ADDR + i * 2));
+        const op = opcode(i);
+        const isUnused = ptr === 0x836c;
+        const mnem = op?.mnemonic || (isUnused ? '(unused)' : 'unknown');
+        const kind = op?.kind || (isUnused ? 'nop' : 'plain');
+        const len = op?.length || 1;
+        rows.push([i, '$' + hex(i, 2), '$90:' + hex(ptr, 4), mnem, kind, len]);
+        pts.push([i, len]);
+    }
+    return {
+        id: 'animation-vm', group: 'Animation', title: 'Animation bytecode VM vector jump table', addr: '$90:8000',
+        note: 'Table $90:8000 (103 words, 206 bytes): Vector dispatch table for animation bytecode VM interpreter $90:80CE, indexed by (cmd & 0x7F) * 2.',
+        columns: ['opcode', 'hex', 'routine vector', 'mnemonic', 'kind', 'bytes'],
+        rows,
+        chart: { x: 'opcode', y: 'bytes', series: [{ name: 'bytes', points: pts }] },
+        vfs: vfs(ANIMATION_VM_ADDR),
+    };
+}
+
+const FORMULA_POWER_ADDR = 0xc45e6b;
+
+function formulaPowersTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < FORMULA_COUNT; i++) {
+        const power = read16(rom, snesToRom(FORMULA_POWER_ADDR + i * 2));
+        const name = textAt(rom, FORMULA_NAMES, i);
+        const category = power === 0 ? 'Utility / Puzzle' : (power <= 25 ? 'Low Offensive / Defensive' : (power <= 62 ? 'Medium Offensive' : 'High Artillery'));
+        rows.push([i, name, power, category]);
+        pts.push([i, power]);
+    }
+    return {
+        id: 'formula-powers', group: 'Alchemy', title: 'Formula base power & recovery coefficients', addr: '$C4:5E6B',
+        note: 'Table $C4:5E6B (35 words, 70 bytes): Base spell damage or healing power word for each formula, scaled by formula level multiplier ($C4:5BA5) during damage calculation $8F:C067.',
+        columns: ['id', 'formula', 'base power', 'scaling mode'],
+        rows,
+        chart: { x: 'formula id', y: 'base power', series: [{ name: 'base power', points: pts }] },
+        vfs: vfs(FORMULA_POWER_ADDR),
+    };
+}
+
 /** Every table the view lists: only the ones decoded into readable values. */
 function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Table[] {
     return [
@@ -659,6 +808,8 @@ function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Ta
         formulaBlocksTable(rom), bazookaAmmoTable(rom),
         formulaDescriptionsTable(rom), projectileRoutinesTable(rom),
         formulaLearnedTable(rom), roomsTable(rom),
+        contactHandlersTable(rom, names), aiBehavioursTable(rom, names),
+        animationVmTable(rom), formulaPowersTable(rom),
     ];
 }
 

@@ -7,6 +7,7 @@
 
 import * as maps from '../../maps';
 import { CHARACTER_TABLE, CHARACTER_STRIDE } from '../../maps/character-record';
+import { opcode } from '../../maps/animation-opcodes';
 import { getMapName, getMapArea, FUNCTION_BY_ADDRESS, MUSIC, SOUNDS } from '../../localizations';
 import { entries as knowledgeEntries } from '../../localizations/knowledge';
 import { hex } from '../../../../platform';
@@ -103,12 +104,40 @@ function contactHandlers(rom: Uint8Array, chars: CharacterInfo[]): EnumList {
     };
 }
 
+const AI_BEHAVIOURS_ADDR = 0x8fcbe0;
+const AI_INFO: Record<number, { name: string; desc: string }> = {
+    0x00: { name: 'CHASE', desc: 'Aggressive pursuit, combat reach alignment, retreat while recharging' },
+    0x02: { name: 'NONE', desc: 'Passive entity; idle animation, moved solely by scripts' },
+    0x04: { name: 'COMPANION_BOY', desc: 'Autonomous Boy following, breadcrumbs, AI menu settings' },
+    0x06: { name: 'COMPANION_DOG', desc: 'Autonomous Dog following, sniffing, idle sitting' },
+    0x08: { name: 'STATIONARY', desc: 'Stationary 4-cardinal combat turret with reach strike' },
+    0x0a: { name: 'WANDER', desc: 'Friendly town NPC random walk and pause sequence' },
+    0x0c: { name: 'CHASE_HOVERING', desc: 'Airborne hovering entity with sinusoidal bobbing' },
+    0x0e: { name: 'STATIONARY_PLAYER', desc: 'Stationary boss turret tracking player in 8 directions' },
+    0x10: { name: 'ROLL_OR_SHOOT', desc: 'Full-charge projectile launch or curl-and-roll rush' },
+    0x12: { name: 'CHASE_OR_ROLL', desc: 'Pursuit with 50% probability of rolling charge attack' },
+    0x14: { name: 'BOUNCE', desc: 'Continuous walking with obstacle bounce, never attacks' },
+    0x16: { name: 'DRIFT_EAST', desc: 'Directional eastern drift with northward/southward bias' },
+    0x18: { name: 'PURSUE_PLAYER', desc: 'Continuous pursuit when charged, retreat when uncharged' },
+    0x1a: { name: 'ROLL', desc: 'Full-charge rolling assault attack' },
+    0x1c: { name: 'STATIONARY_DIAGONAL', desc: 'Diagonal-facing stationary entity with strike' },
+};
+
 function aiSelectors(rom: Uint8Array, chars: CharacterInfo[]): EnumList {
     const users = usedBy(rom, chars, FIELD_AI);
     return {
-        id: 'ai', group: 'Characters', title: 'AI selector (record +$03)', columns: ['value', 'records', 'used by'],
-        entries: [...users.keys()].sort((a, b) => a - b).map((v) => ({ cells: [h(v), String(users.get(v)!.length), users.get(v)!.slice(0, 4).join(', ') + (users.get(v)!.length > 4 ? ' …' : '')], detail: [['records', users.get(v)!.join(', ')]] })),
-        source: 'The values the 142 records hold at +$03, which $8F:CD1A reads to pick the AI script. What each value does is not decoded yet.',
+        id: 'ai', group: 'Characters', title: 'AI selector (record +$03)', columns: ['value', 'routine', 'name', 'records', 'used by'],
+        entries: [...users.keys()].sort((a, b) => a - b).map((v) => {
+            const ptr = word(rom, AI_BEHAVIOURS_ADDR + v);
+            const info = AI_INFO[v];
+            const u = users.get(v)!;
+            return {
+                cells: [h(v), '$8F:' + hex(ptr, 4), info?.name || 'UNKNOWN', String(u.length), u.slice(0, 3).join(', ') + (u.length > 3 ? ' …' : '')],
+                detail: [['description', info?.desc || ''], ['records', u.join(', ')]],
+                vfs: bus(0x8f0000 | ptr),
+            };
+        }),
+        source: 'The values the 142 records hold at +$03, which $8F:CD17 reads to dispatch through jump table $8F:CBE0 (JMP ($CBE0,x), rom/8fcbe0.md). All 15 routines decoded.',
     };
 }
 
@@ -615,6 +644,53 @@ function formulaLearnedEnum(rom: Uint8Array): EnumList {
     };
 }
 
+const ANIMATION_VM_ADDR = 0x908000;
+const ANIMATION_VM_COUNT = 103;
+
+function animOpcodesEnum(rom: Uint8Array): EnumList {
+    const entries: Entry[] = [];
+    for (let i = 0; i < ANIMATION_VM_COUNT; i++) {
+        const ptr = word(rom, ANIMATION_VM_ADDR + i * 2);
+        const op = opcode(i);
+        const isUnused = ptr === 0x836c;
+        const mnem = op?.mnemonic || (isUnused ? '(unused)' : 'unknown');
+        const kind = op?.kind || (isUnused ? 'nop' : 'plain');
+        const len = op?.length || 1;
+        entries.push({
+            cells: [h(i, 2), '$90:' + hex(ptr, 4), mnem, kind, len + ' B'],
+            vfs: bus(0x900000 | ptr),
+        });
+    }
+    return {
+        id: 'anim-opcodes', group: 'Animation', title: 'Animation VM opcodes',
+        columns: ['opcode', 'routine vector', 'mnemonic', 'kind', 'width'],
+        entries,
+        source: 'Jump table $90:8000 (103 words, 206 bytes): vector dispatch table for animation bytecode VM interpreter $90:80CE (knowledge rom/908000.md).',
+    };
+}
+
+const FORMULA_POWER_ADDR = 0xc45e6b;
+
+function formulaPowersEnum(rom: Uint8Array, icons: (string | null)[]): EnumList {
+    const entries: Entry[] = [];
+    for (let i = 0; i < FORMULA_COUNT; i++) {
+        const power = word(rom, FORMULA_POWER_ADDR + i * 2);
+        const name = textAt(rom, FORMULA_NAMES, i);
+        const mode = power === 0 ? 'Utility / Puzzle' : (power <= 25 ? 'Low Offensive / Defensive' : (power <= 62 ? 'Medium Offensive' : 'High Artillery'));
+        entries.push({
+            cells: [h(i, 2), name, String(power), mode],
+            icon: icons[i] || undefined,
+            vfs: bus(FORMULA_POWER_ADDR + i * 2),
+        });
+    }
+    return {
+        id: 'formula-powers-enum', group: 'Alchemy', title: 'Formula base power & recovery',
+        columns: ['id', 'formula', 'base power', 'scaling mode'],
+        entries,
+        source: 'ROM table $C4:5E6B (35 words, 70 bytes): Base spell damage or healing power word for each formula, scaled by formula level multiplier ($C4:5BA5) during damage calculation $8F:C067.',
+    };
+}
+
 /** Every list the view shows. `icons` are the formulas' ring-menu icons (PNG data URIs) in formula order. */
 function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | null)[] = []): EnumList[] {
     return [characterBlobs(rom, chars), recordFields(), contactHandlers(rom, chars), aiSelectors(rom, chars),
@@ -627,7 +703,8 @@ function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | nu
         consumableItemsEnum(rom), staminaTiersEnum(),
         charmsEnum(), bazookaAmmoEnum(),
         companionAiEnum(), projectileRoutinesEnum(rom),
-        projectileBehaviorsEnum(), formulaLearnedEnum(rom)];
+        projectileBehaviorsEnum(), formulaLearnedEnum(rom),
+        animOpcodesEnum(rom), formulaPowersEnum(rom, icons)];
 }
 
 export { enumsModel };
