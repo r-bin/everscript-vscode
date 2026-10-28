@@ -96,8 +96,12 @@ A signed read differs from the unsigned one only in the high word, and only when
 set. So the sign cannot change a value that is only tested for zero (a branch, `!`, `&&`, `||`)
 or compared with `==` / `!=` to a constant in 0..`$7F` (a byte) or 0..`$7FFF` (a word): the low
 part already differs. The script viewers mark such a `signed` with a warning (`script-vm/print.ts`).
-The same goes for the first operand of an opcode that acts on an entity: `$8C:EC8E` keeps only
-the low word (the entity's address), so a sign extension there changes nothing either.
+The same goes for an operand that is an entity: `$8C:EC8E` keeps only the low word (the entity's
+address), so a sign extension there changes nothing either. Which operands are entities, and which
+take an enum, is `script-vm/parameters.json`, estimated from how the ROM uses each operand: an
+expression that gets `boy()`, `last_entity()` and the like, and never a constant of `$2000` or
+more, is an entity. A constant the parameter's enum lacks is a warning too; in the vanilla ROM
+these are 33 music and 16 sound values the compiler's enums do not list yet, and animation mode 8.
 
 The viewers print `$2D` as `last_entity()`, `$2E` as `script_owner()`, `$50` / `$51` as `boy()` / `dog()` (the compiler's
 CHARACTER enum: LAST_ENTITY, SCRIPT_OWNER, BOY, DOG) and `$57` as `camera_on_dog()`. `deref(boy() + 0x1a)`

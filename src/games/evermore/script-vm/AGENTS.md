@@ -19,7 +19,8 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 - A rule change starts in the handler's code (`$8C:E8BD` table), goes into the handler's knowledge
   entry (what it does, then `## Addresses`) and the opcode's entry (`knowledge/opcodes/<xx>.md`: title,
   `tags: [opcode.<group>]` for `soe://tags/`, `everscript:`, why it exists, garbage operands), then
-  `spec.ts`. `soe://rom/assets/scripts/opcodes/` (`resources/opcode-files.ts`) joins them.
+  `spec.ts` and the opcode's parameters in `parameters.json` (one per operand token; an entity
+  only when the ROM passes entities there). `soe://rom/assets/scripts/opcodes/` (`resources/opcode-files.ts`) joins them.
 - `spec.ts` names are the script viewer's: the Everscript name when it says what the handler does,
   else ours (`docs/scripts/opcodes.md` § Names).
 - Never guess a length: an opcode without a handler or a sub-op the game cannot run is a

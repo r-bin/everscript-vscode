@@ -5,12 +5,12 @@
 // The local bytes belong to a thread: a call runs in its caller's slot (docs/scripts/vm.md), so a
 // thread and everything it calls share one `arg[]`; a started thread has its own. The temp area is
 // the room's: every thread shares it. A cell's kind comes from its uses (facts, expression terms):
-// `entity` when it is passed where a handler takes an entity (facts ENTITY_FIRST) or is given an
+// `entity` when it is passed where a handler takes an entity (script-vm parameters.json) or is given an
 // entity sub-op's value (`arg[0] = last_entity()`), `flags` when its bits are tested or set, else
 // `byte` or `word` by its width. A cell used two ways — two widths, bits and a value, two cells
 // that overlap — is `reused`: worth a warning, since the name can only say one of them.
 
-import { ENTITY_FIRST, Expression, Instruction, TEMP_AREA, facts, tree } from '../script-vm';
+import { Expression, Instruction, TEMP_AREA, facts, isEntity, tree } from '../script-vm';
 
 export type SliceArea = 'local' | 'temp';
 export type SliceKind = 'entity' | 'flags' | 'byte' | 'word';
@@ -59,7 +59,7 @@ function expressionAccesses(e: Expression, entity: boolean, out: Access[]): void
 function accessesOf(ins: Instruction): Access[] {
     const out: Access[] = [];
     ins.operands.forEach((o, i) => {
-        const entity = i === 0 && ENTITY_FIRST.has(ins.opcode);
+        const entity = isEntity(ins.opcode, i);
         if (o.k === 'E') expressionAccesses(o.expr, entity, out);
         else if (o.k === 'A' || o.k === 'Z') for (const e of o.k === 'A' ? o.args : o.list) expressionAccesses(e, false, out);
     });

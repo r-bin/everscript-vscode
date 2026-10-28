@@ -68,5 +68,31 @@ test('room tables: enter scripts and triggers point into script space', () => {
     assert.ok(rooms === 127 && triggers > 900 && none < 5, `${rooms} rooms, ${triggers} triggers, ${none} without an enter script`);
 });
 
+test('parameters.json: one entry per opcode, one parameter per operand; entities get entities, the ROM agrees', () => {
+    const FLOW = { r16: 'jump', rb: 'jump', u24: 'script', cb: 'script', c16: 'script', A: 'args', Z: 'list', skip: 'skip' };
+    for (const [op, spec] of V.OPCODES) {
+        const ps = V.parameters(op);
+        assert.strictEqual(ps.length, spec.operands.length, `$${op.toString(16)}: ${ps.length} parameters for ${spec.operands.length} operands`);
+        spec.operands.forEach((t, i) => {
+            if (FLOW[t]) assert.strictEqual(ps[i].type, FLOW[t], `$${op.toString(16)} operand ${i}`);
+            else if (t === 'u8' || t === 'u16') assert.strictEqual(ps[i].type, t, `$${op.toString(16)} operand ${i}`);
+        });
+    }
+    // An entity parameter gets an entity sub-op, a read, or a small special value below $2000 (wait's 1 and 2, a room hook).
+    const ENT = new Set(['last_entity', 'script_owner', 'boy', 'dog', 'camera_entity', 'other_character']);
+    const w = V.walk(rom, V.allEntries(rom), true);
+    let entities = 0;
+    for (const ins of w.instructions.values()) {
+        ins.operands.forEach((o, i) => {
+            if (o.k !== 'E' || !V.isEntity(ins.opcode, i)) return;
+            const n = V.tree(o.expr);
+            if (n.k === 'value' && ENT.has(n.term.spec.name)) entities++;
+            else if (n.k === 'const') assert.ok(n.value >= 0 && n.value < 0x2000, `$${ins.address.toString(16)}: constant ${n.value} as an entity`);
+            else if (n.k === 'value') assert.fail(`$${ins.address.toString(16)}: ${n.term.spec.name}() as an entity`);
+        });
+    }
+    assert.ok(entities > 4000, `${entities} entity sub-ops passed as entities`);
+});
+
 console.log(`\nscript-vm rom: ${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

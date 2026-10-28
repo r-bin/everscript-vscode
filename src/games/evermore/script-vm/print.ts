@@ -9,14 +9,16 @@
 // name for, a warning for a `signed` read whose sign cannot change the result — only tested for
 // zero, compared with a small constant, or passed where the handler takes an entity (a word).
 //
-// Constants are named where the caller knows what they are (`Names.constant`): the parameters a
-// compiler function types (`music(music:MUSIC)`), a value written to or compared with a cell whose
-// values are known (`Names.value`). A called global reads by its name, `call_id(FADE_IN)`.
+// Each operand's type comes from parameters.json (estimated from the ROM's use, named from the
+// handlers): an entity, an enum. Constants are named where the caller knows the enum
+// (`Names.constant`), and a constant the enum does not have is a warning (`Names.inEnum`); so is a value written to
+// or compared with a cell whose values are known (`Names.value`) — named when it can be. A called global reads by its name, `call_id(FADE_IN)`.
 // `end` reads `return;`: it leaves the script, back to its caller or, at the top, the thread.
 
 import { Instruction, Operand } from './decode';
 import { Expression, Node, Term, tree } from './expression';
-import { ENTITY_FIRST, Fact, facts } from './facts';
+import { Fact, facts } from './facts';
+import { Parameter, parameters } from './parameters';
 import { hexLower } from '../../../platform/hex';
 
 /** Names a caller can supply; each returns '' (or null) when it has none. */
@@ -36,6 +38,8 @@ export interface Names {
     enemy?(index: number): string;
     /** The constant of enum `type` (`MUSIC`, `SCRIPT_TRIGGER`) with this value. */
     constant?(type: string, value: number): string;
+    /** Whether enum `type` has `value` (a constant, named or not); null when it cannot say (no such enum, an open set like trigger ids). */
+    inEnum?(type: string, value: number): boolean | null;
     /**
      * A cell of the slot's local bytes (`local`, offset) or of the temp area (`temp`, offset from
      * $2834) by its slice's name (`arg.entity_1`, `temp.flags_1`); `width` 0 for a flag. The name
@@ -44,8 +48,6 @@ export interface Names {
     slice?(area: 'local' | 'temp', offset: number, width: 0 | 1 | 2): string;
     /** A field of an entity record by its offset (`0x1a` → `x`). */
     field?(offset: number): string;
-    /** The enum each shown operand of the instruction the printer calls `fn` takes; null for a number. */
-    parameters?(fn: string): ReadonlyArray<string | null>;
 }
 
 const hex = (v: number, w = 2): string => '0x' + hexLower(v, w);
@@ -186,16 +188,24 @@ export function expressionText(e: Expression, names: Names = {}, truth = false):
 /** `expressionText`, with the markers `printed()` turns into warnings. */
 const marked = (e: Expression, names: Names, truth: Why = ''): string => nodeText(tree(e), names, 0, truth);
 
-/** `type`: the enum the operand takes (`Names.parameters`); `entity`: it is an entity (ENTITY_FIRST). */
-function operandText(o: Operand, names: Names, truth = false, type: string | null = null, entity = false): string {
-    const constant = (v: number): string => (type ? names.constant?.(type, v) : '') || '';
+/** A constant of enum `type`: its name, else the number — with a warning in `marks` when the enum is closed. */
+function enumText(type: string, value: number, text: string, names: Names, marks: Mark[]): string {
+    const name = names.constant?.(type, value);
+    if (name) return name;
+    if (names.inEnum?.(type, value) === false) marks.push({ severity: 'warning', find: text, nth: 0, message: `${text} is not a ${type} value: the enum has no constant for it. Only its values are meant here; if the game uses this one, the enum is missing it.` });
+    return text;
+}
+
+/** `p`: what the operand is (parameters.json): its enum names a constant, an entity's `signed` is marked. */
+function operandText(o: Operand, names: Names, truth = false, p: Parameter | undefined = undefined, marks: Mark[] = []): string {
+    const typed = (v: number, text: string): string => (p?.enum ? enumText(p.enum, v, text, names, marks) : text);
     switch (o.k) {
-        case 'u8': case 'skip': return constant(o.value) || hex(o.value);
-        case 'u16': return constant(o.value) || hex(o.value, 4);
+        case 'u8': case 'skip': return typed(o.value, hex(o.value));
+        case 'u16': return typed(o.value, hex(o.value, 4));
         case 'E': {
             const n = tree(o.expr);
-            if (n.k === 'const' && constant(n.value)) return constant(n.value);
-            return marked(o.expr, names, truth ? 'zero' : entity ? 'pointer' : '');
+            if (n.k === 'const' && p?.enum) return typed(n.value, constText(n.value));
+            return marked(o.expr, names, truth ? 'zero' : p?.type === 'entity' ? 'pointer' : '');
         }
         case 'A': return o.args.map((a) => marked(a, names)).join(', ');
         case 'Z': return '[' + o.list.map((a) => marked(a, names)).join(', ') + ']';
@@ -221,7 +231,8 @@ export function text(ins: Instruction, names: Names = {}): string {
 
 /** The instruction as one line of text, and what is wrong with it. */
 export function printed(ins: Instruction, names: Names = {}): { text: string; marks: Mark[] } {
-    const raw = line(ins, names);
+    const extra: Mark[] = [];
+    const raw = line(ins, names, extra);
     const marks: Mark[] = [];
     if (!ins.spec.name) marks.push({ severity: 'error', message: `Opcode $${hexLower(ins.opcode, 2)} has no name: what its handler does is not known yet.` });
     const parts = raw.split(MARKERS);
@@ -236,13 +247,15 @@ export function printed(ins: Instruction, names: Names = {}): { text: string; ma
                 : 'signed changes nothing here: the value is only tested for zero or compared with a small constant, which reads the same unsigned. The unsigned read is the same size.',
         });
     }
-    return { text: parts.join(''), marks };
+    return { text: parts.join(''), marks: [...marks, ...extra] };
 }
 
-function line(ins: Instruction, names: Names): string {
+function line(ins: Instruction, names: Names, marks: Mark[]): string {
     const f: Fact = facts(ins);
     const o = ins.operands;
-    const E = (k: number, truth = false): string => operandText(o[k], names, truth);
+    const params = parameters(ins.opcode);
+    const E = (k: number, truth = false): string => operandText(o[k], names, truth, params[k], marks);
+    const enumOf = (k: number, v: number, text: string): string => (params[k]?.enum ? enumText(params[k].enum!, v, text, names, marks) : text);
     // Arguments go inside the head's own parentheses when it has them: `call_id(NAME, 0x78)`.
     const withArgs = (head: string): string => (!(o[0] && o[0].k === 'A') ? head : head.endsWith(')') ? `${head.slice(0, -1)}, ${E(0)})` : `${head}(${E(0)})`);
     switch (f.k) {
@@ -269,8 +282,8 @@ function line(ins: Instruction, names: Names): string {
             const notes = [names.map?.(f.map) || '', f.word !== null && f.word > 0xFF ? `word ${hex(f.word, 4)}` : ''].filter(Boolean);
             return `load_map(${hex(f.map)}, ${f.x}, ${f.y});${notes.length ? ` // ${notes.join(', ')}` : ''}`;
         }
-        case 'sound': return `sound(${names.constant?.('SOUND', f.index) || hex(f.index)});`;
-        case 'music': return `music(${names.constant?.('MUSIC', f.index) || hex(f.index)});`;
+        case 'sound': return `sound(${enumOf(0, f.index, hex(f.index))});`;
+        case 'music': return `music(${enumOf(0, f.index, hex(f.index))});`;
         case 'text': return `${f.message ? 'subtext' : 'text'}(${f.window !== null ? f.window + ', ' : ''}${hex(f.key, 4)});`;
         case 'spawn': return `${f.spawner ? 'spawner' : 'spawn'}(${names.enemy?.(f.index) || hex(f.index)}, ${f.x === null ? `${E(2)}, ${E(3)}` : `${f.x}, ${f.y}`}${f.state ? ', ' + hex(f.state, 4) : ''});`;
         case 'sleep': return `sleep(${f.ticks === null ? E(0) : f.ticks});`;
@@ -290,10 +303,10 @@ function line(ins: Instruction, names: Names): string {
         case 0x5F: return `object[${E(0)}] += ${hex(num(o[1]), 4)};`;
         case 0x60: return `object[${E(0)}]++;`;
         case 0x61: return `object[${E(0)}]--;`;
-        case 0x74: return `face(${operandText(o[0], names, false, null, true)}, NORTH);`;
-        case 0x75: return `face(${operandText(o[0], names, false, null, true)}, SOUTH);`;
-        case 0x76: return `face(${operandText(o[0], names, false, null, true)}, WEST);`;
-        case 0x77: return `face(${operandText(o[0], names, false, null, true)}, EAST);`;
+        case 0x74: return `face(${E(0)}, NORTH);`;
+        case 0x75: return `face(${E(0)}, SOUTH);`;
+        case 0x76: return `face(${E(0)}, WEST);`;
+        case 0x77: return `face(${E(0)}, EAST);`;
         case 0x7A: {
             const f = o[0].k === 'E' ? entityField(tree(o[0].expr), names) : '';
             if (f) return `${f} = ${E(1)};`;
@@ -303,10 +316,7 @@ function line(ins: Instruction, names: Names): string {
         default: break;
     }
     const name = ins.spec.name || `op_${ins.opcode.toString(16).padStart(2, '0')}`;
-    const shown = o.filter((x) => x.k !== 'skip' && x.k !== 'r16');
-    const types = names.parameters?.(name) ?? [];
-    const typed = (i: number): string | null => (types.length === shown.length ? types[i] ?? null : null);
-    const texts = shown.map((x, i) => operandText(x, names, false, typed(i), i === 0 && ENTITY_FIRST.has(ins.opcode)));
+    const texts = o.map((x, k) => (x.k === 'skip' || x.k === 'r16' ? null : E(k))).filter((t): t is string => t !== null);
     const jump = ins.flow === 'branch' && ins.target !== null ? ` goto ${bus(ins.target)}` : '';
     return `${name}(${texts.join(', ')})${jump};`;
 }

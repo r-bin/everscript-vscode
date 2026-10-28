@@ -6,7 +6,9 @@
 // the form the compiler's notation reads best in. Constants (`music(UNKNOWN_PREHISTORIA_AMBIENT)`,
 // `attach_script(1, B, …)`) and unnamed cells (`<0x23bf>` PACIFIED) come from the compiler's own
 // enums (language/data/index.json, its data file): the names it compiles. Which operand takes
-// which enum is ours, from the handlers (PARAMETERS).
+// which enum is script-vm's (parameters.json, from the handlers): the compiler's signatures can
+// order them differently (its `animate(character, mode, id)`; the handler reads entity, id, mode).
+// TRIGGER_ID (attach_script's script) is a trigger id, named by ADDRESS_ID from $100 up.
 
 import type { Names } from '../script-vm';
 import names from './names.json';
@@ -113,21 +115,6 @@ export function constantName(type: string, value: number): string {
 }
 
 /**
- * The enum each operand of an instruction takes, by the printer's name for it, null for a number;
- * written from the handlers (knowledge/opcodes/<xx>.md), not from the compiler's signatures, whose
- * order can differ (its `animate(character, mode, id)`; the handler reads entity, id, mode).
- * `TRIGGER_ID`: a trigger id, named by ADDRESS_ID from $100 up (its smaller values are global ids).
- */
-const PARAMETERS: Record<string, Array<string | null>> = {
-    attach_script: [null, 'SCRIPT_TRIGGER', 'TRIGGER_ID'],
-    animate: [null, null, 'ANIMATION_MODE'],
-    animate_and_wait: [null, null, 'ANIMATION_MODE'],
-};
-export function parameterTypes(fn: string): ReadonlyArray<string | null> {
-    return PARAMETERS[fn] ?? [];
-}
-
-/**
  * A field of an entity record by its offset, lower case (`0x1a` → `x`): the compiler's ATTRIBUTE
  * enum, whose offsets knowledge ram/7e4e89 checked; '' past the record or without a name.
  */
@@ -214,7 +201,7 @@ export function printNames(file: (bus: number) => number): Names {
         value: (addr, v) => (LOOT_CELLS.has(addr) ? lootRewardName(v) : null) || (CELL_TYPES[addr] ? constantName(CELL_TYPES[addr], v) : '') || identifier(valueName(addr, v) ?? ''),
         enemy: (index) => enemyName(index)?.name ?? '',
         constant: typedConstant,
-        parameters: parameterTypes,
+        inEnum: (type, value) => (type === 'TRIGGER_ID' || !ENUMS[type]?.length ? null : ENUMS[type].some((c) => Number(c.value) === value)),
         field: fieldName,
     };
 }

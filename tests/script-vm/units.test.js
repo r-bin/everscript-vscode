@@ -239,6 +239,19 @@ test('slices: one cell per offset and thread, typed by its uses; two widths are 
     assert.deepStrictEqual(apart.map((s) => [s.name, s.thread, s.reused]), [['arg.entity_1', -1, null], ['arg.byte_1', 3, null]], 'a started thread has its own arg[]');
 });
 
+test('parameters.json types the operands: an entity\'s signed is warned, a value outside its enum too', () => {
+    // walk_to_tile_direct(signed temp[0], 5, 6): entity, x, y.
+    const w = V.printed(decode([0x6e, 0x8d, 0x00, 0x00, 0x05, 0x06]));
+    assert.strictEqual(w.text, 'walk_to_tile_direct(signed temp[0], 0x05, 0x06);');
+    assert.deepStrictEqual(w.marks.map((m) => [m.find, /entity/.test(m.message)]), [['signed', true]]);
+    assert.deepStrictEqual(V.parameters(0x6e).map((p) => p.name + ':' + p.type), ['entity:entity', 'x:u8', 'y:u8']);
+    const names = { constant: (t, v) => (t === 'MUSIC' && v === 0x12 ? 'AMBIENT' : ''), inEnum: (t, v) => (t === 'MUSIC' ? v === 0x12 : null) };
+    assert.deepStrictEqual(V.printed(decode([0x33, 0x12]), names).marks, []);
+    const bad = V.printed(decode([0x33, 0x13]), names);
+    assert.strictEqual(bad.text, 'music(0x13);');
+    assert.deepStrictEqual(bad.marks.map((m) => [m.severity, m.find]), [['warning', '0x13']]);
+});
+
 console.log(`\nscript-vm units: ${passed} passed, ${failed} failed`);
 // exitCode, not exit(): Node 26 can deadlock in process.exit() (tools/test.mts).
 process.exitCode = failed ? 1 : 0;
