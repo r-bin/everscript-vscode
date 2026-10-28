@@ -124,25 +124,27 @@ export function chipsStyle(picture: { uri?: string } | null | undefined): string
     return picture?.uri ? ' style="--scr-room-pic:url(&quot;' + picture.uri + '&quot;)"' : '';
 }
 
-/** Size of a chip's picture, and of what it lays over it (a ring icon's own 16 px: scaled down it smears), in CSS pixels. */
+/** Size of a chip's picture, and the most a reward is drawn at (a ring icon's own 16 px: larger it smears), in CSS pixels. */
 const CHIP_PIC = 22, CHIP_LOOT = 16;
 
 /**
- * A trigger chip's picture: the square of the room picture centred on the trigger's box (past the
- * room's edge it is empty), scaled to fit, the box outlined; with what it is about (`loot`, a data
- * URI: a reward, a weapon it tests) at its own size in the middle, on the box, as the map editor
- * shows a pickup. '' for the enter script (no box).
+ * A trigger chip's picture: the room picture around the trigger's box, the box filling it but for
+ * a margin of an eighth on each side (past the room's edge it is empty), the box outlined; with
+ * what it is about (`loot`, a data URI: a reward, a weapon it tests) inside the box — as large as
+ * the box's inside allows, at most its own size — and centred in it. '' for the enter script.
  */
 export function chipPicture(box: { x: number; y: number; w: number; h: number } | undefined, picture: { width?: number; height?: number } | null | undefined, loot: string | null | undefined): string {
     if (!box || !picture?.width || !picture.height) return '';
-    const side = Math.max(box.w, box.h, 32);
+    const side = Math.max(box.w, box.h) * 1.25;
     const x0 = box.x + box.w / 2 - side / 2, y0 = box.y + box.h / 2 - side / 2;
     const k = CHIP_PIC / side;
-    const px = (v: number): string => (v * k).toFixed(1) + 'px';
-    const mid = (CHIP_PIC - CHIP_LOOT) / 2 + 'px';
-    return '<span class="scr-chip-pic" style="background-size:' + px(picture.width) + ' ' + px(picture.height) + ';background-position:' + px(-x0) + ' ' + px(-y0) + '">' +
-        '<span class="scr-chip-box" style="left:' + px(box.x - x0) + ';top:' + px(box.y - y0) + ';width:' + px(box.w) + ';height:' + px(box.h) + '"></span>' +
-        (loot ? '<img class="scr-chip-loot" src="' + loot + '" alt="" style="left:' + mid + ';top:' + mid + '">' : '') + '</span>';
+    const px = (v: number): string => v.toFixed(1) + 'px';
+    const bx = (box.x - x0) * k, by = (box.y - y0) * k, bw = box.w * k, bh = box.h * k;
+    // Inside the 1 px outline.
+    const icon = Math.max(0, Math.min(CHIP_LOOT, Math.floor(Math.min(bw, bh) - 2)));
+    return '<span class="scr-chip-pic" style="background-size:' + px(picture.width * k) + ' ' + px(picture.height * k) + ';background-position:' + px(-x0 * k) + ' ' + px(-y0 * k) + '">' +
+        '<span class="scr-chip-box" style="left:' + px(bx) + ';top:' + px(by) + ';width:' + px(bw) + ';height:' + px(bh) + '"></span>' +
+        (loot && icon >= 6 ? '<img class="scr-chip-loot" src="' + loot + '" alt="" style="left:' + px(bx + (bw - icon) / 2) + ';top:' + px(by + (bh - icon) / 2) + ';width:' + icon + 'px;height:' + icon + 'px">' : '') + '</span>';
 }
 
 /** Entry-state flags: clear when the room is loaded fresh, set by the way some doors bring you in. */

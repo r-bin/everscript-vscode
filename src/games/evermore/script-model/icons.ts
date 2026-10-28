@@ -19,7 +19,7 @@
 // controlled one) and `inactive()` are, inside an `if (dog() == active())`. An object index that is an expression gets the
 // value the listing set above, if any, and `live`: the viewer asks the running game for it.
 
-import { Instruction, Names, Node, Term, facts, parameters, tree } from '../script-vm';
+import { Instruction, Names, Node, Term, constText, facts, parameters, tree } from '../script-vm';
 import { evaluate, termAddress } from './evaluate';
 
 export interface IconRef {
@@ -125,7 +125,7 @@ export function iconRefs(ins: Instruction, names: Names, ctx: Context = fresh())
     ins.operands.forEach((o, i) => {
         if (o.k !== 'E') return;
         const n = tree(o.expr);
-        if (params[i]?.type === 'object_index') out.push(objectRef(ins, i, n, ctx));
+        if (params[i]?.type === 'object_index') out.push(objectRef(ins, i, n, ctx, names));
         visit(n);
     });
     return out;
@@ -139,12 +139,12 @@ const SUBSCRIPT = new Set([0x5C, 0x5F, 0x60, 0x61]);
  * An index the line computes is the value the listing set above, if any (else `unknown`), and is
  * read live from the running game.
  */
-function objectRef(ins: Instruction, i: number, n: Node, ctx: Context): IconRef {
+function objectRef(ins: Instruction, i: number, n: Node, ctx: Context, names: Names): IconRef {
     const state = objectState(ins);
     const subscript = SUBSCRIPT.has(ins.opcode);
     if (n.k === 'const') {
-        // After the whole object: `object[3]`, `object_state_by_flag(9, 0x03cc)`.
-        const at = { find: subscript ? 'object' : ins.spec.name, group: true };
+        // `object[3]`: after the whole object; a call (`object_state_by_flag(9, 0x03cc)`): after the id, as the line prints it.
+        const at = subscript ? { find: 'object', group: true } : { find: names.decimal ? String(n.value) : constText(n.value) };
         return { key: `object:${n.value}:${state}`, ...at, title: `object ${n.value}, ${stateText(state)}` };
     }
     const v = evaluate(n, (a) => ctx.known[a] ?? null);
