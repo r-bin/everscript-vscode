@@ -71,8 +71,9 @@ export function withIcons(html: string, refs: IconRef[], icons: Record<string, s
     for (const r of refs) {
         const now = r.live ? live[r.live] : undefined;
         const key = now || roomKey(r.key, room);
-        const uri = icons[key], emoji = EMOJI[key];
-        if (!uri && !emoji) continue;
+        const halves = key.startsWith('split:') ? key.slice(6).split('|').map((k) => icons[roomKey(k, room)]) : null;
+        const uri = halves ? null : icons[key], emoji = EMOJI[key];
+        if (!uri && !emoji && !(halves && halves.every(Boolean))) continue;
         let end = -1;
         for (let from = 0; ; from = end) {
             end = placeAfter(out, r.find, r.tail ?? '', !!r.group, from);
@@ -84,7 +85,8 @@ export function withIcons(html: string, refs: IconRef[], icons: Record<string, s
         const title = (now ? 'object ' + n + ', state ' + st + ': the index the running game holds now' : r.title ?? r.find) +
             (obj ? ' · soe://rom/assets/maps/' + hx(room, 2).toLowerCase() + '/objects/' + n + '/state_' + st + '.png' : '') +
             (r.live && !now ? ' · open the emulator to read it live' : '');
-        const tag = uri ? '<img class="scr-icon' + (obj ? ' scr-icon-obj' : '') + (now ? ' scr-icon-live' : '') + '" src="' + uri + '" alt="" title="' + esc(title) + '">'
+        const tag = halves ? '<span class="scr-icon scr-split" title="' + esc(title) + '"><img src="' + halves[0] + '" alt=""><img src="' + halves[1] + '" alt=""></span>'
+            : uri ? '<img class="scr-icon' + (obj ? ' scr-icon-obj' : '') + (now ? ' scr-icon-live' : '') + '" src="' + uri + '" alt="" title="' + esc(title) + '">'
             : '<span class="scr-icon scr-emoji" title="' + esc(title) + '">' + emoji + '</span>';
         out = out.slice(0, end) + tag + out.slice(end);
         for (let i = 0; i < used.length; i++) if (used[i] > end) used[i] += tag.length;
@@ -122,27 +124,25 @@ export function chipsStyle(picture: { uri?: string } | null | undefined): string
     return picture?.uri ? ' style="--scr-room-pic:url(&quot;' + picture.uri + '&quot;)"' : '';
 }
 
-/** Size of a chip's picture, in CSS pixels. */
-const CHIP_PIC = 18;
-
-/** What a chip's reward is drawn at, in CSS pixels. */
-const CHIP_LOOT = 12;
+/** Size of a chip's picture, and of what it lays over it (a ring icon's own 16 px: scaled down it smears), in CSS pixels. */
+const CHIP_PIC = 22, CHIP_LOOT = 16;
 
 /**
- * A trigger chip's picture: the square of the room picture around the trigger's box, scaled to
- * fit, the box outlined; with what it is about (`loot`, a data URI: a reward, a weapon it tests)
- * centred on the box, as the map editor shows a pickup. '' for the enter script (no box).
+ * A trigger chip's picture: the square of the room picture centred on the trigger's box (past the
+ * room's edge it is empty), scaled to fit, the box outlined; with what it is about (`loot`, a data
+ * URI: a reward, a weapon it tests) at its own size in the middle, on the box, as the map editor
+ * shows a pickup. '' for the enter script (no box).
  */
 export function chipPicture(box: { x: number; y: number; w: number; h: number } | undefined, picture: { width?: number; height?: number } | null | undefined, loot: string | null | undefined): string {
     if (!box || !picture?.width || !picture.height) return '';
     const side = Math.max(box.w, box.h, 32);
-    const x0 = Math.max(0, Math.min(picture.width - side, box.x + box.w / 2 - side / 2)), y0 = Math.max(0, Math.min(picture.height - side, box.y + box.h / 2 - side / 2));
+    const x0 = box.x + box.w / 2 - side / 2, y0 = box.y + box.h / 2 - side / 2;
     const k = CHIP_PIC / side;
     const px = (v: number): string => (v * k).toFixed(1) + 'px';
-    const cx = (box.x + box.w / 2 - x0) * k - CHIP_LOOT / 2, cy = (box.y + box.h / 2 - y0) * k - CHIP_LOOT / 2;
+    const mid = (CHIP_PIC - CHIP_LOOT) / 2 + 'px';
     return '<span class="scr-chip-pic" style="background-size:' + px(picture.width) + ' ' + px(picture.height) + ';background-position:' + px(-x0) + ' ' + px(-y0) + '">' +
         '<span class="scr-chip-box" style="left:' + px(box.x - x0) + ';top:' + px(box.y - y0) + ';width:' + px(box.w) + ';height:' + px(box.h) + '"></span>' +
-        (loot ? '<img class="scr-chip-loot" src="' + loot + '" alt="" style="left:' + cx.toFixed(1) + 'px;top:' + cy.toFixed(1) + 'px">' : '') + '</span>';
+        (loot ? '<img class="scr-chip-loot" src="' + loot + '" alt="" style="left:' + mid + ';top:' + mid + '">' : '') + '</span>';
 }
 
 /** Entry-state flags: clear when the room is loaded fresh, set by the way some doors bring you in. */

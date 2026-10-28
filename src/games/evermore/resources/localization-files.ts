@@ -12,7 +12,7 @@
 //   soe://localization/knowledge/{ram,rom}/ every knowledge entry: index.md (the generated RAM / ROM map),
 //                                           <addr>.md (the entry), <addr>.json (its fields)
 
-import { VANILLA_MAPS, getMap, MUSIC, SOUNDS, getMusic, getSound, TABLES, getTable, FUNCTIONS, getFunction, NPC_SCRIPTS, ABS_SCRIPTS, GLOBAL_SCRIPTS, getNpcScript, getAbsScript, getGlobalScript, decodeRomString, resolveLocalizedName } from '../localizations';
+import { VANILLA_MAPS, getMap, MUSIC, SOUNDS, getMusic, getSound, TABLES, getTable, FUNCTIONS, getFunction, NPC_SCRIPTS, ABS_SCRIPTS, GLOBAL_SCRIPTS, getNpcScript, getAbsScript, getGlobalScript, stringText, resolveLocalizedName } from '../localizations';
 import { hexId } from './resource-uri';
 import { dir, json, text } from './nodes';
 import type { Entry } from './nodes';
@@ -368,13 +368,15 @@ function stringsRoute(rest: string[], rom: Rom) {
     if (!m) return null;
     const idx = parseInt(m[1], 16);
     if (idx < 0 || idx >= STRING_COUNT) return null;
-    const str = rom ? decodeRomString(rom, idx) : null;
+    // As a script writes it: control bytes in everscript's tokens (localizations stringText).
+    const str = rom ? stringText(rom, idx) : null;
     if (m[2].toLowerCase() === 'txt') {
         return text(() => str !== null ? str : '(no ROM available)');
     }
     return json(() => ({
         index: idx,
         hex: '0x' + idx.toString(16).padStart(4, '0'),
+        key: '0x' + (idx * 3).toString(16).padStart(4, '0'),
         text: str,
     }));
 }

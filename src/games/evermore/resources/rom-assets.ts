@@ -5,7 +5,7 @@
 
 import { renderItemIcon, lootIconId, alchemyIconId, iconEntry, ALCHEMY_FORMULAS, ICON_ID_LAST, encodePng, decodeRoom, renderRoomComposite, MAX_ROOMS } from '../maps';
 import { lootRewardName, flagName } from '../script-model';
-import { decodeRomString } from '../localizations';
+import { stringText } from '../localizations';
 import { slugify, hexId } from './resource-uri';
 import { gallery, href } from './autoindex';
 import { dir, file, link, json, text } from './nodes';
@@ -217,14 +217,14 @@ function strings(rom: Rom, name?: string, leaf?: string) {
         return dir(names.map((n): Entry => [n, 'file']), () => [
             '# soe://rom/assets/strings/', '', `${STRING_COUNT} in-game strings, table at \`$11D000\`.`, '',
             '| Index | Text |', '|---|---|',
-            ...names.map((n, i) => `| [${n.slice(0, 4)}](${n}) | ${cell(decodeRomString(rom, i))} |`),
+            ...names.map((n, i) => `| [${n.slice(0, 4)}](${n}) | ${cell(stringText(rom, i))} |`),
         ].join('\n') + '\n');
     }
     const m = /^([0-9a-f]{1,4})(\.txt)?$/i.exec(name);
     const index = m ? parseInt(m[1], 16) : -1;
     if (index < 0 || index >= STRING_COUNT) return null;
     return text(() => {
-        const s = decodeRomString(rom, index);
+        const s = stringText(rom, index);
         if (s === null) throw new Error(`string ${hexId(index, 4)} does not decode`);
         return s + '\n';
     });

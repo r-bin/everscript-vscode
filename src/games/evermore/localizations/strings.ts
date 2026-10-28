@@ -94,11 +94,15 @@ function everscriptText(raw: string): string {
     return out;
 }
 
-/** The string a script's text key names ($8C:CCF5 adds the key to the table as a byte offset: 3 bytes a string), in everscript's tokens; null when there is none. */
-function dialogueText(rom: Uint8Array | Buffer, key: number): string | null {
-    if (key % 3) return null;
-    const raw = decodeRomString(rom, key / 3);
+/** String `index` as a script writes it: decoded, its control bytes in everscript's tokens; null when there is none. What soe:// serves and the listings print. */
+function stringText(rom: Uint8Array | Buffer, index: number): string | null {
+    const raw = decodeRomString(rom, index);
     return raw === null ? null : everscriptText(raw);
+}
+
+/** The string a script's text key names ($8C:CCF5 adds the key to the table as a byte offset: 3 bytes a string), as stringText; null when there is none. */
+function dialogueText(rom: Uint8Array | Buffer, key: number): string | null {
+    return key % 3 ? null : stringText(rom, key / 3);
 }
 
 /** Options of the get…Name lookups: the ROM to read in-game strings from, the long name, a name for a miss. */
@@ -123,5 +127,5 @@ function resolveLocalizedName(entry: NamedEntry | string | null | undefined, rom
 }
 
 export type { NamedEntry, NameOptions };
-export { STRING_KEYS_ADDR, STRING_KEY_COUNT, decodeRomString, everscriptText, dialogueText, resolveLocalizedName };
+export { STRING_KEYS_ADDR, STRING_KEY_COUNT, decodeRomString, everscriptText, stringText, dialogueText, resolveLocalizedName };
 

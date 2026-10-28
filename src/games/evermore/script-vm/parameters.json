@@ -144,7 +144,7 @@
   "0xa6": {"name":"call_back_far","basis":"usage","params":[{"name":"script","type":"script"}]},
   "0xa7": {"name":"sleep","basis":"usage","params":[{"name":"ticks","type":"u8"}]},
   "0xa8": {"name":"sleep","basis":"usage","params":[{"name":"ticks","type":"u16"}]},
-  "0xa9": {"name":"attribute_bit","basis":"usage","params":[{"name":"entity","type":"entity"},{"name":"selector","type":"u16"}]},
+  "0xa9": {"name":"attribute_bit","basis":"usage","params":[{"name":"entity","type":"entity"},{"name":"selector","type":"u16","enum":"ATTRIBUTE_BITS"}]},
   "0xaa": {"name":"cure","basis":"usage","params":[]},
   "0xab": {"name":"reset_game","basis":"usage","params":[]},
   "0xac": {"name":"cast","basis":"usage","params":[{"name":"entity","type":"entity"},{"name":"a","type":"u16"},{"name":"b","type":"u16"},{"name":"targets","type":"list"}]},

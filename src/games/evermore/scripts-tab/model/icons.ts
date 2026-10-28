@@ -97,6 +97,7 @@ export const roomKey = (key: string, roomId: number): string =>
 /** Every icon key the given lines' references name. */
 export function iconKeys(refs: Iterable<ReadonlyArray<{ key: string }> | undefined>): Set<string> {
     const out = new Set<string>();
-    for (const list of refs) for (const i of list ?? []) out.add(i.key);
+    // A split key (`split:<a>|<b>`) is drawn as its two parts; the page puts them side by side.
+    for (const list of refs) for (const i of list ?? []) for (const k of i.key.startsWith('split:') ? i.key.slice(6).split('|') : [i.key]) out.add(k);
     return out;
 }

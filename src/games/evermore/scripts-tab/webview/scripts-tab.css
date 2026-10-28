@@ -34,9 +34,9 @@
 .scr-chips{display:flex;flex-direction:column;gap:4px;margin:6px 0 10px}
 .scr-chips-row{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
 .scr-chip{display:inline-flex;align-items:center;gap:4px}
-.scr-chip-pic{position:relative;display:inline-block;width:18px;height:18px;flex:none;background-image:var(--scr-room-pic);background-repeat:no-repeat;image-rendering:pixelated;border-radius:2px;overflow:hidden;margin-right:-4px}
-.scr-chip-box{position:absolute;box-sizing:border-box;border:1px solid rgba(255,255,255,.85);border-radius:1px}
-.scr-chip-loot{position:absolute;width:12px;height:12px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 0 1px #000)}
+.scr-chip-pic{position:relative;display:inline-block;width:22px;height:22px;background-color:rgba(0,0,0,.35);flex:none;background-image:var(--scr-room-pic);background-repeat:no-repeat;image-rendering:pixelated;border-radius:2px;overflow:hidden;margin-right:-4px}
+.scr-chip-box{position:absolute;box-sizing:border-box;border:1px solid rgba(255,255,255,.6);border-radius:1px}
+.scr-chip-loot{position:absolute;width:16px;height:16px;object-fit:none;image-rendering:pixelated;filter:drop-shadow(0 0 1px #000) drop-shadow(0 0 1px #000)}
 .scr-chips-h{font-size:11px;color:var(--scr-dim);min-width:86px}
 .scr-chip,.scr-btn{border:1px solid var(--scr-line);border-radius:3px;padding:1px 7px;color:inherit;background:var(--vscode-button-secondaryBackground,#333);cursor:pointer;font:11px var(--scr-mono)}
 .scr-chip.scr-on{background:var(--vscode-button-background,#0e639c);color:var(--vscode-button-foreground,#fff);border-color:transparent}
@@ -195,5 +195,9 @@
 @media (max-width:900px){.scr-body{grid-template-columns:200px 1fr}.scr-side{grid-column:1 / -1;border-top:1px solid var(--scr-line)}}
 .scr-icon{height:18px;width:auto;max-width:36px;vertical-align:middle;margin:-3px 2px -3px 4px;image-rendering:pixelated;object-fit:contain}
 .scr-icon-obj{width:20px;height:20px;max-width:20px;object-fit:contain;border:1px solid var(--scr-line);border-radius:2px;background:rgba(128,128,128,.15)}
+.scr-split{display:inline-flex;width:auto;max-width:none}
+.scr-split img{width:9px;height:18px;object-fit:cover;image-rendering:pixelated}
+.scr-split img:first-child{object-position:left}
+.scr-split img:last-child{object-position:right}
 .scr-emoji{display:inline-block;height:auto;font-size:12px;line-height:1;cursor:default}
 .scr-icon-live{outline:1px solid var(--vscode-charts-green,#3c3);outline-offset:1px}

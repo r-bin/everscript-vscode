@@ -11,14 +11,15 @@
 //   portrait:dog[:<form>] a Dog form's HUD portrait (`dog()`): the form the listing set, else the room's era's
 //   money                a money reward, as the room's era's currency (talons, jewels, gold coins, credits)
 //   object:<n>:<state>   room object n in that state (the viewer knows the room)
-//   unknown              drawn as ❓: a character the listing cannot tell (`active()` outside an if that tests it)
+//   split:<a>|<b>        two pictures side by side, half each: `active()` outside an if that tests it (Boy | Dog), `inactive()` (Dog | Boy)
+//   unknown              drawn as ❓: a character the listing cannot tell
 //
 // What `last_entity()`, `dog()` and an entity cell (`temp.entity_1`) hold depends on what ran
 // before: `Context` says (merged.ts tracks it down a listing), and so does who `active()` (the
 // controlled one) and `inactive()` are, inside an `if (dog() == active())`. An object index that is an expression gets the
 // value the listing set above, if any, and `live`: the viewer asks the running game for it.
 
-import { Instruction, Names, Node, Term, constText, facts, parameters, tree } from '../script-vm';
+import { Instruction, Names, Node, Term, facts, parameters, tree } from '../script-vm';
 import { evaluate, termAddress } from './evaluate';
 
 export interface IconRef {
@@ -83,7 +84,8 @@ function characterRef(t: Term, ctx: Context): IconRef | null {
             // The one the player controls (the camera follows it) and the other: known only inside an if that tests it.
             const who = ctx.active ? (name === 'active' ? ctx.active : ctx.active === 'boy' ? 'dog' : 'boy') : null;
             const what = name === 'active' ? 'the character the player controls' : 'the character the player does not control';
-            if (!who) return { key: 'unknown', find: name, tail: '()', title: `${what}: the Boy or the Dog, whichever the player switched to` };
+            // Not known: both, split — the controlled one's side first (active: Boy | Dog, inactive: Dog | Boy).
+            if (!who) return { key: name === 'active' ? `split:portrait:boy|${ctx.dog}` : `split:${ctx.dog}|portrait:boy`, find: name, tail: '()', title: `${what}: the Boy or the Dog, whichever the player switched to` };
             return { key: who === 'boy' ? 'portrait:boy' : ctx.dog, find: name, tail: '()', title: `${what}: the ${who === 'boy' ? 'Boy' : 'Dog'}, as the if around this line tests` };
         }
         case 'last_entity': return ctx.last
@@ -141,7 +143,8 @@ function objectRef(ins: Instruction, i: number, n: Node, ctx: Context): IconRef 
     const state = objectState(ins);
     const subscript = SUBSCRIPT.has(ins.opcode);
     if (n.k === 'const') {
-        const at = subscript ? { find: 'object', group: true } : { find: constText(n.value) };
+        // After the whole object: `object[3]`, `object_state_by_flag(9, 0x03cc)`.
+        const at = { find: subscript ? 'object' : ins.spec.name, group: true };
         return { key: `object:${n.value}:${state}`, ...at, title: `object ${n.value}, ${stateText(state)}` };
     }
     const v = evaluate(n, (a) => ctx.known[a] ?? null);

@@ -218,7 +218,7 @@ async function romChecks(rom) {
         handleScriptsMessage({ command: 'scriptsRoom', id: 3 }, deps);
         const refs = posted.pop().room.merged.lines.flatMap((l) => l.icons || []);
         assert.ok(refs.some((r) => r.find === 'arg.entity_1' && r.key.startsWith('enemy:')), 'arg.entity_1: the character spawned into it');
-        assert.ok(refs.some((r) => r.key === 'unknown' && r.find === 'active'), 'active() outside an if that tests it: unknown');
+        assert.ok(refs.some((r) => r.key.startsWith('split:portrait:boy|') && r.find === 'active'), 'active() outside an if that tests it: the Boy | the Dog');
         // Crustacia's west shore: the lift is a placeholder the enter script animates and keeps in <0x24d7>; step-on 0 moves it.
         handleScriptsMessage({ command: 'scriptsRoom', id: 7 }, deps);
         const shore = posted.pop();

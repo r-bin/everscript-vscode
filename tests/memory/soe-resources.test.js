@@ -217,7 +217,7 @@ test('provider: every directory has an index.md', async () => {
     assert.match(await md('soe://rom/assets/icons/index.md'), /\[!\[0056\.png\]\(0056\.png\)\]/, 'generic gallery');
     assert.match(await md('soe://rom/assets/ingredients/index.md'), /wax\/icon\.png/, 'item gallery');
     assert.match(await md('soe://rom/assets/ingredients/wax/index.md'), /\[!\[icon\.png\]\(icon\.png\)\]/);
-    assert.match(await md('soe://rom/assets/strings/index.md'), /\| \[0540\]\(0540\.txt\) \| Arme Polish\. \|/);
+    assert.match(await md('soe://rom/assets/strings/index.md'), /\| \[0540\]\(0540\.txt\) \| \\\[CHOICE\\\]Armor Polish\. \|/);
     assert.match(await md('soe://rom/assets/maps/38/index.md'), /^# Room 38/);
     assert.match(await md('soe://ram/index.md'), /^# soe:\/\/ram\//);
     await assert.rejects(fsp.readFile(uri('soe://rom/assets/strings/0540.txt/index.md')), e => e.code === 'FileNotFound');
