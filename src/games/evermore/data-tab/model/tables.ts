@@ -1129,6 +1129,27 @@ function sfxAttenuationTable(rom: Uint8Array): Table {
     };
 }
 
+const SQUARES_TABLE_ADDR = 0x80aa27;
+const SQUARES_COUNT = 256;
+
+function squaresTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let x = 0; x < SQUARES_COUNT; x++) {
+        const val = read16(rom, snesToRom(SQUARES_TABLE_ADDR + x * 2));
+        rows.push([x, val, '$' + hex(val, 4)]);
+        pts.push([x, val]);
+    }
+    return {
+        id: 'squares', group: 'Math', title: 'Table of integer squares (x²)', addr: '$80:AA27',
+        note: 'Table $80:AA27 (256 words, 512 bytes): 16-bit integer squaring lookup for x = 0..255 (0 to 65025), utilized by 2D positional audio $8C:8589 for Euclidean distance without hardware multiplication.',
+        columns: ['x', 'x²', 'hex'],
+        rows,
+        chart: { x: 'x', y: 'x²', series: [{ name: 'x²', points: pts }] },
+        vfs: vfs(SQUARES_TABLE_ADDR),
+    };
+}
+
 /** Every table the view lists: only the ones decoded into readable values. */
 function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Table[] {
     return [
@@ -1150,6 +1171,7 @@ function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Ta
         castSpellsTable(rom), ingredientsTable(rom),
         dialoguePhrasesTable(rom), dialogueWordsTable(rom),
         sfxScriptTranslationTable(rom), sfxAttenuationTable(rom),
+        squaresTable(rom),
     ];
 }
 

@@ -835,6 +835,29 @@ function apuIpcCommandsEnum(): EnumList {
     };
 }
 
+const WEATHER_PRESETS_DATA = [
+    { id: 0x00, name: 'Clear Sky', type: 'None', desc: 'No active atmospheric precipitation or particles' },
+    { id: 0x01, name: 'Rain Shower', type: 'Precipitation', desc: 'Vertical falling rain streaks with ground water splash sprites' },
+    { id: 0x02, name: 'Heavy Downpour', type: 'Storm', desc: 'Fast angled rain with wind turbulence and lightning flash' },
+    { id: 0x03, name: 'Snow Flurries', type: 'Precipitation', desc: 'Gentle drifting snowflake particles with horizontal sway' },
+    { id: 0x04, name: 'Blizzard', type: 'Storm', desc: 'Dense high-velocity snow flurry particles with severe wind drift' },
+    { id: 0x05, name: 'Volcanic Ash / Embers', type: 'Particulate', desc: 'Rising incandescent ember sparks with heat shimmer distortion' },
+    { id: 0x06, name: 'Swamp Spores / Mist', type: 'Atmospheric', desc: 'Floating organic spore particles and low-lying ground fog' },
+    { id: 0x07, name: 'Falling Autumn Leaves', type: 'Foliage', desc: 'Tumbling deciduous leaf particles with rotational sway phases' },
+];
+
+function weatherPresetsEnum(): EnumList {
+    return {
+        id: 'weather-presets', group: 'Environment', title: 'Environmental weather presets ($EC:0000)',
+        columns: ['preset id', 'hex', 'preset name', 'category', 'simulation behavior'],
+        entries: WEATHER_PRESETS_DATA.map((w) => ({
+            cells: [String(w.id), '$' + hex(w.id, 2), w.name, w.type, w.desc],
+            vfs: bus(0xec0000),
+        })),
+        source: 'Master ambient weather preset descriptors at $EC:0000, loaded by load_weather_preset_parameters ($80:A2E0).',
+    };
+}
+
 /** Every list the view shows. `icons` are the formulas' ring-menu icons (PNG data URIs) in formula order. */
 function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | null)[] = []): EnumList[] {
     return [characterBlobs(rom, chars), recordFields(), contactHandlers(rom, chars), aiSelectors(rom, chars),
@@ -852,7 +875,8 @@ function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | nu
         cameraScrollModesEnum(), windowStatesEnum(),
         audioFadeStatesEnum(), roomLoadStatesEnum(),
         choiceBoxStatesEnum(), apuSeqStatusEnum(),
-        dialogueControlCodesEnum(), apuIpcCommandsEnum()];
+        dialogueControlCodesEnum(), apuIpcCommandsEnum(),
+        weatherPresetsEnum()];
 }
 
 export { enumsModel };

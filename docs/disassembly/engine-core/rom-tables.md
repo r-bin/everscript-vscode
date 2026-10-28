@@ -12,6 +12,7 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
 |---|---|---|---|---|---|---|
 | `$80:88A3` | `0x0088A3` | `tbl_trig_sine` | 2 bytes | 320 | 640 B | 8.8 fixed-point trigonometric sine curve (`-255`..`+256`) |
 | `$80:8923` | `0x008923` | `tbl_trig_cosine` | 2 bytes | 256 | 512 B | Trigonometric cosine (+64 offset alias of `tbl_trig_sine`) |
+| `$80:AA27` | `0x00AA27` | `tbl_integer_squares` | 2 bytes | 256 | 512 B | 16-bit integer square lookup table ($x^2$ for $x \in [0, 255]$) |
 | `$81:9903` | `0x019903` | `tbl_song_packages` | 3 bytes | 71 | 213 B | Master music soundtrack and soundbank sequence descriptors |
 | `$8C:8362` | `0x0C8362` | `tbl_sfx_script_translation` | 2 bytes | 112 | 224 B | Script sound call to hardware APU parameter translation table |
 | `$8C:84D4` | `0x0C84D4` | `tbl_sfx_attenuation_curve` | 1 byte | 181 | 181 B | 2D distance audio volume logarithmic attenuation curve |
@@ -53,6 +54,7 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
 | `$C4:5FC5` | `0x225FC5` | `tbl_cast_names` | 2 bytes | 23 | 46 B | Pointers to zero-terminated spell name strings |
 | `$C4:5FF3` | `0x225FF3` | `tbl_ingredient_names` | 2 bytes | 22 | 44 B | Pointers to zero-terminated ingredient name strings |
 | `$CE:8000` | `0x168000` | `tbl_ring_item_icons` | 2 bytes | 162 | 324 B | Pointers to 8-byte ring menu item icon sprite & palette descriptors |
+| `$EC:0000` | `0x1C0000` | `tbl_weather_presets` | 128 bytes | 8 | 1,024 B | Master environmental weather preset physics parameter blocks |
 
 ---
 
@@ -408,6 +410,26 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
   - Logarithmic audio volume falloff curve ($255 \dots 0$) indexed by screen-relative Euclidean distance penalty.
   - Value 255 represents maximum volume at screen center; scales smoothly down to 0 at distance cutoff threshold.
 - **Readers**: Positional audio player routine `audio_play_positional_sfx` (`$8C:8589`), transmitted to APU via IPC Command `0x0036`.
+
+### 2.35 Master Integer Squares Table (`$80:AA27`)
+- **Format**: `uint16_t tbl_integer_squares[256]`, 2 bytes per entry (512 bytes total, `$80:AA27`..`$80:AC26`).
+- **Internal Layout**:
+  - Contains exact 16-bit integer squares $x^2$ for inputs $x \in [0, 255]$ ($0 \dots 65025$).
+  - High-performance lookup allowing instantaneous vector magnitude squared calculations without accessing the slow SNES PPU hardware multiplication registers (`$4202`/`$4203`).
+- **Readers**: Positional sound spatializer `audio_play_positional_sfx` (`$8C:8589`), Euclidean distance checks, collision and particle proximity routines.
+
+### 2.36 Master Weather Preset Parameter Database (`$EC:0000`)
+- **Format**: Struct of 128 bytes per preset (64 words), 8 environmental modes (1,024 bytes total, `$EC:0000`..`$EC:03FF`).
+- **Internal Layout**:
+  - `uint16_t x_velocity_base`: Base horizontal pixel drift velocity ($8.8$ fixed point).
+  - `uint16_t y_velocity_base`: Base vertical terminal fall/rise velocity ($8.8$ fixed point).
+  - `uint16_t wind_turbulence_amplitude`: Maximum oscillation sway amplitude.
+  - `uint16_t wind_turbulence_frequency`: Period multiplier for sinusoidal wind swaying.
+  - `uint16_t max_active_particles`: Particle generator budget limit ($8 \dots 64$).
+  - `uint16_t oam_tile_base`: OAM character tile index base for weather particle sprites.
+  - `uint16_t oam_attr_mask`: Palette and priority attributes for particle OAM descriptors.
+- **Readers**: Environmental weather manager `load_weather_preset_parameters` (`$80:A2E0`) and particle step update routines in the V-blank/active frame dispatchers.
+
 
 
 

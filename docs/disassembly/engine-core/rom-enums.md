@@ -489,4 +489,24 @@ typedef enum {
 } ApuIpcCommand;
 ```
 
+---
+
+## 19. Environmental Weather Modes (`WEATHER_PRESET`)
+
+Environmental particle and atmospheric weather systems initialized from Bank `$EC:0000` via routine `load_weather_preset_parameters` (`$80:A2E0`):
+
+```c
+typedef enum {
+    WEATHER_CLEAR               = 0, /* No environmental particle generation */
+    WEATHER_RAIN                = 1, /* Falling rain streaks with vertical terminal velocity */
+    WEATHER_SNOW                = 2, /* Gentle oscillating snowfall with wind sway */
+    WEATHER_BLIZZARD            = 3, /* High-speed diagonal blizzard with turbulence */
+    WEATHER_LEAVES              = 4, /* Autumn drifting leaves with sinusoidal fluttering */
+    WEATHER_ASH_DUST            = 5, /* Volcanic ash and dust motes with erratic drift */
+    WEATHER_SPORES              = 6, /* Glowing floating swamp spores */
+    WEATHER_DESERT_STORM        = 7  /* Sandstorm particle gusts with horizontal bias */
+} WeatherPreset;
+```
+
+
 
