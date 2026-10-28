@@ -79,7 +79,7 @@ test('parameters.json: one entry per opcode, one parameter per operand; entities
         });
     }
     // An entity parameter gets an entity sub-op, a read, or a small special value below $2000 (wait's 1 and 2, a room hook).
-    const ENT = new Set(['last_entity', 'script_owner', 'boy', 'dog', 'camera_entity', 'other_character']);
+    const ENT = new Set(['last_entity', 'script_owner', 'boy', 'dog', 'active', 'inactive']);
     const w = V.walk(rom, V.allEntries(rom), true);
     let entities = 0;
     for (const ins of w.instructions.values()) {

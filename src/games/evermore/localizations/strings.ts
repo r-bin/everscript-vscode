@@ -49,7 +49,8 @@ function decodeRomString(rom: Uint8Array | Buffer, stringIndex: number): string 
             } else if ((d & 0xC0) === 0x40) {
                 nextPlain = d & 0x3F;
             } else if ((d & 0xC0) === 0x80) {
-                d <<= 1;
+                // An 8-bit shift, as the game's `asl` ($8C:CDC6): bit 7 drops out of the pair index.
+                d = (d << 1) & 0xFF;
                 const c1 = read8(0x91F32E + d);
                 result += String.fromCharCode(c1);
                 const c2 = read8(0x91F32F + d);
@@ -68,6 +69,36 @@ function decodeRomString(rom: Uint8Array | Buffer, stringIndex: number): string 
         }
     }
     return result;
+}
+
+/**
+ * The everscript compiler's tokens for a string's control bytes (its text lexer,
+ * compiler/ast_everscript.py): `[LF]`, `[PAUSE:3d]`, `[BOY]`, … — the way a script writes the
+ * string. A byte it has no token for reads `[0xNN]`.
+ */
+const TOKENS: Record<number, string> = {
+    0x81: '[BOY]', 0x82: '[DOG]', 0x83: '[P3]', 0x84: '[P4]', 0x86: '[B]', 0x87: '[PAGE]', 0x8a: '[CHOICE_RIGHT]', 0x8b: '[CHOICE_INLINE]',
+    0x8f: '[NOP]', 0x90: '[BOLD]', 0x91: '[UNBOLD]', 0x92: '[CENTER]', 0x93: '[LEFT]', 0x94: '[RIGHT]', 0x95: '[REPEAT]', 0x96: '[SLOW]',
+    0x97: '[UNSLOW]', 0x98: '[INVERTED]', 0xa1: '[MEM1]', 0xa2: '[MEM2]', 0xa3: '[MEM3]', 0x7f: '<-',
+    0x5f: '…', 0x7b: '`', 0x7d: '´', 0x7e: '[OK]', 0x5e: '->',
+};
+
+function everscriptText(raw: string): string {
+    let out = '';
+    for (let i = 0; i < raw.length; i++) {
+        const c = raw.charCodeAt(i);
+        if (c === 0x80 && raw.charCodeAt(i + 2) === 0x80) { out += '[PAUSE:' + raw.charCodeAt(i + 1).toString(16).padStart(2, '0') + ']'; i += 2; continue; }
+        if (c === 0x0a) { if (raw.charCodeAt(i + 1) === 0x8b) { out += '[CHOICE]'; i++; } else out += '[LF]'; continue; }
+        out += TOKENS[c] ?? (c < 0x20 || c > 0x7e ? '[0x' + c.toString(16).padStart(2, '0') + ']' : raw[i]);
+    }
+    return out;
+}
+
+/** The string a script's text key names ($8C:CCF5 adds the key to the table as a byte offset: 3 bytes a string), in everscript's tokens; null when there is none. */
+function dialogueText(rom: Uint8Array | Buffer, key: number): string | null {
+    if (key % 3) return null;
+    const raw = decodeRomString(rom, key / 3);
+    return raw === null ? null : everscriptText(raw);
 }
 
 /** Options of the get…Name lookups: the ROM to read in-game strings from, the long name, a name for a miss. */
@@ -92,5 +123,5 @@ function resolveLocalizedName(entry: NamedEntry | string | null | undefined, rom
 }
 
 export type { NamedEntry, NameOptions };
-export { STRING_KEYS_ADDR, STRING_KEY_COUNT, decodeRomString, resolveLocalizedName };
+export { STRING_KEYS_ADDR, STRING_KEY_COUNT, decodeRomString, everscriptText, dialogueText, resolveLocalizedName };
 

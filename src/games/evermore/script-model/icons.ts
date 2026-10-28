@@ -11,11 +11,11 @@
 //   portrait:dog[:<form>] a Dog form's HUD portrait (`dog()`): the form the listing set, else the room's era's
 //   money                a money reward, as the room's era's currency (talons, jewels, gold coins, credits)
 //   object:<n>:<state>   room object n in that state (the viewer knows the room)
-//   camera / unknown     drawn as an emoji: the camera's character; a character the listing cannot tell
+//   unknown              drawn as ❓: a character the listing cannot tell (`active()` outside an if that tests it)
 //
 // What `last_entity()`, `dog()` and an entity cell (`temp.entity_1`) hold depends on what ran
-// before: `Context` says (merged.ts tracks it down a listing). `other_character()` is taken to be
-// the Dog — the usual case, said so in the title. An object index that is an expression gets the
+// before: `Context` says (merged.ts tracks it down a listing), and so does who `active()` (the
+// controlled one) and `inactive()` are, inside an `if (dog() == active())`. An object index that is an expression gets the
 // value the listing set above, if any, and `live`: the viewer asks the running game for it.
 
 import { Instruction, Names, Node, Term, constText, facts, parameters, tree } from '../script-vm';
@@ -44,13 +44,17 @@ export interface Context {
     dog: string;
     /** What each entity cell holds (EntityCell id → icon key). */
     cells: Record<string, string>;
+    /** Save- and temp-area words that hold an entity (WRAM address → icon key): what the listing put there, and what the enter script left for a trigger. */
+    saved: Record<number, string>;
     /** Save- and temp-area bytes the listing set to a constant (WRAM address → byte). */
     known: Record<number, number>;
+    /** Who `active()` is here, when an if around the line tests it (merged.ts); null: the listing cannot tell. */
+    active?: 'boy' | 'dog' | null;
     /** The entity cell a local or temp read names in this line's thread, or null. */
     cell?(area: 'local' | 'temp', offset: number): EntityCell | null;
 }
 
-export const fresh = (): Context => ({ last: null, dog: 'portrait:dog', cells: {}, known: {} });
+export const fresh = (saved: Record<number, string> = {}): Context => ({ last: null, dog: 'portrait:dog', cells: {}, saved: { ...saved }, known: {} });
 
 /** LOOT_REWARD MONEY: the amount is in the era's currency. */
 const MONEY = 0x0001;
@@ -75,8 +79,13 @@ function characterRef(t: Term, ctx: Context): IconRef | null {
     switch (name) {
         case 'boy': return { key: 'portrait:boy', find: name, tail: '()', title: 'the Boy' };
         case 'dog': return { key: ctx.dog, find: name, tail: '()', title: ctx.dog === 'portrait:dog' ? 'the Dog, in the form of the era the room is in' : 'the Dog, in the form the listing asks for above' };
-        case 'camera_entity': return { key: 'camera', find: name, tail: '()', title: 'the character the camera follows: the one the player controls' };
-        case 'other_character': return { key: ctx.dog, find: name, tail: '()', title: 'the character not followed: the Dog, unless the player switched' };
+        case 'active': case 'inactive': {
+            // The one the player controls (the camera follows it) and the other: known only inside an if that tests it.
+            const who = ctx.active ? (name === 'active' ? ctx.active : ctx.active === 'boy' ? 'dog' : 'boy') : null;
+            const what = name === 'active' ? 'the character the player controls' : 'the character the player does not control';
+            if (!who) return { key: 'unknown', find: name, tail: '()', title: `${what}: the Boy or the Dog, whichever the player switched to` };
+            return { key: who === 'boy' ? 'portrait:boy' : ctx.dog, find: name, tail: '()', title: `${what}: the ${who === 'boy' ? 'Boy' : 'Dog'}, as the if around this line tests` };
+        }
         case 'last_entity': return ctx.last
             ? { key: ctx.last, find: name, tail: '()', title: 'the last character a spawn placed above this line' }
             : { key: 'unknown', find: name, tail: '()', title: 'the last character a spawn placed: none above this line, so it comes from before the script' };
@@ -107,7 +116,7 @@ export function iconRefs(ins: Instruction, names: Names, ctx: Context = fresh())
             visit(n.left); visit(n.right);
         } else if (n.k === 'unary') visit(n.arg);
         else if (n.k === 'value') add(characterRef(n.term, ctx));
-        else if (n.k === 'read') add(cellRef(n.term, ctx));
+        else if (n.k === 'read') add(cellRef(n.term, ctx, names));
     };
     const add = (c: IconRef | null): void => { if (c && !out.some((o) => o.find === c.find)) out.push(c); };
     const params = parameters(ins.opcode);
@@ -170,20 +179,30 @@ export function liveObjectKey(ins: Instruction, i: number, byte: (addr: number) 
     return v === null ? null : `object:${v}:${objectState(ins)}`;
 }
 
-/** An entity cell read (`temp.entity_1`): the character it was given above, else unknown. */
-function cellRef(t: Term, ctx: Context): IconRef | null {
-    if (t.spec.kind !== 'read' || t.spec.width !== 2 || (t.spec.area !== 'local' && t.spec.area !== 'temp')) return null;
-    const c = ctx.cell?.(t.spec.area, t.value ?? 0);
-    if (!c) return null;
-    const key = ctx.cells[c.id];
-    return { key: key ?? 'unknown', find: c.name, title: key ? `what ${c.name} was given above this line` : `${c.name}: nothing gave it a character above this line` };
+/**
+ * An entity cell read: a sliced one (`temp.entity_1`) shows what it was given above, else unknown;
+ * a save- or temp-area word shows the entity written to it, here or by the enter script (`<0x24d7>`
+ * the lift), and nothing when none was.
+ */
+function cellRef(t: Term, ctx: Context, names: Names): IconRef | null {
+    if (t.spec.kind !== 'read' || t.spec.width !== 2) return null;
+    const at = termAddress(t);
+    const held = at !== null ? ctx.saved[at] : undefined;
+    const c = t.spec.area === 'local' || t.spec.area === 'temp' ? ctx.cell?.(t.spec.area, t.value ?? 0) : null;
+    if (c) {
+        const key = ctx.cells[c.id] ?? held;
+        return { key: key ?? 'unknown', find: c.name, title: key ? `what ${c.name} was given above this line` : `${c.name}: nothing gave it a character above this line` };
+    }
+    if (at === null || !held) return null;
+    const name = names.memory?.(at) || `<0x${at.toString(16).padStart(4, '0')}>`;
+    return { key: held, find: name, title: `what ${name} holds: written above, or by the room's enter script` };
 }
 
-/** The picture an entity value stands for (`last_entity()`, `boy()`, another entity cell), for a cell it is written to. */
-export function entityKey(n: Node, ctx: Context): string {
-    if (n.k === 'value') return characterRef(n.term, ctx)?.key ?? 'unknown';
-    if (n.k === 'read') return cellRef(n.term, ctx)?.key ?? 'unknown';
-    return 'unknown';
+/** The picture an entity value stands for (`last_entity()`, `boy()`, an entity cell), for a cell it is written to; null for a value that is no entity. */
+export function entityKey(n: Node, ctx: Context, names: Names = {}): string | null {
+    if (n.k === 'value') return characterRef(n.term, ctx)?.key ?? null;
+    if (n.k === 'read') return cellRef(n.term, ctx, names)?.key ?? null;
+    return null;
 }
 
 /** The context after the line: a spawn that places a character now (not a spawner record) is `last_entity()` (opcodes/3c); a dog form request is the room's form. */

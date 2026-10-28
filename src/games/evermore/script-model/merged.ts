@@ -36,6 +36,7 @@ import { ScriptRow, row } from './room-model';
 import { printNames, displayNames } from './names';
 import { structure } from './structure';
 import { hiromFileOffset } from '../../../platform/snes/hirom';
+import { dialogueText } from '../localizations';
 
 /** Past this many lines no more bodies are merged in. */
 const MAX_LINES = 4000;
@@ -75,7 +76,11 @@ export interface MergedBlock {
     role: Role | null;
 }
 
-export interface MergedScript { entry: number; lines: MergedLine[]; blocks: MergedBlock[]; slices: Slice[] }
+export interface MergedScript {
+    entry: number; lines: MergedLine[]; blocks: MergedBlock[]; slices: Slice[];
+    /** The save- and temp-area words holding an entity when the listing ends (WRAM address → icon key): the enter script's seed a trigger's listing. */
+    entities: Record<number, string>;
+}
 
 /** What a script is for: the room's setup, a door out, a pickup, a sniff spot, a scene. */
 export type Role = 'init' | 'exit' | 'loot' | 'sniff' | 'cutscene';
@@ -105,7 +110,7 @@ export function roleOf(rom: ScriptRom, entry: number): Role | null {
 
 
 /** The script at `entry`, with every call and start merged in, `arg[]` and `temp[]` sliced. */
-export function mergedScript(rom: ScriptRom, entry: number, names: Names = printNames(hiromFileOffset)): MergedScript {
+export function mergedScript(rom: ScriptRom, entry: number, names: Names = printNames(hiromFileOffset), entities: Record<number, string> = {}): MergedScript {
     const seen: Array<{ ins: Instruction; thread: number }> = [];
     mergeOnce(rom, entry, names, null, seen);
     const slices = slicesOf(seen, (addr) => !!names.memory?.(addr));
@@ -119,8 +124,8 @@ export function mergedScript(rom: ScriptRom, entry: number, names: Names = print
             line.marks = [...(line.marks ?? []), { severity: 'warning', find: sl.name, nth: 0, message: `${sl.name} is reused: ${sl.reused}. One name cannot say what it holds.` }];
         }
     }
-    inferIcons(rom, out.lines, slices, names);
-    return { ...out, slices };
+    const left = inferIcons(rom, out.lines, slices, names, entities);
+    return { ...out, slices, entities: left };
 }
 
 /**
@@ -130,37 +135,114 @@ export function mergedScript(rom: ScriptRom, entry: number, names: Names = print
  * was last given (`temp.entity_1 = last_entity()`), for the lines that read it; its slice lists
  * every character it is given.
  */
-function inferIcons(rom: ScriptRom, lines: MergedLine[], slices: Slice[], names: Names): void {
-    let ctx: Context = fresh();
+function inferIcons(rom: ScriptRom, lines: MergedLine[], slices: Slice[], names: Names, seed: Record<number, string>): Record<number, string> {
+    let ctx: Context = fresh(seed);
+    const played = placeholderAnimations(rom, lines, names);
     const sliceOf = (area: 'local' | 'temp', offset: number, thread: number): Slice | undefined =>
         slices.find((x) => x.area === area && x.offset === offset && (area === 'temp' || x.thread === thread));
+    // Who `active()` is, from the ifs around the line (`if (dog() == active()) {`: the Dog; its `else`: the Boy).
+    const sides: Array<{ indent: number; who: 'boy' | 'dog' }> = [];
     for (const line of lines) {
-        if (line.note || line.brace) continue;
+        if (line.note) continue;
+        const otherwise = /^\} else\b/.test(line.summary);
+        while (sides.length && line.indent <= sides[sides.length - 1].indent && !(otherwise && line.indent === sides[sides.length - 1].indent)) sides.pop();
+        const top = sides[sides.length - 1];
+        if (otherwise && top && line.indent === top.indent) {
+            sides.pop();
+            if (!/^\} else if /.test(line.summary)) sides.push({ indent: top.indent, who: top.who === 'boy' ? 'dog' : 'boy' });
+        }
+        // The head itself reads active() outside its own test.
+        const here = sides.length ? sides[sides.length - 1].who : null;
+        const side = activeTest(line.summary);
+        if (side) sides.push({ indent: line.indent, who: side });
+        if (line.brace) continue;
+        ctx.active = here;
         let ins: Instruction;
         try { ins = decodeAt(rom, line.addressSnes); } catch { continue; }
         ctx.cell = (area, offset) => {
             const s = sliceOf(area, offset, line.thread);
             return s && s.kind === 'entity' ? { id: `${s.area}:${s.thread}:${s.offset}`, name: s.name } : null;
         };
-        const refs = iconRefs(ins, names, ctx);
+        const anim = played.get(line.addressSnes);
+        const refs = iconRefs(ins, names, ctx).map((r) => (anim && r.key.startsWith('enemy:') ? { ...r, key: anim, title: 'a placeholder, drawn as the animation it is given below' } : r));
         if (refs.length) line.icons = refs; else delete line.icons;
         const f = facts(ins);
-        if (f.k === 'write' && (f.area === 'local' || f.area === 'temp') && f.expr) {
-            const s = sliceOf(f.area, f.area === 'local' ? f.addr : f.addr - TEMP_AREA, line.thread);
+        if (f.k === 'write' && f.expr) {
+            const key = entityKey(tree(f.expr), ctx, names);
+            const s = f.area !== 'save' ? sliceOf(f.area, f.area === 'local' ? f.addr : f.addr - TEMP_AREA, line.thread) : undefined;
             if (s && s.kind === 'entity') {
-                const key = entityKey(tree(f.expr), ctx);
-                ctx = { ...ctx, cells: { ...ctx.cells, [`${s.area}:${s.thread}:${s.offset}`]: key } };
-                if (key !== 'unknown' && !(s.icons ??= []).includes(key)) s.icons.push(key);
+                ctx = { ...ctx, cells: { ...ctx.cells, [`${s.area}:${s.thread}:${s.offset}`]: key ?? 'unknown' } };
+                if (key && key !== 'unknown' && !(s.icons ??= []).includes(key)) s.icons.push(key);
             }
+            // A save- or temp-area word given an entity holds it for the lines below, and for the room's triggers.
+            if (f.area !== 'local' && f.width === 2) {
+                const saved = { ...ctx.saved };
+                if (key && key !== 'unknown') saved[f.addr] = key; else delete saved[f.addr];
+                ctx = { ...ctx, saved };
+            }
+        } else if (f.k === 'write' && f.area !== 'local' && f.addr in ctx.saved) {
+            const saved = { ...ctx.saved };
+            delete saved[f.addr];
+            ctx = { ...ctx, saved };
         }
+        const dog = ctx.dog;
         ctx = after(ins, ctx);
+        // A dog form set inside a branch is one act's of several (an enter script per act): the room's era decides instead.
+        if (line.indent > 0) ctx = { ...ctx, dog };
+        if (anim && f.k === 'spawn' && !f.spawner) ctx = { ...ctx, last: anim };
     }
+    return ctx.saved;
+}
+
+/** `animate` and `animate_and_wait`: entity, animation id, mode. */
+const ANIMATE = new Set([0x78, 0x79]);
+
+/**
+ * Each placeholder spawn (the PLACEHOLDER record: an invisible stand-in a script animates) and the
+ * animation the lines after it give it (`animate(last_entity(), LIFT_MOVING, …)`, or through a
+ * cell `last_entity()` was written to), as an icon key `anim:<id>`; up to the next spawn.
+ */
+function placeholderAnimations(rom: ScriptRom, lines: MergedLine[], names: Names): Map<number, string> {
+    const out = new Map<number, string>();
+    const code = lines.filter((l) => !l.note && !l.brace);
+    code.forEach((line, i) => {
+        let ins: Instruction;
+        try { ins = decodeAt(rom, line.addressSnes); } catch { return; }
+        const f = facts(ins);
+        if (f.k !== 'spawn' || f.spawner || names.enemy?.(f.index) !== 'PLACEHOLDER') return;
+        const holds = new Set<string>();
+        for (const next of code.slice(i + 1)) {
+            let n: Instruction;
+            try { n = decodeAt(rom, next.addressSnes); } catch { continue; }
+            const g = facts(n);
+            if (g.k === 'spawn') break;
+            if (g.k === 'write' && g.expr) {
+                const v = tree(g.expr);
+                if (v.k === 'value' && v.term.spec.name === 'last_entity') holds.add(`${g.area}:${g.addr}`);
+            }
+            const o0 = n.operands[0], o1 = n.operands[1];
+            if (!ANIMATE.has(n.opcode) || o0?.k !== 'E' || o1?.k !== 'u16') continue;
+            const who = tree(o0.expr);
+            const mine = (who.k === 'value' && who.term.spec.name === 'last_entity')
+                || (who.k === 'read' && holds.has(`${who.term.spec.area}:${who.term.spec.area === 'local' ? who.term.value : (who.term.spec.area === 'temp' ? TEMP_AREA : 0x2258) + (who.term.value ?? 0)}`));
+            if (mine) { out.set(line.addressSnes, `anim:${o1.value}`); break; }
+        }
+    });
+    return out;
 }
 
 /** A call that names its script by a global id or a trigger offset (`call_id(NAME)`, `call_trigger(NAME)`): the only calls that start folded; one printed by its address stays open. */
 function shortCall(ins: Instruction): boolean {
     const f = facts(ins);
     return f.k === 'call' && (f.global !== null || f.trigger !== null);
+}
+
+/** `if (dog() == active()) {` (either side, `!=` the other way): who is active inside the if; null for another head. */
+function activeTest(summary: string): 'boy' | 'dog' | null {
+    const m = /^(?:\} else )?if \((boy|dog|active)\(\) (==|!=) (boy|dog|active)\(\)\) \{$/.exec(summary);
+    if (!m || (m[1] === 'active') === (m[3] === 'active')) return null;
+    const who = (m[1] === 'active' ? m[3] : m[1]) as 'boy' | 'dog';
+    return m[2] === '==' ? who : who === 'boy' ? 'dog' : 'boy';
 }
 
 /** One merge of the script at `entry`; `slices` names the cells (null: plain `arg[n]`), `seen` collects each instruction with its thread. */
@@ -265,8 +347,14 @@ function mergeOnce(rom: ScriptRom, entry: number, names: Names, slices: Slice[] 
 }
 
 /** The script at `entry` (a trigger's), merged and named for reading like the enter script. */
-export function mergedRoomScript(bytes: Uint8Array, entry: number): MergedScript {
-    return mergedScript(new ScriptRom(bytes), entry, displayNames(hiromFileOffset));
+/** A trigger's script, merged; `entities`: what the room's enter script left in its cells (its MergedScript.entities). */
+export function mergedRoomScript(bytes: Uint8Array, entry: number, entities: Record<number, string> = {}): MergedScript {
+    return mergedScript(new ScriptRom(bytes), entry, readingNames(bytes), entities);
+}
+
+/** The names for reading (displayNames), with each text key's string from the ROM. */
+function readingNames(bytes: Uint8Array): Names {
+    return { ...displayNames(hiromFileOffset), text: (key) => dialogueText(bytes, key) ?? '' };
 }
 
 /** ROM room `mapId`'s enter script, merged; null when it has none. */
@@ -274,7 +362,7 @@ export function mergedEnterScript(bytes: Uint8Array, mapId: number): MergedScrip
     const rom = new ScriptRom(bytes);
     const entry = roomScripts(rom, mapId).enter;
     // For reading: names from the knowledge entries too, where the compiler's have none.
-    return entry === null ? null : mergedScript(rom, entry, displayNames(hiromFileOffset));
+    return entry === null ? null : mergedScript(rom, entry, readingNames(bytes));
 }
 
 const hex6 = (v: number): string => v.toString(16).padStart(6, '0');

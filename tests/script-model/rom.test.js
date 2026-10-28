@@ -110,7 +110,7 @@ test('Strong Heart\'s hut: constants by their enum, globals by name, roles, slic
     const at = (a) => m.lines.find((l) => l.addressSnes === a && !l.note).summary;
     assert.strictEqual(at(0x94e625), 'music(UNKNOWN_PREHISTORIA_AMBIENT);');
     assert.strictEqual(at(0x94e629), 'PACIFIED = 1;', 'the compiler\'s MEMORY enum');
-    assert.strictEqual(at(0x92de75), 'attach_script(1, B, LOOT_DUST_REWARD);', 'room hook 1, on talk, the default loot script (opcodes/3f)');
+    assert.strictEqual(at(0x92de75), 'attach_script(DROP_HOOK, B, LOOT_DUST_REWARD);', 'room hook 1, the drop hook: on talk, the default loot script (opcodes/3f)');
     assert.strictEqual(at(0x92de7b), 'call_id(FADE_IN);');
     assert.strictEqual(at(0x92a09e), 'boy.velocity = -32;', 'write_word_at(boy() + 0x20, …): a field of the ATTRIBUTE enum');
     assert.ok(m.blocks.some((b) => b.role === 'cutscene'), 'the fade-in walks the party in: a scene');

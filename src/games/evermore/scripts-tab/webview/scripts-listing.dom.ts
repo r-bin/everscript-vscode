@@ -100,15 +100,15 @@ export function liveIds(refs: IconRef[] | undefined, into: Record<string, true>)
 
 /**
  * A printed line with its decimal numbers in hex (the Hex toggle): a number of 10 or more that is
- * not part of a name, an address or a hex literal; the comment after `//` is left alone.
+ * not part of a name, an address, a hex literal or a quoted string; the comment after `//` is left alone.
  */
 export function toHex(text: string): string {
     const cut = text.indexOf(' //');
     const code = cut < 0 ? text : text.slice(0, cut);
-    const out = code.replace(/(^|[^\w.$:<])(\d+)(?![\w.])/g, (m, pre: string, n: string) => {
+    const out = code.split(/("(?:[^"\\]|\\.)*")/).map((part, i) => (i % 2 ? part : part.replace(/(^|[^\w.$:<])(\d+)(?![\w.])/g, (m, pre: string, n: string) => {
         const v = Number(n);
         return v < 10 ? m : pre + '0x' + v.toString(16).padStart(v > 0xff ? 4 : 2, '0');
-    });
+    }))).join('');
     return cut < 0 ? out : out + text.slice(cut);
 }
 
@@ -125,10 +125,13 @@ export function chipsStyle(picture: { uri?: string } | null | undefined): string
 /** Size of a chip's picture, in CSS pixels. */
 const CHIP_PIC = 18;
 
+/** What a chip's reward is drawn at, in CSS pixels. */
+const CHIP_LOOT = 12;
+
 /**
  * A trigger chip's picture: the square of the room picture around the trigger's box, scaled to
- * fit, the box outlined; with what it gives (`loot`, a data URI) laid over it, as the map editor
- * shows a pickup. '' for the enter script (no box).
+ * fit, the box outlined; with what it is about (`loot`, a data URI: a reward, a weapon it tests)
+ * centred on the box, as the map editor shows a pickup. '' for the enter script (no box).
  */
 export function chipPicture(box: { x: number; y: number; w: number; h: number } | undefined, picture: { width?: number; height?: number } | null | undefined, loot: string | null | undefined): string {
     if (!box || !picture?.width || !picture.height) return '';
@@ -136,9 +139,10 @@ export function chipPicture(box: { x: number; y: number; w: number; h: number } 
     const x0 = Math.max(0, Math.min(picture.width - side, box.x + box.w / 2 - side / 2)), y0 = Math.max(0, Math.min(picture.height - side, box.y + box.h / 2 - side / 2));
     const k = CHIP_PIC / side;
     const px = (v: number): string => (v * k).toFixed(1) + 'px';
+    const cx = (box.x + box.w / 2 - x0) * k - CHIP_LOOT / 2, cy = (box.y + box.h / 2 - y0) * k - CHIP_LOOT / 2;
     return '<span class="scr-chip-pic" style="background-size:' + px(picture.width) + ' ' + px(picture.height) + ';background-position:' + px(-x0) + ' ' + px(-y0) + '">' +
         '<span class="scr-chip-box" style="left:' + px(box.x - x0) + ';top:' + px(box.y - y0) + ';width:' + px(box.w) + ';height:' + px(box.h) + '"></span>' +
-        (loot ? '<img class="scr-chip-loot" src="' + loot + '" alt="">' : '') + '</span>';
+        (loot ? '<img class="scr-chip-loot" src="' + loot + '" alt="" style="left:' + cx.toFixed(1) + 'px;top:' + cy.toFixed(1) + 'px">' : '') + '</span>';
 }
 
 /** Entry-state flags: clear when the room is loaded fresh, set by the way some doors bring you in. */

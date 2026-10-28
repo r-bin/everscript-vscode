@@ -18,6 +18,9 @@ import { getMapArea } from '../../localizations';
 /** A dog form's picture (form 2..$0C, ram/7e2443), or null; the host injects it. */
 export type DogIcon = (rom: Uint8Array, form: number) => string | null;
 
+/** What other features draw, injected by the host: a dog form's idle frame and HUD portrait, an animation id's first frame (`anim:<id>`). */
+export interface Drawers { dogIcon?: DogIcon | null; dogPortrait?: DogIcon | null; animation?: ((rom: Uint8Array, id: number) => string | null) | null }
+
 let _cache: { rom: Uint8Array | null; byKey: Map<string, string | null> } = { rom: null, byKey: new Map() };
 
 /** Weapon index → ring icon: `$26 + index` for 2..$1A (knowledge ram/7e2441). */
@@ -44,7 +47,7 @@ const ERAS: Record<string, { currency: number | null; dog: number }> = {
 
 const png = (img: { width: number; height: number; data: Uint8Array } | null): string | null => (img ? maps.encodePngDataUri(img) : null);
 
-function draw(rom: Uint8Array, roomId: number, key: string, dogIcon: DogIcon | null, dogPortrait: DogIcon | null): string | null {
+function draw(rom: Uint8Array, roomId: number, key: string, { dogIcon = null, dogPortrait = null, animation = null }: Drawers): string | null {
     const era = ERAS[getMapArea(roomId) || ''] ?? null;
     if (key === 'money') return era && era.currency !== null ? png(maps.currencyIcon(rom, era.currency)) : null;
     if (key === 'portrait:boy') return png(maps.boyPortrait(rom));
@@ -54,6 +57,7 @@ function draw(rom: Uint8Array, roomId: number, key: string, dogIcon: DogIcon | n
     }
     const [kind, raw, extra] = key.split(':');
     const v = Number(raw);
+    if (kind === 'anim') return animation ? animation(rom, v) : null;
     try {
         if (kind === 'enemy') return character(rom, new ScriptRom(rom).enemyCharacter(v));
         if (kind === 'char') return character(rom, v);
@@ -72,12 +76,12 @@ function draw(rom: Uint8Array, roomId: number, key: string, dogIcon: DogIcon | n
  * `keys` → their pictures as PNG data URIs (null where there is none). An object key is the
  * room's: it comes back as `object:<room>:<n>:<state>` so pages can keep every room's icons apart.
  */
-export function iconsFor(rom: Uint8Array, keys: Iterable<string>, dogIcon: DogIcon | null, roomId: number, dogPortrait: DogIcon | null = null): Record<string, string | null> {
+export function iconsFor(rom: Uint8Array, keys: Iterable<string>, roomId: number, drawers: Drawers = {}): Record<string, string | null> {
     if (_cache.rom !== rom) _cache = { rom, byKey: new Map() };
     const out: Record<string, string | null> = {};
     for (const k of keys) {
         const ck = roomKey(k, roomId);
-        if (!_cache.byKey.has(ck)) _cache.byKey.set(ck, draw(rom, roomId, k, dogIcon, dogPortrait));
+        if (!_cache.byKey.has(ck)) _cache.byKey.set(ck, draw(rom, roomId, k, drawers));
         out[ck] = _cache.byKey.get(ck)!;
     }
     return out;

@@ -218,7 +218,20 @@ async function romChecks(rom) {
         handleScriptsMessage({ command: 'scriptsRoom', id: 3 }, deps);
         const refs = posted.pop().room.merged.lines.flatMap((l) => l.icons || []);
         assert.ok(refs.some((r) => r.find === 'arg.entity_1' && r.key.startsWith('enemy:')), 'arg.entity_1: the character spawned into it');
-        assert.ok(refs.some((r) => r.key === 'camera') && refs.some((r) => r.key === 'unknown'));
+        assert.ok(refs.some((r) => r.key === 'unknown' && r.find === 'active'), 'active() outside an if that tests it: unknown');
+        // Crustacia's west shore: the lift is a placeholder the enter script animates and keeps in <0x24d7>; step-on 0 moves it.
+        handleScriptsMessage({ command: 'scriptsRoom', id: 7 }, deps);
+        const shore = posted.pop();
+        assert.ok(shore.room.merged.lines.some((l) => /^spawn\(PLACEHOLDER/.test(l.summary) && (l.icons || []).some((i) => i.key === 'anim:112')), 'the placeholder is drawn as LIFT_MOVING');
+        assert.ok(shore.icons['anim:112'] && shore.icons['anim:112'].startsWith('data:image/png'));
+        assert.strictEqual(shore.room.scripts.find((x) => x.key === 'b:12').lootKey, 'weapon:12', 'the axe wall: the bronze axe it tests');
+        handleScriptsMessage({ command: 'scriptsMerged', id: 7, key: 'step:0' }, deps);
+        const lift = posted.pop().merged.lines;
+        assert.ok(lift.some((l) => (l.icons || []).some((i) => i.find === '<0x24d7>' && i.key === 'anim:112')), '<0x24d7> in a trigger: the lift the enter script put there');
+        handleScriptsMessage({ command: 'scriptsRoom', id: 1 }, deps);
+        posted.pop();
+        handleScriptsMessage({ command: 'scriptsMerged', id: 1, key: 'step:2' }, deps);
+        assert.ok(posted.pop().merged.lines.some((l) => l.summary.startsWith('text("[SLOW]Hey, kid![PAUSE:3d] Give me a hand with this snake!')), 'a text key reads as its string, in everscript\'s tokens');
         handleScriptsMessage({ command: 'scriptsRoom', id: 0x43 }, deps);
         const live = posted.pop().room.merged.lines.flatMap((l) => l.icons || []).find((r) => r.live);
         assert.ok(live && live.group && live.find === 'object', 'object[<0x24f9>]: after the whole object, read live');
@@ -340,7 +353,7 @@ async function dom(rom) {
         assert.strictEqual(await page.locator('.scr-map .scr-bounds').count(), 1);
         assert.strictEqual(await page.locator('.scr-arrivals [data-scr-arrive]').count(), 2, 'from the hut inside and the jungle');
         assert.ok(await page.locator('#scr-mid td.scr-called').count() > 0, 'call $92:DE75 is open: its rows carry a bar');
-        assert.ok((await page.textContent('#scr-mid')).includes('attach_script(1, B, LOOT_DUST_REWARD);'));
+        assert.ok((await page.textContent('#scr-mid')).includes('attach_script(DROP_HOOK, B, LOOT_DUST_REWARD);'));
         assert.strictEqual(await page.locator('#scr-mid img.scr-icon[title="WOLF"]').count(), 1, 'CHANGE_DOGGO = WOLF: the act 1 wolf, drawn from the ROM');
         await shot('hut');
         // A trigger reads like the enter script: merged (scriptsMerged), structured, its calls folded or open.

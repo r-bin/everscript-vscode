@@ -42,7 +42,7 @@ type ScriptView = {
     key: string; kind: string; index: number | null; address: number; addrHex: string; label: string; stop: string;
     rows: { a: string; op: string; b: string; s: string; d: number; t: boolean; u: boolean; m?: RoomScript['instructions'][number]['marks']; i?: RoomScript['instructions'][number]['icons'] }[];
     loot: string[]; to: string[]; scriptId?: number; box?: Box; role: Role | null;
-    /** What it gives, as an icon key (script-model icons.ts): its first loot reward; the page lays it over the trigger's chip. */
+    /** What it is about, as an icon key (script-model icons.ts): its first loot reward, else the weapon it tests (an axe wall); the page lays it over the trigger's chip. */
     lootKey?: string;
 };
 
@@ -67,7 +67,8 @@ function scriptView(rom: ScriptRom, s: RoomScript | RoomTrigger, kind: string, i
         role: kind === 'enter' ? 'init' : roleOf(rom, s.scriptAddressSnes),
     };
     const reward = s.loot.find((l) => l.item)?.item?.value;
-    if (kind !== 'enter' && reward !== undefined) view.lootKey = reward === MONEY ? 'money' : 'loot:' + reward;
+    const weapon = s.instructions.flatMap((r) => r.icons ?? []).find((i) => i.key.startsWith('weapon:'))?.key;
+    if (kind !== 'enter') view.lootKey = reward !== undefined ? (reward === MONEY ? 'money' : 'loot:' + reward) : weapon;
     if (kind !== 'enter') {
         const t = s as RoomTrigger;
         view.scriptId = t.scriptId;
@@ -188,7 +189,7 @@ function roomPicture(rom: Uint8Array, id: number, states?: Record<number, number
 function triggerMerged(rom: Uint8Array, room: ReturnType<typeof roomScripts>, key: string): { merged: MergedScript } | { error: string } {
     const s = room.scripts?.find((x) => x.key === key);
     if (!s || s.kind === 'enter') return { error: 'No trigger ' + key };
-    try { return { merged: mergedRoomScript(rom, s.address) }; } catch (err) { return { error: String(err instanceof Error ? err.message : err) }; }
+    try { return { merged: mergedRoomScript(rom, s.address, ('merged' in room && room.merged?.entities) || {}) }; } catch (err) { return { error: String(err instanceof Error ? err.message : err) }; }
 }
 
 export { roomList, roomScripts, roomPicture, triggerMerged };

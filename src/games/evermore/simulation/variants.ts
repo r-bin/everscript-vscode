@@ -295,8 +295,16 @@ const JUMPS = new Set([0x04, 0x05]);
 /** Branch on a condition: 0x08 jumps when it holds, 0x09 when it does not. */
 const JUMP_IF_TRUE = 0x08, JUMP_IF_FALSE = 0x09;
 
-/** The enter script's instructions reachable under `known`, following calls, starts and global calls. */
+/**
+ * The enter script's instructions reachable under `known`, following calls, starts and global calls.
+ * A branch inside a loop (between a backward jump and its target) is never settled by `known`: its
+ * condition held when the scenario first tested it, but the loop runs until it no longer does, so
+ * what follows the loop is reachable too (a `while` would otherwise hide the rest of the script).
+ */
 function walk(m: Machine, room: RoomAnalysis, known: ReadonlyMap<string, boolean>): Set<number> {
+    let loops = LOOPS.get(room);
+    if (!loops) LOOPS.set(room, (loops = loopsOf(m, room)));
+    const inLoop = (at: number): boolean => loops.some(([from, to]) => at >= from && at <= to);
     const seen = new Set<number>();
     const todo = [room.enterEntry];
     while (todo.length) {
@@ -316,11 +324,34 @@ function walk(m: Machine, room: RoomAnalysis, known: ReadonlyMap<string, boolean
         if (target === null) { todo.push(next); continue; }
         if (JUMPS.has(ins.opcode)) { todo.push(target); continue; }
         const cond = room.branches.get(at);
-        const t = cond && (ins.opcode === JUMP_IF_TRUE || ins.opcode === JUMP_IF_FALSE) ? truth(cond, known) : null;
+        const t = cond && !inLoop(at) && (ins.opcode === JUMP_IF_TRUE || ins.opcode === JUMP_IF_FALSE) ? truth(cond, known) : null;
         if (t === null) todo.push(next, target);
         else todo.push(t === (ins.opcode === JUMP_IF_TRUE) ? target : next);
     }
     return seen;
+}
+
+const LOOPS = new WeakMap<RoomAnalysis, Array<[number, number]>>();
+
+/** Each loop of the enter script and what it calls, [target, backward jump]: every jump or branch to an address at or before itself. */
+function loopsOf(m: Machine, room: RoomAnalysis): Array<[number, number]> {
+    const out: Array<[number, number]> = [];
+    const seen = new Set<number>();
+    const todo = [room.enterEntry];
+    while (todo.length) {
+        const at = todo.pop()!;
+        if (seen.has(at)) continue;
+        const ins = m.instruction(at);
+        if (!ins) continue;
+        seen.add(at);
+        for (const e of ins.effects) {
+            if (e.kind === 'branch') { if (e.target <= at) out.push([e.target, at]); todo.push(e.target); }
+            else if (e.kind === 'call') todo.push(e.target);
+            else if (e.kind === 'callGlobal') todo.push(m.globalScript(e.id));
+        }
+        if (!ins.terminal) todo.push(at + ins.size);
+    }
+    return out;
 }
 
 /** Record that `cond` is `value`, and what that settles about its parts (`a && b` true: both true). */

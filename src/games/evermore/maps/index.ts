@@ -147,6 +147,7 @@ export {
     renderItemIcon, lootIconId, alchemyIconId, iconEntry, ICON_ID_LAST, ALCHEMY_FORMULAS,
 } from './item-icons';
 export { boyPortrait, currencyIcon, CURRENCIES } from './hud-icons';
+export { animationIdRecord } from './animation-table';
 export type { SpriteInfo, SpriteChunk, SpritePixels, SpriteBlockPixels } from './sprites';
 export type { AnimationFrame as SpriteAnimationFrame, StrikeBox } from './character-animation';
 export type { CharacterDisposition, CharacterHitbox } from './character-record';

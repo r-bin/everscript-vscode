@@ -22,13 +22,14 @@
 //                                       pictures[i]: the room with variant i's object states and palette set, null when it sets neither)
 
 import { roomList, roomScripts, roomPicture, triggerMerged } from './model/rooms';
-import { iconsFor, iconKeys, roomKey, DogIcon } from './model/icons';
+import { iconsFor, iconKeys, roomKey, DogIcon, Drawers } from './model/icons';
 import { liveObjects, ReadMemory } from './model/live';
 import { alchemyModel } from './model/alchemy';
 import { simulateScript, roomClusters } from './model/simulation';
 import { mapSections } from './model/map-sections';
 import { mapView, mapPicture } from './model/map-views';
 import { missingRomText } from '../../../platform/roms/library';
+import * as maps from '../maps';
 
 const FACING_SOUTH = 8;
 
@@ -122,6 +123,19 @@ function failed(msg: Message, deps: Deps, error: string): void {
     deps.post({ command: msg.command === 'scriptsInit' ? 'scriptsIndex' : msg.command, key: msg.key, id: msg.id, room: msg.room, error });
 }
 
+/** An animation id's first frame facing south, in its catalogue entry's palette (the Characters tab's renderer): a placeholder's picture. */
+function animationIcon(deps: Deps): (rom: Rom, id: number) => string | null {
+    return (rom, id) => {
+        const record = maps.animationIdRecord(rom, id);
+        const entry = record ? deps.animations(rom).find((e) => e.record === record) : null;
+        if (!entry) return null;
+        const opt = { key: 'record', category: 'external', animRec: entry.record, paletteAddr: entry.paletteAddr || 0, paletteForced: !!entry.paletteAddr };
+        try { return deps.renderAnimation(rom, entry.paletteCharacter, opt, FACING_SOUTH)?.frames[0]?.png ?? null; } catch { return null; }
+    };
+}
+
+const drawers = (deps: Deps): Drawers => ({ dogIcon: deps.dogIcon ?? null, dogPortrait: deps.dogPortrait ?? null, animation: animationIcon(deps) });
+
 function handleScriptsMessage(msg: Message, deps: Deps): void {
     const rom = loadRom(deps);
     if (!rom) { failed(msg, deps, missingRomText('evermore')); return; }
@@ -136,7 +150,7 @@ function handleScriptsMessage(msg: Message, deps: Deps): void {
                 const refs = [...(room.merged?.lines ?? []).map((l) => l.icons), ...(room.scripts ?? []).flatMap((s) => s.rows.map((r) => r.i)),
                     (room.scripts ?? []).flatMap((s) => (s.lootKey ? [{ key: s.lootKey }] : [])),
                     (room.merged?.slices ?? []).flatMap((s) => (s.icons ?? []).map((key) => ({ key })))];
-                deps.post({ command: 'scriptsRoom', id, room, picture, icons: iconsFor(rom, iconKeys(refs), deps.dogIcon ?? null, id, deps.dogPortrait ?? null) });
+                deps.post({ command: 'scriptsRoom', id, room, picture, icons: iconsFor(rom, iconKeys(refs), id, drawers(deps)) });
                 return;
             }
             case 'scriptsMerged': {
@@ -146,7 +160,7 @@ function handleScriptsMessage(msg: Message, deps: Deps): void {
                 if (!cache.has(key)) cache.set(key, triggerMerged(rom, entry.room, key));
                 const got = cache.get(key)!;
                 const icons = 'merged' in got ? iconsFor(rom, iconKeys([...got.merged.lines.map((l: { icons?: Array<{ key: string }> }) => l.icons),
-                    got.merged.slices.flatMap((s: { icons?: string[] }) => (s.icons ?? []).map((key) => ({ key })))]), deps.dogIcon ?? null, id, deps.dogPortrait ?? null) : {};
+                    got.merged.slices.flatMap((s: { icons?: string[] }) => (s.icons ?? []).map((key) => ({ key })))]), id, drawers(deps)) : {};
                 deps.post({ command: 'scriptsMerged', id, key, ...got, icons });
                 return;
             }
@@ -157,7 +171,7 @@ function handleScriptsMessage(msg: Message, deps: Deps): void {
                 liveObjects(rom, ids, read).then((got) => {
                     const keys: Record<string, string | null> = {};
                     for (const k in got) keys[k] = got[k] && roomKey(got[k]!, id);
-                    const icons = iconsFor(rom, Object.values(got).filter((k): k is string => !!k), deps.dogIcon ?? null, id, deps.dogPortrait ?? null);
+                    const icons = iconsFor(rom, Object.values(got).filter((k): k is string => !!k), id, drawers(deps));
                     deps.post({ command: 'scriptsLive', id, keys, icons });
                 }, (e: Error) => deps.post({ command: 'scriptsLive', id, keys: {}, icons: {}, error: e.message }));
                 return;

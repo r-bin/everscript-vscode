@@ -11,6 +11,7 @@ import * as scripts from './scripts';
 import * as comments from './comments';
 
 export const decodeRomString = strings.decodeRomString;
+export const dialogueText = strings.dialogueText;
 export const resolveLocalizedName = strings.resolveLocalizedName;
 export const VANILLA_MAPS = maps.VANILLA_MAPS;
 export const VANILLA_ROOMS = maps.VANILLA_ROOMS;

@@ -32,6 +32,7 @@
 6. **In-game String Resolution (`strings.ts`)**
    - Decoder for ROM strings using the 3002-key table at `$C3:D000` (`$11D000`).
    - Resolves `stringIndex` properties dynamically against ROM bytes when available, falling back to subjective names.
+   - `dialogueText(rom, key)`: a script's text key (a byte offset into the table: string = key / 3) as the everscript compiler writes it, control bytes as its tokens (`[LF]`, `[PAUSE:3d]`, `[BOY]`; `everscriptText`).
 
 ## Usage
 

@@ -40,10 +40,10 @@ export function union(a: Footprint, b: Footprint): Footprint {
 
 /**
  * Entities an instruction's text names: a placed NPC's label (`Boy#ca7d`, step.ts resolveText),
- * the character sub-ops (`boy()` the boy, `dog()` the dog, `camera_entity()` the
- * controlled one, `other_character()`, `script_owner()` the script's owner) or a WRAM cell.
+ * the character sub-ops (`boy()` the boy, `dog()` the dog, `active()` the
+ * controlled one, `inactive()`, `script_owner()` the script's owner) or a WRAM cell.
  */
-const ENTITY = /([A-Z][\w' .-]*#[0-9a-f.]+)|\b(boy|dog|camera_entity|other_character|script_owner)\(\)|<0x([0-9a-f]{4})>/gi;
+const ENTITY = /([A-Z][\w' .-]*#[0-9a-f.]+)|\b(boy|dog|active|inactive|script_owner)\(\)|<0x([0-9a-f]{4})>/gi;
 /** Opcodes that act on fixed characters, with no operand naming them. */
 const IMPLIED: Record<number, string[]> = {
     0xbc: ['boy'], 0xbd: ['boy'], 0xbf: ['dog'],

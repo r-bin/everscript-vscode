@@ -71,7 +71,7 @@ are followed for 5 seconds of game time (`ROOM_HORIZON`). Both are reported.
 | `trigger.ts` | A small script as cases; falls back to merging when it is too branchy, and says so in `detail`. |
 | `segments.ts` | A trace → parts (place NPC, objects, transition, dialog, …); prepare/execute split. |
 | `room.ts` | Scenarios (endings + branches that leave or play a scene), flag tree, clusters. |
-| `variants.ts` | A room as the variants a player meets: scenarios split on the conditions the caller's characters (the Rooms tab: enemies) carry, folded by who is placed, named from flag labels. |
+| `variants.ts` | A room as the variants a player meets: scenarios split on the conditions the caller's characters (the Rooms tab: enemies) carry, folded by who is placed, named from flag labels. A variant's `reached` never prunes a branch inside a loop: its condition held at the first test, and the loop runs until it does not. |
 | `everscript.ts` | Neutral tree from the script's own flow; Everscript out. |
 | `report.ts` | Markdown report, JSON summary, room Everscript. |
 | `play.ts` | One step against one WRAM: the case of a trigger's analysis that holds is applied (loot into its byte, flags, opened objects, map change); the Routes tab plays routes with it. |

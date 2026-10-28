@@ -50,8 +50,8 @@ function scrRoomClusters() {
 function scrScriptChip(s) {
   var name = s.kind === 'enter' ? 'Enter' : (s.kind === 'b' ? 'B' : 'S') + s.index;
   return '<button class="scr-chip' + (s.role ? ' scr-role-' + s.role : '') + (s.key === _scr.script ? ' scr-on' : '') + '" data-scr-script="' + scrEsc(s.key) + '" title="' +
-    scrEsc(SCR_KIND[s.kind] + (s.index != null ? ' #' + s.index : '') + ' · ' + s.addrHex + ' · ' + s.label) + '">' +
-    ScriptsListing.chipPicture(s.box, scrRoomData().picture, s.lootKey ? _scr.icons[ScriptsListing.roomKey(s.lootKey, _scr.room)] : null) + name + '</button>';
+    scrEsc(SCR_KIND[s.kind] + (s.index != null ? ' #' + s.index : '') + ' · ' + s.addrHex + ' · ' + s.label) + '">' + name +
+    ScriptsListing.chipPicture(s.box, scrRoomData().picture, s.lootKey ? _scr.icons[ScriptsListing.roomKey(s.lootKey, _scr.room)] : null) + '</button>';
 }
 
 function scrScriptListHtml(room) {

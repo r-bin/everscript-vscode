@@ -48,6 +48,8 @@ export interface Names {
     slice?(area: 'local' | 'temp', offset: number, width: 0 | 1 | 2): string;
     /** A field of an entity record by its offset (`0x1a` → `x`). */
     field?(offset: number): string;
+    /** The string a text key names, in everscript's tokens (`Hey, kid![PAUSE:3d]`); '' when the caller has none. */
+    text?(key: number): string;
     /** Numbers read in decimal, except where a parameter wants hex (parameters.json `hex`) and in addresses, masks and ids. */
     decimal?: boolean;
 }
@@ -151,8 +153,8 @@ function signless(read: Node, other: Node): boolean {
     return other.value >= 0 && other.value < (read.term.spec.width === 1 ? 0x80 : 0x8000);
 }
 
-/** The entity sub-ops (`boy()`, `camera_entity()`): a value that is an entity record's address. */
-const ENTITIES = new Set(['last_entity', 'script_owner', 'boy', 'dog', 'camera_entity', 'other_character']);
+/** The entity sub-ops (`boy()`, `active()`): a value that is an entity record's address. */
+const ENTITIES = new Set(['last_entity', 'script_owner', 'boy', 'dog', 'active', 'inactive']);
 
 /** `entity.field` for an entity sub-op or a cell sliced as one, plus a named offset (`boy() + 0x1a` → `boy.x`); '' otherwise. */
 function entityField(n: Node, names: Names): string {
@@ -313,7 +315,11 @@ function line(ins: Instruction, names: Names, marks: Mark[]): string {
         }
         case 'sound': return `sound(${enumOf(0, f.index)});`;
         case 'music': return `music(${enumOf(0, f.index)});`;
-        case 'text': return `${f.message ? 'subtext' : 'text'}(${f.window !== null ? f.window + ', ' : ''}${hex(f.key, 4)});`;
+        case 'text': {
+            const said = names.text?.(f.key);
+            const arg = said ? '"' + said.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"' : hex(f.key, 4);
+            return `${f.message ? 'subtext' : 'text'}(${f.window !== null ? f.window + ', ' : ''}${arg});${said ? ` // ${hex(f.key, 4)}` : ''}`;
+        }
         // A spawner says so by its name: bit 15 is not printed again.
         case 'spawn': { const state = f.spawner ? (f.state ?? 0) & 0x7fff : f.state; return `${f.spawner ? 'spawner' : 'spawn'}(${names.enemy?.(f.index) || hex(f.index)}, ${f.x === null ? `${E(2)}, ${E(3)}` : `${f.x}, ${f.y}`}${state ? ', ' + enumOf(1, state, 4) : ''});`; }
         case 'sleep': return `sleep(${f.ticks === null ? E(0) : f.ticks});`;
@@ -340,6 +346,15 @@ function line(ins: Instruction, names: Names, marks: Mark[]): string {
         case 0x7A: {
             const f = o[0].k === 'E' ? entityField(tree(o[0].expr), names) : '';
             if (f) return `${f} = ${E(1)};`;
+            break;
+        }
+        case 0x78: case 0x79: {
+            // The animation id by the compiler's enum for who plays it (ANIMATION_BOY, ANIMATION_DOG; else a placeholder's, an enemy's, anyone's).
+            const e = o[0].k === 'E' ? tree(o[0].expr) : null;
+            const who = e?.k === 'value' ? e.term.spec.name : '';
+            const enums = who === 'boy' ? ['ANIMATION_BOY'] : who === 'dog' ? ['ANIMATION_DOG'] : ['ANIMATION_PLACEHOLDER', 'ANIMATION_ENEMY', 'ANIMATION_ALL'];
+            const name = enums.map((t) => names.constant?.(t, num(o[1]))).find(Boolean);
+            if (name) return `${ins.spec.name}(${E(0)}, ${name}, ${E(2)});`;
             break;
         }
         case 0xAB: return 'reset_game();';
