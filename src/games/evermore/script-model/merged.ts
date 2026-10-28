@@ -14,9 +14,9 @@
 // sits one deeper. `flat` is the indent without the structured listing, for a viewer that shows
 // the instructions as printed (`raw`, no braces).
 //
-// Each merged body is a block the viewer can fold. A callee named by a short operand — a global id
-// (u8), a trigger offset (u16), a call back (cb, c16) — is a shared helper and starts folded; one
-// named by a full pointer (u24) starts open, arguments or not. A callee already being merged further up is not merged
+// Each merged body is a block the viewer can fold. A callee named by a global id (u8) or a trigger
+// offset (u16) — printed by its name, `call_id(NAME)` — is a shared helper and starts folded; one
+// printed by its address (a full pointer, or a bank-relative call back) starts open, arguments or not. A callee already being merged further up is not merged
 // again (recursion), and the listing stops merging past MAX_LINES, so nothing here can run away.
 //
 // Each block has a `role`, what it is for, from its instructions' facts (never their text) and
@@ -67,7 +67,7 @@ export interface MergedBlock {
     target: number;
     /** Where it was called or started from. */
     from: number;
-    /** Starts folded: a shared helper (named by an id, an offset or a call back). */
+    /** Starts folded: a shared helper, named by a global id or a trigger offset. */
     folded: boolean;
     /** How many lines it holds, its own blocks' included. */
     size: number;
@@ -157,6 +157,12 @@ function inferIcons(rom: ScriptRom, lines: MergedLine[], slices: Slice[], names:
     }
 }
 
+/** A call that names its script by a global id or a trigger offset (`call_id(NAME)`, `call_trigger(NAME)`): the only calls that start folded; one printed by its address stays open. */
+function shortCall(ins: Instruction): boolean {
+    const f = facts(ins);
+    return f.k === 'call' && (f.global !== null || f.trigger !== null);
+}
+
 /** One merge of the script at `entry`; `slices` names the cells (null: plain `arg[n]`), `seen` collects each instruction with its thread. */
 function mergeOnce(rom: ScriptRom, entry: number, names: Names, slices: Slice[] | null, seen: Array<{ ins: Instruction; thread: number }>): { entry: number; lines: MergedLine[]; blocks: MergedBlock[] } {
     const lines: MergedLine[] = [];
@@ -181,7 +187,7 @@ function mergeOnce(rom: ScriptRom, entry: number, names: Names, slices: Slice[] 
     };
 
     function open(kind: MergedBlock['kind'], ins: Instruction, parent: number): MergedBlock {
-        const b: MergedBlock = { id: blocks.length, parent, kind, target: ins.target!, from: ins.address, folded: kind === 'call' && !ins.operands.some((o) => o.k === 'u24'), size: 0, role: roleOf(rom, ins.target!) };
+        const b: MergedBlock = { id: blocks.length, parent, kind, target: ins.target!, from: ins.address, folded: kind === 'call' && shortCall(ins), size: 0, role: roleOf(rom, ins.target!) };
         blocks.push(b);
         return b;
     }

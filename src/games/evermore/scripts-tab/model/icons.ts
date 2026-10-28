@@ -3,11 +3,17 @@
 // frame facing south, the ring menu's icon for a loot reward or a weapon (maps/item-icons.ts,
 // docs/item-icons.md), a dog form's idle frame (drawn by the injected `dogIcon`, the sprites
 // feature's), a room object in a state (maps.renderObjectState: the picture
-// soe://rom/assets/maps/<id>/objects/<n>/state_<s>.png serves). Cached per ROM, room and key; a key
-// with no picture maps to null.
+// soe://rom/assets/maps/<id>/objects/<n>/state_<s>.png serves), the HUD portraits (the Boy's,
+// maps/hud-icons.ts; a Dog form's, the injected `dogPortrait`), a currency (maps/hud-icons.ts).
+// Cached per ROM, room and key; a key with no picture maps to null.
+//
+// Some keys are the room's: an object, and what depends on the era the room is in (its area,
+// localizations): `money` its currency, `portrait:dog` the form the Dog has there. They come back
+// as `object:<room>:<n>:<s>`, `money@<room>`, `portrait:dog@<room>` (roomKey).
 
 import * as maps from '../../maps';
 import { ScriptRom } from '../../script-vm';
+import { getMapArea } from '../../localizations';
 
 /** A dog form's picture (form 2..$0C, ram/7e2443), or null; the host injects it. */
 export type DogIcon = (rom: Uint8Array, form: number) => string | null;
@@ -30,7 +36,22 @@ function object(rom: Uint8Array, roomId: number, index: number, state: number): 
     return img ? maps.encodePngDataUri(img) : null;
 }
 
-function draw(rom: Uint8Array, roomId: number, key: string, dogIcon: DogIcon | null): string | null {
+/** Each era: its currency (maps/hud-icons.ts CURRENCIES) and the Dog's form there (ram/7e2443; Podunk has no money). */
+const ERAS: Record<string, { currency: number | null; dog: number }> = {
+    Podunk: { currency: null, dog: 0x0a }, Prehistoria: { currency: 0, dog: 2 }, Antiqua: { currency: 1, dog: 6 },
+    Gothica: { currency: 2, dog: 8 }, Omnitopia: { currency: 3, dog: 0x0c },
+};
+
+const png = (img: { width: number; height: number; data: Uint8Array } | null): string | null => (img ? maps.encodePngDataUri(img) : null);
+
+function draw(rom: Uint8Array, roomId: number, key: string, dogIcon: DogIcon | null, dogPortrait: DogIcon | null): string | null {
+    const era = ERAS[getMapArea(roomId) || ''] ?? null;
+    if (key === 'money') return era && era.currency !== null ? png(maps.currencyIcon(rom, era.currency)) : null;
+    if (key === 'portrait:boy') return png(maps.boyPortrait(rom));
+    if (key.startsWith('portrait:dog')) {
+        const form = key === 'portrait:dog' ? era?.dog : Number(key.split(':')[2]);
+        return dogPortrait && form ? dogPortrait(rom, form) : null;
+    }
     const [kind, raw, extra] = key.split(':');
     const v = Number(raw);
     try {
@@ -51,19 +72,23 @@ function draw(rom: Uint8Array, roomId: number, key: string, dogIcon: DogIcon | n
  * `keys` → their pictures as PNG data URIs (null where there is none). An object key is the
  * room's: it comes back as `object:<room>:<n>:<state>` so pages can keep every room's icons apart.
  */
-export function iconsFor(rom: Uint8Array, keys: Iterable<string>, dogIcon: DogIcon | null, roomId: number): Record<string, string | null> {
+export function iconsFor(rom: Uint8Array, keys: Iterable<string>, dogIcon: DogIcon | null, roomId: number, dogPortrait: DogIcon | null = null): Record<string, string | null> {
     if (_cache.rom !== rom) _cache = { rom, byKey: new Map() };
     const out: Record<string, string | null> = {};
     for (const k of keys) {
-        const ck = k.startsWith('object:') ? roomKey(k, roomId) : k;
-        if (!_cache.byKey.has(ck)) _cache.byKey.set(ck, draw(rom, roomId, k, dogIcon));
+        const ck = roomKey(k, roomId);
+        if (!_cache.byKey.has(ck)) _cache.byKey.set(ck, draw(rom, roomId, k, dogIcon, dogPortrait));
         out[ck] = _cache.byKey.get(ck)!;
     }
     return out;
 }
 
-/** `object:<n>:<state>` as the page knows it: with the room. */
-export const roomKey = (key: string, roomId: number): string => (key.startsWith('object:') ? 'object:' + roomId + key.slice(6) : key);
+/** Keys that depend on the room (above). */
+const OF_THE_ROOM = new Set(['money', 'portrait:dog']);
+
+/** A key as the page knows it: an object's and an era's with the room (scripts-listing.dom.ts does the same). */
+export const roomKey = (key: string, roomId: number): string =>
+    key.startsWith('object:') ? 'object:' + roomId + key.slice(6) : OF_THE_ROOM.has(key) ? key + '@' + roomId : key;
 
 /** Every icon key the given lines' references name. */
 export function iconKeys(refs: Iterable<ReadonlyArray<{ key: string }> | undefined>): Set<string> {

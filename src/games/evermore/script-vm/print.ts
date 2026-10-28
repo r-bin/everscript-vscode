@@ -18,7 +18,7 @@
 import { Instruction, Operand } from './decode';
 import { Expression, Node, Term, tree } from './expression';
 import { Fact, facts } from './facts';
-import { Parameter, parameters } from './parameters';
+import { Parameter, ownEnum, parameters } from './parameters';
 import { hexLower } from '../../../platform/hex';
 
 /** Names a caller can supply; each returns '' (or null) when it has none. */
@@ -48,6 +48,8 @@ export interface Names {
     slice?(area: 'local' | 'temp', offset: number, width: 0 | 1 | 2): string;
     /** A field of an entity record by its offset (`0x1a` → `x`). */
     field?(offset: number): string;
+    /** Numbers read in decimal, except where a parameter wants hex (parameters.json `hex`) and in addresses, masks and ids. */
+    decimal?: boolean;
 }
 
 const hex = (v: number, w = 2): string => '0x' + hexLower(v, w);
@@ -113,7 +115,7 @@ function termText(t: Term, names: Names, useless: Why = ''): string {
  */
 function nodeText(n: Node, names: Names, outer = 0, truth: Why = ''): string {
     switch (n.k) {
-        case 'const': return constText(n.value);
+        case 'const': return names.decimal ? String(n.value) : constText(n.value);
         case 'read': return termText(n.term, names, truth);
         case 'value': return termText(n.term, names);
         case 'unknown': return '?';
@@ -189,24 +191,47 @@ export function expressionText(e: Expression, names: Names = {}, truth = false):
 /** `expressionText`, with the markers `printed()` turns into warnings. */
 const marked = (e: Expression, names: Names, truth: Why = ''): string => nodeText(tree(e), names, 0, truth);
 
-/** A constant of enum `type`: its name, else the number — with a warning in `marks` when the enum is closed. */
-function enumText(type: string, value: number, text: string, names: Names, marks: Mark[]): string {
-    const name = names.constant?.(type, value);
+/**
+ * A constant of enum `type` — one of ours (parameters.json `enums`, with the compiler enum it adds
+ * to) or the compiler's: its name; for a flags enum its named bits joined with |, any rest a number
+ * (`SPAWNER | PHASING`, `INSTANT | 2`); else the number (`fmt`) — with a warning in `marks` when
+ * the compiler's enum is closed and has no constant for it.
+ */
+function enumText(type: string, value: number, fmt: (v: number) => string, names: Names, marks: Mark[]): string {
+    const own = ownEnum(type);
+    const one = (v: number): string => own?.values.get(v) || (own ? (own.base ? names.constant?.(own.base, v) : '') : names.constant?.(type, v)) || '';
+    const name = one(value);
     if (name) return name;
-    if (names.inEnum?.(type, value) === false) marks.push({ severity: 'warning', find: text, nth: 0, message: `${text} is not a ${type} value: the enum has no constant for it. Only its values are meant here; if the game uses this one, the enum is missing it.` });
+    if (own?.flags) {
+        const parts: string[] = [];
+        let rest = value;
+        for (let bit = 0x8000; bit; bit >>= 1) {
+            const n = rest & bit ? one(bit) : '';
+            if (n) { parts.push(n); rest &= ~bit; }
+        }
+        return parts.length ? [...parts, ...(rest ? [fmt(rest)] : [])].join(' | ') : fmt(value);
+    }
+    const text = fmt(value);
+    if (!own && names.inEnum?.(type, value) === false) marks.push({ severity: 'warning', find: text, nth: 0, message: `${text} is not a ${type} value: the enum has no constant for it. Only its values are meant here; if the game uses this one, the enum is missing it.` });
     return text;
+}
+
+/** A number as the reader wants it: decimal where `names.decimal` says so and the parameter does not want hex; `w` hex digits otherwise (0: constText's). */
+function numText(v: number, names: Names, p?: Parameter, w = 0): string {
+    if (names.decimal && !p?.hex) return String(v);
+    return w ? hex(v, w) : constText(v);
 }
 
 /** `p`: what the operand is (parameters.json): its enum names a constant, an entity's `signed` is marked. */
 function operandText(o: Operand, names: Names, truth = false, p: Parameter | undefined = undefined, marks: Mark[] = []): string {
-    const typed = (v: number, text: string): string => (p?.enum ? enumText(p.enum, v, text, names, marks) : text);
+    const typed = (v: number, w: number): string => (p?.enum ? enumText(p.enum, v, (x) => numText(x, names, p, w), names, marks) : numText(v, names, p, w));
     switch (o.k) {
-        case 'u8': case 'skip': return typed(o.value, hex(o.value));
-        case 'u16': return typed(o.value, hex(o.value, 4));
+        case 'u8': case 'skip': return typed(o.value, 2);
+        case 'u16': return typed(o.value, 4);
         case 'E': {
             const n = tree(o.expr);
-            if (n.k === 'const' && p?.enum) return typed(n.value, constText(n.value));
-            return marked(o.expr, names, truth ? 'zero' : p?.type === 'entity' ? 'pointer' : '');
+            if (n.k === 'const' && p?.enum) return typed(n.value, 0);
+            return marked(o.expr, p?.hex ? { ...names, decimal: false } : names, truth ? 'zero' : p?.type === 'entity' ? 'pointer' : '');
         }
         case 'A': return o.args.map((a) => marked(a, names)).join(', ');
         case 'Z': return '[' + o.list.map((a) => marked(a, names)).join(', ') + ']';
@@ -256,13 +281,16 @@ function line(ins: Instruction, names: Names, marks: Mark[]): string {
     const o = ins.operands;
     const params = parameters(ins.opcode);
     const E = (k: number, truth = false): string => operandText(o[k], names, truth, params[k], marks);
-    const enumOf = (k: number, v: number, text: string): string => (params[k]?.enum ? enumText(params[k].enum!, v, text, names, marks) : text);
+    const enumOf = (k: number, v: number, w = 2): string => {
+        const fmt = (x: number): string => numText(x, names, params[k], w);
+        return params[k]?.enum ? enumText(params[k].enum!, v, fmt, names, marks) : fmt(v);
+    };
     // Arguments go inside the head's own parentheses when it has them: `call_id(NAME, 0x78)`.
     const withArgs = (head: string): string => (!(o[0] && o[0].k === 'A') ? head : head.endsWith(')') ? `${head.slice(0, -1)}, ${E(0)})` : `${head}(${E(0)})`);
     switch (f.k) {
         case 'write': {
             const named = f.value !== null && f.area !== 'local' ? names.value?.(f.addr, f.value) : '';
-            return `${cell(f.area, f.addr, f.width, names)} = ${named || (f.expr ? marked(f.expr, names) : constText(f.value ?? 0))};`;
+            return `${cell(f.area, f.addr, f.width, names)} = ${named || (f.expr ? marked(f.expr, names) : numText(f.value ?? 0, names))};`;
         }
         case 'flag': {
             const name = f.area === 'local' ? localFlag(f.addr, f.mask, names) : (names.flag?.(f.addr, f.mask) || flagCell(f.addr, f.mask, names));
@@ -281,12 +309,13 @@ function line(ins: Instruction, names: Names, marks: Mark[]): string {
         case 'changeMap': {
             if (f.map === null) return `restart_room_at(${f.x}, ${f.y});`;
             const notes = [names.map?.(f.map) || '', f.word !== null && f.word > 0xFF ? `word ${hex(f.word, 4)}` : ''].filter(Boolean);
-            return `load_map(${hex(f.map)}, ${f.x}, ${f.y});${notes.length ? ` // ${notes.join(', ')}` : ''}`;
+            return `load_map(${enumOf(2, f.map)}, ${f.x}, ${f.y});${notes.length ? ` // ${notes.join(', ')}` : ''}`;
         }
-        case 'sound': return `sound(${enumOf(0, f.index, hex(f.index))});`;
-        case 'music': return `music(${enumOf(0, f.index, hex(f.index))});`;
+        case 'sound': return `sound(${enumOf(0, f.index)});`;
+        case 'music': return `music(${enumOf(0, f.index)});`;
         case 'text': return `${f.message ? 'subtext' : 'text'}(${f.window !== null ? f.window + ', ' : ''}${hex(f.key, 4)});`;
-        case 'spawn': return `${f.spawner ? 'spawner' : 'spawn'}(${names.enemy?.(f.index) || hex(f.index)}, ${f.x === null ? `${E(2)}, ${E(3)}` : `${f.x}, ${f.y}`}${f.state ? ', ' + hex(f.state, 4) : ''});`;
+        // A spawner says so by its name: bit 15 is not printed again.
+        case 'spawn': { const state = f.spawner ? (f.state ?? 0) & 0x7fff : f.state; return `${f.spawner ? 'spawner' : 'spawn'}(${names.enemy?.(f.index) || hex(f.index)}, ${f.x === null ? `${E(2)}, ${E(3)}` : `${f.x}, ${f.y}`}${state ? ', ' + enumOf(1, state, 4) : ''});`; }
         case 'sleep': return `sleep(${f.ticks === null ? E(0) : f.ticks});`;
         case 'yield': return 'yield();';
         case 'end': return 'return;';
@@ -296,12 +325,12 @@ function line(ins: Instruction, names: Names, marks: Mark[]): string {
         case 0x04: case 0x05: return `goto ${bus(ins.target!)};`;
         case 0x08: return `if (${E(0, true)}) goto ${bus(ins.target!)};`;
         case 0x09: return `if! (${E(0, true)}) goto ${bus(ins.target!)};`;
-        case 0x0A: return `if (currency[${E(0)}] >= ${hex(num(o[1]) | (num(o[2]) << 16), 6)}) goto ${bus(ins.target!)};`;
-        case 0x0B: return `if (currency[${E(0)}] < ${hex(num(o[1]) | (num(o[2]) << 16), 6)}) goto ${bus(ins.target!)};`;
+        case 0x0A: return `if (currency[${E(0)}] >= ${numText(num(o[1]) | (num(o[2]) << 16), names, undefined, 6)}) goto ${bus(ins.target!)};`;
+        case 0x0B: return `if (currency[${E(0)}] < ${numText(num(o[1]) | (num(o[2]) << 16), names, undefined, 6)}) goto ${bus(ins.target!)};`;
         case 0x8E: return `if (currency[${E(0)}] >= ${E(1)}) goto ${bus(ins.target!)};`;
         case 0x8F: return `if (currency[${E(0)}] < ${E(1)}) goto ${bus(ins.target!)};`;
         case 0x5C: return `object[${E(0)}] = ${E(1)};`;
-        case 0x5F: return `object[${E(0)}] += ${hex(num(o[1]), 4)};`;
+        case 0x5F: return `object[${E(0)}] += ${numText(num(o[1]), names, undefined, 4)};`;
         case 0x60: return `object[${E(0)}]++;`;
         case 0x61: return `object[${E(0)}]--;`;
         case 0x74: return `face(${E(0)}, NORTH);`;

@@ -33,6 +33,10 @@
 .scr-pane code{font:11.5px var(--scr-mono);color:var(--vscode-textPreformat-foreground,#d7ba7d)}
 .scr-chips{display:flex;flex-direction:column;gap:4px;margin:6px 0 10px}
 .scr-chips-row{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.scr-chip{display:inline-flex;align-items:center;gap:4px}
+.scr-chip-pic{position:relative;display:inline-block;width:18px;height:18px;flex:none;background-image:var(--scr-room-pic);background-repeat:no-repeat;image-rendering:pixelated;border-radius:2px;overflow:hidden;margin-left:-4px}
+.scr-chip-box{position:absolute;box-sizing:border-box;border:1px solid rgba(255,255,255,.85);border-radius:1px}
+.scr-chip-loot{position:absolute;inset:1px;width:16px;height:16px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 0 1px #000)}
 .scr-chips-h{font-size:11px;color:var(--scr-dim);min-width:86px}
 .scr-chip,.scr-btn{border:1px solid var(--scr-line);border-radius:3px;padding:1px 7px;color:inherit;background:var(--vscode-button-secondaryBackground,#333);cursor:pointer;font:11px var(--scr-mono)}
 .scr-chip.scr-on{background:var(--vscode-button-background,#0e639c);color:var(--vscode-button-foreground,#fff);border-color:transparent}

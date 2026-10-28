@@ -181,13 +181,15 @@ function knowledge(): { ram: Map<number, string>; rom: Map<number, string> } {
 
 /**
  * The names for reading a listing: printNames, and where it has none for a WRAM cell or a script,
- * the knowledge entry's name for exactly that address (`<0x2437>` reads MAP_PALETTE_SET). A
- * listing printed with these may not compile: the compiler knows only printNames'.
+ * the knowledge entry's name for exactly that address (`<0x2437>` reads MAP_PALETTE_SET); numbers
+ * in decimal where no parameter wants hex (the reader turns them to hex at will). A listing printed
+ * with these may not compile: the compiler knows only printNames'.
  */
 export function displayNames(file: (bus: number) => number): Names {
     const p = printNames(file);
     return {
         ...p,
+        decimal: true,
         memory: (addr) => p.memory!(addr) || identifier(knowledge().ram.get(0x7e0000 | addr) ?? ''),
         script: (bus) => p.script!(bus) || identifier(knowledge().rom.get(bus) ?? ''),
     };

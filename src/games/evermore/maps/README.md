@@ -89,6 +89,7 @@ Going from a character to a picture is three layers, each its own file:
 | `character-animation.ts` | walking that animation script into frames |
 | `characters.ts` | blitting those frames, origin-aligned, in the character's palette |
 | `item-icons.ts` | the ring menu's icon table at `$CE8000` — an icon's record and palette, and which icon a loot reward or alchemy formula shows ([item-icons.md](../../../../docs/item-icons.md)) |
+| `hud-icons.ts` | the HUD's pictures: the Boy's portrait (the sprite `$8F:810E` names) and the four currencies' icons (`$C8:00BE`), by the game's own pointers ([item-icons.md](../../../../docs/item-icons.md)) |
 
 See
 [docs/entities/sprite_format.md](../../../../docs/entities/sprite_format.md),

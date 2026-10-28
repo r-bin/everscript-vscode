@@ -42,7 +42,12 @@ type ScriptView = {
     key: string; kind: string; index: number | null; address: number; addrHex: string; label: string; stop: string;
     rows: { a: string; op: string; b: string; s: string; d: number; t: boolean; u: boolean; m?: RoomScript['instructions'][number]['marks']; i?: RoomScript['instructions'][number]['icons'] }[];
     loot: string[]; to: string[]; scriptId?: number; box?: Box; role: Role | null;
+    /** What it gives, as an icon key (script-model icons.ts): its first loot reward; the page lays it over the trigger's chip. */
+    lootKey?: string;
 };
+
+/** LOOT_REWARD MONEY: drawn as the era's currency (`money`, model/icons.ts). */
+const MONEY = 0x0001;
 
 function scriptView(rom: ScriptRom, s: RoomScript | RoomTrigger, kind: string, index: number | null, origin: Origin): ScriptView {
     const view: ScriptView = {
@@ -61,6 +66,8 @@ function scriptView(rom: ScriptRom, s: RoomScript | RoomTrigger, kind: string, i
         to: s.transitions.map((t) => `${t.mapName} (${t.x}, ${t.y})`),
         role: kind === 'enter' ? 'init' : roleOf(rom, s.scriptAddressSnes),
     };
+    const reward = s.loot.find((l) => l.item)?.item?.value;
+    if (kind !== 'enter' && reward !== undefined) view.lootKey = reward === MONEY ? 'money' : 'loot:' + reward;
     if (kind !== 'enter') {
         const t = s as RoomTrigger;
         view.scriptId = t.scriptId;

@@ -155,17 +155,40 @@ hand-written map:
 | `0x08xx` consumable | `0x008e`–`0x009c` | entry `+6` == `xx` | `0x0800` PETAL → id `0x008e` |
 | `0x04xx` armour | `0x00a0`–`0x00ee` | entry `+6` == `xx * 2` | `0x0401` CHEST_1_1 → `+6 = 2` → id `0x00a0` |
 | `0x1010` bazooka | `0x0040` | by name | |
-| `0x10xx` trade goods and charms, `0x0001` money | none | not in this table | |
+| `0x10xx` trade goods and charms | none | not in this table | |
+| `0x0001` money | — | the era's currency icon (below) | |
+
+**Mud Pepper and Mushroom** break the rule: reward `0x0205` (MUD_PEPPER) fills inventory byte
+`$2305`, ingredient 6, and `0x0206` (MUSHROOM) fills `$2304`, ingredient 5 (knowledge ram/7e22ff);
+the icon entries' `+6` agree with the bytes. `lootIconId` swaps the two (v0.377.0: it showed
+Mud Pepper as a mushroom).
 
 Build the reverse map once, by scanning the 162 entries and keying each
 category's range by `+6`, rather than hard-coding the alphabetical order.
 That keeps it right for randomized and hacked ROMs whose table moved things.
 
-**Not covered:** trade goods (`CERAMIC_POT`, `RICE`, …), charms and money have
+**Not covered:** trade goods (`CERAMIC_POT`, `RICE`, …) and charms have
 no ring icon. The tracker package in
 `evermizer-tracker-package/images/items/charms` has charm art, but it is not
 the ROM's and this doc does not propose using it. Their in-game graphics, if
 any, are still an open question.
+
+## HUD portraits and currency icons (v0.377.0)
+
+Not ring icons but one-chunk sprites (a 16x16 block each, `maps/sprites.ts`), found by taking the
+HUD's OBJ tiles from VRAM on the attract demo (frame 2900, Thraxx's chamber), matching them
+against every 16x16 block, and following the blocks back to the sprites and the code that names
+them. The palettes were matched against the screen.
+
+| What | Sprite | Block | Named by | Colours |
+|---|---|---|---|---|
+| Boy's portrait | `$CC37AC` | `$7AB` | the HUD setup `$8F:810E` (`$4EF7`) | `$D0AD6B` (seen on screen) |
+| Dog's portrait | form entry `+3` (`$CC3C72` wolf, `$CC3C79` greyhound, `$CC3C80` poodle, `$CC3C87` toaster, `$CC3C8E` Podunk) | `$7CF`–`$7D3` | the form loader `$8F:9471` (`$4FA5`) | the form's palette, entry `+6` (`$D0AE0B` for the wolf: seen on screen) |
+| Talons, jewels, gold coins, credits | `$CC3C56`, `$CC3C5D`, `$CC3C64`, `$CC3C6B` | `$7CB`–`$7CE` | the animation script at `$C8:00BE`, in currency order | not seen; drawn in `$D0AD6B` |
+
+Podunk's portrait (`$7D3`) is a frame of the shaded ball the blocks after it rotate through, not a
+face; it is also what `$8F:810E` gives the Dog before any form loads. The Scripts tab draws `boy()`,
+`dog()` and a money reward with these (maps/hud-icons.ts, sprites/dog-form-icon.ts).
 
 ## How the plugin uses them
 

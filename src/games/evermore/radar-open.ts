@@ -17,7 +17,7 @@ import * as romReaders from './rom-readers';
 import * as gameViews from '../../core/game-views';
 import { readRomCharacters, readRomHitLookup, detectScaleEnemies } from './rom-readers';
 import { renderRadarHtml } from './memory/render-radar';
-import { renderAnimation, dogFormIcon } from './sprites';
+import { renderAnimation, dogFormIcon, dogPortrait } from './sprites';
 import { radarDetectScope, radarAnalyzeScope } from './memory/scope-analysis';
 import { radar, getMapExportChannel, getRadarMap, getRadarEnums, getSpritesBundle, getExtConfig, radarItemIcons, refreshRadar, ROOMS_UI_PREFS_KEY, radarImportedRooms, radarRoomRom } from './radar-panel';
 
@@ -198,6 +198,7 @@ async function openMemoryRadar(doc?: vscode.TextDocument, startLine?: number): P
                 roomVariants: (rom, id) => roomVariantsFor(rom, id),
                 // A dog form's picture next to CHANGE_DOGGO = WOLF (the sprites feature draws it).
                 dogIcon: dogFormIcon,
+                dogPortrait,
                 // An object index a line computes, read live from the running game (as soe://ram/ does).
                 readMemory: (addr, len) => require('../../core/emulator/panel').readMemory(addr, len),
             });

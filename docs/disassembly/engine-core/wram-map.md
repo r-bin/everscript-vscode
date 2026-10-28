@@ -477,8 +477,8 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:143A` | 2 bytes | `CAMERA_SECONDARY_ACTOR_PTR` | Room | Pointer to secondary actor entity considered for camera framing (Dog at $7E:4F37). |
 | `$7E:143E` | 1 | `DOG_SPRITE_ANIM_RECORD` | Room | Companion Mechanics: Low byte of current Dog sprite animation record offset ($8F:9471). |
 | `$7E:143F` | 1 | `DOG_SPRITE_ANIM_BANK` | Room | Companion Mechanics: High byte / ROM bank of current Dog sprite animation record. |
-| `$7E:1443` | 2 | `DOG_PORTRAIT_TILE_OFFSET` | Room | UI Mechanics: Dog HUD portrait sprite VRAM tile offset ($8F:9471). |
-| `$7E:1445` | 2 | `DOG_PORTRAIT_VRAM_TARGET` | Room | UI Mechanics: Dog HUD portrait VRAM destination word address ($8F:9471). |
+| `$7E:1443` | 2 | `DOG_FORM_ANIM_9` | Room | Companion Mechanics: the form's animation record slot 9 ($8F:9471 copies entry +$1C-+$26 to $1443-$144D; sprites/dog-forms.ts). Not the HUD portrait: that sprite goes to $4FA5 (rom/8f9471.md, v0.377.0). |
+| `$7E:1445` | 2 | `DOG_FORM_ANIM_10` | Room | Companion Mechanics: the form's animation record slot 10 ($8F:9471). |
 | `$7E:1447` | `Word` | `dog_form_base_magic_def` | `Save` | Active dog breed base magic defense stat ($8F:94F0). |
 | `$7E:1449` | `Word` | `dog_form_base_evade` | `Save` | Active dog breed base evasion percentage stat ($8F:94F7). |
 | `$7E:144B` | `Word` | `dog_form_base_hit_rate` | `Save` | Active dog breed base accuracy / hit rate stat ($8F:94FE). |

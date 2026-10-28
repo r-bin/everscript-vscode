@@ -53,6 +53,8 @@ interface Deps {
     roomVariants(rom: Rom, id: number): Promise<Array<{ objects?: Array<[number, number]>; palette?: number }>>;
     /** A dog form's idle frame as a data URI (the sprites feature draws it); absent: dog forms have no icon. */
     dogIcon?: DogIcon;
+    /** A dog form's HUD portrait (the sprites feature draws it); absent: `dog()` has no picture. */
+    dogPortrait?: DogIcon;
     /** The running game's memory (the emulator's); absent: computed object indexes stay unknown. */
     readMemory?: ReadMemory;
 }
@@ -132,8 +134,9 @@ function handleScriptsMessage(msg: Message, deps: Deps): void {
                 const id = Number(msg.id);
                 const { room, picture } = roomEntry(rom, id);
                 const refs = [...(room.merged?.lines ?? []).map((l) => l.icons), ...(room.scripts ?? []).flatMap((s) => s.rows.map((r) => r.i)),
+                    (room.scripts ?? []).flatMap((s) => (s.lootKey ? [{ key: s.lootKey }] : [])),
                     (room.merged?.slices ?? []).flatMap((s) => (s.icons ?? []).map((key) => ({ key })))];
-                deps.post({ command: 'scriptsRoom', id, room, picture, icons: iconsFor(rom, iconKeys(refs), deps.dogIcon ?? null, id) });
+                deps.post({ command: 'scriptsRoom', id, room, picture, icons: iconsFor(rom, iconKeys(refs), deps.dogIcon ?? null, id, deps.dogPortrait ?? null) });
                 return;
             }
             case 'scriptsMerged': {
@@ -143,7 +146,7 @@ function handleScriptsMessage(msg: Message, deps: Deps): void {
                 if (!cache.has(key)) cache.set(key, triggerMerged(rom, entry.room, key));
                 const got = cache.get(key)!;
                 const icons = 'merged' in got ? iconsFor(rom, iconKeys([...got.merged.lines.map((l: { icons?: Array<{ key: string }> }) => l.icons),
-                    got.merged.slices.flatMap((s: { icons?: string[] }) => (s.icons ?? []).map((key) => ({ key })))]), deps.dogIcon ?? null, id) : {};
+                    got.merged.slices.flatMap((s: { icons?: string[] }) => (s.icons ?? []).map((key) => ({ key })))]), deps.dogIcon ?? null, id, deps.dogPortrait ?? null) : {};
                 deps.post({ command: 'scriptsMerged', id, key, ...got, icons });
                 return;
             }
@@ -154,7 +157,7 @@ function handleScriptsMessage(msg: Message, deps: Deps): void {
                 liveObjects(rom, ids, read).then((got) => {
                     const keys: Record<string, string | null> = {};
                     for (const k in got) keys[k] = got[k] && roomKey(got[k]!, id);
-                    const icons = iconsFor(rom, Object.values(got).filter((k): k is string => !!k), deps.dogIcon ?? null, id);
+                    const icons = iconsFor(rom, Object.values(got).filter((k): k is string => !!k), deps.dogIcon ?? null, id, deps.dogPortrait ?? null);
                     deps.post({ command: 'scriptsLive', id, keys, icons });
                 }, (e: Error) => deps.post({ command: 'scriptsLive', id, keys: {}, icons: {}, error: e.message }));
                 return;

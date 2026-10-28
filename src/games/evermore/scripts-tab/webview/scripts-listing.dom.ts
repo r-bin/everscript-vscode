@@ -22,6 +22,10 @@ interface Slice { area: 'local' | 'temp'; thread: number; offset: number; width:
 interface BoundWrite { at: number; edge: 'start' | 'end'; x: number; y: number }
 interface Arrival { fromMap: number; fromName: string; key: string; x: number; y: number; direction: string | null }
 
+/** A key as the host sends its picture: an object's and an era's with the room (model/icons.ts roomKey). */
+export const roomKey = (key: string, room: number): string =>
+    key.startsWith('object:') ? 'object:' + room + key.slice(6) : key === 'money' || key === 'portrait:dog' ? key + '@' + room : key;
+
 /** Keys drawn as an emoji instead of a picture (script-model icons.ts). */
 const EMOJI: Record<string, string> = { camera: '📷', unknown: '❓' };
 
@@ -66,7 +70,7 @@ export function withIcons(html: string, refs: IconRef[], icons: Record<string, s
     const used: number[] = [];
     for (const r of refs) {
         const now = r.live ? live[r.live] : undefined;
-        const key = now || (r.key.startsWith('object:') ? 'object:' + room + r.key.slice(6) : r.key);
+        const key = now || roomKey(r.key, room);
         const uri = icons[key], emoji = EMOJI[key];
         if (!uri && !emoji) continue;
         let end = -1;
@@ -92,6 +96,49 @@ export function withIcons(html: string, refs: IconRef[], icons: Record<string, s
 /** The `live` ids among `refs`: the lines the page asks the running game about. */
 export function liveIds(refs: IconRef[] | undefined, into: Record<string, true>): void {
     for (const r of refs ?? []) if (r.live) into[r.live] = true;
+}
+
+/**
+ * A printed line with its decimal numbers in hex (the Hex toggle): a number of 10 or more that is
+ * not part of a name, an address or a hex literal; the comment after `//` is left alone.
+ */
+export function toHex(text: string): string {
+    const cut = text.indexOf(' //');
+    const code = cut < 0 ? text : text.slice(0, cut);
+    const out = code.replace(/(^|[^\w.$:<])(\d+)(?![\w.])/g, (m, pre: string, n: string) => {
+        const v = Number(n);
+        return v < 10 ? m : pre + '0x' + v.toString(16).padStart(v > 0xff ? 4 : 2, '0');
+    });
+    return cut < 0 ? out : out + text.slice(cut);
+}
+
+/** A line's marks, their `find` text turned to hex like the line. */
+export function marksToHex(marks: Mark[] | undefined): Mark[] | undefined {
+    return marks?.map((m) => (m.find && /^\d+$/.test(m.find) ? { ...m, find: toHex(m.find) } : m));
+}
+
+/** The trigger chips' container: the room picture once, as a CSS variable the chips crop (a data URI per chip would repeat it). */
+export function chipsStyle(picture: { uri?: string } | null | undefined): string {
+    return picture?.uri ? ' style="--scr-room-pic:url(&quot;' + picture.uri + '&quot;)"' : '';
+}
+
+/** Size of a chip's picture, in CSS pixels. */
+const CHIP_PIC = 18;
+
+/**
+ * A trigger chip's picture: the square of the room picture around the trigger's box, scaled to
+ * fit, the box outlined; with what it gives (`loot`, a data URI) laid over it, as the map editor
+ * shows a pickup. '' for the enter script (no box).
+ */
+export function chipPicture(box: { x: number; y: number; w: number; h: number } | undefined, picture: { width?: number; height?: number } | null | undefined, loot: string | null | undefined): string {
+    if (!box || !picture?.width || !picture.height) return '';
+    const side = Math.max(box.w, box.h, 32);
+    const x0 = Math.max(0, Math.min(picture.width - side, box.x + box.w / 2 - side / 2)), y0 = Math.max(0, Math.min(picture.height - side, box.y + box.h / 2 - side / 2));
+    const k = CHIP_PIC / side;
+    const px = (v: number): string => (v * k).toFixed(1) + 'px';
+    return '<span class="scr-chip-pic" style="background-size:' + px(picture.width) + ' ' + px(picture.height) + ';background-position:' + px(-x0) + ' ' + px(-y0) + '">' +
+        '<span class="scr-chip-box" style="left:' + px(box.x - x0) + ';top:' + px(box.y - y0) + ';width:' + px(box.w) + ';height:' + px(box.h) + '"></span>' +
+        (loot ? '<img class="scr-chip-loot" src="' + loot + '" alt="">' : '') + '</span>';
 }
 
 /** Entry-state flags: clear when the room is loaded fresh, set by the way some doors bring you in. */
@@ -238,7 +285,7 @@ export function arrivalsHtml(arrivals: Arrival[]): string {
 }
 
 /** The sliced cells: each thread's `arg[]`, then the room's `temp[]`. */
-export function slicesHtml(slices: Slice[], blocks: Block[], icons: Record<string, string | null>): string {
+export function slicesHtml(slices: Slice[], blocks: Block[], icons: Record<string, string | null>, room = -1): string {
     if (!slices.length) return '';
     const where = (s: Slice): string => s.area === 'temp' ? 'temp (room)' : s.thread < 0 ? 'arg (enter thread)' : 'arg (thread $' + hx(blocks[s.thread].target, 6) + ')';
     let last = '';
@@ -247,7 +294,7 @@ export function slicesHtml(slices: Slice[], blocks: Block[], icons: Record<strin
         last = w;
         return head + '<tr' + (s.reused ? ' class="scr-slice-reused" title="' + esc('Reused: ' + s.reused) + '"' : '') + '><td>' + (s.area === 'temp' ? 'temp' : 'arg') + '[' + s.offset + ']</td>' +
             '<td>' + (s.width === 1 ? 'byte' : 'word') + '</td><td>' + esc(s.name) + (s.reused ? ' ⚠' : '') +
-            (s.icons ?? []).map((k) => icons[k] ? '<img class="scr-icon" src="' + icons[k] + '" alt="" title="given to it in the listing">'
+            (s.icons ?? []).map((key) => roomKey(key, room)).map((k) => icons[k] ? '<img class="scr-icon" src="' + icons[k] + '" alt="" title="given to it in the listing">'
                 : EMOJI[k] ? '<span class="scr-icon scr-emoji" title="given to it in the listing">' + EMOJI[k] + '</span>' : '').join('') + '</td><td class="scr-dim">' + s.uses.length + ' use' + (s.uses.length > 1 ? 's' : '') + '</td></tr>';
     }).join('');
     return '<div class="scr-side-h">Locals <span class="scr-dim">arg[] and temp[] cut by how the listing uses them</span></div><table class="scr-slices"><tbody>' + rows + '</tbody></table>';

@@ -89,6 +89,13 @@ const REWARD_CATEGORIES: Record<number, Category> = {
     0x08: CONSUMABLES,
 };
 
+/**
+ * A reward's index in its category, where the reward id is not it: Mud Pepper (`0x0205`) is
+ * ingredient 6 and Mushroom (`0x0206`) ingredient 5 — the inventory byte each fills
+ * (knowledge ram/7e22ff) and the icon entry's own index agree.
+ */
+const REWARD_INDEX: Record<number, number> = { 0x0205: 6, 0x0206: 5 };
+
 function findInCategory(rom: Uint8Array, cat: Category, index: number): number | null {
     for (let id = cat.first; id <= cat.last; id += 2) {
         if (iconEntry(rom, id).index === index * cat.scale) return id;
@@ -103,7 +110,7 @@ function findInCategory(rom: Uint8Array, cat: Category, index: number): number |
  */
 export function lootIconId(rom: Uint8Array, reward: number): number | null {
     const cat = REWARD_CATEGORIES[reward >> 8];
-    return cat ? findInCategory(rom, cat, reward & 0xff) : null;
+    return cat ? findInCategory(rom, cat, REWARD_INDEX[reward] ?? reward & 0xff) : null;
 }
 
 /**

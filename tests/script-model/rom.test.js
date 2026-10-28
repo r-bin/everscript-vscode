@@ -73,14 +73,14 @@ test('merged enter scripts: every room builds, nothing runs away, every block co
     }
 });
 
-test("merged enter script of Thraxx's chamber: a call's body follows it; short-operand callees start folded", () => {
+test("merged enter script of Thraxx's chamber: a call's body follows it; only calls named by an id start folded", () => {
     const m = M.mergedEnterScript(bytes, 0x18);
     const at = (a) => m.lines.findIndex((l) => l.addressSnes === a && !l.note);
-    // $93:D22C call_id(0x00) (u8: a global id) and $93:D2B6 call $93:CA75 (cb: a call back) fold; their bodies follow.
-    for (const a of [0x93d22c, 0x93d2b6]) {
+    // $93:D22C call_id(FADE_OUT_STOP_MUSIC) (u8: a global id) folds; $93:D2B6 call $93:CA75 (a call back, printed by its address) stays open.
+    for (const [a, folded] of [[0x93d22c, true], [0x93d2b6, false]]) {
         const i = at(a);
         const b = m.blocks[m.lines[i].opens];
-        assert.ok(b && b.kind === 'call' && b.folded, a.toString(16));
+        assert.ok(b && b.kind === 'call' && b.folded === folded, a.toString(16));
         assert.strictEqual(m.lines[i + 1].in, b.id);
     }
     assert.strictEqual(m.lines[at(0x93d2b6) + 1].addressSnes, 0x93ca75);
@@ -129,7 +129,7 @@ test('Thraxx\'s chamber: last_entity() is the spawn above it, objects in their s
     assert.ok(m.lines.some((l) => (l.icons || []).some((i) => i.key === 'object:3:1' && i.find === 'object' && i.group)), 'object[3] = 1: object 3 in state 1, after the whole object');
     assert.ok(m.lines.some((l) => (l.icons || []).some((i) => i.live && i.key === 'object:1:2')), 'object[signed <0x249b>] = 2: <0x249b> = 1 above, read live too');
     const hut = M.mergedEnterScript(bytes, 0x33);
-    assert.ok(hut.lines.some((l) => (l.icons || []).some((i) => i.key === 'char:0' && i.find === 'boy')), 'boy(): the Boy');
+    assert.ok(hut.lines.some((l) => (l.icons || []).some((i) => i.key === 'portrait:boy' && i.find === 'boy')), 'boy(): the Boy\'s HUD portrait');
     const r10 = M.mergedEnterScript(bytes, 0x10);
     assert.ok(r10.lines.some((l) => l.summary.includes('CURRENT_WEAPON == BONE_CRUSHER') && l.icons.some((i) => i.key === 'weapon:2')), 'a weapon cell compared: named and pictured');
     assert.ok(r10.lines.some((l) => l.summary.includes('CURRENT_WEAPON_TYPE == AXE')), 'its class by the WEAPON_TYPE enum');

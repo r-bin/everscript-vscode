@@ -7,7 +7,9 @@
 //   loot:<reward>        a reward or prize item written or compared with
 //   weapon:<index>       a weapon written to or compared with a weapon cell
 //   dog:<form>           a dog form written or compared with; `dog()` in a room whose form is known
-//   char:<record>        a character's first frame: `boy()` the Boy (0), `dog()` the Dog (1)
+//   portrait:boy         the Boy's HUD portrait (`boy()`)
+//   portrait:dog[:<form>] a Dog form's HUD portrait (`dog()`): the form the listing set, else the room's era's
+//   money                a money reward, as the room's era's currency (talons, jewels, gold coins, credits)
 //   object:<n>:<state>   room object n in that state (the viewer knows the room)
 //   camera / unknown     drawn as an emoji: the camera's character; a character the listing cannot tell
 //
@@ -48,7 +50,10 @@ export interface Context {
     cell?(area: 'local' | 'temp', offset: number): EntityCell | null;
 }
 
-export const fresh = (): Context => ({ last: null, dog: 'char:1', cells: {}, known: {} });
+export const fresh = (): Context => ({ last: null, dog: 'portrait:dog', cells: {}, known: {} });
+
+/** LOOT_REWARD MONEY: the amount is in the era's currency. */
+const MONEY = 0x0001;
 
 /** The loot reward and the three prize items: reward ids (knowledge ram/7e2391). */
 const REWARDS = new Set([0x2391, 0x23a1, 0x23a3, 0x23a5]);
@@ -68,8 +73,8 @@ const COMPARISONS = new Set(['==', '!=', '<', '>', '<=', '>=']);
 function characterRef(t: Term, ctx: Context): IconRef | null {
     const name = t.spec.name;
     switch (name) {
-        case 'boy': return { key: 'char:0', find: name, tail: '()', title: 'the Boy' };
-        case 'dog': return { key: ctx.dog, find: name, tail: '()', title: 'the Dog, in the form the room gives it' };
+        case 'boy': return { key: 'portrait:boy', find: name, tail: '()', title: 'the Boy' };
+        case 'dog': return { key: ctx.dog, find: name, tail: '()', title: ctx.dog === 'portrait:dog' ? 'the Dog, in the form of the era the room is in' : 'the Dog, in the form the listing asks for above' };
         case 'camera_entity': return { key: 'camera', find: name, tail: '()', title: 'the character the camera follows: the one the player controls' };
         case 'other_character': return { key: ctx.dog, find: name, tail: '()', title: 'the character not followed: the Dog, unless the player switched' };
         case 'last_entity': return ctx.last
@@ -85,7 +90,7 @@ export function iconRefs(ins: Instruction, names: Names, ctx: Context = fresh())
     const out: IconRef[] = [];
     const value = (addr: number, v: number): void => {
         const kind = kindOf(addr), name = kind ? names.value?.(addr, v) : '';
-        if (kind && name) out.push({ key: `${kind}:${v}`, find: name });
+        if (kind && name) out.push({ key: kind === 'loot' && v === MONEY ? 'money' : `${kind}:${v}`, find: name, ...(v === MONEY && kind === 'loot' ? { title: 'money, in the currency of the era the room is in' } : {}) });
     };
     const f = facts(ins);
     if (f.k === 'spawn') {
@@ -128,21 +133,28 @@ function objectRef(ins: Instruction, i: number, n: Node, ctx: Context): IconRef 
     const subscript = SUBSCRIPT.has(ins.opcode);
     if (n.k === 'const') {
         const at = subscript ? { find: 'object', group: true } : { find: constText(n.value) };
-        return { key: `object:${n.value}:${state}`, ...at, title: `object ${n.value}, state ${state}` };
+        return { key: `object:${n.value}:${state}`, ...at, title: `object ${n.value}, ${stateText(state)}` };
     }
     const v = evaluate(n, (a) => ctx.known[a] ?? null);
     return {
         key: v === null ? 'unknown' : `object:${v}:${state}`, find: subscript ? 'object' : ins.spec.name, group: true, live: `${ins.address}:${i}`,
-        title: v === null ? `an object the game picks at run time (state ${state})` : `object ${v}, state ${state}: the index the listing set above`,
+        title: v === null ? `an object the game picks at run time (${stateText(state)})` : `object ${v}, ${stateText(state)}: the index the listing set above`,
     };
 }
 
-/** The state an object line shows: the one `object[x] = s` sets, else the first. */
+/**
+ * The state an object line shows: the one `object[x] = s` sets, else the first. As `$90:A36D` reads
+ * it (docs/map-format/map_objects.md §4c): bit 15 only skips the holds, bit 7 means 0, and a value
+ * above the last state (`$7E`, `$7F`) is the last — the picture clamps it.
+ */
 function objectState(ins: Instruction): number {
     const o1 = ins.operands[1];
     const s = ins.opcode === 0x5C && o1?.k === 'E' ? tree(o1.expr) : null;
-    return s && s.k === 'const' ? s.value : 0;
+    const v = s && s.k === 'const' ? s.value & 0x7fff : 0;
+    return v & 0x80 ? 0 : v;
 }
+
+const stateText = (s: number): string => (s >= 0x7e ? 'its last state' : `state ${s}`);
 
 /** The WRAM bytes operand `i` reads (a word per term: the viewer reads them from the running game). */
 export function liveCells(ins: Instruction, i: number): number[] {
@@ -185,6 +197,6 @@ export function after(ins: Instruction, ctx: Context): Context {
         else known[f.addr + b] = (f.value >> (8 * b)) & 0xff;
     }
     const next = { ...ctx, known };
-    if (f.area === 'save' && f.addr === 0x2443 && f.value) next.dog = `dog:${f.value}`;
+    if (f.area === 'save' && f.addr === 0x2443 && f.value) next.dog = `portrait:dog:${f.value}`;
     return next;
 }

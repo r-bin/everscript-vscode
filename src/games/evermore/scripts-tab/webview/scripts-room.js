@@ -50,7 +50,8 @@ function scrRoomClusters() {
 function scrScriptChip(s) {
   var name = s.kind === 'enter' ? 'Enter' : (s.kind === 'b' ? 'B' : 'S') + s.index;
   return '<button class="scr-chip' + (s.role ? ' scr-role-' + s.role : '') + (s.key === _scr.script ? ' scr-on' : '') + '" data-scr-script="' + scrEsc(s.key) + '" title="' +
-    scrEsc(SCR_KIND[s.kind] + (s.index != null ? ' #' + s.index : '') + ' · ' + s.addrHex + ' · ' + s.label) + '">' + name + '</button>';
+    scrEsc(SCR_KIND[s.kind] + (s.index != null ? ' #' + s.index : '') + ' · ' + s.addrHex + ' · ' + s.label) + '">' +
+    ScriptsListing.chipPicture(s.box, scrRoomData().picture, s.lootKey ? _scr.icons[ScriptsListing.roomKey(s.lootKey, _scr.room)] : null) + name + '</button>';
 }
 
 function scrScriptListHtml(room) {
@@ -79,6 +80,7 @@ function scrScriptListHtml(room) {
 
 /** One script line, coloured (script-vm/highlight.ts, the Rooms tab's too); `marks` drawn as squiggles. */
 function scrLine(text, marks, icons) {
+  if (_scr.hex) { text = ScriptsListing.toHex(text); marks = ScriptsListing.marksToHex(marks); }
   var html = typeof highlightScript === 'function' ? highlightScript(text, marks || []) : scrEsc(text);
   if (!icons) return html;
   ScriptsListing.liveIds(icons, _scr.liveWant[_scr.room] || (_scr.liveWant[_scr.room] = {}));
@@ -112,7 +114,7 @@ function scrRenderRoom(mid, side) {
   if (s.loot && s.loot.length) facts.push('gives <code>' + scrEsc(s.loot.join(' · ')) + '</code>');
   if (s.to && s.to.length) facts.push('→ ' + scrEsc(s.to.join(' · ')));
   mid.innerHTML = '<div class="scr-h">' + scrEsc(d.room.name) + ' <span class="scr-dim">room $' + d.room.idHex + '</span></div>' +
-    '<div class="scr-chips">' + scrScriptListHtml(d.room) + '</div>' +
+    '<div class="scr-chips"' + ScriptsListing.chipsStyle(d.picture) + '>' + scrScriptListHtml(d.room) + '</div>' +
     '<div class="scr-sub"><b>' + SCR_KIND[s.kind] + (s.index != null ? ' #' + s.index : '') + '</b> <code>' + s.addrHex + '</code>' +
     (s.scriptId != null ? ' · script id <code>$' + scrHex(s.scriptId, 4) + '</code>' : '') +
     ' · ' + s.rows.length + ' instructions' + (s.stop !== 'terminated' ? ' · <span class="scr-warn">' + scrEsc(s.stop) + '</span>' : '') +
@@ -228,7 +230,7 @@ function scrRenderRoomSide(side, d, sel) {
     + '<div class="scr-map"><img src="' + p.uri + '" width="' + p.width + '" height="' + p.height + '" alt="">'
     + '<svg viewBox="0 0 ' + p.width + ' ' + p.height + '" preserveAspectRatio="none">' + ScriptsListing.boundsSvg(p.width, p.height, d.room.bounds || [], live)
     + scrSpritesSvg(d) + boxes + ScriptsListing.arrivalsSvg(d.room.arrivals || []) + '</svg></div>'
-    + ScriptsListing.arrivalsHtml(d.room.arrivals || []) + (m ? ScriptsListing.slicesHtml(m.slices || [], m.blocks, _scr.icons) : '');
+    + ScriptsListing.arrivalsHtml(d.room.arrivals || []) + (m ? ScriptsListing.slicesHtml(m.slices || [], m.blocks, _scr.icons, _scr.room) : '');
 }
 
 function scrOnRoomMessage(msg) {

@@ -27,6 +27,7 @@ var _scr = {
   live: {},              // room id -> { live id -> object key | null }: an object index a line computes, read from the running game (scriptsLive)
   liveWant: {},          // room id -> { live id: true }: the shown lines that compute one
   icons: {},             // icon key (enemy:11, loot:2049, weapon:24, dog:2) -> data URI | null, from the user's ROM
+  hex: false,            // numbers in hex (off: decimal, as the host prints them; ScriptsListing.toHex)
   structured: true,      // the enter script as if/else/while (off: each instruction as printed, gotos and all)
   assume: { IN_ANIMATION: false, DOG_UNAVAILABLE: false, CHANGE_MUSIC: false }, // entry state (ScriptsListing.ENTRY_FLAGS)
   // Maps
@@ -101,7 +102,9 @@ function scrToolsHtml() {
       '<label class="scr-check" title="Group the triggers by the simulation\'s clusters: pickups, exits, dialog, cutscenes">' +
       '<input type="checkbox" data-scr-toggle="clusters"' + (_scr.clusters ? ' checked' : '') + '> Clusters</label>' +
       '<label class="scr-check" title="Read the enter script as if / else / while. Off: each instruction as it is in the ROM, with its gotos">' +
-      '<input type="checkbox" data-scr-toggle="structured"' + (_scr.structured ? ' checked' : '') + '> Structured</label>';
+      '<input type="checkbox" data-scr-toggle="structured"' + (_scr.structured ? ' checked' : '') + '> Structured</label>' +
+      '<label class="scr-check" title="Numbers in hex. Off: in decimal, the way the listing reads them; addresses, bits and ids stay hex">' +
+      '<input type="checkbox" data-scr-toggle="hex"' + (_scr.hex ? ' checked' : '') + '> Hex</label>';
   }
   if (_scr.view === 'anim') {
     return '<span class="scr-seg" role="group" title="Facing">' + SCR_FACINGS.map(function (f) {

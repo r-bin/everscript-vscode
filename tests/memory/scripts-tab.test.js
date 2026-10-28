@@ -35,6 +35,7 @@ function hostDeps(rom, posted) {
         },
         roomVariants: require('../../dist/games/evermore/rooms').roomVariantsFor,
         dogIcon: sprites.dogFormIcon,
+        dogPortrait: sprites.dogPortrait,
     };
 }
 
@@ -353,6 +354,22 @@ async function dom(rom) {
         assert.ok((await page.textContent('#scr-mid')).includes('inside'), 'an arrival opens the room it comes from');
         await page.click('[data-scr-pick="room:37"]');
         await pump();
+        await page.click('.scr-map rect[data-scr-script="step:0"]');
+    });
+    await test('money in the era\'s currency, numbers in decimal and the Hex toggle, trigger chips with their spot and their loot', async () => {
+        await page.click('[data-scr-pick="room:5"]');
+        await pump();
+        const mid = () => page.textContent('#scr-mid');
+        assert.ok((await mid()).includes('PRIZE_2_QTY = 40;'), 'decimal');
+        assert.ok(await page.locator('#scr-mid img.scr-icon[title^="money"]').count() > 0, 'PRIZE_2_DROP = MONEY: the swamp\'s currency');
+        await page.check('[data-scr-toggle="hex"]');
+        assert.ok((await mid()).includes('PRIZE_2_QTY = 0x28;'), 'hex');
+        await page.uncheck('[data-scr-toggle="hex"]');
+        await page.click('[data-scr-pick="room:37"]');
+        await pump();
+        assert.ok(await page.locator('.scr-chips .scr-chip-pic').count() > 10, 'each trigger chip shows its spot');
+        assert.ok(await page.locator('.scr-chips img.scr-chip-loot').count() > 5, 'a pickup shows what it gives');
+        if (process.env.SCRIPTS_TAB_SHOT) await page.locator('.scr-chips').screenshot({ path: path.join(process.env.SCRIPTS_TAB_SHOT, 'scripts-chips.png') });
         await page.click('.scr-map rect[data-scr-script="step:0"]');
     });
     await test('the Everscript toggle shows the simulation, Clusters groups the triggers', async () => {
