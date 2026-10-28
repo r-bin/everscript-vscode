@@ -235,9 +235,10 @@ export const romJs = ['rom-tab.js', 'rom-bus-map.js', 'rom-bus-view.js', 'rom-co
 export const musicJs = [loadFile(path.join(musicDir, '..', 'engine', 'spc-engine.js')), pageBundle('music-view'), pageBundle('music-engine')]
     .concat(['music-audio.js', 'music-tab.js', 'music-timeline.js', 'music-hover.js', 'music-forecast.js', 'music-lists.js', 'music-init.js'].map(function(f) { return loadFile(path.join(musicDir, f)); }))
     .join('\n');
-// The Maps view's builders are TypeScript (scripts-maps.dom.ts): its bundle declares `ScriptsMaps` inside the page's IIFE.
+// The Maps view's builders are TypeScript (scripts-maps.dom.ts): its bundle declares `ScriptsMaps` inside the page's IIFE;
+// the enter listing's (scripts-listing.dom.ts) `ScriptsListing`.
 // `highlightScript` (script-vm/highlight.ts) colours script lines, as in the Rooms tab.
-export const scriptsJs = [pageBundle('scripts-maps'), pageBundle('script-highlight')].concat(['scripts-tab.js', 'scripts-room.js', 'scripts-anim.js', 'scripts-music.js', 'scripts-init.js']
+export const scriptsJs = [pageBundle('scripts-maps'), pageBundle('scripts-listing'), pageBundle('script-highlight')].concat(['scripts-tab.js', 'scripts-room.js', 'scripts-anim.js', 'scripts-music.js', 'scripts-init.js']
     .map(function(f) { return loadFile(path.join(scriptsDir, f)); })).join('\n');
 // The Data tab is TypeScript (data-tab.dom.ts): its bundle declares `DataTab` inside the page's IIFE, which hands it `vs`.
 export const dataJs = pageBundle('data-tab') + '\nDataTab.setupDataTab(function (m) { if (vs) vs.postMessage(m); }, typeof ACTIVE_TAB !== \'undefined\' ? ACTIVE_TAB : \'\');';

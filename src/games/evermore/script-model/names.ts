@@ -3,10 +3,14 @@
 // localizations; a miss is '' or null, never a guess.
 //
 // `printNames()` gives them to script-vm's printer as identifiers (`CHANGE_DOGGO`, `ACID_RAIN`),
-// the form the compiler's notation reads best in.
+// the form the compiler's notation reads best in. Constants (`music(UNKNOWN_PREHISTORIA_AMBIENT)`,
+// `attach_script(1, B, …)`) and unnamed cells (`<0x23bf>` PACIFIED) come from the compiler's own
+// enums (language/data/index.json, its data file): the names it compiles. Which operand takes
+// which enum is ours, from the handlers (PARAMETERS).
 
 import type { Names } from '../script-vm';
 import names from './names.json';
+import compiler from '../language/data/index.json';
 
 type Table = Record<string, string>;
 
@@ -87,14 +91,91 @@ export function enemyName(index: number): EnemyName | null {
     return ENEMIES[String(index)] ?? null;
 }
 
+type Constant = { name: string; value: string };
+const ENUMS = compiler.enums as unknown as Record<string, Constant[]>;
+
+/** A name that says nothing: `UNKNOWN`, `UNKNOWN_2` (`UNKNOWN_PREHISTORIA_AMBIENT` still says where). */
+const NAMELESS = /^UNKNOWN(_\d+)?$/;
+/** Enum → value → its first name; nameless ones left out. */
+const constants = new Map<string, Map<number, string>>();
+/** The constant of compiler enum `type` with this value; '' when it has none. */
+export function constantName(type: string, value: number): string {
+    let m = constants.get(type);
+    if (!m) {
+        m = new Map();
+        for (const c of ENUMS[type] ?? []) {
+            const v = Number(c.value);
+            if (Number.isFinite(v) && !NAMELESS.test(c.name) && !m.has(v)) m.set(v, c.name);
+        }
+        constants.set(type, m);
+    }
+    return m.get(value) ?? '';
+}
+
+/**
+ * The enum each operand of an instruction takes, by the printer's name for it, null for a number;
+ * written from the handlers (knowledge/opcodes/<xx>.md), not from the compiler's signatures, whose
+ * order can differ (its `animate(character, mode, id)`; the handler reads entity, id, mode).
+ * `TRIGGER_ID`: a trigger id, named by ADDRESS_ID from $100 up (its smaller values are global ids).
+ */
+const PARAMETERS: Record<string, Array<string | null>> = {
+    attach_script: [null, 'SCRIPT_TRIGGER', 'TRIGGER_ID'],
+    animate: [null, null, 'ANIMATION_MODE'],
+    animate_and_wait: [null, null, 'ANIMATION_MODE'],
+};
+export function parameterTypes(fn: string): ReadonlyArray<string | null> {
+    return PARAMETERS[fn] ?? [];
+}
+
+/**
+ * A field of an entity record by its offset, lower case (`0x1a` → `x`): the compiler's ATTRIBUTE
+ * enum, whose offsets knowledge ram/7e4e89 checked; '' past the record or without a name.
+ */
+export function fieldName(offset: number): string {
+    if (offset >= 0xAE) return '';
+    const n = constantName('ATTRIBUTE', offset);
+    return n && !n.startsWith('_') ? n.toLowerCase() : '';
+}
+
+/**
+ * The compiler's MEMORY enum by address: `<0x23bf>` → PACIFIED. Not in the temp area ($2834,
+ * 200 bytes): its names there (`ENTITY_4`) are the compiler's own scratch cells, not what the
+ * game keeps in them; those cells are sliced (slices.ts) instead.
+ */
+let memoryEnum: Map<number, string> | null = null;
+function compilerMemory(addr: number): string {
+    if (!memoryEnum) {
+        memoryEnum = new Map();
+        for (const c of ENUMS.MEMORY ?? []) {
+            const a = /<0x([0-9a-f]+)>/i.exec(c.value);
+            const at = a ? parseInt(a[1], 16) : -1;
+            if (at >= 0x2834 && at < 0x2834 + 200) continue;
+            if (a && !NAMELESS.test(c.name) && !memoryEnum.has(parseInt(a[1], 16))) memoryEnum.set(parseInt(a[1], 16), c.name);
+        }
+    }
+    return memoryEnum.get(addr) ?? '';
+}
+
+/** A typed constant: ADDRESS_ID's trigger ids only from $100 up (its smaller values are global ids). */
+function typedConstant(type: string, value: number): string {
+    if (type === 'TRIGGER_ID') return value >= 0x100 ? constantName('ADDRESS_ID', value) : '';
+    return constantName(type, value);
+}
+
+/**
+ * What a cell's values are, where the game says so: the loot reward and the three prize items
+ * (knowledge ram/7e2391: the default loot script copies a prize into the reward), the dog's form
+ * asked for and the one it has (ram/7e2443, ram/7e2363).
+ */
+const CELL_TYPES: Record<number, string> = { 0x2443: 'DOG', 0x2363: 'DOG' };
+const LOOT_CELLS = new Set([0x2391, 0x23a1, 0x23a3, 0x23a5]);
+
 /** `Hut/house to enter?` → `HUT_HOUSE_TO_ENTER`. */
 export function identifier(name: string): string {
     return name.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').replace(/^(\d)/, '_$1');
 }
 
 const bitOf = (mask: number): number => 31 - Math.clz32(mask);
-/** The loot mailbox's reward cell (knowledge ram/7e2391): its values are LOOT_REWARD ids. */
-const LOOT_ITEM = 0x2391;
 
 /** What the knowledge entries (soe://localization/knowledge, the `game-knowledge` skill) name, by bus address. */
 let knowledgeNames: { ram: Map<number, string>; rom: Map<number, string> } | null = null;
@@ -125,12 +206,15 @@ export function displayNames(file: (bus: number) => number): Names {
 /** The names above, for script-vm's printer. `file` maps a bus address to a file offset. */
 export function printNames(file: (bus: number) => number): Names {
     return {
-        memory: (addr) => identifier(memoryName(addr)),
+        memory: (addr) => identifier(memoryName(addr)) || compilerMemory(addr),
         flag: (addr, mask) => identifier(flagName(addr, bitOf(mask))),
         script: (bus) => identifier(scriptName(file(bus))),
-        global: (id) => identifier(globalScriptName(id)),
+        global: (id) => identifier(globalScriptName(id)) || constantName('ADDRESS_ID', id),
         map: (id) => mapName(id),
-        value: (addr, v) => (addr === LOOT_ITEM ? lootRewardName(v) : null) ?? identifier(valueName(addr, v) ?? ''),
+        value: (addr, v) => (LOOT_CELLS.has(addr) ? lootRewardName(v) : null) || (CELL_TYPES[addr] ? constantName(CELL_TYPES[addr], v) : '') || identifier(valueName(addr, v) ?? ''),
         enemy: (index) => enemyName(index)?.name ?? '',
+        constant: typedConstant,
+        parameters: parameterTypes,
+        field: fieldName,
     };
 }

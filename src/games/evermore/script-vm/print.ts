@@ -1,15 +1,22 @@
 // Ownership: an instruction as one line of text in the Everscript compiler's notation — `<0x2391>`
 // for a word, `<0x2260, 0x10>` for a flag, `arg[n]` for the slot's local bytes, `goto`, `call` —
 // with our names for the opcodes (spec.ts) and the caller's names for memory, scripts and maps.
-// An unnamed cell of the room's temp area ($2834, 200 bytes) reads `temp[n]`, like `arg[n]`.
+// An unnamed cell of the room's temp area ($2834, 200 bytes) reads `temp[n]`, like `arg[n]`;
+// a caller that has sliced them (`Names.slice`) gets `arg.entity_1`, `temp.word_2`.
 // Pure. This is for reading; `everscript()` gives the form that compiles back to the same bytes.
 //
 // `printed()` also says what is wrong with the line (`Mark`): an error for an opcode we have no
-// name for, a warning for a `signed` read whose sign cannot change the result.
+// name for, a warning for a `signed` read whose sign cannot change the result — only tested for
+// zero, compared with a small constant, or passed where the handler takes an entity (a word).
+//
+// Constants are named where the caller knows what they are (`Names.constant`): the parameters a
+// compiler function types (`music(music:MUSIC)`), a value written to or compared with a cell whose
+// values are known (`Names.value`). A called global reads by its name, `call_id(FADE_IN)`.
+// `end` reads `return;`: it leaves the script, back to its caller or, at the top, the thread.
 
 import { Instruction, Operand } from './decode';
 import { Expression, Node, Term, tree } from './expression';
-import { Fact, facts } from './facts';
+import { ENTITY_FIRST, Fact, facts } from './facts';
 import { hexLower } from '../../../platform/hex';
 
 /** Names a caller can supply; each returns '' (or null) when it has none. */
@@ -27,6 +34,18 @@ export interface Names {
     map?(id: number): string;
     /** An ENEMY value. */
     enemy?(index: number): string;
+    /** The constant of enum `type` (`MUSIC`, `SCRIPT_TRIGGER`) with this value. */
+    constant?(type: string, value: number): string;
+    /**
+     * A cell of the slot's local bytes (`local`, offset) or of the temp area (`temp`, offset from
+     * $2834) by its slice's name (`arg.entity_1`, `temp.flags_1`); `width` 0 for a flag. The name
+     * carries the width, so no `(Byte)` is printed with it.
+     */
+    slice?(area: 'local' | 'temp', offset: number, width: 0 | 1 | 2): string;
+    /** A field of an entity record by its offset (`0x1a` → `x`). */
+    field?(offset: number): string;
+    /** The enum each shown operand of the instruction the printer calls `fn` takes; null for a number. */
+    parameters?(fn: string): ReadonlyArray<string | null>;
 }
 
 const hex = (v: number, w = 2): string => '0x' + hexLower(v, w);
@@ -39,29 +58,49 @@ const TEMP = 0x2834;
 /** What is wrong with a printed line: `find`'s `nth` occurrence (0-based), or the whole line when `find` is absent. */
 export interface Mark { severity: 'error' | 'warning'; message: string; find?: string; nth?: number }
 
-/** Stands before a `signed` the printer marks; removed (and turned into a Mark) by `printed()`. */
-const USELESS = '\u0001';
+/** Stand before a `signed` the printer marks (why: tested for zero, an entity); removed (and turned into Marks) by `printed()`. */
+const USELESS = '\u0001', POINTER = '\u0002';
+type Why = '' | 'zero' | 'pointer';
 
-/** An unnamed save- or temp-area cell. */
-const cellName = (addr: number): string => (addr >= TEMP && addr < TEMP + 200 ? `temp[${addr - TEMP}]` : `<${hex(addr, 4)}>`);
-const flagCell = (addr: number, mask: number): string => (addr >= TEMP && addr < TEMP + 200 ? `temp_flag[${addr - TEMP}, ${hex(mask)}]` : `<${hex(addr, 4)}, ${hex(mask)}>`);
+const inTemp = (addr: number): boolean => addr >= TEMP && addr < TEMP + 200;
+/** An unnamed save- or temp-area cell: its slice, else `temp[n]` / `<0x2391>`; `sized`: the name carries the width. */
+function cellName(addr: number, names: Names, width: 1 | 2): { text: string; sized: boolean } {
+    const slice = inTemp(addr) ? names.slice?.('temp', addr - TEMP, width) : '';
+    return slice ? { text: slice, sized: true } : { text: inTemp(addr) ? `temp[${addr - TEMP}]` : `<${hex(addr, 4)}>`, sized: false };
+}
+function flagCell(addr: number, mask: number, names: Names): string {
+    const slice = inTemp(addr) ? names.slice?.('temp', addr - TEMP, 0) : '';
+    if (slice) return `${slice}[${hex(mask)}]`;
+    return inTemp(addr) ? `temp_flag[${addr - TEMP}, ${hex(mask)}]` : `<${hex(addr, 4)}, ${hex(mask)}>`;
+}
+/** The slot's local bytes: arg[n], arg_flag[n, mask], or their slice. */
+function localCell(offset: number, names: Names, width: 1 | 2): { text: string; sized: boolean } {
+    const slice = names.slice?.('local', offset, width);
+    return slice ? { text: slice, sized: true } : { text: `arg[${offset}]`, sized: false };
+}
+function localFlag(offset: number, mask: number, names: Names): string {
+    const slice = names.slice?.('local', offset, 0);
+    return slice ? `${slice}[${hex(mask)}]` : `arg_flag[${offset}, ${hex(mask)}]`;
+}
 const PRECEDENCE: Record<string, number> = {
     '||': 1, '&&': 2, '|': 3, '^': 4, '&': 5, '==': 6, '!=': 6, '<': 7, '>': 7, '<=': 7, '>=': 7,
     '<<': 8, '>>': 8, '+': 9, '-': 9, '*': 10, '/': 10,
 };
 
-function termText(t: Term, names: Names, useless = false): string {
+function termText(t: Term, names: Names, useless: Why = ''): string {
     const s = t.spec;
     const v = t.value ?? 0;
     if (s.kind === 'flag') {
-        if (s.area === 'local') return `arg_flag[${v >> 3}, ${hex(1 << (v & 7))}]`;
+        if (s.area === 'local') return localFlag(v >> 3, 1 << (v & 7), names);
         const addr = AREA_BASE[s.area!] + (v >> 3), mask = 1 << (v & 7);
-        return names.flag?.(addr, mask) || flagCell(addr, mask);
+        return names.flag?.(addr, mask) || flagCell(addr, mask, names);
     }
     if (s.kind === 'read') {
-        const cell = s.area === 'local' ? `arg[${v}]` : (names.memory?.(AREA_BASE[s.area!] + v) || cellName(AREA_BASE[s.area!] + v));
-        const width = s.width === 1 ? '(Byte)' : '';
-        return (s.signed ? (useless ? USELESS : '') + 'signed ' : '') + width + cell;
+        const w = s.width === 1 ? 1 : 2;
+        const named = s.area === 'local' ? '' : names.memory?.(AREA_BASE[s.area!] + v) || '';
+        const cell = named ? { text: named, sized: false } : s.area === 'local' ? localCell(v, names, w) : cellName(AREA_BASE[s.area!] + v, names, w);
+        const width = s.width === 1 && !cell.sized ? '(Byte)' : '';
+        return (s.signed ? (useless === 'zero' ? USELESS : useless === 'pointer' ? POINTER : '') + 'signed ' : '') + width + cell.text;
     }
     return `${s.name}()`;
 }
@@ -70,14 +109,16 @@ function termText(t: Term, names: Names, useless = false): string {
  * `truth`: the node's value is only tested for zero (a branch, `!`, `&&`, `||`), where a sign
  * extension cannot matter: it only fills the high word of a value that is not zero anyway.
  */
-function nodeText(n: Node, names: Names, outer = 0, truth = false): string {
+function nodeText(n: Node, names: Names, outer = 0, truth: Why = ''): string {
     switch (n.k) {
         case 'const': return constText(n.value);
         case 'read': return termText(n.term, names, truth);
         case 'value': return termText(n.term, names);
         case 'unknown': return '?';
         case 'unary': {
-            const a = nodeText(n.arg, names, 11, n.op === '!');
+            const f = fieldText(n, names);
+            if (f) return f;
+            const a = nodeText(n.arg, names, 11, n.op === '!' ? 'zero' : '');
             if (n.op === '!' || n.op === '~' || n.op === '-') return n.op + a;
             return `${n.op}(${nodeText(n.arg, names)})`;
         }
@@ -85,7 +126,11 @@ function nodeText(n: Node, names: Names, outer = 0, truth = false): string {
             const p = PRECEDENCE[n.op] ?? 0;
             const logic = n.op === '&&' || n.op === '||';
             const eq = n.op === '==' || n.op === '!=';
-            const s = `${nodeText(n.left, names, p, logic || (eq && signless(n.left, n.right)))} ${n.op} ${nodeText(n.right, names, p + 1, logic || (eq && signless(n.right, n.left)))}`;
+            const side = (a: Node, b: Node, q: number): string => {
+                const named = eq && a.k === 'const' ? compared(b, a.value, names) : '';
+                return named || nodeText(a, names, q, logic || (eq && signless(a, b)) ? 'zero' : '');
+            };
+            const s = `${side(n.left, n.right, p)} ${n.op} ${side(n.right, n.left, p + 1)}`;
             return p < outer ? `(${s})` : s;
         }
     }
@@ -101,18 +146,57 @@ function signless(read: Node, other: Node): boolean {
     return other.value >= 0 && other.value < (read.term.spec.width === 1 ? 0x80 : 0x8000);
 }
 
-export function expressionText(e: Expression, names: Names = {}, truth = false): string {
-    return nodeText(tree(e), names, 0, truth).split(USELESS).join('');
+/** The entity sub-ops (`boy()`, `camera_entity()`): a value that is an entity record's address. */
+const ENTITIES = new Set(['last_entity', 'self_entity', 'boy', 'dog', 'camera_entity', 'other_character']);
+
+/** `entity.field` for an entity sub-op or a cell sliced as one, plus a named offset (`boy() + 0x1a` → `boy.x`); '' otherwise. */
+function entityField(n: Node, names: Names): string {
+    const base = n.k === 'binary' && n.op === '+' && n.right.k === 'const' ? n.left : n;
+    const offset = base === n ? 0 : (n as { right: { value: number } }).right.value;
+    const field = names.field?.(offset);
+    if (!field) return '';
+    if (base.k === 'value' && ENTITIES.has(base.term.spec.name)) return `${base.term.spec.name}.${field}`;
+    // A cell sliced as an entity (`arg.entity_1`): its sign cannot matter, the address is a word.
+    if (base.k === 'read' && base.term.spec.width === 2) {
+        const cell = termText({ ...base.term, spec: { ...base.term.spec, signed: false } }, names);
+        if (/\.entity_\d+$/.test(cell)) return `${cell}.${field}`;
+    }
+    return '';
 }
 
-/** `expressionText`, with the marker `printed()` turns into warnings. */
-const marked = (e: Expression, names: Names, truth = false): string => nodeText(tree(e), names, 0, truth);
+/** `deref(boy() + 0x1a)` read as `boy.x` (`(Byte)boy.x` for `deref_byte`); '' when the field has no name. */
+function fieldText(n: Node, names: Names): string {
+    if (n.k !== 'unary' || (n.op !== 'deref' && n.op !== 'deref_byte')) return '';
+    const f = entityField(n.arg, names);
+    return f ? (n.op === 'deref_byte' ? '(Byte)' : '') + f : '';
+}
 
-function operandText(o: Operand, names: Names, truth = false): string {
+/** A constant compared with a save- or temp-area cell, by the name of that cell's value; '' when it has none. */
+function compared(read: Node, value: number, names: Names): string {
+    if (read.k !== 'read' || read.term.spec.area === 'local' || !read.term.spec.area) return '';
+    return names.value?.(AREA_BASE[read.term.spec.area] + (read.term.value ?? 0), value) || '';
+}
+
+const MARKERS = new RegExp(`[${USELESS}${POINTER}]`, 'g');
+
+export function expressionText(e: Expression, names: Names = {}, truth = false): string {
+    return nodeText(tree(e), names, 0, truth ? 'zero' : '').replace(MARKERS, '');
+}
+
+/** `expressionText`, with the markers `printed()` turns into warnings. */
+const marked = (e: Expression, names: Names, truth: Why = ''): string => nodeText(tree(e), names, 0, truth);
+
+/** `type`: the enum the operand takes (`Names.parameters`); `entity`: it is an entity (ENTITY_FIRST). */
+function operandText(o: Operand, names: Names, truth = false, type: string | null = null, entity = false): string {
+    const constant = (v: number): string => (type ? names.constant?.(type, v) : '') || '';
     switch (o.k) {
-        case 'u8': case 'skip': return hex(o.value);
-        case 'u16': return hex(o.value, 4);
-        case 'E': return marked(o.expr, names, truth);
+        case 'u8': case 'skip': return constant(o.value) || hex(o.value);
+        case 'u16': return constant(o.value) || hex(o.value, 4);
+        case 'E': {
+            const n = tree(o.expr);
+            if (n.k === 'const' && constant(n.value)) return constant(n.value);
+            return marked(o.expr, names, truth ? 'zero' : entity ? 'pointer' : '');
+        }
         case 'A': return o.args.map((a) => marked(a, names)).join(', ');
         case 'Z': return '[' + o.list.map((a) => marked(a, names)).join(', ') + ']';
         default: return bus(o.target);
@@ -125,8 +209,9 @@ function target(addr: number | null, names: Names): string {
 }
 
 function cell(area: string, addr: number, width: 1 | 2, names: Names): string {
-    const c = area === 'local' ? `arg[${addr}]` : (names.memory?.(addr) || cellName(addr));
-    return (width === 1 ? '(Byte)' : '') + c;
+    const named = area === 'local' ? '' : names.memory?.(addr) || '';
+    const c = named ? { text: named, sized: false } : area === 'local' ? localCell(addr, names, width) : cellName(addr, names, width);
+    return (width === 1 && !c.sized ? '(Byte)' : '') + c.text;
 }
 
 /** The instruction as one line of text. */
@@ -139,11 +224,17 @@ export function printed(ins: Instruction, names: Names = {}): { text: string; ma
     const raw = line(ins, names);
     const marks: Mark[] = [];
     if (!ins.spec.name) marks.push({ severity: 'error', message: `Opcode $${hexLower(ins.opcode, 2)} has no name: what its handler does is not known yet.` });
-    const parts = raw.split(USELESS);
+    const parts = raw.split(MARKERS);
+    const why = raw.match(MARKERS) ?? [];
     let seen = 0;
     for (let i = 1; i < parts.length; i++) {
         seen += (parts[i - 1].match(/\bsigned\b/g) ?? []).length;
-        marks.push({ severity: 'warning', find: 'signed', nth: seen, message: 'signed changes nothing here: the value is only tested for zero or compared with a small constant, which reads the same unsigned. The unsigned read is the same size.' });
+        marks.push({
+            severity: 'warning', find: 'signed', nth: seen,
+            message: why[i - 1] === POINTER
+                ? 'signed changes nothing here: this parameter is an entity, and the handler takes only the low word of its address, which a sign extension never touches. The unsigned read is the same size.'
+                : 'signed changes nothing here: the value is only tested for zero or compared with a small constant, which reads the same unsigned. The unsigned read is the same size.',
+        });
     }
     return { text: parts.join(''), marks };
 }
@@ -159,13 +250,14 @@ function line(ins: Instruction, names: Names): string {
             return `${cell(f.area, f.addr, f.width, names)} = ${named || (f.expr ? marked(f.expr, names) : constText(f.value ?? 0))};`;
         }
         case 'flag': {
-            const name = f.area === 'local' ? `arg_flag[${f.addr}, ${hex(f.mask)}]` : (names.flag?.(f.addr, f.mask) || flagCell(f.addr, f.mask));
+            const name = f.area === 'local' ? localFlag(f.addr, f.mask, names) : (names.flag?.(f.addr, f.mask) || flagCell(f.addr, f.mask, names));
             return `${name} = ${marked(f.expr, names)};`;
         }
         case 'tilePair': return `(${cell(f.area, f.xAddr, 2, names)}, ${cell(f.area, f.yAddr, 2, names)}) = (${f.x}, ${f.y});`;
         case 'call': {
-            const head = f.global !== null ? `call_id(${hex(f.global)})` : f.trigger !== null ? `call_trigger(${hex(f.trigger, 4)})` : `call ${target(f.target, names)}`;
-            const via = f.global !== null ? (names.global?.(f.global) || target(f.target, names)) : f.trigger !== null ? target(f.target, names) : '';
+            const named = f.global !== null ? names.global?.(f.global) || '' : '';
+            const head = f.global !== null ? `call_id(${named || hex(f.global)})` : f.trigger !== null ? `call_trigger(${hex(f.trigger, 4)})` : `call ${target(f.target, names)}`;
+            const via = f.global !== null ? (named ? '' : target(f.target, names)) : f.trigger !== null ? target(f.target, names) : '';
             return `${withArgs(head)};${via ? ` // ${via}` : ''}`;
         }
         case 'start': return `${withArgs(`async ${target(f.target, names)}`)};`;
@@ -174,13 +266,13 @@ function line(ins: Instruction, names: Names): string {
             const notes = [names.map?.(f.map) || '', f.word !== null && f.word > 0xFF ? `word ${hex(f.word, 4)}` : ''].filter(Boolean);
             return `load_map(${hex(f.map)}, ${f.x}, ${f.y});${notes.length ? ` // ${notes.join(', ')}` : ''}`;
         }
-        case 'sound': return `sound(${hex(f.index)});`;
-        case 'music': return `music(${hex(f.index)});`;
+        case 'sound': return `sound(${names.constant?.('SOUND', f.index) || hex(f.index)});`;
+        case 'music': return `music(${names.constant?.('MUSIC', f.index) || hex(f.index)});`;
         case 'text': return `${f.message ? 'subtext' : 'text'}(${f.window !== null ? f.window + ', ' : ''}${hex(f.key, 4)});`;
         case 'spawn': return `${f.spawner ? 'spawner' : 'spawn'}(${names.enemy?.(f.index) || hex(f.index)}, ${f.x === null ? `${E(2)}, ${E(3)}` : `${f.x}, ${f.y}`}${f.state ? ', ' + hex(f.state, 4) : ''});`;
         case 'sleep': return `sleep(${f.ticks === null ? E(0) : f.ticks});`;
         case 'yield': return 'yield();';
-        case 'end': return 'end();';
+        case 'end': return 'return;';
         default: break;
     }
     switch (ins.opcode) {
@@ -195,17 +287,25 @@ function line(ins: Instruction, names: Names): string {
         case 0x5F: return `object[${E(0)}] += ${hex(num(o[1]), 4)};`;
         case 0x60: return `object[${E(0)}]++;`;
         case 0x61: return `object[${E(0)}]--;`;
-        case 0x74: return `face(${E(0)}, NORTH);`;
-        case 0x75: return `face(${E(0)}, SOUTH);`;
-        case 0x76: return `face(${E(0)}, WEST);`;
-        case 0x77: return `face(${E(0)}, EAST);`;
+        case 0x74: return `face(${operandText(o[0], names, false, null, true)}, NORTH);`;
+        case 0x75: return `face(${operandText(o[0], names, false, null, true)}, SOUTH);`;
+        case 0x76: return `face(${operandText(o[0], names, false, null, true)}, WEST);`;
+        case 0x77: return `face(${operandText(o[0], names, false, null, true)}, EAST);`;
+        case 0x7A: {
+            const f = o[0].k === 'E' ? entityField(tree(o[0].expr), names) : '';
+            if (f) return `${f} = ${E(1)};`;
+            break;
+        }
         case 0xAB: return 'reset_game();';
         default: break;
     }
     const name = ins.spec.name || `op_${ins.opcode.toString(16).padStart(2, '0')}`;
-    const shown = o.filter((x) => x.k !== 'skip' && x.k !== 'r16').map((x) => operandText(x, names));
+    const shown = o.filter((x) => x.k !== 'skip' && x.k !== 'r16');
+    const types = names.parameters?.(name) ?? [];
+    const typed = (i: number): string | null => (types.length === shown.length ? types[i] ?? null : null);
+    const texts = shown.map((x, i) => operandText(x, names, false, typed(i), i === 0 && ENTITY_FIRST.has(ins.opcode)));
     const jump = ins.flow === 'branch' && ins.target !== null ? ` goto ${bus(ins.target)}` : '';
-    return `${name}(${shown.join(', ')})${jump};`;
+    return `${name}(${texts.join(', ')})${jump};`;
 }
 
 function num(o: Operand | undefined): number { return o && 'value' in o ? o.value : 0; }

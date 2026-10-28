@@ -40,14 +40,14 @@ export function union(a: Footprint, b: Footprint): Footprint {
 
 /**
  * Entities an instruction's text names: a placed NPC's label (`Boy#ca7d`, step.ts resolveText),
- * the character sub-ops (`word_0f3e()` the boy, `word_0f40()` the dog, `camera_entity()` the
+ * the character sub-ops (`boy()` the boy, `dog()` the dog, `camera_entity()` the
  * controlled one, `other_character()`, `self_entity()` the script's owner) or a WRAM cell.
  */
-const ENTITY = /([A-Z][\w' .-]*#[0-9a-f.]+)|\b(word_0f3e|word_0f40|camera_entity|other_character|self_entity)\(\)|<0x([0-9a-f]{4})>/gi;
+const ENTITY = /([A-Z][\w' .-]*#[0-9a-f.]+)|\b(boy|dog|camera_entity|other_character|self_entity)\(\)|<0x([0-9a-f]{4})>/gi;
 /** Opcodes that act on fixed characters, with no operand naming them. */
 const IMPLIED: Record<number, string[]> = {
-    0xbc: ['word_0f3e'], 0xbd: ['word_0f3e'], 0xbf: ['word_0f40'],
-    0xaa: ['word_0f3e', 'word_0f40'], 0xc0: ['word_0f3e', 'word_0f40'], 0xc1: ['word_0f3e', 'word_0f40'],
+    0xbc: ['boy'], 0xbd: ['boy'], 0xbf: ['dog'],
+    0xaa: ['boy', 'dog'], 0xc0: ['boy', 'dog'], 0xc1: ['boy', 'dog'],
 };
 /** What the other opaque opcodes touch (see reach.ts GLOBAL). */
 const AUDIO = new Set([0x30, 0x31, 0x32, 0x33, 0x58, 0x59, 0x86, 0x87]);

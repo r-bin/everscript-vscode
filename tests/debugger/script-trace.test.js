@@ -178,8 +178,8 @@ test('processScriptTraceBatch preserves timestamps and decodes Room 0x15 enter s
   assert.strictEqual(results[0].frame, 7);
   assert.ok(results[0].summary.includes('LASER_LANCE'), `Expected Laser Lance summary, got: ${results[0].summary}`);
   assert.ok(results[0].subLines.length >= 2, 'Should have subLines for Fade in and End');
-  assert.ok(results[0].subLines[0].includes('call_id(0x36);'), `Expected call_id(0x36) in subLines[0]: ${results[0].subLines[0]}`);
-  assert.ok(results[0].subLines[1].includes('end();'), `Expected end() in subLines[1]: ${results[0].subLines[1]}`);
+  assert.ok(results[0].subLines[0].includes('call_id(FADE_IN);'), `Expected call_id(FADE_IN) in subLines[0]: ${results[0].subLines[0]}`);
+  assert.ok(results[0].subLines[1].includes('return;'), `Expected return in subLines[1]: ${results[0].subLines[1]}`);
 });
 
 // Test 8: everscript-trace.tmLanguage.json structure and regex sanity
@@ -413,7 +413,7 @@ test('RomAddressLookup and processScriptTraceBatch correctly attribute step-on t
   assert.strictEqual(results[0].lookup.kind, 'stepOn');
   assert.strictEqual(results[0].lookup.index, 0);
   assert.ok(results[0].line.includes('[0x15.step[0]]'));
-  assert.ok(results[0].line.includes('0x92A42F: end(); [00]'), results[0].line);
+  assert.ok(results[0].line.includes('0x92A42F: return; [00]'), results[0].line);
   assert.ok(results[0].html.includes('[0x15.step[0]]'));
 });
 

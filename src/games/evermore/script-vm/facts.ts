@@ -96,3 +96,10 @@ export function facts(ins: Instruction): Fact {
         default: return { k: 'other' };
     }
 }
+
+/**
+ * Opcodes whose first operand is an entity expression: the handler takes the value's low word as
+ * the entity's address (`$8C:EC8E`). From each opcode's knowledge entry (knowledge/opcodes/<xx>.md).
+ */
+export const ENTITY_FIRST = new Set([0x2A, 0x2B, 0x3D, 0x3F, 0x42, 0x43, 0x64, 0x6C, 0x6D, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79,
+    0x93, 0x94, 0x95, 0x9B, 0x9C, 0x9D, 0xA9, 0xB9, 0xBB]);

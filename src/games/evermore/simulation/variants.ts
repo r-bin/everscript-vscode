@@ -20,6 +20,10 @@
 // placed only under one is `later` on the variant: shown, but not what tells
 // variants apart.
 //
+// A random draw (`random & 7`, an extra in the outro) is not a story state
+// either: pieces that differ only by one are folded into one variant, and a
+// character only some rolls place stands there "at random" (`byChance`).
+//
 // Names come from the ROM: the story flags that select a variant (their
 // labels), then the characters only it places. Nothing else is guessed. The
 // short `title` is what a list shows: what selects it, as the scripts spell the
@@ -108,7 +112,7 @@ export function roomVariants(room: RoomAnalysis, dec: Decoder, splitOn: SplitOn 
         const k = p.spawns.filter((x) => !x.later).map((x) => x.at).join(',');
         byCast.set(k, [...(byCast.get(k) ?? []), p]);
     }
-    const folds = [...byCast.values()].map((ps) => {
+    const folds = [...byCast.values()].map((ps): Fold => {
         const named = ps.filter((p) => p.flags.length);
         const first = ps.find((p) => !p.flags.length) ?? named[0];
         // What happens later in the variant's own story (its flags) happens in it; the stories folded
@@ -128,10 +132,12 @@ export function roomVariants(room: RoomAnalysis, dec: Decoder, splitOn: SplitOn 
             scenarios: [...new Set(ps.map((p) => p.scenario))],
             cut: ps.some((p) => p.cut),
             reached: m ? reachedBy(m, room, ps, walks) : [],
+            story: [...new Set(ps.map(storyOf))],
         };
     });
-    const names = folds.map((f) => new Set(f.lead.spawns.filter((s) => !s.later).map((s) => s.name)));
-    const variants = folds.map((f, i): RoomVariant => {
+    const merged = byChance(folds);
+    const names = merged.map((f) => new Set(f.lead.spawns.filter((s) => !s.later).map((s) => s.name)));
+    const variants = merged.map((f, i): RoomVariant => {
         const mine = [...names[i]];
         const unique = mine.filter((n) => names.every((o, j) => j === i || !o.has(n)));
         const only = unique.length ? unique : mine.filter((n) => !names.every((o) => o.has(n)));
@@ -157,6 +163,54 @@ export function roomVariants(room: RoomAnalysis, dec: Decoder, splitOn: SplitOn 
     }
     // Default first, then the busiest rooms.
     return variants.sort((a, b) => (a.flags.length ? 1 : 0) - (b.flags.length ? 1 : 0) || b.spawns.length - a.spawns.length);
+}
+
+type Fold = { lead: Piece; also: string[]; when: string[]; scenarios: number[]; cut: boolean; reached: number[]; story: string[] };
+
+/** A random draw (`random`, `random below n`): what the dice say, not a state the player brings into the room. */
+function chance(s: Sym): boolean {
+    switch (s.k) {
+        case 'atom': return s.name.startsWith('random');
+        case 'un': case 'bit': case 'lo': case 'hi': return chance(s.a);
+        case 'bin': return chance(s.a) || chance(s.b);
+        case 'setbit': return chance(s.a) || chance(s.v);
+        case 'word': return chance(s.lo) || chance(s.hi);
+        case 'ite': return chance(s.cond) || chance(s.a) || chance(s.b);
+        default: return false;
+    }
+}
+
+/** A piece's story: its conditions without the random draws. */
+const storyOf = (p: Piece): string => p.when.filter((w) => !chance(w.cond)).map((w) => (w.value ? '' : '!') + key(w.cond)).sort().join('&');
+
+/**
+ * Folds that differ only by a random draw are one room: the same story, a different roll (the
+ * outro's extras, a market's passers-by). Merged, a character not every roll places stands
+ * there `when: at random`.
+ */
+function byChance(folds: Fold[]): Fold[] {
+    const out: Fold[] = [];
+    const byStory = new Map<string, Fold>();
+    for (const f of folds) {
+        const flags = f.lead.flags.join(' · ');
+        const into = f.story.map((s) => byStory.get(flags + '|' + s)).find(Boolean);
+        if (!into) {
+            out.push(f);
+            for (const s of f.story) byStory.set(flags + '|' + s, f);
+            continue;
+        }
+        const theirs = new Set(f.lead.spawns.map((x) => x.at)), mine = new Set(into.lead.spawns.map((x) => x.at));
+        for (const x of into.lead.spawns) if (!theirs.has(x.at) && !x.when) x.when = 'at random';
+        for (const x of f.lead.spawns) if (!mine.has(x.at)) into.lead.spawns.push({ ...x, when: x.when ?? 'at random' });
+        into.lead.spawns.sort((a, b) => a.at - b.at);
+        into.also = [...new Set([...into.also, ...f.also])];
+        into.when = [...new Set([...into.when, ...f.when])];
+        into.scenarios = [...new Set([...into.scenarios, ...f.scenarios])];
+        into.reached = [...new Set([...into.reached, ...f.reached])].sort((a, b) => a - b);
+        into.cut = into.cut || f.cut;
+        for (const s of f.story) if (!byStory.has(flags + '|' + s)) byStory.set(flags + '|' + s, into);
+    }
+    return out;
 }
 
 /** The short name: the flags that select the variant, as the scripts spell them (`INSIDE_OUTRO=True`), or `Default`. */

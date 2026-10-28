@@ -11,8 +11,12 @@
 // are greyed — `scr-off` when another variant runs them, `scr-dead` when none.
 // `_scr.structured` off shows each instruction as printed (`raw`) without the
 // braces: the bytes as they are, gotos and all. A called body is not indented
-// (it sits where its call is); its rows are tinted (`scr-inside`) instead.
-// A line's marks (script-vm print.ts) are squiggles.
+// (it sits where its call is): a bar in the call's colour per call it sits in
+// marks it. Each row is tinted by its role (setup, exit, pickup, sniff spot,
+// scene), and so are the chips and the trigger boxes. The entry state (flags
+// set by the way you came in) is assumed clear, a chip each to flip; the
+// picture shows the camera bounds and the doors that lead here
+// (scripts-listing.dom.ts). A line's marks (script-vm print.ts) are squiggles.
 
 var SCR_KIND = { enter: 'Enter', step: 'Step-on', b: 'B-trigger' };
 var SCR_CLUSTER_ICON = { loot: '◆', transition: '⇥', dialog: '💬', cutscene: '🎬', script: '·' };
@@ -45,7 +49,7 @@ function scrRoomClusters() {
 
 function scrScriptChip(s) {
   var name = s.kind === 'enter' ? 'Enter' : (s.kind === 'b' ? 'B' : 'S') + s.index;
-  return '<button class="scr-chip' + (s.key === _scr.script ? ' scr-on' : '') + '" data-scr-script="' + scrEsc(s.key) + '" title="' +
+  return '<button class="scr-chip' + (s.role ? ' scr-role-' + s.role : '') + (s.key === _scr.script ? ' scr-on' : '') + '" data-scr-script="' + scrEsc(s.key) + '" title="' +
     scrEsc(SCR_KIND[s.kind] + (s.index != null ? ' #' + s.index : '') + ' · ' + s.addrHex + ' · ' + s.label) + '">' + name + '</button>';
 }
 
@@ -155,30 +159,43 @@ function scrToggleFold(id) {
   scrRenderMain();
 }
 
-/** The enter script with its calls merged in: folds, and the lines the chosen variant does not run greyed. */
-function scrMergedHtml(m) {
+/** Each merged line's state ('' runs, 'off', 'dead') under the chosen variant and the entry state. */
+function scrLiveness(m) {
   var v = scrVariant(), got = _scr.variants[_scr.room], mine = null, any = {};
   if (v) {
     mine = {};
     v.reached.forEach(function (a) { mine[a] = 1; });
     got.variants.forEach(function (x) { x.reached.forEach(function (a) { any[a] = 1; }); });
   }
-  var folded = {}, structured = _scr.structured !== false;
+  return ScriptsListing.liveness(m.lines, mine, any, _scr.structured !== false ? _scr.assume : null);
+}
+
+/** A door picked on the map or in the list: open the room it is in at that script. */
+function scrArrive(value) {
+  var i = value.indexOf('|');
+  scrSelectRoom(Number(value.slice(0, i)));
+  _scr.script = value.slice(i + 1);
+  scrRender();
+}
+
+/** The enter script with its calls merged in: folds, and the lines the chosen variant does not run greyed. */
+function scrMergedHtml(m) {
+  var live = scrLiveness(m), folded = {}, structured = _scr.structured !== false;
   m.blocks.forEach(function (b) { folded[b.id] = scrFolded(b) || (b.parent >= 0 && folded[b.parent]); });
-  return '<table class="scr-rows"><tbody>' + m.lines.map(function (r) {
+  return (structured ? ScriptsListing.entryHtml(_scr.assume) : '') + '<table class="scr-rows"><tbody>' + m.lines.map(function (r, i) {
     if (r.in >= 0 && folded[r.in]) return '';
     if (r.brace && !structured) return '';
     var b = r.opens != null ? m.blocks[r.opens] : null, shut = b && scrFolded(b);
-    var cls = (r.note ? 'scr-note-row' : r.untraced ? 'scr-unk' : '') + (r.terminal ? ' scr-term' : '') + (r.in >= 0 && m.blocks[r.in].kind === 'call' ? ' scr-inside' : '')
-      + (mine && !r.note && !r.brace ? (mine[r.addressSnes] ? '' : any[r.addressSnes] ? ' scr-off' : ' scr-dead') : '');
+    var cls = (r.note ? 'scr-note-row' : r.untraced ? 'scr-unk' : '') + (r.terminal ? ' scr-term' : '') + ' scr-role-' + ScriptsListing.roleAt(r, m.blocks)
+      + (live[i] ? ' scr-' + live[i] : '');
     var bare = r.note || r.brace, text = !structured && r.raw ? r.raw : r.summary;
-    var indent = structured ? (r.indent != null ? r.indent : r.depth) : (r.flat || 0);
+    var indent = structured ? (r.indent != null ? r.indent : r.depth) : (r.flat || 0), calls = ScriptsListing.callDepth(r, m.blocks), at = 8 + indent * 14;
     return '<tr class="' + cls + '" data-in="' + r.in + '"' + (bare ? '' : ' data-addr="' + scrHex(r.addressSnes, 6) + '"') + (structured && r.raw ? ' title="' + scrEsc(r.raw) + '"' : '')
       + '><td class="scr-a">' + (bare ? '' : '$' + scrHex(r.addressSnes, 6)) + '</td>'
-      + '<td class="scr-s" style="padding-left:' + (8 + indent * 14) + 'px">'
+      + '<td class="scr-s' + (calls ? ' scr-called' : '') + '" style="padding-left:' + (at + calls * 6) + 'px' + (calls ? ';--calls-at:' + at + 'px;--calls-w:' + calls * 6 + 'px' : '') + '">'
       + (b ? '<button class="scr-fold" data-scr-fold="' + b.id + '" aria-expanded="' + !shut + '" title="' + (shut ? 'Show' : 'Hide') + ' the '
         + (b.kind === 'call' ? 'called script' : 'thread') + ' (' + b.size + ' lines)">' + (shut ? '▸' : '▾') + '</button>' : '')
-      + (r.note ? scrEsc(r.summary) : scrLine(text, r.marks)) + (shut ? ' <span class="scr-dim">+' + b.size + '</span>' : '') + '</td></tr>';
+      + (r.note ? scrEsc(r.summary) : scrLine(text, r.marks)) + (shut ? ' <span class="scr-dim">· ' + b.size + ' lines</span>' : '') + '</td></tr>';
   }).join('') + '</tbody></table>';
 }
 
@@ -198,12 +215,18 @@ function scrRenderRoomSide(side, d, sel) {
   if (!p || p.error) { side.innerHTML = '<div class="scr-empty">' + scrEsc(p ? p.error : 'No picture') + '</div>'; return; }
   var boxes = d.room.scripts.filter(function (s) { return s.box; }).map(function (s) {
     var b = s.box;
-    return '<rect class="scr-box scr-box-' + s.kind + (s.key === sel.key ? ' scr-on' : '') + '" data-scr-script="' + s.key + '" x="' + b.x + '" y="' + b.y +
+    return '<rect class="scr-box scr-box-' + s.kind + (s.role ? ' scr-role-' + s.role : '') + (s.key === sel.key ? ' scr-on' : '') + '" data-scr-script="' + s.key + '" x="' + b.x + '" y="' + b.y +
       '" width="' + b.w + '" height="' + b.h + '"><title>' + scrEsc(SCR_KIND[s.kind] + ' #' + s.index + ' · ' + s.label) + '</title></rect>';
   }).join('');
-  side.innerHTML = '<div class="scr-side-h">Map <span class="scr-dim">' + p.width + '×' + p.height + ' · <i class="scr-key scr-box-step"></i> step-on <i class="scr-key scr-box-b"></i> B-trigger</span></div>' +
-    '<div class="scr-map"><img src="' + p.uri + '" width="' + p.width + '" height="' + p.height + '" alt="">' +
-    '<svg viewBox="0 0 ' + p.width + ' ' + p.height + '" preserveAspectRatio="none">' + scrSpritesSvg(d) + boxes + '</svg></div>';
+  var m = d.room.merged, live = {};
+  if (m) scrLiveness(m).forEach(function (st, i) { if (!st) live[m.lines[i].addressSnes] = 1; });
+  side.innerHTML = '<div class="scr-side-h">Map <span class="scr-dim">' + p.width + '×' + p.height + ' · <i class="scr-key scr-box-step"></i> step-on <i class="scr-key scr-box-b"></i> B-trigger · '
+    + '<i class="scr-key scr-bounds-key"></i> camera bounds · <i class="scr-key scr-arrival-key"></i> arrival</span></div>'
+    + '<div class="scr-legend scr-dim">' + ScriptsListing.rolesLegend() + '</div>'
+    + '<div class="scr-map"><img src="' + p.uri + '" width="' + p.width + '" height="' + p.height + '" alt="">'
+    + '<svg viewBox="0 0 ' + p.width + ' ' + p.height + '" preserveAspectRatio="none">' + ScriptsListing.boundsSvg(p.width, p.height, d.room.bounds || [], live)
+    + scrSpritesSvg(d) + boxes + ScriptsListing.arrivalsSvg(d.room.arrivals || []) + '</svg></div>'
+    + ScriptsListing.arrivalsHtml(d.room.arrivals || []) + (m ? ScriptsListing.slicesHtml(m.slices || [], m.blocks) : '');
 }
 
 function scrOnRoomMessage(msg) {

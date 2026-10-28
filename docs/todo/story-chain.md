@@ -27,7 +27,7 @@ events**, not game time (travel and fight lengths come later, from Routes/combat
   by no room script (probably data).
 - **The first setter** is reached from room 0x4a (final boss room) B-triggers: each of the 8
   (`$9BAC1C`…`$9BAC56`, boxes at x 51–67, y 37–38) calls `$9BABE4(<0x2847>-relative object, bit)`:
-  only while the camera follows the Dog (`camera_entity_is_0f40`), it ORs its bit into `$2867` and
+  only while the camera follows the Dog (`camera_on_dog`), it ORs its bit into `$2867` and
   sets its object to 2; when `$2867 == 0xff` it starts **`$9BA971`**: the gauntlet — two raptor waves,
   three Rimsalas, the dark Boy and dark Dog (each wave loops `hp_above_last_damage` + `sleep(60)`
   until dead) — then `WINDWALKER_UNLOCKED = 1`, heal, cure, and starts **`$9BB0B3`**: Carltron

@@ -224,10 +224,10 @@ module.exports = {
 
     {
       name: 'script-model-on-script-vm',
-      comment: 'src/games/evermore/script-model builds on script-vm and names from the localizations; never the legacy decoder (docs/cleanup.md D3).',
+      comment: 'src/games/evermore/script-model builds on script-vm and names from the localizations and the compiler\'s data file (its enums); never the legacy decoder (docs/cleanup.md D3).',
       severity: 'error',
       from: { path: '^src/games/evermore/script-model/' },
-      to: { path: '^(src|dist)/(?!games/evermore/(script-model/|script-vm/|localizations/)|platform/snes/|platform/hex)' },
+      to: { path: '^(src|dist)/(?!games/evermore/(script-model/|script-vm/|localizations/|language/data/index\\.json)|platform/snes/|platform/hex)' },
     },
 
     {

@@ -1,0 +1,154 @@
+// Ownership: the Scripts tab's enter listing, page side — which lines the chosen variant and the
+// entry state run, how deep each sits in calls, what each is for (its role's tint), and the room
+// picture's overlays: the camera bounds the shown lines leave, the doors that lead here, the
+// sliced `arg[]` / `temp[]` cells. Pure HTML/SVG builders over the host's data (model/rooms.ts,
+// script-model merged.ts); the state is _scr's (scripts-room.js). Bundled by tools/bundle-pages.mts
+// as dist/webview/scripts-listing.js (global ScriptsListing).
+//
+// Entry state: some flags are set by the way the player came in, not by the story (a door's
+// scene sets IN_ANIMATION, a fade sets CHANGE_MUSIC). They are not variants; a room loaded fresh
+// has them clear, so the listing assumes 0 and greys the branch that needs them set. Each is a
+// chip to flip. Read from the structured listing: an `if (NAME) {` / `if (!NAME) {` head (an
+// `} else if` too) rules out its body or the rest of its chain; a later `NAME = v;` on a line that
+// runs changes the assumption from there on.
+
+interface Mark { severity: 'error' | 'warning'; message: string; find?: string; nth?: number }
+interface Line {
+    addressSnes: number; summary: string; raw?: string; indent: number; in: number; thread: number;
+    note?: boolean; brace?: boolean; opens?: number; marks?: Mark[];
+}
+interface Block { id: number; parent: number; kind: 'call' | 'thread'; target: number; role: string | null }
+interface Slice { area: 'local' | 'temp'; thread: number; offset: number; width: 1 | 2; kind: string; name: string; uses: number[]; reused: string | null }
+interface BoundWrite { at: number; edge: 'start' | 'end'; x: number; y: number }
+interface Arrival { fromMap: number; fromName: string; key: string; x: number; y: number; direction: string | null }
+
+/** Entry-state flags: clear when the room is loaded fresh, set by the way some doors bring you in. */
+export const ENTRY_FLAGS = ['IN_ANIMATION', 'DOG_UNAVAILABLE', 'CHANGE_MUSIC'];
+
+/** What each role is called in the legend. */
+const ROLE_NAMES: Record<string, string> = { init: 'room setup', exit: 'exit', loot: 'pickup', sniff: 'sniff spot', cutscene: 'scene' };
+
+const esc = (s: unknown): string => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as Record<string, string>)[c]);
+const hx = (v: number, d: number): string => v.toString(16).toUpperCase().padStart(d, '0');
+
+const HEAD = /^(?:\} else )?if \((!?)(?:signed )?([A-Z_][A-Z0-9_]*)\) \{$/;
+const SET = /^([A-Z_][A-Z0-9_]*) = (\d+|0x[0-9a-f]+|True|False);$/;
+const isInstruction = (l: Line): boolean => !l.note && !l.brace;
+
+/** Lines (indices) the entry-state assumption rules out. */
+function assumedOff(lines: Line[], assumeIn: Record<string, boolean>): Set<number> {
+    const assume = { ...assumeIn };
+    const off = new Set<number>();
+    for (let i = 0; i < lines.length; i++) {
+        const l = lines[i];
+        if (off.has(i) || !isInstruction(l)) continue;
+        const set = SET.exec(l.summary);
+        if (set && set[1] in assume) { assume[set[1]] = !/^(0|0x0+|False)$/.test(set[2]); continue; }
+        const head = HEAD.exec(l.summary);
+        if (!head || !(head[2] in assume)) continue;
+        const holds = assume[head[2]] !== (head[1] === '!');
+        const n = l.indent;
+        let j = i + 1;
+        for (; j < lines.length && lines[j].indent > n; j++) if (!holds) off.add(j);
+        if (!holds) continue;
+        // The condition holds: the rest of the chain (`} else …` at this indent and what it holds) never runs.
+        for (; j < lines.length; j++) {
+            const r = lines[j];
+            if (r.indent > n || (r.indent === n && /^\} else/.test(r.summary))) off.add(j);
+            else break;
+        }
+    }
+    return off;
+}
+
+/**
+ * Each line's state: '' it runs, 'off' another variant or entry state runs it, 'dead' none does.
+ * `mine` / `any`: the addresses the chosen variant / some variant reaches (null before the
+ * variants are in). A `} else {` line is the jump at the end of the branch above it, but reads as
+ * the start of the next: it takes the state of the line after it.
+ */
+export function liveness(lines: Line[], mine: Record<number, 1> | null, any: Record<number, 1>, assume: Record<string, boolean> | null): string[] {
+    const off = assume ? assumedOff(lines, assume) : new Set<number>();
+    const out = lines.map((l, i) => {
+        if (!isInstruction(l)) return '';
+        if (mine && !mine[l.addressSnes]) return any[l.addressSnes] ? 'off' : 'dead';
+        return off.has(i) ? 'off' : '';
+    });
+    for (let i = lines.length - 1; i >= 0; i--) {
+        if (!isInstruction(lines[i]) || !/^\} else/.test(lines[i].summary)) continue;
+        const next = lines.findIndex((l, j) => j > i && isInstruction(l));
+        if (next > 0) out[i] = out[next];
+    }
+    return out;
+}
+
+/** How many calls deep each line sits (its blocks of kind `call` up to the thread it runs in). */
+export function callDepth(line: Line, blocks: Block[]): number {
+    let n = 0;
+    for (let b = line.in; b >= 0 && blocks[b].kind === 'call'; b = blocks[b].parent) n++;
+    return n;
+}
+
+/** What a line is for: its innermost block with a role, the room's setup at the top. */
+export function roleAt(line: Line, blocks: Block[]): string {
+    for (let b = line.in; b >= 0; b = blocks[b].parent) if (blocks[b].role) return blocks[b].role!;
+    return 'init';
+}
+
+/** The entry-state chips: each flag's assumed value, click to flip. */
+export function entryHtml(assume: Record<string, boolean>): string {
+    return '<div class="scr-chips-row"><span class="scr-chips-h" title="Set by the way the player came in, not by the story: clear when the room is loaded fresh">Entry state</span>' +
+        ENTRY_FLAGS.map((f) => '<button class="scr-chip' + (assume[f] ? ' scr-on' : '') + '" data-scr-assume="' + f + '" title="Click to assume it ' + (assume[f] ? 'clear' : 'set') + '">' +
+            esc(f) + ' = ' + (assume[f] ? 1 : 0) + '</button>').join('') + '</div>';
+}
+
+/** The role legend for the map's header. */
+export function rolesLegend(): string {
+    return Object.keys(ROLE_NAMES).map((r) => '<i class="scr-key scr-role-' + r + '"></i> ' + ROLE_NAMES[r]).join(' ');
+}
+
+/**
+ * The camera bounds (knowledge ram/7e23e9) as an SVG overlay: the room outside them greyed, their
+ * edge outlined. Every room load sets them to the whole map; the writes on `live` lines apply in
+ * listing order.
+ */
+export function boundsSvg(width: number, height: number, writes: BoundWrite[], live: Record<number, 1>): string {
+    let x1 = 0, y1 = 0, x2 = width, y2 = height;
+    const used: BoundWrite[] = [];
+    for (const w of writes) {
+        if (!live[w.at]) continue;
+        if (w.edge === 'start') { x1 = w.x; y1 = w.y; } else { x2 = w.x; y2 = w.y; }
+        used.push(w);
+    }
+    const title = used.length ? 'Camera bounds: (' + x1 + ', ' + y1 + ') – (' + x2 + ', ' + y2 + '), set at ' + used.map((w) => '$' + hx(w.at, 6)).join(', ')
+        : 'Camera bounds: the whole map (every room load sets them so)';
+    return '<path class="scr-bounds-out" fill-rule="evenodd" d="M0 0H' + width + 'V' + height + 'H0Z M' + x1 + ' ' + y1 + 'H' + x2 + 'V' + y2 + 'H' + x1 + 'Z"/>' +
+        '<rect class="scr-bounds" x="' + x1 + '" y="' + y1 + '" width="' + Math.max(0, x2 - x1) + '" height="' + Math.max(0, y2 - y1) + '"><title>' + esc(title) + '</title></rect>';
+}
+
+/** The doors that lead here, as markers where the player lands: click one to open the script that sends you. */
+export function arrivalsSvg(arrivals: Arrival[]): string {
+    return arrivals.map((a) => '<circle class="scr-arrival" cx="' + a.x + '" cy="' + a.y + '" r="5" data-scr-arrive="' + a.fromMap + '|' + esc(a.key) + '">' +
+        '<title>' + esc('Arrive from ' + a.fromName + ' (' + a.key + ')' + (a.direction ? ', walking ' + a.direction : '')) + '</title></circle>').join('');
+}
+
+export function arrivalsHtml(arrivals: Arrival[]): string {
+    if (!arrivals.length) return '<div class="scr-note">No door in the ROM leads here.</div>';
+    return '<div class="scr-side-h">Arrivals <span class="scr-dim">doors that lead here</span></div><div class="scr-arrivals">' + arrivals.map((a) =>
+        '<button class="scr-chip scr-role-exit" data-scr-arrive="' + a.fromMap + '|' + esc(a.key) + '" title="Open the script that sends you here">' +
+        esc(a.fromName) + ' <span class="scr-dim">' + esc(a.key) + ' → (' + a.x + ', ' + a.y + ')</span></button>').join('') + '</div>';
+}
+
+/** The sliced cells: each thread's `arg[]`, then the room's `temp[]`. */
+export function slicesHtml(slices: Slice[], blocks: Block[]): string {
+    if (!slices.length) return '';
+    const where = (s: Slice): string => s.area === 'temp' ? 'temp (room)' : s.thread < 0 ? 'arg (enter thread)' : 'arg (thread $' + hx(blocks[s.thread].target, 6) + ')';
+    let last = '';
+    const rows = slices.map((s) => {
+        const w = where(s), head = w !== last ? '<tr class="scr-slice-h"><td colspan="4">' + esc(w) + '</td></tr>' : '';
+        last = w;
+        return head + '<tr' + (s.reused ? ' class="scr-slice-reused" title="' + esc('Reused: ' + s.reused) + '"' : '') + '><td>' + (s.area === 'temp' ? 'temp' : 'arg') + '[' + s.offset + ']</td>' +
+            '<td>' + (s.width === 1 ? 'byte' : 'word') + '</td><td>' + esc(s.name) + (s.reused ? ' ⚠' : '') + '</td><td class="scr-dim">' + s.uses.length + ' use' + (s.uses.length > 1 ? 's' : '') + '</td></tr>';
+    }).join('');
+    return '<div class="scr-side-h">Locals <span class="scr-dim">arg[] and temp[] cut by how the listing uses them</span></div><table class="scr-slices"><tbody>' + rows + '</tbody></table>';
+}

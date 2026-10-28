@@ -25,6 +25,8 @@ function scrOnClick(e, pane) {
   if ((t = scrClosest(e.target, 'scrScript', pane))) { _scr.script = t.dataset.scrScript; scrAskSim(); scrRenderMain(); return; }
   if ((t = scrClosest(e.target, 'scrVariant', pane))) { _scr.variantPick[_scr.room] = Number(t.dataset.scrVariant); scrRenderMain(); return; }
   if ((t = scrClosest(e.target, 'scrFold', pane))) { scrToggleFold(Number(t.dataset.scrFold)); return; }
+  if ((t = scrClosest(e.target, 'scrAssume', pane))) { _scr.assume[t.dataset.scrAssume] = !_scr.assume[t.dataset.scrAssume]; scrRenderMain(); return; }
+  if ((t = scrClosest(e.target, 'scrArrive', pane))) { scrArrive(t.dataset.scrArrive); return; }
   if ((t = scrClosest(e.target, 'goto', pane))) { scrGoto(t); return; }
   if ((t = scrClosest(e.target, 'scrFacing', pane))) { _scr.facing = Number(t.dataset.scrFacing); _scr.player.key = ''; scrRender(); return; }
   if ((t = scrClosest(e.target, 'scrMsel', pane))) { scrSelectMapPart(t.dataset.scrMsel); return; }

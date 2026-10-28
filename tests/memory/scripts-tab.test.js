@@ -293,6 +293,33 @@ async function dom(rom) {
         await pump();
         await page.click('.scr-map rect[data-scr-script="step:0"]');
     });
+    await test('Strong Heart\'s hut: entry state assumed clear, camera bounds, arrivals, call bars, sliced cells', async () => {
+        await page.click('[data-scr-pick="room:51"]');
+        for (let i = 0; i < 600 && !out.some((m) => m.command === 'scriptsVariants' && m.id === 51); i++) {
+            await pump();
+            await new Promise((r) => setTimeout(r, 100));
+        }
+        await pump();
+        const rowClass = (a) => page.getAttribute('#scr-mid tr:has(td.scr-a:text-is("' + a + '"))', 'class');
+        // if (!IN_ANIMATION) { … } else { IN_ANIMATION = 0; }: clear on entry, the else does not run, its `} else {` neither.
+        assert.ok(/scr-off/.test(await rowClass('$94E60D')) && /scr-off/.test(await rowClass('$94E60A')) && !/scr-off/.test(await rowClass('$94E605')));
+        await page.click('[data-scr-assume="IN_ANIMATION"]');
+        assert.ok(!/scr-off/.test(await rowClass('$94E60D')) && /scr-off/.test(await rowClass('$94E605')), 'flipped: the other branch');
+        await page.click('[data-scr-assume="IN_ANIMATION"]');
+        // (0, 0) and (320, 256) restate what the room load set: both warned.
+        assert.strictEqual(await page.locator('#scr-mid tr:has(td.scr-a:text-is("$94E611")) .sx-warn, #scr-mid tr:has(td.scr-a:text-is("$94E618")) .sx-warn').count(), 2);
+        assert.strictEqual(await page.locator('.scr-map .scr-bounds').count(), 1);
+        assert.strictEqual(await page.locator('.scr-arrivals [data-scr-arrive]').count(), 2, 'from the hut inside and the jungle');
+        assert.ok(await page.locator('#scr-mid td.scr-called').count() > 0, 'call $92:DE75 is open: its rows carry a bar');
+        assert.ok((await page.textContent('#scr-mid')).includes('attach_script(1, B, LOOT_DUST_REWARD);'));
+        await shot('hut');
+        await page.click('.scr-arrivals [data-scr-arrive^="52|"]');
+        await pump();
+        assert.ok((await page.textContent('#scr-mid')).includes('inside'), 'an arrival opens the room it comes from');
+        await page.click('[data-scr-pick="room:37"]');
+        await pump();
+        await page.click('.scr-map rect[data-scr-script="step:0"]');
+    });
     await test('the Everscript toggle shows the simulation, Clusters groups the triggers', async () => {
         await page.check('[data-scr-toggle="everscript"]');
         await pump();

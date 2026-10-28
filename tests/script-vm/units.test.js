@@ -170,7 +170,7 @@ test('highlightScript colours the printer\'s notation and escapes the rest', () 
     const s = V.highlightScript('spawn(THRAXX_HEART, 24, 19);');
     assert.strictEqual(s, '<span class="sx-fn">spawn</span>(<span class="sx-const">THRAXX_HEART</span>, <span class="sx-num">24</span>, <span class="sx-num">19</span>);');
     // A name that merely contains a keyword or a number stays one word.
-    assert.ok(!V.highlightScript('entity_0341()').includes('sx-num'));
+    assert.ok(!V.highlightScript('last_entity()').includes('sx-num'));
     assert.ok(V.highlightScript('object[signed <0x249b>] = 2;').includes('<span class="sx-mem">object</span>[<span class="sx-type">signed</span>'));
 });
 
@@ -199,6 +199,44 @@ test('highlightScript draws marks as squiggles around what they point at', () =>
     assert.ok(h.includes('<span class="sx-warn" title="no use"><span class="sx-type">signed</span></span>'), h);
     const e = V.highlightScript('op_ff(1);', [{ severity: 'error', message: 'x' }]);
     assert.ok(e.startsWith('<span class="sx-error" title="x">') && e.endsWith('</span>'), e);
+});
+
+test('text: constants by their enum, globals by name, end as return', () => {
+    const names = { constant: (t, v) => (t === 'MUSIC' && v === 0x12 ? 'AMBIENT' : t === 'SOUND' && v === 0xbe ? 'THUD' : ''), global: (id) => (id === 0x36 ? 'FADE_IN' : '') };
+    assert.strictEqual(V.text(decode([0x33, 0x12]), names), 'music(AMBIENT);');
+    assert.strictEqual(V.text(decode([0x33, 0x13]), names), 'music(0x13);', 'no name: the number');
+    assert.strictEqual(V.text(decode([0xa3, 0x36]), names), 'call_id(FADE_IN);', 'a named global needs no comment');
+    assert.strictEqual(V.text(decode([0x00])), 'return;');
+});
+
+test('text: an entity sub-op plus a field offset reads as entity.field', () => {
+    const names = { field: (o) => ({ 0x1a: 'x', 0x20: 'velocity' })[o] || '' };
+    // write_word_at(boy() + 0x20, 0)
+    assert.strictEqual(V.text(decode([0x7a, 0x50, 0x29, 0x02, 0x20, 0x9a, 0xb0]), names), 'boy.velocity = 0;');
+    // <0x24b3> = deref(camera_entity() + 0x1a)
+    assert.strictEqual(V.text(decode([0x18, 0x5b, 0x02, 0x52, 0x29, 0x02, 0x1a, 0x1a, 0xd5]), names), '<0x24b3> = camera_entity.x;');
+    assert.strictEqual(V.text(decode([0x18, 0x5b, 0x02, 0x52, 0x29, 0x02, 0x1a, 0x1a, 0xd5])), '<0x24b3> = deref(camera_entity() + 0x1a);', 'no field names: as it is');
+});
+
+test('printed: a signed entity is a warning; a sliced cell prints its slice', () => {
+    // teleport(signed arg[0], 0, 0): the handler takes the entity's address, a word.
+    const t = V.printed(decode([0x43, 0x92, 0x00, 0xb0, 0xb0]));
+    assert.strictEqual(t.text, 'teleport(signed arg[0], 0, 0);');
+    assert.deepStrictEqual(t.marks.map((m) => [m.find, /entity/.test(m.message)]), [['signed', true]]);
+    const sliced = { slice: (area, offset) => (area === 'local' && offset === 0 ? 'arg.entity_1' : '') };
+    assert.strictEqual(V.text(decode([0x43, 0x92, 0x00, 0xb0, 0xb0]), sliced), 'teleport(signed arg.entity_1, 0, 0);');
+    assert.strictEqual(V.text(decode([0x08, 0x91, 0x00, 0x00, 0x00]), sliced), 'if (arg.entity_1) goto $94:8005;', 'the slice carries the width: no (Byte)');
+});
+
+test('slices: one cell per offset and thread, typed by its uses; two widths are a reuse', () => {
+    const M = require('../../dist/games/evermore/script-model');
+    const tele = decode([0x43, 0x92, 0x00, 0xb0, 0xb0]), byte = decode([0x08, 0x91, 0x00, 0x00, 0x00]);
+    const one = M.slicesOf([{ ins: tele, thread: -1 }], () => false);
+    assert.deepStrictEqual(one.map((s) => [s.name, s.width, s.reused]), [['arg.entity_1', 2, null]]);
+    const two = M.slicesOf([{ ins: tele, thread: -1 }, { ins: byte, thread: -1 }], () => false);
+    assert.deepStrictEqual(two.map((s) => [s.name, s.reused]), [['arg.entity_1', 'read as a byte and as a word']]);
+    const apart = M.slicesOf([{ ins: tele, thread: -1 }, { ins: byte, thread: 3 }], () => false);
+    assert.deepStrictEqual(apart.map((s) => [s.name, s.thread, s.reused]), [['arg.entity_1', -1, null], ['arg.byte_1', 3, null]], 'a started thread has its own arg[]');
 });
 
 console.log(`\nscript-vm units: ${passed} passed, ${failed} failed`);

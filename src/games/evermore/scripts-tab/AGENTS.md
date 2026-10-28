@@ -9,7 +9,7 @@ Not to be confused with `src/games/evermore/script-vm/` (the bytecode decoder), 
   (The Alchemy view was removed in v0.327.0: Animations marks the effect records ⚗.)
 
 ## Dependencies
-- Libraries only: `../script`, `../maps`, `../localizations`, `../simulation`, and the
+- Libraries only: `../script-vm`, `../script-model`, `../maps`, `../localizations`, `../simulation`, and the
   language data file (`../language/data/index.json`, as sprites does).
 - Must **not** import another feature (`sprites`, `music`, `rooms`, `emulator`, …):
   `extension.js` injects `animations(rom)` + `renderAnimation` (sprites) and
@@ -33,8 +33,10 @@ Not to be confused with `src/games/evermore/script-vm/` (the bytecode decoder), 
   pictures (`data-mk`), so hover links them. `model/map-tiles.ts` caches metatile facts per room.
 - Every Maps picture goes through the maps library's renderer (`renderVramLayer`,
   `compositeLayers`); the room picture is sent once (`scriptsMap`) and panels name it `@room`.
-- New page code is TypeScript: `webview/scripts-maps.dom.ts` is bundled (`ScriptsMaps`) into
-  the radar IIFE; it takes data as arguments and never reads `_scr`.
+- New page code is TypeScript: `webview/scripts-maps.dom.ts` (`ScriptsMaps`) and
+  `webview/scripts-listing.dom.ts` (`ScriptsListing`) are bundled into the radar IIFE; they take
+  data as arguments and never read `_scr`.
+- Camera bounds and arrivals are in room pixels (the picture's, like a spawn's `8 * x`).
 - Music bytes remain visible raw; verified commands and the narrowly traced `$9C`/`$D3` driver-state values and `$0A`/`$1E` track timer values may be annotated. Other stream bytes remain unclassified.
 - The simulation is work in progress: its failures come back as `error` and the tab keeps
   showing the decoded bytes. Never hide the bytes behind it.

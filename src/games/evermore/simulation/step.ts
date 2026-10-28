@@ -330,7 +330,7 @@ function resolveText(summary: string, s: PathState): string {
         const v = s.frame.args.get(+n);
         return v && v.k === 'ent' ? v.label : all;
     });
-    if (s.lastEntity.k === 'ent') out = out.replace(/entity_0341\(\)/g, s.lastEntity.label);
+    if (s.lastEntity.k === 'ent') out = out.replace(/last_entity\(\)/g, s.lastEntity.label);
     return out.replace(/<0x([0-9a-f]{4})>/g, (all, h: string) => {
         const a = parseInt(h, 16);
         const e = s.entities.find((x) => x.refs.includes(a));

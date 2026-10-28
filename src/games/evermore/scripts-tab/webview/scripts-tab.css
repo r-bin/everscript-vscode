@@ -46,7 +46,28 @@
 .scr-unk .scr-s{color:var(--vscode-editorWarning-foreground,#cca700)}
 .scr-term .scr-s{opacity:.75}
 /* The merged enter script: lines only another variant runs, lines none does, notes, folds. */
-.scr-rows tr.scr-inside td.scr-s{background:rgba(128,128,128,.07)}
+/* A called body: one bar in the call's colour per call it sits in, where its call line's text starts. */
+.scr-rows td.scr-called{background-image:repeating-linear-gradient(90deg,var(--sx-kw) 0 3px,transparent 3px 6px);background-repeat:no-repeat;
+  background-size:var(--calls-w) 100%;background-position:var(--calls-at) 0}
+/* What a line, chip or trigger is for (script-model roleOf): setup, exit, pickup, sniff spot, scene. */
+.scr-pane{--role-init:79,140,255;--role-exit:255,110,80;--role-loot:255,205,60;--role-sniff:80,200,120;--role-cutscene:180,120,255}
+.scr-role-init{--role:var(--role-init)}.scr-role-exit{--role:var(--role-exit)}.scr-role-loot{--role:var(--role-loot)}
+.scr-role-sniff{--role:var(--role-sniff)}.scr-role-cutscene{--role:var(--role-cutscene)}
+.scr-rows tr[class*="scr-role-"]:not(.scr-role-init) td.scr-s{background-color:rgba(var(--role),.10)}
+.scr-chip[class*="scr-role-"]{box-shadow:inset 3px 0 rgba(var(--role),.9)}
+.scr-box[class*="scr-role-"]{fill:rgba(var(--role),.22)}
+.scr-key[class*="scr-role-"]{background:rgba(var(--role),.55);border-color:rgba(var(--role),.9)}
+.scr-legend{font-size:11px;margin:-2px 0 6px}
+.scr-bounds-out{fill:rgba(0,0,0,.55);pointer-events:none}
+.scr-bounds{fill:none;stroke:#4fc1ff;stroke-width:2;stroke-dasharray:6 4;pointer-events:all}
+.scr-key.scr-bounds-key{border:2px dashed #4fc1ff}
+.scr-arrival{fill:rgba(var(--role-exit),.9);stroke:#fff;stroke-width:1.5;cursor:pointer}
+.scr-key.scr-arrival-key{background:rgba(var(--role-exit),.9);border-color:#fff;border-radius:50%}
+.scr-arrivals{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 10px}
+.scr-slices{border-collapse:collapse;font:11.5px var(--scr-mono);margin-bottom:10px}
+.scr-pane .scr-slices td{padding:1px 8px 1px 0;border:0;background:transparent}
+.scr-slice-h td{color:var(--scr-dim);padding-top:6px !important}
+.scr-slice-reused td{color:var(--vscode-editorWarning-foreground,#cca700)}
 .scr-rows tr.scr-off{opacity:.38}
 .scr-rows tr.scr-dead{opacity:.22;font-style:italic}
 .scr-note-row .scr-s{color:var(--scr-dim);font-style:italic}

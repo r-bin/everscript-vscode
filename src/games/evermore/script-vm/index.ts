@@ -10,7 +10,7 @@ export { decodeAt, successors, callee, DecodeError } from './decode';
 export type { Instruction, Operand } from './decode';
 export { walk, scriptInstructions } from './walk';
 export { roomScripts, roomCount, allEntries } from './rooms';
-export { facts, SAVE_AREA, TEMP_AREA } from './facts';
+export { facts, SAVE_AREA, TEMP_AREA, ENTITY_FIRST } from './facts';
 export type { Fact, Area } from './facts';
 export { text, printed, expressionText, everscript } from './print';
 export { highlightScript } from './highlight';

@@ -3,8 +3,8 @@
 
 export { buildRoomScriptModel, scriptModel } from './room-model';
 export type { RoomScriptModel, RoomScriptMeta, RoomScript, RoomTrigger, ScriptRow, SpawnFacts, StopReason } from './room-model';
-export { mergedScript, mergedEnterScript } from './merged';
-export type { MergedScript, MergedLine, MergedBlock } from './merged';
+export { mergedScript, mergedEnterScript, roleOf } from './merged';
+export type { MergedScript, MergedLine, MergedBlock, Role } from './merged';
 export { lootOf, lootToEverscript, LOOT_CELLS } from './loot';
 export type { LootFacts, LootValue, ValueEncoding } from './loot';
 export { doorsOf } from './doors';
@@ -17,3 +17,5 @@ export {
     memoryName, flagName, valueName, scriptName, globalScriptName, mapName, lootRewardName, enemyName, identifier, printNames,
 } from './names';
 export type { EnemyName } from './names';
+export { slicesOf } from './slices';
+export type { Slice, SliceArea, SliceKind } from './slices';

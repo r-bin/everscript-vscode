@@ -96,6 +96,13 @@ A signed read differs from the unsigned one only in the high word, and only when
 set. So the sign cannot change a value that is only tested for zero (a branch, `!`, `&&`, `||`)
 or compared with `==` / `!=` to a constant in 0..`$7F` (a byte) or 0..`$7FFF` (a word): the low
 part already differs. The script viewers mark such a `signed` with a warning (`script-vm/print.ts`).
+The same goes for the first operand of an opcode that acts on an entity: `$8C:EC8E` keeps only
+the low word (the entity's address), so a sign extension there changes nothing either.
+
+The viewers print `$2D` as `last_entity()`, `$50` / `$51` as `boy()` / `dog()` (the compiler's
+CHARACTER enum: LAST_ENTITY, BOY, DOG) and `$57` as `camera_on_dog()`. `deref(boy() + 0x1a)`
+reads `boy.x`: an entity sub-op (or a cell sliced as an entity) plus an offset the ATTRIBUTE
+enum names. `write_word_at` to such a field reads as an assignment, `boy.velocity = -32;`.
 
 ## Where scripts start
 

@@ -105,12 +105,27 @@ test("a spawn's character is the ROM's enemy index ($8E:B55A), not names.json's:
     assert.strictEqual(rom.enemyCharacter(0x0b), 109, 'FLOWER_PURPLE (knowledge rom/8eb55a)');
 });
 
-test('an else-if chain stays on one level; the knowledge entries name what the compiler does not', () => {
+test('Strong Heart\'s hut: constants by their enum, globals by name, roles, sliced cells', () => {
+    const m = M.mergedEnterScript(bytes, 0x33);
+    const at = (a) => m.lines.find((l) => l.addressSnes === a && !l.note).summary;
+    assert.strictEqual(at(0x94e625), 'music(UNKNOWN_PREHISTORIA_AMBIENT);');
+    assert.strictEqual(at(0x94e629), 'PACIFIED = 1;', 'the compiler\'s MEMORY enum');
+    assert.strictEqual(at(0x92de75), 'attach_script(1, B, LOOT_DUST_REWARD);', 'room hook 1, on talk, the default loot script (opcodes/3f)');
+    assert.strictEqual(at(0x92de7b), 'call_id(FADE_IN);');
+    assert.strictEqual(at(0x92a09e), 'boy.velocity = -32;', 'write_word_at(boy() + 0x20, …): a field of the ATTRIBUTE enum');
+    assert.ok(m.blocks.some((b) => b.role === 'cutscene'), 'the fade-in walks the party in: a scene');
+    assert.strictEqual(M.roleOf(new (require('../../dist/games/evermore/script-vm').ScriptRom)(bytes), 0x94e5fb), 'cutscene');
+    const room = M.mergedEnterScript(bytes, 0x1b);
+    assert.ok(room.slices.some((s) => s.name === 'arg.entity_1' && s.reused), 'the enter thread uses arg[0] as a coordinate and, in a helper, as an entity');
+    assert.ok(room.lines.some((l) => /arg\.entity_\d\.x/.test(l.summary)), 'deref(arg + 0x1a) reads as a field of the sliced entity');
+});
+
+test('an else-if chain stays on one level; the compiler\'s enums name cells names.json does not', () => {
     const m = M.mergedEnterScript(bytes, 0x18);
     const line = (a) => m.lines.find((l) => l.addressSnes === a && !l.note);
     // $93:D23B, $93:D25A, $93:D278, $93:D2CC: the room's four cases, each the else of the one before.
     assert.deepStrictEqual([0x93d23b, 0x93d25a, 0x93d278, 0x93d2cc].map((a) => line(a).indent), [0, 0, 0, 0]);
-    assert.strictEqual(line(0x93d2d8).summary, 'MAP_PALETTE_SET = 7;', 'knowledge ram/7e2437');
+    assert.strictEqual(line(0x93d2d8).summary, 'MAP_PALETTE = 7;', 'the compiler\'s MEMORY enum (knowledge ram/7e2437 says MAP_PALETTE_SET)');
     // Structured: if! (c) goto → if (c) {, the chain as else if, the maggot loop as a while, its goto back as }.
     assert.strictEqual(line(0x93d23b).summary, 'if (THRAXX_DEAD && !WINDWALKER_UNLOCKED) {');
     assert.strictEqual(line(0x93d25a).summary, '} else if (WINDWALKER_UNLOCKED && <0x22e8, 0x40>) {');

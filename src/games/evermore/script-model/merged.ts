@@ -18,8 +18,19 @@
 // (u8), a trigger offset (u16), a call back (cb, c16) — is a shared helper and starts folded; one
 // named by a full pointer (u24) starts open. A callee already being merged further up is not merged
 // again (recursion), and the listing stops merging past MAX_LINES, so nothing here can run away.
+//
+// Each block has a `role`, what it is for, from its instructions' facts (never their text) and
+// those of everything it calls (`roleOf`): an `exit` changes the map, a `sniff` spot or a `loot`
+// pickup calls the game's loot drivers (globals $39, $3A/$3B, loot.ts) or stages a reward, a
+// `cutscene` shows text or plays animations. The enter script's own lines are the room's `init`.
+//
+// `arg[]` and `temp[]` are sliced (slices.ts): the listing is merged once to learn which thread
+// each line runs in, then printed again with each cell's slice name (`arg.entity_1`); a line that
+// uses a reused cell gets a warning.
 
-import { Instruction, Names, ScriptRom, decodeAt, roomScripts, walk } from '../script-vm';
+import { Instruction, Names, ScriptRom, decodeAt, facts, roomScripts, walk } from '../script-vm';
+import { LOOT_CELLS } from './loot';
+import { Slice, slicesOf } from './slices';
 import { ScriptRow, row } from './room-model';
 import { printNames, displayNames } from './names';
 import { structure } from './structure';
@@ -43,6 +54,8 @@ export interface MergedLine extends ScriptRow {
     brace?: boolean;
     /** The instruction as printed, when the structured listing says it differently (`if (c) {` for `if! (c) goto …`). */
     raw?: string;
+    /** The thread it runs in: the block id of the started thread, -1 for the script's own. */
+    thread: number;
 }
 
 export interface MergedBlock {
@@ -57,27 +70,83 @@ export interface MergedBlock {
     folded: boolean;
     /** How many lines it holds, its own blocks' included. */
     size: number;
+    /** What it is for (`roleOf`), null when nothing says. */
+    role: Role | null;
 }
 
-export interface MergedScript { entry: number; lines: MergedLine[]; blocks: MergedBlock[] }
+export interface MergedScript { entry: number; lines: MergedLine[]; blocks: MergedBlock[]; slices: Slice[] }
+
+/** What a script is for: the room's setup, a door out, a pickup, a sniff spot, a scene. */
+export type Role = 'init' | 'exit' | 'loot' | 'sniff' | 'cutscene';
+
+/** The loot drivers (loot.ts): $39 the sniff spot's, $3A / $3B the gourd's and the chest's. */
+const SNIFF_DRIVER = 0x39, LOOT_DRIVERS = new Set([0x3A, 0x3B]);
+/** Play an animation, walk a character: what a scene does with the characters. */
+const SCENE_OPCODES = new Set([0x6C, 0x6D, 0x73, 0x78, 0x79, 0x9D]);
+
+/**
+ * What the script at `entry` is for, with everything it calls and starts: an exit before a pickup,
+ * a pickup before a scene (a pickup shows text too); null when it does none of these.
+ */
+export function roleOf(rom: ScriptRom, entry: number): Role | null {
+    let w;
+    try { w = walk(rom, [entry], true); } catch { return null; }
+    const seen = new Set<Role>();
+    for (const ins of w.instructions.values()) {
+        const f = facts(ins);
+        if (f.k === 'changeMap') seen.add('exit');
+        else if (f.k === 'call' && f.global === SNIFF_DRIVER) seen.add('sniff');
+        else if ((f.k === 'call' && f.global !== null && LOOT_DRIVERS.has(f.global)) || (f.k === 'write' && f.area === 'save' && LOOT_CELLS.has(f.addr))) seen.add('loot');
+        else if (f.k === 'text' || SCENE_OPCODES.has(ins.opcode)) seen.add('cutscene');
+    }
+    return (['exit', 'sniff', 'loot', 'cutscene'] as Role[]).find((r) => seen.has(r)) ?? null;
+}
 
 
-/** The script at `entry`, with every call and start merged in. */
+/** The script at `entry`, with every call and start merged in, `arg[]` and `temp[]` sliced. */
 export function mergedScript(rom: ScriptRom, entry: number, names: Names = printNames(hiromFileOffset)): MergedScript {
+    const seen: Array<{ ins: Instruction; thread: number }> = [];
+    mergeOnce(rom, entry, names, null, seen);
+    const slices = slicesOf(seen, (addr) => !!names.memory?.(addr));
+    const out = mergeOnce(rom, entry, names, slices, []);
+    const reused = new Map<number, Slice[]>();
+    for (const sl of slices) if (sl.reused) for (const at of sl.uses) reused.set(at, [...(reused.get(at) ?? []), sl]);
+    for (const line of out.lines) {
+        if (line.note || line.brace) continue;
+        for (const sl of reused.get(line.addressSnes) ?? []) {
+            if (sl.area === 'local' && sl.thread !== line.thread) continue;
+            line.marks = [...(line.marks ?? []), { severity: 'warning', find: sl.name, nth: 0, message: `${sl.name} is reused: ${sl.reused}. One name cannot say what it holds.` }];
+        }
+    }
+    return { ...out, slices };
+}
+
+/** One merge of the script at `entry`; `slices` names the cells (null: plain `arg[n]`), `seen` collects each instruction with its thread. */
+function mergeOnce(rom: ScriptRom, entry: number, names: Names, slices: Slice[] | null, seen: Array<{ ins: Instruction; thread: number }>): { entry: number; lines: MergedLine[]; blocks: MergedBlock[] } {
     const lines: MergedLine[] = [];
     const blocks: MergedBlock[] = [];
 
     /** How deep a script's lines sit: structured (`s`) and flat (`f`). */
     type Base = { s: number; f: number };
     const deeper = (b: Base): Base => ({ s: b.s + 1, f: b.f + 1 });
+    const threadOf = (block: number): number => {
+        for (let b = block; b >= 0; b = blocks[b].parent) if (blocks[b].kind === 'thread') return b;
+        return -1;
+    };
     const note = (at: number, depth: number, at2: Base, block: number, summary: string): MergedLine => ({
         addressSnes: at, opcode: -1, opcodeHex: '', size: 0, bytesHex: '', summary, terminal: false, untraced: false,
-        unsupported: false, depth, indent: at2.s, flat: at2.f, in: block, note: true,
+        unsupported: false, depth, indent: at2.s, flat: at2.f, in: block, note: true, thread: threadOf(block),
     });
+    /** The names for a line in `thread`: its own local slices, the room's temp slices. */
+    const namesIn = (thread: number): Names => {
+        if (!slices) return names;
+        const find = (area: 'local' | 'temp', offset: number): string => slices.find((x) => x.area === area && x.offset === offset && (area === 'temp' || x.thread === thread))?.name ?? '';
+        return { ...names, slice: (area, offset) => find(area, offset) };
+    };
 
     function open(kind: MergedBlock['kind'], ins: Instruction, parent: number): MergedBlock {
         const last = ins.operands[ins.operands.length - 1];
-        const b: MergedBlock = { id: blocks.length, parent, kind, target: ins.target!, from: ins.address, folded: kind === 'call' && last?.k !== 'u24', size: 0 };
+        const b: MergedBlock = { id: blocks.length, parent, kind, target: ins.target!, from: ins.address, folded: kind === 'call' && last?.k !== 'u24', size: 0, role: roleOf(rom, ins.target!) };
         blocks.push(b);
         return b;
     }
@@ -89,7 +158,9 @@ export function mergedScript(rom: ScriptRom, entry: number, names: Names = print
      */
     function body(at: number, depth: number, base: Base, block: number, stack: number[], waiting: Instruction[]): void {
         const list = [...walk(rom, [at], false).instructions.values()].sort((a, b) => a.address - b.address);
-        const printed = list.map((ins) => row(rom, ins, names));
+        const thread = threadOf(block);
+        const printed = list.map((ins) => row(rom, ins, namesIn(thread)));
+        for (const ins of list) seen.push({ ins, thread });
         let here = base;
         const join = (): void => {
             for (const s of waiting.splice(0)) {
@@ -107,7 +178,7 @@ export function mergedScript(rom: ScriptRom, entry: number, names: Names = print
                 continue;
             }
             const ins = list[r.index];
-            const line: MergedLine = { ...printed[r.index], depth, indent: here.s, flat: here.f, in: block };
+            const line: MergedLine = { ...printed[r.index], depth, indent: here.s, flat: here.f, in: block, thread };
             if (r.text !== undefined) { line.raw = line.summary; line.summary = r.text; }
             lines.push(line);
             if (ins.flow === 'call' && ins.target !== null && rom.contains(ins.target)) {
