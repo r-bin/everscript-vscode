@@ -512,6 +512,67 @@ function bazookaAmmoEnum(): EnumList {
     };
 }
 
+const COMPANION_AI_DATA = [
+    { type: 'Command', code: 0, name: 'Follow', scope: '$7E:235B', desc: 'Default companion movement following Boy path' },
+    { type: 'Command', code: 1, name: 'Heel', scope: '$7E:235B', desc: 'Hold current position and refrain from movement' },
+    { type: 'Command', code: 2, name: 'Sniff', scope: '$7E:235B', desc: 'Forage and search perimeter for hidden alchemy ingredients' },
+    { type: 'Command', code: 3, name: 'Attack', scope: '$7E:235B', desc: 'Engage nearest hostile enemy in aggressive combat' },
+    { type: 'State', code: 0, name: 'Idle', scope: '$7E:3C6F', desc: 'No active command; stationary breath animation' },
+    { type: 'State', code: 1, name: 'Follow', scope: '$7E:3C6F', desc: 'Breadcrumb tracking towards player position' },
+    { type: 'State', code: 2, name: 'Sniffing', scope: '$7E:3C6F', desc: 'Active nose-to-ground foraging path' },
+    { type: 'State', code: 3, name: 'Evading', scope: '$7E:3C6F', desc: 'Evasion routing away from incoming damage or obstacle' },
+    { type: 'State', code: 4, name: 'Attacking', scope: '$7E:3C6F', desc: 'Melee charge and jaw snap combat sequence' },
+    { type: 'State', code: 5, name: 'Returning', scope: '$7E:3C6F', desc: 'Returning to leash perimeter after combat' },
+    { type: 'State', code: 6, name: 'Stuck', scope: '$7E:3C6F', desc: 'Obstacle collision recovery and teleport staging' },
+    { type: 'Breed', code: 0, name: 'Wolfhound', scope: '$7E:2363', desc: 'Prehistoric era companion breed form' },
+    { type: 'Breed', code: 1, name: 'Greyhound', scope: '$7E:2363', desc: 'Antiquity era companion breed form' },
+    { type: 'Breed', code: 2, name: 'Poodle', scope: '$7E:2363', desc: 'Medieval era companion breed form' },
+    { type: 'Breed', code: 3, name: 'Toaster', scope: '$7E:2363', desc: 'Omnitopia era robotic companion form' },
+];
+
+function companionAiEnum(): EnumList {
+    return {
+        id: 'companion-ai-states', group: 'Entities', title: 'Companion Dog AI commands & state machine',
+        columns: ['category', 'code', 'identifier', 'wram variable', 'operational description'],
+        entries: COMPANION_AI_DATA.map((d) => ({
+            cells: [d.type, h(d.code, 2), d.name, d.scope, d.desc],
+            vfs: bus(0x7e235b),
+        })),
+        source: 'Dog AI command parser $7E:235B, companion state machine $7E:3C6F, and era breed selector $7E:2363.',
+    };
+}
+
+const PROJECTILE_ROUTINES_TABLE_ADDR = 0x90d967;
+const PROJECTILE_ROUTINES_INFO = [
+    { offset: 0x00, name: 'Custom Trajectory', desc: 'Script-directed custom movement path' },
+    { offset: 0x02, name: 'Target Homing', desc: 'Real-time coordinate tracking towards target entity' },
+    { offset: 0x04, name: 'Straight (Scaled)', desc: 'Linear velocity along facing scaled by thrower attack' },
+    { offset: 0x06, name: 'Ballistic Arc', desc: 'Parabolic arc trajectory with gravity' },
+    { offset: 0x08, name: 'Straight (Unscaled)', desc: 'Constant linear flight along thrower facing' },
+    { offset: 0x0A, name: 'Elliptical Orbit', desc: 'Rotational flight round thrower center ($90:DF44)' },
+    { offset: 0x0C, name: 'Scatter Spread', desc: 'Multi-directional radial projectile scatter' },
+    { offset: 0x10, name: 'Orbital Math Table', desc: 'Trigonometric sine/cosine orbit coordinates' },
+    { offset: 0x16, name: 'Direct Trajectory', desc: 'Direct fast ballistic trajectory' },
+    { offset: 0x18, name: 'High-Speed Homing', desc: 'Accelerated homing intercept curve' },
+];
+
+function projectileRoutinesEnum(rom: Uint8Array): EnumList {
+    const entries: Entry[] = PROJECTILE_ROUTINES_INFO.map((r) => {
+        const ptr = word(rom, PROJECTILE_ROUTINES_TABLE_ADDR + r.offset);
+        const fullAddr = 0x900000 | ptr;
+        return {
+            cells: ['+$' + hex(r.offset, 2), r.name, '$90:' + hex(ptr, 4), r.desc],
+            vfs: bus(fullAddr),
+        };
+    });
+    return {
+        id: 'projectile-routines-enum', group: 'Combat', title: 'Projectile movement routines',
+        columns: ['table offset', 'routine name', 'handler address', 'trajectory description'],
+        entries,
+        source: 'Table $90:D967 (Bank $90 jump table): dispatched by $90:DE5E via JSR ($D967,x) using archetype record +$08.',
+    };
+}
+
 /** Every list the view shows. `icons` are the formulas' ring-menu icons (PNG data URIs) in formula order. */
 function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | null)[] = []): EnumList[] {
     return [characterBlobs(rom, chars), recordFields(), contactHandlers(rom, chars), aiSelectors(rom, chars),
@@ -522,7 +583,8 @@ function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | nu
         callBeadSpells(rom), targetingModes(),
         armorEnums(rom), currenciesEnum(),
         consumableItemsEnum(rom), staminaTiersEnum(),
-        charmsEnum(), bazookaAmmoEnum()];
+        charmsEnum(), bazookaAmmoEnum(),
+        companionAiEnum(), projectileRoutinesEnum(rom)];
 }
 
 export { enumsModel };

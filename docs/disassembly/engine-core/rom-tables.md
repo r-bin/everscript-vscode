@@ -203,3 +203,26 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
   - Shell 2 (`$04`): Cryo-Blast descriptor at `$C4:3ADE` (cryogenic frost artillery, sprite palette `$1E02`).
 - **Readers**: Active weapon loader `$8F:81C9` (selects descriptor by reading `$7E:2349`) and combat projectile dispatcher.
 
+### 2.15 Formula Description Text Pointer Table (`$C4:5D51`)
+- **Format**: `uint16_t tbl_formula_descriptions[35]`, 2 bytes per formula (70 bytes total, `$C4:5D51`..`$C4:5D96`).
+- **Internal Layout**:
+  - Each word represents a 16-bit far pointer in Bank `$C4` to a zero-terminated printable ASCII string describing the formula.
+  - Used in the alchemy ring menu when a player highlights a formula to display spell effects.
+- **Readers**: Ring menu formula details compositor and Data tab (Tables › Formula ring menu descriptions).
+
+### 2.16 Projectile Movement Routine Jump Table (`$90:D967`)
+- **Format**: `uint16_t tbl_projectile_routines[31]`, 2 bytes per vector (62 bytes total, `$90:D967`..`$90:D9A5`).
+- **Internal Layout**:
+  - `+$00` (`$90:D985`): Custom script-directed trajectory (records 14, 17)
+  - `+$02` (`$90:DD58`): Target homing coordinates tracking
+  - `+$04` (`$90:DD61`): Straight flight scaled by thrower attack power (record 4)
+  - `+$06` (`$90:DEF7`): Parabolic ballistic arc with gravity
+  - `+$08` (`$90:DD2D`): Straight flight along thrower facing (records 0..3, 5, 10..13, 15..16, 20)
+  - `+$0A` (`$90:DCE7`): Elliptical orbital trajectory around center entity
+  - `+$0C` (`$90:DD26`): Multi-directional radial scatter pattern (record 7)
+  - `+$10` (`$90:DF44`): Elliptical orbital coordinates table
+  - `+$16` (`$90:DDCA`): Direct fast ballistic trajectory (records 8, 9)
+  - `+$18` (`$90:DE11`): High-speed homing ballistic curve (records 6, 18, 19)
+- **Readers**: Projectile physics dispatcher `$90:DE5E` via `JSR ($D967,x)` using offset read from archetype record `+$08`.
+
+

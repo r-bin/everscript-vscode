@@ -52,7 +52,7 @@ async function romChecks(rom) {
     handleDataMessage({ command: 'dataInit' }, hostDeps(rom, posted));
     const ix = posted[0];
     await test('tables: XP per level, character stats, sine, boomerang orbit — decoded ones only', () => {
-        assert.deepStrictEqual(ix.tables.map((t) => t.id), ['xp', 'stats', 'sine', 'boomerang', 'formula-costs', 'dog-forms', 'weapon-levels', 'alchemy-growth', 'weapons', 'call-beads', 'font-widths', 'animate-records', 'projectiles', 'formula-targets', 'armor', 'enemy-index', 'consumables', 'formula-blocks', 'bazooka-ammo']);
+        assert.deepStrictEqual(ix.tables.map((t) => t.id), ['xp', 'stats', 'sine', 'boomerang', 'formula-costs', 'dog-forms', 'weapon-levels', 'alchemy-growth', 'weapons', 'call-beads', 'font-widths', 'animate-records', 'projectiles', 'formula-targets', 'armor', 'enemy-index', 'consumables', 'formula-blocks', 'bazooka-ammo', 'formula-descriptions', 'projectile-routines']);
         const boy = ix.tables[1].rows[2];
         assert.strictEqual(boy[1], 'Boy');
         const xp = ix.tables[0];
@@ -86,9 +86,14 @@ async function romChecks(rom) {
         assert.strictEqual(ix.tables[18].rows.length, 3);
         assert.strictEqual(ix.tables[18].rows[0][1], 'Thunder Ball');
         assert.strictEqual(ix.tables[18].rows[0][2], '$C4:3A96');
+        assert.strictEqual(ix.tables[19].rows.length, 35);
+        assert.strictEqual(ix.tables[19].rows[0][1], 'Acid Rain');
+        assert.strictEqual(ix.tables[19].rows[0][3], 'Showers enemies with acid');
+        assert.strictEqual(ix.tables[20].rows.length, 10);
+        assert.strictEqual(ix.tables[20].rows[0][1], 'Custom Trajectory');
     });
     await test('enums: only lists read from the ROM or a knowledge entry', () => {
-        assert.deepStrictEqual(ix.enums.map((e) => e.id), ['blobs', 'fields', 'contact', 'ai', 'formulas', 'cast', 'ingredients', 'rooms', 'wram-states', 'directions', 'collision', 'status-effects', 'weapon-classes', 'ring-icons', 'music', 'sounds', 'opcodes', 'call-beads-enum', 'targeting-modes', 'armor-items', 'currencies', 'consumables-enum', 'stamina-tiers', 'charms-enum', 'bazooka-ammo-enum']);
+        assert.deepStrictEqual(ix.enums.map((e) => e.id), ['blobs', 'fields', 'contact', 'ai', 'formulas', 'cast', 'ingredients', 'rooms', 'wram-states', 'directions', 'collision', 'status-effects', 'weapon-classes', 'ring-icons', 'music', 'sounds', 'opcodes', 'call-beads-enum', 'targeting-modes', 'armor-items', 'currencies', 'consumables-enum', 'stamina-tiers', 'charms-enum', 'bazooka-ammo-enum', 'companion-ai-states', 'projectile-routines-enum']);
         const e = (id) => ix.enums.find((x) => x.id === id);
         assert.ok(e('blobs').entries.some((x) => x.cells[0] === 'WRAM' && x.cells[2] === '$7E0A26'));
         assert.ok(!e('blobs').entries.some((x) => /ENTITY_/.test(x.cells[1])), 'no unverified entity slots');
@@ -113,6 +118,9 @@ async function romChecks(rom) {
         assert.strictEqual(e('charms-enum').entries[0].cells[1], 'Armor Polish');
         assert.strictEqual(e('bazooka-ammo-enum').entries.length, 3);
         assert.strictEqual(e('bazooka-ammo-enum').entries[0].cells[1], 'Thunder Ball');
+        assert.strictEqual(e('companion-ai-states').entries.length, 15);
+        assert.strictEqual(e('companion-ai-states').entries[0].cells[2], 'Follow');
+        assert.strictEqual(e('projectile-routines-enum').entries.length, 10);
     });
     await test('palettes: the sprite palettes in bank $90 with their users, the map tile families', () => {
         const sprites = ix.palettes.filter((p) => p.id.startsWith('s:'));
@@ -153,7 +161,7 @@ async function dom(rom) {
     await test('opening the tab loads every list; XP is drawn with both series', async () => {
         await page.click('.tab[data-tab="data"]');
         await pump();
-        assert.strictEqual(await page.locator('#dat-rail [data-dat-pick]').count(), 19);
+        assert.strictEqual(await page.locator('#dat-rail [data-dat-pick]').count(), 21);
         assert.strictEqual(await page.locator('#dat-side svg polyline').count(), 2);
         const svg = await page.locator('#dat-side svg').boundingBox();
         await page.mouse.move(svg.x + svg.width * 0.5, svg.y + svg.height * 0.5);

@@ -534,6 +534,71 @@ function bazookaAmmoTable(rom: Uint8Array): Table {
     };
 }
 
+const FORMULA_DESCRIPTIONS_TABLE = 0xc45d51;
+
+function formulaDescriptionsTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < FORMULA_COUNT; i++) {
+        const ptr = 0xc40000 | read16(rom, snesToRom(FORMULA_DESCRIPTIONS_TABLE + i * 2));
+        const name = textAt(rom, FORMULA_NAMES, i);
+        const desc = text(rom, ptr);
+        rows.push([i, name, '$C4:' + hex(ptr & 0xffff, 4), desc]);
+        pts.push([i, desc.length]);
+    }
+    return {
+        id: 'formula-descriptions', group: 'Alchemy', title: 'Formula ring menu descriptions', addr: '$C4:5D51',
+        note: 'Table $C4:5D51 (35 words): far pointers in bank $C4 to zero-terminated formula description strings displayed in the ring menu.',
+        columns: ['id', 'formula', 'string pointer', 'description text'],
+        rows,
+        chart: { x: 'formula id', y: 'string length', series: [{ name: 'description length', points: pts }] },
+        vfs: vfs(FORMULA_DESCRIPTIONS_TABLE),
+    };
+}
+
+const PROJECTILE_ROUTINES_ADDR = 0x90d967;
+const PROJECTILE_RECORD_COUNT = 21;
+const PROJECTILE_ROUTINE_NAMES: Record<number, { name: string; desc: string }> = {
+    0x00: { name: 'Custom Trajectory', desc: 'Script-directed custom movement path' },
+    0x02: { name: 'Target Homing', desc: 'Real-time coordinate tracking towards target entity' },
+    0x04: { name: 'Straight (Scaled)', desc: 'Linear velocity along facing scaled by thrower attack' },
+    0x06: { name: 'Ballistic Arc', desc: 'Parabolic arc trajectory with gravity' },
+    0x08: { name: 'Straight (Unscaled)', desc: 'Constant linear flight along thrower facing' },
+    0x0A: { name: 'Elliptical Orbit', desc: 'Rotational flight round thrower center ($90:DF44)' },
+    0x0C: { name: 'Scatter Spread', desc: 'Multi-directional radial projectile scatter' },
+    0x10: { name: 'Orbital Math Table', desc: 'Trigonometric sine/cosine orbit coordinates' },
+    0x16: { name: 'Direct Trajectory', desc: 'Direct fast ballistic trajectory' },
+    0x18: { name: 'High-Speed Homing', desc: 'Accelerated homing intercept curve' },
+};
+
+function projectileRoutinesTable(rom: Uint8Array): Table {
+    const usage = new Map<number, number[]>();
+    for (let i = 0; i < PROJECTILE_RECORD_COUNT; i++) {
+        const at = snesToRom(PROJECTILE_RECORDS_TABLE + i * PROJECTILE_RECORD_STRIDE);
+        const r = read16(rom, at + 8);
+        usage.set(r, (usage.get(r) || []).concat(i));
+    }
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    const offsets = Object.keys(PROJECTILE_ROUTINE_NAMES).map(Number).sort((a, b) => a - b);
+    for (const off of offsets) {
+        const ptr = read16(rom, snesToRom(PROJECTILE_ROUTINES_ADDR + off));
+        const info = PROJECTILE_ROUTINE_NAMES[off];
+        const users = usage.get(off) || [];
+        const usersStr = users.length ? (users.length + ' records (' + users.slice(0, 4).join(', ') + (users.length > 4 ? ' …' : '') + ')') : '—';
+        rows.push(['+$' + hex(off, 2), info.name, '$90:' + hex(ptr, 4), info.desc, usersStr]);
+        pts.push([off, users.length]);
+    }
+    return {
+        id: 'projectile-routines', group: 'Projectiles', title: 'Projectile ballistic movement routines', addr: '$90:D967',
+        note: 'Table $90:D967 (Bank $90 jump vectors): vector dispatch table for projectile trajectories, called by $90:DE5E via JSR ($D967,x) using offset at record +$08.',
+        columns: ['table offset', 'routine name', 'handler address', 'trajectory profile', 'archetype users'],
+        rows,
+        chart: { x: 'table offset', y: 'record users', series: [{ name: 'record users', points: pts }] },
+        vfs: vfs(PROJECTILE_ROUTINES_ADDR),
+    };
+}
+
 /** Every table the view lists: only the ones decoded into readable values. */
 function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Table[] {
     return [
@@ -545,6 +610,7 @@ function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Ta
         armorTable(rom),
         enemyIndexTable(rom, names), consumablesTable(rom),
         formulaBlocksTable(rom), bazookaAmmoTable(rom),
+        formulaDescriptionsTable(rom), projectileRoutinesTable(rom),
     ];
 }
 
