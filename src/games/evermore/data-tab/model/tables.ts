@@ -1034,6 +1034,101 @@ function ingredientsTable(rom: Uint8Array): Table {
     };
 }
 
+const DIALOGUE_PHRASE_PTRS_ADDR = 0x91f46c;
+const DIALOGUE_PHRASE_STRINGS_ADDR = 0x91f7d5;
+const DIALOGUE_PHRASE_COUNT = 256;
+
+function dialoguePhrasesTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < DIALOGUE_PHRASE_COUNT; i++) {
+        const off = read16(rom, snesToRom(DIALOGUE_PHRASE_PTRS_ADDR + i * 2));
+        const phraseSnes = DIALOGUE_PHRASE_STRINGS_ADDR + off;
+        const phraseText = text(rom, phraseSnes);
+        rows.push([i, '$' + hex(i, 2), phraseText, '$' + hex(off, 4), '$' + hex(phraseSnes, 6)]);
+        pts.push([i, phraseText.length]);
+    }
+    return {
+        id: 'dialogue-phrases', group: 'Dialogue', title: 'Dialogue primary 256-word dictionary', addr: '$91:F46C',
+        note: 'Table $91:F46C (256 pointers, 512 bytes): Relative word offsets into $91:F7D5 for primary dictionary words expanded upon token $C0 by narrative text decompressor $8C:CD84.',
+        columns: ['token', 'hex', 'phrase text', 'relative offset', 'snes address'],
+        rows,
+        chart: { x: 'token index', y: 'word length', series: [{ name: 'length (chars)', points: pts }] },
+        vfs: vfs(DIALOGUE_PHRASE_PTRS_ADDR),
+    };
+}
+
+const DIALOGUE_WORD_PTRS_ADDR = 0x91f3ec;
+const DIALOGUE_WORD_STRINGS_ADDR = 0x91f66c;
+const DIALOGUE_WORD_COUNT = 63;
+
+function dialogueWordsTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < DIALOGUE_WORD_COUNT; i++) {
+        const token = 0xc2 + i * 2;
+        const off = read16(rom, snesToRom(DIALOGUE_WORD_PTRS_ADDR + (i + 1) * 2));
+        const wordSnes = DIALOGUE_WORD_STRINGS_ADDR + off;
+        const wordText = text(rom, wordSnes);
+        rows.push([i, '$' + hex(token, 2), wordText, '$' + hex(off, 4), '$' + hex(wordSnes, 6)]);
+        pts.push([i, wordText.length]);
+    }
+    return {
+        id: 'dialogue-mte-words', group: 'Dialogue', title: 'Dialogue secondary 63-word MTE vocabulary', addr: '$91:F3EC',
+        note: 'Table $91:F3EC (63 word offsets, 126 bytes): Offsets into $91:F66C for high-frequency secondary vocabulary words indexed by tokens $C2..$FE via ((token << 1) & 0x7E) in $8C:CD84.',
+        columns: ['id', 'token hex', 'word text', 'relative offset', 'snes address'],
+        rows,
+        chart: { x: 'word id', y: 'word length', series: [{ name: 'length (chars)', points: pts }] },
+        vfs: vfs(DIALOGUE_WORD_PTRS_ADDR),
+    };
+}
+
+const SFX_SCRIPT_TABLE_ADDR = 0x8c8362;
+const SFX_SCRIPT_COUNT = 112;
+
+function sfxScriptTranslationTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < SFX_SCRIPT_COUNT; i++) {
+        const at = snesToRom(SFX_SCRIPT_TABLE_ADDR + i * 2);
+        const apuId = read16(rom, at);
+        const status = apuId === 0xffff ? 'Unmapped / Silent' : ('APU Sound $' + hex(apuId, 2));
+        rows.push([i, '$' + hex(i, 2), apuId === 0xffff ? '—' : apuId, apuId === 0xffff ? '—' : ('$' + hex(apuId, 4)), status]);
+        pts.push([i, apuId === 0xffff ? 0 : apuId]);
+    }
+    return {
+        id: 'sfx-script-table', group: 'Audio', title: 'Sound effect script translation table', addr: '$8C:8362',
+        note: 'Table $8C:8362 (112 words, 224 bytes): Maps script/event sound call indices (opcode $30 and animation bytecode sound n) to internal hardware APU sound effect parameters.',
+        columns: ['script id', 'hex', 'apu driver id', 'hex apu', 'status'],
+        rows,
+        chart: { x: 'script sound id', y: 'apu id', series: [{ name: 'driver id', points: pts }] },
+        vfs: vfs(SFX_SCRIPT_TABLE_ADDR),
+    };
+}
+
+const SFX_ATTENUATION_ADDR = 0x8c84d4;
+const SFX_ATTENUATION_COUNT = 181;
+
+function sfxAttenuationTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < SFX_ATTENUATION_COUNT; i++) {
+        const at = snesToRom(SFX_ATTENUATION_ADDR + i);
+        const vol = rom[at];
+        const pct = ((vol / 255) * 100).toFixed(1) + '%';
+        rows.push([i, vol, '$' + hex(vol, 2), pct]);
+        pts.push([i, vol]);
+    }
+    return {
+        id: 'sfx-attenuation', group: 'Audio', title: 'Sound effect 2D distance attenuation curve', addr: '$8C:84D4',
+        note: 'Table $8C:84D4 (181 bytes): Logarithmic volume decay scalar across screen-relative listener distance, evaluated by positional spatialization routine audio_play_positional_sfx ($8C:8589).',
+        columns: ['distance step', 'volume scalar', 'hex', 'percentage'],
+        rows,
+        chart: { x: 'distance step', y: 'volume scalar', series: [{ name: 'volume (0..255)', points: pts }] },
+        vfs: vfs(SFX_ATTENUATION_ADDR),
+    };
+}
+
 /** Every table the view lists: only the ones decoded into readable values. */
 function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Table[] {
     return [
@@ -1053,6 +1148,8 @@ function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Ta
         ringItemIconsTable(rom), dteDigraphsTable(rom),
         dogGrowthTable(rom), roomEnterScriptsTable(rom),
         castSpellsTable(rom), ingredientsTable(rom),
+        dialoguePhrasesTable(rom), dialogueWordsTable(rom),
+        sfxScriptTranslationTable(rom), sfxAttenuationTable(rom),
     ];
 }
 

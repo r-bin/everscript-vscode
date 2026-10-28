@@ -381,13 +381,15 @@ No un-decompiled target from the prior queue is confirmed by this audit. Select 
   - Documented complete ROM Enums ([`docs/disassembly/engine-core/rom-enums.md`](engine-core/rom-enums.md)): contact action types (`0x00`..`0x1C` in `$8F:B6AE`), 35 alchemy formulas, 23 cast spell IDs (`$C4:5F97`), 22 alchemy ingredients (`$C4:5FF3`), and 16 metatile collision physics types.
   - Documented Master ROM Tables ([`docs/disassembly/engine-core/rom-tables.md`](engine-core/rom-tables.md)): sine/cosine lookup tables (`$80:88A3`/`$80:8923`), Boy and Dog cumulative XP progression curves (`$8C:8BD0`/`$8C:8CFC`), character record database (`$8E:B678`), dog breed form stat descriptors (`$8F:945D`), script opcode jump table (`$8C:D7E1`), animation jump table (`$90:8052`), and formula costs matrix (`$C4:3874`).
   - Integrated into Data Tab (`src/games/evermore/data-tab/model/enums.ts` & `tables.ts`): added WRAM state registers, 8-way facing directions, tile collision physics, status effect afflictions, weapon classes, ring menu icon categories, master music sequence tracks, sound effects, and 256 script VM opcodes to the Enums view; added decoded formula costs, dog breed attributes, weapon skill level thresholds, alchemy formula leveling curves, 15 Boy weapon attributes, Call Bead spell powers, and dialogue font glyph widths to the Tables view.
-- **2026-10-28 (Session 77)**: Decoded Companion Dog Level Stat Scaling Curves, Room Enter Scripts, Cast Spells, Alchemy Catalog & State Enums in Data Tab:
-  - Companion Dog Stat Progression Curves (`$8C:9515`, `$8C:8FE1`, `$8C:95F3`, `$8C:96D1`, `$8C:97AF`, `$8C:90BF`): decoded and integrated parallel 99-level progression curves into Data Tab (`dog-growth`), charting HP (base vs Chocobo Egg), Attack, Defense, and Magic Defense across levels 1..99. Created knowledge entries `rom/8c9515.md`, `rom/8c8fe1.md`, `rom/8c90bf.md`, `rom/8c95f3.md`, `rom/8c96d1.md`, and `rom/8c97af.md`.
-  - Room Enter Script Descriptors (`$92:801B`): decoded and integrated all 127 room enter script packed pointers and execution flags into Data Tab (`room-enter-scripts`), documenting `rom/92801b.md`.
-  - Script Cast Spells (`$C4:5F97` / `$C4:5FC5`): decoded and integrated 23 script cast spells for opcodes `$9E` and `$AC` into Data Tab (`cast-spells`), displaying block offsets and Bank `$91` addresses alongside spell names.
-  - Alchemy Ingredients Catalog (`$C4:5FF3`): decoded and integrated all 22 alchemy reagents into Data Tab (`ingredients-table`), displaying ingredient name pointers and SNES addresses.
-  - WRAM State Enums: added dedicated enum views for Dialogue Choice Prompt States (`$7E:0B2B`, `choice-box-states`) and APU Sequence Transfer States (`$7E:0E4F`, `apu-seq-status`).
-  - Data Tab expanded to **35 decoded tables** and **37 decoded enum sets**. All 11 unit, ROM, and DOM Playwright tests passed cleanly.
+- **2026-10-28 (Session 78)**: Decoded Dialogue Primary/Secondary Vocabulary, SFX Script Translation, Positional Audio Attenuation & Port Commands in Data Tab:
+  - Dialogue Master Primary 256-Word Dictionary (`$91:F46C` / `$91:F7D5`): decoded and integrated all 256 English dictionary words and phrases into Data Tab (`dialogue-phrases`), documenting `rom/91f46c.md` and `rom/91f7d5.md`.
+  - Dialogue Secondary 63-Word MTE Vocabulary (`$91:F3EC` / `$91:F66C`): decoded and integrated the 63 secondary MTE vocabulary words into Data Tab (`dialogue-mte-words`), documenting `rom/91f3ec.md` and `rom/91f66c.md`.
+  - Sound Effect Script Index Translation Table (`$8C:8362`): decoded all 112 script/event sound indices to internal hardware APU parameters into Data Tab (`sfx-script-table`), documenting `rom/8c8362.md`.
+  - Sound Effect 2D Distance Volume Attenuation Curve (`$8C:84D4`): decoded the 181-step logarithmic volume decay curve into Data Tab (`sfx-attenuation`) with interactive falloff chart, documenting `rom/8c84d4.md`.
+  - Dialogue Text Control Codes (`dialogue-control-codes`): exposed 27 typewriter text formatting tokens (`[LF]`, `[PAUSE]`, `[BOY]`, `[DOG]`, `[PAGE]`, etc.) in the Enums view.
+  - APU IPC Port Commands (`apu-ipc-commands`): exposed SPC700 hardware communication commands (`0x0004`..`0x00A9`) in the Enums view.
+  - Data Tab expanded to **39 decoded tables** and **39 decoded enum sets**. All 11 unit, ROM, and DOM Playwright tests passed cleanly.
+
 
 
 

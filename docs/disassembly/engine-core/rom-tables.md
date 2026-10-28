@@ -13,6 +13,8 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
 | `$80:88A3` | `0x0088A3` | `tbl_trig_sine` | 2 bytes | 320 | 640 B | 8.8 fixed-point trigonometric sine curve (`-255`..`+256`) |
 | `$80:8923` | `0x008923` | `tbl_trig_cosine` | 2 bytes | 256 | 512 B | Trigonometric cosine (+64 offset alias of `tbl_trig_sine`) |
 | `$81:9903` | `0x019903` | `tbl_song_packages` | 3 bytes | 71 | 213 B | Master music soundtrack and soundbank sequence descriptors |
+| `$8C:8362` | `0x0C8362` | `tbl_sfx_script_translation` | 2 bytes | 112 | 224 B | Script sound call to hardware APU parameter translation table |
+| `$8C:84D4` | `0x0C84D4` | `tbl_sfx_attenuation_curve` | 1 byte | 181 | 181 B | 2D distance audio volume logarithmic attenuation curve |
 | `$8C:8BD0` | `0x068BD0` | `tbl_xp_boy` | 3 bytes | 100 | 300 B | Cumulative XP progression for Boy (levels 1..100, `$FFFFFF` cap) |
 | `$8C:8CFC` | `0x068CFC` | `tbl_xp_dog` | 3 bytes | 99 | 297 B | Cumulative XP progression for companion Dog |
 | `$8C:9700` | `0x069700` | `tbl_weapon_charge_multipliers` | 2 bytes | 16 | 32 B | Charge attack damage multipliers for weapon tiers 0..3 |
@@ -28,6 +30,8 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
 | `$90:DF44` | `0x085F44` | `tbl_boomerang_orbit` | 4 bytes | 256 | 1,024 B | Elliptical orbital vector coordinates $(X, Y)$ in $1/16$ px |
 | `$91:80A6` | `0x0880A6` | `tbl_alchemy_spell_blocks` | 2 bytes | 48 | 96 B | Pointers to spell bytecode blocks in Bank `$91` |
 | `$91:F32E` | `0x09732E` | `tbl_dialogue_dte_pairs` | 2 bytes | 64 | 128 B | Dual Tile Encoding (DTE) 2-character English digraph pairs |
+| `$91:F3EC` | `0x0973EC` | `tbl_dialogue_word_pointers` | 2 bytes | 63 | 126 B | Secondary MTE vocabulary word offset lookup table |
+| `$91:F46C` | `0x09746C` | `tbl_dialogue_phrase_pointers` | 2 bytes | 256 | 512 B | Master primary 256-word dictionary phrase offset lookup table |
 | `$92:801B` | `0x12801B` | `tbl_room_enter_scripts` | 5 bytes | 127 | 635 B | Master room enter script 24-bit packed pointers and flags |
 | `$9F:FDE7` | `0x0FFDE7` | `tbl_room_blob_pointers` | 4 bytes | 127 | 508 B | 32-bit far pointers to compressed room data blobs |
 | `$C4:0C02` | `0x220C02` | `tbl_font_glyph_widths` | 1 byte | 95 | 95 B | Proportional character glyph pixel widths (ASCII 32..126) |
@@ -374,6 +378,37 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
 - **Internal Layout**:
   - 16-bit pointers within Bank `$C4` addressing null-terminated ASCII strings for the 22 reagents (Wax, Water, Vinegar, Root, Oil, Mushroom, Mud Pepper, Meteorite, Limestone, Iron, Gunpowder, Grease, Feather, Dry Ice, Clay, Brimstone, Bone, Atlas Medallion, Ash, Acorn, Crystal, Ethanol).
 - **Readers**: Formula cost inspect routines, satchel shop populator (`$8E:9C68`), and ring menu display.
+
+### 2.31 Dialogue Primary 256-Word Dictionary Phrase Table (`$91:F46C`)
+- **Format**: `uint16_t tbl_dialogue_phrase_pointers[256]`, 2 bytes per entry (512 bytes total, `$91:F46C`..`$91:F66B`).
+- **Internal Layout**:
+  - 16-bit word offsets relative to base string pool `$91:F7D5`.
+  - Holds 256 common full English words and grammatical phrases (e.g., "about", "across", "adventurer", "alchemy", "ingredient", "something", "thanks").
+  - Evaluated on token `$C0` by dialogue text decompressor `$8C:CD84`.
+- **Readers**: Dialogue string decompressor `$8C:CD84` and script text streamer.
+
+### 2.32 Dialogue Secondary 63-Word MTE Vocabulary Table (`$91:F3EC`)
+- **Format**: `uint16_t tbl_dialogue_word_pointers[63]`, 2 bytes per entry (126 bytes total, `$91:F3EC`..`$91:F469`).
+- **Internal Layout**:
+  - 16-bit word offsets relative to secondary string pool `$91:F66C`.
+  - Indexed via `(token << 1) & 0x7E` for compressed tokens `0xC2` through `0xFE`.
+  - Emits frequent dialogue words ("alchemy", "and", "are", "back", "can", "could", "deal", "don't", "formula", "for", "from", "give").
+- **Readers**: Dialogue string decompressor `$8C:CD84`.
+
+### 2.33 Sound Effect Script Index Translation Table (`$8C:8362`)
+- **Format**: `uint16_t tbl_sfx_script_translation[112]`, 2 bytes per entry (224 bytes total, `$8C:8362`..`$8C:8441`).
+- **Internal Layout**:
+  - Maps script sound indices (`0x00`..`0x6F`) used by script opcode `0x30` (`sound`) and animation bytecode `sound n` to internal hardware APU sound driver parameters.
+  - Entry `$FFFF` designates an unmapped or silent trigger.
+- **Readers**: Audio dispatch and SPC700 handshake routines (`$8C:82DC`, `$8C:8328`).
+
+### 2.34 Sound Effect 2D Distance Volume Attenuation Curve (`$8C:84D4`)
+- **Format**: `uint8_t tbl_sfx_attenuation_curve[181]`, 1 byte per entry (181 bytes total, `$8C:84D4`..`$8C:8588`).
+- **Internal Layout**:
+  - Logarithmic audio volume falloff curve ($255 \dots 0$) indexed by screen-relative Euclidean distance penalty.
+  - Value 255 represents maximum volume at screen center; scales smoothly down to 0 at distance cutoff threshold.
+- **Readers**: Positional audio player routine `audio_play_positional_sfx` (`$8C:8589`), transmitted to APU via IPC Command `0x0036`.
+
 
 
 

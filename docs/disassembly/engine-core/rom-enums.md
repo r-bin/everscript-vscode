@@ -435,3 +435,58 @@ typedef enum {
 } AnimOpcode;
 ```
 
+---
+
+## 17. Dialogue Script Text Formatting Control Codes (`DIALOGUE_CONTROL_CODE`)
+
+Formatting tokens recognized by the dialogue typewriter interpreter `$8C:CD84`:
+
+```c
+typedef enum {
+    TEXT_LF                     = 0x0A, /* [LF] Line Feed: Advance to next dialog row */
+    TEXT_ARROW_RIGHT            = 0x5E, /* -> Right Arrow symbol */
+    TEXT_ELLIPSIS               = 0x5F, /* … Ellipsis pause symbol */
+    TEXT_OK                     = 0x7E, /* [OK] Joypad button prompt wait */
+    TEXT_ARROW_LEFT             = 0x7F, /* <- Left Arrow symbol */
+    TEXT_PAUSE                  = 0x80, /* [PAUSE] Timed frame delay */
+    TEXT_BOY_NAME               = 0x81, /* [BOY] Boy custom name string ($7E:0A35) */
+    TEXT_DOG_NAME               = 0x82, /* [DOG] Companion Dog custom name string ($7E:0A50) */
+    TEXT_B_BUTTON               = 0x86, /* [B] In-line red B-button controller glyph */
+    TEXT_PAGE_BREAK             = 0x87, /* [PAGE] Clear window and await player press */
+    TEXT_CHOICE_RIGHT           = 0x8A, /* [CHOICE_RIGHT] Selectable choice right-column item */
+    TEXT_CHOICE_INLINE          = 0x8B, /* [CHOICE_INLINE] Selectable choice inline item */
+    TEXT_NOP                    = 0x8F, /* [NOP] Null format operation */
+    TEXT_BOLD                   = 0x90, /* [BOLD] Shadowed bold font weight */
+    TEXT_UNBOLD                 = 0x91, /* [UNBOLD] Standard font weight */
+    TEXT_CENTER                 = 0x92, /* [CENTER] Center align line */
+    TEXT_LEFT                   = 0x93, /* [LEFT] Left align line */
+    TEXT_RIGHT                  = 0x94, /* [RIGHT] Right align line */
+    TEXT_SLOW                   = 0x96, /* [SLOW] Half-speed typewriter rate */
+    TEXT_UNSLOW                 = 0x97, /* [UNSLOW] Nominal typewriter rate */
+    TEXT_INVERTED               = 0x98, /* [INVERTED] Inverse palette color font */
+    TEXT_MEM1                   = 0xA1, /* [MEM1] Print memory integer 1 */
+    TEXT_MEM2                   = 0xA2, /* [MEM2] Print memory integer 2 */
+    TEXT_MEM3                   = 0xA3  /* [MEM3] Print memory integer 3 */
+} DialogueControlCode;
+```
+
+---
+
+## 18. APU Communication Port IPC Commands (`APU_IPC_COMMAND`)
+
+Commands dispatched across SNES I/O ports `$2140`–`$2143` to the SPC700 audio coprocessor by `apu_command_handshake` (`$8C:81FD`):
+
+```c
+typedef enum {
+    APU_CMD_PLAY_SFX_DIRECT     = 0x0004, /* Play sound effect directly with active soundbank */
+    APU_CMD_PLAY_SFX_PACKAGE    = 0x0006, /* Stream required soundbank package before playing SFX */
+    APU_CMD_LOAD_SONGBANK       = 0x000A, /* Stream music sequence & instrument bank to SPC700 ARAM */
+    APU_CMD_PLAY_MUSIC          = 0x000C, /* Start playback for specified BGM track ID */
+    APU_CMD_VOLUME_LATCH        = 0x0028, /* Latch master music volume fade target level */
+    APU_CMD_SET_ATTENUATED_VOL  = 0x0036, /* Set 2D distance-attenuated volume for emitter sound effect */
+    APU_CMD_SET_STEREO_PAN      = 0x003E, /* Set left/right stereo pan coordinate (-100..+100) */
+    APU_CMD_VOLUME_RESTORE      = 0x00A9  /* Restore master volume to default nominal level */
+} ApuIpcCommand;
+```
+
+

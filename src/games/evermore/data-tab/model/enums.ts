@@ -772,6 +772,69 @@ function apuSeqStatusEnum(): EnumList {
     };
 }
 
+const DIALOGUE_TOKENS_DATA = [
+    { code: 0x0A, token: '[LF]', name: 'Line Feed', effect: 'Advances text rendering to the next dialog line' },
+    { code: 0x5E, token: '->', name: 'Right Arrow', effect: 'Horizontal forward navigation symbol' },
+    { code: 0x5F, token: '…', name: 'Ellipsis', effect: 'Three-dot pause glyph' },
+    { code: 0x7E, token: '[OK]', name: 'Confirm / Prompt', effect: 'Joypad wait indicator for player confirmation' },
+    { code: 0x7F, token: '<-', name: 'Left Arrow', effect: 'Horizontal backward navigation symbol' },
+    { code: 0x80, token: '[PAUSE]', name: 'Timed Pause', effect: 'Suspends typewriter output for a specified number of frames' },
+    { code: 0x81, token: '[BOY]', name: 'Boy Name Token', effect: 'Substitutes player Boy customized name from $7E:0A35' },
+    { code: 0x82, token: '[DOG]', name: 'Dog Name Token', effect: 'Substitutes companion Dog customized name from $7E:0A50' },
+    { code: 0x83, token: '[P3]', name: 'Actor 3 Token', effect: 'Substitutes third party member / temporary ally name' },
+    { code: 0x84, token: '[P4]', name: 'Actor 4 Token', effect: 'Substitutes fourth party member / temporary ally name' },
+    { code: 0x86, token: '[B]', name: 'B Button Glyph', effect: 'Renders in-line SNES red B-button controller glyph' },
+    { code: 0x87, token: '[PAGE]', name: 'Page Break', effect: 'Clears dialog window and waits for button press' },
+    { code: 0x8A, token: '[CHOICE_RIGHT]', name: 'Choice Right Align', effect: 'Renders selectable choice item aligned to right column' },
+    { code: 0x8B, token: '[CHOICE_INLINE]', name: 'Choice Inline', effect: 'Renders selectable choice item in-line' },
+    { code: 0x8F, token: '[NOP]', name: 'No Operation', effect: 'Null formatting control code' },
+    { code: 0x90, token: '[BOLD]', name: 'Bold Text', effect: 'Enables shadowed / bold font rendering mode' },
+    { code: 0x91, token: '[UNBOLD]', name: 'Regular Text', effect: 'Restores standard unbold font rendering mode' },
+    { code: 0x92, token: '[CENTER]', name: 'Center Align', effect: 'Centers text horizontally within dialog frame' },
+    { code: 0x93, token: '[LEFT]', name: 'Left Align', effect: 'Left-aligns subsequent dialog text' },
+    { code: 0x94, token: '[RIGHT]', name: 'Right Align', effect: 'Right-aligns subsequent dialog text' },
+    { code: 0x95, token: '[REPEAT]', name: 'Repeat Frame', effect: 'Repeats preceding character or spacing element' },
+    { code: 0x96, token: '[SLOW]', name: 'Slow Speed', effect: 'Halves typewriter text output velocity' },
+    { code: 0x97, token: '[UNSLOW]', name: 'Normal Speed', effect: 'Restores standard dialogue typewriter speed' },
+    { code: 0x98, token: '[INVERTED]', name: 'Inverted Color', effect: 'Swaps foreground and background font palette colors' },
+    { code: 0xA1, token: '[MEM1]', name: 'Memory Value 1', effect: 'Prints decimal contents of memory register 1' },
+    { code: 0xA2, token: '[MEM2]', name: 'Memory Value 2', effect: 'Prints decimal contents of memory register 2' },
+    { code: 0xA3, token: '[MEM3]', name: 'Memory Value 3', effect: 'Prints decimal contents of memory register 3' },
+];
+
+function dialogueControlCodesEnum(): EnumList {
+    return {
+        id: 'dialogue-control-codes', group: 'Dialogue', title: 'Dialogue script string control codes',
+        columns: ['byte', 'hex', 'token', 'name', 'typewriter effect'],
+        entries: DIALOGUE_TOKENS_DATA.map((t) => ({
+            cells: [String(t.code), '$' + hex(t.code, 2), t.token, t.name, t.effect],
+        })),
+        source: 'Dialogue text stream formatting tokens recognized by string_window_glyph_interpreter ($8C:CD84) and defined in localizations/strings.ts.',
+    };
+}
+
+const APU_IPC_COMMANDS_DATA = [
+    { cmd: 0x0004, name: 'APU_CMD_PLAY_SFX_DIRECT', desc: 'Plays sound effect directly with active soundbank package' },
+    { cmd: 0x0006, name: 'APU_CMD_PLAY_SFX_PACKAGE', desc: 'Streams required soundbank package from ROM before playing SFX' },
+    { cmd: 0x000A, name: 'APU_CMD_LOAD_SONGBANK', desc: 'Transfers music sequence and instrument bank to SPC700 ARAM' },
+    { cmd: 0x000C, name: 'APU_CMD_PLAY_MUSIC', desc: 'Initializes sequence playback for specified BGM track ID' },
+    { cmd: 0x0028, name: 'APU_CMD_VOLUME_LATCH', desc: 'Latches master music volume fade target level' },
+    { cmd: 0x0036, name: 'APU_CMD_SET_ATTENUATED_VOL', desc: 'Sets 2D distance-attenuated volume for emitter sound effect' },
+    { cmd: 0x003E, name: 'APU_CMD_SET_STEREO_PAN', desc: 'Sets left/right stereo pan coordinate (-100..+100) for sound emitter' },
+    { cmd: 0x00A9, name: 'APU_CMD_VOLUME_RESTORE', desc: 'Restores master volume to default nominal level' },
+];
+
+function apuIpcCommandsEnum(): EnumList {
+    return {
+        id: 'apu-ipc-commands', group: 'Audio', title: 'APU IPC communication port commands',
+        columns: ['command', 'hex', 'identifier', 'description'],
+        entries: APU_IPC_COMMANDS_DATA.map((c) => ({
+            cells: [String(c.cmd), '$' + hex(c.cmd, 4), c.name, c.desc],
+        })),
+        source: 'SPC700 hardware I/O communication port commands ($2140..$2143) dispatched by apu_command_handshake ($8C:81FD).',
+    };
+}
+
 /** Every list the view shows. `icons` are the formulas' ring-menu icons (PNG data URIs) in formula order. */
 function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | null)[] = []): EnumList[] {
     return [characterBlobs(rom, chars), recordFields(), contactHandlers(rom, chars), aiSelectors(rom, chars),
@@ -788,7 +851,8 @@ function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | nu
         animOpcodesEnum(rom), formulaPowersEnum(rom, icons),
         cameraScrollModesEnum(), windowStatesEnum(),
         audioFadeStatesEnum(), roomLoadStatesEnum(),
-        choiceBoxStatesEnum(), apuSeqStatusEnum()];
+        choiceBoxStatesEnum(), apuSeqStatusEnum(),
+        dialogueControlCodesEnum(), apuIpcCommandsEnum()];
 }
 
 export { enumsModel };

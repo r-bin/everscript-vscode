@@ -60,7 +60,8 @@ async function romChecks(rom) {
             'formula-learned', 'rooms-table', 'contact-handlers', 'ai-behaviours',
             'animation-vm', 'formula-powers', 'script-opcodes-table', 'songs-table',
             'ring-item-icons', 'dte-digraphs', 'dog-growth', 'room-enter-scripts',
-            'cast-spells', 'ingredients-table'
+            'cast-spells', 'ingredients-table', 'dialogue-phrases', 'dialogue-mte-words',
+            'sfx-script-table', 'sfx-attenuation'
         ]);
         const boy = ix.tables[1].rows[2];
         assert.strictEqual(boy[1], 'Boy');
@@ -127,6 +128,13 @@ async function romChecks(rom) {
         assert.strictEqual(ix.tables[33].rows[0][2], 'Acid Rain');
         assert.strictEqual(ix.tables[34].rows.length, 22);
         assert.strictEqual(ix.tables[34].rows[0][2], 'Wax');
+        assert.strictEqual(ix.tables[35].rows.length, 256);
+        assert.strictEqual(ix.tables[35].rows[0][2], 'about');
+        assert.strictEqual(ix.tables[36].rows.length, 63);
+        assert.strictEqual(ix.tables[36].rows[0][2], 'alchemy');
+        assert.strictEqual(ix.tables[37].rows.length, 112);
+        assert.strictEqual(ix.tables[38].rows.length, 181);
+        assert.strictEqual(ix.tables[38].rows[0][1], 255);
     });
     await test('enums: only lists read from the ROM or a knowledge entry', () => {
         assert.deepStrictEqual(ix.enums.map((e) => e.id), [
@@ -137,7 +145,7 @@ async function romChecks(rom) {
             'bazooka-ammo-enum', 'companion-ai-states', 'projectile-routines-enum',
             'projectile-behaviors', 'formula-learned-flags', 'anim-opcodes', 'formula-powers-enum',
             'camera-scroll-modes', 'window-states', 'audio-fade-states', 'room-load-states',
-            'choice-box-states', 'apu-seq-status'
+            'choice-box-states', 'apu-seq-status', 'dialogue-control-codes', 'apu-ipc-commands'
         ]);
         const e = (id) => ix.enums.find((x) => x.id === id);
         assert.ok(e('blobs').entries.some((x) => x.cells[0] === 'WRAM' && x.cells[2] === '$7E0A26'));
@@ -217,7 +225,7 @@ async function dom(rom) {
     await test('opening the tab loads every list; XP is drawn with both series', async () => {
         await page.click('.tab[data-tab="data"]');
         await pump();
-        assert.strictEqual(await page.locator('#dat-rail [data-dat-pick]').count(), 35);
+        assert.strictEqual(await page.locator('#dat-rail [data-dat-pick]').count(), 39);
         assert.strictEqual(await page.locator('#dat-side svg polyline').count(), 2);
         const svg = await page.locator('#dat-side svg').boundingBox();
         await page.mouse.move(svg.x + svg.width * 0.5, svg.y + svg.height * 0.5);
