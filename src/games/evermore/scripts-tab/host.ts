@@ -126,8 +126,9 @@ function handleScriptsMessage(msg: Message, deps: Deps): void {
             case 'scriptsRoom': {
                 const id = Number(msg.id);
                 const { room, picture } = roomEntry(rom, id);
-                const refs = [...(room.merged?.lines ?? []).map((l) => l.icons), ...(room.scripts ?? []).flatMap((s) => s.rows.map((r) => r.i))];
-                deps.post({ command: 'scriptsRoom', id, room, picture, icons: iconsFor(rom, iconKeys(refs), deps.dogIcon ?? null) });
+                const refs = [...(room.merged?.lines ?? []).map((l) => l.icons), ...(room.scripts ?? []).flatMap((s) => s.rows.map((r) => r.i)),
+                    (room.merged?.slices ?? []).flatMap((s) => (s.icons ?? []).map((key) => ({ key })))];
+                deps.post({ command: 'scriptsRoom', id, room, picture, icons: iconsFor(rom, iconKeys(refs), deps.dogIcon ?? null, id) });
                 return;
             }
             case 'scriptsMerged': {
@@ -136,7 +137,8 @@ function handleScriptsMessage(msg: Message, deps: Deps): void {
                 const cache = entry.merged ?? (entry.merged = new Map());
                 if (!cache.has(key)) cache.set(key, triggerMerged(rom, entry.room, key));
                 const got = cache.get(key)!;
-                const icons = 'merged' in got ? iconsFor(rom, iconKeys(got.merged.lines.map((l: { icons?: Array<{ key: string }> }) => l.icons)), deps.dogIcon ?? null) : {};
+                const icons = 'merged' in got ? iconsFor(rom, iconKeys([...got.merged.lines.map((l: { icons?: Array<{ key: string }> }) => l.icons),
+                    got.merged.slices.flatMap((s: { icons?: string[] }) => (s.icons ?? []).map((key) => ({ key })))]), deps.dogIcon ?? null, id) : {};
                 deps.post({ command: 'scriptsMerged', id, key, ...got, icons });
                 return;
             }

@@ -18,7 +18,7 @@ interface Line {
     note?: boolean; brace?: boolean; opens?: number; marks?: Mark[];
 }
 interface Block { id: number; parent: number; kind: 'call' | 'thread'; target: number; role: string | null }
-interface Slice { area: 'local' | 'temp'; thread: number; offset: number; width: 1 | 2; kind: string; name: string; uses: number[]; reused: string | null }
+interface Slice { area: 'local' | 'temp'; thread: number; offset: number; width: 1 | 2; kind: string; name: string; uses: number[]; reused: string | null; icons?: string[] }
 interface BoundWrite { at: number; edge: 'start' | 'end'; x: number; y: number }
 interface Arrival { fromMap: number; fromName: string; key: string; x: number; y: number; direction: string | null }
 
@@ -26,16 +26,19 @@ interface Arrival { fromMap: number; fromName: string; key: string; x: number; y
  * A highlighted line with its in-game icons: each after the first `find` token that has none yet
  * (script-model icons.ts names them, the host draws them from the user's ROM).
  */
-export function withIcons(html: string, refs: Array<{ key: string; find: string }>, icons: Record<string, string | null>): string {
+export function withIcons(html: string, refs: Array<{ key: string; find: string; tail?: string; title?: string }>, icons: Record<string, string | null>, room: number): string {
     let out = html;
     for (const r of refs) {
-        const uri = icons[r.key];
+        const key = r.key.startsWith('object:') ? 'object:' + room + r.key.slice(6) : r.key;
+        const uri = icons[key];
         if (!uri) continue;
-        const token = '>' + esc(r.find) + '</span>';
+        const token = '>' + esc(r.find) + '</span>' + esc(r.tail ?? '');
         const at = out.indexOf(token);
         if (at < 0) continue;
         const end = at + token.length;
-        out = out.slice(0, end) + '<img class="scr-icon" src="' + uri + '" alt="" title="' + esc(r.find) + '">' + out.slice(end);
+        const obj = key.startsWith('object:');
+        const title = (r.title ?? r.find) + (obj ? ' · soe://rom/assets/maps/' + hx(room, 2).toLowerCase() + '/objects/' + key.split(':')[2] + '/state_' + key.split(':')[3] + '.png' : '');
+        out = out.slice(0, end) + '<img class="scr-icon' + (obj ? ' scr-icon-obj' : '') + '" src="' + uri + '" alt="" title="' + esc(title) + '">' + out.slice(end);
     }
     return out;
 }
@@ -184,7 +187,7 @@ export function arrivalsHtml(arrivals: Arrival[]): string {
 }
 
 /** The sliced cells: each thread's `arg[]`, then the room's `temp[]`. */
-export function slicesHtml(slices: Slice[], blocks: Block[]): string {
+export function slicesHtml(slices: Slice[], blocks: Block[], icons: Record<string, string | null>): string {
     if (!slices.length) return '';
     const where = (s: Slice): string => s.area === 'temp' ? 'temp (room)' : s.thread < 0 ? 'arg (enter thread)' : 'arg (thread $' + hx(blocks[s.thread].target, 6) + ')';
     let last = '';
@@ -192,7 +195,8 @@ export function slicesHtml(slices: Slice[], blocks: Block[]): string {
         const w = where(s), head = w !== last ? '<tr class="scr-slice-h"><td colspan="4">' + esc(w) + '</td></tr>' : '';
         last = w;
         return head + '<tr' + (s.reused ? ' class="scr-slice-reused" title="' + esc('Reused: ' + s.reused) + '"' : '') + '><td>' + (s.area === 'temp' ? 'temp' : 'arg') + '[' + s.offset + ']</td>' +
-            '<td>' + (s.width === 1 ? 'byte' : 'word') + '</td><td>' + esc(s.name) + (s.reused ? ' ⚠' : '') + '</td><td class="scr-dim">' + s.uses.length + ' use' + (s.uses.length > 1 ? 's' : '') + '</td></tr>';
+            '<td>' + (s.width === 1 ? 'byte' : 'word') + '</td><td>' + esc(s.name) + (s.reused ? ' ⚠' : '') +
+            (s.icons ?? []).filter((k) => icons[k]).map((k) => '<img class="scr-icon" src="' + icons[k] + '" alt="" title="given by last_entity() after this spawn">').join('') + '</td><td class="scr-dim">' + s.uses.length + ' use' + (s.uses.length > 1 ? 's' : '') + '</td></tr>';
     }).join('');
     return '<div class="scr-side-h">Locals <span class="scr-dim">arg[] and temp[] cut by how the listing uses them</span></div><table class="scr-slices"><tbody>' + rows + '</tbody></table>';
 }

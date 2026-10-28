@@ -52,7 +52,7 @@ export interface Names {
 
 const hex = (v: number, w = 2): string => '0x' + hexLower(v, w);
 const bus = (a: number): string => '$' + (a >>> 16).toString(16).padStart(2, '0') + ':' + (a & 0xFFFF).toString(16).padStart(4, '0');
-const constText = (v: number): string => (v < 0 ? String(v) : v < 10 ? String(v) : hex(v, v > 0xFF ? 4 : 2));
+export const constText = (v: number): string => (v < 0 ? String(v) : v < 10 ? String(v) : hex(v, v > 0xFF ? 4 : 2));
 
 const AREA_BASE: Record<string, number> = { save: 0x2258, temp: 0x2834 };
 const TEMP = 0x2834;
@@ -128,8 +128,9 @@ function nodeText(n: Node, names: Names, outer = 0, truth: Why = ''): string {
             const p = PRECEDENCE[n.op] ?? 0;
             const logic = n.op === '&&' || n.op === '||';
             const eq = n.op === '==' || n.op === '!=';
+            const cmp = eq || n.op === '<' || n.op === '>' || n.op === '<=' || n.op === '>=';
             const side = (a: Node, b: Node, q: number): string => {
-                const named = eq && a.k === 'const' ? compared(b, a.value, names) : '';
+                const named = cmp && a.k === 'const' ? compared(b, a.value, names) : '';
                 return named || nodeText(a, names, q, logic || (eq && signless(a, b)) ? 'zero' : '');
             };
             const s = `${side(n.left, n.right, p)} ${n.op} ${side(n.right, n.left, p + 1)}`;

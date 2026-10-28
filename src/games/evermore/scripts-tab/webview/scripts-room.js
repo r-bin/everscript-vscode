@@ -80,7 +80,7 @@ function scrScriptListHtml(room) {
 /** One script line, coloured (script-vm/highlight.ts, the Rooms tab's too); `marks` drawn as squiggles. */
 function scrLine(text, marks, icons) {
   var html = typeof highlightScript === 'function' ? highlightScript(text, marks || []) : scrEsc(text);
-  return icons ? ScriptsListing.withIcons(html, icons, _scr.icons) : html;
+  return icons ? ScriptsListing.withIcons(html, icons, _scr.icons, _scr.room) : html;
 }
 
 function scrRowsHtml(s) {
@@ -226,7 +226,7 @@ function scrRenderRoomSide(side, d, sel) {
     + '<div class="scr-map"><img src="' + p.uri + '" width="' + p.width + '" height="' + p.height + '" alt="">'
     + '<svg viewBox="0 0 ' + p.width + ' ' + p.height + '" preserveAspectRatio="none">' + ScriptsListing.boundsSvg(p.width, p.height, d.room.bounds || [], live)
     + scrSpritesSvg(d) + boxes + ScriptsListing.arrivalsSvg(d.room.arrivals || []) + '</svg></div>'
-    + ScriptsListing.arrivalsHtml(d.room.arrivals || []) + (m ? ScriptsListing.slicesHtml(m.slices || [], m.blocks) : '');
+    + ScriptsListing.arrivalsHtml(d.room.arrivals || []) + (m ? ScriptsListing.slicesHtml(m.slices || [], m.blocks, _scr.icons) : '');
 }
 
 function scrOnRoomMessage(msg) {

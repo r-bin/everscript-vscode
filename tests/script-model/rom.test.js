@@ -120,6 +120,20 @@ test('Strong Heart\'s hut: constants by their enum, globals by name, roles, slic
     assert.ok(room.lines.some((l) => /arg\.entity_\d\.x/.test(l.summary)), 'deref(arg + 0x1a) reads as a field of the sliced entity');
 });
 
+test('Thraxx\'s chamber: last_entity() is the spawn above it, objects in their state, the boy, entity cells keep what they hold', () => {
+    const m = M.mergedEnterScript(bytes, 0x18);
+    const icons = (a) => (m.lines.find((l) => l.addressSnes === a && !l.note).icons || []).map((i) => i.key + '@' + i.find);
+    assert.deepStrictEqual(icons(0x93d28c), ['enemy:16@last_entity'], 'attach_script(last_entity(), …) after spawn(THRAXX_LEFT_ARM)');
+    assert.deepStrictEqual(icons(0x93d296), ['enemy:17@last_entity'], 'temp.entity_2 = last_entity() after spawn(THRAXX_RIGHT_ARM)');
+    assert.ok(m.slices.some((s) => s.name === 'temp.entity_1' && s.icons[0] === 'enemy:16'), 'temp.entity_1 holds the left arm first');
+    assert.ok(m.lines.some((l) => (l.icons || []).some((i) => /^object:3:1@3$/.test(i.key + '@' + i.find))), 'object[3] = 1: object 3 in state 1');
+    const hut = M.mergedEnterScript(bytes, 0x33);
+    assert.ok(hut.lines.some((l) => (l.icons || []).some((i) => i.key === 'char:0' && i.find === 'boy')), 'boy(): the Boy');
+    const r10 = M.mergedEnterScript(bytes, 0x10);
+    assert.ok(r10.lines.some((l) => l.summary.includes('CURRENT_WEAPON == BONE_CRUSHER') && l.icons.some((i) => i.key === 'weapon:2')), 'a weapon cell compared: named and pictured');
+    assert.ok(r10.lines.some((l) => l.summary.includes('CURRENT_WEAPON_TYPE == AXE')), 'its class by the WEAPON_TYPE enum');
+});
+
 test('an else-if chain stays on one level; the compiler\'s enums name cells names.json does not', () => {
     const m = M.mergedEnterScript(bytes, 0x18);
     const line = (a) => m.lines.find((l) => l.addressSnes === a && !l.note);

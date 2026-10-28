@@ -28,6 +28,8 @@ export interface Slice {
     uses: number[];
     /** Why one name cannot say all its uses, or null. */
     reused: string | null;
+    /** What it holds when the listing knows (icon keys, icons.ts): each character an entity cell is given by `last_entity()` after a spawn. */
+    icons?: string[];
 }
 
 type Use = 'entity' | 'flags' | 'value';

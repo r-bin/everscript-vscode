@@ -152,9 +152,12 @@ function typedConstant(type: string, value: number): string {
 /**
  * What a cell's values are, where the game says so: the loot reward and the three prize items
  * (knowledge ram/7e2391: the default loot script copies a prize into the reward), the dog's form
- * asked for and the one it has (ram/7e2443, ram/7e2363).
+ * asked for and the one it has (ram/7e2443, ram/7e2363), the equipped weapon's class (ram/7e2360).
  */
-const CELL_TYPES: Record<number, string> = { 0x2443: 'DOG', 0x2363: 'DOG' };
+const CELL_TYPES: Record<number, string> = { 0x2443: 'DOG', 0x2363: 'DOG', 0x2360: 'WEAPON_TYPE' };
+/** Cells holding a weapon index (ram/7e2441 the one a room hands over, ram/7e235f the one equipped): named like the request's values. */
+const WEAPON_CELLS = new Set([0x2441, 0x235f]);
+const WEAPON_REQUEST = 0x2441;
 const LOOT_CELLS = new Set([0x2391, 0x23a1, 0x23a3, 0x23a5]);
 
 /** `Hut/house to enter?` → `HUT_HOUSE_TO_ENTER`. */
@@ -198,7 +201,8 @@ export function printNames(file: (bus: number) => number): Names {
         script: (bus) => identifier(scriptName(file(bus))),
         global: (id) => identifier(globalScriptName(id)) || constantName('ADDRESS_ID', id),
         map: (id) => mapName(id),
-        value: (addr, v) => (LOOT_CELLS.has(addr) ? lootRewardName(v) : null) || (CELL_TYPES[addr] ? constantName(CELL_TYPES[addr], v) : '') || identifier(valueName(addr, v) ?? ''),
+        value: (addr, v) => (LOOT_CELLS.has(addr) ? lootRewardName(v) : null) || (CELL_TYPES[addr] ? constantName(CELL_TYPES[addr], v) : '')
+            || identifier(valueName(WEAPON_CELLS.has(addr) ? WEAPON_REQUEST : addr, v) ?? ''),
         enemy: (index) => enemyName(index)?.name ?? '',
         constant: typedConstant,
         inEnum: (type, value) => (type === 'TRIGGER_ID' || !ENUMS[type]?.length ? null : ENUMS[type].some((c) => Number(c.value) === value)),

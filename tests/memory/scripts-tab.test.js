@@ -290,6 +290,8 @@ async function dom(rom) {
         assert.strictEqual(await page.locator('.scr-map image.scr-sprite').count(), 0, 'Empty: nobody');
         assert.notStrictEqual(await page.getAttribute('.scr-map img', 'src'), thraxxPicture, 'Empty: the objects it sets change the picture');
         await shot('thraxx-empty');
+        assert.ok(await page.locator('#scr-mid img.scr-icon[title^="the last character a spawn placed"]').count() >= 3, 'last_entity(): the arm, the arm, the heart');
+        assert.ok(await page.locator('#scr-mid img.scr-icon-obj').count() > 0, 'object[3] = 1: the object in that state');
         await page.click('[data-scr-pick="room:37"]');
         await pump();
         await page.click('.scr-map rect[data-scr-script="step:0"]');

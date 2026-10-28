@@ -75,7 +75,7 @@ test('parameters.json: one entry per opcode, one parameter per operand; entities
         assert.strictEqual(ps.length, spec.operands.length, `$${op.toString(16)}: ${ps.length} parameters for ${spec.operands.length} operands`);
         spec.operands.forEach((t, i) => {
             if (FLOW[t]) assert.strictEqual(ps[i].type, FLOW[t], `$${op.toString(16)} operand ${i}`);
-            else if (t === 'u8' || t === 'u16') assert.strictEqual(ps[i].type, t, `$${op.toString(16)} operand ${i}`);
+            else if (t === 'u8' || t === 'u16') assert.strictEqual(V.baseType(ps[i].type), t, `$${op.toString(16)} operand ${i}`);
         });
     }
     // An entity parameter gets an entity sub-op, a read, or a small special value below $2000 (wait's 1 and 2, a room hook).

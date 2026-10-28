@@ -245,6 +245,8 @@ test('parameters.json types the operands: an entity\'s signed is warned, a value
     assert.strictEqual(w.text, 'walk_to_tile_direct(signed temp[0], 0x05, 0x06);');
     assert.deepStrictEqual(w.marks.map((m) => [m.find, /entity/.test(m.message)]), [['signed', true]]);
     assert.deepStrictEqual(V.parameters(0x6e).map((p) => p.name + ':' + p.type), ['entity:entity', 'x:u8', 'y:u8']);
+    assert.strictEqual(V.parameters(0x5d)[0].type, 'object_index');
+    assert.strictEqual(V.baseType('object_index'), 'u8', 'a derived type inherits from its base');
     const names = { constant: (t, v) => (t === 'MUSIC' && v === 0x12 ? 'AMBIENT' : ''), inEnum: (t, v) => (t === 'MUSIC' ? v === 0x12 : null) };
     assert.deepStrictEqual(V.printed(decode([0x33, 0x12]), names).marks, []);
     const bad = V.printed(decode([0x33, 0x13]), names);
