@@ -313,6 +313,12 @@ async function dom(rom) {
         assert.ok(await page.locator('#scr-mid td.scr-called').count() > 0, 'call $92:DE75 is open: its rows carry a bar');
         assert.ok((await page.textContent('#scr-mid')).includes('attach_script(1, B, LOOT_DUST_REWARD);'));
         await shot('hut');
+        // A trigger reads like the enter script: merged (scriptsMerged), structured, its calls folded or open.
+        await page.click('.scr-chips [data-scr-script="step:0"]');
+        await pump();
+        assert.ok(await page.locator('#scr-mid table.scr-rows .scr-fold').count() > 0, 'the step-on trigger is merged: its calls fold');
+        assert.ok((await page.textContent('#scr-mid')).includes('load_map('));
+        await shot('hut-step');
         await page.click('.scr-arrivals [data-scr-arrive^="52|"]');
         await pump();
         assert.ok((await page.textContent('#scr-mid')).includes('inside'), 'an arrival opens the room it comes from');

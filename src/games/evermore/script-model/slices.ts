@@ -36,8 +36,8 @@ interface Access { area: SliceArea; offset: number; width: 1 | 2; use: Use }
 const TEMP_BASE = TEMP_AREA;
 /** The temp area's size (print.ts reads cells past it as save-area addresses). */
 const TEMP_AREA_SIZE = 200;
-/** The sub-ops whose value is an entity record's address (spec.ts: last_entity, self_entity, boy, …). */
-const ENTITY_VALUES = new Set(['last_entity', 'self_entity', 'boy', 'dog', 'camera_entity', 'other_character']);
+/** The sub-ops whose value is an entity record's address (spec.ts: last_entity, script_owner, boy, …). */
+const ENTITY_VALUES = new Set(['last_entity', 'script_owner', 'boy', 'dog', 'camera_entity', 'other_character']);
 
 const areaOf = (area: string | undefined, addr: number): { area: SliceArea; offset: number } | null =>
     area === 'local' ? { area: 'local', offset: addr } : area === 'temp' && addr >= TEMP_BASE && addr < TEMP_BASE + TEMP_AREA_SIZE ? { area: 'temp', offset: addr - TEMP_BASE } : null;

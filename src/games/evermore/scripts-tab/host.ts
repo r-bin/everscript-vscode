@@ -8,6 +8,9 @@
 //
 //   page -> scriptsInit                 host -> scriptsIndex { rooms, animations, music } | { error }
 //   page -> scriptsRoom { id }          host -> scriptsRoom { id, room, picture }
+//   page -> scriptsMerged { id, key }   host -> scriptsMerged { id, key, merged } | { id, key, error }   (a trigger's
+//                                       script with its calls merged, as the enter script comes in scriptsRoom; one at a time:
+//                                       a room's triggers together can be megabytes)
 //   page -> scriptsMap { id }           host -> scriptsMap { id, map, picture }
 //   page -> scriptsMapView { id, key }  host -> scriptsMapView { id, key, panels } | { id, key, error }
 //   page -> scriptsAnim { key, record, facing }   host -> scriptsAnim { key, anim } | { key, error }
@@ -16,7 +19,7 @@
 //   page -> scriptsVariants { id }      host -> scriptsVariants { id, variants, pictures } | { id, error }   (the Rooms tab's worker, injected;
 //                                       pictures[i]: the room with variant i's object states and palette set, null when it sets neither)
 
-import { roomList, roomScripts, roomPicture } from './model/rooms';
+import { roomList, roomScripts, roomPicture, triggerMerged } from './model/rooms';
 import { alchemyModel } from './model/alchemy';
 import { simulateScript, roomClusters } from './model/simulation';
 import { mapSections } from './model/map-sections';
@@ -46,7 +49,7 @@ interface Deps {
     roomVariants(rom: Rom, id: number): Promise<Array<{ objects?: Array<[number, number]>; palette?: number }>>;
 }
 
-type RoomEntry = { room: ReturnType<typeof roomScripts>; picture: ReturnType<typeof roomPicture> };
+type RoomEntry = { room: ReturnType<typeof roomScripts>; picture: ReturnType<typeof roomPicture>; merged?: Map<string, unknown> };
 let _rooms: { rom: Rom | null; byId: Map<number, RoomEntry> } = { rom: null, byId: new Map() };
 
 const handlesScriptsMessage = (command: unknown): boolean => typeof command === 'string' && command.startsWith('scripts');
@@ -121,6 +124,14 @@ function handleScriptsMessage(msg: Message, deps: Deps): void {
                 const id = Number(msg.id);
                 const { room, picture } = roomEntry(rom, id);
                 deps.post({ command: 'scriptsRoom', id, room, picture });
+                return;
+            }
+            case 'scriptsMerged': {
+                const id = Number(msg.id), key = String(msg.key);
+                const entry = roomEntry(rom, id);
+                const cache = entry.merged ?? (entry.merged = new Map());
+                if (!cache.has(key)) cache.set(key, triggerMerged(rom, entry.room, key));
+                deps.post({ command: 'scriptsMerged', id, key, ...(cache.get(key) as object) });
                 return;
             }
             case 'scriptsAnim': {

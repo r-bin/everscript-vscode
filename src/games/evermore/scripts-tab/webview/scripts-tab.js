@@ -22,7 +22,8 @@ var _scr = {
   sims: {},              // room + ':' + key -> { everscript, clusters } | 'pending'
   variants: {},          // room id -> { variants, error } | 'pending' (who stands in it per story state)
   variantPick: {},       // room id -> chosen variant index (0, the default, until picked)
-  folds: {},             // room id -> { block id: folded } (the merged enter script's folds)
+  folds: {},             // room + ':' + script key -> { block id: folded } (a merged listing's folds)
+  merged: {},            // room + ':' + trigger key -> { merged } | { error } | 'pending' (scriptsMerged)
   structured: true,      // the enter script as if/else/while (off: each instruction as printed, gotos and all)
   assume: { IN_ANIMATION: false, DOG_UNAVAILABLE: false, CHANGE_MUSIC: false }, // entry state (ScriptsListing.ENTRY_FLAGS)
   // Maps

@@ -20,7 +20,7 @@
 // `arrivals` are the doors in other rooms that lead here (script-model
 // arrivals.ts, one index per ROM).
 
-import { buildRoomScriptModel, mergedEnterScript, roleOf, buildArrivalIndex, mergeArrivals } from '../../script-model';
+import { buildRoomScriptModel, mergedEnterScript, mergedRoomScript, roleOf, buildArrivalIndex, mergeArrivals } from '../../script-model';
 import type { RoomScript, RoomTrigger, SpawnFacts, MergedScript, Role, ArrivalIndex } from '../../script-model';
 import { ScriptRom, decodeAt, facts } from '../../script-vm';
 import * as maps from '../../maps';
@@ -177,4 +177,11 @@ function roomPicture(rom: Uint8Array, id: number, states?: Record<number, number
     }
 }
 
-export { roomList, roomScripts, roomPicture };
+/** A trigger's script (`key`: `step:0`, `b:1`) with its calls merged: { merged } or { error }. */
+function triggerMerged(rom: Uint8Array, room: ReturnType<typeof roomScripts>, key: string) {
+    const s = room.scripts?.find((x) => x.key === key);
+    if (!s || s.kind === 'enter') return { error: 'No trigger ' + key };
+    try { return { merged: mergedRoomScript(rom, s.address) }; } catch (err) { return { error: String(err instanceof Error ? err.message : err) }; }
+}
+
+export { roomList, roomScripts, roomPicture, triggerMerged };

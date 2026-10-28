@@ -18,6 +18,28 @@ function scrPick(value) {
   scrRender();
 }
 
+/** A `goto` target clicked: scroll to that row of the listing (in the same merged body first) and flash it. */
+function scrGoto(label) {
+  var tr = label.closest('tr'), table = tr && tr.closest('.scr-rows');
+  if (!table) return;
+  var all = table.querySelectorAll('tr[data-addr="' + label.getAttribute('data-goto') + '"]'), hit = null;
+  for (var i = 0; i < all.length && !hit; i++) if (all[i].getAttribute('data-in') === tr.getAttribute('data-in')) hit = all[i];
+  hit = hit || all[0];
+  if (!hit) return;
+  hit.scrollIntoView({ block: 'center' });
+  hit.classList.remove('sx-flash');
+  void hit.offsetWidth;
+  hit.classList.add('sx-flash');
+}
+
+/** A door picked on the map or in the list: open the room it is in at that script. */
+function scrArrive(value) {
+  var i = value.indexOf('|');
+  scrSelectRoom(Number(value.slice(0, i)));
+  _scr.script = value.slice(i + 1);
+  scrRender();
+}
+
 function scrOnClick(e, pane) {
   var t;
   if ((t = scrClosest(e.target, 'scrView', pane))) { _scr.view = t.dataset.scrView; scrStopPlayer(); scrStopMusic(); scrRender(); return; }
@@ -74,7 +96,7 @@ function setupScriptsTab() {
       if (msg.error) { _scr.error = msg.error; _scr.requested = false; }
       else _scr.index = { rooms: msg.rooms, animations: msg.animations, music: msg.music };
       scrRender();
-    } else if (msg.command === 'scriptsRoom' || msg.command === 'scriptsSim' || msg.command === 'scriptsVariants') scrOnRoomMessage(msg);
+    } else if (msg.command === 'scriptsRoom' || msg.command === 'scriptsSim' || msg.command === 'scriptsVariants' || msg.command === 'scriptsMerged') scrOnRoomMessage(msg);
     else if (msg.command === 'scriptsMap' || msg.command === 'scriptsMapView') scrOnMapMessage(msg);
     else if (msg.command === 'scriptsAnim') scrOnAnimMessage(msg);
     else if (msg.command === 'scriptsMusic') scrOnMusicMessage(msg);

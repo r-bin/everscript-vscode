@@ -16,7 +16,7 @@
 //
 // Each merged body is a block the viewer can fold. A callee named by a short operand — a global id
 // (u8), a trigger offset (u16), a call back (cb, c16) — is a shared helper and starts folded; one
-// named by a full pointer (u24) starts open. A callee already being merged further up is not merged
+// named by a full pointer (u24) starts open, arguments or not. A callee already being merged further up is not merged
 // again (recursion), and the listing stops merging past MAX_LINES, so nothing here can run away.
 //
 // Each block has a `role`, what it is for, from its instructions' facts (never their text) and
@@ -145,8 +145,7 @@ function mergeOnce(rom: ScriptRom, entry: number, names: Names, slices: Slice[] 
     };
 
     function open(kind: MergedBlock['kind'], ins: Instruction, parent: number): MergedBlock {
-        const last = ins.operands[ins.operands.length - 1];
-        const b: MergedBlock = { id: blocks.length, parent, kind, target: ins.target!, from: ins.address, folded: kind === 'call' && last?.k !== 'u24', size: 0, role: roleOf(rom, ins.target!) };
+        const b: MergedBlock = { id: blocks.length, parent, kind, target: ins.target!, from: ins.address, folded: kind === 'call' && !ins.operands.some((o) => o.k === 'u24'), size: 0, role: roleOf(rom, ins.target!) };
         blocks.push(b);
         return b;
     }
@@ -221,6 +220,11 @@ function mergeOnce(rom: ScriptRom, entry: number, names: Names, slices: Slice[] 
         } catch { /* an undecodable entry: no lines */ }
     }
     return { entry, lines, blocks };
+}
+
+/** The script at `entry` (a trigger's), merged and named for reading like the enter script. */
+export function mergedRoomScript(bytes: Uint8Array, entry: number): MergedScript {
+    return mergedScript(new ScriptRom(bytes), entry, displayNames(hiromFileOffset));
 }
 
 /** ROM room `mapId`'s enter script, merged; null when it has none. */

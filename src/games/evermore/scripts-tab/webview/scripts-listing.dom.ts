@@ -82,17 +82,43 @@ export function liveness(lines: Line[], mine: Record<number, 1> | null, any: Rec
     return out;
 }
 
-/** How many calls deep each line sits (its blocks of kind `call` up to the thread it runs in). */
-export function callDepth(line: Line, blocks: Block[]): number {
-    let n = 0;
-    for (let b = line.in; b >= 0 && blocks[b].kind === 'call'; b = blocks[b].parent) n++;
-    return n;
+/** The fold arrow's width (scripts-tab.css .scr-fold): a called body's text starts where its call's `call` does. */
+const STEP = 12;
+const INDENT = 14, LEFT = 8;
+
+/** The calls a line sits in, innermost first, up to the thread it runs in. */
+function callsAround(line: Line, blocks: Block[]): number[] {
+    const out: number[] = [];
+    for (let b = line.in; b >= 0 && blocks[b].kind === 'call'; b = blocks[b].parent) out.push(b);
+    return out;
 }
 
-/** What a line is for: its innermost block with a role, the room's setup at the top. */
-export function roleAt(line: Line, blocks: Block[]): string {
+/**
+ * Each line's layout in px: `text` where its text starts, `bars` one per call it sits in, each at
+ * its call line's column (where the fold arrow is). A bar stays put while the body's own ifs
+ * indent the text behind it. `indentOf`: the structured or the flat indent.
+ */
+export function callLayout(lines: Line[], blocks: Block[], indentOf: (l: Line) => number): Array<{ text: number; bars: number[] }> {
+    const column = new Map<number, number>();
+    return lines.map((l) => {
+        const calls = callsAround(l, blocks);
+        const text = LEFT + indentOf(l) * INDENT + calls.length * STEP;
+        if (l.opens != null && blocks[l.opens].kind === 'call') column.set(l.opens, text);
+        return { text, bars: calls.map((b) => column.get(b) ?? LEFT).reverse() };
+    });
+}
+
+/** The cell style for a layout: its padding and a bar (3 px, the call colour) per call. */
+export function layoutStyle(c: { text: number; bars: number[] }): string {
+    if (!c.bars.length) return 'padding-left:' + c.text + 'px';
+    return 'padding-left:' + c.text + 'px;background-image:' + c.bars.map(() => 'linear-gradient(var(--sx-kw),var(--sx-kw))').join(',') +
+        ';background-size:' + c.bars.map(() => '3px 100%').join(',') + ';background-position:' + c.bars.map((x) => x + 'px 0').join(',') + ';background-repeat:no-repeat';
+}
+
+/** What a line is for: its innermost block with a role, else the script's own (`top`: the enter script's is the room's setup). */
+export function roleAt(line: Line, blocks: Block[], top: string): string {
     for (let b = line.in; b >= 0; b = blocks[b].parent) if (blocks[b].role) return blocks[b].role!;
-    return 'init';
+    return top;
 }
 
 /** The entry-state chips: each flag's assumed value, click to flip. */

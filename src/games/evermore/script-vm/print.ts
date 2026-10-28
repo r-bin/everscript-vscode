@@ -147,7 +147,7 @@ function signless(read: Node, other: Node): boolean {
 }
 
 /** The entity sub-ops (`boy()`, `camera_entity()`): a value that is an entity record's address. */
-const ENTITIES = new Set(['last_entity', 'self_entity', 'boy', 'dog', 'camera_entity', 'other_character']);
+const ENTITIES = new Set(['last_entity', 'script_owner', 'boy', 'dog', 'camera_entity', 'other_character']);
 
 /** `entity.field` for an entity sub-op or a cell sliced as one, plus a named offset (`boy() + 0x1a` → `boy.x`); '' otherwise. */
 function entityField(n: Node, names: Names): string {
@@ -243,7 +243,8 @@ function line(ins: Instruction, names: Names): string {
     const f: Fact = facts(ins);
     const o = ins.operands;
     const E = (k: number, truth = false): string => operandText(o[k], names, truth);
-    const withArgs = (head: string): string => (o[0] && o[0].k === 'A' ? `${head}(${E(0)})` : head);
+    // Arguments go inside the head's own parentheses when it has them: `call_id(NAME, 0x78)`.
+    const withArgs = (head: string): string => (!(o[0] && o[0].k === 'A') ? head : head.endsWith(')') ? `${head.slice(0, -1)}, ${E(0)})` : `${head}(${E(0)})`);
     switch (f.k) {
         case 'write': {
             const named = f.value !== null && f.area !== 'local' ? names.value?.(f.addr, f.value) : '';
@@ -255,9 +256,11 @@ function line(ins: Instruction, names: Names): string {
         }
         case 'tilePair': return `(${cell(f.area, f.xAddr, 2, names)}, ${cell(f.area, f.yAddr, 2, names)}) = (${f.x}, ${f.y});`;
         case 'call': {
-            const named = f.global !== null ? names.global?.(f.global) || '' : '';
-            const head = f.global !== null ? `call_id(${named || hex(f.global)})` : f.trigger !== null ? `call_trigger(${hex(f.trigger, 4)})` : `call ${target(f.target, names)}`;
-            const via = f.global !== null ? (named ? '' : target(f.target, names)) : f.trigger !== null ? target(f.target, names) : '';
+            // A short callee (a global id, a trigger offset) reads by its name: the global's, else the script's.
+            const short = f.global !== null || f.trigger !== null;
+            const named = !short ? '' : (f.global !== null ? names.global?.(f.global) : '') || (f.target !== null ? names.script?.(f.target) : '') || '';
+            const head = f.global !== null ? `call_id(${named || hex(f.global)})` : f.trigger !== null ? `call_trigger(${named || hex(f.trigger, 4)})` : `call ${target(f.target, names)}`;
+            const via = short && !named ? target(f.target, names) : '';
             return `${withArgs(head)};${via ? ` // ${via}` : ''}`;
         }
         case 'start': return `${withArgs(`async ${target(f.target, names)}`)};`;

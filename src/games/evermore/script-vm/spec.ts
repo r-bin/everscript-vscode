@@ -275,7 +275,7 @@ export const SUB_OPS: ReadonlyMap<number, SubOpSpec> = (() => {
         [0x2B, sub('unary', 0, 'random_below')],
         [0x2C, sub('unary', 0, 'lookup_034d')],
         [0x2D, sub('value', 0, 'last_entity')],
-        [0x2E, sub('value', 0, 'self_entity')],
+        [0x2E, sub('value', 0, 'script_owner')],
         [0x50, sub('value', 0, 'boy')],
         [0x51, sub('value', 0, 'dog')],
         [0x52, sub('value', 0, 'camera_entity')],
