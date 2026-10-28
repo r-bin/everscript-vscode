@@ -70,7 +70,7 @@ test('decodeScriptSnippet decodes real ROM scripts when available', () => {
   assert.ok(snippet && snippet.length >= 1, 'Snippet should decode at 0x93874D');
   assert.strictEqual(snippet[0].addrHex, '0x93874D');
   assert.strictEqual(snippet[0].bytesHex, '08 8A 00 00 0B 00');
-  assert.strictEqual(snippet[0].summary, 'if (<0x2834, 0x01>) goto $93:875e;');
+  assert.strictEqual(snippet[0].summary, 'if (temp_flag[0, 0x01]) goto $93:875e;');
   if (snippet.length > 1) {
     assert.strictEqual(snippet[1].addrHex, '0x938753');
   }

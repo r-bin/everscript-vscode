@@ -23,6 +23,7 @@ var _scr = {
   variants: {},          // room id -> { variants, error } | 'pending' (who stands in it per story state)
   variantPick: {},       // room id -> chosen variant index (0, the default, until picked)
   folds: {},             // room id -> { block id: folded } (the merged enter script's folds)
+  structured: true,      // the enter script as if/else/while (off: each instruction as printed, gotos and all)
   // Maps
   map: null,             // selected room id
   maps: {},              // id -> { map, picture } | 'pending'
@@ -93,7 +94,9 @@ function scrToolsHtml() {
     return '<label class="scr-check" title="Show the simulation\'s Everscript for the script (compiles back to the same bytes). The simulation is work in progress.">' +
       '<input type="checkbox" data-scr-toggle="everscript"' + (_scr.everscript ? ' checked' : '') + '> Everscript (simulation)</label>' +
       '<label class="scr-check" title="Group the triggers by the simulation\'s clusters: pickups, exits, dialog, cutscenes">' +
-      '<input type="checkbox" data-scr-toggle="clusters"' + (_scr.clusters ? ' checked' : '') + '> Clusters</label>';
+      '<input type="checkbox" data-scr-toggle="clusters"' + (_scr.clusters ? ' checked' : '') + '> Clusters</label>' +
+      '<label class="scr-check" title="Read the enter script as if / else / while. Off: each instruction as it is in the ROM, with its gotos">' +
+      '<input type="checkbox" data-scr-toggle="structured"' + (_scr.structured ? ' checked' : '') + '> Structured</label>';
   }
   if (_scr.view === 'anim') {
     return '<span class="scr-seg" role="group" title="Facing">' + SCR_FACINGS.map(function (f) {

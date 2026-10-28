@@ -46,6 +46,7 @@
 .scr-unk .scr-s{color:var(--vscode-editorWarning-foreground,#cca700)}
 .scr-term .scr-s{opacity:.75}
 /* The merged enter script: lines only another variant runs, lines none does, notes, folds. */
+.scr-rows tr.scr-inside td.scr-s{background:rgba(128,128,128,.07)}
 .scr-rows tr.scr-off{opacity:.38}
 .scr-rows tr.scr-dead{opacity:.22;font-style:italic}
 .scr-note-row .scr-s{color:var(--scr-dim);font-style:italic}

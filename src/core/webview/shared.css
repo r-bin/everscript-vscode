@@ -287,6 +287,10 @@ body.vscode-light{--sx-kw:#0000ff;--sx-fn:#795e26;--sx-const:#0070c1;--sx-type:#
 .sx-flash{animation:sx-flash 1.2s ease-out}
 @keyframes sx-flash{from{background:rgba(255,200,0,.35)}to{background:transparent}}
 .sx-num{color:var(--sx-num)}.sx-str{color:var(--sx-str)}.sx-com{color:var(--sx-com);font-style:italic}
+/* What a line's marks point at (script-vm print.ts `Mark`): the editor's squiggles. */
+.sx-error,.sx-warn{text-decoration:underline wavy;text-decoration-skip-ink:none;text-underline-offset:3px;cursor:help}
+.sx-error{text-decoration-color:var(--vscode-editorError-foreground,#f14c4c)}
+.sx-warn{text-decoration-color:var(--vscode-editorWarning-foreground,#cca700)}
 /* Room variants (rooms/webview/room-variants.js): the chosen one's name in the header, and spawns a variant leaves out or places only under a condition. */
 .rv-name{font-size:10px;opacity:.6;margin-left:8px;max-width:48ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:baseline}
 .rv-name:empty{display:none}

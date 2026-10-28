@@ -13,6 +13,9 @@
 //   sx-num    0x1f, 42                                       constant.numeric
 //   sx-str    "…"                                            string.quoted.double
 //   sx-com    // to the end of the line                      comment.line
+//
+// A line's marks (print.ts `Mark`) wrap what they point at in `sx-error` / `sx-warn` (a squiggle),
+// the message as its title.
 
 const RULES: Array<[RegExp, string]> = [
     [/\/\/.*/y, 'sx-com'],
@@ -20,7 +23,7 @@ const RULES: Array<[RegExp, string]> = [
     [/<0x[0-9a-fA-F]+(?:,\s*0x[0-9a-fA-F]+)?>/y, 'sx-mem'],
     [/\$[0-9a-fA-F]{2}:[0-9a-fA-F]{4}\b/y, 'sx-label'],
     [/\$[0-9a-fA-F]{4,6}\b/y, 'sx-label'],
-    [/\b(?:object|arg|arg_flag|currency)(?=\[)/y, 'sx-mem'],
+    [/\b(?:object|arg|arg_flag|temp|temp_flag|currency)(?=\[)/y, 'sx-mem'],
     [/\bif!|\b(?:if|goto|async|call)\b(?!\()/y, 'sx-kw'],
     [/\b(?:signed|word|byte)\b(?!\()/y, 'sx-type'],
     [/\b[A-Za-z_][A-Za-z0-9_]*(?=\()/y, 'sx-fn'],
@@ -31,11 +34,49 @@ const RULES: Array<[RegExp, string]> = [
 const ESC: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => ESC[c]);
 
-/** One line of the printer's notation as HTML: tokens in `sx-*` spans, the rest escaped. */
-export function highlightScript(text: string): string {
+/** A mark as the printer gives it: `find`'s `nth` occurrence as a word, or the whole line. */
+interface Mark { severity: 'error' | 'warning'; message: string; find?: string; nth?: number }
+
+/** Where each mark sits in `src`: [from, to, opening tag]; a mark whose text is not there is dropped. */
+function spans(src: string, marks: readonly Mark[]): Array<[number, number, string]> {
+    const out: Array<[number, number, string]> = [];
+    for (const m of marks) {
+        let from = 0, to = src.length;
+        if (m.find) {
+            const re = new RegExp('\\b' + m.find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'g');
+            const hit = [...src.matchAll(re)][m.nth ?? 0];
+            if (!hit) continue;
+            from = hit.index!; to = from + hit[0].length;
+        }
+        out.push([from, to, '<span class="' + (m.severity === 'error' ? 'sx-error' : 'sx-warn') + '" title="' + esc(m.message) + '">']);
+    }
+    // Outer first, so a whole-line error holds a warning inside it.
+    return out.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
+}
+
+/** One line of the printer's notation as HTML: tokens in `sx-*` spans, the rest escaped; `marks` as squiggles. */
+export function highlightScript(text: string, marks: readonly Mark[] = []): string {
     const src = String(text);
+    const marked = spans(src, marks);
     let out = '', plain = '';
+    // Each mark opens at the first edge at or past its start and closes at the first at or past its
+    // end (a token is never split); `open` holds the ends of the marks open now, innermost last.
+    const open: number[] = [];
+    let next = 0;
+    const edge = (i: number): void => {
+        let tags = '';
+        while (open.length && open[open.length - 1] <= i) { open.pop(); tags += '</span>'; }
+        for (; next < marked.length && marked[next][0] <= i; next++) {
+            if (marked[next][1] <= i) continue;
+            open.push(marked[next][1]);
+            tags += marked[next][2];
+        }
+        if (!tags) return;
+        out += esc(plain) + tags;
+        plain = '';
+    };
     for (let i = 0; i < src.length;) {
+        edge(i);
         let hit: [string, string] | null = null;
         // A word continues a word: only start a token where the previous character does not join it.
         const glued = i > 0 && /[A-Za-z0-9_]/.test(src[i - 1]) && /[A-Za-z0-9_]/.test(src[i]);
@@ -52,5 +93,6 @@ export function highlightScript(text: string): string {
         plain = '';
         i += hit[0].length;
     }
-    return out + esc(plain);
+    edge(src.length);
+    return out + esc(plain) + '</span>'.repeat(open.length);
 }

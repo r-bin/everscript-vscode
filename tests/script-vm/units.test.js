@@ -174,6 +174,33 @@ test('highlightScript colours the printer\'s notation and escapes the rest', () 
     assert.ok(V.highlightScript('object[signed <0x249b>] = 2;').includes('<span class="sx-mem">object</span>[<span class="sx-type">signed</span>'));
 });
 
+test('text: pairs as (x, y) = (a, b); the temp area as temp[n]', () => {
+    assert.strictEqual(V.text(decode([0x1b, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00])), '(<0x2258>, <0x225a>) = (0, 0);');
+    assert.strictEqual(V.text(decode([0xad, 0x01, 0x00, 0x03, 0x00, 0x02, 0x04])), '(temp[1], temp[3]) = (16, 32);');
+    assert.strictEqual(V.text(decode([0x08, 0x8e, 0x05, 0x00, 0x00, 0x00])), 'if (temp[5]) goto $94:8006;');
+    assert.strictEqual(V.text(decode([0x08, 0x8a, 0x11, 0x00, 0x00, 0x00])), 'if (temp_flag[2, 0x02]) goto $94:8006;');
+});
+
+test('printed: a signed read its sign cannot change is a warning; an unnamed opcode an error', () => {
+    // signed <0x237b> == 2: a small constant reads the same unsigned.
+    const eq = V.printed(decode([0x09, 0x08, 0x23, 0x01, 0x29, 0x32, 0xa2, 0x00, 0x00]));
+    assert.strictEqual(eq.text, 'if! (signed <0x237b> == 2) goto $94:8009;');
+    assert.deepStrictEqual(eq.marks.map((m) => [m.severity, m.find, m.nth]), [['warning', 'signed', 0]]);
+    // signed <0x237b> < 2: the sign decides.
+    assert.deepStrictEqual(V.printed(decode([0x09, 0x08, 0x23, 0x01, 0x29, 0x32, 0x9e, 0x00, 0x00])).marks, []);
+    // Both sides of && are only tested for zero.
+    const two = V.printed(decode([0x08, 0x08, 0x23, 0x01, 0x29, 0x08, 0x25, 0x01, 0xa8, 0x00, 0x00]));
+    assert.strictEqual(two.text, 'if (signed <0x237b> && signed <0x237d>) goto $94:800b;');
+    assert.deepStrictEqual(two.marks.map((m) => m.nth), [0, 1]);
+});
+
+test('highlightScript draws marks as squiggles around what they point at', () => {
+    const h = V.highlightScript('if (signed <0x237b> == 2) goto $94:8009;', [{ severity: 'warning', message: 'no use', find: 'signed', nth: 0 }]);
+    assert.ok(h.includes('<span class="sx-warn" title="no use"><span class="sx-type">signed</span></span>'), h);
+    const e = V.highlightScript('op_ff(1);', [{ severity: 'error', message: 'x' }]);
+    assert.ok(e.startsWith('<span class="sx-error" title="x">') && e.endsWith('</span>'), e);
+});
+
 console.log(`\nscript-vm units: ${passed} passed, ${failed} failed`);
 // exitCode, not exit(): Node 26 can deadlock in process.exit() (tools/test.mts).
 process.exitCode = failed ? 1 : 0;

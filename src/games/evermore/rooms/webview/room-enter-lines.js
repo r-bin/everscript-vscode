@@ -9,15 +9,19 @@
 //
 // A line is `rg-script-off` when only another variant runs it, `rg-script-dead`
 // when no variant does. A fold starts as the host says (`folded`: a shared
-// helper named by a short operand); clicking its caret flips it.
+// helper named by a short operand); clicking its caret flips it. A called body
+// is not indented (it sits where its call is); its lines are tinted instead.
+// "Structured" off shows each instruction as printed (`raw`), braces left out.
+// A line's marks (script-vm print.ts) are squiggles.
 //
 // State: _enterMerged (room id → merged script or null), _enterFold (room id →
-// {block id: folded}). Reads room-variants.js's _roomVariants, _variantPick,
+// {block id: folded}), _enterStructured. Reads room-variants.js's _roomVariants, _variantPick,
 // _variantRoom. Uses utils.js globals: escH; map-editor-trigger-scripts.js:
 // scriptHighlight, normScriptAddr, hexNum; script-vm/highlight.ts (page bundle): highlightScript.
 
 var _enterMerged = {};
 var _enterFold = {};
+var _enterStructured = true;
 
 /** The host's merged listing: `{roomId, merged, error?}`. */
 function applyRoomEnterScript(data) {
@@ -52,10 +56,16 @@ function enterMergedHtml(id) {
   var html = '<div class="rs-note">' + (reach
     ? 'Lines for variant ' + (reach.index + 1) + ' · ' + escH(reach.title) + ': greyed lines run only in another variant, faded ones in none.'
     : 'Calls and the threads it starts merged in. Choose a variant on the map’s right edge to grey what it does not run.')
+    + ' <label class="rg-script-structured" title="Read it as if / else / while. Off: each instruction as it is in the ROM, with its gotos">'
+    + '<input type="checkbox" data-enter-structured="1"' + (_enterStructured ? ' checked' : '') + '> Structured</label>'
     + '</div><div class="rg-script rg-script-merged">';
   m.lines.forEach(function (r) {
     if (r.in >= 0 && folded[r.in]) return;
-    var cls = 'rg-script-line' + (r.note ? ' rg-script-note' : r.untraced ? ' rs-guess' : '') + (r.terminal ? ' rs-term' : '');
+    if (r.brace && !_enterStructured) return;
+    var cls = 'rg-script-line' + (r.note ? ' rg-script-note' : r.untraced ? ' rs-guess' : '') + (r.terminal ? ' rs-term' : '')
+      + (r.in >= 0 && m.blocks[r.in].kind === 'call' ? ' rg-script-inside' : '');
+    var text = !_enterStructured && r.raw ? r.raw : r.summary;
+    var indent = _enterStructured ? (r.indent != null ? r.indent : r.depth) : (r.flat || 0);
     if (reach && !r.note && !r.brace) cls += reach.mine[r.addressSnes] ? '' : reach.any[r.addressSnes] ? ' rg-script-off' : ' rg-script-dead';
     var caret = '';
     if (r.opens != null) {
@@ -65,10 +75,10 @@ function enterMergedHtml(id) {
         + (shut ? '▸' : '▾') + '</button>';
     }
     var addr = r.note || r.brace ? '' : normScriptAddr(hexNum(r.addressSnes, 6));
-    html += '<div class="' + cls + '" data-in="' + r.in + '" style="margin-left:' + ((r.indent != null ? r.indent : r.depth) * 14) + 'px"' + (addr ? ' data-script-addr="' + addr + '"' : '')
+    html += '<div class="' + cls + '" data-in="' + r.in + '" style="margin-left:' + (indent * 14) + 'px"' + (addr ? ' data-script-addr="' + addr + '"' : '')
       + ' title="' + escH(r.note || r.brace ? '' : hexNum(r.addressSnes, 6).replace('&ndash;', '') + '  ' + r.opcodeHex + '  ' + r.bytesHex
-        + (r.raw ? '\n' + r.raw : '')) + '">'
-      + caret + (r.note ? escH(r.summary) : typeof highlightScript === 'function' ? highlightScript(r.summary) : scriptHighlight(r.summary))
+        + (_enterStructured && r.raw ? '\n' + r.raw : '')) + '">'
+      + caret + (r.note ? escH(r.summary) : typeof highlightScript === 'function' ? highlightScript(text, r.marks || []) : scriptHighlight(text))
       + (r.opens != null && enterFolded(id, m.blocks[r.opens]) ? ' <span class="rs-note">+' + m.blocks[r.opens].size + '</span>' : '')
       + '</div>';
   });
@@ -97,6 +107,12 @@ function scriptGoto(label) {
 // Capture phase: the dock's own delegated handlers stop clicks before they bubble to the document.
 if (typeof document !== 'undefined' && document.addEventListener) {
   document.addEventListener('click', function (e) {
+    if (e.target && e.target.dataset && e.target.dataset.enterStructured) {
+      e.stopPropagation();
+      _enterStructured = !!e.target.checked;
+      if (typeof renderEditPanels === 'function') renderEditPanels();
+      return;
+    }
     var g = e.target && e.target.closest ? e.target.closest('[data-goto]') : null;
     if (g && scriptGoto(g)) { e.stopPropagation(); return; }
     var t = e.target;

@@ -100,8 +100,9 @@ const LOOT_ITEM = 0x2391;
 let knowledgeNames: { ram: Map<number, string>; rom: Map<number, string> } | null = null;
 function knowledge(): { ram: Map<number, string>; rom: Map<number, string> } {
     if (!knowledgeNames) {
-        const k = require('../localizations/knowledge') as { entries(space: string): Array<{ addr: number; name: string | null }> };
-        const byAddr = (space: string): Map<number, string> => new Map(k.entries(space).filter((e) => e.name).map((e) => [e.addr, e.name!] as [number, string]));
+        const k = require('../localizations/knowledge') as { entries(space: string): Array<{ addr: number; name: string | null; kind: string | null }> };
+        // A region (COMPILER_TEMP, the temp area) names a range, not the cell at its start.
+        const byAddr = (space: string): Map<number, string> => new Map(k.entries(space).filter((e) => e.name && e.kind !== 'region').map((e) => [e.addr, e.name!] as [number, string]));
         knowledgeNames = { ram: byAddr('ram'), rom: byAddr('rom') };
     }
     return knowledgeNames;

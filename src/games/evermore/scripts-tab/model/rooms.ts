@@ -31,7 +31,7 @@ type Box = { x: number; y: number; w: number; h: number };
 type Origin = { x: number; y: number };
 type ScriptView = {
     key: string; kind: string; index: number | null; address: number; addrHex: string; label: string; stop: string;
-    rows: { a: string; op: string; b: string; s: string; d: number; t: boolean; u: boolean }[];
+    rows: { a: string; op: string; b: string; s: string; d: number; t: boolean; u: boolean; m?: RoomScript['instructions'][number]['marks'] }[];
     loot: string[]; to: string[]; scriptId?: number; box?: Box;
 };
 
@@ -46,7 +46,7 @@ function scriptView(s: RoomScript | RoomTrigger, kind: string, index: number | n
         stop: s.stopReason,
         rows: s.instructions.map((r) => ({
             a: '$' + hex(r.addressSnes, 6), op: r.opcodeHex, b: r.bytesHex, s: r.summary,
-            d: r.depth, t: r.terminal, u: r.unsupported || r.untraced,
+            d: r.depth, t: r.terminal, u: r.unsupported || r.untraced, ...(r.marks ? { m: r.marks } : {}),
         })),
         loot: s.everscript,
         to: s.transitions.map((t) => `${t.mapName} (${t.x}, ${t.y})`),

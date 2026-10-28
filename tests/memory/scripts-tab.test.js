@@ -274,6 +274,14 @@ async function dom(rom) {
         assert.ok(await page.locator('.scr-rows .sx-kw').count() > 10, 'the lines are coloured');
         await page.click('tr[data-addr="93D235"] [data-goto="93D23B"]');
         assert.ok(await page.$eval('tr[data-addr="93D23B"]', (e) => e.classList.contains('sx-flash')), 'a goto target jumps to its line');
+        assert.ok(await page.locator('.scr-rows .sx-warn').count() > 0, 'a signed the sign cannot matter to is squiggled');
+        const code = (addr) => page.$eval('tr[data-addr="' + addr + '"] .scr-s', (e) => e.textContent);
+        assert.ok((await code('93D23B')).startsWith('if ('), 'structured: if (c) {');
+        await page.uncheck('[data-scr-toggle="structured"]');
+        assert.ok((await code('93D23B')).startsWith('if! ('), 'unstructured: the instruction as printed');
+        assert.strictEqual(await page.$$eval('.scr-rows .scr-s', (els) => els.filter((e) => e.textContent.trim() === '}').length), 0, 'no braces');
+        await shot('thraxx-flat');
+        await page.check('[data-scr-toggle="structured"]');
         await page.click('[data-scr-variant="1"]');
         assert.ok(/scr-off/.test(await rowClass('$93D2A0')) && !/scr-(off|dead)/.test(await rowClass('$93D2FD')));
         assert.notStrictEqual(await page.getAttribute('.scr-map img', 'src'), thraxxPicture, 'Coleoptera: palette set 7');

@@ -9,8 +9,10 @@
 // the turn, and neither does the end of a called script (the caller resumes in the same pass).
 //
 // Each script reads as structured code (structure.ts): `if (…) { } else if (…) { } else { }` and
-// `while (…) { }` recovered from its branches and jumps, the lines indented by them. A merged body
-// sits one deeper than the line that brought it in.
+// `while (…) { }` recovered from its branches and jumps, the lines indented by them. A called body
+// sits as deep as its call line (the call is a fold, not a block of its own); a started thread's
+// sits one deeper. `flat` is the indent without the structured listing, for a viewer that shows
+// the instructions as printed (`raw`, no braces).
 //
 // Each merged body is a block the viewer can fold. A callee named by a short operand — a global id
 // (u8), a trigger offset (u16), a call back (cb, c16) — is a shared helper and starts folded; one
@@ -31,6 +33,8 @@ export interface MergedLine extends ScriptRow {
     in: number;
     /** How deep to draw it: the ifs and loops around it in its script, plus where its block sits. */
     indent: number;
+    /** How deep to draw it without the structured listing: only the threads it runs in. */
+    flat: number;
     /** The block this line heads: a call's body, or a started thread's. */
     opens?: number;
     /** A line that is not an instruction: where a thread joins, why a body is not merged. */
@@ -63,9 +67,12 @@ export function mergedScript(rom: ScriptRom, entry: number, names: Names = print
     const lines: MergedLine[] = [];
     const blocks: MergedBlock[] = [];
 
-    const note = (at: number, depth: number, indent: number, block: number, summary: string): MergedLine => ({
+    /** How deep a script's lines sit: structured (`s`) and flat (`f`). */
+    type Base = { s: number; f: number };
+    const deeper = (b: Base): Base => ({ s: b.s + 1, f: b.f + 1 });
+    const note = (at: number, depth: number, at2: Base, block: number, summary: string): MergedLine => ({
         addressSnes: at, opcode: -1, opcodeHex: '', size: 0, bytesHex: '', summary, terminal: false, untraced: false,
-        unsupported: false, depth, indent, in: block, note: true,
+        unsupported: false, depth, indent: at2.s, flat: at2.f, in: block, note: true,
     });
 
     function open(kind: MergedBlock['kind'], ins: Instruction, parent: number): MergedBlock {
@@ -80,33 +87,33 @@ export function mergedScript(rom: ScriptRom, entry: number, names: Names = print
      * `waiting` is the thread's starts that have not had a turn yet: shared with the scripts it
      * calls (same thread), joined in where the turn ends.
      */
-    function body(at: number, depth: number, base: number, block: number, stack: number[], waiting: Instruction[]): void {
+    function body(at: number, depth: number, base: Base, block: number, stack: number[], waiting: Instruction[]): void {
         const list = [...walk(rom, [at], false).instructions.values()].sort((a, b) => a.address - b.address);
         const printed = list.map((ins) => row(rom, ins, names));
-        let indent = base;
+        let here = base;
         const join = (): void => {
             for (const s of waiting.splice(0)) {
                 const b = open('thread', s, block);
-                const head = note(s.address, depth, indent, block, `∥ thread $${hex6(s.target!)} runs alongside from here (started at $${hex6(s.address)})`);
+                const head = note(s.address, depth, here, block, `∥ thread $${hex6(s.target!)} runs alongside from here (started at $${hex6(s.address)})`);
                 head.opens = b.id;
                 lines.push(head);
-                merge(b, s.target!, depth + 1, indent + 1, stack, []);
+                merge(b, s.target!, depth + 1, deeper(here), stack, []);
             }
         };
         for (const r of structure(list, printed.map((p) => p.summary))) {
-            indent = base + r.depth;
+            here = { s: base.s + r.depth, f: base.f };
             if (r.kind === 'brace') {
-                lines.push({ ...note(-1, depth, indent, block, r.text), note: false, brace: true });
+                lines.push({ ...note(-1, depth, here, block, r.text), note: false, brace: true });
                 continue;
             }
             const ins = list[r.index];
-            const line: MergedLine = { ...printed[r.index], depth, indent, in: block };
+            const line: MergedLine = { ...printed[r.index], depth, indent: here.s, flat: here.f, in: block };
             if (r.text !== undefined) { line.raw = line.summary; line.summary = r.text; }
             lines.push(line);
             if (ins.flow === 'call' && ins.target !== null && rom.contains(ins.target)) {
                 const b = open('call', ins, block);
                 lines[lines.length - 1].opens = b.id;
-                merge(b, ins.target, depth + 1, indent + 1, stack, waiting);
+                merge(b, ins.target, depth + 1, here, stack, waiting);
             }
             if (ins.flow === 'start' && ins.target !== null && rom.contains(ins.target)) waiting.push(ins);
             if (ins.flow === 'yield') join();
@@ -114,7 +121,7 @@ export function mergedScript(rom: ScriptRom, entry: number, names: Names = print
     }
 
     /** Merge `target` into block `b`; a thread's own body ends its turn, so what it started joins at its end. */
-    function merge(b: MergedBlock, target: number, depth: number, base: number, stack: number[], waiting: Instruction[]): void {
+    function merge(b: MergedBlock, target: number, depth: number, base: Base, stack: number[], waiting: Instruction[]): void {
         const start = lines.length;
         if (stack.includes(target)) lines.push(note(target, depth, base, b.id, `↻ $${hex6(target)} is already running above: not merged again`));
         else if (lines.length > MAX_LINES) lines.push(note(target, depth, base, b.id, `… $${hex6(target)} not merged: the listing is long enough`));
@@ -124,13 +131,13 @@ export function mergedScript(rom: ScriptRom, entry: number, names: Names = print
     }
 
     /** What a thread started and never yielded after runs once the thread is over. */
-    function joinAtEnd(waiting: Instruction[], depth: number, indent: number, block: number, stack: number[]): void {
+    function joinAtEnd(waiting: Instruction[], depth: number, base: Base, block: number, stack: number[]): void {
         for (const s of waiting.splice(0)) {
             const b = open('thread', s, block);
-            const head = note(s.address, depth, indent, block, `∥ thread $${hex6(s.target!)} runs from here, after the thread that started it (at $${hex6(s.address)})`);
+            const head = note(s.address, depth, base, block, `∥ thread $${hex6(s.target!)} runs from here, after the thread that started it (at $${hex6(s.address)})`);
             head.opens = b.id;
             lines.push(head);
-            merge(b, s.target!, depth + 1, indent + 1, stack, []);
+            merge(b, s.target!, depth + 1, deeper(base), stack, []);
         }
     }
 
@@ -138,8 +145,8 @@ export function mergedScript(rom: ScriptRom, entry: number, names: Names = print
         try {
             decodeAt(rom, entry);
             const waiting: Instruction[] = [];
-            body(entry, 0, 0, -1, [entry], waiting);
-            joinAtEnd(waiting, 0, 0, -1, [entry]);
+            body(entry, 0, { s: 0, f: 0 }, -1, [entry], waiting);
+            joinAtEnd(waiting, 0, { s: 0, f: 0 }, -1, [entry]);
         } catch { /* an undecodable entry: no lines */ }
     }
     return { entry, lines, blocks };

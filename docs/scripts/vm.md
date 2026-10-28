@@ -92,6 +92,11 @@ binary operator pops the saved value and combines it with the current one. So `a
 `$19`, `$2F` and `$5D`-`$5F` branch to themselves and hang the game. `$70`-`$7F` index past
 the table.
 
+A signed read differs from the unsigned one only in the high word, and only when its top bit is
+set. So the sign cannot change a value that is only tested for zero (a branch, `!`, `&&`, `||`)
+or compared with `==` / `!=` to a constant in 0..`$7F` (a byte) or 0..`$7FFF` (a word): the low
+part already differs. The script viewers mark such a `signed` with a warning (`script-vm/print.ts`).
+
 ## Where scripts start
 
 | table | content |

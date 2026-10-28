@@ -12,7 +12,8 @@ is the spec; `docs/cleanup.md` D3).
 | `expression.ts` | reading one expression; its value tree |
 | `decode.ts` | one instruction: operands, size, next, target; `successors`, `callee` |
 | `walk.ts` | everything reachable from entry points |
-| `highlight.ts` | `highlightScript(line)`: the printer's notation as HTML, tokens in `sx-*` classes after the Everscript theme's scopes; bundled for the radar page (`ScriptHighlight`), used by both script viewers |
+| `print.ts` | an instruction as one line (`text`), and what is wrong with it (`printed`: an error for an unnamed opcode, a warning for a `signed` read whose sign cannot change the result); unnamed temp-area cells read `temp[n]`, pairs `(x, y) = (a, b)` |
+| `highlight.ts` | `highlightScript(line, marks)`: the printer's notation as HTML, marks (`printed()`) as `sx-error` / `sx-warn` squiggles, tokens in `sx-*` classes after the Everscript theme's scopes; bundled for the radar page (`ScriptHighlight`), used by both script viewers |
 | `address.ts` (`enemyCharacter`) | the character record an ENEMY id spawns, read through the spawn handler's own `lda.l` operand at `$8C:DCF4`, so a moved enemy index is followed |
 | `rooms.ts` | a room's enter script and triggers; every entry the tables name |
 

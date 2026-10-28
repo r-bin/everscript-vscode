@@ -132,7 +132,7 @@ function triggerScriptLinesHtml(s) {
     var addr = typeof r.addressSnes === 'number' ? normScriptAddr(hexNum(r.addressSnes, 6)) : '';
     html += '<div class="' + cls + '" data-script-addr="' + addr + '" title="' + escH(hexNum(r.addressSnes, 6).replace('&ndash;', '')
       + '  ' + (r.opcodeHex || '') + (r.bytesHex ? '  ' + r.bytesHex : '')) + '">'
-      + (r.summary && typeof highlightScript === 'function' ? highlightScript(r.summary) : scriptHighlight(r.summary || ('op ' + (r.opcodeHex || '?')))) + '</div>';
+      + (r.summary && typeof highlightScript === 'function' ? highlightScript(r.summary, r.marks || []) : scriptHighlight(r.summary || ('op ' + (r.opcodeHex || '?')))) + '</div>';
   });
   if (s.terminated === false) html += '<div class="rs-note rs-err">stopped: ' + escH(s.stopReason || 'unknown') + '</div>';
   return html + '</div>';

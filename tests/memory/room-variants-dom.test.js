@@ -179,6 +179,11 @@ async function main() {
         check('  a goto target jumps to its line', await page.$eval('.rg-enter-body [data-script-addr="93D23B"]', (e) => e.classList.contains('sx-flash')));
         check('  and the script reads as structured code', await page.$eval('.rg-enter-body [data-script-addr="93D23B"]', (e) => e.textContent.trim())
             === 'if (THRAXX_DEAD && !WINDWALKER_UNLOCKED) {', await page.$eval('.rg-enter-body [data-script-addr="93D23B"]', (e) => e.textContent.trim()));
+        await page.evaluate(() => document.querySelector('[data-enter-structured]').click());
+        check('  Structured off: the instruction as printed, flat', (await page.$eval('.rg-enter-body [data-script-addr="93D23B"]', (e) => e.textContent.trim())).startsWith('if! (')
+            && await page.$eval('.rg-enter-body [data-script-addr="93D2A0"]', (e) => parseInt(e.style.marginLeft, 10)) === 0);
+        await shoot('thraxx-enter-flat');
+        await page.evaluate(() => document.querySelector('[data-enter-structured]').click());
         await pick(cole);
         check('  choosing Coleoptera swaps which lines are greyed',
             /rg-script-off/.test(await lineClass('93D2A0')) && !/rg-script-(off|dead)/.test(await lineClass('93D2FD')),

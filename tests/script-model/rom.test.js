@@ -93,7 +93,9 @@ test("Thraxx's chamber is indented by its ifs and its loop", () => {
     assert.ok(ind(0x93d2a0) > ind(0x93d278), 'the spawns sit under their if');
     assert.ok(ind(0x93d456) > ind(0x93d3c1) && ind(0x93d201) === 0, 'the loop sits deeper than what leads into it');
     const call = m.lines.findIndex((l) => l.addressSnes === 0x93d2b6 && !l.note);
-    assert.strictEqual(m.lines[call + 1].indent, m.lines[call].indent + 1, 'a merged body sits one deeper than its call');
+    assert.strictEqual(m.lines[call + 1].indent, m.lines[call].indent, 'a called body sits where its call is');
+    // Without the structure only threads indent: the spawns under their if are flat.
+    assert.strictEqual(m.lines.find((l) => l.addressSnes === 0x93d2a0 && !l.note).flat, 0);
 });
 
 test("a spawn's character is the ROM's enemy index ($8E:B55A), not names.json's: Thraxx's left claw is record 122", () => {

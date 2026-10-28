@@ -24,6 +24,8 @@
 .rg-theme .rg-script-line.rg-script-off{opacity:.38}
 .rg-theme .rg-script-line.rg-script-dead{opacity:.22;font-style:italic}
 .rg-theme .rg-script-line.rg-script-note{color:var(--rg-text-secondary);font-style:italic}
+.rg-theme .rg-script-line.rg-script-inside{background:rgba(128,128,128,.07)}
+.rg-theme .rg-script-structured{float:right;display:inline-flex;align-items:center;gap:4px;font-style:normal;cursor:pointer}
 .rg-theme .rg-script-fold{background:none;border:0;padding:0 4px 0 0;color:var(--rg-text-secondary);cursor:pointer;font:inherit}
 .rg-theme .rg-script-fold:hover{color:var(--rg-text-primary)}
 .rg-theme .rg-script-exit{display:block;margin:2px 0;font-family:var(--rg-font-ui)}

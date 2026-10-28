@@ -9,6 +9,10 @@
 // in the room per story state, simulation/variants.ts) are chips above it: the
 // chosen one's characters stand on the picture, and the lines it does not run
 // are greyed — `scr-off` when another variant runs them, `scr-dead` when none.
+// `_scr.structured` off shows each instruction as printed (`raw`) without the
+// braces: the bytes as they are, gotos and all. A called body is not indented
+// (it sits where its call is); its rows are tinted (`scr-inside`) instead.
+// A line's marks (script-vm print.ts) are squiggles.
 
 var SCR_KIND = { enter: 'Enter', step: 'Step-on', b: 'B-trigger' };
 var SCR_CLUSTER_ICON = { loot: '◆', transition: '⇥', dialog: '💬', cutscene: '🎬', script: '·' };
@@ -83,14 +87,14 @@ function scrGoto(label) {
   hit.classList.add('sx-flash');
 }
 
-/** One script line, coloured (script-vm/highlight.ts, the Rooms tab's too). */
-function scrLine(text) { return typeof highlightScript === 'function' ? highlightScript(text) : scrEsc(text); }
+/** One script line, coloured (script-vm/highlight.ts, the Rooms tab's too); `marks` drawn as squiggles. */
+function scrLine(text, marks) { return typeof highlightScript === 'function' ? highlightScript(text, marks || []) : scrEsc(text); }
 
 function scrRowsHtml(s) {
   return '<table class="scr-rows"><tbody>' + s.rows.map(function (r) {
     return '<tr class="' + (r.u ? 'scr-unk' : '') + (r.t ? ' scr-term' : '') + '" data-in="-1" data-addr="' + r.a.slice(1) + '"><td class="scr-a">' + r.a + '</td>' +
       '<td class="scr-b" title="' + scrEsc(r.b) + '">' + scrEsc(r.b.length > 24 ? r.b.slice(0, 23) + '…' : r.b) + '</td>' +
-      '<td class="scr-s" style="padding-left:' + (8 + r.d * 14) + 'px">' + scrLine(r.s) + '</td></tr>';
+      '<td class="scr-s" style="padding-left:' + (8 + r.d * 14) + 'px">' + scrLine(r.s, r.m) + '</td></tr>';
   }).join('') + '</tbody></table>';
 }
 
@@ -159,20 +163,22 @@ function scrMergedHtml(m) {
     v.reached.forEach(function (a) { mine[a] = 1; });
     got.variants.forEach(function (x) { x.reached.forEach(function (a) { any[a] = 1; }); });
   }
-  var folded = {};
+  var folded = {}, structured = _scr.structured !== false;
   m.blocks.forEach(function (b) { folded[b.id] = scrFolded(b) || (b.parent >= 0 && folded[b.parent]); });
   return '<table class="scr-rows"><tbody>' + m.lines.map(function (r) {
     if (r.in >= 0 && folded[r.in]) return '';
+    if (r.brace && !structured) return '';
     var b = r.opens != null ? m.blocks[r.opens] : null, shut = b && scrFolded(b);
-    var cls = (r.note ? 'scr-note-row' : r.untraced ? 'scr-unk' : '') + (r.terminal ? ' scr-term' : '')
+    var cls = (r.note ? 'scr-note-row' : r.untraced ? 'scr-unk' : '') + (r.terminal ? ' scr-term' : '') + (r.in >= 0 && m.blocks[r.in].kind === 'call' ? ' scr-inside' : '')
       + (mine && !r.note && !r.brace ? (mine[r.addressSnes] ? '' : any[r.addressSnes] ? ' scr-off' : ' scr-dead') : '');
-    var bare = r.note || r.brace;
-    return '<tr class="' + cls + '" data-in="' + r.in + '"' + (bare ? '' : ' data-addr="' + scrHex(r.addressSnes, 6) + '"') + (r.raw ? ' title="' + scrEsc(r.raw) + '"' : '')
+    var bare = r.note || r.brace, text = !structured && r.raw ? r.raw : r.summary;
+    var indent = structured ? (r.indent != null ? r.indent : r.depth) : (r.flat || 0);
+    return '<tr class="' + cls + '" data-in="' + r.in + '"' + (bare ? '' : ' data-addr="' + scrHex(r.addressSnes, 6) + '"') + (structured && r.raw ? ' title="' + scrEsc(r.raw) + '"' : '')
       + '><td class="scr-a">' + (bare ? '' : '$' + scrHex(r.addressSnes, 6)) + '</td>'
-      + '<td class="scr-s" style="padding-left:' + (8 + (r.indent != null ? r.indent : r.depth) * 14) + 'px">'
+      + '<td class="scr-s" style="padding-left:' + (8 + indent * 14) + 'px">'
       + (b ? '<button class="scr-fold" data-scr-fold="' + b.id + '" aria-expanded="' + !shut + '" title="' + (shut ? 'Show' : 'Hide') + ' the '
         + (b.kind === 'call' ? 'called script' : 'thread') + ' (' + b.size + ' lines)">' + (shut ? '▸' : '▾') + '</button>' : '')
-      + (r.note ? scrEsc(r.summary) : scrLine(r.summary)) + (shut ? ' <span class="scr-dim">+' + b.size + '</span>' : '') + '</td></tr>';
+      + (r.note ? scrEsc(r.summary) : scrLine(text, r.marks)) + (shut ? ' <span class="scr-dim">+' + b.size + '</span>' : '') + '</td></tr>';
   }).join('') + '</tbody></table>';
 }
 
