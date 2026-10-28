@@ -63,6 +63,13 @@ typedef enum {
     WEAPON_CLASS_BAZOOKA    = 0x0006  /* Bazooka (requires artillery shells) */
 } WeaponClass;
 
+/* Equipped Bazooka Ammunition Type ($7E:2349) */
+typedef enum {
+    AMMO_THUNDER_BALL       = 0x0000, /* Standard artillery shell ($7E:2345 count) */
+    AMMO_PARTICLE_BOMB      = 0x0002, /* High-explosive thermal shell ($7E:2346 count) */
+    AMMO_CRYO_BLAST         = 0x0004  /* Cryogenic frost artillery shell ($7E:2347 count) */
+} BazookaAmmoType;
+
 /* Dog Breed Era Form ($7E:2363) */
 typedef enum {
     DOG_FORM_WOLF           = 0x00,   /* Prehistoric Wolfhound */
@@ -136,6 +143,7 @@ typedef enum {
 | `$7E:0B7B` | 2 bytes | `AudioFadeState`<br>`AUDIO_FADE_STATE` | `0` = Steady volume<br>`1` = Fade in<br>`2` = Fade out | `func_8C801F`, NMI audio service (`$80:830C`) |
 | `$7E:0E4F` | 2 bytes | `ApuSeqStatus`<br>`APU_SEQ_STATUS` | `0` = Idle<br>`1` = Streaming data<br>`2` = Playing | APU port communication driver (`func_8C81FD`) |
 | `$7E:22EA` | 2 bytes | `RoomLoadState`<br>`ROOM_LOAD_STATE` | `0` = Active frame<br>`1` = Teardown<br>`2` = Decompressing<br>`3` = Ready | `func_8EE4E2` (`enter_room`), main loop (`$80:8BB5`) |
+| `$7E:2349` | 2 bytes | `BazookaAmmoType`<br>`EQUIPPED_BAZOOKA_AMMO`| `0` = Thunder Ball<br>`2` = Particle Bomb<br>`4` = Cryo-Blast | Ring menu ammo selector (`$8E:9200`) |
 | `$7E:235B` | 1 byte | `DogAiCommand`<br>`DOG_AI_COMMAND` | `0` = Follow<br>`1` = Heel<br>`2` = Sniff<br>`3` = Attack | Companion AI command parser (`func_CF803C`) |
 | `$7E:2360` | 2 bytes | `WeaponClass`<br>`EQUIPPED_WEAPON_CLASS`| `0` = Sword<br>`2` = Axe<br>`4` = Spear<br>`6` = Bazooka | Ring menu weapon selector (`func_8F9299`) |
 | `$7E:2363` | 1 byte | `DogBreedForm`<br>`DOG_FORM_INDEX` | `0` = Wolfhound<br>`1` = Greyhound<br>`2` = Poodle<br>`3` = Toaster | `func_CF946B` (breed unpack), palette loader |

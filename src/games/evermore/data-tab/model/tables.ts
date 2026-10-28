@@ -481,6 +481,59 @@ function consumablesTable(rom: Uint8Array): Table {
     };
 }
 
+const FORMULA_BLOCK_MAP = 0xc45ddf;
+const SPELL_BLOCKS_TABLE = 0x9180a6;
+
+function formulaBlocksTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < FORMULA_COUNT; i++) {
+        const off = read16(rom, snesToRom(FORMULA_BLOCK_MAP + i * 2));
+        const block = read16(rom, snesToRom(SPELL_BLOCKS_TABLE + off));
+        const formulaName = textAt(rom, FORMULA_NAMES, i);
+        rows.push([i, formulaName, off, '$91:' + hex(block, 4), '$' + hex(block, 4)]);
+        pts.push([i, off]);
+    }
+    return {
+        id: 'formula-blocks', group: 'Alchemy', title: 'Formula animation script blocks', addr: '$C4:5DDF · $91:80A6',
+        note: 'Mapping of the 35 formulas ($C4:5DDF, 35 words) to byte offsets into table $91:80A6, resolving the Bank $91 animation and effect script bytecode block.',
+        columns: ['id', 'formula', 'table offset', 'bank $91 address', 'block hex'],
+        rows,
+        chart: { x: 'formula id', y: 'table offset', series: [{ name: 'block offset', points: pts }] },
+        vfs: vfs(FORMULA_BLOCK_MAP),
+    };
+}
+
+const BAZOOKA_POINTERS_TABLE = 0xc4388e;
+const BAZOOKA_AMMO_TABLE_DATA = [
+    { name: 'Thunder Ball', counter: '$7E:2345', desc: 'Standard artillery shell' },
+    { name: 'Particle Bomb', counter: '$7E:2346', desc: 'High-damage thermal shell' },
+    { name: 'Cryo-Blast', counter: '$7E:2347', desc: 'Piercing cryogenic freezing shell' },
+];
+
+function bazookaAmmoTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < BAZOOKA_AMMO_TABLE_DATA.length; i++) {
+        const ptr = read16(rom, snesToRom(BAZOOKA_POINTERS_TABLE + i * 2));
+        const descAddr = 0xc40000 | ptr;
+        const pal = read16(rom, snesToRom(descAddr + 4));
+        const range = read16(rom, snesToRom(descAddr + 6));
+        const knockback = read16(rom, snesToRom(descAddr + 24));
+        const info = BAZOOKA_AMMO_TABLE_DATA[i];
+        rows.push([i * 2, info.name, '$C4:' + hex(ptr, 4), range, '$' + hex(pal, 4), knockback, info.counter, info.desc]);
+        pts.push([i, range]);
+    }
+    return {
+        id: 'bazooka-ammo', group: 'Combat', title: 'Bazooka artillery ammunition attributes', addr: '$C4:388E',
+        note: 'The 3 Bazooka ammunition shell weapon descriptors ($C4:388E, 3 pointers to 36-byte entries at $C4:3A96, $C4:3ABA, $C4:3ADE): range, palette, knockback, and inventory counter.',
+        columns: ['code', 'ammunition name', 'descriptor', 'attack range', 'palette', 'knockback', 'wram counter', 'effect profile'],
+        rows,
+        chart: { x: 'ammo id', y: 'range', series: [{ name: 'range', points: pts }] },
+        vfs: vfs(BAZOOKA_POINTERS_TABLE),
+    };
+}
+
 /** Every table the view lists: only the ones decoded into readable values. */
 function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Table[] {
     return [
@@ -491,6 +544,7 @@ function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Ta
         animateRecordsTable(rom), projectilesTable(rom), formulaTargetsTable(rom),
         armorTable(rom),
         enemyIndexTable(rom, names), consumablesTable(rom),
+        formulaBlocksTable(rom), bazookaAmmoTable(rom),
     ];
 }
 

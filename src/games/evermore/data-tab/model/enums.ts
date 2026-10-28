@@ -465,6 +465,53 @@ function staminaTiersEnum(): EnumList {
     };
 }
 
+const CHARMS_DATA = [
+    { id: 0x0100, name: 'Armor Polish', effect: 'Passively enhances physical armor defense', ram: '$7E:2262 bit 7', routine: 'Defense calculation' },
+    { id: 0x0101, name: 'Chocobo Egg', effect: 'Increases maximum health point capacity curve', ram: '$7E:2261 bit 6', routine: 'HP curve swap' },
+    { id: 0x0102, name: 'Insect Incense', effect: 'Deflects and blocks melee hits from insect enemies', ram: '$7E:2261 bit 7', routine: 'Contact handler $0E' },
+    { id: 0x0103, name: 'Jade Disk', effect: 'Increases physical evasion against attacks', ram: '$7E:2261', routine: 'Companion stats' },
+    { id: 0x0104, name: 'Jaguar Ring', effect: 'Unlocks continuous sprint / running capability', ram: '$7E:2261', routine: 'Player movement' },
+    { id: 0x0105, name: 'Magic Gourd', effect: 'Increases alchemical formula damage output', ram: '$7E:2261', routine: 'Spell damage math' },
+    { id: 0x0106, name: 'Moxa Stick', effect: 'Boosts HP restored by healing formula spells (+25%)', ram: '$7E:2262 bit 3', routine: 'Spell healing math' },
+    { id: 0x0107, name: 'Oracle Bone', effect: 'Enhances discovery and formula acquisition', ram: '$7E:2261', routine: 'Formula discovery' },
+    { id: 0x0108, name: 'Ruby Heart', effect: 'Reduces physical damage received from enemies', ram: '$7E:2261', routine: 'Damage reaction' },
+    { id: 0x0109, name: 'Silver Sheath', effect: 'Increases melee strike power for swords (+25%)', ram: '$7E:2261 bit 5', routine: 'Sword attack boost' },
+    { id: 0x010A, name: 'Staff of Life', effect: 'Increases companion Dog defense and protection', ram: '$7E:2261', routine: 'Companion defense' },
+    { id: 0x010B, name: 'Sun Stone', effect: 'Protects party against heat, fire, and magma damage', ram: '$7E:2261 bit 2', routine: 'Environmental damage' },
+    { id: 0x010C, name: 'Thug\'s Cloak', effect: 'Increases dodge rate and reduces enemy to-hit roll', ram: '$7E:2261', routine: 'Evasion calculation' },
+    { id: 0x010D, name: 'Wizard\'s Coin', effect: 'Increases party magic defense by 5%', ram: '$7E:2263 bit 2', routine: 'Magic defense boost' },
+];
+
+function charmsEnum(): EnumList {
+    return {
+        id: 'charms-enum', group: 'Items', title: 'Rare charms & passive relics',
+        columns: ['item id', 'charm name', 'passive effect', 'wram bitfield', 'evaluating routine'],
+        entries: CHARMS_DATA.map((c) => ({
+            cells: [h(c.id, 4), c.name, c.effect, c.ram, c.routine],
+            vfs: bus(0x7e2261),
+        })),
+        source: 'Key inventory items $0100..$010D tracked across SRAM bitfields $7E:2261..$7E:2264 and evaluated during combat calculations.',
+    };
+}
+
+const BAZOOKA_AMMO_DATA = [
+    { code: 0x00, name: 'Thunder Ball', counter: '$7E:2345', descriptor: '$C4:3A96', palette: '$0086', effect: 'Standard explosive artillery shell' },
+    { code: 0x02, name: 'Particle Bomb', counter: '$7E:2346', descriptor: '$C4:3ABA', palette: '$00CB', effect: 'Heavy thermal shock wave blast' },
+    { code: 0x04, name: 'Cryo-Blast', counter: '$7E:2347', descriptor: '$C4:3ADE', palette: '$1E02', effect: 'Piercing cryogenic freezing blast' },
+];
+
+function bazookaAmmoEnum(): EnumList {
+    return {
+        id: 'bazooka-ammo-enum', group: 'Combat', title: 'Bazooka ammunition types',
+        columns: ['ammo code', 'ammunition name', 'inventory counter', 'weapon descriptor', 'sprite palette', 'combat effect'],
+        entries: BAZOOKA_AMMO_DATA.map((a) => ({
+            cells: [h(a.code, 2), a.name, a.counter, a.descriptor, a.palette, a.effect],
+            vfs: bus(0x7e2345),
+        })),
+        source: 'Equipped ammo selector $7E:2349, inventory counters $7E:2345..$7E:2347, and weapon descriptors at $C4:388E.',
+    };
+}
+
 /** Every list the view shows. `icons` are the formulas' ring-menu icons (PNG data URIs) in formula order. */
 function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | null)[] = []): EnumList[] {
     return [characterBlobs(rom, chars), recordFields(), contactHandlers(rom, chars), aiSelectors(rom, chars),
@@ -474,7 +521,8 @@ function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | nu
         musicTracks(), soundEffects(), scriptOpcodes(),
         callBeadSpells(rom), targetingModes(),
         armorEnums(rom), currenciesEnum(),
-        consumableItemsEnum(rom), staminaTiersEnum()];
+        consumableItemsEnum(rom), staminaTiersEnum(),
+        charmsEnum(), bazookaAmmoEnum()];
 }
 
 export { enumsModel };

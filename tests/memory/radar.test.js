@@ -19,12 +19,12 @@ function test(name, fn) {
 }
 
 // ── radarLifecycle ──────────────────────────────────────────────────────────
-console.log('\nradarLifecycle — temp region (0x2834–0x28FF):');
+console.log('\nradarLifecycle — temp region (0x2834–0x28FB):');
 test('0x2834 is temp (first byte)',  () => assert.strictEqual(radarLifecycle(0x2834, '', ''), 'temp'));
-test('0x28FF is temp (last byte)',   () => assert.strictEqual(radarLifecycle(0x28FF, '', ''), 'temp'));
+test('0x28FB is temp (last byte)',   () => assert.strictEqual(radarLifecycle(0x28FB, '', ''), 'temp'));
 test('0x2850 is temp (mid range)',   () => assert.strictEqual(radarLifecycle(0x2850, '', ''), 'temp'));
 test('0x2833 is NOT temp (one below)',() => assert.notStrictEqual(radarLifecycle(0x2833, '', ''), 'temp'));
-test('0x2900 is NOT temp (one above)',() => assert.notStrictEqual(radarLifecycle(0x2900, '', ''), 'temp'));
+test('0x28FC is NOT temp (ScriptSlot[20] starts)',() => assert.notStrictEqual(radarLifecycle(0x28FC, '', ''), 'temp'));
 
 console.log('\nradarLifecycle — session region (0x2200–0x27FF):');
 test('0x2200 is session (first byte)', () => assert.strictEqual(radarLifecycle(0x2200, '', ''), 'session'));
@@ -45,9 +45,9 @@ test('0x0341 is system', () => assert.strictEqual(radarLifecycle(0x0341, '', '')
 test('0x2900 is system', () => assert.strictEqual(radarLifecycle(0x2900, '', ''), 'system'));
 test('0x4EBF is system', () => assert.strictEqual(radarLifecycle(0x4EBF, '', ''), 'system'));
 
-// gap entry: 0x28FC is the last few bytes of temp range
+// gap entry: 0x28FB is the last byte of temp range
 console.log('\nradarLifecycle — gap entry boundary (the main bug):');
-test('0x28FC is temp (inside temp range, even in gap entry)', () => assert.strictEqual(radarLifecycle(0x28FC, 'Byte×6100', 'Unmapped'), 'temp'));
+test('0x28FB is temp (inside temp range, even in gap entry)', () => assert.strictEqual(radarLifecycle(0x28FB, 'Byte×6100', 'Unmapped'), 'temp'));
 test('0x2900 from gap entry is system', () => assert.strictEqual(radarLifecycle(0x2900, 'Byte×6100', 'Unmapped'), 'system'));
 test('0x4EB2 from gap entry is system', () => assert.strictEqual(radarLifecycle(0x4EB2, 'Byte×6100', 'Unmapped'), 'system'));
 

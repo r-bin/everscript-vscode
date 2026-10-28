@@ -186,3 +186,20 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
   - `+0x00..0x0F`: Base HP restored upon use: Petal (40), Nectar (120), Honey (300), Dog Biscuit (100). Wings, Herbal Essence, Pixie Dust, and Call Beads store 0 (scripted/status handlers).
   - `+0x10..0x1F`: 8 ring menu icon selectors (`$008E`, `$0090`, `$0092`, `$0094`, `$0096`, `$0098`, `$009A`, `$009C`).
 - **Readers**: Ring menu item execution handler and inventory display routines.
+
+### 2.13 Formula Execution Blocks Table (`$C4:5DDF` -> `$91:80A6`)
+- **Format**: `uint16_t tbl_formula_blocks[35]`, 2 bytes per formula (70 bytes total, `$C4:5DDF`..`$C4:5E24`).
+- **Internal Layout**:
+  - Each word represents an even byte offset into the master block pointer table at `$91:80A6`.
+  - The pointer at `$91:80A6 + offset` resolves to the entry point address within Bank `$91` where spell execution bytecode and animation record IDs reside.
+  - Formula 0 (Acid Rain) and Formula 20 (Laser) both point to offset `0x0002` (`$91:86F0`).
+- **Readers**: Spell invocation engine `$91:CCD8` and animation record parser.
+
+### 2.14 Bazooka Artillery Weapon Database (`$C4:388E`)
+- **Format**: `uint16_t tbl_bazooka_weapon_pointers[3]` pointing to 36-byte weapon descriptors (`$C4:3A96`, `$C4:3ABA`, `$C4:3ADE`).
+- **Internal Layout**:
+  - Shell 0 (`$00`): Thunder Ball descriptor at `$C4:3A96` (standard artillery, sprite palette `$0086`).
+  - Shell 1 (`$02`): Particle Bomb descriptor at `$C4:3ABA` (heavy thermal explosion, sprite palette `$00CB`).
+  - Shell 2 (`$04`): Cryo-Blast descriptor at `$C4:3ADE` (cryogenic frost artillery, sprite palette `$1E02`).
+- **Readers**: Active weapon loader `$8F:81C9` (selects descriptor by reading `$7E:2349`) and combat projectile dispatcher.
+

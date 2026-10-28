@@ -337,3 +337,42 @@ typedef enum {
     STAMINA_TIER_CHARGED_3      = 4   /* >= 0x0C00 (300%): 4.0x damage (Level 3 maximum special) */
 } StaminaTier;
 ```
+
+---
+
+## 13. Rare Charms & Passive Relics (`CHARM_ID`)
+
+Passive relics with game-altering effects (items `0x0100`..`0x010D`):
+
+```c
+typedef enum {
+    CHARM_ARMOR_POLISH          = 0x0100, /* Passively enhances physical armor defense */
+    CHARM_CHOCOBO_EGG           = 0x0101, /* Increases maximum health point capacity */
+    CHARM_INSECT_INCENSE        = 0x0102, /* Deflects and blocks melee hits from insect enemies */
+    CHARM_JADE_DISK             = 0x0103, /* Increases physical evasion against attacks */
+    CHARM_JAGUAR_RING           = 0x0104, /* Unlocks continuous sprint / running capability */
+    CHARM_MAGIC_GOURD           = 0x0105, /* Increases alchemical formula damage output */
+    CHARM_MOXA_STICK            = 0x0106, /* Boosts HP restored by healing formula spells */
+    CHARM_ORACLE_BONE           = 0x0107, /* Enhances discovery and formula acquisition */
+    CHARM_RUBY_HEART            = 0x0108, /* Reduces physical damage received from enemies */
+    CHARM_SILVER_SHEATH         = 0x0109, /* Increases melee strike power for swords */
+    CHARM_STAFF_OF_LIFE         = 0x010A, /* Increases companion Dog defense and protection */
+    CHARM_SUN_STONE             = 0x010B, /* Protects party against heat, fire, and magma */
+    CHARM_THUGS_CLOAK           = 0x010C, /* Increases dodge rate and reduces enemy to-hit roll */
+    CHARM_WIZARDS_COIN          = 0x010D  /* Increases party magic defense by 5% ($8C:9447) */
+} CharmId;
+```
+
+---
+
+## 14. Bazooka Ammunition Codes (`BAZOOKA_AMMO_ID`)
+
+The three heavy artillery shell types fired by the Bazooka (`$7E:2441 = 0x001A`):
+
+```c
+typedef enum {
+    BAZOOKA_THUNDER_BALL        = 0x00, /* Standard explosive artillery shell ($7E:2345) */
+    BAZOOKA_PARTICLE_BOMB       = 0x02, /* High-damage thermal shock shell ($7E:2346) */
+    BAZOOKA_CRYO_BLAST          = 0x04  /* Piercing cryogenic freezing shell ($7E:2347) */
+} BazookaAmmoId;
+```
