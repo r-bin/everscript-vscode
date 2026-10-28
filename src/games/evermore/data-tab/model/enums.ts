@@ -691,6 +691,60 @@ function formulaPowersEnum(rom: Uint8Array, icons: (string | null)[]): EnumList 
     };
 }
 
+function cameraScrollModesEnum(): EnumList {
+    return {
+        id: 'camera-scroll-modes', group: 'Camera', title: 'Camera viewport tracking modes ($7E:241F)',
+        columns: ['mode', 'hex', 'target focus', 'description'],
+        entries: [
+            { cells: ['0', '$0000', 'Boy Entity', 'Smooth tracking centered on the Boy with 16px deadzone'] },
+            { cells: ['1', '$0001', 'Dog Entity', 'Smooth tracking centered on the companion Dog'] },
+            { cells: ['2', '$0002', 'Fixed Arena / Scripted', 'Fixed coordinate lock for boss fights and cinematic cutscenes'] },
+        ],
+        source: 'WRAM $7E:241F (CameraScrollMode): Viewport camera tracking routine.',
+    };
+}
+
+function windowStatesEnum(): EnumList {
+    return {
+        id: 'window-states', group: 'Dialogue', title: 'Dialogue window lifecycle states ($7E:0377)',
+        columns: ['state', 'hex', 'phase', 'description'],
+        entries: [
+            { cells: ['0', '$0000', 'Closed', 'Window closed and inactive; tilemap buffers clear'] },
+            { cells: ['1', '$0001', 'Opening', 'Expanding border frame animation in progress'] },
+            { cells: ['2', '$0002', 'Open', 'Fully open; active typewriter text blitting or joypad choice prompt'] },
+            { cells: ['3', '$0003', 'Closing', 'Collapsing border frame animation in progress'] },
+        ],
+        source: 'WRAM $7E:0377 / $7E:03A3 (WindowState): Managed by window compositor func_CCAC8A and opcodes $2E, $44..$47.',
+    };
+}
+
+function audioFadeStatesEnum(): EnumList {
+    return {
+        id: 'audio-fade-states', group: 'Audio', title: 'Master volume fade states ($7E:0B7B)',
+        columns: ['state', 'hex', 'mode', 'description'],
+        entries: [
+            { cells: ['0', '$0000', 'Steady', 'Master audio volume steady at target level'] },
+            { cells: ['1', '$0001', 'Fade In', 'Volume ramping up smoothly toward target $7E:0B83'] },
+            { cells: ['2', '$0002', 'Fade Out', 'Volume ramping down toward silence prior to room transition'] },
+        ],
+        source: 'WRAM $7E:0B7B (AudioFadeState): Evaluated every frame by audio service and volume fader.',
+    };
+}
+
+function roomLoadStatesEnum(): EnumList {
+    return {
+        id: 'room-load-states', group: 'Rooms', title: 'Room transition readiness states ($7E:22EA)',
+        columns: ['state', 'hex', 'phase', 'description'],
+        entries: [
+            { cells: ['0', '$0000', 'Active Gameplay', 'Standard gameplay frame loop with physics and AI active'] },
+            { cells: ['1', '$0001', 'Teardown', 'Screen fade-out complete; purging previous room tilemaps and entities'] },
+            { cells: ['2', '$0002', 'Decompressing', 'LZSS streaming tilemap, metatile collision, and enter script blocks'] },
+            { cells: ['3', '$0003', 'Ready', 'Room assets staged; scheduling enter script and initiating fade-in'] },
+        ],
+        source: 'WRAM $7E:22EA (RoomLoadState): Governs room transition pipeline in func_8EE4E2 (enter_room).',
+    };
+}
+
 /** Every list the view shows. `icons` are the formulas' ring-menu icons (PNG data URIs) in formula order. */
 function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | null)[] = []): EnumList[] {
     return [characterBlobs(rom, chars), recordFields(), contactHandlers(rom, chars), aiSelectors(rom, chars),
@@ -704,7 +758,9 @@ function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | nu
         charmsEnum(), bazookaAmmoEnum(),
         companionAiEnum(), projectileRoutinesEnum(rom),
         projectileBehaviorsEnum(), formulaLearnedEnum(rom),
-        animOpcodesEnum(rom), formulaPowersEnum(rom, icons)];
+        animOpcodesEnum(rom), formulaPowersEnum(rom, icons),
+        cameraScrollModesEnum(), windowStatesEnum(),
+        audioFadeStatesEnum(), roomLoadStatesEnum()];
 }
 
 export { enumsModel };

@@ -12,10 +12,11 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
 |---|---|---|---|---|---|---|
 | `$80:88A3` | `0x0088A3` | `tbl_trig_sine` | 2 bytes | 320 | 640 B | 8.8 fixed-point trigonometric sine curve (`-255`..`+256`) |
 | `$80:8923` | `0x008923` | `tbl_trig_cosine` | 2 bytes | 256 | 512 B | Trigonometric cosine (+64 offset alias of `tbl_trig_sine`) |
+| `$81:9903` | `0x019903` | `tbl_song_packages` | 3 bytes | 71 | 213 B | Master music soundtrack and soundbank sequence descriptors |
 | `$8C:8BD0` | `0x068BD0` | `tbl_xp_boy` | 3 bytes | 100 | 300 B | Cumulative XP progression for Boy (levels 1..100, `$FFFFFF` cap) |
 | `$8C:8CFC` | `0x068CFC` | `tbl_xp_dog` | 3 bytes | 99 | 297 B | Cumulative XP progression for companion Dog |
 | `$8C:9700` | `0x069700` | `tbl_weapon_charge_multipliers` | 2 bytes | 16 | 32 B | Charge attack damage multipliers for weapon tiers 0..3 |
-| `$8C:D7E1` | `0x06D7E1` | `tbl_script_opcode_jump_table` | 2 bytes | 256 | 512 B | Script VM opcode execution jump vectors (`$00`..`$FF`) |
+| `$8C:E8BD` | `0x0CE8BD` | `tbl_script_opcode_jump_table` | 2 bytes | 195 | 390 B | Script VM opcode execution jump vectors (`$00`..`$C2`) |
 | `$8E:B55A` | `0x07355A` | `tbl_enemy_index` | 2 bytes | 143 | 286 B | ENEMY id to character record address in bank $8E ($8E:B678..) |
 | `$8E:B678` | `0x073678` | `tbl_character_records` | 74 bytes | 142 | 10,508 B | Master character record database (stats, AI, contact, loot) |
 | `$8F:945D` | `0x07945D` | `tbl_dog_form_pointers` | 14 bytes | 4 | 56 B | Companion breed form base stats, sniffing range, palettes |
@@ -25,6 +26,7 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
 | `$90:D9A6` | `0x08D9A6` | `tbl_projectile_records` | 24 bytes | 21 | 504 B | Projectile archetype definitions (anim, palette, routine, speed, power) |
 | `$90:DF44` | `0x085F44` | `tbl_boomerang_orbit` | 4 bytes | 256 | 1,024 B | Elliptical orbital vector coordinates $(X, Y)$ in $1/16$ px |
 | `$91:80A6` | `0x0880A6` | `tbl_alchemy_spell_blocks` | 2 bytes | 48 | 96 B | Pointers to spell bytecode blocks in Bank `$91` |
+| `$91:F32E` | `0x09732E` | `tbl_dialogue_dte_pairs` | 2 bytes | 64 | 128 B | Dual Tile Encoding (DTE) 2-character English digraph pairs |
 | `$9F:FDE7` | `0x0FFDE7` | `tbl_room_blob_pointers` | 4 bytes | 127 | 508 B | 32-bit far pointers to compressed room data blobs |
 | `$C4:0C02` | `0x220C02` | `tbl_font_glyph_widths` | 1 byte | 95 | 95 B | Proportional character glyph pixel widths (ASCII 32..126) |
 | `$C4:3874` | `0x223874` | `tbl_alchemy_formula_costs` | 6 bytes | 35 | 210 B | Ingredient requirements, count quantities, and formula base damage |
@@ -44,6 +46,7 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
 | `$C4:5F97` | `0x225F97` | `tbl_cast_blocks` | 2 bytes | 23 | 46 B | Offsets into `$91:80A6` for opcode `$9E` and `$AC` spells |
 | `$C4:5FC5` | `0x225FC5` | `tbl_cast_names` | 2 bytes | 23 | 46 B | Pointers to zero-terminated spell name strings |
 | `$C4:5FF3` | `0x225FF3` | `tbl_ingredient_names` | 2 bytes | 22 | 44 B | Pointers to zero-terminated ingredient name strings |
+| `$CE:8000` | `0x168000` | `tbl_ring_item_icons` | 2 bytes | 162 | 324 B | Pointers to 8-byte ring menu item icon sprite & palette descriptors |
 
 ---
 
@@ -303,6 +306,42 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
   - 16-bit base damage or HP restoration magnitude for all 35 formulas.
   - Multiplied by formula level percentage scaling from `$C4:5BA5` during alchemy execution `$8F:C067`.
 - **Readers**: Combat damage compositor `$8F:C067` and alchemy spell effect processor.
+
+### 2.23 Script VM Opcode Jump Vector Table (`$8C:E8BD`)
+- **Format**: `uint16_t tbl_script_opcode_jump_table[195]`, 2 bytes per routine (390 bytes total, `$8C:E8BD`..`$8C:EA42`).
+- **Internal Layout**:
+  - Jump vectors for event script virtual machine opcodes `$00` through `$C2`.
+  - Dispatched via `JSR ($E8BD,x)` by interpreter loop `$8C:D0A6` after doubling the opcode byte.
+  - Active routines implement control flow, dialogue boxes, entity manipulation, movement, music, and screen transitions.
+  - Unused opcode slots point to `STP` trap routines (`$8C:E8B5`..`$8C:E8BC`).
+  - Opcode `$AB` points to `$8C:E8B1` (resets the game).
+- **Readers**: Event script VM interpreter `$8C:D0A6` and debuggers.
+
+### 2.24 Master Song Package Pointer Table (`$81:9903`)
+- **Format**: `uint24_t tbl_song_packages[71]`, 3 bytes per entry (213 bytes total, `$81:9903`..`$81:99D7`).
+- **Internal Layout**:
+  - 24-bit SNES far pointers indexing music sequence and sound effect package descriptors in Bank `$8A` and `$8B`.
+  - Header count byte at `$81:9900` sets the total available packages (71 packages).
+- **Readers**: SPC700 audio stream uploader and music player `$8C:8236`.
+
+### 2.25 Ring Menu Item Icon Descriptors Table (`$CE:8000`)
+- **Format**: `uint16_t tbl_ring_item_icons[162]`, 2 bytes per icon (324 bytes total, `$CE:8000`..`$CE:8143`).
+- **Internal Layout**:
+  - 16-bit pointers in Bank `$CE` addressing 8-byte sprite & palette descriptors:
+    - `+0x00`: Attribute flags
+    - `+0x02`: Animation record offset in Bank `$C4` (`$C4:0000 + record`)
+    - `+0x04`: 16-color palette address in Bank `$D0`
+    - `+0x06`: Item category index
+  - Covers UI elements, weapons, alchemy formulas, consumables, armor items, NPC portraits, and ingredients.
+- **Readers**: Ring menu icon rendering pipeline (`$CE:8000`) and map editor trigger icon overlays.
+
+### 2.26 Dialogue Dual Tile Encoding (DTE) Digraph Pair Table (`$91:F32E`)
+- **Format**: `char tbl_dialogue_dte_pairs[64][2]`, 2 bytes per pair (128 bytes total, `$91:F32E`..`$91:F3AD`).
+- **Internal Layout**:
+  - 64 frequent 2-character English digraphs (`"e "`, `" t"`, `"th"`, `"ou"`, `"he"`, `"er"`, `"an"`, etc.).
+  - Indexed by dialogue compressed string tokens `0x80` through `0xBF` via `(token - 0x80) * 2`.
+- **Readers**: Narrative dialogue text decompressor `$8C:CD84` and dialogue buffer streamer `$8C:CDC6`.
+
 
 
 

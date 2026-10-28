@@ -8,7 +8,8 @@
 import { snesToRom, read16, read24, mapTableOffset, MAX_ROOMS } from '../../maps';
 import { CHARACTER_TABLE, CHARACTER_STRIDE } from '../../maps/character-record';
 import { opcode } from '../../maps/animation-opcodes';
-import { getMapName, getMapArea } from '../../localizations';
+import { getMapName, getMapArea, MUSIC } from '../../localizations';
+import { entries as knowledgeEntries } from '../../localizations/knowledge';
 import { hex } from '../../../../platform';
 
 type Cell = string | number;
@@ -795,6 +796,115 @@ function formulaPowersTable(rom: Uint8Array): Table {
     };
 }
 
+const SCRIPT_OPCODES_ADDR = 0x8ce8bd;
+const SCRIPT_OPCODE_COUNT = 195;
+
+function scriptOpcodesTable(rom: Uint8Array): Table {
+    const ops = knowledgeEntries('opcodes');
+    const opMap = new Map<number, string>();
+    for (const o of ops) {
+        const cmd = ([] as string[]).concat((o.meta.everscript as string[]) || []).join(', ');
+        if (cmd) opMap.set(o.addr, cmd);
+    }
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < SCRIPT_OPCODE_COUNT; i++) {
+        const ptr = read16(rom, snesToRom(SCRIPT_OPCODES_ADDR + i * 2));
+        const isTrap = ptr >= 0xe8b5 && ptr <= 0xe8bc;
+        const isReset = ptr === 0xe8b1;
+        const status = isTrap ? 'Unused STP trap' : (isReset ? 'Game Reset' : 'Active Handler');
+        const cmd = opMap.get(i) || (isTrap ? '—' : 'raw opcode');
+        rows.push([i, '$' + hex(i, 2), '$8C:' + hex(ptr, 4), cmd, status]);
+        pts.push([i, isTrap ? 0 : 1]);
+    }
+    return {
+        id: 'script-opcodes-table', group: 'Scripts', title: 'Script VM opcode jump vectors', addr: '$8C:E8BD',
+        note: 'Table $8C:E8BD (195 words, 390 bytes): Master vector table for script VM opcodes $00..$C2 called by interpreter $8C:D0A6 via JSR ($E8BD,x).',
+        columns: ['opcode', 'hex', 'routine vector', 'command', 'status'],
+        rows,
+        chart: { x: 'opcode', y: 'active', series: [{ name: 'active status', points: pts }] },
+        vfs: vfs(SCRIPT_OPCODES_ADDR),
+    };
+}
+
+const SONGS_ADDR = 0x819903;
+const SONG_COUNT = 71;
+
+function songsTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < SONG_COUNT; i++) {
+        const snes = read24(rom, snesToRom(SONGS_ADDR + i * 3));
+        const fileOff = snesToRom(snes);
+        const m = MUSIC[i];
+        const name = m ? m.name : (i === 70 ? 'Silence / Stop' : 'Song ' + i);
+        const spc = m ? (m.spc || '—') : '—';
+        rows.push([i, '$' + hex(i, 2), name, spc, '$' + hex(snes, 6), '$' + hex(fileOff, 6)]);
+        pts.push([i, fileOff]);
+    }
+    return {
+        id: 'songs-table', group: 'Audio', title: 'Music tracks & sound packages', addr: '$81:9903',
+        note: 'Table $81:9903 (71 far pointers, 213 bytes): Audio sequence package pointers in Bank $8A/$8B, indexed by script opcode $33 and APU loader $8C:8236.',
+        columns: ['id', 'hex', 'track name', 'spc file', 'snes pointer', 'file offset'],
+        rows,
+        chart: { x: 'track id', y: 'file offset', series: [{ name: 'file offset', points: pts }] },
+        vfs: vfs(SONGS_ADDR),
+    };
+}
+
+const RING_ICONS_ADDR = 0xce8000;
+const RING_ICON_COUNT = 162;
+
+function ringItemIconsTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < RING_ICON_COUNT; i++) {
+        const id = i * 2;
+        const entry = 0xce0000 | read16(rom, snesToRom(RING_ICONS_ADDR + i * 2));
+        const record = read16(rom, snesToRom(entry + 2));
+        const palette = read16(rom, snesToRom(entry + 4));
+        const catIdx = read16(rom, snesToRom(entry + 6));
+        const category = id <= 0x26 ? 'UI / Reticle' : (id <= 0x46 ? 'Weapons' : (id <= 0x8c ? 'Alchemy Formula' : (id <= 0x9c ? 'Consumable' : (id === 0x9e ? 'Pouch' : (id <= 0xee ? 'Armor' : (id <= 0xf6 ? 'Portrait' : (id <= 0x116 ? 'Rare Formula' : 'Ingredient')))))));
+        rows.push([i, '$' + hex(id, 4), category, '$C4:' + hex(record, 4), '$D0:' + hex(palette, 4), catIdx]);
+        pts.push([i, record]);
+    }
+    return {
+        id: 'ring-item-icons', group: 'Items', title: 'Ring-menu item icon descriptors', addr: '$CE:8000',
+        note: 'Table $CE:8000 (162 words, 324 bytes): Pointers in Bank $CE to 8-byte descriptors defining sprite animation record, palette, and category index for each ring icon.',
+        columns: ['id', 'hex', 'category', 'record pointer', 'palette', 'category index'],
+        rows,
+        chart: { x: 'icon index', y: 'record offset', series: [{ name: 'record offset', points: pts }] },
+        vfs: vfs(RING_ICONS_ADDR),
+    };
+}
+
+const DTE_DIGRAPHS_ADDR = 0x91f32e;
+const DTE_DIGRAPH_COUNT = 64;
+
+function dteDigraphsTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < DTE_DIGRAPH_COUNT; i++) {
+        const token = 0x80 + i;
+        const at = snesToRom(DTE_DIGRAPHS_ADDR + i * 2);
+        const b1 = rom[at];
+        const b2 = rom[at + 1];
+        const c1 = b1 >= 0x20 && b1 < 0x7f ? String.fromCharCode(b1) : ('$' + hex(b1, 2));
+        const c2 = b2 >= 0x20 && b2 < 0x7f ? String.fromCharCode(b2) : ('$' + hex(b2, 2));
+        const combined = c1 + c2;
+        rows.push([token, '$' + hex(token, 2), c1, c2, combined, '$' + hex(b1, 2) + ' $' + hex(b2, 2)]);
+        pts.push([token, b1]);
+    }
+    return {
+        id: 'dte-digraphs', group: 'Dialogue', title: 'Dialogue DTE digraph substitution pairs', addr: '$91:F32E',
+        note: 'Table $91:F32E (64 ASCII pairs, 128 bytes): Master 2-character digraph substitutions for tokens $80..$BF, unpacked by narrative string decompressor $8C:CD84.',
+        columns: ['token', 'hex', 'char 1', 'char 2', 'combined text', 'ascii hex'],
+        rows,
+        chart: { x: 'token byte', y: 'first byte', series: [{ name: 'ascii byte', points: pts }] },
+        vfs: vfs(DTE_DIGRAPHS_ADDR),
+    };
+}
+
 /** Every table the view lists: only the ones decoded into readable values. */
 function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Table[] {
     return [
@@ -810,6 +920,8 @@ function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Ta
         formulaLearnedTable(rom), roomsTable(rom),
         contactHandlersTable(rom, names), aiBehavioursTable(rom, names),
         animationVmTable(rom), formulaPowersTable(rom),
+        scriptOpcodesTable(rom), songsTable(rom),
+        ringItemIconsTable(rom), dteDigraphsTable(rom),
     ];
 }
 

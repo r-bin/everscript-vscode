@@ -58,7 +58,8 @@ async function romChecks(rom) {
             'projectiles', 'formula-targets', 'armor', 'enemy-index', 'consumables',
             'formula-blocks', 'bazooka-ammo', 'formula-descriptions', 'projectile-routines',
             'formula-learned', 'rooms-table', 'contact-handlers', 'ai-behaviours',
-            'animation-vm', 'formula-powers'
+            'animation-vm', 'formula-powers', 'script-opcodes-table', 'songs-table',
+            'ring-item-icons', 'dte-digraphs'
         ]);
         const boy = ix.tables[1].rows[2];
         assert.strictEqual(boy[1], 'Boy');
@@ -111,6 +112,13 @@ async function romChecks(rom) {
         assert.strictEqual(ix.tables[26].rows.length, 35);
         assert.strictEqual(ix.tables[26].rows[0][1], 'Acid Rain');
         assert.strictEqual(ix.tables[26].rows[0][2], 17);
+        assert.strictEqual(ix.tables[27].rows.length, 195);
+        assert.strictEqual(ix.tables[27].rows[0][1], '$00');
+        assert.strictEqual(ix.tables[28].rows.length, 71);
+        assert.strictEqual(ix.tables[28].rows[0][2], 'Main Title');
+        assert.strictEqual(ix.tables[29].rows.length, 162);
+        assert.strictEqual(ix.tables[30].rows.length, 64);
+        assert.strictEqual(ix.tables[30].rows[0][4], 'e ');
     });
     await test('enums: only lists read from the ROM or a knowledge entry', () => {
         assert.deepStrictEqual(ix.enums.map((e) => e.id), [
@@ -119,7 +127,8 @@ async function romChecks(rom) {
             'ring-icons', 'music', 'sounds', 'opcodes', 'call-beads-enum', 'targeting-modes',
             'armor-items', 'currencies', 'consumables-enum', 'stamina-tiers', 'charms-enum',
             'bazooka-ammo-enum', 'companion-ai-states', 'projectile-routines-enum',
-            'projectile-behaviors', 'formula-learned-flags', 'anim-opcodes', 'formula-powers-enum'
+            'projectile-behaviors', 'formula-learned-flags', 'anim-opcodes', 'formula-powers-enum',
+            'camera-scroll-modes', 'window-states', 'audio-fade-states', 'room-load-states'
         ]);
         const e = (id) => ix.enums.find((x) => x.id === id);
         assert.ok(e('blobs').entries.some((x) => x.cells[0] === 'WRAM' && x.cells[2] === '$7E0A26'));
@@ -155,6 +164,10 @@ async function romChecks(rom) {
         assert.strictEqual(e('formula-powers-enum').entries.length, 35);
         assert.strictEqual(e('formula-powers-enum').entries[0].cells[1], 'Acid Rain');
         assert.strictEqual(e('formula-powers-enum').entries[0].cells[2], '17');
+        assert.strictEqual(e('camera-scroll-modes').entries.length, 3);
+        assert.strictEqual(e('window-states').entries.length, 4);
+        assert.strictEqual(e('audio-fade-states').entries.length, 3);
+        assert.strictEqual(e('room-load-states').entries.length, 4);
     });
     await test('palettes: the sprite palettes in bank $90 with their users, the map tile families', () => {
         const sprites = ix.palettes.filter((p) => p.id.startsWith('s:'));
@@ -195,7 +208,7 @@ async function dom(rom) {
     await test('opening the tab loads every list; XP is drawn with both series', async () => {
         await page.click('.tab[data-tab="data"]');
         await pump();
-        assert.strictEqual(await page.locator('#dat-rail [data-dat-pick]').count(), 27);
+        assert.strictEqual(await page.locator('#dat-rail [data-dat-pick]').count(), 31);
         assert.strictEqual(await page.locator('#dat-side svg polyline').count(), 2);
         const svg = await page.locator('#dat-side svg').boundingBox();
         await page.mouse.move(svg.x + svg.width * 0.5, svg.y + svg.height * 0.5);
