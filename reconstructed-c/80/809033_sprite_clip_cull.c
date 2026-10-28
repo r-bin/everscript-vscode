@@ -50,6 +50,53 @@ typedef struct {
 
 extern OamRenderState g_oam_state;
 
+/* OAM Finalization WRAM Mirrors & DMA Staging */
+extern uint16_t g_oam_prev_cursor;         /* $7E:1438 */
+extern uint8_t  g_dma_queue_1_terminator[]; /* $7E:15D6 */
+extern uint8_t  g_dma_queue_2_terminator[]; /* $7E:163C */
+extern uint8_t  g_dp_cb;                    /* DP $CB */
+extern uint8_t  g_dp_cd;                    /* DP $CD */
+extern uint16_t g_dp_d3;                    /* DP $D3: Low OAM byte offset */
+extern uint16_t g_dp_d5;                    /* DP $D5: Low OAM size (0x01FF) */
+extern uint16_t g_dp_d7;                    /* DP $D7: High OAM table size (0x0040) */
+extern uint16_t g_dp_d9;                    /* DP $D9: OAM frame ready latch */
+
+/**
+ * Finalizes the OAM buffer, blanks unused sprite entries to Y=224 (offscreen),
+ * null-terminates DMA staging queues, and arms the NMI VBLANK transfer flag.
+ * Corresponds to native routine $80:8FEE.
+ */
+void oam_finalize_and_blank_unused(void) {
+    uint16_t cur_cursor = g_dp_d3;
+    uint16_t prev_cursor = g_oam_prev_cursor;
+
+    /* If fewer sprite bytes were emitted this frame, blank trailing entries */
+    if (cur_cursor < prev_cursor) {
+        uint8_t *low_oam_bytes = (uint8_t *)g_oam_state.low_oam;
+        for (int32_t i = (int32_t)prev_cursor - 2; i >= (int32_t)cur_cursor; i -= 2) {
+            /* Store 0xE0E0 across 16-bit word (sets Y-coordinate to 224, offscreen) */
+            low_oam_bytes[i] = 0xE0;
+            low_oam_bytes[i + 1] = 0xE0;
+        }
+    }
+
+    g_oam_prev_cursor = cur_cursor;
+
+    /* Null-terminate dynamic OBJ DMA staging queues */
+    g_dma_queue_1_terminator[g_dp_cb] = 0;
+    g_dma_queue_2_terminator[g_dp_cd] = 0;
+
+    /* Reset Low OAM byte cursor for next frame */
+    g_dp_d3 = 0;
+
+    /* Prime OAM capacity bounds */
+    g_dp_d5 = 0x01FF;
+    g_dp_d7 = 0x0040;
+
+    /* Latch OAM frame ready flag for NMI DMA commit */
+    g_dp_d9 = 0x0001;
+}
+
 /* VRAM Dynamic OBJ Allocators */
 extern uint8_t obj_vram_alloc_8x8(uint8_t tile_id);   /* $80:A2E0 */
 extern uint8_t obj_vram_alloc_16x16(uint8_t tile_id); /* $80:A429 */
