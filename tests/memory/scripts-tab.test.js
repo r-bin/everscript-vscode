@@ -260,7 +260,7 @@ async function dom(rom) {
         }
         await pump();
         const chips = await page.$$eval('[data-scr-variant]', (els) => els.map((e) => e.textContent.trim()));
-        assert.deepStrictEqual(chips, ['1 · Thraxx', '2 · Coleoptera', '3 · Empty']);
+        assert.deepStrictEqual(chips, ['1 · Default', '2 · THRAXX_DEAD=True, WINDWALKER_UNLOCKED=True', '3 · THRAXX_DEAD=True']);
         const rowClass = (addr) => page.$$eval('.scr-rows tr', (trs, a) => {
             const tr = trs.find((t) => t.querySelector('.scr-a') && t.querySelector('.scr-a').textContent === a);
             return tr ? tr.className : null;
@@ -272,8 +272,8 @@ async function dom(rom) {
         assert.ok(await page.locator('.scr-fold[aria-expanded="false"]').count() > 0, 'shared helpers start folded');
         await shot('thraxx');
         assert.ok(await page.locator('.scr-rows .sx-kw').count() > 10, 'the lines are coloured');
-        await page.click('tr[data-addr="93D23B"] [data-goto="93D25A"]');
-        assert.ok(await page.$eval('tr[data-addr="93D25A"]', (e) => e.classList.contains('sx-flash')), 'a goto target jumps to its line');
+        await page.click('tr[data-addr="93D235"] [data-goto="93D23B"]');
+        assert.ok(await page.$eval('tr[data-addr="93D23B"]', (e) => e.classList.contains('sx-flash')), 'a goto target jumps to its line');
         await page.click('[data-scr-variant="1"]');
         assert.ok(/scr-off/.test(await rowClass('$93D2A0')) && !/scr-(off|dead)/.test(await rowClass('$93D2FD')));
         assert.notStrictEqual(await page.getAttribute('.scr-map img', 'src'), thraxxPicture, 'Coleoptera: palette set 7');

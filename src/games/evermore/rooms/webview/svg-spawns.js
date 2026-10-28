@@ -131,8 +131,11 @@ function buildSpawnLayers(romSpawns) {
         + ' stroke-dasharray="0.35,0.3"><title>' + tip + '</title></rect>';
     }
 
-    // Sprites are rendered beneath priority tiles (canopy)
-    out.behind += body;
+    // Only a spawn the engine really does draw under the foreground goes under the canopy
+    // ($8FC773: plane, then bit 12 of the tile under it); everything else, including the ones whose
+    // plane the map cannot say, stays visible. v0.152.0 put every spawn behind, which buried
+    // Thraxx's claws (tile $101F: bit 12, priority 3 — WRAM +0x3C in the attract loop) under his body.
+    if (v.inFront || v.tileWord == null) out.front += body; else out.behind += body;
   });
   return out;
 }

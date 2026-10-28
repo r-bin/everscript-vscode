@@ -56,7 +56,7 @@ function enterMergedHtml(id) {
   m.lines.forEach(function (r) {
     if (r.in >= 0 && folded[r.in]) return;
     var cls = 'rg-script-line' + (r.note ? ' rg-script-note' : r.untraced ? ' rs-guess' : '') + (r.terminal ? ' rs-term' : '');
-    if (reach && !r.note) cls += reach.mine[r.addressSnes] ? '' : reach.any[r.addressSnes] ? ' rg-script-off' : ' rg-script-dead';
+    if (reach && !r.note && !r.brace) cls += reach.mine[r.addressSnes] ? '' : reach.any[r.addressSnes] ? ' rg-script-off' : ' rg-script-dead';
     var caret = '';
     if (r.opens != null) {
       var b = m.blocks[r.opens], shut = enterFolded(id, b);
@@ -64,9 +64,10 @@ function enterMergedHtml(id) {
         + (shut ? 'Show' : 'Hide') + ' the ' + (b.kind === 'call' ? 'called script' : 'thread') + ' (' + b.size + ' lines)">'
         + (shut ? '▸' : '▾') + '</button>';
     }
-    var addr = r.note ? '' : normScriptAddr(hexNum(r.addressSnes, 6));
+    var addr = r.note || r.brace ? '' : normScriptAddr(hexNum(r.addressSnes, 6));
     html += '<div class="' + cls + '" data-in="' + r.in + '" style="margin-left:' + ((r.indent != null ? r.indent : r.depth) * 14) + 'px"' + (addr ? ' data-script-addr="' + addr + '"' : '')
-      + ' title="' + escH(r.note ? '' : hexNum(r.addressSnes, 6).replace('&ndash;', '') + '  ' + r.opcodeHex + '  ' + r.bytesHex) + '">'
+      + ' title="' + escH(r.note || r.brace ? '' : hexNum(r.addressSnes, 6).replace('&ndash;', '') + '  ' + r.opcodeHex + '  ' + r.bytesHex
+        + (r.raw ? '\n' + r.raw : '')) + '">'
       + caret + (r.note ? escH(r.summary) : typeof highlightScript === 'function' ? highlightScript(r.summary) : scriptHighlight(r.summary))
       + (r.opens != null && enterFolded(id, m.blocks[r.opens]) ? ' <span class="rs-note">+' + m.blocks[r.opens].size + '</span>' : '')
       + '</div>';

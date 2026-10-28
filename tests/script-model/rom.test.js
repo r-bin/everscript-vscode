@@ -109,6 +109,13 @@ test('an else-if chain stays on one level; the knowledge entries name what the c
     // $93:D23B, $93:D25A, $93:D278, $93:D2CC: the room's four cases, each the else of the one before.
     assert.deepStrictEqual([0x93d23b, 0x93d25a, 0x93d278, 0x93d2cc].map((a) => line(a).indent), [0, 0, 0, 0]);
     assert.strictEqual(line(0x93d2d8).summary, 'MAP_PALETTE_SET = 7;', 'knowledge ram/7e2437');
+    // Structured: if! (c) goto → if (c) {, the chain as else if, the maggot loop as a while, its goto back as }.
+    assert.strictEqual(line(0x93d23b).summary, 'if (THRAXX_DEAD && !WINDWALKER_UNLOCKED) {');
+    assert.strictEqual(line(0x93d25a).summary, '} else if (WINDWALKER_UNLOCKED && <0x22e8, 0x40>) {');
+    assert.ok(line(0x93d25a).raw.startsWith('if! ('), 'the instruction as printed stays with the line');
+    assert.strictEqual(line(0x93d3c7).summary, 'while (!THRAXX_DEAD) {');
+    assert.strictEqual(line(0x93d4a9).summary, '}');
+    assert.ok(m.lines.some((l) => l.brace && l.summary === '}'), 'closing braces of their own');
 });
 
 test("a started thread joins where its starter's turn ends (Fire Eyes' village: $94:CE1A starts $92:D92A)", () => {

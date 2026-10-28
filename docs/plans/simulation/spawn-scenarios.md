@@ -26,9 +26,10 @@
   `end: 'cut'`: who they placed is known.
 - **A spawner in a loop** (Thraxx's maggots) is one character with a count; only its first
   placement decides whether it is there.
-- **Short titles and the lines each runs** (v0.362). `title` is what a list shows: the one or two
-  characters only the variant places, a boss by its name (`Thraxx`, `Coleoptera`), `Empty` when
-  nobody stands there, else the flags. `reached` is every instruction the variant can run: a
+- **Short titles and the lines each runs** (v0.362; titles reworked v0.367). `title` is what a list
+  shows: what selects the variant, as the scripts spell the flags (`INSIDE_OUTRO=True`,
+  `THRAXX_DEAD=True, WINDWALKER_UNLOCKED=True`), or `Default`; two that read the same add the
+  characters only they place, then a number. `reached` is every instruction the variant can run: a
   static walk of the enter script (calls, starts and global calls followed; a visited set, so
   loops cannot hold it) that takes at each branch the condition the run recorded there
   (`RoomAnalysis.branches`, over the entry state) under each of the variant's flag assignments;

@@ -165,8 +165,10 @@ function scrMergedHtml(m) {
     if (r.in >= 0 && folded[r.in]) return '';
     var b = r.opens != null ? m.blocks[r.opens] : null, shut = b && scrFolded(b);
     var cls = (r.note ? 'scr-note-row' : r.untraced ? 'scr-unk' : '') + (r.terminal ? ' scr-term' : '')
-      + (mine && !r.note ? (mine[r.addressSnes] ? '' : any[r.addressSnes] ? ' scr-off' : ' scr-dead') : '');
-    return '<tr class="' + cls + '" data-in="' + r.in + '"' + (r.note ? '' : ' data-addr="' + scrHex(r.addressSnes, 6) + '"') + '><td class="scr-a">' + (r.note ? '' : '$' + scrHex(r.addressSnes, 6)) + '</td>'
+      + (mine && !r.note && !r.brace ? (mine[r.addressSnes] ? '' : any[r.addressSnes] ? ' scr-off' : ' scr-dead') : '');
+    var bare = r.note || r.brace;
+    return '<tr class="' + cls + '" data-in="' + r.in + '"' + (bare ? '' : ' data-addr="' + scrHex(r.addressSnes, 6) + '"') + (r.raw ? ' title="' + scrEsc(r.raw) + '"' : '')
+      + '><td class="scr-a">' + (bare ? '' : '$' + scrHex(r.addressSnes, 6)) + '</td>'
       + '<td class="scr-s" style="padding-left:' + (8 + (r.indent != null ? r.indent : r.depth) * 14) + 'px">'
       + (b ? '<button class="scr-fold" data-scr-fold="' + b.id + '" aria-expanded="' + !shut + '" title="' + (shut ? 'Show' : 'Hide') + ' the '
         + (b.kind === 'call' ? 'called script' : 'thread') + ' (' + b.size + ' lines)">' + (shut ? '▸' : '▾') + '</button>' : '')

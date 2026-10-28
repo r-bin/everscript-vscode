@@ -103,24 +103,24 @@ async function main() {
         const names = await chips();
         const tipText = await tips();
         check('it lists the default with its enemies and the outro by number, no "All"', names.join() === '1,2'
-            && /^Mosquito, Wimpy Flower\ndefault — /.test(tipText[0]) && /^Empty\nInside outro\?/.test(tipText[1]), JSON.stringify([names, tipText]));
+            && /^Default\ndefault — Mosquito, Wimpy Flower/.test(tipText[0]) && /^INSIDE_OUTRO=True\nInside outro\?/.test(tipText[1]), JSON.stringify([names, tipText]));
         check('the default is chosen when the answer arrives',
             await page.$eval('#rv-bar button.on', (e) => e.dataset.variant) === '0');
-        check('  and its name is in the header', /^1 · Mosquito, Wimpy Flower$/.test(await headName()), await headName());
+        check('  and its name is in the header', /^1 · Default$/.test(await headName()), await headName());
         check('and every one of its 21 spawns is on the map', (await shownSprites(page)).length === jungle[0].spawns.length
             && jungle[0].spawns.length === 21);
         await shoot('jungle-default');
         await pick(1);
         check('the outro shows nobody', (await shownSprites(page)).length === 0);
-        check('  and the header names it', /^2 · Empty$/.test(await headName()), await headName());
+        check('  and the header names it', /^2 · INSIDE_OUTRO=True$/.test(await headName()), await headName());
         await shoot('jungle-outro');
         await pick(0);
         check('the default brings its 21 back', (await shownSprites(page)).length === 21);
 
         // ── Thraxx's chamber ──────────────────────────────────────────────
         const thraxx = await open(0x18);
-        check('Thraxx\'s chamber has its three states: Thraxx, Coleoptera, Empty',
-            thraxx.map((v) => v.title).join() === 'Thraxx,Coleoptera,Empty', thraxx.map((v) => v.title).join(' | '));
+        check('Thraxx\'s chamber has its three states, named by what selects them',
+            thraxx.map((v) => v.title).join(' | ') === 'Default | THRAXX_DEAD=True, WINDWALKER_UNLOCKED=True | THRAXX_DEAD=True', thraxx.map((v) => v.title).join(' | '));
         check('  the maggots come later, in the fight: on Thraxx, not a state of their own',
             thraxx[0].spawns.some((s) => s.name === 'Maggot' && s.later) && !thraxx.slice(1).some((v) => v.spawns.some((s) => s.name === 'Maggot')));
         const hex = (v) => v.toString(16);
@@ -174,9 +174,11 @@ async function main() {
             !/rg-script-(off|dead)/.test(await lineClass('93D2A0')) && /rg-script-off/.test(await lineClass('93D2FD'))
             && /rg-script-off/.test(await lineClass('93D247')), [await lineClass('93D2A0'), await lineClass('93D2FD'), await lineClass('93D247')].join(' | '));
         await shoot('thraxx-enter');
-        // A goto's target is a link: $93:D23B `if! (…) goto $93:d25a;` jumps to the line at $93:D25A.
-        await page.evaluate(() => document.querySelector('.rg-enter-body [data-script-addr="93D23B"] [data-goto="93D25A"]').click());
-        check('  a goto target jumps to its line', await page.$eval('.rg-enter-body [data-script-addr="93D25A"]', (e) => e.classList.contains('sx-flash')));
+        // A goto's target is a link: $93:D235 `if! (DEBUG) goto $93:d23b;` (an empty if) jumps to the line at $93:D23B.
+        await page.evaluate(() => document.querySelector('.rg-enter-body [data-script-addr="93D235"] [data-goto="93D23B"]').click());
+        check('  a goto target jumps to its line', await page.$eval('.rg-enter-body [data-script-addr="93D23B"]', (e) => e.classList.contains('sx-flash')));
+        check('  and the script reads as structured code', await page.$eval('.rg-enter-body [data-script-addr="93D23B"]', (e) => e.textContent.trim())
+            === 'if (THRAXX_DEAD && !WINDWALKER_UNLOCKED) {', await page.$eval('.rg-enter-body [data-script-addr="93D23B"]', (e) => e.textContent.trim()));
         await pick(cole);
         check('  choosing Coleoptera swaps which lines are greyed',
             /rg-script-off/.test(await lineClass('93D2A0')) && !/rg-script-(off|dead)/.test(await lineClass('93D2FD')),

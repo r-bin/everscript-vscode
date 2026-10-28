@@ -22,9 +22,10 @@
 //
 // Names come from the ROM: the story flags that select a variant (their
 // labels), then the characters only it places. Nothing else is guessed. The
-// short `title` is what a list shows: the one or two characters only it
-// places ("Thraxx", "Coleoptera"), "Empty" when nobody stands there, else
-// the flags.
+// short `title` is what a list shows: what selects it, as the scripts spell the
+// flags (`INSIDE_OUTRO=True`, `THRAXX_DEAD=True, WINDWALKER_UNLOCKED=True`),
+// or `Default` when no flag does; two that would read the same add the
+// characters only they place.
 //
 // `reached` is every instruction the variant can run: what a script viewer
 // shows live for it, the rest greyed. A static walk of the enter script and
@@ -46,6 +47,7 @@ import { RoomAnalysis, Scenario } from './room';
 import { Part } from './segments';
 import { Step } from './state-types';
 import { describeCondition } from './understand';
+import { identifier } from '../script-model';
 
 /** A scenario is split on at most this many conditions (2^n pieces); past it, conditional characters count as present. */
 const MAX_SPLIT = 6;
@@ -69,7 +71,7 @@ export interface VariantSpawn {
 export interface RoomVariant {
     /** The selecting flags (or "default"), then what only it places. */
     name: string;
-    /** What a list shows: who only it places ("Thraxx"), "Empty", or the flags. */
+    /** What a list shows: the flags that select it (`INSIDE_OUTRO=True`), or `Default`. */
     title: string;
     /** Labelled story flags that hold in it, e.g. "In credits". Empty for the default. */
     flags: string[];
@@ -137,24 +139,29 @@ export function roomVariants(room: RoomAnalysis, dec: Decoder, splitOn: SplitOn 
         return {
             ...roomStateSet(room.scenarios[f.lead.scenario], new Set(f.reached)),
             name: only.length ? `${head} — ${only.slice(0, 3).join(', ')}${only.length > 3 ? ', …' : ''}` : head,
-            title: title(f.lead.spawns, only, head),
+            title: title(f.lead.flags),
             flags: f.lead.flags, only, also: f.also, when: f.when,
             spawns: f.lead.spawns, scenarios: f.scenarios, reached: f.reached, cut: f.cut,
         };
     });
+    // Two that read the same: the characters only they place tell them apart.
+    for (const v of variants) {
+        if (variants.filter((o) => o.title === v.title).length < 2) continue;
+        const who = v.only.filter((n) => !/^(PLACEHOLDER|UNKNOWN)/.test(n));
+        v.title += who.length ? ` (${who.slice(0, 2).join(', ')}${who.length > 2 ? ', …' : ''})` : v.spawns.some((s) => !s.later) ? '' : ' (nobody)';
+    }
+    // Still the same (they differ only in conditions no flag names): numbered.
+    for (const v of variants) {
+        const same = variants.filter((o) => o.title === v.title);
+        if (same.length > 1) same.forEach((o, i) => { if (i) o.title += ` #${i + 1}`; });
+    }
     // Default first, then the busiest rooms.
     return variants.sort((a, b) => (a.flags.length ? 1 : 0) - (b.flags.length ? 1 : 0) || b.spawns.length - a.spawns.length);
 }
 
-/**
- * The short name: the one or two characters only this variant places, a boss by its own name
- * ("Thraxx's heart" is Thraxx); "Empty" when nobody stands there on entry; else the flags.
- * Placeholder characters name nothing.
- */
-function title(spawns: VariantSpawn[], only: string[], head: string): string {
-    if (!spawns.some((s) => !s.later)) return 'Empty';
-    const who = [...new Set(only.filter((n) => !/^(PLACEHOLDER|UNKNOWN)/.test(n)).map((n) => n.replace(/'s heart$/, '')))];
-    return who.length && who.length <= 2 ? who.join(', ') : head;
+/** The short name: the flags that select the variant, as the scripts spell them (`INSIDE_OUTRO=True`), or `Default`. */
+function title(flags: string[]): string {
+    return flags.length ? flags.map((f) => identifier(f) + '=True').join(', ') : 'Default';
 }
 
 /** One scenario, cut into pieces by the conditions its `splitOn` characters carry. */
