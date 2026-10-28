@@ -1,5 +1,6 @@
 ---
 addr: 8CDCEC
+end: 8CDD18
 kind: code
 category: 🧠
 name: script_op_3c_spawn

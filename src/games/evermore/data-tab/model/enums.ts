@@ -415,6 +415,56 @@ function currenciesEnum(): EnumList {
     };
 }
 
+const CONSUMABLES_ADDR = 0xc45aa0;
+const CONSUMABLES_ICONS_ADDR = 0xc45aae;
+const CONSUMABLES_DATA: { name: string; hp: number; effect: string }[] = [
+    { name: 'Petal', hp: 40, effect: 'Heals target party member' },
+    { name: 'Nectar', hp: 120, effect: 'Heals target party member' },
+    { name: 'Honey', hp: 300, effect: 'Heals target party member' },
+    { name: 'Dog Biscuit', hp: 100, effect: 'Heals companion Dog HP' },
+    { name: 'Wings', hp: 0, effect: 'Dungeon warp return to start' },
+    { name: 'Herbal Essence', hp: 0, effect: 'Full status condition cure' },
+    { name: 'Pixie Dust', hp: 0, effect: 'Resurrects fallen companion' },
+    { name: 'Call Beads', hp: 0, effect: 'Alchemy summon invocation catalyst' },
+];
+
+function consumableItemsEnum(rom: Uint8Array): EnumList {
+    const entries: Entry[] = CONSUMABLES_DATA.map((item, i) => {
+        const hp = i < 7 ? maps.read16(rom, maps.snesToRom(CONSUMABLES_ADDR + i * 2)) : 0;
+        const icon = maps.read16(rom, maps.snesToRom(CONSUMABLES_ICONS_ADDR + i * 2));
+        return {
+            cells: [h(i, 2), item.name, hp > 0 ? String(hp) : 'Special', h(icon, 4), item.effect],
+            vfs: bus(CONSUMABLES_ADDR),
+        };
+    });
+    return {
+        id: 'consumables-enum', group: 'Items', title: 'Consumable inventory items',
+        columns: ['id', 'item name', 'heal HP', 'ring icon', 'effect scope'],
+        entries,
+        source: 'ROM $C4:5AA0 (8 consumable recovery descriptors + 8 ring icon indices $008E..$009C).',
+    };
+}
+
+const STAMINA_TIERS_DATA = [
+    { tier: 0, range: '< $0200', pct: '< 50%', scale: '0.25x (÷4)', desc: 'Exhausted jab / chip damage' },
+    { tier: 1, range: '$0200..$03FF', pct: '50%..99%', scale: '0.50x (÷2)', desc: 'Weak uncharged melee strike' },
+    { tier: 2, range: '$0400..$07FF', pct: '100%..199%', scale: '1.00x (1x)', desc: 'Level 1 standard weapon attack' },
+    { tier: 3, range: '$0800..$0BFF', pct: '200%..299%', scale: '2.00x (2x)', desc: 'Level 2 charged weapon special' },
+    { tier: 4, range: '>= $0C00', pct: '300%', scale: '4.00x (4x)', desc: 'Level 3 maximum charge finisher' },
+];
+
+function staminaTiersEnum(): EnumList {
+    return {
+        id: 'stamina-tiers', group: 'Combat', title: 'Weapon stamina charge tiers',
+        columns: ['tier', 'stamina threshold', 'gauge %', 'damage scale', 'attack description'],
+        entries: STAMINA_TIERS_DATA.map((t) => ({
+            cells: [String(t.tier), t.range, t.pct, t.scale, t.desc],
+            vfs: bus(0x8fc02b),
+        })),
+        source: 'Combat stamina recharge routine $8F:CC5D and damage scaling routine $8F:C02B.',
+    };
+}
+
 /** Every list the view shows. `icons` are the formulas' ring-menu icons (PNG data URIs) in formula order. */
 function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | null)[] = []): EnumList[] {
     return [characterBlobs(rom, chars), recordFields(), contactHandlers(rom, chars), aiSelectors(rom, chars),
@@ -423,7 +473,8 @@ function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | nu
         statusEffects(), weaponClassesEnum(), ringIconCategories(),
         musicTracks(), soundEffects(), scriptOpcodes(),
         callBeadSpells(rom), targetingModes(),
-        armorEnums(rom), currenciesEnum()];
+        armorEnums(rom), currenciesEnum(),
+        consumableItemsEnum(rom), staminaTiersEnum()];
 }
 
 export { enumsModel };

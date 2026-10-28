@@ -422,6 +422,65 @@ function armorTable(rom: Uint8Array): Table {
     };
 }
 
+const ENEMY_INDEX_TABLE = 0x8eb55a;
+const ENEMY_INDEX_COUNT = 143;
+
+function enemyIndexTable(rom: Uint8Array, names: { id: number; name: string }[]): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < ENEMY_INDEX_COUNT; i++) {
+        const at = snesToRom(ENEMY_INDEX_TABLE + i * 2);
+        const addr = read16(rom, at);
+        const isWram = addr < 0x2000;
+        const recId = isWram ? (addr === 0x0a26 ? 'Boy (WRAM)' : 'Dog (WRAM)') : Math.round((addr - 0xb678) / CHARACTER_STRIDE);
+        const addrStr = isWram ? ('$7E:' + hex(addr, 4)) : ('$8E:' + hex(addr, 4));
+        const name = isWram ? (addr === 0x0a26 ? 'Boy' : 'Dog') : (names.find((n) => n.id === recId)?.name || ('Record ' + recId));
+        rows.push([i, addrStr, recId, name]);
+        pts.push([i, typeof recId === 'number' ? recId : 0]);
+    }
+    return {
+        id: 'enemy-index', group: 'Entities', title: 'Enemy spawn archetype index (ENEMY ID 0..142)', addr: '$8E:B55A',
+        note: 'Table $8E:B55A (143 words): maps the ENEMY id operand of script spawn opcodes ($BA, $3C, $A2, $C2) to the character record pointer ($7E:0A26/$7E:0A70 for player entities, $8E:B678 for enemy records).',
+        columns: ['enemy id', 'record address', 'record id', 'character name'],
+        rows,
+        chart: { x: 'enemy id', y: 'record id', series: [{ name: 'character record', points: pts }] },
+        vfs: vfs(ENEMY_INDEX_TABLE),
+    };
+}
+
+const CONSUMABLES_TABLE = 0xc45aa0;
+const CONSUMABLES_ICONS = 0xc45aae;
+const CONSUMABLES_INFO = [
+    { name: 'Petal', effect: 'Heals target party member' },
+    { name: 'Nectar', effect: 'Heals target party member' },
+    { name: 'Honey', effect: 'Heals target party member' },
+    { name: 'Dog Biscuit', effect: 'Heals companion Dog HP' },
+    { name: 'Wings', effect: 'Dungeon escape / return to start' },
+    { name: 'Herbal Essence', effect: 'Cures all negative status effects' },
+    { name: 'Pixie Dust', effect: 'Resurrects fallen companion Dog' },
+    { name: 'Call Beads', effect: 'Alchemy summon invocation catalyst' },
+];
+
+function consumablesTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < CONSUMABLES_INFO.length; i++) {
+        const hp = i < 7 ? read16(rom, snesToRom(CONSUMABLES_TABLE + i * 2)) : 0;
+        const icon = read16(rom, snesToRom(CONSUMABLES_ICONS + i * 2));
+        const info = CONSUMABLES_INFO[i];
+        rows.push([i, info.name, hp > 0 ? hp : 'Special', info.effect, '$' + hex(icon, 4)]);
+        pts.push([i, hp]);
+    }
+    return {
+        id: 'consumables', group: 'Items', title: 'Consumable item recovery power & attributes', addr: '$C4:5AA0',
+        note: 'The 8 consumable recovery item records ($C4:5AA0, words): base HP recovery values and ring icon selector ($008E..$009C).',
+        columns: ['id', 'item name', 'heal HP', 'effect scope', 'ring icon'],
+        rows,
+        chart: { x: 'item id', y: 'heal HP', series: [{ name: 'HP restored', points: pts }] },
+        vfs: vfs(CONSUMABLES_TABLE),
+    };
+}
+
 /** Every table the view lists: only the ones decoded into readable values. */
 function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Table[] {
     return [
@@ -431,6 +490,7 @@ function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Ta
         callBeadsTable(rom), fontWidthsTable(rom),
         animateRecordsTable(rom), projectilesTable(rom), formulaTargetsTable(rom),
         armorTable(rom),
+        enemyIndexTable(rom, names), consumablesTable(rom),
     ];
 }
 

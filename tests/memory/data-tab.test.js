@@ -52,7 +52,7 @@ async function romChecks(rom) {
     handleDataMessage({ command: 'dataInit' }, hostDeps(rom, posted));
     const ix = posted[0];
     await test('tables: XP per level, character stats, sine, boomerang orbit — decoded ones only', () => {
-        assert.deepStrictEqual(ix.tables.map((t) => t.id), ['xp', 'stats', 'sine', 'boomerang', 'formula-costs', 'dog-forms', 'weapon-levels', 'alchemy-growth', 'weapons', 'call-beads', 'font-widths', 'animate-records', 'projectiles', 'formula-targets', 'armor']);
+        assert.deepStrictEqual(ix.tables.map((t) => t.id), ['xp', 'stats', 'sine', 'boomerang', 'formula-costs', 'dog-forms', 'weapon-levels', 'alchemy-growth', 'weapons', 'call-beads', 'font-widths', 'animate-records', 'projectiles', 'formula-targets', 'armor', 'enemy-index', 'consumables']);
         const boy = ix.tables[1].rows[2];
         assert.strictEqual(boy[1], 'Boy');
         const xp = ix.tables[0];
@@ -76,9 +76,13 @@ async function romChecks(rom) {
         assert.strictEqual(ix.tables[14].rows.length, 40);
         assert.strictEqual(ix.tables[14].rows[0][1], 'Grass Vest');
         assert.strictEqual(ix.tables[14].rows[39][1], "Spot's Collar");
+        assert.strictEqual(ix.tables[15].rows.length, 143);
+        assert.strictEqual(ix.tables[16].rows.length, 8);
+        assert.strictEqual(ix.tables[16].rows[0][1], 'Petal');
+        assert.strictEqual(ix.tables[16].rows[0][2], 40);
     });
     await test('enums: only lists read from the ROM or a knowledge entry', () => {
-        assert.deepStrictEqual(ix.enums.map((e) => e.id), ['blobs', 'fields', 'contact', 'ai', 'formulas', 'cast', 'ingredients', 'rooms', 'wram-states', 'directions', 'collision', 'status-effects', 'weapon-classes', 'ring-icons', 'music', 'sounds', 'opcodes', 'call-beads-enum', 'targeting-modes', 'armor-items', 'currencies']);
+        assert.deepStrictEqual(ix.enums.map((e) => e.id), ['blobs', 'fields', 'contact', 'ai', 'formulas', 'cast', 'ingredients', 'rooms', 'wram-states', 'directions', 'collision', 'status-effects', 'weapon-classes', 'ring-icons', 'music', 'sounds', 'opcodes', 'call-beads-enum', 'targeting-modes', 'armor-items', 'currencies', 'consumables-enum', 'stamina-tiers']);
         const e = (id) => ix.enums.find((x) => x.id === id);
         assert.ok(e('blobs').entries.some((x) => x.cells[0] === 'WRAM' && x.cells[2] === '$7E0A26'));
         assert.ok(!e('blobs').entries.some((x) => /ENTITY_/.test(x.cells[1])), 'no unverified entity slots');
@@ -97,6 +101,8 @@ async function romChecks(rom) {
         assert.strictEqual(e('targeting-modes').entries.length, 11);
         assert.strictEqual(e('armor-items').entries.length, 40);
         assert.strictEqual(e('currencies').entries.length, 4);
+        assert.strictEqual(e('consumables-enum').entries.length, 8);
+        assert.strictEqual(e('stamina-tiers').entries.length, 5);
     });
     await test('palettes: the sprite palettes in bank $90 with their users, the map tile families', () => {
         const sprites = ix.palettes.filter((p) => p.id.startsWith('s:'));

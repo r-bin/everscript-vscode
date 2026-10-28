@@ -302,3 +302,38 @@ typedef enum {
     COLLAR_SPOTS                = 39
 } ArmorId;
 ```
+
+---
+
+## 11. Consumable Inventory Item IDs (`CONSUMABLE_ID`)
+
+The 8 recovery and utility items indexed in table `$C4:5AA0`:
+
+```c
+typedef enum {
+    ITEM_PETAL                  = 0,  /* Heals 40 HP for target party member (Icon $008E) */
+    ITEM_NECTAR                 = 1,  /* Heals 120 HP for target party member (Icon $0090) */
+    ITEM_HONEY                  = 2,  /* Heals 300 HP for target party member (Icon $0092) */
+    ITEM_DOG_BISCUIT            = 3,  /* Heals companion Dog HP (Icon $0094) */
+    ITEM_WINGS                  = 4,  /* Dungeon warp escape to entrance (Icon $0096) */
+    ITEM_HERBAL_ESSENCE         = 5,  /* Full cure for all negative status afflictions (Icon $0098) */
+    ITEM_PIXIE_DUST             = 6,  /* Resurrects defeated companion Dog (Icon $009A) */
+    ITEM_CALL_BEADS             = 7   /* Alchemy summon catalyst for 16 Call Bead spells (Icon $009C) */
+} ConsumableId;
+```
+
+---
+
+## 12. Weapon Stamina Charge Tiers (`STAMINA_TIER`)
+
+Combat attack stamina scaling parsed by `$8F:CC5D` and `$8F:C02B`:
+
+```c
+typedef enum {
+    STAMINA_TIER_EXHAUSTED      = 0,  /* < 0x0200 (< 50%): 0.25x damage (chip damage / weak jab) */
+    STAMINA_TIER_WEAK           = 1,  /* 0x0200..0x03FF (50%..99%): 0.5x damage (uncharged strike) */
+    STAMINA_TIER_STANDARD       = 2,  /* 0x0400..0x07FF (100%..199%): 1.0x baseline damage (Level 1) */
+    STAMINA_TIER_CHARGED_2      = 3,  /* 0x0800..0x0BFF (200%..299%): 2.0x damage (Level 2 charge special) */
+    STAMINA_TIER_CHARGED_3      = 4   /* >= 0x0C00 (300%): 4.0x damage (Level 3 maximum special) */
+} StaminaTier;
+```

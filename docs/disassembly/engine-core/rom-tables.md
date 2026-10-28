@@ -16,6 +16,7 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
 | `$8C:8CFC` | `0x068CFC` | `tbl_xp_dog` | 3 bytes | 99 | 297 B | Cumulative XP progression for companion Dog |
 | `$8C:9700` | `0x069700` | `tbl_weapon_charge_multipliers` | 2 bytes | 16 | 32 B | Charge attack damage multipliers for weapon tiers 0..3 |
 | `$8C:D7E1` | `0x06D7E1` | `tbl_script_opcode_jump_table` | 2 bytes | 256 | 512 B | Script VM opcode execution jump vectors (`$00`..`$FF`) |
+| `$8E:B55A` | `0x07355A` | `tbl_enemy_index` | 2 bytes | 143 | 286 B | ENEMY id to character record address in bank $8E ($8E:B678..) |
 | `$8E:B678` | `0x073678` | `tbl_character_records` | 74 bytes | 142 | 10,508 B | Master character record database (stats, AI, contact, loot) |
 | `$8F:945D` | `0x07945D` | `tbl_dog_form_pointers` | 14 bytes | 4 | 56 B | Companion breed form base stats, sniffing range, palettes |
 | `$8F:B6AE` | `0x07B6AE` | `tbl_contact_handlers` | 2 bytes | 15 | 30 B | Entity melee and projectile contact handler dispatch vectors |
@@ -30,6 +31,7 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
 | `$C4:38E6` | `0x2238E6` | `tbl_boy_weapons` | 36 bytes | 15 | 540 B | Boy melee weapon master records (attack power, knockback) |
 | `$C4:3B02` | `0x223B02` | `tbl_armor_records` | 10 bytes | 40 | 400 B | Master armor and collar attributes (pdef, mdef, name, icon) |
 | `$C4:3C92` | `0x223C92` | `tbl_animate_id_records` | 2 bytes | 212 | 424 B | Script `animate(entity, mode, id)` ID to bank `$C4` record pointer |
+| `$C4:5AA0` | `0x225AA0` | `tbl_consumable_items` | 2 bytes | 16 | 32 B | Consumable item recovery HP and ring icon selectors ($008E..$009C) |
 | `$C4:5B4A` | `0x225B4A` | `tbl_weapon_charge_xp` | 2 bytes | 16 | 32 B | Weapon charge tier level-up cumulative XP thresholds (tiers 0..3) |
 | `$C4:5B9C` | `0x225B9C` | `tbl_formula_xp_gain` | 1 byte | 10 | 10 B | Formula experience points awarded per cast at spell levels 0..9 |
 | `$C4:5BA5` | `0x225BA5` | `tbl_formula_level_multiplier` | 1 byte | 10 | 10 B | Formula power multiplier percentage across spell levels 0..9 |
@@ -173,3 +175,14 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
   - `24..35`: 12 Armbands & Gauntlets (Vine Bracelet through Virtual Glove)
   - `36..39`: 4 Dog Collars (Leather Collar through Spot's Collar)
 - **Readers**: Equipment defense calculation routine `$8E:99D2` (`calc_equipped_armor_defense`) and ring menu status renderers.
+
+### 2.11 Enemy Spawn Archetype Index Table (`$8E:B55A`)
+- **Format**: `uint16_t tbl_enemy_index[143]`, 2 bytes per enemy ID (286 bytes total, `$8E:B55A`..`$8E:B677`).
+- **Purpose**: Maps the `ENEMY` ID operand of script spawn opcodes (`0xBA`, `0x3C`, `0xA2`, `0xC2`) to the 16-bit address of its character record in bank `$8E` (`$8E:B678`..`$8E:DF23`). Read by `$8C:DC9A`, `$8C:DCC3`, `$8C:DCD9`, `$8C:DCEC`.
+
+### 2.12 Consumable Item Recovery & Icon Table (`$C4:5AA0`)
+- **Format**: `struct ConsumableItemTable { uint16_t heal_hp[8]; uint16_t ring_icons[8]; }`, 32 bytes total.
+- **Internal Layout**:
+  - `+0x00..0x0F`: Base HP restored upon use: Petal (40), Nectar (120), Honey (300), Dog Biscuit (100). Wings, Herbal Essence, Pixie Dust, and Call Beads store 0 (scripted/status handlers).
+  - `+0x10..0x1F`: 8 ring menu icon selectors (`$008E`, `$0090`, `$0092`, `$0094`, `$0096`, `$0098`, `$009A`, `$009C`).
+- **Readers**: Ring menu item execution handler and inventory display routines.
