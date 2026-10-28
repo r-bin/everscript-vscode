@@ -20,3 +20,4 @@ export type { EnemyName } from './names';
 export { slicesOf } from './slices';
 export type { Slice, SliceArea, SliceKind } from './slices';
 export type { IconRef } from './icons';
+export { liveCells, liveObjectKey } from './icons';

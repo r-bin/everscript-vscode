@@ -22,25 +22,76 @@ interface Slice { area: 'local' | 'temp'; thread: number; offset: number; width:
 interface BoundWrite { at: number; edge: 'start' | 'end'; x: number; y: number }
 interface Arrival { fromMap: number; fromName: string; key: string; x: number; y: number; direction: string | null }
 
+/** Keys drawn as an emoji instead of a picture (script-model icons.ts). */
+const EMOJI: Record<string, string> = { camera: '📷', unknown: '❓' };
+
+interface IconRef { key: string; find: string; tail?: string; title?: string; group?: boolean; live?: string }
+/** What the running game says (host `scriptsLive`): each `live` id → the object key it names now, null when unread. */
+export type Live = Record<string, string | null>;
+
 /**
- * A highlighted line with its in-game icons: each after the first `find` token that has none yet
- * (script-model icons.ts names them, the host draws them from the user's ROM).
+ * Where a picture goes after `find` in highlighted `html` (a `<span>` token or plain text, never
+ * inside a tag or a longer name): after `tail`, else after a field (`boy.x`), and with `group`
+ * after the bracket that follows (`object[x]`); -1 when the line does not print it.
  */
-export function withIcons(html: string, refs: Array<{ key: string; find: string; tail?: string; title?: string }>, icons: Record<string, string | null>, room: number): string {
+function placeAfter(html: string, find: string, tail: string, group: boolean, from: number): number {
+    const f = esc(find), t = esc(tail);
+    for (let at = html.indexOf(f, from); at >= 0; at = html.indexOf(f, at + 1)) {
+        if (html.lastIndexOf('<', at) > html.lastIndexOf('>', at) || /[\w.]/.test(html[at - 1] ?? '')) continue;
+        let end = at + f.length;
+        if (html.startsWith('</span>', end)) end += 7;
+        if (t && html.startsWith(t, end)) end += t.length;
+        else if (html[end] === '.') end += /^\.\w+/.exec(html.slice(end))?.[0].length ?? 0;
+        else if (/\w/.test(html[end] ?? '')) continue;
+        if (group && (html[end] === '[' || html[end] === '(')) {
+            let depth = 0;
+            for (let i = end; i < html.length; i++) {
+                if (html[i] === '<') { i = html.indexOf('>', i); if (i < 0) return -1; continue; }
+                if (html[i] === '[' || html[i] === '(') depth++;
+                else if ((html[i] === ']' || html[i] === ')') && --depth === 0) { end = i + 1; break; }
+            }
+        }
+        return end;
+    }
+    return -1;
+}
+
+/**
+ * A highlighted line with its in-game icons: each after the first `find` it has not yet followed
+ * (script-model icons.ts names them, the host draws them from the user's ROM). A `live` one takes
+ * the object the running game names now, when it has said.
+ */
+export function withIcons(html: string, refs: IconRef[], icons: Record<string, string | null>, room: number, live: Live = {}): string {
     let out = html;
+    const used: number[] = [];
     for (const r of refs) {
-        const key = r.key.startsWith('object:') ? 'object:' + room + r.key.slice(6) : r.key;
-        const uri = icons[key];
-        if (!uri) continue;
-        const token = '>' + esc(r.find) + '</span>' + esc(r.tail ?? '');
-        const at = out.indexOf(token);
-        if (at < 0) continue;
-        const end = at + token.length;
+        const now = r.live ? live[r.live] : undefined;
+        const key = now || (r.key.startsWith('object:') ? 'object:' + room + r.key.slice(6) : r.key);
+        const uri = icons[key], emoji = EMOJI[key];
+        if (!uri && !emoji) continue;
+        let end = -1;
+        for (let from = 0; ; from = end) {
+            end = placeAfter(out, r.find, r.tail ?? '', !!r.group, from);
+            if (end < 0 || !used.includes(end)) break;
+        }
+        if (end < 0) continue;
         const obj = key.startsWith('object:');
-        const title = (r.title ?? r.find) + (obj ? ' · soe://rom/assets/maps/' + hx(room, 2).toLowerCase() + '/objects/' + key.split(':')[2] + '/state_' + key.split(':')[3] + '.png' : '');
-        out = out.slice(0, end) + '<img class="scr-icon' + (obj ? ' scr-icon-obj' : '') + '" src="' + uri + '" alt="" title="' + esc(title) + '">' + out.slice(end);
+        const [, , n, st] = key.split(':');
+        const title = (now ? 'object ' + n + ', state ' + st + ': the index the running game holds now' : r.title ?? r.find) +
+            (obj ? ' · soe://rom/assets/maps/' + hx(room, 2).toLowerCase() + '/objects/' + n + '/state_' + st + '.png' : '') +
+            (r.live && !now ? ' · open the emulator to read it live' : '');
+        const tag = uri ? '<img class="scr-icon' + (obj ? ' scr-icon-obj' : '') + (now ? ' scr-icon-live' : '') + '" src="' + uri + '" alt="" title="' + esc(title) + '">'
+            : '<span class="scr-icon scr-emoji" title="' + esc(title) + '">' + emoji + '</span>';
+        out = out.slice(0, end) + tag + out.slice(end);
+        for (let i = 0; i < used.length; i++) if (used[i] > end) used[i] += tag.length;
+        used.push(end);
     }
     return out;
+}
+
+/** The `live` ids among `refs`: the lines the page asks the running game about. */
+export function liveIds(refs: IconRef[] | undefined, into: Record<string, true>): void {
+    for (const r of refs ?? []) if (r.live) into[r.live] = true;
 }
 
 /** Entry-state flags: clear when the room is loaded fresh, set by the way some doors bring you in. */
@@ -196,7 +247,8 @@ export function slicesHtml(slices: Slice[], blocks: Block[], icons: Record<strin
         last = w;
         return head + '<tr' + (s.reused ? ' class="scr-slice-reused" title="' + esc('Reused: ' + s.reused) + '"' : '') + '><td>' + (s.area === 'temp' ? 'temp' : 'arg') + '[' + s.offset + ']</td>' +
             '<td>' + (s.width === 1 ? 'byte' : 'word') + '</td><td>' + esc(s.name) + (s.reused ? ' ⚠' : '') +
-            (s.icons ?? []).filter((k) => icons[k]).map((k) => '<img class="scr-icon" src="' + icons[k] + '" alt="" title="given by last_entity() after this spawn">').join('') + '</td><td class="scr-dim">' + s.uses.length + ' use' + (s.uses.length > 1 ? 's' : '') + '</td></tr>';
+            (s.icons ?? []).map((k) => icons[k] ? '<img class="scr-icon" src="' + icons[k] + '" alt="" title="given to it in the listing">'
+                : EMOJI[k] ? '<span class="scr-icon scr-emoji" title="given to it in the listing">' + EMOJI[k] + '</span>' : '').join('') + '</td><td class="scr-dim">' + s.uses.length + ' use' + (s.uses.length > 1 ? 's' : '') + '</td></tr>';
     }).join('');
     return '<div class="scr-side-h">Locals <span class="scr-dim">arg[] and temp[] cut by how the listing uses them</span></div><table class="scr-slices"><tbody>' + rows + '</tbody></table>';
 }

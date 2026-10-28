@@ -30,6 +30,7 @@ Behind the Music view: `docs/todo/audio-and-music.md` §1.
 | `host.js` | The `scripts*` requests; uses the injected sprites and music capabilities |
 | `render-scripts-tab.ts` | The pane scaffold |
 | `model/icons.ts` | The in-game pictures a listing's lines name (script-model `icons.ts`): an enemy's or character's first frame, a loot reward's or weapon's ring icon, a dog form's idle frame (injected `dogIcon`), a room object in a state (as `soe://rom/assets/maps/<id>/objects/<n>/state_<s>.png`, keyed `object:<room>:<n>:<s>`); all from the user's ROM, sent with the room as `icons` |
+| `model/live.ts` | An object index a line computes (`object[<0x24f9>]`), read from the running game: one WRAM read through the injected `readMemory` (the emulator's, as `soe://ram/` reads it), answered as `scriptsLive`; the page asks once a second while such a line shows and redraws when the object changes. Keys `camera` and `unknown` are drawn as 📷 / ❓ |
 | `model/rooms.ts` | Room list, a room's scripts with trigger boxes and roles, the merged enter script, its camera-bound writes (a restating one warned), the arrivals, the enter script's characters as sprites, the room picture |
 | `model/alchemy.ts` | Formulas → `$91` blocks → animation records; records that signal `effect_done` (labels Animations) |
 | `model/map-sections.ts` | A room blob cut into its sections: bytes, fields, items |

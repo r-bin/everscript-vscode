@@ -31,7 +31,7 @@
 import { Instruction, Names, ScriptRom, TEMP_AREA, decodeAt, facts, roomScripts, tree, walk } from '../script-vm';
 import { LOOT_CELLS } from './loot';
 import { Slice, slicesOf } from './slices';
-import { Context, after, iconRefs } from './icons';
+import { Context, after, entityKey, fresh, iconRefs } from './icons';
 import { ScriptRow, row } from './room-model';
 import { printNames, displayNames } from './names';
 import { structure } from './structure';
@@ -126,24 +126,31 @@ export function mergedScript(rom: ScriptRom, entry: number, names: Names = print
 /**
  * The pictures each line shows, with what the listing knows before it (icons.ts Context): read
  * down the listing in order — the way it runs, branches and threads aside — so `last_entity()`
- * is the last spawn above and `dog()` the form the room asked for. An entity cell given
- * `last_entity()` keeps that picture in its slice, with every other it is given.
+ * is the last spawn above and `dog()` the form the room asked for. An entity cell keeps what it
+ * was last given (`temp.entity_1 = last_entity()`), for the lines that read it; its slice lists
+ * every character it is given.
  */
 function inferIcons(rom: ScriptRom, lines: MergedLine[], slices: Slice[], names: Names): void {
-    let ctx: Context = { last: null, dog: 'char:1' };
+    let ctx: Context = fresh();
+    const sliceOf = (area: 'local' | 'temp', offset: number, thread: number): Slice | undefined =>
+        slices.find((x) => x.area === area && x.offset === offset && (area === 'temp' || x.thread === thread));
     for (const line of lines) {
         if (line.note || line.brace) continue;
         let ins: Instruction;
         try { ins = decodeAt(rom, line.addressSnes); } catch { continue; }
+        ctx.cell = (area, offset) => {
+            const s = sliceOf(area, offset, line.thread);
+            return s && s.kind === 'entity' ? { id: `${s.area}:${s.thread}:${s.offset}`, name: s.name } : null;
+        };
         const refs = iconRefs(ins, names, ctx);
         if (refs.length) line.icons = refs; else delete line.icons;
         const f = facts(ins);
-        if (ctx.last && f.k === 'write' && (f.area === 'local' || f.area === 'temp') && f.expr) {
-            const n = tree(f.expr);
-            if (n.k === 'value' && n.term.spec.name === 'last_entity') {
-                const offset = f.area === 'local' ? f.addr : f.addr - TEMP_AREA;
-                const s = slices.find((x) => x.area === f.area && x.offset === offset && (f.area === 'temp' || x.thread === line.thread));
-                if (s && !(s.icons ??= []).includes(ctx.last)) s.icons.push(ctx.last);
+        if (f.k === 'write' && (f.area === 'local' || f.area === 'temp') && f.expr) {
+            const s = sliceOf(f.area, f.area === 'local' ? f.addr : f.addr - TEMP_AREA, line.thread);
+            if (s && s.kind === 'entity') {
+                const key = entityKey(tree(f.expr), ctx);
+                ctx = { ...ctx, cells: { ...ctx.cells, [`${s.area}:${s.thread}:${s.offset}`]: key } };
+                if (key !== 'unknown' && !(s.icons ??= []).includes(key)) s.icons.push(key);
             }
         }
         ctx = after(ins, ctx);

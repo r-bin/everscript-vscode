@@ -210,6 +210,31 @@ async function romChecks(rom) {
         assert.ok(/fun step_on_0\(\)/.test(sim.everscript.text));
         assert.deepStrictEqual(sim.clusters.map((c) => c.kind), ['loot', 'transition', 'dialog']);
     });
+    await test('icons: entity cells show what they were given, the camera and the unknown are emoji, a computed object index is read live', async () => {
+        const { handleScriptsMessage } = require('../../dist/games/evermore/scripts-tab');
+        const posted = [];
+        const deps = hostDeps(rom, posted);
+        handleScriptsMessage({ command: 'scriptsRoom', id: 3 }, deps);
+        const refs = posted.pop().room.merged.lines.flatMap((l) => l.icons || []);
+        assert.ok(refs.some((r) => r.find === 'arg.entity_1' && r.key.startsWith('enemy:')), 'arg.entity_1: the character spawned into it');
+        assert.ok(refs.some((r) => r.key === 'camera') && refs.some((r) => r.key === 'unknown'));
+        handleScriptsMessage({ command: 'scriptsRoom', id: 0x43 }, deps);
+        const live = posted.pop().room.merged.lines.flatMap((l) => l.icons || []).find((r) => r.live);
+        assert.ok(live && live.group && live.find === 'object', 'object[<0x24f9>]: after the whole object, read live');
+        // The running game holds 5 in every cell: the object read is 5 (one read covers every cell).
+        let reads = 0;
+        deps.readMemory = async (bus, len) => { reads++; assert.ok(bus >= 0x7E2258); return new Uint8Array(len).fill(0).map((_, i) => (i % 2 ? 0 : 5)); };
+        handleScriptsMessage({ command: 'scriptsLive', id: 0x43, ids: [live.live] }, deps);
+        await new Promise((r) => setTimeout(r, 50));
+        const got = posted.pop();
+        assert.strictEqual(reads, 1);
+        assert.ok(/^object:67:5:\d+$/.test(got.keys[live.live]), JSON.stringify(got.keys));
+        assert.ok(got.icons[got.keys[live.live]].startsWith('data:image/png'));
+        deps.readMemory = () => Promise.reject(new Error('The emulator is not open'));
+        handleScriptsMessage({ command: 'scriptsLive', id: 0x43, ids: [live.live] }, deps);
+        await new Promise((r) => setTimeout(r, 50));
+        assert.strictEqual(posted.pop().keys[live.live], null);
+    });
 }
 
 async function dom(rom) {

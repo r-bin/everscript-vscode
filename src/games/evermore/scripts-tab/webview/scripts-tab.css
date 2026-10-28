@@ -191,3 +191,5 @@
 @media (max-width:900px){.scr-body{grid-template-columns:200px 1fr}.scr-side{grid-column:1 / -1;border-top:1px solid var(--scr-line)}}
 .scr-icon{height:18px;width:auto;max-width:36px;vertical-align:middle;margin:-3px 2px -3px 4px;image-rendering:pixelated;object-fit:contain}
 .scr-icon-obj{width:20px;height:20px;max-width:20px;object-fit:contain;border:1px solid var(--scr-line);border-radius:2px;background:rgba(128,128,128,.15)}
+.scr-emoji{display:inline-block;height:auto;font-size:12px;line-height:1;cursor:default}
+.scr-icon-live{outline:1px solid var(--vscode-charts-green,#3c3);outline-offset:1px}

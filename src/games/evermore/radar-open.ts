@@ -198,6 +198,8 @@ async function openMemoryRadar(doc?: vscode.TextDocument, startLine?: number): P
                 roomVariants: (rom, id) => roomVariantsFor(rom, id),
                 // A dog form's picture next to CHANGE_DOGGO = WOLF (the sprites feature draws it).
                 dogIcon: dogFormIcon,
+                // An object index a line computes, read live from the running game (as soe://ram/ does).
+                readMemory: (addr, len) => require('../../core/emulator/panel').readMemory(addr, len),
             });
         } else if (handlesDataMessage(msg.command)) {
             // The Data tab (src/games/evermore/data-tab/README.md). The character list is the

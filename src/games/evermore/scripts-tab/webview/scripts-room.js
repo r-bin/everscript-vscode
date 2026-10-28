@@ -80,7 +80,9 @@ function scrScriptListHtml(room) {
 /** One script line, coloured (script-vm/highlight.ts, the Rooms tab's too); `marks` drawn as squiggles. */
 function scrLine(text, marks, icons) {
   var html = typeof highlightScript === 'function' ? highlightScript(text, marks || []) : scrEsc(text);
-  return icons ? ScriptsListing.withIcons(html, icons, _scr.icons, _scr.room) : html;
+  if (!icons) return html;
+  ScriptsListing.liveIds(icons, _scr.liveWant[_scr.room] || (_scr.liveWant[_scr.room] = {}));
+  return ScriptsListing.withIcons(html, icons, _scr.icons, _scr.room, _scr.live[_scr.room] || {});
 }
 
 function scrRowsHtml(s) {

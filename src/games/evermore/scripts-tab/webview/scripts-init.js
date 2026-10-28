@@ -73,6 +73,22 @@ function scrOnChange(e) {
   scrRenderMain();
 }
 
+/** The running game's answer: redraw only when an object it names changed. */
+function scrOnLive(msg) {
+  Object.assign(_scr.icons, msg.icons || {});
+  var was = _scr.live[msg.id] || {}, now = msg.keys || {};
+  _scr.live[msg.id] = now;
+  if (JSON.stringify(was) !== JSON.stringify(now) && _scr.view === 'room' && _scr.room === msg.id) scrRenderMain();
+}
+
+/** Once a second while a shown line computes an object index: ask the running game which object it names now. */
+function scrPollLive() {
+  var pane = document.querySelector('.scr-pane');
+  if (_scr.view !== 'room' || _scr.room == null || document.hidden || !pane || !pane.offsetParent) return;
+  var ids = Object.keys(_scr.liveWant[_scr.room] || {});
+  if (ids.length) scrPost({ command: 'scriptsLive', id: _scr.room, ids: ids });
+}
+
 function setupScriptsTab() {
   var pane = document.querySelector('.scr-pane');
   // A node-only harness (tests/memory/ui.test.js) runs this bundle without a browser.
@@ -100,7 +116,9 @@ function setupScriptsTab() {
     else if (msg.command === 'scriptsMap' || msg.command === 'scriptsMapView') scrOnMapMessage(msg);
     else if (msg.command === 'scriptsAnim') scrOnAnimMessage(msg);
     else if (msg.command === 'scriptsMusic') scrOnMusicMessage(msg);
+    else if (msg.command === 'scriptsLive') scrOnLive(msg);
   });
+  setInterval(scrPollLive, 1000);
   if (typeof ACTIVE_TAB !== 'undefined' && ACTIVE_TAB === 'scripts') scrRequestIndex();
 }
 

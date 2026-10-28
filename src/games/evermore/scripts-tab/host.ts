@@ -16,11 +16,14 @@
 //   page -> scriptsAnim { key, record, facing }   host -> scriptsAnim { key, anim } | { key, error }
 //   page -> scriptsMusic { id, seconds }          host -> scriptsMusic { id, sequence, timeline } | { id, error }
 //   page -> scriptsSim { room, key }    host -> scriptsSim { room, key, everscript, clusters } | { error }
+//   page -> scriptsLive { id, ids }     host -> scriptsLive { id, keys, icons }   (an object index a line computes, read from the
+//                                       running game: ids are icons.ts `live`, keys[id] the object it names now or null; model/live.ts)
 //   page -> scriptsVariants { id }      host -> scriptsVariants { id, variants, pictures } | { id, error }   (the Rooms tab's worker, injected;
 //                                       pictures[i]: the room with variant i's object states and palette set, null when it sets neither)
 
 import { roomList, roomScripts, roomPicture, triggerMerged } from './model/rooms';
-import { iconsFor, iconKeys, DogIcon } from './model/icons';
+import { iconsFor, iconKeys, roomKey, DogIcon } from './model/icons';
+import { liveObjects, ReadMemory } from './model/live';
 import { alchemyModel } from './model/alchemy';
 import { simulateScript, roomClusters } from './model/simulation';
 import { mapSections } from './model/map-sections';
@@ -39,7 +42,7 @@ interface RenderedAnimation {
     frames: { png: string; ticks: number; lines: number[]; shadowPng?: string | null }[];
 }
 /** The page's request. */
-interface Message { command: string; key?: string; id?: number | string; room?: number | string; record?: number | string; facing?: number | string; seconds?: number | string; paletteAddr?: number }
+interface Message { command: string; key?: string; ids?: unknown; id?: number | string; room?: number | string; record?: number | string; facing?: number | string; seconds?: number | string; paletteAddr?: number }
 interface Deps {
     post(message: object): void;
     loadRom(): Buffer | Uint8Array | null;
@@ -50,6 +53,8 @@ interface Deps {
     roomVariants(rom: Rom, id: number): Promise<Array<{ objects?: Array<[number, number]>; palette?: number }>>;
     /** A dog form's idle frame as a data URI (the sprites feature draws it); absent: dog forms have no icon. */
     dogIcon?: DogIcon;
+    /** The running game's memory (the emulator's); absent: computed object indexes stay unknown. */
+    readMemory?: ReadMemory;
 }
 
 type RoomEntry = { room: ReturnType<typeof roomScripts>; picture: ReturnType<typeof roomPicture>; merged?: Map<string, ReturnType<typeof triggerMerged>> };
@@ -140,6 +145,18 @@ function handleScriptsMessage(msg: Message, deps: Deps): void {
                 const icons = 'merged' in got ? iconsFor(rom, iconKeys([...got.merged.lines.map((l: { icons?: Array<{ key: string }> }) => l.icons),
                     got.merged.slices.flatMap((s: { icons?: string[] }) => (s.icons ?? []).map((key) => ({ key })))]), deps.dogIcon ?? null, id) : {};
                 deps.post({ command: 'scriptsMerged', id, key, ...got, icons });
+                return;
+            }
+            case 'scriptsLive': {
+                const id = Number(msg.id), ids = Array.isArray(msg.ids) ? msg.ids.map(String) : [];
+                const read = deps.readMemory;
+                if (!read) { deps.post({ command: 'scriptsLive', id, keys: {}, icons: {} }); return; }
+                liveObjects(rom, ids, read).then((got) => {
+                    const keys: Record<string, string | null> = {};
+                    for (const k in got) keys[k] = got[k] && roomKey(got[k]!, id);
+                    const icons = iconsFor(rom, Object.values(got).filter((k): k is string => !!k), deps.dogIcon ?? null, id);
+                    deps.post({ command: 'scriptsLive', id, keys, icons });
+                }, (e: Error) => deps.post({ command: 'scriptsLive', id, keys: {}, icons: {}, error: e.message }));
                 return;
             }
             case 'scriptsAnim': {

@@ -9,12 +9,15 @@
 //   dog:<form>           a dog form written or compared with; `dog()` in a room whose form is known
 //   char:<record>        a character's first frame: `boy()` the Boy (0), `dog()` the Dog (1)
 //   object:<n>:<state>   room object n in that state (the viewer knows the room)
+//   camera / unknown     drawn as an emoji: the camera's character; a character the listing cannot tell
 //
-// What `last_entity()` and `dog()` hold depends on what ran before: `Context` says (merged.ts
-// tracks it down a listing). `camera_entity()` is taken to be the Boy and `other_character()`
-// the Dog — the usual case, said so in the title.
+// What `last_entity()`, `dog()` and an entity cell (`temp.entity_1`) hold depends on what ran
+// before: `Context` says (merged.ts tracks it down a listing). `other_character()` is taken to be
+// the Dog — the usual case, said so in the title. An object index that is an expression gets the
+// value the listing set above, if any, and `live`: the viewer asks the running game for it.
 
 import { Instruction, Names, Node, Term, constText, facts, parameters, tree } from '../script-vm';
+import { evaluate, termAddress } from './evaluate';
 
 export interface IconRef {
     key: string;
@@ -22,12 +25,30 @@ export interface IconRef {
     find: string;
     tail?: string;
     title?: string;
+    /** The picture goes after the bracket that follows `find` (`object[x]`: after the whole object). */
+    group?: boolean;
+    /** A value read at run time, `<instruction address>:<operand>`: the viewer asks the running game (host `scriptsLive`). */
+    live?: string;
 }
 
-/** What the listing knows before the line: the last enemy spawned, the room's dog form. */
-export interface Context { last: string | null; dog: string }
+/** An entity cell the listing names (`temp.entity_1`): its id in `Context.cells` and its printed name. */
+export interface EntityCell { id: string; name: string }
 
-const FRESH: Context = { last: null, dog: 'char:1' };
+/** What the listing knows before the line. */
+export interface Context {
+    /** The last character a spawn placed (an icon key). */
+    last: string | null;
+    /** The room's dog form. */
+    dog: string;
+    /** What each entity cell holds (EntityCell id → icon key). */
+    cells: Record<string, string>;
+    /** Save- and temp-area bytes the listing set to a constant (WRAM address → byte). */
+    known: Record<number, number>;
+    /** The entity cell a local or temp read names in this line's thread, or null. */
+    cell?(area: 'local' | 'temp', offset: number): EntityCell | null;
+}
+
+export const fresh = (): Context => ({ last: null, dog: 'char:1', cells: {}, known: {} });
 
 /** The loot reward and the three prize items: reward ids (knowledge ram/7e2391). */
 const REWARDS = new Set([0x2391, 0x23a1, 0x23a3, 0x23a5]);
@@ -49,15 +70,18 @@ function characterRef(t: Term, ctx: Context): IconRef | null {
     switch (name) {
         case 'boy': return { key: 'char:0', find: name, tail: '()', title: 'the Boy' };
         case 'dog': return { key: ctx.dog, find: name, tail: '()', title: 'the Dog, in the form the room gives it' };
-        case 'camera_entity': return { key: 'char:0', find: name, tail: '()', title: 'the character the camera follows: the Boy, unless the player switched' };
+        case 'camera_entity': return { key: 'camera', find: name, tail: '()', title: 'the character the camera follows: the one the player controls' };
         case 'other_character': return { key: ctx.dog, find: name, tail: '()', title: 'the character not followed: the Dog, unless the player switched' };
-        case 'last_entity': return ctx.last ? { key: ctx.last, find: name, tail: '()', title: 'the last character a spawn placed above this line' } : null;
+        case 'last_entity': return ctx.last
+            ? { key: ctx.last, find: name, tail: '()', title: 'the last character a spawn placed above this line' }
+            : { key: 'unknown', find: name, tail: '()', title: 'the last character a spawn placed: none above this line, so it comes from before the script' };
+        case 'script_owner': return { key: 'unknown', find: name, tail: '()', title: 'the character running this script: the listing cannot tell which' };
         default: return null;
     }
 }
 
 /** The pictures an instruction's printed line can show. */
-export function iconRefs(ins: Instruction, names: Names, ctx: Context = FRESH): IconRef[] {
+export function iconRefs(ins: Instruction, names: Names, ctx: Context = fresh()): IconRef[] {
     const out: IconRef[] = [];
     const value = (addr: number, v: number): void => {
         const kind = kindOf(addr), name = kind ? names.value?.(addr, v) : '';
@@ -77,28 +101,90 @@ export function iconRefs(ins: Instruction, names: Names, ctx: Context = FRESH): 
             }
             visit(n.left); visit(n.right);
         } else if (n.k === 'unary') visit(n.arg);
-        else if (n.k === 'value') { const c = characterRef(n.term, ctx); if (c && !out.some((o) => o.find === c.find)) out.push(c); }
+        else if (n.k === 'value') add(characterRef(n.term, ctx));
+        else if (n.k === 'read') add(cellRef(n.term, ctx));
     };
-    // A room object by its index: the state the line sets it to (`object[2] = 9`), else its first.
+    const add = (c: IconRef | null): void => { if (c && !out.some((o) => o.find === c.find)) out.push(c); };
     const params = parameters(ins.opcode);
     ins.operands.forEach((o, i) => {
         if (o.k !== 'E') return;
         const n = tree(o.expr);
-        if (params[i]?.type === 'object_index' && n.k === 'const') {
-            const o1 = ins.operands[1];
-            const s = ins.opcode === 0x5C && o1?.k === 'E' ? tree(o1.expr) : null;
-            const state = s && s.k === 'const' ? s.value : 0;
-            out.push({ key: `object:${n.value}:${state}`, find: constText(n.value), title: `object ${n.value}, state ${state}` });
-        }
+        if (params[i]?.type === 'object_index') out.push(objectRef(ins, i, n, ctx));
         visit(n);
     });
     return out;
+}
+
+/** The forms printed `object[x]` (print.ts); the others are calls that take the index. */
+const SUBSCRIPT = new Set([0x5C, 0x5F, 0x60, 0x61]);
+
+/**
+ * A room object by its index, in the state the line sets it to (`object[2] = 9`), else its first.
+ * An index the line computes is the value the listing set above, if any (else `unknown`), and is
+ * read live from the running game.
+ */
+function objectRef(ins: Instruction, i: number, n: Node, ctx: Context): IconRef {
+    const state = objectState(ins);
+    const subscript = SUBSCRIPT.has(ins.opcode);
+    if (n.k === 'const') {
+        const at = subscript ? { find: 'object', group: true } : { find: constText(n.value) };
+        return { key: `object:${n.value}:${state}`, ...at, title: `object ${n.value}, state ${state}` };
+    }
+    const v = evaluate(n, (a) => ctx.known[a] ?? null);
+    return {
+        key: v === null ? 'unknown' : `object:${v}:${state}`, find: subscript ? 'object' : ins.spec.name, group: true, live: `${ins.address}:${i}`,
+        title: v === null ? `an object the game picks at run time (state ${state})` : `object ${v}, state ${state}: the index the listing set above`,
+    };
+}
+
+/** The state an object line shows: the one `object[x] = s` sets, else the first. */
+function objectState(ins: Instruction): number {
+    const o1 = ins.operands[1];
+    const s = ins.opcode === 0x5C && o1?.k === 'E' ? tree(o1.expr) : null;
+    return s && s.k === 'const' ? s.value : 0;
+}
+
+/** The WRAM bytes operand `i` reads (a word per term: the viewer reads them from the running game). */
+export function liveCells(ins: Instruction, i: number): number[] {
+    const o = ins.operands[i];
+    if (!o || o.k !== 'E') return [];
+    return o.expr.terms.map(termAddress).filter((a): a is number => a !== null).flatMap((a) => [a, a + 1]);
+}
+
+/** Operand `i`'s object, its index computed from `byte` (WRAM read from the running game), as an icon key; null when unknown. */
+export function liveObjectKey(ins: Instruction, i: number, byte: (addr: number) => number | null): string | null {
+    const o = ins.operands[i];
+    const v = o && o.k === 'E' ? evaluate(tree(o.expr), byte) : null;
+    return v === null ? null : `object:${v}:${objectState(ins)}`;
+}
+
+/** An entity cell read (`temp.entity_1`): the character it was given above, else unknown. */
+function cellRef(t: Term, ctx: Context): IconRef | null {
+    if (t.spec.kind !== 'read' || t.spec.width !== 2 || (t.spec.area !== 'local' && t.spec.area !== 'temp')) return null;
+    const c = ctx.cell?.(t.spec.area, t.value ?? 0);
+    if (!c) return null;
+    const key = ctx.cells[c.id];
+    return { key: key ?? 'unknown', find: c.name, title: key ? `what ${c.name} was given above this line` : `${c.name}: nothing gave it a character above this line` };
+}
+
+/** The picture an entity value stands for (`last_entity()`, `boy()`, another entity cell), for a cell it is written to. */
+export function entityKey(n: Node, ctx: Context): string {
+    if (n.k === 'value') return characterRef(n.term, ctx)?.key ?? 'unknown';
+    if (n.k === 'read') return cellRef(n.term, ctx)?.key ?? 'unknown';
+    return 'unknown';
 }
 
 /** The context after the line: a spawn that places a character now (not a spawner record) is `last_entity()` (opcodes/3c); a dog form request is the room's form. */
 export function after(ins: Instruction, ctx: Context): Context {
     const f = facts(ins);
     if (f.k === 'spawn' && !f.spawner) return { ...ctx, last: `enemy:${f.index}` };
-    if (f.k === 'write' && f.area === 'save' && f.addr === 0x2443 && f.value) return { ...ctx, dog: `dog:${f.value}` };
-    return ctx;
+    if (f.k !== 'write' || f.area === 'local') return ctx;
+    const known = { ...ctx.known };
+    for (let b = 0; b < f.width; b++) {
+        if (f.value === null) delete known[f.addr + b];
+        else known[f.addr + b] = (f.value >> (8 * b)) & 0xff;
+    }
+    const next = { ...ctx, known };
+    if (f.area === 'save' && f.addr === 0x2443 && f.value) next.dog = `dog:${f.value}`;
+    return next;
 }

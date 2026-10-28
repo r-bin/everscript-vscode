@@ -24,6 +24,8 @@ var _scr = {
   variantPick: {},       // room id -> chosen variant index (0, the default, until picked)
   folds: {},             // room + ':' + script key -> { block id: folded } (a merged listing's folds)
   merged: {},            // room + ':' + trigger key -> { merged } | { error } | 'pending' (scriptsMerged)
+  live: {},              // room id -> { live id -> object key | null }: an object index a line computes, read from the running game (scriptsLive)
+  liveWant: {},          // room id -> { live id: true }: the shown lines that compute one
   icons: {},             // icon key (enemy:11, loot:2049, weapon:24, dog:2) -> data URI | null, from the user's ROM
   structured: true,      // the enter script as if/else/while (off: each instruction as printed, gotos and all)
   assume: { IN_ANIMATION: false, DOG_UNAVAILABLE: false, CHANGE_MUSIC: false }, // entry state (ScriptsListing.ENTRY_FLAGS)
