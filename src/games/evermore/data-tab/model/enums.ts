@@ -573,6 +573,48 @@ function projectileRoutinesEnum(rom: Uint8Array): EnumList {
     };
 }
 
+const PROJECTILE_BEHAVIORS_DATA = [
+    { code: 0x0E, name: 'Parabolic Drop', category: 'Falling', desc: 'Z-velocity decrements by gravity each tick until floor contact' },
+    { code: 0x12, name: 'Fixed Altitude Timed', category: 'Timed', desc: 'Maintains fixed Z-height while lifetime timer decrements' },
+    { code: 0x1A, name: 'Thrower Plane Timed', category: 'Plane-Bound', desc: 'Fixed altitude locked to thrower character depth plane' },
+    { code: 0x1E, name: 'Elliptical Orbit', category: 'Rotational', desc: 'Angular step advancement in ellipse coordinate table ($90:DF44)' },
+];
+
+function projectileBehaviorsEnum(): EnumList {
+    return {
+        id: 'projectile-behaviors', group: 'Combat', title: 'Projectile lifecycle behavior modes',
+        columns: ['type code', 'behavior name', 'trajectory category', 'operational description'],
+        entries: PROJECTILE_BEHAVIORS_DATA.map((b) => ({
+            cells: ['$' + hex(b.code, 2), b.name, b.category, b.desc],
+            vfs: bus(0x90d9a6),
+        })),
+        source: 'Field +0x0C of projectile master records ($90:D9A6), copied into entity +0x26 to dictate ballistic flight physics.',
+    };
+}
+
+const FORMULA_LEARNED_ADDR = 0xc45c3b;
+const FORMULA_LEARNED_MASK = 0xc45c81;
+
+function formulaLearnedEnum(rom: Uint8Array): EnumList {
+    const entries: Entry[] = [];
+    for (let i = 0; i < FORMULA_COUNT; i++) {
+        const wramAddr = word(rom, FORMULA_LEARNED_ADDR + i * 2);
+        const mask = word(rom, FORMULA_LEARNED_MASK + i * 2);
+        const name = textAt(rom, FORMULA_NAMES, i);
+        const bitIdx = Math.round(Math.log2(mask));
+        entries.push({
+            cells: [h(i, 2), name, '$7E:' + hex(wramAddr, 4), '$' + hex(mask, 2), 'Bit ' + bitIdx],
+            vfs: bus(0x7e0000 | wramAddr),
+        });
+    }
+    return {
+        id: 'formula-learned-flags', group: 'Alchemy', title: 'Formula unlocked save flags',
+        columns: ['id', 'formula', 'wram byte', 'bitmask', 'bit index'],
+        entries,
+        source: 'ROM tables $C4:5C3B & $C4:5C81: maps each formula to its persistent SRAM bitfield in $7E:2258..$7E:225C.',
+    };
+}
+
 /** Every list the view shows. `icons` are the formulas' ring-menu icons (PNG data URIs) in formula order. */
 function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | null)[] = []): EnumList[] {
     return [characterBlobs(rom, chars), recordFields(), contactHandlers(rom, chars), aiSelectors(rom, chars),
@@ -584,7 +626,8 @@ function enumsModel(rom: Uint8Array, chars: CharacterInfo[], icons: (string | nu
         armorEnums(rom), currenciesEnum(),
         consumableItemsEnum(rom), staminaTiersEnum(),
         charmsEnum(), bazookaAmmoEnum(),
-        companionAiEnum(), projectileRoutinesEnum(rom)];
+        companionAiEnum(), projectileRoutinesEnum(rom),
+        projectileBehaviorsEnum(), formulaLearnedEnum(rom)];
 }
 
 export { enumsModel };

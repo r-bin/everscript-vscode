@@ -5,8 +5,9 @@
 // from the ROM buffer it is handed. Each address here has its knowledge entry
 // (localizations/knowledge/rom/), which says how it was found.
 
-import { snesToRom, read16, read24 } from '../../maps';
+import { snesToRom, read16, read24, mapTableOffset, MAX_ROOMS } from '../../maps';
 import { CHARACTER_TABLE, CHARACTER_STRIDE } from '../../maps/character-record';
+import { getMapName, getMapArea } from '../../localizations';
 import { hex } from '../../../../platform';
 
 type Cell = string | number;
@@ -599,6 +600,52 @@ function projectileRoutinesTable(rom: Uint8Array): Table {
     };
 }
 
+const FORMULA_LEARNED_ADDR = 0xc45c3b;
+const FORMULA_LEARNED_MASK = 0xc45c81;
+
+function formulaLearnedTable(rom: Uint8Array): Table {
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let i = 0; i < FORMULA_COUNT; i++) {
+        const wramAddr = read16(rom, snesToRom(FORMULA_LEARNED_ADDR + i * 2));
+        const mask = read16(rom, snesToRom(FORMULA_LEARNED_MASK + i * 2));
+        const formulaName = textAt(rom, FORMULA_NAMES, i);
+        const bitIdx = Math.round(Math.log2(mask));
+        rows.push([i, formulaName, '$7E:' + hex(wramAddr, 4), '$' + hex(mask, 2), 'Bit ' + bitIdx]);
+        pts.push([i, wramAddr - 0x2258]);
+    }
+    return {
+        id: 'formula-learned', group: 'Alchemy', title: 'Formula unlocked persistence bitfields', addr: '$C4:5C3B · $C4:5C81',
+        note: 'Tables $C4:5C3B (35 words) & $C4:5C81 (35 words): maps each formula to its SRAM persistence byte ($7E:2258..$7E:225C) and bitmask ($01..$80), tested when populating the alchemy ring menu.',
+        columns: ['id', 'formula', 'wram address', 'bitmask', 'bit index'],
+        rows,
+        chart: { x: 'formula id', y: 'byte offset', series: [{ name: 'byte offset', points: pts }] },
+        vfs: vfs(FORMULA_LEARNED_ADDR),
+    };
+}
+
+function roomsTable(rom: Uint8Array): Table {
+    const tableOffset = mapTableOffset(rom);
+    const rows: Cell[][] = [];
+    const pts: [number, number][] = [];
+    for (let r = 0; r < MAX_ROOMS; r++) {
+        const snes = read24(rom, tableOffset + r * 4);
+        const fileOffset = snesToRom(snes);
+        const name = getMapName(r);
+        const area = getMapArea(r);
+        rows.push([r, '$' + hex(r, 2), name, area, '$' + hex(snes, 6), '$' + hex(fileOffset, 6)]);
+        pts.push([r, fileOffset]);
+    }
+    return {
+        id: 'rooms-table', group: 'Maps', title: 'Room compressed data blob pointers', addr: '$9F:FDE7',
+        note: 'Table $9F:FDE7 (127 far pointers, 508 bytes): master lookup table of all 127 room data blobs, read by room loader $8E:E4E2 to locate compressed tilemap, collision, and enter script data.',
+        columns: ['id', 'hex', 'map name', 'world area', 'snes pointer', 'file offset'],
+        rows,
+        chart: { x: 'room id', y: 'file offset', series: [{ name: 'file offset', points: pts }] },
+        vfs: vfs(0x9ffde7),
+    };
+}
+
 /** Every table the view lists: only the ones decoded into readable values. */
 function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Table[] {
     return [
@@ -611,6 +658,7 @@ function tablesModel(rom: Uint8Array, names: { id: number; name: string }[]): Ta
         enemyIndexTable(rom, names), consumablesTable(rom),
         formulaBlocksTable(rom), bazookaAmmoTable(rom),
         formulaDescriptionsTable(rom), projectileRoutinesTable(rom),
+        formulaLearnedTable(rom), roomsTable(rom),
     ];
 }
 

@@ -225,4 +225,25 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
   - `+$18` (`$90:DE11`): High-speed homing ballistic curve (records 6, 18, 19)
 - **Readers**: Projectile physics dispatcher `$90:DE5E` via `JSR ($D967,x)` using offset read from archetype record `+$08`.
 
+### 2.17 Formula Learned Persistence Bitfield Tables (`$C4:5C3B`, `$C4:5C81`)
+- **Format**:
+  - `tbl_formula_learned_addr`: `uint16_t[35]`, 70 bytes at `$C4:5C3B`..`$C4:5C80`
+  - `tbl_formula_learned_mask`: `uint16_t[35]`, 70 bytes at `$C4:5C81`..`$C4:5CC6`
+- **Internal Layout**:
+  - Maps each of the 35 formulas to its SRAM battery-backed persistence byte in `$7E:2258`..`$7E:225C` and its 16-bit bitmask (`$0001`..`$0080`):
+    - Formulas 0..7 (Acid Rain through Defend): `$7E:2258`, bits 0..7
+    - Formulas 8..15 (Double Drain through Flash): `$7E:2259`, bits 0..7
+    - Formulas 16..23 (Force Field through Miracle Cure): `$7E:225A`, bits 0..7
+    - Formulas 24..31 (Nitro through Speed): `$7E:225B`, bits 0..7
+    - Formulas 32..34 (Sting, Stop, Super Heal): `$7E:225C`, bits 0..2
+- **Readers**: Formula learning opcode handlers and ring menu spell catalog loader `$8E:8000`.
+
+### 2.18 Room Compressed Blob Pointer Table (`$9F:FDE7`)
+- **Format**: `uint32_t tbl_room_blob_pointers[127]`, 4 bytes per room (508 bytes total, `$9F:FDE7`..`$9F:FFDE`).
+- **Internal Layout**:
+  - 24-bit SNES far pointers (plus 1 padding byte) resolving the file location of the LZSS compressed room data blob for each map ID 0..126.
+  - Room data blobs contain the tilemap layer definitions, metatile collision matrices, and enter event bytecode.
+- **Readers**: Master room transition loader `$8E:E4E2` (`enter_room`).
+
+
 
