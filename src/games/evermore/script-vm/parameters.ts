@@ -8,7 +8,7 @@
 
 import table from './parameters.json';
 
-export type BaseType = 'u8' | 'u16' | 's16' | 'bool' | 'entity' | 'jump' | 'script' | 'args' | 'list' | 'skip';
+export type BaseType = 'u8' | 'u16' | 's16' | 'bool' | 'entity' | 'jump' | 'script' | 'args' | 'list' | 'skip' | 'flag' | 'percentage';
 /** A base type, or one of parameters.json's `types` that inherits from one (`object_index` is a u8). */
 export type ParameterType = BaseType | 'object_index' | 'weapon_index';
 
@@ -19,6 +19,8 @@ export interface Parameter {
     enum?: string;
     /** Read in hex even where numbers read in decimal: an address, a bit, a cell, an id. */
     hex?: boolean;
+    /** The unit of the parameter (e.g. `%`). */
+    unit?: string;
 }
 
 /** One of our enums: its values (value → name), the compiler enum it adds to, whether a value is its bits joined with |. */

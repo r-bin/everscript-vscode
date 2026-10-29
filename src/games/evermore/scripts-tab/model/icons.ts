@@ -68,6 +68,12 @@ function draw(rom: Uint8Array, roomId: number, key: string, { dogIcon = null, do
             const px = id === null ? null : maps.renderItemIcon(rom, id);
             return px ? maps.encodePngDataUri(px) : null;
         }
+        if (kind === 'alchemy') {
+            const formulaIdx = v % 2 === 0 && v < 70 ? v / 2 : v;
+            const id = maps.alchemyIconId(rom, formulaIdx);
+            const px = id === null ? null : maps.renderItemIcon(rom, id);
+            return px ? maps.encodePngDataUri(px) : null;
+        }
         if (kind === 'dog') return dogIcon ? dogIcon(rom, v) : null;
     } catch { /* a key the ROM cannot draw: no icon */ }
     return null;

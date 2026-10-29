@@ -107,7 +107,7 @@ export const OPCODES: ReadonlyMap<number, OpcodeSpec> = new Map<number, OpcodeSp
     [0x5A, op('', 'next', 'clear_subtext')],
     [0x5B, op('', 'next', 'wait_dialogue')],
     [0x5C, op('E E', 'next', 'object')],
-    [0x5D, op('E u16', 'next', 'object_state_by_flag')],
+    [0x5D, op('E u16', 'next', 'restore_object_state')],
     [0x5E, op('E u16', 'next', 'object_state_unless_flag')],
     [0x5F, op('E u16', 'next', 'add_object_state')],
     [0x60, op('E', 'next', 'next_object_state')],

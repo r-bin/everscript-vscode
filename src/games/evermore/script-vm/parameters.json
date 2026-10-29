@@ -72,7 +72,7 @@
   "0x5a": {"name":"clear_subtext","basis":"usage","params":[]},
   "0x5b": {"name":"wait_dialogue","basis":"usage","params":[]},
   "0x5c": {"name":"object","basis":"usage","params":[{"name":"object","type":"object_index"},{"name":"state","type":"u8","enum":"OBJECT_STATE"}]},
-  "0x5d": {"name":"object_state_by_flag","basis":"usage","params":[{"name":"object","type":"object_index"},{"name":"bit","type":"u16","hex":true}]},
+  "0x5d": {"name":"restore_object_state","basis":"usage","params":[{"name":"object","type":"object_index"},{"name":"flag","type":"flag"}]},
   "0x5e": {"name":"object_state_unless_flag","basis":"handler","params":[{"name":"p1","type":"u16"},{"name":"p2","type":"u16"}]},
   "0x5f": {"name":"add_object_state","basis":"handler","params":[{"name":"object","type":"object_index"},{"name":"add","type":"u16"}]},
   "0x60": {"name":"next_object_state","basis":"handler","params":[{"name":"object","type":"object_index"}]},
@@ -110,7 +110,7 @@
   "0x83": {"name":"apply_screen_layers","basis":"usage","params":[]},
   "0x84": {"name":"currency_add","basis":"usage","params":[{"name":"currency","type":"u16","enum":"CURRENCY"},{"name":"amount","type":"u16"}]},
   "0x85": {"name":"currency_take","basis":"usage","params":[{"name":"currency","type":"u16","enum":"CURRENCY"},{"name":"amount","type":"u16"}]},
-  "0x86": {"name":"music_volume","basis":"usage","params":[{"name":"volume","type":"u16"}]},
+  "0x86": {"name":"music_volume","basis":"usage","params":[{"name":"volume","type":"percentage","unit":"%"}]},
   "0x87": {"name":"music_tempo","basis":"usage","params":[{"name":"tempo","type":"u16"}]},
   "0x88": {"name":"clear_shop","basis":"usage","params":[]},
   "0x89": {"name":"add_shop_item","basis":"usage","params":[{"name":"item","type":"u16"},{"name":"price","type":"u16"}]},
@@ -133,7 +133,7 @@
   "0x9b": {"name":"destroy","basis":"usage","params":[{"name":"entity","type":"entity"}]},
   "0x9c": {"name":"release_entity","basis":"usage","params":[{"name":"entity","type":"entity"}]},
   "0x9d": {"name":"walk_to","basis":"usage","params":[{"name":"entity","type":"entity"},{"name":"x","type":"u16"},{"name":"y","type":"u16"}]},
-  "0x9e": {"name":"cast_all","basis":"usage","params":[{"name":"entity","type":"entity"},{"name":"a","type":"u16"},{"name":"b","type":"u16"},{"name":"targets","type":"list"}]},
+  "0x9e": {"name":"cast_all","basis":"usage","params":[{"name":"entity","type":"entity"},{"name":"alchemy","type":"u16","enum":"ALCHEMY_INDEX"},{"name":"power","type":"u16"},{"name":"targets","type":"list"}]},
   "0x9f": {"name":"currency_window_open","basis":"usage","params":[]},
   "0xa0": {"name":"currency_window_show","basis":"usage","params":[]},
   "0xa1": {"name":"currency_window_close","basis":"usage","params":[]},
@@ -147,7 +147,7 @@
   "0xa9": {"name":"attribute_bit","basis":"usage","params":[{"name":"entity","type":"entity"},{"name":"selector","type":"u16","enum":"ATTRIBUTE_BITS"}]},
   "0xaa": {"name":"cure","basis":"usage","params":[]},
   "0xab": {"name":"reset_game","basis":"usage","params":[]},
-  "0xac": {"name":"cast","basis":"usage","params":[{"name":"entity","type":"entity"},{"name":"a","type":"u16"},{"name":"b","type":"u16"},{"name":"targets","type":"list"}]},
+  "0xac": {"name":"cast","basis":"usage","params":[{"name":"entity","type":"entity"},{"name":"alchemy","type":"u16","enum":"ALCHEMY_INDEX"},{"name":"power","type":"u16"},{"name":"targets","type":"list"}]},
   "0xad": {"name":"write_temp_tile_pair","basis":"usage","params":[{"name":"cell_x","type":"u16","hex":true},{"name":"cell_y","type":"u16","hex":true},{"name":"x","type":"u8"},{"name":"y","type":"u8"}]},
   "0xae": {"name":"write_arg_tile_pair","basis":"usage","params":[{"name":"cell_x","type":"u8","hex":true},{"name":"cell_y","type":"u8","hex":true},{"name":"x","type":"u8"},{"name":"y","type":"u8"}]},
   "0xaf": {"name":"call_with_args","basis":"usage","params":[{"name":"args","type":"args"},{"name":"script","type":"script"}]},
@@ -169,5 +169,5 @@
   "0xc0": {"name":"freeze_boy_and_dog","basis":"usage","params":[]},
   "0xc1": {"name":"unfreeze_boy_and_dog","basis":"usage","params":[]},
   "0xc2": {"name":"add_enemy_spawner","basis":"usage","params":[{"name":"enemy","type":"u8"},{"name":"x","type":"u8"},{"name":"y","type":"u8"}]},
-  "enums": {"//":"Enums of ours, where the compiler has none (or one short of values): `base` adds the compiler enum's values; `flags`: a value is its named bits joined with |. Names say what the handler does with the value.","OBJECT_STATE":{"flags":true,"what":"an object's target state ($90:A36D, docs/map-format/map_objects.md §4c)","values":{"0x7e":"LAST","0x7f":"LAST_7F","0x8000":"INSTANT"}},"SPAWN_FLAGS":{"base":"FLAG_ENEMY","flags":true,"what":"spawn's word: the entity's +$10 bits (docs/entities/entities-reference.md), bit 15 a spawner record (knowledge opcodes/3c)","values":{"0x0010":"NEVER_SLEEPS","0x8000":"SPAWNER"}},"ROOM_HOOK":{"what":"attach_script's target below $2000: a room hook ($0EA2/$0EAC + 2(n-1), knowledge opcodes/3f), not an entity. Hook 1 is the drop hook ($90:857B); hook 5 is the Wings hook ($0EB4, e.g. BBM_WINGS); 2-4: room hooks ($0EAE, $0EB0, $0EB2)","values":{"0x01":"DROP_HOOK","0x02":"ROOM_HOOK_2","0x03":"ROOM_HOOK_3","0x04":"ROOM_HOOK_4","0x05":"WINGS_HOOK"}},"SCRIPT_TRIGGER":{"base":"SCRIPT_TRIGGER","flags":true,"what":"event trigger mask (knowledge opcodes/3f)","values":{"0x0001":"ROOM_HOOK"}}}
+  "enums": {"//":"Enums of ours, where the compiler has none (or one short of values): `base` adds the compiler enum's values; `flags`: a value is its named bits joined with |. Names say what the handler does with the value.","OBJECT_STATE":{"flags":true,"what":"an object's target state ($90:A36D, docs/map-format/map_objects.md §4c)","values":{"0x7e":"LAST","0x7f":"LAST_7F","0x8000":"INSTANT"}},"SPAWN_FLAGS":{"base":"FLAG_ENEMY","flags":true,"what":"spawn's word: the entity's +$10 bits (docs/entities/entities-reference.md), bit 15 a spawner record (knowledge opcodes/3c)","values":{"0x0010":"NEVER_SLEEPS","0x8000":"SPAWNER"}},"ROOM_HOOK":{"what":"attach_script's target below $2000: a room hook ($0EA2/$0EAC + 2(n-1), knowledge opcodes/3f), not an entity. Hook 1 is the drop hook ($90:857B); hook 5 is the Wings hook ($0EB4, e.g. BBM_WINGS); 2-4: room hooks ($0EAE, $0EB0, $0EB2)","values":{"0x01":"DROP_HOOK","0x02":"ROOM_HOOK_2","0x03":"ROOM_HOOK_3","0x04":"ROOM_HOOK_4","0x05":"WINGS_HOOK"}},"SCRIPT_TRIGGER":{"base":"SCRIPT_TRIGGER","flags":true,"what":"event trigger mask (knowledge opcodes/3f)","values":{"0x0001":"ROOM_HOOK"}},"OBJ_PALETTE":{"what":"OBJ sprite palette CGRAM offset","values":{"0x00":"PALETTE_0","0x20":"PALETTE_1","0x40":"PALETTE_2","0x60":"PALETTE_3","0x80":"PALETTE_4","0xa0":"PALETTE_5","0xc0":"PALETTE_6","0xe0":"PALETTE_7"}}}
 }

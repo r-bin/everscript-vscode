@@ -11,7 +11,7 @@ export type { Instruction, Operand } from './decode';
 export { walk, scriptInstructions } from './walk';
 export { roomScripts, roomCount, allEntries } from './rooms';
 export { facts, SAVE_AREA, TEMP_AREA } from './facts';
-export { parameters, isEntity, baseType } from './parameters';
+export { parameters, isEntity, baseType, ownEnum } from './parameters';
 export type { Parameter, ParameterType, BaseType } from './parameters';
 export type { Fact, Area } from './facts';
 export { text, printed, expressionText, everscript, constText } from './print';

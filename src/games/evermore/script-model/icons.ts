@@ -70,6 +70,7 @@ function kindOf(addr: number): string | null {
     if (addr === LOOT_OBJECT) return 'object';
     if (addr === 0x2443 || addr === 0x2363) return 'dog';
     if (addr === 0x2441 || addr === 0x235f) return 'weapon';
+    if (addr === 0x2348) return 'currency';
     return null;
 }
 
@@ -108,6 +109,12 @@ export function iconRefs(ins: Instruction, names: Names, ctx: Context = fresh())
             return;
         }
         const kind = kindOf(addr), name = kind ? names.value?.(addr, v) : '';
+        if (kind === 'currency') {
+            const idx = v >= 0 && v < 4 ? v : Math.floor(v / 3);
+            const cname = name || names.constant?.('CURRENCY', v);
+            if (cname) out.push({ key: `currency:${idx}`, find: cname, title: cname.toLowerCase() });
+            return;
+        }
         if (kind && name) out.push({ key: kind === 'loot' && v === MONEY ? 'money' : `${kind}:${v}`, find: name, ...(v === MONEY && kind === 'loot' ? { title: 'money, in the currency of the era the room is in' } : {}) });
     };
     const f = facts(ins);
@@ -152,6 +159,32 @@ export function iconRefs(ins: Instruction, names: Names, ctx: Context = fresh())
                 });
             }
         }
+        if (params[i]?.enum === 'ALCHEMY_INDEX') {
+            const v = n.k === 'const' ? n.value : evaluate(n, (a) => ctx.known[a] ?? null);
+            if (v !== null) {
+                const aname = names.constant?.('ALCHEMY_INDEX', v) || (names.decimal ? String(v) : constText(v));
+                out.push({
+                    key: `alchemy:${v}`,
+                    find: aname,
+                    title: names.constant?.('ALCHEMY_INDEX', v)?.toLowerCase() ?? 'alchemy',
+                });
+            }
+        }
+        if (ins.opcode === 0x5C && i === 1) {
+            const op0 = ins.operands[0];
+            const objNode = op0?.k === 'E' ? tree(op0.expr) : null;
+            const objId = objNode?.k === 'const' ? objNode.value : objNode ? evaluate(objNode, (a) => ctx.known[a] ?? null) : null;
+            const stVal = n.k === 'const' ? n.value : evaluate(n, (a) => ctx.known[a] ?? null);
+            if (objId !== null && stVal !== null) {
+                const clamped = stVal & 0x80 ? 0 : stVal & 0x7fff;
+                const stName = names.constant?.('OBJECT_STATE', stVal) || (names.decimal ? String(stVal) : constText(stVal));
+                out.push({
+                    key: `object:${objId}:${clamped}`,
+                    find: stName,
+                    title: `object ${objId}, ${stateText(clamped)}`,
+                });
+            }
+        }
         visit(n);
     });
     return out;
@@ -186,8 +219,9 @@ function objectRef(ins: Instruction, i: number, n: Node, ctx: Context, names: Na
  * above the last state (`$7E`, `$7F`) is the last — the picture clamps it.
  */
 function objectState(ins: Instruction): number {
+    if (ins.opcode === 0x5C) return 0;
     const o1 = ins.operands[1];
-    const s = ins.opcode === 0x5C && o1?.k === 'E' ? tree(o1.expr) : null;
+    const s = o1?.k === 'E' ? tree(o1.expr) : null;
     const v = s && s.k === 'const' ? s.value & 0x7fff : 0;
     return v & 0x80 ? 0 : v;
 }

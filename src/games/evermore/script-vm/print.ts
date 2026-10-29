@@ -220,6 +220,7 @@ function enumText(type: string, value: number, fmt: (v: number) => string, names
 
 /** A number as the reader wants it: decimal where `names.decimal` says so and the parameter does not want hex; `w` hex digits otherwise (0: constText's). */
 function numText(v: number, names: Names, p?: Parameter, w = 0): string {
+    if (p?.unit === '%' || p?.type === 'percentage') return `${Math.round((v / 255) * 100)}%`;
     if (names.decimal && !p?.hex) return String(v);
     return w ? hex(v, w) : constText(v);
 }
@@ -232,7 +233,10 @@ function operandText(o: Operand, names: Names, truth = false, p: Parameter | und
         case 'u16': return typed(o.value, 4);
         case 'E': {
             const n = tree(o.expr);
-            if (n.k === 'const' && p?.enum) return typed(n.value, 0);
+            if (n.k === 'const') {
+                if (p?.unit === '%' || p?.type === 'percentage') return `${Math.round((n.value / 255) * 100)}%`;
+                if (p?.enum) return typed(n.value, 0);
+            }
             return marked(o.expr, p?.hex ? { ...names, decimal: false } : names, truth ? 'zero' : p?.type === 'entity' ? 'pointer' : '');
         }
         case 'A': return o.args.map((a) => marked(a, names)).join(', ');
@@ -321,7 +325,11 @@ function line(ins: Instruction, names: Names, marks: Mark[]): string {
             return `${f.message ? 'subtext' : 'text'}(${f.window !== null ? f.window + ', ' : ''}${arg});${said ? ` // ${hex(f.key, 4)}` : ''}`;
         }
         // A spawner says so by its name: bit 15 is not printed again.
-        case 'spawn': { const state = f.spawner ? (f.state ?? 0) & 0x7fff : f.state; return `${f.spawner ? 'spawner' : 'spawn'}(${names.enemy?.(f.index) || hex(f.index)}, ${f.x === null ? `${E(2)}, ${E(3)}` : `${f.x}, ${f.y}`}${state ? ', ' + enumOf(1, state, 4) : ''});`; }
+        case 'spawn': {
+            const state = f.spawner ? (f.state ?? 0) & 0x7fff : f.state;
+            const coords = f.x === null ? `(${E(2)}, ${E(3)})` : `(${f.x}, ${f.y})`;
+            return `${f.spawner ? 'spawner' : 'spawn'}(${names.enemy?.(f.index) || hex(f.index)}, ${coords}${state ? ', ' + enumOf(1, state, 4) : ''});`;
+        }
         case 'sleep': return `sleep(${f.ticks === null ? E(0) : f.ticks});`;
         case 'yield': return 'yield();';
         case 'end': return 'return;';
@@ -336,6 +344,12 @@ function line(ins: Instruction, names: Names, marks: Mark[]): string {
         case 0x8E: return `if (currency[${E(0)}] >= ${E(1)}) goto ${bus(ins.target!)};`;
         case 0x8F: return `if (currency[${E(0)}] < ${E(1)}) goto ${bus(ins.target!)};`;
         case 0x5C: return `object[${E(0)}] = ${E(1)};`;
+        case 0x5D: {
+            const bit = num(o[1]);
+            const addr = 0x2258 + (bit >> 3), mask = 1 << (bit & 7);
+            const fn = names.flag?.(addr, mask) || flagCell(addr, mask, names);
+            return `restore_object_state(${E(0)}, ${fn});`;
+        }
         case 0x5F: return `object[${E(0)}] += ${numText(num(o[1]), names, undefined, 4)};`;
         case 0x60: return `object[${E(0)}]++;`;
         case 0x61: return `object[${E(0)}]--;`;
@@ -361,7 +375,16 @@ function line(ins: Instruction, names: Names, marks: Mark[]): string {
         default: break;
     }
     const name = ins.spec.name || `op_${ins.opcode.toString(16).padStart(2, '0')}`;
-    const texts = o.map((x, k) => (x.k === 'skip' || x.k === 'r16' ? null : E(k))).filter((t): t is string => t !== null);
+    const texts: string[] = [];
+    for (let k = 0; k < o.length; k++) {
+        if (o[k].k === 'skip' || o[k].k === 'r16') continue;
+        if (params[k]?.name === 'x' && params[k + 1]?.name === 'y' && k + 1 < o.length) {
+            texts.push(`(${E(k)}, ${E(k + 1)})`);
+            k++;
+            continue;
+        }
+        texts.push(E(k));
+    }
     const jump = ins.flow === 'branch' && ins.target !== null ? ` goto ${bus(ins.target)}` : '';
     return `${name}(${texts.join(', ')})${jump};`;
 }

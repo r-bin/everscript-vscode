@@ -10,7 +10,7 @@
 // order them differently (its `animate(character, mode, id)`; the handler reads entity, id, mode).
 // TRIGGER_ID (attach_script's script) is a trigger id, named by ADDRESS_ID from $100 up.
 
-import type { Names } from '../script-vm';
+import { ownEnum, type Names } from '../script-vm';
 import names from './names.json';
 import compiler from '../language/data/index.json';
 
@@ -163,11 +163,12 @@ function typedConstant(type: string, value: number): string {
  * (knowledge ram/7e2391: the default loot script copies a prize into the reward), the dog's form
  * asked for and the one it has (ram/7e2443, ram/7e2363), the equipped weapon's class (ram/7e2360).
  */
-const CELL_TYPES: Record<number, string> = { 0x2443: 'DOG', 0x2363: 'DOG', 0x2360: 'WEAPON_TYPE' };
+const CELL_TYPES: Record<number, string> = { 0x2443: 'DOG', 0x2363: 'DOG', 0x2360: 'WEAPON_TYPE', 0x2348: 'CURRENCY', 0x23cd: 'OBJ_PALETTE', 0x23cf: 'OBJ_PALETTE' };
 /** Cells holding a weapon index (ram/7e2441 the one a room hands over, ram/7e235f the one equipped): named like the request's values. */
 const WEAPON_CELLS = new Set([0x2441, 0x235f]);
 const WEAPON_REQUEST = 0x2441;
 const LOOT_CELLS = new Set([0x2391, 0x23a1, 0x23a3, 0x23a5]);
+const BOOLEAN_CELLS = new Set([0x23bf, 0x238d]);
 
 /** `Hut/house to enter?` → `HUT_HOUSE_TO_ENTER`. */
 export function identifier(name: string): string {
@@ -212,7 +213,9 @@ export function printNames(file: (bus: number) => number): Names {
         script: (bus) => identifier(scriptName(file(bus))),
         global: (id) => identifier(globalScriptName(id)) || constantName('ADDRESS_ID', id),
         map: (id) => mapName(id),
-        value: (addr, v) => (LOOT_CELLS.has(addr) ? lootRewardName(v) : null) || (CELL_TYPES[addr] ? constantName(CELL_TYPES[addr], v) : '')
+        value: (addr, v) => (BOOLEAN_CELLS.has(addr) ? (v === 0 ? 'False' : v === 1 ? 'True' : null) : null)
+            || (LOOT_CELLS.has(addr) ? lootRewardName(v) : null)
+            || (CELL_TYPES[addr] ? (constantName(CELL_TYPES[addr], v) || ownEnum(CELL_TYPES[addr])?.values.get(v) || '') : '')
             || identifier(valueName(WEAPON_CELLS.has(addr) ? WEAPON_REQUEST : addr, v) ?? ''),
         enemy: (index) => enemyName(index)?.name ?? '',
         constant: typedConstant,

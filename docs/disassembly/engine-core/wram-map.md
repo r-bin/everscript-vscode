@@ -557,8 +557,8 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:22DA` | 1 | `WEAPONS_OWNED_FLAGS_0` | Save | Combat Subsystem: Weapon unlocked bitmask byte 0 (bits 1..7: Bone Club, Spider Claw, Horn Spear, Gladiator Sword, Bronze Axe, Bronze Spear, Crusader Sword). |
 | `$7E:22DB` | 1 | `WEAPONS_OWNED_FLAGS_1` | Save | Combat Subsystem: Weapon unlocked bitmask byte 1 (bits 0..5: Knight Basher, Lance, Neutron Blade, Atom Smasher, Laser Lance, Bazooka). |
 | `$7E:22E9` | 1 | `ROOM_TRANSITION_MODE` | Room | Engine State: Room transition execution mode flag ($80:8CD3). |
-| `$7E:22EA` | 2 bytes | `SYSTEM_STATE_FLAGS` | Save | Engine system flags; bit 2 (0x0004) marks cold boot SRAM initialization completed. |
-| `$7E:22EB` | 2 bytes | `ROOM_TRANSITION_FLAGS` | Room | Map flags; bit 2 (0x0004) triggers room enter script and tilemap reload. |
+| `$7E:22EA` | 1 byte | `GAMEPLAY_FLAGS_22EA` | Mixed / unknown | Shared loot, room-load, intro/outro, and screen-layer flags; bit meanings are documented individually. Some native handlers access it as the low byte of a 16-bit word. |
+| `$7E:22EB` | 1 byte | `ROOM_TRANSITION_AND_SCRIPT_FLAGS_22EB` | Mixed / unknown | Shared engine-control, doorway, route-handoff, and room-script flags. Main-loop bit 2 selects the default-room reload path; per-room reset clears only bit 0. |
 | `$7E:22EC` | 1 | `ROOM_MUSIC_TRANSITION_FLAG` | Room | Engine State: Room change background music transition mode flag ($8C:D860). |
 | `$7E:22EE` | 2 | `ROOM_PRESERVED_FLAGS_WORD` | Room | Engine State: Preserved script and camera flags across room loading boundary ($8C:CEEF). |
 | `$7E:22FA` | 1 byte | `CAMERA_ZOOM_SCALE_X` | Room | Mode 7 horizontal scale factor for rooms utilizing perspective rendering (written to $211C). |
@@ -665,8 +665,10 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:23A7` | 2 bytes | `PRIZE_1_QTY` | Save | Game script variable: PRIZE 1 QTY |
 | `$7E:23A9` | 2 bytes | `PRIZE_2_QTY` | Save | Game script variable: PRIZE 2 QTY |
 | `$7E:23AB` | 2 bytes | `PRIZE_3_QTY` | Save | Game script variable: PRIZE 3 QTY |
-| `$7E:23BF` | 2 bytes | `CUTSCENE_PENDING_FLAG` | Save | Story cutscene transition pending latch. |
+| `$7E:23BF` | 2 bytes | `PACIFIED` | Save | Pseudo-boolean pacified state ($0000 = False, $0001 = True; compiler: PACIFIED). |
 | `$7E:23C3` | 2 bytes | `COMPANION_TIGHT_TETHER` | Unknown | Non-zero: the companion keeps close (tether limits 4/3/3/1). What sets it is not traced. |
+| `$7E:23CD` | 2 bytes | `WEAPON_PALETTE` | Save | Boy/weapon active sprite palette CGRAM byte offset ($40, $60, $80, $A0, $C0; checked in $8F:81C9). |
+| `$7E:23CF` | 2 bytes | `DOG_PALETTE` | Save | Dog active sprite palette CGRAM byte offset ($40, $60, $80, $A0, $C0; checked in $8F:9471). |
 | `$7E:23D5` | 2 | `SCRIPT_DAMAGE_REDIRECT_FLAG` | Frame | Script VM: Opcode 0x92 damage redirect flag (0 = standard knockback damage, non-zero = redirect to opcode 0xBB damage without knockback) |
 | `$7E:23D7` | 2 | `SCRIPT_DAMAGE_TRANSFORM_FLAG` | Frame | Script VM: Opcode 0x92 damage transform flag (0 = raw immediate damage, non-zero = transform damage through entity defense math) |
 | `$7E:23DB` | 2 bytes | `QUEUED_ROOM_EXIT_TRIGGER_0` | Room | ID of door or boundary exit trigger tripped by player ($FFFF = none). |

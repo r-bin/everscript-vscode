@@ -220,12 +220,12 @@ test('text: an entity sub-op plus a field offset reads as entity.field', () => {
 });
 
 test('printed: a signed entity is a warning; a sliced cell prints its slice', () => {
-    // teleport(signed arg[0], 0, 0): the handler takes the entity's address, a word.
+    // teleport(signed arg[0], (0, 0)): the handler takes the entity's address, a word.
     const t = V.printed(decode([0x43, 0x92, 0x00, 0xb0, 0xb0]));
-    assert.strictEqual(t.text, 'teleport(signed arg[0], 0, 0);');
+    assert.strictEqual(t.text, 'teleport(signed arg[0], (0, 0));');
     assert.deepStrictEqual(t.marks.map((m) => [m.find, /entity/.test(m.message)]), [['signed', true]]);
     const sliced = { slice: (area, offset) => (area === 'local' && offset === 0 ? 'arg.entity_1' : '') };
-    assert.strictEqual(V.text(decode([0x43, 0x92, 0x00, 0xb0, 0xb0]), sliced), 'teleport(signed arg.entity_1, 0, 0);');
+    assert.strictEqual(V.text(decode([0x43, 0x92, 0x00, 0xb0, 0xb0]), sliced), 'teleport(signed arg.entity_1, (0, 0));');
     assert.strictEqual(V.text(decode([0x08, 0x91, 0x00, 0x00, 0x00]), sliced), 'if (arg.entity_1) goto $94:8005;', 'the slice carries the width: no (Byte)');
 });
 
@@ -241,9 +241,9 @@ test('slices: one cell per offset and thread, typed by its uses; two widths are 
 });
 
 test('parameters.json types the operands: an entity\'s signed is warned, a value outside its enum too', () => {
-    // walk_to_tile_direct(signed temp[0], 5, 6): entity, x, y.
+    // walk_to_tile_direct(signed temp[0], (5, 6)): entity, (x, y).
     const w = V.printed(decode([0x6e, 0x8d, 0x00, 0x00, 0x05, 0x06]));
-    assert.strictEqual(w.text, 'walk_to_tile_direct(signed temp[0], 0x05, 0x06);');
+    assert.strictEqual(w.text, 'walk_to_tile_direct(signed temp[0], (0x05, 0x06));');
     assert.deepStrictEqual(w.marks.map((m) => [m.find, /entity/.test(m.message)]), [['signed', true]]);
     assert.deepStrictEqual(V.parameters(0x6e).map((p) => p.name + ':' + p.type), ['entity:entity', 'x:u8', 'y:u8']);
     assert.strictEqual(V.parameters(0x5d)[0].type, 'object_index');
@@ -308,6 +308,58 @@ test('segmented animation scripts (opcode 0x57) resolve character segment sprite
 test('names.json maps Salabog entity pointer $7E:24E5', () => {
     const names = require('../../dist/games/evermore/script-model/names.json');
     assert.strictEqual(names.ram['9445'], 'SALABOG ENTITY ($24e5)');
+});
+
+test('syntax: currency enum, pacified boolean, volume percentage, restore_object_state and pairs', () => {
+    const loc = require('../../dist/games/evermore/localizations');
+    const printNames = M.printNames(loc);
+
+    // (Byte)CURRENCY_CURRENT = CREDITS: write_byte $2348 (0x10), value 9 (0xb9)
+    const insCurr = decode([0x10, 0xf0, 0x00, 0xb9]);
+    assert.strictEqual(V.text(insCurr, printNames), '(Byte)CURRENCY_CURRENT = CREDITS;');
+    const currRefs = M.iconRefs(insCurr, printNames);
+    assert.deepStrictEqual(currRefs.map((r) => r.key), ['currency:3']);
+
+    // PACIFIED = False: write_byte $23bf (0x10), value 0 (0xb0)
+    const insPac = decode([0x10, 0x67, 0x01, 0xb0]);
+    assert.strictEqual(V.text(insPac, printNames), '(Byte)PACIFIED = False;');
+
+    // cast(signed arg[0], ATLAS, 0x96, [boy(), 0]): opcode 0xac
+    const insCast = decode([0xac, 0x92, 0x00, 0xb2, 0x84, 0x96, 0x00, 0xd0, 0xb0]);
+    assert.strictEqual(V.text(insCast, printNames), 'cast(signed arg[0], ATLAS, 0x96, [boy(), 0]);');
+    const castRefs = M.iconRefs(insCast, printNames);
+    assert.deepStrictEqual(castRefs.map((r) => r.key), ['alchemy:2']);
+
+    // object[5] = 1: opcode 0x5c object=5, state=1 -> emits state 0 preview on object[5] and state 1 preview on 1
+    const insObj = decode([0x5c, 0xb5, 0xb1]);
+    assert.strictEqual(V.text(insObj, printNames), 'object[5] = 1;');
+    const objRefs = M.iconRefs(insObj, printNames);
+    assert.deepStrictEqual(objRefs.map((r) => r.key), ['object:5:0', 'object:5:1']);
+
+    // music_volume(100%): opcode 0x86, 255 -> 100%
+    const insVol = decode([0x86, 0x82, 0xff]);
+    assert.strictEqual(V.text(insVol, printNames), 'music_volume(100%);');
+
+    // restore_object_state(3, <0x22a4, 0x08>): opcode 0x5d, object 3, flag bit index 0x0263
+    const insRest = decode([0x5d, 0xb3, 0x63, 0x02]);
+    assert.strictEqual(V.text(insRest, {}), 'restore_object_state(3, <0x22a4, 0x08>);');
+    assert.strictEqual(V.text(insRest, printNames), 'restore_object_state(3, SNIFFED_WATER_IN_MAMMOTH_GRAVEYARD_3);');
+
+    // spawn coordinate pair: opcode 0xba (spawn), index 33 (FRIPPO), x=39, y=27
+    const insSpawn = decode([0xba, 33, 39, 27]);
+    assert.strictEqual(V.text(insSpawn, printNames), 'spawn(FRIPPO, (39, 27));');
+
+    // callLayout: async thread blocks get gutter vertical nesting bar lines just like calls
+    const vm = require('vm');
+    const fs = require('fs');
+    const listingCode = fs.readFileSync('dist/webview/scripts-listing.js', 'utf8');
+    const ctx = {};
+    vm.runInNewContext(listingCode, ctx);
+    const { callLayout } = ctx.ScriptsListing;
+    const blocks = [{ id: 0, parent: -1, kind: 'thread', target: 0x9b8995, role: null }];
+    const lines = [{ in: -1, opens: 0 }, { in: 0 }];
+    const layout = callLayout(lines, blocks, () => 0);
+    assert.deepStrictEqual(JSON.parse(JSON.stringify(layout)), [{ text: 8, bars: [] }, { text: 20, bars: [8] }]);
 });
 
 console.log(`\nscript-vm units: ${passed} passed, ${failed} failed`);

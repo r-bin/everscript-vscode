@@ -365,7 +365,9 @@
   "11567225": "Rando Jukebox 2",
   "11567236": "Rando Jukebox 3",
   "11567249": "Rando Jukebox impl",
-  "11635025": "Added gourdomizer drops"
+  "11635025": "Added gourdomizer drops",
+  "9623785": "Set weapon palette",
+  "9623807": "Set dog palette"
  },
  "globalScripts": {
   "0": "Fade-out / stop music",

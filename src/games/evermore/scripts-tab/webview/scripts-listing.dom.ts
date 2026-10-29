@@ -84,7 +84,7 @@ export function withIcons(html: string, refs: IconRef[], icons: Record<string, s
         const now = r.live ? live[r.live] : undefined;
         const key = now || roomKey(r.key, room);
         const halves = key.startsWith('split:') ? key.slice(6).split('|').map((k) => icons[roomKey(k, room)]) : null;
-        const uri = halves ? null : icons[key], emoji = EMOJI[key];
+        const uri = halves ? null : icons[key], emoji = EMOJI[key] || (key.startsWith('alchemy:') ? '⚗' : undefined);
         if (!uri && !emoji && !(halves && halves.every(Boolean))) continue;
         let end = -1;
         for (let from = 0; ; from = end) {
@@ -223,16 +223,16 @@ export function liveness(lines: Line[], mine: Record<number, 1> | null, any: Rec
 const STEP = 12;
 const INDENT = 14, LEFT = 8;
 
-/** The calls a line sits in, innermost first, up to the thread it runs in. */
+/** The calls and threads a line sits in, innermost first, up to the top level. */
 function callsAround(line: Line, blocks: Block[]): number[] {
     const out: number[] = [];
-    for (let b = line.in; b >= 0 && blocks[b].kind === 'call'; b = blocks[b].parent) out.push(b);
+    for (let b = line.in; b >= 0 && (blocks[b].kind === 'call' || blocks[b].kind === 'thread'); b = blocks[b].parent) out.push(b);
     return out;
 }
 
 /**
- * Each line's layout in px: `text` where its text starts, `bars` one per call it sits in, each at
- * its call line's column (where the fold arrow is). A bar stays put while the body's own ifs
+ * Each line's layout in px: `text` where its text starts, `bars` one per call or thread it sits in, each at
+ * its call or thread line's column (where the fold arrow is). A bar stays put while the body's own ifs
  * indent the text behind it. `indentOf`: the structured or the flat indent.
  */
 export function callLayout(lines: Line[], blocks: Block[], indentOf: (l: Line) => number): Array<{ text: number; bars: number[] }> {
@@ -240,7 +240,7 @@ export function callLayout(lines: Line[], blocks: Block[], indentOf: (l: Line) =
     return lines.map((l) => {
         const calls = callsAround(l, blocks);
         const text = LEFT + indentOf(l) * INDENT + calls.length * STEP;
-        if (l.opens != null && blocks[l.opens].kind === 'call') column.set(l.opens, text);
+        if (l.opens != null && (blocks[l.opens].kind === 'call' || blocks[l.opens].kind === 'thread')) column.set(l.opens, text);
         return { text, bars: calls.map((b) => column.get(b) ?? LEFT).reverse() };
     });
 }
