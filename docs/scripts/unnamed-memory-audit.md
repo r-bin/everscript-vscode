@@ -171,15 +171,15 @@ Each row gives raw operand occurrences, masks observed (`plain` means no bit mas
 | `2357` | 20 | `plain` | `06 55 56` | Save RAM (script state) |
 | `2358` | 28 | `plain` | `06 55 56` | Save RAM (script state) |
 | `2365` | 5 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: dialogue number param) |
-| `2369` | 16 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: dialogue number param) |
-| `236B` | 9 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: dialogue number param) |
+| `2369` | 16 | `plain` | `0A` | Save RAM (`MARKET_RELIC_PRICE_SURCHARGE`: escalating relic price markup) |
+| `236B` | 9 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: `MARKET_ENTRANCE_ENCOUNTER_TYPE` variant 0..3) |
 | `236D` | 7 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: dialogue number param) |
 | `236F` | 7 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: dialogue number param) |
 | `2371` | 7 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: dialogue number param) |
 | `2373` | 4 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: dialogue number param) |
 | `2375` | 4 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: dialogue number param) |
 | `2377` | 4 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: dialogue number param) |
-| `2389` | 60 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: market transaction scratch) |
+| `2389` | 60 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: `MARKET_CRITTER_INTERACTION_FLAGS` entrance critter interaction state) |
 | `2397` | 4 | `plain` | `3E 7D` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
 | `2399` | 4 | `plain` | `3E 7D` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
 | `23B9` | 114 | `plain` | `00 0C 0D 1B 25 39 3A 42 43 44 45 47 49 4D 54 55 57 5D 5E 5F 62 68 7E` | ⚡ Scratch (candidate `<0x2834>`: `TARGET_X` waypoint) |
@@ -213,10 +213,10 @@ Each row gives raw operand occurrences, masks observed (`plain` means no bit mas
 | `2429` | 42 | `plain` | `59` | ⚡ Scratch (candidate `<0x2834>`: `ACTIVE_STEP_TRIGGER_SCRIPT_ID`) |
 | `243B` | 2 | `plain` | `4A 71` | ⚡ Scratch (candidate `<0x2834>`: sound command arg) |
 | `243D` | 16 | `plain` | `0A 7B` | ⚡ Scratch (candidate `<0x2834>`: `EQUIPMENT_GRANT_COMMAND`) |
-| `243F` | 10 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: dialogue staging) |
+| `243F` | 10 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: `EQUIPMENT_TAKE_COMMAND` one-shot equipment revoke ID) |
 | `244D` | 4 | `plain` | `1D 4D` | ⚡ Scratch (candidate `<0x2834>`: temporary entity handle) |
-| `244F` | 26 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: market loop counter) |
-| `2451` | 3 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: market loop counter) |
+| `244F` | 26 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: `MARKET_PEDDLER_STAGE` peddler dialogue stage 0..19) |
+| `2451` | 3 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: `MARKET_PEDDLER_TALK_COUNT` peddler interaction count) |
 | `245B` | 7 | `plain` | `01 51` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
 | `245D` | 16 | `plain` | `69` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
 | `245F` | 2 | `plain` | `25` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
@@ -238,8 +238,8 @@ Each row gives raw operand occurrences, masks observed (`plain` means no bit mas
 | `2491` | 37 | `plain` | `59` | ⚡ Scratch (candidate `<0x2834>`: desert minigame loop register) |
 | `2493` | 8 | `plain` | `1B 55` | ⚡ Scratch (candidate `<0x2834>`: lift waypoint staging) |
 | `2495` | 8 | `plain` | `1B 55` | ⚡ Scratch (candidate `<0x2834>`: lift waypoint staging) |
-| `2497` | 65 | `plain` | `16` | ⚡ Scratch (candidate `<0x2834>`: async animation timing arg) |
-| `2499` | 65 | `plain` | `16` | ⚡ Scratch (candidate `<0x2834>`: async animation timing arg) |
+| `2497` | 65 | `plain` | `16` | ⚡ Scratch (candidate `<0x2834>`: `TARGET_WAYPOINT_X` waypoint destination X) |
+| `2499` | 65 | `plain` | `16` | ⚡ Scratch (candidate `<0x2834>`: `TARGET_WAYPOINT_Y` waypoint destination Y) |
 | `249B` | 7 | `plain` | `18` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
 | `249D` | 222 | `plain` | `05 06 12 13 39 3A 48 54 57 6B` | ⚡ Scratch (candidate `<0x2834>`: `TRANSIT_ORIGIN_X`) |
 | `249F` | 369 | `plain` | `05 06 12 13 39 3A 48 54 57 6B` | ⚡ Scratch (candidate `<0x2834>`: `TRANSIT_ORIGIN_Y`) |
@@ -270,17 +270,17 @@ Each row gives raw operand occurrences, masks observed (`plain` means no bit mas
 | `24F3` | 10 | `plain` | `37` | ⚡ Scratch (candidate `<0x2834>`: tower lift waypoint) |
 | `24F5` | 12 | `plain` | `37` | ⚡ Scratch (candidate `<0x2834>`: tower lift waypoint) |
 | `24F7` | 8 | `plain` | `1F 20 21 22` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
-| `24F9` | 53 | `plain` | `48` | ⚡ Scratch (candidate `<0x2834>`: Metroplex tunnel scratch) |
-| `24FB` | 14 | `plain` | `48` | ⚡ Scratch (candidate `<0x2834>`: Metroplex tunnel scratch) |
+| `24F9` | 53 | `plain` | `48` | ⚡ Scratch (candidate `<0x2834>`: `DUCT_ENTRANCE_GRATE_OBJECT` Omnitopia grate ID) |
+| `24FB` | 14 | `plain` | `48` | ⚡ Scratch (candidate `<0x2834>`: `DUCT_EXIT_GRATE_OBJECT` Omnitopia grate ID) |
 | `24FD` | 15 | `plain` | `00 42 43 44 46 47 48 49 54 7E` | ⚡ Scratch (candidate `<0x2834>`: room transition scratch) |
 | `24FF` | 6 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
 | `2501` | 6 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
 | `2503` | 6 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
 | `2505` | 6 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
-| `2513` | 4 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
-| `2515` | 4 | `plain` | `08` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
+| `2513` | 4 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: `MARKET_TIMER_START_FRAME` 15-min timer timestamp) |
+| `2515` | 4 | `plain` | `08` | ⚡ Scratch (candidate `<0x2834>`: `MARKET_TIMER_MINUTES_REMAINING` countdown 15..1) |
 | `2545` | 36 | `plain` | `04 36 39 3A 46 54` | ⚡ Scratch (candidate `<0x2834>`: `DIALOGUE_SELECTION`) |
-| `254D` | 1 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
+| `254D` | 1 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: `MARKET_PEDDLER_COOLDOWN_START_FRAME` peddler cooldown start) |
 | `254F` | 4 | `plain` | `25` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
 | `2551` | 12 | `plain` | `0C 54 7D` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
 

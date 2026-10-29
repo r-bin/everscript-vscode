@@ -2378,6 +2378,36 @@
         "comment": "Omnitopia duct crawl exit animation and latch clear"
       },
       {
+        "name": "MARKET_PEDDLER_DISPATCH_DIALOGUE",
+        "value": "0x96ad2a",
+        "comment": "Nobilia Market entrance peddler dialogue dispatcher (stages 0..19)"
+      },
+      {
+        "name": "CRITTER_EXPLOSION_EFFECT",
+        "value": "0x96b07e",
+        "comment": "Nobilia Market exploding critter knockback, screenshake, and damage"
+      },
+      {
+        "name": "MARKET_VENDOR_CLOSED_DIALOGUE",
+        "value": "0x968088",
+        "comment": "Nobilia Market vendor closed dialogue after market timer expiration"
+      },
+      {
+        "name": "BUGMUCK_PIT_DROP_VERTICAL",
+        "value": "0x93bc03",
+        "comment": "Bugmuck shaft vertical fall transition"
+      },
+      {
+        "name": "BUGMUCK_PIT_DROP_RIGHT",
+        "value": "0x93bb91",
+        "comment": "Bugmuck shaft diagonal right fall transition"
+      },
+      {
+        "name": "BUGMUCK_PIT_DROP_LEFT",
+        "value": "0x93bc6a",
+        "comment": "Bugmuck shaft diagonal left fall transition"
+      },
+      {
         "name": "RAISE_CURRENT_WEAPON",
         "value": "0x92bf33",
         "comment": ""
@@ -4470,6 +4500,56 @@
         "comment": "Omnitopia ventilation duct exit grate object ID"
       },
       {
+        "name": "EQUIPMENT_GRANT_COMMAND",
+        "value": "<0x243d>",
+        "comment": "one-shot equipment item grant ID executed by func_CF9210"
+      },
+      {
+        "name": "EQUIPMENT_TAKE_COMMAND",
+        "value": "<0x243f>",
+        "comment": "one-shot equipment item revoke/take ID executed by func_CF9210"
+      },
+      {
+        "name": "MARKET_PEDDLER_STAGE",
+        "value": "<0x244f>",
+        "comment": "Nobilia Market entrance peddler dialogue stage index (0..19)"
+      },
+      {
+        "name": "MARKET_PEDDLER_TALK_COUNT",
+        "value": "<0x2451>",
+        "comment": "Nobilia Market entrance peddler total interaction counter"
+      },
+      {
+        "name": "MARKET_ENTRANCE_ENCOUNTER_TYPE",
+        "value": "(Byte) <0x236b>",
+        "comment": "Nobilia Market entrance random encounter variant (0..3)"
+      },
+      {
+        "name": "MARKET_CRITTER_INTERACTION_FLAGS",
+        "value": "<0x2389>",
+        "comment": "Nobilia Market entrance critter interaction state flags"
+      },
+      {
+        "name": "MARKET_PEDDLER_COOLDOWN_START_FRAME",
+        "value": "<0x254d>",
+        "comment": "Nobilia Market entrance peddler cooldown start timestamp (frame counter low)"
+      },
+      {
+        "name": "MARKET_RELIC_PRICE_SURCHARGE",
+        "value": "<0x2369>",
+        "comment": "Nobilia Market relic vendor escalating price markup in Talons"
+      },
+      {
+        "name": "TARGET_WAYPOINT_X",
+        "value": "<0x2497>",
+        "comment": "generic target waypoint X coordinate in room pixels"
+      },
+      {
+        "name": "TARGET_WAYPOINT_Y",
+        "value": "<0x2499>",
+        "comment": "generic target waypoint Y coordinate in room pixels"
+      },
+      {
         "name": "WAX",
         "value": "(Byte) <0x22ff>",
         "comment": ""
@@ -5630,6 +5710,16 @@
         "name": "OMNITOPIA_DUCT_EXIT_ARRIVAL",
         "value": "<0x22f8, 0x04>",
         "comment": "Omnitopia duct exit arrival flag tested by room enter scripts"
+      },
+      {
+        "name": "MARKET_RELIC_TRADED_RUBY_HEART",
+        "value": "<0x2263, 0x40>",
+        "comment": "Nobilia Market relic vendor holds Ruby Heart (1) vs Moxa Stick (0)"
+      },
+      {
+        "name": "CASTLE_DOORWAY_ARRIVAL",
+        "value": "<0x22ec, 0x10>",
+        "comment": "interior castle doorway arrival flag tested by room enter scripts"
       }
     ],
     "CUSTOM_MEMORY": [
@@ -7070,6 +7160,11 @@
         "name": "PURCHASE",
         "value": "0x40",
         "comment": "crash: MYSTERY"
+      },
+      {
+        "name": "DOOR_CLOSE",
+        "value": "0x42",
+        "comment": "door closing, latching shut, or slamming"
       },
       {
         "name": "CLICK_3",
