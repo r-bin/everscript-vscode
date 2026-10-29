@@ -27,3 +27,4 @@ Node 26 runs the `.mts` files directly. Tools find a ROM through the ROM library
 | `gen-sound-animations.js` | Writes `localizations/data/sound-animations.json` | after changing the animation catalogue |
 | `measure-collision.js` | How well a tile predicts its collision (the editor's suggestion) | `npm run check:collision` |
 | `build_snes_core.sh` | Builds the snes9x cores with Emscripten | `npm run build:cores` |
+| `unnamed-script-resources.mts` | Extracts calls, memory, flags, animations, sounds, and music without localized names/enums | `npm run report:unnamed-resources` |
