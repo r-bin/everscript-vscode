@@ -26,6 +26,8 @@ export interface IconRef {
     key: string;
     /** The printed token the picture follows, and what follows it in the text (`()` after a sub-op). */
     find: string;
+    /** Search for find starting after this marker in the line (e.g. '=' in an assignment). */
+    after?: string;
     tail?: string;
     title?: string;
     /** The picture goes after the bracket that follows `find` (`object[x]`: after the whole object). */
@@ -159,14 +161,15 @@ export function iconRefs(ins: Instruction, names: Names, ctx: Context = fresh())
                 });
             }
         }
-        if (params[i]?.enum === 'ALCHEMY_INDEX') {
+        if (params[i]?.enum === 'ALCHEMY_INDEX' || params[i]?.enum === 'CAST') {
             const v = n.k === 'const' ? n.value : evaluate(n, (a) => ctx.known[a] ?? null);
             if (v !== null) {
-                const aname = names.constant?.('ALCHEMY_INDEX', v) || (names.decimal ? String(v) : constText(v));
+                const ename = params[i]!.enum!;
+                const aname = names.constant?.(ename, v) || (names.decimal ? String(v) : constText(v));
                 out.push({
-                    key: `alchemy:${v}`,
+                    key: `${ename === 'CAST' ? 'cast' : 'alchemy'}:${v}`,
                     find: aname,
-                    title: names.constant?.('ALCHEMY_INDEX', v)?.toLowerCase() ?? 'alchemy',
+                    title: names.constant?.(ename, v)?.toLowerCase() ?? 'alchemy',
                 });
             }
         }
@@ -176,12 +179,14 @@ export function iconRefs(ins: Instruction, names: Names, ctx: Context = fresh())
             const objId = objNode?.k === 'const' ? objNode.value : objNode ? evaluate(objNode, (a) => ctx.known[a] ?? null) : null;
             const stVal = n.k === 'const' ? n.value : evaluate(n, (a) => ctx.known[a] ?? null);
             if (objId !== null && stVal !== null) {
-                const clamped = stVal & 0x80 ? 0 : stVal & 0x7fff;
+                const isLast = (stVal & 0x7fff) === 0x7e || (stVal & 0x7fff) === 0x7f;
+                const clamped = isLast ? 'last' : (stVal & 0x80 ? 0 : stVal & 0x7fff);
                 const stName = names.constant?.('OBJECT_STATE', stVal) || (names.decimal ? String(stVal) : constText(stVal));
                 out.push({
                     key: `object:${objId}:${clamped}`,
                     find: stName,
-                    title: `object ${objId}, ${stateText(clamped)}`,
+                    after: '=',
+                    title: `object ${objId}, ${stateText(stVal)}`,
                 });
             }
         }

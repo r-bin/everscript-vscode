@@ -41,7 +41,7 @@ const EMOJI: Record<string, string> = {
     'enemy:44': '🐸',
 };
 
-interface IconRef { key: string; find: string; tail?: string; title?: string; group?: boolean; live?: string }
+interface IconRef { key: string; find: string; after?: string; tail?: string; title?: string; group?: boolean; live?: string }
 /** What the running game says (host `scriptsLive`): each `live` id → the object key it names now, null when unread. */
 export type Live = Record<string, string | null>;
 
@@ -84,10 +84,15 @@ export function withIcons(html: string, refs: IconRef[], icons: Record<string, s
         const now = r.live ? live[r.live] : undefined;
         const key = now || roomKey(r.key, room);
         const halves = key.startsWith('split:') ? key.slice(6).split('|').map((k) => icons[roomKey(k, room)]) : null;
-        const uri = halves ? null : icons[key], emoji = EMOJI[key] || (key.startsWith('alchemy:') ? '⚗' : undefined);
+        const uri = halves ? null : icons[key], emoji = EMOJI[key] || (key.startsWith('alchemy:') || key.startsWith('cast:') ? '⚗' : undefined);
         if (!uri && !emoji && !(halves && halves.every(Boolean))) continue;
         let end = -1;
-        for (let from = 0; ; from = end) {
+        let initialFrom = 0;
+        if (r.after) {
+            const at = out.indexOf(r.after);
+            if (at >= 0) initialFrom = at + r.after.length;
+        }
+        for (let from = initialFrom; ; from = end) {
             end = placeAfter(out, r.find, r.tail ?? '', !!r.group, from);
             if (end < 0 || !used.includes(end)) break;
         }
@@ -211,6 +216,43 @@ export function liveness(lines: Line[], mine: Record<number, 1> | null, any: Rec
         if (mine && !mine[l.addressSnes]) return any[l.addressSnes] ? 'off' : 'dead';
         return off.has(i) ? 'off' : '';
     });
+
+    // Propagate deadness from dead calls and dead async triggers into their blocks
+    const deadBlocks = new Map<number, 'off' | 'dead'>();
+    for (let i = 0; i < lines.length; i++) {
+        const l = lines[i];
+        if (deadBlocks.has(l.in)) {
+            const reason = deadBlocks.get(l.in)!;
+            if (out[i] !== 'dead') out[i] = reason;
+        }
+        if (l.opens != null) {
+            if (!l.note) {
+                // Call instruction: if the call itself is dead, the called block is dead
+                const st = out[i];
+                if (st === 'off' || st === 'dead') {
+                    deadBlocks.set(l.opens, st);
+                }
+            } else {
+                // Thread header: runs alongside or after if the trigger & starter were live
+                let prev = i - 1;
+                while (prev >= 0 && !isInstruction(lines[prev])) prev--;
+                const prevDead = prev >= 0 && (out[prev] === 'off' || out[prev] === 'dead') ? out[prev] : null;
+                let startDead: 'off' | 'dead' | null = null;
+                const m = /\((?:started at|at) \$([0-9a-f]+)\)/i.exec(l.summary);
+                if (m) {
+                    const addr = parseInt(m[1], 16);
+                    const sIdx = lines.findIndex((line) => isInstruction(line) && line.addressSnes === addr);
+                    if (sIdx >= 0 && (out[sIdx] === 'off' || out[sIdx] === 'dead')) startDead = out[sIdx];
+                }
+                if (prevDead || startDead) {
+                    const reason: 'off' | 'dead' = (prevDead === 'dead' || startDead === 'dead') ? 'dead' : 'off';
+                    out[i] = reason;
+                    deadBlocks.set(l.opens, reason);
+                }
+            }
+        }
+    }
+
     for (let i = lines.length - 1; i >= 0; i--) {
         if (!isInstruction(lines[i]) || !/^\} else/.test(lines[i].summary)) continue;
         const next = lines.findIndex((l, j) => j > i && isInstruction(l));

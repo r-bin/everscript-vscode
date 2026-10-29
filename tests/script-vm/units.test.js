@@ -324,17 +324,35 @@ test('syntax: currency enum, pacified boolean, volume percentage, restore_object
     const insPac = decode([0x10, 0x67, 0x01, 0xb0]);
     assert.strictEqual(V.text(insPac, printNames), '(Byte)PACIFIED = False;');
 
-    // cast(signed arg[0], ATLAS, 0x96, [boy(), 0]): opcode 0xac
+    // cast(signed arg[0], FLASH, 0x96, [boy(), 0]): opcode 0xac with spell index 2 (FLASH in CAST enum)
     const insCast = decode([0xac, 0x92, 0x00, 0xb2, 0x84, 0x96, 0x00, 0xd0, 0xb0]);
-    assert.strictEqual(V.text(insCast, printNames), 'cast(signed arg[0], ATLAS, 0x96, [boy(), 0]);');
+    assert.strictEqual(V.text(insCast, printNames), 'cast(signed arg[0], FLASH, 0x96, [boy(), 0]);');
     const castRefs = M.iconRefs(insCast, printNames);
-    assert.deepStrictEqual(castRefs.map((r) => r.key), ['alchemy:2']);
+    assert.deepStrictEqual(castRefs.map((r) => r.key), ['cast:2']);
 
-    // object[5] = 1: opcode 0x5c object=5, state=1 -> emits state 0 preview on object[5] and state 1 preview on 1
+    // cast(signed arg[0], CORROSION, ...): opcode 0xac with 0x10 (CORROSION)
+    const insCorrosion = decode([0xac, 0x92, 0x00, 0x82, 0x10, 0x84, 26, 0x00, 0xd0, 0xb0]);
+    assert.strictEqual(V.text(insCorrosion, printNames), 'cast(signed arg[0], CORROSION, 0x1a, [boy(), 0]);');
+    const corrRefs = M.iconRefs(insCorrosion, printNames);
+    assert.deepStrictEqual(corrRefs.map((r) => r.key), ['cast:16']);
+
+    // object[5] = 1: opcode 0x5c object=5, state=1 -> emits state 0 preview on object[5] and state 1 preview on 1 after '='
     const insObj = decode([0x5c, 0xb5, 0xb1]);
     assert.strictEqual(V.text(insObj, printNames), 'object[5] = 1;');
     const objRefs = M.iconRefs(insObj, printNames);
-    assert.deepStrictEqual(objRefs.map((r) => r.key), ['object:5:0', 'object:5:1']);
+    assert.deepStrictEqual(objRefs.map((r) => ({ key: r.key, after: r.after })), [
+        { key: 'object:5:0', after: undefined },
+        { key: 'object:5:1', after: '=' },
+    ]);
+
+    // object[0] = LAST: opcode 0x5c object=0, state=0x7e (LAST) -> emits object:0:last after '='
+    const insObjLast = decode([0x5c, 0xb0, 0x82, 0x7e]);
+    assert.strictEqual(V.text(insObjLast, printNames), 'object[0] = LAST;');
+    const objLastRefs = M.iconRefs(insObjLast, printNames);
+    assert.deepStrictEqual(objLastRefs.map((r) => ({ key: r.key, find: r.find, after: r.after })), [
+        { key: 'object:0:0', find: 'object', after: undefined },
+        { key: 'object:0:last', find: 'LAST', after: '=' },
+    ]);
 
     // music_volume(100%): opcode 0x86, 255 -> 100%
     const insVol = decode([0x86, 0x82, 0xff]);
@@ -393,6 +411,59 @@ test('entry state: DEBUG=0 flag exposed and togglable', () => {
     assert.strictEqual(liveWhenFalse[1], 'off', 'body ruled out when DEBUG = 0');
     const liveWhenTrue = liveness(lines, null, {}, { DEBUG: true });
     assert.strictEqual(liveWhenTrue[1], '', 'body live when DEBUG = 1');
+});
+
+test('dead code propagation: dead calls and dead triggers propagate to their blocks', () => {
+    const vm = require('vm');
+    const fs = require('fs');
+    const listingCode = fs.readFileSync('dist/webview/scripts-listing.js', 'utf8');
+    const ctx = {};
+    vm.runInNewContext(listingCode, ctx);
+    const { liveness } = ctx.ScriptsListing;
+
+    // Call block 0 is called by line 1, which is dead ('off' because mine doesn't reach it)
+    const callLines = [
+        { addressSnes: 0x980000, summary: 'return;', in: -1, thread: -1 },
+        { addressSnes: 0x980002, summary: 'call $92:de75;', in: -1, thread: -1, opens: 0 },
+        { addressSnes: 0x92de75, summary: 'attach_script(DROP_HOOK, B, LOOT_DUST_REWARD);', in: 0, thread: -1 },
+        { addressSnes: 0x92de7b, summary: 'return;', in: 0, thread: -1 },
+    ];
+    // mine reaches 0x980000 and 0x92de75 (because reached elsewhere), but NOT 0x980002
+    const mine = { 0x980000: 1, 0x92de75: 1, 0x92de7b: 1 };
+    const any = { 0x980000: 1, 0x980002: 1, 0x92de75: 1, 0x92de7b: 1 };
+    const liveCall = liveness(callLines, mine, any, null);
+    assert.strictEqual(liveCall[1], 'off', 'call instruction is off');
+    assert.strictEqual(liveCall[2], 'off', 'instruction in block 0 is off because call is off');
+    assert.strictEqual(liveCall[3], 'off', 'return in block 0 is off because call is off');
+
+    // Async thread block 1 started at 0x980010 and yielded at 0x980014 (which is off)
+    const asyncLines = [
+        { addressSnes: 0x980010, summary: 'async $98:e6a9;', in: -1, thread: -1 },
+        { addressSnes: 0x980014, summary: 'sleep(48);', in: -1, thread: -1 },
+        { addressSnes: 0x980010, summary: '∥ thread $98e6a9 runs alongside from here (started at $980010)', in: -1, thread: -1, note: true, opens: 1 },
+        { addressSnes: 0x98e6a9, summary: 'walk_to_tile_direct(temp.entity_1, (57, 38));', in: 1, thread: 1 },
+    ];
+    // mine has 0x98e6a9 (reached elsewhere), but 0x980010 and 0x980014 are off
+    const asyncMine = { 0x98e6a9: 1 };
+    const asyncAny = { 0x980010: 1, 0x980014: 1, 0x98e6a9: 1 };
+    const liveAsync = liveness(asyncLines, asyncMine, asyncAny, null);
+    assert.strictEqual(liveAsync[0], 'off', 'async start is off');
+    assert.strictEqual(liveAsync[1], 'off', 'sleep trigger is off');
+    assert.strictEqual(liveAsync[2], 'off', 'thread note is off');
+    assert.strictEqual(liveAsync[3], 'off', 'thread body is off');
+
+    // withIcons: object[1] = 1 places second preview strictly after '=', not inside [1]
+    const { withIcons } = ctx.ScriptsListing;
+    const html = 'object[1] = 1;';
+    const refs = [
+        { key: 'object:1:0', find: 'object', group: true },
+        { key: 'object:1:1', find: '1', after: '=' },
+    ];
+    const icons = { 'object:0:1:0': 'data:image/png;base64,A', 'object:0:1:1': 'data:image/png;base64,B' };
+    const rendered = withIcons(html, refs, icons, 0);
+    assert.ok(rendered.startsWith('object[1]<img'), 'first preview after object[1]');
+    assert.ok(rendered.includes('= 1<img'), 'second preview strictly after = 1');
+    assert.ok(!rendered.includes('object[1<img'), 'second preview is not inside [1]');
 });
 
 console.log(`\nscript-vm units: ${passed} passed, ${failed} failed`);

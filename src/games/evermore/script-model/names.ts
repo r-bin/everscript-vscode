@@ -155,7 +155,7 @@ function typedConstant(type: string, value: number): string {
         }
         return '';
     }
-    return constantName(type, value);
+    return constantName(type, value) || ownEnum(type)?.values.get(value) || '';
 }
 
 /**

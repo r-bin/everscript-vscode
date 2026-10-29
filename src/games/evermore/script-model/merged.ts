@@ -307,7 +307,7 @@ function mergeOnce(rom: ScriptRom, entry: number, names: Names, slices: Slice[] 
             if (ins.flow === 'call' && ins.target !== null && rom.contains(ins.target)) {
                 const b = open('call', ins, block);
                 lines[lines.length - 1].opens = b.id;
-                merge(b, ins.target, depth + 1, here, stack, waiting);
+                merge(b, ins.target, depth + 1, here, stack, []);
             }
             if (ins.flow === 'start' && ins.target !== null && rom.contains(ins.target)) waiting.push(ins);
             if (ins.flow === 'yield') join();
@@ -320,7 +320,7 @@ function mergeOnce(rom: ScriptRom, entry: number, names: Names, slices: Slice[] 
         if (stack.includes(target)) lines.push(note(target, depth, base, b.id, `↻ $${hex6(target)} is already running above: not merged again`));
         else if (lines.length > MAX_LINES) lines.push(note(target, depth, base, b.id, `… $${hex6(target)} not merged: the listing is long enough`));
         else body(target, depth, base, b.id, [...stack, target], waiting);
-        if (b.kind === 'thread') joinAtEnd(waiting, depth, base, b.id, stack);
+        if (b.kind === 'thread' || b.kind === 'call') joinAtEnd(waiting, depth, base, b.id, stack);
         b.size = lines.length - start;
     }
 

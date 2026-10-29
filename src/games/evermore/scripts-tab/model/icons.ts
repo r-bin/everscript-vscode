@@ -31,11 +31,37 @@ function character(rom: Uint8Array, record: number | null): string | null {
     return r ? maps.encodePngDataUri({ width: r.width, height: r.height, data: r.frames[0].data }) : null;
 }
 
+/** CAST opcode spell enum to alphabetical alchemy formula index (0..34). */
+const CAST_TO_FORMULA: Record<number, number> = {
+    0x00: 0,  // ACID_RAIN
+    0x02: 15, // FLASH
+    0x04: 5,  // CRUSH
+    0x06: 9,  // DRAIN
+    0x08: 8,  // DOUBLE_DRAIN
+    0x0a: 32, // STING
+    0x0c: 22, // LIGHTNING_STORM
+    0x0e: 12, // EXPLOSION
+    0x10: 4,  // CORROSION
+    0x12: 24, // NITRO
+    0x14: 33, // STOP
+    0x16: 13, // FIREBALL
+    0x1c: 18, // HEAL
+    0x20: 25, // ONE_UP
+    0x22: 30, // SLOW_BURN
+};
+
 /** Room object `index` (the script's numbering, `objectIndex`) in `state`. */
-function object(rom: Uint8Array, roomId: number, index: number, state: number): string | null {
+function object(rom: Uint8Array, roomId: number, index: number, state: number | string): string | null {
     const room = maps.decodeRoom(rom, roomId);
     const at = room.objects.findIndex((o) => o.objectIndex === index);
-    const img = maps.renderObjectState(rom, room, at >= 0 ? at : index, state);
+    const targetObj = at >= 0 ? room.objects[at] : room.objects[index];
+    let st = typeof state === 'string' && state !== 'last' ? Number(state) : state;
+    if (st === 'last' || st === 0x7e || st === 0x7f) {
+        st = targetObj ? targetObj.states.length : 0;
+    } else if (typeof st === 'number' && targetObj && st > targetObj.states.length) {
+        st = targetObj.states.length;
+    }
+    const img = maps.renderObjectState(rom, room, at >= 0 ? at : index, typeof st === 'number' ? st : 0);
     return img ? maps.encodePngDataUri(img) : null;
 }
 
@@ -62,17 +88,20 @@ function draw(rom: Uint8Array, roomId: number, key: string, { dogIcon = null, do
         if (kind === 'currency') return png(maps.currencyIcon(rom, v >= 0 && v < 4 ? v : Math.floor(v / 3)));
         if (kind === 'enemy') return character(rom, new ScriptRom(rom).enemyCharacter(v));
         if (kind === 'char') return character(rom, v);
-        if (kind === 'object') return object(rom, roomId, v, Number(extra));
+        if (kind === 'object') return object(rom, roomId, v, extra);
         if (kind === 'loot' || kind === 'weapon') {
             const id = kind === 'loot' ? maps.lootIconId(rom, v) : weaponIcon(v);
             const px = id === null ? null : maps.renderItemIcon(rom, id);
             return px ? maps.encodePngDataUri(px) : null;
         }
-        if (kind === 'alchemy') {
-            const formulaIdx = v % 2 === 0 && v < 70 ? v / 2 : v;
-            const id = maps.alchemyIconId(rom, formulaIdx);
-            const px = id === null ? null : maps.renderItemIcon(rom, id);
-            return px ? maps.encodePngDataUri(px) : null;
+        if (kind === 'alchemy' || kind === 'cast') {
+            const formulaIdx = kind === 'cast' ? CAST_TO_FORMULA[v] : (v % 2 === 0 && v < 70 ? v / 2 : v);
+            if (formulaIdx !== undefined && formulaIdx >= 0) {
+                const id = maps.alchemyIconId(rom, formulaIdx);
+                const px = id === null ? null : maps.renderItemIcon(rom, id);
+                return px ? maps.encodePngDataUri(px) : null;
+            }
+            return null;
         }
         if (kind === 'dog') return dogIcon ? dogIcon(rom, v) : null;
     } catch { /* a key the ROM cannot draw: no icon */ }
