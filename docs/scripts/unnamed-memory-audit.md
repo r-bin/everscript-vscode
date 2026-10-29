@@ -272,7 +272,7 @@ Each row gives raw operand occurrences, masks observed (`plain` means no bit mas
 | `24F7` | 8 | `plain` | `1F 20 21 22` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
 | `24F9` | 53 | `plain` | `48` | ⚡ Scratch (candidate `<0x2834>`: `DUCT_ENTRANCE_GRATE_OBJECT` Omnitopia grate ID) |
 | `24FB` | 14 | `plain` | `48` | ⚡ Scratch (candidate `<0x2834>`: `DUCT_EXIT_GRATE_OBJECT` Omnitopia grate ID) |
-| `24FD` | 15 | `plain` | `00 42 43 44 46 47 48 49 54 7E` | ⚡ Scratch (candidate `<0x2834>`: room transition scratch) |
+| `24FD` | 15 | `plain` | `00 42 43 44 46 47 48 49 54 7E` | ⚡ Scratch (candidate `<0x2834>`: `DUCT_ENTRANCE_SECTOR_ID` entrance portal index 1..17) |
 | `24FF` | 6 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
 | `2501` | 6 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
 | `2503` | 6 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |

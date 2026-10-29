@@ -2378,6 +2378,21 @@
         "comment": "Omnitopia duct crawl exit animation and latch clear"
       },
       {
+        "name": "OMNITOPIA_DUCT_SETUP_ENTRANCE",
+        "value": "0x9ad5c8",
+        "comment": "Omnitopia duct arrival portal waypoint dispatcher"
+      },
+      {
+        "name": "OMNITOPIA_SPAWN_GATE_BOTS",
+        "value": "0x9ad899",
+        "comment": "Omnitopia Metroplex security gate bot spawner"
+      },
+      {
+        "name": "OMNITOPIA_SETUP_GATE_BOT_INVINCIBILITY",
+        "value": "0x9ae4f6",
+        "comment": "Omnitopia active gate bot invincibility attributes"
+      },
+      {
         "name": "MARKET_PEDDLER_DISPATCH_DIALOGUE",
         "value": "0x96ad2a",
         "comment": "Nobilia Market entrance peddler dialogue dispatcher (stages 0..19)"
@@ -4498,6 +4513,11 @@
         "name": "DUCT_EXIT_GRATE_OBJECT",
         "value": "<0x24fb>",
         "comment": "Omnitopia ventilation duct exit grate object ID"
+      },
+      {
+        "name": "DUCT_ENTRANCE_SECTOR_ID",
+        "value": "<0x24fd>",
+        "comment": "Omnitopia ventilation duct entrance portal / sector index (1..17)"
       },
       {
         "name": "EQUIPMENT_GRANT_COMMAND",
