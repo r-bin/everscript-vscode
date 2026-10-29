@@ -39,13 +39,8 @@ typedef enum {
     APU_SEQ_PLAYING         = 0x0002  /* Sequence playing on SPC700 */
 } ApuSeqStatus;
 
-/* Room Transition Readiness State ($7E:22EA) */
-typedef enum {
-    ROOM_STATE_ACTIVE       = 0x0000, /* Normal gameplay frame processing */
-    ROOM_STATE_TEARDOWN     = 0x0001, /* Fade out and purge previous map buffers */
-    ROOM_STATE_DECOMPRESS   = 0x0002, /* LZSS decompressing metatile and script blocks */
-    ROOM_STATE_ENTER_READY  = 0x0003  /* Room initialized; enter scripts scheduled; fade in */
-} RoomLoadState;
+/* $7E:22EA and $7E:22EB are shared bitfields, not mutually exclusive enums.
+ * See shared-flags-22ea-22eb.md for the observed masks and access paths. */
 
 /* Dog AI Behavioral Command ($7E:235B) */
 typedef enum {
@@ -142,7 +137,8 @@ typedef enum {
 | `$7E:0B2B` | 2 bytes | `ChoiceBoxState`<br>`CHOICE_BOX_STATE` | `0` = Inactive<br>`1` = Opening<br>`2` = Active (awaiting joypad)<br>`3` = Confirmed | Dialogue engine choice selector (`func_CCB4E2`) |
 | `$7E:0B7B` | 2 bytes | `AudioFadeState`<br>`AUDIO_FADE_STATE` | `0` = Steady volume<br>`1` = Fade in<br>`2` = Fade out | `func_8C801F`, NMI audio service (`$80:830C`) |
 | `$7E:0E4F` | 2 bytes | `ApuSeqStatus`<br>`APU_SEQ_STATUS` | `0` = Idle<br>`1` = Streaming data<br>`2` = Playing | APU port communication driver (`func_8C81FD`) |
-| `$7E:22EA` | 2 bytes | `RoomLoadState`<br>`ROOM_LOAD_STATE` | `0` = Active frame<br>`1` = Teardown<br>`2` = Decompressing<br>`3` = Ready | `func_8EE4E2` (`enter_room`), main loop (`$80:8BB5`) |
+| `$7E:22EA` | 1 byte | `GameplayFlags`<br>`GAMEPLAY_FLAGS_22EA` | Bitfield: loot result, room-load readiness, intro/outro control, PPU layer latch; see linked bit table. | Loot globals, room pre-roll, opcodes `0x82`/`0x83` |
+| `$7E:22EB` | 1 byte | `RoomScriptFlags`<br>`ROOM_TRANSITION_AND_SCRIPT_FLAGS_22EB` | Bitfield: unresolved engine-control latches, default-room reload path, route and doorway handoffs, room-script flags; see linked bit table. | Main loop, room reset, transition globals, room scripts |
 | `$7E:2349` | 2 bytes | `BazookaAmmoType`<br>`EQUIPPED_BAZOOKA_AMMO`| `0` = Thunder Ball<br>`2` = Particle Bomb<br>`4` = Cryo-Blast | Ring menu ammo selector (`$8E:9200`) |
 | `$7E:235B` | 1 byte | `DogAiCommand`<br>`DOG_AI_COMMAND` | `0` = Follow<br>`1` = Heel<br>`2` = Sniff<br>`3` = Attack | Companion AI command parser (`func_CF803C`) |
 | `$7E:2360` | 2 bytes | `WeaponClass`<br>`EQUIPPED_WEAPON_CLASS`| `0` = Sword<br>`2` = Axe<br>`4` = Spear<br>`6` = Bazooka | Ring menu weapon selector (`func_8F9299`) |

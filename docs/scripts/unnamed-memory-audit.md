@@ -33,9 +33,9 @@ The first example in the request can be inspected at [room 07 step-on 0](soe://r
 
 | Address | Script use found | Other known use / status |
 |---|---|---|
-| `$7E:22EA` | Rooms `31` and `61` write/test bits `0x08`, `0x10`, and `0x20`. | Engine routines also use bits `0x08`–`0x20` as room-load readiness, and opcode handlers use bit `0x80`; loot logic uses bit `0x01`. The local RAM entry currently calls this `LOOT_FLAGS`, while engine docs call it system/room-load state. Treat as a shared or overlapping byte whose field/lifetime description needs reconciliation, not as system-exclusive. [Room 31](soe://rom/assets/scripts/rooms/31/enter.md) · [Room 61](soe://rom/assets/scripts/rooms/61/enter.md) · [RAM entry](../src/games/evermore/localizations/knowledge/ram/7e22ea.md) |
+| `$7E:22EA` | Rooms `31` and `61` write/test bits `0x08`, `0x10`, and `0x20`. | Engine routines also use bits `0x08`–`0x20` as room-load readiness, and opcode handlers use bit `0x80`; loot logic uses bit `0x01`. The local RAM entry currently calls this `LOOT_FLAGS`, while engine docs call it system/room-load state. Treat as a shared or overlapping byte whose field/lifetime description needs reconciliation, not as system-exclusive. [Room 31](soe://rom/assets/scripts/rooms/31/enter.md) · [Room 61](soe://rom/assets/scripts/rooms/61/enter.md) · [RAM entry](../../src/games/evermore/localizations/knowledge/ram/7e22ea.md) |
 | `$7E:22EB` | Raw script uses occur in 17 rooms, with masks `0x01`, `0x10`, `0x40`, and `0x80`; most writes are room transitions or room-specific branches. | Existing knowledge names it `ROOM_TRANSITION_FLAGS`; engine routines read/write it. The script inventory disproves any claim that scripts do not touch the byte, but exact per-bit ownership remains open. |
-| `$7E:22EC` | Raw script uses occur in 10 rooms, with masks `0x02`, `0x10`, and `0x40`. | Existing entry is `STORY_FLAGS_22EC`, but the engine map also describes a room-music transition role. Several bits are explicitly used by room scripts. The byte’s lifetime/meaning needs reconciliation. [RAM entry](../src/games/evermore/localizations/knowledge/ram/7e22ec.md) |
+| `$7E:22EC` | Raw script uses occur in 10 rooms, with masks `0x02`, `0x10`, and `0x40`. | Existing entry is `STORY_FLAGS_22EC`, but the engine map also describes a room-music transition role. Several bits are explicitly used by room scripts. The byte’s lifetime/meaning needs reconciliation. [RAM entry](../../src/games/evermore/localizations/knowledge/ram/7e22ec.md) |
 
 So, for the “is the whole byte only used by the system?” question: no, not for these examples. Script and engine use overlap at least on `$22EA`; `$22EB` and `$22EC` also have direct room-script accesses. The access inventory alone cannot prove the remaining bits are unused.
 
@@ -315,24 +315,24 @@ These are not direct WRAM addresses: the helper is named, but the flag IDs passe
 
 | Temporary byte | Mask | Uses | Reads | Writes | Rooms |
 |---:|---:|---:|---:|---:|---|
-| `0` | `01` | 211 | 147 | 64 | `00 07 0A 0B 16 18 1B 23 24 28 29 2D 37 43 44 48 49 52 54 55 58 5C 5D 5E 62 69 6C 6D 71 72 73 74 7D` |
-| `0` | `02` | 172 | 84 | 88 | `00 07 0A 16 18 1B 23 24 28 29 2D 46 48 49 54 55 58 5D 68 69 71 72 74 77` |
-| `0` | `04` | 75 | 33 | 42 | `00 07 16 18 1B 23 24 28 29 2D 45 46 48 49 55 58 5D 69 6C 71 72 77` |
-| `0` | `08` | 29 | 16 | 13 | `00 0A 1B 23 24 28 2D 48 55 58 71 72` |
-| `0` | `10` | 64 | 30 | 34 | `00 1B 23 24 28 2D 48 55 58 59 71 72 7E` |
-| `0` | `20` | 53 | 17 | 36 | `00 23 24 27 28 48 55 58 59 5C 71 72 7E` |
-| `0` | `40` | 31 | 14 | 17 | `00 23 24 28 55 58 59 71 7E` |
-| `0` | `80` | 29 | 14 | 15 | `23 28 48 55 58 59` |
-| `1` | `01` | 21 | 10 | 11 | `28 48 59 71` |
-| `1` | `02` | 20 | 10 | 10 | `00 28 48 59 71` |
-| `1` | `04` | 20 | 10 | 10 | `00 28 48 59 71` |
-| `1` | `08` | 15 | 7 | 8 | `00 28 59 71` |
-| `1` | `10` | 17 | 9 | 8 | `00 28 48 59 71` |
-| `1` | `20` | 21 | 10 | 11 | `28 48 59 71` |
-| `1` | `40` | 7 | 4 | 3 | `28 59 71` |
-| `1` | `80` | 10 | 5 | 5 | `28 59 71` |
-| `2` | `01` | 7 | 4 | 3 | `28 59 71` |
-| `2` | `02` | 10 | 5 | 5 | `28 59 71` |
+| `0` | `01` | 211 | 147 | 64 | `00, 07, 0A, 0B, 16, 18, 1B, 23, 24, 28, 29, 2D, 37, 43, 44, 48, 49, 52, 54, 55, 58, 5C, 5D, 5E, 62, 69, 6C, 6D, 71, 72, 73, 74, 7D` |
+| `0` | `02` | 172 | 84 | 88 | `00, 07, 0A, 16, 18, 1B, 23, 24, 28, 29, 2D, 46, 48, 49, 54, 55, 58, 5D, 68, 69, 71, 72, 74, 77` |
+| `0` | `04` | 75 | 33 | 42 | `00, 07, 16, 18, 1B, 23, 24, 28, 29, 2D, 45, 46, 48, 49, 55, 58, 5D, 69, 6C, 71, 72, 77` |
+| `0` | `08` | 29 | 16 | 13 | `00, 0A, 1B, 23, 24, 28, 2D, 48, 55, 58, 71, 72` |
+| `0` | `10` | 64 | 30 | 34 | `00, 1B, 23, 24, 28, 2D, 48, 55, 58, 59, 71, 72, 7E` |
+| `0` | `20` | 53 | 17 | 36 | `00, 23, 24, 27, 28, 48, 55, 58, 59, 5C, 71, 72, 7E` |
+| `0` | `40` | 31 | 14 | 17 | `00, 23, 24, 28, 55, 58, 59, 71, 7E` |
+| `0` | `80` | 29 | 14 | 15 | `23, 28, 48, 55, 58, 59` |
+| `1` | `01` | 21 | 10 | 11 | `28, 48, 59, 71` |
+| `1` | `02` | 20 | 10 | 10 | `00, 28, 48, 59, 71` |
+| `1` | `04` | 20 | 10 | 10 | `00, 28, 48, 59, 71` |
+| `1` | `08` | 15 | 7 | 8 | `00, 28, 59, 71` |
+| `1` | `10` | 17 | 9 | 8 | `00, 28, 48, 59, 71` |
+| `1` | `20` | 21 | 10 | 11 | `28, 48, 59, 71` |
+| `1` | `40` | 7 | 4 | 3 | `28, 59, 71` |
+| `1` | `80` | 10 | 5 | 5 | `28, 59, 71` |
+| `2` | `01` | 7 | 4 | 3 | `28, 59, 71` |
+| `2` | `02` | 10 | 5 | 5 | `28, 59, 71` |
 | `2` | `04` | 10 | 5 | 5 | `28 59 71` |
 | `2` | `08` | 12 | 5 | 7 | `28 59 71` |
 | `2` | `10` | 12 | 5 | 7 | `28 48 59` |

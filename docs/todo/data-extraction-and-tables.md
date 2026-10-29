@@ -110,3 +110,4 @@ From the CDL decompilation worklist (`soe://rom/code/todo.md`), following the re
 - [ ] **Search across All Datasets**: Global search filter in the rail column searching across all 40 tables and 40 enums simultaneously.
 - [ ] **Table Export**: One-click JSON / CSV export button for any decoded table for external romhacking tools and compiler verification.
 - [ ] **Multi-Variant Table View**: Toggle between US 1.0, PAL German, PAL French, and PAL Spanish offsets in the table detail view.
+

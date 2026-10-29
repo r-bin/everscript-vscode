@@ -21,7 +21,7 @@ interface If { kind: 'if'; a: number; thenEnd: number; cond: string; k?: number;
 interface Loop { kind: 'loop'; h: number; b: number; cond?: string; start: number; end: number }
 type Shape = If | Loop;
 
-/** The printer's conditional branch: `if (c) goto $bb:aaaa;` jumps when c holds, `if! (c) goto …` when it does not. */
+/** The printer's conditional branch: `if (c) goto $target;` jumps when c holds, `if! (c) goto …` when it does not. */
 const BRANCH = /^if(!?) \((.*)\) goto \$[0-9a-f]{2}:[0-9a-f]{4};$/;
 
 /** Rows for `list` (one script, in byte order); `texts` is each instruction as printed. */

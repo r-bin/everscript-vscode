@@ -16,6 +16,8 @@ extern uint16_t g_ppu_shadow_0106;  /* $7E:0106 */
 void validate_sram_slots(void);
 void apu_handshake_spinlock(uint16_t command);
 void enter_room(uint16_t room_id);
+void room_transition_audio_fadeout_and_dsp_reset(void);
+void clear_sprite_priority_buffers(void);
 void entity_physics_update(void);
 void screen_fade_driver(void);
 void script_vm_scheduler_run_turn(void);
@@ -23,6 +25,28 @@ void update_hud_and_rings(void);
 void audio_driver_update(void);
 void queue_vram_transfers(void);
 void post_vblank_frame_reset(void);
+
+static bool service_start_room_reload_request(void) {
+    if ((g_map_flags_22eb & 0x0004) == 0) {
+        return false;
+    }
+
+    do {
+        room_transition_audio_fadeout_and_dsp_reset(); /* $8E:E592 */
+        clear_sprite_priority_buffers();               /* $80:8CC9 */
+        g_current_room_id = *(const uint16_t *)0x928002;
+        enter_room(g_current_room_id);                 /* $8E:E4E2 */
+
+        if (g_map_flags_22eb & 0x0004) {
+            g_map_flags_22eb &= (uint16_t)~0x0004;
+            return true; /* $80:8C93 -> $80:8BB5 */
+        }
+
+        g_map_flags_22eb |= 0x0002; /* $80:8C96 */
+    } while ((g_system_flags_22ea & 0x0040) == 0); /* $80:8CA1 */
+
+    return false; /* $80:8CAA -> $80:8C02 */
+}
 
 void wait_for_frame(void) {
     uint16_t last_frame = g_frame_counter;
@@ -53,10 +77,8 @@ void main_loop_entry(void) {
         entity_physics_update(); /* $80:9685 */
         screen_fade_driver();     /* $8E:E08B */
 
-        /* Check if a room transition or teleport was requested */
-        if (g_map_flags_22eb & 0x0004) {
-            g_map_flags_22eb &= ~0x0004;
-            enter_room(g_current_room_id);
+        /* $80:8BF1 routes this request through the ROM's default-room path. */
+        if (service_start_room_reload_request()) {
             continue;
         }
 
