@@ -4220,6 +4220,26 @@
         "comment": ""
       },
       {
+        "name": "CAMERA_DEADZONE_LEFT",
+        "value": "<0x240f>",
+        "comment": "camera horizontal deadzone left margin in room pixels"
+      },
+      {
+        "name": "CAMERA_DEADZONE_RIGHT",
+        "value": "<0x2411>",
+        "comment": "camera horizontal deadzone right margin in room pixels"
+      },
+      {
+        "name": "CAMERA_DEADZONE_TOP",
+        "value": "<0x2413>",
+        "comment": "camera vertical deadzone top margin in room pixels"
+      },
+      {
+        "name": "CAMERA_DEADZONE_BOTTOM",
+        "value": "<0x2415>",
+        "comment": "camera vertical deadzone bottom margin in room pixels"
+      },
+      {
         "name": "CAMERA_PAN_X",
         "value": "<0x242b>",
         "comment": ""

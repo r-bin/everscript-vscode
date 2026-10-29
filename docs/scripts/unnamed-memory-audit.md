@@ -356,7 +356,13 @@ These are not direct WRAM addresses: the helper is named, but the flag IDs passe
 
 Only six raw-address hits have a matching per-address RAM knowledge file: `$2284` (`OMNITOPIA_CHESTS_A`), `$22EA` (`LOOT_FLAGS`), `$22EC` (`STORY_FLAGS_22EC`), `$241F` (`CAMERA_SCROLL_MODE`), `$2429` (`ACTIVE_STEP_TRIGGER_SCRIPT_ID`), and `$243D` (`EQUIPMENT_GRANT_COMMAND`). The first and last named fields still have raw script references and remain in the index. `$22EA` and `$22EC` have conflicting or incomplete descriptions noted above.
 
-Some plain operands have explanations in engine docs even without a dedicated RAM entry. In particular, `$240F`, `$2411`, `$2413`, and `$2415` are documented as camera deadzone margins; `$2421`–`$2425` are trigger interaction context; and `$243B` is used by the sound-command handler. These should be removed from the unresolved queue only after the current docs are checked against the exact script uses.
+Some plain operands had explanations in engine docs and have now been verified and promoted to full RAM knowledge entries and compiler enum constants:
+- `$7E:240F` (`CAMERA_DEADZONE_LEFT`): Horizontal deadzone left threshold margin.
+- `$7E:2411` (`CAMERA_DEADZONE_RIGHT`): Horizontal deadzone right threshold margin.
+- `$7E:2413` (`CAMERA_DEADZONE_TOP`): Vertical deadzone top threshold margin (used by 11 rooms to bias camera framing toward bosses or scenes).
+- `$7E:2415` (`CAMERA_DEADZONE_BOTTOM`): Vertical deadzone bottom threshold margin.
+
+Other operands noted in engine docs include `$2421`–`$2425` (trigger interaction context) and `$243B` (sound-command handler); these remain in the unresolved queue until checked against exact script uses.
 
 ## Follow-up Queue
 
