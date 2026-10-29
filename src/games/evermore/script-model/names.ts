@@ -208,9 +208,9 @@ export function displayNames(file: (bus: number) => number): Names {
 /** The names above, for script-vm's printer. `file` maps a bus address to a file offset. */
 export function printNames(file: (bus: number) => number): Names {
     return {
-        memory: (addr) => identifier(memoryName(addr)) || compilerMemory(addr),
+        memory: (addr) => identifier(memoryName(addr)) || compilerMemory(addr) || identifier(knowledge().ram.get(0x7e0000 | addr) ?? ''),
         flag: (addr, mask) => identifier(flagName(addr, bitOf(mask))),
-        script: (bus) => identifier(scriptName(file(bus))),
+        script: (bus) => constantName('ADDRESS', bus) || identifier(knowledge().rom.get(bus) ?? '') || identifier(scriptName(file(bus))),
         global: (id) => identifier(globalScriptName(id)) || constantName('ADDRESS_ID', id),
         map: (id) => mapName(id),
         value: (addr, v) => (BOOLEAN_CELLS.has(addr) ? (v === 0 ? 'False' : v === 1 ? 'True' : null) : null)

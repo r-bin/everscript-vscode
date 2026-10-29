@@ -2318,6 +2318,31 @@
         "comment": ""
       },
       {
+        "name": "ROOM_ENTER_EPILOGUE",
+        "value": "0x92de75",
+        "comment": "default room enter script epilogue (attaches loot dust hook and fades in)"
+      },
+      {
+        "name": "PIPE_FALL_TRAJECTORY",
+        "value": "0x94ac56",
+        "comment": "volcano pipe chute trajectory and gravity fall animation"
+      },
+      {
+        "name": "MARKET_DIALOGUE_NOT_ENOUGH_ITEMS",
+        "value": "0x92cdb3",
+        "comment": "market vendor dialogue: not enough items to trade"
+      },
+      {
+        "name": "MARKET_DIALOGUE_RECEIVED_ITEM",
+        "value": "0x92cdbe",
+        "comment": "market vendor dialogue: trade successful / item received"
+      },
+      {
+        "name": "MARKET_DIALOGUE_PRINT_COMMODITY_NAME",
+        "value": "0x92cdca",
+        "comment": "market vendor dialogue: print commodity item name by ID"
+      },
+      {
         "name": "RAISE_CURRENT_WEAPON",
         "value": "0x92bf33",
         "comment": ""
@@ -4323,6 +4348,51 @@
         "name": "TRANSIT_DEST_Y",
         "value": "<0x24a3>",
         "comment": "scripted lift / transit movement destination Y coordinate in world pixels"
+      },
+      {
+        "name": "TRAJECTORY_VY",
+        "value": "<0x24a7>",
+        "comment": "current vertical velocity / fall rate in subpixels (fixed point 12.4)"
+      },
+      {
+        "name": "TRAJECTORY_INITIAL_VY",
+        "value": "<0x24b3>",
+        "comment": "initial upward trajectory velocity / launch speed parameter"
+      },
+      {
+        "name": "TRAJECTORY_MAX_VY",
+        "value": "<0x24b5>",
+        "comment": "maximum downward trajectory velocity / terminal fall speed parameter"
+      },
+      {
+        "name": "TRAJECTORY_VX",
+        "value": "<0x24b7>",
+        "comment": "horizontal trajectory velocity / drift per frame in subpixels"
+      },
+      {
+        "name": "PIPE_DESTINATION_ID",
+        "value": "<0x24c3>",
+        "comment": "volcano pipe maze chute outlet index (1-10) for room transition"
+      },
+      {
+        "name": "MARKET_ITEM_ID",
+        "value": "<0x2463>",
+        "comment": "market commodity item index passed to market dialogue routines"
+      },
+      {
+        "name": "DIALOGUE_SELECTION",
+        "value": "<0x2545>",
+        "comment": "player menu choice index returned from lookup_034d"
+      },
+      {
+        "name": "TRIGGER_INTERACTION_X",
+        "value": "<0x2421>",
+        "comment": "trigger interaction entity X pixel position staged by engine"
+      },
+      {
+        "name": "TRIGGER_INTERACTION_Y",
+        "value": "<0x2423>",
+        "comment": "trigger interaction entity Y pixel position staged by engine"
       },
       {
         "name": "WAX",

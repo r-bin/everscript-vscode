@@ -39,204 +39,250 @@ The first example in the request can be inspected at [room 07 step-on 0](soe://r
 
 So, for the “is the whole byte only used by the system?” question: no, not for these examples. Script and engine use overlap at least on `$22EA`; `$22EB` and `$22EC` also have direct room-script accesses. The access inventory alone cannot prove the remaining bits are unused.
 
+## Scratch Memory Misallocated to Save RAM (Candidate `<0x2834>` Registers)
+
+In the Secret of Evermore engine, `$7E:2258`–`$7E:2833` forms the persistent save RAM block copied to/from SRAM (`$70:0000`). In contrast, `$7E:2834`–`$7E:28FB` (200 bytes) forms `COMPILER_TEMP` (`temp[0]`..`temp[99]`), which is wiped on every room load and serves as volatile thread scratchpad memory.
+
+During vanilla game development, script authors routinely placed temporary calculations, waypoint staging buffers, projectile/fall trajectory state, dialogue string parameter staging, and minigame loop counters into cells across `$7E:23xx`–`$7E:2551`. None of these cells carry any meaningful progression state across game saves or room changes. Writing them into persistent memory brings **no benefit**; it needlessly wastes space in the SRAM save area. In modern decompiled Everscript and room authoring, all of these should be allocated from `temp[]` (`<0x2834>`).
+
+### Volatile Scratch Categories
+
+1. **Script Target & Movement Waypoints:**
+   - `$7E:23B9` / `$7E:23BB` (`TARGET_X`, `TARGET_Y`): Staging destination coordinates for `walk_to()` or `teleport()`.
+   - `$7E:249D` / `$7E:249F` / `$7E:24A1` / `$7E:24A3` (`TRANSIT_ORIGIN_X/Y`, `TRANSIT_DEST_X/Y`): Lift and raft transit start and destination coordinates.
+   - `$7E:24AB` / `$7E:24AF` / `$7E:24AD` / `$7E:24B1` (`ACTIVE_CHAR_X/Y`, `INACTIVE_CHAR_X/Y`): Staged active/inactive party coordinates.
+   - `$7E:24CF`–`$7E:24D7`, `$7E:24D9`–`$7E:24DB`, `$7E:24EF`–`$7E:24F5`, `$7E:24F7`, `$7E:24FF`–`$7E:2505`: Cutscene and elevator waypoint scratchpads (e.g., Gomi's tower lift in R55).
+
+2. **Ballistics and Physics Simulation (Volcano Pipes & Fall Chutes):**
+   - `$7E:24A7` (`TRAJECTORY_VY`): In-flight vertical velocity in 12.4 fixed-point format.
+   - `$7E:24B3` (`TRAJECTORY_INITIAL_VY`): Initial upward launch speed parameter.
+   - `$7E:24B5` (`TRAJECTORY_MAX_VY`): Terminal downward fall speed threshold.
+   - `$7E:24B7` (`TRAJECTORY_VX`): Horizontal drift velocity per frame.
+   - Staged exclusively before invoking trajectory simulation routines (e.g. `$94:AC56`, R108/R122 fall loops) and completely discarded once landing completes.
+
+3. **Dialogue & Menu Parameter Staging:**
+   - `$7E:2365`–`$7E:2377` (`STRING_PARAMETER_1`–`3`): Number staging registers for text message interpolations.
+   - `$7E:243B` (`SOUND_COMMAND_PARAM`): Transient sound parameter.
+   - `$7E:243D` (`EQUIPMENT_GRANT_COMMAND`): Staged equipment grant ID.
+   - `$7E:2463` (`MARKET_ITEM_ID`): Commodity item ID passed to market dialogue routines (`$92:CDB3`, `$92:CDBE`, `$92:CDCA`).
+   - `$7E:2545` (`DIALOGUE_SELECTION`): Player selection index returned by `lookup_034d(0)`.
+   - Read once by message boxes and never referenced afterwards.
+
+4. **Transient Transit Identifiers:**
+   - `$7E:24C3` (`PIPE_DESTINATION_ID`): Volcano pipe maze chute outlet index (1–10). Set immediately before `load_map(PIPEMAZE_ROOMS)` and read in R62 enter script to branch to destination pads.
+
+5. **Volatile Loop Counters & Minigame Math:**
+   - `$7E:244F`, `$7E:2451`: Market vendor transaction loop counters in R10.
+   - `$7E:247B`–`$7E:2491`: Desert navigation minigame scratch registers in R59.
+   - `$7E:2497`–`$7E:2499`: Async animation timing parameters in R16.
+   - `$7E:244D` (`last_entity()`): Temporary entity struct pointer.
+   - `$7E:2513`–`$7E:2515`, `$7E:254D`–`$7E:2551`: Single-room temporary scratch cells.
+
+6. **Engine-Reset Camera Overrides:**
+   - `$7E:240F`–`$7E:2415` (`CAMERA_DEADZONE_LEFT/RIGHT/TOP/BOTTOM`): Camera framing margins.
+   - `$7E:2417`–`$7E:2419`: Camera pan step bounds.
+   - `$7E:241F` (`CAMERA_SCROLL_MODE`): Camera tracking mode.
+   - `$7E:2421`, `$7E:2423`, `$7E:2425` (`TRIGGER_INTERACTION_X/Y`): Trigger interaction entity context.
+   - Engine routine `$90:8E90` resets camera deadzones on *every* room transition, proving persistent storage is pointless.
+
 ### Raw Address Inventory
 
-Each row gives raw operand occurrences, masks observed (`plain` means no bit mask), and all room IDs with at least one use. This includes raw operands that may already have a broad region label; rows are retained so the per-bit/per-field script usage is visible. The `masks` column is the set of masks, not a byte-wide ownership claim.
+Each row gives raw operand occurrences, masks observed (`plain` means no bit mask), all room IDs with at least one use, and persistence classification (`⚡ Scratch (candidate <0x2834>)` indicates volatile scratch memory with no persistence benefit).
 
-| Address | Uses | Masks | Rooms |
-|---|---:|---|---|
-| `2269` | 16 | `01 02 04 08 10 20 40 80` | `25 38 69` |
-| `226A` | 24 | `01 02 04 08 10 20 40 80` | `3E 69` |
-| `226B` | 16 | `01 02 04 08 10 20 40 80` | `30 4F` |
-| `226C` | 16 | `01 02 04 08 10 20 40 80` | `59 5A` |
-| `226D` | 18 | `01 02 04 08 10 20 40 80` | `35 3B 5A` |
-| `226E` | 16 | `01 02 04 08 10 20 40 80` | `3B 3C` |
-| `226F` | 18 | `01 02 04 08 10 20 40 80` | `3C 67` |
-| `2270` | 14 | `01 02 04 08 10 20 40` | `67` |
-| `2271` | 13 | `01 02 04 08 10 20 40 80` | `1E` |
-| `2272` | 11 | `01 02 04 08 10 20 40` | `05 13` |
-| `2273` | 14 | `01 02 04 08 10 20 40 80` | `2E 34 37` |
-| `2274` | 16 | `01 02 04 08 10 20 40 80` | `2D 37 65` |
-| `2275` | 16 | `01 02 04 08 10 20 40 80` | `65 7D` |
-| `2276` | 18 | `01 02 04 08 10 20 40 80` | `7D` |
-| `2277` | 18 | `01 02 04 08 10 20 40 80` | `7D` |
-| `2278` | 16 | `01 02 04 08 10 20 40 80` | `7D` |
-| `2279` | 14 | `01 02 04 08 10 20 40 80` | `7D` |
-| `227A` | 16 | `01 02 04 08 10 20 40 80` | `7D` |
-| `227B` | 17 | `01 02 04 08 10 20 40 80` | `76 7D` |
-| `227C` | 16 | `01 02 04 08 10 20 40 80` | `55 66 76` |
-| `227D` | 16 | `01 02 04 08 10 20 40 80` | `55` |
-| `227E` | 16 | `01 02 04 08 10 20 40 80` | `55 56` |
-| `227F` | 16 | `01 02 04 08 10 20 40 80` | `56` |
-| `2280` | 16 | `01 02 04 08 10 20 40 80` | `56` |
-| `2281` | 12 | `01 02 04 08 10 20` | `56` |
-| `2282` | 6 | `20 40 80` | `71` |
-| `2283` | 16 | `01 02 04 08 10 20 40 80` | `23 29 71` |
-| `2284` | 18 | `01 02 04 08 10 20 40 80` | `28 44 47` |
-| `2285` | 16 | `01 02 04 08 10 20 40 80` | `24 47 79` |
-| `2286` | 16 | `01 02 04 08 10 20 40 80` | `12 79` |
-| `2287` | 14 | `01 02 04 08 10 40 80` | `0F 12 4B 60` |
-| `2288` | 12 | `01 02 08 10 20 40 80` | `0E 0F 16` |
-| `2289` | 18 | `01 02 04 08 10 20 40 80` | `16` |
-| `228A` | 16 | `01 02 04 08 10 20 80` | `16 24 28 29` |
-| `228B` | 13 | `02 04 08 10 20 40 80` | `0A` |
-| `22AB` | 3 | `40` | `38` |
-| `22B1` | 2 | `80` | `3C` |
-| `22B2` | 14 | `01 02 04 08 10 20 40` | `3C 65` |
-| `22CF` | 2 | `10` | `0B` |
-| `22D7` | 4 | `40 80` | `72` |
-| `22D8` | 9 | `01 02 08 10 20` | `07 35 6F` |
-| `22D9` | 4 | `02 04` | `35` |
-| `22DC` | 2 | `02` | `71` |
-| `22DE` | 16 | `01 02 08 10 20 40` | `10 6E 6F 7C 7D` |
-| `22DF` | 19 | `04 08 40` | `07 0D 11 1C` |
-| `22E0` | 74 | `01 02 04 08 10 20 40 80` | `06 55 6C` |
-| `22E1` | 23 | `01 02 04 08 10 20 40 80` | `55` |
-| `22E4` | 67 | `01 02 04 08 10 20 40 80` | `06 55 56` |
-| `22E6` | 33 | `04 08 10 40 80` | `00 42 43 44 45 47` |
-| `22E7` | 12 | `01 04 08 20 40` | `1A 24 29 7E` |
-| `22E8` | 16 | `08 10 40 80` | `18 1B 7C` |
-| `22E9` | 11 | `01 02 04 08` | `00 16 18 42` |
-| `22EA` | 12 | `08 10 20` | `31 61` |
-| `22EB` | 40 | `01 10 40 80` | `02 08 0A 0C 0D 25 26 28 59 5B 62 63 67 77 7B 7C 7D` |
-| `22EC` | 25 | `02 10 40` | `08 0A 0C 0D 11 35 52 69 7C 7D` |
-| `22ED` | 5 | `04 20` | `0C 51 5C` |
-| `22EE` | 10 | `02 04 40 80` | `3E 4F 54 6E 77 78` |
-| `22EF` | 10 | `08 20 40` | `14 19 1A 69 70` |
-| `22F1` | 1 | `80` | `46` |
-| `22F2` | 10 | `04 08 10 20` | `57 68` |
-| `22F3` | 25 | `10 40 80` | `1B 23 24 28 29` |
-| `22F4` | 21 | `01 02 04` | `4B 6B 70 71 72` |
-| `22F5` | 11 | `04 08 20 40` | `0D 0F 11 4E 62 7A` |
-| `22F8` | 50 | `02 04 08 10 20 40 80` | `00 42 43 44 45 47 48 49 54 7E` |
-| `22F9` | 12 | `01 02 04 08 40` | `43 45 49 7E` |
-| `22FA` | 3 | `plain` | `1D 31 6A` |
-| `22FB` | 3 | `plain` | `1D 31 6A` |
-| `22FE` | 6 | `plain` | `36 3A` |
-| `2349` | 3 | `plain` | `44 47` |
-| `234A` | 2 | `plain` | `38 4C` |
-| `234C` | 11 | `plain` | `30 68` |
-| `234D` | 24 | `plain` | `07 35 41 59 67 69` |
-| `234E` | 13 | `plain` | `07 35 59 67 69` |
-| `2350` | 46 | `plain` | `06 30 55 56 68` |
-| `2351` | 15 | `plain` | `74` |
-| `2354` | 3 | `plain` | `6E 78` |
-| `2356` | 11 | `plain` | `14 39` |
-| `2357` | 20 | `plain` | `06 55 56` |
-| `2358` | 28 | `plain` | `06 55 56` |
-| `2365` | 5 | `plain` | `0A` |
-| `2369` | 16 | `plain` | `0A` |
-| `236B` | 9 | `plain` | `0A` |
-| `236D` | 7 | `plain` | `43` |
-| `236F` | 7 | `plain` | `43` |
-| `2371` | 7 | `plain` | `43` |
-| `2373` | 4 | `plain` | `43` |
-| `2375` | 4 | `plain` | `43` |
-| `2377` | 4 | `plain` | `43` |
-| `2389` | 60 | `plain` | `0A` |
-| `2397` | 4 | `plain` | `3E 7D` |
-| `2399` | 4 | `plain` | `3E 7D` |
-| `23B9` | 114 | `plain` | `00 0C 0D 1B 25 39 3A 42 43 44 45 47 49 4D 54 55 57 5D 5E 5F 62 68 7E` |
-| `23BB` | 98 | `plain` | `00 0C 0D 1B 25 39 3A 42 43 44 45 47 49 4D 54 55 57 62 7E` |
-| `23C1` | 8 | `plain` | `17 3E 40 44 59 65 67 6B` |
-| `23D3` | 2 | `plain` | `5C` |
-| `23D7` | 25 | `plain` | `42` |
-| `23DF` | 9 | `plain` | `05 27 2F` |
-| `23E1` | 9 | `plain` | `05 27 2F` |
-| `23E3` | 4 | `plain` | `18` |
-| `23E5` | 1 | `plain` | `18` |
-| `23E7` | 1 | `plain` | `18` |
-| `23F1` | 16 | `plain` | `4B` |
-| `23F3` | 16 | `plain` | `4B` |
-| `23F5` | 16 | `plain` | `4B` |
-| `23F7` | 16 | `plain` | `4B` |
-| `23F9` | 32 | `plain` | `49 4B 57` |
-| `23FB` | 32 | `plain` | `49 4B 57` |
-| `23FD` | 31 | `plain` | `4B 57` |
-| `23FF` | 31 | `plain` | `4B 57` |
-| `240F` | 12 | `plain` | `1B 1D 24 28 2D 77` |
-| `2411` | 12 | `plain` | `1B 1D 24 28 2D 77` |
-| `2413` | 39 | `plain` | `01 0A 18 1B 24 28 2D 4A 77 7B 7D` |
-| `2415` | 22 | `plain` | `18 1B 1D 24 28 2D 7D` |
-| `2417` | 2 | `plain` | `1D 31` |
-| `2419` | 2 | `plain` | `1D 31` |
-| `241F` | 1 | `plain` | `1D` |
-| `2421` | 4 | `plain` | `16 52 7A` |
-| `2423` | 4 | `plain` | `16 52 7A` |
-| `2425` | 9 | `plain` | `3B 59 65` |
-| `2429` | 42 | `plain` | `59` |
-| `243B` | 2 | `plain` | `4A 71` |
-| `243D` | 16 | `plain` | `0A 7B` |
-| `243F` | 10 | `plain` | `0A` |
-| `244D` | 4 | `plain` | `1D 4D` |
-| `244F` | 26 | `plain` | `0A` |
-| `2451` | 3 | `plain` | `0A` |
-| `245B` | 7 | `plain` | `01 51` |
-| `245D` | 16 | `plain` | `69` |
-| `245F` | 2 | `plain` | `25` |
-| `2463` | 62 | `plain` | `0A 7B` |
-| `2469` | 8 | `plain` | `6C` |
-| `246B` | 2 | `plain` | `36 3A` |
-| `2477` | 48 | `plain` | `24` |
-| `2479` | 48 | `plain` | `24` |
-| `247B` | 40 | `plain` | `59` |
-| `247D` | 38 | `plain` | `59` |
-| `247F` | 30 | `plain` | `59` |
-| `2481` | 18 | `plain` | `59` |
-| `2483` | 20 | `plain` | `59` |
-| `2485` | 10 | `plain` | `59` |
-| `2489` | 12 | `plain` | `59` |
-| `248B` | 12 | `plain` | `59` |
-| `248D` | 10 | `plain` | `59` |
-| `248F` | 10 | `plain` | `59` |
-| `2491` | 37 | `plain` | `59` |
-| `2493` | 8 | `plain` | `1B 55` |
-| `2495` | 8 | `plain` | `1B 55` |
-| `2497` | 65 | `plain` | `16` |
-| `2499` | 65 | `plain` | `16` |
-| `249B` | 7 | `plain` | `18` |
-| `249D` | 222 | `plain` | `05 06 12 13 39 3A 48 54 57 6B` |
-| `249F` | 369 | `plain` | `05 06 12 13 39 3A 48 54 57 6B` |
-| `24A1` | 117 | `plain` | `06 36 3A 43 48 55 57 6B 7E` |
-| `24A3` | 121 | `plain` | `06 36 3A 43 48 55 57 6B 7E` |
-| `24A5` | 4 | `plain` | `27` |
-| `24A7` | 10 | `plain` | `6C 7A` |
-| `24AB` | 212 | `plain` | `05 06 07 14 18 1D 1E 1F 21 31 37 46 4F 53 54 62 68 69 6C 7A` |
-| `24AD` | 21 | `plain` | `4F 53 69` |
-| `24AF` | 329 | `plain` | `05 06 07 14 18 1D 1E 1F 21 31 37 46 4F 53 54 62 68 69 6C 7A` |
-| `24B1` | 44 | `plain` | `46 4F 53 69` |
-| `24B3` | 90 | `plain` | `3D 3E 52 69 6C 71 72 73 74` |
-| `24B5` | 53 | `plain` | `3D 3E 52 69 6C 71 73 74` |
-| `24B7` | 45 | `plain` | `3D 3E 52 69 6C` |
-| `24B9` | 3 | `plain` | `3E` |
-| `24C3` | 36 | `plain` | `3D 3E` |
-| `24CF` | 8 | `plain` | `07 53 68` |
-| `24D1` | 8 | `plain` | `07 53 68` |
-| `24D3` | 4 | `plain` | `68` |
-| `24D5` | 4 | `plain` | `68` |
-| `24D7` | 4 | `plain` | `07` |
-| `24D9` | 1 | `plain` | `01` |
-| `24DB` | 1 | `plain` | `01` |
-| `24E3` | 1 | `plain` | `01` |
-| `24E5` | 5 | `plain` | `01` |
-| `24EF` | 14 | `plain` | `37` |
-| `24F1` | 20 | `plain` | `37` |
-| `24F3` | 10 | `plain` | `37` |
-| `24F5` | 12 | `plain` | `37` |
-| `24F7` | 8 | `plain` | `1F 20 21 22` |
-| `24F9` | 53 | `plain` | `48` |
-| `24FB` | 14 | `plain` | `48` |
-| `24FD` | 15 | `plain` | `00 42 43 44 46 47 48 49 54 7E` |
-| `24FF` | 6 | `plain` | `43` |
-| `2501` | 6 | `plain` | `43` |
-| `2503` | 6 | `plain` | `43` |
-| `2505` | 6 | `plain` | `43` |
-| `2513` | 4 | `plain` | `0A` |
-| `2515` | 4 | `plain` | `08` |
-| `2545` | 36 | `plain` | `04 36 39 3A 46 54` |
-| `254D` | 1 | `plain` | `0A` |
-| `254F` | 4 | `plain` | `25` |
-| `2551` | 12 | `plain` | `0C 54 7D` |
+| Address | Uses | Masks | Rooms | Persistence / Role |
+|---|---:|---|---|---|
+| `2269` | 16 | `01 02 04 08 10 20 40 80` | `25 38 69` | Save RAM (story / chest flags) |
+| `226A` | 24 | `01 02 04 08 10 20 40 80` | `3E 69` | Save RAM (story / chest flags) |
+| `226B` | 16 | `01 02 04 08 10 20 40 80` | `30 4F` | Save RAM (story / chest flags) |
+| `226C` | 16 | `01 02 04 08 10 20 40 80` | `59 5A` | Save RAM (story / chest flags) |
+| `226D` | 18 | `01 02 04 08 10 20 40 80` | `35 3B 5A` | Save RAM (story / chest flags) |
+| `226E` | 16 | `01 02 04 08 10 20 40 80` | `3B 3C` | Save RAM (story / chest flags) |
+| `226F` | 18 | `01 02 04 08 10 20 40 80` | `3C 67` | Save RAM (story / chest flags) |
+| `2270` | 14 | `01 02 04 08 10 20 40` | `67` | Save RAM (story / chest flags) |
+| `2271` | 13 | `01 02 04 08 10 20 40 80` | `1E` | Save RAM (story / chest flags) |
+| `2272` | 11 | `01 02 04 08 10 20 40` | `05 13` | Save RAM (story / chest flags) |
+| `2273` | 14 | `01 02 04 08 10 20 40 80` | `2E 34 37` | Save RAM (story / chest flags) |
+| `2274` | 16 | `01 02 04 08 10 20 40 80` | `2D 37 65` | Save RAM (story / chest flags) |
+| `2275` | 16 | `01 02 04 08 10 20 40 80` | `65 7D` | Save RAM (story / chest flags) |
+| `2276` | 18 | `01 02 04 08 10 20 40 80` | `7D` | Save RAM (story / chest flags) |
+| `2277` | 18 | `01 02 04 08 10 20 40 80` | `7D` | Save RAM (story / chest flags) |
+| `2278` | 16 | `01 02 04 08 10 20 40 80` | `7D` | Save RAM (story / chest flags) |
+| `2279` | 14 | `01 02 04 08 10 20 40 80` | `7D` | Save RAM (story / chest flags) |
+| `227A` | 16 | `01 02 04 08 10 20 40 80` | `7D` | Save RAM (story / chest flags) |
+| `227B` | 17 | `01 02 04 08 10 20 40 80` | `76 7D` | Save RAM (story / chest flags) |
+| `227C` | 16 | `01 02 04 08 10 20 40 80` | `55 66 76` | Save RAM (story / chest flags) |
+| `227D` | 16 | `01 02 04 08 10 20 40 80` | `55` | Save RAM (story / chest flags) |
+| `227E` | 16 | `01 02 04 08 10 20 40 80` | `55 56` | Save RAM (story / chest flags) |
+| `227F` | 16 | `01 02 04 08 10 20 40 80` | `56` | Save RAM (story / chest flags) |
+| `2280` | 16 | `01 02 04 08 10 20 40 80` | `56` | Save RAM (story / chest flags) |
+| `2281` | 12 | `01 02 04 08 10 20` | `56` | Save RAM (story / chest flags) |
+| `2282` | 6 | `20 40 80` | `71` | Save RAM (story / chest flags) |
+| `2283` | 16 | `01 02 04 08 10 20 40 80` | `23 29 71` | Save RAM (story / chest flags) |
+| `2284` | 18 | `01 02 04 08 10 20 40 80` | `28 44 47` | Save RAM (`OMNITOPIA_CHESTS_A`) |
+| `2285` | 16 | `01 02 04 08 10 20 40 80` | `24 47 79` | Save RAM (story / chest flags) |
+| `2286` | 16 | `01 02 04 08 10 20 40 80` | `12 79` | Save RAM (story / chest flags) |
+| `2287` | 14 | `01 02 04 08 10 40 80` | `0F 12 4B 60` | Save RAM (story / chest flags) |
+| `2288` | 12 | `01 02 08 10 20 40 80` | `0E 0F 16` | Save RAM (story / chest flags) |
+| `2289` | 18 | `01 02 04 08 10 20 40 80` | `16` | Save RAM (story / chest flags) |
+| `228A` | 16 | `01 02 04 08 10 20 80` | `16 24 28 29` | Save RAM (story / chest flags) |
+| `228B` | 13 | `02 04 08 10 20 40 80` | `0A` | Save RAM (story / chest flags) |
+| `22AB` | 3 | `40` | `38` | Save RAM (story flag) |
+| `22B1` | 2 | `80` | `3C` | Save RAM (story flag) |
+| `22B2` | 14 | `01 02 04 08 10 20 40` | `3C 65` | Save RAM (story flag) |
+| `22CF` | 2 | `10` | `0B` | Save RAM (story flag) |
+| `22D7` | 4 | `40 80` | `72` | Save RAM (story flag) |
+| `22D8` | 9 | `01 02 08 10 20` | `07 35 6F` | Save RAM (story flag) |
+| `22D9` | 4 | `02 04` | `35` | Save RAM (story flag) |
+| `22DC` | 2 | `02` | `71` | Save RAM (story flag) |
+| `22DE` | 16 | `01 02 08 10 20 40` | `10 6E 6F 7C 7D` | Save RAM (story flag) |
+| `22DF` | 19 | `04 08 40` | `07 0D 11 1C` | Save RAM (story flag) |
+| `22E0` | 74 | `01 02 04 08 10 20 40 80` | `06 55 6C` | Save RAM (story / room state) |
+| `22E1` | 23 | `01 02 04 08 10 20 40 80` | `55` | Save RAM (story flag) |
+| `22E4` | 67 | `01 02 04 08 10 20 40 80` | `06 55 56` | Save RAM (story flag) |
+| `22E6` | 33 | `04 08 10 40 80` | `00 42 43 44 45 47` | Save RAM (story flag) |
+| `22E7` | 12 | `01 04 08 20 40` | `1A 24 29 7E` | Save RAM (story flag) |
+| `22E8` | 16 | `08 10 40 80` | `18 1B 7C` | Save RAM (story flag) |
+| `22E9` | 11 | `01 02 04 08` | `00 16 18 42` | Save RAM (story flag) |
+| `22EA` | 12 | `08 10 20` | `31 61` | Save RAM (`LOOT_FLAGS` / room state) |
+| `22EB` | 40 | `01 10 40 80` | `02 08 0A 0C 0D 25 26 28 59 5B 62 63 67 77 7B 7C 7D` | Save RAM (`ROOM_TRANSITION_FLAGS`) |
+| `22EC` | 25 | `02 10 40` | `08 0A 0C 0D 11 35 52 69 7C 7D` | Save RAM (`STORY_FLAGS_22EC`) |
+| `22ED` | 5 | `04 20` | `0C 51 5C` | Save RAM (story flag) |
+| `22EE` | 10 | `02 04 40 80` | `3E 4F 54 6E 77 78` | Save RAM (story flag) |
+| `22EF` | 10 | `08 20 40` | `14 19 1A 69 70` | Save RAM (story flag) |
+| `22F1` | 1 | `80` | `46` | Save RAM (story flag) |
+| `22F2` | 10 | `04 08 10 20` | `57 68` | Save RAM (story flag) |
+| `22F3` | 25 | `10 40 80` | `1B 23 24 28 29` | Save RAM (story flag) |
+| `22F4` | 21 | `01 02 04` | `4B 6B 70 71 72` | Save RAM (story flag) |
+| `22F5` | 11 | `04 08 20 40` | `0D 0F 11 4E 62 7A` | Save RAM (story flag) |
+| `22F8` | 50 | `02 04 08 10 20 40 80` | `00 42 43 44 45 47 48 49 54 7E` | Save RAM (story flag) |
+| `22F9` | 12 | `01 02 04 08 40` | `43 45 49 7E` | Save RAM (story flag) |
+| `22FA` | 3 | `plain` | `1D 31 6A` | Save RAM (story / room selector) |
+| `22FB` | 3 | `plain` | `1D 31 6A` | Save RAM (story / room selector) |
+| `22FE` | 6 | `plain` | `36 3A` | Save RAM (story / room state) |
+| `2349` | 3 | `plain` | `44 47` | Save RAM (script state) |
+| `234A` | 2 | `plain` | `38 4C` | Save RAM (script state) |
+| `234C` | 11 | `plain` | `30 68` | Save RAM (script state) |
+| `234D` | 24 | `plain` | `07 35 41 59 67 69` | Save RAM (script state) |
+| `234E` | 13 | `plain` | `07 35 59 67 69` | Save RAM (script state) |
+| `2350` | 46 | `plain` | `06 30 55 56 68` | Save RAM (script state) |
+| `2351` | 15 | `plain` | `74` | Save RAM (script state) |
+| `2354` | 3 | `plain` | `6E 78` | Save RAM (script state) |
+| `2356` | 11 | `plain` | `14 39` | Save RAM (script state) |
+| `2357` | 20 | `plain` | `06 55 56` | Save RAM (script state) |
+| `2358` | 28 | `plain` | `06 55 56` | Save RAM (script state) |
+| `2365` | 5 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: dialogue number param) |
+| `2369` | 16 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: dialogue number param) |
+| `236B` | 9 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: dialogue number param) |
+| `236D` | 7 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: dialogue number param) |
+| `236F` | 7 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: dialogue number param) |
+| `2371` | 7 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: dialogue number param) |
+| `2373` | 4 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: dialogue number param) |
+| `2375` | 4 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: dialogue number param) |
+| `2377` | 4 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: dialogue number param) |
+| `2389` | 60 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: market transaction scratch) |
+| `2397` | 4 | `plain` | `3E 7D` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
+| `2399` | 4 | `plain` | `3E 7D` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
+| `23B9` | 114 | `plain` | `00 0C 0D 1B 25 39 3A 42 43 44 45 47 49 4D 54 55 57 5D 5E 5F 62 68 7E` | ⚡ Scratch (candidate `<0x2834>`: `TARGET_X` waypoint) |
+| `23BB` | 98 | `plain` | `00 0C 0D 1B 25 39 3A 42 43 44 45 47 49 4D 54 55 57 62 7E` | ⚡ Scratch (candidate `<0x2834>`: `TARGET_Y` waypoint) |
+| `23C1` | 8 | `plain` | `17 3E 40 44 59 65 67 6B` | Save RAM (script state) |
+| `23D3` | 2 | `plain` | `5C` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
+| `23D7` | 25 | `plain` | `42` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
+| `23DF` | 9 | `plain` | `05 27 2F` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `23E1` | 9 | `plain` | `05 27 2F` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `23E3` | 4 | `plain` | `18` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `23E5` | 1 | `plain` | `18` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `23E7` | 1 | `plain` | `18` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `23F1` | 16 | `plain` | `4B` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `23F3` | 16 | `plain` | `4B` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `23F5` | 16 | `plain` | `4B` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `23F7` | 16 | `plain` | `4B` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `23F9` | 32 | `plain` | `49 4B 57` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `23FB` | 32 | `plain` | `49 4B 57` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `23FD` | 31 | `plain` | `4B 57` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `23FF` | 31 | `plain` | `4B 57` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `240F` | 12 | `plain` | `1B 1D 24 28 2D 77` | ⚡ Scratch (candidate `<0x2834>`: `CAMERA_DEADZONE_LEFT`) |
+| `2411` | 12 | `plain` | `1B 1D 24 28 2D 77` | ⚡ Scratch (candidate `<0x2834>`: `CAMERA_DEADZONE_RIGHT`) |
+| `2413` | 39 | `plain` | `01 0A 18 1B 24 28 2D 4A 77 7B 7D` | ⚡ Scratch (candidate `<0x2834>`: `CAMERA_DEADZONE_TOP`) |
+| `2415` | 22 | `plain` | `18 1B 1D 24 28 2D 7D` | ⚡ Scratch (candidate `<0x2834>`: `CAMERA_DEADZONE_BOTTOM`) |
+| `2417` | 2 | `plain` | `1D 31` | ⚡ Scratch (candidate `<0x2834>`: camera pan bound) |
+| `2419` | 2 | `plain` | `1D 31` | ⚡ Scratch (candidate `<0x2834>`: camera pan bound) |
+| `241F` | 1 | `plain` | `1D` | ⚡ Scratch (candidate `<0x2834>`: `CAMERA_SCROLL_MODE`) |
+| `2421` | 4 | `plain` | `16 52 7A` | ⚡ Scratch (candidate `<0x2834>`: `TRIGGER_INTERACTION_X`) |
+| `2423` | 4 | `plain` | `16 52 7A` | ⚡ Scratch (candidate `<0x2834>`: `TRIGGER_INTERACTION_Y`) |
+| `2425` | 9 | `plain` | `3B 59 65` | ⚡ Scratch (candidate `<0x2834>`: trigger interaction context) |
+| `2429` | 42 | `plain` | `59` | ⚡ Scratch (candidate `<0x2834>`: `ACTIVE_STEP_TRIGGER_SCRIPT_ID`) |
+| `243B` | 2 | `plain` | `4A 71` | ⚡ Scratch (candidate `<0x2834>`: sound command arg) |
+| `243D` | 16 | `plain` | `0A 7B` | ⚡ Scratch (candidate `<0x2834>`: `EQUIPMENT_GRANT_COMMAND`) |
+| `243F` | 10 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: dialogue staging) |
+| `244D` | 4 | `plain` | `1D 4D` | ⚡ Scratch (candidate `<0x2834>`: temporary entity handle) |
+| `244F` | 26 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: market loop counter) |
+| `2451` | 3 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: market loop counter) |
+| `245B` | 7 | `plain` | `01 51` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
+| `245D` | 16 | `plain` | `69` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
+| `245F` | 2 | `plain` | `25` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
+| `2463` | 62 | `plain` | `0A 7B` | ⚡ Scratch (candidate `<0x2834>`: `MARKET_ITEM_ID`) |
+| `2469` | 8 | `plain` | `6C` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
+| `246B` | 2 | `plain` | `36 3A` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
+| `2477` | 48 | `plain` | `24` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
+| `2479` | 48 | `plain` | `24` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
+| `247B` | 40 | `plain` | `59` | ⚡ Scratch (candidate `<0x2834>`: desert minigame loop register) |
+| `247D` | 38 | `plain` | `59` | ⚡ Scratch (candidate `<0x2834>`: desert minigame loop register) |
+| `247F` | 30 | `plain` | `59` | ⚡ Scratch (candidate `<0x2834>`: desert minigame loop register) |
+| `2481` | 18 | `plain` | `59` | ⚡ Scratch (candidate `<0x2834>`: desert minigame loop register) |
+| `2483` | 20 | `plain` | `59` | ⚡ Scratch (candidate `<0x2834>`: desert minigame loop register) |
+| `2485` | 10 | `plain` | `59` | ⚡ Scratch (candidate `<0x2834>`: desert minigame loop register) |
+| `2489` | 12 | `plain` | `59` | ⚡ Scratch (candidate `<0x2834>`: desert minigame loop register) |
+| `248B` | 12 | `plain` | `59` | ⚡ Scratch (candidate `<0x2834>`: desert minigame loop register) |
+| `248D` | 10 | `plain` | `59` | ⚡ Scratch (candidate `<0x2834>`: desert minigame loop register) |
+| `248F` | 10 | `plain` | `59` | ⚡ Scratch (candidate `<0x2834>`: desert minigame loop register) |
+| `2491` | 37 | `plain` | `59` | ⚡ Scratch (candidate `<0x2834>`: desert minigame loop register) |
+| `2493` | 8 | `plain` | `1B 55` | ⚡ Scratch (candidate `<0x2834>`: lift waypoint staging) |
+| `2495` | 8 | `plain` | `1B 55` | ⚡ Scratch (candidate `<0x2834>`: lift waypoint staging) |
+| `2497` | 65 | `plain` | `16` | ⚡ Scratch (candidate `<0x2834>`: async animation timing arg) |
+| `2499` | 65 | `plain` | `16` | ⚡ Scratch (candidate `<0x2834>`: async animation timing arg) |
+| `249B` | 7 | `plain` | `18` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
+| `249D` | 222 | `plain` | `05 06 12 13 39 3A 48 54 57 6B` | ⚡ Scratch (candidate `<0x2834>`: `TRANSIT_ORIGIN_X`) |
+| `249F` | 369 | `plain` | `05 06 12 13 39 3A 48 54 57 6B` | ⚡ Scratch (candidate `<0x2834>`: `TRANSIT_ORIGIN_Y`) |
+| `24A1` | 117 | `plain` | `06 36 3A 43 48 55 57 6B 7E` | ⚡ Scratch (candidate `<0x2834>`: `TRANSIT_DEST_X`) |
+| `24A3` | 121 | `plain` | `06 36 3A 43 48 55 57 6B 7E` | ⚡ Scratch (candidate `<0x2834>`: `TRANSIT_DEST_Y`) |
+| `24A5` | 4 | `plain` | `27` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
+| `24A7` | 10 | `plain` | `6C 7A` | ⚡ Scratch (candidate `<0x2834>`: `TRAJECTORY_VY` falling speed) |
+| `24AB` | 212 | `plain` | `05 06 07 14 18 1D 1E 1F 21 31 37 46 4F 53 54 62 68 69 6C 7A` | ⚡ Scratch (candidate `<0x2834>`: `ACTIVE_CHAR_X`) |
+| `24AD` | 21 | `plain` | `4F 53 69` | ⚡ Scratch (candidate `<0x2834>`: `INACTIVE_CHAR_X`) |
+| `24AF` | 329 | `plain` | `05 06 07 14 18 1D 1E 1F 21 31 37 46 4F 53 54 62 68 69 6C 7A` | ⚡ Scratch (candidate `<0x2834>`: `ACTIVE_CHAR_Y`) |
+| `24B1` | 44 | `plain` | `46 4F 53 69` | ⚡ Scratch (candidate `<0x2834>`: `INACTIVE_CHAR_Y`) |
+| `24B3` | 90 | `plain` | `3D 3E 52 69 6C 71 72 73 74` | ⚡ Scratch (candidate `<0x2834>`: `TRAJECTORY_INITIAL_VY` launch speed) |
+| `24B5` | 53 | `plain` | `3D 3E 52 69 6C 71 73 74` | ⚡ Scratch (candidate `<0x2834>`: `TRAJECTORY_MAX_VY` terminal speed) |
+| `24B7` | 45 | `plain` | `3D 3E 52 69 6C` | ⚡ Scratch (candidate `<0x2834>`: `TRAJECTORY_VX` horizontal drift) |
+| `24B9` | 3 | `plain` | `3E` | ⚡ Scratch (candidate `<0x2834>`: trajectory scratch) |
+| `24C3` | 36 | `plain` | `3D 3E` | ⚡ Scratch (candidate `<0x2834>`: `PIPE_DESTINATION_ID` outlet index) |
+| `24CF` | 8 | `plain` | `07 53 68` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `24D1` | 8 | `plain` | `07 53 68` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `24D3` | 4 | `plain` | `68` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `24D5` | 4 | `plain` | `68` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `24D7` | 4 | `plain` | `07` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `24D9` | 1 | `plain` | `01` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `24DB` | 1 | `plain` | `01` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `24E3` | 1 | `plain` | `01` | ⚡ Scratch (candidate `<0x2834>`: temporary entity handle) |
+| `24E5` | 5 | `plain` | `01` | ⚡ Scratch (candidate `<0x2834>`: temporary entity handle) |
+| `24EF` | 14 | `plain` | `37` | ⚡ Scratch (candidate `<0x2834>`: tower lift waypoint) |
+| `24F1` | 20 | `plain` | `37` | ⚡ Scratch (candidate `<0x2834>`: tower lift waypoint) |
+| `24F3` | 10 | `plain` | `37` | ⚡ Scratch (candidate `<0x2834>`: tower lift waypoint) |
+| `24F5` | 12 | `plain` | `37` | ⚡ Scratch (candidate `<0x2834>`: tower lift waypoint) |
+| `24F7` | 8 | `plain` | `1F 20 21 22` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `24F9` | 53 | `plain` | `48` | ⚡ Scratch (candidate `<0x2834>`: Metroplex tunnel scratch) |
+| `24FB` | 14 | `plain` | `48` | ⚡ Scratch (candidate `<0x2834>`: Metroplex tunnel scratch) |
+| `24FD` | 15 | `plain` | `00 42 43 44 46 47 48 49 54 7E` | ⚡ Scratch (candidate `<0x2834>`: room transition scratch) |
+| `24FF` | 6 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `2501` | 6 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `2503` | 6 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `2505` | 6 | `plain` | `43` | ⚡ Scratch (candidate `<0x2834>`: cutscene waypoint) |
+| `2513` | 4 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
+| `2515` | 4 | `plain` | `08` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
+| `2545` | 36 | `plain` | `04 36 39 3A 46 54` | ⚡ Scratch (candidate `<0x2834>`: `DIALOGUE_SELECTION`) |
+| `254D` | 1 | `plain` | `0A` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
+| `254F` | 4 | `plain` | `25` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
+| `2551` | 12 | `plain` | `0C 54 7D` | ⚡ Scratch (candidate `<0x2834>`: room scratch) |
 
 ### Numeric `object_state_by_flag` IDs
 
@@ -375,13 +421,29 @@ The following high-reuse plain operands have been verified, documented with RAM 
   - `$7E:249F` (`TRANSIT_ORIGIN_Y`): Scripted transit/lift starting Y coordinate (111 uses across 10 rooms).
   - `$7E:24A1` (`TRANSIT_DEST_X`): Scripted transit/lift destination X coordinate (21 uses across 7 rooms).
   - `$7E:24A3` (`TRANSIT_DEST_Y`): Scripted transit/lift destination Y coordinate (23 uses across 7 rooms).
+- Ballistics and trajectory physics (volcano pipe chutes and fall loops):
+  - `$7E:24A7` (`TRAJECTORY_VY`): In-flight vertical velocity in 12.4 fixed-point format (simulated with 1 subpixel/frame² gravity acceleration).
+  - `$7E:24B3` (`TRAJECTORY_INITIAL_VY`): Initial upward launch speed parameter (81 uses across 9 rooms).
+  - `$7E:24B5` (`TRAJECTORY_MAX_VY`): Terminal downward velocity threshold (44 uses across 8 rooms).
+  - `$7E:24B7` (`TRAJECTORY_VX`): Horizontal trajectory drift velocity per frame (38 uses across 5 rooms).
+  - `$7E:24C3` (`PIPE_DESTINATION_ID`): Volcano pipe maze chute outlet index (1–10) branching to landing pads in Room 62 (36 uses).
+- Dialogue, menu, and context operands:
+  - `$7E:2463` (`MARKET_ITEM_ID`): Market trade commodity item ID passed to common dialogue routines (62 uses across R10 and R123).
+  - `$7E:2545` (`DIALOGUE_SELECTION`): Player selection choice returned from `lookup_034d(0)` at Windwalker fire pits and Omnitopia terminals (36 uses across 6 rooms).
+  - `$7E:2421` (`TRIGGER_INTERACTION_X`): Trigger interaction entity X pixel coordinate captured by engine trigger scanner.
+  - `$7E:2423` (`TRIGGER_INTERACTION_Y`): Trigger interaction entity Y pixel coordinate captured by engine trigger scanner.
 
-Other operands noted in engine docs include `$2421`–`$2425` (trigger interaction context) and `$243B` (sound-command handler); these remain in the unresolved queue until checked against exact script uses.
+The following shared scripts and routines have also been reverse-engineered, documented, and registered in compiler `ADDRESS` enums:
+- `$92:DE75` (`ROOM_ENTER_EPILOGUE`): Default room enter script epilogue (attaches loot dust hook and fades in; 145 uses across 112 rooms).
+- `$94:AC56` (`PIPE_FALL_TRAJECTORY`): Volcano pipe chute trajectory and gravity fall animation (21 uses).
+- `$92:CDB3` (`MARKET_DIALOGUE_NOT_ENOUGH_ITEMS`): Market vendor dialogue for insufficient items (39 uses).
+- `$92:CDBE` (`MARKET_DIALOGUE_RECEIVED_ITEM`): Market vendor dialogue for successful trade / item received (23 uses).
+- `$92:CDCA` (`MARKET_DIALOGUE_PRINT_COMMODITY_NAME`): Market commodity name dispatcher.
 
 ## Follow-up Queue
 
 1. Reconcile `$22EA` and `$22EC` knowledge entries against the engine docs and script evidence; preserve the bit-specific/multi-purpose behavior rather than choosing a single title prematurely.
-2. Resolve remaining physics/scratch operands in pipe maze and volcano scripts: `$24A7` (`TRAJECTORY_VY`), `$24B3` (`TRAJECTORY_INITIAL_VY`), `$24B5` (`TRAJECTORY_MAX_VY`), `$24B7` (`TRAJECTORY_VX`), and `$24C3` (`PIPE_DESTINATION_ID`).
+2. Resolve top remaining unmapped room scratch cells: `$2350` (pyramid/ship character state), `$24F9` / `$24FB` (Metroplex tunnel state), `$24FD` (room transition state), `$244F` / `$2451` (market transaction counters), and `$247B`–`$2491` (desert minigame registers).
 3. Trace the raw bit groups `$2269`–`$228B` to determine which are pickup/one-shot flags and whether any masks have engine readers beyond the matching scripts.
 4. Cross-reference the numeric object flag IDs with the flag tag index and persistent save-flag storage; assign names only when the room context and flag behavior support them.
 5. Confirm reset/lifetime rules for `temp_flag` and raw room-script scratch through its VM handler and a runtime trace. Do not equate repeated temporary indices across rooms with a shared persistent variable.
