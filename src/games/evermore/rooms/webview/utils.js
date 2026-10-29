@@ -39,12 +39,14 @@ var ITEM_KEYWORDS={
   acorn:'ACORNS',ethanol:'ETHANOL',grease:'GREASE',gunpowder:'GUNPOWDER',iron:'IRON',
   meteorite:'METEORITE',mushroom:'MUSHROOM',atlas:'ATLAS_MEDALLION',
   petal:'PETAL',nectar:'NECTAR',honey:'HONEY',biscuit:'BISCUIT',wings:'WINGS',
-  essence:'HERBAL_ESSENCE',pixie:'PIXIE_DUST',call_bead:'CALL_BEADS'
+  essence:'HERBAL_ESSENCE',pixie:'PIXIE_DUST',call_bead:'CALL_BEADS',
+  chocobo:'CHOCOBO_EGG',egg:'CHOCOBO_EGG'
 };
 var ITEM_EMOJI={
   WAX:'🕯',VINEGAR:'🧪',OIL:'🪻',MUD_PEPPER:'🌶',LIMESTONE:'🪨',DRY_ICE:'🧊',
   CRYSTAL:'💎',CLAY:'🎺',BRIMSTONE:'🔥',ASH:'⚫',WATER:'💧',ROOTS:'🌿',BONE:'🦴',
-  FEATHER:'🪶',NECTAR:'🌺',PETAL:'🌸',HONEY:'🍯',WINGS:'🪽',CALL_BEADS:'🔵'
+  FEATHER:'🪶',NECTAR:'🌺',PETAL:'🌸',HONEY:'🍯',WINGS:'🪽',CALL_BEADS:'🔵',
+  CHOCOBO_EGG:'🥚'
 };
 /** Whole reward names the emoji fallback covers without a table entry each. */
 var ITEM_EMOJI_PREFIX=[['CHEST_','🛡'],['HELM_','🛡'],['GLOVE_','🛡'],['COLLAR_','🛡']];

@@ -5,6 +5,7 @@
 
 const assert = require('assert');
 const V = require('../../dist/games/evermore/script-vm');
+const M = require('../../dist/games/evermore/script-model');
 
 let passed = 0, failed = 0;
 function test(name, fn) {
@@ -252,6 +253,61 @@ test('parameters.json types the operands: an entity\'s signed is warned, a value
     const bad = V.printed(decode([0x33, 0x13]), names);
     assert.strictEqual(bad.text, 'music(0x13);');
     assert.deepStrictEqual(bad.marks.map((m) => [m.severity, m.find]), [['warning', '0x13']]);
+});
+
+test('iconRefs: MAP_REF assignment emits object preview icon', () => {
+    // 0x18 write_word to $2395 (MAP_REF, offset 317 = 0x013D), value 1 (sub-op 0xb1)
+    const ins = decode([0x18, 0x3d, 0x01, 0xb1]);
+    const refs = M.iconRefs(ins, {});
+    assert.deepStrictEqual(refs.map((r) => r.key), ['object:1:0']);
+});
+
+test('iconRefs: currency opcodes emit currency icon', () => {
+    // currency_add(9, amount_low, amount_high): opcode 0x7c, CREDITS is 9 (index 3)
+    const ins = decode([0x7c, 0xb9, 0x64, 0x00, 0x00]);
+    const loc = require('../../dist/games/evermore/localizations');
+    const printNames = M.printNames(loc);
+    const refs = M.iconRefs(ins, printNames);
+    assert.deepStrictEqual(refs.map((r) => r.key), ['currency:3']);
+    assert.strictEqual(refs[0].find, 'CREDITS');
+});
+
+test('iconRefs: CHOCOBO_EGG emits loot icon on assignment and comparison', () => {
+    const loc = require('../../dist/games/evermore/localizations');
+    const printNames = M.printNames(loc);
+    // PRIZE = CHOCOBO_EGG: write_word $2391 (offset 313 = 0x0139), value 0x1020 (CHOCOBO_EGG)
+    const insWrite = decode([0x18, 0x39, 0x01, 0x84, 0x20, 0x10]);
+    const refsWrite = M.iconRefs(insWrite, printNames);
+    assert.deepStrictEqual(refsWrite.map((r) => r.key), ['loot:4128']);
+    assert.strictEqual(refsWrite[0].find, 'CHOCOBO_EGG');
+
+    // if (PRIZE == CHOCOBO_EGG) goto target
+    const insIf = decode([0x08, 0x09, 0x39, 0x01, 0x29, 0x04, 0x20, 0x10, 0xa2, 0x00, 0x80, 0x01]);
+    const refsIf = M.iconRefs(insIf, printNames);
+    assert.deepStrictEqual(refsIf.map((r) => r.key), ['loot:4128']);
+    assert.strictEqual(refsIf[0].find, 'CHOCOBO_EGG');
+});
+
+test('attach_script: hook 5 formats as WINGS_HOOK, 0x0001 as ROOM_HOOK, and 0x178e as BBM_WINGS', () => {
+    const loc = require('../../dist/games/evermore/localizations');
+    const printNames = M.printNames(loc);
+    // opcode 0x3f (attach_script): hook 5 (0xb5), mask 0x0001 (0x01, 0x00), script 0x178e (0x8e, 0x17)
+    const ins = decode([0x3f, 0xb5, 0x01, 0x00, 0x8e, 0x17]);
+    const text = V.text(ins, printNames);
+    assert.strictEqual(text, 'attach_script(WINGS_HOOK, ROOM_HOOK, BBM_WINGS);');
+});
+
+test('segmented animation scripts (opcode 0x57) resolve character segment sprite', () => {
+    const { walkAnimationScript } = require('../../dist/games/evermore/maps/character-animation');
+    // cmd = 0x57 | 0x80 (END_FRAME), total = 1, count = 1, word = 0x1234, bank = 0xcd
+    const script = new Uint8Array([0xd7, 0x01, 0x01, 0x34, 0x12, 0xcd]);
+    const res = walkAnimationScript(script, 0);
+    assert.deepStrictEqual(res.frames, [{ sprite: 0xcd1234, ticks: 1, strikeBox: null }]);
+});
+
+test('names.json maps Salabog entity pointer $7E:24E5', () => {
+    const names = require('../../dist/games/evermore/script-model/names.json');
+    assert.strictEqual(names.ram['9445'], 'SALABOG ENTITY ($24e5)');
 });
 
 console.log(`\nscript-vm units: ${passed} passed, ${failed} failed`);

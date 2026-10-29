@@ -35,6 +35,7 @@ export interface EnemyName {
 interface Localizations {
     getAbsScriptName(fileOffset: number, o: { fallback: string }): string;
     getGlobalScriptName(id: number, o: { fallback: string }): string;
+    getNpcScriptName(id: number | string, o?: { fallback: string }): string;
     getMapName(id: number, o: { full: boolean; fallback: string }): string;
 }
 
@@ -143,9 +144,17 @@ function compilerMemory(addr: number): string {
     return memoryEnum.get(addr) ?? '';
 }
 
-/** A typed constant: ADDRESS_ID's trigger ids only from $100 up (its smaller values are global ids). */
+/** A typed constant: ADDRESS_ID's trigger ids only from $100 up (its smaller values are global ids), or an NPC/Short script name. */
 function typedConstant(type: string, value: number): string {
-    if (type === 'TRIGGER_ID') return value >= 0x100 ? constantName('ADDRESS_ID', value) : '';
+    if (type === 'TRIGGER_ID') {
+        if (value >= 0x100) {
+            const addr = constantName('ADDRESS_ID', value);
+            if (addr) return addr;
+            const npc = loc().getNpcScriptName(value, { fallback: NONE });
+            if (npc && npc !== NONE) return identifier(npc);
+        }
+        return '';
+    }
     return constantName(type, value);
 }
 

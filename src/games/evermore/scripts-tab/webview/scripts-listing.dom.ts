@@ -27,7 +27,19 @@ export const roomKey = (key: string, room: number): string =>
     key.startsWith('object:') ? 'object:' + room + key.slice(6) : key === 'money' || key === 'portrait:dog' ? key + '@' + room : key;
 
 /** Keys drawn as an emoji instead of a picture (script-model icons.ts). */
-const EMOJI: Record<string, string> = { camera: '📷', unknown: '❓' };
+const EMOJI: Record<string, string> = {
+    camera: '📷',
+    unknown: '❓',
+    'currency:0': '🪙',
+    'currency:1': '💎',
+    'currency:2': '🪙',
+    'currency:3': '💳',
+    'loot:4128': '🥚',
+    'loot:257': '🥚',
+    'loot:CHOCOBO_EGG': '🥚',
+    CHOCOBO_EGG: '🥚',
+    'enemy:44': '🐸',
+};
 
 interface IconRef { key: string; find: string; tail?: string; title?: string; group?: boolean; live?: string }
 /** What the running game says (host `scriptsLive`): each `live` id → the object key it names now, null when unread. */

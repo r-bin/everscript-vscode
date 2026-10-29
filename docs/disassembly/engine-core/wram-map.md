@@ -378,7 +378,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0EAE` | 2 bytes | `PENDING_MAP_EVENT_0` | Room | Queued map event script ID pending trigger execution ($FFFF = none). |
 | `$7E:0EB0` | 2 bytes | `PENDING_MAP_EVENT_1` | Room | Secondary queued map event script ID ($FFFF = none). |
 | `$7E:0EB2` | 2 bytes | `DOG_CURRENT_HP` | Save | Dog companion current health points. |
-| `$7E:0EB4` | 2 bytes | `PENDING_SWITCH_SCRIPT_SECONDARY` | Room | Secondary pending character Select switch event script ID ($FFFF = none). |
+| `$7E:0EB4` | 2 bytes | `WINGS_ESCAPE_SCRIPT_ID` | Room | Wings / dungeon escape event script ID ($FFFF = none; ROOM_HOOK 5). |
 | `$7E:0EBE` | 2 bytes | `RING_16_CURSOR_0EBE` | Unknown | Cursor of a 16-byte-record ring at $5DC3-$6183. Moves on by 16 bytes per record; what the records are is not known. |
 | `$7E:0EC0` | 32 bytes | `DEFERRED_SPAWN_BUF` | Room | Buffer storing entity spawn parameters queued during map transitions. |
 | `$7E:0EC6` | 2 bytes | `INPUT_P1_HELD_BUTTONS` | Frame | Player 1 controller buttons currently held down (raw auto-joypad read from hardware register $4218). |
@@ -707,6 +707,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:2459` | 2 bytes | `INGREDIENT_SHOP` | Save | Game script variable: INGREDIENT SHOP |
 | `$7E:2461` | 2 bytes | `LOOT_AMOUNT` | Room | Loot bonus — amount minus one for the next pickup. The loot script adds `1 + $2461`. Pickups that give more than one write `amount − 1` here before calling the |
 | `$7E:2480` | 64 bytes | `WEATHER_PARTICLES` | Frame | Position, velocity, and lifetime particle physics state array (rain, snow, embers). |
+| `$7E:24E5` | 2 bytes | `SALABOG_ENTITY` | Save | Entity reference to spawned Salabog boss in Swamp (Room 0x01). |
 | `$7E:2517` | `Word` | `sram_chest_flags_0` | `Save` | Persistent treasure chest / gourd collection bitmask words 0..1 (gourds 0..31 in Cartridge SRAM payload). |
 | `$7E:2519` | `Word` | `sram_chest_flags_1` | `Save` | Persistent treasure chest / gourd collection bitmask words 2..3 (gourds 32..63). |
 | `$7E:251B` | `Word` | `sram_chest_flags_2` | `Save` | Persistent treasure chest / gourd collection bitmask words 4..5 (gourds 64..95). |

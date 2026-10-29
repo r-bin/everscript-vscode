@@ -119,7 +119,7 @@ const SPRITE_BANK_BIAS = 0xa8;
  * segment count N, then groups of [count K][24-bit sprite] until N segments
  * have one, each written into the 14-byte segment list at entity +0x86.
  */
-const SEGMENTS = 0x57;
+export const SEGMENTS = 0x57;
 /** Segment entries in the list at +0x86: the first at +4, every 14 bytes ($8FCA13, $8FCA42). */
 export const SEGMENT_FIRST = 4;
 export const SEGMENT_STRIDE = 14;

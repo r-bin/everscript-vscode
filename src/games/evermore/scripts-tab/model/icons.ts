@@ -59,6 +59,7 @@ function draw(rom: Uint8Array, roomId: number, key: string, { dogIcon = null, do
     const v = Number(raw);
     if (kind === 'anim') return animation ? animation(rom, v) : null;
     try {
+        if (kind === 'currency') return png(maps.currencyIcon(rom, v >= 0 && v < 4 ? v : Math.floor(v / 3)));
         if (kind === 'enemy') return character(rom, new ScriptRom(rom).enemyCharacter(v));
         if (kind === 'char') return character(rom, v);
         if (kind === 'object') return object(rom, roomId, v, Number(extra));

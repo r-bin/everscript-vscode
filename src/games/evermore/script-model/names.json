@@ -33,7 +33,8 @@
   "9285": "PRESELECT ALCHEMY ($2445)",
   "9289": "SAVE SPOT ($2449)",
   "9305": "INGREDIENT SHOP ($2459)",
-  "9313": "NEXT ADD ($2461)"
+  "9313": "NEXT ADD ($2461)",
+  "9445": "SALABOG ENTITY ($24e5)"
  },
  "ramValues": {
   "9035": {

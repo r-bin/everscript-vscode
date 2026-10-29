@@ -59,6 +59,7 @@ export const fresh = (saved: Record<number, string> = {}): Context => ({ last: n
 
 /** LOOT_REWARD MONEY: the amount is in the era's currency. */
 const MONEY = 0x0001;
+const LOOT_OBJECT = 0x2395;
 
 /** The loot reward and the three prize items: reward ids (knowledge ram/7e2391). */
 const REWARDS = new Set([0x2391, 0x23a1, 0x23a3, 0x23a5]);
@@ -66,6 +67,7 @@ const REWARDS = new Set([0x2391, 0x23a1, 0x23a3, 0x23a5]);
 /** What a save-area cell's values are pictures of: rewards (ram/7e2391), the dog's form (ram/7e2443, ram/7e2363), a weapon (ram/7e2441, ram/7e235f). */
 function kindOf(addr: number): string | null {
     if (REWARDS.has(addr)) return 'loot';
+    if (addr === LOOT_OBJECT) return 'object';
     if (addr === 0x2443 || addr === 0x2363) return 'dog';
     if (addr === 0x2441 || addr === 0x235f) return 'weapon';
     return null;
@@ -100,6 +102,11 @@ function characterRef(t: Term, ctx: Context): IconRef | null {
 export function iconRefs(ins: Instruction, names: Names, ctx: Context = fresh()): IconRef[] {
     const out: IconRef[] = [];
     const value = (addr: number, v: number): void => {
+        if (addr === LOOT_OBJECT) {
+            const valStr = names.decimal ? String(v) : constText(v);
+            out.push({ key: `object:${v}:0`, find: valStr, title: `object ${v}, first state` });
+            return;
+        }
         const kind = kindOf(addr), name = kind ? names.value?.(addr, v) : '';
         if (kind && name) out.push({ key: kind === 'loot' && v === MONEY ? 'money' : `${kind}:${v}`, find: name, ...(v === MONEY && kind === 'loot' ? { title: 'money, in the currency of the era the room is in' } : {}) });
     };
@@ -107,7 +114,14 @@ export function iconRefs(ins: Instruction, names: Names, ctx: Context = fresh())
     if (f.k === 'spawn') {
         const name = names.enemy?.(f.index);
         if (name) out.push({ key: `enemy:${f.index}`, find: name });
-    } else if (f.k === 'write' && f.area === 'save' && f.value !== null) value(f.addr, f.value);
+    } else if (f.k === 'write' && f.area === 'save') {
+        if (f.value !== null) value(f.addr, f.value);
+        else if (f.addr === LOOT_OBJECT && f.expr) {
+            const v = evaluate(tree(f.expr), (a) => ctx.known[a] ?? null);
+            if (v !== null) value(f.addr, v);
+            else out.push({ key: 'unknown', find: names.memory?.(f.addr) || 'MAP_REF', live: `${ins.address}:1`, title: 'an object the game picks at run time (first state)' });
+        }
+    }
     // A value compared with such a cell (`DOG_READ == WOLF`, `CURRENT_WEAPON >= BRONZE_AXE`); the characters.
     const visit = (n: Node): void => {
         if (n.k === 'binary') {
@@ -126,6 +140,18 @@ export function iconRefs(ins: Instruction, names: Names, ctx: Context = fresh())
         if (o.k !== 'E') return;
         const n = tree(o.expr);
         if (params[i]?.type === 'object_index') out.push(objectRef(ins, i, n, ctx, names));
+        if (params[i]?.enum === 'CURRENCY') {
+            const v = n.k === 'const' ? n.value : evaluate(n, (a) => ctx.known[a] ?? null);
+            if (v !== null) {
+                const cname = names.constant?.('CURRENCY', v) || (names.decimal ? String(v) : constText(v));
+                const idx = v >= 0 && v < 4 ? v : Math.floor(v / 3);
+                out.push({
+                    key: `currency:${idx}`,
+                    find: cname,
+                    title: names.constant?.('CURRENCY', v)?.toLowerCase() ?? 'currency',
+                });
+            }
+        }
         visit(n);
     });
     return out;

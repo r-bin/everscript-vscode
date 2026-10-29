@@ -7978,9 +7978,9 @@
         "comment": "TODO (used: default loot script, boss rush dust loot)"
       },
       {
-        "name": "UNKNOWN_2",
+        "name": "ROOM_HOOK",
         "value": "0x0001",
-        "comment": "TODO (used: special scripts?)"
+        "comment": "room hook active mask (used: special scripts, room hooks 2-5, BBM_WINGS)"
       }
     ],
     "DIRECTION": [

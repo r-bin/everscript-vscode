@@ -17,7 +17,7 @@
 
 import { snesToRom, readByte } from './rom';
 import { animationScript, read16At, FACING_SOUTH, ATTACK_FIELDS } from './character-record';
-import { opcode, lengthAt } from './animation-opcodes';
+import { opcode, lengthAt, SEGMENTS, segmentsAt } from './animation-opcodes';
 
 /** Byte at a SNES address. */
 const at = (rom: Uint8Array, snes: number): number => readByte(rom, snesToRom(snes));
@@ -175,6 +175,10 @@ export function resolveCharacterSprite(
         if (cmd >= SET_SPRITE_FIRST && cmd <= SET_SPRITE_LAST) {
             return (((cmd + SPRITE_BANK_BIAS) << 16) | read16At(rom, p + 1)) >>> 0;
         }
+        if (cmd === SEGMENTS) {
+            const seg = segmentsAt(rom, p);
+            if (seg.groups.length > 0) return seg.groups[0].sprite;
+        }
         if (cmd === SET_SPRITE_SECONDARY && secondary === null) {
             secondary = (read16At(rom, p + 1) | (at(rom, p + 3) << 16)) >>> 0;
         }
@@ -293,6 +297,9 @@ export function walkAnimationScript(
         } else if (cmd === SET_SPRITE_SECONDARY) {
             // Only as a stand-in: a frame that sets a main sprite keeps it.
             if (sprite === null) sprite = (read16At(rom, p + 1) | (at(rom, p + 3) << 16)) >>> 0;
+        } else if (cmd === SEGMENTS) {
+            const seg = segmentsAt(rom, p);
+            if (sprite === null && seg.groups.length) sprite = seg.groups[0].sprite;
         } else if (cmd >= HOLD_FIRST && cmd <= HOLD_LAST) {
             ticks = cmd;
         } else if (cmd === HOLD_OPERAND) {
