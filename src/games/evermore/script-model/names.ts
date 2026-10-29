@@ -58,7 +58,7 @@ export function memoryName(addr: number): string {
 
 /** The flag at `addr`, bit `bit`; '' when it has none. */
 export function flagName(addr: number, bit: number): string {
-    return FLAGS[`${addr}:${bit}`] ?? '';
+    return FLAGS[`${addr}:${bit}`] || compilerFlag(addr, bit) || '';
 }
 
 /** The name of a value written to a cell that has named values (`Laser Lance (0x18)` → `Laser Lance`), or null. */
@@ -144,6 +144,24 @@ function compilerMemory(addr: number): string {
     return memoryEnum.get(addr) ?? '';
 }
 
+/** The compiler's FLAG enum by address and bit: `<0x22eb, 0x40>` → DOORWAY_ARRIVAL. */
+let flagEnum: Map<string, string> | null = null;
+function compilerFlag(addr: number, bit: number): string {
+    if (!flagEnum) {
+        flagEnum = new Map();
+        for (const c of ENUMS.FLAG ?? []) {
+            const m = /<0x([0-9a-f]+),\s*(0x[0-9a-f]+|\d+)>/i.exec(c.value);
+            if (m) {
+                const a = parseInt(m[1], 16);
+                const rawMask = m[2].startsWith('0x') || m[2].startsWith('0X') ? parseInt(m[2], 16) : parseInt(m[2], 10);
+                const b = bitOf(rawMask);
+                if (b >= 0 && !NAMELESS.test(c.name)) flagEnum.set(`${a}:${b}`, c.name);
+            }
+        }
+    }
+    return flagEnum.get(`${addr}:${bit}`) ?? '';
+}
+
 /** A typed constant: ADDRESS_ID's trigger ids only from $100 up (its smaller values are global ids), or an NPC/Short script name. */
 function typedConstant(type: string, value: number): string {
     if (type === 'TRIGGER_ID') {
@@ -154,6 +172,13 @@ function typedConstant(type: string, value: number): string {
             if (npc && npc !== NONE) return identifier(npc);
         }
         return '';
+    }
+    if (type === 'ANIMATION') {
+        return constantName('ANIMATION_ALL', value)
+            || constantName('ANIMATION_BOY', value)
+            || constantName('ANIMATION_DOG', value)
+            || constantName('ANIMATION_ENEMY', value)
+            || '';
     }
     return constantName(type, value) || ownEnum(type)?.values.get(value) || '';
 }
@@ -219,7 +244,7 @@ export function printNames(file: (bus: number) => number): Names {
             || identifier(valueName(WEAPON_CELLS.has(addr) ? WEAPON_REQUEST : addr, v) ?? ''),
         enemy: (index) => enemyName(index)?.name ?? '',
         constant: typedConstant,
-        inEnum: (type, value) => (type === 'TRIGGER_ID' || !ENUMS[type]?.length ? null : ENUMS[type].some((c) => Number(c.value) === value)),
+        inEnum: (type, value) => (type === 'TRIGGER_ID' || (!ENUMS[type]?.length && type !== 'ANIMATION') ? null : (type === 'ANIMATION' ? ['ANIMATION_ALL', 'ANIMATION_BOY', 'ANIMATION_DOG', 'ANIMATION_ENEMY'].some((t) => ENUMS[t]?.some((c) => Number(c.value) === value)) : ENUMS[type].some((c) => Number(c.value) === value))),
         field: fieldName,
     };
 }

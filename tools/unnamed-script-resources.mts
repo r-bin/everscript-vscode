@@ -191,7 +191,7 @@ export function parseUnnamedResources(bytes: Uint8Array): Map<string, UnnamedRes
                     const animId = o[1] && 'value' in o[1] ? o[1].value : 0;
                     const e = o[0].k === 'E' ? tree(o[0].expr) : null;
                     const who = e && e.k === 'value' ? e.term.spec.name : '';
-                    const enumTypes = who === 'boy' ? ['ANIMATION_BOY'] : who === 'dog' ? ['ANIMATION_DOG'] : ['ANIMATION_PLACEHOLDER', 'ANIMATION_ENEMY', 'ANIMATION_ALL'];
+                    const enumTypes = who === 'boy' ? ['ANIMATION_BOY', 'ANIMATION_ALL'] : who === 'dog' ? ['ANIMATION_DOG', 'ANIMATION_ALL'] : ['ANIMATION_PLACEHOLDER', 'ANIMATION_ENEMY', 'ANIMATION_ALL'];
                     const animName = enumTypes.map((t) => names.constant?.(t, animId)).find(Boolean);
                     if (!animName) {
                         addUsage('animation', `0x${animId.toString(16).padStart(4, '0')}`, site);

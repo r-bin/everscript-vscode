@@ -432,6 +432,17 @@ The following high-reuse plain operands have been verified, documented with RAM 
   - `$7E:2545` (`DIALOGUE_SELECTION`): Player selection choice returned from `lookup_034d(0)` at Windwalker fire pits and Omnitopia terminals (36 uses across 6 rooms).
   - `$7E:2421` (`TRIGGER_INTERACTION_X`): Trigger interaction entity X pixel coordinate captured by engine trigger scanner.
   - `$7E:2423` (`TRIGGER_INTERACTION_Y`): Trigger interaction entity Y pixel coordinate captured by engine trigger scanner.
+- Nobilia market timer registers:
+  - `$7E:2513` (`MARKET_TIMER_START_FRAME`): Frame counter low word recording session entrance timestamp.
+  - `$7E:2515` (`MARKET_TIMER_MINUTES_REMAINING`): Countdown indicator (15 down to 1 minute) evaluated by timer routines and market vendors.
+- Antiqua character separation and exploration state:
+  - `$7E:2350` (`DOG_SLEEP_SPOT`): Companion resting location index (0..4) in Crustacia and pyramid exploration (46 uses).
+  - `$7E:2357` (`PYRAMID_CURRENT_LEVEL`): Active floor level in Great Pyramid (1 = bottom canine halls, 2 = top boy chambers; 20 uses).
+  - `$7E:2358` (`PYRAMID_ENTRANCE_SECTOR`): Selected doorway/corridor sector index (0..2) in Great Pyramid transitions (26 uses).
+  - `$7E:234D` (`CAVE_ENTRANCE_ID`): Shared Room 53 cave entrance sector index (1..6; 24 uses).
+- Omnitopia ventilation shaft duct network:
+  - `$7E:24F9` (`DUCT_ENTRANCE_GRATE_OBJECT`): Object index (0x2F..0x3E) of active entrance duct grate in Room 72 (46 uses).
+  - `$7E:24FB` (`DUCT_EXIT_GRATE_OBJECT`): Object index of destination duct grate in Room 72 (14 uses).
 
 The following shared scripts and routines have also been reverse-engineered, documented, and registered in compiler `ADDRESS` enums:
 - `$92:DE75` (`ROOM_ENTER_EPILOGUE`): Default room enter script epilogue (attaches loot dust hook and fades in; 145 uses across 112 rooms).
@@ -439,11 +450,22 @@ The following shared scripts and routines have also been reverse-engineered, doc
 - `$92:CDB3` (`MARKET_DIALOGUE_NOT_ENOUGH_ITEMS`): Market vendor dialogue for insufficient items (39 uses).
 - `$92:CDBE` (`MARKET_DIALOGUE_RECEIVED_ITEM`): Market vendor dialogue for successful trade / item received (23 uses).
 - `$92:CDCA` (`MARKET_DIALOGUE_PRINT_COMMODITY_NAME`): Market commodity name dispatcher.
+- `$96:80AB` (`MARKET_VENDOR_RANDOM_CHATTER`): Nobilia Market vendor ambient banter / greeting chatter (59 uses).
+- `$96:811A` (`MARKET_VENDOR_TIMER_WARNING`): Nobilia Market vendor timer warning dialogue (37 uses).
+- `$92:CC6C` (`MARKET_TIMER_CALCULATE_MINUTES_REMAINING`): Computes remaining market minutes from frame counter.
+- `$97:EDD8` (`IVOR_KITCHEN_DOOR_UNLOCK`): Ivor Tower banquet kitchen door unlocking sequence (35 uses).
+- `$9A:E24F` (`OMNITOPIA_DUCT_CRAWL_TRANSITION`): Omnitopia duct crawl through shafts and room transition (14 uses).
+- `$9A:E40D` (`OMNITOPIA_DUCT_ENTER_GRATE`): Omnitopia duct crawl enter animation and in-duct latch (16 uses).
+- `$9A:E477` (`OMNITOPIA_DUCT_EXIT_GRATE`): Omnitopia duct crawl exit animation and latch clear (16 uses).
+
+The following high-reuse transition flags have been verified and registered in compiler `FLAG` enums:
+- `<0x22eb, 0x40>` (`DOORWAY_ARRIVAL`): Set by doorway exit triggers and consumed/cleared by exterior enter scripts to route character arrival (28 uses across 12 rooms).
+- `<0x22f8, 0x04>` (`OMNITOPIA_DUCT_EXIT_ARRIVAL`): Set by Metroplex duct exit triggers and cleared by Omnitopia room enter scripts to trigger duct crawl arrival (28 uses across 8 rooms).
 
 ## Follow-up Queue
 
 1. Reconcile `$22EA` and `$22EC` knowledge entries against the engine docs and script evidence; preserve the bit-specific/multi-purpose behavior rather than choosing a single title prematurely.
-2. Resolve top remaining unmapped room scratch cells: `$2350` (pyramid/ship character state), `$24F9` / `$24FB` (Metroplex tunnel state), `$24FD` (room transition state), `$244F` / `$2451` (market transaction counters), and `$247B`–`$2491` (desert minigame registers).
+2. Resolve top remaining unmapped room scratch cells: `$24FD` (room transition scratch; 15 uses across 10 rooms), `$244F` / `$2451` (market vendor transaction loop counters in R10), and `$247B`–`$2491` (quicksand desert minigame loop registers in R89).
 3. Trace the raw bit groups `$2269`–`$228B` to determine which are pickup/one-shot flags and whether any masks have engine readers beyond the matching scripts.
 4. Cross-reference the numeric object flag IDs with the flag tag index and persistent save-flag storage; assign names only when the room context and flag behavior support them.
 5. Confirm reset/lifetime rules for `temp_flag` and raw room-script scratch through its VM handler and a runtime trace. Do not equate repeated temporary indices across rooms with a shared persistent variable.

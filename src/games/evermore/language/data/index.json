@@ -2343,6 +2343,41 @@
         "comment": "market vendor dialogue: print commodity item name by ID"
       },
       {
+        "name": "MARKET_VENDOR_RANDOM_CHATTER",
+        "value": "0x9680ab",
+        "comment": "Nobilia Market vendor ambient banter / greeting chatter"
+      },
+      {
+        "name": "MARKET_VENDOR_TIMER_WARNING",
+        "value": "0x96811a",
+        "comment": "Nobilia Market vendor timer warning dialogue"
+      },
+      {
+        "name": "MARKET_TIMER_CALCULATE_MINUTES_REMAINING",
+        "value": "0x92cc6c",
+        "comment": "compute Nobilia Market countdown remaining minutes (15..1) from frame counter"
+      },
+      {
+        "name": "IVOR_KITCHEN_DOOR_UNLOCK",
+        "value": "0x97edd8",
+        "comment": "Ivor Tower banquet kitchen door unlocking sequence"
+      },
+      {
+        "name": "OMNITOPIA_DUCT_CRAWL_TRANSITION",
+        "value": "0x9ae24f",
+        "comment": "Omnitopia duct crawl through shafts and room transition"
+      },
+      {
+        "name": "OMNITOPIA_DUCT_ENTER_GRATE",
+        "value": "0x9ae40d",
+        "comment": "Omnitopia duct crawl enter animation and in-duct latch"
+      },
+      {
+        "name": "OMNITOPIA_DUCT_EXIT_GRATE",
+        "value": "0x9ae477",
+        "comment": "Omnitopia duct crawl exit animation and latch clear"
+      },
+      {
         "name": "RAISE_CURRENT_WEAPON",
         "value": "0x92bf33",
         "comment": ""
@@ -4395,6 +4430,46 @@
         "comment": "trigger interaction entity Y pixel position staged by engine"
       },
       {
+        "name": "DOG_SLEEP_SPOT",
+        "value": "(Byte) <0x2350>",
+        "comment": "Antiqua Dog resting camp / separation location index (0..4)"
+      },
+      {
+        "name": "PYRAMID_CURRENT_LEVEL",
+        "value": "(Byte) <0x2357>",
+        "comment": "Antiqua Pyramid current floor level index (1 = bottom, 2 = top)"
+      },
+      {
+        "name": "PYRAMID_ENTRANCE_SECTOR",
+        "value": "(Byte) <0x2358>",
+        "comment": "Antiqua Pyramid entrance doorway / sector index (0..2)"
+      },
+      {
+        "name": "CAVE_ENTRANCE_ID",
+        "value": "(Byte) <0x234d>",
+        "comment": "Antiqua caves shared room entrance sector index (1..6)"
+      },
+      {
+        "name": "MARKET_TIMER_START_FRAME",
+        "value": "<0x2513>",
+        "comment": "Nobilia Market 15-minute countdown start timestamp (frame counter low)"
+      },
+      {
+        "name": "MARKET_TIMER_MINUTES_REMAINING",
+        "value": "<0x2515>",
+        "comment": "Nobilia Market countdown remaining minutes (15..1)"
+      },
+      {
+        "name": "DUCT_ENTRANCE_GRATE_OBJECT",
+        "value": "<0x24f9>",
+        "comment": "Omnitopia ventilation duct entrance grate object ID"
+      },
+      {
+        "name": "DUCT_EXIT_GRATE_OBJECT",
+        "value": "<0x24fb>",
+        "comment": "Omnitopia ventilation duct exit grate object ID"
+      },
+      {
         "name": "WAX",
         "value": "(Byte) <0x22ff>",
         "comment": ""
@@ -5545,7 +5620,18 @@
         "comment": "used in: sterling grab, reactor room (1=?)"
       }
     ],
-    "FLAG": [],
+    "FLAG": [
+      {
+        "name": "DOORWAY_ARRIVAL",
+        "value": "<0x22eb, 0x40>",
+        "comment": "doorway exit arrival flag tested by exterior enter scripts"
+      },
+      {
+        "name": "OMNITOPIA_DUCT_EXIT_ARRIVAL",
+        "value": "<0x22f8, 0x04>",
+        "comment": "Omnitopia duct exit arrival flag tested by room enter scripts"
+      }
+    ],
     "CUSTOM_MEMORY": [
       {
         "name": "START_ROCKET_JUMP_COUNT",
