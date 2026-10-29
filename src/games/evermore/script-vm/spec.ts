@@ -84,7 +84,7 @@ export const OPCODES: ReadonlyMap<number, OpcodeSpec> = new Map<number, OpcodeSp
     [0x3C, op('u16 u16 u8 u8', 'next', 'spawn')],
     [0x3D, op('E u16', 'next', 'attach_talk_script')],
     [0x3F, op('E u16 u16', 'next', 'attach_script')],
-    [0x42, op('E u16', 'next', 'teleport_tile')],
+    [0x42, op('E u8 u8', 'next', 'teleport_tile')],
     [0x43, op('E E E', 'next', 'teleport')],
     [0x44, op('u8 u8 u8 u8 u8', 'next', 'open_message_box')],
     [0x45, op('u8 u8 u8 u8 u8', 'next', 'open_message_box')],

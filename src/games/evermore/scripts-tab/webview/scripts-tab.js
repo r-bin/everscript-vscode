@@ -29,7 +29,7 @@ var _scr = {
   icons: {},             // icon key (enemy:11, loot:2049, weapon:24, dog:2) -> data URI | null, from the user's ROM
   hex: false,            // numbers in hex (off: decimal, as the host prints them; ScriptsListing.toHex)
   structured: true,      // the enter script as if/else/while (off: each instruction as printed, gotos and all)
-  assume: { IN_ANIMATION: false, DOG_UNAVAILABLE: false, CHANGE_MUSIC: false }, // entry state (ScriptsListing.ENTRY_FLAGS)
+  assume: { DEBUG: false, IN_ANIMATION: false, DOG_UNAVAILABLE: false, CHANGE_MUSIC: false }, // entry state (ScriptsListing.ENTRY_FLAGS)
   // Maps
   map: null,             // selected room id
   maps: {},              // id -> { map, picture } | 'pending'

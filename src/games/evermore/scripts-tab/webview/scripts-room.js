@@ -18,7 +18,7 @@
 // picture shows the camera bounds and the doors that lead here
 // (scripts-listing.dom.ts). A line's marks (script-vm print.ts) are squiggles.
 
-var SCR_KIND = { enter: 'Enter', step: 'Step-on', b: 'B-trigger' };
+var SCR_KIND = { entrance: 'Entrance', enter: 'Enter', step: 'Step-on', b: 'B-trigger' };
 var SCR_CLUSTER_ICON = { loot: '◆', transition: '⇥', dialog: '💬', cutscene: '🎬', script: '·' };
 
 function scrRoomData() { return _scr.room == null ? null : _scr.rooms[_scr.room]; }
@@ -48,7 +48,7 @@ function scrRoomClusters() {
 }
 
 function scrScriptChip(s) {
-  var name = s.kind === 'enter' ? 'Enter' : (s.kind === 'b' ? 'B' : 'S') + s.index;
+  var name = s.kind === 'enter' ? 'Enter' : (s.kind === 'b' ? 'B' : s.kind === 'entrance' ? 'E' : 'S') + s.index;
   return '<button class="scr-chip' + (s.role ? ' scr-role-' + s.role : '') + (s.key === _scr.script ? ' scr-on' : '') + '" data-scr-script="' + scrEsc(s.key) + '" title="' +
     scrEsc(SCR_KIND[s.kind] + (s.index != null ? ' #' + s.index : '') + ' · ' + s.addrHex + ' · ' + s.label) + '">' + name +
     ScriptsListing.chipPicture(s.box, scrRoomData().picture, s.lootKey ? _scr.icons[ScriptsListing.roomKey(s.lootKey, _scr.room)] : null) + '</button>';
@@ -62,16 +62,18 @@ function scrScriptListHtml(room) {
   if (clusters && clusters.error) out.push('<div class="scr-note scr-warn">Clusters: ' + scrEsc(clusters.error) + '</div>');
   if (clusters && !clusters.error) {
     var used = {};
+    var entrances = room.scripts.filter(function (s) { return s.kind === 'entrance'; });
+    if (entrances.length) out.push('<div class="scr-chips-row"><span class="scr-chips-h">Entrance</span>' + entrances.map(scrScriptChip).join('') + '</div>');
     out.push('<div class="scr-chips-row"><span class="scr-chips-h">Enter</span>' + scrScriptChip(byKey.enter) + '</div>');
     clusters.forEach(function (c) {
       out.push('<div class="scr-chips-row"><span class="scr-chips-h" title="' + scrEsc(c.kind) + '">' + (SCR_CLUSTER_ICON[c.kind] || '·') + ' ' + scrEsc(c.title) + '</span>' +
         c.keys.map(function (k) { used[k] = 1; return byKey[k] ? scrScriptChip(byKey[k]) : ''; }).join('') + '</div>');
     });
-    var rest = room.scripts.filter(function (s) { return s.kind !== 'enter' && !used[s.key]; });
+    var rest = room.scripts.filter(function (s) { return s.kind !== 'enter' && s.kind !== 'entrance' && !used[s.key]; });
     if (rest.length) out.push('<div class="scr-chips-row"><span class="scr-chips-h">Not clustered</span>' + rest.map(scrScriptChip).join('') + '</div>');
     return out.join('');
   }
-  ['enter', 'step', 'b'].forEach(function (kind) {
+  ['entrance', 'enter', 'step', 'b'].forEach(function (kind) {
     var list = room.scripts.filter(function (s) { return s.kind === kind; });
     if (list.length) out.push('<div class="scr-chips-row"><span class="scr-chips-h">' + SCR_KIND[kind] + '</span>' + list.map(scrScriptChip).join('') + '</div>');
   });
@@ -117,6 +119,7 @@ function scrRenderRoom(mid, side) {
     '<div class="scr-chips"' + ScriptsListing.chipsStyle(d.picture) + '>' + scrScriptListHtml(d.room) + '</div>' +
     '<div class="scr-sub"><b>' + SCR_KIND[s.kind] + (s.index != null ? ' #' + s.index : '') + '</b> <code>' + s.addrHex + '</code>' +
     (s.scriptId != null ? ' · script id <code>$' + scrHex(s.scriptId, 4) + '</code>' : '') +
+    (s.fromName ? ' · from <b>' + scrEsc(s.fromName) + '</b> (' + scrEsc(s.fromTrigger || '') + ')' : '') +
     ' · ' + s.rows.length + ' instructions' + (s.stop !== 'terminated' ? ' · <span class="scr-warn">' + scrEsc(s.stop) + '</span>' : '') +
     (facts.length ? '<br>' + facts.join(' · ') : '') + '</div>' +
     (_scr.everscript ? scrEverscriptHtml() : s.kind !== 'enter' ? scrTriggerHtml(s) : d.room.merged ? scrVariantsHtml() + scrMergedHtml(d.room.merged, s) : scrRowsHtml(s));
@@ -217,7 +220,7 @@ function scrRenderRoomSide(side, d, sel) {
   var got = _scr.variants[_scr.room], vp = got && got !== 'pending' && got.pictures ? got.pictures[_scr.variantPick[_scr.room] || 0] : null;
   var p = vp && !vp.error ? vp : d.picture;
   if (!p || p.error) { side.innerHTML = '<div class="scr-empty">' + scrEsc(p ? p.error : 'No picture') + '</div>'; return; }
-  var boxes = d.room.scripts.filter(function (s) { return s.box; }).map(function (s) {
+  var boxes = d.room.scripts.filter(function (s) { return s.box && s.kind !== 'entrance'; }).map(function (s) {
     var b = s.box;
     return '<rect class="scr-box scr-box-' + s.kind + (s.role ? ' scr-role-' + s.role : '') + (s.key === sel.key ? ' scr-on' : '') + '" data-scr-script="' + s.key + '" x="' + b.x + '" y="' + b.y +
       '" width="' + b.w + '" height="' + b.h + '"><title>' + scrEsc(SCR_KIND[s.kind] + ' #' + s.index + ' · ' + s.label) + '</title></rect>';

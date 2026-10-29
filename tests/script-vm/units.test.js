@@ -362,6 +362,39 @@ test('syntax: currency enum, pacified boolean, volume percentage, restore_object
     assert.deepStrictEqual(JSON.parse(JSON.stringify(layout)), [{ text: 8, bars: [] }, { text: 20, bars: [8] }]);
 });
 
+test('teleport_tile: formats as coordinate pair (x, y)', () => {
+    // opcode 0x42: entity (arg[0] = 0x92 0x00), x tile = 0x1e (30), y tile = 0x22 (34)
+    const ins = decode([0x42, 0x92, 0x00, 0x1e, 0x22]);
+    assert.strictEqual(V.text(ins, {}), 'teleport_tile(signed arg[0], (0x1e, 0x22));');
+    assert.strictEqual(V.text(ins, { decimal: true }), 'teleport_tile(signed arg[0], (30, 34));');
+    assert.deepStrictEqual(V.parameters(0x42).map((p) => p.name + ':' + p.type), ['entity:entity', 'x:u8', 'y:u8']);
+});
+
+test('entry state: DEBUG=0 flag exposed and togglable', () => {
+    const vm = require('vm');
+    const fs = require('fs');
+    const listingCode = fs.readFileSync('dist/webview/scripts-listing.js', 'utf8');
+    const ctx = {};
+    vm.runInNewContext(listingCode, ctx);
+    const { ENTRY_FLAGS, entryHtml, liveness } = ctx.ScriptsListing;
+    assert.strictEqual(ENTRY_FLAGS[0], 'DEBUG');
+    const html0 = entryHtml({ DEBUG: false });
+    assert.ok(html0.includes('DEBUG = 0'));
+    const html1 = entryHtml({ DEBUG: true });
+    assert.ok(html1.includes('DEBUG = 1') && html1.includes('scr-on'));
+
+    // if (DEBUG) branch liveness
+    const lines = [
+        { addressSnes: 0x900000, summary: 'if (DEBUG) {', indent: 0, in: -1, thread: -1 },
+        { addressSnes: 0x900004, summary: 'return;', indent: 1, in: -1, thread: -1 },
+        { addressSnes: 0x900005, summary: '}', indent: 0, in: -1, thread: -1, brace: true },
+    ];
+    const liveWhenFalse = liveness(lines, null, {}, { DEBUG: false });
+    assert.strictEqual(liveWhenFalse[1], 'off', 'body ruled out when DEBUG = 0');
+    const liveWhenTrue = liveness(lines, null, {}, { DEBUG: true });
+    assert.strictEqual(liveWhenTrue[1], '', 'body live when DEBUG = 1');
+});
+
 console.log(`\nscript-vm units: ${passed} passed, ${failed} failed`);
 // exitCode, not exit(): Node 26 can deadlock in process.exit() (tools/test.mts).
 process.exitCode = failed ? 1 : 0;

@@ -20,7 +20,7 @@ interface Line {
 interface Block { id: number; parent: number; kind: 'call' | 'thread'; target: number; role: string | null }
 interface Slice { area: 'local' | 'temp'; thread: number; offset: number; width: 1 | 2; kind: string; name: string; uses: number[]; reused: string | null; icons?: string[] }
 interface BoundWrite { at: number; edge: 'start' | 'end'; x: number; y: number }
-interface Arrival { fromMap: number; fromName: string; key: string; x: number; y: number; direction: string | null }
+interface Arrival { fromMap: number; fromName: string; key: string; x: number; y: number; direction: string | null; entranceKey?: string }
 
 /** A key as the host sends its picture: an object's and an era's with the room (model/icons.ts roomKey). */
 export const roomKey = (key: string, room: number): string =>
@@ -160,7 +160,7 @@ export function chipPicture(box: { x: number; y: number; w: number; h: number } 
 }
 
 /** Entry-state flags: clear when the room is loaded fresh, set by the way some doors bring you in. */
-export const ENTRY_FLAGS = ['IN_ANIMATION', 'DOG_UNAVAILABLE', 'CHANGE_MUSIC'];
+export const ENTRY_FLAGS = ['DEBUG', 'IN_ANIMATION', 'DOG_UNAVAILABLE', 'CHANGE_MUSIC'];
 
 /** What each role is called in the legend. */
 const ROLE_NAMES: Record<string, string> = { init: 'room setup', exit: 'exit', loot: 'pickup', sniff: 'sniff spot', cutscene: 'scene' };
@@ -291,7 +291,7 @@ export function boundsSvg(width: number, height: number, writes: BoundWrite[], l
 
 /** The doors that lead here, as markers where the player lands: click one to open the script that sends you. */
 export function arrivalsSvg(arrivals: Arrival[]): string {
-    return arrivals.map((a) => '<circle class="scr-arrival" cx="' + a.x + '" cy="' + a.y + '" r="5" data-scr-arrive="' + a.fromMap + '|' + esc(a.key) + '">' +
+    return arrivals.map((a, i) => '<circle class="scr-arrival" cx="' + a.x + '" cy="' + a.y + '" r="5" data-scr-script="' + esc(a.entranceKey || ('entrance:' + i)) + '" data-scr-arrive="' + a.fromMap + '|' + esc(a.key) + '">' +
         '<title>' + esc('Arrive from ' + a.fromName + ' (' + a.key + ')' + (a.direction ? ', walking ' + a.direction : '')) + '</title></circle>').join('');
 }
 

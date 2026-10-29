@@ -83,9 +83,12 @@ async function romChecks(rom) {
     await test('every room decodes its scripts', () => {
         for (const r of rooms.roomList()) assert.ok(!rooms.roomScripts(rom, r.id).error, 'room ' + r.idHex);
     });
-    await test("Fire Eyes' Village: 34 scripts, a step-on box in picture pixels", () => {
+    await test("Fire Eyes' Village: 34 triggers and 15 entrances, a step-on box in picture pixels", () => {
         const r = rooms.roomScripts(rom, 0x25);
-        assert.strictEqual(r.scripts.length, 34);
+        assert.strictEqual(r.scripts.filter((s) => s.kind !== 'entrance').length, 34);
+        assert.strictEqual(r.scripts.filter((s) => s.kind === 'entrance').length, 15);
+        const e0 = r.scripts.find((s) => s.key === 'entrance:0');
+        assert.ok(e0 && e0.rows.length > 0);
         const s0 = r.scripts.find((s) => s.key === 'step:0');
         assert.strictEqual(s0.addrHex, '$94BEEA');
         assert.ok(s0.box.w > 0 && s0.box.h > 0 && s0.box.x >= 0 && s0.box.y >= 0);
