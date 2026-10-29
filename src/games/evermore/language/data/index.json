@@ -4275,6 +4275,56 @@
         "comment": ""
       },
       {
+        "name": "TARGET_X",
+        "value": "<0x23b9>",
+        "comment": "script waypoint / target position X in world pixels"
+      },
+      {
+        "name": "TARGET_Y",
+        "value": "<0x23bb>",
+        "comment": "script waypoint / target position Y in world pixels"
+      },
+      {
+        "name": "ACTIVE_CHAR_X",
+        "value": "<0x24ab>",
+        "comment": "staged X position of the active player character in world pixels or subpixels"
+      },
+      {
+        "name": "ACTIVE_CHAR_Y",
+        "value": "<0x24af>",
+        "comment": "staged Y position of the active player character in world pixels or subpixels"
+      },
+      {
+        "name": "INACTIVE_CHAR_X",
+        "value": "<0x24ad>",
+        "comment": "staged X position of the inactive companion character in world pixels"
+      },
+      {
+        "name": "INACTIVE_CHAR_Y",
+        "value": "<0x24b1>",
+        "comment": "staged Y position of the inactive companion character in world pixels"
+      },
+      {
+        "name": "TRANSIT_ORIGIN_X",
+        "value": "<0x249d>",
+        "comment": "scripted lift / transit movement origin X coordinate in world pixels"
+      },
+      {
+        "name": "TRANSIT_ORIGIN_Y",
+        "value": "<0x249f>",
+        "comment": "scripted lift / transit movement origin Y coordinate in world pixels"
+      },
+      {
+        "name": "TRANSIT_DEST_X",
+        "value": "<0x24a1>",
+        "comment": "scripted lift / transit movement destination X coordinate in world pixels"
+      },
+      {
+        "name": "TRANSIT_DEST_Y",
+        "value": "<0x24a3>",
+        "comment": "scripted lift / transit movement destination Y coordinate in world pixels"
+      },
+      {
         "name": "WAX",
         "value": "(Byte) <0x22ff>",
         "comment": ""

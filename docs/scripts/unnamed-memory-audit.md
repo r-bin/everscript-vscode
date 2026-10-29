@@ -356,18 +356,32 @@ These are not direct WRAM addresses: the helper is named, but the flag IDs passe
 
 Only six raw-address hits have a matching per-address RAM knowledge file: `$2284` (`OMNITOPIA_CHESTS_A`), `$22EA` (`LOOT_FLAGS`), `$22EC` (`STORY_FLAGS_22EC`), `$241F` (`CAMERA_SCROLL_MODE`), `$2429` (`ACTIVE_STEP_TRIGGER_SCRIPT_ID`), and `$243D` (`EQUIPMENT_GRANT_COMMAND`). The first and last named fields still have raw script references and remain in the index. `$22EA` and `$22EC` have conflicting or incomplete descriptions noted above.
 
-Some plain operands had explanations in engine docs and have now been verified and promoted to full RAM knowledge entries and compiler enum constants:
-- `$7E:240F` (`CAMERA_DEADZONE_LEFT`): Horizontal deadzone left threshold margin.
-- `$7E:2411` (`CAMERA_DEADZONE_RIGHT`): Horizontal deadzone right threshold margin.
-- `$7E:2413` (`CAMERA_DEADZONE_TOP`): Vertical deadzone top threshold margin (used by 11 rooms to bias camera framing toward bosses or scenes).
-- `$7E:2415` (`CAMERA_DEADZONE_BOTTOM`): Vertical deadzone bottom threshold margin.
+The following high-reuse plain operands have been verified, documented with RAM knowledge files, and mapped to compiler `MEMORY` enums:
+- Camera deadzone margins:
+  - `$7E:240F` (`CAMERA_DEADZONE_LEFT`): Horizontal deadzone left threshold margin.
+  - `$7E:2411` (`CAMERA_DEADZONE_RIGHT`): Horizontal deadzone right threshold margin.
+  - `$7E:2413` (`CAMERA_DEADZONE_TOP`): Vertical deadzone top threshold margin (used by 11 rooms to bias camera framing toward bosses or scenes).
+  - `$7E:2415` (`CAMERA_DEADZONE_BOTTOM`): Vertical deadzone bottom threshold margin.
+- Script target waypoints:
+  - `$7E:23B9` (`TARGET_X`): Target waypoint X coordinate in world pixels (84 uses across 22 rooms, written in pairs via opcode 0x1B).
+  - `$7E:23BB` (`TARGET_Y`): Target waypoint Y coordinate in world pixels (68 uses across 18 rooms).
+- Party character staged coordinates:
+  - `$7E:24AB` (`ACTIVE_CHAR_X`): Active character staged X coordinate (49 uses across 18 rooms).
+  - `$7E:24AF` (`ACTIVE_CHAR_Y`): Active character staged Y coordinate (82 uses across 18 rooms).
+  - `$7E:24AD` (`INACTIVE_CHAR_X`): Inactive companion character staged X coordinate.
+  - `$7E:24B1` (`INACTIVE_CHAR_Y`): Inactive companion character staged Y coordinate.
+- Lift and platform transit waypoints:
+  - `$7E:249D` (`TRANSIT_ORIGIN_X`): Scripted transit/lift starting X coordinate (38 uses across 8 rooms).
+  - `$7E:249F` (`TRANSIT_ORIGIN_Y`): Scripted transit/lift starting Y coordinate (111 uses across 10 rooms).
+  - `$7E:24A1` (`TRANSIT_DEST_X`): Scripted transit/lift destination X coordinate (21 uses across 7 rooms).
+  - `$7E:24A3` (`TRANSIT_DEST_Y`): Scripted transit/lift destination Y coordinate (23 uses across 7 rooms).
 
 Other operands noted in engine docs include `$2421`–`$2425` (trigger interaction context) and `$243B` (sound-command handler); these remain in the unresolved queue until checked against exact script uses.
 
 ## Follow-up Queue
 
 1. Reconcile `$22EA` and `$22EC` knowledge entries against the engine docs and script evidence; preserve the bit-specific/multi-purpose behavior rather than choosing a single title prematurely.
-2. Resolve high-reuse plain operands first: `$23B9/$23BB`, `$249D/$249F`, `$24A1/$24A3`, `$24AB/$24AF`, and `$24B3/$24B5/$24B7`. Their scripts use coordinate-like pairs, arithmetic, movement, or teleport parameters, but no shared field names are recorded here.
+2. Resolve remaining physics/scratch operands in pipe maze and volcano scripts: `$24A7` (`TRAJECTORY_VY`), `$24B3` (`TRAJECTORY_INITIAL_VY`), `$24B5` (`TRAJECTORY_MAX_VY`), `$24B7` (`TRAJECTORY_VX`), and `$24C3` (`PIPE_DESTINATION_ID`).
 3. Trace the raw bit groups `$2269`–`$228B` to determine which are pickup/one-shot flags and whether any masks have engine readers beyond the matching scripts.
 4. Cross-reference the numeric object flag IDs with the flag tag index and persistent save-flag storage; assign names only when the room context and flag behavior support them.
 5. Confirm reset/lifetime rules for `temp_flag` and raw room-script scratch through its VM handler and a runtime trace. Do not equate repeated temporary indices across rooms with a shared persistent variable.
