@@ -91,9 +91,10 @@ test('every package file read above ships (vsce ls with bundle/.vscodeignore)', 
     assert.ok(listed.has('bundle/replay.js'), 'the replay check\'s tool ships (platform/tas/verify.ts)');
     assert.ok(listed.has('bundle/room-variants-worker.js'), 'the Rooms tab\'s variants worker ships (rooms/data/room-variants.ts)');
     assert.ok(listed.has('bundle/cdl-export-worker.js'), 'the CDL tab\'s export worker ships (games/evermore/cdl/export-job.ts)');
+    assert.ok(listed.has('bundle/bundle-worker.js'), 'the recording bundle\'s worker ships (core/emulator/bundle-commands.ts)');
     // The root holds only the manifest, its pages and the runtime folders: no repo tooling, configs
     // or submodule folders (they have shipped before: knip.json, dependencies/, script_parser/).
-    const ROOT_ALLOWED = /^(package\.json|README\.md|LICENSE|bundle\/(extension|replay|room-variants-worker|cdl-export-worker)\.js|src\/|dist\/|reconstructed-c\/)/;
+    const ROOT_ALLOWED = /^(package\.json|README\.md|LICENSE|bundle\/(extension|replay|room-variants-worker|cdl-export-worker|bundle-worker)\.js|src\/|dist\/|reconstructed-c\/)/;
     assert.deepStrictEqual([...listed].filter((f) => f && !ROOT_ALLOWED.test(f)), [], 'tooling in the package');
     assert.deepStrictEqual([...listed].filter((f) => /(^|\/)(AGENTS|STATE)\.md$|\/README\.md$|\.gitignore$|test\.html$/.test(f)), [], 'developer docs in the package');
 });

@@ -6,7 +6,8 @@
     "dist/games/evermore/emulator/page-rom.js",
     "dist/core/emulator/gamepad.js",
     "dist/games/evermore/rooms/data/room-variants-worker.js",
-    "dist/games/evermore/cdl/export-worker.js"
+    "dist/games/evermore/cdl/export-worker.js",
+    "dist/core/emulator/bundle-worker.js"
   ],
   "project": [
     "src/**/*.js",

@@ -105,6 +105,20 @@ await build({
     legalComments: 'inline',
 });
 
+// The recording bundle's worker (core/emulator/bundle-commands.ts), for the same reason.
+await build({
+    entryPoints: [join(ROOT, 'dist', 'core', 'emulator', 'bundle-worker.js')],
+    outfile: join(ROOT, 'bundle', 'bundle-worker.js'),
+    bundle: true,
+    platform: 'node',
+    format: 'cjs',
+    target: 'node20',
+    plugins: [unresolved, dirnames],
+    banner: { js: "const __evsPath = (p) => require('path').join(__dirname, '..', p);" },
+    logLevel: 'warning',
+    legalComments: 'inline',
+});
+
 const inputs = Object.keys(result.metafile.inputs);
 writeFileSync(join(ROOT, 'bundle', 'inputs.json'), JSON.stringify(inputs.sort(), null, 1) + '\n');
 

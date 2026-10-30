@@ -137,8 +137,8 @@ work behind a "seen lately" or "already marked" check.
 
 ## 5. Export products and how they are derived
 
-The CDL tab's Export runs in a worker (`games/evermore/cdl/export-job.ts`, `bundle/cdl-export-worker.js`; seconds and >1 GB
-froze the host): it reads the library from disk (the host flushes first); every outcome answers the page (`cdlStatus`).
+The CDL tab's Exports run in workers (Asar/WRAM: `games/evermore/cdl/export-job.ts`; Bundle zip: `core/emulator/bundle-worker.ts`): seconds
+and >1 GB froze the host. They read the library from disk (flushed first); every outcome answers the page (`cdlStatus`).
 
 | File | Module | Derived from |
 |---|---|---|

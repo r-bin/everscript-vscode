@@ -61,6 +61,29 @@ function recordInto(root, rom, hits) {
         assert.strictEqual(gameDetectRom(new Uint8Array(0)), false);
     });
 
+    await test('bundle worker: picks this ROM\'s replays, writes a zip the importer reads (off the host thread)', async () => {
+        const { Worker } = require('worker_threads');
+        const rom = fakeRom('SECRET OF EVERMORE', 1);
+        const sha256 = crypto.createHash('sha256').update(rom).digest('hex');
+        const lib = recordInto(path.join(tmp, 'wsrc'), rom, 2);
+        const replayDir = path.join(tmp, 'wreplays');
+        fs.mkdirSync(replayDir, { recursive: true });
+        fs.writeFileSync(path.join(replayDir, 'mine.evsmv'), evsmvHeader({ rom: 'x.smc', romSha256: sha256, started: 'now' }) + 'F|................\n');
+        fs.writeFileSync(path.join(replayDir, 'other.evsmv'), evsmvHeader({ rom: 'y.smc', romSha256: 'ff'.repeat(32), started: 'now' }) + 'F|................\n');
+        const target = path.join(tmp, 'w.zip');
+        const answer = await new Promise((resolve, reject) => {
+            const w = new Worker(path.join(__dirname, '../../dist/core/emulator/bundle-worker.js'),
+                { workerData: { libDir: lib.dir, replayDir, sha256, installId: 'i', tool: { name: 't', version: '1' }, target } });
+            w.once('message', resolve);
+            w.once('error', reject);
+        });
+        assert.strictEqual(answer.replays, 1, JSON.stringify(answer));
+        assert.strictEqual(answer.bytes, fs.statSync(target).size);
+        const { manifest, cdl } = readBundle(fs.readFileSync(target));
+        assert.deepStrictEqual(manifest.replays, ['mine.evsmv']);
+        assert.ok(cdl.has('rom.cdl') || cdl.has('xrefs.bin'));
+    });
+
     await test('bundle: export, import, newer bundle replaces the install\'s counts, repeats refused, replays deduped', () => {
         const rom = fakeRom('SECRET OF EVERMORE', 1);
         const sha256 = crypto.createHash('sha256').update(rom).digest('hex');
@@ -155,7 +178,7 @@ function recordInto(root, rom, hits) {
         const html = buildHtml({ cspSource: '' }, 'core.js', 'core.wasm', 'core', 'core', null, { profile: 'recorder' });
         assert.ok(html.includes('<body class="profile-recorder">'));
         assert.ok(html.includes('<script type="application/json" id="emu-config">{"profile":"recorder"}</script>'));
-        assert.ok(html.includes('id="cdl-export-bundle" class="ss-btn" data-needs="recorder"'));
+        assert.ok(html.includes('id="cdl-export-bundle" class="ss-btn" type="button"'), 'the bundle export is in both profiles (v0.384.16)');
         assert.ok(html.includes('id="ss-tab-trace" class="ss-tab" data-needs="full game"'));
         assert.ok(html.includes('id="menu-tab-btn-9" class="menu-tab-btn" data-needs="full game"'), 'TRACE menu tab: Everscript + Evermore');
         assert.ok(html.includes('id="menu-panel-9" class="menu-tab-panel menu-panel-host" data-needs="full game"'));
@@ -216,7 +239,7 @@ function recordInto(root, rom, hits) {
             const full = await page('full');
             assert.deepStrictEqual(full.errors, []);
             assert.strictEqual(await full.p.evaluate(() => [extendMapEnabled, triggersOverlayEnabled, sndShow, thinHpBarEnabled].some(Boolean)), false, 'every overlay starts off');
-            assert.strictEqual(await gated(full.p, 'cdl-export-bundle'), false);
+            assert.strictEqual(await gated(full.p, 'cdl-export-bundle'), true, 'Everscript offers the zip too');
             const mana = Array.from(Buffer.from('Secret of MANA'.padEnd(21, ' '), 'latin1'));
             await full.p.evaluate(title => {
                 const rom = new Uint8Array(0x10000); rom.set(title, 0xFFC0); rom[0xFFD9] = 1;

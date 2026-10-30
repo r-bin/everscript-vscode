@@ -2,7 +2,8 @@
  * core/emulator/bundle-commands.ts
  *
  * VS Code side of recording bundles (cdl/bundle.ts):
- *   exportRecordingBundle  SNES CDL Recorder: zip one ROM's CDL library and its replays
+ *   exportRecordingBundle  zip one ROM's CDL library and its replays (in a worker thread: bundle-worker.ts); the
+ *                          CDL tab's Export > Bundle in both the recorder and Everscript
  *   importRecordingBundle  Everscript: merge a bundle into this install's library and replays
  */
 
@@ -11,8 +12,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import * as os from 'os';
-import { buildBundle, importBundle } from '../../platform/cdl/bundle';
-import { parseMovie } from '../../platform/tas/movie';
+import { Worker } from 'worker_threads';
+import { importBundle } from '../../platform/cdl/bundle';
+import type { BundleJob } from './bundle-worker';
 import { flushRecording, reloadRecording, recordingFolders, getCurrentRom } from './panel';
 import { stripCopierHeader } from '../../platform/cdl/library';
 
@@ -65,34 +67,43 @@ async function chooseLibrary(cdlRoot: string) {
 }
 
 /** Replays recorded on the library's ROM (matched by the ROM's sha256). */
-function replaysFor(replayDir: string, sha256: string) {
-    if (!sha256 || !fs.existsSync(replayDir)) return [];
-    const out: { name: string; data: Buffer }[] = [];
-    for (const name of fs.readdirSync(replayDir).filter(n => /\.evsmv$/i.test(n))) {
-        try {
-            const data = fs.readFileSync(path.join(replayDir, name));
-            if (parseMovie(data.toString('utf8'), name).meta.romSha256 === sha256) out.push({ name, data });
-        } catch (_) { /* unreadable: skipped */ }
-    }
-    return out;
+/**
+ * The worker's file: next to this one when running from dist/, else the package's own bundle of it
+ * (the package leaves out the dist/ modules the worker needs; tools/bundle.mts).
+ */
+function workerFile(): string {
+    const here = path.join(__dirname, 'bundle-worker.js');
+    if (fs.existsSync(path.join(__dirname, '..', '..', 'platform', 'cdl', 'bundle.js'))) return here;
+    return path.join(__dirname, '..', '..', '..', 'bundle', 'bundle-worker.js');
+}
+
+function writeBundle(job: BundleJob): Promise<{ bytes: number; replays: number }> {
+    return new Promise((resolve, reject) => {
+        const w = new Worker(workerFile(), { workerData: job });
+        w.once('message', (m: { bytes?: number; replays?: number; error?: string }) => {
+            if (typeof m.bytes === 'number') resolve({ bytes: m.bytes, replays: m.replays || 0 }); else reject(new Error(m.error || 'no answer'));
+        });
+        w.once('error', reject);
+        w.once('exit', (code) => { if (code) reject(new Error(`the export stopped (exit ${code})`)); });
+    });
 }
 
 function slug(text: unknown) {
     return String(text || 'rom').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'rom';
 }
 
-async function exportRecordingBundle(context: vscode.ExtensionContext, tool: { name: string; version: string }) {
+/** Zips the library and its replays; resolves with a line for the CDL tab's status. */
+async function exportRecordingBundle(context: vscode.ExtensionContext, tool: { name: string; version: string }): Promise<string> {
     flushRecording();
     const { cdlRoot, replayDir } = recordingFolders(context);
     const lib = await chooseLibrary(cdlRoot);
     if (!lib) {
         vscode.window.showInformationMessage('Nothing recorded yet: load a ROM and play with CDL recording on.');
-        return;
+        return 'nothing recorded yet';
     }
     let sha256 = lib.manifest.sha256 || '';
     const rom = getCurrentRom();
     if (!sha256 && rom) sha256 = crypto.createHash('sha256').update(stripCopierHeader(rom)).digest('hex');
-    const replays = replaysFor(replayDir, sha256);
     const day = new Date().toISOString().slice(0, 10);
     const fileName = `${slug(lib.manifest.title)}-${lib.manifest.sha1.slice(0, 8)}-${day}.zip`;
     const target = await vscode.window.showSaveDialog({
@@ -100,14 +111,14 @@ async function exportRecordingBundle(context: vscode.ExtensionContext, tool: { n
         filters: { 'Recording bundle': ['zip'] },
         saveLabel: 'Export bundle',
     });
-    if (!target) return;
-    const { zip } = buildBundle({ libDir: lib.dir, replays, installId: installId(context), tool });
-    fs.writeFileSync(target.fsPath, zip);
-    const kb = Math.round(zip.length / 1024);
-    const pick = await vscode.window.showInformationMessage(
-        `Recording bundle written: ${path.basename(target.fsPath)} (${kb} KB, ${replays.length} replay${replays.length === 1 ? '' : 's'}). It holds no ROM bytes.`,
-        'Reveal');
-    if (pick) vscode.commands.executeCommand('revealFileInOS', target);
+    if (!target) return 'bundle not saved';
+    const r = await writeBundle({ libDir: lib.dir, replayDir, sha256, installId: installId(context), tool, target: target.fsPath });
+    const text = `bundle written: ${path.basename(target.fsPath)} (${Math.round(r.bytes / 1024)} KB, ${r.replays} replay${r.replays === 1 ? '' : 's'}, no ROM bytes)`;
+    // Not awaited: the notification waits for the user, the export is done.
+    vscode.window.showInformationMessage('Recording ' + text + '.', 'Reveal').then(pick => {
+        if (pick) vscode.commands.executeCommand('revealFileInOS', target);
+    });
+    return text;
 }
 
 async function importRecordingBundle(context: vscode.ExtensionContext) {

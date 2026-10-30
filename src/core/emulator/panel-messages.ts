@@ -283,7 +283,9 @@ function onWebviewMessage(msg: PageMessage) {
           break;
 
         case 'exportBundle':
-          if (emu.options.onExportBundle) emu.options.onExportBundle();
+          // The page shows "exporting bundle..." until this answers.
+          if (!emu.options.onExportBundle) { emu.panel?.webview.postMessage({ command: 'cdlStatus', text: 'export failed: bundles are not available here' }); break; }
+          Promise.resolve(emu.options.onExportBundle()).then(text => { if (text) emu.panel?.webview.postMessage({ command: 'cdlStatus', text }); });
           break;
 
         case 'connectDebugger':

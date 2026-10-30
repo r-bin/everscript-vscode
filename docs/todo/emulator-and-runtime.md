@@ -46,7 +46,8 @@
   The host stopped saving resume snapshots and Z lines after a desync, so Continue fell back 75,600 frames and
   replayed into the second desync (fixed v0.384.15; the session was recovered by hand at 140640, the last exact
   frame). A whole-game replay can be rebuilt: an `L|<unused n>|<Z data>` line at the Z frame, no S/T lines in the gap.
-- ✅ **The CDL Export no longer blocks the host** (v0.384.14): a worker thread (`games/evermore/cdl/export-job.ts`).
+- ✅ **The CDL Exports no longer block the host** (v0.384.14 Asar/WRAM, v0.384.16 Bundle zip, now offered in Everscript
+  too): worker threads; "an export is still running" stuck until the success notification was dismissed (fixed v0.384.16).
 - 🟡 **Flushing the library blocks the host** (~0.4 s for 2.2 M script xrefs on a Mac, slower on Windows).
 - 🔴 **Sound-driver deadlock in the core (2026-10-27):** a music change can hang the game for good when the
   driver polls ENVX of a voice that already ended (the core keeps its stale envelope; real DSP reads 0).

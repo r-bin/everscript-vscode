@@ -53,7 +53,7 @@ function getCdlViewHtml() {
       <div class="ss-subbar">
         <button id="cdl-toggle" class="ss-btn" type="button" title="Record code/data coverage, calls and memory accesses (in memory; written to disk only when something changed)">start recording</button>
         <button id="cdl-flush" class="ss-btn" type="button" disabled>flush now</button>
-        <button id="cdl-export-bundle" class="ss-btn" data-needs="recorder" type="button" title="Zip this ROM's recording and its replays to share (no ROM bytes)">export bundle</button>
+        <button id="cdl-export-bundle" class="ss-btn" type="button" title="Zip this ROM's recording and its replays to share (no ROM bytes)">export bundle</button>
         <button id="cdl-export-asm" class="ss-btn" data-needs="full" type="button" title="Write an Asar project (byte-exact) and open main.asm">export asar</button>
         <button id="cdl-export-wram" class="ss-btn" data-needs="full" type="button" title="Write ram.asm: every WRAM address with its accessors and enum guesses">export wram</button>
         <input id="cdl-lookup-input" class="ss-search-input" data-needs="full" type="text" spellcheck="false" placeholder="who? 7E4E57 / C0:8000" />

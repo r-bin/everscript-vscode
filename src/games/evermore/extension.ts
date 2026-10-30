@@ -202,8 +202,11 @@ function activate(context: vscode.ExtensionContext): void {
     const { openEmulatorPanel } = emulatorPanel;
     const exportBundle = () => {
         const tool = { name: 'everscript', version: context.extension ? context.extension.packageJSON.version : '' };
-        return exportRecordingBundle(context, tool).catch(err =>
-            vscode.window.showErrorMessage('Export failed: ' + (err && err.message ? err.message : err)));
+        return exportRecordingBundle(context, tool).catch(err => {
+            const why = err && err.message ? err.message : String(err);
+            vscode.window.showErrorMessage('Export failed: ' + why);
+            return 'export failed: ' + why;
+        });
     };
     // The full profile: every tab, and the CDL tab's exports and lookups.
     emulatorPanel.configureEmulator({

@@ -38,7 +38,7 @@ interface GameHost {
 }
 /** What the hosting extension configures (see the field notes on `emu.options`). */
 interface EmuOptions {
-    profile: string; title: string; cdlTools: CdlTools | null; game: GameHost | null; onExportBundle: (() => void) | null; reopenLastRom: boolean;
+    profile: string; title: string; cdlTools: CdlTools | null; game: GameHost | null; onExportBundle: (() => Promise<string | void> | void) | null; reopenLastRom: boolean;
 }
 interface EmuState {
     context: vscode.ExtensionContext | null; panel: vscode.WebviewPanel | null; pending: { dataUrl: string; name: string } | null;
@@ -83,7 +83,7 @@ const emu: EmuState = {
      *   cdlTools       exports and lookups for the CDL tab (games/evermore/cdl/tools.ts); none in the recorder
      *   game           the game half of the host side: room pictures, idle sprites, icons, script trace
      *                  (games/evermore/emulator/host.ts); none in the recorder
-     *   onExportBundle the CDL tab's "export bundle" button (recorder)
+     *   onExportBundle the CDL tab's Export > Bundle (a zip of the library and replays); resolves with a status line
      *   reopenLastRom  a panel opened without a ROM loads the most recent one that still exists (recorder)
      */
     options: { profile: 'full', title: 'Everscript Emulator', cdlTools: null, game: null, onExportBundle: null, reopenLastRom: false },

@@ -324,10 +324,12 @@ class CdlHost {
             const { file, text } = await this.tools.exportInBackground({ kind: kind === 'wram' ? 'wram' : 'asm', root: this.root, rom: this.rom!, info: this.libInfo, outDir });
             this.log(text + ' -> ' + outDir);
             this._status(text);
+            this.exporting = false;   // done: the notification below waits for the user, not for us
             const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
             await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.ViewColumn.One });
-            const pick = await vscode.window.showInformationMessage(text, 'Reveal Folder');
-            if (pick) vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(file));
+            vscode.window.showInformationMessage(text, 'Reveal Folder').then(pick => {
+                if (pick) vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(file));
+            });
         } catch (err) {
             const why = err instanceof Error ? err : new Error(String(err));
             this.log('CDL export failed: ' + (why.stack || why.message), true);
