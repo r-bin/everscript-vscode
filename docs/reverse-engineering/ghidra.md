@@ -74,9 +74,10 @@ and the name sources. Nothing in them comes from the ROM.
    ```
    Expect `Using Loader: SNES ROM Loader`, `65816:LE:24:snes:default`, `mode=HiROM`.
 6. **Seed from the CDL** before analysis: functions at their *execution* address (`$8x` for
-   upper-half code), names from `functions.ts`, WRAM labels from `ram-symbols`. Today the seed
-   generator lives in the local spike (`scripts/gen-seeds.js`); planned in-repo as an export
-   (see [formats.md](formats.md)). Without seeds Ghidra finds 1 function.
+   upper-half code), names from `functions.ts`, WRAM labels from knowledge entries. Run
+   `npm run ghidra:seeds` (`tools/ghidra/gen-seeds.mts`) to emit `traces/rea/soe-seeds.tsv`
+   (987 functions, 3,709 code targets, 4,195 labels from the 90.3% CDL) and
+   `traces/rea/soe-context.tsv` (M/X widths). Without seeds Ghidra finds 1 function.
 7. Keep projects, exports and listings **outside the repo**.
 
 ## 4. Do we need a skill?

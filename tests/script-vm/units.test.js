@@ -310,6 +310,13 @@ test('names.json maps Salabog entity pointer $7E:24E5', () => {
     assert.strictEqual(names.ram['9445'], 'SALABOG ENTITY ($24e5)');
 });
 
+test('script listing resolves Quicksand Field object index from RAM knowledge', () => {
+    const { hiromFileOffset } = require('../../dist/platform');
+    const names = M.printNames(hiromFileOffset);
+    const ins = decode([0x18, 0x39, 0x02, 0xb0]); // write_word to $7E:2491
+    assert.strictEqual(V.text(ins, names), 'QUICKSAND_TRIGGER_OBJECT_INDEX = 0;');
+});
+
 test('syntax: currency enum, pacified boolean, volume percentage, restore_object_state and pairs', () => {
     const loc = require('../../dist/games/evermore/localizations');
     const printNames = M.printNames(loc);

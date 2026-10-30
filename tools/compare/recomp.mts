@@ -31,6 +31,10 @@ export interface RecompJob {
     rng: Uint8Array | null;
     replay?: string | null;
     rngFrame?: number;
+    /** Sample as each NMI is taken (SOE_COMPARE_AT=nmi); the key is the NMI's number since power-on. */
+    atNmi?: boolean;
+    /** With atNmi: each NMI's number, master clock and the address it interrupted (SOE_COMPARE_NMI_LOG). */
+    onNmi?: (nmi: number, clock: number, pc: number) => void;
     /** WRAM offsets reported after every emulated frame through `onPeek` (a probe; SOE_COMPARE_PEEK in the glue). */
     peek?: number[];
     onPeek?: (frame: number, key: number, clock: number, bytes: number[]) => void;
@@ -103,6 +107,8 @@ export function runRecomp(job: RecompJob, onCp: (key: number, crcs: Crcs) => voi
     writeFileSync(join(dir, 'compare.txt'), lines.join('\n') + '\n');
     const env: NodeJS.ProcessEnv = { ...process.env, SOE_COMPARE_REGIONS: job.regions.join(',') };
     env.SOE_COMPARE_QUIT_AT = String(job.dumpAt ?? job.to);
+    if (job.atNmi) env.SOE_COMPARE_AT = 'nmi';
+    if (job.onNmi) env.SOE_COMPARE_NMI_LOG = '1';
     if (job.stride) env.SOE_COMPARE_STRIDE = String(job.stride);
     if (job.dumpAt !== undefined) env.SOE_COMPARE_DUMP = String(job.dumpAt);
     if (job.peek?.length) env.SOE_COMPARE_PEEK = job.peek.map(h).join(',');
@@ -128,6 +134,7 @@ export function runRecomp(job: RecompJob, onCp: (key: number, crcs: Crcs) => voi
             buf = buf.subarray(nl + 1);
             const p = head.split(' ');
             if (p[0] === 'H') onCp(Number(p[1]), p.slice(2).map(x => parseInt(x, 16)));
+            else if (p[0] === 'N') job.onNmi?.(Number(p[1]), Number(p[2]), parseInt(p[3], 16));
             else if (p[0] === 'P') job.onPeek?.(Number(p[1]), Number(p[2]), Number(p[3]), p.slice(4).map(x => parseInt(x, 16)));
         }
     });

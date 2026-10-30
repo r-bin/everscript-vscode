@@ -49,4 +49,6 @@ compiler/*/
 # Standalone C Replay ROM extracted assets (extracted from clean ROM at build time)
 standalone-c-rom/assets.c
 
+*.evsmv
+
 

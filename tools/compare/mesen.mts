@@ -34,6 +34,10 @@ export interface MesenJob {
     /** RNG bytes at counter SYNC_AT copied in (when target), or sampled (when reference). */
     rng?: Uint8Array | null;
     replay?: string | null;
+    /** Sample as each NMI is taken; the key is the NMI's number since power-on (the recomp's SOE_COMPARE_AT=nmi). */
+    atNmi?: boolean;
+    /** With atNmi: each NMI's number, master clock and the address it interrupted (a probe). */
+    onNmi?: (nmi: number, clock: number, pc: number) => void;
     /** WRAM offsets reported after every emulated frame through `onPeek` (a probe). */
     peek?: number[];
     onPeek?: (frame: number, key: number, clock: number, bytes: number[]) => void;
@@ -98,6 +102,9 @@ local oam = emu.memType.snesSpriteRam
 
 local f = 0
 local frames = 0
+local at_nmi = ${job.atNmi ? 'true' : 'false'}
+local nmi_log = ${job.onNmi ? 'true' : 'false'}
+local nmi_taken = 0
 local raw_last, nmis = -1, 0
 local last_key = -1
 local rng_done = false
@@ -153,6 +160,37 @@ emu.addEventCallback(function()
   emu.setInput(inp, 0)
 end, emu.eventType.inputPolled)
 
+local function sample(key)
+  -- Checkpoint hash
+  if (key % stride == 0 or key >= target) and dump_at < 0 then
+    local out = "H " .. key
+    for _, r in ipairs(regions) do
+      local c = 0
+      if r == "wram" then c = crc32_mem(wram, 0x20000, true)
+      elseif r == "vram" then c = crc32_mem(vram, 0x10000, false)
+      elseif r == "cgram" then c = crc32_mem(cgram, 0x200, false)
+      elseif r == "oam" then c = crc32_mem(oam, 0x220, false) end
+      out = out .. " " .. string.format("%08X", c)
+    end
+    print(out)
+  end
+
+  -- Dump if requested
+  if dump_at >= 0 and key >= dump_at then
+    dump_regions()
+    print("D " .. key)
+    emu.stop(0)
+    return true
+  end
+
+  if key >= target then
+    print("DONE " .. key)
+    emu.stop(0)
+    return true
+  end
+  return false
+end
+
 -- End of frame processing: check counter and compute checkpoints
 emu.addEventCallback(function()
   -- The key is the NMI count since the reset code's 0: the attract demo zeroes $0100 when it loops,
@@ -201,36 +239,24 @@ emu.addEventCallback(function()
   end
   `}
 
-  -- Checkpoint hash
-  if (key % stride == 0 or key >= target) and dump_at < 0 then
-    local out = "H " .. key
-    for _, r in ipairs(regions) do
-      local c = 0
-      if r == "wram" then c = crc32_mem(wram, 0x20000, true)
-      elseif r == "vram" then c = crc32_mem(vram, 0x10000, false)
-      elseif r == "cgram" then c = crc32_mem(cgram, 0x200, false)
-      elseif r == "oam" then c = crc32_mem(oam, 0x220, false) end
-      out = out .. " " .. string.format("%08X", c)
-    end
-    print(out)
-  end
-
-  -- Dump if requested
-  if dump_at >= 0 and key >= dump_at then
-    dump_regions()
-    print("D " .. key)
-    emu.stop(0)
-    return
-  end
-
-  if key >= target then
-    print("DONE " .. key)
-    emu.stop(0)
-    return
-  end
+  if not at_nmi and sample(key) then return end
 
   f = f + 1
 end, emu.eventType.endFrame)
+
+-- at_nmi: sample as each NMI is taken (after its frame is pushed); the key is the NMI's number since power-on.
+if at_nmi then
+  emu.addEventCallback(function()
+    nmi_taken = nmi_taken + 1
+    if nmi_log then
+      local st = emu.getState()
+      local sp = st["cpu.sp"]
+      local pc = emu.read((sp + 2) & 0xFFFF, wram, false) | (emu.read((sp + 3) & 0xFFFF, wram, false) << 8) | (emu.read((sp + 4) & 0xFFFF, wram, false) << 16)
+      print(string.format("N %d %d %06x", nmi_taken, st["masterClock"], pc))
+    end
+    sample(nmi_taken)
+  end, emu.eventType.nmi)
+end
 `;
 }
 
@@ -275,6 +301,9 @@ export function runMesen(job: MesenJob, onCp: (key: number, crcs: Crcs) => void)
                 const key = Number(parts[1]);
                 const crcs = parts.slice(2).map(x => parseInt(x, 16));
                 onCp(key, crcs);
+            } else if (trimmed.startsWith('N ')) {
+                const p = trimmed.split(' ');
+                job.onNmi?.(Number(p[1]), Number(p[2]), parseInt(p[3], 16));
             } else if (trimmed.startsWith('P ')) {
                 const p = trimmed.split(' ');
                 job.onPeek?.(Number(p[1]), Number(p[2]), Number(p[3]), p.slice(4).map(x => parseInt(x, 16)));

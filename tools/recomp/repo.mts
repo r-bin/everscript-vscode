@@ -18,7 +18,10 @@ export function recompRepo(arg?: string): string {
 
 /** The built game in the recomp repository. */
 export function gameExe(repo = recompRepo()): string {
-    return join(repo, 'build', 'SecretOfEvermoreSNESRecomp' + (process.platform === 'win32' ? '.exe' : ''));
+    const primary = join(repo, 'build', 'SecretOfEvermoreSNESRecomp' + (process.platform === 'win32' ? '.exe' : ''));
+    if (existsSync(primary)) return primary;
+    const local = join(REPO, 'out', 'recomp', 'project', 'build', 'SecretOfEvermoreSNESRecomp' + (process.platform === 'win32' ? '.exe' : ''));
+    return existsSync(local) ? local : primary;
 }
 
 /** The exclusions file's text, or '' when the repository has none. */

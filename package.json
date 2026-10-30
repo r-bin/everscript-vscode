@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.387.0",
+  "version": "0.387.1",
   "publisher": "rbin",
   "main": "./bundle/extension.js",
   "engines": {
@@ -70,6 +70,7 @@
     "test:terra": "npm run build:ts && node tests/terra/terra-maps-model.test.mts && node tests/terra/terra-rom.test.mts && node tests/terra/terra-maps-dom.test.mts",
     "test:simulation": "npm run build:ts && node tests/simulation/sim-units.test.js && node tests/simulation/loot.test.js && node tests/simulation/room.test.js && node tests/simulation/everscript.test.js && node tests/simulation/scheduler.test.js",
     "recomp": "npm run -s build:ts && node tools/recomp/build.js",
+    "ghidra:seeds": "node tools/ghidra/gen-seeds.mts",
     "recomp:lockstep": "npm run -s build:ts && node tools/compare/compare.mts recomp=",
     "exhirom": "npm run -s build:ts && node tools/exhirom/convert.js",
     "exhirom:prove": "npm run -s build:ts && node tools/exhirom/prove.js",

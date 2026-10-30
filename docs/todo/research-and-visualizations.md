@@ -60,3 +60,12 @@ The Dog's form table at `$CF945F` has six 40-byte entries (10-byte header + 15 a
 - **The problem:** the slowest rooms (0x48 and 0x0a, ~20 s each; 0x5a 16 s) have no single hot spot left: ~30 % is GC, the rest is spread over stepping, the scheduler and the symbolic keys (`simulation/sym.ts` `memo` / `key`) across many paths.
 - **The way:** fewer paths, i.e. merging them earlier (`simulation/turn.ts` `mergeGroup`), not faster code. Check any change against the sha1 of `room()`'s JSON for all 127 rooms.
 - **Status:** 💡 Not started.
+
+## 4. Name Every Room-Script Resource
+
+- **Goal:** Make the room-script viewer render meaningful names instead of unresolved memory addresses, flag bits, call targets, animation IDs, sound IDs, and music IDs.
+- **Inventory:** `node tools/unnamed-script-resources.mts --json` reports the current unresolved resources and usage sites across room scripts. Re-run it as names are added; the inventory is ROM- and name-source-dependent.
+- **Workflow:** Handle each distinct inventory entry independently. Use a subagent to trace and cross-reference every entry, then verify its proposed name and behavior against the decoded script context and relevant ROM/WRAM evidence before recording it. Do not turn a raw number into a semantic name based only on frequency, nearby addresses, or a generic “scratch” label; leave uncertain behavior explicitly unresolved.
+- **Record and expose:** Put verified WRAM cells and flags in `src/games/evermore/localizations/knowledge/ram/`, script routines/targets in `knowledge/rom/`, and sound/music/animation values in the appropriate compiler enum source. Ensure the viewer's printer resolves those authoritative names, rather than adding a second display-only mapping. Add focused tests for each naming path.
+- **Completion:** The inventory has no unresolved entries, every added name has evidence and a documented purpose, and representative script listings show no unexplained memory or magic-number resource operands. Track remaining counts by category from the inventory command.
+- **Status:** 🟡 Started: `$7E:2491` is documented as `QUICKSAND_TRIGGER_OBJECT_INDEX`; the viewer naming path and a regression test are in place. All other inventory entries remain open.
