@@ -3,7 +3,7 @@
 ```sh
 npm run compare -- out/my-hack.sfc                     # one ROM: against vanilla
 npm run compare -- a.sfc b.sfc c.sfc                   # the first is the reference
-npm run compare -- recomp=                             # the recomp against snes9x (= npm run recomp:lockstep)
+npm run compare -- recomp=                             # the recomp against snes9x (= npm run recomp:lockstep): a lead, not a verdict
 npm run compare -- recomp:build/a=rom.sfc recomp:build/b=rom.sfc   # hooks against no hooks
 npm run c-to-rom:compare                               # the C-built image against vanilla, + quality.md
 ```
@@ -11,6 +11,8 @@ npm run c-to-rom:compare                               # the C-built image again
 A **setup** is `backend[:exe]=rom`; a bare path means `snes9x=<path>`, and `recomp=` with no ROM means the
 clean ROM. Backends: `snes9x` (our fork's debugger core, `src/core/emulator/core/snes9x2005-wasm/`) and
 `recomp` (the game built in the recomp repository, `../SecretOfEvermoreRecomp/build/`, or the executable after the colon).
+snes9x is not accurate: two setups on it are a fair differential test, but the recomp against it only
+finds where to look; MesenCE is the reference (`reference-emulators` skill).
 
 Options: `--replay x.evsmv` (snes9x setups only), `--frames N` (default 8414, the 2:20 intro; a replay's
 length with `--replay`), `--verbose` (check every frame, not every 60th), `--keep-going` (count every

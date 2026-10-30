@@ -14,8 +14,9 @@ behavior, inspect live memory, and validate that games and ROMs actually work in
      visual replay of TAS movie scripts, and fast regression tests (`npm run test:emulator`).
 2. **Headless harness (`cpu65816.ts` / `src/platform/`):**
    - Use for: isolated routine execution, mathematical verification, map loading checks, unit tests.
-3. **External cycle-accurate emulators (bsnes / Mesen-S):**
-   - Use when diagnosing subtle timing quirks, DMA collisions, PPU glitches, or generating CDL logs.
+3. **External emulators (`reference-emulators` skill):** MesenCE is the trusted reference for WRAM
+   comparisons (headless `--testRunner` + Lua); ares checks a disputed frame by hand. The embedded
+   snes9x core is never treated as accurate: a probe, not a verdict.
 
 ## Definition of "Working" ROM & Replays
 
