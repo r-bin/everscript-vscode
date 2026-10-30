@@ -41,6 +41,9 @@ export interface MesenJob {
     /** WRAM offsets reported after every emulated frame through `onPeek` (a probe). */
     peek?: number[];
     onPeek?: (frame: number, key: number, clock: number, bytes: number[]) => void;
+    /** Lua appended to the script (a probe; it can read `nmi_taken`), and every stdout line no backend line claims. */
+    lua?: string;
+    onLine?: (line: string) => void;
 }
 
 const BUTTON_BITS: [number, string][] = [
@@ -257,6 +260,7 @@ if at_nmi then
     sample(nmi_taken)
   end, emu.eventType.nmi)
 end
+${job.lua ?? ''}
 `;
 }
 
@@ -320,7 +324,7 @@ export function runMesen(job: MesenJob, onCp: (key: number, crcs: Crcs) => void)
                 });
             } else if (trimmed.startsWith('DONE ')) {
                 sawDone = true;
-            }
+            } else job.onLine?.(trimmed);
         }
     });
 

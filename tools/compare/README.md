@@ -71,6 +71,25 @@ after every emulated frame, on both sides. In compare runs the recomp keeps one 
 so frame *n* is the same field on both (SecretOfEvermoreRecomp `docs/imperfections/host-frames-and-fields.md`).
 The known differences between the recomp and MesenCE are listed there in `docs/imperfections/`.
 
+## Probes (`probes/`): where clocks part
+
+For the recomp against MesenCE, below one key. Both run the recomp all-interpreted (`probes/interp.mts` builds
+the target list from the recomp's `src/gen/`) with the framework's per-instruction charges
+(`SNESRECOMP_CYC_WATCH`) streamed through `RecompJob.onStderr`, against MesenCE Lua appended through
+`MesenJob.lua` / `onLine`:
+
+```sh
+# one frame, instruction by instruction, from NMI 200's entry to NMI 201's
+node tools/compare/probes/frame-trace.mts "Secret of Evermore (U) [!].smc" tools/compare/replays/01-no-inputs-4m.evsmv 200
+# every sound-port handshake up to NMI 320: same number of polls on both sides?
+node tools/compare/probes/port-handshakes.mts "Secret of Evermore (U) [!].smc" tools/compare/replays/01-no-inputs-4m.evsmv 320
+```
+
+`frame-trace` folds the idle loop `$80:858F` into one entry (its pass count is a phase, not a cost); the last
+entry runs to the next NMI and holds that stretch's refresh stalls. MesenCE's SPC700 callbacks need
+`emu.cpuType.spc, emu.memType.spcMemory` and report a frozen `masterClock` (the SPC runs in catch-up batches):
+time them with `spc.cycle / spc.clockRatio`.
+
 ## Limits
 
 - The recomp and Mesen hash WRAM, VRAM, CGRAM and OAM, but not ARAM.

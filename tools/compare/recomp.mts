@@ -38,6 +38,8 @@ export interface RecompJob {
     /** WRAM offsets reported after every emulated frame through `onPeek` (a probe; SOE_COMPARE_PEEK in the glue). */
     peek?: number[];
     onPeek?: (frame: number, key: number, clock: number, bytes: number[]) => void;
+    /** The recomp's stderr as it arrives (a probe: the framework's SNESRECOMP_* traces go there). */
+    onStderr?: (chunk: Buffer) => void;
 }
 
 const BUTTON_BITS: [number, string][] = [
@@ -115,7 +117,7 @@ export function runRecomp(job: RecompJob, onCp: (key: number, crcs: Crcs) => voi
     if (job.mask) env.SOE_COMPARE_MASK = runs([...CROSS_NOISE]).map(([a, b]) => a === b ? h(a) : `${h(a)}-${h(b)}`).join(',');
     const child = spawn(job.exe, ['--no-launcher', '--script', join(dir, 'compare.txt'), job.rom], { env, stdio: ['ignore', 'ignore', 'pipe', 'pipe'] });
     let log = '';
-    child.stderr!.on('data', d => { log = (log + d).slice(-4000); });
+    child.stderr!.on('data', (d: Buffer) => { log = (log + d).slice(-4000); job.onStderr?.(d); });
     let buf = Buffer.alloc(0), dump: Uint8Array[] | null = null;
     const dumpSize = job.regions.reduce((s, r) => s + REGION_SIZE[r], 0);
     (child.stdio[3] as NodeJS.ReadableStream).on('data', (d: Buffer) => {
