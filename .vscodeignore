@@ -48,6 +48,7 @@ build-cache/**
 .claude/**
 
 # Not part of the extension (docs/cleanup.md 1.4)
+traces/**
 .emscripten_cache/**
 docs/**
 wiki/**

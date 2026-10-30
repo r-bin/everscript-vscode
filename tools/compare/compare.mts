@@ -107,13 +107,15 @@ const replay = opt('replay') ? resolve(opt('replay')!) : null;
 const hasRecomp = setups.some(s => s.backend === 'recomp');
 const hasMesen = setups.some(s => s.backend === 'mesen');
 const mixed = new Set(setups.map(s => s.backend)).size > 1;
+// MesenCE and the recomp both sample as each NMI is taken (an instruction boundary on both); snes9x cannot.
+const atNmi = setups.every(s => s.backend !== 'snes9x');
 const align = (opt('align') || (hasRecomp || hasMesen ? 'nmi' : 'frame')) as 'frame' | 'nmi';
 if (align === 'frame' && hasRecomp) { console.error('the recomp aligns on the NMI counter only (--align nmi)'); process.exit(2); }
 const regions = (opt('regions') ? opt('regions')!.split(',') : ['wram', 'vram', ...(opts.aram ? ['aram'] : [])]) as Region[];
 const movieCount = replay ? require('../../dist/platform/tas/movie').parseMovie(readFileSync(replay, 'utf8')).count as number : 0;
 const frames = Number(opt('frames') || (replay ? movieCount : REFERENCE_FRAMES));
 const stride = opts.verbose ? 1 : 60;
-const skipThrough = mixed ? SYNC_AT : -1;
+const skipThrough = mixed ? SYNC_AT + (atNmi ? 4 : 0) : -1;   // at NMIs the copied RNG shows from key 117
 const ignore: ReadonlySet<number> = mixed ? CROSS_NOISE : new Set();
 
 // The RNG bytes a recomp gets: from the first snes9x or mesen setup, at counter SYNC_AT.
@@ -126,7 +128,7 @@ if (mixed && rngFrom) {
         rng = res.bytes;
         rngFrame = res.frame ?? 115;
     } else if (rngFrom.backend === 'mesen') {
-        const res = await askMesenRng({ rom: rngFrom.rom, exe: rngFrom.exe || undefined, to: SYNC_AT, align: 'nmi', regions, mask: mixed, replay });
+        const res = await askMesenRng({ rom: rngFrom.rom, exe: rngFrom.exe || undefined, to: SYNC_AT, align: 'nmi', regions, mask: mixed, replay });   // by frame end: the recomp pokes after a frame
         rng = res.bytes;
         rngFrame = res.frame;
     }
@@ -172,11 +174,11 @@ function start(s: Setup, extra: Partial<Job>, onCp: (k: number, c: Crcs) => void
         return r.kill;
     }
     if (s.backend === 'mesen') {
-        const r = runMesen({ exe: s.exe || undefined, rom: s.rom, to: frames, align, regions, stride: extra.stride, mask: mixed, rng, replay }, onCp);
+        const r = runMesen({ exe: s.exe || undefined, rom: s.rom, to: frames, align, regions, stride: extra.stride, mask: mixed, rng, replay, atNmi }, onCp);
         runs.push(r.done.then(dump => { onEnd(frames); return dump; }).catch(e => onErr((e as Error).message)));
         return r.kill;
     }
-    const r = runRecomp({ exe: s.exe!, rom: s.rom, to: frames, regions, stride: extra.stride, mask: mixed, rng, replay, rngFrame }, onCp);
+    const r = runRecomp({ exe: s.exe!, rom: s.rom, to: frames, regions, stride: extra.stride, mask: mixed, rng, replay, rngFrame, atNmi }, onCp);
     runs.push(r.done.then(dump => { onEnd(frames); return dump; }).catch(e => onErr((e as Error).message)));
     return r.kill;
 }
@@ -198,11 +200,11 @@ if (building && Math.max(0, ...building.keys()) >= frames) saveCache(key!, build
 async function snapshot(s: Setup, at: number): Promise<Uint8Array[]> {
     if (s.backend === 'snes9x') return (await askSnes9x(job(s, { cmd: 'dump', key: at }), 'dump')).bytes;
     if (s.backend === 'mesen') {
-        const dump = await runMesen({ exe: s.exe || undefined, rom: s.rom, to: at, align, regions, dumpAt: at, mask: false, rng, replay }, () => {}).done;
+        const dump = await runMesen({ exe: s.exe || undefined, rom: s.rom, to: at, align, regions, dumpAt: at, mask: false, rng, replay, atNmi }, () => {}).done;
         if (!dump) throw new Error(`Mesen did not reach counter ${at}`);
         return dump;
     }
-    const dump = await runRecomp({ exe: s.exe!, rom: s.rom, to: at, regions, dumpAt: at, mask: false, rng, replay, rngFrame }, () => {}).done;
+    const dump = await runRecomp({ exe: s.exe!, rom: s.rom, to: at, regions, dumpAt: at, mask: false, rng, replay, rngFrame, atNmi }, () => {}).done;
     if (!dump) throw new Error(`the recomp did not reach counter ${at}`);
     return dump;
 }
