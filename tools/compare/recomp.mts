@@ -1,12 +1,15 @@
 // The snesrecomp backend: the recomp repository's game run headless from a script, hashing through its
 // glue (src/game_rtl.c there, SOE_COMPARE_*), which writes to fd 3. Keys are always the NMI counter $0100.
-import { mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { FRAME_COUNTER, RNG, SYNC_AT, CROSS_NOISE } from './game.mts';
 import { runs, REGION_SIZE, type Region, type Crcs } from './diff.mts';
 import { gameExe } from '../recomp/repo.mts';
+
+const require = createRequire(import.meta.url);
 
 export const RECOMP_REGIONS: Region[] = ['wram', 'vram', 'cgram', 'oam'];
 
@@ -26,6 +29,35 @@ export interface RecompJob {
     mask: boolean;
     /** snes9x's RNG bytes at counter SYNC_AT, copied in before anything is compared. */
     rng: Uint8Array | null;
+    replay?: string | null;
+    rngFrame?: number;
+    /** WRAM offsets reported after every emulated frame through `onPeek` (a probe; SOE_COMPARE_PEEK in the glue). */
+    peek?: number[];
+    onPeek?: (frame: number, key: number, clock: number, bytes: number[]) => void;
+}
+
+const BUTTON_BITS: [number, string][] = [
+    [0x8000, 'b'],
+    [0x4000, 'y'],
+    [0x2000, 'select'],
+    [0x1000, 'start'],
+    [0x0800, 'up'],
+    [0x0400, 'down'],
+    [0x0200, 'left'],
+    [0x0100, 'right'],
+    [0x0080, 'a'],
+    [0x0040, 'x'],
+    [0x0020, 'l'],
+    [0x0010, 'r'],
+];
+
+/** Convert a 16-bit joypad word into recomp script button names joined with '+' (e.g. 'start', 'b+y'). */
+export function padToButtonString(pad: number): string {
+    const pressed: string[] = [];
+    for (const [bit, name] of BUTTON_BITS) {
+        if (pad & bit) pressed.push(name);
+    }
+    return pressed.join('+');
 }
 
 const h = (n: number) => n.toString(16).toUpperCase();
@@ -37,12 +69,43 @@ export function runRecomp(job: RecompJob, onCp: (key: number, crcs: Crcs) => voi
     if (!existsSync(job.exe)) throw new Error(`no recomp executable at ${job.exe} (npm run recomp builds it)`);
     const dir = mkdtempSync(join(tmpdir(), 'soe-compare-'));
     const lines = ['turbo on'];
-    if (job.rng) lines.push(`until16 ${h(FRAME_COUNTER)} == ${h(SYNC_AT)}`, `poke ${h(RNG[0])} ${Buffer.from(job.rng).toString('hex')}`);
-    lines.push(`until16 ${h(FRAME_COUNTER)} == ${h(job.to)} ${job.to * 2 + 1000}`, 'quit');
+
+    if (job.replay) {
+        const { parseMovie } = require('../../dist/platform/tas/movie');
+        const movie = parseMovie(readFileSync(job.replay, 'utf8'), job.replay);
+        const pads: Uint16Array = movie.pads;
+        const rngAt = job.rngFrame ?? 115;
+        const totalPadFrames = pads.length;   // the glue quits at the key (SOE_COMPARE_QUIT_AT)
+        let i = 0;
+        while (i < totalPadFrames) {
+            if (job.rng && i === rngAt) {
+                lines.push(`poke ${h(RNG[0])} ${Buffer.from(job.rng).toString('hex')}`);
+            }
+            const val = pads[i];
+            let j = i + 1;
+            while (j < totalPadFrames && pads[j] === val && (!job.rng || j !== rngAt)) j++;
+            const count = j - i;
+            if (val === 0) {
+                lines.push(`wait ${count}`);
+            } else {
+                const btns = padToButtonString(val);
+                if (btns) lines.push(`press ${btns} ${count}`);
+                else lines.push(`wait ${count}`);
+            }
+            i = j;
+        }
+    } else {
+        if (job.rng) lines.push(`until16 ${h(FRAME_COUNTER)} == ${h(SYNC_AT)}`, `poke ${h(RNG[0])} ${Buffer.from(job.rng).toString('hex')}`);
+    }
+
+    // The key is an NMI count, not the raw $0100 (the attract demo zeroes it), so the glue ends the run itself.
+    lines.push(`wait ${job.to * 3 + 2000}`, 'quit');
     writeFileSync(join(dir, 'compare.txt'), lines.join('\n') + '\n');
     const env: NodeJS.ProcessEnv = { ...process.env, SOE_COMPARE_REGIONS: job.regions.join(',') };
+    env.SOE_COMPARE_QUIT_AT = String(job.dumpAt ?? job.to);
     if (job.stride) env.SOE_COMPARE_STRIDE = String(job.stride);
     if (job.dumpAt !== undefined) env.SOE_COMPARE_DUMP = String(job.dumpAt);
+    if (job.peek?.length) env.SOE_COMPARE_PEEK = job.peek.map(h).join(',');
     if (job.mask) env.SOE_COMPARE_MASK = runs([...CROSS_NOISE]).map(([a, b]) => a === b ? h(a) : `${h(a)}-${h(b)}`).join(',');
     const child = spawn(job.exe, ['--no-launcher', '--script', join(dir, 'compare.txt'), job.rom], { env, stdio: ['ignore', 'ignore', 'pipe', 'pipe'] });
     let log = '';
@@ -65,9 +128,10 @@ export function runRecomp(job: RecompJob, onCp: (key: number, crcs: Crcs) => voi
             buf = buf.subarray(nl + 1);
             const p = head.split(' ');
             if (p[0] === 'H') onCp(Number(p[1]), p.slice(2).map(x => parseInt(x, 16)));
+            else if (p[0] === 'P') job.onPeek?.(Number(p[1]), Number(p[2]), Number(p[3]), p.slice(4).map(x => parseInt(x, 16)));
         }
     });
-    const done = new Promise<Uint8Array[] | null>((resolve, reject) => child.on('exit', code => {
+    const done = new Promise<Uint8Array[] | null>((resolve, reject) => child.on('close', code => {
         rmSync(dir, { recursive: true, force: true });
         if (code && code !== 0 && child.signalCode === null) reject(new Error(`recomp exited with ${code}: ${log.trim().split('\n').slice(-3).join(' | ')}`));
         else resolve(dump);

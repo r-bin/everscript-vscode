@@ -6,7 +6,7 @@ import { fork, type ChildProcess } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { crc32 } from 'node:zlib';
 import { boot, stripHeader, AUDIO_RATE, type Core } from '../c-to-rom/emu.mts';
-import { FRAME_COUNTER, RNG, SYNC_AT, CROSS_NOISE } from './game.mts';
+import { FRAME_COUNTER, RNG, SYNC_AT, CROSS_NOISE, nmiKey } from './game.mts';
 import type { Region, Crcs, Write } from './diff.mts';
 
 const require = createRequire(import.meta.url);
@@ -36,7 +36,7 @@ export type Msg =
     | { t: 'done'; frames: number; key: number }
     | { t: 'dump'; key: number; bytes: Uint8Array[] }
     | { t: 'writes'; writes: Write[] }
-    | { t: 'rng'; bytes: Uint8Array }
+    | { t: 'rng'; bytes: Uint8Array; frame: number }
     | { t: 'error'; message: string };
 
 const SPACE: Partial<Record<Region, number>> = { vram: 0, cgram: 1, oam: 2, aram: 4 };
@@ -94,6 +94,7 @@ async function work(job: Job): Promise<void> {
     const target = job.cmd === 'rng' ? SYNC_AT : job.cmd === 'dump' ? job.key! : job.cmd === 'watch' ? job.to! : job.frames;
     const limit = nmi ? job.frames * 2 + 1000 : job.frames;
     let lastKey = -1, f = 0;
+    const toKey = nmiKey();
     for (; f < limit; f++) {
         for (const ev of events.get(f) || []) {
             if (ev.kind === 'W') ev.bytes.forEach((b: number, i: number) => M.writeMemory(ev.addr + i, b));
@@ -101,10 +102,9 @@ async function work(job: Job): Promise<void> {
             else if (ev.kind === 'L') throw new Error(`the replay rewinds (L event at frame ${f}): not supported yet`);
         }
         c.frame(pads ? pads[f] ?? 0 : 0);
-        const key = nmi ? counter() : f + 1;
-        // nmi: power-on WRAM is not cleared ($5555 in snes9x); the counter counts from the 0 the reset code writes.
-        if (nmi && lastKey < 0 && key !== 0) continue;
-        if (key <= lastKey) continue;    // nmi: the counter did not advance this frame
+        // nmi: power-on WRAM is not cleared ($5555 in snes9x); the key counts from the 0 the reset code writes.
+        const key = nmi ? toKey(counter()) : f + 1;
+        if (key < 0 || key <= lastKey) continue;    // nmi: the counter did not advance this frame
         lastKey = key;
         if (job.cmd === 'hash' && (key % job.stride! === 0 || key >= target)) send({ t: 'cp', key, crcs: crcs(c, job.regions, !!job.mask) });
         if (job.cmd === 'watch' && watchStart < 0 && key >= job.from!) {
@@ -119,7 +119,7 @@ async function work(job: Job): Promise<void> {
     }
     if (job.cmd === 'dump') await send({ t: 'dump', key: lastKey, bytes: job.regions.map(r => read(c, r)) });
     if (job.cmd === 'watch') await send({ t: 'writes', writes });
-    if (job.cmd === 'rng') await send({ t: 'rng', bytes: c.wram().slice(RNG[0], RNG[1]) });
+    if (job.cmd === 'rng') await send({ t: 'rng', bytes: c.wram().slice(RNG[0], RNG[1]), frame: f });
     await send({ t: 'done', frames: f, key: lastKey });
 }
 

@@ -4,6 +4,10 @@
 // Run: node tests/compare/compare-units.test.mts
 import assert from 'node:assert';
 import { Tracker, combined, byteDiff, runs, firstDifferingWrites, type Write } from '../../tools/compare/diff.mts';
+import { padToButtonString } from '../../tools/compare/recomp.mts';
+import { generateMesenLua } from '../../tools/compare/mesen.mts';
+import { parseArgs } from '../../tools/compare/compare.mts';
+import { nmiKey } from '../../tools/compare/game.mts';
 
 let passed = 0, failed = 0;
 function test(name: string, fn: () => void) {
@@ -66,6 +70,56 @@ test('first differing write per byte', () => {
     assert.deepStrictEqual(s.map(x => [x.offset, x.index]), [[0x10, 1], [0x30, 0]]);
     assert.strictEqual(s[0].b!.pc, 0xF81234);
     assert.strictEqual(s[1].a, null);
+});
+
+test('nmiKey counts NMIs across the attract demo zeroing $0100 and across a wrap', () => {
+    const k = nmiKey();
+    assert.deepStrictEqual([0x5555, 0, 0, 1, 3, 358, 0, 2].map(k), [-1, 0, 0, 1, 3, 358, 358, 360]);
+    const w = nmiKey();
+    assert.deepStrictEqual([0, 0xFFFE, 0xFFFF, 0, 1].map(w), [0, 0xFFFE, 0xFFFF, 0x10000, 0x10001]);
+});
+
+test('padToButtonString parses joypad bits into recomp button combinations', () => {
+    assert.strictEqual(padToButtonString(0), '');
+    assert.strictEqual(padToButtonString(0x1000), 'start');
+    assert.strictEqual(padToButtonString(0x8000), 'b');
+    assert.strictEqual(padToButtonString(0x9000), 'b+start');
+    assert.strictEqual(padToButtonString(0x8080), 'b+a');
+    assert.strictEqual(padToButtonString(0x0030), 'l+r');
+});
+
+test('generateMesenLua creates valid script with pad inputs and crc calculations', () => {
+    const pads = new Uint16Array([0, 0x1000, 0x8080]);
+    const lua = generateMesenLua({
+        rom: 'test.sfc',
+        to: 120,
+        align: 'nmi',
+        regions: ['wram', 'vram'],
+        mask: true,
+        stride: 60,
+    }, '/tmp/dump.bin', pads);
+
+    assert(lua.includes('local is_nmi = true'));
+    assert(lua.includes('local stride = 60'));
+    assert(lua.includes('crc_table'));
+    assert(lua.includes('emu.addEventCallback'));
+    assert(lua.includes('emu.setInput'));
+    assert(lua.includes('local pads = { 0,4096,32896 }'));
+});
+
+test('parseArgs resolves single ROM across multiple backends without repeating ROM', () => {
+    const rom = 'Secret of Evermore (U) [!].smc';
+    const parsed1 = parseArgs(['mesen', 'recomp', rom]);
+    assert.strictEqual(parsed1.setups.length, 2);
+    assert.strictEqual(parsed1.setups[0].backend, 'mesen');
+    assert.strictEqual(parsed1.setups[0].rom.endsWith(rom), true);
+    assert.strictEqual(parsed1.setups[1].backend, 'recomp');
+    assert.strictEqual(parsed1.setups[1].rom.endsWith(rom), true);
+
+    const parsed2 = parseArgs([rom, '--backend', 'mesen,recomp']);
+    assert.strictEqual(parsed2.setups.length, 2);
+    assert.strictEqual(parsed2.setups[0].backend, 'mesen');
+    assert.strictEqual(parsed2.setups[1].backend, 'recomp');
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

@@ -13,6 +13,7 @@ import { REPO, REFERENCE_FRAMES, coreId } from '../c-to-rom/emu.mts';
 import { Tracker, byteDiff, firstDifferingWrites, type Crcs, type Region, type Write } from './diff.mts';
 import { runSnes9x, askSnes9x, type Job } from './snes9x.mts';
 import { runRecomp, defaultExe } from './recomp.mts';
+import { runMesen, defaultMesenExe, askMesenRng } from './mesen.mts';
 import { cacheKey, fileHash, loadCache, saveCache } from './cache.mts';
 import { report, summaryLine, type Detail, type TargetReport, type RunInfo } from './report.mts';
 import { SYNC_AT, CROSS_NOISE } from './game.mts';
@@ -21,43 +22,92 @@ const require = createRequire(import.meta.url);
 const WATCH_BATCH = 64;          // the debugger core's write watchpoint limit
 const WATCH_MAX = 4 * WATCH_BATCH;
 
-interface Setup { label: string; backend: 'snes9x' | 'recomp'; exe: string | null; rom: string }
+export interface Setup { label: string; backend: 'snes9x' | 'recomp' | 'mesen'; exe: string | null; rom: string }
+
+export const KNOWN_BACKENDS = new Set(['snes9x', 'recomp', 'mesen']);
 
 const argv = process.argv.slice(2);
-const VALUED = new Set(['replay', 'frames', 'regions', 'align', 'out', 'rom']);
-const opts: Record<string, string | true> = {}, positional: string[] = [];
-for (let i = 0; i < argv.length; i++) {
-    if (!argv[i].startsWith('--')) { positional.push(argv[i]); continue; }
-    const k = argv[i].slice(2);
-    opts[k] = VALUED.has(k) ? argv[++i] : true;
-}
-const opt = (k: string) => typeof opts[k] === 'string' ? opts[k] as string : null;
+export function parseArgs(argv: string[], baseRomFallback?: string) {
+    const VALUED = new Set(['replay', 'frames', 'regions', 'align', 'out', 'rom', 'backend']);
+    const opts: Record<string, string | true> = {}, positional: string[] = [];
+    for (let i = 0; i < argv.length; i++) {
+        if (!argv[i].startsWith('--')) { positional.push(argv[i]); continue; }
+        const k = argv[i].slice(2);
+        opts[k] = VALUED.has(k) ? argv[++i] : true;
+    }
+    const opt = (k: string) => typeof opts[k] === 'string' ? opts[k] as string : null;
 
-function parseSetup(s: string): Setup {
-    const eq = s.indexOf('=');
-    const left = eq < 0 ? 'snes9x' : s.slice(0, eq), rom = resolve(eq < 0 ? s : s.slice(eq + 1) || vanilla);   // recomp= : the clean ROM
-    const colon = left.indexOf(':');
-    const backend = (colon < 0 ? left : left.slice(0, colon)) as Setup['backend'];
-    if (backend !== 'snes9x' && backend !== 'recomp') throw new Error(`unknown backend '${backend}' (snes9x, recomp)`);
-    if (!existsSync(rom)) throw new Error(`no ROM at ${rom}`);
-    const exe = backend === 'recomp' ? resolve(colon < 0 ? defaultExe() : left.slice(colon + 1)) : null;
-    return { label: basename(rom) + (backend === 'recomp' ? ' (recomp)' : ''), backend, exe, rom };
+    // Determine shared ROM: explicit --rom, or any positional argument that is a ROM file
+    let explicitRom = opt('rom');
+    const setupTokens: string[] = [];
+
+    if (opt('backend')) {
+        const bks = opt('backend')!.split(/[,\s]+/);
+        setupTokens.push(...bks);
+    }
+
+    for (const p of positional) {
+        const eq = p.indexOf('=');
+        const head = (eq < 0 ? p : p.slice(0, eq)).split(':')[0];
+        if (KNOWN_BACKENDS.has(head)) {
+            setupTokens.push(p);
+        } else if (/\.(smc|sfc|swc|fig)$/i.test(p) || existsSync(p)) {
+            if (!explicitRom) explicitRom = p;
+            else setupTokens.push(p);
+        } else {
+            setupTokens.push(p);
+        }
+    }
+
+    let vanilla: string;
+    if (explicitRom) {
+        vanilla = resolve(explicitRom);
+    } else {
+        try {
+            vanilla = require('../rom').baseRomOrExit('evermore', baseRomFallback || null);
+        } catch (e) {
+            if (!setupTokens.length) {
+                console.error('usage: compare.mts [backend[:exe]=]<rom> ... or compare.mts [backend...] [rom] (see header)');
+                process.exit(2);
+            }
+            throw e;
+        }
+    }
+    if (!existsSync(vanilla)) throw new Error(`no ROM at ${vanilla}`);
+
+    function parseSetup(s: string): Setup {
+        const eq = s.indexOf('=');
+        const left = eq < 0 ? s : s.slice(0, eq);
+        const colon = left.indexOf(':');
+        const backendCandidate = colon < 0 ? left : left.slice(0, colon);
+        const isKnown = KNOWN_BACKENDS.has(backendCandidate);
+        const backend = (isKnown ? backendCandidate : 'snes9x') as Setup['backend'];
+        const romTarget = eq >= 0 ? s.slice(eq + 1) : (isKnown ? '' : s);
+        const rom = resolve(romTarget || vanilla);
+        if (!existsSync(rom)) throw new Error(`no ROM at ${rom}`);
+        const exe = backend === 'recomp'
+            ? resolve(colon >= 0 ? left.slice(colon + 1) : defaultExe())
+            : backend === 'mesen'
+                ? resolve(colon >= 0 ? left.slice(colon + 1) : defaultMesenExe())
+                : null;
+        return { label: basename(rom) + (backend === 'recomp' ? ' (recomp)' : backend === 'mesen' ? ' (mesen)' : ''), backend, exe, rom };
+    }
+
+    const setups = (setupTokens.length ? setupTokens : ['snes9x']).map(parseSetup);
+    if (setups.length === 1) setups.unshift({ label: 'vanilla', backend: 'snes9x', exe: null, rom: resolve(vanilla) });
+    setups.forEach((s, i) => { if (setups.findIndex(x => x.label === s.label) !== i) s.label += ` #${i + 1}`; });
+
+    return { opts, opt, vanilla, setups };
 }
 
-if (!positional.length) {
-    console.error('usage: compare.mts [backend[:exe]=]<rom> ... (one setup is compared with vanilla; see the header)');
-    process.exit(2);
-}
-const vanilla: string = require('../rom').baseRomOrExit('evermore', opt('rom'));
-const setups = positional.map(parseSetup);
-if (setups.length === 1) setups.unshift({ label: 'vanilla', backend: 'snes9x', exe: null, rom: resolve(vanilla) });
-setups.forEach((s, i) => { if (setups.findIndex(x => x.label === s.label) !== i) s.label += ` #${i + 1}`; });
+export async function main() {
+const { opts, opt, vanilla, setups } = parseArgs(argv);
 
 const replay = opt('replay') ? resolve(opt('replay')!) : null;
 const hasRecomp = setups.some(s => s.backend === 'recomp');
+const hasMesen = setups.some(s => s.backend === 'mesen');
 const mixed = new Set(setups.map(s => s.backend)).size > 1;
-if (replay && hasRecomp) { console.error('--replay works with snes9x setups only (v1)'); process.exit(2); }
-const align = (opt('align') || (hasRecomp ? 'nmi' : 'frame')) as 'frame' | 'nmi';
+const align = (opt('align') || (hasRecomp || hasMesen ? 'nmi' : 'frame')) as 'frame' | 'nmi';
 if (align === 'frame' && hasRecomp) { console.error('the recomp aligns on the NMI counter only (--align nmi)'); process.exit(2); }
 const regions = (opt('regions') ? opt('regions')!.split(',') : ['wram', 'vram', ...(opts.aram ? ['aram'] : [])]) as Region[];
 const movieCount = replay ? require('../../dist/platform/tas/movie').parseMovie(readFileSync(replay, 'utf8')).count as number : 0;
@@ -66,9 +116,21 @@ const stride = opts.verbose ? 1 : 60;
 const skipThrough = mixed ? SYNC_AT : -1;
 const ignore: ReadonlySet<number> = mixed ? CROSS_NOISE : new Set();
 
-// The RNG bytes a recomp gets: from the first snes9x setup, at counter SYNC_AT.
-const rngFrom = setups.find(s => s.backend === 'snes9x');
-const rng = mixed && rngFrom ? (await askSnes9x({ cmd: 'rng', rom: rngFrom.rom, replay: null, frames: SYNC_AT, align: 'nmi', regions }, 'rng')).bytes : null;
+// The RNG bytes a recomp gets: from the first snes9x or mesen setup, at counter SYNC_AT.
+const rngFrom = setups.find(s => s.backend === 'snes9x' || s.backend === 'mesen');
+let rng: Uint8Array | null = null;
+let rngFrame = 115;
+if (mixed && rngFrom) {
+    if (rngFrom.backend === 'snes9x') {
+        const res = await askSnes9x({ cmd: 'rng', rom: rngFrom.rom, replay, frames: SYNC_AT, align: 'nmi', regions }, 'rng');
+        rng = res.bytes;
+        rngFrame = res.frame ?? 115;
+    } else if (rngFrom.backend === 'mesen') {
+        const res = await askMesenRng({ rom: rngFrom.rom, exe: rngFrom.exe || undefined, to: SYNC_AT, align: 'nmi', regions, mask: mixed, replay });
+        rng = res.bytes;
+        rngFrame = res.frame;
+    }
+}
 
 const job = (s: Setup, extra: Partial<Job>): Job => ({ cmd: 'hash', rom: s.rom, replay, frames, align, regions, mask: mixed, ...extra });
 
@@ -85,7 +147,11 @@ const building = key && !cached ? new Map<number, Crcs>() : null;
 
 const kills: (() => void)[] = [];
 let refKill = () => {}, open = targets.length;
-const targetDone = (i: number) => { if (--open === 0 && !building) refKill(); };
+// Stop the reference early only when no target still needs its keys: every one parted or failed. A target that
+// ran to the end first (the recomp outruns Mesen) still has keys waiting for the reference.
+const targetDone = (i: number) => {
+    if (--open === 0 && !building && tracker.results.every((r, j) => r.first || errors[j])) refKill();
+};
 const onTarget = (i: number) => (k: number, c: Crcs) => {
     if (tracker.addTarget(i, k, c) && !opts['keep-going']) kills[i]();
 };
@@ -105,8 +171,13 @@ function start(s: Setup, extra: Partial<Job>, onCp: (k: number, c: Crcs) => void
         runs.push(r.done);
         return r.kill;
     }
-    const r = runRecomp({ exe: s.exe!, rom: s.rom, to: frames, regions, stride: extra.stride, mask: mixed, rng }, onCp);
-    runs.push(r.done.catch(e => onErr((e as Error).message)));
+    if (s.backend === 'mesen') {
+        const r = runMesen({ exe: s.exe || undefined, rom: s.rom, to: frames, align, regions, stride: extra.stride, mask: mixed, rng, replay }, onCp);
+        runs.push(r.done.then(dump => { onEnd(frames); return dump; }).catch(e => onErr((e as Error).message)));
+        return r.kill;
+    }
+    const r = runRecomp({ exe: s.exe!, rom: s.rom, to: frames, regions, stride: extra.stride, mask: mixed, rng, replay, rngFrame }, onCp);
+    runs.push(r.done.then(dump => { onEnd(frames); return dump; }).catch(e => onErr((e as Error).message)));
     return r.kill;
 }
 
@@ -126,7 +197,12 @@ if (building && Math.max(0, ...building.keys()) >= frames) saveCache(key!, build
 // --- the first divergence of each target, in detail -----------------------------------------------------------------
 async function snapshot(s: Setup, at: number): Promise<Uint8Array[]> {
     if (s.backend === 'snes9x') return (await askSnes9x(job(s, { cmd: 'dump', key: at }), 'dump')).bytes;
-    const dump = await runRecomp({ exe: s.exe!, rom: s.rom, to: at, regions, dumpAt: at, mask: false, rng }, () => {}).done;
+    if (s.backend === 'mesen') {
+        const dump = await runMesen({ exe: s.exe || undefined, rom: s.rom, to: at, align, regions, dumpAt: at, mask: false, rng, replay }, () => {}).done;
+        if (!dump) throw new Error(`Mesen did not reach counter ${at}`);
+        return dump;
+    }
+    const dump = await runRecomp({ exe: s.exe!, rom: s.rom, to: at, regions, dumpAt: at, mask: false, rng, replay, rngFrame }, () => {}).done;
     if (!dump) throw new Error(`the recomp did not reach counter ${at}`);
     return dump;
 }
@@ -181,3 +257,8 @@ console.log(`reference ${ref.label}${cached ? ' (cached)' : building ? ' (cache 
 for (const t of reports) console.log(summaryLine(run, t));
 console.log(`report: ${relative(REPO, out)}`);
 process.exit(reports.every(t => !t.error && !t.result.first && t.result.compared) ? 0 : 1);
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+    await main();
+}
