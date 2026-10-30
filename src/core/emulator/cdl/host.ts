@@ -4,7 +4,7 @@
  * Extension-host side of the CDL recorder: owns the per-ROM library, merges
  * the deltas the webview drains from the core, and writes to disk only when
  * something changed, at most once every WRITEBACK_MS (pause included), and
- * at once on stop / ROM change / panel close / deactivate. Also runs exports and lookups when the panel was given
+ * at once on stop / ROM change / panel close / deactivate. Also runs exports (in the game's worker thread) and lookups when the panel was given
  * the tools for them (tools.ts; the SNES CDL Recorder has none).
  *
  * Messages (webview -> host): cdlEnable, cdlDelta, cdlPause, cdlDisabled,
@@ -25,14 +25,15 @@ import { decodeDelta, type WireDelta } from './wire';
 import { applyRescue, markDelivered, type RescueMessage } from './rescue';
 
 type Index = ReturnType<typeof buildIndex>;
+type LibraryInfo = { title?: string; mapType?: string; sha256?: string };
 /** What the game hands the panel for exports and lookups (src/games/evermore/cdl/tools.ts); absent in the recorder. */
 interface CdlTools {
     scriptNamer(rom: Uint8Array): (address: number) => string;
     buildIndex(lib: CdlLibrary, map: RomMap): Index;
     findTables(lib: CdlLibrary, rom: Uint8Array, map: RomMap, index: Index): Table[];
     lookup(lib: CdlLibrary, index: Index, map: RomMap, query: string, opts: { describeScript: (address: number) => string; tables: Table[] }): string[];
-    exportWram(lib: CdlLibrary, rom: Uint8Array, outDir: string, opts: { describeScript: (address: number) => string }): { file: string; addresses: number; enums: number };
-    exportAsar(lib: CdlLibrary, rom: Uint8Array, outDir: string): { mainPath: string; banks: number; functions: number; codeLines: number; tables: number };
+    /** The Asar or WRAM export, off the extension host's thread (a big library takes seconds and over 1 GB). */
+    exportInBackground(job: { kind: 'asm' | 'wram'; root: string; rom: Uint8Array; info: LibraryInfo; outDir: string }): Promise<{ file: string; text: string }>;
 }
 interface Wanted { get: () => boolean; set: (on: boolean) => void }
 interface CdlMessage extends Partial<RescueMessage> { command: string; delta?: WireDelta; kind?: string; query?: string }
@@ -72,6 +73,8 @@ class CdlHost {
     wanted: Wanted;
     rom: Uint8Array | null = null;
     lib: CdlLibrary | null = null;
+    libInfo: LibraryInfo | null = null;
+    exporting = false;
     indexCache: { map: RomMap; index: Index; tables: Table[] } | null = null;
     flushTimer: ReturnType<typeof setTimeout> | null = null;
     lastWrite = 0;
@@ -116,7 +119,8 @@ class CdlHost {
         if (this.lib || !this.rom) return this.lib;
         const map = createRomMap(this._body());
         const sha256 = crypto.createHash('sha256').update(this._body()).digest('hex');
-        this.lib = new CdlLibrary(this.root, Buffer.from(this.rom), { title: map.header ? map.header.title : '', mapType: map.type, sha256 });
+        this.libInfo = { title: map.header ? map.header.title : '', mapType: map.type, sha256 };
+        this.lib = new CdlLibrary(this.root, Buffer.from(this.rom), this.libInfo);
         this.log(`CDL library: ${this.lib.dir}`);
         return this.lib;
     }
@@ -288,7 +292,7 @@ class CdlHost {
                 this._status('stopped');
                 return true;
             case 'cdlExport':
-                if (this.tools) this._export(msg.kind);
+                this._export(msg.kind);
                 return true;
             case 'cdlLookup': {
                 const lib = this._library();
@@ -306,24 +310,18 @@ class CdlHost {
         }
     }
 
+    /** Every way out answers the page (cdlStatus): its "exporting..." line must never be the last word. */
     async _export(kind: string | undefined): Promise<void> {
+        const fail = (why: string) => this.post({ command: 'cdlStatus', text: 'export failed: ' + why });
+        if (!this.tools) { fail('exports are part of the full Everscript extension'); return; }
         const lib = this._library();
-        if (!lib) return;
-        this.flushNow();
-        const outDir = path.join(lib.dir, 'asar');
+        if (!lib || !this.libInfo) { fail('no ROM is running'); return; }
+        if (this.exporting) { this.post({ command: 'cdlStatus', text: 'an export is still running...' }); return; }
+        this.exporting = true;
         try {
-            const t0 = Date.now();
-            let file: string, text: string;
-            if (kind === 'wram') {
-                const r = this.tools!.exportWram(lib, this.rom!, outDir, { describeScript: this._scriptNamer() });
-                file = r.file;
-                text = `ram.asm: ${r.addresses} WRAM addresses, ${r.enums} enum candidates`;
-            } else {
-                const r = this.tools!.exportAsar(lib, this.rom!, outDir);
-                file = r.mainPath;
-                text = `Asar export: ${r.banks} banks, ${r.functions} functions, ${r.codeLines} instructions, ${r.tables} lookup tables`;
-            }
-            text += ` (${Date.now() - t0} ms)`;
+            this.flushNow();
+            const outDir = path.join(lib.dir, 'asar');
+            const { file, text } = await this.tools.exportInBackground({ kind: kind === 'wram' ? 'wram' : 'asm', root: this.root, rom: this.rom!, info: this.libInfo, outDir });
             this.log(text + ' -> ' + outDir);
             this._status(text);
             const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
@@ -333,7 +331,9 @@ class CdlHost {
         } catch (err) {
             const why = err instanceof Error ? err : new Error(String(err));
             this.log('CDL export failed: ' + (why.stack || why.message), true);
-            this.post({ command: 'cdlStatus', text: 'export failed: ' + why.message });
+            fail(why.message);
+        } finally {
+            this.exporting = false;
         }
     }
 

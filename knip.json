@@ -4,7 +4,9 @@
     "tests/**/*.test.js",
     "tools/**/*.{js,mts}",
     "dist/games/evermore/emulator/page-rom.js",
-    "dist/core/emulator/gamepad.js"
+    "dist/core/emulator/gamepad.js",
+    "dist/games/evermore/rooms/data/room-variants-worker.js",
+    "dist/games/evermore/cdl/export-worker.js"
   ],
   "project": [
     "src/**/*.js",

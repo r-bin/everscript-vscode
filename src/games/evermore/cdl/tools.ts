@@ -2,7 +2,8 @@
  * games/evermore/cdl/tools.ts
  *
  * What the CDL tab can do with a library beyond recording it: the Asar and
- * WRAM exports and the "who?" lookup. The full extension hands this to the
+ * WRAM exports (the panel runs them in a worker: exportInBackground,
+ * export-job.ts) and the "who?" lookup. The full extension hands this to the
  * emulator panel (configureEmulator({ cdlTools })); the SNES CDL Recorder does
  * not, so none of it - nor what it requires - ships in the recorder.
  */
@@ -17,6 +18,7 @@ import { findTables } from '../../../platform/cdl/tables';
 import { buildIndex } from '../../../platform/cdl/xref-index';
 import { getActiveAddressLookup } from '../emulator/address-lookup';
 import { hex } from '../../../platform/cdl/rom-map';
+import { exportInBackground } from './export-job';
 
 /** The Asar export with Evermore's known regions (rooms, strings, enter scripts) seeded. */
 function exportAsar(lib: CdlLibrary, rom: Uint8Array, outDir: string, opts: ExportOptions = {}) {
@@ -44,4 +46,4 @@ function scriptNamer(romBody: Uint8Array) {
     };
 }
 
-export { exportAsar, exportWram, lookup, findTables, buildIndex, scriptNamer };
+export { exportAsar, exportWram, exportInBackground, lookup, findTables, buildIndex, scriptNamer };

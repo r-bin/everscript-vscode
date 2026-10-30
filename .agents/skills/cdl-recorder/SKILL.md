@@ -137,6 +137,9 @@ work behind a "seen lately" or "already marked" check.
 
 ## 5. Export products and how they are derived
 
+The CDL tab's Export runs in a worker (`games/evermore/cdl/export-job.ts`, `bundle/cdl-export-worker.js`; seconds and >1 GB
+froze the host): it reads the library from disk (the host flushes first); every outcome answers the page (`cdlStatus`).
+
 | File | Module | Derived from |
 |---|---|---|
 | `recomp/cfg/bankXX.cfg` | `recomp-seeds.ts`, `recomp-analysis.ts` | `func … entry_mx exit_mx`, `exit_mx_variant` / `exit_mx_set` from rets; `indirect_dispatch … idx:X` for `jmp/jsr (abs,X)` (count = highest table entry that is an observed target); `ptrtail` / `ptrcall` (PEA before) for `jmp (abs)` / `jml [abs]`; `rtsstack` for `pei ; rts`; `ram_routine` for unchanged WRAM code; comments for PHA/PEA+RTS dispatch, adjusted returns, never-returning callees |

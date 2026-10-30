@@ -409,6 +409,37 @@ test('webview exposes the CDL tab and its script parses', () => {
     for (const m of html.matchAll(/<script>([\s\S]*?)<\/script>/g)) new Function(m[1]);
 });
 
-fs.rmSync(tmp, { recursive: true, force: true });
-console.log(`\n${passed} passed, ${failed} failed`);
-if (failed) process.exit(1);
+// The panel runs the exports in a worker thread (games/evermore/cdl/export-job.ts): the extension host stays free.
+async function testExportInBackground() {
+    const name = 'exports run in a worker thread and read the library from disk';
+    try {
+        const { exportInBackground } = require('../../dist/games/evermore/cdl/tools');
+        const rom = makeRom();
+        const root = path.join(tmp, 'bg');
+        const lib = new CdlLibrary(root, rom);
+        recordProgram(lib);
+        lib.dirty.add('rom.cdl'); lib.dirty.add('rom.ext');   // recordProgram pokes the arrays directly
+        lib.flush();
+        const out = path.join(tmp, 'bg-asar');
+        const asm = await exportInBackground({ kind: 'asm', root, rom, info: {}, outDir: out });
+        assert.ok(fs.existsSync(asm.file) && /^Asar export: .* 2 functions/.test(asm.text), asm.text);
+        assert.ok(fs.readFileSync(path.join(out, 'banks', 'bank_C0.asm'), 'utf8').includes('func_C08010:'));
+        const wram = await exportInBackground({ kind: 'wram', root, rom, info: {}, outDir: out });
+        assert.ok(fs.existsSync(wram.file) && /^ram\.asm: \d+ WRAM addresses/.test(wram.text), wram.text);
+        const notADir = path.join(tmp, 'bg-file');
+        fs.writeFileSync(notADir, '');
+        await assert.rejects(exportInBackground({ kind: 'asm', root, rom, info: {}, outDir: notADir }), 'a failed export answers with its reason');
+        console.log(`  [PASS] ${name}`);
+        passed++;
+    } catch (e) {
+        console.error(`  [FAIL] ${name}`);
+        console.error(`    ${e.stack || e.message}`);
+        failed++;
+    }
+}
+
+testExportInBackground().then(() => {
+    fs.rmSync(tmp, { recursive: true, force: true });
+    console.log(`\n${passed} passed, ${failed} failed`);
+    if (failed) process.exit(1);
+});

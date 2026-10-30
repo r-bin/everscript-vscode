@@ -36,6 +36,17 @@
   over by the next page, merged exactly once. Still lost: a crash of the webview or the PC (≤5 s / ≤60 s).
 - 🟡 **The replay (TAS) has no such rescue:** frames in flight when the host dies are lost; Continue resumes
   from the last snapshot (≤30 s back). Same pattern would fit (`tasRecFrames` numbered, parked, handed over).
+- 🔴 **WRAM-only desync in a hand-played session (2026-10-30, v0.384.5, core `4a0381e352e0abe3`).**
+  `…_2026-10-30_08-40-18.evsmv` desyncs at 97800 (97740 matches; at 97800 VRAM/CGRAM/OAM/ARAM still match, only
+  WRAM differs) and again at 140700 from the live state at 109800. Ruled out headless: the Infinite HP cheat's W
+  lines (all recorded, HP trace agrees; shifting them ±3 frames does not match), a dropped or doubled frame,
+  taking rewind states at the K markers, debugger reads (EVS_TAS peeks), the sound / script-debugger breakpoint
+  callbacks (always `false`). From the Z state at 99000 the rest syncs. Next: when the check fails, write the
+  page's rewind states around the frame to disk and diff WRAM (they are kept 2 min; this check ran 3.7 min late).
+  Also: after a desync the host stops saving resume snapshots and Z lines (`_snapshot` returns on `rec.desync`),
+  so Continue fell back 75,600 frames and replayed into the second desync.
+  A whole-game replay can be rebuilt: an `L|<unused n>|<Z data>` line at the Z frame and no S/T lines in the gap.
+- ✅ **The CDL Export no longer blocks the host** (v0.384.14): a worker thread (`games/evermore/cdl/export-job.ts`).
 - 🟡 **Flushing the library blocks the host** (~0.4 s for 2.2 M script xrefs on a Mac, slower on Windows).
 - 🔴 **Sound-driver deadlock in the core (2026-10-27):** a music change can hang the game for good when the
   driver polls ENVX of a voice that already ended (the core keeps its stale envelope; real DSP reads 0).

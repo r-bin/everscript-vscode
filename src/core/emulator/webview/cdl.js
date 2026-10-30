@@ -349,12 +349,12 @@
       });
       document.getElementById('cdl-export-asm').addEventListener('click', () => {
         cdlDrain();
-        cdlSetStatus('exporting Asar...');
+        cdlSetStatus('exporting Asar in the background (the game keeps running)...');
         vscodeApi.postMessage({ command: 'cdlExport', kind: 'asm' });
       });
       document.getElementById('cdl-export-wram').addEventListener('click', () => {
         cdlDrain();
-        cdlSetStatus('exporting WRAM...');
+        cdlSetStatus('exporting WRAM in the background (the game keeps running)...');
         vscodeApi.postMessage({ command: 'cdlExport', kind: 'wram' });
       });
       document.getElementById('cdl-export-bundle').addEventListener('click', () => {

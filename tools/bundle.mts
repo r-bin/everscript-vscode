@@ -91,6 +91,20 @@ await build({
     legalComments: 'inline',
 });
 
+// The CDL tab's export worker (games/evermore/cdl/export-job.ts), for the same reason.
+await build({
+    entryPoints: [join(ROOT, 'dist', 'games', 'evermore', 'cdl', 'export-worker.js')],
+    outfile: join(ROOT, 'bundle', 'cdl-export-worker.js'),
+    bundle: true,
+    platform: 'node',
+    format: 'cjs',
+    target: 'node20',
+    plugins: [unresolved, dirnames],
+    banner: { js: "const __evsPath = (p) => require('path').join(__dirname, '..', p);" },
+    logLevel: 'warning',
+    legalComments: 'inline',
+});
+
 const inputs = Object.keys(result.metafile.inputs);
 writeFileSync(join(ROOT, 'bundle', 'inputs.json'), JSON.stringify(inputs.sort(), null, 1) + '\n');
 
