@@ -179,6 +179,7 @@ const FUNC_EXCLUSIONS = new Map([
     [0xC09040, 'dynamic sprite allocator cluster; internal entry called from 96bb; leaves stack frame intact for interpreter'],
     [0x808FEE, 'dynamic sprite allocator cluster; sprite queue setup; leaves stack frame intact for interpreter'],
     [0xC08FEE, 'dynamic sprite allocator cluster; sprite queue setup; leaves stack frame intact for interpreter'],
+    [0x8CCFFD, 'script scheduler pass; its jsr ($D029,x) handlers return into its own loop by a pushed address; compiled, a save loads into the wrong room with frozen logic'],
 ]);
 
 /**
