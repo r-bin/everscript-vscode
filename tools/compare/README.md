@@ -57,6 +57,13 @@ length and regions, so vanilla runs once (~5 s for the intro) and costs nothing 
 | `game.mts` | the Evermore facts it aligns on (frame counter, RNG, noise bytes) |
 | `report.mts`, `cache.mts` | the Markdown report and naming; the hash cache |
 
+## Sampling at NMIs (MesenCE against the recomp)
+
+When no setup is snes9x, both sides sample as each NMI is taken, after its return frame is pushed (`atNmi`:
+MesenCE's Lua `nmi` event, the recomp glue's `SOE_COMPARE_AT=nmi`). That is an instruction boundary on both,
+which a frame's end is not, and the key is then the NMI's number since power-on. `onNmi(nmi, clock, pc)` reports
+each NMI's master clock and the address it interrupted on both sides: where the two clocks part.
+
 ## Probing a few bytes frame by frame
 
 `runMesen` and `runRecomp` take `peek: [offsets]` and `onPeek(frame, key, masterClock, bytes)`: the WRAM bytes
