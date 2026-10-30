@@ -1,7 +1,7 @@
 # Static Recompilation (snesrecomp) — Open Tasks & Roadmap
 
 > Domain: Static Recompilation (`tools/recomp/`, `src/platform/cdl/recomp-*.js`, snesrecomp host)
-> Master Reference: the recomp repository SecrefOfEvermoreRecomp (`docs/recomp/README.md` here), its `docs/README.md` and `docs/bugs-and-todos.md`
+> Master Reference: the recomp repository SecretOfEvermoreRecomp (`docs/recomp/README.md` here), its `docs/README.md` and `docs/bugs-and-todos.md`
 > Status key: 🔴 bug / investigation · 🟡 feature gap · 🟢 designed roadmap milestone
 
 ---
@@ -9,7 +9,7 @@
 ## 1. Open Bugs & Active Investigations
 
 ### 1.1 Timing Drift Against snes9x After NMI Counter ~315
-- **Status: 🟡 Open Investigation** (see `SecrefOfEvermoreRecomp docs/bugs-and-todos.md §1.1`)
+- **Status: 🟡 Open Investigation** (see `SecretOfEvermoreRecomp docs/bugs-and-todos.md §1.1`)
 - **Symptoms:**
   - WRAM bit-for-bit lockstep comparison matches snes9x2005 through NMI counter 305.
   - Divergence begins at NMI counter 315 (4 bytes differ: `$7E0106` brightness shadow, `$7E0128`).

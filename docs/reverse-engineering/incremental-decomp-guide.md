@@ -7,7 +7,7 @@
 > Complementary reading:
 > - [asm-to-c-port.md](asm-to-c-port.md) — Port pipeline roadmap, shiftable disasm, room ID census
 > - [cdl-export-build-recomp.md](cdl-export-build-recomp.md) — CDL recording & Asar build instructions
-> - [../recomp/debugging.md](https://github.com/r-bin/SecrefOfEvermoreRecomp/blob/develop/docs/debugging.md) — Lockstep co-simulation & debugging tools
+> - [../recomp/debugging.md](https://github.com/r-bin/SecretOfEvermoreRecomp/blob/develop/docs/debugging.md) — Lockstep co-simulation & debugging tools
 
 ---
 

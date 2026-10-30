@@ -85,7 +85,7 @@ visualize all game data (map editor, music player, script editor, sprite viewer)
 | `docs/todo/README.md` | Open work and ideas, by topic |
 | `docs/scripts/` | Evermore's event scripts: the VM, the opcode overview (one description per opcode: `soe://rom/assets/scripts/opcodes/`), loot, doors, spawns |
 | `docs/map-format/`, `docs/entities/`, `docs/mana/`, `docs/terra/` | Each game's formats (maps, entities), with evidence |
-| `docs/reverse-engineering/README.md`, `docs/recomp/README.md`, `docs/exhirom/README.md` | RE approaches; the static recompilation (its own repository, SecrefOfEvermoreRecomp: what stays here); ExHiROM, the table hack and layouts |
+| `docs/reverse-engineering/README.md`, `docs/recomp/README.md`, `docs/exhirom/README.md` | RE approaches; the static recompilation (its own repository, SecretOfEvermoreRecomp: what stays here); ExHiROM, the table hack and layouts |
 | `docs/evermore-releases.md` | The Evermore ROMs that exist, how they are identified, why US addresses do not apply to PAL builds |
 | `tools/` | `check-*.mts` (the checks), `roms.js` (the ROM library), `recomp/`, `exhirom/`, `table-hack/`, `recorder/`, `mana/` |
 

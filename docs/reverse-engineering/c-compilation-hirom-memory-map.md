@@ -12,7 +12,7 @@
 > **Related Reading**:
 > - [asm-to-c-port.md](asm-to-c-port.md) — The Secret of Evermore ASM-to-C pipeline roadmap.
 > - [incremental-decomp-guide.md](incremental-decomp-guide.md) — Step-by-step function decompilation with `snesrecomp`.
-> - [../recomp/game-rtl.md](https://github.com/r-bin/SecrefOfEvermoreRecomp/blob/develop/docs/game-rtl.md) — Game Runtime Layer (Game RTL) glue architecture.
+> - [../recomp/game-rtl.md](https://github.com/r-bin/SecretOfEvermoreRecomp/blob/develop/docs/game-rtl.md) — Game Runtime Layer (Game RTL) glue architecture.
 > - [../disassembly/PROGRESS.md](../disassembly/PROGRESS.md) — Engine decompilation status and WRAM census.
 
 ---

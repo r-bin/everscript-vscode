@@ -89,7 +89,7 @@ Development Host from the repo with **F5**.
 | `npm run check:maps` / `check:collision` | parity and round-trip checks against the ROM (need a ROM) |
 | `npm run package` / `npm run deploy` | build the `.vsix` / build and install it |
 | `npm run compare -- [backend[:exe]=]<rom> ...` | run setups side by side (snes9x fork, recomp) and report how long they stay in sync and what differs first; one ROM is compared with vanilla ([`tools/compare/README.md`](tools/compare/README.md)). `recomp:lockstep` and `c-to-rom:compare` are presets |
-| `npm run recomp` | **recomp seeds**: CDL library + asset knowledge + our names → byte-identical Asar project with names and comments, Mesen2 labels + CDL, and the snesrecomp seeds, written into the recomp repository ([SecrefOfEvermoreRecomp](https://github.com/r-bin/SecrefOfEvermoreRecomp), a sibling checkout), which then regenerates and builds the game; `out/recomp/REPORT.md` says what still blocks. See [tools/recomp/README.md](tools/recomp/README.md) |
+| `npm run recomp` | **recomp seeds**: CDL library + asset knowledge + our names → byte-identical Asar project with names and comments, Mesen2 labels + CDL, and the snesrecomp seeds, written into the recomp repository ([SecretOfEvermoreRecomp](https://github.com/r-bin/SecretOfEvermoreRecomp), a sibling checkout), which then regenerates and builds the game; `out/recomp/REPORT.md` says what still blocks. See [tools/recomp/README.md](tools/recomp/README.md) |
 
 Release steps for contributors and agents: `.agents/skills/release-ritual/SKILL.md`.
 Reverse-engineering overview: [`docs/reverse-engineering/README.md`](docs/reverse-engineering/README.md).

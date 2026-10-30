@@ -1,13 +1,13 @@
 ---
 name: recomp
-description: Use when making snesrecomp seeds (npm run recomp) or touching the recomp's inputs here; the recomp itself (glue, build, debugging) lives in the SecrefOfEvermoreRecomp repository.
+description: Use when making snesrecomp seeds (npm run recomp) or touching the recomp's inputs here; the recomp itself (glue, build, debugging) lives in the SecretOfEvermoreRecomp repository.
 applyTo: "tools/recomp/**,src/platform/cdl/recomp-*.ts,docs/recomp/**"
 ---
 
 # Skill: seeds for the SoE recomp
 
-The recomp is its own repository: `../SecrefOfEvermoreRecomp`
-(https://github.com/r-bin/SecrefOfEvermoreRecomp). Its glue, docs, bug history, debugging tools and
+The recomp is its own repository: `../SecretOfEvermoreRecomp`
+(https://github.com/r-bin/SecretOfEvermoreRecomp). Its glue, docs, bug history, debugging tools and
 its own skills (`recomp`, `recomp-debugging`) are there; read its `AGENTS.md` before working on
 the game itself, and commit there (branch `develop`).
 

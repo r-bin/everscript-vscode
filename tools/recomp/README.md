@@ -1,7 +1,7 @@
 # tools/recomp — seeds for the recomp
 
-The recomp is its own repository, [SecrefOfEvermoreRecomp](https://github.com/r-bin/SecrefOfEvermoreRecomp)
-(a sibling checkout, `../SecrefOfEvermoreRecomp`): glue, docs, debugging tools. This folder turns
+The recomp is its own repository, [SecretOfEvermoreRecomp](https://github.com/r-bin/SecretOfEvermoreRecomp)
+(a sibling checkout, `../SecretOfEvermoreRecomp`): glue, docs, debugging tools. This folder turns
 everything we know about the game into a rebuildable, named, commented disassembly and into that
 repository's seeds, then lets it regenerate and build, and reports what still blocks.
 
@@ -39,7 +39,7 @@ annotated in `labels.mlb`. They do not change the assembly, so the rebuild stays
 | the clean ROM (SHA-1 `79e7738630fff5699217ef58ecc421bc8fcbcd89`) | everything | `--rom`, else the ROM library's base ROM |
 | a CDL library for that ROM | meaningful output (without one: vectors only) | recorded in the emulator's CDL tab; `--lib` |
 | Asar | step 3 | `--asar` / `ASAR` / `asar` on PATH / `../asar/asar/bin/asar` |
-| the recomp repository with its submodules | steps 4–5 | `--repo` / `SOE_RECOMP` / `../SecrefOfEvermoreRecomp` |
+| the recomp repository with its submodules | steps 4–5 | `--repo` / `SOE_RECOMP` / `../SecretOfEvermoreRecomp` |
 | Python 3.9+, Rust/cargo, CMake, a C compiler | step 5 | PATH |
 
 ## Reading the report
@@ -54,7 +54,7 @@ annotated in `labels.mlb`. They do not change the assembly, so the rebuild stays
 | snesrecomp interpreter-only (LLE) variants | recorded jump-table targets, more directives |
 | a routine that miscompiles | a `func` / `dispatch` line in the recomp repo's `recomp/seed-exclusions.txt`, then `npm run recomp` |
 
-Building and debugging the game: the recomp repository's [docs/setup.md](https://github.com/r-bin/SecrefOfEvermoreRecomp/blob/develop/docs/setup.md) and [docs/debugging.md](https://github.com/r-bin/SecrefOfEvermoreRecomp/blob/develop/docs/debugging.md).
+Building and debugging the game: the recomp repository's [docs/setup.md](https://github.com/r-bin/SecretOfEvermoreRecomp/blob/develop/docs/setup.md) and [docs/debugging.md](https://github.com/r-bin/SecretOfEvermoreRecomp/blob/develop/docs/debugging.md).
 
 ## Same input script on snes9x
 
@@ -72,7 +72,7 @@ check whether a glitch also happens on the reference (the recomp repository's do
 node tools/recomp/room-nav.js <rom> <room hex> [--script]     # triggers + destinations, enemy spawns, script lines
 ```
 
-How they fit together: the recomp repository's [docs/headless-exploration.md](https://github.com/r-bin/SecrefOfEvermoreRecomp/blob/develop/docs/headless-exploration.md).
+How they fit together: the recomp repository's [docs/headless-exploration.md](https://github.com/r-bin/SecretOfEvermoreRecomp/blob/develop/docs/headless-exploration.md).
 
 ## Lockstep against snes9x
 

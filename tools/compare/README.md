@@ -10,7 +10,7 @@ npm run c-to-rom:compare                               # the C-built image again
 
 A **setup** is `backend[:exe]=rom`; a bare path means `snes9x=<path>`, and `recomp=` with no ROM means the
 clean ROM. Backends: `snes9x` (our fork's debugger core, `src/core/emulator/core/snes9x2005-wasm/`) and
-`recomp` (the game built in the recomp repository, `../SecrefOfEvermoreRecomp/build/`, or the executable after the colon).
+`recomp` (the game built in the recomp repository, `../SecretOfEvermoreRecomp/build/`, or the executable after the colon).
 
 Options: `--replay x.evsmv` (snes9x setups only), `--frames N` (default 8414, the 2:20 intro; a replay's
 length with `--replay`), `--verbose` (check every frame, not every 60th), `--keep-going` (count every

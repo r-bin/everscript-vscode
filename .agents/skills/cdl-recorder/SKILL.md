@@ -79,7 +79,7 @@ core (WASM, per instruction / access)        webview (every 5 s)         host (N
 - **`idx:X` counts are statically extended** (`staticTableCount`): the CDL only sees taken entries,
   and an under-counted table broke SoE's title sprites (`$8F:9F46`, 16 entries, 8 observed).
   Pointer forms (`ptrcall`, `ptrtail`, `rtsstack`) with observed-only targets make snesrecomp
-  **skip** unknown handlers: treat them as risky. Recomp debugging: `SecrefOfEvermoreRecomp docs/debugging.md` and `SecrefOfEvermoreRecomp docs/bugs-and-todos.md`.
+  **skip** unknown handlers: treat them as risky. Recomp debugging: `SecretOfEvermoreRecomp docs/debugging.md` and `SecretOfEvermoreRecomp docs/bugs-and-todos.md`.
 
 ## 3. What is recorded
 

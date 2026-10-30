@@ -41,7 +41,7 @@ Importance reflects "what everything else breaks without". It is my judgement, s
 | 11 | **Engine decompilation / RE pipeline** (CDL → asm → C, Ghidra, `reconstructed-c/`) | L1 | `docs/disassembly`, `reconstructed-c/`, `tools/cdl` | 🟢 | 1, 6 | `code-vfs`, `ghidra-analysis`, `re-curator` agent |
 | 12 | **Table hack and ExHiROM** (move content out of the 3 MB limit) | L3→L1 | `tools/table-hack`, `tools/exhirom`, `patches/` | 🟡 | 1, 11 | `snes-asm-asar-patching`, `sample-playbacks` |
 | 13 | **Custom opcodes and Kaizo opcodes** | L3 | `docs/todo/custom-opcodes.md`, sibling `in/kaizo` | 🟡 | 3, 4, 12 | `docs/scripts/opcodes.md` |
-| 14 | **Static recomp** | L3 | `tools/recomp` (seeds); the project itself: SecrefOfEvermoreRecomp | ⚪ | 11 | `recomp` |
+| 14 | **Static recomp** | L3 | `tools/recomp` (seeds); the project itself: SecretOfEvermoreRecomp | ⚪ | 11 | `recomp` |
 | 15 | **C-to-ROM** and `standalone-c-rom/` | L3 | `tools/c-to-rom`, `compiler/` toolchains | ⚪ | 11 | `code-vfs` §4 |
 | 16 | **Secret of Mana support** (maps, `som://`) | L2 | `src/games/mana` | 🟡 | 1, 8 | `supported-games`, `docs/mana/` |
 | 17 | **Terranigma support** (rooms, `terra://`) | L2 | `src/games/terra` | 🟡 | 1, 8 | `supported-games`, `docs/terra/` |

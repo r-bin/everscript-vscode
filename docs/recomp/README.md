@@ -1,7 +1,7 @@
 # The static recompilation
 
-The recomp has its own repository: **[SecrefOfEvermoreRecomp](https://github.com/r-bin/SecrefOfEvermoreRecomp)**
-(locally a sibling checkout, `../SecrefOfEvermoreRecomp`). Its glue, docs (status, setup,
+The recomp has its own repository: **[SecretOfEvermoreRecomp](https://github.com/r-bin/SecretOfEvermoreRecomp)**
+(locally a sibling checkout, `../SecretOfEvermoreRecomp`). Its glue, docs (status, setup,
 debugging, headless exploration, bugs and roadmap, research), debugging tools and AI skills live
 there, and so do its seeds once written.
 

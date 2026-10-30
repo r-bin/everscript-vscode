@@ -1,5 +1,5 @@
 // What compare needs to know about Secret of Evermore to line two backends up. Facts with evidence live in the
-// knowledge entries (knowledge/ram/7e0100.md, 7e0133.md); SecrefOfEvermoreRecomp docs/debugging.md tells how they were measured.
+// knowledge entries (knowledge/ram/7e0100.md, 7e0133.md); SecretOfEvermoreRecomp docs/debugging.md tells how they were measured.
 
 /** The NMI handler counts frames here ($7E0100, word): the key two different backends are aligned on. */
 export const FRAME_COUNTER = 0x0100;

@@ -1,4 +1,4 @@
-// The recomp project: its own repository (SecrefOfEvermoreRecomp: snesrecomp scaffold, our glue,
+// The recomp project: its own repository (SecretOfEvermoreRecomp: snesrecomp scaffold, our glue,
 // docs). This repo only feeds it: the CDL seeds go into its recomp/, the exclusions it decided come
 // back from its recomp/seed-exclusions.txt, and it builds with its own tools/regen.sh and CMake.
 import { existsSync, readFileSync, readdirSync, rmSync, copyFileSync, writeFileSync } from 'node:fs';
@@ -13,7 +13,7 @@ export const EXCLUSIONS = 'recomp/seed-exclusions.txt';
 
 /** The recomp repository: `--repo`, else SOE_RECOMP, else the sibling checkout. */
 export function recompRepo(arg?: string): string {
-    return resolve(arg || process.env.SOE_RECOMP || join(REPO, '..', 'SecrefOfEvermoreRecomp'));
+    return resolve(arg || process.env.SOE_RECOMP || join(REPO, '..', 'SecretOfEvermoreRecomp'));
 }
 
 /** The built game in the recomp repository. */

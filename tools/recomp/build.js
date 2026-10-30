@@ -4,7 +4,7 @@
 
 // Recomp build: CDL library + asset knowledge + curated names -> Asar project (byte-identical,
 // named, commented) + Mesen2 labels/CDL + snesrecomp seeds, written into the recomp repository
-// (SecrefOfEvermoreRecomp), which then regenerates and builds -> REPORT.md with what still blocks.
+// (SecretOfEvermoreRecomp), which then regenerates and builds -> REPORT.md with what still blocks.
 // Usage and options: tools/recomp/README.md (or --help).
 
 const fs = require('fs');
@@ -29,7 +29,7 @@ const HELP = `node tools/recomp/build.js [options]      (npm run recomp -- [opti
   --lib <dir>          CDL library root (default: VS Code globalStorage rbin.everscript/cdl-library)
   --out <dir>          output folder for the Asar project and the report (default: out/recomp)
   --asar <bin>         Asar binary (env ASAR; default: asar on PATH, else ../asar/asar/bin/asar)
-  --repo <dir>         the recomp repository (env SOE_RECOMP; default: ../SecrefOfEvermoreRecomp)
+  --repo <dir>         the recomp repository (env SOE_RECOMP; default: ../SecretOfEvermoreRecomp)
   --no-recomp          stop after the Asar rebuild (the recomp repository is not touched)
   --no-build           write the seeds into the recomp repository, do not regenerate or build
   --strict             exit 1 unless the rebuild is byte-identical and the game was built`;

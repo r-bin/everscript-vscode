@@ -20,7 +20,7 @@ Last updated 2026-10-12 (v0.201.9).
 | [asm-to-c-compilers.md](asm-to-c-compilers.md) | **SNES 65816 C compilation & parity**: compiler benchmark (Calypsi, loomcc, vbcc), setup, direct page, and ~1.0x parity guide |
 | [c-to-rom.md](c-to-rom.md) | **From reconstructed C to a game that plays identically**: zelda3 / smw / Super Metroid recomp compared, a worked `hle_func` example, gates per routine |
 | [ghidra.md](ghidra.md) | **Ghidra + ghidra-snes**: what for, plugin gaps, setup with workarounds, VFS |
-| [docs/recomp/](https://github.com/r-bin/SecrefOfEvermoreRecomp/blob/develop/docs/README.md) | **Static recompilation (snesrecomp)**: [setup](https://github.com/r-bin/SecrefOfEvermoreRecomp/blob/develop/docs/setup.md), [Game RTL glue](https://github.com/r-bin/SecrefOfEvermoreRecomp/blob/develop/docs/game-rtl.md), [debugging](https://github.com/r-bin/SecrefOfEvermoreRecomp/blob/develop/docs/debugging.md), [bugs & roadmap](https://github.com/r-bin/SecrefOfEvermoreRecomp/blob/develop/docs/bugs-and-todos.md) |
+| [docs/recomp/](https://github.com/r-bin/SecretOfEvermoreRecomp/blob/develop/docs/README.md) | **Static recompilation (snesrecomp)**: [setup](https://github.com/r-bin/SecretOfEvermoreRecomp/blob/develop/docs/setup.md), [Game RTL glue](https://github.com/r-bin/SecretOfEvermoreRecomp/blob/develop/docs/game-rtl.md), [debugging](https://github.com/r-bin/SecretOfEvermoreRecomp/blob/develop/docs/debugging.md), [bugs & roadmap](https://github.com/r-bin/SecretOfEvermoreRecomp/blob/develop/docs/bugs-and-todos.md) |
 | [rea.md](rea.md) | **REA** (MCP over Ghidra): answers, spike recipe and results |
 | [snes-re-skill.md](snes-re-skill.md) | **Proposal:** a game-neutral `snes-re` skill: grilling-style intake, then a CDL + snesrecomp pipeline to function list, ROM/WRAM maps, tables and script VMs |
 | [formats.md](formats.md) | File formats we use, compatible formats to emit, what REA's formats add |
@@ -83,7 +83,7 @@ complement, REA optional.**
 
 | Step | Approach | Status / what to build |
 |---|---|---|
-| 1. Boot snesrecomp output | host / frame driver ([SecrefOfEvermoreRecomp docs/game-rtl.md](https://github.com/r-bin/SecrefOfEvermoreRecomp/blob/develop/docs/game-rtl.md)) | **boots to the intro** (v0.201.10); lockstep identical to counter 305, timing drift after |
+| 1. Boot snesrecomp output | host / frame driver ([SecretOfEvermoreRecomp docs/game-rtl.md](https://github.com/r-bin/SecretOfEvermoreRecomp/blob/develop/docs/game-rtl.md)) | **boots to the intro** (v0.201.10); lockstep identical to counter 305, timing drift after |
 | 2. Names into the C | curated names → Asar labels, snesrecomp `func` names, Mesen2 labels | **done** (v0.201.9, `npm run recomp`); `symbols.json` as the canonical file still to build ([formats.md](formats.md) §2) |
 | 3. Assets | one decoder + format doc + viewer per unknown ROM-tab region; data lineage (G1 step 2) shows which regions are graphics, tilemaps, palettes or scripts | rooms, map graphics, sprites, animation, audio, scripts done; the rest by region |
 | 4. Verify | per-frame WRAM hash log (CDL improvement 8) as the oracle | to build |
