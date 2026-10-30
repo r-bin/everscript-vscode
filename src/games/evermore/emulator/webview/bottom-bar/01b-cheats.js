@@ -114,10 +114,23 @@
       }
     }
 
+    // unlock(ITEM.WEAPON_LEVEL_3) and the Dog's DOG_LEVEL_3: every weapon level word at level 3. One word per Boy
+    // weapon, $0ADD (fist) .. $0AF7 (bazooka), and the Dog's at $0B07: level x $100 + progress, $0100 at level 1
+    // (knowledge ram/7e0add.md). Levels already past it are left alone. The weapon in hand takes its new charge
+    // levels the next time the game loads it (a weapon switch or a room change).
+    const CHEAT_WEAPON_LEVELS = [0x7E0ADD, 0x7E0ADF, 0x7E0AE1, 0x7E0AE3, 0x7E0AE5, 0x7E0AE7, 0x7E0AE9, 0x7E0AEB,
+      0x7E0AED, 0x7E0AEF, 0x7E0AF1, 0x7E0AF3, 0x7E0AF5, 0x7E0AF7, 0x7E0B07];
+    const CHEAT_WEAPON_MAX = 0x0300;
+    function maxWeaponLevels(m) {
+      if (!m || !hasDebuggerApi(m)) return;
+      for (const a of CHEAT_WEAPON_LEVELS) if (cheatRead16(m, a) < CHEAT_WEAPON_MAX) cheatWrite16(m, a, CHEAT_WEAPON_MAX);
+    }
+
     // The CHEATS tab's rows, in menu-tabs.html order: a toggle (cheat id) or an action.
     const CHEAT_ROWS = ['noclip', 'invincible', 'atlas', 'hp',
       { act: m => healParty(m), sound: 'click_confirm' },
       { act: m => giveMoney(m), sound: 'click_confirm' },
+      { act: m => maxWeaponLevels(m), sound: 'click_confirm' },
       { act: () => disableAllCheats(), sound: 'click_toggle' }];
 
     // Left / right (delta) or B (no delta) on a CHEATS row.

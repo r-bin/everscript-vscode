@@ -6,8 +6,9 @@
 - **CPU State**: 16-bit A/X (`REP #$30`), Data Bank `$8E` / `$7E`
 - **WRAM Core Addresses**:
   - `$7E:0BF5`: Current weapon level XP threshold target.
-  - `$7E:0AC6,x`: Active weapon skill experience points.
-  - `$7E:0AC8,x`: Active weapon skill level (0..3).
+  - `$7E:0ADD`..`$7E:0AF7` (one word per Boy weapon) and `$7E:0B07` (Dog): level × `$100` + progress
+    (`knowledge ram/7e0add.md`). Earlier versions of this page named `$0AC6,x` / `$0AC8,x`; those are the
+    money purses (Talons `$0AC6`).
   - `$7E:2FF4`: Formatted menu text string buffer.
 
 ---

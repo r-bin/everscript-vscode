@@ -93,6 +93,22 @@ test('money is unlock(ITEM.MONEY): 6,666,666 in each 24-bit purse (talons, jewel
     assert.strictEqual(p.mem[0x0AD2], 0x77);
 });
 
+test('weapon levels are unlock(ITEM.WEAPON_LEVEL_3) + DOG_LEVEL_3: $0ADD..$0AF7 and the Dog\'s $0B07 to $0300', () => {
+    const p = page();
+    const words = [];
+    for (let a = 0x7E0ADD; a <= 0x7E0AF7; a += 2) words.push(a);
+    words.forEach(a => p.w16(a, 0x0100));
+    p.w16(0x7E0AEF, 0x01C4);   // a weapon part way through level 1
+    p.w16(0x7E0B07, 0x012A);   // the Dog
+    p.w16(0x7E0AF9, 0x1234);   // past the bazooka: not a level
+    p.ctx.maxWeaponLevels(p.m);
+    for (const a of words.concat([0x7E0B07])) assert.strictEqual(p.r16(a), 0x0300, a.toString(16));
+    assert.strictEqual(p.r16(0x7E0AF9), 0x1234);
+    p.w16(0x7E0ADF, 0x0310);   // already past it: kept
+    p.ctx.maxWeaponLevels(p.m);
+    assert.strictEqual(p.r16(0x7E0ADF), 0x0310);
+});
+
 test('a frame with nothing to fix writes nothing (a recording gets W events only when the game changed something)', () => {
     const p = page();
     for (const id of ['noclip', 'invincible', 'atlas', 'hp']) p.ctx.setCheat(id, true);
@@ -105,7 +121,7 @@ test('a frame with nothing to fix writes nothing (a recording gets W events only
     assert.strictEqual(p.ctx.cheatsActive(), true);
 });
 
-test('the CHEATS rows: toggles 0-3, heal, money, disable all; pills follow', () => {
+test('the CHEATS rows: toggles 0-3, heal, money, weapon levels, disable all; pills follow', () => {
     const p = page();
     p.ctx.cheatMenuRow(3, 1);
     assert.strictEqual(p.pills['menu-val-cheat-hp'], true);
@@ -114,13 +130,15 @@ test('the CHEATS rows: toggles 0-3, heal, money, disable all; pills follow', () 
     p.ctx.cheatMenuRow(5);
     assert.strictEqual(p.r24(0x7E0AC6), 6666666);
     p.ctx.cheatMenuRow(6);
+    assert.strictEqual(p.r16(0x7E0B07), 0x0300);
+    p.ctx.cheatMenuRow(7);
     assert.strictEqual(p.ctx.cheatsActive(), false);
     assert.strictEqual(p.pills['menu-val-cheat-atlas'], false);
     const html = fs.readFileSync(path.join(__dirname, '../../src/games/evermore/emulator/webview/menu-tabs.html'), 'utf8');
     const panel = html.slice(html.indexOf('id="menu-panel-4"'), html.indexOf('id="menu-panel-5"') > 0 ? html.indexOf('id="menu-panel-5"') : undefined);
     const actions = [...panel.matchAll(/data-row="(\d)" data-action="([\w-]+)"/g)].map(x => x[2]);
     assert.deepStrictEqual(actions, ['toggle-cheat-noclip', 'toggle-cheat-invincible', 'toggle-cheat-atlas', 'toggle-cheat-hp',
-        'action-cheat-heal', 'action-cheat-money', 'action-cheat-disable-all'], 'menu rows in CHEAT_ROWS order');
+        'action-cheat-heal', 'action-cheat-money', 'action-cheat-weapons', 'action-cheat-disable-all'], 'menu rows in CHEAT_ROWS order');
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);
