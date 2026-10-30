@@ -37,6 +37,15 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'evs-tas-verify-'));
         assert.strictEqual(latestState(path.join(tmp, 'nothing')), null);
     });
 
+    await test('after a desync the check starts from a save state in the movie (--from-frame), not power-on', async () => {
+        const echo = path.join(tmp, 'echo.js');
+        fs.writeFileSync(echo, 'console.error(process.argv.slice(2).join(" ")); process.exit(1);\n');
+        const r = await verifyMovie({ node: process.execPath, movie: path.join(tmp, 'm.evsmv'), rom: 'r.smc', tool: echo, fromFrame: 109800 });
+        assert.match(r.error, /--from-frame 109800/);
+        assert.ok(!/--states|--from-state/.test(r.error), r.error);
+        assert.strictEqual(r.fromState, null);
+    });
+
     await test('a real movie checks OK, resumes from the state the first check left, and a tampered write desyncs', async () => {
         const rom = require('../../dist/games').romPath('evermore');
         if (!rom) { console.log('    (skipped: no local ROM)'); return; }

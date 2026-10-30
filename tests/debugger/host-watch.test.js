@@ -156,6 +156,9 @@ async function test(name, fn) {
             await first.p.clock.runFor(25000);
             await first.p.waitForFunction(() => { const el = document.getElementById('emu-alert'); return el && /kept in this page/.test(el.textContent); });
 
+            // The next page sends them as soon as its core is up, before any ROM (01-last-sampled-pre-state.js).
+            const boot = fs.readFileSync(path.join(__dirname, '../../src/core/emulator/webview/page/01-last-sampled-pre-state.js'), 'utf8');
+            assert.match(boot, /command: 'ready' \}\);[\s\S]{0,200}cdlRescueSend\(\)/, 'the page hands parked CDL over at ready');
             const second = await open();
             const sent = await second.p.evaluate(async () => {
                 cdlRescueSend();

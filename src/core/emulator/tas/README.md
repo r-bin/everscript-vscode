@@ -56,6 +56,9 @@ game frame rates.
 - **Save states and the replay check** (v0.216.0): `tools/cdl/replay.js --states <dir>` saves a state at room changes
   (`replay-states.js`), `--from-state` resumes from one. `verify.ts` replays the session being recorded on a headless
   copy every `everscript.tas.verifyEveryMinutes`. A failure after resuming from a state is repeated from power-on.
+  After a desync (v0.384.15) the session goes on as before: snapshots and Z lines are still saved, so Continue
+  resumes where the player was, and later checks start from the newest Z line after the desync (`--from-frame`),
+  so they find the next desync instead of the old one again. Only a replay from power-on breaks at the mark.
 - Version 1 recordings still replay (without events); their cheat warning stays.
 - **Continuing a session** (v0.316.0, ROM picker): while a session is played by hand the page sends a
   snapshot (`tasSnapshot`: the core's save state + a 128x112 WebP of the screen) every 1800 frames, on

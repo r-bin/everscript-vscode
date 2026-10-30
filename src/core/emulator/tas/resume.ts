@@ -154,7 +154,8 @@ function openToContinue(movieFile: string) {
     const movie = parseMovie(text, path.basename(movieFile));
     const fd = fs.openSync(movieFile, 'a');
     fs.writeSync(fd, `${text.endsWith('\n') ? '' : '\n'}# continued: ${new Date().toISOString()} at frame ${movie.count}\n`);
-    return { fd, frames: movie.count, lastState: movie.count, continued: true, cheats: movie.meta.cheats === 'yes', rom: movie.meta.rom, started: movie.meta.started, desync: !!movie.meta.desync };
+    return { fd, frames: movie.count, lastState: movie.count, continued: true, cheats: movie.meta.cheats === 'yes', rom: movie.meta.rom, started: movie.meta.started, desync: !!movie.meta.desync,
+        desyncFrame: movie.meta.desync ? parseInt(String(movie.meta.desync), 10) : undefined };
 }
 
 // -- rewinds (movie.ts K / L lines) ------------------------------------------------------

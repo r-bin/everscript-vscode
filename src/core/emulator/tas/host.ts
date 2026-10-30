@@ -38,7 +38,7 @@ interface TasMessage {
     state?: string; thumb?: string; minSeconds?: number; rewinds?: string;
 }
 /** The recording being written. */
-interface Recording { file: string; fd: number | null; frames: number; live: boolean; cheats: boolean; header: string; desync?: boolean; rom?: string; started?: string; lastState?: number; continued?: boolean }
+interface Recording { file: string; fd: number | null; frames: number; live: boolean; cheats: boolean; header: string; desync?: boolean; desyncFrame?: number; rom?: string; started?: string; lastState?: number; continued?: boolean }
 
 const MOVIE_EXT = /\.evsmv$/i;
 
@@ -202,9 +202,11 @@ class TasHost {
     }
 
     // -- continuing a session -------------------------------------------------------
+    // Also after a desync: the snapshot is the live game, so Continue stays where the player was (before v0.384.15 a
+    // desynced session kept its last snapshot from before the desync and Continue replayed into it).
     _snapshot(msg: TasMessage): void {
         const rec = this.rec;
-        if (!rec || rec.fd === null || !rec.live || rec.desync) return;
+        if (!rec || rec.fd === null || !rec.live) return;
         try {
             rec.lastState = saveSnapshot(rec.file, rec.fd, rec.frames, msg,
                 { core: this.coreId(), rom: rec.rom || '', romSha256: this.romSha, started: rec.started || '' }, rec.lastState ?? -Infinity);
@@ -249,21 +251,27 @@ class TasHost {
         if (this.verifying || !rec || rec.fd === null || !this.rom) return;
         this.verifying = true;
         const frames = rec.frames;
+        // After a desync a replay from power-on fails there again: check from the newest live save state after it.
+        const fromFrame = rec.desync ? rec.lastState : undefined;
+        if (rec.desync && !(typeof fromFrame === 'number' && fromFrame > (rec.desyncFrame ?? 0))) return;
         try {
             const romFile = path.join(this.dir(), '.verify-rom.smc');
             if (!fs.existsSync(romFile) || fs.statSync(romFile).size !== this.rom.length) fs.writeFileSync(romFile, this.rom);
             this.post({ command: 'tasStatus', text: `checking the recording (${frames} frames) on a headless copy...` });
             const core = this.coreWasmPath().replace(/\.wasm$/i, '.js');
-            const r = await verifyMovieSafely({ node: process.execPath, movie: rec.file, rom: romFile, core: fs.existsSync(core) ? core : undefined });
+            const r = await verifyMovieSafely({ node: process.execPath, movie: rec.file, rom: romFile, core: fs.existsSync(core) ? core : undefined, fromFrame });
+            const since = fromFrame !== undefined ? ` since the save state at frame ${fromFrame}` : '';
             if (r.ok) {
-                this.post({ command: 'tasStatus', text: `replay check OK: ${frames} frames reproduce every checksum` });
-                this.log(`TAS replay check OK (${frames} frames, ${r.summary}${r.note ? '; ' + r.note : ''})`);
+                this.post({ command: 'tasStatus', text: `replay check OK: ${frames} frames reproduce every checksum${since}` });
+                this.log(`TAS replay check OK (${frames} frames${since}, ${r.summary}${r.note ? '; ' + r.note : ''})`);
             } else if (r.desync) {
-                const text = `REPLAY CHECK FAILED: desync at frame ${r.desync.frame} (${r.desync.detail}). Keep playing is not safe: see ${rec.file}`;
+                if (r.desync.frame <= (rec.desyncFrame ?? -1)) return;
+                const text = `REPLAY CHECK FAILED: desync at frame ${r.desync.frame} (${r.desync.detail}). A replay from power-on breaks there;`
+                    + ` Continue still resumes where you are (${rec.file})`;
                 if (this.rec === rec && rec.fd !== null && !rec.desync) {
-                    rec.desync = true;
                     fs.writeSync(rec.fd, `# desync: ${r.desync.frame} replay check: ${r.desync.detail}\n`);
                 }
+                if (this.rec === rec) { rec.desync = true; rec.desyncFrame = r.desync.frame; }
                 this.post({ command: 'tasStatus', text });
                 this.log(text, true);
                 vscode.window.showErrorMessage(text);

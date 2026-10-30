@@ -22,7 +22,8 @@ const TOOL = [path.join(ROOT, 'tools', 'cdl', 'replay.js'), path.join(ROOT, 'bun
     || path.join(ROOT, 'tools', 'cdl', 'replay.js');
 
 /** core: the emulator core's .js (its .wasm next to it), the one the movie was recorded on. */
-interface VerifyOptions { node: string; movie: string; rom: string; core?: string; tool?: string; env?: NodeJS.ProcessEnv }
+/** fromFrame: start from the movie's newest save state (Z line) at or before it instead of power-on (after a desync). */
+interface VerifyOptions { node: string; movie: string; rom: string; core?: string; tool?: string; env?: NodeJS.ProcessEnv; fromFrame?: number }
 interface VerifyResult { ok: boolean; desync?: { frame: number; detail: string }; error?: string; summary?: string; note?: string }
 
 /** The newest state in <statesDir>/index.json, or null. */
@@ -48,10 +49,11 @@ function interpret(code: number | null, stdout: string, stderr: string): VerifyR
 }
 
 /** One replay of the movie, resumed from the newest state when there is one. */
-function verifyMovie({ node, movie, rom, core, tool = TOOL, env = {} }: VerifyOptions): Promise<VerifyResult & { fromState: string | null }> {
+function verifyMovie({ node, movie, rom, core, tool = TOOL, env = {}, fromFrame }: VerifyOptions): Promise<VerifyResult & { fromState: string | null }> {
     const statesDir = movie.replace(/\.evsmv$/i, '') + '.states';
-    const fromState = latestState(statesDir);
-    const args = [tool, movie, rom, '--quiet', '--states', statesDir];
+    // From a live save state the replay's own states (all before the desync) are no use: none are read or written.
+    const fromState = fromFrame === undefined ? latestState(statesDir) : null;
+    const args = fromFrame === undefined ? [tool, movie, rom, '--quiet', '--states', statesDir] : [tool, movie, rom, '--quiet', '--from-frame', String(fromFrame)];
     if (fromState) args.push('--from-state', fromState);
     return new Promise(resolve => {
         let out = '', err = '';

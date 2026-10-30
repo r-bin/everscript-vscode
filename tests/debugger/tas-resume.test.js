@@ -131,6 +131,33 @@ test('snapshot, list by ROM, resume with the tail, continue appends to the same 
     }
 });
 
+test('a desynced session still saves snapshots, so Continue resumes where the player was', () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'evs-resume-'));
+    try {
+        const { TasHost } = loadHost();
+        const host = new TasHost(tmp, () => {}, () => {});
+        host.romStarted(Buffer.alloc(1024, 7));
+        const snap = n => host.handle({ command: 'tasSnapshot', frame: n, state: Buffer.alloc(64, 1).toString('base64'), thumb: '' });
+        host.handle({ command: 'tasRecStart', name: 'Game.smc' });
+        host.handle({ command: 'tasRecFrames', text: frames(700, 0x8000), frames: 700, live: true });
+        snap(700);
+        host.handle({ command: 'tasRecEnd' });
+        const dir = path.join(tmp, 'tas-recordings');
+        const file = path.join(dir, fs.readdirSync(dir).find(n => n.endsWith('.evsmv')));
+        fs.appendFileSync(file, '# desync: 650 replay check: expected 1, got 2\n');
+        host.handle({ command: 'tasRecContinue', id: 'file:' + path.basename(file) });
+        assert.strictEqual(host.rec.desync, true);
+        assert.strictEqual(host.rec.desyncFrame, 650, 'the continued session knows where it desynced');
+        host.handle({ command: 'tasRecFrames', text: frames(4000, 0x0080), frames: 4000, live: true });
+        snap(4700);
+        assert.strictEqual(readResume(file).frame, 4700, 'the snapshot moved on (before v0.384.15 it stayed at 700)');
+        assert.deepStrictEqual(movie.movieStates(fs.readFileSync(file, 'utf8')).map(st => st.frame), [700, 4700], 'and a live save state went into the movie');
+        host.handle({ command: 'tasRecEnd' });
+    } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+    }
+});
+
 test('no snapshot before frame 600 or of an idle session', () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'evs-resume-'));
     try {

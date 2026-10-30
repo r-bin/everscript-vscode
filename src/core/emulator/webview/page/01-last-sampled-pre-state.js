@@ -106,6 +106,8 @@
         // Core is ready. Signal host so any pending ROM can be delivered.
         romStage('core runtime initialized');
         if (vscodeApi) vscodeApi.postMessage({ command: 'ready' });
+        // CDL a dead host never wrote goes to the library now, ROM or not (06-cdl-rescue.js).
+        if (typeof cdlRescueSend === 'function') cdlRescueSend();
         startRenderLoop();
       },
       onAbort: function(reason) {
