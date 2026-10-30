@@ -1,14 +1,18 @@
-# companion_pathfinding_breadcrumb_queue_pop
+---
+addr: 8FAB0B
+size: 99
+kind: code
+category: 🧠
+name: companion_pathfinding_breadcrumb_queue_pop
+title: Pulls historical path breadcrumbs recorded by the Boy for dog companion navigation tracking
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Pulls historical path breadcrumbs recorded by the Boy for dog companion navigation tracking.
 
-Pulls historical path breadcrumbs recorded by the Boy for dog companion navigation tracking.
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
 
-## Metadata
-- **Address:** `$8F:AB0B`
-- **Type:** `routine`
-- **Bank:** `$8F`
-- **Size:** 99 bytes
-
-## Functionality
 Extracts navigation waypoints from the protagonist\'s historical movement trail.
 The dog companion tracks the player by following a ring buffer of movement breadcrumbs stored in WRAM at `$3BFF,Y`.
 
@@ -20,7 +24,7 @@ The routine checks breadcrumb validity flag bit `$20`; if valid, it pops the nex
 ## Callees
 - None
 
-## Variables and Memory
+## Variables and memory (hypotheses)
 - `$4E` (Companion entity record pointer)
 - `$3BFF,Y` (Player movement breadcrumb ring buffer pointer)
 - `$3C12,Y` (Breadcrumb buffer status flags)

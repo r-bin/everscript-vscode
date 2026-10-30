@@ -1,14 +1,18 @@
-# entity_cardinal_facing_direction_resolve
+---
+addr: 8F9DBD
+size: 140
+kind: code
+category: 🧠
+name: entity_cardinal_facing_direction_resolve
+title: Resolves cardinal and diagonal facing direction codes from signed X and Y displacement vectors
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Resolves cardinal and diagonal facing direction codes from signed X and Y displacement vectors.
 
-Resolves cardinal and diagonal facing direction codes from signed X and Y displacement vectors.
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
 
-## Metadata
-- **Address:** `$8F:9DBD`
-- **Type:** `routine`
-- **Bank:** `$8F`
-- **Size:** 140 bytes
-
-## Functionality
 Determines which direction an entity should face when pursuing or tracking a target.
 The routine compares signed delta-X (`$1A,Y`) and delta-Y (`$1C,Y`).
 
@@ -20,7 +24,7 @@ It evaluates quadrant and relative slope magnitudes, resolving an 8-way directio
 ## Callees
 - None
 
-## Variables and Memory
+## Variables and memory (hypotheses)
 - `$1A,Y` (Target relative delta-X displacement)
 - `$1C,Y` (Target relative delta-Y displacement)
 - `$22,Y` (Entity resolved facing direction code)

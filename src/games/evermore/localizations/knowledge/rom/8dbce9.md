@@ -1,14 +1,18 @@
-# alchemy_menu_selected_formula_ingredient_stock_check
+---
+addr: 8DBCE9
+size: 135
+kind: code
+category: 🧠
+name: alchemy_menu_selected_formula_ingredient_stock_check
+title: Checks player inventory stocks for ingredients of the highlighted formula in the Alchemy Ring Menu
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Checks player inventory stocks for ingredients of the highlighted formula in the Alchemy Ring Menu.
 
-Checks player inventory stocks for ingredients of the highlighted formula in the Alchemy Ring Menu.
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
 
-## Metadata
-- **Address:** `$8D:BCE9`
-- **Type:** `routine`
-- **Bank:** `$8D`
-- **Size:** 135 bytes
-
-## Functionality
 Validates whether the player possesses the required ingredients to cast the currently highlighted alchemy formula.
 The routine retrieves the formula index and calls `$91:CE38` (`alchemy_formula_calc_available_casts`).
 
@@ -20,6 +24,6 @@ If available casts are greater than zero, it sets formula readiness flags to nor
 ## Callees
 - `$91:CE38` (`alchemy_formula_calc_available_casts`)
 
-## Variables and Memory
+## Variables and memory (hypotheses)
 - `$0B3B` (Currently highlighted alchemy formula index)
 - `$7E:231D` (Player ingredient and item inventory stock table)

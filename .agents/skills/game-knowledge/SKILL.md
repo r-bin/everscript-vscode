@@ -104,6 +104,11 @@ the room id.
   view, the Asar/recomp exports. A new routine or table name is an entry with a `category`; never
   a JS line. `size:` on a table is its length for `soe://` table views. `names.json` (script
   operand names) is still separate and frozen (cleanup D4).
+- **Trap — no front matter, no entry.** `knowledge.ts` silently skips any `.md` without `---`
+  front matter, and `check:knowledge` still counts the file. Always write the real format, and
+  check the "documented %" rises after adding entries. Bulk REA naming from a partial read
+  (first lines of the dossier) is `confidence: guess` with tags `[unverified, rea-partial-read]`;
+  only read the whole routine body before writing `likely`.
 - **One commit:** the code change and the knowledge it produced land together.
 
 ## 5. Why not one big Markdown table
