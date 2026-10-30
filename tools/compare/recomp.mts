@@ -1,21 +1,18 @@
-// The snesrecomp backend: the packaged game run headless from a script, hashing through our glue
-// (tools/recomp/host/src/game_rtl.c, SOE_COMPARE_*), which writes to fd 3. Keys are always the NMI counter $0100.
+// The snesrecomp backend: the recomp repository's game run headless from a script, hashing through its
+// glue (src/game_rtl.c there, SOE_COMPARE_*), which writes to fd 3. Keys are always the NMI counter $0100.
 import { mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
-import { createRequire } from 'node:module';
-import { REPO } from '../c-to-rom/emu.mts';
 import { FRAME_COUNTER, RNG, SYNC_AT, CROSS_NOISE } from './game.mts';
 import { runs, REGION_SIZE, type Region, type Crcs } from './diff.mts';
+import { gameExe } from '../recomp/repo.mts';
 
-const require = createRequire(import.meta.url);
 export const RECOMP_REGIONS: Region[] = ['wram', 'vram', 'cgram', 'oam'];
 
-/** The executable `npm run recomp` packaged. */
+/** The game built in the recomp repository (`npm run recomp`, or its own CMake build). */
 export function defaultExe(): string {
-    const { platformTag } = require('../recomp/host');
-    return join(REPO, 'out', 'recomp', 'SecretOfEvermore-' + platformTag(), 'SecretOfEvermore' + (process.platform === 'win32' ? '.exe' : ''));
+    return gameExe();
 }
 
 export interface RecompJob {

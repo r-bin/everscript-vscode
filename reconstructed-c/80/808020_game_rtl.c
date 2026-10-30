@@ -1,7 +1,7 @@
 /*
  * Routine: $808020 (game_rtl)
  * Bank: $80 (ROM Offset: $008020)
- * Source: docs/recomp/game-rtl.md
+ * Source: SecrefOfEvermoreRecomp docs/game-rtl.md
  */
 
 static const SnesDesktopHostGame kGameHost = {

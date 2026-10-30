@@ -41,7 +41,7 @@ Importance reflects "what everything else breaks without". It is my judgement, s
 | 11 | **Engine decompilation / RE pipeline** (CDL → asm → C, Ghidra, `reconstructed-c/`) | L1 | `docs/disassembly`, `reconstructed-c/`, `tools/cdl` | 🟢 | 1, 6 | `code-vfs`, `ghidra-analysis`, `re-curator` agent |
 | 12 | **Table hack and ExHiROM** (move content out of the 3 MB limit) | L3→L1 | `tools/table-hack`, `tools/exhirom`, `patches/` | 🟡 | 1, 11 | `snes-asm-asar-patching`, `sample-playbacks` |
 | 13 | **Custom opcodes and Kaizo opcodes** | L3 | `docs/todo/custom-opcodes.md`, sibling `in/kaizo` | 🟡 | 3, 4, 12 | `docs/scripts/opcodes.md` |
-| 14 | **Static recomp** | L3 | `tools/recomp` | ⚪ | 11 | `recomp`, `recomp-debugging` |
+| 14 | **Static recomp** | L3 | `tools/recomp` (seeds); the project itself: SecrefOfEvermoreRecomp | ⚪ | 11 | `recomp` |
 | 15 | **C-to-ROM** and `standalone-c-rom/` | L3 | `tools/c-to-rom`, `compiler/` toolchains | ⚪ | 11 | `code-vfs` §4 |
 | 16 | **Secret of Mana support** (maps, `som://`) | L2 | `src/games/mana` | 🟡 | 1, 8 | `supported-games`, `docs/mana/` |
 | 17 | **Terranigma support** (rooms, `terra://`) | L2 | `src/games/terra` | 🟡 | 1, 8 | `supported-games`, `docs/terra/` |
@@ -165,7 +165,7 @@ tools/<x>/AGENTS.md            lab area files
 | `process-` (unprefixed, game-neutral) | `release-ritual`, `test-discipline`, `feature-validation`, `game-knowledge`, `architecture`, `supported-games`, `wiki-entries` |
 | `core-` | `emulator-subsystem`, `map-editor-rules`, `webview-dom-safety`, `vfs-and-knowledge`, `games-and-roms`, `cdl-recorder` |
 | `evermore-` | `map-format`, `map-construction`, `map-entities`, `memory-map`, `memory-radar`, `rooms-tab`, `animation-script`, `alchemy-spell-mechanics`, `secret-of-evermore-engine`, `simulation`, `grammar-rules`, `debugger-protocol`, `emulator-script-debugging`, `code-vfs`, `sample-playbacks` |
-| `lab-` | `recomp`, `recomp-debugging`, `snes-asm-asar-patching`, `ghidra-analysis` |
+| `lab-` | `recomp`, `snes-asm-asar-patching`, `ghidra-analysis` |
 | `mana-` / `terra-` | none yet. `supported-games` plus the game's `AGENTS.md` and docs cover them. Create one only when a game has a real procedure of its own. |
 
 Some skills mix scopes. `map-editor-rules` mentions Evermore ROM budgets, so split it into `core-map-editor` (adapter contract, shell rules) and an `evermore-` part for the budgets and word layouts. `code-vfs` and `sample-playbacks` are Evermore today but are candidates for `core-` if Mana or Terra gain a recomp.

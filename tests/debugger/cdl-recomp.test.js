@@ -269,8 +269,8 @@ test('crc32 matches the standard check value', () => {
     assert.strictEqual(crc32(Buffer.from('123456789')), 0xCBF43926);
 });
 
-test('host seeds: bank cfgs replaced, bank00 keeps its block and gains one data-region block', () => {
-    const { applySeeds } = require('../../tools/recomp/host');
+test('recomp repo seeds: bank cfgs replaced, bank00 keeps its block and gains one data-region block', () => {
+    const { writeSeeds } = require('../../tools/recomp/repo.mts');
     const proj = path.join(tmp, 'hostproj'), seeds = path.join(tmp, 'hostseeds');
     fs.mkdirSync(path.join(proj, 'recomp'), { recursive: true });
     fs.mkdirSync(seeds, { recursive: true });
@@ -278,8 +278,8 @@ test('host seeds: bank cfgs replaced, bank00 keeps its block and gains one data-
     fs.writeFileSync(path.join(proj, 'recomp', 'bank8f.cfg'), 'stale\n');
     fs.writeFileSync(path.join(seeds, 'bank00.cfg'), 'bank = 00\nfunc x 8000\ndata_region c0 0000 08000\n');
     fs.writeFileSync(path.join(seeds, 'bank80.cfg'), 'bank = 80\nfunc random_number_generator 859b\n');
-    applySeeds(seeds, proj);
-    const r = applySeeds(seeds, proj);
+    writeSeeds(seeds, proj);
+    const r = writeSeeds(seeds, proj);
     const b00 = fs.readFileSync(path.join(proj, 'recomp', 'bank00.cfg'), 'utf8');
     assert.deepStrictEqual(r, { banks: 1, regions: 1 });
     assert.ok(b00.startsWith('bank = 0\nauto_vectors\n'), 'project block kept');
@@ -289,39 +289,14 @@ test('host seeds: bank cfgs replaced, bank00 keeps its block and gains one data-
     assert.ok(fs.readFileSync(path.join(proj, 'recomp', 'bank80.cfg'), 'utf8').includes('random_number_generator'));
 });
 
-test('host main.c hook: after_config field + declaration, idempotent, refuses an unknown layout', () => {
-    const { hookMain } = require('../../tools/recomp/host');
-    const proj = path.join(tmp, 'hookproj');
-    fs.mkdirSync(path.join(proj, 'src'), { recursive: true });
-    const main = '#include "host_main.h"\n#include "game_rtl.h"\n\nstatic const SnesDesktopHostGame kGameHost = {\n    .display_name = "x",\n};\n';
-    fs.writeFileSync(path.join(proj, 'src', 'main.c'), main);
-    assert.deepStrictEqual(hookMain(proj), { ok: true, patched: true });
-    assert.deepStrictEqual(hookMain(proj), { ok: true, patched: false });
-    const out = fs.readFileSync(path.join(proj, 'src', 'main.c'), 'utf8');
-    assert.strictEqual((out.match(/\.after_config\s*= SoeAfterConfig/g) || []).length, 1);
-    assert.ok(out.includes('void SoeAfterConfig(void);'));
-    fs.writeFileSync(path.join(proj, 'src', 'main.c'), 'int main(void) { return 0; }\n');
-    assert.strictEqual(hookMain(proj).ok, false);
-});
-
-test('host package: rebuild replaces the game but keeps saves and settings', () => {
-    const { packageGame, platformTag } = require('../../tools/recomp/host');
-    const proj = path.join(tmp, 'pkgproj'), out = path.join(tmp, 'pkgout');
-    const exe = 'SecretOfEvermoreSNESRecomp' + (process.platform === 'win32' ? '.exe' : '');
-    fs.mkdirSync(path.join(proj, 'build', 'assets'), { recursive: true });
-    fs.writeFileSync(path.join(proj, 'build', exe), 'v1');
-    fs.writeFileSync(path.join(proj, 'build', 'assets', 'font.bin'), 'f');
-    const first = packageGame({ project: proj, out, romPath: '/roms/soe.smc' });
-    assert.ok(first.ok && first.dir.endsWith('SecretOfEvermore-' + platformTag()));
-    fs.mkdirSync(path.join(first.dir, 'saves'));
-    fs.writeFileSync(path.join(first.dir, 'saves', 'save.srm'), 'progress');
-    fs.writeFileSync(path.join(first.dir, 'config.ini'), 'mine');
-    fs.writeFileSync(path.join(proj, 'build', exe), 'v2');
-    packageGame({ project: proj, out, romPath: '/roms/soe.smc' });
-    assert.strictEqual(fs.readFileSync(first.exe, 'utf8'), 'v2', 'game replaced');
-    assert.strictEqual(fs.readFileSync(path.join(first.dir, 'saves', 'save.srm'), 'utf8'), 'progress', 'save kept');
-    assert.strictEqual(fs.readFileSync(path.join(first.dir, 'config.ini'), 'utf8'), 'mine', 'settings kept');
-    assert.ok(fs.readFileSync(first.script, 'utf8').includes('/roms/soe.smc'));
+test('seed exclusions: func and dispatch lines, every HiROM mirror, comments, bad lines refused', () => {
+    const { parseExclusions } = require('../../dist/platform/cdl/recomp-analysis');
+    const x = parseExclusions('# header\nfunc 8CCFFD  scheduler   # why\n\ndispatch $8F9F46 loop\n');
+    assert.deepStrictEqual([...x.func.keys()].sort((a, b) => a - b), [0x0CCFFD, 0x4CCFFD, 0x8CCFFD, 0xCCCFFD]);
+    assert.strictEqual(x.func.get(0xCCCFFD), 'scheduler');
+    assert.ok(x.dispatch.has(0xCF9F46) && x.dispatch.has(0x0F9F46));
+    assert.throws(() => parseExclusions('skip 808000 nope'));
+    assert.strictEqual(parseExclusions('').func.size, 0);
 });
 
 test('dispatch table size: static scan past the observed entries, stops at a data read, allows a sibling dispatcher', () => {

@@ -5,8 +5,8 @@
 > exists (v0.345.0+). The question: how do the C files in `reconstructed-c/` become code that
 > runs the game so it looks and plays exactly like the original?
 > Read with: [asm-to-c-port.md](asm-to-c-port.md) (stages, the Asar export, lockstep),
-> [../recomp/lessons-from-mmx-and-lufia2.md](../recomp/lessons-from-mmx-and-lufia2.md) (two more
-> snesrecomp ports, read 2026-10-21), [../recomp/README.md](../recomp/README.md).
+> [../recomp/lessons-from-mmx-and-lufia2.md](https://github.com/r-bin/SecrefOfEvermoreRecomp/blob/develop/docs/lessons-from-mmx-and-lufia2.md) (two more
+> snesrecomp ports, read 2026-10-21), [../recomp/README.md](https://github.com/r-bin/SecrefOfEvermoreRecomp/blob/develop/docs/README.md).
 
 ---
 
@@ -142,7 +142,7 @@ leaves. That includes A, the flags, and the return frame popped by the original'
 opcode: 2 bytes for `RTS`, 3 for `RTL`.
 
 ```c
-/* tools/recomp/host/src/hle_soe.c (to be added) */
+/* src/hle_soe.c in the recomp repository (to be added) */
 RecompReturn Hle_random_below(CpuState *cpu)
 {
     cpu->A = random_below(cpu->D);

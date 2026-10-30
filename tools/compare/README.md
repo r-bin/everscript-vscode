@@ -10,7 +10,7 @@ npm run c-to-rom:compare                               # the C-built image again
 
 A **setup** is `backend[:exe]=rom`; a bare path means `snes9x=<path>`, and `recomp=` with no ROM means the
 clean ROM. Backends: `snes9x` (our fork's debugger core, `src/core/emulator/core/snes9x2005-wasm/`) and
-`recomp` (the game `npm run recomp` packaged, or the executable after the colon).
+`recomp` (the game built in the recomp repository, `../SecrefOfEvermoreRecomp/build/`, or the executable after the colon).
 
 Options: `--replay x.evsmv` (snes9x setups only), `--frames N` (default 8414, the 2:20 intro; a replay's
 length with `--replay`), `--verbose` (check every frame, not every 60th), `--keep-going` (count every
@@ -44,7 +44,7 @@ length and regions, so vanilla runs once (~5 s for the intro) and costs nothing 
 | `compare.mts` | the command: setups, scheduling, the cache, the detail pass |
 | `diff.mts` | the pure part (tracker, byte and write diffs); `tests/compare/compare-units.test.mts` |
 | `snes9x.mts` | the snes9x child process: `hash`, `dump`, `watch`, `rng` jobs |
-| `recomp.mts` | the recomp: a headless script plus our glue's `SOE_COMPARE_*` hashing on fd 3 |
+| `recomp.mts` | the recomp: a headless script plus the recomp glue's `SOE_COMPARE_*` hashing on fd 3 |
 | `game.mts` | the Evermore facts it aligns on (frame counter, RNG, noise bytes) |
 | `report.mts`, `cache.mts` | the Markdown report and naming; the hash cache |
 

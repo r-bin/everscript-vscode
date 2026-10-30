@@ -7,7 +7,7 @@
 > Complementary reading:
 > - [asm-to-c-port.md](asm-to-c-port.md) — Port pipeline roadmap, shiftable disasm, room ID census
 > - [cdl-export-build-recomp.md](cdl-export-build-recomp.md) — CDL recording & Asar build instructions
-> - [../recomp/debugging.md](../recomp/debugging.md) — Lockstep co-simulation & debugging tools
+> - [../recomp/debugging.md](https://github.com/r-bin/SecrefOfEvermoreRecomp/blob/develop/docs/debugging.md) — Lockstep co-simulation & debugging tools
 
 ---
 
@@ -95,11 +95,11 @@ When `snesrecomp` runs, it translates the assembly instruction-by-instruction in
 
 ### Step 3: Register the High-Level Override (`hle_func`)
 
-In `tools/recomp/host/config/bank84.cfg` (or `recomp/cfg/bank84.cfg`), declare that address `$9A12`
+In the recomp repository's `recomp/bank84.cfg`, declare that address `$9A12`
 should be handled by our custom C implementation:
 
 ```ini
-# tools/recomp/host/config/bank84.cfg
+# recomp/bank84.cfg (recomp repository)
 bank = 84
 
 # Replace mechanical function with custom C handler
@@ -112,7 +112,7 @@ When building, `snesrecomp` replaces calls to `func_849A12` with our wrapper.
 
 ### Step 4: Implement Clean Decompiled C
 
-Create your clean implementation in the game runtime layer (`tools/recomp/host/src/entities.c`
+Create your clean implementation in the game runtime layer (`src/entities.c` in the recomp repository
 or `src/decomp/combat.c`):
 
 #### 4.1 Type Definitions (`entities.h`)

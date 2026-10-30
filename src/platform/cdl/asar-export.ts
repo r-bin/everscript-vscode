@@ -39,6 +39,7 @@ import type { RomMap } from './rom-map';
 import type { CdlLibrary } from './library';
 import type { GameRegions, KnownRegion } from './known-regions';
 import type { Instruction } from './disasm';
+import type { RecompExclusions } from './recomp-analysis';
 
 type Index = ReturnType<typeof buildIndex>;
 type Names = NonNullable<Parameters<typeof buildIndex>[2]>['names'];
@@ -47,6 +48,8 @@ interface ExportOptions {
     wramNames?: Map<number, { name: string; note?: string; size?: number }>;
     assets?: { start: number; end: number; name: string }[];
     gameRegions?: GameRegions;
+    /** Seed directives the recomp project excludes (recomp-analysis.ts parseExclusions). */
+    recompExclusions?: RecompExclusions;
 }
 /** A region as written to the bank files: the known ones plus table assets. */
 type PlacedRegion = KnownRegion & { table?: unknown };
@@ -383,7 +386,7 @@ function exportAsar(lib: CdlLibrary, romInput: Uint8Array, outDir: string, opts:
     ].join('\n');
     const mainPath = path.join(outDir, 'main.asm');
     fs.writeFileSync(mainPath, main);
-    const recomp = writeRecompSeeds({ lib, rom, map, index, known, outDir });
+    const recomp = writeRecompSeeds({ lib, rom, map, index, known, outDir, exclusions: opts.recompExclusions });
     known.steps.push(recomp.step);
     const report = tablesReport(tables, map, index, lib);
     fs.writeFileSync(path.join(outDir, 'tables.md'), report.text + '\n');

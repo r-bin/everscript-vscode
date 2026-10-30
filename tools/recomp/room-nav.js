@@ -1,7 +1,7 @@
 // TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 
-// Plan headless moves inside one room (docs/recomp/headless-exploration.md): its step-on triggers
+// Plan headless moves inside one room (SecrefOfEvermoreRecomp docs/headless-exploration.md): its step-on triggers
 // with their destinations and the enemy spawns, in the pixel space of the entity coordinates,
 // each with headless-script lines that put the Boy (and Dog) in place.
 //   node tools/recomp/room-nav.js <rom> <room id hex> [--script]

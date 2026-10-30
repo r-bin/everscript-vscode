@@ -1,7 +1,7 @@
 /*
  * Routine: $8CD0A6 (snesmod_addons)
  * Bank: $8C (ROM Offset: $0CD0A6)
- * Source: docs/recomp/snesmod-addons.md
+ * Source: SecrefOfEvermoreRecomp docs/snesmod-addons.md
  */
 
 #include "mod_runtime.h"

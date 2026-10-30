@@ -79,7 +79,7 @@ core (WASM, per instruction / access)        webview (every 5 s)         host (N
 - **`idx:X` counts are statically extended** (`staticTableCount`): the CDL only sees taken entries,
   and an under-counted table broke SoE's title sprites (`$8F:9F46`, 16 entries, 8 observed).
   Pointer forms (`ptrcall`, `ptrtail`, `rtsstack`) with observed-only targets make snesrecomp
-  **skip** unknown handlers: treat them as risky. Recomp debugging: `docs/recomp/debugging.md` and `docs/recomp/bugs-and-todos.md`.
+  **skip** unknown handlers: treat them as risky. Recomp debugging: `SecrefOfEvermoreRecomp docs/debugging.md` and `SecrefOfEvermoreRecomp docs/bugs-and-todos.md`.
 
 ## 3. What is recorded
 
@@ -186,7 +186,7 @@ Cross-tool plan (CDL + snesrecomp + Ghidra/ghidra-snes + REA, per goal): `docs/r
 The CDL library also seeds Ghidra/REA (functions at their `$8x` execution address, names, WRAM labels): `docs/reverse-engineering/rea.md` §10.1.
 
 - **Recomp (snesrecomp):** playable in the field (village, jungle, combat; `recomp` skill,
-  `docs/recomp/README.md`); lockstep vs snes9x drifts from NMI counter ~315 (timing);
+  `docs/recomp/README.md`: its own repository); lockstep vs snes9x drifts from NMI counter ~315 (timing);
   PHA/PEA+RTS sites need `hle_dispatch`; observed-only target lists are incomplete until played.
   The library used so far is a ~10 s recording (9.3 % of the ROM): a full-play CDL is the next input.
   `FUNC_EXCLUSIONS` also emit `force_lle`: dropping a root alone lets snesrecomp compile the routine

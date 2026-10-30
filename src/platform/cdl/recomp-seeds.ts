@@ -21,7 +21,8 @@ import type { buildIndex } from './xref-index';
 import type { KnownRegion } from './known-regions';
 
 type Index = ReturnType<typeof buildIndex>;
-import { returnsByEntry, exitDirectives, dispatchDirectives, noReturnComments, ramRoutines, FUNC_EXCLUSIONS } from './recomp-analysis';
+import { returnsByEntry, exitDirectives, dispatchDirectives, noReturnComments, ramRoutines, NO_EXCLUSIONS } from './recomp-analysis';
+import type { RecompExclusions } from './recomp-analysis';
 import { hiromFileOffset } from '../snes/hirom';
 
 const CDL_ACC_8 = 0x20, CDL_IDX_8 = 0x10;
@@ -87,8 +88,9 @@ function mergedRegions(regions: KnownRegion[]) {
     return out;
 }
 
-function writeRecompSeeds({ lib, rom, map, index, known, outDir }: {
+function writeRecompSeeds({ lib, rom, map, index, known, outDir, exclusions = NO_EXCLUSIONS }: {
     lib: CdlLibrary; rom: Uint8Array | null | undefined; map: RomMap; index: Index; known: { regions: KnownRegion[] }; outDir: string;
+    exclusions?: RecompExclusions;
 }) {
     const cfgDir = path.join(outDir, 'recomp', 'cfg');
     fs.rmSync(cfgDir, { recursive: true, force: true });
@@ -108,8 +110,8 @@ function writeRecompSeeds({ lib, rom, map, index, known, outDir }: {
         if (note) mixed++;
         for (const bus of buses) {
             const pc16 = hex(bus & 0xFFFF, 4).toLowerCase();
-            if (FUNC_EXCLUSIONS && FUNC_EXCLUSIONS.has(bus)) {
-                bankLines(bus >>> 16).push(`# func at ${pc16}: excluded (${FUNC_EXCLUSIONS.get(bus)})`);
+            if (exclusions.func.has(bus)) {
+                bankLines(bus >>> 16).push(`# func at ${pc16}: excluded (${exclusions.func.get(bus)})`);
                 continue;
             }
             const name = index.labelName(off) + (buses.size > 1 ? '_' + hex(bus >>> 16, 2) : '');
@@ -121,14 +123,13 @@ function writeRecompSeeds({ lib, rom, map, index, known, outDir }: {
     }
 
     // Dropping the root is not enough: snesrecomp rediscovers an excluded routine as the target of a
-    // compiled caller's JSL and compiles it anyway ($80:9033 from $90:D749 corrupted the OBJ tile LRU
-    // lists, v0.201.19). force_lle keeps the boundary on the interpreter for every caller.
-    const forced = new Set([...(FUNC_EXCLUSIONS || new Map()).keys()].map(bus => (0x800000 | (hiromFileOffset(bus))) >>> 0));
+    // compiled caller's JSL and compiles it anyway. force_lle keeps it interpreted for every caller.
+    const forced = new Set([...exclusions.func.keys()].map(bus => (0x800000 | (hiromFileOffset(bus))) >>> 0));
     for (const pc24 of [...forced].sort((a, b) => a - b)) {
-        bankLines(pc24 >>> 16).push(`force_lle ${hex(pc24, 6).toLowerCase()}    # ${FUNC_EXCLUSIONS.get(pc24)}`);
+        bankLines(pc24 >>> 16).push(`force_lle ${hex(pc24, 6).toLowerCase()}    # ${exclusions.func.get(pc24)}`);
     }
 
-    const dispatch = rom ? dispatchDirectives({ lib, rom, map }) : { lines: new Map(), counts: { indexed: 0, pointer: 0, rtsstack: 0, comments: 0 } };
+    const dispatch = rom ? dispatchDirectives({ lib, rom, map, exclusions }) : { lines: new Map(), counts: { indexed: 0, pointer: 0, rtsstack: 0, comments: 0 } };
     for (const [bank, lines] of dispatch.lines) bankLines(bank).push(...lines);
     const labelOf = (bus: number) => { const o = map.busToRom(bus); return (o >= 0 && index.labelName(o)) || '$' + hex(bus, 6); };
     const noReturn = noReturnComments(returns, labelOf);

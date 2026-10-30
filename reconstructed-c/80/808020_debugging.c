@@ -1,7 +1,7 @@
 /*
  * Routine: $808020 (debugging)
  * Bank: $80 (ROM Offset: $008020)
- * Source: docs/recomp/debugging.md
+ * Source: SecrefOfEvermoreRecomp docs/debugging.md
  */
 
 if (g_evs_debug_server_active) {

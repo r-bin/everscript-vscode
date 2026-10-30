@@ -98,7 +98,7 @@ recompilation and the decompilation need, and it is still small.
 ### 2.5 What each goal gets today
 
 - **Rebuildable Asar project:** works for any library (byte-identical build).
-- **snesrecomp:** seeds from the library run the game in the field (`docs/recomp/README.md`); unknown
+- **snesrecomp:** seeds from the library run the game in the field (`docs/recomp/README.md`: its own repository); unknown
   dispatch targets and PHA/PEA+RTS sites stay the limit until more code is covered.
 - **RAM / ROM map:** `ram.asm`, `structs`, `enums`, `tables` grow with coverage; context tags (2.2 #1)
   would make WRAM lifetimes possible.

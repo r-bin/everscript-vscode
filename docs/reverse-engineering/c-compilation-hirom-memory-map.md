@@ -12,7 +12,7 @@
 > **Related Reading**:
 > - [asm-to-c-port.md](asm-to-c-port.md) — The Secret of Evermore ASM-to-C pipeline roadmap.
 > - [incremental-decomp-guide.md](incremental-decomp-guide.md) — Step-by-step function decompilation with `snesrecomp`.
-> - [../recomp/game-rtl.md](../recomp/game-rtl.md) — Game Runtime Layer (Game RTL) glue architecture.
+> - [../recomp/game-rtl.md](https://github.com/r-bin/SecrefOfEvermoreRecomp/blob/develop/docs/game-rtl.md) — Game Runtime Layer (Game RTL) glue architecture.
 > - [../disassembly/PROGRESS.md](../disassembly/PROGRESS.md) — Engine decompilation status and WRAM census.
 
 ---
@@ -402,7 +402,7 @@ into structured C arrays.
 
 ### Step 3: Link Hand-Decompiled Functions to the Game RTL
 As decompiled functions in `docs/disassembly/` are validated:
-1. Add their prototypes to `tools/recomp/host/src/game_rtl.h`.
+1. Add their prototypes to the recomp repository's `src/game_rtl.h`.
 2. Hook them into `bankXX.cfg` using `hle_func`.
 3. Verify behavioral equivalence using the existing lockstep harness:
    ```bash

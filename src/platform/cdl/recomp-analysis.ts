@@ -131,62 +131,37 @@ function prevHead(rom: Uint8Array, lib: CdlLibrary, off: number) {
     return null;
 }
 
-// Sites where emitting an indirect_dispatch directive breaks runtime execution:
-// - $8F:9F46 / $CF:9F46: JMP ($A3D8,x) inside func_CF9F05. Active loop with PHA/PLA stack usage at $A3B1.
-//   snesrecomp emits a native tail call (RecompStackPop + return), causing native call stack frames
-//   to desynchronize from the 65816 stack across iterations, corrupting WRAM $7E:ABDE (OAM) in Cycle 2.
-// - $80:84BE / $00:84BE: JML [$0125] NMI dynamic hook called via PHK; PEA $84C0 (3-byte return frame, not 2).
-//   Static target list misses dynamic hooks.
-const DISPATCH_EXCLUSIONS = new Map([
-    [0x8F9F46, 'stack-resident loop dispatcher in func_CF9F05; native RecompStackPop desynchronizes C stack across loop'],
-    [0xCF9F46, 'stack-resident loop dispatcher in func_CF9F05; native RecompStackPop desynchronizes C stack across loop'],
-    [0x8084BE, 'NMI dynamic hook JML [$0125] with 3-byte return frame (PHK; PEA) and dynamic targets'],
-    [0x0084BE, 'NMI dynamic hook JML [$0125] with 3-byte return frame (PHK; PEA) and dynamic targets'],
-]);
-
 /**
- * Function entries excluded from being emitted as root `func` directives in recomp/cfg/bankXX.cfg.
- *
- * Why:
- * When related functions in a tight internal cluster (like the dynamic sprite allocator and direct OAM drawer)
- * are emitted as separate root `func` entries, snesrecomp's control flow analysis can either merge them into
- * a massive multi-entry mega-function or compile inter-routine JSLs with mismatched C/65816 stack frames.
- * When left to the LLE interpreter fallback, they execute coherently with exact 65816 stack pushes/pulls.
- *
- * Dropping the root is not enough on its own: snesrecomp rediscovers a routine as the JSL target of a compiled
- * caller and compiles it anyway, so recomp-seeds.ts also emits `force_lle` for each of these. Without it
- * $90:D749 (effect sprites) called a compiled $80:9033 and corrupted the OBJ tile LRU lists at $7E9727 /
- * $7E96A5 within one fight, which handed out OBJ tile $81 and overwrote the HUD portrait (v0.201.19).
- *
- * Addresses in bank $80 (mirrored at $C0):
- * - $80960A / $C0960A: sprite VRAM block allocator (allocates blocks in $7E:50AD)
- * - $809685 / $C09685: sprite VRAM block free routine
- * - $8096BB / $C096BB: dynamic sprite queue consumer (sets up DP $02..$27 and calls JSL $809040)
- * - $809033 / $C09033: direct sprite draw routine (direct_sprite_draw_oam)
- * - $809040 / $C09040: direct sprite draw routine internal entry (called from 96bb)
- * - $808FEE / $C08FEE: dynamic sprite queue setup routine
+ * Directives the seeds must not emit, decided by the recomp project (its `recomp/seed-exclusions.txt`,
+ * where each entry says why). One per line, `#` starts a comment:
+ *   func <pc24> <reason>       no root `func` line, and `force_lle`: snesrecomp rediscovers a dropped root
+ *                              as the target of a compiled caller and compiles it anyway, so only
+ *                              force_lle keeps it interpreted for every caller
+ *   dispatch <pc24> <reason>   no `indirect_dispatch` at this jump site
+ * An address stands for all its HiROM mirrors ($00/$40/$80/$C0 banks).
  */
-const FUNC_EXCLUSIONS = new Map([
-    [0x80960A, 'dynamic sprite allocator cluster; stack/register desync in snesrecomp mega-function corrupts OAM allocations'],
-    [0xC0960A, 'dynamic sprite allocator cluster; stack/register desync in snesrecomp mega-function corrupts OAM allocations'],
-    [0x809685, 'dynamic sprite allocator cluster; stack/register desync in snesrecomp mega-function corrupts OAM allocations'],
-    [0xC09685, 'dynamic sprite allocator cluster; stack/register desync in snesrecomp mega-function corrupts OAM allocations'],
-    [0x8096BB, 'dynamic sprite allocator cluster; stack/register desync in snesrecomp mega-function corrupts OAM allocations'],
-    [0xC096BB, 'dynamic sprite allocator cluster; stack/register desync in snesrecomp mega-function corrupts OAM allocations'],
-    [0x809033, 'dynamic sprite allocator cluster; direct_sprite_draw_oam; leaves stack frame intact for interpreter'],
-    [0xC09033, 'dynamic sprite allocator cluster; direct_sprite_draw_oam; leaves stack frame intact for interpreter'],
-    [0x809040, 'dynamic sprite allocator cluster; internal entry called from 96bb; leaves stack frame intact for interpreter'],
-    [0xC09040, 'dynamic sprite allocator cluster; internal entry called from 96bb; leaves stack frame intact for interpreter'],
-    [0x808FEE, 'dynamic sprite allocator cluster; sprite queue setup; leaves stack frame intact for interpreter'],
-    [0xC08FEE, 'dynamic sprite allocator cluster; sprite queue setup; leaves stack frame intact for interpreter'],
-    [0x8CCFFD, 'script scheduler pass; its jsr ($D029,x) handlers return into its own loop by a pushed address; compiled, a save loads into the wrong room with frozen logic'],
-]);
+interface RecompExclusions { func: Map<number, string>; dispatch: Map<number, string> }
+
+function parseExclusions(text: string): RecompExclusions {
+    const out: RecompExclusions = { func: new Map(), dispatch: new Map() };
+    text.split('\n').forEach((raw, i) => {
+        const line = raw.replace(/#.*/, '').trim();
+        if (!line) return;
+        const m = /^(func|dispatch)\s+\$?([0-9a-fA-F]{6})\s+(.+)$/.exec(line);
+        if (!m) throw new Error(`seed exclusions line ${i + 1}: expected "func|dispatch <pc24> <reason>": ${raw}`);
+        const pc = parseInt(m[2], 16) & 0x3FFFFF;
+        for (const bank of [0x000000, 0x400000, 0x800000, 0xC00000]) out[m[1] as 'func' | 'dispatch'].set((pc | bank) >>> 0, m[3].trim());
+    });
+    return out;
+}
+
+const NO_EXCLUSIONS: RecompExclusions = { func: new Map(), dispatch: new Map() };
 
 /**
  * Indirect sites: directive or comment per site, keyed by runtime bank.
  * @returns {{ lines: Map(bank -> string[]), counts: { indexed, pointer, rtsstack, comments } }}
  */
-function dispatchDirectives({ lib, rom, map }: { lib: CdlLibrary; rom: Uint8Array; map: RomMap }) {
+function dispatchDirectives({ lib, rom, map, exclusions = NO_EXCLUSIONS }: { lib: CdlLibrary; rom: Uint8Array; map: RomMap; exclusions?: RecompExclusions }) {
     const lines = new Map<number, string[]>();
     const add = (bank: number, line: string) => (lines.get(bank) || lines.set(bank, []).get(bank)!).push(line);
     const counts = { indexed: 0, pointer: 0, rtsstack: 0, comments: 0 };
@@ -205,8 +180,8 @@ function dispatchDirectives({ lib, rom, map }: { lib: CdlLibrary; rom: Uint8Arra
         const bank = site >>> 16, off = map.busToRom(site), ins = head(rom, lib, off);
         const targets = [...tos].sort((a, b) => a - b);
         const seen = '(' + targets.length + ' observed: ' + targets.map(t6).join(',') + ')';
-        if (DISPATCH_EXCLUSIONS.has(site)) {
-            add(bank, `# indirect at ${t4(site)} ${seen}: excluded (${DISPATCH_EXCLUSIONS.get(site)})`);
+        if (exclusions.dispatch.has(site)) {
+            add(bank, `# indirect at ${t4(site)} ${seen}: excluded (${exclusions.dispatch.get(site)})`);
             counts.comments++;
             continue;
         }
@@ -303,4 +278,5 @@ function ramRoutines(lib: CdlLibrary, returns: Map<number, ReturnInfo>) {
     return { lines: out, skipped };
 }
 
-export { returnsByEntry, exitDirectives, dispatchDirectives, noReturnComments, ramRoutines, staticTableCount, DISPATCH_EXCLUSIONS, FUNC_EXCLUSIONS };
+export { returnsByEntry, exitDirectives, dispatchDirectives, noReturnComments, ramRoutines, staticTableCount, parseExclusions, NO_EXCLUSIONS };
+export type { RecompExclusions };

@@ -3,7 +3,8 @@
 'use strict';
 
 // Recomp build: CDL library + asset knowledge + curated names -> Asar project (byte-identical,
-// named, commented) + Mesen2 labels/CDL -> snesrecomp C -> REPORT.md with what still blocks.
+// named, commented) + Mesen2 labels/CDL + snesrecomp seeds, written into the recomp repository
+// (SecrefOfEvermoreRecomp), which then regenerates and builds -> REPORT.md with what still blocks.
 // Usage and options: tools/recomp/README.md (or --help).
 
 const fs = require('fs');
@@ -18,23 +19,23 @@ const { CdlLibrary, stripCopierHeader } = require(path.join(REPO, 'dist/platform
 const { createRomMap } = require(path.join(REPO, 'dist/platform/cdl/rom-map'));
 const { exportAsar } = require(path.join(REPO, 'dist/platform/cdl/asar-export'));
 const { romRegions } = require(path.join(REPO, 'dist/games/evermore/rom'));
+const { parseExclusions } = require(path.join(REPO, 'dist/platform/cdl/recomp-analysis'));
 const { collectNames } = require('./names');
 const { writeReport } = require('./report');
-const { buildHost } = require('./host');
+const { recompRepo, readExclusions, writeSeeds, buildRepo, EXCLUSIONS } = require('./repo.mts');
 
 const HELP = `node tools/recomp/build.js [options]      (npm run recomp -- [options])
   --rom <file>         clean ROM (default: the base ROM of the ROM library)
   --lib <dir>          CDL library root (default: VS Code globalStorage rbin.everscript/cdl-library)
-  --out <dir>          output folder (default: out/recomp)
+  --out <dir>          output folder for the Asar project and the report (default: out/recomp)
   --asar <bin>         Asar binary (env ASAR; default: asar on PATH, else ../asar/asar/bin/asar)
-  --snesrecomp <dir>   snesrecomp checkout (env SNESRECOMP; default: ../snesrecomp)
-  --no-recomp          stop after the Asar rebuild
-  --no-build           generate the C in the host project but do not compile / package the game
-  --fresh              delete out/recomp/project and scaffold it again
+  --repo <dir>         the recomp repository (env SOE_RECOMP; default: ../SecrefOfEvermoreRecomp)
+  --no-recomp          stop after the Asar rebuild (the recomp repository is not touched)
+  --no-build           write the seeds into the recomp repository, do not regenerate or build
   --strict             exit 1 unless the rebuild is byte-identical and the game was built`;
 
 function args(argv) {
-    const o = { recomp: true, build: true, fresh: false, strict: false };
+    const o = { recomp: true, build: true, strict: false };
     for (let i = 0; i < argv.length; i++) {
         const a = argv[i], next = () => argv[++i];
         if (a === '--help' || a === '-h') { console.log(HELP); process.exit(0); }
@@ -42,10 +43,9 @@ function args(argv) {
         else if (a === '--lib') o.lib = next();
         else if (a === '--out') o.out = next();
         else if (a === '--asar') o.asar = next();
-        else if (a === '--snesrecomp') o.snesrecomp = next();
+        else if (a === '--repo') o.repo = next();
         else if (a === '--no-recomp') o.recomp = false;
         else if (a === '--no-build') o.build = false;
-        else if (a === '--fresh') o.fresh = true;
         else if (a === '--strict') o.strict = true;
         else { console.error('unknown option ' + a + '\n' + HELP); process.exit(2); }
     }
@@ -86,16 +86,18 @@ function main() {
     const map = createRomMap(rom);
     const libRoot = o.lib || path.join(os.homedir(), 'Library/Application Support/Code/User/globalStorage/rbin.everscript/cdl-library');
 
+    const repo = recompRepo(o.repo);
     const inputs = step('inputs: CDL library, names, assets', () => {
         const lib = new CdlLibrary(libRoot, romFile, {});
         const recorded = fs.existsSync(path.join(lib.dir, 'rom.cdl'));
         const n = collectNames(map, rom.length);
         const assets = romRegions(romFile).filter(r => r.e > r.s).map(r => ({ start: r.s, end: r.e, name: r.name }));
-        return { lib, recorded, libDir: lib.dir, names: n, assets };
+        const exclusions = parseExclusions(o.recomp ? readExclusions(repo) : '');
+        return { lib, recorded, libDir: lib.dir, names: n, assets, exclusions };
     });
 
     const exp = step('export: Asar project + Mesen2 files + snesrecomp seeds', () => {
-        const r = exportAsar(inputs.lib, romFile, asarDir, { names: inputs.names.names, wramNames: inputs.names.wramNames, assets: inputs.assets });
+        const r = exportAsar(inputs.lib, romFile, asarDir, { names: inputs.names.names, wramNames: inputs.names.wramNames, assets: inputs.assets, recompExclusions: inputs.exclusions });
         return { result: r };
     }).result;
 
@@ -114,12 +116,14 @@ function main() {
 
     let recomp = { skipped: true };
     if (o.recomp) {
-        const sr = path.resolve(o.snesrecomp || process.env.SNESRECOMP || path.join(REPO, '../snesrecomp'));
-        recomp = step('recomp: host project (scaffold, glue, seeds, generate' + (o.build ? ', build, package)' : ')'), () => {
-            if (!fs.existsSync(path.join(sr, 'snesrecomp_cli.py'))) return { ok: false, reason: 'snesrecomp not found at ' + sr + ' (--snesrecomp or SNESRECOMP)' };
-            return buildHost({ snesrecomp: sr, romPath, out, seedDir: path.join(asarDir, 'recomp', 'cfg'), fresh: o.fresh, build: o.build });
+        recomp = step('recomp: seeds into ' + path.relative(process.cwd(), repo) + (o.build ? ', regenerate, build' : ''), () => {
+            if (!fs.existsSync(path.join(repo, 'tools', 'regen.sh'))) return { ok: false, reason: 'no recomp repository at ' + repo + ' (--repo or SOE_RECOMP)' };
+            const seeds = writeSeeds(path.join(asarDir, 'recomp', 'cfg'), repo);
+            const res = { repo, seeds, exclusions: EXCLUSIONS };
+            if (!o.build) return { ...res, ok: true, built: false };
+            return { ...res, ...buildRepo(repo, romPath, path.join(out, 'recomp-host.log')), built: true };
         });
-        if (recomp.exe) console.log('   game: ' + path.relative(process.cwd(), recomp.dir) + '  (start: ' + path.basename(recomp.script) + ')');
+        if (recomp.exe) console.log('   game: ' + path.relative(process.cwd(), recomp.exe));
     }
 
     const report = writeReport({ out, romPath, sha1, map, rom, inputs, exp, rebuild, recomp, log });

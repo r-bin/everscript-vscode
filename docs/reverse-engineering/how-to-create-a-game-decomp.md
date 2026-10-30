@@ -283,7 +283,7 @@ By default, `snesrecomp` emits low-level, instruction-by-instruction emulation C
 #### 2. Declaring the Hook in `bank80.cfg`
 To replace this mechanical routine with your decompiled C function, add a line to the bank configuration file:
 ```ini
-# tools/recomp/host/config/bank80.cfg
+# recomp/bank80.cfg (recomp repository)
 bank = 80
 
 # Syntax: hle_func <4-digit-hex-offset> <c_function_symbol>

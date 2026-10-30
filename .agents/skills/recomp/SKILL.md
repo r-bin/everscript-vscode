@@ -1,33 +1,28 @@
 ---
 name: recomp
-description: Use when building, running or testing the Secret of Evermore static recompilation (npm run recomp): commands, the generated host project, our glue, CDL seeds, headless runs.
-applyTo: "tools/recomp/**,docs/recomp/**,src/platform/cdl/recomp-*.js"
+description: Use when making snesrecomp seeds (npm run recomp) or touching the recomp's inputs here; the recomp itself (glue, build, debugging) lives in the SecrefOfEvermoreRecomp repository.
+applyTo: "tools/recomp/**,src/platform/cdl/recomp-*.ts,docs/recomp/**"
 ---
 
-# Skill: the SoE recomp
+# Skill: seeds for the SoE recomp
 
-Docs: `docs/recomp/README.md` (status, map), `headless-exploration.md` (driving the game from a
-script), `debugging.md` (modes, dumps, bisection), `bugs-and-todos.md` (open and solved bugs,
-each with its lesson), `game-rtl.md` (our glue). Read the bug table before a new hunt: the same
-failure classes repeat.
+The recomp is its own repository: `../SecrefOfEvermoreRecomp`
+(https://github.com/r-bin/SecrefOfEvermoreRecomp). Its glue, docs, bug history, debugging tools and
+its own skills (`recomp`, `recomp-debugging`) are there; read its `AGENTS.md` before working on
+the game itself, and commit there (branch `develop`).
 
-## Commands
-`npm run recomp -- --rom out/rom.sfc` builds the game into `out/recomp/SecretOfEvermore-*/`; start it with that folder's
-`play.command` (macOS) or `play.sh`; `npm run recomp:lockstep` compares it with snes9x. `out/rom.sfc` is the clean ROM. Headless: `<game>/SecretOfEvermore
---no-launcher --script s.txt <rom>` with `SNESRECOMP_DUMP_DIR`. Copy the package to the scratchpad
-before experimenting: `saves/`, `config.ini` belong to the user.
-
-## Ownership
-- `out/recomp/project/` is generated (snesrecomp, PolyForm Noncommercial): never commit it, never
-  copy its files into the repo. Change it only through `tools/recomp/host.js` hooks (it patches
-  snesrecomp's `main.c` and `beam_frame_driver.c`) or our glue `tools/recomp/host/src/game_rtl.c`.
-- Seeds come from `src/platform/cdl/recomp-seeds.ts` / `recomp-analysis.ts`.
-
-## Bugs
-Reproducing, comparing against snes9x / Mesen2, classifying and fixing a recomp bug, and where
-every file lives: **`recomp-debugging` skill**. Its trap list is the short version of
-`docs/recomp/bugs-and-todos.md` §2.
+## What lives here
+- `npm run recomp` (`tools/recomp/build.js`, `repo.mts`): CDL library + names + asset regions →
+  byte-identical Asar project, Mesen2 files, seeds → the recomp repo's `recomp/bank*.cfg`, then its
+  regen + build. `--no-build` stops after the seeds, `--no-recomp` after the Asar rebuild,
+  `--repo` / `SOE_RECOMP` pick another checkout. Commit the changed cfgs in the recomp repo.
+- The seed generator: `src/platform/cdl/recomp-seeds.ts`, `recomp-analysis.ts`. Exclusions are not
+  here: they are lines in the recomp repo's `recomp/seed-exclusions.txt` (`func` / `dispatch`
+  `<pc24> <reason>`), parsed by `parseExclusions`.
+- Tools that need this repository: `tools/recomp/room-nav.js` (a room's triggers and spawns as
+  headless script lines), `s9x-run.js` (the same script on snes9x), `npm run compare -- recomp=`
+  (lockstep; runs the recomp repo's `build/` game).
 
 ## Finishing
-Record every address learned (`game-knowledge` skill), add the bug with its lesson to
-`docs/recomp/bugs-and-todos.md`, then the `release-ritual`.
+Game facts found while debugging the recomp go to knowledge entries here (`game-knowledge` skill);
+the bug and its lesson go to the recomp repo's bug table (its docs folder, bugs-and-todos).

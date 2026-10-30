@@ -27,7 +27,7 @@ This turns play sessions in the embedded emulator into three things:
 ## 0. One command (since v0.201.9)
 
 ```sh
-npm run recomp     # also builds the playable game, see docs/recomp/README.md
+npm run recomp     # seeds into the recomp repository and builds it, see docs/recomp/README.md
 ```
 
 `tools/recomp/build.js` runs §3–§5 below without VS Code. It reads the recorded library from
