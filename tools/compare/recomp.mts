@@ -82,20 +82,26 @@ export function runRecomp(job: RecompJob, onCp: (key: number, crcs: Crcs) => voi
         const pads: Uint16Array = movie.pads;
         const rngAt = job.rngFrame ?? 115;
         const totalPadFrames = pads.length;   // the glue quits at the key (SOE_COMPARE_QUIT_AT)
-        let i = 0;
+        // The runner's script engine spends frames of its own: a poke takes its frame and one more ("hold done"), a
+        // press of n frames n + 1. Those come off the next segment, so each pad value lands on the field MesenCE
+        // gives it. The script's frame f is also MesenCE's frame f + 1 (the glue's peek and Mesen's endFrame count
+        // differ by one at the same NMI key), so the run starts one pad frame in. Measured 2026-10-31 on
+        // 02-newgame-boy-available: before, every press reached the game 3 fields late (WRAM parted at key 332).
+        let i = 0, owed = 1;
         while (i < totalPadFrames) {
             if (job.rng && i === rngAt) {
                 lines.push(`poke ${h(RNG[0])} ${Buffer.from(job.rng).toString('hex')}`);
+                owed += 2;
             }
             const val = pads[i];
             let j = i + 1;
             while (j < totalPadFrames && pads[j] === val && (!job.rng || j !== rngAt)) j++;
-            const count = j - i;
-            if (val === 0) {
-                lines.push(`wait ${count}`);
-            } else {
-                const btns = padToButtonString(val);
-                if (btns) lines.push(`press ${btns} ${count}`);
+            const take = Math.min(owed, j - i);   // a press right after a press loses its first frame(s) here
+            owed -= take;
+            const count = j - i - take;
+            const btns = val === 0 ? '' : padToButtonString(val);
+            if (count > 0) {
+                if (btns) { lines.push(`press ${btns} ${count}`); owed += 1; }
                 else lines.push(`wait ${count}`);
             }
             i = j;
