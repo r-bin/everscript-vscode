@@ -30,6 +30,9 @@ higan (2020 nightly) is superseded by ares; bsnes is ares' lineage and unused.
 ## Traps
 - MesenCE `--testRunner` exited with 255 although the script called `emu.exit(0)`: read the
   script's output, not the exit code. Checked 2026-10-30: 600 frames from power-on, `$7E0100` = 461.
-- No MesenCE backend in `tools/compare` yet: until there is, every lockstep result is snes9x's.
+- MesenCE loads and writes back battery RAM per ROM file name (its home's `Saves/`), so a run on the
+  ROM's own name starts from the owner's save. `tools/compare/mesen.mts` runs a link of its own name
+  and the recomp an empty save folder (`SOE_COMPARE_SAVE_ROOT`): both cleared. Found 2026-10-31: the
+  SRAM checksum's flags parted the attract replay at NMI keys 320-321.
 
 The recomp repository (SecretOfEvermoreRecomp) has its own copy of these rules and a doc on how to run each (its docs folder, reference-emulators).

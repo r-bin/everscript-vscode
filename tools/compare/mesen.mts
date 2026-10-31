@@ -1,9 +1,9 @@
 // The MesenCE backend: Mesen run headless from a generated Lua testrunner script.
 // Mesen is the cycle-accurate reference emulator for WRAM comparisons (reference-emulators skill).
 // Keys are aligned on the NMI frame counter $7E0100 when mixed with recomp or snes9x, or frame numbers.
-import { mkdtempSync, writeFileSync, rmSync, existsSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { mkdtempSync, writeFileSync, rmSync, existsSync, readFileSync, symlinkSync } from 'node:fs';
+import { tmpdir, homedir } from 'node:os';
+import { join, basename, extname, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { FRAME_COUNTER, RNG, SYNC_AT, CROSS_NOISE } from './game.mts';
@@ -19,6 +19,21 @@ const DEFAULT_MESEN = '/Applications/Mesen.app/Contents/MacOS/Mesen';
 /** Default Mesen executable: MESEN environment variable, or macOS app path. */
 export function defaultMesenExe(): string {
     return process.env.MESEN || DEFAULT_MESEN;
+}
+
+// Mesen keeps battery RAM per ROM file name in its home's Saves folder and writes it back on exit, so a run on
+// the ROM's own name starts from whatever the owner last saved there (a real save file: the game's SRAM checksum
+// then sets a stack byte differently from the recomp's, NMI keys 320-321 of the attract replay). Each run gets a
+// symlink with a name of its own instead: no .srm, so SRAM starts cleared (ramPowerOnState), and the .srm Mesen
+// writes for it is removed afterwards. The owner's saves are never read or written.
+const MESEN_HOMES = [join(homedir(), 'Library/Application Support/Mesen2'), join(homedir(), '.config/Mesen2')];
+
+function isolatedRom(dir: string, rom: string): { rom: string; cleanup(): void } {
+    const name = basename(dir) + extname(rom);
+    const link = join(dir, name);
+    symlinkSync(resolve(rom), link);
+    const srm = name.slice(0, -extname(name).length || undefined) + '.srm';
+    return { rom: link, cleanup: () => { for (const h of MESEN_HOMES) rmSync(join(h, 'Saves', srm), { force: true }); } };
 }
 
 export interface MesenJob {
@@ -282,7 +297,8 @@ export function runMesen(job: MesenJob, onCp: (key: number, crcs: Crcs) => void)
     const script = generateMesenLua(job, dumpPath, pads);
     writeFileSync(luaPath, script);
 
-    const child = spawn(exe, ['--testrunner', job.rom, luaPath, '--snes.ramPowerOnState=AllZeros'], {
+    const iso = isolatedRom(dir, job.rom);
+    const child = spawn(exe, ['--testrunner', iso.rom, luaPath, '--snes.ramPowerOnState=AllZeros'], {
         cwd: dir,
         stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -331,6 +347,7 @@ export function runMesen(job: MesenJob, onCp: (key: number, crcs: Crcs) => void)
     const done = new Promise<Uint8Array[] | null>((resolve, reject) => {
         child.on('close', code => {
             rmSync(dir, { recursive: true, force: true });
+            iso.cleanup();
             // Mesen testrunner can exit 255 even on emu.stop(0) (reference-emulators skill trap)
             if (code !== 0 && code !== 255 && !sawDone && !dump && child.signalCode === null) {
                 reject(new Error(`Mesen exited with ${code}: ${log.trim().split('\n').slice(-3).join(' | ')}`));
@@ -360,7 +377,8 @@ export function askMesenRng(job: MesenJob): Promise<{ bytes: Uint8Array; frame: 
         const script = generateMesenLua({ ...job, to: SYNC_AT, dumpAt: undefined, rng: null, peek: [] }, dumpPath, pads);
         writeFileSync(luaPath, script);
 
-        const child = spawn(exe, ['--testrunner', job.rom, luaPath, '--snes.ramPowerOnState=AllZeros'], {
+        const iso = isolatedRom(dir, job.rom);
+        const child = spawn(exe, ['--testrunner', iso.rom, luaPath, '--snes.ramPowerOnState=AllZeros'], {
             cwd: dir,
             stdio: ['ignore', 'pipe', 'pipe'],
         });
@@ -381,6 +399,7 @@ export function askMesenRng(job: MesenJob): Promise<{ bytes: Uint8Array; frame: 
 
         child.on('exit', () => {
             rmSync(dir, { recursive: true, force: true });
+            iso.cleanup();
             if (rngBytes) resolve({ bytes: rngBytes, frame: rngFrame });
             else reject(new Error('Mesen ended without returning RNG bytes'));
         });

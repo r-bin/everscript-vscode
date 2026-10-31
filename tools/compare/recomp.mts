@@ -107,7 +107,9 @@ export function runRecomp(job: RecompJob, onCp: (key: number, crcs: Crcs) => voi
     // The key is an NMI count, not the raw $0100 (the attract demo zeroes it), so the glue ends the run itself.
     lines.push(`wait ${job.to * 3 + 2000}`, 'quit');
     writeFileSync(join(dir, 'compare.txt'), lines.join('\n') + '\n');
-    const env: NodeJS.ProcessEnv = { ...process.env, SOE_COMPARE_REGIONS: job.regions.join(',') };
+    // SRAM from the run's own empty folder: cleared, as on MesenCE (mesen.mts isolatedRom), and the player's
+    // saves/ stay untouched (the glue's SOE_COMPARE_SAVE_ROOT).
+    const env: NodeJS.ProcessEnv = { ...process.env, SOE_COMPARE_REGIONS: job.regions.join(','), SOE_COMPARE_SAVE_ROOT: dir };
     env.SOE_COMPARE_QUIT_AT = String(job.dumpAt ?? job.to);
     if (job.atNmi) env.SOE_COMPARE_AT = 'nmi';
     if (job.onNmi) env.SOE_COMPARE_NMI_LOG = '1';
