@@ -426,6 +426,8 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0E65` | 2 bytes | `ENGINE_PAUSE_COUNTER` | Boot | Pause counter decremented at boot; engine skips actor simulation if > 0. |
 | `$7E:0E6B` | 1 byte | `NMITIMEN_MIRROR` | Boot | Shadow copy of $4200 ($81 = NMI enabled, Auto-Joypad enabled). |
 | `$7E:0E6C` | 2 | `SHOP_MODE_CONFIG_MASK` | Frame | Shop Subsystem: Shop mode configuration bitmask (bit 2: standard weapons/armor, bit 3: alchemy ingredients satchel) |
+| `$7E:0E70` | 2 bytes | `MODE7_FLIGHT_STATE` | Room | Mode 7 Windwalker vehicle flight state (0=ground, 1=takeoff, 2=cruise, 3=landing, 4=touchdown, 5=realm transit; $80:C4A3). |
+| `$7E:0E72` | 2 bytes | `MODE7_FLIGHT_PITCH_ANGLE` | Room | Mode 7 flight vehicle pitch tilt angle ($80:C412). |
 | `$7E:0E80` | 2 bytes | `WEAPON_CHARGE_METER` | Frame | Current physical attack charge meter level (0..100%). |
 | `$7E:0E96` | 2 bytes | `ENTITY_SCHEDULER_INTERVAL_TIMER` | Room | Entity scheduler PRNG countdown interval timer ($8F:DC49). |
 | `$7E:0E98` | 2 bytes | `ENTITY_SCHEDULER_INTERVAL_TARGET` | Room | Entity scheduler secondary jitter countdown timer ($8F:DC34). |
@@ -809,7 +811,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:2403` | 2 bytes | `VIEWPORT_RIGHT_X` | Room | Active camera on-screen viewport right edge in world pixels ($BF + 256). |
 | `$7E:2405` | 2 bytes | `VIEWPORT_TOP_Y` | Room | Active camera on-screen viewport top edge in world pixels ($C1). |
 | `$7E:2407` | 2 bytes | `VIEWPORT_BOTTOM_Y` | Room | Active camera on-screen viewport bottom edge in world pixels ($C1 + 224). |
-| `$7E:2409` | 2 bytes | `CAMERA_SPEED_FACTOR` | Room | Camera panning smoothing and interpolation factor. |
+| `$7E:2409` | 2 bytes | `SHAKE_MAGNITUDE_X` | Frame | Maximum horizontal displacement magnitude for active screen shaking ($90:989C). |
 | `$7E:240B` | 2 bytes | `SHAKE_MAGNITUDE_Y` | Frame | Maximum vertical displacement magnitude for active screen shaking. |
 | `$7E:240F` | 2 bytes | `CAMERA_DEADZONE_LEFT` | Room | Left horizontal deadzone threshold before camera scrolls to follow player. |
 | `$7E:2411` | 2 bytes | `CAMERA_DEADZONE_RIGHT` | Room | Right horizontal deadzone threshold before camera scrolls to follow player. |
