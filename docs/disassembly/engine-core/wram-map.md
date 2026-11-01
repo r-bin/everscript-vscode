@@ -427,11 +427,14 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0E6B` | 1 byte | `NMITIMEN_MIRROR` | Boot | Shadow copy of $4200 ($81 = NMI enabled, Auto-Joypad enabled). |
 | `$7E:0E6C` | 2 | `SHOP_MODE_CONFIG_MASK` | Frame | Shop Subsystem: Shop mode configuration bitmask (bit 2: standard weapons/armor, bit 3: alchemy ingredients satchel) |
 | `$7E:0E80` | 2 bytes | `WEAPON_CHARGE_METER` | Frame | Current physical attack charge meter level (0..100%). |
+| `$7E:0E96` | 2 bytes | `ENTITY_SCHEDULER_INTERVAL_TIMER` | Room | Entity scheduler PRNG countdown interval timer ($8F:DC49). |
+| `$7E:0E98` | 2 bytes | `ENTITY_SCHEDULER_INTERVAL_TARGET` | Room | Entity scheduler secondary jitter countdown timer ($8F:DC34). |
 | `$7E:0EA0` | 2 bytes | `DAMAGE_RESULT_REG` | Frame | Calculated damage output value produced by combat math routines. |
 | `$7E:0EAE` | 2 bytes | `PENDING_MAP_EVENT_0` | Room | Queued map event script ID pending trigger execution ($FFFF = none). |
 | `$7E:0EB0` | 2 bytes | `PENDING_MAP_EVENT_1` | Room | Secondary queued map event script ID ($FFFF = none). |
 | `$7E:0EB2` | 2 bytes | `DOG_CURRENT_HP` | Save | Dog companion current health points. |
 | `$7E:0EB4` | 2 bytes | `WINGS_ESCAPE_SCRIPT_ID` | Room | Wings / dungeon escape event script ID ($FFFF = none; ROOM_HOOK 5). |
+| `$7E:0EBC` | 2 bytes | `ENTITY_ROUND_ROBIN_CURSOR` | Room | Entity pool round-robin processing cursor pointer ($8F:DCA3). |
 | `$7E:0EBE` | 2 bytes | `SPAWN_RING_HEAD_PTR` | Room | Active scan cursor into 60-slot spawn ring table at $7E:5DC3..$7E:6182 (advanced by 16 bytes in func_8FDDBB). |
 | `$7E:0EC0` | 32 bytes | `DEFERRED_SPAWN_BUF` | Room | Buffer storing entity spawn parameters queued during map transitions. |
 | `$7E:0EC6` | 2 bytes | `INPUT_P1_HELD_BUTTONS` | Frame | Player 1 controller buttons currently held down (raw auto-joypad read from hardware register $4218). |
@@ -482,7 +485,13 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:1069` | 3 bytes | `ROOM_STEP_TRIGGER_TABLE_PTR` | Room | 24-bit far pointer to active room step-on trigger bounding boxes ($8F:ACB1). |
 | `$7E:106C` | 2 bytes | `ACTIVE_ANIM_CHANNELS` | Room | Count of actively cycling animated tile channels on current map. |
 | `$7E:106E` | 2 bytes | `ANIM_TILE_VRAM_BASE` | Room | Destination base address in VRAM where animated tiles are DMA-streamed. |
-| `$7E:1076` | 2 bytes | `ROOM_FADE_FRAME_COUNT` | Room | Duration in frames of room transition screen brightness fade (default 6 frames). |
+| `$7E:1070` | 2 bytes | `ENTITY_BATCH_TARGET_CAPACITY` | Room | Active entity processing target capacity ($8F:DC8A). |
+| `$7E:1072` | 2 bytes | `ROOM_SPAWNED_ENTITY_COUNT` | Room | Current count of spawned active entities in room ($8F:B0A5). |
+| `$7E:1074` | 2 bytes | `ROOM_CUMULATIVE_SPAWN_COUNT` | Room | Cumulative entity spawn counter for active room visit ($8F:B0A8). |
+| `$7E:1076` | 2 bytes | `ENTITY_BATCH_PROCESS_LIMIT` | Room | Dynamic entity execution batch slice limit (1..6 entities/frame) ($8F:DC6A). |
+| `$7E:1078` | 2 bytes | `ENTITY_SCHEDULER_FRAME_LATCH` | Frame | Entity scheduler frame counter snapshot latch ($8F:DC53). |
+| `$7E:107A` | 2 bytes | `ENTITY_SCHEDULER_LAG_COUNTER` | Frame | Entity scheduler consecutive frame drop counter ($8F:DC73). |
+| `$7E:107C` | 2 bytes | `ENTITY_SCHEDULER_STABILITY_TIMER` | Frame | Entity scheduler uninterrupted framerate stability timer ($8F:DC5E). |
 | `$7E:107E` | 80 bytes | `TERRAIN_FRAME_INDICES` | Room | Current animation frame indices for 80 terrain mutation channel slots. |
 | `$7E:10CE` | 80 bytes | `TERRAIN_THRESHOLDS` | Room | Frame threshold limits for 80 terrain mutation channel slots. |
 | `$7E:111E` | 80 bytes | `TERRAIN_COUNTDOWNS` | Room | Cycle countdown delay timers for 80 terrain mutation channel slots. |
