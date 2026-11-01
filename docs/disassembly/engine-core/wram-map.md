@@ -35,20 +35,28 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0016` | 2 bytes | `DP_SPRITE_OAM_SLICE_X` | Frame | Final clamped on-screen X position written to Low OAM (`$7E:ABDE,x`); delta X scratchpad in entity facing routine (`func_CF9DBD`). |
 | `$7E:0017` | 1 byte | `DP_SPRITE_OAM_SLICE_X_HIGH` | Frame | High bit (9th bit) of sprite slice X coordinate, latched into High OAM bitmask. |
 | `$7E:0018` | 2 bytes | `DP_SPRITE_OAM_SLICE_Y` | Frame | Final clamped on-screen Y position written to Low OAM (`$7E:ABDF,x`). |
+| `$7E:0022` | 3 bytes | `DP_MEMCPY_DEST_FAR_PTR` | Frame | Universal 24-bit destination memory far pointer ($22..$24) used by block copy ($80:B149) and DMA staging. |
 | `$7E:0026` | 3 bytes | `DP_SPRITE_DESCRIPTOR_PTR` | Frame | 24-bit pointer (`$26..$28`) to active sprite slice descriptor table; source memory far pointer in VRAM/CGRAM DMA queues. |
 | `$7E:002A` | 2 bytes | `DP_SCRATCH_2A` | Frame | Direct page general calculation scratch word; used in math routines and coordinate shifts. |
 | `$7E:002E` | 2 bytes | `DP_DMA_DEST_ADDR` | Frame | Destination hardware word address for queued VRAM (`$2116`) or CGRAM (`$2121`) DMA transfers. |
 | `$7E:0034` | 2 bytes | `DP_DECOMP_PAYLOAD_SIZE` | Temp | Uncompressed payload size in bytes passed to decompression dispatcher (`$8C:988D`). |
 | `$7E:0036` | 3 bytes | `DP_DECOMP_SRC_FAR_PTR` | Temp | 24-bit pointer (`$36..$38`) to compressed source data stream. |
 | `$7E:003A` | 3 bytes | `DP_DECOMP_DST_FAR_PTR` | Temp | 24-bit pointer (`$3A..$3C`) to uncompressed destination memory buffer. |
+| `$7E:0046` | 2 bytes | `DP_ACTOR_WORLD_X` | Frame | Direct Page horizontal world position (pixels) of currently processing actor ($8F:AC84). |
+| `$7E:0048` | 2 bytes | `DP_ACTOR_WORLD_Y` | Frame | Direct Page vertical world position (pixels) of currently processing actor ($8F:AC84). |
+| `$7E:004C` | 2 bytes | `DP_CURRENT_ACTOR_PTR` | Frame | Direct Page pointer to actively executing character/monster entity record ($8F:9877, $8F:AC84). |
+| `$7E:004E` | 2 bytes | `DP_CHILD_OR_TARGET_ACTOR_PTR` | Frame | Direct Page pointer to spawned child, projectile, or target actor record ($8F:9877). |
 | `$7E:0059` | 2 bytes | `CAMERA_FINAL_X` | Frame | Final shaken camera horizontal scroll coordinate in pixels (written to PPU BG1HOFS). |
 | `$7E:005B` | 2 bytes | `CAMERA_FINAL_Y` | Frame | Final shaken camera vertical scroll coordinate in pixels (written to PPU BG1VOFS). |
+| `$7E:005D` | 2 bytes | `DP_COLLISION_BOX_EXTENTS` | Frame | Collision bounding box width and height extent offsets returned by $90:828E. |
 | `$7E:0070` | 2 bytes | `DP_SCRATCH_70` | Frame | Direct page scratch pointer; used by decompression and script string decoders. |
 | `$7E:0072` | 1 byte | `HDMA_ENABLE_MASK` | Frame | Restored into $420C by NMI handler at scanline 225 to enable Mode 7 perspective or HDMA color gradients. |
 | `$7E:007E` | 2 bytes | `SCRIPT_CURRENT_THREAD_PTR` | Frame | Pointer to currently executing ScriptSlot in active script VM thread queue ($7E:28FC..$7E:2F28). |
 | `$7E:0080` | 2 bytes | `SCRIPT_CALL_STACK_PTR` | Frame | Call stack pointer for nested script subroutines (gosub). |
 | `$7E:0082` | 3 bytes | `SCRIPT_PC_FAR_PTR` | Frame | Active 24-bit instruction pointer ($82..$84) consumed by script_vm_opcode_dispatch ($8C:D09C). |
 | `$7E:0086` | 1 byte | `SCRIPT_VM_FREEZE_GATE` | Frame | Global script thread execution freeze flag (non-zero pauses script VM processing). |
+| `$7E:008E` | 2 bytes | `SCRIPT_WINDOW_TARGET_PTR` | Frame | Active dialogue text window stream target buffer pointer consumed by opcode 0x51 ($8C:DA0A). |
+| `$7E:0095` | 2 bytes | `DP_MENU_DESCRIPTOR_PTR` | Room | Active inventory / ring menu descriptor table base pointer used with indirect indexing ($8E:A3EB). |
 | `$7E:009F` | 1 | `AUDIO_APU_SYNC_COUNTER` | Frame | Audio Engine: Handshake sequence synchronization counter byte verified against APU port $2142 ($8C:81E4) |
 | `$7E:00BF` | 2 bytes | `CAMERA_BASE_X` | Frame | Base room viewport top-left world X coordinate before screen shake displacement. |
 | `$7E:00C1` | 2 bytes | `CAMERA_BASE_Y` | Frame | Base room viewport top-left world Y coordinate before screen shake displacement. |
@@ -77,6 +85,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0106` | 2 bytes | `PPU_SHADOW_INIDISP` | Frame | PPU Screen Display Register shadow; low byte copied to hardware register $2100 (INIDISP: bits 0-3 brightness 0..15, bit 7 forced screen blank). |
 | `$7E:0108` | 2 bytes | `PPU_SHADOW_HTIMEL` | Frame | Hardware H-timer IRQ horizontal dot position shadow; copied to $4207 in VBlank. |
 | `$7E:010A` | 2 bytes | `PPU_SHADOW_VTIMEL` | Frame | Hardware V-timer IRQ scanline position shadow; copied to $4209 in VBlank. |
+| `$7E:010C` | 1 byte | `PPU_SHADOW_BG34NBA` | Frame | Hardware shadow register for PPU $210C (BG3 & BG4 tile base address in VRAM; $80:B3B0, $8E:E08B). |
 | `$7E:010E` | 2 bytes | `PPU_SHADOW_BG1HOFS` | Frame | BG1 horizontal scroll offset shadow; low byte written to $210D, high byte written to $210D. |
 | `$7E:0110` | 2 bytes | `PPU_SHADOW_BG1VOFS` | Frame | BG1 vertical scroll offset shadow; low byte written to $210E, high byte written to $210E. |
 | `$7E:0112` | 2 bytes | `PPU_SHADOW_BG2HOFS` | Frame | BG2 horizontal scroll offset shadow; low byte written to $210F, high byte written to $210F. |
@@ -85,12 +94,17 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0118` | 2 bytes | `PPU_SHADOW_BG3VOFS` | Frame | BG3 vertical scroll offset shadow; written to $2112 (twice). |
 | `$7E:011A` | 2 bytes | `PPU_SHADOW_BG4HOFS` | Frame | BG4 horizontal scroll offset shadow; written to $2113 (twice). |
 | `$7E:011C` | 2 bytes | `PPU_SHADOW_BG4VOFS` | Frame | BG4 vertical scroll offset shadow; written to $2114 (twice). |
+| `$7E:011E` | 1 byte | `SCREEN_SHAKE_Y_DISPLACEMENT` | Frame | Vertical screen shake oscillation displacement offset ($8C:C6CB, $8F:C61E). |
+| `$7E:0120` | 1 byte | `SCREEN_SHAKE_PREV_Y_DISPLACEMENT` | Frame | Latch of previous frame vertical screen shake displacement ($8C:C6CB). |
 | `$7E:0122` | 1 byte | `PPU_SHADOW_W12SEL` | Frame | Window 1 and 2 mask settings shadow for BG1 and BG2; copied to hardware register $2123. |
 | `$7E:0123` | 1 byte | `PPU_SHADOW_W34SEL` | Frame | Window 1 and 2 mask settings shadow for BG3 and BG4; copied to hardware register $2124. |
 | `$7E:0124` | 1 byte | `PPU_SHADOW_WOBJSEL` | Frame | Window 1 and 2 mask settings shadow for OBJ and Color math; copied to hardware register $2125. |
 | `$7E:0125` | 3 bytes | `VBLANK_CALLBACK_PTR` | Frame | 24-bit indirect execution vector ($7E:0125..$7E:0127) called during NMI via jml [$0125]. |
 | `$7E:0128` | 3 bytes | `VBLANK_QUEUED_CALLBACK_PTR` | Frame | Next 24-bit callback vector queued to replace $7E:0125 at end of current frame. |
+| `$7E:0128` | 3 bytes | `NMI_USER_HOOK_FAR_PTR` | Boot | 24-bit far indirect vector hook jumped to during VBlank NMI interrupt dispatch ($80:857F). |
+| `$7E:012B` | 3 bytes | `IRQ_USER_HOOK_FAR_PTR` | Boot | 24-bit far indirect vector hook executed upon firing of H/V-Timer scanline IRQ ($80:8507, $80:8552). |
 | `$7E:0133` | 2 bytes | `RNG_SEED_0` | Frame | Cross-word carry pseudo-random number generator 16-bit seed word 0 (updated by func_C0859B). |
+| `$7E:0134` | 1 byte | `SECONDARY_RNG_JITTER_SEED` | Frame | Secondary pseudo-random byte seed for particle jitter calculations ($90:98A5). |
 | `$7E:0135` | 2 bytes | `RNG_SEED_1` | Frame | Cross-word carry pseudo-random number generator 16-bit seed word 1. |
 | `$7E:0137` | 2 bytes | `RNG_SEED_2` | Frame | Cross-word carry pseudo-random number generator 16-bit seed word 2. |
 | `$7E:0139` | 2 bytes | `RNG_SEED_3` | Frame | Cross-word carry pseudo-random number generator 16-bit seed word 3 (combined $0133..$013A = 64-bit RNG state). |
