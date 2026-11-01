@@ -538,29 +538,17 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:135D` | `Byte×7` | `cgram_queue_slot_29` | `Frame` | Partial CGRAM DMA slot 29 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
 | `$7E:1364` | `Byte×7` | `cgram_queue_slot_30` | `Frame` | Partial CGRAM DMA slot 30 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
 | `$7E:136B` | `Byte×7` | `cgram_queue_slot_31` | `Frame` | Partial CGRAM DMA slot 31 descriptor (7 bytes: src offset, bank, CGRAM dest, count). |
-| `$7E:1378` | `Word` | `anim_tile_chan_0_base` | `Room` | Animated background tile channel 0 base pattern VRAM destination word ($90:D5CF). |
-| `$7E:137A` | `Word` | `anim_tile_chan_1_base` | `Room` | Animated background tile channel 1 base pattern VRAM destination word. |
-| `$7E:137C` | `Word` | `anim_tile_chan_2_base` | `Room` | Animated background tile channel 2 base pattern VRAM destination word. |
-| `$7E:1398` | `Byte` | `anim_tile_chan_0_frame` | `Room` | Animated background tile channel 0 current sequence frame index ($90:D59E). |
-| `$7E:1399` | `Byte` | `anim_tile_chan_1_frame` | `Room` | Animated background tile channel 1 current sequence frame index. |
-| `$7E:139A` | `Byte` | `anim_tile_chan_2_frame` | `Room` | Animated background tile channel 2 current sequence frame index. |
-| `$7E:139B` | `Byte` | `anim_tile_chan_3_frame` | `Room` | Animated background tile channel 3 current sequence frame index. |
-| `$7E:13B8` | `Byte` | `anim_tile_chan_0_total` | `Room` | Animated background tile channel 0 total frames in animation cycle ($90:D5AC). |
-| `$7E:13B9` | `Byte` | `anim_tile_chan_1_total` | `Room` | Animated background tile channel 1 total frames in animation cycle. |
-| `$7E:13BA` | `Byte` | `anim_tile_chan_2_total` | `Room` | Animated background tile channel 2 total frames in animation cycle. |
-| `$7E:13BB` | `Byte` | `anim_tile_chan_3_total` | `Room` | Animated background tile channel 3 total frames in animation cycle. |
-| `$7E:13D2` | 30 bytes | `TILE_ANIM_BUFFERS` | Room | Intermediate staging buffers for animated tile family graphics. |
-| `$7E:13D8` | `Byte` | `anim_tile_chan_0_speed` | `Room` | Animated background tile channel 0 frame delay interval ticks ($90:D596). |
-| `$7E:13D9` | `Byte` | `anim_tile_chan_1_speed` | `Room` | Animated background tile channel 1 frame delay interval ticks. |
-| `$7E:13DA` | `Byte` | `anim_tile_chan_2_speed` | `Room` | Animated background tile channel 2 frame delay interval ticks. |
-| `$7E:13DB` | `Byte` | `anim_tile_chan_3_speed` | `Room` | Animated background tile channel 3 frame delay interval ticks. |
-| `$7E:13F8` | `Byte` | `anim_tile_chan_0_timer` | `Room` | Animated background tile channel 0 countdown timer ticks until next frame transition ($90:D58C). |
-| `$7E:13F9` | `Byte` | `anim_tile_chan_1_timer` | `Room` | Animated background tile channel 1 countdown timer ticks until next frame transition. |
-| `$7E:13FA` | `Byte` | `anim_tile_chan_2_timer` | `Room` | Animated background tile channel 2 countdown timer ticks until next frame transition. |
-| `$7E:13FB` | `Byte` | `anim_tile_chan_3_timer` | `Room` | Animated background tile channel 3 countdown timer ticks until next frame transition. |
+| `$7E:1372` | 32 bytes | `PALETTE_ANIM_COLOR_INDEX` | Room | Destination CGRAM color indices for 32 dynamic palette color animation channels ($90:D5CF). |
+| `$7E:1392` | 32 bytes | `PALETTE_ANIM_INTERP_A` | Room | Primary color interpolation step counters for 32 dynamic palette channels ($90:D59E). |
+| `$7E:13B2` | 32 bytes | `PALETTE_ANIM_INTERP_B` | Room | Secondary color interpolation step limits for 32 dynamic palette channels ($90:D5A1). |
+| `$7E:13D2` | 32 bytes | `PALETTE_ANIM_RATE` | Room | Speed rate and step direction flags (bit 7) for 32 dynamic palette channels ($90:D596). |
+| `$7E:13F2` | 32 bytes | `PALETTE_ANIM_FRAME_TIMER` | Frame | Per-channel frame countdown timers for 32 dynamic palette channels ($90:D58E). |
 | `$7E:1432` | 2 bytes | `ANIM_FRAME_HOLD_TIMER` | Frame | Remaining frame duration before advancing to next animated tile phase. |
 | `$7E:1434` | 2 bytes | `PENDING_TALK_TARGET_PTR` | Room | Pointer to NPC actor entity currently being spoken to or interacted with ($FFFF = none). |
+| `$7E:1436` | 2 bytes | `DISPATCH_MUTEX_LOCK` | Room | Event and script callback queue re-entrancy mutex lock ($8C:CFFD). |
+| `$7E:1438` | 2 bytes | `OAM_HIGH_WATER_MARK` | Frame | Previous frame low OAM buffer byte cursor used for stale sprite hiding with $E0E0 ($80:8FF6). |
 | `$7E:143A` | 2 bytes | `CAMERA_SECONDARY_ACTOR_PTR` | Room | Pointer to secondary actor entity considered for camera framing (Dog at $7E:4F37). |
+| `$7E:143C` | 2 bytes | `PLAYER_DAMAGE_REACTION_ACTOR` | Frame | Pointer to player actor entity receiving damage or status reactions ($90:8554, $80:8D49). |
 | `$7E:143E` | 1 | `DOG_SPRITE_ANIM_RECORD` | Room | Companion Mechanics: Low byte of current Dog sprite animation record offset ($8F:9471). |
 | `$7E:143F` | 1 | `DOG_SPRITE_ANIM_BANK` | Room | Companion Mechanics: High byte / ROM bank of current Dog sprite animation record. |
 | `$7E:1443` | 2 | `DOG_FORM_ANIM_9` | Room | Companion Mechanics: the form's animation record slot 9 ($8F:9471 copies entry +$1C-+$26 to $1443-$144D; sprites/dog-forms.ts). Not the HUD portrait: that sprite goes to $4FA5 (rom/8f9471.md, v0.377.0). |

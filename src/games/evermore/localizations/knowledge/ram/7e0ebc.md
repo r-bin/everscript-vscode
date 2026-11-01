@@ -15,3 +15,4 @@ see: [docs/disassembly/engine-core/wram-map.md, src/games/evermore/localizations
 - At `$8F:DCA3`, the scheduler loads `LDX $0EBC` and processes up to 6 entities per frame (`LDA #$0006` or dynamic slice limit `$7E:1076`).
 - For each processed entity, it advances the cursor with `ADC #$008E`. If the cursor reaches the Boy record (`CMP #$4E89`), it wraps around to the beginning of the entity pool (`LDA #$3DE5`).
 - Cycles through the entire 30-slot entity pool across 5 consecutive frames.
+
