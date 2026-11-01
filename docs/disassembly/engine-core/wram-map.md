@@ -365,6 +365,27 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0BF9` | 2 bytes | `RING_MENU_CURSOR_SECTOR` | Room | Latched cursor sector index during ring menu item selection ($FFFF = unlatched). |
 | `$7E:0BFB` | 2 | `MODE7_CAMERA_TARGET_OFFSET_X` | Frame | Mode 7 Engine: Camera target anchor X coordinate offset for flight viewport ($8E:B33D). |
 | `$7E:0BFD` | 2 | `MODE7_CAMERA_TARGET_OFFSET_Y` | Frame | Mode 7 Engine: Camera target anchor Y coordinate offset for flight viewport ($8E:B33D). |
+| `$7E:0C01` | 2 | `RING_MENU_KEY_ITEMS_COUNT` | Room | Number of eligible key / story items in Key Items Ring Menu |
+| `$7E:0C03` | 32 bytes | `RING_MENU_KEY_ITEMS_BUF` | Room | Key Items Ring Menu: 16-word item ID slot buffer ($7E:0C03..$7E:0C22). |
+| `$7E:0C23` | 2 | `RING_MENU_WEAPONS_COUNT` | Room | Number of unlocked weapons in Weapons Ring Menu |
+| `$7E:0C25` | 2 | `RING_MENU_WEAPONS_SELECTION` | Room | Currently highlighted weapon cursor selection in Weapons Ring Menu |
+| `$7E:0C27` | 32 bytes | `RING_MENU_WEAPONS_BUF` | Room | Weapons Ring Menu: 16-word weapon ID slot buffer ($7E:0C27..$7E:0C46). |
+| `$7E:0C47` | 2 | `RING_MENU_ITEMS_COUNT` | Room | Number of available consumable items in Items Ring Menu |
+| `$7E:0C49` | 2 | `RING_MENU_ITEMS_SELECTION` | Room | Currently highlighted consumable item cursor selection in Items Ring Menu |
+| `$7E:0C4B` | 32 bytes | `RING_MENU_ITEMS_BUF` | Room | Consumable Items Ring Menu: 16-word item ID slot buffer ($7E:0C4B..$7E:0C6A). |
+| `$7E:0C6B` | 2 | `RING_MENU_SPELLS_COUNT` | Room | Number of eligible alchemy formulas in Formulas / Spells Ring Menu |
+| `$7E:0C6D` | 2 | `RING_MENU_SPELLS_SELECTION` | Room | Currently highlighted formula cursor selection in Formulas / Spells Ring Menu |
+| `$7E:0C6F` | 32 bytes | `RING_MENU_SPELLS_BUF` | Room | Formulas / Spells Ring Menu: 16-word formula ID slot buffer ($7E:0C6F..$7E:0C8E). |
+| `$7E:0C8F` | 2 | `RING_MENU_ALCH_FORMULA_COUNT` | Room | Total learned alchemy formulas populated into secondary ring menu |
+| `$7E:0C91` | 2 | `RING_MENU_ALCH_SELECTION` | Room | Currently highlighted formula cursor selection in secondary formula ring menu |
+| `$7E:0C93` | 32 bytes | `RING_MENU_ALCH_FORMULAS_BUF` | Room | Secondary Alchemy Formulas Ring Menu: 16-word formula ID slot buffer ($7E:0C93..$7E:0CB2). |
+| `$7E:0CB5` | 2 | `RING_MENU_FORMULA_ACTION_COUNT` | Room | Total available formula action commands in Ring Menu formula submenu |
+| `$7E:0CB7` | 2 | `RING_MENU_FORMULA_ACTION_SELECTION` | Room | Currently highlighted formula action cursor selection in formula submenu |
+| `$7E:0CB9` | 8 bytes | `RING_MENU_FORMULA_ACTIONS_BUF` | Room | Alchemy Formula Action Commands Submenu: 4-word action ID buffer ($7E:0CB9..$7E:0CC0). |
+| `$7E:0CD9` | 2 | `SHOP_MENU_OPTION_COUNT` | Room | Total active shopkeeper dialogue interaction options in merchant choice menu |
+| `$7E:0CDB` | 2 | `SHOP_MENU_SELECTION` | Room | Currently highlighted merchant interaction option cursor index |
+| `$7E:0CDD` | 16 bytes | `SHOP_MENU_OPTIONS_BUF` | Room | Merchant Dialogue Choices: 8-word interaction option ID buffer ($7E:0CDD..$7E:0CEC). |
+| `$7E:0D0D` | 2 | `SAVE_PROMPT_YES_NO_SELECTION` | Room | Selected option index in Save Menu Yes/No overwrite confirmation prompt |
 | `$7E:0DFB` | 24 bytes | `DIALOGUE_QUEUE` | Room | FIFO message queue buffering pending dialogue box display requests. |
 | `$7E:0E47` | 2 bytes | `APU_BLOCKS_LEFT` | Frame | Remaining audio data transfer blocks during SPC700 sound loading. |
 | `$7E:0E48` | 1 | `AUDIO_TRANSFER_HIGH_FLAG` | Frame | Audio Engine: High byte transfer flag for SPC700 block stream ($00 / $FF) |
@@ -965,64 +986,154 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:3D86` | `Byte×89` | `boss_segment_slot_5` | `Room` | Boss child segment slot 5 descriptor (89 bytes: free link, joint offsets, parent ptr). |
 | `$7E:3DDF` | 2 bytes | `ACTIVE_ENTITY_HEAD` | Room | Head pointer of linked list chaining all active entities in current room. |
 | `$7E:3DE5` | 142 | `ENTITY_SLOT_00_BASE` | Room | Entity Pool: Actor entity slot 0 base (142 bytes). |
+| `$7E:3DFF` | 2 bytes | `ENTITY_SLOT_00_POS_X` | Room | Entity slot 0 current horizontal world position in pixels (+0x1A in struct at 7E:3DE5). |
+| `$7E:3E01` | 2 bytes | `ENTITY_SLOT_00_POS_Y` | Room | Entity slot 0 current vertical world position in pixels (+0x1C in struct at 7E:3DE5). |
+| `$7E:3E07` | 2 bytes | `ENTITY_SLOT_00_FACING` | Room | Entity slot 0 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:3DE5). |
 | `$7E:3E0F` | 2 bytes | `ENTITY_SLOT_00_HP` | Room | Entity Pool: Actor entity slot 0 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:3E73` | 142 | `ENTITY_SLOT_01_BASE` | Room | Entity Pool: Actor entity slot 1 base (142 bytes). |
+| `$7E:3E8D` | 2 bytes | `ENTITY_SLOT_01_POS_X` | Room | Entity slot 1 current horizontal world position in pixels (+0x1A in struct at 7E:3E73). |
+| `$7E:3E8F` | 2 bytes | `ENTITY_SLOT_01_POS_Y` | Room | Entity slot 1 current vertical world position in pixels (+0x1C in struct at 7E:3E73). |
+| `$7E:3E95` | 2 bytes | `ENTITY_SLOT_01_FACING` | Room | Entity slot 1 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:3E73). |
 | `$7E:3E9D` | 2 bytes | `ENTITY_SLOT_01_HP` | Room | Entity Pool: Actor entity slot 1 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:3F01` | 142 | `ENTITY_SLOT_02_BASE` | Room | Entity Pool: Actor entity slot 2 base (142 bytes). |
+| `$7E:3F1B` | 2 bytes | `ENTITY_SLOT_02_POS_X` | Room | Entity slot 2 current horizontal world position in pixels (+0x1A in struct at 7E:3F01). |
+| `$7E:3F1D` | 2 bytes | `ENTITY_SLOT_02_POS_Y` | Room | Entity slot 2 current vertical world position in pixels (+0x1C in struct at 7E:3F01). |
+| `$7E:3F23` | 2 bytes | `ENTITY_SLOT_02_FACING` | Room | Entity slot 2 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:3F01). |
 | `$7E:3F2B` | 2 bytes | `ENTITY_SLOT_02_HP` | Room | Entity Pool: Actor entity slot 2 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:3F8F` | 142 | `ENTITY_SLOT_03_BASE` | Room | Entity Pool: Actor entity slot 3 base (142 bytes). |
+| `$7E:3FA9` | 2 bytes | `ENTITY_SLOT_03_POS_X` | Room | Entity slot 3 current horizontal world position in pixels (+0x1A in struct at 7E:3F8F). |
+| `$7E:3FAB` | 2 bytes | `ENTITY_SLOT_03_POS_Y` | Room | Entity slot 3 current vertical world position in pixels (+0x1C in struct at 7E:3F8F). |
+| `$7E:3FB1` | 2 bytes | `ENTITY_SLOT_03_FACING` | Room | Entity slot 3 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:3F8F). |
 | `$7E:3FB9` | 2 bytes | `ENTITY_SLOT_03_HP` | Room | Entity Pool: Actor entity slot 3 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:401D` | 142 | `ENTITY_SLOT_04_BASE` | Room | Entity Pool: Actor entity slot 4 base (142 bytes). |
+| `$7E:4037` | 2 bytes | `ENTITY_SLOT_04_POS_X` | Room | Entity slot 4 current horizontal world position in pixels (+0x1A in struct at 7E:401D). |
+| `$7E:4039` | 2 bytes | `ENTITY_SLOT_04_POS_Y` | Room | Entity slot 4 current vertical world position in pixels (+0x1C in struct at 7E:401D). |
+| `$7E:403F` | 2 bytes | `ENTITY_SLOT_04_FACING` | Room | Entity slot 4 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:401D). |
 | `$7E:4047` | 2 bytes | `ENTITY_SLOT_04_HP` | Room | Entity Pool: Actor entity slot 4 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:40AB` | 142 | `ENTITY_SLOT_05_BASE` | Room | Entity Pool: Actor entity slot 5 base (142 bytes). |
+| `$7E:40C5` | 2 bytes | `ENTITY_SLOT_05_POS_X` | Room | Entity slot 5 current horizontal world position in pixels (+0x1A in struct at 7E:40AB). |
+| `$7E:40C7` | 2 bytes | `ENTITY_SLOT_05_POS_Y` | Room | Entity slot 5 current vertical world position in pixels (+0x1C in struct at 7E:40AB). |
+| `$7E:40CD` | 2 bytes | `ENTITY_SLOT_05_FACING` | Room | Entity slot 5 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:40AB). |
 | `$7E:40D5` | 2 bytes | `ENTITY_SLOT_05_HP` | Room | Entity Pool: Actor entity slot 5 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4139` | 142 | `ENTITY_SLOT_06_BASE` | Room | Entity Pool: Actor entity slot 6 base (142 bytes). |
+| `$7E:4153` | 2 bytes | `ENTITY_SLOT_06_POS_X` | Room | Entity slot 6 current horizontal world position in pixels (+0x1A in struct at 7E:4139). |
+| `$7E:4155` | 2 bytes | `ENTITY_SLOT_06_POS_Y` | Room | Entity slot 6 current vertical world position in pixels (+0x1C in struct at 7E:4139). |
+| `$7E:415B` | 2 bytes | `ENTITY_SLOT_06_FACING` | Room | Entity slot 6 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4139). |
 | `$7E:4163` | 2 bytes | `ENTITY_SLOT_06_HP` | Room | Entity Pool: Actor entity slot 6 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:41C7` | 142 | `ENTITY_SLOT_07_BASE` | Room | Entity Pool: Actor entity slot 7 base (142 bytes). |
+| `$7E:41E1` | 2 bytes | `ENTITY_SLOT_07_POS_X` | Room | Entity slot 7 current horizontal world position in pixels (+0x1A in struct at 7E:41C7). |
+| `$7E:41E3` | 2 bytes | `ENTITY_SLOT_07_POS_Y` | Room | Entity slot 7 current vertical world position in pixels (+0x1C in struct at 7E:41C7). |
+| `$7E:41E9` | 2 bytes | `ENTITY_SLOT_07_FACING` | Room | Entity slot 7 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:41C7). |
 | `$7E:41F1` | 2 bytes | `ENTITY_SLOT_07_HP` | Room | Entity Pool: Actor entity slot 7 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4255` | 142 | `ENTITY_SLOT_08_BASE` | Room | Entity Pool: Actor entity slot 8 base (142 bytes). |
+| `$7E:426F` | 2 bytes | `ENTITY_SLOT_08_POS_X` | Room | Entity slot 8 current horizontal world position in pixels (+0x1A in struct at 7E:4255). |
+| `$7E:4271` | 2 bytes | `ENTITY_SLOT_08_POS_Y` | Room | Entity slot 8 current vertical world position in pixels (+0x1C in struct at 7E:4255). |
+| `$7E:4277` | 2 bytes | `ENTITY_SLOT_08_FACING` | Room | Entity slot 8 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4255). |
 | `$7E:427F` | 2 bytes | `ENTITY_SLOT_08_HP` | Room | Entity Pool: Actor entity slot 8 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:42E3` | 142 | `ENTITY_SLOT_09_BASE` | Room | Entity Pool: Actor entity slot 9 base (142 bytes). |
+| `$7E:42FD` | 2 bytes | `ENTITY_SLOT_09_POS_X` | Room | Entity slot 9 current horizontal world position in pixels (+0x1A in struct at 7E:42E3). |
+| `$7E:42FF` | 2 bytes | `ENTITY_SLOT_09_POS_Y` | Room | Entity slot 9 current vertical world position in pixels (+0x1C in struct at 7E:42E3). |
+| `$7E:4305` | 2 bytes | `ENTITY_SLOT_09_FACING` | Room | Entity slot 9 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:42E3). |
 | `$7E:430D` | 2 bytes | `ENTITY_SLOT_09_HP` | Room | Entity Pool: Actor entity slot 9 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4371` | 142 | `ENTITY_SLOT_10_BASE` | Room | Entity Pool: Actor entity slot 10 base (142 bytes). |
+| `$7E:438B` | 2 bytes | `ENTITY_SLOT_10_POS_X` | Room | Entity slot 10 current horizontal world position in pixels (+0x1A in struct at 7E:4371). |
+| `$7E:438D` | 2 bytes | `ENTITY_SLOT_10_POS_Y` | Room | Entity slot 10 current vertical world position in pixels (+0x1C in struct at 7E:4371). |
+| `$7E:4393` | 2 bytes | `ENTITY_SLOT_10_FACING` | Room | Entity slot 10 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4371). |
 | `$7E:439B` | 2 bytes | `ENTITY_SLOT_10_HP` | Room | Entity Pool: Actor entity slot 10 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:43FF` | 142 | `ENTITY_SLOT_11_BASE` | Room | Entity Pool: Actor entity slot 11 base (142 bytes). |
+| `$7E:4419` | 2 bytes | `ENTITY_SLOT_11_POS_X` | Room | Entity slot 11 current horizontal world position in pixels (+0x1A in struct at 7E:43FF). |
+| `$7E:441B` | 2 bytes | `ENTITY_SLOT_11_POS_Y` | Room | Entity slot 11 current vertical world position in pixels (+0x1C in struct at 7E:43FF). |
+| `$7E:4421` | 2 bytes | `ENTITY_SLOT_11_FACING` | Room | Entity slot 11 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:43FF). |
 | `$7E:4429` | 2 bytes | `ENTITY_SLOT_11_HP` | Room | Entity Pool: Actor entity slot 11 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:448D` | 142 | `ENTITY_SLOT_12_BASE` | Room | Entity Pool: Actor entity slot 12 base (142 bytes). |
+| `$7E:44A7` | 2 bytes | `ENTITY_SLOT_12_POS_X` | Room | Entity slot 12 current horizontal world position in pixels (+0x1A in struct at 7E:448D). |
+| `$7E:44A9` | 2 bytes | `ENTITY_SLOT_12_POS_Y` | Room | Entity slot 12 current vertical world position in pixels (+0x1C in struct at 7E:448D). |
+| `$7E:44AF` | 2 bytes | `ENTITY_SLOT_12_FACING` | Room | Entity slot 12 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:448D). |
 | `$7E:44B7` | 2 bytes | `ENTITY_SLOT_12_HP` | Room | Entity Pool: Actor entity slot 12 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:451B` | 142 | `ENTITY_SLOT_13_BASE` | Room | Entity Pool: Actor entity slot 13 base (142 bytes). |
+| `$7E:4535` | 2 bytes | `ENTITY_SLOT_13_POS_X` | Room | Entity slot 13 current horizontal world position in pixels (+0x1A in struct at 7E:451B). |
+| `$7E:4537` | 2 bytes | `ENTITY_SLOT_13_POS_Y` | Room | Entity slot 13 current vertical world position in pixels (+0x1C in struct at 7E:451B). |
+| `$7E:453D` | 2 bytes | `ENTITY_SLOT_13_FACING` | Room | Entity slot 13 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:451B). |
 | `$7E:4545` | 2 bytes | `ENTITY_SLOT_13_HP` | Room | Entity Pool: Actor entity slot 13 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:45A9` | 142 | `ENTITY_SLOT_14_BASE` | Room | Entity Pool: Actor entity slot 14 base (142 bytes). |
+| `$7E:45C3` | 2 bytes | `ENTITY_SLOT_14_POS_X` | Room | Entity slot 14 current horizontal world position in pixels (+0x1A in struct at 7E:45A9). |
+| `$7E:45C5` | 2 bytes | `ENTITY_SLOT_14_POS_Y` | Room | Entity slot 14 current vertical world position in pixels (+0x1C in struct at 7E:45A9). |
+| `$7E:45CB` | 2 bytes | `ENTITY_SLOT_14_FACING` | Room | Entity slot 14 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:45A9). |
 | `$7E:45D3` | 2 bytes | `ENTITY_SLOT_14_HP` | Room | Entity Pool: Actor entity slot 14 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4637` | 142 | `ENTITY_SLOT_15_BASE` | Room | Entity Pool: Actor entity slot 15 base (142 bytes). |
+| `$7E:4651` | 2 bytes | `ENTITY_SLOT_15_POS_X` | Room | Entity slot 15 current horizontal world position in pixels (+0x1A in struct at 7E:4637). |
+| `$7E:4653` | 2 bytes | `ENTITY_SLOT_15_POS_Y` | Room | Entity slot 15 current vertical world position in pixels (+0x1C in struct at 7E:4637). |
+| `$7E:4659` | 2 bytes | `ENTITY_SLOT_15_FACING` | Room | Entity slot 15 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4637). |
 | `$7E:4661` | 2 bytes | `ENTITY_SLOT_15_HP` | Room | Entity Pool: Actor entity slot 15 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:46C5` | 142 | `ENTITY_SLOT_16_BASE` | Room | Entity Pool: Actor entity slot 16 base (142 bytes). |
+| `$7E:46DF` | 2 bytes | `ENTITY_SLOT_16_POS_X` | Room | Entity slot 16 current horizontal world position in pixels (+0x1A in struct at 7E:46C5). |
+| `$7E:46E1` | 2 bytes | `ENTITY_SLOT_16_POS_Y` | Room | Entity slot 16 current vertical world position in pixels (+0x1C in struct at 7E:46C5). |
+| `$7E:46E7` | 2 bytes | `ENTITY_SLOT_16_FACING` | Room | Entity slot 16 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:46C5). |
 | `$7E:46EF` | 2 bytes | `ENTITY_SLOT_16_HP` | Room | Entity Pool: Actor entity slot 16 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4753` | 142 | `ENTITY_SLOT_17_BASE` | Room | Entity Pool: Actor entity slot 17 base (142 bytes). |
+| `$7E:476D` | 2 bytes | `ENTITY_SLOT_17_POS_X` | Room | Entity slot 17 current horizontal world position in pixels (+0x1A in struct at 7E:4753). |
+| `$7E:476F` | 2 bytes | `ENTITY_SLOT_17_POS_Y` | Room | Entity slot 17 current vertical world position in pixels (+0x1C in struct at 7E:4753). |
+| `$7E:4775` | 2 bytes | `ENTITY_SLOT_17_FACING` | Room | Entity slot 17 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4753). |
 | `$7E:477D` | 2 bytes | `ENTITY_SLOT_17_HP` | Room | Entity Pool: Actor entity slot 17 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:47E1` | 142 | `ENTITY_SLOT_18_BASE` | Room | Entity Pool: Actor entity slot 18 base (142 bytes). |
+| `$7E:47FB` | 2 bytes | `ENTITY_SLOT_18_POS_X` | Room | Entity slot 18 current horizontal world position in pixels (+0x1A in struct at 7E:47E1). |
+| `$7E:47FD` | 2 bytes | `ENTITY_SLOT_18_POS_Y` | Room | Entity slot 18 current vertical world position in pixels (+0x1C in struct at 7E:47E1). |
+| `$7E:4803` | 2 bytes | `ENTITY_SLOT_18_FACING` | Room | Entity slot 18 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:47E1). |
 | `$7E:480B` | 2 bytes | `ENTITY_SLOT_18_HP` | Room | Entity Pool: Actor entity slot 18 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:486F` | 142 | `ENTITY_SLOT_19_BASE` | Room | Entity Pool: Actor entity slot 19 base (142 bytes). |
+| `$7E:4889` | 2 bytes | `ENTITY_SLOT_19_POS_X` | Room | Entity slot 19 current horizontal world position in pixels (+0x1A in struct at 7E:486F). |
+| `$7E:488B` | 2 bytes | `ENTITY_SLOT_19_POS_Y` | Room | Entity slot 19 current vertical world position in pixels (+0x1C in struct at 7E:486F). |
+| `$7E:4891` | 2 bytes | `ENTITY_SLOT_19_FACING` | Room | Entity slot 19 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:486F). |
 | `$7E:4899` | 2 bytes | `ENTITY_SLOT_19_HP` | Room | Entity Pool: Actor entity slot 19 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:48FD` | 142 | `ENTITY_SLOT_20_BASE` | Room | Entity Pool: Actor entity slot 20 base (142 bytes). |
+| `$7E:4917` | 2 bytes | `ENTITY_SLOT_20_POS_X` | Room | Entity slot 20 current horizontal world position in pixels (+0x1A in struct at 7E:48FD). |
+| `$7E:4919` | 2 bytes | `ENTITY_SLOT_20_POS_Y` | Room | Entity slot 20 current vertical world position in pixels (+0x1C in struct at 7E:48FD). |
+| `$7E:491F` | 2 bytes | `ENTITY_SLOT_20_FACING` | Room | Entity slot 20 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:48FD). |
 | `$7E:4927` | 2 bytes | `ENTITY_SLOT_20_HP` | Room | Entity Pool: Actor entity slot 20 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:498B` | 142 | `ENTITY_SLOT_21_BASE` | Room | Entity Pool: Actor entity slot 21 base (142 bytes). |
+| `$7E:49A5` | 2 bytes | `ENTITY_SLOT_21_POS_X` | Room | Entity slot 21 current horizontal world position in pixels (+0x1A in struct at 7E:498B). |
+| `$7E:49A7` | 2 bytes | `ENTITY_SLOT_21_POS_Y` | Room | Entity slot 21 current vertical world position in pixels (+0x1C in struct at 7E:498B). |
+| `$7E:49AD` | 2 bytes | `ENTITY_SLOT_21_FACING` | Room | Entity slot 21 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:498B). |
 | `$7E:49B5` | 2 bytes | `ENTITY_SLOT_21_HP` | Room | Entity Pool: Actor entity slot 21 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4A19` | 142 | `ENTITY_SLOT_22_BASE` | Room | Entity Pool: Actor entity slot 22 base (142 bytes). |
+| `$7E:4A33` | 2 bytes | `ENTITY_SLOT_22_POS_X` | Room | Entity slot 22 current horizontal world position in pixels (+0x1A in struct at 7E:4A19). |
+| `$7E:4A35` | 2 bytes | `ENTITY_SLOT_22_POS_Y` | Room | Entity slot 22 current vertical world position in pixels (+0x1C in struct at 7E:4A19). |
+| `$7E:4A3B` | 2 bytes | `ENTITY_SLOT_22_FACING` | Room | Entity slot 22 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4A19). |
 | `$7E:4A43` | 2 bytes | `ENTITY_SLOT_22_HP` | Room | Entity Pool: Actor entity slot 22 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4AA7` | 142 | `ENTITY_SLOT_23_BASE` | Room | Entity Pool: Actor entity slot 23 base (142 bytes). |
+| `$7E:4AC1` | 2 bytes | `ENTITY_SLOT_23_POS_X` | Room | Entity slot 23 current horizontal world position in pixels (+0x1A in struct at 7E:4AA7). |
+| `$7E:4AC3` | 2 bytes | `ENTITY_SLOT_23_POS_Y` | Room | Entity slot 23 current vertical world position in pixels (+0x1C in struct at 7E:4AA7). |
+| `$7E:4AC9` | 2 bytes | `ENTITY_SLOT_23_FACING` | Room | Entity slot 23 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4AA7). |
 | `$7E:4AD1` | 2 bytes | `ENTITY_SLOT_23_HP` | Room | Entity Pool: Actor entity slot 23 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4B35` | 142 | `ENTITY_SLOT_24_BASE` | Room | Entity Pool: Actor entity slot 24 base (142 bytes). |
+| `$7E:4B4F` | 2 bytes | `ENTITY_SLOT_24_POS_X` | Room | Entity slot 24 current horizontal world position in pixels (+0x1A in struct at 7E:4B35). |
+| `$7E:4B51` | 2 bytes | `ENTITY_SLOT_24_POS_Y` | Room | Entity slot 24 current vertical world position in pixels (+0x1C in struct at 7E:4B35). |
+| `$7E:4B57` | 2 bytes | `ENTITY_SLOT_24_FACING` | Room | Entity slot 24 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4B35). |
 | `$7E:4B5F` | 2 bytes | `ENTITY_SLOT_24_HP` | Room | Entity Pool: Actor entity slot 24 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4BC3` | 142 | `ENTITY_SLOT_25_BASE` | Room | Entity Pool: Actor entity slot 25 base (142 bytes). |
+| `$7E:4BDD` | 2 bytes | `ENTITY_SLOT_25_POS_X` | Room | Entity slot 25 current horizontal world position in pixels (+0x1A in struct at 7E:4BC3). |
+| `$7E:4BDF` | 2 bytes | `ENTITY_SLOT_25_POS_Y` | Room | Entity slot 25 current vertical world position in pixels (+0x1C in struct at 7E:4BC3). |
+| `$7E:4BE5` | 2 bytes | `ENTITY_SLOT_25_FACING` | Room | Entity slot 25 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4BC3). |
 | `$7E:4BED` | 2 bytes | `ENTITY_SLOT_25_HP` | Room | Entity Pool: Actor entity slot 25 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4C51` | 142 | `ENTITY_SLOT_26_BASE` | Room | Entity Pool: Actor entity slot 26 base (142 bytes). |
+| `$7E:4C6B` | 2 bytes | `ENTITY_SLOT_26_POS_X` | Room | Entity slot 26 current horizontal world position in pixels (+0x1A in struct at 7E:4C51). |
+| `$7E:4C6D` | 2 bytes | `ENTITY_SLOT_26_POS_Y` | Room | Entity slot 26 current vertical world position in pixels (+0x1C in struct at 7E:4C51). |
+| `$7E:4C73` | 2 bytes | `ENTITY_SLOT_26_FACING` | Room | Entity slot 26 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4C51). |
 | `$7E:4C7B` | 2 bytes | `ENTITY_SLOT_26_HP` | Room | Entity Pool: Actor entity slot 26 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4CDF` | 142 | `ENTITY_SLOT_27_BASE` | Room | Entity Pool: Actor entity slot 27 base (142 bytes). |
+| `$7E:4CF9` | 2 bytes | `ENTITY_SLOT_27_POS_X` | Room | Entity slot 27 current horizontal world position in pixels (+0x1A in struct at 7E:4CDF). |
+| `$7E:4CFB` | 2 bytes | `ENTITY_SLOT_27_POS_Y` | Room | Entity slot 27 current vertical world position in pixels (+0x1C in struct at 7E:4CDF). |
+| `$7E:4D01` | 2 bytes | `ENTITY_SLOT_27_FACING` | Room | Entity slot 27 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4CDF). |
 | `$7E:4D09` | 2 bytes | `ENTITY_SLOT_27_HP` | Room | Entity Pool: Actor entity slot 27 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4D6D` | 142 | `ENTITY_SLOT_28_BASE` | Room | Entity Pool: Actor entity slot 28 base (142 bytes). |
+| `$7E:4D87` | 2 bytes | `ENTITY_SLOT_28_POS_X` | Room | Entity slot 28 current horizontal world position in pixels (+0x1A in struct at 7E:4D6D). |
+| `$7E:4D89` | 2 bytes | `ENTITY_SLOT_28_POS_Y` | Room | Entity slot 28 current vertical world position in pixels (+0x1C in struct at 7E:4D6D). |
+| `$7E:4D8F` | 2 bytes | `ENTITY_SLOT_28_FACING` | Room | Entity slot 28 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4D6D). |
 | `$7E:4D97` | 2 bytes | `ENTITY_SLOT_28_HP` | Room | Entity Pool: Actor entity slot 28 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4DFB` | 142 | `ENTITY_SLOT_29_BASE` | Room | Entity Pool: Actor entity slot 29 base (142 bytes). |
+| `$7E:4E15` | 2 bytes | `ENTITY_SLOT_29_POS_X` | Room | Entity slot 29 current horizontal world position in pixels (+0x1A in struct at 7E:4DFB). |
+| `$7E:4E17` | 2 bytes | `ENTITY_SLOT_29_POS_Y` | Room | Entity slot 29 current vertical world position in pixels (+0x1C in struct at 7E:4DFB). |
+| `$7E:4E1D` | 2 bytes | `ENTITY_SLOT_29_FACING` | Room | Entity slot 29 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4DFB). |
 | `$7E:4E25` | 2 bytes | `ENTITY_SLOT_29_HP` | Room | Entity Pool: Actor entity slot 29 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4E89` | 174 bytes | `BOY_ENTITY_RECORD` | Room | Primary actor entity structure for boy player character. |
 | `$7E:4E99` | 2 bytes | `BOY_STATUS_FLAGS` | Room | Primary action and collision status flags for Boy player entity (`+$10` in entity struct). |
