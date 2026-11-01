@@ -1,5 +1,11 @@
 # Weather Precipitation Particle Physics & Boundary Wrapping Pipeline
 
+> [!CAUTION]
+> **HALLUCINATION DETECTED — REQUIRES RECHECK & RECONSTRUCTION**
+> The particle simulation logic described below (with variables `$7E:2439`, `$7E:243B`, `$7E:243D`, and `$7E:2440`) does **not** exist in the SNES ROM assembly at `$80:A305`.
+> In the actual ROM, `$80:A305` is an unrolled parameter copy into `$7E:72DB..$7E:72EB` (the weather preset parameter block).
+> This document and its accompanying reconstructed C (`80A305_weather_particles.c`) were hallucinated in commit `2bdcbb93` and must be rechecked against actual ROM disassembly (`soe://rom/code/80A305?asm=1`).
+
 - **ROM Locations**:
   - `weather_particle_simulation_loop`: `$80:A305` – `$80:A350`
 - **CPU State**: 16-bit A/X (`REP #$30`), Data Bank `$7E` / `$80`
