@@ -580,8 +580,10 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:1518` | 2 bytes | `HDMA_ACTIVE_BANK_PTR` | Frame | Pointer to active double-buffer table feeding HDMA channel tables. |
 | `$7E:151A` | 36 bytes | `HDMA_BUFFER_A` | Frame | HDMA scanline table double-buffer Bank A (color gradients / perspective lines). |
 | `$7E:153E` | 36 bytes | `HDMA_BUFFER_B` | Frame | HDMA scanline table double-buffer Bank B (color gradients / perspective lines). |
+| `$7E:156A` | 2 bytes | `BARRIER_WINDOW_CENTER_X` | Frame | Force field barrier circular spotlight window center screen X coordinate ($91:C773). |
 | `$7E:156C` | 2 bytes | `BARRIER_SCANLINE_OFFSET` | Frame | Barrier and spotlight window scanline offset accumulator ($91:C899). |
 | `$7E:157C` | 2 bytes | `BARRIER_WINDOW_MODE` | Frame | Barrier spotlight window aperture shape mode (0 = circular, 1 = inverted; $91:C7F5). |
+| `$7E:157E` | 2 bytes | `BARRIER_WINDOW_EXPANSION_RATE` | Frame | Force field barrier circular window radial expansion step delta ($91:C788). |
 | `$7E:158A` | 2 bytes | `PPU_WINDOW_LOGIC_FLAG` | Frame | PPU window mask logic toggle flag (written to $0122..$0124; $91:C7F5). |
 | `$7E:158C` | 2 bytes | `HDMA_WINDOW_BUFFER_XOR_MASK` | Frame | Toggle XOR mask ($6869 ^ $6A7D = $0214) for double-buffered window coordinates ($91:C7F5). |
 | `$7E:158E` | 2 bytes | `HDMA_WINDOW_ACTIVE_BUFFER_PTR` | Frame | Active double-buffer base pointer for HDMA window coordinates ($7E:6869 or $7E:6A7D; $91:C899). |
@@ -650,9 +652,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:225C` | 1 | `ALCHEMY_KNOWN_FLAGS_4` | Save | Alchemy Subsystem: Formula learned bitmask byte 4 (bits 0..2: Sting, Stop, Super Heal) |
 | `$7E:225D` | 1 byte | `SHOP_MENU_OPTION_FLAGS` | Save | Shopkeeper interaction menu option enable flags (bit 0 = trade/rare $F4, bit 1 = talk/exit $F6; $8E:8D05). |
 | `$7E:2260` | 1 byte | `BOSS_FLAGS_1` | Save | Boss defeat bitmask flags (bit 0x10 = Thraxx defeated). |
-| `$7E:2261` | 2 bytes | `GAMEPLAY_SETTINGS_FLAGS` | Save | Gameplay settings bitmask (bit 0 = Dog HUD toggle, bit 1 = Boy HUD toggle, bit 2 = stereo sound). |
-| `$7E:2262` | 1 byte | `ACTIVE_BUFFS_MASK` | Room | Bitmask flags for active positive status buffs (Speed, Atlas, Defend). |
-| `$7E:2263` | 1 byte | `ACTIVE_DEBUFFS_MASK` | Room | Bitmask flags for active negative status debuffs (Poison, Confusion, Confounded). |
+| `$7E:2261` | 3 bytes | `CHARM_FLAGS` | Save | Passive charms, relics, and trade goods owned bitfield ($7E:2261..$7E:2263: Chocobo Egg, Silver Sheath, Moxa Stick, Wizard's Coin; $8F:857D). |
 | `$7E:2264` | 1 | `EQUIPMENT_OWNED_FLAGS_3` | Save | Inventory Subsystem: Equipment owned bitmask byte 3 (bits 0,1,2,3,4,5: Item IDs 14..19). |
 | `$7E:2269` | 1 | `PERSISTENT_ROOM_EVENT_FLAGS_2269` | Save | Persistent room-event flags (partially identified) |
 | `$7E:226A` | 1 | `VOLCANO_ROOM_FLAGS_226A` | Save | Volcano room-script flags (individual meanings unknown) |
