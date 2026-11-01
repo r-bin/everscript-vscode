@@ -903,57 +903,96 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:3D86` | `Byte×89` | `boss_segment_slot_5` | `Room` | Boss child segment slot 5 descriptor (89 bytes: free link, joint offsets, parent ptr). |
 | `$7E:3DDF` | 2 bytes | `ACTIVE_ENTITY_HEAD` | Room | Head pointer of linked list chaining all active entities in current room. |
 | `$7E:3DE5` | 4260 bytes | `ENTITY_SLOTS_POOL` | Room | Actor entity pool (30 slots × 142 bytes); stores positions, animations, stats, and state. |
+| `$7E:3DE5` | 142 | `ENTITY_SLOT_00_BASE` | Room | Entity Pool: Actor entity slot 0 base (142 bytes). |
+| `$7E:3E0F` | 2 bytes | `ENTITY_SLOT_00_HP` | Room | Entity Pool: Actor entity slot 0 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:3E73` | 142 | `ENTITY_SLOT_01_BASE` | Room | Entity Pool: Actor entity slot 1 base (142 bytes). |
+| `$7E:3E9D` | 2 bytes | `ENTITY_SLOT_01_HP` | Room | Entity Pool: Actor entity slot 1 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:3F01` | 142 | `ENTITY_SLOT_02_BASE` | Room | Entity Pool: Actor entity slot 2 base (142 bytes). |
+| `$7E:3F2B` | 2 bytes | `ENTITY_SLOT_02_HP` | Room | Entity Pool: Actor entity slot 2 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:3F8F` | 142 | `ENTITY_SLOT_03_BASE` | Room | Entity Pool: Actor entity slot 3 base (142 bytes). |
+| `$7E:3FB9` | 2 bytes | `ENTITY_SLOT_03_HP` | Room | Entity Pool: Actor entity slot 3 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:401D` | 142 | `ENTITY_SLOT_04_BASE` | Room | Entity Pool: Actor entity slot 4 base (142 bytes). |
+| `$7E:4047` | 2 bytes | `ENTITY_SLOT_04_HP` | Room | Entity Pool: Actor entity slot 4 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:40AB` | 142 | `ENTITY_SLOT_05_BASE` | Room | Entity Pool: Actor entity slot 5 base (142 bytes). |
+| `$7E:40D5` | 2 bytes | `ENTITY_SLOT_05_HP` | Room | Entity Pool: Actor entity slot 5 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4139` | 142 | `ENTITY_SLOT_06_BASE` | Room | Entity Pool: Actor entity slot 6 base (142 bytes). |
+| `$7E:4163` | 2 bytes | `ENTITY_SLOT_06_HP` | Room | Entity Pool: Actor entity slot 6 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:41C7` | 142 | `ENTITY_SLOT_07_BASE` | Room | Entity Pool: Actor entity slot 7 base (142 bytes). |
+| `$7E:41F1` | 2 bytes | `ENTITY_SLOT_07_HP` | Room | Entity Pool: Actor entity slot 7 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4255` | 142 | `ENTITY_SLOT_08_BASE` | Room | Entity Pool: Actor entity slot 8 base (142 bytes). |
+| `$7E:427F` | 2 bytes | `ENTITY_SLOT_08_HP` | Room | Entity Pool: Actor entity slot 8 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:42E3` | 142 | `ENTITY_SLOT_09_BASE` | Room | Entity Pool: Actor entity slot 9 base (142 bytes). |
+| `$7E:430D` | 2 bytes | `ENTITY_SLOT_09_HP` | Room | Entity Pool: Actor entity slot 9 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4371` | 142 | `ENTITY_SLOT_10_BASE` | Room | Entity Pool: Actor entity slot 10 base (142 bytes). |
+| `$7E:439B` | 2 bytes | `ENTITY_SLOT_10_HP` | Room | Entity Pool: Actor entity slot 10 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:43FF` | 142 | `ENTITY_SLOT_11_BASE` | Room | Entity Pool: Actor entity slot 11 base (142 bytes). |
+| `$7E:4429` | 2 bytes | `ENTITY_SLOT_11_HP` | Room | Entity Pool: Actor entity slot 11 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:448D` | 142 | `ENTITY_SLOT_12_BASE` | Room | Entity Pool: Actor entity slot 12 base (142 bytes). |
+| `$7E:44B7` | 2 bytes | `ENTITY_SLOT_12_HP` | Room | Entity Pool: Actor entity slot 12 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:451B` | 142 | `ENTITY_SLOT_13_BASE` | Room | Entity Pool: Actor entity slot 13 base (142 bytes). |
+| `$7E:4545` | 2 bytes | `ENTITY_SLOT_13_HP` | Room | Entity Pool: Actor entity slot 13 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:45A9` | 142 | `ENTITY_SLOT_14_BASE` | Room | Entity Pool: Actor entity slot 14 base (142 bytes). |
+| `$7E:45D3` | 2 bytes | `ENTITY_SLOT_14_HP` | Room | Entity Pool: Actor entity slot 14 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4637` | 142 | `ENTITY_SLOT_15_BASE` | Room | Entity Pool: Actor entity slot 15 base (142 bytes). |
+| `$7E:4661` | 2 bytes | `ENTITY_SLOT_15_HP` | Room | Entity Pool: Actor entity slot 15 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:46C5` | 142 | `ENTITY_SLOT_16_BASE` | Room | Entity Pool: Actor entity slot 16 base (142 bytes). |
+| `$7E:46EF` | 2 bytes | `ENTITY_SLOT_16_HP` | Room | Entity Pool: Actor entity slot 16 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4753` | 142 | `ENTITY_SLOT_17_BASE` | Room | Entity Pool: Actor entity slot 17 base (142 bytes). |
+| `$7E:477D` | 2 bytes | `ENTITY_SLOT_17_HP` | Room | Entity Pool: Actor entity slot 17 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:47E1` | 142 | `ENTITY_SLOT_18_BASE` | Room | Entity Pool: Actor entity slot 18 base (142 bytes). |
+| `$7E:480B` | 2 bytes | `ENTITY_SLOT_18_HP` | Room | Entity Pool: Actor entity slot 18 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:486F` | 142 | `ENTITY_SLOT_19_BASE` | Room | Entity Pool: Actor entity slot 19 base (142 bytes). |
+| `$7E:4899` | 2 bytes | `ENTITY_SLOT_19_HP` | Room | Entity Pool: Actor entity slot 19 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:48FD` | 142 | `ENTITY_SLOT_20_BASE` | Room | Entity Pool: Actor entity slot 20 base (142 bytes). |
+| `$7E:4927` | 2 bytes | `ENTITY_SLOT_20_HP` | Room | Entity Pool: Actor entity slot 20 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:498B` | 142 | `ENTITY_SLOT_21_BASE` | Room | Entity Pool: Actor entity slot 21 base (142 bytes). |
+| `$7E:49B5` | 2 bytes | `ENTITY_SLOT_21_HP` | Room | Entity Pool: Actor entity slot 21 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4A19` | 142 | `ENTITY_SLOT_22_BASE` | Room | Entity Pool: Actor entity slot 22 base (142 bytes). |
+| `$7E:4A43` | 2 bytes | `ENTITY_SLOT_22_HP` | Room | Entity Pool: Actor entity slot 22 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4AA7` | 142 | `ENTITY_SLOT_23_BASE` | Room | Entity Pool: Actor entity slot 23 base (142 bytes). |
+| `$7E:4AD1` | 2 bytes | `ENTITY_SLOT_23_HP` | Room | Entity Pool: Actor entity slot 23 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4B35` | 142 | `ENTITY_SLOT_24_BASE` | Room | Entity Pool: Actor entity slot 24 base (142 bytes). |
+| `$7E:4B5F` | 2 bytes | `ENTITY_SLOT_24_HP` | Room | Entity Pool: Actor entity slot 24 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4BC3` | 142 | `ENTITY_SLOT_25_BASE` | Room | Entity Pool: Actor entity slot 25 base (142 bytes). |
+| `$7E:4BED` | 2 bytes | `ENTITY_SLOT_25_HP` | Room | Entity Pool: Actor entity slot 25 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4C51` | 142 | `ENTITY_SLOT_26_BASE` | Room | Entity Pool: Actor entity slot 26 base (142 bytes). |
+| `$7E:4C7B` | 2 bytes | `ENTITY_SLOT_26_HP` | Room | Entity Pool: Actor entity slot 26 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4CDF` | 142 | `ENTITY_SLOT_27_BASE` | Room | Entity Pool: Actor entity slot 27 base (142 bytes). |
+| `$7E:4D09` | 2 bytes | `ENTITY_SLOT_27_HP` | Room | Entity Pool: Actor entity slot 27 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4D6D` | 142 | `ENTITY_SLOT_28_BASE` | Room | Entity Pool: Actor entity slot 28 base (142 bytes). |
+| `$7E:4D97` | 2 bytes | `ENTITY_SLOT_28_HP` | Room | Entity Pool: Actor entity slot 28 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4DFB` | 142 | `ENTITY_SLOT_29_BASE` | Room | Entity Pool: Actor entity slot 29 base (142 bytes). |
+| `$7E:4E25` | 2 bytes | `ENTITY_SLOT_29_HP` | Room | Entity Pool: Actor entity slot 29 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
 | `$7E:4E89` | 174 bytes | `BOY_ENTITY_RECORD` | Room | Primary actor entity structure for boy player character. |
 | `$7E:4E99` | 2 bytes | `BOY_STATUS_FLAGS` | Room | Primary action and collision status flags for Boy player entity (`+$10` in entity struct). |
 | `$7E:4E9B` | 2 bytes | `BOY_ANIM_PHASE_TIMER` | Room | Sub-frame animation phase timer for Boy walk/run/attack cycles (`+$12` in entity struct). |
 | `$7E:4EA1` | 2 bytes | `BOY_ACTION_STATE_FLAGS` | Room | Movement and action state flags for Boy player entity (`+$18` in entity struct). |
 | `$7E:4EA3` | 2 bytes | `BOY_WORLD_X` | Room | Boy player entity current horizontal world coordinate in pixels (`+$1A` in entity struct). |
 | `$7E:4EA5` | 2 bytes | `BOY_WORLD_Y` | Room | Boy player entity current vertical world coordinate in pixels (`+$1C` in entity struct). |
+| `$7E:4EA7` | 2 bytes | `BOY_POS_Z` | Room | Boy entity current elevation / vertical height in pixels (`+$1E` in entity struct). |
 | `$7E:4EAB` | 2 bytes | `BOY_FACING_DIRECTION` | Room | Boy facing direction enum (`0`=N, `2`=NE, `4`=E, `6`=SE, `8`=S, `10`=SW, `12`=W, `14`=NW; `+$22` in entity struct). |
 | `$7E:4EAD` | 2 bytes | `PRIMARY_ATTACKER_PTR` | Room | Pointer to entity record of actor initiating current physical or magic attack. |
-| `$7E:4EB3` | 2 bytes | `BOY_COLLISION_RADIUS` | Room | Horizontal collision bounding box half-width for Boy entity (`+$2A` in entity struct). |
-| `$7E:4EC3` | 2 bytes | `BOY_ELEVATION_Z` | Room | Boy entity current vertical elevation / Z-height off ground plane (`+$3A` in entity struct). |
-| `$7E:4EC5` | 2 bytes | `BOY_MOVEMENT_VELOCITY` | Room | Movement velocity factor applied during Boy walking and running (`+$3C` in entity struct). |
+| `$7E:4EB3` | 2 bytes | `BOY_CURRENT_HP` | Room | Boy current hit points stat (`+$2A` in entity struct; read and reduced on damage in func_8FC237). |
+| `$7E:4EB7` | 2 bytes | `BOY_STAMINA` | Room | Boy player attack charge meter / stamina (`+$2E` in entity struct; full at $0400). |
+| `$7E:4EC3` | 2 bytes | `BOY_TILE_UNDER` | Room | Metatile index under Boy player entity feet (`+$3A` in entity struct). |
+| `$7E:4EC5` | 2 bytes | `BOY_TILE_COLLISION` | Room | Collision property flags word of metatile currently under Boy entity (`+$3C` in entity struct). |
+| `$7E:4EE7` | 2 bytes | `BOY_NEXT_ENTITY` | Room | Pointer to next entity in active entity linked list (`+$5E` in entity struct, $0000 = end of list). |
+| `$7E:4EE9` | 2 bytes | `BOY_CHAR_TYPE_PTR` | Room | Pointer to character master definition struct in bank $8E (`+$60` in entity struct). |
 | `$7E:4F37` | 174 bytes | `DOG_ENTITY_RECORD` | Room | Primary actor entity structure for dog companion character. |
 | `$7E:4F47` | 2 bytes | `DOG_STATUS_FLAGS` | Room | Primary action and collision status flags for Dog companion entity (`+$10` in entity struct). |
 | `$7E:4F49` | 2 bytes | `DOG_ANIM_PHASE_TIMER` | Room | Sub-frame animation phase timer for Dog companion entity (`+$12` in entity struct). |
 | `$7E:4F4F` | 2 bytes | `DOG_ACTION_STATE_FLAGS` | Room | Movement and action state flags for Dog companion entity (`+$18` in entity struct). |
 | `$7E:4F51` | 2 bytes | `DOG_WORLD_X` | Room | Dog companion entity current horizontal world coordinate in pixels (`+$1A` in entity struct). |
 | `$7E:4F53` | 2 bytes | `DOG_WORLD_Y` | Room | Dog companion entity current vertical world coordinate in pixels (`+$1C` in entity struct). |
+| `$7E:4F55` | 2 bytes | `DOG_POS_Z` | Room | Dog companion entity current elevation / vertical height in pixels (`+$1E` in entity struct). |
 | `$7E:4F59` | 2 bytes | `DOG_FACING_DIRECTION` | Room | Dog facing direction enum (`0`=N, `2`=NE, `4`=E, `6`=SE, `8`=S, `10`=SW, `12`=W, `14`=NW; `+$22` in entity struct). |
 | `$7E:4F5B` | 2 bytes | `SECONDARY_ATTACKER_PTR` | Room | Pointer to entity record of target entity receiving combat damage. |
-| `$7E:4F61` | 2 bytes | `DOG_COLLISION_RADIUS` | Room | Horizontal collision bounding box half-width for Dog entity (`+$2A` in entity struct). |
-| `$7E:4F71` | 2 bytes | `DOG_ELEVATION_Z` | Room | Dog entity current vertical elevation / Z-height off ground plane (`+$3A` in entity struct). |
-| `$7E:4F73` | 2 bytes | `DOG_MOVEMENT_VELOCITY` | Room | Movement velocity factor applied during Dog walking, running, and sniffing (`+$3C` in entity struct). |
+| `$7E:4F61` | 2 bytes | `DOG_CURRENT_HP` | Room | Dog companion current hit points stat (`+$2A` in entity struct; read and reduced on damage in func_8FC237). |
+| `$7E:4F65` | 2 bytes | `DOG_STAMINA` | Room | Dog companion attack charge meter / stamina (`+$2E` in entity struct; full at $0400). |
+| `$7E:4F71` | 2 bytes | `DOG_TILE_UNDER` | Room | Metatile index under Dog companion entity feet (`+$3A` in entity struct). |
+| `$7E:4F73` | 2 bytes | `DOG_TILE_COLLISION` | Room | Collision property flags word of metatile currently under Dog entity (`+$3C` in entity struct). |
+| `$7E:4F95` | 2 bytes | `DOG_NEXT_ENTITY` | Room | Pointer to next entity in active entity linked list (`+$5E` in entity struct; initialized to point to Boy at $7E:4E89 in func_8FB229). |
+| `$7E:4F97` | 2 bytes | `DOG_CHAR_TYPE_PTR` | Room | Pointer to character master definition struct in bank $8E (`+$60` in entity struct). |
 | `$7E:4FA5` | 2 | `DOG_FORM_SCRIPT_PTR_LOW` | Room | Companion Mechanics: Low 16-bit pointer to active Dog form animation walker script ($8F:9471). |
 | `$7E:4FA6` | 1 | `DOG_FORM_SCRIPT_PTR_BANK` | Room | Companion Mechanics: Bank byte of active Dog form animation walker script. |
 | `$7E:4FE6` | 50 bytes | `MAP_ANIM_FRAMES` | Room | Current animation frame indices for active map animated tile channels. |
