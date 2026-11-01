@@ -20,7 +20,7 @@ const KNOWLEDGE = join(ROOT, 'src/games/evermore/localizations/knowledge');
 const BASELINE = join(ROOT, 'tools/check-knowledge.baseline.json');
 /** Games whose facts live in docs/<game>/ instead of knowledge entries (Secret of Mana's code is still checked
  * the old way, its gaps in the baseline, until docs/mana/ names them: then add 'mana'). */
-const GAME_DOCS = ['terra'];
+const GAME_DOCS = ['terra', 'mana'];
 const gameOf = (f: string) => /^(?:src\/games|tools)\/([a-z]+)\//.exec(f)?.[1] ?? '';
 
 type Range = { from: number; to: number; name: string };

@@ -22,8 +22,8 @@ Evermore or from other projects. Partial knowledge says so. Format and code:
 | `$9C`/`$9D`, `$A0`/`$A1` | layer A / layer B size in cells | `$00:CB90`, `$00:D03E` |
 | `$B8` | header byte 3: bits 0-1 step-event offset, bit 2 the map's own event | `$00:C49C`; 4 at map `$10`, 1 at `$11`, 5 at `$3E` (game) |
 | `$C0`, `$C2` | x / y bounds the cut probe wraps at | `$01:D31C` |
-| `$D0` | non-zero: no step events (`$00:B630`, `$01:B9C2`). 133 right after a forced map load, 0 once the player has control | game |
-| `$DC`/`$DD` | map id the loader reads | `$00:C483`; written by `check-map.js` |
+| `$D0` (`$7E:00D0`) | non-zero: no step events (`$00:B630`, `$01:B9C2`). 133 right after a forced map load, 0 once the player has control | game |
+| `$DC`/`$DD` (`$7E:00DC`, `$7E:00DD`) | map id the loader reads | `$00:C483`; written by `check-map.js` |
 | `$ED` | bit 7 = header byte 7 was `$FF`; the party's attack probe (cut, strike cells) runs only with it set. `$00:BEAA` clears it while `$CF00` is 0 | `$00:C52E`, `$01:CDDF`; game: `$ED` = 0 on map `$3E` with `$CF00` = 0, `$80` with `$CF00` = 1 |
 | `$F4`/`$F5` | frame counter | `$00:B0BB` |
 
@@ -72,6 +72,7 @@ from the code, not watched.
 |---|---|---|
 | `$0000` + y*`$80` + x | layer A cells (metatile ids; special cells `$C0+k`) | `$00:CB90`, `$00:D03A`; game |
 | `$4000` + y*`$80` + x | layer B cells | same |
+| `$7F:8200` | effect records copied to VRAM during NMI (`$00:C304`) | `src/games/mana/decoder/animate.ts` |
 | `$B800` + n*4 | layer A collision per metatile; specials at `$BB00 + 4k` | `$02:A043`, `$02:B517` |
 | `$BC00` + n*4 | layer B collision; specials at `$BF00 + 4k` | same |
 | `$C000` + n*8 | layer A metatile tile words; specials at `$C600 + 8k` | `$02:A069`, `$02:B517` |
