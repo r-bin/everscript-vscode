@@ -1272,6 +1272,8 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:4EE9` | 2 bytes | `BOY_CHAR_TYPE_PTR` | Room | Pointer to character master definition struct in bank $8E (`+$60` in entity struct). |
 | `$7E:4F1D` | 4 bytes | `BOY_EXP_POINTS` | Save | Player character (Boy) 32-bit accumulated experience points (+0x94 low word $7E:4F1D, +0x96 high word $7E:4F1F; $8D:A0E9). |
 | `$7E:4F23` | 1 byte | `BOY_STATUS_GLOW_BITS` | Room | Boy status effect outline glow bitmask (Atlas, Barrier, Speed; +0x9A in struct at 7E:4E89; $91:B632). |
+| `$7E:4F25` | 2 bytes | `BOY_POWER_SCALE_MULT` | Save | Boy combat power and damage scaling multiplier (+0x9C in entity struct at 7E:4E89; $8F:80DA). |
+| `$7E:4F27` | 2 bytes | `BOY_SECONDARY_STATUS_FLAGS` | Save | Boy secondary status effect and modifier flags (+0x9E in entity struct at 7E:4E89; $8F:80D4). |
 | `$7E:4F29` | 2 bytes | `BOY_GEAR_BONUS_MDEF` | Save | Boy equipment bonus magic defense rating (+0xA0 in struct at 7E:4E89; $8F:8600). |
 | `$7E:4F2B` | 2 bytes | `BOY_GEAR_BONUS_PDEF` | Save | Boy equipment bonus physical defense rating (+0xA2 in struct at 7E:4E89; $8F:8600). |
 | `$7E:4F2D` | 2 bytes | `BOY_GEAR_BONUS_ATK` | Save | Boy equipment bonus physical attack rating (+0xA4 in struct at 7E:4E89; $8F:8600). |
@@ -1301,6 +1303,8 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:4FA6` | 1 | `DOG_FORM_SCRIPT_PTR_BANK` | Room | Companion Mechanics: Bank byte of active Dog form animation walker script. |
 | `$7E:4FCB` | 4 bytes | `DOG_EXP_POINTS` | Save | Companion character (Dog) 32-bit accumulated experience points (+0x94 low word $7E:4FCB, +0x96 high word $7E:4FCD; $8D:A9A0). |
 | `$7E:4FD1` | 1 byte | `DOG_STATUS_GLOW_BITS` | Room | Dog companion status effect outline glow bitmask (Atlas, Barrier, Speed; +0x9A in struct at 7E:4F37; $91:B632). |
+| `$7E:4FD3` | 2 bytes | `DOG_POWER_SCALE_MULT` | Save | Dog combat power and damage scaling multiplier (+0x9C in entity struct at 7E:4F37; $8F:8162). |
+| `$7E:4FD5` | 2 bytes | `DOG_SECONDARY_STATUS_FLAGS` | Save | Dog secondary status effect and modifier flags (+0x9E in entity struct at 7E:4F37; $8F:815C). |
 | `$7E:4FD7` | 2 bytes | `DOG_GEAR_BONUS_MDEF` | Save | Dog equipment bonus magic defense rating (+0xA0 in struct at 7E:4F37; $8F:857D). |
 | `$7E:4FD9` | 2 bytes | `DOG_GEAR_BONUS_PDEF` | Save | Dog equipment bonus physical defense rating (+0xA2 in struct at 7E:4F37; $8F:857D). |
 | `$7E:4FDB` | 2 bytes | `DOG_GEAR_BONUS_ATK` | Save | Dog equipment bonus physical attack rating (+0xA4 in struct at 7E:4F37; $8F:857D). |
