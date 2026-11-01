@@ -41,8 +41,6 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0034` | 2 bytes | `DP_DECOMP_PAYLOAD_SIZE` | Temp | Uncompressed payload size in bytes passed to decompression dispatcher (`$8C:988D`). |
 | `$7E:0036` | 3 bytes | `DP_DECOMP_SRC_FAR_PTR` | Temp | 24-bit pointer (`$36..$38`) to compressed source data stream. |
 | `$7E:003A` | 3 bytes | `DP_DECOMP_DST_FAR_PTR` | Temp | 24-bit pointer (`$3A..$3C`) to uncompressed destination memory buffer. |
-| `$7E:4049` | 2 bytes | `ENTITY_SLOT_04_MAX_HP` | Room | Entity slot 4 maximum hit points (+0x2C in struct at 7E:401D). |
-| `$7E:2050` | 64 bytes | `MODE7_TRANSFORM_MATRIX_WORDS` | Frame | 32-entry perspective transformation scanline matrix table ($80:CFA9, $80:D113). |
 | `$7E:0059` | 2 bytes | `CAMERA_FINAL_X` | Frame | Final shaken camera horizontal scroll coordinate in pixels (written to PPU BG1HOFS). |
 | `$7E:005B` | 2 bytes | `CAMERA_FINAL_Y` | Frame | Final shaken camera vertical scroll coordinate in pixels (written to PPU BG1VOFS). |
 | `$7E:0070` | 2 bytes | `DP_SCRATCH_70` | Frame | Direct page scratch pointer; used by decompression and script string decoders. |
@@ -51,7 +49,6 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0080` | 2 bytes | `SCRIPT_CALL_STACK_PTR` | Frame | Call stack pointer for nested script subroutines (gosub). |
 | `$7E:0082` | 3 bytes | `SCRIPT_PC_FAR_PTR` | Frame | Active 24-bit instruction pointer ($82..$84) consumed by script_vm_opcode_dispatch ($8C:D09C). |
 | `$7E:0086` | 1 byte | `SCRIPT_VM_FREEZE_GATE` | Frame | Global script thread execution freeze flag (non-zero pauses script VM processing). |
-| `$7E:2090` | 32 bytes | `MODE7_PERSPECTIVE_SCALE_BYTES` | Frame | 32-entry perspective scaling factors table loaded from ROM bank $90 ($80:D113). |
 | `$7E:009F` | 1 | `AUDIO_APU_SYNC_COUNTER` | Frame | Audio Engine: Handshake sequence synchronization counter byte verified against APU port $2142 ($8C:81E4) |
 | `$7E:00BF` | 2 bytes | `CAMERA_BASE_X` | Frame | Base room viewport top-left world X coordinate before screen shake displacement. |
 | `$7E:00C1` | 2 bytes | `CAMERA_BASE_Y` | Frame | Base room viewport top-left world Y coordinate before screen shake displacement. |
@@ -66,7 +63,6 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:00D4` | 1 byte | `DP_OAM_OVERFLOW_FLAG` | Frame | OAM capacity overflow check flag; drawing halts if bit `#$FE` is non-zero. |
 | `$7E:00D5` | 2 bytes | `DP_OAM_HIGH_BYTE_CURSOR` | Frame | High OAM table byte cursor offset (512..543 relative to `$7E:ABDE`, or 0..31 at `$7E:ADDE`). |
 | `$7E:00D7` | 1 byte | `DP_OAM_HIGH_BIT_MASK` | Frame | High OAM 2-bit rotation mask (`0x01, 0x04, 0x10, 0x40`) tracking current sprite pair in High OAM byte. |
-| `$7E:40D7` | 2 bytes | `ENTITY_SLOT_05_MAX_HP` | Room | Entity slot 5 maximum hit points (+0x2C in struct at 7E:40AB). |
 | `$7E:00D8` | 1 byte | `DP_DYNAMIC_VRAM_TILE_BUDGET` | Frame | Remaining VRAM dynamic tile allocation budget per frame; decremented per new slice allocated. |
 | `$7E:00D9` | 1 byte | `FRAME_READY_FLAG` | Frame | Set non-zero when main loop completes drawing; NMI checks before uploading VRAM and clears after upload. |
 | `$7E:00DB` | 1 byte | `DP_SPRITE_ALLOC_TILE_INDEX` | Frame | Allocated VRAM tile index for active sprite slice; written to Low OAM byte 2 (`$7E:ABE0,x`). |
@@ -83,7 +79,6 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:010A` | 2 bytes | `PPU_SHADOW_VTIMEL` | Frame | Hardware V-timer IRQ scanline position shadow; copied to $4209 in VBlank. |
 | `$7E:010E` | 2 bytes | `PPU_SHADOW_BG1HOFS` | Frame | BG1 horizontal scroll offset shadow; low byte written to $210D, high byte written to $210D. |
 | `$7E:0110` | 2 bytes | `PPU_SHADOW_BG1VOFS` | Frame | BG1 vertical scroll offset shadow; low byte written to $210E, high byte written to $210E. |
-| `$7E:2110` | 256 bytes | `WEATHER_PARTICLE_BUFFER` | Frame | 64-entry cyclic state array for weather particle trajectories (4 bytes per particle; $91:C15B, $91:BE05). |
 | `$7E:0112` | 2 bytes | `PPU_SHADOW_BG2HOFS` | Frame | BG2 horizontal scroll offset shadow; low byte written to $210F, high byte written to $210F. |
 | `$7E:0114` | 2 bytes | `PPU_SHADOW_BG2VOFS` | Frame | BG2 vertical scroll offset shadow; low byte written to $2110, high byte written to $2110. |
 | `$7E:0116` | 2 bytes | `PPU_SHADOW_BG3HOFS` | Frame | BG3 horizontal scroll offset shadow; written to $2111 (twice). |
@@ -103,26 +98,19 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:013D` | 2 bytes | `VRAM_DMA_QUEUE_CURSOR` | Frame | Cursor index into 16-slot deferred VRAM DMA transfer queue. |
 | `$7E:013F` | 128 bytes | `VRAM_DMA_QUEUE` | Frame | 16-slot deferred VRAM DMA queue (8 bytes per descriptor: src bank/addr, dest VRAM addr, length). |
 | `$7E:015F` | `Word×16` | `palette_bg_1` | `Room` | Background Palette 1 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
-| `$7E:4165` | 2 bytes | `ENTITY_SLOT_06_MAX_HP` | Room | Entity slot 6 maximum hit points (+0x2C in struct at 7E:4139). |
 | `$7E:017F` | `Word×16` | `palette_bg_2` | `Room` | Background Palette 2 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
 | `$7E:019F` | `Word×16` | `palette_bg_3` | `Room` | Background Palette 3 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
 | `$7E:01BF` | `Word×16` | `palette_bg_4` | `Room` | Background Palette 4 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
 | `$7E:01DF` | `Word×16` | `palette_bg_5` | `Room` | Background Palette 5 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
-| `$7E:41F3` | 2 bytes | `ENTITY_SLOT_07_MAX_HP` | Room | Entity slot 7 maximum hit points (+0x2C in struct at 7E:41C7). |
 | `$7E:01FF` | `Word×16` | `palette_bg_6` | `Room` | Background Palette 6 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
 | `$7E:021F` | `Word×16` | `palette_bg_7` | `Room` | Background Palette 7 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
 | `$7E:023F` | `Word×16` | `palette_spr_0` | `Room` | Sprite/OBJ Palette 0 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
-| `$7E:225D` | 1 byte | `SHOP_MENU_OPTION_FLAGS` | Save | Shopkeeper interaction menu option enable flags (bit 0 = trade/rare $F4, bit 1 = talk/exit $F6; $8E:8D05). |
 | `$7E:025F` | `Word×16` | `palette_spr_1` | `Room` | Sprite/OBJ Palette 1 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
 | `$7E:027F` | `Word×16` | `palette_spr_2` | `Room` | Sprite/OBJ Palette 2 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
-| `$7E:4281` | 2 bytes | `ENTITY_SLOT_08_MAX_HP` | Room | Entity slot 8 maximum hit points (+0x2C in struct at 7E:4255). |
-| `$7E:228B` | 1 byte | `DOG_NAMED_FLAG` | Save | Companion dog custom name initialization flag (bit 0 prevents default ROM name overwrite at boot; $8E:E124). |
 | `$7E:029F` | `Word×16` | `palette_spr_3` | `Room` | Sprite/OBJ Palette 3 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
 | `$7E:02BF` | `Word×16` | `palette_spr_4` | `Room` | Sprite/OBJ Palette 4 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
 | `$7E:02DF` | `Word×16` | `palette_spr_5` | `Room` | Sprite/OBJ Palette 5 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
-| `$7E:22EF` | 1 byte | `SCRIPT_MODE7_FLIGHT_LOCK` | Room | Mode 7 flight navigation suspend and landing trigger latch (upper byte of $7E:22EE, tested/cleared by $80:C4A3). |
 | `$7E:02FF` | `Word×16` | `palette_spr_6` | `Room` | Sprite/OBJ Palette 6 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
-| `$7E:430F` | 2 bytes | `ENTITY_SLOT_09_MAX_HP` | Room | Entity slot 9 maximum hit points (+0x2C in struct at 7E:42E3). |
 | `$7E:031F` | `Word×16` | `palette_spr_7` | `Room` | Sprite/OBJ Palette 7 shadow buffer (16 colors, 32 bytes in 15-bit BGR555 format). |
 | `$7E:0341` | 2 bytes | `LAST_SPAWNED_ENTITY` | Room | Entity slot index of most recently allocated or spawned actor. |
 | `$7E:0343` | 2 bytes | `JOYPAD_REPEAT_TIMER` | Frame | Countdown timer before typematic joypad directional repeat begins. |
@@ -158,11 +146,9 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:038B` | 2 bytes | `WINDOW_1_VRAM_ADDR` | Room | Destination VRAM tilemap address for secondary window 1. |
 | `$7E:038D` | 2 bytes | `WINDOW_1_TILE_WIDTH` | Room | Width of secondary window 1 in 8x8 character tiles. |
 | `$7E:038F` | 2 bytes | `WINDOW_1_TILE_HEIGHT` | Room | Height of secondary window 1 in 8x8 character tiles. |
-| `$7E:439D` | 2 bytes | `ENTITY_SLOT_10_MAX_HP` | Room | Entity slot 10 maximum hit points (+0x2C in struct at 7E:4371). |
 | `$7E:039F` | 2 bytes | `WINDOW_1_SELECTION_CURSOR` | Room | Selection arrow position in secondary choice window 1. |
 | `$7E:03A1` | 2 bytes | `WINDOW_1_SELECTED_CHOICE` | Room | Selected choice index in secondary choice window 1. |
 | `$7E:03A3` | 2 bytes | `WINDOW_1_STATE` | Room | Secondary window 1 lifecycle state enum (0 = Closed, 1 = Opening, 2 = Open, 3 = Closing). |
-| `$7E:23D3` | 2 bytes | `SUBTITLE_ACTIVE_FLAG` | Room | Subtitle text window active state flag evaluated by Script VM opcode 0x52 subtext ($8C:D99E). |
 | `$7E:03E1` | 2 | `SUBWINDOW_WIDTH` | Frame | UI Subsystem: Sub-menu window horizontal columns width (e.g. 4 columns, $8E:9EF0) |
 | `$7E:03E3` | 2 | `SUBWINDOW_HEIGHT` | Frame | UI Subsystem: Sub-menu window vertical rows height (e.g. 1 row, $8E:9EF0) |
 | `$7E:03F1` | 2 | `SUBWINDOW_VRAM_TILE_OFFSET` | Frame | UI Subsystem: Sub-menu window base VRAM tile offset ($0014, $8E:9EF0) |
@@ -172,13 +158,11 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0407` | `Word` | `window_4_border_tile` | `Frame` | Window 4 custom border corner tile index and attribute word ($8C:AB82). |
 | `$7E:0421` | `Word` | `window_4_scroll_offset_x` | `Frame` | Window 4 horizontal text blitter pixel scroll offset ($8D:801B). |
 | `$7E:0423` | `Word` | `window_4_scroll_offset_y` | `Frame` | Window 4 vertical text blitter pixel scroll offset ($8D:804B). |
-| `$7E:442B` | 2 bytes | `ENTITY_SLOT_11_MAX_HP` | Room | Entity slot 11 maximum hit points (+0x2C in struct at 7E:43FF). |
 | `$7E:0433` | `Word` | `window_5_border_tile` | `Frame` | Window 5 custom border corner tile index and attribute word ($8C:AB85). |
 | `$7E:0435` | `Word` | `window_5_pos_x` | `Frame` | Window 5 screen tile column X origin coordinate ($8C:9E34). |
 | `$7E:0437` | `Word` | `window_5_pos_y` | `Frame` | Window 5 screen tile row Y origin coordinate ($8C:A354). |
 | `$7E:0439` | `Word` | `window_5_width` | `Frame` | Window 5 width in 8x8 character tiles ($8C:9EB5). |
 | `$7E:043B` | `Word` | `window_5_height` | `Frame` | Window 5 height in 8x8 character tiles ($8C:9EB8). |
-| `$7E:243B` | 2 bytes | `PENDING_SOUND_COMMAND` | Frame | Queued sound effect / audio driver mailbox flushed by Script VM opcodes 0x30..0x32 ($8C:D6A7). |
 | `$7E:043D` | `Word` | `window_5_text_ptr_lo` | `Frame` | Window 5 active text string token read pointer low word ($8C:A35B). |
 | `$7E:043F` | `Word` | `window_5_text_ptr_hi` | `Frame` | Window 5 active text string token read pointer high bank word ($8C:9E0E). |
 | `$7E:0441` | `Word` | `window_5_cursor_line` | `Frame` | Window 5 current typewriter text raster line index ($8C:A361). |
@@ -193,25 +177,14 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:045B` | `Word` | `window_6_pos_y` | `Frame` | Window 6 screen tile row Y origin coordinate ($8C:A384). |
 | `$7E:045D` | `Word` | `window_6_width` | `Frame` | Window 6 width in 8x8 character tiles. |
 | `$7E:045F` | `Word` | `window_6_height` | `Frame` | Window 6 height in 8x8 character tiles. |
-| `$7E:246B` | 2 bytes | `INTRO_CREDITS_LINE_MODE` | Room | Title and credits sequence text line layout mode flag (0 = 3 lines, non-zero = 2 lines; $80:C6D2, $80:C763, $80:C881). |
 | `$7E:0485` | `Word` | `window_7_pos_x` | `Frame` | Window 7 screen tile column X origin coordinate. |
 | `$7E:0487` | `Word` | `window_7_pos_y` | `Frame` | Window 7 screen tile row Y origin coordinate. |
 | `$7E:0497` | `Word` | `window_7_flags` | `Frame` | Window 7 display flags bitfield. |
 | `$7E:04B1` | `Word` | `window_8_pos_x` | `Frame` | Window 8 screen tile column X origin coordinate. |
 | `$7E:04B3` | `Word` | `window_8_pos_y` | `Frame` | Window 8 screen tile row Y origin coordinate. |
-| `$7E:14B8` | 2 bytes | `MODE7_CAMERA_PITCH_ALTITUDE` | Frame | Camera elevation pitch and altitude parameter during Mode 7 flight navigation ($80:D23A). |
-| `$7E:44B9` | 2 bytes | `ENTITY_SLOT_12_MAX_HP` | Room | Entity slot 12 maximum hit points (+0x2C in struct at 7E:448D). |
-| `$7E:14C2` | 2 bytes | `MODE7_PARAM_M7A_OR_SCROLL_X` | Frame | Horizontal scroll coordinate / PPU matrix M7A parameter for Mode 7 flight rendering ($80:BE09). |
 | `$7E:04C3` | `Word` | `window_8_flags` | `Frame` | Window 8 display flags bitfield. |
-| `$7E:14C4` | 2 bytes | `MODE7_PARAM_M7B_OR_SCROLL_Y` | Frame | Vertical scroll coordinate / PPU matrix M7B parameter for Mode 7 flight rendering ($80:BE09). |
-| `$7E:14C6` | 2 bytes | `MODE7_AIRCRAFT_YAW_HEADING` | Frame | Mode 7 aircraft flight yaw heading angle index (0..31 compass angle; $80:CFA9, $80:D58B). |
-| `$7E:14C8` | 2 bytes | `MODE7_CAMERA_FOCAL_DISTANCE` | Frame | Mode 7 camera focal distance and altitude scaling factor added to ROM trig tables ($80:CFA9, $80:D113). |
-| `$7E:14E6` | 2 bytes | `WEATHER_CAMERA_PREV_X` | Frame | Previous horizontal camera scroll baseline coordinate for weather particle relative motion ($91:BE05). |
-| `$7E:14E8` | 2 bytes | `WEATHER_CAMERA_CURR_X` | Frame | Current horizontal camera scroll baseline coordinate for weather particle relative motion ($91:BE05). |
-| `$7E:14FE` | 2 bytes | `WEATHER_PARTICLE_SPAWN_CURSOR` | Frame | Cyclic write cursor into 256-byte weather particle simulation state buffer ($91:C15B, wraps at $0100). |
 | `$7E:051D` | 68 bytes | `HUD_BOY_STATUS_WIDGET` | Room | HUD graphics descriptor for Boy status bar, HP meter gauge, and numeric digit tilemaps ($7E:051D..$7E:0560). |
 | `$7E:051F` | `Word` | `combat_damage_color_cycle` | `Frame` | HUD damage counter flash color cycle timer ticks ($8F:8755). |
-| `$7E:4547` | 2 bytes | `ENTITY_SLOT_13_MAX_HP` | Room | Entity slot 13 maximum hit points (+0x2C in struct at 7E:451B). |
 | `$7E:0561` | 68 bytes | `HUD_DOG_STATUS_WIDGET` | Room | HUD graphics descriptor for Dog status bar, HP meter gauge, and numeric digit tilemaps ($7E:0561..$7E:05A4). |
 | `$7E:05A7` | 2 bytes | `RING_MENU_CALLER_ACTOR` | Room | Pointer to actor entity that opened active ring menu (Boy $7E:4E89 or Dog $7E:4F37). |
 | `$7E:05A9` | 2 bytes | `RING_MENU_STATUS_FLAGS` | Room | Ring menu state and visibility bitflags (bit 15 $8000 set = ring menu active/open). |
@@ -233,7 +206,6 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:05CB` | 2 | `DIALOGUE_CHAR_TILE_13` | Frame | UI Subsystem: Rasterized tile word for dialogue character 13. |
 | `$7E:05CD` | 2 | `DIALOGUE_CHAR_TILE_14` | Frame | UI Subsystem: Rasterized tile word for dialogue character 14. |
 | `$7E:05CF` | 2 | `DIALOGUE_CHAR_TILE_15` | Frame | UI Subsystem: Rasterized tile word for dialogue character 15. |
-| `$7E:45D5` | 2 bytes | `ENTITY_SLOT_14_MAX_HP` | Room | Entity slot 14 maximum hit points (+0x2C in struct at 7E:45A9). |
 | `$7E:0615` | 2 bytes | `RING_MENU_ORIGIN_X` | Room | Screen X center anchor around which revolving ring menu icons orbit. |
 | `$7E:0617` | 2 bytes | `RING_MENU_ORIGIN_Y` | Room | Screen Y center anchor around which revolving ring menu icons orbit. |
 | `$7E:0619` | 2 bytes | `RING_MENU_RADIUS_DISTANCE` | Room | Expansion radius distance (pixels) between ring icons and center anchor during open/close animations (func_CEB0CF). |
@@ -242,11 +214,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:061F` | 2 bytes | `DIALOGUE_CURSOR_POS` | Room | Current character blit cursor offset within dialogue window buffer. |
 | `$7E:0621` | 2 bytes | `DIALOGUE_CTRL_STATE` | Room | Dialogue control opcode decoder parser state machine register. |
 | `$7E:062B` | 1 byte | `DIALOGUE_ACTIVE_FLAG` | Room | Set non-zero when a dialogue or text box is currently open on screen. |
-| `$7E:4663` | 2 bytes | `ENTITY_SLOT_15_MAX_HP` | Room | Entity slot 15 maximum hit points (+0x2C in struct at 7E:4637). |
 | `$7E:06A3` | 256 bytes | `RING_ICON_SLOTS` | Room | Ring menu items inventory icon array (weapons, alchemy spells, items). |
-| `$7E:46F1` | 2 bytes | `ENTITY_SLOT_16_MAX_HP` | Room | Entity slot 16 maximum hit points (+0x2C in struct at 7E:46C5). |
-| `$7E:477F` | 2 bytes | `ENTITY_SLOT_17_MAX_HP` | Room | Entity slot 17 maximum hit points (+0x2C in struct at 7E:4753). |
-| `$7E:480D` | 2 bytes | `ENTITY_SLOT_18_MAX_HP` | Room | Entity slot 18 maximum hit points (+0x2C in struct at 7E:47E1). |
 | `$7E:0810` | 2 bytes | `RING_MENU_ACTIVE_ITEM_COUNT` | Room | Number of selectable items/spells in currently active primary ring menu. |
 | `$7E:0812` | 2 bytes | `RING_MENU_ACTIVE_SELECTION` | Room | Currently highlighted item index cursor in primary ring menu. |
 | `$7E:0814` | 24 bytes | `RING_MENU_ACTIVE_ITEMS_BUF` | Room | Array of item / spell / formula IDs displayed in primary ring menu. |
@@ -263,18 +231,15 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:086B` | 2 bytes | `AUX_ANIM_CHAN_1_BASE` | Room | Base bytecode address for looping auxiliary animation channel 1. |
 | `$7E:086D` | 1 byte | `AUX_ANIM_CHAN_1_DELAY` | Room | Frame delay countdown timer for auxiliary animation channel 1. |
 | `$7E:0876` | 2 bytes | `AUX_ANIM_CHAN_1_STEP` | Room | Elapsed animation step counter for auxiliary animation channel 1. |
-| `$7E:489B` | 2 bytes | `ENTITY_SLOT_19_MAX_HP` | Room | Entity slot 19 maximum hit points (+0x2C in struct at 7E:486F). |
 | `$7E:08EE` | 2 bytes | `MENU_SFX_INDEX` | Frame | Sound effect cue ID triggered when cursor moves or option is selected in menu/choice box. |
 | `$7E:08F6` | 2 bytes | `CAMERA_MAX_ROOM_X` | Room | Maximum allowed horizontal camera scroll limit based on active room metatile dimensions. |
 | `$7E:08F8` | 2 bytes | `CAMERA_MAX_ROOM_Y` | Room | Maximum allowed vertical camera scroll limit based on active room metatile dimensions. |
 | `$7E:08FA` | `Word×16` | `viewport_collision_row_0` | `Room` | Viewport metatile collision row 0 (16 words: solidity, ledge, stairs, elevation). |
 | `$7E:091A` | `Word×16` | `viewport_collision_row_1` | `Room` | Viewport metatile collision row 1 (16 words: local terrain physics geometry). |
-| `$7E:4929` | 2 bytes | `ENTITY_SLOT_20_MAX_HP` | Room | Entity slot 20 maximum hit points (+0x2C in struct at 7E:48FD). |
 | `$7E:093A` | `Word×16` | `viewport_collision_row_2` | `Room` | Viewport metatile collision row 2 (16 words: local terrain physics geometry). |
 | `$7E:095A` | `Word×16` | `viewport_collision_row_3` | `Room` | Viewport metatile collision row 3 (16 words: local terrain physics geometry). |
 | `$7E:097A` | `Word×16` | `viewport_collision_row_4` | `Room` | Viewport metatile collision row 4 (16 words: local terrain physics geometry). |
 | `$7E:099A` | `Word×16` | `viewport_collision_row_5` | `Room` | Viewport metatile collision row 5 (16 words: local terrain physics geometry). |
-| `$7E:49B7` | 2 bytes | `ENTITY_SLOT_21_MAX_HP` | Room | Entity slot 21 maximum hit points (+0x2C in struct at 7E:498B). |
 | `$7E:09BA` | `Word×16` | `viewport_collision_row_6` | `Room` | Viewport metatile collision row 6 (16 words: local terrain physics geometry). |
 | `$7E:09DA` | `Word×16` | `viewport_collision_row_7` | `Room` | Viewport metatile collision row 7 (16 words: local terrain physics geometry). |
 | `$7E:09FA` | `Word×16` | `viewport_collision_row_8` | `Room` | Viewport metatile collision row 8 (16 words: local terrain physics geometry). |
@@ -295,7 +260,6 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0A41` | 2 bytes | `BOY_EQUIPPED_WEAPON` | Save | ID of currently equipped primary weapon (Bone Crusher, Gladiator Sword, etc.). |
 | `$7E:0A43` | 2 bytes | `BOY_EQUIPPED_BODY_ARMOR` | Save | ID of currently equipped body armor (Grass Vest, Mammoth Skin, etc.). |
 | `$7E:0A45` | 2 bytes | `BOY_EQUIPPED_HELMET` | Save | ID of currently equipped helmet (Grass Hat, Shell Helmet, etc.). |
-| `$7E:4A45` | 2 bytes | `ENTITY_SLOT_22_MAX_HP` | Room | Entity slot 22 maximum hit points (+0x2C in struct at 7E:4A19). |
 | `$7E:0A47` | 2 bytes | `BOY_EQUIPPED_ARMBAND` | Save | ID of currently equipped armband / bracer (Vine Band, Mammoth Guard, etc.). |
 | `$7E:0A49` | 2 bytes | `BOY_XP_LO` | Save | Boy player accumulated experience points low word. |
 | `$7E:0A4B` | 2 bytes | `BOY_XP_HI` | Save | Boy player accumulated experience points high word. |
@@ -336,7 +300,6 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0ACF` | 2 bytes | `CURRENCY_CREDITS` | Save | Omnitopia realm currency balance (Credits). |
 | `$7E:0AD2` | 1 | `RING_EQUIPPED_ALCH_0` | Save | Alchemy Subsystem: Equipped formula ID in active Ring Menu quick-cast slot 0. |
 | `$7E:0AD3` | 1 | `RING_EQUIPPED_ALCH_1` | Save | Alchemy Subsystem: Equipped formula ID in active Ring Menu quick-cast slot 1. |
-| `$7E:4AD3` | 2 bytes | `ENTITY_SLOT_23_MAX_HP` | Room | Entity slot 23 maximum hit points (+0x2C in struct at 7E:4AA7). |
 | `$7E:0AD4` | 1 | `RING_EQUIPPED_ALCH_2` | Save | Alchemy Subsystem: Equipped formula ID in active Ring Menu quick-cast slot 2. |
 | `$7E:0AD5` | 1 | `RING_EQUIPPED_ALCH_3` | Save | Alchemy Subsystem: Equipped formula ID in active Ring Menu quick-cast slot 3. |
 | `$7E:0AD6` | 1 | `RING_EQUIPPED_ALCH_4` | Save | Alchemy Subsystem: Equipped formula ID in active Ring Menu quick-cast slot 4. |
@@ -390,7 +353,6 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0B4F` | 2 bytes | `SCREEN_FLASH_COLOR` | Frame | 15-bit BGR color value for active screen flash overlay. |
 | `$7E:0B51` | `Word` | `alchemy_cast_effect_id` | `Frame` | Formula animation effect script identifier loaded into combat VM on cast. |
 | `$7E:0B57` | 2 bytes | `HUD_POPUP_QUEUE_HEAD_PTR` | Room | Pointer to active 64-byte notification slot in floating combat text ring buffer ($7E:3074..$7E:3273; stepped by func_80B37A). |
-| `$7E:4B61` | 2 bytes | `ENTITY_SLOT_24_MAX_HP` | Room | Entity slot 24 maximum hit points (+0x2C in struct at 7E:4B35). |
 | `$7E:0B6F` | `Word` | `dialogue_scroll_timer` | `Frame` | Typewriter text scroll delay counter decremented in per-frame tick ($8C:A229). |
 | `$7E:0B70` | `Byte` | `dialogue_scroll_flags` | `Frame` | Scroll flags controlling instantaneous text paging vs smooth vertical line scrolling. |
 | `$7E:0B77` | `Word` | `joypad_button_hold_timer` | `Frame` | Duration in ticks current button has been held down continuously. |
@@ -400,7 +362,6 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0B7F` | 2 bytes | `AUDIO_FADE_COUNTER` | Frame | Step counter tracking audio volume fade in/out transitions. |
 | `$7E:0B80` | `Byte` | `window_fade_alpha_level` | `Frame` | Transparency alpha blend coefficient for UI overlay window borders ($8E:E5BA). |
 | `$7E:0B83` | 2 bytes | `AUDIO_TARGET_VOLUME` | Room | Target master audio volume level latch for fade interpolation. |
-| `$7E:4BEF` | 2 bytes | `ENTITY_SLOT_25_MAX_HP` | Room | Entity slot 25 maximum hit points (+0x2C in struct at 7E:4BC3). |
 | `$7E:0BF9` | 2 bytes | `RING_MENU_CURSOR_SECTOR` | Room | Latched cursor sector index during ring menu item selection ($FFFF = unlatched). |
 | `$7E:0BFB` | 2 | `MODE7_CAMERA_TARGET_OFFSET_X` | Frame | Mode 7 Engine: Camera target anchor X coordinate offset for flight viewport ($8E:B33D). |
 | `$7E:0BFD` | 2 | `MODE7_CAMERA_TARGET_OFFSET_Y` | Frame | Mode 7 Engine: Camera target anchor Y coordinate offset for flight viewport ($8E:B33D). |
@@ -415,7 +376,6 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0C6B` | 2 | `RING_MENU_SPELLS_COUNT` | Room | Number of eligible alchemy formulas in Formulas / Spells Ring Menu |
 | `$7E:0C6D` | 2 | `RING_MENU_SPELLS_SELECTION` | Room | Currently highlighted formula cursor selection in Formulas / Spells Ring Menu |
 | `$7E:0C6F` | 32 bytes | `RING_MENU_SPELLS_BUF` | Room | Formulas / Spells Ring Menu: 16-word formula ID slot buffer ($7E:0C6F..$7E:0C8E). |
-| `$7E:4C7D` | 2 bytes | `ENTITY_SLOT_26_MAX_HP` | Room | Entity slot 26 maximum hit points (+0x2C in struct at 7E:4C51). |
 | `$7E:0C8F` | 2 | `RING_MENU_ALCH_FORMULA_COUNT` | Room | Total learned alchemy formulas populated into secondary ring menu |
 | `$7E:0C91` | 2 | `RING_MENU_ALCH_SELECTION` | Room | Currently highlighted formula cursor selection in secondary formula ring menu |
 | `$7E:0C93` | 32 bytes | `RING_MENU_ALCH_FORMULAS_BUF` | Room | Secondary Alchemy Formulas Ring Menu: 16-word formula ID slot buffer ($7E:0C93..$7E:0CB2). |
@@ -425,12 +385,8 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0CD9` | 2 | `SHOP_MENU_OPTION_COUNT` | Room | Total active shopkeeper dialogue interaction options in merchant choice menu |
 | `$7E:0CDB` | 2 | `SHOP_MENU_SELECTION` | Room | Currently highlighted merchant interaction option cursor index |
 | `$7E:0CDD` | 16 bytes | `SHOP_MENU_OPTIONS_BUF` | Room | Merchant Dialogue Choices: 8-word interaction option ID buffer ($7E:0CDD..$7E:0CEC). |
-| `$7E:4D0B` | 2 bytes | `ENTITY_SLOT_27_MAX_HP` | Room | Entity slot 27 maximum hit points (+0x2C in struct at 7E:4CDF). |
 | `$7E:0D0D` | 2 | `SAVE_PROMPT_YES_NO_SELECTION` | Room | Selected option index in Save Menu Yes/No overwrite confirmation prompt |
-| `$7E:4D99` | 2 bytes | `ENTITY_SLOT_28_MAX_HP` | Room | Entity slot 28 maximum hit points (+0x2C in struct at 7E:4D6D). |
 | `$7E:0DFB` | 24 bytes | `DIALOGUE_QUEUE` | Room | FIFO message queue buffering pending dialogue box display requests. |
-| `$7E:3E11` | 2 bytes | `ENTITY_SLOT_00_MAX_HP` | Room | Entity slot 0 maximum hit points (+0x2C in struct at 7E:3DE5). |
-| `$7E:4E27` | 2 bytes | `ENTITY_SLOT_29_MAX_HP` | Room | Entity slot 29 maximum hit points (+0x2C in struct at 7E:4DFB). |
 | `$7E:0E47` | 2 bytes | `APU_BLOCKS_LEFT` | Frame | Remaining audio data transfer blocks during SPC700 sound loading. |
 | `$7E:0E48` | 1 | `AUDIO_TRANSFER_HIGH_FLAG` | Frame | Audio Engine: High byte transfer flag for SPC700 block stream ($00 / $FF) |
 | `$7E:0E49` | 2 bytes | `APU_DESC_CURSOR` | Frame | Index offset into audio sample block descriptor table. |
@@ -443,18 +399,14 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0E6B` | 1 byte | `NMITIMEN_MIRROR` | Boot | Shadow copy of $4200 ($81 = NMI enabled, Auto-Joypad enabled). |
 | `$7E:0E6C` | 2 | `SHOP_MODE_CONFIG_MASK` | Frame | Shop Subsystem: Shop mode configuration bitmask (bit 2: standard weapons/armor, bit 3: alchemy ingredients satchel) |
 | `$7E:0E80` | 2 bytes | `WEAPON_CHARGE_METER` | Frame | Current physical attack charge meter level (0..100%). |
-| `$7E:3E9F` | 2 bytes | `ENTITY_SLOT_01_MAX_HP` | Room | Entity slot 1 maximum hit points (+0x2C in struct at 7E:3E73). |
 | `$7E:0EA0` | 2 bytes | `DAMAGE_RESULT_REG` | Frame | Calculated damage output value produced by combat math routines. |
 | `$7E:0EAE` | 2 bytes | `PENDING_MAP_EVENT_0` | Room | Queued map event script ID pending trigger execution ($FFFF = none). |
 | `$7E:0EB0` | 2 bytes | `PENDING_MAP_EVENT_1` | Room | Secondary queued map event script ID ($FFFF = none). |
 | `$7E:0EB2` | 2 bytes | `DOG_CURRENT_HP` | Save | Dog companion current health points. |
 | `$7E:0EB4` | 2 bytes | `WINGS_ESCAPE_SCRIPT_ID` | Room | Wings / dungeon escape event script ID ($FFFF = none; ROOM_HOOK 5). |
-| `$7E:4EB5` | 2 bytes | `BOY_MAX_HP` | Save | Player character (Boy) maximum hit points cap (+0x2C in struct at 7E:4E89; $8F:C237). |
 | `$7E:0EBE` | 2 bytes | `SPAWN_RING_HEAD_PTR` | Room | Active scan cursor into 60-slot spawn ring table at $7E:5DC3..$7E:6182 (advanced by 16 bytes in func_8FDDBB). |
 | `$7E:0EC0` | 32 bytes | `DEFERRED_SPAWN_BUF` | Room | Buffer storing entity spawn parameters queued during map transitions. |
 | `$7E:0EC6` | 2 bytes | `INPUT_P1_HELD_BUTTONS` | Frame | Player 1 controller buttons currently held down (raw auto-joypad read from hardware register $4218). |
-| `$7E:4F1D` | 4 bytes | `BOY_EXP_POINTS` | Save | Player character (Boy) 32-bit accumulated experience points (+0x94 low word $7E:4F1D, +0x96 high word $7E:4F1F; $8D:A0E9). |
-| `$7E:3F2D` | 2 bytes | `ENTITY_SLOT_02_MAX_HP` | Room | Entity slot 2 maximum hit points (+0x2C in struct at 7E:3F01). |
 | `$7E:0F36` | 2 bytes | `STEP_DITHER_COUNTER` | Frame | Sub-pixel walk step dither accumulator for smooth actor movement. |
 | `$7E:0F38` | 2 bytes | `CAMERA_SUBPIXEL_ACC` | Frame | Camera sub-pixel tracking fractional accumulator. |
 | `$7E:0F3A` | 1 byte | `VRAM_DMA_LOCK` | Frame | In-flight active transfer counter / lock flag for deferred VRAM DMA queue. |
@@ -463,19 +415,15 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0F40` | 2 | `ENTITY_PTR_DOG` | Boot | Entity Subsystem: Address pointer to Companion (Dog) entity slot in WRAM (defaults to $4F37; initialized in $8F:8144) |
 | `$7E:0F42` | 2 bytes | `CAMERA_TARGET_ACTOR_PTR` | Room | Pointer to primary actor entity record tracked by camera (points to Boy at $7E:4E89). |
 | `$7E:0F44` | 2 bytes | `VIEWPORT_SCROLL_Y` | Frame | Vertical world coordinate of top-left camera viewport boundary. |
-| `$7E:4F63` | 2 bytes | `DOG_MAX_HP` | Save | Companion character (Dog) maximum hit points cap (+0x2C in struct at 7E:4F37; $8F:C237). |
 | `$7E:0F84` | 2 bytes | `MAP_HEADER_FLAGS` | Room | Bitmask flags loaded from map header (layering, Mode 7, weather). |
 | `$7E:0F86` | 1 byte | `MAP_LOADED_FLAG` | Room | Set to 1 after room tilemaps, collision, and palettes are fully decompressed. |
 | `$7E:0F8A` | 2 bytes | `LOADED_PALETTE_TAG` | Room | Identifier of currently loaded map palette family. |
-| `$7E:2F98` | 70 bytes | `FORMULA_COMBAT_POWER_ARRAY` | Save | 35-formula combat power ratings array (Acid Rain through Super Heal; $91:ADD0, $8D:C70D). |
 | `$7E:0FAC` | 2 bytes | `ROOM_PALETTE_GROUP_ID` | Room | Active room palette group index (initialized to $11 by reset_per_room_state). |
 | `$7E:0FB0` | 1 byte | `TERRAIN_MUT_ACTIVE` | Frame | Set non-zero when animated terrain tile mutations are active. |
 | `$7E:0FB4` | 12 bytes | `CELL_COLLISION_FLAGS` | Room | Current 16x16 metatile cell collision properties and impassable edges. |
 | `$7E:0FB9` | 2 bytes | `ENV_SFX_TRIGGER` | Room | Sound effect ID trigger for environmental audio (wind, waterfall, lava). |
-| `$7E:3FBB` | 2 bytes | `ENTITY_SLOT_03_MAX_HP` | Room | Entity slot 3 maximum hit points (+0x2C in struct at 7E:3F8F). |
 | `$7E:0FBD` | 2 bytes | `ENV_SHAKE_TRIGGER` | Room | Magnitude trigger for environmental ground tremor effects. |
 | `$7E:0FBF` | 2 bytes | `ENV_AUDIO_PARAM` | Room | Secondary audio parameter (pitch/pan) for environmental audio. |
-| `$7E:4FCB` | 4 bytes | `DOG_EXP_POINTS` | Save | Companion character (Dog) 32-bit accumulated experience points (+0x94 low word $7E:4FCB, +0x96 high word $7E:4FCD; $8D:A9A0). |
 | `$7E:0FD0` | 2 bytes | `GRASS_BATCH_CURSOR` | Room | Cursor index into pending cuttable grass tile swap queue. |
 | `$7E:0FD2` | 48 bytes | `GRASS_SWAP_QUEUE` | Room | Coordinate swap queue holding tiles converted from standing to cut grass. |
 | `$7E:1002` | 48 bytes | `GRASS_GRID_OFFSETS` | Room | Tilemap offset lookup table corresponding to pending grass swaps. |
@@ -563,12 +511,30 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:1459` | `Word` | `dog_ai_target_distance` | `Frame` | Euclidean distance word between Dog companion and active combat target ($8F:DCD0). |
 | `$7E:1460` | `Word` | `dog_sniff_target_x` | `Frame` | World X coordinate of hidden ingredient / sniff spot currently alerted by Dog ($8F:822A). |
 | `$7E:1462` | `Word` | `dog_sniff_target_y` | `Frame` | World Y coordinate of hidden ingredient / sniff spot currently alerted by Dog ($8F:8231). |
+| `$7E:14B8` | 2 bytes | `MODE7_CAMERA_PITCH_ALTITUDE` | Frame | Camera elevation pitch and altitude parameter during Mode 7 flight navigation ($80:D23A). |
+| `$7E:14C2` | 2 bytes | `MODE7_PARAM_M7A_OR_SCROLL_X` | Frame | Horizontal scroll coordinate / PPU matrix M7A parameter for Mode 7 flight rendering ($80:BE09). |
+| `$7E:14C4` | 2 bytes | `MODE7_PARAM_M7B_OR_SCROLL_Y` | Frame | Vertical scroll coordinate / PPU matrix M7B parameter for Mode 7 flight rendering ($80:BE09). |
+| `$7E:14C6` | 2 bytes | `MODE7_AIRCRAFT_YAW_HEADING` | Frame | Mode 7 aircraft flight yaw heading angle index (0..31 compass angle; $80:CFA9, $80:D58B). |
+| `$7E:14C8` | 2 bytes | `MODE7_CAMERA_FOCAL_DISTANCE` | Frame | Mode 7 camera focal distance and altitude scaling factor added to ROM trig tables ($80:CFA9, $80:D113). |
+| `$7E:14E6` | 2 bytes | `WEATHER_CAMERA_PREV_X` | Frame | Previous horizontal camera scroll baseline coordinate for weather particle relative motion ($91:BE05). |
+| `$7E:14E8` | 2 bytes | `WEATHER_CAMERA_CURR_X` | Frame | Current horizontal camera scroll baseline coordinate for weather particle relative motion ($91:BE05). |
 | `$7E:14EA` | 1 | `WEATHER_PARTICLE_PREV_Y` | Frame | Weather particle simulation previous Y baseline coordinate |
 | `$7E:14EC` | 1 | `WEATHER_PARTICLE_CURR_Y` | Frame | Weather particle simulation current Y baseline coordinate |
 | `$7E:14EE` | 2 | `WEATHER_PARTICLE_SLOT_INDEX` | Frame | Active weather particle slot pointer offset |
+| `$7E:14FE` | 2 bytes | `WEATHER_PARTICLE_SPAWN_CURSOR` | Frame | Cyclic write cursor into 256-byte weather particle simulation state buffer ($91:C15B, wraps at $0100). |
+| `$7E:150C` | 2 bytes | `COLOR_CROSSFADE_ACTIVE_FLAG` | Room | Color palette cross-fade animation active execution flag ($90:D481). |
+| `$7E:150E` | 2 bytes | `COLOR_CROSSFADE_CURRENT_STEP` | Room | Palette cross-fade progress counter ($90:D481). |
+| `$7E:1510` | 2 bytes | `COLOR_CROSSFADE_TARGET_STEP` | Room | Palette cross-fade target threshold step ($90:D481). |
+| `$7E:1512` | 2 bytes | `COLOR_CROSSFADE_STEP_RATE` | Room | Palette cross-fade step increment / speed rate ($90:D481). |
 | `$7E:1518` | 2 bytes | `HDMA_ACTIVE_BANK_PTR` | Frame | Pointer to active double-buffer table feeding HDMA channel tables. |
 | `$7E:151A` | 36 bytes | `HDMA_BUFFER_A` | Frame | HDMA scanline table double-buffer Bank A (color gradients / perspective lines). |
 | `$7E:153E` | 36 bytes | `HDMA_BUFFER_B` | Frame | HDMA scanline table double-buffer Bank B (color gradients / perspective lines). |
+| `$7E:156C` | 2 bytes | `BARRIER_SCANLINE_OFFSET` | Frame | Barrier and spotlight window scanline offset accumulator ($91:C899). |
+| `$7E:157C` | 2 bytes | `BARRIER_WINDOW_MODE` | Frame | Barrier spotlight window aperture shape mode (0 = circular, 1 = inverted; $91:C7F5). |
+| `$7E:158A` | 2 bytes | `PPU_WINDOW_LOGIC_FLAG` | Frame | PPU window mask logic toggle flag (written to $0122..$0124; $91:C7F5). |
+| `$7E:158C` | 2 bytes | `HDMA_WINDOW_BUFFER_XOR_MASK` | Frame | Toggle XOR mask ($6869 ^ $6A7D = $0214) for double-buffered window coordinates ($91:C7F5). |
+| `$7E:158E` | 2 bytes | `HDMA_WINDOW_ACTIVE_BUFFER_PTR` | Frame | Active double-buffer base pointer for HDMA window coordinates ($7E:6869 or $7E:6A7D; $91:C899). |
+| `$7E:1590` | 2 bytes | `HDMA_WINDOW_ACTIVE_BUFFER_END` | Frame | Active window coordinate buffer end boundary pointer ($158E + $0200; $91:C899). |
 | `$7E:15CC` | 2 bytes | `DYNAMIC_COLLISION_OVERRIDE_COUNT` | Room | Number of active dynamic collision grid metatile overrides in current room. |
 | `$7E:15D2` | 1 byte | `AUDIO_MUTING_FLAG` | Room | Set non-zero to silence background music during dramatic cutscenes. |
 | `$7E:15D6` | 1 byte | `APU_COMM_STATUS` | Frame | Handshake status register for SPC700 data transfer synchronization. |
@@ -620,6 +586,9 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:200D` | `Byte` | `audio_chan_vol_atten_d` | `Save` | Audio channel 13 master volume attenuation factor ($DF..$FF). |
 | `$7E:200E` | `Byte` | `audio_chan_vol_atten_e` | `Save` | Audio channel 14 master volume attenuation factor ($EF..$FF). |
 | `$7E:200F` | `Byte` | `audio_chan_vol_atten_f` | `Save` | Audio channel 15 master volume attenuation factor ($FF). |
+| `$7E:2050` | 64 bytes | `MODE7_TRANSFORM_MATRIX_WORDS` | Frame | 32-entry perspective transformation scanline matrix table ($80:CFA9, $80:D113). |
+| `$7E:2090` | 32 bytes | `MODE7_PERSPECTIVE_SCALE_BYTES` | Frame | 32-entry perspective scaling factors table loaded from ROM bank $90 ($80:D113). |
+| `$7E:2110` | 256 bytes | `WEATHER_PARTICLE_BUFFER` | Frame | 64-entry cyclic state array for weather particle trajectories (4 bytes per particle; $91:C15B, $91:BE05). |
 | `$7E:2200` | 2 bytes | `SRAM_START_MARKER` | Save | Boundary marking start of battery-backed persistent save RAM ($7E:2200..$7E:27FF). |
 | `$7E:2210` | 36 bytes | `BOY_NAME_BUFFER` | Save | Custom player character name string buffer (ASCII/tile indices). |
 | `$7E:2234` | 36 bytes | `DOG_NAME_BUFFER` | Save | Custom dog companion name string buffer (ASCII/tile indices). |
@@ -628,6 +597,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:225A` | 1 | `ALCHEMY_KNOWN_FLAGS_2` | Save | Alchemy Subsystem: Formula learned bitmask byte 2 (bits 0..7: Force Field, Hard Ball, Heal, Lance, Laser, Levitate, Lightning Storm, Miracle Cure) |
 | `$7E:225B` | 1 | `ALCHEMY_KNOWN_FLAGS_3` | Save | Alchemy Subsystem: Formula learned bitmask byte 3 (bits 0..7: Nitro, One Up, Reflect, Regrowth, Revealer, Revive, Slow Burn, Speed) |
 | `$7E:225C` | 1 | `ALCHEMY_KNOWN_FLAGS_4` | Save | Alchemy Subsystem: Formula learned bitmask byte 4 (bits 0..2: Sting, Stop, Super Heal) |
+| `$7E:225D` | 1 byte | `SHOP_MENU_OPTION_FLAGS` | Save | Shopkeeper interaction menu option enable flags (bit 0 = trade/rare $F4, bit 1 = talk/exit $F6; $8E:8D05). |
 | `$7E:2260` | 1 byte | `BOSS_FLAGS_1` | Save | Boss defeat bitmask flags (bit 0x10 = Thraxx defeated). |
 | `$7E:2261` | 2 bytes | `GAMEPLAY_SETTINGS_FLAGS` | Save | Gameplay settings bitmask (bit 0 = Dog HUD toggle, bit 1 = Boy HUD toggle, bit 2 = stereo sound). |
 | `$7E:2262` | 1 byte | `ACTIVE_BUFFS_MASK` | Room | Bitmask flags for active positive status buffs (Speed, Atlas, Defend). |
@@ -639,6 +609,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:226C` | 1 | `QUICKSAND_FIELD_PICKUP_CLAIM_FLAGS` | Save | Quicksand Field pickup-claimed flags |
 | `$7E:226D` | 1 | `PICKUP_CLAIM_FLAGS_226D` | Save | Pickup-claimed flags (rooms 0x35, 0x3B, 0x5A) |
 | `$7E:2284` | 2 bytes | `ALCHEMY_KNOWN_FLAGS` | Save | Bitmask flags tracking which alchemy formulas have been acquired by player. |
+| `$7E:228B` | 1 byte | `DOG_NAMED_FLAG` | Save | Companion dog custom name initialization flag (bit 0 prevents default ROM name overwrite at boot; $8E:E124). |
 | `$7E:22DA` | 1 | `WEAPONS_OWNED_FLAGS_0` | Save | Combat Subsystem: Weapon unlocked bitmask byte 0 (bits 1..7: Bone Club, Spider Claw, Horn Spear, Gladiator Sword, Bronze Axe, Bronze Spear, Crusader Sword). |
 | `$7E:22DB` | 1 | `WEAPONS_OWNED_FLAGS_1` | Save | Combat Subsystem: Weapon unlocked bitmask byte 1 (bits 0..5: Knight Basher, Lance, Neutron Blade, Atom Smasher, Laser Lance, Bazooka). |
 | `$7E:22E9` | 1 | `ROOM_TRANSITION_MODE` | Room | Engine State: Room transition execution mode flag ($80:8CD3). |
@@ -646,6 +617,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:22EB` | 1 byte | `ROOM_TRANSITION_AND_SCRIPT_FLAGS_22EB` | Room | Room transition and script VM coordination flags (bit 0 = room-local script latch, bit 2 = reload default room path in main loop, bit 6 = doorway handoff; see shared-flags-22ea-22eb.md). |
 | `$7E:22EC` | 1 | `ROOM_MUSIC_TRANSITION_FLAG` | Room | Engine State: Room change background music transition mode flag ($8C:D860). |
 | `$7E:22EE` | 2 bytes | `SCRIPT_EXECUTION_LOCK_FLAGS` | Room | Script execution suspend gate and transition lock word (bit 0 set by func_8DB4FA during dialogue/cutscenes to lock VM execution; cleared by func_8CCEE9 on room transition to unfreeze actors and script threads). |
+| `$7E:22EF` | 1 byte | `SCRIPT_MODE7_FLIGHT_LOCK` | Room | Mode 7 flight navigation suspend and landing trigger latch (upper byte of $7E:22EE, tested/cleared by $80:C4A3). |
 | `$7E:22FA` | 1 byte | `CAMERA_ZOOM_SCALE_X` | Room | Mode 7 horizontal scale factor for rooms utilizing perspective rendering (written to $211C). |
 | `$7E:22FB` | 1 byte | `CAMERA_ZOOM_SCALE_Y` | Room | Mode 7 vertical scale factor for rooms utilizing perspective rendering (written to $211C). |
 | `$7E:22FC` | 1 byte | `DESERT_SECTOR_Y` | Save | Desert of Doom (Room 0x1B) endless navigation grid vertical sector coordinate (updated on boundary wrap triggers). |
@@ -773,6 +745,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:23C9` | 2 | `WEATHER_EFFECT_STATE` | Room | Weather particle system animation state and dispatch mode |
 | `$7E:23CD` | 2 bytes | `WEAPON_PALETTE` | Save | Boy/weapon active sprite palette CGRAM byte offset ($40, $60, $80, $A0, $C0; checked in $8F:81C9). |
 | `$7E:23CF` | 2 bytes | `DOG_PALETTE` | Save | Dog active sprite palette CGRAM byte offset ($40, $60, $80, $A0, $C0; checked in $8F:9471). |
+| `$7E:23D3` | 2 bytes | `SUBTITLE_ACTIVE_FLAG` | Room | Subtitle text window active state flag evaluated by Script VM opcode 0x52 subtext ($8C:D99E). |
 | `$7E:23D5` | 2 | `SCRIPT_DAMAGE_REDIRECT_FLAG` | Frame | Script VM: Opcode 0x92 damage redirect flag (0 = standard knockback damage, non-zero = redirect to opcode 0xBB damage without knockback) |
 | `$7E:23D7` | 2 | `SCRIPT_DAMAGE_TRANSFORM_FLAG` | Frame | Script VM: Opcode 0x92 damage transform flag (0 = raw immediate damage, non-zero = transform damage through entity defense math) |
 | `$7E:23DB` | 2 bytes | `QUEUED_ROOM_EXIT_TRIGGER_0` | Room | ID of door or boundary exit trigger tripped by player ($FFFF = none). |
@@ -808,6 +781,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:2433` | 2 bytes | `SPAWN_SYSTEM_ENABLE` | Room | Entity spawn system global enable gate (1 = active, 0 = disabled; initialized in func_8FDF14). |
 | `$7E:2435` | 2 bytes | `ROOM_AMBIENT_LIGHT_LEVEL` | Room | Ambient light/shade color tint parameter applied to room palette (default $15). |
 | `$7E:2437` | 2 bytes | `MAP_PALETTE_INDEX` | Room | Active map color palette family identifier index. |
+| `$7E:243B` | 2 bytes | `PENDING_SOUND_COMMAND` | Frame | Queued sound effect / audio driver mailbox flushed by Script VM opcodes 0x30..0x32 ($8C:D6A7). |
 | `$7E:243D` | 2 | `EQUIPMENT_GRANT_COMMAND` | Frame | Pending equipment item grant ID |
 | `$7E:243F` | 2 | `EQUIPMENT_TAKE_COMMAND` | Frame | Pending equipment item revoke/take ID |
 | `$7E:2441` | 2 bytes | `ROOM_TILESET_GRAPHIC_BANK` | Room | ROM graphic bank containing compressed 16x16 metatile graphics for current room. |
@@ -820,6 +794,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:2459` | 2 bytes | `INGREDIENT_SHOP` | Save | Game script variable: INGREDIENT SHOP |
 | `$7E:2461` | 2 bytes | `LOOT_AMOUNT` | Room | Loot bonus — amount minus one for the next pickup. The loot script adds `1 + $2461`. Pickups that give more than one write `amount − 1` here before calling the |
 | `$7E:2463` | 2 | `MARKET_ITEM_ID` | Room | Market commodity / trade item index passed to market dialogue routines |
+| `$7E:246B` | 2 bytes | `INTRO_CREDITS_LINE_MODE` | Room | Title and credits sequence text line layout mode flag (0 = 3 lines, non-zero = 2 lines; $80:C6D2, $80:C763, $80:C881). |
 | `$7E:2480` | 64 bytes | `WEATHER_PARTICLES` | Frame | Position, velocity, and lifetime particle physics state array (rain, snow, embers). |
 | `$7E:2491` | 2 | `QUICKSAND_TRIGGER_OBJECT_INDEX` | Unknown | Quicksand Field trigger object index |
 | `$7E:2497` | 2 | `TARGET_WAYPOINT_X` | Room | Generic target waypoint X coordinate |
@@ -956,6 +931,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:2F92` | 2 | `FORMULA_XP_STING` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Sting ($91:D850) |
 | `$7E:2F94` | 2 | `FORMULA_XP_STOP` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Stop ($91:D850) |
 | `$7E:2F96` | 2 | `FORMULA_XP_SUPER_HEAL` | Save | Alchemy Progression: Current experience points (0..99 XP) for formula Super Heal ($91:D850) |
+| `$7E:2F98` | 70 bytes | `FORMULA_COMBAT_POWER_ARRAY` | Save | 35-formula combat power ratings array (Acid Rain through Super Heal; $91:ADD0, $8D:C70D). |
 | `$7E:2FDE` | 2 | `FORMULA_USAGE_ACID_RAIN` | Save | Alchemy Statistics: Total lifetime casts counter for formula Acid Rain ($91:D800) |
 | `$7E:2FE0` | 2 | `FORMULA_USAGE_ATLAS` | Save | Alchemy Statistics: Total lifetime casts counter for formula Atlas ($91:D800) |
 | `$7E:2FE2` | 2 | `FORMULA_USAGE_BARRIER` | Save | Alchemy Statistics: Total lifetime casts counter for formula Barrier ($91:D800) |
@@ -1046,151 +1022,181 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:3E01` | 2 bytes | `ENTITY_SLOT_00_POS_Y` | Room | Entity slot 0 current vertical world position in pixels (+0x1C in struct at 7E:3DE5). |
 | `$7E:3E07` | 2 bytes | `ENTITY_SLOT_00_FACING` | Room | Entity slot 0 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:3DE5). |
 | `$7E:3E0F` | 2 bytes | `ENTITY_SLOT_00_HP` | Room | Entity Pool: Actor entity slot 0 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:3E11` | 2 bytes | `ENTITY_SLOT_00_MAX_HP` | Room | Entity slot 0 maximum hit points (+0x2C in struct at 7E:3DE5). |
 | `$7E:3E73` | 142 | `ENTITY_SLOT_01_BASE` | Room | Entity Pool: Actor entity slot 1 base (142 bytes). |
 | `$7E:3E8D` | 2 bytes | `ENTITY_SLOT_01_POS_X` | Room | Entity slot 1 current horizontal world position in pixels (+0x1A in struct at 7E:3E73). |
 | `$7E:3E8F` | 2 bytes | `ENTITY_SLOT_01_POS_Y` | Room | Entity slot 1 current vertical world position in pixels (+0x1C in struct at 7E:3E73). |
 | `$7E:3E95` | 2 bytes | `ENTITY_SLOT_01_FACING` | Room | Entity slot 1 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:3E73). |
 | `$7E:3E9D` | 2 bytes | `ENTITY_SLOT_01_HP` | Room | Entity Pool: Actor entity slot 1 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:3E9F` | 2 bytes | `ENTITY_SLOT_01_MAX_HP` | Room | Entity slot 1 maximum hit points (+0x2C in struct at 7E:3E73). |
 | `$7E:3F01` | 142 | `ENTITY_SLOT_02_BASE` | Room | Entity Pool: Actor entity slot 2 base (142 bytes). |
 | `$7E:3F1B` | 2 bytes | `ENTITY_SLOT_02_POS_X` | Room | Entity slot 2 current horizontal world position in pixels (+0x1A in struct at 7E:3F01). |
 | `$7E:3F1D` | 2 bytes | `ENTITY_SLOT_02_POS_Y` | Room | Entity slot 2 current vertical world position in pixels (+0x1C in struct at 7E:3F01). |
 | `$7E:3F23` | 2 bytes | `ENTITY_SLOT_02_FACING` | Room | Entity slot 2 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:3F01). |
 | `$7E:3F2B` | 2 bytes | `ENTITY_SLOT_02_HP` | Room | Entity Pool: Actor entity slot 2 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:3F2D` | 2 bytes | `ENTITY_SLOT_02_MAX_HP` | Room | Entity slot 2 maximum hit points (+0x2C in struct at 7E:3F01). |
 | `$7E:3F8F` | 142 | `ENTITY_SLOT_03_BASE` | Room | Entity Pool: Actor entity slot 3 base (142 bytes). |
 | `$7E:3FA9` | 2 bytes | `ENTITY_SLOT_03_POS_X` | Room | Entity slot 3 current horizontal world position in pixels (+0x1A in struct at 7E:3F8F). |
 | `$7E:3FAB` | 2 bytes | `ENTITY_SLOT_03_POS_Y` | Room | Entity slot 3 current vertical world position in pixels (+0x1C in struct at 7E:3F8F). |
 | `$7E:3FB1` | 2 bytes | `ENTITY_SLOT_03_FACING` | Room | Entity slot 3 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:3F8F). |
 | `$7E:3FB9` | 2 bytes | `ENTITY_SLOT_03_HP` | Room | Entity Pool: Actor entity slot 3 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:3FBB` | 2 bytes | `ENTITY_SLOT_03_MAX_HP` | Room | Entity slot 3 maximum hit points (+0x2C in struct at 7E:3F8F). |
 | `$7E:401D` | 142 | `ENTITY_SLOT_04_BASE` | Room | Entity Pool: Actor entity slot 4 base (142 bytes). |
 | `$7E:4037` | 2 bytes | `ENTITY_SLOT_04_POS_X` | Room | Entity slot 4 current horizontal world position in pixels (+0x1A in struct at 7E:401D). |
 | `$7E:4039` | 2 bytes | `ENTITY_SLOT_04_POS_Y` | Room | Entity slot 4 current vertical world position in pixels (+0x1C in struct at 7E:401D). |
 | `$7E:403F` | 2 bytes | `ENTITY_SLOT_04_FACING` | Room | Entity slot 4 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:401D). |
 | `$7E:4047` | 2 bytes | `ENTITY_SLOT_04_HP` | Room | Entity Pool: Actor entity slot 4 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:4049` | 2 bytes | `ENTITY_SLOT_04_MAX_HP` | Room | Entity slot 4 maximum hit points (+0x2C in struct at 7E:401D). |
 | `$7E:40AB` | 142 | `ENTITY_SLOT_05_BASE` | Room | Entity Pool: Actor entity slot 5 base (142 bytes). |
 | `$7E:40C5` | 2 bytes | `ENTITY_SLOT_05_POS_X` | Room | Entity slot 5 current horizontal world position in pixels (+0x1A in struct at 7E:40AB). |
 | `$7E:40C7` | 2 bytes | `ENTITY_SLOT_05_POS_Y` | Room | Entity slot 5 current vertical world position in pixels (+0x1C in struct at 7E:40AB). |
 | `$7E:40CD` | 2 bytes | `ENTITY_SLOT_05_FACING` | Room | Entity slot 5 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:40AB). |
 | `$7E:40D5` | 2 bytes | `ENTITY_SLOT_05_HP` | Room | Entity Pool: Actor entity slot 5 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:40D7` | 2 bytes | `ENTITY_SLOT_05_MAX_HP` | Room | Entity slot 5 maximum hit points (+0x2C in struct at 7E:40AB). |
 | `$7E:4139` | 142 | `ENTITY_SLOT_06_BASE` | Room | Entity Pool: Actor entity slot 6 base (142 bytes). |
 | `$7E:4153` | 2 bytes | `ENTITY_SLOT_06_POS_X` | Room | Entity slot 6 current horizontal world position in pixels (+0x1A in struct at 7E:4139). |
 | `$7E:4155` | 2 bytes | `ENTITY_SLOT_06_POS_Y` | Room | Entity slot 6 current vertical world position in pixels (+0x1C in struct at 7E:4139). |
 | `$7E:415B` | 2 bytes | `ENTITY_SLOT_06_FACING` | Room | Entity slot 6 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4139). |
 | `$7E:4163` | 2 bytes | `ENTITY_SLOT_06_HP` | Room | Entity Pool: Actor entity slot 6 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:4165` | 2 bytes | `ENTITY_SLOT_06_MAX_HP` | Room | Entity slot 6 maximum hit points (+0x2C in struct at 7E:4139). |
 | `$7E:41C7` | 142 | `ENTITY_SLOT_07_BASE` | Room | Entity Pool: Actor entity slot 7 base (142 bytes). |
 | `$7E:41E1` | 2 bytes | `ENTITY_SLOT_07_POS_X` | Room | Entity slot 7 current horizontal world position in pixels (+0x1A in struct at 7E:41C7). |
 | `$7E:41E3` | 2 bytes | `ENTITY_SLOT_07_POS_Y` | Room | Entity slot 7 current vertical world position in pixels (+0x1C in struct at 7E:41C7). |
 | `$7E:41E9` | 2 bytes | `ENTITY_SLOT_07_FACING` | Room | Entity slot 7 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:41C7). |
 | `$7E:41F1` | 2 bytes | `ENTITY_SLOT_07_HP` | Room | Entity Pool: Actor entity slot 7 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:41F3` | 2 bytes | `ENTITY_SLOT_07_MAX_HP` | Room | Entity slot 7 maximum hit points (+0x2C in struct at 7E:41C7). |
 | `$7E:4255` | 142 | `ENTITY_SLOT_08_BASE` | Room | Entity Pool: Actor entity slot 8 base (142 bytes). |
 | `$7E:426F` | 2 bytes | `ENTITY_SLOT_08_POS_X` | Room | Entity slot 8 current horizontal world position in pixels (+0x1A in struct at 7E:4255). |
 | `$7E:4271` | 2 bytes | `ENTITY_SLOT_08_POS_Y` | Room | Entity slot 8 current vertical world position in pixels (+0x1C in struct at 7E:4255). |
 | `$7E:4277` | 2 bytes | `ENTITY_SLOT_08_FACING` | Room | Entity slot 8 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4255). |
 | `$7E:427F` | 2 bytes | `ENTITY_SLOT_08_HP` | Room | Entity Pool: Actor entity slot 8 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:4281` | 2 bytes | `ENTITY_SLOT_08_MAX_HP` | Room | Entity slot 8 maximum hit points (+0x2C in struct at 7E:4255). |
 | `$7E:42E3` | 142 | `ENTITY_SLOT_09_BASE` | Room | Entity Pool: Actor entity slot 9 base (142 bytes). |
 | `$7E:42FD` | 2 bytes | `ENTITY_SLOT_09_POS_X` | Room | Entity slot 9 current horizontal world position in pixels (+0x1A in struct at 7E:42E3). |
 | `$7E:42FF` | 2 bytes | `ENTITY_SLOT_09_POS_Y` | Room | Entity slot 9 current vertical world position in pixels (+0x1C in struct at 7E:42E3). |
 | `$7E:4305` | 2 bytes | `ENTITY_SLOT_09_FACING` | Room | Entity slot 9 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:42E3). |
 | `$7E:430D` | 2 bytes | `ENTITY_SLOT_09_HP` | Room | Entity Pool: Actor entity slot 9 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:430F` | 2 bytes | `ENTITY_SLOT_09_MAX_HP` | Room | Entity slot 9 maximum hit points (+0x2C in struct at 7E:42E3). |
 | `$7E:4371` | 142 | `ENTITY_SLOT_10_BASE` | Room | Entity Pool: Actor entity slot 10 base (142 bytes). |
 | `$7E:438B` | 2 bytes | `ENTITY_SLOT_10_POS_X` | Room | Entity slot 10 current horizontal world position in pixels (+0x1A in struct at 7E:4371). |
 | `$7E:438D` | 2 bytes | `ENTITY_SLOT_10_POS_Y` | Room | Entity slot 10 current vertical world position in pixels (+0x1C in struct at 7E:4371). |
 | `$7E:4393` | 2 bytes | `ENTITY_SLOT_10_FACING` | Room | Entity slot 10 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4371). |
 | `$7E:439B` | 2 bytes | `ENTITY_SLOT_10_HP` | Room | Entity Pool: Actor entity slot 10 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:439D` | 2 bytes | `ENTITY_SLOT_10_MAX_HP` | Room | Entity slot 10 maximum hit points (+0x2C in struct at 7E:4371). |
 | `$7E:43FF` | 142 | `ENTITY_SLOT_11_BASE` | Room | Entity Pool: Actor entity slot 11 base (142 bytes). |
 | `$7E:4419` | 2 bytes | `ENTITY_SLOT_11_POS_X` | Room | Entity slot 11 current horizontal world position in pixels (+0x1A in struct at 7E:43FF). |
 | `$7E:441B` | 2 bytes | `ENTITY_SLOT_11_POS_Y` | Room | Entity slot 11 current vertical world position in pixels (+0x1C in struct at 7E:43FF). |
 | `$7E:4421` | 2 bytes | `ENTITY_SLOT_11_FACING` | Room | Entity slot 11 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:43FF). |
 | `$7E:4429` | 2 bytes | `ENTITY_SLOT_11_HP` | Room | Entity Pool: Actor entity slot 11 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:442B` | 2 bytes | `ENTITY_SLOT_11_MAX_HP` | Room | Entity slot 11 maximum hit points (+0x2C in struct at 7E:43FF). |
 | `$7E:448D` | 142 | `ENTITY_SLOT_12_BASE` | Room | Entity Pool: Actor entity slot 12 base (142 bytes). |
 | `$7E:44A7` | 2 bytes | `ENTITY_SLOT_12_POS_X` | Room | Entity slot 12 current horizontal world position in pixels (+0x1A in struct at 7E:448D). |
 | `$7E:44A9` | 2 bytes | `ENTITY_SLOT_12_POS_Y` | Room | Entity slot 12 current vertical world position in pixels (+0x1C in struct at 7E:448D). |
 | `$7E:44AF` | 2 bytes | `ENTITY_SLOT_12_FACING` | Room | Entity slot 12 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:448D). |
 | `$7E:44B7` | 2 bytes | `ENTITY_SLOT_12_HP` | Room | Entity Pool: Actor entity slot 12 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:44B9` | 2 bytes | `ENTITY_SLOT_12_MAX_HP` | Room | Entity slot 12 maximum hit points (+0x2C in struct at 7E:448D). |
 | `$7E:451B` | 142 | `ENTITY_SLOT_13_BASE` | Room | Entity Pool: Actor entity slot 13 base (142 bytes). |
 | `$7E:4535` | 2 bytes | `ENTITY_SLOT_13_POS_X` | Room | Entity slot 13 current horizontal world position in pixels (+0x1A in struct at 7E:451B). |
 | `$7E:4537` | 2 bytes | `ENTITY_SLOT_13_POS_Y` | Room | Entity slot 13 current vertical world position in pixels (+0x1C in struct at 7E:451B). |
 | `$7E:453D` | 2 bytes | `ENTITY_SLOT_13_FACING` | Room | Entity slot 13 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:451B). |
 | `$7E:4545` | 2 bytes | `ENTITY_SLOT_13_HP` | Room | Entity Pool: Actor entity slot 13 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:4547` | 2 bytes | `ENTITY_SLOT_13_MAX_HP` | Room | Entity slot 13 maximum hit points (+0x2C in struct at 7E:451B). |
 | `$7E:45A9` | 142 | `ENTITY_SLOT_14_BASE` | Room | Entity Pool: Actor entity slot 14 base (142 bytes). |
 | `$7E:45C3` | 2 bytes | `ENTITY_SLOT_14_POS_X` | Room | Entity slot 14 current horizontal world position in pixels (+0x1A in struct at 7E:45A9). |
 | `$7E:45C5` | 2 bytes | `ENTITY_SLOT_14_POS_Y` | Room | Entity slot 14 current vertical world position in pixels (+0x1C in struct at 7E:45A9). |
 | `$7E:45CB` | 2 bytes | `ENTITY_SLOT_14_FACING` | Room | Entity slot 14 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:45A9). |
 | `$7E:45D3` | 2 bytes | `ENTITY_SLOT_14_HP` | Room | Entity Pool: Actor entity slot 14 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:45D5` | 2 bytes | `ENTITY_SLOT_14_MAX_HP` | Room | Entity slot 14 maximum hit points (+0x2C in struct at 7E:45A9). |
 | `$7E:4637` | 142 | `ENTITY_SLOT_15_BASE` | Room | Entity Pool: Actor entity slot 15 base (142 bytes). |
 | `$7E:4651` | 2 bytes | `ENTITY_SLOT_15_POS_X` | Room | Entity slot 15 current horizontal world position in pixels (+0x1A in struct at 7E:4637). |
 | `$7E:4653` | 2 bytes | `ENTITY_SLOT_15_POS_Y` | Room | Entity slot 15 current vertical world position in pixels (+0x1C in struct at 7E:4637). |
 | `$7E:4659` | 2 bytes | `ENTITY_SLOT_15_FACING` | Room | Entity slot 15 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4637). |
 | `$7E:4661` | 2 bytes | `ENTITY_SLOT_15_HP` | Room | Entity Pool: Actor entity slot 15 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:4663` | 2 bytes | `ENTITY_SLOT_15_MAX_HP` | Room | Entity slot 15 maximum hit points (+0x2C in struct at 7E:4637). |
 | `$7E:46C5` | 142 | `ENTITY_SLOT_16_BASE` | Room | Entity Pool: Actor entity slot 16 base (142 bytes). |
 | `$7E:46DF` | 2 bytes | `ENTITY_SLOT_16_POS_X` | Room | Entity slot 16 current horizontal world position in pixels (+0x1A in struct at 7E:46C5). |
 | `$7E:46E1` | 2 bytes | `ENTITY_SLOT_16_POS_Y` | Room | Entity slot 16 current vertical world position in pixels (+0x1C in struct at 7E:46C5). |
 | `$7E:46E7` | 2 bytes | `ENTITY_SLOT_16_FACING` | Room | Entity slot 16 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:46C5). |
 | `$7E:46EF` | 2 bytes | `ENTITY_SLOT_16_HP` | Room | Entity Pool: Actor entity slot 16 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:46F1` | 2 bytes | `ENTITY_SLOT_16_MAX_HP` | Room | Entity slot 16 maximum hit points (+0x2C in struct at 7E:46C5). |
 | `$7E:4753` | 142 | `ENTITY_SLOT_17_BASE` | Room | Entity Pool: Actor entity slot 17 base (142 bytes). |
 | `$7E:476D` | 2 bytes | `ENTITY_SLOT_17_POS_X` | Room | Entity slot 17 current horizontal world position in pixels (+0x1A in struct at 7E:4753). |
 | `$7E:476F` | 2 bytes | `ENTITY_SLOT_17_POS_Y` | Room | Entity slot 17 current vertical world position in pixels (+0x1C in struct at 7E:4753). |
 | `$7E:4775` | 2 bytes | `ENTITY_SLOT_17_FACING` | Room | Entity slot 17 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4753). |
 | `$7E:477D` | 2 bytes | `ENTITY_SLOT_17_HP` | Room | Entity Pool: Actor entity slot 17 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:477F` | 2 bytes | `ENTITY_SLOT_17_MAX_HP` | Room | Entity slot 17 maximum hit points (+0x2C in struct at 7E:4753). |
 | `$7E:47E1` | 142 | `ENTITY_SLOT_18_BASE` | Room | Entity Pool: Actor entity slot 18 base (142 bytes). |
 | `$7E:47FB` | 2 bytes | `ENTITY_SLOT_18_POS_X` | Room | Entity slot 18 current horizontal world position in pixels (+0x1A in struct at 7E:47E1). |
 | `$7E:47FD` | 2 bytes | `ENTITY_SLOT_18_POS_Y` | Room | Entity slot 18 current vertical world position in pixels (+0x1C in struct at 7E:47E1). |
 | `$7E:4803` | 2 bytes | `ENTITY_SLOT_18_FACING` | Room | Entity slot 18 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:47E1). |
 | `$7E:480B` | 2 bytes | `ENTITY_SLOT_18_HP` | Room | Entity Pool: Actor entity slot 18 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:480D` | 2 bytes | `ENTITY_SLOT_18_MAX_HP` | Room | Entity slot 18 maximum hit points (+0x2C in struct at 7E:47E1). |
 | `$7E:486F` | 142 | `ENTITY_SLOT_19_BASE` | Room | Entity Pool: Actor entity slot 19 base (142 bytes). |
 | `$7E:4889` | 2 bytes | `ENTITY_SLOT_19_POS_X` | Room | Entity slot 19 current horizontal world position in pixels (+0x1A in struct at 7E:486F). |
 | `$7E:488B` | 2 bytes | `ENTITY_SLOT_19_POS_Y` | Room | Entity slot 19 current vertical world position in pixels (+0x1C in struct at 7E:486F). |
 | `$7E:4891` | 2 bytes | `ENTITY_SLOT_19_FACING` | Room | Entity slot 19 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:486F). |
 | `$7E:4899` | 2 bytes | `ENTITY_SLOT_19_HP` | Room | Entity Pool: Actor entity slot 19 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:489B` | 2 bytes | `ENTITY_SLOT_19_MAX_HP` | Room | Entity slot 19 maximum hit points (+0x2C in struct at 7E:486F). |
 | `$7E:48FD` | 142 | `ENTITY_SLOT_20_BASE` | Room | Entity Pool: Actor entity slot 20 base (142 bytes). |
 | `$7E:4917` | 2 bytes | `ENTITY_SLOT_20_POS_X` | Room | Entity slot 20 current horizontal world position in pixels (+0x1A in struct at 7E:48FD). |
 | `$7E:4919` | 2 bytes | `ENTITY_SLOT_20_POS_Y` | Room | Entity slot 20 current vertical world position in pixels (+0x1C in struct at 7E:48FD). |
 | `$7E:491F` | 2 bytes | `ENTITY_SLOT_20_FACING` | Room | Entity slot 20 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:48FD). |
 | `$7E:4927` | 2 bytes | `ENTITY_SLOT_20_HP` | Room | Entity Pool: Actor entity slot 20 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:4929` | 2 bytes | `ENTITY_SLOT_20_MAX_HP` | Room | Entity slot 20 maximum hit points (+0x2C in struct at 7E:48FD). |
 | `$7E:498B` | 142 | `ENTITY_SLOT_21_BASE` | Room | Entity Pool: Actor entity slot 21 base (142 bytes). |
 | `$7E:49A5` | 2 bytes | `ENTITY_SLOT_21_POS_X` | Room | Entity slot 21 current horizontal world position in pixels (+0x1A in struct at 7E:498B). |
 | `$7E:49A7` | 2 bytes | `ENTITY_SLOT_21_POS_Y` | Room | Entity slot 21 current vertical world position in pixels (+0x1C in struct at 7E:498B). |
 | `$7E:49AD` | 2 bytes | `ENTITY_SLOT_21_FACING` | Room | Entity slot 21 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:498B). |
 | `$7E:49B5` | 2 bytes | `ENTITY_SLOT_21_HP` | Room | Entity Pool: Actor entity slot 21 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:49B7` | 2 bytes | `ENTITY_SLOT_21_MAX_HP` | Room | Entity slot 21 maximum hit points (+0x2C in struct at 7E:498B). |
 | `$7E:4A19` | 142 | `ENTITY_SLOT_22_BASE` | Room | Entity Pool: Actor entity slot 22 base (142 bytes). |
 | `$7E:4A33` | 2 bytes | `ENTITY_SLOT_22_POS_X` | Room | Entity slot 22 current horizontal world position in pixels (+0x1A in struct at 7E:4A19). |
 | `$7E:4A35` | 2 bytes | `ENTITY_SLOT_22_POS_Y` | Room | Entity slot 22 current vertical world position in pixels (+0x1C in struct at 7E:4A19). |
 | `$7E:4A3B` | 2 bytes | `ENTITY_SLOT_22_FACING` | Room | Entity slot 22 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4A19). |
 | `$7E:4A43` | 2 bytes | `ENTITY_SLOT_22_HP` | Room | Entity Pool: Actor entity slot 22 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:4A45` | 2 bytes | `ENTITY_SLOT_22_MAX_HP` | Room | Entity slot 22 maximum hit points (+0x2C in struct at 7E:4A19). |
 | `$7E:4AA7` | 142 | `ENTITY_SLOT_23_BASE` | Room | Entity Pool: Actor entity slot 23 base (142 bytes). |
 | `$7E:4AC1` | 2 bytes | `ENTITY_SLOT_23_POS_X` | Room | Entity slot 23 current horizontal world position in pixels (+0x1A in struct at 7E:4AA7). |
 | `$7E:4AC3` | 2 bytes | `ENTITY_SLOT_23_POS_Y` | Room | Entity slot 23 current vertical world position in pixels (+0x1C in struct at 7E:4AA7). |
 | `$7E:4AC9` | 2 bytes | `ENTITY_SLOT_23_FACING` | Room | Entity slot 23 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4AA7). |
 | `$7E:4AD1` | 2 bytes | `ENTITY_SLOT_23_HP` | Room | Entity Pool: Actor entity slot 23 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:4AD3` | 2 bytes | `ENTITY_SLOT_23_MAX_HP` | Room | Entity slot 23 maximum hit points (+0x2C in struct at 7E:4AA7). |
 | `$7E:4B35` | 142 | `ENTITY_SLOT_24_BASE` | Room | Entity Pool: Actor entity slot 24 base (142 bytes). |
 | `$7E:4B4F` | 2 bytes | `ENTITY_SLOT_24_POS_X` | Room | Entity slot 24 current horizontal world position in pixels (+0x1A in struct at 7E:4B35). |
 | `$7E:4B51` | 2 bytes | `ENTITY_SLOT_24_POS_Y` | Room | Entity slot 24 current vertical world position in pixels (+0x1C in struct at 7E:4B35). |
 | `$7E:4B57` | 2 bytes | `ENTITY_SLOT_24_FACING` | Room | Entity slot 24 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4B35). |
 | `$7E:4B5F` | 2 bytes | `ENTITY_SLOT_24_HP` | Room | Entity Pool: Actor entity slot 24 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:4B61` | 2 bytes | `ENTITY_SLOT_24_MAX_HP` | Room | Entity slot 24 maximum hit points (+0x2C in struct at 7E:4B35). |
 | `$7E:4BC3` | 142 | `ENTITY_SLOT_25_BASE` | Room | Entity Pool: Actor entity slot 25 base (142 bytes). |
 | `$7E:4BDD` | 2 bytes | `ENTITY_SLOT_25_POS_X` | Room | Entity slot 25 current horizontal world position in pixels (+0x1A in struct at 7E:4BC3). |
 | `$7E:4BDF` | 2 bytes | `ENTITY_SLOT_25_POS_Y` | Room | Entity slot 25 current vertical world position in pixels (+0x1C in struct at 7E:4BC3). |
 | `$7E:4BE5` | 2 bytes | `ENTITY_SLOT_25_FACING` | Room | Entity slot 25 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4BC3). |
 | `$7E:4BED` | 2 bytes | `ENTITY_SLOT_25_HP` | Room | Entity Pool: Actor entity slot 25 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:4BEF` | 2 bytes | `ENTITY_SLOT_25_MAX_HP` | Room | Entity slot 25 maximum hit points (+0x2C in struct at 7E:4BC3). |
 | `$7E:4C51` | 142 | `ENTITY_SLOT_26_BASE` | Room | Entity Pool: Actor entity slot 26 base (142 bytes). |
 | `$7E:4C6B` | 2 bytes | `ENTITY_SLOT_26_POS_X` | Room | Entity slot 26 current horizontal world position in pixels (+0x1A in struct at 7E:4C51). |
 | `$7E:4C6D` | 2 bytes | `ENTITY_SLOT_26_POS_Y` | Room | Entity slot 26 current vertical world position in pixels (+0x1C in struct at 7E:4C51). |
 | `$7E:4C73` | 2 bytes | `ENTITY_SLOT_26_FACING` | Room | Entity slot 26 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4C51). |
 | `$7E:4C7B` | 2 bytes | `ENTITY_SLOT_26_HP` | Room | Entity Pool: Actor entity slot 26 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:4C7D` | 2 bytes | `ENTITY_SLOT_26_MAX_HP` | Room | Entity slot 26 maximum hit points (+0x2C in struct at 7E:4C51). |
 | `$7E:4CDF` | 142 | `ENTITY_SLOT_27_BASE` | Room | Entity Pool: Actor entity slot 27 base (142 bytes). |
 | `$7E:4CF9` | 2 bytes | `ENTITY_SLOT_27_POS_X` | Room | Entity slot 27 current horizontal world position in pixels (+0x1A in struct at 7E:4CDF). |
 | `$7E:4CFB` | 2 bytes | `ENTITY_SLOT_27_POS_Y` | Room | Entity slot 27 current vertical world position in pixels (+0x1C in struct at 7E:4CDF). |
 | `$7E:4D01` | 2 bytes | `ENTITY_SLOT_27_FACING` | Room | Entity slot 27 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4CDF). |
 | `$7E:4D09` | 2 bytes | `ENTITY_SLOT_27_HP` | Room | Entity Pool: Actor entity slot 27 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:4D0B` | 2 bytes | `ENTITY_SLOT_27_MAX_HP` | Room | Entity slot 27 maximum hit points (+0x2C in struct at 7E:4CDF). |
 | `$7E:4D6D` | 142 | `ENTITY_SLOT_28_BASE` | Room | Entity Pool: Actor entity slot 28 base (142 bytes). |
 | `$7E:4D87` | 2 bytes | `ENTITY_SLOT_28_POS_X` | Room | Entity slot 28 current horizontal world position in pixels (+0x1A in struct at 7E:4D6D). |
 | `$7E:4D89` | 2 bytes | `ENTITY_SLOT_28_POS_Y` | Room | Entity slot 28 current vertical world position in pixels (+0x1C in struct at 7E:4D6D). |
 | `$7E:4D8F` | 2 bytes | `ENTITY_SLOT_28_FACING` | Room | Entity slot 28 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4D6D). |
 | `$7E:4D97` | 2 bytes | `ENTITY_SLOT_28_HP` | Room | Entity Pool: Actor entity slot 28 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:4D99` | 2 bytes | `ENTITY_SLOT_28_MAX_HP` | Room | Entity slot 28 maximum hit points (+0x2C in struct at 7E:4D6D). |
 | `$7E:4DFB` | 142 | `ENTITY_SLOT_29_BASE` | Room | Entity Pool: Actor entity slot 29 base (142 bytes). |
 | `$7E:4E15` | 2 bytes | `ENTITY_SLOT_29_POS_X` | Room | Entity slot 29 current horizontal world position in pixels (+0x1A in struct at 7E:4DFB). |
 | `$7E:4E17` | 2 bytes | `ENTITY_SLOT_29_POS_Y` | Room | Entity slot 29 current vertical world position in pixels (+0x1C in struct at 7E:4DFB). |
 | `$7E:4E1D` | 2 bytes | `ENTITY_SLOT_29_FACING` | Room | Entity slot 29 facing direction enum (0=N, 2=NE, 4=E, 6=SE, 8=S, 10=SW, 12=W, 14=NW; +0x22 in struct at 7E:4DFB). |
 | `$7E:4E25` | 2 bytes | `ENTITY_SLOT_29_HP` | Room | Entity Pool: Actor entity slot 29 current hit points (+0x2A in struct, 0 = inactive / dead; checked by ai_pick_target and func_8FC237). |
+| `$7E:4E27` | 2 bytes | `ENTITY_SLOT_29_MAX_HP` | Room | Entity slot 29 maximum hit points (+0x2C in struct at 7E:4DFB). |
 | `$7E:4E89` | 174 bytes | `BOY_ENTITY_RECORD` | Room | Primary actor entity structure for boy player character. |
 | `$7E:4E99` | 2 bytes | `BOY_STATUS_FLAGS` | Room | Primary action and collision status flags for Boy player entity (`+$10` in entity struct). |
 | `$7E:4E9B` | 2 bytes | `BOY_ANIM_PHASE_TIMER` | Room | Sub-frame animation phase timer for Boy walk/run/attack cycles (`+$12` in entity struct). |
@@ -1201,11 +1207,13 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:4EAB` | 2 bytes | `BOY_FACING_DIRECTION` | Room | Boy facing direction enum (`0`=N, `2`=NE, `4`=E, `6`=SE, `8`=S, `10`=SW, `12`=W, `14`=NW; `+$22` in entity struct). |
 | `$7E:4EAD` | 2 bytes | `PRIMARY_ATTACKER_PTR` | Room | Pointer to entity record of actor initiating current physical or magic attack. |
 | `$7E:4EB3` | 2 bytes | `BOY_CURRENT_HP` | Room | Boy current hit points stat (`+$2A` in entity struct; read and reduced on damage in func_8FC237). |
+| `$7E:4EB5` | 2 bytes | `BOY_MAX_HP` | Save | Player character (Boy) maximum hit points cap (+0x2C in struct at 7E:4E89; $8F:C237). |
 | `$7E:4EB7` | 2 bytes | `BOY_STAMINA` | Room | Boy player attack charge meter / stamina (`+$2E` in entity struct; full at $0400). |
 | `$7E:4EC3` | 2 bytes | `BOY_TILE_UNDER` | Room | Metatile index under Boy player entity feet (`+$3A` in entity struct). |
 | `$7E:4EC5` | 2 bytes | `BOY_TILE_COLLISION` | Room | Collision property flags word of metatile currently under Boy entity (`+$3C` in entity struct). |
 | `$7E:4EE7` | 2 bytes | `BOY_NEXT_ENTITY` | Room | Pointer to next entity in active entity linked list (`+$5E` in entity struct, $0000 = end of list). |
 | `$7E:4EE9` | 2 bytes | `BOY_CHAR_TYPE_PTR` | Room | Pointer to character master definition struct in bank $8E (`+$60` in entity struct). |
+| `$7E:4F1D` | 4 bytes | `BOY_EXP_POINTS` | Save | Player character (Boy) 32-bit accumulated experience points (+0x94 low word $7E:4F1D, +0x96 high word $7E:4F1F; $8D:A0E9). |
 | `$7E:4F37` | 174 bytes | `DOG_ENTITY_RECORD` | Room | Primary actor entity structure for dog companion character. |
 | `$7E:4F47` | 2 bytes | `DOG_STATUS_FLAGS` | Room | Primary action and collision status flags for Dog companion entity (`+$10` in entity struct). |
 | `$7E:4F49` | 2 bytes | `DOG_ANIM_PHASE_TIMER` | Room | Sub-frame animation phase timer for Dog companion entity (`+$12` in entity struct). |
@@ -1216,6 +1224,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:4F59` | 2 bytes | `DOG_FACING_DIRECTION` | Room | Dog facing direction enum (`0`=N, `2`=NE, `4`=E, `6`=SE, `8`=S, `10`=SW, `12`=W, `14`=NW; `+$22` in entity struct). |
 | `$7E:4F5B` | 2 bytes | `SECONDARY_ATTACKER_PTR` | Room | Pointer to entity record of target entity receiving combat damage. |
 | `$7E:4F61` | 2 bytes | `DOG_CURRENT_HP` | Room | Dog companion current hit points stat (`+$2A` in entity struct; read and reduced on damage in func_8FC237). |
+| `$7E:4F63` | 2 bytes | `DOG_MAX_HP` | Save | Companion character (Dog) maximum hit points cap (+0x2C in struct at 7E:4F37; $8F:C237). |
 | `$7E:4F65` | 2 bytes | `DOG_STAMINA` | Room | Dog companion attack charge meter / stamina (`+$2E` in entity struct; full at $0400). |
 | `$7E:4F71` | 2 bytes | `DOG_TILE_UNDER` | Room | Metatile index under Dog companion entity feet (`+$3A` in entity struct). |
 | `$7E:4F73` | 2 bytes | `DOG_TILE_COLLISION` | Room | Collision property flags word of metatile currently under Dog entity (`+$3C` in entity struct). |
@@ -1223,6 +1232,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:4F97` | 2 bytes | `DOG_CHAR_TYPE_PTR` | Room | Pointer to character master definition struct in bank $8E (`+$60` in entity struct). |
 | `$7E:4FA5` | 2 | `DOG_FORM_SCRIPT_PTR_LOW` | Room | Companion Mechanics: Low 16-bit pointer to active Dog form animation walker script ($8F:9471). |
 | `$7E:4FA6` | 1 | `DOG_FORM_SCRIPT_PTR_BANK` | Room | Companion Mechanics: Bank byte of active Dog form animation walker script. |
+| `$7E:4FCB` | 4 bytes | `DOG_EXP_POINTS` | Save | Companion character (Dog) 32-bit accumulated experience points (+0x94 low word $7E:4FCB, +0x96 high word $7E:4FCD; $8D:A9A0). |
 | `$7E:4FE6` | 50 bytes | `MAP_ANIM_FRAMES` | Room | Current animation frame indices for active map animated tile channels. |
 | `$7E:5018` | 50 bytes | `MAP_ANIM_TIMERS` | Room | Countdown hold delay timers for active map animated tile channels. |
 | `$7E:504A` | 50 bytes | `MAP_ANIM_CYCLES` | Room | Loop cycle iteration counters for active map animated tile channels. |
@@ -1251,9 +1261,14 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:6185` | 2 bytes | `SPAWN_SCAN_COUNTER` | Room | Number of spawn slots evaluated during current frame's spawn loop iteration. |
 | `$7E:6187` | 32 bytes | `SPRITE_CGRAM_SHADOW` | Room | Sprite palette shadow buffer DMA-copied to SNES CGRAM during VBLANK. |
 | `$7E:61A7` | 224 bytes | `MAP_TILE_PALETTES` | Room | Tile family CGRAM palette shadow buffers (7 families × 32 bytes). |
-| `$7E:6289` | 28 bytes | `OAM_SLICE_DESCRIPTORS` | Frame | Hardware sprite OAM tile slice position and attribute descriptor array. |
+| `$7E:6289` | 256 bytes | `SPRITE_ANIM_CHANNELS` | Room | Dynamic sprite animation channel descriptors (8 channels × 32 bytes; active flags at +0x1C; $90:CC1A, $90:CF3A). |
 | `$7E:62A5` | 224 bytes | `TILE_ANIM_VRAM_OFFSETS` | Room | Source VRAM tile offset table for animated tile family cycling. |
 | `$7E:6387` | struct ProjectileSlot[8] | `PROJECTILE_SLOTS_BASE` | Room | Combat Engine: 8-slot active physics projectile array (stride 44 bytes; +$06 sprite, +$10 active, +$14 X, +$16 Y, +$18 Z, +$1E life, +$26 behaviour, +$28 power) |
+| `$7E:65D1` | 32 bytes | `COLOR_CROSSFADE_DELTA_BUFFER` | Room | Palette cross-fade channel intermediate RGB delta buffer ($90:D481). |
+| `$7E:6611` | 32 bytes | `COLOR_CROSSFADE_CGRAM_STAGING_BUF` | Room | CGRAM palette cross-fade output staging buffer (uploaded via $80:85FA). |
+| `$7E:684D` | 7 bytes | `HDMA_WINDOW_INDIRECT_TABLE` | Frame | HDMA Channel 5 indirect table header for PPU Window 1 masking ($2126 WH0; $91:C7F5). |
+| `$7E:6869` | 512 bytes | `HDMA_WINDOW_MASK_BUFFER_A` | Frame | PPU Window 1 scanline coordinate rasterization buffer A (256 words; $91:C7F5, $91:C899). |
+| `$7E:6A7D` | 512 bytes | `HDMA_WINDOW_MASK_BUFFER_B` | Frame | PPU Window 1 scanline coordinate rasterization buffer B (256 words; $91:C7F5, $91:C899). |
 | `$7E:6C91` | `Byte×1599` | `dynamic_vram_tiles_8x8` | `Frame` | Staging buffer for dynamic 8x8 4bpp SNES sprite tiles ($7E:6C91..$7E:72D0, 32 bytes per tile) queued for VRAM DMA by obj_tile_allocate ($C0:A4B5). |
 | `$7E:72D1` | 1024 bytes | `SPRITE_TILE_STAGING_BUF` | Frame | Staging buffer for 4bpp sprite tile graphics unpacked dynamically before VRAM DMA upload (128 bytes per 16x16 tile). |
 | `$7E:7321` | 16 bytes | `LAVA_PALETTE_ROTATION` | Frame | Animated palette rotation buffer for bubbling molten lava surface glow. |
