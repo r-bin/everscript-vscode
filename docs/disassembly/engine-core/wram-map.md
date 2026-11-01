@@ -800,6 +800,8 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:2523` | `Word` | `sram_chest_flags_6` | `Save` | Persistent treasure chest / gourd collection bitmask words 12..13 (gourds 192..223). |
 | `$7E:2525` | `Word` | `sram_chest_flags_7` | `Save` | Persistent treasure chest / gourd collection bitmask words 14..15 (gourds 224..255). |
 | `$7E:2533` | `Word` | `sram_boss_defeated_flags` | `Save` | Persistent campaign boss defeat bitmask (Thraxx, Salabog, Magmar, Vigor, Megataur, Rimsala, Carltron). |
+| `$7E:2537` | 2 | `LOOT_TEXT_ARG_2` | Room | Secondary text parameter mailbox for loot pickup message box formatting |
+| `$7E:2539` | 2 | `LOOT_TEXT_ARG_1` | Room | Primary text parameter mailbox for loot pickup message box formatting |
 | `$7E:2545` | 2 | `DIALOGUE_SELECTION` | Room | Player selection choice index from message box menu |
 | `$7E:254D` | 2 | `MARKET_PEDDLER_COOLDOWN_START_FRAME` | Room | Nobilia Market entrance peddler cooldown start timestamp |
 | `$7E:2834` | `Word` | `script_temp_reg_0` | `Frame` | Script VM temporary evaluation register 0 / script variable base ($8C:D7E1, opcode $10..$18 indexed offset). |
@@ -1216,6 +1218,8 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:AB7A` | 96 bytes | `VRAM_TILE_LRU_NEXT` | Frame | Forward links for least-recently-used (LRU) dynamic VRAM sprite tile allocator. |
 | `$7E:ABDE` | 512 bytes | `LOW_OAM_TABLE_BUF` | Frame | Low OAM staging buffer (128 hardware sprites × 4 bytes: X low, Y, tile number, attributes); uploaded to SNES OAM via DMA in VBlank. |
 | `$7E:ADDE` | 32 bytes | `HIGH_OAM_TABLE_BUF` | Frame | High OAM staging buffer (32 bytes = 128 sprites × 2 bits: bit 0 = 9th bit of X, bit 1 = sprite size 8x8 vs 16x16/32x32); uploaded via DMA in VBlank. |
+| `$7E:ADFE` | 20992 bytes | `UNUSED_WRAM_BANK_7E` | Boot | Large unallocated work RAM gap in Bank $7E (20.5 KB) |
+| `$7E:FFFE` | 2 | `SCRIPT_VM_ZERO_WORD` | Boot | Constant zero word at top of Bank $7E read by script VM |
 | `$7F:0000` | `Byte×40960` | `room_metatile_grid` | `Room` | Primary decompressed 16-bit room metatile grid & collision geometry layer ($7F:0000..$7F:9FFF, up to 64×64 metatiles). |
 | `$7F:8000` | 2 | `DIALOGUE_DECOMP_BUFFER` | Room | Dialogue text string decompression and decoding staging buffer in Bank $7F |
 | `$7F:A000` | `Byte×674` | `viewport_tilemap_composite` | `Room` | Active viewport screen tilemap composite staging buffer in Bank $7F ($7F:A000..$7F:A2A1). |
