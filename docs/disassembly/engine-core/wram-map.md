@@ -379,7 +379,8 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0EB0` | 2 bytes | `PENDING_MAP_EVENT_1` | Room | Secondary queued map event script ID ($FFFF = none). |
 | `$7E:0EB2` | 2 bytes | `DOG_CURRENT_HP` | Save | Dog companion current health points. |
 | `$7E:0EB4` | 2 bytes | `WINGS_ESCAPE_SCRIPT_ID` | Room | Wings / dungeon escape event script ID ($FFFF = none; ROOM_HOOK 5). |
-| `$7E:0EBE` | 2 bytes | `RING_16_CURSOR_0EBE` | Unknown | Cursor of a 16-byte-record ring at $5DC3-$6183. Moves on by 16 bytes per record; what the records are is not known. |
+| `$7E:0EBE` | 2 bytes | `SPAWN_RING_HEAD_PTR` | Room | Active scan cursor into 60-slot spawn ring table at $7E:5DC3..$7E:6182 (advanced by 16 bytes in func_8FDDBB). |
+| `$7E:0EC0` | 2 bytes | `SPAWN_RING_TAIL_PTR` | Room | Secondary cursor tracking tail allocation point of spawn ring table at $7E:5DC3..$7E:6182 (initialized in func_8FDF14). |
 | `$7E:0EC0` | 32 bytes | `DEFERRED_SPAWN_BUF` | Room | Buffer storing entity spawn parameters queued during map transitions. |
 | `$7E:0EC6` | 2 bytes | `INPUT_P1_HELD_BUTTONS` | Frame | Player 1 controller buttons currently held down (raw auto-joypad read from hardware register $4218). |
 | `$7E:0F36` | 2 bytes | `STEP_DITHER_COUNTER` | Frame | Sub-pixel walk step dither accumulator for smooth actor movement. |
@@ -666,7 +667,9 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:23A9` | 2 bytes | `PRIZE_2_QTY` | Save | Game script variable: PRIZE 2 QTY |
 | `$7E:23AB` | 2 bytes | `PRIZE_3_QTY` | Save | Game script variable: PRIZE 3 QTY |
 | `$7E:23BF` | 2 bytes | `PACIFIED` | Save | Pseudo-boolean pacified state ($0000 = False, $0001 = True; compiler: PACIFIED). |
-| `$7E:23C3` | 2 bytes | `COMPANION_TIGHT_TETHER` | Unknown | Non-zero: the companion keeps close (tether limits 4/3/3/1). What sets it is not traced. |
+| `$7E:23C1` | 2 bytes | `COMPANION_TETHER_MODE` | Room | Companion leash behavior state (0 = standard follow distance, non-zero = tight tether). |
+| `$7E:23C3` | 2 bytes | `COMPANION_TIGHT_TETHER` | Room | Non-zero: the companion keeps close (tether limits 4/3/3/1). Cleared on room load by func_908E90; set by tight room/indoor scripts. |
+| `$7E:23C5` | 2 bytes | `COMPANION_LEASH_RADIUS` | Room | Companion leash maximum distance parameter (default $2000; initialized in func_908E90). |
 | `$7E:23CD` | 2 bytes | `WEAPON_PALETTE` | Save | Boy/weapon active sprite palette CGRAM byte offset ($40, $60, $80, $A0, $C0; checked in $8F:81C9). |
 | `$7E:23CF` | 2 bytes | `DOG_PALETTE` | Save | Dog active sprite palette CGRAM byte offset ($40, $60, $80, $A0, $C0; checked in $8F:9471). |
 | `$7E:23D5` | 2 | `SCRIPT_DAMAGE_REDIRECT_FLAG` | Frame | Script VM: Opcode 0x92 damage redirect flag (0 = standard knockback damage, non-zero = redirect to opcode 0xBB damage without knockback) |
@@ -698,6 +701,8 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:242B` | 2 bytes | `CAMERA_SCRIPTED_TARGET_X` | Room | Forced scripted camera focus target X coordinate (-1 = follow player). |
 | `$7E:242D` | 2 bytes | `CAMERA_SCRIPTED_TARGET_Y` | Room | Forced scripted camera focus target Y coordinate (-1 = follow player). |
 | `$7E:242F` | 2 bytes | `CAMERA_PAN_VELOCITY` | Room | Transition panning speed between scripted camera targets. |
+| `$7E:2431` | 2 bytes | `SPAWN_RESPAWN_RATE_DEFAULT` | Room | Default entity respawn interval countdown ticks (initialized to $0258 = 600 frames in func_8FDF14). |
+| `$7E:2433` | 2 bytes | `SPAWN_SYSTEM_ENABLE` | Room | Entity spawn system global enable gate (1 = active, 0 = disabled; initialized in func_8FDF14). |
 | `$7E:2435` | 2 bytes | `ROOM_AMBIENT_LIGHT_LEVEL` | Room | Ambient light/shade color tint parameter applied to room palette (default $15). |
 | `$7E:2437` | 2 bytes | `MAP_PALETTE_INDEX` | Room | Active map color palette family identifier index. |
 | `$7E:243D` | 2 bytes | `BUFF_REQUEST_1` | Room | Queued alchemy formula stat buff application register 1. |
@@ -1018,6 +1023,9 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:511F` | `Byte×8` | `sprite_sort_bucket_15` | `Frame` | Y-sorted sprite display list bucket 15 (Screen Y 960..1023): +0 prev, +2 next, +4 key, +6 tail. |
 | `$7E:5127` | 2 bytes | `SPRITE_DRAW_QUEUE_HEAD` | Frame | Head pointer to sorted sprite render queue (`$7E:512F..$7E:516F`); traversed by `func_C096BB`. |
 | `$7E:512F` | 64 bytes | `SPRITE_DRAW_QUEUE_NODES` | Frame | Dynamic sprite draw queue nodes (stride 16 bytes: `+$00` next link, `+$04` state, `+$06` X, `+$08` Y, `+$0A` attr flags, `+$0C..$0E` 24-bit slice table ptr). |
+| `$7E:5DC3` | 960 bytes | `SPAWN_RECORDS_TABLE` | Room | 60-slot entity respawn descriptor ring table (stride 16 bytes: +$00 ID, +$02 X, +$04 Y, +$06 flags, +$08 cooldown, +$0A mult, +$0C cap, +$0E entity slot). |
+| `$7E:6183` | 2 bytes | `SPAWN_CYCLE_FRAMES` | Room | Elapsed frame counter across spawn table scanning passes (reset in func_8FDDBB). |
+| `$7E:6185` | 2 bytes | `SPAWN_SCAN_COUNTER` | Room | Number of spawn slots evaluated during current frame's spawn loop iteration. |
 | `$7E:6187` | 32 bytes | `SPRITE_CGRAM_SHADOW` | Room | Sprite palette shadow buffer DMA-copied to SNES CGRAM during VBLANK. |
 | `$7E:61A7` | 224 bytes | `MAP_TILE_PALETTES` | Room | Tile family CGRAM palette shadow buffers (7 families × 32 bytes). |
 | `$7E:6289` | 28 bytes | `OAM_SLICE_DESCRIPTORS` | Frame | Hardware sprite OAM tile slice position and attribute descriptor array. |
