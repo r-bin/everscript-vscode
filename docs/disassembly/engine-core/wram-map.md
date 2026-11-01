@@ -835,7 +835,6 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:2433` | 2 bytes | `SPAWN_SYSTEM_ENABLE` | Room | Entity spawn system global enable gate (1 = active, 0 = disabled; initialized in func_8FDF14). |
 | `$7E:2435` | 2 bytes | `ROOM_AMBIENT_LIGHT_LEVEL` | Room | Ambient light/shade color tint parameter applied to room palette (default $15). |
 | `$7E:2437` | 2 bytes | `MAP_PALETTE_INDEX` | Room | Active map color palette family identifier index. |
-| `$7E:2439` | 2 bytes | `WEATHER_ACTIVE_MODE` | Room | Active room weather simulation mode enum (0 = clear, 1 = rain, 2 = snow, 3 = ash, 4 = embers; $80:A305). |
 | `$7E:243B` | 2 bytes | `PENDING_SOUND_COMMAND` | Frame | Queued sound effect / audio driver mailbox flushed by Script VM opcodes 0x30..0x32 ($8C:D6A7). |
 | `$7E:243D` | 2 | `EQUIPMENT_GRANT_COMMAND` | Frame | Pending equipment item grant ID |
 | `$7E:243F` | 2 | `EQUIPMENT_TAKE_COMMAND` | Frame | Pending equipment item revoke/take ID |
