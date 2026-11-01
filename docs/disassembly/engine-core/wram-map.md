@@ -352,7 +352,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0B4D` | 2 bytes | `WEAPON_STAMINA_RECOVERY_TIMER` | Room | Cooldown timer controlling stamina gauge recharge rate after an attack. |
 | `$7E:0B4F` | 2 bytes | `SCREEN_FLASH_COLOR` | Frame | 15-bit BGR color value for active screen flash overlay. |
 | `$7E:0B51` | `Word` | `alchemy_cast_effect_id` | `Frame` | Formula animation effect script identifier loaded into combat VM on cast. |
-| `$7E:0B57` | `Word` | `hud_exp_bar_flash_timer` | `Frame` | Flash color cycle timer ticks when weapon or alchemy skill increases level. |
+| `$7E:0B57` | 2 bytes | `HUD_POPUP_QUEUE_HEAD_PTR` | Room | Pointer to active 64-byte notification slot in floating combat text ring buffer ($7E:3074..$7E:3273; stepped by func_80B37A). |
 | `$7E:0B6F` | `Word` | `dialogue_scroll_timer` | `Frame` | Typewriter text scroll delay counter decremented in per-frame tick ($8C:A229). |
 | `$7E:0B70` | `Byte` | `dialogue_scroll_flags` | `Frame` | Scroll flags controlling instantaneous text paging vs smooth vertical line scrolling. |
 | `$7E:0B77` | `Word` | `joypad_button_hold_timer` | `Frame` | Duration in ticks current button has been held down continuously. |
@@ -939,6 +939,8 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:301E` | 2 | `FORMULA_USAGE_STING` | Save | Alchemy Statistics: Total lifetime casts counter for formula Sting ($91:D800) |
 | `$7E:3020` | 2 | `FORMULA_USAGE_STOP` | Save | Alchemy Statistics: Total lifetime casts counter for formula Stop ($91:D800) |
 | `$7E:3022` | 2 | `FORMULA_USAGE_SUPER_HEAL` | Save | Alchemy Statistics: Total lifetime casts counter for formula Super Heal ($91:D800) |
+| `$7E:3074` | 512 bytes | `HUD_POPUP_TEXT_SLOTS` | Room | Floating combat text and HUD notification popup ring buffer (8 slots × 64 bytes) |
+| `$7E:3294` | 208 bytes | `SPELL_EFFECT_EMITTER_SLOTS` | Room | Active spell particle and effect emitter slots (8 slots × 26 bytes) |
 | `$7E:3364` | struct AnimAlchemySlot[8] | `ANIM_ALCHEMY_SLOTS_BASE` | Room | Combat Engine: 8-slot Animation Alchemy active array (stride $40=64 bytes; +$0E timer, +$12 spell ID, +$26 active flag, +$28 src, +$2A power) |
 | `$7E:3564` | struct ProjAlchemySlot[8] | `PROJ_ALCHEMY_SLOTS_BASE` | Room | Combat Engine: 8-slot Projectile Alchemy active array (stride $76=118 bytes; +$12 spell ID, +$26 active flag, +$28 src, +$2A power, +$2E target) |
 | `$7E:3578` | `Word` | `particle_slot_0_active` | `Frame` | Particle / projectile animation slot 0 active execution flag (+0x14 in $7E:3564, reset in $91:97AF). |
