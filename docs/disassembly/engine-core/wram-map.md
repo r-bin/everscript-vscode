@@ -17,8 +17,8 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 
 | Address | Size | Identifier | Lifetime | Purpose & Behavior |
 |---|---|---|---|---|
-| `$7E:0000` | `Byte×256` | `direct_page_block` | `Frame` | Continuous 256-byte SNES Direct Page scratchpad ($7E:0000..$7E:00FF, CPU D=0x0000) containing math registers, camera coords, metasprite ptrs, VM registers, and loop counters. |
 | `$7E:0000` | 256 bytes | `DIRECT_PAGE_BLOCK` | Boot | SNES Direct Page continuous register scratchpad |
+| `$7E:0000` | `Byte×256` | `direct_page_block` | `Frame` | Continuous 256-byte SNES Direct Page scratchpad ($7E:0000..$7E:00FF, CPU D=0x0000) containing math registers, camera coords, metasprite ptrs, VM registers, and loop counters. |
 | `$7E:0002` | 2 bytes | `DP_SCRATCH_02` | Frame | Direct Page 16-bit math scratchpad; actor anchor screen X coordinate in sprite compositor (`func_C09040`); units digit in decimal conversion (`func_C0870C`); destination write pointer in LZSS decompression (`method_0x03`). |
 | `$7E:0003` | 1 byte | `DP_DECIMAL_DIGIT_TENS` | Temp | Tens digit in decimal ASCII conversion (`func_C0870C`); high byte of `DP_SCRATCH_02`. |
 | `$7E:0004` | 2 bytes | `DP_SCRATCH_04` | Frame | Direct Page 16-bit math scratchpad; actor anchor screen Y coordinate in sprite compositor (`func_C09040`); hundreds digit in decimal conversion (`func_C0870C`). |
@@ -100,8 +100,8 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0123` | 1 byte | `PPU_SHADOW_W34SEL` | Frame | Window 1 and 2 mask settings shadow for BG3 and BG4; copied to hardware register $2124. |
 | `$7E:0124` | 1 byte | `PPU_SHADOW_WOBJSEL` | Frame | Window 1 and 2 mask settings shadow for OBJ and Color math; copied to hardware register $2125. |
 | `$7E:0125` | 3 bytes | `VBLANK_CALLBACK_PTR` | Frame | 24-bit indirect execution vector ($7E:0125..$7E:0127) called during NMI via jml [$0125]. |
-| `$7E:0128` | 3 bytes | `VBLANK_QUEUED_CALLBACK_PTR` | Frame | Next 24-bit callback vector queued to replace $7E:0125 at end of current frame. |
 | `$7E:0128` | 3 bytes | `NMI_USER_HOOK_FAR_PTR` | Boot | 24-bit far indirect vector hook jumped to during VBlank NMI interrupt dispatch ($80:857F). |
+| `$7E:0128` | 3 bytes | `VBLANK_QUEUED_CALLBACK_PTR` | Frame | Next 24-bit callback vector queued to replace $7E:0125 at end of current frame. |
 | `$7E:012B` | 3 bytes | `IRQ_USER_HOOK_FAR_PTR` | Boot | 24-bit far indirect vector hook executed upon firing of H/V-Timer scanline IRQ ($80:8507, $80:8552). |
 | `$7E:0133` | 2 bytes | `RNG_SEED_0` | Frame | Cross-word carry pseudo-random number generator 16-bit seed word 0 (updated by func_C0859B). |
 | `$7E:0134` | 1 byte | `SECONDARY_RNG_JITTER_SEED` | Frame | Secondary pseudo-random byte seed for particle jitter calculations ($90:98A5). |
@@ -308,6 +308,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0AB0` | 2 | `DOG_FORM_CHARGE_MULT` | Room | Companion Stats: Active Dog form charge attack damage multiplier ($8F:9471). |
 | `$7E:0AB8` | 2 | `DOG_FORM_ATTACK_RANGE` | Room | Companion Stats: Active Dog form physical bite/dash attack hitbox range ($8F:9471). |
 | `$7E:0ABA` | 1 byte | `EQUIPPED_WEAPON` | Save | Equipped weapon index (bone, axe, spear, bazooka, etc.). |
+| `$7E:0ABE` | 2 bytes | `DOG_EQUIPPED_COLLAR` | Save | Identifier of currently equipped Dog companion collar armor (Leather Collar, Spiky Collar, etc.; $8F:857D). |
 | `$7E:0AC6` | 2 bytes | `CURRENCY_TALONS` | Save | Prehistoria realm currency balance (Talons). |
 | `$7E:0AC9` | 2 bytes | `CURRENCY_JEWELS` | Save | Antiqua realm currency balance (Jewels). |
 | `$7E:0ACC` | 2 bytes | `CURRENCY_GOLD` | Save | Gothica realm currency balance (Gold Coins). |
@@ -429,19 +430,43 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0F40` | 2 | `ENTITY_PTR_DOG` | Boot | Entity Subsystem: Address pointer to Companion (Dog) entity slot in WRAM (defaults to $4F37; initialized in $8F:8144) |
 | `$7E:0F42` | 2 bytes | `CAMERA_TARGET_ACTOR_PTR` | Room | Pointer to primary actor entity record tracked by camera (points to Boy at $7E:4E89). |
 | `$7E:0F44` | 2 bytes | `VIEWPORT_SCROLL_Y` | Frame | Vertical world coordinate of top-left camera viewport boundary. |
+| `$7E:0F48` | 2 bytes | `VIEWPORT_CULL_MIN_X` | Frame | Camera viewport frustum left bound for 2D entity and shadow culling ($90:9545). |
+| `$7E:0F4A` | 2 bytes | `VIEWPORT_CULL_MIN_Y` | Frame | Camera viewport frustum top bound for 2D entity and shadow culling ($90:9545). |
+| `$7E:0F4C` | 2 bytes | `VIEWPORT_CULL_MAX_X` | Frame | Camera viewport frustum right bound for 2D entity and shadow culling ($90:9545). |
+| `$7E:0F4E` | 2 bytes | `VIEWPORT_CULL_MAX_Y` | Frame | Camera viewport frustum bottom bound for 2D entity and shadow culling ($90:9545). |
 | `$7E:0F84` | 2 bytes | `MAP_HEADER_FLAGS` | Room | Bitmask flags loaded from map header (layering, Mode 7, weather). |
-| `$7E:0F86` | 1 byte | `MAP_LOADED_FLAG` | Room | Set to 1 after room tilemaps, collision, and palettes are fully decompressed. |
+| `$7E:0F86` | 2 bytes | `ROOM_TRIGGER_ORIGIN_X` | Room | Room step-on trigger origin X offset in 16px metatile cells ($8F:ACB1). |
+| `$7E:0F88` | 2 bytes | `ROOM_TRIGGER_ORIGIN_Y` | Room | Room step-on trigger origin Y offset in 16px metatile cells ($8F:ACB1). |
 | `$7E:0F8A` | 2 bytes | `LOADED_PALETTE_TAG` | Room | Identifier of currently loaded map palette family. |
+| `$7E:0F8C` | 2 bytes | `MINIMAP_RADAR_WINDOW_TOP` | Room | Minimap radar viewport top vertical clipping bound ($90:A4EC). |
+| `$7E:0F8E` | 2 bytes | `MINIMAP_RADAR_WINDOW_BOTTOM` | Room | Minimap radar viewport bottom vertical clipping bound ($90:A4EC). |
+| `$7E:0F90` | 2 bytes | `MINIMAP_RADAR_WINDOW_LEFT` | Room | Minimap radar viewport left horizontal clipping bound ($90:A4EC). |
+| `$7E:0F92` | 2 bytes | `MINIMAP_RADAR_WINDOW_RIGHT` | Room | Minimap radar viewport right horizontal clipping bound ($90:A4EC). |
 | `$7E:0FAC` | 2 bytes | `ROOM_PALETTE_GROUP_ID` | Room | Active room palette group index (initialized to $11 by reset_per_room_state). |
 | `$7E:0FB0` | 1 byte | `TERRAIN_MUT_ACTIVE` | Frame | Set non-zero when animated terrain tile mutations are active. |
 | `$7E:0FB4` | 12 bytes | `CELL_COLLISION_FLAGS` | Room | Current 16x16 metatile cell collision properties and impassable edges. |
+| `$7E:0FB6` | 2 bytes | `MINIMAP_SCREEN_DEST_OFFSET` | Frame | Screen tile buffer byte offset for minimap metatile rasterization ($90:A5D0). |
+| `$7E:0FB8` | 2 bytes | `MINIMAP_TARGET_CELL_X` | Frame | Candidate cell X coordinate evaluated during minimap rasterization ($90:A5D0). |
 | `$7E:0FB9` | 2 bytes | `ENV_SFX_TRIGGER` | Room | Sound effect ID trigger for environmental audio (wind, waterfall, lava). |
+| `$7E:0FBA` | 2 bytes | `MINIMAP_TARGET_CELL_Y` | Frame | Candidate cell Y coordinate evaluated during minimap rasterization ($90:A5D0). |
 | `$7E:0FBD` | 2 bytes | `ENV_SHAKE_TRIGGER` | Room | Magnitude trigger for environmental ground tremor effects. |
+| `$7E:0FBE` | 2 bytes | `MINIMAP_TARGET_RIGHT_EDGE` | Frame | Candidate cell right edge bound for minimap clipping ($90:A5D0). |
 | `$7E:0FBF` | 2 bytes | `ENV_AUDIO_PARAM` | Room | Secondary audio parameter (pitch/pan) for environmental audio. |
+| `$7E:0FC0` | 2 bytes | `MINIMAP_TARGET_BOTTOM_EDGE` | Frame | Candidate cell bottom edge bound for minimap clipping ($90:A5D0). |
+| `$7E:0FC2` | 2 bytes | `MINIMAP_VRAM_DMA_TRIGGER` | Frame | Flag set when dynamic minimap updates are ready to stream to VRAM via DMA ($90:A5D0). |
+| `$7E:0FC6` | 2 bytes | `MINIMAP_POI_TYPE_INDEX` | Frame | Point of Interest type descriptor index during radar blip scanning ($90:A650). |
+| `$7E:0FC8` | 2 bytes | `MINIMAP_METATILE_PROP_THRESH` | Room | Metatile transparency property threshold key for radar clipping ($90:A4EC). |
+| `$7E:0FCA` | 2 bytes | `MINIMAP_POI_SCAN_OFFSET` | Frame | Scan offset into ROM POI table in bank $90 ($90:A650). |
+| `$7E:0FCC` | 2 bytes | `MINIMAP_POI_OFFSET_X` | Room | World X translation offset applied to POI radar blip coordinates ($90:A650). |
+| `$7E:0FCE` | 2 bytes | `MINIMAP_POI_OFFSET_Y` | Room | World Y translation offset applied to POI radar blip coordinates ($90:A650). |
 | `$7E:0FD0` | 2 bytes | `GRASS_BATCH_CURSOR` | Room | Cursor index into pending cuttable grass tile swap queue. |
 | `$7E:0FD2` | 48 bytes | `GRASS_SWAP_QUEUE` | Room | Coordinate swap queue holding tiles converted from standing to cut grass. |
 | `$7E:1002` | 48 bytes | `GRASS_GRID_OFFSETS` | Room | Tilemap offset lookup table corresponding to pending grass swaps. |
+| `$7E:1002` | 8 bytes | `MINIMAP_POI_BUFFER_OFFSETS` | Frame | Tilemap buffer byte offsets for 4 active dynamic POI radar blips ($90:A6B4). |
 | `$7E:1032` | 48 bytes | `GRASS_PACKED_COORDS` | Room | Packed world coordinates (X, Y) for cut grass tile locations. |
+| `$7E:1032` | 8 bytes | `MINIMAP_POI_PACKED_COORDS` | Frame | Packed coordinates (X | (Y << 8)) for 4 active dynamic POI radar blips ($90:A6B4). |
+| `$7E:1067` | 2 bytes | `ROOM_STEP_TRIGGER_COUNT` | Room | Number of active step-on coordinate triggers loaded for current room ($8F:ACB1). |
+| `$7E:1069` | 3 bytes | `ROOM_STEP_TRIGGER_TABLE_PTR` | Room | 24-bit far pointer to active room step-on trigger bounding boxes ($8F:ACB1). |
 | `$7E:106C` | 2 bytes | `ACTIVE_ANIM_CHANNELS` | Room | Count of actively cycling animated tile channels on current map. |
 | `$7E:106E` | 2 bytes | `ANIM_TILE_VRAM_BASE` | Room | Destination base address in VRAM where animated tiles are DMA-streamed. |
 | `$7E:1076` | 2 bytes | `ROOM_FADE_FRAME_COUNT` | Room | Duration in frames of room transition screen brightness fade (default 6 frames). |
@@ -787,6 +812,8 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:241F` | 2 bytes | `CAMERA_SCROLL_MODE` | Room | Camera tracking mode enum (0 = Follow target player, 2 = Fixed / scripted focus). |
 | `$7E:2421` | 2 | `TRIGGER_INTERACTION_X` | Room | Trigger interaction context entity X coordinate in world pixels |
 | `$7E:2423` | 2 | `TRIGGER_INTERACTION_Y` | Room | Trigger interaction context entity Y coordinate in world pixels |
+| `$7E:2425` | 2 bytes | `TRIGGER_INTERACTION_FACING` | Room | Actor facing direction index (0..3) recorded at moment of trigger interaction ($8F:ABED). |
+| `$7E:2427` | 2 bytes | `TRIGGER_INTERACTION_FLAGS` | Room | Actor interaction status flags recorded at moment of trigger interaction ($8F:ABED). |
 | `$7E:2429` | 2 bytes | `TRIGGER_SCRIPT_LOCK` | Room | Execution lock held while a step-on coordinate trigger script is running. |
 | `$7E:242B` | 2 bytes | `CAMERA_SCRIPTED_TARGET_X` | Room | Forced scripted camera focus target X coordinate (-1 = follow player). |
 | `$7E:242D` | 2 bytes | `CAMERA_SCRIPTED_TARGET_Y` | Room | Forced scripted camera focus target Y coordinate (-1 = follow player). |
@@ -1228,6 +1255,11 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:4EE7` | 2 bytes | `BOY_NEXT_ENTITY` | Room | Pointer to next entity in active entity linked list (`+$5E` in entity struct, $0000 = end of list). |
 | `$7E:4EE9` | 2 bytes | `BOY_CHAR_TYPE_PTR` | Room | Pointer to character master definition struct in bank $8E (`+$60` in entity struct). |
 | `$7E:4F1D` | 4 bytes | `BOY_EXP_POINTS` | Save | Player character (Boy) 32-bit accumulated experience points (+0x94 low word $7E:4F1D, +0x96 high word $7E:4F1F; $8D:A0E9). |
+| `$7E:4F29` | 2 bytes | `BOY_GEAR_BONUS_MDEF` | Save | Boy equipment bonus magic defense rating (+0xA0 in struct at 7E:4E89; $8F:8600). |
+| `$7E:4F2B` | 2 bytes | `BOY_GEAR_BONUS_PDEF` | Save | Boy equipment bonus physical defense rating (+0xA2 in struct at 7E:4E89; $8F:8600). |
+| `$7E:4F2D` | 2 bytes | `BOY_GEAR_BONUS_ATK` | Save | Boy equipment bonus physical attack rating (+0xA4 in struct at 7E:4E89; $8F:8600). |
+| `$7E:4F2F` | 2 bytes | `BOY_GEAR_BONUS_HIT` | Save | Boy equipment bonus accuracy / hit rate rating (+0xA6 in struct at 7E:4E89; $8F:8600). |
+| `$7E:4F31` | 2 bytes | `BOY_GEAR_BONUS_EVADE` | Save | Boy equipment bonus evasion rate rating (+0xA8 in struct at 7E:4E89; $8F:8600). |
 | `$7E:4F37` | 174 bytes | `DOG_ENTITY_RECORD` | Room | Primary actor entity structure for dog companion character. |
 | `$7E:4F47` | 2 bytes | `DOG_STATUS_FLAGS` | Room | Primary action and collision status flags for Dog companion entity (`+$10` in entity struct). |
 | `$7E:4F49` | 2 bytes | `DOG_ANIM_PHASE_TIMER` | Room | Sub-frame animation phase timer for Dog companion entity (`+$12` in entity struct). |
@@ -1247,6 +1279,11 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:4FA5` | 2 | `DOG_FORM_SCRIPT_PTR_LOW` | Room | Companion Mechanics: Low 16-bit pointer to active Dog form animation walker script ($8F:9471). |
 | `$7E:4FA6` | 1 | `DOG_FORM_SCRIPT_PTR_BANK` | Room | Companion Mechanics: Bank byte of active Dog form animation walker script. |
 | `$7E:4FCB` | 4 bytes | `DOG_EXP_POINTS` | Save | Companion character (Dog) 32-bit accumulated experience points (+0x94 low word $7E:4FCB, +0x96 high word $7E:4FCD; $8D:A9A0). |
+| `$7E:4FD7` | 2 bytes | `DOG_GEAR_BONUS_MDEF` | Save | Dog equipment bonus magic defense rating (+0xA0 in struct at 7E:4F37; $8F:857D). |
+| `$7E:4FD9` | 2 bytes | `DOG_GEAR_BONUS_PDEF` | Save | Dog equipment bonus physical defense rating (+0xA2 in struct at 7E:4F37; $8F:857D). |
+| `$7E:4FDB` | 2 bytes | `DOG_GEAR_BONUS_ATK` | Save | Dog equipment bonus physical attack rating (+0xA4 in struct at 7E:4F37; $8F:857D). |
+| `$7E:4FDD` | 2 bytes | `DOG_GEAR_BONUS_HIT` | Save | Dog equipment bonus accuracy / hit rate rating (+0xA6 in struct at 7E:4F37; $8F:857D). |
+| `$7E:4FDF` | 2 bytes | `DOG_GEAR_BONUS_EVADE` | Save | Dog equipment bonus evasion rate rating (+0xA8 in struct at 7E:4F37; $8F:857D). |
 | `$7E:4FE6` | 50 bytes | `MAP_ANIM_FRAMES` | Room | Current animation frame indices for active map animated tile channels. |
 | `$7E:5018` | 50 bytes | `MAP_ANIM_TIMERS` | Room | Countdown hold delay timers for active map animated tile channels. |
 | `$7E:504A` | 50 bytes | `MAP_ANIM_CYCLES` | Room | Loop cycle iteration counters for active map animated tile channels. |
