@@ -12,3 +12,4 @@ see: [docs/disassembly/engine-core/wram-map.md]
 ---
 Final byte of SNES 128 KB Work RAM (`$7F:FFFF`).
 Marks the highest address of the 64 KB Bank `$7F` memory space on the SNES memory bus.
+

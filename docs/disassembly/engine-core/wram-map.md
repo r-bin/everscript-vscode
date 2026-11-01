@@ -558,14 +558,14 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:22DA` | 1 | `WEAPONS_OWNED_FLAGS_0` | Save | Combat Subsystem: Weapon unlocked bitmask byte 0 (bits 1..7: Bone Club, Spider Claw, Horn Spear, Gladiator Sword, Bronze Axe, Bronze Spear, Crusader Sword). |
 | `$7E:22DB` | 1 | `WEAPONS_OWNED_FLAGS_1` | Save | Combat Subsystem: Weapon unlocked bitmask byte 1 (bits 0..5: Knight Basher, Lance, Neutron Blade, Atom Smasher, Laser Lance, Bazooka). |
 | `$7E:22E9` | 1 | `ROOM_TRANSITION_MODE` | Room | Engine State: Room transition execution mode flag ($80:8CD3). |
-| `$7E:22EA` | 1 byte | `GAMEPLAY_FLAGS_22EA` | Mixed / unknown | Shared loot, room-load, intro/outro, and screen-layer flags; bit meanings are documented individually. Some native handlers access it as the low byte of a 16-bit word. |
-| `$7E:22EB` | 1 byte | `ROOM_TRANSITION_AND_SCRIPT_FLAGS_22EB` | Mixed / unknown | Shared engine-control, doorway, route-handoff, and room-script flags. Main-loop bit 2 selects the default-room reload path; per-room reset clears only bit 0. |
+| `$7E:22EA` | 1 byte | `GAMEPLAY_FLAGS_22EA` | Room | Multi-owner gameplay, room-load readiness, and render flags (bit 0 = loot success, bit 2 = SRAM boot path, bits 3-5 = collision/character/palette readiness in pre-roll loop, bit 7 = screen-layer override latch; see shared-flags-22ea-22eb.md). |
+| `$7E:22EB` | 1 byte | `ROOM_TRANSITION_AND_SCRIPT_FLAGS_22EB` | Room | Room transition and script VM coordination flags (bit 0 = room-local script latch, bit 2 = reload default room path in main loop, bit 6 = doorway handoff; see shared-flags-22ea-22eb.md). |
 | `$7E:22EC` | 1 | `ROOM_MUSIC_TRANSITION_FLAG` | Room | Engine State: Room change background music transition mode flag ($8C:D860). |
-| `$7E:22EE` | 2 | `ROOM_PRESERVED_FLAGS_WORD` | Room | Engine State: Preserved script and camera flags across room loading boundary ($8C:CEEF). |
+| `$7E:22EE` | 2 bytes | `SCRIPT_EXECUTION_LOCK_FLAGS` | Room | Script execution suspend gate and transition lock word (bit 0 set by func_8DB4FA during dialogue/cutscenes to lock VM execution; cleared by func_8CCEE9 on room transition to unfreeze actors and script threads). |
 | `$7E:22FA` | 1 byte | `CAMERA_ZOOM_SCALE_X` | Room | Mode 7 horizontal scale factor for rooms utilizing perspective rendering (written to $211C). |
 | `$7E:22FB` | 1 byte | `CAMERA_ZOOM_SCALE_Y` | Room | Mode 7 vertical scale factor for rooms utilizing perspective rendering (written to $211C). |
-| `$7E:22FC` | 2 bytes | `DESERT_WRAP_Y_` | Save | Game script variable: DESERT WRAP Y? |
-| `$7E:22FD` | 2 bytes | `DESERT_WRAP_X_` | Save | Game script variable: DESERT WRAP X? |
+| `$7E:22FC` | 1 byte | `DESERT_SECTOR_Y` | Save | Desert of Doom (Room 0x1B) endless navigation grid vertical sector coordinate (updated on boundary wrap triggers). |
+| `$7E:22FD` | 1 byte | `DESERT_SECTOR_X` | Save | Desert of Doom (Room 0x1B) endless navigation grid horizontal sector coordinate (updated on boundary wrap triggers). |
 | `$7E:22FF` | 1 byte | `STORY_FLAGS_OFFSET_0` | Save | Primary story progression event flag byte. |
 | `$7E:2300` | 1 | `ING_QTY_WATER` | Save | Alchemy Inventory: Owned quantity of Water (Ingredient ID $01; max 99) |
 | `$7E:2301` | 1 | `ING_QTY_VINEGAR` | Save | Alchemy Inventory: Owned quantity of Vinegar (Ingredient ID $02; max 99) |
@@ -656,7 +656,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:238D` | 2 bytes | `CHANGE_MUSIC` | Save | Game script variable: CHANGE MUSIC |
 | `$7E:2391` | 1 byte | `LOOT_MAILBOX` | Room | Loot mailbox — what the next pickup gives. \ |
 | `$7E:2393` | 2 bytes | `AMOUNT` | Save | Game script variable: AMOUNT |
-| `$7E:2395` | 2 bytes | `MAP_REF_` | Save | Game script variable: MAP REF? |
+| `$7E:2395` | 2 bytes | `LOOT_ROOM_OBJECT` | Room | Loot mailbox: Room object index of chest, gourd, or pot being opened/looted (written before calling loot handler). |
 | `$7E:239B` | 2 bytes | `PRIZE_1_RATE` | Save | Game script variable: PRIZE 1 RATE |
 | `$7E:239D` | 2 bytes | `PRIZE_2_RATE` | Save | Game script variable: PRIZE 2 RATE |
 | `$7E:239F` | 2 bytes | `PRIZE_3_RATE` | Save | Game script variable: PRIZE 3 RATE |

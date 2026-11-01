@@ -50,7 +50,7 @@ Evermore or from other projects. Partial knowledge says so. Format and code:
 | `+$1C` | with `+$2C` set, a special cell blocks while `$D0` or `+$1C` is non-zero (and `$FF` is 0) | `$01:B9BE`-`B9C7` |
 | `+$2C` | 0: a special cell whose c1 bit 6 is clear blocks this party member; non-zero: see `+$1C` | `$01:B9AE` |
 | `+$45` | must be 0 for a step event to run | `$00:B63C` |
-| `+$4B`, `+$4C` | the cell value just entered (`$00:D682`), and the last one; `+$4B` is cleared when its event runs | `$00:B642`; game (`check-events.js`) |
+| `+$4B`, `+$4C` (`$7E:E04B`, `$7E:E04C`) | the cell value just entered (`$00:D682`), and the last one; `+$4B` is cleared when its event runs | `$00:B642`; game (`check-events.js`) |
 | `+$48`, `+$49`, `+$4D` | c2 and c3 of the cell entered when c2 changed, and that c2 (for the change test); `$00:D359` acts on `+$48` | `$00:D8B3`; game |
 | `+$4A` | `$80`: entered a return cell; the main loop goes back to `$7E:CE00` | `$00:D692`, `$00:B613`; game |
 | `+$8B` | the character's own OAM attribute high byte (priority 2 for the party: `$2B`/`$2D`/`$2F`) | `$00:F6CC`; game |
