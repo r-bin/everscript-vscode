@@ -835,6 +835,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:2433` | 2 bytes | `SPAWN_SYSTEM_ENABLE` | Room | Entity spawn system global enable gate (1 = active, 0 = disabled; initialized in func_8FDF14). |
 | `$7E:2435` | 2 bytes | `ROOM_AMBIENT_LIGHT_LEVEL` | Room | Ambient light/shade color tint parameter applied to room palette (default $15). |
 | `$7E:2437` | 2 bytes | `MAP_PALETTE_INDEX` | Room | Active map color palette family identifier index. |
+| `$7E:2439` | 2 bytes | `WEATHER_ACTIVE_MODE` | Room | Active room weather simulation mode enum (0 = clear, 1 = rain, 2 = snow, 3 = ash, 4 = embers; $80:A305). |
 | `$7E:243B` | 2 bytes | `PENDING_SOUND_COMMAND` | Frame | Queued sound effect / audio driver mailbox flushed by Script VM opcodes 0x30..0x32 ($8C:D6A7). |
 | `$7E:243D` | 2 | `EQUIPMENT_GRANT_COMMAND` | Frame | Pending equipment item grant ID |
 | `$7E:243F` | 2 | `EQUIPMENT_TAKE_COMMAND` | Frame | Pending equipment item revoke/take ID |
@@ -1265,9 +1266,14 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:4EB7` | 2 bytes | `BOY_STAMINA` | Room | Boy player attack charge meter / stamina (`+$2E` in entity struct; full at $0400). |
 | `$7E:4EC3` | 2 bytes | `BOY_TILE_UNDER` | Room | Metatile index under Boy player entity feet (`+$3A` in entity struct). |
 | `$7E:4EC5` | 2 bytes | `BOY_TILE_COLLISION` | Room | Collision property flags word of metatile currently under Boy entity (`+$3C` in entity struct). |
+| `$7E:4ECF` | 6 bytes | `BOY_STATUS_SLOT_0` | Room | Boy active status effect slot 0 (status ID, duration timer, param boost rating; +0x46 in struct at 7E:4E89; $91:B632). |
+| `$7E:4ED5` | 6 bytes | `BOY_STATUS_SLOT_1` | Room | Boy active status effect slot 1 (status ID, duration timer, param boost rating; +0x4C in struct at 7E:4E89; $91:B632). |
+| `$7E:4EDB` | 6 bytes | `BOY_STATUS_SLOT_2` | Room | Boy active status effect slot 2 (status ID, duration timer, param boost rating; +0x52 in struct at 7E:4E89; $91:B632). |
+| `$7E:4EE1` | 6 bytes | `BOY_STATUS_SLOT_3` | Room | Boy active status effect slot 3 (status ID, duration timer, param boost rating; +0x58 in struct at 7E:4E89; $91:B632). |
 | `$7E:4EE7` | 2 bytes | `BOY_NEXT_ENTITY` | Room | Pointer to next entity in active entity linked list (`+$5E` in entity struct, $0000 = end of list). |
 | `$7E:4EE9` | 2 bytes | `BOY_CHAR_TYPE_PTR` | Room | Pointer to character master definition struct in bank $8E (`+$60` in entity struct). |
 | `$7E:4F1D` | 4 bytes | `BOY_EXP_POINTS` | Save | Player character (Boy) 32-bit accumulated experience points (+0x94 low word $7E:4F1D, +0x96 high word $7E:4F1F; $8D:A0E9). |
+| `$7E:4F23` | 1 byte | `BOY_STATUS_GLOW_BITS` | Room | Boy status effect outline glow bitmask (Atlas, Barrier, Speed; +0x9A in struct at 7E:4E89; $91:B632). |
 | `$7E:4F29` | 2 bytes | `BOY_GEAR_BONUS_MDEF` | Save | Boy equipment bonus magic defense rating (+0xA0 in struct at 7E:4E89; $8F:8600). |
 | `$7E:4F2B` | 2 bytes | `BOY_GEAR_BONUS_PDEF` | Save | Boy equipment bonus physical defense rating (+0xA2 in struct at 7E:4E89; $8F:8600). |
 | `$7E:4F2D` | 2 bytes | `BOY_GEAR_BONUS_ATK` | Save | Boy equipment bonus physical attack rating (+0xA4 in struct at 7E:4E89; $8F:8600). |
@@ -1287,11 +1293,16 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:4F65` | 2 bytes | `DOG_STAMINA` | Room | Dog companion attack charge meter / stamina (`+$2E` in entity struct; full at $0400). |
 | `$7E:4F71` | 2 bytes | `DOG_TILE_UNDER` | Room | Metatile index under Dog companion entity feet (`+$3A` in entity struct). |
 | `$7E:4F73` | 2 bytes | `DOG_TILE_COLLISION` | Room | Collision property flags word of metatile currently under Dog entity (`+$3C` in entity struct). |
+| `$7E:4F7D` | 6 bytes | `DOG_STATUS_SLOT_0` | Room | Dog active status effect slot 0 (status ID, duration timer, param boost rating; +0x46 in struct at 7E:4F37; $91:B632). |
+| `$7E:4F83` | 6 bytes | `DOG_STATUS_SLOT_1` | Room | Dog active status effect slot 1 (status ID, duration timer, param boost rating; +0x4C in struct at 7E:4F37; $91:B632). |
+| `$7E:4F89` | 6 bytes | `DOG_STATUS_SLOT_2` | Room | Dog active status effect slot 2 (status ID, duration timer, param boost rating; +0x52 in struct at 7E:4F37; $91:B632). |
+| `$7E:4F8F` | 6 bytes | `DOG_STATUS_SLOT_3` | Room | Dog active status effect slot 3 (status ID, duration timer, param boost rating; +0x58 in struct at 7E:4F37; $91:B632). |
 | `$7E:4F95` | 2 bytes | `DOG_NEXT_ENTITY` | Room | Pointer to next entity in active entity linked list (`+$5E` in entity struct; initialized to point to Boy at $7E:4E89 in func_8FB229). |
 | `$7E:4F97` | 2 bytes | `DOG_CHAR_TYPE_PTR` | Room | Pointer to character master definition struct in bank $8E (`+$60` in entity struct). |
 | `$7E:4FA5` | 2 | `DOG_FORM_SCRIPT_PTR_LOW` | Room | Companion Mechanics: Low 16-bit pointer to active Dog form animation walker script ($8F:9471). |
 | `$7E:4FA6` | 1 | `DOG_FORM_SCRIPT_PTR_BANK` | Room | Companion Mechanics: Bank byte of active Dog form animation walker script. |
 | `$7E:4FCB` | 4 bytes | `DOG_EXP_POINTS` | Save | Companion character (Dog) 32-bit accumulated experience points (+0x94 low word $7E:4FCB, +0x96 high word $7E:4FCD; $8D:A9A0). |
+| `$7E:4FD1` | 1 byte | `DOG_STATUS_GLOW_BITS` | Room | Dog companion status effect outline glow bitmask (Atlas, Barrier, Speed; +0x9A in struct at 7E:4F37; $91:B632). |
 | `$7E:4FD7` | 2 bytes | `DOG_GEAR_BONUS_MDEF` | Save | Dog equipment bonus magic defense rating (+0xA0 in struct at 7E:4F37; $8F:857D). |
 | `$7E:4FD9` | 2 bytes | `DOG_GEAR_BONUS_PDEF` | Save | Dog equipment bonus physical defense rating (+0xA2 in struct at 7E:4F37; $8F:857D). |
 | `$7E:4FDB` | 2 bytes | `DOG_GEAR_BONUS_ATK` | Save | Dog equipment bonus physical attack rating (+0xA4 in struct at 7E:4F37; $8F:857D). |
@@ -1337,6 +1348,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:72D1` | 1024 bytes | `SPRITE_TILE_STAGING_BUF` | Frame | Staging buffer for 4bpp sprite tile graphics unpacked dynamically before VRAM DMA upload (128 bytes per 16x16 tile). |
 | `$7E:7321` | 16 bytes | `LAVA_PALETTE_ROTATION` | Frame | Animated palette rotation buffer for bubbling molten lava surface glow. |
 | `$7E:7331` | 16 bytes | `CRYSTAL_PALETTE_CYCLE` | Frame | Animated palette cycling buffer for glowing crystalline minerals. |
+| `$7E:7341` | 16 bytes | `HDMA_SKY_GRADIENT_TABLE` | Frame | 6-band HDMA sky horizon color gradient table constructed by func_80A1B4 for background PPU color math. |
 | `$7E:7D51` | `Byte×6228` | `tier1_tile_slot_lookup` | `Frame` | Tier 1 dynamic sprite tile frame direct lookup table ($7E:7D51..$7E:95A4), mapping frame/tile ID to allocated cache slot index. |
 | `$7E:95A5` | `Word×128` | `tier1_cache_slot_tiles` | `Frame` | Tier 1 dynamic sprite tile slot table ($7E:95A5..$7E:96A4, 128 words), tracking which tile ID occupies each VRAM slot. |
 | `$7E:96A5` | 1 byte | `OBJ_TILE_LRU_PREV` | Room | OBJ 8x8 tile cache, prev links (130 bytes). `prev[i]` of the OBJ tile cache lists; see `$7E9727`. `$7E9725` = `prev[$80]` (next slot to evict), `$7E9726` = `pre |
