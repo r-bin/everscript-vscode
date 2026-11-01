@@ -13,3 +13,4 @@ see: [docs/disassembly/engine-core/wram-map.md]
 16-bit identifier for the Dog companion's equipped collar item:
 - Read during stat recalculation in `func_8F857D` to index into the armor defense table at `$C4:0000`.
 - If the Collar Polish alchemy charm (`$7E:2261` bit 5) is active, the retrieved collar defense bonus is augmented by +25% (`defense += (defense >> 4)`) before adding to Dog physical defense (`$7E:0A8B`).
+

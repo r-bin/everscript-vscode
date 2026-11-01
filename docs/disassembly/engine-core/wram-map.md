@@ -222,8 +222,11 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:05CF` | 2 | `DIALOGUE_CHAR_TILE_15` | Frame | UI Subsystem: Rasterized tile word for dialogue character 15. |
 | `$7E:0615` | 2 bytes | `RING_MENU_ORIGIN_X` | Room | Screen X center anchor around which revolving ring menu icons orbit. |
 | `$7E:0617` | 2 bytes | `RING_MENU_ORIGIN_Y` | Room | Screen Y center anchor around which revolving ring menu icons orbit. |
+| `$7E:0619` | 2 bytes | `FLIGHT_CRUISE_SPEED` | Room | Mode 7 flight cruise forward velocity factor (shared with RING_MENU_RADIUS_DISTANCE; $8E:AF80). |
 | `$7E:0619` | 2 bytes | `RING_MENU_RADIUS_DISTANCE` | Room | Expansion radius distance (pixels) between ring icons and center anchor during open/close animations (func_CEB0CF). |
+| `$7E:061B` | 2 bytes | `FLIGHT_HEADING_ANGLE` | Room | Mode 7 flight yaw heading angle in 512-step trigonometric circle (shared with RING_MENU_ROTATION_ANGLE; $8E:AF80). |
 | `$7E:061B` | 2 bytes | `RING_MENU_ROTATION_ANGLE` | Room | Active rotational orbit angle (0..255) of ring menu icons. |
+| `$7E:061D` | 2 bytes | `FLIGHT_PITCH_ANGLE` | Room | Mode 7 flight pitch/banking roll angle smoothed by hardware divider (shared with RING_MENU_ANGLE_2; $8E:AF80). |
 | `$7E:061D` | 2 bytes | `RING_MENU_ANGLE_2` | Room | Secondary angular rotational position for circular ring menu animation. |
 | `$7E:061F` | 2 bytes | `DIALOGUE_CURSOR_POS` | Room | Current character blit cursor offset within dialogue window buffer. |
 | `$7E:0621` | 2 bytes | `DIALOGUE_CTRL_STATE` | Room | Dialogue control opcode decoder parser state machine register. |
@@ -356,6 +359,7 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0B2C` | `Byte` | `combat_knockback_angle` | `Frame` | Directional knockback angle index (0..255) applied on incoming heavy hits. |
 | `$7E:0B2F` | 2 bytes | `ACTIVE_PLAYER_CHAR_INDEX` | Room | Index of currently player-controlled character (0 = Boy, 3 = Dog). |
 | `$7E:0B31` | 2 bytes | `DIALOGUE_LINE_IDX` | Room | Active text line index inside dialogue window buffer. |
+| `$7E:0B39` | 1 byte | `VALID_SAVE_SLOTS_MASK` | Boot | Battery SRAM save slots validation bitmask (bits 0..3 for slots 0..3; $80:8B6C, $8D:C905). |
 | `$7E:0B3B` | 2 bytes | `ACTIVE_SAVE_SLOT` | Boot | SRAM save slot index (0..3); read from battery RAM $30:6001. |
 | `$7E:0B3C` | 2 | `ACTIVE_MAP_WORD` | Room | Alternate 16-bit word storage of current room ID |
 | `$7E:0B3D` | 2 bytes | `FONT_GLYPH_HEIGHT` | Boot | Height of dialogue text font glyphs in scanlines (default 8). |
@@ -364,7 +368,9 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0B43` | `Byte` | `dialogue_audio_beep_tick` | `Frame` | Cooldown timer ticks between successive speech typewriter sound effect triggers. |
 | `$7E:0B47` | 2 bytes | `WEAPON_CHARGE_PERCENTAGE` | Room | Current physical attack charge meter level (0..100%). |
 | `$7E:0B49` | 2 bytes | `WEAPON_CHARGE_LEVEL_STAGE` | Room | Attack charge stage tier (0 = Normal, 1 = Stage 1, 2 = Stage 2, 3 = Stage 3). |
+| `$7E:0B4D` | 2 bytes | `BOY_STAMINA_FLASH_TIMER` | Frame | HUD stamina gauge 100% full-charge flash alert countdown timer for Boy player ($8F:8AE4). |
 | `$7E:0B4D` | 2 bytes | `WEAPON_STAMINA_RECOVERY_TIMER` | Room | Cooldown timer controlling stamina gauge recharge rate after an attack. |
+| `$7E:0B4F` | 2 bytes | `DOG_STAMINA_FLASH_TIMER` | Frame | HUD stamina gauge 100% full-charge flash alert countdown timer for Dog companion ($8F:8AE4). |
 | `$7E:0B4F` | 2 bytes | `SCREEN_FLASH_COLOR` | Frame | 15-bit BGR color value for active screen flash overlay. |
 | `$7E:0B51` | `Word` | `alchemy_cast_effect_id` | `Frame` | Formula animation effect script identifier loaded into combat VM on cast. |
 | `$7E:0B57` | 2 bytes | `HUD_POPUP_QUEUE_HEAD_PTR` | Room | Pointer to active 64-byte notification slot in floating combat text ring buffer ($7E:3074..$7E:3273; stepped by func_80B37A). |
@@ -377,10 +383,12 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0B7F` | 2 bytes | `AUDIO_FADE_COUNTER` | Frame | Step counter tracking audio volume fade in/out transitions. |
 | `$7E:0B80` | `Byte` | `window_fade_alpha_level` | `Frame` | Transparency alpha blend coefficient for UI overlay window borders ($8E:E5BA). |
 | `$7E:0B83` | 2 bytes | `AUDIO_TARGET_VOLUME` | Room | Target master audio volume level latch for fade interpolation. |
+| `$7E:0BF5` | 2 bytes | `WEAPON_NEXT_LEVEL_XP_THRESHOLD` | Room | Experience points milestone required for current weapon skill to level up in Status screen ($8E:AC9B). |
 | `$7E:0BF9` | 2 bytes | `RING_MENU_CURSOR_SECTOR` | Room | Latched cursor sector index during ring menu item selection ($FFFF = unlatched). |
 | `$7E:0BFB` | 2 | `MODE7_CAMERA_TARGET_OFFSET_X` | Frame | Mode 7 Engine: Camera target anchor X coordinate offset for flight viewport ($8E:B33D). |
 | `$7E:0BFD` | 2 | `MODE7_CAMERA_TARGET_OFFSET_Y` | Frame | Mode 7 Engine: Camera target anchor Y coordinate offset for flight viewport ($8E:B33D). |
-| `$7E:0C01` | 2 | `RING_MENU_KEY_ITEMS_COUNT` | Room | Number of eligible key / story items in Key Items Ring Menu |
+| `$7E:0BFF` | 2 bytes | `RING_MENU_KEY_ITEMS_COUNT` | Room | Number of eligible key / story items populated into Key Items ring menu ($8E:9DF9). |
+| `$7E:0C01` | 2 bytes | `RING_MENU_KEY_ITEMS_SELECTION` | Room | Currently highlighted key / story item cursor selection in Key Items Ring Menu ($8E:9DF9). |
 | `$7E:0C03` | 32 bytes | `RING_MENU_KEY_ITEMS_BUF` | Room | Key Items Ring Menu: 16-word item ID slot buffer ($7E:0C03..$7E:0C22). |
 | `$7E:0C23` | 2 | `RING_MENU_WEAPONS_COUNT` | Room | Number of unlocked weapons in Weapons Ring Menu |
 | `$7E:0C25` | 2 | `RING_MENU_WEAPONS_SELECTION` | Room | Currently highlighted weapon cursor selection in Weapons Ring Menu |
@@ -402,14 +410,19 @@ This document details all Working RAM (WRAM, Bank `$7E` and `$7F`) addresses ide
 | `$7E:0CDD` | 16 bytes | `SHOP_MENU_OPTIONS_BUF` | Room | Merchant Dialogue Choices: 8-word interaction option ID buffer ($7E:0CDD..$7E:0CEC). |
 | `$7E:0D0D` | 2 | `SAVE_PROMPT_YES_NO_SELECTION` | Room | Selected option index in Save Menu Yes/No overwrite confirmation prompt |
 | `$7E:0DFB` | 24 bytes | `DIALOGUE_QUEUE` | Room | FIFO message queue buffering pending dialogue box display requests. |
+| `$7E:0E44` | 2 bytes | `ACTIVE_BGM_TRACK` | Room | Currently loaded and playing background music track ID in SPC700 ($8C:828F, $8C:8328). |
 | `$7E:0E47` | 2 bytes | `APU_BLOCKS_LEFT` | Frame | Remaining audio data transfer blocks during SPC700 sound loading. |
 | `$7E:0E48` | 1 | `AUDIO_TRANSFER_HIGH_FLAG` | Frame | Audio Engine: High byte transfer flag for SPC700 block stream ($00 / $FF) |
 | `$7E:0E49` | 2 bytes | `APU_DESC_CURSOR` | Frame | Index offset into audio sample block descriptor table. |
 | `$7E:0E4B` | 1 byte | `APU_PORT0_MIRROR` | Frame | Shadow mirror of APU I/O port 0 ($2140). |
 | `$7E:0E4D` | 1 byte | `APU_PORT1_MIRROR` | Frame | Shadow mirror of APU I/O port 1 ($2141). |
+| `$7E:0E4D` | 2 bytes | `PENDING_BGM_TRACK_ID` | Frame | Background music track ID queued for playback pending soundbank streaming ($8C:828F). |
 | `$7E:0E4F` | 1 byte | `APU_PORT2_MIRROR` | Frame | Shadow mirror of APU I/O port 2 ($2142). |
+| `$7E:0E4F` | 2 bytes | `PENDING_SFX_TRACK_ID` | Frame | Sound effect ID queued for playback pending soundbank streaming ($8C:82E3). |
 | `$7E:0E51` | 1 byte | `APU_PORT3_MIRROR` | Frame | Shadow mirror of APU I/O port 3 ($2143). |
+| `$7E:0E51` | 2 bytes | `APU_IPC_TRANSFER_DEPTH` | Frame | Re-entrant transfer nesting depth counter for APU IPC command execution ($8C:81FD). |
 | `$7E:0E52` | 1 | `AUDIO_APU_SPINLOCK_HIGH` | Frame | Audio Engine: High byte of APU spinlock word register ($7E:0E51..$7E:0E52) |
+| `$7E:0E65` | 2 bytes | `APU_IPC_MUTEX_LOCK` | Frame | Queue mutex lock word guarding APU communication during streaming transfers ($8C:81FD, $8C:81D4). |
 | `$7E:0E65` | 2 bytes | `ENGINE_PAUSE_COUNTER` | Boot | Pause counter decremented at boot; engine skips actor simulation if > 0. |
 | `$7E:0E6B` | 1 byte | `NMITIMEN_MIRROR` | Boot | Shadow copy of $4200 ($81 = NMI enabled, Auto-Joypad enabled). |
 | `$7E:0E6C` | 2 | `SHOP_MODE_CONFIG_MASK` | Frame | Shop Subsystem: Shop mode configuration bitmask (bit 2: standard weapons/armor, bit 3: alchemy ingredients satchel) |
