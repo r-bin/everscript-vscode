@@ -38,6 +38,17 @@ view reads the camera from WRAM `$7E0059`/`$7E005B` and the room width from `$7E
 addresses; not checked against the US map here). The frame driver is the framework's default
 beam-aligned one; `variables.h` and `gen_stubs.c` are still empty.
 
+**How the 16:9 view works.** Only the picture is widened (256 → 384 px, 64 px a side); no game
+code is changed (no ROM patch, no mod package, the host only reads WRAM). The framework's
+"world-space shadow" records every BG tilemap word the game writes to VRAM at its world
+position, so columns the 32-tile hardware ring has already overwritten can still be drawn in
+the side margins; the patch fixes that bookkeeping for narrow (32-column) layers. Each side
+shrinks to the room's edge (from camera X and room width), and Mode 5/6 screens are pillarboxed.
+Sprites are not part of this: in the US engine the culler only emits sprites inside the
+256-pixel screen ([../disassembly/entities/sprite-clip-cull.md](../disassembly/entities/sprite-clip-cull.md)),
+and nothing in the port changes that, so characters in the margins are presumably not drawn
+and appear at the original screen edge (not checked on the Spanish build).
+
 **Verification.** The repository has no tests or emulator comparison yet (no trace, WRAM or
 replay check against Mesen or another emulator); its CI builds and packages releases.
 
