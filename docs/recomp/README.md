@@ -14,3 +14,5 @@ What stays here is what needs this repository's internals:
 | `tools/recomp/room-nav.js`, `s9x-run.js` | a room's triggers and spawns as headless script lines; the same script on snes9x |
 | `npm run compare -- recomp=` | lockstep against snes9x; runs the recomp repository's `build/` game |
 | knowledge entries | every game fact the recomp work finds |
+
+Other people's Secret of Evermore ports and how they compare: [other-projects.md](other-projects.md).
