@@ -21,7 +21,7 @@ When the SNES CPU is powered on or reset:
    - 64 KB WRAM Bank `$7E` (`$7E:0000`–`$7E:FFFF`)
    - 64 KB WRAM Bank `$7F` (`$7F:0000`–`$7F:FFFF`)
 8. Shadow PPU registers in RAM are initialized (`$0106 = $8F` for screen off, scroll offsets set to `$00FF`).
-9. The 4-word 64-bit PRNG seed at `$0133`–`$0139` is initialized by latching the hardware PPU horizontal/vertical scan counters and XORing with classic programmer constants (`$DEAD`, `$63C7`, `$BABE`, `$E294`, `$BEEF`, `$5A0D`, `$FACE`, `$18BF`).
+9. The 4-word 64-bit PRNG seed at `$0133`–`$0139` is initialized from PPU port reads at `$80:81A1` (`$2137` latch, `$2138` OAM, `$213C`/`$213D` H/V counters, `$2180` WRAM port, `$2139` VRAM, `$213B` CGRAM, with two `BCS` skips) and XORed with classic programmer constants (`$DEAD`, `$63C7`, `$BABE`, `$E294`, `$BEEF`, `$5A0D`, `$FACE`, `$18BF`).
 10. Hardware sub-systems (audio engine, graphics buffers) are initialized via calls to `$8C:8000`, `$80:B5B6`, `$8C:801F`, `$80:B72B`.
 11. NMI interrupts and automatic joypad polling are enabled by writing `$81` to `$4200` (and saving to shadow mirror `$0E6B`).
 12. The handler executes `JML $80:8B66` to enter the game main loop.

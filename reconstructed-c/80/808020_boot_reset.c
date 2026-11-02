@@ -16,6 +16,7 @@ extern uint16_t g_rng_seed[4];    /* $7E:0133, $0135, $0137, $0139 */
 extern uint8_t  g_nmitimen_mirror;/* $7E:0E6B */
 extern int16_t  g_engine_pause;   /* $7E:0E65 */
 
+uint8_t ppu_read_reg(uint16_t reg);   /* a PPU/WRAM port read: $2137..$213D, $2180 */
 void dma_fill_fixed_byte(uint8_t dest_bus, uint16_t dest_addr, uint8_t bank, uint8_t fill_byte, uint32_t size);
 void spc_audio_init(void);
 void graphics_oam_alloc(void);
@@ -49,8 +50,33 @@ void reset_handler(void) {
     *(uint16_t *)0x7E11F4 = 0xFFFF;
     cgram_palette_shadow_init(); /* $80:857F */
 
-    /* 6. Hardware latch PRNG seeding */
-    uint16_t h_v_mix = read_ppu_raster_latches();
+    /* 6. PRNG seed from PPU reads ($80:819A..$80:81E5). A = $F00D, then the low
+     * byte (8-bit A) mixes port reads; two BCS skip parts on the carry. With the
+     * display on, $2138 and $213B return what the PPU itself fetches at that dot,
+     * so the seed depends on the beam and the sprites (recomp: snesrecomp's
+     * ppu_renderOamAddress / ppu_renderCgramAddress). */
+    uint8_t a = 0x0D, b = 0xF0;              /* lda #$F00D; sep #$20; adc #$01: carry clear */
+    unsigned sum;
+    a = ppu_read_reg(0x2137);                /* latches H/V; reads open bus ($21 on MesenCE) */
+    a ^= ppu_read_reg(0x2138);               /* OAM data */
+    sum = a + ppu_read_reg(0x2137);          /* latches again */
+    a = (uint8_t)sum;
+    if (sum < 0x100) {
+        a ^= ppu_read_reg(0x213C);           /* H counter, first read */
+        sum = a + 1u;
+        a = (uint8_t)sum;
+        uint8_t t = a; a = b; b = t;         /* xba */
+    }
+    sum = a + ppu_read_reg(0x213D) + (sum >> 8);   /* V counter, first read */
+    a = (uint8_t)sum;
+    if (sum < 0x100) {
+        a ^= ppu_read_reg(0x2180);           /* WRAM data port */
+        sum = a + ppu_read_reg(0x2139);      /* VRAM data, low */
+        a = (uint8_t)sum;
+    }
+    sum = a + ppu_read_reg(0x213B) + (sum >> 8);   /* CGRAM data */
+    a = (uint8_t)sum;
+    uint16_t h_v_mix = (uint16_t)(b << 8 | a);    /* rep #$30 */
     g_rng_seed[0] = h_v_mix ^ 0xDEAD ^ 0x63C7;
     g_rng_seed[1] = g_rng_seed[0] ^ 0xBABE ^ 0xE294;
     g_rng_seed[2] = g_rng_seed[1] ^ 0xBEEF ^ 0x5A0D;
