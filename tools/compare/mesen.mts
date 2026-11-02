@@ -12,6 +12,10 @@ import { padToButtonString } from './recomp.mts';
 
 const require = createRequire(import.meta.url);
 
+// The testrunner ends a run after 100 s of wall time unless told otherwise, so a long replay used to stop part way at
+// a key that depended on the machine's speed. The Lua script ends the run itself at its target key.
+const TESTRUNNER_TIMEOUT = `--timeout=${process.env.MESEN_TIMEOUT ?? 3600}`;
+
 export const MESEN_REGIONS: Region[] = ['wram', 'vram', 'cgram', 'oam'];
 
 const DEFAULT_MESEN = '/Applications/Mesen.app/Contents/MacOS/Mesen';
@@ -298,7 +302,7 @@ export function runMesen(job: MesenJob, onCp: (key: number, crcs: Crcs) => void)
     writeFileSync(luaPath, script);
 
     const iso = isolatedRom(dir, job.rom);
-    const child = spawn(exe, ['--testrunner', iso.rom, luaPath, '--snes.ramPowerOnState=AllZeros'], {
+    const child = spawn(exe, ['--testrunner', iso.rom, luaPath, '--snes.ramPowerOnState=AllZeros', TESTRUNNER_TIMEOUT], {
         cwd: dir,
         stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -378,7 +382,7 @@ export function askMesenRng(job: MesenJob): Promise<{ bytes: Uint8Array; frame: 
         writeFileSync(luaPath, script);
 
         const iso = isolatedRom(dir, job.rom);
-        const child = spawn(exe, ['--testrunner', iso.rom, luaPath, '--snes.ramPowerOnState=AllZeros'], {
+        const child = spawn(exe, ['--testrunner', iso.rom, luaPath, '--snes.ramPowerOnState=AllZeros', TESTRUNNER_TIMEOUT], {
             cwd: dir,
             stdio: ['ignore', 'pipe', 'pipe'],
         });

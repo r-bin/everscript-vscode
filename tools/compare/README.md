@@ -85,6 +85,27 @@ node tools/compare/probes/frame-trace.mts "Secret of Evermore (U) [!].smc" tools
 node tools/compare/probes/port-handshakes.mts "Secret of Evermore (U) [!].smc" tools/compare/replays/01-no-inputs-4m.evsmv 320
 ```
 
+The recomp's native build against itself all-interpreted (the interpreter matches MesenCE, and this needs no
+MesenCE run past key 115), for a native build generated bus-exact (SecretOfEvermoreRecomp `tools/regen.sh`):
+
+```sh
+# each NMI's clock and the WRAM hash at every key: the first NMI and key where native and interpreted part
+node tools/compare/probes/native-vs-interp.mts "Secret of Evermore (U) [!].smc" tools/compare/replays/01-no-inputs-4m.evsmv 14424
+# instruction by instruction in a master-clock window (from the last NMI both agree on to the first that differs)
+node tools/compare/probes/clock-trace.mts "Secret of Evermore (U) [!].smc" tools/compare/replays/01-no-inputs-4m.evsmv 433 196500920 196858300
+# how much of the replay ran native (instructions per tier) and the busiest interpreted runs
+node tools/compare/probes/tier-stats.mts "Secret of Evermore (U) [!].smc" tools/compare/replays/01-no-inputs-4m.evsmv 14424
+```
+
+Against MesenCE, for a key where WRAM parts while the clocks agree:
+
+```sh
+# every NMI's clock, interrupted address and beam position (H clock, line), MesenCE against the recomp
+node tools/compare/probes/nmi-clocks.mts "Secret of Evermore (U) [!].smc" tools/compare/replays/01-no-inputs-4m.evsmv 11987
+# the PPU/WRAM port reads between NMI K-1 and K (an RNG seed), value and clock, and MesenCE's beam at $2137
+node tools/compare/probes/ppu-reads.mts "Secret of Evermore (U) [!].smc" tools/compare/replays/01-no-inputs-4m.evsmv 11987
+```
+
 `frame-trace` folds the idle loop `$80:858F` into one entry (its pass count is a phase, not a cost); the last
 entry runs to the next NMI and holds that stretch's refresh stalls. MesenCE's SPC700 callbacks need
 `emu.cpuType.spc, emu.memType.spcMemory` and report a frozen `masterClock` (the SPC runs in catch-up batches):
@@ -95,6 +116,9 @@ time them with `spc.cycle / spc.clockRatio`.
 - The recomp and Mesen hash WRAM, VRAM, CGRAM and OAM, but not ARAM.
 - MesenCE's testrunner Lua has no `io` library: its dumps come over stdout as hex lines; a Mesen run hashes
   ~150 keys per second.
+- MesenCE's testrunner ends a run after 100 s of wall time by default, wherever it is: `mesen.mts` passes
+  `--timeout=3600` (`MESEN_TIMEOUT` sets it). Before 2026-11-03 a long replay stopped at a key that depended on the
+  machine's speed (01 at 10,100-11,000 of its 14,424), with no warning.
 - A replay that rewinds (`L` events) is refused.
 - Checkpoints are every 60 keys (~1 s), so the first divergence is known to within that window. The
   write watch covers the whole window.
