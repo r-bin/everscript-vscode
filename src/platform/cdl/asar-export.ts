@@ -50,6 +50,8 @@ interface ExportOptions {
     gameRegions?: GameRegions;
     /** Seed directives the recomp project excludes (recomp-analysis.ts parseExclusions). */
     recompExclusions?: RecompExclusions;
+    /** Entry PCs of the recomp's last generation (its program_manifest.json), named with `symbol` lines. */
+    recompNodes?: number[];
 }
 /** A region as written to the bank files: the known ones plus table assets. */
 type PlacedRegion = KnownRegion & { table?: unknown };
@@ -61,8 +63,8 @@ const EXT_DMA = 0x01, EXT_APU = 0x02, EXT_HEAD = 0x04, EXT_POINTER = 0x20;
 const INCBIN_MIN = 32;
 const LIST_MAX = 6;
 
-function addrText(index: Index, space: number, addr: number): string {
-    if (space === SPACE.WRAM) return '$' + hex(0x7E0000 + addr, 6);
+function addrText(index: Index, space: number, addr: number, wramNames?: ExportOptions['wramNames']): string {
+    if (space === SPACE.WRAM) return '$' + hex(0x7E0000 + addr, 6) + (wramNames?.get(addr) ? ' ' + wramNames.get(addr)!.name : '');
     if (space === SPACE.IO) return '$' + hex(addr, 4);
     if (space === SPACE.ROM) return index.labelName(addr) || 'rom:' + hex(addr, 6);
     return '$' + hex(addr, 6);
@@ -218,9 +220,9 @@ function exportAsar(lib: CdlLibrary, romInput: Uint8Array, outDir: string, opts:
         if (pcs) {
             const acc: string[] = [];
             for (const pc of pcs) {
-                for (const x of index.byPc.get(pc) || []) acc.push(addrText(index, x.spaceAddr >>> 24, x.spaceAddr & 0xFFFFFF));
+                for (const x of index.byPc.get(pc) || []) acc.push(addrText(index, x.spaceAddr >>> 24, x.spaceAddr & 0xFFFFFF, opts.wramNames));
                 for (const b of index.bulk) {
-                    if (b.pc === pc) acc.push(addrText(index, b.space, b.lo) + '..' + addrText(index, b.space, b.hi) + ' (bulk)');
+                    if (b.pc === pc) acc.push(addrText(index, b.space, b.lo, opts.wramNames) + '..' + addrText(index, b.space, b.hi, opts.wramNames) + ' (bulk)');
                 }
             }
             if (acc.length) parts.push('[' + clip([...new Set(acc)], 4).join(', ') + ']');
@@ -299,6 +301,9 @@ function exportAsar(lib: CdlLibrary, romInput: Uint8Array, outDir: string, opts:
     fs.writeFileSync(path.join(outDir, 'rom.bin'), rom);
     const includes: string[] = [];
     let codeLines = 0;
+    // One line per instruction and per named routine, for comments in the recomp's generated C
+    // (tools/recomp/annotate.mts). Text taken from the user's ROM: it stays in out/, never in a repository.
+    const annotations: string[] = ['# rom offset (hex)\tf = routine, i = instruction\ttext'];
 
     for (let seg = 0; seg < rom.length; seg += map.segment) {
         const end = Math.min(seg + map.segment, rom.length);
@@ -315,6 +320,10 @@ function exportAsar(lib: CdlLibrary, romInput: Uint8Array, outDir: string, opts:
                 continue;
             }
             if (emitted.has(off)) lines.push(...headerLines(off));
+            if (index.labels.get(off) === 'func') {
+                const note = index.noteOf(off);
+                annotations.push(hex(off, 6) + '\tf\t' + index.labelName(off) + (note ? ': ' + note.replace(/\s+/g, ' ').slice(0, 200) : ''));
+            }
             if (insLen[off]) {
                 const ins = decodeAt(rom, off, lib.cdl[off], lib.ext[off])!;
                 const addr = map.canonical(off);
@@ -325,6 +334,7 @@ function exportAsar(lib: CdlLibrary, romInput: Uint8Array, outDir: string, opts:
                 const note = (asm ? '' : ins.mnemonic.toLowerCase() + ' (target not addressable)  ') + instructionComment(off, ins, addr, asm);
                 lines.push(note ? text.padEnd(36) + '; ' + note : text);
                 if (note) comments.push({ off, comment: note });
+                annotations.push(hex(off, 6) + '\ti\t' + (asm || ins.mnemonic.toLowerCase()) + (note ? '  ; ' + note : ''));
                 codeLines++;
                 off += ins.len;
                 continue;
@@ -386,7 +396,8 @@ function exportAsar(lib: CdlLibrary, romInput: Uint8Array, outDir: string, opts:
     ].join('\n');
     const mainPath = path.join(outDir, 'main.asm');
     fs.writeFileSync(mainPath, main);
-    const recomp = writeRecompSeeds({ lib, rom, map, index, known, outDir, exclusions: opts.recompExclusions });
+    const recomp = writeRecompSeeds({ lib, rom, map, index, known, outDir, exclusions: opts.recompExclusions, names: opts.names, nodes: opts.recompNodes });
+    fs.writeFileSync(path.join(outDir, 'recomp', 'annotations.tsv'), annotations.join('\n').replace(/\*\/|\/\*/g, '*') + '\n');
     known.steps.push(recomp.step);
     const report = tablesReport(tables, map, index, lib);
     fs.writeFileSync(path.join(outDir, 'tables.md'), report.text + '\n');

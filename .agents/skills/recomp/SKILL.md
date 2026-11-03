@@ -19,6 +19,11 @@ the game itself, and commit there (branch `develop`).
 - The seed generator: `src/platform/cdl/recomp-seeds.ts`, `recomp-analysis.ts`. Exclusions are not
   here: they are lines in the recomp repo's `recomp/seed-exclusions.txt` (`func` / `dispatch`
   `<pc24> <reason>`), parsed by `parseExclusions`.
+- Names: `func` seeds carry ROM-map names; entries snesrecomp found itself get `symbol` lines (read from
+  the program manifest of the recomp's last generation, `readNodes` in `repo.mts`). `symbol` adds no roots,
+  but names break ties in snesrecomp's resume table (recomp repo bugs-and-todos §3.6): an A/B of names
+  compares its dispatch_v2.c too. `tools/recomp/annotate.mts` comments the generated C from
+  `out/recomp/asar/recomp/annotations.tsv` (asm + WRAM names); the recomp repo's regen script runs it.
 - Tools that need this repository: `tools/recomp/room-nav.js` (a room's triggers and spawns as
   headless script lines), `s9x-run.js` (the same script on snes9x), `npm run compare -- recomp=`
   (lockstep; runs the recomp repo's `build/` game).

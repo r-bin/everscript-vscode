@@ -20,10 +20,10 @@ Then commit the changed `recomp/bank*.cfg` in the recomp repository. Play its
 | Step | Input | Output |
 |---|---|---|
 | 1. Inputs | CDL library for the ROM (`<globalStorage>/rbin.everscript/cdl-library/<sha1>/`), asset regions from the ROM tab (`src/games/evermore/rom`), curated names (`functions.ts`, `tables.js`, `knowledge/{ram,rom}/*.md`, `ram-symbols`), the recomp repo's `recomp/seed-exclusions.txt` | – |
-| 2. Export | the above | `out/recomp/asar/`: `main.asm`, `banks/*.asm` with **our function names** and **line comments** (callers, accesses, jump targets, curated descriptions), `ram.asm`, `structs.h`, `tables/`, `functions.json`; `asar/mesen/labels.mlb` + `asar/mesen/rom.cdl` (Mesen2); `asar/recomp/cfg/` (snesrecomp seeds, named) |
+| 2. Export | the above | `out/recomp/asar/`: `main.asm`, `banks/*.asm` with **our function names** and **line comments** (callers, accesses, jump targets, curated descriptions), `ram.asm`, `structs.h`, `tables/`, `functions.json`; `asar/mesen/labels.mlb` + `asar/mesen/rom.cdl` (Mesen2); `asar/recomp/cfg/` (snesrecomp seeds, named, plus `symbol` names for the entries the recomp's last generation found, from its `src/gen/program_manifest.json`); `asar/recomp/annotations.tsv` (each instruction and routine as text, for comments in the generated C; from the user's ROM, stays in `out/`) |
 | 3. Rebuild | `asar/` | `asar/build/out.sfc` (must equal the ROM byte for byte), `out.sym` (WLA symbols), `out.cdl`; `out/recomp/asar.log` |
 | 4. Seeds | `asar/recomp/cfg/` | the recomp repo's `recomp/bank8x..9x.cfg` replaced, one data-region block in its `recomp/bank00.cfg` (`repo.mts`) |
-| 5. Game | the recomp repo | its `tools/regen.sh` and CMake build → `build/SecretOfEvermoreSNESRecomp` there; log in `out/recomp/recomp-host.log` |
+| 5. Game | the recomp repo | its `tools/regen.sh` (which runs `annotate.mts`: `/* evs: ... */` comments with asm and WRAM names) and CMake build → `build/SecretOfEvermoreSNESRecomp` there; log in `out/recomp/recomp-host.log` |
 | 6. Report | all of the above | `out/recomp/REPORT.md`, `report.json`: status per step, measures, a prioritised to-do list |
 
 Names become identifiers valid in Asar, C and Mesen (`Random number generator` →

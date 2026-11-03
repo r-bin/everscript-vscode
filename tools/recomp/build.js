@@ -22,7 +22,7 @@ const { romRegions } = require(path.join(REPO, 'dist/games/evermore/rom'));
 const { parseExclusions } = require(path.join(REPO, 'dist/platform/cdl/recomp-analysis'));
 const { collectNames } = require('./names');
 const { writeReport } = require('./report');
-const { recompRepo, readExclusions, writeSeeds, buildRepo, EXCLUSIONS } = require('./repo.mts');
+const { recompRepo, readExclusions, readNodes, writeSeeds, buildRepo, EXCLUSIONS } = require('./repo.mts');
 
 const HELP = `node tools/recomp/build.js [options]      (npm run recomp -- [options])
   --rom <file>         clean ROM (default: the base ROM of the ROM library)
@@ -87,17 +87,19 @@ function main() {
     const libRoot = o.lib || path.join(os.homedir(), 'Library/Application Support/Code/User/globalStorage/rbin.everscript/cdl-library');
 
     const repo = recompRepo(o.repo);
+    let nodes = [];   // entry PCs of the recomp's last generation, named with `symbol` lines
     const inputs = step('inputs: CDL library, names, assets', () => {
         const lib = new CdlLibrary(libRoot, romFile, {});
         const recorded = fs.existsSync(path.join(lib.dir, 'rom.cdl'));
         const n = collectNames(map, rom.length);
         const assets = romRegions(romFile).filter(r => r.e > r.s).map(r => ({ start: r.s, end: r.e, name: r.name }));
         const exclusions = parseExclusions(o.recomp ? readExclusions(repo) : '');
-        return { lib, recorded, libDir: lib.dir, names: n, assets, exclusions };
+        nodes = o.recomp ? readNodes(repo) : [];
+        return { lib, recorded, libDir: lib.dir, names: n, assets, exclusions, nodes: nodes.length };
     });
 
     const exp = step('export: Asar project + Mesen2 files + snesrecomp seeds', () => {
-        const r = exportAsar(inputs.lib, romFile, asarDir, { names: inputs.names.names, wramNames: inputs.names.wramNames, assets: inputs.assets, recompExclusions: inputs.exclusions });
+        const r = exportAsar(inputs.lib, romFile, asarDir, { names: inputs.names.names, wramNames: inputs.names.wramNames, assets: inputs.assets, recompExclusions: inputs.exclusions, recompNodes: nodes });
         return { result: r };
     }).result;
 

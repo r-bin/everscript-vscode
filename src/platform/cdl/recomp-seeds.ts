@@ -6,7 +6,8 @@
  *                           `func <name> <pc16> entry_mx:M,X [exit_mx:M,X]` per recorded entry,
  *                           exit width variants, indirect_dispatch for recorded jump tables /
  *                           pointer jumps / PEI;RTS, ram_routine for WRAM code (recomp-analysis.ts),
- *                           `data_region` for known regions (rooms, strings, lookup tables)
+ *                           `data_region` for known regions (rooms, strings, lookup tables),
+ *                           `symbol` names for the entries the last generation emitted (symbolLines)
  *   recomp.sh               scaffold once, copy the seeds, `generate`, build the static library
  * The seeds only add roots and widths the recorder saw; snesrecomp's own analysis
  * still walks everything reachable from them and the vectors (`auto_vectors`).
@@ -21,6 +22,7 @@ import type { buildIndex } from './xref-index';
 import type { KnownRegion } from './known-regions';
 
 type Index = ReturnType<typeof buildIndex>;
+type Names = Map<number, { name: string; note?: string }>;
 import { returnsByEntry, exitDirectives, dispatchDirectives, noReturnComments, ramRoutines, brkTraps, NO_EXCLUSIONS } from './recomp-analysis';
 import type { RecompExclusions } from './recomp-analysis';
 import { hiromFileOffset } from '../snes/hirom';
@@ -88,9 +90,41 @@ function mergedRegions(regions: KnownRegion[]) {
     return out;
 }
 
-function writeRecompSeeds({ lib, rom, map, index, known, outDir, exclusions = NO_EXCLUSIONS }: {
+/**
+ * Names for the entries snesrecomp found itself (mirror-bank copies, entries into the middle of a routine), which
+ * it would otherwise call `bank_8C_9A76`. `symbol` never promotes an entry, so the generated program stays the
+ * same; only identifiers change. `nodes` are the entry PCs of the last generation (its program_manifest.json).
+ * A known entry keeps its ROM-map name, an entry inside a named routine becomes `<routine>_<pc16>`; a name
+ * already taken gets its bank (`wait_for_nmi_00`), as snesrecomp falls back to the bank_ name on a repeat.
+ * The runtime banks ($80-$BF) go first, so the copies the game runs get the bare names.
+ */
+function symbolLines(nodes: number[], map: RomMap, index: Index, names: Names, named: Set<number>, taken: Set<string>) {
+    const out: { pc24: number; line: string }[] = [];
+    const runtime = (pc: number) => ((pc >>> 16) & 0xC0) === 0x80 ? 0 : 1;
+    const order = [...new Set(nodes)].filter(pc => !named.has(pc)).sort((a, b) => runtime(a) - runtime(b) || a - b);
+    for (const pc of order) {
+        const off = map.busToRom(pc);
+        if (off < 0) continue;
+        let base = names.get(off)?.name;
+        if (!base) {
+            const f = index.functionOf(off);
+            const parent = f >= 0 ? names.get(f)?.name : undefined;
+            if (!parent) continue;
+            base = parent + '_' + hex(pc & 0xFFFF, 4).toLowerCase();
+        }
+        const name = [base, base + '_' + hex(pc >>> 16, 2).toLowerCase(), base + '_' + hex(pc, 6).toLowerCase()].find(n => !taken.has(n));
+        if (!name) continue;
+        taken.add(name);
+        out.push({ pc24: pc, line: `symbol ${hex(pc, 6).toLowerCase()} ${name}` });
+    }
+    return out;
+}
+
+function writeRecompSeeds({ lib, rom, map, index, known, outDir, exclusions = NO_EXCLUSIONS, names, nodes }: {
     lib: CdlLibrary; rom: Uint8Array | null | undefined; map: RomMap; index: Index; known: { regions: KnownRegion[] }; outDir: string;
     exclusions?: RecompExclusions;
+    /** Curated ROM names (tools/recomp/names.js) and the last generation's entry PCs, for `symbol` lines. */
+    names?: Names; nodes?: number[];
 }) {
     const cfgDir = path.join(outDir, 'recomp', 'cfg');
     fs.rmSync(cfgDir, { recursive: true, force: true });
@@ -99,6 +133,7 @@ function writeRecompSeeds({ lib, rom, map, index, known, outDir, exclusions = NO
     const banks = new Map<number, string[]>();   // runtime bank -> lines
     const bankLines = (b: number): string[] => banks.get(b) || banks.set(b, []).get(b)!;
     let funcs = 0, mixed = 0, exits = 0;
+    const namedPcs = new Set<number>(), takenNames = new Set<string>();
     const returns = returnsByEntry(lib);
     for (const [off, buses] of entryAddresses(lib, map, index)) {
         const c = lib.cdl[off], e = lib.ext[off];
@@ -118,6 +153,8 @@ function writeRecompSeeds({ lib, rom, map, index, known, outDir, exclusions = NO
             const ex = exitDirectives(returns.get(bus), bus);
             if (ex.inline || ex.lines.length) exits++;
             bankLines(bus >>> 16).push(`func ${name} ${pc16} entry_mx:${m[0]},${x[0]}${ex.inline}${note}`, ...ex.lines);
+            namedPcs.add(bus);
+            takenNames.add(name);
             funcs++;
         }
     }
@@ -136,6 +173,8 @@ function writeRecompSeeds({ lib, rom, map, index, known, outDir, exclusions = NO
             if (off < 0 || !lib.cdl[off] || exclusions.func.has(body)) continue;
             const m = (lib.ext[off] & EXT_SEEN_M16) || !(lib.cdl[off] & CDL_ACC_8) ? 0 : 1;
             const x = (lib.ext[off] & EXT_SEEN_X16) || !(lib.cdl[off] & CDL_IDX_8) ? 0 : 1;
+            namedPcs.add(body);
+            takenNames.add(`${what}_handler_body`);
             bankLines(body >>> 16).push(`func ${what}_handler_body ${hex(body & 0xFFFF, 4).toLowerCase()} entry_mx:${m},${x}    # the ${what.toUpperCase()} vector's JML stub target`);
             funcs++;
         }
@@ -167,6 +206,18 @@ function writeRecompSeeds({ lib, rom, map, index, known, outDir, exclusions = NO
         if (map.type === 'HiROM' && (bus & 0xFFFF) >= 0x8000 && r.start < 0x400000) data.push(range(0x800000 | (hiromFileOffset(r.start))));
     }
 
+    // Symbols go into a bank cfg that exists anyway (a cfg of its own would make a bank snesrecomp translates).
+    const symbols = names && nodes ? symbolLines(nodes, map, index, names, namedPcs, takenNames) : [];
+    if (symbols.length) {
+        const byBank = new Map<number, string[]>();
+        for (const s of symbols) {
+            const own = 0x80 | ((s.pc24 >>> 16) & 0x3F);
+            const b = banks.has(own) ? own : 0x80;
+            (byBank.get(b) || byBank.set(b, []).get(b)!).push(s.line);
+        }
+        for (const [b, lines] of byBank) bankLines(b).push('# Names for the entries snesrecomp found (symbol: names only, no new roots)', ...lines);
+    }
+
     const b0 = bankLines(0);
     b0.unshift('auto_vectors');
     b0.push(...data);
@@ -177,10 +228,10 @@ function writeRecompSeeds({ lib, rom, map, index, known, outDir, exclusions = NO
     }
     fs.writeFileSync(path.join(outDir, 'recomp.sh'), RECOMP_SH, { mode: 0o755 });
     return {
-        banks: banks.size, funcs, mixed, exits, dispatch: dispatch.counts, ramRoutines: ram.lines.length,
+        banks: banks.size, funcs, mixed, exits, symbols: symbols.length, dispatch: dispatch.counts, ramRoutines: ram.lines.length,
         step: `snesrecomp seeds: recomp/cfg/ with ${banks.size} bank cfgs, ${funcs} func entries (${mixed} entered with several M/X widths, first one used; ${exits} with recorded exit widths), `
             + `indirect_dispatch: ${dispatch.counts.indexed} indexed tables, ${dispatch.counts.pointer} pointer jumps, ${dispatch.counts.rtsstack} PEI;RTS, ${dispatch.counts.comments} sites as comments; `
-            + `${noReturn.length} noreturn candidates (comments), ${ram.lines.length} ram_routines (${ram.skipped.length} skipped), ${merged.length} data regions (${known.regions.length} known regions merged). Run \`SNESRECOMP=/path/to/snesrecomp ./recomp.sh\`.`,
+            + `${noReturn.length} noreturn candidates (comments), ${ram.lines.length} ram_routines (${ram.skipped.length} skipped), ${symbols.length} symbol names, ${merged.length} data regions (${known.regions.length} known regions merged). Run \`SNESRECOMP=/path/to/snesrecomp ./recomp.sh\`.`,
     };
 }
 

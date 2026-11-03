@@ -31,6 +31,18 @@ export function readExclusions(repo: string): string {
 }
 
 /** Our seeds: bank8x..Fx cfgs replace the previous ones; bank00 keeps its own text and gains one data-region block. */
+/**
+ * Entry PCs of the last generation (src/gen/program_manifest.json, `nodes` keyed "0C98C7:M0X0"): the entries
+ * snesrecomp found itself, which the seeds then name with `symbol` lines. Empty before the first generation;
+ * `symbol` adds no roots, so the set is the same on the next run.
+ */
+export function readNodes(repo: string): number[] {
+    const f = join(repo, 'src', 'gen', 'program_manifest.json');
+    if (!existsSync(f)) return [];
+    const keys = Object.keys(JSON.parse(readFileSync(f, 'utf8')).nodes || {});
+    return [...new Set(keys.map(k => parseInt(k.slice(0, 6), 16)))];
+}
+
 export function writeSeeds(seedDir: string, repo: string): { banks: number; regions: number } {
     const cfgDir = join(repo, 'recomp');
     for (const f of readdirSync(cfgDir)) if (/^bank[89a-f][0-9a-f]\.cfg$/i.test(f)) rmSync(join(cfgDir, f));
