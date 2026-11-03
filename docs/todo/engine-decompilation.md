@@ -3,7 +3,7 @@
 > **Domain:** Complete C Decompilation & Static Reverse Engineering of the Secret of Evermore SNES Engine  
 > **Master Dashboard & Progress Tracker:** [`docs/disassembly/PROGRESS.md`](../disassembly/PROGRESS.md)  
 > **Autonomous Agent Persona & Guidelines:** [`.agents/agents/decomp-curator.md`](../../.agents/agents/decomp-curator.md)  
-> **Current Landmark (Session 67):** **348 / 403** Identified (86.4%) · **346 / 403** Documented (85.9%) · **336 / 403** Clean C Functions (83.4%) · **12,151** WRAM Bytes Mapped (37.6%)
+> **Current counts:** live in the [dashboard](../disassembly/PROGRESS.md) (not copied here, it went stale).
 
 ---
 
@@ -99,7 +99,7 @@ No verified target remains from this queue. Select the next item from a fresh CD
 | **75% Clean C Functions** | ✅ **Passed** | Broken in Session 63 (304 C functions) |
 | **80% Clean C Functions** | ✅ **Passed** | Broken in Session 65 (323 C functions) |
 | **85% Function Identification** | ✅ **Passed** | Broken in Session 66 (346 identified roots, 85.9%) |
-| **85% Clean C Functions** | 🎯 **In Sight** | Target: 343 C functions (currently 336) |
+| **85% Clean C Functions** | ✅ **Passed** | 391 / 403 clean C functions (97.0%) per the dashboard |
 | **90% Function Identification** | 🎯 **Pending** | Target: 363 identified roots |
-| **90% Clean C Functions** | 🎯 **Pending** | Target: 363 C functions |
+| **90% Clean C Functions** | ✅ **Passed** | 391 / 403 (97.0%) per the dashboard |
 | **100% CDL Roots Complete** | 🏆 **Ultimate Goal**| All 403 CDL roots decompiled into verified C |
