@@ -1,4 +1,4 @@
-Prophet Bronze Armor Logic
+# Prophet Bronze Armor Logic
 
 Core State Variables
 

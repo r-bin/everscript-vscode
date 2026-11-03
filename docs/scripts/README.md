@@ -26,6 +26,9 @@ pickups. Written from the game's own interpreter and checked against the running
 | [trigger-modernization.md](trigger-modernization.md) | Trigger exit detection, companion/enemy triggers (a design spec) |
 | [room-simulation.md](room-simulation.md) | Deciding which branch an enter script takes (not built) |
 | [debugging.md](debugging.md) | Debugging scripts in the emulator: `.evs` breakpoints, byte-script state |
+| [prophet-bronze-armor.md](prophet-bronze-armor.md) | The prophet NPC: dialog state, cooldown, the Bronze Armor reward |
+| [ceramic-pot-chocobo-egg.md](ceramic-pot-chocobo-egg.md) | Nobilia market pots: purchase, hidden treasure, the Chocobo Egg chance |
+| [naris-super-heal.md](naris-super-heal.md) | Naris: the Super Heal coin flip and its cooldown |
 
 ## Related
 
