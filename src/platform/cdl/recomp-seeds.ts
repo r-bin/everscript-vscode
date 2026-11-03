@@ -94,23 +94,35 @@ function mergedRegions(regions: KnownRegion[]) {
  * Names for the entries snesrecomp found itself (mirror-bank copies, entries into the middle of a routine), which
  * it would otherwise call `bank_8C_9A76`. `symbol` never promotes an entry, so the generated program stays the
  * same; only identifiers change. `nodes` are the entry PCs of the last generation (its program_manifest.json).
- * A known entry keeps its ROM-map name, an entry inside a named routine becomes `<routine>_<pc16>`; a name
- * already taken gets its bank (`wait_for_nmi_00`), as snesrecomp falls back to the bank_ name on a repeat.
+ * A known entry keeps its ROM-map name, an entry inside a named routine becomes `<routine>_<pc16>` (also a routine
+ * no call reaches, like the reset handler), an entry in data the CDL saw read becomes `not_code_<label>_<pc16>`
+ * (a jump table's hole decoded as code: the table form cannot skip one entry); a name already taken gets its
+ * bank (`wait_for_nmi_00`), as snesrecomp falls back to the bank_ name on a repeat.
  * The runtime banks ($80-$BF) go first, so the copies the game runs get the bare names.
  */
 function symbolLines(nodes: number[], map: RomMap, index: Index, names: Names, named: Set<number>, taken: Set<string>) {
     const out: { pc24: number; line: string }[] = [];
     const runtime = (pc: number) => ((pc >>> 16) & 0xC0) === 0x80 ? 0 : 1;
     const order = [...new Set(nodes)].filter(pc => !named.has(pc)).sort((a, b) => runtime(a) - runtime(b) || a - b);
+    const namedOffs = [...names.keys()].sort((a, b) => a - b), labelOffs = [...index.labels.keys()].sort((a, b) => a - b);
+    const before = (sorted: number[], off: number) => {
+        let lo = 0, hi = sorted.length - 1, best = -1;
+        while (lo <= hi) { const mid = (lo + hi) >> 1; if (sorted[mid] <= off) { best = sorted[mid]; lo = mid + 1; } else hi = mid - 1; }
+        return best >= 0 && (best >>> 16) === (off >>> 16) ? best : -1;
+    };
+    const DATA = new Set(['data', 'ptrs', 'gfx', 'hdma']);
     for (const pc of order) {
         const off = map.busToRom(pc);
         if (off < 0) continue;
+        const at = '_' + hex(pc & 0xFFFF, 4).toLowerCase();
         let base = names.get(off)?.name;
         if (!base) {
-            const f = index.functionOf(off);
-            const parent = f >= 0 ? names.get(f)?.name : undefined;
-            if (!parent) continue;
-            base = parent + '_' + hex(pc & 0xFFFF, 4).toLowerCase();
+            const f = index.functionOf(off), parent = f >= 0 ? names.get(f)?.name : undefined;
+            const n = before(namedOffs, off), label = before(labelOffs, off);
+            if (parent) base = parent + at;
+            else if (label >= 0 && label >= n && DATA.has(index.labels.get(label)!)) base = 'not_code_' + index.labelName(label)!.toLowerCase() + at;
+            else if (n >= 0 && off - n < 0x400) base = names.get(n)!.name + at;
+            else continue;
         }
         const name = [base, base + '_' + hex(pc >>> 16, 2).toLowerCase(), base + '_' + hex(pc, 6).toLowerCase()].find(n => !taken.has(n));
         if (!name) continue;
@@ -204,6 +216,11 @@ function writeRecompSeeds({ lib, rom, map, index, known, outDir, exclusions = NO
         const range = (b: number) => `data_region ${hex(b >>> 16, 2).toLowerCase()} ${hex(b & 0xFFFF, 4).toLowerCase()} ${hex((b & 0xFFFF) + len, 5).toLowerCase()}    # ${what}`;
         data.push(range(bus));
         if (map.type === 'HiROM' && (bus & 0xFFFF) >= 0x8000 && r.start < 0x400000) data.push(range(0x800000 | (hiromFileOffset(r.start))));
+    }
+
+    // Routines the recomp's glue replaces with C (its seed-exclusions.txt `hle` lines).
+    for (const [pc24, h] of exclusions.hle) {
+        bankLines(pc24 >>> 16).push(`hle_func ${hex(pc24 & 0xFFFF, 4).toLowerCase()} ${h.fn}    # ${h.reason}`);
     }
 
     // Symbols go into a bank cfg that exists anyway (a cfg of its own would make a bank snesrecomp translates).

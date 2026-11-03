@@ -297,6 +297,9 @@ test('seed exclusions: func and dispatch lines, every HiROM mirror, comments, ba
     assert.ok(x.dispatch.has(0xCF9F46) && x.dispatch.has(0x0F9F46));
     assert.throws(() => parseExclusions('skip 808000 nope'));
     assert.strictEqual(parseExclusions('').func.size, 0);
+    const h = parseExclusions('hle 80859B HleRandomNumberGenerator rng, G1-rated\n').hle;
+    assert.deepStrictEqual([...h], [[0x80859B, { fn: 'HleRandomNumberGenerator', reason: 'rng, G1-rated' }]]);   // only this address
+    assert.throws(() => parseExclusions('hle 80859B 9bad reason'));
 });
 
 test('dispatch table size: static scan past the observed entries, stops at a data read or a target that never ran, allows a sibling dispatcher', () => {
