@@ -4,4 +4,4 @@ One row per archived file, newest first. Rules: [README.md](README.md).
 
 | Old path | Archived | Project | Summary | Why | Live information now in |
 |---|---|---|---|---|---|
-
+| docs/map-port-gap-analysis.md (Part 1, Part 2, priority list; lines 130-392) | 2026-11-03 | map editor | Original diagnoses of the map-port and Rooms-tab gaps 1.1-2.10 | all closed; outcomes already in the live closed-gap tables | docs/map-port-gap-analysis.md (Open gaps table) |
