@@ -167,10 +167,10 @@ To build a standalone, interactive map editor, the following components are comp
 | **Block 3 Planar Slices** | ✅ **Complete** | LZSS decompression to Layer 1, Layer 2, and Collision attributes. |
 | **Section 3 Dynamic Objects** | ✅ **Complete** | State descriptors, target dimensions ($W \times H$), metatile arrays. |
 | **Section 2 Animated Tiles** | ✅ **Complete** | Animated tile IDs decoded; timing scripts documented. |
-| **Collision Semantics** | ✅ **Complete** | Full bitfield decoded from `$909DE8` — plane, drift direction, entity gates. See `docs/map_collision_mechanics.md`. |
-| **Cuttable Grass** | ✅ **Complete** | Metatile swap table decoded from `$90A6EF`. See `docs/cuttable_grass_mechanics.md`. |
+| **Collision Semantics** | ✅ **Complete** | Full bitfield decoded from `$909DE8` — plane, drift direction, entity gates. See [map_collision_mechanics.md](map_collision_mechanics.md). |
+| **Cuttable Grass** | ✅ **Complete** | Metatile swap table decoded from `$90A6EF`. See [cuttable_grass_mechanics.md](cuttable_grass_mechanics.md). |
 | **Markov 2D Decompressor** | ✅ **Complete** | Exact bitstream reader (`$8C9B65`) in `tools/dump_room.py`. |
-| **Markov 2D Compressor** | ✅ **Complete** | `tools/encode_room.py::encode_markov_grid` reproduces the original bitstream byte-for-byte for all 127 vanilla rooms. See `docs/map_encoding.md`. |
+| **Markov 2D Compressor** | ✅ **Complete** | `tools/encode_room.py::encode_markov_grid` reproduces the original bitstream byte-for-byte for all 127 vanilla rooms. See [map_encoding.md](map_encoding.md). |
 | **LZSS Compressor** | ✅ **Complete** | `tools/encode_room.py::lzss_compress`, including self-overlapping matches. |
 | **Blob Write-Back** | ✅ **Complete** | `tools/encode_room.py::write_room_into_rom` — in-place or relocated, with map-table repointing. Verified never to grow a room's footprint on re-encode. |
 | **Metatile Assembler UI** | 🔨 **Needs Tooling** | A GUI brush tool to compose 16×16 metatiles from 8×8 CHR character tiles. |
@@ -233,5 +233,5 @@ Can the map table be expanded? **Yes, up to 256 rooms easily.**
    - Writes the rebuilt blob in place — proven never to overflow the room's original footprint across all 127 vanilla rooms — or relocates it to free ROM space and repoints the 4-byte table entry at `$9FFDE7` otherwise.
    - Still an editor's own responsibility: updating the room's Everscript enter script for any changed entity spawns.
 
-See `docs/map_encoding.md` for the encoder internals and their verification.
+See [map_encoding.md](map_encoding.md) for the encoder internals and their verification.
 

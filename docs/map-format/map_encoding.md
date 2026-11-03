@@ -20,7 +20,7 @@ block1          payload_len:2, sub_flag:1, decomp_size:2, data
 section2        count:1, len:2, animated-tile descriptors
 section3        object_count:1, object offsets (2 bytes each)
 block2          payload_len:2, sub_flag:1, decomp_size:2, data
-section4        len:2, $0FC4:1, metatile swap records (docs/cuttable_grass_mechanics.md)
+section4        len:2, $0FC4:1, metatile swap records (cuttable_grass_mechanics.md)
 block3          payload_len:2, sub_flag:1, decomp_size:2, data
 object_area     object records and their stamping blocks
 ```
@@ -161,6 +161,6 @@ python3 tools/encode_room.py --verify-rebuild   # re-encoded round-trip
 
 ## 6. Open questions
 
-- **UNVERIFIED:** the per-record `steps` byte format elsewhere in Section 4 (see `docs/cuttable_grass_mechanics.md`) is untouched by this module; it is copied through as opaque bytes.
+- **UNVERIFIED:** the per-record `steps` byte format elsewhere in Section 4 (see [cuttable_grass_mechanics.md](cuttable_grass_mechanics.md)) is untouched by this module; it is copied through as opaque bytes.
 - **UNVERIFIED:** whether the game enforces any constraint on Section 3 payload size beyond the space physically available before the next room blob — relevant when relocating is not an option.
 - **UNVERIFIED:** the LZSS encoder here is not proven to match whatever produced the vanilla data byte-for-byte on *new* content — only that its output decodes correctly and is smaller.

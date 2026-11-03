@@ -22,7 +22,7 @@ Last updated 2026-10-12 (v0.201.9).
 | [ghidra.md](ghidra.md) | **Ghidra + ghidra-snes**: what for, plugin gaps, setup with workarounds, VFS |
 | [docs/recomp/](https://github.com/r-bin/SecretOfEvermoreRecomp/blob/develop/docs/README.md) | **Static recompilation (snesrecomp)**: [setup](https://github.com/r-bin/SecretOfEvermoreRecomp/blob/develop/docs/setup.md), [Game RTL glue](https://github.com/r-bin/SecretOfEvermoreRecomp/blob/develop/docs/game-rtl.md), [debugging](https://github.com/r-bin/SecretOfEvermoreRecomp/blob/develop/docs/debugging.md), [bugs & roadmap](https://github.com/r-bin/SecretOfEvermoreRecomp/blob/develop/docs/bugs-and-todos.md) |
 | [rea.md](rea.md) | **REA** (MCP over Ghidra): answers, spike recipe and results |
-| [snes-re-skill.md](snes-re-skill.md) | **Proposal:** a game-neutral `snes-re` skill: grilling-style intake, then a CDL + snesrecomp pipeline to function list, ROM/WRAM maps, tables and script VMs |
+| [snes-re-skill.md](snes-re-skill.md) | Rationale, build status and decisions behind the game-neutral `snes-re` skill (the canonical text is the skill itself) |
 | [formats.md](formats.md) | File formats we use, compatible formats to emit, what REA's formats add |
 | [other-tools.md](other-tools.md) | Mesen2, Asar, DiztinGUIsh, bsnes-plus, everscript, SA-1 investigation |
 | [community-ghidra-notes.md](community-ghidra-notes.md) | Old hand-annotated community Ghidra project: its terms vs ours, tables, field names, formulas, leads to check |

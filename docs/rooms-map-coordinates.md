@@ -1,7 +1,7 @@
 # Rooms Tab — Map Coordinate System
 
-For the unified room map model, see `docs/map-data-model.md`.
-For detailed loader notes, see `docs/map-loading.md`.
+The room blob and the data model: [map-format/room-reference.md](map-format/room-reference.md).
+(The former map-data-model.md and map-loading.md pages no longer exist; see [cleanup.md](cleanup.md).)
 
 ## Coordinate Units
 
