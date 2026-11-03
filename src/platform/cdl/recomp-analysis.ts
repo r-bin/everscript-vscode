@@ -68,7 +68,10 @@ function staticTableCount({ lib, rom, map, bank, base, observed, site, readers }
         const w = rom[o] | (rom[o + 1] << 8);
         const t = map.busToRom((bank << 16) | w);
         if (w < 0x8000 || t < 0) break;
-        if ((lib.cdl[t] & CDL_DATA) && !(lib.cdl[t] & CDL_CODE)) break;
+        // only targets the CDL saw run (from this site or another one sharing the table): a guessed entry gains
+        // nothing (an index past the list runs on the interpreter) and one the analyzer cannot prove (entry $65 of the
+        // animation VM table, knowledge rom/908000.md) keeps the dispatching routine interpreted
+        if (!(lib.cdl[t] & CDL_CODE)) break;
         if (t >= map.busToRom((bank << 16) | base) && t < o + 2) break;   // points into the table itself
         count = k + 1;
     }
@@ -207,8 +210,10 @@ function dispatchDirectives({ lib, rom, map, exclusions = NO_EXCLUSIONS }: { lib
             const long = ins.op === 0xDC;
             const list = targets.map(t => (long ? t6(t) : t4(t))).join(',');
             const prev = prevHead(rom, lib, off);
+            // PEA <ret-1> pushes 2 bytes; a PHK before it makes the 3-byte frame its target's RTL pops.
+            const phk = prev && prev.ins.op === 0xF4 && prevHead(rom, lib, prev.off)?.ins.op === 0x4B;
             const mode = prev && prev.ins.op === 0xF4
-                ? `ptrcall return:${t4(prev.ins.operand + 1)} frame:2`
+                ? `ptrcall return:${t4(prev.ins.operand + 1)} frame:${phk ? 3 : 2}`
                 : 'ptrtail';
             add(bank, `indirect_dispatch ${t4(site)} ${targets.length} ${mode} targets:${list}    # ${ins.mnemonic.toLowerCase()} through $${hex(ins.operand, 4)}, observed targets only`);
             counts.pointer++;
@@ -278,5 +283,31 @@ function ramRoutines(lib: CdlLibrary, returns: Map<number, ReturnInfo>) {
     return { lines: out, skipped };
 }
 
-export { returnsByEntry, exitDirectives, dispatchDirectives, noReturnComments, ramRoutines, staticTableCount, parseExclusions, NO_EXCLUSIONS };
+/**
+ * Assertion traps: a BRK that a recorded conditional branch jumps to and that never ran (`BMI fail` ... `fail: BRK
+ * #$A6`, SoE $8F:9E76). snesrecomp marks a routine that decodes a BRK as structural poison and keeps it
+ * interpreted; a BRK byte declared `authority_data` and reached from a conditional branch is a trap instead (the
+ * interpreter runs it if it is ever reached) and the routine compiles. Only $8000-$FFFF halves (the $80-bank
+ * mirrors the seeds use); the analyzer adds the other mirror itself.
+ */
+function brkTraps({ lib, rom }: { lib: CdlLibrary; rom: Uint8Array }): Map<number, string[]> {
+    const out = new Map<number, string[]>();
+    const seen = new Set<number>();
+    const n = Math.min(rom.length, lib.cdl.length, 0x400000);
+    for (let off = 0; off + 1 < n; off++) {
+        if (!(lib.cdl[off] & CDL_CODE) || !(lib.ext[off] & EXT_HEAD)) continue;
+        const op = rom[off];
+        if ((op & 0x1F) !== 0x10) continue;   // BPL BMI BVC BVS BCC BCS BNE BEQ
+        const t = off + 2 + ((rom[off + 1] << 24) >> 24);
+        if ((t >> 16) !== (off >> 16) || (t & 0xFFFF) < 0x8000 || t >= n || seen.has(t)) continue;
+        if (rom[t] !== 0x00 || (lib.cdl[t] & CDL_CODE)) continue;
+        seen.add(t);
+        const bank = 0x80 | (t >>> 16), pc = t & 0xFFFF;
+        (out.get(bank) || out.set(bank, []).get(bank)!).push(
+            `authority_data ${hex(pc, 4).toLowerCase()} ${hex(pc + 1, 4).toLowerCase()}    # BRK #$${hex(rom[t + 1], 2)}: assertion trap behind the branch at $${hex(bank, 2)}:${hex(off & 0xFFFF, 4)}, never run`);
+    }
+    return out;
+}
+
+export { returnsByEntry, exitDirectives, dispatchDirectives, noReturnComments, ramRoutines, staticTableCount, parseExclusions, brkTraps, NO_EXCLUSIONS };
 export type { RecompExclusions };

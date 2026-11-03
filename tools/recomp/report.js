@@ -67,10 +67,10 @@ function todo(m, rebuild, recomp, recorded) {
     if (!rebuild.identical) add(0, 'Asar', rebuild.reason || ('Rebuild differs from the ROM at file offset $' + (rebuild.firstDiff >>> 0).toString(16).toUpperCase() + ' (asar.log, asar/build/out.sfc).'));
     if (recomp && !recomp.skipped && !recomp.ok) add(0, 'snesrecomp', (recomp.reason || 'recomp step failed') + ' — see recomp-host.log.');
     if (recomp && !recomp.skipped && recomp.ok && !recomp.exe) add(1, 'Recomp', 'Seeds written, game not regenerated or built this run (--no-build).');
-    add(1, 'Lockstep', 'Recomp and snes9x diverge from NMI counter ~315 (intro fade / loading timing): run `npm run recomp:lockstep` and fix the first divergence (docs/bugs-and-todos.md §1 in the recomp repository).');
+    if (recomp && !recomp.skipped && recomp.ok && recomp.exe) add(1, 'Parity', 'Check the build against MesenCE on the sync replays (tools/compare/compare.mts --backend mesen,recomp) and its native share (tools/compare/probes/tier-stats.mts); docs/progress.md in the recomp repository.');
     const cov = pct(m.code + m.data, m.romBytes);
     if (cov < 50) add(1, 'CDL', `Coverage ${p1(cov)} of the ROM recorded: play more rooms, menus, bosses (or scripted headless runs).`);
-    if (recomp && recomp.parsed && recomp.parsed.interpreter) add(2, 'snesrecomp', `${recomp.parsed.interpreter} function variants interpreter-only: jump tables / dispatch need targets (record more, or add directives).`);
+    if (recomp && recomp.parsed && recomp.parsed.interpreter) add(2, 'snesrecomp', `${recomp.parsed.interpreter} function variants interpreter-only: see the analyzer's reasons in src/gen/program_manifest.json (unproven exits, BRK traps, missing dispatch targets).`);
     const nm = pct(m.named, m.functions);
     if (nm < 80) add(2, 'Names', `${m.named}/${m.functions} recorded functions named (${p1(nm)}): run a re-curator pass.`);
     const cm = pct(m.commentedLines, m.codeLines);

@@ -77,8 +77,8 @@ core (WASM, per instruction / access)        webview (every 5 s)         host (N
   only valid on a `PEI` site; `exit_mx` widths use 1 = 8-bit; `indirect_dispatch` counts are
   entries, not bytes. When there is no directive for a pattern, write a `#` comment instead.
 - **`idx:X` counts are statically extended** (`staticTableCount`): the CDL only sees taken entries,
-  and an under-counted table broke SoE's title sprites (`$8F:9F46`, 16 entries, 8 observed).
-  Pointer forms (`ptrcall`, `ptrtail`, `rtsstack`) with observed-only targets make snesrecomp
+  and an under-counted table broke SoE's title sprites (`$8F:9F46`, 16 entries, 8 observed); only targets
+  that ran count (a guessed one kept `$90:80D2` interpreted). Pointer forms (`ptrcall`, `ptrtail`, `rtsstack`) with observed-only targets make snesrecomp
   **skip** unknown handlers: treat them as risky. Recomp debugging: `SecretOfEvermoreRecomp docs/debugging.md` and `SecretOfEvermoreRecomp docs/bugs-and-todos.md`.
 
 ## 3. What is recorded

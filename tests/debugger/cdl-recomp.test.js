@@ -299,13 +299,13 @@ test('seed exclusions: func and dispatch lines, every HiROM mirror, comments, ba
     assert.strictEqual(parseExclusions('').func.size, 0);
 });
 
-test('dispatch table size: static scan past the observed entries, stops at a data read, allows a sibling dispatcher', () => {
+test('dispatch table size: static scan past the observed entries, stops at a data read or a target that never ran, allows a sibling dispatcher', () => {
     const { staticTableCount } = require('../../dist/platform/cdl/recomp-analysis');
     // bank $8F mapped flat for the test: bus $8Fxxxx -> offset xxxx
     const map = { busToRom: b => ((b >>> 16) === 0x8F ? b & 0xFFFF : -1) };
     const rom = new Uint8Array(0x10000), cdl = new Uint8Array(0x10000);
     const put = (o, w) => { rom[o] = w & 0xFF; rom[o + 1] = w >> 8; };
-    for (let k = 0; k < 16; k++) put(0xA3D8 + k * 2, 0x9E00 + k * 8);   // 16 code pointers
+    for (let k = 0; k < 16; k++) { put(0xA3D8 + k * 2, 0x9E00 + k * 8); cdl[0x9E00 + k * 8] = 0x01; }   // 16 pointers to code that ran
     put(0xA3F8, 0x0102);                                                   // next table: small values
     rom[0x9F46] = 0x7C; rom[0x9ECA] = 0x7C; rom[0x9F4B] = 0xBF;            // two dispatchers + one lda long,x
     const key = (pc, off) => pc * 0x4000000 + ((1 << 24) | off);
@@ -317,6 +317,9 @@ test('dispatch table size: static scan past the observed entries, stops at a dat
     for (const k of xrefs.keys()) { const pc = Math.floor(k / 0x4000000), off = k % 0x4000000 & 0xFFFFFF; (readers.get(off) || readers.set(off, new Set()).get(off)).add(pc); }
     const lib = { cdl, xrefs };
     assert.strictEqual(staticTableCount({ lib, rom, map, bank: 0x8F, base: 0xA3D8, observed: 8, site: 0x8F9F46, readers }), 16);
+    cdl[0x9E00 + 12 * 8] = 0;   // a target the CDL never saw run ends it (a guessed entry, SoE $90:8E5E)
+    assert.strictEqual(staticTableCount({ lib, rom, map, bank: 0x8F, base: 0xA3D8, observed: 8, site: 0x8F9F46, readers }), 12);
+    cdl[0x9E00 + 12 * 8] = 0x01;
     cdl[0xA3E8] = 0x01;   // an executed byte inside the table ends it
     assert.strictEqual(staticTableCount({ lib, rom, map, bank: 0x8F, base: 0xA3D8, observed: 8, site: 0x8F9F46, readers }), 8);
 });

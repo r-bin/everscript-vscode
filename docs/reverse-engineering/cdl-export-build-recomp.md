@@ -226,7 +226,7 @@ What the seeds contain since v0.174.0 (from the recorded call stack and register
 | `func … exit_mx:M,X` | every recorded return of the function left with the same widths |
 | `exit_mx_variant` / `exit_mx_set` | exit widths depend on the entry variant / one variant exits several ways |
 | `indirect_dispatch <site> <n> idx:X` | `jmp/jsr ($table,x)`; n = highest table entry that matches an observed target |
-| `indirect_dispatch <site> <n> ptrtail\|ptrcall targets:…` | `jmp ($ptr)` / `jml [$ptr]` (ptrcall when a `pea` precedes it) |
+| `indirect_dispatch <site> <n> ptrtail\|ptrcall targets:…` | `jmp ($ptr)` / `jml [$ptr]` (ptrcall when a `pea` precedes it; `frame:3` when a `phk` precedes the `pea`, the frame an RTL pops) |
 | `indirect_dispatch <pei> <n> rtsstack targets:…` | `pei ($dp) ; rts` |
 | `ram_routine <7Exxxx> MmXn <bytes>` | code run from WRAM whose bytes never changed |
 | `# …` comments | PHA/PEA + RTS dispatch, adjusted return addresses (inline data), callees that never returned |

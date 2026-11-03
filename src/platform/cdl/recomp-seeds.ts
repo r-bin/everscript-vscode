@@ -21,7 +21,7 @@ import type { buildIndex } from './xref-index';
 import type { KnownRegion } from './known-regions';
 
 type Index = ReturnType<typeof buildIndex>;
-import { returnsByEntry, exitDirectives, dispatchDirectives, noReturnComments, ramRoutines, NO_EXCLUSIONS } from './recomp-analysis';
+import { returnsByEntry, exitDirectives, dispatchDirectives, noReturnComments, ramRoutines, brkTraps, NO_EXCLUSIONS } from './recomp-analysis';
 import type { RecompExclusions } from './recomp-analysis';
 import { hiromFileOffset } from '../snes/hirom';
 
@@ -122,6 +122,25 @@ function writeRecompSeeds({ lib, rom, map, index, known, outDir, exclusions = NO
         }
     }
 
+    // Interrupt handlers entered through a JML stub (the native vectors point into bank $00, which holds only
+    // `JML <body>`): the body is reached by a jump, so no call or interrupt edge makes it a root. Seed it, with
+    // the widths the CDL saw at its first instruction (it is entered with the interrupted code's M/X).
+    if (rom) {
+        for (const [vector, what] of [[0xFFEA, 'nmi'], [0xFFEE, 'irq']] as const) {
+            const vo = map.busToRom(vector);
+            if (vo < 0 || vo + 1 >= rom.length) continue;
+            const stub = map.busToRom(rom[vo] | (rom[vo + 1] << 8));
+            if (stub < 0 || stub + 3 >= rom.length || rom[stub] !== 0x5C) continue;
+            const body = rom[stub + 1] | (rom[stub + 2] << 8) | (rom[stub + 3] << 16);
+            const off = map.busToRom(body);
+            if (off < 0 || !lib.cdl[off] || exclusions.func.has(body)) continue;
+            const m = (lib.ext[off] & EXT_SEEN_M16) || !(lib.cdl[off] & CDL_ACC_8) ? 0 : 1;
+            const x = (lib.ext[off] & EXT_SEEN_X16) || !(lib.cdl[off] & CDL_IDX_8) ? 0 : 1;
+            bankLines(body >>> 16).push(`func ${what}_handler_body ${hex(body & 0xFFFF, 4).toLowerCase()} entry_mx:${m},${x}    # the ${what.toUpperCase()} vector's JML stub target`);
+            funcs++;
+        }
+    }
+
     // Dropping the root is not enough: snesrecomp rediscovers an excluded routine as the target of a
     // compiled caller's JSL and compiles it anyway. force_lle keeps it interpreted for every caller.
     const forced = new Set([...exclusions.func.keys()].map(bus => (0x800000 | (hiromFileOffset(bus))) >>> 0));
@@ -131,6 +150,7 @@ function writeRecompSeeds({ lib, rom, map, index, known, outDir, exclusions = NO
 
     const dispatch = rom ? dispatchDirectives({ lib, rom, map, exclusions }) : { lines: new Map(), counts: { indexed: 0, pointer: 0, rtsstack: 0, comments: 0 } };
     for (const [bank, lines] of dispatch.lines) bankLines(bank).push(...lines);
+    if (rom) for (const [bank, lines] of brkTraps({ lib, rom })) bankLines(bank).push(...lines);
     const labelOf = (bus: number) => { const o = map.busToRom(bus); return (o >= 0 && index.labelName(o)) || '$' + hex(bus, 6); };
     const noReturn = noReturnComments(returns, labelOf);
     for (const n of noReturn) bankLines(n.bank).push(n.line);
