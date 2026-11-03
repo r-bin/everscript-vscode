@@ -221,6 +221,10 @@ function writeRecompSeeds({ lib, rom, map, index, known, outDir, exclusions = NO
     // Routines the recomp's glue replaces with C (its seed-exclusions.txt `hle` lines).
     for (const [pc24, h] of exclusions.hle) {
         bankLines(pc24 >>> 16).push(`hle_func ${hex(pc24 & 0xFFFF, 4).toLowerCase()} ${h.fn}    # ${h.reason}`);
+        if (h.body !== undefined) {
+            const ex = exitDirectives(returns.get(pc24), pc24);
+            bankLines(h.body >>> 16).push(`func ${h.fn}_body ${hex(h.body & 0xFFFF, 4).toLowerCase()} entry_mx:0,0${ex.inline}`, ...ex.lines);
+        }
     }
 
     // Symbols go into a bank cfg that exists anyway (a cfg of its own would make a bank snesrecomp translates).

@@ -299,6 +299,7 @@ test('seed exclusions: func and dispatch lines, every HiROM mirror, comments, ba
     assert.strictEqual(parseExclusions('').func.size, 0);
     const h = parseExclusions('hle 80859B HleRandomNumberGenerator rng, G1-rated\n').hle;
     assert.deepStrictEqual([...h], [[0x80859B, { fn: 'HleRandomNumberGenerator', reason: 'rng, G1-rated' }]]);   // only this address
+    assert.strictEqual(parseExclusions('hle 80859B HleRng body=80859E rng\n').hle.get(0x80859B).body, 0x80859E);
     assert.throws(() => parseExclusions('hle 80859B 9bad reason'));
 });
 

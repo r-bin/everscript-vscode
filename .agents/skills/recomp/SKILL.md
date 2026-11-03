@@ -24,7 +24,7 @@ the game itself, and commit there (branch `develop`).
   but names break ties in snesrecomp's resume table (recomp repo bugs-and-todos §3.6): an A/B of names
   compares its dispatch_v2.c too. `tools/recomp/annotate.mts` comments the generated C from
   `out/recomp/asar/recomp/annotations.tsv` (asm + WRAM names); the recomp repo's regen script runs it.
-- C bindings: an `hle <pc24> <c_function> <reason>` line in the recomp's exclusions file becomes `hle_func`; the
+- C bindings: an `hle <pc24> <c_function> [body=<pc24>] <reason>` line in the recomp's exclusions file becomes `hle_func` (`body=`: the second instruction as a compiled root, for calls the C cannot take); the
   recomp's glue compiles `reconstructed-c/` from this checkout and runs it only where unobservable (its
   game-rtl doc §4b). A broken `reconstructed-c/include/soe_ram.h` breaks that build: keep bound names in it.
   `tools/compare/probes/run-stats.mts` measures speed per mode, banks that run and how often each binding's C ran.

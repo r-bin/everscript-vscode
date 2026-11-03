@@ -156,18 +156,20 @@ function prevHead(rom: Uint8Array, lib: CdlLibrary, off: number) {
  *   dispatch <pc24> <reason>   no `indirect_dispatch` at this jump site
  * An address stands for all its HiROM mirrors ($00/$40/$80/$C0 banks).
  */
-/** `hle`: routines the recomp replaces with C (`hle_func`), keyed by the runtime address, with the glue's function. */
-interface RecompExclusions { func: Map<number, string>; dispatch: Map<number, string>; hle: Map<number, { fn: string; reason: string }> }
+/** `hle`: routines the recomp replaces with C (`hle_func`), keyed by the runtime address, with the glue's function.
+ *  `body`: the routine's second instruction, seeded as a root so the part after the first instruction stays compiled for
+ *  the calls the C cannot take (`hle_func` replaces only the entry). */
+interface RecompExclusions { func: Map<number, string>; dispatch: Map<number, string>; hle: Map<number, { fn: string; body?: number; reason: string }> }
 
 function parseExclusions(text: string): RecompExclusions {
     const out: RecompExclusions = { func: new Map(), dispatch: new Map(), hle: new Map() };
     text.split('\n').forEach((raw, i) => {
         const line = raw.replace(/#.*/, '').trim();
         if (!line) return;
-        const h = /^hle\s+\$?([0-9a-fA-F]{6})\s+([A-Za-z_]\w*)\s+(.+)$/.exec(line);
-        if (h) { out.hle.set(parseInt(h[1], 16), { fn: h[2], reason: h[3].trim() }); return; }
+        const h = /^hle\s+\$?([0-9a-fA-F]{6})\s+([A-Za-z_]\w*)\s+(?:body=\$?([0-9a-fA-F]{6})\s+)?(.+)$/.exec(line);
+        if (h) { out.hle.set(parseInt(h[1], 16), { fn: h[2], ...(h[3] ? { body: parseInt(h[3], 16) } : {}), reason: h[4].trim() }); return; }
         const m = /^(func|dispatch)\s+\$?([0-9a-fA-F]{6})\s+(.+)$/.exec(line);
-        if (!m) throw new Error(`seed exclusions line ${i + 1}: expected "func|dispatch <pc24> <reason>" or "hle <pc24> <c_function> <reason>": ${raw}`);
+        if (!m) throw new Error(`seed exclusions line ${i + 1}: expected "func|dispatch <pc24> <reason>" or "hle <pc24> <c_function> [body=<pc24>] <reason>": ${raw}`);
         const pc = parseInt(m[2], 16) & 0x3FFFFF;
         for (const bank of [0x000000, 0x400000, 0x800000, 0xC00000]) out[m[1] as 'func' | 'dispatch'].set((pc | bank) >>> 0, m[3].trim());
     });
