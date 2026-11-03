@@ -40,6 +40,7 @@ await runRecomp({ exe, rom: resolve(romArg), to, regions: ['wram'], stride: 1_00
             if (l.startsWith('[hle]')) console.log('hle ' + l.slice(6));   // the glue's SOE_HLE_STATS=1 (C bindings)
             const b = /^\[bank\] \$([0-9A-F]{2}): (\d+)/.exec(l);
             if (b) banks.push([parseInt(b[1], 16), +b[2]]);
+            else if (l.startsWith('[bank]')) console.log('bank ' + l.slice(7));   // single-step slices
         }
     } }, () => {}).done;
 const s = (performance.now() - t0) / 1000;
