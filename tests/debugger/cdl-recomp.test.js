@@ -324,6 +324,39 @@ test('dispatch table size: static scan past the observed entries, stops at a dat
     assert.strictEqual(staticTableCount({ lib, rom, map, bank: 0x8F, base: 0xA3D8, observed: 8, site: 0x8F9F46, readers }), 8);
 });
 
+test('exit widths: a MODIFIED return counts only for an entry variant with no NORMAL return', () => {
+    const { returnsByEntry, exitDirectives } = require('../../dist/platform/cdl/recomp-analysis');
+    // rets key: ((entry * 0x1000000 + retPc) * 16) + mx; mx bits: entryM8 1, entryX8 2, exitM8 4, exitX8 8
+    const key = (entry, retPc, mx) => (entry * 0x1000000 + retPc) * 16 + mx;
+    const rets = new Map([
+        [key(0x8CEA43, 0x8CEA64, 0), 1],     // M0X0 -> M0X0, back at the call site
+        [key(0x8CEA43, 0x90842E, 4), 2],     // M0X0 -> M1X0 through an RTL elsewhere: not an exit width
+        [key(0x8FD000, 0x8FD010, 1 | 4), 2], // M1X0 entry with only a MODIFIED return: that is all we know
+    ]);
+    const info = returnsByEntry({ rets });
+    assert.strictEqual(exitDirectives(info.get(0x8CEA43), 0x8CEA43).inline, ' exit_mx:0,0');
+    assert.strictEqual(exitDirectives(info.get(0x8FD000), 0x8FD000).inline, ' exit_mx:1,0');
+});
+
+test('dispatch table: ends where its bytes ran as code, not at a coincidental later match', () => {
+    const { dispatchDirectives } = require('../../dist/platform/cdl/recomp-analysis');
+    const rom = new Uint8Array(0x10000), cdl = new Uint8Array(0x10000), ext = new Uint8Array(0x10000);
+    const map = { busToRom: b => ((b >>> 16) === 0x8F ? b & 0xFFFF : -1) };
+    const put = (o, w) => { rom[o] = w & 0xFF; rom[o + 1] = w >> 8; };
+    rom[0x8000] = 0xFC; rom[0x8001] = 0x00; rom[0x8002] = 0x90; cdl[0x8000] = 1; ext[0x8000] = 0x04;  // jsr ($9000,x)
+    for (let k = 0; k < 4; k++) { put(0x9000 + k * 2, 0xA000 + k * 16); cdl[0xA000 + k * 16] = 1; }
+    cdl.fill(1, 0x9008, 0x9010);            // code right after the 4 entries
+    put(0x9000 + 40 * 2, 0xA010);           // a word further on that equals an observed target
+    const FLOW_INDIRECT = 8;
+    const edges = new Map();
+    for (let k = 0; k < 2; k++) edges.set((0x8F8000 * 0x1000000 + 0x8FA000 + k * 16), FLOW_INDIRECT);
+    const lib = { cdl, ext, edges, xrefs: new Map(), rets: new Map() };
+    const out = dispatchDirectives({ lib, rom, map });
+    const line = [...out.lines.values()].flat().find(l => l.startsWith('indirect_dispatch 8000'));
+    assert.ok(line, JSON.stringify([...out.lines.values()]));
+    assert.match(line, /^indirect_dispatch 8000 4 idx:X/);
+});
+
 test('recomp names: every knowledge entry becomes one valid, unique identifier', () => {
     const { collectNames } = require('../../tools/recomp/names');
     const { names, wramNames, counts } = collectNames({ busToRom: (b) => b & 0x3FFFFF }, 0x400000);

@@ -85,16 +85,29 @@ const mxName = (m8: boolean, x8: boolean): string => 'M' + (m8 ? 1 : 0) + 'X' + 
 function returnsByEntry(lib: CdlLibrary): Map<number, ReturnInfo> {
     const out = new Map<number, ReturnInfo>();
     const get = (e: number): ReturnInfo => out.get(e) || out.set(e, { variants: new Map(), normal: 0, dropped: new Set(), modified: new Set() }).get(e)!;
+    // A MODIFIED return went somewhere else than the call site (SoE $8C:EA43's one is an RTL in bank $90): its
+    // widths are an exit width only for an entry variant with no NORMAL return. Counted as one, they gave
+    // script_eval_expression an M1X0 exit the CDL never saw at a call site, and snesrecomp kept ~50 script
+    // handlers that call it interpreted.
+    const modifiedExits = new Map<number, Map<string, Set<string>>>();
     for (const r of retsList(lib)) {
         if (r.flags & RET.INTERRUPT) continue;
         const f = get(r.entry);
         if (r.flags & RET.DROPPED) f.dropped.add(r.retPc);
-        if (r.flags & (RET.NORMAL | RET.MODIFIED)) {
+        const v = mxName(r.entryM8, r.entryX8), exit = mxName(r.exitM8, r.exitX8);
+        if (r.flags & RET.NORMAL) {
             f.normal++;
-            const v = mxName(r.entryM8, r.entryX8);
-            (f.variants.get(v) || f.variants.set(v, new Set()).get(v)!).add(mxName(r.exitM8, r.exitX8));
+            (f.variants.get(v) || f.variants.set(v, new Set()).get(v)!).add(exit);
+        } else if (r.flags & RET.MODIFIED) {
+            f.normal++;
+            const m = modifiedExits.get(r.entry) || modifiedExits.set(r.entry, new Map()).get(r.entry)!;
+            (m.get(v) || m.set(v, new Set()).get(v)!).add(exit);
         }
         if (r.flags & RET.MODIFIED) f.modified.add(r.retPc);
+    }
+    for (const [entry, byVariant] of modifiedExits) {
+        const f = out.get(entry)!;
+        for (const [v, exits] of byVariant) if (!f.variants.has(v)) f.variants.set(v, exits);
     }
     return out;
 }
@@ -194,6 +207,10 @@ function dispatchDirectives({ lib, rom, map, exclusions = NO_EXCLUSIONS }: { lib
             for (let k = 0; k < TABLE_SCAN; k++) {
                 const o = map.busToRom((bank << 16) | ((ins.operand + k * 2) & 0xFFFF));
                 if (o < 0 || o + 1 >= rom.length) break;
+                // the table ends where its bytes ran as code: a later word equal to an observed target is a
+                // coincidence ($8F:C3FF has 8 handlers, then code; its word 105 matched one and made 106, whose
+                // garbage entries became interpreter-only "routines"). Words below $8000 are holes, not the end.
+                if ((lib.cdl[o] | lib.cdl[o + 1]) & CDL_CODE) break;
                 if (tos.has((bank << 16) | rom[o] | (rom[o + 1] << 8))) count = k + 1;
             }
             if (count) {
