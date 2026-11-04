@@ -15,3 +15,4 @@ Ring menu options handling and targeting coordinate calculation routines:
 - Processes player options selection (stereo/mono audio, controller layout, window color customization).
 - Loads 3D coordinates `(X, Y, Z)` from active target entity slot `$0F42` into `$44, $46, $48` and invokes targeting vector handler `$8F:C2E4`.
 - Returns via `RTL`.
+

@@ -17,3 +17,4 @@ In-game options and controller configuration menu UI text strings:
 - `"Configuration 2"`
 - `"Press UP or DOWN to change configurations.  Press SELECT to change sound mode."`
 Rendered by the options screen to configure joypad button mappings and toggle stereo/mono audio output.
+

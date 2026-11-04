@@ -16,3 +16,4 @@ Core dialogue balloon and menu window framing engine:
 - Streams pre-rendered border tiles, corner ornaments, and background filler directly into the WRAM tilemap buffer at `$7E:D000` / `$7F:C800` via SNES hardware registers `$2180..$2182`.
 - Handles multi-line clipping and window drop-shadow attributes.
 - Returns via `RTL` at `$8C:B55A`.
+

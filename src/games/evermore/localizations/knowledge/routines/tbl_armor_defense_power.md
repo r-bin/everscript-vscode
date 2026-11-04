@@ -12,3 +12,4 @@ evidence: ["disasm: 168 bytes at $8C:8F39..$8C:8FE0 containing 84 16-bit word de
 see: [routines/tbl_8C8F03.md, rom/8c8fe1.md, rom/8c91d3.md]
 ---
 Master equipment defense lookup table holding 84 16-bit words (`0x002B, 0x002C, 0x002C, 0x002D...`). Queried during armor equipping and buff stat recalculation in `character_defense_and_buff_rebuild` (`$8F:83B2`) to add base defense values to entity stats.
+

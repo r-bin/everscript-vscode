@@ -16,3 +16,4 @@ Core combat evasion and target strike validity evaluator:
 - Fetches target evasion rating from character record field `+$07` / `+$1F`.
 - Sets evasion / deflection flag bit `0x0040` in entity state `+$12,Y` if the attack misses.
 - Returns via `RTL` directly into `HIT_CHANCE_POINTERS_BY_EVADE` dispatcher.
+

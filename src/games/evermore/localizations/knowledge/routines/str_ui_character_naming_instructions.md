@@ -15,3 +15,4 @@ UI prompt strings for the character naming screen:
 - `"Enter Character Name"`
 - `"Choose letters by moving the selector and pressing B.  Y deletes the last letter. Press START to exit."`
 Rendered by the name entry menu handler to guide the player when naming the Boy or the companion Dog.
+

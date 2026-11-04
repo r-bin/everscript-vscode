@@ -12,3 +12,4 @@ evidence: ["disasm: 168 bytes at $8C:91D3..$8C:927A containing 84 16-bit word at
 see: [routines/tbl_8C919D.md, rom/8c8f39.md, rom/8c938f.md]
 ---
 Master weapon attack power lookup table holding 84 16-bit words (`0x0108, 0x0111, 0x011A, 0x0123...`). Queried during weapon swapping and charge attacks in `character_defense_and_buff_rebuild` (`$8F:83D8`) to apply baseline physical damage parameters.
+

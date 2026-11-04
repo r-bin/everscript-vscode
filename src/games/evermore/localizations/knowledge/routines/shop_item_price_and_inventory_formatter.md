@@ -16,3 +16,4 @@ Vendor shop item price tag and currency string formatter:
 - Converts the selected item's buy/sell price into decimal ASCII characters using `format_32bit_integer_to_decimal_ascii` (`$80:B21F`).
 - Appends the currency symbol and formatted price into the active shop window text stream via `dialogue_format_and_append_line` (`$8C:9E03`).
 - Jumps directly to `$8E:A0DE` within the merchant dialogue session manager.
+

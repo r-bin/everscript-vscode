@@ -14,3 +14,4 @@ see: [rom/8c9700.md, rom/8c97af.md]
 Tilemap staging buffer and VRAM page allocation offset table:
 - Contains incremental 16-bit word addresses stepping by `0x0400` (1 KB per 32×32 BG tilemap page).
 - Queried by screen scrolling and VRAM DMA upload routines to map viewport regions into staging buffers.
+

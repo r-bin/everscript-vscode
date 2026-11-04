@@ -14,3 +14,4 @@ see: [routines/asset_819a1e_song_dependency_table.md, routines/asset_819b30_per_
 SPC700 audio soundbank dependency table terminator and driver segment alignment padding:
 - Contains 4-byte end-of-table sentinel `0x03, 0xD4, 0xFD, 0xFF`.
 - Followed by 180 bytes of zero padding (`0x00`) aligning the per-song table array at `$81:9B30`.
+

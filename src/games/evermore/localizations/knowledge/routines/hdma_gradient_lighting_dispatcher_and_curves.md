@@ -16,3 +16,4 @@ Coordinates ambient screen lighting and atmospheric fog effects via SNES HDMA Ch
 - Dispatches through mode-specific curve handlers to build scanline color palettes in WRAM Bank `$7F`.
 - Contains lighting attenuation curve tables (`0x0080, 0x0040, 0x0020, 0x0010, 0x0008...`).
 - Exits via `RTL`.
+

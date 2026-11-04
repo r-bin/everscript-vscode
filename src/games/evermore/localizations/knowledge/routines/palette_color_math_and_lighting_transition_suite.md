@@ -15,3 +15,4 @@ Suite of PPU CGRAM palette color math and cross-fade transition routines:
 - Performs bitwise 15-bit BGR555 channel decomposition (5 bits Red, 5 bits Green, 5 bits Blue).
 - Calculates subtractive color blending, additive color tints, and smooth shading transitions across active palette staging buffers.
 - Prepares color values for hardware PPU multiplication and interpolation in `graphics_color_555_linear_blend_lerp` (`$90:D2A6`).
+

@@ -16,3 +16,4 @@ Formats and displays the in-game notification banner when an alchemy formula lev
 - Appends the level-up notice string: `" now level "` (`$91:CE2C..$91:CE37`).
 - Formats the new decimal level number and queues the message banner into the dialogue display pipeline.
 - Returns via `RTL` at `$91:CE2B`.
+

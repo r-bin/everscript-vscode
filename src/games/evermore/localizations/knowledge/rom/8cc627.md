@@ -15,3 +15,4 @@ Displays dialogue speaker portrait figure in the designated dialogue window slot
 - Invoked by script opcodes `0x65` (`reshow_left_speaker`) and `0x69` (`reshow_right_speaker`).
 - Sets active speaker display flag bit in dialogue status register `$7E:0B79`.
 - Fades in or unhides the speaker figure sprite overlay and returns via `RTL`.
+

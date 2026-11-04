@@ -14,3 +14,4 @@ see: [rom/8c8a25.md, rom/8d8000.md]
 UI stat labels for the in-game character stats screen and equipment review card:
 - `"HP:"`, `"Level:"`, `"Exp:"`, `"Needed:"`, `"Attack:"`, `"Hit %:"`, `"Defend:"`, `"Evade %:"`, `"Magic Def:"`, `"Attack Skill:"`, `"---------------"`
 Rendered by `$8C:8A25` (`target_stats_card_draw`) to display active party member attributes.
+

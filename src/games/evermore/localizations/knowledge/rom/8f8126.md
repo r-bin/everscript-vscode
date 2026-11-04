@@ -15,3 +15,4 @@ Initializes the companion Dog's active world entity slot and combat records:
 - Binds party slot registers `$7E:0B09`, `$7E:0B0B`, `$7E:0B0D`, `$7E:0B0F` to the Dog's WRAM character record buffer at `$7E:0A70`.
 - Configures default companion AI tracking target vectors and follow leash properties.
 - Returns via `RTL` at `$8F:81C8`.
+

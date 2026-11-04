@@ -12,3 +12,4 @@ evidence: ["scripts: 698 bytes of event script bytecode at $96:ADC4..$96:B07D co
 see: [rom/96ad2a.md, rom/96b07e.md]
 ---
 Nobilia Market entrance peddler multi-stage conversation script. Executed by the script virtual machine to display stage-specific sales pitches, handle dialogue choice branches, push the player back when persistent, and trigger the interaction cooldown timer.
+

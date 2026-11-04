@@ -12,3 +12,4 @@ evidence: ["disasm: 268 bytes at $C4:588E..$C4:5999 containing 67 4-byte pointer
 see: [routines/ALCHEMY_SCRIPT_POINTER_TABLE.md, rom/c44a76.md, rom/c460ab.md]
 ---
 Master string pointer directory holding 67 4-byte far pointers (`[addr:16][bank:8][0]`). References uncompressed dialogue strings, NPC conversation scripts, and item lore text stored across Bank `$C9`.
+

@@ -16,3 +16,4 @@ Alchemy formula animation script VM bytecode handler:
 - Advances effect script PC `+$14,Y` by 12 bytes to consume parameter words.
 - Allocates particle slots, computes radial burst trajectories `(X, Y, Z)`, and initializes particle velocity vectors.
 - Exits with Carry clear (`CLC; RTS`).
+

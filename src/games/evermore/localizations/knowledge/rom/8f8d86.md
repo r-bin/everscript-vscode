@@ -15,3 +15,4 @@ Enemy archetype animation and appearance initialization routine:
 - Reads animation sequence indices from the archetype record at `$008E,Y`.
 - Unpacks default idle, walking, running, and attack animation descriptors into entity record offsets `+$34`, `+$36`, `+$38`, `+$3A`.
 - Jumps to `$90:BE4C` to register initial sprite frames with the graphics compositor.
+

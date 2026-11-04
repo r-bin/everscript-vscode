@@ -15,3 +15,4 @@ Core status condition simulation handler executed every game frame:
 - Checks active ailment bitmask in `$7E:0B83` (Poison, Confound, Plague, Corrosion, Defender, Atlas, etc.).
 - Calculates periodic damage increments for debilitating conditions and restores entity parameters when timers expire.
 - Restores 16-bit register modes (`REP #$30`) and exits via `RTL` at `$91:BDC3`.
+

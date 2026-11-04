@@ -15,3 +15,4 @@ Hides dialogue speaker portrait figure in the designated dialogue window slot (L
 - Invoked by script opcodes `0x66` (`hide_left_speaker`) and `0x6A` (`hide_right_speaker`).
 - Clears speaker active flag bits in dialogue status register `$7E:0B79`.
 - Dismisses the speaker figure sprite overlay and returns via `RTL`.
+

@@ -12,3 +12,4 @@ evidence: ["disasm: 505 bytes at $8E:C1D4..$8E:C3CC containing 74-byte enemy cha
 see: [rom/8eb678.md, rom/8eb55a.md]
 ---
 Continuation of the master 74-byte entity character records database (`character_records`). Contains stats (HP, attack, defense, evade, magic defense), experience, money, attack procs, palette addresses, and animation indices for enemy records referenced by the ENEMY index table `$8E:B55A`.
+

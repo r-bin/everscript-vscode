@@ -12,3 +12,4 @@ evidence: ["Game asset catalog: 358 bytes of sprite chunk descriptors [flags][x]
 see: [routines/asset_d03638_sprite_infos_chunk_lists.md, routines/asset_d043f0_sprite_infos_chunk_lists.md]
 ---
 Sprite infos chunk list descriptors holding 358 bytes of 5-byte composite sprite chunk records `[flags][x][y][block:16]` in Bank `$D0`.
+

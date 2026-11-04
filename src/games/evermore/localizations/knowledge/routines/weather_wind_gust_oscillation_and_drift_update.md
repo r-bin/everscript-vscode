@@ -15,3 +15,4 @@ Simulates dynamic wind gusts for ambient weather particles (rain, ash, snow):
 - Updates wind force registers `$7E:14CE` and `$7E:14D0` using sine oscillation.
 - Accelerates particle horizontal velocities and handles screen-wrap boundaries across the active viewport.
 - Returns via `RTL` at `$91:C2AC`.
+

@@ -12,3 +12,4 @@ evidence: ["disasm: 168 bytes at $8F:CA70..$8F:CB17 containing 84 16-bit word of
 see: [routines/SEGMENT_EASE_VELOCITY_SHARE.md, rom/8fcb38.md]
 ---
 Kinematic easing acceleration curve table holding 84 16-bit words (`0x0C8D, 0x0CBA, 0x0CE2, 0x0D07...`). Interpolated by camera pan and cutscene entity movement easing routines to smoothly ramp velocity up from stationary positions.
+

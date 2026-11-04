@@ -12,3 +12,4 @@ evidence: ["disasm: 168 bytes at $8C:938F..$8C:9436 containing 84 16-bit word de
 see: [routines/tbl_8C9359.md, rom/8c8f39.md, rom/8c946d.md]
 ---
 Master helmet defense lookup table holding 84 16-bit words (`0x0039, 0x003B, 0x003D, 0x003F...`). Queried during headgear equipping in `character_defense_and_buff_rebuild` (`$8F:83F2`) to increment player defensive thresholds.
+
