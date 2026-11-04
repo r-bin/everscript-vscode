@@ -11,6 +11,7 @@ This folder contains the curated suite of `.evsmv` and MesenCE `.mmo` replay rec
 | `03-complete-run-7h.evsmv` | 1,559,442 | ~7h 12m 28s | **Full game playthrough:** Complete start-to-finish game run traversing all acts, bosses, dialogue sequences, alchemy formulae, map transitions, and end credits. Used for exhaustive stress testing and regression verification. |
 | `04-newgame-flowers.mmo` | 25,923 | ~7m 11s | **Played by hand from power-on, recorded in MesenCE:** many short presses. The movie's save state sits at the reset vector and carries leftover WRAM and the SRAM of a save: MesenCE loads the state, the recomp its WRAM, SRAM, FastROM, SPC700 and S-DSP before the first instruction, then the RNG at the usual copy. `SOE_MMO_FRESH=1` powers both backends on with the movie's WRAM and SRAM instead: they run in lockstep, but that is not the recording. |
 | `05-flowers-from-state.mmo` | 8,433 | ~2m 20s | **04 without the intro:** from a MesenCE save state mid-game. The recomp takes the state over whole, so nothing is copied and every key counts. |
+| `06-flowers-raptors.mmo` | 4,682 | ~1m 18s | **Flowers and raptors screens:** from a MesenCE save state mid-game, taken over whole like 05. |
 
 Like `.evsmv`, `.mmo` files stay out of git: the save state inside holds memory from the user's ROM. Only `mesen` and `recomp` play `.mmo`; a movie that presses reset, or whose state is not at a field's line 225, is refused (`src/platform/tas/mesen-movie.ts`).
 
