@@ -1,7 +1,7 @@
 ---
 addr: 96AD2A
-end: 96ADC2
-size: 153
+end: 96ADC3
+size: 154
 kind: sub
 name: MARKET_PEDDLER_DISPATCH_DIALOGUE
 title: Nobilia Market entrance peddler dialogue dispatcher
