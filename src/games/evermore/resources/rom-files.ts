@@ -10,9 +10,12 @@
 //   soe://rom/assets/...          decoded content, rom-assets.ts
 // Bus addresses go through soe://bus/ (bus-files.ts), which links here.
 
+import * as fs from 'fs';
+import * as path from 'path';
+import { sourceDir } from '../../../platform/source-dir';
 import { snesToRom } from '../maps';
 import { getTable, getFunction, getAbsScript } from '../localizations';
-import { getRomEntryByName } from '../localizations/rom-map';
+import { getRomEntry, getAllRomEntries, getRomEntryByName } from '../localizations/rom-map';
 import { parseAddressName, hexId } from './resource-uri';
 import { dir, file, json, text, link } from './nodes';
 import { asmListing } from './asm-view';
@@ -22,6 +25,9 @@ import { resolveAssets } from './rom-assets';
 import type { MapsDeps } from './map-files';
 
 type Rom = Uint8Array;
+
+const HERE = sourceDir(__dirname);
+const ROM_MAP_FILE = path.join(HERE, '..', 'localizations', 'data', 'rom-map.md');
 
 /** A file offset as the bus address code runs at: $80-$BF upper halves (fast ROM), else $C0+. */
 function fileToBus(off: number) { return off < 0x400000 && (off & 0xFFFF) >= 0x8000 ? 0x800000 | off : 0xC00000 + off; }
@@ -33,6 +39,8 @@ function resolveRom(segments: string[], rom: Rom, deps?: MapsDeps) {
     if (head === undefined) {
         return dir([
             ['index.md', 'file'],
+            ['map.md', 'file'],
+            ['map.json', 'file'],
             ['rom.sfc', 'file'],
             ['header.json', 'file'],
             ['code', 'dir'],
@@ -47,6 +55,12 @@ function resolveRom(segments: string[], rom: Rom, deps?: MapsDeps) {
     }
     if (rest.length === 0) {
         if (head === 'index.md') return text(() => indexMarkdown(rom));
+        if (head === 'map.md' || head === 'rom-map.md') {
+            return text(() => fs.existsSync(ROM_MAP_FILE) ? fs.readFileSync(ROM_MAP_FILE, 'utf8') : '# ROM Map\n');
+        }
+        if (head === 'map.json' || head === 'rom-map.json') {
+            return json(() => getAllRomEntries());
+        }
         if (head === 'rom.sfc') return file(() => Buffer.from(rom.buffer, rom.byteOffset, rom.length));
         if (head === 'header.json') return json(() => readHeader(rom));
         const romEntry = getRomEntryByName(head);
@@ -78,6 +92,7 @@ function describe(rom: Rom, off: number) {
     const fast = (off & 0xFFFF) >= 0x8000 && off < 0x400000 ? 0x800000 + off : null;
     const busAddr = 0xC00000 + off;
     const script = getAbsScript(busAddr) || (fast !== null && getAbsScript(fast));
+    const romEntry = getRomEntry(fast ?? busAddr) || getRomEntry(off);
     const named = getTable(off)
         || getFunction(busAddr)
         || (fast !== null && getFunction(fast))
@@ -89,11 +104,16 @@ function describe(rom: Rom, off: number) {
         byte: at(0),
         word: at(0) | (at(1) << 8),
         long: at(0) | (at(1) << 8) | (at(2) << 16),
-        name: named ? named.name : null,
-        notes: named && 'notes' in named && named.notes ? named.notes : null,
+        name: romEntry ? romEntry.name : (named ? named.name : null),
+        type: romEntry ? romEntry.type : (named && 'category' in named ? (named as { category: string }).category : null),
+        size: romEntry ? romEntry.size : (named && 'size' in named && typeof (named as { size: number }).size === 'number' ? (named as { size: number }).size : null),
+        tags: romEntry ? romEntry.tags : [],
+        summary: romEntry ? romEntry.summary : (named && 'notes' in named && named.notes ? named.notes : null),
+        notes: (named && 'notes' in named && named.notes) || (romEntry ? romEntry.summary : null),
         script: script ? { kind: 'abs', name: script.name } : undefined,
         asm: 'soe://rom/' + hexId(off, 6) + '.asm',
         c: 'soe://rom/' + hexId(off, 6) + '.c',
+        info: romEntry ? 'soe://rom/code/' + romEntry.name + '/info.md' : null,
     };
 }
 
@@ -132,6 +152,7 @@ Add \`?rom=vanilla\` to any path to read the configured vanilla ROM instead of t
 
 | Path | Content |
 |---|---|
+| [map.md](map.md) | complete ROM memory map (7,090 entries, 3.23 MB documented) |
 | [rom.sfc](rom.sfc) | the whole unheadered ROM |
 | [header.json](header.json) | cartridge header at \`$FFC0\` |
 | \`<offset>[<len>].bin\` | slice by file offset, hex, e.g. [128000[40].bin](128000%5B40%5D.bin) |

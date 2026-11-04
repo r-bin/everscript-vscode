@@ -21,6 +21,7 @@ import { dir, json, text } from './nodes';
 import type { Entry } from './nodes';
 import * as MD from './localization-markdown';
 import { entries as knowledgeEntries } from '../localizations/knowledge';
+import { getAllRomEntries } from '../localizations/rom-map';
 import { hex } from '../../../platform';
 
 const HERE = sourceDir(__dirname);
@@ -324,6 +325,12 @@ const cell = (s: unknown): string => String(s == null ? '' : s).replace(/\|/g, '
 
 /** The RAM or ROM map, generated from the entries (one row each, in address order). */
 function knowledgeMapMarkdown(space: string): string {
+    if (space === 'rom' || space === 'routines') {
+        const romMapFile = path.join(HERE, '..', 'localizations', 'data', 'rom-map.md');
+        if (fs.existsSync(romMapFile)) {
+            return fs.readFileSync(romMapFile, 'utf8');
+        }
+    }
     const actualSpace = (space === 'wram') ? 'ram' : ((space === 'rom' || space === 'routines') ? 'routines' : space);
     const list = knowledgeEntries(actualSpace);
     const rows = list.map(e => `| [$${hex6(e.addr)}](${hex6(e.addr).toLowerCase()}.md) | ${e.end > e.addr ? `$${hex6(e.end)}` : ''} | ${cell(e.kind)} | ${cell(e.title)} | ${cell(e.confidence)} |`);
@@ -342,7 +349,7 @@ function knowledgeRoute(rest: string[]) {
     const actualSpace = (space === 'wram') ? 'ram' : ((space === 'rom' || space === 'routines') ? 'routines' : space);
     const list = knowledgeEntries(actualSpace);
     if (name === undefined) {
-        return dir([['index.md', 'file'], ...list.flatMap((e): Entry[] => {
+        return dir([['index.md', 'file'], ['index.json', 'file'], ...list.flatMap((e): Entry[] => {
             const out: Entry[] = [
                 [hex6(e.addr).toLowerCase() + '.md', 'file'],
                 [hex6(e.addr).toLowerCase() + '.json', 'file'],
@@ -353,6 +360,9 @@ function knowledgeRoute(rest: string[]) {
             () => knowledgeMapMarkdown(actualSpace));
     }
     if (name === 'index.md') return text(() => knowledgeMapMarkdown(actualSpace));
+    if (name === 'index.json' && (space === 'rom' || space === 'routines')) {
+        return json(() => getAllRomEntries());
+    }
 
     if (space === 'ram' || space === 'wram') {
         const wramPath = path.join(HERE, '..', 'localizations', 'knowledge', 'wram', name.endsWith('.md') ? name : name + '.md');

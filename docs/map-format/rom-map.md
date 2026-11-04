@@ -1,6 +1,8 @@
-# Secret of Evermore ROM Memory Map
+# Secret of Evermore Room Map Blobs Directory
 
-This document serves as the authoritative single source of truth for the **ROM layout, bank organization, and map blob locations** in *Secret of Evermore* (US 1.0), matching the standard established in .github/memory-map.md (`everscript/.github/memory-map.md`, sibling repo) for WRAM.
+> **Note:** The authoritative single source of truth for the complete 100% cartridge ROM layout, routines, tables, and asset definitions across all 97 banks is the [Canonical ROM Memory Map](../disassembly/engine-core/rom-map.md) (also available via VFS at `soe://rom/map.md`).
+>
+> This document details the **Room Map Blobs** (§2) for all 127 vanilla rooms ($9F:FDE7 pointer directory, offsets, sizes, compression flags, planes, and cuttable grass).
 
 ---
 

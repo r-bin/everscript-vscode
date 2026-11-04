@@ -21,6 +21,7 @@ const isText = (mime: string): boolean => mime.startsWith('text/') || mime === M
 
 const ENTRY_POINTS = [
     ['soe://rom/index.md', 'ROM overview', 'The cartridge as files: header, slices, assets.'],
+    ['soe://rom/map.md', 'ROM memory map', 'The canonical ROM memory map: 7,090 routines, tables, and assets across 97 banks.'],
     ['soe://rom/assets/index.md', 'ROM assets', 'Icons, items, alchemy, strings, rooms.'],
     ['soe://rom/assets/maps/index.md', 'Rooms', 'Every room with name, area and render.'],
     ['soe://ram/index.md', 'WRAM overview', 'The running game\'s 128 KB WRAM.'],
