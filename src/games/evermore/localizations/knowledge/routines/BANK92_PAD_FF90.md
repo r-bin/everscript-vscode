@@ -1,0 +1,14 @@
+---
+addr: 92FF90
+end: 92FFBF
+size: 48
+kind: padding
+category: ⚙️
+name: BANK92_PAD_FF90
+title: Bank $92 alignment padding ($FF90)
+confidence: confirmed
+tags: ["unused","padding"]
+evidence: ["ROM alignment gap preceding gfx_D2FFC0 in Bank $92"]
+---
+
+48 B alignment padding and unmapped ROM space in Bank $92 ($92:FF90..$92:FFBF).

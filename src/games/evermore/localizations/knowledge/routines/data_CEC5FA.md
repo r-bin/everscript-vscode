@@ -1,0 +1,14 @@
+---
+addr: 8EC5FA
+end: 8EC609
+size: 16
+kind: data
+category: 📦
+name: data_CEC5FA
+title: CDL data block ($8E:C5FA)
+confidence: confirmed
+tags: ["data","cdl"]
+evidence: ["CDL recorder export (out/recomp/asar/export.json)"]
+---
+
+CDL-identified data block in ROM at $8E:C5FA.

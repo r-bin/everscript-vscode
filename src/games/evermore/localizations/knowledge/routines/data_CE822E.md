@@ -1,0 +1,14 @@
+---
+addr: 8E822E
+end: 8E8235
+size: 8
+kind: data
+category: 📦
+name: data_CE822E
+title: CDL data block ($8E:822E)
+confidence: confirmed
+tags: ["data","cdl"]
+evidence: ["CDL recorder export (out/recomp/asar/export.json)"]
+---
+
+CDL-identified data block in ROM at $8E:822E.

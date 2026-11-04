@@ -1,7 +1,7 @@
 ---
 addr: 93C7F7
-end: 93CA68
-size: 626
+end: 93C95F
+size: 361
 kind: script
 category: 📜
 name: script_abs_93c7f7_thraxx_enter_part_3

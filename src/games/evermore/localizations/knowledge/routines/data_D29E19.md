@@ -1,0 +1,14 @@
+---
+addr: 929E19
+end: 929E19
+size: 1
+kind: data
+category: 📦
+name: data_D29E19
+title: CDL data block ($92:9E19)
+confidence: confirmed
+tags: ["data","cdl"]
+evidence: ["CDL recorder export (out/recomp/asar/export.json)"]
+---
+
+CDL-identified data block in ROM at $92:9E19.

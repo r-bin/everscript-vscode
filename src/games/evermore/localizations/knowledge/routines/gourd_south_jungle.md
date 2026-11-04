@@ -1,7 +1,7 @@
 ---
 addr: 93802B
-size: 830
-end: 938368
+size: 13
+end: 938037
 kind: script
 name: gourd_south_jungle
 title: Jungle south — the Petal gourd

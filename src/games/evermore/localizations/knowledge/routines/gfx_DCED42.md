@@ -1,0 +1,14 @@
+---
+addr: 9CED42
+end: 9CED51
+size: 16
+kind: data
+category: 🎨
+name: gfx_DCED42
+title: CDL graphic CHR pattern block ($9C:ED42)
+confidence: confirmed
+tags: ["graphics","chr","cdl"]
+evidence: ["CDL recorder export (out/recomp/asar/export.json)"]
+---
+
+CDL-identified graphics CHR pattern block in ROM at $9C:ED42.

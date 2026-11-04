@@ -1,7 +1,7 @@
 ---
 addr: 96EF0D
-end: 96EF2C
-size: 32
+end: 96F18C
+size: 640
 kind: script
 category: 📜
 name: script_abs_96ef0d_desert_of_doom_shuttle_nobilia_destination

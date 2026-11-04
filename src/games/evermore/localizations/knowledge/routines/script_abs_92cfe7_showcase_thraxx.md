@@ -1,7 +1,7 @@
 ---
 addr: 92CFE7
-end: 92D518
-size: 1330
+end: 92CFF1
+size: 11
 kind: script
 category: 📜
 name: script_abs_92cfe7_showcase_thraxx

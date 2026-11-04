@@ -1,0 +1,14 @@
+---
+addr: 8E9944
+end: 8E994B
+size: 8
+kind: table
+category: 📋
+name: ptrs_CE9944
+title: CDL pointer table ($8E:9944)
+confidence: confirmed
+tags: ["table","pointers","cdl"]
+evidence: ["CDL recorder export (out/recomp/asar/export.json)"]
+---
+
+CDL-identified pointer table in ROM at $8E:9944.

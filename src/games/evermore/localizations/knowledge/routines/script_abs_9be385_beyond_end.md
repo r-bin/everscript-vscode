@@ -1,7 +1,7 @@
 ---
 addr: 9BE385
-end: 9BE389
-size: 5
+end: 9BE385
+size: 1
 kind: script
 category: 📜
 name: script_abs_9be385_beyond_end

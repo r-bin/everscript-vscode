@@ -1,0 +1,14 @@
+---
+addr: 96F493
+end: 96F4A2
+size: 16
+kind: data
+category: 🎨
+name: gfx_D6F493
+title: CDL graphic CHR pattern block ($96:F493)
+confidence: confirmed
+tags: ["graphics","chr","cdl"]
+evidence: ["CDL recorder export (out/recomp/asar/export.json)"]
+---
+
+CDL-identified graphics CHR pattern block in ROM at $96:F493.

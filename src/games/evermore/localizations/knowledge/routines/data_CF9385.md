@@ -1,0 +1,14 @@
+---
+addr: 8F9385
+end: 8F9386
+size: 2
+kind: data
+category: 📦
+name: data_CF9385
+title: CDL data block ($8F:9385)
+confidence: confirmed
+tags: ["data","cdl"]
+evidence: ["CDL recorder export (out/recomp/asar/export.json)"]
+---
+
+CDL-identified data block in ROM at $8F:9385.

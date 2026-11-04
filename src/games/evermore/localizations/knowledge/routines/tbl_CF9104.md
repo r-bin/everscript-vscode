@@ -1,0 +1,14 @@
+---
+addr: 8F9104
+end: 8F9113
+size: 16
+kind: table
+category: 📋
+name: tbl_CF9104
+title: CDL increasing curve: 8 entries × 2B
+confidence: confirmed
+tags: ["table","cdl","lookup","increasing_curve"]
+evidence: ["CDL recorded table: 8 entries × 2B (out/recomp/asar/tables/tables.json)"]
+---
+
+CDL lookup table at $8F:9104 (16 bytes, 8 entries × 2B). Index: $7E0002 > lsr > lsr > lsr > and #$0007 > asl > tax. Result: sta $7E3A42..$7E3A72 (4). Read by combat_melee_weapon_attack_resolve+$02F5 (8F:8D67), combat_melee_weapon_attack_resolve+$048F (8F:8F01).

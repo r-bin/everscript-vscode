@@ -1,7 +1,7 @@
 ---
 addr: 98DC9D
-end: 98DCBC
-size: 32
+end: 98F00E
+size: 4978
 kind: script
 category: 📜
 name: script_abs_98dc9d_get_cecil_s_bazooka

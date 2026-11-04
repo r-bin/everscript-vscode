@@ -1,0 +1,14 @@
+---
+addr: 90D441
+end: 90D460
+size: 32
+kind: table
+category: 📋
+name: tbl_D0D441
+title: CDL increasing curve: 8 entries × 4B
+confidence: confirmed
+tags: ["table","cdl","lookup","increasing_curve"]
+evidence: ["CDL recorded table: 8 entries × 4B (out/recomp/asar/tables/tables.json)"]
+---
+
+CDL lookup table at $90:D441 (32 bytes, 8 entries × 4B). Index: #$0004. Result: sta $7E0026. Read by map_palette_change_and_cgram_reload+$0F (90:D490), map_palette_change_and_cgram_reload+$14 (90:D495).

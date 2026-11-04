@@ -1,0 +1,14 @@
+---
+addr: 80F753
+end: 80F892
+size: 320
+kind: table
+category: 📋
+name: tbl_C0F753
+title: CDL lookup: 160 entries × 2B
+confidence: confirmed
+tags: ["table","cdl","lookup","lookup"]
+evidence: ["CDL recorded table: 160 entries × 2B (out/recomp/asar/tables/tables.json)"]
+---
+
+CDL lookup table at $80:F753 (320 bytes, 160 entries × 2B). Index: $7E14BA > asl > tax. Result: sta $7E14BE. Read by mode7_flight_compass_needle_smooth+$74 (80:DF38).

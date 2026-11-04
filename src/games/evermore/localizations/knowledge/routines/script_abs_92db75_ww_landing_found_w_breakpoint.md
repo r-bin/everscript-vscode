@@ -1,7 +1,7 @@
 ---
 addr: 92DB75
-end: 92DE48
-size: 724
+end: 92DE2A
+size: 694
 kind: script
 category: 📜
 name: script_abs_92db75_ww_landing_found_w_breakpoint

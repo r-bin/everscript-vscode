@@ -1,7 +1,7 @@
 ---
 addr: 94A35A
-end: 94A6F4
-size: 923
+end: 94A59F
+size: 582
 kind: script
 category: 📜
 name: script_abs_94a35a_hardball_dialog

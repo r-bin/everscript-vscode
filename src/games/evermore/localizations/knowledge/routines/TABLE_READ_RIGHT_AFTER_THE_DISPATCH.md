@@ -1,7 +1,7 @@
 ---
 addr: 8FA3F8
-size: 96
-end: 8FA457
+size: 16
+end: 8FA407
 kind: table
 category: 📋
 name: TABLE_READ_RIGHT_AFTER_THE_DISPATCH

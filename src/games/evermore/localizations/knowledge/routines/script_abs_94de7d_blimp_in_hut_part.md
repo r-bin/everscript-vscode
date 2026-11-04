@@ -1,7 +1,7 @@
 ---
 addr: 94DE7D
-end: 94DE9C
-size: 32
+end: 94F12D
+size: 4785
 kind: script
 category: 📜
 name: script_abs_94de7d_blimp_in_hut_part

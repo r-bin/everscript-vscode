@@ -1,0 +1,14 @@
+---
+addr: 90B7CD
+end: 90B7DC
+size: 16
+kind: data
+category: 🎨
+name: gfx_D0B7CD
+title: CDL graphic CHR pattern block ($90:B7CD)
+confidence: confirmed
+tags: ["graphics","chr","cdl"]
+evidence: ["CDL recorder export (out/recomp/asar/export.json)"]
+---
+
+CDL-identified graphics CHR pattern block in ROM at $90:B7CD.

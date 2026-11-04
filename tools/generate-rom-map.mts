@@ -77,13 +77,16 @@ function bankName(bank: number): string {
             return `String Tables & Dialogue Text Bank $${hex}`;
         case 0xC4:
             return 'Master Item, Weapon, Armor & Formula Tables';
-        case 0xC8: case 0xCC: case 0xCE: case 0xCF:
+        case 0xC5: case 0xC6: case 0xC7: case 0xC9: case 0xCA: case 0xCB:
+            return `Extended Data & Graphics CHR Bank $${hex}`;
+        case 0xC8: case 0xCC: case 0xCD: case 0xCE: case 0xCF:
             return `Map Asset & Script Tables Bank $${hex}`;
         case 0xD0: case 0xD1: case 0xD2: case 0xD3: case 0xD4: case 0xD5: case 0xD6: case 0xD7: case 0xD8: case 0xD9:
         case 0xDA: case 0xDB: case 0xDC: case 0xDD: case 0xDE: case 0xDF:
             return `Graphics CHR & Compressed Animation Bank $${hex}`;
-        case 0xEC: case 0xEE:
-            return `Master Environmental Weather Presets & CHR Bank $${hex}`;
+        case 0xE0: case 0xE1: case 0xE2: case 0xE3: case 0xE4: case 0xE5: case 0xE6: case 0xE7: case 0xE8: case 0xE9:
+        case 0xEA: case 0xEB: case 0xEC: case 0xED: case 0xEE: case 0xEF:
+            return `Master Environmental Weather Presets, Audio & CHR Bank $${hex}`;
         default:
             return `ROM Memory Bank $${hex}`;
     }
@@ -438,6 +441,157 @@ function generate(): void {
         }
     }
 
+    // 7. Ingest CDL pre-baked tables from tables.json
+    // Protect confirmed master assets (room blobs, master tables, dialogue strings, routines)
+    // from being fragmented or truncated by internal CDL subfield labels.
+    const confirmedRangesByBank = new Map<number, { start: number; end: number }[]>();
+    function registerConfirmedRange(addr: number, size: number) {
+        if (size <= 0) return;
+        const bank = (addr >> 16) & 0xFF;
+        const list = confirmedRangesByBank.get(bank) || [];
+        list.push({ start: addr, end: addr + size - 1 });
+        confirmedRangesByBank.set(bank, list);
+    }
+
+    for (const it of itemsByAddr.values()) {
+        if (it.size > 0 && it.sizeSource !== 'scripts_json') {
+            registerConfirmedRange(it.addr, it.size);
+        }
+    }
+
+    function isInsideConfirmedAsset(bus: number): boolean {
+        const bank = (bus >> 16) & 0xFF;
+        const list = confirmedRangesByBank.get(bank);
+        if (!list) return false;
+        for (const r of list) {
+            if (bus > r.start && bus <= r.end) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    const CDL_TABLES_JSON = path.join(ROOT, 'out/recomp/asar/tables/tables.json');
+    if (fs.existsSync(CDL_TABLES_JSON)) {
+        const cdlTables = Object.values(JSON.parse(fs.readFileSync(CDL_TABLES_JSON, 'utf8'))) as any[];
+        let addedCdlTables = 0;
+        for (const t of cdlTables) {
+            const rawBus = Number(t.bus);
+            const bank = (rawBus >> 16) & 0xFF;
+            const off = rawBus & 0xFFFF;
+            let bus = rawBus;
+            if (bank >= 0xC0 && bank <= 0xDF && off >= 0x8000) {
+                bus = ((bank - 0x40) << 16) | off;
+            }
+            const size = (t.entries || 1) * (t.entrySize || 2);
+            if (!itemsByAddr.has(bus) && !isInsideConfirmedAsset(bus)) {
+                const hex = bus.toString(16).toUpperCase().padStart(6, '0');
+                const readersStr = t.readers && t.readers.length ? ` Read by ${t.readers.join(', ')}.` : '';
+                const idxStr = t.index ? ` Index: ${t.index}.` : '';
+                const resStr = t.result ? ` Result: ${t.result}.` : '';
+                itemsByAddr.set(bus, {
+                    addr: bus,
+                    addrHex: hex,
+                    size,
+                    end: bus + size - 1,
+                    sizeSource: 'cdl_tables_json',
+                    name: t.name || `tbl_${hex}`,
+                    kind: 'table',
+                    category: '📋',
+                    title: `CDL ${t.kind || 'lookup table'}: ${t.entries} entries × ${t.entrySize}B`,
+                    confidence: 'confirmed',
+                    tags: ['table', 'cdl', 'lookup', ...(t.kind ? [String(t.kind).replace(/\s+/g, '_')] : [])],
+                    evidence: [`CDL recorded table: ${t.entries} entries × ${t.entrySize}B (out/recomp/asar/tables/tables.json)`],
+                    see: [],
+                    body: `CDL lookup table at ${formatBusAddr(bus)} (${size} bytes, ${t.entries} entries × ${t.entrySize}B).${idxStr}${resStr}${readersStr}`,
+                });
+                registerConfirmedRange(bus, size);
+                addedCdlTables++;
+            }
+        }
+        console.log(`Ingested ${addedCdlTables} new tables from tables.json`);
+    }
+
+    // 8. Ingest CDL labels (pointer tables, data tables, graphic CHR blocks) from export.json
+    const CDL_EXPORT_JSON = path.join(ROOT, 'out/recomp/asar/export.json');
+    if (fs.existsSync(CDL_EXPORT_JSON)) {
+        const expData = JSON.parse(fs.readFileSync(CDL_EXPORT_JSON, 'utf8'));
+        const labels = Object.values(expData.labels || {}) as [string, number][];
+        let addedPtrs = 0, addedData = 0, addedGfx = 0, addedOther = 0;
+
+        for (const [name, fileOff] of labels) {
+            if (name.startsWith('loc_') || name.startsWith('seg_')) continue;
+            const fileBank = Math.floor(fileOff / 0x10000);
+            const fileOffInBank = fileOff % 0x10000;
+            const bus = fileOffInBank >= 0x8000
+                ? ((0x80 + fileBank) << 16) | fileOffInBank
+                : ((0xC0 + fileBank) << 16) | fileOffInBank;
+
+            if (!itemsByAddr.has(bus) && !isInsideConfirmedAsset(bus)) {
+                const hex = bus.toString(16).toUpperCase().padStart(6, '0');
+                let kind = 'data';
+                let tags = ['cdl'];
+                let category = '📦';
+                let title = `CDL asset (${formatBusAddr(bus)})`;
+                let desc = `CDL-identified ROM structure at ${formatBusAddr(bus)}.`;
+
+                if (name.startsWith('ptrs_')) {
+                    kind = 'table';
+                    tags = ['table', 'pointers', 'cdl'];
+                    category = '📋';
+                    title = `CDL pointer table (${formatBusAddr(bus)})`;
+                    desc = `CDL-identified pointer table in ROM at ${formatBusAddr(bus)}.`;
+                    addedPtrs++;
+                } else if (name.startsWith('tbl_')) {
+                    kind = 'table';
+                    tags = ['table', 'cdl', 'lookup'];
+                    category = '📋';
+                    title = `CDL lookup table (${formatBusAddr(bus)})`;
+                    desc = `CDL-identified lookup table in ROM at ${formatBusAddr(bus)}.`;
+                } else if (name.startsWith('gfx_')) {
+                    kind = 'data';
+                    tags = ['graphics', 'chr', 'cdl'];
+                    category = '🎨';
+                    title = `CDL graphic CHR pattern block (${formatBusAddr(bus)})`;
+                    desc = `CDL-identified graphics CHR pattern block in ROM at ${formatBusAddr(bus)}.`;
+                    addedGfx++;
+                } else if (name.startsWith('data_')) {
+                    kind = 'data';
+                    tags = ['data', 'cdl'];
+                    category = '📦';
+                    title = `CDL data block (${formatBusAddr(bus)})`;
+                    desc = `CDL-identified data block in ROM at ${formatBusAddr(bus)}.`;
+                    addedData++;
+                } else {
+                    kind = 'code';
+                    tags = ['code', 'cdl'];
+                    category = '🧠';
+                    title = `CDL routine entry point (${formatBusAddr(bus)})`;
+                    desc = `CDL-identified routine entry point in ROM at ${formatBusAddr(bus)}.`;
+                    addedOther++;
+                }
+
+                itemsByAddr.set(bus, {
+                    addr: bus,
+                    addrHex: hex,
+                    size: 16,
+                    end: bus + 15,
+                    sizeSource: 'cdl_export_json',
+                    name,
+                    kind,
+                    category,
+                    title,
+                    confidence: 'confirmed',
+                    tags,
+                    evidence: [`CDL recorder export (out/recomp/asar/export.json)`],
+                    see: [],
+                    body: desc,
+                });
+            }
+        }
+        console.log(`Ingested from export.json: ptrs=${addedPtrs}, data=${addedData}, gfx=${addedGfx}, other=${addedOther}`);
+    }
+
     function createPadOrSlackItem(
         addr: number,
         size: number,
@@ -499,7 +653,7 @@ function generate(): void {
             expectedAddr = (bank === 0x8F && (rawList[0].addr & 0xFFFF) === 0x0000)
                 ? 0x8F0000
                 : ((bank << 16) | 0x8000);
-        } else if (bank >= 0xC0 && bank <= 0xDF) {
+        } else if (bank >= 0xC0 && bank <= 0xEF) {
             expectedAddr = (bank << 16) | 0x0000;
         } else {
             expectedAddr = rawList[0].addr;

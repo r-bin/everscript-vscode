@@ -1,0 +1,14 @@
+---
+addr: DC685C
+end: DC686B
+size: 16
+kind: data
+category: 🎨
+name: gfx_DC685C
+title: CDL graphic CHR pattern block ($DC:685C)
+confidence: confirmed
+tags: ["graphics","chr","cdl"]
+evidence: ["CDL recorder export (out/recomp/asar/export.json)"]
+---
+
+CDL-identified graphics CHR pattern block in ROM at $DC:685C.

@@ -1,0 +1,14 @@
+---
+addr: 8E9996
+end: 8E9997
+size: 2
+kind: data
+category: 📦
+name: data_CE9996
+title: CDL data block ($8E:9996)
+confidence: confirmed
+tags: ["data","cdl"]
+evidence: ["CDL recorder export (out/recomp/asar/export.json)"]
+---
+
+CDL-identified data block in ROM at $8E:9996.

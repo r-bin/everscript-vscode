@@ -1,7 +1,7 @@
 ---
 addr: 96E286
-end: 96E3FD
-size: 376
+end: 96E324
+size: 159
 kind: script
 category: 📜
 name: script_abs_96e286_desert_of_doom_shuttle_random_name_calling

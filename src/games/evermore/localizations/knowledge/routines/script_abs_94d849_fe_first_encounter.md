@@ -1,7 +1,7 @@
 ---
 addr: 94D849
-end: 94DA41
-size: 505
+end: 94D8F9
+size: 177
 kind: script
 category: 📜
 name: script_abs_94d849_fe_first_encounter

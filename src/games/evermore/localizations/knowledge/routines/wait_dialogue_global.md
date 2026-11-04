@@ -1,7 +1,7 @@
 ---
 addr: 92A04E
-size: 901
-end: 92A3D2
+size: 6
+end: 92A053
 kind: script
 name: wait_dialogue_global
 title: Global 0x35 — wait for the dialogue

@@ -1,7 +1,7 @@
 ---
 addr: 92A010
-size: 60
-end: 92A04B
+size: 45
+end: 92A03C
 kind: script
 name: room_exit_stopped
 title: Global 0x2e — room exit with both characters stopped, wait 15 ticks

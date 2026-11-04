@@ -1,7 +1,7 @@
 ---
 addr: 8CA5AC
-size: 423
-end: 8CA752
+size: 109
+end: 8CA618
 kind: code
 category: 🧠
 name: dialogue_glyph_render_char

@@ -1,7 +1,7 @@
 ---
 addr: 92A3D3
-end: 92A3E4
-size: 18
+end: 92A3D3
+size: 1
 kind: script
 category: 📜
 name: script_abs_92a3d3_unknown

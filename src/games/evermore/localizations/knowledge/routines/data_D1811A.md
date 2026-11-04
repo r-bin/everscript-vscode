@@ -1,0 +1,14 @@
+---
+addr: 91811A
+end: 91811B
+size: 2
+kind: data
+category: 📦
+name: data_D1811A
+title: CDL data block ($91:811A)
+confidence: confirmed
+tags: ["data","cdl"]
+evidence: ["CDL recorder export (out/recomp/asar/export.json)"]
+---
+
+CDL-identified data block in ROM at $91:811A.

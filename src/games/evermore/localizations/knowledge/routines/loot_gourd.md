@@ -1,7 +1,7 @@
 ---
 addr: 92A482
-size: 258
-end: 92A583
+size: 229
+end: 92A566
 kind: script
 name: loot_gourd
 title: Global 0x3a — loot a gourd / chest (the pickup driver)

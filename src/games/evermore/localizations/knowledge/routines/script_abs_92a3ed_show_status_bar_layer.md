@@ -1,7 +1,7 @@
 ---
 addr: 92A3ED
-end: 92A481
-size: 149
+end: 92A45F
+size: 115
 kind: script
 category: 📜
 name: script_abs_92a3ed_show_status_bar_layer

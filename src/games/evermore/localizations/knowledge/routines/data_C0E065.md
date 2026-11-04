@@ -1,0 +1,14 @@
+---
+addr: 80E065
+end: 80E065
+size: 1
+kind: data
+category: 📦
+name: data_C0E065
+title: CDL data block ($80:E065)
+confidence: confirmed
+tags: ["data","cdl"]
+evidence: ["CDL recorder export (out/recomp/asar/export.json)"]
+---
+
+CDL-identified data block in ROM at $80:E065.

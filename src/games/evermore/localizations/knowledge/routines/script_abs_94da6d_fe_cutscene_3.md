@@ -1,7 +1,7 @@
 ---
 addr: 94DA6D
-end: 94DCEA
-size: 638
+end: 94DC72
+size: 518
 kind: script
 category: 📜
 name: script_abs_94da6d_fe_cutscene_3

@@ -1,7 +1,7 @@
 ---
 addr: 9BE38A
-end: 9BE3A9
-size: 32
+end: 9BE3BD
+size: 52
 kind: script
 category: 📜
 name: script_abs_9be38a_end_of_beyond_end

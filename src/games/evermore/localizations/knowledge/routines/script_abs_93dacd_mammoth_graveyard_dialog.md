@@ -1,7 +1,7 @@
 ---
 addr: 93DACD
-end: 93DAEC
-size: 32
+end: 93F02C
+size: 5472
 kind: script
 category: 📜
 name: script_abs_93dacd_mammoth_graveyard_dialog

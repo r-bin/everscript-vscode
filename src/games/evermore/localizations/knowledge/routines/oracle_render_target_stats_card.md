@@ -1,7 +1,7 @@
 ---
 addr: 8C8A25
-size: 427
-end: 8C8BCF
+size: 424
+end: 8C8BCC
 kind: code
 category: 🧠
 name: oracle_render_target_stats_card

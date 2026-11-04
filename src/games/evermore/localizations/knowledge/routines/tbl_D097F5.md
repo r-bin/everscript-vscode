@@ -1,0 +1,14 @@
+---
+addr: 9097F5
+end: 909814
+size: 32
+kind: table
+category: 📋
+name: tbl_D097F5
+title: CDL lookup: 16 entries × 2B
+confidence: confirmed
+tags: ["table","cdl","lookup","lookup"]
+evidence: ["CDL recorded table: 16 entries × 2B (out/recomp/asar/tables/tables.json)"]
+---
+
+CDL lookup table at $90:97F5 (32 bytes, 16 entries × 2B). Index: ? > asl > tax. Result: adc with A = $7E0068. Read by entity_screen_tile_projection+$83 (90:95E4), entity_screen_tile_projection+$BC (90:961D).

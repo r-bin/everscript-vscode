@@ -1,7 +1,7 @@
 ---
 addr: 929E12
-end: 929F9F
-size: 398
+end: 929E18
+size: 7
 kind: script
 category: 📜
 name: script_abs_929e12_unknown_script_0x01

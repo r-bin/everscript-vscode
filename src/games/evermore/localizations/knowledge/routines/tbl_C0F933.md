@@ -1,0 +1,14 @@
+---
+addr: 80F933
+end: 80F982
+size: 80
+kind: table
+category: 📋
+name: tbl_C0F933
+title: CDL lookup: 40 entries × 2B
+confidence: confirmed
+tags: ["table","cdl","lookup","lookup"]
+evidence: ["CDL recorded table: 40 entries × 2B (out/recomp/asar/tables/tables.json)"]
+---
+
+CDL lookup table at $80:F933 (80 bytes, 40 entries × 2B). Result: cmp $7E14B4. Read by mode7_flight_compass_needle_smooth+$24 (80:DEE8), mode7_cockpit_heading_indicator_frame+$010E (80:C98F).

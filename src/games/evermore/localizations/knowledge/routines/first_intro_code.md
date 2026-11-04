@@ -1,7 +1,7 @@
 ---
 addr: 92E0CA
-size: 823
-end: 92E400
+size: 24
+end: 92E0E1
 kind: script
 category: 📜
 name: first_intro_code

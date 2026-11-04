@@ -1,0 +1,14 @@
+---
+addr: 9CD242
+end: 9CD251
+size: 16
+kind: data
+category: 🎨
+name: gfx_DCD242
+title: CDL graphic CHR pattern block ($9C:D242)
+confidence: confirmed
+tags: ["graphics","chr","cdl"]
+evidence: ["CDL recorder export (out/recomp/asar/export.json)"]
+---
+
+CDL-identified graphics CHR pattern block in ROM at $9C:D242.
