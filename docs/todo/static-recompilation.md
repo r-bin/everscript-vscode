@@ -118,6 +118,26 @@ side uses is identical; the open items are what it found (recomp repository's `d
 
 ---
 
+### What limits the C share (replay 01, measured 2026-11-04)
+
+664 routines run on 01: 9 hold 50 % of its instructions, 76 hold 90 %, 233 hold 99 %. From `SOE_PC_COUNTS` on an all-interpreted
+run, by nearest named routine; the hardware figure counts direct absolute accesses only, so it is a lower bound.
+
+| Share of 01 | What |
+|---|---|
+| 9.49 % | runs as C today (3 routines) |
+| about 11.8 % | everything with a G1 rating, if all of it were bound (30 files have `SOE_BIND`) |
+| 35.4 % | every routine with any C file (135 routines); most are descriptions with invented interfaces |
+| 64.6 % | no C file (529 routines), among them the `sub_8FA0FB`-`$8FA458` cluster at about 18.5 % |
+| 22.9 % | spin code an NMI must interrupt between instructions: `field_spare_time_loop` 16.47 %, the idle loop `$80:858F` 6.42 %. C that runs in one step cannot do this |
+| at least 12.9 % | routines with direct hardware register access (65), outside the "touches only WRAM" rule |
+
+A binding's C also runs only when it fits before the next deadline, so 95.8 % of calls is its own ceiling. Under today's rules the C
+share tops out near 60 % (an estimate), so 100 % needs another binding model, not only more routines. Each binding also needs a
+cycle cost per path by hand (`src/soe_bindings.c`).
+
+---
+
 ## 8. Speed
 
 | | Task | Done when |
