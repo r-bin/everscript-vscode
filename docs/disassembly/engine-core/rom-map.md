@@ -3,10 +3,10 @@
 ```json
 {
   "summary": {
-    "total_entries": 8096,
-    "total_documented_bytes": 3473486,
-    "banks_covered": 99,
-    "architecture": "3 MB (24 Mbit) HiROM ($00..$3F mirror, $80..$BF fast, $C0..$FF data)"
+    "total_entries": 8083,
+    "total_documented_bytes": 3407950,
+    "banks_covered": 97,
+    "architecture": "3 MB (24 Mbit) HiROM ($00 vectors/header mirror, $80..$AF FastROM, $C0..$EF Data)"
   },
   "banks": {
     "80": {
@@ -499,26 +499,6 @@
       "bytes": 32768,
       "slack_bytes": 0
     },
-    "B0": {
-      "range": [
-        "0xB08000",
-        "0xB0FFFF"
-      ],
-      "name": "ExHiROM Extended Script Code Bank $B0",
-      "routines": 10,
-      "bytes": 32768,
-      "slack_bytes": 0
-    },
-    "B1": {
-      "range": [
-        "0xB18000",
-        "0xB1FFFF"
-      ],
-      "name": "ExHiROM Extended Script Code Bank $B1",
-      "routines": 3,
-      "bytes": 32768,
-      "slack_bytes": 0
-    },
     "C0": {
       "range": [
         "0xC00000",
@@ -1007,9 +987,9 @@
 
 Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast and slow banks:
 
-- **Banks `$80..$BF` (FastROM upper halves, 48 banks × 32 KB):** Engine core, interrupt handlers, Script VM, and all 127 room definition blobs.
-- **Banks `$C0..$EF` (FastROM linear 64 KB banks):** Master dialogue string tables, game database ($C4), and compressed CHR graphics ($D0..$DF).
-- **Banks `$00..$3F` (SlowROM mirror):** Hardware registers ($2100..$437F), WRAM direct mirror, and SNES interrupt vectors ($00:FFE0..$00:FFFF).
+- **Banks `$80..$AF` (FastROM upper halves, 48 banks × 32 KB):** Engine core, interrupt handlers, Script VM, and all 127 room definition blobs.
+- **Banks `$C0..$EF` (FastROM data banks, 48 banks):** Master dialogue string tables, game database ($C4), and compressed CHR graphics ($D0..$DF).
+- **Bank `$00` (SlowROM mirror):** SNES cartridge header and hardware interrupt vectors ($00:FFC0..$00:FFFF).
 
 ## Bank $00 — LoROM Interrupt Vectors & Cartridge Header Mirror
 
@@ -6355,33 +6335,6 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$AF:F7BB` | [`BANKAF_PAD_F7BB`](knowledge/routines/BANKAF_PAD_F7BB.md) | `padding` | 48 B | unused, padding | Bank $AF alignment padding ($F7BB): 48 B alignment padding and unmapped ROM space in Bank $AF ($AF:F7BB..$AF:F7EA). |
 | `$AF:F7EB` | [`gfx_AFF7EB`](knowledge/routines/gfx_AFF7EB.md) | `data` | 16 B | graphics, chr, cdl | CDL graphic CHR pattern block ($AF:F7EB): CDL-identified graphics CHR pattern block in ROM at $AF:F7EB. |
 | `$AF:F7FB` | [`BANKAF_SLACK_F7FB`](knowledge/routines/BANKAF_SLACK_F7FB.md) | `slack` | 2,053 B | unused, slack | Bank $AF unmapped ROM slack ($F7FB): 2,053 B unmapped ROM slack and unmapped ROM space in Bank $AF ($AF:F7FB..$AF:FFFF). |
-
-## Bank $B0 — ExHiROM Extended Script Code Bank $B0
-
-**Coverage:** 10 entries | **Documented bytes:** 32,768 B (32.0 KB)
-
-| Address | Identifier | Type | Size | Tag | Summary |
-|---|---|---|---|---|---|
-| `$B0:8000` | [`BANKB0_PAD_8000`](knowledge/routines/BANKB0_PAD_8000.md) | `padding` | 12 B | unused, padding | Bank $B0 alignment padding ($8000): 12 B alignment padding and unmapped ROM space in Bank $B0 ($B0:8000..$B0:800B). |
-| `$B0:800C` | [`script_abs_b0800c_select_barrier`](knowledge/routines/script_abs_b0800c_select_barrier.md) | `script` | 12 B | script, vm, event | ABS script: Select @Barrier: Action/Event bytecode script: Select @Barrier. Executed by the script virtual machine. |
-| `$B0:8018` | [`script_abs_b08018_select_corrosion`](knowledge/routines/script_abs_b08018_select_corrosion.md) | `script` | 24 B | script, vm, event | ABS script: Select @Corrosion: Action/Event bytecode script: Select @Corrosion. Executed by the script virtual machine. |
-| `$B0:8030` | [`script_abs_b08030_select_double_drain`](knowledge/routines/script_abs_b08030_select_double_drain.md) | `script` | 6 B | script, vm, event | ABS script: Select @Double Drain: Action/Event bytecode script: Select @Double Drain. Executed by the script virtual machine. |
-| `$B0:8036` | [`script_abs_b08036_select_drain`](knowledge/routines/script_abs_b08036_select_drain.md) | `script` | 58 B | script, vm, event | ABS script: Select @Drain: Action/Event bytecode script: Select @Drain. Executed by the script virtual machine. |
-| `$B0:8070` | [`script_abs_b08070_rando_jukebox_1`](knowledge/routines/script_abs_b08070_rando_jukebox_1.md) | `script` | 9 B | script, vm, event | ABS script: Rando Jukebox 1: Action/Event bytecode script: Rando Jukebox 1. Executed by the script virtual machine. |
-| `$B0:8079` | [`script_abs_b08079_rando_jukebox_2`](knowledge/routines/script_abs_b08079_rando_jukebox_2.md) | `script` | 11 B | script, vm, event | ABS script: Rando Jukebox 2: Action/Event bytecode script: Rando Jukebox 2. Executed by the script virtual machine. |
-| `$B0:8084` | [`script_abs_b08084_rando_jukebox_3`](knowledge/routines/script_abs_b08084_rando_jukebox_3.md) | `script` | 13 B | script, vm, event | ABS script: Rando Jukebox 3: Action/Event bytecode script: Rando Jukebox 3. Executed by the script virtual machine. |
-| `$B0:8091` | [`script_abs_b08091_rando_jukebox_impl`](knowledge/routines/script_abs_b08091_rando_jukebox_impl.md) | `script` | 32 B | script, vm, event | ABS script: Rando Jukebox impl: Action/Event bytecode script: Rando Jukebox impl. Executed by the script virtual machine. |
-| `$B0:80B1` | [`BANKB0_SLACK_80B1`](knowledge/routines/BANKB0_SLACK_80B1.md) | `slack` | 32,591 B | unused, slack | Bank $B0 unmapped ROM slack ($80B1): 32,591 B unmapped ROM slack and unmapped ROM space in Bank $B0 ($B0:80B1..$B0:FFFF). |
-
-## Bank $B1 — ExHiROM Extended Script Code Bank $B1
-
-**Coverage:** 3 entries | **Documented bytes:** 32,768 B (32.0 KB)
-
-| Address | Identifier | Type | Size | Tag | Summary |
-|---|---|---|---|---|---|
-| `$B1:8000` | [`BANKB1_PAD_8000`](knowledge/routines/BANKB1_PAD_8000.md) | `padding` | 2,385 B | unused, padding | Bank $B1 alignment padding ($8000): 2,385 B alignment padding and unmapped ROM space in Bank $B1 ($B1:8000..$B1:8950). |
-| `$B1:8951` | [`script_abs_b18951_added_gourdomizer_drops`](knowledge/routines/script_abs_b18951_added_gourdomizer_drops.md) | `script` | 32 B | script, vm, event | ABS script: Added gourdomizer drops: Action/Event bytecode script: Added gourdomizer drops. Executed by the script virtual machine. |
-| `$B1:8971` | [`BANKB1_SLACK_8971`](knowledge/routines/BANKB1_SLACK_8971.md) | `slack` | 30,351 B | unused, slack | Bank $B1 unmapped ROM slack ($8971): 30,351 B unmapped ROM slack and unmapped ROM space in Bank $B1 ($B1:8971..$B1:FFFF). |
 
 ## Bank $C0 — String Tables & Dialogue Text Bank $C0
 

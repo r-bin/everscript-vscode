@@ -50,6 +50,18 @@ const KNOWN_SIZES: Record<string, number> = {
     'd180a6': 68,    // ALCHEMY_BLOCK_TABLE (34 words)
 };
 
+function isVanillaRomAddress(addr: number): boolean {
+    const bank = (addr >> 16) & 0xFF;
+    const off = addr & 0xFFFF;
+    // SNES cartridge header and hardware interrupt vectors ($00:FFC0..$00:FFFF)
+    if (bank === 0x00 && off >= 0xFFC0) return true;
+    // Vanilla FastROM upper halves: Banks $80 through $AF ($8000..$FFFF, plus legacy 8F:0000)
+    if (bank >= 0x80 && bank <= 0xAF && (off >= 0x8000 || (bank === 0x8F && off === 0x0000))) return true;
+    // Vanilla linear data banks: Banks $C0 through $EF ($0000..$FFFF)
+    if (bank >= 0xC0 && bank <= 0xEF) return true;
+    return false;
+}
+
 function bankName(bank: number): string {
     const hex = bank.toString(16).toUpperCase().padStart(2, '0');
     switch (bank) {
@@ -71,8 +83,6 @@ function bankName(bank: number): string {
             return `Room Map Blobs & Master Pointer Directory Bank $${hex}`;
         case 0xAE: case 0xAF:
             return `Sprite Graphics & Metatile Palette Bank $${hex}`;
-        case 0xB0: case 0xB1:
-            return `ExHiROM Extended Script Code Bank $${hex}`;
         case 0xC0: case 0xC1: case 0xC2: case 0xC3:
             return `String Tables & Dialogue Text Bank $${hex}`;
         case 0xC4:
@@ -404,6 +414,7 @@ function generate(): void {
         let addedAbs = 0;
         for (const [addrStr, scriptName] of abs) {
             const addr = parseInt(addrStr, 10);
+            if (!isVanillaRomAddress(addr)) continue;
             if (!itemsByAddr.has(addr)) {
                 const clean = (scriptName as string).toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
                 const hex = addr.toString(16).toUpperCase().padStart(6, '0');
@@ -667,23 +678,23 @@ function generate(): void {
         };
     }
 
-    // 9. Group items by bank and build contiguous zero-gap layout
+    // 9. Group items by bank and build contiguous zero-gap layout for strictly vanilla ROM banks
     const rawByBank = new Map<number, RomKnowledgeItem[]>();
     for (const item of itemsByAddr.values()) {
+        if (!isVanillaRomAddress(item.addr)) continue;
         const bank = (item.addr >> 16) & 0xFF;
         const list = rawByBank.get(bank) || [];
         list.push(item);
         rawByBank.set(bank, list);
     }
 
-    // Ensure all 48 FastROM banks ($80..$AF), all 48 Data banks ($C0..$EF),
-    // and system vectors ($00) are covered across the full 3 MB cartridge
+    // Strictly vanilla ROM banks:
+    // $00 (vectors/header, $00:FFC0..$00:FFFF),
+    // $80..$AF (48 FastROM upper halves, 32 KB each),
+    // $C0..$EF (48 Data banks, 32 KB each)
     const allRequiredBanks: number[] = [0x00];
     for (let b = 0x80; b <= 0xAF; b++) allRequiredBanks.push(b);
     for (let b = 0xC0; b <= 0xEF; b++) allRequiredBanks.push(b);
-    for (const b of rawByBank.keys()) {
-        if (!allRequiredBanks.includes(b)) allRequiredBanks.push(b);
-    }
 
     const byBank = new Map<number, RomKnowledgeItem[]>();
     const allContiguousItems: RomKnowledgeItem[] = [];
@@ -698,7 +709,7 @@ function generate(): void {
         let expectedAddr: number;
         if (bank === 0x00) {
             expectedAddr = 0x00FFC0;
-        } else if (bank >= 0x80 && bank <= 0xBF) {
+        } else if (bank >= 0x80 && bank <= 0xAF) {
             expectedAddr = (bank === 0x8F && rawList.length > 0 && (rawList[0].addr & 0xFFFF) === 0x0000)
                 ? 0x8F0000
                 : ((bank << 16) | 0x8000);
@@ -713,7 +724,7 @@ function generate(): void {
             let bankEnd: number;
             if (bank === 0x00) {
                 bankEnd = 0x010000;
-            } else if (bank >= 0x80 && bank <= 0xBF) {
+            } else if (bank >= 0x80 && bank <= 0xAF) {
                 bankEnd = (bank << 16) + 0x10000;
             } else if (bank >= 0xC0 && bank <= 0xEF) {
                 bankEnd = (bank << 16) + 0x08000;
@@ -774,7 +785,7 @@ function generate(): void {
         let bankEnd: number;
         if (bank === 0x00) {
             bankEnd = 0x010000;
-        } else if (bank >= 0x80 && bank <= 0xBF) {
+        } else if (bank >= 0x80 && bank <= 0xAF) {
             bankEnd = (bank << 16) + 0x10000;
         } else if (bank >= 0xC0 && bank <= 0xEF) {
             const hasUpperHalf = rawList.some(it => (it.addr & 0xFFFF) >= 0x8000);
@@ -904,16 +915,16 @@ function generate(): void {
             total_entries: allContiguousItems.length,
             total_documented_bytes: totalCodeBytes,
             banks_covered: byBank.size,
-            architecture: '3 MB (24 Mbit) HiROM ($00..$3F mirror, $80..$BF fast, $C0..$FF data)',
+            architecture: '3 MB (24 Mbit) HiROM ($00 vectors/header mirror, $80..$AF FastROM, $C0..$EF Data)',
         },
         banks: banksJson,
     }, null, 2) + '\n```\n\n';
 
     md += '## Architecture Overview\n\n';
     md += 'Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast and slow banks:\n\n';
-    md += '- **Banks `$80..$BF` (FastROM upper halves, 48 banks × 32 KB):** Engine core, interrupt handlers, Script VM, and all 127 room definition blobs.\n';
-    md += '- **Banks `$C0..$EF` (FastROM linear 64 KB banks):** Master dialogue string tables, game database ($C4), and compressed CHR graphics ($D0..$DF).\n';
-    md += '- **Banks `$00..$3F` (SlowROM mirror):** Hardware registers ($2100..$437F), WRAM direct mirror, and SNES interrupt vectors ($00:FFE0..$00:FFFF).\n\n';
+    md += '- **Banks `$80..$AF` (FastROM upper halves, 48 banks × 32 KB):** Engine core, interrupt handlers, Script VM, and all 127 room definition blobs.\n';
+    md += '- **Banks `$C0..$EF` (FastROM data banks, 48 banks):** Master dialogue string tables, game database ($C4), and compressed CHR graphics ($D0..$DF).\n';
+    md += '- **Bank `$00` (SlowROM mirror):** SNES cartridge header and hardware interrupt vectors ($00:FFC0..$00:FFFF).\n\n';
 
     for (const bank of sortedBanks) {
         const hex = bank.toString(16).toUpperCase().padStart(2, '0');
