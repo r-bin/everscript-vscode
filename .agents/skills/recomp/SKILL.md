@@ -30,7 +30,7 @@ the game itself, and commit there (branch `develop`).
   `tools/compare/probes/run-stats.mts` measures speed per mode, banks that run and how often each binding's C ran.
 - Tools that need this repository: `tools/recomp/room-nav.js` (a room's triggers and spawns as
   headless script lines), `s9x-run.js` (the same script on snes9x), `npm run compare -- recomp=`
-  (lockstep; runs the recomp repo's `build/` game).
+  (lockstep; runs the recomp repo's `build/` game), `npm run compare:full` (every sync replay: all RAM, picture, S-DSP state).
 - Trap: the runner's headless script spends frames of its own (a `poke` 2, a `press` of n frames
   n + 1), and its frame f is MesenCE's f + 1. `tools/compare/recomp.mts` compensates both when it
   turns a replay into a script; a hand-written script must too, or every press lands late.

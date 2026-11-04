@@ -32,6 +32,8 @@ export interface RecompJob {
     rng: Uint8Array | null;
     replay?: string | null;
     rngFrame?: number;
+    /** Rewrite the picture's fades by MesenCE's rounding (SOE_COMPARE_FADE). */
+    fade?: boolean;
     /** Sample as each NMI is taken (SOE_COMPARE_AT=nmi); the key is the NMI's number since power-on. */
     atNmi?: boolean;
     /** With atNmi: each NMI's number, master clock and the address it interrupted (SOE_COMPARE_NMI_LOG). */
@@ -86,6 +88,7 @@ export function runRecomp(job: RecompJob, onCp: (key: number, crcs: Crcs) => voi
     }
     if (job.atNmi) { env.SOE_COMPARE_AT = 'nmi'; env.SOE_COMPARE_MESEN_ROM_MIRROR = '1'; }   // atNmi: the reference is MesenCE
     if (job.onNmi) env.SOE_COMPARE_NMI_LOG = '1';
+    if (job.fade) env.SOE_COMPARE_FADE = '1';
     if (job.stride) env.SOE_COMPARE_STRIDE = String(job.stride);
     if (job.dumpAt !== undefined) env.SOE_COMPARE_DUMP = String(job.dumpAt);
     if (job.peek?.length) env.SOE_COMPARE_PEEK = job.peek.map(h).join(',');

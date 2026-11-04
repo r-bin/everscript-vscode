@@ -17,9 +17,10 @@ there yet.
 | Area | State |
 |---|---|
 | Accuracy | Replays 01, 02, 04, 05 and 06 match MesenCE at every compared NMI, on WRAM, VRAM, CGRAM and OAM, native and interpreted |
+| Picture and sound | SRAM also identical; picture identical but for fade rounding and one key; ARAM and S-DSP identical but for a power-on default and 50 single keys |
 | Compiled share | 99.92–99.98 % of the instructions in those replays |
 | Speed | 368–500 frames/s headless on Apple Silicon |
-| What that proof leaves out | Rendered pixels, audio output, and all but about 17.5 minutes of distinct play |
+| What that proof leaves out | The audio sample stream, and all but about 17.5 minutes of distinct play |
 | Public state | GitHub lists no branches or tags, and the pinned framework commit is not on GitHub |
 | Tests | 2 ROM-backed `ctest` tests; replay runs and everything else by hand |
 | Release and player features | No release; save states only |
@@ -41,15 +42,18 @@ there yet.
 
 ## 2. Prove what the player sees and hears
 
-Identical memory does not prove an identical picture: rendering is snesrecomp's PPU, and our build uses its legacy
-renderer. Nothing compares sound output either.
+`npm run compare:full` compares every RAM, the picture and the S-DSP's state at every key of the sync replays. All RAM the CPU
+side uses is identical; the open items are what it found (recomp repository's `docs/progress.md`, "Picture and sound").
 
 | | Task | Done when |
 |---|---|---|
-| 🔴 | **Compare rendered frames with MesenCE.** Hash the output per key in `tools/compare`, keeping bytes only for frames that differ | Replays 01, 02 and 06 are compared; each difference is fixed or has an `imperfections/` file |
-| 🟡 | **Compare audio output with MesenCE** over a replay (the `--aram` option covers only sound RAM) | Differences are measured, with a stated tolerance |
+| 🟡 | **Fades round differently:** up to 8 of 255 below full brightness (`imperfections/fade-rounding.md`); the picture's only regular difference, 4,405 of 71,055 keys | Fixed upstream, or by the glue where brightness holds for a frame |
+| 🟡 | **A brightness write during a frame** reached rows already past: replay 05, key 2992, rows 0-24. Why they were not yet drawn is not traced | Explained and fixed |
+| 🟡 | **ENDX seen a clock early:** an SPC700 read sees a voice's end flag early, 48 single keys of S-DSP state, one of ARAM (`imperfections/dsp-endx-read.md`). Proven at two keys, not yet at every key | Every key explained; the clock rule found |
+| 🟡 | **Compare the sample stream.** `sound` is state once per key, because MesenCE's Lua has no audio access. Needs a WAV from MesenCE, or a build of it that exposes the samples | Samples compared over a replay, with what the open keys do to the sound |
+| 🟢 | **BRR offset at power-on:** harmless; one line upstream (`imperfections/dsp-brr-offset-reset.md`) | Sent with §9 |
 | 🟡 | **Close the DMA-only fixes.** VRAM and CGRAM writes during rendering are handled for DMA alone, and `$213B` bit 7 for DMA reads; CGRAM uses colour 0 as measured | CPU-side cases are fixed or shown not to occur |
-| 🟡 | **Try the new renderer on the frame comparison** once Mode 4 exists upstream (§9) | `SoeAfterConfig`'s override is removed, or the reason to keep it is written down |
+| 🟡 | **Try the new renderer on the picture comparison** once Mode 4 exists upstream (§9) | `SoeAfterConfig`'s override is removed, or the reason to keep it is written down |
 
 ---
 

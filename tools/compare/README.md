@@ -30,6 +30,7 @@ Comparing everything, MesenCE against the recomp:
 | `--full` | every RAM (WRAM, VRAM, CGRAM, OAM, SRAM, ARAM, S-DSP registers) at every key, on to the end, each region's result in the report |
 | `--picture` | adds the rendered picture: the 224 lines before each NMI |
 | `--sound` | adds the S-DSP's whole state: output samples, voices, envelopes, BRR buffers, echo |
+| `--fade` | with `--picture`: the recomp's pixels rewritten by MesenCE's brightness rounding, to see what else differs (SecretOfEvermoreRecomp `docs/imperfections/fade-rounding.md`) |
 | `npm run compare:full` | `tools/compare/full.mts`: all sync replays with all of the above, one after the other; reports in `out/compare/full/`. `--only 01,06`, `--no-picture`, `--no-sound` |
 
 ## How it works
@@ -151,7 +152,8 @@ recomp's cycles read 1 above MesenCE's (where each logs). Bisect K to find where
 - `sram`, `dsp`, `sound` and `picture` need MesenCE and the recomp: the snes9x backend refuses them.
 - A Lua error in a callback ends the script but not MesenCE, so a run then waits for its limit with no message: `sound_bytes`
   reports a missing state field and stops. `envMode` is not in `emu.getState()`, so it is not compared.
-- A recomp child outlives a killed `compare.mts` (`perl -e 'alarm ...'` kills only node): kill the process group, or it stays behind.
+- A recomp or MesenCE child outlives a killed `compare.mts`, even with its process group killed (MesenCE was seen orphaned at full speed): after a timeout check `pgrep -f 'Mesen --testrunner'`.
+- `dist/` is shared: another session's build makes `compare.mts` fail at its start (`Cannot find module`). For a long run, copy `tools/`, `dist/` and `package.json` elsewhere, link `node_modules`, and set `SOE_RECOMP`.
 - MesenCE's testrunner Lua has no `io` library: its dumps come over stdout as hex lines; a Mesen run hashes
   ~150 keys per second.
 - MesenCE's testrunner ends a run after 100 s of wall time by default, wherever it is: `mesen.mts` passes

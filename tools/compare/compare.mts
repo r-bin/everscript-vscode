@@ -6,6 +6,7 @@
 //       [--keep-going] [--aram] [--regions wram,vram,cgram,oam,sram,aram,dsp,sound,picture] [--align frame|nmi]
 //       [--full] [--picture] [--sound] [--no-cache] [--out file.md]
 //   --full: every RAM at every key, on to the end, with each region's result; --picture and --sound add those
+//   --fade: the recomp's fades rewritten by MesenCE's rounding, to see what else differs in the picture
 //   backend: snes9x (our fork's debugger core, the default) | recomp (exe: the packaged game by default); no ROM after
 //   '=' means the clean ROM (--rom or the ROM library)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
@@ -194,7 +195,7 @@ function start(s: Setup, extra: Partial<Job>, onCp: (k: number, c: Crcs) => void
         runs.push(r.done.then(dump => { onEnd(frames); return dump; }).catch(e => onErr((e as Error).message)));
         return r.kill;
     }
-    const r = runRecomp({ exe: s.exe!, rom: s.rom, to: frames, regions, stride: extra.stride, mask: mixed, rng, replay, rngFrame, atNmi }, onCp);
+    const r = runRecomp({ exe: s.exe!, rom: s.rom, to: frames, regions, stride: extra.stride, mask: mixed, rng, replay, rngFrame, atNmi, fade: !!opts.fade }, onCp);
     runs.push(r.done.then(dump => { onEnd(frames); return dump; }).catch(e => onErr((e as Error).message)));
     return r.kill;
 }
@@ -220,7 +221,7 @@ async function snapshot(s: Setup, at: number): Promise<Uint8Array[]> {
         if (!dump) throw new Error(`Mesen did not reach counter ${at}`);
         return dump;
     }
-    const dump = await runRecomp({ exe: s.exe!, rom: s.rom, to: at, regions, dumpAt: at, mask: false, rng, replay, rngFrame, atNmi }, () => {}).done;
+    const dump = await runRecomp({ exe: s.exe!, rom: s.rom, to: at, regions, dumpAt: at, mask: false, rng, replay, rngFrame, atNmi, fade: !!opts.fade }, () => {}).done;
     if (!dump) throw new Error(`the recomp did not reach counter ${at}`);
     return dump;
 }
