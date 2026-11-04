@@ -1,7 +1,7 @@
 # Static Recompilation — Open Tasks
 
 > Domain: the Secret of Evermore recomp (repository SecretOfEvermoreRecomp, `docs/recomp/README.md` here) and its inputs here (`tools/recomp/`, `tools/compare/`, `src/platform/cdl/recomp-*.ts`)
-> Details and evidence: that repository's `docs/progress.md`, `docs/bugs-and-todos.md`, `docs/great-recomp-gap-analysis.md`
+> Details and evidence: that repository's `docs/progress.md`, `docs/progress-details.md`, `docs/bugs-and-todos.md`, `docs/great-recomp-gap-analysis.md`
 > Status key: 🔴 blocks the next stage · 🟡 open gap · 🟢 later or optional · 👤 needs the owner's decision
 
 Compiled 2026-11-04. Tasks are in working order: each section needs the one before it, except §6 to §8,
@@ -43,7 +43,7 @@ there yet.
 ## 2. Prove what the player sees and hears
 
 `npm run compare:full` compares every RAM, the picture and the S-DSP's state at every key of the sync replays. All RAM the CPU
-side uses is identical; the open items are what it found (recomp repository's `docs/progress.md`, "Picture and sound").
+side uses is identical; the open items are what it found (recomp repository's `docs/progress-details.md`, "Picture and sound").
 
 | | Task | Done when |
 |---|---|---|
@@ -88,7 +88,7 @@ side uses is identical; the open items are what it found (recomp repository's `d
 
 | | Task | Done when |
 |---|---|---|
-| 🔴 | **Rewrite the stale status text.** `README.md` and `docs/README.md` §1 still give 759 interpreted variants, Prehistoria only and snes9x lockstep. Fix "the framework is never patched" while the pin is a local branch. `bugs-and-todos.md` §1.1 and §4 and `great-recomp-gap-analysis.md` §1 are also behind; "accuracy is no longer our gap" holds only for what §2 and §3 have proven | The docs match `progress.md` |
+| 🟡 | **Fix "needs local framework branches" in the status text** once §1 is done: `README.md`, `docs/README.md`, `progress.md` say the pin is local | The docs match the public state |
 | 🔴 | **Build and run on Windows and Linux.** `release.yml` targets them, but every recorded measurement is from a Mac | Replay 06 syncs on each |
 | 🟡 | **Player README:** feature table, ROM table with hashes, controls, how to report problems. No screenshots (`AGENTS.md` rule 1) | A stranger can follow it |
 | 🟡 | **Tag a setup pack** with `scripts/package_release.sh` and `release.yml` | A public release with no ROM data or generated C |
@@ -112,7 +112,7 @@ side uses is identical; the open items are what it found (recomp repository's `d
 
 | | Task | Done when |
 |---|---|---|
-| 🟡 | **Bind more routines** with the proof already used: both replays stay in sync, the C path runs often, `SOE_HLE_MUTATE=1` is caught. 3 are bound of 309 reconstructed | Each new binding has a row in `progress.md`'s "Bound C" |
+| 🟡 | **Bind more routines** with the proof already used: both replays stay in sync, the C path runs often, `SOE_HLE_MUTATE=1` is caught. 3 are bound of 309 reconstructed | Each new binding has a row in `progress-details.md`'s "Bound C" |
 | 🟡 | **Next targets:** LZ decompressors (checked TypeScript decoders in `src/games/evermore/maps/`), then the room tilemap loader and collision unpacker | Bound and proven |
 | 🟡 | **Add a build report** listing which routines run as C, compiled or interpreted | Written by each build |
 

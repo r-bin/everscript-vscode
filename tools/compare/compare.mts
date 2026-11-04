@@ -6,6 +6,7 @@
 //       [--keep-going] [--aram] [--regions wram,vram,cgram,oam,sram,aram,dsp,sound,picture] [--align frame|nmi]
 //       [--full] [--picture] [--sound] [--no-cache] [--out file.md]
 //   --full: every RAM at every key, on to the end, with each region's result; --picture and --sound add those
+//   --interpreted: the recomp all-interpreted
 //   --fade: the recomp's fades rewritten by MesenCE's rounding, to see what else differs in the picture
 //   backend: snes9x (our fork's debugger core, the default) | recomp (exe: the packaged game by default); no ROM after
 //   '=' means the clean ROM (--rom or the ROM library)
@@ -17,6 +18,7 @@ import { Tracker, byteDiff, firstDifferingWrites, inOrder, ALL_RAM, type Crcs, t
 import { runSnes9x, askSnes9x, type Job } from './snes9x.mts';
 import { runRecomp, defaultExe } from './recomp.mts';
 import { runMesen, defaultMesenExe, askMesenRng } from './mesen.mts';
+import { allInterpretedEnv } from './probes/interp.mts';
 import { cacheKey, fileHash, loadCache, saveCache } from './cache.mts';
 import { report, summaryLine, type Detail, type TargetReport, type RunInfo } from './report.mts';
 import { SYNC_AT, CROSS_NOISE } from './game.mts';
@@ -107,6 +109,8 @@ export function parseArgs(argv: string[], baseRomFallback?: string) {
 export async function main() {
 const { opts, opt, vanilla, setups } = parseArgs(argv);
 
+// Every recomp setup all-interpreted, for the reference column of a native build.
+if (opts.interpreted) { const r = setups.find(s => s.backend === 'recomp'); if (r) Object.assign(process.env, allInterpretedEnv(r.exe!)); }
 const replay = opt('replay') ? resolve(opt('replay')!) : null;
 const hasRecomp = setups.some(s => s.backend === 'recomp');
 const hasMesen = setups.some(s => s.backend === 'mesen');

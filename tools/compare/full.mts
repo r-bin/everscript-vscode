@@ -1,7 +1,7 @@
 // Every sync replay against MesenCE at every key, on every RAM, the picture and the sound state, one after the other
 // (runs side by side slow each other down). Replay 03 does not sync, so it is not one of them. Reports go to
 // out/compare/full/; the exit code is 0 only when nothing differed.
-//   node tools/compare/full.mts [rom] [--only 01,06] [--no-picture] [--no-sound]
+//   node tools/compare/full.mts [rom] [--only 01,06] [--no-picture] [--no-sound] [--interpreted] [--fade]
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
@@ -18,13 +18,14 @@ mkdirSync(outDir, { recursive: true });
 const replays = readdirSync(dir).filter(f => /\.(evsmv|mmo)$/.test(f) && !f.startsWith('03-') && (!only || only.some(o => f.startsWith(o))));
 let bad = 0;
 for (const replay of replays) {
-    const out = join(outDir, replay.replace(/\.\w+$/, '.md'));
+    const out = join(outDir, replay.replace(/\.\w+$/, '') + (flag('--interpreted') ? '.interpreted' : '') + (flag('--fade') ? '.fade' : '') + '.md');
     rmSync(out, { force: true });
     const t0 = Date.now();
     let code = 0;
     try {
         execFileSync(process.execPath, ['tools/compare/compare.mts', 'mesen', 'recomp', ...(rom ? [rom] : []), '--replay', join(dir, replay), '--full',
-            ...(flag('--no-picture') ? [] : ['--picture']), ...(flag('--no-sound') ? [] : ['--sound']), '--out', out], { cwd: REPO, stdio: ['ignore', 'ignore', 'inherit'] });
+            ...(flag('--no-picture') ? [] : ['--picture']), ...(flag('--no-sound') ? [] : ['--sound']),
+            ...(flag('--interpreted') ? ['--interpreted'] : []), ...(flag('--fade') ? ['--fade'] : []), '--out', out], { cwd: REPO, stdio: ['ignore', 'ignore', 'inherit'] });
     } catch (e) { code = (e as { status: number }).status ?? 1; }
     bad += code ? 1 : 0;
     const done = existsSync(out);

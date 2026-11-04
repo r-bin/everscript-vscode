@@ -31,7 +31,8 @@ Comparing everything, MesenCE against the recomp:
 | `--picture` | adds the rendered picture: the 224 lines before each NMI |
 | `--sound` | adds the S-DSP's whole state: output samples, voices, envelopes, BRR buffers, echo |
 | `--fade` | with `--picture`: the recomp's pixels rewritten by MesenCE's brightness rounding, to see what else differs (SecretOfEvermoreRecomp `docs/imperfections/fade-rounding.md`) |
-| `npm run compare:full` | `tools/compare/full.mts`: all sync replays with all of the above, one after the other; reports in `out/compare/full/`. `--only 01,06`, `--no-picture`, `--no-sound` |
+| `--interpreted` | the recomp all-interpreted, for the reference column of a native build |
+| `npm run compare:full` | `tools/compare/full.mts`: all sync replays with all of the above, one after the other; reports in `out/compare/full/`. `--only 01,06`, `--no-picture`, `--no-sound`, `--interpreted`, `--fade` |
 
 ## How it works
 
