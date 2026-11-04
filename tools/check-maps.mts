@@ -76,6 +76,117 @@ interface Issue {
     message: string;
 }
 
+const UNKNOWN_MEMORY_RE = /\bunknown[_\s]+(?:memory|rom)\b/i;
+const FORBIDDEN_TERMS_RE = /\b(?:rom[-_\s]+extension|ex[-_]?hirom|randomizer)\b/i;
+const VALID_IDENTIFIER_RE = /^[A-Za-z0-9_]+$/;
+const INVALID_NAMES = new Set(['unknown', 'unnamed', 'empty', 'none', '-']);
+
+function checkForbiddenContent(line: string, file: string, lineNum: number, issues: Issue[]): void {
+    const unknownMatch = line.match(UNKNOWN_MEMORY_RE);
+    if (unknownMatch) {
+        issues.push({
+            level: 'ERROR',
+            file,
+            line: lineNum,
+            message: `Forbidden "unknown memory/rom" found: "${unknownMatch[0]}"`,
+        });
+    }
+
+    const termMatch = line.match(FORBIDDEN_TERMS_RE);
+    if (termMatch) {
+        issues.push({
+            level: 'ERROR',
+            file,
+            line: lineNum,
+            message: `Forbidden mention of rom extension/exhirom/randomizer: "${termMatch[0]}"`,
+        });
+    }
+}
+
+function validateIdentifier(identCol: string, file: string, lineNum: number, issues: Issue[]): string | null {
+    if (!identCol || !identCol.trim()) {
+        issues.push({
+            level: 'ERROR',
+            file,
+            line: lineNum,
+            message: 'Empty identifier name',
+        });
+        return null;
+    }
+
+    const linkMatch = identCol.match(/^\[`?([A-Za-z0-9_]+)`?\]\(([^)]+)\)$/);
+    if (!linkMatch) {
+        issues.push({
+            level: 'ERROR',
+            file,
+            line: lineNum,
+            message: `Entry identifier is not formatted as a valid markdown link: "${identCol}"`,
+        });
+        return null;
+    }
+
+    const name = linkMatch[1];
+    if (!name || !name.trim()) {
+        issues.push({
+            level: 'ERROR',
+            file,
+            line: lineNum,
+            message: `Empty identifier name in link: "${identCol}"`,
+        });
+        return null;
+    }
+
+    if (INVALID_NAMES.has(name.toLowerCase())) {
+        issues.push({
+            level: 'ERROR',
+            file,
+            line: lineNum,
+            message: `Invalid placeholder name: "${name}"`,
+        });
+        return null;
+    }
+
+    if (!VALID_IDENTIFIER_RE.test(name)) {
+        issues.push({
+            level: 'ERROR',
+            file,
+            line: lineNum,
+            message: `Identifier name contains invalid characters: "${name}"`,
+        });
+        return null;
+    }
+
+    const relLink = linkMatch[2];
+    const targetPath = path.resolve(KNOWLEDGE_ROOT, relLink);
+    if (!fs.existsSync(targetPath)) {
+        issues.push({
+            level: 'ERROR',
+            file,
+            line: lineNum,
+            message: `Broken knowledge link: target file does not exist: "${relLink}"`,
+        });
+    }
+
+    return name;
+}
+
+function isPhysicalRom(bank: number, offset: number, size: number): boolean {
+    const end = offset + (size > 0 ? size - 1 : 0);
+    // Bank $00: SNES cartridge header and hardware interrupt vectors ($00:FFC0..$00:FFFF)
+    if (bank === 0x00) {
+        return offset >= 0xFFC0 && end <= 0xFFFF;
+    }
+    // Vanilla FastROM upper halves: Banks $80 through $AF ($8000..$FFFF, 32 KB each)
+    if (bank >= 0x80 && bank <= 0xAF) {
+        return offset >= 0x8000 && end <= 0xFFFF;
+    }
+    // Vanilla linear data banks: Banks $C0 through $EF ($0000..$7FFF or linear data $0000..$FFFF)
+    if (bank >= 0xC0 && bank <= 0xEF) {
+        return offset >= 0x0000 && end <= 0xFFFF;
+    }
+    return false;
+}
+
 /** Split a markdown table row by unescaped pipe characters */
 function splitRow(line: string): string[] {
     return line.split(/(?<!\\)\|/).map(s => s.trim().replace(/\\\|/g, '|'));
@@ -156,6 +267,7 @@ function checkWramMap(filePath: string, defaultBank: number, issues: Issue[]): {
         if (line.includes('|---')) continue;
         if (!line.includes(bankPrefix)) continue;
 
+        checkForbiddenContent(line, relFile, lineNum, issues);
         entryCount++;
 
         // 2. Markdown column count validation
@@ -223,33 +335,14 @@ function checkWramMap(filePath: string, defaultBank: number, issues: Issue[]): {
         }
         expectedAddr = localAddr + (size > 0 ? size : 1);
 
-        // 5. Knowledge link verification
-        const linkMatch = identCol.match(/\[`?([A-Za-z0-9_]+)`?\]\(([^)]+)\)/);
-        if (!linkMatch) {
-            issues.push({
-                level: 'WARN',
-                file: relFile,
-                line: lineNum,
-                message: `Entry identifier is not formatted as a markdown link: "${identCol}"`,
-            });
-        } else {
-            const relLink = linkMatch[2];
-            const targetPath = path.resolve(KNOWLEDGE_ROOT, relLink);
-            if (!fs.existsSync(targetPath)) {
-                issues.push({
-                    level: 'ERROR',
-                    file: relFile,
-                    line: lineNum,
-                    message: `Broken knowledge link: target file does not exist: "${relLink}"`,
-                });
-            }
-        }
+        // 5. Knowledge link & name verification
+        validateIdentifier(identCol, relFile, lineNum, issues);
 
         // 6. Tag validation
         const tags = tagCol.split(',').map(s => s.trim()).filter(Boolean);
         if (tags.length === 0) {
             issues.push({
-                level: 'ERROR',
+                level: 'WARN',
                 file: relFile,
                 line: lineNum,
                 message: `Entry at $${localAddr.toString(16).toUpperCase()} has no tags`,
@@ -355,6 +448,7 @@ function checkRomMap(filePath: string, issues: Issue[]): { entryCount: number; t
             continue;
         }
 
+        checkForbiddenContent(line, relFile, lineNum, issues);
         entryCount++;
 
         const addrStr = parts[1].replace(/[`$]/g, '');
@@ -378,6 +472,16 @@ function checkRomMap(filePath: string, issues: Issue[]): { entryCount: number; t
 
         const bankHex = bank.toString(16).toUpperCase().padStart(2, '0');
 
+        // Physical ROM validation (3 MB HiROM)
+        if (!isPhysicalRom(bank, offset, size)) {
+            issues.push({
+                level: 'ERROR',
+                file: relFile,
+                line: lineNum,
+                message: `Access outside physical ROM of ROM header (3 MB HiROM): $${bankHex}:$${offset.toString(16).toUpperCase()}`,
+            });
+        }
+
         // Continuity check: no gaps and no overlaps within bank
         if (expectedAddr !== -1) {
             if (offset < expectedAddr) {
@@ -398,26 +502,19 @@ function checkRomMap(filePath: string, issues: Issue[]): { entryCount: number; t
         }
         expectedAddr = offset + (size > 0 ? size : 1);
 
-        // Link validation
-        const linkMatch = identCol.match(/\[`?([A-Za-z0-9_]+)`?\]\(([^)]+)\)/);
-        if (!linkMatch) {
+        // Link & identifier validation
+        validateIdentifier(identCol, relFile, lineNum, issues);
+
+        // Tag validation (missing tags treated as warning)
+        const tagCol = parts[5];
+        const tags = tagCol ? tagCol.split(',').map(s => s.trim()).filter(Boolean) : [];
+        if (tags.length === 0) {
             issues.push({
                 level: 'WARN',
                 file: relFile,
                 line: lineNum,
-                message: `Entry identifier is not formatted as a markdown link: "${identCol}"`,
+                message: `ROM entry at $${bankHex}:$${offset.toString(16).toUpperCase()} has no tags`,
             });
-        } else {
-            const relLink = linkMatch[2];
-            const targetPath = path.resolve(KNOWLEDGE_ROOT, relLink);
-            if (!fs.existsSync(targetPath)) {
-                issues.push({
-                    level: 'ERROR',
-                    file: relFile,
-                    line: lineNum,
-                    message: `Broken ROM knowledge link: "${relLink}"`,
-                });
-            }
         }
     }
 

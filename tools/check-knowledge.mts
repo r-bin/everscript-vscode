@@ -68,6 +68,15 @@ const covered = (entries: Range[], a: number) =>
 const WRAM = /(?:\$|0x)(7[EF])[:_]?([0-9A-F]{4})\b/gi;
 const ROM = /(?:\$|0x)([89A-F][0-9A-F])[:]?([0-9A-F]{4})\b/gi;
 
+function isPhysicalRom(a: number): boolean {
+    const bank = (a >> 16) & 0xFF;
+    const off = a & 0xFFFF;
+    if (bank === 0x00 && off >= 0xFFC0) return true;
+    if (bank >= 0x80 && bank <= 0xAF && off >= 0x8000) return true;
+    if (bank >= 0xC0 && bank <= 0xEF) return true;
+    return false;
+}
+
 function scanCode(): Map<string, string> {
     const files = execFileSync('git', ['ls-files', 'src', 'tools'], { cwd: ROOT }).toString().split('\n')
         .filter((f) => /\.(js|ts|mts)$/.test(f) && !f.includes('/dist/') && !f.startsWith('src/core/emulator/core/'));
@@ -77,6 +86,8 @@ function scanCode(): Map<string, string> {
         const text = readFileSync(join(ROOT, f), 'utf8');
         const game = GAME_DOCS.includes(gameOf(f)) ? gameOf(f) + ':' : '';
         for (const [space, re] of [['ram', WRAM], ['rom', ROM]] as const) for (const m of text.matchAll(re)) {
+            const addrNum = parseInt(m[1] + m[2], 16);
+            if (space === 'rom' && !isPhysicalRom(addrNum)) continue;
             const k = `${game}${space}:${(m[1] + m[2]).toUpperCase()}`;
             if (!found.has(k)) found.set(k, f);
         }

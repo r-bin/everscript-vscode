@@ -71,4 +71,13 @@ test.describe('ROM Map & Routine Knowledge Parity (Zero Data Loss)', () => {
         assert.ok(nmiRange);
         assert.equal(nmiRange?.name, 'nmi_handler');
     });
+
+    test.it('memory maps validate cleanly against physical ROM, naming, and forbidden content rules', () => {
+        const { execFileSync } = require('child_process');
+        const output = execFileSync(process.execPath, ['tools/check-maps.mts'], {
+            cwd: ROOT,
+            encoding: 'utf8',
+        });
+        assert.ok(output.includes('Memory map validation succeeded with ZERO errors!'));
+    });
 });

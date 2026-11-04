@@ -56,8 +56,8 @@ function isVanillaRomAddress(addr: number): boolean {
     const off = addr & 0xFFFF;
     // SNES cartridge header and hardware interrupt vectors ($00:FFC0..$00:FFFF)
     if (bank === 0x00 && off >= 0xFFC0) return true;
-    // Vanilla FastROM upper halves: Banks $80 through $AF ($8000..$FFFF, plus legacy 8F:0000)
-    if (bank >= 0x80 && bank <= 0xAF && (off >= 0x8000 || (bank === 0x8F && off === 0x0000))) return true;
+    // Vanilla FastROM upper halves: Banks $80 through $AF ($8000..$FFFF)
+    if (bank >= 0x80 && bank <= 0xAF && off >= 0x8000) return true;
     // Vanilla linear data banks: Banks $C0 through $EF ($0000..$FFFF)
     if (bank >= 0xC0 && bank <= 0xEF) return true;
     return false;
@@ -787,12 +787,8 @@ function generate(): void {
 
     // 9. Group items by bank and build contiguous zero-gap layout for strictly vanilla ROM banks
     const rawByBank = new Map<number, RomKnowledgeItem[]>();
-    const nonVanillaItems: RomKnowledgeItem[] = [];
     for (const item of itemsByAddr.values()) {
-        if (!isVanillaRomAddress(item.addr)) {
-            nonVanillaItems.push(item);
-            continue;
-        }
+        if (!isVanillaRomAddress(item.addr)) continue;
         const bank = (item.addr >> 16) & 0xFF;
         const list = rawByBank.get(bank) || [];
         list.push(item);
@@ -821,9 +817,7 @@ function generate(): void {
         if (bank === 0x00) {
             expectedAddr = 0x00FFC0;
         } else if (bank >= 0x80 && bank <= 0xAF) {
-            expectedAddr = (bank === 0x8F && rawList.length > 0 && (rawList[0].addr & 0xFFFF) === 0x0000)
-                ? 0x8F0000
-                : ((bank << 16) | 0x8000);
+            expectedAddr = (bank << 16) | 0x8000;
         } else if (bank >= 0xC0 && bank <= 0xEF) {
             expectedAddr = (bank << 16) | 0x0000;
         } else {
@@ -918,16 +912,6 @@ function generate(): void {
         }
 
         byBank.set(bank, contiguous);
-    }
-
-    // 9b. Append non-vanilla routines, expanded arenas, and system register mirrors
-    for (const item of nonVanillaItems.sort((a, b) => a.addr - b.addr)) {
-        const bank = (item.addr >> 16) & 0xFF;
-        const list = byBank.get(bank) || [];
-        list.push(item);
-        list.sort((a, b) => a.addr - b.addr);
-        byBank.set(bank, list);
-        allContiguousItems.push(item);
     }
 
     // Ensure every single item has a unique name across the entire ROM map
@@ -1046,8 +1030,7 @@ function generate(): void {
     md += '- **Banks `$C0..$EF` (FastROM data banks, 48 banks):** Master dialogue string tables, game database ($C4), and compressed CHR graphics ($D0..$DF).\n';
     md += '- **Bank `$00` (SlowROM mirror):** SNES cartridge header and hardware interrupt vectors ($00:FFC0..$00:FFFF).\n\n';
 
-    const allOutputBanks = Array.from(byBank.keys()).sort((a, b) => a - b);
-    for (const bank of allOutputBanks) {
+    for (const bank of sortedBanks) {
         const hex = bank.toString(16).toUpperCase().padStart(2, '0');
         const list = byBank.get(bank)!;
         const bName = bankName(bank);
