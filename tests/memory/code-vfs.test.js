@@ -81,7 +81,7 @@ const read = async (node) => String(await node.read());
     assert(top.entries.length > 500, 'code/ lists every routine entry');
 
     const folder = resolveCode(['reset_handler'], rom);
-    assert.deepStrictEqual(folder.entries.map(e => e[0]), ['info.md', 'reset_handler.asm', 'reset_handler.c']);
+    assert.deepStrictEqual(folder.entries.map(e => e[0]), ['info.md', 'reset_handler.asm', 'comments.json', 'reset_handler.c', 'reset_handler.ghidra.c']);
     const info = await read(resolveCode(['reset_handler', 'info.md'], rom));
     assert(info.includes('US $808020') && info.includes('## Open work'), 'info.md: place and open work');
 

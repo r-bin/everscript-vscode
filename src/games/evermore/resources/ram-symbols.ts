@@ -1,16 +1,26 @@
-// Ownership: every WRAM address the plugin knows, in one list — the named
-// addresses of src/games/evermore/script-model/names.json, the WRAM links of `soe://tags/`, and the
+// Ownership: every WRAM address the plugin knows, in one list — the contiguous
+// zero-gap table (data/wram-map.md, data/types.json), the named addresses of
+// src/games/evermore/script-model/names.json, the WRAM links of `soe://tags/`, and the
 // flag bytes (one entry per byte, bits named). Pure: no emulator.
 //
-//   ramSymbols(): { addr, size, type, name, tags, values?, bits? }
-//                 type: 'byte' | 'word' | 'long' | 'dword' | 'flags'
+//   ramSymbols(): { addr, size, type, name, tags, values?, bits?, summary? }
 //   ramBlocks():  { addr, size, tags } — records longer than 4 bytes (entity, stats block)
 
 import NAMES from '../script-model/names.json';
 import { tagModel } from './tag-model';
+import { getAllWramEntries, getWramEntry } from '../localizations/wram-map';
 
 /** One known WRAM address. */
-interface RamSymbol { addr: number; size: number | null; type: string | null; name: string | null; tags: string[]; values?: unknown; bits?: Record<number, string> }
+interface RamSymbol {
+    addr: number;
+    size: number | null;
+    type: string | null;
+    name: string | null;
+    tags: string[];
+    values?: unknown;
+    bits?: Record<number, string>;
+    summary?: string;
+}
 interface RamBlock { addr: number; size: number; tags: string[] }
 const NAMES_RAM = NAMES.ram as Record<string, string>;
 const NAMES_VALUES = NAMES.ramValues as unknown as Record<string, unknown>;
@@ -40,11 +50,35 @@ function ramSymbols(): RamSymbol[] {
         if (!byAddr.has(addr)) byAddr.set(addr, { addr, size: null, type: null, name: null, tags: [] });
         return byAddr.get(addr)!;
     };
+
+    // 1. Load from the canonical contiguous zero-gap WRAM map table
+    const tableEntries = getAllWramEntries();
+    const blocks = new Map<string, RamBlock>();
+
+    for (const t of tableEntries) {
+        const e = entry(t.addr);
+        e.name = t.name;
+        e.type = t.type;
+        e.size = t.size;
+        e.summary = t.summary;
+        for (const tag of t.tags) {
+            if (!e.tags.includes(tag)) e.tags.push(tag);
+        }
+        if (t.size > 4) {
+            const key = `${t.addr}:${t.size}`;
+            if (!blocks.has(key)) blocks.set(key, { addr: t.addr, size: t.size, tags: [...t.tags] });
+        }
+    }
+
+    // 2. Overlay values from names.json
     for (const [a, name] of Object.entries(NAMES_RAM)) {
-        const e = entry(Number(a));
-        e.name = label(name);
+        const num = Number(a);
+        const e = entry(num);
+        if (!e.name) e.name = label(name);
         if (NAMES_VALUES[a]) e.values = NAMES_VALUES[a];
     }
+
+    // 3. Flag bits
     for (const [k, name] of Object.entries(NAMES_FLAGS)) {
         const [a, bit] = k.split(':').map(Number);
         const e = entry(a);
@@ -52,8 +86,9 @@ function ramSymbols(): RamSymbol[] {
         e.size = 1;
         (e.bits = e.bits || {})[bit] = name;
     }
+
+    // 4. Tag model links
     const model = tagModel();
-    const blocks = new Map<string, RamBlock>();
     for (const t of model.tags.values()) {
         for (const l of t.links) {
             const r = ramTarget(l.uri);
@@ -61,7 +96,7 @@ function ramSymbols(): RamSymbol[] {
             if (r.len !== null && r.len > 4) {
                 const key = `${r.addr}:${r.len}`;
                 if (!blocks.has(key)) blocks.set(key, { addr: r.addr, size: r.len, tags: [] });
-                blocks.get(key)!.tags.push(t.id);
+                if (!blocks.get(key)!.tags.includes(t.id)) blocks.get(key)!.tags.push(t.id);
                 continue;
             }
             const e = entry(r.addr);
@@ -72,10 +107,12 @@ function ramSymbols(): RamSymbol[] {
             if (!e.name) e.name = model.title(t.id) || t.id;
         }
     }
+
     for (const e of byAddr.values()) {
-        if (!e.size) e.size = 2;                    // names.json addresses are read as words
-        if (!e.type) e.type = TYPE[e.size];
+        if (!e.size) e.size = 2;
+        if (!e.type) e.type = TYPE[e.size] || 'byte';
     }
+
     _cache = [...byAddr.values()].sort((x, y) => x.addr - y.addr);
     _blocks = [...blocks.values()].sort((x, y) => x.addr - y.addr);
     return _cache;
@@ -87,9 +124,16 @@ function ramBlocks(): RamBlock[] {
     return _blocks!;
 }
 
-/** The known entry at a WRAM offset, or null. */
+/** The known entry at a WRAM offset, or null (fast lookup via wram-map). */
 function ramSymbol(addr: number): RamSymbol | null {
-    return ramSymbols().find(e => e.addr === addr) || null;
+    const list = ramSymbols();
+    const exact = list.find(e => e.addr === addr);
+    if (exact) return exact;
+
+    // Check if covered by a contiguous table entry
+    const entry = getWramEntry(addr);
+    if (!entry) return null;
+    return list.find(e => e.addr === entry.addr) || null;
 }
 
 export type { RamSymbol, RamBlock };

@@ -1,0 +1,16 @@
+---
+addr: 7E1443
+size: 2
+kind: var
+name: DOG_FORM_ANIM_9
+title: Active dog breed base physical attack power
+lifetime: save
+confidence: confirmed
+tags: [dog, companion, stats]
+evidence: ["disasm: func_CF946B ($8F:94E2) unpacks dog breed stats table from ROM into $7E:1443 on morph"]
+see: [knowledge/wram/144d.md, knowledge/wram/2363.md]
+---
+Base physical attack power stat for the companion dog's currently active breed form.
+
+Unpacked from `tbl_dog_form_pointers` (`$8F:945D`) by `func_CF946B` whenever the Dog transforms into a different historical era form (Prehistoric Wolfhound, Antiquity Greyhound, Medieval Poodle, or Omnitopia Toaster Dog). Added to character level modifiers during melee combat calculations.
+

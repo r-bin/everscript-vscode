@@ -15,6 +15,7 @@ import { detectScaleEnemies, readRomCharacters } from './rom-readers';
 import { renderRadarHtml } from './memory/render-radar';
 import { readAllCharacters, buildAnimationCatalog, characterThumbs, behaviourNames, attackProcNames } from './sprites';
 import { radarReadMemoryMap, radarDetectScope, radarAnalyzeScope } from './memory/scope-analysis';
+import { getWramMapEntries } from './localizations/wram-map';
 import type { createManaRooms } from './imports/mana';
 
 type RadarMap = ReturnType<typeof radarReadMemoryMap>;
@@ -96,11 +97,15 @@ function getMapExportChannel() {
     return radar.mapExportChannel;
 }
 
-function getRadarMap() {
+function getRadarMap(): RadarMap {
     if (radar.mapCache) return radar.mapCache;
     const wf = vscode.workspace.workspaceFolders?.[0];
-    if (!wf) return new Map();
-    radar.mapCache = radarReadMemoryMap(path.join(wf.uri.fsPath, '.github', 'memory-map.md'));
+    const userMap = wf ? path.join(wf.uri.fsPath, '.github', 'memory-map.md') : '';
+    if (userMap && fs.existsSync(userMap)) {
+        radar.mapCache = radarReadMemoryMap(userMap);
+    } else {
+        radar.mapCache = getWramMapEntries() as unknown as RadarMap;
+    }
     return radar.mapCache;
 }
 

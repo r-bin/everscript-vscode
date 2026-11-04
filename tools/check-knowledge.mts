@@ -18,6 +18,7 @@ import { homedir } from 'node:os';
 const ROOT = join(import.meta.dirname, '..');
 const KNOWLEDGE = join(ROOT, 'src/games/evermore/localizations/knowledge');
 const BASELINE = join(ROOT, 'tools/check-knowledge.baseline.json');
+const require = createRequire(import.meta.url);
 /** Games whose facts live in docs/<game>/ instead of knowledge entries (Secret of Mana's code is still checked
  * the old way, its gaps in the baseline, until docs/mana/ names them: then add 'mana'). */
 const GAME_DOCS = ['terra', 'mana'];
@@ -27,6 +28,14 @@ type Range = { from: number; to: number; name: string };
 
 /** Entries of one address space, as [from, to] bus ranges. */
 function loadEntries(space: 'ram' | 'rom'): Range[] {
+    if (space === 'ram') {
+        const { entries } = require(join(ROOT, 'dist/games/evermore/localizations/knowledge.js'));
+        return entries('ram').map((e: { addr: number; end: number; name: string | null }) => ({
+            from: e.addr,
+            to: e.end,
+            name: e.name ?? '',
+        }));
+    }
     const dir = join(KNOWLEDGE, space);
     const out: Range[] = [];
     for (const f of readdirSync(dir).filter((n) => n.endsWith('.md'))) {

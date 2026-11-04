@@ -1,0 +1,9 @@
+---
+addr: $7E:12C3
+name: cgram_queue_slot_7
+type: u8[7]
+tags: []
+confidence: verified
+evidence: ["cdl", "disasm"]
+---
+Partial CGRAM DMA slot 7 descriptor (7 bytes: src offset, bank, CGRAM dest, count).

@@ -21,8 +21,9 @@ function recomputeRows(){
     row.classList.toggle('hrow',allHidden||(hideBoring&&!isUsed)||(hideAlloc&&!hasDoc));
   });
   document.querySelectorAll('tr.dr').forEach(function(row){
+    var isRest=row.classList.contains('placeholder-row')||row.classList.contains('lc-rest');
     var hasDoc=row.dataset.hasdoc==='1';
-    row.classList.toggle('hrow',hideAlloc&&!hasDoc);
+    row.classList.toggle('hrow', (hidden.has('rest') && isRest) || (hideAlloc && !hasDoc));
   });
 }
 
@@ -44,6 +45,7 @@ if(restBtn)restBtn.addEventListener('click',function(){
   restBtn.classList.toggle('on');
   var on=restBtn.classList.contains('on');
   if(on)hidden.delete('rest');else hidden.add('rest');
+  document.body.classList.toggle('hrest',!on);
   recomputeRows();
 });
 

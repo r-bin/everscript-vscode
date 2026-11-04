@@ -1,0 +1,543 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SNES WRAM Types Definition",
+  "typedefs": {
+    "entity": {
+      "type": "u16",
+      "desc": "16-bit WRAM pointer to an active EntityRecord (e.g. $7E3DE5..$7E4FE4)"
+    },
+    "JoypadButtons": {
+      "type": "u16",
+      "desc": "16-bit SNES controller button bitmask (B, Y, Select, Start, D-Pad, A, X, L, R)"
+    }
+  },
+  "enums": {
+    "EntityState": {
+      "0x00": "INACTIVE",
+      "0x01": "SPAWNING",
+      "0x02": "ACTIVE",
+      "0x03": "DYING"
+    },
+    "Direction": {
+      "0x00": "UP",
+      "0x02": "RIGHT",
+      "0x04": "DOWN",
+      "0x06": "LEFT"
+    },
+    "DogType": {
+      "size": 1,
+      "values": {
+        "0x00": "WOLF",
+        "0x01": "GREYHOUND",
+        "0x02": "POODLE",
+        "0x03": "TOASTER"
+      }
+    },
+    "DogAiCommand": {
+      "size": 1,
+      "values": {
+        "0x00": "FOLLOW",
+        "0x01": "HEEL",
+        "0x02": "SNIFF",
+        "0x03": "ATTACK"
+      }
+    },
+    "WeaponClass": {
+      "0x00": "SWORD",
+      "0x02": "AXE",
+      "0x04": "SPEAR",
+      "0x06": "BAZOOKA"
+    },
+    "WindowState": {
+      "size": 2,
+      "values": {
+        "0x00": "CLOSED",
+        "0x01": "OPENING",
+        "0x02": "OPEN",
+        "0x03": "CLOSING"
+      }
+    },
+    "ChoiceBoxState": {
+      "size": 2,
+      "values": {
+        "0x00": "INACTIVE",
+        "0x01": "OPENING",
+        "0x02": "ACTIVE",
+        "0x03": "CONFIRMED"
+      }
+    },
+    "AudioFadeState": {
+      "size": 2,
+      "values": {
+        "0x00": "STEADY",
+        "0x01": "FADE_IN",
+        "0x02": "FADE_OUT"
+      }
+    }
+  },
+  "structs": {
+    "WindowDescriptor": {
+      "size": 44,
+      "desc": "Dialogue and menu window layout descriptor (44 bytes)",
+      "fields": [
+        { "offset": 0, "name": "string_offset", "type": "u16" },
+        { "offset": 2, "name": "format_flags", "type": "u16" },
+        { "offset": 4, "name": "border_style", "type": "u16" },
+        { "offset": 6, "name": "text_delay", "type": "u16" },
+        { "offset": 8, "name": "wait_flag", "type": "u16" },
+        { "offset": 10, "name": "scroll_mode", "type": "u16" },
+        { "offset": 12, "name": "line_index", "type": "u16" },
+        { "offset": 14, "name": "screen_x", "type": "u16" },
+        { "offset": 16, "name": "screen_y", "type": "u16" },
+        { "offset": 18, "name": "vram_addr", "type": "u16" },
+        { "offset": 20, "name": "tile_width", "type": "u16" },
+        { "offset": 22, "name": "tile_height", "type": "u16" },
+        { "offset": 24, "name": "anim_target_width", "type": "u16" },
+        { "offset": 26, "name": "anim_target_height", "type": "u16" },
+        { "offset": 28, "name": "max_width", "type": "u16" },
+        { "offset": 30, "name": "display_mode", "type": "u16" },
+        { "offset": 32, "name": "anim_timer", "type": "u16" },
+        { "offset": 34, "name": "reserved_22", "type": "u16" },
+        { "offset": 36, "name": "choice_count", "type": "u16" },
+        { "offset": 38, "name": "selection_cursor", "type": "u16" },
+        { "offset": 40, "name": "selected_choice", "type": "u16" },
+        { "offset": 42, "name": "state", "type": "WindowState" }
+      ]
+    },
+    "WindowSubgrid": {
+      "size": 12,
+      "desc": "Menu option subgrid layout for interactive selection windows (12 bytes)",
+      "fields": [
+        { "offset": 0, "name": "cols", "type": "u16" },
+        { "offset": 2, "name": "rows", "type": "u16" },
+        { "offset": 4, "name": "total_cells", "type": "u16" },
+        { "offset": 6, "name": "col_pitch", "type": "u16" },
+        { "offset": 8, "name": "row_pitch", "type": "u16" },
+        { "offset": 10, "name": "selected_cell", "type": "u16" }
+      ]
+    },
+    "AuxAnimChannel": {
+      "size": 16,
+      "desc": "Auxiliary spell and cursor sprite animation channel state (16 bytes)",
+      "fields": [
+        { "offset": 0, "name": "addr", "type": "u16" },
+        { "offset": 2, "name": "bank", "type": "u8" },
+        { "offset": 3, "name": "base", "type": "u16" },
+        { "offset": 5, "name": "delay", "type": "u8" },
+        { "offset": 6, "name": "sprite_ptr", "type": "u16" },
+        { "offset": 8, "name": "sprite_bank", "type": "u8" },
+        { "offset": 9, "name": "param_byte", "type": "u8" },
+        { "offset": 10, "name": "param_word", "type": "u16" },
+        { "offset": 12, "name": "palette_flags", "type": "u16" },
+        { "offset": 14, "name": "step", "type": "u16" }
+      ]
+    },
+    "Vector16": {
+      "size": 4,
+      "fields": [
+        {
+          "offset": 0,
+          "name": "x",
+          "type": "i16"
+        },
+        {
+          "offset": 2,
+          "name": "y",
+          "type": "i16"
+        }
+      ]
+    },
+    "CharacterStats": {
+      "size": 74,
+      "desc": "Character base RPG statistics, levels, and equipment block (74 bytes)",
+      "fields": [
+        {
+          "offset": 0,
+          "name": "name_ptr",
+          "type": "u16"
+        },
+        {
+          "offset": 15,
+          "name": "max_hp",
+          "type": "u16"
+        },
+        {
+          "offset": 25,
+          "name": "base_attack",
+          "type": "u16"
+        },
+        {
+          "offset": 27,
+          "name": "base_defense",
+          "type": "u16"
+        },
+        {
+          "offset": 29,
+          "name": "base_magic_defense",
+          "type": "u16"
+        },
+        {
+          "offset": 31,
+          "name": "base_evasion",
+          "type": "u16"
+        },
+        {
+          "offset": 33,
+          "name": "base_hit_rate",
+          "type": "u16"
+        },
+        {
+          "offset": 35,
+          "name": "xp",
+          "type": "u32"
+        },
+        {
+          "offset": 39,
+          "name": "next_level_xp",
+          "type": "u32"
+        },
+        {
+          "offset": 43,
+          "name": "level",
+          "type": "u16"
+        },
+        {
+          "offset": 45,
+          "name": "charge_max",
+          "type": "u16"
+        },
+        {
+          "offset": 47,
+          "name": "charge_rate",
+          "type": "u8"
+        },
+        {
+          "offset": 48,
+          "name": "equipped_item",
+          "type": "u16"
+        }
+      ]
+    },
+    "ScriptSlot": {
+      "size": 79,
+      "desc": "Script VM thread execution context (79 bytes)",
+      "fields": [
+        {
+          "offset": 0,
+          "name": "script_pc",
+          "type": "u16"
+        },
+        {
+          "offset": 2,
+          "name": "script_bank",
+          "type": "u8"
+        },
+        {
+          "offset": 3,
+          "name": "status_flags",
+          "type": "u16"
+        },
+        {
+          "offset": 5,
+          "name": "sleep_timer",
+          "type": "u16"
+        },
+        {
+          "offset": 7,
+          "name": "target_entity_ptr",
+          "type": "entity"
+        },
+        {
+          "offset": 9,
+          "name": "caller_pc",
+          "type": "u16"
+        },
+        {
+          "offset": 11,
+          "name": "scratch_registers",
+          "type": "u8[0x44]"
+        }
+      ]
+    },
+    "EntityRecord": {
+      "size": 142,
+      "fields": [
+        {
+          "offset": 0,
+          "name": "state",
+          "type": "EntityState"
+        },
+        {
+          "offset": 1,
+          "name": "anim_frame",
+          "type": "u8"
+        },
+        {
+          "offset": 6,
+          "name": "sprite_addr",
+          "type": "u16"
+        },
+        {
+          "offset": 8,
+          "name": "sprite_bank",
+          "type": "u8"
+        },
+        {
+          "offset": 26,
+          "name": "pos",
+          "type": "Vector16"
+        },
+        {
+          "offset": 30,
+          "name": "pos_z",
+          "type": "u16"
+        },
+        {
+          "offset": 34,
+          "name": "facing",
+          "type": "Direction"
+        },
+        {
+          "offset": 42,
+          "name": "current_hp",
+          "type": "u16"
+        },
+        {
+          "offset": 94,
+          "name": "next_entity",
+          "type": "entity"
+        },
+        {
+          "offset": 96,
+          "name": "char_type_ptr",
+          "type": "u16"
+        }
+      ]
+    },
+    "CharacterEntity": {
+      "extends": "EntityRecord",
+      "size": 174,
+      "fields": [
+        {
+          "offset": 142,
+          "name": "charge_level",
+          "type": "u16"
+        },
+        {
+          "offset": 148,
+          "name": "xp_required",
+          "type": "u16"
+        },
+        {
+          "offset": 160,
+          "name": "boost_attack",
+          "type": "u16"
+        },
+        {
+          "offset": 162,
+          "name": "boost_defend",
+          "type": "u16"
+        },
+        {
+          "offset": 164,
+          "name": "boost_evade",
+          "type": "u16"
+        }
+      ]
+    },
+    "CgramQueueEntry": {
+      "size": 7,
+      "desc": "Deferred CGRAM DMA palette upload transfer descriptor (7 bytes)",
+      "fields": [
+        { "offset": 0, "name": "src_addr", "type": "u16" },
+        { "offset": 2, "name": "src_bank", "type": "u8" },
+        { "offset": 3, "name": "cgram_dest", "type": "u16" },
+        { "offset": 5, "name": "byte_count", "type": "u16" }
+      ]
+    },
+    "VramDmaEntry": {
+      "size": 8,
+      "desc": "Deferred VRAM DMA transfer descriptor (8 bytes)",
+      "fields": [
+        { "offset": 0, "name": "src_addr", "type": "u16" },
+        { "offset": 2, "name": "src_bank", "type": "u8" },
+        { "offset": 3, "name": "flags", "type": "u8" },
+        { "offset": 4, "name": "dest_vram", "type": "u16" },
+        { "offset": 6, "name": "byte_count", "type": "u16" }
+      ]
+    },
+    "HudStatusWidget": {
+      "size": 68,
+      "desc": "HUD character status widget descriptor for HP meter and numeric readout (68 bytes)",
+      "fields": [
+        { "offset": 0, "name": "widget_type", "type": "u16" },
+        { "offset": 2, "name": "screen_x", "type": "u16" },
+        { "offset": 4, "name": "screen_y", "type": "u16" },
+        { "offset": 6, "name": "vram_dest", "type": "u16" },
+        { "offset": 8, "name": "meter_tiles", "type": "u8[32]" },
+        { "offset": 40, "name": "digit_tiles", "type": "u8[14]" },
+        { "offset": 54, "name": "reserved", "type": "u8[14]" }
+      ]
+    },
+    "DamagePopupNode": {
+      "size": 64,
+      "desc": "Floating combat damage numbers and status popup node (64 bytes)",
+      "fields": [
+        { "offset": 0, "name": "screen_x", "type": "i16" },
+        { "offset": 2, "name": "screen_y", "type": "i16" },
+        { "offset": 4, "name": "velocity_y", "type": "i16" },
+        { "offset": 6, "name": "lifetime_ticks", "type": "u16" },
+        { "offset": 8, "name": "value", "type": "u16" },
+        { "offset": 10, "name": "color_attr", "type": "u16" },
+        { "offset": 12, "name": "digit_sprite_base", "type": "u16" },
+        { "offset": 14, "name": "reserved", "type": "u8[50]" }
+      ]
+    },
+    "StatusGaugeWidget": {
+      "size": 24,
+      "desc": "Status screen parameter meter bar widget record (24 bytes)",
+      "fields": [
+        { "offset": 0, "name": "screen_x", "type": "u16" },
+        { "offset": 2, "name": "screen_y", "type": "u16" },
+        { "offset": 4, "name": "tile_base", "type": "u16" },
+        { "offset": 6, "name": "current_val", "type": "u16" },
+        { "offset": 8, "name": "target_val", "type": "u16" },
+        { "offset": 10, "name": "anim_timer", "type": "u16" },
+        { "offset": 12, "name": "gauge_tiles", "type": "u8[12]" }
+      ]
+    },
+    "ProjectileSlot": {
+      "size": 27,
+      "desc": "Active weapon/spell projectile slot state descriptor (27 bytes)",
+      "fields": [
+        { "offset": 0, "name": "state", "type": "u8" },
+        { "offset": 1, "name": "pos_x", "type": "i16" },
+        { "offset": 3, "name": "pos_y", "type": "i16" },
+        { "offset": 5, "name": "vel_x", "type": "i16" },
+        { "offset": 7, "name": "vel_y", "type": "i16" },
+        { "offset": 9, "name": "lifetime", "type": "u16" },
+        { "offset": 11, "name": "sprite_id", "type": "u16" },
+        { "offset": 13, "name": "damage", "type": "u16" },
+        { "offset": 15, "name": "target_actor", "type": "entity" },
+        { "offset": 17, "name": "flags", "type": "u16" },
+        { "offset": 19, "name": "scratch", "type": "u8[8]" }
+      ]
+    },
+    "BossSegmentSlot": {
+      "size": 89,
+      "desc": "Multipart boss child segment limb / joint descriptor (89 bytes)",
+      "fields": [
+        { "offset": 0, "name": "joint_offset_x", "type": "i16" },
+        { "offset": 2, "name": "joint_offset_y", "type": "i16" },
+        { "offset": 4, "name": "target_x", "type": "i16" },
+        { "offset": 6, "name": "target_y", "type": "i16" },
+        { "offset": 8, "name": "angle", "type": "u16" },
+        { "offset": 10, "name": "limb_anim_state", "type": "u16" },
+        { "offset": 12, "name": "parent_actor_ptr", "type": "entity" },
+        { "offset": 14, "name": "free_link", "type": "u16" },
+        { "offset": 16, "name": "scratch", "type": "u8[73]" }
+      ]
+    },
+    "SpriteBucketNode": {
+      "size": 8,
+      "desc": "Y-sorted sprite display list spatial bucket header (8 bytes)",
+      "fields": [
+        { "offset": 0, "name": "prev", "type": "u16" },
+        { "offset": 2, "name": "next", "type": "u16" },
+        { "offset": 4, "name": "key", "type": "u16" },
+        { "offset": 6, "name": "tail", "type": "u16" }
+      ]
+    },
+    "DirectPageBlock": {
+      "size": 256,
+      "desc": "Direct page work RAM register scratchpad ($7E:0000..$7E:00FF)",
+      "fields": [
+        { "offset": 0, "name": "cam_scroll_x", "type": "i16" },
+        { "offset": 2, "name": "scratch_02", "type": "u16" },
+        { "offset": 38, "name": "sprite_descriptor_ptr", "type": "u24" },
+        { "offset": 70, "name": "actor_world_x", "type": "i16" },
+        { "offset": 72, "name": "actor_world_y", "type": "i16" },
+        { "offset": 76, "name": "current_actor_ptr", "type": "entity" },
+        { "offset": 126, "name": "script_current_thread_ptr", "type": "u16" },
+        { "offset": 130, "name": "script_pc_far_ptr", "type": "u24" },
+        { "offset": 197, "name": "shake_offset_x", "type": "i16" },
+        { "offset": 199, "name": "shake_offset_y", "type": "i16" },
+        { "offset": 217, "name": "obj_frame_ready", "type": "u16" }
+      ]
+    },
+    "AnimAlchemySlot": {
+      "size": 64,
+      "desc": "Animation Alchemy active array slot ($7E:3364, stride 64 bytes)",
+      "fields": [
+        { "offset": 14, "name": "timer", "type": "u16" },
+        { "offset": 18, "name": "spell_id", "type": "u16" },
+        { "offset": 20, "name": "caster", "type": "entity" },
+        { "offset": 24, "name": "target", "type": "entity" }
+      ]
+    },
+    "ProjAlchemySlot": {
+      "size": 118,
+      "desc": "Projectile Alchemy active array slot ($7E:3564, stride 118 bytes)",
+      "fields": [
+        { "offset": 18, "name": "spell_id", "type": "u16" },
+        { "offset": 38, "name": "actor", "type": "entity" }
+      ]
+    },
+    "SpellEmitterSlot": {
+      "size": 26,
+      "desc": "Active spell particle and effect emitter slot ($7E:3294, stride 26 bytes)",
+      "fields": [
+        { "offset": 0, "name": "state", "type": "u16" },
+        { "offset": 2, "name": "pos_x", "type": "i16" },
+        { "offset": 4, "name": "pos_y", "type": "i16" },
+        { "offset": 6, "name": "vel_x", "type": "i16" },
+        { "offset": 8, "name": "vel_y", "type": "i16" },
+        { "offset": 10, "name": "timer", "type": "u16" }
+      ]
+    },
+    "WaypointBreadcrumb": {
+      "size": 3,
+      "desc": "Companion Dog pathfinding breadcrumb waypoint node (3 bytes)",
+      "fields": [
+        { "offset": 0, "name": "tile_x", "type": "u8" },
+        { "offset": 1, "name": "tile_y", "type": "u8" },
+        { "offset": 2, "name": "flags", "type": "u8" }
+      ]
+    },
+    "SpriteAllocNode": {
+      "size": 8,
+      "desc": "Dynamic sprite allocation node ($7E:50A7, 8 bytes)",
+      "fields": [
+        { "offset": 0, "name": "prev", "type": "u16" },
+        { "offset": 2, "name": "next", "type": "u16" },
+        { "offset": 4, "name": "state", "type": "u16" },
+        { "offset": 6, "name": "parent", "type": "u16" }
+      ]
+    },
+    "SpawnRecord": {
+      "size": 16,
+      "desc": "Entity respawn descriptor ring table slot ($7E:5DC3, stride 16 bytes)",
+      "fields": [
+        { "offset": 0, "name": "id", "type": "u16" },
+        { "offset": 2, "name": "x", "type": "u16" },
+        { "offset": 4, "name": "y", "type": "u16" },
+        { "offset": 6, "name": "flags", "type": "u16" },
+        { "offset": 8, "name": "cooldown", "type": "u16" },
+        { "offset": 10, "name": "multiplier", "type": "u16" },
+        { "offset": 12, "name": "capacity", "type": "u16" },
+        { "offset": 14, "name": "entity_slot", "type": "u16" }
+      ]
+    },
+    "SpriteAnimChannel": {
+      "size": 32,
+      "desc": "Dynamic sprite animation channel descriptor ($7E:6289, stride 32 bytes)",
+      "fields": [
+        { "offset": 0, "name": "anim_ptr", "type": "u16" },
+        { "offset": 2, "name": "anim_bank", "type": "u8" },
+        { "offset": 3, "name": "delay", "type": "u8" },
+        { "offset": 4, "name": "frame_index", "type": "u16" },
+        { "offset": 28, "name": "flags", "type": "u16" }
+      ]
+    }
+  }
+}

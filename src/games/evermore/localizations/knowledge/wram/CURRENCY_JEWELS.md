@@ -1,0 +1,13 @@
+---
+addr: 7E0AC9
+size: 3
+kind: var
+name: CURRENCY_JEWELS
+title: Antiqua currency purse (Jewels, 24-bit integer)
+lifetime: save
+confidence: verified
+tags: [inventory, money, economy]
+evidence: ["disasm: 24-bit purse held in $7E:0AC9..$7E:0ACB, saved in SRAM", "cheat: unlock(ITEM.MONEY) sets 24-bit value to $65B9AA (6,666,666)"]
+---
+Holds the current balance of Jewels, the currency used throughout the desert region and market stalls of Nobilia in Antiqua.
+

@@ -12,6 +12,9 @@
 //   soe://localization/knowledge/{ram,rom}/ every knowledge entry: index.md (the generated RAM / ROM map),
 //                                           <addr>.md (the entry), <addr>.json (its fields)
 
+import * as fs from 'fs';
+import * as path from 'path';
+import { sourceDir } from '../../../platform/source-dir';
 import { VANILLA_MAPS, getMap, MUSIC, SOUNDS, getMusic, getSound, TABLES, getTable, FUNCTIONS, getFunction, NPC_SCRIPTS, ABS_SCRIPTS, GLOBAL_SCRIPTS, getNpcScript, getAbsScript, getGlobalScript, stringText, resolveLocalizedName } from '../localizations';
 import { hexId } from './resource-uri';
 import { dir, json, text } from './nodes';
@@ -19,6 +22,8 @@ import type { Entry } from './nodes';
 import * as MD from './localization-markdown';
 import { entries as knowledgeEntries } from '../localizations/knowledge';
 import { hex } from '../../../platform';
+
+const HERE = sourceDir(__dirname);
 
 type Rom = Uint8Array | null | undefined;
 type ScriptEntry = NonNullable<ReturnType<typeof getNpcScript>>;
@@ -329,20 +334,40 @@ function knowledgeMapMarkdown(space: 'ram' | 'rom'): string {
 function knowledgeRoute(rest: string[]) {
     const [space, name, ...more] = rest;
     if (more.length) return null;
-    if (space === undefined) return dir([['ram', 'dir'], ['rom', 'dir']], () => '# Knowledge entries\n\n- [RAM](ram/index.md)\n- [ROM](rom/index.md)\n');
-    if (space !== 'ram' && space !== 'rom') return null;
-    const list = knowledgeEntries(space);
+    if (space === undefined) return dir([['ram', 'dir'], ['wram', 'dir'], ['rom', 'dir']], () => '# Knowledge entries\n\n- [RAM](ram/index.md)\n- [WRAM](wram/index.md)\n- [ROM](rom/index.md)\n');
+    if (space !== 'ram' && space !== 'wram' && space !== 'rom') return null;
+    const actualSpace = space === 'wram' ? 'ram' : space;
+    const list = knowledgeEntries(actualSpace);
     if (name === undefined) {
-        return dir([['index.md', 'file'], ...list.flatMap((e): Entry[] => [[hex6(e.addr).toLowerCase() + '.md', 'file'], [hex6(e.addr).toLowerCase() + '.json', 'file']])],
-            () => knowledgeMapMarkdown(space));
+        return dir([['index.md', 'file'], ...list.flatMap((e): Entry[] => {
+            const out: Entry[] = [
+                [hex6(e.addr).toLowerCase() + '.md', 'file'],
+                [hex6(e.addr).toLowerCase() + '.json', 'file'],
+            ];
+            if (e.name) out.push([e.name + '.md', 'file']);
+            return out;
+        })],
+            () => knowledgeMapMarkdown(actualSpace));
     }
-    if (name === 'index.md') return text(() => knowledgeMapMarkdown(space));
+    if (name === 'index.md') return text(() => knowledgeMapMarkdown(actualSpace));
+
+    if (space === 'ram' || space === 'wram') {
+        const wramPath = path.join(HERE, '..', 'localizations', 'knowledge', 'wram', name.endsWith('.md') ? name : name + '.md');
+        if (fs.existsSync(wramPath)) {
+            if (name.endsWith('.json')) {
+                const e = list.find(x => x.name === name.replace(/\.json$/i, ''));
+                if (e) return json(() => ({ ...e, body: undefined }));
+            }
+            return text(() => fs.readFileSync(wramPath, 'utf8'));
+        }
+    }
+
     const m = /^([0-9a-f]{1,6})\.(md|json)$/i.exec(name);
-    if (!m) return null;
-    const addr = parseInt(m[1], 16);
-    const e = list.find(x => x.addr === addr) || list.find(x => (x.addr & 0xFFFF) === addr);
+    const byName = list.find(x => x.name && x.name.toLowerCase() === name.replace(/\.(md|json)$/i, '').toLowerCase());
+    const addr = m ? parseInt(m[1], 16) : null;
+    const e = byName || (addr !== null ? (list.find(x => x.addr === addr) || list.find(x => (x.addr & 0xFFFF) === addr)) : null);
     if (!e) return null;
-    if (m[2].toLowerCase() === 'json') return json(() => ({ ...e, body: undefined }));
+    if (name.endsWith('.json')) return json(() => ({ ...e, body: undefined }));
     return text(() => `# $${hex6(e.addr)}: ${e.title}\n\n${e.body}\n`);
 }
 

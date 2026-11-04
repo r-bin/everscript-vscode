@@ -58,7 +58,7 @@ Real, tested, and reusable — this is not a green field:
 - **Prior notes to fold in, not duplicate** —
   [docs/scripts/room-simulation.md](../../scripts/room-simulation.md) (the enter-script
   problem and the two unknowns the encoder already settled) and
-  [docs/route-planner.md](../../route-planner.md) (an earlier sketch of 6).
+  [routes.md](routes.md) (which now holds the earlier route-planner sketch).
 
 ## Where the code will go
 

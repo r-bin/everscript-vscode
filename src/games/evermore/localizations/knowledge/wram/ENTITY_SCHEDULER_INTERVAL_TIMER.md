@@ -1,0 +1,16 @@
+---
+addr: 7E0E96
+end: 7E0E97
+kind: var
+name: ENTITY_SCHEDULER_INTERVAL_TIMER
+title: Entity scheduler PRNG countdown interval timer
+lifetime: room
+confidence: confirmed
+tags: [engine, entity, scheduler, timer]
+evidence: ["rom-asm: $8F:DC49 reloads $7E:0E96 from PRNG masked with $01F0 + $0100", "engine: paces periodic entity scheduler background checks"]
+see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/0e98.md]
+---
+16-bit countdown timer regulating background entity scheduler updates:
+- Decremented periodically by the entity update dispatcher at `$8F:DC34`.
+- When expired, reloaded by calling RNG `$80:859B`, masking `AND #$01F0`, and adding base offset `ADC #$0100` (256..752 frames) to introduce pseudorandom interval pacing.
+

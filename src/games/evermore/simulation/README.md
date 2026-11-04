@@ -89,7 +89,7 @@ addition splits them (merging into its own file; opcode families as `ops-*.ts`).
   it carries a `$2461` bonus staged on one path into another. The simulation gives the
   game's amounts; `loot.test.js` pins one.
 - **The whole inventory layout** falls out of simulating global `0x3e` once per item —
-  [knowledge/ram/7e22ff.md](../localizations/knowledge/ram/7e22ff.md).
+  [knowledge/wram/ING_QTY_WAX.md](../localizations/knowledge/wram/ING_QTY_WAX.md).
 - **Scripts a room change cuts off.** `CHANGE MAP` ends every thread, so a script that writes
   progress on two different ticks can be stopped in between: a reward kept with its
   "opened" flag never set, or the other way round.

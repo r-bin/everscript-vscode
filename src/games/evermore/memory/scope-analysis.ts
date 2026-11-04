@@ -5,6 +5,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { radarLifecycle, radarParseName, radarParseNotes } from '../radar-utils';
+import { getWramMapEntries } from '../localizations/wram-map';
 
 /** The slice of a TextDocument the scope analysis reads. */
 interface Doc { lineCount: number; lineAt(line: number): { text: string }; uri: { fsPath: string } }
@@ -16,8 +17,10 @@ type Ref = { line: number; text: string };
 type Refs = { reads: Ref[]; writes: Ref[] };
 
 function radarReadMemoryMap(filePath: string): Map<number, MapEntry> {
+    if (!filePath || !fs.existsSync(filePath)) {
+        return getWramMapEntries() as unknown as Map<number, MapEntry>;
+    }
     const map = new Map<number, MapEntry>();
-    if (!fs.existsSync(filePath)) return map;
     for (const line of fs.readFileSync(filePath, 'utf8').split(/\r?\n/)) {
         if (!line.startsWith('|')) continue;
         const cells = line.split('|').map(c => c.trim()).filter(Boolean);

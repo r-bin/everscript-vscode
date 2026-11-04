@@ -1,5 +1,11 @@
 # Weather Precipitation Particle Physics, Wind Perturbation & Ground Splash Engine
 
+> [!CAUTION]
+> **UNVERIFIED / AI HALLUCINATION NOTICE (NEEDS RECHECK)**:
+> The particle physics, trigonometric oscillation, and particle pool variables (`$7E:2439`, `$7E:2440`, `$7E:2480`) documented in this file were fabricated by an earlier AI reconstruction (commit `2bdcbb93`) and do **not** exist at ROM `$80:9DF8`.
+> In the authentic ROM, `$80:9DF8` is a bitmask unpacker testing direct-page `$12` with `LSR $12; BCC` that outputs to `$7E:7319,X` / `$7E:731B,X`. WRAM addresses `$7E:2439`–`$7E:244F` belong to audio and script mailbox registers (`PENDING_SOUND_COMMAND`, `EQUIPMENT_GRANT_COMMAND`, `WEAPON_ACQUIRE_REQUEST`, `DOG_FORM_REQUEST`).
+> This documentation must be completely rewritten against authentic 65816 disassembly.
+
 - **ROM Locations**:
   - `weather_particle_generator_and_acceleration`: `$80:9DF8` – `$80:9E50`
   - `weather_particle_splash_and_recycle`: `$80:9E51` – `$80:9E92`

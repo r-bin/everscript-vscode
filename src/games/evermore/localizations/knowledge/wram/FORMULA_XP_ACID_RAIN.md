@@ -1,0 +1,16 @@
+---
+addr: 7E2F52
+end: 7E2F97
+kind: table
+name: FORMULA_XP_ACID_RAIN
+title: Alchemy formula current experience points
+lifetime: save
+confidence: confirmed
+tags: [alchemy, progression]
+evidence: ["docs/disassembly/combat/alchemy-ingredients.md and reconstructed-c/91/91D800_alchemy_ingredients.c: FORMULA_XP_BASE at $2F52, 35 16-bit words indexed by formula index * 2"]
+see: [knowledge/wram/2ed6.md, knowledge/wram/2fde.md]
+---
+35 contiguous 16-bit word registers storing the current experience points (0..99 XP) of each alchemy formula.
+
+Indexed by `formula_index * 2`. Each spell cast awards XP according to the formula's current level via ROM scaling table `$C4:5B9C` (`[10, 5, 4, 3, 2, 2, 1, 1, 1, 1]` XP per cast). When XP reaches 100, the formula level increments and XP wraps modulo 100. At max level 9, XP caps at 99 (maximum displayed level `9:99`).
+

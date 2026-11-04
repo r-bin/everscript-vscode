@@ -1,4 +1,6 @@
-> Superseded in scope by [/simulation/routes.md](plans/simulation/routes.md),
+> Archived 2026-11-03. Live version: docs/plans/simulation/routes.md (section "From the earlier route-planner sketch"). Reason: superseded in scope by the simulation-based Routes tab; data model merged.
+
+> Superseded in scope by [/simulation/routes.md](../../plans/simulation/routes.md),
 > which builds routes on the simulation rather than on a standalone tab.
 > The data model below is still the one to use.
 

@@ -20,6 +20,7 @@ import { dir, file, json, text } from './nodes';
 import type { Entry } from './nodes';
 import { ramSymbols, ramSymbol, ramBlocks } from './ram-symbols';
 import type { RamSymbol } from './ram-symbols';
+import { getWramFieldDetails } from '../localizations/wram-map';
 import { tagModel } from './tag-model';
 import { pageUri } from './tag-markdown';
 
@@ -85,19 +86,29 @@ async function readValue(readMemory: ReadMemory, off: number) {
 function describeValue(off: number, sym: RamSymbol | null | undefined, b: ArrayLike<number>, size: number) {
     const word = b.length > 1 ? b[0] | (b[1] << 8) : null;
     const value = le(b, size);
+    const details = getWramFieldDetails(off);
     const out: Record<string, unknown> = {
         address: '$' + hexId(off, 4),
         bus: '$' + hexId(WRAM + off, 6),
         name: (sym && sym.name) || addrName(off),
-        type: sym ? sym.type : 'word',
+        type: sym ? sym.type : (details.entry?.type || 'word'),
         size,
         value,
         hex: '$' + hexId(value, size * 2),
         valueName: RAM_VALUES[String(off)]?.[String(word)] ?? null,
-        tags: sym ? sym.tags : [],
+        tags: sym ? sym.tags : (details.entry?.tags || []),
+        summary: (sym && sym.summary) || details.entry?.summary || '',
         byte: b[0],
         word,
     };
+    if (details.fieldName) {
+        out.field = details.fieldName;
+        out.fieldOffset = details.fieldOffset;
+        out.fieldType = details.fieldType;
+    }
+    if (details.enumMembers) {
+        out.enum = details.enumMembers;
+    }
     if (sym && sym.bits) out.bits = Object.entries(sym.bits).map(([bit, n]) => ({ bit: Number(bit), name: n, set: !!(b[0] & (1 << Number(bit))) }));
     return out;
 }

@@ -49,3 +49,7 @@ export const getRomComment = comments.getRomComment;
 export const getWramComment = comments.getWramComment;
 export const getAllRomComments = comments.getAllRomComments;
 
+export * from './wram-map';
+export * from './rom-map';
+
+

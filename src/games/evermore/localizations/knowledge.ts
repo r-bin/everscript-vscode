@@ -5,6 +5,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { sourceDir } from '../../../platform/source-dir';
+import { getAllWramEntries } from './wram-map';
 
 const HERE = sourceDir(__dirname);
 const DIR = path.join(HERE, 'knowledge');
@@ -72,16 +73,79 @@ const cache: Record<string, KnowledgeEntry[]> = {};
 /** Every entry of one space (`ram`, `rom`, or `opcodes`: one per script opcode, `addr` = the opcode), sorted by address. */
 function entries(space: string): KnowledgeEntry[] {
     if (!cache[space]) {
-        const dir = path.join(DIR, space);
-        cache[space] = fs.readdirSync(dir).filter(f => f.endsWith('.md'))
-            .map(f => parseEntry(path.join(dir, f))).filter((e): e is KnowledgeEntry => e !== null).sort((a, b) => a.addr - b.addr);
+        if (space === 'ram') {
+            const wram = getAllWramEntries();
+            const ramEntries: KnowledgeEntry[] = wram.map(e => {
+                const isRegion = e.tags.includes('compiler-region') || e.addr === 0x2200 || e.addr === 0x2834;
+                const tags = [...e.tags];
+                if (isRegion && !tags.includes('compiler-region')) tags.push('compiler-region');
+                const lifetime = e.lifecycle === 'temp' ? 'room' : e.lifecycle === 'session' ? 'save' : e.lifecycle;
+                const isBank7F = e.busAddr >= 0x7F0000;
+                return {
+                    addr: e.busAddr,
+                    end: e.busAddr + e.size - 1,
+                    size: e.size,
+                    kind: isRegion ? 'region' : 'ram',
+                    name: e.name,
+                    title: e.name,
+                    category: 'ram',
+                    confidence: 'confirmed',
+                    tags,
+                    evidence: ['cdl', 'disasm'],
+                    see: [],
+                    lifetime,
+                    purpose: e.summary,
+                    body: e.summary,
+                    file: isBank7F ? 'src/games/evermore/localizations/data/wram-map-7f.md' : 'src/games/evermore/localizations/data/wram-map.md',
+                    meta: {
+                        addr: '0x' + (isBank7F ? e.busAddr.toString(16).toUpperCase() : e.addr.toString(16).padStart(4, '0')),
+                        size: String(e.size),
+                        name: e.name,
+                        tags,
+                        lifetime,
+                    },
+                };
+            });
+
+            // Compiler regions: persistent save session ($7E:2200..$7E:27FF) and room temporary scratch ($7E:2834..$7E:28FB)
+            const compilerRegions: KnowledgeEntry[] = [
+                {
+                    addr: 0x7E2200, end: 0x7E27FF, size: 0x600, kind: 'region', name: 'REGION_SESSION',
+                    title: 'Compiler persistent session / save state memory region ($7E:2200..$7E:27FF)',
+                    category: 'ram', confidence: 'confirmed', tags: ['compiler-region', 'save'],
+                    evidence: ['compiler', 'disasm'], see: [], lifetime: 'save',
+                    purpose: 'Compiler persistent session / save state memory region ($7E:2200..$7E:27FF)',
+                    body: 'Compiler persistent session / save state memory region ($7E:2200..$7E:27FF)',
+                    file: 'src/games/evermore/localizations/data/wram-map.md',
+                    meta: { addr: '0x2200', end: '0x27FF', kind: 'region', tags: ['compiler-region'], lifetime: 'save' },
+                },
+                {
+                    addr: 0x7E2834, end: 0x7E28FB, size: 0xC8, kind: 'region', name: 'REGION_ROOM_SCRATCH',
+                    title: 'Compiler room-temporary scratch memory region ($7E:2834..$7E:28FB)',
+                    category: 'ram', confidence: 'confirmed', tags: ['compiler-region', 'room'],
+                    evidence: ['compiler', 'disasm'], see: [], lifetime: 'room',
+                    purpose: 'Compiler room-temporary scratch memory region ($7E:2834..$7E:28FB)',
+                    body: 'Compiler room-temporary scratch memory region ($7E:2834..$7E:28FB)',
+                    file: 'src/games/evermore/localizations/data/wram-map.md',
+                    meta: { addr: '0x2834', end: '0x28FB', kind: 'region', tags: ['compiler-region'], lifetime: 'room' },
+                },
+            ];
+
+            cache[space] = [...ramEntries, ...compilerRegions].sort((a, b) => a.addr - b.addr);
+        } else {
+            const dir = path.join(DIR, space);
+            cache[space] = fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => f.endsWith('.md'))
+                .map(f => parseEntry(path.join(dir, f))).filter((e): e is KnowledgeEntry => e !== null).sort((a, b) => a.addr - b.addr) : [];
+        }
     }
     return cache[space];
 }
 
 /** Files of one space that are not entries (no front matter, e.g. an empty file), repo-relative. */
 function brokenEntries(space: string): string[] {
+    if (space === 'ram') return [];
     const dir = path.join(DIR, space);
+    if (!fs.existsSync(dir)) return [];
     return fs.readdirSync(dir).filter(f => f.endsWith('.md') && !parseEntry(path.join(dir, f)))
         .map(f => path.relative(path.join(HERE, '..', '..', '..', '..'), path.join(dir, f)));
 }

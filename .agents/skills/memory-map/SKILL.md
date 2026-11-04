@@ -6,7 +6,7 @@ description: Use for any Secret of Evermore address — ROM file offset vs SNES 
 # Evermore memory map: ROM on the bus, and WRAM
 
 Names and meanings of individual addresses are **knowledge entries**
-(`src/games/evermore/localizations/knowledge/{ram,rom}/`, the `game-knowledge` skill; live view:
+(`src/games/evermore/localizations/knowledge/{wram,routines}/`, the `game-knowledge` skill; live view:
 `soe://ram/`, `soe://rom/`). This skill is the map they sit on. Never guess an address.
 
 ## ROM on the bus (HiROM, map mode `$31`)
@@ -32,14 +32,20 @@ Every 64 KB file bank *n* appears twice: whole at `$(C0+n):0000–FFFF`, upper h
   everscript linker splits allocations per bank (`compiler/linker.py`, `_split_by_bank`), text
   into lower halves, scripts into upper halves (`docs/table-hack.md` §1).
 - **The 4th MB is not free:** `$80:D113` reads `$B0:E653–E6D1` (file `0x30E653`), past the 3 MB
-  ROM (`knowledge/rom/80d113.md`). The answer depends on the hardware or emulator (cartridge:
+  ROM (`knowledge/routines/row_table_low_bytes_from_bank_b0.md`). The answer depends on the hardware or emulator (cartridge:
   `0x20E653`; bundled snes9x: `0x00E653`; MesenCE: `0x200653`). Never write there.
 - **ExHiROM (8 MB):** `tools/exhirom/convert.js`; layout and proof in `docs/exhirom/port.md`. New
   space is `0x400000–0x7FFFFF` (bus `$40–$7D`); `$00–$3F:8000+` is no longer the first 4 MB, so
   new code goes at `$80+`/`$C0+`.
 - PAL releases move things: US addresses do not apply to them (`docs/evermore-releases.md`).
 
-## WRAM (`$7E0000–$7FFFFF`, 128 KB)
+## WRAM (`$7E0000–$7FFFFF`, 128 KB zero-gap layout)
+
+The WRAM memory map is split into two 64 KB bank tables with 100% byte continuity (zero gaps, zero overlaps, 131,072 bytes total):
+- Bank `$7E` (65,536 B): `src/games/evermore/localizations/data/wram-map.md` (mirror: `docs/disassembly/engine-core/wram-map.md`)
+- Bank `$7F` (65,536 B): `src/games/evermore/localizations/data/wram-map-7f.md` (mirror: `docs/disassembly/engine-core/wram-map-7f.md`)
+- Composite structs: `src/games/evermore/localizations/data/types.json` defines structured types (`EntityRecord`, `BoyStats`, `DogStats`, etc.) referenced directly in the tables.
+- **Validation tool:** `node tools/check-maps.mts` (`npm run check:memory-maps`) verifies zero gaps, byte continuity, ascending order, types, tag taxonomy, and exact 1:1 file parity with `docs/`.
 
 | Range | Role |
 |---|---|

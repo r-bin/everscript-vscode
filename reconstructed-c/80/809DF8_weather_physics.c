@@ -1,5 +1,13 @@
 /*
- * Routine: $809DF8 (weather_physics)
+ * WARNING / HALLUCINATION NOTICE:
+ * This C reconstruction does NOT match the ROM assembly at $80:9DF8!
+ * In the authentic ROM, $80:9DF8 is a 2-bit token sparse unpacker testing DP $12
+ * (LSR $12; BCC) and writing unpacked parameters to $7E:7319,X / $7E:731B,X.
+ * The trigonometric wind oscillation, particle pool ($7E:2440), particle states ($7E:2480),
+ * and weather mode ($7E:2439) in this file are AI hallucinations from commit 2bdcbb93
+ * and MUST BE RECHECKED and rewritten to match actual ROM disassembly.
+ *
+ * Routine: $809DF8 (NEEDS RECHECK - UNVERIFIED / FABRICATED)
  * Bank: $80 (ROM Offset: $009DF8)
  * Source: docs/disassembly/engine-core/weather-physics.md
  */

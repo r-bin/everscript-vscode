@@ -1,0 +1,14 @@
+---
+addr: 7E2395
+size: 2
+kind: var
+name: LOOT_ROOM_OBJECT
+title: Loot mailbox room object index
+lifetime: room
+confidence: confirmed
+tags: [loot, mailbox, objects]
+evidence: ["code: src/games/evermore/script-model/loot.ts defines OBJECT = 0x2395 as room object mailbox slot", "names.json: historically labeled MAP REF?"]
+see: [knowledge/wram/2391.md, docs/disassembly/engine-core/wram-map.md]
+---
+16-bit word storage representing the target room object index (chest, gourd, pot, destructible) currently being opened or collected.
+Set by room scripts prior to calling the shared loot handling driver (`$92:A482` / `$92:A584`), allowing the engine to mark the specific room object as opened in the active object states buffer (`$7E:10CE + objIndex`).

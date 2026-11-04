@@ -113,10 +113,11 @@ function buildMemoryTabHtml(
             const lc    = radarLifecycle(addr, me ? me.type : '', me ? me.notes : '');
             const isUsed = !!usage;
             const isPool = !me && !usage && cellData[addr] && cellData[addr].isPool;
-            const isRest = !me && !isUsed && !isPool;
+            const isPlaceholder = !!(me && (me.name.startsWith('CDL_UNREFERENCED_') || me.name.startsWith('CDL_SCRATCH_')));
+            const isRest = (!me || isPlaceholder) && !isUsed && !isPool;
             if (!isRest) { allRest = false; rowLcs.add(lc); }
             if (isUsed) rowHasUsed = true;
-            if (me) rowHasDoc = true;
+            if (me && !isPlaceholder) rowHasDoc = true;
             let cls = 'cell lc-' + lc;
             if (isPool) cls += ' cp';
             if (isUsed) {
@@ -173,7 +174,8 @@ function buildMemoryTabHtml(
     allEntries.sort((a, b) => a.addr - b.addr);
 
     const detailRows = allEntries.map(({ addr, e, usage, untracked, inPool }) => {
-        const lc = e.lifecycle;
+        const isPlaceholder = !!(e.name && (e.name.startsWith('CDL_UNREFERENCED_') || e.name.startsWith('CDL_SCRATCH_')));
+        const lc = isPlaceholder ? 'rest' : e.lifecycle;
         const em = radarExtractEmoji(e.name + ' ' + e.notes);
         const addrLabel = e.addrStart === e.addrEnd
             ? radarH(e.addrStart)
@@ -186,12 +188,12 @@ function buildMemoryTabHtml(
             : '&ndash;';
         const badge = untracked
             ? (inPool ? '<span class="pool-badge">pool</span>' : '<span class="unk-badge">?</span>')
-            : '';
-        const rowCls = 'dr lc-' + lc + (usage ? ' du' : '') + (untracked ? ' untracked' : '');
+            : (isPlaceholder ? '<span class="unk-badge">cdl</span>' : '');
+        const rowCls = 'dr lc-' + lc + (usage ? ' du' : '') + (untracked ? ' untracked' : '') + (isPlaceholder ? ' placeholder-row untracked' : '');
         const notesHtml = untracked
             ? '<span class="scope-only">scope usage only</span>'
             : (e.notes ? radarEsc(e.notes).replace(/\n/g, '<br>') : '&ndash;');
-        const hdoc = untracked ? 0 : 1;
+        const hdoc = (untracked || isPlaceholder) ? 0 : 1;
         const enumEntries = !untracked ? (enumByAddr.get(e.addrStart) || []) : [];
         const enumHtml = enumEntries.length
             ? '<br>' + enumEntries.map(ev => '<span class="enum-tag">' + radarEsc(ev.cls + '.' + ev.name) + '</span>').join(' ')

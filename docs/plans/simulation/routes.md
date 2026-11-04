@@ -8,10 +8,9 @@
 > (`src/games/evermore/simulation/combat/`, the game's rules in [docs/entities/combat.md](../../entities/combat.md)): the time it takes and the hits it needs as distributions, from
 > the ROM's records, animations and hit table and the route's party. Checked in
 > the game for a Wimpy Flower killing the Boy (`tools/routes/fight-in-game.mts`);
-> other fights not yet. Drops are still the draft's numbers. An earlier sketch
-> exists as [docs/route-planner.md](../../route-planner.md), from before the
-> simulation was on the table; this supersedes its scope but keeps its data
-> model.
+> other fights not yet. Drops are still the draft's numbers. An earlier standalone
+> route-planner sketch (from before the simulation was on the table) is folded
+> into the last section below.
 
 Opening example: [Any% route draft](any-percent-opening.md). It records the
 Southern Jungle start through the first Fire Eyes' village hut and lists the
@@ -62,8 +61,8 @@ simple policy ("retry on bad rolls") and say which is shown.
 
 **XP feeds back.** A fight's reward changes the levels the next fight is
 computed at, so the replay must be sequential — you cannot precompute the
-per-fight numbers and combine them afterwards. `route-planner.md` already
-has the level-up rule: XP awarded after the kill, at most one level per
+per-fight numbers and combine them afterwards. The level-up rule
+(see "From the earlier route-planner sketch"): XP awarded after the kill, at most one level per
 event, excess carries forward.
 
 ## What this needs that does not exist
@@ -84,3 +83,26 @@ depends on.
 - **The odds themselves** cannot be validated against anything but repeated
   play, so present them as what they are: the model's numbers, with the
   assumptions above shown next to them.
+
+## From the earlier route-planner sketch
+
+Kept from `docs/route-planner.md` (archived 2026-11-03, see [archive/INDEX.md](../../archive/INDEX.md)); its
+mock-UI and first-pass lists were dropped because the Routes tab now exists.
+
+- **Scope of the first version:** the Boy only; the dog is out of scope.
+- **A step** is one enemy encounter plus one kill method: *physical*, *alchemy* or *alchemy 8-cast*.
+  Examples from the sketch: Thraxx's Heart with 8-casts; Skelesnail with 8-casts to level alchemy;
+  Magmar with alchemy for act 1 any%; Sterling with physical damage and atlas-glitch checks.
+- **Progression tracked after every kill:** character XP and level, alchemy XP and level.
+  **Level-up rule:** XP is awarded after the kill, at most one character level per XP event, excess XP
+  carries forward.
+- **Per-step data:** enemy name / id, method, quantity, expected hits, expected misses, expected atlas
+  overflows, XP reward, alchemy XP reward, notes.
+- **Output per enemy:** hits to kill, misses, atlas overflows, resulting XP / level / alchemy XP / level.
+  **Per route:** total hits, misses, atlas overflow events, final character level, final alchemy levels.
+- **Missing when the sketch was written (2026-10; re-check, unverified now):** spell damage graphs and
+  alchemy 8-cast damage tables; enemy XP tables and character / alchemy XP curves wired into the UI;
+  enemy HP with scripted invulnerability windows; multi-target spell routing.
+- **Open questions:** fixed enemy level overrides per step? Is the enemy-scale patch state part of the
+  route configuration? Physical steps by expected value, percentile bands or full RNG simulation by
+  default? Later support for scripted notes such as "walk 3 frames" or "menu once"?
