@@ -7,6 +7,7 @@ category: 🧠
 name: walk_indirect_sequence_with_dispatch
 title: Indirect sequence iteration and dispatch
 confidence: confirmed
+tags: [system]
 evidence: ["disasm: clean vanilla VFS shows an entry immediately after RTS at $8E:A3EA, a loop through $8E:A441, and RTS at $8E:A443", "disasm: loop performs indexed reads based on direct-page pointer $95, conditionally calls an indexed indirect subroutine through $8E:A444,X, and repeats or returns according to carry"]
 see: [docs/disassembly/engine-core/record-iteration-dispatch.md]
 ---

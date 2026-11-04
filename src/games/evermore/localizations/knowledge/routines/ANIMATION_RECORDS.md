@@ -7,6 +7,7 @@ category: 🎞️
 name: ANIMATION_RECORDS
 title: Animation records
 confidence: likely
+tags: [script, table]
 evidence: ["legacy: migrated from tables.js; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
 ---
 4 bytes [script:16][bank:8][flags:8]; heads of 1, 4 or 8 facings.

@@ -7,6 +7,7 @@ category: 🧠
 name: script_opcode_traps_unused_opcodes_land_on_stp_b
 title: Script opcode traps: invalid opcodes land on STP bytes $8C:E8B5-$8C:E8BC
 confidence: confirmed
+tags: [script]
 evidence: ["disasm: as recorded in the legacy list (functions.ts); details in the body", "disasm: table entries of 06 24 25 28 41 40 3E point at $E8B5-$E8BB in that order, the other 20 at $E8BC (v0.320.0)"]
 see: [docs/disassembly/script-vm/opcode-b8-invalid-stop.md]
 ---

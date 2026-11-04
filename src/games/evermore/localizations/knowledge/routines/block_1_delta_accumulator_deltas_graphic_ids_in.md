@@ -7,6 +7,7 @@ category: 🧠
 name: block_1_delta_accumulator_deltas_graphic_ids_in
 title: Block 1 delta accumulator (deltas → graphic ids in `$7F:C300`)
 confidence: likely
+tags: [system]
 evidence: ["legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
 ---
 Block 1 delta accumulator (deltas → graphic ids in `$7F:C300`).

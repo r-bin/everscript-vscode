@@ -7,6 +7,7 @@ category: 🧠
 name: vram_dma_upload_tile_block_with_vmain
 title: VMAIN-Configured VRAM DMA Block Uploader
 confidence: confirmed
+tags: [graphics, ppu, script, system]
 evidence: ["disasm: $80:86B2 writes VMAIN mode from register Y to $2115, increments $0F3A, configures DMA Channel 1 ($4310=0x1801, $4312, $4314, $4315), triggers transfer via $420B, and decrements $0F3A"]
 see: [routines/vram_dma_upload_tile_block.md, engine-core/hardware-utilities.md]
 ---

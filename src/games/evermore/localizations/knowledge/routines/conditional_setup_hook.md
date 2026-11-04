@@ -7,6 +7,7 @@ category: 🧠
 name: conditional_setup_hook
 title: Conditional setup hook
 confidence: confirmed
+tags: [system]
 evidence: ["disasm: reads $0106 and $05A9, applies three early-return conditions, then calls $8C:C543, $8E:A0B3, and $8C:C55D before RTL at $8E:A0B2", "disasm: direct JSL callers at $8E:E520 and $8E:E53F"]
 see: [docs/disassembly/ui/ring-menu-subitems.md]
 ---

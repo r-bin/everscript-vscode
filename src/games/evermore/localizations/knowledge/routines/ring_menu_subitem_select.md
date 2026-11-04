@@ -7,6 +7,7 @@ category: 🧠
 name: ring_menu_subitem_select
 title: Ring Menu Sub-Item Ownership & Usability Check
 confidence: confirmed
+tags: [weapon, item]
 evidence: ["disasm: $8E:8F50 shifts cursor index in $12, tests inventory ownership in $231D,x, sets rejection bit 0x0020 in $05A9 on failure, and falls through to equip handler on success"]
 see: [routines/weapon_equip_and_experience_update.md, routines/ring_menu_select_and_cost_check.md, ui/weapon-select.md]
 ---

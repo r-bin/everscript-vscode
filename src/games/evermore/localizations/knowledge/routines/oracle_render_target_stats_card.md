@@ -7,6 +7,7 @@ category: 🧠
 name: oracle_render_target_stats_card
 title: Render life inspection combat stats card into dialogue window ($8C:8A25)
 confidence: confirmed
+tags: [dialogue, combat, entity]
 evidence: ["disasm: $8C:8A25 checks $05AD bit 0 (multi-target) branching to 'I can only talk about one life at a time!\0' at $8C:8BA3; single-target reads entity from $0B71, streams name to $0379, then iterates HP ($7E:002A,X) and record stats: Attack (+$19), Defense (+$1B), Hit % (+$21), Evade % (+$1F) converted via $80:B21F into $7E:2FF4 with newlines via $8C:A3AF", "c: docs/disassembly/ui/entity-name-text.md"]
 see: [routines/character_records.md, routines/dialogue_stream_target_actor_name.md]
 ---

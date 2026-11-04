@@ -7,6 +7,7 @@ category: 🧠
 name: cuttable_grass_drain_pending_swaps
 title: "Cuttable grass: drain pending swap animation queue"
 confidence: confirmed
+tags: [map, table]
 evidence:
   - "docs/disassembly/maps/cuttable-grass.md"
   - "docs/map-format/cuttable_grass_mechanics.md"

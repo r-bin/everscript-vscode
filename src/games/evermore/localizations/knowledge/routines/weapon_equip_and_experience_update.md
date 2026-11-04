@@ -7,6 +7,7 @@ category: 🧠
 name: weapon_equip_and_experience_update
 title: Weapon Equip & Experience Transfer Handler
 confidence: confirmed
+tags: [weapon]
 evidence: ["disasm: $8E:9000 compares target weapon against $0AC4/$0ABE, writes equipped weapon to $231C,x, updates skill experience and level in $0AC6,x/$0AC8,x, and fires equip SFX $0043 via $8C:82DC"]
 see: [routines/ring_menu_subitem_select.md, routines/play_sound_effect_direct.md, ui/weapon-select.md]
 ---

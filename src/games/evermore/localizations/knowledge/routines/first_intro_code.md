@@ -7,6 +7,7 @@ category: 📜
 name: first_intro_code
 title: First intro code
 confidence: likely
+tags: [script]
 evidence: ["legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
 ---
 `ADDRESS.INTRO_FIRST_CODE_EXECUTED`.

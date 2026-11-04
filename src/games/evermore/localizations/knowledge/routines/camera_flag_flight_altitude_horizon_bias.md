@@ -7,6 +7,7 @@ category: 🧠
 name: camera_flag_flight_altitude_horizon_bias
 title: "Camera flag: Mode 7 flight altitude horizon bias test"
 confidence: confirmed
+tags: [map]
 evidence:
   - "docs/disassembly/engine-core/camera-viewport-scroll.md"
 ---

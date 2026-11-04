@@ -7,6 +7,7 @@ category: 🧠
 name: map_graphic_dual_stream_decompressor
 title: Map graphic dual-stream decompressor
 confidence: likely
+tags: [map]
 evidence: ["legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
 ---
 Map graphic dual-stream decompressor.

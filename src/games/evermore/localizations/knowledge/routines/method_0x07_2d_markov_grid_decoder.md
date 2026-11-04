@@ -7,6 +7,7 @@ category: 🧠
 name: method_0x07_2d_markov_grid_decoder
 title: Method `0x07`: 2D Markov grid decoder
 confidence: likely
+tags: [system]
 evidence: ["legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
 ---
 Method `0x07`: 2D Markov grid decoder.

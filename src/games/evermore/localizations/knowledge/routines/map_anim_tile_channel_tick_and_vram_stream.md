@@ -7,6 +7,7 @@ category: 🧠
 name: map_anim_tile_channel_tick_and_vram_stream
 title: Map Background Tile Animation Engine & Amortized VRAM Streamer
 confidence: confirmed
+tags: [graphics, ppu, map]
 evidence: ["disasm: $90:A1B4 decrements delay timers across 50 channels ($7E:5018,X), advances frame indices ($7E:4FE6,X), and streams 128-byte 4bpp macro-tiles from Bank $EE into VRAM via DMA Channel 1 ($80:8650), throttled to 10 updates per frame"]
 see: [routines/map_anim_tile_channel_search_or_activate.md, routines/vram_dma_upload_tile_block.md, maps/tile-animation.md]
 ---

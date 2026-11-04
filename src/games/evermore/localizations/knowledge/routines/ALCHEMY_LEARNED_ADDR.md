@@ -7,6 +7,7 @@ category: ⚗️
 name: ALCHEMY_LEARNED_ADDR
 title: Alchemy formula learned WRAM address table ($C4:5C3B)
 confidence: confirmed
+tags: [alchemy, map, system, table]
 evidence: ["disasm: formula availability checks index $C4:5C3B,x to resolve destination persistence byte in WRAM $7E:2258..$7E:225C", "rom: 35 16-bit pointers mapping formulas 0..34 to $2258..$225C"]
 see: [routines/ALCHEMY_LEARNED_MASK.md, knowledge/wram/ALCHEMY_KNOWN_FLAGS.md, docs/disassembly/engine-core/rom-tables.md]
 ---

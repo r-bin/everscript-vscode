@@ -7,6 +7,7 @@ category: 🧠
 name: irq_handler
 title: IRQ handler
 confidence: confirmed
+tags: [system]
 evidence: ["disasm: $80:84EA is JML $80:84EE; $80:84EE saves DB/A/X/Y, reads $4211, dispatches through the 24-bit WRAM vector at $7E:012B, restores registers, and RTI (docs/disassembly/engine-core/irq-dispatch.md)"]
 see: [docs/disassembly/engine-core/irq-dispatch.md, docs/disassembly/engine-core/nmi-input-setup.md]
 ---

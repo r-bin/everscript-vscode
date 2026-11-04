@@ -7,6 +7,7 @@ category: 🧠
 name: per_frame_field_tick
 title: Per-frame field tick
 confidence: likely
+tags: [entity, map]
 evidence: ["disasm: as recorded in the legacy list (functions.ts); details in the body"]
 ---
 Bumps the 32-bit frame counter $0B19, runs the per-frame subsystems, then map effects ($90:9839) and the entity draw pass ($8F:C61E); 7 callers (static: REA/Ghidra spike v0.201.7, likely)

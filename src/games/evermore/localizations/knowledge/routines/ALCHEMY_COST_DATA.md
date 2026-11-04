@@ -7,6 +7,7 @@ category: ⚗️
 name: ALCHEMY_COST_DATA
 title: ALCHEMY_COST_DATA
 confidence: confirmed
+tags: [alchemy, table]
 evidence: ["legacy: migrated from tables.js; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)", "disasm: checked by alchemy_deduct_ingredients_and_award_xp $91:D800; clean C in docs/disassembly/combat/alchemy-ingredients.md"]
 see: [routines/alchemy_deduct_ingredients_and_award_xp.md, knowledge/wram/ING_QTY_WAX.md]
 ---

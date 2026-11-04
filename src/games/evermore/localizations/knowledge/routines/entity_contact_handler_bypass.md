@@ -7,6 +7,7 @@ category: 🧠
 name: entity_contact_handler_bypass
 title: Entity Contact Damage Handler Bypass Check
 confidence: confirmed
+tags: [combat, entity]
 evidence: ["disasm: $8F:B564 inspects entity record flag bit 1 (NO_CONTACT, 0x0002) to bypass contact damage and collision triggers for non-hostile entities"]
 see: [routines/test_entity_pair_overlap.md, routines/character_records.md, combat/hitbox-intersections.md]
 ---

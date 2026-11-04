@@ -7,6 +7,7 @@ category: 🧠
 name: multipart_child_get_or_create_secondary
 title: "Multipart entity: get or allocate secondary child attachment"
 confidence: confirmed
+tags: [combat, entity, graphics]
 evidence:
   - "docs/disassembly/combat/boss-multipart.md"
 ---

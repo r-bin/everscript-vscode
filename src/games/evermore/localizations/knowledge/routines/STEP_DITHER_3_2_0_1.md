@@ -7,6 +7,7 @@ category: 📋
 name: STEP_DITHER_3_2_0_1
 title: Step dither 3,2,0,1
 confidence: likely
+tags: [table]
 evidence: ["legacy: migrated from tables.js; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
 ---
 Step dither 3,2,0,1.

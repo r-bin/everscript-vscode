@@ -7,6 +7,7 @@ category: 🧠
 name: dialogue_format_and_append_line
 title: Variable token expander and word-wrap line measurer ($8C:9E03)
 confidence: confirmed
+tags: [dialogue]
 evidence: ["disasm: entry $8C:9E03 prepares window descriptor via $8C:B5A4; scans string at [$22]; handles control tokens (0x81 Boy name, 0x82 Dog name, 0x83 'player 3', 0x84 'player 4' through jump table $8C:9EFA); measures printable glyph proportional widths via font table at [$92]; word-wraps at window boundary $0E,Y; commits to VRAM tile blitter", "c: docs/disassembly/ui/string-digraphs.md"]
 see: [routines/dialogue_stream_target_actor_name.md, routines/oracle_render_target_stats_card.md]
 ---

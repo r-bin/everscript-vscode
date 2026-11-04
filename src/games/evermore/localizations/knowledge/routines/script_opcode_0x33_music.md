@@ -7,6 +7,7 @@ category: 🧠
 name: script_opcode_0x33_music
 title: Script opcode `0x33` (`music`)
 confidence: likely
+tags: [audio, script]
 evidence: ["legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
 ---
 Script opcode `0x33` (`music`).

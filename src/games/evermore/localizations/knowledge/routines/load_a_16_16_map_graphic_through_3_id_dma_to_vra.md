@@ -7,6 +7,7 @@ category: 🧠
 name: load_a_16_16_map_graphic_through_3_id_dma_to_vra
 title: Load a 16×16 map graphic through `$EE:0000 + 3·id`, DMA to VRAM
 confidence: likely
+tags: [graphics, ppu, map, system]
 evidence: ["legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
 ---
 Load a 16×16 map graphic through `$EE:0000 + 3·id`, DMA to VRAM.

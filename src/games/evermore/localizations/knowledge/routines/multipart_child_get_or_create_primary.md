@@ -7,6 +7,7 @@ category: 🧠
 name: multipart_child_get_or_create_primary
 title: "Multipart entity: get or allocate primary child attachment"
 confidence: confirmed
+tags: [weapon, combat, entity]
 evidence:
   - "docs/disassembly/combat/boss-multipart.md"
 ---

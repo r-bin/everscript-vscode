@@ -7,6 +7,7 @@ category: 🧠
 name: dialogue_glyph_commit_vram_pos
 title: "Dialogue window: calculate glyph destination VRAM tile address"
 confidence: confirmed
+tags: [dialogue, entity, graphics, ppu]
 evidence:
   - "docs/disassembly/ui/dialogue-typewriter.md"
 ---

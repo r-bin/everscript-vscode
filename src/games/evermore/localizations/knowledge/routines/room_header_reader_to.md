@@ -7,6 +7,7 @@ category: 🧠
 name: room_header_reader_to
 title: Room header reader (to `$90:9050`)
 confidence: confirmed
+tags: [graphics, map, system]
 evidence: ["legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)", "disasm: $90:8F80..$90:8FD1 stores origin x/y to $0F86/$0F88, width to $08EE (x2 $0F46, x16 $23ED), height to $08F0 (x16 $23EF), and 0 (TDC, D = 0) to $23E9 and $23EB (v0.369.0)"]
 see: [knowledge/wram/CAMERA_ROOM_BOUND_LEFT.md]
 ---

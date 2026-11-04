@@ -7,6 +7,7 @@ category: 🏹
 name: PROJECTILE_MOVEMENT_ROUTINES
 title: Projectile movement routines ($90:D967)
 confidence: confirmed
+tags: [combat, entity, graphics, table]
 evidence: ["disasm: projectile physics loop $90:DE5E calls JSR ($D967,x) using routine offset from projectile archetype record +$08", "rom: 31 16-bit jump vectors in Bank $90 ($D985, $DD58, $DD61, $DEF7, $DD2D, $DCE7, $DD26, ...), preceding projectile records at $90:D9A6"]
 see: [routines/tbl_projectile_records.md, routines/projectile_pool_update.md, docs/disassembly/engine-core/rom-enums.md]
 ---

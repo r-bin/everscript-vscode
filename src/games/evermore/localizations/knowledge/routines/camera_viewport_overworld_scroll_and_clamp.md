@@ -7,6 +7,7 @@ category: 🧠
 name: camera_viewport_overworld_scroll_and_clamp
 title: "Camera viewport: overworld scroll, dual-player midpoint tracking and clamp"
 confidence: confirmed
+tags: [system]
 evidence:
   - "docs/disassembly/engine-core/camera-viewport-scroll.md"
 ---

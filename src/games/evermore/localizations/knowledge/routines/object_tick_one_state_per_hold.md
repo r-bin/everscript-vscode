@@ -7,6 +7,7 @@ category: 🧠
 name: object_tick_one_state_per_hold
 title: Object tick: one state per hold
 confidence: likely
+tags: [system]
 evidence: ["legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
 ---
 Object tick: one state per hold.

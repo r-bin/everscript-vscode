@@ -7,6 +7,7 @@ category: 🧠
 name: anim_select_action_track
 title: Animation Action Track Selector (Stand, Walk, Run, Attack)
 confidence: confirmed
+tags: [entity]
 evidence: ["disasm: $90:8240 reads character record animation offsets +0x32..+0x3E to select stand, walk, run, or attack tiers based on entity velocity and stamina charge gauge"]
 see: [routines/anim_select_attack_tier3.md, routines/character_records.md, combat/weapon-charge.md, animation/animation-vm.md]
 ---

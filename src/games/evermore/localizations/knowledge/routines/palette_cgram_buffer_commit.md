@@ -7,6 +7,7 @@ category: 🧠
 name: palette_cgram_buffer_commit
 title: 16-Color CGRAM Chunk Commit Pipeline
 confidence: confirmed
+tags: [graphics, ppu]
 evidence: ["disasm: $80:A16E unrolls 8 word writes ($7E:7341..$7E:734F) copying a complete 16-color palette block, then advances source pointer by 16 bytes"]
 see: [routines/palette_transfer_stream_block.md, routines/nmi_handler.md, engine-core/screen-effects.md]
 ---

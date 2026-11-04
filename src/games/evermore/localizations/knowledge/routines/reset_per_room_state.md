@@ -7,6 +7,7 @@ category: 🧠
 name: reset_per_room_state
 title: Reset per-room state
 confidence: confirmed
+tags: [entity, map, script, system]
 evidence: ["disasm: called at $8E:E4F7 by enter_room; clears collision grid via $91:9795, step-on triggers via $8F:B229, zeroes screen shake $C3-$C9, sets camera margins $7E:240F-$7E:2415, sets camera target $7E:242B/$7E:242D = $FFFF, sets VRAM safety lock $7E:0F3A, and unpacks room dimensions from $9F:FDE7 + (room_id * 4) (docs/disassembly/engine-core/room-enter.md)"]
 see: [docs/disassembly/engine-core/room-enter.md, src/games/evermore/localizations/knowledge/routines/enter_room.md]
 ---

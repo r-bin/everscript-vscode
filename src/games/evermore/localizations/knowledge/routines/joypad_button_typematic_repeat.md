@@ -7,6 +7,7 @@ category: 🧠
 name: joypad_button_typematic_repeat
 title: Joypad Button Typematic Auto-Repeat Engine
 confidence: confirmed
+tags: [system]
 evidence: ["disasm: $80:8838 compares button mask A with held buttons $0345, decrements repeat timer $0343, reloads sustained rate $0349 upon expiry, or resets initial delay $0347 upon new press"]
 see: [routines/script_op_97_palette_transfer.md, engine-core/hardware-utilities.md]
 ---

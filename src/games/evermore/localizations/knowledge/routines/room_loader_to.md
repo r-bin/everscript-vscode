@@ -7,6 +7,7 @@ category: 🧠
 name: room_loader_to
 title: Room loader (to `$90:9180`)
 confidence: likely
+tags: [map]
 evidence: ["legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
 ---
 Room loader (to `$90:9180`).

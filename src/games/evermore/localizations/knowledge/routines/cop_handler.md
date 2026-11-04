@@ -7,6 +7,7 @@ category: 🧠
 name: cop_handler
 title: COP handler
 confidence: confirmed
+tags: [system]
 evidence: ["disasm: $80:885E contains a single STP instruction; modeled as a non-returning CPU stop in docs/disassembly/engine-core/interrupt-traps.md"]
 see: [docs/disassembly/engine-core/interrupt-traps.md]
 ---

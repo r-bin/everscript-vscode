@@ -7,6 +7,7 @@ category: 🧠
 name: shop_load_catalog
 title: Shop Merchandise Catalog Loader
 confidence: confirmed
+tags: [item]
 evidence: ["disasm: $8E:9BC1 parses item stream at $0B95, tests terminator $80, reads price and descriptors from $C4:5ABE,x, stages active catalog into $0BA5,x, and tallies count in $0BA1"]
 see: [routines/shop_populate_sell_list.md, routines/shop_mode_catalog_loader.md, ui/shop-system.md]
 ---

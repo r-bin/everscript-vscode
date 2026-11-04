@@ -7,6 +7,7 @@ category: 📋
 name: STRING_KEY_TABLE
 title: String key table
 confidence: confirmed
+tags: [dialogue, table]
 evidence: ["legacy: migrated from tables.js; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)", "disasm: 3,002 3-byte keys unpacked by decode_dialogue_string_key $8C:CCF5; clean C in docs/disassembly/ui/dialogue-window.md"]
 see: [routines/decode_dialogue_string_key.md, routines/decode_dialogue_string_key_secondary.md]
 ---

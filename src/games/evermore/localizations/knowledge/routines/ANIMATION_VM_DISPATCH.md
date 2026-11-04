@@ -7,6 +7,7 @@ category: 📋
 name: ANIMATION_VM_DISPATCH
 title: Animation VM dispatch
 confidence: likely
+tags: [script, table]
 evidence: ["legacy: migrated from tables.js; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
 ---
 103 × 2-byte handlers, (cmd & $7F)·2.

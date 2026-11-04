@@ -7,6 +7,7 @@ category: 🧠
 name: dialogue_glyph_decode_and_width_lookup
 title: "Dialogue window: decode character code and lookup proportional width"
 confidence: confirmed
+tags: [dialogue, entity]
 evidence:
   - "docs/disassembly/ui/dialogue-typewriter.md"
 ---

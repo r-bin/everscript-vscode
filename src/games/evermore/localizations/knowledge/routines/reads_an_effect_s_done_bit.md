@@ -7,6 +7,7 @@ category: 🧠
 name: reads_an_effect_s_done_bit
 title: Reads an effect's "done" bit
 confidence: likely
+tags: [alchemy, entity, script]
 evidence: ["legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
 see: [docs/alchemy-animation-coordination.md, src/games/evermore/localizations/knowledge/routines/ALCHEMY_BLOCK_TABLE.md, docs/entities/animation_script.md]
 ---

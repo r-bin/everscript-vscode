@@ -7,6 +7,7 @@ category: 🧠
 name: anim_select_attack_tier3
 title: Animation Attack Tier 3 Selector
 confidence: confirmed
+tags: [weapon, entity]
 evidence: ["disasm: $90:8317 selects high-charge attack animation track (character record offset +0x3E) when stamina charge gauge reaches Tier 3 ($C00..$FFF)"]
 see: [routines/anim_select_action_track.md, combat/weapon-charge.md]
 ---

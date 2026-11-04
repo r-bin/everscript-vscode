@@ -7,6 +7,7 @@ category: 🧠
 name: format_16bit_integer_to_decimal_digits
 title: Hardware 16-Bit Integer to Decimal Digit Formatter
 confidence: confirmed
+tags: [system]
 evidence: ["disasm: $80:870C determines magnitude of A (<10, <100, <1000, <10000), loops dividing by 10 using hardware registers $4204/$4206, and stores modulo remainder digits from $4216 into DP $02,X terminated with $FF"]
 see: [routines/format_32bit_integer_to_decimal_ascii.md, engine-core/hardware-utilities.md]
 ---

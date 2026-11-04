@@ -7,6 +7,7 @@ category: 🧠
 name: main_loop_entry
 title: Main loop entry (the reset handler jumps here)
 confidence: confirmed
+tags: [audio, map, system]
 evidence: ["disasm: entry point reached via JML $80:8B66 at reset handler completion $80:8236; orchestrates battery SRAM check, APU handshake, starting room load, and frame loop (docs/disassembly/engine-core/main-loop.md)"]
 see: [docs/disassembly/engine-core/main-loop.md, src/games/evermore/localizations/knowledge/routines/reset_handler.md, src/games/evermore/localizations/knowledge/routines/enter_room.md]
 ---

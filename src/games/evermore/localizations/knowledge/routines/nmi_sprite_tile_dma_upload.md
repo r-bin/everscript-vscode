@@ -7,6 +7,7 @@ category: 🧠
 name: nmi_sprite_tile_dma_upload
 title: NMI 16x16 Sprite Tile Upload to VRAM
 confidence: confirmed
+tags: [entity, graphics, ppu, system]
 evidence: ["disasm: $80:82A1 during VBLANK NMI streams 128-byte 16x16 CHR sprite blocks into VRAM: bytes 0-63 at the top row, 64-127 one OBJ row below"]
 see: [routines/nmi_handler.md, routines/direct_sprite_draw_oam.md]
 ---

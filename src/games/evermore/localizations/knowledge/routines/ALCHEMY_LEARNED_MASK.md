@@ -7,6 +7,7 @@ category: ⚗️
 name: ALCHEMY_LEARNED_MASK
 title: Alchemy formula learned bitmask table ($C4:5C81)
 confidence: confirmed
+tags: [alchemy, table]
 evidence: ["disasm: formula learning and availability checks read $C4:5C81,x to test or set the owned formula bit in WRAM $7E:2258..$7E:225C", "rom: 35 16-bit bitmasks ($0001, $0002, $0004, $0008, $0010, $0020, $0040, $0080) cycling through 5 persistence bytes"]
 see: [routines/ALCHEMY_LEARNED_ADDR.md, knowledge/wram/ALCHEMY_KNOWN_FLAGS.md, docs/disassembly/engine-core/rom-tables.md]
 ---

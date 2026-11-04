@@ -7,6 +7,7 @@ category: 🧠
 name: dialogue_typewriter_step_and_poll_joypad
 title: "Dialogue window: typewriter character step and joypad confirmation poller"
 confidence: confirmed
+tags: [dialogue, entity, system]
 evidence:
   - "docs/disassembly/ui/dialogue-typewriter.md"
 ---

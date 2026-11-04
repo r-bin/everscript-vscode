@@ -7,6 +7,7 @@ category: 🧠
 name: enemy_ai_filter_untargeted
 title: Enemy AI Aggro Filter for Untargeted Entities
 confidence: confirmed
+tags: [combat, entity, graphics]
 evidence: ["disasm: $8F:D8D2 tests entity flag bit 5 (UNTARGETED, 0x0020) during proximity scans to prevent monsters from acquiring non-combat entities as targets", "cdl: no call or jump reaches $8F:D8D2; it is the fall-through tail of ai_pick_target ($8F:D879, after BPL $8FD8F9 at $8F:D8D0), not a routine of its own (v0.351.0)"]
 see: [routines/enemy_ai_check_aggro.md, routines/select_switch_start_pending_script.md, entities/enemy-ai.md]
 ---

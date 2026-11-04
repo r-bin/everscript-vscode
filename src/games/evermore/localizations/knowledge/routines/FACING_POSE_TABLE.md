@@ -7,6 +7,7 @@ category: 📋
 name: FACING_POSE_TABLE
 title: Facing → pose table
 confidence: likely
+tags: [table]
 evidence: ["legacy: migrated from tables.js; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
 ---
 4-pose records.

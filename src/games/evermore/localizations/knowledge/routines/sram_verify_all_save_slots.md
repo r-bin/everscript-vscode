@@ -7,6 +7,7 @@ category: 🧠
 name: sram_verify_all_save_slots
 title: Verify All Save Slots in Battery SRAM
 confidence: confirmed
+tags: [system]
 evidence: ["disasm: $8D:C905 iterates 4 save slots in bank $30 ($30:6002..$30:6995, stride 0x0331), computes 16-bit rotational checksum over 815 bytes via $8D:B478, compares header checksum, and populates $0B39"]
 see: [routines/sram_compute_checksum.md, routines/main_loop_entry.md, engine-core/save-system.md]
 ---

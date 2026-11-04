@@ -7,6 +7,7 @@ category: 👾
 name: CHARACTER_TABLE
 title: Character table
 confidence: likely
+tags: [combat, entity, graphics, table]
 evidence: ["legacy: migrated from tables.js; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
 ---
 141 × 74-byte records: name, AI, flags, palette, radius, stats, animations.

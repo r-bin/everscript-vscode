@@ -7,6 +7,7 @@ category: 🧠
 name: cuttable_grass_apply_metatile_mutation
 title: "Cuttable grass: apply metatile mutation and stage VRAM tile updates"
 confidence: confirmed
+tags: [graphics, ppu, map, system, table]
 evidence:
   - "docs/disassembly/maps/cuttable-grass.md"
   - "docs/map-format/cuttable_grass_mechanics.md"

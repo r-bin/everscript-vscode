@@ -7,6 +7,7 @@ category: 🧠
 name: camera_deadzone_window_filter
 title: "Camera deadzone: 4-way asymmetric bounding box filter"
 confidence: confirmed
+tags: [entity]
 evidence: ["docs/disassembly/engine-core/camera-viewport-scroll.md", "c: G1 passed (tools/c-to-rom/g1.mts, v0.351.0): the bound C equals the ROM on 38 entry states sampled from the 2:20 no-input reference and 608 fuzzed ones; snes9x agrees with the interpreter on 38; a mutation is caught"]
 ---
 

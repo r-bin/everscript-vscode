@@ -7,6 +7,7 @@ category: 🧠
 name: spc700_ipl_bootloader_handshake_block_upload
 title: SPC700 IPL bootloader handshake & block upload
 confidence: likely
+tags: [audio, system]
 evidence: ["legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
 ---
 SPC700 IPL bootloader handshake & block upload.

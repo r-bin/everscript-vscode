@@ -7,6 +7,7 @@ category: 📋
 name: PROJECTILE_VELOCITY_BY_FACING
 title: Projectile velocity by facing
 confidence: likely
+tags: [combat, entity, graphics, table]
 evidence: ["legacy: migrated from tables.js; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
 ---
 Projectile velocity by facing.

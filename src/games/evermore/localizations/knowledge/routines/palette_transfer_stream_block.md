@@ -7,6 +7,7 @@ category: 🧠
 name: palette_transfer_stream_block
 title: Palette Transfer Stream Block to CGRAM Buffer
 confidence: confirmed
+tags: [graphics, ppu]
 evidence: ["disasm: $80:A100 copies color stream data from $0007,y into WRAM CGRAM shadow buffer $7E:7339..$7E:734F ready for VBLANK transfer"]
 see: [routines/palette_cgram_buffer_commit.md, routines/load_weather_preset_parameters.md, engine-core/screen-effects.md]
 ---

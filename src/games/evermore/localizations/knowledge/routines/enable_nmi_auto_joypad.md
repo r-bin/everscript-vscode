@@ -7,6 +7,7 @@ category: 🧠
 name: enable_nmi_auto_joypad
 title: Enable NMI + auto-joypad
 confidence: confirmed
+tags: [system]
 evidence: ["disasm: $80:8507-$80:8522; PHP/SEI, writes $4200 and $0E6B, stores $0080 at $012D and $858B at $012B, then PLP/RTL (docs/disassembly/engine-core/nmi-input-setup.md)"]
 see: [docs/disassembly/engine-core/nmi-input-setup.md]
 ---

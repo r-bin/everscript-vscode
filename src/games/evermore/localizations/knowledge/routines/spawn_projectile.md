@@ -7,6 +7,7 @@ category: 🧠
 name: spawn_projectile
 title: Spawn projectile
 confidence: likely
+tags: [combat, entity, graphics]
 evidence: ["legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
 ---
 Spawn projectile.

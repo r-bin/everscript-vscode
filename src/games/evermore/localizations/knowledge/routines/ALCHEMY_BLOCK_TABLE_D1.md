@@ -7,6 +7,7 @@ category: ⚗️
 name: ALCHEMY_BLOCK_TABLE
 title: ALCHEMY_BLOCK_TABLE
 confidence: likely
+tags: [alchemy, table]
 evidence: ["legacy: migrated from tables.js; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
 ---
 34 × $91 address of a formula block, which names its effect animation records; knowledge/routines/ALCHEMY_BLOCK_TABLE.md.
