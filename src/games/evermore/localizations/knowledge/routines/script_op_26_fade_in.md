@@ -9,7 +9,7 @@ title: Script opcode 0x26 fades in
 confidence: confirmed
 tags: [script-vm, screen, fade, camera]
 evidence: ["disasm: vanilla VFS at $8C:DC18 conditionally calls $80:85D8 based on $0105, always calls $90:94AB, writes 0 to $0106 and $800F to $0B83, then returns SEC", "opcode table: $8C:E909 maps 0x26 to $8C:DC18 with no operands"]
-see: [docs/disassembly/script-vm/opcode-26-fade-in.md, rom/8cdc10.md, rom/8cdc35.md, ram/7e0b83.md, ram/7e0106.md]
+see: [docs/disassembly/script-vm/opcode-26-fade-in.md, rom/8cdc10.md, rom/8cdc35.md, knowledge/wram/AUDIO_TARGET_VOLUME.md, knowledge/wram/JOYPAD1_TRIGGERED.md]
 ---
 The handler conditionally synchronizes the transition, centers the camera, resets brightness to zero, and starts a stepped fade to 15.
 

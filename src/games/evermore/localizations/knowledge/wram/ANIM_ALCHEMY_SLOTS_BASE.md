@@ -10,7 +10,7 @@ lifetime: room
 confidence: confirmed
 tags: [combat, alchemy, animation]
 evidence: ["src/games/evermore/emulator/webview/bottom-bar/02-update-alchemy-tab.js: reads 8 slots at $7E3364 with 64-byte ($0x40) stride"]
-see: [knowledge/wram/3564.md, knowledge/wram/6387.md]
+see: [knowledge/wram/PROJ_ALCHEMY_SLOTS_BASE.md, knowledge/wram/SPRITE_ANIM_CHANNELS.md]
 ---
 8-slot active state buffer for Animation-based Alchemy spells (e.g. Atlas, Barrier, Heal, Speed, Defend).
 

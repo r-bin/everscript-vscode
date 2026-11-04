@@ -17,4 +17,4 @@ The host-side model is [8CD81C_opcode_0e_set_arg_flag.c](../../../reconstructed-
 - Vanilla VFS disassembly at `$8C:D81C`–`$8C:D869`: fetches the bit index through `[$82]`, advances the 24-bit script pointer, derives the byte offset with `AND #$00F8; LSR` repeated three times, and adds `$000F` to the thread slot base.
 - The nonzero expression path loads the mask from `$80:A87F,X` and ORs it with the selected argument byte. The zero path loads the mask from `$80:A887,X` and ANDs it with that byte.
 - Both paths converge at `REP #$20; SEC; RTS`.
-- [Script slot layout](soe://localization/knowledge/ram/7e28fc.md): argument bytes begin at slot offset `+$0F`.
+- [Script slot layout](soe://localization/knowledge/wram/VM_SCRIPT_SLOTS.md): argument bytes begin at slot offset `+$0F`.

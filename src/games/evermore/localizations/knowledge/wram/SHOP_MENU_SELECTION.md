@@ -8,6 +8,6 @@ lifetime: room
 confidence: confirmed
 tags: [shop, dialogue, menu, ui]
 evidence: ["disasm: func_8E8D05 ($8E:8D05) tests $0CDB against $0CD9; if >= $0CD9, resets $0CDB = 0", "disasm: updated on joypad up/down in merchant dialogue menus"]
-see: [ram/7e0cd9.md, rom/8e8d05.md]
+see: [knowledge/wram/SHOP_MENU_OPTION_COUNT.md, rom/8e8d05.md]
 ---
 16-bit cursor index identifying the highlighted merchant interaction choice in shop menus.

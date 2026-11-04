@@ -10,7 +10,7 @@ lifetime: room
 confidence: confirmed
 tags: [combat, alchemy, projectile]
 evidence: ["src/games/evermore/emulator/webview/bottom-bar/02-update-alchemy-tab.js: reads 8 slots at $7E3564 with 118-byte ($0x76) stride"]
-see: [knowledge/wram/3364.md, knowledge/wram/6387.md]
+see: [knowledge/wram/ANIM_ALCHEMY_SLOTS_BASE.md, knowledge/wram/SPRITE_ANIM_CHANNELS.md]
 ---
 8-slot active state buffer for Projectile-based Alchemy spells (e.g. Fireball, Flash, Acid Rain, Crush, Explosion).
 

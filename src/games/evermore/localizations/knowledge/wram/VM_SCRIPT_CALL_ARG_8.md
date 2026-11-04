@@ -1,5 +1,5 @@
 ---
-addr: $7E:0E810
+addr: $7E:0E90
 name: VM_SCRIPT_CALL_ARG_8
 type: u16
 tags: [script]

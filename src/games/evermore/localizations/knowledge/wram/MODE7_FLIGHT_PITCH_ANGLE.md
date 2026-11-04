@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [engine, mode7, flight, vehicle]
 evidence: ["rom-asm: $80:C412 LDA $0E72 tests pitch angle against bounds $0F/$F0 in climb/descent", "rom-asm: controls horizon projection tilt and altitude delta during Mode 7 flight"]
-see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/0e70.md]
+see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/MODE7_FLIGHT_STATE.md]
 ---
 16-bit integer recording vehicle pitch and climb/dive tilt angle during Mode 7 flight:
 - Tested by `func_80C40A` and `func_80C450` to calculate perspective matrix transformation and altitude rate-of-climb.

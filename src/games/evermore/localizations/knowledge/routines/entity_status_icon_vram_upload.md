@@ -9,7 +9,7 @@ title: Upload entity HUD status condition icon tile block to VRAM via DMA
 confidence: confirmed
 tags: [entities, status, hud, vram, dma]
 evidence: ["disasm: computes destination address from $0561 + $0B41, sets source buffer pointer to $0569, sets length 16 bytes (LDX #$0010), invokes vram_dma_upload_tile_block ($80:8650), restores data bank (PLB) and exits via RTL at $8F:90E8..$8F:9103"]
-see: [ram/7e0561.md, rom/808650.md, rom/8f8f22.md]
+see: [knowledge/wram/HUD_DOG_STATUS_WIDGET.md, rom/808650.md, rom/8f8f22.md]
 ---
 Streams an updated 16-byte HUD status condition icon tile into SNES VRAM OBJ character memory via direct DMA channel 1:
 - Computes VRAM destination address offset from base `$0B41` plus slot offset `$0561`.

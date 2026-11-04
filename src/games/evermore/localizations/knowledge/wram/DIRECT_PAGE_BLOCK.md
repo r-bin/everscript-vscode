@@ -9,7 +9,7 @@ lifetime: boot
 confidence: confirmed
 tags: [direct-page, math, registers]
 evidence: ["disasm: CPU register D is set to $0000 across core engine routines in banks $80..$9F", "disasm: direct page operations span $7E:0000..$7E:00E1 contiguously"]
-see: [knowledge/wram/0100.md]
+see: [knowledge/wram/PPU_FRAME_COUNTER_LOW.md]
 ---
 Continuous 256-byte (`$7E:0000`..`$7E:00FF`, size 0x0100) SNES Direct Page register scratchpad.
 

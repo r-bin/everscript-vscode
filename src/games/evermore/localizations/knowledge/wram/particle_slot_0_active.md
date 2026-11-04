@@ -8,7 +8,7 @@ lifetime: frame
 confidence: confirmed
 tags: [projectiles, alchemy, particles]
 evidence: ["disasm: func_D19795 ($91:97AF) loops across 8 slots with stride $0076, resetting $0014,x in each slot", "disasm: func_D198EE ticks active slots during per_frame_field_tick"]
-see: [knowledge/wram/3364.md]
+see: [knowledge/wram/ANIM_ALCHEMY_SLOTS_BASE.md]
 ---
 Active status flag (`+0x14` within slot base `$7E:3564`) for projectile/spell particle animation slot 0.
 

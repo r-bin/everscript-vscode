@@ -8,7 +8,7 @@ lifetime: save
 confidence: confirmed
 tags: [save, sram, gourds, chests]
 evidence: ["disasm: func_CCD804 and script VM opcodes test and set bits in $7E:2517..$7E:252F on opening gourds", "disasm: sram_verify_all_save_slots ($8D:C905) serializes this array to Cartridge SRAM Bank $30"]
-see: [knowledge/wram/2258.md]
+see: [knowledge/wram/ALCHEMY_KNOWN_FLAGS.md]
 ---
 Persistent 128-bit collection bitmask array (`$7E:2517`..`$7E:252F`, 8 words = 16 bytes) recording opened treasure gourds and chests throughout the campaign.
 

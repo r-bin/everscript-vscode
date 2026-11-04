@@ -8,7 +8,7 @@ lifetime: save
 confidence: confirmed
 tags: [alchemy, statistics]
 evidence: ["docs/disassembly/combat/alchemy-ingredients.md and reconstructed-c/91/91D800_alchemy_ingredients.c: FORMULA_USAGE_BASE at $2FDE, incremented on every successful cast in $91:D800"]
-see: [knowledge/wram/2ed6.md, knowledge/wram/2f52.md]
+see: [knowledge/wram/VM_SCRIPT_SLOTS.md, knowledge/wram/FORMULA_XP_ACID_RAIN.md]
 ---
 35 contiguous 16-bit word registers storing the lifetime total cast counts for each of the 35 alchemy formulas.
 

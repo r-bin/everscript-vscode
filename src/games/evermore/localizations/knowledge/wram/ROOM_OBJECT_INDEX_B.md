@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [scripts, omnitopia, doors]
 evidence: ["script: written in 14 triggers in Room 72 (Metroplex tunnels) prior to calling $9A:E24F", "script: opened with object[DUCT_EXIT_GRATE_OBJECT] = LAST when Dog arrives at destination"]
-see: [ram/7e24f9.md, rom/9ae24f.md]
+see: [knowledge/wram/ROOM_OBJECT_INDEX_A.md, rom/9ae24f.md]
 ---
 Object index of the destination ventilation duct grate where the Dog emerges after crawling through the Omnitopia duct network (Room 72).
 Routine `$9A:E24F` animates opening this grate (`LAST`) and playing `sound(ACT4_DOOR_OPENING)` upon completing the inter-duct transit.

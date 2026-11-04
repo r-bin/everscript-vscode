@@ -9,7 +9,7 @@ title: Dynamic OBJ VRAM tile slot LRU allocator and DMA stager
 confidence: confirmed
 tags: [sprites, vram, graphics, lru, dma]
 evidence: ["disasm: $80:A4B5 unlinks slot Y and relinks as LRU head ($9726), sets owner mappings $7D51 and $95A5, computes VRAM word destination slot*16+$6000 queued into $15D6, resolves 24-bit tile pointer from $D8:0000, stages 32 bytes (raw or decompressed bitplane) into $7E:6C91", "docs/disassembly/entities/obj-tile-allocator.md"]
-see: [docs/disassembly/entities/obj-tile-allocator.md, src/games/evermore/localizations/knowledge/ram/7e9727.md]
+see: [docs/disassembly/entities/obj-tile-allocator.md, knowledge/wram/OBJ_TILE_LRU_NEXT.md]
 ---
 Allocates a dynamic OBJ VRAM pattern table slot from the LRU cache for a requested sprite tile ID (`$DD`).
 Relinks the slot to the head of the circular doubly-linked LRU list (`$7E:96A5` / `$7E:9725`), records forward/reverse tile ownership in `$7E:7D51` and `$7E:95A5`, computes the VRAM destination address `(slot * 16) + 0x6000`, queues it into `$7E:15D6`, and copies 32 bytes of 4bpp tile data (direct copy or bitplane expansion) from ROM bank `$D8` into the DMA staging buffer `$7E:6C91`.

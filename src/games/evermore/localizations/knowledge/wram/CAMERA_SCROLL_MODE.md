@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [camera, viewport, engine-core]
 evidence: ["disasm: func_909E93 branches on camera tracking mode (0=Boy, 1=Dog, 2=Fixed script anchor)", "disasm: opcode 0x96 sets mode 2 during screen transitions"]
-see: [knowledge/wram/2401.md]
+see: [knowledge/wram/VIEWPORT_LEFT_X.md]
 ---
 Determines camera viewport scrolling anchor mode:
 - `0`: Smooth camera tracking centered on the Boy entity (`$7E:0F42`)

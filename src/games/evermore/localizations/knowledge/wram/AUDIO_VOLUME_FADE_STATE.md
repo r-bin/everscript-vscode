@@ -8,7 +8,7 @@ lifetime: frame
 confidence: confirmed
 tags: [audio, music, spc700]
 evidence: ["disasm: func_8C801F steps volume ramping when state is non-zero", "disasm: NMI audio servicing routine reads $7E:0B7B to trigger APU attenuation writes"]
-see: [knowledge/wram/0106.md]
+see: [knowledge/wram/JOYPAD1_TRIGGERED.md]
 ---
 Controls hardware master music volume fading transitions:
 - `0`: Steady volume at current target

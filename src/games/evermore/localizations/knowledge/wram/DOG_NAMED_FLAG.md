@@ -8,7 +8,7 @@ lifetime: save
 confidence: confirmed
 tags: [companion, name, sram, init]
 evidence: ["disasm: func_8EE124 checks $7E:228B bit 0; if 0, copies default Dog name from $8E:E3E9 to $7E:2234 using func_80B149", "disasm: func_8EE124 leaves $7E:2234 untouched if bit 0 is set"]
-see: [knowledge/wram/2234.md]
+see: [knowledge/wram/DOG_NAME_BUFFER.md]
 ---
 Persistent save flag recording whether the companion dog has received a custom player-assigned name.
 - Evaluated during SRAM initialization in `func_8EE124`:

@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [scripts, pyramid, antiqua]
 evidence: ["script: initialized in Room 85 (bottom level) enter script at $95:9384 as 1", "script: initialized in Room 86 (top level) enter script at $95:9A27 as 2", "script: updated by staircase triggers in R6, R85, R86 to track which pyramid floor the player transitions to"]
-see: [ram/7e2350.md, ram/7e2358.md]
+see: [knowledge/wram/PRISON_TOWN_EXIT.md, knowledge/wram/PYRAMID_ENTRANCE_SECTOR.md]
 ---
 Current active floor level inside the Antiqua Great Pyramid.
 - `1`: Bottom level (Dog exploration area, Room 85)

@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [bosses, entities, combat]
 evidence: ["disasm: func_CF98B5 ($8F:98C0) reads $7E:3BC7 to allocate a free child segment node for multipart bosses"]
-see: [knowledge/wram/3bc9.md]
+see: [knowledge/wram/COMPANION_WAYPOINTS_BUF.md]
 ---
 Free list head pointer for the engine's 6-slot multipart boss child segment pool (`struct BossSegmentNode[6]` at `$7E:3BC9`..`$7E:3DDF`, stride 89 bytes).
 

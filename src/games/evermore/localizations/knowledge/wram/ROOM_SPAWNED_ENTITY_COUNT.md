@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [engine, entity, room]
 evidence: ["rom-asm: $8F:B0A5 executes INC $1072 when placing new entity slot into active room", "rom-asm: checked against room spawn caps during map population"]
-see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/1074.md]
+see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/ROOM_CUMULATIVE_SPAWN_COUNT.md]
 ---
 16-bit integer counting active spawned entities currently residing in the active room:
 - Incremented by `INC $1072` in routine `func_8FB0A0` whenever a new NPC or monster entity record is allocated.

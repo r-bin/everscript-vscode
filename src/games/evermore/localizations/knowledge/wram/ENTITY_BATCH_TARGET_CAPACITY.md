@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [engine, entity, scheduler]
 evidence: ["rom-asm: $8F:DC8A compares active target capacity LDA $1070 with slice limit CMP $1076", "rom-asm: initialized and adjusted dynamically during room entity allocation"]
-see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/1076.md]
+see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/ENTITY_BATCH_PROCESS_LIMIT.md]
 ---
 16-bit integer holding the current target entity workload capacity for the active room:
 - Checked against the dynamic slice limit register `$7E:1076` during scheduler frame budgeting.

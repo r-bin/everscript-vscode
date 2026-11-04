@@ -3,13 +3,13 @@
  * No VS Code API dependency; importable from tests.
  *
  * Lifecycles: temp and session come from the compiler-region knowledge entries
- * (knowledge/ram/7e2834.md, 7e2200.md); sram from an [SRAM] tag; system otherwise.
+ * (knowledge/wram/TEMP_COMPILER_ARENA.md, the `[SRAM]` entries); sram from an [SRAM] tag; system otherwise.
  */
 
 import { escapeHtml } from '../../core/webview/html';
 import { entries } from './localizations/knowledge';
 
-// The compiler's regions are knowledge entries tagged `compiler-region` (localizations/knowledge/ram):
+// The compiler's regions are knowledge entries tagged `compiler-region` (localizations/knowledge/wram):
 // lifetime `room` = temp, `save` = session. Read once, as 16-bit (bank $7E) ranges.
 let _compilerRegions: { from: number; to: number; lifecycle: string }[] | null = null;
 function compilerRegions() {

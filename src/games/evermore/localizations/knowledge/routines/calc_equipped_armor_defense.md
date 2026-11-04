@@ -9,7 +9,7 @@ title: Calculate equipped armor physical and magic defense sums
 confidence: confirmed
 tags: [ui, stats, armor, inventory]
 evidence: ["disasm: clears $07A4/$07A6, iterates over equipped gear slots with bitmasks from $C4:59A4/$C4:59C0, accumulates defense and writes to $7E:0ABA", "recomp: func_CE99D2_M0X0 in bank8e_v2.c; clean C in docs/disassembly/ui/equipment-stats.md"]
-see: [rom/8e9a86.md, ram/7e0a26.md, ram/7e0a70.md]
+see: [rom/8e9a86.md, knowledge/wram/BOY_STATS.md, knowledge/wram/DOG_STATS.md]
 ---
 Iterates through character equipment slots (helmets/collars, vests, bracers, accessories):
 1. Verifies equipped items against inventory bitmasks at `$C4:59A4` / `$C4:59C0`.

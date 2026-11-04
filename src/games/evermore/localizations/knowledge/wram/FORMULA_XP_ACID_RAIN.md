@@ -8,7 +8,7 @@ lifetime: save
 confidence: confirmed
 tags: [alchemy, progression]
 evidence: ["docs/disassembly/combat/alchemy-ingredients.md and reconstructed-c/91/91D800_alchemy_ingredients.c: FORMULA_XP_BASE at $2F52, 35 16-bit words indexed by formula index * 2"]
-see: [knowledge/wram/2ed6.md, knowledge/wram/2fde.md]
+see: [knowledge/wram/VM_SCRIPT_SLOTS.md, knowledge/wram/FORMULA_USAGE_ACID_RAIN.md]
 ---
 35 contiguous 16-bit word registers storing the current experience points (0..99 XP) of each alchemy formula.
 

@@ -9,7 +9,7 @@ title: Joypad chord matcher left over from the prototype's cheat codes (Select =
 confidence: confirmed
 tags: [input, joypad]
 evidence: ["disasm: $8C:F121-$8C:F17B; called at the start of the field tick ($8E:E426); compares $0EC6 with the newest chord $3ABE,x (x = $3BBE) and returns at once when equal; otherwise pushes the chord (a 0 = release is overwritten by the next chord), scans the pointer list at $8C:F216 (one entry, $8C:F21A = [$2000] $0000 -> routine $F17B+1) newest-first, and on a match enters the routine with PEA $F16D / PHA / RTS", "doc: the prototype (docs/soe-prototype-chip1.md) has 23 entries here; the final keeps only Select", "measure: every call takes the same master clocks on the vanilla ROM and on hacks/hotkeys (everscript repo), 1673 calls compared in snes9x2005 (v0.355.0)"]
-see: [rom/8cf17c.md, ram/7e3abe.md, ram/7e0ec6.md, docs/soe-prototype-chip1.md]
+see: [rom/8cf17c.md, knowledge/wram/JOYPAD_CHORD_HISTORY.md, knowledge/wram/INPUT_P1_HELD_BUTTONS.md, docs/soe-prototype-chip1.md]
 ---
 Records each new chord of held buttons and matches the newest chords against its table. In the US
 game the only entry is Select alone, which switches control between the boy and the dog

@@ -8,7 +8,7 @@ lifetime: save
 confidence: likely
 tags: [boy, stats, party]
 evidence: ["evs: the everscript compiler's ATTRIBUTE_GENERAL enum (POINTER_BOY) gives the block and the offsets below (soe://tags/boy.stats)", "read: the Memory Radar and the Scaling tab read level and stats here"]
-see: [ram/7e4e89.md]
+see: [knowledge/wram/ENTITY_PLAYER_BOY.md]
 ---
 The boy's persistent stats: what levels up and what the save keeps. The entity record in the
 $4E89 area holds the live copies the fight uses (HP, boosts).

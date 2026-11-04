@@ -8,7 +8,7 @@ lifetime: boot
 confidence: confirmed
 tags: [irq, interrupt, hook, vector]
 evidence: ["disasm: func_808507 and func_808552 register custom IRQ handlers by storing low word in $12B and bank in $12D, programming $4207/$4209 (HTIME/VTIME) and enabling IRQ in $4200 (NMITIMEN)", "disasm: hardware IRQ vectors indirectly through [$012B]"]
-see: [knowledge/wram/0128.md]
+see: [knowledge/wram/NMI_USER_HOOK_FAR_PTR.md]
 ---
 24-bit far indirect vector (`$012B` low word, `$012D` bank byte) executed upon firing of the SNES hardware H/V-Timer raster scanline interrupt.
 - Configured by `func_808552`: programs scanline position into `$4207`/`$4209` (`HTIME`/`VTIME`), enables timer interrupts in `$4200` (`NMITIMEN = $B1`), and sets the target routine vector in `$012B..$012D`.

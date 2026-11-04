@@ -120,7 +120,7 @@ each address once, as an accessor over the one RAM array (`g_ram` in snesrecomp'
 
 ```c
 /* reconstructed-c/80/8080AD62_random_below.c, target shape */
-#include "soe_ram.h"            /* generated from knowledge/ram/*.md: one name per address */
+#include "soe_ram.h"            /* generated from knowledge/wram/*.md: one name per address */
 
 /* $80:AD62. In: n = DP $02. Out: A = rand16 * n >> 16 (0 when n == 0).
  * Advances the generator ($80:859B) even when n == 0. Leaves the partial
@@ -202,7 +202,7 @@ G1 runs on every edit (ROM tier). G2 and G3 run on demand (`test-discipline`).
 
 The rules every routine's C follows to pass G0–G1:
 
-- **One RAM header, generated.** `soe_ram.h` from `knowledge/ram/*.md`: one name per address,
+- **One RAM header, generated.** `soe_ram.h` from `knowledge/wram/*.md`: one name per address,
   an accessor over `g_ram` (zelda3 does this with a header of names over one RAM array). Fix
   the 32 double names first. Records are structs with `_Static_assert` on each field offset.
 - **Interface as the ROM has it.** Inputs and outputs live where the asm keeps them (registers,
@@ -311,7 +311,7 @@ takes the asm's exact cycles on every path, which no stock compiler gives.
 | Step | Command | What it does |
 |---|---|---|
 | tool chain | `node tools/c-to-rom/calypsi.mts` | fetches Calypsi 5.18 into `out/toolchains/` (personal non-commercial licence, not redistributable: never commit or package it; x86_64, runs under Rosetta 2) |
-| header | `node tools/c-to-rom/gen-ram-header.mts` | `reconstructed-c/include/soe_ram.h` from `knowledge/ram/` (`--check` for staleness) |
+| header | `node tools/c-to-rom/gen-ram-header.mts` | `reconstructed-c/include/soe_ram.h` from `knowledge/wram/` (`--check` for staleness) |
 | build | `node tools/c-to-rom/build.mts` | `out/c-to-rom/soe-c.sfc` |
 | G1 | `node tools/c-to-rom/g1.mts [name ...]` | `out/c-to-rom/G1.md`; `--trace name:i[:k]` prints both instruction traces |
 | 2:20 | `npm run c-to-rom:compare` | `tools/compare` against vanilla: WRAM + VRAM every 60 frames (`--verbose`: every frame), first differing frame, bytes and the C routine that wrote them |

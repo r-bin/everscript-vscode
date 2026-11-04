@@ -8,7 +8,7 @@ lifetime: save
 confidence: confirmed
 tags: [inventory, weapons]
 evidence: ["disasm: func_CF9210 ($8F:927D) iterates over 13 weapon indices via tbl_C459A4 ($22DA/$22DB) and bitmasks tbl_C459C0 to check/clear owned weapons"]
-see: [knowledge/wram/243d.md, knowledge/wram/235f.md]
+see: [knowledge/wram/EQUIPMENT_GRANT_COMMAND.md, knowledge/wram/dog_companion_attack_mode.md]
 ---
 2-byte bitfield (16 bits) tracking which physical weapons have been acquired:
 

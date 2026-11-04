@@ -8,7 +8,7 @@ lifetime: save
 confidence: confirmed
 tags: [weapons, boy]
 evidence: ["disasm: $8F:9273 stores the requested weapon ($2441) here with an 8-bit X and sets its class in $2360 from $C4:59DC; taking every weapon away writes 0 (v0.373.0)", "disasm: $90:8F45 copies it back into $2441 when that is 0", "script: rooms compare it with weapon indices (room $10: CURRENT_WEAPON == 2, the Bone Crusher)"]
-see: [ram/7e2441.md, ram/7e2360.md]
+see: [knowledge/wram/ROOM_TILESET_GRAPHIC_BANK.md, knowledge/wram/dog_companion_attack_mode.md]
 ---
 The equipped weapon as a weapon index: 2, 4, 6, 8 the swords, `$0A`–`$10` the axes, `$12`–`$18`
 the spears, `$1A`–`$1E` the bazooka; 0 none. Its class (sword, axe, spear, bazooka) is in

@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [scripts, omnitopia, doors]
 evidence: ["script: written in 46 triggers in Room 72 (Metroplex tunnels) with grate object IDs 0x2F..0x3E", "script: opened with object[DUCT_ENTRANCE_GRATE_OBJECT] = LAST and closed with = 0 in $9A:E24F, $9A:E40D, $9A:E477"]
-see: [ram/7e24fb.md, rom/9ae24f.md, rom/9ae40d.md, rom/9ae477.md]
+see: [knowledge/wram/ROOM_OBJECT_INDEX_B.md, rom/9ae24f.md, rom/9ae40d.md, rom/9ae477.md]
 ---
 Object index (values 0x2F–0x3E) of the ventilation duct entrance grate currently being entered or traversed by the Dog in Omnitopia (Room 72).
 The duct animation routines (`$9A:E24F`, `$9A:E40D`, `$9A:E477`) interact with this object to animate the metal grate opening (`LAST`) and snapping shut (`0`) as the Dog crawls into or out of the shaft.

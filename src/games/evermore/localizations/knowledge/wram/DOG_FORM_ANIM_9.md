@@ -8,7 +8,7 @@ lifetime: save
 confidence: confirmed
 tags: [dog, companion, stats]
 evidence: ["disasm: func_CF946B ($8F:94E2) unpacks dog breed stats table from ROM into $7E:1443 on morph"]
-see: [knowledge/wram/144d.md, knowledge/wram/2363.md]
+see: [knowledge/wram/dog_form_scent_radius.md, knowledge/wram/DOG_FORM_INDEX.md]
 ---
 Base physical attack power stat for the companion dog's currently active breed form.
 

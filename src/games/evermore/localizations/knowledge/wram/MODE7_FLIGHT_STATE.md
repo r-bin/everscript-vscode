@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [engine, mode7, flight, vehicle]
 evidence: ["rom-asm: $80:C4A3 evaluates flight phase: 0=ground, 1=takeoff ascent, 2=flight cruising, 3=landing descent, 4=touchdown, 5=realm transition", "rom-asm: initialized/cleared by $80:C50D STZ $0E70, set to 1 by $8E:9882 on Windwalker launch"]
-see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/0e72.md, knowledge/wram/22ef.md]
+see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/MODE7_FLIGHT_PITCH_ANGLE.md, knowledge/wram/SCRIPT_EXECUTION_LOCK_FLAGS.md]
 ---
 16-bit state enum controlling the Mode 7 3D flight engine for the Windwalker flying machine:
 - `0`: Ground mode (normal walking/running physics, Mode 7 rendering inactive).

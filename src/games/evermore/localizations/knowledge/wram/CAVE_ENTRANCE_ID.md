@@ -8,7 +8,7 @@ lifetime: transition
 confidence: confirmed
 tags: [scripts, caves, transition]
 evidence: ["script: written in exterior triggers across Antiqua before loading Room 53 (e.g. Room 7 west shore step #6 writes 6 at $96:B928)", "script: tested in Room 53 (quicksand, Bugmuck, volcano, alchemist caves) enter script at $94:A85B..$94:A989 to spawn player at entrances 1 through 6"]
-see: [ram/7e24c3.md]
+see: [knowledge/wram/TRANSITION_STAGING_C3.md]
 ---
 Entrance sector selector (1–6) for Room 53, the shared map asset housing all six cave grottos in Antiqua:
 - `1`: Quicksand field cave

@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [movement, waypoint, coordinates]
 evidence: ["scripts: Room 22 ($93:b9fd, $93:ba84, etc.) stages destination Y into <0x2499> before invoking drop routines $93:bc03, $93:bb91, $93:bc6a; also copied from TRIGGER_INTERACTION_Y at $93:bd0c", "layout: precedes $7E:249F (PARTY_BOY_TARGET_Y) in the 249x coordinate staging block"]
-see: [ram/7e2497.md, ram/7e249f.md, ram/7e24a3.md]
+see: [knowledge/wram/TARGET_WAYPOINT_X.md, knowledge/wram/TRANSIT_ORIGIN_Y.md, knowledge/wram/TRANSIT_DEST_Y.md]
 ---
 Generic waypoint staging register holding target Y coordinate in room pixels.
 

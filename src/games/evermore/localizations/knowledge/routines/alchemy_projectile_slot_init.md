@@ -8,7 +8,7 @@ name: alchemy_projectile_slot_init
 title: Alchemy projectile/spell slot descriptor initializer ($91:97BD)
 confidence: confirmed
 evidence: ["disasm: checks script pointer X; if not $FFFF, invokes $90:817B (anim_record_init_from_script_ref); clears bit 1 of flags +$26,Y; zeroes motion and frame offsets +$06, +$08, +$0A, +$0C; sets sub-slot pointer +$2C,Y to Y + $2E"]
-see: [rom/90817b.md, rom/919777.md, ram/7e3564.md]
+see: [rom/90817b.md, rom/919777.md, knowledge/wram/PROJ_ALCHEMY_SLOTS_BASE.md]
 tags: [alchemy, projectile, animation]
 ---
 Initializes an alchemy projectile or particle effect slot (`Y`). If animation script index `X` is valid (not `$FFFF`), binds animation bytecode via `anim_record_init_from_script_ref` (`$90:817B`). Clears projectile active flag bit 1 in `+$26,Y`, clears frame and coordinate offsets `+$06..+$0C`, and points sub-slot link field `+$2C,Y` to internal sub-record `Y + $2E`.

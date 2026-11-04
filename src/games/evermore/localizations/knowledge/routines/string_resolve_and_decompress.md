@@ -9,7 +9,7 @@ title: Script VM string key resolution, buffer allocation, and decompression dis
 confidence: confirmed
 tags: [text, string, script-vm, dialog, dte, mte]
 evidence: ["disasm: called by opcode 52 at $8C:D99E; reads the 3-byte pointer at [$91:0000 + key] with Y = $D000 (a 24-bit index, so the table is at $91:D000); checks compressed bit; manages 640-byte ping-pong buffer in $7F:DC1E via $7E:3BBF; calls $8C:CD84", "trace: used whenever dialog or script messages are displayed", "test: key $3690 with the pointer $1C4000 at WRAM $0690 shows plain text from $F8:4000 (hacks/hotkeys in the everscript repo, v0.355.0)"]
-see: [docs/disassembly/ui/dialogue-text-decoder.md, rom/8ccd84.md, ram/7e3bbf.md]
+see: [docs/disassembly/ui/dialogue-text-decoder.md, rom/8ccd84.md, knowledge/wram/DIALOGUE_RING_CURSOR.md]
 ---
 Resolves a 16-bit script string key into a 24-bit far text pointer via the ROM string key
 table at `$91:D000` (key = byte offset, 3 per string). Previously believed: the table is at

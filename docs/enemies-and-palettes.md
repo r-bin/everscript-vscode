@@ -82,7 +82,7 @@ Measured on the test ROM *(test)*: family 365 sits at `$7E61A7+`, i.e. backgroun
 `$7E6187 + 32·p`. Background families land at `p = 1…7` and sprite palettes at `p = 8…15`. CGRAM
 uploads run from it, except the sprite palette upload in §2.1, which reads ROM directly. Code that
 changes colours on the fly works on this copy (`$8F:95C1` reads `$7E6187 + $1C2`)
-(`knowledge/ram/7e6187.md`).
+(`knowledge/wram/SPRITE_CGRAM_SHADOW.md`).
 
 ## 5. What the table hack changes
 

@@ -8,7 +8,7 @@ title: NMI handler tail: count the frame, start HDMA, wait for the automatic joy
 confidence: likely
 tags: [engine, nmi, input]
 evidence: ["disasm: REP #$30 / INC $0100 / BNE +3 / INC $0102 / SEP #$20 / LDA $72 / STA $420C / LDA #$01 / BIT $4212 / BNE back to the BIT (bytes read from the ROM at $80:8460, 2026-10-30)", "MesenCE 2.2.1, 01-no-inputs-4m.evsmv: reached about 180 instructions after the NMI enters $80:823A; in frames 200 and 245 it polls $4212 until bit 0 drops, 4224 clocks after the first multiple of 256 master clocks at least 130 clocks past V=225 (the $4212 reads switch from 1 to 0 within one 42-clock pass of that point)", "SecretOfEvermoreRecomp: the recomp left this wait up to 9 passes early until its frame driver took MesenCE's busy window (docs/imperfections/auto-joypad-read.md there, 2026-10-30)"]
-see: [src/games/evermore/localizations/knowledge/rom/80823a.md, src/games/evermore/localizations/knowledge/ram/7e0100.md]
+see: [src/games/evermore/localizations/knowledge/rom/80823a.md, knowledge/wram/PPU_FRAME_COUNTER_LOW.md]
 ---
 Part of the NMI handler's body. It adds one to the frame counter `$0100`, carrying into `$0102` when the
 low word wraps. It writes the HDMA channel mask kept at direct page `$72` to `$420C`, so HDMA starts from

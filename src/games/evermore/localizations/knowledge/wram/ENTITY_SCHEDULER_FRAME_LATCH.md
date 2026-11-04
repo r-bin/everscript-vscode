@@ -8,7 +8,7 @@ lifetime: frame
 confidence: confirmed
 tags: [engine, entity, scheduler, frame]
 evidence: ["rom-asm: $8F:DC53 reads frame counter LDA $0100, decrements DEC A, and compares against CMP $1078", "rom-asm: detects missed VBlank or frame drops when difference is non-zero"]
-see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/107a.md]
+see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/ENTITY_SCHEDULER_LAG_COUNTER.md]
 ---
 16-bit latch storing the previous frame counter value for frame-drop detection:
 - At `$8F:DC53`, the current frame counter (`$7E:0100`) minus 1 is compared against `$7E:1078`.

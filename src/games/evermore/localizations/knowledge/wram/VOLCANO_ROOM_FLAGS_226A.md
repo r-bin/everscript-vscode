@@ -8,7 +8,7 @@ lifetime: save
 confidence: likely
 tags: [map.volcano, room, flags]
 evidence: ["evs: the audit finds masked reads/writes in rooms 0x3E and 0x69, with masks 0x01 through 0x80 represented across the inventory", "disasm: generic save-flag handlers map flag IDs through $7E:2258, placing this byte in the documented save-persistent story/room flag area"]
-see: [docs/scripts/unnamed-memory-audit.md, ram/7e2258.md, rom/8cd83e.md]
+see: [docs/scripts/unnamed-memory-audit.md, knowledge/wram/ALCHEMY_KNOWN_FLAGS.md, rom/8cd83e.md]
 ---
 One save-persistent byte tested by scripts in two Volcano rooms. It behaves as a bitfield managing progression, door states, and event triggers across the volcano sub-areas. The name describes the observed room grouping, not proven exclusive ownership by those rooms.
 

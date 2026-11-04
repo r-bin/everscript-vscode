@@ -8,7 +8,7 @@ lifetime: save
 confidence: confirmed
 tags: [inventory, combat, stats]
 evidence: ["disasm: func_CF9210 checks equipment requests and sets bits in $7E:2261..$7E:2263 via bitmask tables", "disasm: $8F:8464 checks Silver Sheath ($2261), $8F:B7D7 checks Insect Incense ($2261 bit 7), $8C:9447 checks Wizard's Coin ($2263 bit 2), $91:9DC0 checks Moxa Stick ($2262 bit 3)", "disasm: $8F:857D checks Chocobo Egg ($2261 bit 6) and Armor Polish ($2262 bit 7) to swap growth curves"]
-see: [rom/8f9210.md, rom/8f8464.md, rom/8fb7d7.md, ram/7e22da.md]
+see: [rom/8f9210.md, rom/8f8464.md, rom/8fb7d7.md, knowledge/wram/WEAPONS_OWNED_FLAGS_0.md]
 ---
 Persistent SRAM save bitfields (`$7E:2261`..`$7E:2264`) tracking owned charms, relics, and persistent status buff state:
 

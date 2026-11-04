@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [dialogue, ui, script-vm]
 evidence: ["disasm: func_CCB120 updates secondary window transition states 0 (closed) through 3 (closing)", "disasm: script opcode 0x45 sets window state 1 to begin opening sequence"]
-see: [knowledge/wram/0377.md]
+see: [knowledge/wram/WINDOW_DESCRIPTOR_0.md]
 ---
 Controls the lifecycle state machine of secondary dialogue / status window 1:
 - `0`: Closed / Inactive

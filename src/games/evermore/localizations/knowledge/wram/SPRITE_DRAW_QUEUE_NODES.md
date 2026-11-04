@@ -8,7 +8,7 @@ lifetime: frame
 confidence: confirmed
 tags: [sprites, rendering, oam]
 evidence: ["disasm: func_C0960A allocates 15-byte draw command nodes from $1276 into $7E:512F..$7E:6288", "disasm: func_C096BB traverses the doubly-linked list from $7E:5127 down to #$FFFE, passing parameters to func_C09040"]
-see: [knowledge/wram/50a7.md, knowledge/wram/6c91.md]
+see: [knowledge/wram/SPRITE_ALLOC_POOL.md, knowledge/wram/dynamic_vram_tiles_8x8.md]
 ---
 Command node allocation arena for the engine's dynamic Y-sorted metasprite renderer.
 

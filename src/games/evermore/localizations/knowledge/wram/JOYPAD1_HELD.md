@@ -8,7 +8,7 @@ lifetime: boot
 confidence: likely
 tags: [input, nmi]
 evidence: ["disasm: NMI $80:8479 computes (~($0EC6 xor $0104)) and stores it, then ANDs it with the new held word after the read (CDL export, v0.201.18)", "disasm: $80:8597 is TRB $0104 / RTL, used to consume a press"]
-see: [knowledge/wram/0ec6.md]
+see: [knowledge/wram/INPUT_P1_HELD_BUTTONS.md]
 ---
 Edge-detected buttons: the NMI keeps bits that were not held last frame and are held now.
 Code that has acted on a press clears its bit with `TRB $0104` (`$80:8597`).

@@ -8,7 +8,7 @@ lifetime: save
 confidence: confirmed
 tags: [inventory, armor]
 evidence: ["src/games/evermore/language/data/index.json: ARMOR_INDEX 40 items in order (0x01..0x28)", "src/games/evermore/simulation/loot.ts: 910/910 pickups increment bytes from $22FF to $2344"]
-see: [knowledge/wram/22ff.md, knowledge/wram/243d.md]
+see: [knowledge/wram/ING_QTY_WAX.md, knowledge/wram/EQUIPMENT_GRANT_COMMAND.md]
 ---
 40 contiguous bytes storing the owned quantities of all body armor, helmets, arm bracers/gauntlets, and dog collars (caps at 6 each):
 

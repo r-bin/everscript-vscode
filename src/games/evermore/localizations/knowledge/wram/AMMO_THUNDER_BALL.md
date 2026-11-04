@@ -8,7 +8,7 @@ lifetime: save
 confidence: likely
 tags: [inventory, weapon]
 evidence: ["script: Omnitopia chests $9B:8EAB / $9B:8F1F / $9B:889A add 30 to $2345 / $2346 / $2347 and set $2349 = 0 / 2 / 4; their texts (strings 0x0B06, 0x0B07, 0x0B02) read 'Received 30 Thu…', '… P…', '… Cr…-Bla…' (v0.207.0)", "script: the intro bazooka gourd $9B:C497 writes $2345 = 100 and $2349 = 0 before giving the Bazooka"]
-see: [ram/7e2284.md, docs/cheats.md]
+see: [knowledge/wram/OMNITOPIA_CHESTS_A.md, docs/cheats.md]
 ---
 | address | meaning |
 |---|---|

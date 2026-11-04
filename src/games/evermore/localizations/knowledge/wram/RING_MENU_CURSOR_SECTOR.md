@@ -8,7 +8,7 @@ lifetime: frame
 confidence: confirmed
 tags: [mode7, flight]
 evidence: ["c: reconstructed-c/8E/8EB02C_mode7_flight.c compares sample index A with $0BF9 to toggle vehicle cursor highlight via frame counter $0100 bit 3"]
-see: [knowledge/wram/05ab.md, knowledge/wram/0bfb.md]
+see: [knowledge/wram/RING_MENU_CATEGORY_INDEX.md, knowledge/wram/MODE7_CAMERA_TARGET_OFFSET_X.md]
 ---
 Active sample index for Mode 7 flight entity tracking and destination cursor focus.
 

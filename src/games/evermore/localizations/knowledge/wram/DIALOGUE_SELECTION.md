@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [scripts, dialogue, menu]
 evidence: ["script: written by opcode lookup_034d(0) in 36 instances across 6 rooms (R4, R54, R57, R58 fire pits; R70, R84 Omnitopia)", "script: tested immediately after text_end() to branch on player's chosen destination or option", "script: tested against 0 (cancel/exit), 1, 2, 3, or 0xFFFF"]
-see: [ram/7e2463.md]
+see: [knowledge/wram/DIALOGUE_TEMP_ARG_0.md]
 ---
 Player choice selection index returned from an interactive message box menu via `lookup_034d(0)`.
 Used extensively at Windwalker landing sites (fire pits in Antiqua, Prehistoria, and Gothica) and Omnitopia transport/flight terminals to receive the player's selected flight destination or menu choice.

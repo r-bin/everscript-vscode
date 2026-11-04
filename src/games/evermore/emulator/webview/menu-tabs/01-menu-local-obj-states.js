@@ -32,7 +32,7 @@
       if (currentMap < 0) {
         const m = getModule();
         if (m && typeof m.readMemory === 'function') {
-          // CURRENT_MAP_ID, one byte (knowledge ram/7e0adb.md). It read the word at $7E0B3C, asking the host
+          // CURRENT_MAP_ID, one byte (knowledge/wram/CURRENT_ROOM_ID.md). It read the word at $7E0B3C, asking the host
           // for rooms like 3072 ("Room id 3072 out of range" in the Windows tester's log).
           currentMap = m.readMemory(0x7E0ADB);
         }

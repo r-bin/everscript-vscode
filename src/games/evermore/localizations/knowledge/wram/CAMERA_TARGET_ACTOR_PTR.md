@@ -8,7 +8,7 @@ lifetime: room
 confidence: guess
 tags: []
 evidence: ["disasm: $90:94AB reads entity +$1A (x) and +$1C (y) through this pointer when CAMERA_TARGET is negative (REA/Ghidra spike, v0.201.7)"]
-see: [knowledge/wram/242b.md]
+see: [knowledge/wram/CAMERA_SCRIPTED_TARGET_X.md]
 ---
 Pointer to the entity record the camera keeps centred (normally the controlled character).
 The camera puts that entity's position at the middle of the screen, then clamps to the map edges.

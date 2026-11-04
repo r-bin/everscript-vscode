@@ -8,7 +8,7 @@ lifetime: frame
 confidence: confirmed
 tags: [cgram, dma, queue]
 evidence: ["disasm: func_C085FA (loc_C08627) writes transfer descriptors into $7E:1292,x, advances $128E by #$0007, and wraps at #$00E0"]
-see: [knowledge/wram/013f.md]
+see: [knowledge/wram/VRAM_DMA_QUEUE.md]
 ---
 Head write offset into the partial CGRAM DMA queue (`$7E:1292`..`$7E:1371`).
 

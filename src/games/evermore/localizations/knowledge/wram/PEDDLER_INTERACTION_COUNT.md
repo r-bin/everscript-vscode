@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [market, npc]
 evidence: ["scripts: Room 10 talk script ($96:ab63) increments <0x2451> on every interaction, checking threshold > 30 ($1E) at $96:ac44 to modify probability weights of speech stages"]
-see: [ram/7e244f.md, ram/7e236b.md]
+see: [knowledge/wram/PEDDLER_STAGE.md, knowledge/wram/DIALOGUE_STRING_PARAM_REGISTERS.md]
 ---
 Total conversation counter with the Nobilia Market entrance peddler (Room 10, trigger 14 at [13,44]).
 

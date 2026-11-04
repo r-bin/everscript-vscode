@@ -8,7 +8,7 @@ title: Bugmuck shaft diagonal right fall transition
 confidence: confirmed
 tags: [movement, transition, bugmuck]
 evidence: ["scripts: Room 22 ($93:ba8f, $93:ba9f, etc.) calls $93:bb91; walks to entry waypoint (arg[4], arg[6]), plays fall animation, and shifts X rightwards (+ (arg[8] << 1)) while dropping to destination"]
-see: [rom/93bc03.md, rom/93bc6a.md, ram/7e2497.md, ram/7e2499.md]
+see: [rom/93bc03.md, rom/93bc6a.md, knowledge/wram/TARGET_WAYPOINT_X.md, knowledge/wram/TARGET_WAYPOINT_Y.md]
 ---
 Shaft drop routine for diagonal right-curving drops in Bugmuck (Room 22).
 

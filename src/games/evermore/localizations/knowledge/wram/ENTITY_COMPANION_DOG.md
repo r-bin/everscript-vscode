@@ -8,7 +8,7 @@ lifetime: session
 confidence: confirmed
 tags: [entity, player, party]
 evidence: ["disasm: Dog entity record linked directly before the Boy in entity list; offsets +$1A (x) and +$1C (y) hold dog world coordinates", "src/games/evermore/emulator/bottom-bar-views.ts: reads $7E4F51/$7E4F53 for coordinates and manipulates flags at $7E4F47/$7E4F48"]
-see: [knowledge/wram/4e89.md, knowledge/wram/3ddf.md]
+see: [knowledge/wram/ENTITY_PLAYER_BOY.md, knowledge/wram/ACTIVE_ENTITY_HEAD.md]
 ---
 Active entity instance record for the player's canine companion (the Dog).
 
@@ -27,4 +27,4 @@ Active entity instance record for the player's canine companion (the Dog).
 | +$5E ($7E:4F95) | 2 | NEXT_ENTITY | Pointer to next entity in linked list (points to Boy at $7E:4E89) |
 | +$60 ($7E:4F97) | 2 | CHAR_TYPE_PTR | Low 16 bits of pointer to character master struct in bank $8E |
 
-The other fields sit at the same offsets as in the boy's record (`ram/7e4e89.md`, More fields; the record is $AE bytes).
+The other fields sit at the same offsets as in the boy's record (`knowledge/wram/ENTITY_PLAYER_BOY.md`, More fields; the record is $AE bytes).

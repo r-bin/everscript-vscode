@@ -8,7 +8,7 @@ lifetime: frame
 confidence: confirmed
 tags: [engine, entity, scheduler, performance]
 evidence: ["rom-asm: $8F:DC5E increments INC $107C on lag-free frames and compares against CMP #$0708 (1800 frames / 30 seconds)", "rom-asm: triggers increment of entity batch limit INC $1076 upon reaching stability threshold"]
-see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/1076.md, knowledge/wram/107a.md]
+see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/ENTITY_BATCH_PROCESS_LIMIT.md, knowledge/wram/ENTITY_SCHEDULER_LAG_COUNTER.md]
 ---
 16-bit timer counting consecutive smooth, lag-free frames:
 - Incremented by `INC $107C` at `$8F:DC5E` as long as no frame drops are detected.

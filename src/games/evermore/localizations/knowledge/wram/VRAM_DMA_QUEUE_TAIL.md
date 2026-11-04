@@ -8,7 +8,7 @@ lifetime: frame
 confidence: confirmed
 tags: [cgram, palette, vblank]
 evidence: ["disasm: func_C0823A (nmi_v_blank_handler) checks and clears $7E:013B before triggering palette DMA transfer to CGDATA ($2122)"]
-see: [knowledge/wram/013f.md, knowledge/wram/128e.md]
+see: [knowledge/wram/VRAM_DMA_QUEUE.md, knowledge/wram/CGRAM_DMA_QUEUE_HEAD.md]
 ---
 Dirty flag asserted when the shadow palette buffer in WRAM (`$7E:013F`..`$7E:033E`) has been updated and requires a DMA copy to SNES CGRAM ($2121/$2122) during VBlank.
 

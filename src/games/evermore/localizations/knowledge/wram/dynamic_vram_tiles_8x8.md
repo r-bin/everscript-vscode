@@ -8,7 +8,7 @@ lifetime: frame
 confidence: confirmed
 tags: [vram, tiles, sprites]
 evidence: ["disasm: obj_tile_allocate ($C0:A4B5) writes decompressed 4bpp pixel data words into $7E:6C91..$7E:72D0 (stride 32 bytes per 8x8 tile)"]
-see: [knowledge/wram/72d1.md, knowledge/wram/96a5.md]
+see: [knowledge/wram/SPRITE_TILE_STAGING_BUF.md, knowledge/wram/OBJ_TILE_LRU_PREV.md]
 ---
 WRAM staging buffer for dynamic 8x8 4bpp SNES sprite tiles queued for transfer to VRAM.
 

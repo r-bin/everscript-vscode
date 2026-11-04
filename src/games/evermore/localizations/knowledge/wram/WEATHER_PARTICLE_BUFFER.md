@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [weather, particles, simulation]
 evidence: ["disasm: func_91C15B increments cursor $14FE by 4 (wrapping at 256 / $100), calls RNG func_80859B, and writes random vector words into $7E:2110,X", "disasm: func_91BE05 coordinates weather particle updates and camera relative displacement against $14EE/$2110"]
-see: [knowledge/wram/14ea.md, knowledge/wram/14ec.md]
+see: [knowledge/wram/WEATHER_PARTICLE_PREV_Y.md, knowledge/wram/WEATHER_PARAMS_ALIGN_PAD.md]
 ---
 256-byte cyclic state buffer holding simulation records for up to 64 active weather particles (rain streaks, snow flakes, drifting ash, falling leaves).
 - Each particle entry is 4 bytes:

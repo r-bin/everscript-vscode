@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [collision, map, physics]
 evidence: ["disasm: func_D099FB loads metatile collision words from $7F:0000 into $7E:08FA..$7E:0A25", "disasm: collision_geometry_bits_3_0 ($D0:9DE8) and func_D09E93 evaluate this matrix against entity coordinates"]
-see: [src/games/evermore/localizations/knowledge/ram/7f0000.md]
+see: [knowledge/wram/ROOM_METATILE_GRID.md]
 ---
 Active viewport metatile collision matrix describing the local 16×16 tile terrain surrounding the camera and active party in the current room.
 

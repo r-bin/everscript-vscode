@@ -620,7 +620,7 @@
 | `$7E:2110` | [`WEATHER_PARTICLE_BUFFER`](knowledge/wram/WEATHER_PARTICLE_BUFFER.md) | `u8[256]` | weather | 64-entry cyclic state array for weather particle trajectories (4 bytes per particle; $91:C15B, $91:BE05). |
 | `$7E:2210` | [`BOY_NAME_BUFFER`](knowledge/wram/BOY_NAME_BUFFER.md) | `u8[36]` | boy | Custom player character name string buffer (ASCII/tile indices). |
 | `$7E:2234` | [`DOG_NAME_BUFFER`](knowledge/wram/DOG_NAME_BUFFER.md) | `u8[36]` | dog | Custom dog companion name string buffer (ASCII/tile indices). |
-| `$7E:2258` | [`STORY_FLAGS_ARRAY`](knowledge/wram/STORY_FLAGS_ARRAY.md) | `u32` | alchemy, combat | Master bit-packed array of persistent world progression, boss, and chest flags. |
+| `$7E:2258` | [`ALCHEMY_KNOWN_FLAGS`](knowledge/wram/ALCHEMY_KNOWN_FLAGS.md) | `u32` | alchemy, script | Alchemy formula learned bits, alphabetical from Acid Rain (bit 0); the last in `$7E:225C`. |
 | `$7E:225C` | [`ALCHEMY_KNOWN_FLAGS_4`](knowledge/wram/ALCHEMY_KNOWN_FLAGS_4.md) | `u8` | alchemy, script | Alchemy Subsystem: Formula learned bitmask byte 4 (bits 0..2: Sting, Stop, Super Heal) |
 | `$7E:225D` | [`SHOP_MENU_OPTION_FLAGS`](knowledge/wram/SHOP_MENU_OPTION_FLAGS.md) | `u8` | dialogue, script | Shopkeeper interaction menu option enable flags (bit 0 = trade/rare $F4, bit 1 = talk/exit $F6; $8E:8D05). |
 | `$7E:225E` | [`STORY_FLAGS_225E`](knowledge/wram/STORY_FLAGS_225E.md) | `u8[2]` | script, system | Save RAM Subsystem: Persistent world progression and quest event bitmask flags (bytes 6 and 7 of save flag block, bit indices 48..63; $7E:225E..$7E:225F). |
@@ -634,7 +634,8 @@
 | `$7E:226C` | [`QUICKSAND_FIELD_PICKUP_CLAIM_FLAGS`](knowledge/wram/QUICKSAND_FIELD_PICKUP_CLAIM_FLAGS.md) | `u8` | item, script | Quicksand Field pickup-claimed flags |
 | `$7E:226D` | [`PICKUP_CLAIM_FLAGS_226D`](knowledge/wram/PICKUP_CLAIM_FLAGS_226D.md) | `u8` | item, map | Pickup-claimed flags (rooms 0x35, 0x3B, 0x5A) |
 | `$7E:226E` | [`STORY_CHEST_FLAGS_226E`](knowledge/wram/STORY_CHEST_FLAGS_226E.md) | `u8[22]` | item, script | Save RAM Subsystem: Persistent story progression, chest opened, and item pickup claimed bitmask flags array (22 bytes, $7E:226E..$7E:2283). |
-| `$7E:2284` | [`ALCHEMY_KNOWN_FLAGS`](knowledge/wram/ALCHEMY_KNOWN_FLAGS.md) | `u16` | alchemy, script | Bitmask flags tracking which alchemy formulas have been acquired by player. |
+| `$7E:2284` | [`OMNITOPIA_CHESTS_A`](knowledge/wram/OMNITOPIA_CHESTS_A.md) | `u8` | item, script | Omnitopia chests opened (storage room, greenhouse). |
+| `$7E:2285` | [`STORY_CHEST_FLAGS_2285`](knowledge/wram/STORY_CHEST_FLAGS_2285.md) | `u8` | item, script | Save RAM flags next to `OMNITOPIA_CHESTS_A`; bits not traced. |
 | `$7E:2286` | [`STORY_CHEST_FLAGS_2286`](knowledge/wram/STORY_CHEST_FLAGS_2286.md) | `u8[5]` | item, script | Save RAM Subsystem: Persistent story progression, chest opened, and item pickup claimed bitmask flags array (5 bytes, $7E:2286..$7E:228A). |
 | `$7E:228B` | [`DOG_NAMED_FLAG`](knowledge/wram/DOG_NAMED_FLAG.md) | `u8` | dog | Companion dog custom name initialization flag (bit 0 prevents default ROM name overwrite at boot; $8E:E124). |
 | `$7E:228C` | [`STORY_PROGRESSION_FLAGS_228C`](knowledge/wram/STORY_PROGRESSION_FLAGS_228C.md) | `u8[78]` | dialogue, script | Save RAM Subsystem: Master persistent quest, NPC dialogue progression, and world event bitmask flags array (78 bytes, $7E:228C..$7E:22D9). |

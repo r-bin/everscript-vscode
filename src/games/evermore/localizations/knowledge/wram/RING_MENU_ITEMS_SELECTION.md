@@ -8,6 +8,6 @@ lifetime: room
 confidence: confirmed
 tags: [ring-menu, inventory, items]
 evidence: ["disasm: func_8E9DAE ($8E:9DAE) zeroes $0C49 and copies initial cursor selection", "disasm: joypad ring navigation wraps $0C49 between 0 and $0C47 - 1"]
-see: [ram/7e0c47.md, rom/8e9dae.md]
+see: [knowledge/wram/RING_MENU_ITEMS_COUNT.md, rom/8e9dae.md]
 ---
 16-bit cursor index identifying the currently highlighted consumable item in the Items Ring Menu.

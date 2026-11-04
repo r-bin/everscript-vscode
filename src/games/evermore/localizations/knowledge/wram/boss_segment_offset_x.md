@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [bosses, entities, combat]
 evidence: ["disasm: func_CF9C24 ($8F:9C41) adds $7E:3C75 to parent boss world X to place attached satellite limb"]
-see: [knowledge/wram/3bc9.md]
+see: [knowledge/wram/COMPANION_WAYPOINTS_BUF.md]
 ---
 Horizontal joint displacement in world pixels from the boss parent body to its connected child limb or satellite entity.
 

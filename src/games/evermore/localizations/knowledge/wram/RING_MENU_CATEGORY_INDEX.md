@@ -8,7 +8,7 @@ lifetime: frame
 confidence: confirmed
 tags: [mode7, flight]
 evidence: ["c: reconstructed-c/8E/8EB02C_mode7_flight.c checks bitmask $007C in $05AB to dispatch landmark entities, bit $0040 for vehicle weapon selection, and bit $0008 for armor sprite tables"]
-see: [knowledge/wram/061d.md, knowledge/wram/0bf9.md]
+see: [knowledge/wram/FLIGHT_PITCH_ANGLE.md, knowledge/wram/RING_MENU_CURSOR_SECTOR.md]
 ---
 Overworld Mode 7 flight simulation display flags and entity sprite projection selector.
 

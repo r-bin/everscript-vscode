@@ -8,7 +8,7 @@ name: tbl_armor_records
 title: Master armor and collar attributes table (40 records × 10 bytes)
 confidence: confirmed
 evidence: ["disasm: $8E:99D2 (calc_equipped_armor_defense) reads armor records to sum physical defense and magic defense", "rom: 40 records x 10 bytes ($C4:3B02..$C4:3C91), immediately preceding tbl_animate_id_records at $C4:3C92", "data: 12 vests, 12 helmets, 12 armbands, 4 collars with names, defense values, and ring icon indices"]
-see: [ram/7e231d.md, rom/c438e6.md, rom/c43c92.md, docs/disassembly/engine-core/rom-tables.md]
+see: [knowledge/wram/ARMOR_QTY_GRASS_VEST.md, rom/c438e6.md, rom/c43c92.md, docs/disassembly/engine-core/rom-tables.md]
 ---
 Master equipment database for all 40 pieces of equippable defense gear:
 - 12 Chest Armors (`$C4:3B02`..`$C4:3B79`, stride 10): Grass Vest through Virtual Vest

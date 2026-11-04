@@ -34,7 +34,7 @@ events**, not game time (travel and fight lengths come later, from Routes/combat
   appears, a long dialogue (texts `0x21B1`…`0x21C0`), waits on `$285B`, then `INSIDE_OUTRO = 1` and
   `load_map(0x59, 9, 37)` (Quicksand Field, where the outro begins).
 - Nothing above is in a knowledge entry yet: write `rom/9ba971.md`, `rom/9bb0b3.md`,
-  `rom/9babe4.md` and a `ram/7e22f1.md` bit table when this is picked up.
+  `rom/9babe4.md` and a `knowledge/wram/STORY_FLAGS_22F0.md` bit table when this is picked up.
 
 ## Why the existing simulation does not answer it
 
@@ -81,5 +81,5 @@ events**, not game time (travel and fight lengths come later, from Routes/combat
   19, 0x09 Aegis fight 23, 0x35 caves 12): split only on **named save flags**; fold the rest back
   into the default with "only if …".
 - `$22ec` bit 5 also selects a Tinker variant in Ebon Keep (0x0d): relabel to the general
-  "windwalker scene due" and widen `knowledge/ram/7e22ec.md`.
+  "windwalker scene due" and widen `knowledge/wram/ROOM_MUSIC_TRANSITION_FLAG.md`.
 - Some townsfolk (Nobilia square) count as enemies in `maps.enemiesAt`: check their spawn flags.

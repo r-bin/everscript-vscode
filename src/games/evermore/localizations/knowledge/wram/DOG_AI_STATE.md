@@ -8,7 +8,7 @@ lifetime: save
 confidence: confirmed
 tags: [dog, companion, ai]
 evidence: ["disasm: func_CF803C reads $7E:235B to switch dog behavior between follow, heel, sniff, and attack modes"]
-see: [knowledge/wram/144d.md, knowledge/wram/2363.md]
+see: [knowledge/wram/dog_form_scent_radius.md, knowledge/wram/DOG_FORM_INDEX.md]
 ---
 Companion dog AI behavioral state command register saved across game sessions.
 

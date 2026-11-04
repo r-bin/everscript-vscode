@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [dialogue, ui, joypad]
 evidence: ["disasm: func_CCB4E2 polls joypad up/down inputs and cursor toggling when state equals 2", "disasm: script opcode 0x48 sets state to 1 to begin choice box rendering"]
-see: [knowledge/wram/0377.md]
+see: [knowledge/wram/WINDOW_DESCRIPTOR_0.md]
 ---
 Tracks the state of the branching choice selection box during interactive dialogue prompts:
 - `0`: Inactive / No choice prompt

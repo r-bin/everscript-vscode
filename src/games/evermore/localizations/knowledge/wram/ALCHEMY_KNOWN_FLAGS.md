@@ -1,6 +1,6 @@
 ---
 addr: 7E2258
-end: 7E225C
+end: 7E225B
 kind: table
 name: ALCHEMY_KNOWN_FLAGS
 title: Alchemy formula learned bitfield
@@ -8,7 +8,7 @@ lifetime: save
 confidence: confirmed
 tags: [alchemy, flags]
 evidence: ["docs/item-icons.md and src/games/evermore/maps/item-icons.ts: formula 'known' bit occupies bits from $2258 alphabetically from Acid Rain (bit 0) to Super Heal (bit 34)"]
-see: [knowledge/wram/2ed6.md, knowledge/wram/2f52.md]
+see: [knowledge/wram/VM_SCRIPT_SLOTS.md, knowledge/wram/FORMULA_XP_ACID_RAIN.md]
 ---
 5-byte bitfield (35 bits) recording whether each of the 35 alchemy formulas has been learned by the player.
 

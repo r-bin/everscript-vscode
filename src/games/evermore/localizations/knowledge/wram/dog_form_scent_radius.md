@@ -8,7 +8,7 @@ lifetime: save
 confidence: confirmed
 tags: [dog, companion, ai]
 evidence: ["disasm: func_CF946B ($8F:9505) copies sniffing detection range word into $7E:144D", "disasm: func_CF803C evaluates this distance against hidden alchemy ingredient spots"]
-see: [knowledge/wram/1443.md]
+see: [knowledge/wram/DOG_FORM_ANIM_9.md]
 ---
 Detection radius in world pixels for the companion dog's active sniffing behaviour.
 

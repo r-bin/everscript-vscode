@@ -9,7 +9,7 @@
     //   min   a word held at least at a value (nothing to put back)
     // maintainCheats() runs before every frame (not during a replay) and writes only what differs, so a
     // recording gets a W event when the game changed something, not one per byte per frame.
-    const CHEAT_BOY = 0x7E4E89, CHEAT_DOG = 0x7E4F37;   // entity records (knowledge ram/7e4e89.md)
+    const CHEAT_BOY = 0x7E4E89, CHEAT_DOG = 0x7E4F37;   // entity records (knowledge/wram/ENTITY_PLAYER_BOY.md)
     const CHEAT_PARTY = [CHEAT_BOY, CHEAT_DOG];
     const cheatPartyBit = (offset, bit) => CHEAT_PARTY.map(e => ({ kind: 'bit', addr: e + offset, bit: bit }));
 
@@ -116,7 +116,7 @@
 
     // unlock(ITEM.WEAPON_LEVEL_3) and the Dog's DOG_LEVEL_3: every weapon level word at level 3. One word per Boy
     // weapon, $0ADD (fist) .. $0AF7 (bazooka), and the Dog's at $0B07: level x $100 + progress, $0100 at level 1
-    // (knowledge ram/7e0add.md). Levels already past it are left alone. The weapon in hand takes its new charge
+    // (knowledge/wram/WEAPON_SKILL_FIST.md). Levels already past it are left alone. The weapon in hand takes its new charge
     // levels the next time the game loads it (a weapon switch or a room change).
     const CHEAT_WEAPON_LEVELS = [0x7E0ADD, 0x7E0ADF, 0x7E0AE1, 0x7E0AE3, 0x7E0AE5, 0x7E0AE7, 0x7E0AE9, 0x7E0AEB,
       0x7E0AED, 0x7E0AEF, 0x7E0AF1, 0x7E0AF3, 0x7E0AF5, 0x7E0AF7, 0x7E0B07];

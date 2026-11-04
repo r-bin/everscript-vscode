@@ -8,7 +8,7 @@ title: Global 0x3a — loot a gourd / chest (the pickup driver)
 confidence: confirmed
 tags: [loot, script]
 evidence: ["render: room 0x38 object 0 (B-trigger #1's gourd) in object state 1 shows the open top; state 0 the closed gourd (Routes tab, tests/memory/routes-tab.test.js, v0.334.0)", "test: simulated for all 910 item pickups; the WRAM it changes matches the decoded loot of every one (tests/simulation/loot.test.js, v0.202.0)", "disasm: script listing via soe://rom/assets/scripts"]
-see: [rom/92a584.md, ram/7e2391.md, ram/7e22ff.md]
+see: [rom/92a584.md, knowledge/wram/LOOT_MAILBOX.md, knowledge/wram/ING_QTY_WAX.md]
 ---
 Called by gourd/chest B-triggers after they stage the loot mailbox (`$2391` item, `$2395`
 object, `$2461` amount−1). If the **boy** is not the controlled character it only clears

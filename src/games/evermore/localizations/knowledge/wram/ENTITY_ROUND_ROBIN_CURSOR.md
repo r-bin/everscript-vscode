@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [engine, entity, scheduler, pointer]
 evidence: ["rom-asm: $8F:DCA3 LDX $0EBC loads current entity slot pointer", "rom-asm: loops 6 times per frame, stepping by ADC #$008E, wrapping at CMP #$4E89 back to LDA #$3DE5, and saving back with STX $0EBC"]
-see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/1076.md]
+see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/ENTITY_BATCH_PROCESS_LIMIT.md]
 ---
 16-bit WRAM pointer storing the current entity pool cursor for round-robin entity execution:
 - Evermore maintains 30 dynamic entity slots spanning `$7E:3DE5` to `$7E:4E88` (each slot is 0x8E = 142 bytes).

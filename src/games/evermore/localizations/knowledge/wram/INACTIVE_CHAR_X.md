@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [scripts, party, entities]
 evidence: ["script: assigned from inactive.x (e.g. Crustacia east shore R79 step-on triggers)", "script: paired with $7E:24B1 (INACTIVE_CHAR_Y) to track secondary companion coordinates"]
-see: [ram/7e24ab.md, ram/7e24b1.md]
+see: [knowledge/wram/ACTIVE_CHAR_X.md, knowledge/wram/INACTIVE_CHAR_Y.md]
 ---
 Scratch register holding the X coordinate of the inactive companion character.
 Paired with `$7E:24B1` (`INACTIVE_CHAR_Y`) when scripts need to inspect or sync both party members' positions independently.

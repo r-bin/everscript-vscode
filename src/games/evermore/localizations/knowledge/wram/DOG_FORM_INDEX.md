@@ -8,7 +8,7 @@ lifetime: save
 confidence: confirmed
 tags: [dog, companion, form]
 evidence: ["disasm: func_CF946B ($8F:9471) stores active form request index into $7E:2363 before loading stats from tbl_dog_form_pointers ($8F:945D)"]
-see: [knowledge/wram/2443.md, knowledge/wram/4f37.md]
+see: [knowledge/wram/ROOM_METATILE_DESCRIPTOR_PTR.md, knowledge/wram/ENTITY_COMPANION_DOG.md]
 ---
 Stores the Companion (Dog) active form ID across room loads and save states.
 

@@ -34,7 +34,7 @@ Confidence is our own estimate:
 
 | Range | Size | Confidence | Notes |
 |---|---|---|---|
-| `$7E:ADFE–FFFD` | 20,992 (20.5 KB) | medium | Starts right after the OAM mirror (`$7E:ABDE–ADFD`, `knowledge/ram/7eabde.md`) and runs to the top of the bank. The best candidate. See the `$7E:FFFE` note below. |
+| `$7E:ADFE–FFFD` | 20,992 (20.5 KB) | medium | Starts right after the OAM mirror (`$7E:ABDE–ADFD`, `knowledge/wram/LOW_OAM_TABLE_BUF.md`) and runs to the top of the bank. The best candidate. See the `$7E:FFFE` note below. |
 | `$7F:8200–9743` | 5,444 | low | Inside bank `$7F`'s graphics and room buffers; a bigger room or tileset may reach it. |
 | `$7F:9750–9CE3` | 1,428 | low | Same region; a few used bytes separate it from the block above. |
 | `$7F:9CE6–9E8B` | 422 | low | Same region. |
@@ -87,7 +87,7 @@ Before a hack relies on a range:
 3. Search unrecorded code too: absolute stores while DB = `$7E`/`$7F`, and DMA writes to
    `$2180` with `$2181–$2183` in the range.
 
-Once a range has passed, record it as a knowledge entry (`knowledge/ram/`, kind `buffer`, name
+Once a range has passed, record it as a knowledge entry (`knowledge/wram/`, kind `buffer`, name
 `FREE_…`), with the playbacks used as evidence, and update this page.
 
 ## Reproducing the numbers

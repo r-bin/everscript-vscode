@@ -8,7 +8,7 @@ lifetime: save
 confidence: confirmed
 tags: [save, sram, bosses]
 evidence: ["disasm: event scripts assert bits in $7E:2533 upon boss death scripts", "disasm: func_C08D4D zeroes this flag during new game initialization"]
-see: [knowledge/wram/2258.md]
+see: [knowledge/wram/ALCHEMY_KNOWN_FLAGS.md]
 ---
 Persistent campaign boss defeat bitmask word saved in Cartridge SRAM.
 

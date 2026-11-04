@@ -8,7 +8,7 @@ title: Omnitopia duct arrival portal waypoint dispatcher
 confidence: confirmed
 tags: [omnitopia, transition, duct]
 evidence: ["scripts: Room 72 enter script ($9a:d427) calls $9a:d5c8; checks DUCT_ENTRANCE_SECTOR_ID (<0x24fd>) against indices 1..17, staging initial coordinates in (TRANSIT_ORIGIN_X, TRANSIT_ORIGIN_Y) and entry grate in DUCT_ENTRANCE_GRATE_OBJECT"]
-see: [ram/7e24fd.md, ram/7e24f9.md, ram/7e24fb.md]
+see: [knowledge/wram/INTER_ROOM_HANDSHAKE.md, knowledge/wram/ROOM_OBJECT_INDEX_A.md, knowledge/wram/ROOM_OBJECT_INDEX_B.md]
 ---
 Portal entrance dispatcher for the Omnitopia Metroplex ventilation duct network (Room 72).
 

@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [market, timer]
 evidence: ["scripts: Room 10 dialogue script ($96:ad97) writes frame_counter_low() to <0x254d> when stage reaches 5; tested at $96:abd9 against frame_counter_low() - 0x0E10 (3600 frames = 60s) to reset encounter"]
-see: [ram/7e244f.md, ram/7e236b.md]
+see: [knowledge/wram/PEDDLER_STAGE.md, knowledge/wram/DIALOGUE_STRING_PARAM_REGISTERS.md]
 ---
 Frame counter low timestamp marking when the Nobilia Market entrance peddler enters cooldown state (`<0x236b> = 4`).
 

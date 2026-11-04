@@ -9,7 +9,7 @@ title: Ambient weather wind gust oscillation, velocity acceleration, and drift s
 confidence: confirmed
 tags: [weather, wind, particles, physics, drift]
 evidence: ["disasm: updates wind parameters at $91:C179..$91:C2AC; configures wind oscillation base $14CE and velocity $14D0, applies wind vector deltas to particle buffer $7E:67F0, returns via RTL at $91:C2AC"]
-see: [rom/91c15b.md, rom/91c2ad.md, ram/7e14ce.md]
+see: [rom/91c15b.md, rom/91c2ad.md, knowledge/wram/WEATHER_SIM_STATE_ALIGN_PAD.md]
 ---
 Simulates dynamic wind gusts for ambient weather particles (rain, ash, snow):
 - Updates wind force registers `$7E:14CE` and `$7E:14D0` using sine oscillation.

@@ -7,7 +7,7 @@
 - **WRAM Core Addresses**:
   - `$7E:0BF5`: Current weapon level XP threshold target.
   - `$7E:0ADD`..`$7E:0AF7` (one word per Boy weapon) and `$7E:0B07` (Dog): level × `$100` + progress
-    (`knowledge ram/7e0add.md`). Earlier versions of this page named `$0AC6,x` / `$0AC8,x`; those are the
+    (`knowledge knowledge/wram/WEAPON_SKILL_FIST.md`). Earlier versions of this page named `$0AC6,x` / `$0AC8,x`; those are the
     money purses (Talons `$0AC6`).
   - `$7E:2FF4`: Formatted menu text string buffer.
 

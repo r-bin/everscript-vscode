@@ -8,7 +8,7 @@ title: Nobilia Market entrance peddler dialogue dispatcher
 confidence: confirmed
 tags: [market, dialogue, npc]
 evidence: ["scripts: Room 10 trigger 14 ($96:ad12) calls $96:ad2a; tests <0x244f> across stages 0..19, displaying corresponding message boxes ($109B..$10F5), walking boy south at stage 8, and triggering cooldown at stages 5 and 19"]
-see: [ram/7e244f.md, ram/7e236b.md, ram/7e254d.md]
+see: [knowledge/wram/PEDDLER_STAGE.md, knowledge/wram/DIALOGUE_STRING_PARAM_REGISTERS.md, knowledge/wram/PEDDLER_COOLDOWN_START_FRAME.md]
 ---
 Dialogue dispatcher for the persistent peddler NPC situated at the south entrance of Nobilia Market (Room 10, trigger 14 at [13,44]).
 

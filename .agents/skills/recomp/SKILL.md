@@ -26,7 +26,7 @@ the game itself, and commit there (branch `develop`).
   `out/recomp/asar/recomp/annotations.tsv` (asm + WRAM names); the recomp repo's regen script runs it.
 - C bindings: an `hle <pc24> <c_function> [body=<pc24>] <reason>` line in the recomp's exclusions file becomes `hle_func` (`body=`: the second instruction as a compiled root, for calls the C cannot take); the
   recomp's glue compiles `reconstructed-c/` from this checkout and runs it only where unobservable (its
-  game-rtl doc §4b). A broken `reconstructed-c/include/soe_ram.h` breaks that build: keep bound names in it.
+  game-rtl doc §4b). A broken `reconstructed-c/include/soe_ram.h` breaks that build: keep bound names in it. Its `ENTITY_RECORD_*_OFF` come from `EntityRecord` in `data/types.json`; only 3 routines compile there, so after a WRAM map change run `npm run c-to-rom:g1`, which builds all of them.
   `tools/compare/probes/run-stats.mts` measures speed per mode, banks that run and how often each binding's C ran.
 - Tools that need this repository: `tools/recomp/room-nav.js` (a room's triggers and spawns as
   headless script lines), `s9x-run.js` (the same script on snes9x), `npm run compare -- recomp=`

@@ -8,7 +8,7 @@ lifetime: frame
 confidence: confirmed
 tags: [inventory, equipment]
 evidence: ["disasm: func_CF9210 ($8F:9210) checks $243D, sets owned bit in $7E:2261+ using tbl_CCBBB0 / tbl_CCBBD8, recalculates armor stats, and writes $FFFF to $243D"]
-see: [knowledge/wram/22da.md, knowledge/wram/231d.md]
+see: [knowledge/wram/WEAPONS_OWNED_FLAGS_0.md, knowledge/wram/ARMOR_QTY_GRASS_VEST.md]
 ---
 One-shot command register used to grant equipment items (weapons, armor, collars) to the player's inventory.
 

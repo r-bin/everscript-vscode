@@ -9,7 +9,7 @@ title: Check entered player or dog name for profanity ("FUCK" / "fuck")
 confidence: confirmed
 tags: [ui, names, profanity, text]
 evidence: ["disasm: $80:B173-$80:B1D7; scans string at [$22] in bank [$24], stops on NUL, and uses 16-bit ORA/STA to set bit 5 in $7E:22E9 on a four-byte case-insensitive match (bytes AB A9 20 00 0F E9 22 7E 8F E9 22 7E 6B at $80:B1CB..$80:B1D7)", "clean C: check_name_profanity in reconstructed-c/8F/8FCC5D_weapon_charge.c; behavior documented in docs/disassembly/combat/weapon-charge.md"]
-see: [ram/7e22e9.md, rom/80b1d8.md, rom/80b20f.md, rom/80b21f.md]
+see: [knowledge/wram/ROOM_TRANSITION_MODE.md, rom/80b1d8.md, rom/80b20f.md, rom/80b21f.md]
 ---
 Called during player/dog name entry to check for forbidden vulgarity substrings:
 - Scans null-terminated string at pointer `[$22]` with data bank from `$24`.

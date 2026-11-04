@@ -15,4 +15,4 @@ The host-side model is [8CD7B3_opcode_1a_1e_write_arg_word.c](../../../reconstru
 - Vanilla VFS at `$8C:D7B3` loads the active thread-slot base from DP `$7E`, adds `$000F`, then adds the fetched 8-bit offset.
 - The handler evaluates the expression and stores the resulting word at the computed slot-relative address before returning with `SEC; RTS`.
 - Opcode VFS entries `0x1A` and `0x1E` both identify `$8C:D7B3` with operands `u8 E`.
-- [Script slot layout](soe://localization/knowledge/ram/7e28fc.md) documents the ten argument words beginning at slot offset `+$0F`.
+- [Script slot layout](soe://localization/knowledge/wram/VM_SCRIPT_SLOTS.md) documents the ten argument words beginning at slot offset `+$0F`.

@@ -27,7 +27,7 @@
   change); after a replay desync the game is in states nobody played. Fixed: the menu's room fallback read
   the word at `$7E0B3C` (requests for room 3072) instead of `$7E0ADB`.
 - 🟡 **Stat word names disagree:** `$0A3F` / `$0A41` (Boy, `$0A89` / `$0A8B` Dog, $4A apart) are attack /
-  defence in the compiler's `BOY_STATS` layout (knowledge ram/7e0a26.md), evade / magic defence in
+  defence in the compiler's `BOY_STATS` layout (knowledge knowledge/wram/BOY_STATS.md), evade / magic defence in
   `docs/disassembly/combat/defense-buffs.md` and `$8F:8398`, magic / physical defence in
   `companion-form-stats.md` and `$8F:866B` (whose code only adds +80 / +250). Settle it against the game.
 - 🟡 **"4x looks like 10x on a 144 Hz screen":** not reproduced; the pacing simulates to 4.00x at 144 and

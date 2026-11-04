@@ -9,7 +9,7 @@ lifetime: room
 confidence: likely
 tags: [entity]
 evidence: ["docs: docs/entities/entities-reference.md §runtime record lists the fields below with the routines that read them", "cdl: slots at $3DE5 + n*$8E up to $4E89, then the Boy $4E89 and the Dog $4F37 ($AE bytes each), then $4FE5 + n*$8E (CDL static queries, v0.340.1)", "c: the bound C routines read these fields through Y or X = the record, DB-relative (reconstructed-c/, v0.351.0): +$24 written by ai_pick_target ($8F:D879), +$6A freed by multipart_child_free_primary ($8F:98FE), +$84 = the sprite depth from entity_sprite_depth ($8F:C773), +$82 cleared by anim_op_reset ($90:8453)"]
-see: [docs/entities/entities-reference.md, knowledge/wram/4e89.md, knowledge/wram/3ddf.md]
+see: [docs/entities/entities-reference.md, knowledge/wram/ENTITY_PLAYER_BOY.md, knowledge/wram/ACTIVE_ENTITY_HEAD.md]
 ---
 The first entity slot; every slot (and the Boy's and Dog's longer records) has this layout. Code
 reaches a record through X or Y (`LDA $001A,y`), so C uses the offsets below as

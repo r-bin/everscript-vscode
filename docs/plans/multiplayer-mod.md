@@ -21,7 +21,7 @@ What it got right, and what we keep:
 - **Hooks at the joypad read**, plus one helper that returns "the buttons of whoever owns this
   character" for the ring menu and the character handlers. Its hooks, as bus addresses (IPS
   offsets minus the `$200` header): the NMI pad read `$C0:847A` and the press-consume routine
-  `$C0:8597` (`TRB $0104`; `knowledge/ram/7e0104.md`); the character handlers in `$CF:CC77`–`$CF:D0A8`
+  `$C0:8597` (`TRB $0104`; `knowledge/wram/JOYPAD1_HELD.md`); the character handlers in `$CF:CC77`–`$CF:D0A8`
   (the companion AI's "am I controlled?" checks at `$CF:D05E`/`$CF:D0A8`, `rom/8fd0a8.md`); about
   30 call sites in the ring menu and its sub-menus (`$CC`, `$CD`, `$CE`); a little code in `$C0:C5xx`–`$C0:CExx`
   and `$D0:82CE`; 2.5 KB of new code at `$F0:0000`; and the ROM grown to 4 MB.
@@ -31,7 +31,7 @@ and still need checking in the emulator:
 
 | Symptom (readme) | Probable cause | Our rule |
 |---|---|---|
-| Only the camera character can leave a room or start some events | Exits, step-ons and several scripts key on the camera entity `$0F42` (`knowledge/ram/7e0f42.md`) | §6: one *protagonist*, explicit rules for the others |
+| Only the camera character can leave a room or start some events | Exits, step-ons and several scripts key on the camera entity `$0F42` (`knowledge/wram/CAMERA_TARGET_ACTOR_PTR.md`) | §6: one *protagonist*, explicit rules for the others |
 | Non-camera character stuck behind an invisible exit tile after entering a room | It keeps its own position through the room load instead of being placed with the party | Place every character with the protagonist on room entry, ignore triggers for a few frames |
 | Pyramid: the other character freezes on a camera switch | A script halts the non-controlled character (`+$10` bit `$20`, `rom/8cf17c.md`) | Respect the halt flag: a halted character ignores its pad |
 | Desert spin: Select locked out while the dog has the camera | Same halt flag on the switch | Leaving the game always hands the camera back; never trap the protagonist role |
@@ -120,7 +120,7 @@ accident; L/R already steer the dog, `rom/8fd0a8.md`).
 ## 6. Camera
 
 SNES fact: one screen, one scroll position. Evermore follows one entity (`$0F42`) or a fixed
-point (`$242B`, `knowledge/ram/7e242b.md`) and clamps to the map edges. Mana's complaint was
+point (`$242B`, `knowledge/wram/CAMERA_SCRIPTED_TARGET_X.md`) and clamps to the map edges. Mana's complaint was
 the **hard leash**: players stopped at the screen edge and the camera refused to move.
 
 **Recommendation: a soft group camera with a protagonist.**
@@ -159,7 +159,7 @@ number. This is about 16 bytes per player.
 new code for the whole ring (input, drawing, effects); decide after phase 1 has been played.
 
 **Two boys with their own items.** The inventory is one global table (`$7E:22FF`,
-`knowledge/ram/7e22ff.md`, plus weapons, alchemy, money), and the stats live in a per-character
+`knowledge/wram/ING_QTY_WAX.md`, plus weapons, alchemy, money), and the stats live in a per-character
 block (`$0A26` boy, `$0A70` dog). Plan: **inventory banks**. The global table always holds
 the bank of the player whose ring is open; we swap banks in and out when a ring opens and
 closes, and when an item is used outside a ring. Pickups go to the bank of whoever picked them
@@ -180,7 +180,7 @@ must pass the guard-pattern playback test described there before the mod relies 
 **Extra characters need entity records.** The boy and the dog have `$AE`-byte records at
 `$4E89`/`$4F37`; other entities have `$8E` bytes in a pool around them (57 slots in all,
 [`character-properties.md`](../entities/character-properties.md)). A third and fourth party member need records the
-engine's entity pass walks (list head `$3DDF`, next link `+$5E`, `knowledge/ram/7e3ddf.md`).
+engine's entity pass walks (list head `$3DDF`, next link `+$5E`, `knowledge/wram/ACTIVE_ENTITY_HEAD.md`).
 Open: whether a record outside the pool works with the engine's addressing, or whether we
 take pool slots (and then lower the enemy limit).
 

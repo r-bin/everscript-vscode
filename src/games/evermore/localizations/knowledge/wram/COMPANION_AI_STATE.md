@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [dog, companion, ai]
 evidence: ["disasm: func_CF98B5 dispatches companion AI updates based on state index 0..6", "disasm: func_CF803C transitions dog to state 2 upon alchemy scent detection"]
-see: [knowledge/wram/235b.md]
+see: [knowledge/wram/DOG_AI_STATE.md]
 ---
 Companion Dog behavioral state machine:
 - `0`: Idle (stationary waiting animation)

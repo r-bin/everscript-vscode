@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [engine, entity, scheduler, performance]
 evidence: ["rom-asm: $8F:DC6A LDA $1076 checks current slice limit against upper bound CMP #$0006", "rom-asm: increments INC $1076 after 1800 lag-free frames ($7E:107C reaching #$0708)", "rom-asm: controls loop slice count in round-robin entity scheduler ($8F:DC9F)"]
-see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/0ebc.md, knowledge/wram/107c.md]
+see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/ENTITY_ROUND_ROBIN_CURSOR.md, knowledge/wram/ENTITY_SCHEDULER_STABILITY_TIMER.md]
 ---
 16-bit dynamic execution budget regulating how many entity slots are updated per frame (1..6):
 - Defaulted to 6 entities per frame in normal conditions, allowing the 30-slot entity pool to complete a full update cycle every 5 frames.

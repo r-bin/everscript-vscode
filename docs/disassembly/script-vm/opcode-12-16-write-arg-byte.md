@@ -16,4 +16,4 @@ The host-side model is [8CD7E6_opcode_12_16_write_arg_byte.c](../../../reconstru
 
 - Vanilla VFS disassembly at `$8C:D7E6`–`$8C:D81B`: adds `$000F` to the active slot pointer, fetches a byte through `[$82]`, advances the 24-bit script pointer, evaluates an expression, and stores its low byte through DBR `$7E`.
 - Opcode VFS entries for `0x12` and `0x16` both identify `$8C:D7E6` as their handler and a `u8` operand.
-- [Script slot layout](soe://localization/knowledge/ram/7e28fc.md): the argument words begin at slot offset `+$0F`.
+- [Script slot layout](soe://localization/knowledge/wram/VM_SCRIPT_SLOTS.md): the argument words begin at slot offset `+$0F`.

@@ -58,6 +58,12 @@ export function ramHeader(list: Entry[]): string {
         }
         lines.push('');
     }
+    // Code reaches a record through X or Y, so C wants its layout as offsets: data/types.json holds it since the WRAM map.
+    const types = JSON.parse(readFileSync(join(REPO, 'src/games/evermore/localizations/data/types.json'), 'utf8'));
+    const record = types.structs.EntityRecord;
+    lines.push('/* The layout every entity record shares (data/types.json EntityRecord) */', `#define ENTITY_RECORD_SIZE ${record.size}`);
+    for (const f of record.fields) lines.push(`#define ENTITY_RECORD_${ident(f.name)}_OFF 0x${f.offset.toString(16).toUpperCase().padStart(2, '0')}u`);
+    lines.push('');
     lines.push('#endif /* SOE_RAM_H */');
     return lines.join('\n') + '\n';
 }

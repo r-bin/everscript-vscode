@@ -8,7 +8,7 @@ lifetime: save
 confidence: likely
 tags: [loot, flags]
 evidence: ["evs: B-triggers in rooms 0x35, 0x3B, and 0x5A test/set all eight bits as pickup claims; matching enter-script object-state operands use flag IDs 0xA8–0xAF", "disasm: generic save-flag handlers map IDs 0xA8–0xAF to $7E:226D bits 0–7", "disasm: opcode 0x0C writes computed save flags and opcode 0x5D applies object state from save flags"]
-see: [docs/scripts/unnamed-memory-audit.md, docs/scripts/vm.md, ram/7e2258.md, rom/8cd83e.md]
+see: [docs/scripts/unnamed-memory-audit.md, docs/scripts/vm.md, knowledge/wram/ALCHEMY_KNOWN_FLAGS.md, rom/8cd83e.md]
 ---
 One save-persistent byte whose eight bits record pickup claims in rooms `0x35`, `0x3B`, and `0x5A`. Each observed trigger checks its bit before the reward and sets it from the loot-success result; the rooms' enter scripts use the corresponding save-flag IDs to restore the matching pickup object's state.
 

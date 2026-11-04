@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [loot]
 evidence: ["test: global 0x3e adds 1 + $2461; both loot drivers write 0 when done (simulation, v0.202.0)", "test: Ebon Keep $98:CCCC — the bonus a branch stages does not reach the other branch (tests/simulation/loot.test.js; script-model reads loot per path, tests/script-model/rom.test.js)"]
-see: [ram/7e2391.md]
+see: [knowledge/wram/LOOT_MAILBOX.md]
 ---
 The loot script adds `1 + $2461`. Pickups that give more than one write `amount − 1` here
 before calling the driver; the drivers reset it to 0 afterwards, so between pickups it is 0

@@ -8,7 +8,7 @@ lifetime: frame
 confidence: confirmed
 tags: [engine, entity, scheduler, performance]
 evidence: ["rom-asm: $8F:DC73 increments INC $107A on dropped frame and compares CMP #$0003", "rom-asm: if 3 consecutive lag frames occur, resets stability timer STZ $107C and STZ $107A"]
-see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/1078.md, knowledge/wram/107c.md]
+see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/ENTITY_SCHEDULER_FRAME_LATCH.md, knowledge/wram/ENTITY_SCHEDULER_STABILITY_TIMER.md]
 ---
 16-bit counter tracking consecutive dropped frames detected by the entity scheduler:
 - Incremented at `$8F:DC73` when `$7E:0100 - 1 != $7E:1078`.

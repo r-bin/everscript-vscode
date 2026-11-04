@@ -9,7 +9,7 @@ lifetime: room
 confidence: confirmed
 tags: [bosses, entities, combat]
 evidence: ["disasm: func_CF98B5 links parent entity into +0x4B and clears status word in +0x49 ($7E:3C12)", "disasm: func_CF9C24 updates limb offsets at +0x02..+0x04"]
-see: [knowledge/wram/3bc7.md, knowledge/wram/3c75.md]
+see: [knowledge/wram/ENTITY_FREE_LIST_HEAD.md, knowledge/wram/boss_segment_offset_x.md]
 ---
 Descriptor structure (89 bytes, `0x59` stride) for child segment slot 0 in the multipart boss subsystem.
 
