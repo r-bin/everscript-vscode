@@ -1,0 +1,14 @@
+---
+addr: 9199C8
+size: 16
+end: 9199D7
+kind: code
+category: 🎮
+name: alchemy_cutscene_dialogue_activate
+title: Activate cutscene dialogue window processing from alchemy script ($91:99C8)
+confidence: confirmed
+evidence: ["disasm: advances script PC +$14,Y by 2 bytes; opens cutscene dialogue window via $8C:C55D"]
+see: ["rom/8cc55d.md"]
+tags: ["alchemy","cutscene","dialogue","window"]
+---
+Advances effect script PC `+$14,Y` by 2 bytes and opens/activates cutscene dialogue processing via `cutscene_dialogue_activate` (`$8C:C55D`).

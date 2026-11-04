@@ -1,0 +1,32 @@
+---
+addr: 90999C
+end: 9099FA
+size: 95
+kind: code
+category: 🧠
+name: room_tilemap_layer2_parallax_offset_calc
+title: Calculates Layer 2 background parallax scrolling offsets and vertical perspective adjustments
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Calculates Layer 2 background parallax scrolling offsets and vertical perspective adjustments.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Computes scrolling displacement for multi-layered background rooms (such as mountain vistas or canopy forests).
+The routine multiplies camera horizontal displacement `$48` with parallax scalar `$08EE` via hardware multiplier `$4202`.
+
+It adds vertical perspective adjustments, outputting the resultant Layer 2 VRAM scrolling offsets into `$30` and `$46`.
+
+## Callers
+- `$90:98FA` (`FUN_9098fa`)
+
+## Callees
+- None
+
+## Variables and memory (hypotheses)
+- `$48` (Camera world horizontal displacement)
+- `$08EE` (Room background Layer 2 parallax ratio scalar)
+- `$4202`, `$4216` (Hardware multiplication registers)
+- `$30`, `$46` (Layer 2 scrolling offset registers)

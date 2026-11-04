@@ -1,0 +1,18 @@
+---
+addr: 8FC02B
+size: 60
+end: 8FC066
+kind: code
+category: 🧠
+name: scale_damage_by_stamina
+title: Scale attack damage power by attacker's stamina percentage
+confidence: confirmed
+tags: [combat, damage, stamina]
+evidence: ["disasm: under $0200 (50% stamina) divides power by 4; between 50% and 99% interpolates fractionally; applies charge multipliers for levels 2 and 3", "docs: docs/entities/enemy_ai.md, docs/entities/character_table.md; clean C in docs/disassembly/combat/weapon-charge.md", "c: G1 passed (tools/c-to-rom/g1.mts, v0.351.0): the bound C equals the ROM on 46 entry states sampled from the 2:20 no-input reference and 728 fuzzed ones; snes9x agrees with the interpreter on 46; a mutation is caught (on fuzzed states)"]
+see: [rom/9082d8.md, rom/8fcc5d.md]
+---
+Called by combat damage calculation to scale base attack power according to the attacker's weapon stamina gauge `+0x2E`:
+- Under 50% stamina (`< $0200`): damage power is quartered ($\div 4$), dealing chip damage.
+- 50% to 99%: scaled linearly between 25% and 100%.
+- 100%: full baseline attack power.
+- Level 2 / 3 charge attacks apply $2\times$ and $3\times$ multipliers.

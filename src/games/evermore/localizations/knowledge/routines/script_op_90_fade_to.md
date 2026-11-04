@@ -1,0 +1,28 @@
+---
+addr: 8CDC35
+size: 33
+end: 8CDC55
+kind: code
+category: 🧠
+name: script_op_90_fade_to
+title: Script opcode 0x90 — fade to
+confidence: confirmed
+tags: [script-vm, screen, fade, camera]
+evidence: ["disasm: handler at opcode table entry $8C:E9DD; operands E, evaluates expression via $8C:EA43, writes to screen fade controller $0B83 with bit 15 asserted ($8000 | E), continues same turn", "docs/disassembly/script-vm/opcode-joypad-fade.md"]
+see: [docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-90-fade-to.md, rom/8cdc56.md, rom/8cdc18.md, ram/7e0b83.md, ram/7e0106.md]
+---
+Handler of script opcode [0x90](soe://rom/assets/scripts/opcodes/90.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/90.md`, served at `soe://rom/assets/scripts/opcodes/90.md`.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Operand expressions: `$8C:EA43` (`$8C:EC8E` for an entity: the result also goes to DP `$4C`)
+- Calls: `$80:85D8`; `$90:94AB` Camera: centre on the target and clamp to the map bounds
+- Reads WRAM: `$7E:0105` in Joypad 1 buttons newly pressed this frame (+$1)
+- Writes WRAM: `$7E:0106` PPU register shadows, copied to the PPU every NMI; `$7E:0B83` Screen brightness fade controller
+- Opcode table entry: `$8C:E9DD` (0x90)
+
+## Notes
+Previously believed: hypothesized in earlier notes to set a joypad action mask. Routine `$80:DE95`
+confirms `$7E:0B83` is the screen brightness fade controller.
+
+The handler's input-mask branches and fade-target write are reconstructed in [opcode-90-fade-to.md](../../../../../../docs/disassembly/script-vm/opcode-90-fade-to.md) and `reconstructed-c/8C/8CDC35_opcode_90_fade_to.c`.

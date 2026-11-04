@@ -1,0 +1,12 @@
+---
+addr: 908F60
+size: 32
+end: 908F7F
+kind: code
+category: 🧠
+name: room_loader_to
+title: Room loader (to `$90:9180`)
+confidence: likely
+evidence: ["legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
+---
+Room loader (to `$90:9180`).

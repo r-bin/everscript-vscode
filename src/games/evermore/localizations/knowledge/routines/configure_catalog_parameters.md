@@ -1,0 +1,24 @@
+---
+addr: 8CE2B5
+size: 92
+end: 8CE310
+kind: code
+category: 🧠
+name: configure_catalog_parameters
+title: Configure catalog parameter state
+confidence: confirmed
+tags: [script-vm]
+evidence: ["disasm: handler scans $0B95 for a negative-byte slot, evaluates two expressions, sets $0E6C bits according to the first value's ranges, writes a table byte to $0B95,X and $FF to $0B96,X, then stores the second expression at $0BC5,2X"]
+see: [docs/scripts/vm.md, docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-89-add-shop-item.md]
+---
+Handler of script opcode [0x89](soe://rom/assets/scripts/opcodes/89.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/89.md`, served at `soe://rom/assets/scripts/opcodes/89.md`.
+
+The flow reconstruction, including its unbounded sentinel scan and unresolved lookup-table extent, is in [opcode-89-add-shop-item.md](../../../../../../docs/disassembly/script-vm/opcode-89-add-shop-item.md) and `reconstructed-c/8C/8CE2B5_opcode_89_add_shop_item.c`.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Operand expressions: `$8C:EA43` (`$8C:EC8E` for an entity: the result also goes to DP `$4C`)
+- Reads WRAM: `$7E:0B95`; `$7E:0E6C`
+- Writes WRAM: `$7E:0B95`; `$7E:0B96`; `$7E:0BC5`; `$7E:0E6C`
+- Reads ROM: `$8C:E311`
+- Opcode table entry: `$8C:E9CF` (0x89)

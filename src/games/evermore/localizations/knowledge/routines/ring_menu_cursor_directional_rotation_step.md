@@ -1,0 +1,33 @@
+---
+addr: 8D9AA1
+end: 8D9B29
+size: 137
+kind: code
+category: 🧠
+name: ring_menu_cursor_directional_rotation_step
+title: Steps ring menu circular selection cursor angle upon joypad D-pad input, playing navigation audio
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Steps ring menu circular selection cursor angle upon joypad D-pad input, playing navigation audio.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Handles rotation of item, weapon, and spell ring menus in response to player directional input.
+The routine steps the active selection angle index across circular ring slots, wrapping around the ring boundaries (e.g. slot 0 to max slots).
+
+Upon changing selection, it calls `$8C:82DC` (`play_sound_effect_direct`) to emit the UI cursor click sound effect and calls `$8D:9A81` to trigger rotation lerp animations.
+
+## Callers
+- `$8D:9792` (`ring_menu_dog_selection_loop`)
+- `$8D:9B2A` (`ring_menu_item_description_card_builder`)
+- `$8D:9CD1` (`func_8D9CD1`)
+
+## Callees
+- `$8C:82DC` (`play_sound_effect_direct`)
+- `$8D:9A81` (`func_8D9A81`)
+
+## Variables and memory (hypotheses)
+- `$0B39` (Active ring menu selection cursor angle)
+- `$0B3B` (Selected item / formula index in ring)

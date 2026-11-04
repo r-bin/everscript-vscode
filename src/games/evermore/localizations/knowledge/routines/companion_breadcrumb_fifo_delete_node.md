@@ -1,0 +1,17 @@
+---
+addr: 8F9E49
+size: 46
+end: 8F9E76
+kind: code
+category: 🧠
+name: companion_breadcrumb_fifo_delete_node
+title: Consume waypoint node from FIFO buffer and shift trailing nodes backward
+confidence: confirmed
+tags: [entities, companion, fifo, breadcrumb, pathfinding]
+evidence: ["disasm: subtracts 3 bytes from tail offset in $3BFF,X, calculates remaining bytes, and performs 65816 MVN $7E,$7E block move to shift subsequent 3-byte waypoint records downward", "c: G1 passed (tools/c-to-rom/g1.mts, v0.351.0): the bound C equals the ROM on 37 entry states sampled from the 2:20 no-input reference and 298 fuzzed ones; snes9x agrees with the interpreter on 37; a mutation is caught", "disasm: its two failure branches (BMI at $8F:9E69, BCS at $8F:9E6E) go to BRK #$A6 at $8F:9E76, an assertion trap the CDL library never saw run; the recomp seeds declare that byte authority_data so the routine compiles (everscript v0.387.31)"]
+see: [docs/disassembly/entities/companion-breadcrumb-queue.md, rom/8f9e77.md, rom/8f9c24.md]
+---
+Removes a consumed breadcrumb waypoint from the companion's 15-node FIFO navigation queue:
+- Decrements the queue tail offset register (`$7E:3BFF,X`) by 3 bytes.
+- Shifts subsequent 3-byte waypoint records in `$7E:3BC9` downward using hardware instruction `MVN $7E, $7E`.
+Full disassembly and clean C reconstruction: `docs/disassembly/entities/companion-breadcrumb-queue.md`.

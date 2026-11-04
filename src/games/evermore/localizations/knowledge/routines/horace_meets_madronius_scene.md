@@ -1,0 +1,12 @@
+---
+addr: 96D7B6
+size: 2768
+end: 96E285
+kind: script
+name: horace_meets_madronius_scene
+title: Horace's camp — Horace meets Madronius
+confidence: likely
+tags: [script, scene]
+evidence: ["script: runs when HORACE_MET_MADRONIUS_SPAWNED is clear and not both Diamond Eye flags; sets it, pans the camera to (304, 176), walks temp[3], the Boy and the Dog into place (v0.369.0)", "script: room $2F, trigger id $06C3"]
+---
+The camp scene: once, the character kept in `temp[3]` and the party walk up to each other.

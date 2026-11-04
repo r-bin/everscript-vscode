@@ -1,0 +1,31 @@
+---
+addr: 8CE08E
+size: 15
+end: 8CE09C
+kind: code
+category: 🧠
+name: write_word_to_expression_address
+title: Write a word to an expression-selected data-bank address
+confidence: confirmed
+tags: [script-vm, memory-write]
+evidence: ["vanilla disassembly: evaluates a destination, saves it with PHA, evaluates a value, restores the destination with PLX, executes STA $0000,X, then SEC; RTS"]
+see: [docs/disassembly/script-vm/write-word-to-expression-address.md]
+---
+Evaluates a destination expression followed by a value expression, stores the value as a word at the destination indexed in the current data bank, and returns with carry set. Its caller, opcode association, data-bank value, and destination range are not established by this routine alone.---
+addr: 8CE08E
+kind: code
+category: 🧠
+name: write_word_by_address
+title: Write a word to an expression-selected address
+confidence: confirmed
+tags: [script-vm]
+evidence: ["disasm: handler evaluates two expressions and stores the second 16-bit result at the address selected by the first in DB $7E"]
+see: [docs/scripts/vm.md, docs/scripts/opcodes.md]
+---
+Handler of script opcode [0x7A](soe://rom/assets/scripts/opcodes/7a.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/7a.md`, served at `soe://rom/assets/scripts/opcodes/7a.md`.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Operand expressions: `$8C:EA43` (`$8C:EC8E` for an entity: the result also goes to DP `$4C`)
+- Record fields (indexed by X/Y: a slot, an entity, a window): `+$00`
+- Opcode table entry: `$8C:E9B1` (0x7a)

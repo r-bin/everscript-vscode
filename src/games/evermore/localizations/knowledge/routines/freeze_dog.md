@@ -1,0 +1,22 @@
+---
+addr: 8CDB20
+size: 5
+end: 8CDB24
+kind: code
+category: 🧠
+name: freeze_dog
+title: Freeze Dog
+confidence: confirmed
+tags: [script-vm]
+evidence: ["disasm: wrapper selects actor bit 2 and shared helper $8C:DB31 calls $8F:CD78 to halt motion and set the immobilized flag"]
+see: [rom/8fcd78.md, docs/scripts/opcodes.md]
+---
+Handler of script opcode [0xBE](soe://rom/assets/scripts/opcodes/be.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/be.md`, served at `soe://rom/assets/scripts/opcodes/be.md`.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Calls: `$8F:CD78`
+- Record fields (indexed by X/Y: a slot, an entity, a window): `+$0D`
+- Opcode table entry: `$8C:EA39` (0xbe)
+
+The fixed Dog target and shared freeze-helper call are documented in [opcode-freeze.md](../../../../../../docs/disassembly/script-vm/opcode-freeze.md) and modeled by `script_op_freeze_dog` in `reconstructed-c/8C/8CDB2A_opcode_freeze.c`.

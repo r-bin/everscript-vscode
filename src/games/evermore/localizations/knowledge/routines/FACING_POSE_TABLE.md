@@ -1,0 +1,12 @@
+---
+addr: 90815B
+end: 90817A
+size: 32
+kind: table
+category: 📋
+name: FACING_POSE_TABLE
+title: Facing → pose table
+confidence: likely
+evidence: ["legacy: migrated from tables.js; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
+---
+4-pose records.

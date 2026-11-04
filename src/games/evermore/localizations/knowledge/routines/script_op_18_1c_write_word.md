@@ -1,0 +1,14 @@
+---
+addr: 8CD7D1
+size: 21
+end: 8CD7E5
+kind: code
+category: 🧠
+name: script_op_18_1c_write_word
+title: Script opcodes 0x18, 0x1c — write word
+confidence: confirmed
+tags: [script-vm]
+evidence: ["disasm: vanilla VFS at $8C:D7D1 reads a u16 offset, evaluates an expression, and writes the resulting word to $7E:2258+offset", "dispatch: opcode table entries $8C:E8ED and $8C:E8F5 both target $8C:D7D1", "vm: returns carry set after the word store"]
+see: [docs/disassembly/script-vm/opcode-18-1c-write-word.md]
+---
+The shared handler reads a 16-bit offset, evaluates an expression, and writes the resulting word to `$7E:2258 + offset`. Opcodes `0x18` and `0x1C` use this routine and continue in the same turn.

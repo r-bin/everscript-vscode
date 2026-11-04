@@ -1,0 +1,31 @@
+---
+addr: 8FB31E
+end: 8FB38D
+size: 112
+kind: code
+category: 🧠
+name: entity_collision_slot_deactivate_and_detach
+title: Deactivates an entity collision slot, detaching tracking anchors and decrementing active entity counts
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Deactivates an entity collision slot, detaching tracking anchors and decrementing active entity counts.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Decommissions an entity slot upon death, despawn, or room exit.
+The routine detaches navigation tracking anchors via `$8F:9916`, clears collision flags via `$8F:C514`, decrements active room actor counters `$1072` and `$1074`, and zeroes state words `$10,Y..$16,Y`.
+
+## Callers
+- `$8F:B38E` (`FUN_8fb38e`)
+- `$8F:C40F` (`FUN_8fc40f`)
+- `$8F:DF41` (`FUN_8fdf41`)
+
+## Callees
+- `$8F:9916` (`FUN_8f9916`)
+- `$8F:C514` (`FUN_8fc514`)
+
+## Variables and memory (hypotheses)
+- `$1072`, `$1074` (Total active room entity counters)
+- `$10,Y..$16,Y` (Entity state and collision status attributes)

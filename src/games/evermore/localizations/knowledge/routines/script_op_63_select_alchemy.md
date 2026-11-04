@@ -1,0 +1,21 @@
+---
+addr: 8CDF75
+size: 90
+end: 8CDFCE
+kind: code
+category: 🧠
+name: script_op_63_select_alchemy
+title: Script opcode 0x63: alchemy selection screen
+confidence: likely
+tags: [script-vm]
+evidence: ["disasm: handler at $8C:DF75 was inspected from the local ROM; it runs a fixed sequence of engine calls, clears $0106 twice, sets $0B83 to $800F twice, and returns Carry Set", "disasm: field off ($8E:E56A, $80:8FEE), menu set up at $8D:B7D6 (windows $034D-$03BD), run by $8D:B98F, field back ($8E:E08B, $90:92C7, $8C:AB10, $8F:87FE on $0F3E)"]
+see: [docs/scripts/opcodes.md]
+---
+Handler of script opcode [0x63](soe://rom/assets/scripts/opcodes/63.md). Switches DBR to `$80`, executes field/menu setup calls, runs alchemy selection at `$8D:B98F`, restores field/camera state using the observed engine-call sequence (including entity `$0F3E` to `$8F:87FE`), writes `$0106 = 0` and `$0B83 = $800F` before and after the menu, restores DBR, then returns carry set. Host-side call-order model: `docs/disassembly/script-vm/opcode-63-select-alchemy.md`.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Calls: `$80:858C` Spin until the NMI handler has bumped the frame counter; `$80:8FEE`; `$8C:AB10`; `$8C:AF23`; `$8C:B743`; `$8D:B7D6`; `$8D:B98F`; `$8E:E08B`; `$8E:E56A`; `$8F:87FE`; `$90:92C7`
+- Reads WRAM: `$7E:0F3E`
+- Writes WRAM: `$7E:0106` PPU register shadows, copied to the PPU every NMI; `$7E:0B83`
+- Opcode table entry: `$8C:E983` (0x63)

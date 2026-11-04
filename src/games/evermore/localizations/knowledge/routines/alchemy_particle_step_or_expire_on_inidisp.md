@@ -1,0 +1,14 @@
+---
+addr: 919F7D
+size: 30
+end: 919F9A
+kind: code
+category: 🎮
+name: alchemy_particle_step_or_expire_on_inidisp
+title: Step particle decay timer during screen brightness fade or expire ($91:9F7D)
+confidence: confirmed
+evidence: ["disasm: checks brightness register $0106; if dim (<= 5), decrements timer +$16,X; when expired clears timer and advances script PC +$14,Y by 2 bytes"]
+see: []
+tags: ["alchemy","particle","fade","timer"]
+---
+Checks PPU screen brightness / fade register `$0106`. If fading or dim ($le 5$), decrements particle timer `+$16,X`; if timer reaches zero, clears timer and advances script PC `+$14,Y` by 2 bytes.

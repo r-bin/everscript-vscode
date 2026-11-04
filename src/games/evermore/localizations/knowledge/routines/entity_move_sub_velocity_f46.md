@@ -1,0 +1,14 @@
+---
+addr: 8FC379
+size: 5
+end: 8FC37D
+kind: code
+category: 🎮
+name: entity_move_sub_velocity_f46
+title: Subtract common velocity component $0F46 from accumulator ($8F:C379)
+confidence: confirmed
+evidence: ["disasm: subtracts velocity parameter $0F46 from accumulator (SEC; SBC $0F46; RTS)"]
+see: []
+tags: ["movement","velocity","sub","math"]
+---
+Subtracts common entity velocity component `$0F46` from accumulator (`SEC; SBC $0F46; RTS`).

@@ -1,0 +1,12 @@
+---
+addr: 9B840B
+size: 14542
+end: 9BBCD8
+kind: script
+name: control_room_open_door
+title: Control room — open the door (object 2) once
+confidence: likely
+tags: [script, room]
+evidence: ["script: unless $22F9 bit 1, object[2] = 9, sound ACT4_DOOR_OPENING, yield, set the bit (v0.369.0)", "script: room $43, trigger id $0A80"]
+---
+Opens the door object once and remembers it.

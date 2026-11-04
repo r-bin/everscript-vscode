@@ -1,0 +1,19 @@
+---
+addr: C45C81
+end: C45CC6
+size: 70
+kind: table
+category: ⚗️
+name: ALCHEMY_LEARNED_MASK
+title: Alchemy formula learned bitmask table ($C4:5C81)
+confidence: confirmed
+evidence: ["disasm: formula learning and availability checks read $C4:5C81,x to test or set the owned formula bit in WRAM $7E:2258..$7E:225C", "rom: 35 16-bit bitmasks ($0001, $0002, $0004, $0008, $0010, $0020, $0040, $0080) cycling through 5 persistence bytes"]
+see: [rom/c45c3b.md, ram/7e2258.md, docs/disassembly/engine-core/rom-tables.md]
+---
+Table of 35 16-bit bitmasks (`$C4:5C81`..`$C4:5CC6`, 70 bytes) specifying the active bit within the persistence byte resolved from `$C4:5C3B`:
+
+- Formulas 0..7: bits `$01`, `$02`, `$04`, `$08`, `$10`, `$20`, `$40`, `$80` within `$7E:2258`
+- Formulas 8..15: bits `$01`, `$02`, `$04`, `$08`, `$10`, `$20`, `$40`, `$80` within `$7E:2259`
+- Formulas 16..23: bits `$01`, `$02`, `$04`, `$08`, `$10`, `$20`, `$40`, `$80` within `$7E:225A`
+- Formulas 24..31: bits `$01`, `$02`, `$04`, `$08`, `$10`, `$20`, `$40`, `$80` within `$7E:225B`
+- Formulas 32..34: bits `$01`, `$02`, `$04` within `$7E:225C`

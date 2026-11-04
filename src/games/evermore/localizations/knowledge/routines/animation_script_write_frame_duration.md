@@ -1,0 +1,14 @@
+---
+addr: 90835A
+size: 18
+end: 90836B
+kind: code
+category: 🎮
+name: animation_script_write_frame_duration
+title: Store frame duration byte operand and advance animation script PC ($90:835A)
+confidence: confirmed
+evidence: ["disasm: writes duration operand from [<$5D] into +$05,Y; increments script PC <$5D and stores into +$00,Y"]
+see: []
+tags: ["animation","frame","duration","script"]
+---
+Writes 8-bit frame duration operand from `[<$5D]` into `+$05,Y`, updates script pointer `+$00,Y` and `<$5D` past duration operand by 1 byte.

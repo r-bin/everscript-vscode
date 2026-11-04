@@ -1,0 +1,30 @@
+---
+addr: 90D58C
+end: 90D61C
+size: 145
+kind: code
+category: 🧠
+name: cgram_animated_palette_timer_tick_and_step
+title: Ticks dynamic environmental palette animation timers and advances color cycle frame sequences
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Ticks dynamic environmental palette animation timers and advances color cycle frame sequences.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Updates animated color palettes for environmental effects (flowing water, boiling lava, glowing runes).
+The routine decrements timer `$13F2,X`. When it expires, it reloads duration parameter `$13D2,X`, advances color step index `$1392,X`, and queues updated color definitions for DMA transfer to CGRAM via `$80:85FA`.
+
+## Callers
+- `$90:D55F` (`FUN_90d55f`)
+
+## Callees
+- `$80:85FA` (`FUN_8085fa`)
+
+## Variables and memory (hypotheses)
+- `$13F2,X` (Palette cycle remaining frame timer)
+- `$13D2,X` (Palette cycle base duration reload value)
+- `$1392,X` (Current color rotation frame index)
+- `$13B2,X` (Total color frames in cycle)

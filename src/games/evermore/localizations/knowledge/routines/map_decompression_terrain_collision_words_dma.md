@@ -1,0 +1,32 @@
+---
+addr: 808E9A
+end: 808F84
+size: 235
+kind: code
+category: 🧠
+name: map_decompression_terrain_collision_words_dma
+title: Streams decompressed room terrain collision words into WRAM spatial grid memory via hardware DMA channel 1
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Streams decompressed room terrain collision words into WRAM spatial grid memory via hardware DMA channel 1.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Loads unpacked collision words for active map rooms using SNES hardware DMA.
+The routine configures DMA channel 1 registers (`$4310..$4315`) and WRAM hardware address registers (`$2181..$2183`).
+
+It streams decompressed 16-bit collision words from ROM/staging buffer memory into WRAM destination `$7E:95A5`, populating the active room\'s physical terrain collision matrix for player and projectile traversal.
+
+## Callers
+- `$80:8B66` (`FUN_808b66`)
+- `$90:91B0` (`Block_3_canopy_terrain_collision_words_to_90_9245_9091B0`)
+
+## Callees
+- None
+
+## Variables and memory (hypotheses)
+- `$4310..$4315` (SNES hardware DMA Channel 1 control registers)
+- `$2181..$2183` (SNES WRAM access hardware port)
+- `$7E:95A5` (Active room terrain collision word matrix in WRAM)

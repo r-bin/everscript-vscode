@@ -1,0 +1,17 @@
+---
+addr: 8FB46D
+size: 62
+end: 8FB4AA
+kind: code
+category: 🧠
+name: entity_collision_check
+title: Check entity movement collision against all active entities
+confidence: confirmed
+tags: [physics, collision, hitboxes, movement]
+evidence: ["disasm: loads mover radius from character+$0D, walks active entities, calls $8F:B4AB per candidate, returns CLC if blocked or SEC if free", "docs: docs/entities/hitboxes.md; clean C in docs/disassembly/combat/hitbox-intersections.md"]
+see: [rom/8fb4ab.md, rom/8fc0d3.md]
+---
+Called by movement routines with target coordinate in `$46`/`$48`:
+- Reads mover's collision radius from character record `+0x0D`.
+- Iterates across active entity list.
+- If a candidate collides via `$8F:B4AB`, tests if entities are already overlapping (`$8F:B4FD`)—if already overlapping, movement is allowed to prevent softlocks; otherwise move is blocked.

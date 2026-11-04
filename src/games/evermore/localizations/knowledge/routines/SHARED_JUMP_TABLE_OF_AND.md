@@ -1,0 +1,12 @@
+---
+addr: 8FA3D8
+size: 32
+end: 8FA3F7
+kind: table
+category: 📋
+name: SHARED_JUMP_TABLE_OF_AND
+title: Shared jump table of $8F:9F46 and $8F:9ECA
+confidence: likely
+evidence: ["cdl: as recorded in the legacy list (tables.js); details in the body"]
+---
+16 words. jmp ($A3D8,x) at $8F:9F46 uses all 16; jmp ($A3E8,x) at $8F:9ECA starts at entry 8. The CDL had only seen entries 0-7, and an 8-entry snesrecomp seed garbled the title-screen sprites (docs/recomp/README.md)

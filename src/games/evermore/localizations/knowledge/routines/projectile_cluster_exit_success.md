@@ -1,0 +1,14 @@
+---
+addr: 90D68D
+size: 2
+end: 90D68E
+kind: code
+category: 🎮
+name: projectile_cluster_exit_success
+title: Projectile cluster operation success exit stub ($90:D68D)
+confidence: confirmed
+evidence: ["disasm: bare CLC; RTS instruction signaling successful completion of cluster routine"]
+see: []
+tags: ["projectile","cluster","stub","exit"]
+---
+Bare success exit for projectile cluster operations (`CLC; RTS`).

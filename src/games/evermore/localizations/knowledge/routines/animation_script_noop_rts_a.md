@@ -1,0 +1,14 @@
+---
+addr: 90878A
+size: 1
+end: 90878A
+kind: code
+category: 🎮
+name: animation_script_noop_rts_a
+title: Animation script no-operation subroutine stub A ($90:878A)
+confidence: confirmed
+evidence: ["disasm: bare RTS instruction"]
+see: []
+tags: ["animation","noop","stub"]
+---
+Bare `RTS` no-operation routine serving as opcode terminator or default hook.

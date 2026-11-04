@@ -15,7 +15,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { dir, text, json, link, type Entry } from './nodes';
 import { asmListing, lineText } from './asm-view';
-import { getDecompiledC } from './decomp-view';
+import { getDecompiledC, cListing } from './decomp-view';
 import { catalog, findFunction, analyse } from './code-catalog';
 import type { Catalog, CodeFunction } from './code-catalog';
 import { select, todos, hex6 } from './code-search';
@@ -35,10 +35,33 @@ function parseCodeAddress(raw: string): number | null {
     return v < 0x400000 ? ((v & 0xFFFF) >= 0x8000 ? 0x800000 | v : 0xC00000 + v) : v;
 }
 
+function routineComments(cat: Catalog, fn: CodeFunction) {
+    const a = analyse(cat, fn);
+    const comments: { addr: string; comment: string; name?: string }[] = [];
+    for (const l of a?.lines || []) {
+        if (l.comment) {
+            comments.push({ addr: hex6(l.addr), comment: l.comment, ...(l.name ? { name: l.name } : {}) });
+        }
+    }
+    return {
+        routine: fn.name,
+        us: hex6(fn.vanilla),
+        current: fn.at.addr !== null ? hex6(fn.at.addr) : null,
+        count: comments.length,
+        comments,
+    };
+}
+
 function functionDir(cat: Catalog, fn: CodeFunction, params: URLSearchParams, rest: string[]) {
     const [leaf] = rest;
     if (leaf === undefined) {
-        const entries: Entry[] = [['info.md', 'file'], [fn.name + '.asm', 'file'], [fn.name + '.c', 'file']];
+        const entries: Entry[] = [
+            ['info.md', 'file'],
+            [fn.name + '.asm', 'file'],
+            ['comments.json', 'file'],
+            [fn.name + '.c', 'file'],
+            [fn.name + '.ghidra.c', 'file'],
+        ];
         return dir(entries, () => infoPage(cat, fn));
     }
     if (rest.length > 1) return null;
@@ -47,9 +70,15 @@ function functionDir(cat: Catalog, fn: CodeFunction, params: URLSearchParams, re
         if (params.get('comments') !== '0') return text(() => asmFile(cat, fn));
         return text(() => (analyse(cat, fn)?.lines || []).map(l => lineText({ ...l, comment: undefined })).join('\n') + '\n');
     }
+    if (leaf === 'comments.json' || leaf === fn.name + '.comments.json') {
+        return json(() => routineComments(cat, fn));
+    }
     if (leaf === fn.name + '.c') {
         const whole = params.get('file') === '1' && fn.c ? fs.readFileSync(path.join(REPO, fn.c.file), 'utf8') : null;
         return text(() => cFile(fn, whole));
+    }
+    if (leaf === fn.name + '.ghidra.c' || leaf === 'ghidra.c' || leaf === 'pseudocode.c' || leaf === fn.name + '.pseudo.c') {
+        return text(() => cListing(cat.rom, fn.at.addr ?? fn.vanilla));
     }
     return null;
 }

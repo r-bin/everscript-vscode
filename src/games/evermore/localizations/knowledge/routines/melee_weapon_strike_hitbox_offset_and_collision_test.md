@@ -1,0 +1,29 @@
+---
+addr: 9087BA
+end: 90880F
+size: 86
+kind: code
+category: 🧠
+name: melee_weapon_strike_hitbox_offset_and_collision_test
+title: Calculates weapon swing reach offsets from descriptor tables and tests collision against targets
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Calculates weapon swing reach offsets from descriptor tables and tests collision against targets.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Evaluates reach and collision for close-quarters weapon attacks.
+The routine reads weapon swing reach and arc offsets from descriptor table `[$5D]`, adds signed offsets to attacker world coordinates (`$1A,Y`, `$1C,Y`), and tests for collision intersection against target entity hitboxes via `$8F:B5E6` (`strike_hit_test_melee`).
+
+## Callers
+- Weapon strike collision handlers in Bank `$90`
+
+## Callees
+- `$8F:B5E6` (`strike_hit_test_melee`)
+
+## Variables and memory (hypotheses)
+- `$5D` (Indirect pointer to weapon strike hitbox descriptor)
+- `$1A,Y`, `$1C,Y` (Attacker world position coordinates)
+- `$46`, `$48` (Calculated weapon reach bounding coordinates)

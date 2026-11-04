@@ -1,0 +1,29 @@
+---
+addr: 90CCF6
+end: 90CD5B
+size: 102
+kind: code
+category: 🧠
+name: combat_enemy_defeated_soul_vapor_fx_init
+title: Initializes vanishing puff-of-smoke explosion and soul vapor particles upon defeating an enemy
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Initializes vanishing puff-of-smoke explosion and soul vapor particles upon defeating an enemy.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Spawns the iconic death explosion particles when an enemy is defeated in combat.
+The routine checks defeated enemy record `$4C`, reads monster size dimensions from ROM table `$8E:000B,X`, and invokes particle burst helpers `$90:CD5C` and `$90:CF3A` to instantiate multiple expanding smoke puffs and ascending soul vapor sprites.
+
+## Callers
+- `$8F:B0A4` (`FUN_8fb0a4`)
+
+## Callees
+- `$90:CD5C` (`FUN_90cd5c`)
+- `$90:CF3A` (`FUN_90cf3a`)
+
+## Variables and memory (hypotheses)
+- `$4C` (Defeated enemy entity record pointer)
+- `$8E:000B` (ROM monster sprite dimensions table)

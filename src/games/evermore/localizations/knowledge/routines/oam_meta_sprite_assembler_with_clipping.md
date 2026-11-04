@@ -1,0 +1,33 @@
+---
+addr: 809040
+end: 809478
+size: 1081
+kind: code
+category: 🧠
+name: oam_meta_sprite_assembler_with_clipping
+title: Assembles multi-cel composite meta-sprites into hardware OAM buffers with off-screen viewport clipping
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Assembles multi-cel composite meta-sprites into hardware OAM buffers with off-screen viewport clipping.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Processes hierarchical meta-sprite cel tables to construct SNES hardware Object Attribute Memory (OAM) entries.
+The routine receives an indirect pointer to the sprite frame descriptor in `$26`. It transforms entity relative coordinates to screen space by adding entity world position and subtracting camera viewport scrolling offsets.
+
+For each sub-cel, it performs bounding box clipping checks against screen limits (`$0100` pixels). If visible, it allocates OAM indices, selects 8x8 or 16x16 sprite size modes via tile allocation helpers (`$80:96FE`, `$80:A4B5`), and writes coordinates, character names, palette selections, and flipping attributes into low OAM buffer tables (`$AB7A..$ABDF`) and high OAM size/sign tables (`$9726`, `$9727`).
+
+## Callers
+- `$80:96BB` (`FUN_8096bb`)
+
+## Callees
+- `$80:96FE` (`obj_16x16_tile_allocate`)
+- `$80:A4B5` (`obj_tile_allocate`)
+
+## Variables and memory (hypotheses)
+- `$26` (Indirect 24-bit pointer to meta-sprite frame descriptor)
+- `$12` (Computed on-screen X coordinate)
+- `$AB00..$AC00` (SNES OAM low attribute staging buffer)
+- `$9726..$9727` (SNES OAM high 9th-bit and size attribute table)

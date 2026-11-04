@@ -1,0 +1,21 @@
+---
+addr: 909897
+size: 14
+end: 9098A4
+kind: code
+category: 🧠
+name: screen_shake_start
+title: Start screen shake with magnitude 4 on both axes
+confidence: confirmed
+tags: [screen-shake, camera, graphics]
+evidence: ["disasm: $90:9897 inc $C3; lda #$0004; sta $7E2409; sta $7E240B; rtl", "docs/disassembly/script-vm/opcode-shake.md"]
+see: [docs/disassembly/script-vm/opcode-shake.md, docs/disassembly/engine-core/screen-effects.md]
+---
+Activates ambient screen tremor by asserting the shake active flag (DP `$C3 = 1`) and writing a baseline magnitude of 4 pixels to both horizontal (`$7E:2409 = 4`) and vertical (`$7E:240B = 4`) magnitude registers.
+Called by script opcode `0x8D` (`$8C:E385`) when operand is non-zero.
+
+## Addresses
+- Screen shake active flag: DP `$C3`
+- Horizontal shake magnitude: `$7E:2409`
+- Vertical shake magnitude: `$7E:240B`
+- Caller: `$8C:E385`

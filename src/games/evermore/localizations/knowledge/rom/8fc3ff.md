@@ -12,7 +12,7 @@ evidence: ["read: 8 words $C3BA, $C3C9, $C3C9, $C3C9, $C3D8, $C3E7, $C3E7, $C3E7
 see: [rom/8fac84.md, rom/8fc3ba.md, rom/8fc3c9.md, rom/8fc3d8.md, rom/8fc3e7.md]
 ---
 Jump table indexed by the facing direction (`+$22,Y` of the entity record, see
-[player_b_trigger_search_box_setup](8fac84.md)): each entry steps the probe position in DP `$46`/`$48` by the
+[`player_b_trigger_search_box_setup`](8fac84.md)): each entry steps the probe position in DP `$46`/`$48` by the
 distance in `$12` (16 px for the B-button search box). Eight entries, four distinct handlers
-([entity_move_step_north](8fc3ba.md) is entry 0); which facing values the repeated entries stand for is not
+([`entity_move_step_north`](8fc3ba.md) is entry 0); which facing values the repeated entries stand for is not
 checked. Code follows the table directly at `$8F:C40F`.

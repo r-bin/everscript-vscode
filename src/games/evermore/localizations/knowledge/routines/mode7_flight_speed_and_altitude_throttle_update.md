@@ -1,0 +1,31 @@
+---
+addr: 80DBB3
+end: 80DCE0
+size: 302
+kind: code
+category: 🧠
+name: mode7_flight_speed_and_altitude_throttle_update
+title: Updates flight throttle, forward speed, and altitude climbing/diving limits during Mode 7 sequences
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Updates flight throttle, forward speed, and altitude climbing/diving limits during Mode 7 sequences.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Handles flight speed acceleration and altitude adjustments during Windwalker Mode 7 gameplay.
+The routine samples joypad input bits stored in `$14AE` and `$14AC` (accelerate/brake buttons).
+
+It modifies altitude angle `$BB` and forward velocity parameter `$0A`, applying clamp limits to maintain cruising boundaries between ceiling altitude (`#$016A`) and ground skimming height (`#$0100`).
+
+## Callers
+- `$80:C1A2` (`FUN_80c1a2`)
+
+## Callees
+- None
+
+## Variables and memory (hypotheses)
+- `$14AC`, `$14AE` (Mode 7 joypad throttle input flags)
+- `$0A` (Forward flight velocity scalar)
+- `$BB` (Current aircraft altitude and pitch angle)

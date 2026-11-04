@@ -1,0 +1,12 @@
+---
+addr: 92E0CA
+size: 823
+end: 92E400
+kind: script
+category: 📜
+name: first_intro_code
+title: First intro code
+confidence: likely
+evidence: ["legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
+---
+`ADDRESS.INTRO_FIRST_CODE_EXECUTED`.

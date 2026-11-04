@@ -1,0 +1,26 @@
+---
+addr: 8CD0C3
+size: 8
+end: 8CD0CA
+kind: code
+category: 🧠
+name: script_op_ac_cast
+title: Script opcode 0xAC: cast a spell, leaving out a dead Dog
+confidence: likely
+tags: [script-vm]
+evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E E E Z, continues in the same turn (docs/scripts/opcodes.md)", "disasm: $3BC1 = $4F37 when the Dog's HP (+$2A) is 0, else 0; then the 0x9E handler"]
+see: [docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-ac-cast-skip-dead-dog.md]
+---
+Handler of script opcode [0xAC](soe://rom/assets/scripts/opcodes/ac.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/ac.md`, served at `soe://rom/assets/scripts/opcodes/ac.md`.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Operand expressions: `$8C:EA43` (`$8C:EC8E` for an entity: the result also goes to DP `$4C`)
+- Calls: `$8C:C521`; `$91:973E`; `$91:9759`; `$91:9777`; `$91:AD17`
+- Reads WRAM: `$7E:3BC1`
+- Writes WRAM: `$7E:3BC1`
+- Reads ROM: `$C4:5F97`; `$C4:5FC5`
+- Record fields (indexed by X/Y: a slot, an entity, a window): `+$28`, `+$2A`, `+$2E`, `+$30`
+- Opcode table entry: `$8C:EA15` (0xac)
+
+The Dog-HP target marker and shared cast path are documented in [opcode-ac-cast-skip-dead-dog.md](../../../../../../docs/disassembly/script-vm/opcode-ac-cast-skip-dead-dog.md) and modeled in `reconstructed-c/8C/8CD0C3_opcode_ac_cast.c` with the shared implementation in `reconstructed-c/8C/8CD0D0_opcode_9e_cast_all.c`.

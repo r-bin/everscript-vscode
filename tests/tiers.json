@@ -17,6 +17,7 @@
   "tests/memory/rebuild-invalidation.test.js",
   "tests/memory/ui.test.js",
   "tests/memory/scaling-rom.test.js",
+  "tests/memory/rom-map-parity.test.js",
   "tests/memory/mcp-server.test.js",
   "tests/mana/mana-units.test.js",
   "tests/mana/mana-cpu.test.js",

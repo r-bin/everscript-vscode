@@ -1,0 +1,12 @@
+---
+addr: CE8000
+end: CE8143
+size: 324
+kind: table
+category: 🎒
+name: RING_MENU_ICON_TABLE
+title: Ring-menu icon table
+confidence: likely
+evidence: ["legacy: migrated from tables.js; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
+---
+162 words, one per RING_MENU_ICON id.

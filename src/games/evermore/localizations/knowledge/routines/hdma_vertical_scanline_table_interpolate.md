@@ -1,0 +1,31 @@
+---
+addr: 91C3A4
+end: 91C40F
+size: 108
+kind: code
+category: 🧠
+name: hdma_vertical_scanline_table_interpolate
+title: Linearly interpolates vertical scanline brightness increments into WRAM Bank $7F for HDMA channel 5
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Linearly interpolates vertical scanline brightness increments into WRAM Bank $7F for HDMA channel 5.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Populates scanline brightness gradient tables for vertical HDMA raster effects.
+The routine takes starting brightness `$14DA` and incremental step `$14DC`.
+
+It writes interpolated 16-bit color gradient words into WRAM Bank `$7F` staging memory, generating smooth vertical horizon blends and atmospheric fogging when fed into SNES DMA Channel 5.
+
+## Callers
+- `$91:C2C0` (`func_91C2C0`)
+
+## Callees
+- None
+
+## Variables and memory (hypotheses)
+- `$14DA` (Base starting brightness gradient value)
+- `$14DC` (Per-scanline incremental step value)
+- `$7F:0000..$7F:FFFF` (HDMA scanline gradient staging memory)

@@ -1,0 +1,18 @@
+---
+addr: 8C828F
+size: 77
+end: 8C82DB
+kind: code
+category: 🧠
+name: play_music_track
+title: Music track dispatcher & playback loader
+confidence: confirmed
+tags: [audio, music]
+evidence: ["disasm: saves song ID to $0E4D; sends APU cmd 0x1C (volume 0x8080); sends cmd 0x1A (silence); indexes table $81:9900 to find required soundbank; calls load_song_soundbank ($8C:8236); sends cmd 0x06 with song ID in Y to start track playback", "main-loop: invoked during room initialization and by Everscript music opcode 0x33"]
+see: [docs/disassembly/audio/spc-handshake.md, rom/8c81fd.md, rom/8c8236.md]
+---
+Top-level music track driver routine. Sets up stereo panning / master volume via APU command `0x1C`,
+mutes previous track playback via command `0x1A`, indexes ROM metadata at `$81:9900` to determine the
+required instrument soundbank, triggers soundbank streaming via `load_song_soundbank` (`$8C:8236`),
+and finally triggers song playback via APU command `0x06`.
+Full disassembly and clean C reconstruction: `docs/disassembly/audio/spc-handshake.md`.

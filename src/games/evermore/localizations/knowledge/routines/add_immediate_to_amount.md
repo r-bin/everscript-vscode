@@ -1,0 +1,23 @@
+---
+addr: 8CD557
+size: 49
+end: 8CD587
+kind: code
+category: 🧠
+name: add_immediate_to_amount
+title: Add an immediate 24-bit value to an amount
+confidence: confirmed
+tags: [script-vm]
+evidence: ["disasm: handler evaluates an X index, reads a little-endian word and byte operand, adds the resulting 24-bit value with carry to $0AC6/$0AC8 indexed by X, and writes the result back"]
+see: [docs/scripts/vm.md, docs/scripts/opcodes.md]
+---
+Handler of script opcode [0x7C](soe://rom/assets/scripts/opcodes/7c.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/7c.md`, served at `soe://rom/assets/scripts/opcodes/7c.md`.
+
+Evaluates a currency offset, fetches an inline 24-bit addend (word then byte), and adds it with carry to the three-byte balance at `$7E:0AC6 + offset`. Arithmetic wraps modulo $2^{24}$; there is no overflow check. Host-side model: `docs/disassembly/script-vm/opcode-7c-currency-add.md`.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Operand expressions: `$8C:EA43` (`$8C:EC8E` for an entity: the result also goes to DP `$4C`)
+- Reads WRAM: `$7E:0AC6`; `$7E:0AC8`
+- Writes WRAM: `$7E:0AC6`; `$7E:0AC8`
+- Opcode table entry: `$8C:E9B5` (0x7c)

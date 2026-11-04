@@ -1,0 +1,20 @@
+---
+addr: 909DE8
+size: 139
+end: 909E72
+kind: code
+category: 🧠
+name: eval_tile_collision
+title: Metatile collision geometry & elevation evaluator
+confidence: confirmed
+tags: [maps, collision, elevation]
+evidence: ["disasm: BIT #$0100 checks entity gate (bits 11..8) folding with EOR #$0300/#$0600/#$0200; BIT #$0040 checks plane-transparency; SBC $44 tests elevation plane (bits 5..4); BIT #$2000 checks always-walkable; returns 4-bit geometry code in A ($00 open .. $0F solid)", "docs: docs/map-format/map_collision_mechanics.md line-by-line reading", "c: G1 passed (tools/c-to-rom/g1.mts, v0.351.0): the bound C equals the ROM on 30 entry states sampled from the 2:20 no-input reference and 480 fuzzed ones; snes9x agrees with the interpreter on 30; a mutation is caught"]
+see: [docs/disassembly/maps/tile-collision.md, rom/8fa914.md]
+---
+Core metatile collision and passability evaluator. Inspects the 16-bit collision word at `$7F:0004,x`:
+1. Tests entity gates (bits 11..8) against active actor pointer `$4C` (boy `$4E89`, dog `$4F37`).
+2. Evaluates plane-transparency (bit 6): tiles on other planes are fully passable (`0x00`).
+3. Compares elevation plane (bits 5..4) against entity's plane `$44`: mismatches return solid (`0x0F`).
+4. Evaluates always-walkable override (bit 13) for slides/quicksand: returns fully open (`0x00`).
+5. Returns sub-tile geometry code (bits 3..0) for 45° slopes and half-tile barriers.
+Full disassembly and clean C reconstruction: `docs/disassembly/maps/tile-collision.md`.

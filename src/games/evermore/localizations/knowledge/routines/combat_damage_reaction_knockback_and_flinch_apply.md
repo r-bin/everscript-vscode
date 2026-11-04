@@ -1,0 +1,29 @@
+---
+addr: 919C86
+end: 919D0B
+size: 134
+kind: code
+category: 🧠
+name: combat_damage_reaction_knockback_and_flinch_apply
+title: Applies hit reaction animation states, flinch timers, and directional knockback velocity to damaged entities
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Applies hit reaction animation states, flinch timers, and directional knockback velocity to damaged entities.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Processes the physical reaction of entities receiving combat damage.
+The routine updates target entity flinch timers in `$14,Y`, evaluates target type (distinguishing the Boy entity at `$4E89` from regular enemies), and invokes `$8F:C0D3` (`dispatch_hit_reaction_and_knockback`) to set knockback displacement and flinch animation frames.
+
+## Callers
+- Spell damage application routines in Bank `$91`
+
+## Callees
+- `$8F:C0D3` (`dispatch_hit_reaction_and_knockback`)
+
+## Variables and memory (hypotheses)
+- `$14,Y` (Entity flinch and hit recovery timer)
+- `$2A,Y` (Entity combat and animation status word)
+- `$4E89` (Protagonist entity base address)

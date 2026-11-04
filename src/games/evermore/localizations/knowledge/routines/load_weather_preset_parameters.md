@@ -1,0 +1,17 @@
+---
+addr: 80A2E0
+size: 37
+end: 80A304
+kind: code
+category: 🧠
+name: load_weather_preset_parameters
+title: Weather preset parameter block loader (128 bytes)
+confidence: confirmed
+tags: [weather, ambient, graphics]
+evidence: ["disasm: sets Bank $EC source from table $EC:0000,x, copies 64 words (128 bytes) into active simulation block $7E:72D1..$7E:734F", "decomp: fully decompiled in docs/disassembly/engine-core/weather-preset.md"]
+see: [docs/disassembly/engine-core/weather-preset.md, rom/80a305.md]
+---
+Loads a 128-byte (64 16-bit words) weather preset configuration block from ROM Bank `$EC:0000,x` into WRAM `$7E:72D1`..`$7E:734F`.
+Configures horizontal/vertical particle velocities (`$7E:72D1`/`$7E:72D3`), wind sway amplitude and frequency (`$7E:72D5`/`$7E:72D7`), particle spawn bounding limits (`$7E:72D9`..`$7E:72DF`), OAM sprite attributes, and particle lifecycle animation phases used by the simulation loop at `$80:A305`.
+
+

@@ -1,0 +1,34 @@
+---
+addr: 8DC70D
+end: 8DC802
+size: 246
+kind: code
+category: 🧠
+name: status_menu_alchemy_formula_level_and_cast_count_formatter
+title: Calculates remaining available formula casts and formats level text for the Status Menu Alchemy page
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Calculates remaining available formula casts and formats level text for the Status Menu Alchemy page.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Computes available cast counts and displays formula progression on the Status Menu.
+The routine queries active formula index `X`, invoking `$91:CE38` (`alchemy_formula_calc_available_casts`) to compute how many times the spell can be cast with available ingredients.
+
+It converts the integer count into a decimal ASCII string via `$80:B21F`, appends formula level text (e.g. `Lv 5:35`), and inserts the formatted string into the status dialogue tilemap buffer via `$8C:9E03`.
+
+## Callers
+- `$8D:C321` (`func_8DC321`)
+
+## Callees
+- `$80:B21F` (`format_32bit_integer_to_decimal_ascii`)
+- `$8C:9E03` (`dialogue_format_and_append_line`)
+- `$8C:A3AF` (`func_8CA3AF`)
+- `$91:CE38` (`alchemy_formula_calc_available_casts`)
+
+## Variables and memory (hypotheses)
+- `$2FF4` (Temporary string construction buffer in WRAM)
+- `$034D` (Dialogue window tilemap line position)
+- `$02` (Returned maximum cast count from available ingredients)

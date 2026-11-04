@@ -1,0 +1,32 @@
+---
+addr: 80CFA9
+end: 80D1FE
+size: 598
+kind: code
+category: 🧠
+name: mode7_camera_matrix_projection_update
+title: Computes Mode 7 2x2 affine transformation matrix parameters from aircraft heading, pitch, and camera zoom
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Computes Mode 7 2x2 affine transformation matrix parameters from aircraft heading, pitch, and camera zoom.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Calculates the SNES Mode 7 hardware transformation matrix parameters (M7A, M7B, M7C, M7D) during flight scenes.
+Using aircraft heading `$14C6` and camera distance `$14C8`, the routine reads sine and cosine values from trigonometric lookup tables at `$80:E293` and `$80:E295`.
+
+It applies scaling and rotation factors, storing the resultant matrix words into WRAM shadow registers at `$7E:2050` which are transferred to PPU registers `$211B..$211E` during V-Blank.
+
+## Callers
+- `$80:CEC4` (`FUN_80cec4`)
+
+## Callees
+- None
+
+## Variables and memory (hypotheses)
+- `$14C6` (Mode 7 aircraft yaw heading angle)
+- `$14C8` (Mode 7 camera focal distance / altitude scale)
+- `$80:E293`, `$80:E295` (Trigonometric sine/cosine tables)
+- `$7E:2050` (Mode 7 PPU matrix shadow register staging buffer)

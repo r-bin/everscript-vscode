@@ -55,7 +55,9 @@ function infoPage(cat: Catalog, fn: CodeFunction): string {
     const e = fn.entry, a = analyse(cat, fn), by = callers(cat, fn), work = todos(cat, fn);
     const out = [`# ${e.title}`, '',
         `\`${fn.name}\` · US ${hex6(fn.vanilla)} · this ROM ${whereText(fn.at, fn.vanilla)} · ${e.kind}${e.category ? ' ' + e.category : ''} · ${e.confidence || 'no confidence'}`, '',
-        `[${fn.name}.asm](${page(fn, '.asm')}) · ` + (fn.c ? `[${fn.name}.c](${page(fn, '.c')})` : 'no C yet') + ` · bytes: \`soe://bus/${fn.vanilla.toString(16)}\` · entry: \`${e.file}\``, '',
+        `[${fn.name}.asm](${page(fn, '.asm')}) · [comments.json](${BASE}${fn.name}/comments.json) · ` +
+        (fn.c ? `[${fn.name}.c](${page(fn, '.c')}) · ` : '') +
+        `[${fn.name}.ghidra.c](${BASE}${fn.name}/${fn.name}.ghidra.c) · bytes: \`soe://bus/${fn.vanilla.toString(16)}\` · entry: \`${e.file}\``, '',
         e.body, ''];
     if (e.evidence.length) out.push('## Evidence', '', ...e.evidence.map(x => `- ${x}`), '');
     if (a) {

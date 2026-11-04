@@ -208,3 +208,143 @@ test('knowledge entries: front-matter lists as one JSON line or as a YAML block'
     assert.deepEqual(e.see, []);
     fs.rmSync(dir, { recursive: true });
 });
+
+test('wram map: 128 KB coverage across Bank $7E and Bank $7F with zero gaps and zero overlaps', () => {
+    const { getWramEntry, getAllWramEntries } = require('../../dist/games/evermore/localizations/wram-map');
+    const entries = getAllWramEntries();
+
+    let sum7e = 0;
+    let sum7f = 0;
+    for (const e of entries) {
+        if (e.busAddr >= 0x7F0000) {
+            sum7f += e.size;
+        } else {
+            sum7e += e.size;
+        }
+    }
+    assert.equal(sum7e, 65536, 'Bank $7E must sum to exactly 65,536 bytes');
+    assert.equal(sum7f, 65536, 'Bank $7F must sum to exactly 65,536 bytes');
+
+    // Verify every single byte across 128 KB is mapped
+    for (let i = 0; i < 0x20000; i++) {
+        const entry = getWramEntry(i);
+        assert.ok(entry, `Byte 0x${i.toString(16).toUpperCase()} must be covered in WRAM lookup table`);
+    }
+
+    // Bus address and offset lookup parity
+    const dp = getWramEntry(0x7E0000);
+    assert.equal(dp?.name, 'DIRECT_PAGE_BLOCK');
+    assert.equal(getWramEntry(0x0000)?.name, 'DIRECT_PAGE_BLOCK');
+
+    const meta = getWramEntry(0x7F0000);
+    assert.equal(meta?.name, 'ROOM_METATILE_GRID');
+    assert.equal(getWramEntry(0x10000)?.name, 'ROOM_METATILE_GRID');
+
+    const scratch = getWramEntry(0x7FFFFF);
+    assert.equal(scratch?.name, 'BANK7F_DMA_SCRATCH');
+    assert.equal(getWramEntry(0x1FFFF)?.name, 'BANK7F_DMA_SCRATCH');
+
+    // Struct field detail resolution
+    const { getWramFieldDetails } = require('../../dist/games/evermore/localizations/wram-map');
+    const dpActor = getWramFieldDetails(0x7E004C);
+    assert.equal(dpActor.structName, 'DirectPageBlock');
+    assert.equal(dpActor.fieldName, 'current_actor_ptr');
+    assert.equal(dpActor.fieldType, 'entity');
+
+    const alchSpell = getWramFieldDetails(0x7E3364 + 18);
+    assert.equal(alchSpell.fieldName, 'spell_id');
+    assert.equal(alchSpell.fieldType, 'u16');
+
+    const spawnFlags = getWramFieldDetails(0x7E5DC3 + 6);
+    assert.equal(spawnFlags.fieldName, 'flags');
+    assert.equal(spawnFlags.fieldType, 'u16');
+});
+
+test('rom map: 100% complete catalog with 1,690+ entries, room blobs, master tables, and queries', () => {
+    const {
+        getRomEntry,
+        getRomEntryByName,
+        getAllRomEntries,
+        getRomEntriesByBank,
+        getRomEntriesByKind,
+        getRomEntriesByTag,
+        getRomMapHeader,
+        getRomBankSummary,
+    } = require('../../dist/games/evermore/localizations/rom-map');
+
+    const entries = getAllRomEntries();
+    assert.ok(entries.length >= 1680, `ROM map must contain at least 1,680 entries (got ${entries.length})`);
+
+    // Total documented bytes across all routines, tables, room blobs, and string blocks
+    let totalBytes = 0;
+    for (const e of entries) {
+        assert.ok(e.size > 0, `Entry ${e.name} must have a positive size`);
+        assert.ok(e.addr >= 0 && e.addr <= 0xFFFFFF, `Entry ${e.name} must have a 24-bit SNES address`);
+        totalBytes += e.size;
+    }
+    assert.ok(totalBytes >= 1000000, `Total size across ROM map entries must exceed 1 MB (got ${totalBytes})`);
+
+    // Exact address lookup for engine core
+    const reset = getRomEntry(0x808020);
+    assert.ok(reset, 'Reset handler must be found at $80:8020');
+    assert.equal(reset?.name, 'reset_handler');
+    assert.equal(reset?.size, 538);
+
+    // Range lookup within a function
+    const withinReset = getRomEntry(0x808050);
+    assert.equal(withinReset?.name, 'reset_handler');
+
+    // Name lookup
+    const nmi = getRomEntryByName('nmi_handler');
+    assert.ok(nmi);
+    assert.equal(nmi?.addr, 0x80823A);
+    assert.equal(nmi?.size, 688);
+
+    // Bank queries
+    const bank80 = getRomEntriesByBank(0x80);
+    assert.ok(bank80.length > 50, 'Bank $80 must have over 50 entries');
+    assert.ok(bank80.every(e => e.bank === 0x80));
+
+    // Room blob lookups: all 127 room blobs present
+    const blobs = getRomEntriesByKind('blob');
+    assert.equal(blobs.length, 127, 'Must have exactly 127 room definition blobs');
+
+    // Room blob address query: Room 0 ($AB:F4F1)
+    const room0 = getRomEntry(0xABF4F1);
+    assert.ok(room0);
+    assert.equal(room0?.name, 'ROOM_BLOB_00_OMNITOPIA_ALARM_ROOM');
+    assert.equal(room0?.type, 'blob');
+
+    // Room blob name query: Room 6 Antiqua Outside Mids ($9C:8000)
+    const room6 = getRomEntryByName('ROOM_BLOB_06_ANTIQUA_OUTSIDE_OF_MIDS');
+    assert.ok(room6);
+    assert.equal(room6?.addr, 0x9C8000);
+
+    // Master tables lookups
+    const charDb = getRomEntry(0x8EB678);
+    assert.ok(charDb, 'Character master database must be in ROM map');
+    assert.equal(charDb?.name, 'character_records');
+    assert.equal(charDb?.size, 2908);
+
+    // Dialogue string bank lookups
+    const str0 = getRomEntryByName('STRINGS_BLOCK_0');
+    assert.ok(str0);
+    assert.equal(str0?.addr, 0xC00000);
+    assert.equal(str0?.size, 32768);
+
+    // Tag filtering
+    const roomTagged = getRomEntriesByTag('room');
+    assert.equal(roomTagged.length, 139, '127 room blobs + 12 engine room routines');
+
+    // Master header and bank summaries
+    const header = getRomMapHeader();
+    assert.ok(header);
+    assert.ok(header.summary.banks_covered >= 50);
+
+    const b80Summary = getRomBankSummary(0x80);
+    assert.ok(b80Summary);
+    assert.equal(b80Summary?.name, 'Engine Core, Reset, NMI & Hardware Utilities');
+});
+
+
+

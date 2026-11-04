@@ -1,0 +1,23 @@
+---
+addr: 8CE486
+size: 23
+end: 8CE49C
+kind: code
+category: 🧠
+name: script_op_93_queue_damage
+title: Queue damage for an entity
+confidence: confirmed
+tags: [script-vm]
+evidence: ["disasm: evaluates an entity and amount, skips the update when entity HP at +$2A is zero, otherwise adds the amount to +$76 and sets bit $0008 at +$12"]
+see: [docs/scripts/vm.md, docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-93-damage-no-reaction.md]
+---
+Handler of script opcode [0x93](soe://rom/assets/scripts/opcodes/93.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/93.md`, served at `soe://rom/assets/scripts/opcodes/93.md`.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Operand expressions: `$8C:EA43` (`$8C:EC8E` for an entity: the result also goes to DP `$4C`)
+- Calls: `$8F:C132`
+- Record fields (indexed by X/Y: a slot, an entity, a window): `+$2A`
+- Opcode table entry: `$8C:E9E3` (0x93)
+
+The handler reconstruction is in [opcode-93-damage-no-reaction.md](../../../../../../docs/disassembly/script-vm/opcode-93-damage-no-reaction.md) and `reconstructed-c/8C/8CE486_opcode_93_damage_no_reaction.c`.

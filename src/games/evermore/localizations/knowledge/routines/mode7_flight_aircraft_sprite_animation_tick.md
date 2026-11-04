@@ -1,0 +1,32 @@
+---
+addr: 80C6D2
+end: 80C756
+size: 133
+kind: code
+category: 🧠
+name: mode7_flight_aircraft_sprite_animation_tick
+title: Ticks Windwalker aircraft sprite animation bytecode and schedules updated banking tiles for VRAM DMA
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Ticks Windwalker aircraft sprite animation bytecode and schedules updated banking tiles for VRAM DMA.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Drives the animation of the flying Windwalker aircraft during Mode 7 sequences.
+The routine advances aircraft animation bytecode scripts via `$90:80CE` (`anim_vm_tick`) for aircraft structure `$683D`.
+
+It selects appropriate banking frame descriptors from table `$80:C707` based on turning state `$7E:2363`, and queues tile updates for DMA upload via `$90:CFB8` (`sprite_tile_vram_dma_enqueue`).
+
+## Callers
+- `$80:C1A2` (`FUN_80c1a2`)
+
+## Callees
+- `$90:80CE` (`anim_vm_tick`)
+- `$90:CFB8` (`sprite_tile_vram_dma_enqueue`)
+
+## Variables and memory (hypotheses)
+- `$0E70` (Mode 7 flight operational mode indicator)
+- `$683D` (Windwalker aircraft animation state structure)
+- `$7E:2363` (Current aircraft turn banking angle index)

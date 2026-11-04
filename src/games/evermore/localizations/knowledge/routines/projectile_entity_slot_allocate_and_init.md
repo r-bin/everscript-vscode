@@ -1,0 +1,32 @@
+---
+addr: 90DC35
+end: 90DCA3
+size: 111
+kind: code
+category: 🧠
+name: projectile_entity_slot_allocate_and_init
+title: Allocates a projectile entity slot in pool $6387..$64E7 and initializes initial launch coordinates and palette
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Allocates a projectile entity slot in pool $6387..$64E7 and initializes initial launch coordinates and palette.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Allocates a new projectile slot from the 44-byte projectile pool at `$6387..$64E7`.
+The routine advances pool allocator pointer `$EC2`. It initializes launcher parent pointer `$10,Y` from `$4C`, copies world coordinates (`$14,Y`, `$16,Y`), and invokes `$90:CD80` (`Sprite_palette_allocator_90CD80`) to assign an active sprite palette slot.
+
+## Callers
+- `$90:DCA4` (`Spawn_projectile_90DCA4`)
+- `$90:DCC0` (`FUN_90dcc0`)
+
+## Callees
+- `$8F:C02B` (`FUN_8fc02b`)
+- `$90:819A` (`FUN_90819a`)
+- `$90:CD80` (`Sprite_palette_allocator_90CD80`)
+
+## Variables and memory (hypotheses)
+- `$EC2` (Active projectile pool allocation index)
+- `$6387..$64E7` (Dynamic projectile entity pool in WRAM)
+- `$4C` (Launcher actor entity record pointer)

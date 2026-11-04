@@ -1,0 +1,14 @@
+---
+addr: 8CD086
+size: 22
+end: 8CD09B
+kind: code
+category: 🎮
+name: dialogue_window_compare_text_buffer_pages
+title: Compare character text buffer pages via EOR and branch on match ($8C:D086)
+confidence: confirmed
+evidence: ["disasm: compares text buffer words $107E,X and $10CE,X via EOR; if matching, branches to update handler $8C:D096"]
+see: ["rom/8cd096.md"]
+tags: ["dialogue","text","buffer","compare"]
+---
+Compares character buffers `$107E,X` and `$10CE,X` via `EOR`. If identical (`BEQ`), branches to text update handler `$8C:D096`.

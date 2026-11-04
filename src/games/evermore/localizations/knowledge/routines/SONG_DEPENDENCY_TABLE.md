@@ -1,0 +1,12 @@
+---
+addr: C19A1E
+end: C19A77
+size: 90
+kind: table
+category: 📋
+name: SONG_DEPENDENCY_TABLE
+title: Song dependency table
+confidence: likely
+evidence: ["legacy: migrated from tables.js; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
+---
+SFX 0..89 → soundbank song needed in ARAM.

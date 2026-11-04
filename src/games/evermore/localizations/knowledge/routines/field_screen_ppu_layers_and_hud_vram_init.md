@@ -1,0 +1,33 @@
+---
+addr: 8EE08B
+end: 8EE0E4
+size: 90
+kind: code
+category: 🧠
+name: field_screen_ppu_layers_and_hud_vram_init
+title: Configures SNES PPU layer registers and VRAM base addresses for gameplay, triggering HUD gauge DMA
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Configures SNES PPU layer registers and VRAM base addresses for gameplay, triggering HUD gauge DMA.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Prepares the SNES PPU hardware video registers upon entering gameplay scenes.
+The routine configures forced blanking via `$2100` (`#$8F`), sets sprite size mode via `$2101` (`#$03`), and defines tilemap base registers `$2107..$2109` and character pattern base registers `$210B..$210C`.
+
+It sets BG mode 1 (`$2105 = #$39`), and calls `$8F:8710` (`field_hud_weapon_stamina_gauge_vram_dma_upload`) to stream stamina gauges and weapon icons into VRAM.
+
+## Callers
+- `$80:8B66` (`FUN_808b66`)
+- `$80:8CC9` (`gameplay_session_subsystems_init`)
+
+## Callees
+- `$8F:8710` (`field_hud_weapon_stamina_gauge_vram_dma_upload`)
+
+## Variables and memory (hypotheses)
+- `$2100` (SNES PPU Screen Display register)
+- `$2101` (SNES PPU Object Size and OAM base register)
+- `$2105` (SNES PPU BG Mode and Character Size register)
+- `$2107..$210C` (SNES PPU Tilemap and Character Base Address registers)

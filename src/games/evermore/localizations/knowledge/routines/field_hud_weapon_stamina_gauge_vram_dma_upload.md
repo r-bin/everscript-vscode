@@ -1,0 +1,33 @@
+---
+addr: 8F8710
+end: 8F87FD
+size: 238
+kind: code
+category: 🧠
+name: field_hud_weapon_stamina_gauge_vram_dma_upload
+title: DMA transfers weapon stamina gauge and attack power bar graphics from ROM into VRAM and CGRAM
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — DMA transfers weapon stamina gauge and attack power bar graphics from ROM into VRAM and CGRAM.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Refreshes the on-screen HUD weapon charge bar graphics and stamina meter tile patterns.
+The routine configures DMA channel pointers to stream HUD graphical tiles from ROM bank `$C4` (`$C4:3704`) into VRAM base address `$0160` via `$80:8650`.
+
+It also transfers accompanying HUD gauge palette entries from ROM `$C4:3864` into CGRAM via `$80:85FA`, ensuring the stamina meter reflects weapon level and elemental glow.
+
+## Callers
+- `$8E:E08B` (`FUN_8ee08b`)
+
+## Callees
+- `$80:85FA` (`FUN_8085fa`)
+- `$80:8650` (`FUN_808650`)
+
+## Variables and memory (hypotheses)
+- `$C4:3704` (ROM base address for stamina gauge graphical tiles)
+- `$C4:3864` (ROM palette definitions for HUD gauges)
+- `$26`, `$28` (DMA source memory pointers)
+- `$2E` (Transfer size in bytes)

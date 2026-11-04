@@ -1,0 +1,33 @@
+---
+addr: 808DB5
+end: 808E51
+size: 157
+kind: code
+category: 🧠
+name: map_tile_index_from_world_coordinates
+title: Converts 16-bit world pixel coordinates (X, Y) into a linear tilemap collision grid offset
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Converts 16-bit world pixel coordinates (X, Y) into a linear tilemap collision grid offset.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Core spatial coordinate conversion routine used across movement, collision, and camera tracking.
+The routine shifts 16-bit pixel coordinates in `$2E` (world X) and `$30` (world Y) right by 4 bits to compute 16x16 tile column and row indices.
+
+It verifies room boundary dimensions, scales row indices by room width stride, and returns the linear byte offset into active room tilemap and collision matrices in WRAM.
+
+## Callers
+- `$80:C1A2` (`FUN_80c1a2`)
+- `$80:C95B` (`FUN_80c95b`)
+- `$91:BDC4` (`func_91BDC4`)
+
+## Callees
+- None
+
+## Variables and memory (hypotheses)
+- `$2E` (World horizontal X pixel coordinate)
+- `$30` (World vertical Y pixel coordinate)
+- `$7E:95A5` (Active room terrain collision matrix)

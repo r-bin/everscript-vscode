@@ -1,0 +1,12 @@
+---
+addr: 9A8591
+size: 1369
+end: 9A8AE9
+kind: script
+name: open_message_box_puppets
+title: Puppet show — open a message box
+confidence: likely
+tags: [script, dialog]
+evidence: ["script: open_message_box(0, 2, $0C, $14, 5), END (v0.369.0)", "script: room $77 calls it by trigger id $1A7F"]
+---
+Opens a 20 × 5 message box at (2, 12).

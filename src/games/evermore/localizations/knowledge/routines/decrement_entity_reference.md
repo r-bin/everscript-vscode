@@ -1,0 +1,22 @@
+---
+addr: 8CDD41
+size: 10
+end: 8CDD4A
+kind: code
+category: 🧠
+name: decrement_entity_reference
+title: Decrement an entity reference count
+confidence: confirmed
+tags: [script-vm]
+evidence: ["disasm: evaluates an entity expression, decrements the word at entity +$3E, and returns Carry Set without calling the cleanup helper"]
+see: [docs/scripts/vm.md, docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-9c-release-entity.md]
+---
+Handler of script opcode [0x9C](soe://rom/assets/scripts/opcodes/9c.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/9c.md`, served at `soe://rom/assets/scripts/opcodes/9c.md`.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Operand expressions: `$8C:EA43` (`$8C:EC8E` for an entity: the result also goes to DP `$4C`)
+- Record fields (indexed by X/Y: a slot, an entity, a window): `+$3E`
+- Opcode table entry: `$8C:E9F5` (0x9c)
+
+The opcode handler reconstruction is in [opcode-9c-release-entity.md](../../../../../../docs/disassembly/script-vm/opcode-9c-release-entity.md) and `reconstructed-c/8C/8CDD41_opcode_9c_release_entity.c`.

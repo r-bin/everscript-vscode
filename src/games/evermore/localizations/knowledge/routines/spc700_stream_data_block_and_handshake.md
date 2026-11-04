@@ -1,0 +1,39 @@
+---
+addr: 8C810E
+end: 8C818C
+size: 127
+kind: code
+category: 🧠
+name: spc700_stream_data_block_and_handshake
+title: Streams sound sample data blocks and sequences to the SPC700 audio coprocessor with protocol handshakes
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified", "disasm, 2026-10-30 (bytes read from the ROM): the next block's address goes to $2142 at $8C:8163; $2141 gets 1 while X >= 1 (more data) or 0 at $8C:816E; ADC #$7F sets V exactly when that byte is 1; PLA restores the index, which $8C:8174 writes to $2140; $8C:817C CMP $2140 / BNE waits for the echo; BVS at $8C:8181 goes back for the next block (PLA leaves V alone). The per-byte loop writes $2140 at $8C:8146 and waits at $8C:814E", "MesenCE 2.2.1, 01-no-inputs-4m.evsmv, 2026-10-30: 18,672 writes to $2140 by NMI 320, the boot upload and the first scene load after NMI 319; in that load the sound driver (SPC RAM) reads the kick at SPC $0008/$000B and echoes it with MOV $F4,$F4 at SPC $001E, 952 master clocks after the CPU's write; the CPU sees it on its 22nd poll"]
+---
+Low confidence — Streams sound sample data blocks and sequences to the SPC700 audio coprocessor with protocol handshakes.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Low-level audio driver communication interface for uploading sound samples and sequence blocks to the SNES SPC700 sound processor.
+The routine polls APU communication port `$2140` until it matches ready handshake word `#$BBAA`.
+
+It then transmits data byte-by-byte from memory pointer `[$9C],Y`, verifying receipt via handshake byte `#$CC`, ensuring reliable audio asset transfers to the audio DSP without dropped bytes.
+
+## Block start (read from the code)
+To start a block, the routine writes the block's SPC address to `$2142–$2143` and puts 1 in `$2141` while more
+data follows, 0 for the last. Then it writes the index to `$2140` and waits until the SPC700 echoes it.
+`ADC #$7F` on the `$2141` byte sets the overflow flag exactly when it is 1, and `BVS` after the wait loops
+back for the next block. How long the waits take depends on the SPC700's exact timing (SecretOfEvermoreRecomp
+docs/imperfections/apu-port-handshake.md).
+
+## Callers
+- `$8C:8000` (`func_8C8000`)
+- `$8C:801F` (`func_8C801F`)
+
+## Callees
+- None
+
+## Variables and memory (hypotheses)
+- `$2140..$2143` (SNES APU audio communication I/O ports)
+- `$9C..$9E` (24-bit pointer to source audio data block in ROM/RAM)
+- `$0E65` (Audio streaming lock/busy flag)

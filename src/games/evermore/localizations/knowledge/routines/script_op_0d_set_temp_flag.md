@@ -1,0 +1,14 @@
+---
+addr: 8CD82E
+size: 78
+end: 8CD87B
+kind: code
+category: 🧠
+name: script_op_0d_set_temp_flag
+title: Script opcode 0x0D sets or clears a room scratch flag
+confidence: confirmed
+tags: [script-vm]
+evidence: ["disasm: vanilla VFS at $8C:D82E reads a u16 bit index and computes $7E:2834+(index>>3); update tail at $8C:D84C is shared with opcodes 0x0C and 0x0E", "vm: nonzero expression sets the selected bit, zero clears it, and both paths return carry set"]
+see: [docs/disassembly/script-vm/opcode-0d-set-temp-flag.md]
+---
+The handler reads a 16-bit bit index, computes the corresponding byte in the temporary room flag area beginning at `$7E:2834`, and sets or clears the selected bit according to expression truthiness. Its update tail at `$8C:D84C` is shared with opcodes `0x0C` and `0x0E`.

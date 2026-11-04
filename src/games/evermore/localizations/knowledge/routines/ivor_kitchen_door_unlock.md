@@ -1,0 +1,14 @@
+---
+addr: 97EDD8
+size: 32
+end: 97EDF7
+kind: script
+name: ivor_kitchen_door_unlock
+title: Ivor Tower banquet kitchen door unlocking sequence
+confidence: confirmed
+tags: [scripts, gothica, doors]
+evidence: ["script: checks QUEEN_S_KEY_ON_BOY; branches on door index arg[0] (1..10) to set object[id] = LAST, set temp_flag bit, and play sound(DOOR)", "script: called by 35 door interaction B-triggers in Room 113 (Ivor Tower east room and kitchen)"]
+see: [ram/7e2463.md]
+---
+Door unlocking routine for Room 113 (Ivor Tower banquet and kitchen maze).
+Accepts door identifier in `arg[0]`. Verifies the Boy holds the Queen's Key (`QUEEN_S_KEY_ON_BOY`). If valid and not already opened in `temp_flag[0]`, transitions the corresponding door object state to `LAST` (opened), flags the door in temporary memory, and plays `sound(DOOR)`. If the key is absent, routes to locked dialogue.

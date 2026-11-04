@@ -1,0 +1,12 @@
+---
+addr: 99AA89
+size: 25
+end: 99AAA1
+kind: script
+name: dark_forest_step_south
+title: Dark Forest — step one cell south
+confidence: likely
+tags: [script, room]
+evidence: ["script: temp[3] = temp[1]; temp[1] += 10; walk the controlled character 2 tiles south, call $99:BC6D (v0.369.0)"]
+---
+As `rom/99aaa2`, a row down (10 cells).

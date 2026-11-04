@@ -1,0 +1,17 @@
+---
+addr: 919D16
+size: 24
+end: 919D2D
+kind: code
+category: 🧠
+name: spell_heal_clamp_to_max_hp_999
+title: Apply spell healing to target HP and clamp to Max HP and 999 ceiling
+confidence: confirmed
+tags: [alchemy, healing, combat, hp]
+evidence: ["disasm: adds formula heal power to target active HP ($7E:4EB3); clamps to target Max HP ($7E:0A35) via CMP $0A35; enforces hard absolute ceiling of 999 via CMP #$03E7; stores clamped result into $4EB3", "trace: executed when resolve_spell_healing applies restorative formula recovery"]
+see: [docs/disassembly/combat/spell-targeting.md, docs/disassembly/combat/healing-spells.md]
+---
+Applies restorative alchemy formula power to the target's current HP,
+enforcing both the character's Max HP ceiling (`$7E:0A35`) and the engine-wide
+hard maximum HP cap of 999 (`0x03E7`).
+Full disassembly and clean C reconstruction: `docs/disassembly/combat/spell-targeting.md`.

@@ -1,0 +1,18 @@
+---
+addr: 8C82E3
+size: 58
+end: 8C831C
+kind: code
+category: 🧠
+name: play_sound_effect_with_package
+title: Play Sound Effect (With Soundbank Package Upload)
+confidence: confirmed
+evidence: ["disasm: $8C:82E3 saves SFX ID to $0E4F, calculates soundbank catalog offset from $81:9900/9901, reads required package ID, validates/streams bank via $8C:8236, and dispatches command via $8C:831D"]
+see: [rom/8c82dc.md, rom/8c8236.md, rom/8c831d.md, audio/sfx-queue.md]
+---
+Sound effect player with dynamic soundbank package verification:
+- Saves sound ID into `$0E4F`.
+- Looks up required sample package in master ROM table at `$81:9900`.
+- If the required BRR package is not resident in SPC700 RAM, calls song soundbank loader `$8C:8236` to stream samples.
+- Dispatches play command to the APU via `$8C:831D`.
+Full clean C decompilation: `docs/disassembly/audio/sfx-queue.md`.

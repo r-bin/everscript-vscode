@@ -1,0 +1,31 @@
+---
+addr: 91ADD0
+end: 91AE30
+size: 97
+kind: code
+category: 🧠
+name: alchemy_buff_stat_scalar_read_from_rom
+title: Reads formula stat buff multipliers and duration scalars from ROM master tables $C4:5F17/$C4:5F37
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Reads formula stat buff multipliers and duration scalars from ROM master tables $C4:5F17/$C4:5F37.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Retrieves stat amplification factors for buffing formulas (such as Atlas, Defend, or Speed).
+The routine indexes ROM master formula tables `$C4:5F17` and `$C4:5F37`.
+
+It checks formula tier flags; for active buffs, it cross-references stat multiplier tables at `$C4:5EB1` and returns the scalar percentage to be applied to party attributes.
+
+## Callers
+- `$91:AD6F` (`func_91AD6F`)
+
+## Callees
+- None
+
+## Variables and memory (hypotheses)
+- `$C4:5F17` (ROM table of formula buff base scalars)
+- `$C4:5F37` (ROM table of formula buff category flags)
+- `$C4:5EB1` (ROM table of stat multiplier thresholds)

@@ -1,0 +1,20 @@
+---
+addr: 919C90
+size: 124
+end: 919D0B
+kind: code
+category: 🧠
+name: apply_spell_damage_to_targets
+title: Spell damage mitigation, target defense reduction, and hurtbox resolution
+confidence: confirmed
+tags: [combat, damage, formulas]
+evidence: ["disasm: iterates targets at slot+$2E; for players (>= $4E89) subtracts magic defense linearly; for enemies (< $4E89) multiplies power by (64 - MDef)/64 via Mode 7 multiplier $211B/$2135; clamps damage 1..999; calls inflict_actor_damage ($8F:C0D3) for HP loss and floating numbers; returns total damage in slot+$2A", "trace: verified across player and enemy target lists"]
+see: [docs/disassembly/combat/damage-mitigation.md, rom/91ccd8.md]
+---
+Core combat damage mitigation and delivery routine for spell effects.
+Calculates net damage on each target in the spell's target list:
+1. Player characters (Boy or Dog) reduce incoming spell damage linearly by magic defense.
+2. Enemy hurtboxes reduce damage using the 64-base fractional resistance ratio `Power * (64 - MDef) / 64` via the SNES PPU hardware multiplier `$211B`/`$2135`. `64 − MDef` is an 8-bit signed byte (`SEP #$21` at `$91:9CC3`): a magic defence of 64 or more makes it 0 or negative, so the damage clamps to 1 (immune in practice), and `$FFC1` (−63, records 103, 104 and 135) gives 127/64, about double damage (v0.340.1).
+3. Clamps final damage strictly between **1 HP** and **999 HP** (damage cap).
+4. Invokes `$8F:C0D3` to decrement target HP, trigger hurt/knockback animations, and spawn damage number pop-ups.
+Full disassembly and clean C reconstruction: `docs/disassembly/combat/damage-mitigation.md`.

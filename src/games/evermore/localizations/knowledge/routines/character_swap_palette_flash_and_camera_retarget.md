@@ -1,0 +1,31 @@
+---
+addr: 8CF1A7
+end: 8CF215
+size: 111
+kind: code
+category: 🧠
+name: character_swap_palette_flash_and_camera_retarget
+title: Handles visual transitions, palette flashes, and companion anchor retargeting when switching active characters
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Handles visual transitions, palette flashes, and companion anchor retargeting when switching active characters.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Executes the control transfer when switching playable characters (Boy <-> Dog via Select button).
+The routine checks transition request flag `$B49`. It queues a momentary white palette flash via `$80:85FA` to provide responsive visual feedback, and calls `$8F:9937` (`companion_waypoint_anchor_init`) to retarget navigation waypoints and AI companion tethering.
+
+## Callers
+- `$8C:E5A1` (`switch_active_character`)
+
+## Callees
+- `$80:85FA` (`cgram_palette_dma_enqueue_or_immediate`)
+- `$8F:9916` (`func_8F9916`)
+- `$8F:9937` (`companion_waypoint_anchor_init`)
+
+## Variables and memory (hypotheses)
+- `$B49` (Character switch transition trigger flag)
+- `$0F42` (Active controlled character entity pointer)
+- `$6187` (Player character status record in WRAM)

@@ -1,0 +1,12 @@
+---
+addr: C45F17
+end: C45F36
+size: 32
+kind: table
+category: ⚗️
+name: CALL_BEAD_POWER
+title: CALL_BEAD_POWER
+confidence: likely
+evidence: ["legacy: migrated from tables.js; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
+---
+16 Call Bead spells.

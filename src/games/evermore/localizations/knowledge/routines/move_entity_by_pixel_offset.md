@@ -1,0 +1,22 @@
+---
+addr: 8CE040
+size: 78
+end: 8CE08D
+kind: code
+category: 🧠
+name: move_entity_by_pixel_offset
+title: Move an entity by pixel offsets
+confidence: confirmed
+tags: [script-vm]
+evidence: ["vanilla disassembly: evaluates entity and X/Y offsets; zero offsets set $7E:23E3 to 1; bit $0008 in entity field +$10 rejects movement; adds offsets to +$1A and +$1C, clears bit $0800, and calls $8F:AF48; carry-clear rejects, carry-set calls $8F:C2E4; success writes $7E:23E3=1 and rejection at $8C:E089 writes 0; both return with carry set"]
+see: [docs/disassembly/script-vm/move-entity-by-pixel-offset.md, reconstructed-c/8C/8CE040_move_entity_by_pixel_offset.c, docs/scripts/vm.md, docs/scripts/opcodes.md]
+---
+Handler of script opcode [0xB9](soe://rom/assets/scripts/opcodes/b9.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/b9.md`, served at `soe://rom/assets/scripts/opcodes/b9.md`.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Operand expressions: `$8C:EA43` (`$8C:EC8E` for an entity: the result also goes to DP `$4C`)
+- Calls: `$8F:AF48`; `$8F:C2E4`
+- Writes WRAM: `$7E:23E3` in Persistent RAM across rooms (names, story flags, markets, alchemy) (+$1E3)
+- Record fields (indexed by X/Y: a slot, an entity, a window): `+$10`, `+$1A`, `+$1C`
+- Opcode table entry: `$8C:EA2F` (0xb9)

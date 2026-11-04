@@ -1,0 +1,31 @@
+---
+addr: 91A924
+end: 91AB10
+size: 493
+kind: code
+category: 🧠
+name: spell_projectile_oam_sprite_render
+title: Renders animated spell projectile particles and glowing energy orbs to SNES hardware OAM
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Renders animated spell projectile particles and glowing energy orbs to SNES hardware OAM.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Translates active spell projectile coordinates into screen-space hardware sprite attributes.
+The routine decrements the particle lifetime counter in `$15CC`, retrieves frame sequence indices from `$1592`, and reads 3D position coordinates (`$159C..$15A4`).
+
+It calculates depth perspective scaling, selects appropriate OAM tile indices, and calls `$80:9033` (`direct_sprite_draw_oam`) to emit multi-part sprite entries for projectile graphics and spell burst effects.
+
+## Callers
+- `$91:A8B5` (`func_91A8B5`)
+
+## Callees
+- `$80:9033` (`direct_sprite_draw_oam`)
+
+## Variables and memory (hypotheses)
+- `$15CC` (Projectile animation lifetime frame counter)
+- `$1592` (Animation frame definition index)
+- `$159C..$15A4` (Spell projectile position and scale vector parameters)

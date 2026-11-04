@@ -1,0 +1,23 @@
+---
+addr: 8CD501
+size: 49
+end: 8CD531
+kind: code
+category: 🧠
+name: subtract_immediate_from_amount
+title: Subtract an immediate 24-bit value from an amount
+confidence: confirmed
+tags: [script-vm]
+evidence: ["disasm: handler evaluates an X index, reads a little-endian word and byte operand, subtracts the resulting 24-bit value with borrow from $0AC6/$0AC8 indexed by X, and writes the result back"]
+see: [docs/scripts/vm.md, docs/scripts/opcodes.md]
+---
+Handler of script opcode [0x7D](soe://rom/assets/scripts/opcodes/7d.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/7d.md`, served at `soe://rom/assets/scripts/opcodes/7d.md`.
+
+Evaluates a currency offset, fetches an inline 24-bit amount (word then byte), and subtracts it with borrow from the three-byte balance at `$7E:0AC6 + offset`. No underflow check is performed, so the result wraps modulo $2^{24}$. It explicitly returns carry set. Host-side model: `docs/disassembly/script-vm/opcode-7d-currency-take.md`.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Operand expressions: `$8C:EA43` (`$8C:EC8E` for an entity: the result also goes to DP `$4C`)
+- Reads WRAM: `$7E:0AC6`; `$7E:0AC8`
+- Writes WRAM: `$7E:0AC6`; `$7E:0AC8`
+- Opcode table entry: `$8C:E9B7` (0x7d)

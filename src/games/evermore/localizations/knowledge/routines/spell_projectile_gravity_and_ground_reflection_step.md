@@ -1,0 +1,34 @@
+---
+addr: 91A1EA
+end: 91A2AE
+size: 197
+kind: code
+category: 🧠
+name: spell_projectile_gravity_and_ground_reflection_step
+title: Simulates gravitational acceleration and ground impact bounce physics for falling spell projectiles
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Simulates gravitational acceleration and ground impact bounce physics for falling spell projectiles.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Physics step for falling or lobbed spell projectiles (such as Acid Rain drops, Crush rocks, or Bomb particles).
+The routine applies downward vertical acceleration to elevation coordinate `$24,Y` and advances horizontal coordinates `$22,Y` and `$20,Y`.
+
+It tests ground elevation thresholds; on contact, it either terminates projectile motion into an impact burst or reflects velocity vectors for bouncing debris.
+
+## Callers
+- Direct spell physics dispatch in Bank `$91`
+
+## Callees
+- `$80:B01D` (`func_80B01D`)
+- `$90:80D2` (`func_9080D2`)
+- `$90:81BD` (`func_9081BD`)
+
+## Variables and memory (hypotheses)
+- `$22,Y` (Projectile X position)
+- `$20,Y` (Projectile Y position)
+- `$24,Y` (Projectile vertical elevation Z coordinate)
+- `$1A,Y..$1E,Y` (Velocity delta components)

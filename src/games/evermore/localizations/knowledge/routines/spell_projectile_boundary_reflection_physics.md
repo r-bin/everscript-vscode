@@ -1,0 +1,30 @@
+---
+addr: 91C0BA
+end: 91C11E
+size: 101
+kind: code
+category: 🧠
+name: spell_projectile_boundary_reflection_physics
+title: Inverts projectile velocity vector components on terrain barrier impact to simulate ricochet reflection
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Inverts projectile velocity vector components on terrain barrier impact to simulate ricochet reflection.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Simulates bouncing physics for ricocheting projectiles (such as bouncing rocks or energy balls).
+When contact with a solid room barrier is detected, the routine inspects the contact surface normal.
+
+It negates either horizontal velocity `$1A,Y` or vertical velocity `$1C,Y` (performing signed two\'s complement negation), enabling projectiles to rebound off walls and continues flight along the reflected trajectory.
+
+## Callers
+- `$91:BFCD` (`func_91BFCD`)
+
+## Callees
+- None
+
+## Variables and memory (hypotheses)
+- `$1A,Y` (Projectile horizontal X velocity vector)
+- `$1C,Y` (Projectile vertical Y velocity vector)

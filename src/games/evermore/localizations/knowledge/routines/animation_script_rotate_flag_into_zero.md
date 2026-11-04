@@ -1,0 +1,14 @@
+---
+addr: 908C75
+size: 9
+end: 908C7D
+kind: code
+category: 🎮
+name: animation_script_rotate_flag_into_zero
+title: Rotate animation state bit into direct page parameter <$00 ($90:8C75)
+confidence: confirmed
+evidence: ["disasm: loads state word +$26,Y; bitwise ORs with $9902; rotates carry bit into direct page <$00 via ROL"]
+see: []
+tags: ["animation","state","rotate","flags"]
+---
+Evaluates animation state word `+$26,Y`, bitwise ORs with `$9902`, and rotates the top bit into direct page `<$00` via `ROL <$0`.

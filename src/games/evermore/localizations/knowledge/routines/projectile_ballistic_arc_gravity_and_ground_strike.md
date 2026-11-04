@@ -1,0 +1,33 @@
+---
+addr: 90DE9C
+end: 90DEF6
+size: 91
+kind: code
+category: 🧠
+name: projectile_ballistic_arc_gravity_and_ground_strike
+title: Applies downward gravitational acceleration to ballistic projectiles and tests ground strike contact
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Applies downward gravitational acceleration to ballistic projectiles and tests ground strike contact.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Physics step for lobbed and ballistic spell projectiles (such as falling Acid Rain droplets or lobbed boulder fragments).
+The routine decrements vertical elevation velocity `$24,Y`, adding downward gravitational acceleration to vertical elevation `$18,Y`.
+
+It advances horizontal coordinates (`$14,Y`, `$16,Y`), advances animation cels via `$90:80D2`, and tests ground contact and entity collision via `$8F:B5F2` (`strike_projectile_hit_test_melee_enters`).
+
+## Callers
+- Direct ballistic projectile handlers in Bank `$90`
+
+## Callees
+- `$8F:B5F2` (`strike_projectile_hit_test_melee_enters`)
+- `$90:80D2` (`func_9080D2`)
+- `$90:DE7B` (`FUN_90de7b`)
+
+## Variables and memory (hypotheses)
+- `$18,Y` (Projectile vertical elevation Z coordinate)
+- `$24,Y` (Vertical velocity / gravitational acceleration delta)
+- `$14,Y`, `$16,Y` (Projectile X and Y horizontal world positions)

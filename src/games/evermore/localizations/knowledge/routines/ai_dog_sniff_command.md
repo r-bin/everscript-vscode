@@ -1,0 +1,16 @@
+---
+addr: 8FD018
+size: 70
+end: 8FD05D
+kind: code
+category: 🧠
+name: ai_dog_sniff_command
+title: The Dog with L or R held: walk to the sniff spot, else sniff in place
+confidence: confirmed
+tags: [entities, ai]
+evidence: ["disasm: decompiled in full (v0.342.0): $4FAF = 9; if a sniff spot is set ($1459) and reachable ($8F:98A4), path to ($1453, $1455, $1457) and play the form's $1443/$1445 sniff animations; else play $1443"]
+see: [rom/8fd0a8.md, docs/entities/ai-behaviours.md]
+---
+`$1443`-`$144B` are the current Dog form's animation ids (the form loader writes them), not coordinates.
+
+Previously believed: a teleport recovery that snaps the companion to coordinates at $1443/$1445.

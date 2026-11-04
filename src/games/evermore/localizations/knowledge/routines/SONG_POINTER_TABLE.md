@@ -1,0 +1,12 @@
+---
+addr: C19903
+end: C199D7
+size: 213
+kind: table
+category: 📋
+name: SONG_POINTER_TABLE
+title: Song pointer table
+confidence: likely
+evidence: ["legacy: migrated from tables.js; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
+---
+71 × 24-bit pointers to descriptors in $8A..$8B.

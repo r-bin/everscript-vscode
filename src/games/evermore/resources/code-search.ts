@@ -76,6 +76,7 @@ function whyMatches(cat: Catalog, fn: CodeFunction, q: string): string[] {
     if (e.tags.some(t => t.toLowerCase().includes(lower)) || (e.category || '') === q) why.push('tag');
     if (!why.length && e.body.toLowerCase().includes(lower)) why.push('knowledge text');
     if (fn.c && fn.c.text.toLowerCase().includes(lower)) why.push('C');
+    if (a && a.lines.some(l => l.comment && l.comment.toLowerCase().includes(lower))) why.push('asm comment');
     if (addr === null && a) {
         const named = ramMatching(lower);
         const hits = a.wram.filter(u => named.some(r => u.addr >= r.addr && u.addr <= r.end));

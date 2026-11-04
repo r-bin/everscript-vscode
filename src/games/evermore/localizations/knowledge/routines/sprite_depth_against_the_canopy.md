@@ -1,0 +1,12 @@
+---
+addr: 8FC780
+size: 164
+end: 8FC823
+kind: code
+category: 🧠
+name: sprite_depth_against_the_canopy
+title: Sprite depth against the canopy
+confidence: likely
+evidence: ["legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
+---
+Sprite depth against the canopy.

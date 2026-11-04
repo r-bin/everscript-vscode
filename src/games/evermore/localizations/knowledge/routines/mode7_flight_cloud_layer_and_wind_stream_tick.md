@@ -1,0 +1,30 @@
+---
+addr: 80C763
+end: 80C7BB
+size: 89
+kind: code
+category: 🧠
+name: mode7_flight_cloud_layer_and_wind_stream_tick
+title: Animates drifting cloud layers and wind speed streams during Mode 7 flight sequences
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Animates drifting cloud layers and wind speed streams during Mode 7 flight sequences.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Updates ambient meteorological effects during Windwalker flight scenes.
+The routine inspects flight operational mode `$0E70`. When cruising, it checks cloud layer enable flag `$7E:246B`, streams animated cloud tile patterns via `$90:CFB8` (`sprite_tile_vram_dma_enqueue`), and steps animation bytecode via `$90:80CE` for wind streamer structures `$681D` and `$682D`.
+
+## Callers
+- `$80:C95B` (`FUN_80c95b`)
+
+## Callees
+- `$90:80CE` (`anim_vm_tick`)
+- `$90:CFB8` (`sprite_tile_vram_dma_enqueue`)
+
+## Variables and memory (hypotheses)
+- `$0E70` (Flight operational mode indicator)
+- `$7E:246B` (Cloud layer rendering toggle flag)
+- `$681D`, `$682D` (Wind and cloud animation state structures)

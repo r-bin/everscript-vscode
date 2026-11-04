@@ -1,0 +1,21 @@
+---
+addr: 8CDA67
+size: 33
+end: 8CDA87
+kind: code
+category: 🧠
+name: move_entity_to_tile_position
+title: Move an entity to tile coordinates
+confidence: confirmed
+tags: [script-vm]
+evidence: ["disasm: handler evaluates an entity, scales its two byte coordinates by 8 into DP $46/$48, and enters the shared position helper; the helper checks tile elevation and collision before changing entity movement state", "trace: the game ran 1 distinct instruction with this opcode (tests/script-vm/goldens.json)", "disasm: shared path $8C:DAA6 skips enemies with 0 HP; mode 0 calls $8F:AA82 (v0.320.0)"]
+see: [docs/scripts/vm.md, docs/scripts/opcodes.md]
+---
+Handler of script opcode [0x6C](soe://rom/assets/scripts/opcodes/6c.md). Evaluates the entity, reads two unsigned coordinate bytes, scales them by eight, and enters shared path logic `$8C:DAA6`; that logic skips dead non-player entities and otherwise calls `$8F:AA82`. Returns carry set. Host-side model: `docs/disassembly/script-vm/opcode-6c-walk-to-tile.md`.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Operand expressions: `$8C:EA43` (`$8C:EC8E` for an entity: the result also goes to DP `$4C`)
+- Calls: `$8F:AA82`; `$8F:AAD3`
+- Record fields (indexed by X/Y: a slot, an entity, a window): `+$2A`
+- Opcode table entry: `$8C:E995` (0x6c)

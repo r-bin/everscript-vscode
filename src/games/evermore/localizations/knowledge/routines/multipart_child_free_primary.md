@@ -1,0 +1,14 @@
+---
+addr: 8F98FE
+size: 24
+end: 8F9915
+kind: code
+category: 🧠
+name: multipart_child_free_primary
+title: "Multipart entity: detach and release primary child slot"
+confidence: confirmed
+evidence: ["docs/disassembly/combat/boss-multipart.md", "disasm: LDX $006A,y / BMI out; STZ $3C14,x; LDA $3BC7 / STA $3BC9,x; STX $3BC7; LDA #$FFFF / STA $006A,y; RTL (v0.348.0, DB-relative operands)", "c: G1 passed (tools/c-to-rom/g1.mts, v0.351.0): the bound C equals the ROM on 28 entry states sampled from the 2:20 no-input reference and 445 fuzzed ones; snes9x agrees with the interpreter on 28; a mutation is caught"]
+---
+
+Releases the primary child attachment entity attached to `parent + 0x6A`.
+Clears the child's parent reference, returns the slot to the free list by pushing it onto `$7E:3BC7` with next pointer `$7E:3BC9,X`, and resets `parent + 0x6A` to `$FFFF`.

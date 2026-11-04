@@ -1,0 +1,23 @@
+---
+addr: 8CDD33
+size: 14
+end: 8CDD40
+kind: code
+category: 🧠
+name: release_entity_reference
+title: Release an entity reference and clean up
+confidence: confirmed
+tags: [script-vm]
+evidence: ["disasm: evaluates an entity, decrements +$3E, and calls $8F:B2DE; the helper releases attached resources, restores motion, clears HP at +$2A, and disposes when the reference count reaches zero", "trace: the game ran 4 distinct instructions with this opcode (tests/script-vm/goldens.json)"]
+see: [docs/scripts/vm.md, docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-9b-destroy.md]
+---
+Handler of script opcode [0x9B](soe://rom/assets/scripts/opcodes/9b.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/9b.md`, served at `soe://rom/assets/scripts/opcodes/9b.md`.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Operand expressions: `$8C:EA43` (`$8C:EC8E` for an entity: the result also goes to DP `$4C`)
+- Calls: `$8F:B2DE`
+- Record fields (indexed by X/Y: a slot, an entity, a window): `+$3E`
+- Opcode table entry: `$8C:E9F3` (0x9b)
+
+The opcode handler reconstruction is in [opcode-9b-destroy.md](../../../../../../docs/disassembly/script-vm/opcode-9b-destroy.md) and `reconstructed-c/8C/8CDD33_opcode_9b_destroy.c`.

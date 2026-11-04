@@ -1,0 +1,12 @@
+---
+addr: 90A0D0
+size: 113
+end: 90A140
+kind: code
+category: 🧠
+name: animated_tiles_v_blank_graphic_swaps_to
+title: Animated tiles: V-Blank graphic swaps (to `$90:A1A0`)
+confidence: likely
+evidence: ["legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
+---
+Animated tiles: V-Blank graphic swaps (to `$90:A1A0`).

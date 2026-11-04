@@ -1,0 +1,14 @@
+---
+addr: 908376
+size: 6
+end: 90837B
+kind: code
+category: 🎮
+name: animation_script_store_high_pc_byte
+title: Store high byte of script program counter into record field +$01 ($90:8376)
+confidence: confirmed
+evidence: ["disasm: stores high byte of 24-bit script PC <$5E into record field +$01,Y"]
+see: []
+tags: ["animation","pc","record","script"]
+---
+Stores high byte of script program counter `<$5E` into record field `+$01,Y`.

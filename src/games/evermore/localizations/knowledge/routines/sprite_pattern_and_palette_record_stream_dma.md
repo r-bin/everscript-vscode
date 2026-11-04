@@ -1,0 +1,32 @@
+---
+addr: 908A13
+end: 908A89
+size: 119
+kind: code
+category: 🧠
+name: sprite_pattern_and_palette_record_stream_dma
+title: Streams sprite CHR tile patterns and 16-color palette descriptors from indirect tables into staging buffers
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Streams sprite CHR tile patterns and 16-color palette descriptors from indirect tables into staging buffers.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Helper routine for loading multi-part entity visual descriptors.
+The routine reads indirect pointer table `[$5D]`, extracting source tile pattern addresses and color palette blocks.
+
+It copies tile data via `$90:D34C` (`memory_block_copy_indirect_words`) into VRAM staging buffers and queues palette records for upload via `$80:85FA` (`cgram_palette_dma_enqueue_or_immediate`).
+
+## Callers
+- Direct sprite asset loaders in Bank `$90`
+
+## Callees
+- `$80:85FA` (`cgram_palette_dma_enqueue_or_immediate`)
+- `$90:D34C` (`memory_block_copy_indirect_words`)
+
+## Variables and memory (hypotheses)
+- `$5D` (Indirect 24-bit pointer to sprite asset definition table)
+- `$26`, `$28` (Source pattern memory pointers)
+- `$2A`, `$2C` (Destination buffer pointers)

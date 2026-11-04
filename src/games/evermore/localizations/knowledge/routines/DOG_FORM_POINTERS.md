@@ -1,0 +1,12 @@
+---
+addr: CF945F
+end: CF946A
+size: 12
+kind: table
+category: 📋
+name: DOG_FORM_POINTERS
+title: Dog form pointers
+confidence: likely
+evidence: ["legacy: migrated from tables.js; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
+---
+6 words into bank $CF.

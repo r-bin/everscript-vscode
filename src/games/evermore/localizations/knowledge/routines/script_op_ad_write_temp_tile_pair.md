@@ -1,0 +1,21 @@
+---
+addr: 8CD752
+size: 25
+end: 8CD76A
+kind: code
+category: 🧠
+name: script_op_ad_write_temp_tile_pair
+title: Script opcode 0xad — write temp tile pair
+confidence: confirmed
+tags: [script-vm]
+evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands u16 u16 u8 u8, continues in the same turn (docs/scripts/opcodes.md)", "trace: the game ran 6 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
+see: [docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-ad-write-temp-tile-pair.md]
+---
+Handler of script opcode [0xAD](soe://rom/assets/scripts/opcodes/ad.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/ad.md`, served at `soe://rom/assets/scripts/opcodes/ad.md`.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Record fields (indexed by X/Y: a slot, an entity, a window): `+$00`
+- Opcode table entry: `$8C:EA17` (0xad)
+
+The exact offset and tile-byte handling is documented in [opcode-ad-write-temp-tile-pair.md](../../../../../../docs/disassembly/script-vm/opcode-ad-write-temp-tile-pair.md) and modeled in `reconstructed-c/8C/8CD752_opcode_ad_write_temp_tile_pair.c`.

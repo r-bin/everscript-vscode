@@ -1,0 +1,28 @@
+---
+addr: 91AD17
+end: 91AD6E
+size: 88
+kind: code
+category: 🧠
+name: status_effect_cleanse_single_ailment
+title: Cleanses a specific status condition (Poison, Confound, Plague) and recalculates combat attributes
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Cleanses a specific status condition (Poison, Confound, Plague) and recalculates combat attributes.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Cures a specified status ailment on a party member or enemy actor.
+The routine clears the corresponding ailment bitmask in entity status attribute `$4C,Y`, zeroes the condition duration timer, and invokes `$91:BC28` (`status_effects_tick_all`) to restore normalized character statistics and clear visual status icons.
+
+## Callers
+- `$91:ACBE` (`func_91ACBE`)
+
+## Callees
+- `$91:BC28` (`status_effects_tick_all`)
+
+## Variables and memory (hypotheses)
+- `$4C,Y` (Entity active status condition bitfield)
+- `$46,Y` (Entity status ailment duration timer)

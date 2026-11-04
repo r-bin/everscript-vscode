@@ -1,0 +1,20 @@
+---
+addr: 8EB33D
+size: 457
+end: 8EB505
+kind: code
+category: 🧠
+name: mode7_flight_sample_and_sprite_dispatch
+title: Mode 7 flight sample and sprite dispatch loop
+confidence: confirmed
+tags: [mode7, flight, rendering]
+evidence: ["disasm: clean vanilla VFS range $8E:B33D-$8E:B505; initializes a counted loop, forms masked indexed samples from $061B and hardware quotient $4214, and writes signed-sample results to DP $02/$04", "disasm: calls $90:80D2 and dispatches indexed sprite/record paths using $05AB, $8E:B506/$8E:B512 data, $80:9033, and $90:81BD; returns at $8E:B505", "caller: $8E:B02C invokes this entry after $8E:B520"]
+see: [docs/disassembly/engine-core/mode7-flight.md, rom/8088a3.md, rom/8eb02c.md, rom/809033.md]
+---
+This routine is called by `$8E:B02C` during the flight frame. It initializes a count in DP `$0A`, a loop counter in DP `$32`, and an entry offset in DP `$0E`. Each iteration uses the quotient at `$4214` with `$061B` to form a masked byte offset into the signed-word table at `$80:88A3`; the second sample is `$0080` bytes later. Sign-dependent hardware-multiply paths calculate scratch values in DP `$02` and `$04` using `$0615` and `$0617` as bases. These two WRAM values are read but are not written by this routine.
+
+The routine then calls `$90:80D2`, adjusts its scratch coordinates using DP `$59`/`$5B` and `$0BFB`/`$0BFD`, tests `$05AB`, and uses indexed record data to choose sprite work through `$80:9033` or `$90:81BD` (which tail-jumps to `$80:9033`). It advances DP `$0E` by `$0010`, increments DP `$32`, loops, and returns at `$8E:B505`. Indexed data at `$8E:B506-$8E:B51F` is outside this routine.
+
+Previously believed: this entry directly integrated sine/cosine velocity deltas into `$0615`/`$0617`. The disassembly contradicts that model; it reads those addresses but does not store to them.
+
+The full ROM control flow is documented in `docs/disassembly/engine-core/mode7-flight.md`. The C translation models the observed flow using explicit memory and hardware-operation interfaces; opaque pointer and field meanings remain unresolved.

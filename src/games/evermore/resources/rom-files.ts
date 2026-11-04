@@ -12,8 +12,9 @@
 
 import { snesToRom } from '../maps';
 import { getTable, getFunction, getAbsScript } from '../localizations';
+import { getRomEntryByName } from '../localizations/rom-map';
 import { parseAddressName, hexId } from './resource-uri';
-import { dir, file, json, text } from './nodes';
+import { dir, file, json, text, link } from './nodes';
 import { asmListing } from './asm-view';
 import { cListing } from './decomp-view';
 import { resolveCode } from './code-view';
@@ -48,6 +49,10 @@ function resolveRom(segments: string[], rom: Rom, deps?: MapsDeps) {
         if (head === 'index.md') return text(() => indexMarkdown(rom));
         if (head === 'rom.sfc') return file(() => Buffer.from(rom.buffer, rom.byteOffset, rom.length));
         if (head === 'header.json') return json(() => readHeader(rom));
+        const romEntry = getRomEntryByName(head);
+        if (romEntry) {
+            return link(resolveCode([romEntry.name], rom, deps), 'soe://rom/code/' + romEntry.name + '/');
+        }
         return slice(rom, head, deps);
     }
     return null;

@@ -1,0 +1,13 @@
+---
+addr: 8084EA
+size: 29
+end: 808506
+kind: code
+category: 🧠
+name: irq_handler
+title: IRQ handler
+confidence: confirmed
+evidence: ["disasm: $80:84EA is JML $80:84EE; $80:84EE saves DB/A/X/Y, reads $4211, dispatches through the 24-bit WRAM vector at $7E:012B, restores registers, and RTI (docs/disassembly/engine-core/irq-dispatch.md)"]
+see: [docs/disassembly/engine-core/irq-dispatch.md, docs/disassembly/engine-core/nmi-input-setup.md]
+---
+IRQ vector trampoline and dispatcher. The current hook is `$80:858B` (a bare `RTL`), installed with bank `$80` by `$80:8507`. The dispatcher acknowledges `$4211`, preserves DB/A/X/Y around the indirect hook, and returns with `RTI`.

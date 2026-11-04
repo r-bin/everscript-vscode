@@ -1,0 +1,28 @@
+---
+addr: 80DB36
+end: 80DB8C
+size: 87
+kind: code
+category: 🧠
+name: mode7_flight_speed_inertia_friction_step
+title: Applies atmospheric drag and deceleration inertia to aircraft cruising velocity in Mode 7 flight
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Applies atmospheric drag and deceleration inertia to aircraft cruising velocity in Mode 7 flight.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Simulates aerodynamic friction and deceleration when releasing the accelerator in Mode 7 flight.
+The routine checks forward velocity `$14B4`. If cruising above base speed, it decrements velocity towards neutral gliding speed, ensuring smooth deceleration transitions rather than instant stopping.
+
+## Callers
+- `$80:C1A2` (`FUN_80c1a2`)
+
+## Callees
+- None
+
+## Variables and memory (hypotheses)
+- `$14B4` (Current aircraft forward cruising speed)
+- `$14B6` (Neutral gliding speed baseline)

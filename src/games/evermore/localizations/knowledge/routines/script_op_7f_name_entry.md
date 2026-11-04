@@ -1,0 +1,24 @@
+---
+addr: 8CE17A
+size: 131
+end: 8CE1FC
+kind: code
+category: 🧠
+name: script_op_7f_name_entry
+title: Script opcode 0x7F: name entry screen
+confidence: likely
+tags: [script-vm]
+evidence: ["disasm: handler at $8C:E17A reads a word index, selects values from $8C:E1FD/$8C:E1FF, runs field/render calls, writes $0106/$0B83, and returns Carry Set; one table case also calls $80:B149", "disasm: word index into 3-byte pointers at $8C:E1FD: 0 -> $7E:2210, 3 -> $7E:2234 (+ default from $C4:60AC via $80:B149); screen $8D:8000 / $8D:82CB"]
+see: [docs/scripts/opcodes.md]
+---
+Handler of script opcode [0x7F](soe://rom/assets/scripts/opcodes/7f.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/7f.md`, served at `soe://rom/assets/scripts/opcodes/7f.md`.
+
+Prepares UI state, calls `$8D:8000`, fetches the inline selector, and reads name-buffer pointer/descriptor data from `$8C:E1FD`/`$8C:E1FF`. For buffer `$2234`, seeds the Dog name from `$C4:60AC` via `$80:B149`; then calls `$8D:82CB` and performs the field/UI restoration sequence. `$0106` is cleared and `$0B83` reset to `$800F` before carry-set return. Native UI internals remain delegated. Host-side model: `docs/disassembly/script-vm/opcode-7f-name-entry.md`.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Calls: `$80:858C` Spin until the NMI handler has bumped the frame counter; `$80:8FEE`; `$80:B149`; `$8C:AB10`; `$8C:AF23`; `$8C:B743`; `$8D:8000`; `$8D:82CB`; `$8E:E08B`; `$8E:E56A`; `$8F:87FE`; `$90:92C7`
+- Reads WRAM: `$7E:0F3E`
+- Writes WRAM: `$7E:0106` PPU register shadows, copied to the PPU every NMI; `$7E:0B83`
+- Reads ROM: `$8C:E1FD`; `$8C:E1FF`
+- Opcode table entry: `$8C:E9BB` (0x7f)

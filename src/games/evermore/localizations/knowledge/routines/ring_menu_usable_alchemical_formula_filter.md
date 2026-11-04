@@ -1,0 +1,31 @@
+---
+addr: 8E9A2F
+end: 8E9A85
+size: 87
+kind: code
+category: 🧠
+name: ring_menu_usable_alchemical_formula_filter
+title: Scans learned formula bitfields and populates eligible spell entries into the Alchemy Ring Menu
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Scans learned formula bitfields and populates eligible spell entries into the Alchemy Ring Menu.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Populates the Alchemy Ring Menu with currently known formulas.
+The routine scans player learned formula words in `$7E:2345` and `$7E:2346`.
+
+For each unlocked formula, it assigns the formula ID (`#$42`, `#$44`, etc.) into ring menu slot array `$0C93,X`, and records the total available formula count in `$0C8F`.
+
+## Callers
+- `$8E:91AC` (`func_8E91AC`)
+
+## Callees
+- None
+
+## Variables and memory (hypotheses)
+- `$7E:2345..$7E:2346` (Player learned alchemy formula bitmasks)
+- `$0C8F` (Total learned formulas counter)
+- `$0C93` (Active alchemy ring menu slot ID array)

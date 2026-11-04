@@ -1,0 +1,28 @@
+---
+addr: 80B283
+end: 80B2D9
+size: 87
+kind: code
+category: 🧠
+name: format_decimal_digits_to_ui_tilemap_words
+title: Converts unpacked BCD numeric digits into 16-bit UI font tilemap words with palette attributes
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Converts unpacked BCD numeric digits into 16-bit UI font tilemap words with palette attributes.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+String formatting utility for numbers displayed in UI windows, dialogue boxes, and damage popups.
+The routine takes an unpacked decimal digit buffer, adds font base tile offset `#$0030` and palette attributes, and writes 16-bit character tile words into the target UI tilemap buffer.
+
+## Callers
+- `$80:B21F` (`format_32bit_integer_to_decimal_ascii`)
+
+## Callees
+- None
+
+## Variables and memory (hypotheses)
+- `$22`, `$24` (Pointer to destination UI tilemap buffer)
+- `$02` (Base font tile character offset and palette attribute)

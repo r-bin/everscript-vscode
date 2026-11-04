@@ -1,0 +1,24 @@
+---
+addr: 90CD80
+size: 47
+end: 90CDAE
+kind: code
+category: 🧠
+name: sprite_palette_allocator
+title: Dynamic sprite palette group allocator, deduplication, and slot assignment
+confidence: confirmed
+tags: [sprites, palettes, cgram, graphics]
+evidence: ["disasm: $90:CD80-$90:CDD9 (v0.340.1): match search over offsets 8, $A, 0, 2, 4 of $1278; free search over 8, $A, 0, 2 after $90:CE20; steal through $90:CE92; the caller $90:CD5C stores the slot offset in entity +$0C and +$74/+$75", "disasm: $90:CDF5 / $90:CE05 reload offsets $C / $E from the Boy's $0A2F and the Dog's $0A79", "trace: executed on entity spawn to allocate one of 8 SNES OAM sprite palette groups"]
+see: [docs/disassembly/entities/palette-allocator.md, rom/90cdaf.md, rom/90ce92.md]
+---
+Finds a sprite palette slot for a palette address in A (a character record's `+$09`). Slots are
+words at `$1278` (byte offset = 2 × slot). First it reuses a slot that already holds the same
+address, checking offsets 8, `$A`, 0, 2, 4 (slots 4, 5, 0, 1, 2). Then it frees slots nobody uses
+any more (`$90:CE20`), takes the first free one among offsets 8, `$A`, 0, 2, loads the colours
+(`$90:CF3A`), or steals one (`$90:CE92`). Slots 6 and 7 (offsets `$C`, `$E`) belong to the Boy
+(`$0A2F`) and the Dog (`$0A79`), and slot 3 is never handed out here. A record with a second palette
+(`+$0B`) skips this and takes slots 0 and 1 itself (`$90:CCF6`).
+
+Previously believed: slots 0 and 1 are pinned for the Boy and Dog and slots 2..7 are dynamic; the
+code (re-read v0.340.1) pins 6 and 7.
+Full disassembly and clean C reconstruction: `docs/disassembly/entities/palette-allocator.md`.

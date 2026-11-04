@@ -1,0 +1,36 @@
+---
+addr: 8F8A72
+end: 8F9103
+size: 1682
+kind: code
+category: 🧠
+name: combat_melee_weapon_attack_resolve_damage
+title: Resolves physical melee weapon strikes, computing damage, stamina scaling, target flinch recoil, and impact au
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Resolves physical melee weapon strikes, computing damage, stamina scaling, target flinch recoil, and impact audio.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Evaluates player and companion melee weapon attacks against targeted combat entities.
+The routine verifies attacker entity state (such as the Boy entity at WRAM `$4E89`), checking current animation sequence flags (`$2A,Y`), weapon charge tier (`$6E`), and target entity properties (`$60,Y`).
+
+It calculates base attack rating by multiplying weapon base power against stamina charge percentage, mitigates damage using target entity physical defense attributes, and determines critical hit procs.
+Upon calculating resultant damage, it enqueues damage popup numbers, triggers target hit-recoil animation flags in `$B4D` and `$B4F`, and communicates with the SPC700 sound coprocessor via the APU spinlock port (`$8C:81FD`) to trigger impact sound effects.
+
+## Callers
+- `$8F:89A3` (`FUN_8f89a3`)
+
+## Callees
+- `$80:8650` (`FUN_808650`)
+- `$80:870C` (`FUN_80870c`)
+- `$8C:81FD` (`APU_handshake_2140_spinlock_8C81FD`)
+
+## Variables and memory (hypotheses)
+- `$4E89` (Boy entity structure in WRAM)
+- `$2A,Y` (Attacker action/animation status word)
+- `$60,Y` (Target entity pointer / weapon data index)
+- `$6E` (Stamina level and weapon charge multiplier)
+- `$B4D`, `$B4F` (Combat hit confirmation and recoil flags)

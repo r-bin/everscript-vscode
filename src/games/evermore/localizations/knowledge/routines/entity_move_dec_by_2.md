@@ -1,0 +1,14 @@
+---
+addr: 8FC390
+size: 3
+end: 8FC392
+kind: code
+category: 🎮
+name: entity_move_dec_by_2
+title: Decrement accumulator by 2 ($8F:C390)
+confidence: confirmed
+evidence: ["disasm: executes DEC; DEC; RTS to retreat coordinate offset by 2 bytes/pixels"]
+see: []
+tags: ["movement","math","decrement"]
+---
+Decrements accumulator by 2 (`DEC; DEC; RTS`).

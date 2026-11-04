@@ -1,0 +1,20 @@
+---
+addr: 8CD400
+size: 40
+end: 8CD427
+kind: code
+category: 🧠
+name: script_op_07_start_thread
+title: Script opcode 0x07 — start thread
+confidence: confirmed
+tags: [script-vm]
+evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands u24, starts a parallel thread and continues (docs/scripts/opcodes.md)", "trace: the game ran 12 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
+see: [docs/scripts/opcodes.md]
+---
+Handler of script opcode [0x07](soe://rom/assets/scripts/opcodes/07.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/07.md`, served at `soe://rom/assets/scripts/opcodes/07.md`.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Calls: `$8C:CE86` Script VM — add a thread to the run list; `$8C:CF18` Script VM — allocate a slot for a script
+- Record fields (indexed by X/Y: a slot, an entity, a window): `+$0D`, `+$3E`
+- Opcode table entry: `$8C:E8CB` (0x07)

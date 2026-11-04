@@ -1,0 +1,12 @@
+---
+addr: 90A429
+size: 125
+end: 90A4A5
+kind: code
+category: 🧠
+name: object_tick_one_state_per_hold
+title: Object tick: one state per hold
+confidence: likely
+evidence: ["legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
+---
+Object tick: one state per hold.

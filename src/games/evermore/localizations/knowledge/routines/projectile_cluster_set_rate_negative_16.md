@@ -1,0 +1,14 @@
+---
+addr: 90D6E3
+size: 8
+end: 90D6EA
+kind: code
+category: 🎮
+name: projectile_cluster_set_rate_negative_16
+title: Set projectile cluster tracking rate parameter to -16 ($90:D6E3)
+confidence: confirmed
+evidence: ["disasm: sets rate parameter $0F58 = -16 ($FFF0); returns SEC"]
+see: []
+tags: ["projectile","cluster","rate","tracking"]
+---
+Sets projectile cluster tracking rate parameter `$0F58 = -16` (`$FFF0`) and returns `SEC`.

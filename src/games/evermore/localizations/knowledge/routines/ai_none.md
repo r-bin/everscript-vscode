@@ -1,0 +1,16 @@
+---
+addr: 8FD76A
+size: 4
+end: 8FD76D
+kind: code
+category: 🧠
+name: ai_none
+title: Behaviour $02 NONE — does nothing (back to the idle animation)
+confidence: confirmed
+tags: [entities, ai]
+evidence: ["disasm: decompiled in full (v0.342.0): the whole routine is `jml $90:828E`", "rom: 20 records: rocks, statue, bridge, boss hearts and cores, fan, speaker, bomb"]
+see: [docs/entities/ai-behaviours.md]
+---
+No decision at all. These characters move and act only through room scripts and their animation scripts.
+
+Previously believed: a boss-part driver that checks peripheral shields and triggers defeat cutscenes; none of that is in this routine.

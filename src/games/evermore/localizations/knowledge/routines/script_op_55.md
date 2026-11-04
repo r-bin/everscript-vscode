@@ -1,0 +1,19 @@
+---
+addr: 8CD988
+size: 22
+end: 8CD99D
+kind: code
+category: 🧠
+name: script_op_55
+title: Script opcode 0x55
+confidence: confirmed
+tags: [script-vm]
+evidence: ["disasm: selects default text-window record $034D, clears it through $8C:ADE5, then calls $8C:C55D to resume queued dialogue; returns carry set", "evs: text_end emits opcode 0x55 in in/core/[group] 02_functions/[group] 02_everscript_commands/06_strings.evs"]
+see: [docs/scripts/opcodes.md, rom/8cc55d.md, docs/disassembly/script-vm/cutscene-scheduler.md]
+---
+Handler of script opcode [0x55](soe://rom/assets/scripts/opcodes/55.md). It closes the default text window at `$7E:034D` through `$8C:ADE5`, activates the next queued dialogue through `$8C:C55D`, then returns carry set. The host-side model is documented in `docs/disassembly/script-vm/opcode-55-text-end.md`.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Calls: `$8C:ADE5`; `$8C:C55D`
+- Opcode table entry: `$8C:E967` (0x55)

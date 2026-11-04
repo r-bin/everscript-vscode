@@ -1,0 +1,22 @@
+---
+addr: 8CD4C2
+size: 14
+end: 8CD4CF
+kind: code
+category: 🧠
+name: script_op_8f_jump_if_currency_below
+title: Script opcode 0x8F: jump if a currency is below an expression
+confidence: confirmed
+tags: [script-vm]
+evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E E r16, jumps or continues (docs/scripts/opcodes.md)", "disasm: two expressions, then the compare of 0x0B at $8C:D4E6 (v0.320.0)"]
+see: [docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-8f-jump-if-currency-below.md]
+---
+Handler of script opcode [0x8F](soe://rom/assets/scripts/opcodes/8f.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/8f.md`, served at `soe://rom/assets/scripts/opcodes/8f.md`.
+
+The comparison and branch-flow reconstruction is in [opcode-8f-jump-if-currency-below.md](../../../../../../docs/disassembly/script-vm/opcode-8f-jump-if-currency-below.md) and `reconstructed-c/8C/8CD4C2_opcode_8f_jump_if_currency_below.c`.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Operand expressions: `$8C:EA43` (`$8C:EC8E` for an entity: the result also goes to DP `$4C`)
+- Reads WRAM: `$7E:0AC6`; `$7E:0AC8`
+- Opcode table entry: `$8C:E9DB` (0x8f)

@@ -1,0 +1,19 @@
+---
+addr: 80ADF0
+size: 108
+end: 80AE5B
+kind: code
+category: 🧠
+name: face_8
+title: Eight-way direction code from signed coordinate deltas
+confidence: confirmed
+tags: [entities, movement]
+evidence: ["disasm: reads DP $02/$04; caller $8F:D715 stores signed target-minus-entity x/y deltas there", "disasm: uses quadrant-specific CMP, ASL, LSR, and SEC/ROR branches; some exits execute TDC"]
+see: [docs/entities/ai-behaviours.md, reconstructed-c/80/8080ADF0_face_8.c]
+---
+Reads signed `dx` from DP `$02` and signed `dy` from DP `$04`; caller `$8F:D715` sets these to
+target position minus entity position. The routine uses quadrant-specific 16-bit comparisons and
+double/half transformations, so its thresholds are not captured by a single symmetric 2:1 rule.
+Several paths execute `TDC`, returning the current 65816 direct-page register value; the C model
+therefore accepts that register value explicitly instead of assuming it is zero. The model
+reproduces the raw branch outputs in `reconstructed-c/80/8080ADF0_face_8.c`.

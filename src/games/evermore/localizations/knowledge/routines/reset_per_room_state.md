@@ -1,0 +1,13 @@
+---
+addr: 908E90
+size: 1079
+end: 9092C6
+kind: code
+category: 🧠
+name: reset_per_room_state
+title: Reset per-room state
+confidence: confirmed
+evidence: ["disasm: called at $8E:E4F7 by enter_room; clears collision grid via $91:9795, step-on triggers via $8F:B229, zeroes screen shake $C3-$C9, sets camera margins $7E:240F-$7E:2415, sets camera target $7E:242B/$7E:242D = $FFFF, sets VRAM safety lock $7E:0F3A, and unpacks room dimensions from $9F:FDE7 + (room_id * 4) (docs/disassembly/engine-core/room-enter.md)"]
+see: [docs/disassembly/engine-core/room-enter.md, src/games/evermore/localizations/knowledge/rom/8ee4e2.md]
+---
+Called by enter_room $8E:E4E2 before starting room scripts. Clears entity collision and trigger bounding lines, zeroes screen shake and animation counters, configures default camera follow deadzones and speeds, forces camera to follow the main character at $0F42 by setting target coordinates to $FFFF, increments VRAM upload lock $0F3A, and loads room metatile dimensions from ROM table $9F:FDE7.

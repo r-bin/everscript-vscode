@@ -1,0 +1,29 @@
+---
+addr: 91BBB7
+end: 91BC27
+size: 113
+kind: code
+category: 🧠
+name: status_effects_timer_decrement_and_cleanse_loop
+title: Iterates active entity status condition timers, decrementing durations and cleansing expired ailments
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Iterates active entity status condition timers, decrementing durations and cleansing expired ailments.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Updates status condition lifecycles (Poison, Plague, Confound, Defense/Attack Buffs).
+The routine checks status timers at offsets `$46,Y` and `$4C,Y`. If active (`!= 0xFFFF`), it decrements duration counters, calling `$91:BC28` (`status_effects_tick_all`) to tick periodic damage or buffs, and cleanses the condition flag once the timer reaches zero.
+
+## Callers
+- `$91:BB95` (`func_91BB95`)
+
+## Callees
+- `$91:BC28` (`status_effects_tick_all`)
+
+## Variables and memory (hypotheses)
+- `$46,Y` (Primary status effect duration timer)
+- `$4C,Y` (Secondary status effect / buff duration timer)
+- `$60`, `$62` (Status effect parameter pointers)

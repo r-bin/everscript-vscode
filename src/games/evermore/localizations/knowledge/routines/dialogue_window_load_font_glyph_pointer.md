@@ -1,0 +1,14 @@
+---
+addr: 8CD09C
+size: 39
+end: 8CD0C2
+kind: code
+category: 🎮
+name: dialogue_window_load_font_glyph_pointer
+title: Load 16-bit font glyph pattern pointer into direct page <$82..<$83 ($8C:D09C)
+confidence: confirmed
+evidence: ["disasm: reads 16-bit pointer from +$00..+$01,Y into direct page <$82..<$83"]
+see: []
+tags: ["dialogue","font","glyph","pointer"]
+---
+Reads 16-bit font glyph pointer from `+$00..+$01,Y` into direct page `<$82..$83>`.

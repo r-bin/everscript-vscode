@@ -1,0 +1,23 @@
+---
+addr: 8CE5A1
+size: 15
+end: 8CE5AF
+kind: code
+category: 🧠
+name: switch_active_character
+title: Switch the active character when requested
+confidence: confirmed
+tags: [script-vm]
+evidence: ["disasm: compares the expression result with $0F42 and calls $8C:F1A7 only when they differ; that helper toggles $0F42 between the Boy and Dog entity addresses and transfers active-character state"]
+see: [docs/scripts/vm.md, docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-98-player-control.md]
+---
+Handler of script opcode [0x98](soe://rom/assets/scripts/opcodes/98.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/98.md`, served at `soe://rom/assets/scripts/opcodes/98.md`.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Operand expressions: `$8C:EA43` (`$8C:EC8E` for an entity: the result also goes to DP `$4C`)
+- Calls: `$8C:F1A7`
+- Reads WRAM: `$7E:0F42` Entity the camera follows
+- Opcode table entry: `$8C:E9ED` (0x98)
+
+The opcode handler reconstruction is in [opcode-98-player-control.md](../../../../../../docs/disassembly/script-vm/opcode-98-player-control.md) and `reconstructed-c/8C/8CE5A1_opcode_98_player_control.c`.

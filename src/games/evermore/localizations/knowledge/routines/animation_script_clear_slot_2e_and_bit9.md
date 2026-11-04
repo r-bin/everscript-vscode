@@ -1,0 +1,14 @@
+---
+addr: 908495
+size: 18
+end: 9084A6
+kind: code
+category: 🎮
+name: animation_script_clear_slot_2e_and_bit9
+title: Clear slot attachment pointer +$2E and reset flag bit 9 ($90:8495)
+confidence: confirmed
+evidence: ["disasm: resets attachment pointer +$2E,X = 0; clears bit 9 in +$14,X via AND #$FDFF"]
+see: []
+tags: ["animation","slot","flags","clear"]
+---
+Resets animation slot pointer `+$2E,X = 0` and clears flag bit 9 (`$0200`) in `+$14,X` (`AND #$FDFF`).

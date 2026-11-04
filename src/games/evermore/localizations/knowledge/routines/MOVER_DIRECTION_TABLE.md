@@ -1,0 +1,12 @@
+---
+addr: 8FAF18
+end: 8FAF37
+size: 32
+kind: table
+category: 📋
+name: MOVER_DIRECTION_TABLE
+title: Mover direction table
+confidence: likely
+evidence: ["legacy: migrated from tables.js; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
+---
+Mover direction table.

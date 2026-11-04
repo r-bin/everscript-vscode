@@ -1,0 +1,19 @@
+---
+addr: 8CD0A6
+size: 29
+end: 8CD0C2
+kind: code
+category: 🧠
+name: script_vm_opcode_dispatch
+title: Script VM opcode dispatch
+confidence: confirmed
+tags: [script-vm]
+evidence: ["disasm: LDA [$82] / INC $82 / AND #$00FF / ASL / TAX / JSR ($E8BD,x) / BCS back to the start; then writes the pointer back to the slot at DP $7E", "trace: breakpoints here and at $8C:D0B2 record every instruction the game runs and where its pointer went (tools/script-vm/record-goldens.js)"]
+see: [rom/8ce8bd.md, docs/scripts/vm.md, docs/disassembly/script-vm/dispatcher.md]
+---
+Runs one thread's turn: fetch the opcode byte through the 24-bit script pointer at DP `$82`-`$84`,
+advance it, and call the handler from the table at `$8C:E8BD`. Repeats while the handler returns
+with carry set. On carry clear it writes the pointer back to the slot at X = DP `$7E` (word `$82` to
+X+0 and `$83` to X+1, skipped when the word at `$83` is 0, i.e. the script ended) and returns to the
+scheduler. Every handler returns through `$8C:D0B2`, which is where a debugger sees each
+instruction's outcome.

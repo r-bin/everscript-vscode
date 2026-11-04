@@ -1,0 +1,19 @@
+---
+addr: 91B137
+size: 145
+end: 91B1C7
+kind: code
+category: 🧠
+name: defend_status_buff_boost_stats
+title: Apply Defend / status buff stat boosts and configure countdown duration
+confidence: confirmed
+tags: [combat, status-effects, defend, buffs, stats]
+evidence: ["disasm: $91:B137 reads spell final power from +$2A, sets boost_param in status slot +$04, sets duration timer (3600 frames = 60s), sets outline glow bit 0x0002 in entity+$9A, and triggers character_defense_and_buff_rebuild via $8F:8398", "docs/disassembly/combat/defense-barrier.md", "docs/disassembly/combat/defense-buffs.md"]
+see: [rom/91ae31.md, rom/91b632.md, rom/8f8398.md, docs/disassembly/combat/defense-barrier.md]
+---
+Applies defensive statistical boosts for Defend and related alchemy formulas:
+1. Reads calculated Final Power from spell slot `+0x2A`.
+2. Stores the boost value in the entity's status slot parameter field (`+$04`).
+3. Sets standard 3600-frame (60.0s) countdown timer in the slot (`+$02`).
+4. Activates entity outline color cycling shader bit in `entity->outline_glow_bits` (`+$9A`).
+5. Invokes `character_defense_and_buff_rebuild` (`$8F:8398`) to immediately recalculate effective physical and magical defense ratings.

@@ -1,0 +1,14 @@
+---
+addr: 919750
+size: 9
+end: 919758
+kind: code
+category: 🎮
+name: alchemy_effect_bytecode_indirect_dispatch
+title: Dispatch alchemy bytecode opcode handler through indirect vector ($91:9750)
+confidence: confirmed
+evidence: ["disasm: reads opcode handler offset from $91:0000,X into X; executes handler via indirect jump JSR ($8000,X); callers: effect interpreter $91:98EE"]
+see: ["rom/9198ee.md"]
+tags: ["alchemy","vm","opcode","dispatch"]
+---
+Dispatches alchemy bytecode instruction vector. Reads 16-bit vector index from `$91:0000,X` into X and executes handler via indirect jump `JSR ($8000,X)`.

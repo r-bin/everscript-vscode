@@ -1,0 +1,13 @@
+---
+addr: 808020
+size: 538
+end: 808239
+kind: code
+category: 🧠
+name: reset_handler
+title: RESET handler
+confidence: confirmed
+evidence: ["disasm: 6502 emulation reset entry at $00:8020 / $80:8020, native mode switch, PPU MMIO wipe, VRAM/WRAM clearing DMA, RNG seed, sub-system initialization, and jump to main loop at $80:8236 (docs/disassembly/engine-core/boot-reset.md)", "ROM bytes $80:819A-81E5: lda #$F00D, sep #$20, adc #1, then lda $2137, eor $2138, adc $2137, bcs, eor $213C, adc #1, xba, adc $213D, bcs, eor $2180, adc $2139, adc $213B, rep #$30, eor/sta the four seed words", "attract replay 01, NMI 5997, MesenCE 2.2.1 and the recomp (2026-11-02): the seed code runs with INIDISP $00 (display on, brightness 0), $2138 read on line 124 at H clock 1292 and $213B on line 125 at H clock 126; MesenCE returns the PPU's own fetch there (OAM $79, CGRAM $00), not the CPU's address; the recomp matched only after modelling that (SecretOfEvermoreRecomp docs/imperfections/hv-counter-latch.md)", "MesenCE 2.2.1 testrunner, power-on, 2026-10-30: first instruction at master clock 186; each of the three 64 KB clears takes ~540,180 clocks (524,288 of transfer, ~15,850 of DRAM refresh); then JSL $8C:8000 uploads the sound driver (113,472 clocks); then JSL $80:B5B6 writes $4200 = $81 at V=226 (clock 1,738,856), which fires the first NMI at once (1,738,942)", "attract replay 01, MesenCE 2.2.1 (2026-11-03): the seed code ($80:819A) runs again when the attract demo loops, between NMIs 5997/5998 and 11986/11987 (no input; 14,424 frames); at 11986 its reads were $2137 (open bus $21), $2138 $E0, $213C $F8 (H dot 248 on line 124), $213D $7C and $213B $83, and a beam two dots off gives another seed (SecretOfEvermoreRecomp docs/imperfections/short-scanline.md)"]
+see: [docs/disassembly/engine-core/boot-reset.md, src/games/evermore/localizations/knowledge/rom/8c8000.md, src/games/evermore/localizations/knowledge/rom/80b5b6.md, src/games/evermore/localizations/knowledge/rom/808b66.md, src/games/evermore/localizations/knowledge/rom/80823a.md]
+---
+Native mode, stack $1FFF, D=0; clears PPU/CPU registers; fills VRAM and both WRAM banks by fixed-source DMA; PPU shadow defaults ($0106=$8F); seeds the RNG $0133-$0139 from PPU port reads at $80:81A1 (H/V latch and counters, OAM $2138, WRAM port $2180, VRAM $2139, CGRAM $213B; with the display on, OAM and CGRAM give what the PPU is fetching, so the seed depends on the beam and the sprites); enables NMI + auto-joypad ($4200=$81, mirror $0E6B); JML $80:8B66. Fully documented in docs/disassembly/engine-core/boot-reset.md.

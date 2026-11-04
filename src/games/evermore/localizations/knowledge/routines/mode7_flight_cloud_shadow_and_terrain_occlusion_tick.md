@@ -1,0 +1,30 @@
+---
+addr: 80C7BC
+end: 80C880
+size: 197
+kind: code
+category: 🧠
+name: mode7_flight_cloud_shadow_and_terrain_occlusion_tick
+title: Animates drifting cloud shadow sprites and evaluates terrain elevation occlusion in Mode 7 flight
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Animates drifting cloud shadow sprites and evaluates terrain elevation occlusion in Mode 7 flight.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Simulates environmental cloud shadows and aircraft terrain collision during Mode 7 sequences.
+The routine inspects flight state `$0E70`. If cruising, it updates drifting cloud shadow sprite records at `$682D`, placing soft shadow patterns at screen coordinates `$90` / `$74` and checking terrain height maps to prevent ground clipping.
+
+## Callers
+- `$80:C1A2` (`FUN_80c1a2`)
+
+## Callees
+- `$90:80D2` (`func_9080D2`)
+- `$90:81BD` (`func_9081BD`)
+
+## Variables and memory (hypotheses)
+- `$0E70` (Flight operating mode status word)
+- `$682D` (Cloud shadow sprite position record in WRAM)
+- `$02`, `$04` (Shadow coordinate projection outputs)

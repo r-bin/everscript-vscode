@@ -1,0 +1,31 @@
+---
+addr: 8E8D05
+end: 8E8D6B
+size: 103
+kind: code
+category: 🧠
+name: shopkeeper_dialogue_choice_menu_item_setup
+title: Configures shopkeeper dialogue option choices and clears joypad buffers before menu interaction
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Configures shopkeeper dialogue option choices and clears joypad buffers before menu interaction.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Prepares the interactive choices presented by shopkeepers and merchant NPCs.
+The routine invokes `$80:8597` (`joypad_acknowledge_or_clear_buttons`) to flush residual controller presses.
+
+It evaluates player inventory and currency flags in `$7E:225C` and `$7E:225D` to determine eligible interaction choices (Buy, Sell, Ingredients, Talk), populates choice table `$0CDD,X`, and records active choice count `$0CD9`.
+
+## Callers
+- Shop dialogue dispatchers in Bank `$8E`
+
+## Callees
+- `$80:8597` (`joypad_acknowledge_or_clear_buttons`)
+
+## Variables and memory (hypotheses)
+- `$0CD9` (Total active shop choice menu options)
+- `$0CDD` (Shop choice ID array: Buy, Sell, Ingredients, Exit)
+- `$7E:225C`, `$7E:225D` (Player transaction capability bitfields)

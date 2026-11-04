@@ -1,0 +1,36 @@
+---
+addr: 8CB6C5
+end: 8CB742
+size: 126
+kind: code
+category: 🧠
+name: menu_selection_cursor_card_border_stamp
+title: Renders rounded rectangular border tiles for selection cards and menus into the UI tilemap buffer
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Renders rounded rectangular border tiles for selection cards and menus into the UI tilemap buffer.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Draws border and corner tiles around selected item cards, save slots, and dialogue windows.
+The routine computes VRAM tilemap buffer destination offsets in `$7F:C800,X` using X/Y coordinate arguments in `$02` and `$04` via SNES hardware multiplier `$4202`.
+
+It stamps corner patterns (`#$CBF7`, `#$CBF6`) and horizontal/vertical edge bars across specified width `$06`, framing the UI element.
+
+## Callers
+- `$8D:91AF` (`ring_menu_boy_selection_loop`)
+- `$8D:94A7` (`FUN_8d94a7`)
+- `$8D:9792` (`ring_menu_dog_selection_loop`)
+- `$8D:CEC2` (`func_8DCEC2`)
+- `$8D:D475` (`func_8DD475`)
+
+## Callees
+- None
+
+## Variables and memory (hypotheses)
+- `$02`, `$04` (Card top-left screen column and row tile coordinates)
+- `$06` (Card width in 8x8 tile units)
+- `$7F:C800` (UI window tilemap buffer in WRAM Bank `$7F`)
+- `$4202`, `$4216` (Hardware multiplication registers)

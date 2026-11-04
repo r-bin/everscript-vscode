@@ -1,0 +1,12 @@
+---
+addr: 8FCA50
+end: 8FCA6F
+size: 32
+kind: table
+category: 📋
+name: SEGMENT_EASE_VELOCITY_SHARE
+title: Segment ease: velocity share
+confidence: likely
+evidence: ["legacy: migrated from tables.js; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)"]
+---
+Segment ease: velocity share.

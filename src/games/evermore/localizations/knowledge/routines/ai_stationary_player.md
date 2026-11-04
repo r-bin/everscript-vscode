@@ -1,0 +1,16 @@
+---
+addr: 8FD715
+size: 85
+end: 8FD769
+kind: code
+category: 🧠
+name: ai_stationary_player
+title: Behaviour $0E STATIONARY_PLAYER — engage test against the controlled character only
+confidence: confirmed
+tags: [entities, ai]
+evidence: ["disasm: decompiled in full (v0.342.0): its own copy of the test: full charge, (rand & $FF) < +$15, the controlled character ($0F42) within +$13 on both axes (no HP check); face $80:ADF0 (8 ways), engage", "rom: Tar Skull, Salabog"]
+see: [docs/entities/ai-behaviours.md]
+---
+Never moves. Engages only the character the player controls, turned toward it in one of eight directions. The submerging and lunging are its animation scripts.
+
+Previously believed: a submerging multi-segment boss routine with mud bubbles; the routine is only this engage test.

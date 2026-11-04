@@ -1,0 +1,29 @@
+---
+addr: 80D8AA
+end: 80D91A
+size: 113
+kind: code
+category: 🧠
+name: mode7_aircraft_banking_roll_matrix_calc
+title: Calculates aircraft roll angles and camera banking transformation matrix offsets in Mode 7 flight
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Calculates aircraft roll angles and camera banking transformation matrix offsets in Mode 7 flight.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Generates dynamic camera roll and aircraft banking during sharp turns in Mode 7 flight.
+The routine reads turn delta angle in `$BD`, retrieves trigonometric scaling factors via `$80:AD28` (`trig_sine_fixed_point_scale`), and calculates banking roll parameter `$1498` and `$149E` to bank the flight viewport.
+
+## Callers
+- `$80:C1A2` (`FUN_80c1a2`)
+
+## Callees
+- `$80:AD28` (`trig_sine_fixed_point_scale`)
+
+## Variables and memory (hypotheses)
+- `$BD` (Aircraft turn rate / yaw angular velocity)
+- `$14BE` (Aircraft bank tilt scale factor)
+- `$1498`, `$149E` (Camera roll transformation matrix offsets)

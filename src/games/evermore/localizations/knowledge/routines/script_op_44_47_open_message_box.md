@@ -1,0 +1,21 @@
+---
+addr: 8CD890
+size: 215
+end: 8CD966
+kind: code
+category: 🧠
+name: script_op_44_47_open_message_box
+title: Script opcodes 0x44-0x47: open a message box
+confidence: confirmed
+tags: [script-vm]
+evidence: ["opcode table: $8C:E945, $8C:E947, $8C:E949, and $8C:E94B dispatch to $8C:D890", "disasm: handler locks player input, resolves a window record from one byte, consumes four more bytes into fields +$16, +$14, +$1C, +$1E, and writes the fourth value shifted left 3 at +$20", "disasm: saved dispatch-table offset $008E selects opcode 0x47 styling ($1924, +$2A=1, and +$0010 in +$12); opcodes 0x44-0x46 use $0B15 and no added mode bit"]
+see: [docs/disassembly/script-vm/opcode-44-47-open-message-box.md, docs/scripts/opcodes.md]
+---
+Handler of script opcodes [0x44](soe://rom/assets/scripts/opcodes/44.md), [0x45](soe://rom/assets/scripts/opcodes/45.md), [0x46](soe://rom/assets/scripts/opcodes/46.md), and [0x47](soe://rom/assets/scripts/opcodes/47.md). The first three use the player's window style; `0x47` selects the confirmed transparent-centered style. The host-side model is documented in `docs/disassembly/script-vm/opcode-44-47-open-message-box.md`.
+
+## Addresses
+Read from the handler's code (direct calls only; data bank tracked, default `$7E`):
+- Calls: `$8C:AC8A`; `$8C:C543`; `$8C:D967`
+- Reads WRAM: `$7E:0B15`
+- Record fields (indexed by X/Y: a slot, an entity, a window): `+$04`, `+$06`, `+$08`, `+$0A`, `+$0C`, `+$12`, `+$14`, `+$16`, `+$1C`, `+$1E`, `+$20`, `+$26`, `+$28`, `+$2A`
+- Opcode table entries: `$8C:E945` (0x44), `$8C:E947` (0x45), `$8C:E949` (0x46), `$8C:E94B` (0x47)

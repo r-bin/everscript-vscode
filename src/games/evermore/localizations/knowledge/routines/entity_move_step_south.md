@@ -1,0 +1,14 @@
+---
+addr: 8FC3D8
+size: 8
+end: 8FC3DF
+kind: code
+category: 🎮
+name: entity_move_step_south
+title: Apply southward position translation step along Y axis ($8F:C3D8)
+confidence: confirmed
+evidence: ["disasm: adds step distance <$12 to vertical coordinate <$48"]
+see: []
+tags: ["movement","south","coordinate","vector"]
+---
+Adds step magnitude `<$12>` to Y coordinate `<$48>`.

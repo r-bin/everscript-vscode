@@ -1,0 +1,12 @@
+---
+addr: 92A04E
+size: 901
+end: 92A3D2
+kind: script
+name: wait_dialogue_global
+title: Global 0x35 — wait for the dialogue
+confidence: likely
+tags: [script, dialog]
+evidence: ["script: wait_dialogue(), END (v0.369.0)"]
+---
+One instruction: waits until the dialogue is done.

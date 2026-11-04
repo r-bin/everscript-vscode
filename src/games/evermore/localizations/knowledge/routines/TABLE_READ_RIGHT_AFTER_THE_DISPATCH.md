@@ -1,0 +1,12 @@
+---
+addr: 8FA3F8
+size: 96
+end: 8FA457
+kind: table
+category: 📋
+name: TABLE_READ_RIGHT_AFTER_THE_DISPATCH
+title: Table read right after the $8F:9F46 dispatch
+confidence: guess
+evidence: ["disasm: as recorded in the legacy list (tables.js); details in the body"]
+---
+lda $8FA3F8,x at $8F:9F4B; ends the jump table before it; meaning unknown.

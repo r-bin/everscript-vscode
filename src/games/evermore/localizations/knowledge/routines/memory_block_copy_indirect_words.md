@@ -1,0 +1,35 @@
+---
+addr: 90D34C
+end: 90D407
+size: 188
+kind: code
+category: 🧠
+name: memory_block_copy_indirect_words
+title: High-speed 16-bit word block copy primitive from indirect pointer sources to destination buffers
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — High-speed 16-bit word block copy primitive from indirect pointer sources to destination buffers.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Core engine memory transfer utility.
+Given source pointer `[$26]` (or `[$2A]`) and destination pointer `[$2E]`, the routine transfers `$14` words in a tight decremental loop.
+
+It supports fast copying of sprite cel records, palette buffers, and collision definitions across WRAM banks.
+
+## Callers
+- `$8C:E4B1` (`FUN_8ce4b1`)
+- `$8E:E124` (`FUN_8ee124`)
+- `$8F:9535` (`FUN_8f9535`)
+- `$90:D481` (`FUN_90d481`)
+
+## Callees
+- None
+
+## Variables and memory (hypotheses)
+- `$14` (Word count to transfer)
+- `$26`, `$28` (Source memory pointer A)
+- `$2A`, `$2C` (Source memory pointer B)
+- `$2E`, `$30` (Destination memory pointer)

@@ -1,0 +1,31 @@
+---
+addr: 91BE42
+end: 91BF55
+size: 276
+kind: code
+category: 🧠
+name: projectile_bounding_box_offset_and_translate
+title: Translates projectile collision bounding box vertices by spatial coordinate offsets
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Translates projectile collision bounding box vertices by spatial coordinate offsets.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Computes 4-corner bounding box vertices for spell and weapon projectiles during collision passes.
+The routine calculates the projectile\'s spatial footprint by subtracting `$14EA` from `$14EC` and adding vertex margin offsets.
+
+It updates corner coordinates stored in entity collision buffers at `$00,X`, `$04,X`, `$08,X`, and `$0C,X`, enabling broadphase and narrowphase collision checks against monster hitboxes.
+
+## Callers
+- `$91:BE05` (`func_91BE05`)
+
+## Callees
+- None
+
+## Variables and memory (hypotheses)
+- `$14EA`, `$14EC` (Projectile collision box width and height parameters)
+- `$14EE` (Entity collision descriptor base index)
+- `$00,X..$24,X` (Transformed collision vertex coordinates)

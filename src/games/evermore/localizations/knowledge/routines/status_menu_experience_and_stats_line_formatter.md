@@ -1,0 +1,32 @@
+---
+addr: 8D8FD6
+end: 8D91A7
+size: 466
+kind: code
+category: 🧠
+name: status_menu_experience_and_stats_line_formatter
+title: Formats experience points, remaining EXP to next level, and combat parameters for the Status Menu screen
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Formats experience points, remaining EXP to next level, and combat parameters for the Status Menu screen.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Constructs formatted numeric strings displayed on the player and companion Status Menu pages.
+The routine loads the protagonist\'s 32-bit accumulated experience points and calculated remaining experience to next level.
+
+It calls `$80:B21F` (`format_32bit_integer_to_decimal_ascii`) to convert binary values into decimal ASCII strings, then invokes `$8C:9E03` (`dialogue_format_and_append_line`) to position and append strings to the status window tilemap buffer.
+
+## Callers
+- `$8D:94A7` (`FUN_8d94a7`)
+
+## Callees
+- `$80:B21F` (`format_32bit_integer_to_decimal_ascii`)
+- `$8C:9E03` (`dialogue_format_and_append_line`)
+
+## Variables and memory (hypotheses)
+- `$7E:22DB` (Status menu party member selection flag)
+- `$22`, `$24` (Pointer to source text / numeric string descriptor)
+- `$034D`, `$0379` (UI window line VRAM tilemap offsets)

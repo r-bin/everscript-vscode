@@ -1,0 +1,30 @@
+---
+addr: 8DC887
+end: 8DC8FB
+size: 117
+kind: code
+category: 🧠
+name: options_menu_stereo_mono_audio_toggle
+title: Toggles stereo vs mono sound output in the options menu and transmits configuration command to SPC700
+confidence: guess
+tags: [unverified, rea-partial-read]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+---
+Low confidence — Toggles stereo vs mono sound output in the options menu and transmits configuration command to SPC700.
+
+> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+
+Handles audio output mode switching in the options configuration menu.
+The routine toggles sound mode flag in `$7E:22E1` (Stereo vs Mono).
+
+It dispatches an APU command packet to the SPC700 sound core via `$8C:81FD` (`APU_handshake_2140_spinlock_8C81FD`), altering DSP panning registers to mix left and right stereo channels down to mono or restore spatial panning.
+
+## Callers
+- `$8D:C803` (`func_8DC803`)
+
+## Callees
+- `$8C:81FD` (`APU_handshake_2140_spinlock_8C81FD`)
+
+## Variables and memory (hypotheses)
+- `$7E:22E1` (Audio configuration flag: 0 = Stereo, 1 = Mono)
+- `$2140..$2143` (APU command communication registers)

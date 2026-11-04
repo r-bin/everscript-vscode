@@ -1,0 +1,14 @@
+---
+addr: 908B5A
+size: 18
+end: 908B6B
+kind: code
+category: 🎮
+name: animation_script_clear_record_word
+title: Clear 16-bit word at specified animation record offset ($90:8B5A)
+confidence: confirmed
+evidence: ["disasm: reads offset Y from [<$5D]; clears 16-bit word at (<12),Y in animation record; advances script PC <$5D by 1 byte"]
+see: []
+tags: ["animation","record","clear","word"]
+---
+Reads offset Y from `[<$5D]`, clears 16-bit word at `(<12),Y` in animation record, and advances script PC `<$5D` by 1 byte.
