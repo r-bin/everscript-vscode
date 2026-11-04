@@ -16,7 +16,7 @@
  * - Compiled C ASM:   346 instructions [Calypsi 65816 -O1 --speed]
  * - Code Expansion:   11.9x instructions vs ROM
  * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
- * - Rating Hash:      1342148bd0bb99a7
+ * - Rating Hash:      a83f27f56c63b56a
  * - Rating Status:    VALID (unmodified since rating)
  */
 #include "soe.h"

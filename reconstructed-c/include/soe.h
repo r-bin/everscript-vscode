@@ -17,6 +17,7 @@
  *    Calypsi 5.18 that took the wrong branch on $8F:C02B; write the compare and the test apart;
  *  - after a binding's last register restore (PLY, PLX, PLB, TDC ...) set N and Z as that
  *    instruction does: the asm's exit flags are part of the contract G1 checks;
+ *  - no call or side effect in the argument of ROM8/ROM16 and the like: on the host they use it twice;
  *  - the C preserves the game, it does not improve it: the default code follows the asm and is
  *    never changed for speed. Faster variants live only under `#ifdef SOE_OPTIMIZE` (off).
  */
@@ -25,6 +26,19 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+
+/*
+ * SOE_AT(pc): this point of the C is the ROM's basic block at $pc of the routine's bank. Nothing in the ROM build; the
+ * recomp's glue works out the path's cost from these marks (SecretOfEvermoreRecomp src/soe_cost.c): a branch counts as
+ * taken when its target is the next mark. So a mark stands at each target the C takes, and on the fall-through of a branch
+ * when a later branch has the same target.
+ */
+#ifdef SOE_COST
+void soe_at(uint16_t pc);
+#define SOE_AT(pc) soe_at(pc)
+#else
+#define SOE_AT(pc) ((void)0)
+#endif
 
 #ifdef __CALYPSI_TARGET_65816__
 #define SOE_FAR __far
@@ -217,6 +231,13 @@ void soe_stp(void);
  * address, $8x) with this function; RTS routines are reached through a JSL/RTS trampoline. The build
  * finds bindings by this macro. */
 #define SOE_BIND(name, addr, ret) void name##_bind(soe_regs r)
+
+/* STA $4202 with both factors, then LDA $4216: the hardware multiplier. */
+#ifdef SOE_COST
+uint16_t soe_multiply(uint16_t factors);
+#else
+static inline uint16_t soe_multiply(uint16_t factors) { IO16(0x4202) = factors; return IO16(0x4216); }
+#endif
 
 /* ---- Calling a routine that is still asm: registers in and out through a record ----
  * soe_call_rtl: the routine ends in RTL. soe_call_rts: it ends in RTS; the runtime reaches it from

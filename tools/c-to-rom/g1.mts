@@ -13,6 +13,7 @@
 //    must notice on some state, or the states do not exercise the routine.
 // 5. Fuzz: from every captured state, variants with random registers, flags and direct page (`--fuzz N`, 16 each)
 //    reach the paths the reference never takes; both images must still agree where the ROM returns.
+//    A file's SOE_FUZZ_A(mask, value) limits them to the entries its C describes.
 //   node tools/c-to-rom/g1.mts [--rom <clean rom>] [--samples 48] [--frames 8414] [--fuzz 16] [--fresh]
 //                              [--trace name:index[:variant]] [--optimize] [name ...]
 // --optimize checks the SOE_OPTIMIZE variants instead of the documented code.
@@ -21,7 +22,7 @@ import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
-import { boot, coreId, stripHeader, hex, WRAM_SIZE, REFERENCE_FRAMES, type Core } from './emu.mts';
+import { REPO, boot, coreId, stripHeader, hex, WRAM_SIZE, REFERENCE_FRAMES, type Core } from './emu.mts';
 import { buildImage, bindings, sourceFiles, OUT, type Binding } from './build.mts';
 import { disassemble, cdlFor } from './disasm.mts';
 
@@ -224,7 +225,7 @@ function diff(x: { regs: Regs; wram: Uint8Array; io?: string[] }, y: { regs: Reg
 function mutations(image: Uint8Array, b: Binding, cdl: Uint8Array | null, max = 8): { image: Uint8Array; what: string }[] {
     const out: { image: Uint8Array; what: string }[] = [];
     for (const l of disassemble(image, b.addr, 64, false, false, cdl)) {
-        if (/^(RTL|RTS|RTI)/.test(l.text) || out.length >= max) break;
+        if ((out.length && /^(RTL|RTS|RTI)/.test(l.text)) || out.length >= max) break;   // an early return before any operand is not the end
         if (l.bytes.length < 2 || /^(B..|BRL|REP|SEP|JSL|JSR|JML|JMP|PEA)/.test(l.text)) continue;
         const m = new Uint8Array(image);
         m[(l.pc & 0x3FFFFF) + 1] ^= 0x01;
@@ -305,8 +306,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
             }
         }
         let fz = 0, fzN = 0, fuzzFail = '', mutFuzz = false;
+        // SOE_FUZZ_A(mask, value): the C describes entries with (A & mask) == value; the rest are not the routine's.
+        const fuzzA = /SOE_FUZZ_A\(\s*0x([0-9A-Fa-f]+)\s*,\s*0x([0-9A-Fa-f]+)\s*\)/.exec(readFileSync(join(REPO, b.file), 'utf8'));
+        const only = fuzzA ? { mask: parseInt(fuzzA[1], 16), value: parseInt(fuzzA[2], 16) } : null;
         ss.forEach((s0, i) => {
             for (const [k, s] of fuzz(s0, fuzzN, b.addr ^ i).entries()) {
+                if (only && (s.regs.a & only.mask) !== only.value) continue;
                 const v = run(vanilla, s, 200_000);
                 if (v.error || v.stackWrite) continue;     // no return from this state, or it uses the stack below S
                 fzN++;

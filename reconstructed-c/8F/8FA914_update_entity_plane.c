@@ -16,7 +16,7 @@
  * - Compiled C ASM:   119 instructions [Calypsi 65816 -O1 --speed]
  * - Code Expansion:   8.5x instructions vs ROM
  * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
- * - Rating Hash:      a450975ac545a446
+ * - Rating Hash:      61a47c846a1375c9
  * - Rating Status:    VALID (unmodified since rating)
  */
 #include "soe.h"
@@ -27,15 +27,19 @@ SOE_BIND(update_entity_plane, 0x8FA914, RTL)
 {
     uint16_t a = r->a;
 
+    SOE_AT(0xA914);
     if ((a & 0x2040) == 0) {
         a &= 0x0030;
         soe_nz16(r, a);
         DP16(r, 0x44) = a;
     } else if ((a & 0x0040) == 0) {
+        SOE_AT(0xA91F);
         a = (uint16_t)((a & 0x0030) | 0x0040);
         soe_nz16(r, a);
         DP16(r, 0x44) = a;
     } else {
+        SOE_AT(0xA91F);
+        SOE_AT(0xA92D);
         uint16_t old = DP16(r, 0x44);
         a = 0x0040;
         soe_nz16(r, a);                       /* LDA #$0040: N clear */
