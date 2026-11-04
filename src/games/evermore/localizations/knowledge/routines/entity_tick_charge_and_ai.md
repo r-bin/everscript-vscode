@@ -1,7 +1,7 @@
 ---
 addr: 8FCC40
-size: 215
-end: 8FCD16
+size: 29
+end: 8FCC5C
 kind: code
 category: 🧠
 name: entity_tick_charge_and_ai

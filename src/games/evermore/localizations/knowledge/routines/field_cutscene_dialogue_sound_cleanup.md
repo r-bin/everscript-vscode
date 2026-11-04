@@ -1,7 +1,7 @@
 ---
 addr: 8F89A3
-size: 208
-end: 8F8A72
+size: 207
+end: 8F8A71
 kind: code
 category: ⚙️
 name: field_cutscene_dialogue_sound_cleanup

@@ -1,7 +1,7 @@
 ---
 addr: 8CD7E1
-end: 8CD9E0
-size: 512
+end: 8CD7E5
+size: 5
 kind: table
 category: 🧠
 name: tbl_script_opcode_jump_table

@@ -1,7 +1,7 @@
 ---
 addr: 8EB000
-size: 118
-end: 8EB075
+size: 44
+end: 8EB02B
 kind: code
 category: 🧠
 name: ring_menu_calculate_icon_angles

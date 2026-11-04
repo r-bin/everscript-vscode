@@ -1,7 +1,7 @@
 ---
 addr: 8FC773
-size: 177
-end: 8FC823
+size: 13
+end: 8FC77F
 kind: code
 category: 🧠
 name: entity_sprite_depth

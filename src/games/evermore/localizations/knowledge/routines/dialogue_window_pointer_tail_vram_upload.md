@@ -1,7 +1,7 @@
 ---
 addr: 8CB05F
-size: 576
-end: 8CB29E
+size: 9
+end: 8CB067
 kind: code
 category: 🎛️
 name: dialogue_window_pointer_tail_vram_upload

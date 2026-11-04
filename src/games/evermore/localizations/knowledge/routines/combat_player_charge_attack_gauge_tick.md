@@ -1,7 +1,7 @@
 ---
 addr: 8F946B
-end: 8F9534
-size: 202
+end: 8F9470
+size: 6
 kind: code
 category: 🧠
 name: combat_player_charge_attack_gauge_tick

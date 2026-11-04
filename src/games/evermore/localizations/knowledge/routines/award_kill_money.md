@@ -1,7 +1,7 @@
 ---
 addr: 8F8689
-size: 113
-end: 8F86F9
+size: 9
+end: 8F8691
 kind: code
 category: 🧠
 name: award_kill_money

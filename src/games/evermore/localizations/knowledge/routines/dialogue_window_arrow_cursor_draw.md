@@ -1,7 +1,7 @@
 ---
 addr: 8CAFEB
-end: 8CB04E
-size: 100
+end: 8CAFFB
+size: 17
 kind: code
 category: 🧠
 name: dialogue_window_arrow_cursor_draw

@@ -1,7 +1,7 @@
 ---
 addr: 8E9140
-size: 59
-end: 8E917A
+size: 58
+end: 8E9179
 kind: code
 category: 🧠
 name: alchemy_ingredient_satchel_deduct

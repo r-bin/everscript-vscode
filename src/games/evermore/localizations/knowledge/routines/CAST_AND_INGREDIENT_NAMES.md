@@ -1,7 +1,7 @@
 ---
 addr: C45FC5
-end: C4601E
-size: 90
+end: C45FF2
+size: 46
 kind: table
 category: ⚗️
 name: CAST_AND_INGREDIENT_NAMES

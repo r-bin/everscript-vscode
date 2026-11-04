@@ -1,7 +1,7 @@
 ---
 addr: 808CC9
-size: 133
-end: 808D4D
+size: 132
+end: 808D4C
 kind: code
 category: ⚙️
 name: gameplay_session_subsystems_init

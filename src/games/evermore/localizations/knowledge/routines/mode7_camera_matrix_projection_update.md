@@ -1,7 +1,7 @@
 ---
 addr: 80CFA9
-end: 80D1FE
-size: 598
+end: 80D112
+size: 362
 kind: code
 category: 🧠
 name: mode7_camera_matrix_projection_update

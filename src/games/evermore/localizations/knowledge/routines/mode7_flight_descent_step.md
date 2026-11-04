@@ -1,7 +1,7 @@
 ---
 addr: 8EB0CF
-size: 205
-end: 8EB19B
+size: 124
+end: 8EB14A
 kind: code
 category: 🗺️
 name: mode7_flight_descent_step

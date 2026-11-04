@@ -1,7 +1,7 @@
 ---
 addr: 91AB40
-size: 281
-end: 91AC58
+size: 280
+end: 91AC57
 kind: code
 category: 🧠
 name: spell_duration_and_periodic_tick

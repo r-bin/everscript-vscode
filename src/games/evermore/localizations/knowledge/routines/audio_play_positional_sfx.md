@@ -1,7 +1,7 @@
 ---
 addr: 8C8589
-size: 144
-end: 8C8618
+size: 7
+end: 8C858F
 kind: code
 category: 🧠
 name: audio_play_positional_sfx

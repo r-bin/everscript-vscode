@@ -1,7 +1,7 @@
 ---
 addr: 919A94
-size: 148
-end: 919B27
+size: 147
+end: 919B26
 kind: code
 category: 🧠
 name: spell_projectile_spawn_and_velocity_init

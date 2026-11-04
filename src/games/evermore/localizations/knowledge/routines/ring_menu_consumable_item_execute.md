@@ -1,7 +1,7 @@
 ---
 addr: 8E9298
-size: 233
-end: 8E9380
+size: 22
+end: 8E92AD
 kind: code
 category: 🧠
 name: ring_menu_consumable_item_execute

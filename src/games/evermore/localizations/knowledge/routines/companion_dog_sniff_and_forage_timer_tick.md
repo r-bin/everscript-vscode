@@ -1,7 +1,7 @@
 ---
 addr: 8FDC34
-size: 157
-end: 8FDCD0
+size: 156
+end: 8FDCCF
 kind: code
 category: ⚙️
 name: companion_dog_sniff_and_forage_timer_tick

@@ -1,7 +1,7 @@
 ---
 addr: 8FC6C5
-end: 8FC75A
-size: 150
+end: 8FC759
+size: 149
 kind: code
 category: 🧠
 name: sprite_sorting_canopy_occlusion_and_render_depth

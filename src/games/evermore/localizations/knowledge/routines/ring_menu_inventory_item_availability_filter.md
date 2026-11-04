@@ -1,7 +1,7 @@
 ---
 addr: 8E9DAE
-end: 8E9EBD
-size: 272
+end: 8E9DF8
+size: 75
 kind: code
 category: 🧠
 name: ring_menu_inventory_item_availability_filter

@@ -1,7 +1,7 @@
 ---
 addr: 8E8A91
-size: 167
-end: 8E8B37
+size: 166
+end: 8E8B36
 kind: code
 category: 🧠
 name: alchemy_cast_formula_heal_target_loop

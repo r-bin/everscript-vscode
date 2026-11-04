@@ -1,7 +1,7 @@
 ---
 addr: 8EB1DA
-size: 89
-end: 8EB232
+size: 38
+end: 8EB1FF
 kind: code
 category: 🗺️
 name: mode7_flight_ascent_step

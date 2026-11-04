@@ -1,7 +1,7 @@
 ---
 addr: 8E8D6C
-size: 206
-end: 8E8E39
+size: 20
+end: 8E8D7F
 kind: code
 category: 🏪
 name: shop_item_sale_price_and_balance_refresh

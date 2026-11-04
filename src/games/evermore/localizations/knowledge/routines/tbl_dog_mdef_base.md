@@ -1,7 +1,7 @@
 ---
 addr: 8C96D1
-end: 8C9796
-size: 198
+end: 8C96FF
+size: 47
 kind: table
 category: 🐶
 name: tbl_dog_mdef_base

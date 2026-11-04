@@ -1,7 +1,7 @@
 ---
 addr: 8EAF80
-size: 111
-end: 8EAFEE
+size: 6
+end: 8EAF85
 kind: code
 category: 🧠
 name: overworld_flight_controller_steer

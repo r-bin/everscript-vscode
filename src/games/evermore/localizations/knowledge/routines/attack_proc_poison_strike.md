@@ -1,7 +1,7 @@
 ---
 addr: 8FB7F3
-size: 58
-end: 8FB82C
+size: 8
+end: 8FB7FA
 kind: code
 category: 🧠
 name: attack_proc_poison_strike

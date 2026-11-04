@@ -298,7 +298,7 @@ test('rom map: 100% complete catalog with 1,690+ entries, room blobs, master tab
     const nmi = getRomEntryByName('nmi_handler');
     assert.ok(nmi);
     assert.equal(nmi?.addr, 0x80823A);
-    assert.equal(nmi?.size, 688);
+    assert.equal(nmi?.size, 103); // Contiguous dispatcher block ($80:823A..$80:82A0) before nmi_sprite_tile_dma_upload
 
     // Bank queries
     const bank80 = getRomEntriesByBank(0x80);

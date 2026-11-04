@@ -1,7 +1,7 @@
 ---
 addr: 8FB5F2
-size: 188
-end: 8FB6AD
+size: 10
+end: 8FB5FB
 kind: code
 category: 🧠
 name: strike_projectile_hit_test_melee_enters_at

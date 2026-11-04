@@ -1,7 +1,7 @@
 ---
 addr: 8faff5
 size: 44
-end: 8fb020
+end: 8FB020
 kind: code
 category: 🧠
 name: gravity

@@ -1,7 +1,7 @@
 ---
 addr: 9084A7
-size: 258
-end: 9085A8
+size: 257
+end: 9085A7
 kind: code
 category: ⚔️
 name: enemy_death_and_loot_drop_processor

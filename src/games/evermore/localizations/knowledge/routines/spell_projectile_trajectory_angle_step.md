@@ -1,7 +1,7 @@
 ---
 addr: 919BAA
-size: 113
-end: 919C1A
+size: 34
+end: 919BCB
 kind: code
 category: 🧠
 name: spell_projectile_trajectory_angle_step

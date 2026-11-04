@@ -1,7 +1,7 @@
 ---
 addr: 8FADAA
-size: 16
-end: 8FADB9
+size: 8
+end: 8FADB1
 kind: code
 category: 🧠
 name: entity_mover_step_direction_dispatch

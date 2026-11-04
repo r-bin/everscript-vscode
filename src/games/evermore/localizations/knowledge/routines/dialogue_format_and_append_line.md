@@ -1,7 +1,7 @@
 ---
 addr: 8C9E03
-size: 1452
-end: 8CA3AE
+size: 331
+end: 8C9F4D
 kind: code
 category: 🧠
 name: dialogue_format_and_append_line

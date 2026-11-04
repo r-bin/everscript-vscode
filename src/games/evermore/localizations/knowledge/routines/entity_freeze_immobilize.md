@@ -1,7 +1,7 @@
 ---
 addr: 8FCD78
-size: 288
-end: 8FCE97
+size: 16
+end: 8FCD87
 kind: code
 category: 🧠
 name: entity_freeze_immobilize

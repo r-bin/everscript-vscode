@@ -1,7 +1,7 @@
 ---
 addr: 91AD6F
-size: 98
-end: 91ADD0
+size: 97
+end: 91ADCF
 kind: code
 category: ⚔️
 name: item_effect_apply_to_party_member

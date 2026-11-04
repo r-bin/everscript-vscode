@@ -1,7 +1,7 @@
 ---
 addr: 8C805B
-size: 179
-end: 8C810D
+size: 1
+end: 8C805B
 kind: code
 category: 🧠
 name: spc700_ipl_bootloader_handshake_block_upload

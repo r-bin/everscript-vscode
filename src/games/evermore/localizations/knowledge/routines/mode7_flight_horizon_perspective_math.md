@@ -1,7 +1,7 @@
 ---
 addr: 8EB230
-size: 57
-end: 8EB268
+size: 2
+end: 8EB231
 kind: code
 category: 🧠
 name: mode7_flight_horizon_perspective_math

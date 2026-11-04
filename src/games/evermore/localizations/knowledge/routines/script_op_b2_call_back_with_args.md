@@ -1,7 +1,7 @@
 ---
 addr: 8CD34C
-size: 26
-end: 8CD365
+size: 16
+end: 8CD35B
 kind: code
 category: 🧠
 name: script_op_b2_call_back_with_args

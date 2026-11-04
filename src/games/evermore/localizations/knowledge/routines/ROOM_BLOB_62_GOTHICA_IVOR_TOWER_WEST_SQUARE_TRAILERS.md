@@ -1,7 +1,7 @@
 ---
 addr: A0F130
-end: A0FF31
-size: 3586
+end: A0FDE4
+size: 3253
 kind: blob
 category: 🗺️
 name: ROOM_BLOB_62_GOTHICA_IVOR_TOWER_WEST_SQUARE_TRAILERS

@@ -1,7 +1,7 @@
 ---
 addr: 8CD81C
-size: 78
-end: 8CD869
+size: 18
+end: 8CD82D
 kind: code
 category: 🧠
 name: script_op_0e_set_local_flag

@@ -1,7 +1,7 @@
 ---
 addr: 8CF17C
-size: 43
-end: 8CF1A6
+size: 8
+end: 8CF183
 kind: code
 category: 🧠
 name: select_switch_character

@@ -1,7 +1,7 @@
 ---
 addr: 9092C7
-size: 133
-end: 90934B
+size: 132
+end: 90934A
 kind: code
 category: 🎛️
 name: ui_dialog_decompression_bootstrap

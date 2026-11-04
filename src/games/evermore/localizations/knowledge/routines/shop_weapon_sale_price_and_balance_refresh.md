@@ -1,7 +1,7 @@
 ---
 addr: 8E8E39
-size: 206
-end: 8E8F06
+size: 205
+end: 8E8F05
 kind: code
 category: 🏪
 name: shop_weapon_sale_price_and_balance_refresh

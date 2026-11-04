@@ -1,7 +1,7 @@
 ---
 addr: 8E89A4
-size: 153
-end: 8E8A3C
+size: 152
+end: 8E8A3B
 kind: code
 category: 🧠
 name: alchemy_cast_formula_crush_target_loop

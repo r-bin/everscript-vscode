@@ -1,7 +1,7 @@
 ---
 addr: 8ccd84
-size: 166
-end: 8cce29
+size: 66
+end: 8CCDC5
 kind: code
 category: 🧠
 name: dialogue_text_dte_mte_decoder

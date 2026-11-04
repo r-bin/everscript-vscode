@@ -1,7 +1,7 @@
 ---
 addr: 80904D
-end: 809478
-size: 1068
+end: 8090F7
+size: 171
 kind: code
 category: 🧠
 name: oam_meta_sprite_assembler_continue

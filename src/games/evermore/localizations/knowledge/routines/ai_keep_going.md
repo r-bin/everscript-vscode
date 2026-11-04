@@ -1,7 +1,7 @@
 ---
 addr: 8FD988
-size: 73
-end: 8FD9D0
+size: 51
+end: 8FD9BA
 kind: code
 category: 🧠
 name: ai_keep_going

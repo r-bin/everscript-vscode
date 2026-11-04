@@ -1,7 +1,7 @@
 ---
 addr: 8EE124
-size: 1228
-end: 8EE5EF
+size: 762
+end: 8EE41D
 kind: code
 category: ⚙️
 name: field_cutscene_freeze_init_and_entities_deactivate

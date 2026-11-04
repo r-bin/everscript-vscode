@@ -1,7 +1,7 @@
 ---
 addr: 80ad28
 size: 44
-end: 80ad53
+end: 80AD53
 kind: code
 category: 🧠
 name: trig_sine_fixed_point_scale

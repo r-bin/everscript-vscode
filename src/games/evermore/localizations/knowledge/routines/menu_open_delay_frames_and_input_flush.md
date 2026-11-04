@@ -1,7 +1,7 @@
 ---
 addr: 8EE56A
-size: 41
-end: 8EE592
+size: 40
+end: 8EE591
 kind: code
 category: 🎛️
 name: menu_open_delay_frames_and_input_flush

@@ -1,7 +1,7 @@
 ---
 addr: 90C9FC
-size: 160
-end: 90CA9B
+size: 159
+end: 90CA9A
 kind: code
 category: ⚙️
 name: cgram_dynamic_palette_frame_upload

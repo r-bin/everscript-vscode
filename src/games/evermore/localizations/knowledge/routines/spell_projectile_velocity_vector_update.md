@@ -1,7 +1,7 @@
 ---
 addr: 91A2AF
-size: 322
-end: 91A3F0
+size: 321
+end: 91A3EF
 kind: code
 category: 🧠
 name: spell_projectile_velocity_vector_update

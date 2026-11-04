@@ -1,7 +1,7 @@
 ---
 addr: 8EADBC
-size: 202
-end: 8EAE85
+size: 157
+end: 8EAE58
 kind: code
 category: 🏪
 name: shop_dialogue_prompt_joypad_wait_and_sfx

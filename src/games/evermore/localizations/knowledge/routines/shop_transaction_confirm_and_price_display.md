@@ -1,7 +1,7 @@
 ---
 addr: 8EAB2A
-size: 226
-end: 8EAC0B
+size: 225
+end: 8EAC0A
 kind: code
 category: 🏪
 name: shop_transaction_confirm_and_price_display

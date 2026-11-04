@@ -1,7 +1,7 @@
 ---
 addr: 8FC1F0
-size: 225
-end: 8FC2D0
+size: 71
+end: 8FC236
 kind: code
 category: ⚔️
 name: entity_damage_reaction_or_death_cleanup

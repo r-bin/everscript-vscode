@@ -1,7 +1,7 @@
 ---
 addr: 8FDAA7
-size: 397
-end: 8FDC33
+size: 293
+end: 8FDBCB
 kind: code
 category: 🧠
 name: enemy_leash_check

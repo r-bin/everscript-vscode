@@ -1,7 +1,7 @@
 ---
 addr: 8D9DB4
-size: 361
-end: 8D9F1C
+size: 360
+end: 8D9F1B
 kind: code
 category: 🎛️
 name: ring_menu_item_selection_formatter

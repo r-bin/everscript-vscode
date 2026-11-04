@@ -1,7 +1,7 @@
 ---
 addr: 8c805c
 size: 178
-end: 8c810d
+end: 8C810D
 kind: code
 category: 🧠
 name: spc700_ipl_bootloader_handshake_block

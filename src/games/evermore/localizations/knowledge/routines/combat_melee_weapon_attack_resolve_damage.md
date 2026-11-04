@@ -1,7 +1,7 @@
 ---
 addr: 8F8A72
-end: 8F9103
-size: 1682
+end: 8F8AE3
+size: 114
 kind: code
 category: 🧠
 name: combat_melee_weapon_attack_resolve_damage

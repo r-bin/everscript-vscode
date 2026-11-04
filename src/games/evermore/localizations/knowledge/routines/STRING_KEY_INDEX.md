@@ -1,7 +1,7 @@
 ---
 addr: 91D000
-end: 91F32D
-size: 9006
+end: 91D7FF
+size: 2048
 kind: table
 category: ⚙️
 name: STRING_KEY_INDEX

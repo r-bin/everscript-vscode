@@ -1,7 +1,7 @@
 ---
 addr: 8DAFDA
-size: 476
-end: 8DB1B5
+size: 475
+end: 8DB1B4
 kind: code
 category: 🎛️
 name: status_menu_boy_input_loop

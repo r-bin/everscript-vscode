@@ -1,7 +1,7 @@
 ---
 addr: 8FB1AC
-size: 126
-end: 8FB229
+size: 125
+end: 8FB228
 kind: code
 category: ⚔️
 name: combat_hitbox_tables_and_collision_init

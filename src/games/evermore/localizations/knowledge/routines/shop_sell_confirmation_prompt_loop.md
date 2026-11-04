@@ -1,7 +1,7 @@
 ---
 addr: 8EA9AB
-size: 192
-end: 8EAA6A
+size: 191
+end: 8EAA69
 kind: code
 category: 🏪
 name: shop_sell_confirmation_prompt_loop

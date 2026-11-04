@@ -1,7 +1,7 @@
 ---
 addr: 8CC88C
-size: 948
-end: 8CCC3F
+size: 29
+end: 8CC8A8
 kind: code
 category: 🧠
 name: load_a_16_16_map_graphic_through_3_id_dma_to_vra

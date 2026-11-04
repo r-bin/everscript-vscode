@@ -1,7 +1,7 @@
 ---
 addr: 8CD7FF
-size: 29
-end: 8CD81B
+size: 5
+end: 8CD803
 kind: code
 category: 🧠
 name: script_op_11_15_write_temp_byte

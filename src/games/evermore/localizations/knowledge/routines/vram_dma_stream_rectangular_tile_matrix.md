@@ -1,7 +1,7 @@
 ---
 addr: 808860
-size: 1101
-end: 808CAC
+size: 67
+end: 8088A2
 kind: code
 category: 🎨
 name: vram_dma_stream_rectangular_tile_matrix

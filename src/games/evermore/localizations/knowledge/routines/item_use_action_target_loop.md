@@ -1,7 +1,7 @@
 ---
 addr: 8E8654
-size: 133
-end: 8E86D8
+size: 132
+end: 8E86D7
 kind: code
 category: ⚔️
 name: item_use_action_target_loop

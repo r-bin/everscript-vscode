@@ -1,7 +1,7 @@
 ---
 addr: 8fa906
-size: 30
-end: 8fa923
+size: 14
+end: 8FA913
 kind: code
 category: 🧠
 name: elevation_plane_update_bits_5_4_kept_on

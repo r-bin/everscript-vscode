@@ -1,7 +1,7 @@
 ---
 addr: 8090F8
-size: 261
-end: 8091FC
+size: 166
+end: 80919D
 kind: code
 category: 🧠
 name: sprite_slice_clip_and_emit

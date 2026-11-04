@@ -1,7 +1,7 @@
 ---
 addr: 8E8F06
-size: 203
-end: 8E8FD0
+size: 74
+end: 8E8F4F
 kind: code
 category: 🏪
 name: shop_ingredient_purchase_price_and_balance_refresh

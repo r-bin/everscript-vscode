@@ -1,7 +1,7 @@
 ---
 addr: 8FCE98
-size: 807
-end: 8FD1BE
+size: 52
+end: 8FCECB
 kind: code
 category: 🎮
 name: entity_start_default_action_anim_trampoline

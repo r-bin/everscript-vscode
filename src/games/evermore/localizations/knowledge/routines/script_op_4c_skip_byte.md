@@ -1,7 +1,7 @@
 ---
 addr: 8CD87C
-size: 4
-end: 8CD87F
+size: 2
+end: 8CD87D
 kind: code
 category: 🧠
 name: script_op_4c_skip_byte

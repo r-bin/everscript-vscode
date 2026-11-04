@@ -1,7 +1,7 @@
 ---
 addr: 8CE17A
-size: 131
-end: 8CE1FC
+size: 1
+end: 8CE17A
 kind: code
 category: 🧠
 name: script_op_7f_name_entry

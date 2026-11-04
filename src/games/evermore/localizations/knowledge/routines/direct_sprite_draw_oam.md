@@ -1,7 +1,7 @@
 ---
 addr: 809033
-size: 195
-end: 8090F5
+size: 13
+end: 80903F
 kind: code
 category: 🧠
 name: direct_sprite_draw_oam

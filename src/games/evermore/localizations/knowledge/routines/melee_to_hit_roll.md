@@ -1,7 +1,7 @@
 ---
 addr: 8FBA06
-size: 169
-end: 8FBAAE
+size: 20
+end: 8FBA19
 kind: code
 category: 🧠
 name: melee_to_hit_roll

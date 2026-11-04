@@ -1,7 +1,7 @@
 ---
 addr: 8EA51D
-size: 234
-end: 8EA606
+size: 233
+end: 8EA605
 kind: code
 category: 🏪
 name: shop_buy_confirmation_card_formatter

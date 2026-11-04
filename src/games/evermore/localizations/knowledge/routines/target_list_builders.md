@@ -1,7 +1,7 @@
 ---
 addr: 8C8719
-size: 212
-end: 8C87EC
+size: 28
+end: 8C8734
 kind: code
 category: 🧠
 name: target_list_builders

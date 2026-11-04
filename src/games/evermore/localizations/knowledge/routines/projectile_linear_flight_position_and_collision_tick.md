@@ -1,7 +1,7 @@
 ---
 addr: 90DE88
-end: 90DEDD
-size: 86
+end: 90DE9B
+size: 20
 kind: code
 category: 🧠
 name: projectile_linear_flight_position_and_collision_tick

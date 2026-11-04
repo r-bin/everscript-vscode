@@ -1,7 +1,7 @@
 ---
 addr: 8EAC0B
-size: 226
-end: 8EACEC
+size: 144
+end: 8EAC9A
 kind: code
 category: 🏪
 name: shop_quantity_selection_menu_loop

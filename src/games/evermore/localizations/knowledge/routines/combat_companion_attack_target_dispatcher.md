@@ -1,7 +1,7 @@
 ---
 addr: 8E8CA7
-size: 95
-end: 8E8D05
+size: 94
+end: 8E8D04
 kind: code
 category: ⚔️
 name: combat_companion_attack_target_dispatcher

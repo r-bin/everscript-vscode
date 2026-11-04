@@ -1,7 +1,7 @@
 ---
 addr: 90A0B2
-end: 90A140
-size: 143
+end: 90A0CF
+size: 30
 kind: code
 category: 🧠
 name: room_canopy_terrain_tilemap_row_stride_index

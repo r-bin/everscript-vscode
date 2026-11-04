@@ -1,7 +1,7 @@
 ---
 addr: 90D58C
-end: 90D61C
-size: 145
+end: 90D5CE
+size: 67
 kind: code
 category: 🧠
 name: cgram_animated_palette_timer_tick_and_step

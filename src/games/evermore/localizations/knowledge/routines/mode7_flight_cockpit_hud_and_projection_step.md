@@ -1,7 +1,7 @@
 ---
 addr: 8EB232
-size: 268
-end: 8EB33D
+size: 54
+end: 8EB267
 kind: code
 category: 🗺️
 name: mode7_flight_cockpit_hud_and_projection_step

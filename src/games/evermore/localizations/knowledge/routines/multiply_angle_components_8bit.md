@@ -1,7 +1,7 @@
 ---
 addr: 80acf5
 size: 51
-end: 80ad27
+end: 80AD27
 kind: code
 category: 🧠
 name: multiply_angle_components_8bit

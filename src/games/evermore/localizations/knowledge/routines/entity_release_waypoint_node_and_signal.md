@@ -1,7 +1,7 @@
 ---
 addr: 8FA8E2
-end: 8FA90B
-size: 42
+end: 8FA905
+size: 36
 kind: code
 category: 🧠
 name: entity_release_waypoint_node_and_signal

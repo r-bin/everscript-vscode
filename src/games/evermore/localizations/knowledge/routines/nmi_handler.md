@@ -1,7 +1,7 @@
 ---
 addr: 80823A
-size: 688
-end: 8084E9
+size: 103
+end: 8082A0
 kind: code
 category: 🧠
 name: nmi_handler

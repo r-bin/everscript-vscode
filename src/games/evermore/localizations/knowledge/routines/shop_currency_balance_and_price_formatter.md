@@ -1,7 +1,7 @@
 ---
 addr: 8EA606
-size: 199
-end: 8EA6CC
+size: 198
+end: 8EA6CB
 kind: code
 category: 🏪
 name: shop_currency_balance_and_price_formatter

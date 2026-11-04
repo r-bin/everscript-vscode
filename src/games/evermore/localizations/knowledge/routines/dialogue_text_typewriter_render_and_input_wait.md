@@ -1,7 +1,7 @@
 ---
 addr: 8CA7C6
-size: 355
-end: 8CA928
+size: 58
+end: 8CA7FF
 kind: code
 category: 📜
 name: dialogue_text_typewriter_render_and_input_wait

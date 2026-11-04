@@ -1,7 +1,7 @@
 ---
 addr: 8c819e
 size: 54
-end: 8c81d3
+end: 8C81D3
 kind: code
 category: 🧠
 name: spc700_stream_block_bytes

@@ -1,7 +1,7 @@
 ---
 addr: 8CCE09
-size: 64
-end: 8CCE48
+size: 33
+end: 8CCE29
 kind: code
 category: 🧠
 name: dialogue_extended_phrase_expand

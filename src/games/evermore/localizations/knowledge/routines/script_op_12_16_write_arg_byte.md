@@ -1,7 +1,7 @@
 ---
 addr: 8CD7E6
-size: 54
-end: 8CD81B
+size: 25
+end: 8CD7FE
 kind: code
 category: 🧠
 name: script_op_12_16_write_arg_byte

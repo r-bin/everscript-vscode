@@ -1,7 +1,7 @@
 ---
 addr: 8E9060
-size: 107
-end: 8E90CA
+size: 106
+end: 8E90C9
 kind: code
 category: 🧠
 name: consumable_item_satchel_deduct

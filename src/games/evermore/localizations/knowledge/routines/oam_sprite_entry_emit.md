@@ -1,7 +1,7 @@
 ---
 addr: 80919E
-size: 99
-end: 809200
+size: 95
+end: 8091FC
 kind: code
 category: 🧠
 name: oam_sprite_entry_emit

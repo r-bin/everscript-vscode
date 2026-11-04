@@ -1,7 +1,7 @@
 ---
 addr: 8D87DA
-size: 228
-end: 8D88BD
+size: 227
+end: 8D88BC
 kind: code
 category: 🎛️
 name: ring_menu_weapon_charge_cursor_sprite_draw

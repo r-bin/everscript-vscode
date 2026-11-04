@@ -1,7 +1,7 @@
 ---
 addr: 8D896C
-size: 699
-end: 8D8C26
+size: 698
+end: 8D8C25
 kind: code
 category: 🎛️
 name: ring_menu_character_stats_card_render

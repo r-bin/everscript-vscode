@@ -1,7 +1,7 @@
 ---
 addr: 8E9EE2
-size: 68
-end: 8E9F25
+size: 14
+end: 8E9EEF
 kind: code
 category: 🧠
 name: ring_menu_circular_layout_spawn

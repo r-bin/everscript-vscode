@@ -1,7 +1,7 @@
 ---
 addr: 8CD39D
-size: 25
-end: 8CD3B5
+size: 3
+end: 8CD39F
 kind: code
 category: 🧠
 name: script_op_b0_call_global_with_args

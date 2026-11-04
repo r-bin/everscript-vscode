@@ -1,7 +1,7 @@
 ---
 addr: 91C69B
-size: 165
-end: 91C73F
+size: 164
+end: 91C73E
 kind: code
 category: 🧠
 name: spell_aoe_blast_radius_expansion_step

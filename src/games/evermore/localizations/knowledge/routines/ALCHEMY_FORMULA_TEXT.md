@@ -1,7 +1,7 @@
 ---
 addr: C45D09
-end: C45D96
-size: 142
+end: C45D50
+size: 72
 kind: table
 category: ⚗️
 name: ALCHEMY_FORMULA_TEXT

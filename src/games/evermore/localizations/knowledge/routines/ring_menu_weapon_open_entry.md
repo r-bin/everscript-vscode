@@ -1,7 +1,7 @@
 ---
 addr: 8E9450
-size: 115
-end: 8E94C2
+size: 114
+end: 8E94C1
 kind: code
 category: 🎛️
 name: ring_menu_weapon_open_entry

@@ -1,7 +1,7 @@
 ---
 addr: 8CD6A7
-size: 47
-end: 8CD6D5
+size: 23
+end: 8CD6BD
 kind: code
 category: 🧠
 name: script_op_30_32_play_sound

@@ -1,7 +1,7 @@
 ---
 addr: 8fa946
 size: 29
-end: 8fa962
+end: 8FA962
 kind: code
 category: 🧠
 name: elevation_plane_transition_gate

@@ -1,7 +1,7 @@
 ---
 addr: 8C879B
-size: 245
-end: 8C888F
+size: 244
+end: 8C888E
 kind: code
 category: ⚔️
 name: combat_target_list_build_enemies

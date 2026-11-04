@@ -1,7 +1,7 @@
 ---
 addr: 8E9200
-size: 44
-end: 8E922B
+size: 43
+end: 8E922A
 kind: code
 category: 🧠
 name: ring_menu_bazooka_ammo_select

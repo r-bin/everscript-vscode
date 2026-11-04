@@ -1,7 +1,7 @@
 ---
 addr: 8088A3
-end: 808B22
-size: 640
+end: 808922
+size: 128
 kind: table
 category: 🧠
 name: trig_sine_table

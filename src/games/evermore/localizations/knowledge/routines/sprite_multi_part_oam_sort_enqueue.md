@@ -1,7 +1,7 @@
 ---
 addr: 9081F0
-end: 90824A
-size: 91
+end: 90823F
+size: 80
 kind: code
 category: 🧠
 name: sprite_multi_part_oam_sort_enqueue

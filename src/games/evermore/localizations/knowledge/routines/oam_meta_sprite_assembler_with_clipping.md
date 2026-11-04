@@ -1,7 +1,7 @@
 ---
 addr: 809040
-end: 809478
-size: 1081
+end: 80904C
+size: 13
 kind: code
 category: 🧠
 name: oam_meta_sprite_assembler_with_clipping

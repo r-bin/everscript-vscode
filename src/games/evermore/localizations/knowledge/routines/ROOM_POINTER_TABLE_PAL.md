@@ -1,7 +1,7 @@
 ---
 addr: A0FDE5
-end: A0FFE4
-size: 512
+end: A0FF32
+size: 334
 kind: table
 category: 📋
 name: ROOM_POINTER_TABLE_PAL

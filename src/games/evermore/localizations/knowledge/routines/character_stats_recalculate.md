@@ -1,7 +1,7 @@
 ---
 addr: 8F8600
-size: 138
-end: 8F8689
+size: 107
+end: 8F866A
 kind: code
 category: 🧠
 name: character_stats_recalculate

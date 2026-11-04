@@ -1,7 +1,7 @@
 ---
 addr: 90A4E8
-size: 232
-end: 90A5CF
+size: 210
+end: 90A5B9
 kind: code
 category: 🧠
 name: minimap_viewport_clip_and_render

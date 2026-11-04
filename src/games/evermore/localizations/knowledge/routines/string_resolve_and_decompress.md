@@ -1,7 +1,7 @@
 ---
 addr: 8ccd33
-size: 81
-end: 8ccd83
+size: 2
+end: 8CCD34
 kind: code
 category: 🧠
 name: string_resolve_and_decompress

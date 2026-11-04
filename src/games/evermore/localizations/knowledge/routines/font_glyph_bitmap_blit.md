@@ -1,7 +1,7 @@
 ---
 addr: 8CA5A2
-size: 62
-end: 8CA5DF
+size: 10
+end: 8CA5AB
 kind: code
 category: 🧠
 name: font_glyph_bitmap_blit

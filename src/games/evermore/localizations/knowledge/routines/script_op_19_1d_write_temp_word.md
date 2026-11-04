@@ -1,7 +1,7 @@
 ---
 addr: 8CD7CC
-size: 26
-end: 8CD7E5
+size: 5
+end: 8CD7D0
 kind: code
 category: 🧠
 name: script_op_19_1d_write_temp_word

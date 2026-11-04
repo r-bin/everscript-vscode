@@ -1,7 +1,7 @@
 ---
 addr: 8D9FB6
-size: 104
-end: 8DA01D
+size: 103
+end: 8DA01C
 kind: code
 category: 🎛️
 name: ring_menu_item_selection_loop

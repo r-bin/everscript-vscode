@@ -1,7 +1,7 @@
 ---
 addr: 8E8766
-size: 91
-end: 8E87C0
+size: 90
+end: 8E87BF
 kind: code
 category: 🧠
 name: alchemy_cast_action_direct_targeting

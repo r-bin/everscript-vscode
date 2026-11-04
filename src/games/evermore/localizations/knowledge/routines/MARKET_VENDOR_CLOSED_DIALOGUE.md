@@ -1,7 +1,7 @@
 ---
 addr: 968088
-end: 9680AA
-size: 35
+end: 96808E
+size: 7
 kind: sub
 name: MARKET_VENDOR_CLOSED_DIALOGUE
 title: Nobilia Market vendor closed dialogue

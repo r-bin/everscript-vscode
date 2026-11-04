@@ -1,7 +1,7 @@
 ---
 addr: 8CE430
-size: 86
-end: 8CE485
+size: 55
+end: 8CE466
 kind: code
 category: 🧠
 name: queue_adjusted_entity_damage

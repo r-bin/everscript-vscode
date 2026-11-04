@@ -1,7 +1,7 @@
 ---
 addr: 90A41C
-size: 138
-end: 90A4A5
+size: 13
+end: 90A428
 kind: code
 category: 🎮
 name: raster_irq_timer_poll_countdown

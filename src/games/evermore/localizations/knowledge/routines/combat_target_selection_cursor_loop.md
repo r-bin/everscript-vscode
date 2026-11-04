@@ -1,7 +1,7 @@
 ---
 addr: 8C88CC
-size: 276
-end: 8C89DF
+size: 275
+end: 8C89DE
 kind: code
 category: ⚔️
 name: combat_target_selection_cursor_loop

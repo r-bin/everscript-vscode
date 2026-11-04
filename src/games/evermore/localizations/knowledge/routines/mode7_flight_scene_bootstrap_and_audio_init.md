@@ -1,7 +1,7 @@
 ---
 addr: 80BC7A
-size: 400
-end: 80BE09
+size: 399
+end: 80BE08
 kind: code
 category: 🗺️
 name: mode7_flight_scene_bootstrap_and_audio_init

@@ -1,7 +1,7 @@
 ---
 addr: 8E9297
-size: 23
-end: 8E92AD
+size: 1
+end: 8E9297
 kind: code
 category: 🎮
 name: ring_menu_confirm_item_and_transition

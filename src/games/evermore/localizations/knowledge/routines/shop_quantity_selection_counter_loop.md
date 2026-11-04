@@ -1,7 +1,7 @@
 ---
 addr: 8E8FD0
-size: 251
-end: 8E90CA
+size: 48
+end: 8E8FFF
 kind: code
 category: 🏪
 name: shop_quantity_selection_counter_loop

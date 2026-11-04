@@ -1,7 +1,7 @@
 ---
 addr: 8CD6D6
-size: 73
-end: 8CD71E
+size: 51
+end: 8CD708
 kind: code
 category: 🧠
 name: script_op_33_change_music

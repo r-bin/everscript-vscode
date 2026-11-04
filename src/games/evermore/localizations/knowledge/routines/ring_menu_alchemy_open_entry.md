@@ -1,7 +1,7 @@
 ---
 addr: 8E9534
-size: 115
-end: 8E95A6
+size: 114
+end: 8E95A5
 kind: code
 category: 🎛️
 name: ring_menu_alchemy_open_entry

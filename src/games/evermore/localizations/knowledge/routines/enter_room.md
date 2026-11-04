@@ -1,7 +1,7 @@
 ---
 addr: 8EE4E2
-size: 136
-end: 8EE569
+size: 38
+end: 8EE507
 kind: code
 category: 🧠
 name: enter_room

@@ -1,7 +1,7 @@
 ---
 addr: 8DA6F6
-size: 683
-end: 8DA9A0
+size: 682
+end: 8DA99F
 kind: code
 category: 🎛️
 name: status_menu_dog_input_loop

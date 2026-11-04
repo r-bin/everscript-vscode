@@ -1,7 +1,7 @@
 ---
 addr: 8FD9D1
-size: 214
-end: 8FDAA6
+size: 156
+end: 8FDA6C
 kind: code
 category: 🧠
 name: enemy_attack_reach_test

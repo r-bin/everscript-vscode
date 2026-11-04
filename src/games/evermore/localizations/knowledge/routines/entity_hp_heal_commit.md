@@ -1,7 +1,7 @@
 ---
 addr: 8FC09A
-size: 57
-end: 8FC0D2
+size: 11
+end: 8FC0A4
 kind: code
 category: 🧠
 name: entity_hp_heal_commit

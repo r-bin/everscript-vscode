@@ -1,7 +1,7 @@
 ---
 addr: 8E890C
-size: 153
-end: 8E89A4
+size: 152
+end: 8E89A3
 kind: code
 category: 🧠
 name: alchemy_cast_formula_corrosion_target_loop

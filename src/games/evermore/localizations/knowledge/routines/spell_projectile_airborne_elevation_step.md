@@ -1,7 +1,7 @@
 ---
 addr: 91A50F
-size: 177
-end: 91A5BF
+size: 43
+end: 91A539
 kind: code
 category: 🧠
 name: spell_projectile_airborne_elevation_step

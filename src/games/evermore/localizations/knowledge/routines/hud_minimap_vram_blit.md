@@ -1,7 +1,7 @@
 ---
 addr: 90A4A6
-size: 69
-end: 90A4EA
+size: 66
+end: 90A4E7
 kind: code
 category: 🧠
 name: hud_minimap_vram_blit

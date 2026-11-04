@@ -1,7 +1,7 @@
 ---
 addr: 8c81d4
 size: 41
-end: 8c81fc
+end: 8C81FC
 kind: code
 category: 🧠
 name: apu_wait_ready_timeout

@@ -1,7 +1,7 @@
 ---
 addr: 8FD879
-size: 271
-end: 8FD987
+size: 89
+end: 8FD8D1
 kind: code
 category: 🧠
 name: ai_pick_target

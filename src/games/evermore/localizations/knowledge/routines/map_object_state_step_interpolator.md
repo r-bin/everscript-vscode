@@ -1,7 +1,7 @@
 ---
 addr: 90A36D
-size: 175
-end: 90A41B
+size: 63
+end: 90A3AB
 kind: code
 category: 🧠
 name: map_object_state_step_interpolator

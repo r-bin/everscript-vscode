@@ -1,7 +1,7 @@
 ---
 addr: 919C86
-end: 919D0B
-size: 134
+end: 919C8F
+size: 10
 kind: code
 category: 🧠
 name: combat_damage_reaction_knockback_and_flinch_apply

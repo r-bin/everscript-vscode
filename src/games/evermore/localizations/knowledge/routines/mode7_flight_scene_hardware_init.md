@@ -1,7 +1,7 @@
 ---
 addr: 80BC00
-size: 123
-end: 80BC7A
+size: 122
+end: 80BC79
 kind: code
 category: 🗺️
 name: mode7_flight_scene_hardware_init

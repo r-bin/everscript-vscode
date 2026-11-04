@@ -1,7 +1,7 @@
 ---
 addr: 8CA3AF
-size: 482
-end: 8CA590
+size: 335
+end: 8CA4FD
 kind: code
 category: 💬
 name: dialogue_multiline_text_line_wrap_and_blit

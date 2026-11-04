@@ -1,7 +1,7 @@
 ---
 addr: 8E922B
-size: 109
-end: 8E9297
+size: 1
+end: 8E922B
 kind: code
 category: 🏪
 name: shop_purchase_commit_and_purse_deduct

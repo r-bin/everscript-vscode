@@ -1,7 +1,7 @@
 ---
 addr: 8FB52C
-size: 186
-end: 8FB5E5
+size: 56
+end: 8FB563
 kind: code
 category: 🧠
 name: contact_damage_charging_body

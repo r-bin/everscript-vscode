@@ -1,7 +1,7 @@
 ---
 addr: 8CD331
-size: 27
-end: 8CD34B
+size: 15
+end: 8CD33F
 kind: code
 category: 🧠
 name: script_op_b3_call_back_far_with_args

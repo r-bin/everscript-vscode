@@ -1,7 +1,7 @@
 ---
 addr: 8E94C2
-size: 115
-end: 8E9534
+size: 114
+end: 8E9533
 kind: code
 category: 🎛️
 name: ring_menu_item_open_entry

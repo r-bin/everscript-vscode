@@ -1,7 +1,7 @@
 ---
 addr: 8faf48
 size: 102
-end: 8fafad
+end: 8FAFAD
 kind: code
 category: 🧠
 name: probe_metatile_collision

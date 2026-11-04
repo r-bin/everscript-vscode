@@ -1,7 +1,7 @@
 ---
 addr: 8EAFF4
-size: 219
-end: 8EB0CE
+size: 12
+end: 8EAFFF
 kind: code
 category: 🧠
 name: ring_menu_rotate_next_item

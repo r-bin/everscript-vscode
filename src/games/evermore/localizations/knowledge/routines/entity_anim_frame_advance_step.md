@@ -1,7 +1,7 @@
 ---
 addr: 9080D2
-size: 68
-end: 908115
+size: 67
+end: 908114
 kind: code
 category: ⚙️
 name: entity_anim_frame_advance_step

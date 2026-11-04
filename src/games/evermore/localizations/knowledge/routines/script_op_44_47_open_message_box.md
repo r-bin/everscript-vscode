@@ -1,7 +1,7 @@
 ---
 addr: 8CD890
-size: 215
-end: 8CD966
+size: 110
+end: 8CD8FD
 kind: code
 category: 🧠
 name: script_op_44_47_open_message_box

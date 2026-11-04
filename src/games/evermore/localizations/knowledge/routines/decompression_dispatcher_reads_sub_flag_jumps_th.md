@@ -1,7 +1,7 @@
 ---
 addr: 8C988D
-size: 36
-end: 8C98B0
+size: 20
+end: 8C98A0
 kind: code
 category: 🧠
 name: decompression_dispatcher_reads_sub_flag_jumps_th

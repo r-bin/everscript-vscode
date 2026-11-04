@@ -1,7 +1,7 @@
 ---
 addr: 8F857D
-size: 238
-end: 8F866A
+size: 131
+end: 8F85FF
 kind: code
 category: 🧠
 name: companion_stats_scaling_and_form_rebuild

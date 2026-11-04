@@ -1,7 +1,7 @@
 ---
 addr: 8FB458
-size: 21
-end: 8FB46C
+size: 11
+end: 8FB462
 kind: code
 category: 🧠
 name: character_spawn_stream_vram

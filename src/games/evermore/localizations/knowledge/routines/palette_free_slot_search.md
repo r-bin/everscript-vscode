@@ -1,7 +1,7 @@
 ---
 addr: 90CDAF
-size: 227
-end: 90CE91
+size: 45
+end: 90CDDB
 kind: code
 category: 🧠
 name: palette_free_slot_search

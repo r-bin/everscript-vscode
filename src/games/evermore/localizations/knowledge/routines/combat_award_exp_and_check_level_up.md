@@ -1,7 +1,7 @@
 ---
 addr: 8F8692
-size: 69
-end: 8F86D6
+size: 46
+end: 8F86BF
 kind: code
 category: 🧠
 name: combat_award_exp_and_check_level_up

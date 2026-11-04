@@ -1,7 +1,7 @@
 ---
 addr: 8C82DC
-size: 76
-end: 8C8327
+size: 7
+end: 8C82E2
 kind: code
 category: 🧠
 name: play_sound_effect_direct

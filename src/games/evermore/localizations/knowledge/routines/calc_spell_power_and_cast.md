@@ -1,7 +1,7 @@
 ---
 addr: 91CCD8
-size: 340
-end: 91CE2B
+size: 108
+end: 91CD43
 kind: code
 category: 🧠
 name: calc_spell_power_and_cast

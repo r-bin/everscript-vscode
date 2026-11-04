@@ -1,7 +1,7 @@
 ---
 addr: 8EB33D
-size: 457
-end: 8EB505
+size: 415
+end: 8EB4DB
 kind: code
 category: 🧠
 name: mode7_flight_sample_and_sprite_dispatch

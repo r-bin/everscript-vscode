@@ -1,7 +1,7 @@
 ---
 addr: 908E80
-size: 16
-end: 908E8F
+size: 5
+end: 908E84
 kind: code
 category: 🎮
 name: room_header_reader_entry_stub

@@ -1,7 +1,7 @@
 ---
 addr: 8FD6CE
-size: 185
-end: 8FD786
+size: 45
+end: 8FD6FA
 kind: code
 category: 🎮
 name: enemy_ai_check_player_within_box

@@ -1,7 +1,7 @@
 ---
 addr: 8FB078
-size: 26
-end: 8FB091
+size: 24
+end: 8FB08F
 kind: code
 category: 🧠
 name: bit_14_gate_before_step_on_search_current_trigge

@@ -1,7 +1,7 @@
 ---
 addr: 8E92AE
-size: 120
-end: 8E9325
+size: 119
+end: 8E9324
 kind: code
 category: 🎛️
 name: status_menu_open_boy_entry

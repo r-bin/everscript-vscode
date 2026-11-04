@@ -1,7 +1,7 @@
 ---
 addr: 9AD899
-end: 9AE4C8
-size: 3120
+end: 9AE24E
+size: 2486
 kind: sub
 name: OMNITOPIA_SPAWN_GATE_BOTS
 title: Omnitopia Metroplex security gate bot spawner

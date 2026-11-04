@@ -1,7 +1,7 @@
 ---
 addr: 8C89DF
-size: 61
-end: 8C8A1B
+size: 30
+end: 8C89FC
 kind: code
 category: 🎮
 name: dialogue_window_render_speaker_name

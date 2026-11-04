@@ -1,7 +1,7 @@
 ---
 addr: 90D858
-size: 272
-end: 90D967
+size: 271
+end: 90D966
 kind: code
 category: ⚔️
 name: combat_damage_popup_number_enqueue

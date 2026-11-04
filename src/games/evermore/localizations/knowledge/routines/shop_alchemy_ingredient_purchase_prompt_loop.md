@@ -1,7 +1,7 @@
 ---
 addr: 8EAA6A
-size: 193
-end: 8EAB2A
+size: 192
+end: 8EAB29
 kind: code
 category: 🏪
 name: shop_alchemy_ingredient_purchase_prompt_loop

@@ -1,7 +1,7 @@
 ---
 addr: 8FDCD0
-size: 228
-end: 8FDDB3
+size: 227
+end: 8FDDB2
 kind: code
 category: ⚙️
 name: companion_dog_ingredient_dig_find_trigger

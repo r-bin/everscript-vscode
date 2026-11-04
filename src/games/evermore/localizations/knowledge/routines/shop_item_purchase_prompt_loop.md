@@ -1,7 +1,7 @@
 ---
 addr: 8EA8DC
-size: 208
-end: 8EA9AB
+size: 207
+end: 8EA9AA
 kind: code
 category: 🏪
 name: shop_item_purchase_prompt_loop

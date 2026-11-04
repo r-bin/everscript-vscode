@@ -1,7 +1,7 @@
 ---
 addr: 8fafae
-size: 83
-end: 8fb000
+size: 71
+end: 8FAFF4
 kind: code
 category: 🧠
 name: entity_physics_and_gravity_tick

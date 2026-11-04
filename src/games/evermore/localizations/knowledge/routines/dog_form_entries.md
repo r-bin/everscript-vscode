@@ -1,6 +1,6 @@
 ---
 addr: 8F945D
-size: 56
+size: 14
 end: 8F946A
 kind: table
 name: dog_form_entries

@@ -1,7 +1,7 @@
 ---
 addr: 8E8DC5
-size: 117
-end: 8E8E39
+size: 116
+end: 8E8E38
 kind: code
 category: 🧠
 name: shop_vendor_buy_commit

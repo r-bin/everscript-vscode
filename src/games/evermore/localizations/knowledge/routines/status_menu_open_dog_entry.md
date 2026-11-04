@@ -1,7 +1,7 @@
 ---
 addr: 8E9325
-size: 120
-end: 8E939C
+size: 119
+end: 8E939B
 kind: code
 category: 🎛️
 name: status_menu_open_dog_entry

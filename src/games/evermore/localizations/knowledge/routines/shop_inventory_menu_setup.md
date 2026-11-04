@@ -1,7 +1,7 @@
 ---
 addr: 8E9EBE
-size: 234
-end: 8E9FA7
+size: 36
+end: 8E9EE1
 kind: code
 category: 🏪
 name: shop_inventory_menu_setup

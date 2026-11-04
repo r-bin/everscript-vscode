@@ -1,7 +1,7 @@
 ---
 addr: 90828E
-size: 203
-end: 908358
+size: 74
+end: 9082D7
 kind: code
 category: ⚔️
 name: entity_start_default_action_anim

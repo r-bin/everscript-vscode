@@ -1,7 +1,7 @@
 ---
 addr: 8FCC1E
-size: 303
-end: 8FCD4C
+size: 34
+end: 8FCC3F
 kind: code
 category: ⚔️
 name: entity_gravity_and_ground_contact_tick

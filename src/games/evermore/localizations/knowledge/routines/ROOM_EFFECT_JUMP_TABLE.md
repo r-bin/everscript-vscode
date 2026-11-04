@@ -1,7 +1,7 @@
 ---
 addr: 908E74
-end: 908E93
-size: 32
+end: 908E7F
+size: 12
 kind: table
 category: 📋
 name: ROOM_EFFECT_JUMP_TABLE

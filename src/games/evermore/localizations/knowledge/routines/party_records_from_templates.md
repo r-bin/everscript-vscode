@@ -1,7 +1,7 @@
 ---
 addr: 8F803C
-size: 574
-end: 8F8279
+size: 210
+end: 8F810D
 kind: code
 name: party_records_from_templates
 title: New game: copy the Boy's and Dog's character records into WRAM ($0A26) with one block move

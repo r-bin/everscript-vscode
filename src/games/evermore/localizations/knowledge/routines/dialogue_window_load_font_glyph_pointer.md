@@ -1,7 +1,7 @@
 ---
 addr: 8CD09C
-size: 39
-end: 8CD0C2
+size: 10
+end: 8CD0A5
 kind: code
 category: 🎮
 name: dialogue_window_load_font_glyph_pointer

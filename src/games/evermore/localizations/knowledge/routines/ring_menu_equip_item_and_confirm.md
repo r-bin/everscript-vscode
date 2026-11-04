@@ -1,7 +1,7 @@
 ---
 addr: 8E91EF
-size: 60
-end: 8E922A
+size: 17
+end: 8E91FF
 kind: code
 category: ✨
 name: ring_menu_equip_item_and_confirm

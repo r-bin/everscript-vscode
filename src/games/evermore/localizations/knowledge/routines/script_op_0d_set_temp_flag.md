@@ -1,7 +1,7 @@
 ---
 addr: 8CD82E
-size: 78
-end: 8CD87B
+size: 16
+end: 8CD83D
 kind: code
 category: 🧠
 name: script_op_0d_set_temp_flag

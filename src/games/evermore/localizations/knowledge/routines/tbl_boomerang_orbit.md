@@ -1,7 +1,7 @@
 ---
 addr: 90DF44
-end: 90E343
-size: 1024
+end: 90DFA8
+size: 101
 kind: table
 category: 🧠
 name: tbl_boomerang_orbit

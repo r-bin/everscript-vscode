@@ -1,7 +1,7 @@
 ---
 addr: 8E95A6
-size: 115
-end: 8E9618
+size: 114
+end: 8E9617
 kind: code
 category: 🎛️
 name: ring_menu_options_open_entry

@@ -438,31 +438,136 @@ function generate(): void {
         }
     }
 
-    // 7. Sort items by address and compute spans
-    const items = Array.from(itemsByAddr.values()).sort((a, b) => a.addr - b.addr);
+    function createPadOrSlackItem(
+        addr: number,
+        size: number,
+        kind: 'padding' | 'slack',
+        reason: string
+    ): RomKnowledgeItem {
+        const bank = (addr >> 16) & 0xFF;
+        const off = addr & 0xFFFF;
+        const bankHex = bank.toString(16).toUpperCase().padStart(2, '0');
+        const offHex = off.toString(16).toUpperCase().padStart(4, '0');
+        const isSlack = kind === 'slack';
+        const prefix = isSlack ? `BANK${bankHex}_SLACK_` : `BANK${bankHex}_PAD_`;
+        const name = `${prefix}${offHex}`;
+        const busStr = formatBusAddr(addr);
+        const endBusStr = formatBusAddr(addr + size - 1);
+        const typeTitle = isSlack ? 'unmapped ROM slack' : 'alignment padding';
 
-    // Pass: infer size from span to next item in same bank if size is placeholder or 0
-    for (let i = 0; i < items.length - 1; i++) {
-        if (!items[i].size || items[i].sizeSource === 'scripts_json') {
-            const next = items[i + 1];
-            if ((next.addr >> 16) === (items[i].addr >> 16) && next.addr > items[i].addr) {
-                const delta = next.addr - items[i].addr;
-                items[i].size = delta;
-                items[i].end = next.addr - 1;
-                items[i].sizeSource = 'bank_span';
-            }
-        }
+        return {
+            addr,
+            addrHex: addr.toString(16).toUpperCase().padStart(6, '0'),
+            size,
+            end: addr + size - 1,
+            sizeSource: isSlack ? 'bank_slack' : 'gap_padding',
+            name,
+            kind,
+            category: '⚙️',
+            title: `Bank $${bankHex} ${typeTitle} ($${offHex})`,
+            confidence: 'confirmed',
+            tags: isSlack ? ['unused', 'slack'] : ['unused', 'padding'],
+            evidence: [reason],
+            see: [],
+            body: `${size.toLocaleString()} B ${typeTitle} and unmapped ROM space in Bank $${bankHex} (${busStr}..${endBusStr}).`,
+        };
     }
 
-    // Pass: ensure tail items in each bank have valid positive sizes
-    for (const item of items) {
-        if (!item.size || item.size <= 0) {
-            item.size = 32;
-            item.end = item.addr + item.size - 1;
-            item.sizeSource = 'inferred_tail';
-        } else if (!item.end || item.end < item.addr) {
-            item.end = item.addr + item.size - 1;
+    // 7. Group items by bank and build contiguous zero-gap layout
+    const rawByBank = new Map<number, RomKnowledgeItem[]>();
+    for (const item of itemsByAddr.values()) {
+        const bank = (item.addr >> 16) & 0xFF;
+        const list = rawByBank.get(bank) || [];
+        list.push(item);
+        rawByBank.set(bank, list);
+    }
+
+    const byBank = new Map<number, RomKnowledgeItem[]>();
+    const allContiguousItems: RomKnowledgeItem[] = [];
+
+    const sortedBanks = Array.from(rawByBank.keys()).sort((a, b) => a - b);
+    for (const bank of sortedBanks) {
+        const rawList = rawByBank.get(bank)!.sort((a, b) => a.addr - b.addr);
+        const bankHex = bank.toString(16).toUpperCase().padStart(2, '0');
+        const contiguous: RomKnowledgeItem[] = [];
+
+        // Determine bank starting address
+        let expectedAddr: number;
+        if (bank === 0x00) {
+            expectedAddr = 0x00FFC0;
+        } else if (bank >= 0x80 && bank <= 0xBF) {
+            expectedAddr = (bank === 0x8F && (rawList[0].addr & 0xFFFF) === 0x0000)
+                ? 0x8F0000
+                : ((bank << 16) | 0x8000);
+        } else if (bank >= 0xC0 && bank <= 0xDF) {
+            expectedAddr = (bank << 16) | 0x0000;
+        } else {
+            expectedAddr = rawList[0].addr;
         }
+
+        for (let i = 0; i < rawList.length; i++) {
+            const cur = rawList[i];
+            const next = i < rawList.length - 1 ? rawList[i + 1] : null;
+
+            // Gap before cur: fill with padding
+            if (cur.addr > expectedAddr) {
+                const gapSize = cur.addr - expectedAddr;
+                const pad = createPadOrSlackItem(
+                    expectedAddr,
+                    gapSize,
+                    'padding',
+                    `ROM alignment gap preceding ${cur.name} in Bank $${bankHex}`
+                );
+                contiguous.push(pad);
+                allContiguousItems.push(pad);
+                expectedAddr = cur.addr;
+            }
+
+            // If cur overlaps next: clamp cur.size to abut next
+            let curSize = cur.size;
+            if (next && cur.addr + curSize > next.addr) {
+                curSize = next.addr - cur.addr;
+            } else if (!curSize || curSize <= 0 || cur.sizeSource === 'scripts_json') {
+                if (next && (next.addr >> 16) === bank) {
+                    curSize = next.addr - cur.addr;
+                } else {
+                    curSize = 32;
+                }
+            }
+            cur.size = curSize;
+            cur.end = cur.addr + curSize - 1;
+
+            contiguous.push(cur);
+            allContiguousItems.push(cur);
+            expectedAddr = cur.addr + curSize;
+        }
+
+        // Bank tail slack
+        let bankEnd: number;
+        if (bank === 0x00) {
+            bankEnd = 0x010000;
+        } else if (bank >= 0x80 && bank <= 0xBF) {
+            bankEnd = (bank << 16) | 0x10000;
+        } else if (bank >= 0xC0 && bank <= 0xC3) {
+            bankEnd = (bank << 16) | 0x08000;
+        } else {
+            bankEnd = expectedAddr;
+        }
+
+        if (expectedAddr < bankEnd) {
+            const slackSize = bankEnd - expectedAddr;
+            const slack = createPadOrSlackItem(
+                expectedAddr,
+                slackSize,
+                'slack',
+                `Unmapped ROM capacity at the tail of Bank $${bankHex}`
+            );
+            contiguous.push(slack);
+            allContiguousItems.push(slack);
+            expectedAddr = bankEnd;
+        }
+
+        byBank.set(bank, contiguous);
     }
 
     // 8. Ensure knowledge/routines directory exists and write markdown files
@@ -471,7 +576,7 @@ function generate(): void {
     }
     fs.mkdirSync(ROUTINES_DIR, { recursive: true });
 
-    for (const item of items) {
+    for (const item of allContiguousItems) {
         const targetPath = path.join(ROUTINES_DIR, `${item.name}.md`);
 
         let content = item.rawContent;
@@ -506,11 +611,17 @@ function generate(): void {
                 `---\n\n` +
                 item.body + `\n`;
         } else {
-            // Update frontmatter to include size and end if missing
+            // Update frontmatter to include size and end if missing or changed
+            const endHex = item.end.toString(16).toUpperCase().padStart(6, '0');
             const hasSize = /^size:\s*\d+/m.test(content);
             const hasEnd = /^end:\s*[0-9A-Fa-f]+/m.test(content);
+            if (hasSize) {
+                content = content.replace(/^size:\s*\d+/m, `size: ${item.size}`);
+            }
+            if (hasEnd) {
+                content = content.replace(/^end:\s*[0-9A-Fa-f]+/m, `end: ${endHex}`);
+            }
             if (!hasSize || !hasEnd) {
-                const endHex = item.end.toString(16).toUpperCase().padStart(6, '0');
                 let insertStr = '';
                 if (!hasSize) insertStr += `size: ${item.size}\n`;
                 if (!hasEnd) insertStr += `end: ${endHex}\n`;
@@ -524,19 +635,11 @@ function generate(): void {
 
         fs.writeFileSync(targetPath, content, 'utf8');
     }
-    console.log(`Wrote ${items.length} routine/asset files to knowledge/routines/`);
+    console.log(`Wrote ${allContiguousItems.length} routine/asset files to knowledge/routines/`);
 
-    // 9. Group items by bank and build master Markdown document
-    const byBank = new Map<number, RomKnowledgeItem[]>();
-    for (const item of items) {
-        const bank = (item.addr >> 16) & 0xFF;
-        const list = byBank.get(bank) || [];
-        list.push(item);
-        byBank.set(bank, list);
-    }
-
+    // 9. Build master Markdown document
     let totalCodeBytes = 0;
-    for (const item of items) {
+    for (const item of allContiguousItems) {
         totalCodeBytes += item.size;
     }
 
@@ -560,7 +663,7 @@ function generate(): void {
     let md = '# Secret of Evermore — ROM Memory Map\n\n';
     md += '```json\n' + JSON.stringify({
         summary: {
-            total_entries: items.length,
+            total_entries: allContiguousItems.length,
             total_documented_bytes: totalCodeBytes,
             banks_covered: byBank.size,
             architecture: '3 MB (24 Mbit) HiROM ($00..$3F mirror, $80..$BF fast, $C0..$FF data)',
@@ -574,7 +677,6 @@ function generate(): void {
     md += '- **Banks `$C0..$EF` (FastROM linear 64 KB banks):** Master dialogue string tables, game database ($C4), and compressed CHR graphics ($D0..$DF).\n';
     md += '- **Banks `$00..$3F` (SlowROM mirror):** Hardware registers ($2100..$437F), WRAM direct mirror, and SNES interrupt vectors ($00:FFE0..$00:FFFF).\n\n';
 
-    const sortedBanks = Array.from(byBank.keys()).sort((a, b) => a - b);
     for (const bank of sortedBanks) {
         const hex = bank.toString(16).toUpperCase().padStart(2, '0');
         const list = byBank.get(bank)!;
@@ -601,7 +703,7 @@ function generate(): void {
     // Write data/rom-map.md and mirror to docs/disassembly/engine-core/rom-map.md
     fs.writeFileSync(DATA_ROM_MAP, md, 'utf8');
     fs.writeFileSync(DOCS_ROM_MAP, md, 'utf8');
-    console.log(`Wrote master ROM map with ${items.length} entries (${totalCodeBytes} bytes across ${byBank.size} banks) to:`);
+    console.log(`Wrote master ROM map with ${allContiguousItems.length} entries (${totalCodeBytes} bytes across ${byBank.size} banks) to:`);
     console.log(' -', DATA_ROM_MAP);
     console.log(' -', DOCS_ROM_MAP);
 

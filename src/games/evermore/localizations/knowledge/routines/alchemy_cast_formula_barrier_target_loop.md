@@ -1,7 +1,7 @@
 ---
 addr: 8E8874
-size: 153
-end: 8E890C
+size: 152
+end: 8E890B
 kind: code
 category: 🧠
 name: alchemy_cast_formula_barrier_target_loop

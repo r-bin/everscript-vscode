@@ -1,7 +1,7 @@
 ---
 addr: 8E922C
-size: 109
-end: 8E9298
+size: 107
+end: 8E9296
 kind: code
 category: 🧠
 name: ring_menu_gear_toggle_equip

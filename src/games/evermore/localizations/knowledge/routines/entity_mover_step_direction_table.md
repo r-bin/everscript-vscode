@@ -1,7 +1,7 @@
 ---
 addr: 8FAD51
-size: 97
-end: 8FADB1
+size: 78
+end: 8FAD9E
 kind: code
 category: 🧠
 name: entity_mover_step_direction_table

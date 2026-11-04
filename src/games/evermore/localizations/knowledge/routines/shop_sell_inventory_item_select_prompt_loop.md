@@ -1,7 +1,7 @@
 ---
 addr: 8EA456
-size: 200
-end: 8EA51D
+size: 199
+end: 8EA51C
 kind: code
 category: 🏪
 name: shop_sell_inventory_item_select_prompt_loop

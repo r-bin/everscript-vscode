@@ -1,7 +1,7 @@
 ---
 addr: 91B9A7
-size: 347
-end: 91BB01
+size: 346
+end: 91BB00
 kind: code
 category: ⚔️
 name: status_effect_cure_and_remove

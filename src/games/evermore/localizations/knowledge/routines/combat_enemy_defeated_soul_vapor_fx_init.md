@@ -1,7 +1,7 @@
 ---
 addr: 90CCF6
-end: 90CD5B
-size: 102
+end: 90CD1A
+size: 37
 kind: code
 category: 🧠
 name: combat_enemy_defeated_soul_vapor_fx_init

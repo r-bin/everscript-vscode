@@ -1,7 +1,7 @@
 ---
 addr: 8EB200
-size: 49
-end: 8EB230
+size: 48
+end: 8EB22F
 kind: code
 category: 🧠
 name: mode7_flight_frame_coordinator

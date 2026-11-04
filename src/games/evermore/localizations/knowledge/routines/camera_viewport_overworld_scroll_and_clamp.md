@@ -1,7 +1,7 @@
 ---
 addr: 909E93
-size: 310
-end: 909FC8
+size: 57
+end: 909ECB
 kind: code
 category: 🧠
 name: camera_viewport_overworld_scroll_and_clamp

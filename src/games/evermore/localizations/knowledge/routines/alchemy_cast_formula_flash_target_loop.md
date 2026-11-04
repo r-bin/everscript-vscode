@@ -1,7 +1,7 @@
 ---
 addr: 8E8A3C
-size: 86
-end: 8E8A91
+size: 85
+end: 8E8A90
 kind: code
 category: 🧠
 name: alchemy_cast_formula_flash_target_loop

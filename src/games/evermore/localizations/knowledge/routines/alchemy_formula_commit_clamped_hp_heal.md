@@ -1,7 +1,7 @@
 ---
 addr: 919D0C
-size: 30
-end: 919D29
+size: 10
+end: 919D15
 kind: code
 category: 🎮
 name: alchemy_formula_commit_clamped_hp_heal

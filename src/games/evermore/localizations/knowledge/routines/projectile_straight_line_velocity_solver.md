@@ -1,7 +1,7 @@
 ---
 addr: 90DD61
-size: 105
-end: 90DDC9
+size: 39
+end: 90DD87
 kind: code
 category: ⚔️
 name: projectile_straight_line_velocity_solver

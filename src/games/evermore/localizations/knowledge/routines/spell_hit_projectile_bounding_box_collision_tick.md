@@ -1,7 +1,7 @@
 ---
 addr: 91A64D
-size: 257
-end: 91A74D
+size: 256
+end: 91A74C
 kind: code
 category: 🧠
 name: spell_hit_projectile_bounding_box_collision_tick
