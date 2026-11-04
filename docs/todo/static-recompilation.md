@@ -129,10 +129,10 @@ run, by nearest named routine; the hardware figure counts direct absolute access
 | about 11.8 % | everything with a G1 rating, if all of it were bound (30 files have `SOE_BIND`) |
 | 35.4 % | every routine with any C file (135 routines); most are descriptions with invented interfaces |
 | 64.6 % | no C file (529 routines), among them the `sub_8FA0FB`-`$8FA458` cluster at about 18.5 % |
-| 22.9 % | spin code an NMI must interrupt between instructions: `field_spare_time_loop` 16.47 %, the idle loop `$80:858F` 6.42 %. C that runs in one step cannot do this |
+| done | spin code an NMI must interrupt between instructions: `field_spare_time_loop` 16.47 %, the idle loop `$80:858F` 6.42 %. Bound at their loop heads: the C runs passes up to the next stop, the compiled code runs the passes around the NMI. Replay 01 is at 49.62 % |
 | at least 12.9 % | routines with direct hardware register access (65), outside the "touches only WRAM" rule |
 
-A binding's C also runs only when it fits before the next deadline; a routine that can stop between steps, as the raycast does, is not held to that for its whole length. Under today's rules the C share tops out near 60 % (an estimate), so 100 % needs another binding model, not only more routines. A binding no longer needs cycle costs by hand: `SOE_AT` marks in the C are enough (`src/soe_cost.c`).
+A binding's C also runs only when it fits before the next deadline; a routine that can stop between steps, as the raycast does, is not held to that for its whole length. The same step model should carry routines with hardware access as far as their last access, so the old estimate of a 60 % ceiling no longer holds; how far it goes is not measured. A binding no longer needs cycle costs by hand: `SOE_AT` marks in the C are enough (`src/soe_cost.c`).
 
 ---
 

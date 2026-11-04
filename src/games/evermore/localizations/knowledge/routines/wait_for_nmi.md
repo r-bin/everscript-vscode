@@ -11,3 +11,5 @@ evidence: ["disasm: LDA $0100 / CMP $0100 / BEQ back to the CMP, then JMP $8F85 
 see: [knowledge/wram/PPU_FRAME_COUNTER_LOW.md, routines/nmi_handler.md, routines/vram_oam_buffer_dma_commit_on_nmi.md]
 ---
 The main loop's "wait for the frame": polls `$0100` until incremented by the NMI handler (`$80:823A`), then immediately executes `JMP $8F85` into the frame task runner (`run_frame_tasks`). Cycles spent in the spin loop are idle time, not work.
+
+C: `reconstructed-c/80/80858C_wait_for_nmi.c`, a pass of the spin, bound in the recomp at `$858F`. No G1: the routine only ends on the NMI, so the proof is the recomp against MesenCE.

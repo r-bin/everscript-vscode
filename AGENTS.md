@@ -102,7 +102,7 @@ Canonical files: `.agents/skills/<name>/SKILL.md` (Claude Code reads them throug
   `animation-script`, `alchemy-spell-mechanics`, `secret-of-evermore-engine`, `simulation`
 - **Editor and UI:** `map-editor-rules`, `rooms-tab`, `memory-radar`, `webview-dom-safety`, `grammar-rules`,
   `debugger-protocol`
-- **Emulator and RE:** `snes-re`, `code-vfs`, `emulator-subsystem`, `emulator-script-debugging`, `cdl-recorder`,
+- **Emulator and RE:** `snes-re`, `code-vfs`, `c-style`, `emulator-subsystem`, `emulator-script-debugging`, `cdl-recorder`,
   `sample-playbacks`, `ghidra-analysis`, `snes-asm-asar-patching`, `recomp`, `reference-emulators`
 
 Personas (`.agents/agents/`, `.claude/agents` for Claude Code): `everscript-plugin-builder`,

@@ -16,6 +16,7 @@ READ FIRST
 - `docs/reverse-engineering/asm-to-c-port.md` (The 6-stage port roadmap)
 - `docs/reverse-engineering/c-to-rom.md` (How the C becomes code that runs as Evermore: the zelda3 / recomp method, gates G0–G3, the `random_below` example)
 - skill `code-vfs` §4 (The form C must have to be bound, and the gates)
+- skill `c-style` (How readable bound C should look: enums, structs, names, javadoc, no magic numbers)
 - skill `game-knowledge` (Where addresses, routines, and structs must be recorded)
 - skill `memory-map` (HiROM vs FastROM bus addressing)
 

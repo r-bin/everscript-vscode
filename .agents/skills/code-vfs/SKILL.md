@@ -49,7 +49,7 @@ The C replaces its ROM routine and leaves exactly the state the asm leaves. Two 
 **in the ROM** (`tools/c-to-rom/`, Calypsi; the owner's choice of 2026-10-24) and in the recomp
 (`hle_func`). Build, ABI and status: `docs/reverse-engineering/c-to-rom.md` §10.
 
-Write the C in the bindable form (worked files: `reconstructed-c/80/80859B_*.c`, `90/909DE8_*.c`):
+How it should read (names, enums, no magic numbers): skill `c-style`. Write the C in the bindable form (worked files: `reconstructed-c/80/80859B_*.c`, `90/909DE8_*.c`):
 
 - `#include "soe.h"` (WRAM, ROM, I/O, DB-relative `ABS16`/`ABSI16`, `DP16`, flag helpers) and
   `"soe_ram.h"` (generated from `knowledge/wram/`: one name per address, `ENTITY_RECORD_*_OFF`).
