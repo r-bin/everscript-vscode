@@ -6,11 +6,10 @@
 //   node tools/compare/probes/run-stats.mts <rom> <replay.evsmv> [--to N (default: its last input)] [--exe path] [--mode native|interp|no-resume] [--stats]
 //
 // Headless: SDL_VIDEO_DRIVER=dummy SDL_AUDIO_DRIVER=disk SDL_AUDIO_DISK_OUTPUT_FILE=/dev/null.
-import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { createRequire } from 'node:module';
 import { runRecomp, defaultExe } from '../recomp.mts';
 import { allInterpretedEnv } from './interp.mts';
+import { readReplay } from '../replay.mts';
 
 const args = process.argv.slice(2);
 const opt = (name: string) => { const i = args.indexOf(name); return i >= 0 ? args.splice(i, 2)[1] : undefined; };
@@ -20,8 +19,7 @@ const exe = resolve(opt('--exe') || defaultExe());
 const [romArg, replay] = args;
 if (!replay) { console.error('usage: run-stats.mts <rom> <replay.evsmv> [--to N] [--exe path] [--mode native|interp|no-resume] [--stats]'); process.exit(2); }
 // Default: the replay's last input (its key: 14424 for 01). Past it the game runs on without input until --to.
-const { parseMovie } = createRequire(import.meta.url)('../../../dist/platform/tas/movie');
-const to = toArg ? +toArg : parseMovie(readFileSync(replay, 'utf8'), replay).pads.length;
+const to = toArg ? +toArg : readReplay(replay).count;
 
 if (mode === 'interp') Object.assign(process.env, allInterpretedEnv(exe));
 else if (mode === 'no-resume') process.env.SNESRECOMP_AOT_RESUME = '0';

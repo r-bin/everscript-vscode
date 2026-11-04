@@ -1,10 +1,11 @@
 // The snesrecomp backend: the recomp repository's game run headless from a script, hashing through its
 // glue (src/game_rtl.c there, SOE_COMPARE_*), which writes to fd 3. Keys are always the NMI counter $0100.
-import { mkdtempSync, writeFileSync, rmSync, existsSync, readFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { readReplay, type Replay } from './replay.mts';
 import { FRAME_COUNTER, RNG, SYNC_AT, CROSS_NOISE } from './game.mts';
 import { runs, REGION_SIZE, type Region, type Crcs } from './diff.mts';
 import { gameExe } from '../recomp/repo.mts';
@@ -42,30 +43,6 @@ export interface RecompJob {
     onStderr?: (chunk: Buffer) => void;
 }
 
-const BUTTON_BITS: [number, string][] = [
-    [0x8000, 'b'],
-    [0x4000, 'y'],
-    [0x2000, 'select'],
-    [0x1000, 'start'],
-    [0x0800, 'up'],
-    [0x0400, 'down'],
-    [0x0200, 'left'],
-    [0x0100, 'right'],
-    [0x0080, 'a'],
-    [0x0040, 'x'],
-    [0x0020, 'l'],
-    [0x0010, 'r'],
-];
-
-/** Convert a 16-bit joypad word into recomp script button names joined with '+' (e.g. 'start', 'b+y'). */
-export function padToButtonString(pad: number): string {
-    const pressed: string[] = [];
-    for (const [bit, name] of BUTTON_BITS) {
-        if (pad & bit) pressed.push(name);
-    }
-    return pressed.join('+');
-}
-
 const h = (n: number) => n.toString(16).toUpperCase();
 
 /** Run the recomp; `onCp` gets each checkpoint. Resolves with the dump when dumpAt was set. */
@@ -75,37 +52,13 @@ export function runRecomp(job: RecompJob, onCp: (key: number, crcs: Crcs) => voi
     if (!existsSync(job.exe)) throw new Error(`no recomp executable at ${job.exe} (npm run recomp builds it)`);
     const dir = mkdtempSync(join(tmpdir(), 'soe-compare-'));
     const lines = ['turbo on'];
+    let replay: Replay | null = null;
 
     if (job.replay) {
-        const { parseMovie } = require('../../dist/platform/tas/movie');
-        const movie = parseMovie(readFileSync(job.replay, 'utf8'), job.replay);
-        const pads: Uint16Array = movie.pads;
-        const rngAt = job.rngFrame ?? 115;
-        const totalPadFrames = pads.length;   // the glue quits at the key (SOE_COMPARE_QUIT_AT)
-        // The runner's script engine spends frames of its own: a poke takes its frame and one more ("hold done"), a
-        // press of n frames n + 1. Those come off the next segment, so each pad value lands on the field MesenCE
-        // gives it. The script's frame f is also MesenCE's frame f + 1 (the glue's peek and Mesen's endFrame count
-        // differ by one at the same NMI key), so the run starts one pad frame in. Measured 2026-10-31 on
-        // 02-newgame-boy-available: before, every press reached the game 3 fields late (WRAM parted at key 332).
-        let i = 0, owed = 1;
-        while (i < totalPadFrames) {
-            if (job.rng && i === rngAt) {
-                lines.push(`poke ${h(RNG[0])} ${Buffer.from(job.rng).toString('hex')}`);
-                owed += 2;
-            }
-            const val = pads[i];
-            let j = i + 1;
-            while (j < totalPadFrames && pads[j] === val && (!job.rng || j !== rngAt)) j++;
-            const take = Math.min(owed, j - i);   // a press right after a press loses its first frame(s) here
-            owed -= take;
-            const count = j - i - take;
-            const btns = val === 0 ? '' : padToButtonString(val);
-            if (count > 0) {
-                if (btns) { lines.push(`press ${btns} ${count}`); owed += 1; }
-                else lines.push(`wait ${count}`);
-            }
-            i = j;
-        }
+        replay = readReplay(job.replay);
+        // The input goes by field (SOE_COMPARE_PADS, below). The script only copies the RNG in: its frame f is MesenCE's
+        // frame f + 1 (the glue's peek and Mesen's endFrame count differ by one at the same NMI key).
+        if (job.rng) lines.push(`wait ${(job.rngFrame ?? 115) - 1}`, `poke ${h(RNG[0])} ${Buffer.from(job.rng).toString('hex')}`);
     } else {
         if (job.rng) lines.push(`until16 ${h(FRAME_COUNTER)} == ${h(SYNC_AT)}`, `poke ${h(RNG[0])} ${Buffer.from(job.rng).toString('hex')}`);
     }
@@ -117,6 +70,16 @@ export function runRecomp(job: RecompJob, onCp: (key: number, crcs: Crcs) => voi
     // saves/ stay untouched (the glue's SOE_COMPARE_SAVE_ROOT).
     const env: NodeJS.ProcessEnv = { ...process.env, SOE_COMPARE_REGIONS: job.regions.join(','), SOE_COMPARE_SAVE_ROOT: dir };
     env.SOE_COMPARE_QUIT_AT = String(job.dumpAt ?? job.to);
+    if (replay) {
+        writeFileSync(join(dir, 'pads.bin'), Buffer.from(replay.pads.buffer, replay.pads.byteOffset, replay.pads.byteLength));
+        env.SOE_COMPARE_PADS = join(dir, 'pads.bin');
+    }
+    if (replay?.start) {   // a movie's memory, before the first instruction
+        for (const name of replay.start.fresh ? ['wram', 'sram'] as const : ['wram', 'sram', 'aram', 'dsp', 'hw'] as const) {
+            writeFileSync(join(dir, 'start.' + name), replay.start[name]);
+            env['SOE_COMPARE_' + name.toUpperCase()] = join(dir, 'start.' + name);
+        }
+    }
     if (job.atNmi) env.SOE_COMPARE_AT = 'nmi';
     if (job.onNmi) env.SOE_COMPARE_NMI_LOG = '1';
     if (job.stride) env.SOE_COMPARE_STRIDE = String(job.stride);

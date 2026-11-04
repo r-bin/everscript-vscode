@@ -96,6 +96,7 @@
   "tests/debugger/cdl-bus.test.js",
   "tests/debugger/tas-events.test.js",
   "tests/debugger/tas.test.js",
+  "tests/debugger/mesen-movie.test.js",
   "tests/debugger/cdl-values.test.js",
   "tests/debugger/tas-states.test.js",
   "tests/debugger/tas-verify.test.js"

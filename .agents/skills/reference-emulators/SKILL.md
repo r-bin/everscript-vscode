@@ -36,3 +36,7 @@ higan (2020 nightly) is superseded by ares; bsnes is ares' lineage and unused.
   SRAM checksum's flags parted the attract replay at NMI keys 320-321.
 
 The recomp repository (SecretOfEvermoreRecomp) has its own copy of these rules and a doc on how to run each (its docs folder, reference-emulators).
+
+## Traps
+
+- A MesenCE movie (`.mmo`) recorded with random power-on RAM carries a save state that is a reset of a running console. Its WRAM and SRAM alone are not the recording: other RNG, and without its ARAM and S-DSP registers the sound start takes 20 fields less (the recomp's `docs/imperfections/mmo-reset-start.md`).

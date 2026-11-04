@@ -2,7 +2,7 @@
 // (every frame with --verbose) and report how long each stays in sync with the first setup and what differs at the
 // first checkpoint that does not match: the bytes, named, and for snes9x setups the CPU write where they part.
 // One setup is compared with vanilla. Runs that mix backends align on the NMI counter $0100 and copy the RNG in.
-//   node tools/compare/compare.mts [backend[:exe]=]<rom> ... [--replay x.evsmv] [--frames N] [--verbose]
+//   node tools/compare/compare.mts [backend[:exe]=]<rom> ... [--replay x.evsmv|x.mmo] [--frames N] [--verbose]
 //       [--keep-going] [--aram] [--regions wram,vram,cgram,oam] [--align frame|nmi] [--no-cache] [--out file.md]
 //   backend: snes9x (our fork's debugger core, the default) | recomp (exe: the packaged game by default); no ROM after
 //   '=' means the clean ROM (--rom or the ROM library)
@@ -17,6 +17,7 @@ import { runMesen, defaultMesenExe, askMesenRng } from './mesen.mts';
 import { cacheKey, fileHash, loadCache, saveCache } from './cache.mts';
 import { report, summaryLine, type Detail, type TargetReport, type RunInfo } from './report.mts';
 import { SYNC_AT, CROSS_NOISE } from './game.mts';
+import { readReplay } from './replay.mts';
 
 const require = createRequire(import.meta.url);
 const WATCH_BATCH = 64;          // the debugger core's write watchpoint limit
@@ -112,7 +113,7 @@ const atNmi = setups.every(s => s.backend !== 'snes9x');
 const align = (opt('align') || (hasRecomp || hasMesen ? 'nmi' : 'frame')) as 'frame' | 'nmi';
 if (align === 'frame' && hasRecomp) { console.error('the recomp aligns on the NMI counter only (--align nmi)'); process.exit(2); }
 const regions = (opt('regions') ? opt('regions')!.split(',') : ['wram', 'vram', ...(opts.aram ? ['aram'] : [])]) as Region[];
-const movieCount = replay ? require('../../dist/platform/tas/movie').parseMovie(readFileSync(replay, 'utf8')).count as number : 0;
+const movieCount = replay ? readReplay(replay).count : 0;
 const frames = Number(opt('frames') || (replay ? movieCount : REFERENCE_FRAMES));
 const stride = opts.verbose ? 1 : 60;
 const skipThrough = mixed ? SYNC_AT + (atNmi ? 4 : 0) : -1;   // at NMIs the copied RNG shows from key 117

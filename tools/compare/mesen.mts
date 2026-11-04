@@ -1,14 +1,14 @@
 // The MesenCE backend: Mesen run headless from a generated Lua testrunner script.
 // Mesen is the cycle-accurate reference emulator for WRAM comparisons (reference-emulators skill).
 // Keys are aligned on the NMI frame counter $7E0100 when mixed with recomp or snes9x, or frame numbers.
-import { mkdtempSync, writeFileSync, rmSync, existsSync, readFileSync, symlinkSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, existsSync, symlinkSync } from 'node:fs';
 import { tmpdir, homedir } from 'node:os';
 import { join, basename, extname, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { FRAME_COUNTER, RNG, SYNC_AT, CROSS_NOISE } from './game.mts';
 import { REGION_SIZE, type Region, type Crcs } from './diff.mts';
-import { padToButtonString } from './recomp.mts';
+import { readReplay, type Replay } from './replay.mts';
 
 const require = createRequire(import.meta.url);
 
@@ -80,8 +80,30 @@ const BUTTON_BITS: [number, string][] = [
     [0x0010, 'r'],
 ];
 
+/** A movie's save state, loaded at the first instruction (a state loads only from an exec callback): the recording itself. */
+function startLua(start: NonNullable<Replay['start']>): string {
+    const write = (bytes: Uint8Array, type: string) => `
+do
+  local hex = "${Buffer.from(bytes).toString('hex')}"
+  for i = 0, #hex // 2 - 1 do
+    local b = tonumber(hex:sub(i * 2 + 1, i * 2 + 2), 16)
+    if b ~= 0 then emu.write(i, b, ${type}) end
+  end
+end`;
+    if (start.fresh) return write(start.wram, 'wram') + write(start.sram, 'emu.memType.snesSaveRam');
+    return `
+do
+  local state = ("${Buffer.from(start.state).toString('hex')}"):gsub("%x%x", function(c) return string.char(tonumber(c, 16)) end)
+  local id
+  id = emu.addMemoryCallback(function()
+    emu.removeMemoryCallback(id, emu.callbackType.exec, ${start.pc}, ${start.pc})
+    if not emu.loadSavestate(state) then print("the movie's save state did not load"); emu.stop(1) end
+  end, emu.callbackType.exec, ${start.pc}, ${start.pc})
+end`;
+}
+
 /** Generate Lua script for Mesen headless runner. */
-export function generateMesenLua(job: MesenJob, dumpPath: string, pads: Uint16Array | null): string {
+export function generateMesenLua(job: MesenJob, dumpPath: string, pads: Uint16Array | null, start?: Replay['start']): string {
     const isNmi = job.align === 'nmi';
     const stride = job.stride || 60;
     const target = job.dumpAt !== undefined ? job.dumpAt : job.to;
@@ -122,6 +144,7 @@ local vram = emu.memType.snesVideoRam
 local cgram = emu.memType.snesCgRam
 local oam = emu.memType.snesSpriteRam
 
+${start ? startLua(start) : ''}
 local f = 0
 local frames = 0
 local at_nmi = ${job.atNmi ? 'true' : 'false'}
@@ -292,13 +315,13 @@ export function runMesen(job: MesenJob, onCp: (key: number, crcs: Crcs) => void)
     const luaPath = join(dir, 'compare.lua');
     const dumpPath = join(dir, 'dump.bin');
 
-    let pads: Uint16Array | null = null;
+    let pads: Uint16Array | null = null, replay: Replay | null = null;
     if (job.replay) {
-        const { parseMovie } = require('../../dist/platform/tas/movie');
-        pads = parseMovie(readFileSync(job.replay, 'utf8'), job.replay).pads;
+        replay = readReplay(job.replay);
+        pads = replay.pads;
     }
 
-    const script = generateMesenLua(job, dumpPath, pads);
+    const script = generateMesenLua(job, dumpPath, pads, replay?.start);
     writeFileSync(luaPath, script);
 
     const iso = isolatedRom(dir, job.rom);
@@ -373,12 +396,9 @@ export function askMesenRng(job: MesenJob): Promise<{ bytes: Uint8Array; frame: 
         const luaPath = join(dir, 'rng.lua');
         const dumpPath = join(dir, 'dump.bin');
 
-        let pads: Uint16Array | null = null;
-        if (job.replay) {
-            const { parseMovie } = require('../../dist/platform/tas/movie');
-            pads = parseMovie(readFileSync(job.replay, 'utf8'), job.replay).pads;
-        }
-        const script = generateMesenLua({ ...job, to: SYNC_AT, dumpAt: undefined, rng: null, peek: [] }, dumpPath, pads);
+        const replay = job.replay ? readReplay(job.replay) : null;
+        const pads = replay?.pads ?? null;
+        const script = generateMesenLua({ ...job, to: SYNC_AT, dumpAt: undefined, rng: null, peek: [] }, dumpPath, pads, replay?.start);
         writeFileSync(luaPath, script);
 
         const iso = isolatedRom(dir, job.rom);

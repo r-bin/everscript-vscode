@@ -50,5 +50,6 @@ compiler/*/
 standalone-c-rom/assets.c
 
 *.evsmv
+*.mmo
 
 

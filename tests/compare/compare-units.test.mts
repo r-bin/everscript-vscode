@@ -4,7 +4,6 @@
 // Run: node tests/compare/compare-units.test.mts
 import assert from 'node:assert';
 import { Tracker, combined, byteDiff, runs, firstDifferingWrites, type Write } from '../../tools/compare/diff.mts';
-import { padToButtonString } from '../../tools/compare/recomp.mts';
 import { generateMesenLua } from '../../tools/compare/mesen.mts';
 import { parseArgs } from '../../tools/compare/compare.mts';
 import { nmiKey } from '../../tools/compare/game.mts';
@@ -77,15 +76,6 @@ test('nmiKey counts NMIs across the attract demo zeroing $0100 and across a wrap
     assert.deepStrictEqual([0x5555, 0, 0, 1, 3, 358, 0, 2].map(k), [-1, 0, 0, 1, 3, 358, 358, 360]);
     const w = nmiKey();
     assert.deepStrictEqual([0, 0xFFFE, 0xFFFF, 0, 1].map(w), [0, 0xFFFE, 0xFFFF, 0x10000, 0x10001]);
-});
-
-test('padToButtonString parses joypad bits into recomp button combinations', () => {
-    assert.strictEqual(padToButtonString(0), '');
-    assert.strictEqual(padToButtonString(0x1000), 'start');
-    assert.strictEqual(padToButtonString(0x8000), 'b');
-    assert.strictEqual(padToButtonString(0x9000), 'b+start');
-    assert.strictEqual(padToButtonString(0x8080), 'b+a');
-    assert.strictEqual(padToButtonString(0x0030), 'l+r');
 });
 
 test('generateMesenLua creates valid script with pad inputs and crc calculations', () => {
