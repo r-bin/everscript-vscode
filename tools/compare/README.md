@@ -111,9 +111,13 @@ entry runs to the next NMI and holds that stretch's refresh stalls. MesenCE's SP
 `emu.cpuType.spc, emu.memType.spcMemory` and report a frozen `masterClock` (the SPC runs in catch-up batches):
 time them with `spc.cycle / spc.clockRatio`.
 
+`spc-trace.mts <rom> <replay> <K> [n] [context]` compares the SPC700's instruction stream from NMI K for n NMIs: in sync the
+recomp's cycles read 1 above MesenCE's (where each logs). Bisect K to find where sound parts.
+
 ## Limits
 
 - The recomp and Mesen hash WRAM, VRAM, CGRAM and OAM, but not ARAM.
+- A recomp child outlives a killed `compare.mts` (`perl -e 'alarm ...'` kills only node): kill the process group, or it stays behind.
 - MesenCE's testrunner Lua has no `io` library: its dumps come over stdout as hex lines; a Mesen run hashes
   ~150 keys per second.
 - MesenCE's testrunner ends a run after 100 s of wall time by default, wherever it is: `mesen.mts` passes

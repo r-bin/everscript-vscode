@@ -22,26 +22,10 @@ const KEYS = 'ABXYLRSTUDLR';
 const BITS = [0x0080, 0x8000, 0x0040, 0x4000, 0x0020, 0x0010, 0x2000, 0x1000, 0x0800, 0x0400, 0x0200, 0x0100];
 const MID_GAME_LINE = 225;        // where MesenCE leaves its frame loop, the only moment a state is saved
 const RESET_CLOCK_LIMIT = 1000;   // master clocks: a state taken at the reset vector has run nothing yet
-// A power-on at the reset vector, as MesenCE's state shows it: prescaler position (two units per SPC cycle, a period is
-// two half periods of `half` units), the S-DSP's step.
-const SPC_TIMERS = [{ half: 128, fresh: 16 }, { half: 128, fresh: 16 }, { half: 16, fresh: 16 }];
-const FRESH_DSP_STEP = 8;
 
-/**
- * What survives a reset of a running console besides memory (a recording's start is such a reset), for a backend that
- * powers on: FastROM on; per SPC timer the cycles to its next tick, divider, target, counter, enabled; the S-DSP's
- * clock relative to a power-on.
- */
+/** What the state's SPC700 and S-DSP do not cover of a reset of a running console, for a backend that powers on: FastROM on. */
 function resetState(fields: Map<string, Buffer>): Buffer {
-    const byte = (key: string) => fields.get(key)?.[0] ?? 0;
-    const out = [byte('internalRegisters.enableFastRom')];
-    SPC_TIMERS.forEach(({ half, fresh }, i) => {
-        const t = `spc.timer${i}.`, period = half * 2;
-        const ahead = (byte(t + 'stage1') * half + byte(t + 'stage0') - fresh + period) % period / 2;
-        out.push((half - 1 - ahead + half) % half, byte(t + 'stage2'), byte(t + 'target'), byte(t + 'output'), byte(t + 'enabled'));
-    });
-    out.push((byte('spc.dsp.step') - FRESH_DSP_STEP) & 31);
-    return Buffer.from(out);
+    return Buffer.from([fields.get('internalRegisters.enableFastRom')?.[0] ?? 0]);
 }
 
 function padFromKeys(text: string): number {

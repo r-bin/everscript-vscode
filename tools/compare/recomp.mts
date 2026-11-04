@@ -68,22 +68,23 @@ export function runRecomp(job: RecompJob, onCp: (key: number, crcs: Crcs) => voi
     writeFileSync(join(dir, 'compare.txt'), lines.join('\n') + '\n');
     // SRAM from the run's own empty folder: cleared, as on MesenCE (mesen.mts isolatedRom), and the player's
     // saves/ stay untouched (the glue's SOE_COMPARE_SAVE_ROOT).
-    const env: NodeJS.ProcessEnv = { ...process.env, SOE_COMPARE_REGIONS: job.regions.join(','), SOE_COMPARE_SAVE_ROOT: dir };
+    // No window or audio device: with them a run has idled for good with no error (keys in the window, a locked Mac).
+    const env: NodeJS.ProcessEnv = { SDL_VIDEO_DRIVER: 'dummy', SDL_AUDIO_DRIVER: 'dummy', ...process.env, SOE_COMPARE_REGIONS: job.regions.join(','), SOE_COMPARE_SAVE_ROOT: dir };
     env.SOE_COMPARE_QUIT_AT = String(job.dumpAt ?? job.to);
     if (replay) {
         writeFileSync(join(dir, 'pads.bin'), Buffer.from(replay.pads.buffer, replay.pads.byteOffset, replay.pads.byteLength));
         env.SOE_COMPARE_PADS = join(dir, 'pads.bin');
     }
-    if (replay?.start?.midGame) {
-        writeFileSync(join(dir, 'start.fields'), replay.start.fields);
-        env.SOE_COMPARE_MESEN_STATE = join(dir, 'start.fields');
-    } else if (replay?.start) {   // a movie's memory, before the first instruction
-        for (const name of replay.start.fresh ? ['wram', 'sram'] as const : ['wram', 'sram', 'aram', 'dsp', 'hw'] as const) {
+    if (replay?.start) writeFileSync(join(dir, 'start.fields'), replay.start.fields);
+    if (replay?.start?.midGame) env.SOE_COMPARE_MESEN_STATE = join(dir, 'start.fields');
+    else if (replay?.start) {   // a movie's memory and sound, before the first instruction
+        for (const name of replay.start.fresh ? ['wram', 'sram'] as const : ['wram', 'sram', 'hw'] as const) {
             writeFileSync(join(dir, 'start.' + name), replay.start[name]);
             env['SOE_COMPARE_' + name.toUpperCase()] = join(dir, 'start.' + name);
         }
+        if (!replay.start.fresh) env.SOE_COMPARE_MESEN_APU = join(dir, 'start.fields');
     }
-    if (job.atNmi) env.SOE_COMPARE_AT = 'nmi';
+    if (job.atNmi) { env.SOE_COMPARE_AT = 'nmi'; env.SOE_COMPARE_MESEN_ROM_MIRROR = '1'; }   // atNmi: the reference is MesenCE
     if (job.onNmi) env.SOE_COMPARE_NMI_LOG = '1';
     if (job.stride) env.SOE_COMPARE_STRIDE = String(job.stride);
     if (job.dumpAt !== undefined) env.SOE_COMPARE_DUMP = String(job.dumpAt);

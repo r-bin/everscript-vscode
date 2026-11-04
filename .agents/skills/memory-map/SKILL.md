@@ -33,7 +33,7 @@ Every 64 KB file bank *n* appears twice: whole at `$(C0+n):0000–FFFF`, upper h
   into lower halves, scripts into upper halves (`docs/table-hack.md` §1).
 - **The 4th MB is not free:** `$80:D113` reads `$B0:E653–E6D1` (file `0x30E653`), past the 3 MB
   ROM (`knowledge/rom/80d113.md`). The answer depends on the hardware or emulator (cartridge:
-  `0x20E653`; bundled snes9x: `0x00E653`; Mesen2: `$FF`s). Never write there.
+  `0x20E653`; bundled snes9x: `0x00E653`; MesenCE: `0x200653`). Never write there.
 - **ExHiROM (8 MB):** `tools/exhirom/convert.js`; layout and proof in `docs/exhirom/port.md`. New
   space is `0x400000–0x7FFFFF` (bus `$40–$7D`); `$00–$3F:8000+` is no longer the first 4 MB, so
   new code goes at `$80+`/`$C0+`.
