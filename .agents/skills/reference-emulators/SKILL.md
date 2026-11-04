@@ -39,4 +39,4 @@ The recomp repository (SecretOfEvermoreRecomp) has its own copy of these rules a
 
 ## Traps
 
-- A MesenCE movie (`.mmo`) recorded with random power-on RAM carries a save state that is a reset of a running console. Its WRAM and SRAM alone are not the recording: other RNG, and without its ARAM and S-DSP registers the sound start takes 20 fields less (the recomp's `docs/imperfections/mmo-reset-start.md`).
+- A MesenCE movie (`.mmo`) recorded with random power-on RAM carries a save state that is a reset of a running console. Its WRAM and SRAM alone are not the recording: other RNG, and without its ARAM and S-DSP registers the sound start takes 20 fields less.
