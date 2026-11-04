@@ -50,7 +50,19 @@ function loadEntries(space: 'ram' | 'rom'): Range[] {
     return out;
 }
 
-const covered = (entries: Range[], a: number) => entries.some((e) => a >= e.from && a <= e.to);
+function isMirroredUpperBank(a: number): boolean {
+    const bank = (a >> 16) & 0xFF;
+    const off = a & 0xFFFF;
+    return off >= 0x8000 && ((bank >= 0x80 && bank <= 0xAF) || (bank >= 0xC0 && bank <= 0xEF));
+}
+
+function mirrorAddr(a: number): number {
+    const bank = (a >> 16) & 0xFF;
+    return bank >= 0xC0 ? a - 0x400000 : a + 0x400000;
+}
+
+const covered = (entries: Range[], a: number) =>
+    entries.some((e) => (a >= e.from && a <= e.to) || (isMirroredUpperBank(a) && mirrorAddr(a) >= e.from && mirrorAddr(a) <= e.to));
 
 /** WRAM as $7E/$7F bus addresses; ROM routines as $80-$FF bus addresses. */
 const WRAM = /(?:\$|0x)(7[EF])[:_]?([0-9A-F]{4})\b/gi;

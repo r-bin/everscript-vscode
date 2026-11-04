@@ -84,6 +84,18 @@ function bankName(bank: number): string {
             return `Room Map Blobs & Master Pointer Directory Bank $${hex}`;
         case 0xAE: case 0xAF:
             return `Sprite Graphics & Metatile Palette Bank $${hex}`;
+        case 0xB0:
+            return '4th MB Mode 7 Row Tables & Expansion Bank $B0';
+        case 0xB9:
+            return 'Table Hack Relocated Master Tables Bank $B9';
+        case 0xBA:
+            return 'Table Hack Hook Trampolines & Dispatchers Bank $BA';
+        case 0xBC:
+            return 'Test Runner Script Execution Vector Bank $BC';
+        case 0xBD:
+            return 'ROM Map Exporter Metatiles & Collision Arena Bank $BD';
+        case 0xBF:
+            return 'FastROM Cartridge Boundary & Vectors Bank $BF';
         case 0xC0: case 0xC1: case 0xC2: case 0xC3:
             return `String Tables & Dialogue Text Bank $${hex}`;
         case 0xC4:
@@ -98,6 +110,14 @@ function bankName(bank: number): string {
         case 0xE0: case 0xE1: case 0xE2: case 0xE3: case 0xE4: case 0xE5: case 0xE6: case 0xE7: case 0xE8: case 0xE9:
         case 0xEA: case 0xEB: case 0xEC: case 0xED: case 0xEE: case 0xEF:
             return `Master Environmental Weather Presets, Audio & CHR Bank $${hex}`;
+        case 0xF1:
+            return 'Table Hack Relocated Directory Bank $F1';
+        case 0xFA:
+            return 'Table Hack Reset Vector Hook Bank $FA';
+        case 0xFE:
+            return 'ExHiROM Custom Rooms & Mod Hooks Bank $FE';
+        case 0xFF:
+            return 'SNES Bus Ceiling & Interrupt Vectors Mirror Bank $FF';
         default:
             return `ROM Memory Bank $${hex}`;
     }
@@ -767,8 +787,12 @@ function generate(): void {
 
     // 9. Group items by bank and build contiguous zero-gap layout for strictly vanilla ROM banks
     const rawByBank = new Map<number, RomKnowledgeItem[]>();
+    const nonVanillaItems: RomKnowledgeItem[] = [];
     for (const item of itemsByAddr.values()) {
-        if (!isVanillaRomAddress(item.addr)) continue;
+        if (!isVanillaRomAddress(item.addr)) {
+            nonVanillaItems.push(item);
+            continue;
+        }
         const bank = (item.addr >> 16) & 0xFF;
         const list = rawByBank.get(bank) || [];
         list.push(item);
@@ -896,6 +920,16 @@ function generate(): void {
         byBank.set(bank, contiguous);
     }
 
+    // 9b. Append non-vanilla routines, expanded arenas, and system register mirrors
+    for (const item of nonVanillaItems.sort((a, b) => a.addr - b.addr)) {
+        const bank = (item.addr >> 16) & 0xFF;
+        const list = byBank.get(bank) || [];
+        list.push(item);
+        list.sort((a, b) => a.addr - b.addr);
+        byBank.set(bank, list);
+        allContiguousItems.push(item);
+    }
+
     // Ensure every single item has a unique name across the entire ROM map
     const usedNames = new Set<string>();
     for (const item of allContiguousItems) {
@@ -1012,7 +1046,8 @@ function generate(): void {
     md += '- **Banks `$C0..$EF` (FastROM data banks, 48 banks):** Master dialogue string tables, game database ($C4), and compressed CHR graphics ($D0..$DF).\n';
     md += '- **Bank `$00` (SlowROM mirror):** SNES cartridge header and hardware interrupt vectors ($00:FFC0..$00:FFFF).\n\n';
 
-    for (const bank of sortedBanks) {
+    const allOutputBanks = Array.from(byBank.keys()).sort((a, b) => a - b);
+    for (const bank of allOutputBanks) {
         const hex = bank.toString(16).toUpperCase().padStart(2, '0');
         const list = byBank.get(bank)!;
         const bName = bankName(bank);

@@ -3,20 +3,20 @@
 ```json
 {
   "summary": {
-    "total_entries": 7091,
-    "total_documented_bytes": 3269858,
-    "banks_covered": 97,
+    "total_entries": 7107,
+    "total_documented_bytes": 3728865,
+    "banks_covered": 107,
     "architecture": "3 MB (24 Mbit) HiROM ($00 vectors/header mirror, $80..$AF FastROM, $C0..$EF Data)"
   },
   "banks": {
     "80": {
       "range": [
-        "0x808000",
+        "0x800000",
         "0x80FFFF"
       ],
       "name": "Engine Core, Reset, NMI & Hardware Utilities",
-      "routines": 262,
-      "bytes": 32768,
+      "routines": 263,
+      "bytes": 65536,
       "slack_bytes": 0
     },
     "81": {
@@ -111,12 +111,12 @@
     },
     "90": {
       "range": [
-        "0x908000",
+        "0x900000",
         "0x90FFFF"
       ],
       "name": "Animation VM, Sprites, Projectiles & Tile Animation",
-      "routines": 494,
-      "bytes": 32768,
+      "routines": 495,
+      "bytes": 65536,
       "slack_bytes": 0
     },
     "91": {
@@ -261,12 +261,12 @@
     },
     "8E": {
       "range": [
-        "0x8E8000",
+        "0x8E0000",
         "0x8EFFFF"
       ],
       "name": "Character Database, Ring Menu & Shop System",
-      "routines": 202,
-      "bytes": 32768,
+      "routines": 203,
+      "bytes": 65536,
       "slack_bytes": 0
     },
     "8F": {
@@ -275,8 +275,8 @@
         "0x8FFFFF"
       ],
       "name": "Entity AI, Physics, Collision & Combat Engine",
-      "routines": 469,
-      "bytes": 65536,
+      "routines": 470,
+      "bytes": 98048,
       "slack_bytes": 0
     },
     "9A": {
@@ -978,6 +978,106 @@
       "routines": 2,
       "bytes": 32768,
       "slack_bytes": 0
+    },
+    "B0": {
+      "range": [
+        "0xB0E653",
+        "0xB0E6D1"
+      ],
+      "name": "4th MB Mode 7 Row Tables & Expansion Bank $B0",
+      "routines": 1,
+      "bytes": 127,
+      "slack_bytes": 32641
+    },
+    "B9": {
+      "range": [
+        "0xB98000",
+        "0xB9FFFF"
+      ],
+      "name": "Table Hack Relocated Master Tables Bank $B9",
+      "routines": 1,
+      "bytes": 32768,
+      "slack_bytes": 0
+    },
+    "BA": {
+      "range": [
+        "0xBA8000",
+        "0xBA807F"
+      ],
+      "name": "Table Hack Hook Trampolines & Dispatchers Bank $BA",
+      "routines": 2,
+      "bytes": 128,
+      "slack_bytes": 32640
+    },
+    "BC": {
+      "range": [
+        "0xBC8000",
+        "0xBCFFFF"
+      ],
+      "name": "Test Runner Script Execution Vector Bank $BC",
+      "routines": 1,
+      "bytes": 32768,
+      "slack_bytes": 0
+    },
+    "BD": {
+      "range": [
+        "0xBD8000",
+        "0xBDFFFF"
+      ],
+      "name": "ROM Map Exporter Metatiles & Collision Arena Bank $BD",
+      "routines": 1,
+      "bytes": 32768,
+      "slack_bytes": 0
+    },
+    "BF": {
+      "range": [
+        "0xBF0000",
+        "0xBFFFFF"
+      ],
+      "name": "FastROM Cartridge Boundary & Vectors Bank $BF",
+      "routines": 1,
+      "bytes": 65536,
+      "slack_bytes": 0
+    },
+    "F1": {
+      "range": [
+        "0xF10000",
+        "0xF17FFF"
+      ],
+      "name": "Table Hack Relocated Directory Bank $F1",
+      "routines": 1,
+      "bytes": 32768,
+      "slack_bytes": 0
+    },
+    "FA": {
+      "range": [
+        "0xFA0100",
+        "0xFA01FF"
+      ],
+      "name": "Table Hack Reset Vector Hook Bank $FA",
+      "routines": 1,
+      "bytes": 256,
+      "slack_bytes": 32512
+    },
+    "FE": {
+      "range": [
+        "0xFE0000",
+        "0xFEFFFF"
+      ],
+      "name": "ExHiROM Custom Rooms & Mod Hooks Bank $FE",
+      "routines": 2,
+      "bytes": 65536,
+      "slack_bytes": 0
+    },
+    "FF": {
+      "range": [
+        "0xFF0000",
+        "0xFFFFFF"
+      ],
+      "name": "SNES Bus Ceiling & Interrupt Vectors Mirror Bank $FF",
+      "routines": 1,
+      "bytes": 65536,
+      "slack_bytes": 0
     }
   }
 }
@@ -1002,10 +1102,11 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $80 — Engine Core, Reset, NMI & Hardware Utilities
 
-**Coverage:** 262 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 263 entries | **Documented bytes:** 65,536 B (64.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
+| `$80:0000` | [`snes_bank_80_system_registers_mirror`](knowledge/routines/snes_bank_80_system_registers_mirror.md) | `region` | 32,768 B | engine, hardware, registers | SNES Bank $80 system registers, Low-RAM mirror and hardware registers: SNES Bank `$80` system registers mirror region (`$80:0000–$80:7FFF`). Mirrors the first 8 KB of WRAM (`$7E:0000–$7E:1FFF`), PPU registers (`... |
 | `$80:8000` | [`gfx_808000`](knowledge/routines/gfx_808000.md) | `data` | 32 B | graphics, chr, cdl | CDL graphic CHR pattern block ($80:8000): CDL-identified graphics CHR pattern block in ROM at $80:8000. |
 | `$80:8020` | [`reset_handler`](knowledge/routines/reset_handler.md) | `code` | 538 B |  | RESET handler: Native mode, stack $1FFF, D=0; clears PPU/CPU registers; fills VRAM and both WRAM banks by fixed-source DMA; PPU shadow defaults ($0106=$8F)... |
 | `$80:823A` | [`nmi_handler`](knowledge/routines/nmi_handler.md) | `code` | 103 B | engine, nmi, mapping | NMI handler, entered through a JML stub in bank $00: Vectors always point into bank `$00`, so the NMI enters at `$00:823A`. That address holds only a 4-byte `JML $80:823E` into the FastROM copy... |
@@ -5870,10 +5971,11 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $8E — Character Database, Ring Menu & Shop System
 
-**Coverage:** 202 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 203 entries | **Documented bytes:** 65,536 B (64.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
+| `$8E:0000` | [`character_database_templates_bank_base`](knowledge/routines/character_database_templates_bank_base.md) | `table` | 32,768 B | character, database, templates | Character database templates and party member definitions base in Bank $8E: Base address for character database templates and stats in Bank `$8E` (`$8E:0000–$8E:7FFF`). Hosts base stat structures, weapon affinities, ... |
 | `$8E:8000` | [`tbl_8E8000`](knowledge/routines/tbl_8E8000.md) | `table` | 324 B | table, cdl, lookup, lookup | CDL lookup: 162 entries × 2B: CDL lookup table at $8E:8000 (324 bytes, 162 entries × 2B). Index: $7E07A8..$7E0CE3 (76) > tax. Result: tax > ?. Read by ring_menu_load_cate... |
 | `$8E:8144` | [`asset_8e8144_ring_menu_icon_entries`](knowledge/routines/asset_8e8144_ring_menu_icon_entries.md) | `data` | 1,296 B | asset | Ring-menu icon entries ($8E:8144): Ring-menu icon entries: 8 bytes: `+2` animation record, `+4` palette, `+6` index in category Size: 1,296 bytes at $8E:8144. |
 | `$8E:8654` | [`item_use_action_target_loop`](knowledge/routines/item_use_action_target_loop.md) | `code` | 132 B | combat, item, inventory, targeting | Consumable item target selection and usage handler: Interactive targeting handler when using a consumable item from the ring menu (Petals, Nectar, Biscuit). Launches target cursor loop and app... |
@@ -6079,12 +6181,13 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $8F — Entity AI, Physics, Collision & Combat Engine
 
-**Coverage:** 469 entries | **Documented bytes:** 65,536 B (64.0 KB)
+**Coverage:** 470 entries | **Documented bytes:** 98,048 B (95.8 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
 | `$8F:0000` | [`HIT_CHANCE_TABLE_BASE`](knowledge/routines/HIT_CHANCE_TABLE_BASE.md) | `table` | 256 B |  | Hit-chance table base: indexed via $8F:BAAF. |
 | `$8F:0100` | [`BANK8F_PAD_0100`](knowledge/routines/BANK8F_PAD_0100.md) | `padding` | 32,512 B | unused, padding | Bank $8F alignment padding ($0100): 32,512 B alignment padding and unmapped ROM space in Bank $8F ($8F:0100..$8F:7FFF). |
+| `$8F:0100` | [`BANK8F_PAD_0100_8F0100`](knowledge/routines/BANK8F_PAD_0100_8F0100.md) | `padding` | 32,512 B | unused, padding | Bank $8F alignment padding ($0100): 32,512 B alignment padding and unmapped ROM space in Bank $8F ($8F:0100..$8F:7FFF). |
 | `$8F:8000` | [`gfx_8F8000`](knowledge/routines/gfx_8F8000.md) | `data` | 20 B | graphics, chr, cdl | CDL graphic CHR pattern block ($8F:8000): CDL-identified graphics CHR pattern block in ROM at $8F:8000. |
 | `$8F:8014` | [`gfx_8F8014`](knowledge/routines/gfx_8F8014.md) | `data` | 20 B | graphics, chr, cdl | CDL graphic CHR pattern block ($8F:8014): CDL-identified graphics CHR pattern block in ROM at $8F:8014. |
 | `$8F:8028` | [`gfx_8F8028`](knowledge/routines/gfx_8F8028.md) | `data` | 20 B | graphics, chr, cdl | CDL graphic CHR pattern block ($8F:8028): CDL-identified graphics CHR pattern block in ROM at $8F:8028. |
@@ -6555,10 +6658,11 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $90 — Animation VM, Sprites, Projectiles & Tile Animation
 
-**Coverage:** 494 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 495 entries | **Documented bytes:** 65,536 B (64.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
+| `$90:0000` | [`animation_vm_data_bank_base`](knowledge/routines/animation_vm_data_bank_base.md) | `data` | 32,768 B | animation, sprites, vm | Animation VM sequence tables and projectile script base in Bank $90: Animation VM sequence tables and projectile bytecode definitions base in Bank `$90` (`$90:0000–$90:7FFF`), referenced by sprite renderers an... |
 | `$90:8000` | [`tbl_animation_vm_jump_table`](knowledge/routines/tbl_animation_vm_jump_table.md) | `table` | 206 B | animation, sprites, vm, dispatcher, table | Animation bytecode VM opcode execution vector table: Vector jump table for the Secret of Evermore sprite animation bytecode VM interpreter (`$90:80CE`). Contains 103 16-bit jump vectors (`0x00`... |
 | `$90:80CE` | [`anim_vm_tick`](knowledge/routines/anim_vm_tick.md) | `code` | 4 B | animation, sprites | Animation bytecode VM per-tick loop & keyframe interpreter: Tick-level execution loop of the Secret of Evermore sprite animation bytecode VM. Drives animated sprite sequences for the boy, dog, NPCs, e... |
 | `$90:80D2` | [`entity_anim_frame_advance_step`](knowledge/routines/entity_anim_frame_advance_step.md) | `code` | 67 B | sprites, animation, entity, engine | Entity sprite animation frame counter step: Core sprite animation step routine that increments the frame counter in the entity record, advancing the animation playback position for cha... |
@@ -8102,6 +8206,55 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$AF:8000` | [`asset_af8000_map_graphics_16_16_chr`](knowledge/routines/asset_af8000_map_graphics_16_16_chr.md) | `data` | 32,767 B | asset | Map graphics (16×16 CHR) ($AF:8000): Map graphics (16×16 CHR): 380 graphics Size: 32,767 bytes at $AF:8000. |
 | `$AF:FFFF` | [`BANKAF_SLACK_FFFF`](knowledge/routines/BANKAF_SLACK_FFFF.md) | `slack` | 1 B | unused, slack | Bank $AF unmapped ROM slack ($FFFF): 1 B unmapped ROM slack and unmapped ROM space in Bank $AF ($AF:FFFF..$AF:FFFF). |
 
+## Bank $B0 — 4th MB Mode 7 Row Tables & Expansion Bank $B0
+
+**Coverage:** 1 entries | **Documented bytes:** 127 B (127 B)
+
+| Address | Identifier | Type | Size | Tag | Summary |
+|---|---|---|---|---|---|
+| `$B0:E653` | [`mode7_row_table_4th_mb_read`](knowledge/routines/mode7_row_table_4th_mb_read.md) | `table` | 127 B | mode7, rendering, 4th-mb | Mode 7 perspective scaling row-table in 4th MB Bank $B0: Mode 7 perspective scaling row-table located in the 4th megabyte at `$B0:E653` (`$B0:E653–$B0:E6D1`). Read by the Mode 7 perspective initial... |
+
+## Bank $B9 — Table Hack Relocated Master Tables Bank $B9
+
+**Coverage:** 1 entries | **Documented bytes:** 32,768 B (32.0 KB)
+
+| Address | Identifier | Type | Size | Tag | Summary |
+|---|---|---|---|---|---|
+| `$B9:8000` | [`table_hack_relocated_tables`](knowledge/routines/table_hack_relocated_tables.md) | `table` | 32,768 B | table-hack, exhirom, expansion | Table hack relocated master tables arena in Bank $B9: Expansion arena in Bank `$B9` (`$B9:8000–$B9:FFFF`) used by the table hack to place relocated vanilla tables with expanded capacity for modd... |
+
+## Bank $BA — Table Hack Hook Trampolines & Dispatchers Bank $BA
+
+**Coverage:** 2 entries | **Documented bytes:** 128 B (128 B)
+
+| Address | Identifier | Type | Size | Tag | Summary |
+|---|---|---|---|---|---|
+| `$BA:8000` | [`table_hack_hook_trampolines`](knowledge/routines/table_hack_hook_trampolines.md) | `code` | 64 B | table-hack, hooks, trampoline | Table hack JML hook trampolines in Bank $BA: Hook trampoline code block in Bank `$BA` (`$BA:8000–$BA:803F`) hosting long jumps (`JML`) and dispatcher stubs that redirect vanilla ROM rou... |
+| `$BA:8040` | [`table_hack_spawn_hook`](knowledge/routines/table_hack_spawn_hook.md) | `code` | 64 B | table-hack, hooks, spawn | Table hack enemy and NPC spawn hook in Bank $BA: Specialized hook routine in Bank `$BA` (`$BA:8040–$BA:807F`) intercepting enemy and NPC entity spawning to look up expanded entity tables. |
+
+## Bank $BC — Test Runner Script Execution Vector Bank $BC
+
+**Coverage:** 1 entries | **Documented bytes:** 32,768 B (32.0 KB)
+
+| Address | Identifier | Type | Size | Tag | Summary |
+|---|---|---|---|---|---|
+| `$BC:8000` | [`custom_room_enter_script_vector`](knowledge/routines/custom_room_enter_script_vector.md) | `script` | 32,768 B | emulator, script, test | Test runner custom room enter script execution vector in Bank $BC: Designated test script execution arena in Bank `$BC` (`$BC:8000–$BC:FFFF`). The custom room test runner injects and executes generated event... |
+
+## Bank $BD — ROM Map Exporter Metatiles & Collision Arena Bank $BD
+
+**Coverage:** 1 entries | **Documented bytes:** 32,768 B (32.0 KB)
+
+| Address | Identifier | Type | Size | Tag | Summary |
+|---|---|---|---|---|---|
+| `$BD:8000` | [`rom_export_custom_map_arena`](knowledge/routines/rom_export_custom_map_arena.md) | `region` | 32,768 B | map, export, rom | ROM export custom room map metatiles and collision arena in Bank $BD: Target memory region in Bank `$BD` (`$BD:8000–$BD:FFFF`) where the ROM map exporter writes custom room layer metatiles, tilemaps, and collis... |
+
+## Bank $BF — FastROM Cartridge Boundary & Vectors Bank $BF
+
+**Coverage:** 1 entries | **Documented bytes:** 65,536 B (64.0 KB)
+
+| Address | Identifier | Type | Size | Tag | Summary |
+|---|---|---|---|---|---|
+| `$BF:0000` | [`cartridge_rom_fastrom_upper_boundary`](knowledge/routines/cartridge_rom_fastrom_upper_boundary.md) | `region` | 65,536 B | engine, mapping, cartridge | Cartridge FastROM upper bank boundary and expansion limit (Bank $BF): Cartridge FastROM upper boundary in Bank `$BF` (`$BF:0000–$BF:FFFF`). In the standard 3 MB vanilla HiROM cartridge layout, Bank `$BF` marks ... |
+
 ## Bank $C0 — String Tables & Dialogue Text Bank $C0
 
 **Coverage:** 1 entries | **Documented bytes:** 32,768 B (32.0 KB)
@@ -8760,4 +8913,37 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 |---|---|---|---|---|---|
 | `$EF:0000` | [`asset_ef0000_map_graphics_16_16_chr`](knowledge/routines/asset_ef0000_map_graphics_16_16_chr.md) | `data` | 26,333 B | asset | Map graphics (16×16 CHR) ($EF:0000): Map graphics (16×16 CHR): 291 graphics Size: 26,333 bytes at $EF:0000. |
 | `$EF:66DD` | [`BANKEF_SLACK_66DD`](knowledge/routines/BANKEF_SLACK_66DD.md) | `slack` | 6,435 B | unused, slack | Bank $EF unmapped ROM slack ($66DD): 6,435 B unmapped ROM slack and unmapped ROM space in Bank $EF ($EF:66DD..$EF:7FFF). |
+
+## Bank $F1 — Table Hack Relocated Directory Bank $F1
+
+**Coverage:** 1 entries | **Documented bytes:** 32,768 B (32.0 KB)
+
+| Address | Identifier | Type | Size | Tag | Summary |
+|---|---|---|---|---|---|
+| `$F1:0000` | [`table_hack_directory_bank_f1`](knowledge/routines/table_hack_directory_bank_f1.md) | `table` | 32,768 B | table-hack, exhirom | Table hack directory and index descriptor table in Bank $F1: Directory structure and relocated table descriptor index located at `$F1:0000–$F1:7FFF`. Stores pointers, entry counts, and layout metadata ... |
+
+## Bank $FA — Table Hack Reset Vector Hook Bank $FA
+
+**Coverage:** 1 entries | **Documented bytes:** 256 B (256 B)
+
+| Address | Identifier | Type | Size | Tag | Summary |
+|---|---|---|---|---|---|
+| `$FA:0100` | [`table_hack_reset_entry_hook`](knowledge/routines/table_hack_reset_entry_hook.md) | `code` | 256 B | table-hack, hooks, reset | Table hack reset entry initialization hook in Bank $FA: Boot initialization hook code at `$FA:0100–$FA:01FF` executed early in the reset vector sequence to initialize table hack memory mappings, c... |
+
+## Bank $FE — ExHiROM Custom Rooms & Mod Hooks Bank $FE
+
+**Coverage:** 2 entries | **Documented bytes:** 65,536 B (64.0 KB)
+
+| Address | Identifier | Type | Size | Tag | Summary |
+|---|---|---|---|---|---|
+| `$FE:0000` | [`exhirom_custom_room_blob_arena`](knowledge/routines/exhirom_custom_room_blob_arena.md) | `region` | 32,768 B | map, exhirom, export | ExHiROM custom room data blobs arena in Bank $FE: Dedicated ExHiROM arena at `$FE:0000–$FE:7FFF` allocated for custom room assets, decompressed tile blobs, and auxiliary room configuration t... |
+| `$FE:8000` | [`exhirom_scale_enemies_hook`](knowledge/routines/exhirom_scale_enemies_hook.md) | `code` | 32,768 B | combat, exhirom, hooks | ExHiROM enemy scaling and difficulty mod hook in Bank $FE: Engine modification hook routine at `$FE:8000–$FE:FFFF` that intercepts enemy stat loads to dynamically scale enemy HP, attack power, and de... |
+
+## Bank $FF — SNES Bus Ceiling & Interrupt Vectors Mirror Bank $FF
+
+**Coverage:** 1 entries | **Documented bytes:** 65,536 B (64.0 KB)
+
+| Address | Identifier | Type | Size | Tag | Summary |
+|---|---|---|---|---|---|
+| `$FF:0000` | [`snes_bus_ceiling_and_vectors_mirror`](knowledge/routines/snes_bus_ceiling_and_vectors_mirror.md) | `region` | 65,536 B | engine, mapping, vectors | SNES 24-bit address bus ceiling and interrupt vectors mirror (Bank $FF): Bank `$FF` (`$FF:0000–$FF:FFFF`) represents the top of the SNES 24-bit address space ($FFFFFF). Its upper half ($FF:8000–$FF:FFFF) mirrors t... |
 

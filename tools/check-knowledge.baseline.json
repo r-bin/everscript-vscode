@@ -1,31 +1,4 @@
 {
  "//": "Addresses in code without a knowledge entry yet (docs/cleanup.md 6.1). Only ever shrinks: node tools/check-knowledge.mts --baseline",
- "missing": [
-  "rom:800000",
-  "rom:8E0000",
-  "rom:900000",
-  "rom:B0E653",
-  "rom:B98000",
-  "rom:BA8000",
-  "rom:BA8040",
-  "rom:BC8000",
-  "rom:BC8006",
-  "rom:BC8008",
-  "rom:BD8000",
-  "rom:BF0000",
-  "rom:BF8000",
-  "rom:C0E653",
-  "rom:C3D000",
-  "rom:CFB254",
-  "rom:CFFFFF",
-  "rom:D384D9",
-  "rom:DFFDE7",
-  "rom:F10000",
-  "rom:FA0100",
-  "rom:FE0000",
-  "rom:FE8000",
-  "rom:FF0000",
-  "rom:FF8000",
-  "rom:FFFFFF"
- ]
+ "missing": []
 }

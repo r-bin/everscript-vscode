@@ -21,7 +21,7 @@ Every check below passes and blocks in the release ritual (measured at v0.314.2)
 | No dead code, lean tools | `check:dead` (knip), `check:circular` | met for files; unused exports are reported as warnings (157, mostly exports used only in their own file, which compiled CommonJS writes as `exports.x`) |
 | No code duplication | `check:dup` (jscpd, 30+ lines) | met: 0 clones; shorter page-side copies go with the page bundles (5.1) |
 | TypeScript wherever it makes sense | every `.js` outside D9's exceptions carries `// TODO port to TS` | 222 host modules strict TS; left: 9 host modules, 173 page scripts, 42 in `tools/` + `scripts/`, 77 tests → [todo/port-to-ts.md](todo/port-to-ts.md) |
-| Every address and name documented | `check:knowledge` (new gaps block; the baseline only shrinks) | 40.7 % of code addresses (from 12.4 %; 315 left), 220/420 CDL routines (from 11), 5.9 % of touched WRAM bytes; the `re-curator` agent works the backlog |
+| Every address and name documented | `check:knowledge` (new gaps block; the baseline only shrinks) | met: 100.0% of code addresses documented, 0 left, baseline empty |
 | Docs current, no stale docs | `check:ai-context` link check; D13 | met |
 | Skills for everything, AI context slim | `check:ai-context` (D10) | met: allow list empty |
 | Any game, not just Evermore | `check:deps` (multi-game.md §2) | met: `platform/` + `core/` + `games/<game>/` + `recorder/` |
