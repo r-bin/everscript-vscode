@@ -1,9 +1,14 @@
 ---
 addr: $7F:0000
 name: ROOM_METATILE_GRID
-type: u8[0x8000]
+type: RoomMetatileGrid
 tags: [map, metatiles, bank7f]
 confidence: verified
-evidence: ["disasm: Primary decompressed room metatile grid buffer ($7F:0000..$7F:7FFF) holding live metatile IDs, Layer 1/2 VRAM tile words, and elevation/collision attributes ($80:C0B5, $8F:9F05, $90:9DE8, $90:A739)"]
+evidence: ["disasm: Primary decompressed room metatile grid buffer ($7F:0000..$7F:7FFF) holding live metatile IDs, Layer 1/2 VRAM tile words, and elevation/collision attributes ($80:C0B5, $8F:9F05, $90:9DE8, $90:A739)", "docs/map-format/map_decompression_trace_analysis.md"]
 ---
-Primary decompressed room field metatile grid and attributes buffer ($7F:0000..$7F:7FFF). Holds live metatile IDs, Layer 1/2 VRAM tile words, and 2-bit elevation/collision attributes ($80:C0B5, $8F:9F05, $90:9DE8, $90:A739).
+Primary decompressed room field metatile grid and attributes buffer ($7F:0000..$7F:7FFF, 32 KB).
+
+### Inner Struct Layout (`RoomMetatileGrid`):
+- `+$0000` (`layer1_grid`, `u16[8192]` / 16 KB): Layer 1 room metatile grid words populated by 2D Markov bitstream decoder ($8C:9BD0).
+- `+$4000` (`collision_attrs`, `u16[4096]` / 8 KB): Metatile collision attribute words and 2-bit elevation planes ($7F:0004 offset stride, $90:9DE8).
+- `+$6000` (`terrain_mutation`, `u8[8192]` / 8 KB): Cuttable grass and dynamic room terrain mutation replacement table staging buffer ($90:A739).

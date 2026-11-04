@@ -258,6 +258,19 @@ test('wram map: 128 KB coverage across Bank $7E and Bank $7F with zero gaps and 
     const spawnFlags = getWramFieldDetails(0x7E5DC3 + 6);
     assert.equal(spawnFlags.fieldName, 'flags');
     assert.equal(spawnFlags.fieldType, 'u16');
+
+    // Bank $7F struct layout resolution
+    const lzssTail = getWramFieldDetails(0x7FA3BE);
+    assert.equal(lzssTail.structName, 'LzssDecompWindow');
+    assert.equal(lzssTail.fieldName, 'initial_cursor_tail');
+
+    const choiceMatrix = getWramFieldDetails(0x7FC940);
+    assert.equal(choiceMatrix.structName, 'ShadowTilemapBuf');
+    assert.equal(choiceMatrix.fieldName, 'choice_box_matrix');
+
+    const metaCollision = getWramFieldDetails(0x7F4000);
+    assert.equal(metaCollision.structName, 'RoomMetatileGrid');
+    assert.equal(metaCollision.fieldName, 'collision_attrs');
 });
 
 test('rom map: 100% complete catalog with 1,690+ entries, room blobs, master tables, and queries', () => {

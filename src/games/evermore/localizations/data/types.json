@@ -520,6 +520,45 @@
         { "offset": 4, "name": "frame_index", "type": "u16" },
         { "offset": 28, "name": "flags", "type": "u16" }
       ]
+    },
+    "RoomMetatileGrid": {
+      "size": 32768,
+      "desc": "Decompressed field room metatile grid and attributes buffer ($7F:0000..$7F:7FFF, 32 KB)",
+      "fields": [
+        { "offset": 0, "name": "layer1_grid", "type": "u16[8192]" },
+        { "offset": 16384, "name": "collision_attrs", "type": "u16[4096]" },
+        { "offset": 24576, "name": "terrain_mutation", "type": "u8[8192]" }
+      ]
+    },
+    "LzssDecompWindow": {
+      "size": 1024,
+      "desc": "Sliding ring buffer decompression window for ROM LZSS method 0x03 engine ($7F:A000..$7F:A3FF, 1,024 bytes)",
+      "fields": [
+        { "offset": 0, "name": "ring_buffer_preseed", "type": "u8[958]" },
+        { "offset": 958, "name": "initial_cursor_tail", "type": "u8[66]" }
+      ]
+    },
+    "FontGlyph2bppBuf": {
+      "size": 3072,
+      "desc": "2bpp font glyph proportional rasterization buffer and text blitter staging arena ($7F:A400..$7F:AFFF, 3,072 bytes)",
+      "fields": [
+        { "offset": 0, "name": "glyph_cells", "type": "u8[3072]" }
+      ]
+    },
+    "ShadowTilemapBuf": {
+      "size": 4096,
+      "desc": "Shadow tilemap RAM for dialogue windows, choice boxes, and HUD border frames ($7F:C800..$7F:D7FF, 4,096 bytes)",
+      "fields": [
+        { "offset": 0, "name": "row0_top_border", "type": "u16[32]" },
+        { "offset": 64, "name": "row1_text_line1", "type": "u16[32]" },
+        { "offset": 128, "name": "row2_text_line2", "type": "u16[32]" },
+        { "offset": 192, "name": "row3_text_line3", "type": "u16[32]" },
+        { "offset": 256, "name": "row4_bottom_border", "type": "u16[32]" },
+        { "offset": 320, "name": "choice_box_matrix", "type": "u16[352]" },
+        { "offset": 1024, "name": "hud_frame", "type": "u16[384]" },
+        { "offset": 1792, "name": "secondary_overlay", "type": "u16[1024]" },
+        { "offset": 3840, "name": "hdma_gradient_table", "type": "u8[256]" }
+      ]
     }
   }
 }
