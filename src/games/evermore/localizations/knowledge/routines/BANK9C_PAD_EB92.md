@@ -8,7 +8,7 @@ name: BANK9C_PAD_EB92
 title: Bank $9C alignment padding ($EB92)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_DCEBA2 in Bank $9C"]
+evidence: ["ROM alignment gap preceding gfx_9CEBA2 in Bank $9C"]
 ---
 
 16 B alignment padding and unmapped ROM space in Bank $9C ($9C:EB92..$9C:EBA1).

@@ -1,7 +1,7 @@
 ---
 addr: 92D594
-end: 92D5E8
-size: 85
+end: 92D722
+size: 399
 kind: script
 category: 📜
 name: script_abs_92d594_megataur_rimsala_de_reward

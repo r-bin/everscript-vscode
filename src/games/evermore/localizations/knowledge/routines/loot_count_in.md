@@ -1,7 +1,7 @@
 ---
 addr: 92A584
-size: 25
-end: 92A59C
+size: 6457
+end: 92BEBC
 kind: script
 name: loot_count_in
 title: Global 0x3e — add the staged loot to the inventory

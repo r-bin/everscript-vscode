@@ -222,6 +222,28 @@ function generate(): void {
     }
     console.log(`Loaded ${itemsByAddr.size} base entries from knowledge/rom/`);
 
+    // Resolve base routine spans within each bank so confirmed base routines
+    // have contiguous ranges before CDL ingestion
+    const baseByBank = new Map<number, RomKnowledgeItem[]>();
+    for (const item of itemsByAddr.values()) {
+        const bank = (item.addr >> 16) & 0xFF;
+        const list = baseByBank.get(bank) || [];
+        list.push(item);
+        baseByBank.set(bank, list);
+    }
+    for (const [bank, list] of baseByBank.entries()) {
+        list.sort((a, b) => a.addr - b.addr);
+        for (let i = 0; i < list.length; i++) {
+            const cur = list[i];
+            const next = list[i + 1];
+            if ((!cur.size || cur.size <= 0) && next && (next.addr >> 16) === bank) {
+                cur.size = next.addr - cur.addr;
+                cur.end = next.addr - 1;
+                cur.sizeSource = 'base_routine_span';
+            }
+        }
+    }
+
     // 3. Upgrade and add master tables from docs/disassembly/engine-core/rom-tables.md
     if (fs.existsSync(ROM_TABLES_DOC)) {
         const tableDoc = fs.readFileSync(ROM_TABLES_DOC, 'utf8');
@@ -486,6 +508,10 @@ function generate(): void {
             const size = (t.entries || 1) * (t.entrySize || 2);
             if (!itemsByAddr.has(bus) && !isInsideConfirmedAsset(bus)) {
                 const hex = bus.toString(16).toUpperCase().padStart(6, '0');
+                let symName = t.name;
+                if (!symName || /^tbl_[0-9A-Fa-f]{6}$/i.test(symName)) {
+                    symName = `tbl_${hex}`;
+                }
                 const readersStr = t.readers && t.readers.length ? ` Read by ${t.readers.join(', ')}.` : '';
                 const idxStr = t.index ? ` Index: ${t.index}.` : '';
                 const resStr = t.result ? ` Result: ${t.result}.` : '';
@@ -495,7 +521,7 @@ function generate(): void {
                     size,
                     end: bus + size - 1,
                     sizeSource: 'cdl_tables_json',
-                    name: t.name || `tbl_${hex}`,
+                    name: symName,
                     kind: 'table',
                     category: '📋',
                     title: `CDL ${t.kind || 'lookup table'}: ${t.entries} entries × ${t.entrySize}B`,
@@ -512,15 +538,15 @@ function generate(): void {
         console.log(`Ingested ${addedCdlTables} new tables from tables.json`);
     }
 
-    // 8. Ingest CDL labels (pointer tables, data tables, graphic CHR blocks) from export.json
+    // 8. Ingest CDL labels (pointer tables, data tables, graphic CHR blocks, subroutines) from export.json
     const CDL_EXPORT_JSON = path.join(ROOT, 'out/recomp/asar/export.json');
     if (fs.existsSync(CDL_EXPORT_JSON)) {
         const expData = JSON.parse(fs.readFileSync(CDL_EXPORT_JSON, 'utf8'));
         const labels = Object.values(expData.labels || {}) as [string, number][];
-        let addedPtrs = 0, addedData = 0, addedGfx = 0, addedOther = 0;
+        let addedPtrs = 0, addedData = 0, addedGfx = 0, addedSubs = 0, addedOther = 0;
 
         for (const [name, fileOff] of labels) {
-            if (name.startsWith('loc_') || name.startsWith('seg_')) continue;
+            if (name.startsWith('seg_')) continue;
             const fileBank = Math.floor(fileOff / 0x10000);
             const fileOffInBank = fileOff % 0x10000;
             const bus = fileOffInBank >= 0x8000
@@ -529,6 +555,13 @@ function generate(): void {
 
             if (!itemsByAddr.has(bus) && !isInsideConfirmedAsset(bus)) {
                 const hex = bus.toString(16).toUpperCase().padStart(6, '0');
+                let symName = name;
+                const m = name.match(/^(gfx|data|tbl|ptrs|loc)_[0-9A-Fa-f]{6}$/i);
+                if (m) {
+                    const prefix = m[1].toLowerCase() === 'loc' ? 'sub' : m[1].toLowerCase();
+                    symName = `${prefix}_${hex}`;
+                }
+
                 let kind = 'data';
                 let tags = ['cdl'];
                 let category = '📦';
@@ -562,6 +595,13 @@ function generate(): void {
                     title = `CDL data block (${formatBusAddr(bus)})`;
                     desc = `CDL-identified data block in ROM at ${formatBusAddr(bus)}.`;
                     addedData++;
+                } else if (name.startsWith('loc_')) {
+                    kind = 'code';
+                    tags = ['code', 'subroutine', 'cdl'];
+                    category = '🧠';
+                    title = `CDL subroutine (${formatBusAddr(bus)})`;
+                    desc = `CDL-identified subroutine entry point in ROM at ${formatBusAddr(bus)}.`;
+                    addedSubs++;
                 } else {
                     kind = 'code';
                     tags = ['code', 'cdl'];
@@ -577,7 +617,7 @@ function generate(): void {
                     size: 16,
                     end: bus + 15,
                     sizeSource: 'cdl_export_json',
-                    name,
+                    name: symName,
                     kind,
                     category,
                     title,
@@ -589,7 +629,7 @@ function generate(): void {
                 });
             }
         }
-        console.log(`Ingested from export.json: ptrs=${addedPtrs}, data=${addedData}, gfx=${addedGfx}, other=${addedOther}`);
+        console.log(`Ingested from export.json: ptrs=${addedPtrs}, data=${addedData}, gfx=${addedGfx}, subs=${addedSubs}, other=${addedOther}`);
     }
 
     function createPadOrSlackItem(
@@ -627,7 +667,7 @@ function generate(): void {
         };
     }
 
-    // 7. Group items by bank and build contiguous zero-gap layout
+    // 9. Group items by bank and build contiguous zero-gap layout
     const rawByBank = new Map<number, RomKnowledgeItem[]>();
     for (const item of itemsByAddr.values()) {
         const bank = (item.addr >> 16) & 0xFF;
@@ -636,12 +676,21 @@ function generate(): void {
         rawByBank.set(bank, list);
     }
 
+    // Ensure all 48 FastROM banks ($80..$AF), all 48 Data banks ($C0..$EF),
+    // and system vectors ($00) are covered across the full 3 MB cartridge
+    const allRequiredBanks: number[] = [0x00];
+    for (let b = 0x80; b <= 0xAF; b++) allRequiredBanks.push(b);
+    for (let b = 0xC0; b <= 0xEF; b++) allRequiredBanks.push(b);
+    for (const b of rawByBank.keys()) {
+        if (!allRequiredBanks.includes(b)) allRequiredBanks.push(b);
+    }
+
     const byBank = new Map<number, RomKnowledgeItem[]>();
     const allContiguousItems: RomKnowledgeItem[] = [];
 
-    const sortedBanks = Array.from(rawByBank.keys()).sort((a, b) => a - b);
+    const sortedBanks = allRequiredBanks.sort((a, b) => a - b);
     for (const bank of sortedBanks) {
-        const rawList = rawByBank.get(bank)!.sort((a, b) => a.addr - b.addr);
+        const rawList = (rawByBank.get(bank) || []).sort((a, b) => a.addr - b.addr);
         const bankHex = bank.toString(16).toUpperCase().padStart(2, '0');
         const contiguous: RomKnowledgeItem[] = [];
 
@@ -650,13 +699,38 @@ function generate(): void {
         if (bank === 0x00) {
             expectedAddr = 0x00FFC0;
         } else if (bank >= 0x80 && bank <= 0xBF) {
-            expectedAddr = (bank === 0x8F && (rawList[0].addr & 0xFFFF) === 0x0000)
+            expectedAddr = (bank === 0x8F && rawList.length > 0 && (rawList[0].addr & 0xFFFF) === 0x0000)
                 ? 0x8F0000
                 : ((bank << 16) | 0x8000);
         } else if (bank >= 0xC0 && bank <= 0xEF) {
             expectedAddr = (bank << 16) | 0x0000;
         } else {
-            expectedAddr = rawList[0].addr;
+            expectedAddr = rawList.length > 0 ? rawList[0].addr : ((bank << 16) | 0x8000);
+        }
+
+        // If this bank has no entries, generate clean full-bank capacity slack
+        if (rawList.length === 0) {
+            let bankEnd: number;
+            if (bank === 0x00) {
+                bankEnd = 0x010000;
+            } else if (bank >= 0x80 && bank <= 0xBF) {
+                bankEnd = (bank << 16) + 0x10000;
+            } else if (bank >= 0xC0 && bank <= 0xEF) {
+                bankEnd = (bank << 16) + 0x08000;
+            } else {
+                bankEnd = (bank << 16) + 0x10000;
+            }
+            const slackSize = bankEnd - expectedAddr;
+            const slack = createPadOrSlackItem(
+                expectedAddr,
+                slackSize,
+                'slack',
+                `Unmapped ROM bank capacity in Bank $${bankHex}`
+            );
+            contiguous.push(slack);
+            allContiguousItems.push(slack);
+            byBank.set(bank, contiguous);
+            continue;
         }
 
         for (let i = 0; i < rawList.length; i++) {
@@ -701,9 +775,10 @@ function generate(): void {
         if (bank === 0x00) {
             bankEnd = 0x010000;
         } else if (bank >= 0x80 && bank <= 0xBF) {
-            bankEnd = (bank << 16) | 0x10000;
-        } else if (bank >= 0xC0 && bank <= 0xC3) {
-            bankEnd = (bank << 16) | 0x08000;
+            bankEnd = (bank << 16) + 0x10000;
+        } else if (bank >= 0xC0 && bank <= 0xEF) {
+            const hasUpperHalf = rawList.some(it => (it.addr & 0xFFFF) >= 0x8000);
+            bankEnd = hasUpperHalf ? ((bank << 16) + 0x10000) : ((bank << 16) + 0x08000);
         } else {
             bankEnd = expectedAddr;
         }
@@ -722,6 +797,15 @@ function generate(): void {
         }
 
         byBank.set(bank, contiguous);
+    }
+
+    // Ensure every single item has a unique name across the entire ROM map
+    const usedNames = new Set<string>();
+    for (const item of allContiguousItems) {
+        if (usedNames.has(item.name)) {
+            item.name = `${item.name}_${item.addrHex}`;
+        }
+        usedNames.add(item.name);
     }
 
     // 8. Ensure knowledge/routines directory exists and write markdown files

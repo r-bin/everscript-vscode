@@ -8,7 +8,7 @@ name: BANK80_PAD_F6E3
 title: Bank $80 alignment padding ($F6E3)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding tbl_C0F753 in Bank $80"]
+evidence: ["ROM alignment gap preceding tbl_80F753 in Bank $80"]
 ---
 
 112 B alignment padding and unmapped ROM space in Bank $80 ($80:F6E3..$80:F752).

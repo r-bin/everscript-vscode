@@ -8,7 +8,7 @@ name: BANK94_PAD_F2C1
 title: Bank $94 alignment padding ($F2C1)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_D4F2F1 in Bank $94"]
+evidence: ["ROM alignment gap preceding gfx_94F2F1 in Bank $94"]
 ---
 
 48 B alignment padding and unmapped ROM space in Bank $94 ($94:F2C1..$94:F2F0).

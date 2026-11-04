@@ -1,0 +1,14 @@
+---
+addr: 9CE682
+end: 9CE691
+size: 16
+kind: data
+category: 🎨
+name: gfx_9CE682
+title: CDL graphic CHR pattern block ($9C:E682)
+confidence: confirmed
+tags: ["graphics","chr","cdl"]
+evidence: ["CDL recorder export (out/recomp/asar/export.json)"]
+---
+
+CDL-identified graphics CHR pattern block in ROM at $9C:E682.

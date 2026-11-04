@@ -8,7 +8,7 @@ name: BANK8B_PAD_EF6F
 title: Bank $8B alignment padding ($EF6F)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_CBEF9F in Bank $8B"]
+evidence: ["ROM alignment gap preceding gfx_8BEF9F in Bank $8B"]
 ---
 
 48 B alignment padding and unmapped ROM space in Bank $8B ($8B:EF6F..$8B:EF9E).

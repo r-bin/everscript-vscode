@@ -8,7 +8,7 @@ name: BANK97_PAD_F53A
 title: Bank $97 alignment padding ($F53A)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_D7F66D in Bank $97"]
+evidence: ["ROM alignment gap preceding gfx_97F66D in Bank $97"]
 ---
 
 307 B alignment padding and unmapped ROM space in Bank $97 ($97:F53A..$97:F66C).

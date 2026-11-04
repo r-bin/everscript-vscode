@@ -8,7 +8,7 @@ name: BANK98_PAD_FF0D
 title: Bank $98 alignment padding ($FF0D)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_D8FF3D in Bank $98"]
+evidence: ["ROM alignment gap preceding gfx_98FF3D in Bank $98"]
 ---
 
 48 B alignment padding and unmapped ROM space in Bank $98 ($98:FF0D..$98:FF3C).

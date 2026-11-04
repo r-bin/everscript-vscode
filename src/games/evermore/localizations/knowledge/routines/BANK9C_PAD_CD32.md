@@ -8,7 +8,7 @@ name: BANK9C_PAD_CD32
 title: Bank $9C alignment padding ($CD32)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_DCCD42 in Bank $9C"]
+evidence: ["ROM alignment gap preceding gfx_9CCD42 in Bank $9C"]
 ---
 
 16 B alignment padding and unmapped ROM space in Bank $9C ($9C:CD32..$9C:CD41).

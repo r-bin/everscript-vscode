@@ -8,7 +8,7 @@ name: BANK8F_PAD_F4DF
 title: Bank $8F alignment padding ($F4DF)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_CFF510 in Bank $8F"]
+evidence: ["ROM alignment gap preceding gfx_8FF510 in Bank $8F"]
 ---
 
 49 B alignment padding and unmapped ROM space in Bank $8F ($8F:F4DF..$8F:F50F).

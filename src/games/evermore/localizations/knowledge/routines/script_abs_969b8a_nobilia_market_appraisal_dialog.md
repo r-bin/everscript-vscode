@@ -1,7 +1,7 @@
 ---
 addr: 969B8A
-end: 96AC05
-size: 4220
+end: 96AD29
+size: 4512
 kind: script
 category: 📜
 name: script_abs_969b8a_nobilia_market_appraisal_dialog

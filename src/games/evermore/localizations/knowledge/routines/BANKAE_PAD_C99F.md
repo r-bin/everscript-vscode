@@ -8,7 +8,7 @@ name: BANKAE_PAD_C99F
 title: Bank $AE alignment padding ($C99F)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_EECAD2 in Bank $AE"]
+evidence: ["ROM alignment gap preceding gfx_AECAD2 in Bank $AE"]
 ---
 
 307 B alignment padding and unmapped ROM space in Bank $AE ($AE:C99F..$AE:CAD1).

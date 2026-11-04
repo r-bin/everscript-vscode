@@ -8,7 +8,7 @@ name: BANK95_PAD_FC64
 title: Bank $95 alignment padding ($FC64)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_D5FC94 in Bank $95"]
+evidence: ["ROM alignment gap preceding gfx_95FC94 in Bank $95"]
 ---
 
 48 B alignment padding and unmapped ROM space in Bank $95 ($95:FC64..$95:FC93).

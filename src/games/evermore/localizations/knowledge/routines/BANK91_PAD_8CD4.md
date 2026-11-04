@@ -8,7 +8,7 @@ name: BANK91_PAD_8CD4
 title: Bank $91 alignment padding ($8CD4)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding data_D18FA0 in Bank $91"]
+evidence: ["ROM alignment gap preceding data_918FA0 in Bank $91"]
 ---
 
 716 B alignment padding and unmapped ROM space in Bank $91 ($91:8CD4..$91:8F9F).

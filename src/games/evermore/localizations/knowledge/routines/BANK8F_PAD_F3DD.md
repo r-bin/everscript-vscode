@@ -8,7 +8,7 @@ name: BANK8F_PAD_F3DD
 title: Bank $8F alignment padding ($F3DD)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_CFF40E in Bank $8F"]
+evidence: ["ROM alignment gap preceding gfx_8FF40E in Bank $8F"]
 ---
 
 49 B alignment padding and unmapped ROM space in Bank $8F ($8F:F3DD..$8F:F40D).

@@ -8,7 +8,7 @@ name: BANK98_PAD_FECC
 title: Bank $98 alignment padding ($FECC)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_D8FEFD in Bank $98"]
+evidence: ["ROM alignment gap preceding gfx_98FEFD in Bank $98"]
 ---
 
 49 B alignment padding and unmapped ROM space in Bank $98 ($98:FECC..$98:FEFC).

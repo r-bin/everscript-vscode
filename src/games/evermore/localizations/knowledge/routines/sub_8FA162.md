@@ -1,0 +1,14 @@
+---
+addr: 8FA162
+end: 8FA171
+size: 16
+kind: code
+category: 🧠
+name: sub_8FA162
+title: CDL subroutine ($8F:A162)
+confidence: confirmed
+tags: ["code","subroutine","cdl"]
+evidence: ["CDL recorder export (out/recomp/asar/export.json)"]
+---
+
+CDL-identified subroutine entry point in ROM at $8F:A162.

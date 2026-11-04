@@ -8,7 +8,7 @@ name: BANK8B_PAD_ED2A
 title: Bank $8B alignment padding ($ED2A)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_CBED5B in Bank $8B"]
+evidence: ["ROM alignment gap preceding gfx_8BED5B in Bank $8B"]
 ---
 
 49 B alignment padding and unmapped ROM space in Bank $8B ($8B:ED2A..$8B:ED5A).

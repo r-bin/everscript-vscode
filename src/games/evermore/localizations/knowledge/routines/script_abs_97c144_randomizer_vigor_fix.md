@@ -1,7 +1,7 @@
 ---
 addr: 97C144
-end: 97C211
-size: 206
+end: 97E038
+size: 7925
 kind: script
 category: 📜
 name: script_abs_97c144_randomizer_vigor_fix

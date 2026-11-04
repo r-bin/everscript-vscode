@@ -8,7 +8,7 @@ name: BANK8E_PAD_C1D4
 title: Bank $8E alignment padding ($C1D4)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding data_CEC3CD in Bank $8E"]
+evidence: ["ROM alignment gap preceding data_8EC3CD in Bank $8E"]
 ---
 
 505 B alignment padding and unmapped ROM space in Bank $8E ($8E:C1D4..$8E:C3CC).

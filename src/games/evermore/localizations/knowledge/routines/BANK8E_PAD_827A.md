@@ -8,7 +8,7 @@ name: BANK8E_PAD_827A
 title: Bank $8E alignment padding ($827A)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding data_CE837C in Bank $8E"]
+evidence: ["ROM alignment gap preceding data_8E837C in Bank $8E"]
 ---
 
 258 B alignment padding and unmapped ROM space in Bank $8E ($8E:827A..$8E:837B).

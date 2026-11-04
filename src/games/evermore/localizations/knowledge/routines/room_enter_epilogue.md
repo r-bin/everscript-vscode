@@ -1,7 +1,7 @@
 ---
 addr: 92DE75
-size: 2
-end: 92DE76
+size: 9
+end: 92DE7D
 kind: script
 name: room_enter_epilogue
 title: Default room enter script epilogue

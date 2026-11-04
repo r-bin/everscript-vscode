@@ -1,7 +1,7 @@
 ---
 addr: 92BF33
-end: 92BF85
-size: 83
+end: 92CC6B
+size: 3385
 kind: script
 category: 📜
 name: script_abs_92bf33_hold_up_weapon

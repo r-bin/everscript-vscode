@@ -8,7 +8,7 @@ name: BANKAF_PAD_BF59
 title: Bank $AF alignment padding ($BF59)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_EFBF89 in Bank $AF"]
+evidence: ["ROM alignment gap preceding gfx_AFBF89 in Bank $AF"]
 ---
 
 48 B alignment padding and unmapped ROM space in Bank $AF ($AF:BF59..$AF:BF88).

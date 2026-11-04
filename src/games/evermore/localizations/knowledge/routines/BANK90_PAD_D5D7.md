@@ -8,7 +8,7 @@ name: BANK90_PAD_D5D7
 title: Bank $90 alignment padding ($D5D7)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding tbl_D0D61D in Bank $90"]
+evidence: ["ROM alignment gap preceding tbl_90D61D in Bank $90"]
 ---
 
 70 B alignment padding and unmapped ROM space in Bank $90 ($90:D5D7..$90:D61C).

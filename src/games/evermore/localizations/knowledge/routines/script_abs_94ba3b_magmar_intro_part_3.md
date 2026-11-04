@@ -1,7 +1,7 @@
 ---
 addr: 94BA3B
-end: 94BA3C
-size: 2
+end: 94BAA8
+size: 110
 kind: script
 category: 📜
 name: script_abs_94ba3b_magmar_intro_part_3

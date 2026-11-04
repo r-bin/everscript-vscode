@@ -8,7 +8,7 @@ name: BANK9C_PAD_CA52
 title: Bank $9C alignment padding ($CA52)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_DCCA62 in Bank $9C"]
+evidence: ["ROM alignment gap preceding gfx_9CCA62 in Bank $9C"]
 ---
 
 16 B alignment padding and unmapped ROM space in Bank $9C ($9C:CA52..$9C:CA61).

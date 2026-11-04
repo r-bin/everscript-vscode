@@ -1,7 +1,7 @@
 ---
 addr: 809433
-size: 70
-end: 809478
+size: 471
+end: 809609
 kind: code
 name: oam_chunk_attribute
 title: Build one sprite chunk's OAM attribute byte

@@ -8,7 +8,7 @@ name: BANK90_PAD_AE7D
 title: Bank $90 alignment padding ($AE7D)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_D0AEAD in Bank $90"]
+evidence: ["ROM alignment gap preceding gfx_90AEAD in Bank $90"]
 ---
 
 48 B alignment padding and unmapped ROM space in Bank $90 ($90:AE7D..$90:AEAC).

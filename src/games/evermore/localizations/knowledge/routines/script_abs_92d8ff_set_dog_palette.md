@@ -1,7 +1,7 @@
 ---
 addr: 92D8FF
-end: 92D918
-size: 26
+end: 92D929
+size: 43
 kind: script
 category: 📜
 name: script_abs_92d8ff_set_dog_palette

@@ -8,7 +8,7 @@ name: BANKAF_PAD_B5D5
 title: Bank $AF alignment padding ($B5D5)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_EFB838 in Bank $AF"]
+evidence: ["ROM alignment gap preceding gfx_AFB838 in Bank $AF"]
 ---
 
 611 B alignment padding and unmapped ROM space in Bank $AF ($AF:B5D5..$AF:B837).

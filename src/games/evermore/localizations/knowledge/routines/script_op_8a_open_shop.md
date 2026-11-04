@@ -1,7 +1,7 @@
 ---
 addr: 8CE357
-size: 36
-end: 8CE37A
+size: 46
+end: 8CE384
 kind: code
 category: 🧠
 name: script_op_8a_open_shop

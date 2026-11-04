@@ -8,7 +8,7 @@ name: BANK94_PAD_F13E
 title: Bank $94 alignment padding ($F13E)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_D4F16E in Bank $94"]
+evidence: ["ROM alignment gap preceding gfx_94F16E in Bank $94"]
 ---
 
 48 B alignment padding and unmapped ROM space in Bank $94 ($94:F13E..$94:F16D).

@@ -8,7 +8,7 @@ name: BANKAD_PAD_F8C1
 title: Bank $AD alignment padding ($F8C1)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_EDF973 in Bank $AD"]
+evidence: ["ROM alignment gap preceding gfx_ADF973 in Bank $AD"]
 ---
 
 178 B alignment padding and unmapped ROM space in Bank $AD ($AD:F8C1..$AD:F972).

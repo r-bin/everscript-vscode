@@ -8,7 +8,7 @@ name: BANK80_PAD_A88F
 title: Bank $80 alignment padding ($A88F)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding tbl_C0A8A1 in Bank $80"]
+evidence: ["ROM alignment gap preceding tbl_80A8A1 in Bank $80"]
 ---
 
 18 B alignment padding and unmapped ROM space in Bank $80 ($80:A88F..$80:A8A0).

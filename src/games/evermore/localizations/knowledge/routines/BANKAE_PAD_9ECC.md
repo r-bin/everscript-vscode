@@ -8,7 +8,7 @@ name: BANKAE_PAD_9ECC
 title: Bank $AE alignment padding ($9ECC)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_EE9EFD in Bank $AE"]
+evidence: ["ROM alignment gap preceding gfx_AE9EFD in Bank $AE"]
 ---
 
 49 B alignment padding and unmapped ROM space in Bank $AE ($AE:9ECC..$AE:9EFC).

@@ -8,7 +8,7 @@ name: BANK92_PAD_FC8A
 title: Bank $92 alignment padding ($FC8A)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_D2FCBA in Bank $92"]
+evidence: ["ROM alignment gap preceding gfx_92FCBA in Bank $92"]
 ---
 
 48 B alignment padding and unmapped ROM space in Bank $92 ($92:FC8A..$92:FCB9).

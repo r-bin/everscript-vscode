@@ -8,7 +8,7 @@ name: BANK8D_PAD_99F4
 title: Bank $8D alignment padding ($99F4)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding data_CD99FA in Bank $8D"]
+evidence: ["ROM alignment gap preceding data_8D99FA in Bank $8D"]
 ---
 
 6 B alignment padding and unmapped ROM space in Bank $8D ($8D:99F4..$8D:99F9).

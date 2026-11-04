@@ -8,7 +8,7 @@ name: BANKA5_PAD_FEEA
 title: Bank $A5 alignment padding ($FEEA)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_E5FEFD in Bank $A5"]
+evidence: ["ROM alignment gap preceding gfx_A5FEFD in Bank $A5"]
 ---
 
 19 B alignment padding and unmapped ROM space in Bank $A5 ($A5:FEEA..$A5:FEFC).

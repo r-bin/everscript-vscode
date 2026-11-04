@@ -1,7 +1,7 @@
 ---
 addr: 93AE82
-end: 93AF27
-size: 166
+end: 93BB90
+size: 3343
 kind: script
 category: 📜
 name: script_abs_93ae82_acid_rain_dialog

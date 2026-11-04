@@ -8,7 +8,7 @@ name: BANK9A_PAD_E590
 title: Bank $9A alignment padding ($E590)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_DAF0BF in Bank $9A"]
+evidence: ["ROM alignment gap preceding gfx_9AF0BF in Bank $9A"]
 ---
 
 2,863 B alignment padding and unmapped ROM space in Bank $9A ($9A:E590..$9A:F0BE).

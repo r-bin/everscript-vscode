@@ -8,7 +8,7 @@ name: BANKAE_PAD_A00F
 title: Bank $AE alignment padding ($A00F)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_EEA03F in Bank $AE"]
+evidence: ["ROM alignment gap preceding gfx_AEA03F in Bank $AE"]
 ---
 
 48 B alignment padding and unmapped ROM space in Bank $AE ($AE:A00F..$AE:A03E).

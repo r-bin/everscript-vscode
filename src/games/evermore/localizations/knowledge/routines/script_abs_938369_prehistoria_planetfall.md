@@ -1,7 +1,7 @@
 ---
 addr: 938369
-end: 9385D5
-size: 621
+end: 93887C
+size: 1300
 kind: script
 category: 📜
 name: script_abs_938369_prehistoria_planetfall

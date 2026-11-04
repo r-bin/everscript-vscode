@@ -8,7 +8,7 @@ name: BANK90_PAD_C61D
 title: Bank $90 alignment padding ($C61D)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_D0C62D in Bank $90"]
+evidence: ["ROM alignment gap preceding gfx_90C62D in Bank $90"]
 ---
 
 16 B alignment padding and unmapped ROM space in Bank $90 ($90:C61D..$90:C62C).

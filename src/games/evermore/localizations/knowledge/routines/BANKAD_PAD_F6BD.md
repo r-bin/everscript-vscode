@@ -8,7 +8,7 @@ name: BANKAD_PAD_F6BD
 title: Bank $AD alignment padding ($F6BD)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_EDF6EE in Bank $AD"]
+evidence: ["ROM alignment gap preceding gfx_ADF6EE in Bank $AD"]
 ---
 
 49 B alignment padding and unmapped ROM space in Bank $AD ($AD:F6BD..$AD:F6ED).

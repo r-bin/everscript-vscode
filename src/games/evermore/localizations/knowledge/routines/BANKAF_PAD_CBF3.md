@@ -8,7 +8,7 @@ name: BANKAF_PAD_CBF3
 title: Bank $AF alignment padding ($CBF3)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_EFCC23 in Bank $AF"]
+evidence: ["ROM alignment gap preceding gfx_AFCC23 in Bank $AF"]
 ---
 
 48 B alignment padding and unmapped ROM space in Bank $AF ($AF:CBF3..$AF:CC22).

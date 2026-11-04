@@ -1,7 +1,7 @@
 ---
 addr: 8C994F
-end: 8C995E
-size: 16
+end: 8C9953
+size: 5
 kind: code
 category: 🧠
 name: lz_reference
