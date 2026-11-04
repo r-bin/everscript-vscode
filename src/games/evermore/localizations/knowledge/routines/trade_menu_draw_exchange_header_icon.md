@@ -8,7 +8,7 @@ name: trade_menu_draw_exchange_header_icon
 title: Render market exchange menu banner icon sprite to OAM ($8D:C86A)
 confidence: confirmed
 evidence: ["disasm: commits trade exchange header sprite $CC:38B5 at (160, 14) with priority $3A via $80:9033; callers: market screen setup $8D:C803"]
-see: ["rom/809033.md","rom/8dc803.md"]
+see: ["routines/direct_sprite_draw_oam.md","routines/options_menu_selection_loop.md"]
 tags: ["trade","menu","market","oam","sprite"]
 ---
 Renders market trade / exchange menu header icon. Commits sprite definition `$CC38B5` at (160, 14) with priority `$3A` via `direct_sprite_draw_oam` (`$80:9033`).

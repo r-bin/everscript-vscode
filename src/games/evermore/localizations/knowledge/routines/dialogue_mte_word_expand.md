@@ -9,7 +9,7 @@ title: Unpack null-terminated dictionary word from MTE repository in Bank $91
 confidence: confirmed
 tags: [ui, text, mte, word, dictionary]
 evidence: ["disasm: masks token with 0x7E, adds offset from tbl_D1F3F0 to $F66C in Bank $91, and streams null-terminated ASCII word into $7F:DC1E"]
-see: [docs/disassembly/ui/dialogue-digraph-huffman.md, rom/8ccdc6.md, rom/8cce09.md]
+see: [docs/disassembly/ui/dialogue-digraph-huffman.md, routines/dialogue_dte_digraph_expand.md, routines/dialogue_extended_phrase_expand.md]
 ---
 Unpacks a common English dictionary word using Multi-Tile Encoding (MTE):
 - Masks token in range `0xC0`..`0xFE`.

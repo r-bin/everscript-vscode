@@ -8,7 +8,7 @@ name: animation_script_sync_entity_position_to_anchor
 title: Synchronize active entity position to anchor slot entity ($90:8C30)
 confidence: confirmed
 evidence: ["disasm: fetches anchor entity slot from +$80,Y into X; reads X pos +$1A,X into <$46, Y pos +$1C,X into <$48, elevation +$18,X into <$44; sets position via entity_set_position_with_z $8F:C2E4"]
-see: ["rom/8fc2e4.md"]
+see: ["routines/entity_set_position_with_z.md"]
 tags: ["animation","entity","position","anchor","sync"]
 ---
 Syncs active entity position to anchor slot entity `+$80,Y`. Reads X position `+$1A,X` into `<$46>`, Y position `+$1C,X` into `<$48>`, elevation `+$18,X` into `<$44>`, and executes 3D position placement via `entity_set_position_with_z` (`$8F:C2E4`).

@@ -1,5 +1,5 @@
 /*
- * $8F:A963 elevation_vector_shear_step (knowledge/rom/8fa963.md), RTS, 8-bit accumulator.
+ * $8F:A963 elevation_vector_shear_step (knowledge/routines/elevation_vector_shear_step.md), RTS, 8-bit accumulator.
  *
  * min(|dx|, |dy|) of the signed bytes at DP $12 (dx) and DP $13 (dy); |dx| is left in DP $14.
  * The comparison is CMP's N flag (the sign of |dy| - |dx|), so it is signed: |-128| = $80 counts as

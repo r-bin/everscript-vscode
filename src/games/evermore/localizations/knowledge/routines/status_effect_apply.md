@@ -8,7 +8,7 @@ name: status_effect_apply
 title: Status Effect Applicator & Slot Arbitrator
 confidence: confirmed
 evidence: ["disasm: $91:B632 arbitrates 4 status slots at +$46, +$4C, +$52, +$58 in character record; prioritizes matching ID refresh, empty slot $FFFF, or eviction of oldest buff via $91:B7FA"]
-see: [rom/91bc28.md, rom/91b9a7.md, combat/status-effects.md]
+see: [routines/status_effects_tick_all.md, routines/status_effect_cure_and_remove.md, combat/status-effects.md]
 ---
 Core routine applying a beneficial buff or harmful ailment to an entity:
 - Scans the 4 entity status slots (`+$46`, `+$4C`, `+$52`, `+$58`).

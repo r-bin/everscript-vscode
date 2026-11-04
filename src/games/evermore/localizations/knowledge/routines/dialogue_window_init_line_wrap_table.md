@@ -8,7 +8,7 @@ name: dialogue_window_init_line_wrap_table
 title: Initialize dialogue line wrap breakpoint lookup table in WRAM ($8C:9DE7)
 confidence: confirmed
 evidence: ["disasm: loops 16 times (X=15 down to 0); fills $7E:2000,X with decreasing values starting at $FF stepping by -$10 ($FF, $EF, $DF..); callers: text init $80:8CC9, menu init $8D:B492"]
-see: ["rom/808cc9.md","rom/8db492.md"]
+see: ["routines/gameplay_session_subsystems_init.md","routines/sram_compute_checksum.md"]
 tags: ["dialogue","font","wram","init"]
 ---
 Initializes dialogue line-wrap breakpoint buffer `$7E:2000..$7E:200F` with decreasing multiples of 16 (`$FF`, `$EF`, `$DF` down to `$0F`). Called during text subsystem boot (`$80:8CC9`) and menu init (`$8D:B492`).

@@ -34,7 +34,7 @@ is found by its bytes. Read code through the VFS (MCP `soe_read`) instead of cra
 
 | What | Where | How the VFS finds it |
 |---|---|---|
-| name, purpose, evidence | `localizations/knowledge/rom/<us addr>.md` (`game-knowledge` skill) | `name:` is the folder: unique, `lower_snake`, our own words |
+| name, purpose, evidence | `localizations/knowledge/routines/<name>.md` (`game-knowledge` skill) | `name:` is the folder: unique, `lower_snake`, our own words |
 | asm comments | `localizations/data/asm-comments.json`, key = US file offset (`0CD22B`) | infused at read time, also into a moved routine (same offset into it) |
 | C | `reconstructed-c/<bank>/<addr>_<topic>.c`, many routines per file allowed | the comment block right above the function names the US address (`$8C:D220`), or the C name equals the entry's `name` |
 | walkthroughs | `docs/disassembly/<subsystem>/`, linking `soe://rom/code/<name>/…` | — |

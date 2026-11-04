@@ -3,7 +3,7 @@
 > **ROM Bank**: `$90` (`$90:A320` – `$90:A36C`)  
 > **Source Module**: `maps/tile-anim-init.c` / `maps/tile-anim-init.h`  
 > **Recomp Symbols**: `func_D0A320_M0X0`, `func_D0A320`  
-> **Confirmed Knowledge**: `rom/90a320.md`, `rom/90a3ac.md`  
+> **Confirmed Knowledge**: `routines/map_tile_anim_and_cuttable_terrain_init.md`, `routines/map_terrain_cut_queue_insert_entry.md`  
 > **Hardware Systems**: SNES CPU DMA Channel 1 (`$4310`–`$4315`, `$420B`), PPU WRAM Data Port `$2180` (`WMDATA`) & `$2181`–`$2183` (`WMADDL`/`WMADDM`/`WMADDH`)  
 
 ---

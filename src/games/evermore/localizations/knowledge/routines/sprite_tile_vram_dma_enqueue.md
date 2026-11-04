@@ -9,7 +9,7 @@ title: Enqueue sprite graphics tile transfer to VRAM via DMA channel
 confidence: confirmed
 tags: [sprites, vram, dma]
 evidence: ["disasm: sets source address $26 in bank $90 ($28 = $0090); computes VRAM destination word address $2E based on slot index * 0x0800; sets transfer length in X; calls DMA dispatcher $80:85FA"]
-see: [docs/disassembly/entities/sprite-slicer.md, rom/90ceed.md, rom/90cf3a.md]
+see: [docs/disassembly/entities/sprite-slicer.md, routines/sprite_vram_3slot_cache_alloc.md, routines/load_sprite_palette.md]
 ---
 Calculates source and destination parameters for a 512-byte sprite tile graphics block in Bank `$90`,
 computes the destination VRAM address for the allocated sprite slot, and queues the asynchronous DMA

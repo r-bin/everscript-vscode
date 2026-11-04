@@ -9,6 +9,6 @@ title: Enemy spawn archetype initialization entry trampoline
 confidence: confirmed
 tags: [enemy, spawn, entity, combat]
 evidence: ["vanilla disasm: TSB $0310 using the incoming accumulator, then JMP $8F:8E08; 65816 absolute JMP remains in Bank $8F"]
-see: [docs/disassembly/entities/enemy-archetype-spawn.md, rom/8f8e08.md]
+see: [docs/disassembly/entities/enemy-archetype-spawn.md, routines/enemy_spawn_archetype_unpack_and_bind_body.md]
 ---
 Entry trampoline for the enemy archetype record initializer. The routine body is at `$8F:8E08`; see the linked body record and reconstruction.

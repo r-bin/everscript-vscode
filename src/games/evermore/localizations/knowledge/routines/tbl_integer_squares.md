@@ -9,7 +9,7 @@ title: Master 16-bit integer squaring table (x²)
 confidence: confirmed
 tags: [math, audio, physics]
 evidence: ["disasm: audio_play_positional_sfx ($8C:8589) indexes $80:AA27 by quantized dx/dy delta to compute Euclidean distance penalties without hardware multiplication", "data: 256 16-bit words (512 bytes, $80:AA27..$80:AC26) representing x^2 for x = 0..255 (0 to 65025)"]
-see: [rom/8c8589.md, docs/disassembly/audio/positional-audio.md]
+see: [routines/audio_play_positional_sfx.md, docs/disassembly/audio/positional-audio.md]
 ---
 Master 16-bit fixed-math table of integer squares ($x^2$) in Bank `$80`.
 Contains 256 16-bit unsigned words (512 bytes total, `$80:AA27`..`$80:AC26`) for inputs $x \in [0, 255]$:

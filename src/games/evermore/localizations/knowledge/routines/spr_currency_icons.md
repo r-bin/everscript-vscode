@@ -9,7 +9,7 @@ title: HUD and money menu currency icon sprite records
 confidence: confirmed
 tags: [hud, sprite, currency]
 evidence: ["disasm: animation script at $C8:00BE indexes 4 sprite descriptors across $CC:3C56..$CC:3C71 based on active era currency", "rom: 4 single-chunk 16x16 sprite records for Talons ($CC3C56, block $7CB), Jewels ($CC3C5D, block $7CC), Gold Coins ($CC3C64, block $7CD), and Credit Cards ($CC3C6B, block $7CE)"]
-see: [rom/8f8689.md, rom/d0ad6b.md, docs/item-icons.md]
+see: [routines/award_kill_money.md, routines/pal_hud_portraits.md, docs/item-icons.md]
 ---
 Array of 4 single-chunk 16×16 sprite records in Bank `$CC` (`$CC:3C56`..`$CC:3C71`, 7 bytes each) for historical era currencies:
 - `$CC:3C56`: Prehistoric Talons (block `$7CB`)

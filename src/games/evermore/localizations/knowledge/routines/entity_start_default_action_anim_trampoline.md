@@ -8,7 +8,7 @@ name: entity_start_default_action_anim_trampoline
 title: Long jump trampoline to entity default action animation initializer ($8F:CE98)
 confidence: confirmed
 evidence: ["disasm: far jump JML $90:828E (entity_start_default_action_anim)"]
-see: ["rom/90828e.md"]
+see: ["routines/entity_start_default_action_anim.md"]
 tags: ["entity","animation","trampoline","jump"]
 ---
 Far jump trampoline executing `JML $90:828E` (`entity_start_default_action_anim`).

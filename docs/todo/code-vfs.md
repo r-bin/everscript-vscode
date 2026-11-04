@@ -33,5 +33,5 @@ How to use it: skill `code-vfs`. This file: where it is going and what is open.
 5. **Names in moved ROMs.** Call targets are named from located routines; tables are named only
    when the routine did not move.
 6. **Entries keyed by name.** Knowledge files are still named by US address
-   (`knowledge/rom/8cd220.md`); the VFS already keys by `name:`. Renaming the files waits until
+   (`knowledge/routines/script_op_39_3b_sleep.md`); the VFS already keys by `name:`. Renaming the files waits until
    other tools (`check-knowledge`, exports) read the `addr:` field only.

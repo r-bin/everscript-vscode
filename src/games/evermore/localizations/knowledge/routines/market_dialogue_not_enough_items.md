@@ -8,7 +8,7 @@ title: Market vendor dialogue: not enough items to trade
 confidence: confirmed
 tags: [scripts, market, dialogue]
 evidence: ["script: disassembles to text(0x03a8); call $92:CDCA; text(0x03ab); return;", "script: called by 39 market stall triggers in Room 10 (Nobilia) and Room 123 (Ivor Tower)", "script: text(0x03a8) prints prefix 'You don\\'t have enough ', $92:CDCA prints item name, 0x03ab prints '!'"]
-see: [knowledge/wram/DIALOGUE_TEMP_ARG_0.md, rom/92cdbe.md, rom/92cdca.md]
+see: [knowledge/wram/DIALOGUE_TEMP_ARG_0.md, routines/market_dialogue_received_item.md, routines/market_dialogue_print_commodity_name.md]
 ---
 Shared dialogue routine called by market stall scripts in Nobilia (Room 10) and Ivor Tower (Room 123) when the player attempts a trade without having the required quantity of goods.
 Outputs message prefix `0x03A8` ("You don't have enough "), delegates to `$92:CDCA` to print the commodity name staged in `MARKET_ITEM_ID` (`$7E:2463`), and closes with punctuation `0x03AB` ("!").

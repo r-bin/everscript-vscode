@@ -3,7 +3,7 @@
 > **ROM Bank**: `$90` (`$90:A1B4` – `$90:A31F`)  
 > **Source Module**: `maps/tile-animation.c` / `maps/tile-animation.h`  
 > **Recomp Symbols**: `func_D0A1B4`, `bank_90_A2A2_M0X0`  
-> **Confirmed Knowledge**: `rom/90a1b4.md`, `rom/90a2a2.md`  
+> **Confirmed Knowledge**: `routines/map_anim_tile_channel_tick_and_vram_stream.md`, `routines/map_anim_tile_channel_search_or_activate.md`  
 > **Hardware Systems**: SNES PPU VRAM, DMA Channel 1 (`$4310`–`$4315`, `$420B`), Direct Page Pointer Indirect Long `[$A7]`  
 
 ---

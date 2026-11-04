@@ -9,7 +9,7 @@ title: SPC700 IPL bootloader handshake, multi-block sample streamer, and program
 confidence: confirmed
 tags: [audio, spc700, ipl, bootloader, dsp, soundbank]
 evidence: ["disasm: waits for IPL signature 0xBBAA on $2140-$2141; loops through block descriptors at [$A0]; streams block data via $8C:819E; jumps to SPC700 execution entry point 0x0700 via port $2142", "trace: executed when uploading audio driver, sound effects, or song instrument banks"]
-see: [docs/disassembly/audio/spc-block-uploader.md, rom/8c819e.md, rom/8c81d4.md, docs/disassembly/audio/spc-handshake.md]
+see: [docs/disassembly/audio/spc-block-uploader.md, routines/spc700_stream_block_bytes.md, routines/apu_wait_ready_timeout.md, docs/disassembly/audio/spc-handshake.md]
 ---
 Core SPC700 IPL Bootloader handshake and block streamer. Synchronizes with the SNES sound
 coprocessor boot ROM using the standard `$BBAA` ready handshake on ports `$2140`–`$2141`.

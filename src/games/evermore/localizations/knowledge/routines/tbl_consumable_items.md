@@ -8,7 +8,7 @@ name: tbl_consumable_items
 title: Consumable item attributes and healing power table
 confidence: confirmed
 evidence: ["disasm: ring menu consumable execute routine loads heal HP from $C4:5AA0,x and ring icon from $C4:5AAE,x", "rom: 8 words healing HP + 8 words ring icon selectors ($008E..$009C)", "data: Petal 40 HP, Nectar 120 HP, Honey 300 HP, Biscuit 100 HP"]
-see: [rom/c43b02.md, docs/item-icons.md]
+see: [routines/tbl_armor_records.md, docs/item-icons.md]
 ---
 Attributes and base healing values for the 8 consumable inventory items (`$C4:5AA0`..`$C4:5ABF`, 32 bytes):
 - `$C4:5AA0`: Petal (40 HP)

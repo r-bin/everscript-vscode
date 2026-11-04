@@ -9,7 +9,7 @@ title: Select attack animation level (0, 1, 2, 3) from current stamina (+0x2E)
 confidence: confirmed
 tags: [combat, stamina, animation]
 evidence: ["disasm: compares stamina to $0400 (lvl 0 vs 1), $0800 (lvl 2), $0C00 (lvl 3); selects weapon animation fields +$38..+$3E", "docs: docs/entities/animation_script.md § Attack level by stamina; clean C in docs/disassembly/combat/weapon-charge.md"]
-see: [rom/8fcc5d.md, rom/8fc02b.md]
+see: [routines/recharge_entity_stamina.md, routines/scale_damage_by_stamina.md]
 ---
 Called by weapon attack initiators to select which attack animation field (`+0x38`, `+0x3A`, `+0x3C`, or `+0x3E`) to play based on current stamina `+0x2E`:
 - `< $0400` (< 100%): Level 0 basic weak attack.

@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.393.9",
+  "version": "0.393.10",
   "publisher": "rbin",
   "main": "./bundle/extension.js",
   "engines": {
@@ -82,6 +82,7 @@
     "c-to-rom:compare": "npm run -s build:ts && node tools/compare/compare.mts out/c-to-rom/soe-c.sfc",
     "c-to-rom:quality": "npm run -s build:ts && node tools/c-to-rom/quality.mts",
     "compare": "npm run -s build:ts && node tools/compare/compare.mts",
+    "compare:full": "npm run -s build:ts && node tools/compare/full.mts",
     "c-to-rom:diff-asm": "npm run -s build:ts && node tools/c-to-rom/diff-asm.mts",
     "c-to-rom:rate": "npm run -s build:ts && node tools/c-to-rom/rate-files.mts",
     "c-to-rom:asm-parity": "npm run -s build:ts && node tests/memory/c-asm-parity.test.mts",

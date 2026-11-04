@@ -9,7 +9,7 @@ title: Character naming screen UI instruction strings and prompt text
 confidence: confirmed
 tags: [ui, text, strings, naming, menu]
 evidence: ["disasm: 124 bytes at $8D:824F..$8D:82CA; contains null-terminated UI strings: 'Enter Character Name' and 'Choose letters by moving the selector and pressing B.  Y deletes the last letter. Press START to exit.'"]
-see: [rom/8d8000.md, rom/80b173.md]
+see: [routines/title_screen_load_game_menu_layout_init.md, routines/check_name_profanity.md]
 ---
 UI prompt strings for the character naming screen:
 - `"Enter Character Name"`

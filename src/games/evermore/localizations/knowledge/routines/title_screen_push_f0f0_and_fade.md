@@ -8,7 +8,7 @@ name: title_screen_push_f0f0_and_fade
 title: Push brightness parameter $F0F0 and jump to title fade handler ($80:B5B1)
 confidence: confirmed
 evidence: ["disasm: pushes $F0F0 onto stack; branches to title fade coordinator $80:B5B9; callers: title intro $8E:E124"]
-see: ["rom/8ee124.md"]
+see: ["routines/field_cutscene_freeze_init_and_entities_deactivate.md"]
 tags: ["title","fade","brightness","intro"]
 ---
 Pushes brightness parameter `$F0F0` onto stack and branches to title screen fade handler `$80:B5B9`.

@@ -9,7 +9,7 @@ title: Rotate ring menu counter-clockwise to select the previous item
 confidence: confirmed
 tags: [ui, ring-menu, math, input]
 evidence: ["disasm: $8E:AF1E decrements active_index in category header DP $95 (wrapping to item_count - 1), computes target angle via SNES hardware division registers $4202/$4204/$4206/$4214, stores into $7E:061D, and enters rotation loop at $8E:AF54", "docs/disassembly/ui/ring-menu-rotation.md"]
-see: [rom/8eaff4.md, rom/8eaf86.md, docs/disassembly/ui/ring-menu-rotation.md]
+see: [routines/ring_menu_rotate_next_item.md, routines/ring_menu_step_rotation_left_loop.md, docs/disassembly/ui/ring-menu-rotation.md]
 ---
 Decrements the selected item index in the active ring menu category (`DP $95`):
 1. Decrements `category->active_index` (`+$02`); wraps around to `item_count - 1` if negative.

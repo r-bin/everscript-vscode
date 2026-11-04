@@ -8,7 +8,7 @@ title: Cartridge header: title, map mode, sizes, destination, checksum
 confidence: confirmed
 tags: [mapping, header]
 evidence: ["read: header bytes $FFC0-$FFDF of the clean US ROM (v0.219.0): title 'SECRET OF EVERMORE' padded with spaces to 21 bytes, map mode $31, destination $01", "read: the Secret of Mana (U) header at the same place says 'Secret of MANA', map mode $21, destination $01 (v0.219.0)"]
-see: [src/games/evermore/emulator/webview/rom-game.js, src/games/evermore/localizations/knowledge/rom/00ffe0.md, docs/exhirom/port.md]
+see: [src/games/evermore/emulator/webview/rom-game.js, src/games/evermore/localizations/knowledge/routines/CPU_VECTORS.md, docs/exhirom/port.md]
 ---
 The SNES cartridge header the console and every emulator read: 21 bytes of title, then map
 mode, cartridge type, ROM and RAM size codes, destination (region), developer id, version and

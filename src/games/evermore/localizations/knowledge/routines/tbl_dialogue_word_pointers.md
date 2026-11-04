@@ -9,7 +9,7 @@ title: Master dialogue secondary 63-word MTE dictionary pointer table
 confidence: confirmed
 tags: [dialogue, text, decompression]
 evidence: ["disasm: dialogue string decompressor $8C:CD84 indexes $91:F3EC via ((token << 1) & 0x7E) for compressed tokens $C2..$FE", "data: 63 16-bit word offsets relative to base $91:F66C addressing null-terminated English words"]
-see: [rom/91f32e.md, rom/91f46c.md, rom/8ccd84.md, docs/disassembly/ui/dialogue-text-decoder.md]
+see: [routines/tbl_dialogue_dte_pairs.md, routines/tbl_dialogue_phrase_pointers.md, routines/dialogue_text_dte_mte_decoder.md, docs/disassembly/ui/dialogue-text-decoder.md]
 ---
 Master secondary Multi-Tile Encoding (MTE) word dictionary lookup table for narrative text decompression.
 Contains 63 16-bit word offsets (126 bytes total, `$91:F3EC`..`$91:F469`) pointing to null-terminated ASCII words in the string pool at `$91:F66C`.

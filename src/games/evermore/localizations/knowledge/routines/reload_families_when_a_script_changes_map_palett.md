@@ -9,7 +9,7 @@ title: Reload families when a script changes `MAP_PALETTE`
 confidence: confirmed
 tags: [maps, palettes, graphics]
 evidence: ["legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)", "decomp: fully decompiled in docs/disassembly/maps/palette-families.md"]
-see: [docs/disassembly/maps/palette-families.md, rom/90d020.md]
+see: [docs/disassembly/maps/palette-families.md, routines/load_up_to_7_tile_families_from_map_palette.md]
 ---
 Compares `$7E:2437` (`MAP_PALETTE`) against loaded map palette index `$7E:0F8A`.
 If changed, invokes `$90:D020` (`load_up_to_7_tile_families_from_map_palette`) to transfer new tile families from ROM bank `$9C`.

@@ -9,7 +9,7 @@ title: Mode 7 vehicle landing final touchdown descent to ground baseline
 confidence: confirmed
 tags: [mode7, overworld, vehicle, animation, math]
 evidence: ["disasm: drops altitude $0619 to ground baseline 0x0015, subtracts 4px from pitch register $061B, checks modal flag $05AB, executes frame tick (minimap $90:9876, heading $8E:B33D, physics $80:96BB, cockpit $8F:C61E, OAM $80:8FEE, VBLANK $80:858C), returns via RTL ($8E:B1D9)", "docs/disassembly/engine-core/mode7-landing.md"]
-see: [rom/8eb14b.md, rom/8eb1da.md, rom/8eb230.md, rom/8eb268.md, docs/disassembly/engine-core/mode7-landing.md]
+see: [routines/mode7_vehicle_landing_descent_step.md, routines/mode7_flight_ascent_step.md, routines/mode7_flight_horizon_perspective_math.md, routines/mode7_vehicle_takeoff_altitude_stepper.md, docs/disassembly/engine-core/mode7-landing.md]
 ---
 Executes the final ground touchdown phase for the Windwalker flying machine on the Mode 7 overworld map:
 1. Lowers camera altitude `$7E:0619` directly to ground baseline `$0015` (21 units).

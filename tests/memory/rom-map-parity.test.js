@@ -4,7 +4,6 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '../..');
-const ROM_DIR = path.join(ROOT, 'src/games/evermore/localizations/knowledge/rom');
 const ROUTINES_DIR = path.join(ROOT, 'src/games/evermore/localizations/knowledge/routines');
 const DATA_ROM_MAP = path.join(ROOT, 'src/games/evermore/localizations/data/rom-map.md');
 const DOCS_ROM_MAP = path.join(ROOT, 'docs/disassembly/engine-core/rom-map.md');
@@ -26,41 +25,25 @@ test.describe('ROM Map & Routine Knowledge Parity (Zero Data Loss)', () => {
         assert.equal(dataContent, docsContent, 'docs rom-map.md must match data/rom-map.md');
     });
 
-    test.it('rom-map.md contains complete 1,690+ catalog and superset of knowledge/rom/', () => {
-        const romFiles = fs.readdirSync(ROM_DIR).filter(f => f.endsWith('.md'));
+    test.it('rom-map.md contains complete 7,000+ catalog with exact parity to knowledge/routines/', () => {
         const routineFiles = fs.readdirSync(ROUTINES_DIR).filter(f => f.endsWith('.md'));
         const allEntries = getAllRomEntries();
 
-        assert.ok(romFiles.length >= 1329, `Previous system must have at least 1329 files (got ${romFiles.length})`);
-        assert.ok(routineFiles.length >= 1680, `New routines directory must have 1680+ files (got ${routineFiles.length})`);
+        assert.ok(routineFiles.length >= 7000, `Routines directory must have 7000+ files (got ${routineFiles.length})`);
         assert.equal(allEntries.length, routineFiles.length, 'rom-map.md must match routine files count');
     });
 
-    test.it('every routine file preserves frontmatter, address and body from previous system', () => {
-        const romFiles = fs.readdirSync(ROM_DIR).filter(f => f.endsWith('.md'));
-        for (const rf of romFiles) {
-            const oldEntry = parseEntry(path.join(ROM_DIR, rf));
-            assert.ok(oldEntry, `Old entry must parse: ${rf}`);
+    test.it('every routine file in knowledge/routines/ parses and has valid address and size', () => {
+        const allEntries = getAllRomEntries();
+        for (const entry of allEntries) {
+            const filePath = path.join(ROUTINES_DIR, `${entry.name}.md`);
+            assert.ok(fs.existsSync(filePath), `Routine file must exist: ${entry.name}.md`);
 
-            // Lookup entry in the new ROM map by address
-            const newEntry = getRomEntry(oldEntry.addr);
-            assert.ok(newEntry, `Entry for address $${oldEntry.addr.toString(16)} must exist in new system`);
-
-            const newFile = path.join(ROUTINES_DIR, `${newEntry.name}.md`);
-            assert.ok(fs.existsSync(newFile), `New file must exist: ${newFile}`);
-
-            const parsedNew = parseEntry(newFile);
-            assert.ok(parsedNew, `New entry must parse: ${newFile}`);
-
-            assert.equal(parsedNew.addr, oldEntry.addr, `Address match for ${newEntry.name}`);
-            assert.ok(parsedNew.size > 0, `Size must be positive for ${newEntry.name}`);
-            assert.equal(parsedNew.kind, oldEntry.kind, `Kind match for ${newEntry.name}`);
-            assert.equal(parsedNew.confidence, oldEntry.confidence, `Confidence match for ${newEntry.name}`);
-            assert.deepEqual(parsedNew.evidence, oldEntry.evidence, `Evidence match for ${newEntry.name}`);
-            const expectedBody = oldEntry.body
-                .replace(/\(8fac84\.md\)/g, '(player_b_trigger_search_box_setup.md)')
-                .replace(/\(8fc3ba\.md\)/g, '(entity_move_step_north.md)');
-            assert.equal(parsedNew.body, expectedBody, `Body match for ${newEntry.name}`);
+            const parsed = parseEntry(filePath);
+            assert.ok(parsed, `Routine entry must parse: ${filePath}`);
+            assert.equal(parsed.addr, entry.addr, `Address match for ${entry.name}`);
+            assert.ok(parsed.size && parsed.size > 0, `Size must be positive for ${entry.name}`);
+            assert.equal(parsed.end, entry.addr + parsed.size - 1, `End address match for ${entry.name}`);
         }
     });
 

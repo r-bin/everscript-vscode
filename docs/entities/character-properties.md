@@ -2,7 +2,7 @@
 
 Every field of the 74-byte character record (the Characters tab's Stats cards), traced to the
 code that reads it and written as C. The field map in short is the knowledge entry
-`rom/8eb678.md`; this page has the code and the evidence behind it. Done for v0.340.1.
+`routines/character_records.md`; this page has the code and the evidence behind it. Done for v0.340.1.
 
 ## How it was checked
 
@@ -102,7 +102,7 @@ if (rec->palette2) {                       // a two-palette character (records 4
 
 The allocator reuses a slot already holding the same address (slots 4, 5, 0, 1, 2), then a free
 one (4, 5, 0, 1), then steals one. Slots 6 and 7 are the Boy's and the Dog's. (Previously
-believed in `rom/90cd80.md`: 0 and 1 pinned for them.) Tab: index and colours. ✔
+believed in `routines/sprite_palette_allocator.md`: 0 and 1 pinned for them.) Tab: index and colours. ✔
 
 ### +$0D collision radius
 
@@ -283,13 +283,13 @@ if (!(a->flags10 & 2)) { attack_proc_table[arec->proc](a, b); a->stamina = 0; }
 attack_proc = arec->proc;          // $0E9A, then each target in the box
 ```
 
-The handlers are decoded in `rom/8fb6ae.md`: plain, skill on a kill (Boy, Dog), swallow, no
+The handlers are decoded in `routines/g_attack_proc_table.md`: plain, skill on a kill (Boy, Dog), swallow, no
 knockback, poison 1/4 or always, plague 1/8, plague or confound 1/4, and projectile kinds that
 records never use. A body contact empties the toucher's charge. Tab: drop-down by `ATTACK_PROC`. ✔
 
 ### +$32–+$48 animations
 
-Unchanged, see `rom/8eb678.md` and [animation_script.md](animation_script.md). Read live through
+Unchanged, see `routines/character_records.md` and [animation_script.md](animation_script.md). Read live through
 `+$60`, plus `$8F:C2C4` (knockback `+$40`), `$8F:C1D6` (`+$48`, played by the hit reaction when its
 request bit is set) and the AI (`$8F:D322`, `$8F:DBDF` walk; `$8F:D4BB` attack 3).
 

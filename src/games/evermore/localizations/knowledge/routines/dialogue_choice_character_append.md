@@ -9,7 +9,7 @@ title: Append selected glyph code to naming buffer and advance length counter
 confidence: confirmed
 tags: [ui, text, naming, buffer]
 evidence: ["disasm: takes buffer pointer from DP $8E and ASCII char in DP $12, looks up glyph in [$92], writes to ($14), and increments string length word at $000E,Y"]
-see: [docs/disassembly/ui/dialogue-choice-box.md, rom/8cb81d.md]
+see: [docs/disassembly/ui/dialogue-choice-box.md, routines/dialogue_choice_joypad_cursor_loop.md]
 ---
 Appends a single chosen character glyph to the active text entry buffer:
 - Adjusts ASCII character index by `-0x20` to map to internal font glyph IDs.

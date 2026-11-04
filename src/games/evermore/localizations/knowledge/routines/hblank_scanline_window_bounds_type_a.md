@@ -8,7 +8,7 @@ name: hblank_scanline_window_bounds_type_a
 title: Calculate raster window scanline bounding coordinates variant A ($90:9B75)
 confidence: confirmed
 evidence: ["disasm: calls raster calculator $90:9BA7; sets horizontal start $010E = <$12 and width $0112 = <$59; sets vertical start $0110 = <$14 and height $0114 = <$5B - 1"]
-see: ["rom/909ba7.md"]
+see: ["routines/room_tilemap_bg1_h_scroll_matrix_stream.md"]
 tags: ["hdma","raster","window","bounds"]
 ---
 Window border HDMA raster calculator variant A. Computes raster coordinate offsets via `FUN_909ba7` (`$90:9BA7`), sets horizontal start `$010E = <$12` and width `$0112 = <$59`, sets vertical start `$0110 = <$14` and height `$0114 = <$5B - 1`.

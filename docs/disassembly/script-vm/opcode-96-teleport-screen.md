@@ -14,7 +14,7 @@ current script turn.
 
 Opcode metadata identifies the values as horizontal and vertical screen offsets. The
 camera/entity movement implementation is documented separately at
-[`90a001.md`](../../../src/games/evermore/localizations/knowledge/rom/90a001.md).
+[`90a001.md`](../../../src/games/evermore/localizations/knowledge/routines/script_op_teleport_screens.md).
 
 ## Reconstruction
 

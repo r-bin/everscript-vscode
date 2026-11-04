@@ -9,6 +9,6 @@ title: Atomically tests and resets specified newly-pressed joypad buttons
 confidence: confirmed
 tags: [input, joypad, hardware]
 evidence: ["disasm: executes TRB $0104; RTL to test and clear edge button bits in $7E:0104 against Accumulator mask (docs/disassembly/engine-core/hardware-dma-and-prng.md)"]
-see: [docs/disassembly/engine-core/hardware-dma-and-prng.md, rom/808838.md]
+see: [docs/disassembly/engine-core/hardware-dma-and-prng.md, routines/joypad_button_typematic_repeat.md]
 ---
 Atomically tests and resets specified button bits in `$7E:0104` (Controller 1 newly pressed / edge buttons) against the bitmask passed in Accumulator `A` via `TRB $0104`. Returns with processor zero flag reflecting previous bit states.

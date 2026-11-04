@@ -19,7 +19,7 @@ interface User { name: string; icon?: string; room?: number; slot?: number }
 interface Palette { id: string; group: string; title: string; addr: string; colors: string[]; users: User[]; note: string; vfs?: string }
 
 const SPRITE_BANK = 0x900000;
-/** The map palette table `$9C:C322`, 32 bytes per palette (knowledge rom/90d020.md). */
+/** The map palette table `$9C:C322`, 32 bytes per palette (knowledge routines/load_up_to_7_tile_families_from_map_palette.md). */
 const MAP_PALETTES = 0x9cc322;
 /** Palettes per set: `$90:D020` loads at most 7 (BG palettes 1–7), starting at the set `$7E:2437` selects. */
 const SET = 7;

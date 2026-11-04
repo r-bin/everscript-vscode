@@ -1,5 +1,5 @@
 /*
- * $8F:D9D1 enemy_attack_reach_test (knowledge/rom/8fd9d1.md), RTS, 16-bit A and X. Answer in C.
+ * $8F:D9D1 enemy_attack_reach_test (knowledge/routines/enemy_attack_reach_test.md), RTS, 16-bit A and X. Answer in C.
  *
  * In: Y = the AI's record (DB-relative), its target X = rec[$24]; DP $02/$04 = target minus AI
  * (from ai_pick_target). C = 0: may not attack ($0EB8 has neither of bits 0 and 2 clear... exactly:

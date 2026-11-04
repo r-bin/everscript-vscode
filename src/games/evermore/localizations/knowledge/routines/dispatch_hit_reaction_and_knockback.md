@@ -9,7 +9,7 @@ title: Dispatch victim hit reaction, invulnerability frames, and knockback vecto
 confidence: confirmed
 tags: [combat, damage, knockback, reaction]
 evidence: ["disasm: sets 30-frame invulnerability timer in entity+$14, spawns floating number sprite via $8F:C09A, computes knockback velocity vector away from attacker", "recomp: clean C in docs/disassembly/combat/hitbox-intersections.md"]
-see: [rom/919c90.md, rom/8fb46d.md]
+see: [routines/apply_spell_damage_to_targets.md, routines/entity_collision_check.md]
 ---
 Called whenever an entity takes damage from an attack or spell:
 - Sets invulnerability flash timer in `entity +0x14`.

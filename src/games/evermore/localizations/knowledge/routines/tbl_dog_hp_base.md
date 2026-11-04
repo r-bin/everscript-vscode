@@ -9,7 +9,7 @@ title: Companion Dog base Max HP level progression table
 confidence: confirmed
 tags: [companion, stats, progression]
 evidence: ["disasm: $8F:857D indexes $8C:9515 by dog level (from $7E:0A9A) shifted left by 1 to compute Max HP ($7E:0A7F)", "data: 99 word values scaling from 0 at Lv1 to 909 at Lv99, clamped to 999 max HP in WRAM"]
-see: [rom/8f857d.md, docs/disassembly/entities/companion-form-stats.md]
+see: [routines/companion_stats_scaling_and_form_rebuild.md, docs/disassembly/entities/companion-form-stats.md]
 ---
 Master level-based Max HP progression curve for the companion Dog across levels 1 through 99.
 Contains 99 16-bit word values (198 bytes total, `$8C:9515`..`$8C:95DB`) indexing HP vitality before charms and gear additions:

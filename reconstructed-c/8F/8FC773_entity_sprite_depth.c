@@ -1,5 +1,5 @@
 /*
- * $8F:C773 entity_sprite_depth (knowledge/rom/8fc773.md), RTL, 16-bit A and X. Runs on into
+ * $8F:C773 entity_sprite_depth (knowledge/routines/entity_sprite_depth.md), RTL, 16-bit A and X. Runs on into
  * $8F:C780 sprite_depth_against_the_canopy, which is only reached by that branch (no call recorded).
  *
  * In: Y = an entity record (DB-relative). Builds the sprite's attribute word in DP $06 and its depth

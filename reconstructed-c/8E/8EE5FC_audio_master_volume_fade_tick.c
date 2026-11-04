@@ -1,5 +1,5 @@
 /*
- * $8E:E5FC audio_master_volume_fade_tick (knowledge/rom/8ee5fc.md), RTL, 16-bit A.
+ * $8E:E5FC audio_master_volume_fade_tick (knowledge/routines/audio_master_volume_fade_tick.md), RTL, 16-bit A.
  *
  * Moves the brightness/volume byte $0106 (DB-relative) one step toward the target byte $0B83 while
  * $0B83 is negative (a fade is running) and $0106 bit 7 is clear; reaching the target clears the

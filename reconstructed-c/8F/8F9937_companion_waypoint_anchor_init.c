@@ -1,5 +1,5 @@
 /*
- * $8F:9937 companion_waypoint_anchor_init (knowledge/rom/8f9937.md), RTL, 16-bit A and X.
+ * $8F:9937 companion_waypoint_anchor_init (knowledge/routines/companion_waypoint_anchor_init.md), RTL, 16-bit A and X.
  *
  * Starts a follower's breadcrumb list. X = DP $4E (the follower's list record), Y = DP $4C (the
  * leader): rec[$3C01] = X, rec[$3BFF] (list end) = X + 3, rec[$3C10] = 0, the first breadcrumb

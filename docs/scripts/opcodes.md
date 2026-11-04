@@ -8,7 +8,7 @@ the neighbouring commands. Where each fact lives:
 | What | Where |
 |---|---|
 | one entry per opcode byte (all 256): what it does, why it exists, groups, Everscript names, evidence | `src/games/evermore/localizations/knowledge/opcodes/<xx>.md` |
-| the handler's addresses (generated `## Addresses`) and its history | `src/games/evermore/localizations/knowledge/rom/<handler>.md` (a pointer to the opcode entry) |
+| the handler's addresses (generated `## Addresses`) and its history | `src/games/evermore/localizations/knowledge/routines/<name>.md` (a pointer to the opcode entry) |
 | operands, flow and the script viewer's name | `src/games/evermore/script-vm/spec.ts` |
 | the table of all 256, usage counts, examples, shared handlers | `soe://rom/assets/scripts/opcodes/index.md` (and `<xx>.md`, `index.json`) |
 | the groups | `soe://tags/opcode.<group>` (generated from the entries' `tags:`) |

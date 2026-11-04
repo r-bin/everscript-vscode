@@ -9,7 +9,7 @@ title: Calculate 4-quadrant compass facing direction from source to target entit
 confidence: confirmed
 tags: [entities, physics, math, script-vm]
 evidence: ["disasm: takes source entity in X and target entity in Y; calculates dx = X[+0x1A] - Y[+0x1A] and dy = X[+0x1C] - Y[+0x1C]; compares abs(dy) vs abs(dx) for vertical/horizontal dominance; selects North (0), East (4), South (8), or West (12), and writes to entity X[+0x22]", "recomp: clean C in docs/disassembly/script-vm/opcode-facing.md"]
-see: [rom/8cdf0d.md, rom/8cdf1d.md, rom/8cdedf.md]
+see: [routines/script_op_70_face_towards_entity.md, routines/script_op_71_face_away_from_entity.md, routines/script_op_74_face_0.md]
 ---
 Calculates the 4-way compass orientation for entity X to face entity Y:
 - Determines coordinate deltas:

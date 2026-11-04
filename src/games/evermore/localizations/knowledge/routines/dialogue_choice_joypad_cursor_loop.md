@@ -9,7 +9,7 @@ title: Process interactive typematic joypad navigation for dialogue choice and n
 confidence: confirmed
 tags: [ui, dialogue, joypad, input, cursor]
 evidence: ["disasm: initializes typematic timing $7E:0347=15 and $7E:0349=5, evaluates D-pad directions with SFX 0x0003, handles B button selection with SFX 0x0040, and Start confirmation with SFX 0x0012"]
-see: [docs/disassembly/ui/dialogue-choice-box.md, rom/8cb647.md, rom/8cb9a7.md]
+see: [docs/disassembly/ui/dialogue-choice-box.md, routines/window_box_frame_render.md, routines/dialogue_choice_character_append.md]
 ---
 Runs the modal interactive joypad input loop for dialogue choices, targeting options, and name entry:
 - Arms typematic auto-repeat registers (`$7E:0347 = 15`, `$7E:0349 = 5`).

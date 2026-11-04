@@ -1,7 +1,6 @@
 // Generates the canonical, 100% complete ROM memory map (src/games/evermore/localizations/data/rom-map.md),
 // mirrors it to docs/disassembly/engine-core/rom-map.md,
 // and publishes individual routine/asset knowledge files in src/games/evermore/localizations/knowledge/routines/<name>.md.
-// Preserves src/games/evermore/localizations/knowledge/rom/ completely untouched so nothing is lost.
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -16,7 +15,6 @@ function hiromFileOffset(addr: number): number {
 }
 
 const ROOT = path.resolve(import.meta.dirname, '..');
-const ROM_DIR = path.join(ROOT, 'src/games/evermore/localizations/knowledge/rom');
 const ROUTINES_DIR = path.join(ROOT, 'src/games/evermore/localizations/knowledge/routines');
 const DATA_ROM_MAP = path.join(ROOT, 'src/games/evermore/localizations/data/rom-map.md');
 const DOCS_ROM_MAP = path.join(ROOT, 'docs/disassembly/engine-core/rom-map.md');
@@ -118,8 +116,8 @@ function formatBytes(bytes: number): string {
 }
 
 function generate(): void {
-    if (!fs.existsSync(ROM_DIR)) {
-        console.error('Source ROM knowledge dir not found:', ROM_DIR);
+    if (!fs.existsSync(ROUTINES_DIR)) {
+        console.error('Source routine knowledge dir not found:', ROUTINES_DIR);
         process.exit(1);
     }
 
@@ -144,12 +142,12 @@ function generate(): void {
         }
     }
 
-    // 2. Load existing 1,329 entries from knowledge/rom/
-    const files = fs.readdirSync(ROM_DIR).filter(f => f.endsWith('.md')).sort();
+    // 2. Load existing entries from knowledge/routines/
+    const files = fs.readdirSync(ROUTINES_DIR).filter(f => f.endsWith('.md')).sort();
     const itemsByAddr = new Map<number, RomKnowledgeItem>();
 
     for (const f of files) {
-        const filePath = path.join(ROM_DIR, f);
+        const filePath = path.join(ROUTINES_DIR, f);
         const content = fs.readFileSync(filePath, 'utf8');
         const endIdx = content.indexOf('\n---', 3);
         if (!content.startsWith('---') || endIdx < 0) continue;
@@ -161,7 +159,8 @@ function generate(): void {
             return m ? m[1].trim() : null;
         };
 
-        const addrStr = getField('addr') || f.replace('.md', '');
+        const addrStr = getField('addr');
+        if (!addrStr) continue;
         const addr = parseInt(addrStr, 16);
         let name = getField('name') || f.replace('.md', '');
         if (name === 'ALCHEMY_BLOCK_TABLE' && addrStr.toUpperCase() === 'D180A6') {
@@ -233,7 +232,7 @@ function generate(): void {
             rawContent: content,
         });
     }
-    console.log(`Loaded ${itemsByAddr.size} base entries from knowledge/rom/`);
+    console.log(`Loaded ${itemsByAddr.size} base entries from knowledge/routines/`);
 
     // Resolve base routine spans within each bank so confirmed base routines
     // have contiguous ranges before CDL ingestion
@@ -403,7 +402,7 @@ function generate(): void {
                 confidence: 'confirmed',
                 tags: ['map', 'room', region, cur.b1, cur.b3],
                 evidence: [`docs/map-format/rom-map.md §2 (Room 0x${cur.hexId})`],
-                see: ['rom/9ffde7.md'],
+                see: ['routines/ROOM_POINTER_TABLE.md'],
                 body: `Compressed room data blob for **Room 0x${cur.hexId}** (${cur.roomName}). Dimensions: ${cur.tiles} tiles, ${cur.metatiles} metatiles. Block 1: ${cur.b1}, Block 2: markov (0x07), Block 3: ${cur.b3}. Contains ${cur.objs} object records, ${cur.step} step-on triggers, ${cur.bTrig} B-triggers on collision planes [${cur.planes}].`
             });
         }

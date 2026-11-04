@@ -33,8 +33,8 @@ events**, not game time (travel and fight lengths come later, from Routes/combat
   until dead) — then `WINDWALKER_UNLOCKED = 1`, heal, cure, and starts **`$9BB0B3`**: Carltron
   appears, a long dialogue (texts `0x21B1`…`0x21C0`), waits on `$285B`, then `INSIDE_OUTRO = 1` and
   `load_map(0x59, 9, 37)` (Quicksand Field, where the outro begins).
-- Nothing above is in a knowledge entry yet: write `rom/9ba971.md`, `rom/9bb0b3.md`,
-  `rom/9babe4.md` and a `knowledge/wram/STORY_FLAGS_22F0.md` bit table when this is picked up.
+- Nothing above is in a knowledge entry yet: write `routines/control_room_open_door.md`, `routines/control_room_open_door.md`,
+  `routines/control_room_open_door.md` and a `knowledge/wram/STORY_FLAGS_22F0.md` bit table when this is picked up.
 
 ## Why the existing simulation does not answer it
 
@@ -68,7 +68,7 @@ events**, not game time (travel and fight lengths come later, from Routes/combat
 
 ## Open questions
 
-- Where exactly a new game starts (header script `$92:800C`, see `knowledge/rom/92de49.md`) and what
+- Where exactly a new game starts (header script `$92:800C`, see `knowledge/routines/script_named_by_header.md`) and what
   the naming screen sets ("player name != empty").
 - Doors with no script (exits in the room header) — the map-change index must include them, or
   `reach(room)` misses ordinary walking.

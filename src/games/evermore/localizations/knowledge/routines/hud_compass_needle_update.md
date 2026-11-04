@@ -9,7 +9,7 @@ title: Downsample world coordinates by 16:1 and translate to minimap screen blip
 confidence: confirmed
 tags: [hud, compass, map, render]
 evidence: ["disasm: downsamples world X ($010E) and Y ($0110) via >> 4 into DP $46/$48; computes delta from previous centers $0F90/$0F8C; adds screen margin offset $0FAC; stores projected target to $0F92", "trace: executed when updating minimap blip and compass indicator"]
-see: [docs/disassembly/ui/minimap-radar.md, rom/909876.md, rom/90a4a6.md]
+see: [docs/disassembly/ui/minimap-radar.md, routines/render_map_overlay_compass_hud.md, routines/hud_minimap_vram_blit.md]
 ---
 Translates 16-bit actor world coordinates down to a 16:1 metatile grid (`X >> 4`, `Y >> 4`) into DP `$46`
 and `$48`. Computes tracking deltas against previous center coordinates at `$7E:0F90` and `$7E:0F8C`,

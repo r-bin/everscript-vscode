@@ -9,7 +9,7 @@ title: Set entity world coordinates with explicit Z and compute map tile collisi
 confidence: confirmed
 tags: [entities, physics, coordinates, collision, script-vm]
 evidence: ["disasm: $8F:C2E4 writes z, x, y to entity fields +$18/+$1A/+$1C, calculates tile coords, checks bounds against $08EE/$08EF, multiplies tile_y * map_width via $004202/$004216 to find tile byte offset at +$3A, loads terrain flags from $7F:0004 to +$3C, and updates child attachments (shadow +$6A, weapon +$6C, aux +$98) via $8F:A7D3", "docs/disassembly/entities/entity-position.md"]
-see: [rom/8fc2d1.md, rom/8ce00d.md, docs/disassembly/entities/entity-position.md]
+see: [routines/entity_set_position.md, routines/script_op_43_teleport.md, docs/disassembly/entities/entity-position.md]
 ---
 Updates an entity's complete 3D world position (X, Y, Z) and refreshes map tile collision:
 1. Writes Z (`+$18`), X (`+$1A`), and Y (`+$1C`).

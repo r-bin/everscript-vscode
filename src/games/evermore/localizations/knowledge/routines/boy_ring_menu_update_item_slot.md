@@ -8,7 +8,7 @@ name: boy_ring_menu_update_item_slot
 title: Update Boy ring menu item slot icon graphic and availability ($8D:9713)
 confidence: confirmed
 evidence: ["disasm: indexes item table $8D:96EF with $D11; fetches icon tile pointer from $C4:3874; enqueues VRAM DMA upload via $90:CFB8; tests unlock bitmask $C4:59C0; toggles bit $10 in $D15; sets cursor animation $5992 via $90:817B; callers: ring menu handler $8D:94A7"]
-see: ["rom/90cfb8.md","rom/90817b.md","rom/8d94a7.md"]
+see: ["routines/sprite_tile_vram_dma_enqueue.md","routines/anim_record_init_from_script_ref.md","routines/ring_menu_draw_action_submenu_cursor.md"]
 tags: ["ring-menu","boy","item","icon","vram"]
 ---
 Loads the selected item's icon from Bank `$C4` table `$C4:3874` into VRAM sprite tile memory via `sprite_tile_vram_dma_enqueue` (`$90:CFB8`). Checks item unlock flags in `$C4:59C0`/`$C4:59A4`; updates selection availability bit `$10` in `$D15`, and initializes cursor animation `$5992` via `func_90817B`.

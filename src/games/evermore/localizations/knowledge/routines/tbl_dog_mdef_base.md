@@ -9,7 +9,7 @@ title: Companion Dog base Magic Defense level progression table
 confidence: confirmed
 tags: [companion, stats, combat]
 evidence: ["disasm: $8F:857D indexes $8C:96D1 by dog level shifted left by 1 to compute Dog Magic Defense ($7E:0A89)", "data: 99 word values scaling from 0 at Lv1 to 405 at Lv99 before gear additions"]
-see: [rom/8f857d.md, docs/disassembly/entities/companion-form-stats.md]
+see: [routines/companion_stats_scaling_and_form_rebuild.md, docs/disassembly/entities/companion-form-stats.md]
 ---
 Master level-based Magic Defense curve for the companion Dog across levels 1 through 99.
 Contains 99 16-bit word values (198 bytes total, `$8C:96D1`..`$8C:9796`) representing magic resistance scaling before gear and charm bonuses.

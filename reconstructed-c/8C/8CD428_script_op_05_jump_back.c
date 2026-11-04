@@ -1,5 +1,5 @@
 /*
- * $8C:D428 script_op_05_jump_back (knowledge/rom/8cd428.md), RTS, 16-bit A.
+ * $8C:D428 script_op_05_jump_back (knowledge/routines/script_op_05_jump_back.md), RTS, 16-bit A.
  *
  * The script pointer is the 24-bit DP $82..$84 (upper bank halves). Reads the byte at the pointer
  * (and the one after it, unused but read as a word), steps the pointer by one, then jumps back by

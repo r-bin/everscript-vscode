@@ -9,7 +9,7 @@ title: Omnitopia Toaster Dog epoch form transformation stat bonuses
 confidence: confirmed
 tags: [companion, dog, transformation, toaster, stats]
 evidence: ["disasm: inspects active form register $7E:2363, tests for form 0x000C (Toaster Dog), and if matched adds +0x0050 (+80) to Magic Defense $7E:0A89 and +0x00FA (+250) to Physical Defense $7E:0A8B", "trace: executed as the final phase of companion stat rebuilding"]
-see: [docs/disassembly/entities/companion-form-stats.md, rom/8f857d.md]
+see: [docs/disassembly/entities/companion-form-stats.md, routines/companion_stats_scaling_and_form_rebuild.md]
 ---
 Applies the defense and resilience parameters for the secret Toaster Dog epoch transformation. When form register
 `$7E:2363` equals `0x000C`, bestows $+80$ Magic Defense and $+250$ Physical Defense, turning the companion into an

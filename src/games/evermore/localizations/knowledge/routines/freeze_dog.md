@@ -9,7 +9,7 @@ title: Freeze Dog
 confidence: confirmed
 tags: [script-vm]
 evidence: ["disasm: wrapper selects actor bit 2 and shared helper $8C:DB31 calls $8F:CD78 to halt motion and set the immobilized flag"]
-see: [rom/8fcd78.md, docs/scripts/opcodes.md]
+see: [routines/entity_freeze_immobilize.md, docs/scripts/opcodes.md]
 ---
 Handler of script opcode [0xBE](soe://rom/assets/scripts/opcodes/be.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/be.md`, served at `soe://rom/assets/scripts/opcodes/be.md`.
 

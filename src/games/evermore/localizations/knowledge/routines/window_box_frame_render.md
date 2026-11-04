@@ -9,7 +9,7 @@ title: Render 9-slice rectangular dialogue and choice window border into shadow 
 confidence: confirmed
 tags: [ui, window, tilemap, vram]
 evidence: ["disasm: multiplies row Y (DP $04 | $2000) by 32 using hardware multiplier $4202/$4216, adds column X ($02), blits corner tiles $0BF0/$0BF2/$0BF5/$0BF7 and edge tiles $0BF1/$0BF3/$0BF4/$0BF6 into $7F:C800 shadow tilemap buffer"]
-see: [docs/disassembly/ui/dialogue-choice-box.md, rom/8cb81d.md, rom/8cac8a.md]
+see: [docs/disassembly/ui/dialogue-choice-box.md, routines/dialogue_choice_joypad_cursor_loop.md, routines/window_open_setup.md]
 ---
 Blits an arbitrary rectangular 9-slice window frame into shadow tilemap RAM at `$7F:C800`:
 - Computes tilemap row offsets using SNES hardware multiplier registers `$4202` / `$4216` ($Y \times 32$ tiles).

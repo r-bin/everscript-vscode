@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [loot]
 evidence: ["test: every pickup stages these before calling global 0x39/0x3a/0x3b; simulation reads the item at the call (tests/simulation/loot.test.js, v0.202.0)", "script: the default loot script $92:A4E1 copies a prize item ($23A1/$23A3/$23A5) into $2391 (v0.369.0)"]
-see: [knowledge/wram/LOOT_AMOUNT.md, rom/92a482.md, docs/scripts/loot.md]
+see: [knowledge/wram/LOOT_AMOUNT.md, routines/loot_gourd.md, docs/scripts/loot.md]
 ---
 | offset | size | meaning |
 |---|---|---|

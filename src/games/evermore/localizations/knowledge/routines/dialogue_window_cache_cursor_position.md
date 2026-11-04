@@ -8,7 +8,7 @@ name: dialogue_window_cache_cursor_position
 title: Validate and update cached dialogue text cursor coordinates ($8C:D065)
 confidence: confirmed
 evidence: ["disasm: compares active cursor coords <$BF and <$C1 against cached coords +$05,Y and +$06,Y; if changed, writes cache; if identical, branches to position handler $8C:D096"]
-see: ["rom/8cd096.md"]
+see: ["routines/dialogue_window_compare_text_buffer_pages.md"]
 tags: ["dialogue","cursor","cache","coordinates"]
 ---
 Checks whether current dialogue window cursor coordinates `<$BF>` and `<$C1>` match cached values `+$05,Y` and `+$06,Y`. If changed, updates cache coordinates; if identical, branches to position handler `FUN_8cd096` (`$8C:D096`).

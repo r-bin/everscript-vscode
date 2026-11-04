@@ -9,7 +9,7 @@ title: Room 0x21: Gothica - Dark forest entrance (save point)
 confidence: confirmed
 tags: ["map","room","gothica","lzss","lzss"]
 evidence: ["docs/map-format/rom-map.md §2 (Room 0x21)"]
-see: ["rom/9ffde7.md"]
+see: ["routines/ROOM_POINTER_TABLE.md"]
 ---
 
 Compressed room data blob for **Room 0x21** (Gothica - Dark forest entrance (save point)). Dimensions: 17x19 tiles, 246 metatiles. Block 1: lzss, Block 2: markov (0x07), Block 3: lzss. Contains 0 object records, 2 step-on triggers, 0 B-triggers on collision planes [1].

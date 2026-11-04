@@ -9,7 +9,7 @@ title: Reset cutscene dialogue queue pointers and clear active text window
 confidence: confirmed
 tags: [text, cutscene, script-vm]
 evidence: ["disasm: checks $0B2B & $7FFF; clears active window via $8C:ADE5 with Y = $034D if non-zero; resets circular queue read index $0B2F and write index $0B31 to zero; preserves bit 15 pause flag in $0B2B", "trace: executed when cutscene VM resets pending dialogue stream"]
-see: [docs/disassembly/script-vm/cutscene-scheduler.md, rom/8cc521.md, rom/8cc55d.md]
+see: [docs/disassembly/script-vm/cutscene-scheduler.md, routines/cutscene_script_enqueue.md, routines/cutscene_dialogue_activate.md]
 ---
 Resets the cutscene text box subsystem. If a text window is active, it calls `$8C:ADE5` to clear
 record `$034D`, resets the circular script queue head (`$0B31`) and tail (`$0B2F`) indices to zero,

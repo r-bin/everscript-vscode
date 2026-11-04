@@ -9,7 +9,7 @@ title: Commit minimap radar tile buffer to VRAM with DMA safety lock
 confidence: confirmed
 tags: [vram, hud, render, dma]
 evidence: ["disasm: tests active blit flag in DP $B0; increments VRAM upload lock $0F3A; increments sequence counter in DP $B0; configures DMA commit trigger word at $0FC2; decrements VRAM lock $0F3A on exit", "trace: executed during field VRAM refresh loop"]
-see: [docs/disassembly/ui/minimap-radar.md, rom/909876.md, rom/9098fa.md]
+see: [docs/disassembly/ui/minimap-radar.md, routines/render_map_overlay_compass_hud.md, routines/hud_compass_needle_update.md]
 ---
 Commits prepared minimap radar tile patterns into VRAM. Increments `$7E:0F3A` to lock the VRAM DMA
 transfer queue during buffer construction, advances the transfer sequence in DP `$B0`, configures

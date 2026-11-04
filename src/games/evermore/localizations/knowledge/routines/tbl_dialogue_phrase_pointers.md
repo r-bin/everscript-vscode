@@ -9,7 +9,7 @@ title: Master dialogue 256-phrase primary dictionary pointer table
 confidence: confirmed
 tags: [dialogue, text, decompression]
 evidence: ["disasm: dialogue string decompressor $8C:CD84 indexes $91:F46C + (token << 1) when encountering prefix token $C0", "data: 256 16-bit word offsets relative to base $91:F7D5 addressing null-terminated English words and phrases"]
-see: [rom/91f32e.md, rom/8ccd84.md, docs/disassembly/ui/dialogue-text-decoder.md, docs/disassembly/ui/string-dictionary.md]
+see: [routines/tbl_dialogue_dte_pairs.md, routines/dialogue_text_dte_mte_decoder.md, docs/disassembly/ui/dialogue-text-decoder.md, docs/disassembly/ui/string-dictionary.md]
 ---
 Master primary phrase dictionary lookup table used by the dialogue narrative text decompression engine.
 Contains 256 16-bit word offsets (512 bytes total, `$91:F46C`..`$91:F66B`) pointing to null-terminated English dictionary words in the string bank at `$91:F7D5`.

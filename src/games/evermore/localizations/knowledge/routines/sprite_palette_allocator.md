@@ -9,7 +9,7 @@ title: Dynamic sprite palette group allocator, deduplication, and slot assignmen
 confidence: confirmed
 tags: [sprites, palettes, cgram, graphics]
 evidence: ["disasm: $90:CD80-$90:CDD9 (v0.340.1): match search over offsets 8, $A, 0, 2, 4 of $1278; free search over 8, $A, 0, 2 after $90:CE20; steal through $90:CE92; the caller $90:CD5C stores the slot offset in entity +$0C and +$74/+$75", "disasm: $90:CDF5 / $90:CE05 reload offsets $C / $E from the Boy's $0A2F and the Dog's $0A79", "trace: executed on entity spawn to allocate one of 8 SNES OAM sprite palette groups"]
-see: [docs/disassembly/entities/palette-allocator.md, rom/90cdaf.md, rom/90ce92.md]
+see: [docs/disassembly/entities/palette-allocator.md, routines/palette_free_slot_search.md, routines/palette_steal_slot_4.md]
 ---
 Finds a sprite palette slot for a palette address in A (a character record's `+$09`). Slots are
 words at `$1278` (byte offset = 2 × slot). First it reuses a slot that already holds the same

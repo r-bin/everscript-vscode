@@ -9,7 +9,7 @@ title: Sine table, 256 steps per turn, stored for 320 steps so cosine never wrap
 confidence: confirmed
 tags: [math, trigonometry, mode7, projectile]
 evidence: ["read: the signed words at $80:88A3 run 0, 6, 13 … 256 at entry 64, 0 at 128, -255 at 192, 0 again at 256, then repeat a quarter turn up to entry 319 (v0.327.0)", "disasm: indexed by angle << 1 with mask $01FF at $8E:B379 (a byte offset: 256 entries); cosine accessed $80 bytes (64 entries = 90 degrees) further at $8E:B389; multiplied with flight speed factor via hardware multiplier $4202", "trace: utilized across Mode 7 flight engine and projectile ballistic trajectories"]
-see: [docs/disassembly/engine-core/mode7-flight.md, rom/8eb33d.md]
+see: [docs/disassembly/engine-core/mode7-flight.md, routines/mode7_flight_sample_and_sprite_dispatch.md]
 ---
 Signed 16-bit sine values, 256 steps for a whole turn, from -255 to +256 (8.8 fixed point:
 256 means 1.0). The table is stored 320 entries (640 bytes) long, a quarter turn more than a full

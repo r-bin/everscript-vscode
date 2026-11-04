@@ -1,5 +1,5 @@
 /*
- * $8F:A946 elevation_plane_transition_gate (knowledge/rom/8fa946.md), RTL, 16-bit A.
+ * $8F:A946 elevation_plane_transition_gate (knowledge/routines/elevation_plane_transition_gate.md), RTL, 16-bit A.
  *
  * In: A = a metatile collision word, DP $44 = the entity's plane word. C = 1 (SEC) unless refused.
  *  - word bits $2040: as update_entity_plane's tail ($8F:A91F): bit 6 clears bit 6 of $44, else

@@ -8,7 +8,7 @@ name: apu_send_sfx_command
 title: Dispatch SFX Command to APU Port Handshake
 confidence: confirmed
 evidence: ["disasm: $8C:831D loads Y from $0E4F, sets A to command $0004 (APU SFX trigger), and calls APU spinlock handshake $8C:81FD"]
-see: [rom/8c82dc.md, rom/8c82e3.md, rom/8c81fd.md, audio/sfx-queue.md]
+see: [routines/play_sound_effect_direct.md, routines/play_sound_effect_with_package.md, routines/apu_command_handshake.md, audio/sfx-queue.md]
 ---
 Dispatches sound effect playback commands to the SPC700 audio coprocessor:
 - Loads sound descriptor parameter from `$0E4F` into index register `Y`.

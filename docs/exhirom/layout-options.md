@@ -133,7 +133,7 @@ extrapolate to fights or big rooms):
 - **SA-1 is a big rewrite**: about 27,000 executed bytes, 78,000 read bytes, ~300 reading
   instructions and ~1,600 control-flow edges use `$80–$BF`, all of which become `$Cx`.
 - **There is nothing to speed up there**: 85.6 % of the recorded cycles are the wait-for-NMI
-  spin at `$80:858C` (`knowledge/rom/80858c.md`). One frame measures ≈ 355,000 master cycles,
+  spin at `$80:858C` (`knowledge/routines/wait_for_nmi.md`). One frame measures ≈ 355,000 master cycles,
   matching the 357,368 of a real frame, so the counter is trustworthy. Record busy scenes
   (fights, large rooms, many entities) before judging SA-1: if they also idle most of the frame,
   SA-1 buys little.

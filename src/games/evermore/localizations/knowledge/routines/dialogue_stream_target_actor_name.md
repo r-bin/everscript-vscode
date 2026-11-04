@@ -8,7 +8,7 @@ name: dialogue_stream_target_actor_name
 title: Stream active target actor name or "Multiple" into dialogue window banner ($8C:89DF)
 confidence: confirmed
 evidence: ["disasm: entry $8C:89DF checks $05AD bit 0 (multi-target) branching to literal 'Multiple' at $8C:8A1C; single-target reads $0B71 -> entity pointer at Y, reads entity +$60 -> character record offset in Bank $8E, reads record +$00 24-bit name pointer to $22-$24, switches DB = $80, LDY #$034D and calls $8C:AF2B and $8C:9E03", "disasm: invoked by target selection loop at $8C:8923 when $05AD bit 8 is set", "c: docs/disassembly/ui/entity-name-text.md"]
-see: [rom/8eb678.md, rom/8c8a25.md]
+see: [routines/character_records.md, routines/oracle_render_target_stats_card.md]
 ---
 Streams the active target entity's name into the window target banner (`$034D`) during
 target selection (spells, items, projectile aiming). If multi-target mode is active (`$05AD` bit 0),

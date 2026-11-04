@@ -13,4 +13,4 @@ the CPU; it does not return to the script VM.
 [`reconstructed-c/8C/8CE8BC_opcode_b8_invalid_stop.c`](../../../reconstructed-c/8C/8CE8BC_opcode_b8_invalid_stop.c)
 represents both opcode entries as non-returning CPU-stop hooks.
 
-The repository's grouped trap entry is [rom/8ce8b5.md](../../../src/games/evermore/localizations/knowledge/rom/8ce8b5.md).
+The repository's grouped trap entry is [routines/script_opcode_traps_unused_opcodes_land_on_stp_b.md](../../../src/games/evermore/localizations/knowledge/routines/script_opcode_traps_unused_opcodes_land_on_stp_b.md).

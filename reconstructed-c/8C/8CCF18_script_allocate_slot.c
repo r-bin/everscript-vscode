@@ -1,5 +1,5 @@
 /*
- * $8C:CF18 script_allocate_slot (knowledge/rom/8ccf18.md), RTL.
+ * $8C:CF18 script_allocate_slot (knowledge/routines/script_allocate_slot.md), RTL.
  *
  * Takes a free script slot starting from $7E:28FC (stride 0x4F bytes, free when word at +3 is 0).
  * Decodes the packed script pointer in DP $26-$28 into a 24-bit bus address:

@@ -1,4 +1,4 @@
-// Ownership: the knowledge entries (knowledge/{ram,rom}/<addr>.md, `game-knowledge` skill) as data.
+// Ownership: the knowledge entries (knowledge/{wram,routines}/<name>.md, `game-knowledge` skill) as data.
 // The one source of what the plugin knows about an address: functions.ts and tables.js are views of
 // these entries, and the ROM tab, soe://, the asm view and the exports read them through those.
 
@@ -133,7 +133,7 @@ function entries(space: string): KnowledgeEntry[] {
 
             cache[space] = [...ramEntries, ...compilerRegions].sort((a, b) => a.addr - b.addr);
         } else {
-            const dir = path.join(DIR, space);
+            const dir = path.join(DIR, (space === 'rom' || space === 'routines') ? 'routines' : space);
             cache[space] = fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => f.endsWith('.md'))
                 .map(f => parseEntry(path.join(dir, f))).filter((e): e is KnowledgeEntry => e !== null).sort((a, b) => a.addr - b.addr) : [];
         }
@@ -144,7 +144,7 @@ function entries(space: string): KnowledgeEntry[] {
 /** Files of one space that are not entries (no front matter, e.g. an empty file), repo-relative. */
 function brokenEntries(space: string): string[] {
     if (space === 'ram') return [];
-    const dir = path.join(DIR, space);
+    const dir = path.join(DIR, (space === 'rom' || space === 'routines') ? 'routines' : space);
     if (!fs.existsSync(dir)) return [];
     return fs.readdirSync(dir).filter(f => f.endsWith('.md') && !parseEntry(path.join(dir, f)))
         .map(f => path.relative(path.join(HERE, '..', '..', '..', '..'), path.join(dir, f)));

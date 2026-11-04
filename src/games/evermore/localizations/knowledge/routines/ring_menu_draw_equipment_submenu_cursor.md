@@ -8,7 +8,7 @@ name: ring_menu_draw_equipment_submenu_cursor
 title: Render equipment ring submenu cursor reticle and indicator sprites to OAM ($8D:D4B5)
 confidence: confirmed
 evidence: ["disasm: commits equipment reticle $CC:39FB at (160, 14) via $80:9033; jumps to commit indicator $CC:396C at (210, 14) via $80:9033; callers: equip submenu draw $8D:D303"]
-see: ["rom/809033.md","rom/8dd303.md"]
+see: ["routines/direct_sprite_draw_oam.md","routines/save_menu_slot_picker_loop.md"]
 tags: ["ring-menu","equipment","cursor","oam","sprite"]
 ---
 Renders equipment/armor ring submenu cursor sprites into OAM. Draws reticle `$CC39FB` at (160, 14) via `direct_sprite_draw_oam` (`$80:9033`), followed by equipment indicator marker `$CC396C` at (210, 14).

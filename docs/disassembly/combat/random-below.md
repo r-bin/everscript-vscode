@@ -15,4 +15,4 @@ in the range `0..n-1`.
 The physical damage routine at `$8F:C08C` calls this helper with `n = base + 1`, producing a
 damage roll in `0..base`. The relevant caller sequence is in
 [`to-hit-accuracy.md`](to-hit-accuracy.md); the address-level knowledge entry is
-[`80ad62.md`](../../../src/games/evermore/localizations/knowledge/rom/80ad62.md).
+[`80ad62.md`](../../../src/games/evermore/localizations/knowledge/routines/random_below.md).

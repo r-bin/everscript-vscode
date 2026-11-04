@@ -9,7 +9,7 @@ title: CGRAM palette color math, subtractive blending, and cross-fade lighting r
 confidence: confirmed
 tags: [palette, cgram, color-math, graphics, lighting]
 evidence: ["disasm: 514 bytes at $90:D0A4..$90:D2A5 containing palette subtractive color blending, additive tinting, and 15-bit BGR555 shade cross-fading; precedes graphics_color_555_linear_blend_lerp ($90:D2A6)"]
-see: [rom/90cff0.md, rom/90d020.md, rom/90d2a6.md]
+see: [routines/dim_cgram_palette_buffer_by_half.md, routines/load_up_to_7_tile_families_from_map_palette.md, routines/graphics_color_555_linear_blend_lerp.md]
 ---
 Suite of PPU CGRAM palette color math and cross-fade transition routines:
 - Performs bitwise 15-bit BGR555 channel decomposition (5 bits Red, 5 bits Green, 5 bits Blue).

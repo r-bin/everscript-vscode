@@ -8,7 +8,7 @@ name: alchemy_cutscene_pause_activate
 title: Activate cutscene pause state from alchemy effect script ($91:99A8)
 confidence: confirmed
 evidence: ["disasm: advances script PC +$14,Y by 2 bytes; activates cutscene pause mode via $8C:C543"]
-see: ["rom/8cc543.md"]
+see: ["routines/cutscene_pause_activate.md"]
 tags: ["alchemy","cutscene","pause","script"]
 ---
 Advances effect script PC `+$14,Y` by 2 bytes and activates cutscene pause mode via `cutscene_pause_activate` (`$8C:C543`).

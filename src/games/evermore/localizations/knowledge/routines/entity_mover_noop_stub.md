@@ -8,7 +8,7 @@ name: entity_mover_noop_stub
 title: Entity movement null step / no-operation handler ($8F:AC83)
 confidence: confirmed
 evidence: ["disasm: bare RTS instruction; callers: entity movement dispatch $8F:AFAE"]
-see: ["rom/8fafae.md"]
+see: ["routines/entity_physics_and_gravity_tick.md"]
 tags: ["movement","entity","noop","stub"]
 ---
 Bare `RTS` no-operation routine serving as null step / default return for entity movement handlers (e.g. called by `$8F:AFAE`).

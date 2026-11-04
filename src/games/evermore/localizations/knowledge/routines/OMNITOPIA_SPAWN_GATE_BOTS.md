@@ -8,7 +8,7 @@ title: Omnitopia Metroplex security gate bot spawner
 confidence: confirmed
 tags: [omnitopia, enemies, spawns]
 evidence: ["scripts: Room 72 enter script ($9a:d42b) calls $9a:d899; spawns GATE_BOT enemies at defined patrol coordinates, attaches death scripts, checks defeat flags in $7E:22F6, and sets door object barrier states"]
-see: [rom/9ae4f6.md]
+see: [routines/OMNITOPIA_SETUP_GATE_BOT_INVINCIBILITY.md]
 ---
 Enemy spawner routine for Room 72 (Omnitopia Metroplex).
 

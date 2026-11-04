@@ -9,7 +9,7 @@ title: Validate direct line of sight between companion and target waypoint coord
 confidence: confirmed
 tags: [entities, companion, pathfinding, raycast]
 evidence: ["disasm: computes dy ($6A-$67) and dx ($69-$66), calculates 16-direction angle via $8F:AA51, calls line stepper $8F:9F05, and verifies elevation plane $44 matches target layer $6B"]
-see: [docs/disassembly/entities/companion-steering.md, rom/8f9f05.md, rom/8f9ec3.md]
+see: [docs/disassembly/entities/companion-steering.md, routines/companion_metatile_raycast_line_stepper.md, routines/companion_neighbor_cell_collision_test.md]
 ---
 Tests whether a clear, unobstructed straight-line trajectory exists between the companion's current
 metatile and a historical breadcrumb waypoint:

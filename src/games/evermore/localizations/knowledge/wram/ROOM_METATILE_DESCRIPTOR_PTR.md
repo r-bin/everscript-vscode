@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [dog, room]
 evidence: ["disasm: $8F:946B `ldx $2443`, and when it is not 0 the form loader $8F:9471 runs with X = it ($8F:945D[X]) and writes $2443 = 0", "scan: 76 room enter scripts write it; each value belongs to one act's rooms (tools/rooms/region-evidence.js, v0.285.0)"]
-see: [rom/8f9471.md, rom/8f945d.md]
+see: [routines/dog_load_form.md, routines/dog_form_entries.md]
 ---
 Values are the form table's byte index: `2` the act 1 wolf, `4` the wolf with the stick, `6` the
 Antiqua greyhound, `8` the Gothica poodle, `$0A` the plain dog of Podunk, `$0C` the Omnitopia toaster.

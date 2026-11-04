@@ -9,7 +9,7 @@ title: Computes minimap screen buffer destination offset and extracts palette bi
 confidence: confirmed
 tags: [minimap, hud, render, palette, stride, dma]
 evidence: ["disasm: uses SNES hardware multiplier $4202/$4216 to compute Y * Stride row offsets; calculates bounding box $0FB8..$0FC0; derives screen buffer address in $0FB6; shifts palette attribute bits (attr & 0x1F00) >> 3 into $0FB4; sets DMA commit trigger flag at $0FC2", "trace: executed during minimap tile pattern generation"]
-see: [docs/disassembly/ui/minimap-projection.md, docs/disassembly/ui/minimap-radar.md, rom/90a4e8.md]
+see: [docs/disassembly/ui/minimap-projection.md, docs/disassembly/ui/minimap-radar.md, routines/minimap_viewport_clip_and_render.md]
 ---
 Computes screen buffer destination address via hardware multiplication ($Y \times \text{Stride}$),
 calculates bounding box dimensions, extracts palette attribute bits into `$7E:0FB4`,

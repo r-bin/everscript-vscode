@@ -8,7 +8,7 @@ name: format_16bit_integer_to_decimal_digits
 title: Hardware 16-Bit Integer to Decimal Digit Formatter
 confidence: confirmed
 evidence: ["disasm: $80:870C determines magnitude of A (<10, <100, <1000, <10000), loops dividing by 10 using hardware registers $4204/$4206, and stores modulo remainder digits from $4216 into DP $02,X terminated with $FF"]
-see: [rom/80b21f.md, engine-core/hardware-utilities.md]
+see: [routines/format_32bit_integer_to_decimal_ascii.md, engine-core/hardware-utilities.md]
 ---
 Converts an unsigned 16-bit integer into a stream of BCD decimal digits:
 - Determines magnitude threshold (1 to 5 digits).

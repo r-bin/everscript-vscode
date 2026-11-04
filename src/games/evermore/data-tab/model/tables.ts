@@ -3,7 +3,7 @@
 // a chart, and the character records' stats. Only tables decoded into
 // readable values are listed; the rest stay in soe://rom/tables/. Pure apart
 // from the ROM buffer it is handed. Each address here has its knowledge entry
-// (localizations/knowledge/rom/), which says how it was found.
+// (localizations/knowledge/routines/), which says how it was found.
 
 import { snesToRom, read16, read24, mapTableOffset, MAX_ROOMS } from '../../maps';
 import { CHARACTER_TABLE, CHARACTER_STRIDE } from '../../maps/character-record';
@@ -22,7 +22,7 @@ interface Table {
     vfs?: string;
 }
 
-/** Boy and dog XP needed for the next level, 3 bytes per level, read by the level at `$0A50` / `$0A9A` (knowledge rom/8c8bd0.md). */
+/** Boy and dog XP needed for the next level, 3 bytes per level, read by the level at `$0A50` / `$0A9A` (knowledge routines/BOY_XP_PER_LEVEL.md). */
 const XP_BOY = 0x8c8bd0;
 const XP_DOG = 0x8c8cfc;
 const XP_BOY_COUNT = 100;   // ends with $FFFFFF: no level after 99
@@ -84,7 +84,7 @@ function boomerangTable(rom: Uint8Array): Table {
     };
 }
 
-/** Record fields as rom/8eb678.md lists them: [label, offset, bytes]. */
+/** Record fields as routines/character_records.md lists them: [label, offset, bytes]. */
 const STAT_FIELDS: [string, number, number][] = [
     ['HP', 0x0f, 2], ['attack', 0x19, 2], ['defence', 0x1b, 2], ['magic def.', 0x1d, 2], ['evade', 0x1f, 2], ['hit rate', 0x21, 2],
     ['XP', 0x23, 4], ['money', 0x27, 2], ['drop chance', 0x29, 1],
@@ -117,7 +117,7 @@ function statsTable(rom: Uint8Array, names: { id: number; name: string }[]): Tab
     }
     return {
         id: 'stats', group: 'Characters', title: 'Character stats', addr: '$8E:B678',
-        note: 'The 142 character records, 74 bytes each: the fields rom/8eb678.md names with the routine that reads each. The Boy\'s and Dog\'s rows are templates; their live stats are in WRAM ($0A26, $0A70).',
+        note: 'The 142 character records, 74 bytes each: the fields routines/character_records.md names with the routine that reads each. The Boy\'s and Dog\'s rows are templates; their live stats are in WRAM ($0A26, $0A70).',
         columns: ['id', 'name'].concat(STAT_FIELDS.map((f) => f[0] + ' +$' + hex(f[1], 2))), rows, vfs: vfs(CHARACTER_TABLE),
     };
 }

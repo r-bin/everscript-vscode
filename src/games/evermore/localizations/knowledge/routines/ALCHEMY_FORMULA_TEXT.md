@@ -9,7 +9,7 @@ title: Alchemy formula names and descriptions (pointers into bank $C4)
 confidence: confirmed
 tags: [alchemy, text]
 evidence: ["read: 35 words at $C4:5D09 point into bank $C4 at zero-ended text: Acid Rain, Atlas, Barrier … Super Heal (v0.328.0)", "read: a zero word at $C4:5D4F, then 35 more words at $C4:5D51 pointing at the descriptions in the same order: 'Showers enemies with acid' … 'Restores both hero's HP' (v0.328.0)"]
-see: [rom/c45ddf.md, rom/c45fc5.md, src/games/evermore/data-tab/model/enums.ts]
+see: [routines/ALCHEMY_ANIM_MAP.md, routines/CAST_AND_INGREDIENT_NAMES.md, src/games/evermore/data-tab/model/enums.ts]
 ---
 The text the alchemy menus show: one pointer per formula (`$C4:5D09`, 35 words, formula order,
 which is alphabetical), a zero word, then one pointer per formula description (`$C4:5D51`). The

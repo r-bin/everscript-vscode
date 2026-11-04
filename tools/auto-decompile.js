@@ -191,7 +191,7 @@ async function main() {
         console.log(`\nLaunching ${batchSize} subagent worker(s) in parallel...`);
 
         const promises = batchTargets.map((target, idx) => {
-            const workerPrompt = `continue the decompilation on target: ${target}. Follow .agents/agents/decomp-curator.md rules: inspect assembly, cross-reference recomp C and Ghidra notes, decompile into clean C in docs/disassembly/, create knowledge entries in knowledge/rom/, and update PROGRESS.md.`;
+            const workerPrompt = `continue the decompilation on target: ${target}. Follow .agents/agents/decomp-curator.md rules: inspect assembly, cross-reference recomp C and Ghidra notes, decompile into clean C in docs/disassembly/, create knowledge entries in knowledge/routines/, and update PROGRESS.md.`;
             return executeSubagent(runnerStr, workerPrompt, idx + 1, target);
         });
 

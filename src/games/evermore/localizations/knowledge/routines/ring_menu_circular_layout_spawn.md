@@ -9,7 +9,7 @@ title: Calculate circular geometry coordinates and spawn rotating 16x16 ring ico
 confidence: confirmed
 tags: [ring-menu, ui, sprite]
 evidence: ["disasm: sets radius 16 ($02) and arc 224 ($04); configures circular layout via $90:CCA4; defines palette indices via $90:CEED; spawns icon sprites for Boy ($0DDB) via $90:817B (group $56EA) and Dog ($0DEB, group $56E6)", "trace: executed when ring menu opens"]
-see: [docs/disassembly/ui/ring-menu-builder.md, docs/disassembly/ui/ring-menu.md, rom/8e9df9.md]
+see: [docs/disassembly/ui/ring-menu-builder.md, docs/disassembly/ui/ring-menu.md, routines/ring_menu_category_populator.md]
 ---
 Calculates circular trigonometric coordinate offsets for the active ring menu items (16px radius,
 $224^\circ$ arc span) via `$90:CCA4`, sets up the character cursor palettes (`$0DF7` for Boy, `$0DE7` for Dog),

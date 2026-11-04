@@ -9,7 +9,7 @@ title: Bind attacker entity pointer to victim for AI retaliation and XP creditin
 confidence: confirmed
 tags: [combat, damage, aggro, ai]
 evidence: ["disasm: stores attacker pointer DP $4C into victim+$24 and victim+$80; if victim is Boy/Dog ($4E89/$4F37), records attacker into $7E:4EAD/$7E:4F5B"]
-see: [docs/disassembly/combat/hit-recoil-physics.md, rom/8fc0d3.md]
+see: [docs/disassembly/combat/hit-recoil-physics.md, routines/dispatch_hit_reaction_and_knockback.md]
 ---
 Records the identity of the attacking entity into the victim entity structure:
 - Sets `victim->last_attacker` at offsets `+$24` and `+$80`.

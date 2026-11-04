@@ -8,7 +8,7 @@ name: entity_slot_allocate_and_init
 title: Entity Slot Allocator & Attribute Initializer
 confidence: confirmed
 evidence: ["disasm: $8F:B0A4 increments active counters $1072/$1074, binds animation track $90:9815, sets heading +$22=0x08, parent link +$60, and purges all 4 status slots +$46, +$4C, +$52, +$58 to $FFFF"]
-see: [rom/8fb094.md, combat/projectiles.md, combat/status-effects.md]
+see: [routines/projectile_spawn_master.md, combat/projectiles.md, combat/status-effects.md]
 ---
 Initializes an allocated entity slot for new projectiles or NPCs:
 - Increments active and total entity count registers `$1072` and `$1074`.

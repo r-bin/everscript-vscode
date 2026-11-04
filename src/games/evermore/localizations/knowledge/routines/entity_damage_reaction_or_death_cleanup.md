@@ -8,7 +8,7 @@ name: entity_damage_reaction_or_death_cleanup
 title: Entity hit-reaction recovery or death state finalizer ($8F:C1F0)
 confidence: confirmed
 evidence: ["disasm: checks entity HP +$2A,Y; if zero, masks hit reaction bits +$12,Y &= $FB87 and zeroes pending damage +$76,Y; if alive, clears knockback bit $0400 on +$12,Y and triggers recovery animation via $8C:CE4D if +$68,Y bit $0100 set; caller: Gravity_8FAFF5 ($8F:AFFF)"]
-see: [rom/8cce4d.md]
+see: [routines/script_start_entity_event_script.md]
 tags: [combat, entities, damage]
 ---
 Finalizes entity damage reaction states. If entity HP `+$2A,Y` has reached zero, clears active combat reaction flags on `+$12,Y` (`AND #$FB87`) and resets damage accumulator `+$76,Y`. If the entity is alive, clears knockback stun bit `$0400` on `+$12,Y` and triggers recovery motion via `$8C:CE4D`.

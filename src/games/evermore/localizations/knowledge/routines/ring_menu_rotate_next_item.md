@@ -9,7 +9,7 @@ title: Rotate ring menu clockwise to select the next item
 confidence: confirmed
 tags: [ui, ring-menu, math, input]
 evidence: ["disasm: $8E:AFF4 increments active_index in category header DP $95 (wrapping to 0 if >= item_count), computes target angle via hardware division, stores into $7E:061D, and enters rotation loop at $8E:B02C", "docs/disassembly/ui/ring-menu-rotation.md"]
-see: [rom/8eaf1e.md, rom/8eb02c.md, docs/disassembly/ui/ring-menu-rotation.md]
+see: [routines/ring_menu_rotate_previous_item.md, routines/mode7_flight_frame_engine.md, docs/disassembly/ui/ring-menu-rotation.md]
 ---
 Increments the selected item index in the active ring menu category (`DP $95`):
 1. Increments `category->active_index` (`+$02`); wraps around to `0` if `>= item_count`.

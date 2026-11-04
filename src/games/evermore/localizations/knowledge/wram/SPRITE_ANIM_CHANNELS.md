@@ -9,7 +9,7 @@ lifetime: room
 confidence: confirmed
 tags: [sprites, animation, channels, oam]
 evidence: ["disasm: func_90CC1A room init clears channel active flags at $62A5, $62C5, $62E5, $6305, $6325, $6345, $6365, $6385 (stride $20, STZ +$1C)", "disasm: func_90CF3A populates 15 words ($7E:6289..$7E:62A6) for channel X*16 using source table Y+2..Y+30"]
-see: [src/games/evermore/localizations/knowledge/rom/90cc1a.md]
+see: [src/games/evermore/localizations/knowledge/routines/tile_family_animation_reset_and_init.md]
 ---
 256-byte array containing 8 32-byte (`0x20`) channel descriptors managing multi-frame dynamic sprite animation sequences (e.g. companion dog breed transformations, NPC motion, spell projectiles):
 - **Stride**: `$20` (32 bytes per channel descriptor).

@@ -8,7 +8,7 @@ lifetime: transition
 confidence: confirmed
 tags: [scripts, rooms, transition]
 evidence: ["script: written in 18 triggers of Room 61 (pipe maze) before load_map(PIPEMAZE_ROOMS)", "script: values range from 1 to 10 (0x0A)", "script: tested in Room 62 enter script ($94:B236..$94:B3C2) to dispatch player to specific outlet pads", "script: cleared to 0 upon landing at outlet steps ($94:B097, $94:B0AD)"]
-see: [knowledge/wram/SIMULATION_SCRATCH_A7.md, rom/94ac56.md]
+see: [knowledge/wram/SIMULATION_SCRATCH_A7.md, routines/pipe_fall_trajectory.md]
 ---
 Destination chute / pipe outlet identifier (1–10) used during transitions between Room 61 (`PIPEMAZE`) and Room 62 (`PIPEMAZE_ROOMS`).
 Assigned in Room 61 step-on triggers immediately before launching the pipe animation (`$94:AC56`) and calling `load_map()`. Room 62's enter script checks `PIPE_DESTINATION_ID` in a ladder of branches to place the party at the corresponding outlet tube. Reset to 0 once the player exits the chute.

@@ -9,7 +9,7 @@ title: Room 0x4B: Antiqua - Oglin cave
 confidence: confirmed
 tags: ["map","room","antiqua","lzss","lzss"]
 evidence: ["docs/map-format/rom-map.md §2 (Room 0x4B)"]
-see: ["rom/9ffde7.md"]
+see: ["routines/ROOM_POINTER_TABLE.md"]
 ---
 
 Compressed room data blob for **Room 0x4B** (Antiqua - Oglin cave). Dimensions: 106x125 tiles, 575 metatiles. Block 1: lzss, Block 2: markov (0x07), Block 3: lzss. Contains 32 object records, 50 step-on triggers, 32 B-triggers on collision planes [1].

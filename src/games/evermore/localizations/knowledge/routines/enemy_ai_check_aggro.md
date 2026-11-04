@@ -9,7 +9,7 @@ title: Enemy aggro filter pipeline (stamina check, RNG roll, bounding box proxim
 confidence: confirmed
 tags: [combat, enemy, ai, aggro]
 evidence: ["disasm: requires stamina +$2E >= $0400, rolls RNG < aggro_chance +$15, checks |dx| and |dy| against aggro_range +$13 via $8F:D6CE for Boy ($0F3E) and Dog ($0F40)", "docs: docs/entities/enemy_ai.md; clean C in docs/disassembly/entities/enemy-ai.md"]
-see: [rom/8fd34b.md, rom/8fcc5d.md]
+see: [routines/ai_chase.md, routines/recharge_entity_stamina.md]
 ---
 Multi-stage aggro detection pipeline:
 1. Stamina Gate: aborts immediately if entity stamina `+0x2E` is below `0x0400` (100%).

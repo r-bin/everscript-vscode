@@ -9,7 +9,7 @@ title: Enemy archetype animation sequence indices and palette assignment setup
 confidence: confirmed
 tags: [enemy, spawn, archetype, animation, palette, entities]
 evidence: ["disasm: 130 bytes at $8F:8D86..$8F:8E07; unpacks animation IDs from archetype template into entity slot registers +$34..+$3A, sets up direct page pointers, jumps to $90:BE4C"]
-see: [rom/8f8d80.md, rom/8f8e08.md, rom/8f8f22.md]
+see: [routines/enemy_spawn_archetype_unpack_and_bind.md, routines/enemy_spawn_archetype_unpack_and_bind_body.md, routines/entity_combat_hitbox_and_state_init.md]
 ---
 Enemy archetype animation and appearance initialization routine:
 - Reads animation sequence indices from the archetype record at `$008E,Y`.

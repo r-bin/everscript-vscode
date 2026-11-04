@@ -8,7 +8,7 @@ title: NMI indirect callback dispatcher and RTI stack restore tail
 confidence: confirmed
 tags: [engine, nmi, trampoline, interrupt]
 evidence: ["disasm: PHK / PEA $84C0 / JML [$0125] / REP #$30 / PLD / PLY / PLX / PLA / PLB / RTI (out/recomp/asar/banks/bank_C0.asm:2150)"]
-see: [src/games/evermore/localizations/knowledge/rom/80823a.md, src/games/evermore/localizations/knowledge/rom/808460.md]
+see: [src/games/evermore/localizations/knowledge/routines/nmi_handler.md, src/games/evermore/localizations/knowledge/routines/nmi_count_hdma_and_wait_for_joypad_read.md]
 ---
 NMI exit sequence and user VBLANK callback dispatcher:
 - Invokes far hook vector `$7E:0125` using indirect JML (`JML [$0125]`) with return address `$80:84C0` pushed onto stack via `PEA`.

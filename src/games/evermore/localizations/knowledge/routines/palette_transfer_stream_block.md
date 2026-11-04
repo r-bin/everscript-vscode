@@ -8,7 +8,7 @@ name: palette_transfer_stream_block
 title: Palette Transfer Stream Block to CGRAM Buffer
 confidence: confirmed
 evidence: ["disasm: $80:A100 copies color stream data from $0007,y into WRAM CGRAM shadow buffer $7E:7339..$7E:734F ready for VBLANK transfer"]
-see: [rom/80a16e.md, rom/80a2e0.md, engine-core/screen-effects.md]
+see: [routines/palette_cgram_buffer_commit.md, routines/load_weather_preset_parameters.md, engine-core/screen-effects.md]
 ---
 Streams dynamic palette color records into WRAM:
 - Copies color words into CGRAM shadow buffer `$7E:7339`–`$7E:734F`.

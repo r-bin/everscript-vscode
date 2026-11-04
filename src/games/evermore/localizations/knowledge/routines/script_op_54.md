@@ -9,7 +9,7 @@ title: Script opcode 0x54
 confidence: confirmed
 tags: [script-vm]
 evidence: ["disasm: operand byte is converted to window record $034D + n*$2C; clears that record through $8C:ADE5, then calls $8C:C55D to resume queued dialogue; returns carry set", "evs: text-window operand and default-window setup in in/core/[group] 02_functions/[group] 02_everscript_commands/06_strings.evs"]
-see: [docs/scripts/opcodes.md, rom/8cd967.md, rom/8cc55d.md, docs/disassembly/script-vm/cutscene-scheduler.md]
+see: [docs/scripts/opcodes.md, routines/script_window_record_operand.md, routines/cutscene_dialogue_activate.md, docs/disassembly/script-vm/cutscene-scheduler.md]
 ---
 Handler of script opcode [0x54](soe://rom/assets/scripts/opcodes/54.md). It resolves the indexed window record through `$8C:D967`, closes it through `$8C:ADE5`, activates the next queued dialogue through `$8C:C55D`, and returns carry set. The host-side model is documented in `docs/disassembly/script-vm/opcode-54-text-end.md`.
 

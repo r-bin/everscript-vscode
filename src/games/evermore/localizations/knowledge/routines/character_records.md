@@ -8,7 +8,7 @@ title: Character records — 142 × 74 bytes, the fields the game reads and what
 confidence: confirmed
 tags: [entities, tables, sprites]
 evidence: ["scan: every long-indexed read `op $8E00xx,x` in the ROM, grouped by field (v0.283.0, redone and every reader disassembled v0.340.1: docs/entities/character-properties.md)", "disasm: $8F:B0B8-$8F:B16D (spawn: +$05 → entity +$10, +$0F → +$2A, +$11 → +$2C, +$17 → +$40 unless $23DD, the record address → +$60)", "disasm: $90:8240-$90:8317 (animation choice: +$32 still, +$34 moving, +$36 running, +$38-$3E by the charge at +$2E, +$46), $90:8124 (start through $C4:0000)", "disasm: $90:CCF6 (+$0B / +$09 palettes), $8F:B472 / $8F:B4AE (+$0D radius, overlap test $8F:B4AB), $8C:89FD (+$00 name pointer → text)", "cdl: every reader marked code below ran in the vanilla library; the bank $91 effect handlers were not recorded", "rom: the ENEMY table's ROM entries are record 0-141, all 74 bytes apart"]
-see: [rom/8eb55a.md, rom/8fb4ab.md, rom/908124.md, rom/90cd80.md, rom/8f81c9.md, docs/entities/character-properties.md]
+see: [routines/enemy_index.md, routines/test_entity_pair_overlap.md, routines/anim_start_record.md, routines/sprite_palette_allocator.md, routines/boy_load_weapon.md, docs/entities/character-properties.md]
 ---
 The record the game builds an entity from. Its address (bank `$8E`) comes from the ENEMY table
 `$8E:B55A`; the new entity keeps it at `+$60`, and later code reads the record through that. The

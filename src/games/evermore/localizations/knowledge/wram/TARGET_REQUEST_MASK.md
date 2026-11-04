@@ -8,7 +8,7 @@ lifetime: unknown
 confidence: likely
 tags: [entities, targeting, ui]
 evidence: ["disasm: every bit below is tested by target_candidate_filter $8C:8658-$8C:8718", "disasm: the list builders $8C:8719-$8C:87EC set $0100 and, for two or more targets, $0001; $8C:879B returns $2000 in the carry", "read: $8C:89DF and $8C:8A25 show 'Multiple' / refuse a multi-target when $0001 is set"]
-see: [rom/8c8658.md, rom/8c8719.md]
+see: [routines/target_candidate_filter.md, routines/target_list_builders.md]
 ---
 The rules a caller sets before asking for targets: which kinds of entity count, whether they
 must be on screen, alive or dead. The builders also write back whether the result is one

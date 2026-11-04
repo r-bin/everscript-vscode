@@ -9,7 +9,7 @@ title: Script opcode 0x2e — wait for an entity, the text box or the camera
 confidence: confirmed
 tags: [script-vm]
 evidence: ["disasm: evaluates one operand; < $2000: bit $0100 → state 10 (vs $0FAE), 1 → state 8 ($2429), 2 → state 12 (camera); an entity pointer: state 6 on its busy bits (+$6C/$3C1A or +$88/+$8A)", "trace: the thread resumes on a later tick decided by the engine (scheduler.test.js feeds the traced durations)", "decomp: fully decompiled in docs/disassembly/script-vm/sleep-wait.md"]
-see: [docs/disassembly/script-vm/sleep-wait.md, rom/8ccffd.md]
+see: [docs/disassembly/script-vm/sleep-wait.md, routines/script_scheduler_pass.md]
 ---
 Handler of script opcode [0x2E](soe://rom/assets/scripts/opcodes/2e.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/2e.md`, served at `soe://rom/assets/scripts/opcodes/2e.md`.
 

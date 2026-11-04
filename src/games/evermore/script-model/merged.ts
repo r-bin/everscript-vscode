@@ -1,7 +1,7 @@
 // Ownership: a script as one listing with what it calls merged in — read the way the interpreter
 // runs it (docs/scripts/vm.md, "Flow"). Pure.
 //
-// When each runs is the scheduler's (knowledge rom/8ccffd.md): a call puts the callee in the
+// When each runs is the scheduler's (knowledge routines/script_scheduler_pass.md): a call puts the callee in the
 // caller's place in the same pass, so its body follows the call line. A start (`call_async`)
 // appends a thread to the run list and the starter carries on; the new thread first runs once the
 // starter's turn is over, so its body follows the next line that ends the turn — a sleep, a

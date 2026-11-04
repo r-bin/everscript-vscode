@@ -9,7 +9,7 @@ title: Master armlet and bracer equipment Defense Power rating progression table
 confidence: confirmed
 tags: [equipment, armlet, bracer, defense, stats, table]
 evidence: ["disasm: 168 bytes at $8C:946D..$8C:9514 containing 84 16-bit word defense ratings; indexed by armlet ID by character_defense_and_buff_rebuild ($8F:840C)"]
-see: [routines/tbl_8C9437.md, rom/8c8f39.md, rom/8c938f.md]
+see: [routines/tbl_8C9437.md, routines/tbl_armor_defense_power.md, routines/tbl_helmet_defense_power.md]
 ---
 Master armlet and bracer defense lookup table holding 84 16-bit words (`0x001F, 0x0020, 0x0021, 0x0022...`). Queried during arm gear equipping in `character_defense_and_buff_rebuild` (`$8F:840C`) to apply bracer protection bonuses.
 

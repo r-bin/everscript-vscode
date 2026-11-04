@@ -9,7 +9,7 @@ title: Master dialogue string key index table continuation
 confidence: confirmed
 tags: [strings, dialogue, index, table]
 evidence: ["binary data: 2,258 × 3-byte string pointer descriptors with bit 23 compression flag, continuing tbl_string_key_table through index 3001 to $91:F32F (out/recomp/asar/banks/bank_D1.asm:9920)"]
-see: [src/games/evermore/localizations/knowledge/rom/91d000.md]
+see: [src/games/evermore/localizations/knowledge/routines/STRING_KEY_INDEX.md]
 ---
 Continuation of the master dialogue and narration string key directory:
 - Contains 2,258 3-byte descriptors (6,776 bytes total) representing string keys 744 through 3,001.

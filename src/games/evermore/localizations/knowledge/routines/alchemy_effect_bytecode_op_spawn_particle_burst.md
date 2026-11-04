@@ -9,7 +9,7 @@ title: Alchemy effect script bytecode handler: spawn radial particle burst and a
 confidence: confirmed
 tags: [alchemy, script, bytecode, particles, projectile, fx]
 evidence: ["disasm: 133 bytes at $91:9A0F..$91:9A93; sets projectile duration timer at +$54,Y, advances script PC at +$14,Y by 12 bytes, initializes radial particle trajectories, returns with CLC; RTS at $91:9A93"]
-see: [rom/9199ec.md, rom/919a94.md, rom/919b27.md]
+see: [routines/alchemy_play_formula_sfx_from_table.md, routines/spell_projectile_spawn_and_velocity_init.md, routines/alchemy_effect_set_timer_and_destination.md]
 ---
 Alchemy formula animation script VM bytecode handler:
 - Sets projectile particle slot lifetime duration at `+$54,Y` to `$FFFF`.

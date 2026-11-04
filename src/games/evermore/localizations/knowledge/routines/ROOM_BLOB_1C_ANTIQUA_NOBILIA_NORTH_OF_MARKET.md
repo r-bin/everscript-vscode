@@ -9,7 +9,7 @@ title: Room 0x1C: Antiqua - Nobilia, North of Market
 confidence: confirmed
 tags: ["map","room","antiqua","lzss","lzss"]
 evidence: ["docs/map-format/rom-map.md §2 (Room 0x1C)"]
-see: ["rom/9ffde7.md"]
+see: ["routines/ROOM_POINTER_TABLE.md"]
 ---
 
 Compressed room data blob for **Room 0x1C** (Antiqua - Nobilia, North of Market). Dimensions: 64x28 tiles, 782 metatiles. Block 1: lzss, Block 2: markov (0x07), Block 3: lzss. Contains 15 object records, 6 step-on triggers, 20 B-triggers on collision planes [1].

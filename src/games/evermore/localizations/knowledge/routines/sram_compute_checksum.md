@@ -8,7 +8,7 @@ name: sram_compute_checksum
 title: Compute Rotational 16-Bit SRAM Checksum
 confidence: confirmed
 evidence: ["disasm: $8D:B478 seeds checksum with 0x043F, iterates 815 bytes, alternates 8-bit additions with 16-bit 1-bit left rotate ASL A, returning final checksum in accumulator A"]
-see: [rom/8dc905.md, engine-core/save-system.md]
+see: [routines/sram_verify_all_save_slots.md, engine-core/save-system.md]
 ---
 Computes the 16-bit checksum for an 815-byte Secret of Evermore save game payload:
 - Initializes accumulator with seed `0x043F`.

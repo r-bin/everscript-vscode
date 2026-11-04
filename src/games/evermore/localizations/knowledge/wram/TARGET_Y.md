@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [scripts, movement, party]
 evidence: ["script: written by opcode 0x1B (write_tile_pair) in 30 room scripts alongside $23B9", "script: used by 18 rooms (68 occurrences) as target Y coordinate for walk_to() and teleport()", "script: paired with TARGET_X in Omnitopia room elevators, village teleports (R37), and vehicle drop cutscenes ($92:DD6E)"]
-see: [knowledge/wram/TARGET_X.md, rom/8cd76b.md]
+see: [knowledge/wram/TARGET_X.md, routines/script_op_1b_write_tile_pair.md]
 ---
 General-purpose target Y coordinate used by event scripts for positioning characters, NPCs, or vehicles.
 Often set as a pair with `$7E:23B9` (`TARGET_X`) via opcode `0x1B` (`write_tile_pair`), then referenced by `walk_to()` or `teleport()` commands.

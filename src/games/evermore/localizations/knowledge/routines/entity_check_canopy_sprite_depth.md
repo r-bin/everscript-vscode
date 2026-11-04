@@ -8,7 +8,7 @@ name: entity_check_canopy_sprite_depth
 title: Evaluate whether active entity is rendered in front of canopy layer ($8F:C75A)
 confidence: confirmed
 evidence: ["disasm: loads active entity slot <$4C into Y; evaluates canopy layer bit 12 via $8F:C773"]
-see: ["rom/8fc773.md"]
+see: ["routines/entity_sprite_depth.md"]
 tags: ["entity","layer","canopy","depth"]
 ---
 Evaluates whether active entity `<$4C>` is positioned in front of or behind the overhead canopy layer via `Sprite_in_front_of_canopy_bit_12_8FC773` (`$8F:C773`).

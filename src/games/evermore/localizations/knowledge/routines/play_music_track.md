@@ -9,7 +9,7 @@ title: Music track dispatcher & playback loader
 confidence: confirmed
 tags: [audio, music]
 evidence: ["disasm: saves song ID to $0E4D; sends APU cmd 0x1C (volume 0x8080); sends cmd 0x1A (silence); indexes table $81:9900 to find required soundbank; calls load_song_soundbank ($8C:8236); sends cmd 0x06 with song ID in Y to start track playback", "main-loop: invoked during room initialization and by Everscript music opcode 0x33"]
-see: [docs/disassembly/audio/spc-handshake.md, rom/8c81fd.md, rom/8c8236.md]
+see: [docs/disassembly/audio/spc-handshake.md, routines/apu_command_handshake.md, routines/load_song_soundbank.md]
 ---
 Top-level music track driver routine. Sets up stereo panning / master volume via APU command `0x1C`,
 mutes previous track playback via command `0x1A`, indexes ROM metadata at `$81:9900` to determine the

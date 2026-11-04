@@ -9,7 +9,7 @@ title: Render font glyph character into 2bpp dialogue window tile buffer
 confidence: confirmed
 tags: [ui, font, graphics]
 evidence: ["disasm: loads 1bpp/2bpp font glyph row from $C40000,x; calculates sub-pixel horizontal shift from (X & 7)*2, jumps through table $8C:A619 to shift glyph bits, blends into 2bpp tile buffer at $7F:A000, and loops for all glyph rows", "recomp: clean C in docs/disassembly/ui/dialogue-glyphs.md"]
-see: [rom/8ca753.md, rom/808650.md, rom/c40000.md, rom/c40c02.md]
+see: [routines/dialogue_glyph_stream_vram.md, routines/vram_dma_upload_tile_block.md, routines/dialogue_font_glyphs.md, routines/dialogue_font_widths.md]
 ---
 Rasterizes a character glyph into the dialogue window 2bpp VRAM staging buffer in Bank `$7F`:
 - Computes character index offset: `char_code - 0x20`.

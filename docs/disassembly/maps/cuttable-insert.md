@@ -3,7 +3,7 @@
 > **ROM Bank**: `$90` (`$90:A36D` – `$90:A41B`)  
 > **Source Module**: `maps/cuttable-insert.c` / `maps/cuttable-insert.h`  
 > **Recomp Symbols**: `func_D0A36D_M0X0`, `func_D0A36D`  
-> **Confirmed Knowledge**: `rom/90a36d.md`, `rom/90a3ac.md`  
+> **Confirmed Knowledge**: `routines/map_object_state_step_interpolator.md`, `routines/map_terrain_cut_queue_insert_entry.md`  
 > **Hardware / Engine Dependencies**: Room Blob Section 3 Object Pointer Table (`$0FA2`), Object State Records pointer `[$AA]`, Minimap Radar Blip Updater (`$90:A5BA`), VRAM Tile & Map Metatile Grid Mutator (`$90:A5D0`)  
 
 ---

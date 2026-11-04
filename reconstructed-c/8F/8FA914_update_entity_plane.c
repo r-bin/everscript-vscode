@@ -1,5 +1,5 @@
 /*
- * $8F:A914 update_entity_plane (knowledge/rom/8fa914.md), RTL, 16-bit accumulator.
+ * $8F:A914 update_entity_plane (knowledge/routines/update_entity_plane.md), RTL, 16-bit accumulator.
  *
  * In: A = a metatile collision word. Out: the entity plane word in DP $44.
  *  - bits $2040 clear: $44 = A & $0030 (plane bits 5..4);

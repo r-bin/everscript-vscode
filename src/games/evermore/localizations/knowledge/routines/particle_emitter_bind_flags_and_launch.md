@@ -8,7 +8,7 @@ name: particle_emitter_bind_flags_and_launch
 title: Bind particle attribute flags $10 and launch emitter ($90:D506)
 confidence: confirmed
 evidence: ["disasm: sets particle flags <$02> = <$02> | $10; branches to emitter launch entry $90:D513; callers: VFX spawner $91:C5AE"]
-see: ["rom/91c5ae.md"]
+see: ["routines/alchemy_vfx_spawn_particle_with_palette.md"]
 tags: ["particle","emitter","launch","flags"]
 ---
 Saves registers, sets particle attribute flags `<$02> = <$02> | $10`, and branches to particle emitter launch entry point `$90:D513`.

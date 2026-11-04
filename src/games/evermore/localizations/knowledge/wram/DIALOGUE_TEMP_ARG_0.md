@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [scripts, market, dialogue]
 evidence: ["script: written in 62 market stall interaction triggers across Room 10 (Nobilia market) and Room 123 (Ivor Tower stalls)", "script: values 0 to 0x21 match market commodity item IDs in $92:CDCA", "script: read by $92:CDB3 (not enough items dialogue) and $92:CDBE (received item dialogue) via $92:CDCA"]
-see: [rom/92cdb3.md, rom/92cdbe.md, rom/92cdca.md]
+see: [routines/market_dialogue_not_enough_items.md, routines/market_dialogue_received_item.md, routines/market_dialogue_print_commodity_name.md]
 ---
 Market commodity / trading item index (values 0–0x21) passed to common market vendor dialogue routines.
 Assigned by vendor B-triggers in Nobilia (Room 10) and Ivor Tower (Room 123) before calling `$92:CDB3` ("You don't have enough [item]!") or `$92:CDBE` ("You received [item]!"). Dispatch routine `$92:CDCA` reads `MARKET_ITEM_ID` and displays the localized name of the corresponding trade commodity (pots, rice, spice, beads, chicken, tapestries, etc.).

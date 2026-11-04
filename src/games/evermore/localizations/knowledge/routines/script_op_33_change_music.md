@@ -9,6 +9,6 @@ title: Script opcode 0x33 changes music
 confidence: confirmed
 tags: [script-vm, audio]
 evidence: ["disasm: vanilla VFS at $8C:D6D6 fetches the operand byte, sends $1A/0, disables $4200, sends $2A/$00A0 then $2C/0 through $8C:81FD, uses the operand as a raw byte offset into signed words at $8C:8442, skips negative results, conditionally calls $8C:828F, restores $4200 from $0E6B, and returns carry set", "opcode table: $8C:E923 maps opcode 0x33 to $8C:D6D6"]
-see: [docs/disassembly/script-vm/opcode-33-change-music.md, rom/cc8442.md, rom/8c828f.md]
+see: [docs/disassembly/script-vm/opcode-33-change-music.md, routines/MUSIC_TRANSLATION_TABLE.md, routines/play_music_track.md]
 ---
 The operand byte is used directly as the byte offset into the signed word table at `$8C:8442`; the handler does not scale it. Negative entries leave the song unchanged after the preceding APU setup commands.

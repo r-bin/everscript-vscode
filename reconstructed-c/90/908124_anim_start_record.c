@@ -1,5 +1,5 @@
 /*
- * $90:8124 anim_start_record (knowledge/rom/908124.md), RTL, 16-bit A and X.
+ * $90:8124 anim_start_record (knowledge/routines/anim_start_record.md), RTL, 16-bit A and X.
  *
  * In: X = an animation's offset into the $C4 animation table, Y = an entity record (DB-relative).
  * An entry ($C4:0000+X) is a word and a byte. Bit 15 of the word after it ($C4:0002+X) asks for

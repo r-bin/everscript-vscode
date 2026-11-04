@@ -9,7 +9,7 @@ title: Evaluate diagonal Manhattan projection distance |dx +/- dy|
 confidence: confirmed
 tags: [maps, math, vector, manhattan]
 evidence: ["disasm: tests sign parity (dx ^ dy), calculates sum |dx+dy| on opposite signs or difference |dx-dy| on same signs, and returns absolute value in Accumulator", "c: G1 passed (tools/c-to-rom/g1.mts, v0.351.0): the bound C equals the ROM on 33 entry states sampled from the 2:20 no-input reference and 528 fuzzed ones; snes9x agrees with the interpreter on 33; a mutation is caught"]
-see: [docs/disassembly/maps/ramp-elevation.md, rom/8fa963.md, rom/8fa999.md]
+see: [docs/disassembly/maps/ramp-elevation.md, routines/elevation_vector_shear_step.md, routines/elevation_compass_direction_resolve.md]
 ---
 Evaluates the diagonal projection distance across sign quadrants:
 - Calculates $|\Delta X + \Delta Y|$ when signs differ.

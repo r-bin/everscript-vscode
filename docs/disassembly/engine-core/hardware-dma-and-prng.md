@@ -3,7 +3,7 @@
 > **ROM Bank**: `$80` (`$80:8597` – `$80:864F`)  
 > **Source Module**: `engine-core/hardware-dma-and-prng.c` / `engine-core/hardware-dma-and-prng.h`  
 > **Recomp Symbols**: `func_C08597_M0X0`, `random_number_generator_M0X0`, `func_C085D8_M0X0`, `func_C085FA_M0X0`  
-> **Confirmed Knowledge**: `rom/808597.md`, `rom/80859b.md`, `rom/8085d8.md`, `rom/8085fa.md`, `rom/808650.md`  
+> **Confirmed Knowledge**: `routines/joypad_acknowledge_or_clear_buttons.md`, `routines/random_number_generator.md`, `routines/wait_for_frame_and_prep_input_filter.md`, `routines/cgram_palette_dma_enqueue_or_immediate.md`, `routines/vram_dma_upload_tile_block.md`  
 > **Core Subsystems**: 64-Bit Multi-Word Fibonacci/Galois PRNG, Controller Button Edge Clear (`TRB $0104`), Dual-Mode CGRAM Palette Transfer (Direct PPU vs 32-Slot Deferred DMA Queue)  
 
 ---

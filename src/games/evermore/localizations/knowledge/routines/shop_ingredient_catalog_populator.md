@@ -9,7 +9,7 @@ title: Scan player ingredient satchel and populate shop buy catalog
 confidence: confirmed
 tags: [shop, alchemy, inventory, ui]
 evidence: ["disasm: loops 8 times reading ingredient inventory at $7E:2315,x; extracts shop item records from $C4:5AAE,x; populates display slot array at $0BA5,y; counts valid offers in $0BA1; clamps cursor index $0BA3", "trace: executed when opening vendor alchemy buy screen"]
-see: [docs/disassembly/ui/shop-catalogs.md, docs/disassembly/ui/shop-system.md, rom/8e9bc1.md, rom/8e9ca1.md]
+see: [docs/disassembly/ui/shop-catalogs.md, docs/disassembly/ui/shop-system.md, routines/shop_load_catalog.md, routines/shop_populate_sell_list.md]
 ---
 Scans the player's 8 alchemy ingredient inventory slots at `$7E:2315,x`, looks up vendor records
 from master table `$C4:5AAE,x`, populates the active shop buy offer array at `$7E:0BA5,y`, tracks

@@ -8,7 +8,7 @@ name: sign_extend_camera_delta_vector
 title: Camera displacement vector byte-to-word sign extender ($80:DB8D)
 confidence: confirmed
 evidence: ["disasm: sign-extends 8-bit low byte of X delta $14A8 into 16-bit signed integer (AND #$00FF if positive, ORA #$FF00 if negative); repeats sign extension for Y delta $14AA; caller: $80:DB04"]
-see: [rom/80db04.md]
+see: [routines/apply_rotated_camera_translation_step.md]
 tags: [math, camera, vectors]
 ---
 Sign-extends the 8-bit displacement components of camera translation vector `$14A8` (dx) and `$14AA` (dy) into 16-bit signed integers, preserving proper polarity for subpixel map position accumulators.

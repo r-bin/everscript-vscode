@@ -1,5 +1,5 @@
 /*
- * $90:9FC9 camera_deadzone_window_filter (knowledge/rom/909fc9.md), RTS, 16-bit A.
+ * $90:9FC9 camera_deadzone_window_filter (knowledge/routines/camera_deadzone_window_filter.md), RTS, 16-bit A.
  *
  * In: A = the target x, Y = the target y; DP $BF / $C1 = the camera x / y. Each axis keeps the
  * camera within a window: left/top edge $7E:240F / $7E:2413, width/height $7E:2411 / $7E:2415,

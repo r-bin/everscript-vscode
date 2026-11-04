@@ -1,5 +1,5 @@
 /*
- * $80:859B random_number_generator (knowledge/rom/80859b.md), RTL. Gate: see the knowledge entry.
+ * $80:859B random_number_generator (knowledge/routines/random_number_generator.md), RTL. Gate: see the knowledge entry.
  *
  * Four words of state at DB:$0133..$013A (RNG_STATE). Four times: rotate one word left through
  * carry, carry out bumps the next word, then add another word with carry and store. The carry the

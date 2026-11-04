@@ -1,5 +1,5 @@
 /*
- * $8F:A999 elevation_compass_direction_resolve (knowledge/rom/8fa999.md), RTS, 8-bit accumulator.
+ * $8F:A999 elevation_compass_direction_resolve (knowledge/routines/elevation_compass_direction_resolve.md), RTS, 8-bit accumulator.
  *
  * One of four direction codes from the signs of dx = DP $12 and dy = DP $13:
  * dx < 0: dy < 0 -> $0E, else $0A; dx >= 0: dy < 0 -> $02, else $06.

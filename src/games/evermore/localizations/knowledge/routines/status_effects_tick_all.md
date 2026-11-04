@@ -8,7 +8,7 @@ name: status_effects_tick_all
 title: Status Effects Per-Frame Tick Dispatcher
 confidence: confirmed
 evidence: ["disasm: $91:BC28 increments tick counter $0FB2, strips bit 15 (recency flag), and dispatches through master jump table JMP ($AE31,X)"]
-see: [rom/91b632.md, rom/91b9a7.md, combat/status-effects.md]
+see: [routines/status_effect_apply.md, routines/status_effect_cure_and_remove.md, combat/status-effects.md]
 ---
 Dispatches active status effect timer countdowns and per-frame logic:
 - Increments frame counter `$0FB2`.

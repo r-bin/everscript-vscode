@@ -3,7 +3,7 @@
 > **ROM Bank**: `$90` (`$90:A5BA` – `$90:A5CF`)  
 > **Source Module**: `ui/minimap-blip-sync.c` / `ui/minimap-blip-sync.h`  
 > **Recomp Symbol**: `bank_90_A5BA_M0X0`, `bank_90_A5BA`  
-> **Confirmed Knowledge**: `rom/90a5ba.md`, `rom/90a4a6.md`, `rom/80858c.md`  
+> **Confirmed Knowledge**: `routines/hud_minimap_vram_blit_flush_loop.md`, `routines/hud_minimap_vram_blit.md`, `routines/wait_for_nmi.md`  
 > **Core Subsystems**: Minimap Radar HUD Display, Hardware VRAM DMA Pacing, VBLANK Synchronization (`$80:858C`)  
 
 ---

@@ -9,7 +9,7 @@ title: Evict and steal sprite palette slot 4 when dynamic pool is exhausted
 confidence: confirmed
 tags: [sprites, palettes, eviction, cgram]
 evidence: ["disasm: overwrites slot 4 entry in $7E:0DE0 with new asset ID; invokes queue_cgram_palette_dma ($80:8640) to upload 16 colors into CGRAM palette 12 during VBLANK", "trace: executed when dynamic sprite palette capacity is exceeded"]
-see: [docs/disassembly/entities/palette-allocator.md, rom/90cd80.md]
+see: [docs/disassembly/entities/palette-allocator.md, routines/sprite_palette_allocator.md]
 ---
 Evicts slot 4 from the dynamic palette pool when all slots are occupied,
 overwriting `$7E:0DE0 + 4*2` with the incoming palette asset ID and queueing

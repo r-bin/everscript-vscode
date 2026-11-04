@@ -9,7 +9,7 @@ title: Script opcode 0xB7: stop a palette cycle
 confidence: confirmed
 tags: [script-vm]
 evidence: ["disasm: evaluates and pushes the palette expression, calls $8C:E899, restores the original expression into X with PLX, clears the word at $7E:13D2,X, and returns Carry Set", "disasm: $8C:E899 transforms A for palette-source selection; B7 indexes cycle speed with the untransformed expression (v0.320.1)"]
-see: [rom/90d50f.md, docs/scripts/vm.md, docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-b7-palette-cycle-stop.md]
+see: [routines/palette_cycle_setup.md, docs/scripts/vm.md, docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-b7-palette-cycle-stop.md]
 ---
 Handler of script opcode [0xB7](soe://rom/assets/scripts/opcodes/b7.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/b7.md`, served at `soe://rom/assets/scripts/opcodes/b7.md`.
 

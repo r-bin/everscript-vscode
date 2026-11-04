@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import { hex, REPO } from '../c-to-rom/emu.mts';
-import { runs, type ByteDiff, type Region, type TargetResult, type Write, type WriteSplit } from './diff.mts';
+import { runs, SOUND_FIELDS, type ByteDiff, type Region, type TargetResult, type Write, type WriteSplit } from './diff.mts';
 
 const require = createRequire(import.meta.url);
 const FPS = 60.0988;
@@ -50,6 +50,17 @@ export function routineAt(pc: number): string {
 const pcText = (pc: number) => `$${(pc >> 16).toString(16).toUpperCase().padStart(2, '0')}:${(pc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0')}`;
 const b2 = (v: number) => v.toString(16).toUpperCase().padStart(2, '0');
 
+/** Each region's result over the run, and where it differed. */
+function regionLines(run: RunInfo, t: TargetReport): string[] {
+    const L = ['| region | keys that differ | of | first | runs |', '|---|---|---|---|---|'];
+    run.regions.forEach((r, j) => {
+        const x = t.result.byRegion[j];
+        const text = x ? x.runs.slice(0, 12).map(([a, b]) => a === b ? `${a}` : `${a}-${b}`).join(', ') + (x.runs.length > 12 ? `, … (${x.runs.length} runs)` : '') : '';
+        L.push(`| ${r} | ${x?.differing ?? 0} | ${t.result.compared} | ${x?.runs[0][0] ?? '—'} | ${text} |`);
+    });
+    return L;
+}
+
 export interface SetupInfo { label: string; backend: string; rom: string }
 
 export interface Detail {
@@ -94,7 +105,7 @@ function detailLines(d: Detail): string[] {
     out.push(`Where: ${spans.join(', ')}${d.diffs.length < d.total ? ' …' : ''}`, '');
     out.push('| offset | name | reference | target |', '|---|---|---|---|');
     for (const x of d.diffs.slice(0, 32))
-        out.push(`| ${hex(d.region === 'wram' ? 0x7E0000 + x.offset : x.offset, d.region === 'wram' ? 6 : 4)} | ${d.region === 'wram' ? ramName(x.offset) : ''} | ${b2(x.a)} | ${b2(x.b)} |`);
+        out.push(`| ${hex(d.region === 'wram' ? 0x7E0000 + x.offset : x.offset, d.region === 'wram' ? 6 : 4)} | ${d.region === 'sound' ? SOUND_FIELDS[x.offset >> 2] : d.region === 'wram' ? ramName(x.offset) : ''} | ${b2(x.a)} | ${b2(x.b)} |`);
     if (d.total > 32) out.push(`| … | ${d.total - 32} more | | |`);
     return [...out, ''];
 }
@@ -120,6 +131,7 @@ export function report(run: RunInfo, targets: TargetReport[]): string {
     L.push('');
     for (const t of targets) {
         L.push(`## ${t.setup.label} (${t.setup.backend}, \`${t.setup.rom}\`)`, '', summaryLine(run, t), '');
+        if (run.keepGoing && run.regions.length > 1) L.push(...regionLines(run, t), '');
         const f = t.result.first;
         if (!f) continue;
         L.push(`First divergence between ${keyText(run.align, f.lastGood)} and ${keyText(run.align, f.key)}. Bytes at ${keyText(run.align, f.key)}:`, '');

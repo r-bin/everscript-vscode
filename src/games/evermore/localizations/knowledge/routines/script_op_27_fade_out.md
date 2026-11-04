@@ -9,7 +9,7 @@ title: Script opcode 0x27 fades out
 confidence: confirmed
 tags: [script-vm, screen, fade]
 evidence: ["disasm: vanilla VFS at $8C:DC10 writes $8000 to $0B83, then returns SEC", "opcode table: $8C:E90B maps 0x27 to $8C:DC10 with no operands"]
-see: [docs/disassembly/script-vm/opcode-27-fade-out.md, rom/8cdc18.md, rom/8cdc35.md, knowledge/wram/AUDIO_TARGET_VOLUME.md, knowledge/wram/JOYPAD1_TRIGGERED.md]
+see: [docs/disassembly/script-vm/opcode-27-fade-out.md, routines/script_op_26_fade_in.md, routines/script_op_90_fade_to.md, knowledge/wram/AUDIO_TARGET_VOLUME.md, knowledge/wram/JOYPAD1_TRIGGERED.md]
 ---
 The handler requests a stepped fade to brightness zero and continues execution in the current script turn.
 

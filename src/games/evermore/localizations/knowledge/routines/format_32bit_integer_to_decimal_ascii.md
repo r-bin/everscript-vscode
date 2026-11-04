@@ -9,7 +9,7 @@ title: 32-Bit / Multi-Byte Integer to Decimal ASCII String Formatter
 confidence: confirmed
 tags: [text, ascii, math, decimal, dialogue]
 evidence: ["disasm: tests high word $04 and low word $02; if both zero, stores ASCII '0' ($0030) directly to destination pointer [$22], sets length Y=1, advances write cursor X=$22+1, and returns; otherwise calls $80:B283 to decompose 32-bit integer into BCD digits, formats characters into buffer [$22] suppressing leading zeroes, advances pointer X and returns formatted character length in Y", "callers: oracle_render_target_stats_card ($8E:8A1D), dialogue_format_and_append_line ($8C:9E03), window_text_layout_align ($8C:A4FE), expand_current_amount_in_text ($8C:D5AA), shop_vendor_buy_commit ($8E:9E98), script_op_7e ($8C:D5AA), combat_award_exp ($8F:C300) and 4 more"]
-see: [rom/80870c.md, rom/8caf2b.md, docs/disassembly/ui/dialogue-glyphs.md]
+see: [routines/format_16bit_integer_to_decimal_digits.md, routines/window_tilemap_buffer_init.md, docs/disassembly/ui/dialogue-glyphs.md]
 ---
 Converts an unsigned 32-bit (or 24-bit currency/experience) integer stored in Direct Page registers `$02` (low word) and `$04` (high word) into an ASCII decimal digit character string written to destination far pointer `[$22]`:
 - Tests if input value is zero (`LDA $02; ORA $04`). If zero, directly writes single ASCII digit `'0'` (`$0030`), sets string length `Y = 1`, advances destination write cursor `X = $22 + 1`, and returns via `RTL`.

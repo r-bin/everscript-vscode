@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [camera, map, room]
 evidence: ["disasm: the room header reader $90:8F80 sets $23E9 = $23EB = 0, $23ED = width x 16, $23EF = height x 16 (v0.369.0)", "disasm: $90:94AB clamps the camera view between $23E9 and $23ED - 256, $23EB and $23EF - 224 (docs/disassembly/engine-core/camera-system.md)", "script: enter scripts write them as pairs (opcode tile pair), e.g. Strong Heart's hut outside $94:E611 (0, 0) and $94:E618 (320, 256), the room's own size"]
-see: [rom/908f80.md, rom/9094ab.md]
+see: [routines/room_header_reader_to.md, routines/camera_center_and_clamp.md]
 ---
 | offset | size | name | meaning |
 |---|---|---|---|

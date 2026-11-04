@@ -8,7 +8,7 @@ name: dialogue_window_check_cursor_in_rect_a
 title: Evaluate whether dialogue cursor position is within rectangle A ($8C:D037)
 confidence: confirmed
 evidence: ["disasm: compares cursor coords $0B19..$0B1B against bounds +$05,Y and +$07,Y; jumps to $8C:D096 if inside bounds"]
-see: ["rom/8cd096.md"]
+see: ["routines/dialogue_window_compare_text_buffer_pages.md"]
 tags: ["dialogue","cursor","rect","bounds"]
 ---
 Checks whether current dialogue cursor `$0B19..$0B1B` is within bounding box `+$05,Y` and `+$07,Y`. If within bounds, jumps to handler `FUN_8cd096` (`$8C:D096`).

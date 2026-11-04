@@ -9,7 +9,7 @@ title: Script opcode 0x59: fade the music out
 confidence: confirmed
 tags: [script-vm, graphics, fade]
 evidence: ["trace: the game ran 2 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)", "disasm: $9B = $F0, then $8C:8619 adds $9B to the volume $9A and sends sound driver command $28 (v0.320.0)"]
-see: [docs/scripts/opcodes.md, rom/8cdc87.md, docs/disassembly/script-vm/opcode-joypad-fade.md]
+see: [docs/scripts/opcodes.md, routines/script_op_58_music_fade_in.md, docs/disassembly/script-vm/opcode-joypad-fade.md]
 ---
 Handler of script opcode [0x59](soe://rom/assets/scripts/opcodes/59.md). Sets music-volume fade step `$7E:009B` to `$F0` (signed `-16`), calls `$8C:8619`, and returns carry set. The shared fade stepper updates volume and sends APU command `$28`. Host-side model: `docs/disassembly/script-vm/opcode-58-59-music-fade.md`.
 

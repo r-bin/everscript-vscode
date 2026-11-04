@@ -9,7 +9,7 @@ title: Equip or toggle unequip armor/weapon gear from ring menu
 confidence: confirmed
 tags: [ring_menu, equipment, inventory, combat]
 evidence: ["disasm: plays gear sfx 0x0012 via JSL $8C:82DC, reads master gear property word $C4:3894,x; if already equipped in $7E:0ABE, clears slot with TDC (toggle unequip); otherwise sets new gear ID in $0ABE; calls character_defense_and_buff_rebuild ($8F:8398) and refresh_hud_stat_blocks ($8F:857D)", "trace: executed on A button press over equipment ring menu items"]
-see: [docs/disassembly/combat/defense-buffs.md, rom/8f8398.md]
+see: [docs/disassembly/combat/defense-buffs.md, routines/character_defense_and_buff_rebuild.md]
 ---
 Equips or un-equips (via toggle logic when selecting an already equipped item)
 armor, collars, and weapons from the ring menu, immediately recalculating party

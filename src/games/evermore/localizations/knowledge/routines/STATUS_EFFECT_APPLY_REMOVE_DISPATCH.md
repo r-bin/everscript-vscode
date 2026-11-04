@@ -9,7 +9,7 @@ title: Master status effect tick and cleanup jump table
 confidence: confirmed
 tags: [combat, status-effects, dispatch, barrier, atlas, defend]
 evidence: ["disasm: master 8-byte status table indexed by status ID (0x00 Atlas, 0x08 Barrier, 0x10 Defend, 0x18 Reflect, 0x20 Speed); holds tick handler +0, cleanup handler +2, outline glow bit +4, and effect classification +6 (1 buff, 2 ailment); dispatched by $91:BC28 and $91:B7FA", "docs/disassembly/combat/status-effects.md", "docs/5-status-effects-bug.md", "docs/disassembly/combat/defense-barrier.md"]
-see: [rom/91bc28.md, rom/91b632.md, rom/91b137.md, docs/disassembly/combat/defense-barrier.md]
+see: [routines/status_effects_tick_all.md, routines/status_effect_apply.md, routines/defend_status_buff_boost_stats.md, docs/disassembly/combat/defense-barrier.md]
 ---
 Master status effect dispatch table in Bank `$91`:
 - 8 bytes per status entry:

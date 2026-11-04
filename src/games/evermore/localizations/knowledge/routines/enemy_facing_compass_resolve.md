@@ -9,7 +9,7 @@ title: Resolve angular displacement vector into 8-directional compass facing hea
 confidence: confirmed
 tags: [ai, movement, math]
 evidence: ["disasm: shifts angle DP $02 right by 3; masks with $0007; multiplies by 2 via ASL to index 8-direction facing vector table"]
-see: [docs/disassembly/entities/enemy-spawn-matrix.md, rom/8f8ccb.md]
+see: [docs/disassembly/entities/enemy-spawn-matrix.md, routines/entity_hitbox_bounds_array_init.md]
 ---
 Maps an angular heading or target delta vector into an 8-way directional enum (`North`, `Northeast`,
 `East`, `Southeast`, `South`, `Southwest`, `West`, `Northwest`) for enemy sprite facing selection and

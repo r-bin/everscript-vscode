@@ -9,7 +9,7 @@ title: Sound effect distance volume attenuation falloff curve
 confidence: confirmed
 tags: [audio, physics, math]
 evidence: ["disasm: audio_play_positional_sfx ($8C:8589) clamps distance penalty and queries $8C:84D4 to compute attenuated volume (0..255)", "data: 181 8-bit byte values ($8C:84D4..$8C:8588) scaling smoothly from full volume down to silent threshold"]
-see: [rom/8c8589.md, docs/disassembly/audio/positional-audio.md]
+see: [routines/audio_play_positional_sfx.md, docs/disassembly/audio/positional-audio.md]
 ---
 Master volume attenuation curve table for real-time 2D sound effect spatialization.
 Contains 181 8-bit unsigned bytes (181 bytes total, `$8C:84D4`..`$8C:8588`) defining logarithmic audio volume decay across screen-relative Euclidean distance:

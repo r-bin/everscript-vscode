@@ -84,16 +84,16 @@ new to us, not checked yet.
 | `$C4:3876–$C4:38E5` | words | Weapon-related word lists (per weapon kind, 3 levels) | lead |
 | `$C4:38E6` | 15 × 36 B | **Weapon record**: +0 attack power, +2 name pointer, +8..+1B animation ids (stand, walk, run, L0–L3 attack, dodge, recoil, yawn), +1E icon id | checked (ATK 10/20/30/50 … 200/350/800; icons 40,42,…,70) |
 | `$C4:3B02` | 40 × 10 B | **Armor record**: +0 defense, +4 name pointer | checked (four rising groups, e.g. 3,4,7,12,…,169) |
-| `$C4:3C92` | 212 words | Global animate() id → record | known (`rom/c43c92.md`) |
+| `$C4:3C92` | 212 words | Global animate() id → record | known (`routines/animate_id_records.md`) |
 | `$C4:3E3A` | ~1000 × 4 B | Animation records; the project names nearly every group (Boy per weapon and direction, each dog form, enemies, bosses, spell effects) | known table; the **names** are a lead for `names.json` / the Scripts tab |
 | `$C4:5A12`, `$C4:5A4E`, `$C4:5A75`, `$C4:5CC7` | 24-bit pointer lists (20, 13, 5, 22) | Alchemy/effect related, not named | lead |
 | `$C4:5C81`, `$C4:5E25` | 35 words each | One bit-field word per alchemy formula (two different tables) | lead |
 | `$C4:5D09` | 35 words | Alchemy formula name pointers | lead |
 | `$C4:5D51` | 35 words | Alchemy formula description pointers | lead |
-| `$C4:5DDF` | 35 words | Formula → its block in `$91` | known (`rom/c45ddf.md`) |
+| `$C4:5DDF` | 35 words | Formula → its block in `$91` | known (`routines/ALCHEMY_ANIM_MAP.md`) |
 | `$C4:601F` | 35 × 4 B | **Ingredient cost** per formula: type 1, type 2, amount 1, amount 2 | checked (amounts 1–3) |
 | `$CE:8100–$CE:863C` | 8 B entries | Ring-menu entries: name pointer, indirect animation pointer, ?, inventory count; grouped per ring | partly known (`docs/item-icons.md`) |
-| `$8E:B55A` | 143 words | Enemy id → record | known (`rom/8eb55a.md`) |
+| `$8E:B55A` | 143 words | Enemy id → record | known (`routines/enemy_index.md`) |
 | `$8E:B678` | 142 × 74 B | Character records (§4) | known; field names extend ours |
 | `$8F:936D` | 6 × 40 B | **Dog form record**: default standing animation, status icon, palette, aggro range, then animation ids (stand, walk, run, block, recoil, L0–L3 attack, sniff, sniff move, sleep, sit, own action, bark) | partly known (`docs/adding-animations.md`) |
 | `$8F:B090` | bytes | Bookmark "1 byte numbers" | in `tables.ts` |
@@ -123,7 +123,7 @@ decoders already read. Only these are useful leads:
 - **Alchemy blocks** ("Spell"): the project reads them as a **word-coded bytecode** (2-byte
   opcodes), not as plain records: `$18` sprite palette rotation, `$1C` background flash
   (palette, start intensity, target, step per frame), `$3A/$3C` add/remove a status, `$3E`
-  set a stat, `$4A` branch when the spell level is outside a range. Our `rom/9180a6.md` calls
+  set a stat, `$4A` branch when the spell level is outside a range. Our `routines/ALCHEMY_BLOCK_TABLE.md` calls
   the blocks "data, not 65816 code". The two readings agree: the blocks are not 65816, but they
   are probably a small interpreted language. **Worth checking first**: it would explain the
   animation ids at even offsets.
@@ -158,7 +158,7 @@ project agrees on all of these. New field names:
 
 Spot check: the first three records (the Boy, the Dog, …) have HP 30, 36, 1, the rest 0, which
 fits record templates for party members. `character-record.ts` now reads the record from the
-game's own code (v0.283.0, knowledge `rom/8eb678.md`); this table agrees with it.
+game's own code (v0.283.0, knowledge `routines/character_records.md`); this table agrees with it.
 
 ---
 
@@ -235,7 +235,7 @@ In order of value:
 1. **Alchemy blocks as bytecode** (§3): check the opcode reading against the cast in the
    emulator. It may turn `src/games/evermore/scripts-tab/model/alchemy.ts` from "undecoded" into a decoder.
 2. **New tables**: weapon, armor, ingredient cost, alchemy name/description pointers, dog form,
-   projectile, font widths. Each becomes a `knowledge/rom/<addr>.md` entry after a check of the
+   projectile, font widths. Each becomes a `knowledge/routines/<name>.md` entry after a check of the
    reader in the CDL (who loads it, with what stride).
 3. **Character record fields** (§4) into `character-record.ts` and its doc, citing the ROM
    check (done in v0.283.0).

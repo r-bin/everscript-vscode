@@ -9,7 +9,7 @@ title: Compute Chebyshev minimum coordinate displacement min(|dx|, |dy|)
 confidence: confirmed
 tags: [maps, math, vector, distance]
 evidence: ["disasm: computes absolute values |dx| and |dy| from DP $12/$13, compares magnitudes, and returns min(|dx|, |dy|) in Accumulator", "c: G1 passed (tools/c-to-rom/g1.mts, v0.351.0): the bound C equals the ROM on 40 entry states sampled from the 2:20 no-input reference and 640 fuzzed ones; snes9x agrees with the interpreter on 40; a mutation is caught"]
-see: [docs/disassembly/maps/ramp-elevation.md, rom/8fa97d.md, rom/8fa999.md]
+see: [docs/disassembly/maps/ramp-elevation.md, routines/elevation_manhattan_distance_eval.md, routines/elevation_compass_direction_resolve.md]
 ---
 Calculates the Chebyshev minimum coordinate distance $\min(|\Delta X|, |\Delta Y|)$:
 - Takes signed displacements in DP `$12` and `$13`.

@@ -9,7 +9,7 @@ title: Melee weapon strike hit test entry point
 confidence: confirmed
 tags: [combat, hitboxes, weapon]
 evidence: ["disasm: animation opcode 0x47 handler ($90:87BA) calls $8F:B5E6 with strike center $46/$48, size $3E/$40, plane $44", "decomp: fully decompiled in docs/disassembly/combat/strike-hittest.md"]
-see: [docs/disassembly/combat/strike-hittest.md, rom/8fb5f2.md, rom/8fb6a5.md]
+see: [docs/disassembly/combat/strike-hittest.md, routines/strike_projectile_hit_test_melee_enters_at.md, routines/attack_proc_dispatch.md]
 ---
 Melee weapon strike hit test entry point called by animation bytecode command `0x47`.
 Resolves the attacker's weapon action ID from master table `$8E:0030,x` into `$7E:0E9A`, then enters the general candidate hit test loop at `$8F:B5F2`.

@@ -9,7 +9,7 @@ title: Master per-frame entity physics scheduler, metatile cache, and gravity in
 confidence: confirmed
 tags: [physics, entity, actor, gravity, scheduler]
 evidence: ["disasm: updates step dither $7E:0F36 via table $8F:B090; iterates active entity linked list at $7E:3DDF; caches metatile collision word from $7F:0004 into +$3C,Y; calls gravity integration $8F:AFF5", "trace: executed every frame tick during exploration mode"]
-see: [docs/disassembly/maps/elevation-transfer.md, rom/8faff5.md, rom/8faf48.md]
+see: [docs/disassembly/maps/elevation-transfer.md, routines/gravity.md, routines/probe_metatile_collision.md]
 ---
 Master entity physics tick engine executed once per frame:
 1. Advances 4-step motion dither phase counter `$7E:0F36` via sequence table `$8F:B090`.

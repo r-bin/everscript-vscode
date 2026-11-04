@@ -8,7 +8,7 @@ lifetime: save
 confidence: likely
 tags: [map.quicksand_field, loot, flags]
 evidence: ["evs: B-triggers in rooms 0x59 and 0x5A test and set all eight bits as pickup claims; matching enter-script object-state operands use flag IDs 0xA0–0xA7", "disasm: generic save-flag handler maps IDs 0xA0–0xA7 to $7E:226C bits 0–7", "disasm: opcode 0x0C writes computed save flags; the loot handler reports success through $7E:22EA bit 0"]
-see: [docs/scripts/unnamed-memory-audit.md, docs/scripts/vm.md, knowledge/wram/ALCHEMY_KNOWN_FLAGS.md, knowledge/wram/GAMEPLAY_FLAGS_22EA.md, rom/8cd83e.md]
+see: [docs/scripts/unnamed-memory-audit.md, docs/scripts/vm.md, knowledge/wram/ALCHEMY_KNOWN_FLAGS.md, knowledge/wram/GAMEPLAY_FLAGS_22EA.md, routines/script_op_0c_set_flag.md]
 ---
 One save-persistent byte whose bits record pickup claims in Quicksand Field room scripts. The triggers test each bit before offering the reward and set it from the loot-success result, while enter scripts use the matching save-flag IDs to restore object state.
 

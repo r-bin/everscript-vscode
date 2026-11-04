@@ -1,5 +1,5 @@
 /*
- * $8F:9E77 companion_breadcrumb_fifo_insert_node (knowledge/rom/8f9e77.md), RTL, 16-bit A and X.
+ * $8F:9E77 companion_breadcrumb_fifo_insert_node (knowledge/routines/companion_breadcrumb_fifo_insert_node.md), RTL, 16-bit A and X.
  *
  * In: DP $4E = a follower record (X), Y = the byte offset where a 3-byte breadcrumb is to go.
  * rec[$3BFF] (the list end) grows by 3; n = old end - Y - 1. n >= 0: the n + 1 bytes from Y on move

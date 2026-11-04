@@ -22,7 +22,7 @@ What it got right, and what we keep:
   character" for the ring menu and the character handlers. Its hooks, as bus addresses (IPS
   offsets minus the `$200` header): the NMI pad read `$C0:847A` and the press-consume routine
   `$C0:8597` (`TRB $0104`; `knowledge/wram/JOYPAD1_HELD.md`); the character handlers in `$CF:CC77`–`$CF:D0A8`
-  (the companion AI's "am I controlled?" checks at `$CF:D05E`/`$CF:D0A8`, `rom/8fd0a8.md`); about
+  (the companion AI's "am I controlled?" checks at `$CF:D05E`/`$CF:D0A8`, `routines/ai_companion_dog.md`); about
   30 call sites in the ring menu and its sub-menus (`$CC`, `$CD`, `$CE`); a little code in `$C0:C5xx`–`$C0:CExx`
   and `$D0:82CE`; 2.5 KB of new code at `$F0:0000`; and the ROM grown to 4 MB.
 
@@ -33,7 +33,7 @@ and still need checking in the emulator:
 |---|---|---|
 | Only the camera character can leave a room or start some events | Exits, step-ons and several scripts key on the camera entity `$0F42` (`knowledge/wram/CAMERA_TARGET_ACTOR_PTR.md`) | §6: one *protagonist*, explicit rules for the others |
 | Non-camera character stuck behind an invisible exit tile after entering a room | It keeps its own position through the room load instead of being placed with the party | Place every character with the protagonist on room entry, ignore triggers for a few frames |
-| Pyramid: the other character freezes on a camera switch | A script halts the non-controlled character (`+$10` bit `$20`, `rom/8cf17c.md`) | Respect the halt flag: a halted character ignores its pad |
+| Pyramid: the other character freezes on a camera switch | A script halts the non-controlled character (`+$10` bit `$20`, `routines/select_switch_character.md`) | Respect the halt flag: a halted character ignores its pad |
 | Desert spin: Select locked out while the dog has the camera | Same halt flag on the switch | Leaving the game always hands the camera back; never trap the protagonist role |
 | Wrong player answers a question (fixed twice: space station, desert skeleton) | The game remembers the "last talker", the patch guessed it | §5: the player who triggered a dialog owns it |
 | Charge flash only on the camera character; charge stalls on a switch | Charge display and input are tied to `$0F42` | Per-character charge state, checked per phase |
@@ -50,9 +50,9 @@ Our state goes into confirmed free WRAM (§8) anyway.
 
 1. **Nobody joined = vanilla.** With only pad 1 in the game, the stored playbacks replay
    **WRAM-identical** to the vanilla ROM (`sample-playbacks` skill). Hooks on vanilla paths are
-   cycle-exact, as in the hotkey hack (`rom/8cf121.md` §Cycles, `snes-asm-asar-patching` §3.4).
+   cycle-exact, as in the hotkey hack (`routines/joypad_sequence_matcher.md` §Cycles, `snes-asm-asar-patching` §3.4).
 2. **No scripts from the NMI.** Scripts start only from the main loop through `$8C:CE5C`
-   (`rom/8cf17c.md`); the NMI only reads pads.
+   (`routines/select_switch_character.md`); the NMI only reads pads.
 3. **A halted character ignores its pad.** Cutscenes halt characters (`+$10` bit `$20`); scripted
    walks then always arrive, so a `wait` on them always ends.
 4. **Crash watchdog in tests.** Playbacks with random pad 2–4 input mixed in (join, leave, menu
@@ -75,7 +75,7 @@ Our state goes into confirmed free WRAM (§8) anyway.
 
 Pad 1 is always in the game. Leaving hands that player's character back to the AI, and the
 camera to the lowest joined pad if the leaving player had it. The join/leave check runs in the
-joypad matcher's place (`rom/8cf121.md`), not in the NMI.
+joypad matcher's place (`routines/joypad_sequence_matcher.md`), not in the NMI.
 
 **More than 2 players** needs a multitap (pads 2–5 on port 2). That is SNES hardware
 (`src/platform/`): two pads come from auto-read, the others from a manual serial read with IOBit
@@ -98,7 +98,7 @@ and it pauses only as long as a ring menu would.
   (§5), *camera mode* (§6).
 
 Rejected: a title-screen lobby (no drop-in), cycling with L/R in play (too easy to hit by
-accident; L/R already steer the dog, `rom/8fd0a8.md`).
+accident; L/R already steer the dog, `routines/ai_companion_dog.md`).
 
 ---
 

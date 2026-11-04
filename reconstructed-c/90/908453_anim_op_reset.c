@@ -1,5 +1,5 @@
 /*
- * $90:8453 anim_op_reset (knowledge/rom/908453.md), RTS, 8-bit A on entry and exit.
+ * $90:8453 anim_op_reset (knowledge/routines/anim_op_reset.md), RTS, 8-bit A on entry and exit.
  *
  * In: Y = the entity record (DB-relative), copied to X. Clears +$82, +$16, +$42, +$06, +$08, +$0A,
  * sets +$44 = $FFF0; when +$16 had bit 4, also clears +$2E and bit 9 of +$14.

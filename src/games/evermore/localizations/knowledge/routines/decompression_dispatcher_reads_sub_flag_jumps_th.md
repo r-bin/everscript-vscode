@@ -9,7 +9,7 @@ title: Master asset decompression dispatcher and method table router
 confidence: confirmed
 tags: [compression, decompression, assets, graphics]
 evidence: ["disasm: reads method byte sub_flag from stream [$04]; multiplies by 2; jumps through method table at $8C:98A1 (Method 0x00: raw copy $8C:98B1, Method 0x01: RLE, Method 0x02: Huffman, Method 0x03: LZSS $8C:98C9, Method 0x07: 2D Markov $8C:9B65)", "trace: entry point for decompressing map metatiles, dialogue blocks, and sprite graphics"]
-see: [docs/disassembly/engine-core/lzss-decompression.md, rom/8c98b1.md, rom/8c98c9.md]
+see: [docs/disassembly/engine-core/lzss-decompression.md, routines/method_0x00_raw_copy.md, routines/method_0x03_lzss_window.md]
 ---
 Master streaming asset decompression router: inspects the stream's leading
 method byte (`sub_flag`) and dispatches via jump table `$8C:98A1` to the appropriate

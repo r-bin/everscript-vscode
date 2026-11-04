@@ -8,7 +8,7 @@ title: Bugmuck shaft vertical fall transition
 confidence: confirmed
 tags: [movement, transition, bugmuck]
 evidence: ["scripts: Room 22 ($93:ba08, $93:ba18, etc.) calls $93:bc03 with destination waypoint (X, Y) in arg[4], arg[6]; commands walk_to_direct, plays FALL_1 / ACT1_FALL1 loop, and steps Y down by 4 pixels per frame until reaching target depth"]
-see: [knowledge/wram/TARGET_WAYPOINT_X.md, knowledge/wram/TARGET_WAYPOINT_Y.md, rom/93bb91.md, rom/93bc6a.md]
+see: [knowledge/wram/TARGET_WAYPOINT_X.md, knowledge/wram/TARGET_WAYPOINT_Y.md, routines/BUGMUCK_PIT_DROP_RIGHT.md, routines/BUGMUCK_PIT_DROP_LEFT.md]
 ---
 Shaft drop routine used across the Bugmuck pit chambers (Room 22).
 

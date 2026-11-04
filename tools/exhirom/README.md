@@ -21,7 +21,7 @@ The ROM defaults to the Evermore base ROM of the ROM library (`npm run roms`). A
 `convert.js` options:
 - `--fill ff|db` sets the byte for unused space (default `$FF`).
 - `--upper hardware|snes9x2005|fill` sets what `0x300000–0x3FFFFF` holds (default `hardware`; see
-  `knowledge/rom/80d113.md` for why that area is not free).
+  `knowledge/routines/row_table_low_bytes_from_bank_b0.md` for why that area is not free).
 
 `prove.js` finds the movies recorded on the same ROM (their `rom.sha256` header) and runs on all
 cores but one. It uses Mesen2 from `/Applications/Mesen.app` or `$MESEN`; `--no-mesen` skips it.

@@ -9,7 +9,7 @@ title: Resolve 4-way cardinal compass direction from signed displacement coordin
 confidence: confirmed
 tags: [maps, math, vector, heading]
 evidence: ["disasm: evaluates signs of dx (DP $12) and dy (DP $13), returns compass codes: North (0x0A), West (0x0E), East (0x06), South (0x02)", "c: G1 passed (tools/c-to-rom/g1.mts, v0.351.0): the bound C equals the ROM on 38 entry states sampled from the 2:20 no-input reference and 608 fuzzed ones; snes9x agrees with the interpreter on 38; a mutation is caught"]
-see: [docs/disassembly/maps/ramp-elevation.md, rom/8fa963.md, rom/8fa97d.md]
+see: [docs/disassembly/maps/ramp-elevation.md, routines/elevation_vector_shear_step.md, routines/elevation_manhattan_distance_eval.md]
 ---
 Resolves 4-way cardinal direction from signed vector displacement components:
 - Maps negative X to North (`0x0A`) or West (`0x0E`).

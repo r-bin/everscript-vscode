@@ -40,7 +40,7 @@ REPLAYS in the pause menu, "export bundle" in the CDL tab). The profile reaches 
 Per ROM, `emuGateRom` (`webview/emulator-profile.js`, at every boot) decides whether the ROM is
 the game's (`emuGameRom`, from the game's `gameDetectRom`; Evermore: Secret of Evermore (U) or built on it, its page file
 `games/evermore/emulator/webview/rom-game.js`, handed in by `host.js` `webviewFiles()`: header title and
-destination, any layout; `src/games/evermore/localizations/knowledge/rom/00ffc0.md`). Without a game (the
+destination, any layout; `src/games/evermore/localizations/knowledge/routines/CART_HEADER.md`). Without a game (the
 recorder) no ROM is. Only then: the overlays, VIEW's room and
 coordinates, the inspector click, OBJECTS / LOOT / CHEATS, the sound-source hook, the floating
 CDL gains, Start opening the menu; and in the full profile the script stack hook, the trace and

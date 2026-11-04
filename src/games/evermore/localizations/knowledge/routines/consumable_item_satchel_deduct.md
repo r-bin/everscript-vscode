@@ -9,7 +9,7 @@ title: Decrement consumable item quantity in satchel and handle inventory deplet
 confidence: confirmed
 tags: [inventory, item, ring-menu, shop]
 evidence: ["disasm: reads sub-item ID from descriptor field +0x06 (LSR A); decrements satchel count at $7E:231C,x; on zero calls $8E:9CA1 (shop_populate_sell_list) to rebuild ring menu; sets error flag in $05A9 and closes ring via $8E:AD67 if empty", "trace: executed when consuming an item or completing a sell transaction"]
-see: [docs/disassembly/ui/shop-transactions.md, docs/disassembly/ui/ring-menu.md, rom/8e9ca1.md]
+see: [docs/disassembly/ui/shop-transactions.md, docs/disassembly/ui/ring-menu.md, routines/shop_populate_sell_list.md]
 ---
 Decrements the consumable item count in player satchel `$7E:231C,x`. If the item count drops to
 zero, it invokes `$8E:9CA1` to dynamically rebuild the active carousel without empty slots, closing

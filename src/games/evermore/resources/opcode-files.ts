@@ -1,6 +1,6 @@
 // Ownership: `soe://rom/assets/scripts/opcodes/` — one page per script opcode byte, all 256: what the
 // opcode is (its entry, src/games/evermore/localizations/knowledge/opcodes/<xx>.md), what its handler
-// does (knowledge/rom/<handler>.md), its operands and flow and our name (src/games/evermore/script-vm
+// does (knowledge/routines/<name>.md), its operands and flow and our name (src/games/evermore/script-vm
 // spec), the bytes sharing its handler, and where scripts use it. Groups are `soe://tags/opcode.*`.
 // Pure apart from the ROM buffer it is handed.
 
@@ -123,7 +123,7 @@ function info(rom: Rom, op: number) {
         tableEntry: bus(TABLE + 2 * op), handler: bus(handler),
         handlerRegion: status === 'garbage' ? region(handler) : null,
         handlerTitle: e ? e.title : null, handlerDescription: e ? handlerDetails(e.body) : null,
-        knowledge: `soe://localization/knowledge/rom/${handler.toString(16)}.md`,
+        knowledge: e?.name ? `soe://localization/knowledge/routines/${e.name}.md` : `soe://localization/knowledge/routines/${handler.toString(16)}.md`,
         handlerAliases: aliases,
         behaviorEvidence: e ? e.confidence : 'undocumented',
         usage: {

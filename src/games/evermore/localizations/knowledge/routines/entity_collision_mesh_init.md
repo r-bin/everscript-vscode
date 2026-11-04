@@ -9,7 +9,7 @@ title: Initialize 64-byte entity bounding box and collision perimeter mesh
 confidence: confirmed
 tags: [physics, collision, combat]
 evidence: ["disasm: clears internal coordinate words in mesh buffer to 0; initializes minimum boundary extents to $FF00; initializes maximum boundary extents to $FFFF; jumps to $8F:90BE to finalize mesh registration"]
-see: [docs/disassembly/entities/enemy-spawn-matrix.md, rom/8f8ae4.md, rom/8f8ccb.md]
+see: [docs/disassembly/entities/enemy-spawn-matrix.md, routines/hud_stamina_meter_recharge_step.md, routines/entity_hitbox_bounds_array_init.md]
 ---
 Initializes the 64-byte collision bounding box mesh for actors and projectiles. Sets minimum extents to
 `0xFF00` and maximum extents to `0xFFFF` to prepare for subsequent tile collision and entity intersection tests.

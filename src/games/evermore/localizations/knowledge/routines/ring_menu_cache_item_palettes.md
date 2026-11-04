@@ -9,7 +9,7 @@ title: Pre-allocate CGRAM palettes for companion ring menu items
 confidence: confirmed
 tags: [ui, ring-menu, cgram, palettes]
 evidence: ["disasm: $8E:AEFD loops over category items at DP $95, queries $8E:8000, and calls palette allocator $90:CEED without streaming VRAM tiles", "docs/disassembly/ui/ring-menu-icons.md"]
-see: [rom/8eaebc.md, docs/disassembly/ui/ring-menu-icons.md]
+see: [routines/ring_menu_load_category_icons.md, docs/disassembly/ui/ring-menu-icons.md]
 ---
 Loops through the items in the companion category descriptor (`DP $95`), queries the master item table at `$8E:8000`, and pre-allocates CGRAM palette entries via `$90:CEED` for fast category switching.
 

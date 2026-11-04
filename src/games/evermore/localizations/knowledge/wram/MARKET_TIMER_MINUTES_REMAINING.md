@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [scripts, market, timer]
 evidence: ["script: calculated in $92:CC6C from frame_counter_low() - MARKET_TIMER_START_FRAME ($2513)", "script: values 15 down to 1 assigned based on 3600-frame (1-minute) intervals", "script: copied to STRING_PARAMETER_2 in $96:811A to warn player in market dialogue", "script: tested in Room 8 (square) enter script ($95:E25F..$95:E2CE) to alter town crowd and ambient reactions"]
-see: [knowledge/wram/VOLATILE_COUNTDOWN_TIMER.md, rom/92cc6c.md, rom/96811a.md]
+see: [knowledge/wram/VOLATILE_COUNTDOWN_TIMER.md, routines/market_timer_calculate_minutes_remaining.md, routines/market_vendor_timer_warning.md]
 ---
 Number of minutes remaining (from 15 down to 1) before the Nobilia Market session expires and the Vigor event triggers.
 Computed by routine `$92:CC6C`. Injected into market vendor warning dialogues (`$96:811A`) via `STRING_PARAMETER_2` to notify the player as time runs low, and tested by Room 8 (Nobilia square) scripts to change crowd NPC layouts and music tempo as the deadline approaches.

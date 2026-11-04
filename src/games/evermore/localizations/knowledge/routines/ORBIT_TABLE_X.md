@@ -8,7 +8,7 @@ name: ORBIT_TABLE_X
 title: Orbit table (x)
 confidence: confirmed
 evidence: ["read: the words at $80:8923 equal the sine table $80:88A3 shifted by 64 entries (256, 256, 256, 255 … 0 at entry 64, then negative) in the clean US ROM (v0.327.0)", "disasm: the orbit behaviour $90:DF44 reads x from $80:8923 + angle * 2 and y from $80:88A3 + angle * 2, angle 0..255 (src/games/evermore/maps/projectiles.ts)"]
-see: [rom/8088a3.md, src/games/evermore/maps/projectiles.ts]
+see: [routines/trig_sine_table.md, src/games/evermore/maps/projectiles.ts]
 ---
 The cosine. Not a table of its own: the sine table at `$80:88A3` read 64 entries (a quarter turn) further on,
 which is the cosine. The orbiting projectiles (the boomerang) take their x from here and their y

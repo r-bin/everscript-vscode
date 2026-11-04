@@ -9,6 +9,6 @@ title: Unpack spawn parameters and initialize entity record slots
 confidence: confirmed
 tags: [enemy, spawn, entity, combat, collision]
 evidence: ["vanilla disasm: extracts packed values from A, conditionally increments an indirect counter, initializes a record selected through $008E,Y, loops in $10-byte steps, copies three indexed words from $8F:9104/$8F:9124/$8F:9134, then JMPs to $8F:90BE"]
-see: [docs/disassembly/entities/enemy-archetype-spawn.md, rom/8f8d80.md]
+see: [docs/disassembly/entities/enemy-archetype-spawn.md, routines/enemy_spawn_archetype_unpack_and_bind.md]
 ---
 Body reached by the entry at `$8F:8D80`. The indexed table fields and entity-record offsets are documented as raw values because their higher-level meanings are not established by this routine's disassembly.

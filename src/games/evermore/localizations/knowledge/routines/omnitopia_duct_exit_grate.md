@@ -8,7 +8,7 @@ title: Omnitopia duct crawl exit animation and latch clear
 confidence: confirmed
 tags: [scripts, omnitopia, movement]
 evidence: ["script: walks Dog to exit, opens DUCT_ENTRANCE_GRATE_OBJECT, lowers Dog into room, closes grate, clears temp_flag[0, 0x01] = 0 (exited duct), unfreezes party", "script: called by 16 triggers in Room 72 (Metroplex tunnels)"]
-see: [knowledge/wram/ROOM_OBJECT_INDEX_A.md, rom/9ae40d.md]
+see: [knowledge/wram/ROOM_OBJECT_INDEX_A.md, routines/omnitopia_duct_enter_grate.md]
 ---
 Animates the Dog exiting a ventilation shaft grate into a corridor in Room 72 (Metroplex tunnels).
 Opens grate `DUCT_ENTRANCE_GRATE_OBJECT` (`$7E:24F9`), lowers the Dog down from the ceiling to floor level, closes the grate behind the Dog, and clears the in-duct state (`temp_flag[0, 0x01] = 0`).

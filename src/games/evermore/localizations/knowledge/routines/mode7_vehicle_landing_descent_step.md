@@ -9,7 +9,7 @@ title: Mode 7 vehicle landing approach glide descent step and perspective pitch 
 confidence: confirmed
 tags: [mode7, overworld, vehicle, animation, math]
 evidence: ["disasm: multiplies elevation scale by hardware multiplier $4202, divides by FOV depth $4204/$4206, writes quotient to pitch register $061B, sets descent altitude $0619 to 0x0028, runs frame tick (minimap, heading, physics, cockpit, OAM, VBLANK), settles altitude at 0x002A ($8E:B19A RTL)", "docs/disassembly/engine-core/mode7-landing.md"]
-see: [rom/8eb19b.md, rom/8eb1da.md, rom/8eb230.md, rom/8eb268.md, docs/disassembly/engine-core/mode7-landing.md]
+see: [routines/mode7_vehicle_landing_touchdown_stepper.md, routines/mode7_flight_ascent_step.md, routines/mode7_flight_horizon_perspective_math.md, routines/mode7_vehicle_takeoff_altitude_stepper.md, docs/disassembly/engine-core/mode7-landing.md]
 ---
 Coordinates the approach glide descent phase when preparing to land the Windwalker on the Mode 7
 overworld map:

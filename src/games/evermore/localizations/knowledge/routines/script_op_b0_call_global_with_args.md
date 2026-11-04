@@ -9,6 +9,6 @@ title: Script opcode 0xB0: call global script routine with evaluated arguments
 confidence: confirmed
 tags: [script-vm, opcode, global, call]
 evidence: ["disasm: evaluates expression arguments via JSR $D315; reads 8-bit global script ID; indexes master table at $92:8008 + 2*idx; sets Bank $92; invokes script_chain_call ($8C:D35C) to spawn thread and suspend caller", "trace: executed when invoking common engine globals such as money/inventory transactions"]
-see: [docs/disassembly/script-vm/callback-dispatch.md, rom/8cd331.md]
+see: [docs/disassembly/script-vm/callback-dispatch.md, routines/script_op_b3_call_back_far_with_args.md]
 ---
 Handler of script opcode [0xB0](soe://rom/assets/scripts/opcodes/b0.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/b0.md`, served at `soe://rom/assets/scripts/opcodes/b0.md`.

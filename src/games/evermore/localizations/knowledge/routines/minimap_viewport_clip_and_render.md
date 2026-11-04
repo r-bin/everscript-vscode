@@ -9,7 +9,7 @@ title: Clips field metatiles to radar window bounds and formats staging buffer
 confidence: confirmed
 tags: [minimap, hud, render, clipping, metatiles]
 evidence: ["disasm: tests field metatiles from $7F0000,X against transparent key in $12; clamps candidate cell coordinates $0FB8/$0FBA against radar window bounds $0F8C..$0F92; fuses low 5 bits with palette attribute mask in $0FB4; stores projected tile into VRAM staging buffer at $7E:11F4,Y with 128-byte ring wrap", "trace: executed during minimap tile refresh loop"]
-see: [docs/disassembly/ui/minimap-projection.md, docs/disassembly/ui/minimap-radar.md, rom/90a4a6.md]
+see: [docs/disassembly/ui/minimap-projection.md, docs/disassembly/ui/minimap-radar.md, routines/hud_minimap_vram_blit.md]
 ---
 Clips field metatiles from Bank `$7F` to the active radar window bounds (`$0F8C`..`$0F92`)
 and formats the output tile buffer with palette attribute bits from `$7E:0FB4`.

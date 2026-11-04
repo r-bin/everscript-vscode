@@ -9,7 +9,7 @@ title: Dialogue text line alignment and centering formatter
 confidence: confirmed
 tags: [text, ui, typography]
 evidence: ["disasm: compares measured line length with window bounds; tests bit 4 (0x10) for horizontal centering (width - length) / 2; tests bit 5 (0x20) for right-alignment; renders buffered characters via $8C:A4FE"]
-see: [docs/disassembly/ui/dialogue-glyph-streamer.md, rom/8c9e03.md, rom/8ca4fe.md]
+see: [docs/disassembly/ui/dialogue-glyph-streamer.md, routines/dialogue_format_and_append_line.md, routines/glyph_font_1bpp_unpacker.md]
 ---
 Calculates line alignment for dialogue boxes and menus. Evaluates window flags `+$12,Y` to apply horizontal
 centering (half-delta between window width and measured text length) or right-alignment, then loops through

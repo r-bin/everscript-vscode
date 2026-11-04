@@ -8,7 +8,7 @@ title: Fatal engine fault recovery and warm reset trampoline
 confidence: confirmed
 tags: [engine, recovery, reset, trap]
 evidence: ["disasm: STZ $0E65 / SEP #$20 / LDA #$50 / STA $2100 / STZ $4200 / STZ $0E6B / STZ $420C / REP #$30 / LDX #$1FFF / TXS / PEA $0001 / SEI / JML $808034 (out/recomp/asar/banks/bank_C0.asm:2160)"]
-see: [src/games/evermore/localizations/knowledge/rom/808020.md]
+see: [src/games/evermore/localizations/knowledge/routines/reset_handler.md]
 ---
 Fatal error recovery and warm system reset trampoline:
 - Clears the APU IPC mutex lock `$7E:0E65`.

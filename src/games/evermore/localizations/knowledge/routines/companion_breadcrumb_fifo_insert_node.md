@@ -9,7 +9,7 @@ title: Insert new waypoint node into FIFO buffer and shift existing nodes forwar
 confidence: confirmed
 tags: [entities, companion, fifo, breadcrumb, pathfinding]
 evidence: ["disasm: adds 3 bytes to tail offset in $3BFF,X, calculates remaining bytes, and performs 65816 MVP $7E,$7E block move to shift existing waypoint records upward to open an insertion slot", "c: G1 passed (tools/c-to-rom/g1.mts, v0.351.0): the bound C equals the ROM on 33 entry states sampled from the 2:20 no-input reference and 345 fuzzed ones; snes9x agrees with the interpreter on 33; a mutation is caught"]
-see: [docs/disassembly/entities/companion-breadcrumb-queue.md, rom/8f9e49.md, rom/8f9c24.md]
+see: [docs/disassembly/entities/companion-breadcrumb-queue.md, routines/companion_breadcrumb_fifo_delete_node.md, routines/companion_waypoint_prune_and_steer.md]
 ---
 Inserts a new breadcrumb waypoint into the companion's 15-node FIFO queue:
 - Increments the tail offset register (`$7E:3BFF,X`) by 3 bytes.

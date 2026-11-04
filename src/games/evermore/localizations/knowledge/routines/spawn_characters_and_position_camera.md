@@ -9,7 +9,7 @@ title: Center camera viewport and teleport Boy and Dog to spawn coordinates
 confidence: confirmed
 tags: [camera, entities, spawn, maps, script-vm]
 evidence: ["disasm: $8F:B434 clamps DP $46/$48 to map bounds via $90:9815, centers camera viewport via $8FA93B, teleports Boy ($7E:0F3E) and Dog ($7E:0F40) to spawn point via $8F:B458 / $8F:C2E4, and streams idle graphics to VRAM via $90:80CE", "docs/disassembly/script-vm/opcode-camera-room.md"]
-see: [rom/8fb458.md, rom/8cdb71.md, rom/8cdbb9.md, rom/8cdbf0.md, docs/disassembly/script-vm/opcode-camera-room.md]
+see: [routines/character_spawn_stream_vram.md, routines/script_op_22_load_map.md, routines/script_op_21_restart_room.md, routines/script_op_20_teleport_party.md, docs/disassembly/script-vm/opcode-camera-room.md]
 ---
 Initializes player and companion positioning upon room transitions, doorway warps, or script camera snaps:
 1. Clamps coordinates in DP `$46` (X) and DP `$48` (Y) to current map boundary limits via `$90:9815`.

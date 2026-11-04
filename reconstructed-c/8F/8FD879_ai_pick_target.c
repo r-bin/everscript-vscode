@@ -1,5 +1,5 @@
 /*
- * $8F:D879 ai_pick_target (knowledge/rom/8fd879.md, its tail 8fd8d2.md), RTS, 16-bit A and X.
+ * $8F:D879 ai_pick_target (knowledge/routines/ai_pick_target.md, its tail 8fd8d2.md), RTS, 16-bit A and X.
  *
  * In: Y = the AI's record (DB-relative). Picks which party member to go for: the one the camera
  * follows ($0F42), or the other one (record ^ $01BE, Boy <-> Dog) when it is active (rec[$2A] != 0)

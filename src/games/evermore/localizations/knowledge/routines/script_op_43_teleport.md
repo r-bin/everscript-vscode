@@ -9,7 +9,7 @@ title: Script opcode 0x43: teleport an entity
 confidence: confirmed
 tags: [script-vm]
 evidence: ["opcode table: $8C:E943 dispatches opcode 0x43 to $8C:E00D", "disasm: evaluates entity, X, and Y expressions; the latter two are stored in DP $46 and $48 before entering the shared tail at $8C:E01D", "disasm: shared tail skips when entity +$10 bit $0008 is set; otherwise it uses and clears nonnegative $23DB as the layer override for $8F:C2E4, or calls $8F:C2D1 when the override is negative"]
-see: [docs/disassembly/script-vm/opcode-42-43-teleport.md, docs/scripts/opcodes.md, rom/8fc2d1.md, rom/8fc2e4.md, docs/disassembly/entities/entity-position.md]
+see: [docs/disassembly/script-vm/opcode-42-43-teleport.md, docs/scripts/opcodes.md, routines/entity_set_position.md, routines/entity_set_position_with_z.md, docs/disassembly/entities/entity-position.md]
 ---
 Handler of script opcode [0x43](soe://rom/assets/scripts/opcodes/43.md). It evaluates pixel coordinates and uses the shared teleport tail. The host-side model is documented in `docs/disassembly/script-vm/opcode-42-43-teleport.md`.
 

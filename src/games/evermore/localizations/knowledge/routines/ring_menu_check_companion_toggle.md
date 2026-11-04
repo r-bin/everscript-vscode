@@ -9,7 +9,7 @@ title: Check controller button input to switch ring menu between Boy and Dog
 confidence: confirmed
 tags: [ui, ring-menu, companion, input]
 evidence: ["disasm: $8E:AE59 checks ring active flag $05AB, checks alternate character status (XOR 0x01BE) for dead/frozen bits (BIT #$1021), checks Select/X button input in $0104 ($0040), triggers audio switch $80:8597 and returns action code $0020", "docs/disassembly/ui/ring-menu-icons.md"]
-see: [rom/8eaebc.md, rom/8eae85.md, docs/disassembly/ui/ring-menu-icons.md]
+see: [routines/ring_menu_load_category_icons.md, routines/ring_menu_close_and_restore_screen.md, docs/disassembly/ui/ring-menu-icons.md]
 ---
 Checks controller input while the ring menu is open to determine if the player requested switching between the Boy and the Dog:
 1. Verifies that the ring menu modal state is quiescent (`$05AB & 1 == 0`).

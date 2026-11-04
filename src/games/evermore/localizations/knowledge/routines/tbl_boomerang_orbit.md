@@ -9,7 +9,7 @@ title: Boomerang and curved projectile elliptical orbit displacement table
 confidence: confirmed
 tags: [projectiles, weapons, combat, math]
 evidence: ["disasm: func_90DF44 / projectile routine reads coordinate pairs at $90:DF44, indexed by orbit step 0..255", "math: coordinates correspond to X = cos * 8, Y = sin * 4 in 1/16th pixel precision"]
-see: [src/games/evermore/localizations/knowledge/rom/8088a3.md]
+see: [src/games/evermore/localizations/knowledge/routines/trig_sine_table.md]
 ---
 Elliptical orbital trajectory table for curved projectiles (such as the Boomerang).
 Holds 256 word pairs (`[int16_t x, int16_t y]`, 1,024 bytes total) representing sub-pixel offsets from projectile origin.

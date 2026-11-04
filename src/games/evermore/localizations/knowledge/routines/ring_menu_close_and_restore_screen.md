@@ -9,7 +9,7 @@ title: Close ring menu, free VRAM window buffers, and restore display layers
 confidence: confirmed
 tags: [ui, ring-menu, graphics, cleanup]
 evidence: ["disasm: $8E:AE85 frees window buffers 0x0DEB and 0x0DDB via $90:80D2, restores HDMA window registers via $90:9876, resets audio via $8E:B520, restores sprites via $8E:B33D, resumes entity physics via $8F:C61E, and syncs VBlank via $80:858C", "docs/disassembly/ui/ring-menu-icons.md"]
-see: [rom/8eaebc.md, rom/8eae59.md, docs/disassembly/ui/ring-menu-icons.md]
+see: [routines/ring_menu_load_category_icons.md, routines/ring_menu_check_companion_toggle.md, docs/disassembly/ui/ring-menu-icons.md]
 ---
 Executes complete teardown and screen restoration when closing the ring menu:
 1. Deallocates dynamic circular window mask buffers (`0x0DEB`, `0x0DDB`) in VRAM via `$90:80D2`.

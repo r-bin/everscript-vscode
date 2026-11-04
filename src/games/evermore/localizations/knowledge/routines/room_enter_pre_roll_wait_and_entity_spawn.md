@@ -9,7 +9,7 @@ title: Pre-roll frame wait loop, Boy/Dog spawn script launcher, and room readine
 confidence: confirmed
 tags: [engine-core, room, script, spawn, lifecycle]
 evidence: ["disasm: tests and resets bits 1/2 of $7E:05A9, spawns script threads $8E:4E89 (Boy) and $8E:4F37 (Dog) via $8E:A091, calls per_frame_field_tick $8E:E41E, and loops until $7E:22EA bits 3, 4, 5 are all asserted", "trace: executed upon every map load and teleport transition"]
-see: [docs/disassembly/maps/room-spawn-align.md, rom/8ee4e2.md, rom/8ee562.md, rom/8ee592.md]
+see: [docs/disassembly/maps/room-spawn-align.md, routines/enter_room.md, routines/room_enter_readiness_latch.md, routines/room_transition_audio_fadeout_and_dsp_reset.md]
 ---
 Coordinates initial frame pre-roll and actor spawn script launching during room load. Tests trigger register `$7E:05A9`
 to spawn Boy (`$8E:4E89`) and Dog (`$8E:4F37`) initialization scripts via `$8E:A091`, advances physics through

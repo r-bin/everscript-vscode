@@ -9,7 +9,7 @@ title: Decompression Method 0x00: uncompressed raw block memory copy
 confidence: confirmed
 tags: [compression, raw, copy, assets]
 evidence: ["disasm: reads 16-bit uncompressed length word into DP $14; executes high-speed block copy reading from stream [$04],y and writing to destination [$00],y until Y >= length", "trace: executed when streaming uncompressed assets or raw graphics buffers"]
-see: [docs/disassembly/engine-core/lzss-decompression.md, rom/8c988d.md]
+see: [docs/disassembly/engine-core/lzss-decompression.md, routines/decompression_dispatcher_reads_sub_flag_jumps_th.md]
 ---
 Decompression Method `0x00`: handles uncompressed assets by reading the 16-bit
 length word and performing a raw block memory transfer from source ROM to

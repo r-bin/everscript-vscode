@@ -1,5 +1,5 @@
 /*
- * $8F:9E49 companion_breadcrumb_fifo_delete_node (knowledge/rom/8f9e49.md), RTL, 16-bit A and X.
+ * $8F:9E49 companion_breadcrumb_fifo_delete_node (knowledge/routines/companion_breadcrumb_fifo_delete_node.md), RTL, 16-bit A and X.
  *
  * In: DP $4E = a follower record (X), Y = the byte offset of the 3-byte breadcrumb to delete.
  * rec[$3BFF] (the list end) moves back by 3; n = end - Y - 1. n < 0: nothing to move (A = Y).

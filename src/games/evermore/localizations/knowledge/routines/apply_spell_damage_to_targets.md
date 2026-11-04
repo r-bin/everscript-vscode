@@ -9,7 +9,7 @@ title: Spell damage mitigation, target defense reduction, and hurtbox resolution
 confidence: confirmed
 tags: [combat, damage, formulas]
 evidence: ["disasm: iterates targets at slot+$2E; for players (>= $4E89) subtracts magic defense linearly; for enemies (< $4E89) multiplies power by (64 - MDef)/64 via Mode 7 multiplier $211B/$2135; clamps damage 1..999; calls inflict_actor_damage ($8F:C0D3) for HP loss and floating numbers; returns total damage in slot+$2A", "trace: verified across player and enemy target lists"]
-see: [docs/disassembly/combat/damage-mitigation.md, rom/91ccd8.md]
+see: [docs/disassembly/combat/damage-mitigation.md, routines/calc_spell_power_and_cast.md]
 ---
 Core combat damage mitigation and delivery routine for spell effects.
 Calculates net damage on each target in the spell's target list:

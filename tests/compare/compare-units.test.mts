@@ -3,7 +3,7 @@
 // Synthetic hash streams; no ROM, no core.
 // Run: node tests/compare/compare-units.test.mts
 import assert from 'node:assert';
-import { Tracker, combined, byteDiff, runs, firstDifferingWrites, type Write } from '../../tools/compare/diff.mts';
+import { Tracker, combined, byteDiff, runs, firstDifferingWrites, inOrder, ALL_RAM, REGION_SIZE, SOUND_FIELDS, SPC_SIDE, type Write } from '../../tools/compare/diff.mts';
 import { generateMesenLua } from '../../tools/compare/mesen.mts';
 import { parseArgs } from '../../tools/compare/compare.mts';
 import { nmiKey } from '../../tools/compare/game.mts';
@@ -50,6 +50,35 @@ test('keys up to the sync point are not compared', () => {
     assert.strictEqual(t.addTarget(0, 120, [2, 2]), false);
     assert.strictEqual(t.results[0].compared, 1);
     assert.strictEqual(t.results[0].first, null);
+});
+
+test('each region keeps its own result, as runs of keys', () => {
+    const t = new Tracker(1);
+    for (let k = 1; k <= 8; k++) t.addRef(k, [k, k]);
+    for (let k = 1; k <= 8; k++) t.addTarget(0, k, [k, [2, 3, 7].includes(k) ? 0 : k]);
+    const r = t.results[0];
+    assert.strictEqual(r.byRegion[0], undefined);
+    assert.strictEqual(r.byRegion[1].differing, 3);
+    assert.deepStrictEqual(r.byRegion[1].runs, [[2, 3], [7, 7]]);
+    assert.strictEqual(r.compared, 8);
+});
+
+test('runs of keys follow the stride', () => {
+    const t = new Tracker(1, -1, 60);
+    for (const k of [60, 120, 240]) { t.addRef(k, [k]); t.addTarget(0, k, [0]); }
+    assert.deepStrictEqual(t.results[0].byRegion[0].runs, [[60, 120], [240, 240]]);
+});
+
+test('a job hashes the CPU side first, whatever order it was asked in', () => {
+    assert.deepStrictEqual(inOrder(['sound', 'aram', 'picture', 'wram']), ['wram', 'picture', 'aram', 'sound']);
+    const order = inOrder([...ALL_RAM, 'picture', 'sound']);
+    assert.strictEqual(order.findIndex(r => SPC_SIDE.has(r)), order.length - 3);
+});
+
+test('the sound region is one 32-bit value a field', () => {
+    assert.strictEqual(SOUND_FIELDS.length, 190);
+    assert.strictEqual(new Set(SOUND_FIELDS).size, SOUND_FIELDS.length);
+    assert.strictEqual(REGION_SIZE.sound, 190 * 4);
 });
 
 test('byte diff skips ignored offsets and counts past the cap', () => {

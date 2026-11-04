@@ -9,7 +9,7 @@ title: Vendor shop item pricing, inventory count, and currency dialogue text for
 confidence: confirmed
 tags: [shop, dialogue, format, text, price, currency]
 evidence: ["disasm: 176 bytes at $8E:9FE1..$8E:A090; allocates CGRAM palette via $90:CEED ($0DF7), converts currency amount to decimal ASCII via $80:B21F, appends formatted string via $8C:9E03, jumps to $8E:A0DE"]
-see: [rom/8e9fa8.md, rom/8ea091.md, rom/8ea0b3.md, rom/80b21f.md, rom/8c9e03.md]
+see: [routines/shop_mode_catalog_loader.md, routines/conditional_setup_hook.md, routines/shopkeeper_dialogue_window_init.md, routines/format_32bit_integer_to_decimal_ascii.md, routines/dialogue_format_and_append_line.md]
 ---
 Vendor shop item price tag and currency string formatter:
 - Allocates an OAM icon palette slot via `palette_steal` (`$90:CEED`) and stores to `$0DF7`.

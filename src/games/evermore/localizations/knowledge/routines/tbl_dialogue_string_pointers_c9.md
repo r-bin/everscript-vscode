@@ -9,7 +9,7 @@ title: Master dialogue and lore string descriptor pointer table for Bank $C9 (67
 confidence: confirmed
 tags: [dialogue, strings, pointers, text, table]
 evidence: ["disasm: 268 bytes at $C4:588E..$C4:5999 containing 67 4-byte pointer descriptors [addr:16][bank:8][0] targeting uncompressed dialogue and lore strings in Bank $C9"]
-see: [routines/ALCHEMY_SCRIPT_POINTER_TABLE.md, rom/c44a76.md, rom/c460ab.md]
+see: [routines/ALCHEMY_SCRIPT_POINTER_TABLE.md, routines/tbl_item_icon_sprite_pointers.md, routines/tbl_weapon_item_lore_descriptions.md]
 ---
 Master string pointer directory holding 67 4-byte far pointers (`[addr:16][bank:8][0]`). References uncompressed dialogue strings, NPC conversation scripts, and item lore text stored across Bank `$C9`.
 

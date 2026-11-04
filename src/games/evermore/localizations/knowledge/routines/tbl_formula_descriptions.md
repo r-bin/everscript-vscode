@@ -9,7 +9,7 @@ title: Alchemy formula description text pointer table
 confidence: confirmed
 tags: [alchemy, formulas, text, ring-menu]
 evidence: ["disasm: menu text rendering routines read pointer table at $C4:5D51 (35 words) to locate zero-terminated ASCII formula descriptions", "data: 35 words pointing into description string pool in Bank $C4"]
-see: [src/games/evermore/localizations/knowledge/rom/c45d09.md]
+see: [src/games/evermore/localizations/knowledge/routines/ALCHEMY_FORMULA_TEXT.md]
 ---
 Table of 35 16-bit pointers within Bank `$C4` pointing to zero-terminated printable ASCII strings describing each alchemy formula.
 Rendered in the alchemy ring menu when highlighting a spell and displayed in the Data tab (Enums › Formulas).

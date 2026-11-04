@@ -9,7 +9,7 @@ title: Decrement alchemy ingredient in satchel and refresh catalog upon depletio
 confidence: confirmed
 tags: [inventory, alchemy, shop, ring-menu]
 evidence: ["disasm: reads sub-item ID from descriptor field +0x06; decrements satchel count at $7E:2315,x; on zero calls $8E:9C68 (shop_ingredient_catalog_populator) to refresh buy list; sets error flag in $05A9 and closes ring via $8E:AD67 if empty", "trace: executed when consuming or selling an alchemy ingredient"]
-see: [docs/disassembly/ui/shop-mode-selector.md, docs/disassembly/ui/shop-catalogs.md, rom/8e9c68.md, rom/8e9060.md]
+see: [docs/disassembly/ui/shop-mode-selector.md, docs/disassembly/ui/shop-catalogs.md, routines/shop_ingredient_catalog_populator.md, routines/consumable_item_satchel_deduct.md]
 ---
 Decrements the alchemy ingredient count in player satchel `$7E:2315,x`. If the ingredient count drops
 to zero, it invokes `$8E:9C68` (`shop_ingredient_catalog_populator`) to dynamically refresh the active

@@ -1,5 +1,5 @@
 /*
- * $90:8485 anim_op_mode (knowledge/rom/908485.md), RTS, 8-bit A on entry and exit.
+ * $90:8485 anim_op_mode (knowledge/routines/anim_op_mode.md), RTS, 8-bit A on entry and exit.
  *
  * rec + $16 (Y, DB-relative) = the word at the animation script pointer DP $5D (24-bit), which
  * steps by 2. Leaves A = the word, X = the new pointer, N Z from the INX.

@@ -8,6 +8,6 @@ title: Nobilia Market vendor closed dialogue
 confidence: confirmed
 tags: [market, dialogue]
 evidence: ["scripts: Room 10 trigger 23 ($96:9427) and multiple other vendor stalls call $96:8088 when MARKET_TIMER_EXPIRED is true, presenting standard stall closure text"]
-see: [rom/96811a.md, rom/9680ab.md]
+see: [routines/market_vendor_timer_warning.md, routines/market_vendor_random_chatter.md]
 ---
 Standard dialogue routine triggered across Nobilia Market vendors when interacting after the 15-minute market timer has expired (`MARKET_TIMER_EXPIRED`). Informs the player that trading is closed for the upcoming arena spectacle.

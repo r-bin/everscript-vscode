@@ -9,7 +9,7 @@ title: Byte-level synchronous transfer loop and port echo handshake for SPC700 d
 confidence: confirmed
 tags: [audio, spc700, handshake, stream, dsp]
 evidence: ["disasm: streams bytes from [$9C:$9E]; writes counter to $2140 and payload byte to $2141 in 16-bit write; waits for echo on $2140; advances bank boundary at $8000", "trace: called per byte block during IPL soundbank loading"]
-see: [docs/disassembly/audio/spc-block-uploader.md, rom/8c805c.md]
+see: [docs/disassembly/audio/spc-block-uploader.md, routines/spc700_ipl_bootloader_handshake_block.md]
 ---
 Low-level synchronous byte transfer loop for SPC700 block uploads.
 Transmits each byte by packing an 8-bit counter into port `$2140` and the payload byte into port `$2141`

@@ -8,8 +8,8 @@ name: ai_companion_dog_follow
 title: COMPANION_DOG past the controlled check: follow the Boy, then decide
 confidence: confirmed
 tags: [entities, ai]
-evidence: ["disasm: decompiled in full (v0.342.0): the part of $8F:D0A8 after `cpy $0F42`; follows the Boy by breadcrumbs ($8F:A78A) and goes on as described in rom/8fd0a8.md"]
-see: [rom/8fd0a8.md, docs/entities/ai-behaviours.md]
+evidence: ["disasm: decompiled in full (v0.342.0): the part of $8F:D0A8 after `cpy $0F42`; follows the Boy by breadcrumbs ($8F:A78A) and goes on as described in routines/ai_companion_dog.md"]
+see: [routines/ai_companion_dog.md, docs/entities/ai-behaviours.md]
 ---
 Not a routine of its own: the second instruction block of `COMPANION_DOG`.
 

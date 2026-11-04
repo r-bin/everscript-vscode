@@ -1,5 +1,5 @@
 /*
- * $8F:A97D elevation_manhattan_distance_eval (knowledge/rom/8fa97d.md), RTS, 8-bit accumulator.
+ * $8F:A97D elevation_manhattan_distance_eval (knowledge/routines/elevation_manhattan_distance_eval.md), RTS, 8-bit accumulator.
  *
  * Signed bytes dx = DP $12, dy = DP $13. Signs differ: |dx + dy|; signs match: |dx - dy|, in 8 bits
  * (the sum or difference wraps; a result of $80 stays $80). Leaves A low byte = the result; C and V

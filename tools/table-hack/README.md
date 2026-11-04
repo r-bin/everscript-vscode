@@ -48,7 +48,7 @@ hack:
 
 **The base image.** Every image is 4 MB. File `0x300000+` holds what the bundled core shows past a
 3 MB ROM (offset % size), so an image with nothing moved behaves exactly like the original in that
-core. That includes `$80:D113`'s read past the ROM (`knowledge/rom/80d113.md`).
+core. That includes `$80:D113`'s read past the ROM (`knowledge/routines/row_table_low_bytes_from_bank_b0.md`).
 
 ## The everscript test
 

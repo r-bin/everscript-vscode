@@ -9,7 +9,7 @@ title: Award formula experience on cast and evaluate level-up progression
 confidence: confirmed
 tags: [alchemy, progression, xp, combat, sound]
 evidence: ["disasm: fetches formula level from $7E:2F98,X, queries level XP table $C4:5B9C, adds gain to $7E:2F52,X, checks >= 100 threshold, subtracts 100 on overflow, increments level up to 9, and triggers level chime $80:B37A", "trace: executed immediately after spell launch in $91:CCD8"]
-see: [docs/disassembly/combat/alchemy-xp-growth.md, rom/91ce38.md, rom/c45b9c.md]
+see: [docs/disassembly/combat/alchemy-xp-growth.md, routines/alchemy_formula_calc_available_casts.md, routines/FORMULA_XP_PER_CAST.md]
 ---
 Awards alchemy formula experience following a successful spell cast. Reads current level from `$7E:2F98,X`, indexes
 gain table `$C4:5B9C` (`[10, 5, 4, 3, 2, 2, 1, 1, 1, 1]`), accumulates into `$7E:2F52,X`, and upon reaching 100 XP,

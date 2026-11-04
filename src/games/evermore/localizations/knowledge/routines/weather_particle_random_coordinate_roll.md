@@ -8,7 +8,7 @@ name: weather_particle_random_coordinate_roll
 title: Generate randomized ambient weather particle spawn coordinates ($91:C15B)
 confidence: confirmed
 evidence: ["disasm: advances circular offset $14FE by 4 (wrapping at $0100); queries RNG via $80:859B; writes random coordinate word into particle buffer $7E:2110,X; callers: weather tick $91:BE05"]
-see: ["rom/80859b.md","rom/91be05.md"]
+see: ["routines/random_number_generator.md","routines/ambient_weather_particles_frame_tick.md"]
 tags: ["weather","particle","rng","spawn"]
 ---
 Generates randomized ambient particle spawn coordinates. Advances circular buffer offset `$14FE` in steps of 4 (wrapping at 256 / `$0100`). Queries RNG (`$80:859B`) and writes random word into particle coordinate buffer `$7E:2110,X`.

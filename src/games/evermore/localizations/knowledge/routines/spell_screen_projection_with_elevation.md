@@ -9,7 +9,7 @@ title: Project 3D world coordinates with isometric Z elevation to screen space
 confidence: confirmed
 tags: [combat, alchemy, math, projection]
 evidence: ["disasm: adds projectile offset +$42,Y to world X +$1A,Y; subtracts camera X $59 into DP $02; inverts elevation Z +$1E,Y via EOR #$7FFF; shifts right 4; subtracts $0800; adds world Y +$1C,Y and offset Y +$44,Y; subtracts camera Y $5B into DP $04"]
-see: [docs/disassembly/combat/spell-collision.md, rom/8fc84c.md, rom/8fc86c.md]
+see: [docs/disassembly/combat/spell-collision.md, routines/spell_hit_target_bounding_box_test.md, routines/spell_multi_target_aoe_dispatcher.md]
 ---
 Transforms a projectile or spell particle from 3D world space $(X, Y, Z)$ into 2D viewport coordinates.
 Inverts the Z elevation coordinate (`EOR #$7FFF; LSR x4; SBC #$0800`) to compute isometric height

@@ -9,7 +9,7 @@ title: Companion Dog active entity slot initialization and WRAM character record
 confidence: confirmed
 tags: [entities, dog, companion, party, init]
 evidence: ["disasm: 163 bytes at $8F:8126..$8F:81C8; binds Dog character record $0A70 into party member slot $0B09/$0B0B, initializes companion AI tracking pointers, exits via RTL"]
-see: [rom/8f803c.md, rom/8f810e.md, rom/8f81c9.md, knowledge/wram/DOG_STATS.md]
+see: [routines/party_records_from_templates.md, routines/hud_portraits_init.md, routines/boy_load_weapon.md, knowledge/wram/DOG_STATS.md]
 ---
 Initializes the companion Dog's active world entity slot and combat records:
 - Binds party slot registers `$7E:0B09`, `$7E:0B0B`, `$7E:0B0D`, `$7E:0B0F` to the Dog's WRAM character record buffer at `$7E:0A70`.

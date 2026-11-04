@@ -9,7 +9,7 @@ title: Calculate 3D Euclidean distance attenuation and stereo panning for sound 
 confidence: confirmed
 tags: [audio, sfx, spc700]
 evidence: ["disasm: computes delta Y from camera Y $5B + $70; computes delta X from camera X $59 + $80; looks up squared distances in $80:AA27; cuts off at $3F01; calls square root routine $80:AC27; maps linear distance to attenuation table $8C:84D4; calculates left/right stereo pan; sends APU command $0036 via $8C:81FD"]
-see: [docs/disassembly/audio/sfx-arbitration.md, rom/8c81fd.md, rom/8c82dc.md]
+see: [docs/disassembly/audio/sfx-arbitration.md, routines/apu_command_handshake.md, routines/play_sound_effect_direct.md]
 ---
 Calculates 2D screen-space distance attenuation and left/right stereo panning for positional sound effects
 emitted by entities in the room. Uses precomputed squared table `$80:AA27` and square root function `$80:AC27`

@@ -9,7 +9,7 @@ title: Synchronize child entity position (shadow, held weapon, aux barrier bubbl
 confidence: confirmed
 tags: [entities, physics, child-entities, barrier, coordinates]
 evidence: ["disasm: $8F:A7D3 resolves child slot from active pool $7E:50A7, copies parent world coordinates X/Y/Z, preserves elevation layer plane, and calls $8F:C2E4 to re-evaluate tile collision and projection", "docs/disassembly/combat/defense-barrier.md", "docs/disassembly/entities/entity-position.md"]
-see: [rom/8fc2e4.md, rom/8fc2d1.md, docs/disassembly/combat/defense-barrier.md]
+see: [routines/entity_set_position_with_z.md, routines/entity_set_position.md, docs/disassembly/combat/defense-barrier.md]
 ---
 Synchronizes the 3D world coordinates and elevation layer plane of an attached child entity to its host parent:
 1. Resolves child pointer from the active entity pool at `$7E:50A7,X`.

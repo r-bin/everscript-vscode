@@ -97,7 +97,7 @@ call_return:
             plb
             rtl
 
-; void soe_stp(void): BRK, COP and STP all end in STP in this game (knowledge/rom/80885e.md)
+; void soe_stp(void): BRK, COP and STP all end in STP in this game (knowledge/routines/trap_cpu_stp.md)
 soe_stp:
             stp
 

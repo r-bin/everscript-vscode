@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [engine, triggers, scripts]
 evidence: ["disasm: engine routine $8F:B078 / $8F:ACCE divides entity pixel coordinates and saves context into $7E:2421..$7E:2427 before launching trigger scripts", "script: read in $94:AC56 as ACTIVE_CHAR_X = signed TRIGGER_INTERACTION_X << 4", "script: read in R16, R52, R7A"]
-see: [knowledge/wram/ENGINE_CONTEXT_SCRATCH_23.md, rom/8facce.md, rom/8fb078.md]
+see: [knowledge/wram/ENGINE_CONTEXT_SCRATCH_23.md, routines/scan_room_triggers.md, routines/bit_14_gate_before_step_on_search_current_trigge.md]
 ---
 Entity world pixel X position captured by the engine trigger scanner (`$8F:ACCE`, `$8F:B078`) at the moment a step-on or interaction trigger fires.
 Scripts read this context to identify exactly where the player was standing (e.g. `$94:AC56` shifts it left by 4 to convert from world pixels to 12.4 fixed-point trajectory coordinates).

@@ -9,7 +9,7 @@ title: Apply Defend / status buff stat boosts and configure countdown duration
 confidence: confirmed
 tags: [combat, status-effects, defend, buffs, stats]
 evidence: ["disasm: $91:B137 reads spell final power from +$2A, sets boost_param in status slot +$04, sets duration timer (3600 frames = 60s), sets outline glow bit 0x0002 in entity+$9A, and triggers character_defense_and_buff_rebuild via $8F:8398", "docs/disassembly/combat/defense-barrier.md", "docs/disassembly/combat/defense-buffs.md"]
-see: [rom/91ae31.md, rom/91b632.md, rom/8f8398.md, docs/disassembly/combat/defense-barrier.md]
+see: [routines/STATUS_EFFECT_APPLY_REMOVE_DISPATCH.md, routines/status_effect_apply.md, routines/character_defense_and_buff_rebuild.md, docs/disassembly/combat/defense-barrier.md]
 ---
 Applies defensive statistical boosts for Defend and related alchemy formulas:
 1. Reads calculated Final Power from spell slot `+0x2A`.

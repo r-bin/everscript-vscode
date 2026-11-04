@@ -9,7 +9,7 @@ title: 24-bit combat experience accumulator, level milestone test, and fanfare p
 confidence: confirmed
 tags: [combat, exp, progression, audio]
 evidence: ["disasm: adds awarded exp into 24-bit register $7E:0AC6,x (low word) and $7E:0AC8,x (high byte with carry); compares against milestone threshold $01F4; triggers fanfare via $80:B37A; renders floating 'LEVEL UP!' banner using string $8F:86FA via $80:B149; updates status meters via $80:B21F", "trace: executed upon defeating enemies in combat"]
-see: [docs/disassembly/combat/exp-level-up.md, rom/80b37a.md, rom/80b149.md]
+see: [docs/disassembly/combat/exp-level-up.md, routines/alloc_circular_hud_text_buffer_slot.md, routines/strcpy_24bit_pointers.md]
 ---
 Adds awarded enemy combat experience into the active character's 24-bit accumulator (`$7E:0AC6,x` and
 `$7E:0AC8,x`). If a level milestone threshold is reached, it triggers the level-up fanfare via `$80:B37A`,

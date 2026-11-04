@@ -9,7 +9,7 @@ title: Master music volume fade stepper and APU volume latch
 confidence: confirmed
 tags: [audio, spc700]
 evidence: ["disasm: checks DP $9B fade target, steps by rate $9A, on reaching max/min bounds clears $9B and sends APU master volume command $28 / $A9 ($8C:8657 RTL)", "docs/disassembly/audio/positional-audio.md"]
-see: [rom/8c81fd.md, rom/8c8589.md, docs/disassembly/audio/positional-audio.md]
+see: [routines/apu_command_handshake.md, routines/audio_play_positional_sfx.md, docs/disassembly/audio/positional-audio.md]
 ---
 Ticks the master music volume fade progression:
 - Tests Direct Page `$9B` (signed fade target).

@@ -4,7 +4,7 @@
 // Mesen and our snes9x core do not agree frame for frame (lag frames differ), so only runs inside Mesen are compared.
 // Trace: every frame the CRC of WRAM $0000-$01FF (DP, engine counters, stack); every 60 frames a hash of all WRAM,
 // VRAM, CGRAM and OAM and the room id ($7E0ADB); once, a "probe" line of bus reads that differ between HiROM and ExHiROM.
-// "probe d113 frame N" marks each run of $80:D113, the game's read past the original 3 MB (knowledge/rom/80d113.md);
+// "probe d113 frame N" marks each run of $80:D113, the game's read past the original 3 MB (knowledge/routines/row_table_low_bytes_from_bank_b0.md);
 // Mesen mirrors that area unlike the cartridge, so only runs that never reach it must match.
 // Power-on RAM is forced to zeros (--snes.ramPowerOnState=AllZeros): Mesen's default randomises it.
 'use strict';

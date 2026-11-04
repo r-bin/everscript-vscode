@@ -5,7 +5,7 @@ title: Invalid opcode (past the handler table)
 confidence: confirmed
 tags: ["opcode.invalid","opcode.unused"]
 evidence: ["disasm: $8C:D0A6 doubles the byte without a range check; the word at $8C:EA5B (code of the expression evaluator $8C:EA43) sends it to $8C:30C2"]
-see: ["rom/8cd0a6.md","rom/8cea43.md"]
+see: ["routines/script_vm_opcode_dispatch.md","routines/script_eval_expression.md"]
 ---
 The handler table ends at `0xC2`, and the dispatcher has no range check. For this byte it reads the word at `$8C:EA5B`, which is code of the expression evaluator. That word sends the CPU to `$8C:30C2`: hardware registers / open bus. That is not a handler.
 

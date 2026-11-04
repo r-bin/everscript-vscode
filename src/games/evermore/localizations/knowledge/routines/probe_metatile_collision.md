@@ -9,7 +9,7 @@ title: Composite 3-tier entity movement probe (Plane gate, Room bounds, Body col
 confidence: confirmed
 tags: [collision, map, physics, actor, elevation]
 evidence: ["disasm: checks flying flag bit 11 in +$10,Y; fetches cell collision word via $90:9815; validates plane gate via $8F:A946; tests viewport boundary $90:9561; evaluates actor body overlap via $8F:B4AB", "trace: called before every entity step and knockback movement"]
-see: [docs/disassembly/maps/elevation-transfer.md, rom/8fa906.md, rom/8fa946.md, rom/8fb4ab.md]
+see: [docs/disassembly/maps/elevation-transfer.md, routines/elevation_plane_update_bits_5_4_kept_on.md, routines/elevation_plane_transition_gate.md, routines/test_entity_pair_overlap.md]
 ---
 By the mover's `+$10` (re-read v0.342.1): `$0800` checks nothing; `$0400` only keeps it in view of
 the camera (`$90:9545`); `$0080` checks walls and room bounds but no bodies; otherwise walls, bounds

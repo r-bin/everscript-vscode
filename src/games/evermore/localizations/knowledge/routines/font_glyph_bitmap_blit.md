@@ -9,7 +9,7 @@ title: Unpack 1bpp font glyph into 2bpp/4bpp VRAM destination tile buffer
 confidence: confirmed
 tags: [text, ui, graphics, vram]
 evidence: ["disasm: subtracts 0x20 from glyph ASCII; loads glyph offset from $C4:0000; computes tile row stride via hardware multiplier $4202/$4216 using $0B3F; shifts 1bpp slices by sub-pixel X offset; blends into destination buffer at $7F0000 + $0B41"]
-see: [docs/disassembly/ui/dialogue-glyph-streamer.md, rom/8ca4fe.md]
+see: [docs/disassembly/ui/dialogue-glyph-streamer.md, routines/glyph_font_1bpp_unpacker.md]
 ---
 Rasterizes a 1bpp variable-width font glyph from ROM Bank `$C4` into the active 2bpp/4bpp tile buffer in
 WRAM/VRAM. Calculates planar tile offsets using hardware multiplication (`$4202` / `$4216`), shifts pixel

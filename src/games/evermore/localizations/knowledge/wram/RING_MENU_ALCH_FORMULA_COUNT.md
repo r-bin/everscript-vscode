@@ -8,6 +8,6 @@ lifetime: room
 confidence: confirmed
 tags: [ring-menu, alchemy, spells]
 evidence: ["disasm: func_8E9A2F ($8E:9A2F) scans learned formula bitmasks in $7E:2345..$7E:2346, writes formula IDs into $0C93,X, and increments count in $0C8F", "disasm: compares active cursor against $0C8F and stores into $0C91"]
-see: [knowledge/wram/RING_MENU_ALCH_SELECTION.md, rom/8e9a2f.md]
+see: [knowledge/wram/RING_MENU_ALCH_SELECTION.md, routines/ring_menu_usable_alchemical_formula_filter.md]
 ---
 16-bit count of learned alchemy formulas populated into secondary formula ring menu slots (`$7E:0C93`).

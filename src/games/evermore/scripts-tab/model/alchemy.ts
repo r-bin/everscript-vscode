@@ -2,7 +2,7 @@
 // block in bank $91 its cast runs from, and the animation records that block
 // names. Pure apart from the ROM buffer it is handed.
 //
-// Measured from the ROM (knowledge: src/games/evermore/localizations/knowledge/rom/c45ddf.md):
+// Measured from the ROM (knowledge: src/games/evermore/localizations/knowledge/routines/ALCHEMY_ANIM_MAP.md):
 //   ALCHEMY_ANIM_MAP ($C4:5DDF, 35 words) holds an even offset per formula
 //   into the word table at $91:80A6, whose entries are $91 addresses: the
 //   formula's block (the value the everscript enums call ALCHEMY_TYPE_*).

@@ -9,7 +9,7 @@
 //   soe://localization/tables/...           curated ROM tables
 //   soe://localization/functions/...        curated ROM routines
 //   soe://localization/strings/...          in-game dialog strings
-//   soe://localization/knowledge/{ram,rom}/ every knowledge entry: index.md (the generated RAM / ROM map),
+//   soe://localization/knowledge/{wram,routines}/ every knowledge entry: index.md (the generated RAM / ROM map),
 //                                           <addr>.md (the entry), <addr>.json (its fields)
 
 import * as fs from 'fs';
@@ -323,20 +323,23 @@ const hex6 = (n: number): string => hex(n, 6);
 const cell = (s: unknown): string => String(s == null ? '' : s).replace(/\|/g, '\\|').replace(/\s+/g, ' ');
 
 /** The RAM or ROM map, generated from the entries (one row each, in address order). */
-function knowledgeMapMarkdown(space: 'ram' | 'rom'): string {
-    const list = knowledgeEntries(space);
+function knowledgeMapMarkdown(space: string): string {
+    const actualSpace = (space === 'wram') ? 'ram' : ((space === 'rom' || space === 'routines') ? 'routines' : space);
+    const list = knowledgeEntries(actualSpace);
     const rows = list.map(e => `| [$${hex6(e.addr)}](${hex6(e.addr).toLowerCase()}.md) | ${e.end > e.addr ? `$${hex6(e.end)}` : ''} | ${cell(e.kind)} | ${cell(e.title)} | ${cell(e.confidence)} |`);
-    return [`# ${space.toUpperCase()} map: what is known`, '',
-        `${list.length} knowledge entries (src/games/evermore/localizations/knowledge/${space}/). Generated; edit the entries.`, '',
+    const title = actualSpace === 'ram' ? 'RAM' : 'ROM';
+    const folder = actualSpace === 'ram' ? 'wram' : 'routines';
+    return [`# ${title} map: what is known`, '',
+        `${list.length} knowledge entries (src/games/evermore/localizations/knowledge/${folder}/). Generated; edit the entries.`, '',
         '| Address | End | Kind | What | Confidence |', '|---|---|---|---|---|', ...rows, ''].join('\n');
 }
 
 function knowledgeRoute(rest: string[]) {
     const [space, name, ...more] = rest;
     if (more.length) return null;
-    if (space === undefined) return dir([['ram', 'dir'], ['wram', 'dir'], ['rom', 'dir']], () => '# Knowledge entries\n\n- [RAM](ram/index.md)\n- [WRAM](wram/index.md)\n- [ROM](rom/index.md)\n');
-    if (space !== 'ram' && space !== 'wram' && space !== 'rom') return null;
-    const actualSpace = space === 'wram' ? 'ram' : space;
+    if (space === undefined) return dir([['ram', 'dir'], ['wram', 'dir'], ['rom', 'dir'], ['routines', 'dir']], () => '# Knowledge entries\n\n- [RAM](ram/index.md)\n- [WRAM](wram/index.md)\n- [ROM](rom/index.md)\n- [Routines](routines/index.md)\n');
+    if (space !== 'ram' && space !== 'wram' && space !== 'rom' && space !== 'routines') return null;
+    const actualSpace = (space === 'wram') ? 'ram' : ((space === 'rom' || space === 'routines') ? 'routines' : space);
     const list = knowledgeEntries(actualSpace);
     if (name === undefined) {
         return dir([['index.md', 'file'], ...list.flatMap((e): Entry[] => {
@@ -359,6 +362,17 @@ function knowledgeRoute(rest: string[]) {
                 if (e) return json(() => ({ ...e, body: undefined }));
             }
             return text(() => fs.readFileSync(wramPath, 'utf8'));
+        }
+    }
+
+    if (space === 'rom' || space === 'routines') {
+        const routinePath = path.join(HERE, '..', 'localizations', 'knowledge', 'routines', name.endsWith('.md') ? name : name + '.md');
+        if (fs.existsSync(routinePath)) {
+            if (name.endsWith('.json')) {
+                const e = list.find(x => x.name === name.replace(/\.json$/i, ''));
+                if (e) return json(() => ({ ...e, body: undefined }));
+            }
+            return text(() => fs.readFileSync(routinePath, 'utf8'));
         }
     }
 

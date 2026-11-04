@@ -9,7 +9,7 @@ title: Step-down master volume fade-out, SFX mute, and DSP echo reset
 confidence: confirmed
 tags: [audio, apu, room, transition, dsp]
 evidence: ["disasm: loops over volume level in $7E:0106 bits 3..0, waits for V-Blank $80:858C, dispatches APU attenuation command 0x0028 via $8C:8619, sends 0x001A (silence SFX), sends 0x001C (reset DSP echo), and clears sound latch via $80:85D8", "trace: called upon room transition completion at $8E:E562"]
-see: [docs/disassembly/maps/room-spawn-align.md, rom/8ee562.md, rom/8ee5fc.md]
+see: [docs/disassembly/maps/room-spawn-align.md, routines/room_enter_readiness_latch.md, routines/audio_master_volume_fade_tick.md]
 ---
 Executes the room transition audio ramp-down sequence. Sequentially steps down volume in decrements of 16 across 15 frames
 via APU command `0x0028`, issues silence command `0x001A`, clears reverberating DSP delay echoes via command `0x001C`, and

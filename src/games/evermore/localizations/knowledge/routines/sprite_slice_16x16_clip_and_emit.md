@@ -9,7 +9,7 @@ title: 16x16 macro sprite slice boundary clipper and Low/High OAM packer
 confidence: confirmed
 tags: [sprite, oam, clipping, macro-tile]
 evidence: ["disasm: validates screen coordinates against [-15, 255] x [-15, 223], queries 16x16 LRU cache $7E:97A9, calls obj_16x16_tile_allocate on miss, emits into Low OAM, and sets size bit in High OAM", "trace: executed for large 16x16 sprite components"]
-see: [docs/disassembly/entities/sprite-clip-cull.md, rom/809033.md, rom/8090f8.md]
+see: [docs/disassembly/entities/sprite-clip-cull.md, routines/direct_sprite_draw_oam.md, routines/sprite_slice_clip_and_emit.md]
 ---
 Processes 16x16 macro-slices, enforcing screen boundary thresholds $[-15, 255] \times [-15, 223]$ for larger tiles.
 Integrates with the 16x16 dynamic VRAM block cache `$7E:97A9`, commits Low OAM coordinates and tile indices, and asserts

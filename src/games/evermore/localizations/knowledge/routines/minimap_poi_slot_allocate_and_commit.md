@@ -9,7 +9,7 @@ title: Allocates active radar POI tracking slot and commits packed coordinates
 confidence: confirmed
 tags: [minimap, hud, poi, radar, allocator]
 evidence: ["disasm: searches POI type match table in [$8B],Y; searches up to 4 tracking slots in $7E:0FD2..$7E:0FDC; commits matched POI Type ID to slot; commits packed coordinates (radar_x | radar_y<<8) to $7E:1032,X and screen buffer offset to $7E:1002,X", "trace: executed upon successful POI boundary verification"]
-see: [docs/disassembly/ui/minimap-projection.md, docs/disassembly/ui/minimap-radar.md, rom/90a650.md]
+see: [docs/disassembly/ui/minimap-projection.md, docs/disassembly/ui/minimap-radar.md, routines/minimap_poi_blip_project.md]
 ---
 Finds an open tracking slot among the 4 active POI slots (`$7E:0FD2`..`$7E:0FDC`),
 commits matched POI type ID, stores packed radar coordinates `X | (Y << 8)` into `$7E:1032,x`,

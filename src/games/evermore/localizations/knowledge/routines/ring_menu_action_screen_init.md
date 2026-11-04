@@ -9,7 +9,7 @@ title: Initialize action sub-window dimensions, cursor actors, and string pointe
 confidence: confirmed
 tags: [ring-menu, ui, sprite, window]
 evidence: ["disasm: calls $90:CCA4 for layout geometry; sets window dimensions 4x1 in $03E1/$03E3; assigns VRAM offset 20 in $03F1; sets cursor step stride 8 in $03F9; loads string table pointer $1924 into $0403; spawns cursor sprite actors $56EA and $56E6 via $90:817B; activates window $03DD via $8C:AC8A and $8C:AF2B", "trace: executed when opening ring menu sub-action screens"]
-see: [docs/disassembly/ui/shop-mode-selector.md, docs/disassembly/ui/ring-menu-builder.md, rom/8e9ee2.md]
+see: [docs/disassembly/ui/shop-mode-selector.md, docs/disassembly/ui/ring-menu-builder.md, routines/ring_menu_circular_layout_spawn.md]
 ---
 Initializes the ring menu action sub-window record dimensions (4 columns $\times$ 1 row), assigns
 VRAM tile offsets and step strides, spawns rotating cursor sprite actors (`$56EA` and `$56E6`),

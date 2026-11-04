@@ -9,7 +9,7 @@ title: Trace straight-line raycast through metatile grid verifying obstacle clea
 confidence: confirmed
 tags: [entities, companion, raycast, collision, bresenham]
 evidence: ["disasm: multiplies Y coord by width using $4202/$4216, checks metatile attrs in $7F:0004, extracts collision geometry bits 3..0, and evaluates slope tables $8F:A3F8/$8F:A418 across jump table $8F:A3D8"]
-see: [docs/disassembly/entities/companion-steering.md, rom/8f9ea3.md, rom/8fa774.md]
+see: [docs/disassembly/entities/companion-steering.md, routines/companion_waypoint_raycast_probe.md, routines/particle_emitter_check_priority_and_enqueue.md]
 ---
 Iterates a line of metatiles between two grid coordinates to verify line-of-sight path traversal:
 - Multiplies coordinates using SNES hardware multiplier `$4202` / `$4216`.

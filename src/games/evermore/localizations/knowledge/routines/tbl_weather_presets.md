@@ -9,7 +9,7 @@ title: Master environmental weather preset parameter blocks
 confidence: confirmed
 tags: [weather, physics, graphics]
 evidence: ["disasm: load_weather_preset_parameters ($80:A2E0) copies 64 16-bit words (128 bytes) per preset from Bank $EC into active simulation block $7E:72D1..$7E:734F", "decomp: documented in docs/disassembly/engine-core/weather-preset.md"]
-see: [rom/80a2e0.md, rom/80a305.md, docs/disassembly/engine-core/weather-preset.md]
+see: [routines/load_weather_preset_parameters.md, routines/weather_preset_param_unpack.md, docs/disassembly/engine-core/weather-preset.md]
 ---
 Master environmental weather preset database located in ROM Bank `$EC`.
 Holds 128-byte (64 16-bit words) configuration blocks for ambient precipitation modes:

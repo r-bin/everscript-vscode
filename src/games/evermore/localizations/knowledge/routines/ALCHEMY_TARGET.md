@@ -8,7 +8,7 @@ name: ALCHEMY_TARGET
 title: ALCHEMY_TARGET
 confidence: confirmed
 evidence: ["disasm: combat spell targeting routine loads targeting bitfield at $C4:5BF5,x per formula id (0..34)", "data: 35 words determining reticle locking rules for player, companion, party, and enemy targets"]
-see: [rom/c43874.md, rom/c45d09.md, docs/disassembly/engine-core/rom-tables.md]
+see: [routines/weapon_entries.md, routines/ALCHEMY_FORMULA_TEXT.md, docs/disassembly/engine-core/rom-tables.md]
 ---
 Target cursor flags for all 35 formulas (`$C4:5BF5`..`$C4:5C3A`, 70 bytes total).
 Common bitmasks:

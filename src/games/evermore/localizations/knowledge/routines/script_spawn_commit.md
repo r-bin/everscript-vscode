@@ -9,7 +9,7 @@ title: Script VM entity spawn dispatcher and commit routine
 confidence: confirmed
 tags: [script-vm, entities]
 evidence: ["disasm: tail branch target for script opcodes 0xA2 ($8C:DCC1), 0xC2 ($8C:DCD7), 0xBA ($8C:DCEA), and 0x3C ($8C:DCEC); calls $8F:A933 to sample tile plane elevation, checks bit 15 of arg2 to select deferred staging ($8F:DE98) or immediate entity spawn ($8F:B094)", "recomp: clean C in docs/disassembly/script-vm/opcode-spawning.md"]
-see: [rom/8cdc9a.md, rom/8cdcc3.md, rom/8cdcd9.md, rom/8cdcec.md, rom/8fa933.md, rom/8fde98.md, rom/8fb094.md]
+see: [routines/script_op_a2_spawn_at.md, routines/script_op_c2_spawn_spawner.md, routines/script_op_ba_spawn.md, routines/script_op_3c_spawn.md, routines/spawn_eval_tile_plane_elevation.md, routines/spawn_stage_deferred_entity.md, routines/projectile_spawn_master.md]
 ---
 Common tail routine for all entity and character spawn script VM opcodes:
 - Evaluates target tile plane elevation via `$8F:A933`.

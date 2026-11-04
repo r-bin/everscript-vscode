@@ -8,7 +8,7 @@ name: alchemy_inventory_push_ingredient_slot
 title: Push acquired ingredient item into first empty inventory slot ($91:CC90)
 confidence: confirmed
 evidence: ["disasm: scans 9 ingredient slots $0AD2,X (X=8 down to 0); finds first empty slot (bit 7 set); stores ingredient ID <$12 into $0AD2,X; returns CLC on success, SEC if full; callers: formula setup $8D:B98F"]
-see: ["rom/8db98f.md"]
+see: ["routines/alchemy_menu_selection_loop.md"]
 tags: ["alchemy","inventory","ingredient","push"]
 ---
 Searches the 9 alchemy ingredient slots `$0AD2..$0ADA` for the first empty slot (marked with bit 7 set / `$FF`). Stores new ingredient ID into `$0AD2,X` and returns with carry clear; returns carry set if all slots are full.

@@ -8,7 +8,7 @@ name: palette_slot_allocator
 title: Dynamic Character Palette Slot Allocator
 confidence: confirmed
 evidence: ["disasm: $90:CD1B compares character record palette address +0x09 with active slots and reuses matching loaded slots or streams to a free palette via $90:CF3A"]
-see: [rom/8eb678.md, rom/80a16e.md]
+see: [routines/character_records.md, routines/palette_cgram_buffer_commit.md]
 ---
 Allocates dynamic PPU palette slots for entities:
 - Compares requested 16-color palette address (`record +0x09`) against currently loaded palette slots in Bank `$90`.

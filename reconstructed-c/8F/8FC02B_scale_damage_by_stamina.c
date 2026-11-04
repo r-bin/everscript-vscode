@@ -1,5 +1,5 @@
 /*
- * $8F:C02B scale_damage_by_stamina (knowledge/rom/8fc02b.md), RTL, 16-bit A and X.
+ * $8F:C02B scale_damage_by_stamina (knowledge/routines/scale_damage_by_stamina.md), RTL, 16-bit A and X.
  *
  * In: X = the attacker's record (DB-relative). The base value: the Boy ($4E89) with weapon $0ABA =
  * $1A uses $1468; everyone else the word at $8E:0019 + rec[$60] (the character template). Scaled by

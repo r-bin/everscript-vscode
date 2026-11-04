@@ -115,7 +115,7 @@ function hardwareMirror(addr, size) {
 }
 
 // What the area between the end of the original and 4 MB holds. Under HiROM it was never ROM of its own: the game
-// reads it once anyway ($80:D113 reads $B0:E653+, knowledge/rom/80d113.md), so it must keep answering like before.
+// reads it once anyway ($80:D113 reads $B0:E653+, knowledge/routines/row_table_low_bytes_from_bank_b0.md), so it must keep answering like before.
 //   hardware    a copy of what the original cartridge answers there (default; Mesen2 / bsnes / real hardware)
 //   snes9x2005  a copy of what the bundled snes9x2005 core answers (offset % size) — only for prove.js
 //   fill        the fill byte (trap image)

@@ -18,7 +18,7 @@ Evermore stays where it runs today: file `0x000000–0x2FFFFF`, bus `$C0–$EF` 
 
 | Space | Bus | Speed | Notes |
 |---|---|---|---|
-| file `0x300000–0x3FFFFF` (1 MB) | `$F0–$FF`, `$B0–$BF:8000+` | FastROM | Not empty space: Evermore reads past its 3 MB (`knowledge/rom/80d113.md`), and patches claim `$F0`/`$FE` (`docs/patches/README.md`). Not a home for a second game. |
+| file `0x300000–0x3FFFFF` (1 MB) | `$F0–$FF`, `$B0–$BF:8000+` | FastROM | Not empty space: Evermore reads past its 3 MB (`knowledge/routines/row_table_low_bytes_from_bank_b0.md`), and patches claim `$F0`/`$FE` (`docs/patches/README.md`). Not a home for a second game. |
 | file `0x400000–0x7FFFFF` (4 MB) | `$40–$7D` full banks; `$00–$3F:8000–FFFF` = upper halves | SlowROM | **The partner's home.** The lower halves of `$7E`/`$7F` (file `0x7E0000–0x7E7FFF`, `0x7F0000–0x7F7FFF`) are hidden by WRAM. Bank `$00` also holds the shared vectors and the dispatcher. |
 
 So the partner gets a little under 4 MB of **slow** ROM, and its code can run only from
@@ -105,7 +105,7 @@ Taken as an idea only, no code or layout (§ legal note above; [port.md](port.md
 
 - **Front end in bank `$00`:** shared reset/NMI/IRQ vectors and a dispatcher that picks the game.
   Evermore's own vectors leave bank `$00` at once: reset after 13 bytes, NMI and IRQ with a single
-  `JML` to `$80` *(repo: `knowledge/rom/00ffe0.md`, `80823a.md`)*.
+  `JML` to `$80` *(repo: `knowledge/routines/CPU_VECTORS.md`, `80823a.md`)*.
 - **SRAM split:** each game gets its own SRAM area. Evermore keeps its 8 KB at
   `$20–$3F:6000–7FFF`/`$A0–$BF` *(repo: [port.md](port.md) §2 item 4)*, so the partner's must move.
 - **Switching game** means saving and reloading through the front end. WRAM, the SPC700 driver
@@ -149,7 +149,7 @@ the bank-byte relocation of §2.2. SMZ3's lesson is to do it in the central rout
 
 ## 5. Engineering steps
 
-1. **Evermore's mirror audit** ([port.md](port.md) §4 step 1; `knowledge/rom/00ffe0.md`).
+1. **Evermore's mirror audit** ([port.md](port.md) §4 step 1; `knowledge/routines/CPU_VECTORS.md`).
    Evermore uses `$00–$3F` only for the reset entry and the NMI `JML`, plus the read past 3 MB.
 2. **Partner audit:** the same CDL bus-form audit on the partner's ROM. Find FastROM `$80+` uses,
    SRAM uses and any `$40+` reads.

@@ -9,7 +9,7 @@ title: Strike sweep — which entities a strike box may hit
 confidence: confirmed
 tags: [combat, strike, hit]
 evidence: ["disasm: $8F:B5FC-$8F:B611 (side = attacker +$10 bit 2 inverted; mask $5006, | $0020 when the attacker is not the Boy or Dog), $8F:B612-$8F:B61C (walk the entity list $3DDF, skip when (+$10 EOR side) & mask)", "emulator: room 0x38 booted through the intro hook: a Wimpy Flower's strikes swept the Boy but never reached $8F:B61E while his +$10 was $0124; with bit 5 cleared they hit (tools/routes/fight-in-game.mts, v0.336.0)"]
-see: [rom/8fba06.md, rom/8fb75a.md, rom/8eb678.md]
+see: [routines/melee_to_hit_roll.md, routines/attack_proc_melee_boy_kill_xp.md, routines/character_records.md]
 ---
 For every strike box, `$8F:B615` walks the entity list and skips a candidate on the attacker's own
 side (`+$10` bit 2) or with any of the mask bits set: `$5006`, plus `$0020` ("left out of

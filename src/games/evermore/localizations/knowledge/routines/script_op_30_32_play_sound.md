@@ -9,6 +9,6 @@ title: Script opcodes 0x30, 0x31, and 0x32 play a sound
 confidence: confirmed
 tags: [script-vm, audio]
 evidence: ["disasm: vanilla VFS at $8C:D6A7 sends $243B as payload with command $30 through $8C:81FD, clears $243B, reads one operand byte as the direct X offset into signed words at $8C:8362, skips negative entries, and calls $8C:82DC for nonnegative entries", "opcode table: $8C:E91D, $8C:E91F, and $8C:E921 all map to $8C:D6A7"]
-see: [docs/disassembly/script-vm/opcode-30-32-play-sound.md, rom/cc8362.md, rom/8c82dc.md]
+see: [docs/disassembly/script-vm/opcode-30-32-play-sound.md, routines/SFX_TRANSLATION_TABLE.md, routines/play_sound_effect_direct.md]
 ---
 The handler uses the operand byte as a raw byte offset into the signed word table at `$8C:8362`; it does not multiply the ID by two. Negative entries suppress playback.

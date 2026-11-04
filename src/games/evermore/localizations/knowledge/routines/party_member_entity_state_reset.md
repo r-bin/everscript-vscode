@@ -8,7 +8,7 @@ name: party_member_entity_state_reset
 title: Party member entity motion and waypoint state reset ($8F:B3D4)
 confidence: confirmed
 evidence: ["disasm: reinitializes animation script via $90:817B; masks entity flags +$10, +$12, +$14; zeroes velocity, impulse, and knockback fields +$24, +$80, +$36, +$38, +$88, +$8A, +$68, +$1E, +$20, +$76; sets +$66 to $FFFF; checks waypoint node indices in +$6A and +$6C, freeing valid nodes via $8F:9916"]
-see: [rom/8f9916.md, rom/90817b.md, rom/8fb38e.md]
+see: [routines/waypoint_node_release.md, routines/anim_record_init_from_script_ref.md, routines/entities_frame_tick_update.md]
 tags: [entities, party, waypoints]
 ---
 Resets motion, combat impulse, and navigation state for a party member entity (`Y = $4E89` Boy or `$4F37` Dog). Re-attaches animation script descriptor `X` via `$90:817B`, masks entity status words `+$10`, `+$12`, `+$14`, clears velocity, position deltas, and pending damage accumulators (`+$24`, `+$80`, `+$36`, `+$38`, `+$88`, `+$8A`, `+$68`, `+$1E`, `+$20`, `+$76`), sets target slot `+$66,Y = $FFFF`, and releases any held waypoint nodes (`+$6A,Y`, `+$6C,Y`) back to the free list via `waypoint_node_release` (`$8F:9916`).

@@ -9,7 +9,7 @@ title: Test pair overlap using 2:1 isometric ellipse formula (|dx| < sum and 2*|
 confidence: confirmed
 tags: [physics, collision, isometric, math]
 evidence: ["disasm: loads candidate radius, adds mover radius ($18), tests doubled vertical difference ASL |dy| < $18, tests horizontal difference |dx| < $18", "docs: docs/entities/hitboxes.md; clean C in docs/disassembly/combat/hitbox-intersections.md"]
-see: [rom/8fb46d.md]
+see: [routines/entity_collision_check.md]
 ---
 Core isometric body collision algorithm:
 - Sums radii of both entities: $r_1 + r_2$.

@@ -9,7 +9,7 @@ title: Project entity world coordinates to screen tile buffer and queue contact 
 confidence: confirmed
 tags: [render, camera, shadow, math]
 evidence: ["disasm: tests frustum bounds $0F4A/$0F4E; subtracts vertical origin $0003,y; computes tile row (Y/8 & $FE) and multiplies by stride via $4202; computes tile column (X/8 - 1); calculates buffer offset into $7F:0004 in DP $56; calculates fine sub-tile pixel offsets in DP $66 and $68; dispatches tile contact hook via $90:9DE8", "trace: executed when rendering visible ground contacts and entity shadows"]
-see: [docs/disassembly/engine-core/viewport-culling.md, docs/disassembly/engine-core/camera-system.md, rom/909545.md]
+see: [docs/disassembly/engine-core/viewport-culling.md, docs/disassembly/engine-core/camera-system.md, routines/camera_frustum_cull_test.md]
 ---
 Projects an entity's world coordinates into screen tile coordinates and computes the corresponding
 offset into the VRAM shadow buffer at `$7F:0004`. Extracts fine pixel offsets (`$66`, `$68`) for sub-tile

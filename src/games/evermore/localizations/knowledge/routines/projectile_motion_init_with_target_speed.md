@@ -8,7 +8,7 @@ name: projectile_motion_init_with_target_speed
 title: Initialize projectile target speed attribute and resolve trajectory ($90:DD58)
 confidence: confirmed
 evidence: ["disasm: writes target speed attribute $0A3F into +$28,Y; jumps to trajectory solver $90:DD61"]
-see: ["rom/90dd61.md"]
+see: ["routines/projectile_straight_line_velocity_solver.md"]
 tags: ["projectile","trajectory","speed","physics"]
 ---
 Initializes projectile target speed attribute `+$28,Y` from parameter `$0A3F` and jumps to projectile velocity resolver `func_90DD61` (`$90:DD61`).

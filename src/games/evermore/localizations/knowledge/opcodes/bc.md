@@ -6,7 +6,7 @@ confidence: confirmed
 tags: ["opcode.actor_control"]
 everscript: ["control()"]
 evidence: ["disasm: handler at the table entry $8C:DB1B"]
-see: ["rom/8cdb1b.md"]
+see: ["routines/freeze_boy.md"]
 ---
 `0x2C` with mask 1: freezes the Boy (`$8F:CD78`).
 

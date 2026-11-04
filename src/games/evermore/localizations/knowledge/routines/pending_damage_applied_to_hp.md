@@ -9,7 +9,7 @@ title: Apply pending damage to HP with barrier nullification and recoil dispatch
 confidence: confirmed
 tags: [combat, damage, barrier, hp, flinch]
 evidence: ["disasm: $8F:C237 checks barrier condition in $7E:2261 (bit 1 Boy, bit 0 Dog) or status recoil 0x0040, nullifies damage and calls $8FC09A if absorbed, otherwise subtracts pending damage from current HP at +$2A, and jumps into $8FC25D", "docs/disassembly/combat/defense-barrier.md"]
-see: [rom/8fc25d.md, rom/8fc290.md, rom/8f9144.md, docs/disassembly/combat/defense-barrier.md]
+see: [routines/entity_process_damage_recoil.md, routines/entity_trigger_damage_reaction.md, routines/hud_render_entity_hp_string.md, docs/disassembly/combat/defense-barrier.md]
 ---
 Applies queued combat damage from `entity->pending_damage` (`+$76`) to `entity->current_hp` (`+$2A`):
 1. Verifies if Magic Barrier is active on target (Boy bit 1, Dog bit 0 in `$7E:2261`).

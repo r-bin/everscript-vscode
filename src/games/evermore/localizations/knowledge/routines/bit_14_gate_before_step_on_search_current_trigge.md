@@ -9,7 +9,7 @@ title: Gate check: test bit 14 before executing step-on trigger search
 confidence: confirmed
 tags: [maps, triggers, gate, movement]
 evidence: ["disasm: tests bit 14 (0x4000) of entity status word +0x02; if set, ignores step-on triggers and returns Carry Set; if clear, stages interaction coordinates into $7E:2421/$7E:2423, executes step_on_trigger_search ($8F:ACB1), and returns Carry Clear", "trace: executed before all floor step-on trigger evaluations"]
-see: [docs/disassembly/maps/step-triggers.md, rom/8facb1.md]
+see: [docs/disassembly/maps/step-triggers.md, routines/step_on_trigger_search.md]
 ---
 Verifies bit 14 of entity status word `+0x02` before triggering a step-on
 search. Entities with bit 14 set (jumping, airborne, or during cutscenes)

@@ -6,7 +6,7 @@
 // game reuses some maps in two acts), so they are left out. Prints JSON { room: { region, how } }.
 // Run: node tools/rooms/region-evidence.js
 //
-// Knowledge: knowledge/wram/ROOM_METATILE_DESCRIPTOR_PTR.md (the form request), rom/8f9471.md (the loader).
+// Knowledge: knowledge/wram/ROOM_METATILE_DESCRIPTOR_PTR.md (the form request), routines/dog_load_form.md (the loader).
 
 const fs = require('fs');
 const path = require('path');

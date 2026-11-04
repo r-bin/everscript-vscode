@@ -1,7 +1,7 @@
 // Ownership: the game's script scheduler between two turns ($8C:CFFD) — the
 // next thread in run-list order, a new tick after the last one, sleepers and
 // engine waits woken when due, time jumping over passes where nothing runs.
-// Pure. Its model is in knowledge/rom/8ccffd.md; scheduler.test.js checks it
+// Pure. Its model is in knowledge/routines/script_scheduler_pass.md; scheduler.test.js checks it
 // against the running game.
 
 import { Sym, key, c } from './sym';

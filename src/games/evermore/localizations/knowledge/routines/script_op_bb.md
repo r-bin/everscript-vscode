@@ -9,7 +9,7 @@ title: Script opcode 0xbb
 confidence: likely
 tags: [script-vm]
 evidence: ["disasm: evaluates entity and amount expressions; skips when entity current HP is zero or entity flags +$10 contain bit $1000; otherwise calls $8F:C16E; continues in the same turn", "soe://rom/0ce467.asm", "soe://rom/0fc16e.asm"]
-see: [docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-bb-damage-no-knockback.md, rom/8fc16e.md, rom/8fc237.md]
+see: [docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-bb-damage-no-knockback.md, routines/queue_entity_damage.md, routines/pending_damage_applied_to_hp.md]
 ---
 Handler of script opcode [0xBB](soe://rom/assets/scripts/opcodes/bb.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/bb.md`, served at `soe://rom/assets/scripts/opcodes/bb.md`.
 

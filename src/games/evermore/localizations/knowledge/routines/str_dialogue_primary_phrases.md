@@ -9,7 +9,7 @@ title: Dialogue primary 256-word dictionary phrase text pool
 confidence: confirmed
 tags: [dialogue, text, decompression]
 evidence: ["disasm: dialogue string decompressor $8C:CD84 adds offsets from $91:F46C to base $91:F7D5", "data: 256 null-terminated English words (about, across, adventurer, adventures, adventure, adventuring, after, etc.)"]
-see: [rom/91f46c.md, rom/8ccd84.md, docs/disassembly/ui/dialogue-text-decoder.md]
+see: [routines/tbl_dialogue_phrase_pointers.md, routines/dialogue_text_dte_mte_decoder.md, docs/disassembly/ui/dialogue-text-decoder.md]
 ---
 Null-terminated English dictionary word and phrase pool in Bank `$91` (`$91:F7D5`..`$91:FFFF`, ~2,091 bytes) for primary dictionary token replacement (`token $C0`).
 Indexed via relative offsets in table `$91:F46C`.

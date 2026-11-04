@@ -9,7 +9,7 @@ title: Enqueue 24-bit script instruction pointer into circular cutscene FIFO buf
 confidence: confirmed
 tags: [cutscene, script-vm, text]
 evidence: ["disasm: reads write pointer $0B31; wraps to 0 at offset $18 (8 entries * 3 bytes); advances $0B31 by 3; stores DP $22 (low word) and DP $23 (bank) into $0DFB,x", "trace: called by script VM dialogue opcodes 0x54, 0x55, 0x80"]
-see: [docs/disassembly/script-vm/cutscene-scheduler.md, rom/8cc4f6.md, rom/8cc55d.md]
+see: [docs/disassembly/script-vm/cutscene-scheduler.md, routines/cutscene_dialogue_queue_reset.md, routines/cutscene_dialogue_activate.md]
 ---
 Pushes a 24-bit script instruction pointer from DP `$22`–`$23` into the circular cutscene dialogue
 queue buffer at `$7E:0DFB`..`$7E:0E12`. The queue contains 8 slots (stride 3 bytes = 24 bytes total capacity).

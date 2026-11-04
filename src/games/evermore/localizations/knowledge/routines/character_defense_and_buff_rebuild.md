@@ -9,7 +9,7 @@ title: Recompute party defensive attributes, clamp Max HP to 999, and evaluate b
 confidence: confirmed
 tags: [stats, combat, defense, buff]
 evidence: ["disasm: clamps Max HP from $8C:919D,x / $8C:91A7,x to 999 ($03E7 in $0A35) and clamps current HP $4EB3; computes Evade $0A3F with gear $4F29; tests Barrier buff in $2262 bit 7 for MDef $0A41 with gear $4F2B; tests Reflect buff in $2263 bit 2 for MEvade $0A43 with gear $4F31; tests Speed buff in $2262 bit 0 for Critical $0A45 with gear $4F37", "trace: executed when equipping armor or when defensive status buffs are applied"]
-see: [docs/disassembly/combat/defense-buffs.md, docs/disassembly/entities/level-growth.md, rom/8e922c.md]
+see: [docs/disassembly/combat/defense-buffs.md, docs/disassembly/entities/level-growth.md, routines/ring_menu_gear_toggle_equip.md]
 ---
 Recomputes party combat defense attributes: enforces 999 Max HP cap (`$0A35`) and clamps
 current HP (`$4EB3`), calculates Physical Evade (`$0A3F`), Magic Defense (`$0A41`) gated by

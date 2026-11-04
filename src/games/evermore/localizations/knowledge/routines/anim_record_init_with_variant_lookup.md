@@ -8,7 +8,7 @@ name: anim_record_init_with_variant_lookup
 title: Animation script descriptor loader with variant lookup ($90:819A)
 confidence: confirmed
 evidence: ["disasm: inspects script header flags at $C4:0002,X; if negative (bit 7 set), offsets script pointer X via table $90:816B,X; if bit 14 set ($4000), offsets X via table $90:815B,X; branches to anim_record_init_from_script_ref ($90:817B); caller: $90:DC35"]
-see: [rom/90817b.md]
+see: [routines/anim_record_init_from_script_ref.md]
 tags: [animation, sprites, entities]
 ---
 Selects and initializes an animation script variant based on entity action flags. Inspects header flags at `$C4:0002,X`: if bit 7 is set, applies variant offset from table `$90:816B`; if bit 14 is set, applies offset from table `$90:815B`. Passes resolved script pointer into `anim_record_init_from_script_ref` (`$90:817B`).

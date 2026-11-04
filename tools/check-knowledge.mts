@@ -36,7 +36,7 @@ function loadEntries(space: 'ram' | 'rom'): Range[] {
             name: e.name ?? '',
         }));
     }
-    const dir = join(KNOWLEDGE, space);
+    const dir = join(KNOWLEDGE, space === 'rom' ? 'routines' : space);
     const out: Range[] = [];
     for (const f of readdirSync(dir).filter((n) => n.endsWith('.md'))) {
         const head = readFileSync(join(dir, f), 'utf8').split('\n---')[0];

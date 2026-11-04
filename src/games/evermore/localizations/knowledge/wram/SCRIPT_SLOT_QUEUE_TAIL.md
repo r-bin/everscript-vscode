@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [script-vm]
 evidence: ["disasm: $8C:CE86 appends (end index in $86); END $8C:D2E1 closes the gap; the scheduler $8C:CFFD walks it with $80"]
-see: [rom/8ccffd.md]
+see: [routines/script_scheduler_pass.md]
 ---
 Script VM: Active thread run list ($7E:2F28..$7E:2F51, 21 words).
 One word per running thread: the slot of the script that runs next for it (a callee replaces

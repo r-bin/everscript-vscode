@@ -8,7 +8,7 @@ name: player_human_control_boy
 title: Human Player Control & Movement Dispatcher (Boy)
 confidence: confirmed
 evidence: ["disasm: $8F:CD88 checks B-button $0800 in $0EB8, verifies Boy stamina $4EB7 >= 0x0400, drains 3 stamina per tick via ADC #$FFFD, maps D-pad to 16-way heading table at $8F:CC0E, and arbitrates Ring Menu $05A7/$05A9 and attack $ABED"]
-see: [rom/8fcecc.md, rom/8fcd4d.md, rom/8fb28d.md, engine-core/player-movement.md]
+see: [routines/player_human_control_dog.md, routines/entity_unfreeze_mobilize.md, routines/dog_forage_random_timer_reset.md, engine-core/player-movement.md]
 ---
 Core per-frame human movement and controller input handler for the Boy:
 - Checks B-button sprint hold (`$0EB8 & $0800`).

@@ -9,7 +9,7 @@ title: Prune stale waypoints from navigation queue and update steering velocity
 confidence: confirmed
 tags: [entities, companion, navigation, steering, waypoint]
 evidence: ["disasm: inspects navigation flags in $3C12,X (bit 9 direct override, bit 5 proximity latch), checks remaining nodes against tail in $3BFF,X, calculates angle via $8F:AA51, tests adjacent cell traversability via $8F:9EC3, and sets velocity"]
-see: [docs/disassembly/entities/companion-breadcrumb-queue.md, rom/8f9e49.md, rom/8f9ec3.md]
+see: [docs/disassembly/entities/companion-breadcrumb-queue.md, routines/companion_breadcrumb_fifo_delete_node.md, routines/companion_neighbor_cell_collision_test.md]
 ---
 Advances companion steering along the breadcrumb path:
 - Verifies direct line of sight override (bit 9) and arrival proximity latch (bit 5) in `$7E:3C12,X`.

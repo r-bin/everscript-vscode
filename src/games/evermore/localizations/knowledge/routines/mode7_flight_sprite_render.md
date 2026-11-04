@@ -9,7 +9,7 @@ title: Project and render vehicle flying sprite on Mode 7 perspective viewport
 confidence: confirmed
 tags: [mode7, sprite, render, oam]
 evidence: ["disasm: computes $0615 - $59 into DP $02; writes $0619 through XBA and ORA #$0003 to $4202, reads $4216 and shifts right twice into DP $12; computes $0617 - $12 - $5B into DP $04; sets DP $06=$003C, DP $26=$32C9 and DP $28=$00CC; calls $80:9033 and returns at $8E:B559", "trace: executed every frame tick during flight"]
-see: [docs/disassembly/engine-core/mode7-flight.md, rom/809033.md, rom/8eb02c.md]
+see: [docs/disassembly/engine-core/mode7-flight.md, routines/direct_sprite_draw_oam.md, routines/mode7_flight_frame_engine.md]
 ---
 Calculates the on-screen projection for the flight sprite. It derives DP `$12` from the 8-bit product
 configured by the 16-bit write of `$0619` to `$4202`, subtracts the camera shadows into DP `$02` and

@@ -9,7 +9,7 @@ title: Character status menu labels ("HP:", "Level:", "Exp:", "Attack:", "Hit %:
 confidence: confirmed
 tags: [ui, text, strings, stats, menu]
 evidence: ["disasm: 117 bytes at $8D:AF65..$8D:AFDA; contains null-terminated UI stat labels: 'HP:', 'Level:', 'Exp:', 'Needed:', 'Attack:', 'Hit %:', 'Defend:', 'Evade %:', 'Magic Def:', 'Attack Skill:', '---------------'"]
-see: [rom/8c8a25.md, rom/8d8000.md]
+see: [routines/oracle_render_target_stats_card.md, routines/title_screen_load_game_menu_layout_init.md]
 ---
 UI stat labels for the in-game character stats screen and equipment review card:
 - `"HP:"`, `"Level:"`, `"Exp:"`, `"Needed:"`, `"Attack:"`, `"Hit %:"`, `"Defend:"`, `"Evade %:"`, `"Magic Def:"`, `"Attack Skill:"`, `"---------------"`

@@ -1,5 +1,5 @@
 /*
- * $80:9685 init_entity_pool (knowledge/rom/809685.md), RTL, 16-bit A and X.
+ * $80:9685 init_entity_pool (knowledge/routines/init_entity_pool.md), RTL, 16-bit A and X.
  *
  * Links the 8-byte nodes $7E:50AF..$7E:5127 behind the head $7E:50A7 (head +4 = $FFFE): for each
  * node, the one before it gets +2 = the node and +6 = itself, the node gets +0 = the one before

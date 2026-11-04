@@ -32,7 +32,7 @@ require('./src/games/evermore/simulation').roomReport(sim.room(0x25));   // Mark
 ## Time: every thread at the tick the SNES runs it
 
 Scripts the room starts (`0x07`/`0xb4`) run alongside the enter script, interleaved exactly as
-the game's scheduler (`$8C:CFFD`, see `knowledge/rom/8ccffd.md`) interleaves them: one pass per
+the game's scheduler (`$8C:CFFD`, see `knowledge/routines/script_scheduler_pass.md`) interleaves them: one pass per
 tick in run-list order, a started script joining the same pass, calls and returns costing no
 tick, `YIELD` one tick, `SLEEP n` max(1, n−1) ticks, `CHANGE MAP` ending everything, slots
 allocated as the game allocates them, the game's own RNG (`rng.ts`).
@@ -58,7 +58,7 @@ are followed for 5 seconds of game time (`ROOM_HORIZON`). Both are reported.
 | `sym.ts` | Symbolic values: constants, unknown WRAM (`mem`), unknowns from outside (`atom`), entities, operators, merged values (`ite`). Simplifies on construction, so anything knowable is a constant. |
 | `memory.ts` | WRAM as byte cells over an unknown start; `Pin`s; diffs; merging under a condition. |
 | `operand.ts` | The postfix operand grammar, *evaluated*. Written from the everscript compiler's operand table, not from the legacy decoder. |
-| `step.ts` | One instruction: flow, calls (globals resolved with the `$92:8008` term, see `knowledge/rom/8cd3a0.md`), writes, flags, objects, placements; the rest is an opaque event with its text. |
+| `step.ts` | One instruction: flow, calls (globals resolved with the `$92:8008` term, see `knowledge/routines/script_op_call_global.md`), writes, flags, objects, placements; the rest is an opaque event with its text. |
 | `state.ts` | A path: pc, frames, WRAM, assumptions, trace, placed NPCs; merging two paths. |
 | `explore.ts` | Runs a script to every end. *Paths* mode keeps every outcome apart; *rejoin* mode merges sides of a branch at its join (`cfg.ts`) — or, inside a call, at the return — so independent `if`s do not multiply. |
 | `cfg.ts` | Control-flow graph and immediate post-dominators: where a branch's sides meet. |

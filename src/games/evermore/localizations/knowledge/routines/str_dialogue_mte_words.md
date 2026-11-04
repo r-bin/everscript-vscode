@@ -9,7 +9,7 @@ title: Dialogue secondary MTE word text pool
 confidence: confirmed
 tags: [dialogue, text, decompression]
 evidence: ["disasm: dialogue string decompressor $8C:CD84 adds offsets from $91:F3EC to base $91:F66C", "data: null-terminated ASCII words (alchemy, and, are, back, can, could, etc.)"]
-see: [rom/91f3ec.md, rom/8ccd84.md, docs/disassembly/ui/dialogue-text-decoder.md]
+see: [routines/tbl_dialogue_word_pointers.md, routines/dialogue_text_dte_mte_decoder.md, docs/disassembly/ui/dialogue-text-decoder.md]
 ---
 Null-terminated ASCII word string pool in Bank `$91` (`$91:F66C`..`$91:F7D4`, 361 bytes) for secondary Multi-Tile Encoding (MTE) vocabulary.
 Indexed via relative offsets in table `$91:F3EC`.

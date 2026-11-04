@@ -9,7 +9,7 @@ title: Ambient HDMA screen gradient lighting dispatcher, fade evaluator, and cur
 confidence: confirmed
 tags: [hdma, lighting, gradient, ppu, graphics]
 evidence: ["disasm: evaluates gradient mode in $14D8 at $91:C410..$91:C5AD; dispatches via jump table JSR ($xxxx,X), formats HDMA color tables in WRAM Bank $7F, contains lighting attenuation curves; exits via RTL"]
-see: [rom/91c31f.md, rom/91c3a4.md, rom/91c5ae.md]
+see: [routines/hdma_gradient_channel_5_table_upload.md, routines/hdma_vertical_scanline_table_interpolate.md, routines/alchemy_vfx_spawn_particle_with_palette.md]
 ---
 Coordinates ambient screen lighting and atmospheric fog effects via SNES HDMA Channel 5:
 - Reads gradient configuration from `$7E:14D8`.

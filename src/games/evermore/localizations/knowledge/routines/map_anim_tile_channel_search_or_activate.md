@@ -8,7 +8,7 @@ name: map_anim_tile_channel_search_or_activate
 title: Map Background Tile Animation Channel Search & Activator
 confidence: confirmed
 evidence: ["disasm: $90:A2A2 scans room animation descriptor slot table ($7E:507D,X) matching search key DP $06 against [$A7], and activates channel frame index ($7E:4FE6), timer ($7E:5018), and loop count ($7E:504A)"]
-see: [rom/90a1b4.md, maps/tile-animation.md]
+see: [routines/map_anim_tile_channel_tick_and_vram_stream.md, maps/tile-animation.md]
 ---
 Searches and activates background tile animation channels:
 - Scans descriptor slot table `$7E:507D`..`$7E:509D` looking up property keys in room blob `[$A7]`.

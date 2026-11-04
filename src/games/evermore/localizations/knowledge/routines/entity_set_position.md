@@ -9,7 +9,7 @@ title: Teleport entity to world coordinates and update tile collision attributes
 confidence: confirmed
 tags: [entities, physics, coordinates, collision, script-vm]
 evidence: ["disasm: $8F:C2D1 preserves elevation Z from +$18 into DP $44, projects room boundaries via $90:9815, adjusts elevation via $8FA914, and falls into $8F:C2E4 to calculate tile offset via hardware multiplier $004202 and refresh child entity attachments", "docs/disassembly/entities/entity-position.md"]
-see: [rom/8fc2e4.md, rom/8ce00d.md, docs/disassembly/entities/entity-position.md]
+see: [routines/entity_set_position_with_z.md, routines/script_op_43_teleport.md, docs/disassembly/entities/entity-position.md]
 ---
 Updates an entity's 2D world position while preserving and projecting its current Z elevation:
 1. Reads current Z elevation from `entity->z` (`+$18`) into DP `$44`.

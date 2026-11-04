@@ -8,7 +8,7 @@ title: Upload the sound driver to the SPC700 through its boot ROM
 confidence: likely
 tags: [engine, sound]
 evidence: ["disasm: SEI, $4200 = 0, $420C = 0, then X = $8000, A = $0081 and JSR $8C:810E; the next routine in the bank is spc700_ipl_bootloader_handshake_block (CDL export)", "MesenCE 2.2.1, power-on, 2026-10-30: called from the reset code at $80:81EF; 214 writes to $2140 from master clock 1,626,286 to 1,738,444, ~490-570 clocks per byte (each waits for the SPC700 to echo the index)"]
-see: [src/games/evermore/localizations/knowledge/rom/808020.md, src/games/evermore/localizations/knowledge/rom/80b5b6.md]
+see: [src/games/evermore/localizations/knowledge/routines/reset_handler.md, src/games/evermore/localizations/knowledge/routines/enable_nmi_and_enter_frame_loop.md]
 ---
 Turns NMI and HDMA off and hands the driver, read from `$81:8000`, to the SPC700's boot ROM byte by byte
 (`$8C:810E`). The time it takes depends on how fast the SPC700 answers, so an emulator or recomp whose APU

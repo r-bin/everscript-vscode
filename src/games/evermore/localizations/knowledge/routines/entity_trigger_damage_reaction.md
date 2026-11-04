@@ -9,7 +9,7 @@ title: Trigger hit reaction, invert facing direction, and launch damage animatio
 confidence: confirmed
 tags: [combat, damage, reaction, animation]
 evidence: ["disasm: $8F:C290 inverts facing direction (EOR 8), asserts Bit 6 (0x0040) in status_flags, asserts player flinch flag (0x0400), clears latch timer at +$78, loads damage track ID from descriptor +$40 ($8F:C2C4), and jumps to $90:8124", "docs/disassembly/combat/damage-reaction.md"]
-see: [rom/8fc2c4.md, rom/8fc25d.md, docs/disassembly/combat/damage-reaction.md]
+see: [routines/entity_trigger_damage_animation.md, routines/entity_process_damage_recoil.md, docs/disassembly/combat/damage-reaction.md]
 ---
 Initiates damage recoil and flinch behavior when an entity receives a valid strike:
 1. Inverts the entity's facing direction 180 degrees (`entity->facing_direction ^= 0x0008`) if knockback velocity is non-zero.

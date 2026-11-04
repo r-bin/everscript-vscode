@@ -9,7 +9,7 @@ title: Compute available formula cast count from ingredient inventory
 confidence: confirmed
 tags: [alchemy, inventory, division, ring-menu]
 evidence: ["disasm: takes formula index in A (step 2), reads ingredient IDs from $C4:601F+X and quantities from $C4:6021+X, queries inventory quantities from $7E:22FF+X, performs hardware 16-bit division via $4204/$4206 for both ingredients, and returns min(q1, q2) in A", "trace: called by ring menu icon animation opcode 0x56 ($90:878C) to determine whether icon should be greyed out (when casts == 0)"]
-see: [docs/disassembly/combat/alchemy-xp-growth.md, rom/90878c.md, rom/91cd44.md]
+see: [docs/disassembly/combat/alchemy-xp-growth.md, routines/alchemy_icon_palette_greyout_check.md, routines/alchemy_formula_award_cast_xp_and_level_up.md]
 ---
 Calculates the maximum usable cast count for an alchemy formula given the player's current ingredient inventory stock.
 Performs two 16-bit hardware divisions via `$4204` / `$4206` on the SNES PPU math registers for each required ingredient,

@@ -9,7 +9,7 @@ title: Particle ground impact detection, splash droplet animation, and screen bo
 confidence: confirmed
 tags: [weather, physics, graphics, particles, animation]
 evidence: ["disasm: $80:9E51 tests splash tile config in $7E:7311; if non-zero, sets 3-frame splash phase timer in $7E:2480,x; otherwise resets particle Y to $7E:72DD and randomizes X via $80:859B", "docs/disassembly/engine-core/weather-physics.md"]
-see: [rom/809df8.md, rom/80a305.md, docs/disassembly/engine-core/weather-physics.md]
+see: [routines/weather_particle_generator_and_acceleration.md, routines/weather_preset_param_unpack.md, docs/disassembly/engine-core/weather-physics.md]
 ---
 Handles particle ground impact, splash droplet keyframe sequencing, and top boundary recycling:
 1. Checks if the active weather preset defines a ground splash animation base tile in `$7E:7311`.

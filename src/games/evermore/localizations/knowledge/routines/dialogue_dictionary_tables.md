@@ -9,7 +9,7 @@ title: Dialogue Huffman/dictionary substitution tables ($91:F300-$91:F9FF)
 confidence: confirmed
 tags: [ui, dialogue, tables, compression, strings]
 evidence: ["disasm: referenced by string decompressor $8C:CD84; holds digraph pair table at $91:F32E, single character table at $91:F3AE, secondary word pointers at $91:F3EC, primary word pointers at $91:F46C, secondary word text at $91:F66C, and primary word text at $91:F7D5", "c: docs/disassembly/ui/string-dictionary.md"]
-see: [rom/8ccd84.md, rom/8cccf5.md, knowledge/wram/DIALOGUE_DECODE_TEXT_BUF.md]
+see: [routines/dialogue_text_dte_mte_decoder.md, routines/decode_dialogue_string_key.md, knowledge/wram/DIALOGUE_DECODE_TEXT_BUF.md]
 ---
 Master dictionary and substitution tables for dialogue string compression in Bank `$91`:
 - `$91:F32E`: Digraph table (32 frequent English character pairs, 64 bytes).

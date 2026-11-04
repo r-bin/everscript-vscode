@@ -8,7 +8,7 @@ name: camera_accumulate_fractional_subpixel_scroll
 title: Accumulate subpixel fractional scroll and calculate pixel step ($80:C48D)
 confidence: confirmed
 evidence: ["disasm: inverts input delta (DEC; EOR #$FFFF); adds accumulated fractional subpixel pos $14B0; adds bias $0080; swaps byte to store whole-pixel scroll step into <$BB; callers: camera track $80:C4A3, $80:CBD1"]
-see: ["rom/80c4a3.md","rom/80cbd1.md"]
+see: ["routines/mode7_flight_input_simulation.md","routines/mode7_flight_waypoint_path_step.md"]
 tags: ["camera","scroll","subpixel","math"]
 ---
 Computes fractional subpixel camera pan and updates whole-pixel step. Inverts input delta, adds accumulated subpixel fractional position `$14B0`, adds rounding bias `$0080`, and stores whole pixel scroll step into direct-page `<$BB`.

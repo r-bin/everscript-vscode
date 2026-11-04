@@ -8,7 +8,7 @@ name: dialogue_window_compare_cursor_selection
 title: Compare active dialogue selection against boundary value ($8C:D05C)
 confidence: confirmed
 evidence: ["disasm: compares current dialogue selection $2429 against boundary +$05,Y; if unequal, branches to update handler $8C:D096"]
-see: ["rom/8cd096.md"]
+see: ["routines/dialogue_window_compare_text_buffer_pages.md"]
 tags: ["dialogue","selection","cursor","bounds"]
 ---
 Compares current dialogue window selection `$2429` against boundary value `+$05,Y`. If unequal, branches to dialogue update handler `$8C:D096`.

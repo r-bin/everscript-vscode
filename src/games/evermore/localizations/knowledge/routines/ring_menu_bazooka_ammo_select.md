@@ -9,7 +9,7 @@ title: Select Bazooka ammunition type and commit Bazooka as active weapon
 confidence: confirmed
 tags: [ring_menu, combat, weapon, ammo]
 evidence: ["disasm: reads ammo index via ($95),y -> $8E:0006,x, stores to $7E:2349 (0=Thunder Ball, 2=Particle Bomb, 4=Cryo-Blast), sets active weapon $7E:2441 = 0x001A (Bazooka), jumps to menu commit $8E:AD67", "trace: triggered from combat ring menu when selecting Bazooka projectile ammo"]
-see: [docs/disassembly/combat/defense-buffs.md, rom/8e922c.md]
+see: [docs/disassembly/combat/defense-buffs.md, routines/ring_menu_gear_toggle_equip.md]
 ---
 Selects active Bazooka ammunition type (Thunder Ball, Particle Bomb, or Cryo-Blast)
 and commits the Bazooka (`0x001A`) as the party's active weapon.

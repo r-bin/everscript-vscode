@@ -8,7 +8,7 @@ name: combat_apply_damage_and_knockback_from_e9c
 title: Damage mitigation and knockback reaction pipeline ($8F:B8E3)
 confidence: confirmed
 evidence: ["disasm: loads raw damage amount from $0E9C; calls damage mitigation $8F:C06D; calls knockback dispatcher $8F:C0D3; exits with SEC"]
-see: ["rom/8fc06d.md","rom/8fc0d3.md"]
+see: ["routines/calc_damage_with_defense_and_variance.md","routines/dispatch_hit_reaction_and_knockback.md"]
 tags: ["combat","damage","knockback","defense"]
 ---
 Reads raw strike power stored at `$0E9C`, executes defense calculation via `func_8FC06D` (`$8F:C06D`), and dispatches physical knockback / hit stun reaction via `dispatch_hit_reaction_and_knockback` (`$8F:C0D3`). Concludes with `SEC` / `RTS` to signal damage successfully applied.

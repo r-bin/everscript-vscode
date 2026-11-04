@@ -9,7 +9,7 @@ title: Entity elevation plane transition and layer crossing passability validato
 confidence: confirmed
 tags: [collision, map, elevation, ramp, stairs]
 evidence: ["disasm: compares target cell plane bits 5..4 against entity plane DP $44 via EOR; checks transparency bit 6; returns Carry Set if pass is allowed or Carry Clear if blocked", "trace: executed before every actor step into adjacent metatiles", "c: G1 passed (tools/c-to-rom/g1.mts, v0.351.0): the bound C equals the ROM on 36 entry states sampled from the 2:20 no-input reference and 576 fuzzed ones; snes9x agrees with the interpreter on 36; a mutation is caught"]
-see: [docs/disassembly/maps/elevation-transfer.md, rom/8fa906.md, rom/8faf48.md]
+see: [docs/disassembly/maps/elevation-transfer.md, routines/elevation_plane_update_bits_5_4_kept_on.md, routines/probe_metatile_collision.md]
 ---
 Validates whether an entity moving in plane `DP $44` is permitted to enter a candidate metatile.
 Tests plane bits 5..4 against the destination collision word using `EOR $44`.

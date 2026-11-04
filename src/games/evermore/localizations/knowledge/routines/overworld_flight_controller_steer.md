@@ -9,7 +9,7 @@ title: Mode 7 overworld flight steering controller and banking inertia math
 confidence: confirmed
 tags: [mode7, flight, input, math]
 evidence: ["disasm: processes controller D-pad turn inputs from $7E:0104; computes turn differential; plays banking tick sound via $8C:82DC (sfx 0x0003); feeds delta into hardware divider $4204/$4206; reads quotient from $4214 into pitch angle $061D and heading angle $061B; resumes flight engine at $8E:B02C", "trace: executed while steering Windwalker on overworld map"]
-see: [docs/disassembly/engine-core/flight-controller.md, docs/disassembly/engine-core/mode7-flight.md, rom/8eb02c.md]
+see: [docs/disassembly/engine-core/flight-controller.md, docs/disassembly/engine-core/mode7-flight.md, routines/mode7_flight_frame_engine.md]
 ---
 Processes player D-pad steering inputs during Mode 7 overworld flight. Uses the SNES hardware divider
 (`$4204`/`$4206`) to apply inertia damping to turn deltas, updates the camera pitch (`$7E:061D`) and heading

@@ -8,7 +8,7 @@ title: Fixed-width padded decimal digit stream formatter
 confidence: confirmed
 tags: [math, decimal, string, format]
 evidence: ["disasm: STX $12 / INX / INX / INX / STA $4204 / SEP #$20 / LDA #10 / STA $4206 / REP #$20 / hardware divide loop / ADC #$30 / pad with zero digits (out/recomp/asar/rom.bin:0x0087CB)"]
-see: [src/games/evermore/localizations/knowledge/rom/808757.md]
+see: [src/games/evermore/localizations/knowledge/routines/format_signed_16bit_integer_to_decimal_digits.md]
 ---
 Fixed-width decimal number formatter with leading digit alignment:
 - Formats integer values into a fixed-width digit field.

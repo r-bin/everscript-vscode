@@ -3,7 +3,7 @@
 > **ROM Bank**: `$90` (`$90:9F21` – `$90:9FC8`)  
 > **Source Module**: `engine-core/camera-smooth-tracking.c` / `engine-core/camera-smooth-tracking.h`  
 > **Recomp Symbols**: `L_9F21_M0X0`, `func_D09E93_M0X0`  
-> **Confirmed Knowledge**: `rom/909f21.md`, `rom/909fc9.md`  
+> **Confirmed Knowledge**: `routines/camera_smooth_tracking_filter_and_screen_bounds.md`, `routines/camera_deadzone_window_filter.md`  
 > **Core Subsystems**: Camera Viewport Tracking, Sub-Pixel PPU Stepping, Screen Shake Displacement (`$C5`/`$C7`), Frustum Culling Bounding Box (`$7E:2401`..`$7E:2407`)  
 
 ---

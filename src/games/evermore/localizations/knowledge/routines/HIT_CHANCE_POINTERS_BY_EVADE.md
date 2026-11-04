@@ -8,7 +8,7 @@ name: HIT_CHANCE_POINTERS_BY_EVADE
 title: Hit-chance pointers by evade
 confidence: confirmed
 evidence: ["legacy: migrated from tables.js", "disasm: $8F:BA27-$8F:BAAE: row pointer byte offset = ((evade + 1) >> 1) & $FFFE; adjusted hit-rate is clamped to 0..100, masked with $FFFC, then shifted right once for the row byte offset; zero threshold misses, otherwise ($80:859B & $7FFF) < threshold", "rom: the rows are 26 words ($34 bytes) apart, $8F:BAE3-$8F:BE22"]
-see: [rom/8fba06.md, docs/entities/character-properties.md, docs/disassembly/combat/projectile-homing.md]
+see: [routines/melee_to_hit_roll.md, docs/entities/character-properties.md, docs/disassembly/combat/projectile-homing.md]
 ---
 Hit-chance pointers by evade. The lookup uses `((evade + 1) >> 1) & $FFFE` as a byte offset into
 these 16 words, equivalent to row index `(evade + 1) >> 2` for evade values 0–62. There is no

@@ -1,5 +1,5 @@
 /*
- * $8F:A93B elevation_ramp_plane_project (knowledge/rom/8fa93b.md), RTL, 16-bit A.
+ * $8F:A93B elevation_ramp_plane_project (knowledge/routines/elevation_ramp_plane_project.md), RTL, 16-bit A.
  *
  * In: A = a metatile collision word. DP $44 = word & $30, with $40 added when the word has bit 13
  * (shared tail with update_entity_plane at $8F:A924). Leaves A = the value, N Z from it.

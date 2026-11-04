@@ -9,7 +9,7 @@ title: Dialogue box queue frame update and countdown stepper
 confidence: confirmed
 tags: [text, ui, window]
 evidence: ["disasm: compares queue head $0B2F with tail $0B31; returns if equal or if pause bit 15 set in $0B2B; opens next message at $8C:C463 if timer 0; decrements $0B2B; advances head by 3 with wrap at 24; calls $8C:ADE5 with Y = $034D upon expiration"]
-see: [docs/disassembly/ui/dialogue-box-frame.md, rom/8cc463.md, rom/8cc4f6.md]
+see: [docs/disassembly/ui/dialogue-box-frame.md, routines/dialogue_window_open_next.md, routines/cutscene_dialogue_queue_reset.md]
 ---
 Per-frame driver for the dialogue message queue. Counts down active message display time in `$7E:0B2B`.
 When the timer expires, it advances the queue read pointer in `$7E:0B2F` (modulo 24 bytes) and closes the

@@ -9,7 +9,7 @@ title: Positional 2D sound effect player with screen-relative distance attenuati
 confidence: confirmed
 tags: [audio, physics, spc700, math]
 evidence: ["disasm: computes horizontal dx and vertical dy from screen center ($59+128, $5B+112) to emitter ($02, $04), queries distance penalty table $80:AA27 and attenuation curve $8C:84D4, sends APU volume command $36, computes signed horizontal pan delta / 8 clamped to [-100, +100], sends APU pan command $3E ($8C:8618 RTL)", "docs/disassembly/audio/positional-audio.md"]
-see: [rom/8c81fd.md, rom/8c82dc.md, rom/8c8328.md, rom/8c8619.md, docs/disassembly/audio/positional-audio.md]
+see: [routines/apu_command_handshake.md, routines/play_sound_effect_direct.md, routines/audio_resolve_soundbank_package.md, routines/audio_music_fade_step.md, docs/disassembly/audio/positional-audio.md]
 ---
 Plays a sound effect with dynamic 2D distance attenuation and stereo balance:
 1. Calculates screen-centered Manhattan/Euclidean offsets from listener center (`$59+128`, `$5B+112`)

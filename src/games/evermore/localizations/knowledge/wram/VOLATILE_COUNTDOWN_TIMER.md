@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [scripts, market, timer]
 evidence: ["script: initialized in Room 10 (market) enter script at $96:B6C2 as MARKET_TIMER_START_FRAME = frame_counter_low()", "script: compared with frame_counter_low() in $96:B6A7 and $96:B8D9 (timeout threshold 0xC4E0 = 50,400 frames = 14 minutes)", "script: read in $92:CC6C to compute remaining minutes in 3600-frame increments"]
-see: [knowledge/wram/MARKET_TIMER_MINUTES_REMAINING.md, rom/92cc6c.md, rom/96811a.md]
+see: [knowledge/wram/MARKET_TIMER_MINUTES_REMAINING.md, routines/market_timer_calculate_minutes_remaining.md, routines/market_vendor_timer_warning.md]
 ---
 Low word of the frame counter timestamp recorded when entering the Nobilia Market (Room 10) prior to the Vigor colosseum battle.
 Used to track elapsed real time during the timed 15-minute market shopping sequence. Routine `$92:CC6C` subtracts this base timestamp from `frame_counter_low()` in 3,600-frame steps (60 frames/sec * 60 sec = 1 minute) to determine remaining shopping time.

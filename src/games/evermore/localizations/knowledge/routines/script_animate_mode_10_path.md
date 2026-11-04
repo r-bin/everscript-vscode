@@ -9,6 +9,6 @@ title: Opcode 0x78 mode 10 path
 confidence: confirmed
 tags: [script-vm]
 evidence: ["disasm: indirect target at mode offset 10; helper-call sequence, extra script-word fetch, indexed ROM reads, carry-set RTS at $8C:E1FC (vanilla VFS disassembly)"]
-see: ["rom/8ce0b0.md", "rom/8ce100.md", "docs/disassembly/script-vm/animate.md"]
+see: ["routines/script_op_78_animate.md", "routines/SCRIPT_ANIMATE_MODE_TARGETS.md", "docs/disassembly/script-vm/animate.md"]
 ---
 This is the indirect dispatch target for mode value 10. It performs a series of engine calls, fetches one extra word through the script pointer, reads indexed values near `$8C:E1FD` and `$8C:E1FF`, conditionally calls `$80:B149`, then performs more engine calls and returns with carry set. The meanings of the helpers and indexed data are not established; this path does not visibly enter the common animation-start routine. Unlike that common path, it does not visibly remove the saved animation word with `PLX`/`PLA`; the `PLB` at its exit and any opaque helper stack effects leave the stack/data-bank interaction unresolved.

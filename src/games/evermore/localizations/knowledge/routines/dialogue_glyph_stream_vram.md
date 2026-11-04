@@ -9,7 +9,7 @@ title: Commit dialogue window glyph tiles to VRAM via DMA channel 1
 confidence: confirmed
 tags: [ui, font, vram, dma]
 evidence: ["disasm: sets source address to $7FA0, calculates destination VRAM tile address, and invokes $80:8650 (vram_dma_upload_tile_block) to upload rendered glyph tiles to VRAM", "recomp: clean C in docs/disassembly/ui/dialogue-glyphs.md"]
-see: [rom/8ca5ac.md, rom/808650.md]
+see: [routines/dialogue_glyph_render_char.md, routines/vram_dma_upload_tile_block.md]
 ---
 Streams newly rasterized dialogue window glyph tiles from Bank `$7F` into SNES VRAM:
 - Configures DMA channel 1 source address to `$7FA0` in Bank `$7F`.

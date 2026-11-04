@@ -9,7 +9,7 @@ title: Format and stream entity HP "current / max" text string to HUD buffer
 confidence: confirmed
 tags: [hud, ui, text, damage]
 evidence: ["disasm: $8F:9144 checks barrier buff in $7E:2261, reads entity HP from +$2A, converts digits via $80:870C, formats tiles with base $2BEC and separator $2BF8 ('/'), reads max HP from character descriptor +$0F, and writes into HUD buffer", "docs/disassembly/combat/damage-reaction.md"]
-see: [rom/8fc25d.md, docs/disassembly/combat/damage-reaction.md]
+see: [routines/entity_process_damage_recoil.md, docs/disassembly/combat/damage-reaction.md]
 ---
 Renders the "current / max" health digits onto the player/target HUD status bar:
 1. Verifies if Magic Barrier buff is active in `$7E:2261`; if active, skips updating the standard health readout.

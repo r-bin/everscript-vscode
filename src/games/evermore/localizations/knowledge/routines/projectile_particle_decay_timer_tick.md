@@ -8,7 +8,7 @@ name: projectile_particle_decay_timer_tick
 title: Step decay timer and position calculation for projectile particles ($90:D6F9)
 confidence: confirmed
 evidence: ["disasm: decrements decay timer +$ED5,X; updates position velocity +$ED0,X; clamps decay rate to minimum 1; dispatches particle cluster updater $90:D749"]
-see: ["rom/90d749.md"]
+see: ["routines/effect_sprite_draw.md"]
 tags: ["projectile","particle","decay","timer"]
 ---
 Steps decay timer for projectile particle cluster. Decrements decay counter `+$ED5,X`, adds velocity delta to `+$ED0,X`, clamps minimum decay step to 1, and invokes cluster position updater `FUN_90d749` (`$90:D749`).

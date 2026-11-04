@@ -54,7 +54,7 @@ When invoked with *"continue the decompilation"*:
    - Reconstruct structured control flow (`if`/`else`, `for`/`while`, `switch`) matching the assembly branch logic.
 5. **Publish Learnings**:
    - Write the C to `reconstructed-c/<bank>/` (the US address in the comment right above each function), per-instruction comments to `src/games/evermore/localizations/data/asm-comments.json`, and the walkthrough (no listing) to `docs/disassembly/<subsystem>/<function-name>.md`, linking `soe://rom/code/<name>/`.
-   - Create or update knowledge entries under `src/games/evermore/localizations/knowledge/rom/<addr>.md` and `ram/<addr>.md` so they become immediately queryable across the `soe://` VFS.
+   - Create or update knowledge entries under `src/games/evermore/localizations/knowledge/routines/<name>.md` and `wram/<name>.md` so they become immediately queryable across the `soe://` VFS.
 6. **Update Progress**:
    - Recalculate metrics in `docs/disassembly/PROGRESS.md`, counting C by gate (G0–G3); a file below G1 is a description.
    - Update the subsystem completion table and append a record to the Session History.

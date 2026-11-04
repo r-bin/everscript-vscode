@@ -3,7 +3,7 @@
 //
 // Sources (in order of preference):
 // 1. Reconstructed C files (reconstructed-c/<bank>/<addr>_<name>.c)
-// 2. Curated clean C decompilation (docs/disassembly/ or knowledge/rom/<addr>.md)
+// 2. Curated clean C decompilation (docs/disassembly/ or knowledge/routines/<name>.md)
 // 3. Mechanical C lift from snesrecomp (out/recomp/project/src/gen/)
 // 4. Ghidra pseudocode exports (out/ghidra/ or traces/ghidra/)
 
@@ -182,7 +182,7 @@ function getDecompiledC(bus: number): DecompiledC | null {
             source: 'stub',
             title: fn.name,
             code: `// ${fn.name} ($${h(bus, 6)})\n// Confidence: ${fn.confidence || 'unverified'}\nvoid ${fn.id || fn.name.toLowerCase().replace(/[^a-z0-9]+/g, '_')}(void) {\n    // TODO: Decompilation pending\n}`,
-            path: 'knowledge/rom',
+            path: 'knowledge/routines',
         };
     }
 

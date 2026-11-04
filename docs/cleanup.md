@@ -80,9 +80,10 @@ Every check below passes and blocks in the release ritual (measured at v0.314.2)
 - **D11 — Every address and name for recomps.** Every routine the CDL library recorded and every
   WRAM address the code touches gets a knowledge entry and a name in our style; the name becomes
   the label in the Asar export and later the C function name in the recomp; entries can carry a
-  comment for the asm and for the C function. `check:knowledge` reports coverage (routines,
-  WRAM); the `re-curator` agent works it down. Mana and Terranigma get the same scheme, each its
-  own knowledge store.
+  comment for the asm and for the C function. `knowledge/rom/` (legacy hex filenames) is unified
+  and merged into `knowledge/routines/` (canonical named files), removing duplicate files and single-sourcing
+  ROM entries. `check:knowledge` reports coverage (routines, WRAM); the `re-curator` agent works it down.
+  Mana and Terranigma get the same scheme, each its own knowledge store.
 - **D12 — WASM: scout only.** Record candidates and how to measure them (§3 step 5); build
   nothing in this cleanup. A future WASM module keeps a TS twin or a TS test oracle.
 - **D13 — Stale docs are deleted or merged**, not kept: `STATE_FLOW.md`, pre-refactor
@@ -106,7 +107,7 @@ Every check below passes and blocks in the release ritual (measured at v0.314.2)
 
 ### Step 2 — The re-do (D3, D4), done v0.280.0–v0.285.0
 - [x] **2.1** Sprites and character records rebuilt from the game's renderer, loaders and spawn code (`maps/sprites.ts`,
-  `maps/character-record.ts`, knowledge `rom/8eb678.md` and what it links).
+  `maps/character-record.ts`, knowledge `routines/character_records.md` and what it links).
 - [x] **2.2** The script VM (`src/games/evermore/script-vm/`, spec in `docs/scripts/`) from the
   interpreter at `$8C:D0A6`, checked against goldens the running game produced; printed in the compiler's notation.
 - [x] **2.3** Room names in our style with evidence per part (`localizations/data/rooms.json`).

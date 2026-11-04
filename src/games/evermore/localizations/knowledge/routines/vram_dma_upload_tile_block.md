@@ -9,7 +9,7 @@ title: Direct DMA channel 1 block transfer to VRAM with VRAM lock protection
 confidence: confirmed
 tags: [graphics, vram, dma, hardware]
 evidence: ["disasm: checks $0106 bit 7; increments VRAM lock $0F3A, programs VMAIN $2115=0x80, sets DMA1 source $4312-$4314, destination VMADD $2116, byte length $4315, mode $1801, triggers $420B=0x02, and decrements $0F3A", "recomp: clean C in docs/disassembly/ui/dialogue-glyphs.md"]
-see: [rom/8ca753.md, rom/80823a.md]
+see: [routines/dialogue_glyph_stream_vram.md, routines/nmi_handler.md]
 ---
 Executes a DMA channel 1 transfer to write a block of graphical tile data directly into VRAM:
 - Checks controller / screen flag `$0106` bit 7.

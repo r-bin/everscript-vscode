@@ -9,7 +9,7 @@ title: Per-tick entity pass — charge the meter, then run the AI
 confidence: confirmed
 tags: [combat, stamina, ai, entity]
 evidence: ["disasm: $8F:CC44-$8F:CC74 (HP ≠ 0, +$16 & $18 clear, +$2E < $400 → +$2E += record +$2E, capped at $400)", "disasm: $8F:CCFA-$8F:CD14 (+$6C bit 15 set and +$10 & $21 clear → $8F:CD17, the behaviour dispatch; a party member with +$14 & $F000 goes to $8F:D2DA)", "routes: tests/memory/routes-tab.test.js fight inputs (v0.335.0)"]
-see: [rom/8fcc5d.md, rom/8fcd17.md, rom/8fd69b.md, rom/8fddb3.md]
+see: [routines/recharge_entity_stamina.md, routines/enemy_ai_dispatcher.md, routines/enemy_ai_check_aggro.md, routines/companion_charge_caps.md]
 ---
 Each tick, for every entity: if it is alive and its `mode` word `+$16` has neither bit `$10` nor `$08`,
 its charge `+$2E` grows by the character record's `+$2E` (charge speed) up to `$400`. An attack's

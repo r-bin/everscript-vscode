@@ -9,7 +9,7 @@ title: Fixed-point bytewise scaling multiplier
 confidence: confirmed
 tags: [math, fixed-point, multiplier]
 evidence: ["disasm: splits multiplier in Accumulator A into low and high bytes; calls $80:ACF5 twice; combines overlapping DP $02..$04 partial-product words and returns DP $02 in A", "trace: called by heat-shimmer wave generator $90:9D45 and projectile trajectory calculators"]
-see: [docs/disassembly/maps/heat-shimmer.md, rom/909d45.md]
+see: [docs/disassembly/maps/heat-shimmer.md, routines/room_effect_heat_shimmer_hdma_wave_generator.md]
 ---
 Core engine 16-bit scaling utility. Takes a 16-bit value in DP $06 and a 16-bit multiplier in
 Accumulator A. It also uses the incoming high byte of DP $01 in its final low-word addition.

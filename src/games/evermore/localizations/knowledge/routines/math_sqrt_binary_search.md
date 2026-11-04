@@ -8,7 +8,7 @@ title: 16-Bit Integer Square Root via Binary Search
 confidence: confirmed
 tags: [math, sqrt, binary_search, table]
 evidence: ["disasm: BIT #$FF00 / BNE + / TAX / LDA.L $80A927,X / RTL / CMP #$FE01 / BCC + / LDA #$00FF / RTL / LDX #$AB25 / binary search loop (out/recomp/asar/rom.bin:0x00AC27)"]
-see: [src/games/evermore/localizations/knowledge/rom/80aa27.md, src/games/evermore/localizations/knowledge/rom/80ac6f.md]
+see: [src/games/evermore/localizations/knowledge/routines/tbl_integer_squares.md, src/games/evermore/localizations/knowledge/routines/math_sqrt_restoring_subtraction.md]
 ---
 16-bit integer square root calculation ($\lfloor \sqrt{x} \rfloor$) via binary search:
 - If input $x < 256$: performs direct table lookup in precomputed square root table (`LDA.L $80A927,X`) and returns immediately.

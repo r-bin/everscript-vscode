@@ -8,7 +8,7 @@ name: ALCHEMY_POWER
 title: ALCHEMY_POWER
 confidence: confirmed
 evidence: ["disasm: alchemy formula calculation routine reads $C4:5E6B,x to scale formula base damage/recovery", "data: 35 words matching formula power metrics, from 0 (utility) to 112 (Nitro)"]
-see: [rom/c43874.md, rom/c45d09.md, docs/disassembly/engine-core/rom-tables.md]
+see: [routines/weapon_entries.md, routines/ALCHEMY_FORMULA_TEXT.md, docs/disassembly/engine-core/rom-tables.md]
 ---
 Base spell damage and recovery coefficients for all 35 alchemy formulas (`$C4:5E6B`..`$C4:5EB0`, 70 bytes).
 Utility formulas (Levitate, Escape, Barrier, Speed, Regrowth, Force Field) have base power 0.

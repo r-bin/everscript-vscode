@@ -5,7 +5,7 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 ## Owns
 - The script instruction format: opcode table, expressions, packed pointers, the tables that
   name scripts. Spec: `docs/scripts/` (prose); one entry per opcode byte in
-  `localizations/knowledge/opcodes/<xx>.md` (all 256), one per handler in `knowledge/rom/`.
+  `localizations/knowledge/opcodes/<xx>.md` (all 256), one per handler in `knowledge/routines/`.
 
 ## Dependencies
 - `platform/snes/` and `../variant-resolver` only (`.depcruise.js` `script-vm-from-the-game`).

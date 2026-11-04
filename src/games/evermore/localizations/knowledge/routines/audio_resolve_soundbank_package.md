@@ -9,7 +9,7 @@ title: Resolve required soundbank sample package for BGM track or sound effect
 confidence: confirmed
 tags: [audio, spc700, soundbank]
 evidence: ["disasm: calculates catalog pointer from $81:9900/9901, tests X register (X = 0 for BGM track $0E44, X != 0 for SFX $0E4F), reads 8-bit sample package ID from Bank $81, returns in accumulator A ($8C:8361 RTL)", "docs/disassembly/audio/positional-audio.md"]
-see: [rom/8c81fd.md, rom/8c8236.md, rom/8c82dc.md, rom/8c8589.md, docs/disassembly/audio/positional-audio.md]
+see: [routines/apu_command_handshake.md, routines/load_song_soundbank.md, routines/play_sound_effect_direct.md, routines/audio_play_positional_sfx.md, docs/disassembly/audio/positional-audio.md]
 ---
 Resolves the required sample package (BRR audio chunk) in SPC700 Audio RAM for a given music track
 or sound effect:

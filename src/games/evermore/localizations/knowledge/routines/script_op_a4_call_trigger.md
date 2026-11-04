@@ -9,6 +9,6 @@ title: Script opcode 0xA4: call room trigger script from master table
 confidence: confirmed
 tags: [script-vm, opcode, triggers, call]
 evidence: ["disasm: reads 16-bit trigger index from PC stream; resolves script pointer from master header $92:8000 + word[$92:8000] + 2*idx; sets Bank $92; calls script_chain_call ($8C:D35C) to allocate slot, save return PC, and suspend caller", "trace: standard trigger invocation opcode"]
-see: [docs/disassembly/script-vm/callback-dispatch.md, rom/8cd392.md, rom/8facce.md]
+see: [docs/disassembly/script-vm/callback-dispatch.md, routines/script_op_b1_call_trigger_with_args.md, routines/scan_room_triggers.md]
 ---
 Handler of script opcode [0xA4](soe://rom/assets/scripts/opcodes/a4.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/a4.md`, served at `soe://rom/assets/scripts/opcodes/a4.md`.

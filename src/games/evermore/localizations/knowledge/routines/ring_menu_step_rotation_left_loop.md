@@ -9,7 +9,7 @@ title: Interpolate counter-clockwise ring orbital angle and handle auto-rotation
 confidence: confirmed
 tags: [ui, ring-menu, interpolation, audio]
 evidence: ["disasm: $8E:AF86 steps current angle $7E:061B by -4 units, tests proximity to target angle $7E:061D, plays tick SFX 3 via $8C:82DC upon arrival, checks controller Left hold ($0104 & 0x0100) to chain next rotation, or snaps angle and exits via RTL", "docs/disassembly/ui/ring-menu-rotation.md"]
-see: [rom/8eaf1e.md, rom/8eaff4.md, docs/disassembly/ui/ring-menu-rotation.md]
+see: [routines/ring_menu_rotate_previous_item.md, routines/ring_menu_rotate_next_item.md, docs/disassembly/ui/ring-menu-rotation.md]
 ---
 Animates the ring menu during counter-clockwise rotation:
 1. Steps current angle `$7E:061B` by `-4` units per frame.

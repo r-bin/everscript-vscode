@@ -8,7 +8,7 @@ title: Omnitopia active gate bot invincibility attributes
 confidence: confirmed
 tags: [omnitopia, enemies]
 evidence: ["scripts: Room 72 enter script ($9a:d42f) calls $9a:e4f6; iterates through spawned gate bot entity handles (temp[8]..temp[30]), setting attribute_bit(INVINCIBLE) on bots whose defeat flags in $7E:22F6 / $7E:22F7 remain active"]
-see: [rom/9ad899.md]
+see: [routines/OMNITOPIA_SPAWN_GATE_BOTS.md]
 ---
 Post-spawn attribute configuration routine for `GATE_BOT` enemies in Room 72 (Omnitopia Metroplex).
 

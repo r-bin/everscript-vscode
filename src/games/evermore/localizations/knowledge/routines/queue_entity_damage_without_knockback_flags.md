@@ -8,7 +8,7 @@ name: queue_entity_damage_without_knockback_flags
 title: Accumulate queued entity damage and assert minor hit reaction flag $08 ($8F:C132)
 confidence: confirmed
 evidence: ["disasm: adds damage in A to accumulator +$76,Y; sets minor hit reaction flag $08 into +$12,Y; callers: script op 93 $8C:E486"]
-see: ["rom/8ce486.md"]
+see: ["routines/script_op_93_queue_damage.md"]
 tags: ["combat","damage","queue","status"]
 ---
 Adds damage value in A to queued entity damage accumulator `+$76,Y` and sets minor hit reaction flag `$08` into status byte `+$12,Y`.

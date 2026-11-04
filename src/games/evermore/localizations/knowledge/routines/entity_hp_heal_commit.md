@@ -9,7 +9,7 @@ title: Apply HP restoration, flash palette effect, and update player HUD
 confidence: confirmed
 tags: [combat, healing, entity]
 evidence: ["disasm: triggers green palette flash $7E80 via $90:D858; adds heal amount to current HP ($002A,y); clamps against max HP from $8E:000F,x; for player targets (Y >= $4E89) invokes $8F:9144 for HUD gauge refresh; clears hurt/poison interval ticker ($0076,y) and clears unconscious flag ($0012,y &= $FB87)", "trace: invoked by alchemy healing spells and consumable items"]
-see: [docs/disassembly/combat/healing-spells.md, rom/919d16.md, rom/8fc0d3.md]
+see: [docs/disassembly/combat/healing-spells.md, routines/spell_heal_clamp_to_max_hp_999.md, routines/dispatch_hit_reaction_and_knockback.md]
 ---
 Commits HP healing to target entity `Y`. Triggers a green screen/palette flash (ID `$7E80`) through
 `$90:D858`, adds the heal amount to current HP at `$002A,y`, and clamps it against max HP from master

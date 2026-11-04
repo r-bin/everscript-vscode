@@ -9,7 +9,7 @@ title: Diagonal stair elevation shear, orthogonal wall slide, and collision reso
 confidence: confirmed
 tags: [physics, collision, stairs, shear, wall-slide]
 evidence: ["disasm: probes proposed displacement (dx, dy) via $8F:AF48, on obstruction tests orthogonal decomposition (dx, 0) and (0, dy), updates coordinates upon shear success, and sets obstacle flag $0012,Y |= 0x0002 on full blockage", "trace: executed on entity movement to prevent sticking along diagonal walls and ramps"]
-see: [docs/disassembly/maps/conveyor-physics.md, rom/8fadaa.md, rom/8faf0e.md, rom/8faf48.md]
+see: [docs/disassembly/maps/conveyor-physics.md, routines/entity_mover_step_direction_dispatch.md, routines/collision_step_success_commit.md, routines/probe_metatile_collision.md]
 ---
 Resolves proposed movement displacement against terrain boundaries. Probes diagonal vector $(dx, dy)$ via composite
 probe `$8F:AF48`. If obstructed, decomposes motion into horizontal and vertical single-axis shears, allowing the entity

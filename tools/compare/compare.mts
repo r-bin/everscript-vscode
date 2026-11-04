@@ -3,14 +3,16 @@
 // first checkpoint that does not match: the bytes, named, and for snes9x setups the CPU write where they part.
 // One setup is compared with vanilla. Runs that mix backends align on the NMI counter $0100 and copy the RNG in.
 //   node tools/compare/compare.mts [backend[:exe]=]<rom> ... [--replay x.evsmv|x.mmo] [--frames N] [--verbose]
-//       [--keep-going] [--aram] [--regions wram,vram,cgram,oam] [--align frame|nmi] [--no-cache] [--out file.md]
+//       [--keep-going] [--aram] [--regions wram,vram,cgram,oam,sram,aram,dsp,sound,picture] [--align frame|nmi]
+//       [--full] [--picture] [--sound] [--no-cache] [--out file.md]
+//   --full: every RAM at every key, on to the end, with each region's result; --picture and --sound add those
 //   backend: snes9x (our fork's debugger core, the default) | recomp (exe: the packaged game by default); no ROM after
 //   '=' means the clean ROM (--rom or the ROM library)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { basename, join, relative, resolve } from 'node:path';
 import { createRequire } from 'node:module';
 import { REPO, REFERENCE_FRAMES, coreId } from '../c-to-rom/emu.mts';
-import { Tracker, byteDiff, firstDifferingWrites, type Crcs, type Region, type Write } from './diff.mts';
+import { Tracker, byteDiff, firstDifferingWrites, inOrder, ALL_RAM, type Crcs, type Region, type Write } from './diff.mts';
 import { runSnes9x, askSnes9x, type Job } from './snes9x.mts';
 import { runRecomp, defaultExe } from './recomp.mts';
 import { runMesen, defaultMesenExe, askMesenRng } from './mesen.mts';
@@ -112,12 +114,18 @@ const mixed = new Set(setups.map(s => s.backend)).size > 1;
 const atNmi = setups.every(s => s.backend !== 'snes9x');
 const align = (opt('align') || (hasRecomp || hasMesen ? 'nmi' : 'frame')) as 'frame' | 'nmi';
 if (align === 'frame' && hasRecomp) { console.error('the recomp aligns on the NMI counter only (--align nmi)'); process.exit(2); }
-const regions = (opt('regions') ? opt('regions')!.split(',') : ['wram', 'vram', ...(opts.aram ? ['aram'] : [])]) as Region[];
+const regions = inOrder([
+    ...(opt('regions') ? opt('regions')!.split(',') as Region[] : opts.full ? ALL_RAM : ['wram', 'vram'] as Region[]),
+    ...(opts.aram ? ['aram'] as Region[] : []), ...(opts.picture ? ['picture'] as Region[] : []), ...(opts.sound ? ['sound'] as Region[] : []),
+]);
+const SNES9X_REGIONS: Region[] = ['wram', 'vram', 'cgram', 'oam', 'aram'];
+if (!atNmi && regions.some(r => !SNES9X_REGIONS.includes(r))) { console.error(`snes9x cannot hash ${regions.filter(r => !SNES9X_REGIONS.includes(r)).join(', ')}: compare mesen with recomp`); process.exit(2); }
 const movie = replay ? readReplay(replay) : null;
 const movieCount = movie?.count ?? 0;
 const fromState = movie?.start?.midGame ?? false;   // both start from one machine state: nothing to copy, every key counts
 const frames = Number(opt('frames') || (replay ? movieCount : REFERENCE_FRAMES));
-const stride = opts.verbose ? 1 : 60;
+const stride = opts.verbose || opts.full ? 1 : 60;
+const keepGoing = !!(opts['keep-going'] || opts.full);
 const skipThrough = mixed && !fromState ? SYNC_AT + (atNmi ? 4 : 0) : -1;   // at NMIs the copied RNG shows from key 117
 const ignore: ReadonlySet<number> = mixed ? CROSS_NOISE : new Set();
 
@@ -141,7 +149,7 @@ const job = (s: Setup, extra: Partial<Job>): Job => ({ cmd: 'hash', rom: s.rom, 
 
 // --- hash all setups at once, the reference from the cache when it can be -------------------------------------------
 const ref = setups[0], targets = setups.slice(1);
-const tracker = new Tracker(targets.length, skipThrough);
+const tracker = new Tracker(targets.length, skipThrough, stride);
 const ended = new Array(targets.length).fill(0);
 const errors: (string | undefined)[] = new Array(targets.length);
 const key = ref.backend === 'snes9x' && !opts['no-cache']
@@ -155,14 +163,19 @@ let refKill = () => {}, open = targets.length;
 // Stop the reference early only when no target still needs its keys: every one parted or failed. A target that
 // ran to the end first (the recomp outruns Mesen) still has keys waiting for the reference.
 const targetDone = (i: number) => {
-    if (--open === 0 && !building && tracker.results.every((r, j) => r.first || errors[j])) refKill();
+    if (--open === 0 && !building && !keepGoing && tracker.results.every((r, j) => r.first || errors[j])) refKill();
 };
+// A state starts inside a field, so the first picture was partly drawn before the run: not comparable.
+const pictureAt = regions.indexOf('picture');
+const comparable = (k: number, c: Crcs): Crcs => fromState && k === 1 && pictureAt >= 0 ? c.map((x, j) => j === pictureAt ? 0 : x) : c;
 const onTarget = (i: number) => (k: number, c: Crcs) => {
-    if (tracker.addTarget(i, k, c) && !opts['keep-going']) kills[i]();
+    c = comparable(k, c);
+    if (tracker.addTarget(i, k, c) && !keepGoing) kills[i]();
 };
 const onRef = (k: number, c: Crcs) => {
+    c = comparable(k, c);
     building?.set(k, c);
-    for (const i of tracker.addRef(k, c)) if (!opts['keep-going']) kills[i]();
+    for (const i of tracker.addRef(k, c)) if (!keepGoing) kills[i]();
 };
 
 const runs: Promise<unknown>[] = [];
@@ -253,7 +266,7 @@ if (setups.some(s => s.rom.startsWith(join(REPO, 'out', 'c-to-rom')))) {
 }
 const shown = (s: Setup) => ({ ...s, rom: relative(REPO, s.rom) });
 for (const t of reports) t.setup = shown(t.setup as Setup);
-const run: RunInfo = { reference: shown(ref), replay: replay && relative(REPO, replay), frames, align, regions, stride, ignored: [...ignore], skipThrough, keepGoing: !!opts['keep-going'], quality };
+const run: RunInfo = { reference: shown(ref), replay: replay && relative(REPO, replay), frames, align, regions, stride, ignored: [...ignore], skipThrough, keepGoing, quality };
 const md = report(run, reports);
 const out = opt('out') ? resolve(opt('out')!) : join(REPO, 'out', 'compare', setups.map(s => s.label.replace(/[^\w.-]+/g, '_')).join('--').slice(0, 120) + '.md');
 mkdirSync(join(out, '..'), { recursive: true });

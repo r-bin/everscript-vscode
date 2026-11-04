@@ -9,7 +9,7 @@ title: Route vendor shop catalogs by mode bitmask and position carousel icons
 confidence: confirmed
 tags: [shop, ring-menu, ui, mode]
 evidence: ["disasm: inspects mode flags in $0E6C (bit 2 standard $8E:9BC1, bit 3 alchemy $8E:9C28, default rare $8E:9BF4); sets carousel radius 16px (DP $02 = 0x0010) and angular arc 224 degrees (DP $04 = 0x00E0); calls positioning routines $90:CFF0 and $90:CCA4; clears interaction flags in $05A9", "trace: executed when transitioning into vendor shop menus"]
-see: [docs/disassembly/ui/shop-mode-selector.md, docs/disassembly/ui/shop-catalogs.md, rom/8e9bc1.md, rom/8e9c28.md]
+see: [docs/disassembly/ui/shop-mode-selector.md, docs/disassembly/ui/shop-catalogs.md, routines/shop_load_catalog.md, routines/shop_menu_load_armor_catalog_items.md]
 ---
 Routes shop view modes according to configuration bits in `$7E:0E6C` (Standard items, Alchemy
 ingredients, or Rare/special goods), establishing circular carousel geometry (16px radius,

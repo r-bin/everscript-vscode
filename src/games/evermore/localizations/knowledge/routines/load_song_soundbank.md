@@ -9,7 +9,7 @@ title: Song soundbank validation & sample loader
 confidence: confirmed
 tags: [audio, spc700]
 evidence: ["disasm: compares requested soundbank against resident $0E4B; if changed, looks up pointer from table $81:9903 + 3*bank, sends APU cmd 0x0E, calls IPL bootloader $805B to stream samples, and sends cmd 0x02 to finalize", "audio: preventing interruptions during this routine avoids the notorious Evermore audio desync glitch"]
-see: [docs/disassembly/audio/spc-handshake.md, rom/8c81fd.md]
+see: [docs/disassembly/audio/spc-handshake.md, routines/apu_command_handshake.md]
 ---
 Validates whether a requested instrument soundbank is currently resident in SPC700 RAM (`$7E:0E4B`).
 If a new soundbank is required, it looks up the ROM sample block from table `$81:9903`, sends APU

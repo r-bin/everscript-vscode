@@ -9,7 +9,7 @@ title: Map overlay dispatcher, compass needle positioning, and minimap HUD tick
 confidence: confirmed
 tags: [render, map, compass, hud]
 evidence: ["disasm: updates weather via $90:9E93; reads environment index from $7E:241F; dispatches layer renderer via jump table ($8E68,x); updates compass needle via $90:98FA; blits minimap tiles via $90:A4A6", "trace: executed every frame tick during field exploration"]
-see: [docs/disassembly/ui/minimap-radar.md, rom/9098fa.md, rom/90a4a6.md]
+see: [docs/disassembly/ui/minimap-radar.md, routines/hud_compass_needle_update.md, routines/hud_minimap_vram_blit.md]
 ---
 Top-level map overlay and navigation HUD tick engine. Dispatches weather particle updates via `$90:9E93`,
 indexes the map layer renderer jump table at `$8E68,x` based on `$7E:241F`, calculates compass needle

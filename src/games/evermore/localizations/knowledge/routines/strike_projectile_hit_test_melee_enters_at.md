@@ -9,7 +9,7 @@ title: Strike / projectile hit test (melee enters at `$8F:B5E6`)
 confidence: confirmed
 tags: [combat, hitboxes]
 evidence: ["legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)", "decomp: fully decompiled in docs/disassembly/combat/strike-hittest.md"]
-see: [docs/disassembly/combat/strike-hittest.md, rom/8fb6a5.md]
+see: [docs/disassembly/combat/strike-hittest.md, routines/attack_proc_dispatch.md]
 ---
 Weapon projectile / general strike hit test against active entity list `$7E:3DDF`.
 Melee weapons enter at `$8F:B5E6` to resolve weapon action ID from `$8E:0030,x` into `$7E:0E9A`.

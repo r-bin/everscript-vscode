@@ -8,7 +8,7 @@ lifetime: save
 confidence: confirmed
 tags: [inventory, loot]
 evidence: ["test: derived by simulating global 0x3e ($92:A584) once per LOOT_REWARD id and reading which byte it increments (src/games/evermore/simulation, v0.202.0)", "test: 910/910 item pickups in the ROM increment the byte this table names"]
-see: [rom/92a584.md]
+see: [routines/loot_count_in.md]
 ---
 One byte per item, written only by the loot script `0x3e` (and shops). Caps are the
 `count + bonus < cap` tests in that script.

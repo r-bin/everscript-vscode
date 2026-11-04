@@ -9,7 +9,7 @@ title: Speed status tick — charges the meter up to the record's charge limit
 confidence: confirmed
 tags: [combat, status-effects, charge]
 evidence: ["read: tick handler of status $20 in the status table $91:AE31 (cleanup $91:AEF5)", "disasm: counts the slot timer up to $0E10 ticks; each tick entity +$2E += $3C, capped at record +$2C (the only long read of +$2C in the ROM) (v0.340.1)"]
-see: [rom/91ae31.md, rom/8eb678.md, docs/entities/character-properties.md]
+see: [routines/STATUS_EFFECT_APPLY_REMOVE_DISPATCH.md, routines/character_records.md, docs/entities/character-properties.md]
 ---
 While the Speed status runs (3600 ticks, a minute), the charge meter fills by `$3C` a tick, up
 to the character record's charge limit `+$2C`. For an enemy that limit is `$400`, `$800` or

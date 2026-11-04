@@ -1,7 +1,7 @@
 // Ownership: sprites as the game draws them — a sprite record's chunks, a chunk's block pixels, a
 // composed image — and every sprite the animation scripts name. Pure.
 //
-// Read from the game's own code (knowledge rom/809033.md, rom/809751.md):
+// Read from the game's own code (knowledge routines/direct_sprite_draw_oam.md, routines/unknown_809751.md):
 //   record    $80:9033 reads [$26]: count, offset of the first chunk, and when count >= 3 a
 //             bounding box (x:s8 y:s8 w:u8 h:u8) it culls by; then `count` chunks of 5 bytes
 //   chunk     flags, x:s8, y:s8, block:u16. Flags bit 0: 16x16; bits 1-3 palette, 4-5 priority,

@@ -9,7 +9,7 @@ title: Configure dialogue window parameters, queue pacing, and open next message
 confidence: confirmed
 tags: [text, ui, window]
 evidence: ["disasm: loads string pointer from $0DFB,X into DP $22-$23; computes queue distance tail - head with modulo 24; sets timer $0B2B to 60 frames if distance >= 9, else 120 frames; initializes window $034D with mode 4, border 1, 30x2 tiles at row 20; calls $8C:AC8A and $8C:9E03"]
-see: [docs/disassembly/ui/dialogue-box-frame.md, rom/8cc436.md, rom/8cac8a.md]
+see: [docs/disassembly/ui/dialogue-box-frame.md, routines/dialogue_queue_tick.md, routines/window_open_setup.md]
 ---
 Pulls the next pending message from the circular queue, computes dynamic backlog pacing (speeding up
 from 120 frames to 60 frames if 3 or more messages are queued), configures the 30-tile by 2-tile

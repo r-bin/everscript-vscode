@@ -9,7 +9,7 @@ title: Mode 7 overworld flight frame simulation and HDMA loop
 confidence: confirmed
 tags: [mode7, flight, engine, render]
 evidence: ["disasm: tests overworld vehicle flag $05AB; calls mode7_flight_sprite_render ($8E:B520), mode7_flight_pitch_heading_math ($8E:B33D), entity physics ($80:96BB), and HDMA gradient setup ($80:858C)", "trace: executed every frame tick while flying on Windwalker"]
-see: [docs/disassembly/engine-core/mode7-flight.md, rom/8eb33d.md, rom/8eb520.md]
+see: [docs/disassembly/engine-core/mode7-flight.md, routines/mode7_flight_sample_and_sprite_dispatch.md, routines/mode7_flight_sprite_render.md]
 ---
 Top-level Mode 7 overworld flight frame tick engine. Renders the Windwalker sprite at the projected
 camera perspective origin, executes 512-step trigonometric heading updates, performs entity physics

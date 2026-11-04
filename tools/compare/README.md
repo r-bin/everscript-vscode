@@ -20,8 +20,17 @@ ROM with the recomp executable, and `mesen=` means the clean ROM with MesenCE (`
 
 Options: `--replay x.evsmv` (runs across snes9x, recomp, and mesen), `--frames N` (default 8414, the 2:20 intro; a replay's
 length with `--replay`), `--verbose` (check every frame, not every 60th), `--keep-going` (count every
-differing checkpoint), `--aram`, `--regions wram,vram,cgram,oam`, `--align frame|nmi` (default `nmi` when mixing backends), `--no-cache`,
-`--out file.md`, `--rom <clean rom>`.
+differing checkpoint), `--aram`, `--regions wram,vram,cgram,oam,sram,aram,dsp,sound,picture`, `--align frame|nmi` (default `nmi` when mixing
+backends), `--no-cache`, `--out file.md`, `--rom <clean rom>`.
+
+Comparing everything, MesenCE against the recomp:
+
+| Option | What |
+|---|---|
+| `--full` | every RAM (WRAM, VRAM, CGRAM, OAM, SRAM, ARAM, S-DSP registers) at every key, on to the end, each region's result in the report |
+| `--picture` | adds the rendered picture: the 224 lines before each NMI |
+| `--sound` | adds the S-DSP's whole state: output samples, voices, envelopes, BRR buffers, echo |
+| `npm run compare:full` | `tools/compare/full.mts`: all sync replays with all of the above, one after the other; reports in `out/compare/full/`. `--only 01,06`, `--no-picture`, `--no-sound` |
 
 ## How it works
 
@@ -54,6 +63,7 @@ length and regions, so vanilla runs once (~5 s for the intro) and costs nothing 
 | `snes9x.mts` | the snes9x child process: `hash`, `dump`, `watch`, `rng` jobs |
 | `recomp.mts` | the recomp: a headless script plus the recomp glue's `SOE_COMPARE_*` hashing on fd 3 |
 | `mesen.mts` | the MesenCE child process: headless Lua testrunner, IEEE CRC32 hashing, RNG sync, dumps |
+| `full.mts` | every sync replay with every region, one after the other |
 | `game.mts` | the Evermore facts it aligns on (frame counter, RNG, noise bytes) |
 | `report.mts`, `cache.mts` | the Markdown report and naming; the hash cache |
 
@@ -63,6 +73,25 @@ When no setup is snes9x, both sides sample as each NMI is taken, after its retur
 MesenCE's Lua `nmi` event, the recomp glue's `SOE_COMPARE_AT=nmi`). That is an instruction boundary on both,
 which a frame's end is not, and the key is then the NMI's number since power-on. `onNmi(nmi, clock, pc)` reports
 each NMI's master clock and the address it interrupted on both sides: where the two clocks part.
+
+## Sampling the sound side and the picture
+
+`aram`, `dsp` and `sound` are read at one SPC700 instruction boundary on both sides, the first at least 16 cycles after
+the NMI's clock. The two SPC700s stop at different places when an NMI is taken: MesenCE's runs in catch-up batches, the
+last at the start of line 225, and can stop inside an instruction; the recomp's has run each instruction at its first
+clock and been synced up to the NMI. MesenCE's Lua waits for that boundary with an SPC exec callback (`at_spc`), so a key's
+sound values arrive a little after its CPU values. The recomp runs ahead on a copy of its APU and puts it back
+(`CmpSpcEnter` in the glue), so a compare run plays as any other; it stops on the last clock of the instruction before,
+where the S-DSP stands where MesenCE's does.
+
+`picture` is read at MesenCE's EndFrame: `SendFrame` then swaps the buffers, so at the NMI the frame is gone. Runs need
+`--snes.disableFrameSkipping=true` (at unlimited speed MesenCE skips rendering), which `mesen.mts` always passes. Rows 7-230
+of its 239 are the recomp's 224. A run from a mid-game state does not compare the picture at key 1: that field began
+before the state.
+
+Both were checked by breaking them, on 300 keys of replay 06: `SNESRECOMP_LAYER_MASK=0x0F` (no sprites) fails `picture`
+alone at 299 keys; `SNESRECOMP_DSP_PER_CLOCK=0` (the per-sample S-DSP) fails `dsp`, `sound` and `aram` from keys 1-2, and
+WRAM from key 69.
 
 ## Probing a few bytes frame by frame
 
@@ -116,7 +145,12 @@ recomp's cycles read 1 above MesenCE's (where each logs). Bisect K to find where
 
 ## Limits
 
-- The recomp and Mesen hash WRAM, VRAM, CGRAM and OAM, but not ARAM.
+- `sound` is the S-DSP's state once per key, not the sample stream: MesenCE's Lua has no audio access. That state holds
+  the output sample, every voice's position and buffers and the echo history, and the echo buffer is in ARAM, so samples
+  between keys can only differ if the two S-DSPs compute them differently from the same state.
+- `sram`, `dsp`, `sound` and `picture` need MesenCE and the recomp: the snes9x backend refuses them.
+- A Lua error in a callback ends the script but not MesenCE, so a run then waits for its limit with no message: `sound_bytes`
+  reports a missing state field and stops. `envMode` is not in `emu.getState()`, so it is not compared.
 - A recomp child outlives a killed `compare.mts` (`perl -e 'alarm ...'` kills only node): kill the process group, or it stays behind.
 - MesenCE's testrunner Lua has no `io` library: its dumps come over stdout as hex lines; a Mesen run hashes
   ~150 keys per second.

@@ -157,7 +157,7 @@ void fight(Entity *e) {
     else approach(e);
 }
 
-/* $8F:DAA7: rom/8fdaa7.md */
+/* $8F:DAA7: routines/enemy_leash_check.md */
 void leash(Entity *e) {
     if (!e->leash) return;
     uint16_t limit = e->state == 6 ? e->leash / 2 : e->leash;

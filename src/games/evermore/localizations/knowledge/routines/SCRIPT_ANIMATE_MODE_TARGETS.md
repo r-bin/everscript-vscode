@@ -9,7 +9,7 @@ title: Opcode 0x78 mode dispatch targets
 confidence: confirmed
 tags: [script-vm]
 evidence: ["disasm: six little-endian targets used by JMP ($E100,X), with table bytes ending at $8C:E10B and code beginning at $8C:E10C (vanilla VFS disassembly)"]
-see: ["rom/8ce0b0.md", "rom/8ce10c.md", "rom/8ce139.md", "rom/8ce17b.md", "docs/disassembly/script-vm/animate.md"]
+see: ["routines/script_op_78_animate.md", "routines/script_animate_mode_effects.md", "routines/animate_id_to_record.md", "routines/script_animate_mode_10_path.md", "docs/disassembly/script-vm/animate.md"]
 ---
 Six little-endian code addresses selected by the mode expression in script opcode 0x78. The handler uses the expression value directly as a byte offset, so the defined entries are at even offsets 0 through 10; odd or larger values do not select a valid table entry.
 

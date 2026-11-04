@@ -8,7 +8,7 @@ name: alchemy_inventory_find_ingredient_slot
 title: Search active formula ingredient slots for matching ingredient ID ($91:CCC3)
 confidence: confirmed
 evidence: ["disasm: searches 9 active formula slots $0AD2,Y (Y=8 down to 0) for ingredient ID in X; returns with carry clear and slot in Y if found, SEC if not found; callers: formula setup $8D:B98F"]
-see: ["rom/8db98f.md"]
+see: ["routines/alchemy_menu_selection_loop.md"]
 tags: ["alchemy","inventory","ingredient","search"]
 ---
 Searches the 9 active alchemy formula ingredient slots `$0AD2..$0ADA` (Y=8 down to 0) for ingredient ID in X. Returns with carry clear and slot index in Y if found; returns carry set if ingredient is absent.

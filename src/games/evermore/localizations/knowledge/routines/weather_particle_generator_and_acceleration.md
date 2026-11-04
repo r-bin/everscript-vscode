@@ -9,7 +9,7 @@ title: Weather particle vector physics, trigonometric wind sway, and acceleratio
 confidence: confirmed
 tags: [weather, physics, graphics, particles, animation]
 evidence: ["disasm: $80:9DF8 checks weather mode $7E:2439, advances frame angle $7E:0134, reads sine table $80:8800, computes hardware product with amplitude $7E:72D5, integrates vertical fall speed $7E:72D3 and horizontal sway, checks wrap bound $7E:72DF, and updates 16 particle slots", "docs/disassembly/engine-core/weather-physics.md", "docs/disassembly/engine-core/weather-preset.md"]
-see: [rom/809e51.md, rom/80a2e0.md, rom/80a305.md, docs/disassembly/engine-core/weather-physics.md]
+see: [routines/weather_particle_splash_and_recycle.md, routines/load_weather_preset_parameters.md, routines/weather_preset_param_unpack.md, docs/disassembly/engine-core/weather-physics.md]
 ---
 Simulates advanced weather precipitation particle physics (rain, snow, volcanic ash):
 1. Advances dynamic wind sway angle in `$7E:0134` by frequency step `$7E:72D7`.

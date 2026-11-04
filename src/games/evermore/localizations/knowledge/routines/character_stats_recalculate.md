@@ -9,7 +9,7 @@ title: Recalculate character combat stats, level curves, Atlas buffs, and dog fo
 confidence: confirmed
 tags: [stats, combat, level, companion]
 evidence: ["disasm: tests Boy vs Dog flag; reads growth tables $8C:90BF,x / $8C:90C9,x and base attack $8C:8FE1,x / $8C:8FEB,x; clamps stats to 99 max ($63 cap); reads weapon damage from $C4:0000,x; checks Atlas status buff in $2261 bit 5 adding +6.25% boost (LSR A x4; ADC $12); checks dog form $2363 == 12 (Toaster Dog) awarding +80 MDef ($0A89) and +250 Defense ($0A8B)", "trace: executed after combat level up and upon changing equipped gear"]
-see: [docs/disassembly/entities/level-growth.md, docs/disassembly/combat/exp-level-up.md, rom/8f8692.md]
+see: [docs/disassembly/entities/level-growth.md, docs/disassembly/combat/exp-level-up.md, routines/combat_award_exp_and_check_level_up.md]
 ---
 Recalculates party character combat stats: computes level and attack power clamped to 99 max,
 applies weapon modifiers from `$C4:0000,x`, adds Atlas strength spell scaling (+6.25%), and

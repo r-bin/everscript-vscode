@@ -9,7 +9,7 @@ title: Scan player inventory arrays and build active ring menu category slots
 confidence: confirmed
 tags: [ring-menu, inventory, ui]
 evidence: ["disasm: scans inventory counts $7E:231D,x; looks up ring IDs from master table $C4:5ABE; writes active items to category slot arrays ($0BFF weapons, $0C23 consumables, $0C47 alchemy, $0C6B key items); compares with $0AC2 to set initial cursor index", "trace: executed when player opens the ring menu"]
-see: [docs/disassembly/ui/ring-menu-builder.md, docs/disassembly/ui/ring-menu.md, rom/8e9ee2.md]
+see: [docs/disassembly/ui/ring-menu-builder.md, docs/disassembly/ui/ring-menu.md, routines/ring_menu_circular_layout_spawn.md]
 ---
 Scans the player's inventory counts at `$7E:231D,x` and constructs the 4 active ring menu category
 buffers: Weapons (`$0BFF`), Consumables (`$0C23`), Alchemy Formulas (`$0C47`), and Rare/Key Items (`$0C6B`).

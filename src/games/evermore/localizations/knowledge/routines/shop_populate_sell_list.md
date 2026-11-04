@@ -8,7 +8,7 @@ name: shop_populate_sell_list
 title: Shop Player Inventory Sell List Populator
 confidence: confirmed
 evidence: ["disasm: $8E:9CA1 scans 39 inventory slots in $7E:231D, filters non-zero items, fetches base prices from $C4:5ABE, divides by 2 (LSR A) for 50% resale return, and populates $0BA5"]
-see: [rom/8e9bc1.md, rom/8e9ebe.md, ui/shop-system.md]
+see: [routines/shop_load_catalog.md, routines/shop_inventory_menu_setup.md, ui/shop-system.md]
 ---
 Scans player satchel to populate the merchant "Sell" item list:
 - Iterates through 39 inventory slots starting at `$7E:231D`.

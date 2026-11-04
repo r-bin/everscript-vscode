@@ -9,7 +9,7 @@ title: Accumulate net weapon damage into target pending damage field +0x76
 confidence: confirmed
 tags: [combat, damage, accumulator]
 evidence: ["disasm: adds incoming net damage into target entity struct offset +0x76 via ADC $0076,x; STA $0076,x; ready for HP decrement and floating damage popup in $8F:C237", "trace: executed after physical damage calculation confirms hit connection"]
-see: [docs/disassembly/combat/to-hit-accuracy.md, rom/8fb75a.md, rom/8fba1a.md]
+see: [docs/disassembly/combat/to-hit-accuracy.md, routines/attack_proc_melee_boy_kill_xp.md, routines/hit_cooldown_same_attacker_blocked_for_21_ticks.md]
 ---
 Accumulates calculated physical weapon damage into the target entity's
 pending damage buffer at struct offset `+0x76`.

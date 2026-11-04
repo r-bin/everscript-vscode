@@ -8,7 +8,7 @@ title: Load the held weapon's animations and palette into the Boy's record
 confidence: confirmed
 tags: [entities, weapons, sprites]
 evidence: ["disasm: X = weapon index (×2); X = $1A (Bazooka) takes `$C4:388E[$2349]`, else `$C4:3874[X]`: a 36-byte entry in bank $C4; +$06 → $0A39 (record +$13), +$08-+$14 → $0A58-$0A64 (+$32-+$3E), +$16 → $0A6E (+$48), +$18 → $0A66 (+$40), +$1A/+$1C → $1460/$1462, +$04 (unless $23CD) → $0A2F (+$09), then $90:CF3A"]
-see: [rom/8eb678.md, rom/c43874.md]
+see: [routines/character_records.md, routines/weapon_entries.md]
 ---
 Equipping a weapon rewrites the Boy's WRAM record (`$0A26`) from the weapon's entry: its stand,
 walk, run and four attack animations, its dodge (`+$48`) and knockback (`+$40`), its range

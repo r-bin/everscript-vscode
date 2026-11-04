@@ -9,7 +9,7 @@ title: Multi-target spell hit segment processor and particle compositor
 confidence: confirmed
 tags: [combat, alchemy, oam, particles]
 evidence: ["disasm: stores segment count into DP $42; iterates through 14-byte segments; tests depth +$03,X with ground plane $08; applies signed screen offsets +$07,X and +$09,X; composites particle via $80:960A; advances X by 14; decrements $42"]
-see: [docs/disassembly/combat/spell-collision.md, rom/8fc824.md, rom/8fc8de.md]
+see: [docs/disassembly/combat/spell-collision.md, routines/spell_screen_projection_with_elevation.md, routines/spell_script_payload_unpack.md]
 ---
 Walks an array of 14-byte spell hit segment descriptors, applying signed offsets in screen space,
 filtering out particles hidden beneath ground elevation, and submitting active visual slices to the

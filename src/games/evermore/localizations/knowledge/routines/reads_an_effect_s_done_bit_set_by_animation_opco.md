@@ -9,7 +9,7 @@ title: Evaluate effect animation phase completion bit set by opcode 0x5D
 confidence: confirmed
 tags: [alchemy, animation, combat, sync]
 evidence: ["disasm: tests bit 1 of entity slot offset +0x26; if set, clears bit 1 (AND #$FFFD) and returns CLC to allow combat resolution (damage/heal) to proceed; if clear, returns SEC to yield to next frame", "trace: executed by spell damage coordinator to await animation script opcode 0x5D completion"]
-see: [docs/disassembly/combat/spell-targeting.md, rom/919c90.md, rom/919d2e.md]
+see: [docs/disassembly/combat/spell-targeting.md, routines/apply_spell_damage_to_targets.md, routines/restorative_effect_done_wait.md]
 ---
 Inspects bit 1 of entity slot offset `+0x26` to determine if an alchemy animation
 phase has completed (signaled by animation script opcode `0x5D`).

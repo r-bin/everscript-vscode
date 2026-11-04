@@ -9,7 +9,7 @@ title: Decompression Method 0x03: LZSS 1024-byte sliding window dictionary decod
 confidence: confirmed
 tags: [compression, lzss, dictionary, window]
 evidence: ["disasm: reads 16-bit uncompressed length into DP $14; sets window index DP $12 = 0x03BE; maintains 1024-byte sliding window buffer in upper WRAM $7F:A000..$7F:A3FF; reads 8-bit control flags from stream [$04]; on bit 1 emits literal byte to output and window; on bit 0 reads 16-bit offset/length token and copies from sliding window buffer until length exhausted", "trace: core LZSS decompressor for script blobs, text strings, and metatiles"]
-see: [docs/disassembly/engine-core/lzss-decompression.md, rom/8c988d.md]
+see: [docs/disassembly/engine-core/lzss-decompression.md, routines/decompression_dispatcher_reads_sub_flag_jumps_th.md]
 ---
 Decompression Method `0x03`: Okumura-style LZSS sliding window decoder utilizing
 a 1024-byte circular dictionary in `$7F:A000`–`$7F:A3FF` with initial pre-fill offset

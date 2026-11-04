@@ -12,7 +12,7 @@ import { gameExe } from '../recomp/repo.mts';
 
 const require = createRequire(import.meta.url);
 
-export const RECOMP_REGIONS: Region[] = ['wram', 'vram', 'cgram', 'oam'];
+export const RECOMP_REGIONS: Region[] = ['wram', 'vram', 'cgram', 'oam', 'sram', 'picture', 'aram', 'dsp', 'sound'];
 
 /** The game built in the recomp repository (`npm run recomp`, or its own CMake build). */
 export function defaultExe(): string {

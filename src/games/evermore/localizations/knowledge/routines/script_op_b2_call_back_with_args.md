@@ -9,6 +9,6 @@ title: Script opcode 0xB2: call local subroutine with argument stack in current 
 confidence: confirmed
 tags: [script-vm, opcode, call, stack]
 evidence: ["disasm: evaluates expression args via JSR $D315; reads 16-bit local script address; inherits caller ROM bank; allocates child thread via JSR $CF18; saves caller PC in +0x0B; chains parent link +0x3E; schedules child in $7E:2F28", "trace: executed when scripts invoke internal helper routines"]
-see: [docs/disassembly/script-vm/callback-dispatch.md, rom/8cd331.md, rom/8cd392.md]
+see: [docs/disassembly/script-vm/callback-dispatch.md, routines/script_op_b3_call_back_far_with_args.md, routines/script_op_b1_call_trigger_with_args.md]
 ---
 Handler of script opcode [0xB2](soe://rom/assets/scripts/opcodes/b2.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/b2.md`, served at `soe://rom/assets/scripts/opcodes/b2.md`.

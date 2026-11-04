@@ -41,7 +41,7 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
   keep `bounded()` on every constructor that nests.
 - `emitScript` output must compile to the ROM bytes; anything without an exact spelling is
   raw `code(...)`, never an approximation.
-- The scheduler model is the game's (`knowledge/rom/8ccffd.md`); change it only with
+- The scheduler model is the game's (`knowledge/routines/script_scheduler_pass.md`); change it only with
   `scheduler.test.js` passing — it replays the real game instruction by instruction.
 - Exact runs (trace/snapshot, oracles) never use `abstractVisual`; analysis runs say when they
   did, and every unknown timing order that matters is a recorded condition.

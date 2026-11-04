@@ -9,7 +9,7 @@ title: Mode 7 entity pass and seated vehicle cockpit sprite overlay
 confidence: confirmed
 tags: [mode7, overworld, sprite, entity]
 evidence: ["disasm: traverses entity list at $7E:3DDF via offset +$5E; invokes virtual draw jump table ($C618,x); checks flight active in $0B29 bit 0; computes Boy/Dog cockpit offsets at $4EF7/$4EF9 and renders overlay sprites", "trace: executed each frame during Mode 7 overworld flight"]
-see: [docs/disassembly/engine-core/flight-horizon.md, docs/disassembly/engine-core/mode7-flight.md, rom/8eb200.md]
+see: [docs/disassembly/engine-core/flight-horizon.md, docs/disassembly/engine-core/mode7-flight.md, routines/mode7_flight_frame_coordinator.md]
 ---
 Traverses the flight entity linked list starting at `$7E:3DDF`, dispatches sprite drawing
 handlers via indirect jump table `($C618,x)`, and renders cockpit overlay sprites for the

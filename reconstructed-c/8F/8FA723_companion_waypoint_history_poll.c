@@ -1,5 +1,5 @@
 /*
- * $8F:A723 companion_waypoint_history_poll (knowledge/rom/8fa723.md), RTL, 16-bit A and X.
+ * $8F:A723 companion_waypoint_history_poll (knowledge/routines/companion_waypoint_history_poll.md), RTL, 16-bit A and X.
  *
  * In: X = a follower record (DB-relative, fields at $3BF9.. of the record base), Y saved and restored.
  * Y' = rec[$3BFF] indexes the breadcrumb list. Arrived (set bits $0030 in rec[$3C12]) when the

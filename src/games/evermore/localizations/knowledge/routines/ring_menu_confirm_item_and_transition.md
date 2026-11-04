@@ -8,7 +8,7 @@ name: ring_menu_confirm_item_and_transition
 title: Confirm ring menu item selection and transition state ($8E:9297)
 confidence: confirmed
 evidence: ["disasm: calls joypad_acknowledge_or_clear_buttons $80:8597 and helper $8E:9DAE; saves previous state from <$97 to Y; binds new state $99B4 into <$97; returns SEC and A=8"]
-see: ["rom/808597.md","rom/8e9dae.md"]
+see: ["routines/joypad_acknowledge_or_clear_buttons.md","routines/ring_menu_inventory_item_availability_filter.md"]
 tags: ["ring-menu","input","state","transition"]
 ---
 Ring menu item selection confirmation handler. Calls `joypad_acknowledge_or_clear_buttons` (`$80:8597`) and helper `func_8E9DAE` (`$8E:9DAE`). Preserves previous state in Y from `<$97`, resets X, sets new state `$99B4` into `<$97`, and returns with `SEC` and A=8.

@@ -9,7 +9,7 @@ title: Room enter script descriptor table
 confidence: confirmed
 tags: [rooms, scripts, script-vm]
 evidence: ["disasm: script_start_room_enter_script ($8C:CE99) multiplies room ID by 5 and loads the packed script pointer from $92:801B ($8C:CECC)", "variants.json defines room_enter_scripts at $92:801B for US and $93:801B for European / PAL localizations"]
-see: [rom/8cce99.md, docs/disassembly/engine-core/room-enter.md, docs/scripts/vm.md]
+see: [routines/script_start_room_enter_script.md, docs/disassembly/engine-core/room-enter.md, docs/scripts/vm.md]
 ---
 Master room enter script table for all 127 game rooms (rooms 0..126).
 Contains 127 5-byte records (635 bytes total, `$92:801B`..`$92:8295` in the US ROM; Bank `$93` in PAL releases).

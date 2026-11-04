@@ -9,7 +9,7 @@ title: Dequeue pending script and construct 20x30 text window in VRAM
 confidence: confirmed
 tags: [text, script-vm, cutscene]
 evidence: ["disasm: $0B2B &= $7FFF, returns when 0; reads queued script from $0DFB,x / $0DFC,x (x = $0B2F) into DP $22-$23; fills record $034D (origin X/Y=0, margin 4x1, 20 cols x 30 rows, palette 2, delay 16, frame pattern $1924, mode 1); constructs window frame via $8C:AC8A with Y = $034D; sets $035F |= $10 (window active bit); starts text stream via $8C:9E03", "called by script opcodes 0x54, 0x55, 0x80"]
-see: [docs/disassembly/script-vm/cutscene-scheduler.md, rom/8cc4f6.md, rom/8cc521.md, rom/8cc543.md]
+see: [docs/disassembly/script-vm/cutscene-scheduler.md, routines/cutscene_dialogue_queue_reset.md, routines/cutscene_script_enqueue.md, routines/cutscene_pause_activate.md]
 ---
 Clears pause bit 15 of `$0B2B`. If a dialogue request is pending, it pops the next 24-bit script
 instruction pointer from circular queue `$7E:0DFB,x` (indexed by tail `$0B2F`) into DP `$22`–`$23`.

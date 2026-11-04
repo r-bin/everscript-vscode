@@ -9,7 +9,7 @@ title: Execute consumable satchel item recovery, status cure, and dungeon escape
 confidence: confirmed
 tags: [ring_menu, items, consumable, healing, escape]
 evidence: ["disasm: reads sub-item index via $95 descriptor field +0x06, verifies satchel count > 0 at $7E:2315,x, calls consumable_item_satchel_deduct ($8E:9060), dispatches via jump table at $8E:92D0 (Petal: +40 HP to $4EB3 clamped to $0A35; Nectar: clears bits 0..2 in $4E2B; Honey: full $0A35 restore; Biscuit: heals dog $4F93; Wings: sets escape flag $0E5E; Pixie Dust: 50% max HP revive); plays SFX $0012 via JSL $8C:82DC", "trace: executed on A button press over consumable items in ring menu"]
-see: [docs/disassembly/combat/consumable-effects.md, rom/8e9060.md, knowledge/wram/ING_QTY_WAX.md]
+see: [docs/disassembly/combat/consumable-effects.md, routines/consumable_item_satchel_deduct.md, knowledge/wram/ING_QTY_WAX.md]
 ---
 Executes consumable satchel item effects from the player's ring menu:
 validates satchel count, decrements quantity (rebuilding the menu if depleted to zero),

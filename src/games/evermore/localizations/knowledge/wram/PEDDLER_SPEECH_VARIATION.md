@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [market, npc]
 evidence: ["scripts: Room 10 trigger 0x1C8 ($96:b0b8) sets bit 0 (<0x2389> |= 1); trigger 0x168 ($96:b0e0) checks bit 0 and adds 2 (<0x2389> += 2) on successive hits, triggering explosion routine $96:b07e"]
-see: [knowledge/wram/DIALOGUE_STRING_PARAM_REGISTERS.md, rom/96b07e.md]
+see: [knowledge/wram/DIALOGUE_STRING_PARAM_REGISTERS.md, routines/CRITTER_EXPLOSION_EFFECT.md]
 ---
 Interaction state bitfield for the secret critters at the Nobilia Market entrance (Room 10, object 0x27):
 - Bit 0 (`0x01`): Flag indicating the bird/chicken critter variant has squawked.

@@ -9,7 +9,7 @@ title: Deduct pending damage, update HUD HP display, and dispatch hit recoil rea
 confidence: confirmed
 tags: [combat, damage, hud, reaction]
 evidence: ["disasm: $8F:C25D copies pending damage from +$76 into last damage taken at +$AA, calls $8F:9144 if HUD bar active at +$8E, clears +$76, checks current HP at +$2A, branches to $8F:C290 if killed or flinch conditions met", "docs/disassembly/combat/damage-reaction.md"]
-see: [rom/8fc290.md, rom/8fc2c4.md, rom/8f9144.md, docs/disassembly/combat/damage-reaction.md]
+see: [routines/entity_trigger_damage_reaction.md, routines/entity_trigger_damage_animation.md, routines/hud_render_entity_hp_string.md, docs/disassembly/combat/damage-reaction.md]
 ---
 Processes pending damage for an entity and dispatches hit reaction behavior:
 1. Transfers queued damage from `entity->pending_damage` (`+$76`) into `entity->last_damage_taken` (`+$AA`).

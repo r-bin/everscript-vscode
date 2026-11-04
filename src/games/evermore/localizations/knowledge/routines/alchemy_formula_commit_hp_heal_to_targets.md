@@ -8,7 +8,7 @@ name: alchemy_formula_commit_hp_heal_to_targets
 title: Commit formula HP healing across target entities and update HUD ($91:A60C)
 confidence: confirmed
 evidence: ["disasm: traverses target chain at +$2E,Y; reads max HP from character stats $8E:000F,X; adds heal +$AA,X to current HP +$2A,X clamping to max; updates HUD string via $8F:9144; advances script PC +$14,Y by 2"]
-see: ["rom/8f9144.md"]
+see: ["routines/hud_render_entity_hp_string.md"]
 tags: ["alchemy","heal","hud","hp","target"]
 ---
 Traverses target entities at `+$2E,Y`. Retrieves max HP from character stat record `$8E:000F,X`, adds formula heal amount `+$AA,X` to current HP `+$2A,X` (clamping to max HP), and updates HUD display by invoking `hud_render_entity_hp_string` (`$8F:9144`).

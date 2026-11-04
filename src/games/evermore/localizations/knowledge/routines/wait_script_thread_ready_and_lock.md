@@ -8,7 +8,7 @@ name: wait_script_thread_ready_and_lock
 title: Script thread ready check and cutscene lock acquirer ($8C:C609)
 confidence: confirmed
 evidence: ["disasm: checks cutscene status $0B79; if bit $40 set, returns; if bit $80 set, loops calling $8E:E41E until bit $80 clears; asserts cutscene active bit $40 via $8C:C55D; caller: $8C:DE95"]
-see: [rom/8ee41e.md]
+see: [routines/per_frame_field_tick.md]
 tags: [scripts, cutscenes, engine]
 ---
 Waits for background script thread `$0B79` bit `$80` to finish executing before acquiring cutscene lock bit `$0040` via `$8C:C55D`.

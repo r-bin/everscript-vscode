@@ -1,5 +1,5 @@
 /*
- * $90:9DE8 eval_tile_collision (knowledge/rom/909de8.md), RTL, 16-bit A and X.
+ * $90:9DE8 eval_tile_collision (knowledge/routines/eval_tile_collision.md), RTL, 16-bit A and X.
  *
  * In: DP $50 = the collision word of a metatile, DP $4C = the moving entity's record, DP $44 = its
  * plane word. Out: A = the geometry code, $0F = solid.

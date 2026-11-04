@@ -9,7 +9,7 @@ title: Enable cutscene pause guard and lock player engine inputs
 confidence: confirmed
 tags: [cutscene, pause, script-vm]
 evidence: ["disasm: tests $0B2B & $7FFF; clears active window via $8C:ADE5 with Y = $034D; sets bit 15 ($8000) of $0B2B via TSB", "trace: executed when event cutscene suspends player field movement"]
-see: [docs/disassembly/script-vm/cutscene-scheduler.md, rom/8cc4f6.md, rom/8cc55d.md]
+see: [docs/disassembly/script-vm/cutscene-scheduler.md, routines/cutscene_dialogue_queue_reset.md, routines/cutscene_dialogue_activate.md]
 ---
 Activates the cutscene pause guard by setting bit 15 (`$8000`) of `$0B2B`. Clears any open dialogue
 window through `$8C:ADE5` if active. When bit 15 is asserted, player controller polling and normal actor

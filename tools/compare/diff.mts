@@ -2,8 +2,22 @@
 // so the unit test drives it with synthetic hash streams (tests/compare/compare-units.test.mts).
 import { crc32 } from 'node:zlib';
 
-export type Region = 'wram' | 'vram' | 'cgram' | 'oam' | 'aram';
-export const REGION_SIZE: Record<Region, number> = { wram: 0x20000, vram: 0x10000, cgram: 0x200, oam: 0x220, aram: 0x10000 };
+export type Region = 'wram' | 'vram' | 'cgram' | 'oam' | 'sram' | 'picture' | 'aram' | 'dsp' | 'sound';
+/** `sound`: the S-DSP's state from emu.getState(), in the recomp glue's order (CmpSound). */
+const VOICE_FIELDS = ['envVolume', 'prevCalculatedEnv', 'interpolationPos', 'brrAddress', 'brrOffset', 'keyOnDelay', 'envOut', 'bufferPos', ...Array.from({ length: 12 }, (_, i) => `sampleBuffer${i}`)];
+export const SOUND_FIELDS = [
+    ...['step', 'counter', 'noiseLfsr', 'outSamples0', 'outSamples1', 'voiceOutput'],
+    ...Array.from({ length: 16 }, (_, i) => `echoHistory${i}`),
+    ...['echoHistoryPos', 'echoPointer', 'echoOffset', 'echoLength', 'echoIn0', 'echoIn1', 'echoOut0', 'echoOut1'],
+].map(f => `spc.dsp.${f}`).concat(Array.from({ length: 8 }, (_, v) => VOICE_FIELDS.map(f => `spc.dsp.voices[${v}].${f}`)).flat());
+/** Battery RAM's size is Evermore's; `sound` is the S-DSP's state in 32-bit values, `picture` 256 x 224 pixels of 4 bytes. */
+export const REGION_SIZE: Record<Region, number> = { wram: 0x20000, vram: 0x10000, cgram: 0x200, oam: 0x220, sram: 0x2000, picture: 256 * 224 * 4, aram: 0x10000, dsp: 0x80, sound: SOUND_FIELDS.length * 4 };
+/** Every RAM of the console, in the order a run hashes them. */
+export const ALL_RAM: Region[] = ['wram', 'vram', 'cgram', 'oam', 'sram', 'aram', 'dsp'];
+/** The order of regions in a job: the CPU side first, then what MesenCE reads at the SPC700's next instruction. */
+const ORDER: Region[] = ['wram', 'vram', 'cgram', 'oam', 'sram', 'picture', 'aram', 'dsp', 'sound'];
+export const SPC_SIDE: ReadonlySet<Region> = new Set(['aram', 'dsp', 'sound']);
+export const inOrder = (regions: Region[]): Region[] => ORDER.filter(r => regions.includes(r));
 
 /** One region's CRC-32 per entry of `regions`, at one key (a frame count, or the game's NMI counter $0100). */
 export type Crcs = number[];
@@ -22,12 +36,21 @@ export interface Divergence {
     regions: number[];
 }
 
+/** One region's differences over a run: a run compares every region at every key. */
+export interface RegionResult {
+    differing: number;
+    /** The keys that differ, as [first, last] runs. */
+    runs: [number, number][];
+}
+
 export interface TargetResult {
     /** The last key compared, whether it matched or not. */
     lastCompared: number;
     compared: number;
     differing: number;
     first: Divergence | null;
+    /** By index into `regions`. */
+    byRegion: RegionResult[];
 }
 
 /**
@@ -41,12 +64,14 @@ export class Tracker {
     private readonly lastMatch: number[];
     readonly results: TargetResult[];
     private readonly skipThrough: number;
+    private readonly stride: number;
 
-    constructor(targets: number, skipThrough = -1) {
+    constructor(targets: number, skipThrough = -1, stride = 1) {
         this.skipThrough = skipThrough;
+        this.stride = stride;
         this.pending = Array.from({ length: targets }, () => new Map());
         this.lastMatch = new Array(targets).fill(0);
-        this.results = Array.from({ length: targets }, () => ({ lastCompared: 0, compared: 0, differing: 0, first: null }));
+        this.results = Array.from({ length: targets }, () => ({ lastCompared: 0, compared: 0, differing: 0, first: null, byRegion: [] }));
     }
 
     /** Returns the targets that diverged for the first time at this key. */
@@ -80,6 +105,14 @@ export class Tracker {
             return false;
         }
         res.differing++;
+        crcs.forEach((c, j) => {
+            if (c === r[j]) return;
+            const region = res.byRegion[j] ??= { differing: 0, runs: [] };
+            region.differing++;
+            const last = region.runs[region.runs.length - 1];
+            if (last && last[1] === key - this.stride) last[1] = key;
+            else region.runs.push([key, key]);
+        });
         if (res.first) return false;
         res.first = { lastGood: this.lastMatch[i], key, regions: crcs.flatMap((c, j) => c === r[j] ? [] : [j]) };
         return true;

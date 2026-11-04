@@ -8,7 +8,7 @@
 //   - a trampoline at the routine's entry: JML bridge (RTL routines, 4 bytes) or JSL bridge / RTS (RTS routines,
 //     5 bytes). The rest of the old routine stays, so code that jumps into its middle still works.
 // Calypsi (calypsi.mts) compiles every C file that includes soe.h; the linker keeps what the bridges reach. Code goes
-// to banks F8-FB (file 0x380000 and up): the 4th MB, away from the one read past 3 MB ($B0:E653, knowledge/rom/80d113.md).
+// to banks F8-FB (file 0x380000 and up): the 4th MB, away from the one read past 3 MB ($B0:E653, knowledge/routines/row_table_low_bytes_from_bank_b0.md).
 // The linker gets no RAM besides the pseudo-registers, so a static variable in C fails the link instead of writing
 // WRAM the original does not.
 //   node tools/c-to-rom/build.mts [--rom <clean rom>] [--out out/c-to-rom/soe-c.sfc] [--skip name,name] [--optimize]

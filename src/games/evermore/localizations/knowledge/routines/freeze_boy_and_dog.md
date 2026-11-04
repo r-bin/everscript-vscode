@@ -9,7 +9,7 @@ title: Freeze Boy and Dog
 confidence: confirmed
 tags: [script-vm]
 evidence: ["disasm: wrapper selects actor bits 1 and 2; shared helper $8C:DB31 calls $8F:CD78 for Boy ($4E89) and Dog ($4F37)", "trace: the game ran 7 distinct instructions with this opcode (tests/script-vm/goldens.json)"]
-see: [rom/8fcd78.md, docs/scripts/opcodes.md]
+see: [routines/entity_freeze_immobilize.md, docs/scripts/opcodes.md]
 ---
 Handler of script opcode [0xC0](soe://rom/assets/scripts/opcodes/c0.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/c0.md`, served at `soe://rom/assets/scripts/opcodes/c0.md`.
 

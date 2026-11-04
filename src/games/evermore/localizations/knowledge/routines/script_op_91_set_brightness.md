@@ -9,7 +9,7 @@ title: Script opcode 0x91 — set brightness
 confidence: confirmed
 tags: [script-vm, screen, brightness, camera]
 evidence: ["disasm: handler at opcode table entry $8C:E9DF; operands E, evaluates expression via $8C:EA43, writes directly to PPU INIDISP shadow $0106, continues same turn", "trace: the game ran 12 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
-see: [docs/scripts/opcodes.md, rom/8cdc35.md, docs/disassembly/script-vm/opcode-joypad-fade.md, docs/disassembly/script-vm/opcode-91-set-brightness.md, knowledge/wram/JOYPAD1_TRIGGERED.md]
+see: [docs/scripts/opcodes.md, routines/script_op_90_fade_to.md, docs/disassembly/script-vm/opcode-joypad-fade.md, docs/disassembly/script-vm/opcode-91-set-brightness.md, knowledge/wram/JOYPAD1_TRIGGERED.md]
 ---
 Handler of script opcode [0x91](soe://rom/assets/scripts/opcodes/91.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/91.md`, served at `soe://rom/assets/scripts/opcodes/91.md`.
 

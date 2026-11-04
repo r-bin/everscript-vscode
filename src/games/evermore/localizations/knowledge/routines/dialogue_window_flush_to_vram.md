@@ -8,7 +8,7 @@ name: dialogue_window_flush_to_vram
 title: Dialogue/menu window tilemap VRAM flush coordinator ($8C:AF23)
 confidence: confirmed
 evidence: ["disasm: invokes $8C:AFEB to format and stage window borders; jumps via JML to $8C:AFD0 to commit 1792 bytes of tilemap buffer $7F:C800 into VRAM $0800; callers include select_alchemy ($8C:DF75), name_entry ($8C:E17A), save_menu ($8C:E39A), Boy/Dog ring menus ($8D:91AF/$8D:9792)"]
-see: [rom/8cafd0.md, rom/8cafeb.md, knowledge/wram/SHADOW_TILEMAP_BUF.md]
+see: [routines/dialogue_window_vram_blit_fullscreen.md, routines/dialogue_window_arrow_cursor_draw.md, knowledge/wram/SHADOW_TILEMAP_BUF.md]
 tags: [ui, dialogue, vram, menus]
 ---
 Coordinates flushing dialogue and menu window tilemaps to PPU VRAM. Invokes `$8C:AFEB` to position and format window borders in staging RAM, and jumps to `dialogue_window_vram_blit_fullscreen` (`$8C:AFD0`) to commit the 1792-byte tilemap buffer from `$7F:C800` into VRAM address `$0800`. Called across all 20 UI menu screens and interactive dialogue systems.

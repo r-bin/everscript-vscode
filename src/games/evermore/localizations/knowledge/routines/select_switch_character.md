@@ -9,7 +9,7 @@ title: Select pressed: start the pending character-switch script or request a sw
 confidence: likely
 tags: [input, party, script-vm]
 evidence: ["disasm: entered from the joypad matcher ($8C:F121) through its table entry $8C:F21A; if $0EB2 >= 0: unless the active character ($0F42) has +$10 bit $20, starts script $0EB2 bound to it via $8C:CE5C and sets $0EB2 = $FFFF; else, unless the boy's or the dog's +$10 has bit $20, calls $8C:F1A7", "doc: the prototype names this entry 'Select = switch boy/dog' (docs/soe-prototype-chip1.md)"]
-see: [rom/8cf121.md, rom/8cf184.md, knowledge/wram/ROOM_HOOK_3_SCRIPT_ID.md, docs/entities/entities-reference.md]
+see: [routines/joypad_sequence_matcher.md, routines/select_switch_start_pending_script.md, knowledge/wram/ROOM_HOOK_3_SCRIPT_ID.md, docs/entities/entities-reference.md]
 ---
 The game's own button hotkey. Nothing happens while a character is inactive (`+$10` bit `$20`,
 set by the halt routine `$8F:CD7E` for cutscenes). Its script start (`$8C:CE5C`: pointer from the

@@ -9,7 +9,7 @@ title: Render floating item received notification banner and resume script VM
 confidence: confirmed
 tags: [item, ui, script, cutscene]
 evidence: ["disasm: formats notification string at DP $22; calls banner render $80:B149 using prefix $8F:86FA; pulls script callback address from stack (PLA) and enqueues to cutscene FIFO via $8C:C521", "trace: executed when opening chests or receiving quest reward items"]
-see: [docs/disassembly/entities/item-notifications.md, docs/disassembly/script-vm/cutscene-scheduler.md, rom/8cc521.md]
+see: [docs/disassembly/entities/item-notifications.md, docs/disassembly/script-vm/cutscene-scheduler.md, routines/cutscene_script_enqueue.md]
 ---
 Renders the floating "Received <item>" text banner above the active character and resumes
 the event script by pulling the callback address from the stack and enqueuing it to the

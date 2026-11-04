@@ -9,7 +9,7 @@ title: Opcode 0x78 mode effects
 confidence: confirmed
 tags: [script-vm]
 evidence: ["disasm: table targets $E10C, $E115, $E11D, and $E125; their valid paths branch to $E139; the indexed table has no target at $E130 (vanilla VFS disassembly)"]
-see: ["rom/8ce100.md", "rom/8ce139.md", "docs/disassembly/script-vm/animate.md"]
+see: ["routines/SCRIPT_ANIMATE_MODE_TARGETS.md", "routines/animate_id_to_record.md", "docs/disassembly/script-vm/animate.md"]
 ---
 This code contains the direct entity-state changes for opcode 0x78 modes 2, 4, 6, and 8. The four table-targeted paths branch to the common animation-start routine at `$8C:E139`; the `$E130` instructions are not a target of the six-entry mode table.
 

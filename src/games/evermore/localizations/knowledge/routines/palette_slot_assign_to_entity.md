@@ -8,7 +8,7 @@ name: palette_slot_assign_to_entity
 title: Assign allocated CGRAM palette slot index to entity records ($90:CE15)
 confidence: confirmed
 evidence: ["disasm: stores palette slot index in A into entity fields +$0C,Y and +$74,Y in 8-bit mode; callers: palette allocator $91:C5EE"]
-see: ["rom/91c5ee.md"]
+see: ["routines/alchemy_vfx_allocate_palette_and_link.md"]
 tags: ["palette","cgram","entity","slot"]
 ---
 Assigns active CGRAM palette slot index in A into entity record fields `+$0C,Y` and `+$74,Y`.

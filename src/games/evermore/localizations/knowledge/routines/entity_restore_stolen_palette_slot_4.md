@@ -8,7 +8,7 @@ name: entity_restore_stolen_palette_slot_4
 title: Restore original palette slots for entities using stolen slot 4 ($90:CED6)
 confidence: confirmed
 evidence: ["disasm: traverses entity chain +$5E,Y; if assigned to stolen palette slot 4 (+$74,Y == 4), restores original palette from backup +$75,Y into +$74,Y and +$0C,Y; callers: slot release $90:CEB6"]
-see: ["rom/90ceb6.md"]
+see: ["routines/palette_steal_slot_4_free_entities.md"]
 tags: ["palette","entity","cgram","restore"]
 ---
 Recursively checks entity linked list `+$5E,Y`. If entity is currently assigned to stolen palette slot 4 (`+$74,Y == 4`), restores its original palette slot from backup field `+$75,Y` into `+$74,Y` and `+$0C,Y`.

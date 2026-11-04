@@ -8,7 +8,7 @@ title: Formatted decimal number printing dispatcher
 confidence: confirmed
 tags: [math, string, dispatcher, format]
 evidence: ["disasm: LDA $04 / BEQ + / JSL $808757 / LDA $02 / JSL $8087CB / BRA ++ / LDA $02 / JSL $808757 / RTL (out/recomp/asar/rom.bin:0x008821)"]
-see: [src/games/evermore/localizations/knowledge/rom/808757.md, src/games/evermore/localizations/knowledge/rom/8087cb.md]
+see: [src/games/evermore/localizations/knowledge/routines/format_signed_16bit_integer_to_decimal_digits.md, src/games/evermore/localizations/knowledge/routines/format_fixed_width_decimal_digits_padded.md]
 ---
 Number formatting dispatcher that routes between signed decimal conversion and fixed-width padded formatting based on direct-page format parameters:
 - Evaluates format configuration flag in DP `$04`.

@@ -89,4 +89,4 @@ For instance, `1B 04 05` configures state selector 2, starts at computed buffer 
 - [Map Editor backlog](map-editor.md)
 - [Room format reference](../map-format/room-reference.md)
 - [Palette extraction](../map-format/map_palette_extraction.md)
-- [Palette-cycle setup routine](../../src/games/evermore/localizations/knowledge/rom/90d50f.md)
+- [Palette-cycle setup routine](../../src/games/evermore/localizations/knowledge/routines/palette_cycle_setup.md)

@@ -1,5 +1,5 @@
 /*
- * $8F:AF0E collision_step_success_commit (knowledge/rom/8faf0e.md), RTL, 16-bit A.
+ * $8F:AF0E collision_step_success_commit (knowledge/routines/collision_step_success_commit.md), RTL, 16-bit A.
  *
  * Sets bit 0 of the word at Y + $12 (DB-relative entity record). Leaves A = the new word, N Z from it.
  */

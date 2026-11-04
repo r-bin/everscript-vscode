@@ -16,7 +16,7 @@ Facts are marked *(disasm)*, *(test)* (measured headless in the bundled snes9x c
 2. The spawn handler (`$8C:DC9A`, `$8C:DCC3`, `$8C:DCD9`, `$8C:DCEC`) reads `lda.l $8EB55A,x` with
    X = id·2 *(disasm)*. That is the **enemy index**:
    - 143 words, right before the character table;
-   - each word is the 16-bit address of a character record (`knowledge/rom/8eb55a.md`).
+   - each word is the 16-bit address of a character record (`knowledge/routines/enemy_index.md`).
 3. The record is 74 bytes ([character_table.md](entities/character_table.md)). The engine
    keeps the record's 16-bit address, and every reader takes the record as `$8E00xx,X`: the field
    offset is the operand and X is the record address.
@@ -25,7 +25,7 @@ The Boy and the Dog are the exception:
 
 - Index entries 0 and 1 are `$0A26` / `$0A70`, so their records live in WRAM.
 - `$8F:803C` fills them on a new game with `mvn $8E,$8E`, copying records 0–1 (`$94` bytes) from
-  `$8E:B678` (`knowledge/rom/8f803c.md`).
+  `$8E:B678` (`knowledge/routines/party_records_from_templates.md`).
 - Readers reach the WRAM copies through the WRAM mirror at `$8E:0000–1FFF`.
 
 ### 1.2 What limits the count
@@ -63,7 +63,7 @@ Bank `$90` has no free space, and its lower half is not ROM. Both readers take b
 code itself: `phk` in the loader and the immediate `#$0090` in the upload. So a new palette cannot
 be placed anywhere they can reach without changing them. The Boy's and Dog's low-HP flash
 (`$8F:9583`, `$8F:95EB`, `$8F:966E`, `$8F:96D6`) and `$90:8A2F` also hard-code bank `$90`. They
-read the party's own palettes, never an enemy's (`knowledge/rom/90cf3a.md`).
+read the party's own palettes, never an enemy's (`knowledge/routines/load_sprite_palette.md`).
 
 ## 3. Background (map) palettes
 

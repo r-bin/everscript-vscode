@@ -9,6 +9,6 @@ title: Script opcode 0xB1: call room trigger script with evaluated arguments
 confidence: confirmed
 tags: [script-vm, opcode, triggers, call]
 evidence: ["disasm: evaluates expression arguments via JSR $D315, then falls through into script_op_a4_call_trigger ($8C:D395)", "trace: executed when calling room triggers with dynamic parameters"]
-see: [docs/disassembly/script-vm/callback-dispatch.md, rom/8cd395.md]
+see: [docs/disassembly/script-vm/callback-dispatch.md, routines/script_op_a4_call_trigger.md]
 ---
 Handler of script opcode [0xB1](soe://rom/assets/scripts/opcodes/b1.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/b1.md`, served at `soe://rom/assets/scripts/opcodes/b1.md`.

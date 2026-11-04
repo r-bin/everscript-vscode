@@ -8,7 +8,7 @@ name: raster_irq_timer_poll_countdown
 title: Decrement raster IRQ timer countdown and check trigger state ($90:A41C)
 confidence: confirmed
 evidence: ["disasm: decrements raster timer $0FAE; returns if non-zero; checks trigger flag $0FB0; callers: IRQ timer $90:9839"]
-see: ["rom/909839.md"]
+see: ["routines/per_frame_map_effects.md"]
 tags: ["hdma","raster","irq","timer"]
 ---
 Decrements scanline IRQ timer `$0FAE`. If timer expires, checks trigger state `$0FB0` before returning.

@@ -3,7 +3,7 @@
 > **ROM Bank**: `$80` (`$80:86B2` – `$80:885D`)  
 > **Source Module**: `engine-core/hardware-utilities.c` / `engine-core/hardware-utilities.h`  
 > **Recomp Symbols**: `func_C086B2`, `func_C0870C`, `func_C08838`  
-> **Confirmed Knowledge**: `rom/8086b2.md`, `rom/80870c.md`, `rom/808838.md`  
+> **Confirmed Knowledge**: `routines/vram_dma_upload_tile_block_with_vmain.md`, `routines/format_16bit_integer_to_decimal_digits.md`, `routines/joypad_button_typematic_repeat.md`  
 > **Hardware Systems**: SNES PPU VMAIN (`$2115`), VMADD (`$2116`), Hardware 16/8 Divider (`$4204`/`$4206`), DMA Channel 1 (`$4310`–`$4315`, `$420B`)  
 
 ---

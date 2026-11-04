@@ -210,7 +210,7 @@ static inline void soe_block_move(soe_regs r, uint8_t dst, uint8_t src, int step
 }
 #define soe_mvn(r, dst, src) soe_block_move(r, dst, src, 1)
 #define soe_mvp(r, dst, src) soe_block_move(r, dst, src, -1)
-/* BRK, COP and STP all halt this game's CPU (knowledge/rom/80885e.md): the C equivalent. */
+/* BRK, COP and STP all halt this game's CPU (knowledge/routines/cop_handler.md): the C equivalent. */
 void soe_stp(void);
 
 /* SOE_BIND(name, 0x80AD62, RTL) { ... } replaces the ROM routine at that address (its execution

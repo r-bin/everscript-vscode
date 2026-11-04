@@ -9,7 +9,7 @@ title: Proportional font character width table (128 bytes)
 confidence: confirmed
 tags: [ui, font, tables]
 evidence: ["disasm: read at $8C:A774 by dialogue glyph renderer to determine horizontal cursor step per character code", "recomp: clean C in docs/disassembly/ui/dialogue-glyphs.md"]
-see: [rom/8ca5ac.md, rom/c40000.md]
+see: [routines/dialogue_glyph_render_char.md, routines/dialogue_font_glyphs.md]
 ---
 128-byte proportional font character width table stored in Bank `$C4`:
 - Indexed directly by ASCII character code (e.g. `'A'`–`'J'` have widths `6, 6, 5, 6, 6, 5, 6, 6, 2, 5`).

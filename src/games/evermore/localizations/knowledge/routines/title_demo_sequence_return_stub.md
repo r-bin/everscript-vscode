@@ -8,7 +8,7 @@ name: title_demo_sequence_return_stub
 title: Title screen demo sequence return subroutine stub ($80:B72B)
 confidence: confirmed
 evidence: ["disasm: bare RTL instruction; callers: title demo coordinator $8E:E124"]
-see: ["rom/8ee124.md"]
+see: ["routines/field_cutscene_freeze_init_and_entities_deactivate.md"]
 tags: ["title","demo","stub"]
 ---
 Bare `RTL` stub for title screen demo sequence subroutines.

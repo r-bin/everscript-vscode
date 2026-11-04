@@ -9,7 +9,7 @@ title: Master map 16x16 graphics tile pointer directory
 confidence: confirmed
 tags: [map, graphics, chr, pointers, table]
 evidence: ["binary data: 4,512 × 3-byte far pointers (low, mid, bank) addressing 16x16 map graphic tiles across ROM Banks $C0..$EF, bounding directly into map graphics at $EC:38E2 (out/recomp/asar/rom.bin:0x2C0400)"]
-see: [src/games/evermore/localizations/knowledge/rom/9ffde7.md]
+see: [src/games/evermore/localizations/knowledge/routines/ROOM_POINTER_TABLE.md]
 ---
 Master pointer directory for all 16×16 map graphical tiles:
 - Contains 4,512 24-bit far pointers (13,538 bytes total) formatted as little-endian address triples (`[off_lo, off_hi, bank]`).

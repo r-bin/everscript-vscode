@@ -9,7 +9,7 @@ title: Script bank header (PAL European variants)
 confidence: confirmed
 tags: [script-vm, variant]
 evidence: ["variants.json: headerSnes for europe, germany, france, spain1, spain2 is $93:8000 (file 0x138000)", "disasm: $CC:D248 and $CC:D79E in PAL ROMs read lda.l $938000,x"]
-see: [rom/928000.md, docs/evermore-variants.md]
+see: [routines/SCRIPT_BANK_HEADER.md, docs/evermore-variants.md]
 ---
 The PAL European release relocates the script bank from bank `$92` (US) to bank `$93`.
 The first bytes at `$93:8000` represent the PAL script bank header, mirroring the layout of `$92:8000`:

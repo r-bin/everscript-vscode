@@ -9,7 +9,7 @@ title: Boy XP needed for the next level, by level
 confidence: likely
 tags: [boy, exp, progression]
 evidence: ["disasm: $8D:B66B loads the level byte $0A50, computes (level + 1) * 3 and reads $8C:8BCD,X (= $8C:8BD0 + level * 3), two bytes at a time, into $7E:4F1D-4F1F (BOY_XP_REQUIRED)", "disasm: $8F:8336 reads $8C:8BD0,X / $8C:8BD1,X into the same $4F1D", "read: 100 rising 24-bit values in the clean US ROM, 0, 20, 70, 175 … 7443390, then $FFFFFF (v0.327.0)"]
-see: [rom/8c8cfc.md, knowledge/wram/ENTITY_PLAYER_BOY.md, src/games/evermore/data-tab/model/tables.ts]
+see: [routines/DOG_XP_PER_LEVEL.md, knowledge/wram/ENTITY_PLAYER_BOY.md, src/games/evermore/data-tab/model/tables.ts]
 ---
 How much experience the Boy must have in total to reach the next level. One 3-byte value per level,
 indexed by the level byte at `$0A50`; the game copies the entry for the current level into

@@ -1,5 +1,5 @@
 /*
- * $8C:D434 script_jump_relative (knowledge/rom/8cd434.md), RTS, enters with a 16-bit A.
+ * $8C:D434 script_jump_relative (knowledge/routines/script_jump_relative.md), RTS, enters with a 16-bit A.
  *
  * Reads a signed 16-bit offset at the 24-bit script pointer DP $82..$84 (two byte reads; the low
  * byte of the pointer steps by one in between, carrying into $83), then pointer = pointer + offset + 1.

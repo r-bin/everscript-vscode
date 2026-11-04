@@ -9,7 +9,7 @@ title: Mode 7 vehicle takeoff stepped altitude climb and perspective pitch coord
 confidence: confirmed
 tags: [mode7, overworld, vehicle, animation, math]
 evidence: ["disasm: steps altitude $0619 from $0015 to $002A then $002C, calculates perspective pitch $061B via hardware multiplier $4202 and divider $4204/$4206, executes full frame coordinator ticks (minimap, heading, physics, cockpit overlay, OAM, VBLANK), and settles at cruising altitude $002A ($8E:B33C RTL)", "docs/disassembly/engine-core/mode7-takeoff.md"]
-see: [rom/8eb200.md, rom/8eb230.md, rom/8eb33d.md, rom/8fc61e.md, docs/disassembly/engine-core/mode7-takeoff.md]
+see: [routines/mode7_flight_frame_coordinator.md, routines/mode7_flight_horizon_perspective_math.md, routines/mode7_flight_sample_and_sprite_dispatch.md, routines/mode7_vehicle_cockpit_overlay_sprites.md, docs/disassembly/engine-core/mode7-takeoff.md]
 ---
 Coordinates multi-stage stepped elevation climb when taking off aboard the Windwalker on the Mode 7
 overworld map:

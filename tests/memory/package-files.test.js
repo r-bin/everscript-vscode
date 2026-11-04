@@ -72,7 +72,7 @@ for (const [name, run] of pages) {
 }
 
 test('the recorder sees the reads (controls)', () => {
-    assert.ok([...reads].some((r) => r.startsWith('src/games/evermore/localizations/knowledge/rom/')), 'knowledge entries read');
+    assert.ok([...reads].some((r) => r.startsWith('src/games/evermore/localizations/knowledge/routines/')), 'knowledge entries read');
     assert.ok([...reads].some((r) => r.startsWith('src/games/evermore/rooms/webview/')), 'radar page files read');
     const dropped = [...drop][0];
     fs.readFileSync(path.join(ROOT, dropped));

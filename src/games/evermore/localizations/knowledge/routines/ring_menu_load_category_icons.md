@@ -9,7 +9,7 @@ title: Stream ring menu item icons and assign palettes to display slots
 confidence: confirmed
 tags: [ui, ring-menu, graphics, vram, cgram]
 evidence: ["disasm: $8E:AEBC loops through category item array at DP $95, queries master table $8E:8000, allocates CGRAM palette via $90:CEED into display entry +$0C, streams 16x16 icon to VRAM via $90:80CE, advances slot by 16 bytes ($7E:06A3), sets cache flag $7E:0BF9 = 0xFFFF", "docs/disassembly/ui/ring-menu-icons.md"]
-see: [rom/8eaefd.md, rom/8eae85.md, docs/disassembly/ui/ring-menu-icons.md]
+see: [routines/ring_menu_cache_item_palettes.md, routines/ring_menu_close_and_restore_screen.md, docs/disassembly/ui/ring-menu-icons.md]
 ---
 Iterates through all item IDs in the active ring menu category descriptor (`DP $95`):
 1. Resolves item descriptor pointer from `$8E:8000,x`.

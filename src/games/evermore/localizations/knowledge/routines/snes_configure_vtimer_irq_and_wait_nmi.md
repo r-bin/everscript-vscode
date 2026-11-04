@@ -8,7 +8,7 @@ title: Configure PPU V-Timer IRQ position and synchronize with vertical blank
 confidence: confirmed
 tags: [hardware, irq, vtimer, ppu, nmi]
 evidence: ["disasm: PHP / SEI / STA $012D / STX $012B / TYA / AND #$00FF / STA $010A / STA $4209 / TYA / XBA / AND #$00FF / STA $0108 / STA $4207 / JSL $80858C / SEP #$20 / LDA #$B1 / STA $4200 / STA $0E6B / REP #$20 / PLP / RTL (out/recomp/asar/rom.bin:0x008523)"]
-see: [src/games/evermore/localizations/knowledge/rom/808552.md, src/games/evermore/localizations/knowledge/rom/80858c.md]
+see: [src/games/evermore/localizations/knowledge/routines/snes_set_timer_irq_scanline_and_vector.md, src/games/evermore/localizations/knowledge/routines/wait_for_nmi.md]
 ---
 PPU Scanline Timer IRQ and synchronization setup:
 - Saves processor flags and disables interrupts (`PHP; SEI`).

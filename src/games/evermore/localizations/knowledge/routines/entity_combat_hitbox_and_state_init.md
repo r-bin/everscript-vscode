@@ -9,7 +9,7 @@ title: Entity combat state initialization and weapon collision hitbox configurat
 confidence: confirmed
 tags: [entities, combat, hitbox, collision, spawn]
 evidence: ["disasm: executes entity combat hitbox and state setup at $8F:8F22..$8F:90E7; unpacks archetype properties via slot offset +$8E, initializes WRAM direct-page pointers $26/$28 into bank $7E, zeroes combat status flags, exits via RTL at $8F:90E7"]
-see: [rom/8f8e08.md, rom/8f90e8.md, rom/8fb4ab.md]
+see: [routines/enemy_spawn_archetype_unpack_and_bind_body.md, routines/entity_status_icon_vram_upload.md, routines/test_entity_pair_overlap.md]
 ---
 Initializes newly spawned entity combat records and weapon interaction parameters:
 - Reads archetype properties from entity slot offset `+$8E`.

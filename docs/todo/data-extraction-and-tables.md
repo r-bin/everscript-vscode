@@ -80,27 +80,27 @@ From the CDL decompilation worklist (`soe://rom/code/todo.md`), following the re
 1. **`$90:80D2` (9 callers)**:
    - Callers: `ring_menu_close_and_restore_screen`, `ring_menu_rotate_previous_item`, `mode7_flight_frame_engine`, `mode7_vehicle_landing_touchdown_stepper`, `mode7_flight_frame_coordinator`.
    - Purpose: OAM / VBLANK screen restoration dispatcher when exiting overlay menus and flight sub-modes.
-   - Target: Write `src/games/evermore/localizations/knowledge/rom/9080d2.md`, reconstruct C.
+   - Target: Write `src/games/evermore/localizations/knowledge/routines/entity_anim_frame_advance_step.md`, reconstruct C.
 2. **`$90:828E` (8 callers)**:
    - Callers: `b_button_bit_15_search_b_triggers_else_swing`, `player_human_control_dog`, `ai_companion_boy`, `ai_roll`, `ai_roll_or_shoot`.
    - Purpose: Character record melee attack/swing animation track dispatcher (reads record `+$38,X`).
-   - Target: Write `src/games/evermore/localizations/knowledge/rom/90828e.md`, reconstruct C.
+   - Target: Write `src/games/evermore/localizations/knowledge/routines/entity_start_default_action_anim.md`, reconstruct C.
 3. **`$8E:AD67` (7 callers)**:
    - Callers: `ring_menu_select_and_cost_check`, `shop_vendor_buy_commit`, `ring_menu_subitem_select`, `weapon_equip_and_experience_update`, `consumable_item_satchel_deduct`.
    - Purpose: Universal inventory satchel quantity subtraction and clamping routine.
-   - Target: Write `src/games/evermore/localizations/knowledge/rom/8ead67.md`, reconstruct C.
+   - Target: Write `src/games/evermore/localizations/knowledge/routines/sub_8EAD67.md`, reconstruct C.
 4. **`$8E:E08B` (6 callers)**:
    - Callers: `main_loop_entry`, `script_op_63_select_alchemy`, `script_animate_mode_10_path`, `script_op_8c_save_menu`, `script_op_99_mode7_scene`.
    - Purpose: Field transition recovery, screen fade-in, and camera anchor re-attachment to active actor `$0F3E`.
-   - Target: Write `src/games/evermore/localizations/knowledge/rom/8ee08b.md`, reconstruct C.
+   - Target: Write `src/games/evermore/localizations/knowledge/routines/field_screen_ppu_layers_and_hud_vram_init.md`, reconstruct C.
 5. **`$8C:AB10` (6 callers)**:
    - Callers: `script_op_63_select_alchemy`, `script_animate_mode_10_path`, `script_op_8c_save_menu`, `script_op_99_mode7_scene`, `ring_menu_consumable_item_execute`.
    - Purpose: Joypad button input filter re-arm and typematic repeat reset on menu closure.
-   - Target: Write `src/games/evermore/localizations/knowledge/rom/8cab10.md`, reconstruct C.
+   - Target: Write `src/games/evermore/localizations/knowledge/routines/window_system_reset_and_buffers_clear.md`, reconstruct C.
 6. **`$90:9815` (6 callers)**:
    - Callers: `elevation_plane_update_bits_5_4_kept_on`, `spawn_eval_tile_plane_elevation`, `probe_metatile_collision`, `entity_slot_allocate_and_init`, `spawn_characters_and_position_camera`.
    - Purpose: Metatile elevation plane evaluation and collision mesh Z-height binding.
-   - Target: Write `src/games/evermore/localizations/knowledge/rom/909815.md`, reconstruct C.
+   - Target: Write `src/games/evermore/localizations/knowledge/routines/tile_property_at_pixel_xy.md`, reconstruct C.
 
 ---
 

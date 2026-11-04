@@ -9,7 +9,7 @@ title: Extract metatile elevation plane bits 5..4 with ramp bit 13 preservation
 confidence: confirmed
 tags: [maps, collision, elevation, ramp]
 evidence: ["disasm: tests bit 13 (0x2000) of metatile collision word; if clear, isolates plane bits 5..4 and saves into DP $44; if set, bypasses layer overwrite to allow stair/ramp traversal", "c: G1 passed (tools/c-to-rom/g1.mts, v0.351.0): the bound C equals the ROM on 42 entry states sampled from the 2:20 no-input reference and 672 fuzzed ones; snes9x agrees with the interpreter on 42; a mutation is caught"]
-see: [docs/disassembly/maps/ramp-elevation.md, rom/8fa906.md, rom/8fa946.md]
+see: [docs/disassembly/maps/ramp-elevation.md, routines/elevation_plane_update_bits_5_4_kept_on.md, routines/elevation_plane_transition_gate.md]
 ---
 Extracts the active traversable elevation layer plane from a metatile collision word:
 - Verifies bit 13 (`0x2000`) for continuous stair/ramp transitions.

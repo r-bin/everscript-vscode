@@ -9,7 +9,7 @@ title: Weather preset parameter block copy into $7E:72DB..$7E:72EB
 confidence: provisional
 tags: [weather, preset, graphics]
 evidence: ["disasm: soe://rom/code/80A305?asm=1 shows sequential lda $00xx,y / sta $7E72xx,x copying parameters from [$AA],y into weather parameter buffer $7E:72DB..$7E:72EB", "caution: previous claims of particle simulation with $7E:2439/$7E:243D in 80A305_weather_particles.c were an AI hallucination and do not exist in the ROM"]
-see: [docs/disassembly/engine-core/weather-particles.md, docs/disassembly/engine-core/weather-preset.md, rom/80a2e0.md]
+see: [docs/disassembly/engine-core/weather-particles.md, docs/disassembly/engine-core/weather-preset.md, routines/load_weather_preset_parameters.md]
 ---
 Unrolls sequential word copies from parameter block into the active weather/sprite staging buffer (`$7E:72DB..$7E:72EB`).
 

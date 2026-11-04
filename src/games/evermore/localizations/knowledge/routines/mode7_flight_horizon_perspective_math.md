@@ -9,7 +9,7 @@ title: Compute Mode 7 perspective horizon pitch tilt and vanishing point
 confidence: confirmed
 tags: [mode7, overworld, math]
 evidence: ["disasm: sets flight altitude $0619 to 0x0015; multiplies elevation delta via hardware multiplier $4202; divides product by FOV depth via hardware divider $4204/$4206; reads quotient from $4214; subtracts 4px horizon vanishing line offset (SBC #$0004); writes result to camera pitch register $061B", "trace: executed per frame during Mode 7 flight"]
-see: [docs/disassembly/engine-core/flight-horizon.md, docs/disassembly/engine-core/mode7-flight.md, docs/disassembly/engine-core/mode7-takeoff.md, rom/8eb200.md, rom/8eb268.md]
+see: [docs/disassembly/engine-core/flight-horizon.md, docs/disassembly/engine-core/mode7-flight.md, docs/disassembly/engine-core/mode7-takeoff.md, routines/mode7_flight_frame_coordinator.md, routines/mode7_vehicle_takeoff_altitude_stepper.md]
 ---
 Computes the perspective horizon pitch tilt for Mode 7 overworld flight using SNES hardware
 multiplication and division registers, adjusting camera altitude `$0619` and writing the

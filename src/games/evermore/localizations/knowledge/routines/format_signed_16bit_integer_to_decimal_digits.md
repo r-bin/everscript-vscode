@@ -8,7 +8,7 @@ title: Hardware Signed 16-Bit Integer to Decimal Digit Formatter
 confidence: confirmed
 tags: [math, decimal, string, format]
 evidence: ["disasm: CMP #0 / BPL +12 / LDA #$2D / STA 0,X / TYA / EOR #$FFFF / INC A / INX / magnitude check / division loop via $4204/$4206 (out/recomp/asar/rom.bin:0x008757)"]
-see: [src/games/evermore/localizations/knowledge/rom/80870c.md]
+see: [src/games/evermore/localizations/knowledge/routines/format_16bit_integer_to_decimal_digits.md]
 ---
 Signed 16-bit integer to ASCII decimal character formatter:
 - Tests sign bit of input integer (`CMP #$0000; BPL`).

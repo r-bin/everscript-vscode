@@ -8,7 +8,7 @@ name: animation_script_bind_palette_resource
 title: Allocate and bind sprite palette resource from script operand ($90:885A)
 confidence: confirmed
 evidence: ["disasm: reads palette definition index from [<$5D]; allocates CGRAM palette via $90:CD5C; advances script pointer <$5D by 2 bytes"]
-see: ["rom/90cd5c.md"]
+see: ["routines/entity_alloc_and_assign_sprite_palette.md"]
 tags: ["animation","palette","cgram","resource"]
 ---
 Reads palette definition resource index from `[<$5D]`, allocates CGRAM palette via `FUN_90cd5c` (`$90:CD5C`), and advances script pointer `<$5D` by 2 bytes.

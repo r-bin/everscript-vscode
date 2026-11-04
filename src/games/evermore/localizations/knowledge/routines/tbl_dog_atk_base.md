@@ -9,7 +9,7 @@ title: Companion Dog base Attack Power level progression table
 confidence: confirmed
 tags: [companion, stats, combat]
 evidence: ["disasm: $8F:857D indexes $8C:8FE1 by dog level shifted left by 1 to compute Dog Attack Power ($7E:0A8F)", "data: 99 word values scaling from 38 at Lv1 to 87 at Lv99, clamped to 99 max"]
-see: [rom/8f857d.md, docs/disassembly/entities/companion-form-stats.md]
+see: [routines/companion_stats_scaling_and_form_rebuild.md, docs/disassembly/entities/companion-form-stats.md]
 ---
 Master level-based Attack Power curve for the companion Dog across levels 1 through 99.
 Contains 99 16-bit word values (198 bytes total, `$8C:8FE1`..`$8C:90A6`) representing offensive scaling before gear and charm bonuses.

@@ -70,7 +70,7 @@ function staticTableCount({ lib, rom, map, bank, base, observed, site, readers }
         if (w < 0x8000 || t < 0) break;
         // only targets the CDL saw run (from this site or another one sharing the table): a guessed entry gains
         // nothing (an index past the list runs on the interpreter) and one the analyzer cannot prove (entry $65 of the
-        // animation VM table, knowledge rom/908000.md) keeps the dispatching routine interpreted
+        // animation VM table, knowledge routines/tbl_animation_vm_jump_table.md) keeps the dispatching routine interpreted
         if (!(lib.cdl[t] & CDL_CODE)) break;
         if (t >= map.busToRom((bank << 16) | base) && t < o + 2) break;   // points into the table itself
         count = k + 1;

@@ -9,7 +9,7 @@ title: Script opcode 0x2a (freeze_entity)
 confidence: confirmed
 tags: [script-vm, entities, mobility]
 evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E, continues in the same turn (docs/scripts/opcodes.md)", "trace: the game ran 8 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
-see: [docs/scripts/opcodes.md, rom/8cdb11.md, rom/8fcd78.md, docs/disassembly/script-vm/opcode-freeze.md]
+see: [docs/scripts/opcodes.md, routines/script_op_unfreeze_entity.md, routines/entity_freeze_immobilize.md, docs/disassembly/script-vm/opcode-freeze.md]
 ---
 Handler of script opcode [0x2A](soe://rom/assets/scripts/opcodes/2a.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/2a.md`, served at `soe://rom/assets/scripts/opcodes/2a.md`.
 

@@ -9,7 +9,7 @@ title: Metatile collision elevation plane extractor and bridge transparency upda
 confidence: confirmed
 tags: [collision, map, elevation, plane, physics]
 evidence: ["disasm: tests bits 13 and 6 ($2040) of collision word; extracts plane bits 5..4 ($0030) into DP $44; toggles bridge transparency bit 6 via TRB/ORA", "trace: called during actor movement, stair traversal, and elevation transitions"]
-see: [docs/disassembly/maps/elevation-transfer.md, rom/8fa946.md, rom/8faf48.md]
+see: [docs/disassembly/maps/elevation-transfer.md, routines/elevation_plane_transition_gate.md, routines/probe_metatile_collision.md]
 ---
 Extracts the 2-bit elevation plane (bits 5..4) from a metatile collision word into Direct
 Page `$44`. Evaluates bit 13 (always-walkable / conveyor) and bit 6 (plane transparency / bridge

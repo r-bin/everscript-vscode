@@ -8,7 +8,7 @@ title: Script opcode 0xa3 — call a global script by 8-bit id
 confidence: confirmed
 tags: [script-vm]
 evidence: ["disasm: handler from the opcode table at $8C:E8BD (+0xa3*2); computes id*3 + word[$92:8008] + word[$92:8000], reads a packed script pointer at $92:8000 + that", "test: tests/simulation/loot.test.js — ids 0x39/0x3a resolve to the loot drivers every pickup in the ROM calls (v0.202.0)", "test: tools/table-hack moved the pointer table to $B1:D000 by rebasing the operands at $8C:D3B5/D3BB and $8C:CE63/CE69; the attract-loop playback plays identically (v0.222.0)"]
-see: [src/games/evermore/simulation/machine.ts, rom/92a482.md, docs/disassembly/script-vm/opcode-a3-call-global.md]
+see: [src/games/evermore/simulation/machine.ts, routines/loot_gourd.md, docs/disassembly/script-vm/opcode-a3-call-global.md]
 ---
 Handler of script opcode [0xA3](soe://rom/assets/scripts/opcodes/a3.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/a3.md`, served at `soe://rom/assets/scripts/opcodes/a3.md`.
 

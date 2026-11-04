@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [market, npc, dialogue]
 evidence: ["scripts: Room 10 entrance step triggers ($96:ab5e) reset <0x244f> = 0; B-button talk script at [13,44] ($96:ab63) branches across dialogue stages and dispatches via $96:ad2a, incrementing <0x244f> after each line up to stage 19"]
-see: [knowledge/wram/PEDDLER_INTERACTION_COUNT.md, knowledge/wram/DIALOGUE_STRING_PARAM_REGISTERS.md, knowledge/wram/PEDDLER_COOLDOWN_START_FRAME.md, rom/96ad2a.md]
+see: [knowledge/wram/PEDDLER_INTERACTION_COUNT.md, knowledge/wram/DIALOGUE_STRING_PARAM_REGISTERS.md, knowledge/wram/PEDDLER_COOLDOWN_START_FRAME.md, routines/MARKET_PEDDLER_DISPATCH_DIALOGUE.md]
 ---
 Current dialogue index / stage (0..19) for the persistent peddler NPC near the south entrance of Nobilia Market (Room 10, trigger 14 at [13,44]).
 

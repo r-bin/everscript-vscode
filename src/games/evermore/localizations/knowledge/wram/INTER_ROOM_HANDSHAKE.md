@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [omnitopia, transition, duct]
 evidence: ["scripts: 10 Omnitopia rooms (0, 66, 67, 68, 70, 71, 72, 73, 84, 126) write duct portal index 1..17 to <0x24fd> before calling load_map(OMNITOPIA_METROPLEX, 15, 17); Room 72 enter script calls $9a:d5c8, which branches on <0x24fd> to set starting coordinates (TRANSIT_ORIGIN_X, TRANSIT_ORIGIN_Y) and DUCT_ENTRANCE_GRATE_OBJECT"]
-see: [knowledge/wram/ROOM_OBJECT_INDEX_A.md, knowledge/wram/ROOM_OBJECT_INDEX_B.md, rom/9ad5c8.md]
+see: [knowledge/wram/ROOM_OBJECT_INDEX_A.md, knowledge/wram/ROOM_OBJECT_INDEX_B.md, routines/OMNITOPIA_DUCT_SETUP_ENTRANCE.md]
 ---
 Inter-room duct transit register holding the sector / portal index (1..17) through which the Boy enters the Omnitopia Metroplex duct system (Room 72).
 

@@ -1,5 +1,5 @@
 /*
- * $8F:98FE multipart_child_free_primary (knowledge/rom/8f98fe.md), RTL, 16-bit A and X.
+ * $8F:98FE multipart_child_free_primary (knowledge/routines/multipart_child_free_primary.md), RTL, 16-bit A and X.
  *
  * In: Y = an entity record (DB-relative). X = its child slot (rec + $6A); negative: none, return.
  * Else the slot goes back to the free list headed at $3BC7 (slot + $3BC9 = old head, head = slot),

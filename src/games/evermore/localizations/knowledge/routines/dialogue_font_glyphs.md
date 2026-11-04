@@ -9,7 +9,7 @@ title: Dialogue window font glyph bitmap data table
 confidence: confirmed
 tags: [ui, font, graphics, tables]
 evidence: ["disasm: read at $8C:A5AC and $8C:A60C with LDA $C40000,x to fetch glyph row bitplanes", "recomp: clean C in docs/disassembly/ui/dialogue-glyphs.md"]
-see: [rom/8ca5ac.md, rom/c40c02.md]
+see: [routines/dialogue_glyph_render_char.md, routines/dialogue_font_widths.md]
 ---
 Master font bitmap data table stored in Bank `$C4` for the in-game dialogue window and menu text system:
 - Contains glyph bitmaps for 201+ character codes.

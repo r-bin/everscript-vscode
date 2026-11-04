@@ -9,7 +9,7 @@ title: Scans dynamic POI blips, downsamples 16:1, and validates map bounds
 confidence: confirmed
 tags: [minimap, hud, poi, radar, projection]
 evidence: ["disasm: scans POI descriptors sequentially from $90:0000; checks sentinel terminator $8000; applies translation offsets $0FCC/$0FCE; downsamples coordinates via LSR #4 into DP $46/$48; validates against map dimensions $08EE/$08F0 and tile threshold $0FC8", "trace: executed when dynamic POIs are visible on field radar"]
-see: [docs/disassembly/ui/minimap-projection.md, docs/disassembly/ui/minimap-radar.md, rom/90a6b4.md]
+see: [docs/disassembly/ui/minimap-projection.md, docs/disassembly/ui/minimap-radar.md, routines/minimap_poi_slot_allocate_and_commit.md]
 ---
 Scans dynamic POI blip descriptors sequentially from `$90:0000`, downsamples world coordinates
 by 16:1 into radar cells (`$46`, `$48`), validates within map dimensions (`$08EE`, `$08F0`),

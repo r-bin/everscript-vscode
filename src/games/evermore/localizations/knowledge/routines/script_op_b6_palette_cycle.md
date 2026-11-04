@@ -9,7 +9,7 @@ title: Script opcode 0xB6: start a palette cycle
 confidence: likely
 tags: [script-vm]
 evidence: ["disasm: $8C:E899 (palette n >= 8) loads $90:A7CB + $23CB through $90:CF3A into $7E:6289 + 32 * (n - 8); $90:D50F fills $1372/$13D2/$13F2/$1392/$13B2 (v0.320.1)"]
-see: [rom/90d50f.md, docs/scripts/vm.md, docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-b6-palette-cycle.md]
+see: [routines/palette_cycle_setup.md, docs/scripts/vm.md, docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-b6-palette-cycle.md]
 ---
 Handler of script opcode [0xB6](soe://rom/assets/scripts/opcodes/b6.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/b6.md`, served at `soe://rom/assets/scripts/opcodes/b6.md`.
 

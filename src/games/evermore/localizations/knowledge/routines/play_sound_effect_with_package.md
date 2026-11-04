@@ -8,7 +8,7 @@ name: play_sound_effect_with_package
 title: Play Sound Effect (With Soundbank Package Upload)
 confidence: confirmed
 evidence: ["disasm: $8C:82E3 saves SFX ID to $0E4F, calculates soundbank catalog offset from $81:9900/9901, reads required package ID, validates/streams bank via $8C:8236, and dispatches command via $8C:831D"]
-see: [rom/8c82dc.md, rom/8c8236.md, rom/8c831d.md, audio/sfx-queue.md]
+see: [routines/play_sound_effect_direct.md, routines/load_song_soundbank.md, routines/apu_send_sfx_command.md, audio/sfx-queue.md]
 ---
 Sound effect player with dynamic soundbank package verification:
 - Saves sound ID into `$0E4F`.

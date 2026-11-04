@@ -2,7 +2,7 @@
 // does with each, its animations (own, held weapon or Dog form, and the compiler's named ones),
 // palette, boxes and disposition. Pure.
 //
-// Read from the game's own code (knowledge rom/8eb678.md has the field map and the evidence):
+// Read from the game's own code (knowledge routines/character_records.md has the field map and the evidence):
 //   record      bank $8E, 74 bytes, addressed by the ENEMY table $8E:B55A (whose ROM entries
 //               reach record 141: 142 records from $8E:B678)
 //   +$00        24-bit pointer to the name, shown in a text window; the Boy's and the Dog's point
@@ -92,7 +92,7 @@ const STANDARD_ANIM_FIELDS: AnimField[] = [
 
 /**
  * A weapon entry's animation words and the Boy's record field each one overwrites when the weapon
- * is equipped ($8F:81C9, knowledge rom/8f81c9.md): +$08-+$14 → +$32-+$3E, +$16 → +$48, +$18 → +$40.
+ * is equipped ($8F:81C9, knowledge routines/boy_load_weapon.md): +$08-+$14 → +$32-+$3E, +$16 → +$48, +$18 → +$40.
  */
 const WEAPON_ANIMS: AnimField[] = [
     { key: 'w_stand', label: 'Idle', purpose: 'idle', offset: 0x08, field: 0x32 },

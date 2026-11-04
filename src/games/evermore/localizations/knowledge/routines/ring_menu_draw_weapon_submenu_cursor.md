@@ -8,7 +8,7 @@ name: ring_menu_draw_weapon_submenu_cursor
 title: Render weapon ring submenu cursor reticle and highlight sprites to OAM ($8D:88BD)
 confidence: confirmed
 evidence: ["disasm: commits reticle sprite $CC:39FB at (160, 14) via $80:9033; jumps to commit marker sprite $CC:3995 at (210, 14) via $80:9033; callers: weapon submenu draw $8D:862A"]
-see: ["rom/809033.md","rom/8d862a.md"]
+see: ["routines/direct_sprite_draw_oam.md","routines/ring_menu_weapon_submenu_layout_init.md"]
 tags: ["ring-menu","weapon","cursor","oam","sprite"]
 ---
 Renders the weapon ring submenu cursor reticle and highlight markers into OAM. Draws primary reticle sprite `$CC39FB` at screen position (160, 14) with priority `$38` via `direct_sprite_draw_oam` (`$80:9033`), then draws companion highlight marker `$CC3995` at (210, 14).

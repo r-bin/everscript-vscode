@@ -2,7 +2,7 @@
 
 The requested address is inside the melee hit-roll routine that starts at `$8F:BA06`. `$8F:B75A` calls `$8F:BA06`; execution then falls through `$8F:BA27` and returns at `$8F:BAAE`. The clean-ROM disassembly at `soe://bus/8fba06.asm`, `soe://bus/8fba27.asm`, `soe://bus/8fba59.asm`, and `soe://bus/8fbaa4.asm` shows no projectile position, velocity, steering, or projectile-immunity test in this range. The name of this document is retained as requested; the routine is a melee hit-chance roll, not homing code.
 
-The reconstruction is [`reconstructed-c/8F/8FBA06_melee_hit_chance.c`](../../../reconstructed-c/8F/8FBA06_melee_hit_chance.c). Knowledge records: [`8fba06`](../../../src/games/evermore/localizations/knowledge/rom/8fba06.md) and [`8fbaaf`](../../../src/games/evermore/localizations/knowledge/rom/8fbaaf.md).
+The reconstruction is [`reconstructed-c/8F/8FBA06_melee_hit_chance.c`](../../../reconstructed-c/8F/8FBA06_melee_hit_chance.c). Knowledge records: [`8fba06`](../../../src/games/evermore/localizations/knowledge/routines/melee_to_hit_roll.md) and [`8fbaaf`](../../../src/games/evermore/localizations/knowledge/routines/HIT_CHANCE_POINTERS_BY_EVADE.md).
 
 ## Control Flow
 

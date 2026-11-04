@@ -9,7 +9,7 @@ title: In-game dialogue token stream decoder and control code dispatcher
 confidence: confirmed
 tags: [dialogue, text, token, interpreter, script, ui]
 evidence: ["disasm: scans bytecode stream at $05B1,X at $8C:A1A7..$8C:A3AE; handles character glyphs (< 0x80) via JMP $A30C, decodes control codes (>= 0x80) via jump table, terminates with RTL at $8C:A3AE"]
-see: [rom/8c9e03.md, rom/8c9f4e.md, rom/8ca3af.md, rom/8ca4fe.md]
+see: [routines/dialogue_format_and_append_line.md, routines/window_text_layout_align.md, routines/dialogue_multiline_text_line_wrap_and_blit.md, routines/glyph_font_1bpp_unpacker.md]
 ---
 Core dialogue string bytecode interpreter for in-game text display:
 - Reads next token byte from string stream `$05B1,X`.

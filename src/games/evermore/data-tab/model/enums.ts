@@ -17,13 +17,13 @@ interface Entry { cells: string[]; vfs?: string; icon?: string; detail?: [string
 interface EnumList { id: string; group: string; title: string; source: string; columns: string[]; entries: Entry[] }
 
 const RECORD_COUNT = 142;
-/** Record +$03 (AI script) and +$30 (what touching it does), as rom/8eb678.md lists them. */
+/** Record +$03 (AI script) and +$30 (what touching it does), as routines/character_records.md lists them. */
 const FIELD_AI = 0x03;
 const FIELD_CONTACT = 0x30;
 /** `JSR ($B6AE,x)`: one word per even id; 15 handlers, the 16th word is not code. */
 const CONTACT_TABLE = 0x8fb6ae;
 const CONTACT_COUNT = 15;
-/** Alchemy text and the cast tables in bank $C4 (knowledge rom/c45d09.md, c45f97.md, c45fc5.md). */
+/** Alchemy text and the cast tables in bank $C4 (knowledge routines/ALCHEMY_FORMULA_TEXT.md, c45f97.md, c45fc5.md). */
 const FORMULA_NAMES = 0xc45d09;
 const FORMULA_DESCRIPTIONS = 0xc45d51;
 const FORMULA_BLOCKS = 0xc45ddf;
@@ -70,14 +70,14 @@ function characterBlobs(rom: Uint8Array, chars: CharacterInfo[]): EnumList {
     };
 }
 
-/** The character record's fields, as the knowledge entry rom/8eb678.md lists them with their readers. */
+/** The character record's fields, as the knowledge entry routines/character_records.md lists them with their readers. */
 function recordFields(): EnumList {
     const e = knowledgeEntries('rom').find((x) => x.addr === CHARACTER_TABLE);
     const rows = (e?.body || '').split('\n').filter((l) => /^\| `\+\$/.test(l));
     return {
         id: 'fields', group: 'Characters', title: 'Character record fields', columns: ['field', 'read by', 'what the game does'],
         entries: rows.map((l) => ({ cells: l.split('|').slice(1, 4).map((c) => c.trim().replace(/`/g, '')) })),
-        source: 'Knowledge entry rom/8eb678.md: every long-indexed read of the records, grouped by field, with the routine that reads it.',
+        source: 'Knowledge entry routines/character_records.md: every long-indexed read of the records, grouped by field, with the routine that reads it.',
     };
 }
 
@@ -100,7 +100,7 @@ function contactHandlers(rom: Uint8Array, chars: CharacterInfo[]): EnumList {
     }
     return {
         id: 'contact', group: 'Characters', title: 'Contact handler (record +$30)', columns: ['id', 'handler', 'what it does', 'used by'], entries,
-        source: 'Record +$30 picks a handler from the word table $8F:B6AE (JSR ($B6AE,x), rom/8fb6ae.md): 15 handlers, ids 0–$1C. Projectiles use the same table.',
+        source: 'Record +$30 picks a handler from the word table $8F:B6AE (JSR ($B6AE,x), routines/g_attack_proc_table.md): 15 handlers, ids 0–$1C. Projectiles use the same table.',
     };
 }
 
@@ -137,7 +137,7 @@ function aiSelectors(rom: Uint8Array, chars: CharacterInfo[]): EnumList {
                 vfs: bus(0x8f0000 | ptr),
             };
         }),
-        source: 'The values the 142 records hold at +$03, which $8F:CD17 reads to dispatch through jump table $8F:CBE0 (JMP ($CBE0,x), rom/8fcbe0.md). All 15 routines decoded.',
+        source: 'The values the 142 records hold at +$03, which $8F:CD17 reads to dispatch through jump table $8F:CBE0 (JMP ($CBE0,x), routines/ai_behaviour_table.md). All 15 routines decoded.',
     };
 }
 
@@ -665,7 +665,7 @@ function animOpcodesEnum(rom: Uint8Array): EnumList {
         id: 'anim-opcodes', group: 'Animation', title: 'Animation VM opcodes',
         columns: ['opcode', 'routine vector', 'mnemonic', 'kind', 'width'],
         entries,
-        source: 'Jump table $90:8000 (103 words, 206 bytes): vector dispatch table for animation bytecode VM interpreter $90:80CE (knowledge rom/908000.md).',
+        source: 'Jump table $90:8000 (103 words, 206 bytes): vector dispatch table for animation bytecode VM interpreter $90:80CE (knowledge routines/tbl_animation_vm_jump_table.md).',
     };
 }
 

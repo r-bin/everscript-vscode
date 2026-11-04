@@ -85,7 +85,7 @@ Writing 65c816 assembly without crashing the SNES requires strict adherence to r
 ### 3.4 More traps (hit by the hotkey hack, everscript `hacks/hotkeys/`)
 - **Never start a script from the NMI.** The old `patches/hotkeys.asm` did (`$80:84A3`); an NMI
   landing while the main loop used DP `$26-$28` or the run list corrupted them. Start scripts from
-  the main loop the way Select does (`rom/8cf17c.md`: `$8C:CE5C` / `$8C:CF18` + `$8C:CE86`).
+  the main loop the way Select does (`routines/select_switch_character.md`: `$8C:CE5C` / `$8C:CF18` + `$8C:CE86`).
 - **Asar sizes `#imm` by the written value.** `AND #!MASK` with `!MASK = $0020|$0010` assembles
   as one byte (`#$30`) even in 16-bit mode; write `AND.w`.
 - **Any added cycle in the main loop makes vanilla replays drift** (a hook adding ~30 cycles on

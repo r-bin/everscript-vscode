@@ -15,7 +15,7 @@ Enemies, NPCs, the Boy and the Dog are all the same thing to the engine: an
 
 Table `$8EB678`, **74 bytes** per character (`CHARACTER_TABLE`/`CHARACTER_STRIDE`,
 `src/games/evermore/maps/character-record.ts`). 142 records. The fields are read from the code
-that uses them (knowledge `rom/8eb678.md`, [character_table.md](character_table.md)).
+that uses them (knowledge `routines/character_records.md`, [character_table.md](character_table.md)).
 
 | Offset | Field | Used for |
 |---|---|---|

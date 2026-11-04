@@ -30,7 +30,7 @@ Every agent resuming this work must strictly adhere to repository guidelines:
    - Map Direct Page addresses and WRAM structures using explicit types, bitfields, and enum constants (e.g., `Entity`, `StatusFlags`, `CompassHeading`, `ScriptThread`).
    - Group related subroutines into logical subsystem markdown files under `docs/disassembly/<category>/<topic>.md`.
 3. **Confirmed Knowledge Registration:**
-   - Every identified routine and entry point must have a companion markdown record in `src/games/evermore/localizations/knowledge/rom/<addr>.md`.
+   - Every identified routine and entry point must have a companion markdown record in `src/games/evermore/localizations/knowledge/routines/<name>.md`.
    - Each entry must specify:
      ```yaml
      ---

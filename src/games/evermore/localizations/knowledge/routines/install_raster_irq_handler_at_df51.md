@@ -8,7 +8,7 @@ name: install_raster_irq_handler_at_df51
 title: Install scanline raster IRQ handler at $80:DF51 for line 5 ($80:DF3F)
 confidence: confirmed
 evidence: ["disasm: disables interrupts SEI; loads bank $80, handler $DF51, and raster scanline Y=5; binds IRQ via $80:8552; re-enables interrupts CLI; callers: screen mode setup $80:C95B"]
-see: ["rom/808552.md","rom/80c95b.md"]
+see: ["routines/snes_set_timer_irq_scanline_and_vector.md","routines/sub_80C95B.md"]
 tags: ["irq","raster","scanline","ppu"]
 ---
 Installs scanline IRQ timer callback at `$80:DF51` for line 5. Disables interrupts (`SEI`), passes bank `$80`, address `$DF51`, line 5 to `func_808552` (`$80:8552`), and re-enables interrupts (`CLI`).

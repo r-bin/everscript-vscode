@@ -9,7 +9,7 @@ title: Probe 8-way adjacent metatiles for local obstacle avoidance and steering
 confidence: confirmed
 tags: [entities, companion, collision, grid]
 evidence: ["disasm: dispatches heading index through jump table $8F:A3E8 to evaluate adjacent North/South/East/West/diagonal metatile coordinates and collision geometry bits"]
-see: [docs/disassembly/entities/companion-steering.md, rom/8f9ea3.md, rom/8f9f05.md]
+see: [docs/disassembly/entities/companion-steering.md, routines/companion_waypoint_raycast_probe.md, routines/companion_metatile_raycast_line_stepper.md]
 ---
 Checks the traversability of adjacent metatile cells surrounding the companion:
 - Evaluates directional deltas across jump table `$8F:A3E8`.

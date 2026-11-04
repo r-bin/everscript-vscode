@@ -1,7 +1,7 @@
 // Ownership: the character record — what the game reads from it when it creates, animates, colours
 // and collides an entity — and the animation and palette tables those reads lead to. Pure.
 //
-// Read from the game's own code (knowledge rom/8eb678.md has the field map and its evidence):
+// Read from the game's own code (knowledge routines/character_records.md has the field map and its evidence):
 //   records   bank $8E, addressed by the ENEMY table $8E:B55A; in vanilla they follow it,
 //             74 bytes apart from $8E:B678. The new entity keeps the address at +$60 ($8F:B094).
 //   +$05      OR'd into the entity's flags +$10 ($8F:B0C3): bit 1 = contact runs nothing

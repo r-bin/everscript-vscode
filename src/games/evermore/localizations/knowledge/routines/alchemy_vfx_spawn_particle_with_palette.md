@@ -8,7 +8,7 @@ name: alchemy_vfx_spawn_particle_with_palette
 title: Spawn alchemy particle emitter with bound CGRAM palette index ($91:C5AE)
 confidence: confirmed
 evidence: ["disasm: advances script PC +$14,Y by 8 bytes; reads 3 config words from $91:0002,X..$91:0006,X into <$04..<$08; passes palette index from +$0C,Y in <$02; spawns particle via $90:D506"]
-see: ["rom/90d506.md"]
+see: ["routines/particle_emitter_bind_flags_and_launch.md"]
 tags: ["alchemy","particle","vfx","palette","spawn"]
 ---
 Advances script PC `+$14,Y` by 8 bytes. Reads 3 particle coordinate/velocity words from `$91:0002,X..$91:0006,X` into `<$04..$08>`, sets palette index `<$02>` from `+$0C,Y`, and calls particle emitter `func_90D506` (`$90:D506`).

@@ -169,7 +169,7 @@ const busOf = t => (t.full ? 0xC00000 | t.to : mirrorBus(t.to));
  * Build the 4 MB image with `names` moved. `extra` = { string_keys: [3-byte values to append], … }.
  * The 4th MB starts as what the bundled snes9x core shows past a 3 MB ROM (offset % size), so an image with
  * nothing moved behaves exactly like the original in that core, $80:D113's read past the ROM included
- * (knowledge/rom/80d113.md).
+ * (knowledge/routines/row_table_low_bytes_from_bank_b0.md).
  * @returns {{ image: Uint8Array, moves: object[] }}
  */
 function build(source, names = [], extra = {}) {

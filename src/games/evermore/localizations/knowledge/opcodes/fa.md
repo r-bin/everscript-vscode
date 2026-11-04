@@ -5,7 +5,7 @@ title: Invalid opcode (past the handler table)
 confidence: confirmed
 tags: ["opcode.invalid","opcode.unused"]
 evidence: ["disasm: $8C:D0A6 doubles the byte without a range check; the word at $8C:EAB1 (code of the expression evaluator $8C:EA43) sends it to $8C:0285"]
-see: ["rom/8cd0a6.md","rom/8cea43.md"]
+see: ["routines/script_vm_opcode_dispatch.md","routines/script_eval_expression.md"]
 ---
 The handler table ends at `0xC2`, and the dispatcher has no range check. For this byte it reads the word at `$8C:EAB1`, which is code of the expression evaluator. That word sends the CPU to `$8C:0285`: low WRAM (the CPU would run whatever RAM holds). That is not a handler.
 

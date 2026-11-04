@@ -1,5 +1,5 @@
 /*
- * $90:8418 anim_op_sprite (knowledge/rom/908418.md), RTS, 8-bit A, 16-bit X.
+ * $90:8418 anim_op_sprite (knowledge/routines/anim_op_sprite.md), RTS, 8-bit A, 16-bit X.
  *
  * In: X = the opcode byte, Y = the entity record (DB-relative), DP $5D = the animation script
  * pointer (24-bit). rec + 8 = (X low byte >> 1) + $A8 + carry (the bit shifted out); rec + 6 = the word

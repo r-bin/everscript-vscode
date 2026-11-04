@@ -8,7 +8,7 @@ lifetime: room
 confidence: confirmed
 tags: [mode7, flight, ppu, hdma]
 evidence: ["disasm: func_80D113 unrolled byte-copy loop (SEP #$20; PEA $B090; PLB; PLB) writes 32 bytes from $E293,X into $7E:2090..$7E:20AF"]
-see: [src/games/evermore/localizations/knowledge/rom/80d113.md]
+see: [src/games/evermore/localizations/knowledge/routines/row_table_low_bytes_from_bank_b0.md]
 ---
 32-byte array of perspective step scaling factors loaded from ROM bank `$90` / `$80` (`$E293, X`) into `$7E:2090`..`$7E:20AF`.
 - Populated by `func_80D113` following word calculation in `func_80CFA9`.

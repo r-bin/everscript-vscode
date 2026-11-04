@@ -8,7 +8,7 @@ name: entity_animation_script_unpack_frames
 title: Unpack multi-frame animation stream descriptors to entity buffer ($8F:CA02)
 confidence: confirmed
 evidence: ["disasm: unpacks frame count, duration, and 24-bit sprite definitions from stream [<$5D]; stores into entity record stepping 14 bytes per frame; callers: anim unpacker $90:886D"]
-see: ["rom/90886d.md"]
+see: ["routines/animation_script_unpack_hitbox_definitions.md"]
 tags: ["animation","entity","unpack","stream"]
 ---
 Unpacks multi-frame entity animation definition stream from `[<$5D]`. Reads frame count, duration, and 24-bit sprite definitions, storing into entity animation record buffer at X stepping by 14 bytes per frame.

@@ -9,7 +9,7 @@ lifetime: save
 confidence: confirmed
 tags: [inventory, loot]
 evidence: ["test: simulating the loot script 0x3e once per reward, ingredients 0x020A-0x0215 increment $2309-$2314 (ram/7e22ff, v0.202.0)", "disasm: the currency opcodes add, take and test 3-byte amounts at $0AC6 + the currency offset 0/3/6/9 (opcodes/7c, opcodes/0a, rom/8f8689)"]
-see: [knowledge/wram/ING_QTY_WAX.md, knowledge/wram/CURRENCY_TALONS.md, rom/8f8689.md]
+see: [knowledge/wram/ING_QTY_WAX.md, knowledge/wram/CURRENCY_TALONS.md, routines/award_kill_money.md]
 ---
 Twelve one-byte ingredient counts, inside the inventory table that starts at `$22FF` (Wax): Crystal
 (`$230E`), Clay, Brimstone, Bone, Atlas Medallion, Ash (`$2313`), Acorns (`$2314`) and the five
