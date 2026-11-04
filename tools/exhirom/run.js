@@ -14,7 +14,7 @@ const { parseMovie, groupEvents, wramCrc, crcText } = require('../../dist/platfo
 // EXHIROM_CORE: another copy of snes9x_2005.js (+ .wasm next to it), e.g. so a core rebuild cannot cut a long proof run.
 const CORE = process.env.EXHIROM_CORE || path.join(__dirname, '../../src/core/emulator/core/snes9x2005-wasm/snes9x_2005.js');
 const STATE_EVERY = 60;
-const CURRENT_MAP_ID = 0x7E0ADB;     // knowledge/ram/7e0adb.md: which rooms a run visited (coverage, last trace line)
+const CURRENT_MAP_ID = 0x7E0ADB;     // knowledge/wram/CURRENT_ROOM_ID.md: which rooms a run visited (coverage, last trace line)
 // Bus addresses that HiROM and ExHiROM map to different file offsets (or the same, as a control).
 const PROBES = [0xC00000, 0x808000, 0xFF0000, 0x008020, 0x00FFE0, 0x00FFC0, 0x400000, 0x418000, 0x7D0000, 0x018000, 0x3F8000];
 

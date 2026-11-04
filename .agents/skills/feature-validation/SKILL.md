@@ -52,5 +52,5 @@ A ROM or emulator feature is **ONLY** considered working if:
 ## 4. Documentation is Part of Done
 
 - Every newly touched WRAM address without documentation must receive a knowledge entry
-  (`src/games/evermore/localizations/knowledge/ram/<addr>.md`).
+  (`src/games/evermore/localizations/knowledge/wram/<NAME>.md`).
 - Every investigated ASM or EVS function must have its purpose and evidence documented.

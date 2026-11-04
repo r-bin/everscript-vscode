@@ -15,7 +15,7 @@ const { parseMovie, groupEvents, wramCrc, crcText, WRAM_BASE, WRAM_SIZE, AUDIO_R
 
 const CORE = process.env.TABLE_HACK_CORE || path.join(__dirname, '../../src/core/emulator/core/snes9x2005-wasm/snes9x_2005.js');
 const STATE_EVERY = 60;
-const CURRENT_MAP_ID = 0x7E0ADB;     // knowledge/ram/7e0adb.md
+const CURRENT_MAP_ID = 0x7E0ADB;     // knowledge/wram/CURRENT_ROOM_ID.md
 
 const argv = process.argv.slice(2);
 const opt = (name, n = 1) => { const i = argv.indexOf('--' + name); return i < 0 ? null : argv.splice(i, n + 1).slice(1); };

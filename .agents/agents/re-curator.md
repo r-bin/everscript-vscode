@@ -51,7 +51,7 @@ LOOP
 5. **Write.**
    - Function / table names → `functions.ts` / `tables.ts` (with evidence in `notes`), because
      the tools read these today.
-   - RAM facts → `src/games/evermore/localizations/knowledge/ram/<addr>.md`.
+   - RAM facts → `src/games/evermore/localizations/knowledge/wram/<NAME>.md`.
    - ROM data/format facts → `src/games/evermore/localizations/knowledge/rom/<addr>.md` or `docs/` prose.
    - A skill or doc that turned out wrong → fix it in the same commit.
 6. **Report.** End with a table: address, name, confidence, evidence in one line, and a list of

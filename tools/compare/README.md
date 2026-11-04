@@ -36,7 +36,7 @@ differing checkpoint), `--aram`, `--regions wram,vram,cgram,oam`, `--align frame
 3. The default comparison is one hash over all regions (a CRC of the region CRCs). A target stops at its
    first differing checkpoint, unless `--keep-going` is set.
 4. Then, for each target that parted from the reference, both setups run again to that checkpoint and hand
-   over their memory in RAM: the differing bytes, with names from `knowledge/ram/`. For snes9x setups, the
+   over their memory in RAM: the differing bytes, with names from the WRAM map (`data/wram-map.md`). For snes9x setups, the
    window from the last matching checkpoint is run again with write watchpoints on up to 256 differing
    WRAM bytes. The first CPU write where the two sides part gives the frame, the PC and the routine
    (`localizations/functions`, or the C function from `out/c-to-rom/build.json` for PCs in the 4th MB).

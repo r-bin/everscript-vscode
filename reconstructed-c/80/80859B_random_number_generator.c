@@ -15,7 +15,7 @@
  * - Compiled C ASM:   63 instructions [Calypsi 65816 -O1 --speed]
  * - Code Expansion:   2.5x instructions vs ROM
  * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
- * - Rating Hash:      eae7dbf03d70b93e
+ * - Rating Hash:      a61ff4fc10266d5c
  * - Rating Status:    VALID (unmodified since rating)
  */
 #include "soe.h"
@@ -23,10 +23,10 @@
 
 #ifndef SOE_OPTIMIZE
 
-#define W0 (RNG_STATE_ADDR + 0)
-#define W1 (RNG_STATE_ADDR + 2)
-#define W2 (RNG_STATE_ADDR + 4)
-#define W3 (RNG_STATE_ADDR + 6)
+#define W0 (RNG_SEED_0_ADDR + 0)
+#define W1 (RNG_SEED_0_ADDR + 2)
+#define W2 (RNG_SEED_0_ADDR + 4)
+#define W3 (RNG_SEED_0_ADDR + 6)
 
 /* rotate ABS16(rot) through carry; carry out increments ABS16(bump); A + ABS16(add) + carry -> ABS16(store) */
 static uint16_t step(soe_regs r, uint16_t rot, uint16_t bump, uint16_t add, uint16_t store)
@@ -49,10 +49,10 @@ SOE_BIND(random_number_generator, 0x80859B, RTL)
 
 #else /* SOE_OPTIMIZE: compact ~1.0x variant (G1-checked); the code above is the documentation */
 
-#define W0 (RNG_STATE_ADDR + 0)
-#define W1 (RNG_STATE_ADDR + 2)
-#define W2 (RNG_STATE_ADDR + 4)
-#define W3 (RNG_STATE_ADDR + 6)
+#define W0 (RNG_SEED_0_ADDR + 0)
+#define W1 (RNG_SEED_0_ADDR + 2)
+#define W2 (RNG_SEED_0_ADDR + 4)
+#define W3 (RNG_SEED_0_ADDR + 6)
 
 SOE_BIND(random_number_generator, 0x80859B, RTL)
 {

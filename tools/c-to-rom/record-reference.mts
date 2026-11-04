@@ -10,7 +10,7 @@ import { boot, coreId, stripHeader, REPO, REFERENCE, REFERENCE_FRAMES } from './
 
 const require = createRequire(import.meta.url);
 const T = require('../../dist/platform/tas/movie');
-const CURRENT_MAP_ID = 0x0ADB;              // knowledge/ram/7e0adb.md
+const CURRENT_MAP_ID = 0x0ADB;              // knowledge/wram/CURRENT_ROOM_ID.md
 
 const a = process.argv.slice(2), opt = (n: string) => { const i = a.indexOf('--' + n); return i < 0 ? null : a[i + 1]; };
 const romPath: string = require('../rom').baseRomOrExit('evermore', opt('rom'));

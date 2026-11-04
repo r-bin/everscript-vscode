@@ -52,7 +52,7 @@ annotated in `labels.mlb`. They do not change the assembly, so the rebuild stays
 | ROM known (CDL ∪ known regions ∪ ROM-tab assets) | decoding the unknown ROM-tab regions |
 | Recorded functions named / described | `re-curator` passes (`.agents/agents/re-curator.md`) |
 | Instruction lines with a comment | more recorded accesses / targets, curated descriptions |
-| Accessed WRAM bytes with a name | RAM knowledge entries (`src/games/evermore/localizations/knowledge/ram/`) |
+| Accessed WRAM bytes with a name | the WRAM map (`src/games/evermore/localizations/data/wram-map.md`) |
 | snesrecomp interpreter-only (LLE) variants | recorded jump-table targets, more directives |
 | a routine that miscompiles | a `func` / `dispatch` line in the recomp repo's `recomp/seed-exclusions.txt`, then `npm run recomp` |
 

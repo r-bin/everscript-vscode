@@ -15,7 +15,7 @@ const fs = require('fs'), path = require('path'), zlib = require('zlib');
 // Restoring a state taken while the game is still booting (frame 1) does not reproduce the run (WRAM and ARAM differ:
 // part of the SPC700 start-up is not in the saved state); from frame 30 on every tested state does. Be safe: none before 600.
 const MIN_FRAME = 600;
-const ROOM_ADDR = 0x7E0ADB;   // CURRENT_MAP_ID (knowledge/ram/7e0adb.md)
+const ROOM_ADDR = 0x7E0ADB;   // CURRENT_ROOM_ID (knowledge/wram/CURRENT_ROOM_ID.md)
 const stateName = (frame, room) => 'f' + String(frame).padStart(9, '0') + '-r' + (room & 0xFF).toString(16).padStart(2, '0') + '.state.gz';
 
 /** The frame a state file was taken at, from its name. */

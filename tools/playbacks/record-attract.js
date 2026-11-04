@@ -16,7 +16,7 @@ const DEFAULT_OUT = path.join(REPO, '.agents/skills/sample-playbacks/playbacks/a
 // tas/host.ts coreId(): a replay only trusts a movie recorded on the same core build
 const coreId = () => crypto.createHash('sha256').update(fs.readFileSync(CORE.replace(/\.js$/, '.wasm'))).digest('hex').slice(0, 16);
 const MATCH = 120;                     // frames that must repeat to call it the start of the loop
-const CURRENT_MAP_ID = 0x7E0ADB;       // knowledge/ram/7e0adb.md
+const CURRENT_MAP_ID = 0x7E0ADB;       // knowledge/wram/CURRENT_ROOM_ID.md
 // First instruction of each table reader the table hack rewrites (tools/table-hack/tables.js), as executed ($8x).
 const READERS = {
     map_table: [0x908F68, 0x908F6E],

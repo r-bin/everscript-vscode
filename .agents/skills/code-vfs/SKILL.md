@@ -52,7 +52,7 @@ The C replaces its ROM routine and leaves exactly the state the asm leaves. Two 
 Write the C in the bindable form (worked files: `reconstructed-c/80/80859B_*.c`, `90/909DE8_*.c`):
 
 - `#include "soe.h"` (WRAM, ROM, I/O, DB-relative `ABS16`/`ABSI16`, `DP16`, flag helpers) and
-  `"soe_ram.h"` (generated from `knowledge/ram/`: one name per address, `ENTITY_RECORD_*_OFF`).
+  `"soe_ram.h"` (generated from `knowledge/wram/`: one name per address, `ENTITY_RECORD_*_OFF`).
   Name an address by writing its entry, then `node tools/c-to-rom/gen-ram-header.mts`.
 - `SOE_BIND(name, 0x8FA963, RTS) { ... }` on the execution address. The binding reads the registers
   from `r` and writes back every register and flag the asm leaves: `soe_nz16` after the last load,
