@@ -1,7 +1,7 @@
 ---
 addr: 90BECD
-end: 90BEDC
-size: 16
+end: 90BEEC
+size: 32
 kind: data
 category: 🎨
 name: gfx_90BECD

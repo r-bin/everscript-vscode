@@ -1,7 +1,7 @@
 ---
 addr: 8DC233
-end: 8DC242
-size: 16
+end: 8DC260
+size: 46
 kind: code
 category: 🧠
 name: sub_8DC233

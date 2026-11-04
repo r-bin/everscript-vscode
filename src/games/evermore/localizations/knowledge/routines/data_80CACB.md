@@ -1,7 +1,7 @@
 ---
 addr: 80CACB
-end: 80CADA
-size: 16
+end: 80CAEE
+size: 36
 kind: data
 category: 📦
 name: data_80CACB

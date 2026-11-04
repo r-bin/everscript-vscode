@@ -1,7 +1,7 @@
 ---
 addr: 80CB2B
-end: 80CB3A
-size: 16
+end: 80CB44
+size: 26
 kind: data
 category: 📦
 name: data_80CB2B

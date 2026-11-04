@@ -1,7 +1,7 @@
 ---
 addr: 8CB5F2
-end: 8CB601
-size: 16
+end: 8CB63A
+size: 73
 kind: data
 category: 📦
 name: data_8CB5F2

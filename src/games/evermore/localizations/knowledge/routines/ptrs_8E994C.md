@@ -1,7 +1,7 @@
 ---
 addr: 8E994C
-end: 8E995B
-size: 16
+end: 8E9967
+size: 28
 kind: table
 category: 📋
 name: ptrs_8E994C

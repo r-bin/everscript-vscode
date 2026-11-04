@@ -1,7 +1,7 @@
 ---
 addr: 80CB4D
-end: 80CB5C
-size: 16
+end: 80CB66
+size: 26
 kind: data
 category: 📦
 name: data_80CB4D

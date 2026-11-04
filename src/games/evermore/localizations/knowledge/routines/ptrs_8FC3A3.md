@@ -1,7 +1,7 @@
 ---
 addr: 8FC3A3
-end: 8FC3B2
-size: 16
+end: 8FC3B9
+size: 23
 kind: table
 category: 📋
 name: ptrs_8FC3A3

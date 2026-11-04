@@ -1,7 +1,7 @@
 ---
 addr: 80C95D
-end: 80C96C
-size: 16
+end: 80C984
+size: 40
 kind: code
 category: 🧠
 name: sub_80C95D

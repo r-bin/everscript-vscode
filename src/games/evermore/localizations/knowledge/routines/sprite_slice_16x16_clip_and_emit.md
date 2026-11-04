@@ -1,7 +1,7 @@
 ---
 addr: 8091FD
-size: 239
-end: 8092EB
+size: 238
+end: 8092EA
 kind: code
 category: 🧠
 name: sprite_slice_16x16_clip_and_emit

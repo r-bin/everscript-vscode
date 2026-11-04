@@ -1,7 +1,7 @@
 ---
 addr: 90C76D
-end: 90C77C
-size: 16
+end: 90C8AC
+size: 320
 kind: data
 category: 🎨
 name: gfx_90C76D

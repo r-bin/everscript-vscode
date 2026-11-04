@@ -1,7 +1,7 @@
 ---
 addr: 80F9A8
-end: 80F9B7
-size: 16
+end: 80FFAF
+size: 1544
 kind: data
 category: 🎨
 name: gfx_80F9A8

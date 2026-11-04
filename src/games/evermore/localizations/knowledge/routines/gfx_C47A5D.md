@@ -1,7 +1,7 @@
 ---
 addr: C47A5D
-end: C47A6C
-size: 16
+end: C47A7C
+size: 32
 kind: data
 category: 🎨
 name: gfx_C47A5D

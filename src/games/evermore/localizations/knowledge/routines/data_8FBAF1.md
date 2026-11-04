@@ -1,7 +1,7 @@
 ---
 addr: 8FBAF1
-end: 8FBB00
-size: 16
+end: 8FC02A
+size: 1338
 kind: data
 category: 📦
 name: data_8FBAF1

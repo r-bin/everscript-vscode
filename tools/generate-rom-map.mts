@@ -5,6 +5,9 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
 
 function hiromFileOffset(addr: number): number {
     const bank = (addr >> 16) & 0x3F;
@@ -549,6 +552,74 @@ function generate(): void {
         console.log(`Ingested ${addedCdlTables} new tables from tables.json`);
     }
 
+    // 7.5 Ingest all game asset regions from romRegions(rom)
+    const ROM_BIN_PATH = path.join(ROOT, 'out/recomp/asar/rom.bin');
+    if (fs.existsSync(ROM_BIN_PATH)) {
+        try {
+            const { romRegions } = require(path.join(ROOT, 'dist/games/evermore/rom/build'));
+            const rom = fs.readFileSync(ROM_BIN_PATH);
+            const regions = romRegions(rom);
+            let addedRomRegions = 0;
+            for (const r of regions) {
+                const fileOff = r.s;
+                const size = r.e - r.s;
+                if (size <= 0) continue;
+                const fileBank = Math.floor(fileOff / 0x10000);
+                const fileOffInBank = fileOff % 0x10000;
+                const bus = (fileBank === 0 && fileOff >= 0xFFC0)
+                    ? fileOff
+                    : (fileOffInBank >= 0x8000
+                        ? ((0x80 + fileBank) << 16) | fileOffInBank
+                        : ((0xC0 + fileBank) << 16) | fileOffInBank);
+
+                if (!isVanillaRomAddress(bus)) continue;
+                if (!itemsByAddr.has(bus) && !isInsideConfirmedAsset(bus)) {
+                    const hex = bus.toString(16).toUpperCase().padStart(6, '0');
+                    const cleanName = (r.name || 'ASSET').toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+                    const symName = `asset_${hex.toLowerCase()}_${cleanName.toLowerCase()}`.slice(0, 60);
+                    let kind = 'data';
+                    const tags = ['asset'];
+                    if (r.cat === '🎨') {
+                        tags.push('graphics', 'chr');
+                    } else if (r.cat === '🎵') {
+                        tags.push('audio', 'music');
+                    } else if (r.cat === '🗺️') {
+                        kind = 'blob';
+                        tags.push('map', 'room');
+                    } else if (r.cat === '📜') {
+                        kind = 'script';
+                        tags.push('script', 'bytecode');
+                    } else if (r.cat === '📋') {
+                        kind = 'table';
+                        tags.push('table', 'database');
+                    }
+
+                    itemsByAddr.set(bus, {
+                        addr: bus,
+                        addrHex: hex,
+                        size,
+                        end: bus + size - 1,
+                        sizeSource: 'rom_regions',
+                        name: symName,
+                        kind,
+                        category: r.cat || '📦',
+                        title: `${r.name} (${formatBusAddr(bus)})`,
+                        confidence: 'confirmed',
+                        tags,
+                        evidence: [`Game asset catalog (src/games/evermore/rom/build.ts romRegions)`],
+                        see: [],
+                        body: `${r.name}: ${r.notes || 'Engine asset data in ROM.'} Size: ${size.toLocaleString()} bytes at ${formatBusAddr(bus)}.`,
+                    });
+                    registerConfirmedRange(bus, size);
+                    addedRomRegions++;
+                }
+            }
+            console.log(`Ingested ${addedRomRegions} assets from romRegions`);
+        } catch (e) {
+            console.warn('Failed to load romRegions:', e);
+        }
+    }
+
     // 8. Ingest CDL labels (pointer tables, data tables, graphic CHR blocks, subroutines) from export.json
     const CDL_EXPORT_JSON = path.join(ROOT, 'out/recomp/asar/export.json');
     if (fs.existsSync(CDL_EXPORT_JSON)) {
@@ -556,21 +627,30 @@ function generate(): void {
         const labels = Object.values(expData.labels || {}) as [string, number][];
         let addedPtrs = 0, addedData = 0, addedGfx = 0, addedSubs = 0, addedOther = 0;
 
-        for (const [name, fileOff] of labels) {
-            if (name.startsWith('seg_')) continue;
+        for (let i = 0; i < labels.length; i++) {
+            const [name, fileOff] = labels[i];
+            const nextOff = (i + 1 < labels.length) ? labels[i + 1][1] : 3145728;
+            const fullSpan = Math.max(1, nextOff - fileOff);
             const fileBank = Math.floor(fileOff / 0x10000);
             const fileOffInBank = fileOff % 0x10000;
-            const bus = fileOffInBank >= 0x8000
-                ? ((0x80 + fileBank) << 16) | fileOffInBank
-                : ((0xC0 + fileBank) << 16) | fileOffInBank;
+            const bus = (fileBank === 0 && fileOff >= 0xFFC0)
+                ? fileOff
+                : (fileOffInBank >= 0x8000
+                    ? ((0x80 + fileBank) << 16) | fileOffInBank
+                    : ((0xC0 + fileBank) << 16) | fileOffInBank);
 
+            if (!isVanillaRomAddress(bus)) continue;
             if (!itemsByAddr.has(bus) && !isInsideConfirmedAsset(bus)) {
                 const hex = bus.toString(16).toUpperCase().padStart(6, '0');
                 let symName = name;
-                const m = name.match(/^(gfx|data|tbl|ptrs|loc)_[0-9A-Fa-f]{6}$/i);
-                if (m) {
-                    const prefix = m[1].toLowerCase() === 'loc' ? 'sub' : m[1].toLowerCase();
-                    symName = `${prefix}_${hex}`;
+                if (name.startsWith('seg_')) {
+                    symName = `unreached_${hex.toLowerCase()}`;
+                } else {
+                    const m = name.match(/^(gfx|data|tbl|ptrs|loc)_[0-9A-Fa-f]{6}$/i);
+                    if (m) {
+                        const prefix = m[1].toLowerCase() === 'loc' ? 'sub' : m[1].toLowerCase();
+                        symName = `${prefix}_${hex}`;
+                    }
                 }
 
                 let kind = 'data';
@@ -579,7 +659,14 @@ function generate(): void {
                 let title = `CDL asset (${formatBusAddr(bus)})`;
                 let desc = `CDL-identified ROM structure at ${formatBusAddr(bus)}.`;
 
-                if (name.startsWith('ptrs_')) {
+                if (name.startsWith('seg_')) {
+                    kind = 'data';
+                    tags = ['unreached', 'cdl'];
+                    category = '⚙️';
+                    title = `CDL unreached data block (${formatBusAddr(bus)})`;
+                    desc = `Unreached ROM block at ${formatBusAddr(bus)} (${fullSpan.toLocaleString()} bytes).`;
+                    addedData++;
+                } else if (name.startsWith('ptrs_')) {
                     kind = 'table';
                     tags = ['table', 'pointers', 'cdl'];
                     category = '📋';
@@ -625,8 +712,8 @@ function generate(): void {
                 itemsByAddr.set(bus, {
                     addr: bus,
                     addrHex: hex,
-                    size: 16,
-                    end: bus + 15,
+                    size: fullSpan,
+                    end: bus + fullSpan - 1,
                     sizeSource: 'cdl_export_json',
                     name: symName,
                     kind,
@@ -638,6 +725,7 @@ function generate(): void {
                     see: [],
                     body: desc,
                 });
+                registerConfirmedRange(bus, fullSpan);
             }
         }
         console.log(`Ingested from export.json: ptrs=${addedPtrs}, data=${addedData}, gfx=${addedGfx}, subs=${addedSubs}, other=${addedOther}`);
@@ -788,8 +876,7 @@ function generate(): void {
         } else if (bank >= 0x80 && bank <= 0xAF) {
             bankEnd = (bank << 16) + 0x10000;
         } else if (bank >= 0xC0 && bank <= 0xEF) {
-            const hasUpperHalf = rawList.some(it => (it.addr & 0xFFFF) >= 0x8000);
-            bankEnd = hasUpperHalf ? ((bank << 16) + 0x10000) : ((bank << 16) + 0x08000);
+            bankEnd = Math.max(expectedAddr, (bank << 16) + 0x08000);
         } else {
             bankEnd = expectedAddr;
         }

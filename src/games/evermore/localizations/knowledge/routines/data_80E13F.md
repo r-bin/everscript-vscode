@@ -1,7 +1,7 @@
 ---
 addr: 80E13F
-end: 80E14E
-size: 16
+end: 80E162
+size: 36
 kind: data
 category: 📦
 name: data_80E13F

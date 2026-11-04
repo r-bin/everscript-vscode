@@ -1,7 +1,7 @@
 ---
 addr: 8DE0A5
-end: 8DE0A9
-size: 5
+end: 8DE0A8
+size: 4
 kind: data
 category: 📦
 name: data_8DE0A5

@@ -1,7 +1,7 @@
 ---
 addr: 8CF21E
-end: 8CF220
-size: 3
+end: 8CF21F
+size: 2
 kind: data
 category: 📦
 name: data_8CF21E

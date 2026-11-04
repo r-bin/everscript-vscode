@@ -1,7 +1,7 @@
 ---
 addr: 90BCAD
-end: 90BCBC
-size: 16
+end: 90BCCC
+size: 32
 kind: data
 category: 🎨
 name: gfx_90BCAD

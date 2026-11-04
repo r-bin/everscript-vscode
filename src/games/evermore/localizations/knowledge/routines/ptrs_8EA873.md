@@ -1,7 +1,7 @@
 ---
 addr: 8EA873
-end: 8EA882
-size: 16
+end: 8EA884
+size: 18
 kind: table
 category: 📋
 name: ptrs_8EA873

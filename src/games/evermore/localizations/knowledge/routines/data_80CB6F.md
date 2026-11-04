@@ -1,7 +1,7 @@
 ---
 addr: 80CB6F
-end: 80CB7E
-size: 16
+end: 80CB8C
+size: 30
 kind: data
 category: 📦
 name: data_80CB6F

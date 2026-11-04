@@ -1,7 +1,7 @@
 ---
 addr: 8C99E5
-end: 8C99F4
-size: 16
+end: 8C99FC
+size: 24
 kind: code
 category: 🧠
 name: lz_copy_loop

@@ -1,7 +1,7 @@
 ---
 addr: 8C99A3
-end: 8C99B2
-size: 16
+end: 8C99C8
+size: 38
 kind: code
 category: 🧠
 name: sub_8C99A3

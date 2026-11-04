@@ -1,7 +1,7 @@
 ---
 addr: 8F9CDA
-end: 8F9CE9
-size: 16
+end: 8F9D00
+size: 39
 kind: code
 category: 🧠
 name: sub_8F9CDA

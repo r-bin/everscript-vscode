@@ -1,7 +1,7 @@
 ---
 addr: C4781D
-end: C4782C
-size: 16
+end: C4785C
+size: 64
 kind: data
 category: 🎨
 name: gfx_C4781D

@@ -1,7 +1,7 @@
 ---
 addr: 8EC5FA
-end: 8EC609
-size: 16
+end: 8EC626
+size: 45
 kind: data
 category: 📦
 name: data_8EC5FA

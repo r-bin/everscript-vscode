@@ -1,7 +1,7 @@
 ---
 addr: 8CAFBD
-end: 8CAFCC
-size: 16
+end: 8CAFCF
+size: 19
 kind: code
 category: 🧠
 name: sub_8CAFBD

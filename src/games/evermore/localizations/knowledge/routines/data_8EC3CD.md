@@ -1,7 +1,7 @@
 ---
 addr: 8EC3CD
-end: 8EC3DC
-size: 16
+end: 8EC53C
+size: 368
 kind: data
 category: 📦
 name: data_8EC3CD

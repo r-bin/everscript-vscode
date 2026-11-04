@@ -1,7 +1,7 @@
 ---
 addr: 8EAD67
-end: 8EAD76
-size: 16
+end: 8EAD7E
+size: 24
 kind: code
 category: 🧠
 name: sub_8EAD67

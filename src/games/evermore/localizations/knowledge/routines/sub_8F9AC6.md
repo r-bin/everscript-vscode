@@ -1,7 +1,7 @@
 ---
 addr: 8F9AC6
-end: 8F9AD5
-size: 16
+end: 8F9ADB
+size: 22
 kind: code
 category: 🧠
 name: sub_8F9AC6

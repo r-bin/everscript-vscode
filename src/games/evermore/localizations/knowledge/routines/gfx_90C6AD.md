@@ -1,7 +1,7 @@
 ---
 addr: 90C6AD
-end: 90C6BC
-size: 16
+end: 90C6CC
+size: 32
 kind: data
 category: 🎨
 name: gfx_90C6AD

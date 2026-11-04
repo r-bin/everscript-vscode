@@ -1,7 +1,7 @@
 ---
 addr: 808460
-size: 24
-end: 808477
+end: 8084B9
+size: 90
 kind: code
 name: nmi_count_hdma_and_wait_for_joypad_read
 title: NMI handler tail: count the frame, start HDMA, wait for the automatic joypad read

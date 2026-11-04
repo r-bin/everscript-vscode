@@ -1,7 +1,7 @@
 ---
 addr: 8FA09B
-end: 8FA0AA
-size: 16
+end: 8FA0AF
+size: 21
 kind: code
 category: 🧠
 name: sub_8FA09B

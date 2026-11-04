@@ -1,7 +1,7 @@
 ---
 addr: 8FD331
-end: 8FD340
-size: 16
+end: 8FD34A
+size: 26
 kind: code
 category: 🧠
 name: sub_8FD331

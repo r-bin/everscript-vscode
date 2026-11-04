@@ -1,7 +1,7 @@
 ---
 addr: 8F9BB9
-end: 8F9BC8
-size: 16
+end: 8F9BE7
+size: 47
 kind: code
 category: 🧠
 name: sub_8F9BB9

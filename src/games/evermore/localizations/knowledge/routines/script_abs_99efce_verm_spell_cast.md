@@ -1,7 +1,7 @@
 ---
 addr: 99EFCE
-end: 99F08F
-size: 194
+end: 99EFED
+size: 32
 kind: script
 category: 📜
 name: script_abs_99efce_verm_spell_cast

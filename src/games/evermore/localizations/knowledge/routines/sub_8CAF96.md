@@ -1,7 +1,7 @@
 ---
 addr: 8CAF96
-end: 8CAFA5
-size: 16
+end: 8CAFBC
+size: 39
 kind: code
 category: 🧠
 name: sub_8CAF96

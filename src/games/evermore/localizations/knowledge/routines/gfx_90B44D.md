@@ -1,7 +1,7 @@
 ---
 addr: 90B44D
-end: 90B45C
-size: 16
+end: 90B46C
+size: 32
 kind: data
 category: 🎨
 name: gfx_90B44D

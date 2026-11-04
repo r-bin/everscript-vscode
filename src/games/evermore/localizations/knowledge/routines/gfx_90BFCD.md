@@ -1,7 +1,7 @@
 ---
 addr: 90BFCD
-end: 90BFDC
-size: 16
+end: 90BFEC
+size: 32
 kind: data
 category: 🎨
 name: gfx_90BFCD

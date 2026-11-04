@@ -1,7 +1,7 @@
 ---
 addr: C619E5
-end: C619F4
-size: 16
+end: C62052
+size: 1646
 kind: data
 category: 🎨
 name: gfx_C619E5

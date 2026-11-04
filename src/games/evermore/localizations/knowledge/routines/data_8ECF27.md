@@ -1,7 +1,7 @@
 ---
 addr: 8ECF27
-end: 8ECF36
-size: 16
+end: 8ECF3D
+size: 23
 kind: data
 category: 📦
 name: data_8ECF27

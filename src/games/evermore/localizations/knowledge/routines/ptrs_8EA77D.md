@@ -1,7 +1,7 @@
 ---
 addr: 8EA77D
-end: 8EA78C
-size: 16
+end: 8EA7A0
+size: 36
 kind: table
 category: 📋
 name: ptrs_8EA77D

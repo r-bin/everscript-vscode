@@ -1,7 +1,7 @@
 ---
 addr: 90B80D
-end: 90B81C
-size: 16
+end: 90B82C
+size: 32
 kind: data
 category: 🎨
 name: gfx_90B80D

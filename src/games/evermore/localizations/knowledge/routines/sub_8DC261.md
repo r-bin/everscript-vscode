@@ -1,7 +1,7 @@
 ---
 addr: 8DC261
-end: 8DC270
-size: 16
+end: 8DC2A0
+size: 64
 kind: code
 category: 🧠
 name: sub_8DC261

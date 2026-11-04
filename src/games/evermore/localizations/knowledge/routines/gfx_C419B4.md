@@ -1,7 +1,7 @@
 ---
 addr: C419B4
-end: C419C3
-size: 16
+end: C41A13
+size: 96
 kind: data
 category: 🎨
 name: gfx_C419B4

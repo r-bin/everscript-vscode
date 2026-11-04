@@ -1,7 +1,7 @@
 ---
 addr: C42FF4
-end: C43003
-size: 16
+end: C43703
+size: 1808
 kind: data
 category: 🎨
 name: gfx_C42FF4

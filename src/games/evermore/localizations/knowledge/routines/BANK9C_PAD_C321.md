@@ -8,7 +8,7 @@ name: BANK9C_PAD_C321
 title: Bank $9C alignment padding ($C321)
 confidence: confirmed
 tags: ["unused","padding"]
-evidence: ["ROM alignment gap preceding gfx_9CC322 in Bank $9C"]
+evidence: ["ROM alignment gap preceding asset_9cc322_background_palettes_tile_families in Bank $9C"]
 ---
 
 1 B alignment padding and unmapped ROM space in Bank $9C ($9C:C321..$9C:C321).

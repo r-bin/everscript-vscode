@@ -1,7 +1,7 @@
 ---
 addr: C4785D
-end: C4786C
-size: 16
+end: C47A5C
+size: 512
 kind: data
 category: 🎨
 name: gfx_C4785D

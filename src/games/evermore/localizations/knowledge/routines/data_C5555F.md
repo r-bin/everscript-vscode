@@ -1,7 +1,7 @@
 ---
 addr: C5555F
-end: C5556E
-size: 16
+end: C5575E
+size: 512
 kind: data
 category: 📦
 name: data_C5555F

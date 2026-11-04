@@ -1,0 +1,16 @@
+---
+addr: 80a8b1
+end: 80AA26
+size: 374
+kind: table
+name: tbl_bitmask_powers_of_two
+title: Bitmask powers of two and inverted bitmask arrays
+confidence: confirmed
+tags: [math, bitmask, lookup, table]
+evidence: ["binary data: 16-bit bitmasks $0001, $0002, $0004..$8000 followed by inverted bitmasks $FFFE, $FFFD..$7FFF and composite shift patterns (out/recomp/asar/rom.bin:0x00A8B1)"]
+see: [src/games/evermore/localizations/knowledge/rom/80aa27.md]
+---
+Bit manipulation lookup tables:
+- Powers of two single-bit masks (`1 << n` for $n \in [0, 15]$).
+- Inverted single-bit masks (`~(1 << n)` for $n \in [0, 15]$).
+- Multi-bit field isolation masks and bit extraction lookup arrays used by script VM flag evaluators, entity collision bit fields, and hardware PPU register configurators.

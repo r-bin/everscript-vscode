@@ -1,7 +1,7 @@
 ---
 addr: 8CC16C
-end: 8CC17B
-size: 16
+end: 8CC19E
+size: 51
 kind: code
 category: 🧠
 name: sub_8CC16C

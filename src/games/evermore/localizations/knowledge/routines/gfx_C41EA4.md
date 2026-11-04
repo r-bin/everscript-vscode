@@ -1,7 +1,7 @@
 ---
 addr: C41EA4
-end: C41EB3
-size: 16
+end: C41EE3
+size: 64
 kind: data
 category: 🎨
 name: gfx_C41EA4

@@ -1,7 +1,7 @@
 ---
 addr: 80CA5A
-end: 80CA69
-size: 16
+end: 80CAAC
+size: 83
 kind: code
 category: 🧠
 name: sub_80CA5A

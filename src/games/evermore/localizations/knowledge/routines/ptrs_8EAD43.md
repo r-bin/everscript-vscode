@@ -1,7 +1,7 @@
 ---
 addr: 8EAD43
-end: 8EAD52
-size: 16
+end: 8EAD66
+size: 36
 kind: table
 category: 📋
 name: ptrs_8EAD43

@@ -1,7 +1,7 @@
 ---
 addr: 8EC722
-end: 8EC731
-size: 16
+end: 8EC742
+size: 33
 kind: data
 category: 📦
 name: data_8EC722

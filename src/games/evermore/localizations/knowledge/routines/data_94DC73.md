@@ -1,7 +1,7 @@
 ---
 addr: 94DC73
-end: 94DC82
-size: 16
+end: 94DCEA
+size: 120
 kind: data
 category: 📦
 name: data_94DC73

@@ -1,7 +1,7 @@
 ---
 addr: 8D96F9
-end: 8D9708
-size: 16
+end: 8D970E
+size: 22
 kind: data
 category: 📦
 name: data_8D96F9

@@ -1,7 +1,7 @@
 ---
 addr: 97EDD8
-size: 561
-end: 97F008
+size: 560
+end: 97F007
 kind: script
 name: ivor_kitchen_door_unlock
 title: Ivor Tower banquet kitchen door unlocking sequence

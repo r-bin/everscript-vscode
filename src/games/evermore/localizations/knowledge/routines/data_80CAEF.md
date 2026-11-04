@@ -1,7 +1,7 @@
 ---
 addr: 80CAEF
-end: 80CAFE
-size: 16
+end: 80CB22
+size: 52
 kind: data
 category: 📦
 name: data_80CAEF

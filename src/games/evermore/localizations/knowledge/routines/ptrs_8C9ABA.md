@@ -1,7 +1,7 @@
 ---
 addr: 8C9ABA
-end: 8C9AC9
-size: 16
+end: 8C9ACF
+size: 22
 kind: table
 category: 📋
 name: ptrs_8C9ABA

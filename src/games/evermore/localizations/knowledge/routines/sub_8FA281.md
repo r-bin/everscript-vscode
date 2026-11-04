@@ -1,7 +1,7 @@
 ---
 addr: 8FA281
-end: 8FA290
-size: 16
+end: 8FA29D
+size: 29
 kind: code
 category: 🧠
 name: sub_8FA281

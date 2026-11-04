@@ -1,7 +1,7 @@
 ---
 addr: 8C996E
-end: 8C997D
-size: 16
+end: 8C9980
+size: 19
 kind: code
 category: 🧠
 name: sub_8C996E

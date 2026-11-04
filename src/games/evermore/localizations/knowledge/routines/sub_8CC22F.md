@@ -1,7 +1,7 @@
 ---
 addr: 8CC22F
-end: 8CC23E
-size: 16
+end: 8CC255
+size: 39
 kind: code
 category: 🧠
 name: sub_8CC22F

@@ -1,7 +1,7 @@
 ---
 addr: C56BBB
-end: C56BCA
-size: 16
+end: C56FBA
+size: 1024
 kind: data
 category: 🎨
 name: gfx_C56BBB

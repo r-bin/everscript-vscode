@@ -1,7 +1,7 @@
 ---
 addr: 90BEAD
-end: 90BEBC
-size: 16
+end: 90BECC
+size: 32
 kind: data
 category: 🎨
 name: gfx_90BEAD

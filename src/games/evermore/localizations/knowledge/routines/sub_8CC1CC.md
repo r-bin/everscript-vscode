@@ -1,7 +1,7 @@
 ---
 addr: 8CC1CC
-end: 8CC1DB
-size: 16
+end: 8CC200
+size: 53
 kind: code
 category: 🧠
 name: sub_8CC1CC

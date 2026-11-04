@@ -1,7 +1,7 @@
 ---
 addr: 8F84D5
-end: 8F84E4
-size: 16
+end: 8F84E9
+size: 21
 kind: code
 category: 🧠
 name: sub_8F84D5

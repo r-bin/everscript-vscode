@@ -1,7 +1,7 @@
 ---
 addr: 8D99E4
-end: 8D99F3
-size: 16
+end: 8D99F9
+size: 22
 kind: data
 category: 📦
 name: data_8D99E4

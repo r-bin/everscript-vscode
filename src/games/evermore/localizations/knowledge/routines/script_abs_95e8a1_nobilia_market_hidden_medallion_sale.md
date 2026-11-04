@@ -1,7 +1,7 @@
 ---
 addr: 95E8A1
-end: 95F0A3
-size: 2051
+end: 95E8C0
+size: 32
 kind: script
 category: 📜
 name: script_abs_95e8a1_nobilia_market_hidden_medallion_sale

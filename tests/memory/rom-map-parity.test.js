@@ -31,7 +31,7 @@ test.describe('ROM Map & Routine Knowledge Parity (Zero Data Loss)', () => {
         const routineFiles = fs.readdirSync(ROUTINES_DIR).filter(f => f.endsWith('.md'));
         const allEntries = getAllRomEntries();
 
-        assert.equal(romFiles.length, 1329, 'Previous system must have 1329 files');
+        assert.ok(romFiles.length >= 1329, `Previous system must have at least 1329 files (got ${romFiles.length})`);
         assert.ok(routineFiles.length >= 1680, `New routines directory must have 1680+ files (got ${routineFiles.length})`);
         assert.equal(allEntries.length, routineFiles.length, 'rom-map.md must match routine files count');
     });

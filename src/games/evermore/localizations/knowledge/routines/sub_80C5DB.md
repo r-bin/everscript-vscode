@@ -1,7 +1,7 @@
 ---
 addr: 80C5DB
-end: 80C5EA
-size: 16
+end: 80C5FE
+size: 36
 kind: code
 category: 🧠
 name: sub_80C5DB

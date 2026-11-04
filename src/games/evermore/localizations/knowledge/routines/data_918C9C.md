@@ -1,7 +1,7 @@
 ---
 addr: 918C9C
-end: 918CAB
-size: 16
+end: 918CBB
+size: 32
 kind: data
 category: 📦
 name: data_918C9C

@@ -1,7 +1,7 @@
 ---
 addr: 8C9A0A
-end: 8C9A19
-size: 16
+end: 8C9A1C
+size: 19
 kind: code
 category: 🧠
 name: sub_8C9A0A

@@ -1,7 +1,7 @@
 ---
 addr: 8ED14E
-end: 8ED15D
-size: 16
+end: 8ED2EC
+size: 415
 kind: data
 category: 📦
 name: data_8ED14E

@@ -1,7 +1,7 @@
 ---
 addr: 80CA2D
-end: 80CA3C
-size: 16
+end: 80CA57
+size: 43
 kind: code
 category: 🧠
 name: sub_80CA2D

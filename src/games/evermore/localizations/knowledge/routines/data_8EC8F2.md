@@ -1,7 +1,7 @@
 ---
 addr: 8EC8F2
-end: 8EC901
-size: 16
+end: 8ECE34
+size: 1347
 kind: data
 category: 📦
 name: data_8EC8F2
