@@ -40,3 +40,4 @@ The recomp repository (SecretOfEvermoreRecomp) has its own copy of these rules a
 ## Traps
 
 - A MesenCE movie (`.mmo`) recorded with random power-on RAM carries a save state that is a reset of a running console. Its WRAM and SRAM alone are not the recording: other RNG, and without its ARAM and S-DSP registers the sound start takes 20 fields less.
+- A movie or state from mid-game has no such problem: the recomp takes it over whole, identical from the first key (`tools/recomp/mesen-state.mts`). Record from a save state when you need exact starts.

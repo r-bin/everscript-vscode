@@ -4,8 +4,9 @@
  * MesenCE's movie files (.mmo): a zip of Input.txt (one line per input poll: "|<system>|<pad>", the pad as
  * "ABXYLRSTUDLR" with '.' = released), GameSettings.txt ("<key> <value>" lines) and, when the recording's RAM setting
  * is Random or it started from a state, SaveState.mss. The state is the machine as the recording began. MesenCE loads it
- * whole; other backends get its WRAM, SRAM, ARAM, S-DSP registers and resetState(), which is not all of it (the game's RNG seed comes
- * out different without the rest), so a movie that does not begin at the reset vector is refused.
+ * whole. A state at the reset vector goes to other backends as WRAM, SRAM, ARAM, S-DSP registers and resetState(), which
+ * is not all of it (the game's RNG seed comes out different without the rest). A state from mid-game (`fields`) is at a
+ * field's line 225; the recomp takes it over field by field (its src/soe_mesen_state.c).
  *
  * SaveState.mss: "MSS", u32 emulator version, u32 format, u32 console, u32 frame buffer size, width, height, scale,
  * compressed size, the compressed frame; u32 name length, the ROM's name; u8 compressed, u32 size, u32 compressed size,
@@ -19,6 +20,7 @@ import { readZip } from '../zip';
 const KEYS = 'ABXYLRSTUDLR';
 // The bits of the pad word (movie.ts), in KEYS order.
 const BITS = [0x0080, 0x8000, 0x0040, 0x4000, 0x0020, 0x0010, 0x2000, 0x1000, 0x0800, 0x0400, 0x0200, 0x0100];
+const MID_GAME_LINE = 225;        // where MesenCE leaves its frame loop, the only moment a state is saved
 const RESET_CLOCK_LIMIT = 1000;   // master clocks: a state taken at the reset vector has run nothing yet
 // A power-on at the reset vector, as MesenCE's state shows it: prescaler position (two units per SPC cycle, a period is
 // two half periods of `half` units), the S-DSP's step.
@@ -48,7 +50,7 @@ function padFromKeys(text: string): number {
     return word;
 }
 
-function stateFields(state: Buffer): Map<string, Buffer> {
+function inflateState(state: Buffer): Buffer {
     if (state.toString('latin1', 0, 3) !== 'MSS') throw new Error('not a Mesen save state');
     let p = 15 + 16;
     p += 4 + state.readUInt32LE(p);                 // compressed size, the frame
@@ -56,7 +58,10 @@ function stateFields(state: Buffer): Map<string, Buffer> {
     const compressed = state[p] !== 0;
     const size = state.readUInt32LE(p + 1), packed = state.readUInt32LE(p + 5);
     p += 9;
-    const data = compressed ? inflateSync(state.subarray(p, p + packed)) : state.subarray(p, p + size);
+    return compressed ? inflateSync(state.subarray(p, p + packed)) : state.subarray(p, p + size);
+}
+
+function stateFields(data: Buffer): Map<string, Buffer> {
     const fields = new Map<string, Buffer>();
     for (let q = 0; q < data.length;) {
         const end = data.indexOf(0, q);
@@ -78,16 +83,17 @@ function parseMesenMovie(file: Buffer, fileName?: string) {
     const pads = Uint16Array.from(rows, row => padFromKeys(row[1] || ''));
     const sha1 = (/^SHA1 (\S+)/m.exec(settings.toString('latin1'))?.[1] || '').toLowerCase();
     const state = files.get('SaveState.mss');
-    let start: { state: Buffer; pc: number; wram: Buffer; sram: Buffer; aram: Buffer; dsp: Buffer; hw: Buffer } | null = null;
+    let start: { state: Buffer; midGame: boolean; fields: Buffer; wram: Buffer; sram: Buffer; aram: Buffer; dsp: Buffer; hw: Buffer } | null = null;
     if (state) {
-        const fields = stateFields(state);
-        const pc = fields.get('cpu.pc'), clock = fields.get('memoryManager.masterClock'), wram = fields.get('memoryManager.workRam'), sram = fields.get('cart.saveRam');
+        const data = inflateState(state), fields = stateFields(data);
+        const clock = fields.get('memoryManager.masterClock'), wram = fields.get('memoryManager.workRam'), sram = fields.get('cart.saveRam');
         const aram = fields.get('spc.ram'), dsp = fields.get('spc.dsp.externalRegs');
-        if (!pc || !clock || !wram || !sram || !aram || !dsp) throw new Error('the movie\'s save state is not a SNES state');
-        if (Number(clock.readBigUInt64LE(0)) > RESET_CLOCK_LIMIT) throw new Error('the movie begins mid-game: only a start at the reset vector is supported');
-        start = { state, pc: pc.readUInt16LE(0), wram, sram, aram, dsp, hw: resetState(fields) };
+        if (!clock || !wram || !sram || !aram || !dsp) throw new Error('the movie\'s save state is not a SNES state');
+        const midGame = Number(clock.readBigUInt64LE(0)) > RESET_CLOCK_LIMIT;
+        if (midGame && (fields.get('ppu.scanline')?.readUInt16LE(0) ?? 0) !== MID_GAME_LINE) throw new Error('the movie\'s save state is not at a field\'s line 225');
+        start = { state, midGame, fields: data, wram, sram, aram, dsp, hw: resetState(fields) };
     }
     return { title: String(fileName || 'movie').replace(/\.mmo$/i, ''), pads, count: pads.length, sha1, start };
 }
 
-export { parseMesenMovie };
+export { parseMesenMovie, inflateState };

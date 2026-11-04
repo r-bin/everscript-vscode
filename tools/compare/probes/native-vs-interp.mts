@@ -8,12 +8,14 @@ import { askMesenRng } from '../mesen.mts';
 import { runRecomp, defaultExe } from '../recomp.mts';
 import { SYNC_AT } from '../game.mts';
 import { allInterpretedEnv } from './interp.mts';
+import { readReplay } from '../replay.mts';
 
 const [romArg, replay, toArg, exeArg] = process.argv.slice(2);
 if (!toArg) { console.error('usage: native-vs-interp.mts <rom> <replay.evsmv> <to> [exe]'); process.exit(2); }
 const rom = resolve(romArg), to = +toArg, exe = exeArg ? resolve(exeArg) : defaultExe();
 const base = { rom, align: 'nmi' as const, regions: ['wram' as const], mask: true, replay, to, stride: 1, atNmi: true };
-const { bytes: rng, frame: rngFrame } = await askMesenRng({ ...base, atNmi: false, to: SYNC_AT });
+// A movie from mid-game starts from one state on every run: nothing to copy.
+const { bytes: rng, frame: rngFrame } = readReplay(replay).start?.midGame ? { bytes: null, frame: 0 } : await askMesenRng({ ...base, atNmi: false, to: SYNC_AT });
 
 type Side = { nmi: Map<number, [number, number]>; wram: Map<number, number> };
 function run(env: Record<string, string>): { side: Side; done: Promise<unknown> } {

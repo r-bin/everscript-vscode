@@ -74,7 +74,10 @@ export function runRecomp(job: RecompJob, onCp: (key: number, crcs: Crcs) => voi
         writeFileSync(join(dir, 'pads.bin'), Buffer.from(replay.pads.buffer, replay.pads.byteOffset, replay.pads.byteLength));
         env.SOE_COMPARE_PADS = join(dir, 'pads.bin');
     }
-    if (replay?.start) {   // a movie's memory, before the first instruction
+    if (replay?.start?.midGame) {
+        writeFileSync(join(dir, 'start.fields'), replay.start.fields);
+        env.SOE_COMPARE_MESEN_STATE = join(dir, 'start.fields');
+    } else if (replay?.start) {   // a movie's memory, before the first instruction
         for (const name of replay.start.fresh ? ['wram', 'sram'] as const : ['wram', 'sram', 'aram', 'dsp', 'hw'] as const) {
             writeFileSync(join(dir, 'start.' + name), replay.start[name]);
             env['SOE_COMPARE_' + name.toUpperCase()] = join(dir, 'start.' + name);

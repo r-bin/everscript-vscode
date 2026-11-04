@@ -113,17 +113,19 @@ const atNmi = setups.every(s => s.backend !== 'snes9x');
 const align = (opt('align') || (hasRecomp || hasMesen ? 'nmi' : 'frame')) as 'frame' | 'nmi';
 if (align === 'frame' && hasRecomp) { console.error('the recomp aligns on the NMI counter only (--align nmi)'); process.exit(2); }
 const regions = (opt('regions') ? opt('regions')!.split(',') : ['wram', 'vram', ...(opts.aram ? ['aram'] : [])]) as Region[];
-const movieCount = replay ? readReplay(replay).count : 0;
+const movie = replay ? readReplay(replay) : null;
+const movieCount = movie?.count ?? 0;
+const fromState = movie?.start?.midGame ?? false;   // both start from one machine state: nothing to copy, every key counts
 const frames = Number(opt('frames') || (replay ? movieCount : REFERENCE_FRAMES));
 const stride = opts.verbose ? 1 : 60;
-const skipThrough = mixed ? SYNC_AT + (atNmi ? 4 : 0) : -1;   // at NMIs the copied RNG shows from key 117
+const skipThrough = mixed && !fromState ? SYNC_AT + (atNmi ? 4 : 0) : -1;   // at NMIs the copied RNG shows from key 117
 const ignore: ReadonlySet<number> = mixed ? CROSS_NOISE : new Set();
 
 // The RNG bytes a recomp gets: from the first snes9x or mesen setup, at counter SYNC_AT.
 const rngFrom = setups.find(s => s.backend === 'snes9x' || s.backend === 'mesen');
 let rng: Uint8Array | null = null;
 let rngFrame = 115;
-if (mixed && rngFrom) {
+if (mixed && rngFrom && !fromState) {
     if (rngFrom.backend === 'snes9x') {
         const res = await askSnes9x({ cmd: 'rng', rom: rngFrom.rom, replay, frames: SYNC_AT, align: 'nmi', regions }, 'rng');
         rng = res.bytes;

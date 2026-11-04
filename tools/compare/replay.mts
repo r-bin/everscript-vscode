@@ -9,7 +9,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const POLL_SHIFT = 1;
 
-export interface Replay { pads: Uint16Array; count: number; start: { state: Uint8Array; pc: number; wram: Uint8Array; sram: Uint8Array; aram: Uint8Array; dsp: Uint8Array; hw: Uint8Array; fresh: boolean } | null }
+export interface Replay { pads: Uint16Array; count: number; start: { state: Uint8Array; midGame: boolean; fields: Uint8Array; wram: Uint8Array; sram: Uint8Array; aram: Uint8Array; dsp: Uint8Array; hw: Uint8Array; fresh: boolean } | null }
 
 export function readReplay(path: string): Replay {
     if (/\.mmo$/i.test(path)) {

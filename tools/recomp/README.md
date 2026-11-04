@@ -31,6 +31,8 @@ Names become identifiers valid in Asar, C and Mesen (`Random number generator` â
 but no CDL label becomes a data label. Asset regions are marked as data in the Mesen CDL and
 annotated in `labels.mlb`. They do not change the assembly, so the rebuild stays byte-identical.
 
+`mesen-state.mts <movie.mmo | state.mss> <out>` writes a MesenCE state's fields for the game: `SOE_COMPARE_MESEN_STATE=<out>` starts it there.
+
 ## Prerequisites
 
 | Tool | Needed for | Found via |

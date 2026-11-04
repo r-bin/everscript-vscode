@@ -96,9 +96,9 @@ do
   local state = ("${Buffer.from(start.state).toString('hex')}"):gsub("%x%x", function(c) return string.char(tonumber(c, 16)) end)
   local id
   id = emu.addMemoryCallback(function()
-    emu.removeMemoryCallback(id, emu.callbackType.exec, ${start.pc}, ${start.pc})
+    emu.removeMemoryCallback(id, emu.callbackType.exec, 0, 0xFFFFFF)
     if not emu.loadSavestate(state) then print("the movie's save state did not load"); emu.stop(1) end
-  end, emu.callbackType.exec, ${start.pc}, ${start.pc})
+  end, emu.callbackType.exec, 0, 0xFFFFFF)
 end`;
 }
 
