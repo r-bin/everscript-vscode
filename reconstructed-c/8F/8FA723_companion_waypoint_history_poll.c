@@ -13,10 +13,10 @@
  * - Target Routine:   companion_waypoint_history_poll ($8FA723) [RTL]
  * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
  * - Initial ROM ASM:  36 instructions (81 bytes)
- * - Compiled C ASM:   506 instructions [Calypsi 65816 -O1 --speed]
+ * - Compiled C ASM:   508 instructions [Calypsi 65816 -O1 --speed]
  * - Code Expansion:   14.1x instructions vs ROM
  * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
- * - Rating Hash:      b8f6e84fd34af58f
+ * - Rating Hash:      38e3f9112ae8ec97
  * - Rating Status:    VALID (unmodified since rating)
  */
 #include "soe.h"
@@ -24,29 +24,42 @@
 SOE_BIND(companion_waypoint_history_poll, 0x8FA723, RTL)
 {
     uint16_t x = r->x;
-    uint16_t y = ABSI16(r, 0x3BFF, x);
+    uint16_t y;
     bool arrived;
 
+    SOE_AT(0xA723);
+    y = ABSI16(r, 0x3BFF, x);
     if (!(ABSI16(r, 0x3C12, x) & 0x1000)) {
         soe_cmp16(r, ABSI16(r, 0x3BC6, y), ABSI16(r, 0x3BF9, x));
         arrived = (r->p & SOE_Z) != 0;
         if (arrived) {
+            SOE_AT(0xA737);
             soe_cmp16(r, ABSI16(r, 0x3BC7, y), ABSI16(r, 0x3BFA, x));
             arrived = (r->p & SOE_Z) != 0;
+            if (arrived) SOE_AT(0xA769);
+            else SOE_AT(0xA73F);
+        } else {
+            SOE_AT(0xA73F);
         }
     } else {
         uint8_t d;
+        SOE_AT(0xA74E);
         soe_carry(r, true);                                  /* SEP #$21 */
         d = soe_sbc8(r, ABSI8(r, 0x3BC6, y), ABSI8(r, 0x3BF9, x));
         d = (uint8_t)(d + 1);
         soe_cmp8(r, d, 0x03);
         arrived = !(r->p & SOE_C);
         if (arrived) {
+            SOE_AT(0xA75B);
             soe_carry(r, true);
             d = soe_sbc8(r, ABSI8(r, 0x3BC7, y), ABSI8(r, 0x3BFA, x));
             d = (uint8_t)(d + 1);
             soe_cmp8(r, d, 0x03);
             arrived = !(r->p & SOE_C);
+            if (arrived) SOE_AT(0xA769);
+            else SOE_AT(0xA73F);
+        } else {
+            SOE_AT(0xA74A);
         }
         r->a = (uint16_t)((r->a & 0xFF00) | d);
     }

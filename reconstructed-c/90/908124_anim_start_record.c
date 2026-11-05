@@ -17,7 +17,7 @@
  * - Compiled C ASM:   434 instructions [Calypsi 65816 -O1 --speed]
  * - Code Expansion:   12.1x instructions vs ROM
  * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
- * - Rating Hash:      77ccca22878723ad
+ * - Rating Hash:      6aff2f8f97d42997
  * - Rating Status:    VALID (unmodified since rating)
  */
 #include "soe.h"
@@ -29,32 +29,44 @@
 SOE_BIND(anim_start_record, 0x908124, RTL)
 {
     uint16_t x = r->x, y = r->y;
-    uint16_t a = ROM16(ANIM_TABLE + 2 + x);
+    uint16_t a;
     uint16_t word;
     uint8_t byte;
 
+    SOE_AT(0x8124);
+    a = ROM16(ANIM_TABLE + 2 + x);
     if (a & 0x8000) {                                        /* $8150 */
-        uint16_t step = ABSI16(r, ENTITY_RECORD_FACING_OFF, y);
+        uint16_t step;
+        SOE_AT(0x8150);
+        step = ABSI16(r, ENTITY_RECORD_FACING_OFF, y);
         soe_carry(r, false);
         a = soe_adc16(r, x, step);
         a = soe_adc16(r, a, step);
         x = a;
     } else if (a & 0x4000) {                                 /* $812F */
-        uint16_t i = ABSI16(r, ENTITY_RECORD_FACING_OFF, y);
+        uint16_t i;
+        SOE_AT(0x812F);
+        i = ABSI16(r, ENTITY_RECORD_FACING_OFF, y);
         soe_carry(r, false);
         x = soe_adc16(r, x, ROM16(FACING_STEP + i));
     }
-    /* $8139 */
+    SOE_AT(0x8139);
     r->x = x;
     word = ROM16(ANIM_TABLE + x);
     soe_cmp16(r, word, ABSI16(r, ENTITY_RECORD_ANIM_RESTART_OFF, y));
     if (r->p & SOE_Z) {
+        SOE_AT(0x8142);
         byte = ROM8(ANIM_TABLE + 2 + x);
         soe_cmp8(r, byte, ABSI8(r, ENTITY_RECORD_ANIM_PTR_OFF + 2, y));
         if (r->p & SOE_Z) {
+            SOE_AT(0x814F);
             r->a = (uint16_t)((word & 0xFF00) | byte);       /* LDA in 8-bit keeps the word's high byte */
+            r->p &= ~SOE_M;
             return;
         }
+        SOE_AT(0x817B);
+    } else {
+        SOE_AT(0x817F);
     }
     /* $817B / $817F: restart */
     ABSI16(r, ENTITY_RECORD_ANIM_RESTART_OFF, y) = word;
@@ -64,4 +76,5 @@ SOE_BIND(anim_start_record, 0x908124, RTL)
     ABSI8(r, ENTITY_RECORD_ANIM_TIMER_OFF, y) = 1;
     r->a = (uint16_t)((r->d & 0xFF00) | 0x01);
     soe_nz8(r, 0x01);
+    r->p &= ~SOE_M;
 }

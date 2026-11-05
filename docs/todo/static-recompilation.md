@@ -125,7 +125,7 @@ run, by nearest named routine; the hardware figure counts direct absolute access
 
 | Share of 01 | What |
 |---|---|
-| 51.67 % | runs as C today (10 routines; `field_spare_time_loop`, the raycast, `wait_for_nmi`, `vram_dma_upload_tile_block`, `map_anim_tile_channel_tick_and_vram_stream` and 5 others) |
+| 53.72 % | runs as C today (14 routines; `field_spare_time_loop`, the raycast, `wait_for_nmi`, `vram_dma_upload_tile_block`, `map_anim_tile_channel_tick_and_vram_stream`, `oam_depth_sorted_sprite_insert_node`, `sprite_sorting_canopy_occlusion_and_render_depth`, `direction_index_from_signed_byte_pair`, `companion_waypoint_history_poll` and 5 others) |
 | about 11.8 % | everything with a G1 rating, if all of it were bound (32 files have `SOE_BIND`) |
 | 35.4 % | every routine with any C file (135 routines); most are descriptions with invented interfaces |
 | 64.6 % | no C file (529 routines), among them the `sub_8FA0FB`-`$8FA458` cluster at about 18.5 % |

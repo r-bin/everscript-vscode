@@ -8,7 +8,7 @@ name: direction_index_from_signed_byte_pair
 title: Turn two signed bytes into an 8-way direction index (0..14, even)
 confidence: confirmed
 tags: ["direction","math","ai"]
-evidence: ["disasm: full body read (32 instructions, 8-bit accumulator): sign/zero tests of the high byte H and the low byte L give 8 cases","disasm: callers are the companion AI routines $8F:9967, $8F:9C24, $8F:9EA3, $8F:A7D3"]
+evidence: ["disasm: full body read (32 instructions, 8-bit accumulator): sign/zero tests of the high byte H and the low byte L give 8 cases","disasm: callers are the companion AI routines $8F:9967, $8F:9C24, $8F:9EA3, $8F:A7D3","c: G1 passed (tools/c-to-rom/g1.mts)"]
 ---
 Takes a 16-bit value holding two signed bytes (H high, L low) and returns an even direction index 0..14 in A, going around a circle in steps of 2.
 
