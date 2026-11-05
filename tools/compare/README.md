@@ -128,6 +128,13 @@ node tools/compare/probes/clock-trace.mts "Secret of Evermore (U) [!].smc" tools
 node tools/compare/probes/tier-stats.mts "Secret of Evermore (U) [!].smc" tools/compare/replays/01-no-inputs-4m.evsmv 14424
 ```
 
+Which framework changes a replay needs (SecretOfEvermoreRecomp `docs/pr/`): MesenCE runs once, its hashes stay in `out/compare/ablate/`,
+then every variant (a switch off, or another executable) runs alone against them, several at a time, about a minute each:
+
+```sh
+node tools/compare/probes/ablate.mts tools/compare/replays/01-no-inputs-4m.evsmv variants.json --jobs 6 --out results.json
+```
+
 Against MesenCE, for a key where WRAM parts while the clocks agree:
 
 ```sh
