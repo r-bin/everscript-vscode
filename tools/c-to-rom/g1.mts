@@ -159,7 +159,7 @@ function fuzz(s: Sample, n: number, seed: number): Sample[] {
 
 // ---------- run ----------
 
-function run(image: Uint8Array, s: Sample, limit = 3_000_000, trace?: string[]): Run {
+function run(image: Uint8Array, s: Sample, limit = 3_000_000, trace?: string[], otherRom?: Uint8Array): Run {
     const bus = new SnesBus(image);
     bus.wram.set(s.wram);
     const io: string[] = [];
@@ -170,8 +170,9 @@ function run(image: Uint8Array, s: Sample, limit = 3_000_000, trace?: string[]):
             const bank = a >> 16, off = a & 0xFFFF;
             const w = (bank & 0x40) === 0 || bank === 0x7E ? off : -1;
             if (w >= 0 && w < cpu.s && w > s.regs.s - 0x200) stackWrite = true;
-            // the 4th MB holds the C code in one image and mirror bytes in the other
+            // the 4th MB holds the C code in one image and mirror bytes in the other, and bound entry points hold JML hooks
             if ((bank & 0x3F) >= 0x38 && (bank & 0x3F) <= 0x3B && (bank >= 0xC0 || (bank >= 0x80 && off >= 0x8000))) stackWrite = true;
+            if (otherRom && bank !== cpu.pb && ((bank & 0x40) !== 0 || off >= 0x8000) && image[a & 0x3FFFFF] !== otherRom[a & 0x3FFFFF]) stackWrite = true;
             return bus.read(a);
         },
         write: (a: number, v: number) => {
@@ -312,7 +313,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         ss.forEach((s0, i) => {
             for (const [k, s] of fuzz(s0, fuzzN, b.addr ^ i).entries()) {
                 if (only && (s.regs.a & only.mask) !== only.value) continue;
-                const v = run(vanilla, s, 200_000);
+                const v = run(vanilla, s, 200_000, undefined, built.image);
                 if (v.error || v.stackWrite) continue;     // no return from this state, or it uses the stack below S
                 fzN++;
                 const c = run(built.image, s, 2_000_000);

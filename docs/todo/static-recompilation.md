@@ -112,7 +112,7 @@ side uses is identical; the open items are what it found (recomp repository's `d
 
 | | Task | Done when |
 |---|---|---|
-| 🟡 | **Bind more routines** with the proof already used: replay 01 stays in sync, the C path runs often, `SOE_HLE_MUTATE=1` is caught. 6 are bound of 309 reconstructed | Each new binding has a row in `progress-details.md`'s "Bound C" |
+| 🟡 | **Bind more routines** with the proof already used: replay 01 stays in sync, the C path runs often, `SOE_HLE_MUTATE=1` is caught. 10 are bound of 309 reconstructed | Each new binding has a row in `progress-details.md`'s "Bound C" |
 | 🟡 | **Next targets:** LZ decompressors (checked TypeScript decoders in `src/games/evermore/maps/`), then the room tilemap loader and collision unpacker | Bound and proven |
 | 🟡 | **Add a build report** listing which routines run as C, compiled or interpreted | Written by each build |
 
@@ -125,11 +125,11 @@ run, by nearest named routine; the hardware figure counts direct absolute access
 
 | Share of 01 | What |
 |---|---|
-| 26.04 % | runs as C today (6 routines; the raycast alone is about 15 points of it) |
-| about 11.8 % | everything with a G1 rating, if all of it were bound (30 files have `SOE_BIND`) |
+| 51.67 % | runs as C today (10 routines; `field_spare_time_loop`, the raycast, `wait_for_nmi`, `vram_dma_upload_tile_block`, `map_anim_tile_channel_tick_and_vram_stream` and 5 others) |
+| about 11.8 % | everything with a G1 rating, if all of it were bound (32 files have `SOE_BIND`) |
 | 35.4 % | every routine with any C file (135 routines); most are descriptions with invented interfaces |
 | 64.6 % | no C file (529 routines), among them the `sub_8FA0FB`-`$8FA458` cluster at about 18.5 % |
-| done | spin code an NMI must interrupt between instructions: `field_spare_time_loop` 16.47 %, the idle loop `$80:858F` 6.42 %. Bound at their loop heads: the C runs passes up to the next stop, the compiled code runs the passes around the NMI. Replay 01 is at 49.62 % |
+| done | spin code an NMI must interrupt between instructions: `field_spare_time_loop` 16.47 %, the idle loop `$80:858F` 6.42 %. Bound at their loop heads: the C runs passes up to the next stop, the compiled code runs the passes around the NMI. Replay 01 is at 51.67 % |
 | at least 12.9 % | routines with direct hardware register access (65), outside the "touches only WRAM" rule |
 
 A binding's C also runs only when it fits before the next deadline; a routine that can stop between steps, as the raycast does, is not held to that for its whole length. The same step model should carry routines with hardware access as far as their last access, so the old estimate of a 60 % ceiling no longer holds; how far it goes is not measured. A binding no longer needs cycle costs by hand: `SOE_AT` marks in the C are enough (`src/soe_cost.c`).

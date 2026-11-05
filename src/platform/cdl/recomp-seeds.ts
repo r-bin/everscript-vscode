@@ -222,8 +222,11 @@ function writeRecompSeeds({ lib, rom, map, index, known, outDir, exclusions = NO
     for (const [pc24, h] of exclusions.hle) {
         bankLines(pc24 >>> 16).push(`hle_func ${hex(pc24 & 0xFFFF, 4).toLowerCase()} ${h.fn}    # ${h.reason}`);
         if (h.body !== undefined) {
+            const bo = map.busToRom(h.body);
+            const bm = bo >= 0 && !(lib.ext[bo] & EXT_SEEN_M16) && (lib.cdl[bo] & CDL_ACC_8) ? 1 : 0;
+            const bx = bo >= 0 && !(lib.ext[bo] & EXT_SEEN_X16) && (lib.cdl[bo] & CDL_IDX_8) ? 1 : 0;
             const ex = exitDirectives(returns.get(pc24), pc24);
-            bankLines(h.body >>> 16).push(`func ${h.fn}_body ${hex(h.body & 0xFFFF, 4).toLowerCase()} entry_mx:0,0${ex.inline}`, ...ex.lines);
+            bankLines(h.body >>> 16).push(`func ${h.fn}_body ${hex(h.body & 0xFFFF, 4).toLowerCase()} entry_mx:${bm},${bx}${ex.inline}`, ...ex.lines);
         }
     }
 

@@ -45,35 +45,8 @@
 extern const uint8_t  g_font_glyph_bitmaps[]; // $C4:0000
 extern const uint8_t  g_font_char_widths[];   // $C4:0C02
 
-/**
- * Uploads a block of graphical tile data directly to VRAM via DMA channel 1.
- * ROM Address: $80:8650
- */
-void vram_dma_upload_tile_block(uint16_t vram_dest, const void* src, uint8_t src_bank, uint16_t byte_count) {
-    // If bit 7 of display flags is set, bypass immediate transfer
-    if (WRAM_DISPLAY_FLAGS & 0x80) {
-        return;
-    }
-
-    // Lock VRAM to ensure atomic PPU update
-    WRAM_VRAM_LOCK++;
-
-    // Configure PPU VRAM word write mode
-    REG_VMAIN = 0x80;
-    REG_VMADD = vram_dest;
-
-    // Configure DMA Channel 1 (word transfer to $2118)
-    REG_DMA1_MODE  = 0x1801;
-    REG_DMA1_ADDR  = (uint16_t)(uintptr_t)src;
-    REG_DMA1_BANK  = src_bank;
-    REG_DMA1_COUNT = byte_count;
-
-    // Trigger DMA Channel 1
-    REG_MDMAEN = 0x02;
-
-    // Release VRAM lock
-    WRAM_VRAM_LOCK--;
-}
+/* vram_dma_upload_tile_block: exact to the ROM in 80/808650_vram_dma_upload_tile_block.c */
+extern void vram_dma_upload_tile_block(uint16_t vram_dest, const void* src, uint8_t src_bank, uint16_t byte_count);
 
 /**
  * Commits the rasterized 2bpp tile buffers into VRAM and advances cursor.
