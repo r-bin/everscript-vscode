@@ -439,7 +439,7 @@ verified function at a time, and the generated C shrinks accordingly.
    project with the framework's beam frame driver shows the Squaresoft logo and the intro,
    with 682 of 1033 variants native ([SecretOfEvermoreRecomp docs/game-rtl.md](https://github.com/r-bin/SecretOfEvermoreRecomp/blob/develop/docs/game-rtl.md)). WRAM matches snes9x up
    to NMI counter 305, then drifts for timing reasons. The lockstep tool
-   (`npm run recomp:lockstep`) is the oracle for every `hle_func` from here on.
+   (`node tools/compare/compare.mts recomp`) is the oracle for every `hle_func` from here on.
 2. **Coverage.** 94.7 % of the ROM is untouched by the CDL, and only 3 rooms were ever
    loaded, so most of the Asar export is still `incbin rom.bin`. Coverage limits the
    disassembly, the seeds and the lockstep check alike.

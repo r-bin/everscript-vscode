@@ -42,7 +42,7 @@ there yet.
 
 ## 2. Prove what the player sees and hears
 
-`npm run compare:full` compares every RAM, the picture and the S-DSP's state at every key of the sync replays. All RAM the CPU
+The recomp repository's `node tools/compare/full.mts` compares every RAM, the picture and the S-DSP's state at every key of the sync replays. All RAM the CPU
 side uses is identical; the open items are what it found (recomp repository's `docs/progress-details.md`, "Picture and sound").
 
 | | Task | Done when |

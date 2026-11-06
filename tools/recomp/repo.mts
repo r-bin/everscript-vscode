@@ -1,8 +1,8 @@
 // The recomp project: its own repository (SecretOfEvermoreRecomp: snesrecomp scaffold, our glue,
 // docs). This repo only feeds it: the CDL seeds go into its recomp/, the exclusions it decided come
 // back from its recomp/seed-exclusions.txt, and it builds with its own tools/regen.sh and CMake.
-import { existsSync, readFileSync, readdirSync, rmSync, copyFileSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, copyFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
@@ -59,6 +59,21 @@ export function writeSeeds(seedDir: string, repo: string): { banks: number; regi
     const regions = readFileSync(join(seedDir, 'bank00.cfg'), 'utf8').split('\n').filter(l => l.startsWith('data_region'));
     writeFileSync(b00, text + '\n' + SEED_MARK + '\n' + regions.join('\n') + '\n' + SEED_END + '\n');
     return { banks, regions: regions.length };
+}
+
+/** The C the recomp binds, so it builds alone: the files in its CMake list SOE_BOUND_C and all headers, into src/bound-c/. */
+export function writeBoundC(repo: string): { files: number } {
+    const list = /set\(SOE_BOUND_C\s+([^)]+)\)/.exec(readFileSync(join(repo, 'CMakeLists.txt'), 'utf8'));
+    if (!list) throw new Error('no SOE_BOUND_C in the recomp repository\'s CMakeLists.txt');
+    const source = join(REPO, 'reconstructed-c'), target = join(repo, 'src', 'bound-c');
+    rmSync(target, { recursive: true, force: true });
+    const files = [...list[1].trim().split(/\s+/), ...readdirSync(join(source, 'include')).map(f => join('include', f))];
+    for (const f of files) {
+        mkdirSync(dirname(join(target, f)), { recursive: true });
+        copyFileSync(join(source, f), join(target, f));
+    }
+    writeFileSync(join(target, 'README.md'), 'Exported from everscript-vscode\'s `reconstructed-c/` by its `npm run recomp`. Do not edit here: change the source and export again.\n');
+    return { files: files.length };
 }
 
 /** Regenerate the C (tools/regen.sh) and build with CMake; everything goes to `log`. */

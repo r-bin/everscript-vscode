@@ -24,7 +24,6 @@
   "tests/mana/mana-editor-core.test.js",
   "tests/mana/mana-editor-props.test.js",
   "tests/terra/terra-maps-model.test.mts",
-  "tests/compare/compare-units.test.mts",
   "tests/debugger/emulator-audio.test.mts",
   "tests/debugger/emulator-gamepad.test.mts",
   "tests/debugger/debugger.test.js",

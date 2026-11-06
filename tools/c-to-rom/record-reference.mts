@@ -1,6 +1,6 @@
 // Record the reference a C-built ROM is compared with: power-on, no input, 2:20 (8414 frames at 60.0988 Hz):
 // Squaresoft logo, intro, logo again. Writes the playback (.evsmv: no input, the movie's own WRAM checks every 60
-// frames). tools/compare runs vanilla itself and caches its hashes, so no per-frame CRC file is kept next to it.
+// frames). compare-image.mts runs vanilla itself, so no per-frame CRC file is kept next to it.
 //   node tools/c-to-rom/record-reference.mts [--rom <clean rom>] [--frames 8414] [--out <file.evsmv>]
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { basename, dirname, relative } from 'node:path';

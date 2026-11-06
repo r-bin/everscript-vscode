@@ -22,7 +22,7 @@ const { romRegions } = require(path.join(REPO, 'dist/games/evermore/rom'));
 const { parseExclusions } = require(path.join(REPO, 'dist/platform/cdl/recomp-analysis'));
 const { collectNames } = require('./names');
 const { writeReport } = require('./report');
-const { recompRepo, readExclusions, readNodes, writeSeeds, buildRepo, EXCLUSIONS } = require('./repo.mts');
+const { recompRepo, readExclusions, readNodes, writeSeeds, writeBoundC, buildRepo, EXCLUSIONS } = require('./repo.mts');
 
 const HELP = `node tools/recomp/build.js [options]      (npm run recomp -- [options])
   --rom <file>         clean ROM (default: the base ROM of the ROM library)
@@ -121,6 +121,7 @@ function main() {
         recomp = step('recomp: seeds into ' + path.relative(process.cwd(), repo) + (o.build ? ', regenerate, build' : ''), () => {
             if (!fs.existsSync(path.join(repo, 'tools', 'regen.sh'))) return { ok: false, reason: 'no recomp repository at ' + repo + ' (--repo or SOE_RECOMP)' };
             const seeds = writeSeeds(path.join(asarDir, 'recomp', 'cfg'), repo);
+            writeBoundC(repo);
             const res = { repo, seeds, exclusions: EXCLUSIONS };
             if (!o.build) return { ...res, ok: true, built: false };
             return { ...res, ...buildRepo(repo, romPath, path.join(out, 'recomp-host.log')), built: true };

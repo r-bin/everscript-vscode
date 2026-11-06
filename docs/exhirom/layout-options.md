@@ -79,7 +79,7 @@ placed in the second 4 MB (SA-1 needs window switching to reach it).
 
 Effort figures are *(estimate)*, for one person with the existing tooling (CDL, Asar export,
 headless boot, lockstep). "Boots and plays identically" means the converted ROM matches the
-original under `npm run recomp:lockstep`.
+original under `node tools/compare/compare.mts recomp`.
 
 | Work item | Effort | Needed for | Gives |
 |---|---|---|---|

@@ -59,7 +59,7 @@ before touching the next.
 └──────────────────────────────┬──────────────────────────────┘
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 6. Lockstep Validation (npm run recomp:lockstep)            │
+│ 6. Lockstep Validation (node tools/compare/compare.mts recomp)            │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -191,7 +191,7 @@ void HLE_ApplyEntityDamage(CpuState *cpu) {
 Run the automated lockstep verification test against a known input recording:
 
 ```bash
-npm run recomp:lockstep -- --rom "/path/to/Secret of Evermore (U) [!].smc"
+node tools/compare/compare.mts recomp --rom "/path/to/Secret of Evermore (U) [!].smc"
 ```
 
 The runner executes:

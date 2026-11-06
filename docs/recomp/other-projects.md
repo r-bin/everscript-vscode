@@ -59,7 +59,7 @@ replay check against Mesen or another emulator); its CI builds and packages rele
 | ROM | Spain Rev 1 (PAL) | USA |
 | Game code | interpreted (no AOT routines) | AOT routines from seeds made here (`npm run recomp`) |
 | Framework changes | PPU renderer patch (widescreen) | none (owner's rule) |
-| Checked against | — | MesenCE WRAM (`npm run compare`) |
+| Checked against | — | MesenCE WRAM (the recomp's `tools/compare`) |
 | Focus | playing comfort: resolution, shaders, widescreen, rewind | a faithful recompilation |
 
 The interpreter-first approach is snesrecomp's normal starting point: it is the quickest way to a

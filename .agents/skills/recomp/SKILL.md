@@ -25,15 +25,14 @@ the game itself, and commit there (branch `develop`).
   compares its dispatch_v2.c too. `tools/recomp/annotate.mts` comments the generated C from
   `out/recomp/asar/recomp/annotations.tsv` (asm + WRAM names); the recomp repo's regen script runs it.
 - C bindings (raise the file to skill `c-style` as you bind it): an `hle <pc24> <c_function> [body=<pc24>] <reason>` line in the recomp's exclusions file becomes `hle_func` (`body=`: the second instruction as a compiled root, for calls the C cannot take); the
-  recomp's glue compiles `reconstructed-c/` from this checkout and runs it only where unobservable (its
+  recomp's glue compiles its exported copy `src/bound-c/` (`writeBoundC` in `repo.mts`, part of `npm run recomp`) and runs it only where unobservable (its
   game-rtl doc §4b). A broken `reconstructed-c/include/soe_ram.h` breaks that build: keep bound names in it. Its `ENTITY_RECORD_*_OFF` come from `EntityRecord` in `data/types.json`; only 3 routines compile there, so after a WRAM map change run `npm run c-to-rom:g1`, which builds all of them.
-  `tools/compare/probes/run-stats.mts` measures speed per mode, banks that run and how often each binding's C ran.
+  The recomp's compare probe `run-stats.mts` measures speed per mode, banks that run and how often each binding's C ran.
 - Tools that need this repository: `tools/recomp/room-nav.js` (a room's triggers and spawns as
-  headless script lines), `s9x-run.js` (the same script on snes9x), `npm run compare -- recomp=`
-  (lockstep; runs the recomp repo's `build/` game), `npm run compare:full` (every sync replay: all RAM, picture, S-DSP state).
+  headless script lines), `s9x-run.js` (the same script on snes9x). The compare tool is in the recomp repository.
 - Trap: the runner's headless script spends frames of its own (a `poke` 2, a `press` of n frames
-  n + 1), and its frame f is MesenCE's f + 1. `tools/compare/recomp.mts` compensates both when it
-  turns a replay into a script; a hand-written script must too, or every press lands late.
+  n + 1), and its frame f is MesenCE's f + 1. The recomp's compare tool compensates both
+  when it turns a replay into a script; a hand-written script must too, or every press lands late.
 
 ## Finishing
 Game facts found while debugging the recomp go to knowledge entries here (`game-knowledge` skill);

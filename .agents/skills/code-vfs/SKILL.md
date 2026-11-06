@@ -86,7 +86,7 @@ A routine's C counts by **gate**, never by "a file exists":
 | G0 | Calypsi compiles it (the build; with `--optimize` too when it has a variant) | `build.mts` |
 | G1 | equals the ROM's bytes on cpu65816.ts from sampled real entry states and fuzzed ones: registers, flags, S, WRAM except the dead stack, ordered I/O; snes9x agrees with the interpreter; a mutation is caught | `g1.mts` |
 | G2 | the recomp with the binding equals the recomp without it | not built |
-| G3 | per-frame WRAM equal to vanilla on the 2:20 reference | `compare.mts`: drifts by design (§7a) |
+| G3 | per-frame WRAM equal to vanilla on the 2:20 reference | `compare-image.mts`: drifts by design (§7a) |
 
 State on 2026-10-24 (v0.351.0): 27 routines pass G1, recorded as a `c: G1 passed` evidence line in
 each knowledge entry. A file below G1 is a *description*.
@@ -103,6 +103,6 @@ each knowledge entry. A file below G1 is a *description*.
   label such as `$8F:AFF5`), routines shorter than the trampoline, and trampoline bytes that some
   recorded jump lands on. Routines that pull their caller's stack (`PLB` of a pushed DB, `$90:9F21`)
   do not fit the bridge yet.
-- `tools/compare` treats DP `$02–$0E` as noise between different backends, which is exactly where a C routine's
+- The recomp repository's `tools/compare` treats DP `$02–$0E` as noise between different backends, which is exactly where a C routine's
   scratch goes wrong unseen. G1 compares every byte.
 - Long-term goals and what is open: `docs/todo/code-vfs.md`.

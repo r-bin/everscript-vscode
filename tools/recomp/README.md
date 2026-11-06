@@ -31,8 +31,6 @@ Names become identifiers valid in Asar, C and Mesen (`Random number generator` â
 but no CDL label becomes a data label. Asset regions are marked as data in the Mesen CDL and
 annotated in `labels.mlb`. They do not change the assembly, so the rebuild stays byte-identical.
 
-`mesen-state.mts <movie.mmo | state.mss> <out>` writes a MesenCE state's fields for the game: `SOE_COMPARE_MESEN_STATE=<out>` starts it there.
-
 ## Prerequisites
 
 | Tool | Needed for | Found via |
@@ -76,20 +74,8 @@ node tools/recomp/room-nav.js <rom> <room hex> [--script]     # triggers + desti
 
 How they fit together: the recomp repository's [docs/headless-exploration.md](https://github.com/r-bin/SecretOfEvermoreRecomp/blob/develop/docs/headless-exploration.md).
 
-## Lockstep against snes9x
+## Comparing the build
 
-```sh
-npm run recomp:lockstep [-- --rom <clean rom>]            # = npm run compare -- recomp=
-npm run compare -- recomp:<exe>=<rom> recomp:<other exe>=<rom>   # e.g. with hooks against without
-```
-
-`tools/compare` (its README) runs the ROM in our snes9x core and in the recomp without input, lines
-both up on the NMI frame counter `$7E0100`, copies snes9x's RNG state into the recomp (the reset
-seeds it from PPU timing), hashes WRAM + VRAM every 60 counts and reports the first checkpoint
-that differs, with the bytes and snes9x's writers. The recomp hashes through its glue
-(`SOE_COMPARE_*` in the recomp repo's `src/game_rtl.c`).
-Today: identical through counter 300, different at 360.
-
-Measured on 2026-10-30 with the full-play library: byte-identical rebuild; 90.3 % of the ROM
-recorded, 98.5 % known; 347 of 987 recorded functions named; 49.2 % of instruction lines
-commented; on the recomp repo's framework pin: 3916 roots, 4871 native variants, 759 interpreted.
+The compare tool lives in the recomp repository (`tools/compare/`, MesenCE against the recomp), with its tests: nothing
+here is needed to run it. This repository feeds that repository: seeds and, through `writeBoundC`, the bound C
+(`src/bound-c/`). After changing a bound routine, run `npm run recomp -- --no-build` and commit there.

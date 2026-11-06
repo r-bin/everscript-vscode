@@ -8,13 +8,13 @@ lifetime: session
 confidence: confirmed
 tags: []
 evidence: ["disasm: the NMI handler $80:823A ends with INC $0100 (CDL export, v0.201.10)", "trace: snes9x and the snesrecomp build both read 117/297/483 resp. 115/295/479 after 120/300/600 frames; it stops while NMI is off during loading (docs/recomp/README.md §4.1)", "MesenCE 2.2.1 testrunner, no inputs from power-on: back to 0 when the attract demo loops (~6,000 NMIs, held at 358 for ~60 frames before), so it is not monotonic over a session (2026-10-30)", "MesenCE: the reset code $80:8020 clears VRAM and both WRAM banks with three 64 KB DMAs (~4.4 fields) and enables NMI ($4200 = $81) at V=226, inside vblank, which fires the first NMI at once; 6 such late NMIs (scene loads re-enabling NMI inside vblank) in the first 14,424 frames", "disasm: the increment is REP #$30 / INC $0100 / BNE +3 / INC $0102 at $80:8462, so a wrap of the low word carries into $0102 (bytes read from the ROM, 2026-10-30)"]
-see: [docs/recomp/README.md, tools/compare/README.md, src/games/evermore/localizations/knowledge/routines/nmi_count_hdma_and_wait_for_joypad_read.md]
+see: [docs/recomp/README.md, src/games/evermore/localizations/knowledge/routines/nmi_count_hdma_and_wait_for_joypad_read.md]
 ---
 Counts NMIs, so it rises by one per frame while the NMI is enabled and stands still during
 loads that switch the NMI off. Because it ignores how long a load takes, it is the right clock
 to line up two emulators (the lockstep tool aligns on it).
 
 It is zeroed again when the attract demo loops, so a clock across a whole session adds up its
-increases and counts a drop as a restart from 0 (tools/compare does this). Scene loads switch the
+increases and counts a drop as a restart from 0 (the recomp's compare tool does this). Scene loads switch the
 NMI off and sometimes back on inside vblank; on hardware that fires an NMI at once, which an
 emulator or recomp that only delivers NMI at V=225 misses, leaving this counter one behind.

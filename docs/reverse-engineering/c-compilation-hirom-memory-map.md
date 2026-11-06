@@ -363,7 +363,7 @@ If you are modifying an existing assembly ROM without recompiling the entire gam
 | **ROM Banking** | Pre-extracted assets (`zelda3_assets.dat`) | Recompiled C code + loaded vanilla ROM | Segmented 64 KB banks (`$C0–$FF`) via linker `.cfg` |
 | **Bank Boundary Crossing** | Handled manually with 32 KB page math | Flat host memory pointers | Automatic within 64 KB HiROM bank |
 | **I/O & MMIO Registers** | Function call hooks (`zelda_ppu_write()`) | Emulated PPU / APU runner in Game RTL | Direct hardware memory mapping ($2100 / $4200) |
-| **Verification Oracle** | Frame-by-frame WRAM diff against emu | Lockstep co-simulation (`npm run recomp:lockstep`) | SNES hardware / Mesen2 trace comparison |
+| **Verification Oracle** | Frame-by-frame WRAM diff against emu | Lockstep co-simulation (`node tools/compare/compare.mts recomp`) | SNES hardware / Mesen2 trace comparison |
 
 ---
 
@@ -406,7 +406,7 @@ As decompiled functions in `docs/disassembly/` are validated:
 2. Hook them into `bankXX.cfg` using `hle_func`.
 3. Verify behavioral equivalence using the existing lockstep harness:
    ```bash
-   npm run recomp:lockstep
+   node tools/compare/compare.mts recomp
    ```
 
 By adhering to this HiROM-optimized architecture, Secret of Evermore's decompiled C files achieve

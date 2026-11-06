@@ -195,7 +195,7 @@ for a full C decompilation of *Secret of Evermore*:
 | **Code vs. Data Separation** | ✅ 100% | Comprehensive CDL tracking logs distinguishing instructions from audio/graphics data. |
 | **Bytecode / VM Engine** | ✅ 100% | Script dictionary, animation VM opcodes, and alchemy tables decoded in `everscript` and `docs/map-format/`. |
 | **Static Recompilation Engine** | ✅ Working | `snesrecomp` integration in `tools/recomp/` boots the game natively on Day 1. |
-| **Automated Lockstep Verification** | ✅ Working | `npm run recomp:lockstep` runs `snes9x2005-wasm` and the native recompiled binary in lockstep, verifying all 128 KB of WRAM byte-for-byte every frame. |
+| **Automated Lockstep Verification** | ✅ Working | `node tools/compare/compare.mts recomp` runs `snes9x2005-wasm` and the native recompiled binary in lockstep, verifying all 128 KB of WRAM byte-for-byte every frame. |
 
 ### Conclusion on Feasibility
 We are at the **final execution stage**: developers can select any function from the disassembly, draft clean C
@@ -333,7 +333,7 @@ void HLE_CheckPlayerCollision(CpuState *cpu) {
 ### Step 4: Run the Lockstep Oracle
 Execute the automated co-simulation runner:
 ```bash
-npm run recomp:lockstep -- --rom "Secret of Evermore (U) [!].smc"
+node tools/compare/compare.mts recomp --rom "Secret of Evermore (U) [!].smc"
 ```
 The test harness runs the original ROM in `snes9x` and the recompiled binary side-by-side using prerecorded inputs.
 

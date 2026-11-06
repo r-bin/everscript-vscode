@@ -124,7 +124,7 @@ ROM until step 5, so every existing tool (CDL, recomp seeds, patches) keeps work
    zero hits across a full playthrough route and the intro/attract loop.
 3. **Header + vectors + stubs** at `0x40FFC0`, `0x40FFE0`, `0x408000+`. Boot headless
    (`reference_headless_boot` method: bundled core under node) and compare against the original
-   ROM frame by frame; the lockstep tooling (`npm run recomp:lockstep`, snes9x reference) is the
+   ROM frame by frame; the lockstep tooling (`node tools/compare/compare.mts recomp`, snes9x reference) is the
    oracle.
 4. **Teach the repo about the new layout.** `soe://rom/` (`src/games/evermore/resources/rom-files.ts`
    reads the header at `0xFFC0` only), the ROM tab, the map/script decoders' size and bank checks,
