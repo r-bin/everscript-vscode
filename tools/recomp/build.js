@@ -33,7 +33,7 @@ const HELP = `node tools/recomp/build.js [options]      (npm run recomp -- [opti
                        (env SOE_RECOMP; default: ../SecretOfEvermoreRecomp); nothing is written there
   --no-recomp          do not read the recomp repository (seeds without its exclusions)
   --strict             exit 1 unless the rebuild is byte-identical
-Then, in the recomp repository: node tools/import.mts`;
+Then, in the recomp repository: node tools/import.mts --from <this checkout>`;
 
 function args(argv) {
     const o = { recomp: true, strict: false };
@@ -120,7 +120,7 @@ function main() {
 
     const report = writeReport({ out, romPath, sha1, map, rom, inputs, exp, rebuild, recomp, log });
     console.log('\n' + report.summary + '\nReport: ' + path.relative(process.cwd(), report.file));
-    if (o.recomp) console.log('Import into the recomp: node tools/import.mts in ' + path.relative(process.cwd(), repo));
+    if (o.recomp) console.log('Import into the recomp: node tools/import.mts --from ' + REPO + ' in ' + path.relative(process.cwd(), repo));
     if (o.strict && !rebuild.identical) process.exit(1);
 }
 

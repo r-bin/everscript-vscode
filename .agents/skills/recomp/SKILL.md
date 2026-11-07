@@ -14,7 +14,7 @@ the game itself, and commit there (branch `develop`).
 ## What lives here
 - `npm run recomp` (`tools/recomp/build.js`, `repo.mts`): CDL library + names + asset regions →
   byte-identical Asar project, Mesen2 files, seeds and `annotations.tsv`, all in `out/recomp/`. It never
-  writes into the recomp repo: that repo's import tool (`node tools/import.mts` there) copies seeds, annotations and the bound C
+  writes into the recomp repo: that repo's import tool (`node tools/import.mts --from <this checkout>` there) copies seeds, annotations and the bound C
   over (it must build with no other checkout). `--no-recomp` skips reading the recomp repo, `--repo` /
   `SOE_RECOMP` pick another checkout.
 - The seed generator: `src/platform/cdl/recomp-seeds.ts`, `recomp-analysis.ts`. Exclusions are not

@@ -47,8 +47,8 @@ function todo(m, rebuild, recomp, recorded) {
     const add = (prio, area, text) => t.push({ prio, area, text });
     if (!recorded) add(0, 'CDL', 'No CDL library for this ROM: record a session in the emulator (CDL tab) first.');
     if (!rebuild.identical) add(0, 'Asar', rebuild.reason || ('Rebuild differs from the ROM at file offset $' + (rebuild.firstDiff >>> 0).toString(16).toUpperCase() + ' (asar.log, asar/build/out.sfc).'));
-    if (recomp && !recomp.skipped) add(1, 'Recomp', 'Import the seeds, bound C and annotations into the recomp (its node tools/import.mts), then its tools/regen.sh and build.');
-    if (recomp && !recomp.skipped) add(1, 'Parity', 'Check the build against MesenCE on the sync replays (SecretOfEvermoreRecomp tools/compare/compare.mts --backend mesen,recomp) and its native share (tools/compare/probes/tier-stats.mts); docs/progress.md in the recomp repository.');
+    if (recomp && !recomp.skipped) add(1, 'Recomp', 'Import the seeds, bound C and annotations into the recomp (its node tools/import.mts --from <this checkout>), then its tools/regen.sh and build.');
+    if (recomp && !recomp.skipped) add(1, 'Parity', 'Check the build against MesenCE on the sync replays (SecretOfEvermoreRecomp tools/compare/compare.mts mesen recomp; its docs/testing.md) and its native share (tools/compare/probes/tier-stats.mts); docs/progress.md in the recomp repository.');
     const cov = pct(m.code + m.data, m.romBytes);
     if (cov < 50) add(1, 'CDL', `Coverage ${p1(cov)} of the ROM recorded: play more rooms, menus, bosses (or scripted headless runs).`);
     const nm = pct(m.named, m.functions);

@@ -12,7 +12,7 @@ npm run recomp -- --no-recomp        # without reading the recomp repo (seeds wi
 npm run recomp -- --repo <dir>       # another checkout (or SOE_RECOMP)
 ```
 
-Then, in the recomp repository: `node tools/import.mts` (seeds, bound C from `reconstructed-c/`,
+Then, in the recomp repository: `node tools/import.mts --from <this checkout>` (seeds, bound C from `reconstructed-c/`,
 annotations), `tools/regen.sh`, build, and commit its `recomp/bank*.cfg` and `src/bound-c/`.
 
 ## What it does
