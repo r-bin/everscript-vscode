@@ -9,7 +9,7 @@ What stays here is what needs this repository's internals:
 
 | Here | What |
 |---|---|
-| `npm run recomp` ([tools/recomp/README.md](../../tools/recomp/README.md)) | CDL library + names + asset regions → byte-identical Asar project, Mesen2 files, and the seeds, written into the recomp repository's `recomp/`; then its regen and build |
+| `npm run recomp` ([tools/recomp/README.md](../../tools/recomp/README.md)) | CDL library + names + asset regions → byte-identical Asar project, Mesen2 files, the seeds and the annotations, all in `out/recomp/`; the recomp repository's `tools/import.mts` copies them (and the bound C from `reconstructed-c/`) over. Nothing here writes into that repository, and it builds without this one |
 | `src/platform/cdl/recomp-seeds.ts`, `recomp-analysis.ts` | the seed generator; the exclusions it honours come from the recomp repository's `recomp/seed-exclusions.txt` |
 | `tools/recomp/room-nav.js`, `s9x-run.js` | a room's triggers and spawns as headless script lines; the same script on snes9x |
 | knowledge entries | every game fact the recomp work finds |

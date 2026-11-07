@@ -2,18 +2,18 @@
 
 The recomp is its own repository, [SecretOfEvermoreRecomp](https://github.com/r-bin/SecretOfEvermoreRecomp)
 (a sibling checkout, `../SecretOfEvermoreRecomp`): glue, docs, debugging tools. This folder turns
-everything we know about the game into a rebuildable, named, commented disassembly and into that
-repository's seeds, then lets it regenerate and build, and reports what still blocks.
+everything we know about the game into a rebuildable, named, commented disassembly and into seeds for
+that repository, and reports what still blocks. It writes only into `out/recomp/`: the recomp repository
+pulls what it needs with its own `tools/import.mts`, and builds without this checkout.
 
 ```sh
-npm run recomp                       # everything: export, rebuild, seeds into the recomp repo, its regen + build
-npm run recomp -- --no-build         # stop after writing the seeds (recomp/bank*.cfg there)
-npm run recomp -- --no-recomp        # stop after the Asar rebuild (2 s); the recomp repo is not touched
+npm run recomp                       # export + rebuild; reads the recomp repo's exclusions and last generation
+npm run recomp -- --no-recomp        # without reading the recomp repo (seeds without its exclusions)
 npm run recomp -- --repo <dir>       # another checkout (or SOE_RECOMP)
 ```
 
-Then commit the changed `recomp/bank*.cfg` in the recomp repository. Play its
-`build/SecretOfEvermoreSNESRecomp`.
+Then, in the recomp repository: `node tools/import.mts` (seeds, bound C from `reconstructed-c/`,
+annotations), `tools/regen.sh`, build, and commit its `recomp/bank*.cfg` and `src/bound-c/`.
 
 ## What it does
 
@@ -22,9 +22,7 @@ Then commit the changed `recomp/bank*.cfg` in the recomp repository. Play its
 | 1. Inputs | CDL library for the ROM (`<globalStorage>/rbin.everscript/cdl-library/<sha1>/`), asset regions from the ROM tab (`src/games/evermore/rom`), curated names (`functions.ts`, `tables.js`, `knowledge/{ram,rom}/*.md`, `ram-symbols`), the recomp repo's `recomp/seed-exclusions.txt` | – |
 | 2. Export | the above | `out/recomp/asar/`: `main.asm`, `banks/*.asm` with **our function names** and **line comments** (callers, accesses, jump targets, curated descriptions), `ram.asm`, `structs.h`, `tables/`, `functions.json`; `asar/mesen/labels.mlb` + `asar/mesen/rom.cdl` (Mesen2); `asar/recomp/cfg/` (snesrecomp seeds, named, plus `symbol` names for the entries the recomp's last generation found, from its `src/gen/program_manifest.json`); `asar/recomp/annotations.tsv` (each instruction and routine as text, for comments in the generated C; from the user's ROM, stays in `out/`) |
 | 3. Rebuild | `asar/` | `asar/build/out.sfc` (must equal the ROM byte for byte), `out.sym` (WLA symbols), `out.cdl`; `out/recomp/asar.log` |
-| 4. Seeds | `asar/recomp/cfg/` | the recomp repo's `recomp/bank8x..9x.cfg` replaced, one data-region block in its `recomp/bank00.cfg` (`repo.mts`) |
-| 5. Game | the recomp repo | its `tools/regen.sh` (which runs `annotate.mts`: `/* evs: ... */` comments with asm and WRAM names) and CMake build → `build/SecretOfEvermoreSNESRecomp` there; log in `out/recomp/recomp-host.log` |
-| 6. Report | all of the above | `out/recomp/REPORT.md`, `report.json`: status per step, measures, a prioritised to-do list |
+| 4. Report | all of the above | `out/recomp/REPORT.md`, `report.json`: status per step, measures, a prioritised to-do list |
 
 Names become identifiers valid in Asar, C and Mesen (`Random number generator` →
 `random_number_generator`; collisions get the address appended). An offset with a curated name
@@ -39,8 +37,7 @@ annotated in `labels.mlb`. They do not change the assembly, so the rebuild stays
 | the clean ROM (SHA-1 `79e7738630fff5699217ef58ecc421bc8fcbcd89`) | everything | `--rom`, else the ROM library's base ROM |
 | a CDL library for that ROM | meaningful output (without one: vectors only) | recorded in the emulator's CDL tab; `--lib` |
 | Asar | step 3 | `--asar` / `ASAR` / `asar` on PATH / `../asar/asar/bin/asar` |
-| the recomp repository with its submodules | steps 4–5 | `--repo` / `SOE_RECOMP` / `../SecretOfEvermoreRecomp` |
-| Python 3.9+, Rust/cargo, CMake, a C compiler | step 5 | PATH |
+| the recomp repository (read only: exclusions, last generation) | step 2 | `--repo` / `SOE_RECOMP` / `../SecretOfEvermoreRecomp` |
 
 ## Reading the report
 
@@ -52,7 +49,7 @@ annotated in `labels.mlb`. They do not change the assembly, so the rebuild stays
 | Instruction lines with a comment | more recorded accesses / targets, curated descriptions |
 | Accessed WRAM bytes with a name | the WRAM map (`src/games/evermore/localizations/data/wram-map.md`) |
 | snesrecomp interpreter-only (LLE) variants | recorded jump-table targets, more directives |
-| a routine that miscompiles | a `func` / `dispatch` line in the recomp repo's `recomp/seed-exclusions.txt`, then `npm run recomp` |
+| a routine that miscompiles | a `func` / `dispatch` line in the recomp repo's `recomp/seed-exclusions.txt`, then `npm run recomp` and the recomp's import |
 
 Building and debugging the game: the recomp repository's [docs/setup.md](https://github.com/r-bin/SecretOfEvermoreRecomp/blob/develop/docs/setup.md) and [docs/debugging.md](https://github.com/r-bin/SecretOfEvermoreRecomp/blob/develop/docs/debugging.md).
 
@@ -77,5 +74,5 @@ How they fit together: the recomp repository's [docs/headless-exploration.md](ht
 ## Comparing the build
 
 The compare tool lives in the recomp repository (`tools/compare/`, MesenCE against the recomp), with its tests: nothing
-here is needed to run it. This repository feeds that repository: seeds and, through `writeBoundC`, the bound C
-(`src/bound-c/`). After changing a bound routine, run `npm run recomp -- --no-build` and commit there.
+here is needed to run it. That repository pulls from this one with its `tools/import.mts`: seeds, annotations and
+the bound C (`reconstructed-c/` → its `src/bound-c/`). After changing a bound routine, import there and commit there.

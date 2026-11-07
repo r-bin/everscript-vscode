@@ -2,9 +2,9 @@
 // TODO port to TS (docs/todo/port-to-ts.md)
 'use strict';
 
-// Recomp build: CDL library + asset knowledge + curated names -> Asar project (byte-identical,
-// named, commented) + Mesen2 labels/CDL + snesrecomp seeds, written into the recomp repository
-// (SecretOfEvermoreRecomp), which then regenerates and builds -> REPORT.md with what still blocks.
+// Recomp export: CDL library + asset knowledge + curated names -> Asar project (byte-identical,
+// named, commented) + Mesen2 labels/CDL + snesrecomp seeds and annotations in out/recomp/, which the
+// recomp repository (SecretOfEvermoreRecomp) imports with its tools/import.mts -> REPORT.md with what still blocks.
 // Usage and options: tools/recomp/README.md (or --help).
 
 const fs = require('fs');
@@ -22,20 +22,21 @@ const { romRegions } = require(path.join(REPO, 'dist/games/evermore/rom'));
 const { parseExclusions } = require(path.join(REPO, 'dist/platform/cdl/recomp-analysis'));
 const { collectNames } = require('./names');
 const { writeReport } = require('./report');
-const { recompRepo, readExclusions, readNodes, writeSeeds, writeBoundC, buildRepo, EXCLUSIONS } = require('./repo.mts');
+const { recompRepo, readExclusions, readNodes, EXCLUSIONS } = require('./repo.mts');
 
 const HELP = `node tools/recomp/build.js [options]      (npm run recomp -- [options])
   --rom <file>         clean ROM (default: the base ROM of the ROM library)
   --lib <dir>          CDL library root (default: VS Code globalStorage rbin.everscript/cdl-library)
   --out <dir>          output folder for the Asar project and the report (default: out/recomp)
   --asar <bin>         Asar binary (env ASAR; default: asar on PATH, else ../asar/asar/bin/asar)
-  --repo <dir>         the recomp repository (env SOE_RECOMP; default: ../SecretOfEvermoreRecomp)
-  --no-recomp          stop after the Asar rebuild (the recomp repository is not touched)
-  --no-build           write the seeds into the recomp repository, do not regenerate or build
-  --strict             exit 1 unless the rebuild is byte-identical and the game was built`;
+  --repo <dir>         the recomp repository, read for its seed exclusions and last generation
+                       (env SOE_RECOMP; default: ../SecretOfEvermoreRecomp); nothing is written there
+  --no-recomp          do not read the recomp repository (seeds without its exclusions)
+  --strict             exit 1 unless the rebuild is byte-identical
+Then, in the recomp repository: node tools/import.mts`;
 
 function args(argv) {
-    const o = { recomp: true, build: true, strict: false };
+    const o = { recomp: true, strict: false };
     for (let i = 0; i < argv.length; i++) {
         const a = argv[i], next = () => argv[++i];
         if (a === '--help' || a === '-h') { console.log(HELP); process.exit(0); }
@@ -45,7 +46,6 @@ function args(argv) {
         else if (a === '--asar') o.asar = next();
         else if (a === '--repo') o.repo = next();
         else if (a === '--no-recomp') o.recomp = false;
-        else if (a === '--no-build') o.build = false;
         else if (a === '--strict') o.strict = true;
         else { console.error('unknown option ' + a + '\n' + HELP); process.exit(2); }
     }
@@ -116,22 +116,12 @@ function main() {
         return { ok: diff < 0, identical: diff < 0, firstDiff: diff, size: b.length };
     });
 
-    let recomp = { skipped: true };
-    if (o.recomp) {
-        recomp = step('recomp: seeds into ' + path.relative(process.cwd(), repo) + (o.build ? ', regenerate, build' : ''), () => {
-            if (!fs.existsSync(path.join(repo, 'tools', 'regen.sh'))) return { ok: false, reason: 'no recomp repository at ' + repo + ' (--repo or SOE_RECOMP)' };
-            const seeds = writeSeeds(path.join(asarDir, 'recomp', 'cfg'), repo);
-            writeBoundC(repo);
-            const res = { repo, seeds, exclusions: EXCLUSIONS };
-            if (!o.build) return { ...res, ok: true, built: false };
-            return { ...res, ...buildRepo(repo, romPath, path.join(out, 'recomp-host.log')), built: true };
-        });
-        if (recomp.exe) console.log('   game: ' + path.relative(process.cwd(), recomp.exe));
-    }
+    const recomp = o.recomp ? { repo, exclusions: EXCLUSIONS, nodes: nodes.length } : { skipped: true };
 
     const report = writeReport({ out, romPath, sha1, map, rom, inputs, exp, rebuild, recomp, log });
     console.log('\n' + report.summary + '\nReport: ' + path.relative(process.cwd(), report.file));
-    if (o.strict && !(rebuild.identical && (recomp.skipped || (recomp.ok && (recomp.exe || !o.build))))) process.exit(1);
+    if (o.recomp) console.log('Import into the recomp: node tools/import.mts in ' + path.relative(process.cwd(), repo));
+    if (o.strict && !rebuild.identical) process.exit(1);
 }
 
 main();

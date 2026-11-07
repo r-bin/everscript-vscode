@@ -269,26 +269,6 @@ test('crc32 matches the standard check value', () => {
     assert.strictEqual(crc32(Buffer.from('123456789')), 0xCBF43926);
 });
 
-test('recomp repo seeds: bank cfgs replaced, bank00 keeps its block and gains one data-region block', () => {
-    const { writeSeeds } = require('../../tools/recomp/repo.mts');
-    const proj = path.join(tmp, 'hostproj'), seeds = path.join(tmp, 'hostseeds');
-    fs.mkdirSync(path.join(proj, 'recomp'), { recursive: true });
-    fs.mkdirSync(seeds, { recursive: true });
-    fs.writeFileSync(path.join(proj, 'recomp', 'bank00.cfg'), 'bank = 0\nauto_vectors\n');
-    fs.writeFileSync(path.join(proj, 'recomp', 'bank8f.cfg'), 'stale\n');
-    fs.writeFileSync(path.join(seeds, 'bank00.cfg'), 'bank = 00\nfunc x 8000\ndata_region c0 0000 08000\n');
-    fs.writeFileSync(path.join(seeds, 'bank80.cfg'), 'bank = 80\nfunc random_number_generator 859b\n');
-    writeSeeds(seeds, proj);
-    const r = writeSeeds(seeds, proj);
-    const b00 = fs.readFileSync(path.join(proj, 'recomp', 'bank00.cfg'), 'utf8');
-    assert.deepStrictEqual(r, { banks: 1, regions: 1 });
-    assert.ok(b00.startsWith('bank = 0\nauto_vectors\n'), 'project block kept');
-    assert.strictEqual((b00.match(/^data_region/gm) || []).length, 1, 'idempotent');
-    assert.ok(!/func x/.test(b00), 'our bank00 funcs are not copied');
-    assert.ok(!fs.existsSync(path.join(proj, 'recomp', 'bank8f.cfg')), 'stale bank removed');
-    assert.ok(fs.readFileSync(path.join(proj, 'recomp', 'bank80.cfg'), 'utf8').includes('random_number_generator'));
-});
-
 test('seed exclusions: func and dispatch lines, every HiROM mirror, comments, bad lines refused', () => {
     const { parseExclusions } = require('../../dist/platform/cdl/recomp-analysis');
     const x = parseExclusions('# header\nfunc 8CCFFD  scheduler   # why\n\ndispatch $8F9F46 loop\n');

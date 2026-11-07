@@ -13,19 +13,20 @@ the game itself, and commit there (branch `develop`).
 
 ## What lives here
 - `npm run recomp` (`tools/recomp/build.js`, `repo.mts`): CDL library + names + asset regions →
-  byte-identical Asar project, Mesen2 files, seeds → the recomp repo's `recomp/bank*.cfg`, then its
-  regen + build. `--no-build` stops after the seeds, `--no-recomp` after the Asar rebuild,
-  `--repo` / `SOE_RECOMP` pick another checkout. Commit the changed cfgs in the recomp repo.
+  byte-identical Asar project, Mesen2 files, seeds and `annotations.tsv`, all in `out/recomp/`. It never
+  writes into the recomp repo: that repo's import tool (`node tools/import.mts` there) copies seeds, annotations and the bound C
+  over (it must build with no other checkout). `--no-recomp` skips reading the recomp repo, `--repo` /
+  `SOE_RECOMP` pick another checkout.
 - The seed generator: `src/platform/cdl/recomp-seeds.ts`, `recomp-analysis.ts`. Exclusions are not
   here: they are lines in the recomp repo's `recomp/seed-exclusions.txt` (`func` / `dispatch`
   `<pc24> <reason>`), parsed by `parseExclusions`.
 - Names: `func` seeds carry ROM-map names; entries snesrecomp found itself get `symbol` lines (read from
   the program manifest of the recomp's last generation, `readNodes` in `repo.mts`). `symbol` adds no roots,
   but names break ties in snesrecomp's resume table (recomp repo bugs-and-todos §3.6): an A/B of names
-  compares its dispatch_v2.c too. `tools/recomp/annotate.mts` comments the generated C from
-  `out/recomp/asar/recomp/annotations.tsv` (asm + WRAM names); the recomp repo's regen script runs it.
+  compares its dispatch_v2.c too. `out/recomp/asar/recomp/annotations.tsv` (asm + WRAM names) becomes comments
+  in the generated C through the recomp repo's `annotate.mts`.
 - C bindings (raise the file to skill `c-style` as you bind it): an `hle <pc24> <c_function> [body=<pc24>] <reason>` line in the recomp's exclusions file becomes `hle_func` (`body=`: the second instruction as a compiled root, for calls the C cannot take); the
-  recomp's glue compiles its exported copy `src/bound-c/` (`writeBoundC` in `repo.mts`, part of `npm run recomp`) and runs it only where unobservable (its
+  recomp's glue compiles its imported copy `src/bound-c/` (its `import.mts`) and runs it only where unobservable (its
   game-rtl doc §4b). A broken `reconstructed-c/include/soe_ram.h` breaks that build: keep bound names in it. Its `ENTITY_RECORD_*_OFF` come from `EntityRecord` in `data/types.json`; only 3 routines compile there, so after a WRAM map change run `npm run c-to-rom:g1`, which builds all of them.
   The recomp's compare probe `run-stats.mts` measures speed per mode, banks that run and how often each binding's C ran.
 - Tools that need this repository: `tools/recomp/room-nav.js` (a room's triggers and spawns as

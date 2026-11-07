@@ -302,7 +302,7 @@ function exportAsar(lib: CdlLibrary, romInput: Uint8Array, outDir: string, opts:
     const includes: string[] = [];
     let codeLines = 0;
     // One line per instruction and per named routine, for comments in the recomp's generated C
-    // (tools/recomp/annotate.mts). Text taken from the user's ROM: it stays in out/, never in a repository.
+    // (the recomp repository's tools/annotate.mts, after its tools/import.mts). Text taken from the user's ROM: it never enters a repository.
     const annotations: string[] = ['# rom offset (hex)\tf = routine, i = instruction\ttext'];
 
     for (let seg = 0; seg < rom.length; seg += map.segment) {
