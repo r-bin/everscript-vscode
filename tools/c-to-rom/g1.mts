@@ -24,7 +24,7 @@ import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
 import { REPO, boot, coreId, stripHeader, hex, WRAM_SIZE, REFERENCE_FRAMES, type Core } from './emu.mts';
 import { buildImage, bindings, sourceFiles, OUT, type Binding } from './build.mts';
-import { disassemble, cdlFor } from './disasm.mts';
+import { disassemble, walk, cdlFor } from './disasm.mts';
 
 const require = createRequire(import.meta.url);
 const { Cpu65816 } = require('../../dist/platform/snes/cpu65816');
@@ -225,8 +225,8 @@ function diff(x: { regs: Regs; wram: Uint8Array; io?: string[] }, y: { regs: Reg
 /** Copies of `image`, each with one operand bit of one of the routine's first instructions flipped. */
 function mutations(image: Uint8Array, b: Binding, cdl: Uint8Array | null, max = 8): { image: Uint8Array; what: string }[] {
     const out: { image: Uint8Array; what: string }[] = [];
-    for (const l of disassemble(image, b.addr, 64, false, false, cdl)) {
-        if ((out.length && /^(RTL|RTS|RTI)/.test(l.text)) || out.length >= max) break;   // an early return before any operand is not the end
+    for (const l of walk(image, b.addr, cdl)) {
+        if (out.length >= max) break;
         if (l.bytes.length < 2 || /^(B..|BRL|REP|SEP|JSL|JSR|JML|JMP|PEA)/.test(l.text)) continue;
         const m = new Uint8Array(image);
         m[(l.pc & 0x3FFFFF) + 1] ^= 0x01;
