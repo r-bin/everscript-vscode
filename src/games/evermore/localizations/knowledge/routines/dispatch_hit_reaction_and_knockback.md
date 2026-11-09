@@ -8,8 +8,8 @@ name: dispatch_hit_reaction_and_knockback
 title: Dispatch victim hit reaction, invulnerability frames, and knockback vector displacement
 confidence: confirmed
 tags: [combat, damage, knockback, reaction]
-evidence: ["disasm: sets 30-frame invulnerability timer in entity+$14, spawns floating number sprite via $8F:C09A, computes knockback velocity vector away from attacker", "recomp: clean C in docs/disassembly/combat/hitbox-intersections.md"]
-see: [routines/apply_spell_damage_to_targets.md, routines/entity_collision_check.md]
+evidence: ["disasm: checks invulnerability/death flags in entity+$10 and entity+$14; sets hit reaction flags in entity+$12 (0x0438 / 0x0080), halves damage on flag 0x2000, clamps damage to 999, and accumulates into entity+$76 pending damage buffer", "c: G1 passed (tools/c-to-rom/g1.mts): the bound C equals the ROM on 3 entry states sampled from the 2:20 no-input reference and 47 fuzzed ones; snes9x agrees with the interpreter on 3; a mutation is caught"]
+see: [routines/apply_spell_damage_to_targets.md, routines/entity_collision_check.md, reconstructed-c/8F/8FC0D3_dispatch_hit_reaction_and_knockback.c]
 ---
 Called whenever an entity takes damage from an attack or spell:
 - Sets invulnerability flash timer in `entity +0x14`.
