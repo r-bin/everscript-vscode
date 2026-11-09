@@ -24,6 +24,7 @@ ruled out, so the next attempt starts further along.
 | [hitboxes.md](hitboxes.md) | How big a character's body is, and what blocks a move | Solved |
 | [attack_boxes.md](attack_boxes.md) | What a swing sweeps, and what it can land on | Solved |
 | [combat.md](combat.md) | A fight in time: ticks, charge, when enemies attack, one roll per swing, damage and knockback rolls; checked in the game | Traced, one fight checked |
+| [off-screen-behaviour.md](off-screen-behaviour.md) | Outside the screen: the two cameras, camera limits, sleep/wake and the awake budget, spawner windows, whole-room collision, targeting | Read in the asm |
 | [palettes.md](palettes.md) | How many enemies fit in a room before their colours glitch | Solved |
 | [../item-icons.md](../item-icons.md) | Where the menu's item icons live | Solved |
 

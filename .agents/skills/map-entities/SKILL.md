@@ -24,6 +24,10 @@ holds the evidence. This skill is what a change must not get wrong.
   enemy 4 px off once.)
 - Every spawn faces **8 = south**.
 
+- Off screen nothing is frozen by default: collision is whole-room, enemies run their AI anywhere
+  until the awake budget `$1076` is full, spawners fire 16..48 px off screen
+  (`docs/entities/off-screen-behaviour.md`).
+
 ## 2. Three boxes, never one
 
 | | Body | Hurt box | Strike box |

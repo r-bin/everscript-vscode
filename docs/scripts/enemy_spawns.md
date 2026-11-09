@@ -15,6 +15,9 @@ code(0xa2, enemy * 2, flags, calculate(x*8), calculate(y*8))
 code(0xc2, enemy,     x, y)                             spawner; count in $2433
 ```
 
+When and where a spawner fires (16..48 px outside the screen, the awake budget, the room cap
+`$2435`), and when it takes an enemy back: [../entities/off-screen-behaviour.md](../entities/off-screen-behaviour.md#spawners-v).
+
 Three things follow directly:
 
 **The index is an `ENEMY` enum value.** `enemy * 2` for the opcodes that

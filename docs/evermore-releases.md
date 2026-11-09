@@ -89,6 +89,7 @@ refuse other releases instead of reading garbage at US addresses.
 | Song count | `0x46` at `$81:9900` (songs `0x00`–`0x46`) | same byte, same address |
 | Intro sequence | the same rooms in the same order: `0x00` → `0x61` → `0x31` → `0x12` | headless boot, `$7E:0ADB` (§3) |
 | WRAM room id | `$7E:0ADB` | reads the expected room ids in all six |
+| WRAM camera, room width (U) | DP `$59`/`$5B`, `$7E:08EE` | another recomp of the Spanish ROM (aitorcachero/SoE-Recomp, read 2026-11-09) uses the same addresses as the US findings in [entities/off-screen-behaviour.md](entities/off-screen-behaviour.md); not measured here |
 
 The character table's upper half (`$8E`) is the part of the ROM that lines up best: 63% of its bytes match
 the US one at the same address. Upper halves `$80` and `$91` reach about 35%; everywhere else it's 1–12%.

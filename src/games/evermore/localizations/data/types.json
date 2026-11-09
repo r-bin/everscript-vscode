@@ -440,8 +440,12 @@
         { "offset": 70, "name": "actor_world_x", "type": "i16" },
         { "offset": 72, "name": "actor_world_y", "type": "i16" },
         { "offset": 76, "name": "current_actor_ptr", "type": "entity" },
+        { "offset": 89, "name": "camera_x", "type": "i16" },
+        { "offset": 91, "name": "camera_y", "type": "i16" },
         { "offset": 126, "name": "script_current_thread_ptr", "type": "u16" },
         { "offset": 130, "name": "script_pc_far_ptr", "type": "u24" },
+        { "offset": 191, "name": "camera_target_x", "type": "i16" },
+        { "offset": 193, "name": "camera_target_y", "type": "i16" },
         { "offset": 197, "name": "shake_offset_x", "type": "i16" },
         { "offset": 199, "name": "shake_offset_y", "type": "i16" },
         { "offset": 217, "name": "obj_frame_ready", "type": "u16" }
