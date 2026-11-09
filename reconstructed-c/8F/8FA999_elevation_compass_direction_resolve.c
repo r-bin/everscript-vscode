@@ -10,21 +10,42 @@
  * Routine Rating & Verification:
  * - Target Routine:   elevation_compass_direction_resolve ($8FA999) [RTS]
  * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
- * - Initial ROM ASM:  14 instructions (24 bytes)
- * - Compiled C ASM:   125 instructions [Calypsi 65816 -O1 --speed]
- * - Code Expansion:   8.9x instructions vs ROM
+ * - Initial ROM ASM:  57 instructions (119 bytes)
+ * - Compiled C ASM:   94 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   1.6x instructions vs ROM
  * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
- * - Rating Hash:      50b3c7ffc0d3b46f
+ * - Rating Hash:      09ffa14a3c349f8b
  * - Rating Status:    VALID (unmodified since rating)
  */
 #include "soe.h"
 
 SOE_BIND(elevation_compass_direction_resolve, 0x8FA999, RTS)
 {
-    bool dx_neg = (DP8(r, 0x12) & 0x80) != 0;
-    bool dy_neg = (DP8(r, 0x13) & 0x80) != 0;
-    uint8_t code = dx_neg ? (dy_neg ? 0x0E : 0x0A) : (dy_neg ? 0x02 : 0x06);
+    uint8_t dx, dy, code;
 
+    SOE_AT(0xA999);
+    dx = DP8(r, 0x12);
+    if (!(dx & 0x80)) {
+        SOE_AT(0xA9A7);
+        dy = DP8(r, 0x13);
+        if (!(dy & 0x80)) {
+            SOE_AT(0xA9AE);
+            code = 0x06;
+        } else {
+            SOE_AT(0xA9AB);
+            code = 0x02;
+        }
+    } else {
+        SOE_AT(0xA99D);
+        dy = DP8(r, 0x13);
+        if (!(dy & 0x80)) {
+            SOE_AT(0xA9A4);
+            code = 0x0A;
+        } else {
+            SOE_AT(0xA9A1);
+            code = 0x0E;
+        }
+    }
     soe_set_a8(r, code);
     soe_nz8(r, code);
 }

@@ -15,7 +15,7 @@
  * - Compiled C ASM:   178 instructions [Calypsi 65816 -O1 --speed]
  * - Code Expansion:   13.7x instructions vs ROM
  * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
- * - Rating Hash:      5d0f63e2fd328985
+ * - Rating Hash:      7039847af41c5af9
  * - Rating Status:    VALID (unmodified since rating)
  */
 #include "soe.h"
@@ -26,6 +26,7 @@ SOE_BIND(anim_op_sprite, 0x908418, RTS)
     uint8_t a8 = (uint8_t)r->x;
     uint16_t word, x;
 
+    SOE_AT(0x8418);
     soe_carry(r, a8 & 1);                                    /* LSR A */
     a8 = soe_adc8(r, (uint8_t)(a8 >> 1), 0xA8);
     ABSI8(r, ENTITY_RECORD_SPRITE_BANK_OFF, r->y) = a8;

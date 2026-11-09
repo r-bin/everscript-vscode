@@ -13,7 +13,7 @@
  * - Compiled C ASM:   108 instructions [Calypsi 65816 -O1 --speed]
  * - Code Expansion:   12.0x instructions vs ROM
  * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
- * - Rating Hash:      eaf9401d2dc77d23
+ * - Rating Hash:      52c2489c1e32f297
  * - Rating Status:    VALID (unmodified since rating)
  */
 #include "soe.h"
@@ -21,8 +21,11 @@
 
 SOE_BIND(anim_op_mode, 0x908485, RTS)
 {
-    uint16_t word = LONG16(SOE_DPPTR(r, 0x5D));
-    uint16_t x = (uint16_t)(DP16(r, 0x5D) + 2);
+    uint16_t word, x;
+
+    SOE_AT(0x8485);
+    word = LONG16(SOE_DPPTR(r, 0x5D));
+    x = (uint16_t)(DP16(r, 0x5D) + 2);
 
     ABSI16(r, ENTITY_RECORD_MODE_OFF, r->y) = word;
     DP16(r, 0x5D) = x;

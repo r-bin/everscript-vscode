@@ -14,7 +14,7 @@
  * - Compiled C ASM:   257 instructions [Calypsi 65816 -O1 --speed]
  * - Code Expansion:   13.5x instructions vs ROM
  * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
- * - Rating Hash:      1083cca0ecaca84d
+ * - Rating Hash:      de571d596f905fd6
  * - Rating Status:    VALID (unmodified since rating)
  */
 #include "soe.h"
@@ -24,12 +24,15 @@ SOE_BIND(anim_op_reset, 0x908453, RTS)
 {
     uint16_t x = r->y;
 
+    SOE_AT(0x8453);
     r->x = x;
     ABSI16(r, ENTITY_RECORD_TICK_HANDLER_OFF, x) = 0;
     if (ABSI16(r, ENTITY_RECORD_MODE_OFF, x) & 0x0010) {
+        SOE_AT(0x8461);
         ABSI16(r, ENTITY_RECORD_STAMINA_OFF, x) = 0;
         ABSI16(r, ENTITY_RECORD_CLOSED_STATES_OFF, x) = (uint16_t)(ABSI16(r, ENTITY_RECORD_CLOSED_STATES_OFF, x) & 0xFDFF);
     }
+    SOE_AT(0x846D);
     ABSI16(r, ENTITY_RECORD_MODE_OFF, x) = 0;
     ABSI16(r, ENTITY_RECORD_HURT_DX_OFF, x) = 0;
     ABSI16(r, ENTITY_RECORD_HURT_DY_OFF, x) = 0xFFF0;
