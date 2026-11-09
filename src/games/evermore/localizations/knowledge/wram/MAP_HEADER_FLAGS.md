@@ -2,7 +2,7 @@
 addr: $7E:0F84
 name: MAP_HEADER_FLAGS
 type: u16
-tags: []
+tags: [widescreen, widescreen.gate]
 confidence: verified
 evidence: ["cdl", "disasm"]
 ---

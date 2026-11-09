@@ -22,6 +22,8 @@
   - `$7E:242D`: Stationary cutscene camera target Y (`0xFFFF` = follow entities).
   - DP `$BF`: Viewport camera horizontal origin $X$ (world pixel coordinates).
   - DP `$C1`: Viewport camera vertical origin $Y$ (world pixel coordinates).
+  - DP `$59` / `$5B`: **Rendered** camera X/Y = clamp(`$BF` + shake `$C5`, 0, `$08F6`) / clamp(`$C1` + `$C7`, 0, `$08F8`), written by `$90:9F21`; every world-to-screen conversion (sprites, sleep/wake, spawner, targeting) subtracts these, and the default camera mode writes them to the BG scroll shadows (`$90:9A98`). Verified 2026-11-09.
+  - `$7E:2401..$7E:2407`: Viewport box from `$BF`/`$C1` (+256, +224); read by scripts only.
   - DP `$12`: Previous frame viewport horizontal origin $X$.
   - DP `$14`: Previous frame viewport vertical origin $Y$.
 

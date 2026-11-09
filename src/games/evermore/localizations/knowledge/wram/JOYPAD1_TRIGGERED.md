@@ -6,7 +6,7 @@ name: JOYPAD1_TRIGGERED
 title: PPU register shadows, copied to the PPU every NMI
 lifetime: frame
 confidence: likely
-tags: []
+tags: [widescreen, widescreen.fade]
 evidence: ["disasm: NMI $80:823A copies $0106 -> $2100, $010E-$0119 -> $210D-$2112 (two writes each), $011A-$011D -> $2113-$2114, $0122-$0124 -> $2123-$2125 (CDL export, v0.201.10)", "disasm: reset $80:8020 sets $0106 = $8F (screen off) and $0110/$0114/$0118/$011C/$011E/$0120 = $FF"]
 see: [docs/recomp/README.md]
 ---
@@ -30,3 +30,7 @@ NMI copies them over during vblank, so a change takes effect at the next frame w
 ## Notes
 $0107–$010D and $011E–$0121 are not covered by this copy; the NMI also writes $0108/$010A to the
 H/V IRQ timer ($4207/$4209).
+
+## Widescreen notes
+
+The first byte, `$7E:0106`, is the INIDISP (master brightness / forced blank) shadow: the NMI ($80:823E) loads it and stores it to `$2100` before anything else; `screen_set_full_brightness` stores `$0F`, `screen_blank_display` stores 0, and `fade_brightness_step_towards_target` ($80:DE96) steps it by one per frame toward the low byte of `$7E:0B83`. The entry's name still says joypad; the joypad state is `$7E:0EC6` (raw pad) and `$7E:0104`. Brightness fades are therefore INIDISP only, and the recomp PPU applies brightness to every composed pixel, margins included (asm read 2026-11-09).

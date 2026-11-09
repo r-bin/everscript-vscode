@@ -1,5 +1,12 @@
 # Viewport Frustum Culling & Entity Screen Projection
 
+> **Correction (2026-11-09, asm read):** `$7E:0F48..$7E:0F4E` is not a camera frustum. Its only
+> writer is the room header reader (`$90:8F80`), once per room: 14 px / 7 px inside the room's
+> edges. These two routines keep movement probes inside the room; they do not cull against the
+> screen. Screen culling happens in the OAM assembler (`$80:904D`) and the slice emitters
+> (`$80:90F8`, `$80:91FD`); activation in `entity_sleep_wake` (`$8F:C40F`). The text below
+> keeps the old reading for reference. See SecretOfEvermoreRecomp `docs/widescreen/`.
+
 - **ROM Locations**:
   - `camera_frustum_cull_test`: `$90:9545` – `$90:9560`
   - `entity_screen_tile_projection`: `$90:9561` – `$90:95CD`

@@ -2,7 +2,7 @@
 addr: $7E:0561
 name: HUD_DOG_STATUS_WIDGET
 type: HudStatusWidget
-tags: [dog, graphics, hud]
+tags: [dog, graphics, hud, widescreen, widescreen.hud]
 confidence: verified
 evidence: ["cdl", "disasm: func_CF8710 initializes widget type $13, X position $19, VRAM dest $1F20, and digit tiles $0589..$0595", "disasm: func_CF9144 updates Dog HP bar and converts current HP to decimal digits"]
 ---

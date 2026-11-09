@@ -6,8 +6,8 @@ kind: code
 category: 🧠
 name: camera_viewport_bounds_clamp_and_seam_check
 title: Centers camera viewport on target coordinates, clamps within room boundaries, and triggers tile streaming
-confidence: guess
-tags: [unverified, rea-partial-read]
+confidence: likely
+tags: [unverified, rea-partial-read, widescreen, widescreen.camera, widescreen.streaming]
 evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
 ---
 Low confidence — Centers camera viewport on target coordinates, clamps within room boundaries, and triggers tile streaming.
@@ -32,3 +32,7 @@ It writes validated camera coordinates to `$59` and `$BF`, and calls `$90:93AA` 
 - `$7E:23E9` (Room minimum horizontal scrolling boundary)
 - `$7E:23ED` (Room maximum horizontal scrolling boundary)
 - `$0F3A` (Camera frame movement counter)
+
+## Widescreen notes
+
+Read whole (2026-11-09): snaps `$BF`/`$59` = X − 128 and `$C1`/`$5B` = Y − 112, clamps them to the room bounds `$23E9..$23EF`, runs the camera-mode entry of `$90:8E68`, then `$90:9379` and `$90:93AA` redraw the whole BG1/BG2 window. Called on fade-in (`$8C:DC26`) and room setup.

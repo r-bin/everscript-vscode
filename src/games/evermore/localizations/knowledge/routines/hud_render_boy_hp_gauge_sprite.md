@@ -9,6 +9,10 @@ title: Render Boy HP status gauge sprite to OAM ($90:8CEE)
 confidence: confirmed
 evidence: ["disasm: calculates gauge frame index from HP ratio $0B15 - $1924; loads 24-bit sprite descriptor from [<$5D]; advances pointer; commits sprite at (224, 16) via direct_sprite_draw_oam $80:9033"]
 see: ["routines/direct_sprite_draw_oam.md"]
-tags: ["hud","boy","hp","gauge","oam"]
+tags: [hud, boy, hp, gauge, oam, widescreen, widescreen.hud]
 ---
 Renders Boy HP gauge sprite on screen. Computes gauge graphic offset from HP ratio `$0B15 - $1924`, fetches 24-bit sprite descriptor from `[<$5D]`, advances pointer, and draws HP bar sprite at screen position (224, 16) via `direct_sprite_draw_oam` (`$80:9033`).
+
+## Widescreen notes
+
+Draws through `direct_sprite_draw_oam` at fixed screen coordinates (224, 16) (asm read 2026-11-09): a HUD sprite to anchor, not a world sprite.

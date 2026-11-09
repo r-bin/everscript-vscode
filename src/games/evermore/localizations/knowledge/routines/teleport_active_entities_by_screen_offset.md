@@ -7,7 +7,7 @@ category: 🧠
 name: teleport_active_entities_by_screen_offset
 title: Teleport the camera and active entities by screen offsets
 confidence: confirmed
-tags: [script-vm, camera, entity]
+tags: [script-vm, camera, entity, widescreen, widescreen.limits]
 evidence: ["disasm: $8C:E49D evaluates two expressions, stores the results in DP $10/$0E, and calls $90:A001; helper evidence is recorded at routines/script_op_teleport_screens.md"]
 see: [docs/scripts/vm.md, docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-96-teleport-screen.md, routines/script_op_teleport_screens.md]
 ---

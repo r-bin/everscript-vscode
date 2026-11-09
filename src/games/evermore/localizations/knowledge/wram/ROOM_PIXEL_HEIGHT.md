@@ -2,7 +2,7 @@
 addr: $7E:08F4
 name: ROOM_PIXEL_HEIGHT
 type: u16
-tags: []
+tags: [widescreen, widescreen.room_bounds]
 confidence: verified
 evidence: ["cdl", "disasm"]
 ---

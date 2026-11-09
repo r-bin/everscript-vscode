@@ -6,8 +6,8 @@ kind: code
 category: 🧠
 name: room_tilemap_layer2_parallax_offset_calc
 title: Calculates Layer 2 background parallax scrolling offsets and vertical perspective adjustments
-confidence: guess
-tags: [unverified, rea-partial-read]
+confidence: likely
+tags: [unverified, rea-partial-read, widescreen, widescreen.streaming]
 evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
 ---
 Low confidence — Calculates Layer 2 background parallax scrolling offsets and vertical perspective adjustments.
@@ -30,3 +30,7 @@ It adds vertical perspective adjustments, outputting the resultant Layer 2 VRAM 
 - `$08EE` (Room background Layer 2 parallax ratio scalar)
 - `$4202`, `$4216` (Hardware multiplication registers)
 - `$30`, `$46` (Layer 2 scrolling offset registers)
+
+## Widescreen notes
+
+Read whole (2026-11-09): builds one tilemap **row** (top row, or the bottom row + 14 when scrolling down) of `$0FAC` cells into the 32-word ring buffer at `$2E` and queues it (VMAIN `$80`). Not a parallax calculation.

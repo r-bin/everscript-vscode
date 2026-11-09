@@ -6,7 +6,7 @@ name: MINIMAP_RADAR_WINDOW_TOP
 title: Minimap radar viewport window clipping bounds
 lifetime: room
 confidence: confirmed
-tags: [minimap, radar, ui]
+tags: [minimap, radar, ui, widescreen, widescreen.streaming]
 evidence: ["reconstructed-c: 90A4EC_minimap_projection.c clamps field metatiles against top ($0F8C), bottom ($0F8E), left ($0F90), right ($0F92)", "doc: docs/disassembly/ui/minimap-projection.md"]
 see: [docs/disassembly/engine-core/wram-map.md]
 ---
@@ -18,3 +18,6 @@ see: [docs/disassembly/engine-core/wram-map.md]
 
 In `func_90A4EC`, field metatiles projected onto the circular compass radar are tested against these bounds; tiles falling outside are clipped before merging with the dynamic palette mask (`$7E:0FB4`) and emitting into the VRAM staging buffer (`$7E:11F4`).
 
+## Widescreen notes
+
+Not a minimap: the top metatile row of the streamed BG1 window, `(BG1VOFS + 1) >> 4` (`$90:98FA`, `$90:9379`); the bottom is top + 15. Previously believed: minimap radar window (asm read 2026-11-09).

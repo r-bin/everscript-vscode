@@ -7,7 +7,7 @@ category: 🧠
 name: entity_screen_tile_projection
 title: Project entity world coordinates to screen tile buffer and queue contact shadow
 confidence: confirmed
-tags: [render, camera, shadow, math]
+tags: [render, camera, shadow, math, widescreen, widescreen.collision]
 evidence: ["disasm: tests frustum bounds $0F4A/$0F4E; subtracts vertical origin $0003,y; computes tile row (Y/8 & $FE) and multiplies by stride via $4202; computes tile column (X/8 - 1); calculates buffer offset into $7F:0004 in DP $56; calculates fine sub-tile pixel offsets in DP $66 and $68; dispatches tile contact hook via $90:9DE8", "trace: executed when rendering visible ground contacts and entity shadows"]
 see: [docs/disassembly/engine-core/viewport-culling.md, docs/disassembly/engine-core/camera-system.md, routines/camera_frustum_cull_test.md]
 ---
@@ -15,3 +15,7 @@ Projects an entity's world coordinates into screen tile coordinates and computes
 offset into the VRAM shadow buffer at `$7F:0004`. Extracts fine pixel offsets (`$66`, `$68`) for sub-tile
 alignment, loads the underlying tile attribute into DP `$50`, and invokes `$90:9DE8` to draw contact shadows.
 Full disassembly and clean C reconstruction: `docs/disassembly/engine-core/viewport-culling.md`.
+
+## Widescreen notes
+
+Read whole (2026-11-09): after the same room-edge test as `$90:9545`, computes the room-grid index of the probe point (`(Y − 3) >> 4` row, `(X >> 3) − 1` column, x2) and walks the metatile words from `$7F:0000`. Works on world coordinates for the whole room; nothing is limited to the screen.

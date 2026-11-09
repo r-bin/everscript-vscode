@@ -2,7 +2,7 @@
 addr: $7E:0F94
 name: BG2_METATILE_VIEWPORT_TOP
 type: u16
-tags: [map]
+tags: [map, widescreen, widescreen.streaming]
 confidence: verified
 evidence: ["cdl", "disasm"]
 ---

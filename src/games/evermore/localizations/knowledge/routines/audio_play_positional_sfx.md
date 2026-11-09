@@ -7,7 +7,7 @@ category: 🧠
 name: audio_play_positional_sfx
 title: Positional 2D sound effect player with screen-relative distance attenuation and stereo panning
 confidence: confirmed
-tags: [audio, physics, spc700, math]
+tags: [audio, physics, spc700, math, widescreen, widescreen.audio]
 evidence: ["disasm: computes horizontal dx and vertical dy from screen center ($59+128, $5B+112) to emitter ($02, $04), queries distance penalty table $80:AA27 and attenuation curve $8C:84D4, sends APU volume command $36, computes signed horizontal pan delta / 8 clamped to [-100, +100], sends APU pan command $3E ($8C:8618 RTL)", "docs/disassembly/audio/positional-audio.md"]
 see: [routines/apu_command_handshake.md, routines/play_sound_effect_direct.md, routines/audio_resolve_soundbank_package.md, routines/audio_music_fade_step.md, docs/disassembly/audio/positional-audio.md]
 ---
@@ -19,3 +19,7 @@ Plays a sound effect with dynamic 2D distance attenuation and stereo balance:
 4. Computes signed horizontal panning delta, clamps between `-100` and `+100`, and issues APU
    IPC Command `0x003E` across `$2140`–`$2143`.
 Full disassembly and clean C reconstruction: `docs/disassembly/audio/positional-audio.md`.
+
+## Widescreen notes
+
+The positional block `$8C:8590..$8C:85EC` is never executed in the CDL library (exported as unreached), so screen-relative panning/attenuation is probably unused in play (unverified).

@@ -7,7 +7,7 @@ category: 🧠
 name: script_op_8c_save_menu
 title: Script opcode 0x8C: save menu
 confidence: likely
-tags: [script-vm]
+tags: [script-vm, widescreen, widescreen.menu]
 evidence: ["disasm: handler reads a string key, resolves and decompresses it through $8C:CD33, clears $0106 and sets $0B83 to $800F, runs the fixed transition/tick sequence, clears $143A, and returns Carry Set", "evs: Everscript save(id) emits 0x8C; disasm: $8D:CF1A, string key through $8C:CD33, $8D:D303, field back"]
 see: [docs/scripts/vm.md, docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-8c-save-menu.md]
 ---

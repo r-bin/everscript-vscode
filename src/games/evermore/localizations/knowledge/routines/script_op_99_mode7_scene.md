@@ -7,7 +7,7 @@ category: 🧠
 name: script_op_99_mode7_scene
 title: Script opcode 0x99: run a Mode 7 scene
 confidence: confirmed
-tags: [script-vm]
+tags: [script-vm, widescreen, widescreen.mode7, widescreen.gate]
 evidence: ["disasm: six expressions populate $0E70 and $0E74-$0E78 before calls to $80:BC00, $80:85D8 and field/render helpers; handler returns Carry Set", "trace: the game ran 1 distinct instruction with this opcode (tests/script-vm/goldens.json)", "disasm: $80:BC00 writes 7 to BGMODE ($2105) at $80:BC88 and the Mode 7 matrix registers at $80:C231-$C267; it reads $0E70 throughout (v0.320.0)"]
 see: [docs/scripts/vm.md, docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-99-mode7-scene.md]
 ---

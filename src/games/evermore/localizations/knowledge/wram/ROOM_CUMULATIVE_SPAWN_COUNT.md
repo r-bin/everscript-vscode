@@ -6,7 +6,7 @@ name: ROOM_CUMULATIVE_SPAWN_COUNT
 title: Cumulative entity spawn counter for active room visit
 lifetime: room
 confidence: confirmed
-tags: [engine, entity, room]
+tags: [engine, entity, room, widescreen, widescreen.spawn]
 evidence: ["rom-asm: $8F:B0A8 executes INC $1074 immediately following INC $1072 during entity allocation", "engine: monotonically increases with every spawn event during room lifecycle"]
 see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/ROOM_SPAWNED_ENTITY_COUNT.md]
 ---
@@ -14,3 +14,6 @@ see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/ROOM_SPAWNED_ENTI
 - Incremented by `INC $1074` alongside `$7E:1072` at `$8F:B0A8`.
 - Unlike `$7E:1072`, this counter never decrements when entities despawn; it provides unique sequential spawn identifiers and monitors respawn quotas.
 
+## Widescreen notes
+
+The spawner `$8F:DDBB` only spawns while this is below `$7E:2435` (asm read 2026-11-09; what increments it was not traced).

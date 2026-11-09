@@ -6,7 +6,7 @@ name: ENTITY_SCHEDULER_STABILITY_TIMER
 title: Entity scheduler uninterrupted framerate stability timer
 lifetime: frame
 confidence: confirmed
-tags: [engine, entity, scheduler, performance]
+tags: [engine, entity, scheduler, performance, widescreen, widescreen.activation]
 evidence: ["rom-asm: $8F:DC5E increments INC $107C on lag-free frames and compares against CMP #$0708 (1800 frames / 30 seconds)", "rom-asm: triggers increment of entity batch limit INC $1076 upon reaching stability threshold"]
 see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/ENTITY_BATCH_PROCESS_LIMIT.md, knowledge/wram/ENTITY_SCHEDULER_LAG_COUNTER.md]
 ---

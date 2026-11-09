@@ -2,7 +2,7 @@
 addr: $7E:242D
 name: CAMERA_SCRIPTED_TARGET_Y
 type: u16
-tags: []
+tags: [widescreen, widescreen.camera, widescreen.cutscene]
 confidence: verified
 evidence: ["cdl", "disasm"]
 ---

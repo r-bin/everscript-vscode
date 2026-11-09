@@ -148,5 +148,254 @@
 
   "map.jungle_raptors": {
     "see": ["enemy.raptor", "music.raptor_attack"]
+  },
+
+  "widescreen": {
+    "title": "Widescreen mode for the recomp: everything the margins, culling and enemy modes depend on",
+    "see": [
+      "map"
+    ],
+    "sub": {
+      "gate": {
+        "title": "Widescreen on/off discriminator: field gameplay vs menus, dialogue, Mode 7",
+        "links": [
+          "soe://rom/code/per_frame_field_tick/info.md",
+          "soe://ram/05a9.json",
+          "soe://ram/22ee.json",
+          "soe://ram/0f84.json"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
+      },
+      "camera": {
+        "title": "Camera target $BF/$C1, rendered camera $59/$5B (DP), room bounds and deadzone",
+        "links": [
+          "soe://rom/code/camera_viewport_overworld_scroll_and_clamp/info.md",
+          "soe://rom/code/camera_smooth_tracking_filter_and_screen_bounds/info.md",
+          "soe://rom/code/camera_deadzone_window_filter/info.md",
+          "soe://rom/code/camera_viewport_bounds_clamp_and_seam_check/info.md",
+          "soe://ram/23e9.json",
+          "soe://ram/23ed.json",
+          "soe://ram/08f6.json",
+          "soe://ram/08f8.json",
+          "soe://ram/2401.json",
+          "soe://ram/242b.json",
+          "soe://ram/0f42.json"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
+      },
+      "scroll": {
+        "title": "BG scroll shadows and the camera-mode table that writes them",
+        "links": [
+          "soe://ram/010e.json",
+          "soe://ram/0110.json",
+          "soe://ram/0112.json",
+          "soe://ram/0114.json",
+          "soe://ram/241f.json",
+          "soe://rom/code/screen_shake_sync_window_coordinates/info.md",
+          "soe://rom/code/ptrs_908E68/info.md"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
+      },
+      "parallax": {
+        "title": "Layers that scroll differently from the terrain (camera modes 1 and 3)",
+        "links": [
+          "soe://ram/241f.json",
+          "soe://rom/code/room_effect_heat_shimmer_hdma_wave_generator/info.md",
+          "soe://rom/code/room_tilemap_bg1_h_scroll_matrix_stream/info.md"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
+      },
+      "streaming": {
+        "title": "BG1/BG2 tilemap streaming: window, staging buffers, full upload",
+        "links": [
+          "soe://rom/code/hud_compass_needle_update/info.md",
+          "soe://rom/code/room_tilemap_layer2_parallax_offset_calc/info.md",
+          "soe://rom/code/room_collision_word_fetch_at_pixel_coords/info.md",
+          "soe://rom/code/room_tilemap_camera_scroll_seam_update/info.md",
+          "soe://rom/code/calc_visible_tilemap_bounds_from_scroll/info.md",
+          "soe://ram/0fac.json",
+          "soe://ram/08fa.json",
+          "soe://ram/093a.json",
+          "soe://ram/097a.json",
+          "soe://ram/09ba.json",
+          "soe://ram/0f90.json",
+          "soe://ram/0f98.json",
+          "soe://bus/7f0000"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
+      },
+      "room_bounds": {
+        "title": "Room size, camera limits and the room-edge inset box",
+        "links": [
+          "soe://rom/code/room_header_reader_to/info.md",
+          "soe://ram/08f2.json",
+          "soe://ram/08f4.json",
+          "soe://ram/0f48.json"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
+      },
+      "collision": {
+        "title": "Whole-room collision lookups (world coordinates)",
+        "links": [
+          "soe://rom/code/tile_property_at_pixel_xy/info.md",
+          "soe://rom/code/probe_metatile_collision/info.md",
+          "soe://rom/code/entity_screen_tile_projection/info.md",
+          "soe://rom/code/camera_frustum_cull_test/info.md",
+          "soe://rom/code/eval_tile_collision/info.md",
+          "soe://ram/08ee.json",
+          "soe://bus/7f0000"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
+      },
+      "cull": {
+        "title": "Screen windows that decide what is drawn or targetable",
+        "links": [
+          "soe://rom/code/oam_meta_sprite_assembler_continue/info.md",
+          "soe://rom/code/sprite_slice_clip_and_emit/info.md",
+          "soe://rom/code/sprite_slice_16x16_clip_and_emit/info.md",
+          "soe://rom/code/target_candidate_filter/info.md"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
+      },
+      "oam": {
+        "title": "OAM emitters and buffers (signed clip, X8 bit)",
+        "links": [
+          "soe://rom/code/oam_meta_sprite_assembler_with_clipping/info.md",
+          "soe://rom/code/oam_sprite_composite_blit_and_clip/info.md",
+          "soe://rom/code/entity_sprite_depth/info.md",
+          "soe://rom/code/oam_depth_sorted_sprite_insert_node/info.md",
+          "soe://rom/code/oam_finalize_and_blank_unused/info.md",
+          "soe://ram/abde.json",
+          "soe://ram/adde.json"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
+      },
+      "activation": {
+        "title": "Entity sleep/wake around the screen and the awake budget",
+        "links": [
+          "soe://rom/code/entity_sleep_wake/info.md",
+          "soe://rom/code/entity_go_to_sleep/info.md",
+          "soe://rom/code/companion_dog_sniff_and_forage_timer_tick/info.md",
+          "soe://ram/1070.json",
+          "soe://ram/1072.json",
+          "soe://ram/1076.json",
+          "soe://ram/3ddf.json",
+          "soe://ram/3de1.json",
+          "soe://ram/0ebc.json"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
+      },
+      "spawn": {
+        "title": "Spawn records and the spawner that fills them just off screen",
+        "links": [
+          "soe://rom/code/dog_foraging_ingredient_node_spawn_dice_roll/info.md",
+          "soe://rom/code/entity_wake_up_and_resume_ai/info.md",
+          "soe://rom/code/entity_slot_allocate_and_init/info.md",
+          "soe://ram/5dc3.json",
+          "soe://ram/0ebe.json",
+          "soe://ram/1074.json",
+          "soe://ram/2435.json",
+          "soe://ram/2433.json"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
+      },
+      "entity": {
+        "title": "Entity kinds for per-kind widescreen policy (friendly, scripted, spawner-made)",
+        "links": [
+          "soe://rom/code/entity_sleep_wake/info.md",
+          "soe://ram/3ddf.json"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
+      },
+      "hud": {
+        "title": "HUD, ring menu, dialogue and popups to keep or move",
+        "links": [
+          "soe://rom/code/hud_render_boy_hp_gauge_sprite/info.md",
+          "soe://rom/code/hud_render_dog_hp_gauge_sprite/info.md",
+          "soe://rom/code/direct_sprite_draw_oam/info.md",
+          "soe://rom/code/render_damage_popup_sprites_to_oam/info.md",
+          "soe://rom/code/hud_window_oam_setup/info.md",
+          "soe://rom/code/alchemy_target_cursor_draw/info.md",
+          "soe://ram/051d.json",
+          "soe://ram/0561.json",
+          "soe://bus/7fc800"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
+      },
+      "window": {
+        "title": "HDMA and window effects selected by the camera mode",
+        "links": [
+          "soe://ram/241f.json",
+          "soe://rom/code/ptrs_908E68/info.md"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
+      },
+      "fade": {
+        "title": "Brightness fades (INIDISP shadow $0106) and mosaic",
+        "links": [
+          "soe://rom/code/fade_brightness_step_towards_target/info.md",
+          "soe://rom/code/screen_fade_in_from_black_sync/info.md",
+          "soe://rom/code/fade_screen_to_black_sync/info.md",
+          "soe://rom/code/screen_mosaic_pixelate_transition/info.md",
+          "soe://ram/0106.json",
+          "soe://ram/0b83.json"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
+      },
+      "audio": {
+        "title": "Sound triggers that more active entities would add",
+        "links": [
+          "soe://rom/code/animation_script_play_direct_sfx/info.md",
+          "soe://rom/code/play_sound_effect_direct/info.md",
+          "soe://rom/code/apu_command_handshake/info.md",
+          "soe://rom/code/audio_play_positional_sfx/info.md"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
+      },
+      "cutscene": {
+        "title": "Signals that a script owns the scene",
+        "links": [
+          "soe://ram/28fc.json",
+          "soe://ram/2f28.json",
+          "soe://ram/22ee.json",
+          "soe://ram/242b.json",
+          "soe://ram/0f42.json"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
+      },
+      "limits": {
+        "title": "Active camera limits: scripts narrow them to one part of a map",
+        "links": [
+          "soe://ram/23e9.json",
+          "soe://ram/23ed.json",
+          "soe://rom/code/script_op_teleport_screens/info.md",
+          "soe://rom/code/room_header_reader_to/info.md"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
+      },
+      "menu": {
+        "title": "Full-screen pages (save, status, options, name entry, alchemy) that need a 4:3 fallback",
+        "links": [
+          "soe://rom/code/video_subsystem_hardware_registers_and_ppu_reset/info.md",
+          "soe://rom/code/field_screen_ppu_layers_and_hud_vram_init/info.md",
+          "soe://rom/code/script_op_8c_save_menu/info.md",
+          "soe://rom/code/script_op_7f_name_entry/info.md",
+          "soe://rom/code/script_op_63_select_alchemy/info.md",
+          "soe://rom/code/status_menu_open_dog_entry/info.md",
+          "soe://rom/code/ring_menu_options_open_entry/info.md"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
+      },
+      "mode7": {
+        "title": "Mode 7 scenes (Windwalker flight)",
+        "links": [
+          "soe://ram/0e70.json",
+          "soe://rom/code/script_op_99_mode7_scene/info.md",
+          "soe://rom/code/mode7_flight_sprite_render/info.md",
+          "soe://rom/code/mode7_flight_sample_and_sprite_dispatch/info.md"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
+      }
+    }
   }
 }

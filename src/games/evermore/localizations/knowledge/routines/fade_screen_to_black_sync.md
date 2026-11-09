@@ -9,6 +9,6 @@ title: Synchronous frame-by-frame screen fade-to-black loop ($80:DDF8)
 confidence: confirmed
 evidence: ["disasm: reads brightness from $0106; if 0, returns immediately; copies initial brightness to counter $0B7F; loops: calls $80:858C (wait_for_nmi), preserves forced-blank bit 7 while writing new brightness $0B7F to $0106; decrements $0B7F until 0; callers: $80:CE18, $80:CE23"]
 see: [routines/wait_for_nmi.md]
-tags: [ppu, fade, vblank]
+tags: [ppu, fade, vblank, widescreen, widescreen.fade]
 ---
 Blocks execution while performing a synchronous fade-out to black. Reads active brightness bits from `$0106`: if non-zero, waits for each VBlank NMI frame via `$80:858C`, decrements brightness shadow `$0106` by 1 per frame while preserving forced blank bit 7, and terminates when brightness reaches zero.

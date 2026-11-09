@@ -2,7 +2,7 @@
 addr: $7E:051D
 name: HUD_BOY_STATUS_WIDGET
 type: HudStatusWidget
-tags: [boy, graphics, hud]
+tags: [boy, graphics, hud, widescreen, widescreen.hud]
 confidence: verified
 evidence: ["cdl", "disasm: func_CF8710 initializes widget type 3, X position $19, VRAM dest $1F00, and digit tiles $0545..$0551", "disasm: func_CF9144 updates Boy HP bar and converts current HP to decimal digits"]
 ---

@@ -7,7 +7,7 @@ category: 🧠
 name: script_op_63_select_alchemy
 title: Script opcode 0x63: alchemy selection screen
 confidence: likely
-tags: [script-vm]
+tags: [script-vm, widescreen, widescreen.menu]
 evidence: ["disasm: handler at $8C:DF75 was inspected from the local ROM; it runs a fixed sequence of engine calls, clears $0106 twice, sets $0B83 to $800F twice, and returns Carry Set", "disasm: field off ($8E:E56A, $80:8FEE), menu set up at $8D:B7D6 (windows $034D-$03BD), run by $8D:B98F, field back ($8E:E08B, $90:92C7, $8C:AB10, $8F:87FE on $0F3E)"]
 see: [docs/scripts/opcodes.md]
 ---

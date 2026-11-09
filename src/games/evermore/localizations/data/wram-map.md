@@ -138,14 +138,14 @@
 | `$7E:08F4` | [`ROOM_PIXEL_HEIGHT`](knowledge/wram/ROOM_PIXEL_HEIGHT.md) | `u16` | map | Active room map height in screen pixels (ROOM_METATILE_HEIGHT * 16; $90:8E45). |
 | `$7E:08F6` | [`CAMERA_MAX_ROOM_X`](knowledge/wram/CAMERA_MAX_ROOM_X.md) | `u16` | map | Maximum allowed horizontal camera scroll limit based on active room metatile dimensions. |
 | `$7E:08F8` | [`CAMERA_MAX_ROOM_Y`](knowledge/wram/CAMERA_MAX_ROOM_Y.md) | `u16` | map | Maximum allowed vertical camera scroll limit based on active room metatile dimensions. |
-| `$7E:08FA` | [`viewport_collision_row_0`](knowledge/wram/viewport_collision_row_0.md) | `u16[16]` | map | Viewport metatile collision row 0 (16 words: solidity, ledge, stairs, elevation). |
-| `$7E:091A` | [`viewport_collision_row_1`](knowledge/wram/viewport_collision_row_1.md) | `u16[16]` | map | Viewport metatile collision row 1 (16 words: local terrain physics geometry). |
-| `$7E:093A` | [`viewport_collision_row_2`](knowledge/wram/viewport_collision_row_2.md) | `u16[16]` | map | Viewport metatile collision row 2 (16 words: local terrain physics geometry). |
-| `$7E:095A` | [`viewport_collision_row_3`](knowledge/wram/viewport_collision_row_3.md) | `u16[16]` | map | Viewport metatile collision row 3 (16 words: local terrain physics geometry). |
-| `$7E:097A` | [`viewport_collision_row_4`](knowledge/wram/viewport_collision_row_4.md) | `u16[16]` | map | Viewport metatile collision row 4 (16 words: local terrain physics geometry). |
-| `$7E:099A` | [`viewport_collision_row_5`](knowledge/wram/viewport_collision_row_5.md) | `u16[16]` | map | Viewport metatile collision row 5 (16 words: local terrain physics geometry). |
-| `$7E:09BA` | [`viewport_collision_row_6`](knowledge/wram/viewport_collision_row_6.md) | `u16[16]` | map | Viewport metatile collision row 6 (16 words: local terrain physics geometry). |
-| `$7E:09DA` | [`viewport_collision_row_7`](knowledge/wram/viewport_collision_row_7.md) | `u16[16]` | map | Viewport metatile collision row 7 (16 words: local terrain physics geometry). |
+| `$7E:08FA` | [`viewport_collision_row_0`](knowledge/wram/viewport_collision_row_0.md) | `u16[16]` | map | BG1 column staging buffer of the tilemap streamer $90:98FA, words 0..15 of 32 (not collision; widescreen research 2026-11-09). |
+| `$7E:091A` | [`viewport_collision_row_1`](knowledge/wram/viewport_collision_row_1.md) | `u16[16]` | map | BG1 column staging buffer, words 16..31 (streamer $90:98FA; not collision). |
+| `$7E:093A` | [`viewport_collision_row_2`](knowledge/wram/viewport_collision_row_2.md) | `u16[16]` | map | BG2 column staging buffer, words 0..15 (streamer $90:98FA; not collision). |
+| `$7E:095A` | [`viewport_collision_row_3`](knowledge/wram/viewport_collision_row_3.md) | `u16[16]` | map | BG2 column staging buffer, words 16..31 (streamer $90:98FA; not collision). |
+| `$7E:097A` | [`viewport_collision_row_4`](knowledge/wram/viewport_collision_row_4.md) | `u16[16]` | map | BG1 row staging buffer, words 0..15 (streamer $90:98FA; not collision). |
+| `$7E:099A` | [`viewport_collision_row_5`](knowledge/wram/viewport_collision_row_5.md) | `u16[16]` | map | BG1 row staging buffer, words 16..31 (streamer $90:98FA; not collision). |
+| `$7E:09BA` | [`viewport_collision_row_6`](knowledge/wram/viewport_collision_row_6.md) | `u16[16]` | map | BG2 row staging buffer, words 0..15 (streamer $90:98FA; not collision). |
+| `$7E:09DA` | [`viewport_collision_row_7`](knowledge/wram/viewport_collision_row_7.md) | `u16[16]` | map | BG2 row staging buffer, words 16..31 (streamer $90:98FA; not collision). |
 | `$7E:09FA` | [`viewport_collision_row_8`](knowledge/wram/viewport_collision_row_8.md) | `u16[16]` | map | Viewport metatile collision row 8 (16 words: local terrain physics geometry). |
 | `$7E:0A1A` | [`viewport_collision_row_9`](knowledge/wram/viewport_collision_row_9.md) | `u16[6]` | map, script | Viewport metatile collision row 9 end boundary descriptor ($7E:0A1A..$7E:0A25). |
 | `$7E:0A26` | [`BOY_STATS`](knowledge/wram/BOY_STATS.md) | `CharacterStats` | boy | Boy base RPG stats, level, experience, and equipment block (74 bytes) |
@@ -369,7 +369,7 @@
 | `$7E:0F42` | [`CAMERA_TARGET_ACTOR_PTR`](knowledge/wram/CAMERA_TARGET_ACTOR_PTR.md) | `entity` | boy, map | Pointer to primary actor entity record tracked by camera (points to Boy at $7E:4E89). |
 | `$7E:0F44` | [`VIEWPORT_SCROLL_Y`](knowledge/wram/VIEWPORT_SCROLL_Y.md) | `u16` | map | Vertical world coordinate of top-left camera viewport boundary. |
 | `$7E:0F46` | [`ROOM_TILE_WIDTH`](knowledge/wram/ROOM_TILE_WIDTH.md) | `u16` | map | Room map collision/terrain grid width in 8x8 character tiles (row pitch stride = metatile width * 2; $90:8EE2, $8F:B8E3). |
-| `$7E:0F48` | [`VIEWPORT_CULL_MIN_X`](knowledge/wram/VIEWPORT_CULL_MIN_X.md) | `u16` | map, entity | Camera viewport frustum left bound for 2D entity and shadow culling ($90:9545). |
+| `$7E:0F48` | [`VIEWPORT_CULL_MIN_X`](knowledge/wram/VIEWPORT_CULL_MIN_X.md) | `u16` | map, entity | Room-edge inset box for movement probes (14/7 px inside the room), set once per room by $90:8F80; not the camera. |
 | `$7E:0F4A` | [`VIEWPORT_CULL_MIN_Y`](knowledge/wram/VIEWPORT_CULL_MIN_Y.md) | `u16` | map, entity | Camera viewport frustum top bound for 2D entity and shadow culling ($90:9545). |
 | `$7E:0F4C` | [`VIEWPORT_CULL_MAX_X`](knowledge/wram/VIEWPORT_CULL_MAX_X.md) | `u16` | map, entity | Camera viewport frustum right bound for 2D entity and shadow culling ($90:9545). |
 | `$7E:0F4E` | [`VIEWPORT_CULL_MAX_Y`](knowledge/wram/VIEWPORT_CULL_MAX_Y.md) | `u16` | map, entity | Camera viewport frustum bottom bound for 2D entity and shadow culling ($90:9545). |
@@ -387,10 +387,10 @@
 | `$7E:0F86` | [`ROOM_TRIGGER_ORIGIN_X`](knowledge/wram/ROOM_TRIGGER_ORIGIN_X.md) | `u16` | map, script | Room step-on trigger origin X offset in 16px metatile cells ($8F:ACB1). |
 | `$7E:0F88` | [`ROOM_TRIGGER_ORIGIN_Y`](knowledge/wram/ROOM_TRIGGER_ORIGIN_Y.md) | `u16` | map, script | Room step-on trigger origin Y offset in 16px metatile cells ($8F:ACB1). |
 | `$7E:0F8A` | [`LOADED_PALETTE_TAG`](knowledge/wram/LOADED_PALETTE_TAG.md) | `u16` | graphics, map | Identifier of currently loaded map palette family. |
-| `$7E:0F8C` | [`MINIMAP_RADAR_WINDOW_TOP`](knowledge/wram/MINIMAP_RADAR_WINDOW_TOP.md) | `u16` | map | Minimap radar viewport top vertical clipping bound ($90:A4EC). |
-| `$7E:0F8E` | [`MINIMAP_RADAR_WINDOW_BOTTOM`](knowledge/wram/MINIMAP_RADAR_WINDOW_BOTTOM.md) | `u16` | map | Minimap radar viewport bottom vertical clipping bound ($90:A4EC). |
-| `$7E:0F90` | [`MINIMAP_RADAR_WINDOW_LEFT`](knowledge/wram/MINIMAP_RADAR_WINDOW_LEFT.md) | `u16` | map | Minimap radar viewport left horizontal clipping bound ($90:A4EC). |
-| `$7E:0F92` | [`MINIMAP_RADAR_WINDOW_RIGHT`](knowledge/wram/MINIMAP_RADAR_WINDOW_RIGHT.md) | `u16` | map | Minimap radar viewport right horizontal clipping bound ($90:A4EC). |
+| `$7E:0F8C` | [`MINIMAP_RADAR_WINDOW_TOP`](knowledge/wram/MINIMAP_RADAR_WINDOW_TOP.md) | `u16` | map | Top metatile row of the streamed BG1 window ((BG1VOFS+1)>>4; $90:98FA); not a minimap. |
+| `$7E:0F8E` | [`MINIMAP_RADAR_WINDOW_BOTTOM`](knowledge/wram/MINIMAP_RADAR_WINDOW_BOTTOM.md) | `u16` | map | Bottom metatile row of the streamed BG1 window (top+15); not a minimap. |
+| `$7E:0F90` | [`MINIMAP_RADAR_WINDOW_LEFT`](knowledge/wram/MINIMAP_RADAR_WINDOW_LEFT.md) | `u16` | map | Left metatile column of the streamed BG1 window (BG1HOFS>>4; $90:98FA); not a minimap. |
+| `$7E:0F92` | [`MINIMAP_RADAR_WINDOW_RIGHT`](knowledge/wram/MINIMAP_RADAR_WINDOW_RIGHT.md) | `u16` | map | Right metatile column of the streamed BG1 window (left+$0FAC); not a minimap. |
 | `$7E:0F94` | [`BG2_METATILE_VIEWPORT_TOP`](knowledge/wram/BG2_METATILE_VIEWPORT_TOP.md) | `u16` | graphics, map | BG2 visible metatile viewport top row boundary (ppu_shadow_bg2vofs / 16; $90:93DF). |
 | `$7E:0F96` | [`BG2_METATILE_VIEWPORT_BOTTOM`](knowledge/wram/BG2_METATILE_VIEWPORT_BOTTOM.md) | `u16` | map | BG2 visible metatile viewport bottom row boundary (top + 15; $90:93DF). |
 | `$7E:0F98` | [`BG2_METATILE_VIEWPORT_LEFT`](knowledge/wram/BG2_METATILE_VIEWPORT_LEFT.md) | `u16` | graphics, map | BG2 visible metatile viewport left column boundary (ppu_shadow_bg2hofs / 16; $90:93DF). |
@@ -403,7 +403,7 @@
 | `$7E:0FA6` | [`ROOM_METATILE_STREAM_PTR`](knowledge/wram/ROOM_METATILE_STREAM_PTR.md) | `u16` | map | Byte offset inside room header data stream [$8B] where metatile definitions are stored ($90:8EE2). |
 | `$7E:0FA8` | [`ROOM_COMPRESSED_DATA_SIZE`](knowledge/wram/ROOM_COMPRESSED_DATA_SIZE.md) | `u16` | map | Compressed data byte size for collision and terrain stream passed to decompression dispatcher ($90:8EE2). |
 | `$7E:0FAA` | [`ROOM_METATILE_COUNT_BYTES`](knowledge/wram/ROOM_METATILE_COUNT_BYTES.md) | `u16` | map | Total metatile definition byte length ((metatiles / 3) * 4) in current room blob ($90:8EE2). |
-| `$7E:0FAC` | [`ROOM_PALETTE_GROUP_ID`](knowledge/wram/ROOM_PALETTE_GROUP_ID.md) | `u16` | graphics, map | Active room palette group index (initialized to $11 by reset_per_room_state). |
+| `$7E:0FAC` | [`ROOM_PALETTE_GROUP_ID`](knowledge/wram/ROOM_PALETTE_GROUP_ID.md) | `u16` | graphics, map | Width of the streamed tilemap window in metatiles (17; 28/32 in HDMA effect rooms); not a palette group. |
 | `$7E:0FAE` | [`ROOM_OBJECTS_COUNT`](knowledge/wram/ROOM_OBJECTS_COUNT.md) | `u16` | map | Count of interactive / destructible environmental map objects in current room ($90:8EE2). |
 | `$7E:0FB0` | [`TERRAIN_MUT_ACTIVE`](knowledge/wram/TERRAIN_MUT_ACTIVE.md) | `u16` | system | Set non-zero when animated terrain tile mutations are active in current room. |
 | `$7E:0FB2` | [`STATUS_EFFECTS_FRAME_COUNTER`](knowledge/wram/STATUS_EFFECTS_FRAME_COUNTER.md) | `u16` | combat | Frame counter incremented during status effects per-frame tick dispatcher ($91:BB95, $91:8007). |
@@ -431,10 +431,10 @@
 | `$7E:1069` | [`ROOM_STEP_TRIGGER_TABLE_PTR`](knowledge/wram/ROOM_STEP_TRIGGER_TABLE_PTR.md) | `u24` | map, script | 24-bit far pointer to active room step-on trigger bounding boxes ($8F:ACB1). |
 | `$7E:106C` | [`ACTIVE_ANIM_CHANNELS`](knowledge/wram/ACTIVE_ANIM_CHANNELS.md) | `u16` | map | Count of actively cycling animated tile channels on current map. |
 | `$7E:106E` | [`ANIM_TILE_VRAM_BASE`](knowledge/wram/ANIM_TILE_VRAM_BASE.md) | `u16` | graphics | Destination base address in VRAM where animated tiles are DMA-streamed. |
-| `$7E:1070` | [`ENTITY_BATCH_TARGET_CAPACITY`](knowledge/wram/ENTITY_BATCH_TARGET_CAPACITY.md) | `u16` | entity | Active entity processing target capacity ($8F:DC8A). |
+| `$7E:1070` | [`ENTITY_BATCH_TARGET_CAPACITY`](knowledge/wram/ENTITY_BATCH_TARGET_CAPACITY.md) | `u16` | entity | Number of awake entities, Boy and Dog included (2 at room setup; +1 wake, -1 sleep). |
 | `$7E:1072` | [`ROOM_SPAWNED_ENTITY_COUNT`](knowledge/wram/ROOM_SPAWNED_ENTITY_COUNT.md) | `u16` | map, entity | Current count of spawned active entities in room ($8F:B0A5). |
 | `$7E:1074` | [`ROOM_CUMULATIVE_SPAWN_COUNT`](knowledge/wram/ROOM_CUMULATIVE_SPAWN_COUNT.md) | `u16` | map, entity | Cumulative entity spawn counter for active room visit ($8F:B0A8). |
-| `$7E:1076` | [`ENTITY_BATCH_PROCESS_LIMIT`](knowledge/wram/ENTITY_BATCH_PROCESS_LIMIT.md) | `u16` | entity | Dynamic entity execution batch slice limit (1..6 entities/frame) ($8F:DC6A). |
+| `$7E:1076` | [`ENTITY_BATCH_PROCESS_LIMIT`](knowledge/wram/ENTITY_BATCH_PROCESS_LIMIT.md) | `u16` | entity | Awake-entity budget (6, lowered to 5 on lag; $8F:DC34); not a per-frame slot count. |
 | `$7E:1078` | [`ENTITY_SCHEDULER_FRAME_LATCH`](knowledge/wram/ENTITY_SCHEDULER_FRAME_LATCH.md) | `u16` | entity | Entity scheduler frame counter snapshot latch ($8F:DC53). |
 | `$7E:107A` | [`ENTITY_SCHEDULER_LAG_COUNTER`](knowledge/wram/ENTITY_SCHEDULER_LAG_COUNTER.md) | `u16` | entity | Entity scheduler consecutive frame drop counter ($8F:DC73). |
 | `$7E:107C` | [`ENTITY_SCHEDULER_STABILITY_TIMER`](knowledge/wram/ENTITY_SCHEDULER_STABILITY_TIMER.md) | `u16` | entity, system | Entity scheduler uninterrupted framerate stability timer ($8F:DC5E). |
@@ -1106,7 +1106,7 @@
 | `$7E:3D2D` | [`boss_segment_slot_4`](knowledge/wram/boss_segment_slot_4.md) | `BossSegmentSlot` | combat, script | Boss child segment slot 4 descriptor (89 bytes: free link, joint offsets, parent ptr). |
 | `$7E:3D86` | [`boss_segment_slot_5`](knowledge/wram/boss_segment_slot_5.md) | `BossSegmentSlot` | combat, script | Boss child segment slot 5 descriptor (89 bytes: free link, joint offsets, parent ptr). |
 | `$7E:3DDF` | [`ACTIVE_ENTITY_HEAD`](knowledge/wram/ACTIVE_ENTITY_HEAD.md) | `u16` | map, entity | Head pointer of linked list chaining all active entities in current room. |
-| `$7E:3DE1` | [`ACTIVE_COMPANION_HEAD`](knowledge/wram/ACTIVE_COMPANION_HEAD.md) | `u16` | dog, entity | Head pointer of singly-linked list chaining secondary active entities (companion Dog and auxiliary multipart actors). |
+| `$7E:3DE1` | [`ACTIVE_COMPANION_HEAD`](knowledge/wram/ACTIVE_COMPANION_HEAD.md) | `u16` | dog, entity | Head of the asleep entity list (link +$5E; $8F:C514 / $8F:C40F). |
 | `$7E:3DE3` | [`ENTITY_RECORD_FREE_HEAD`](knowledge/wram/ENTITY_RECORD_FREE_HEAD.md) | `u16` | entity | Head pointer to singly-linked pool of free runtime entity records in dynamic actor memory. |
 | `$7E:3DE5` | [`ENTITY_DYNAMIC_POOL`](knowledge/wram/ENTITY_DYNAMIC_POOL.md) | `EntityRecord[30]` | entity | Active enemy, NPC, and dynamic entity instance slots (30 slots × 142 bytes) |
 | `$7E:4E89` | [`ENTITY_PLAYER_BOY`](knowledge/wram/ENTITY_PLAYER_BOY.md) | `CharacterEntity` | boy, combat | Main player entity instance with full combat and progression stats |

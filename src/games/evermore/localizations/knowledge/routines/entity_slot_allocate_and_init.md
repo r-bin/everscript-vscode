@@ -7,7 +7,7 @@ category: 🧠
 name: entity_slot_allocate_and_init
 title: Entity Slot Allocator & Attribute Initializer
 confidence: confirmed
-tags: [combat, entity, graphics]
+tags: [combat, entity, graphics, widescreen, widescreen.activation, widescreen.spawn]
 evidence: ["disasm: $8F:B0A4 increments active counters $1072/$1074, binds animation track $90:9815, sets heading +$22=0x08, parent link +$60, and purges all 4 status slots +$46, +$4C, +$52, +$58 to $FFFF"]
 see: [routines/projectile_spawn_master.md, combat/projectiles.md, combat/status-effects.md]
 ---

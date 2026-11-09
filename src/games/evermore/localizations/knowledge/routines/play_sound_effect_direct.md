@@ -7,7 +7,7 @@ category: 🧠
 name: play_sound_effect_direct
 title: Play Sound Effect (Direct Dispatch)
 confidence: confirmed
-tags: [audio]
+tags: [audio, widescreen, widescreen.audio]
 evidence: ["disasm: $8C:82DC stores SFX ID into $0E4F and branches directly to $8C:831D to send command $04 to APU port $2140 via handshake $8C:81FD; invoked by script opcode 0x30/0x31/0x32 and animation bytecode"]
 see: [routines/play_sound_effect_with_package.md, routines/apu_send_sfx_command.md, routines/apu_command_handshake.md, audio/sfx-queue.md]
 ---

@@ -7,7 +7,7 @@ category: 🧠
 name: oam_depth_sorted_sprite_insert_node
 title: Inserts sprite render records into a Y-depth sorted linked list for proper hardware OAM layering
 confidence: confirmed
-tags: [sprites, oam, rendering]
+tags: [sprites, oam, rendering, widescreen, widescreen.oam]
 evidence:
   - "disasm: full body read ($80:960A-$80:9684, 51 instructions); splices the 15-byte sprite node at $7E:1276 into the doubly-linked depth-sorted list at $7E:50A7.. using the bucket finger at $7E:50AD + ((key & $03C0) >> 3) and advances $7E:1276 by $000F"
   - "c: G1 passed (tools/c-to-rom/g1.mts)"

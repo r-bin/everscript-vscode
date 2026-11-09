@@ -7,7 +7,7 @@ category: 🧠
 name: room_effect_heat_shimmer_hdma_wave_generator
 title: Heat shimmer and desert mirage HDMA scanline wave displacement generator
 confidence: confirmed
-tags: [map, effect, hdma, heat-shimmer, scroll, weather]
+tags: [map, effect, hdma, heat-shimmer, scroll, weather, widescreen, widescreen.scroll, widescreen.window]
 evidence: ["disasm: entry 5 in map effect table at $90:8E68; synchronizes BG1/BG2 scroll shadows $010E-$0114; double-buffers HDMA table $151A/$153E via $1518; projects sine wave via $80:AD28; writes scanline bands from $90:9DC5", "trace: room effect byte 5 in header activates desert mirage line wobble"]
 see: [docs/disassembly/maps/heat-shimmer.md, routines/trig_sine_fixed_point_scale.md, knowledge/wram/JOYPAD1_TRIGGERED.md]
 ---

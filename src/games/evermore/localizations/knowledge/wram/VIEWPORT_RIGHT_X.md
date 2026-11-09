@@ -2,7 +2,7 @@
 addr: $7E:2403
 name: VIEWPORT_RIGHT_X
 type: u16
-tags: []
+tags: [widescreen, widescreen.camera]
 confidence: verified
 evidence: ["cdl", "disasm"]
 ---

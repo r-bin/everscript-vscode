@@ -6,7 +6,7 @@ name: AUDIO_TARGET_VOLUME
 title: Screen brightness fade controller
 lifetime: frame
 confidence: confirmed
-tags: [screen, fade, ppu]
+tags: [screen, fade, ppu, widescreen, widescreen.fade]
 evidence: ["disasm: per-frame engine loop routine $80:DE95 checks bit 15, compares target brightness in low byte with $0106 (INIDISP shadow), increments or decrements $0106 by 1 each frame until target reached, then clears $0B83 with STZ $0B83", "disasm: script opcode 0x26 ($8C:DC18) writes $800F to fade in to full brightness (15); opcode 0x27 ($8C:DC10) writes $8000 to fade out to black (0); opcode 0x90 ($8C:DC35) writes $8000 | E"]
 see: [knowledge/wram/JOYPAD1_TRIGGERED.md, routines/script_op_26_fade_in.md, routines/script_op_27_fade_out.md, routines/script_op_90_fade_to.md]
 ---
@@ -27,3 +27,7 @@ brightness matches the target, the routine zeroes `$7E:0B83` to stop the transit
 Previously believed: in early reverse-engineering notes, this was hypothesized to be a
 joypad control/action mask. Routine `$80:DE95` directly accesses `$7E:0106` (`$2100` `INIDISP` shadow)
 and confirms it is exclusively for screen brightness transitions.
+
+## Widescreen notes
+
+A brightness target, not audio: bit 15 = fade running, low byte = target INIDISP brightness; `$80:DE96` steps `$7E:0106` toward it and clears this word at the target (asm read 2026-11-09).

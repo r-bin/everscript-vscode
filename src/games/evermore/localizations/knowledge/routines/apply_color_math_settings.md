@@ -7,7 +7,7 @@ category: 🧠
 name: apply_color_math_settings
 title: Apply color math settings
 confidence: confirmed
-tags: [script-vm]
+tags: [script-vm, widescreen, widescreen.window, widescreen.fade]
 evidence: ["disasm: copies $0F80-$0F83 to PPU registers $212C/$212D/$2131/$2130 and sets or clears $0B29 bit 0 from $7E:22EA bit 7", "trace: the game ran 3 distinct instructions with this opcode (tests/script-vm/goldens.json)"]
 see: [docs/scripts/vm.md, docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-83-apply-screen-layers.md]
 ---

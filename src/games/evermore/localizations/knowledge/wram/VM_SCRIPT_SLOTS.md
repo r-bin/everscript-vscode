@@ -6,7 +6,7 @@ name: VM_SCRIPT_SLOTS
 title: Primary Script VM execution slot (79-byte thread context)
 lifetime: room
 confidence: verified
-tags: [script-vm, threads]
+tags: [script-vm, threads, widescreen, widescreen.cutscene]
 evidence: ["disasm: func_CCCEE9 loops from $28FC to $2F28 in 79-byte ($4F) strides across all 20 thread slots", "disasm: func_CCCF18 initializes PC at +$00, bank at +$02, status at +$03, timer at +$05"]
 ---
 The primary thread slot for the Secret of Evermore Event Script VM.
@@ -19,3 +19,7 @@ Contains:
 - `+$0B`: Bound Actor Entity record pointer
 - `+$0D`: Subroutine return address (gosub stack)
 - `+$0F`..`+$4E`: 32 local 16-bit variables (`local[0..31]`)
+
+## Widescreen notes
+
+Cheap cutscene watch: 20 slots x `$4F` bytes, `+$00` script address (24 bit), `+$03` state (2 run, 4 wait, 0 free), `+$0D` entity (layout from the debugger, src/games/evermore/debugger/script-frames.ts). A per-frame scan of 20 states and addresses against a list of cutscene scripts is enough for the recomp (unverified as a cutscene detector).

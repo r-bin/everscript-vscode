@@ -7,7 +7,7 @@ category: 🧭
 name: ring_menu_select_and_cost_check
 title: Ring menu icon selection and transaction cost validator
 confidence: confirmed
-tags: [ui, ring-menu]
+tags: [ui, ring-menu, widescreen, widescreen.hud]
 evidence: ["disasm: reads icon index from ($95),y; looks up 8-byte descriptor from $8E:8000,x; extracts sub-item ID at +0x06; reads price from $0BC5 and player currency/inventory at $2348/$0AC6; verifies balance; on failure sets bit 4 in $05A9 and jumps to error buzz sound ($AD67)"]
 see: [docs/disassembly/ui/ring-menu.md, table/8e8000.md]
 ---

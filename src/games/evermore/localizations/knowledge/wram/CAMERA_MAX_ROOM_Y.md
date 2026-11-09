@@ -6,7 +6,7 @@ name: CAMERA_MAX_ROOM_Y
 title: Active viewport metatile collision and height matrix
 lifetime: room
 confidence: confirmed
-tags: [collision, map, physics]
+tags: [collision, map, physics, widescreen, widescreen.camera, widescreen.room_bounds]
 evidence: ["disasm: func_D099FB loads metatile collision words from $7F:0000 into $7E:08FA..$7E:0A25", "disasm: collision_geometry_bits_3_0 ($D0:9DE8) and func_D09E93 evaluate this matrix against entity coordinates"]
 see: [knowledge/wram/ROOM_METATILE_GRID.md]
 ---

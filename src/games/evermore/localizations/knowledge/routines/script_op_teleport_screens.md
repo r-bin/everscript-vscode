@@ -7,7 +7,7 @@ category: 🧠
 name: script_op_teleport_screens
 title: Teleport camera and active entities by (dx, dy) screens
 confidence: verified
-tags: [script-vm, camera, entity, collision]
+tags: [script-vm, camera, entity, collision, widescreen, widescreen.limits, widescreen.camera]
 evidence: ["disasm: $8C:E49D (script opcode 0x96 handler) evaluates dx and dy screen expressions, calls $90:A001", "disasm: adds dx*512 px to DP $BF and dy*512 px to DP $C1, then iterates active entities from $7E:3DDF", "disasm: $90:A097 tests passability via JSL $90:9561 and skips JSL $8F:C2E4 on carry clear (BCC)"]
 ---
 Helper for script opcode `0x96` (`Teleport player by X, Y screens`).
@@ -20,3 +20,6 @@ Converts screen delta arguments to 512-pixel increments:
 5. If destination is passable, commits new position via `JSL $8F:C2E4`.
 6. If destination is impassable/solid (`BCC` at `$90:A09B`), skips `JSL $8F:C2E4`—the entity remains at its current position while the camera moves.
 
+## Widescreen notes
+
+Read whole (2026-11-09): moves `$BF`/`$59` and the scroll shadows by dx x 512 and dy x 512 px, resets the streamed windows, and moves every awake entity by the same offset (clamped into the room). Maps with several 512 px 'screens' (room-in-room) rely on it; the camera limits `$23E9..$23EF` keep each part apart.

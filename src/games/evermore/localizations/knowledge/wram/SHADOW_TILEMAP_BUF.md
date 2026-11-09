@@ -2,7 +2,7 @@
 addr: $7F:C800
 name: SHADOW_TILEMAP_BUF
 type: ShadowTilemapBuf
-tags: [graphics, dialogue, hud, bank7f]
+tags: [graphics, dialogue, hud, bank7f, widescreen, widescreen.hud]
 confidence: verified
 evidence: ["disasm: 32x32 shadow tilemap RAM for dialogue windows, choice boxes, and HUD border 9-slice frames before VRAM DMA commit ($8C:CC43, $8C:CB64)", "docs/disassembly/ui/dialogue-choice-box.md", "docs/disassembly/ui/dialogue-box-frame.md", "reconstructed-c/8C/8CB647_dialogue_choice_box.c"]
 ---

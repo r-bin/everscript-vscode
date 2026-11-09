@@ -6,7 +6,7 @@ name: SCRIPT_EXECUTION_LOCK_FLAGS
 title: Script execution suspend gate and transition lock word
 lifetime: room
 confidence: confirmed
-tags: [script, vm, flags, transition]
+tags: [script, vm, flags, transition, widescreen, widescreen.cutscene, widescreen.gate]
 evidence: ["disasm: func_8CCEE9 clears bit 0 (AND #$FFFE) during room transition VM reset, unfreezing actors and script slots", "disasm: func_8DB4FA sets bit 0 (ORA #$0001) during dialogue sequences to lock background script processing", "disasm: func_80C4A3 tests and clears bit 0 of high byte $7E:22EF (bit 8: AND #$FFFE) during Mode 7 flight transitions"]
 see: [docs/disassembly/engine-core/wram-map.md]
 ---

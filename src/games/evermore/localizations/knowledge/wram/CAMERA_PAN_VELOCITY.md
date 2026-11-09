@@ -2,7 +2,7 @@
 addr: $7E:242F
 name: CAMERA_PAN_VELOCITY
 type: u16
-tags: []
+tags: [widescreen, widescreen.camera]
 confidence: verified
 evidence: ["cdl", "disasm"]
 ---

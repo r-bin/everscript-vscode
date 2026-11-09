@@ -2,7 +2,7 @@
 addr: $7E:2433
 name: SPAWN_SYSTEM_ENABLE
 type: u16
-tags: []
+tags: [widescreen, widescreen.spawn]
 confidence: verified
 evidence: ["cdl", "disasm"]
 ---

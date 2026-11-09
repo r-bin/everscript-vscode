@@ -6,7 +6,7 @@ name: ENTITY_ROUND_ROBIN_CURSOR
 title: Entity pool round-robin processing cursor pointer
 lifetime: room
 confidence: confirmed
-tags: [engine, entity, scheduler, pointer]
+tags: [engine, entity, scheduler, pointer, widescreen, widescreen.activation]
 evidence: ["rom-asm: $8F:DCA3 LDX $0EBC loads current entity slot pointer", "rom-asm: loops 6 times per frame, stepping by ADC #$008E, wrapping at CMP #$4E89 back to LDA #$3DE5, and saving back with STX $0EBC"]
 see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/ENTITY_BATCH_PROCESS_LIMIT.md]
 ---
@@ -16,3 +16,6 @@ see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/ENTITY_BATCH_PROC
 - For each processed entity, it advances the cursor with `ADC #$008E`. If the cursor reaches the Boy record (`CMP #$4E89`), it wraps around to the beginning of the entity pool (`LDA #$3DE5`).
 - Cycles through the entire 30-slot entity pool across 5 consecutive frames.
 
+## Widescreen notes
+
+Next entity slot for the sleep/wake pass; the pass visits 6 slots per frame from `$3DE5` in steps of `$8E`, wrapping before `$4E89` (30 enemy/NPC slots; Boy `$4E89` and Dog `$4F37` follow) (asm read 2026-11-09).

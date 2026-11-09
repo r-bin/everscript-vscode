@@ -7,7 +7,7 @@ category: 🧠
 name: direct_sprite_draw_oam
 title: Direct sprite draw (OAM) with hierarchical bounding box viewport culler
 confidence: confirmed
-tags: [sprite, oam, culling, viewport]
+tags: [sprite, oam, culling, viewport, widescreen, widescreen.oam, widescreen.hud]
 evidence: ["disasm: [$26] byte 0 = chunk count (0: return), byte 1 = offset of the first chunk; count >= 3 → bytes 2-5 a box (x:s8 y:s8 w h) tested against the screen; each chunk 4 bytes: flags ($DF), x:s8 + $02, y:s8 + $04, block:u16 looked up in the 8x8 ($7D51) or 16x16 ($97A9) tile caches ($80:A4B5 on a miss); OAM entry x, y, tile, (flags & $07) + $06 at $ABDE (v0.283.0)", "callers: the entity draw ($8F:C6C5, $90:81F0) and many HUD routines; $80:9040 is the same without bit 0 of the mask"]
 see: [docs/disassembly/entities/sprite-clip-cull.md, routines/sprite_slice_clip_and_emit.md, routines/sprite_slice_16x16_clip_and_emit.md, routines/oam_chunk_attribute.md, routines/unknown_809751.md]
 ---

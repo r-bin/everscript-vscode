@@ -7,7 +7,7 @@ category: 🧠
 name: entity_sprite_depth
 title: Pick a character's sprite priority from the tile under it
 confidence: confirmed
-tags: [entity, sprite, collision]
+tags: [entity, sprite, collision, widescreen, widescreen.oam]
 evidence: ["disasm: reads entity +0x3C (the collision word under it); gate nibble 8 -> not queued; plane compare against +0x18; then bit 12 -> #$CC30 (priority 3); nibble 4 -> #$FC20; else #$CC20; result to $06", "trace: walking_against_flower.txt, +0x3C words match the decoded collision of room 0x38", "disasm: $8FC7AF EOR #$0400 / BIT #$0F00 / BEQ -> $8FC7BC LDA #$FC20 (v0.219.0, ROM read 2026-10-16)", "c: G1 passed (tools/c-to-rom/g1.mts, v0.351.0): the bound C equals the ROM on 32 entry states sampled from the 2:20 no-input reference and 505 fuzzed ones; snes9x agrees with the interpreter on 32; a mutation is caught"]
 see: [docs/entities/sprite_priority.md, docs/map-format/wading.md, rom/809433]
 ---
@@ -31,3 +31,7 @@ The `$FC20` row is used by no vanilla tile and has not been seen in the running 
 Previously believed: `$FC20` and `$CC20` differ only in which chunk fields survive, not in
 depth (`sprite_priority.md` before 2026-10-16). `functions.ts` still names this routine
 'Sprite in front of canopy (bit 12)'.
+
+## Widescreen notes
+
+Computes the entity's screen position `$02`/`$04` = world − `$59`/`$5B` (BG1 scroll in camera mode 2) and the depth key `+$84`; a key outside 9 bits becomes 0. Horizontal culling happens later in the OAM assembler (asm read 2026-11-09).

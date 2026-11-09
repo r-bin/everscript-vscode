@@ -7,7 +7,7 @@ category: 🧠
 name: video_subsystem_hardware_registers_and_ppu_reset
 title: Resets SNES PPU registers, forced blanking, window masks, and VRAM DMA transfer queues during scene transition
 confidence: guess
-tags: [unverified, rea-partial-read]
+tags: [unverified, rea-partial-read, widescreen, widescreen.menu, widescreen.gate]
 evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
 ---
 Low confidence — Resets SNES PPU registers, forced blanking, window masks, and VRAM DMA transfer queues during scene transitions.
@@ -32,3 +32,7 @@ It configures forced blanking via PPU register `$2100` (`#$8F`), initializes spr
 - `$2100` (SNES PPU Screen Display register - forced blanking)
 - `$2101` (SNES PPU Object Size and OAM base register)
 - `$010E..$0118` (Window clipping and masking configuration words)
+
+## Widescreen notes
+
+Called when a full-screen page opens (save menu `$8C:E39A`, name entry `$8C:E17A`, alchemy page `$8C:DF75`, status `$8E:9325`, options `$8E:95A6`, ...): forced blank, TM = `$13`, CGADSUB = `$41`, window and DMA reset (asm read in part, 2026-11-09). Entry = 'a menu page is on screen' for the widescreen gate; `$8E:E08B` restores the field.

@@ -7,7 +7,7 @@ category: 🧠
 name: script_op_7f_name_entry
 title: Script opcode 0x7F: name entry screen
 confidence: likely
-tags: [script-vm]
+tags: [script-vm, widescreen, widescreen.menu]
 evidence: ["disasm: handler at $8C:E17A reads a word index, selects values from $8C:E1FD/$8C:E1FF, runs field/render calls, writes $0106/$0B83, and returns Carry Set; one table case also calls $80:B149", "disasm: word index into 3-byte pointers at $8C:E1FD: 0 -> $7E:2210, 3 -> $7E:2234 (+ default from $C4:60AC via $80:B149); screen $8D:8000 / $8D:82CB"]
 see: [docs/scripts/opcodes.md]
 ---

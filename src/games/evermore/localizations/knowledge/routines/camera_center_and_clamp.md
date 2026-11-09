@@ -7,7 +7,7 @@ category: 🧠
 name: camera_center_and_clamp
 title: Camera centering and room boundary clamping
 confidence: confirmed
-tags: [camera, engine-core]
+tags: [camera, engine-core, widescreen, widescreen.camera]
 evidence: ["disasm: checks $242B (if >= 0 uses fixed anchor +128,+112; else follows entity at $0F42 reading +$1A,+$1C); locks VRAM via INC $0F3A; centers top-left (subtracts 128 X, 112 Y); clamps to room boundaries $7E:23E9..$23EF; writes camera view origin to DP $BF and DP $C1; calls $8E68/$9379/$93AA to stream background metatiles; unlocks VRAM via DEC $0F3A", "room-enter: invoked during initial room focus and per-frame field ticks"]
 see: [docs/disassembly/engine-core/camera-system.md, docs/disassembly/engine-core/room-enter.md]
 ---

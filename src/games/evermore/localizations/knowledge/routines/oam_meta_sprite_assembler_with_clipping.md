@@ -7,7 +7,7 @@ category: 🧠
 name: oam_meta_sprite_assembler_with_clipping
 title: Assembles multi-cel composite meta-sprites into hardware OAM buffers with off-screen viewport clipping
 confidence: guess
-tags: [unverified, rea-partial-read]
+tags: [unverified, rea-partial-read, widescreen, widescreen.oam, widescreen.cull]
 evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
 ---
 Low confidence — Assembles multi-cel composite meta-sprites into hardware OAM buffers with off-screen viewport clipping.

@@ -6,8 +6,8 @@ kind: code
 category: 🧠
 name: room_tilemap_camera_scroll_seam_update
 title: Calculates dirty 16x16 tile column and row seams for VRAM tilemap streaming as the camera scrolls
-confidence: guess
-tags: [unverified, rea-partial-read]
+confidence: likely
+tags: [unverified, rea-partial-read, widescreen, widescreen.streaming]
 evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
 ---
 Low confidence — Calculates dirty 16x16 tile column and row seams for VRAM tilemap streaming as the camera scrolls.
@@ -27,3 +27,7 @@ When camera position variables (`$0112`, `$0114`) cross 16-pixel tile seams, the
 - `$0112` (Camera world horizontal scrolling coordinate)
 - `$0114` (Camera world vertical scrolling coordinate)
 - `$0F98`, `$0F9A` (VRAM dirty seam streaming buffer entries)
+
+## Widescreen notes
+
+Read whole (2026-11-09): the **full-window** BG tilemap upload, not a seam update. For BG2 (VRAM `$0400`, metatile layer word `+2`; BG1 enters at `$90:93DF` with 0/0) it clears the 32x32 map by a fixed-source DMA from `$7F:8000`, then writes `$0FAC` cells x 15 rows from the room grid `$7F:0000` straight to `$2118`, wrapping at 32 columns. Only this window is drawn; the rest of the VRAM ring stays blank.

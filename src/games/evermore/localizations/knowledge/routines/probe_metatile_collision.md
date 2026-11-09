@@ -7,7 +7,7 @@ category: 🧠
 name: probe_metatile_collision
 title: Composite 3-tier entity movement probe (Plane gate, Room bounds, Body collision)
 confidence: confirmed
-tags: [collision, map, physics, actor, elevation]
+tags: [collision, map, physics, actor, elevation, widescreen, widescreen.collision]
 evidence: ["disasm: checks flying flag bit 11 in +$10,Y; fetches cell collision word via $90:9815; validates plane gate via $8F:A946; tests viewport boundary $90:9561; evaluates actor body overlap via $8F:B4AB", "trace: called before every entity step and knockback movement"]
 see: [docs/disassembly/maps/elevation-transfer.md, routines/elevation_plane_update_bits_5_4_kept_on.md, routines/elevation_plane_transition_gate.md, routines/test_entity_pair_overlap.md]
 ---
@@ -24,3 +24,7 @@ Composite entity movement gatekeeper. Performs a 3-tier movement eligibility tes
 4. **Body Hitbox Collision**: Calls `$8F:B4AB` to detect impassable solid actor-to-actor collisions.
 Returns Carry Set if step is permitted, or Carry Clear if blocked.
 Full disassembly and clean C reconstruction: `docs/disassembly/maps/elevation-transfer.md`.
+
+## Widescreen notes
+
+Read whole (2026-11-09): `+$10` bit `$0800` (trail follower) skips everything; `$0400` (phasing) only tests the room-edge box; otherwise `tile_property_at_pixel_xy`, the elevation gate, the room-edge projection `$90:9561` and the body test `$8F:B46D` (skipped with `$0080`). No test depends on the camera, so an off-screen awake entity collides with walls exactly as an on-screen one.

@@ -2,8 +2,12 @@
 addr: $7E:099A
 name: viewport_collision_row_5
 type: u16[16]
-tags: []
+tags: [widescreen, widescreen.streaming]
 confidence: verified
 evidence: ["cdl", "disasm"]
 ---
 Viewport metatile collision row 5 (16 words: local terrain physics geometry).
+
+## Widescreen notes
+
+Second half of the BG1 row staging buffer (see viewport_collision_row_4). Previously believed: collision row.

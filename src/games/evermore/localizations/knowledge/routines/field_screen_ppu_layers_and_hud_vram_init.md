@@ -7,7 +7,7 @@ category: 🧠
 name: field_screen_ppu_layers_and_hud_vram_init
 title: Configures SNES PPU layer registers and VRAM base addresses for gameplay, triggering HUD gauge DMA
 confidence: guess
-tags: [unverified, rea-partial-read]
+tags: [unverified, rea-partial-read, widescreen, widescreen.menu, widescreen.gate]
 evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
 ---
 Low confidence — Configures SNES PPU layer registers and VRAM base addresses for gameplay, triggering HUD gauge DMA.
@@ -31,3 +31,7 @@ It sets BG mode 1 (`$2105 = #$39`), and calls `$8F:8710` (`field_hud_weapon_stam
 - `$2101` (SNES PPU Object Size and OAM base register)
 - `$2105` (SNES PPU BG Mode and Character Size register)
 - `$2107..$210C` (SNES PPU Tilemap and Character Base Address registers)
+
+## Widescreen notes
+
+Restores the field PPU setup (TM = `$17`, TS = `$11`) after menus, saves and Mode 7 scenes; its 15 callers include the status menu and the save menu (asm read in part, 2026-11-09). Exit marker for the widescreen menu gate.

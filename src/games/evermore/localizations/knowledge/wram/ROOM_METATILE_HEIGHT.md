@@ -2,7 +2,7 @@
 addr: $7E:08F0
 name: ROOM_METATILE_HEIGHT
 type: u16
-tags: []
+tags: [widescreen, widescreen.collision]
 confidence: verified
 evidence: ["cdl", "disasm"]
 ---

@@ -2,7 +2,7 @@
 addr: $7E:2407
 name: VIEWPORT_BOTTOM_Y
 type: u16
-tags: []
+tags: [widescreen, widescreen.camera]
 confidence: verified
 evidence: ["cdl", "disasm"]
 ---

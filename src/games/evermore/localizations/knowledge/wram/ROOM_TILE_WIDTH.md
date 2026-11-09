@@ -2,7 +2,7 @@
 addr: $7E:0F46
 name: ROOM_TILE_WIDTH
 type: u16
-tags: [map]
+tags: [map, widescreen, widescreen.streaming]
 confidence: verified
 evidence: ["cdl", "disasm"]
 ---

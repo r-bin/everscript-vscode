@@ -7,7 +7,7 @@ category: 🧠
 name: apu_command_handshake
 title: APU command handshake / `$2140` spinlock
 confidence: confirmed
-tags: [audio, spc700]
+tags: [audio, spc700, widescreen, widescreen.audio]
 evidence: ["disasm: SEI, SEP #$20, checks DP $9F against $2142 with 0x2800 timeout; increments sequence tag with 0-skip; writes 16-bit payload (from Y) to $2140 and command+seq (from A) to $2142; restores PLP", "main-loop: called by play_music_track ($8C:828F) and boot/fade sequences"]
 see: [docs/disassembly/audio/spc-handshake.md]
 ---

@@ -7,7 +7,7 @@ category: 🎛️
 name: status_menu_open_dog_entry
 title: Character status menu entrypoint (opens with Dog selected)
 confidence: likely
-tags: [status-screen, dog, ui, menu]
+tags: [status-screen, dog, ui, menu, widescreen, widescreen.menu]
 evidence: ["disasm: counterpart to $8E:92AE; saves stack context; calls $8D:A9A0 (status_menu_dog_stats_screen_formatter) to format Dog companion status card; enters $8D:AFDA (status_menu_boy_input_loop); restores graphics via $90:92C7 on close (REA dossier 0x8e9325)"]
 ---
 Top-level menu activation routine that launches the character status screen starting on the Dog companion. Builds the dog stats card via $8D:A9A0, runs the interactive input loop, and restores field graphics on exit.

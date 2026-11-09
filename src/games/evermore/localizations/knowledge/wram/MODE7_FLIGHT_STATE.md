@@ -6,7 +6,7 @@ name: MODE7_FLIGHT_STATE
 title: Mode 7 Windwalker vehicle flight navigation state machine
 lifetime: room
 confidence: confirmed
-tags: [engine, mode7, flight, vehicle]
+tags: [engine, mode7, flight, vehicle, widescreen, widescreen.mode7, widescreen.gate]
 evidence: ["rom-asm: $80:C4A3 evaluates flight phase: 0=ground, 1=takeoff ascent, 2=flight cruising, 3=landing descent, 4=touchdown, 5=realm transition", "rom-asm: initialized/cleared by $80:C50D STZ $0E70, set to 1 by $8E:9882 on Windwalker launch"]
 see: [docs/disassembly/engine-core/wram-map.md, knowledge/wram/MODE7_FLIGHT_PITCH_ANGLE.md, knowledge/wram/SCRIPT_EXECUTION_LOCK_FLAGS.md]
 ---

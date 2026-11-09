@@ -7,7 +7,7 @@ category: 🧠
 name: mode7_flight_sample_and_sprite_dispatch
 title: Mode 7 flight sample and sprite dispatch loop
 confidence: confirmed
-tags: [mode7, flight, rendering]
+tags: [mode7, flight, rendering, widescreen, widescreen.mode7]
 evidence: ["disasm: clean vanilla VFS range $8E:B33D-$8E:B505; initializes a counted loop, forms masked indexed samples from $061B and hardware quotient $4214, and writes signed-sample results to DP $02/$04", "disasm: calls $90:80D2 and dispatches indexed sprite/record paths using $05AB, $8E:B506/$8E:B512 data, $80:9033, and $90:81BD; returns at $8E:B505", "caller: $8E:B02C invokes this entry after $8E:B520"]
 see: [docs/disassembly/engine-core/mode7-flight.md, routines/trig_sine_table.md, routines/mode7_flight_frame_engine.md, routines/direct_sprite_draw_oam.md]
 ---
