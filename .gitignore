@@ -36,6 +36,7 @@ traces/
 *.jpeg
 *.bmp
 *script_all*
+!src/games/evermore/localizations/knowledge/**
 !reconstructed-c/**
 dumps/
 last_run_report.json
