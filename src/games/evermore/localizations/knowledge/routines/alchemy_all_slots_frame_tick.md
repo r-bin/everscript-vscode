@@ -7,7 +7,7 @@ category: ✨
 name: alchemy_all_slots_frame_tick
 title: Master per-frame tick for animation and projectile alchemy slots ($91:98EE)
 confidence: confirmed
-evidence: ["disasm: switches DBR to $7E; iterates 8 Animation Alchemy slots at $7E:3364 (stride $40); for active slots (+$14,Y != 0), sets entity $4C from +$28,Y and calls simulator $91:9750; repeats for 8 Projectile Alchemy slots at $7E:3564 (stride $76); caller: main game loop $8E:E41E"]
+evidence: ["disasm: switches DBR to $7E; iterates 8 Animation Alchemy slots at $7E:3364 (stride $40); for active slots (+$14,Y != 0), sets entity $4C from +$28,Y and calls simulator $91:9750; repeats for 8 Projectile Alchemy slots at $7E:3564 (stride $76); caller: main game loop $8E:E41E", "c: G1 passed (tools/c-to-rom/g1.mts): the bound C equals the ROM on 34 entry states sampled from the 2:20 no-input reference and 544 fuzzed ones; snes9x agrees with the interpreter on 34; a mutation is caught"]
 see: [routines/alchemy_all_slots_clear.md, routines/per_frame_field_tick.md, knowledge/wram/ANIM_ALCHEMY_SLOTS_BASE.md, knowledge/wram/PROJ_ALCHEMY_SLOTS_BASE.md]
 tags: [alchemy, projectile, engine, loop]
 ---
