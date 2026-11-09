@@ -32,6 +32,8 @@
 
 #define SOLID 0x000F
 #define GEOMETRY_TABLE 0x909E73UL
+#define BOY_ENTITY_RECORD_ADDR 0x4E89
+#define DOG_ENTITY_RECORD_ADDR 0x4F37
 
 static void ret_a(soe_regs r, uint16_t a)
 {
@@ -113,6 +115,8 @@ SOE_BIND(eval_tile_collision, 0x909DE8, RTL)
 
 #define SOLID 0x000F
 #define GEOMETRY_TABLE 0x909E73UL
+#define BOY_ENTITY_RECORD_ADDR 0x4E89
+#define DOG_ENTITY_RECORD_ADDR 0x4F37
 
 SOE_BIND(eval_tile_collision, 0x909DE8, RTL)
 {
