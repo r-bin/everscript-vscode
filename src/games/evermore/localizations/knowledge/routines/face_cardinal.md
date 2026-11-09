@@ -8,7 +8,7 @@ name: face_cardinal
 title: Cardinal facing code from signed coordinate deltas
 confidence: confirmed
 tags: [entities, movement]
-evidence: ["disasm: reads DP $02/$04; caller $8F:D6CE stores signed entity-minus-target x/y deltas there", "disasm: CMP sign branches select $00/$04/$08/$0C with horizontal tie priority for dy >= 0 and vertical tie priority for dy < 0"]
+evidence: ["disasm: reads DP $02/$04; caller $8F:D6CE stores signed entity-minus-target x/y deltas there", "disasm: CMP sign branches select $00/$04/$08/$0C with horizontal tie priority for dy >= 0 and vertical tie priority for dy < 0", "c: G1 passed (tools/c-to-rom/g1.mts): the bound C equals the ROM on 19 entry states sampled from the 2:20 no-input reference and 304 fuzzed ones; snes9x agrees with the interpreter on 19; a mutation is caught"]
 see: [docs/entities/ai-behaviours.md, reconstructed-c/80/8080AE78_face_cardinal.c]
 ---
 Reads signed `dx` from DP `$02` and signed `dy` from DP `$04`. The confirmed caller `$8F:D6CE`
