@@ -7,7 +7,8 @@ category: ⚔️
 name: party_member_entity_state_reset
 title: Party member entity motion and waypoint state reset ($8F:B3D4)
 confidence: confirmed
-evidence: ["disasm: reinitializes animation script via $90:817B; masks entity flags +$10, +$12, +$14; zeroes velocity, impulse, and knockback fields +$24, +$80, +$36, +$38, +$88, +$8A, +$68, +$1E, +$20, +$76; sets +$66 to $FFFF; checks waypoint node indices in +$6A and +$6C, freeing valid nodes via $8F:9916"]
+reconstructed_c: reconstructed-c/8F/8FB3D4_party_member_entity_state_reset.c
+evidence: ["disasm: reinitializes animation script via $90:817B; masks entity flags +$10, +$12, +$14; zeroes velocity, impulse, and knockback fields +$24, +$80, +$36, +$38, +$88, +$8A, +$68, +$1E, +$20, +$76; sets +$66 to $FFFF; checks waypoint node indices in +$6A and +$6C, freeing valid nodes via $8F:9916", "g1: passed (12/12 reference replay, 190/190 fuzzed, mutation caught)"]
 see: [routines/waypoint_node_release.md, routines/anim_record_init_from_script_ref.md, routines/entities_frame_tick_update.md]
 tags: [entities, party, waypoints]
 ---
