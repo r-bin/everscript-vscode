@@ -18,3 +18,5 @@ aside until they come back or there is room. Spawn flags `$0010` / `$0020` keep 
 ## Widescreen notes
 
 Windows are relative to the rendered camera `$59`/`$5B`, signed: wake inside [−16, 272) on both axes, sleep outside [−48, 304) on either axis. Both are keyed to a 256 px screen. The distance tests run only when the budget is full (`$1070` ≥ `$1076` for sleeping, `$1070` + 2 ≥ `$1076` for waking); below that every entity is awake wherever it is. `+$6C` ≥ 0 (holds a multipart/waypoint node) also wakes at once and blocks sleep (asm read 2026-11-09).
+
+A segmented body (record `+$07` bit 0) that wakes while all ten segment lists at `$58AF` are taken stays asleep: the routine leaves at `$8F:C4D6` (CLC, RTS) after `$1070` + 1 and `$1072` − 1, so the counts drift by one per failed wake (asm and bound C read 2026-11-09). Vanilla has only two such records, so it needs more than ten of them awake; an "everything awake" mode must not wake segmented bodies past ten.
