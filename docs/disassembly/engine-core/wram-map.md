@@ -425,10 +425,10 @@
 | `$7E:0FD2` | [`GRASS_SWAP_QUEUE`](knowledge/wram/GRASS_SWAP_QUEUE.md) | `u16[24]` | map, graphics | Coordinate swap queue holding 24 tile indices converted from standing to cut grass ($7E:0FD2..$7E:1001, 24 words). |
 | `$7E:1002` | [`GRASS_SWAP_TILEMAP_OFFSETS`](knowledge/wram/GRASS_SWAP_TILEMAP_OFFSETS.md) | `u16[24]` | graphics, map | VRAM/metatile tilemap buffer byte offsets for 24 cuttable grass swap animation slots ($7E:1002..$7E:1031; $90:A6D2, $90:A6F7). |
 | `$7E:1032` | [`GRASS_SWAP_PACKED_COORDS`](knowledge/wram/GRASS_SWAP_PACKED_COORDS.md) | `u16[24]` | map, graphics | Packed grid coordinates (X or Y << 8) for 24 cuttable grass swap animation slots ($7E:1032..$7E:1061; $90:A6D2, $90:A6F7). |
-| `$7E:1062` | [`ROOM_METATILE_TRIGGER_COUNT`](knowledge/wram/ROOM_METATILE_TRIGGER_COUNT.md) | `u16` | map, script | Number of active metatile collision / terrain boundary triggers loaded for current room ($90:8EE2, $8F:B0B3). |
-| `$7E:1064` | [`ROOM_METATILE_TRIGGER_TABLE_PTR`](knowledge/wram/ROOM_METATILE_TRIGGER_TABLE_PTR.md) | `u24` | map, script | 24-bit far pointer to active room metatile boundary trigger definitions in ROM ($7E:1064..$7E:1066; $90:8EE2). |
-| `$7E:1067` | [`ROOM_STEP_TRIGGER_COUNT`](knowledge/wram/ROOM_STEP_TRIGGER_COUNT.md) | `u16` | map, script | Number of active step-on coordinate triggers loaded for current room ($8F:ACB1). |
-| `$7E:1069` | [`ROOM_STEP_TRIGGER_TABLE_PTR`](knowledge/wram/ROOM_STEP_TRIGGER_TABLE_PTR.md) | `u24` | map, script | 24-bit far pointer to active room step-on trigger bounding boxes ($8F:ACB1). |
+| `$7E:1062` | [`ROOM_METATILE_TRIGGER_COUNT`](knowledge/wram/ROOM_METATILE_TRIGGER_COUNT.md) | `u16` | map, script | Byte length of the room's step-on trigger table, 6 bytes per record (measured 2026-11-10; $90:8EE2, $8F:B0B3). |
+| `$7E:1064` | [`ROOM_METATILE_TRIGGER_TABLE_PTR`](knowledge/wram/ROOM_METATILE_TRIGGER_TABLE_PTR.md) | `u24` | map, script | 24-bit pointer to the room's step-on trigger table in ROM ($7E:1064..$7E:1066; $90:8EE2). |
+| `$7E:1067` | [`ROOM_STEP_TRIGGER_COUNT`](knowledge/wram/ROOM_STEP_TRIGGER_COUNT.md) | `u16` | map, script | Byte length of the room's B-trigger table, 6 bytes per record (measured 2026-11-10). |
+| `$7E:1069` | [`ROOM_STEP_TRIGGER_TABLE_PTR`](knowledge/wram/ROOM_STEP_TRIGGER_TABLE_PTR.md) | `u24` | map, script | 24-bit pointer to the room's B-trigger table in ROM (measured 2026-11-10). |
 | `$7E:106C` | [`ACTIVE_ANIM_CHANNELS`](knowledge/wram/ACTIVE_ANIM_CHANNELS.md) | `u16` | map | Count of actively cycling animated tile channels on current map. |
 | `$7E:106E` | [`ANIM_TILE_VRAM_BASE`](knowledge/wram/ANIM_TILE_VRAM_BASE.md) | `u16` | graphics | Destination base address in VRAM where animated tiles are DMA-streamed. |
 | `$7E:1070` | [`ENTITY_BATCH_TARGET_CAPACITY`](knowledge/wram/ENTITY_BATCH_TARGET_CAPACITY.md) | `u16` | entity | Number of awake entities, Boy and Dog included (2 at room setup; +1 wake, -1 sleep). |

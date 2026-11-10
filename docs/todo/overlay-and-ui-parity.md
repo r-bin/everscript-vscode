@@ -140,3 +140,4 @@ The Map Editor sets the ground truth for visual hierarchy, layout order, color s
 ### 4.3 Coordinate Normalization Verification
 - **Status: 🟢 planned**
 - Verify that live camera offset registers (`$7E:0E8E / $7E:0E90`) and room origin registers (`$7E:0F86 / $7E:0F88`) translate to the exact same screen pixel coordinates across Plugin Emulator, Recomp, and Lua as the static metatile grid in the Map Editor.
+

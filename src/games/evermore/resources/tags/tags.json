@@ -475,5 +475,60 @@
         "source": "SecretOfEvermoreRecomp docs/mods/hud.md, everscript-vscode docs/disassembly/ui/field-hud.md (measured 2026-11-10)"
       }
     }
+  },
+  "map.collision": {
+    "title": "Collision during play: the room grid and stamp dictionary in $7F (collision = stamp word +4), the room size, and the routines that evaluate a cell",
+    "links": [
+      "soe://bus/7f0000",
+      "soe://ram/08ee.json",
+      "soe://ram/08f0.json",
+      "soe://rom/code/eval_tile_collision/info.md",
+      "soe://rom/code/tile_property_at_pixel_xy/info.md",
+      "soe://rom/code/probe_metatile_collision/info.md",
+      "soe://rom/code/dispatch_tile_drift_vector/info.md",
+      "soe://rom/code/entity_sprite_depth/info.md",
+      "soe://bus/9ffde7"
+    ],
+    "source": "SecretOfEvermoreRecomp docs/mods/debug-overlay.md, docs/map-format/room-reference.md (measured 2026-11-10)"
+  },
+  "map.triggers": {
+    "title": "Step-on and B triggers: the tables in ROM ($1062/$1064 step-on, $1067/$1069 B), the origin, the searches",
+    "links": [
+      "soe://ram/1062.json",
+      "soe://ram/1064.json",
+      "soe://ram/1067.json",
+      "soe://ram/1069.json",
+      "soe://ram/0f86.json",
+      "soe://ram/0f88.json",
+      "soe://ram/2429.json",
+      "soe://rom/code/step_on_trigger_search/info.md",
+      "soe://rom/code/bit_14_gate_before_step_on_search_current_trigge/info.md",
+      "soe://rom/code/b_button_bit_15_search_b_triggers_else_swing/info.md",
+      "soe://rom/code/player_b_trigger_search_box_setup/info.md"
+    ],
+    "source": "SecretOfEvermoreRecomp docs/mods/debug-overlay.md, docs/map-format/room-reference.md (measured 2026-11-10)"
+  },
+  "map.objects": {
+    "title": "Map objects (Section 3 of the room blob): states in ROM, current/target/countdown in WRAM, the per-frame stepper",
+    "links": [
+      "soe://bus/9ffde7",
+      "soe://ram/10ce.json",
+      "soe://ram/107e.json",
+      "soe://ram/111e.json",
+      "soe://rom/code/object_tick_one_state_per_hold/info.md"
+    ],
+    "source": "SecretOfEvermoreRecomp docs/mods/debug-overlay.md, docs/map-format/room-reference.md (measured 2026-11-10)"
+  },
+  "map.characters": {
+    "title": "Characters on the map: the entity lists, the party records, body radius (character record +$0D) and the overlap test",
+    "links": [
+      "soe://ram/3ddf.json",
+      "soe://ram/3de1.json",
+      "soe://ram/4e89.json",
+      "soe://ram/4f37.json",
+      "soe://rom/code/entity_collision_check/info.md",
+      "soe://rom/code/test_entity_pair_overlap/info.md"
+    ],
+    "source": "SecretOfEvermoreRecomp docs/mods/debug-overlay.md, docs/map-format/room-reference.md (measured 2026-11-10)"
   }
 }
