@@ -1,7 +1,7 @@
 ---
 addr: 80870C
 size: 75
-end: 808757
+end: 808756
 kind: code
 category: 🎮
 name: format_16bit_integer_to_decimal_digits
