@@ -3,18 +3,15 @@ addr: 80870C
 size: 75
 end: 808756
 kind: code
-category: 🧠
+category: 🎮
 name: format_16bit_integer_to_decimal_digits
-title: Hardware 16-Bit Integer to Decimal Digit Formatter
-confidence: confirmed
-tags: [system]
-evidence: ["disasm: $80:870C determines magnitude of A (<10, <100, <1000, <10000), loops dividing by 10 using hardware registers $4204/$4206, and stores modulo remainder digits from $4216 into DP $02,X terminated with $FF"]
-see: [routines/format_32bit_integer_to_decimal_ascii.md, engine-core/hardware-utilities.md]
+title: Convert 16-bit integer into 5 ASCII/decimal tile digits ($80:870C)
+confidence: verified
+tags: [math, decimal, text, digits, reconstructed-c, g1-pass]
+evidence: ["reconstructed-c/80/80870C_format_16bit_integer_to_decimal_digits.c passes Gate G1 (41/41 reference states, 656/656 fuzzed, mutation caught)"]
 ---
-Converts an unsigned 16-bit integer into a stream of BCD decimal digits:
-- Determines magnitude threshold (1 to 5 digits).
-- Writes `$FF` terminator sentinel at the end of the digit buffer.
-- Iteratively divides by 10 using the SNES hardware math coprocessor (`$4204`/`$4206`).
-- Extracts remainders from `$4216` into Direct Page `$02,X`.
-- Used by HUD numeric strings, damage popups, weapon levels, gold balances, and dialogue variables.
-Full clean C decompilation: `docs/disassembly/engine-core/hardware-utilities.md`.
+Formats a 16-bit integer passed in register A into a 5-digit decimal string stored at the pointer passed in X:
+1. Loops through successive powers of 10: 10000, 1000, 100, 10.
+2. Uses SNES hardware divider (`$4204`/`$4206`) to compute quotient (digit) and remainder.
+3. Writes ASCII digits offset by `$30` (or tile index equivalent) into buffer `0,X..4,X`.
+4. Leaves Y pointing after written buffer, A = remainder, DB = `$80`.
