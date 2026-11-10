@@ -192,7 +192,7 @@
           "soe://ram/0114.json",
           "soe://ram/241f.json",
           "soe://rom/code/screen_shake_sync_window_coordinates/info.md",
-          "soe://rom/code/ptrs_908E68/info.md"
+          "soe://bus/908e68"
         ],
         "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
       },
@@ -326,7 +326,7 @@
         "title": "HDMA and window effects selected by the camera mode",
         "links": [
           "soe://ram/241f.json",
-          "soe://rom/code/ptrs_908E68/info.md"
+          "soe://bus/908e68"
         ],
         "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
       },
@@ -395,6 +395,84 @@
           "soe://rom/code/mode7_flight_sample_and_sprite_dispatch/info.md"
         ],
         "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
+      }
+    }
+  },
+  "hud": {
+    "title": "The field HUD: each character's box (HP, charge gauge) on BG3 rows 24..27 and the two portrait sprites; everything that draws or places it",
+    "see": [
+      "boy",
+      "dog",
+      "widescreen"
+    ],
+    "sub": {
+      "layout": {
+        "title": "Where it sits: BG3 map $0800 rows 24..27 at BG3 scroll $3FF = lines 193..223; the field's PPU set-up",
+        "links": [
+          "soe://ram/0118.json",
+          "soe://ram/0116.json",
+          "soe://rom/code/field_screen_ppu_layers_and_hud_vram_init/info.md"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/mods/hud.md, everscript-vscode docs/disassembly/ui/field-hud.md (measured 2026-11-10)"
+      },
+      "widgets": {
+        "title": "The per-character widgets: popup node, gauge glyph VRAM address, gauge and HP tilemap words; who fills and redraws them",
+        "links": [
+          "soe://ram/051d.json",
+          "soe://ram/0561.json",
+          "soe://ram/0b29.json",
+          "soe://rom/code/field_hud_weapon_stamina_gauge_vram_dma_upload/info.md",
+          "soe://rom/code/field_hud_meters_refresh_and_reactivate/info.md",
+          "soe://rom/code/field_cutscene_dialogue_sound_cleanup/info.md"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/mods/hud.md, everscript-vscode docs/disassembly/ui/field-hud.md (measured 2026-11-10)"
+      },
+      "hp": {
+        "title": "The HP string on each box's top edge and what rewrites it",
+        "links": [
+          "soe://rom/code/hud_render_entity_hp_string/info.md",
+          "soe://rom/code/format_16bit_integer_to_decimal_digits/info.md",
+          "soe://rom/code/entity_process_damage_recoil/info.md",
+          "soe://rom/code/entity_hp_heal_commit/info.md",
+          "soe://rom/code/alchemy_formula_commit_hp_heal_to_targets/info.md"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/mods/hud.md, everscript-vscode docs/disassembly/ui/field-hud.md (measured 2026-11-10)"
+      },
+      "gauge": {
+        "title": "The charge gauge: glyphs $3E0..$3E7 drawn into VRAM, the strip's words, the full-charge flash",
+        "links": [
+          "soe://rom/code/hud_stamina_meter_recharge_step/info.md",
+          "soe://ram/0b4d.json",
+          "soe://ram/0b4f.json",
+          "soe://bus/c41e74",
+          "soe://bus/c41e84",
+          "soe://bus/c41ee4"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/mods/hud.md, everscript-vscode docs/disassembly/ui/field-hud.md (measured 2026-11-10)"
+      },
+      "portraits": {
+        "title": "The portraits: OBJ $080 (Boy, palette 6) and $082 (Dog, palette 7) at y 201, two adjacent OAM slots",
+        "links": [
+          "soe://rom/code/hud_portraits_init/info.md",
+          "soe://ram/4ef7.json",
+          "soe://ram/4efa.json",
+          "soe://bus/cc37ac",
+          "soe://bus/d0ad6b",
+          "soe://rom/code/hud_render_boy_hp_gauge_sprite/info.md",
+          "soe://rom/code/hud_render_dog_hp_gauge_sprite/info.md",
+          "soe://rom/code/direct_sprite_draw_oam/info.md"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/mods/hud.md, everscript-vscode docs/disassembly/ui/field-hud.md (measured 2026-11-10)"
+      },
+      "shared": {
+        "title": "Next to the HUD but not part of it: windows ($7F:C800 holds blanks at the HUD rows), the popup nodes the widgets point at",
+        "links": [
+          "soe://bus/7fc800",
+          "soe://ram/3a3e.json",
+          "soe://ram/3a7e.json",
+          "soe://rom/code/window_tilemap_dma_commit/info.md"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/mods/hud.md, everscript-vscode docs/disassembly/ui/field-hud.md (measured 2026-11-10)"
       }
     }
   }

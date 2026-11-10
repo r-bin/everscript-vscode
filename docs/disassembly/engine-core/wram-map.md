@@ -364,7 +364,7 @@
 | `$7E:0F38` | [`CAMERA_SUBPIXEL_ACC`](knowledge/wram/CAMERA_SUBPIXEL_ACC.md) | `u16` | map | Camera sub-pixel tracking fractional accumulator. |
 | `$7E:0F3A` | [`VRAM_DMA_LOCK`](knowledge/wram/VRAM_DMA_LOCK.md) | `u16` | graphics, system | Active transfer counter and lock word for deferred VRAM DMA queue ($7E:0F3A..$7E:0F3B; $80:8A86, $90:8E40). |
 | `$7E:0F3C` | [`CGRAM_DMA_LOCK`](knowledge/wram/CGRAM_DMA_LOCK.md) | `u16` | graphics, system | Active transfer counter and lock word for deferred CGRAM DMA queue ($7E:0F3C..$7E:0F3D; $80:8A40, $8C:D172). |
-| `$7E:0F3E` | [`HUD_DRAW_SUPPRESSION_LOCK`](knowledge/wram/HUD_DRAW_SUPPRESSION_LOCK.md) | `u16` | mode7, map | In-flight lock counter word suppressing HUD tilemap rendering when non-zero. |
+| `$7E:0F3E` | [`ENTITY_PTR_BOY`](knowledge/wram/ENTITY_PTR_BOY.md) | `u16` | boy, entity | Entity Subsystem: Address pointer to the Boy's entity record in WRAM ($4E89 in play; the Dog's is $0F40). |
 | `$7E:0F40` | [`ENTITY_PTR_DOG`](knowledge/wram/ENTITY_PTR_DOG.md) | `u16` | dog, entity | Entity Subsystem: Address pointer to Companion (Dog) entity slot in WRAM (defaults to $4F37; initialized in $8F:8144) |
 | `$7E:0F42` | [`CAMERA_TARGET_ACTOR_PTR`](knowledge/wram/CAMERA_TARGET_ACTOR_PTR.md) | `entity` | boy, map | Pointer to primary actor entity record tracked by camera (points to Boy at $7E:4E89). |
 | `$7E:0F44` | [`VIEWPORT_SCROLL_Y`](knowledge/wram/VIEWPORT_SCROLL_Y.md) | `u16` | map | Vertical world coordinate of top-left camera viewport boundary. |

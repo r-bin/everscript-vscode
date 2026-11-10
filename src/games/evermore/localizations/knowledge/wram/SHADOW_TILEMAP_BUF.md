@@ -2,7 +2,7 @@
 addr: $7F:C800
 name: SHADOW_TILEMAP_BUF
 type: ShadowTilemapBuf
-tags: [graphics, dialogue, hud, bank7f, widescreen, widescreen.hud]
+tags: [graphics, dialogue, hud, hud.shared, bank7f, widescreen, widescreen.hud]
 confidence: verified
 evidence: ["disasm: 32x32 shadow tilemap RAM for dialogue windows, choice boxes, and HUD border 9-slice frames before VRAM DMA commit ($8C:CC43, $8C:CB64)", "docs/disassembly/ui/dialogue-choice-box.md", "docs/disassembly/ui/dialogue-box-frame.md", "reconstructed-c/8C/8CB647_dialogue_choice_box.c"]
 ---
@@ -18,3 +18,10 @@ evidence: ["disasm: 32x32 shadow tilemap RAM for dialogue windows, choice boxes,
 - `+$0400` (`hud_frame`, `u16[384]` / 768 B): Rows 16..27 lower HUD status display, stamina gauge frames, Boy/Dog ring status ($8C:ACD0, $8D:91AF).
 - `+$0700` (`secondary_overlay`, `u16[1024]` / 2,048 B): Secondary fullscreen 32×32 shadow overlay tilemap buffer ($8C:AFD0).
 - `+$0F00` (`hdma_gradient_table`, `u8[256]` / 256 B): Vertical HDMA Channel 5 scanline brightness and color table staging buffer ($7F:D707..$7F:D70D, routine $91:C31F).
+
+## Notes
+
+Measured 2026-11-10 (recomp, field of room `0x51`): rows 25..27 here hold `$23FF` (empty) while
+VRAM shows the HUD boxes in those rows. The field HUD is written to VRAM from the widgets
+`$051D`/`$0561`, not from this buffer; whether `+$0400` ever holds a HUD frame is unconfirmed
+(`docs/disassembly/ui/field-hud.md`).
