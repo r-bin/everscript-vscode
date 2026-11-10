@@ -7,8 +7,9 @@ category: 🧠
 name: oam_finalize_and_blank_unused
 title: OAM Frame Finalizer, Offscreen Blanker & DMA Queue Null-Terminator
 confidence: confirmed
-tags: [oam, sprite, dma, vblank, graphics, widescreen, widescreen.oam]
-evidence: ["disasm: compares low OAM write cursor DP $D3 with previous frame cursor $7E:1438; loops blanking unused slots between $D3 and $1438 with Y=0xE0 (offscreen 224px); updates $1438 = $D3; null-terminates sprite DMA upload staging queues $15D6,X (via DP $CB) and $163C,X (via DP $CD); resets $D3 to 0; primes $D5=0x01FF and $D7=0x40; sets $D9=0x0001 (OAM commit ready flag); returns via RTL", "callers: main_loop_entry ($80:8B66), dialogue_choice_joypad_cursor_loop ($8C:CB88), script_op_63 ($8C:DF75), script_op_8c ($8C:E39A), mode7_landing ($8E:B14B), mode7_takeoff ($8E:B268), ring_menu_close ($90:80D2) and 8 more"]
+tags: [oam, sprite, dma, vblank, graphics, widescreen, widescreen.oam, reconstructed-c, g1-pass]
+reconstructed_c: reconstructed-c/80/808FEE_oam_finalize_and_blank_unused.c
+evidence: ["reconstructed-c/80/808FEE_oam_finalize_and_blank_unused.c passes Gate G1 (34/34 reference states, 543/543 fuzzed, mutation caught)", "disasm: compares low OAM write cursor DP $D3 with previous frame cursor $7E:1438; loops blanking unused slots between $D3 and $1438 with Y=0xE0 (offscreen 224px); updates $1438 = $D3; null-terminates sprite DMA upload staging queues $15D6,X (via DP $CB) and $163C,X (via DP $CD); resets $D3 to 0; primes $D5=0x01FF and $D7=0x40; sets $D9=0x0001 (OAM commit ready flag); returns via RTL", "callers: main_loop_entry ($80:8B66), dialogue_choice_joypad_cursor_loop ($8C:CB88), script_op_63 ($8C:DF75), script_op_8c ($8C:E39A), mode7_landing ($8E:B14B), mode7_takeoff ($8E:B268), ring_menu_close ($90:80D2) and 8 more"]
 see: [routines/direct_sprite_draw_oam.md, knowledge/wram/LOW_OAM_TABLE_BUF.md, knowledge/wram/HIGH_OAM_TABLE_BUF.md, docs/disassembly/engine-core/main-loop.md]
 ---
 Finalizes the Low and High OAM hardware buffers (`$7E:ABDE` and `$7E:ADDE`) at the completion of an active game frame:
