@@ -9,12 +9,11 @@
 - A working pipeline with one compiler (Calypsi 5.18): `tools/c-to-rom/` builds the vanilla ROM
   with bound C routines in banks `$F8–$FB`, a per-routine check (G1) and a 2:20 reference
   (`intro-2m20.evsmv`).
-- 27 routines are exact C: each leaves the same WRAM, registers and flags as its asm on every
-  sampled and fuzzed entry state. The ROM with them plays the whole intro and attract loop.
-- The other 255 C files are descriptions: 205 compile with Calypsi on their own, 50 do not, and
-  223 call functions or globals that exist nowhere (`g_hw`, `snes_write_cgadd`). None of them can
-  replace its ROM routine as written: their interfaces are made up (parameters instead of
-  registers and direct page) and their behaviour differs (no 8-bit wrap, other flags).
+- 70 routines are exact C (v0.399.32): each leaves the same WRAM, registers and flags as its asm on every
+  sampled and fuzzed entry state (Gate G1 verified). The ROM with them plays the intro and attract loop.
+- The remaining C files in `reconstructed-c/` are descriptions or in-progress lifts: routines that
+  call functions or globals not yet bound or whose interfaces use abstract parameter signatures
+  instead of direct 65816 CPU registers and direct page states.
 
 ## 2. What we learned
 
@@ -48,6 +47,14 @@
    Faster variants live only under `#ifdef SOE_OPTIMIZE` (AGENTS.md rule 11).
 8. **The settings were never compared.** Large code and data model, `-O1 --speed`, no
    `--target=SNES` were picked for correctness, not measured against alternatives.
+9. **Fall-Through Trampoline Traps.** Routines preceded by fall-through execution paths (e.g.
+   `companion_toaster_form_transformation` at `$8F:866B` or `animation_script_store_high_pc_byte`
+   at `$90:8376`) cannot be bound in isolation using 5-byte ROM trampolines (`JSL <far>`), because
+   overwriting the entry corrupts instructions executed sequentially from the preceding label.
+   These routines must be bound as a contiguous block with their caller.
+10. **Isolated Runner Interrupt Spinloops.** Routines that wait on asynchronous hardware interrupts
+    or frame counter advances (such as polling `$80:858C` for NMI counter `$7E:0100` to tick) cannot
+    run in single-step Gate G1 harnesses without an active VBLANK/NMI emulator loop.
 
 ## 3. Next: find a compiler setup that can produce the ROM
 
@@ -90,8 +97,8 @@ R3/R4), where the scratch registers go, calling convention (register vs stack ar
 2. **Probe function: `random_number_generator`** (`$80:859B`, documented version): small, hot,
    uses carry and DB-relative words. Every compiler × configuration: R1–R5, one table.
 3. **Choose** the setup(s) that pass R1–R4 with the lowest R5; write the choice and the table here.
-4. **Expand** to the 27 exact routines on the chosen setup, then routine by routine through the
-   282 known routines the 2:20 reference runs (leaves first).
+4. **Expand** to the 70 exact routines on the chosen setup, then routine by routine through the
+   remaining known routines the 2:20 reference runs (leaves first).
 5. **All C files, as they are (an experiment):** stubs for the missing symbols, bind every
    function that names a ROM address, record which files break and how. Data for the rewrite.
 6. **Per-frame identity (R6):** only after 1–4: a cycle counter in G1, then either padding the
