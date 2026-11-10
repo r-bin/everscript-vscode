@@ -4,7 +4,7 @@ name: INPUT_P1_HELD_BUTTONS
 type: u16
 tags: [input]
 confidence: verified
-evidence: ["cdl", "disasm", "disasm: the joypad matcher $8C:F121 compares it with its one entry $2000 = Select, so the word is in $4218 order (B $8000 .. R $0010)", "measure: recomp headless 2026-11-10, save in room $51: Start held 30 field frames, the field counter $0B19 kept counting (a pause or a menu would stop it); Start + a direction read here once per press drives the recomp practice hotkeys (SecretOfEvermoreRecomp docs/cheats.md)"]
+evidence: ["cdl", "disasm", "disasm: the joypad matcher $8C:F121 compares it with its one entry $2000 = Select, so the word is in $4218 order (B $8000 .. R $0010)", "measure: recomp headless 2026-11-10, save in room $51: Start held 30 field frames, the field counter $0B19 kept counting (a pause or a menu would stop it); Start + a direction read here once per press drives the recomp practice hotkeys (SecretOfEvermoreRecomp docs/mods/cheats.md)"]
 ---
 Player 1 held button mask filtered for current gameplay mode and entity interaction ($80:8985, $8F:B3D4).
 
