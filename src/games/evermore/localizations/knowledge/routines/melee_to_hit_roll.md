@@ -7,7 +7,7 @@ category: 🧠
 name: melee_to_hit_roll
 title: Melee to-hit roll — marks the target as struck by this attacker, then rolls
 confidence: confirmed
-tags: [combat, hit, strike]
+tags: [combat, hit, strike, rng, rng.combat]
 evidence: ["disasm: $8F:BA06-$8F:BAAE: strike bookkeeping, evade-row lookup, adjusted hit-rate column, threshold compare and carry result", "disasm: $8F:BA97-$8F:BAA3: ($80:859B & $7FFF) < threshold returns carry set; zero threshold misses; $8F:BAA4-$8F:BAAE sets target +$12 bit $0040 and returns carry clear", "disasm: $8F:B75A calls $8F:BA06; $8F:B62B-$8F:B630 skips a target whose +$36 is the attacker", "routes: hit chances 58.8 % flower → Boy (hit 40, evade 34), 100 % against evade 0 (v0.335.0)", "stack: the generator call at $8F:BA97 leaves return $8F:BA9A at S+1; at the generator entry Y = target, DP $4C = attacker, DP $12 = threshold (recomp combat RNG mod soe.debug.combat_rng, 2026-11-11: flower on the Boy 59 %, Boy on the flower 100 %, as the table predicts)"]
 see: [routines/attack_proc_melee_boy_kill_xp.md, routines/HIT_CHANCE_POINTERS_BY_EVADE.md, routines/strike_sweep_filter.md]
 ---

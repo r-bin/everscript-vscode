@@ -7680,6 +7680,24 @@
     },
     "11D865": {
       "comment": "Store updated XP"
+    },
+    "0FBA97": {
+      "comment": "To-hit roll: the generator returns to $8F:BA9A; DP $12 = threshold, Y = target, DP $4C = attacker (combat.md §10)"
+    },
+    "0FBAA4": {
+      "comment": "Miss: target +$12 bit $40"
+    },
+    "0FC08C": {
+      "comment": "Damage roll: random_below(base + 1), Y = target, DP $4C = attacker"
+    },
+    "108384": {
+      "comment": "hold_random: returns to $90:8387; [DP $5D] = range, base; Y = the entity (a knockback's length when its +$40 animation runs)"
+    },
+    "0FB00F": {
+      "comment": "Strike lockout: while +$36 holds an attacker, count +$38 down; clear both below 0 (21 ticks after the roll)"
+    },
+    "0FC2CD": {
+      "comment": "Knockback start: X = record +$40, Y = target"
     }
   }
 }

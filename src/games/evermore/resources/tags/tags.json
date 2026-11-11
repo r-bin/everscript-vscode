@@ -397,5 +397,123 @@
         "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
       }
     }
+  },
+  "rng": {
+    "title": "The random number generator and everything that draws from it",
+    "see": [
+      "rng.combat"
+    ],
+    "sub": {
+      "generator": {
+        "title": "$80:859B: four words $0133..$0139 stirred into each other; the result in A and in $0133",
+        "links": [
+          "soe://rom/code/random_number_generator/info.md",
+          "soe://rom/code/random_below/info.md",
+          "soe://ram/0133.json",
+          "soe://ram/0135.json",
+          "soe://ram/0137.json",
+          "soe://ram/0139.json"
+        ],
+        "source": "knowledge/wram/RNG_SEED_0.md, routines/random_number_generator.md"
+      },
+      "animation": {
+        "title": "Animation commands that roll: hold_random (a frame of base … base + range − 1 ticks) and the 50 % branch",
+        "links": [
+          "soe://rom/code/animation_script_random_frame_duration/info.md",
+          "soe://rom/code/animation_script_conditional_random_branch/info.md"
+        ],
+        "source": "knowledge/routines/animation_script_random_frame_duration.md"
+      },
+      "ai": {
+        "title": "Enemy and companion decisions: engage roll, wander, chase, roll, Dog idle and forage",
+        "links": [
+          "soe://rom/code/enemy_ai_check_aggro/info.md",
+          "soe://rom/code/ai_stationary_player/info.md",
+          "soe://rom/code/ai_wander_step/info.md",
+          "soe://rom/code/ai_chase_or_roll/info.md",
+          "soe://rom/code/ai_roll/info.md",
+          "soe://rom/code/ai_roll_or_shoot/info.md",
+          "soe://rom/code/ai_companion_dog_follow/info.md",
+          "soe://rom/code/companion_idle_sniff_and_scratch_random_dice_roll/info.md",
+          "soe://rom/code/dog_forage_random_timer_reset/info.md",
+          "soe://rom/code/dog_foraging_ingredient_node_spawn_dice_roll/info.md"
+        ],
+        "source": "random_number_generator's callers (soe://rom/code/random_number_generator/info.md)"
+      },
+      "ambient": {
+        "title": "Rolls that change only the picture or sound: screen shake, torch flicker, weather, sound effects",
+        "links": [
+          "soe://rom/code/screen_shake_jitter/info.md",
+          "soe://rom/code/room_lighting_torchlight_flicker_rng_jitter/info.md",
+          "soe://rom/code/weather_particle_random_coordinate_roll/info.md",
+          "soe://rom/code/ambient_weather_particles_init/info.md",
+          "soe://rom/code/play_random_environmental_sfx_from_script/info.md"
+        ],
+        "source": "random_number_generator's callers"
+      }
+    }
+  },
+  "rng.combat": {
+    "title": "Every roll of a fight: to-hit, damage, knockback length; and the gates a strike passes before any roll",
+    "parents": [
+      "rng"
+    ],
+    "see": [
+      "boy",
+      "dog"
+    ],
+    "links": [
+      "docs/entities/combat.md"
+    ],
+    "sub": {
+      "to_hit": {
+        "title": "To-hit: (r & $7FFF) < a word of the table at $8F:BAAF (row evade, column hit rate); the generator returns to $8F:BA9A, DP $12 the threshold",
+        "links": [
+          "soe://rom/code/melee_to_hit_roll/info.md",
+          "soe://rom/code/strike_sweep_filter/info.md"
+        ],
+        "source": "everscript-vscode docs/entities/combat.md §4-§6, §10; recomp mod soe.debug.combat_rng (2026-11-11)"
+      },
+      "damage": {
+        "title": "Damage: random_below(base + 1) from $8F:C08C; damage (2(offset + base) + base) / 4, 3/4 … 5/4 of base",
+        "links": [
+          "soe://rom/code/physical_damage_into_pending_0x76/info.md",
+          "soe://rom/code/calc_damage_with_defense_and_variance/info.md",
+          "soe://rom/code/random_below/info.md"
+        ],
+        "source": "everscript-vscode docs/entities/combat.md §4-§6, §10; recomp mod soe.debug.combat_rng (2026-11-11)"
+      },
+      "knockback": {
+        "title": "Knockback: the record's +$40 animation started by $8F:C2C4; its hold_random is the random part of its length",
+        "links": [
+          "soe://rom/code/entity_trigger_damage_animation/info.md",
+          "soe://rom/code/anim_start_record/info.md",
+          "soe://rom/code/animation_script_random_frame_duration/info.md"
+        ],
+        "source": "everscript-vscode docs/entities/combat.md §4-§6, §10; recomp mod soe.debug.combat_rng (2026-11-11)"
+      },
+      "lockout": {
+        "title": "Strike lockout: target +$36 = last attacker, +$38 = 20; cleared once below 0 by gravity's tail ($8F:B00F): 21 ticks",
+        "links": [
+          "soe://rom/code/melee_to_hit_roll/info.md",
+          "soe://rom/code/gravity/info.md",
+          "soe://ram/4ebf.json",
+          "soe://ram/4ec1.json",
+          "soe://ram/4f6d.json",
+          "soe://ram/4f6f.json"
+        ],
+        "size": 2,
+        "source": "everscript-vscode docs/entities/combat.md §4-§6, §10; recomp mod soe.debug.combat_rng (2026-11-11); Boy $4E89 + $36/$38, Dog $4F37 + $36/$38"
+      },
+      "sweep": {
+        "title": "Strike sweep: side, untargetable, HP, invulnerable (+$16 & $20), lockout, state (+$14 & $070D), then the box 2(|d| − r) < w or h, height, plane",
+        "links": [
+          "soe://rom/code/strike_sweep_filter/info.md",
+          "soe://rom/code/strike_hit_test_melee/info.md",
+          "soe://rom/code/melee_weapon_strike_hitbox_offset_and_collision_test/info.md"
+        ],
+        "source": "everscript-vscode docs/entities/combat.md §4-§6, §10; recomp mod soe.debug.combat_rng (2026-11-11)"
+      }
+    }
   }
 }

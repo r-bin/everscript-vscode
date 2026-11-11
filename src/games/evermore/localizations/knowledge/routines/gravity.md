@@ -7,7 +7,7 @@ category: 🧠
 name: gravity
 title: Entity vertical velocity integration, downward acceleration, and ground clamping
 confidence: confirmed
-tags: [physics, gravity, velocity, entity, actor]
+tags: [physics, gravity, velocity, entity, actor, rng, rng.combat]
 evidence: ["disasm: decrements gravity countdown +$20,X; adds vertical velocity +$1E,X; detects ground plane contact; zeroes vertical momentum upon landing", "trace: executed per entity during each physics tick", "disasm: $8F:B00F-$8F:B01E: while +$36 (the attacker that last rolled against this entity) is set, decrements +$38 and clears both once it goes below 0: set to 20 by $8F:BA06, so the same attacker cannot strike it for 21 ticks (recomp combat RNG mod soe.debug.combat_rng, 2026-11-11: the flower's second strike frame 6 ticks after a roll found 15 left)"]
 see: [docs/disassembly/maps/elevation-transfer.md, routines/entity_physics_and_gravity_tick.md]
 ---
