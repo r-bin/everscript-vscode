@@ -159,11 +159,18 @@ function fuzz(s: Sample, n: number, seed: number): Sample[] {
 
 // ---------- run ----------
 
-function run(image: Uint8Array, s: Sample, limit = 3_000_000, trace?: string[], otherRom?: Uint8Array): Run {
+function run(image: Uint8Array, s: Sample, limit = 3_000_000, trace?: string[], otherRom?: Uint8Array, ownAddr = -1): Run {
     const bus = new SnesBus(image);
     bus.wram.set(s.wram);
     const io: string[] = [];
     let stackWrite = false;
+    const origBusWrite = bus.write.bind(bus);
+    bus.write = (a: number, v: number) => {
+        const bank = a >> 16, off = a & 0xFFFF;
+        const w = (bank & 0x40) === 0 || bank === 0x7E ? off : -1;
+        if (w >= 0 && w < cpu.s && w > s.regs.s - 0x200) stackWrite = true;
+        origBusWrite(a, v);
+    };
     const logged = {
         read: (a: number) => {
             // a load (not a pull: those read at S) from the stack below S: what is there differs by design
@@ -172,7 +179,7 @@ function run(image: Uint8Array, s: Sample, limit = 3_000_000, trace?: string[], 
             if (w >= 0 && w < cpu.s && w > s.regs.s - 0x200) stackWrite = true;
             // the 4th MB holds the C code in one image and mirror bytes in the other, and bound entry points hold JML hooks
             if ((bank & 0x3F) >= 0x38 && (bank & 0x3F) <= 0x3B && (bank >= 0xC0 || (bank >= 0x80 && off >= 0x8000))) stackWrite = true;
-            if (otherRom && bank !== cpu.pb && ((bank & 0x40) !== 0 || off >= 0x8000) && image[a & 0x3FFFFF] !== otherRom[a & 0x3FFFFF]) stackWrite = true;
+            if (otherRom && (a < ownAddr || a >= ownAddr + 5) && ((bank & 0x40) !== 0 || off >= 0x8000) && image[a & 0x3FFFFF] !== otherRom[a & 0x3FFFFF]) stackWrite = true;
             return bus.read(a);
         },
         write: (a: number, v: number) => {
@@ -313,10 +320,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         ss.forEach((s0, i) => {
             for (const [k, s] of fuzz(s0, fuzzN, b.addr ^ i).entries()) {
                 if (only && (s.regs.a & only.mask) !== only.value) continue;
-                const v = run(vanilla, s, 200_000, undefined, built.image);
+                const v = run(vanilla, s, 200_000, undefined, built.image, b.addr);
                 if (v.error || v.stackWrite) continue;     // no return from this state, or it uses the stack below S
                 fzN++;
-                const c = run(built.image, s, 2_000_000);
+                const c = run(built.image, s, 4_000_000);
                 const d = c.error ? `C: ${c.error}` : diff(v, c, s.regs.s, Math.min(v.minS, c.minS));
                 if (!d) fz++; else if (!fuzzFail) fuzzFail = `fuzzed state ${b.name}:${i}:${k} (frame ${s.frame}), entry ${JSON.stringify(s.regs)}: ${d}`;
                 // the real states may never take the mutated path: then a fuzzed one must show it
