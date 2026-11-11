@@ -6,9 +6,9 @@ kind: code
 category: 🧠
 name: screen_shake_jitter
 title: Compute per-frame camera displacement jitter via hardware multiplication
-confidence: confirmed
-tags: [screen-shake, camera, graphics, math]
-evidence: ["disasm: $90:98A5 checks $C3; multiplies RNG byte by (mag_x * 2 + 1) using hardware registers $4202/$4203; reads $4216 and subtracts mag_x into DP $C5; repeats with frame seed $0134 and mag_y into DP $C7; rtl", "docs/disassembly/script-vm/opcode-shake.md"]
+confidence: verified
+tags: [screen-shake, camera, graphics, math, reconstructed-c, g1-pass]
+evidence: "[\"disasm: $90:98A5 checks $C3; multiplies RNG byte by (mag_x * 2 + 1) using hardware registers $4202/$4203; reads $4216 and subtracts mag_x into DP $C5; repeats with frame seed $0134 and mag_y into DP $C7; rtl\", \"docs/disassembly/script-vm/opcode-shake.md\"]; G1 pass (34/34 reference states, 0/0 fuzzed states, mutation caught)"
 see: [docs/disassembly/script-vm/opcode-shake.md, docs/disassembly/engine-core/screen-effects.md]
 ---
 Calculates per-frame horizontal and vertical camera jitter displacements during active screen shakes.

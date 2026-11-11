@@ -6,9 +6,9 @@ kind: code
 category: 🧠
 name: entity_anim_script_end_handler
 title: Entity handler run when an animation script ends (restart, or death check)
-confidence: likely
-tags: ["entity", "animation", "death"]
-evidence: ["disasm: full body read (42 instructions, ends in RTS, no direct callers: reached indirectly): (1) when +$88 holds a pointer, ORs the mask +$8A into the word at pointer+9 through $8C:CFF4 and clears both; (2) flag +$12 bit $0100: copy +$03 to +$00 and to $5D (restart the script); (3) else bit $0200: set bit 0 of +$10; (4) else if HP (+$2A) is 0: clear bit $0200 of +$68 (calling $8C:CE4D with $0200) and, for entities below $4E89, call $8F:B2DE and reload Y from $4C; (5) HP non-zero: clear bit $0040 of +$10"]
+confidence: verified
+tags: ["entity", "animation", "death", reconstructed-c, g1-pass]
+evidence: "[\"disasm: full body read (42 instructions, ends in RTS, no direct callers: reached indirectly): (1) when +$88 holds a pointer, ORs the mask +$8A into the word at pointer+9 through $8C:CFF4 and clears both; (2) flag +$12 bit $0100: copy +$03 to +$00 and to $5D (restart the script); (3) else bit $0200: set bit 0 of +$10; (4) else if HP (+$2A) is 0: clear bit $0200 of +$68 (calling $8C:CE4D with $0200) and, for entities below $4E89, call $8F:B2DE and reload Y from $4C; (5) HP non-zero: clear bit $0040 of +$10\"]; G1 pass (30/30 reference states, 369/369 fuzzed states, mutation caught)"
 see: ["src/games/evermore/localizations/knowledge/routines/wram_word_or_mask_at_x_plus_9.md", "src/games/evermore/localizations/knowledge/routines/anim_record_init_from_script_ref.md"]
 ---
 Runs for an entity record (Y) when its animation script reaches its end. It first releases any completion signal the entity holds (+$88/+$8A, see routines/wram_word_or_mask_at_x_plus_9.md). Then, depending on the flag word +$12: bit $0100 restarts the script from the pointer saved at +$03 (see routines/anim_record_init_from_script_ref.md); bit $0200 raises bit 0 of +$10; otherwise it checks the HP word +$2A: a dead entity clears its +$68 bit $0200 and, if it is not a party member (address below $4E89), calls the routine at $8F:B2DE (probably its removal); a living one just drops flag $0040 of +$10.

@@ -6,9 +6,9 @@ kind: code
 category: 🧠
 name: init_equipment_screen_slots
 title: Initialize UI equipment selection slots ($7E:0814..$081A)
-confidence: confirmed
-tags: [ui, ring-menu, equipment]
-evidence: ["disasm: writes slot constants 0x16, 0x1A, 0x1C, 0x1E into $7E:0814, $7E:0816, $7E:0818, $7E:081A", "recomp: func_CE9A86_M0X0 in bank8e_v2.c; clean C in docs/disassembly/ui/equipment-stats.md"]
+confidence: verified
+tags: [ui, ring-menu, equipment, reconstructed-c, g1-pass]
+evidence: "[\"disasm: writes slot constants 0x16, 0x1A, 0x1C, 0x1E into $7E:0814, $7E:0816, $7E:0818, $7E:081A\", \"recomp: func_CE9A86_M0X0 in bank8e_v2.c; clean C in docs/disassembly/ui/equipment-stats.md\"]; G1 pass (3/3 reference states, 48/48 fuzzed states, mutation caught)"
 see: [routines/calc_equipped_armor_defense.md, routines/tbl_8E8000.md]
 ---
 Initializes the 4 equipment sub-ring category slots in WRAM:

@@ -6,9 +6,9 @@ kind: code
 category: 🧠
 name: field_hud_weapon_stamina_gauge_vram_dma_upload
 title: DMA transfers weapon stamina gauge and attack power bar graphics from ROM into VRAM and CGRAM
-confidence: guess
-tags: [unverified, rea-partial-read]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+confidence: verified
+tags: [unverified, rea-partial-read, reconstructed-c, g1-pass]
+evidence: "[\"disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified\"]; G1 pass (4/4 reference states, 0/0 fuzzed states, mutation caught)"
 ---
 Low confidence — DMA transfers weapon stamina gauge and attack power bar graphics from ROM into VRAM and CGRAM.
 

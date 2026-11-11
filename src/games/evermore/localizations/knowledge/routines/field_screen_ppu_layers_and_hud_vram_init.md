@@ -6,9 +6,9 @@ kind: code
 category: 🧠
 name: field_screen_ppu_layers_and_hud_vram_init
 title: Configures SNES PPU layer registers and VRAM base addresses for gameplay, triggering HUD gauge DMA
-confidence: guess
-tags: [unverified, rea-partial-read, widescreen, widescreen.menu, widescreen.gate]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+confidence: verified
+tags: [unverified, rea-partial-read, widescreen, widescreen.menu, widescreen.gate, reconstructed-c, g1-pass]
+evidence: "[\"disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified\"]; G1 pass (4/4 reference states, 0/0 fuzzed states, mutation caught)"
 ---
 Low confidence — Configures SNES PPU layer registers and VRAM base addresses for gameplay, triggering HUD gauge DMA.
 

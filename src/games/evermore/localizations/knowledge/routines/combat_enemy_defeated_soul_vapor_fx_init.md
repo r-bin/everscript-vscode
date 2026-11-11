@@ -6,9 +6,9 @@ kind: code
 category: 🧠
 name: combat_enemy_defeated_soul_vapor_fx_init
 title: Initializes vanishing puff-of-smoke explosion and soul vapor particles upon defeating an enemy
-confidence: guess
-tags: [unverified, rea-partial-read]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+confidence: verified
+tags: [unverified, rea-partial-read, reconstructed-c, g1-pass]
+evidence: "[\"disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified\"]; G1 pass (45/45 reference states, 34/34 fuzzed states, mutation caught)"
 ---
 Low confidence — Initializes vanishing puff-of-smoke explosion and soul vapor particles upon defeating an enemy.
 

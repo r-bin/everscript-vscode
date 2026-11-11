@@ -6,9 +6,9 @@ kind: code
 category: 🧠
 name: title_screen_background_graphics_and_palette_dma
 title: Decompresses and DMA transfers title screen background graphics, tilemaps, and palettes to VRAM and CGRAM
-confidence: guess
-tags: [unverified, rea-partial-read]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+confidence: verified
+tags: [unverified, rea-partial-read, reconstructed-c, g1-pass]
+evidence: "[\"disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified\"]; G1 pass (2/2 reference states, 0/0 fuzzed states, mutation caught)"
 ---
 Low confidence — Decompresses and DMA transfers title screen background graphics, tilemaps, and palettes to VRAM and CGRAM.
 

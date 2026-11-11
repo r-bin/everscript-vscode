@@ -1,9 +1,10 @@
 // Ownership: a minimal SNES bus for running game routines on cpu65816.ts (any game).
 //
 // Generic SNES hardware: HiROM cartridge mapping, 128 KB WRAM (bank $7E/$7F,
-// mirrored at $00-$3F/$80-$BF:0000-1FFF), VRAM through $2115-$2119/$2139-$213A,
-// CGRAM through $2121/$2122/$213B, the multiply/divide unit ($4202-$4206,
-// $4214-$4217) and general DMA ($420B, $43x0-$43x6) in both directions.
+// mirrored at $00-$3F/$80-$BF:0000-1FFF, and PPU port $2180-$2183), VRAM through
+// $2115-$2119/$2139-$213A, CGRAM through $2121/$2122/$213B, Mode 7 signed multiply
+// ($211B/$211C -> $2134-$2136), the CPU multiply/divide unit ($4202-$4206,
+// $4214-$4217), and general DMA ($420B, $43x0-$43x6) in both directions.
 // Everything else reads 0 and ignores writes; the last value written to each $21xx
 // register is kept (`ppuReg`), and the fixed colour $2132 builds one channel at a time.
 
@@ -25,6 +26,10 @@ export class SnesBus implements Bus {
     private mulA = 0xFF;
     private mulResult = 0;
     private divQuot = 0;
+    private wmaddr = 0;
+    private m7latch = 0;
+    private m7a = 0;
+    private m7prod = 0;
     /** The colour-math fixed colour as $2132 writes set it: 5-bit red, green, blue. */
     readonly fixedColor = [0, 0, 0];
 
@@ -68,6 +73,9 @@ export class SnesBus implements Bus {
 
     private readIo(a: number): number {
         switch (a) {
+            case 0x2134: return this.m7prod & 0xFF;
+            case 0x2135: return (this.m7prod >> 8) & 0xFF;
+            case 0x2136: return (this.m7prod >> 16) & 0xFF;
             case 0x2139: {
                 const v = this.vprefetch & 0xFF;
                 if (!(this.io[0x15] & 0x80)) this.vramReadAdvance();
@@ -82,6 +90,11 @@ export class SnesBus implements Bus {
                 const v = this.cgram[(this.cgaddr * 2 + (this.cgreadHigh ? 1 : 0)) & 0x1FF];
                 if (this.cgreadHigh) this.cgaddr = (this.cgaddr + 1) & 0xFF;
                 this.cgreadHigh = !this.cgreadHigh;
+                return v;
+            }
+            case 0x2180: {
+                const v = this.wram[this.wmaddr & 0x1FFFF];
+                this.wmaddr = (this.wmaddr + 1) & 0x1FFFF;
                 return v;
             }
             case 0x4214: return this.divQuot & 0xFF;
@@ -117,6 +130,18 @@ export class SnesBus implements Bus {
                 if ((a === 0x2119) === highInc) this.vmaddr = (this.vmaddr + this.vmStep()) & 0xFFFF;
                 return;
             }
+            case 0x211B: {
+                const raw = ((v & 0xFF) << 8) | this.m7latch;
+                this.m7latch = v & 0xFF;
+                this.m7a = (raw << 16) >> 16;
+                return;
+            }
+            case 0x211C: {
+                this.m7latch = v & 0xFF;
+                const b = ((v & 0xFF) << 24) >> 24;
+                this.m7prod = (this.m7a * b) & 0xFFFFFF;
+                return;
+            }
             case 0x2132: for (let c = 0; c < 3; c++) if (v & (0x20 << c)) this.fixedColor[c] = v & 0x1F; return;
             case 0x2121: this.cgaddr = v; this.cglatch = -1; this.cgreadHigh = false; return;
             case 0x2122:
@@ -125,6 +150,10 @@ export class SnesBus implements Bus {
                 this.cgram[(this.cgaddr * 2 + 1) & 0x1FF] = v & 0x7F;
                 this.cgaddr = (this.cgaddr + 1) & 0xFF;
                 this.cglatch = -1;
+                return;
+            case 0x2180: this.wram[this.wmaddr & 0x1FFFF] = v; this.wmaddr = (this.wmaddr + 1) & 0x1FFFF; return;
+            case 0x2181: case 0x2182: case 0x2183:
+                this.wmaddr = this.io[0x81] | (this.io[0x82] << 8) | ((this.io[0x83] & 1) << 16);
                 return;
             case 0x4202: this.mulA = v; return;
             case 0x4203: this.mulResult = this.mulA * v; return;

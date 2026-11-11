@@ -6,9 +6,9 @@ kind: code
 category: 🧠
 name: equipment_weapon_equip_and_buff_sync
 title: Dynamic buff/debuff latch synchronization and weapon equip processor
-confidence: confirmed
-tags: [combat, equipment, weapons, buffs, persistence]
-evidence: ["disasm: processes buff add ($7E:243D) and remove ($7E:243F) requests, updates persistence bytes $7E:2261..$7E:2263 via bitmask tables $CC:BBB0 and $CC:BBD8, cascades stat recalculations $8F:8398 and $8F:857D, processes weapon equip request $7E:2441, and sets active weapon slot $7E:0ABA", "trace: executed every frame tick in bank $8F to sync inventory and equipment requests"]
+confidence: verified
+tags: [combat, equipment, weapons, buffs, persistence, reconstructed-c, g1-pass]
+evidence: "[\"disasm: processes buff add ($7E:243D) and remove ($7E:243F) requests, updates persistence bytes $7E:2261..$7E:2263 via bitmask tables $CC:BBB0 and $CC:BBD8, cascades stat recalculations $8F:8398 and $8F:857D, processes weapon equip request $7E:2441, and sets active weapon slot $7E:0ABA\", \"trace: executed every frame tick in bank $8F to sync inventory and equipment requests\"]; G1 pass (34/34 reference states, 512/512 fuzzed states, mutation caught)"
 see: [docs/disassembly/combat/weapon-equip-buffs.md, routines/stamina_prime_and_weapon_slice_dispatch.md, routines/character_defense_and_buff_rebuild.md, routines/companion_stats_scaling_and_form_rebuild.md]
 ---
 Inter-process communication bridge for status buffs and weapon equipment. Monitors latch registers `$7E:243D` (add buff),

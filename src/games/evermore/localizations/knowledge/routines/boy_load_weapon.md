@@ -5,9 +5,9 @@ end: 8F8279
 kind: code
 name: boy_load_weapon
 title: Load the held weapon's animations and palette into the Boy's record
-confidence: confirmed
-tags: [entities, weapons, sprites]
-evidence: ["disasm: X = weapon index (×2); X = $1A (Bazooka) takes `$C4:388E[$2349]`, else `$C4:3874[X]`: a 36-byte entry in bank $C4; +$06 → $0A39 (record +$13), +$08-+$14 → $0A58-$0A64 (+$32-+$3E), +$16 → $0A6E (+$48), +$18 → $0A66 (+$40), +$1A/+$1C → $1460/$1462, +$04 (unless $23CD) → $0A2F (+$09), then $90:CF3A"]
+confidence: verified
+tags: [entities, weapons, sprites, reconstructed-c, g1-pass]
+evidence: "[\"disasm: X = weapon index (×2); X = $1A (Bazooka) takes `$C4:388E[$2349]`, else `$C4:3874[X]`: a 36-byte entry in bank $C4; +$06 → $0A39 (record +$13), +$08-+$14 → $0A58-$0A64 (+$32-+$3E), +$16 → $0A6E (+$48), +$18 → $0A66 (+$40), +$1A/+$1C → $1460/$1462, +$04 (unless $23CD) → $0A2F (+$09), then $90:CF3A\"]; G1 pass (9/9 reference states, 0/0 fuzzed states, mutation caught)"
 see: [routines/character_records.md, routines/weapon_entries.md]
 ---
 Equipping a weapon rewrites the Boy's WRAM record (`$0A26`) from the weapon's entry: its stand,
