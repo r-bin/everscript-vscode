@@ -7,7 +7,7 @@ category: 🧠
 name: mode7_flight_cloud_shadow_and_terrain_occlusion_tick
 title: Animates drifting cloud shadow sprites and evaluates terrain elevation occlusion in Mode 7 flight
 confidence: guess
-tags: [unverified, rea-partial-read]
+tags: [unverified, rea-partial-read, mode7]
 evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
 ---
 Low confidence — Animates drifting cloud shadow sprites and evaluates terrain elevation occlusion in Mode 7 flight.

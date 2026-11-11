@@ -7,7 +7,7 @@ category: 🧠
 name: mode7_camera_altitude_matrix_parameters_set
 title: Calculates and stores Mode 7 altitude scaling and camera tilt parameters in flight registers
 confidence: guess
-tags: [unverified, rea-partial-read]
+tags: [unverified, rea-partial-read, mode7]
 evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
 ---
 Low confidence — Calculates and stores Mode 7 altitude scaling and camera tilt parameters in flight registers.

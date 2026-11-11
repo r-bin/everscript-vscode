@@ -7,7 +7,7 @@ category: 📋
 name: tbl_fade_in_brightness_ramp_25_steps
 title: Gradual 25-step screen brightness ramp lookup table
 confidence: confirmed
-tags: [ppu, brightness, fade, lookup, table]
+tags: [ppu, brightness, fade, lookup, table, mode7]
 evidence: ["disasm: 50 bytes at $80:E1DF..$80:E210 containing 25 16-bit word brightness values: 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15, 15"]
 see: [knowledge/wram/JOYPAD1_TRIGGERED.md, routines/screen_fade_in_from_black_sync.md, routines/tbl_80E2B5.md]
 ---

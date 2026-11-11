@@ -9,6 +9,6 @@ title: Alternate camera subpixel scroll velocity decelerator ($80:CDB9)
 confidence: confirmed
 evidence: ["disasm: subtracts friction $1476 from alternate scroll velocity $14B2; clamps reverse speed against -$1474; stores in $14B2; caller: $80:CBD1"]
 see: [routines/camera_scroll_velocity_decelerate_and_clamp.md]
-tags: [camera, scroll, velocity]
+tags: [camera, scroll, velocity, mode7]
 ---
 Decelerates alternate camera subpixel scrolling velocity `$14B2` by friction `$1476`, clamping reverse scrolling speed against negative limit `-$1474`.

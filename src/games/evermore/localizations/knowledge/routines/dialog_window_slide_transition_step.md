@@ -9,6 +9,6 @@ title: Dialogue window opening/closing transition animator ($80:D786)
 confidence: confirmed
 evidence: ["disasm: inspects window state $0E70 (< 10) and active window flag $0B1D; if opening, increments step counter $0E7A up to clamp $1C (28 frames); if closing, decrements $0E7A to 0; calls $80:D763 to refresh window border sprites"]
 see: [routines/hide_window_frame_sprites.md]
-tags: [ui, dialogue, animation]
+tags: [ui, dialogue, animation, mode7]
 ---
 Ticks the opening or closing slide transition animation for dialogue windows. Evaluates window state `$0E70` and active flag `$0B1D`: when opening, increments transition step counter `$0E7A` up to a maximum of 28 frames (`$1C`); when closing, decrements `$0E7A` to zero. Calls `hide_window_frame_sprites` (`$80:D763`) to adjust border sprite positions each step.

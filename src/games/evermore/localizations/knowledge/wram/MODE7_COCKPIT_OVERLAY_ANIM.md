@@ -2,7 +2,7 @@
 addr: $7E:0DEB
 name: MODE7_COCKPIT_OVERLAY_ANIM
 type: u8[12]
-tags: []
+tags: [mode7]
 confidence: verified
 evidence: ["cdl", "disasm"]
 ---

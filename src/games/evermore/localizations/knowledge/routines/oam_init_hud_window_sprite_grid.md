@@ -9,6 +9,6 @@ title: HUD window 64-sprite Low OAM horizontal grid layout ($80:D508)
 confidence: confirmed
 evidence: ["disasm: switches DBR to $7E; loads Low OAM buffer pointer Y=$ACBE; invokes 16-sprite ramp generator $80:D524 four times to populate 64 Low OAM sprite entries across $7E:ACBE..$7E:ADBE; caller: $80:D22D"]
 see: [routines/oam_ramp_sprite_x_coordinates_16px.md, knowledge/wram/HIGH_OAM_TABLE_BUF.md]
-tags: [oam, sprites, ui, hud]
+tags: [oam, sprites, ui, hud, mode7]
 ---
 Initializes a 64-sprite horizontal grid in Low OAM starting at `$7E:ACBE` for dialogue and HUD window borders. Sets data bank to `$7E`, and invokes 16-sprite coordinate generator `$80:D524` four consecutive times to space 64 sprites evenly across the screen.

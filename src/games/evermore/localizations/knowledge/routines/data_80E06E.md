@@ -7,7 +7,7 @@ category: 📦
 name: data_80E06E
 title: CDL data block ($80:E06E)
 confidence: confirmed
-tags: ["data","cdl"]
+tags: ["data","cdl", "mode7"]
 evidence: ["CDL recorder export (out/recomp/asar/export.json)"]
 ---
 

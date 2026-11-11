@@ -9,6 +9,6 @@ title: 2D rotated camera displacement step and sign normalizer ($80:DB04)
 confidence: confirmed
 evidence: ["disasm: inspects velocity $14B6; if negative, negates displacement vector $14A8/$14AA before invoking translation step $80:DB36, then restores vector and normalizes sign via $80:DB8D; caller: $80:DA9A"]
 see: [routines/sign_extend_camera_delta_vector.md]
-tags: [camera, vectors, rotation]
+tags: [camera, vectors, rotation, mode7]
 ---
 Applies 2D camera coordinate translation along rotated vector `$14A8`/`$14AA`. Handles bidirectional velocity negation for negative pan speeds, executes translation step `$80:DB36`, and sign-extends displacement coordinates via `$80:DB8D`.

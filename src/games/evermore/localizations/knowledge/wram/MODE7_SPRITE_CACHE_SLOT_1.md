@@ -2,7 +2,7 @@
 addr: $7E:0DF7
 name: MODE7_SPRITE_CACHE_SLOT_1
 type: u16
-tags: []
+tags: [mode7]
 confidence: verified
 evidence: ["cdl", "disasm"]
 ---

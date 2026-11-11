@@ -7,7 +7,7 @@ category: 🧠
 name: mode7_flight_compass_needle_smooth_tracking_step
 title: Interpolates compass rose needle heading smoothly towards aircraft yaw during Mode 7 flight
 confidence: guess
-tags: [unverified, rea-partial-read]
+tags: [unverified, rea-partial-read, mode7]
 evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
 ---
 Low confidence — Interpolates compass rose needle heading smoothly towards aircraft yaw during Mode 7 flight.

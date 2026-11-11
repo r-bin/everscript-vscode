@@ -7,7 +7,7 @@ category: 🧠
 name: mode7_flight_speed_and_altitude_throttle_update
 title: Updates flight throttle, forward speed, and altitude climbing/diving limits during Mode 7 sequences
 confidence: guess
-tags: [unverified, rea-partial-read]
+tags: [unverified, rea-partial-read, mode7]
 evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
 ---
 Low confidence — Updates flight throttle, forward speed, and altitude climbing/diving limits during Mode 7 sequences.

@@ -7,7 +7,7 @@ category: 🧠
 name: screen_and_audio_fade_out_sync
 title: Concurrent screen brightness fade-out and audio attenuation loop
 confidence: confirmed
-tags: [ppu, audio, fade, screen, attenuation]
+tags: [ppu, audio, fade, screen, attenuation, mode7]
 evidence: ["disasm: fades brightness $0106 and dispatches APU attenuation commands via JSL $8C:81FD on each vertical blank ($80:858C) at $80:DE1B..$80:DE44; terminates via RTS"]
 see: [knowledge/wram/JOYPAD1_TRIGGERED.md, knowledge/wram/AUDIO_FADE_COUNTER.md, routines/wait_for_nmi.md, routines/apu_command_handshake.md]
 ---

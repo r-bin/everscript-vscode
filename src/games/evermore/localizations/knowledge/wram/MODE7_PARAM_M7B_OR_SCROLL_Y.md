@@ -2,7 +2,7 @@
 addr: $7E:14C4
 name: MODE7_PARAM_M7B_OR_SCROLL_Y
 type: u16
-tags: []
+tags: [mode7]
 confidence: verified
 evidence: ["cdl", "disasm"]
 ---

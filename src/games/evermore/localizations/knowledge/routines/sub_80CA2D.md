@@ -7,7 +7,7 @@ category: 🧠
 name: sub_80CA2D
 title: CDL subroutine ($80:CA2D)
 confidence: confirmed
-tags: ["code","subroutine","cdl"]
+tags: ["code","subroutine","cdl", "mode7"]
 evidence: ["CDL recorder export (out/recomp/asar/export.json)"]
 ---
 

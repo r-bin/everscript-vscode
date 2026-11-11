@@ -9,6 +9,6 @@ title: Upload 16KB data block to VRAM via DMA Channel 5 ($80:DD47)
 confidence: confirmed
 evidence: ["disasm: configures DMA channel 5 ($4350=$00, $4351=$18, $4352=<$26, $4354=<$28, $4355=X); sets VRAM dest $2116=<$2E; triggers transfer via $420B=$20; callers: scene setup $80:C16D"]
 see: ["routines/vram_dma_upload_tile_plane_1.md"]
-tags: ["vram","dma","channel5","hardware"]
+tags: ["vram","dma","channel5","hardware", "mode7"]
 ---
 Direct hardware DMA channel 5 programmer for VRAM upload. Configures DMA channel 5 registers (`$4350 = $00`, `$4351 = $18`, `$4352 = <$26`, `$4354 = <$28`, `$4355 = X`), sets VRAM target address `$2116 = <$2E`, and initiates transfer via `$420B = $20`.

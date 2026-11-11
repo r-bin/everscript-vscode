@@ -2,7 +2,7 @@
 addr: $7E:0BFB
 name: MODE7_CAMERA_TARGET_OFFSET_X
 type: u16
-tags: []
+tags: [mode7]
 confidence: verified
 evidence: ["cdl", "disasm"]
 ---

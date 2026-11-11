@@ -9,6 +9,6 @@ title: Camera velocity negative deceleration stepper and clamp ($80:C61C)
 confidence: confirmed
 evidence: ["disasm: subtracts deceleration rate $1480 from camera velocity $14B6; clamps velocity against lower bound $147E; stores clamped result in $14B6; caller: $80:C4A3"]
 see: [routines/camera_velocity_accelerate_and_clamp.md]
-tags: [camera, scroll, velocity]
+tags: [camera, scroll, velocity, mode7]
 ---
 Decelerates camera scrolling speed during scripted negative pans. Subtracts deceleration step `$1480` from current scroll velocity `$14B6`, clamping against negative velocity limit `$147E`.

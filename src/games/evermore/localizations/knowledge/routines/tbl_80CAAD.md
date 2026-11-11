@@ -7,7 +7,7 @@ category: 📋
 name: tbl_80CAAD
 title: CDL lookup: 14 entries × 2B
 confidence: confirmed
-tags: ["table","cdl","lookup","lookup"]
+tags: ["table","cdl","lookup","lookup", "mode7"]
 evidence: ["CDL recorded table: 14 entries × 2B (out/recomp/asar/tables/tables.json)"]
 ---
 
