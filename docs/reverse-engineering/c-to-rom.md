@@ -460,3 +460,28 @@ Detailed diagnostics on frame 375 revealed two root causes:
   `8FA93B_ramp_elevation.c`, parts of five others); to be decided by the owner (rule 11).
 - Calypsi: the `-O2` byte sign-test bug and the comma-condition branch are not reduced to minimal
   cases yet. G2 (recomp A/B) is not built.
+
+---
+
+## 10c. 157-routine expansion & build/G1 findings (feature branch)
+
+Recent work on `feature/recomp-c-bindings-replay01` expanded compiled bindings from `127` (`116,927` bytes linked) to **`157` bound routines** compiled into `out/c-to-rom/soe-c.sfc` (`4,194,304`-byte 4 MB ExHiROM via Calypsi 5.18 `-O1 --speed`, `131,451` total linked bytes; `quality.md`: `157 routine(s) built: 11,882 ROM bytes → 93,995 C bytes (7.9×)`).
+
+### Replay01 (8,414-frame power-on intro) bindability census
+- `667` known code routines execute during the 8,414-frame replay (`127` initially bound; `157` bound after adding Batch 3).
+- Of the `540` routines unbound prior to Batch 3: `85` bindable leaves, `206` bindable callers (`JSL`/`JSR`), and `249` unbindable under `checkBindings` (`noRet: 44`, `multiRet: 3`, `tooShort: 28`, `noCall: 165`, `innerFlow: 9`), plus bridge-incompatible stack/DB routines (`PLB`: `$8F:84B4`, `$8F:84EC`, `$90:9F21`; stack-pushed DP dispatch: `$8C:CC62`; caller-return `PLA; RTS`: `$8F:D6CE`).
+
+### Toolchain & harness fixes
+1. **`tools/c-to-rom/build.mts` (`FLOW_RETURN` filter in `checkBindings`):** `edges` records `FLOW_RETURN` (`0x20`) at return edges from callees back into a routine's post-call instruction, which false-triggered trampoline-overlap errors when binding callers of bound routines (e.g. `$8C:EC95 -> $8C:E011` inside `script_op_43_teleport`). Filtering `(kind & ~FLOW_RETURN)` resolved the false positive.
+2. **`tools/c-to-rom/quality.mts` (`.o` basename lookup):** Lookups previously synthesized `${addr}_${b.name}.o` instead of `basename(b.file).replace(/\.c$/, '.o')`, causing 6 bound routines whose `.c` filename differs from their `SOE_BIND` symbol name (`face_cardinal`, `script_op_17_write_word_immediate`, `script_op_27_fade_out`, `activate_background_tile_animation`, `restore_color_math_snapshot`, `map_tile_anim_and_cuttable_terrain_init`) to report `not built` (`151` instead of `157`) in `out/c-to-rom/quality.md`.
+
+### Verification & divergence observations
+- **`compare-image.mts --frames 600`:** `soe-c.sfc` boots cleanly without crashing, stays in sync through frame 0, and diverges by frame 60 (`$7E0012` frame counter `01` vs `03`, `$7E0133–$7E013A` RNG state, and `$7E1F77–$7E1FB4` dead-stack bridge residue) — earlier than the prior frame-374 divergence because boot/title/joypad/RNG routines (`$80:8507`, `$80:8597`, `$80:859B`, `$80:8D4D`, `$80:B3B0`, `$80:B406`) are now bound and shift cycle timing across NMI.
+- **G1 verification on the 30 Batch 3 additions:**
+  - All 15 Batch 3B routines passed all captured states (`--fuzz 0`) plus mutation check (`All 15 routine(s) pass G1`).
+  - Of Batch 3A: `script_stop_all_threads` (`$8C:CEE9`) caught exit `X $2ED9 vs $2F28` (loop runs `TAX` before final `ADC #$004F`) and `SOE_V` cleared by `ADC`, fixed and verified passing full G1 (`6/6` states, `96/96` fuzzed, mutation caught); `script_op_17_write_word_immediate` (`$8C:D79D`) caught trailing `INC $82; INC $82` setting `N=1` (`P $0081 vs $0001`), fixed and verified passing full G1 (`2/2` states, `32/32` fuzzed, mutation caught).
+  - Under `--fuzz 0`, `joypad_acknowledge_or_clear_buttons`, `spc700_stream_advance_bank_pointer_short`, and `spc700_stream_advance_bank_pointer` passed all captured states with `mutation caught: no` (the `INC $A2; LDY #$8000` bank-wrap path at `Y == $FFFF` / `$FFFE` occurs < 1/32,768 in uniform random states and was not hit in the sampled states).
+- **Build & G1 scaling limits:** Every `g1.mts` invocation runs `buildImage()`, compiling all 157 `.c` files under Rosetta 2 in ~88s. Under `--fuzz 16` (`48 × 16 = 768` random states per routine), high-iteration C loops (`room_header_reader_entry_stub` averages `40,100` C instructions vs `1,123` ROM instructions per call, ~`35.7×`) or multi-routine sweeps can hit multi-million-step `cpu65816.ts` runs and exceed practical single-batch timeouts.
+- **WRAM & entry-width traps uncovered while binding:**
+  - Legacy `soe_ram.h` symbols `$7E:235B–$7E:235E` (labeled `DOG_AI_STATE`..`dog_ai_collision_mode`) hold PPU register snapshots (`TM`/`TS`/`CGADSUB`/`CGWSEL` restored by `$8C:E20F`), and `$0B19`/`$0B1B` (`WAVE_PHASE_COUNTER`/`controller_prev_input`) serve as the 32-bit field frame counter for script sleep (`$8C:D20F`, `$8C:D217`).
+  - Fall-through entry pairs can enter with differing accumulator widths (`$8C:818D` with `M=16`, falling into `$8C:8195` which external callers also enter with `M=8`), requiring `(r->p & SOE_M)` guards rather than hardcoded width assumptions.

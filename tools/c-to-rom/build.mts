@@ -110,7 +110,7 @@ export function checkBindings(rom: Uint8Array, list: Binding[]): string[] {
             for (const [k, kind] of edges) {
                 const from = Math.floor(k / 0x1000000), to = k % 0x1000000;
                 if (to === b.addr && (kind & (FLOW_CALL | FLOW_JUMP))) called = true;
-                if (inner(to) && !(from >= b.addr && from < b.addr + trampSize(b))) problems.push(`${b.name}: recorded flow ${hex(from)} -> ${hex(to)} lands inside the trampoline`);
+                if ((kind & ~FLOW_RETURN) && inner(to) && !(from >= b.addr && from < b.addr + trampSize(b))) problems.push(`${b.name}: recorded flow ${hex(from)} -> ${hex(to)} lands inside the trampoline`);
             }
             if (!called) problems.push(`${b.name}: the CDL library has no call or jump to ${hex(b.addr)} (reached only by falling through?)`);
         }
@@ -118,7 +118,7 @@ export function checkBindings(rom: Uint8Array, list: Binding[]): string[] {
     return problems;
 }
 
-const FLOW_CALL = 1, FLOW_JUMP = 2;      // platform/snes/opcodes-65816.ts FLOW
+const FLOW_CALL = 1, FLOW_JUMP = 2, FLOW_RETURN = 0x20;      // platform/snes/opcodes-65816.ts FLOW / recomp-analysis.ts
 const tramp = (b: Binding) => `tramp_${b.addr.toString(16)}`;
 const trampSize = (b: Binding) => (b.ret === 'RTL' ? 4 : 5);
 
