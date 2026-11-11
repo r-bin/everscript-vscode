@@ -5,26 +5,10 @@ size: 166
 kind: code
 category: 🧠
 name: graphics_color_555_linear_blend_lerp
-title: Blends two 15-bit SNES RGB 5:5:5 colors using hardware multiplication for smooth lighting and palette transiti
-confidence: guess
-tags: [unverified, rea-partial-read]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+title: Linearly interpolates two 15-bit BGR555 colors using hardware multiplier ($90:D2A6)
+confidence: verified
+tags: [palettes, graphics, math]
+evidence: ["disasm: whole routine read ($90:D2A6..$90:D34B); uses DP $12 blend weight (0 returns $16, nonzero high byte with 0 low byte returns $18), separates 5-bit R/G/B of $16 and $18, multiplies delta via $4202/$4203/$4217 and returns blended BGR555 in A", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.39): 46/46 states and 736/736 fuzzed match ROM, mutation caught"]
 ---
-Low confidence — Blends two 15-bit SNES RGB 5:5:5 colors using hardware multiplication for smooth lighting and palette transitions.
 
-> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
-
-Mathematical color interpolation primitive for SNES 15-bit RGB palettes.
-Given color A in `$16`, color B in `$18`, and blending fraction `$12`, the routine separates red, green, and blue color channels, calculates channel linear interpolation via SNES multiplier register `$4202`, and repacks the blended 5:5:5 result.
-
-## Callers
-- `$90:D7DD` (`FUN_90d7dd`)
-
-## Callees
-- None
-
-## Variables and memory (hypotheses)
-- `$16` (Source 15-bit RGB color word A)
-- `$18` (Source 15-bit RGB color word B)
-- `$12` (Blending factor ratio, 0..255)
-- `$4202` (Hardware multiplier register)
+Linearly interpolates between two 15-bit BGR555 colors in `DP $16` and `DP $18` according to blend factor `DP $12` (`$12 & $FF == 0` returns `$16` if `$12 == 0`, else `$18`), computing per-channel fixed-point steps via SNES hardware multiplier `$4202`/`$4203`/`$4217` and returning the blended 15-bit color in `A`.

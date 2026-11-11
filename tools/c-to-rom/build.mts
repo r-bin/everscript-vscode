@@ -17,7 +17,8 @@
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, rmSync } from 'node:fs';
 import { join, relative, basename } from 'node:path';
 import { createRequire } from 'node:module';
-import { execFileSync } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
+import { promisify } from 'node:util';
 import { REPO, stripHeader, hex } from './emu.mts';
 import { calypsi } from './calypsi.mts';
 import { walk, cdlFor } from './disasm.mts';
@@ -220,13 +221,18 @@ export async function buildImage(source: Uint8Array, workDir = join(OUT, 'obj'),
     if (problems.length) throw new Error('bindings that cannot be trampolined:\n  ' + problems.join('\n  '));
     rmSync(workDir, { recursive: true, force: true });
     mkdirSync(workDir, { recursive: true });
+    const execFileAsync = promisify(execFile);
     const [cc, as, ln] = await Promise.all([calypsi('cc65816'), calypsi('as65816'), calypsi('ln65816')]);
-    const objs: string[] = [];
-    for (const f of files) {
-        const o = join(workDir, basename(f, '.c') + '.o');
-        execFileSync(cc, [...MODEL, ...OPT, ...(opts.optimize ? ['-DSOE_OPTIMIZE'] : []), '-I', INCLUDE, f, '-o', o], { stdio: ['ignore', 'pipe', 'pipe'] });
-        objs.push(o);
-    }
+    const objs: string[] = files.map(f => join(workDir, basename(f, '.c') + '.o'));
+    const concurrency = 8;
+    let nextIdx = 0;
+    const ccArgsBase = [...MODEL, ...OPT, ...(opts.optimize ? ['-DSOE_OPTIMIZE'] : []), '-I', INCLUDE];
+    await Promise.all(Array.from({ length: Math.min(concurrency, files.length) }, async () => {
+        while (nextIdx < files.length) {
+            const idx = nextIdx++;
+            await execFileAsync(cc, [...ccArgsBase, files[idx], '-o', objs[idx]], { maxBuffer: 4 * 1024 * 1024 });
+        }
+    }));
     const gen: Record<string, string> = { 'bridges.s': bridgesAsm(list), 'gadgets.s': gadgetsAsm(rom) };
     for (const [name, text] of Object.entries(gen)) writeFileSync(join(workDir, name), text);
     for (const s of [join(workDir, 'bridges.s'), join(workDir, 'gadgets.s'), RUNTIME]) {

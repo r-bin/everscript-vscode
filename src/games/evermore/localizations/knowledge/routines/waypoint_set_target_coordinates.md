@@ -6,8 +6,8 @@ kind: code
 category: 🗺️
 name: waypoint_set_target_coordinates
 title: Waypoint target coordinate scaler and route initiator ($8F:A7AA)
-confidence: confirmed
-evidence: ["disasm: loads waypoint node index from DP $4E; stores target pixel X/Y from DP $46/$48 to node +$20/$22 ($3C1C,X and $3C1E,X); divides by 16 (LSR 4) to write tile coordinates to +$00/$01 ($3BF9,X and $3BFA,X); clears state word +$1A ($3C16,X); jumps to path step resolver $8F:A723"]
+confidence: verified
+evidence: ["disasm: loads waypoint node index from DP $4E; stores target pixel X/Y from DP $46/$48 to node +$20/$22 ($3C1C,X and $3C1E,X); divides by 16 (LSR 4) to write tile coordinates to +$00/$01 ($3BF9,X and $3BFA,X); clears state word +$1A ($3C16,X); jumps to path step resolver $8F:A723", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.39): 33/33 states match ROM, mutation caught"]
 see: [routines/waypoint_node_release.md, routines/entity_release_waypoint_node_and_signal.md, knowledge/wram/ENTITY_FREE_LIST_HEAD.md]
 tags: [waypoints, navigation, entities]
 ---

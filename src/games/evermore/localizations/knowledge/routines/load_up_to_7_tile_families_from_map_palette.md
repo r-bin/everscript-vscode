@@ -6,9 +6,9 @@ kind: code
 category: 🧠
 name: load_up_to_7_tile_families_from_map_palette
 title: Load up to 7 tile families from `MAP_PALETTE`
-confidence: confirmed
+confidence: verified
 tags: [maps, palettes, graphics]
-evidence: ["legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)", "decomp: fully decompiled in docs/disassembly/maps/palette-families.md"]
+evidence: ["legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)", "decomp: fully decompiled in docs/disassembly/maps/palette-families.md", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.39): 9/9 states and 36/36 fuzzed match ROM, mutation caught"]
 see: [docs/disassembly/maps/palette-families.md, routines/reload_families_when_a_script_changes_map_palett.md]
 ---
 Loads up to 7 tile families (32 bytes each: 16 colors × 2 bytes) from master palette table `$9C:C322` into WRAM `$7E:61A7` via SNES DMA Channel 1.

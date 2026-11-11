@@ -472,7 +472,10 @@ Detailed diagnostics and binding rules:
 
 ## 10c. 157-routine expansion & build/G1 findings (feature branch)
 
-Recent work on `feature/recomp-c-bindings-replay01` expanded compiled bindings from `127` (`116,927` bytes linked) to **`157` bound routines** compiled into `out/c-to-rom/soe-c.sfc` (`4,194,304`-byte 4 MB ExHiROM via Calypsi 5.18 `-O1 --speed`, `131,451` total linked bytes; `quality.md`: `157 routine(s) built: 11,882 ROM bytes → 93,995 C bytes (7.9×)`).
+Recent work on `c-bindings` (and earlier `feature/recomp-c-bindings-replay01`) expanded compiled bindings from `127` (`116,927` bytes linked) to `157` (`131,451` linked bytes) and now **`176` bound routines** (Batch 4a: +19 routines across banks `$8C`, `$8F`, `$90`, all 19 G1-verified in `v0.399.39`).
+
+- **`tools/c-to-rom/build.mts` parallelization:** Compilation now runs across an 8-worker async `execFile` pool (~17s full rebuild vs ~88s sequentially).
+- **`ABSI16` / `ABSI8` bank-carry & fall-through `PLB`/`Z` fixes:** `$90:8139`/`$90:817B` (`ABSI16`/`ABSI8` for `$7E:FFFF` + offset carry into `$7F`), `$90:8317` (branching on entry `SOE_Z`), `$90:9379`/`$90:93AA` (`soe_nz8(r, r->db)` on `PLB`), `$90:D020` (`C` from `cgram_off << 1`), and `$90:D2A6` (`SOE_V` from 8-bit `ADC`/`SBC`).
 
 ### Replay01 (8,414-frame power-on intro) bindability census
 - `667` known code routines execute during the 8,414-frame replay (`127` initially bound; `157` bound after adding Batch 3).
