@@ -6,9 +6,11 @@ kind: code
 category: 🧠
 name: apply_color_math_settings
 title: Apply color math settings
-confidence: confirmed
-tags: [script-vm, widescreen, widescreen.window, widescreen.fade]
-evidence: ["disasm: copies $0F80-$0F83 to PPU registers $212C/$212D/$2131/$2130 and sets or clears $0B29 bit 0 from $7E:22EA bit 7", "trace: the game ran 3 distinct instructions with this opcode (tests/script-vm/goldens.json)"]
+confidence: verified
+tags: [script-vm, widescreen, widescreen.window, widescreen.fade, reconstructed-c, g1-pass]
+evidence:
+  - "[\"disasm: copies $0F80-$0F83 to PPU registers $212C/$212D/$2131/$2130 and sets or clears $0B29 bit 0 from $7E:22EA bit 7\", \"trace: the game ran 3 distinct instructions with this opcode (tests/script-vm/goldens.json)\"]"
+  - "Reconstructed in `reconstructed-c/8C/8CE247_apply_color_math_settings.c` (SOE_BIND); passes Gate G1 differential verification (13/13 reference states, 208/208 fuzzed states, mutation caught: yes, 18 / 210 ROM/C instructions per call)."
 see: [docs/scripts/vm.md, docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-83-apply-screen-layers.md]
 ---
 Handler of script opcode [0x83](soe://rom/assets/scripts/opcodes/83.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/83.md`, served at `soe://rom/assets/scripts/opcodes/83.md`.

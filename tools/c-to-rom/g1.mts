@@ -195,6 +195,7 @@ function run(image: Uint8Array, s: Sample, limit = 3_000_000, trace?: string[], 
     Object.assign(cpu, { a: s.regs.a, x: s.regs.x, y: s.regs.y, s: s.regs.s, d: s.regs.d, db: s.regs.db, pb: s.regs.pb, pc: s.regs.pc, p: s.regs.p });
     const entryS = s.regs.s;
     let minS = entryS;
+    const callS: { s: number; prevS: number }[] = [{ s: entryS, prevS: -1 }];
     try {
         for (let n = 0; ; n++) {
             if (n > limit) throw new Error(`no return after ${limit} instructions`);
@@ -202,8 +203,14 @@ function run(image: Uint8Array, s: Sample, limit = 3_000_000, trace?: string[], 
                 const [l] = disassemble(image, cpu.pb << 16 | cpu.pc, 1, (cpu.p & 0x20) !== 0, (cpu.p & 0x10) !== 0);
                 trace.push(`${hex(cpu.pb << 16 | cpu.pc)} ${l.text.padEnd(18)} A=${hex(cpu.a, 4)} X=${hex(cpu.x, 4)} Y=${hex(cpu.y, 4)} S=${hex(cpu.s, 4)} D=${hex(cpu.d, 4)} P=${hex(cpu.p, 2)}`);
             }
+            const op = bus.read(cpu.pb << 16 | cpu.pc), prevS = cpu.s;
             cpu.step();
             if (cpu.s < minS) minS = cpu.s;
+            if (op === 0x20 || op === 0xFC || op === 0x22) callS.push({ s: cpu.s, prevS });
+            else if (op === 0x60 || op === 0x6B || op === 0x40) {
+                const top = callS.pop();
+                if (top && top.prevS >= 0 && cpu.s !== top.prevS) stackWrite = true;
+            } else if (callS.length > 0 && cpu.s > callS[callS.length - 1].s) stackWrite = true;
             if (cpu.s > entryS) break;
         }
     } catch (e: any) {

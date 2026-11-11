@@ -6,9 +6,11 @@ kind: code
 category: 🧠
 name: title_screen_ppu_layer_registers_init
 title: Configures SNES PPU layer registers, tilemap bases, and BG mode 1 for the title screen presentation
-confidence: guess
-tags: [unverified, rea-partial-read]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+confidence: verified
+tags: [unverified, rea-partial-read, reconstructed-c, g1-pass]
+evidence:
+  - "[\"disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified\"]"
+  - "Reconstructed in `reconstructed-c/80/80B3B0_title_screen_ppu_layer_registers_init.c` (SOE_BIND); passes Gate G1 differential verification (2/2 reference states, 32/32 fuzzed states, mutation caught: yes, 34 / 401 ROM/C instructions per call)."
 ---
 Low confidence — Configures SNES PPU layer registers, tilemap bases, and BG mode 1 for the title screen presentation.
 

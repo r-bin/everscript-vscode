@@ -6,9 +6,11 @@ kind: code
 category: 🎨
 name: vram_dma_stream_rectangular_tile_matrix
 title: VRAM rectangular tile pattern matrix DMA streamer ($80:8860)
-confidence: confirmed
-evidence: ["disasm: sets word transfer to VRAM data port $2118 via DMA channel 0 ($4300=1, $4301=$18); sets source bank DP $28 in $4304; loops across Y rows: sets row byte count X*2 in $4305, source $26 in $4302, destination $2E in $2116; triggers DMA via $420B; advances source $26 by row bytes and VRAM dest $2E by $20; caller: $80:B406"]
+confidence: verified
+evidence:
+  - "[\"disasm: sets word transfer to VRAM data port $2118 via DMA channel 0 ($4300=1, $4301=$18); sets source bank DP $28 in $4304; loops across Y rows: sets row byte count X*2 in $4305, source $26 in $4302, destination $2E in $2116; triggers DMA via $420B; advances source $26 by row bytes and VRAM dest $2E by $20; caller: $80:B406\"]"
+  - "Reconstructed in `reconstructed-c/80/808860_vram_dma_stream_rectangular_tile_matrix.c` (SOE_BIND); passes Gate G1 differential verification (2/2 reference states, 32/32 fuzzed states, mutation caught: yes, 71 / 1579 ROM/C instructions per call)."
 see: [routines/title_screen_background_graphics_and_palette_dma.md]
-tags: [vram, dma, graphics]
+tags: [vram, dma, graphics, reconstructed-c, g1-pass]
 ---
 Streams a rectangular matrix of tile graphics into VRAM via DMA channel 0. Configures DMA writes to PPU VRAM port `$2118`, looping through `Y` rows of `X` words each. Transmits each row, advances source address `$26` by row size, and advances destination VRAM word address `$2E` by a fixed row stride of 32 words (`$20`).

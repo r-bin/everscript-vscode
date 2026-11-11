@@ -6,9 +6,11 @@ kind: code
 category: 🧠
 name: oam_dynamic_sprite_palette_slot_release
 title: Frees an allocated dynamic sprite palette slot from the 8-palette OAM pool upon entity despawn
-confidence: guess
-tags: [unverified, rea-partial-read]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+confidence: verified
+tags: [unverified, rea-partial-read, reconstructed-c, g1-pass]
+evidence:
+  - "[\"disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified\"]"
+  - "Reconstructed in `reconstructed-c/90/90CE20_oam_dynamic_sprite_palette_slot_release.c` (SOE_BIND); passes Gate G1 differential verification (20/20 reference states, 320/320 fuzzed states, mutation caught: yes, 46 / 546 ROM/C instructions per call)."
 ---
 Low confidence — Frees an allocated dynamic sprite palette slot from the 8-palette OAM pool upon entity despawn.
 

@@ -6,9 +6,11 @@ kind: code
 category: ⚔️
 name: entities_active_list_dirty_refresh
 title: Active entity linked list dirty-flag sweep and updater ($91:BB95)
-confidence: confirmed
-evidence: ["disasm: switches DBR to $7E; calls party state check $90:C9FC; tests dirty flag $0FB2; if set, clears $0FB2 and traverses active entity linked list starting at head $7E:3DDF via next-pointers +$5E,Y, calling $91:BBB7 for each entity; caller: $8E:E41E"]
+confidence: verified
+evidence:
+  - "[\"disasm: switches DBR to $7E; calls party state check $90:C9FC; tests dirty flag $0FB2; if set, clears $0FB2 and traverses active entity linked list starting at head $7E:3DDF via next-pointers +$5E,Y, calling $91:BBB7 for each entity; caller: $8E:E41E\"]"
+  - "Reconstructed in `reconstructed-c/91/91BB95_entities_active_list_dirty_refresh.c` (SOE_BIND); passes Gate G1 differential verification (34/34 reference states, 544/544 fuzzed states, mutation caught: yes, 19 / 182 ROM/C instructions per call)."
 see: [routines/per_frame_field_tick.md, knowledge/wram/ACTIVE_ENTITY_HEAD.md]
-tags: [entities, engine, loop]
+tags: [entities, engine, loop, reconstructed-c, g1-pass]
 ---
 Checks entity refresh flag `$0FB2`: when asserted, executes a refresh sweep across all linked active entities. Clears `$0FB2` and walks the active entity singly-linked list from head pointer `$7E:3DDF`, following next-slot pointer `+$5E,Y` and executing update routine `$91:BBB7` for each member.
