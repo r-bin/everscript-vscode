@@ -192,7 +192,7 @@
           "soe://ram/0114.json",
           "soe://ram/241f.json",
           "soe://rom/code/screen_shake_sync_window_coordinates/info.md",
-          "soe://rom/code/ptrs_908E68/info.md"
+          "soe://bus/908e68"
         ],
         "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
       },
@@ -326,7 +326,7 @@
         "title": "HDMA and window effects selected by the camera mode",
         "links": [
           "soe://ram/241f.json",
-          "soe://rom/code/ptrs_908E68/info.md"
+          "soe://bus/908e68"
         ],
         "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
       },
@@ -388,6 +388,9 @@
       },
       "mode7": {
         "title": "Mode 7 scenes (Windwalker flight)",
+        "see": [
+          "mode7"
+        ],
         "links": [
           "soe://ram/0e70.json",
           "soe://rom/code/script_op_99_mode7_scene/info.md",
@@ -395,6 +398,286 @@
           "soe://rom/code/mode7_flight_sample_and_sprite_dispatch/info.md"
         ],
         "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
+      }
+    }
+  },
+  "hud": {
+    "title": "The field HUD: each character's box (HP, charge gauge) on BG3 rows 24..27 and the two portrait sprites; everything that draws or places it",
+    "see": [
+      "boy",
+      "dog",
+      "widescreen"
+    ],
+    "sub": {
+      "layout": {
+        "title": "Where it sits: BG3 map $0800 rows 24..27 at BG3 scroll $3FF = lines 193..223; the field's PPU set-up",
+        "links": [
+          "soe://ram/0118.json",
+          "soe://ram/0116.json",
+          "soe://rom/code/field_screen_ppu_layers_and_hud_vram_init/info.md"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/mods/hud.md, everscript-vscode docs/disassembly/ui/field-hud.md (measured 2026-11-10)"
+      },
+      "widgets": {
+        "title": "The per-character widgets: popup node, gauge glyph VRAM address, gauge and HP tilemap words; who fills and redraws them",
+        "links": [
+          "soe://ram/051d.json",
+          "soe://ram/0561.json",
+          "soe://ram/0b29.json",
+          "soe://rom/code/field_hud_weapon_stamina_gauge_vram_dma_upload/info.md",
+          "soe://rom/code/field_hud_meters_refresh_and_reactivate/info.md",
+          "soe://rom/code/field_cutscene_dialogue_sound_cleanup/info.md"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/mods/hud.md, everscript-vscode docs/disassembly/ui/field-hud.md (measured 2026-11-10)"
+      },
+      "hp": {
+        "title": "The HP string on each box's top edge and what rewrites it",
+        "links": [
+          "soe://rom/code/hud_render_entity_hp_string/info.md",
+          "soe://rom/code/format_16bit_integer_to_decimal_digits/info.md",
+          "soe://rom/code/entity_process_damage_recoil/info.md",
+          "soe://rom/code/entity_hp_heal_commit/info.md",
+          "soe://rom/code/alchemy_formula_commit_hp_heal_to_targets/info.md"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/mods/hud.md, everscript-vscode docs/disassembly/ui/field-hud.md (measured 2026-11-10)"
+      },
+      "gauge": {
+        "title": "The charge gauge: glyphs $3E0..$3E7 drawn into VRAM, the strip's words, the full-charge flash",
+        "links": [
+          "soe://rom/code/hud_stamina_meter_recharge_step/info.md",
+          "soe://ram/0b4d.json",
+          "soe://ram/0b4f.json",
+          "soe://bus/c41e74",
+          "soe://bus/c41e84",
+          "soe://bus/c41ee4"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/mods/hud.md, everscript-vscode docs/disassembly/ui/field-hud.md (measured 2026-11-10)"
+      },
+      "portraits": {
+        "title": "The portraits: OBJ $080 (Boy, palette 6) and $082 (Dog, palette 7) at y 201, two adjacent OAM slots",
+        "links": [
+          "soe://rom/code/hud_portraits_init/info.md",
+          "soe://ram/4ef7.json",
+          "soe://ram/4efa.json",
+          "soe://bus/cc37ac",
+          "soe://bus/d0ad6b",
+          "soe://rom/code/hud_render_boy_hp_gauge_sprite/info.md",
+          "soe://rom/code/hud_render_dog_hp_gauge_sprite/info.md",
+          "soe://rom/code/direct_sprite_draw_oam/info.md"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/mods/hud.md, everscript-vscode docs/disassembly/ui/field-hud.md (measured 2026-11-10)"
+      },
+      "shared": {
+        "title": "Next to the HUD but not part of it: windows ($7F:C800 holds blanks at the HUD rows), the popup nodes the widgets point at",
+        "links": [
+          "soe://bus/7fc800",
+          "soe://ram/3a3e.json",
+          "soe://ram/3a7e.json",
+          "soe://rom/code/window_tilemap_dma_commit/info.md"
+        ],
+        "source": "SecretOfEvermoreRecomp docs/mods/hud.md, everscript-vscode docs/disassembly/ui/field-hud.md (measured 2026-11-10)"
+      }
+    }
+  },
+  "map.collision": {
+    "title": "Collision during play: the room grid and stamp dictionary in $7F (collision = stamp word +4), the room size, and the routines that evaluate a cell",
+    "links": [
+      "soe://bus/7f0000",
+      "soe://ram/08ee.json",
+      "soe://ram/08f0.json",
+      "soe://rom/code/eval_tile_collision/info.md",
+      "soe://rom/code/tile_property_at_pixel_xy/info.md",
+      "soe://rom/code/probe_metatile_collision/info.md",
+      "soe://rom/code/dispatch_tile_drift_vector/info.md",
+      "soe://rom/code/entity_sprite_depth/info.md",
+      "soe://bus/9ffde7"
+    ],
+    "source": "SecretOfEvermoreRecomp docs/mods/debug-overlay.md, docs/map-format/room-reference.md (measured 2026-11-10)"
+  },
+  "map.triggers": {
+    "title": "Step-on and B triggers: the tables in ROM ($1062/$1064 step-on, $1067/$1069 B), the origin, the searches",
+    "links": [
+      "soe://ram/1062.json",
+      "soe://ram/1064.json",
+      "soe://ram/1067.json",
+      "soe://ram/1069.json",
+      "soe://ram/0f86.json",
+      "soe://ram/0f88.json",
+      "soe://ram/2429.json",
+      "soe://rom/code/step_on_trigger_search/info.md",
+      "soe://rom/code/bit_14_gate_before_step_on_search_current_trigge/info.md",
+      "soe://rom/code/b_button_bit_15_search_b_triggers_else_swing/info.md",
+      "soe://rom/code/player_b_trigger_search_box_setup/info.md"
+    ],
+    "source": "SecretOfEvermoreRecomp docs/mods/debug-overlay.md, docs/map-format/room-reference.md (measured 2026-11-10)"
+  },
+  "map.objects": {
+    "title": "Map objects (Section 3 of the room blob): states in ROM, current/target/countdown in WRAM, the per-frame stepper",
+    "links": [
+      "soe://bus/9ffde7",
+      "soe://ram/10ce.json",
+      "soe://ram/107e.json",
+      "soe://ram/111e.json",
+      "soe://rom/code/object_tick_one_state_per_hold/info.md"
+    ],
+    "source": "SecretOfEvermoreRecomp docs/mods/debug-overlay.md, docs/map-format/room-reference.md (measured 2026-11-10)"
+  },
+  "map.characters": {
+    "title": "Characters on the map: the entity lists, the party records, body radius (character record +$0D) and the overlap test",
+    "links": [
+      "soe://ram/3ddf.json",
+      "soe://ram/3de1.json",
+      "soe://ram/4e89.json",
+      "soe://ram/4f37.json",
+      "soe://rom/code/entity_collision_check/info.md",
+      "soe://rom/code/test_entity_pair_overlap/info.md"
+    ],
+    "source": "SecretOfEvermoreRecomp docs/mods/debug-overlay.md, docs/map-format/room-reference.md (measured 2026-11-10)"
+  },
+  "mode7": {
+    "title": "Mode 7 overworld flight & split-screen engine ($80:BC00..$80:F982): opcode $99, full-screen Mode 7 vs. split-screen Mode 2 OPT sky + Mode 7 ground, HDMA channels 6 & 7, tilted horizon sprites, and the Bank $B0 out-of-bounds read bug",
+    "see": [
+      "widescreen"
+    ],
+    "links": [
+      "soe://rom/assets/scripts/opcodes/99.md",
+      "soe://rom/code/script_op_99_mode7_scene/info.md",
+      "soe://rom/code/mode7_flight_scene_hardware_init/info.md",
+      "soe://rom/code/camera_update_mode_dispatch/info.md"
+    ],
+    "source": "everscript-vscode docs/disassembly/engine-core/mode7-overworld-engine.md, docs/vanilla-bugs/mode7-bank-b0-oob-read.md (measured 2026-11-11)",
+    "sub": {
+      "scene": {
+        "title": "Scene entry, state ($0E70), departure/arrival map coords ($0E74..$0E79), asset decompression ($80:BE30, $80:C0D0 -> $7F:0000), and landing zone ID ($237D)",
+        "links": [
+          "soe://ram/0e70.json",
+          "soe://ram/0e72.json",
+          "soe://ram/0e74.json",
+          "soe://ram/0e75.json",
+          "soe://ram/0e76.json",
+          "soe://ram/0e77.json",
+          "soe://ram/0e78.json",
+          "soe://ram/237d.json",
+          "soe://ram/237f.json",
+          "soe://rom/code/mode7_flight_scene_bootstrap_and_audio_init/info.md",
+          "soe://rom/code/mode7_flight_scene_load_assets_and_dma_init/info.md",
+          "soe://rom/code/mode7_scene_subsystems_init_and_map_load/info.md"
+        ],
+        "source": "everscript-vscode docs/disassembly/engine-core/mode7-overworld-engine.md (measured 2026-11-11)"
+      },
+      "camera": {
+        "title": "Flight camera state ($1474..$14C8): world position ($14AC/$14AE), Mode 7 pivot ($14A0/$14A2), yaw ($14BA), pitch altitude ($14B8), and roll tilt index ($14C6)",
+        "links": [
+          "soe://ram/1474.json",
+          "soe://ram/1476.json",
+          "soe://ram/1478.json",
+          "soe://ram/147a.json",
+          "soe://ram/147c.json",
+          "soe://ram/147e.json",
+          "soe://ram/1480.json",
+          "soe://ram/1482.json",
+          "soe://ram/1498.json",
+          "soe://ram/149a.json",
+          "soe://ram/149c.json",
+          "soe://ram/149e.json",
+          "soe://ram/14a0.json",
+          "soe://ram/14a2.json",
+          "soe://ram/14a4.json",
+          "soe://ram/14a6.json",
+          "soe://ram/14a8.json",
+          "soe://ram/14aa.json",
+          "soe://ram/14ac.json",
+          "soe://ram/14ae.json",
+          "soe://ram/14b0.json",
+          "soe://ram/14b2.json",
+          "soe://ram/14b4.json",
+          "soe://ram/14b6.json",
+          "soe://ram/14b8.json",
+          "soe://ram/14ba.json",
+          "soe://ram/14bc.json",
+          "soe://ram/14be.json",
+          "soe://ram/14c0.json",
+          "soe://ram/14c2.json",
+          "soe://ram/14c4.json",
+          "soe://ram/14c6.json",
+          "soe://ram/14c8.json",
+          "soe://rom/code/screen_scroll_and_shake_step/info.md",
+          "soe://rom/code/calc_camera_scroll_with_screen_offset/info.md"
+        ],
+        "source": "everscript-vscode docs/disassembly/engine-core/mode7-overworld-engine.md (measured 2026-11-11)"
+      },
+      "matrix": {
+        "title": "Mode 7 affine matrix: uniform M7A..M7D ($80:D8AA -> $1498..$149E) and per-scanline HDMA channels 6 & 7 ($80:D934/$80:D9F5 -> $7F:D000..$7F:D70D)",
+        "links": [
+          "soe://bus/7f0000",
+          "soe://bus/7fd000",
+          "soe://bus/7fd380",
+          "soe://bus/7fd700",
+          "soe://rom/code/mode7_aircraft_banking_roll_matrix_calc/info.md",
+          "soe://rom/code/mode7_flight_heading_yaw_rotation_matrix_calc/info.md",
+          "soe://rom/code/mode7_flight_shadow_projection_geometry_calc/info.md",
+          "soe://bus/80f693",
+          "soe://bus/80f6e3"
+        ],
+        "source": "everscript-vscode docs/disassembly/engine-core/mode7-overworld-engine.md (measured 2026-11-11)"
+      },
+      "horizon": {
+        "title": "Split-screen Mode 2 OPT sky + Mode 7 ground: scanline 5 & 61+$14B8 raster IRQs ($80:DF51/$80:DFB4), VRAM $6400 OPT table ($7E:2010..$7E:208F), and 64 tilted horizon seam sprites ($80:D22D)",
+        "links": [
+          "soe://ram/2010.json",
+          "soe://ram/2050.json",
+          "soe://bus/80e293",
+          "soe://bus/80ea93",
+          "soe://bus/80ec93",
+          "soe://bus/80ee93",
+          "soe://bus/80f093",
+          "soe://bus/80f293",
+          "soe://rom/code/install_raster_irq_handler_at_df51/info.md",
+          "soe://rom/code/mode7_camera_matrix_projection_update/info.md",
+          "soe://rom/code/vram_dma_upload_window_attribute_buffer/info.md",
+          "soe://rom/code/hud_window_oam_setup/info.md",
+          "soe://rom/code/mode7_compass_and_horizon_hud_sprite_render/info.md",
+          "soe://rom/code/mode7_flight_hud_indicator_oam_formatter/info.md"
+        ],
+        "source": "everscript-vscode docs/disassembly/engine-core/mode7-overworld-engine.md (measured 2026-11-11)"
+      },
+      "sprites": {
+        "title": "Aircraft banking sprites ($80:C6D2), cloud/shadow layer ($80:C763/$80:C7BC), and minimap/compass HUD ($80:D7B0 -> OAM $7E:AC92..$7E:ACBD)",
+        "links": [
+          "soe://ram/0b1d.json",
+          "soe://ram/0e7e.json",
+          "soe://rom/code/mode7_flight_aircraft_sprite_animation_tick/info.md",
+          "soe://rom/code/mode7_flight_cloud_layer_and_wind_stream_tick/info.md",
+          "soe://rom/code/mode7_flight_cloud_shadow_and_terrain_occlusion_tick/info.md",
+          "soe://rom/code/mode7_cockpit_heading_indicator_frame_tick/info.md",
+          "soe://rom/code/mode7_sky_color_gradient_and_fade_cgram_dma/info.md",
+          "soe://bus/80e163",
+          "soe://bus/80e18f",
+          "soe://bus/80e211",
+          "soe://bus/80e2b5"
+        ],
+        "source": "everscript-vscode docs/disassembly/engine-core/mode7-overworld-engine.md (measured 2026-11-11)"
+      },
+      "waypoints": {
+        "title": "Scripted flight waypoint tables ($80:CAAD), input simulation ($80:C4A3), and landing zone bounding boxes ($80:DFFF, $80:E061 -> $7E:237D)",
+        "links": [
+          "soe://bus/80caad",
+          "soe://bus/80e061",
+          "soe://rom/code/mode7_flight_waypoint_path_step/info.md",
+          "soe://rom/code/mode7_flight_input_simulation/info.md"
+        ],
+        "source": "everscript-vscode docs/disassembly/engine-core/mode7-overworld-engine.md (measured 2026-11-11)"
+      },
+      "bug_bank_b0": {
+        "title": "Vanilla bug at $80:D113: PEA $B090; PLB; PLB sets DB = $B0 and reads $B0:E293,X (past the 3 MB ROM) into unread WRAM $7E:2090..$7E:20AF",
+        "links": [
+          "soe://ram/2090.json",
+          "soe://rom/code/row_table_low_bytes_from_bank_b0/info.md",
+          "soe://rom/code/mode7_camera_matrix_projection_update/info.md",
+          "soe://bus/80d113",
+          "soe://bus/80e293"
+        ],
+        "source": "everscript-vscode docs/vanilla-bugs/mode7-bank-b0-oob-read.md (measured 2026-11-11)"
       }
     }
   }

@@ -9,6 +9,6 @@ title: Calculate camera pan acceleration step towards target velocity A ($80:C65
 confidence: confirmed
 evidence: ["disasm: checks current velocity $14B2; if negative or below target speed $1474, adds acceleration step $1476 to $14B2; otherwise clamps to ceiling $1474; callers: camera pan $80:C4A3"]
 see: ["routines/mode7_flight_input_simulation.md"]
-tags: ["camera","pan","velocity","accel"]
+tags: ["camera","pan","velocity","accel", "mode7"]
 ---
 Camera pan acceleration calculation variant A. Checks velocity `$14B2`: if negative or below target speed `$1474`, adds step acceleration `$1476` to `$14B2`; otherwise clamps velocity to max speed `$1474`.

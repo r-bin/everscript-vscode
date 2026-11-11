@@ -9,6 +9,6 @@ title: Dialogue window border sprite off-screen suppressor ($80:D763)
 confidence: confirmed
 evidence: ["disasm: switches DBR to $7E; writes $FFEA and $AAFF to High OAM table buffer at $7E:ADE9; writes offscreen Y coordinate $E000 to Low OAM sprite slots at $7E:AC92 and $7E:AC96"]
 see: [routines/dialog_window_slide_transition_step.md, knowledge/wram/HIGH_OAM_TABLE_BUF.md]
-tags: [sprites, oam, ui]
+tags: [sprites, oam, ui, mode7]
 ---
 Places dialogue window border and corner sprites off-screen by writing Y coordinate `$E000` (`Y = 224` offscreen) to Low OAM slots at `$7E:AC92` and `$7E:AC96`. Sets sprite size/attribute bitmasks in High OAM table staging buffer at `$7E:ADE9` (`$FFEA`, `$AAFF`), hiding window frame sprites during transitions.

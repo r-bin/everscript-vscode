@@ -9,6 +9,6 @@ title: Calculate camera pan acceleration step towards target velocity B ($80:CDD
 confidence: confirmed
 evidence: ["disasm: checks current velocity $14B2; if negative or below speed target $1474, adds step acceleration $1476 to $14B2; otherwise clamps to speed ceiling $1474; callers: camera pan $80:CBD1"]
 see: ["routines/mode7_flight_waypoint_path_step.md"]
-tags: ["camera","pan","velocity","accel"]
+tags: ["camera","pan","velocity","accel", "mode7"]
 ---
 Camera pan acceleration calculation variant B (counterpart to `$80:C659`). Adds acceleration `$1476` to velocity `$14B2` clamping at speed ceiling `$1474`.

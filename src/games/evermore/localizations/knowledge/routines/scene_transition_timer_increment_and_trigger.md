@@ -9,6 +9,6 @@ title: Scene transition timer incrementer and ceiling trigger ($80:CDF3)
 confidence: confirmed
 evidence: ["disasm: increments transition counter $14BA; if value reaches ceiling $7F, sets pause flag $0E7C = 1, reloads $14BA = $6F, discards stack return (PLA; PLA), and branches to transition handler $80:CE18; caller: $80:CBD1"]
 see: [routines/scene_transition_timer_decrement_or_loop.md]
-tags: [transitions, timer, engine]
+tags: [transitions, timer, engine, mode7]
 ---
 Increments scene transition counter `$14BA` toward ceiling `$7F`. When the threshold is reached, sets pause flag `$0E7C = 1`, clamps `$14BA = $6F`, and transfers control directly to transition handler `$80:CE18`.

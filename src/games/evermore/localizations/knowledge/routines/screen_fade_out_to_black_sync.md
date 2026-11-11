@@ -7,7 +7,7 @@ category: 🧠
 name: screen_fade_out_to_black_sync
 title: Synchronous frame-by-frame PPU screen brightness fade-out loop to black
 confidence: confirmed
-tags: [ppu, screen, brightness, fade, vblank]
+tags: [ppu, screen, brightness, fade, vblank, mode7]
 evidence: ["disasm: LDA $0106; AND #$000F; BEQ exit; STA $0B7F; loop: JSL $80:858C; LDA $0106; AND #$0080; ORA $0B7F; STA $0106; DEC $0B7F; BNE loop; RTS at $80:DD72..$80:DD92"]
 see: [knowledge/wram/JOYPAD1_TRIGGERED.md, knowledge/wram/AUDIO_FADE_COUNTER.md, routines/wait_for_nmi.md, routines/fade_audio_and_video_to_black_sync.md]
 ---

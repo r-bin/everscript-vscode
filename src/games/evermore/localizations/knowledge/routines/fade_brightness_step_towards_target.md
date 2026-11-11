@@ -9,6 +9,6 @@ title: Per-frame screen brightness stepper toward target level ($80:DE96)
 confidence: confirmed
 evidence: ["disasm: checks target brightness word $0B83; if negative, returns; compares target with current shadow $0106; if equal, clears $0B83; if target > current, increments $0106; if target < current, decrements $0106; callers: $80:C1A2, $80:C95B"]
 see: [routines/ppu_fade_brightness_step_from_scene_timer.md]
-tags: [ppu, brightness, fade, widescreen, widescreen.fade]
+tags: [ppu, brightness, fade, widescreen, widescreen.fade, mode7]
 ---
 Ticks active screen brightness toward a designated target level during gameplay. Checks target brightness `$0B83`: if valid, compares it against shadow register `$0106`. If `$0B83 > $0106`, increments `$0106`; if `$0B83 < $0106`, decrements `$0106`; when target is reached, clears `$0B83`.

@@ -17,3 +17,8 @@ What stays here is what needs this repository's internals:
 `tools/compare` commands in these docs belong to the recomp repository: the tool, its replays and its tests live there.
 
 Other people's Secret of Evermore ports and how they compare: [other-projects.md](other-projects.md).
+
+ROM hacks reach the recomp as `.snesmod` packages against the stock ROM, never as recompiled patched ROMs. An Everscript
+hack (the practice ROM) is mostly script data the game's own interpreter runs, so the everscript compiler can write the
+mod; only its Asar patches need C there. The plan, with the practice ROM's bytes sorted: the recomp repository's
+`docs/mods/evs-to-snesmod.md` (the general rule: `docs/mods/rom-hacks.md`).

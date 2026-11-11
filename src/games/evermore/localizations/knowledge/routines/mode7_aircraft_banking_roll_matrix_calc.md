@@ -7,7 +7,7 @@ category: 🧠
 name: mode7_aircraft_banking_roll_matrix_calc
 title: Calculates aircraft roll angles and camera banking transformation matrix offsets in Mode 7 flight
 confidence: guess
-tags: [unverified, rea-partial-read]
+tags: [unverified, rea-partial-read, mode7]
 evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
 ---
 Low confidence — Calculates aircraft roll angles and camera banking transformation matrix offsets in Mode 7 flight.

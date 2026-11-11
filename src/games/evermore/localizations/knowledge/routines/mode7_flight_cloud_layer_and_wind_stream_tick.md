@@ -7,7 +7,7 @@ category: 🧠
 name: mode7_flight_cloud_layer_and_wind_stream_tick
 title: Animates drifting cloud layers and wind speed streams during Mode 7 flight sequences
 confidence: guess
-tags: [unverified, rea-partial-read]
+tags: [unverified, rea-partial-read, mode7]
 evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
 ---
 Low confidence — Animates drifting cloud layers and wind speed streams during Mode 7 flight sequences.

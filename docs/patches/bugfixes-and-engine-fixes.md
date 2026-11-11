@@ -15,6 +15,7 @@ A technical disassembly and root-cause analysis of the primary engine bugs in va
 | **Bazooka Charge Level 0** | Minor (Visual/stat display glitch) | Weapon charge logic initializes Bazooka at Level 0 rather than Level 1. | `assassin_bazooka_charge.ips` (Assassin17) / Ninakoru 1.1 | `$8D:A521` / `$8F:8057` |
 | **Miracle Cure Confound Omission** | Minor (Fails to cure reverse-D-Pad control) | Spell cleanup bitmask omitted the Confound status bit. | Ninakoru Balance 1.1 | Spell effect table |
 | **SPC700 Sound Latency** | Minor (Delayed sound effects on emulators) | Audio handshake routine introduces timing stalls during sample playback. | Ninakoru Balance 1.1 | Sound driver upload |
+| **Mode 7 Bank `$B0` Out-of-Bounds ROM Read** | Harmless on retail hardware; WRAM divergence in emulators / recomp / 4 MB / ExHiROM | `PEA $B090; PLB; PLB` sets `DB = $B0` and reads `$B0:E293,X` (past the 3 MB ROM) into dead WRAM `$7E:2090..$7E:20AF`. | [mode7-bank-b0-oob-read.md](../vanilla-bugs/mode7-bank-b0-oob-read.md) (`PEA $8080` at `$80:D116`) | `$80:D113` |
 
 ---
 

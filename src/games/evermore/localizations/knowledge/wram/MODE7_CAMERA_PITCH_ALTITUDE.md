@@ -2,7 +2,7 @@
 addr: $7E:14B8
 name: MODE7_CAMERA_PITCH_ALTITUDE
 type: u16
-tags: []
+tags: [mode7]
 confidence: verified
 evidence: ["cdl", "disasm"]
 ---

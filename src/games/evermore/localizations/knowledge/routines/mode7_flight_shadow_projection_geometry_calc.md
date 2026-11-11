@@ -5,26 +5,20 @@ size: 118
 kind: code
 category: 🧠
 name: mode7_flight_shadow_projection_geometry_calc
-title: Calculates ground shadow projection coordinates on the Mode 7 landscape based on altitude and solar angle
-confidence: guess
-tags: [unverified, rea-partial-read]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+title: Builds indirect HDMA tables at $7F:D700..$7F:D70D and arms HDMA channels 6 & 7 for M7A/M7B ($211B) and M7C/M7D ($211D)
+confidence: confirmed
+tags: [mode7, flight, hdma, ppu]
+evidence: ["disasm: $80:D9F5 writes two 7-byte indirect HDMA tables at $7F:D700..$7F:D706 ($F0 lines at $D000, $F0 lines at $D1C0, $00) and $7F:D707..$7F:D70D ($F0 lines at $D380, $F0 lines at $D540, $00), configures $4360..$4367 (Ch 6 -> $211B/$211C) and $4370..$4377 (Ch 7 -> $211D/$211E), and sets $72 = $C0"]
+see: [routines/mode7_flight_heading_yaw_rotation_matrix_calc.md, docs/disassembly/engine-core/mode7-overworld-engine.md]
 ---
-Low confidence — Calculates ground shadow projection coordinates on the Mode 7 landscape based on altitude and solar angle.
+Builds the indirect HDMA command tables in `$7F:D700..$7F:D70D` and arms **HDMA Channels 6 and 7** to
+stream per-scanline Mode 7 matrix coefficients (`M7A..M7D`) into `$211B..$211E` during split-screen Mode 7 flight.
 
-> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
-
-Computes ground shadow offsets for aircraft and clouds during Mode 7 flight.
-The routine combines flight altitude `$14B8` with environmental light angle parameters, calculating offset ground coordinates.
-
-It projects shadow sprite coordinates onto the Mode 7 terrain plane, scaling shadow size and offset inversely with aircraft height.
+1. Writes two 7-byte indirect HDMA descriptors in Bank `$7F`:
+   - **`$7F:D700..$7F:D706`**: `$F0` (112 continuous lines) at `$7F:D000`, `$F0` (112 continuous lines) at `$7F:D1C0`, `$00` (end).
+   - **`$7F:D707..$7F:D70D`**: `$F0` (112 continuous lines) at `$7F:D380`, `$F0` (112 continuous lines) at `$7F:D540`, `$00` (end).
+2. Configures **HDMA Channel 6** (`$4360 = $43` indirect 2-register write-twice, `BBAD6 = $1B` → `$211B`/`$211C` `M7A`/`M7B`, `A1T6 = $7F:D700`, `DAS6B = $7F`) and **HDMA Channel 7** (`$4370 = $43`, `BBAD7 = $1D` → `$211D`/`$211E` `M7C`/`M7D`, `A1T7 = $7F:D707`, `DAS7B = $7F`).
+3. Sets WRAM HDMA shadow **`$7E:0072 = $C0`** (channels 6 and 7), which the NMI handler writes to `$420C`.
 
 ## Callers
-- `$80:C95B` (`FUN_80c95b`)
-
-## Callees
-- None
-
-## Variables and memory (hypotheses)
-- `$14B8` (Mode 7 flight altitude / vertical camera tilt angle)
-- `$02`, `$04` (Calculated ground shadow displacement outputs)
+- `$80:C95B` (`sub_80C95B`)

@@ -7,7 +7,7 @@ category: 📦
 name: data_80CB45
 title: CDL data block ($80:CB45)
 confidence: confirmed
-tags: ["data","cdl"]
+tags: ["data","cdl", "mode7"]
 evidence: ["CDL recorder export (out/recomp/asar/export.json)"]
 ---
 

@@ -118,7 +118,7 @@ ROM until step 5, so every existing tool (CDL, recomp seeds, patches) keeps work
    17 bytes in bank `$00` — the 13-byte reset entry and the 4-byte NMI `JML` (first written down as
    "17 bytes of the NMI handler", corrected in v0.216.0); the only mirror data read is the NMI vector.
    **Full result** (v0.216.0, §7): the same, plus one read the intro never makes — `$80:D113` reads
-   `$B0:E653+`, past the end of the 3 MB ROM.
+   `$B0:E653+`, past the end of the 3 MB ROM (see [`../vanilla-bugs/mode7-bank-b0-oob-read.md`](../vanilla-bugs/mode7-bank-b0-oob-read.md)).
 2. **Fix the hits** in an Asar patch (`patches/`, `snes-asm-asar-patching` skill) using
    the `exhirom` mapper (`src/platform/cdl/asar-export.ts` already emits it). Re-run step 1 until
    zero hits across a full playthrough route and the intro/attract loop.

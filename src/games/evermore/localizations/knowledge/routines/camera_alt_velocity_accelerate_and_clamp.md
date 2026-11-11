@@ -9,6 +9,6 @@ title: Alternate camera pan velocity acceleration stepper and clamp ($80:CD81)
 confidence: confirmed
 evidence: ["disasm: adds acceleration rate $1480 to alternate camera velocity $14B6; clamps velocity against upper limit $147C; stores in $14B6; caller: $80:CBD1"]
 see: [routines/camera_velocity_accelerate_and_clamp.md]
-tags: [camera, scroll, velocity]
+tags: [camera, scroll, velocity, mode7]
 ---
 Accelerates alternate camera scrolling speed during secondary camera mode. Adds acceleration rate `$1480` to velocity `$14B6`, clamping against maximum threshold `$147C`.

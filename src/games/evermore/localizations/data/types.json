@@ -350,14 +350,15 @@
     },
     "HudStatusWidget": {
       "size": 68,
-      "desc": "HUD character status widget descriptor for HP meter and numeric readout (68 bytes)",
+      "desc": "HUD character widget: popup node, gauge glyph VRAM address, gauge strip and HP string tilemap words (68 bytes; docs/disassembly/ui/field-hud.md)",
       "fields": [
         { "offset": 0, "name": "widget_type", "type": "u16" },
-        { "offset": 2, "name": "screen_x", "type": "u16" },
-        { "offset": 4, "name": "screen_y", "type": "u16" },
-        { "offset": 6, "name": "vram_dest", "type": "u16" },
-        { "offset": 8, "name": "meter_tiles", "type": "u8[32]" },
-        { "offset": 40, "name": "digit_tiles", "type": "u8[14]" },
+        { "offset": 2, "name": "unknown_02", "type": "u16" },
+        { "offset": 4, "name": "popup_node", "type": "u16" },
+        { "offset": 6, "name": "glyph_vram", "type": "u16" },
+        { "offset": 8, "name": "gauge_words", "type": "u16[8]" },
+        { "offset": 24, "name": "unknown_18", "type": "u8[16]" },
+        { "offset": 40, "name": "hp_words", "type": "u16[7]" },
         { "offset": 54, "name": "reserved", "type": "u8[14]" }
       ]
     },

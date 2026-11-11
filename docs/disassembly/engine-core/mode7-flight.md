@@ -7,6 +7,7 @@
   - `$8E:B506` – `$8E:B51F`: indexed data read by `$8E:B4AA` and `$8E:B4C0`; not code
   - `$8E:B55A` begins the enemy-index word table; not code
   - `trig_sine_table`: `$80:88A3` (320 signed words; 256 table entries per turn)
+- **Bank `$80` Overworld Mode 7 Engine (`$80:BC00` – `$80:F982`)**: See [`mode7-overworld-engine.md`](mode7-overworld-engine.md) (and [`../../vanilla-bugs/mode7-bank-b0-oob-read.md`](../../vanilla-bugs/mode7-bank-b0-oob-read.md) for the `$80:D113` Bank `$B0` out-of-bounds read bug).
 - **CPU State**: 16-bit A/X (`REP #$30`), Data Bank `$8E` / `$7E`
 - **Hardware Registers**:
   - `$4202` / `$4203`: Hardware 8-bit $\times$ 8-bit multiplier inputs.

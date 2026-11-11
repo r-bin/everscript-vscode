@@ -7,7 +7,7 @@ category: 🧠
 name: mode7_scene_subsystems_init_and_map_load
 title: Initializes Mode 7 flight scene graphics, clearing collision queues and loading world map tile patterns
 confidence: guess
-tags: [unverified, rea-partial-read]
+tags: [unverified, rea-partial-read, mode7]
 evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
 ---
 Low confidence — Initializes Mode 7 flight scene graphics, clearing collision queues and loading world map tile patterns.

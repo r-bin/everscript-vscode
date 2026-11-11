@@ -61,6 +61,8 @@ All analyses are derived from the clean retail ROM using CDL traces, Ghidra anno
 | [wram-enums.md](wram-enums.md) | **WRAM State Machines & Enums**: C enum definitions, state lifecycle transitions, 8-way facing directions, companion commands, and status IDs. | `$7E:0377`, `$7E:0B2B`, `$7E:235B`, `$7E:2360`, `$7E:241F`, `$7E:4EAB` |
 | [rom-enums.md](rom-enums.md) | **ROM Enumerations & Action Types**: Contact collision handlers, alchemy formulas, cast spell IDs, ingredient catalog, and physics collision nibbles. | `$8F:B6AE`, `$C4:5D09`, `$C4:5F97`, `$C4:5FF3`, `$90:A420` |
 | [rom-tables.md](rom-tables.md) | **Master ROM Data Tables**: Trigonometric sine/cosine, boy/dog XP curves, character record database, dog breed form stats, and script VM jump vectors. | `$80:88A3`, `$8C:8BD0`, `$8E:B678`, `$8F:945D`, `$8C:D7E1`, `$C4:3874` |
+| [mode7-overworld-engine.md](mode7-overworld-engine.md) | **Bank `$80` Mode 7 Overworld Flight & Split-Screen Engine**: Everscript opcode `0x99` (`$8C:E66F`), full-screen Mode 7 vs. split-screen Mode 2 OPT sky + Mode 7 ground, scanline raster IRQs (`$80:DF51`/`$80:DFB4`), HDMA channels 6 & 7 (`$7F:D000..$7F:D70D`), 64-sprite tilted horizon band, and landing zone bounding boxes. | `$80:BC00`..`$80:F982`, `$80:CFA9`, `$80:D113`, `$80:D934`, `$80:D9F5`, `$80:DF3F` |
+| [mode7-flight.md](mode7-flight.md) | **Bank `$8E` Mode 7 Flight Frame Engine & Sprite Dispatch**: Per-frame overworld flight coordinator, perspective pitch math, and vehicle sprite dispatch. | `$8E:B02C`, `$8E:B33D`..`$8E:B559` |
 
 ---
 

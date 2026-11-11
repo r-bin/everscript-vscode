@@ -438,10 +438,15 @@ Is `SOE_OPTIMIZE` needed? No: the documented build runs the whole intro and attr
 rooms of the reference, the credits drawn correctly at frame 13000 of a 20000-frame run), only
 slower. The variants stay off; they are kept, checked by G1, for a playable-speed build.
 
-**Status (v0.351.0–v0.353.0).** 29 routines pass G1, the documented code and the variants alike (their
-knowledge entries carry a `c: G1 passed` line). WRAM first differs from vanilla at frame 374, the
-first RNG call, as the bridges and the C take other cycles than the asm (§7a).
-Detailed diagnostics on frame 375 revealed two root causes:
+**Status (v0.399.32).** 70 routines pass Gate G1 (each verified across 3–41 recorded reference states and 16 fuzzed mutations per state, with intentional mutation catching enabled), and all 70 pass parity checks with Calypsi 65816 compiler (`npm run c-to-rom:asm-parity`). Bound routines span across:
+- **Bank $80 Hardware & Math:** `$80:857F` (`snes_install_dummy_irq_vector`), `$80:859B` (`random_number_generator`), `$80:85FA` (`cgram_palette_dma_enqueue_or_immediate`), `$80:8650` (`vram_dma_upload_tile_block`), `$80:870C` (`format_16bit_integer_to_decimal_digits`), `$80:960A` (`oam_depth_sorted_sprite_insert_node`), `$80:9685` (`init_entity_pool`), `$80:AE78` (`face_cardinal`).
+- **Bank $8C Script VM:** `$8C:CE2A` (`script_spawn_room_enter_script`), `$8C:CF18` (`script_allocate_slot`), `$8C:D428` (`script_op_05_jump_back`), `$8C:D434` (`script_jump_relative`), `$8C:DFCF` (`activate_background_tile_animation`).
+- **Bank $8E Audio:** `$8E:E5FC` (`audio_master_volume_fade_tick`).
+- **Bank $8F Combat, AI & Physics:** 38 routines including `$8F:98FE` (`multipart_child_free_primary`), `$8F:9916` (`waypoint_node_release`), `$8F:9937` (`companion_waypoint_anchor_init`), `$8F:9E49`/`$8F:9E77` (companion breadcrumb FIFO), `$8F:9F05` (`companion_metatile_raycast_line_stepper`), `$8F:A723` (`companion_waypoint_history_poll`), `$8F:A914` (`update_entity_plane`), `$8F:A933` (`spawn_eval_tile_plane_elevation`), `$8F:A93B`..`$8F:A9B1` (ramp elevation project/shear/manhattan/compass), `$8F:AA05`..`$8F:AB92` (directional math and dog sniff), `$8F:AF0E` (`collision_step_success_commit`), `$8F:B1AC` (`combat_hitbox_tables_and_collision_init`), `$8F:B28D` (`dog_forage_random_timer_reset`), `$8F:B29B` (`entity_linked_list_validate_entity`), `$8F:B3D4` (`party_member_entity_state_reset`), `$8F:C02B`..`$8F:C17F` (combat damage scaling, pending damage, HP clamping, knockback, attacker attribution), `$8F:C40F`/`$8F:C514` (entity sleep/wake), `$8F:C6C5`/`$8F:C773` (sprite sorting and depth), `$8F:D787`..`$8F:D9D1` (companion/enemy AI target selection and reach testing), `$8F:DC34` (`companion_dog_sniff_and_forage_timer_tick`), `$8F:DF14` (`sound_or_event_queue_init`).
+- **Bank $90 Animation & Map Systems:** 15 routines including `$90:8124` (`anim_start_record`), `$90:817B` (`anim_record_init_from_script_ref`), `$90:8418`..`$90:877D` (animation bytecode opcodes: sprite, sprite2, reset, mode, clear stamina, loop), `$90:9DE8` (`eval_tile_collision`), `$90:9FC9` (`camera_deadzone_window_filter`), `$90:A1B4` (`map_anim_tile_channel_tick_and_vram_stream`), `$90:D55F` (`palette_family_reload_queue_process`), `$90:D7CB` (`alchemy_projectile_slot_array_clear`), `$90:DC21` (`projectile_entity_slot_link_init`).
+- **Bank $91 Alchemy System:** 3 routines: `$91:9795` (`alchemy_all_slots_clear`), `$91:98EE` (`alchemy_all_slots_frame_tick`), `$91:CC15` (`alchemy_inventory_slots_clear`).
+
+Detailed diagnostics and binding rules:
 1. **Direct Page on Stack & Dead Stack Pollution:** The bridge re-points D to the stack (`TSC; SBC #32; TCD`)
    to house Calypsi's pseudo-registers. Consequently, accesses to Evermore's DP ($00..$FF) cannot use 1-byte
    DP instructions and expand into 24-bit far pointers. Furthermore, residual variables left in dead stack
@@ -450,16 +455,18 @@ Detailed diagnostics on frame 375 revealed two root causes:
    frames (such as LZSS decompression at frame 374) pushes completion past scanline 224, delaying VRAM uploads.
    Micro-primitives like `random_number_generator` (25 asm instructions) should remain native ASM, while
    bound C routines should undergo a pre-ROM benchmark gate targeting ~1:1 instruction parity.
+3. **Fall-Through Label Incompatibility:** Routines reached via fall-through control flow from an earlier routine
+   (e.g. `companion_toaster_form_transformation` at `$8F:866B` or `animation_script_store_high_pc_byte` at
+   `$90:8376`) cannot be replaced with a standalone 5-byte JSL trampoline without corrupting the sequential
+   execution of the preceding routine.
+4. **Asynchronous Interrupt Spinloops:** Routines polling hardware frame counters or waiting on NMI/VBLANK
+   flags (such as `$80:B506` spinning on `$80:858C`) require active interrupt generation and cannot be verified
+   in isolated single-call Gate G1 step runners.
 
-**Open (where the work stopped, 2026-10-24).**
-- 255 of the 282 known routines that run in the 2:20 reference are not in exact C yet. Skipped so
-  far: routines that pull their caller's stack (`$90:9F21`), indirect jump-table exits (`$8F:9F05`,
-  `$8F:9EC3`), and fall-through labels (`$8F:AFF5`, `$90:8E85`, `$90:9460`, `$8F:D8D2`).
-- Should the old description functions be kept next to the exact C? Several were removed when a
-  routine got its exact file (`909DE8_tile_collision.c`, `809685_actor_lifecycle.c`,
-  `8FA93B_ramp_elevation.c`, parts of five others); to be decided by the owner (rule 11).
-- Calypsi: the `-O2` byte sign-test bug and the comma-condition branch are not reduced to minimal
-  cases yet. G2 (recomp A/B) is not built.
+**Open (before the 157-routine expansion).**
+- Remaining routines from the CDL recorded roots are being progressively lifted and verified through G1.
+- Calypsi `-O1 --speed` remains the baseline compiler configuration passing 100% of differential tests; the `-O2` byte sign-test bug and comma-condition branch are not reduced to minimal cases yet, and G2 (recomp A/B) is not built.
+- Should the old description functions be kept next to the exact C? Several were removed when a routine got its exact file (`909DE8_tile_collision.c`, `809685_actor_lifecycle.c`, `8FA93B_ramp_elevation.c`, parts of five others); to be decided by the owner (rule 11).
 
 ---
 
@@ -478,9 +485,8 @@ Recent work on `feature/recomp-c-bindings-replay01` expanded compiled bindings f
 ### Verification & divergence observations
 - **`compare-image.mts --frames 600`:** `soe-c.sfc` boots cleanly without crashing, stays in sync through frame 0, and diverges by frame 60 (`$7E0012` frame counter `01` vs `03`, `$7E0133–$7E013A` RNG state, and `$7E1F77–$7E1FB4` dead-stack bridge residue) — earlier than the prior frame-374 divergence because boot/title/joypad/RNG routines (`$80:8507`, `$80:8597`, `$80:859B`, `$80:8D4D`, `$80:B3B0`, `$80:B406`) are now bound and shift cycle timing across NMI.
 - **G1 verification on the 30 Batch 3 additions:**
-  - All 15 Batch 3B routines passed all captured states (`--fuzz 0`) plus mutation check (`All 15 routine(s) pass G1`).
-  - Of Batch 3A: `script_stop_all_threads` (`$8C:CEE9`) caught exit `X $2ED9 vs $2F28` (loop runs `TAX` before final `ADC #$004F`) and `SOE_V` cleared by `ADC`, fixed and verified passing full G1 (`6/6` states, `96/96` fuzzed, mutation caught); `script_op_17_write_word_immediate` (`$8C:D79D`) caught trailing `INC $82; INC $82` setting `N=1` (`P $0081 vs $0001`), fixed and verified passing full G1 (`2/2` states, `32/32` fuzzed, mutation caught).
-  - Under `--fuzz 0`, `joypad_acknowledge_or_clear_buttons`, `spc700_stream_advance_bank_pointer_short`, and `spc700_stream_advance_bank_pointer` passed all captured states with `mutation caught: no` (the `INC $A2; LDY #$8000` bank-wrap path at `Y == $FFFF` / `$FFFE` occurs < 1/32,768 in uniform random states and was not hit in the sampled states).
+  - `27` of `30` Batch 3 routines passed full G1 (`--fuzz 16`, including `joypad_acknowledge_or_clear_buttons` `$80:8597`, `script_stop_all_threads` `$8C:CEE9`, `script_op_17_write_word_immediate` `$8C:D79D`, and `dialogue_window_glyph_vram_buffer_alloc` `$8C:B5A4` after fixing `soe_nz16` and carry-chained `soe_adc16`).
+  - `room_header_reader_entry_stub` (`$90:8E80`), `spc700_stream_advance_bank_pointer_short` (`$8C:818D`), and `spc700_stream_advance_bank_pointer` (`$8C:8195`) passed all captured states under `--fuzz 0` (`8C:818D`/`8C:8195` had `mutation caught: no` because the `INC $A2; LDY #$8000` bank-wrap path at `Y == $FFFF` / `$FFFE` was not hit in sampled states).
 - **Build & G1 scaling limits:** Every `g1.mts` invocation runs `buildImage()`, compiling all 157 `.c` files under Rosetta 2 in ~88s. Under `--fuzz 16` (`48 × 16 = 768` random states per routine), high-iteration C loops (`room_header_reader_entry_stub` averages `40,100` C instructions vs `1,123` ROM instructions per call, ~`35.7×`) or multi-routine sweeps can hit multi-million-step `cpu65816.ts` runs and exceed practical single-batch timeouts.
 - **WRAM & entry-width traps uncovered while binding:**
   - Legacy `soe_ram.h` symbols `$7E:235B–$7E:235E` (labeled `DOG_AI_STATE`..`dog_ai_collision_mode`) hold PPU register snapshots (`TM`/`TS`/`CGADSUB`/`CGWSEL` restored by `$8C:E20F`), and `$0B19`/`$0B1B` (`WAVE_PHASE_COUNTER`/`controller_prev_input`) serve as the 32-bit field frame counter for script sleep (`$8C:D20F`, `$8C:D217`).

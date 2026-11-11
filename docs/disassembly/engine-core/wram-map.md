@@ -364,7 +364,7 @@
 | `$7E:0F38` | [`CAMERA_SUBPIXEL_ACC`](knowledge/wram/CAMERA_SUBPIXEL_ACC.md) | `u16` | map | Camera sub-pixel tracking fractional accumulator. |
 | `$7E:0F3A` | [`VRAM_DMA_LOCK`](knowledge/wram/VRAM_DMA_LOCK.md) | `u16` | graphics, system | Active transfer counter and lock word for deferred VRAM DMA queue ($7E:0F3A..$7E:0F3B; $80:8A86, $90:8E40). |
 | `$7E:0F3C` | [`CGRAM_DMA_LOCK`](knowledge/wram/CGRAM_DMA_LOCK.md) | `u16` | graphics, system | Active transfer counter and lock word for deferred CGRAM DMA queue ($7E:0F3C..$7E:0F3D; $80:8A40, $8C:D172). |
-| `$7E:0F3E` | [`HUD_DRAW_SUPPRESSION_LOCK`](knowledge/wram/HUD_DRAW_SUPPRESSION_LOCK.md) | `u16` | mode7, map | In-flight lock counter word suppressing HUD tilemap rendering when non-zero. |
+| `$7E:0F3E` | [`ENTITY_PTR_BOY`](knowledge/wram/ENTITY_PTR_BOY.md) | `u16` | boy, entity | Entity Subsystem: Address pointer to the Boy's entity record in WRAM ($4E89 in play; the Dog's is $0F40). |
 | `$7E:0F40` | [`ENTITY_PTR_DOG`](knowledge/wram/ENTITY_PTR_DOG.md) | `u16` | dog, entity | Entity Subsystem: Address pointer to Companion (Dog) entity slot in WRAM (defaults to $4F37; initialized in $8F:8144) |
 | `$7E:0F42` | [`CAMERA_TARGET_ACTOR_PTR`](knowledge/wram/CAMERA_TARGET_ACTOR_PTR.md) | `entity` | boy, map | Pointer to primary actor entity record tracked by camera (points to Boy at $7E:4E89). |
 | `$7E:0F44` | [`VIEWPORT_SCROLL_Y`](knowledge/wram/VIEWPORT_SCROLL_Y.md) | `u16` | map | Vertical world coordinate of top-left camera viewport boundary. |
@@ -425,10 +425,10 @@
 | `$7E:0FD2` | [`GRASS_SWAP_QUEUE`](knowledge/wram/GRASS_SWAP_QUEUE.md) | `u16[24]` | map, graphics | Coordinate swap queue holding 24 tile indices converted from standing to cut grass ($7E:0FD2..$7E:1001, 24 words). |
 | `$7E:1002` | [`GRASS_SWAP_TILEMAP_OFFSETS`](knowledge/wram/GRASS_SWAP_TILEMAP_OFFSETS.md) | `u16[24]` | graphics, map | VRAM/metatile tilemap buffer byte offsets for 24 cuttable grass swap animation slots ($7E:1002..$7E:1031; $90:A6D2, $90:A6F7). |
 | `$7E:1032` | [`GRASS_SWAP_PACKED_COORDS`](knowledge/wram/GRASS_SWAP_PACKED_COORDS.md) | `u16[24]` | map, graphics | Packed grid coordinates (X or Y << 8) for 24 cuttable grass swap animation slots ($7E:1032..$7E:1061; $90:A6D2, $90:A6F7). |
-| `$7E:1062` | [`ROOM_METATILE_TRIGGER_COUNT`](knowledge/wram/ROOM_METATILE_TRIGGER_COUNT.md) | `u16` | map, script | Number of active metatile collision / terrain boundary triggers loaded for current room ($90:8EE2, $8F:B0B3). |
-| `$7E:1064` | [`ROOM_METATILE_TRIGGER_TABLE_PTR`](knowledge/wram/ROOM_METATILE_TRIGGER_TABLE_PTR.md) | `u24` | map, script | 24-bit far pointer to active room metatile boundary trigger definitions in ROM ($7E:1064..$7E:1066; $90:8EE2). |
-| `$7E:1067` | [`ROOM_STEP_TRIGGER_COUNT`](knowledge/wram/ROOM_STEP_TRIGGER_COUNT.md) | `u16` | map, script | Number of active step-on coordinate triggers loaded for current room ($8F:ACB1). |
-| `$7E:1069` | [`ROOM_STEP_TRIGGER_TABLE_PTR`](knowledge/wram/ROOM_STEP_TRIGGER_TABLE_PTR.md) | `u24` | map, script | 24-bit far pointer to active room step-on trigger bounding boxes ($8F:ACB1). |
+| `$7E:1062` | [`ROOM_METATILE_TRIGGER_COUNT`](knowledge/wram/ROOM_METATILE_TRIGGER_COUNT.md) | `u16` | map, script | Byte length of the room's step-on trigger table, 6 bytes per record (measured 2026-11-10; $90:8EE2, $8F:B0B3). |
+| `$7E:1064` | [`ROOM_METATILE_TRIGGER_TABLE_PTR`](knowledge/wram/ROOM_METATILE_TRIGGER_TABLE_PTR.md) | `u24` | map, script | 24-bit pointer to the room's step-on trigger table in ROM ($7E:1064..$7E:1066; $90:8EE2). |
+| `$7E:1067` | [`ROOM_STEP_TRIGGER_COUNT`](knowledge/wram/ROOM_STEP_TRIGGER_COUNT.md) | `u16` | map, script | Byte length of the room's B-trigger table, 6 bytes per record (measured 2026-11-10). |
+| `$7E:1069` | [`ROOM_STEP_TRIGGER_TABLE_PTR`](knowledge/wram/ROOM_STEP_TRIGGER_TABLE_PTR.md) | `u24` | map, script | 24-bit pointer to the room's B-trigger table in ROM (measured 2026-11-10). |
 | `$7E:106C` | [`ACTIVE_ANIM_CHANNELS`](knowledge/wram/ACTIVE_ANIM_CHANNELS.md) | `u16` | map | Count of actively cycling animated tile channels on current map. |
 | `$7E:106E` | [`ANIM_TILE_VRAM_BASE`](knowledge/wram/ANIM_TILE_VRAM_BASE.md) | `u16` | graphics | Destination base address in VRAM where animated tiles are DMA-streamed. |
 | `$7E:1070` | [`ENTITY_BATCH_TARGET_CAPACITY`](knowledge/wram/ENTITY_BATCH_TARGET_CAPACITY.md) | `u16` | entity | Number of awake entities, Boy and Dog included (2 at room setup; +1 wake, -1 sleep). |
@@ -613,9 +613,9 @@
 | `$7E:200D` | [`audio_chan_vol_atten_d`](knowledge/wram/audio_chan_vol_atten_d.md) | `u8` | audio, entity | Audio channel 13 master volume attenuation factor ($DF..$FF). |
 | `$7E:200E` | [`audio_chan_vol_atten_e`](knowledge/wram/audio_chan_vol_atten_e.md) | `u8` | audio, entity | Audio channel 14 master volume attenuation factor ($EF..$FF). |
 | `$7E:200F` | [`audio_chan_vol_atten_f`](knowledge/wram/audio_chan_vol_atten_f.md) | `u8` | audio, entity | Audio channel 15 master volume attenuation factor ($FF). |
-| `$7E:2010` | [`AUDIO_ATTEN_TABLE_ALIGN_PAD`](knowledge/wram/AUDIO_ATTEN_TABLE_ALIGN_PAD.md) | `u8[64]` | audio, unused | 64-byte alignment buffer ($7E:2010..$7E:204F) following audio channel attenuation table (unused to our knowledge). |
-| `$7E:2050` | [`MODE7_TRANSFORM_MATRIX_WORDS`](knowledge/wram/MODE7_TRANSFORM_MATRIX_WORDS.md) | `u16[32]` | mode7, graphics | 32-entry perspective transformation scanline matrix table ($7E:2050..$7E:208F; $80:CFA9, $80:D113). |
-| `$7E:2090` | [`MODE7_PERSPECTIVE_SCALE_BYTES`](knowledge/wram/MODE7_PERSPECTIVE_SCALE_BYTES.md) | `u8[32]` | mode7, graphics | 32-entry perspective scaling factors table loaded from ROM bank $90 ($7E:2090..$7E:20AF; $80:D113). |
+| `$7E:2010` | [`AUDIO_ATTEN_TABLE_ALIGN_PAD`](knowledge/wram/AUDIO_ATTEN_TABLE_ALIGN_PAD.md) | `u8[64]` | audio, mode7, graphics | 64-byte zeroed Row 0 (horizontal OPT = 0) of the 128-byte Mode 2 OPT table ($7E:2010..$7E:208F) DMA'd to VRAM $6400 during Mode 7 flight ($80:D91B). |
+| `$7E:2050` | [`MODE7_TRANSFORM_MATRIX_WORDS`](knowledge/wram/MODE7_TRANSFORM_MATRIX_WORDS.md) | `u16[32]` | mode7, graphics | 32-entry Mode 2 OPT vertical scroll row shearing the sky layer during Mode 7 flight ($7E:2050..$7E:208F; $80:CFA9, $80:D91B). |
+| `$7E:2090` | [`MODE7_PERSPECTIVE_SCALE_BYTES`](knowledge/wram/MODE7_PERSPECTIVE_SCALE_BYTES.md) | `u8[32]` | mode7, bug, unused | 32-byte unread buffer written by the $80:D113 Bank $B0 out-of-bounds read bug ($7E:2090..$7E:20AF; $80:D113). |
 | `$7E:20B0` | [`MODE7_PERSPECTIVE_ALIGN_PAD`](knowledge/wram/MODE7_PERSPECTIVE_ALIGN_PAD.md) | `u8[96]` | mode7, unused | 96-byte alignment buffer ($7E:20B0..$7E:210F) between Mode 7 scaling table and weather particle buffer (unused to our knowledge). |
 | `$7E:2110` | [`WEATHER_PARTICLE_BUFFER`](knowledge/wram/WEATHER_PARTICLE_BUFFER.md) | `u8[256]` | weather | 64-entry cyclic state array for weather particle trajectories (4 bytes per particle; $91:C15B, $91:BE05). |
 | `$7E:2210` | [`BOY_NAME_BUFFER`](knowledge/wram/BOY_NAME_BUFFER.md) | `u8[36]` | boy | Custom player character name string buffer (ASCII/tile indices). |

@@ -8,7 +8,7 @@ lifetime: boot
 confidence: confirmed
 tags: [entity, companion]
 evidence: ["disasm: func_CF803C ($8F:8144) stores #$4F37 into $0F40 during companion initialization"]
-see: [knowledge/wram/HUD_DRAW_SUPPRESSION_LOCK.md, knowledge/wram/CAMERA_TARGET_ACTOR_PTR.md, knowledge/wram/ENTITY_COMPANION_DOG.md]
+see: [knowledge/wram/ENTITY_PTR_BOY.md, knowledge/wram/CAMERA_TARGET_ACTOR_PTR.md, knowledge/wram/ENTITY_COMPANION_DOG.md]
 ---
 Direct pointer to the Companion (Dog) entity slot in WRAM (`$7E:4F37`).
 

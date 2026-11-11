@@ -7,7 +7,7 @@ category: 🧠
 name: mode7_cockpit_heading_indicator_frame_tick
 title: Advances rotating compass rose sprite frames and updates cockpit heading indicators during Mode 7 flight
 confidence: guess
-tags: [unverified, rea-partial-read]
+tags: [unverified, rea-partial-read, mode7]
 evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
 ---
 Low confidence — Advances rotating compass rose sprite frames and updates cockpit heading indicators during Mode 7 flight.

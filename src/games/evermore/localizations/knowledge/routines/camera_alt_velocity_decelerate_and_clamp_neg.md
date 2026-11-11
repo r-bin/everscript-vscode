@@ -9,6 +9,6 @@ title: Alternate camera pan velocity negative deceleration stepper ($80:CD9D)
 confidence: confirmed
 evidence: ["disasm: subtracts deceleration rate $1480 from alternate camera velocity $14B6; clamps velocity against lower bound $147E; stores in $14B6; caller: $80:CBD1"]
 see: [routines/camera_velocity_decelerate_and_clamp_neg.md]
-tags: [camera, scroll, velocity]
+tags: [camera, scroll, velocity, mode7]
 ---
 Decelerates alternate camera scrolling speed during secondary camera mode. Subtracts deceleration rate `$1480` from velocity `$14B6`, clamping against negative bound `$147E`.

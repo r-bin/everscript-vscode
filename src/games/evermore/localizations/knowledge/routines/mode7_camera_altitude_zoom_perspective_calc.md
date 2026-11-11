@@ -7,7 +7,7 @@ category: 🧠
 name: mode7_camera_altitude_zoom_perspective_calc
 title: Calculates camera altitude scaling and ground perspective foreshortening factors in Mode 7 flight
 confidence: guess
-tags: [unverified, rea-partial-read]
+tags: [unverified, rea-partial-read, mode7]
 evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
 ---
 Low confidence — Calculates camera altitude scaling and ground perspective foreshortening factors in Mode 7 flight.
