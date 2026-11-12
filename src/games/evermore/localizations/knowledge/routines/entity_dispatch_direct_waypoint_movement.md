@@ -7,7 +7,7 @@ category: 🗺️
 name: entity_dispatch_direct_waypoint_movement
 title: Entity direct/unconstrained waypoint navigation dispatcher ($8F:AAD3)
 confidence: confirmed
-evidence: ["disasm: clears collision layer DP $44; allocates waypoint node via $8F:98B5; configures coordinates via $8F:A7AA; sets path flags $0230 on node $3C12,X; raises moving flag bit $20 on entity +$10,Y and clears +$78,Y; caller: $8C:DAA6"]
+evidence: ["disasm: clears collision layer DP $44; allocates waypoint node via $8F:98B5; configures coordinates via $8F:A7AA; sets path flags $0230 on node $3C12,X; raises moving flag bit $20 on entity +$10,Y and clears +$78,Y; caller: $8C:DAA6", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.43): 31/31 states (31/31 oracle) match ROM, mutation caught"]
 see: [routines/waypoint_set_target_coordinates.md]
 tags: [waypoints, navigation, entities]
 ---

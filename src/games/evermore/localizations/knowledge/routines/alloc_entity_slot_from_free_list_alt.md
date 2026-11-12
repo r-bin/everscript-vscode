@@ -7,7 +7,7 @@ category: ⚔️
 name: alloc_entity_slot_from_free_list_alt
 title: Entity record pool allocator alternate entry point ($8F:B2DE)
 confidence: confirmed
-evidence: ["disasm: secondary entry to $8F:B2BE; pops head from free entity list $7E:3DE3; crashes via BRK $8B on pool overflow; links allocated slot into active list $7E:3DE1; raises active flag $0200 in status word +$10,X; caller: $8F:B094"]
+evidence: ["disasm: secondary entry to $8F:B2BE; pops head from free entity list $7E:3DE3; crashes via BRK $8B on pool overflow; links allocated slot into active list $7E:3DE1; raises active flag $0200 in status word +$10,X; caller: $8F:B094", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.43): 2/2 states (2/2 oracle) match ROM, mutation caught"]
 see: [routines/alloc_entity_slot_from_free_list.md, knowledge/wram/ACTIVE_COMPANION_HEAD.md, knowledge/wram/ENTITY_RECORD_FREE_HEAD.md]
 tags: [entities, allocator, memory]
 ---

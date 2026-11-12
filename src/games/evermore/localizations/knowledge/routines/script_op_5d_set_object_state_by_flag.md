@@ -8,7 +8,7 @@ name: script_op_5d_set_object_state_by_flag
 title: Script opcode 0x5d — set object state by flag
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E u16, continues in the same turn (docs/scripts/opcodes.md)", "trace: the game ran 50 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
+evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E u16, continues in the same turn (docs/scripts/opcodes.md)", "trace: the game ran 50 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.43): 19/19 states (19/19 oracle) and 106/106 fuzzed match ROM, mutation caught"]
 see: [docs/scripts/opcodes.md]
 ---
 Handler of script opcode [0x5D](soe://rom/assets/scripts/opcodes/5d.md). Evaluates an object index and reads a 16-bit save-flag ID; a set flag requests object state `$7F`, a clear flag requests state `0`, and `$90:A36D` clamps/applies it. Returns carry set. Host-side model: `docs/disassembly/script-vm/opcode-5d-object-state-by-flag.md`.

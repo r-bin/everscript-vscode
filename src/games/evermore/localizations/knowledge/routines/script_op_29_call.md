@@ -8,7 +8,7 @@ name: script_op_29_call
 title: Script opcode 0x29 calls a script
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: vanilla VFS at $8C:D3C9 reads a packed u24 pointer into DP $26/$28, calls $8C:CF18, links caller context and run-list state, then returns CLC", "opcode table: $8C:E90F maps 0x29 to $8C:D3C9 with a u24 operand and call flow"]
+evidence: ["disasm: vanilla VFS at $8C:D3C9 reads a packed u24 pointer into DP $26/$28, calls $8C:CF18, links caller context and run-list state, then returns CLC", "opcode table: $8C:E90F maps 0x29 to $8C:D3C9 with a u24 operand and call flow", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.43): 4/4 states (4/4 oracle) match ROM, mutation caught"]
 see: [docs/disassembly/script-vm/opcode-29-call.md, docs/disassembly/script-vm/opcode-a3-call-global.md]
 ---
 This handler reads a packed script pointer and delegates slot allocation, caller linkage, and run-list scheduling to the shared scheduler call helper. The caller resumes after the callee ends.
