@@ -7,7 +7,7 @@ category: 🧠
 name: script_entity_operand
 title: Script VM — read an entity operand
 confidence: confirmed
-tags: [entity, script]
+tags: [entity, script, script-vm]
 evidence: ["disasm: $8C:EC8E is JSL $8C:EA43 (evaluate an expression), STA $4C, TAY, RTL: the low word of the value becomes the entity address in DP $4C and Y (v0.369.0)", "disasm: 15 handlers in bank $8C call it for their first operand, among them $8C:E0B0 (animate) and $8C:DD60 (attach_script)"]
 see: [routines/script_eval_expression.md, docs/scripts/vm.md]
 ---

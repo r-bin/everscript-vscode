@@ -12,6 +12,7 @@ pickups. Written from the game's own interpreter and checked against the running
 | opcodes by topic | `soe://tags/opcode.<group>` (flow, call, movement, text, money, ...) |
 | a room's scripts, decoded | `soe://rom/assets/scripts/rooms/<room>/` |
 | the overview of the opcode space: kinds, groups, duplicates, garbage operands, naming rules | [opcodes.md](opcodes.md) |
+| how the engine fits together: threads, states, the scheduler, the `script-vm` tag | [engine.md](engine.md) |
 | how the interpreter works: threads, packed pointers, operand tokens, expressions | [vm.md](vm.md) |
 | the handlers' 65816 code as C | `soe://rom/<handler>.c` (from [../disassembly/script-vm/](../disassembly/script-vm/)) |
 

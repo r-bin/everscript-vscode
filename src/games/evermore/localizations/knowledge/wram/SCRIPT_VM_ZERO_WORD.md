@@ -6,7 +6,7 @@ name: SCRIPT_VM_ZERO_WORD
 title: Constant zero word at top of Bank $7E read by script VM
 lifetime: boot
 confidence: confirmed
-tags: [scripts, vm, constant]
+tags: [scripts, vm, constant, script-vm]
 evidence: ["cdl: wram.flags marks $7E:FFFE as READ | WORD | SCRIPT ($29) with zero writes during execution", "audit: docs/unused-wram.md §$7E:FFFE-FFFF confirms script VM reads this location as a constant zero operand"]
 see: [docs/unused-wram.md, knowledge/wram/HIGH_OAM_ALIGN_PAD.md]
 ---

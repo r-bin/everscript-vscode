@@ -7,8 +7,9 @@ from (`docs/cleanup.md` D3). What each opcode does: [opcodes.md](opcodes.md) and
 
 ## The interpreter
 
-A thread is a slot (16+ bytes in WRAM, from `$28FC`; DP `$7E` points at the current one) whose
-first three bytes hold its script pointer. The scheduler (`$8C:CFFD`) loads that pointer into DP
+A thread is a slot (`$4F` bytes in WRAM, 20 of them from `$28FC`; DP `$7E` points at the current one) whose
+first three bytes hold its script pointer. How the pieces fit, the thread states and the `script-vm` tag:
+[engine.md](engine.md). The scheduler (`$8C:CFFD`) loads that pointer into DP
 `$82`-`$84` and calls the dispatcher.
 
 The dispatcher at `$8C:D0A6` fetches one byte through `[$82]`, advances the pointer, doubles the
