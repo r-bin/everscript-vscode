@@ -1,7 +1,7 @@
 # Evermore ROM layout: stay HiROM, ExHiROM, or SA-1?
 
-Status: **comparison and recommendation, nothing built.** Companion to
-[port.md](port.md). Labels: *(repo)* = read in our code/docs/ROM,
+Status: **comparison and recommendation.** B is built ([port.md](port.md)); C1 is built
+([../sa1/port.md](../sa1/port.md)), without the rewrite this page first assumed. Labels: *(repo)* = read in our code/docs/ROM,
 *(core source)* = read in the bundled snes9x2005 core, *(hardware)* = generic SNES knowledge,
 *(estimate)* = my effort guess, not a measurement, *(to verify)* = check on the running game
 before relying on it.
@@ -41,9 +41,9 @@ Two repo facts drive everything below:
 |---|---|---|---|
 | Header map mode | `$31` (today) | `$35` (`$25` slow) at file `0x40FFC0` | `$23`, SA-1 chip declared, header at file `0x7FC0` (LoROM-style position) |
 | Max ROM | 4 MB (1 MB free) | ~7.9 MB flat (`$40–$7D` + `$3E/$3F`; `$7E/$7F` are WRAM) | 8 MB, but seen through **1 MB windows** set by mapper registers |
-| How the S-CPU sees ROM | `$C0–$FF` linear, `$8x–$Bx` upper halves of the same 64 KB banks | `$C0–$FF` and `$80–$BF` as A (first 4 MB), `$00–$7D` show the second 4 MB | `$C0–$FF` linear windows (like HiROM), but `$00–$3F`/`$80–$BF:8000+` are **32 KB-packed LoROM-style** — `$80:802D` is file `0x20002D`, not `0x00802D` *(repo: evermore-sa1 findings)* |
-| Does `$8x` code still work? | yes | **yes** (unchanged) | **no** — every `$8x`/`$9x`/`$Bx` reference must become `$Cx` (same bytes, linear window) |
-| Vectors / header | file `0x00FFxx` | new copy at file `0x40FFxx` + stubs | file `0x7FC0–0x7FFF`, which today holds string data that must move |
+| How the S-CPU sees ROM | `$C0–$FF` linear, `$8x–$Bx` upper halves of the same 64 KB banks | `$C0–$FF` and `$80–$BF` as A (first 4 MB), `$00–$7D` show the second 4 MB | `$C0–$FF` linear windows (like HiROM), but `$00–$3F`/`$80–$BF:8000+` are **32 KB-packed LoROM-style** — `$80:802D` is file `0x20002D`, not `0x00802D`; the two views can show different 1 MB blocks *(MesenCE source; [../sa1/port.md](../sa1/port.md) §2)* |
+| Does `$8x` code still work? | yes | **yes** (unchanged) | **yes**, from a second copy arranged LoROM-style (blocks 2–3) next to the linear one (blocks 4–7) |
+| Vectors / header | file `0x00FFxx` | new copy at file `0x40FFxx` + stubs | file `0x7FC0–0x7FFF` in the rebuilt image (block 0); nothing moves |
 | CPU speed | S-CPU, FastROM | S-CPU; 2nd half slow ROM | S-CPU **plus** a 10.74 MHz second 65816 *(hardware)*; S-CPU ROM speed vs today's FastROM *(to verify)* |
 | RAM | WRAM 128 KB, SRAM 8 KB | same | adds I-RAM 2 KB and BW-RAM (typ. 64–256 KB, battery-backable). **SA-1 cannot see the S-CPU's WRAM**, so anything it shares must live in BW-RAM/I-RAM *(hardware; repo: sa1_no_low_hanging_fruit)* |
 | Extras | — | none | hardware multiply/divide, character-conversion DMA, bitmap BW-RAM |
@@ -65,7 +65,7 @@ flat 8 MB view.
 
 1. **De-mirror audit** — find and rewrite every read/execution that relies on a mirror
    ([port.md](port.md) §4 steps 1–2). For ExHiROM that is only the `$00–$3F:8000+`/`$40–$7D` users;
-   for SA-1 it is *all* `$8x–$Bx` users too, a superset.
+   for SA-1 the dual-view image needs no more than that (§4 note).
 2. **Symbolise every pointer form** so code and data can move (the "shiftable disassembly",
    `docs/reverse-engineering/asm-to-c-port.md` §4, §8.1). The byte-identical Asar export from the
    CDL exists; full symbolisation of pointer tables does not.
@@ -89,16 +89,19 @@ original under `node tools/compare/compare.mts recomp`.
 | **B. ExHiROM boots and plays identically** | **+1–2 weeks after D0** | B | header, vectors, stubs; 2nd half empty but usable |
 | B-content. Use the extra space (Mana assets, new regions) | per feature | B | up to ~4 MB more, slow ROM |
 | B-combo. Dispatcher, SRAM split, transitions | 1–3 months | B | a second game on the cartridge |
-| **C1. SA-1 boots and plays identically (S-CPU does everything)** | **+2–4 months after D1** | C | SA-1 mapper, 8 MB windows, BW-RAM; **no speed gain yet** |
+| **C1. SA-1 boots and plays identically (S-CPU does everything)** | **done** (v0.402.0, no D1 needed) | C | SA-1 mapper, BW-RAM, cycle-identical in MesenCE; **no speed gain yet** |
 | C2. Move state the SA-1 will touch from WRAM to BW-RAM/I-RAM | 1–3 months | C | prerequisite for any offload; touches the whole engine |
 | C3. Offload chosen routines to the SA-1 (per routine) | days–weeks each | C | real speed; start with the 12 blocker-free functions and the ~190 WRAM-only ones from `functions.json` *(repo: cdl-recorder §148)*; cycle counts per function are not recorded yet |
 
 The earlier `evermore-sa1` investigation concluded "not feasible as a patch" and "years" for a
 full conversion *(repo: `../evermore-sa1/README.md`)*. Its blocker analysis is right (header
 position, LoROM-style `$8x` windows, WRAM invisibility). The estimate above is shorter because
-the CDL, the byte-identical Asar export and headless lockstep did not exist then, and because
-C1 only needs `$8x → $Cx` plus moving a few KB at file `0x7FC0`, not a new engine. It is still
-the largest item in this document.
+the CDL, the byte-identical Asar export and headless lockstep did not exist then.
+
+**Correction (2026-11-12):** C1 needed neither the `$8x → $Cx` rewrite nor D1. With bit 7 of CXB–FXB clear, the
+LoROM views stay on blocks 0–3 while `$C0–$FF` follow the registers, so an 8 MB image carries the bytes twice,
+once per view, and no address changes ([../sa1/port.md](../sa1/port.md)). D1 is still what C2/C3 need to move
+state and code around.
 
 ### Benefits compared
 
@@ -108,7 +111,7 @@ the largest item in this document.
 | Second game on one cartridge | no | **yes** | unlikely |
 | Faster/less slowdown in busy scenes | no | no | **yes, after C2+C3** |
 | More RAM (BW-RAM) for bigger tables, saves | no | no | **yes** |
-| Risk to existing patches/tools | none | low (first 4 MB identical) | high (all banks change) |
+| Risk to existing patches/tools | none | low (first 4 MB identical) | medium: same bus addresses, but a patch must write both copies (LoROM and linear) |
 | Reversible / bisectable | n/a | yes, byte-identical first half | each step lockstep-checked, but the layout flip is one big step |
 
 ---
@@ -124,14 +127,15 @@ later stages are built.
 | 1. **CDL** | play the game | library: code/data, edges, rets, regs, hit counts, **bus forms, mirror read sites, cycles per instruction** | coverage of the ROM; the ExHiROM audit in `bus.md` stops changing over new play | `bus.cdl`, `bus-sites.bin`, `rom-cycles.bin` → `bus.md`, `bus.json`, `functions.json` (`cycles`, `execForms`, `readForms`) |
 | 2. **Recomp** | the library | byte-identical Asar project + snesrecomp host; every pointer symbolised (shiftable) | recomp lockstep vs snes9x; rebuild is byte-identical | `functions.json`, `recomp/cfg`, tables/structs/enums |
 | 3. **ExHiROM** | stage 1 audit + stage 2 project | 6–8 MB image, header/vectors/stubs, first 4 MB identical | `bus.md` ExHiROM audit empty (except vector stubs), lockstep identical | audit lists exactly what to rewrite; the NMI stub at `$00:823A` is the known item |
-| 4. **SA-1** | stage 1 SA-1 audit and cycles + stage 2 shiftable project | `$8x → $Cx` rewrite, header at `0x7FC0`, BW-RAM variable map, then per-function offload | boot identical; then per-function lockstep; measured cycles drop | SA-1 audit (every non-`$C0` form), `functions.json` blockers, **cycles per function** to pick candidates |
+| 4. **SA-1** | stage 1 SA-1 audit and cycles + stage 2 shiftable project | dual-view image (done), BW-RAM variable map, then per-function offload | boot identical; then per-function lockstep; measured cycles drop | SA-1 audit (every non-`$C0` form), `functions.json` blockers, **cycles per function** to pick candidates |
 
 Notes on what the first recordings already say (headless, title and intro screens only — do not
 extrapolate to fights or big rooms):
 
 - **ExHiROM is nearly free**: only the NMI handler's first 17 bytes ran through bank `$00`.
-- **SA-1 is a big rewrite**: about 27,000 executed bytes, 78,000 read bytes, ~300 reading
-  instructions and ~1,600 control-flow edges use `$80–$BF`, all of which become `$Cx`.
+- **SA-1 looked like a big rewrite**: about 27,000 executed bytes, 78,000 read bytes, ~300 reading
+  instructions and ~1,600 control-flow edges use `$80–$BF`. The dual-view image keeps them all
+  working as they are ([../sa1/port.md](../sa1/port.md) §2).
 - **There is nothing to speed up there**: 85.6 % of the recorded cycles are the wait-for-NMI
   spin at `$80:858C` (`knowledge/routines/wait_for_nmi.md`). One frame measures ≈ 355,000 master cycles,
   matching the 357,368 of a real frame, so the counter is trustworthy. Record busy scenes

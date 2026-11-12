@@ -219,4 +219,4 @@ function main() {
 }
 
 if (require.main === module) main();
-module.exports = { convert, secondHalfUsed, bankZeroEntry, hardwareMirror, UPPER_MODES, OUT_SIZE, HALF };
+module.exports = { convert, secondHalfUsed, readVectors, bankZeroEntry, hardwareMirror, checksum, UPPER_MODES, OUT_SIZE, HALF };

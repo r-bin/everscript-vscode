@@ -37,6 +37,8 @@ Every 64 KB file bank *n* appears twice: whole at `$(C0+n):0000–FFFF`, upper h
 - **ExHiROM (8 MB):** `tools/exhirom/convert.js`; layout and proof in `docs/exhirom/port.md`. New
   space is `0x400000–0x7FFFFF` (bus `$40–$7D`); `$00–$3F:8000+` is no longer the first 4 MB, so
   new code goes at `$80+`/`$C0+`.
+- **SA-1 (8 MB):** `tools/sa1/convert.mts`, `docs/sa1/port.md`. The bytes are there twice: LoROM-packed for
+  `$80–$BF:8000+` (file `0x200000+`), linear for `$C0–$FF` (file `0x400000+`). A patch must write both copies.
 - PAL releases move things: US addresses do not apply to them (`docs/evermore-releases.md`).
 
 ## WRAM (`$7E0000–$7FFFFF`, 128 KB zero-gap layout)

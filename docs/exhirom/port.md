@@ -155,5 +155,10 @@ lockstep comparison, with the second half still empty. Everything after is ordin
 - **Recomp**: `snesrecomp` seeds and `functions.json` use canonical `$C0+` addresses
   *(repo: `rom-map.ts` `canonical`)*; the exporter must keep the canonical address of
   second-half bytes at `$40–$7D` — already handled there, *to verify* in the generated host.
+- **The Mesen step of `prove.js` is weaker than it reads** (found 2026-11-12 while building the SA-1 proof):
+  `tools/exhirom/mesen.js` runs each image under its own file name, so MesenCE loads and writes back a battery
+  save per name (`soe-exhirom.srm` sat in its `Saves/` folder), and `prove.js` skips every movie with events,
+  although only `W`/`R`/`L` events change a replay. `tools/sa1/mesen.mts` does both right (own name per run,
+  `.srm` deleted; filter by event kind); move the ExHiROM proof onto it and rerun.
 - **Do not guess SMZ3's or any other game's layout**; check public documentation and our own
   runs, and write the result down.
