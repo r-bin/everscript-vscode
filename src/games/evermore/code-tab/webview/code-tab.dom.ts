@@ -1,13 +1,13 @@
 // Ownership: the Code tab's page — every known routine (`codeIndex`, host.ts): a searchable rail by
 // bank; in the middle the picked routine's place, who calls it and what it calls (links), and one
-// of its versions (asm with comments, reconstructed C, C from another source), each read from the
-// host only when shown; on the right its knowledge entry, WRAM, open work and files.
+// of its versions (asm with comments, by name or plain, with what the CDL library saw each line do;
+// reconstructed C; C from another source), each read from the host only when shown; on the right its knowledge entry, WRAM, open work and files.
 // State owned: `st` (index, search, selection, history, routine and text caches).
 // Bundled by tools/bundle-pages.mts as dist/webview/code-tab.js (global CodeTab); the radar page
 // calls CodeTab.setupCodeTab(post, activeTab) inside its own script.
 
 import { asmHtml, cHtml, mdHtml, esc } from './code-listing.dom';
-import type { Known } from './code-listing.dom';
+import type { Known, Lines } from './code-listing.dom';
 
 type Version = 'asm' | 'c' | 'pseudo';
 interface Row { name: string; title: string; category: string | null; confidence: string | null; us: string; addr: string | null; c: boolean; todo: number }
@@ -26,7 +26,6 @@ const VERSION_LABEL: Record<Version, [string, string]> = {
     c: ['C', 'Its reconstructed C (reconstructed-c/)'],
     pseudo: ['Pseudo-C', 'C from another source: a curated docs block or the snesrecomp mechanical lift'],
 };
-const hexNum = (s: string | null): number => (s ? parseInt(s.replace('$', ''), 16) : -1);
 const bankOf = (r: Row): string => r.us.slice(1, 3);
 
 function setupCodeTab(post: (msg: object) => void, activeTab: string): void {
@@ -36,10 +35,10 @@ function setupCodeTab(post: (msg: object) => void, activeTab: string): void {
     if (!pane || !pane.dataset || pane.dataset.codeBound) return;
     pane.dataset.codeBound = '1';
     const st = {
-        rows: null as Row[] | null, error: '', requested: false, canOpen: false, known: { names: new Set<string>(), byAddr: new Map<number, string>() } as Known,
-        query: '', onlyC: false, bytes: false, deep: null as { q: string; hits: Map<string, string[]> | 'pending' | { error: string } } | null,
+        rows: null as Row[] | null, error: '', requested: false, canOpen: false, known: { names: new Set<string>() } as Known,
+        query: '', onlyC: false, bytes: false, names: true, deep: null as { q: string; hits: Map<string, string[]> | 'pending' | { error: string } } | null,
         sel: '', version: 'asm' as Version, back: [] as string[],
-        routines: {} as Record<string, Pending<Routine>>, texts: {} as Record<string, Pending<string>>,
+        routines: {} as Record<string, Pending<Routine>>, texts: {} as Record<string, Pending<string>>, lines: {} as Record<string, Pending<Lines>>,
     };
     const $ = (id: string) => document.getElementById(id)!;
 
@@ -81,11 +80,22 @@ function setupCodeTab(post: (msg: object) => void, activeTab: string): void {
             '<div class="code-refs"><span class="scr-chips-h">Calls ' + r.calls.length + '</span><div class="code-chips">' + calls + '</div></div>';
     }
 
+    /** The asm as lines.json draws it; with names on, a line saying what the CDL library covers. */
+    function asmView(r: Routine): string {
+        const t = st.lines[r.name];
+        if (t === undefined || t === 'pending') return '<div class="scr-empty">Reading…</div>';
+        if ('error' in t) return '<div class="scr-empty">' + esc(t.error) + '</div>';
+        const cdl = !st.names ? '' : t.cdl ? '<div class="scr-dim code-cdl">CDL: ' + t.cdl.ran + ' of ' + t.cdl.of + ' lines ran while recorded; hover a count for widths, DB and D</div>'
+            : '<div class="scr-dim code-cdl">No CDL library for this ROM: record one in the emulator\'s CDL tab to see what each line ran and touched.</div>';
+        return cdl + asmHtml(t, st.known, { bytes: st.bytes, names: st.names });
+    }
+
     function textHtml(r: Routine): string {
+        if (st.version === 'asm') return asmView(r);
         const t = st.texts[r.name + '|' + st.version];
         if (t === undefined || t === 'pending') return '<div class="scr-empty">Reading…</div>';
         if (typeof t !== 'string') return '<div class="scr-empty">' + esc(t.error) + '</div>';
-        return st.version === 'asm' ? asmHtml(t, st.known, st.bytes) : cHtml(t, st.known);
+        return cHtml(t, st.known);
     }
 
     function renderMid(): void {
@@ -135,6 +145,10 @@ function setupCodeTab(post: (msg: object) => void, activeTab: string): void {
         if (r === undefined) { st.routines[st.sel] = 'pending'; post({ command: 'codeRoutine', name: st.sel }); return; }
         if (r === 'pending' || 'error' in r) return;
         if (st.version !== 'asm' && !r.versions[st.version]) st.version = 'asm';
+        if (st.version === 'asm') {
+            if (st.lines[r.name] === undefined) { st.lines[r.name] = 'pending'; post({ command: 'codeLines', name: r.name }); }
+            return;
+        }
         const key = r.name + '|' + st.version;
         if (st.texts[key] === undefined) { st.texts[key] = 'pending'; post({ command: 'codeText', name: r.name, version: st.version }); }
     }
@@ -180,6 +194,7 @@ function setupCodeTab(post: (msg: object) => void, activeTab: string): void {
         renderRail();
     });
     $('code-only-c').addEventListener('change', (e) => { st.onlyC = (e.target as HTMLInputElement).checked; renderRail(); });
+    $('code-names').addEventListener('change', (e) => { st.names = (e.target as HTMLInputElement).checked; renderMid(); });
     $('code-bytes').addEventListener('change', (e) => { st.bytes = (e.target as HTMLInputElement).checked; pane.querySelector('.code-asm')?.classList.toggle('code-nobytes', !st.bytes); });
     document.querySelector('.tab[data-tab="code"]')?.addEventListener('click', () => { if (!st.rows && !st.requested) request(); });
     window.addEventListener('message', (ev) => {
@@ -188,8 +203,7 @@ function setupCodeTab(post: (msg: object) => void, activeTab: string): void {
             if (msg.error) { st.error = msg.error; st.requested = false; renderRail(); return; }
             st.rows = msg.routines as Row[];
             st.canOpen = !!msg.canOpen;
-            st.known = { names: new Set(st.rows.map((r) => r.name)), byAddr: new Map() };
-            for (const r of st.rows) { const a = hexNum(r.addr); if (a >= 0) { st.known.byAddr.set(a, r.name); st.known.byAddr.set(a ^ 0x400000, r.name); } }
+            st.known = { names: new Set(st.rows.map((r) => r.name)) };
             renderRail();
             if (st.sel) show();
         } else if (msg.command === 'codeSearch') {
@@ -199,6 +213,9 @@ function setupCodeTab(post: (msg: object) => void, activeTab: string): void {
         } else if (msg.command === 'codeRoutine') {
             st.routines[msg.name] = msg.error ? { error: msg.error } : msg.routine;
             if (msg.name === st.sel) show();
+        } else if (msg.command === 'codeLines') {
+            st.lines[msg.name] = msg.error ? { error: msg.error } : msg.lines || { error: 'Not in this ROM.' };
+            if (msg.name === st.sel && st.version === 'asm') renderMid();
         } else if (msg.command === 'codeText') {
             st.texts[msg.name + '|' + msg.version] = msg.error ? { error: msg.error } : msg.text;
             if (msg.name === st.sel && msg.version === st.version) renderMid();

@@ -9,6 +9,8 @@
 //   page -> codeRoutine { name }        host -> codeRoutine { name, routine } | { name, error }   (routine.json)
 //   page -> codeText { name, version }  host -> codeText { name, version, text } | { …, error }   (version: asm | c | pseudo;
 //                                       read when the page shows it, never with the routine)
+//   page -> codeLines { name }          host -> codeLines { name, lines } | { name, error }   (lines.json: the asm as data,
+//                                       named, with the CDL library's facts per line; asked instead of the asm text)
 //   page -> codeOpen { name, file }     opens soe://rom/code/<name>/<file> in an editor
 
 const BASE = 'soe://rom/code/';
@@ -68,6 +70,11 @@ async function answer(msg: Message, deps: Deps): Promise<void> {
             const file = versionFile(JSON.parse(await deps.read(BASE + name + '/routine.json')) as Routine, version);
             if (!file) throw new Error('No ' + version + ' version of ' + name);
             deps.post({ command: 'codeText', name, version, text: await deps.read(BASE + name + '/' + file) });
+            return;
+        }
+        case 'codeLines': {
+            if (!NAME.test(name)) throw new Error('No routine ' + name);
+            deps.post({ command: 'codeLines', name, lines: JSON.parse(await deps.read(BASE + name + '/lines.json')) });
             return;
         }
         case 'codeOpen': {

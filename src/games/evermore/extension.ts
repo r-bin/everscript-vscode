@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { getRepoAutofillUpdates } from './language/config';
 import * as lp from './language/language-providers';
 import { buildVanillaRoomDetails, buildRoomTree, setRoomImageUris } from './rooms';
@@ -18,6 +19,7 @@ import { sfxNames } from './music';
 import { registerReplayEditor } from '../../core/emulator/replay-editor';
 import { importRecordingBundle, exportRecordingBundle } from '../../core/emulator/bundle-commands';
 import * as cdlTools from './cdl/tools';
+import { readLibrary } from '../../platform/cdl/library-read';
 import * as emulatorHost from './emulator/host';
 import { exportRoomMaps } from './rooms/export-maps';
 import { registerBuildAndRun } from './language/build-and-run';
@@ -152,6 +154,7 @@ function activate(context: vscode.ExtensionContext): void {
         readMemory: (addr: number, len: number) => emulatorPanel.readMemory(addr, len),
         emulatorStatus: () => emulatorPanel.getStatus(),
         getLogs: () => emulatorPanel.getLogHistory() as any,
+        cdl: (rom: Uint8Array) => readLibrary(path.join(context.globalStorageUri.fsPath, 'cdl-library'), rom),
     });
     // Converted Secret of Mana rooms (games/evermore/imports/mana) read the Mana ROM from the ROM library.
     radar.manaRooms = createManaRooms({

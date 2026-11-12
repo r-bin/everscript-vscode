@@ -1,17 +1,23 @@
-// Ownership: the Code tab's listings as HTML, pure (text in, markup out): a routine's .asm as rows
-// (address, bytes, instruction, comment) whose calls link to the routines they call and whose
-// branches inside the routine jump to their line; a .c file with every known routine name linked
-// and comments dimmed; an entry's Markdown body. Takes the lookups as arguments, reads no state.
+// Ownership: the Code tab's listings as HTML, pure (text in, markup out): a routine's lines.json as rows
+// (address, bytes, how often it ran, instruction, comment and what it touched) whose calls link to the
+// routines they call and whose branches inside the routine jump to their line; a .c file with every
+// known routine name linked and comments dimmed; an entry's Markdown body. Takes the lookups as arguments, reads no state.
 
-/** What the listings link to: routine names, and routine names by bus address ($8x and $Cx both). */
-interface Known { names: Set<string>; byAddr: Map<number, string> }
+/** What the listings link to: routine names. */
+interface Known { names: Set<string> }
 
 const esc = (s: unknown): string => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as Record<string, string>)[c]);
 const link = (name: string, text = name): string => '<a class="code-link" data-code-go="' + esc(name) + '">' + esc(text) + '</a>';
 
-/** asm-view.ts lineText: `$808020  a9 8f 00    lda #$008F            ; note`. */
-const ASM_LINE = /^\$([0-9A-F]{6}) {2}(.{12})([^;]*?)\s*(?:; (.*))?$/;
-const CALL = /^(jsr|jsl|jmp|jml) \$([0-9A-F]{4}|[0-9A-F]{6})$/;
+/** One instruction of lines.json (resources/code-lines.ts), as far as the listing draws it. */
+interface Touch { name: string; addr: string; count: number; access: string; title?: string }
+interface Line {
+    addr: string; bytes: string; text: string; named: string; comment?: string; call?: string;
+    operand?: { addr: string; name: string; title?: string };
+    cdl?: { hits: number; m8: boolean; x8: boolean; db: string[]; d: string[]; touched: Touch[]; more: number };
+}
+interface Lines { cdl: { ran: number; of: number } | null; lines: Line[] }
+
 const TARGET = /\$([0-9A-F]{6})\b/;
 const WORD = /[A-Za-z_][A-Za-z0-9_]*/g;
 
@@ -26,38 +32,54 @@ function linkNames(text: string, known: Known): string {
     return out + esc(text.slice(at));
 }
 
-/** Where a call, jump or branch on line `addr` goes: its operand text and the bus address (a 4-digit call operand stays in the line's bank). */
-function destination(ins: string, addr: number): { text: string; at: number; to: number } | null {
-    const m = CALL.exec(ins);
-    if (m) {
-        const v = parseInt(m[2], 16);
-        return { text: '$' + m[2], at: ins.indexOf('$'), to: m[2].length === 4 ? (addr & 0xFF0000) | v : v };
-    }
-    const t = TARGET.exec(ins);
-    return t ? { text: t[0], at: t.index, to: parseInt(t[1], 16) } : null;
+/** 11227 -> `11.2k`. */
+const count = (n: number): string => (n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e4 ? (n / 1e3).toFixed(n >= 1e5 ? 0 : 1) + 'k' : String(n));
+
+/** The hits cell: how often the line ran, its tooltip the widths and registers it ran with. */
+function hitsCell(c: NonNullable<Line['cdl']>): string {
+    const why = [c.hits ? 'ran ' + c.hits.toLocaleString('en') + ' times' : 'never ran while recorded',
+        c.m8 ? 'A 8-bit' : '', c.x8 ? 'X/Y 8-bit' : '', c.db.length ? 'DB ' + c.db.join(', ') : '', c.d.length ? 'D ' + c.d.join(', ') : ''].filter(Boolean);
+    return '<td class="code-hits" title="' + esc(why.join(' · ')) + '">' + (c.hits ? count(c.hits) : '·') + '</td>';
 }
 
-/** A routine's .asm as table rows; `bytes` shows each instruction's bytes. Header lines (`;`) are left out: the tab shows them. */
-function asmHtml(text: string, known: Known, bytes: boolean): string {
-    const rows = text.split('\n').map((l) => ASM_LINE.exec(l)).filter((m): m is RegExpExecArray => !!m);
-    const here = new Set(rows.map((m) => parseInt(m[1], 16)));
-    const targets = new Set<number>();
-    const body = rows.map((m) => {
-        const addr = parseInt(m[1], 16), ins = m[3].trim(), note = m[4] || '';
-        const d = destination(ins, addr);
-        const called = d && CALL.test(ins) ? known.byAddr.get(d.to) : undefined;
+/** What the line touched while recorded, after its comment: `→ read Current HP · write ENTITY ×3 (+40 more)`. */
+function touchedHtml(c: NonNullable<Line['cdl']>, known: Known): string {
+    if (!c.touched.length) return '';
+    const parts = c.touched.map((t) => '<span title="' + esc((t.title ? t.title + '\n' : '') + t.addr + (t.count > 1 ? ' … (' + t.count + ' addresses)' : '')) + '">' +
+        (t.access ? esc(t.access) + ' ' : '') + linkNames(t.name, known) + (t.count > 1 ? ' ×' + t.count : '') + '</span>');
+    return '<span class="code-touched">→ ' + parts.join(' · ') + (c.more ? ' (+' + c.more + ' more)' : '') + '</span>';
+}
+
+/**
+ * A routine's lines (lines.json) as table rows. `names`: operands by name, how often each line ran and what it
+ * touched (CDL), lines that never ran dimmed; off: the plain code with its comments. `bytes` shows each instruction's bytes.
+ */
+function asmHtml(data: Lines, known: Known, opts: { bytes: boolean; names: boolean }): string {
+    const at = (l: Line): string => l.addr.slice(1);
+    const here = new Set(data.lines.map(at));
+    /** The line a branch on `l` goes to inside the routine (branch operands are never named). */
+    const jump = (l: Line): RegExpExecArray | null => { const t = l.call ? null : TARGET.exec(l.text); return t && here.has(t[1]) && t[1] !== at(l) ? t : null; };
+    const targets = new Set(data.lines.map((l) => jump(l)?.[1]).filter(Boolean));
+    const cdl = opts.names && !!data.cdl;
+    const rows = data.lines.map((l) => {
+        const ins = opts.names ? l.named : l.text, t = jump(l);
         let insHtml = esc(ins);
-        if (called) insHtml = link(called, ins);
-        else if (d && here.has(d.to) && d.to !== addr) {
-            targets.add(d.to);
-            insHtml = esc(ins.slice(0, d.at)) + '<a class="code-jump" data-code-line="' + d.to + '">' + esc(d.text) + '</a>' + esc(ins.slice(d.at + d.text.length));
+        if (l.call && known.names.has(l.call)) insHtml = link(l.call, ins);
+        else if (t) insHtml = esc(ins.slice(0, t.index)) + '<a class="code-jump" data-code-line="' + t[1] + '">' + esc(t[0]) + '</a>' + esc(ins.slice(t.index + t[0].length));
+        else if (opts.names && l.operand) {
+            const i = ins.indexOf(l.operand.name);
+            insHtml = esc(ins.slice(0, i)) + '<span class="code-name" title="' + esc(l.operand.addr + (l.operand.title ? ' — ' + l.operand.title : '')) + '">' +
+                linkNames(l.operand.name, known) + '</span>' + esc(ins.slice(i + l.operand.name.length));
         }
-        return [addr, '<td class="code-ins">' + insHtml + '</td><td class="code-note">' + linkNames(note, known) + '</td>', m[2].trim()] as const;
+        const note = opts.names ? l.comment || '' : l.comment || l.call || '';
+        const cls = [targets.has(at(l)) ? 'code-target' : '', cdl && l.cdl && !l.cdl.hits ? 'code-cold' : ''].filter(Boolean).join(' ');
+        return '<tr data-code-at="' + at(l) + '"' + (cls ? ' class="' + cls + '"' : '') + '>' +
+            '<td class="code-addr">' + at(l) + '</td><td class="code-bytes">' + esc(l.bytes) + '</td>' +
+            (cdl ? (l.cdl ? hitsCell(l.cdl) : '<td class="code-hits"></td>') : '') +
+            '<td class="code-ins">' + insHtml + '</td><td class="code-note">' + linkNames(note, known) +
+            (cdl && l.cdl ? (note ? ' ' : '') + touchedHtml(l.cdl, known) : '') + '</td></tr>';
     });
-    return '<table class="code-asm' + (bytes ? '' : ' code-nobytes') + '">' + body.map(([addr, cells, raw]) =>
-        '<tr data-code-at="' + addr + '"' + (targets.has(addr) ? ' class="code-target"' : '') + '>' +
-        '<td class="code-addr">' + addr.toString(16).toUpperCase().padStart(6, '0') + '</td><td class="code-bytes">' + esc(raw) + '</td>' + cells + '</tr>').join('') +
-        '</table>';
+    return '<table class="code-asm' + (opts.bytes ? '' : ' code-nobytes') + '">' + rows.join('') + '</table>';
 }
 
 /** A .c file: names linked, comments dimmed (`//` and `/* … *\/`, one scan over the lines). */
@@ -104,5 +126,5 @@ function mdHtml(text: string, known: Known): string {
     }).join('');
 }
 
-export type { Known };
+export type { Known, Lines };
 export { asmHtml, cHtml, mdHtml, esc };

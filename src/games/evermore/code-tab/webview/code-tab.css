@@ -35,6 +35,11 @@ a.scr-chip.code-link{color:var(--vscode-textLink-foreground,#3794ff)}
 .code-asm tr.code-target .code-addr{color:var(--vscode-charts-yellow,#cca700)}
 .code-pane .code-asm tr.code-flash td{animation:code-flash 1.2s ease-out}
 @keyframes code-flash{from{background:var(--scr-lit)}to{background:transparent}}
+.code-asm .code-hits{color:var(--scr-dim);text-align:right;font-size:11px}
+.code-asm tr.code-cold td{opacity:.45}
+.code-name{color:var(--vscode-charts-blue,#3794ff)}
+.code-touched{color:var(--scr-dim)}
+.code-cdl{font-size:11.5px;margin-bottom:4px}
 .code-jump{color:var(--vscode-charts-yellow,#cca700);cursor:pointer}
 .code-c{margin:0;white-space:pre;overflow-x:auto}
 .code-cmt{color:var(--vscode-editorLineNumber-foreground,#6a9955)}

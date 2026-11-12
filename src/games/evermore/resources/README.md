@@ -60,6 +60,7 @@ binds the same key and wins on extension load order; a user keybinding
 | `ram-symbols.ts` | every known WRAM address (names.json + tag links) with size and type; flag bytes; records |
 | `asm-view.ts` | `<offset>.asm` / `soe://bus/<addr>.asm`: a 65816 listing (16-bit A/X assumed until REP/SEP), and the excerpt around a call |
 | `code-view.ts` | `soe://rom/code/`: routines by name — routing, `index.json`, `routine.json` (info.md as data, for the Code tab), `<name>.pseudo.c`, the old `code/<address>` links |
+| `code-lines.ts` | `code/<name>/lines.json`: instructions raw and named, with what each did in the CDL library (injected `cdl`) |
 | `code-catalog.ts` | the routines (code/script knowledge entries) located in the ROM read, and per routine its listing with the asm comments, calls, WRAM, record fields |
 | `code-locate.ts` | finds a routine of the US ROM in another ROM (PAL, rebuilt) by its bytes, address operands masked |
 | `code-c-index.ts` | `reconstructed-c/` as functions, and which entry each implements |

@@ -17,12 +17,13 @@ Kind: **feature** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 
 ## Invariants
 - A version's text is requested only when shown; the page never sends a path, only a routine
-  name (checked against `[A-Za-z0-9_]`) and `asm` / `c` / `pseudo`.
+  name (checked against `[A-Za-z0-9_]`) and `asm` / `c` / `pseudo`. The ASM view reads
+  `lines.json` (names and CDL facts are computed there, never in the page).
 - Show what the VFS says, never a guess: a missing version is disabled, a call without an entry
   shows its address, a routine not found in this ROM says so.
 - Page files stay ≤ 250 lines each; commands start with `code`.
 
 ## Tests
 - `tests/memory/code-tab.test.mts` (dom tier) — unit (scaffold, host on a stub reader), ROM
-  (`routine.json`, `.pseudo.c`) and DOM (rail, filter, links, versions, back, branch jump, deep
-  search; skips without the ROM or playwright). `CODE_TAB_SHOT=<dir>` saves screenshots.
+  (`routine.json`, `lines.json` with a stub CDL view, `.pseudo.c`) and DOM (rail, filter, links, versions, names on / off,
+  back, branch jump, deep search; skips without the ROM or playwright). `CODE_TAB_SHOT=<dir>` saves screenshots.

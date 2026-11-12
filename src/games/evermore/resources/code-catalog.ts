@@ -157,4 +157,4 @@ function callers(cat: Catalog, fn: CodeFunction): CodeFunction[] {
 }
 
 export type { CodeFunction, Analysis, Catalog, WramUse, Where };
-export { catalog, findFunction, analyse, callers };
+export { catalog, findFunction, analyse, callers, targetName };

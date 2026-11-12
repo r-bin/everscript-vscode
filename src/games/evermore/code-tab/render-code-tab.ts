@@ -1,5 +1,5 @@
 // Ownership: the Code tab's pane scaffold. Pure; the routines arrive from the host
-// (`codeIndex`, `codeRoutine`, `codeText`) and are drawn by webview/code-tab.dom.ts.
+// (`codeIndex`, `codeRoutine`, `codeLines`, `codeText`) and are drawn by webview/code-tab.dom.ts.
 
 function buildCodeTabHtml(): string {
     return '<div class="tab-pane scr-pane code-pane" data-tab="code" style="display:none">' +
@@ -9,6 +9,7 @@ function buildCodeTabHtml(): string {
         '<input class="scr-search" id="code-search" type="text" placeholder="Filter name, title, $address… (Enter: deep search)" autocomplete="off" spellcheck="false">' +
         '<span class="scr-tools">' +
         '<label class="scr-check" title="Only routines with reconstructed C"><input type="checkbox" id="code-only-c"> with C</label>' +
+        '<label class="scr-check" title="Addresses by name, how often each line ran and what it touched (CDL library); off: the plain code"><input type="checkbox" id="code-names" checked> names</label>' +
         '<label class="scr-check" title="Show each instruction\'s bytes"><input type="checkbox" id="code-bytes"> bytes</label>' +
         '<span class="scr-dim" id="code-count"></span>' +
         '</span>' +

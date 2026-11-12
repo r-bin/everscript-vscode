@@ -1,8 +1,8 @@
 // Code tab (src/games/evermore/code-tab): the host against a stub soe:// reader (no ROM), the new
-// soe://rom/code/<name>/routine.json and .pseudo.c on the ROM of the ROM library, and the page in
-// headless Chromium answered by the real host reading the VFS: rail and filter, a routine with its
-// callers and calls as links, the asm read when shown, C and Pseudo-C, a call followed and back,
-// a branch jump, the deep search. ROM checks skip without the Evermore ROM; the page without playwright.
+// soe://rom/code/<name>/routine.json, lines.json (names; CDL facts from a stub library) and .pseudo.c on
+// the ROM of the ROM library, and the page in headless Chromium answered by the real host reading the
+// VFS: rail and filter, a routine with its callers and calls as links, the asm read when shown, names
+// on and off, C and Pseudo-C, a call followed and back, a branch jump, the deep search. ROM checks skip without the Evermore ROM; the page without playwright.
 // `CODE_TAB_SHOT=<dir>` saves screenshots.
 // Run: node tests/memory/code-tab.test.mts
 import assert from 'node:assert';
@@ -43,6 +43,7 @@ async function unit(): Promise<void> {
             [B + 'index.json']: JSON.stringify([{ name: 'a_b', title: 'T', category: null, confidence: 'likely', us: '$808000', addr: '$808000', c: 'x.c:1', todo: ['magic'], entry: 'e' }]),
             [B + 'a_b/routine.json']: JSON.stringify({ name: 'a_b', versions: { asm: 'a_b.asm', c: null, pseudo: { file: 'a_b.pseudo.c', source: 's' } } }),
             [B + 'a_b/a_b.asm']: '; asm', [B + 'a_b/a_b.pseudo.c']: '// pseudo',
+            [B + 'a_b/lines.json']: JSON.stringify({ name: 'a_b', cdl: null, lines: [] }),
         };
         const out: Msg[] = [], opened: string[] = [];
         const deps = stubDeps(files, out, opened);
@@ -52,6 +53,10 @@ async function unit(): Promise<void> {
         assert.strictEqual(out.pop()!.text, '// pseudo');
         await handleCodeMessage({ command: 'codeText', name: 'a_b', version: 'c' }, deps);
         assert.ok(/No c version/.test(out.pop()!.error));
+        await handleCodeMessage({ command: 'codeLines', name: 'a_b' }, deps);
+        assert.deepStrictEqual(out.pop()!.lines, { name: 'a_b', cdl: null, lines: [] });
+        await handleCodeMessage({ command: 'codeLines', name: '../x' }, deps);
+        assert.ok(out.pop()!.error);
         await handleCodeMessage({ command: 'codeRoutine', name: '../x' }, deps);
         assert.ok(out.pop()!.error);
         await handleCodeMessage({ command: 'codeOpen', name: 'a_b', file: '../../x' }, deps);
@@ -64,11 +69,11 @@ async function unit(): Promise<void> {
 }
 
 /** A soe:// reader over `resolveRom` (what the extension's file system answers), for one ROM. */
-function vfsReader(rom: Uint8Array) {
+function vfsReader(rom: Uint8Array, cdl?: (rom: Uint8Array) => unknown) {
     const { resolveRom } = require('../../dist/games/evermore/resources/rom-files');
     return async (uri: string): Promise<string> => {
         const [p, query] = uri.replace(/^soe:\/\/rom\//, '').split('?');
-        const node = resolveRom(p.split('/'), rom, { query: query || '' });
+        const node = resolveRom(p.split('/'), rom, { query: query || '', cdl });
         if (!node || !node.read) throw new Error('not found: ' + uri);
         return String(await node.read());
     };
@@ -84,6 +89,31 @@ async function romChecks(read: (uri: string) => Promise<string>): Promise<void> 
         assert.ok(r.callers.length >= 1, 'callers');
         assert.ok(r.versions.asm === 'main_loop_entry.asm' && r.versions.c && r.versions.pseudo);
         assert.ok(r.instructions > 0 && Array.isArray(r.todo) && Array.isArray(r.wram));
+    });
+    await test('lines.json: calls and known WRAM by name, raw text kept, no CDL without a library', async () => {
+        const j = JSON.parse(await read('soe://rom/code/main_loop_entry/lines.json'));
+        assert.strictEqual(j.cdl, null);
+        const call = j.lines.find((l: Msg) => l.call);
+        assert.ok(call.text.includes('$') && call.named === call.text.split(' ')[0] + ' ' + call.call, call.named);
+        const wram = j.lines.find((l: Msg) => l.operand && /^sta /.test(l.text));
+        assert.ok(wram && !wram.named.includes('$') && wram.operand.addr.startsWith('$7E'), 'a store names its WRAM');
+        assert.ok(j.lines.every((l: Msg) => !l.cdl));
+    });
+    await test('lines.json with a CDL library: hits, widths, DB, what a line touched (vector fetches left out)', async () => {
+        const first = JSON.parse(await read('soe://rom/code/main_loop_entry/lines.json')).lines[0];
+        const pc = parseInt(first.addr.slice(1), 16), off = pc & 0x3FFFFF;
+        const lib = { cdl: new Uint8Array(0x400000), romHits: new Float64Array(0x400000), hasHits: true };
+        lib.cdl[off] = 0x21; lib.romHits[off] = 12;
+        const POOL = 0x3DE5, SLOT = 0x8E, HP = 0x4EB3, ROM = 0x1000000;
+        const facts = { xrefs: [[POOL + 0x1C, 1], [POOL + SLOT + 0x1C, 1], [HP, 2], [ROM + 0xFFEA, 9]], counts: new Map([[0, 140], [1, 1]]), db: [0x7E], d: [0] };
+        const view = { lib, at: (a: number) => (a === pc ? facts : null) };
+        const j = JSON.parse(await vfsReader(romOf!, () => view)('soe://rom/code/main_loop_entry/lines.json'));
+        const l = j.lines[0];
+        assert.deepStrictEqual(j.cdl, { ran: 1, of: j.lines.length });
+        assert.ok(l.cdl.hits === 12 && l.cdl.m8 && !l.cdl.x8 && l.cdl.db[0] === '$7E');
+        assert.deepStrictEqual(l.cdl.touched.map((t: Msg) => [t.name, t.count, t.access]), [['ENTITY_DYNAMIC_POOL', 2, 'read'], ['Current HP', 1, 'write']]);
+        assert.strictEqual(l.cdl.more, 137);
+        assert.strictEqual(j.lines[1].cdl.hits, 0);
     });
     await test('.pseudo.c is another source than reconstructed-c/; none says so', async () => {
         const p = await read('soe://rom/code/main_loop_entry/main_loop_entry.pseudo.c');
@@ -136,6 +166,15 @@ async function dom(read: (uri: string) => Promise<string>): Promise<void> {
         assert.ok((await page.textContent('#code-side'))!.includes('Open work'));
         await shot('asm');
     });
+    await test('names off: the plain code with call names as comments; on: names, and no CDL library said', async () => {
+        assert.ok((await page.textContent('#code-mid .code-cdl'))!.includes('No CDL library'));
+        const named = await page.textContent('#code-mid .code-asm');
+        await page.uncheck('#code-names');
+        assert.strictEqual(await page.locator('#code-mid .code-cdl').count(), 0);
+        const plain = await page.textContent('#code-mid .code-asm');
+        assert.ok(/jsl \$[0-9A-F]{6}/.test(plain!) && !/jsl \$[0-9A-F]{6}/.test(named!), 'calls by address only when names are off');
+        await page.check('#code-names');
+    });
     await test('C and Pseudo-C, each read once; a routine name in C links', async () => {
         await page.click('[data-code-ver="c"]');
         await pump();
@@ -176,11 +215,13 @@ async function dom(read: (uri: string) => Promise<string>): Promise<void> {
     await browser.close();
 }
 
+let romOf: Uint8Array | null = null;
 await unit();
 const romPath: string | null = require('../../dist/games').romPath('evermore');
 if (romPath && fs.existsSync(romPath)) {
     let rom: Uint8Array = fs.readFileSync(romPath);
     if (rom.length % 0x8000 === 0x200) rom = rom.subarray(0x200);
+    romOf = rom;
     const read = vfsReader(rom);
     await romChecks(read);
     await dom(read);

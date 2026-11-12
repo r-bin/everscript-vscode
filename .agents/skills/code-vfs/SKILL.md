@@ -30,7 +30,10 @@ is found by its bytes. Read code through the VFS (MCP `soe_read`) instead of cra
   on; stops at the next known routine), the comments infused. `?comments=0`: raw.
 - `<name>.c` — its function from `reconstructed-c/`; `?file=1`: the whole file.
 - `routine.json` — `info.md` as data; `<name>.pseudo.c` — C from a curated docs block or the
-  snesrecomp lift. The radar's **Code** tab (`src/games/evermore/code-tab/`) shows all of these.
+  snesrecomp lift.
+- `lines.json` — each instruction raw (`text`) and named (`named`: calls, WRAM, tables), and with a
+  CDL library for the ROM (`cdl`): hits, A/X widths, DB / D, the addresses it touched by name (what a
+  `[$5D],y` pointer reached). Named only where the address is known (`code-lines.ts`). The radar's **Code** tab (`src/games/evermore/code-tab/`) shows all of these.
 
 ## 3. Write — each fact has one home
 

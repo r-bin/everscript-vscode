@@ -11,6 +11,7 @@
 //   soe://rom/code/<name>/<name>.c           its reconstructed C (?file=1: the whole file)
 //   soe://rom/code/<name>/<name>.pseudo.c    C from another source: a curated docs block or the snesrecomp lift
 //   soe://rom/code/<name>/routine.json       info.md as data: entry, calls, callers, WRAM, open work, versions
+//   soe://rom/code/<name>/lines.json         the instructions raw and named, with what each did in the CDL library (code-lines.ts)
 //   soe://rom/code/<address>                 old address path: a link to the routine's page
 
 import * as fs from 'fs';
@@ -23,10 +24,13 @@ import type { Catalog, CodeFunction } from './code-catalog';
 import { select, todos, ramEntry, hex6, TODO_KINDS } from './code-search';
 import { indexPage, infoPage, asmFile, cFile, todoPage, wramPage, banksPage } from './code-markdown';
 import { REPO } from './code-c-index';
+import { routineLinesJson } from './code-lines';
+import type { CdlView } from '../../../platform/cdl/library-read';
 import { hiromFileOffset } from '../../../platform/snes/hirom';
 import type { MapsDeps } from './map-files';
 
-type CodeDeps = MapsDeps & { vanillaRom?(): Uint8Array | null };
+/** `cdl`: the CDL library recorded for a ROM (null: none), injected like the ROMs. */
+type CodeDeps = MapsDeps & { vanillaRom?(): Uint8Array | null; cdl?(rom: Uint8Array): CdlView | null };
 const PAGES = ['index.md', 'index.json', 'search.md', 'todo.md', 'wram.md', 'banks.md'];
 
 /** A bus address from an old `code/<address>` segment (6 hex digits, `$` and an extension allowed). */
@@ -83,12 +87,13 @@ function routineJson(cat: Catalog, fn: CodeFunction) {
     };
 }
 
-function functionDir(cat: Catalog, fn: CodeFunction, params: URLSearchParams, rest: string[]) {
+function functionDir(cat: Catalog, fn: CodeFunction, params: URLSearchParams, rest: string[], deps?: CodeDeps) {
     const [leaf] = rest;
     if (leaf === undefined) {
         const entries: Entry[] = [
             ['info.md', 'file'],
             ['routine.json', 'file'],
+            ['lines.json', 'file'],
             [fn.name + '.asm', 'file'],
             ['comments.json', 'file'],
             [fn.name + '.c', 'file'],
@@ -100,6 +105,8 @@ function functionDir(cat: Catalog, fn: CodeFunction, params: URLSearchParams, re
     if (rest.length > 1) return null;
     if (leaf === 'info.md' || leaf === 'index.md') return text(() => infoPage(cat, fn));
     if (leaf === 'routine.json') return json(() => routineJson(cat, fn));
+    // Live: the CDL library grows while the game runs, so the file is never cached for long.
+    if (leaf === 'lines.json') return json(() => routineLinesJson(cat, fn, deps?.cdl ? deps.cdl(cat.rom) : null), true);
     if (leaf === fn.name + '.pseudo.c') return text(() => pseudoFile(fn));
     if (leaf === fn.name + '.asm') {
         if (params.get('comments') !== '0') return text(() => asmFile(cat, fn));
@@ -157,14 +164,14 @@ function resolveCode(segments: string[], rom: Uint8Array, deps?: CodeDeps) {
         if (head === 'banks.md') return text(() => banksPage(cat));
     }
     const fn = findFunction(cat, head);
-    if (fn) return functionDir(cat, fn, params, rest);
+    if (fn) return functionDir(cat, fn, params, rest, deps);
     const bus = rest.length === 0 ? parseCodeAddress(head) : null;
     if (bus === null || hiromFileOffset(bus) >= rom.length) return null;
     const known = cat.list.find(f => f.vanilla === bus || hiromFileOffset(f.vanilla) === hiromFileOffset(bus));
     if (!known) return text(() => legacyPage(rom, bus, params));
     const leaf = params.get('asm') === '1' && params.get('c') !== '1' ? known.name + '.asm'
         : params.get('c') === '1' && params.get('asm') !== '1' ? known.name + '.c' : 'info.md';
-    return link(functionDir(cat, known, params, [leaf]), `soe://rom/code/${known.name}/${leaf}`);
+    return link(functionDir(cat, known, params, [leaf], deps), `soe://rom/code/${known.name}/${leaf}`);
 }
 
 export { resolveCode, parseCodeAddress };
