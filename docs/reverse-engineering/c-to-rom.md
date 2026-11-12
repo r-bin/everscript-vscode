@@ -472,7 +472,7 @@ Detailed diagnostics and binding rules:
 
 ## 10c. 157-routine expansion & build/G1 findings (feature branch)
 
-Recent work on `c-bindings` (and earlier `feature/recomp-c-bindings-replay01`) expanded compiled bindings from `127` (`116,927` bytes linked) to `157` (`131,451` linked bytes) then **`176` bound routines** (Batch 4a: +19 routines in `v0.399.39`), and now **`193` bound routines** (Batch 4b: +17 routines across banks `$8C`, `$8F`, `$90`, `$91`, all 17 G1-verified in `v0.399.40`).
+Recent work on `c-bindings` (and earlier `feature/recomp-c-bindings-replay01`) expanded compiled bindings from `127` (`116,927` bytes linked) to `157` (`131,451` linked bytes) then **`176` bound routines** (Batch 4a: +19 routines in `v0.399.39`), then **`193` bound routines** (Batch 4b: +17 routines in `v0.399.40`), and now **`209` bound routines** (Batch 4c: +16 routines across banks `$8C`, `$8F`, `$90`, all 16 G1-verified in `v0.399.41`).
 
 - **`tools/c-to-rom/build.mts` parallelization:** Compilation now runs across an 8-worker async `execFile` pool (~17s full rebuild vs ~88s sequentially).
 - **`ABSI16` / `ABSI8` bank-carry & fall-through `PLB`/`Z` fixes:** `$90:8139`/`$90:817B` (`ABSI16`/`ABSI8` for `$7E:FFFF` + offset carry into `$7F`), `$90:8317` (branching on entry `SOE_Z`), `$90:9379`/`$90:93AA` (`soe_nz8(r, r->db)` on `PLB`), `$90:D020` (`C` from `cgram_off << 1`), and `$90:D2A6` (`SOE_V` from 8-bit `ADC`/`SBC`).

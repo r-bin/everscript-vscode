@@ -8,7 +8,7 @@ name: attack_proc_melee_dog_kill_xp
 title: Melee attack with Dog combat XP awarding on fatal blow
 confidence: confirmed
 tags: [combat, melee, dog, experience]
-evidence: ["disasm: $8F:B77D calls $8F:BA06, $8F:C067, $8F:C0D3, $8F:C17F; checks fatal blow $0EA0 >= $002A,y; calls Dog XP $8F:97C0; returns SEC", "docs/disassembly/combat/special-attack-procs.md"]
+evidence: ["disasm: $8F:B77D calls $8F:BA06, $8F:C067, $8F:C0D3, $8F:C17F; checks fatal blow $0EA0 >= $002A,y; calls Dog XP $8F:97C0; returns SEC", "docs/disassembly/combat/special-attack-procs.md", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.41): 1/1 states (1/1 oracle) and 1/1 fuzzed match ROM, mutation caught"]
 see: [docs/disassembly/combat/special-attack-procs.md, docs/disassembly/combat/attack-procs.md]
 ---
 Melee attack resolution proc 10 in master table `$8F:B6AE`.

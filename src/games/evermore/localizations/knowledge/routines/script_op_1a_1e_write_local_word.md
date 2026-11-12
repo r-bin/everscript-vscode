@@ -8,7 +8,7 @@ name: script_op_1a_1e_write_local_word
 title: Script opcodes 0x1a, 0x1e — write local word
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: vanilla VFS at $8C:D7B3 adds a u8 byte offset to the active slot base plus $0F, evaluates an expression, and writes a word", "dispatch: opcode table entries $8C:E8F1 and $8C:E8F9 both target $8C:D7B3", "ram: argument words begin at slot offset +$0F"]
+evidence: ["disasm: vanilla VFS at $8C:D7B3 adds a u8 byte offset to the active slot base plus $0F, evaluates an expression, and writes a word", "dispatch: opcode table entries $8C:E8F1 and $8C:E8F9 both target $8C:D7B3", "ram: argument words begin at slot offset +$0F", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.41): 33/33 states (33/33 oracle) and 323/323 fuzzed match ROM, mutation caught"]
 see: [docs/disassembly/script-vm/opcode-1a-1e-write-arg-word.md]
 ---
 The shared handler writes a 16-bit expression result to `active_slot + $0F + u8 byte_offset`. Opcodes `0x1A` and `0x1E` use this routine and continue in the same turn.
