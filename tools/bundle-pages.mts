@@ -20,6 +20,7 @@ const PAGES: Record<string, [string, string, boolean?]> = {
     'script-highlight': ['src/games/evermore/script-vm/highlight.ts', 'ScriptHighlight', true],
     'data-tab': ['src/games/evermore/data-tab/webview/data-tab.dom.ts', 'DataTab'],
     'routes-tab': ['src/games/evermore/routes/webview/routes-tab.dom.ts', 'RoutesTab'],
+    'code-tab': ['src/games/evermore/code-tab/webview/code-tab.dom.ts', 'CodeTab'],
     'wram-view': ['src/games/evermore/memory/webview/wram-view.dom.ts', 'WramView'],
 };
 

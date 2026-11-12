@@ -1,0 +1,49 @@
+/* Code tab (src/games/evermore/code-tab). The pane is also .scr-pane, so it shares the Scripts tab's
+   tool bar, rail and columns; only what the Code tab adds is here (code- prefix). */
+.code-pane .scr-body{grid-template-columns:minmax(220px,300px) minmax(420px,1.6fr) minmax(260px,1fr)}
+.code-pane .scr-search{width:300px}
+.code-back{font-size:13px;padding:1px 8px}
+.code-back:disabled{opacity:.4;cursor:default}
+.code-badge{font:10px var(--scr-mono);border:1px solid var(--scr-line);border-radius:3px;padding:0 3px;color:var(--vscode-charts-green,#89d185);flex-shrink:0}
+.code-deep{padding:6px 10px;font-size:12px;color:var(--scr-dim);border-bottom:1px solid var(--scr-line)}
+.code-link{color:var(--vscode-textLink-foreground,#3794ff);cursor:pointer;text-decoration:none}
+.code-link:hover{text-decoration:underline}
+a.scr-chip.code-link{color:var(--vscode-textLink-foreground,#3794ff)}
+.code-unknown{color:var(--scr-dim);cursor:default}
+/* Head, callers and calls, version bar */
+.code-head{margin-bottom:8px}
+.code-title{font-size:14px;font-weight:600}
+.code-meta{color:var(--scr-dim);font-size:12px;margin-top:2px}
+.code-meta b{color:var(--vscode-charts-orange,#d18616)}
+.code-refs{display:flex;gap:8px;align-items:flex-start;margin:4px 0}
+.code-refs .scr-chips-h{padding-top:2px;flex-shrink:0}
+.code-chips{display:flex;flex-wrap:wrap;gap:4px;max-height:100px;overflow-y:auto;min-width:0}
+.code-bar{display:flex;align-items:center;gap:10px;margin:10px 0 6px}
+.code-src{font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.code-open{margin-left:auto;font-size:12px;flex-shrink:0}
+.scr-seg-btn:disabled{opacity:.35;cursor:default}
+/* Listings */
+.code-text{font:12px/1.45 var(--scr-mono)}
+.code-asm{border-collapse:collapse;width:100%}
+.code-pane .code-asm td{padding:0 8px 0 0;vertical-align:top;white-space:pre;border:0;background:transparent}
+.code-asm tr:hover{background:var(--scr-hover)}
+.code-asm .code-addr{color:var(--scr-dim)}
+.code-asm .code-bytes{color:var(--scr-dim);opacity:.7}
+.code-asm.code-nobytes .code-bytes{display:none}
+.code-asm .code-note{white-space:pre-wrap;color:var(--vscode-editorLineNumber-foreground,#6a9955);word-break:break-word;width:100%}
+.code-asm .code-note .code-link{color:var(--vscode-textLink-foreground,#3794ff)}
+.code-asm tr.code-target .code-addr{color:var(--vscode-charts-yellow,#cca700)}
+.code-pane .code-asm tr.code-flash td{animation:code-flash 1.2s ease-out}
+@keyframes code-flash{from{background:var(--scr-lit)}to{background:transparent}}
+.code-jump{color:var(--vscode-charts-yellow,#cca700);cursor:pointer}
+.code-c{margin:0;white-space:pre;overflow-x:auto}
+.code-cmt{color:var(--vscode-editorLineNumber-foreground,#6a9955)}
+/* Side */
+.code-sec{margin-bottom:12px}
+.code-sec-h{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--scr-dim);margin-bottom:4px}
+.code-sec ul{margin:0;padding-left:18px}
+.code-sec li{margin:2px 0;word-break:break-word}
+.code-md p{margin:0 0 6px}
+.code-md-h{font-weight:600;margin:8px 0 4px}
+.code-wram{border-collapse:collapse;font-size:12px;width:100%}
+.code-pane .code-wram td{padding:1px 8px 1px 0;vertical-align:top;word-break:break-word;border:0;background:transparent}

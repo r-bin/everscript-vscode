@@ -35,3 +35,8 @@ How to use it: skill `code-vfs`. This file: where it is going and what is open.
 6. **Entries keyed by name.** Knowledge files are still named by US address
    (`knowledge/routines/script_op_39_3b_sleep.md`); the VFS already keys by `name:`. Renaming the files waits until
    other tools (`check-knowledge`, exports) read the `addr:` field only.
+7. **Ghidra pseudo-C in the Code tab.** The tab's Pseudo-C slot shows `<name>.pseudo.c`: a curated
+   docs block or the snesrecomp lift (`decomp-view.ts` `otherC`). Real Ghidra pseudocode is not
+   there: the local REA dossiers (`ghidra-analysis` skill) hold asm, callers and callees only, no
+   decompiler output. When an export exists, it reaches `soe://` through the planned library
+   (`static.json`), never a live Ghidra, and becomes one more source of `otherC`.

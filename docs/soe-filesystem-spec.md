@@ -65,6 +65,7 @@ Both are verified by `Everscript: Check soe:// Resources`. The command also retu
 | `<offset>.json` | byte, word, long, bus spellings and table/function name, e.g. `0e8000.json` |
 | `code/index.md`, `index.json` | every routine (code/script knowledge entry) by name, with its US address and its address in this ROM; `?q=<word or address>` searches names, knowledge text, C, the WRAM it touches and what it calls; `?status=`, `bank=`, `category=`, `confidence=` filter |
 | `code/<name>/info.md`, `<name>.asm`, `<name>.c` | one routine: knowledge entry, place, calls, callers, WRAM, open work; the whole listing with `asm-comments.json` infused (`?comments=0` raw); its reconstructed C (`?file=1` the whole file) |
+| `code/<name>/routine.json`, `<name>.pseudo.c` | `info.md` as data (entry, place, calls by name, callers, WRAM, open work, the versions there are; the Code tab reads it); C from another source than `reconstructed-c/` (a curated docs block, the snesrecomp lift) |
 | `code/todo.md`, `wram.md`, `banks.md` | the decompilation worklist; WRAM by the routines that read/write it; routines per bank |
 | `code/<address>` | old address path: links to `code/<name>/` (`?asm=1&c=0` the .asm, `?c=1&asm=0` the .c) |
 | `assets/icons/<id>.png` | ring-menu icon by icon id (`$CE8000` table); only ids that draw are listed (all 162 in vanilla) |

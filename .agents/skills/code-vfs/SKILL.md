@@ -29,6 +29,8 @@ is found by its bytes. Read code through the VFS (MCP `soe_read`) instead of cra
 - `<name>.asm` — the whole routine (runs past a return while an earlier branch lands further
   on; stops at the next known routine), the comments infused. `?comments=0`: raw.
 - `<name>.c` — its function from `reconstructed-c/`; `?file=1`: the whole file.
+- `routine.json` — `info.md` as data; `<name>.pseudo.c` — C from a curated docs block or the
+  snesrecomp lift. The radar's **Code** tab (`src/games/evermore/code-tab/`) shows all of these.
 
 ## 3. Write — each fact has one home
 

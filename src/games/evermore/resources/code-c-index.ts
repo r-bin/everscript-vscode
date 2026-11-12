@@ -2,7 +2,9 @@
 // entry each one implements. Read by code-catalog.ts (`soe://rom/code/<name>/<name>.c`) and
 // decomp-view.ts. A C file may hold many routines; one belongs to an entry when the comment block
 // right above it names the entry's address (`$8C:D220` or `$8CD220`), when the file header says
-// `Routine: $<addr> (<c name>)`, or when its name is the entry's `name`.
+// `Routine: $<addr> (<c name>)`, or when its name is the entry's `name`. A file named by a routine
+// (`808B66_main_loop.c`) gives that address to its first public function without one, but only
+// when no function is named as the entry is (`main_loop_entry` after a helper `wait_for_frame`).
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -12,8 +14,8 @@ import { hiromFileOffset } from '../../../platform/snes/hirom';
 const REPO = path.resolve(__dirname, '..', '..', '..', '..');
 const C_DIR = path.join(REPO, 'reconstructed-c');
 
-/** One C function definition: its name, file (repo-relative), lines [from, to] (0-based), text. */
-interface CFunction { name: string; file: string; from: number; to: number; text: string; addr: number | null; isStatic: boolean }
+/** One C function definition: its name, file (repo-relative), lines [from, to] (0-based), text; `byFile`: `addr` comes from the file name only. */
+interface CFunction { name: string; file: string; from: number; to: number; text: string; addr: number | null; isStatic: boolean; byFile?: boolean }
 
 const DEFINITION = /^(?:static\s+|_Noreturn\s+|inline\s+)*[A-Za-z_][\w\s*]*?\b([A-Za-z_]\w*)\s*\(([^;]*)\)\s*\{?\s*$/;
 const KEYWORD = /^(if|for|while|switch|return|else|do|sizeof)\b/;
@@ -75,7 +77,7 @@ function parseFile(rel: string): CFunction[] {
     const fileAddr = named ? parseInt(named[1], 16) : null;
     if (fileAddr !== null && !out.some(f => f.addr === fileAddr)) {
         const first = out.find(f => f.addr === null && !f.isStatic);
-        if (first) first.addr = fileAddr;
+        if (first) { first.addr = fileAddr; first.byFile = true; }
     }
     return out;
 }
@@ -101,8 +103,10 @@ function cFunctions(): CFunction[] {
 function cFunctionFor(addr: number, name: string | null): CFunction | null {
     const all = cFunctions();
     const off = hiromFileOffset(addr);
-    return all.find(f => f.addr !== null && hiromFileOffset(f.addr) === off)
+    const at = (f: CFunction) => f.addr !== null && hiromFileOffset(f.addr) === off;
+    return all.find(f => at(f) && !f.byFile)
         || (name ? all.find(f => f.name === name) : undefined)
+        || all.find(at)
         || null;
 }
 
