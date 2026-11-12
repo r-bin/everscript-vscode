@@ -8,7 +8,7 @@ name: script_op_a5_call_back
 title: Script opcode 0xa5 — call back
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands cb, calls a script in this thread (resumes after it) (docs/scripts/opcodes.md)", "trace: the game ran 3 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
+evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands cb, calls a script in this thread (resumes after it) (docs/scripts/opcodes.md)", "trace: the game ran 3 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.45): 11/11 states (11/11 oracle) match ROM, mutation caught"]
 see: [docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-a5-call-back.md]
 ---
 Handler of script opcode [0xA5](soe://rom/assets/scripts/opcodes/a5.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/a5.md`, served at `soe://rom/assets/scripts/opcodes/a5.md`.

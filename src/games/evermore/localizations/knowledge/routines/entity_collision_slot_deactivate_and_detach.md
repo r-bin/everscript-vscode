@@ -8,7 +8,7 @@ name: entity_collision_slot_deactivate_and_detach
 title: Deactivates an entity collision slot, detaching tracking anchors and decrementing active entity counts
 confidence: guess
 tags: [unverified, rea-partial-read]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.45): 32/32 states (31/31 oracle) match ROM, mutation caught"]
 ---
 Low confidence — Deactivates an entity collision slot, detaching tracking anchors and decrementing active entity counts.
 
