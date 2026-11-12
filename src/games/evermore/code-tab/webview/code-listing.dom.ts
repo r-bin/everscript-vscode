@@ -12,13 +12,13 @@ const link = (name: string, text = name): string => '<a class="code-link" data-c
 /** One instruction of lines.json (resources/code-lines.ts), as far as the listing draws it. */
 interface Touch { name: string; addr: string; count: number; access: string; title?: string }
 interface Line {
-    addr: string; bytes: string; text: string; named: string; comment?: string; call?: string;
+    addr: string; bytes: string; text: string; named: string; comment?: string; call?: string; jump?: string;
     operand?: { addr: string; name: string; title?: string };
     cdl?: { hits: number; m8: boolean; x8: boolean; db: string[]; d: string[]; touched: Touch[]; more: number };
 }
 interface Lines { cdl: { ran: number; of: number } | null; lines: Line[] }
 
-const TARGET = /\$([0-9A-F]{6})\b/;
+const OPERAND = /(?<!#)\$[0-9A-F]+/;
 const WORD = /[A-Za-z_][A-Za-z0-9_]*/g;
 
 /** `text` with every known routine name in it linked. */
@@ -57,15 +57,18 @@ function touchedHtml(c: NonNullable<Line['cdl']>, known: Known): string {
 function asmHtml(data: Lines, known: Known, opts: { bytes: boolean; names: boolean }): string {
     const at = (l: Line): string => l.addr.slice(1);
     const here = new Set(data.lines.map(at));
-    /** The line a branch on `l` goes to inside the routine (branch operands are never named). */
-    const jump = (l: Line): RegExpExecArray | null => { const t = l.call ? null : TARGET.exec(l.text); return t && here.has(t[1]) && t[1] !== at(l) ? t : null; };
-    const targets = new Set(data.lines.map((l) => jump(l)?.[1]).filter(Boolean));
+    /** The line a branch or jump on `l` goes to inside the routine. */
+    const jump = (l: Line): string | null => { const to = l.call || !l.jump ? null : l.jump.slice(1); return to && here.has(to) && to !== at(l) ? to : null; };
+    const targets = new Set(data.lines.map(jump).filter(Boolean));
     const cdl = opts.names && !!data.cdl;
     const rows = data.lines.map((l) => {
         const ins = opts.names ? l.named : l.text, t = jump(l);
         let insHtml = esc(ins);
         if (l.call && known.names.has(l.call)) insHtml = link(l.call, ins);
-        else if (t) insHtml = esc(ins.slice(0, t.index)) + '<a class="code-jump" data-code-line="' + t[1] + '">' + esc(t[0]) + '</a>' + esc(ins.slice(t.index + t[0].length));
+        else if (t) {
+            const shown = opts.names && l.operand ? l.operand.name : OPERAND.exec(ins)?.[0] || '', i = ins.indexOf(shown);
+            insHtml = esc(ins.slice(0, i)) + '<a class="code-jump" data-code-line="' + t + '" title="' + esc(l.jump) + '">' + esc(shown) + '</a>' + esc(ins.slice(i + shown.length));
+        }
         else if (opts.names && l.operand) {
             const i = ins.indexOf(l.operand.name);
             insHtml = esc(ins.slice(0, i)) + '<span class="code-name" title="' + esc(l.operand.addr + (l.operand.title ? ' — ' + l.operand.title : '')) + '">' +

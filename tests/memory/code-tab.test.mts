@@ -110,6 +110,15 @@ async function romChecks(read: (uri: string) => Promise<string>): Promise<void> 
         assert.strictEqual(f(BOY + 0x2B), 'ENTITY_PLAYER_BOY.hp+1');
         assert.strictEqual(getWramFieldDetails(BOY + 0x0A).fieldName, undefined, 'a byte no field covers is not the field before it');
     });
+    await test('lines.json: branches and jumps by routine+offset with a jump target, registers, SRAM', async () => {
+        const nmi = JSON.parse(await read('soe://rom/code/nmi_handler/lines.json')).lines;
+        const branch = nmi.find((l: Msg) => /^bne /.test(l.text));
+        assert.ok(/^bne nmi_handler\+\$[0-9A-F]{2}$/.test(branch.named) && branch.jump === branch.operand.addr, branch.named);
+        assert.ok(nmi.some((l: Msg) => /^jmp \w+\+\$[0-9A-F]+$/.test(l.named) && !l.named.startsWith('jmp nmi_handler')), 'a jump into the next routine');
+        assert.ok(nmi.some((l: Msg) => l.named === 'sta VMADDL') && nmi.some((l: Msg) => l.named === 'sty MDMAEN'));
+        const main = JSON.parse(await read('soe://rom/code/main_loop_entry/lines.json')).lines;
+        assert.ok(main.some((l: Msg) => /^lda SRAM\+\$01$/.test(l.named)), 'cartridge SRAM by offset');
+    });
     await test('lines.json with a CDL library: hits, widths, DB, what a line touched (vector fetches left out)', async () => {
         const first = JSON.parse(await read('soe://rom/code/main_loop_entry/lines.json')).lines[0];
         const pc = parseInt(first.addr.slice(1), 16), off = pc & 0x3FFFFF;

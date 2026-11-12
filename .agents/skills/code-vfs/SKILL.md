@@ -34,7 +34,8 @@ is found by its bytes. Read code through the VFS (MCP `soe_read`) instead of cra
 - `lines.json` — each instruction raw (`text`) and named (`named`: calls, WRAM, tables), and with a
   CDL library for the ROM (`cdl`): hits, A/X widths, DB / D, the addresses it touched by name (what a
   `[$5D],y` pointer reached). Named only where the address is known (`code-lines.ts`): a typed WRAM
-  record by field path (`types.json`: `ENTITY_DYNAMIC_POOL[2].pos_y`), I/O by register name; with a library
+  record by field path (`types.json`: `ENTITY_DYNAMIC_POOL[2].pos_y`), I/O by register name, ROM (branches
+  too) as ENTRY+$off of the ROM knowledge entry holding it, `$1A,y` by the field the CDL saw it reach; with a library
   the listing decodes with the recorded A/X widths (the reset handler starts 8-bit: emulation mode). The radar's **Code** tab (`src/games/evermore/code-tab/`) shows all of these.
 
 ## 3. Write — each fact has one home
