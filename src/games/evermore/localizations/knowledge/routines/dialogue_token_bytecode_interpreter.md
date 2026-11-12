@@ -8,7 +8,7 @@ name: dialogue_token_bytecode_interpreter
 title: In-game dialogue token stream decoder and control code dispatcher
 confidence: confirmed
 tags: [dialogue, text, token, interpreter, script, ui]
-evidence: ["disasm: scans bytecode stream at $05B1,X at $8C:A1A7..$8C:A3AE; handles character glyphs (< 0x80) via JMP $A30C, decodes control codes (>= 0x80) via jump table, terminates with RTL at $8C:A3AE"]
+evidence: ["disasm: scans bytecode stream at $05B1,X at $8C:A1A7..$8C:A3AE; handles character glyphs (< 0x80) via JMP $A30C, decodes control codes (>= 0x80) via jump table, terminates with RTL at $8C:A3AE", "disasm 2026-11-12: four button waits, each calling per_frame_field_tick once a frame (JSL return addresses $8C:A233, $8C:A27D, $8C:A2E2, $8C:A392)", "recomp headless 2026-11-12: a talk button held through a wait does not end it (JOYPAD1_HELD keeps an acknowledged bit clear)"]
 see: [routines/dialogue_format_and_append_line.md, routines/window_text_layout_align.md, routines/dialogue_multiline_text_line_wrap_and_blit.md, routines/glyph_font_1bpp_unpacker.md]
 ---
 Core dialogue string bytecode interpreter for in-game text display:
@@ -16,3 +16,11 @@ Core dialogue string bytecode interpreter for in-game text display:
 - If token `< 0x80`, processes as a printable character glyph, advancing horizontal layout position and queuing glyph tile.
 - If token `>= 0x80`, dispatches through dialogue control code handler table (color palette change, delay pauses, audio SFX triggers, player/dog name string interpolation, dynamic currency/item number formatting).
 - Returns via `RTL` at `$8C:A3AE`.
+- Waits for a button (`$0104 & $D0C0`: B, Y, Start, A, X) in four places, each calling `per_frame_field_tick` once a
+  frame while it waits and acknowledging the buttons with `TRB $0104` (`$80:8597`):
+  - `$8C:A21F`: a timed pause (`$0B6F` frames from the token's operand) that a press cuts short;
+  - `$8C:A253` and `$8C:A2B8`: acknowledge, then wait for a new press with the blinking arrow (`$8C:A2B8` then clears
+    the window);
+  - `$8C:A373`: the box is full: acknowledge, wait for a press, clear the window and go on.
+  Because the acknowledged bit stays clear while the button is held, each box needs a new press. The choice box is a
+  different loop (`$8C:A7C6`, typematic repeat on `$DF00`).

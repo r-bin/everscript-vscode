@@ -27,7 +27,7 @@
 | `$7E:0000` | [`DIRECT_PAGE_BLOCK`](knowledge/wram/DIRECT_PAGE_BLOCK.md) | `DirectPageBlock` | system, direct-page | SNES Direct Page continuous register scratchpad ($7E:0000..$7E:00FF). |
 | `$7E:0100` | [`PPU_FRAME_COUNTER_LOW`](knowledge/wram/PPU_FRAME_COUNTER_LOW.md) | `u16` | graphics | Low 16 bits of 32-bit hardware frame counter; incremented every VBlank interrupt by nmi_v_blank_handler ($80:8460). |
 | `$7E:0102` | [`PPU_FRAME_COUNTER_HIGH`](knowledge/wram/PPU_FRAME_COUNTER_HIGH.md) | `u16` | graphics | High 16 bits of 32-bit hardware frame counter; incremented when low word overflows. |
-| `$7E:0104` | [`JOYPAD1_HELD`](knowledge/wram/JOYPAD1_HELD.md) | `JoypadButtons` | system | Joypad 1 held button mask (SNES auto-joypad bitfield) |
+| `$7E:0104` | [`JOYPAD1_HELD`](knowledge/wram/JOYPAD1_HELD.md) | `JoypadButtons` | system | Joypad 1 held buttons minus acknowledged ones: a bit cleared by TRB $0104 stays clear until the button is released (NMI $80:847A). |
 | `$7E:0106` | [`JOYPAD1_TRIGGERED`](knowledge/wram/JOYPAD1_TRIGGERED.md) | `JoypadButtons` | script, system | Joypad 1 newly pressed button triggers this frame |
 | `$7E:0108` | [`PPU_SHADOW_HTIMEL`](knowledge/wram/PPU_SHADOW_HTIMEL.md) | `u16` | graphics | Hardware H-timer IRQ horizontal dot position shadow; copied to $4207 in VBlank. |
 | `$7E:010A` | [`PPU_SHADOW_VTIMEL`](knowledge/wram/PPU_SHADOW_VTIMEL.md) | `u16` | graphics | Hardware V-timer IRQ scanline position shadow; copied to $4209 in VBlank. |
@@ -197,9 +197,9 @@
 | `$7E:0B1B` | [`controller_prev_input`](knowledge/wram/controller_prev_input.md) | `u16` | script, system | Previous frame joypad button state used to calculate edge-triggered presses. |
 | `$7E:0B1D` | [`MODE7_FLIGHT_HUD_VISIBLE`](knowledge/wram/MODE7_FLIGHT_HUD_VISIBLE.md) | `u16` | mode7 | Active toggle flag for Mode 7 flight instrument panel and HUD gauge overlay, toggled via controller R button ($80:C1F7, $80:C5DB). |
 | `$7E:0B1F` | [`RING_MENU_SAVED_STACK_PTR`](knowledge/wram/RING_MENU_SAVED_STACK_PTR.md) | `u16` | dialogue | Saved CPU stack pointer (S register) snapshot restored on ring menu closure. |
-| `$7E:0B21` | [`menu_audio_pan_divisor`](knowledge/wram/menu_audio_pan_divisor.md) | `u16` | audio, entity | Stereo audio panning coordinate factor for ring menu items. |
-| `$7E:0B23` | [`menu_audio_sfx_pitch`](knowledge/wram/menu_audio_sfx_pitch.md) | `u16` | audio | Pitch divisor passed to SPC700 sound driver when ring menu rotates. |
-| `$7E:0B25` | [`menu_audio_sfx_volume`](knowledge/wram/menu_audio_sfx_volume.md) | `u16` | audio, entity | Volume scale factor applied to UI menu sound effects. |
+| `$7E:0B21` | [`CONTROL_CONFIGURATION`](knowledge/wram/CONTROL_CONFIGURATION.md) | `u16` | input | Control Prefs configuration: 0 = Configuration 1 (action B, run A), 2 = Configuration 2 (action A, run B); index into $8D:A091/$8D:A095. |
+| `$7E:0B23` | [`RUN_BUTTON`](knowledge/wram/RUN_BUTTON.md) | `u16` | input, boy, dog | Run button mask of the control setup ($4218 order); BIT against $0104 at $8F:CE7C / $8F:CFB5 picks the run step $90:82A8. |
+| `$7E:0B25` | [`ACTION_BUTTON`](knowledge/wram/ACTION_BUTTON.md) | `u16` | input, boy, dog, combat | Attack / talk button mask of the control setup ($4218 order); a new press swings or checks a B-trigger ($8F:CE0D), held at 100 % it charges. |
 | `$7E:0B27` | [`ALCHEMY_RING_BROWSE_MODE`](knowledge/wram/ALCHEMY_RING_BROWSE_MODE.md) | `u16` | alchemy | Alchemy ring menu browse / assign mode flag; when non-zero, disables grey-out of uncastable formulas ($8D:BA77, $90:87B0). |
 | `$7E:0B29` | [`HUD_DIRTY_UPDATE_FLAGS`](knowledge/wram/HUD_DIRTY_UPDATE_FLAGS.md) | `u16` | map, dialogue | HUD refresh latch flags (bit 0 = tilemap redraw required, bit 2 = HUD hidden). |
 | `$7E:0B2B` | [`CHOICE_PROMPT_STATE`](knowledge/wram/CHOICE_PROMPT_STATE.md) | `ChoiceBoxState` | dialogue, system | Dialogue interactive choice selection box state machine |
@@ -298,7 +298,7 @@
 | `$7E:0E46` | [`APU_SOUND_LOAD_ALIGN_PAD`](knowledge/wram/APU_SOUND_LOAD_ALIGN_PAD.md) | `u8` | audio, unused | 1-byte alignment padding ($7E:0E46) between active BGM track and APU sound loading registers (unused to our knowledge). |
 | `$7E:0E47` | [`APU_BLOCKS_LEFT`](knowledge/wram/APU_BLOCKS_LEFT.md) | `u16` | audio | Remaining audio data transfer blocks during SPC700 sound loading. |
 | `$7E:0E49` | [`APU_DESC_CURSOR`](knowledge/wram/APU_DESC_CURSOR.md) | `u16` | audio, script | Index offset into audio sample block descriptor table. |
-| `$7E:0E4B` | [`RESIDENT_SOUNDBANK_ID`](knowledge/wram/RESIDENT_SOUNDBANK_ID.md) | `u16` | audio | Currently loaded song instrument soundbank ID in SPC700 RAM ($7E:0E4B..$7E:0E4C; checked before IPL sample streaming in $8C:8236). |
+| `$7E:0E4B` | [`RESIDENT_SOUNDBANK_ID`](knowledge/wram/RESIDENT_SOUNDBANK_ID.md) | `u16` | audio | Soundbank package resident in SPC700 RAM (low byte); the high byte holds the new id while load_song_soundbank ($8C:8236) streams it ($8C:8266), 0 again at $8C:828B. |
 | `$7E:0E4D` | [`ACTIVE_MUSIC_TRACK_ID`](knowledge/wram/ACTIVE_MUSIC_TRACK_ID.md) | `u16` | audio | Currently requested music track ID staged for playback dispatch ($7E:0E4D..$7E:0E4E; $8C:828F). |
 | `$7E:0E4F` | [`SOUND_EFFECT_ID`](knowledge/wram/SOUND_EFFECT_ID.md) | `u16` | audio, script | Sound effect ID parameter register staged for APU command byte 0x04 trigger ($7E:0E4F..$7E:0E50; $8C:831D). |
 | `$7E:0E51` | [`APU_TRANSFER_DEPTH`](knowledge/wram/APU_TRANSFER_DEPTH.md) | `u16` | audio | APU streaming transfer recursion / active depth counter ($7E:0E51..$7E:0E52; $8C:81D4). |

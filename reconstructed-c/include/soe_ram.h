@@ -811,20 +811,20 @@
 #define RING_MENU_SAVED_STACK_PTR_SIZE 2
 #define RING_MENU_SAVED_STACK_PTR RAM16(RING_MENU_SAVED_STACK_PTR_ADDR)
 
-/* menu_audio_pan_divisor ($7E0B21-$7E0B22, ram): src/games/evermore/localizations/data/wram-map.md */
-#define MENU_AUDIO_PAN_DIVISOR_ADDR 0x0B21u
-#define MENU_AUDIO_PAN_DIVISOR_SIZE 2
-#define MENU_AUDIO_PAN_DIVISOR RAM16(MENU_AUDIO_PAN_DIVISOR_ADDR)
+/* CONTROL_CONFIGURATION ($7E0B21-$7E0B22, ram): src/games/evermore/localizations/data/wram-map.md */
+#define CONTROL_CONFIGURATION_ADDR 0x0B21u
+#define CONTROL_CONFIGURATION_SIZE 2
+#define CONTROL_CONFIGURATION RAM16(CONTROL_CONFIGURATION_ADDR)
 
-/* menu_audio_sfx_pitch ($7E0B23-$7E0B24, ram): src/games/evermore/localizations/data/wram-map.md */
-#define MENU_AUDIO_SFX_PITCH_ADDR 0x0B23u
-#define MENU_AUDIO_SFX_PITCH_SIZE 2
-#define MENU_AUDIO_SFX_PITCH RAM16(MENU_AUDIO_SFX_PITCH_ADDR)
+/* RUN_BUTTON ($7E0B23-$7E0B24, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RUN_BUTTON_ADDR 0x0B23u
+#define RUN_BUTTON_SIZE 2
+#define RUN_BUTTON RAM16(RUN_BUTTON_ADDR)
 
-/* menu_audio_sfx_volume ($7E0B25-$7E0B26, ram): src/games/evermore/localizations/data/wram-map.md */
-#define MENU_AUDIO_SFX_VOLUME_ADDR 0x0B25u
-#define MENU_AUDIO_SFX_VOLUME_SIZE 2
-#define MENU_AUDIO_SFX_VOLUME RAM16(MENU_AUDIO_SFX_VOLUME_ADDR)
+/* ACTION_BUTTON ($7E0B25-$7E0B26, ram): src/games/evermore/localizations/data/wram-map.md */
+#define ACTION_BUTTON_ADDR 0x0B25u
+#define ACTION_BUTTON_SIZE 2
+#define ACTION_BUTTON RAM16(ACTION_BUTTON_ADDR)
 
 /* ALCHEMY_RING_BROWSE_MODE ($7E0B27-$7E0B28, ram): src/games/evermore/localizations/data/wram-map.md */
 #define ALCHEMY_RING_BROWSE_MODE_ADDR 0x0B27u
