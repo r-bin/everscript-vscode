@@ -1,18 +1,30 @@
-/*
- * Routine: $8C:E08E
- * Source: docs/disassembly/script-vm/write-word-to-expression-address.md
+/**
+ * Routine: $8C:E08E (write_word_to_expression_address)
+ * Bank: $8C (ROM Offset: $0CE08E)
+ * Calling convention: RTS
  */
 
-#include <stdbool.h>
-#include <stdint.h>
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   write_word_to_expression_address ($8CE08E) [RTS]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  7 instructions (15 bytes)
+ * - Compiled C ASM:   67 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   9.6x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      a294aef4e92b3727
+ * - Rating Status:    VALID (unmodified since rating)
+ */
+#include "soe.h"
 
-extern uint16_t script_eval_expression(void); /* $8C:EA43 */
-extern void script_write_db_word(uint16_t address, uint16_t value);
+SOE_BIND(write_word_to_expression_address, 0x8CE08E, RTS);
 
-bool write_word_to_expression_address(void) {
-    uint16_t destination = script_eval_expression();
-    uint16_t value = script_eval_expression();
-
-    script_write_db_word(destination, value);
-    return true;
+void write_word_to_expression_address_bind(soe_regs r) {
+    soe_call_rtl(0x8CEA43u, r);
+    uint16_t val = r->a;
+    soe_call_rtl(0x8CEA43u, r);
+    r->x = val;
+    soe_nz16(r, val);
+    ABSI16(r, 0x0000u, r->x) = r->a;
+    soe_carry(r, true);
 }

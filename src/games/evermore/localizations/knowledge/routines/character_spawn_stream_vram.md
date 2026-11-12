@@ -8,7 +8,7 @@ name: character_spawn_stream_vram
 title: Set character spawn position and stream default idle graphics to VRAM
 confidence: confirmed
 tags: [entities, spawn, graphics, vram]
-evidence: ["disasm: $8F:B458 sets entity position via $8F:C2E4, reads spawn sprite index from animation table offset +$32, and streams 4bpp sprite tiles into VRAM via $90:80CE", "docs/disassembly/script-vm/opcode-camera-room.md"]
+evidence: ["disasm: $8F:B458 sets entity position via $8F:C2E4, reads spawn sprite index from animation table offset +$32, and streams 4bpp sprite tiles into VRAM via $90:80CE", "docs/disassembly/script-vm/opcode-camera-room.md", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.40): 12/12 states (12/12 oracle) match ROM, mutation caught"]
 see: [routines/spawn_characters_and_position_camera.md, routines/entity_set_position_with_z.md, docs/disassembly/script-vm/opcode-camera-room.md]
 ---
 Helper routine called by `$8F:B434` for player and companion actors during room entry:

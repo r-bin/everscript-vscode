@@ -239,12 +239,30 @@ function diff(x: { regs: Regs; wram: Uint8Array; io?: string[] }, y: { regs: Reg
 /** Copies of `image`, each with one operand bit of one of the routine's first instructions flipped. */
 function mutations(image: Uint8Array, b: Binding, cdl: Uint8Array | null, max = 8): { image: Uint8Array; what: string }[] {
     const out: { image: Uint8Array; what: string }[] = [];
-    for (const l of walk(image, b.addr, cdl)) {
+    const body = walk(image, b.addr, cdl);
+    for (const l of body) {
         if (out.length >= max) break;
         if (l.bytes.length < 2 || /^(B..|BRL|REP|SEP|JSL|JSR|JML|JMP|PEA)/.test(l.text)) continue;
         const m = new Uint8Array(image);
         m[(l.pc & 0x3FFFFF) + 1] ^= 0x01;
         out.push({ image: m, what: `${hex(l.pc)} ${l.text}, operand bit 0 flipped` });
+    }
+    if (!out.length) {
+        for (const l of body) {
+            if (out.length >= max) break;
+            if (l.bytes.length === 1 && /^(SEC|CLC|TAX|TXA|TAY|TYA|TYX|TXY|INX|DEX|INY|DEY|INC|DEC|ASL|LSR|TDC|XBA)$/.test(l.text.split(" ")[0])) {
+                const m = new Uint8Array(image);
+                m[l.pc & 0x3FFFFF] = 0xEA; // NOP
+                out.push({ image: m, what: `${hex(l.pc)} ${l.text}, replaced with NOP` });
+            } else if (/^PEA/.test(l.text) && l.bytes.length >= 3) {
+                const m1 = new Uint8Array(image);
+                m1[(l.pc & 0x3FFFFF) + 1] ^= 0x01;
+                out.push({ image: m1, what: `${hex(l.pc)} ${l.text}, low operand bit 0 flipped` });
+                const m2 = new Uint8Array(image);
+                m2[(l.pc & 0x3FFFFF) + 2] ^= 0x01;
+                out.push({ image: m2, what: `${hex(l.pc)} ${l.text}, high operand bit 0 flipped` });
+            }
+        }
     }
     return out;
 }

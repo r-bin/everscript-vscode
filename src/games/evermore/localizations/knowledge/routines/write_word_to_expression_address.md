@@ -8,7 +8,7 @@ name: write_word_to_expression_address
 title: Write a word to an expression-selected data-bank address
 confidence: confirmed
 tags: [script-vm, memory-write]
-evidence: ["vanilla disassembly: evaluates a destination, saves it with PHA, evaluates a value, restores the destination with PLX, executes STA $0000,X, then SEC; RTS"]
+evidence: ["vanilla disassembly: evaluates a destination, saves it with PHA, evaluates a value, restores the destination with PLX, executes STA $0000,X, then SEC; RTS", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.40): 39/39 states (39/39 oracle) and 269/269 fuzzed match ROM, mutation caught"]
 see: [docs/disassembly/script-vm/write-word-to-expression-address.md]
 ---
 Evaluates a destination expression followed by a value expression, stores the value as a word at the destination indexed in the current data bank, and returns with carry set. Its caller, opcode association, data-bank value, and destination range are not established by this routine alone.---

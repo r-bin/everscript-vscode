@@ -8,7 +8,7 @@ name: script_op_5c_set_object_state
 title: Script opcode 0x5c — set object state
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E E, continues in the same turn (docs/scripts/opcodes.md)", "trace: the game ran 62 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
+evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E E, continues in the same turn (docs/scripts/opcodes.md)", "trace: the game ran 62 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.40): 29/29 states (29/29 oracle) and 146/146 fuzzed match ROM, mutation caught"]
 see: [docs/scripts/opcodes.md]
 ---
 Handler of script opcode [0x5C](soe://rom/assets/scripts/opcodes/5c.md). Evaluates the object index, then requested state, passes both to `$90:A36D` (index in X, state in A) for state clamping/animation, then returns carry set. Host-side model: `docs/disassembly/script-vm/opcode-5c-set-object-state.md`.
