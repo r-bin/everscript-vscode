@@ -169,6 +169,8 @@ image's 4th MB (which differs from MesenCE's) was not exercised.
 | C2 | shared state for the SA-1: the SA-1 can't see WRAM, so anything it computes must sit in I-RAM (2 KB) or BW-RAM | per-variable, from the WRAM map |
 | C3 | first offload: release the SA-1 (`$2200`), give it a routine with no WRAM inputs (`functions.json` blockers), compare cycles | measured time saved in a busy scene |
 
+What to use the SA-1 for once it runs, ranked by effort and benefit: [uses.md](uses.md).
+
 C3 is where speed comes from, and also where cycle-identity ends on purpose: from then on, comparisons go by game
 event (reference-emulators skill, rule 4), not frame by frame.
 
