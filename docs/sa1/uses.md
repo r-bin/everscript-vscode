@@ -8,6 +8,9 @@ Labels as in [port.md](port.md): *(repo)* = read in our docs/code/ROM export, *(
 knowledge, *(estimate)* = our guess, *(to verify)* = check before relying on it. Every effort and benefit score is
 an *(estimate)*.
 
+How public SA-1 hacks of other games use the chip, and what that changes in this list (C2 as a whole-WRAM remap,
+the SA-1 as master CPU, a speed cap): [other-hacks.md](other-hacks.md) §4.
+
 ---
 
 ## 1. What the SA-1 gives, and the catch
