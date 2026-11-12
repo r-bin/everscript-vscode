@@ -6,12 +6,16 @@
 //
 // An operand is named only where its address is known: direct page with the recorded D (D = 0 when
 // none was recorded, as the engine runs), absolute below $2000 (low WRAM in every bank) or with a
-// recorded DB, long always. A covering record names it as RECORD+$off only when smaller than a page.
+// recorded DB, long always. A byte inside a typed record is named by its field path (types.json:
+// `ENTITY_DYNAMIC_POOL[2].pos_y`, `DIRECT_PAGE_BLOCK.sprite_descriptor_ptr+2`); an untyped record names
+// it as RECORD+$off only when smaller than a page. Hardware registers go by their names (`INIDISP`).
 
 import { OPCODES } from '../../../platform/snes/opcodes-65816';
 import { hiromFileOffset } from '../../../platform/snes/hirom';
 import type { CdlView } from '../../../platform/cdl/library-read';
+import { ioRegisterName } from '../../../platform/snes/io-registers';
 import { getTable } from '../localizations/tables';
+import { getWramField } from '../localizations/wram-map';
 import { analyse, targetName } from './code-catalog';
 import type { Catalog, CodeFunction } from './code-catalog';
 import { ramSymbols } from './ram-symbols';
@@ -30,6 +34,7 @@ const PAGE = 0x100;
 const SPACE = { WRAM: 0, ROM: 1, BUS: 2, IO: 3 };
 const XR = { READ: 1, WRITE: 2, POINTER: 0x10 };
 const CDL_CODE = 0x01, CDL_IDX8 = 0x10, CDL_ACC8 = 0x20;
+const EXT_HEAD = 0x04;   // rom.ext: an instruction starts here
 const DP_MODES = new Set(['dp', 'dpx', 'dpy', 'idp', 'idpx', 'idpy', 'ildp', 'ildpy', 'pei']);
 const ABS_DATA = new Set(['abs', 'absx', 'absy']);
 const NO_DATA = /^(JSR|JMP|JSL|JML|PEA|PER|MVN|MVP)$/;
@@ -56,6 +61,8 @@ function wramName(off: number): { name: string; title?: string } | null {
 }
 
 function findWramName(off: number): { name: string; title?: string } | null {
+    const field = getWramField(off);
+    if (field) return { name: field.entry.name + field.path + (field.within ? '+' + field.within : ''), title: field.type + ' — ' + field.entry.summary };
     const exact = ramSymbols().find((s) => s.addr === off && s.name);
     if (exact) return { name: exact.name!, title: exact.summary };
     const near = ramSymbols().find((s) => s.name && (s.size || 2) <= 4 && off > s.addr && off < s.addr + (s.size || 2));
@@ -84,12 +91,18 @@ function operandAddress(mode: string, mnemonic: string, v: number, d: number, db
     if (DP_MODES.has(mode)) return WRAM + ((d + v) & 0xFFFF);
     if (mode === 'long' || mode === 'longx') return v;
     if (!ABS_DATA.has(mode) || ((mode === 'absx' || mode === 'absy') && v < PAGE)) return null;   // a record field off X/Y
-    if ((v >= 0x2100 && v < 0x2200) || (v >= 0x4000 && v < 0x4400)) return null;                    // I/O
+    if ((v >= 0x2100 && v < 0x2200) || (v >= 0x4000 && v < 0x4400)) return v;                       // I/O (bank-less)
     if (v < 0x2000) return WRAM + v;
     return db === null ? null : (db << 16) | v;
 }
 
 function nameAt(cat: Catalog, bus: number, unmoved: boolean): Named | null {
+    const bank = bus >>> 16, lo = bus & 0xFFFF, system = bank < 0x40 || (bank >= 0x80 && bank < 0xC0);
+    if (system && lo < 0x2000) bus = WRAM + lo;                                          // low WRAM, mirrored in every system bank
+    else if (system && lo < 0x8000) {
+        const io = ioRegisterName(lo);
+        return io ? { addr: h(lo, 4), name: io, title: 'hardware register' } : null;
+    }
     if (bus >= WRAM && bus < 0x800000) {
         const n = wramName(bus - WRAM);
         return n ? { addr: h(bus, 6), ...n } : null;
@@ -98,28 +111,42 @@ function nameAt(cat: Catalog, bus: number, unmoved: boolean): Named | null {
     return n ? { addr: h(bus, 6), name: n } : null;
 }
 
-/** What one instruction touched while recorded, grouped by name (its own pointer's bytes and interrupt vector fetches left out). */
+/**
+ * What one instruction touched while recorded, grouped (its own pointer's bytes and interrupt vector fetches left out): the
+ * bytes of one field are one item, the same field in several slots of a pool one group (`ENTITY_DYNAMIC_POOL[*].pos_y ×30`).
+ */
 function touched(cat: Catalog, xrefs: [number, number][], own: number | null, unmoved: boolean): Touch[] {
-    const groups = new Map<string, Touch & { lo: number; hi: number }>();
+    const groups = new Map<string, Touch & { lo: number; hi: number; items: Set<string> }>();
     for (const [sa, flags] of xrefs) {
         const space = Math.floor(sa / 0x1000000), a = sa % 0x1000000;
-        let bus: number, name: string;
-        if (space === SPACE.WRAM) { bus = WRAM + a; if (own !== null && bus >= own && bus <= own + 2) continue; name = wramGroup(a); }
-        else if (space === SPACE.ROM) { if (a >= VECTORS && a < VECTORS + 0x20) continue; bus = 0xC00000 | a; name = romName(cat, bus, unmoved) || 'ROM'; }
+        let bus: number, item: string;
+        if (space === SPACE.WRAM) { bus = WRAM + a; if (own !== null && bus >= own && bus <= own + 2) continue; item = wramGroup(a).replace(/\+\d+$/, ''); }
+        else if (space === SPACE.ROM) { if (a >= VECTORS && a < VECTORS + 0x20) continue; bus = 0xC00000 | a; item = romName(cat, bus, unmoved) || 'ROM'; }
         else continue;   // I/O and other buses: the hardware registers section lists them
+        const key = item.replace(/\[\d+\]/g, '[*]');
         const access = (flags & XR.WRITE ? 'write' : '') || (flags & XR.READ ? 'read' : '');
-        const g = groups.get(name);
-        if (g) { g.count++; g.hi = Math.max(g.hi, bus); if (bus < g.lo) { g.lo = bus; g.addr = h(bus, 6); } if (access && !g.access.includes(access)) g.access += (g.access ? '/' : '') + access; }
-        else groups.set(name, { name, addr: h(bus, 6), lo: bus, hi: bus, count: 1, access });
+        let g = groups.get(key);
+        if (!g) { g = { name: item, addr: h(bus, 6), lo: bus, hi: bus, count: 0, access: '', items: new Set() }; groups.set(key, g); }
+        g.hi = Math.max(g.hi, bus);
+        if (bus < g.lo) { g.lo = bus; g.addr = h(bus, 6); }
+        if (access && !g.access.includes(access)) g.access += (g.access ? '/' : '') + access;
+        g.items.add(item === 'ROM' ? String(bus) : item);
+        g.count = g.items.size;
+        if (g.count > 1) g.name = key;
     }
-    return [...groups.values()].sort((x, y) => y.count - x.count).map(({ lo, hi, ...t }) => ({
+    return [...groups.values()].sort((x, y) => y.count - x.count).map(({ lo, hi, items: _items, ...t }) => ({
         ...t, ...(t.name === 'ROM' ? { name: 'ROM ' + h(lo, 6) + (hi > lo ? '..' + h(hi, 6) : '') } : {}), ...(hi > lo ? { addr: t.addr + '..' + h(hi, 6) } : {}),
     }));
 }
 
 /** lines.json for `fn` (null: not in this ROM). */
 function routineLinesJson(cat: Catalog, fn: CodeFunction, view: CdlView | null) {
-    const a = analyse(cat, fn);
+    // With a library the listing is decoded with the widths each instruction ran with, not the 16-bit guess.
+    const a = analyse(cat, fn, view ? (bus) => {
+        const off = hiromFileOffset(bus);
+        if (!(view.lib.ext[off] & EXT_HEAD)) return null;
+        return { m8: !!(view.lib.cdl[off] & CDL_ACC8), x8: !!(view.lib.cdl[off] & CDL_IDX8) };
+    } : undefined);
     if (!a) return null;
     const unmoved = fn.at.addr === fn.vanilla;
     let ran = 0;

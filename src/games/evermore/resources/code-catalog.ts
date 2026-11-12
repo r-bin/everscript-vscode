@@ -14,6 +14,7 @@ import { getTable } from '../localizations/tables';
 import { identifyEvermoreVariant } from '../variant-resolver';
 import { OPCODES } from '../../../platform/snes/opcodes-65816';
 import { routineLines } from './asm-view';
+import { busU16 } from '../../../platform/snes/hirom';
 import type { AsmLine } from './asm-view';
 import { cFunctionFor } from './code-c-index';
 import type { CFunction } from './code-c-index';
@@ -35,6 +36,7 @@ const READS = /^(LDA|LDX|LDY|CMP|CPX|CPY|BIT|ADC|SBC|AND|ORA|EOR|PEI)$/;
 const WRITES = /^(STA|STX|STY|STZ)$/;
 const MODIFIES = /^(INC|DEC|ASL|LSR|ROL|ROR|TSB|TRB)$/;
 const DATA_MODES = new Set(['abs', 'absx', 'absy', 'long', 'longx']);
+const RESET_VECTOR = 0x00FFFC;
 
 const isIo = (a: number): boolean => (a >= 0x2100 && a < 0x2200) || (a >= 0x4000 && a < 0x4400);
 const operandOf = (l: AsmLine): number => l.bytes.slice(1).reduceRight((a, b) => a * 256 + b, 0);
@@ -112,14 +114,24 @@ function targetName(cat: Catalog, addr: number, unmoved: boolean): string | null
     return t ? t.name : null;
 }
 
-/** The routine read from this ROM (see Analysis). Null when it is not in this ROM. */
-function analyse(cat: Catalog, fn: CodeFunction): Analysis | null {
+/** The reset handler starts in emulation mode, so with 8-bit A and X/Y (the reset vector is at $00:FFFC). */
+function startsInEmulation(rom: Uint8Array, bus: number): boolean {
+    const bank = bus >>> 16;
+    return (bank === 0x00 || bank === 0x80 || bank === 0xC0) && (bus & 0xFFFF) === busU16(rom, RESET_VECTOR);
+}
+
+/**
+ * The routine read from this ROM (see Analysis). Null when it is not in this ROM. `widths`: the A/X widths each
+ * instruction ran with (a CDL library); a read with them is not cached.
+ */
+function analyse(cat: Catalog, fn: CodeFunction, widths?: (bus: number) => { m8: boolean; x8: boolean } | null): Analysis | null {
     if (fn.at.addr === null) return null;
-    const done = cat.analyses.get(fn.name);
+    const done = widths ? null : cat.analyses.get(fn.name);
     if (done) return done;
     const start = fn.at.addr, delta = start - fn.vanilla, unmoved = delta === 0;
     const end = fn.entry.end > fn.entry.addr ? fn.entry.end + delta : null;
-    const lines = routineLines(cat.rom, start, { end, starts: new Set(cat.byAddr.keys()) });
+    const emulation = startsInEmulation(cat.rom, start);
+    const lines = routineLines(cat.rom, start, { end, starts: new Set(cat.byAddr.keys()), m8: emulation, x8: emulation, widths });
     const calls: number[] = [], io: number[] = [], fields: number[] = [], wram = new Map<number, WramUse>();
     let commented = 0;
     for (const l of lines) {
@@ -145,7 +157,7 @@ function analyse(cat: Catalog, fn: CodeFunction): Analysis | null {
         wram.set(addr, use);
     }
     const made = { lines, calls: [...new Set(calls)], wram: [...wram.values()].sort((a, b) => a.addr - b.addr), fields: fields.sort((a, b) => a - b), io: io.sort((a, b) => a - b), commented };
-    cat.analyses.set(fn.name, made);
+    if (!widths) cat.analyses.set(fn.name, made);
     return made;
 }
 

@@ -99,11 +99,22 @@ async function romChecks(read: (uri: string) => Promise<string>): Promise<void> 
         assert.ok(wram && !wram.named.includes('$') && wram.operand.addr.startsWith('$7E'), 'a store names its WRAM');
         assert.ok(j.lines.every((l: Msg) => !l.cdl));
     });
+    await test('lines.json: hardware registers by name, reset decoded 8-bit (emulation mode), struct fields by path', async () => {
+        const reset = JSON.parse(await read('soe://rom/code/reset_handler/lines.json')).lines;
+        assert.deepStrictEqual(reset.slice(0, 2).map((l: Msg) => l.named), ['lda #$8F', 'sta INIDISP']);
+        const { getWramField, getWramFieldDetails } = require('../../dist/games/evermore/localizations/wram-map');
+        const POOL = 0x3DE5, SLOT = 0x8E, BOY = 0x4E89;
+        const f = (a: number) => { const x = getWramField(a); return x && x.entry.name + x.path + (x.within ? '+' + x.within : ''); };
+        assert.strictEqual(f(POOL + 2 * SLOT + 0x1C), 'ENTITY_DYNAMIC_POOL[2].pos_y');
+        assert.strictEqual(f(BOY + 0x2A), 'ENTITY_PLAYER_BOY.hp', 'fields of the struct it extends');
+        assert.strictEqual(f(BOY + 0x2B), 'ENTITY_PLAYER_BOY.hp+1');
+        assert.strictEqual(getWramFieldDetails(BOY + 0x0A).fieldName, undefined, 'a byte no field covers is not the field before it');
+    });
     await test('lines.json with a CDL library: hits, widths, DB, what a line touched (vector fetches left out)', async () => {
         const first = JSON.parse(await read('soe://rom/code/main_loop_entry/lines.json')).lines[0];
         const pc = parseInt(first.addr.slice(1), 16), off = pc & 0x3FFFFF;
-        const lib = { cdl: new Uint8Array(0x400000), romHits: new Float64Array(0x400000), hasHits: true };
-        lib.cdl[off] = 0x21; lib.romHits[off] = 12;
+        const lib = { cdl: new Uint8Array(0x400000), ext: new Uint8Array(0x400000), romHits: new Float64Array(0x400000), hasHits: true };
+        lib.cdl[off] = 0x21; lib.ext[off] = 0x04; lib.romHits[off] = 12;
         const POOL = 0x3DE5, SLOT = 0x8E, HP = 0x4EB3, ROM = 0x1000000;
         const facts = { xrefs: [[POOL + 0x1C, 1], [POOL + SLOT + 0x1C, 1], [HP, 2], [ROM + 0xFFEA, 9]], counts: new Map([[0, 140], [1, 1]]), db: [0x7E], d: [0] };
         const view = { lib, at: (a: number) => (a === pc ? facts : null) };
@@ -111,7 +122,7 @@ async function romChecks(read: (uri: string) => Promise<string>): Promise<void> 
         const l = j.lines[0];
         assert.deepStrictEqual(j.cdl, { ran: 1, of: j.lines.length });
         assert.ok(l.cdl.hits === 12 && l.cdl.m8 && !l.cdl.x8 && l.cdl.db[0] === '$7E');
-        assert.deepStrictEqual(l.cdl.touched.map((t: Msg) => [t.name, t.count, t.access]), [['ENTITY_DYNAMIC_POOL', 2, 'read'], ['Current HP', 1, 'write']]);
+        assert.deepStrictEqual(l.cdl.touched.map((t: Msg) => [t.name, t.count, t.access]), [['ENTITY_DYNAMIC_POOL[*].pos_y', 2, 'read'], ['ENTITY_PLAYER_BOY.hp', 1, 'write']]);
         assert.strictEqual(l.cdl.more, 137);
         assert.strictEqual(j.lines[1].cdl.hits, 0);
     });
