@@ -7,7 +7,7 @@ category: ⚔️
 name: calc_damage_with_defense_and_variance
 title: Combat damage calculation with defense mitigation and variance ($8F:C06D)
 confidence: confirmed
-evidence: ["disasm: loads target entity monster type +$60,Y; looks up defense stat from $8E:001B,X; divides by 4 (LSR 2); subtracts defense from incoming attack might; clamps minimum damage to 1; computes random variance via $80:AD62; returns final mitigated damage in A; caller: attack_proc_projectile_consumable ($8F:B6E0)"]
+evidence: ["disasm: loads target entity monster type +$60,Y; looks up defense stat from $8E:001B,X; divides by 4 (LSR 2); subtracts defense from incoming attack might; clamps minimum damage to 1; computes random variance via $80:AD62; returns final mitigated damage in A; caller: attack_proc_projectile_consumable ($8F:B6E0)", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.42): 3/3 states (3/3 oracle) match ROM, mutation caught"]
 see: [routines/random_below.md, routines/attack_proc_projectile_consumable.md]
 tags: [combat, damage, defense, math]
 ---

@@ -7,7 +7,7 @@ category: 🎮
 name: projectile_motion_and_trail_render_tick
 title: Projectile lifetime countdown and particle trail render tick ($90:DFA9)
 confidence: confirmed
-evidence: ["disasm: decrements lifetime timer +$24,X; if expired branches to cleanup FUN_90de7b; else converts position coords (+14,+16) and trail anchor coords (+20,+22) to screen coords via camera $59/$5B; renders via $91:CB9A"]
+evidence: ["disasm: decrements lifetime timer +$24,X; if expired branches to cleanup FUN_90de7b; else converts position coords (+14,+16) and trail anchor coords (+20,+22) to screen coords via camera $59/$5B; renders via $91:CB9A", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.42): 46/46 states (45/45 oracle) and 698/698 fuzzed match ROM, mutation caught"]
 see: ["routines/projectile_pool_update.md","routines/render_alchemy_particle_spray_to_oam.md"]
 tags: ["projectile","vfx","trail","particle","timer"]
 ---

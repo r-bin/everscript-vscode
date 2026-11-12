@@ -7,7 +7,7 @@ category: 🎮
 name: animation_script_random_frame_duration
 title: Calculate randomized animation frame duration using hardware multiplier ($90:837C)
 confidence: confirmed
-evidence: ["disasm: sets hardware multiplier $4202 to script operand; queries RNG via $80:859B; writes to multiplier $4203; adds product $4217 to frame duration +$05,Y; advances script PC <$5D"]
+evidence: ["disasm: sets hardware multiplier $4202 to script operand; queries RNG via $80:859B; writes to multiplier $4203; adds product $4217 to frame duration +$05,Y; advances script PC <$5D", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.42): 2/2 states (2/2 oracle) match ROM, mutation caught"]
 see: ["routines/random_number_generator.md"]
 tags: ["animation","timer","multiplier","rng","script"]
 ---
