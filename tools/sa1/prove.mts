@@ -15,12 +15,12 @@ import { join, basename } from 'node:path';
 import { createHash } from 'node:crypto';
 import { cpus, homedir } from 'node:os';
 import { createRequire } from 'node:module';
-import { convert, usedRanges, REPO, LINEAR, type Upper } from './convert.mts';
+import { convert, usedRanges, REPO, type Upper } from './convert.mts';
+import { MB, LINEAR, busToFile, loRomFile } from './layout.mts';
 import { mesenPath, runMesen } from './mesen.mts';
 
 const require = createRequire(import.meta.url);
 const { parseMovie } = require('../../dist/platform/tas/movie');
-const MB = 0x100000;
 const IMAGES: Record<string, { fill: number; upper: Upper }> = { release: { fill: 0xFF, upper: 'hardware' }, mesen: { fill: 0xFF, upper: 'mesen' }, trap: { fill: 0xDB, upper: 'fill' } };
 // Bus probes: header and reset vector (bank $00 LoROM view), the same code through $C0 and $80, the read past 3 MB,
 // BW-RAM at $40:0000 (HiROM: a slow ROM mirror), I-RAM at $00:3000 (HiROM: open bus).
@@ -58,22 +58,14 @@ function staticChecks(rom: Uint8Array, img: Uint8Array, upper: (off: number) => 
         if (off !== 0xFFDC && off !== 0xFFDD && off !== 0xFFDE && off !== 0xFFDF && img[LINEAR + off] !== hirom(off)) { fails.push(`linear $${(0xC0 + (off >> 16)).toString(16)}:${(off & 0xFFFF).toString(16)} differs`); break; }
     }
     for (let n = 0; n < 0x40; n++) for (let o = 0; o < 0x8000; o++) {
-        const at = 2 * MB + n * 0x8000 + o;
+        const at = loRomFile((0x80 + n) << 16 | 0x8000) + o;
         if (!patched.some(([a, b]) => at >= a && at < b) && img[at] !== hirom(n * 0x10000 + 0x8000 + o)) { fails.push(`LoROM $${(0x80 + n).toString(16)}:${(0x8000 + o).toString(16)} differs`); n = 0x40; break; }
     }
     for (let i = 0; i < 2 * MB - 64; i++) if (img[i] !== fill && !used.some(([a, b]) => i >= a && i < b)) { fails.push(`block 0-1 byte ${hex(i)} is not fill`); break; }
     return fails;
 }
 
-/** File offset the S-CPU reads at `bus` after the setup (MesenCE reports bus addresses to ROM callbacks). */
-function busToFile(bus: number): number {
-    const bank = bus >> 16, a = bus & 0xFFFF;
-    if (bank >= 0xC0) return LINEAR + ((bank - 0xC0) << 16) + a;
-    const block = bank < 0x20 ? 0 : bank < 0x40 ? 1 : bank < 0xA0 ? 2 : 3;
-    return block * MB + (bank & 0x1F) * 0x8000 + (a - 0x8000);
-}
-
-const firstDifference =(a: string, b: string) => {
+const firstDifference = (a: string, b: string) => {
     const la = a.split('\n').filter(l => l && !l.startsWith('probe')), lb = b.split('\n').filter(l => l && !l.startsWith('probe'));
     for (let i = 0; i < Math.max(la.length, lb.length); i++) if (la[i] !== lb[i]) return { line: i + 1, a: la[i] ?? '(end)', b: lb[i] ?? '(end)' };
     return null;
@@ -100,7 +92,7 @@ for (const [name, o] of Object.entries(IMAGES)) {
     const { image, report } = convert(source, o);
     const file = join(out, `soe-sa1${name === 'release' ? '' : '-' + name}.sfc`);
     writeFileSync(file, image);
-    const used = usedRanges(rom, report);
+    const used = usedRanges(report);
     const f = staticChecks(rom, image, off => image[LINEAR + off], used, o.fill, report.patched);
     builds[name] = { file, image, used };
     log(`- ${name} (4th MB: ${o.upper}, fill $${o.fill.toString(16).toUpperCase()}): ${f.length ? 'FAIL ' + f.join('; ') : 'ok'}; MesenCE header scores ${JSON.stringify(report.scores)}`);

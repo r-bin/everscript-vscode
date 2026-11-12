@@ -1,5 +1,6 @@
-// One headless MesenCE run (`Mesen --testrunner rom script.lua`) for the SA-1 proof: a ROM, pad input per frame, and a
-// trace two ROMs can be compared by. MesenCE is the reference emulator (reference-emulators skill).
+// Headless MesenCE runs (`Mesen --testrunner rom script.lua`) for the SA-1 tools: runLua runs any script, runMesen
+// the proof's: a ROM, pad input per frame, and a trace two ROMs can be compared by. MesenCE is the reference
+// emulator (reference-emulators skill).
 // Trace lines:
 //   "<f> <crc>"            every frame: WRAM $0000-$01FF (direct page, engine counters, stack)
 //   "<f> state ..."        every 60 frames and at the end: all of WRAM, VRAM, CGRAM, OAM, SRAM/BW-RAM, room ($7E0ADB),
@@ -78,28 +79,35 @@ end, emu.eventType.endFrame)
 `;
 }
 
-/** Runs one ROM; resolves to the trace text (also written to <dir>/<tag>.trace). */
-export function runMesen(exe: string, r: MesenRun): Promise<string> {
+/**
+ * Runs `script` (Lua) on `rom` in MesenCE and resolves to its stdout. The ROM runs under a name of its own in a
+ * fresh folder inside `dir`, removed afterwards with the battery save Mesen wrote for it.
+ */
+export function runLua(exe: string, rom: string, script: string, dir: string, tag: string): Promise<{ out: string; err: string; code: number | null }> {
     // Absolute paths: Mesen runs in the work folder, where a relative ROM or script path would not resolve.
-    const work = mkdtempSync(join(resolve(r.dir), `${r.tag}-`));
-    const link = join(work, basename(work) + extname(r.rom));
-    symlinkSync(resolve(r.rom), link);
-    const script = join(work, 'run.lua');
-    writeFileSync(script, lua(r));
-    const srm = basename(work) + '.srm';
-    return new Promise((done, fail) => {
-        const p = spawn(exe, ['--testrunner', link, script, '--snes.ramPowerOnState=AllZeros', '--timeout=7200'], { cwd: work, stdio: ['ignore', 'pipe', 'pipe'] });
+    const work = mkdtempSync(join(resolve(dir), `${tag}-`));
+    const link = join(work, basename(work) + extname(rom));
+    symlinkSync(resolve(rom), link);
+    writeFileSync(join(work, 'run.lua'), script);
+    return new Promise(done => {
+        const p = spawn(exe, ['--testrunner', link, join(work, 'run.lua'), '--snes.ramPowerOnState=AllZeros', '--timeout=7200'], { cwd: work, stdio: ['ignore', 'pipe', 'pipe'] });
         let out = '', err = '';
         p.stdout.on('data', d => { out += d; });
         p.stderr.on('data', d => { err += d; });
         p.on('exit', code => {
-            for (const h of MESEN_HOMES) rmSync(join(h, 'Saves', srm), { force: true });
+            for (const h of MESEN_HOMES) rmSync(join(h, 'Saves', basename(work) + '.srm'), { force: true });
             rmSync(work, { recursive: true, force: true });
-            // MesenCE may exit 255 after emu.stop(0) (reference-emulators skill): judge by the trace, not the code.
-            const last = out.trimEnd().split('\n').filter(l => !l.startsWith('probe')).pop() ?? '';
-            if (!last.startsWith(`${r.frames - 1} `)) return fail(new Error(`Mesen stopped early on ${r.tag} (exit ${code}): ${last || (out + err).slice(0, 300)}`));
-            writeFileSync(join(r.dir, r.tag + '.trace'), out);
-            done(out);
+            done({ out, err, code });
         });
     });
+}
+
+/** Runs one ROM with the proof's trace; resolves to the trace text (also written to <dir>/<tag>.trace). */
+export async function runMesen(exe: string, r: MesenRun): Promise<string> {
+    const { out, err, code } = await runLua(exe, r.rom, lua(r), r.dir, r.tag);
+    // MesenCE may exit 255 after emu.stop(0) (reference-emulators skill): judge by the trace, not the code.
+    const last = out.trimEnd().split('\n').filter(l => !l.startsWith('probe')).pop() ?? '';
+    if (!last.startsWith(`${r.frames - 1} `)) throw new Error(`Mesen stopped early on ${r.tag} (exit ${code}): ${last || (out + err).slice(0, 300)}`);
+    writeFileSync(join(r.dir, r.tag + '.trace'), out);
+    return out;
 }

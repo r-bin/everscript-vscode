@@ -88,9 +88,14 @@ took three tries, all in MesenCE:
    instruction forms involved (fetch 8 or 6 per byte, I/O writes and internal cycles 6, stack accesses 8;
    MesenCE `GenerateMasterClockTable`). Writes to `$2200–$22FF` cost the same as `$21xx`. DRAM refresh is the
    one thing the table can't predict: 40 clocks once a scanline, starting at the next cycle boundary. The
-   original's stretch takes 2,346 clocks, 2,266 plus two stalls; the block's stalls came out 8 clocks shorter,
-   so the padding carries a measured 8-clock correction (`REFRESH_FIT`). A change to the block means measuring
-   again: the proof fails at frame 4 when it is off.
+   original's stretch takes 2,346 clocks, 2,266 plus two stalls, and the block, padded to the same 2,266, gets the
+   same two. A change to the block can catch a stall differently; `REFRESH_FIT` in `tools/sa1/boot.mts` makes up
+   for that, and `npm run sa1:measure -- --fit` finds its value. The proof fails at frame 4 when it is off.
+
+   *Correction (v0.403.0):* v0.402.0 carried `REFRESH_FIT` = 8, read as "the block's stalls are 8 clocks
+   shorter". It was two errors in its own cost table instead (a `REP` after the FastROM switch counted as a slow
+   fetch, a `REP`/`SEP` pair counted as stack accesses). With the table fixed the value is 0 and the bytes are
+   the same.
 4. **The game's own reset.** Script opcode `$AB` resets the game with `JML $80:8034`, with FastROM already on.
    The first version of the block replaced `$80:803C`, which the warm path also runs: its padding was timed for
    slow fetches, and the three movies that reset at frame 6186 parted there. With the jump at `$80:802D`, only
@@ -167,4 +172,5 @@ image's 4th MB (which differs from MesenCE's) was not exercised.
 C3 is where speed comes from, and also where cycle-identity ends on purpose: from then on, comparisons go by game
 event (reference-emulators skill, rule 4), not frame by frame.
 
-Code: `tools/sa1/` (`npm run sa1`, `npm run sa1:prove`). Images and reports go to `out/`, never committed.
+Code: `tools/sa1/`, explained file by file with recipes for changes in its [README](../../tools/sa1/README.md)
+(`npm run sa1`, `npm run sa1:measure`, `npm run sa1:prove`). Images and reports go to `out/`, never committed.

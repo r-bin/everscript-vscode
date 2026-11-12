@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.402.0",
+  "version": "0.403.0",
   "publisher": "rbin",
   "main": "./bundle/extension.js",
   "engines": {
@@ -76,6 +76,7 @@
     "exhirom:prove": "npm run -s build:ts && node tools/exhirom/prove.js",
     "sa1": "npm run -s build:ts && node tools/sa1/convert.mts",
     "sa1:prove": "npm run -s build:ts && node tools/sa1/prove.mts",
+    "sa1:measure": "npm run -s build:ts && node tools/sa1/measure.mts",
     "table-hack": "npm run -s build:ts && node tools/table-hack/build.js",
     "table-hack:prove": "npm run -s build:ts && node tools/table-hack/prove.js",
     "c-to-rom:build": "npm run -s build:ts && node tools/c-to-rom/build.mts",
