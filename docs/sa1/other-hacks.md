@@ -129,6 +129,90 @@ tags compatible resources.
 - **Add to use 2**: the S-CPU's wait loop in WRAM.
 - **Add a speed-cap variant** to any section-B work (their "Origin" lesson).
 
+## 5. Moving all of Evermore to the SA-1
+
+Asked 2026-11-12: could Evermore go the SA-1 Root way, the SA-1 running the whole game? **Yes, technically; the
+code is better suited than it first looked. The downsides are mostly outside the ROM.**
+
+### 5.1 What the code says
+
+From `out/recomp/asar/functions.json` (CDL export of 2026-11-10, 987 functions), what keeps each function off the
+SA-1, counting only what the function does itself:
+
+| Blocker | Functions | What happens to it under "SA-1 as master" |
+|---|---|---|
+| WRAM | 931 (**805 with no other blocker**) | goes away with the whole-WRAM remap (§2.2) |
+| none at all | 53 | runs on the SA-1 as is |
+| multiply/divide (`$4202–$4216`) | 73 | rewritten for the SA-1's math unit (other registers, 16-bit operands) |
+| PPU (`$21xx`) | 40 | stays on the S-CPU, called as a job |
+| CPU I/O (`$42xx`: NMI/IRQ setup, timers, `$4212`) | 35 | stays on the S-CPU |
+| DMA (`$43xx`) | 28 | stays on the S-CPU |
+| WRAM port (`$2180`) | 10 | rewritten as plain BW-RAM access, or stays on the S-CPU |
+| APU (`$2140–$2143`) | 5 | stays on the S-CPU |
+| joypad | 1 | stays on the S-CPU (or the NMI copies pads to I-RAM) |
+
+Counted through callees, 366 functions reach the PPU and 224 the APU; those are the call chains that need a
+job boundary somewhere along the way. So about 100 functions belong to the S-CPU, ~75 need their math rewritten,
+and the rest (~800) need only the RAM to move. That is the same shape as Gradius III and Contra III.
+
+What Evermore has that they didn't:
+
+- **The script VM.** Bytecode and tables hold 24-bit pointers and WRAM operands ([../scripts/](../scripts/),
+  [layout-options.md](../exhirom/layout-options.md) §1). With the low 16 bits kept, the VM can translate `$7E/$7F`
+  operands to `$40/$41` when it reads them (the Gradius/Contra run-time strategy), so no bytecode is rewritten.
+- **Size.** The Asar export has about 17,700 long `$7E/$7F` operands (code and data; not all are addresses the
+  game uses as RAM pointers). Each one is a remap decision, and the "RAM here, ROM there" trap (§2.2) applies.
+- **HiROM.** The dual-view image (C1) covers the S-CPU. Whether the SA-1's own view of `$80–$BF` follows the same
+  CXB–FXB rule is *(to verify)* (it shares the registers, *hardware*).
+
+### 5.2 Downsides
+
+Ordered by how much they cost us, not by how hard they are to build.
+
+1. **The gain is unmeasured.** No busy scene is profiled ([uses.md](uses.md) use 1). If Evermore's slow scenes
+   are DMA/VBlank-bound, or rare, months buy little. Every public conversion started from known, heavy slowdown.
+2. **Our own tooling watches the S-CPU.** The script debugger hooks the interpreter, the CDL recorder, Memory
+   Radar and `soe://ram/` read the S-CPU and WRAM. With the game on the SA-1 and its RAM in BW-RAM, all of them
+   go blind until the bundled core and tools learn the SA-1. That is a core change, so it needs the owner's OK
+   (`emulator-subsystem` skill).
+3. **Every replay and frame-based proof stops applying.** The engine time-slices (c-to-rom §7a): a faster CPU
+   changes how much work lands in each frame, so RNG draws, AI and pacing differ. Sample playbacks, recomp replay
+   01, speedrun routes and RNG manipulation, and the Routes tab's frame model don't carry over. Checks go by game
+   event only (§2.5).
+4. **Community tools read `$7E` addresses.** Trackers, randomizers, Lua scripts and practice tools look at WRAM.
+   They break unless the S-CPU copies the state they read back to WRAM each frame (DMA through `$2180`, a few
+   hundred bytes) or they learn the `$7E→$40` offset.
+5. **Patches and the compiler.** Everscript's output, the table hack and existing patches (the 2-player edition,
+   our own hacks) use vanilla WRAM addresses. Each needs the remap, like SMW's ecosystem (§2.7).
+6. **The recomp and C-to-ROM stay on vanilla.** `snesrecomp` models only the S-CPU, so the SA-1 build is a
+   separate branch of the game, not something the recomp can check.
+7. **Fewer places it runs.** It needs SA-1 emulation (Snes9x, bsnes/ares, MesenCE; MiSTer per a forum) or an
+   FXPak-class cart. Cheaper flashcarts without SA-1 can't run it. Only MesenCE is checked today.
+8. **A new kind of bug.** Two CPUs really run at once. The S-CPU's NMI and its jobs read state the SA-1 is writing,
+   so a structure can be read half-updated. Super R-Type and Race Drivin' needed routines changed to avoid exactly
+   that (§1).
+9. **Less speed than "4×".** With all of RAM in BW-RAM, the SA-1 accesses it at half its clock *(hardware, to
+   verify)*; only the direct page in I-RAM runs at full speed. Expect a gain closer to 2–3× on RAM-heavy code
+   *(estimate)*.
+10. **It feels different.** No slowdown makes fights faster and maybe harder; a speed cap ("Origin" variant) is
+    needed for players who want the original feel.
+
+Upsides: slowdown gone where it is CPU-bound, faster room loads, an S-CPU with most of its time free, and uses
+11–25 from [uses.md](uses.md) come along with it instead of 14 separate projects.
+
+### 5.3 How we would do it, if we do
+
+1. Profile busy scenes (use 1). Stop here if they aren't CPU-bound.
+2. Whole-WRAM remap with the **S-CPU still running everything** (direct page → I-RAM, `$0000–$1FFF` → `$6000`,
+   `$7E/$7F` → `$40/$41`, VM operands translated at run time), checked by game event. This finds remap bugs before
+   two CPUs make them hard to reproduce.
+3. A WRAM mirror for trackers and our own tools (downsides 2 and 4), so this step keeps them working.
+4. Math rewritten for the SA-1 unit; S-CPU job boundary at the ~100 hardware functions; S-CPU wait loop in WRAM.
+5. Hand the main loop to the SA-1. Add the speed cap.
+
+Effort *(estimate)*: several months for one person, with Gradius III's three months as the floor. Ship it, if at
+all, as a variant next to the vanilla-layout build, never instead of it.
+
 ## Sources
 
 - [VitorVilela7/SA1-Root](https://github.com/VitorVilela7/SA1-Root) (README; per-game READMEs

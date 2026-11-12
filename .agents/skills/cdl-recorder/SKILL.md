@@ -193,7 +193,7 @@ The CDL library also seeds Ghidra/REA (functions at their `$8x` execution addres
   as a JSL target (v0.201.19).
 - **Decomp:** names. The assets give shapes (tables.h, structs.h, enums) but every name is still an
   address; `hle_func` replacements are checked against the lockstep diff (§6 of the port doc).
-- **SA-1 port:** `functions.json` lists, per function, what keeps it on the S-CPU. The 12 SoE
-  functions with no blockers and the ~190 that only touch WRAM are the first candidates; their WRAM
+- **SA-1 port:** `functions.json` lists, per function, what keeps it on the S-CPU. Of 987 SoE functions (2026-11-10), 53 have
+  no blockers and 805 only touch WRAM (`docs/sa1/other-hacks.md` §5.1): the first candidates; their WRAM
   ranges are what would move to BW-RAM / I-RAM. Cycles per function are recorded since v0.212.1 (`functions.json`, `bus.md`).
 - **ExHiROM / SA-1 layout ports:** `bus.md` is the audit (what ran or was read through which mirror); plan and gates in `docs/exhirom/layout-options.md` §5.

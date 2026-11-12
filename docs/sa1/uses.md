@@ -63,7 +63,7 @@ the same thing without the SA-1.
 |---|---|---|---|---|---|---|
 | 1 | **Busy-scene cycle profile**: record fights, big rooms, many entities, Mode 7 | CDL `functions.json` already has `cycles` per function and SA-1 blockers *(repo)*; only title/intro recorded | 1 | 5 | — | — |
 | 2 | **Offload runtime**: release the SA-1 (`$2200`), a job queue and mailbox in I-RAM, IRQ on completion, a "wait for job" for the S-CPU | the SA-1's reset vector goes in block 0, next to the boot block's data | 3 | 5 | — | no |
-| 3 | **WRAM→BW-RAM/I-RAM variable map (C2)** per variable, from the WRAM map | [`wram-map.md`](../disassembly/engine-core/wram-map.md), `wram-map-7f.md`; ~190 functions touch only WRAM *(repo: cdl-recorder skill)* | 4 | 5 | D1 for moved variables | no |
+| 3 | **WRAM→BW-RAM/I-RAM variable map (C2)** per variable, from the WRAM map | [`wram-map.md`](../disassembly/engine-core/wram-map.md), `wram-map-7f.md`; 805 of 987 functions touch only WRAM ([other-hacks.md](other-hacks.md) §5.1) | 4 | 5 | D1 for moved variables | no |
 | 4 | **DMA snapshots instead of moves**: the S-CPU DMAs a WRAM struct through `$2180` into BW-RAM/I-RAM for the SA-1 to read, and back | avoids rewriting every reader of a variable; costs DMA time on the S-CPU | 2 | 4 | R | no |
 | 5 | **Event-based comparison** for offloaded ROMs (room, HP, flags, script trace per game event) | replaces per-frame CRCs once lockstep ends; replays from `tools/` | 2 | 4 | — | — |
 | 6 | **Second emulator and hardware**: ares by hand, bsnes, an FXPak-class flashcart | open in [port.md](port.md) §6; FastROM on SA-1 ROM *(to verify)* | 2 | 4 | — | — |

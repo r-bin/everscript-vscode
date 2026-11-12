@@ -91,7 +91,7 @@ original under `node tools/compare/compare.mts recomp`.
 | B-combo. Dispatcher, SRAM split, transitions | 1–3 months | B | a second game on the cartridge |
 | **C1. SA-1 boots and plays identically (S-CPU does everything)** | **done** (v0.402.0, no D1 needed) | C | SA-1 mapper, BW-RAM, cycle-identical in MesenCE; **no speed gain yet** |
 | C2. Move state the SA-1 will touch from WRAM to BW-RAM/I-RAM | 1–3 months | C | prerequisite for any offload; touches the whole engine |
-| C3. Offload chosen routines to the SA-1 (per routine) | days–weeks each | C | real speed; start with the 12 blocker-free functions and the ~190 WRAM-only ones from `functions.json` *(repo: cdl-recorder §148)*; cycle counts per function are not recorded yet |
+| C3. Offload chosen routines to the SA-1 (per routine) | days–weeks each | C | real speed; start with the 53 blocker-free functions and the 805 WRAM-only ones from `functions.json` (987 functions, 2026-11-10; [../sa1/other-hacks.md](../sa1/other-hacks.md) §5.1); cycles per function are recorded, busy scenes are not |
 
 The earlier `evermore-sa1` investigation concluded "not feasible as a patch" and "years" for a
 full conversion *(repo: `../evermore-sa1/README.md`)*. Its blocker analysis is right (header
