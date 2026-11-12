@@ -8,7 +8,7 @@ name: probe_metatile_collision
 title: Composite 3-tier entity movement probe (Plane gate, Room bounds, Body collision)
 confidence: confirmed
 tags: [collision, map, physics, actor, elevation, widescreen, widescreen.collision]
-evidence: ["disasm: checks flying flag bit 11 in +$10,Y; fetches cell collision word via $90:9815; validates plane gate via $8F:A946; tests viewport boundary $90:9561; evaluates actor body overlap via $8F:B4AB", "trace: called before every entity step and knockback movement"]
+evidence: ["disasm: checks flying flag bit 11 in +$10,Y; fetches cell collision word via $90:9815; validates plane gate via $8F:A946; tests viewport boundary $90:9561; evaluates actor body overlap via $8F:B4AB", "trace: called before every entity step and knockback movement", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.44): 32/32 states (32/32 oracle) and 9/9 fuzzed match ROM, mutation caught"]
 see: [docs/disassembly/maps/elevation-transfer.md, routines/elevation_plane_update_bits_5_4_kept_on.md, routines/elevation_plane_transition_gate.md, routines/test_entity_pair_overlap.md]
 ---
 By the mover's `+$10` (re-read v0.342.1): `$0800` checks nothing; `$0400` only keeps it in view of
