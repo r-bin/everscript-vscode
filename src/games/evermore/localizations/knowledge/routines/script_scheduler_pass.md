@@ -20,9 +20,11 @@ table at `$8C:D029`:
 | 2 | `$8C:D09C` | running: continue at its pc |
 | 4 | `$8C:D037` | sleeping: runs when the 32-bit timer `$0B19` ≥ deadline `+5/+7` |
 | 6 | `$8C:D04A` | waiting for bits `+9` of the word `+5` (an entity's busy bits); clears them and runs |
-| 8 | `$8C:D05C` | waiting until `$2429` differs from `+5` (text box) |
-| 10 | `$8C:D086` | waiting until an entity's `$107E` equals `$10CE` (walk finished) |
+| 8 | `$8C:D05C` | waiting until the step-on trigger script id `$2429` differs from `+5` |
+| 10 | `$8C:D086` | waiting until the byte `$107E,X` equals `$10CE,X` for X = `+5` (a text box or room object, open) |
 | 12 | `$8C:D065` | waiting until the camera (`$BF`,`$C1`) stops moving |
+
+Previously believed: state 8 was a text-box wait and state 10 an entity walk wait. Reading the handlers ([script_thread_wake_trigger_done](script_thread_wake_trigger_done.md), [script_thread_wake_bytes_match](script_thread_wake_bytes_match.md)) and the `0x2e` wait opcode shows the opposite assignment. The table itself is [SCRIPT_THREAD_WAKE_TABLE](SCRIPT_THREAD_WAKE_TABLE.md).
 
 Turn-ending opcodes (traced; no opcode was ever seen both ending and continuing):
 `0x00` END, `0x38/0x3a` YIELD, `0x39/0x3b/0xa7/0xa8` SLEEP (n = 0 does not end the turn; else

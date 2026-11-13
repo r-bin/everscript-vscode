@@ -7,7 +7,7 @@ category: 🎮
 name: dog_forage_random_timer_reset
 title: Dog forage / sniffing idle cooldown timer reset ($8F:B28D)
 confidence: verified
-tags: [dog, ai, forage, sniff, timer, reconstructed-c, g1-pass]
+tags: [dog, ai, forage, sniff, timer, reconstructed-c, g1-pass, rng]
 evidence: ["reconstructed-c/8F/8FB28D_dog_forage_random_timer_reset.c passes Gate G1 (3/3 reference states, 48/48 fuzzed, mutation caught)"]
 see: [routines/random_number_generator.md, routines/combat_hitbox_tables_and_collision_init.md, routines/companion_dog_sniff_and_forage_timer_tick.md]
 ---

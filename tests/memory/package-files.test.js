@@ -45,9 +45,9 @@ const pages = [
     ['the radar page (Memory, Rooms, Characters, Docs, Scaling, ROM, Music, Scripts)', () => req('dist/games/evermore/memory/webview/index.js')],
     ['the Docs and RNG tabs', () => { const d = req('dist/games/evermore/docs-tab/render-docs-tab.js'); d.buildDocsTabHtml(); d.buildRngTabHtml(); }],
     ['the emulator page with Evermore\'s part', () => {
-        const host = req('src/games/evermore/emulator/host.ts');
+        const host = req('dist/games/evermore/emulator/host.js');
         for (const f of host.webviewFiles()) fs.readFileSync(f);
-        req('src/core/emulator/panel-webview.ts').buildHtml({ cspSource: '', asWebviewUri: (u) => u }, 'c.js', 'c.wasm', 'c', 'c', null, { gameView: host.webview() });
+        req('dist/core/emulator/panel-webview.js').buildHtml({ cspSource: '', asWebviewUri: (u) => u }, 'c.js', 'c.wasm', 'c', 'c', null, { gameView: host.webview() });
     }],
     ['the emulator page files (panel.js file())', () => {
         for (const f of fs.readdirSync(path.join(ROOT, 'src/core/emulator/webview'))) fs.statSync(path.join(ROOT, 'src/core/emulator/webview', f));

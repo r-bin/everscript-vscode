@@ -3,21 +3,31 @@ addr: 90D34C
 end: 90D407
 size: 188
 kind: code
-category: 🧠
+category: 🎨
 name: memory_block_copy_indirect_words
-title: High-speed 16-bit word block copy primitive from indirect pointer sources to destination buffers
-confidence: guess
-tags: [unverified, rea-partial-read]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+title: 15-bit BGR555 palette color crossfader and direct word block transfer
+confidence: verified
+tags: [palette, crossfade, dma, hardware-multiplier]
+evidence: ["G1 differential testing: 28/28 reference states, 285/285 fuzzed states match ROM, mutation caught"]
 ---
-Low confidence — High-speed 16-bit word block copy primitive from indirect pointer sources to destination buffers.
+Palette color crossfader and block transfer primitive.
 
-> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+Interpolates between two 15-bit BGR555 color palettes using the SNES hardware multiplier (`$4202`/`$4203` -> `$4216`), or performs direct block copies at the boundary ratios (0% and 100%).
 
-Core engine memory transfer utility.
-Given source pointer `[$26]` (or `[$2A]`) and destination pointer `[$2E]`, the routine transfers `$14` words in a tight decremental loop.
+## Parameters & Variables
+- Direct Page `$14`: Word count (number of 16-bit BGR555 colors to transfer/blend). Returns immediately if 0.
+- Direct Page `$12`: Blend ratio (0..0x100).
+- Direct Page `$26`..`$28`: 24-bit far pointer to source palette A.
+- Direct Page `$2A`..`$2C`: 24-bit far pointer to source palette B.
+- Direct Page `$2E`..`$30`: 24-bit far pointer to destination palette buffer.
 
-It supports fast copying of sprite cel records, palette buffers, and collision definitions across WRAM banks.
+## Behavior
+- If `ratio == 0`: Copies `$14` words directly from `[$26]` to `[$2E]`.
+- If `ratio >= 0x100`: Copies `$14` words directly from `[$2A]` to `[$2E]`.
+- If `0 < ratio < 0x100`: Crossfades each 15-bit BGR555 color component:
+  - `Red:   ((256 - ratio) * Red_A   + ratio * Red_B)   >> 8`
+  - `Green: ((256 - ratio) * Green_A + ratio * Green_B) >> 8`
+  - `Blue:  ((256 - ratio) * Blue_A  + ratio * Blue_B)  >> 8`
 
 ## Callers
 - `$8C:E4B1` (`FUN_8ce4b1`)
@@ -27,9 +37,3 @@ It supports fast copying of sprite cel records, palette buffers, and collision d
 
 ## Callees
 - None
-
-## Variables and memory (hypotheses)
-- `$14` (Word count to transfer)
-- `$26`, `$28` (Source memory pointer A)
-- `$2A`, `$2C` (Source memory pointer B)
-- `$2E`, `$30` (Destination memory pointer)

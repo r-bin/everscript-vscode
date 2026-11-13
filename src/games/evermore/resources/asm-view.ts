@@ -99,13 +99,19 @@ function branchTarget(l: AsmLine): number | null {
 /**
  * A whole routine from `bus`: decodes past a return while an earlier branch still lands further on,
  * and stops at `end` (inclusive), at the start of another routine (`starts`), or after `limit` lines.
+ * `m8` / `x8`: the widths it starts with (16-bit A/X unless said); `widths`: the widths an instruction is known to
+ * run with (a CDL library), taken over before it is decoded.
  */
-function routineLines(rom: Uint8Array, bus: number, options: { end?: number | null; starts?: Set<number>; limit?: number } = {}): AsmLine[] {
-    const st: DecodeState = { m8: false, x8: false }, out: AsmLine[] = [], limit = options.limit ?? 600;
+function routineLines(rom: Uint8Array, bus: number, options: {
+    end?: number | null; starts?: Set<number>; limit?: number; m8?: boolean; x8?: boolean; widths?: (bus: number) => DecodeState | null;
+} = {}): AsmLine[] {
+    const st: DecodeState = { m8: !!options.m8, x8: !!options.x8 }, out: AsmLine[] = [], limit = options.limit ?? 600;
     let addr = bus, furthest = bus;
     while (out.length < limit) {
         if (out.length && options.starts && options.starts.has(addr)) break;
         if (options.end != null && addr > options.end) break;
+        const known = options.widths ? options.widths(addr) : null;
+        if (known) { st.m8 = known.m8; st.x8 = known.x8; }
         const [l] = decode(rom, addr, 1, st);
         if (!l) break;
         out.push(l);

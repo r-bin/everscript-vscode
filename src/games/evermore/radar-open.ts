@@ -11,6 +11,7 @@ import { handlesMusicMessage, handleMusicMessage, buildMusicModel, trackSequence
 import { handlesScriptsMessage, handleScriptsMessage } from './scripts-tab';
 import { handlesDataMessage, handleDataMessage } from './data-tab';
 import { handlesRoutesMessage, handleRoutesMessage } from './routes';
+import { handlesCodeMessage, handleCodeMessage } from './code-tab';
 import { handlesEditorMessage, handleEditorMessage } from './rooms/editor-host';
 import { handlesSpritesMessage, handleSpritesMessage } from './sprites/radar-host';
 import * as romReaders from './rom-readers';
@@ -221,6 +222,14 @@ async function openMemoryRadar(doc?: vscode.TextDocument, startLine?: number): P
                 open: (file) => fs.existsSync(file)
                     ? vscode.window.showTextDocument(vscode.Uri.file(file))
                     : vscode.window.showWarningMessage('Not in this install: ' + path.basename(file) + ' (the notes ship with the repository only).'),
+            });
+        } else if (handlesCodeMessage(msg.command)) {
+            // The Code tab (src/games/evermore/code-tab/README.md): every known routine, read from
+            // soe://rom/code/ as any VFS client reads it, so the tab shows what agents read.
+            handleCodeMessage(msg, {
+                post: (m) => radar.panel?.webview.postMessage(m),
+                read: async (uri) => new TextDecoder().decode(await vscode.workspace.fs.readFile(vscode.Uri.parse(uri))),
+                open: (uri) => { vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(uri), { viewColumn: vscode.ViewColumn.Beside, preview: true }); },
             });
         } else if (handlesRomMessage(msg.command)) {
             // The ROM tab: map of every bank, CDL coverage, readers

@@ -5,19 +5,34 @@ size: 369
 kind: code
 category: 🧠
 name: math_vector_2d_angle_and_distance_calc
-title: Computes 2D vector distance and angle (0..255) from signed X and Y coordinate displacements
-confidence: guess
-tags: [unverified, rea-partial-read]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+title: Computes 8-bit directional angle (0..255) from signed X and Y coordinate displacements
+confidence: verified
+tags: [math, angle, trig, hardware-divider]
+evidence: ["G1 differential testing: 35/35 reference states, 559/559 fuzzed states match ROM, mutation caught"]
 ---
-Low confidence — Computes 2D vector distance and angle (0..255) from signed X and Y coordinate displacements.
+Computes 8-bit directional angle (0..255) from signed delta-X (`$02`) and delta-Y (`$04`).
 
-> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
+1. Determines absolute magnitude: `|DX| -> $12`, `|DY| -> $14`.
+2. Compares `|DX|` and `|DY|` and checks delta signs to determine octant (0..7).
+3. Uses hardware unsigned divider (`$4204` / `$4206` -> `$4214`) to compute `64 * min(|DX|, |DY|) / max(|DX|, |DY|)`.
+4. Indexes 64-entry arctangent table at ROM `$80:8B25` (or `$C0:8B25`).
+5. Folds/offsets the table angle into the appropriate octant:
+   - Octant 0: `angle`
+   - Octant 1: `0x40 - angle`
+   - Octant 2: `0x40 + angle`
+   - Octant 3: `0x80 - angle`
+   - Octant 4: `0xFF80 + angle`
+   - Octant 5: `0xFFC0 - angle`
+   - Octant 6: `0xFFC0 + angle`
+   - Octant 7: `-angle`
+6. Restores entry DB via PLB. Returns 8-bit angle in A.
 
-General mathematical primitive for calculating directional angle and linear distance between two points.
-The function takes signed 16-bit delta-X in `$02` and delta-Y in `$04`.
-
-It determines the quadrant, performs octant folding to keep values within 0..45 degrees, computes the ratio of displacements, and uses a lookup table to determine the 8-bit heading angle (0..255, where 0 is East, 64 is South, etc.). It also computes Euclidean distance approximation for projectile speeds and homing trajectory calculations.
+## Parameters & Variables
+- Direct Page `$02`: Signed 16-bit delta-X.
+- Direct Page `$04`: Signed 16-bit delta-Y.
+- Direct Page `$12`: Magnitude of delta-X (`|DX|`).
+- Direct Page `$14`: Magnitude of delta-Y (`|DY|`).
+- Direct Page `$16`: Angle computed from lookup table.
 
 ## Callers
 - `$90:DE11` (`FUN_90de11`)
@@ -25,8 +40,3 @@ It determines the quadrant, performs octant folding to keep values within 0..45 
 
 ## Callees
 - None
-
-## Variables and memory (hypotheses)
-- `$02` (Input signed delta-X displacement)
-- `$04` (Input signed delta-Y displacement)
-- `$12`, `$14` (Absolute magnitude temporary coordinates)

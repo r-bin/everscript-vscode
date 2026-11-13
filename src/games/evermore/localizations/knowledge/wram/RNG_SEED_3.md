@@ -2,7 +2,7 @@
 addr: $7E:0139
 name: RNG_SEED_3
 type: u16
-tags: []
+tags: [rng]
 confidence: verified
 evidence: ["cdl", "disasm"]
 ---

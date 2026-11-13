@@ -239,6 +239,44 @@ export function getWramTypes(): WramTypes {
     return _types;
 }
 
+/** The fields of struct `name`, its `extends` chain's first. */
+function structFields(name: string, types: WramTypes): WramField[] {
+    const def = types.structs?.[name];
+    if (!def) return [];
+    return [...(def.extends ? structFields(def.extends, types) : []), ...(def.fields || [])];
+}
+
+/**
+ * The field path of byte `off` inside a value of type `type`: `[2].pos_y`, `.sprite_descriptor_ptr`, nested structs and
+ * arrays followed; `within` is the byte inside the last field (0: its first). Null when no field covers the byte.
+ */
+function fieldPath(type: string, off: number, types: WramTypes): { path: string; within: number; type: string } | null {
+    const clean = type.replace(/^`|`$/g, '').trim();
+    const arr = clean.match(/^([A-Za-z0-9_]+)\[(\d+|0x[0-9a-fA-F]+)\]$/);
+    if (arr) {
+        const size = resolveTypeSize(arr[1], types);
+        if (size <= 0) return null;
+        const inner = fieldPath(arr[1], off % size, types);
+        const at = '[' + Math.floor(off / size) + ']';
+        return inner ? { ...inner, path: at + inner.path } : { path: at, within: off % size, type: arr[1] };
+    }
+    for (const f of structFields(clean, types)) {
+        const size = resolveTypeSize(f.type, types);
+        if (off < f.offset || off >= f.offset + size) continue;
+        const inner = fieldPath(f.type, off - f.offset, types);
+        return inner ? { ...inner, path: '.' + f.name + inner.path } : { path: '.' + f.name, within: off - f.offset, type: f.type };
+    }
+    return null;
+}
+
+/** The entry holding a WRAM address and the struct field path of the byte inside it (see fieldPath), when its type has one. */
+export function getWramField(addr: number): { entry: WramEntry; path: string; within: number; type: string } | null {
+    const entry = getWramEntry(addr);
+    if (!entry) return null;
+    const got = fieldPath(entry.type, (addr >= 0x7E0000 ? addr - 0x7E0000 : addr) - entry.addr, getWramTypes());
+    return got ? { entry, ...got } : null;
+}
+
 /** Resolve struct field or enum value for a specific byte offset. */
 export function getWramFieldDetails(addr: number): {
     entry: WramEntry | null;
@@ -264,18 +302,13 @@ export function getWramFieldDetails(addr: number): {
         }
     }
 
-    if (structDef && structDef.fields) {
-        // Handle array element offset
-        const elemOffset = structDef.size > 0 ? off % structDef.size : off;
-        const field = structDef.fields.slice().reverse().find(f => elemOffset >= f.offset);
-        if (field) {
-            return {
-                entry,
-                structName: entry.type,
-                fieldName: field.name,
-                fieldOffset: field.offset,
-                fieldType: field.type,
-            };
+    if (structDef) {
+        // The field that holds the byte (sizes, `extends` and array elements followed), not just the one before it.
+        const got = fieldPath(entry.type, off, types);
+        const name = got && /\.([A-Za-z0-9_]+)(?:\[\d+\])?$/.exec(got.path);
+        if (got && name) {
+            const elem = structDef.size > 0 && /\[/.test(entry.type) ? off % structDef.size : off;
+            return { entry, structName: entry.type, fieldName: name[1], fieldOffset: elem - got.within, fieldType: got.type };
         }
     }
 

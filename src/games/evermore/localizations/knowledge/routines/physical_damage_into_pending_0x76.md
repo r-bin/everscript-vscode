@@ -7,7 +7,7 @@ category: 🧠
 name: physical_damage_into_pending_0x76
 title: Calculate net physical weapon damage
 confidence: confirmed
-tags: [combat, damage, accumulator]
+tags: [combat, damage, accumulator, rng, rng.combat]
 evidence: ["disasm: evaluates attacker base power via $8F:C02B, subtracts target defense/4 (from $8E:001B,X with X = +$60,Y) clamped to at least 1; rolls random offset 0..base_damage via $80:AD62; returns net damage ((random + base) * 3) / 4 in A", "c: G1 passed (tools/c-to-rom/g1.mts): the bound C equals the ROM on 3 entry states sampled from the 2:20 no-input reference and 48 fuzzed ones; snes9x agrees with the interpreter on 3; a mutation is caught"]
 see: [docs/disassembly/combat/to-hit-accuracy.md, reconstructed-c/8F/8FC067_physical_damage_into_pending_0x76.c, routines/attack_proc_melee_boy_kill_xp.md]
 ---

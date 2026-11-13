@@ -109,6 +109,14 @@ module.exports = {
     },
 
     {
+      name: 'code-tab-no-imports',
+      comment: 'The Code tab reads soe://rom/code/ only, through the read and open extension.js injects; it imports nothing in src/.',
+      severity: 'error',
+      from: { path: '^src/games/evermore/code-tab/' },
+      to: { path: '^src/', pathNot: '^src/games/evermore/code-tab/' },
+    },
+
+    {
       name: 'no-resources-to-emulator',
       comment: 'The soe:// file system gets the emulator ROM and memory reads injected by extension.js.',
       severity: 'warn',

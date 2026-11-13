@@ -47,6 +47,8 @@ The WRAM memory map is split into two 64 KB bank tables with 100% byte continuit
 - Bank `$7E` (65,536 B): `src/games/evermore/localizations/data/wram-map.md` (mirror: `docs/disassembly/engine-core/wram-map.md`)
 - Bank `$7F` (65,536 B): `src/games/evermore/localizations/data/wram-map-7f.md` (mirror: `docs/disassembly/engine-core/wram-map-7f.md`)
 - Composite structs: `src/games/evermore/localizations/data/types.json` defines structured types (`EntityRecord`, `BoyStats`, `DogStats`, etc.) referenced directly in the tables.
+  A byte's field path: `getWramField` (wram-map.ts; follows `extends`, arrays and field sizes — a byte no field
+  covers has none, it is not the field before it).
 - **Validation tool:** `node tools/check-maps.mts` (`npm run check:memory-maps`) verifies zero gaps, byte continuity, ascending order, types, tag taxonomy, and exact 1:1 file parity with `docs/`.
 
 | Range | Role |
