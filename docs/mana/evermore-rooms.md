@@ -101,6 +101,26 @@ and what is missing:
 | Widgets, Info | as for any room; Info's budgets show the overflows above | — |
 | map view | the map, played with its animation (chip Animation), collision overlay, cuttable cells, step boxes, objects; Mana's character objects as spawn markers | sprites for those characters |
 
-Editing a converted room is not supported: it is locked, and nothing saves back to the
-Mana ROM or exports it to an Evermore ROM yet (the image's graphics and colours would
-need free space in the Evermore ROM — `virtual-rom.ts` shows where they would go).
+Editing a converted room is not saved: it opens locked, and nothing writes back to the Mana ROM.
+
+## Playing it in Evermore
+
+**Play in emulator** (and **Export ROM…**) on a converted room builds a 4 MB Evermore ROM in
+which the intro goes straight to the map, as for a custom map ([rom-export.md](../map-format/rom-export.md)
+"A converted map"): the Boy (and the dog) arrive at the **start marker**, which a converted room
+has like a custom map: picked by the host as the open floor cell nearest the middle (open
+around it too), moved with the Select tool even while the room is locked, or the Special tab's
+Start pick. Checked in the game (Potos Falls, v0.405.0): room `$15`, every still cell on screen
+equal to the editor's picture; the animation follows the editor's timeline within a frame.
+
+| what | in the played ROM | why |
+|---|---|---|
+| graphics (Block 1, animation frames) | bank `$F0` on; the **highest vanilla graphic ids** point at them | the game reads `$EE:0000 + 3·id` in 16 bits: the image's ids (43691+) wrap, and the table has no free entries past 6690 |
+| family colours | written over the **highest vanilla families** (`358..364` for seven) | `$9C:C322 + 32·id`, 16 bits, bank `$9C` fixed |
+| the room | Evermore's own encoder, in room `$15`'s slot at `$BD:8000` | as a custom map |
+| step-on events | left out (and the step bit cleared) | Mana's event numbers would run whatever Evermore script has that id |
+| edits made in the editor | not in it (the note says so) | the ROM is built from the converted map, not the draft |
+
+Taking over vanilla ids is safe for a test ROM, which shows no other room. Still missing in the
+game: Mana's characters and enemies, its events and doors (a converted map is a closed room),
+the specials it has no translation for (forced movement in water, layer switches).

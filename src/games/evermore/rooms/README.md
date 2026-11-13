@@ -24,6 +24,7 @@ rooms/
     deco-catalogue.ts         — the deco library: vanilla's Section 3 objects as portable, floor-free entries
     deco-preview.ts           — one entry rendered on nothing, so the thumbnail is the thing not the place
     rom-export.ts             — Export ROM: a custom map in room 0x15, the intro jumping there
+    rom-export-own.ts         — the same for a room with its own graphics (a converted Mana map): top vanilla ids taken over
     custom-export.ts          — Export map: the .zip (blob, map.json, sample .evs, stamps.json, README)
   data/
     widget-store.ts           — the user's own widgets: <globalStorage>/widgets.json (list, save, delete)

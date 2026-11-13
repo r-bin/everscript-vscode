@@ -30,7 +30,7 @@
  */
 var EDIT_SPECIAL_GROUPS = [
   {
-    // Only on a drafted map (specialTabHtml) — see map-editor-start.js.
+    // Only on a drafted map or a converted room (specialTabHtml) — see map-editor-start.js.
     id: 'start', label: 'Start', draftOnly: true, note: 'Boy’s map entrance position.',
     items: [{ id: 'start', label: 'Boy', glyph: '☺' }],
   },
@@ -308,7 +308,7 @@ function specialTabHtml() {
   var erasing = d && d.tool === 'erase'
     ? '<div class="rg-erase-target rg-armed">Eraser: takes every special off a cell — stairs, drift and '
       + 'gate bits and the glyph</div>' : '';
-  return erasing + EDIT_SPECIAL_GROUPS.filter(function (g) { return !g.draftOnly || (d && d.blank); })
+  return erasing + EDIT_SPECIAL_GROUPS.filter(function (g) { return !g.draftOnly || (d && (d.blank || d.roomId > 0x7e)); })
     .map(specialGroupHtml).join('');
 }
 

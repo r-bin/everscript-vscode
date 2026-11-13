@@ -95,4 +95,4 @@ function buildVirtualRom(soeRom: Uint8Array, room: ConvertedRoom, salt: number) 
 }
 
 export type { ConvertedRoom };
-export { buildVirtualRom, buildRoomBlob };
+export { buildVirtualRom, buildRoomBlob, header as roomHeader };

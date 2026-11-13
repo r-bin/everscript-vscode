@@ -435,4 +435,4 @@ function buildDraftCollision(rom: Rom, draft: RoomDraft) {
 
 function invalidateRoomDrafts() { SHEETS.clear(); }
 
-export { buildBlankRoom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, groupRoomGraphics, invalidateRoomDrafts, buildDraftCollision };
+export { boySprite, buildBlankRoom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, groupRoomGraphics, invalidateRoomDrafts, buildDraftCollision };

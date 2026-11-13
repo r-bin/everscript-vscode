@@ -229,8 +229,10 @@ function timeline(channelDelays: number[][], cycles: PaletteCycleSpec[]) {
             return { period, at, changes: [0, ...starts.filter((x) => x < period)] };
         }),
         ...cycles.map((c) => {
-            const r = paletteCycleFrames(c.rate);
-            return { period: r * c.span, at: (f: number) => Math.floor(f / r) % c.span, changes: Array.from({ length: c.span }, (_, k) => k * r) };
+            // One frame after the channels' clock: measured in the game (a converted room, 60 frames
+            // matched against this timeline), a cycle shifts at r+1, 2r+1, ... frames from load.
+            const r = paletteCycleFrames(c.rate), period = r * c.span;
+            return { period, at: (f: number) => (f < 1 ? 0 : Math.floor((f - 1) / r) % c.span), changes: Array.from({ length: c.span }, (_, k) => k * r + 1).map((t) => t % period) };
         }),
     ];
     const full = drivers.reduce((a, d) => lcm(a, d.period), 1);

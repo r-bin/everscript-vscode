@@ -8,9 +8,11 @@
 // on a resize, and immune to erase, because it is not a cell or a special
 // (map-editor.js's `_edit.start`, moved only by editMoveStart).
 //
-// Only a drafted map has one. A ROM room is entered through its doors,
-// which the map already draws as arrivals; a second, invented entrance
-// there would be a control for something that does not exist.
+// Only a drafted map and a converted room (rooms-imported.js) have one. A ROM
+// room is entered through its doors, which the map already draws as arrivals;
+// a second, invented entrance there would be a control for something that
+// does not exist. A converted room has no Evermore doors: Play in emulator
+// enters it here (the host's first pick: open floor nearest the middle).
 //
 // Not in the JSON draft (entrances are room metadata, not tile-grid state,
 // docs/map-format/map-editor-reference.md §3) — but Export ROM uses it: it is where the intro's

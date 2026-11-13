@@ -10,7 +10,7 @@
 import * as mana from '../../../mana/decoder';
 import { readRomMapHeaderFrom } from '../../rom-readers';
 import { convertManaMap } from './convert';
-import { buildVirtualRom } from './virtual-rom';
+import { buildVirtualRom, roomHeader } from './virtual-rom';
 import * as ids from './ids';
 
 type Rom = Uint8Array;
@@ -78,6 +78,8 @@ function createManaRooms(deps: { soeRom(): Rom | null; manaRom(): Rom | null }) 
             romRoomId: ids.IMPORTED_ROOM_BASE + manaId,
             imported: 'mana',
             relPath: 'Secret of Mana map ' + manaId.toString(16) + ', converted',
+            // The Boy's default start for Play in emulator (the editor's marker moves it).
+            start: defaultStart(room),
             startLine: -1, endLine: -1, imageUri: null, imageDims: null,
             families: room.families.map((f) => ({
                 id: f.id, label: f.label, tiles: f.graphics, rooms: 1, areas: ['Secret of Mana'],
@@ -101,6 +103,39 @@ function createManaRooms(deps: { soeRom(): Rom | null; manaRom(): Rom | null }) 
         };
     }
 
+    /**
+     * Where the Boy starts by default: the cell nearest the middle that is open floor with open
+     * floor around it (collision geometry 0 on the cell and its eight neighbours).
+     */
+    function defaultStart(room: Entry['room']) {
+        const w = room.widthTiles, h = room.heightTiles;
+        const open = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && !(room.cells[(y * w + x) * 3 + 2] & 0x0F);
+        const roomy = (x: number, y: number) => [-1, 0, 1].every((dy) => [-1, 0, 1].every((dx) => open(x + dx, y + dy)));
+        const cx = (w - 1) / 2, cy = (h - 1) / 2;
+        let best: { x: number; y: number } | null = null, bestD = Infinity;
+        for (const pass of [roomy, open]) {
+            for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+                const d = (x - cx) ** 2 + (y - cy) ** 2;
+                if (d < bestD && pass(x, y)) { bestD = d; best = { x, y }; }
+            }
+            if (best) return best;
+        }
+        return { x: Math.floor(w / 2), y: Math.floor(h / 2) };
+    }
+
+    /**
+     * What a playable ROM needs of converted tab room `roomId` (rooms/rendering rom-export-own.ts):
+     * the room's own parts with its header, the image the editor draws it from, and its default
+     * start. Null when it is not a converted room.
+     */
+    function playable(roomId: unknown) {
+        const n = Number(roomId);
+        if (!Number.isInteger(n) || n < ids.IMPORTED_ROOM_BASE || n >= ids.IMPORTED_ROOM_BASE + mana.MAP_COUNT) return null;
+        const e = entry(n - ids.IMPORTED_ROOM_BASE);
+        if (!e) return null;
+        return { room: { ...e.room, header: roomHeader(e.soe, e.room) }, shown: { rom: e.image.rom, roomId: e.image.roomId }, start: defaultStart(e.room) };
+    }
+
     /** `{rom, roomId}` to answer a request about tab room `roomId`, or null when it is not converted. */
     function resolveRoom(roomId: unknown) {
         const n = Number(roomId);
@@ -117,7 +152,7 @@ function createManaRooms(deps: { soeRom(): Rom | null; manaRom(): Rom | null }) 
         return e ? { rom: e.image.rom, roomId: e.image.roomId } : null;
     }
 
-    return { railGroups, detail, resolveRoom, resolveFamily, clear: () => { cache.clear(); familyMap.clear(); } };
+    return { railGroups, detail, resolveRoom, resolveFamily, playable, clear: () => { cache.clear(); familyMap.clear(); } };
 }
 
 export const isImportedRoomId = (n: unknown): boolean => Number(n) >= ids.IMPORTED_ROOM_BASE;

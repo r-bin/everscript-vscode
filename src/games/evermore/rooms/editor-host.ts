@@ -19,6 +19,7 @@ import { mergedEnterScript } from '../script-model';
 import { errorText } from './editor-host-types';
 import type { EditorMessage, EditorContext, EditorHandler } from './editor-host-types';
 import { ROM_HANDLERS } from './editor-host-rom';
+import { boySprite } from './rendering/room-draft';
 import { SUGGEST_HANDLERS } from './editor-host-suggest';
 
 /**
@@ -101,10 +102,12 @@ const HANDLERS: Record<string, EditorHandler> = {
         const reply = { command: 'importedRoom', id: msg.id };
         try {
             const mana = ctx.manaRooms;
-            const room: (ReturnType<NonNullable<typeof mana>['detail']> & { familyPreviews?: unknown }) | null = mana ? mana.detail(msg.id, msg.name) : null;
+            const room: (ReturnType<NonNullable<typeof mana>['detail']> & { familyPreviews?: unknown; startSprite?: unknown }) | null = mana ? mana.detail(msg.id, msg.name) : null;
             // The family chips' art, drawn from the room's own image (two tiles each).
             const src = room && mana!.resolveRoom(room.romRoomId);
             if (room && src) room.familyPreviews = buildFamilyPreviews(src.rom, room.families.map((f) => f.id), 2);
+            // The Boy for the start marker (map-editor-start.js): Play in emulator enters there.
+            if (room && src) room.startSprite = boySprite(src.rom);
             ctx.post(room ? { ...reply, room }
                 : { ...reply, error: 'Needs both ROMs: an Evermore and a Secret of Mana ROM (Everscript: Switch ROM)' });
         } catch (err) {

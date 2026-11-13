@@ -206,17 +206,8 @@ function buildExportRom(vanilla: ArrayLike<number>, asDrawn: ExportDraft) {
     // 1. The map.
     maps.writeRoomAt(rom, BRIAN_ROOM, built.blob, BLOB_OFFSET);
 
-    // 3. The enter script, and room 0x15's pointer to it.
-    rom.set(GAIN_SPEAR_4.concat([OP_CALL_GLOBAL, GLOBAL_FADE_IN, OP_END]), SCRIPT_OFFSET);
-    const packed = vm.pack(0x800000 | SCRIPT_OFFSET);
-    const entry = snesOffset(ENTER_TABLE + BRIAN_ROOM * ENTER_STRIDE);
-    rom[entry] = packed & 0xff;
-    rom[entry + 1] = (packed >> 8) & 0xff;
-    rom[entry + 2] = (packed >> 16) & 0xff;
-
-    // 2. The intro jumps there.
-    const at = startUnits(draft.start, w, h);
-    rom.set([OP_CHANGE_MAP, at.x, at.y, BRIAN_ROOM, 0x00, OP_END], snesOffset(INTRO_FIRST_CODE));
+    // 2 and 3. The intro jumps there; the room enters with the spear and a fade-in.
+    const at = patchEntry(rom, draft.start, w, h);
 
     fixChecksum(rom);
     verifyExport(rom, built, draft, at);
@@ -242,6 +233,39 @@ function buildExportRom(vanilla: ArrayLike<number>, asDrawn: ExportDraft) {
             start: at,
         },
     };
+}
+
+/**
+ * Patches 2 and 3 on an expanded image whose room 0x15 is already written: the enter
+ * script (spear, `fade_in()`) and the intro's `load_map(0x15, x, y)` at `start`.
+ * Returns where the Boy lands, in 8px units.
+ */
+function patchEntry(rom: Uint8Array, start: ExportDraft['start'], w: number, h: number) {
+    rom.set(GAIN_SPEAR_4.concat([OP_CALL_GLOBAL, GLOBAL_FADE_IN, OP_END]), SCRIPT_OFFSET);
+    const packed = vm.pack(0x800000 | SCRIPT_OFFSET);
+    const entry = snesOffset(ENTER_TABLE + BRIAN_ROOM * ENTER_STRIDE);
+    rom[entry] = packed & 0xff;
+    rom[entry + 1] = (packed >> 8) & 0xff;
+    rom[entry + 2] = (packed >> 16) & 0xff;
+    const at = startUnits(start, w, h);
+    rom.set([OP_CHANGE_MAP, at.x, at.y, BRIAN_ROOM, 0x00, OP_END], snesOffset(INTRO_FIRST_CODE));
+    return at;
+}
+
+/** Patches 2 and 3 read back: room 0x15 enters with the spear and `fade_in()`, the intro loads it at `at`. */
+function verifyEntry(rom: Uint8Array, at: { x: number; y: number }) {
+    const enter = buildRoomScriptModel(rom, BRIAN_ROOM).enter;
+    const ops = enter ? enter.instructions.map((r) => r.opcode) : [];
+    const sr = new vm.ScriptRom(rom);
+    const first = enter && enter.instructions.length ? vm.facts(vm.decodeAt(sr, enter.instructions[0].addressSnes)) : null;
+    if (ops.join() !== [GAIN_SPEAR_4[0], OP_CALL_GLOBAL, OP_END].join() || !enter.terminated
+        || !first || first.k !== 'write' || first.addr !== 0x2441 || first.value !== 0x18) {
+        throw new Error('export check: room 0x15 does not enter with the spear and fade_in()');
+    }
+    const change = vm.facts(vm.decodeAt(sr, INTRO_FIRST_CODE));
+    if (change.k !== 'changeMap' || change.map !== BRIAN_ROOM || change.x !== at.x || change.y !== at.y) {
+        throw new Error('export check: the intro does not load room 0x15 at the start marker');
+    }
 }
 
 /** Decode what was written and compare it with what was asked for. */
@@ -306,20 +330,8 @@ function verifyExport(rom: Uint8Array, built: ReturnType<typeof maps.buildCustom
         throw new Error(`export check: ${room.triggers.bTrigger.length} B-triggers decoded, ${expB} expected`);
     }
 
-    const enter = buildRoomScriptModel(rom, BRIAN_ROOM).enter;
-    const ops = enter ? enter.instructions.map((r) => r.opcode) : [];
-    const sr = new vm.ScriptRom(rom);
-    const first = enter && enter.instructions.length ? vm.facts(vm.decodeAt(sr, enter.instructions[0].addressSnes)) : null;
-    if (ops.join() !== [GAIN_SPEAR_4[0], OP_CALL_GLOBAL, OP_END].join() || !enter.terminated
-        || !first || first.k !== 'write' || first.addr !== 0x2441 || first.value !== 0x18) {
-        throw new Error('export check: room 0x15 does not enter with the spear and fade_in()');
-    }
-
-    const change = vm.facts(vm.decodeAt(sr, INTRO_FIRST_CODE));
-    if (change.k !== 'changeMap' || change.map !== BRIAN_ROOM || change.x !== at.x || change.y !== at.y) {
-        throw new Error('export check: the intro does not load room 0x15 at the start marker');
-    }
+    verifyEntry(rom, at);
 }
 
 export type { ExportDraft };
-export { buildExportRom, withTriggerGates, BRIAN_ROOM, INTRO_FIRST_CODE, BLOB_OFFSET, SCRIPT_OFFSET, EXPANDED_SIZE };
+export { buildExportRom, withTriggerGates, patchEntry, verifyEntry, fixChecksum, BRIAN_ROOM, INTRO_FIRST_CODE, BLOB_OFFSET, SCRIPT_OFFSET, EXPANDED_SIZE, VANILLA_SIZE };

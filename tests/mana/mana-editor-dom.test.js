@@ -27,6 +27,8 @@ async function main() {
     const rooms = require('../../dist/games/evermore/rooms');
     const bridge = require('../../dist/games/evermore/imports/mana');
     const { renderRadarHtml } = require('../../dist/games/evermore/memory/render-radar');
+    const own = require('../../dist/games/evermore/rooms/rendering/rom-export-own');
+    const played = [];
     const soe = fs.readFileSync(SOE), som = new Uint8Array(fs.readFileSync(SOM));
     const service = bridge.createManaRooms({ soeRom: () => soe, manaRom: () => som });
     const shots = process.argv[2] || null;
@@ -54,6 +56,13 @@ async function main() {
             return { command: 'blankRoom', mapName: msg.mapName, room: rooms.buildBlankRoom(s.rom, { widthTiles: msg.widthTiles, heightTiles: msg.heightTiles,
                 borrowFrom: s.roomId, minTiles: msg.minTiles }) }; }
         case 'requestCustomMaps': return { command: 'customMaps', maps: saved, active: null };
+        case 'mapPlayImported': {   // editor-host-rom.ts: the real builder and its picture check
+            const parts = service.playable(msg.roomId);
+            const built = own.buildOwnRoomExportRom(soe, parts.room, msg.start || parts.start);
+            own.verifyOwnRoomExport(built.rom, parts.shown);
+            played.push({ msg, report: built.report });
+            return { command: 'mapExportRomDone', played: 'converted.sfc', report: built.report };
+        }
         default: return null;
         }
     };
@@ -110,6 +119,32 @@ async function main() {
     if (shots) await page.screenshot({ path: path.join(shots, 'mana-copy-made.png') });
     const lastSave = await page.evaluate(() => (window.__sent || []).filter((m) => m.command === 'saveCustomMap').pop());
     check('Copy map on a converted room makes a custom map', !!lastSave && /Potos/.test(lastSave.map.name), JSON.stringify(lastSave && lastSave.map.name));
+    // Potos Falls 1: the Boy's start marker, and Play in emulator builds the converted map entered there.
+    await page.click('li[data-import="som-80"]');
+    await page.waitForTimeout(3000);
+    check('a converted room shows the Boy\'s start marker', await page.locator('#rg-svg .rg-start').count() === 1);
+    await page.evaluate(() => { const b = document.querySelector('[data-edit-act="play-rom"]'); if (b) b.click(); });
+    await page.waitForTimeout(3000);
+    const play = played[played.length - 1];
+    check('Play in emulator builds the converted map as a ROM, entered at the marker', !!play && play.msg.roomId === 0x1080
+        && !!play.msg.start && play.report.room === 0x15 && play.report.animated > 0,
+        JSON.stringify(play && { start: play.msg.start, report: play.report }));
+    check('and says it is running', /running converted\.sfc/.test(await page.evaluate(() => document.getElementById('room-detail').innerText)));
+    // The Boy moves with the Select tool even while the room is locked: where he starts is not the map.
+    await page.click('[data-edit-tool="select"]').catch(() => {});
+    const boy = await page.locator('#rg-svg .rg-start-cell').boundingBox();
+    if (boy) {
+        const cx = boy.x + boy.width / 2, cy = boy.y + boy.height / 2;
+        await page.mouse.move(cx, cy); await page.mouse.down();
+        await page.mouse.move(cx + boy.width, cy, { steps: 4 }); await page.mouse.move(cx + boy.width * 2, cy, { steps: 4 });
+        await page.mouse.up();
+        await page.waitForTimeout(300);
+    }
+    await page.evaluate(() => { const b = document.querySelector('[data-edit-act="play-rom"]'); if (b) b.click(); });
+    await page.waitForTimeout(3000);
+    const moved = played[played.length - 1];
+    check('dragging the Boy moves where Play enters', !!boy && played.length >= 2 && moved.msg.start.x === play.msg.start.x + 2 && moved.msg.start.y === play.msg.start.y,
+        JSON.stringify({ before: play && play.msg.start, after: moved && moved.msg.start }));
     await page.click('li[data-import="som-10"]');
     await page.waitForTimeout(2500);
     await tab('trigger');

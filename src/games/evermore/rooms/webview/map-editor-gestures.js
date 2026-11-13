@@ -42,6 +42,8 @@ function editStroke(cell, phase) {
   if (!editInBounds(_mtPalette, cell.x, cell.y)) return;
   // Locked: the eyedropper, a copy box and selecting a trigger — nothing that writes.
   if (editLocked() && d.tool !== 'pick' && d.tool !== 'copy') {
+    // Where the Boy starts is not the map: he moves on a locked room too (a converted room opens locked).
+    if (d.tool === 'select' && typeof startSelectGesture === 'function' && startSelectGesture(cell, phase)) return;
     if (phase !== 'down') return;
     if (d.tool === 'select') { if (!(drawKind() === 'anim' && editAnimGesture(d, cell, phase))) triggerSelect(editTriggerAt(cell.x, cell.y)); return; }
     editNote('this map is locked — unlock it in the bar below the map to change it');

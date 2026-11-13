@@ -153,6 +153,22 @@ test('Potos Falls animates: its colour rotations become palette cycles, its movi
     assert.ok(ov.animation && ov.animation.groups.length > 0, JSON.stringify(ov.animation && ov.animation.skipped));
 });
 
+test('Play in emulator: a converted map becomes a ROM the game can address, drawing what the editor draws', () => {
+    // The game reaches graphics and families through 16-bit offsets ($CC:C88C, $90:A1B4: 3·id; 32·family),
+    // so the ROM takes over the top vanilla ids rather than the in-memory image's (rom-export-own.ts).
+    const own = require('../../dist/games/evermore/rooms/rendering/rom-export-own');
+    for (const id of [0x80, 0x10, 0x66, 0x88]) {
+        const p = service.playable(0x1000 + id);
+        const { rom, report } = own.buildOwnRoomExportRom(soe, p.room, p.start);
+        own.verifyOwnRoomExport(rom, p.shown);
+        assert.strictEqual(rom.length, 0x400000);
+        assert.ok(report.graphicIds[1] * 3 < 0x10000 && report.familyIds.every((f) => f < 365), JSON.stringify(report));
+        assert.strictEqual(maps.decodeRoom(rom, 0x15).triggers.stepOn.length, 0, 'Mana step events are left out');
+    }
+    assert.deepStrictEqual(service.playable(0x1080).start, { x: 28, y: 39 });
+    assert.strictEqual(service.playable(0x34), null);
+});
+
 test('every map converts into a room Evermore decodes', () => {
     let n = 0;
     for (let id = 0; id < mana.MAP_COUNT; id++) {

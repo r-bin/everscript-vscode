@@ -73,7 +73,8 @@
  ],
  "dom": [
   "tests/memory/map-editor-dom.test.js",
-  "tests/memory/rooms-rail-dom.test.js", "tests/memory/room-variants-dom.test.js",
+  "tests/memory/rooms-rail-dom.test.js",
+  "tests/memory/room-variants-dom.test.js",
   "tests/memory/rom-tab.test.js",
   "tests/memory/scripts-tab.test.js",
   "tests/memory/data-tab.test.js",
@@ -100,7 +101,8 @@
   "tests/debugger/mesen-movie.test.js",
   "tests/debugger/cdl-values.test.js",
   "tests/debugger/tas-states.test.js",
-  "tests/debugger/tas-verify.test.js"
+  "tests/debugger/tas-verify.test.js",
+  "tests/mana/mana-play.test.js"
  ],
  "manual": {
   "tests/debugger/emulator-runtime.test.js": "stale: waits for ss-hook-btn / ss-hook-all-btn and the pause/resume buttons removed in v0.219.0"
