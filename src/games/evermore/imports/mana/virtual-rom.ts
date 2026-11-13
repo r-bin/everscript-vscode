@@ -19,8 +19,12 @@ const HEADER_DONOR = 0x34;
 interface ConvertedRoom {
     widthTiles: number; heightTiles: number;
     display: { tm: number; ts: number; colorMath: number; colorWindow: number };
-    /** Each graphic's 128 bytes (64 words). */
+    /** Each graphic's 128 bytes (64 words): Block 1, then the animation frames. */
     graphics: Uint8Array[];
+    frameGraphics?: Uint8Array[];
+    /** Section 2 channels; `frames` index `frameGraphics`. */
+    animation?: { frames: number[]; delays: number[] }[];
+    paletteCycles?: number[][];
     families: { id: number; colours: number[] }[];
     cells: number[]; cut?: number[][];
     objects: (NonNullable<OwnRoomInput['objects']>[number] & { w: number; h: number; flag: number })[];
@@ -47,6 +51,10 @@ function buildRoomBlob(soeRom: Uint8Array, room: ConvertedRoom) {
         graphics: room.graphics.map((_, i) => ids.GRAPHIC_BASE + i),
         families: room.families.map((f) => f.id),
         cells: room.cells, cut: room.cut, objects: room.objects, stepOn: room.stepOn,
+        paletteCycles: room.paletteCycles,
+        animation: (room.animation || []).map((c) => ({
+            frames: c.frames.map((f) => ids.GRAPHIC_BASE + room.graphics.length + f), delays: c.delays,
+        })),
     });
     return { blob: built.blob, metatileCount: built.metatileCount, wramBytes: built.wramBytes, cuttable: built.cuttable };
 }
@@ -60,7 +68,7 @@ function buildVirtualRom(soeRom: Uint8Array, room: ConvertedRoom, salt: number) 
     if (soeRom.length > ids.ROM_END) throw new Error('an expanded Evermore ROM leaves no room for converted maps');
     const rom = new Uint8Array(ids.IMAGE_SIZE + (salt & 0xFFF));
     rom.set(soeRom.subarray(0, ids.ROM_END));
-    room.graphics.forEach((g, i) => {
+    [...room.graphics, ...(room.frameGraphics || [])].forEach((g, i) => {
         const at = ids.GRAPHIC_DATA + i * 129;
         rom[at] = 0x3F;                         // uncompressed: 64 words ($8CC8B0)
         rom.set(g, at + 1);

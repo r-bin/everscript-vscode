@@ -31,9 +31,12 @@ const ROOM_SLOT = 0x7E;
 /** Graphics one room can name: a tilemap word's 10-bit character field (budget.ts MAX_GRAPHICS). */
 const MAX_GRAPHICS = 264;
 
+/** Graphics the image holds, Block 1 and animation frames together: up to the families. */
+const MAX_IMAGE_GRAPHICS = Math.floor((PALETTE_AREA - GRAPHIC_DATA) / 129);
+
 /** Room ids the Rooms tab uses for converted maps: never a ROM room (0..0x7E). */
 const IMPORTED_ROOM_BASE = 0x1000;
 
 const isImportedFamily = (f: number): boolean => f >= FAMILY_BASE && f < FAMILY_BASE + FAMILY_COUNT;
 
-export { ROM_END, GRAPHIC_TABLE, PALETTE_TABLE, GRAPHIC_BASE, GRAPHIC_DATA, FAMILY_BASE, FAMILY_COUNT, BLOB_AT, BLOB_MAX, IMAGE_SIZE, ROOM_SLOT, MAX_GRAPHICS, IMPORTED_ROOM_BASE, isImportedFamily };
+export { ROM_END, GRAPHIC_TABLE, PALETTE_TABLE, GRAPHIC_BASE, GRAPHIC_DATA, FAMILY_BASE, FAMILY_COUNT, BLOB_AT, BLOB_MAX, IMAGE_SIZE, ROOM_SLOT, MAX_GRAPHICS, MAX_IMAGE_GRAPHICS, IMPORTED_ROOM_BASE, isImportedFamily };

@@ -34,8 +34,10 @@ h-flip 14, priority 13, palette 10-12, character 0-9.
 | weapon-cut cell (c2 `$Cn`, becomes c3) | cuttable layer (Section 4) | the cell's words until cut, then metatile c3's; one source per (cell, beneath) pair, Evermore's own `buildDictionary`. Which weapons may cut it is lost: Evermore's grass has no weapon test |
 | event-flag piece (placed while flag in range) | object (Section 3) | per flag: state 0 = every flag 0 (the picture), one state per other flag value that changes the cells; area = box around every changed cell. The Potos ground (map `$66`, flag `$10` >= 6) is object #0. Which flag value a state is, is kept as `values` |
 | objects (character records after the header) | spawn markers in the Rooms tab | `Mana object C001` at the cell; nothing in the blob (Evermore spawns characters from scripts) |
+| colour rotation: a run of colours in one BG palette, each taking its neighbour's value every *n* frames (`paletteRotations`, read off the traced animation) | palette-cycle descriptor `[slot<<4 \| first, count, ±n]` (`$90D50F`, ticked by `$90D58C`) | rate = frames per shift; Mana's "colours move up" is a positive rate. Two per Evermore palette at most (more: `droppedCycles`). Potos Falls' waterfall: palette 7, colours 8-15, down every 4 frames → rate −4 |
+| animated characters (`$01:B0EC` blocks, `$01:B17E` pixel effects) | Section 2 channels, slots after Block 1 | every metatile whose characters change is drawn at each moment of the 480-frame trace; its shortest repeating loop is one channel (a frame per state, delay = frames it is held, ≤ 255 each). Equal loops share a channel, mirrored ones too (the word's flip bits). Frame 0 is the picture at load when the loop shows it |
 
-Layer B's collision, animated tiles and palette effects are not converted yet. A step-on box's `scriptId` is a Mana event number: it names no Evermore
+Layer B's collision is not converted yet. A step-on box's `scriptId` is a Mana event number: it names no Evermore
 script, and the tab labels it `Mana event NNN`.
 
 ## Where the room lives
@@ -45,7 +47,7 @@ The Rooms tab draws every room from a ROM image, so a converted room gets one of
 
 | what | where in the image | why there |
 |---|---|---|
-| graphics, raw (count byte `$3F`, 128 bytes) | pointers from id 43691 at `0x300001`, data at `0x301000` | Evermore's pointer table (`$EE0000`, 3 bytes an id) reaches past the 3 MB ROM from that id |
+| graphics, raw (count byte `$3F`, 128 bytes): Block 1, then the animation frames | pointers from id 43691 at `0x300001`, data at `0x301000` (476 at most, up to the families) | Evermore's pointer table (`$EE0000`, 3 bytes an id) reaches past the 3 MB ROM from that id |
 | family colours | family ids from 41447 (`0x310002`) | the palette table (`0x1CC322`, 32 bytes an id) reaches there |
 | the room blob, Evermore's own encoder | `0x328000`, room slot `0x7E` | upper half of a bank, as every vanilla blob |
 
@@ -66,7 +68,11 @@ the game, or lose something on the way (measured 2026-10-15 over every map):
 | `$C6` | one event flag swaps the whole 120x120 map; that object alone overflows the 32 KB bank half a blob may use, so it is left out |
 | `$04`, `$05`, `$1FF` | more than 64 special cells (174, 174, 481): `$02:B517` keeps writing slots past 64, over layer B's collision (`$7F:BC00`) and metatile table (`$7F:C800`), while the slot number wraps; the conversion follows the wrap for events but not the overwrite. These maps are probably never shown in this state |
 | 43 maps | layer B has its own size and is repeated; Mana scrolls it on its own (parallax), Evermore draws it fixed |
-| every map | the backdrop colour (Evermore draws black), mixed-palette tiles (one palette per cell, ~12 per map), per-8x8 priority, animated tiles and palette effects, layer B's collision, the weapon a cut needs, character objects |
+| 32 maps (`$1C`: palette 2 colours 2, 3, 4, 6, 8, 9) | 199 colours change, but not as one run of neighbours: Mana rotates the colours whose ROM word has bit 15 (gaps allowed, README "Animation"), Evermore only a run. Left still (`unconvertedColours`); reordering a family's colours would make them a run |
+| `$80` (chars `$360-$363`) and other maps with random holds (`$01:B033` mode `$C0`) | the 480 traced frames are looped as they are (`aperiodicTiles`): the burst comes back every 8 s instead of at random |
+| every animated map | Evermore starts every channel at load; Mana's phase between them (less than a period) is lost. A metatile drawn by pixel effects (`$01:B17E`) shows its load picture once in Mana and never again, so it starts at a state the game shows while it runs. Map `$80`: 23 channels, 233 frame graphics; vanilla rooms run at most 42 channels, and the V-Blank cost is not checked |
+| `$1FF` | its trace never returns from `$01:B17E`: drawn still |
+| every map | the backdrop colour (Evermore draws black: the gaps in `$80`'s cuttable grass), mixed-palette tiles (one palette per cell, ~12 per map), per-8x8 priority, layer B's collision, the weapon a cut needs, character objects |
 
 ## Changing a converted room, and keeping the work
 
@@ -88,12 +94,12 @@ and what is missing:
 
 | tab | shows | missing |
 |---|---|---|
-| Tile | the families (`m<n>`) with their art, the room's stamps, collision sub-tab | Mana's own animated tiles; Mana names for tiles |
-| Special | Evermore specials read off the collision words | Mana's special-cell kinds (c1) and layer switches |
+| Tile | the families (`m<n>`) with their art, the room's stamps, collision sub-tab, Animation (the channels and palette cycles) | Mana names for tiles |
+| Special | Evermore specials read off the collision words | Mana's special-cell kinds (c1) and layer switches. Seen in the game by the owner (map `$80`, not yet read from the data): the water is full of forced-movement cells, the bridge uses stairs and probably the levels (collision planes) |
 | Trigger | step-on boxes, each `Mana event NNN` | what an event does (Mana's event scripts are not decoded); the map's own event (`onEnter`); B-triggers (none known in Mana) |
 | Object | event-flag pieces as objects, with their states' tiles | the flag value per state in the UI (it is in `values`) |
 | Widgets, Info | as for any room; Info's budgets show the overflows above | — |
-| map view | the map, collision overlay, cuttable cells, step boxes, objects; Mana's character objects as spawn markers | sprites for those characters |
+| map view | the map, played with its animation (chip Animation), collision overlay, cuttable cells, step boxes, objects; Mana's character objects as spawn markers | sprites for those characters |
 
 Editing a converted room is not supported: it is locked, and nothing saves back to the
 Mana ROM or exports it to an Evermore ROM yet (the image's graphics and colours would

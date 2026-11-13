@@ -12,14 +12,18 @@
 //                                  draws with, in slots 1..k
 //   Mana collision (c0, c2)     -> geometry + plane; step events -> bit 14 + a box
 //   weapon-cut cells (c2 $Cn)   -> the cuttable layer; event-flag pieces -> objects
+//   colour rotations, moving chars -> palette cycles, Section 2 channels (animation.ts)
 // Only SNES facts are shared: both games use Mode 1 tilemap words with the same bits.
 
 import * as mana from '../../../mana/decoder';
 import { FAMILY_BASE, MAX_GRAPHICS } from './ids';
 import { flagObjects } from './pieces';
+import { flipH, flipV, keyOf } from './pixels';
+import { paletteCycles, animatedMetatiles, animateTiles } from './animation';
 import type { ManaMap, Rom as ManaRom } from '../../../mana/decoder';
 
 type Stats = { recolouredTiles: number; recolouredPixels: number; mixedPriority: number; droppedGraphics: number };
+type Trace = NonNullable<ReturnType<typeof mana.traceAnimation>>;
 type Placed = { slot: number; h: number; v: number };
 type Box = { x1: number; y1: number; x2: number; y2: number; scriptId: number };
 type Layer = 'A' | 'B';
@@ -60,8 +64,11 @@ function nearest(cgram: Uint16Array, from: number, c: number, to: number): numbe
     return best;
 }
 
-/** A metatile drawn as one 16x16 graphic: 256 colour indices, its palette and priority. */
-function metatilePixels(map: ManaMap, table: Uint16Array, n: number, stats: Stats) {
+/**
+ * A metatile drawn as one 16x16 graphic: 256 colour indices, its palette and priority.
+ * `vram` is the characters at one moment of an animation; `main` keeps a palette chosen before.
+ */
+function metatilePixels(map: ManaMap, table: Uint16Array, n: number, stats: Stats, vram = map.vram, main = 0) {
     const px = new Uint8Array(256), pal = new Uint8Array(256);
     const palCount = new Array(8).fill(0);
     let prio = 0, opaque = 0;
@@ -71,7 +78,7 @@ function metatilePixels(map: ManaMap, table: Uint16Array, n: number, stats: Stat
         const hf = word & 0x4000, vf = word & 0x8000;
         for (let y = 0; y < 8; y++) {
             const r = base + (vf ? 7 - y : y) * 2;
-            const p0 = map.vram[r], p1 = map.vram[r + 1], p2 = map.vram[r + 16], p3 = map.vram[r + 17];
+            const p0 = vram[r], p1 = vram[r + 1], p2 = vram[r + 16], p3 = vram[r + 17];
             for (let x = 0; x < 8; x++) {
                 const bit = hf ? x : 7 - x;
                 const c = ((p0 >> bit) & 1) | ((p1 >> bit) & 1) << 1 | ((p2 >> bit) & 1) << 2 | ((p3 >> bit) & 1) << 3;
@@ -84,8 +91,7 @@ function metatilePixels(map: ManaMap, table: Uint16Array, n: number, stats: Stat
         }
     }
     if (!opaque) return { px, palette: 1, priority: 0, empty: true };
-    let main = 1;
-    for (let p = 1; p < 8; p++) if (palCount[p] > palCount[main]) main = p;
+    if (!main) { main = 1; for (let p = 1; p < 8; p++) if (palCount[p] > palCount[main]) main = p; }
     if (palCount[main] < opaque) {
         stats.recolouredTiles++;
         for (let i = 0; i < 256; i++) {
@@ -96,9 +102,6 @@ function metatilePixels(map: ManaMap, table: Uint16Array, n: number, stats: Stat
     return { px, palette: main, priority: prio * 2 >= opaque ? 1 : 0, empty: false };
 }
 
-const flipH = (px: Uint8Array) => { const o = new Uint8Array(256); for (let i = 0; i < 256; i++) o[i] = px[(i & ~15) | (15 - (i & 15))]; return o; };
-const flipV = (px: Uint8Array) => { const o = new Uint8Array(256); for (let i = 0; i < 256; i++) o[i] = px[(15 - (i >> 4)) * 16 + (i & 15)]; return o; };
-const keyOf = (px: Uint8Array): string => Buffer.from(px.buffer, px.byteOffset, px.length).toString('latin1');
 
 /** Evermore's 16x16 graphic layout: four 8x8 4bpp planar characters, TL TR BL BR. */
 function encodeGraphic(px: Uint8Array): Uint8Array {
@@ -159,6 +162,8 @@ function triggerBoxes(steps: { x: number; y: number; event: number }[]): Box[] {
     return boxes;
 }
 
+type Tile = { m: ReturnType<typeof metatilePixels>; g: Placed };
+
 /**
  * Convert map `id`. Returns null for an id without pieces.
  * `cells` holds three words per cell, row by row; `graphics` 128-byte Evermore graphics
@@ -169,16 +174,18 @@ function convertManaMap(manaRom: ManaRom, id: number) {
     if (!map) return null;
     const stats: Stats = { recolouredTiles: 0, recolouredPixels: 0, mixedPriority: 0, droppedGraphics: 0 };
     const graphics = graphicTable(stats);
+    let trace: Trace | null = null;
+    try { trace = mana.traceAnimation(manaRom, map.header); } catch { /* $01:B17E never returns on some maps ($1FF): shown still */ }
+    const moving = trace ? animatedMetatiles(map, trace) : { A: new Set<number>(), B: new Set<number>() };
     // First every metatile the map shows, so only the palettes it draws with become
     // families, packed into slots 1..k in palette order (a word names its slot).
-    type Tile = { m: ReturnType<typeof metatilePixels>; g: Placed };
     const tiles: Record<Layer, Map<number, Tile>> = { A: new Map(), B: new Map() };
     const tileOf = (layer: Layer, n: number): Tile | null => {
         if (n < 0 || n >= 192) return null;
         let t = tiles[layer].get(n);
         if (!t) {
             const m = metatilePixels(map, layer === 'A' ? map.tableA : map.tableB, n, stats);
-            t = { m, g: m.empty ? { slot: EMPTY_GRAPHIC, h: 0, v: 0 } : graphics.place(m.px) };
+            t = { m, g: m.empty ? { slot: EMPTY_GRAPHIC, h: 0, v: 0 } : moving[layer].has(n) ? { slot: -1, h: 0, v: 0 } : graphics.place(m.px) };
             tiles[layer].set(n, t);
         }
         return t;
@@ -190,6 +197,9 @@ function convertManaMap(manaRom: ManaRom, id: number) {
     for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) { tileOf('A', map.cell('A', x, y)); tileOf('B', map.cell('B', x, y)); }
     for (const c of cuts) tileOf(c.layer, c.to);
     for (const o of flagged) for (const f of o.frames) for (const v of Object.values(f)) { tileOf('A', v.A); tileOf('B', v.B); }
+    const scratch: Stats = { recolouredTiles: 0, recolouredPixels: 0, mixedPriority: 0, droppedGraphics: 0 };
+    const anim = animateTiles(map, trace, tiles, graphics, (layer, n, vram, palette) =>
+        metatilePixels(map, layer === 'A' ? map.tableA : map.tableB, n, scratch, vram, palette).px);
     const used = new Map<number, Set<number>>();                     // Mana palette -> graphic slots drawn in it
     for (const layer of ['A', 'B'] as Layer[]) for (const t of tiles[layer].values()) {
         if (t.m.empty) continue;
@@ -252,11 +262,16 @@ function convertManaMap(manaRom: ManaRom, id: number) {
         return { id: FAMILY_BASE + n, label: 'm' + n, paletteSet: set, palette: p, colours,
             graphics: used.has(p) ? used.get(p)!.size : 0 };
     });
+    const rotations = trace ? mana.paletteRotations(trace) : { rotations: [], others: [] };
+    const cycles = paletteCycles(rotations.rotations, (p) => (used.has(p) ? slotOf(p) : 0));
     return {
         id, widthTiles: map.w, heightTiles: map.h,
         display: { tm: map.display.main, ts: map.display.sub, colorMath: map.display.math, colorWindow: 0x02 },
         cells,
         graphics: graphics.slots.map(encodeGraphic),
+        frameGraphics: anim.frames.map(encodeGraphic),
+        animation: anim.channels,
+        paletteCycles: cycles.records,
         families,
         stepOn: triggerBoxes(events.steps),
         cut,
@@ -264,7 +279,10 @@ function convertManaMap(manaRom: ManaRom, id: number) {
         onEnter: events.onEnter,
         spawns: mana.mapObjects(manaRom, id).map((o) => ({ x: o.x, y: o.y, kind: o.kind })),
         stats: Object.assign(stats, { graphics: graphics.slots.length, stepCells: events.steps.length,
-            cuttable: cut.length, objects: objects.length }),
+            cuttable: cut.length, objects: objects.length,
+            channels: anim.channels.length, frameGraphics: anim.frames.length, aperiodicTiles: anim.aperiodic,
+            stillTiles: anim.still, paletteCycles: cycles.records.length, droppedCycles: cycles.dropped,
+            unconvertedColours: rotations.others.length }),
     };
 }
 

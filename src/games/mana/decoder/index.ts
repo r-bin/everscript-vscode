@@ -21,6 +21,8 @@ export { AREAS, areaOf, mapsWithoutArea } from './areas';
 export type { ManaArea } from './areas';
 export { traceAnimation } from './animate';
 export type { AnimationTrace, AnimationStep } from './animate';
+export { paletteRotations } from './palette-rotations';
+export type { PaletteRotation, PaletteRotations } from './palette-rotations';
 export { animateCells } from './anim-cells';
 export type { CellAnimation, AnimatedKind } from './anim-cells';
 export type { RenderOptions } from './render';

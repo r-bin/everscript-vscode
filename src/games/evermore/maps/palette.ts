@@ -70,6 +70,15 @@ export interface PaletteCycleSpec {
 }
 
 /**
+ * Frames between two shifts of a cycle: |rate|. `$90D58C` counts `$13F2` down once per
+ * main-loop pass and reloads it with |rate| at each shift; measured on the vanilla ROM a
+ * rate-13 slot shifts every 13 frames (12-15 around lag frames).
+ */
+export function paletteCycleFrames(rate: number): number {
+    return Math.max(1, Math.abs(rate));
+}
+
+/**
  * 16-bit bitmask of palette colour indices (1..15) rotated by a palette cycle.
  */
 export function paletteCycleMask(c: PaletteCycleSpec): number {

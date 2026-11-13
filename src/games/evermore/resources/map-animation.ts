@@ -3,7 +3,7 @@
 
 import { renderRoomComposite } from '../maps/render';
 import { renderMetatileAtlas } from '../maps/metatiles';
-import { shiftCgramPalettes } from '../maps/palette';
+import { paletteCycleFrames, shiftCgramPalettes } from '../maps/palette';
 import { emptyStamp } from '../maps/blank-room';
 import { encodeGif } from './gif';
 import type { RoomData } from '../maps/room';
@@ -58,7 +58,7 @@ function getAnimationSchedule(room: RoomData, maxSteps = 12) {
 
     const delays = [
         ...channels.flatMap((c) => c.frames.map((f) => f.delay)),
-        ...palCycles.map((c) => Math.max(1, Math.abs(c.rate)) * 3),
+        ...palCycles.map((c) => paletteCycleFrames(c.rate)),
     ].filter((d) => d > 0);
     const avgTicks = delays.length ? Math.round(delays.reduce((a, b) => a + b, 0) / delays.length) : 8;
     const ticks = Math.max(4, Math.min(30, avgTicks));

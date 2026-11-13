@@ -9,6 +9,7 @@
 import { RoomModel, TriggerRecord, buildBlob, encodeBlock1, encodeBlock2, encodeBlock3 } from './encode';
 import { buildDictionary, CustomObjectInput } from './custom-room';
 import { encodeObjectArea } from './object-encode';
+import { section2Bytes } from './custom-animation';
 
 export interface OwnRoomInput {
     widthTiles: number;
@@ -26,6 +27,10 @@ export interface OwnRoomInput {
     objects?: CustomObjectInput[];
     stepOn?: TriggerRecord[];
     bTrigger?: TriggerRecord[];
+    /** Palette-cycle descriptors `[b0, b1, b2]` (start colour, span, signed rate), loaded by `$90D50F`. */
+    paletteCycles?: number[][];
+    /** Section 2 channels: graphic ids and frame delays, frame 0 first. Their slots follow Block 1's. */
+    animation?: { frames: number[]; delays: number[] }[];
 }
 
 export interface OwnRoomBlob {
@@ -49,10 +54,10 @@ export function buildOwnRoomBlob(input: OwnRoomInput): OwnRoomBlob {
         stepOn: (input.stepOn || []).map(box),
         bTrigger: (input.bTrigger || []).map(box),
         tileFamilies: input.families.slice(),
-        extras: new Uint8Array(0),
+        extras: Uint8Array.from((input.paletteCycles || []).flatMap((c) => [c[0] & 0xff, c[1] & 0xff, c[2] & 0xff])),
         block1: encodeBlock1(input.graphics, true),
-        section2Count: 0,
-        section2Data: Uint8Array.from([0xff]),
+        section2Count: input.animation?.length ?? 0,
+        section2Data: input.animation?.length ? section2Bytes(input.animation) : Uint8Array.from([0xff]),
         objectOffsets,
         block2: encodeBlock2(dict.grid, w, h, base, dict.sources),
         section4: dict.section4,

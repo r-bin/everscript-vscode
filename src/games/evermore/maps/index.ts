@@ -76,7 +76,7 @@ export type { Entity, DriftVector, SpriteDepth } from './collision';
 export { parseGrassSwapSection, findCuttableGrassTiles, checkTableInvariants } from './cuttable-grass';
 export type { GrassSwapTable, GrassRecord } from './cuttable-grass';
 
-export { extractTileFamilyPalette, buildRoomCgramPalettes, paletteCycleMask, shiftCgramPalettes } from './palette';
+export { extractTileFamilyPalette, buildRoomCgramPalettes, paletteCycleMask, paletteCycleFrames, shiftCgramPalettes } from './palette';
 export type { Rgba, PaletteCycleSpec } from './palette';
 export { decompressTile16x16, decodeTilePixels, tileColorMask } from './chr';
 export { renderVramLayer, compositeLayers, renderRoomComposite, renderRoomForeground, renderRoomLayers, opaqueMask, hiddenTileMask, scale2x } from './render';

@@ -6,7 +6,7 @@ the translation table: [docs/mana/evermore-rooms.md](../../../../../docs/mana/ev
 
 ## Owns
 - Converting a Mana map into Evermore cells, graphics, families, collision and step-on
-  boxes (`convert.js`), the in-memory ROM image that holds it (`virtual-rom.ts`, `ids.ts`),
+  boxes (`convert.js`), its animation into palette cycles and Section 2 channels (`animation.ts`), the in-memory ROM image that holds it (`virtual-rom.ts`, `ids.ts`),
   and serving converted rooms to the Rooms tab's host (`rooms.ts`).
 
 ## Dependencies

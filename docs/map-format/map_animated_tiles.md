@@ -191,10 +191,9 @@ roughly 900 KB.
 
 ## 6. Still open
 
-**CGRAM colour cycling.** Some SNES games animate water by rotating palette
-entries rather than swapping tile graphics. Nothing found so far suggests the
-Evermore map renderer does this — every animation encountered is a Section 2
-tile swap — but it has not been ruled out by tracing.
+**CGRAM colour cycling** exists too, beside Section 2: the room's palette-cycle
+descriptors ([room-reference.md](room-reference.md) §5) rotate a run of colours every
+|rate| frames (`$90D50F`, `$90D58C`). It changes colours only, never a VRAM slot.
 
 ---
 

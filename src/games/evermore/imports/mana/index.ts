@@ -4,4 +4,5 @@
 export * from './rooms';
 export * from './convert';
 export * from './virtual-rom';
+export { paletteCycles } from './animation';
 export * as ids from './ids';

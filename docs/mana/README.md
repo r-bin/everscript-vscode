@@ -448,6 +448,13 @@ character and colour goes through exactly the same set of states over 480 frames
 nothing else changes in the game. The same interpreter runs the game's `$02:A000` and
 `$00:CB90` and reproduces our metatile tables and layers exactly (rom tests).
 The Maps panel plays it per cell kind (cells with the same tile words share frames).
+`paletteRotations` reads the colour rotations off a trace: per palette, the longest runs of
+neighbouring colours that each take the next one's value at every change, at a fixed period.
+Map `$80`: palette 6 colours 11-15 move up every 6 frames, palette 7 colours 8-15 (the waterfall)
+down every 4. Over all maps: 289 runs in 172 maps, periods 2, 4, 6, 8; 199 changing colours in 32
+maps are no run (the bit-15 colours of a palette with gaps, e.g. `$1C` palette 2 colours 2, 3, 4, 6,
+8, 9). Characters held at random (`$C0`) change in bursts: `$80`'s `$360` at frames 56-80, 1064-1088,
+1976-2040, … Map `$1FF`'s trace never returns from `$01:B17E`.
 
 ## Editing a map in the plugin — what is and is not a cell's own
 

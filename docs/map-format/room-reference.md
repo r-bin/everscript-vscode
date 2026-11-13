@@ -158,15 +158,16 @@ dark rooms), and `$90CBB3` reloads when it changes. A family is a ROM id tied to
 an area, never a friendly name.
 
 **Palette-cycle descriptors** (legacy data property `extraGraphics`): 3 bytes each.
-The loader at `$9090A6` passes all three bytes to `$90D50F`. Byte 0 selects a
-two-byte cycle-state slot with `(b0 & 0x70) >> 3` and also determines the starting
-CGRAM colour index as `b0 + (b0 & 0x70)`. Byte 1 is the cycle's colour span; byte
-2 is its signed rate (negative selects reverse cycling). The routine updates
-palette-cycle state at `$1372/$13D2/$13F2/$13B2/$1392`; it does not load CHR
-graphics. For example, `1B 04 05` selects state-table offset 2, starts at CGRAM
-index `$2B` (palette 2, colour 11), cycles a four-colour span, and has positive
-rate 5. The visual effect is that the corresponding CGRAM colours cycle over
-time, changing every tile pixel that uses those colours.
+The loader at `$9090A6` passes all three bytes to `$90D50F`. Byte 0 is the starting
+CGRAM colour `b0 & 0x7F` (palette `(b0 >> 4) & 7`, colour `b0 & 0x0F`) and selects the
+palette's cycle-state slot `(b0 & 0x70) >> 3` (two per palette). Byte 1 is the cycle's
+colour span; byte 2 its signed rate: |rate| frames between two shifts, positive moves
+each colour's value one place up (colour `j+1` takes colour `j`'s), negative one place
+down. `$90D55F` ticks every active slot once per main-loop pass through `$90D58C`
+(knowledge: `cgram_animated_palette_timer_tick_and_step`), which rotates the colours
+from the CGRAM mirror `$7E6187`; no CHR graphics are loaded. For example, `1B 04 05`
+starts at CGRAM colour `$1B` (palette 1, colour 11), rotates four colours, one place
+up every 5 frames, and changes every tile pixel that uses them.
 
 **Cuttable tiles** are not a flag: a cell is cuttable while its metatile id is a
 **source** in Section 4 (§7).
@@ -307,7 +308,7 @@ The editor converts records to inclusive map cells (`collision-overlay.ts`,
 
 | Field | What is known | What is not |
 |---|---|---|
-| Palette-cycle descriptors (`extraGraphics`) | palette, start colour, span and signed rate; set up by `$90D50F` | exact rate timing; the editor displays the bytes but does not animate them |
+| Palette-cycle descriptors (`extraGraphics`) | palette, start colour, span, signed rate (frames per shift, sign = way); set up by `$90D50F`, ticked by `$90D58C`; the editor animates them | a third cycle on one palette takes the previous palette's second slot (`$90D532`), untested in game |
 | Families past the 7th | alternate sets switched by `MAP_PALETTE`; previewed on the Info tab's Header sub-tab | the draft keeps only the first 7; sets cannot be edited |
 | cuttable `steps` byte | always 1 | meaning |
 | duplicate cuttable sources | exist in 4 rooms | which record the engine uses |

@@ -6,7 +6,7 @@ import type { RoomData } from './room';
 import { PixelBuffer, renderVramLayer, compositeLayers } from './render';
 import type { OverlayTransfer } from './animation';
 import { tileColorMask } from './chr';
-import { paletteCycleMask, shiftCgramPalettes } from './palette';
+import { paletteCycleFrames, paletteCycleMask, shiftCgramPalettes } from './palette';
 import type { PaletteCycleSpec } from './palette';
 import { emptyStamp } from './blank-room';
 
@@ -221,7 +221,7 @@ export function buildAnimationGroups(
         const groupCycles = cycleIdxs.map((idx) => palCycles[idx]);
         const leadCycle = groupCycles[0];
         const steps = Math.min(MAX_STEPS, leadCycle.span);
-        const delayMs = Math.max(16, Math.round(Math.max(1, Math.abs(leadCycle.rate)) * 3 * TICK_MS));
+        const delayMs = Math.max(16, Math.round(paletteCycleFrames(leadCycle.rate) * TICK_MS));
 
         for (const block of blockCells(cells)) {
             let x1 = Infinity; let y1 = Infinity; let x2 = -Infinity; let y2 = -Infinity;

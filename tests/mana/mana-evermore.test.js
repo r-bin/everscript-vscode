@@ -8,7 +8,8 @@
 // Goldens are observed facts (counts, ids, agreement), never ROM bytes. "Agreement" is the
 // share of pixels where Evermore's render of the converted room equals src/games/mana/decoder's render
 // of the map (5 bits per channel); Evermore has no backdrop colour, so its black there
-// counts as the backdrop.
+// counts as the backdrop. Animated cells are left out of it: Mana draws them from the
+// characters at load, which its pixel effects never show again; they are checked apart.
 
 const assert = require('assert');
 const fs = require('fs');
@@ -42,6 +43,14 @@ test('a graphic survives Evermore\'s own decoder, and step cells merge into boxe
     assert.deepStrictEqual(boxes, [{ x1: 1, y1: 1, x2: 3, y2: 3, scriptId: 5 }, { x1: 4, y1: 1, x2: 5, y2: 2, scriptId: 6 }]);
 });
 
+test('a Mana rotation becomes an Evermore palette-cycle descriptor, two per palette at most', () => {
+    const rot = (palette, first, count, period, direction) => ({ palette, first, count, period, direction });
+    const slotOf = (p) => (p === 7 ? 3 : p === 6 ? 2 : 0);
+    const out = bridge.paletteCycles([rot(7, 8, 8, 4, -1), rot(6, 11, 5, 6, 1), rot(7, 1, 2, 2, 1), rot(7, 3, 2, 2, 1), rot(5, 1, 3, 8, 1)], slotOf);
+    assert.deepStrictEqual(out.records, [[0x38, 8, 0xFC], [0x2B, 5, 6], [0x31, 2, 2]]);
+    assert.strictEqual(out.dropped, 1);                // the third on palette 7; palette 5 draws nothing here
+});
+
 const SOE = require('../../dist/games').romPath('evermore') || '', SOM = require('../../dist/games').romPath('mana') || '';
 if (!SOE || !SOM || !fs.existsSync(SOE) || !fs.existsSync(SOM)) {
     console.log('\nSecret of Mana -> Evermore ROM tests skipped (add both ROMs: npm run roms -- add <path>).');
@@ -58,11 +67,14 @@ function agreement(id) {
     const map = mana.loadMap(som, id), mi = mana.renderMap(map);
     const q = (d, i) => (d[i] >> 3) << 10 | (d[i + 1] >> 3) << 5 | (d[i + 2] >> 3);
     const b = map.cgram[0], backdrop = (b & 31) << 10 | ((b >> 5) & 31) << 5 | ((b >> 10) & 31);
-    let same = 0;
-    const n = ev.width * ev.height;
-    for (let i = 0; i < n; i++) {
+    const slot = (w) => ((w & 0x3FF) >> 5) * 8 + ((w & 0x1F) >> 1);
+    const moves = (cell) => slot(room.cells[cell * 3]) >= room.graphics.length || slot(room.cells[cell * 3 + 1]) >= room.graphics.length;
+    let same = 0, n = 0;
+    for (let i = 0; i < ev.width * ev.height; i++) {
+        if (moves(Math.floor(i / ev.width / 16) * room.widthTiles + Math.floor((i % ev.width) / 16))) continue;
         const a = ev.data[i * 4 + 3] ? q(ev.data, i * 4) : 0, m = q(mi.rgba, i * 4);
         if (a === m || (a === 0 && m === backdrop)) same++;
+        n++;
     }
     return same / n;
 }
@@ -126,6 +138,19 @@ test('weapon-cut cells become Evermore cuttable grass, event-flag pieces Evermor
     const objs = maps.decodeRoom(v66.rom, v66.roomId).objects;
     assert.deepStrictEqual(objs.map(o => [o.states[0].tileX, o.states[0].tileY, o.states[0].targetWidth, o.states[0].targetHeight]), [[29, 28, 3, 2]]);
     assert.deepStrictEqual(r66.objects.map(o => [o.flag, o.values]), [[0x10, [0, 6]]]);
+});
+
+test('Potos Falls animates: its colour rotations become palette cycles, its moving tiles channels', () => {
+    // Mana map $80 (rom test): palette 6 colours 11-15 move up every 6 frames, palette 7 colours
+    // 8-15 (the waterfall) move down every 4. Evermore's rate is frames per shift, its sign the way.
+    const src = service.resolveRoom(0x1080), room = maps.decodeRoom(src.rom, src.roomId);
+    const conv = bridge.convertManaMap(som, 0x80);
+    const slot = (p) => conv.families.findIndex((f) => f.palette === p) + 1;
+    assert.deepStrictEqual(room.paletteCycles.map((c) => [c.paletteIndex, c.colorStart, c.span, c.rate]), [[slot(6), 11, 5, 6], [slot(7), 8, 8, -4]]);
+    assert.ok(room.animation.length >= 20 && room.animation.every((c) => c.frames.length >= 2), String(room.animation.length));
+    assert.strictEqual(room.animatedTiles.length, room.animation.length);
+    const ov = rooms.buildRoomTileOverlay(src.rom, src.roomId, 0, 0, 'composite', '', '', true);
+    assert.ok(ov.animation && ov.animation.groups.length > 0, JSON.stringify(ov.animation && ov.animation.skipped));
 });
 
 test('every map converts into a room Evermore decodes', () => {

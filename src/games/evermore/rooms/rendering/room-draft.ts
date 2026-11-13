@@ -231,7 +231,7 @@ function buildFamilySheet(rom: Rom, familyId: unknown, borrowFrom: unknown) {
                 }
                 if (differs) {
                     const letter = String.fromCharCode(65 + Math.max(0, activeCycles.indexOf(hit)));
-                    tiles[id] = { span: hit.span, rate: Math.max(1, Math.abs(hit.rate)) * 3, letter };
+                    tiles[id] = { span: hit.span, rate: maps.paletteCycleFrames(hit.rate), letter };
                 }
             });
 

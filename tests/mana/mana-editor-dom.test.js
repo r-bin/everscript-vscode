@@ -43,7 +43,7 @@ async function main() {
         }
         case 'requestRoomTiles': { const s = src(msg.roomId);
             return { command: 'roomTiles', mapName: msg.mapName, roomId: msg.roomId,
-                overlay: { ...rooms.buildRoomTileOverlay(s.rom, s.roomId, msg.originX, msg.originY, msg.layer, msg.overlay, msg.objectStates, false), roomId: msg.roomId } }; }
+                overlay: { ...rooms.buildRoomTileOverlay(s.rom, s.roomId, msg.originX, msg.originY, msg.layer, msg.overlay, msg.objectStates, msg.animate === true, msg.header), roomId: msg.roomId } }; }
         case 'requestRoomMetatiles': { const s = src(msg.roomId);
             return { command: 'roomMetatiles', mapName: msg.mapName, roomId: msg.roomId,
                 palette: { ...rooms.buildRoomMetatilePalette(s.rom, s.roomId, msg.layer, msg.bgPalette, msg.header), roomId: msg.roomId } }; }
