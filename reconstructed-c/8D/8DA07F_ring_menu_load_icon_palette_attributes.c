@@ -13,7 +13,7 @@
  * - Compiled C ASM:   84 instructions [Calypsi 65816 -O1 --speed]
  * - Code Expansion:   14.0x instructions vs ROM
  * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
- * - Rating Hash:      9f945e6fdee6ab89
+ * - Rating Hash:      135a0af9eddbc47e
  * - Rating Status:    VALID (unmodified since rating)
  */
 #include "soe.h"
@@ -22,10 +22,10 @@
 SOE_BIND(ring_menu_load_icon_palette_attributes, 0x8DA07F, RTL)
 {
     SOE_AT(0xA07F);
-    r->x = ABS16(r, MENU_AUDIO_PAN_DIVISOR_ADDR);
+    r->x = ABS16(r, CONTROL_CONFIGURATION_ADDR);
     r->a = LONG16(0x8DA091UL + r->x);
-    ABS16(r, MENU_AUDIO_SFX_VOLUME_ADDR) = r->a;
+    ABS16(r, ACTION_BUTTON_ADDR) = r->a;
     r->a = LONG16(0x8DA095UL + r->x);
-    ABS16(r, MENU_AUDIO_SFX_PITCH_ADDR) = r->a;
+    ABS16(r, RUN_BUTTON_ADDR) = r->a;
     soe_nz16(r, r->a);
 }
