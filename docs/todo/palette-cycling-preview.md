@@ -11,7 +11,10 @@ A room's palette-cycle descriptors (`[b0, b1, b2]`, legacy property `extraGraphi
 colours: start CGRAM colour `b0 & 0x7F`, span `b1`, one place every |`b2`| frames, up for a positive
 rate and down for a negative one, from the CGRAM mirror `$7E6187`. Two slots per palette.
 `paletteCycleFrames` (`maps/palette.ts`) is the one rate-to-frames rule; until v0.404.0 the editor
-played every cycle three times too slowly (|rate| × 3).
+played every cycle three times too slowly (|rate| × 3). Since v0.404.1 every animated group runs on one clock from when
+the map is shown, as the game does from load, and a cell's channels and cycles each keep their own
+clock (`maps/animation-groups.ts` `timeline`); before, a cycle on an animated tile stepped with the
+tile's frames and groups started at random points.
 
 Converted Secret of Mana maps carry cycles too: a Mana colour rotation becomes one descriptor
 ([docs/mana/evermore-rooms.md](../mana/evermore-rooms.md)).
@@ -22,7 +25,6 @@ Converted Secret of Mana maps carry cycles too: a Mana colour rotation becomes o
   (`$90D532`). What the game shows then is untested; the editor should warn before allowing it.
 - Script opcode `0xB6` can start cycles on OBJ palettes (slots up to 31); room descriptors reach
   only BG palettes 0-7. The editor knows nothing of script-started cycles.
-- Phase: in the game all cycles of a room start at load, while the editor's groups start when shown.
 - A test that compares a previewed frame with the running game's CGRAM (the measured rate-13 slot,
   frame 6000 of a no-input boot, is a candidate).
 - Editing beyond the rate (start, span, adding or removing a descriptor) with raw bytes kept on

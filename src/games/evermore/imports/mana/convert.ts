@@ -52,11 +52,39 @@ function collisionWord(c0: number, c2: number, step: boolean): number {
 
 const rgb = (c: number): number[] => [c & 31, (c >> 5) & 31, (c >> 10) & 31];
 
-/** The colour of palette `to` nearest to colour `c` of palette `from` (index 1..15). */
-function nearest(cgram: Uint16Array, from: number, c: number, to: number): number {
+/** Squared distance between two BGR555 colours. */
+function dist(a: number, b: number): number {
+    const x = rgb(a), y = rgb(b);
+    return (x[0] - y[0]) ** 2 + (x[1] - y[1]) ** 2 + (x[2] - y[2]) ** 2;
+}
+
+/**
+ * The palette a mixed metatile is drawn in: the one its other pixels move least to (nearest
+ * still colour each), the one with most pixels on a tie. A count alone put the waterfall's
+ * foam (palette 7) into the water's palette 6 at Potos Falls, half and half.
+ */
+function mainPalette(cgram: Uint16Array, px: Uint8Array, pal: Uint8Array, palCount: number[], rotating: ReadonlySet<number>): number {
+    let main = 1, best = Infinity;
+    for (let to = 1; to < 8; to++) {
+        if (!palCount[to]) continue;
+        let err = 0;
+        for (let i = 0; i < 256; i++) {
+            if (px[i] && pal[i] !== to) err += dist(cgram[pal[i] * 16 + px[i]], cgram[to * 16 + nearest(cgram, pal[i], px[i], to, rotating)]);
+        }
+        if (err < best || (err === best && palCount[to] > palCount[main])) { best = err; main = to; }
+    }
+    return main;
+}
+
+/**
+ * The colour of palette `to` nearest to colour `c` of palette `from` (index 1..15), never one
+ * that rotates (`rotating`, CGRAM indices): a redrawn pixel would blink with a cycle it is not part of.
+ */
+function nearest(cgram: Uint16Array, from: number, c: number, to: number, rotating: ReadonlySet<number>): number {
     const want = rgb(cgram[from * 16 + c]);
     let best = 1, bestD = Infinity;
     for (let k = 1; k < 16; k++) {
+        if (rotating.has(to * 16 + k)) continue;
         const have = rgb(cgram[to * 16 + k]);
         const d = (want[0] - have[0]) ** 2 + (want[1] - have[1]) ** 2 + (want[2] - have[2]) ** 2;
         if (d < bestD) { bestD = d; best = k; }
@@ -68,7 +96,7 @@ function nearest(cgram: Uint16Array, from: number, c: number, to: number): numbe
  * A metatile drawn as one 16x16 graphic: 256 colour indices, its palette and priority.
  * `vram` is the characters at one moment of an animation; `main` keeps a palette chosen before.
  */
-function metatilePixels(map: ManaMap, table: Uint16Array, n: number, stats: Stats, vram = map.vram, main = 0) {
+function metatilePixels(map: ManaMap, table: Uint16Array, n: number, stats: Stats, rotating: ReadonlySet<number>, vram = map.vram, main = 0) {
     const px = new Uint8Array(256), pal = new Uint8Array(256);
     const palCount = new Array(8).fill(0);
     let prio = 0, opaque = 0;
@@ -91,11 +119,11 @@ function metatilePixels(map: ManaMap, table: Uint16Array, n: number, stats: Stat
         }
     }
     if (!opaque) return { px, palette: 1, priority: 0, empty: true };
-    if (!main) { main = 1; for (let p = 1; p < 8; p++) if (palCount[p] > palCount[main]) main = p; }
+    if (!main) main = mainPalette(map.cgram, px, pal, palCount, rotating);
     if (palCount[main] < opaque) {
         stats.recolouredTiles++;
         for (let i = 0; i < 256; i++) {
-            if (px[i] && pal[i] !== main) { px[i] = nearest(map.cgram, pal[i], px[i], main); stats.recolouredPixels++; }
+            if (px[i] && pal[i] !== main) { px[i] = nearest(map.cgram, pal[i], px[i], main, rotating); stats.recolouredPixels++; }
         }
     }
     if (prio && prio < opaque) stats.mixedPriority++;
@@ -177,6 +205,8 @@ function convertManaMap(manaRom: ManaRom, id: number) {
     let trace: Trace | null = null;
     try { trace = mana.traceAnimation(manaRom, map.header); } catch { /* $01:B17E never returns on some maps ($1FF): shown still */ }
     const moving = trace ? animatedMetatiles(map, trace) : { A: new Set<number>(), B: new Set<number>() };
+    const rotations = trace ? mana.paletteRotations(trace) : { rotations: [], others: [] };
+    const rotating = new Set(rotations.rotations.flatMap((r) => Array.from({ length: r.count }, (_, k) => r.palette * 16 + r.first + k)));
     // First every metatile the map shows, so only the palettes it draws with become
     // families, packed into slots 1..k in palette order (a word names its slot).
     const tiles: Record<Layer, Map<number, Tile>> = { A: new Map(), B: new Map() };
@@ -184,7 +214,7 @@ function convertManaMap(manaRom: ManaRom, id: number) {
         if (n < 0 || n >= 192) return null;
         let t = tiles[layer].get(n);
         if (!t) {
-            const m = metatilePixels(map, layer === 'A' ? map.tableA : map.tableB, n, stats);
+            const m = metatilePixels(map, layer === 'A' ? map.tableA : map.tableB, n, stats, rotating);
             t = { m, g: m.empty ? { slot: EMPTY_GRAPHIC, h: 0, v: 0 } : moving[layer].has(n) ? { slot: -1, h: 0, v: 0 } : graphics.place(m.px) };
             tiles[layer].set(n, t);
         }
@@ -199,7 +229,7 @@ function convertManaMap(manaRom: ManaRom, id: number) {
     for (const o of flagged) for (const f of o.frames) for (const v of Object.values(f)) { tileOf('A', v.A); tileOf('B', v.B); }
     const scratch: Stats = { recolouredTiles: 0, recolouredPixels: 0, mixedPriority: 0, droppedGraphics: 0 };
     const anim = animateTiles(map, trace, tiles, graphics, (layer, n, vram, palette) =>
-        metatilePixels(map, layer === 'A' ? map.tableA : map.tableB, n, scratch, vram, palette).px);
+        metatilePixels(map, layer === 'A' ? map.tableA : map.tableB, n, scratch, rotating, vram, palette).px);
     const used = new Map<number, Set<number>>();                     // Mana palette -> graphic slots drawn in it
     for (const layer of ['A', 'B'] as Layer[]) for (const t of tiles[layer].values()) {
         if (t.m.empty) continue;
@@ -257,12 +287,12 @@ function convertManaMap(manaRom: ManaRom, id: number) {
     }));
     const set = map.header.paletteSet;
     const families = palettes.map((p) => {
-        const colours = Array.from(map.cgram.subarray(p * 16, p * 16 + 16), (c) => c & 0x7FFF);
+        // The moment the channels start from (animation.ts), so tiles and colour cycles start together.
+        const colours = Array.from((trace ? trace.cgram : map.cgram).subarray(p * 16, p * 16 + 16), (c) => c & 0x7FFF);
         const n = set * 8 + p - 1;
         return { id: FAMILY_BASE + n, label: 'm' + n, paletteSet: set, palette: p, colours,
             graphics: used.has(p) ? used.get(p)!.size : 0 };
     });
-    const rotations = trace ? mana.paletteRotations(trace) : { rotations: [], others: [] };
     const cycles = paletteCycles(rotations.rotations, (p) => (used.has(p) ? slotOf(p) : 0));
     return {
         id, widthTiles: map.w, heightTiles: map.h,
@@ -281,7 +311,7 @@ function convertManaMap(manaRom: ManaRom, id: number) {
         stats: Object.assign(stats, { graphics: graphics.slots.length, stepCells: events.steps.length,
             cuttable: cut.length, objects: objects.length,
             channels: anim.channels.length, frameGraphics: anim.frames.length, aperiodicTiles: anim.aperiodic,
-            stillTiles: anim.still, paletteCycles: cycles.records.length, droppedCycles: cycles.dropped,
+            stillTiles: anim.still, peakUploads: anim.peakUploads, paletteCycles: cycles.records.length, droppedCycles: cycles.dropped,
             unconvertedColours: rotations.others.length }),
     };
 }

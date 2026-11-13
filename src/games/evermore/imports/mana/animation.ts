@@ -63,24 +63,21 @@ function periodOf(states: Int32Array): number {
 }
 
 /**
- * One loop as (state, frames) runs, starting where the state changes so the loop wraps
- * cleanly — where it changes to `first` (the picture at load) when the loop shows it, so
- * frame 0 is what the map shows before anything moves.
+ * One loop as (state, frames) runs, in the order Evermore plays them so the channel stays on
+ * the recording's clock: at load the engine shows frame 0 for one frame, then frame 1 for its
+ * delay, and so on (`$90:A0F8` starts timer and index at 0). So frame 1 starts at recording
+ * frame 1, and frame 0 is the run that holds frame 0 (also the loop's last frames). Every
+ * channel is cut at the same moment, which keeps Mana's phase between them.
  */
-function loopRuns(states: Int32Array, period: number, first: number): Array<[number, number]> {
-    const at = (f: number) => states[f % period];
-    const entered = (f: number) => at(f) !== at((f + period - 1) % period);
-    let start = 0;
-    while (start < period && !(entered(start) && at(start) === first)) start++;
-    if (start === period) { start = 0; while (start < period && !entered(start)) start++; }
-    if (start === period) start = 0;
+function loopRuns(states: Int32Array, period: number): Array<[number, number]> {
     const runs: Array<[number, number]> = [];
-    for (let f = start; f < start + period; f++) {
-        const s = at(f), last = runs[runs.length - 1];
+    for (let f = 1; f <= period; f++) {
+        const s = states[f % period], last = runs[runs.length - 1];
         if (last && last[0] === s && last[1] < MAX_DELAY) last[1]++;
         else runs.push([s, 1]);
     }
-    return runs;
+    const tail = runs.pop()!;                               // the run through frame `period`, which is frame 0
+    return [tail, ...runs];
 }
 
 /**
@@ -101,7 +98,7 @@ function tileChannels(map: ManaMap, trace: AnimationTrace, tiles: Array<[Layer, 
     };
     const timeline = tiles.map(([layer, n]) => {
         const chars = new Set([0, 1, 2, 3].map((q) => tables[layer][n * 4 + q] & 0x3FF));
-        return { layer, n, chars, states: new Int32Array(L).fill(-1), now: stateOf(draw(layer, n, vram)), first: stateOf(draw(layer, n, map.vram)) };
+        return { layer, n, chars, states: new Int32Array(L).fill(-1), now: stateOf(draw(layer, n, vram)) };
     });
     let f = 0;
     for (const step of [...trace.steps, { frame: L, chars: new Map<number, Uint8Array>() }]) {
@@ -124,8 +121,8 @@ function tileChannels(map: ManaMap, trace: AnimationTrace, tiles: Array<[Layer, 
     let aperiodic = 0;
     for (const t of timeline) {
         const period = periodOf(t.states) || (aperiodic++, L);
-        const runs = loopRuns(t.states, period, t.first);
-        if (runs.length < 2) continue;
+        const runs = loopRuns(t.states, period);
+        if (new Set(runs.map((r) => r[0])).size < 2) continue;
         const delays = runs.map((r) => r[1]);
         const seq = runs.map((r) => pixels[r[0]]);
         const tries: [Uint8Array[], number, number][] = [[seq, 0, 0], [seq.map(flipH), 1, 0], [seq.map(flipV), 0, 1], [seq.map((p) => flipV(flipH(p))), 1, 1]];
@@ -172,12 +169,21 @@ function animateTiles(map: ManaMap, trace: AnimationTrace | null, tiles: Record<
         if (t.g.slot < 0 && a) t.g = { slot: graphics.slots.length + a.channel, h: a.h, v: a.v };
     }
     const channels = res.channels.slice(0, kept);
+    // The engine uploads at most 10 changed channels a frame ($90:A1B4); the rest show late.
+    const uploads = new Map<number, number>();
+    for (const c of channels) {
+        const period = c.delays.reduce((a, b) => a + b, 0);
+        for (let t = 1, k = 1; t <= (trace ? trace.length : 0); k = (k + 1) % c.delays.length) {
+            uploads.set(t, (uploads.get(t) ?? 0) + 1);
+            t += c.delays[k] || period;
+        }
+    }
     const usedFrames = [...new Set(channels.flatMap((c) => c.frames))].sort((x, y) => x - y);
     const renumber = new Map(usedFrames.map((f, i) => [f, i]));
     return {
         frames: usedFrames.map((f) => res.frames[f]),
         channels: channels.map((c) => ({ frames: c.frames.map((f) => renumber.get(f)!), delays: c.delays })),
-        aperiodic: res.aperiodic, still,
+        aperiodic: res.aperiodic, still, peakUploads: Math.max(0, ...uploads.values()),
     };
 }
 

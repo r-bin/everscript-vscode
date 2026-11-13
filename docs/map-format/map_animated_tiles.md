@@ -25,7 +25,8 @@ everything else that reads the grid.
 |---|---|
 | How many things can animate in one room? | One channel per animated graphic; 1 to 32 in practice. The V-Blank DMA budget is the real ceiling (see [map_editor_architecture_and_limitations.md](map_editor_architecture_and_limitations.md) §2). |
 | Where do the frames live? | Section 2 of the room blob, right after Block 1's payload. |
-| Do channels share a clock? | **No.** Each has its own frame delays and runs free. |
+| Do channels share a clock? | **No.** Each has its own frame delays and runs free — but all start at room load: frame 0 for one frame, then frame 1 for its delay (`$90:A0F8` zeroes timer and index). |
+| How many change in one frame? | 10 uploads a frame (`$90:A1B4`); a channel past that waits for a frame with budget, then catches up. Channels are scanned from 0. |
 | Does animation affect collision? | No. It replaces graphics in a VRAM slot, not metatile IDs in the grid. |
 
 ---

@@ -49,8 +49,10 @@ export interface AnimationGroup {
     h: number;
     /** Frames, each an RGBA buffer of the bounding box, transparent off-cell. */
     frames: PixelBuffer[];
-    /** How long each frame is held, in milliseconds. */
+    /** How long each step is held, in milliseconds. */
     delaysMs: number[];
+    /** The frame each step shows (frames are distinct moments; a step may repeat one). */
+    order: number[];
     /** Channels driving this group, for reporting. */
     channels: number[];
     /** Whether this group is driven by Section 2 tile channels or Section 4.3 palette cycles. */
@@ -63,8 +65,9 @@ interface CellRef { x: number; y: number; w1: number; w2: number; }
 function gcd(a: number, b: number): number { return b ? gcd(b, a % b) : a; }
 function lcm(a: number, b: number): number { return a / gcd(a, b) * b; }
 
-/** Beyond this the two channels driving one cell are left out of step. */
-const MAX_STEPS = 24;
+/** A group's loop is cut after this many frames (a minute) or distinct moments. */
+const MAX_LOOP = 3600;
+const MAX_STATES = 96;
 
 function activeRoomPaletteCycles(room: RoomData): PaletteCycleSpec[] {
     return (room.paletteCycles || []).filter(
@@ -161,16 +164,10 @@ export function buildAnimationGroups(
     // Cells sharing both tilemap words render identically; the median room has
     // 22 such pairs, so this turns thousands of cells into a few dozen renders.
     const cellCache = new Map<string, PixelBuffer>();
-    for (const { chans, palIdxs, cells } of byKey.values()) {
-        // 2. Step schedule. One channel: its own frames, exactly. Two channels
-        //    on one cell (rare — 729 cells ROM-wide): step through the lcm of
-        //    their frame counts, which keeps each channel's own order and only
-        //    loses the phase between them.
-        let steps = chans.reduce((a, c) => lcm(a, channels[c].frames.length), 1);
-        if (steps > MAX_STEPS) steps = channels[chans[0]].frames.length;
-        const subPalCycles = palIdxs.map((idx) => palCycles[idx]);
-
-        // 3. Split the cells into blocks before rendering.
+    const emit = (kind: 'tile' | 'palette', chans: number[], cycleIdxs: number[], cells: CellRef[]) => {
+        const cycles = cycleIdxs.map((idx) => palCycles[idx]);
+        const tl = timeline(chans.map((c) => channels[c].frames.map((f) => f.delay)), cycles);
+        // 3. Split the cells into blocks; draw each distinct state of a block once.
         for (const block of blockCells(cells)) {
             let x1 = Infinity; let y1 = Infinity; let x2 = -Infinity; let y2 = -Infinity;
             for (const c of block) {
@@ -179,82 +176,83 @@ export function buildAnimationGroups(
             }
             const bw = x2 - x1;
             const bh = y2 - y1;
-
-            const frames: PixelBuffer[] = [];
-            const delaysMs: number[] = [];
-            for (let s = 0; s < steps; s++) {
+            const frames: PixelBuffer[] = tl.states.map((state) => {
                 const tiles = room.animatedTiles.slice();
-                for (const c of chans) {
-                    const f = channels[c].frames;
-                    tiles[c] = f[s % f.length].tileId;
-                }
-                const cgramPalettes = subPalCycles.length
-                    ? shiftCgramPalettes(rom, room.tileFamilies, subPalCycles, s)
-                    : undefined;
+                chans.forEach((c, i) => { tiles[c] = channels[c].frames[state[i]].tileId; });
+                const shifts = state.slice(chans.length);
                 const staged: RoomData = {
-                    ...room,
-                    animatedTiles: tiles,
-                    ...(cgramPalettes ? { cgramPalettes } : {}),
+                    ...room, animatedTiles: tiles,
+                    ...(cycles.length ? { cgramPalettes: shiftCgramPalettes(rom, room.tileFamilies, cycles, shifts) } : {}),
                 };
-
                 const buf = new Uint8Array(bw * 16 * bh * 16 * 4);
                 for (const cell of block) {
-                    const ck = 't' + palIdxs.join(',') + ':' + s + ':' + cell.w1 + ':' + cell.w2;
+                    const ck = kind + chans.join(',') + '|' + cycleIdxs.join(',') + ':' + state.join(',') + ':' + cell.w1 + ':' + cell.w2;
                     let px = cellCache.get(ck);
                     if (!px) { px = renderCell(rom, staged, cell.w1, cell.w2, layer); cellCache.set(ck, px); }
-                    const ox = (cell.x - x1) * 16;
-                    const oy = (cell.y - y1) * 16;
-                    blitAnimatedCell(buf, px, cell, ox, oy, bw, stride, overlay);
+                    blitAnimatedCell(buf, px, cell, (cell.x - x1) * 16, (cell.y - y1) * 16, bw, stride, overlay);
                 }
-                frames.push({ width: bw * 16, height: bh * 16, data: buf });
-
-                const lead = channels[chans[0]].frames;
-                delaysMs.push(Math.max(16, Math.round(lead[s % lead.length].delay * TICK_MS)));
-            }
-
-            groups.push({ x: x1, y: y1, w: bw, h: bh, frames, delaysMs, channels: chans, kind: 'tile' });
+                return { width: bw * 16, height: bh * 16, data: buf };
+            });
+            groups.push({ x: x1, y: y1, w: bw, h: bh, frames, delaysMs: tl.delaysMs, order: tl.order, channels: chans, kind });
         }
-    }
-
+    };
+    for (const { chans, palIdxs, cells } of byKey.values()) emit('tile', chans, palIdxs, cells);
     // 4. Palette-cycle groups (Section 4.3 colour shifting on otherwise static tiles).
-    for (const { cycleIdxs, cells } of byPalKey.values()) {
-        const groupCycles = cycleIdxs.map((idx) => palCycles[idx]);
-        const leadCycle = groupCycles[0];
-        const steps = Math.min(MAX_STEPS, leadCycle.span);
-        const delayMs = Math.max(16, Math.round(paletteCycleFrames(leadCycle.rate) * TICK_MS));
-
-        for (const block of blockCells(cells)) {
-            let x1 = Infinity; let y1 = Infinity; let x2 = -Infinity; let y2 = -Infinity;
-            for (const c of block) {
-                x1 = Math.min(x1, c.x); y1 = Math.min(y1, c.y);
-                x2 = Math.max(x2, c.x + 1); y2 = Math.max(y2, c.y + 1);
-            }
-            const bw = x2 - x1;
-            const bh = y2 - y1;
-
-            const frames: PixelBuffer[] = [];
-            const delaysMs: number[] = [];
-            for (let s = 0; s < steps; s++) {
-                const cgramPalettes = shiftCgramPalettes(rom, room.tileFamilies, groupCycles, s);
-                const staged: RoomData = { ...room, cgramPalettes };
-                const buf = new Uint8Array(bw * 16 * bh * 16 * 4);
-                for (const cell of block) {
-                    const ck = 'p' + cycleIdxs.join(',') + ':' + s + ':' + cell.w1 + ':' + cell.w2;
-                    let px = cellCache.get(ck);
-                    if (!px) { px = renderCell(rom, staged, cell.w1, cell.w2, layer); cellCache.set(ck, px); }
-                    const ox = (cell.x - x1) * 16;
-                    const oy = (cell.y - y1) * 16;
-                    blitAnimatedCell(buf, px, cell, ox, oy, bw, stride, overlay);
-                }
-                frames.push({ width: bw * 16, height: bh * 16, data: buf });
-                delaysMs.push(delayMs);
-            }
-
-            groups.push({ x: x1, y: y1, w: bw, h: bh, frames, delaysMs, channels: [], kind: 'palette' });
-        }
-    }
-
+    for (const { cycleIdxs, cells } of byPalKey.values()) emit('palette', [], cycleIdxs, cells);
     return groups;
+}
+
+/**
+ * One loop of everything that drives a group, each on its own clock from room load as in the
+ * game: a channel holds frame k for its delay (frames, frame 0 one frame at load), a cycle
+ * shifts every |rate| frames.
+ * A step starts wherever any of them changes; `states` are the distinct moments (channel
+ * frame indices, then cycle shifts), `order` names one per step. A loop longer than
+ * MAX_LOOP frames, or with more than MAX_STATES moments, is cut there (it jumps at the end).
+ */
+function timeline(channelDelays: number[][], cycles: PaletteCycleSpec[]) {
+    const drivers = [
+        ...channelDelays.map((d) => {
+            // $90:A0F8 starts timer and frame at 0: frame 0 shows one frame, frame 1 from frame 1,
+            // and frame 0 again for its own delay at the end of each loop.
+            const order = [...d.keys()].slice(1).concat(0), starts: number[] = [];
+            let t = 1;
+            for (const k of order) { starts.push(t); t += Math.max(1, d[k]); }
+            const period = t - 1;
+            const at = (f: number) => {
+                if (f === 0) return 0;
+                const g = ((f - 1) % period) + 1;
+                let i = starts.length - 1;
+                while (starts[i] > g) i--;
+                return order[i];
+            };
+            return { period, at, changes: [0, ...starts.filter((x) => x < period)] };
+        }),
+        ...cycles.map((c) => {
+            const r = paletteCycleFrames(c.rate);
+            return { period: r * c.span, at: (f: number) => Math.floor(f / r) % c.span, changes: Array.from({ length: c.span }, (_, k) => k * r) };
+        }),
+    ];
+    const full = drivers.reduce((a, d) => lcm(a, d.period), 1);
+    const loop = Math.min(full, MAX_LOOP);
+    const times = new Set<number>([0]);
+    for (const d of drivers) for (let base = 0; base < loop; base += d.period) for (const c of d.changes) if (base + c < loop) times.add(base + c);
+    const sorted = [...times].sort((a, b) => a - b);
+    const states: number[][] = [], order: number[] = [], delaysMs: number[] = [], index = new Map<string, number>();
+    for (let i = 0; i < sorted.length; i++) {
+        const t = sorted[i], next = i + 1 < sorted.length ? sorted[i + 1] : loop;
+        const state = drivers.map((d) => d.at(t % d.period));
+        const key = state.join(',');
+        let k = index.get(key);
+        if (k === undefined) {
+            if (states.length >= MAX_STATES) break;
+            k = states.length; index.set(key, k); states.push(state);
+        }
+        // Rounded at the step's ends, so the loop totals exactly loop * TICK_MS and never drifts.
+        delaysMs.push(Math.round(next * TICK_MS) - Math.round(t * TICK_MS));
+        order.push(k);
+    }
+    return { states, order, delaysMs };
 }
 
 /**

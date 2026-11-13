@@ -261,6 +261,7 @@ function cachedAnimation(rom: Rom, key: string, layer: Layer, entry: Render): An
             x: g.x, y: g.y, w: g.w, h: g.h,
             kind: g.kind || 'tile',
             delays: g.delaysMs,
+            order: g.order,
             frames: g.frames.map((f) => {
                 const uri = maps.encodePngDataUri(f);
                 bytes += uri.length;
