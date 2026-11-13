@@ -8,7 +8,7 @@ name: script_op_74_face_0
 title: Script opcode 0x74 — face 0
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E, continues in the same turn (docs/scripts/opcodes.md)", "trace: the game ran 18 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
+evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E, continues in the same turn (docs/scripts/opcodes.md)", "trace: the game ran 18 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.40): 3/3 states (3/3 oracle) match ROM, mutation caught"]
 see: [docs/scripts/opcodes.md]
 ---
 Handler of script opcode [0x74](soe://rom/assets/scripts/opcodes/74.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/74.md`, served at `soe://rom/assets/scripts/opcodes/74.md`.

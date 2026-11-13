@@ -8,7 +8,7 @@ name: projectile_entity_slot_allocate_and_init
 title: Allocates a projectile entity slot in pool $6387..$64E7 and initializes initial launch coordinates and palette
 confidence: guess
 tags: [unverified, rea-partial-read]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.45): 46/46 states (46/46 oracle) and 5/5 fuzzed match ROM, mutation caught"]
 ---
 Low confidence — Allocates a projectile entity slot in pool $6387..$64E7 and initializes initial launch coordinates and palette.
 

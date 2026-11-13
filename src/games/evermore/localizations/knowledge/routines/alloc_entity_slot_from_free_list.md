@@ -7,7 +7,7 @@ category: ⚔️
 name: alloc_entity_slot_from_free_list
 title: Entity record allocator from singly-linked free list ($8F:B2BE)
 confidence: confirmed
-evidence: ["disasm: pops head of free entity list from $7E:3DE3; if 0 (empty), crashes via BRK $8B (entity pool overflow); advances free list head via next-pointer +$5E,X; prepends slot to active list $7E:3DE1; sets active flag $0200 in status word +$10,X; returns entity pointer in Y and X; caller: $8F:B094"]
+evidence: ["disasm: pops head of free entity list from $7E:3DE3; if 0 (empty), crashes via BRK $8B (entity pool overflow); advances free list head via next-pointer +$5E,X; prepends slot to active list $7E:3DE1; sets active flag $0200 in status word +$10,X; returns entity pointer in Y and X; caller: $8F:B094", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.44): 39/39 states (39/39 oracle) and 624/624 fuzzed match ROM, mutation caught"]
 see: [knowledge/wram/ACTIVE_COMPANION_HEAD.md, knowledge/wram/ENTITY_RECORD_FREE_HEAD.md]
 tags: [entities, allocator, memory]
 ---

@@ -7,7 +7,7 @@ category: 🎨
 name: render_alchemy_particle_spray_to_oam
 title: Alchemy particle spray generator and OAM committer ($91:CB9A)
 confidence: confirmed
-evidence: ["disasm: sets parameter words $2E = $059E and $30 = $00C8; loops calling generator $91:CBB1; if carry set (valid particle), commits sprite to OAM via Direct_sprite_draw_OAM_809033 ($80:9033); loops until all particles rendered; caller: $90:DFA9"]
+evidence: ["disasm: sets parameter words $2E = $059E and $30 = $00C8; loops calling generator $91:CBB1; if carry set (valid particle), commits sprite to OAM via Direct_sprite_draw_OAM_809033 ($80:9033); loops until all particles rendered; caller: $90:DFA9", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.40): 46/46 states (44/44 oracle) match ROM, mutation caught"]
 see: [routines/direct_sprite_draw_oam.md]
 tags: [alchemy, particles, sprites, oam]
 ---

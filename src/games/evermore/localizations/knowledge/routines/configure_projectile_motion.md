@@ -8,7 +8,7 @@ name: configure_projectile_motion
 title: Configure projectile motion data
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: evaluates eight parameters, fills DP fields consumed by $90:DCC0, writes descriptor fields +$20/+$22/+$24 (and optional +$28), then dispatches through the movement table at $90:D986", "trace: the game ran 21 distinct instructions with this opcode (tests/script-vm/goldens.json)"]
+evidence: ["disasm: evaluates eight parameters, fills DP fields consumed by $90:DCC0, writes descriptor fields +$20/+$22/+$24 (and optional +$28), then dispatches through the movement table at $90:D986", "trace: the game ran 21 distinct instructions with this opcode (tests/script-vm/goldens.json)", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.42): 46/46 states (46/46 oracle) match ROM, mutation caught"]
 see: [docs/scripts/vm.md, docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-b5-projectile.md]
 ---
 Handler of script opcode [0xB5](soe://rom/assets/scripts/opcodes/b5.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/b5.md`, served at `soe://rom/assets/scripts/opcodes/b5.md`.

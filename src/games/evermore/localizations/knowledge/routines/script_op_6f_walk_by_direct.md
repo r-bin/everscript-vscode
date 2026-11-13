@@ -8,7 +8,7 @@ name: script_op_6f_walk_by_direct
 title: Script opcode 0x6F: walk an entity by a tile offset, ignoring terrain
 confidence: confirmed
 tags: [script-vm]
-evidence: ["trace: the game ran 52 distinct instructions with this opcode (tests/script-vm/goldens.json)", "disasm: DP $12 = 1 selects $8F:AAD3 at $8C:DABF (v0.320.0)"]
+evidence: ["trace: the game ran 52 distinct instructions with this opcode (tests/script-vm/goldens.json)", "disasm: DP $12 = 1 selects $8F:AAD3 at $8C:DABF (v0.320.0)", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.44): 27/27 states (27/27 oracle) match ROM, mutation caught"]
 see: [docs/scripts/vm.md, docs/scripts/opcodes.md]
 ---
 Handler of script opcode [0x6F](soe://rom/assets/scripts/opcodes/6f.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/6f.md`, served at `soe://rom/assets/scripts/opcodes/6f.md`.

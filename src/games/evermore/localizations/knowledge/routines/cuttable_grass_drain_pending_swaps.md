@@ -6,12 +6,13 @@ kind: code
 category: 🧠
 name: cuttable_grass_drain_pending_swaps
 title: "Cuttable grass: drain pending swap animation queue"
-confidence: confirmed
-tags: [map, table]
+confidence: verified
+tags: [map, table, reconstructed-c, g1-pass]
 evidence:
   - "docs/disassembly/maps/cuttable-grass.md"
   - "docs/map-format/cuttable_grass_mechanics.md"
   - "Mesen2 CPU trace cutting_grass_2.txt frames 102103-102156"
+  - "Reconstructed in `reconstructed-c/90/90A6EF_cuttable_grass.c` (SOE_BIND); passes Gate G1 differential verification (34/34 reference states, 544/544 fuzzed states, mutation caught: yes, 31 / 689 ROM/C instructions per call)."
 ---
 
 Drains up to 4 pending grass cutting animation slots per frame from the 24-slot FIFO queue at `$7E:0FD2`–`$7E:1001`.

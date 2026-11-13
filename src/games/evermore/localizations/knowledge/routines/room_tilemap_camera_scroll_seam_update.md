@@ -5,29 +5,14 @@ size: 182
 kind: code
 category: 🧠
 name: room_tilemap_camera_scroll_seam_update
-title: Calculates dirty 16x16 tile column and row seams for VRAM tilemap streaming as the camera scrolls
-confidence: likely
-tags: [unverified, rea-partial-read, widescreen, widescreen.streaming]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+title: BG2 visible tilemap window calculator and full-window VRAM upload ($90:93AA)
+confidence: verified
+tags: [camera, tilemap, rendering, widescreen, widescreen.streaming]
+evidence: ["disasm: reads BG2 scroll ($0112/$0114) into viewport window $0F94..$0F9A, DMA-clears VRAM $0400, and uploads $0FAC columns x 15 rows from $7F:0000 (+2 word offset) with 32-column wrap via $90:93DF", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.39): 18/18 states (17/17 oracle) and 288/288 fuzzed match ROM, mutation caught"]
 ---
-Low confidence — Calculates dirty 16x16 tile column and row seams for VRAM tilemap streaming as the camera scrolls.
 
-> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
-
-Manages seamless background tilemap streaming during room camera panning.
-When camera position variables (`$0112`, `$0114`) cross 16-pixel tile seams, the routine computes boundary row/column indices and enters newly revealed room tile descriptors into VRAM DMA staging buffers at `$0F98` and `$0F9A`.
-
-## Callers
-- `$90:94AB` (`FUN_9094ab`)
-
-## Callees
-- None
-
-## Variables and memory (hypotheses)
-- `$0112` (Camera world horizontal scrolling coordinate)
-- `$0114` (Camera world vertical scrolling coordinate)
-- `$0F98`, `$0F9A` (VRAM dirty seam streaming buffer entries)
+Computes the visible BG2 metatile bounds from PPU shadow scroll `$0112`/`$0114` into `$0F94`–`$0F9A`, clears the `$0400` VRAM nametable by fixed-source DMA from `$80:8000`, and streams `$0FAC` columns × 15 rows from bank `$7F` (metatile word `+2`) to `$2118`, wrapping at 32 columns.
 
 ## Widescreen notes
 
-Read whole (2026-11-09): the **full-window** BG tilemap upload, not a seam update. For BG2 (VRAM `$0400`, metatile layer word `+2`; BG1 enters at `$90:93DF` with 0/0) it clears the 32x32 map by a fixed-source DMA from `$7F:8000`, then writes `$0FAC` cells x 15 rows from the room grid `$7F:0000` straight to `$2118`, wrapping at 32 columns. Only this window is drawn; the rest of the VRAM ring stays blank.
+Read whole (2026-11-09): the **full-window** BG2 tilemap upload (BG1 `$90:9379` enters `$90:93DF` with VRAM base `0` and word offset `0`). Only this window is drawn; the rest of the VRAM ring stays blank.

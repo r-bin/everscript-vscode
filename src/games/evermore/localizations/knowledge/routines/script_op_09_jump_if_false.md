@@ -8,7 +8,7 @@ name: script_op_09_jump_if_false
 title: Script opcode 0x09 — jump if false
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E r16, jumps or continues (docs/scripts/opcodes.md)", "trace: the game ran 109 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
+evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E r16, jumps or continues (docs/scripts/opcodes.md)", "trace: the game ran 109 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.44): 28/28 states (28/28 oracle) and 246/246 fuzzed match ROM, mutation caught"]
 see: [docs/scripts/opcodes.md]
 ---
 Handler of script opcode [0x09](soe://rom/assets/scripts/opcodes/09.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/09.md`, served at `soe://rom/assets/scripts/opcodes/09.md`.

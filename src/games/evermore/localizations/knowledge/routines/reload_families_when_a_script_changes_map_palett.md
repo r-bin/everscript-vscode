@@ -6,9 +6,11 @@ kind: code
 category: 🧠
 name: reload_families_when_a_script_changes_map_palett
 title: Reload families when a script changes `MAP_PALETTE`
-confidence: confirmed
-tags: [maps, palettes, graphics]
-evidence: ["legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)", "decomp: fully decompiled in docs/disassembly/maps/palette-families.md"]
+confidence: verified
+tags: [maps, palettes, graphics, reconstructed-c, g1-pass]
+evidence:
+  - "[\"legacy: migrated from functions.ts; how it was learned was not recorded (sources then: the everscript wiki ROM map, the ROM tab's points.ts)\", \"decomp: fully decompiled in docs/disassembly/maps/palette-families.md\"]"
+  - "Reconstructed in `reconstructed-c/90/90CBB3_palette_swap.c` (SOE_BIND); passes Gate G1 differential verification (34/34 reference states, 0/0 fuzzed states, mutation caught: yes, 108 / 2316 ROM/C instructions per call)."
 see: [docs/disassembly/maps/palette-families.md, routines/load_up_to_7_tile_families_from_map_palette.md]
 ---
 Compares `$7E:2437` (`MAP_PALETTE`) against loaded map palette index `$7E:0F8A`.

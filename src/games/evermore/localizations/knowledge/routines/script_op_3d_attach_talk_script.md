@@ -8,7 +8,7 @@ name: script_op_3d_attach_talk_script
 title: Script opcode 0x3D: give an entity a talk script
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E u16, continues in the same turn (docs/scripts/opcodes.md)", "trace: the game ran 20 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)", "disasm: $8F:AC0E tests +$68 bit $0040 and the Boy's distance (< $21 px) before running +$66 (v0.320.0)"]
+evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E u16, continues in the same turn (docs/scripts/opcodes.md)", "trace: the game ran 20 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)", "disasm: $8F:AC0E tests +$68 bit $0040 and the Boy's distance (< $21 px) before running +$66 (v0.320.0)", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.40): 19/19 states (19/19 oracle) match ROM, mutation caught"]
 see: [docs/scripts/opcodes.md]
 ---
 Handler of script opcode [0x3D](soe://rom/assets/scripts/opcodes/3d.md). It evaluates an entity expression, stores the following trigger ID at entity `+$66`, and sets the talk event mask at `+$68` to `$0040`. The handler returns carry set. The host-side reconstruction is documented in `docs/disassembly/script-vm/opcode-3d-attach-talk-script.md`.

@@ -6,9 +6,11 @@ kind: code
 category: 🧠
 name: script_op_43_teleport
 title: Script opcode 0x43: teleport an entity
-confidence: confirmed
-tags: [script-vm]
-evidence: ["opcode table: $8C:E943 dispatches opcode 0x43 to $8C:E00D", "disasm: evaluates entity, X, and Y expressions; the latter two are stored in DP $46 and $48 before entering the shared tail at $8C:E01D", "disasm: shared tail skips when entity +$10 bit $0008 is set; otherwise it uses and clears nonnegative $23DB as the layer override for $8F:C2E4, or calls $8F:C2D1 when the override is negative"]
+confidence: verified
+tags: [script-vm, reconstructed-c, g1-pass]
+evidence:
+  - "[\"opcode table: $8C:E943 dispatches opcode 0x43 to $8C:E00D\", \"disasm: evaluates entity, X, and Y expressions; the latter two are stored in DP $46 and $48 before entering the shared tail at $8C:E01D\", \"disasm: shared tail skips when entity +$10 bit $0008 is set; otherwise it uses and clears nonnegative $23DB as the layer override for $8F:C2E4, or calls $8F:C2D1 when the override is negative\"]"
+  - "Reconstructed in `reconstructed-c/8C/8CE00D_script_op_43_teleport.c` (SOE_BIND); passes Gate G1 differential verification (41/41 reference states, 0/0 fuzzed states, mutation caught: yes, 277 / 1261 ROM/C instructions per call)."
 see: [docs/disassembly/script-vm/opcode-42-43-teleport.md, docs/scripts/opcodes.md, routines/entity_set_position.md, routines/entity_set_position_with_z.md, docs/disassembly/entities/entity-position.md]
 ---
 Handler of script opcode [0x43](soe://rom/assets/scripts/opcodes/43.md). It evaluates pixel coordinates and uses the shared teleport tail. The host-side model is documented in `docs/disassembly/script-vm/opcode-42-43-teleport.md`.

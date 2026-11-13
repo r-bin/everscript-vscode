@@ -8,7 +8,7 @@ name: script_op_a6_call_back_far
 title: Script opcode 0xa6 — call back far
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands c16, calls a script in this thread (resumes after it) (docs/scripts/opcodes.md)", "trace: the game ran 13 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
+evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands c16, calls a script in this thread (resumes after it) (docs/scripts/opcodes.md)", "trace: the game ran 13 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.45): 22/22 states (22/22 oracle) match ROM, mutation caught"]
 see: [docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-a6-call-back-far.md]
 ---
 Handler of script opcode [0xA6](soe://rom/assets/scripts/opcodes/a6.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/a6.md`, served at `soe://rom/assets/scripts/opcodes/a6.md`.

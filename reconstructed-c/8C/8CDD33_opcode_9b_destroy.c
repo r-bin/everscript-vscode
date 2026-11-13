@@ -1,22 +1,28 @@
-/*
- * Routine: $8C:DD33 (script opcode 0x9B)
- * Source: docs/disassembly/script-vm/opcode-9b-destroy.md
+/**
+ * Routine: $8C:DD33 (release_entity_reference)
+ * Bank: $8C (ROM Offset: $0CDD33)
+ * Calling convention: RTS
  */
 
-#include <stdbool.h>
-#include <stdint.h>
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   release_entity_reference ($8CDD33) [RTS]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  6 instructions (14 bytes)
+ * - Compiled C ASM:   90 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   15.0x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      8bc87582edcb024e
+ * - Rating Status:    VALID (unmodified since rating)
+ */
+#include "soe.h"
 
-extern uint16_t script_eval_entity_expression(void); /* $8C:EC8E */
-extern uint16_t wram_read_word(uint16_t address);
-extern void wram_write_word(uint16_t address, uint16_t value);
-extern void release_entity_and_attached_resources(uint16_t entity); /* $8F:B2DE */
+SOE_BIND(release_entity_reference, 0x8CDD33, RTS);
 
-bool script_op_9b_destroy(void) {
-    uint16_t entity = script_eval_entity_expression();
-    uint16_t reference_count_address = (uint16_t)(entity + 0x003E);
-    uint16_t reference_count = wram_read_word(reference_count_address);
-
-    wram_write_word(reference_count_address, (uint16_t)(reference_count - 1));
-    release_entity_and_attached_resources(entity);
-    return true;
+void release_entity_reference_bind(soe_regs r) {
+    soe_call_rtl(0x8CEC8Eu, r);
+    r->x = r->y;
+    ABSI16(r, 0x003Eu, r->x) = (uint16_t)(ABSI16(r, 0x003Eu, r->x) - 1u);
+    soe_call_rtl(0x8FB2DEu, r);
+    soe_carry(r, true);
 }

@@ -38,7 +38,7 @@ export function writeQuality(romPath: string): string {
     const cdl = cdlFor(rom), placed = placedBytes(readFileSync(lstPath, 'utf8')), g1 = g1Verdicts();
     const rows = bindings(sourceFiles()).map(b => {
         const asm = walk(rom, b.addr, cdl).reduce((s, l) => s + l.bytes.length, 0);
-        const c = placed.get(`${b.addr.toString(16).toUpperCase()}_${b.name}.o`) ?? null;
+        const c = placed.get(basename(b.file).replace(/\.c$/, '.o')) ?? null;
         return { ...b, asm, c, ratio: c === null ? -1 : c / Math.max(1, asm) };
     }).sort((x, y) => y.ratio - x.ratio);
     const L = ['# C-built image: bytes per routine', '',

@@ -6,9 +6,9 @@ kind: code
 category: 🧠
 name: script_op_ae_write_local_tile_pair
 title: Script opcode 0xae — write local tile pair
-confidence: confirmed
-tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands u8 u8 u8 u8, continues in the same turn (docs/scripts/opcodes.md)", "trace: the game ran 8 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
+confidence: verified
+tags: [script-vm, reconstructed-c, g1-pass]
+evidence: "[\"disasm: handler from the opcode table at $8C:E8BD; operands u8 u8 u8 u8, continues in the same turn (docs/scripts/opcodes.md)\", \"trace: the game ran 8 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)\"]; G1 pass (11/11 reference states, 169/169 fuzzed states, mutation caught)"
 see: [docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-ae-write-arg-tile-pair.md]
 ---
 Handler of script opcode [0xAE](soe://rom/assets/scripts/opcodes/ae.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/ae.md`, served at `soe://rom/assets/scripts/opcodes/ae.md`.

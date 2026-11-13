@@ -6,9 +6,9 @@ kind: code
 category: 🧠
 name: script_op_00_end
 title: Script opcode 0x00 — end
-confidence: confirmed
-tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands none, ends the script (docs/scripts/opcodes.md)", "trace: the game ran 47 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)", "decomp: fully decompiled in docs/disassembly/script-vm/thread-termination.md"]
+confidence: verified
+tags: [script-vm, reconstructed-c, g1-pass]
+evidence: "[\"disasm: handler from the opcode table at $8C:E8BD; operands none, ends the script (docs/scripts/opcodes.md)\", \"trace: the game ran 47 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)\", \"decomp: fully decompiled in docs/disassembly/script-vm/thread-termination.md\"]; G1 pass (44/44 reference states, 700/700 fuzzed states, mutation caught)"
 see: [docs/disassembly/script-vm/thread-termination.md, docs/scripts/opcodes.md]
 ---
 Handler of script opcode [0x00](soe://rom/assets/scripts/opcodes/00.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/00.md`, served at `soe://rom/assets/scripts/opcodes/00.md`.

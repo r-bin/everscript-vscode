@@ -1,132 +1,144 @@
-/*
- * Routine: $8FB46D (hitbox_intersections)
+/**
+ * Routine: $8F:B46D (entity_collision_check)
  * Bank: $8F (ROM Offset: $0FB46D)
- * Source: docs/disassembly/combat/hitbox-intersections.md
+ * Calling convention: RTL
  */
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <math.h>
-
-#define ENT_OFF_FLAGS_14        0x14  /* Invulnerability and flash timers */
-#define ENT_OFF_POS_X           0x1A
-#define ENT_OFF_POS_Y           0x1C
-#define ENT_OFF_VEL_X           0x20
-#define ENT_OFF_VEL_Y           0x22
-#define ENT_OFF_CHAR_RECORD     0x60
-#define CHAR_OFF_RADIUS         0x0D
-
-/**
- * Tests whether two entities with radii r1 and r2 overlap at given coordinates ($8F:B4AB).
- * Implements the isometric 2:1 ellipse collision formula.
- *
- * @param x1, y1 First entity world coordinates.
- * @param r1     First entity radius.
- * @param x2, y2 Second entity world coordinates.
- * @param r2     Second entity radius.
- * @return True if collision boxes overlap.
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   entity_collision_check ($8FB46D) [RTL]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  28 instructions (62 bytes)
+ * - Compiled C ASM:   239 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   8.5x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      a2eb15702fc06534
+ * - Rating Status:    VALID (unmodified since rating)
  */
-bool test_isometric_overlap(int16_t x1, int16_t y1, uint8_t r1,
-                            int16_t x2, int16_t y2, uint8_t r2) {
-    if (r1 == 0 || r2 == 0) {
-        return false; // Zero radius entities have no body and never collide
+#include "soe.h"
+
+SOE_BIND(entity_collision_check, 0x8FB46D, RTL);
+
+static uint16_t abs_diff16(uint16_t a, uint16_t b) {
+    uint16_t d = (uint16_t)(a - b);
+    if (d & 0x8000u) {
+        d = (uint16_t)((uint16_t)(d - 1u) ^ 0xFFFFu);
     }
-
-    uint16_t sum_radii = (uint16_t)r1 + (uint16_t)r2;
-    uint16_t dx = (uint16_t)abs(x2 - x1);
-    uint16_t dy = (uint16_t)abs(y2 - y1);
-
-    // Vertical check: doubled vertical distance for 2:1 isometric ratio
-    if ((dy << 1) >= sum_radii) {
-        return false;
-    }
-
-    // Horizontal check
-    if (dx >= sum_radii) {
-        return false;
-    }
-
-    return true;
+    return d;
 }
 
-/**
- * Validates whether an entity can step onto destination coordinate (target_x, target_y) ($8F:B46D).
- *
- * @param mover_ptr WRAM address of the moving entity.
- * @param target_x  Proposed new X coordinate.
- * @param target_y  Proposed new Y coordinate.
- * @return True if the move is allowed, false if blocked by another entity.
- */
-bool entity_collision_check(uint16_t mover_ptr, int16_t target_x, int16_t target_y) {
-    uint16_t mover_char = read_wram16(mover_ptr + ENT_OFF_CHAR_RECORD);
-    uint8_t mover_radius = read_rom8(0x8E0000 + mover_char + CHAR_OFF_RADIUS);
-    if (mover_radius == 0) {
-        return true; // No body: move always permitted
+static bool check_entity_pair(soe_regs r, uint16_t saved_elev) {
+    r->x = ABSI16(r, 0x0060u, r->y);
+    uint16_t other_r = ROM16(0x8E000Du + r->x);
+    r->a = other_r;
+    soe_nz16(r, other_r);
+    if (other_r == 0u) {
+        return false;
+    }
+    r->p &= (uint8_t)~SOE_C;
+    uint16_t sum_r = soe_adc16(r, other_r, DP16(r, 0x16u));
+    DP16(r, 0x18u) = sum_r;
+
+    uint16_t dy2 = (uint16_t)(abs_diff16(ABSI16(r, 0x001Cu, r->y), DP16(r, 0x48u)) << 1);
+    r->a = dy2;
+    soe_cmp16(r, dy2, sum_r);
+    if (r->p & SOE_C) {
+        return false;
     }
 
-    int16_t cur_x = (int16_t)read_wram16(mover_ptr + ENT_OFF_POS_X);
-    int16_t cur_y = (int16_t)read_wram16(mover_ptr + ENT_OFF_POS_Y);
+    uint16_t dx = abs_diff16(ABSI16(r, 0x001Au, r->y), DP16(r, 0x46u));
+    r->a = dx;
+    soe_cmp16(r, dx, sum_r);
+    if (r->p & SOE_C) {
+        return false;
+    }
 
-    // Iterate through active entities
-    for (uint16_t candidate = 0x4E89; candidate != 0; candidate = get_next_entity(candidate)) {
-        if (candidate == mover_ptr) continue;
+    uint16_t dz = abs_diff16(ABSI16(r, 0x001Eu, r->y), saved_elev);
+    r->a = dz;
+    soe_cmp16(r, dz, 0x0230u);
+    if (r->p & SOE_C) {
+        return false;
+    }
 
-        uint16_t cand_char = read_wram16(candidate + ENT_OFF_CHAR_RECORD);
-        uint8_t cand_radius = read_rom8(0x8E0000 + cand_char + CHAR_OFF_RADIUS);
-        if (cand_radius == 0) continue;
+    uint16_t flags = ABSI16(r, 0x0018u, r->y);
+    r->a = flags;
+    if ((flags & 0x0040u) == 0u) {
+        uint16_t xor_plane = (uint16_t)(flags ^ DP16(r, 0x44u));
+        r->a = xor_plane;
+        if (xor_plane != 0u && (xor_plane & 0x0040u) == 0u) {
+            soe_nz16(r, xor_plane);
+            return false;
+        }
+    }
 
-        int16_t cand_x = (int16_t)read_wram16(candidate + ENT_OFF_POS_X);
-        int16_t cand_y = (int16_t)read_wram16(candidate + ENT_OFF_POS_Y);
+    r->x = DP16(r, 0x4Cu);
+    uint16_t cur_dy2 = (uint16_t)(abs_diff16(ABSI16(r, 0x001Cu, r->y), ABSI16(r, 0x001Cu, r->x)) << 1);
+    r->a = cur_dy2;
+    soe_cmp16(r, cur_dy2, sum_r);
+    if (r->p & SOE_C) {
+        r->x = DP16(r, 0x4Cu);
+        soe_call_rts(0x8FB52Cu, r);
+        soe_carry(r, false);
+        return true;
+    }
 
-        // Check if target position would cause collision
-        if (test_isometric_overlap(target_x, target_y, mover_radius, cand_x, cand_y, cand_radius)) {
-            // Already overlapping check: If entities already intersect at current position, allow move!
-            if (test_isometric_overlap(cur_x, cur_y, mover_radius, cand_x, cand_y, cand_radius)) {
-                continue;
+    uint16_t cur_dx = abs_diff16(ABSI16(r, 0x001Au, r->y), ABSI16(r, 0x001Au, r->x));
+    r->a = cur_dx;
+    soe_cmp16(r, cur_dx, sum_r);
+    if (r->p & SOE_C) {
+        r->x = DP16(r, 0x4Cu);
+        soe_call_rts(0x8FB52Cu, r);
+        soe_carry(r, false);
+        return true;
+    }
+
+    soe_nz16(r, cur_dx);
+    return false;
+}
+
+void entity_collision_check_bind(soe_regs r) {
+    r->y = DP16(r, 0x4Cu);
+    r->x = ABSI16(r, 0x0060u, r->y);
+    uint16_t flags = ROM16(0x8E000Du + r->x);
+    r->a = flags;
+    soe_nz16(r, flags);
+    if (flags == 0u) {
+        soe_carry(r, true);
+        return;
+    }
+    DP16(r, 0x16u) = flags;
+    uint16_t saved_elev = ABSI16(r, 0x001Eu, r->y);
+    if (r->y < 0x4E89u) {
+        if (ABS16(r, 0x4F61u) != 0u) {
+            r->y = 0x4F37u;
+            if (check_entity_pair(r, saved_elev)) {
+                return;
             }
-            return false; // Blocked!
+        }
+        r->y = 0x4E89u;
+        if (check_entity_pair(r, saved_elev)) {
+            return;
+        }
+        r->a = saved_elev;
+        soe_nz16(r, saved_elev);
+        soe_carry(r, true);
+        return;
+    }
+    r->y = ABS16(r, 0x3DDFu);
+    for (;;) {
+        if (r->y < 0x4E89u) {
+            if (check_entity_pair(r, saved_elev)) {
+                return;
+            }
+        }
+        uint16_t next = ABSI16(r, 0x005Eu, r->y);
+        r->a = next;
+        r->y = next;
+        if (next == 0u) {
+            break;
         }
     }
-
-    return true;
-}
-
-/**
- * Dispatches hit reaction, invulnerability flash, and knockback velocity ($8F:C0D3).
- *
- * @param target_ptr   WRAM address of victim entity.
- * @param attacker_ptr WRAM address of attacker (or 0 for projectile).
- * @param damage       Damage points dealt.
- * @param knockback_px Knockback displacement magnitude.
- */
-void dispatch_hit_reaction_and_knockback(uint16_t target_ptr, uint16_t attacker_ptr,
-                                        uint16_t damage, uint8_t knockback_px) {
-    // 1. Set invulnerability flash frames (30 frames)
-    uint16_t flags14 = read_wram16(target_ptr + ENT_OFF_FLAGS_14);
-    write_wram16(target_ptr + ENT_OFF_FLAGS_14, (flags14 & ~0x00FF) | 30);
-
-    // 2. Dispatch floating damage number popup
-    int16_t tx = (int16_t)read_wram16(target_ptr + ENT_OFF_POS_X);
-    int16_t ty = (int16_t)read_wram16(target_ptr + ENT_OFF_POS_Y);
-    spawn_floating_damage_number(tx, ty - 16, damage, 0 /* white */);
-
-    // 3. Compute knockback vector away from impact source
-    if (attacker_ptr != 0 && knockback_px > 0) {
-        int16_t ax = (int16_t)read_wram16(attacker_ptr + ENT_OFF_POS_X);
-        int16_t ay = (int16_t)read_wram16(attacker_ptr + ENT_OFF_POS_Y);
-
-        int16_t dx = tx - ax;
-        int16_t dy = ty - ay;
-        double dist = sqrt((double)(dx * dx + dy * dy));
-
-        if (dist > 0.01) {
-            int16_t vx = (int16_t)((dx / dist) * knockback_px);
-            int16_t vy = (int16_t)((dy / dist) * knockback_px);
-
-            // Apply knockback velocity displacement
-            write_wram16(target_ptr + ENT_OFF_VEL_X, vx);
-            write_wram16(target_ptr + ENT_OFF_VEL_Y, vy);
-        }
-    }
+    r->a = saved_elev;
+    soe_nz16(r, saved_elev);
+    soe_carry(r, true);
 }

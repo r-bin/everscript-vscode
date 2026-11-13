@@ -7,7 +7,7 @@ category: 🎮
 name: projectile_particle_frame_tick_or_expire
 title: Step projectile particle decay or expire slot when timer elapses ($90:D732)
 confidence: confirmed
-evidence: ["disasm: checks pause flag $0100; if paused jumps to updater $90:D749; else decrements lifetime +$ECF,X; if negative clears slot $0ECA,X = 0; else updates cluster pos via $90:D749"]
+evidence: ["disasm: checks pause flag $0100; if paused jumps to updater $90:D749; else decrements lifetime +$ECF,X; if negative clears slot $0ECA,X = 0; else updates cluster pos via $90:D749", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.41): 34/34 states (34/34 oracle) and 378/378 fuzzed match ROM, mutation caught"]
 see: ["routines/effect_sprite_draw.md"]
 tags: ["projectile","particle","timer","decay"]
 ---

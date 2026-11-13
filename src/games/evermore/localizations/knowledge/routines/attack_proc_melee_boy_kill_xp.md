@@ -8,7 +8,7 @@ name: attack_proc_melee_boy_kill_xp
 title: Melee weapon swing with Boy weapon skill XP awarding on fatal blow
 confidence: confirmed
 tags: [combat, melee, damage, experience]
-evidence: ["disasm: $8F:B75A calls to-hit check $8F:BA06, damage $8F:C067, reaction $8F:C0D3, knockback $8F:C17F; checks fatal blow $0EA0 >= $002A,y; calls Boy XP $8F:973E; returns SEC (sweep arc)", "docs/disassembly/combat/special-attack-procs.md"]
+evidence: ["disasm: $8F:B75A calls to-hit check $8F:BA06, damage $8F:C067, reaction $8F:C0D3, knockback $8F:C17F; checks fatal blow $0EA0 >= $002A,y; calls Boy XP $8F:973E; returns SEC (sweep arc)", "docs/disassembly/combat/special-attack-procs.md", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.41): 2/2 states (2/2 oracle) and 8/8 fuzzed match ROM, mutation caught"]
 see: [docs/disassembly/combat/special-attack-procs.md, docs/disassembly/combat/attack-procs.md]
 ---
 Melee weapon attack resolution proc 8 in master table `$8F:B6AE`.

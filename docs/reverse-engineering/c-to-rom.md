@@ -463,6 +463,34 @@ Detailed diagnostics and binding rules:
    flags (such as `$80:B506` spinning on `$80:858C`) require active interrupt generation and cannot be verified
    in isolated single-call Gate G1 step runners.
 
-**Open (v0.399.32).**
+**Open (before the 157-routine expansion).**
 - Remaining routines from the CDL recorded roots are being progressively lifted and verified through G1.
-- Calypsi `-O1 --speed` remains the baseline compiler configuration passing 100% of differential tests.
+- Calypsi `-O1 --speed` remains the baseline compiler configuration passing 100% of differential tests; the `-O2` byte sign-test bug and comma-condition branch are not reduced to minimal cases yet, and G2 (recomp A/B) is not built.
+- Should the old description functions be kept next to the exact C? Several were removed when a routine got its exact file (`909DE8_tile_collision.c`, `809685_actor_lifecycle.c`, `8FA93B_ramp_elevation.c`, parts of five others); to be decided by the owner (rule 11).
+
+---
+
+## 10c. 157-routine expansion & build/G1 findings (feature branch)
+
+Recent work on `c-bindings` (and earlier `feature/recomp-c-bindings-replay01`) expanded compiled bindings from `127` (`116,927` bytes linked) to `157` (`131,451` linked bytes) then **`176` bound routines** (Batch 4a: +19 routines in `v0.399.39`), then **`193` bound routines** (Batch 4b: +17 routines in `v0.399.40`), then **`209` bound routines** (Batch 4c: +16 routines in `v0.399.41`), **`219` bound routines** (Batch 4d: +10 routines across banks `$8C`, `$8F`, `$90`, all 10 G1-verified in `v0.399.42`), **`229` bound routines** (Batch 4e: +10 routines across banks `$8C`, `$8F`, `$90`, all 10 G1-verified in `v0.399.43`), **`239` bound routines** (Batch 4f: +10 routines across banks `$8C`, `$8F`, all 10 G1-verified in `v0.399.44`), and now **`247` bound routines** (Batch 4g: +8 routines across banks `$8C`, `$8F`, `$90`, all 8 G1-verified in `v0.399.45`).
+
+- **`tools/c-to-rom/build.mts` parallelization:** Compilation now runs across an 8-worker async `execFile` pool (~17s full rebuild vs ~88s sequentially).
+- **`ABSI16` / `ABSI8` bank-carry & fall-through `PLB`/`Z` fixes:** `$90:8139`/`$90:817B` (`ABSI16`/`ABSI8` for `$7E:FFFF` + offset carry into `$7F`), `$90:8317` (branching on entry `SOE_Z`), `$90:9379`/`$90:93AA` (`soe_nz8(r, r->db)` on `PLB`), `$90:D020` (`C` from `cgram_off << 1`), and `$90:D2A6` (`SOE_V` from 8-bit `ADC`/`SBC`).
+
+### Replay01 (8,414-frame power-on intro) bindability census
+- `667` known code routines execute during the 8,414-frame replay (`127` initially bound; `157` bound after adding Batch 3).
+- Of the `540` routines unbound prior to Batch 3: `85` bindable leaves, `206` bindable callers (`JSL`/`JSR`), and `249` unbindable under `checkBindings` (`noRet: 44`, `multiRet: 3`, `tooShort: 28`, `noCall: 165`, `innerFlow: 9`), plus bridge-incompatible stack/DB routines (`PLB`: `$8F:84B4`, `$8F:84EC`, `$90:9F21`; stack-pushed DP dispatch: `$8C:CC62`; caller-return `PLA; RTS`: `$8F:D6CE`).
+
+### Toolchain & harness fixes
+1. **`tools/c-to-rom/build.mts` (`FLOW_RETURN` filter in `checkBindings`):** `edges` records `FLOW_RETURN` (`0x20`) at return edges from callees back into a routine's post-call instruction, which false-triggered trampoline-overlap errors when binding callers of bound routines (e.g. `$8C:EC95 -> $8C:E011` inside `script_op_43_teleport`). Filtering `(kind & ~FLOW_RETURN)` resolved the false positive.
+2. **`tools/c-to-rom/quality.mts` (`.o` basename lookup):** Lookups previously synthesized `${addr}_${b.name}.o` instead of `basename(b.file).replace(/\.c$/, '.o')`, causing 6 bound routines whose `.c` filename differs from their `SOE_BIND` symbol name (`face_cardinal`, `script_op_17_write_word_immediate`, `script_op_27_fade_out`, `activate_background_tile_animation`, `restore_color_math_snapshot`, `map_tile_anim_and_cuttable_terrain_init`) to report `not built` (`151` instead of `157`) in `out/c-to-rom/quality.md`.
+
+### Verification & divergence observations
+- **`compare-image.mts --frames 600`:** `soe-c.sfc` boots cleanly without crashing, stays in sync through frame 0, and diverges by frame 60 (`$7E0012` frame counter `01` vs `03`, `$7E0133–$7E013A` RNG state, and `$7E1F77–$7E1FB4` dead-stack bridge residue) — earlier than the prior frame-374 divergence because boot/title/joypad/RNG routines (`$80:8507`, `$80:8597`, `$80:859B`, `$80:8D4D`, `$80:B3B0`, `$80:B406`) are now bound and shift cycle timing across NMI.
+- **G1 verification on the 30 Batch 3 additions:**
+  - `27` of `30` Batch 3 routines passed full G1 (`--fuzz 16`, including `joypad_acknowledge_or_clear_buttons` `$80:8597`, `script_stop_all_threads` `$8C:CEE9`, `script_op_17_write_word_immediate` `$8C:D79D`, and `dialogue_window_glyph_vram_buffer_alloc` `$8C:B5A4` after fixing `soe_nz16` and carry-chained `soe_adc16`).
+  - `room_header_reader_entry_stub` (`$90:8E80`), `spc700_stream_advance_bank_pointer_short` (`$8C:818D`), and `spc700_stream_advance_bank_pointer` (`$8C:8195`) passed all captured states under `--fuzz 0` (`8C:818D`/`8C:8195` had `mutation caught: no` because the `INC $A2; LDY #$8000` bank-wrap path at `Y == $FFFF` / `$FFFE` was not hit in sampled states).
+- **Build & G1 scaling limits:** Every `g1.mts` invocation runs `buildImage()`, compiling all 157 `.c` files under Rosetta 2 in ~88s. Under `--fuzz 16` (`48 × 16 = 768` random states per routine), high-iteration C loops (`room_header_reader_entry_stub` averages `40,100` C instructions vs `1,123` ROM instructions per call, ~`35.7×`) or multi-routine sweeps can hit multi-million-step `cpu65816.ts` runs and exceed practical single-batch timeouts.
+- **WRAM & entry-width traps uncovered while binding:**
+  - Legacy `soe_ram.h` symbols `$7E:235B–$7E:235E` (labeled `DOG_AI_STATE`..`dog_ai_collision_mode`) hold PPU register snapshots (`TM`/`TS`/`CGADSUB`/`CGWSEL` restored by `$8C:E20F`), and `$0B19`/`$0B1B` (`WAVE_PHASE_COUNTER`/`controller_prev_input`) serve as the 32-bit field frame counter for script sleep (`$8C:D20F`, `$8C:D217`).
+  - Fall-through entry pairs can enter with differing accumulator widths (`$8C:818D` with `M=16`, falling into `$8C:8195` which external callers also enter with `M=8`), requiring `(r->p & SOE_M)` guards rather than hardcoded width assumptions.

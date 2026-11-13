@@ -1,37 +1,33 @@
-#include <stdint.h>
+/*
+ * $80:8507 enable_nmi_auto_joypad (knowledge/routines/enable_nmi_auto_joypad.md), RTL, 16-bit A, X, Y.
+ *
+ * Enables VBlank NMI and automatic joypad read ($4200 = $81, mirrored at $0E6B) and installs
+ * the default dummy IRQ vector ($80:858B) at $012B..$012E while preserving processor status P.
+ */
 
-typedef struct {
-    uint16_t accumulator;
-    uint16_t index_x;
-    uint8_t processor_status;
-    uint8_t wram[0x10000];
-    void (*write_io8)(uint16_t address, uint8_t value);
-} Cpu65816;
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   enable_nmi_auto_joypad ($808507) [RTL]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  13 instructions (28 bytes)
+ * - Compiled C ASM:   86 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   6.6x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      09fe495d1d9f8d79
+ * - Rating Status:    VALID (unmodified since rating)
+ */
+#include "soe.h"
+#include "soe_ram.h"
 
-enum {
-    PROCESSOR_INTERRUPT_DISABLE = 0x04,
-    IO_NMITIMEN = 0x4200,
-    WRAM_NMITIMEN_MIRROR = 0x0E6B,
-    WRAM_UNKNOWN_012B = 0x012B,
-    WRAM_UNKNOWN_012D = 0x012D
-};
-
-static void write_wram16(Cpu65816 *cpu, uint16_t address, uint16_t value) {
-    cpu->wram[address] = (uint8_t)value;
-    cpu->wram[(uint16_t)(address + 1)] = (uint8_t)(value >> 8);
-}
-
-void enable_nmi_and_auto_joypad(Cpu65816 *cpu) {
-    const uint8_t saved_status = cpu->processor_status;
-
-    cpu->processor_status |= PROCESSOR_INTERRUPT_DISABLE;
-    cpu->write_io8(IO_NMITIMEN, 0x81);
-    cpu->wram[WRAM_NMITIMEN_MIRROR] = 0x81;
-
-    cpu->index_x = 0x858B;
-    cpu->accumulator = 0x0080;
-    write_wram16(cpu, WRAM_UNKNOWN_012D, cpu->accumulator);
-    write_wram16(cpu, WRAM_UNKNOWN_012B, cpu->index_x);
-
-    cpu->processor_status = saved_status;
+SOE_BIND(enable_nmi_auto_joypad, 0x808507, RTL)
+{
+    SOE_AT(0x8507);
+    uint8_t saved_p = r->p;
+    ABS8(r, 0x4200) = 0x81;
+    ABS8(r, NMITIMEN_MIRROR_ADDR) = 0x81;
+    r->x = 0x858B;
+    r->a = 0x0080;
+    ABS16(r, 0x012D) = 0x0080;
+    ABS16(r, IRQ_USER_HOOK_FAR_PTR_ADDR) = 0x858B;
+    r->p = saved_p;
 }

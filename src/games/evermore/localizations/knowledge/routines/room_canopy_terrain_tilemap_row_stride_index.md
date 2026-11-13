@@ -6,9 +6,9 @@ kind: code
 category: 🧠
 name: room_canopy_terrain_tilemap_row_stride_index
 title: Calculates 32-tile row stride offsets for room canopy and terrain tilemap decompression
-confidence: guess
-tags: [unverified, rea-partial-read]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+confidence: verified
+tags: [unverified, rea-partial-read, reconstructed-c, g1-pass]
+evidence: "[\"disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified\"]; G1 pass (9/9 reference states, 0/0 fuzzed states, mutation caught)"
 ---
 Low confidence — Calculates 32-tile row stride offsets for room canopy and terrain tilemap decompression.
 

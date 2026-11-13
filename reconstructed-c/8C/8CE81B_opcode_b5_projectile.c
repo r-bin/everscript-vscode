@@ -1,50 +1,49 @@
-/*
- * Routine: $8C:E81B (script opcode 0xB5)
- * Projectile initializer: $90:DCC0
- * Source: docs/disassembly/script-vm/opcode-b5-projectile.md
+/**
+ * Routine: $8C:E81B (configure_projectile_motion)
+ * Bank: $8C (ROM Offset: $0CE81B)
+ * Calling convention: RTS
  */
 
-#include <stdbool.h>
-#include <stdint.h>
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   configure_projectile_motion ($8CE81B) [RTS]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  28 instructions (66 bytes)
+ * - Compiled C ASM:   189 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   6.8x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      aef8f72ebd2ad65d
+ * - Rating Status:    VALID (unmodified since rating)
+ */
+#include "soe.h"
 
-typedef struct {
-    uint16_t target_x;       /* DP $02 */
-    uint16_t target_y;       /* DP $04 */
-    uint16_t movement_entry; /* DP $06 */
-    uint16_t last_parameter; /* DP $08 */
-    uint16_t source_entity;  /* DP $4C */
-    uint16_t source_x;       /* DP $46 */
-    uint16_t source_y;       /* DP $48 */
-    uint16_t source_z;       /* DP $4A */
-} ProjectileVmParameters;
+SOE_BIND(configure_projectile_motion, 0x8CE81B, RTS);
 
-extern uint16_t script_eval_expression(void); /* $8C:EA43 */
-extern uint16_t rom_read_word_long(uint32_t address);
-extern void initialize_projectile_from_vm_parameters(
-    const ProjectileVmParameters *parameters
-); /* opaque model of $90:DCC0 */
-
-bool script_op_b5_projectile(void) {
-    uint16_t movement_selector = script_eval_expression();
-    uint16_t source_entity = script_eval_expression();
-    uint16_t source_x = script_eval_expression();
-    uint16_t source_y = script_eval_expression();
-    uint16_t source_z = script_eval_expression();
-    uint16_t target_x = script_eval_expression();
-    uint16_t target_y = script_eval_expression();
-    uint16_t last_parameter = script_eval_expression();
-
-    ProjectileVmParameters parameters = {
-        .target_x = target_x,
-        .target_y = target_y,
-        .movement_entry = rom_read_word_long(0x90D986UL + movement_selector),
-        .last_parameter = last_parameter,
-        .source_entity = source_entity,
-        .source_x = source_x,
-        .source_y = source_y,
-        .source_z = source_z,
-    };
-
-    initialize_projectile_from_vm_parameters(&parameters);
-    return true;
+void configure_projectile_motion_bind(soe_regs r) {
+    soe_call_rtl(0x8CEA43u, r);
+    uint16_t arg1 = r->a;
+    soe_call_rtl(0x8CEA43u, r);
+    uint16_t arg2 = r->a;
+    soe_call_rtl(0x8CEA43u, r);
+    DP16(r, 0x46u) = r->a;
+    soe_call_rtl(0x8CEA43u, r);
+    DP16(r, 0x48u) = r->a;
+    soe_call_rtl(0x8CEA43u, r);
+    DP16(r, 0x4Au) = r->a;
+    soe_call_rtl(0x8CEA43u, r);
+    uint16_t arg6 = r->a;
+    soe_call_rtl(0x8CEA43u, r);
+    uint16_t arg7 = r->a;
+    soe_call_rtl(0x8CEA43u, r);
+    DP16(r, 0x08u) = r->a;
+    DP16(r, 0x04u) = arg7;
+    DP16(r, 0x02u) = arg6;
+    DP16(r, 0x4Cu) = arg2;
+    r->x = arg1;
+    uint16_t spd = ROM16(0x90D986u + arg1);
+    r->a = spd;
+    soe_nz16(r, spd);
+    DP16(r, 0x06u) = spd;
+    soe_call_rtl(0x90DCC0u, r);
+    soe_carry(r, true);
 }

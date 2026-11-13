@@ -6,9 +6,9 @@ kind: code
 category: 🧠
 name: unfreeze_dog
 title: Unfreeze Dog
-confidence: confirmed
+confidence: verified
 tags: [script-vm]
-evidence: ["disasm: wrapper selects actor bit 2 and shared helper $8C:DADB calls $8F:CD4D for Dog to restore motion and clear immobilization state", "trace: the game ran 4 distinct instructions with this opcode (tests/script-vm/goldens.json)"]
+evidence: ["disasm: wrapper selects actor bit 2 and shared helper $8C:DADB calls $8F:CD4D for Dog to restore motion and clear immobilization state", "trace: the game ran 4 distinct instructions with this opcode (tests/script-vm/goldens.json)", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.39): 4/4 states match ROM, mutation caught"]
 see: [routines/entity_unfreeze_mobilize.md, docs/scripts/opcodes.md]
 ---
 Handler of script opcode [0xBF](soe://rom/assets/scripts/opcodes/bf.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/bf.md`, served at `soe://rom/assets/scripts/opcodes/bf.md`.

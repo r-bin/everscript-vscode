@@ -8,7 +8,7 @@ name: script_op_3f_attach_script
 title: Script opcode 0x3F attaches an event script
 confidence: confirmed
 tags: [script-vm]
-evidence: ["opcode table: $8C:E93B dispatches opcode 0x3F to $8C:DD60", "disasm: $8C:DD60 evaluates a target and always consumes an event mask and trigger ID; targets below $2000 index room hooks, while entity targets receive mask at +$68 and trigger at +$66", "disasm: zero room-hook mask writes $FFFF to the companion hook slot; entity mask bit $0400 calls $8C:CE4D to start the event thread with reason $0400; both paths return carry set"]
+evidence: ["opcode table: $8C:E93B dispatches opcode 0x3F to $8C:DD60", "disasm: $8C:DD60 evaluates a target and always consumes an event mask and trigger ID; targets below $2000 index room hooks, while entity targets receive mask at +$68 and trigger at +$66", "disasm: zero room-hook mask writes $FFFF to the companion hook slot; entity mask bit $0400 calls $8C:CE4D to start the event thread with reason $0400; both paths return carry set", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.44): 8/8 states (8/8 oracle) and 70/70 fuzzed match ROM, mutation caught"]
 see: [docs/disassembly/script-vm/opcode-3f-attach-event-script.md, docs/scripts/opcodes.md]
 ---
 Handler of script opcode [0x3F](soe://rom/assets/scripts/opcodes/3f.md). The target expression selects either an entity or a one-based room-hook index. Both following words are consumed on both branches. The host-side reconstruction is documented in `docs/disassembly/script-vm/opcode-3f-attach-event-script.md`.

@@ -7,7 +7,7 @@ category: ⚔️
 name: entities_frame_tick_update
 title: Master entity frame loop tick for player and active enemies ($8F:B38E)
 confidence: confirmed
-evidence: ["disasm: switches DBR to $7E; clears $0F44; ticks Boy entity $7E:4E89 and Dog entity $7E:4F37 via $8F:B3D4; iterates 16 enemy entity slots $7E:3DE5..$7E:4E89 (stride $8E); if entity active (bits $0300 in +$10,Y set), calls $8F:B31E; calls terrain collision $90:D7CB, event queue $8F:DF14, and sorting $90:DC21"]
+evidence: ["disasm: switches DBR to $7E; clears $0F44; ticks Boy entity $7E:4E89 and Dog entity $7E:4F37 via $8F:B3D4; iterates 16 enemy entity slots $7E:3DE5..$7E:4E89 (stride $8E); if entity active (bits $0300 in +$10,Y set), calls $8F:B31E; calls terrain collision $90:D7CB, event queue $8F:DF14, and sorting $90:DC21", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.42): 6/6 states (6/6 oracle) match ROM, mutation caught"]
 see: [routines/party_member_entity_state_reset.md, routines/sound_or_event_queue_init.md, knowledge/wram/ENTITY_PLAYER_BOY.md, knowledge/wram/ENTITY_COMPANION_DOG.md, knowledge/wram/ENTITY_DYNAMIC_POOL.md]
 tags: [entities, engine, loop]
 ---

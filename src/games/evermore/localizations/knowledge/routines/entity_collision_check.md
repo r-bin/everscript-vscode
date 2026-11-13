@@ -8,7 +8,7 @@ name: entity_collision_check
 title: Check entity movement collision against all active entities
 confidence: confirmed
 tags: [physics, collision, hitboxes, movement]
-evidence: ["disasm: loads mover radius from character+$0D, walks active entities, calls $8F:B4AB per candidate, returns CLC if blocked or SEC if free", "docs: docs/entities/hitboxes.md; clean C in docs/disassembly/combat/hitbox-intersections.md"]
+evidence: ["disasm: loads mover radius from character+$0D, walks active entities, calls $8F:B4AB per candidate, returns CLC if blocked or SEC if free", "docs: docs/entities/hitboxes.md; clean C in docs/disassembly/combat/hitbox-intersections.md", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.42): 28/28 states (28/28 oracle) and 446/446 fuzzed match ROM, mutation caught"]
 see: [routines/test_entity_pair_overlap.md, routines/dispatch_hit_reaction_and_knockback.md]
 ---
 Called by movement routines with target coordinate in `$46`/`$48`:

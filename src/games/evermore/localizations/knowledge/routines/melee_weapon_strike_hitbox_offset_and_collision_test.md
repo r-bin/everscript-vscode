@@ -8,7 +8,7 @@ name: melee_weapon_strike_hitbox_offset_and_collision_test
 title: Calculates weapon swing reach offsets from descriptor tables and tests collision against targets
 confidence: guess
 tags: [unverified, rea-partial-read]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.45): 28/28 states (28/28 oracle) and 418/418 fuzzed match ROM, mutation caught"]
 ---
 Low confidence — Calculates weapon swing reach offsets from descriptor tables and tests collision against targets.
 

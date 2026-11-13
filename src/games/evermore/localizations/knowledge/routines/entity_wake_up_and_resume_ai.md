@@ -7,7 +7,7 @@ category: 🎮
 name: entity_wake_up_and_resume_ai
 title: Despawn a spawner-made entity back into its spawn record
 confidence: confirmed
-evidence: ["disasm: retrieves active entity index from <$4C; loads target slot offset from +$8C,Y; clears sleep counter at +$08,X; increments state word at +$0C,X; jumps to AI dispatch $8F:B31E; callers: sleep status tick $8F:C40F"]
+evidence: ["disasm: retrieves active entity index from <$4C; loads target slot offset from +$8C,Y; clears sleep counter at +$08,X; increments state word at +$0C,X; jumps to AI dispatch $8F:B31E; callers: sleep status tick $8F:C40F", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.45): 1/1 states (1/1 oracle) match ROM, mutation caught"]
 see: ["routines/entity_collision_slot_deactivate_and_detach.md","routines/entity_sleep_wake.md"]
 tags: [entity, status, sleep, ai, widescreen, widescreen.spawn]
 ---

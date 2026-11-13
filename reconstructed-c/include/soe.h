@@ -251,6 +251,38 @@ static inline uint16_t soe_multiply(uint16_t factors) { IO16(0x4202) = factors; 
  * its own bank through an RTL byte in that bank (tools/c-to-rom/runtime.s). */
 void soe_call_rtl(uint32_t target, soe_regs r);
 void soe_call_rts(uint32_t target, soe_regs r);
+#define soe_call_rom(target, r) soe_call_rtl((target), (r))
+
+/* Convenience aliases for reconstructed C routines */
+#define SOE_FLAG_N SOE_N
+#define SOE_FLAG_V SOE_V
+#define SOE_FLAG_M SOE_M
+#define SOE_FLAG_X SOE_X
+#define SOE_FLAG_D SOE_D
+#define SOE_FLAG_I SOE_I
+#define SOE_FLAG_Z SOE_Z
+#define SOE_FLAG_C SOE_C
+#define wram_u8(off)           RAM8(off)
+#define wram_u16(off)          RAM16(off)
+#define soe_wram8(off)         RAM8(off)
+#define soe_wram16(off)        RAM16(off)
+#define soe_rom8(bus)          ROM8(bus)
+#define soe_rom16(bus)         ROM16(bus)
+#define dp_u8(r, o)            DP8(r, o)
+#define dp_u16(r, o)           DP16(r, o)
+#define dp_u24(r, o)           SOE_DPPTR(r, o)
+#define W8(bus, val)           (LONG8(bus) = (uint8_t)(val))
+#define W16(bus, val)          (LONG16(bus) = (uint16_t)(val))
+#define R8(bus)                LONG8(bus)
+#define R16(bus)               LONG16(bus)
+#define soe_bus_write8(bus, v) (LONG8(bus) = (uint8_t)(v))
+#define soe_bus_write16(bus,v) (LONG16(bus) = (uint16_t)(v))
+#define soe_bus_read8(bus)     LONG8(bus)
+#define soe_bus_read16(bus)    LONG16(bus)
+#define bus_write8(r, a, v)    (ABS8(r, a) = (uint8_t)(v))
+#define bus_write16(r, a, v)   (ABS16(r, a) = (uint16_t)(v))
+#define bus_read8(r, a)        ABS8(r, a)
+#define bus_read16(r, a)       ABS16(r, a)
 
 /* ==== SOE_OPTIMIZE (off by default): helpers for faster variants ====
  * The default code is the documentation of the game and stays as it is. A file may add a faster

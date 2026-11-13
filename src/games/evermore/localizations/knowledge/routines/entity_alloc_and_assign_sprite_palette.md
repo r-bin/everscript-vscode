@@ -7,7 +7,7 @@ category: 🎨
 name: entity_alloc_and_assign_sprite_palette
 title: Dynamic sprite palette slot allocator and entity assignment ($90:CD5C)
 confidence: confirmed
-evidence: ["disasm: switches DBR to $7E; loads entity pointer from DP $4C; sets default palette state $0404 in +$74,Y; calls sprite palette allocator $90:CD80; assigns returned palette index in X to entity fields +$0C, +$74, and +$75"]
+evidence: ["disasm: switches DBR to $7E; loads entity pointer from DP $4C; sets default palette state $0404 in +$74,Y; calls sprite palette allocator $90:CD80; assigns returned palette index in X to entity fields +$0C, +$74, and +$75", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.41): 32/32 states (32/32 oracle) match ROM, mutation caught"]
 see: [routines/sprite_palette_allocator.md]
 tags: [sprites, palette, entities]
 ---

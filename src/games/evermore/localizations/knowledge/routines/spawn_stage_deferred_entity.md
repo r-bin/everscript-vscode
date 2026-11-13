@@ -6,9 +6,9 @@ kind: code
 category: 🧠
 name: spawn_stage_deferred_entity
 title: Allocate and stage deferred entity record in spawn table
-confidence: confirmed
+confidence: verified
 tags: [entities, tables, script-vm]
-evidence: ["disasm: called at $8C:DD2D when spawn opcode argument 2 has bit 15 set (spawner/deferred entity flag); allocates 16-byte slot at WRAM $0EC0 up to $6183, storing character record, leash radius (record +$17, or $23DD when not negative; v0.340.1), world X/Y, flags, direct page, and room state $7E:2431/$7E:2433", "recomp: clean C in docs/disassembly/script-vm/opcode-spawning.md"]
+evidence: ["disasm: called at $8C:DD2D when spawn opcode argument 2 has bit 15 set (spawner/deferred entity flag); allocates 16-byte slot at WRAM $0EC0 up to $6183, storing character record, leash radius (record +$17, or $23DD when not negative; v0.340.1), world X/Y, flags, direct page, and room state $7E:2431/$7E:2433", "recomp: clean C in docs/disassembly/script-vm/opcode-spawning.md", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.39): 30/30 states and 475/475 fuzzed match ROM, mutation caught"]
 see: [routines/script_op_a2_spawn_at.md, routines/script_op_c2_spawn_spawner.md, routines/script_op_3c_spawn.md]
 ---
 Allocates and writes a 16-byte deferred entity spawn descriptor into the staging table:

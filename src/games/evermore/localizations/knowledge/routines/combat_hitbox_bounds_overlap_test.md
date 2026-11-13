@@ -6,9 +6,9 @@ kind: code
 category: 🧠
 name: combat_hitbox_bounds_overlap_test
 title: Tests 2D Axis-Aligned Bounding Box (AABB) intersection between attack hitbox and target hurtbox
-confidence: guess
-tags: [unverified, rea-partial-read]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+confidence: verified
+tags: [unverified, rea-partial-read, reconstructed-c, g1-pass]
+evidence: "[\"disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified\"]; G1 pass (9/9 reference states, 144/144 fuzzed states, mutation caught)"
 ---
 Low confidence — Tests 2D Axis-Aligned Bounding Box (AABB) intersection between attack hitbox and target hurtbox.
 

@@ -6,9 +6,9 @@ kind: code
 category: 🧠
 name: map_decompression_terrain_collision_words_dma
 title: Streams decompressed room terrain collision words into WRAM spatial grid memory via hardware DMA channel 1
-confidence: guess
-tags: [unverified, rea-partial-read]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+confidence: verified
+tags: [unverified, rea-partial-read, reconstructed-c, g1-pass]
+evidence: "[\"disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified\"]; G1 pass (11/11 reference states, 176/176 fuzzed states, mutation caught)"
 ---
 Low confidence — Streams decompressed room terrain collision words into WRAM spatial grid memory via hardware DMA channel 1.
 

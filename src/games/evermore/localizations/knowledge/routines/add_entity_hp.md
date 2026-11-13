@@ -8,7 +8,7 @@ name: add_entity_hp
 title: Add HP to an entity
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: evaluates entity and amount, then calls $8F:C0A5, which adds to entity HP capped at its maximum, updates the player HUD when applicable, and clears pending damage/state fields", "trace: the game ran 2 distinct instructions with this opcode (tests/script-vm/goldens.json)"]
+evidence: ["disasm: evaluates entity and amount, then calls $8F:C0A5, which adds to entity HP capped at its maximum, updates the player HUD when applicable, and clears pending damage/state fields", "trace: the game ran 2 distinct instructions with this opcode (tests/script-vm/goldens.json)", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.40): 2/2 states (2/2 oracle) match ROM, mutation caught"]
 see: [docs/scripts/vm.md, docs/scripts/opcodes.md, docs/disassembly/script-vm/opcode-95-heal.md, docs/disassembly/combat/healing-spells.md]
 ---
 Handler of script opcode [0x95](soe://rom/assets/scripts/opcodes/95.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/95.md`, served at `soe://rom/assets/scripts/opcodes/95.md`.

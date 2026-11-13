@@ -6,9 +6,9 @@ kind: code
 category: 🧠
 name: entity_anim_set_walk
 title: Character Record Walking Animation Track Dispatcher
-confidence: confirmed
+confidence: verified
 tags: [animation, entity, movement, character_record]
-evidence: ["disasm: loads active entity slot pointer from DP $4C into Y; reads character record offset from entity +$60 into X; reads action flags from entity +$64; tests low byte and branches to idle $90:8293 if zero; otherwise loads 16-bit walking animation track pointer from Bank $8E character record at $8E0034,X into X; jumps to anim_start_record ($90:8124)", "callers: b_button_bit_15_search_b_triggers_else_swing ($8F:D64B), player_human_control_dog ($8F:D27B), ai_companion_tether ($8F:D378), ai_bounce ($8F:CE1C), ai_drift_east ($8F:CE2E), companion_follow ($8F:D018), enemy_ai ($8F:CD17) and 4 more"]
+evidence: ["disasm: loads active entity slot pointer from DP $4C into Y; reads character record offset from entity +$60 into X; reads action flags from entity +$64; tests low byte and branches to idle $90:8293 if zero; otherwise loads 16-bit walking animation track pointer from Bank $8E character record at $8E0034,X into X; jumps to anim_start_record ($90:8124)", "callers: b_button_bit_15_search_b_triggers_else_swing ($8F:D64B), player_human_control_dog ($8F:D27B), ai_companion_tether ($8F:D378), ai_bounce ($8F:CE1C), ai_drift_east ($8F:CE2E), companion_follow ($8F:D018), enemy_ai ($8F:CD17) and 4 more", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.39): 29/29 states match ROM, mutation caught"]
 see: [routines/anim_start_record.md, routines/character_records.md, docs/disassembly/animation/animation-vm.md]
 ---
 Activates the walking animation action track for the entity currently bound to Direct Page register `$4C`:

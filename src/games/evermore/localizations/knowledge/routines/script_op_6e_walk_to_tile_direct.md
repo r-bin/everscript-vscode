@@ -8,7 +8,7 @@ name: script_op_6e_walk_to_tile_direct
 title: Script opcode 0x6E: walk an entity to a tile, ignoring terrain
 confidence: confirmed
 tags: [script-vm]
-evidence: ["trace: the game ran 25 distinct instructions with this opcode (tests/script-vm/goldens.json)", "disasm: DP $12 = 1 selects $8F:AAD3 (v0.320.0)"]
+evidence: ["trace: the game ran 25 distinct instructions with this opcode (tests/script-vm/goldens.json)", "disasm: DP $12 = 1 selects $8F:AAD3 (v0.320.0)", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.43): 4/4 states (4/4 oracle) match ROM, mutation caught"]
 see: [docs/scripts/vm.md, docs/scripts/opcodes.md]
 ---
 Handler of script opcode [0x6E](soe://rom/assets/scripts/opcodes/6e.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/6e.md`, served at `soe://rom/assets/scripts/opcodes/6e.md`.

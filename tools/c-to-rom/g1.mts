@@ -195,6 +195,7 @@ function run(image: Uint8Array, s: Sample, limit = 3_000_000, trace?: string[], 
     Object.assign(cpu, { a: s.regs.a, x: s.regs.x, y: s.regs.y, s: s.regs.s, d: s.regs.d, db: s.regs.db, pb: s.regs.pb, pc: s.regs.pc, p: s.regs.p });
     const entryS = s.regs.s;
     let minS = entryS;
+    const callS: { s: number; prevS: number }[] = [{ s: entryS, prevS: -1 }];
     try {
         for (let n = 0; ; n++) {
             if (n > limit) throw new Error(`no return after ${limit} instructions`);
@@ -202,8 +203,14 @@ function run(image: Uint8Array, s: Sample, limit = 3_000_000, trace?: string[], 
                 const [l] = disassemble(image, cpu.pb << 16 | cpu.pc, 1, (cpu.p & 0x20) !== 0, (cpu.p & 0x10) !== 0);
                 trace.push(`${hex(cpu.pb << 16 | cpu.pc)} ${l.text.padEnd(18)} A=${hex(cpu.a, 4)} X=${hex(cpu.x, 4)} Y=${hex(cpu.y, 4)} S=${hex(cpu.s, 4)} D=${hex(cpu.d, 4)} P=${hex(cpu.p, 2)}`);
             }
+            const op = bus.read(cpu.pb << 16 | cpu.pc), prevS = cpu.s;
             cpu.step();
             if (cpu.s < minS) minS = cpu.s;
+            if (op === 0x20 || op === 0xFC || op === 0x22) callS.push({ s: cpu.s, prevS });
+            else if (op === 0x60 || op === 0x6B || op === 0x40) {
+                const top = callS.pop();
+                if (top && top.prevS >= 0 && cpu.s !== top.prevS) stackWrite = true;
+            } else if (callS.length > 0 && cpu.s > callS[callS.length - 1].s) stackWrite = true;
             if (cpu.s > entryS) break;
         }
     } catch (e: any) {
@@ -232,12 +239,30 @@ function diff(x: { regs: Regs; wram: Uint8Array; io?: string[] }, y: { regs: Reg
 /** Copies of `image`, each with one operand bit of one of the routine's first instructions flipped. */
 function mutations(image: Uint8Array, b: Binding, cdl: Uint8Array | null, max = 8): { image: Uint8Array; what: string }[] {
     const out: { image: Uint8Array; what: string }[] = [];
-    for (const l of walk(image, b.addr, cdl)) {
+    const body = walk(image, b.addr, cdl);
+    for (const l of body) {
         if (out.length >= max) break;
         if (l.bytes.length < 2 || /^(B..|BRL|REP|SEP|JSL|JSR|JML|JMP|PEA)/.test(l.text)) continue;
         const m = new Uint8Array(image);
         m[(l.pc & 0x3FFFFF) + 1] ^= 0x01;
         out.push({ image: m, what: `${hex(l.pc)} ${l.text}, operand bit 0 flipped` });
+    }
+    if (!out.length) {
+        for (const l of body) {
+            if (out.length >= max) break;
+            if (l.bytes.length === 1 && /^(SEC|CLC|TAX|TXA|TAY|TYA|TYX|TXY|INX|DEX|INY|DEY|INC|DEC|ASL|LSR|TDC|XBA)$/.test(l.text.split(" ")[0])) {
+                const m = new Uint8Array(image);
+                m[l.pc & 0x3FFFFF] = 0xEA; // NOP
+                out.push({ image: m, what: `${hex(l.pc)} ${l.text}, replaced with NOP` });
+            } else if (/^PEA/.test(l.text) && l.bytes.length >= 3) {
+                const m1 = new Uint8Array(image);
+                m1[(l.pc & 0x3FFFFF) + 1] ^= 0x01;
+                out.push({ image: m1, what: `${hex(l.pc)} ${l.text}, low operand bit 0 flipped` });
+                const m2 = new Uint8Array(image);
+                m2[(l.pc & 0x3FFFFF) + 2] ^= 0x01;
+                out.push({ image: m2, what: `${hex(l.pc)} ${l.text}, high operand bit 0 flipped` });
+            }
+        }
     }
     return out;
 }

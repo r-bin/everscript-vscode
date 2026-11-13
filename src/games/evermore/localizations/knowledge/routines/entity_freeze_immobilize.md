@@ -6,9 +6,11 @@ kind: code
 category: 🧠
 name: entity_freeze_immobilize
 title: Halt entity motion and set immobilized status flag
-confidence: confirmed
-tags: [entities, physics, immobilization]
-evidence: ["disasm: $8F:CD78 ldy $4C; jsl $8F98FE; lda $0010,y; ora #$0020; sta $0010,y; rtl", "docs/disassembly/script-vm/opcode-freeze.md"]
+confidence: verified
+tags: [entities, physics, immobilization, reconstructed-c, g1-pass]
+evidence:
+  - "[\"disasm: $8F:CD78 ldy $4C; jsl $8F98FE; lda $0010,y; ora #$0020; sta $0010,y; rtl\", \"docs/disassembly/script-vm/opcode-freeze.md\"]"
+  - "Reconstructed in `reconstructed-c/8F/8FCD78_entity_freeze_immobilize.c` (SOE_BIND); passes Gate G1 differential verification (30/30 reference states, 0/0 fuzzed states, mutation caught: yes, 9 / 259 ROM/C instructions per call)."
 see: [routines/script_op_freeze_entity.md, routines/script_op_2c_freeze_mask.md, routines/entity_unfreeze_mobilize.md, docs/disassembly/script-vm/opcode-freeze.md, docs/disassembly/script-vm/opcode-freeze.md]
 ---
 Halts active physics/animation motion on the target entity (`$4C`) by calling `$8F:98FE`, and sets status flag bit 5 (`0x0020`) in `entity->status_flags` (`+$10`).

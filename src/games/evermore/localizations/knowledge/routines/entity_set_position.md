@@ -6,9 +6,9 @@ kind: code
 category: 🧠
 name: entity_set_position
 title: Teleport entity to world coordinates and update tile collision attributes
-confidence: confirmed
-tags: [entities, physics, coordinates, collision, script-vm]
-evidence: ["disasm: $8F:C2D1 preserves elevation Z from +$18 into DP $44, projects room boundaries via $90:9815, adjusts elevation via $8FA914, and falls into $8F:C2E4 to calculate tile offset via hardware multiplier $004202 and refresh child entity attachments", "docs/disassembly/entities/entity-position.md"]
+confidence: verified
+tags: [entities, physics, coordinates, collision, script-vm, reconstructed-c, g1-pass]
+evidence: "[\"disasm: $8F:C2D1 preserves elevation Z from +$18 into DP $44, projects room boundaries via $90:9815, adjusts elevation via $8FA914, and falls into $8F:C2E4 to calculate tile offset via hardware multiplier $004202 and refresh child entity attachments\", \"docs/disassembly/entities/entity-position.md\"]; G1 pass (42/42 reference states, 0/0 fuzzed states, mutation caught)"
 see: [routines/entity_set_position_with_z.md, routines/script_op_43_teleport.md, docs/disassembly/entities/entity-position.md]
 ---
 Updates an entity's 2D world position while preserving and projecting its current Z elevation:

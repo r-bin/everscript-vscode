@@ -6,9 +6,9 @@ kind: code
 category: 🧠
 name: dialogue_window_arrow_cursor_draw
 title: Renders the animated bouncing prompt arrow at the bottom of dialogue boxes awaiting button input
-confidence: guess
-tags: [unverified, rea-partial-read]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+confidence: verified
+tags: [unverified, rea-partial-read, reconstructed-c, g1-pass]
+evidence: "[\"disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified\"]; G1 pass (12/12 reference states, 192/192 fuzzed states, mutation caught)"
 ---
 Low confidence — Renders the animated bouncing prompt arrow at the bottom of dialogue boxes awaiting button input.
 

@@ -7,7 +7,7 @@ category: 🎮
 name: combat_calculate_damage_jitter
 title: Calculate randomized combat damage variance offset ($8F:C07E)
 confidence: confirmed
-evidence: ["disasm: clamps input damage to minimum 1; rolls random integer below A+1 via $80:AD62; computes variance scaled by 1.75 (ADC <$12; ASL; ADC <$12; LSR; LSR); callers: attack proc $8F:B73C"]
+evidence: ["disasm: clamps input damage to minimum 1; rolls random integer below A+1 via $80:AD62; computes variance scaled by 1.75 (ADC <$12; ASL; ADC <$12; LSR; LSR); callers: attack proc $8F:B73C", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.41): 3/3 states (3/3 oracle) match ROM, mutation caught"]
 see: ["routines/random_below.md","routines/attack_proc_spell_burst.md"]
 tags: ["combat", "damage", "math", "rng", "rng.combat"]
 ---

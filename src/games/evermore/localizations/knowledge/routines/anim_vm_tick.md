@@ -6,9 +6,9 @@ kind: code
 category: 🧠
 name: anim_vm_tick
 title: Animation bytecode VM per-tick loop & keyframe interpreter
-confidence: confirmed
+confidence: verified
 tags: [animation, sprites]
-evidence: ["disasm: updates positioning offset via $90:817B; increments elapsed ticks; fetches command byte from 24-bit pointer [$5D]; shifts bit 7 into Carry (end of frame); dispatches opcode via jump table at $90:8000; decrements hold duration timer at slot+$05; on expiration writes advanced PC to slot+$00", "docs: docs/entities/animation_script.md and animation-script skill"]
+evidence: ["disasm: updates positioning offset via $90:817B; increments elapsed ticks; fetches command byte from 24-bit pointer [$5D]; shifts bit 7 into Carry (end of frame); dispatches opcode via jump table at $90:8000; decrements hold duration timer at slot+$05; on expiration writes advanced PC to slot+$00", "docs: docs/entities/animation_script.md and animation-script skill", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.39): 12/12 states match ROM, mutation caught"]
 see: [docs/disassembly/animation/animation-vm.md]
 ---
 Tick-level execution loop of the Secret of Evermore sprite animation bytecode VM.

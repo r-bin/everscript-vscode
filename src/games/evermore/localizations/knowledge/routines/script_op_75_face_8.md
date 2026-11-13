@@ -8,7 +8,7 @@ name: script_op_75_face_8
 title: Script opcode 0x75 — face 8
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E, continues in the same turn (docs/scripts/opcodes.md)", "trace: the game ran 26 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)"]
+evidence: ["disasm: handler from the opcode table at $8C:E8BD; operands E, continues in the same turn (docs/scripts/opcodes.md)", "trace: the game ran 26 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.40): 1/1 states (1/1 oracle) match ROM, mutation caught"]
 see: [docs/scripts/opcodes.md]
 ---
 Handler of script opcode [0x75](soe://rom/assets/scripts/opcodes/75.md). What it does, why it exists and how scripts use it: the opcode entry `knowledge/opcodes/75.md`, served at `soe://rom/assets/scripts/opcodes/75.md`.

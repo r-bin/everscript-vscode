@@ -6,8 +6,8 @@ kind: code
 category: 🎨
 name: anim_record_check_script_ref_matches
 title: Animation record active script pointer equality tester ($90:8139)
-confidence: confirmed
-evidence: ["disasm: compares 3-byte script pointer at $C4:0000+X against current script pointer in record Y (+$03,Y and +$02,Y); if fully equal, returns immediately with no restart needed; if mismatch, branches to $90:817B to rebind script; callers: anim_start_record ($90:8124), $90:84A7, $91:A841"]
+confidence: verified
+evidence: ["disasm: compares 3-byte script pointer at $C4:0000+X against current script pointer in record Y (+$03,Y and +$02,Y); if fully equal, returns immediately with no restart needed; if mismatch, branches to $90:817B to rebind script; callers: anim_start_record ($90:8124), $90:84A7, $91:A841", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.39): 45/45 states (31/31 oracle) and 710/710 fuzzed match ROM, mutation caught"]
 see: [routines/anim_start_record.md, routines/anim_record_init_from_script_ref.md]
 tags: [animation, sprites, optimization]
 ---

@@ -6,8 +6,8 @@ kind: code
 category: 🎮
 name: particle_emitter_bind_entity_coordinates
 title: Bind particle emitter position and orientation to entity coordinates ($8F:A78A)
-confidence: confirmed
-evidence: ["disasm: copies entity pos +$1A,Y and +$1C,Y to emitter record $3C1C,X and $3C1E,X; copies elevation +$17,Y to $3BFA,X; copies orientation +$62,Y to $3BF9,X; resets timer $3C16,X; jumps to $8F:A723"]
+confidence: verified
+evidence: ["disasm: copies entity pos +$1A,Y and +$1C,Y to emitter record $3C1C,X and $3C1E,X; copies elevation +$17,Y to $3BFA,X; copies orientation +$62,Y to $3BF9,X; resets timer $3C16,X; jumps to $8F:A723", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.39): 42/42 states match ROM, mutation caught"]
 see: ["routines/companion_waypoint_history_poll.md"]
 tags: ["particle","emitter","entity","coordinates"]
 ---

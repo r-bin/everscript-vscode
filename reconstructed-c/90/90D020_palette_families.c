@@ -1,85 +1,84 @@
-/*
- * Routine: $90D020 (palette_families)
+/**
+ * Routine: $90:D020 (load_up_to_7_tile_families_from_map_palette)
  * Bank: $90 (ROM Offset: $10D020)
- * Source: docs/disassembly/maps/palette-families.md
+ * Calling convention: RTL
  */
 
-#include <stdint.h>
-#include <stdbool.h>
+/*
+ * Routine Rating & Verification:
+ * - Target Routine:   load_up_to_7_tile_families_from_map_palette ($90D020) [RTL]
+ * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
+ * - Initial ROM ASM:  65 instructions (132 bytes)
+ * - Compiled C ASM:   396 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   6.1x instructions vs ROM
+ * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
+ * - Rating Hash:      5cd26a114de4028d
+ * - Rating Status:    VALID (unmodified since rating)
+ */
+#include "soe.h"
+#include "soe_ram.h"
 
-#define MAX_TILE_FAMILIES        7
-#define BYTES_PER_TILE_FAMILY   32
-#define TILE_FAMILY_ROM_BASE    0xC322
-#define TILE_FAMILY_ROM_BANK    0x9C
+#define MAX_PALETTE_FAMILIES_PER_PASS 7u
+#define TILE_FAMILY_BYTES             0x0020u
+#define TILE_FAMILY_ROM_BASE          0xC322u
+#define TILE_FAMILY_ROM_BANK          0x9Cu
+#define TILE_FAMILY_WRAM_ADDR         0x61A7u
+#define TILE_FAMILY_WRAM_BANK         0x7Eu
+#define CGRAM_UPLOAD_WORDS            0x0010u
+#define ROOM_HEADER_PTR_DP            0x8Bu
 
-// WRAM state
-extern uint16_t g_map_palette_id;        // $7E:2437 (MAP_PALETTE)
-extern uint16_t g_loaded_map_palette_id; // $7E:0F8A
-extern uint16_t g_tile_families_offset;  // $7E:0F9C
-extern const uint8_t *g_current_room_header; // DP [$8B]
-extern uint8_t g_tile_family_buffer[];   // $7E:61A7
-
-// Subsystem functions
-extern void dma_copy_rom_to_wram(uint8_t bank, uint16_t src, void *dst, uint16_t size);
-extern void cgram_queue_palette_update(uint16_t offset, uint16_t param); // $80:85FA
-extern void vram_refresh_tile_families(void);                             // $90:D55F
-extern void map_recompute_tile_palettes(void);                           // $90:D481
+SOE_BIND(load_up_to_7_tile_families_from_map_palette, 0x90D020, RTL);
 
 /**
- * load_up_to_7_tile_families_from_map_palette ($90:D020)
- * Copies up to 7 tile families (32 bytes each) from ROM bank $9C into WRAM $7E:61A7,
- * and queues the corresponding CGRAM palette upload for the next VBLANK.
+ * Loads up to 7 palette families (32 bytes each from $9C:C322) into WRAM
+ * $7E:61A7 via DMA ch1, and schedules the CGRAM palette upload via $80:85FA.
  */
-void load_up_to_7_tile_families_from_map_palette(void) {
-    // 1. Cache the new map palette ID
-    g_loaded_map_palette_id = g_map_palette_id;
+void load_up_to_7_tile_families_from_map_palette_bind(soe_regs r) {
+    uint16_t target_idx = RAM16(MAP_PALETTE_INDEX_ADDR);
+    ABS16(r, LOADED_PALETTE_TAG_ADDR) = target_idx;
 
-    // 2. Read number of tile families defined in room header
-    uint16_t header_offset = g_tile_families_offset;
-    uint16_t total_families = g_current_room_header[header_offset];
+    uint16_t header_off = ABS16(r, ROOM_PALETTES_STREAM_PTR_ADDR);
+    uint32_t room_hdr = SOE_DPPTR(r, ROOM_HEADER_PTR_DP);
+    uint16_t total = (uint16_t)(LONG16(room_hdr + header_off) & 0x00FFu);
 
-    if (total_families <= g_loaded_map_palette_id) {
-        return; // No remaining families to load
-    }
-
-    int16_t remaining = total_families - g_loaded_map_palette_id;
-    if (remaining <= 0) {
+    soe_carry(r, true);
+    uint16_t rem = soe_sbc16(r, total, target_idx);
+    if ((rem == 0u) || (rem & 0x8000u)) {
+        r->a = rem;
+        r->y = header_off;
         return;
     }
 
-    // Clamp to maximum 7 families
-    uint16_t count = (remaining < MAX_TILE_FAMILIES) ? (uint16_t)remaining : MAX_TILE_FAMILIES;
+    uint16_t count = (rem < 8u) ? rem : MAX_PALETTE_FAMILIES_PER_PASS;
+    uint16_t y = (uint16_t)(header_off + (target_idx << 1) + 1u);
 
-    // 3. Setup source offset in room header
-    const uint16_t *family_ids = (const uint16_t *)&g_current_room_header[header_offset + (g_loaded_map_palette_id * 2) + 1];
-    uint8_t *dest = g_tile_family_buffer;
+    ABS16(r, 0x2181u) = TILE_FAMILY_WRAM_ADDR;
+    DP16(r, 0x26u) = TILE_FAMILY_WRAM_ADDR;
+    ABS8(r, 0x2183u) = TILE_FAMILY_WRAM_BANK;
+    DP8(r, 0x28u) = TILE_FAMILY_WRAM_BANK;
 
-    // 4. DMA transfer each tile family from ROM Bank $9C into WRAM $7E:61A7
-    for (uint16_t i = 0; i < count; i++) {
-        uint16_t family_id = family_ids[i];
-        uint16_t rom_source = TILE_FAMILY_ROM_BASE + (family_id * BYTES_PER_TILE_FAMILY);
-
-        dma_copy_rom_to_wram(TILE_FAMILY_ROM_BANK, rom_source, dest, BYTES_PER_TILE_FAMILY);
-        dest += BYTES_PER_TILE_FAMILY;
+    for (uint16_t x = count; x != 0u; x--) {
+        uint16_t fam_id = LONG16(room_hdr + y);
+        y = (uint16_t)(y + 2u);
+        uint16_t src_addr = (uint16_t)((fam_id << 5) + TILE_FAMILY_ROM_BASE);
+        ABS16(r, 0x4312u) = src_addr;
+        ABS16(r, 0x4315u) = TILE_FAMILY_BYTES;
+        ABS16(r, 0x4310u) = 0x8000u;
+        ABS8(r, 0x4314u) = TILE_FAMILY_ROM_BANK;
+        ABS8(r, 0x420Bu) = 0x02u;
     }
 
-    // 5. Queue CGRAM palette update
-    uint16_t cgram_offset = (total_families * 16) * 2;
-    cgram_queue_palette_update(cgram_offset, 0x0010);
-}
+    uint16_t total_pal = (uint16_t)(LONG16(room_hdr + header_off) & 0x00FFu);
+    uint16_t cgram_off = (uint16_t)(total_pal << 4);
+    r->y = cgram_off;
+    r->x = (uint16_t)(cgram_off << 1);
+    DP16(r, 0x2Eu) = CGRAM_UPLOAD_WORDS;
+    r->a = CGRAM_UPLOAD_WORDS;
+    soe_carry(r, (cgram_off & 0x8000u) != 0u);
+    soe_nz16(r, r->x);
 
-/**
- * reload_families_when_a_script_changes_map_palett ($90:CBB3)
- * Checks if the script modified the MAP_PALETTE index, and reloads
- * families and graphics associations if changed.
- */
-void reload_families_when_a_script_changes_map_palett(void) {
-    // Only reload if the script actually selected a different palette
-    if (g_map_palette_id != g_loaded_map_palette_id) {
-        load_up_to_7_tile_families_from_map_palette();
-    }
+    soe_call_rtl(0x8085FAu, r);
 
-    // Refresh VRAM tile families and metatile palette mappings
-    vram_refresh_tile_families();
-    map_recompute_tile_palettes();
+    r->y = y;
+    soe_nz16(r, y);
 }

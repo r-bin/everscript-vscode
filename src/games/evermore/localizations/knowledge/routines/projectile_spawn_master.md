@@ -8,7 +8,7 @@ name: projectile_spawn_master
 title: Master Projectile & Spell Sprite Spawner
 confidence: confirmed
 tags: [combat, entity, graphics]
-evidence: ["disasm: the script spawn handlers $8C:DCD9 (0xBA) / $8C:DCEC (0x3C) call it with the character record in $02: $8F:B0B8 copies record +$05, +$0F, +$11, +$17 into the entity and keeps the address at +$60 (routines/character_records.md)", "disasm: $8F:B094 switches DB to $7E, calls entity pool allocator $8F:B2BE to find an empty slot, and forwards to $8F:B0A4 to initialize coordinates and clear status slots"]
+evidence: ["disasm: the script spawn handlers $8C:DCD9 (0xBA) / $8C:DCEC (0x3C) call it with the character record in $02: $8F:B0B8 copies record +$05, +$0F, +$11, +$17 into the entity and keeps the address at +$60 (routines/character_records.md)", "disasm: $8F:B094 switches DB to $7E, calls entity pool allocator $8F:B2BE to find an empty slot, and forwards to $8F:B0A4 to initialize coordinates and clear status slots", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.40): 39/39 states (39/39 oracle) match ROM, mutation caught"]
 see: [routines/entity_slot_allocate_and_init.md, combat/projectiles.md, combat/alchemy-formulas.md]
 ---
 Master entry point for spawning spell projectiles and ranged combat hazards:
