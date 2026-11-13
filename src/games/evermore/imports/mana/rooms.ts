@@ -104,12 +104,13 @@ function createManaRooms(deps: { soeRom(): Rom | null; manaRom(): Rom | null }) 
     }
 
     /**
-     * Where the Boy starts by default: the cell nearest the middle that is open floor with open
-     * floor around it (collision geometry 0 on the cell and its eight neighbours).
+     * Where the Boy starts by default: the cell nearest the middle that is plain floor with plain
+     * floor around it (geometry 0 and no stair or current, on the cell and its eight neighbours).
      */
     function defaultStart(room: Entry['room']) {
         const w = room.widthTiles, h = room.heightTiles;
-        const open = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && !(room.cells[(y * w + x) * 3 + 2] & 0x0F);
+        // Plain floor: geometry 0 and not always-walkable (bit 13: a stair or a current, whose low nibble is a direction).
+        const open = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && !(room.cells[(y * w + x) * 3 + 2] & 0x200F);
         const roomy = (x: number, y: number) => [-1, 0, 1].every((dy) => [-1, 0, 1].every((dx) => open(x + dx, y + dy)));
         const cx = (w - 1) / 2, cy = (h - 1) / 2;
         let best: { x: number; y: number } | null = null, bestD = Infinity;

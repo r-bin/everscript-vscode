@@ -3,7 +3,9 @@
 // A converted Secret of Mana map played in the Evermore engine (rooms/rendering/rom-export-own.ts):
 // the ROM Play in emulator builds for Potos Falls 1, booted in the bundled snes9x core. The game
 // must be in room 0x15 and draw every cell nothing animates exactly as the editor's renderer does
-// (5-bit colours; the Boy, the dog and the HUD are masked). Emulator tier: ~20 s.
+// (5-bit colours; the Boy, the dog and the HUD are masked); and the collision translation works in
+// the engine: the bridge is crossed on plane 1 from its stairs, the river's current carries the
+// Boy (docs/mana/evermore-rooms.md). Emulator tier: ~5 s.
 // Run: node tests/mana/mana-play.test.js  (both ROMs from the ROM library: npm run roms)
 
 const fs = require('fs');
@@ -32,8 +34,10 @@ const bridge = require('../../dist/games/evermore/imports/mana');
 const own = require('../../dist/games/evermore/rooms/rendering/rom-export-own');
 const soe = new Uint8Array(fs.readFileSync(SOE)), som = new Uint8Array(fs.readFileSync(SOM));
 const parts = bridge.createManaRooms({ soeRom: () => soe, manaRom: () => som }).playable(0x1080);
-const { rom } = own.buildOwnRoomExportRom(soe, parts.room, parts.start);
-own.verifyOwnRoomExport(rom, parts.shown);
+const romAt = (x, y) => { const b = own.buildOwnRoomExportRom(soe, parts.room, { x, y }); own.verifyOwnRoomExport(b.rom, parts.shown); return b.rom; };
+const rom = romAt(28, 39);
+const PAD = { right: 0x100, none: 0 };
+const BOY = 0x4e89;                         // entity: +$1A x, +$1C y, +$18 plane (bits 4-5)
 
 const file = path.join(CORE, 'snes9x_2005.js');
 global.require = require; global.__dirname = CORE; global.__filename = file;
@@ -64,5 +68,28 @@ function run() {
         }
     }
     check('every still cell on screen is drawn as the editor draws it', n > 5000 && same === n, `${same}/${n} pixels`);
+
+    // Boot `r` (power-on), hold `pad` for `frames`, and list the Boy's cell and plane every 8 frames.
+    const walk = (r, pad, frames) => {
+        const q = Module._my_malloc(r.length);
+        HEAPU8.set(r, q);
+        Module._startWithRom(q, r.length, 32040);
+        for (let f = 0; f < 1100; f++) { Module._setJoypadInput(0); Module._mainLoop(); }
+        const out = [];
+        for (let f = 0; f < frames; f++) {
+            Module._setJoypadInput(pad); Module._mainLoop();
+            if (f % 8) continue;
+            const s = Module._saveState(), b = s + WRAM_IN_STATE + BOY;
+            out.push({ x: (HEAPU8[b + 0x1a] | (HEAPU8[b + 0x1b] << 8)) >> 4, y: (HEAPU8[b + 0x1c] | (HEAPU8[b + 0x1d] << 8)) >> 4, plane: (HEAPU8[b + 0x18] >> 4) & 3 });
+        }
+        return out;
+    };
+    const cross = walk(romAt(26, 68), PAD.right, 200);
+    const deck = cross.filter((p) => p.x >= 30 && p.x <= 33);
+    const end = cross[cross.length - 1];
+    check('up the bridge stairs and across the deck on plane 1, down onto plane 2 beyond', deck.length > 2 && deck.every((p) => p.plane === 1)
+        && end.x >= 38 && end.plane === 2, JSON.stringify(cross.map((p) => [p.x, p.y, p.plane])));
+    const drift = walk(romAt(28, 33), PAD.none, 8);
+    check('the river\'s current carries the Boy downstream with no input', drift[0].y >= 38, JSON.stringify(drift[0]));
     done();
 }

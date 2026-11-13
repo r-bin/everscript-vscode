@@ -18,17 +18,23 @@ h-flip 14, priority 13, palette 10-12, character 0-9.
 | layer A (BG1) | layer 1, the canopy (BG1) | same BG |
 | layer B (BG2), repeated with its own size | layer 2, the terrain (BG2) | tiled over the map's size; no parallax |
 | metatile: 4 tilemap words of 8x8 chars | one 16x16 graphic + one word | the 4 chars with their flips drawn into one graphic; equal graphics share a Block 1 slot, also mirrored (the word's flip bits) |
+| backdrop colour where both layers are transparent | — | when BG2 is not on the sub screen: a priority-0 layer-B tile is filled with it, an empty layer B gets a solid tile; the exact colour goes into a palette index no tile draws with, else the nearest (Evermore's own backdrop is black). Not on maps whose sub screen holds BG2 (map `$10`: the fill would change what BG1 blends with) |
 | a metatile mixing palettes | — | redrawn in the palette its other pixels move least to (most pixels on a tie), other colours replaced by the nearest still one (never a colour a cycle rotates: it would blink); counted (`recolouredTiles`). Potos Falls' foam (`$9C`: palette 7 over palette 6, half and half) stays in palette 7 |
-| per-char priority | per-cell priority | the majority of opaque pixels |
+| per-char priority | per-cell priority | the majority of opaque pixels; but priority 0 when no high-priority pixel lies over a high-priority layer-B pixel (then the layer below covers the low ones on the main screen and they still blend in from the sub screen: Potos Falls' planks under the deck); otherwise low pixels a high-priority layer-B pixel covers in every cell are left out |
 | BG palettes 1-7 of palette set `s` | family `m<s*8 + p-1>` | only the palettes the map draws with, in slots 1..k by palette number; the same palette is the same family in every map |
 | display mode: TM, TS, CGADSUB | header bytes 4-6 | CGWSEL is `$02` in Mana, written to byte 7 |
 | backdrop colour (`$C8:0100` bytes 7-8) | — | Evermore keeps palette 0 for the HUD; drawn black |
 | floor of level 1 / 2 (c0 = 1 / 2) | plane 1 / 2 (`$10` / `$20`) | each solid from the other level in both games |
-| floor of no level (c0 = 0, or 4-7) | plane 2 + plane-transparent (`$60`) | open from every level |
+| floor of no level (c0 = 0) | always walkable, plane 2 (`$2020`) | Evermore changes a walker's plane only from an always-walkable cell (walked headless: from `$60` the Boy could not step onto the plane-1 bridge end, from `$2020` he could) |
+| floor that keeps the level (c0 4-7, the bridge deck `$15`) | plane 2 + plane-transparent (`$60`) | a plane-1 walker crosses on top, a plane-2 walker passes under |
+| stairs `$20`/`$21` (half speed) | always walkable, nibble 0 (Evermore's vertical stairs) | the slow-down is lost |
+| stairs `$22` / `$23` (going right climbs / descends) | shear nibble 1 / 2 (Evermore's diagonal stairs) | Evermore's shear climbs a pixel per pixel walked, Mana's one per two: per column of shear cells only the lowest row keeps it, extended one cell onto the floor the climb starts from; the rows above are vertical stairs. Walked both ways, from both rows, at Potos Falls |
+| push `$3n` (direction `n & 3`, `(n >> 2) + 1` px a frame) | drift: up `8`, down `F`, left `D`, right `A` | one speed in Evermore; at bends Evermore's movement stops against the bank where Mana's rounds the corner |
+| sprite priority c1 = 7 (in front) | bit 12 | the walker is drawn over every layer: no more tree tops over the Boy |
+| sprite priority c1 = 2 (split) | gate nibble 4 (`docs/map-format/wading.md`) | seen in the game: the Boy's legs behind the tall grass |
 | wall (c0 = 3) | geometry `$F`, plane 2 (`$2F`) | |
 | diagonal half wall 4 / 5 / 6 / 7 (c2) | geometry `$2` / `$9` / `$A` / `$1` | bottom-left / top-right / top-left / bottom-right solid |
 | layer switch (c0 bit 3: the walker moves to the other layer, A↔B) | — | not converted |
-| split sprite priority (c1 bits 0-2 = 2: marked pieces in front, the rest behind; README "Half-hidden characters") | gate nibble 4 with bit 12 clear (`docs/map-format/wading.md`) | not converted yet: the Evermore side is read from the code but not seen in the game |
 | step event cell (`$C8:4000`) | step-on bit 14 + a step-on box | boxes: runs of one event along a row, merged with the same run above; `scriptId` = the Mana event number |
 | the map's own event (byte 3 bit 2) | — | kept as `conversion.onEnter` |
 | weapon-cut cell (c2 `$Cn`, becomes c3) | cuttable layer (Section 4) | the cell's words until cut, then metatile c3's; one source per (cell, beneath) pair, Evermore's own `buildDictionary`. Which weapons may cut it is lost: Evermore's grass has no weapon test |
@@ -72,7 +78,7 @@ the game, or lose something on the way (measured 2026-10-15 over every map):
 | `$80` (chars `$360-$363`) and other maps with random holds (`$01:B033` mode `$C0`) | the 480 traced frames are looped as they are (`aperiodicTiles`): the burst comes back every 8 s instead of at random |
 | every animated map | A cycle shifts first after \|rate\| frames, so each cycle runs up to a period behind Mana's (`$80`'s waterfall: 2 frames). A metatile drawn by pixel effects (`$01:B17E`) shows its load picture once in Mana and never again, so it starts at a state the game shows while it runs. In the game Evermore uploads 10 channels a frame: Mana updates one block a frame, but several channels can share a frame (`peakUploads`; `$80`: 23 at load, when every channel advances); the late ones catch up a frame later. Map `$80`: 23 channels, 233 frame graphics; vanilla rooms run at most 42 |
 | `$1FF` | its trace never returns from `$01:B17E`: drawn still |
-| every map | the backdrop colour (Evermore draws black: the gaps in `$80`'s cuttable grass), mixed-palette tiles (one palette per cell, ~12 per map), per-8x8 priority, layer B's collision, the weapon a cut needs, character objects |
+| every map | the backdrop colour on maps whose sub screen holds BG2, mixed-palette tiles (one palette per cell, ~12 per map), per-8x8 priority, layer B's collision, the weapon a cut needs, character objects |
 
 ## Changing a converted room, and keeping the work
 
@@ -123,4 +129,4 @@ equal to the editor's picture; the animation follows the editor's timeline withi
 
 Taking over vanilla ids is safe for a test ROM, which shows no other room. Still missing in the
 game: Mana's characters and enemies, its events and doors (a converted map is a closed room),
-the specials it has no translation for (forced movement in water, layer switches).
+layer switches (c0 bit 3), the stairs' slow-down and the currents' speeds.

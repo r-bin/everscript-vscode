@@ -30,7 +30,14 @@ test('Mana collision becomes Evermore collision words', () => {
     assert.strictEqual(bridge.collisionWord(0x03, 0, false), 0x2F);        // wall
     assert.strictEqual(bridge.collisionWord(0x01, 0, false), 0x10);        // level-1 floor -> plane 1
     assert.strictEqual(bridge.collisionWord(0x02, 0, true), 0x4020);       // level-2 floor, step-on
-    assert.strictEqual(bridge.collisionWord(0x00, 0, false), 0x60);        // either level -> plane-transparent
+    assert.strictEqual(bridge.collisionWord(0x00, 0, false), 0x2020);      // no level -> always walkable: the plane may change here
+    assert.strictEqual(bridge.collisionWord(0x05, 0, false), 0x60);        // keeps the level (bridge deck) -> plane-transparent
+    assert.strictEqual(bridge.collisionWord(0x00, 0x22, false), 0x2021);   // stairs, going right climbs -> shear 1
+    assert.strictEqual(bridge.collisionWord(0x02, 0x23, false), 0x2022);   // going right descends -> shear 2
+    assert.strictEqual(bridge.collisionWord(0x02, 0x21, false), 0x2020);   // vertical stairs
+    assert.strictEqual(bridge.collisionWord(0x02, 0x32, false), 0x202D);   // push left -> drift west
+    assert.strictEqual(bridge.collisionWord(0x02, 0, false, 0x07), 0x1020);   // sprite in front -> bit 12
+    assert.strictEqual(bridge.collisionWord(0x02, 0, false, 0x02), 0x0420);   // split sprite -> gate nibble 4 (wading)
     assert.strictEqual(bridge.collisionWord(0x02, 0x14, false), 0x22);     // bottom-left half wall
 });
 
@@ -165,7 +172,7 @@ test('Play in emulator: a converted map becomes a ROM the game can address, draw
         assert.ok(report.graphicIds[1] * 3 < 0x10000 && report.familyIds.every((f) => f < 365), JSON.stringify(report));
         assert.strictEqual(maps.decodeRoom(rom, 0x15).triggers.stepOn.length, 0, 'Mana step events are left out');
     }
-    assert.deepStrictEqual(service.playable(0x1080).start, { x: 28, y: 39 });
+    assert.deepStrictEqual(service.playable(0x1080).start, { x: 33, y: 40 });   // plain floor: no stair, no current
     assert.strictEqual(service.playable(0x34), null);
 });
 

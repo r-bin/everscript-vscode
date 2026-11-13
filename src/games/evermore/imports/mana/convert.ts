@@ -10,167 +10,23 @@
 //                                  in its main palette (nearest colours) — counted
 //   Mana BG palette 1..7        -> family m<set*8 + palette-1>; only the palettes the map
 //                                  draws with, in slots 1..k
-//   Mana collision (c0, c2)     -> geometry + plane; step events -> bit 14 + a box
+//   Mana collision (c0-c2)      -> collision.ts; step events -> bit 14 + a box
+//   metatile pixels, palettes   -> graphics.ts
 //   weapon-cut cells (c2 $Cn)   -> the cuttable layer; event-flag pieces -> objects
 //   colour rotations, moving chars -> palette cycles, Section 2 channels (animation.ts)
 // Only SNES facts are shared: both games use Mode 1 tilemap words with the same bits.
 
 import * as mana from '../../../mana/decoder';
-import { FAMILY_BASE, MAX_GRAPHICS } from './ids';
+import { FAMILY_BASE } from './ids';
 import { flagObjects } from './pieces';
-import { flipH, flipV, keyOf } from './pixels';
 import { paletteCycles, animatedMetatiles, animateTiles } from './animation';
-import type { ManaMap, Rom as ManaRom } from '../../../mana/decoder';
+import { collisionWord, shapeStairs } from './collision';
+import { EMPTY_GRAPHIC, metatilePixels, encodeGraphic, slotChr, graphicTable, hiddenUnder, withBackdrop, backdropTile } from './graphics';
+import type { Stats, Trace, Layer, Tile, PixelOptions } from './graphics';
+import type { Rom as ManaRom } from '../../../mana/decoder';
 
-type Stats = { recolouredTiles: number; recolouredPixels: number; mixedPriority: number; droppedGraphics: number };
-type Trace = NonNullable<ReturnType<typeof mana.traceAnimation>>;
-type Placed = { slot: number; h: number; v: number };
 type Box = { x1: number; y1: number; x2: number; y2: number; scriptId: number };
-type Layer = 'A' | 'B';
 
-const EMPTY_GRAPHIC = 0;        // slot 0 is always the fully transparent graphic
-
-/** Evermore geometry nibble for each Mana diagonal (docs/map-format/map_collision_mechanics.md §5). */
-const DIAGONAL_GEOMETRY: Record<number, number> = { 4: 0x02, 5: 0x09, 6: 0x0A, 7: 0x01 };
-const SOLID = 0x0F, PLANE_1 = 0x10, PLANE_2 = 0x20, PLANE_TRANSPARENT = 0x40, STEP_ON = 0x4000;
-
-/**
- * Evermore collision word for Mana collision bytes c0, c2.
- * Level 1 and 2 floors become planes 1 and 2 (each solid from the other, as in Mana);
- * a floor of no level is plane-transparent, open from both.
- */
-function collisionWord(c0: number, c2: number, step: boolean): number {
-    const floor = c0 & 7, diag = mana.diagonalOf(c2);
-    let w: number;
-    if (diag) w = DIAGONAL_GEOMETRY[diag] | (floor === 1 ? PLANE_1 : PLANE_2);
-    else if (floor === 3) w = SOLID | PLANE_2;
-    else if (floor === 1) w = PLANE_1;
-    else if (floor === 2) w = PLANE_2;
-    else w = PLANE_2 | PLANE_TRANSPARENT;
-    return step ? w | STEP_ON : w;
-}
-
-const rgb = (c: number): number[] => [c & 31, (c >> 5) & 31, (c >> 10) & 31];
-
-/** Squared distance between two BGR555 colours. */
-function dist(a: number, b: number): number {
-    const x = rgb(a), y = rgb(b);
-    return (x[0] - y[0]) ** 2 + (x[1] - y[1]) ** 2 + (x[2] - y[2]) ** 2;
-}
-
-/**
- * The palette a mixed metatile is drawn in: the one its other pixels move least to (nearest
- * still colour each), the one with most pixels on a tie. A count alone put the waterfall's
- * foam (palette 7) into the water's palette 6 at Potos Falls, half and half.
- */
-function mainPalette(cgram: Uint16Array, px: Uint8Array, pal: Uint8Array, palCount: number[], rotating: ReadonlySet<number>): number {
-    let main = 1, best = Infinity;
-    for (let to = 1; to < 8; to++) {
-        if (!palCount[to]) continue;
-        let err = 0;
-        for (let i = 0; i < 256; i++) {
-            if (px[i] && pal[i] !== to) err += dist(cgram[pal[i] * 16 + px[i]], cgram[to * 16 + nearest(cgram, pal[i], px[i], to, rotating)]);
-        }
-        if (err < best || (err === best && palCount[to] > palCount[main])) { best = err; main = to; }
-    }
-    return main;
-}
-
-/**
- * The colour of palette `to` nearest to colour `c` of palette `from` (index 1..15), never one
- * that rotates (`rotating`, CGRAM indices): a redrawn pixel would blink with a cycle it is not part of.
- */
-function nearest(cgram: Uint16Array, from: number, c: number, to: number, rotating: ReadonlySet<number>): number {
-    const want = rgb(cgram[from * 16 + c]);
-    let best = 1, bestD = Infinity;
-    for (let k = 1; k < 16; k++) {
-        if (rotating.has(to * 16 + k)) continue;
-        const have = rgb(cgram[to * 16 + k]);
-        const d = (want[0] - have[0]) ** 2 + (want[1] - have[1]) ** 2 + (want[2] - have[2]) ** 2;
-        if (d < bestD) { bestD = d; best = k; }
-    }
-    return best;
-}
-
-/**
- * A metatile drawn as one 16x16 graphic: 256 colour indices, its palette and priority.
- * `vram` is the characters at one moment of an animation; `main` keeps a palette chosen before.
- */
-function metatilePixels(map: ManaMap, table: Uint16Array, n: number, stats: Stats, rotating: ReadonlySet<number>, vram = map.vram, main = 0) {
-    const px = new Uint8Array(256), pal = new Uint8Array(256);
-    const palCount = new Array(8).fill(0);
-    let prio = 0, opaque = 0;
-    for (let q = 0; q < 4; q++) {
-        const word = table[n * 4 + q];
-        const base = (word & 0x3FF) * 32, p = (word >> 10) & 7;
-        const hf = word & 0x4000, vf = word & 0x8000;
-        for (let y = 0; y < 8; y++) {
-            const r = base + (vf ? 7 - y : y) * 2;
-            const p0 = vram[r], p1 = vram[r + 1], p2 = vram[r + 16], p3 = vram[r + 17];
-            for (let x = 0; x < 8; x++) {
-                const bit = hf ? x : 7 - x;
-                const c = ((p0 >> bit) & 1) | ((p1 >> bit) & 1) << 1 | ((p2 >> bit) & 1) << 2 | ((p3 >> bit) & 1) << 3;
-                if (!c) continue;
-                const i = ((q >> 1) * 8 + y) * 16 + (q & 1) * 8 + x;
-                px[i] = c; pal[i] = p;
-                palCount[p]++; opaque++;
-                if (word & 0x2000) prio++;
-            }
-        }
-    }
-    if (!opaque) return { px, palette: 1, priority: 0, empty: true };
-    if (!main) main = mainPalette(map.cgram, px, pal, palCount, rotating);
-    if (palCount[main] < opaque) {
-        stats.recolouredTiles++;
-        for (let i = 0; i < 256; i++) {
-            if (px[i] && pal[i] !== main) { px[i] = nearest(map.cgram, pal[i], px[i], main, rotating); stats.recolouredPixels++; }
-        }
-    }
-    if (prio && prio < opaque) stats.mixedPriority++;
-    return { px, palette: main, priority: prio * 2 >= opaque ? 1 : 0, empty: false };
-}
-
-
-/** Evermore's 16x16 graphic layout: four 8x8 4bpp planar characters, TL TR BL BR. */
-function encodeGraphic(px: Uint8Array): Uint8Array {
-    const out = new Uint8Array(128);
-    for (let s = 0; s < 4; s++) {
-        const ox = (s & 1) * 8, oy = (s >> 1) * 8;
-        for (let row = 0; row < 8; row++) {
-            let b0 = 0, b1 = 0, b2 = 0, b3 = 0;
-            for (let col = 0; col < 8; col++) {
-                const c = px[(oy + row) * 16 + ox + col], m = 1 << (7 - col);
-                if (c & 1) b0 |= m; if (c & 2) b1 |= m; if (c & 4) b2 |= m; if (c & 8) b3 |= m;
-            }
-            out[s * 32 + row * 2] = b0; out[s * 32 + row * 2 + 1] = b1;
-            out[s * 32 + row * 2 + 16] = b2; out[s * 32 + row * 2 + 17] = b3;
-        }
-    }
-    return out;
-}
-
-/** Block 1 slot -> character index of a tilemap word (the inverse of `floor(chr/0x20)*8 + floor(chr%0x20/2)`). */
-const slotChr = (slot: number): number => Math.floor(slot / 8) * 0x20 + (slot % 8) * 2;
-
-/** The graphics list: deduplicated, mirrored copies sharing one slot. */
-function graphicTable(stats: Stats) {
-    const slots: Uint8Array[] = [new Uint8Array(256)], index = new Map<string, number>([[keyOf(slots[0]), 0]]);
-    return {
-        slots,
-        /** {slot, h, v} for a pixel block, adding it when it is new. */
-        place(px: Uint8Array): Placed {
-            const tries: [Uint8Array, number, number][] = [[px, 0, 0], [flipH(px), 1, 0], [flipV(px), 0, 1], [flipV(flipH(px)), 1, 1]];
-            for (const [p, h, v] of tries) {
-                const s = index.get(keyOf(p));
-                if (s !== undefined) return { slot: s, h, v };
-            }
-            if (slots.length >= MAX_GRAPHICS) { stats.droppedGraphics++; return { slot: EMPTY_GRAPHIC, h: 0, v: 0 }; }
-            index.set(keyOf(px), slots.length);
-            slots.push(px);
-            return { slot: slots.length - 1, h: 0, v: 0 };
-        },
-    };
-}
 
 /** Step-event cells as boxes: runs along a row, merged with the identical run above. */
 function triggerBoxes(steps: { x: number; y: number; event: number }[]): Box[] {
@@ -190,31 +46,38 @@ function triggerBoxes(steps: { x: number; y: number; event: number }[]): Box[] {
     return boxes;
 }
 
-type Tile = { m: ReturnType<typeof metatilePixels>; g: Placed };
-
 /**
  * Convert map `id`. Returns null for an id without pieces.
  * `cells` holds three words per cell, row by row; `graphics` 128-byte Evermore graphics
  * by Block 1 slot; `families` the palettes the map draws with, by slot.
  */
 function convertManaMap(manaRom: ManaRom, id: number) {
-    const map = mana.loadMap(manaRom, id);
-    if (!map) return null;
+    const source = mana.loadMap(manaRom, id);
+    if (!source) return null;
     const stats: Stats = { recolouredTiles: 0, recolouredPixels: 0, mixedPriority: 0, droppedGraphics: 0 };
     const graphics = graphicTable(stats);
     let trace: Trace | null = null;
-    try { trace = mana.traceAnimation(manaRom, map.header); } catch { /* $01:B17E never returns on some maps ($1FF): shown still */ }
-    const moving = trace ? animatedMetatiles(map, trace) : { A: new Set<number>(), B: new Set<number>() };
+    try { trace = mana.traceAnimation(manaRom, source.header); } catch { /* $01:B17E never returns on some maps ($1FF): shown still */ }
+    const moving = trace ? animatedMetatiles(source, trace) : { A: new Set<number>(), B: new Set<number>() };
     const rotations = trace ? mana.paletteRotations(trace) : { rotations: [], others: [] };
     const rotating = new Set(rotations.rotations.flatMap((r) => Array.from({ length: r.count }, (_, k) => r.palette * 16 + r.first + k)));
+    // The colours the room is drawn with: the animation's starting moment, Mana's backdrop in the
+    // first index of each palette that no tile draws with (so filling with it is exact).
+    const map = { ...source, cgram: withBackdrop(source, trace, rotating) };
     // First every metatile the map shows, so only the palettes it draws with become
     // families, packed into slots 1..k in palette order (a word names its slot).
     const tiles: Record<Layer, Map<number, Tile>> = { A: new Map(), B: new Map() };
+    const hidden = hiddenUnder(map);
+    // The fill replaces the backdrop on the main screen only when BG2 is not on the sub screen:
+    // there it would become what BG1 is blended with (map $10: TS $02, BG1 half-added).
+    const fillBackdrop = !(map.display.sub & 0x02);
+    const pixelOpts = (layer: Layer, n: number): PixelOptions =>
+        (layer === 'A' ? { hide: hidden.get(n) || null } : fillBackdrop ? { backdrop: map.display.backdrop } : {});
     const tileOf = (layer: Layer, n: number): Tile | null => {
         if (n < 0 || n >= 192) return null;
         let t = tiles[layer].get(n);
         if (!t) {
-            const m = metatilePixels(map, layer === 'A' ? map.tableA : map.tableB, n, stats, rotating);
+            const m = metatilePixels(map, layer === 'A' ? map.tableA : map.tableB, n, stats, rotating, pixelOpts(layer, n));
             t = { m, g: m.empty ? { slot: EMPTY_GRAPHIC, h: 0, v: 0 } : moving[layer].has(n) ? { slot: -1, h: 0, v: 0 } : graphics.place(m.px) };
             tiles[layer].set(n, t);
         }
@@ -227,20 +90,25 @@ function convertManaMap(manaRom: ManaRom, id: number) {
     for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) { tileOf('A', map.cell('A', x, y)); tileOf('B', map.cell('B', x, y)); }
     for (const c of cuts) tileOf(c.layer, c.to);
     for (const o of flagged) for (const f of o.frames) for (const v of Object.values(f)) { tileOf('A', v.A); tileOf('B', v.B); }
+    // Where layer B shows nothing, Mana shows its backdrop: one solid graphic for it, placed
+    // before the animation takes the slots after Block 1.
+    const backdrop = fillBackdrop ? backdropTile(map, tiles, rotating, graphics) : null;
     const scratch: Stats = { recolouredTiles: 0, recolouredPixels: 0, mixedPriority: 0, droppedGraphics: 0 };
     const anim = animateTiles(map, trace, tiles, graphics, (layer, n, vram, palette) =>
-        metatilePixels(map, layer === 'A' ? map.tableA : map.tableB, n, scratch, rotating, vram, palette).px);
+        metatilePixels(map, layer === 'A' ? map.tableA : map.tableB, n, scratch, rotating, { ...pixelOpts(layer, n), vram, main: palette }).px);
     const used = new Map<number, Set<number>>();                     // Mana palette -> graphic slots drawn in it
     for (const layer of ['A', 'B'] as Layer[]) for (const t of tiles[layer].values()) {
         if (t.m.empty) continue;
         if (!used.has(t.m.palette)) used.set(t.m.palette, new Set());
         used.get(t.m.palette)!.add(t.g.slot);
     }
+    if (backdrop && !used.has(backdrop.palette)) used.set(backdrop.palette, new Set([backdrop.slot]));
     const palettes = [...used.keys()].sort((x, y) => x - y);
     if (!palettes.length) palettes.push(1);
     const slotOf = (p: number): number => palettes.indexOf(p) + 1;
     const wordFor = (layer: Layer, n: number): number => {
         const t = tileOf(layer, n);
+        if (layer === 'B' && (!t || t.m.empty) && backdrop) return (slotOf(backdrop.palette) << 10) | slotChr(backdrop.slot);
         if (!t || t.m.empty) return 1 << 10;    // the empty graphic, in slot 1
         return (t.g.v << 15) | (t.g.h << 14) | (t.m.priority << 13) | (slotOf(t.m.palette) << 10) | slotChr(t.g.slot);
     };
@@ -250,7 +118,7 @@ function convertManaMap(manaRom: ManaRom, id: number) {
     // moves by layer A's collision, so that is the cell's collision word.
     const stamp = (x: number, y: number, a: number, b: number): number[] => {
         const c = mana.metatileCollision(manaRom, map, 'A', a);
-        return [wordFor('A', a), wordFor('B', b), collisionWord(c[0], c[2], stepAt.has(y * map.w + x))];
+        return [wordFor('A', a), wordFor('B', b), collisionWord(c[0], c[2], stepAt.has(y * map.w + x), c[1])];
     };
     const cells: number[] = new Array(map.w * map.h * 3);
     for (let y = 0; y < map.h; y++) {
@@ -260,6 +128,7 @@ function convertManaMap(manaRom: ManaRom, id: number) {
             cells[i * 3] = w[0]; cells[i * 3 + 1] = w[1]; cells[i * 3 + 2] = w[2];
         }
     }
+    shapeStairs(cells, map.w, map.h);
     // Evermore's cuttable layer: the cell shows its words until cut, then `cells`.
     const cut: number[][] = [];
     const cutSeen = new Set();
@@ -288,7 +157,7 @@ function convertManaMap(manaRom: ManaRom, id: number) {
     const set = map.header.paletteSet;
     const families = palettes.map((p) => {
         // The moment the channels start from (animation.ts), so tiles and colour cycles start together.
-        const colours = Array.from((trace ? trace.cgram : map.cgram).subarray(p * 16, p * 16 + 16), (c) => c & 0x7FFF);
+        const colours = Array.from(map.cgram.subarray(p * 16, p * 16 + 16), (c) => c & 0x7FFF);
         const n = set * 8 + p - 1;
         return { id: FAMILY_BASE + n, label: 'm' + n, paletteSet: set, palette: p, colours,
             graphics: used.has(p) ? used.get(p)!.size : 0 };

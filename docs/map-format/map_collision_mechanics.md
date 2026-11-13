@@ -234,6 +234,17 @@ open.
 **UNVERIFIED:** how momentum is maintained between tiles, and the exact speed
 ramp (`$8FAD51`'s `$0064,Y` cap).
 
+**Measured** (v0.406.0, the converted Potos Falls in the bundled snes9x core, `tests/mana/mana-play.test.js`):
+
+- A shear tile (nibble 1, moving east) lifts the Boy about one pixel per pixel walked.
+- A walker changes plane by stepping from an always-walkable (bit 13) tile onto an ordinary tile of
+  another plane: from `$2020` onto a plane-1 `$0010` worked; from a plane-transparent `$0060` it
+  did not, and an always-walkable plane-0 `$2000` could not be entered from plane 2. The evaluator
+  above does not explain the first (its mismatch path tests the plane *difference*, which is `$30`
+  there); how the movement code gets past it is not traced.
+- A drift tile (`$200F`, south) carries a standing Boy along a run of such tiles; he stops where the
+  run turns and his box meets the bank: there is no corner sliding.
+
 ---
 
 ## 7.1 The Interact Gate: Bit 15 (`0x8000`) and the B-Button Dispatcher
