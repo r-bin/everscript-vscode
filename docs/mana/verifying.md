@@ -68,6 +68,15 @@ restores it, writes the cell's value (read from `$7F` as the game holds it) into
 difference. This checks the table lookup and the slot numbering, not walking: that a
 character's cell value reaches `$E04B` is read from `$00:D682`.
 
+To check cells whose list is empty or short (the game reads past it), `mapEvents` must list
+them: it does since v0.409.0 (`$66`: 9 of 9, `$101`: 2 of 2). Traps found on the way:
+
+- Running a door event this way (waiting 600 frames) does not take the party through the door:
+  `$66`'s door events `$230`/`$231` changed nothing at the opening's story state, so the layer
+  a door sets cannot be read off this way.
+- A forced load leaves the first character's layer (`$7E:E00B` bit 7) as it was: layer A after
+  the opening on every map tried. It says nothing about a map's own layer.
+
 ## Converted rooms against the Mana picture
 
 `tests/mana/mana-evermore.test.js` (both ROMs) converts maps to Evermore rooms, draws them
@@ -75,6 +84,13 @@ with Evermore's renderer and compares with `src/games/mana/decoder`'s picture. O
 of pixels agree; the rest are mixed-palette tiles redrawn in one palette, per-tile
 priority, and the backdrop colour (Evermore draws black). See
 [evermore-rooms.md](evermore-rooms.md).
+
+Trap: that agreement counts Evermore's black as equal to Mana's backdrop, so a room that shows
+black where Mana shows its backdrop still scores ~99% (map `$10`'s black bushes, v0.407.0).
+Count black pixels where Mana's are coloured instead (the test "where Mana shows its backdrop
+through the bushes"). Its still render also leaves out moving cells and draws the cut cells
+after the cut; a fault in an animation frame or a cut top shows only in the editor's playback
+or the game.
 
 ## Which map is this picture?
 

@@ -127,12 +127,14 @@ equal to the editor's picture; the animation follows the editor's timeline withi
 | graphics (Block 1, animation frames) | bank `$F0` on; the **highest vanilla graphic ids** point at them | the game reads `$EE:0000 + 3·id` in 16 bits: the image's ids (43691+) wrap, and the table has no free entries past 6690 |
 | family colours | written over the **highest vanilla families** (`358..364` for seven) | `$9C:C322 + 32·id`, 16 bits, bank `$9C` fixed |
 | the room | Evermore's own encoder, in room `$15`'s slot at `$BD:8000` | as a custom map |
-| step-on events | left out (and the step bit cleared) | Mana's event numbers would run whatever Evermore script has that id |
+| step-on and B-trigger events, return cells | left out (bits 14 and 15 cleared) | Mana's event numbers would run whatever Evermore script has that id |
 | edits made in the editor | not in it (the note says so) | the ROM is built from the converted map, not the draft |
 
 Taking over vanilla ids is safe for a test ROM, which shows no other room. Still missing in the
 game: Mana's characters and enemies, its events and doors (a converted map is a closed room),
-layer switches (c0 bit 3), the stairs' slow-down and the currents' speeds.
+layer switches (c0 bit 3). The speed of stairs and currents is not converted, by the owner's
+choice: a cell carries the flag Mana gives it, not a reshaping that makes Evermore move like
+Mana (2026-11-14). Open work: [romhacks-and-ports.md §1.3](../todo/romhacks-and-ports.md).
 
 ### The panel's extended map on a converted room (2026-11-14)
 
