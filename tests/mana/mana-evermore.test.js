@@ -30,7 +30,7 @@ test('Mana collision becomes Evermore collision words', () => {
     assert.strictEqual(bridge.collisionWord(0x03, 0, false), 0x2F);        // wall
     assert.strictEqual(bridge.collisionWord(0x01, 0, false), 0x10);        // level-1 floor -> plane 1
     assert.strictEqual(bridge.collisionWord(0x02, 0, true), 0x4020);       // level-2 floor, step-on
-    assert.strictEqual(bridge.collisionWord(0x00, 0, false), 0x2020);      // no level -> always walkable: the plane may change here
+    assert.strictEqual(bridge.collisionWord(0x00, 0, false), 0x2023);      // no level -> always walkable (the plane may change here), nibble 3: not stairs
     assert.strictEqual(bridge.collisionWord(0x05, 0, false), 0x60);        // keeps the level (bridge deck) -> plane-transparent
     assert.strictEqual(bridge.collisionWord(0x00, 0x22, false), 0x2021);   // stairs, going right climbs -> shear 1
     assert.strictEqual(bridge.collisionWord(0x02, 0x23, false), 0x2022);   // going right descends -> shear 2
@@ -97,30 +97,28 @@ test('the rail lists the Mana areas, one row per picture', () => {
     assert.strictEqual(groups.reduce((n, g) => n + g.rooms.length, 0) > 200, true);
 });
 
-test('Potos Falls opens as room 0x1080 with families m.., two step-on events and a B-trigger', () => {
+test('Potos Falls opens as room 0x1080 with families m.. and its three step-on events', () => {
     const d = service.detail('som-80', 'Potos Falls 1');
     assert.strictEqual(d.romRoomId, 0x1080);
     assert.strictEqual(d.imported, 'mana');
     assert.ok(d.families.length >= 1 && d.families.length <= 7);
     assert.ok(d.families.every(f => /^m\d+$/.test(f.label) && f.tiles > 0), 'every family draws something');
     assert.strictEqual(d.content.enemies.length, mana.mapObjects(som, 0x80).length);
+    // The sword in the stone is walked into in Mana: a story trigger, so step-on here.
     assert.deepStrictEqual(d.content.triggers.stepOn.map(t => [t.x1, t.y1, t.x2, t.y2, t.label]), [
-        [40, 54, 41, 55, 'Mana event 104'], [26, 59, 27, 60, 'Mana event 102']]);
-    // The sword in the stone: Mana runs it when walked into (c1 bit 6 clear), so it is solid and B runs it.
-    assert.deepStrictEqual(d.content.triggers.bTrigger.map(t => [t.x1, t.y1, t.x2, t.y2, t.label]), [[47, 50, 48, 52, 'Mana event 847']]);
+        [47, 50, 48, 52, 'Mana event 847'], [40, 54, 41, 55, 'Mana event 104'], [26, 59, 27, 60, 'Mana event 102']]);
+    assert.deepStrictEqual(d.content.triggers.bTrigger, []);
     assert.strictEqual(d.content.romHeader.mapW, 56);
     assert.strictEqual(d.content.romHeader.mapH, 82);
 });
 
-test('the converted room is real Evermore data: it decodes, with the step-on bit or a solid B-trigger cell on its events', () => {
+test('the converted room is real Evermore data: it decodes, with the step-on bit on its event cells', () => {
     const src = service.resolveRoom(0x1080);
     const room = maps.decodeRoom(src.rom, src.roomId);
     assert.strictEqual(room.header.widthTiles, 56);
-    assert.strictEqual(room.triggers.stepOn.length, 2);
-    assert.strictEqual(room.triggers.bTrigger.length, 1);
-    assert.ok(room.collisionWords[54][40] & 0x4000);
-    assert.strictEqual(room.collisionWords[50][47] & 0xC00F, 0x800F);    // solid, B, no step-on
-    assert.ok(!(room.collisionWords[50][46] & 0xC000));
+    assert.strictEqual(room.triggers.stepOn.length, 3);
+    assert.ok(room.collisionWords[50][47] & 0x4000);
+    assert.ok(!(room.collisionWords[50][46] & 0x4000));
     assert.ok(room.tileFamilies.every(f => bridge.ids.isImportedFamily(f)));
     assert.strictEqual(service.resolveRoom(0x34), null);
 });
@@ -134,6 +132,30 @@ test('the Rooms tab draws it, lists its stamps and its families\' tiles', () => 
     const fam = service.detail('som-80').families[0].id;
     const conv = service.resolveFamily(fam);
     assert.ok(rooms.buildFamilySheet(conv.rom, fam, conv.roomId).count > 0);
+});
+
+test('signposts and doors become solid B-triggers, every other event a step-on trigger', () => {
+    // Map $10: its five signposts (c1 $87); the walk-into exits (event 83F) stay step-on.
+    // Map $16: five doors (walk-into cells in a wall face).
+    for (const [id, events] of [[0x10, [0x606, 0x607, 0x608, 0x600, 0x601]], [0x16, [0xa7e, 0xa72, 0x2fb, 0xb21, 0xa80]]]) {
+        const room = bridge.convertManaMap(som, id);
+        assert.deepStrictEqual(room.bTrigger.map((t) => t.scriptId), events);
+        for (const t of room.bTrigger) assert.strictEqual(room.cells[(t.y1 * room.widthTiles + t.x1) * 3 + 2] & 0xC00F, 0x800F, 'solid, B, no step-on');
+    }
+    assert.ok(bridge.convertManaMap(som, 0x10).stepOn.some((t) => t.scriptId === 0x83f));
+});
+
+test('only Mana\'s stairs carry the stairs mark (bit 13 with nibble 0, 1 or 2)', () => {
+    // A floor of no level (doors, cave floors) is always walkable too, with nibble 3.
+    for (const id of [0x66, 0x80, 0x10]) {
+        const conv = bridge.convertManaMap(som, id), src = mana.loadMap(som, id);
+        for (let y = 0; y < conv.heightTiles; y++) for (let x = 0; x < conv.widthTiles; x++) {
+            const v = conv.cells[(y * conv.widthTiles + x) * 3 + 2];
+            if (!(v & 0x2000) || (v & 0xF) > 2) continue;
+            const c2 = mana.metatileCollision(som, src, 'A', src.cell('A', x, y))[2];
+            assert.strictEqual(c2 & 0xF0, 0x20, `map ${id.toString(16)} ${x},${y}: ${v.toString(16)} on c2 ${c2.toString(16)}`);
+        }
+    }
 });
 
 test('where Mana shows its backdrop through the bushes, Evermore shows it too (not black)', () => {
@@ -178,15 +200,15 @@ test('Potos Falls animates: its colour rotations become palette cycles, its movi
     assert.ok(ov.animation && ov.animation.groups.length > 0, JSON.stringify(ov.animation && ov.animation.skipped));
 });
 
-test('Potos Falls: the stairs\' shear lies on Mana\'s stair cells only', () => {
-    // Shaping once spread a `$23` shear cell by cell over the grass right of the bridge.
+test('Potos Falls: the stairs\' shear lies on Mana\'s stair cells, all of them', () => {
+    // Shaping once spread a `$23` shear cell by cell over the grass right of the bridge, and kept it off the upper rows.
     const conv = bridge.convertManaMap(som, 0x80), src = mana.loadMap(som, 0x80);
     const sheared = [];
     for (let y = 0; y < conv.heightTiles; y++) for (let x = 0; x < conv.widthTiles; x++) {
         const v = conv.cells[(y * conv.widthTiles + x) * 3 + 2];
         if ((v & 0x2000) && ((v & 0xF) === 1 || (v & 0xF) === 2)) sheared.push([x, y, mana.metatileCollision(som, src, 'A', src.cell('A', x, y))[2]]);
     }
-    assert.ok(sheared.length > 0 && sheared.every(([, , c2]) => c2 === 0x22 || c2 === 0x23), JSON.stringify(sheared));
+    assert.ok(sheared.length === 4 && sheared.every(([, , c2]) => c2 === 0x22 || c2 === 0x23), JSON.stringify(sheared));
 });
 
 test('Play in emulator: a converted map becomes a ROM the game can address, drawing what the editor draws', () => {

@@ -13,7 +13,11 @@
 // events too, on every cell that shows them. The movement code ($01:B9A3) keeps a character out
 // of a cell of value >= $C0 - b unless the cell's c1 has bit 6: the event of such a solid cell runs
 // when a character walks into it (the sword in the stone at Potos Falls, signposts), the others
-// when one walks onto it.
+// when one walks onto it. What a cell looks like (`looks`): c1 $87 a signpost, $86 a cave
+// entrance; a door is a walk-into cell ($80) one or two wide in a wall face: wall on both
+// sides, a plain wall above (c0 $13, sprite priority 6), floor below. Checked by eye on 24
+// samples from every map: the 12 that match are all doors; of those that do not, 3 are doors
+// too (unusual walls), the rest cave openings and a monument.
 // Checked in the headless game for maps $10, $11 and $3E (tools/mana/check-events.js).
 
 import { Rom, u16 } from './rom';
@@ -30,6 +34,8 @@ export interface StepEvent {
     x: number; y: number; event: number;
     /** Solid (c1 bit 6 clear): the event runs when a character walks into the cell, not onto it. */
     bump: boolean;
+    /** What the cell looks like, where its data says so; null when it does not. */
+    looks: 'signpost' | 'door' | 'cave' | null;
 }
 
 export interface MapEvents {
@@ -44,6 +50,24 @@ function eventWords(rom: Rom, id: number): number[] {
     const words: number[] = [];
     for (let at = from; at + 1 < to && words.length < 256; at += 2) words.push(u16(rom, EVENT_BANK | at) & 0x0FFF);
     return words;
+}
+
+/** Walk-into cells ($80) one or two wide in a wall face: `looks` = 'door'. */
+function markDoors(map: ManaMap, bytes: Uint8Array, steps: StepEvent[]) {
+    const at = new Map(steps.map((s) => [s.y * map.w + s.x, s]));
+    const byte = (x: number, y: number, k: number) => (x < 0 || y < 0 || x >= map.w || y >= map.h ? -1 : bytes[(y * map.w + x) * 4 + k]);
+    const wall = (x: number, y: number) => byte(x, y, 0) >= 0 && (byte(x, y, 0) & 7) === 3;
+    const floor = (x: number, y: number) => byte(x, y, 0) >= 0 && (byte(x, y, 0) & 7) !== 3 && !at.has(y * map.w + x);
+    const plainWall = (x: number, y: number) => byte(x, y, 0) === 0x13 && (byte(x, y, 1) & 7) === 6;
+    for (const s of steps) {
+        if (byte(s.x, s.y, 1) !== 0x80 || at.has(s.y * map.w + s.x - 1)) continue;          // the run's first cell
+        let end = s.x;
+        while (at.has(s.y * map.w + end + 1) && byte(end + 1, s.y, 1) === 0x80) end++;
+        if (end - s.x > 1 || !wall(s.x - 1, s.y) || !wall(end + 1, s.y)) continue;
+        let door = true;
+        for (let x = s.x; x <= end; x++) if (!plainWall(x, s.y - 1) || !floor(x, s.y + 1)) door = false;
+        if (door) for (let x = s.x; x <= end; x++) at.get(s.y * map.w + x)!.looks = 'door';
+    }
 }
 
 export function mapEvents(rom: Rom, map: ManaMap): MapEvents {
@@ -62,8 +86,9 @@ export function mapEvents(rom: Rom, map: ManaMap): MapEvents {
             if (v < SPECIAL_BASE - lead) continue;
             const event = words[v - (SPECIAL_BASE - lead) + own];
             // A word past the list reads whatever follows it; such cells are left out.
-            if (event !== undefined) steps.push({ x, y, event, bump: !(c1 & 0x40) });
+            if (event !== undefined) steps.push({ x, y, event, bump: !(c1 & 0x40), looks: c1 === 0x87 ? 'signpost' : c1 === 0x86 ? 'cave' : null });
         }
     }
+    markDoors(map, col.bytes, steps);
     return { onEnter: own && words.length ? words[0] : null, steps };
 }

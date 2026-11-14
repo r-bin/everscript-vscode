@@ -358,6 +358,13 @@ unless the word at `$7F:B800 + cell*4` has bit 14 (c1 bit 6) set — so `$C0` ce
 walked onto, `$80`-kind cells are solid and run their event when walked into (the Mana
 Sword in the stone at Potos Falls, `$80`, cells 47,50-51, event `$847`).
 
+What a walk-into cell is, the data says only for signposts (`$87`) and cave entrances (`$86`);
+`$80` holds exits, doors and story triggers alike. A door is told by its surroundings
+(`mapEvents` `looks`): a `$80` run one or two wide, wall on both sides, a plain wall above
+(c0 `$13`, sprite priority 6; forest walls are `$73`), floor below. 132 cells; of 24 samples
+viewed, the 12 that match are all doors, the 12 that do not are cave and forest openings, a
+monument and 3 doors in unusual walls.
+
 ### Cuttable tiles — `$01:D293`, `$01:D376`
 
 A weapon changes a cell through its collision bytes 2 and 3. `$01:CE19` calls `$01:D293`

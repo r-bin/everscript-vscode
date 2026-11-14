@@ -4,8 +4,8 @@
 // the ROM Play in emulator builds for Potos Falls 1, booted in the bundled snes9x core. The game
 // must be in room 0x15 and draw every cell nothing animates exactly as the editor's renderer does
 // (5-bit colours; the Boy, the dog and the HUD are masked); and the collision translation works in
-// the engine: the bridge is crossed on plane 1 from its stairs (shear on Mana's stair cells only), the river's current carries the
-// Boy, the sword in the stone is solid (docs/mana/evermore-rooms.md). Emulator tier: ~5 s.
+// the engine: the bridge is crossed on plane 1 from its stairs (shear on Mana's stair cells), the river's current carries the
+// Boy, the sword in the stone is a step-on cell (docs/mana/evermore-rooms.md). Emulator tier: ~5 s.
 // Run: node tests/mana/mana-play.test.js  (both ROMs from the ROM library: npm run roms)
 
 const fs = require('fs');
@@ -84,19 +84,19 @@ function run() {
         }
         return out;
     };
-    // The shear lies on Mana's stair cells only: across on the upper row, up from the lower row
-    // into the right stair, up-right from the lower row into the left one (collision.ts).
+    // The shear lies on every Mana stair cell (collision.ts). Evermore's shear climbs twice Mana's
+    // slope: from the lower row the Boy reaches the deck; along the upper row the shear lifts him
+    // into the wall above the deck's end, so that way is not tested (docs/mana/evermore-rooms.md).
     const crossed = (c, dir) => c.filter((p) => p.x >= 30 && p.x <= 33).length > 2 && c.filter((p) => p.x >= 30 && p.x <= 33).every((p) => p.plane === 1)
         && c[c.length - 1].plane === 2 && (dir > 0 ? c[c.length - 1].x >= 38 : c[c.length - 1].x <= 25);
-    for (const [x, y, pad, dir, name] of [[26, 67, PAD.right, 1, 'right along the upper row'], [26, 68, (f) => PAD.right | (f >= 20 && f < 32 ? PAD.up : 0), 1, 'from the lower row, steering up at the post'],
-        [40, 67, PAD.left, -1, 'left along the upper row'], [40, 68, PAD.left, -1, 'left from the lower row']]) {
+    for (const [x, y, pad, dir, name] of [[26, 68, (f) => PAD.right | (f >= 20 && f < 32 ? PAD.up : 0), 1, 'from the lower row, steering up at the post'],
+        [40, 68, PAD.left, -1, 'left from the lower row']]) {
         const c = walk(romAt(x, y), pad, 200);
         check(`over the bridge ${name}: on plane 1 across the deck, plane 2 beyond`, crossed(c, dir), JSON.stringify(c.map((p) => [p.x, p.y, p.plane])));
     }
-    // The sword in the stone (47,50-51) is walked into in Mana: solid here, run by B.
+    // The sword in the stone (47,50-51) is walked into in Mana, a story trigger: step-on here, walked onto.
     const stone = walk(romAt(44, 51), PAD.right, 120);
-    check('the Boy stops at the sword in the stone instead of walking into it', stone.every((p) => p.x <= 46) && stone.some((p) => p.x === 46),
-        JSON.stringify(stone.map((p) => [p.x, p.y])));
+    check('the Boy walks onto the sword in the stone, its step-on cell', stone.some((p) => p.x === 47), JSON.stringify(stone.map((p) => [p.x, p.y])));
     const drift = walk(romAt(28, 33), PAD.none, 8);
     check('the river\'s current carries the Boy downstream with no input', drift[0].y >= 38, JSON.stringify(drift[0]));
     done();

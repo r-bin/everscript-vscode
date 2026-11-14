@@ -152,9 +152,9 @@ async function main() {
     await page.waitForTimeout(500);
     if (shots) await page.screenshot({ path: path.join(shots, 'mana-trigger-step.png') });
     const triggers = await page.evaluate(() => document.getElementById('rg-dock').innerText);
-    // Walk-into events (83F: c1 bit 6 clear) are B-triggers; the walk-onto ones (905) step-on.
-    check('the Trigger tab lists the step events, walk-into events as B-triggers', /905/i.test(triggers) && !/83F/i.test(triggers)
-        && /B-triggers\s*9\b/.test(triggers) && /Step-on\s*2\b/.test(triggers), triggers.slice(0, 400));
+    // The five signposts are B-triggers; every other event step-on (83F, an exit walked into; 905).
+    check('the Trigger tab lists the step events, signposts as B-triggers', /905/i.test(triggers) && /83F/i.test(triggers)
+        && /B-triggers\s*5\b/.test(triggers) && /Step-on\s*6\b/.test(triggers), triggers.slice(0, 400));
     // A restart: the saved copy comes back from "disk" and must open without its donor room being
     // in the Evermore ROM (its graphics and colours are the converted room's, rebuilt from the Mana ROM).
     if (lastSave) {

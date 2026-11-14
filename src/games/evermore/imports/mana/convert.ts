@@ -20,7 +20,7 @@ import * as mana from '../../../mana/decoder';
 import { FAMILY_BASE } from './ids';
 import { flagObjects } from './pieces';
 import { paletteCycles, animatedMetatiles, animateTiles } from './animation';
-import { collisionWord, shapeStairs } from './collision';
+import { collisionWord } from './collision';
 import { EMPTY_GRAPHIC, metatilePixels, encodeGraphic, slotChr, graphicTable, hiddenUnder, withBackdrop, backdropOpen, opaqueOver, backdropTile } from './graphics';
 import type { Stats, Trace, Layer, Tile, PixelOptions } from './graphics';
 import type { Rom as ManaRom } from '../../../mana/decoder';
@@ -134,13 +134,16 @@ function convertManaMap(manaRom: ManaRom, id: number) {
         return (t.g.v << 15) | (t.g.h << 14) | (t.m.priority << 13) | (slotOf(t.m.palette) << 10) | slotChr(t.g.slot);
     };
     const events = mana.mapEvents(manaRom, map);
-    const stepAt = new Set(events.steps.filter((s) => !s.bump).map((s) => s.y * map.w + s.x));
-    const bumpAt = new Set(events.steps.filter((s) => s.bump).map((s) => s.y * map.w + s.x));
+    // Signposts and doors are run by B in Evermore (solid, as in Mana); every other event, also
+    // one Mana runs when walked into (exits, caves, story), is a step-on trigger.
+    const isB = (s: mana.StepEvent) => s.looks === 'signpost' || s.looks === 'door';
+    const stepAt = new Set(events.steps.filter((s) => !isB(s)).map((s) => s.y * map.w + s.x));
+    const bAt = new Set(events.steps.filter(isB).map((s) => s.y * map.w + s.x));
     // A cell's three words for layer-A metatile `a` and layer-B metatile `b`: the player
     // moves by layer A's collision, so that is the cell's collision word.
     const stamp = (x: number, y: number, a: number, b: number): number[] => {
         const c = mana.metatileCollision(manaRom, map, 'A', a);
-        return [wordFor('A', a), wordFor('B', b), collisionWord(c[0], c[2], stepAt.has(y * map.w + x), c[1], bumpAt.has(y * map.w + x))];
+        return [wordFor('A', a), wordFor('B', b), collisionWord(c[0], c[2], stepAt.has(y * map.w + x), c[1], bAt.has(y * map.w + x))];
     };
     const cells: number[] = new Array(map.w * map.h * 3);
     for (let y = 0; y < map.h; y++) {
@@ -150,7 +153,6 @@ function convertManaMap(manaRom: ManaRom, id: number) {
             cells[i * 3] = w[0]; cells[i * 3 + 1] = w[1]; cells[i * 3 + 2] = w[2];
         }
     }
-    shapeStairs(cells, map.w, map.h);
     // Evermore's cuttable layer: the cell shows its words until cut, then `cells`.
     const cut: number[][] = [];
     const cutSeen = new Set();
@@ -194,13 +196,13 @@ function convertManaMap(manaRom: ManaRom, id: number) {
         animation: anim.channels,
         paletteCycles: cycles.records,
         families,
-        stepOn: triggerBoxes(events.steps.filter((s) => !s.bump)),
-        bTrigger: triggerBoxes(events.steps.filter((s) => s.bump)),
+        stepOn: triggerBoxes(events.steps.filter((s) => !isB(s))),
+        bTrigger: triggerBoxes(events.steps.filter(isB)),
         cut,
         objects,
         onEnter: events.onEnter,
         spawns: mana.mapObjects(manaRom, id).map((o) => ({ x: o.x, y: o.y, kind: o.kind })),
-        stats: Object.assign(stats, { graphics: graphics.slots.length, stepCells: events.steps.length - bumpAt.size, bumpCells: bumpAt.size,
+        stats: Object.assign(stats, { graphics: graphics.slots.length, stepCells: stepAt.size, bTriggerCells: bAt.size,
             cuttable: cut.length, objects: objects.length,
             channels: anim.channels.length, frameGraphics: anim.frames.length, aperiodicTiles: anim.aperiodic,
             stillTiles: anim.still, peakUploads: anim.peakUploads, paletteCycles: cycles.records.length, droppedCycles: cycles.dropped,

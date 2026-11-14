@@ -6,7 +6,7 @@ Rules: [AGENTS.md](AGENTS.md). Translation table and budgets:
 | File | What |
 |---|---|
 | `convert.js` | `convertManaMap(manaRom, id)`: cells (layer 1, layer 2, collision word each), 16x16 graphics in Evermore's layout, the families `m<n>` it draws with, step-on and B-trigger boxes, the cuttable layer, objects, conversion counts |
-| `collision.ts` | Mana collision bytes as Evermore collision words: levels as planes, stairs as Evermore's stairs (reshaped for Evermore's steeper climb), currents as drift, sprite priority as bit 12 / the split nibble, walk-into events as solid B-trigger cells |
+| `collision.ts` | Mana collision bytes as Evermore collision words: levels as planes, stairs as Evermore's stairs (only Mana's stair cells carry the mark), currents as drift, sprite priority as bit 12 / the split nibble, signposts and doors as solid B-trigger cells |
 | `graphics.ts` | metatiles as 16x16 graphics: palette choice and recolouring, priority (and the pixels Mana never shows), Mana's backdrop instead of black (which layer-B pixels it may fill), Evermore's graphic layout, the graphics list |
 | `animation.ts` | the map's animation: colour rotations as palette-cycle descriptors, moving metatiles as Section 2 channels (their frames, delays, slots past Block 1) |
 | `pixels.ts` | a 16x16 block's mirror images and key (shared by the two above) |
