@@ -1,7 +1,7 @@
 ---
 addr: 8F9DBD
-end: 8F9E48
-size: 140
+end: 8F9E2F
+size: 115
 kind: code
 category: 🧠
 name: entity_cardinal_facing_direction_resolve

@@ -1,7 +1,7 @@
 ---
 addr: 8DB478
-size: 130
-end: 8DB4F9
+size: 9
+end: 8DB480
 kind: code
 category: 🧠
 name: sram_compute_checksum

@@ -3,7 +3,7 @@
 ```json
 {
   "summary": {
-    "total_entries": 7109,
+    "total_entries": 7117,
     "total_documented_bytes": 3237090,
     "banks_covered": 97,
     "architecture": "3 MB (24 Mbit) HiROM ($00 vectors/header mirror, $80..$AF FastROM, $C0..$EF Data)"
@@ -245,7 +245,7 @@
         "0x8CFFFF"
       ],
       "name": "Script VM Dispatcher, Sound Effects & Stat Curves",
-      "routines": 466,
+      "routines": 468,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -255,7 +255,7 @@
         "0x8DFFFF"
       ],
       "name": "Save NVRAM, SRAM Verification & Event Handlers",
-      "routines": 142,
+      "routines": 144,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -265,7 +265,7 @@
         "0x8EFFFF"
       ],
       "name": "Character Database, Ring Menu & Shop System",
-      "routines": 202,
+      "routines": 203,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -275,7 +275,7 @@
         "0x8FFFFF"
       ],
       "name": "Entity AI, Physics, Collision & Combat Engine",
-      "routines": 467,
+      "routines": 470,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -5262,7 +5262,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $8C — Script VM Dispatcher, Sound Effects & Stat Curves
 
-**Coverage:** 466 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 468 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
@@ -5609,7 +5609,8 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8C:DA60` | [`script_op_6e_walk_to_tile_direct`](knowledge/routines/script_op_6e_walk_to_tile_direct.md) | `code` | 7 B | script-vm | Script opcode 0x6E: walk an entity to a tile, ignoring terrain: Handler of script opcode 0x6E. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:DA67` | [`move_entity_to_tile_position`](knowledge/routines/move_entity_to_tile_position.md) | `code` | 33 B | script-vm | Move an entity to tile coordinates: Handler of script opcode 0x6C. Evaluates the entity, reads two unsigned coordinate bytes, scales t... |
 | `$8C:DA88` | [`script_op_9d_walk_to`](knowledge/routines/script_op_9d_walk_to.md) | `code` | 5 B | script-vm | Script opcode 0x9D: walk an entity to a point: Handler of script opcode 0x9D. What it does, why it exists and how scripts use it: the opcode entr... |
-| `$8C:DA8D` | [`script_op_73_walk_to_direct`](knowledge/routines/script_op_73_walk_to_direct.md) | `code` | 56 B | script-vm | Script opcode 0x73: walk an entity to a point, ignoring terrain: Handler of script opcode 0x73. What it does, why it exists and how scripts use it: the opcode entr... |
+| `$8C:DA8D` | [`script_op_73_walk_to_direct`](knowledge/routines/script_op_73_walk_to_direct.md) | `code` | 25 B | script-vm | Script opcode 0x73: walk an entity to a point, ignoring terrain: Handler of script opcode 0x73. What it does, why it exists and how scripts use it: the opcode entr... |
+| `$8C:DAA6` | [`script_face_target_or_jitter`](knowledge/routines/script_face_target_or_jitter.md) | `code` | 31 B | code, subroutine, script, vm, entity, direction | Script entity face target or jitter angle calculation: Calculates the facing angle towards a target entity or evaluates a jitter offset angle via `$8F:AA82`, returning with Carry set on completio... |
 | `$8C:DAC5` | [`unfreeze_boy`](knowledge/routines/unfreeze_boy.md) | `code` | 5 B | script-vm, entities, boy | Unfreeze Boy: Handler of script opcode 0xBD. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:DACA` | [`unfreeze_dog`](knowledge/routines/unfreeze_dog.md) | `code` | 5 B | script-vm | Unfreeze Dog: Handler of script opcode 0xBF. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:DACF` | [`unfreeze_boy_and_dog`](knowledge/routines/unfreeze_boy_and_dog.md) | `code` | 5 B | script-vm | Unfreeze Boy and Dog: Handler of script opcode 0xC1. What it does, why it exists and how scripts use it: the opcode entr... |
@@ -5671,7 +5672,8 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8C:E0B0` | [`script_op_78_animate`](knowledge/routines/script_op_78_animate.md) | `code` | 80 B | script-vm | Script opcode 0x78: play an entity animation: Handler of script opcode 0x78. It evaluates the entity expression, fetches the animation word from... |
 | `$8C:E100` | [`SCRIPT_ANIMATE_MODE_TARGETS`](knowledge/routines/SCRIPT_ANIMATE_MODE_TARGETS.md) | `table` | 12 B | script-vm | Opcode 0x78 mode dispatch targets: Six little-endian code addresses selected by the mode expression in script opcode 0x78. The handler uses the expression value directly as a ... |
 | `$8C:E10C` | [`script_animate_mode_effects`](knowledge/routines/script_animate_mode_effects.md) | `code` | 45 B | script-vm | Opcode 0x78 mode effects: This code contains the direct entity-state changes for opcode 0x78 modes 2, 4, 6, and 8. The four table-targeted paths branch to the common ... |
-| `$8C:E139` | [`animate_id_to_record`](knowledge/routines/animate_id_to_record.md) | `code` | 29 B | entities, animation, scripts, script-vm | animate()'s id → animation record (global id table, or a field of the character's ROM record): An id below `$8000` is looked up in the global id table at `$C4:3C92`. An id from `$8000` names a field of the character's own record, `+$32... |
+| `$8C:E139` | [`animate_id_to_record`](knowledge/routines/animate_id_to_record.md) | `code` | 22 B | entities, animation, scripts, script-vm | animate()'s id → animation record (global id table, or a field of the character's ROM record): An id below `$8000` is looked up in the global id table at `$C4:3C92`. An id from `$8000` names a field of the character's own record, `+$32... |
+| `$8C:E14F` | [`sub_8CE14F`](knowledge/routines/sub_8CE14F.md) | `code` | 7 B | code, subroutine, script, vm | Script thread coordinate transformation dispatch: Script VM coordinate transformation bridge that moves accumulator to index register X, delegates to `$90:8124`, sets the carry flag, and ret... |
 | `$8C:E156` | [`script_op_79_animate_and_wait`](knowledge/routines/script_op_79_animate_and_wait.md) | `code` | 36 B | script-vm | Script opcode 0x79: play an entity animation and wait: Handler of script opcode 0x79. Calls opcode `$8C:E0B0`, then checks entity `+$88`; if no waiter is... |
 | `$8C:E17A` | [`script_op_7f_name_entry`](knowledge/routines/script_op_7f_name_entry.md) | `code` | 1 B | script-vm, widescreen, widescreen.menu | Script opcode 0x7F: name entry screen: Handler of script opcode 0x7F. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:E17B` | [`script_animate_mode_10_path`](knowledge/routines/script_animate_mode_10_path.md) | `code` | 130 B | script-vm | Opcode 0x78 mode 10 path: This is the indirect dispatch target for mode value 10. It performs a series of engine calls, fetches one extra word through the script poin... |
@@ -5735,7 +5737,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $8D — Save NVRAM, SRAM Verification & Event Handlers
 
-**Coverage:** 142 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 144 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
@@ -5815,7 +5817,9 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8D:B1B5` | [`alchemy_target_cursor_draw`](knowledge/routines/alchemy_target_cursor_draw.md) | `code` | 29 B | alchemy, sprites, oam, hud, widescreen, widescreen.hud | Alchemy targeting reticle sprite HUD renderer ($8D:B1B5): Renders the alchemy target selection reticle icon on the screen HUD at coordinate (160, 14). Loads sprite descriptor `$CC:39B4` into direct ... |
 | `$8D:B1D2` | [`save_menu_sram_slot_checksum_and_validator`](knowledge/routines/save_menu_sram_slot_checksum_and_validator.md) | `code` | 677 B | unverified, rea-partial-read | Validates battery-backed SRAM save slots, computing checksums and loading player preview metadata: Low confidence — Validates battery-backed SRAM save slots, computing checksums and loading player preview metadata.  > Inferred from a parti... |
 | `$8D:B477` | [`BANK8D_PAD_B477`](knowledge/routines/BANK8D_PAD_B477.md) | `padding` | 1 B | unused, padding | Bank $8D alignment padding ($B477): 1 B alignment padding and unmapped ROM space in Bank $8D ($8D:B477..$8D:B477). |
-| `$8D:B478` | [`sram_compute_checksum`](knowledge/routines/sram_compute_checksum.md) | `code` | 130 B | system, reconstructed-c, g1-pass | Compute Rotational 16-Bit SRAM Checksum: Computes the 16-bit checksum for an 815-byte Secret of Evermore save game payload: - Initializes accumulator with seed `0x043F`. - Iterates ... |
+| `$8D:B478` | [`sram_compute_checksum`](knowledge/routines/sram_compute_checksum.md) | `code` | 9 B | system, reconstructed-c, g1-pass | Compute Rotational 16-Bit SRAM Checksum: Computes the 16-bit checksum for an 815-byte Secret of Evermore save game payload: - Initializes accumulator with seed `0x043F`. - Iterates ... |
+| `$8D:B481` | [`sub_8DB481`](knowledge/routines/sub_8DB481.md) | `code` | 17 B | code, subroutine, math, arithmetic | Math stream bit shift and accumulator addition loop: Arithmetic polynomial loop that iterates up to Y times, shifting accumulator A left by 1 bit in 16-bit mode, advancing index X, and adding t... |
+| `$8D:B492` | [`BANK8D_PAD_B492`](knowledge/routines/BANK8D_PAD_B492.md) | `padding` | 104 B | unused, padding | Bank $8D alignment padding ($B492): 104 B alignment padding and unmapped ROM space in Bank $8D ($8D:B492..$8D:B4F9). |
 | `$8D:B4FA` | [`alchemy_menu_formula_card_and_ingredients_formatter`](knowledge/routines/alchemy_menu_formula_card_and_ingredients_formatter.md) | `code` | 732 B | unverified, rea-partial-read | Formats alchemy formula description cards, names, and required ingredient quantities for the Alchemy Ring Menu: Low confidence — Formats alchemy formula description cards, names, and required ingredient quantities for the Alchemy Ring Menu.  > Inferred... |
 | `$8D:B7D6` | [`alchemy_menu_window_init`](knowledge/routines/alchemy_menu_window_init.md) | `code` | 427 B | alchemy, menu, ui, window | Alchemy menu window and palette initialization: Initializes the window coordinates and CGRAM palette buffer (`$C4:1EE4`) for the opcode `0x63` alchemy spell selection menu. |
 | `$8D:B981` | [`BANK8D_PAD_B981`](knowledge/routines/BANK8D_PAD_B981.md) | `padding` | 14 B | unused, padding | Bank $8D alignment padding ($B981): 14 B alignment padding and unmapped ROM space in Bank $8D ($8D:B981..$8D:B98E). |
@@ -5884,7 +5888,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $8E — Character Database, Ring Menu & Shop System
 
-**Coverage:** 202 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 203 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
@@ -5956,7 +5960,8 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8E:99D0` | [`data_8E99D0`](knowledge/routines/data_8E99D0.md) | `data` | 2 B | data, cdl | CDL data block ($8E:99D0): CDL-identified data block in ROM at $8E:99D0. |
 | `$8E:99D2` | [`calc_equipped_armor_defense`](knowledge/routines/calc_equipped_armor_defense.md) | `code` | 93 B | ui, stats, armor, inventory | Calculate equipped armor physical and magic defense sums: Iterates through character equipment slots (helmets/collars, vests, bracers, accessories): 1. Verifies equipped items against inventory bitm... |
 | `$8E:9A2F` | [`ring_menu_usable_alchemical_formula_filter`](knowledge/routines/ring_menu_usable_alchemical_formula_filter.md) | `code` | 87 B | unverified, rea-partial-read | Scans learned formula bitfields and populates eligible spell entries into the Alchemy Ring Menu: Low confidence — Scans learned formula bitfields and populates eligible spell entries into the Alchemy Ring Menu.  > Inferred from a partial... |
-| `$8E:9A86` | [`init_equipment_screen_slots`](knowledge/routines/init_equipment_screen_slots.md) | `code` | 180 B | ui, ring-menu, equipment, reconstructed-c, g1-pass | Initialize UI equipment selection slots ($7E:0814..$081A): Initializes the 4 equipment sub-ring category slots in WRAM: - `$7E:0814 = 0x16`: Helmets / Collars - `$7E:0816 = 0x1A`: Body Armor / Vests ... |
+| `$8E:9A86` | [`init_equipment_screen_slots`](knowledge/routines/init_equipment_screen_slots.md) | `code` | 144 B | ui, ring-menu, equipment, reconstructed-c, g1-pass | Initialize UI equipment selection slots ($7E:0814..$081A): Initializes the 4 equipment sub-ring category slots in WRAM: - `$7E:0814 = 0x16`: Helmets / Collars - `$7E:0816 = 0x1A`: Body Armor / Vests ... |
+| `$8E:9B16` | [`sub_8E9B16`](knowledge/routines/sub_8E9B16.md) | `code` | 36 B | code, subroutine, audio, sound, wram | Audio table linear scan and counter clamp: Sound subsystem helper that scans entries in WRAM `$7E0000+X` until a non-zero value or index `$2343` is reached, increments counter `$0834`... |
 | `$8E:9B3A` | [`alchemy_menu_populate_ingredient_catalog`](knowledge/routines/alchemy_menu_populate_ingredient_catalog.md) | `code` | 53 B | alchemy, menu, inventory | Alchemy menu ingredient catalog list builder ($8E:9B3A): Constructs the active alchemy formula ingredient selection list for ring menus. Scans 9 inventory ingredient entries at `$0AD2`, indexing de... |
 | `$8E:9B6F` | [`alchemy_menu_populate_rare_items`](knowledge/routines/alchemy_menu_populate_rare_items.md) | `code` | 82 B | inventory, menu, quests | Rare and key item ring inventory list builder ($8E:9B6F): Populates the rare and key item ring inventory display buffer at `$07C8`. Queries completed quest milestones (`$8C:C3F8`) and opened chests ... |
 | `$8E:9BC1` | [`shop_load_catalog`](knowledge/routines/shop_load_catalog.md) | `code` | 51 B | item | Shop Merchandise Catalog Loader: Loads a merchant's active stock stream into WRAM: - Iterates stream bytes at `$0B95,y` until encountering terminator `0x80`. - Looks up item... |
@@ -6093,7 +6098,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $8F — Entity AI, Physics, Collision & Combat Engine
 
-**Coverage:** 467 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 470 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
@@ -6244,7 +6249,10 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8F:9DA6` | [`sub_8F9DA6`](knowledge/routines/sub_8F9DA6.md) | `code` | 13 B | code, subroutine, cdl | CDL subroutine ($8F:9DA6): CDL-identified subroutine entry point in ROM at $8F:9DA6. |
 | `$8F:9DB3` | [`sub_8F9DB3`](knowledge/routines/sub_8F9DB3.md) | `code` | 9 B | code, subroutine, cdl | CDL subroutine ($8F:9DB3): CDL-identified subroutine entry point in ROM at $8F:9DB3. |
 | `$8F:9DBC` | [`sub_8F9DBC`](knowledge/routines/sub_8F9DBC.md) | `code` | 1 B | code, subroutine, cdl | CDL subroutine ($8F:9DBC): CDL-identified subroutine entry point in ROM at $8F:9DBC. |
-| `$8F:9DBD` | [`entity_cardinal_facing_direction_resolve`](knowledge/routines/entity_cardinal_facing_direction_resolve.md) | `code` | 140 B | unverified, rea-partial-read | Resolves cardinal and diagonal facing direction codes from signed X and Y displacement vectors: Low confidence — Resolves cardinal and diagonal facing direction codes from signed X and Y displacement vectors.  > Inferred from a partial ... |
+| `$8F:9DBD` | [`entity_cardinal_facing_direction_resolve`](knowledge/routines/entity_cardinal_facing_direction_resolve.md) | `code` | 115 B | unverified, rea-partial-read | Resolves cardinal and diagonal facing direction codes from signed X and Y displacement vectors: Low confidence — Resolves cardinal and diagonal facing direction codes from signed X and Y displacement vectors.  > Inferred from a partial ... |
+| `$8F:9E30` | [`sub_8F9E30`](knowledge/routines/sub_8F9E30.md) | `code` | 11 B | code, subroutine, companion, entity, movement | Companion entity coordinate delta store and threshold update: Companion movement helper that records entity coordinate `$0022,Y`, compares direct page `$12` and `$14`, and updates threshold `$0064,Y` if... |
+| `$8F:9E3B` | [`sub_8F9E3B`](knowledge/routines/sub_8F9E3B.md) | `code` | 9 B | code, subroutine, companion, entity, movement | Companion threshold mask test and update: Companion movement helper alternate entry point that tests the accumulator against mask `$FFF0` and writes it to entity threshold `$0064,Y` ... |
+| `$8F:9E44` | [`BANK8F_PAD_9E44`](knowledge/routines/BANK8F_PAD_9E44.md) | `padding` | 5 B | unused, padding | Bank $8F alignment padding ($9E44): 5 B alignment padding and unmapped ROM space in Bank $8F ($8F:9E44..$8F:9E48). |
 | `$8F:9E49` | [`companion_breadcrumb_fifo_delete_node`](knowledge/routines/companion_breadcrumb_fifo_delete_node.md) | `code` | 46 B | entities, companion, fifo, breadcrumb, pathfinding | Consume waypoint node from FIFO buffer and shift trailing nodes backward: Removes a consumed breadcrumb waypoint from the companion's 15-node FIFO navigation queue: - Decrements the queue tail offset register (`$7E... |
 | `$8F:9E77` | [`companion_breadcrumb_fifo_insert_node`](knowledge/routines/companion_breadcrumb_fifo_insert_node.md) | `code` | 44 B | entities, companion, fifo, breadcrumb, pathfinding | Insert new waypoint node into FIFO buffer and shift existing nodes forward: Inserts a new breadcrumb waypoint into the companion's 15-node FIFO queue: - Increments the tail offset register (`$7E:3BFF,X`) by 3 bytes. ... |
 | `$8F:9EA3` | [`companion_waypoint_raycast_probe`](knowledge/routines/companion_waypoint_raycast_probe.md) | `code` | 32 B | entities, companion, pathfinding, raycast, reconstructed-c, g1-pass | Validate direct line of sight between companion and target waypoint coordinate: Tests whether a clear, unobstructed straight-line trajectory exists between the companion's current metatile and a historical breadcrumb way... |

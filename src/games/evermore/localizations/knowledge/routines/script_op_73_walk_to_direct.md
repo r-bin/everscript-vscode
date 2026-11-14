@@ -1,7 +1,7 @@
 ---
 addr: 8CDA8D
-size: 56
-end: 8CDAC4
+size: 25
+end: 8CDAA5
 kind: code
 category: 🧠
 name: script_op_73_walk_to_direct

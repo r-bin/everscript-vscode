@@ -1,7 +1,7 @@
 ---
 addr: 8CE139
-size: 29
-end: 8CE155
+size: 22
+end: 8CE14E
 kind: code
 category: 🧠
 name: animate_id_to_record

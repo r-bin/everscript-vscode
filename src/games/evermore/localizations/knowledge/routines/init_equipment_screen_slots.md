@@ -1,7 +1,7 @@
 ---
 addr: 8E9A86
-size: 180
-end: 8E9B39
+size: 144
+end: 8E9B15
 kind: code
 category: 🧠
 name: init_equipment_screen_slots
