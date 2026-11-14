@@ -160,6 +160,17 @@ test('Potos Falls animates: its colour rotations become palette cycles, its movi
     assert.ok(ov.animation && ov.animation.groups.length > 0, JSON.stringify(ov.animation && ov.animation.skipped));
 });
 
+test('Potos Falls: the stairs\' shear lies on Mana\'s stair cells only', () => {
+    // Shaping once spread a `$23` shear cell by cell over the grass right of the bridge.
+    const conv = bridge.convertManaMap(som, 0x80), src = mana.loadMap(som, 0x80);
+    const sheared = [];
+    for (let y = 0; y < conv.heightTiles; y++) for (let x = 0; x < conv.widthTiles; x++) {
+        const v = conv.cells[(y * conv.widthTiles + x) * 3 + 2];
+        if ((v & 0x2000) && ((v & 0xF) === 1 || (v & 0xF) === 2)) sheared.push([x, y, mana.metatileCollision(som, src, 'A', src.cell('A', x, y))[2]]);
+    }
+    assert.ok(sheared.length > 0 && sheared.every(([, , c2]) => c2 === 0x22 || c2 === 0x23), JSON.stringify(sheared));
+});
+
 test('Play in emulator: a converted map becomes a ROM the game can address, drawing what the editor draws', () => {
     // The game reaches graphics and families through 16-bit offsets ($CC:C88C, $90:A1B4: 3·id; 32·family),
     // so the ROM takes over the top vanilla ids rather than the in-memory image's (rom-export-own.ts).

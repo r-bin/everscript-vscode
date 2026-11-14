@@ -54,26 +54,23 @@ function collisionWord(c0: number, c2: number, step: boolean, c1 = 0): number {
 
 
 /**
- * Mana's diagonal stairs as Evermore can walk them. Evermore's shear lifts a walker one pixel
- * per pixel it walks, Mana's `$22`/`$23` one per two, and the probe stops a walker 8 pixels
- * before the wall beyond the stair; measured on Potos Falls' bridge (headless walks from both
- * rows, both ends), a Mana stair as it is leaves the walker short of the deck, or lifts it into
- * the wall above. So per column run of shear cells the shear stays on the lowest row only, and
- * goes one cell further onto plain floor on the side the climb starts from (left of `$22`, right
- * of `$23`); the rows above stay always walkable with no shear (Evermore's vertical stairs).
+ * Mana's diagonal stairs as Evermore can walk them, on Mana's stair cells only. Evermore's shear
+ * lifts a walker one pixel per pixel it walks, Mana's `$22`/`$23` one per two; a column of shear
+ * cells lifts a walker into the wall above. So per column run of shear cells the shear stays on
+ * the lowest row only; the rows above stay always walkable with no shear (Evermore's vertical
+ * stairs). Walked headless at Potos Falls' bridge: across on the upper row both ways, up from
+ * the lower row on the right; from the lower row on the left the post stops the Boy 6 pixels up
+ * (one cell gives too short a run), and a touch of up takes him onto the deck.
  */
 function shapeStairs(cells: number[], w: number, h: number) {
     const at = (x: number, y: number) => (y * w + x) * 3 + 2;
     const shearOf = (x: number, y: number) => (x >= 0 && x < w && y >= 0 && y < h && (cells[at(x, y)] & 0x200F) >= 0x2001
         && (cells[at(x, y)] & 0x200F) <= 0x2002 ? cells[at(x, y)] & 0xF : 0);
-    const plainFloor = (v: number) => !(v & (WALKABLE | PLANE_TRANSPARENT | 0x0100)) && !(v & 0x0F);
     for (let x = 0; x < w; x++) {
         for (let y = 0; y < h; y++) {
             const n = shearOf(x, y);
             if (!n || shearOf(x, y + 1) === n) continue;                 // not the lowest of its run
             for (let up = y - 1; up >= 0 && shearOf(x, up) === n; up--) cells[at(x, up)] &= ~0x0F;
-            const nx = n === 1 ? x - 1 : x + 1;
-            if (nx >= 0 && nx < w && plainFloor(cells[at(nx, y)])) cells[at(nx, y)] |= WALKABLE | n;
         }
     }
 }

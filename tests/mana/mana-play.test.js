@@ -4,7 +4,7 @@
 // the ROM Play in emulator builds for Potos Falls 1, booted in the bundled snes9x core. The game
 // must be in room 0x15 and draw every cell nothing animates exactly as the editor's renderer does
 // (5-bit colours; the Boy, the dog and the HUD are masked); and the collision translation works in
-// the engine: the bridge is crossed on plane 1 from its stairs, the river's current carries the
+// the engine: the bridge is crossed on plane 1 from its stairs (shear on Mana's stair cells only), the river's current carries the
 // Boy (docs/mana/evermore-rooms.md). Emulator tier: ~5 s.
 // Run: node tests/mana/mana-play.test.js  (both ROMs from the ROM library: npm run roms)
 
@@ -36,7 +36,7 @@ const soe = new Uint8Array(fs.readFileSync(SOE)), som = new Uint8Array(fs.readFi
 const parts = bridge.createManaRooms({ soeRom: () => soe, manaRom: () => som }).playable(0x1080);
 const romAt = (x, y) => { const b = own.buildOwnRoomExportRom(soe, parts.room, { x, y }); own.verifyOwnRoomExport(b.rom, parts.shown); return b.rom; };
 const rom = romAt(28, 39);
-const PAD = { right: 0x100, none: 0 };
+const PAD = { right: 0x100, left: 0x200, up: 0x800, none: 0 };
 const BOY = 0x4e89;                         // entity: +$1A x, +$1C y, +$18 plane (bits 4-5)
 
 const file = path.join(CORE, 'snes9x_2005.js');
@@ -69,7 +69,7 @@ function run() {
     }
     check('every still cell on screen is drawn as the editor draws it', n > 5000 && same === n, `${same}/${n} pixels`);
 
-    // Boot `r` (power-on), hold `pad` for `frames`, and list the Boy's cell and plane every 8 frames.
+    // Boot `r` (power-on), hold `pad` (or `pad(frame)`) for `frames`, and list the Boy's cell and plane every 8 frames.
     const walk = (r, pad, frames) => {
         const q = Module._my_malloc(r.length);
         HEAPU8.set(r, q);
@@ -77,18 +77,22 @@ function run() {
         for (let f = 0; f < 1100; f++) { Module._setJoypadInput(0); Module._mainLoop(); }
         const out = [];
         for (let f = 0; f < frames; f++) {
-            Module._setJoypadInput(pad); Module._mainLoop();
+            Module._setJoypadInput(typeof pad === 'function' ? pad(f) : pad); Module._mainLoop();
             if (f % 8) continue;
             const s = Module._saveState(), b = s + WRAM_IN_STATE + BOY;
             out.push({ x: (HEAPU8[b + 0x1a] | (HEAPU8[b + 0x1b] << 8)) >> 4, y: (HEAPU8[b + 0x1c] | (HEAPU8[b + 0x1d] << 8)) >> 4, plane: (HEAPU8[b + 0x18] >> 4) & 3 });
         }
         return out;
     };
-    const cross = walk(romAt(26, 68), PAD.right, 200);
-    const deck = cross.filter((p) => p.x >= 30 && p.x <= 33);
-    const end = cross[cross.length - 1];
-    check('up the bridge stairs and across the deck on plane 1, down onto plane 2 beyond', deck.length > 2 && deck.every((p) => p.plane === 1)
-        && end.x >= 38 && end.plane === 2, JSON.stringify(cross.map((p) => [p.x, p.y, p.plane])));
+    // The shear lies on Mana's stair cells only: across on the upper row, up from the lower row
+    // into the right stair, up-right from the lower row into the left one (collision.ts).
+    const crossed = (c, dir) => c.filter((p) => p.x >= 30 && p.x <= 33).length > 2 && c.filter((p) => p.x >= 30 && p.x <= 33).every((p) => p.plane === 1)
+        && c[c.length - 1].plane === 2 && (dir > 0 ? c[c.length - 1].x >= 38 : c[c.length - 1].x <= 25);
+    for (const [x, y, pad, dir, name] of [[26, 67, PAD.right, 1, 'right along the upper row'], [26, 68, (f) => PAD.right | (f >= 20 && f < 32 ? PAD.up : 0), 1, 'from the lower row, steering up at the post'],
+        [40, 67, PAD.left, -1, 'left along the upper row'], [40, 68, PAD.left, -1, 'left from the lower row']]) {
+        const c = walk(romAt(x, y), pad, 200);
+        check(`over the bridge ${name}: on plane 1 across the deck, plane 2 beyond`, crossed(c, dir), JSON.stringify(c.map((p) => [p.x, p.y, p.plane])));
+    }
     const drift = walk(romAt(28, 33), PAD.none, 8);
     check('the river\'s current carries the Boy downstream with no input', drift[0].y >= 38, JSON.stringify(drift[0]));
     done();
