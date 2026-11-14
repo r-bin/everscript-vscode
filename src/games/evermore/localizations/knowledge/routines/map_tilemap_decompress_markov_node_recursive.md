@@ -1,7 +1,7 @@
 ---
 addr: 8C9BDD
-size: 450
-end: 8C9D9E
+size: 356
+end: 8C9D40
 kind: code
 category: 🗺️
 name: map_tilemap_decompress_markov_node_recursive

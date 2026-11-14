@@ -1,7 +1,7 @@
 ---
 addr: 8CA4FE
-size: 147
-end: 8CA590
+size: 140
+end: 8CA589
 kind: code
 category: 🧠
 name: glyph_font_1bpp_unpacker

@@ -1,7 +1,7 @@
 ---
 addr: 90DE5E
-size: 34
-end: 90DE7F
+size: 29
+end: 90DE7A
 kind: code
 category: 🧠
 name: projectile_pool_update

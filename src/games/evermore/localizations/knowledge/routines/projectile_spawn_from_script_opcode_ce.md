@@ -1,7 +1,7 @@
 ---
 addr: 90DCC0
-size: 152
-end: 90DD57
+size: 102
+end: 90DD25
 kind: code
 category: ⚔️
 name: projectile_spawn_from_script_opcode_ce

@@ -1,7 +1,7 @@
 ---
 addr: 8CD244
-size: 157
-end: 8CD2E0
+size: 77
+end: 8CD290
 kind: code
 category: 🧠
 name: script_op_wait
