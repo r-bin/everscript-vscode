@@ -82,7 +82,7 @@ Three sub-tabs (`_editInfoSub`, map-editor-tabs.js):
 
 ### Budgets
 
-Only attested ceilings get a bar: **7 families, 264 graphics, the 32 KB WRAM
+Only attested ceilings get a bar: **7 families, 256 graphics, the 32 KB WRAM
 window** (`src/games/evermore/maps/budget.ts`). Stamps, triggers, objects and channels are
 counts, compared against vanilla's maximum (`room-reference.md` §3). Sprite
 palettes (4 safe slots per room) are a separate budget on the Rooms tab

@@ -18,7 +18,7 @@ background tilemap. They don't share anything with the map:
 
 | | Map tiles | Enemy sprites |
 |---|---|---|
-| Graphics | Block 1 of the room blob, 264 slots | Two global pools: 16×16 at `$EC0000` (data `$D90000`), 8×8 at `$D80000` (data `$D10000`) |
+| Graphics | Block 1 of the room blob, 256 slots | Two global pools: 16×16 at `$EC0000` (data `$D90000`), 8×8 at `$D80000` (data `$D10000`) |
 | Layout | Tilemap word: `chr` bits 0..9 | Sprite info at `$CA0003…`: a list of chunks, each placing one block at a signed offset |
 | Palette | One of the room's **7 family slots** (tilemap bits 10..12) | The character's own palette, from the character table at `$8EB678` |
 | Behaviour | Static, plus collision word | Animation script, hitbox, AI |

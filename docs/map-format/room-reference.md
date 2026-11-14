@@ -139,7 +139,8 @@ the Markov coder's context. Block 3 stores the three words as three planar slice
 ```
 
 - `chr` (10 bits): the graphic's CHR index. **Slot** = `floor(chr/0x20)·8 + floor((chr%0x20)/2)`:
-  0..263, which is the 264-graphic ceiling. Slots 0.. are Block 1's graphics in
+  0..255, the 256-graphic ceiling (a graphic takes `chr`, +1, +0x10, +0x11; 0x3F0-0x3FF, which the formula
+  reads as 256..263, are slot 248..255's lower halves). Slots 0.. are Block 1's graphics in
   order, then each animation channel's frame-0 graphic (§6).
 - palette (3 bits): **which family slot**, stored as slot + 1; 0 is the HUD's.
 - `pr` (bit 13): BG priority; canopy art with it set covers sprites.

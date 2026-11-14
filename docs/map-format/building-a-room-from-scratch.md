@@ -317,7 +317,7 @@ because families never touch VRAM — they're CGRAM. The real ceilings:
 | **Distinct stamps** (Block 3) | ~2131 observed | No hard field limit found; the practical cap is the WRAM window (§7.3). |
 | **Animated graphics** | ~4–8 | V-blank DMA bandwidth, not a field. See [map_animated_tiles.md](map_animated_tiles.md). |
 
-So a room's visual vocabulary is **up to ~264 graphics × 7 palettes**, and
+So a room's visual vocabulary is **up to 256 graphics × 7 palettes**, and
 the Rooms tab now shows exactly which graphics a given room loaded — open
 the *Tile palette* section and switch to **graphics**. Each swatch's tooltip
 gives the `chr` value a tilemap word needs in order to draw it.

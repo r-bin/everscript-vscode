@@ -3,8 +3,8 @@
 // A converted Terranigma room played in the Evermore engine (rooms/rendering/rom-export-own.ts): the ROM Play
 // in emulator builds for Crysta (room $00A), booted in the bundled snes9x core from the default start (where
 // the game's own exits arrive). The game must be in room 0x15 and draw what the editor's renderer draws
-// (5-bit colours; the Boy, the dog and the HUD are masked), and the collision translation must hold in the
-// engine: walking into a wall stops the Boy at it (docs/terra/evermore-rooms.md). Emulator tier: ~5 s.
+// (5-bit colours; the Boy, the dog and the HUD are masked), and the translation must hold in the engine: walking into a
+// wall or a ledge stops the Boy at it, the river's palette cycle runs (docs/terra/evermore-rooms.md). Emulator tier: ~8 s.
 // Run: node tests/terra/terra-play.test.js  (both ROMs from the ROM library: npm run roms)
 
 const fs = require('fs');
@@ -81,6 +81,21 @@ if (!SOE || !TERRA || !fs.existsSync(SOE) || !fs.existsSync(TERRA) || !fs.exists
         const end = boyCell();
         check(`walking up from (${parts.start.x},${parts.start.y}) stops at the wall above (${parts.start.x},${wallY - 1})`,
             end.y >= wallY && end.y < parts.start.y, JSON.stringify(end));
+
+        // The ledge at (39,10) is crossed only in a jump in Terranigma: a wall here.
+        boot(romAt({ x: 39, y: 8 }), 1100);
+        for (let f = 0; f < 120; f++) { Module._setJoypadInput(PAD.down); Module._mainLoop(); }
+        check('walking down onto the ledge stops above it', boyCell().y === 9, JSON.stringify(boyCell()));
+
+        // The river (palette 7, colours 1-7, palette helper $06) turns every 6 frames with no input; the screen pointer
+        // is read each time (the core swaps buffers).
+        boot(romAt({ x: 38, y: 40 }), 1200);
+        const grab = () => { const b = Module._getScreenBuffer(), a = []; for (let y = 0; y < 176; y++) for (let x = 0; x < 256; x++) { const g = b + (y * 512 + x) * 4; a.push(HEAPU8[g] << 16 | HEAPU8[g + 1] << 8 | HEAPU8[g + 2]); } return a; };
+        const before = grab();
+        for (let f = 0; f < 6; f++) { Module._setJoypadInput(0); Module._mainLoop(); }
+        const after = grab(), cols = new Array(16).fill(0);
+        before.forEach((v, i) => { if (v !== after[i]) cols[(i % 256) >> 4]++; });
+        check('the river flows: its columns change with no input, the grass beside it does not', cols[11] > 1000 && cols[12] > 1000 && cols[2] === 0 && cols[4] === 0, cols.join(' '));
         done();
     }
 }

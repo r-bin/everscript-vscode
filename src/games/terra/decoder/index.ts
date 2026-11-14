@@ -16,6 +16,8 @@ export type { TerraExit, ExitTarget } from './exits';
 export { roomChanges, changeCells, withChange } from './changes';
 export type { MapChange, ChangeEdit } from './changes';
 export { roomChests } from './chests';
+export { roomHelpers, paletteFrames, tileFrames, PALETTE_HELPER, TILE_HELPER } from './animation';
+export type { TerraHelper, PaletteFrame, TileFrame } from './animation';
 export type { TerraChest } from './chests';
 export { TERRA_ROUTINES, COP_COMMANDS, COP_TABLE, routineByName, routineAt } from './code';
 export type { TerraRoutine, TerraCop } from './code';

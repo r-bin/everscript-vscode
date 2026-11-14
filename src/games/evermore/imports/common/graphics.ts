@@ -30,8 +30,13 @@ function encodeGraphic(px: Uint8Array): Uint8Array {
 /** Block 1 slot -> character index of a tilemap word (the inverse of `floor(chr/0x20)*8 + floor(chr%0x20/2)`). */
 const slotChr = (slot: number): number => Math.floor(slot / 8) * 0x20 + (slot % 8) * 2;
 
-/** The graphics list: deduplicated, mirrored copies sharing one slot. */
-function graphicTable(stats: { droppedGraphics: number }) {
+/**
+ * The graphics list: deduplicated, mirrored copies sharing one slot. Past `max` (default MAX_GRAPHICS) a new block is
+ * drawn empty (`droppedGraphics`); a caller that wants every block listed first passes `max: Infinity` and then
+ * `fitGraphics`.
+ */
+function graphicTable(stats: { droppedGraphics: number }, opts: { max?: number } = {}) {
+    const max = opts.max ?? MAX_GRAPHICS;
     const slots: Uint8Array[] = [new Uint8Array(256)], index = new Map<string, number>([[keyOf(slots[0]), 0]]);
     return {
         slots,
@@ -42,7 +47,7 @@ function graphicTable(stats: { droppedGraphics: number }) {
                 const s = index.get(keyOf(p));
                 if (s !== undefined) return { slot: s, h, v };
             }
-            if (slots.length >= MAX_GRAPHICS) { stats.droppedGraphics++; return { slot: EMPTY_GRAPHIC, h: 0, v: 0 }; }
+            if (slots.length >= max) { stats.droppedGraphics++; return { slot: EMPTY_GRAPHIC, h: 0, v: 0 }; }
             index.set(keyOf(px), slots.length);
             slots.push(px);
             return { slot: slots.length - 1, h: 0, v: 0 };
@@ -50,5 +55,66 @@ function graphicTable(stats: { droppedGraphics: number }) {
     };
 }
 
+/** What a transparent pixel against an opaque one costs: as much as the two most distant colours. */
+const HOLE = 3 * 31 * 31;
+
+/**
+ * `slots` cut down to MAX_GRAPHICS: the graphics removed are those whose closest remaining graphic (any mirror image)
+ * looks least different — summed colour distance with each slot's own colours (`colour(slot, index)`: BGR555, the
+ * colours it is drawn in), times `weight[slot]` (the cells that show it) — so a graphic with a near twin goes before
+ * a one-off (a sign, a door). A removed graphic is drawn as that twin. `keep`: slots never removed (the empty one).
+ * Returns the new list and, for every old slot, where it is drawn now.
+ */
+function fitGraphics(slots: Uint8Array[], weight: number[], colour: (slot: number, index: number) => number, keep: ReadonlySet<number>) {
+    const n = slots.length, remove = n - MAX_GRAPHICS;
+    const ident = slots.map((_, s): Placed => ({ slot: s, h: 0, v: 0 }));
+    if (remove <= 0) return { slots, remap: ident, removed: 0 };
+    const alive = new Array(n).fill(true);
+    const mirrors = slots.map((px) => [[px, 0, 0], [flipH(px), 1, 0], [flipV(px), 0, 1], [flipV(flipH(px)), 1, 1]] as [Uint8Array, number, number][]);
+    const rgb = (c: number) => [c & 31, (c >> 5) & 31, (c >> 10) & 31];
+    const best: ({ to: Placed; cost: number } | null)[] = new Array(n).fill(null);
+    const nearestOf = (s: number) => {
+        const a = slots[s], ca = Array.from(a, (k) => (k ? rgb(colour(s, k)) : null));
+        let to: Placed = { slot: 0, h: 0, v: 0 }, cost = Infinity;
+        for (let t = 1; t < n; t++) {
+            if (t === s || !alive[t]) continue;
+            for (const [b, h, v] of mirrors[t]) {
+                let d = 0;
+                for (let i = 0; i < 256 && d < cost; i++) {
+                    if (a[i] === b[i]) continue;
+                    const x = ca[i];
+                    if (!x || !b[i]) { d += HOLE; continue; }
+                    const y = rgb(colour(s, b[i]));
+                    d += (x[0] - y[0]) ** 2 + (x[1] - y[1]) ** 2 + (x[2] - y[2]) ** 2;
+                }
+                if (d < cost) { cost = d; to = { slot: t, h, v }; }
+            }
+        }
+        return { to, cost: cost * Math.max(1, weight[s]) };
+    };
+    for (let s = 0; s < n; s++) if (!keep.has(s)) best[s] = nearestOf(s);
+    const via: (Placed | null)[] = new Array(n).fill(null);
+    for (let k = 0; k < remove; k++) {
+        let pick = -1;
+        for (let s = 0; s < n; s++) {
+            if (!alive[s] || keep.has(s)) continue;
+            if (!alive[best[s]!.to.slot]) best[s] = nearestOf(s);
+            if (pick < 0 || best[s]!.cost < best[pick]!.cost) pick = s;
+        }
+        if (pick < 0) break;
+        alive[pick] = false;
+        via[pick] = best[pick]!.to;
+    }
+    // A removed graphic's twin may have gone later: follow to one that stays, the flips adding up.
+    const order: number[] = [], index = new Array(n).fill(-1);
+    for (let s = 0; s < n; s++) if (alive[s]) { index[s] = order.length; order.push(s); }
+    const remap = slots.map((_, s): Placed => {
+        let h = 0, v = 0, at = s;
+        while (!alive[at]) { const t = via[at]!; h ^= t.h; v ^= t.v; at = t.slot; }
+        return { slot: index[at], h, v };
+    });
+    return { slots: order.map((s) => slots[s]), remap, removed: n - order.length };
+}
+
 export type { Placed };
-export { EMPTY_GRAPHIC, encodeGraphic, slotChr, graphicTable };
+export { EMPTY_GRAPHIC, encodeGraphic, slotChr, graphicTable, fitGraphics };

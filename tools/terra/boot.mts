@@ -27,8 +27,12 @@ export interface TerraSession {
     w16(addr: number, v: number): void;
 }
 
-/** Start the game and bring up room `id` in place of the first room; resolves once it has had 240 frames. */
-export function bootIntoRoom(id: number): Promise<TerraSession> {
+/**
+ * Start the game and bring up room `id` in place of the first room; resolves once it has had 240 frames.
+ * `afterLoad(M)` runs once the room loader has run and before those frames (to set breakpoints on what the room
+ * starts: its characters, palette helpers).
+ */
+export function bootIntoRoom(id: number, afterLoad?: (M: any) => void): Promise<TerraSession> {
     const romPath: string = romOrExit('terra');
     return new Promise((resolve, reject) => {
         const g = globalThis as any;
@@ -53,6 +57,7 @@ export function bootIntoRoom(id: number): Promise<TerraSession> {
             M.removeExecBreakpoint(0x8686ED); M.removeExecBreakpoint(0xC686ED);
             M.onBreakpointHit = null;
             if (!forced) { reject(new Error('the room loader never ran')); return; }
+            afterLoad?.(M);
             wait(240);
             resolve({ M, heap, rom, step, wait, press, r16, w16 });
         } };

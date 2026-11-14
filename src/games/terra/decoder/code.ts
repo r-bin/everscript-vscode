@@ -132,6 +132,26 @@ export const TERRA_ROUTINES: TerraRoutine[] = [
     { name: 'follower_curve_step', addr: 0x84C23D, len: 59, title: 'The same step for another record',
         what: 'jump_curve_step on $7F:0012,X with the counter +$2A, for the record at $0DF4.', notes: { 0: 'the record\'s second curve', 9: 'one more frame on this step?', 14: 'next pair: the count', 20: 'count ≥ 0: a new step', 22: 'negative: done, curve and $0999 to 0', 43: 'frames on this step − 1, in +$2A', 50: 'point at the delta', 56: 'return the delta' },
         confidence: 'read', doc: J + ' §2.3' },
+    // The room's characters and animation helpers (README.md §3.10).
+    { name: 'room_characters_start', addr: 0x80F3F1, len: 187, title: 'Start the room\'s characters',
+        what: 'Run by the room change after the load ($8D:8C04): walks the room\'s character list (the property stream at $82:8000 / $83:8000 + room × 2, from its third byte) and starts each entry with room_character_entry; $FC links, $FF ends.',
+        notes: { 15: 'the room\'s property stream in bank $82 …', 44: '… else in bank $83', 62: 'the character list (past the flags and display-mode bytes)', 70: '$FF: no characters' },
+        confidence: 'checked', doc: 'README.md §3.10' },
+    { name: 'room_character_entry', addr: 0x80F4EA, len: 262, title: 'Start one entry of the room\'s character list',
+        what: 'Dispatches the special entries ($FE, $FD, $FB a helper, $FA a branch on event flags, $F0) and otherwise reads a character: flags, x, y, kind, a 3-byte header pointer (a byte to $7F:0008,X, the +4 and +6 words, the script 5 bytes in), 3 more bytes, 6 more when the kind has bits 6-7.',
+        confidence: 'read', doc: 'README.md §3.10' },
+    { name: 'palette_helper_setup', addr: 0x8D9331, len: 129, title: 'Palette helper: next step',
+        what: 'Step +$08 of the list for param $7F:0008,X (table at bank +$04 : +$06, $9C:8000): frame count to $7F:0108,X, source to $7F:010A,X, first colour × 2 + $0600 to $7F:010C,X, length − 1 to $7F:010E,X, delay to +$0E; a count of 0 starts the list over (carry set).',
+        confidence: 'checked', doc: 'README.md §3.10' },
+    { name: 'palette_helper_copy', addr: 0x8D93B2, len: 38, title: 'Palette helper: copy one frame',
+        what: 'Moves length + 1 bytes from the source (bank $7F:0104,X) into the palette buffer at $7F:010C,X with a block move set up at $0402, and keeps the source where the move ended: the next frame follows on.',
+        confidence: 'checked', doc: 'README.md §3.10' },
+    { name: 'tile_helper_setup', addr: 0x8D940D, len: 99, title: 'Character helper: next step',
+        what: 'Step +$08 (8 bytes) of the list for param $7F:0008,X: frame count, source, VRAM word address, length, delay, as palette_helper_setup does for colours.',
+        confidence: 'read', doc: 'README.md §3.10' },
+    { name: 'tile_helper_queue', addr: 0x8D9470, len: 85, title: 'Character helper: queue one frame',
+        what: 'Adds a DMA record (length, VRAM address, source, mode $1801) to the list at $82 (full at $0948) and moves the source on by the length.',
+        confidence: 'read', doc: 'README.md §3.10' },
 ];
 
 export function routineByName(name: string): TerraRoutine | undefined {

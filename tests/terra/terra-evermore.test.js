@@ -58,6 +58,18 @@ if (!SOE || !TERRA || !fs.existsSync(SOE) || !fs.existsSync(TERRA)) {
         assert.deepStrictEqual(d.start, { x: 31, y: 58 });     // where the game's exits into Crysta arrive
     });
 
+    test('Crysta: a ledge is a wall, a canopy\'s high half covers the Boy, the waterfall\'s colours turn', () => {
+        // Docs/terra/evermore-rooms.md: type 8 (a ledge crossed in a jump) is a wall; cell (19,54) of a canopy notch draws its
+        // lower half with priority (Ark walks behind it): split onto layer 1 at priority 1; palette helper $06 rotates palette 7.
+        const { convertTerraRoom } = require('../../dist/games/evermore/imports/terra');
+        const c = convertTerraRoom(terraRom, 0x0a, () => 42471), w = c.widthTiles, at = (x, y, k) => c.cells[(y * w + x) * 3 + k];
+        assert.strictEqual(at(39, 10, 2), 0x2f);
+        assert.ok(at(19, 54, 0) & 0x2000, 'layer 1 holds the high half, at priority 1');
+        assert.ok(!(at(19, 54, 1) & 0x2000), 'layer 2 keeps the rest at priority 0');
+        const slot = c.families.findIndex((f) => f.palette === 7) + 1;
+        assert.deepStrictEqual(c.paletteCycles, [[(slot << 4) | 1, 7, 6]]);
+    });
+
     test('a chest becomes a solid B-trigger cell', () => {
         const d = service.detail('terra-108');
         const [chest] = terra.roomChests(terraRom, 0x108);
@@ -74,16 +86,18 @@ if (!SOE || !TERRA || !fs.existsSync(SOE) || !fs.existsSync(TERRA)) {
     });
 
     test('every picture converts into a room Evermore decodes', () => {
-        let n = 0, over = 0;
+        let n = 0, over = 0, dropped = 0;
         for (const [id] of terra.roomCatalog(terraRom).pictures) {
             const d = service.detail('terra-' + id.toString(16));
             const src = service.resolveRoom(0x2000 + id), room = maps.decodeRoom(src.rom, src.roomId);
             assert.strictEqual(room.header.widthTiles * room.header.heightTiles, d.content.initMap.x2 * d.content.initMap.y2 / 4);
-            if (d.conversion.droppedGraphics) over++;
+            if (d.conversion.substitutedGraphics) over++;
+            dropped += d.conversion.droppedGraphics;
             n++;
         }
         assert.strictEqual(n, 511);
-        assert.strictEqual(over, 11, 'rooms past Evermore\'s 264 graphics');
+        assert.strictEqual(over, 15, 'rooms past Evermore\'s 256 graphics: their rarest tiles drawn as the nearest listed one');
+        assert.strictEqual(dropped, 0, 'no tile drawn empty');
     });
 
     test('Play in emulator: a converted room becomes a ROM the game can address, drawing what the editor draws', () => {

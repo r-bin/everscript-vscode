@@ -8,7 +8,8 @@
 
 import { flipH, flipV, keyOf } from '../common/pixels';
 import { MAX_GRAPHICS, MAX_IMAGE_GRAPHICS } from '../common/ids';
-import type { ManaMap, AnimationTrace, PaletteRotation } from '../../../mana/decoder';
+import { paletteCycles } from '../common/cycles';
+import type { ManaMap, AnimationTrace } from '../../../mana/decoder';
 
 type Layer = 'A' | 'B';
 type Draw = (layer: Layer, n: number, vram: Uint8Array) => Uint8Array;
@@ -17,28 +18,7 @@ type Placed = { slot: number; h: number; v: number };
 type Tile = { m: { px: Uint8Array; palette: number }; g: Placed };
 type Graphics = { slots: { length: number }; place(px: Uint8Array): Placed };
 
-/** Evermore runs two cycles per palette: state slots palette*2 and palette*2+1 ($90D50F). */
-const CYCLES_PER_PALETTE = 2;
-const MAX_RATE = 0x7F, MAX_DELAY = 0xFF;
-
-/**
- * Palette-cycle descriptors for `rotations`; `slotOf(p)` is the Evermore palette slot Mana
- * palette `p` became (0 when the map draws nothing in it). Mana's +1 (each colour takes the
- * one below's value) is Evermore's positive rate: CGRAM[start+j] = colour (j - shift) mod span.
- */
-function paletteCycles(rotations: PaletteRotation[], slotOf: (p: number) => number) {
-    const records: number[][] = [], perSlot = new Map<number, number>();
-    let dropped = 0;
-    for (const r of rotations) {
-        const slot = slotOf(r.palette);
-        if (!slot) continue;
-        const n = perSlot.get(slot) ?? 0;
-        if (n >= CYCLES_PER_PALETTE || r.period > MAX_RATE) { dropped++; continue; }
-        perSlot.set(slot, n + 1);
-        records.push([(slot << 4) | r.first, r.count, (r.direction * r.period) & 0xFF]);
-    }
-    return { records, dropped };
-}
+const MAX_DELAY = 0xFF;
 
 /** Metatiles of each layer the map shows whose characters the trace changes. */
 function animatedMetatiles(map: ManaMap, trace: AnimationTrace): Record<Layer, Set<number>> {

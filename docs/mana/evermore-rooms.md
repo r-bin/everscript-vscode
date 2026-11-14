@@ -73,7 +73,7 @@ the game, or lose something on the way (measured 2026-10-15 over every map):
 | maps | why |
 |---|---|
 | `$92`, `$A2`, `$A3`, `$A4`, `$A7`, `$DF`, `$E0`, `$191`-`$195` (120x120) | grid + stamps need 33 656-42 672 bytes; Evermore's WRAM window is 32 768 (`budget.ts` MAX_WRAM). Evermore rooms are at most 128 cells a side, but the grid alone is 28 800 bytes here |
-| `$0E` | more distinct 16x16 graphics than the 264 a tilemap word can name; the rest are drawn empty |
+| `$0E` | more distinct 16x16 graphics than the 256 a tilemap word can name; the rest are drawn empty |
 | `$C6` | one event flag swaps the whole 120x120 map; that object alone overflows the 32 KB bank half a blob may use, so it is left out |
 | `$04`, `$05`, `$1FF` | more than 64 special cells (174, 174, 481): `$02:B517` keeps writing slots past 64, over layer B's collision (`$7F:BC00`) and metatile table (`$7F:C800`), while the slot number wraps; the conversion follows the wrap for events but not the overwrite. These maps are probably never shown in this state |
 | 43 maps | layer B has its own size and is repeated; Mana scrolls it on its own (parallax), Evermore draws it fixed |

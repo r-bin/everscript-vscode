@@ -229,6 +229,42 @@ set-flag form of `$80:BB77`, built at `$87:93FF`). Every room load redraws the c
 `$87:9471`, and changes no tile), 6 where the loaded map has neither (a map change or an event puts the chest
 there). Item names are not decoded.
 
+### 3.10 The room's characters and animation helpers
+
+After the load and the map changes, the room change ($8D:8717) starts the room's characters: `$80:F3F1` (called at
+`$8D:8C04`) walks the **character list**, the room property stream of §3 (`$82:8000 + room × 2`, else `$83:8000`)
+from its third byte, entry by entry (`$80:F4EA`) up to an `$FF` byte:
+
+| Entry | Bytes | What |
+|---|---|---|
+| a character | flags, x, y (cells), kind, header pointer (word, bank), 3 more (6 more when the kind has bits 6-7) | the header: a byte to `$7F:0008,X`, the record's `+4` and `+6` words, the script from its 6th byte |
+| `$FD` | x, y, kind, header (word, bank) | a character without sprite (`+$10/+$12` = `$9C:D000`; `$80:F5F9`) |
+| `$FE` | kind, header (word, bank) | the same at 0, 0 (`$80:F5F0`) |
+| `$FB` | param, header (word, bank) | a **helper** (a small record from `$86:8380`, on the list at `$7C`; `$80:F6E6`): `+6` = param, its script 3 bytes into the header |
+| `$FA` | flag words, a target word | a branch on event flags (`$80:F759`; `$80:BBC7` tests a flag): words follow while bits 11-14 chain them (bit 15, or none of 11-15, ends); the list goes on after it or at the target |
+| `$F0` | 6 bytes | a layer size and a mode-7 setup (`$80:F689`) |
+| `$FC` | — | a link between records (`$80:F47B`) |
+
+Two helper scripts animate the room, both checked in the running game in Crysta (`$00A`: a breakpoint on
+`$8D:93B2` gave the records, the palette buffer `$7F:0600` changed as the steps say):
+
+* `$87:987F`, **palette**: the list for param p is at `$9C:8000 + word($9C:8000 + p × 2)`; 6-byte steps — frame count
+  (0: start over), source (bank `$9C`), first colour, length − 1, delay (`$8D:9331`). Each frame copies the bytes into
+  the palette buffer and moves the source on (`$8D:93B2`, a block move at `$0402`), then waits delay + 1 frames.
+  Crysta: param `$06` rotates palette 7 colours 1-7 (the river and the waterfall) every 6 frames; param `$23` writes
+  palette 6 four times over, every 8 frames. The first frame is copied when the room change runs the helpers once
+  (`$80:E8FE` at `$8D:8C23`), before the room is shown: room `$212`'s lava colours from the loader are never seen,
+  the helper's blue is (seen in the game).
+* `$87:98A8`, **characters**: the word at `$9D:8000 + p × 2` is the list's offset (bit 15: an index into the base / bank
+  table at `$8D:9407`, read by `$8D:93D8`); 8-byte steps — frame count, source, VRAM word address, length, delay (`$8D:940D`). Each frame
+  queues a DMA record at `$82` (`$8D:9470`). Crysta's param 0 rewrites characters 9-12 (two grass metatiles) in 12
+  steps of 8 frames.
+
+237 room pictures start a palette helper, 99 a character helper; other helper scripts are not decoded. Run on the
+interpreter, `$80:F3F1` runs to its end in Crysta but never returns in 142 rooms, and with the event flags of power-on
+it takes other branches than the game after the opening: the decoder walks the list instead (`roomHelpers`), along both
+sides of every `$FA`, and marks the helpers every path starts.
+
 ## 4. How the decoder gets a room
 
 `loadRoom` runs `$86:86ED` on the platform's 65816 interpreter with a bus that holds the ROM and the
@@ -243,7 +279,8 @@ which sections, sizes, palette and display registers each room has, and which ro
 The picture: each layer drawn from its metatiles and its BG's characters, BG priority (BG1 high, BG2 high,
 BG1 low, BG2 low), colour math with the sub screen or the fixed colour. A layer smaller than the map repeats
 when it is on the main screen (a parallax background); on the sub screen only it is a screen effect
-(light, haze) and is left out. Not drawn: sprites, BG3 (text), tile animation, windows, palette animation (§6).
+(light, haze) and is left out. The palette helpers every story state starts have written their first frame (§3.10).
+Not drawn: sprites, BG3 (text), character animation, windows; palette animation past the first frame.
 
 ## 5. Checked against the game
 
@@ -260,6 +297,7 @@ room instead, and compares the screen with the render (`npm run build:ts` first)
 | `$000F` (Ark's house) | 61.9% | the dialogue box and two characters |
 | `$0024` | 38% | a parallax room: the background scrolls at its own speed, so no one offset matches both layers |
 | `$0047` | 29.5% | the game shows the room dark at that moment (an event) |
+| `$0212` | 39.2% | the clouds, a screen effect on the sub screen the picture leaves out (November 2026; without the palette helper's first frame the picture had the loader's lava colours, which the game never shows) |
 
 `node tools/terra/check-exit.mts <room hex> [exit] [--flag <hex>]` brings the room up the same way, stands the
 player in an exit and prints the room the game goes to. October 2026: exits of `$00A` (#0, #3, #6, #8), `$00C`
@@ -288,11 +326,9 @@ and the same display registers (`$2105=$09`, BG1 `$3C00`, BG2 `$3800`, main `$17
 * Bit 14 of a map word, which characters the ground table `$80:E11C` applies to, what `$048A` bit 15 stands for, the style byte `$0484` and the high nibble of `$0490`.
 * The `08` commands `FC`/`FD`/`F8`/`F9`, sections `$04`/`$01`.
 * The rest of a room's script after the header (events, characters) and the room properties' flags.
-* Tile animation and palette animation. Palette effects are records at `$7F:0100+` (source pointer `+$0A`,
-  bank `+$04`, destination `+$0C`, length `+$0E`); `$8D:93B2` copies one frame per tick and moves the source on
-  (Crysta, room `$00A`: palette 6 from `$9C:97C6`, palette 7 rotated by one colour). The pictures show the
-  colours the loader leaves, so animated water can look wrong (Crysta's river is purple, not blue). What sets
-  the records up (probably the room's event script) is not decoded.
+* Animation (§3.10): the pictures show each palette helper's first frame and no character animation; the helper
+  scripts other than `$87:987F` / `$87:98A8`; what an event flag test with bits 11-14 combines exactly (`$80:F759`);
+  the room's other characters (where they stand is read, not what they are).
 * The world map (mode 7), room names.
 
 ## 7. Character scripts: COP commands

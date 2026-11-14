@@ -42,6 +42,17 @@ function rawTile(src: Chars, table: Uint16Array, n: number): Raw {
     return { px, pal, hi, opaque, high };
 }
 
+/** The pixels of `t` with the priority bit set (`high`), or those without it. */
+function priorityPart(t: Raw, high: boolean): Raw {
+    const px = new Uint8Array(256), pal = new Uint8Array(256), hi = new Uint8Array(256);
+    let opaque = 0;
+    for (let i = 0; i < 256; i++) {
+        if (!t.px[i] || !!t.hi[i] !== high) continue;
+        px[i] = t.px[i]; pal[i] = t.pal[i]; hi[i] = t.hi[i]; opaque++;
+    }
+    return { px, pal, hi, opaque, high: high ? opaque : 0 };
+}
+
 /** The palettes that become families: the (at most seven) most drawn of the tiles shown, in palette order. */
 function keptPalettes(tiles: Iterable<Raw>): number[] {
     const count = new Array(8).fill(0);
@@ -56,11 +67,11 @@ function keptPalettes(tiles: Iterable<Raw>): number[] {
  * draws with: Evermore's backdrop is black, so where Terranigma shows its backdrop the tiles are filled with
  * that colour, and this makes it exact. A palette with every colour in use gets the nearest instead.
  */
-function withBackdrop(palette: Uint16Array, kept: number[], tiles: Iterable<Raw>, backdrop: number): Uint16Array {
+function withBackdrop(palette: Uint16Array, kept: number[], tiles: Iterable<Raw>, backdrop: number, rotating: ReadonlySet<number> = NONE): Uint16Array {
     const out = palette.slice(), used = new Map<number, Set<number>>(kept.map((p) => [p, new Set<number>()]));
     for (const t of tiles) for (let i = 0; i < 256; i++) if (t.px[i]) used.get(t.pal[i])?.add(t.px[i]);
     for (const p of kept) {
-        for (let k = 1; k < 16; k++) if (!used.get(p)!.has(k)) { out[p * 16 + k] = backdrop; break; }
+        for (let k = 1; k < 16; k++) if (!used.get(p)!.has(k) && !rotating.has(p * 16 + k)) { out[p * 16 + k] = backdrop; break; }
     }
     return out;
 }
@@ -69,7 +80,7 @@ function withBackdrop(palette: Uint16Array, kept: number[], tiles: Iterable<Raw>
  * The palette a tile is drawn in: of the kept palettes it draws with (all kept ones when it draws with none
  * of them), the one its other pixels move least to, the one with most pixels on a tie.
  */
-function mainPalette(cgram: Uint16Array, t: Raw, kept: number[]): number {
+function mainPalette(cgram: Uint16Array, t: Raw, kept: number[], rotating: ReadonlySet<number>): number {
     const count = new Array(8).fill(0);
     for (let i = 0; i < 256; i++) if (t.px[i]) count[t.pal[i]]++;
     const own = kept.filter((p) => count[p]);
@@ -77,7 +88,7 @@ function mainPalette(cgram: Uint16Array, t: Raw, kept: number[]): number {
     for (const to of own.length ? own : kept) {
         let err = 0;
         for (let i = 0; i < 256; i++) {
-            if (t.px[i] && t.pal[i] !== to) err += dist(cgram[t.pal[i] * 16 + t.px[i]], cgram[to * 16 + nearest(cgram, cgram[t.pal[i] * 16 + t.px[i]], to, NONE)]);
+            if (t.px[i] && t.pal[i] !== to) err += dist(cgram[t.pal[i] * 16 + t.px[i]], cgram[to * 16 + nearest(cgram, cgram[t.pal[i] * 16 + t.px[i]], to, rotating)]);
         }
         if (err < best || (err === best && count[to] > count[main])) { best = err; main = to; }
     }
@@ -86,14 +97,17 @@ function mainPalette(cgram: Uint16Array, t: Raw, kept: number[]): number {
 
 type Stats = { recolouredTiles: number; recolouredPixels: number; mixedPriority: number; droppedGraphics: number };
 
-/** A tile in one palette and one priority (the majority of its opaque pixels): what an Evermore graphic can hold. */
-function convertTile(cgram: Uint16Array, t: Raw, kept: number[], stats: Stats) {
+/**
+ * A tile in one palette and one priority (the majority of its opaque pixels): what an Evermore graphic can hold.
+ * A recoloured pixel never takes a colour that rotates (`rotating`, CGRAM indices): it would blink with a cycle.
+ */
+function convertTile(cgram: Uint16Array, t: Raw, kept: number[], stats: Stats, rotating: ReadonlySet<number> = NONE) {
     if (!t.opaque) return { px: t.px, palette: kept[0], priority: 0, empty: true };
-    const palette = mainPalette(cgram, t, kept);
+    const palette = mainPalette(cgram, t, kept, rotating);
     const px = t.px.slice();
     let moved = 0;
     for (let i = 0; i < 256; i++) {
-        if (px[i] && t.pal[i] !== palette) { px[i] = nearest(cgram, cgram[t.pal[i] * 16 + t.px[i]], palette, NONE); moved++; }
+        if (px[i] && t.pal[i] !== palette) { px[i] = nearest(cgram, cgram[t.pal[i] * 16 + t.px[i]], palette, rotating); moved++; }
     }
     if (moved) { stats.recolouredTiles++; stats.recolouredPixels += moved; }
     if (t.high && t.high < t.opaque) stats.mixedPriority++;
@@ -101,21 +115,21 @@ function convertTile(cgram: Uint16Array, t: Raw, kept: number[], stats: Stats) {
 }
 
 /** `px` with its transparent pixels that `open` allows (all, when null) set to the colour nearest `backdrop`. */
-function fillBackdrop(cgram: Uint16Array, px: Uint8Array, palette: number, backdrop: number, open: Uint8Array | null): Uint8Array {
-    const k = nearest(cgram, backdrop, palette, NONE), out = px.slice();
+function fillBackdrop(cgram: Uint16Array, px: Uint8Array, palette: number, backdrop: number, open: Uint8Array | null, rotating: ReadonlySet<number> = NONE): Uint8Array {
+    const k = nearest(cgram, backdrop, palette, rotating), out = px.slice();
     for (let i = 0; i < 256; i++) if (!out[i] && (!open || open[i])) out[i] = k;
     return out;
 }
 
 /** The kept palette whose nearest colour to `backdrop` is closest, and that colour: an empty cell's solid fill. */
-function backdropColour(cgram: Uint16Array, kept: number[], backdrop: number) {
+function backdropColour(cgram: Uint16Array, kept: number[], backdrop: number, rotating: ReadonlySet<number> = NONE) {
     let best = { palette: kept[0], k: 1, d: Infinity };
     for (const p of kept) {
-        const k = nearest(cgram, backdrop, p, NONE), d = dist(cgram[p * 16 + k], backdrop);
+        const k = nearest(cgram, backdrop, p, rotating), d = dist(cgram[p * 16 + k], backdrop);
         if (d < best.d) best = { palette: p, k, d };
     }
     return best;
 }
 
 export type { Chars, Raw, Stats };
-export { rawTile, keptPalettes, withBackdrop, convertTile, fillBackdrop, backdropColour };
+export { rawTile, priorityPart, keptPalettes, withBackdrop, convertTile, fillBackdrop, backdropColour };

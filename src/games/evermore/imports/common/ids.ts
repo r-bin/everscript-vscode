@@ -36,8 +36,8 @@ const IMAGE_SIZE = 0x330000;
 /** The room slot the converted blob replaces in the image. */
 const ROOM_SLOT = 0x7E;
 
-/** Graphics one room can name: a tilemap word's 10-bit character field (budget.ts MAX_GRAPHICS). */
-const MAX_GRAPHICS = 264;
+/** Graphics one room can name: a tilemap word's 10-bit character field, 1024 characters, 4 a graphic (budget.ts MAX_GRAPHICS). */
+const MAX_GRAPHICS = 256;
 
 /** Graphics the image holds, Block 1 and animation frames together: up to the families. */
 const MAX_IMAGE_GRAPHICS = Math.floor((PALETTE_AREA - GRAPHIC_DATA) / 129);

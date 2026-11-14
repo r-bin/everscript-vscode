@@ -12,15 +12,19 @@
 //   exits                          -> step-on bit 14 + a box per exit
 //   chests                         -> a wall with bit 15 + a B-trigger box
 //   map changes ($99:D4E7)         -> objects: state 0 the room as loaded, state 1 the change applied
+//   a tile mixing char priorities  -> split: its high part on layer 1 at priority 1 where layer 1 is empty
+//   palette helpers' rotations     -> palette cycles (animation.ts)
 // Only SNES facts are shared: both games use Mode 1 tilemap words with the same bits.
 
 import * as terra from '../../../terra/decoder';
 import type { TerraLayer } from '../../../terra/decoder';
-import { EMPTY_GRAPHIC, encodeGraphic, slotChr, graphicTable } from '../common/graphics';
+import { EMPTY_GRAPHIC, encodeGraphic, slotChr, graphicTable, fitGraphics } from '../common/graphics';
 import { triggerBoxes } from '../common/boxes';
 import { collisionWords, SOLID, PLANE_2 } from './collision';
-import { rawTile, keptPalettes, withBackdrop, convertTile, fillBackdrop, backdropColour } from './graphics';
+import { rawTile, priorityPart, keptPalettes, withBackdrop, convertTile, fillBackdrop, backdropColour } from './graphics';
 import type { Chars, Raw, Stats } from './graphics';
+import { paletteAnimation } from './animation';
+import { paletteCycles } from '../common/cycles';
 
 const STEP_ON = 0x4000, INTERACT = 0x8000;
 /** Evermore's BG3, on in every vanilla room's TM (header byte 4 is `$17` in all of them): its HUD and text. */
@@ -31,6 +35,8 @@ const UNCONVERTED_MATH = 0x0C;
 const CGWSEL_SUB = 0x02;
 
 type Role = 1 | 2;
+/** Metatile numbers of split tiles (a layer-2 metatile + SPLIT): past the 512 a layer table holds. */
+const SPLIT = 0x200;
 type Tile = { px: Uint8Array; palette: number; priority: number; empty: boolean };
 
 /**
@@ -64,6 +70,8 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
     const halve = fixedMath && black && !!(math & 0x40) && (math & 0x03) === 0x03;
     stats.unconvertedColourMath = fixedMath && !(black && (!(math & 0x40) || halve)) ? 1 : 0;
     stats.halvedColours = halve ? 1 : 0;
+    // What of the room's palette its helpers rotate (loadRoom has their first frames in `room.palette` already).
+    const anim = paletteAnimation(rom, id);
     const palette = halve ? room.palette.map(half) : room.palette;
     const backdrop = halve && (math & 0x20) ? half(room.palette[0]) : room.palette[0];
     // A BG2 layer on the sub screen only, added to the backdrop without halving, is seen through it (`$13F`'s
@@ -99,21 +107,62 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
         return { bit: change.bit, cells };
     }).filter((c) => c.cells.size);
 
+    // Collision: layer 0's cell types ($7E:A000, what movement reads); past its size a wall. A room without a
+    // layer 0 (`$005`, a picture on layer 1 alone) has nothing to collide with: floor.
+    const l0 = room.layers.find((l) => l.index === 0);
+    const inside = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h;
+    const typeAt = (x: number, y: number) => (!inside(x, y) ? -1 : !l0 ? 0 : x < l0.w && y < l0.h ? (l0.cells[y * l0.w + x] >> 9) & 0x1F : -1);
+    const collision = collisionWords(terra.cellTypeRules(rom), w, h, typeAt);
+
+    // Terranigma gives each 8x8 character its own priority; an Evermore cell has one. A layer-2 metatile that
+    // mixes them (a canopy's or a roof's lower edge, a signpost: the player walks behind its high half) is split
+    // where layer 1 shows nothing in the cell: its high-priority pixels go to layer 1 at priority 1, the rest
+    // stays on layer 2 at priority 0 — the same order in Mode 1 (BG1.1 and BG2.1 both in front of a priority-2
+    // sprite, both behind nothing it is behind). Only while BG1 and BG2 take the same part in the sub screen and
+    // colour math (`splitOk`), so moving a pixel from one to the other changes nothing else. Split metatiles are
+    // numbered from SPLIT; elsewhere a tile keeps the priority of most of its pixels.
+    const ts = sub & ((layer[1] ? 0x01 : 0) | (layer[2] ? 0x02 : 0) | 0x10);
+    const outMath = !fixedMath && (ts & 0x03) ? math & ~UNCONVERTED_MATH : 0;
+    const splitOk = !!layer[2] && onMain(layer[2]) && !asMain.includes(2) && !(ts & 0x03)
+        && (outMath & 0x01) === ((outMath >> 1) & 0x01) && (!layer[1] || onMain(layer[1]));
+    const raw: Record<Role, Map<number, Raw>> = { 1: new Map(), 2: new Map() };
+    const rawOf = (role: Role, n: number): Raw => {
+        let r = raw[role].get(n);
+        if (!r) {
+            r = n >= SPLIT ? priorityPart(rawOf(2, n - SPLIT), role === 1) : rawTile(chars[role], layer[role]!.metatiles, n);
+            raw[role].set(n, r);
+        }
+        return r;
+    };
+    const mixed = (t: Raw) => t.high > 0 && t.high < t.opaque;
+    /** The metatiles cell words `wa`, `wb` show on Evermore's layers 1 and 2 (-1: none), split ones from SPLIT. */
+    const pairOf = (wa: number, wb: number): [number, number] => {
+        const a = wa < 0 ? -1 : wa & 0x1FF, b = wb < 0 ? -1 : wb & 0x1FF;
+        if (splitOk && b >= 0 && mixed(rawOf(2, b)) && (a < 0 || !rawOf(1, a).opaque)) return [b + SPLIT, b + SPLIT];
+        return [a, b];
+    };
+    // A split costs graphics (Evermore has 256): only where the Boy can be behind the tile — he stands on the cell or
+    // on the one below it (his sprite reaches a cell above his feet).
+    const standable = (x: number, y: number) => inside(x, y) && (collision.words[y * w + x] & 0x0F) !== 0x0F;
+    const cellPair = (x: number, y: number, c: { 1?: number; 2?: number } = {}): [number, number] => {
+        const p = pairOf(c[1] ?? cellOf(1, x, y), c[2] ?? cellOf(2, x, y));
+        return p[1] >= SPLIT && !standable(x, y) && !standable(x, y + 1) ? [-1, p[1] - SPLIT] : p;
+    };
+
     // Every metatile a cell shows, with how often: as loaded, and as each change leaves it.
     const uses: Record<Role, Map<number, number>> = { 1: new Map(), 2: new Map() };
     const pairs = new Map<string, [number, number]>();
-    const see = (wa: number, wb: number) => {
-        const a = wa < 0 ? -1 : wa & 0x1FF, b = wb < 0 ? -1 : wb & 0x1FF;
+    const see = ([a, b]: [number, number]) => {
         if (a >= 0) uses[1].set(a, (uses[1].get(a) ?? 0) + 1);
         if (b >= 0) uses[2].set(b, (uses[2].get(b) ?? 0) + 1);
         pairs.set(a + ',' + b, [a, b]);
     };
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) see(cellOf(1, x, y), cellOf(2, x, y));
-    for (const ch of changes) for (const [i, c] of ch.cells) see(c[1] ?? cellOf(1, i % w, (i / w) | 0), c[2] ?? cellOf(2, i % w, (i / w) | 0));
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) see(cellPair(x, y));
+    for (const ch of changes) for (const [i, c] of ch.cells) see(cellPair(i % w, (i / w) | 0, c));
+    stats.splitTiles = [...uses[2].keys()].filter((n) => n >= SPLIT).length;
 
-    const raw: Record<Role, Map<number, Raw>> = { 1: new Map(), 2: new Map() };
-    for (const role of [1, 2] as Role[]) for (const n of uses[role].keys()) raw[role].set(n, rawTile(chars[role], layer[role]!.metatiles, n));
-    const allRaw = [...raw[1].values(), ...raw[2].values()];
+    for (const role of [1, 2] as Role[]) for (const n of uses[role].keys()) rawOf(role, n);
+    const allRaw = [...uses[1].keys()].map((n) => rawOf(1, n)).concat([...uses[2].keys()].map((n) => rawOf(2, n)));
     const kept = keptPalettes(allRaw);
     stats.droppedPalettes = new Set(allRaw.flatMap((t) => [...new Set(t.pal.filter((_, i) => t.px[i]))])).size - kept.length;
 
@@ -125,11 +174,11 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
     const bottomMain = !layer[2] || onMain(layer[2]) || asMain.includes(2);
     const subB = !!layer[2] && !!(sub & 0x02);
     const fill = bottomMain && (!subB || !(math & 0x22));
-    const cgram = fill ? withBackdrop(palette, kept, allRaw, backdrop) : palette;
+    const cgram = fill ? withBackdrop(palette, kept, allRaw, backdrop, anim.rotating) : palette;
     const tiles: Record<Role, Map<number, Tile>> = { 1: new Map(), 2: new Map() };
     for (const role of [1, 2] as Role[]) {
-        for (const [n, t] of raw[role]) {
-            const c = convertTile(cgram, t, kept, stats);
+        for (const n of uses[role].keys()) {
+            const c = convertTile(cgram, rawOf(role, n), kept, stats, anim.rotating);
             tiles[role].set(n, asMain.includes(role) ? { ...c, priority: 0 } : c);
         }
     }
@@ -144,38 +193,45 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
         }
         for (const [n, t] of tiles[2]) {
             if (t.empty) continue;
-            t.px = fillBackdrop(cgram, t.px, t.palette, backdrop, !t.priority && !subB ? null : open.get(n)!);
+            t.px = fillBackdrop(cgram, t.px, t.palette, backdrop, !t.priority && !subB ? null : open.get(n)!, anim.rotating);
         }
     }
     // An empty layer-2 cell (or no layer 2 at all) shows the backdrop: one solid graphic for it.
     const needSolid = fill && !subB && [...pairs.values()].some(([, b]) => b < 0 || tiles[2].get(b)!.empty);
-    const solid = needSolid ? backdropColour(cgram, kept, backdrop) : null;
+    const solid = needSolid ? backdropColour(cgram, kept, backdrop, anim.rotating) : null;
 
-    // Graphics, the most used first: past Evermore's 264 a room's rarest tiles are the ones drawn empty.
-    const graphics = graphicTable(stats);
-    const placed: Record<Role, Map<number, ReturnType<typeof graphics.place>>> = { 1: new Map(), 2: new Map() };
-    const order = ([1, 2] as Role[]).flatMap((role) => [...uses[role]].map(([n, k]) => ({ role, n, k }))).sort((p, q) => q.k - p.k);
-    const solidSlot = solid ? graphics.place(new Uint8Array(256).fill(solid.k)).slot : EMPTY_GRAPHIC;
-    for (const { role, n } of order) {
-        const t = tiles[role].get(n)!;
-        placed[role].set(n, t.empty ? { slot: EMPTY_GRAPHIC, h: 0, v: 0 } : graphics.place(t.px));
+    // Graphics: every one listed first; past Evermore's 256 those with a near twin are drawn as the twin (fitGraphics).
+    const listed = graphicTable(stats, { max: Infinity });
+    const first: Record<Role, Map<number, ReturnType<typeof listed.place>>> = { 1: new Map(), 2: new Map() };
+    const solidFirst = solid ? listed.place(new Uint8Array(256).fill(solid.k)).slot : EMPTY_GRAPHIC;
+    const weight: number[] = [], drawnIn: number[] = [];
+    for (const role of [1, 2] as Role[]) {
+        for (const [n, k] of uses[role]) {
+            const t = tiles[role].get(n)!;
+            const g = t.empty ? { slot: EMPTY_GRAPHIC, h: 0, v: 0 } : listed.place(t.px);
+            first[role].set(n, g);
+            if ((weight[g.slot] ?? 0) < k) drawnIn[g.slot] = t.palette;
+            weight[g.slot] = (weight[g.slot] ?? 0) + k;
+        }
     }
+    if (solid) drawnIn[solidFirst] = solid.palette;
+    const fit = fitGraphics(listed.slots, weight, (s, k) => cgram[(drawnIn[s] ?? kept[0]) * 16 + k], new Set([EMPTY_GRAPHIC, solidFirst]));
+    stats.substitutedGraphics = fit.removed;
+    const graphics = { slots: fit.slots };
+    const moved = (g: { slot: number; h: number; v: number }) => { const m = fit.remap[g.slot]; return { slot: m.slot, h: g.h ^ m.h, v: g.v ^ m.v }; };
+    const placed: Record<Role, Map<number, { slot: number; h: number; v: number }>> = { 1: new Map(), 2: new Map() };
+    for (const role of [1, 2] as Role[]) for (const [n, g] of first[role]) placed[role].set(n, moved(g));
+    const solidSlot = fit.remap[solidFirst].slot;
     const palettes = kept;
     const slotOf = (p: number) => palettes.indexOf(p) + 1;
     const wordFor = (role: Role, n: number): number => {
-        const t = n < 0 ? null : tiles[role].get(n & 0x1FF)!;
+        const t = n < 0 ? null : tiles[role].get(n)!;
         if (role === 2 && (!t || t.empty) && solid) return (slotOf(solid.palette) << 10) | slotChr(solidSlot);
         if (!t || t.empty) return 1 << 10;     // the empty graphic, in slot 1
-        const g = placed[role].get(n & 0x1FF)!;
+        const g = placed[role].get(n)!;
         return (g.v << 15) | (g.h << 14) | (t.priority << 13) | (slotOf(t.palette) << 10) | slotChr(g.slot);
     };
 
-    // Collision: layer 0's cell types ($7E:A000, what movement reads); past its size a wall. A room without a
-    // layer 0 (`$005`, a picture on layer 1 alone) has nothing to collide with: floor.
-    const l0 = room.layers.find((l) => l.index === 0);
-    const inside = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h;
-    const typeAt = (x: number, y: number) => (!inside(x, y) ? -1 : !l0 ? 0 : x < l0.w && y < l0.h ? (l0.cells[y * l0.w + x] >> 9) & 0x1F : -1);
-    const collision = collisionWords(terra.cellTypeRules(rom), w, h, typeAt);
     const events = new Map<number, number>();         // cell -> STEP_ON / INTERACT bits
     const exits = terra.roomExits(rom, id), steps: { x: number; y: number; event: number }[] = [];
     exits.forEach((e, k) => {
@@ -195,7 +251,8 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
     const cells: number[] = new Array(w * h * 3);
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
         const i = y * w + x;
-        cells[i * 3] = wordFor(1, cellOf(1, x, y)); cells[i * 3 + 1] = wordFor(2, cellOf(2, x, y)); cells[i * 3 + 2] = collisionAt(i);
+        const [a, b] = cellPair(x, y);
+        cells[i * 3] = wordFor(1, a); cells[i * 3 + 1] = wordFor(2, b); cells[i * 3 + 2] = collisionAt(i);
     }
     const objects = changes.map(({ bit, cells: changed }) => {
         const at = [...changed.keys()];
@@ -204,11 +261,13 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
         const frame: Record<string, { layer1: number; layer2: number; collision: number }> = {};
         for (const [i, c] of changed) {
             const x = i % w, y = (i / w) | 0;
-            frame[(x - x0) + ',' + (y - y0)] = { layer1: wordFor(1, c[1] ?? cellOf(1, x, y)), layer2: wordFor(2, c[2] ?? cellOf(2, x, y)), collision: collisionAt(i, c.type) };
+            const [a, b] = cellPair(x, y, c);
+            frame[(x - x0) + ',' + (y - y0)] = { layer1: wordFor(1, a), layer2: wordFor(2, b), collision: collisionAt(i, c.type) };
         }
         return { x: x0, y: y0, w: Math.max(...xs) - x0 + 1, h: Math.max(...ys) - y0 + 1, flag: bit, frames: [frame] };
     });
 
+    const cycles = paletteCycles(anim.rotations, (p) => (palettes.includes(p) ? slotOf(p) : 0));
     const families = palettes.map((p) => {
         const colours = Array.from(cgram.subarray(p * 16, p * 16 + 16), (c) => c & 0x7FFF);
         const slots = new Set<number>();
@@ -217,13 +276,13 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
     });
     return {
         id, widthTiles: w, heightTiles: h,
-        display: displayOf(room.ppu, layer, asMain, math, fixedMath, !!solid, stats),
+        display: displayOf(room.ppu, layer, asMain, math, fixedMath, !!solid, stats, stats.splitTiles > 0),
         cells,
         graphics: graphics.slots.map(encodeGraphic),
-        // Terranigma's tile and palette animation is not decoded (docs/terra/README.md §6): the room is still.
+        // Character animation (the tile helpers) is not converted: those tiles are still.
         frameGraphics: [] as Uint8Array[],
         animation: [] as { frames: number[]; delays: number[] }[],
-        paletteCycles: [] as number[][],
+        paletteCycles: cycles.records,
         families,
         stepOn: triggerBoxes(steps),
         bTrigger: triggerBoxes(checks),
@@ -235,6 +294,7 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
         stats: Object.assign(stats, {
             graphics: graphics.slots.length, metatiles: uses[1].size + uses[2].size, exits: exits.length, exitCells: steps.length,
             chests: chests.length, mapChanges: objects.length,
+            paletteCycles: cycles.records.length, droppedCycles: cycles.dropped, stillPaletteAnimations: anim.still, tileAnimations: anim.tiles, helpersInSomeStates: anim.someStates,
         }),
     };
 }
@@ -244,6 +304,7 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
  * - only BGs that hold a converted layer keep their screen bits, and sprites theirs; Evermore's BG3 is on;
  * - a layer on neither screen as the room loads (`$004`: a script turns it on later) is put on the main
  *   screen: a blank picture shows nothing to edit;
+ * - split tiles' high halves (layer 1) are on the main screen;
  * - the solid backdrop fill (no layer 2 of its own) is on the main screen only, as is a sub-screen layer seen
  *   as it is (`asMain`, by role: role 1 is BG1, role 2 BG2);
  * - colour math stays when it mixes with a converted layer on the sub screen; with nothing converted left
@@ -251,14 +312,14 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
  *   leaves those effect layers out too, render.ts).
  */
 function displayOf(ppu: NonNullable<ReturnType<typeof terra.loadRoom>>['ppu'], layer: Record<Role, TerraLayer | null>, asMain: Role[],
-    math: number, fixedMath: boolean, solid: boolean, stats: Record<string, number>) {
+    math: number, fixedMath: boolean, solid: boolean, stats: Record<string, number>, split: boolean) {
     const bgs = (layer[1] ? 0x01 : 0) | (layer[2] ? 0x02 : 0);
     const hidden = bgs & ~ppu.main & ~ppu.sub;
     stats.hiddenLayersShown = (hidden & 1) + ((hidden >> 1) & 1);
     const ts = ppu.sub & (bgs | 0x10);
     const mixes = !fixedMath && !!(ts & 0x03);
     return {
-        tm: (ppu.main & (bgs | 0x10)) | hidden | asMain.reduce((m, r) => m | r, 0) | EVERMORE_BG3 | (solid ? 0x02 : 0), ts,
+        tm: (ppu.main & (bgs | 0x10)) | hidden | asMain.reduce((m, r) => m | r, 0) | EVERMORE_BG3 | (solid ? 0x02 : 0) | (split ? 0x01 : 0), ts,
         colorMath: mixes ? math & ~UNCONVERTED_MATH : 0, colorWindow: CGWSEL_SUB,
     };
 }
