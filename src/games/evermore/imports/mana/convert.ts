@@ -26,6 +26,8 @@ import type { Stats, Trace, Layer, Tile, PixelOptions } from './graphics';
 import type { Rom as ManaRom } from '../../../mana/decoder';
 
 type Box = { x1: number; y1: number; x2: number; y2: number; scriptId: number };
+/** `scriptId` of a return cell's step-on box: past Mana's 12-bit event numbers. */
+const RETURN_SCRIPT = 0x1000;
 
 
 /** Event cells as trigger boxes: runs along a row, merged with the identical run above. */
@@ -137,12 +139,21 @@ function convertManaMap(manaRom: ManaRom, id: number) {
     // Signposts and doors are run by B in Evermore (solid, as in Mana); every other event, also
     // one Mana runs when walked into (exits, caves, story), is a step-on trigger.
     const isB = (s: mana.StepEvent) => s.looks === 'signpost' || s.looks === 'door';
-    const stepAt = new Set(events.steps.filter((s) => !isB(s)).map((s) => s.y * map.w + s.x));
+    // The player moves by the collision of the layer the party walks on (mana.partyLayer);
+    // its return cells (a house's way out) are step-on triggers too, numbered RETURN_SCRIPT.
+    const walk = mana.partyLayer(manaRom, map);
+    const walkCol = mana.collisionOf(manaRom, map, walk).bytes;
+    const returns: mana.StepEvent[] = [];
+    for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) {
+        if (mana.returnsParty(walkCol[(y * map.w + x) * 4 + 1])) returns.push({ x, y, event: RETURN_SCRIPT, bump: false, looks: null });
+    }
+    const steps = [...events.steps.filter((s) => !isB(s)), ...returns];
+    const stepAt = new Set(steps.map((s) => s.y * map.w + s.x));
     const bAt = new Set(events.steps.filter(isB).map((s) => s.y * map.w + s.x));
-    // A cell's three words for layer-A metatile `a` and layer-B metatile `b`: the player
-    // moves by layer A's collision, so that is the cell's collision word.
+    // A cell's three words for layer-A metatile `a` and layer-B metatile `b`; the collision word
+    // is the walking layer's.
     const stamp = (x: number, y: number, a: number, b: number): number[] => {
-        const c = mana.metatileCollision(manaRom, map, 'A', a);
+        const c = mana.metatileCollision(manaRom, map, walk, walk === 'A' ? a : b);
         return [wordFor('A', a), wordFor('B', b), collisionWord(c[0], c[2], stepAt.has(y * map.w + x), c[1], bAt.has(y * map.w + x))];
     };
     const cells: number[] = new Array(map.w * map.h * 3);
@@ -196,11 +207,12 @@ function convertManaMap(manaRom: ManaRom, id: number) {
         animation: anim.channels,
         paletteCycles: cycles.records,
         families,
-        stepOn: triggerBoxes(events.steps.filter((s) => !isB(s))),
+        stepOn: triggerBoxes(steps),
         bTrigger: triggerBoxes(events.steps.filter(isB)),
         cut,
         objects,
         onEnter: events.onEnter,
+        walkLayer: walk,
         spawns: mana.mapObjects(manaRom, id).map((o) => ({ x: o.x, y: o.y, kind: o.kind })),
         stats: Object.assign(stats, { graphics: graphics.slots.length, stepCells: stepAt.size, bTriggerCells: bAt.size,
             cuttable: cut.length, objects: objects.length,
@@ -210,4 +222,4 @@ function convertManaMap(manaRom: ManaRom, id: number) {
     };
 }
 
-export { convertManaMap, collisionWord, encodeGraphic, triggerBoxes, slotChr };
+export { convertManaMap, collisionWord, encodeGraphic, triggerBoxes, slotChr, RETURN_SCRIPT };

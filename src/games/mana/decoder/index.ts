@@ -26,7 +26,7 @@ export type { PaletteRotation, PaletteRotations } from './palette-rotations';
 export { animateCells } from './anim-cells';
 export type { CellAnimation, AnimatedKind } from './anim-cells';
 export type { RenderOptions } from './render';
-export { collisionOf, metatileCollision, floorOf, diagonalOf, switchesLevel, specialOf } from './collision';
+export { collisionOf, metatileCollision, floorOf, diagonalOf, switchesLevel, specialOf, returnsParty, partyLayer } from './collision';
 export type { MapCollision, Floor } from './collision';
 export { mapEvents } from './events';
 export type { MapEvents, StepEvent } from './events';

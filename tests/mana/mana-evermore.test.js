@@ -30,7 +30,7 @@ test('Mana collision becomes Evermore collision words', () => {
     assert.strictEqual(bridge.collisionWord(0x03, 0, false), 0x2F);        // wall
     assert.strictEqual(bridge.collisionWord(0x01, 0, false), 0x10);        // level-1 floor -> plane 1
     assert.strictEqual(bridge.collisionWord(0x02, 0, true), 0x4020);       // level-2 floor, step-on
-    assert.strictEqual(bridge.collisionWord(0x00, 0, false), 0x2023);      // no level -> always walkable (the plane may change here), nibble 3: not stairs
+    assert.strictEqual(bridge.collisionWord(0x00, 0, false), 0x2024);      // no level -> always walkable (the plane may change here), nibble 4 (W): not stairs
     assert.strictEqual(bridge.collisionWord(0x05, 0, false), 0x60);        // keeps the level (bridge deck) -> plane-transparent
     assert.strictEqual(bridge.collisionWord(0x00, 0x22, false), 0x2021);   // stairs, going right climbs -> shear 1
     assert.strictEqual(bridge.collisionWord(0x02, 0x23, false), 0x2022);   // going right descends -> shear 2
@@ -145,14 +145,34 @@ test('signposts and doors become solid B-triggers, every other event a step-on t
     assert.ok(bridge.convertManaMap(som, 0x10).stepOn.some((t) => t.scriptId === 0x83f));
 });
 
+test('Potos village: its doors run the events after its empty list, as the game does, and are B-triggers', () => {
+    // Maps $64-$6C have empty lists at $48DE; the game reads on (tools/mana/check-events.js 66: 9 of 9).
+    const steps = mana.mapEvents(som, mana.loadMap(som, 0x66)).steps;
+    assert.deepStrictEqual(steps.map((s) => s.event), [0x230, 0x231, 0x231, 0x93f, 0x93f, 0x93f, 0xa25, 0xa25, 0x5a0]);
+    const room = bridge.convertManaMap(som, 0x66);
+    assert.deepStrictEqual(room.bTrigger.map((t) => [t.x1, t.y1]), [[36, 16], [16, 19], [27, 24], [13, 30], [18, 38]]);
+    assert.strictEqual(room.stepOn.length, 4);
+});
+
+test('Potos houses ($101): the party walks on layer B, its walls and return cells (the ways out)', () => {
+    const src = mana.loadMap(som, 0x101);
+    assert.strictEqual(mana.partyLayer(som, src), 'B');
+    assert.strictEqual(mana.partyLayer(som, mana.loadMap(som, 0x66)), 'A');
+    const room = bridge.convertManaMap(som, 0x101);
+    let walls = 0;
+    for (let i = 2; i < room.cells.length; i += 3) if ((room.cells[i] & 0x200F) === 0x0F) walls++;
+    assert.ok(walls > 2000, String(walls));
+    assert.deepStrictEqual(room.stepOn.filter((t) => t.scriptId === bridge.RETURN_SCRIPT).map((t) => [t.x1, t.y1, t.x2 - t.x1]), [[14, 18, 2], [30, 20, 2], [11, 39, 2]]);
+});
+
 test('only Mana\'s stairs carry the stairs mark (bit 13 with nibble 0, 1 or 2)', () => {
     // A floor of no level (doors, cave floors) is always walkable too, with nibble 3.
-    for (const id of [0x66, 0x80, 0x10]) {
-        const conv = bridge.convertManaMap(som, id), src = mana.loadMap(som, id);
+    for (const id of [0x66, 0x80, 0x10, 0x101]) {
+        const conv = bridge.convertManaMap(som, id), src = mana.loadMap(som, id), walk = mana.partyLayer(som, src);
         for (let y = 0; y < conv.heightTiles; y++) for (let x = 0; x < conv.widthTiles; x++) {
             const v = conv.cells[(y * conv.widthTiles + x) * 3 + 2];
             if (!(v & 0x2000) || (v & 0xF) > 2) continue;
-            const c2 = mana.metatileCollision(som, src, 'A', src.cell('A', x, y))[2];
+            const c2 = mana.metatileCollision(som, src, walk, src.cell(walk, x, y))[2];
             assert.strictEqual(c2 & 0xF0, 0x20, `map ${id.toString(16)} ${x},${y}: ${v.toString(16)} on c2 ${c2.toString(16)}`);
         }
     }

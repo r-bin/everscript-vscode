@@ -165,7 +165,7 @@ fill or DMA that RAM for another screen mode; they are not map collision.
 | c0 | 6-7 | no reader found | | — |
 | c1 | 0-2 | sprite priority from this cell on (0 = keep the last) | `$00:D6A0`, `$00:F6D6`; game | yes |
 | c1 | 3, 5 | never set in the ROM's maps; no reader found | | — |
-| c1 | 4 | return cell: entering it takes the party back to the saved return point; a wall for other characters | `$00:D688`, `$00:BBD1`, `$01:CCF5`, `$01:B9CD`; game | yes |
+| c1 | 4 | return cell: entering it takes the party back to the saved return point; a wall for other characters. A house's way out: on the layer the party walks on (map `$101`: only layer B has them, and layer B holds its walls; `partyLayer`) | `$00:D688`, `$00:BBD1`, `$01:CCF5`, `$01:B9CD`; game | yes |
 | c1 | 6 | the party may walk onto this special cell ("Special cells") | `$01:B9B3` | code |
 | c1 | 7 | special cell ("Special cells") | `$00:D05E` | yes |
 | c2 | `$1n`, low 4-7 | diagonal half wall: 4 bottom-left, 5 top-right, 6 top-left, 7 bottom-right | `$01:BE64`-`BEF4` | code |
@@ -432,11 +432,14 @@ The special-cell scan (below) rewrites layer A's special cells, row by row, to
 `(v - $4D) + (bit 2 ? 1 : 0)`. So with `b > 0` the plain metatiles `$C0-b..$BF` are step
 events too, wherever they are drawn (`$BF` runs event `$6D8` in maps `$11` and `$3E`).
 `$00:B630` returns while `$D0` is non-zero (it is after a forced map load). Header byte 3
-is 0 or 4 in 372 of the 408 maps. Some maps have fewer words than cells (map 0 has none):
-those cells read past the list and are left out by `mapEvents` (`src/games/mana/decoder/events.ts`).
+is 0 or 4 in 372 of the 408 maps. The game does not stop at the next map's pointer: a map
+with fewer words than cells runs the words that follow. Maps `$64`-`$6C` (Potos) all have an
+empty list at `$48DE` and their doors run map `$6D`'s words; `$101`'s cells run `$102`'s.
+`mapEvents` (`src/games/mana/decoder/events.ts`) reads on the same way.
 
 Checked in the game: `tools/mana/check-events.js` puts each cell's value under the first
-character and records the event `$01:E76D` runs — maps `$10`, `$11`, `$3E`, `$80`: 36 of 36.
+character and records the event `$01:E76D` runs — maps `$10`, `$11`, `$3E`, `$80`: 36 of 36;
+`$66`: 9 of 9 and `$101`: 2 of 2, both read past an empty list.
 
 ## Animation — run the game's own code
 

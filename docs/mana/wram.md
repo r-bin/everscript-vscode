@@ -47,6 +47,7 @@ Evermore or from other projects. Partial knowledge says so. Format and code:
 | `+$02`, `+$04` | x, y in pixels; a spawned object stands at cell * 16 + 4 | game, maps `$10` and `$81` |
 | `+$0B` | bit 7: on layer B (the cut probe uses `$7F:4000` / `$BC00`) | `$01:D2F3` |
 | `+$0B` | also bits 0-1 the level, flipped by c0 bit 3 cells | `$00:D864`; game (2 → `$82`) |
+| `+$0B` (`$7E:E00B`, the first character) | a forced map load (`$00:C481`) leaves it as it was: layer A after the opening in maps `$10`, `$16`, `$66`, `$80`, `$101`, `$104`; a door sets it | game (2026-11-14) |
 | `+$1C` | with `+$2C` set, a special cell blocks while `$D0` or `+$1C` is non-zero (and `$FF` is 0) | `$01:B9BE`-`B9C7` |
 | `+$2C` | 0: a special cell whose c1 bit 6 is clear blocks this party member; non-zero: see `+$1C` | `$01:B9AE` |
 | `+$45` | must be 0 for a step event to run | `$00:B63C` |

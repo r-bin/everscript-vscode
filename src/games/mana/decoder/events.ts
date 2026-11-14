@@ -45,10 +45,15 @@ export interface MapEvents {
     steps: StepEvent[];
 }
 
-function eventWords(rom: Rom, id: number): number[] {
-    const from = u16(rom, EVENT_POINTERS + id * 2), to = u16(rom, EVENT_POINTERS + id * 2 + 2);
+/**
+ * The map's event words, `count` of them from its pointer. The game does not stop at the next
+ * map's pointer: maps $64-$6C (Potos) have empty lists at $48DE and their doors run the words
+ * there (map $6D's list), $101's those of $102 (tools/mana/check-events.js: 9 of 9, 2 of 2).
+ */
+function eventWords(rom: Rom, id: number, count: number): number[] {
+    const from = u16(rom, EVENT_POINTERS + id * 2);
     const words: number[] = [];
-    for (let at = from; at + 1 < to && words.length < 256; at += 2) words.push(u16(rom, EVENT_BANK | at) & 0x0FFF);
+    for (let k = 0; k < count; k++) words.push(u16(rom, EVENT_BANK | ((from + k * 2) & 0xFFFF)) & 0x0FFF);
     return words;
 }
 
@@ -73,7 +78,7 @@ function markDoors(map: ManaMap, bytes: Uint8Array, steps: StepEvent[]) {
 export function mapEvents(rom: Rom, map: ManaMap): MapEvents {
     const b3 = readHeader(rom, map.id).bytes[3];
     const lead = b3 & 3, own = (b3 & 4) ? 1 : 0;
-    const words = eventWords(rom, map.id);
+    const words = eventWords(rom, map.id, own + lead + SLOTS);
     const col = collisionOf(rom, map);
     const steps: StepEvent[] = [];
     let slot = 0;
@@ -85,10 +90,9 @@ export function mapEvents(rom: Rom, map: ManaMap): MapEvents {
             if (specialOf(c1)) v = SPECIAL_BASE + (slot++ % SLOTS);
             if (v < SPECIAL_BASE - lead) continue;
             const event = words[v - (SPECIAL_BASE - lead) + own];
-            // A word past the list reads whatever follows it; such cells are left out.
-            if (event !== undefined) steps.push({ x, y, event, bump: !(c1 & 0x40), looks: c1 === 0x87 ? 'signpost' : c1 === 0x86 ? 'cave' : null });
+            steps.push({ x, y, event, bump: !(c1 & 0x40), looks: c1 === 0x87 ? 'signpost' : c1 === 0x86 ? 'cave' : null });
         }
     }
     markDoors(map, col.bytes, steps);
-    return { onEnter: own && words.length ? words[0] : null, steps };
+    return { onEnter: own ? words[0] : null, steps };
 }

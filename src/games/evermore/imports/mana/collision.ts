@@ -14,10 +14,11 @@ const SOLID = 0x0F, PLANE_1 = 0x10, PLANE_2 = 0x20, PLANE_TRANSPARENT = 0x40;
 /** Bit 13, always walkable: the low nibble is a drift instead of geometry (map_collision_mechanics.md §6). */
 const WALKABLE = 0x2000;
 /**
- * Nibble 3 under bit 13: no drift ($8FAE46, as nibble 0), but not the vertical-stairs mark the
- * editor and vanilla give nibble 0 (vanilla-stairs.ts).
+ * Nibble 4 under bit 13: no drift ($8FAE46, as nibble 0), but not the vertical-stairs mark the
+ * editor and vanilla give nibble 0 (vanilla-stairs.ts); the editor's Walkable (W), the one of
+ * 3-7 vanilla uses most.
  */
-const NO_DRIFT = 0x3;
+const NO_DRIFT = 0x4;
 /** Bit 12: a character on this cell's plane is drawn in front of everything (sprite_priority.md). */
 const IN_FRONT = 0x1000;
 /** Gate nibble 4: the split, marked sprite chunks in front, the rest behind (wading.md). */
@@ -33,7 +34,7 @@ const SHEAR: Record<number, number> = { 0x22: 0x1, 0x23: 0x2 };
  * - level 1 and 2 floors are planes 1 and 2, each solid from the other, as in Mana;
  * - a floor that keeps the level (c0 4-7, the bridge deck) is plane-transparent;
  * - a floor of no level (c0 0) and every stair and push cell are always walkable (bit 13): Evermore
- *   lets a walker change plane only from such a cell. The floor takes nibble 3 (no drift, not
+ *   lets a walker change plane only from such a cell. The floor takes nibble 4 (no drift, not
  *   stairs); stairs `$20`/`$21` nibble 0 (Evermore's vertical stairs), `$22`/`$23` the shears on
  *   every cell (Mana's slope is half Evermore's: the speed is not converted), push `$3n` the drift
  *   of its direction (Evermore's drift has one speed; Mana's 1-3 is lost);

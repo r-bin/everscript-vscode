@@ -9,7 +9,7 @@
 
 import * as mana from '../../../mana/decoder';
 import { readRomMapHeaderFrom } from '../../rom-readers';
-import { convertManaMap } from './convert';
+import { convertManaMap, RETURN_SCRIPT } from './convert';
 import { buildVirtualRom, roomHeader } from './virtual-rom';
 import * as ids from './ids';
 
@@ -68,7 +68,7 @@ function createManaRooms(deps: { soeRom(): Rom | null; manaRom(): Rom | null }) 
         const e = Number.isInteger(manaId) ? entry(manaId) : null;
         if (!e) return null;
         const { room, image } = e;
-        const label = (t: { scriptId: number }): string => 'Mana event ' + hex4(t.scriptId);
+        const label = (t: { scriptId: number }): string => (t.scriptId === RETURN_SCRIPT ? 'Mana return cell' : 'Mana event ' + hex4(t.scriptId));
         // `scriptId` keeps the tab from looking the number up among Evermore's scripts;
         // `what` is what the row says the trigger does.
         const row = (t: Entry['room']['stepOn'][number]) => ({ x1: t.x1, y1: t.y1, x2: t.x2, y2: t.y2, scriptId: t.scriptId, label: label(t), what: label(t) });
