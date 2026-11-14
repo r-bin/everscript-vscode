@@ -58,7 +58,7 @@ if (!SOE || !TERRA || !fs.existsSync(SOE) || !fs.existsSync(TERRA)) {
         assert.deepStrictEqual(d.start, { x: 31, y: 58 });     // where the game's exits into Crysta arrive
     });
 
-    test('Crysta: a ledge is a wall, a canopy\'s high half covers the Boy, the waterfall\'s colours turn', () => {
+    test('Crysta: a ledge is a wall, a canopy\'s high half and a roof ridge cover the Boy, only the waterfall\'s colours turn', () => {
         // Docs/terra/evermore-rooms.md: type 8 (a ledge crossed in a jump) is a wall; cell (19,54) of a canopy notch draws its
         // lower half with priority (Ark walks behind it): split onto layer 1 at priority 1; palette helper $06 rotates palette 7.
         const { convertTerraRoom } = require('../../dist/games/evermore/imports/terra');
@@ -68,6 +68,31 @@ if (!SOE || !TERRA || !fs.existsSync(SOE) || !fs.existsSync(TERRA)) {
         assert.ok(!(at(19, 54, 1) & 0x2000), 'layer 2 keeps the rest at priority 0');
         const slot = c.families.findIndex((f) => f.palette === 7) + 1;
         assert.deepStrictEqual(c.paletteCycles, [[(slot << 4) | 1, 7, 6]]);
+        // A roof ridge's high characters have transparent pixels (the backdrop shows): split too, so the backdrop
+        // fill stays behind the Boy (Ark is seen through them).
+        assert.ok(at(9, 4, 0) & 0x2000 && !(at(9, 4, 1) & 0x2000), 'the ridge is split');
+        // Every pixel in a cycling colour is one in Terranigma too: past 256 graphics, the pond's still tile was drawn
+        // as a solid river colour that blinked with the river.
+        const room = terra.loadRoom(terraRom, 0x0a), l0 = room.layers.find((l) => l.index === 0);
+        const chars = { vram: room.vram, base: room.ppu.bgs[terra.layerBg(l0) - 1].chars * 2, palette: room.palette };
+        const { rawTile } = require('../../dist/games/evermore/imports/terra/graphics');
+        const pixel = (word, x, y) => {
+            const g = c.graphics[maps.wordSlot(word)];
+            if (word & 0x4000) x = 15 - x;
+            if (word & 0x8000) y = 15 - y;
+            const o = ((y >> 3) * 2 + (x >> 3)) * 32 + (y & 7) * 2, m = 1 << (7 - (x & 7));
+            return (g[o] & m ? 1 : 0) | (g[o + 1] & m ? 2 : 0) | (g[o + 16] & m ? 4 : 0) | (g[o + 17] & m ? 8 : 0);
+        };
+        let blinking = 0;
+        for (let y = 0; y < c.heightTiles; y++) for (let x = 0; x < w; x++) {
+            const t = rawTile(chars, l0.metatiles, l0.cells[y * l0.w + x] & 0x1ff);
+            for (let i = 0; i < 256; i++) {
+                const top = pixel(at(x, y, 0), i & 15, i >> 4) ? at(x, y, 0) : at(x, y, 1), k = pixel(top, i & 15, i >> 4);
+                const cycles = ((top >> 10) & 7) === slot && k >= 1 && k <= 7;
+                if (cycles && !(t.pal[i] === 7 && t.px[i] >= 1 && t.px[i] <= 7)) blinking++;
+            }
+        }
+        assert.strictEqual(blinking, 0);
     });
 
     test('a chest becomes a solid B-trigger cell', () => {

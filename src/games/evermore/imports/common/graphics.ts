@@ -63,9 +63,12 @@ const HOLE = 3 * 31 * 31;
  * looks least different — summed colour distance with each slot's own colours (`colour(slot, index)`: BGR555, the
  * colours it is drawn in), times `weight[slot]` (the cells that show it) — so a graphic with a near twin goes before
  * a one-off (a sign, a door). A removed graphic is drawn as that twin. `keep`: slots never removed (the empty one).
+ * `moving(slot, index)`: the colour is in a palette cycle; another index in its place costs a hole, as equal as the two
+ * look in the first frame (a still pond drawn as a solid river colour flashes with the river).
  * Returns the new list and, for every old slot, where it is drawn now.
  */
-function fitGraphics(slots: Uint8Array[], weight: number[], colour: (slot: number, index: number) => number, keep: ReadonlySet<number>) {
+function fitGraphics(slots: Uint8Array[], weight: number[], colour: (slot: number, index: number) => number, keep: ReadonlySet<number>,
+    moving: (slot: number, index: number) => boolean = () => false) {
     const n = slots.length, remove = n - MAX_GRAPHICS;
     const ident = slots.map((_, s): Placed => ({ slot: s, h: 0, v: 0 }));
     if (remove <= 0) return { slots, remap: ident, removed: 0 };
@@ -83,7 +86,7 @@ function fitGraphics(slots: Uint8Array[], weight: number[], colour: (slot: numbe
                 for (let i = 0; i < 256 && d < cost; i++) {
                     if (a[i] === b[i]) continue;
                     const x = ca[i];
-                    if (!x || !b[i]) { d += HOLE; continue; }
+                    if (!x || !b[i] || moving(s, a[i]) || moving(s, b[i])) { d += HOLE; continue; }
                     const y = rgb(colour(s, b[i]));
                     d += (x[0] - y[0]) ** 2 + (x[1] - y[1]) ** 2 + (x[2] - y[2]) ** 2;
                 }

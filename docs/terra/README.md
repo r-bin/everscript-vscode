@@ -152,6 +152,12 @@ word +4: `$FFFF` they cannot enter (every type but 0, 1, 2, `$11`, `$16`), `$800
 bit 15 of `$048A` is set, else they can; bit 0 of the word sets sprite priority `$3000`. Which characters those are
 is not checked.
 
+Seen in the game (headless core, November 2026, Crysta `$00A`): Ark walks up from (40,4) beside the waterfall through the
+type-`$16` cell (40,3) into (40,1), the canopy above, all type 0, all characters low priority. At (40,2) his upper sprites carry OAM priority 3
+(the shadow `$7E:0A00`), his feet 2: he is drawn in front of the canopy. Behind a roof ridge (row 4 of the house at (7-15,4-8):
+type 0, high characters with transparent pixels) the ridge covers him below the shoulders; that he shows through its transparent pixels
+follows from BG priority (they are backdrop), not looked at pixel by pixel.
+
 ### 3.7 Exits
 
 Every frame the main loop runs `$8D:8797` (data bank `$81`): unless bit 4 of `$097C` is set, it walks the room's

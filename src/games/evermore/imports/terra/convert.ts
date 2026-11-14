@@ -134,7 +134,12 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
         }
         return r;
     };
-    const mixed = (t: Raw) => t.high > 0 && t.high < t.opaque;
+    // Layer 2's transparent pixels get the backdrop (below). A high tile's would cover the Boy where Terranigma
+    // shows him through it (Crysta's roof ridges: the backdrop is olive), so it is split too: unfilled on layer 1.
+    const bottomMain = !layer[2] || onMain(layer[2]) || asMain.includes(2);
+    const subB = !!layer[2] && !!(sub & 0x02);
+    const fill = bottomMain && (!subB || !(math & 0x22));
+    const mixed = (t: Raw) => t.high > 0 && (t.high < t.opaque || (fill && t.opaque < 256));
     /** The metatiles cell words `wa`, `wb` show on Evermore's layers 1 and 2 (-1: none), split ones from SPLIT. */
     const pairOf = (wa: number, wb: number): [number, number] => {
         const a = wa < 0 ? -1 : wa & 0x1FF, b = wb < 0 ? -1 : wb & 0x1FF;
@@ -171,9 +176,6 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
     // a priority-1 tile those no priority-0 layer-1 pixel lies over in any cell. When BG2 is on the sub screen
     // a filled pixel is also what BG1 blends with: then only pixels no layer-1 pixel covers anywhere, and
     // only when neither BG2 nor the backdrop takes part in colour math.
-    const bottomMain = !layer[2] || onMain(layer[2]) || asMain.includes(2);
-    const subB = !!layer[2] && !!(sub & 0x02);
-    const fill = bottomMain && (!subB || !(math & 0x22));
     const cgram = fill ? withBackdrop(palette, kept, allRaw, backdrop, anim.rotating) : palette;
     const tiles: Record<Role, Map<number, Tile>> = { 1: new Map(), 2: new Map() };
     for (const role of [1, 2] as Role[]) {
@@ -215,7 +217,9 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
         }
     }
     if (solid) drawnIn[solidFirst] = solid.palette;
-    const fit = fitGraphics(listed.slots, weight, (s, k) => cgram[(drawnIn[s] ?? kept[0]) * 16 + k], new Set([EMPTY_GRAPHIC, solidFirst]));
+    const paletteOf = (s: number) => drawnIn[s] ?? kept[0];
+    const fit = fitGraphics(listed.slots, weight, (s, k) => cgram[paletteOf(s) * 16 + k], new Set([EMPTY_GRAPHIC, solidFirst]),
+        (s, k) => anim.rotating.has(paletteOf(s) * 16 + k));
     stats.substitutedGraphics = fit.removed;
     const graphics = { slots: fit.slots };
     const moved = (g: { slot: number; h: number; v: number }) => { const m = fit.remap[g.slot]; return { slot: m.slot, h: g.h ^ m.h, v: g.v ^ m.v }; };
