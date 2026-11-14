@@ -50,11 +50,16 @@ if (!SOE || !TERRA || !fs.existsSync(SOE) || !fs.existsSync(TERRA)) {
         assert.ok(d.families.length >= 1 && d.families.length <= 7 && d.families.every((f) => /^t\d+$/.test(f.label) && f.tiles > 0));
         assert.strictEqual(d.conversion.exits, 9);
         assert.ok(d.content.triggers.stepOn.every((t) => /^Terranigma exit to \$/.test(t.label)));
+        // Seven exits lie on wall cells (closed doors): B-triggers, as step-on boxes the Boy could never fire them.
+        assert.strictEqual(d.conversion.doorExits, 7);
+        assert.ok(d.content.triggers.bTrigger.some((t) => t.x1 === 56 && t.y1 === 46 && /^Terranigma exit to \$01D \(door: B\)$/.test(t.label)));
+        assert.deepStrictEqual(d.content.triggers.stepOn.map((t) => [t.x1, t.y1]), [[32, 12], [0, 62]]);
         assert.strictEqual(d.conversion.mapChanges, 1);
         const src = service.resolveRoom(0x200a), room = maps.decodeRoom(src.rom, src.roomId);
         assert.strictEqual(room.objects.length, 1);
         const t = d.content.triggers.stepOn[0];
         assert.ok(room.collisionWords[t.y1][t.x1] & 0x4000, 'the exit cell has the step-on bit');
+        assert.strictEqual(room.collisionWords[46][56] & 0x800f, 0x800f, 'a door cell is a solid B-trigger cell');
         assert.deepStrictEqual(d.start, { x: 31, y: 58 });     // where the game's exits into Crysta arrive
     });
 
@@ -64,6 +69,9 @@ if (!SOE || !TERRA || !fs.existsSync(SOE) || !fs.existsSync(TERRA)) {
         const { convertTerraRoom } = require('../../dist/games/evermore/imports/terra');
         const c = convertTerraRoom(terraRom, 0x0a, () => 42471), w = c.widthTiles, at = (x, y, k) => c.cells[(y * w + x) * 3 + k];
         assert.strictEqual(at(39, 10, 2), 0x2f);
+        // The top of a diagonal ledge segment, a `/` with floor below and right (Ark walks up the slope into it): the
+        // upper left is solid, not the lower right.
+        assert.strictEqual(at(21, 12, 2) & 0x0f, 0x0a);
         assert.ok(at(19, 54, 0) & 0x2000, 'layer 1 holds the high half, at priority 1');
         assert.ok(!(at(19, 54, 1) & 0x2000), 'layer 2 keeps the rest at priority 0');
         const slot = c.families.findIndex((f) => f.palette === 7) + 1;
@@ -98,8 +106,8 @@ if (!SOE || !TERRA || !fs.existsSync(SOE) || !fs.existsSync(TERRA)) {
     test('a chest becomes a solid B-trigger cell', () => {
         const d = service.detail('terra-108');
         const [chest] = terra.roomChests(terraRom, 0x108);
-        assert.deepStrictEqual(d.content.triggers.bTrigger.map((t) => [t.x1, t.y1]), [[chest.x, chest.y]]);
-        assert.match(d.content.triggers.bTrigger[0].label, /^Terranigma chest/);
+        const boxes = d.content.triggers.bTrigger.filter((t) => /^Terranigma chest/.test(t.label));
+        assert.deepStrictEqual(boxes.map((t) => [t.x1, t.y1]), [[chest.x, chest.y]]);
         const src = service.resolveRoom(0x2108), room = maps.decodeRoom(src.rom, src.roomId);
         assert.strictEqual(room.collisionWords[chest.y][chest.x] & 0x800f, 0x800f);
     });

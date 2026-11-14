@@ -48,7 +48,7 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
     if (!room || !room.layers.length) return null;
     const { w, h } = terra.roomSize(room);
     const { main, sub, cgadsub, cgwsel } = room.ppu;
-    const stats: Stats & Record<string, number> = { recolouredTiles: 0, recolouredPixels: 0, mixedPriority: 0, droppedGraphics: 0 };
+    const stats: Stats & Record<string, number> = { recolouredTiles: 0, recolouredPixels: 0, mixedPriority: 0, droppedGraphics: 0, doorExits: 0 };
     const bgBit = (l: TerraLayer) => 1 << (terra.layerBg(l) - 1);
     const onMain = (l: TerraLayer) => !main || !!(main & bgBit(l));
     // As the picture: a layer smaller than the map only on the sub screen is a screen effect (light, haze),
@@ -236,16 +236,24 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
         return (g.v << 15) | (g.h << 14) | (t.priority << 13) | (slotOf(t.palette) << 10) | slotChr(g.slot);
     };
 
+    // An exit is a step-on box, unless every cell of it is a wall (a closed door, 186 exits): Evermore never runs a
+    // step-on trigger the Boy cannot stand on, so that one is a B-trigger, as for Mana's doors. Its box's
+    // `event` is the chests' count plus the exit's index (rooms.ts labels it).
     const events = new Map<number, number>();         // cell -> STEP_ON / INTERACT bits
-    const exits = terra.roomExits(rom, id), steps: { x: number; y: number; event: number }[] = [];
+    const exits = terra.roomExits(rom, id), steps: { x: number; y: number; event: number }[] = [], checks: typeof steps = [];
+    const chests = terra.roomChests(rom, id).filter((c) => c.x < w && c.y < h);
+    chests.forEach((c, k) => { checks.push({ x: c.x, y: c.y, event: k }); events.set(c.y * w + c.x, INTERACT); });
     exits.forEach((e, k) => {
-        for (let y = e.y; y < Math.min(h, e.y + e.h); y++) for (let x = e.x; x < Math.min(w, e.x + e.w); x++) {
-            steps.push({ x, y, event: k });
-            events.set(y * w + x, (events.get(y * w + x) ?? 0) | STEP_ON);
+        const at: number[] = [];
+        for (let y = e.y; y < Math.min(h, e.y + e.h); y++) for (let x = e.x; x < Math.min(w, e.x + e.w); x++) at.push(y * w + x);
+        const door = at.length > 0 && at.every((i) => !standable(i % w, (i / w) | 0));
+        if (door) stats.doorExits++;
+        for (const i of at) {
+            const cell = { x: i % w, y: (i / w) | 0 };
+            if (door) { checks.push({ ...cell, event: chests.length + k }); events.set(i, INTERACT); }
+            else { steps.push({ ...cell, event: k }); events.set(i, (events.get(i) ?? 0) | STEP_ON); }
         }
     });
-    const chests = terra.roomChests(rom, id).filter((c) => c.x < w && c.y < h), checks: typeof steps = [];
-    chests.forEach((c, k) => { checks.push({ x: c.x, y: c.y, event: k }); events.set(c.y * w + c.x, INTERACT); });
     const collisionAt = (i: number, type?: number) => {
         const e = events.get(i) ?? 0;
         if (e & INTERACT) return SOLID | PLANE_2 | INTERACT;

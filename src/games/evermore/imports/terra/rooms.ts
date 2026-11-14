@@ -115,7 +115,7 @@ function createTerraRooms(deps: { soeRom(): Rom | null; terraRom(): Rom | null }
         return defaultStart(room);
     }
 
-    /** What a step-on box (an exit) or B-trigger box (a chest) does, in words. */
+    /** What a step-on box (an exit) or B-trigger box (a chest, a closed door) does, in words. */
     function exitLabel(e: TerraConverted['exits'][number]): string {
         return 'Terranigma exit to ' + e.targets.map((t) => hex3(t.room) + (t.flag ? ' (flag ' + hex3(t.flag) + ')' : '')).join(' / ');
     }
@@ -135,7 +135,9 @@ function createTerraRooms(deps: { soeRom(): Rom | null; terraRom(): Rom | null }
             ({ x1: t.x1, y1: t.y1, x2: t.x2, y2: t.y2, scriptId: t.scriptId, label, what: label });
         // `scriptId` is the exit's or chest's index in the room's list: it names no Evermore script.
         const stepOn = room.stepOn.map((t) => row(exitLabel(room.exits[t.scriptId]))(t));
-        const bTrigger = room.bTrigger.map((t) => row(chestLabel(room.chests[t.scriptId]))(t));
+        // A B-trigger past the chests is a closed door: an exit on wall cells (convert.ts).
+        const bTrigger = room.bTrigger.map((t) => row(t.scriptId < room.chests.length ? chestLabel(room.chests[t.scriptId])
+            : exitLabel(room.exits[t.scriptId - room.chests.length]) + ' (door: B)')(t));
         const context = room.context.length ? ', drawn after room ' + room.context.map(hex3).join(', ') + ' (the parts it keeps from before)' : '';
         return {
             name: name || ('Terranigma room ' + hex3(roomId)),

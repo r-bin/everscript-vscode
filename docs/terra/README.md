@@ -160,6 +160,11 @@ follows from BG priority (they are backdrop), not looked at pixel by pixel.
 
 ### 3.7 Exits
 
+Not every exit is reached by walking: 234 of the 1304 exits lie on wall cells only (a house's closed door, Crysta's
+(56,46) a type `$0E` cell above floor). In the headless core (November 2026) walking Ark up to (56,46) from two cells
+below stops him at the cell's edge, and holding up or pressing A there for 120 frames does not take the exit
+(`$047C` stays 0). What opens such a door (a room character? the room's character list is not decoded) is open.
+
 Every frame the main loop runs `$8D:8797` (data bank `$81`): unless bit 4 of `$097C` is set, it walks the room's
 list at `$81:8000 + room × 2` — 12 bytes per exit up to an `$FF` byte: x, y, width, height in cells, a room word,
 two style bytes, the arrival x and y in pixels. The first exit whose cell rectangle holds the player's cell
