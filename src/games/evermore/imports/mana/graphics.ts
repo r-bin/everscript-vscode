@@ -4,24 +4,14 @@
 // layout, and the graphics list (deduplicated, mirrored copies sharing a slot). Pure.
 
 import * as mana from '../../../mana/decoder';
-import { MAX_GRAPHICS } from './ids';
-import { flipH, flipV, keyOf } from './pixels';
+import { EMPTY_GRAPHIC, encodeGraphic, slotChr, graphicTable } from '../common/graphics';
+import { dist, nearest } from '../common/colours';
 import type { ManaMap } from '../../../mana/decoder';
 
 type Stats = { recolouredTiles: number; recolouredPixels: number; mixedPriority: number; droppedGraphics: number; hiddenPixels?: number };
 type Trace = NonNullable<ReturnType<typeof mana.traceAnimation>>;
-type Placed = { slot: number; h: number; v: number };
+import type { Placed } from '../common/graphics';
 type Layer = 'A' | 'B';
-
-const EMPTY_GRAPHIC = 0;        // slot 0 is always the fully transparent graphic
-
-const rgb = (c: number): number[] => [c & 31, (c >> 5) & 31, (c >> 10) & 31];
-
-/** Squared distance between two BGR555 colours. */
-function dist(a: number, b: number): number {
-    const x = rgb(a), y = rgb(b);
-    return (x[0] - y[0]) ** 2 + (x[1] - y[1]) ** 2 + (x[2] - y[2]) ** 2;
-}
 
 /**
  * The palette a mixed metatile is drawn in: the one its other pixels move least to (nearest
@@ -39,22 +29,6 @@ function mainPalette(cgram: Uint16Array, px: Uint8Array, pal: Uint8Array, palCou
         if (err < best || (err === best && palCount[to] > palCount[main])) { best = err; main = to; }
     }
     return main;
-}
-
-/**
- * The colour of palette `to` (index 1..15) nearest to BGR555 `colour`, never one that rotates
- * (`rotating`, CGRAM indices): a redrawn pixel would blink with a cycle it is not part of.
- */
-function nearest(cgram: Uint16Array, colour: number, to: number, rotating: ReadonlySet<number>): number {
-    const want = rgb(colour);
-    let best = 1, bestD = Infinity;
-    for (let k = 1; k < 16; k++) {
-        if (rotating.has(to * 16 + k)) continue;
-        const have = rgb(cgram[to * 16 + k]);
-        const d = (want[0] - have[0]) ** 2 + (want[1] - have[1]) ** 2 + (want[2] - have[2]) ** 2;
-        if (d < bestD) { bestD = d; best = k; }
-    }
-    return best;
 }
 
 interface PixelOptions {
@@ -130,46 +104,7 @@ function metatilePixels(map: ManaMap, table: Uint16Array, n: number, stats: Stat
 }
 
 
-/** Evermore's 16x16 graphic layout: four 8x8 4bpp planar characters, TL TR BL BR. */
-function encodeGraphic(px: Uint8Array): Uint8Array {
-    const out = new Uint8Array(128);
-    for (let s = 0; s < 4; s++) {
-        const ox = (s & 1) * 8, oy = (s >> 1) * 8;
-        for (let row = 0; row < 8; row++) {
-            let b0 = 0, b1 = 0, b2 = 0, b3 = 0;
-            for (let col = 0; col < 8; col++) {
-                const c = px[(oy + row) * 16 + ox + col], m = 1 << (7 - col);
-                if (c & 1) b0 |= m; if (c & 2) b1 |= m; if (c & 4) b2 |= m; if (c & 8) b3 |= m;
-            }
-            out[s * 32 + row * 2] = b0; out[s * 32 + row * 2 + 1] = b1;
-            out[s * 32 + row * 2 + 16] = b2; out[s * 32 + row * 2 + 17] = b3;
-        }
-    }
-    return out;
-}
 
-/** Block 1 slot -> character index of a tilemap word (the inverse of `floor(chr/0x20)*8 + floor(chr%0x20/2)`). */
-const slotChr = (slot: number): number => Math.floor(slot / 8) * 0x20 + (slot % 8) * 2;
-
-/** The graphics list: deduplicated, mirrored copies sharing one slot. */
-function graphicTable(stats: Stats) {
-    const slots: Uint8Array[] = [new Uint8Array(256)], index = new Map<string, number>([[keyOf(slots[0]), 0]]);
-    return {
-        slots,
-        /** {slot, h, v} for a pixel block, adding it when it is new. */
-        place(px: Uint8Array): Placed {
-            const tries: [Uint8Array, number, number][] = [[px, 0, 0], [flipH(px), 1, 0], [flipV(px), 0, 1], [flipV(flipH(px)), 1, 1]];
-            for (const [p, h, v] of tries) {
-                const s = index.get(keyOf(p));
-                if (s !== undefined) return { slot: s, h, v };
-            }
-            if (slots.length >= MAX_GRAPHICS) { stats.droppedGraphics++; return { slot: EMPTY_GRAPHIC, h: 0, v: 0 }; }
-            index.set(keyOf(px), slots.length);
-            slots.push(px);
-            return { slot: slots.length - 1, h: 0, v: 0 };
-        },
-    };
-}
 type Tile = { m: ReturnType<typeof metatilePixels>; g: Placed };
 
 /** Per pixel: opaque, and priority set, for metatile `n` of a layer as Mana draws it at load. */

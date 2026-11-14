@@ -6,12 +6,13 @@ the translation table: [docs/mana/evermore-rooms.md](../../../../../docs/mana/ev
 
 ## Owns
 - Converting a Mana map into Evermore cells, graphics, families, collision and step-on
-  boxes (`convert.ts`, `collision.ts`, `graphics.ts`), its animation into palette cycles and Section 2 channels (`animation.ts`), the in-memory ROM image that holds it (`virtual-rom.ts`, `ids.ts`),
-  and serving converted rooms to the Rooms tab's host (`rooms.ts`).
+  boxes (`convert.ts`, `collision.ts`, `graphics.ts`), its animation into palette cycles and Section 2 channels (`animation.ts`),
+  and serving converted rooms to the Rooms tab's host (`rooms.ts`). The in-memory image and the rest of the
+  Evermore side are `../common/`, shared with `../terra`.
 
 ## Dependencies
-- `games/mana/decoder/`, Evermore `maps/` and `rom-readers.ts` only (`.depcruise.js` `mana-import-bridges-libraries`).
-  Only `extension.js` requires it (`no-evermore-to-mana`). No `vscode`: ROMs arrive as functions.
+- `games/mana/decoder/`, `../common/`, Evermore `maps/` and `rom-readers.ts` only (`.depcruise.js` `mana-import-bridges-libraries`).
+  Only `../index.ts` requires it (`no-evermore-to-mana`). No `vscode`: ROMs arrive as functions.
 
 ## Invariants
 - Each mapping is a stated translation between two documented facts (one per game),

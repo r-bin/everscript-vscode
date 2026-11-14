@@ -304,10 +304,10 @@ script by `memory/webview/index.ts` (`ROOMS_JS_FILES` fixes the order):
   (collapsed: what the script does; open: one summary line per instruction)
   and the Enter tab; owns `_triggerOpen` / `_triggerEnterView`
 - `rooms-imported.js` — rooms converted from another game (the host's
-  `src/games/evermore/imports/mana`: Secret of Mana maps), listed by `renderImportedTree` in their
-  own rail group under the vanilla rooms. A row (`data-import`) asks the host for its
+  `src/games/evermore/imports`: Secret of Mana maps, Terranigma rooms), listed by `renderImportedTree` in their
+  own rail groups under the vanilla rooms. A row (`data-import`) asks the host for its
   details (`requestImportedRoom` -> `importedRoom`), then opens like a ROM room: its id
-  is `0x1000 + map id`, which `roomVanillaIdNum` accepts for `room.imported`, and the
+  is `0x1000 + map id` (Terranigma `0x2000 + room id`), which `roomVanillaIdNum` accepts for `room.imported`, and the
   host answers its requests from the room's own ROM image. Families named by a label
   (`m12`) go through `familyName`. A change to an unlocked converted room shows the editor core's
   "not saved" notice (`importedNotSavedHtml`); a copy of one (Copy map) is a custom map whose donor

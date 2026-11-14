@@ -9,12 +9,14 @@ Rules: [AGENTS.md](AGENTS.md). Translation table and budgets:
 | `collision.ts` | Mana collision bytes as Evermore collision words: levels as planes, stairs as Evermore's stairs (only Mana's stair cells carry the mark), currents as drift, sprite priority as bit 12 / the split nibble, signposts and doors as solid B-trigger cells |
 | `graphics.ts` | metatiles as 16x16 graphics: palette choice and recolouring, priority (and the pixels Mana never shows), Mana's backdrop instead of black (which layer-B pixels it may fill), Evermore's graphic layout, the graphics list |
 | `animation.ts` | the map's animation: colour rotations as palette-cycle descriptors, moving metatiles as Section 2 channels (their frames, delays, slots past Block 1) |
-| `pixels.ts` | a 16x16 block's mirror images and key (shared by the two above) |
 | `pieces.ts` | event-flag pieces as Evermore objects: one per flag, a state per flag value that changes cells |
-| `virtual-rom.ts` | `buildVirtualRom(soeRom, room, salt)`: the Evermore ROM copied, with the room's graphics (Block 1, then animation frames), colours and blob (`maps` `buildOwnRoomBlob`: grid, cuttable layer, objects, palette cycles, Section 2) in slot `0x7E` |
-| `ids.ts` | where those go, and the graphic, family and tab-room ids that follow |
 | `rooms.ts` | `createManaRooms({soeRom, manaRom})`: the rail's groups, a room's details for the tab, which image answers a request for a converted room or family (4 rooms cached), and `playable(roomId)`: the room's parts, header and default start for Play in emulator (built by the rooms feature's `rendering/rom-export-own.ts`) |
 | `index.js` | facade |
+
+The Evermore side it shares with `../terra` is `../common/` ([../README.md](../README.md)): `virtual-rom.ts`
+(`buildVirtualRom(soeRom, room, salt)`: the Evermore ROM copied, with the room's graphics, colours and blob in slot
+`0x7E`), `ids.ts` (where those go; graphic, family and tab-room ids), the graphic layout and list, colours, pixels,
+trigger boxes, the default start.
 
 `convert.ts` (188 lines) is the orchestration: one map's cells, graphics, families, cuts and object
 frames share the tile table and word builder it owns. What a cell's bytes become went to

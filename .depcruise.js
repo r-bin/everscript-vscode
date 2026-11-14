@@ -178,8 +178,16 @@ module.exports = {
       name: 'no-evermore-to-mana',
       comment: 'Evermore domains never use Mana code; only Evermore\'s extension.js wires the bridge, and the root lists the games.',
       severity: 'error',
-      from: { path: '^src/', pathNot: '^src/games/mana/|^src/games/evermore/imports/mana/|^src/games/index\\.ts$|^src/extension\\.ts$|^src/games/evermore/extension\\.ts$' },
+      from: { path: '^src/', pathNot: '^src/games/mana/|^src/games/evermore/imports/(mana/|index\\.ts$)|^src/games/index\\.ts$|^src/extension\\.ts$|^src/games/evermore/extension\\.ts$' },
       to: { path: '^src/games/(mana/|evermore/imports/mana/)' },
+    },
+
+    {
+      name: 'no-evermore-to-terra',
+      comment: 'Evermore domains never use Terranigma code; only the imports facade (wired by extension.ts) reaches the Terranigma bridge.',
+      severity: 'error',
+      from: { path: '^src/games/evermore/', pathNot: '^src/games/evermore/imports/(terra/|index\\.ts$)' },
+      to: { path: '^src/games/(terra/|evermore/imports/terra/)' },
     },
 
     {
@@ -187,7 +195,23 @@ module.exports = {
       comment: 'The one converter between the games (games/evermore/imports/mana): the Mana decoder, the Evermore maps library and shared helpers, nothing else.',
       severity: 'error',
       from: { path: '^src/games/evermore/imports/mana/' },
-      to: { path: '^src/(?!games/evermore/imports/mana/|games/mana/decoder/|games/evermore/maps/|games/evermore/rom-readers\.ts$|shared/)' },
+      to: { path: '^src/(?!games/evermore/imports/(mana|common)/|games/mana/decoder/|games/evermore/maps/|games/evermore/rom-readers\.ts$|shared/)' },
+    },
+
+    {
+      name: 'terra-import-bridges-libraries',
+      comment: 'The Terranigma converter (games/evermore/imports/terra): the Terranigma decoder, the Evermore maps library and the bridges\' shared Evermore side, nothing else.',
+      severity: 'error',
+      from: { path: '^src/games/evermore/imports/terra/' },
+      to: { path: '^src/(?!games/evermore/imports/(terra|common)/|games/terra/decoder/|games/evermore/maps/|games/evermore/rom-readers\.ts$|shared/)' },
+    },
+
+    {
+      name: 'import-common-is-evermore-only',
+      comment: 'games/evermore/imports/common is the converted rooms\' Evermore side (image ids, virtual ROM, graphics, boxes): no other game\'s code.',
+      severity: 'error',
+      from: { path: '^src/games/evermore/imports/common/' },
+      to: { path: '^src/(?!games/evermore/imports/common/|games/evermore/maps/)' },
     },
 
     {

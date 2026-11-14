@@ -30,9 +30,9 @@ External resources:
    Keep them slim: `npm run check:ai-context` holds the limits.
 4. **Games stay apart.** Nothing known about one game (formats, engine, addresses, scripts) is
    assumed for another; only SNES hardware facts carry over (`src/platform/`). A game's code
-   lives in `src/games/<game>/` and never imports another game; the one bridge is
-   `src/games/evermore/imports/mana`, an explicit translation table
-   (`docs/mana/evermore-rooms.md`). Each game's facts go to its docs (`docs/mana/`,
+   lives in `src/games/<game>/` and never imports another game; the only bridges are
+   `src/games/evermore/imports/mana` and `.../imports/terra`, explicit translation tables
+   (`docs/mana/evermore-rooms.md`, `docs/terra/evermore-rooms.md`). Each game's facts go to its docs (`docs/mana/`,
    `docs/terra/`), checked against the running game (`supported-games` skill).
 5. **Shared working tree.** Several agents work in this checkout at once. Stage and commit
    only the files you changed (`git commit -- <paths>`, or `git add <paths>`); never

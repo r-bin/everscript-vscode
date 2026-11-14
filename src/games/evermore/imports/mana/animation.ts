@@ -6,8 +6,8 @@
 //   Mana metatile whose chars move -> Section 2 channel: its 16x16 states in one loop, a
 //                                    delay per state (frames); equal loops share a channel
 
-import { flipH, flipV, keyOf } from './pixels';
-import { MAX_GRAPHICS, MAX_IMAGE_GRAPHICS } from './ids';
+import { flipH, flipV, keyOf } from '../common/pixels';
+import { MAX_GRAPHICS, MAX_IMAGE_GRAPHICS } from '../common/ids';
 import type { ManaMap, AnimationTrace, PaletteRotation } from '../../../mana/decoder';
 
 type Layer = 'A' | 'B';

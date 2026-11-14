@@ -11,7 +11,7 @@ Related skills: `architecture`, `game-knowledge`, `map-format`, `memory-map`.
   CDL export, handed in through `configureEmulator({ game, cdlTools })` and `gameRegions`.
 
 ## Dependencies
-- `platform/`, `core/`; never another game except `imports/mana/` (rule `games-stay-apart`).
+- `platform/`, `core/`; never another game except `imports/mana/`, `imports/terra/` (rule `games-stay-apart`).
 - Libraries never import features; features never import each other (guide §3.1).
 
 ## Invariants

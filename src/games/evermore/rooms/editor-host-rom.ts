@@ -162,12 +162,12 @@ function launchInEmulator(ctx: EditorContext, ch: vscode.OutputChannel, rom: Uin
 }
 
 /**
- * A converted room (imports/mana) as a playable ROM: its own graphics and colours over the top
- * vanilla ids, in Brian's slot, entered at `msg.start` (rendering/rom-export-own.ts). Checked to
+ * A converted room (imports/: Secret of Mana, Terranigma) as a playable ROM: its own graphics and colours over
+ * the top vanilla ids, in Brian's slot, entered at `msg.start` (rendering/rom-export-own.ts). Checked to
  * draw what the editor draws before anything is played or saved.
  */
 function buildImportedRom(msg: EditorMessage, ctx: EditorContext, ch: vscode.OutputChannel) {
-    const parts = ctx.manaRooms ? ctx.manaRooms.playable(msg.roomId) : null;
+    const parts = ctx.importedRooms ? ctx.importedRooms.playable(msg.roomId) : null;
     if (!parts) throw new Error('this converted room is not available — it needs both ROMs (Everscript: Switch ROM)');
     const _ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     const romBuf = romReaders.loadRomBuffer(_ws, '');
@@ -178,7 +178,7 @@ function buildImportedRom(msg: EditorMessage, ctx: EditorContext, ch: vscode.Out
     const built = buildOwnRoomExportRom(romBuf, parts.room, start);
     verifyOwnRoomExport(built.rom, parts.shown);
     ch.appendLine(`  Compiled and checked: ${built.report.blobBytes} bytes at $${built.report.blobAddress.toString(16).toUpperCase()}; `
-        + `graphic ids ${built.report.graphicIds.join('-')} and families ${built.report.familyIds[0]}-${built.report.familyIds[built.report.familyIds.length - 1]} repointed; Mana's step events left out`);
+        + `graphic ids ${built.report.graphicIds.join('-')} and families ${built.report.familyIds[0]}-${built.report.familyIds[built.report.familyIds.length - 1]} repointed; the other game's step-on and B-trigger events left out`);
     return { ...built, draft: { widthTiles: parts.room.widthTiles, heightTiles: parts.room.heightTiles, stepOn: [], bTrigger: [] } };
 }
 
@@ -188,7 +188,7 @@ const IMPORTED_HANDLERS: Record<string, EditorHandler> = {
         const ch = ctx.exportChannel();
         ch.show(true);
         const mapName = msg.name || 'converted map';
-        ch.appendLine(`[${new Date().toLocaleTimeString()}] [Play in Emulator] Building "${mapName}" (converted Secret of Mana map)...`);
+        ch.appendLine(`[${new Date().toLocaleTimeString()}] [Play in Emulator] Building "${mapName}" (converted ${ctx.importedRooms?.game(msg.roomId) ?? 'room'} room)...`);
         try {
             const built = buildImportedRom(msg, ctx, ch);
             const { name, tempPath } = launchInEmulator(ctx, ch, built.rom, mapName, built.draft);
@@ -206,7 +206,7 @@ const IMPORTED_HANDLERS: Record<string, EditorHandler> = {
             const ch = ctx.exportChannel();
             ch.show(true);
             const mapName = msg.name || 'converted map';
-            ch.appendLine(`[${new Date().toLocaleTimeString()}] [Export ROM] Building "${mapName}" (converted Secret of Mana map)...`);
+            ch.appendLine(`[${new Date().toLocaleTimeString()}] [Export ROM] Building "${mapName}" (converted ${ctx.importedRooms?.game(msg.roomId) ?? 'room'} room)...`);
             try {
                 const built = buildImportedRom(msg, ctx, ch);
                 const _ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;

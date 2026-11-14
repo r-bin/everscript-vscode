@@ -69,6 +69,7 @@
   "tests/mana/mana-rom.test.js",
   "tests/mana/mana-evermore.test.js",
   "tests/terra/terra-rom.test.mts",
+  "tests/terra/terra-evermore.test.js",
   "tests/debugger/rom-history.test.js"
  ],
  "dom": [
@@ -89,7 +90,8 @@
   "tests/debugger/recorder.test.js",
   "tests/debugger/host-watch.test.js",
   "tests/debugger/click-walk.test.js",
-  "tests/debugger/ui-log.test.js"
+  "tests/debugger/ui-log.test.js",
+  "tests/terra/terra-editor-dom.test.js"
  ],
  "emulator": [
   "tests/memory/music-tab.test.js",
@@ -102,7 +104,8 @@
   "tests/debugger/cdl-values.test.js",
   "tests/debugger/tas-states.test.js",
   "tests/debugger/tas-verify.test.js",
-  "tests/mana/mana-play.test.js"
+  "tests/mana/mana-play.test.js",
+  "tests/terra/terra-play.test.js"
  ],
  "manual": {
   "tests/debugger/emulator-runtime.test.js": "stale: waits for ss-hook-btn / ss-hook-all-btn and the pause/resume buttons removed in v0.219.0"

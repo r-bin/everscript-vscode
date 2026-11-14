@@ -61,7 +61,7 @@ The Rooms tab draws every room from a ROM image, so a converted room gets one of
 | the room blob, Evermore's own encoder | `0x328000`, room slot `0x7E` | upper half of a bank, as every vanilla blob |
 
 Its length differs per map, so the render caches (keyed on a ROM fingerprint) never mix
-two rooms. In the tab the room's id is `0x1000 + map id` (`0x1080` = Potos Falls), so no
+two rooms. The image code is shared with Terranigma's rooms (`imports/common`; [docs/terra/evermore-rooms.md](../terra/evermore-rooms.md)). In the tab the room's id is `0x1000 + map id` (`0x1080` = Potos Falls), so no
 draft or request can mistake it for a ROM room; the host answers requests for it from
 its image.
 

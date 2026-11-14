@@ -3,6 +3,6 @@
 
 export * from './rooms';
 export * from './convert';
-export * from './virtual-rom';
+export * from '../common/virtual-rom';
 export { paletteCycles } from './animation';
-export * as ids from './ids';
+export * as ids from '../common/ids';

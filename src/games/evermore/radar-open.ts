@@ -142,7 +142,7 @@ async function openMemoryRadar(doc?: vscode.TextDocument, startLine?: number): P
             handleEditorMessage(msg, {
                 post: (m) => radar.panel?.webview.postMessage(m),
                 roomRom: radarRoomRom,
-                manaRooms: radar.manaRooms,
+                importedRooms: radar.importedRooms,
                 exportChannel: getMapExportChannel,
                 openEmulator: (rom) => require('../../core/emulator/panel').openEmulatorPanel(context, rom),
                 context,

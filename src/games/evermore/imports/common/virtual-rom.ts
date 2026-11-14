@@ -15,7 +15,7 @@ import type { OwnRoomInput } from '../../maps/own-room';
 /** Header bytes 11-12 are not known; they are copied from this vanilla room. */
 const HEADER_DONOR = 0x34;
 
-/** A Mana map converted to an Evermore room (convert.js): what these builders read of it. */
+/** A map converted to an Evermore room (imports/mana, imports/terra convert.ts): what these builders read of it. */
 interface ConvertedRoom {
     widthTiles: number; heightTiles: number;
     display: { tm: number; ts: number; colorMath: number; colorWindow: number };

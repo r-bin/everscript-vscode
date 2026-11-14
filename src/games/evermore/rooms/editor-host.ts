@@ -1,10 +1,10 @@
 // Ownership: the host side of the Rooms tab's map editor — every message the editor sends that
-// needs the ROM: room tiles and stamps, the room's variants, converted Mana rooms, families,
+// needs the ROM: room tiles and stamps, the room's variants, rooms converted from other games, families,
 // vanilla suggestions, deco, drafts, export / play ROM, PNG export. The radar (games/evermore/extension.js) routes them here
 // and hands in what it owns as `ctx`:
 //   post(message)       to the radar webview
 //   roomRom(roomId)     { romBuf, roomId } for a ROM room or a converted room's image, or { error }
-//   manaRooms           the Mana-room bridge (imports/mana), or null
+//   importedRooms       rooms converted from other games (imports/), or null
 //   exportChannel()     the "map export" output channel
 //   openEmulator(rom)   the emulator panel with a built ROM
 //   context             the extension context (global storage)
@@ -101,15 +101,15 @@ const HANDLERS: Record<string, EditorHandler> = {
         // A converted room's details, built when it is opened (rooms-imported.js).
         const reply = { command: 'importedRoom', id: msg.id };
         try {
-            const mana = ctx.manaRooms;
-            const room: (ReturnType<NonNullable<typeof mana>['detail']> & { familyPreviews?: unknown; startSprite?: unknown }) | null = mana ? mana.detail(msg.id, msg.name) : null;
+            const imports = ctx.importedRooms;
+            const room: (NonNullable<ReturnType<NonNullable<typeof imports>['detail']>> & { familyPreviews?: unknown; startSprite?: unknown }) | null = imports ? imports.detail(msg.id, msg.name) : null;
             // The family chips' art, drawn from the room's own image (two tiles each).
-            const src = room && mana!.resolveRoom(room.romRoomId);
+            const src = room && imports!.resolveRoom(room.romRoomId);
             if (room && src) room.familyPreviews = buildFamilyPreviews(src.rom, room.families.map((f) => f.id), 2);
             // The Boy for the start marker (map-editor-start.js): Play in emulator enters there.
             if (room && src) room.startSprite = boySprite(src.rom);
             ctx.post(room ? { ...reply, room }
-                : { ...reply, error: 'Needs both ROMs: an Evermore and a Secret of Mana ROM (Everscript: Switch ROM)' });
+                : { ...reply, error: 'Needs both ROMs: an Evermore ROM and the ' + (String(msg.id).startsWith('terra-') ? 'European Terranigma' : 'Secret of Mana') + ' ROM (Everscript: Switch ROM)' });
         } catch (err) {
             ctx.post({ ...reply, error: errorText(err) });
         }

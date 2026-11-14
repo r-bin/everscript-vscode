@@ -1,7 +1,7 @@
 ---
 name: supported-games
 description: Use whenever a prompt is about Secret of Mana or Terranigma, or touches more than one game: which file system to read, no facts across games, where each game's facts live.
-applyTo: "src/games/mana/**,src/games/terra/**,src/games/evermore/imports/mana/**,docs/mana/**,docs/terra/**,tools/mana/**,tools/terra/**,tests/mana/**,tests/terra/**"
+applyTo: "src/games/mana/**,src/games/terra/**,src/games/evermore/imports/**,docs/mana/**,docs/terra/**,tools/mana/**,tools/terra/**,tests/mana/**,tests/terra/**"
 ---
 
 # Supported games: Secret of Evermore, Secret of Mana, Terranigma
@@ -32,16 +32,17 @@ For a Mana question, start with `som://rom/index.md` or `docs/mana/README.md`; f
   them in the running game. Write the routine address next to the fact.
 - No code, tables or names from other projects (randomizers, viewers), for either game.
 
-The one place both games meet is `src/games/evermore/imports/mana`: an explicit translation table
-(`docs/mana/evermore-rooms.md`) in which each row pairs a documented Mana fact with a
+The only places games meet are the bridges `src/games/evermore/imports/mana` and `.../imports/terra`
+(their shared Evermore side: `imports/common`): explicit translation tables (`docs/mana/evermore-rooms.md`,
+`docs/terra/evermore-rooms.md`) in which each row pairs a documented fact of the other game with a
 documented Evermore fact. Adding a conversion means adding a row there, with both sides
 already documented on their own side. It is a translation, never evidence: what Evermore
-does with a converted room says nothing about Mana.
+does with a converted room says nothing about Mana or Terranigma.
 
 Dependency rules (`.depcruise.js`): `src/games/mana/decoder` imports nothing in `src/`;
 `src/games/mana/resources` only `src/games/mana/decoder`; `src/games/mana/maps` only `som://`;
-`src/games/evermore/imports/mana` only `src/games/mana/decoder`, `src/games/evermore/maps`, `src/games/evermore/rom-readers.ts`; Evermore domains never
-import any of them — only `extension.js` wires them in.
+`src/games/evermore/imports/mana` (`/terra`) only its game's decoder, `imports/common`, `src/games/evermore/maps`, `src/games/evermore/rom-readers.ts`;
+Evermore domains never import any of them — only `extension.js` wires them in, through `imports/index.ts`.
 
 ## 3. Use the plugin's features for every game
 
@@ -51,7 +52,8 @@ game supports it, not through a second tool:
 - **Rooms tab** — Mana maps are listed under the vanilla rooms ("Secret of Mana") and open
   in the same editor: tiles and families (`m<n>`), collision, step-on triggers
   (`Mana event NNN`), cuttable cells, event-flag pieces as objects, character objects as
-  spawn markers. The webview stays game-neutral: converted rooms arrive as data
+  spawn markers. Terranigma rooms likewise under "Terranigma" (ids from `0x2000`, families `t<n>`): exits as
+  step-on, chests as B-triggers, map changes as objects. The webview stays game-neutral: converted rooms arrive as data
   (`rooms-imported.js`), with ids from `0x1000` and family labels.
 - **Mana Maps panel** (Open Memory Radar while a Mana ROM is selected with Switch ROM) — the maps as the game draws them, with
   collision, animation, special cells and objects, and a map editor (Edit button): paint

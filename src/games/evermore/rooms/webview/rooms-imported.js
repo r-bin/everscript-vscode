@@ -1,5 +1,5 @@
 // TODO port to TS (docs/todo/port-to-ts.md)
-// Ownership: rooms converted from another game (the host's src/games/evermore/imports/mana) —
+// Ownership: rooms converted from another game (the host's src/games/evermore/imports: Secret of Mana, Terranigma) —
 // opening one from the rail, and the family labels they bring.
 //
 // A converted room is an ordinary ROM room to the rest of the tab: the host answers
@@ -10,7 +10,7 @@
 //
 // Owns: _importedRooms, _importedWaiting, _importedFamilies, _importedPreviews.
 
-/** Details already received, by rail id (`som-80`). */
+/** Details already received, by rail id (`som-80`, `terra-a`). */
 var _importedRooms = {};
 /** The rail id whose details were asked for last; a late answer for another is dropped. */
 var _importedWaiting = null;
@@ -71,5 +71,7 @@ function familyName(id) {
 function importedNotSavedHtml() {
   var d = editDraft();
   if (!d || d.customKey || !(d.roomId > 0x7e) || !d.undo || !d.undo.length) return '';
-  return editNotSavedHtml('converted Secret of Mana room').replace('class="ed-notsaved"', 'class="ed-notsaved rg-notsaved"');
+  var from = 'Secret of Mana';
+  for (var k in _importedRooms) if (_importedRooms[k].romRoomId === d.roomId && _importedRooms[k].importedFrom) from = _importedRooms[k].importedFrom;
+  return editNotSavedHtml('converted ' + from + ' room').replace('class="ed-notsaved"', 'class="ed-notsaved rg-notsaved"');
 }

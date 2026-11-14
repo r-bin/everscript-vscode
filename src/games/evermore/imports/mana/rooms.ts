@@ -10,8 +10,9 @@
 import * as mana from '../../../mana/decoder';
 import { readRomMapHeaderFrom } from '../../rom-readers';
 import { convertManaMap, RETURN_SCRIPT } from './convert';
-import { buildVirtualRom, roomHeader } from './virtual-rom';
-import * as ids from './ids';
+import { buildVirtualRom, roomHeader } from '../common/virtual-rom';
+import { defaultStart } from '../common/start';
+import * as ids from '../common/ids';
 
 type Rom = Uint8Array;
 type Entry = { soe: Rom; manaRom: Rom; room: NonNullable<ReturnType<typeof convertManaMap>>; image: ReturnType<typeof buildVirtualRom> };
@@ -102,27 +103,6 @@ function createManaRooms(deps: { soeRom(): Rom | null; manaRom(): Rom | null }) 
                 trigOffset: { offX: 0, offY: 0 },
             },
         };
-    }
-
-    /**
-     * Where the Boy starts by default: the cell nearest the middle that is plain floor with plain
-     * floor around it (geometry 0 and no stair or current, on the cell and its eight neighbours).
-     */
-    function defaultStart(room: Entry['room']) {
-        const w = room.widthTiles, h = room.heightTiles;
-        // Plain floor: geometry 0 and not always-walkable (bit 13: a stair or a current, whose low nibble is a direction).
-        const open = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && !(room.cells[(y * w + x) * 3 + 2] & 0x200F);
-        const roomy = (x: number, y: number) => [-1, 0, 1].every((dy) => [-1, 0, 1].every((dx) => open(x + dx, y + dy)));
-        const cx = (w - 1) / 2, cy = (h - 1) / 2;
-        let best: { x: number; y: number } | null = null, bestD = Infinity;
-        for (const pass of [roomy, open]) {
-            for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-                const d = (x - cx) ** 2 + (y - cy) ** 2;
-                if (d < bestD && pass(x, y)) { bestD = d; best = { x, y }; }
-            }
-            if (best) return best;
-        }
-        return { x: Math.floor(w / 2), y: Math.floor(h / 2) };
     }
 
     /**
