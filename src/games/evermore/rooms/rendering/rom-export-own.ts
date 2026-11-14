@@ -10,8 +10,8 @@
 // moved to its graphics in bank $F0, their colours replaced. A test ROM shows no other room, so
 // the graphics and families those ids drew are not missed.
 //
-// Mana's step events are left out: their numbers are Mana's, and as Evermore script ids they
-// would run whatever Evermore keeps there. Everything else is the room as the editor shows it,
+// Mana's events are left out (step-on and B-trigger boxes, bits 14 and 15): their numbers are
+// Mana's, and as Evermore script ids they would run whatever Evermore keeps there. Everything else is the room as the editor shows it,
 // and the result is decoded and drawn again: it must give the editor's own picture.
 
 import * as maps from '../../maps';
@@ -24,7 +24,7 @@ const FAMILY_COUNT = 365;                       // asset_9cc322: 365 families
 const GRAPHIC_DATA = 0x300000;                  // $F0:0000: 129 bytes each (count byte $3F, 128 raw)
 const GRAPHIC_BYTES = 129;
 const BLOB_MAX = 0x8000;                        // one bank half
-const STEP_ON = 0x4000;
+const STEP_ON = 0x4000, INTERACT = 0x8000;
 
 /** What this export needs of a room: its own parts, as the converter makes them (imports/mana). */
 interface OwnRoom {
@@ -52,8 +52,8 @@ function graphicEnd(rom: Uint8Array): number {
     throw new Error('no end to the graphic pointer table');
 }
 
-/** `[x, y, l1, l2, cw]` / three words a cell: the collision word without the step-on bit. */
-const noStep = (w: number) => w & ~STEP_ON & 0xffff;
+/** `[x, y, l1, l2, cw]` / three words a cell: the collision word without the event bits. */
+const noEvents = (w: number) => w & ~(STEP_ON | INTERACT) & 0xffff;
 
 /**
  * Build the ROM. `start` is the Boy's cell (else the middle). Returns `{ rom, report }`; throws
@@ -94,8 +94,8 @@ function buildOwnRoomExportRom(vanilla: ArrayLike<number>, room: OwnRoom, start:
         widthTiles: room.widthTiles, heightTiles: room.heightTiles, header: room.header,
         graphics: room.graphics.map((_, i) => firstId + i),
         families: famIds,
-        cells: room.cells.map((w, i) => (i % 3 === 2 ? noStep(w) : w)),
-        cut: (room.cut || []).map((c) => [c[0], c[1], c[2], c[3], noStep(c[4])]),
+        cells: room.cells.map((w, i) => (i % 3 === 2 ? noEvents(w) : w)),
+        cut: (room.cut || []).map((c) => [c[0], c[1], c[2], c[3], noEvents(c[4])]),
         objects: room.objects,
         paletteCycles: room.paletteCycles,
         animation: (room.animation || []).map((c) => ({ frames: c.frames.map((f) => firstId + nBlock1 + f), delays: c.delays })),
@@ -128,7 +128,7 @@ function verifyOwnRoomExport(rom: Uint8Array, shown: { rom: Uint8Array; roomId: 
     for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
             if (got.layer1VramWords[y][x] !== want.layer1VramWords[y][x] || got.layer2VramWords[y][x] !== want.layer2VramWords[y][x]
-                || got.collisionWords[y][x] !== noStep(want.collisionWords[y][x])) {
+                || got.collisionWords[y][x] !== noEvents(want.collisionWords[y][x])) {
                 throw new Error(`export check: cell (${x},${y}) decodes differently from the editor's room`);
             }
         }

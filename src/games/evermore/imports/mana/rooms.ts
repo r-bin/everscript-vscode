@@ -71,7 +71,8 @@ function createManaRooms(deps: { soeRom(): Rom | null; manaRom(): Rom | null }) 
         const label = (t: { scriptId: number }): string => 'Mana event ' + hex4(t.scriptId);
         // `scriptId` keeps the tab from looking the number up among Evermore's scripts;
         // `what` is what the row says the trigger does.
-        const stepOn = room.stepOn.map((t) => ({ x1: t.x1, y1: t.y1, x2: t.x2, y2: t.y2, scriptId: t.scriptId, label: label(t), what: label(t) }));
+        const row = (t: Entry['room']['stepOn'][number]) => ({ x1: t.x1, y1: t.y1, x2: t.x2, y2: t.y2, scriptId: t.scriptId, label: label(t), what: label(t) });
+        const stepOn = room.stepOn.map(row), bTrigger = room.bTrigger.map(row);
         return {
             name: name || ('Secret of Mana ' + manaId.toString(16)),
             vanillaId: 'som ' + manaId.toString(16),
@@ -93,8 +94,8 @@ function createManaRooms(deps: { soeRom(): Rom | null; manaRom(): Rom | null }) 
                 entrances: [], objects: [], transitions: [],
                 // Mana's map objects, as the tab's spawn markers (8-pixel units).
                 enemies: room.spawns.map((o) => ({ x: o.x * 2, y: o.y * 2, type: 'Mana object ' + hex4(o.kind), dynamic: false })),
-                triggerNames: { stepOn: stepOn.map((t) => t.label), bTrigger: [] },
-                triggers: { enter: null, stepOn, bTrigger: [], meta: null },
+                triggerNames: { stepOn: stepOn.map((t) => t.label), bTrigger: bTrigger.map((t) => t.label) },
+                triggers: { enter: null, stepOn, bTrigger, meta: null },
                 roomError: null,
                 mapId: ids.IMPORTED_ROOM_BASE + manaId,
                 romHeader: readRomMapHeaderFrom(image.rom, image.roomId),

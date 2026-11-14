@@ -97,7 +97,7 @@ test('the rail lists the Mana areas, one row per picture', () => {
     assert.strictEqual(groups.reduce((n, g) => n + g.rooms.length, 0) > 200, true);
 });
 
-test('Potos Falls opens as room 0x1080 with families m.. and its three step-on events', () => {
+test('Potos Falls opens as room 0x1080 with families m.., two step-on events and a B-trigger', () => {
     const d = service.detail('som-80', 'Potos Falls 1');
     assert.strictEqual(d.romRoomId, 0x1080);
     assert.strictEqual(d.imported, 'mana');
@@ -105,18 +105,22 @@ test('Potos Falls opens as room 0x1080 with families m.. and its three step-on e
     assert.ok(d.families.every(f => /^m\d+$/.test(f.label) && f.tiles > 0), 'every family draws something');
     assert.strictEqual(d.content.enemies.length, mana.mapObjects(som, 0x80).length);
     assert.deepStrictEqual(d.content.triggers.stepOn.map(t => [t.x1, t.y1, t.x2, t.y2, t.label]), [
-        [47, 50, 48, 52, 'Mana event 847'], [40, 54, 41, 55, 'Mana event 104'], [26, 59, 27, 60, 'Mana event 102']]);
+        [40, 54, 41, 55, 'Mana event 104'], [26, 59, 27, 60, 'Mana event 102']]);
+    // The sword in the stone: Mana runs it when walked into (c1 bit 6 clear), so it is solid and B runs it.
+    assert.deepStrictEqual(d.content.triggers.bTrigger.map(t => [t.x1, t.y1, t.x2, t.y2, t.label]), [[47, 50, 48, 52, 'Mana event 847']]);
     assert.strictEqual(d.content.romHeader.mapW, 56);
     assert.strictEqual(d.content.romHeader.mapH, 82);
 });
 
-test('the converted room is real Evermore data: it decodes, with the step-on bit on its event cells', () => {
+test('the converted room is real Evermore data: it decodes, with the step-on bit or a solid B-trigger cell on its events', () => {
     const src = service.resolveRoom(0x1080);
     const room = maps.decodeRoom(src.rom, src.roomId);
     assert.strictEqual(room.header.widthTiles, 56);
-    assert.strictEqual(room.triggers.stepOn.length, 3);
-    assert.ok(room.collisionWords[50][47] & 0x4000);
-    assert.ok(!(room.collisionWords[50][46] & 0x4000));
+    assert.strictEqual(room.triggers.stepOn.length, 2);
+    assert.strictEqual(room.triggers.bTrigger.length, 1);
+    assert.ok(room.collisionWords[54][40] & 0x4000);
+    assert.strictEqual(room.collisionWords[50][47] & 0xC00F, 0x800F);    // solid, B, no step-on
+    assert.ok(!(room.collisionWords[50][46] & 0xC000));
     assert.ok(room.tileFamilies.every(f => bridge.ids.isImportedFamily(f)));
     assert.strictEqual(service.resolveRoom(0x34), null);
 });
@@ -130,6 +134,20 @@ test('the Rooms tab draws it, lists its stamps and its families\' tiles', () => 
     const fam = service.detail('som-80').families[0].id;
     const conv = service.resolveFamily(fam);
     assert.ok(rooms.buildFamilySheet(conv.rom, fam, conv.roomId).count > 0);
+});
+
+test('where Mana shows its backdrop through the bushes, Evermore shows it too (not black)', () => {
+    // Maps whose sub screen holds BG2 (map $10's bushes): the fill once stopped there entirely.
+    // What stays is a few pixels where one bush graphic lies under layer A in one cell, not in another.
+    for (const [id, most] of [[0x10, 100], [0x27, 0], [0x17, 3500]]) {
+        const room = bridge.convertManaMap(som, id), image = bridge.buildVirtualRom(soe, room, id + 1);
+        const ev = maps.renderRoomComposite(image.rom, maps.decodeRoom(image.rom, image.roomId)), mi = mana.renderMap(mana.loadMap(som, id));
+        let black = 0;
+        for (let i = 0; i < ev.width * ev.height * 4; i += 4) {
+            if (ev.data[i] < 8 && ev.data[i + 1] < 8 && ev.data[i + 2] < 8 && (mi.rgba[i] >= 8 || mi.rgba[i + 1] >= 8 || mi.rgba[i + 2] >= 8)) black++;
+        }
+        assert.ok(black <= most, `map ${id.toString(16)}: ${black} black pixels Mana draws in colour`);
+    }
 });
 
 test('Evermore\'s render of converted rooms agrees with the Mana render', () => {

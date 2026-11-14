@@ -29,6 +29,7 @@ interface ConvertedRoom {
     cells: number[]; cut?: number[][];
     objects: (NonNullable<OwnRoomInput['objects']>[number] & { w: number; h: number; flag: number })[];
     stepOn?: OwnRoomInput['stepOn'];
+    bTrigger?: OwnRoomInput['bTrigger'];
     stats: { droppedObjects?: { flag: number; w: number; h: number }[]; [counter: string]: unknown };
 }
 
@@ -50,7 +51,7 @@ function buildRoomBlob(soeRom: Uint8Array, room: ConvertedRoom) {
         header: header(soeRom, room),
         graphics: room.graphics.map((_, i) => ids.GRAPHIC_BASE + i),
         families: room.families.map((f) => f.id),
-        cells: room.cells, cut: room.cut, objects: room.objects, stepOn: room.stepOn,
+        cells: room.cells, cut: room.cut, objects: room.objects, stepOn: room.stepOn, bTrigger: room.bTrigger,
         paletteCycles: room.paletteCycles,
         animation: (room.animation || []).map((c) => ({
             frames: c.frames.map((f) => ids.GRAPHIC_BASE + room.graphics.length + f), delays: c.delays,

@@ -21,14 +21,14 @@ import { FAMILY_BASE } from './ids';
 import { flagObjects } from './pieces';
 import { paletteCycles, animatedMetatiles, animateTiles } from './animation';
 import { collisionWord, shapeStairs } from './collision';
-import { EMPTY_GRAPHIC, metatilePixels, encodeGraphic, slotChr, graphicTable, hiddenUnder, withBackdrop, backdropTile } from './graphics';
+import { EMPTY_GRAPHIC, metatilePixels, encodeGraphic, slotChr, graphicTable, hiddenUnder, withBackdrop, backdropOpen, opaqueOver, backdropTile } from './graphics';
 import type { Stats, Trace, Layer, Tile, PixelOptions } from './graphics';
 import type { Rom as ManaRom } from '../../../mana/decoder';
 
 type Box = { x1: number; y1: number; x2: number; y2: number; scriptId: number };
 
 
-/** Step-event cells as boxes: runs along a row, merged with the identical run above. */
+/** Event cells as trigger boxes: runs along a row, merged with the identical run above. */
 function triggerBoxes(steps: { x: number; y: number; event: number }[]): Box[] {
     const runs: Box[] = [];
     const sorted = steps.slice().sort((a, b) => a.y - b.y || a.x - b.x);
@@ -68,11 +68,16 @@ function convertManaMap(manaRom: ManaRom, id: number) {
     // families, packed into slots 1..k in palette order (a word names its slot).
     const tiles: Record<Layer, Map<number, Tile>> = { A: new Map(), B: new Map() };
     const hidden = hiddenUnder(map);
-    // The fill replaces the backdrop on the main screen only when BG2 is not on the sub screen:
-    // there it would become what BG1 is blended with (map $10: TS $02, BG1 half-added).
-    const fillBackdrop = !(map.display.sub & 0x02);
+    // Mana's backdrop is filled into layer B's transparent pixels. When BG2 is on the sub screen a
+    // filled pixel is also what BG1 blends with (map $10: TS $02, BG1 half-added), so there only
+    // pixels no layer-A pixel lies over are filled, and only when neither BG2 nor the backdrop
+    // takes part in colour math (then the main screen shows both unblended, the same colour).
+    const subBG2 = !!(map.display.sub & 0x02);
+    const fillBackdrop = !subBG2 || !(map.display.math & 0x22);
+    let open = new Map<number, Uint8Array>();
     const pixelOpts = (layer: Layer, n: number): PixelOptions =>
-        (layer === 'A' ? { hide: hidden.get(n) || null } : fillBackdrop ? { backdrop: map.display.backdrop } : {});
+        (layer === 'A' ? { hide: hidden.get(n) || null }
+            : fillBackdrop ? { backdrop: map.display.backdrop, open: open.get(n), fillLow: !subBG2 } : {});
     const tileOf = (layer: Layer, n: number): Tile | null => {
         if (n < 0 || n >= 192) return null;
         let t = tiles[layer].get(n);
@@ -87,13 +92,29 @@ function convertManaMap(manaRom: ManaRom, id: number) {
     // tiles the map can show too.
     const cuts = mana.cuttableCells(manaRom, map);
     const flagged = flagObjects(manaRom, map);
-    for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) { tileOf('A', map.cell('A', x, y)); tileOf('B', map.cell('B', x, y)); }
-    for (const c of cuts) tileOf(c.layer, c.to);
-    for (const o of flagged) for (const f of o.frames) for (const v of Object.values(f)) { tileOf('A', v.A); tileOf('B', v.B); }
+    const pairs: Array<[number, number]> = [];                      // every (A, B) a cell can show
+    for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) pairs.push([map.cell('A', x, y), map.cell('B', x, y)]);
+    for (const c of cuts) pairs.push([c.layer === 'A' ? c.to : map.cell('A', c.x, c.y), c.layer === 'B' ? c.to : map.cell('B', c.x, c.y)]);
+    for (const o of flagged) for (const f of o.frames) for (const v of Object.values(f)) pairs.push([v.A, v.B]);
+    // Layer A first: where its low-priority pixels lie decides what a high-priority layer-B tile may fill.
+    for (const [a] of pairs) tileOf('A', a);
+    // What a layer-A tile covers: its low-priority pixels, a moving one's at any moment of the
+    // trace (the fill must not cover them). When BG2 is on the sub screen: all its pixels, a moving
+    // one's at every moment (a pixel the backdrop ever shows through is filled; while a grass blade
+    // is over it the blade blends with that colour instead of Mana's fixed colour).
+    const scratch: Stats = { recolouredTiles: 0, recolouredPixels: 0, mixedPriority: 0, droppedGraphics: 0 };
+    const cover = (a: number): Uint8Array | null => {
+        const t = tiles.A.get(a);
+        if (!t || t.m.empty || (t.m.priority && !subBG2)) return null;
+        if (t.g.slot >= 0 || !trace) return t.m.px;
+        return opaqueOver(trace, a, map.tableA, subBG2, (vram) => metatilePixels(map, map.tableA, a, scratch, rotating, { ...pixelOpts('A', a), vram }).px);
+    };
+    const covers = new Map<number, Uint8Array | null>();
+    if (fillBackdrop) open = backdropOpen(pairs, (a) => { if (!covers.has(a)) covers.set(a, cover(a)); return covers.get(a)!; });
+    for (const [, b] of pairs) tileOf('B', b);
     // Where layer B shows nothing, Mana shows its backdrop: one solid graphic for it, placed
     // before the animation takes the slots after Block 1.
-    const backdrop = fillBackdrop ? backdropTile(map, tiles, rotating, graphics) : null;
-    const scratch: Stats = { recolouredTiles: 0, recolouredPixels: 0, mixedPriority: 0, droppedGraphics: 0 };
+    const backdrop = fillBackdrop && !subBG2 ? backdropTile(map, tiles, rotating, graphics) : null;
     const anim = animateTiles(map, trace, tiles, graphics, (layer, n, vram, palette) =>
         metatilePixels(map, layer === 'A' ? map.tableA : map.tableB, n, scratch, rotating, { ...pixelOpts(layer, n), vram, main: palette }).px);
     const used = new Map<number, Set<number>>();                     // Mana palette -> graphic slots drawn in it
@@ -113,12 +134,13 @@ function convertManaMap(manaRom: ManaRom, id: number) {
         return (t.g.v << 15) | (t.g.h << 14) | (t.m.priority << 13) | (slotOf(t.m.palette) << 10) | slotChr(t.g.slot);
     };
     const events = mana.mapEvents(manaRom, map);
-    const stepAt = new Set(events.steps.map((s) => s.y * map.w + s.x));
+    const stepAt = new Set(events.steps.filter((s) => !s.bump).map((s) => s.y * map.w + s.x));
+    const bumpAt = new Set(events.steps.filter((s) => s.bump).map((s) => s.y * map.w + s.x));
     // A cell's three words for layer-A metatile `a` and layer-B metatile `b`: the player
     // moves by layer A's collision, so that is the cell's collision word.
     const stamp = (x: number, y: number, a: number, b: number): number[] => {
         const c = mana.metatileCollision(manaRom, map, 'A', a);
-        return [wordFor('A', a), wordFor('B', b), collisionWord(c[0], c[2], stepAt.has(y * map.w + x), c[1])];
+        return [wordFor('A', a), wordFor('B', b), collisionWord(c[0], c[2], stepAt.has(y * map.w + x), c[1], bumpAt.has(y * map.w + x))];
     };
     const cells: number[] = new Array(map.w * map.h * 3);
     for (let y = 0; y < map.h; y++) {
@@ -172,12 +194,13 @@ function convertManaMap(manaRom: ManaRom, id: number) {
         animation: anim.channels,
         paletteCycles: cycles.records,
         families,
-        stepOn: triggerBoxes(events.steps),
+        stepOn: triggerBoxes(events.steps.filter((s) => !s.bump)),
+        bTrigger: triggerBoxes(events.steps.filter((s) => s.bump)),
         cut,
         objects,
         onEnter: events.onEnter,
         spawns: mana.mapObjects(manaRom, id).map((o) => ({ x: o.x, y: o.y, kind: o.kind })),
-        stats: Object.assign(stats, { graphics: graphics.slots.length, stepCells: events.steps.length,
+        stats: Object.assign(stats, { graphics: graphics.slots.length, stepCells: events.steps.length - bumpAt.size, bumpCells: bumpAt.size,
             cuttable: cut.length, objects: objects.length,
             channels: anim.channels.length, frameGraphics: anim.frames.length, aperiodicTiles: anim.aperiodic,
             stillTiles: anim.still, peakUploads: anim.peakUploads, paletteCycles: cycles.records.length, droppedCycles: cycles.dropped,

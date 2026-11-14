@@ -5,7 +5,7 @@
 // must be in room 0x15 and draw every cell nothing animates exactly as the editor's renderer does
 // (5-bit colours; the Boy, the dog and the HUD are masked); and the collision translation works in
 // the engine: the bridge is crossed on plane 1 from its stairs (shear on Mana's stair cells only), the river's current carries the
-// Boy (docs/mana/evermore-rooms.md). Emulator tier: ~5 s.
+// Boy, the sword in the stone is solid (docs/mana/evermore-rooms.md). Emulator tier: ~5 s.
 // Run: node tests/mana/mana-play.test.js  (both ROMs from the ROM library: npm run roms)
 
 const fs = require('fs');
@@ -93,6 +93,10 @@ function run() {
         const c = walk(romAt(x, y), pad, 200);
         check(`over the bridge ${name}: on plane 1 across the deck, plane 2 beyond`, crossed(c, dir), JSON.stringify(c.map((p) => [p.x, p.y, p.plane])));
     }
+    // The sword in the stone (47,50-51) is walked into in Mana: solid here, run by B.
+    const stone = walk(romAt(44, 51), PAD.right, 120);
+    check('the Boy stops at the sword in the stone instead of walking into it', stone.every((p) => p.x <= 46) && stone.some((p) => p.x === 46),
+        JSON.stringify(stone.map((p) => [p.x, p.y])));
     const drift = walk(romAt(28, 33), PAD.none, 8);
     check('the river\'s current carries the Boy downstream with no input', drift[0].y >= 38, JSON.stringify(drift[0]));
     done();

@@ -6,6 +6,8 @@
 import * as mana from '../../../mana/decoder';
 
 const STEP_ON = 0x4000;
+/** Bit 15: pressing B at the cell checks the room's B-trigger boxes (map_collision_mechanics.md §7.1). */
+const INTERACT = 0x8000;
 /** Evermore geometry nibble for each Mana diagonal (docs/map-format/map_collision_mechanics.md §5). */
 const DIAGONAL_GEOMETRY: Record<number, number> = { 4: 0x02, 5: 0x09, 6: 0x0A, 7: 0x01 };
 const SOLID = 0x0F, PLANE_1 = 0x10, PLANE_2 = 0x20, PLANE_TRANSPARENT = 0x40;
@@ -31,11 +33,14 @@ const SHEAR: Record<number, number> = { 0x22: 0x1, 0x23: 0x2 };
  * - stairs `$20`/`$21` keep nibble 0 (Evermore's vertical stairs), `$22`/`$23` take the shears,
  *   push `$3n` the drift of its direction (Evermore's drift has one speed; Mana's 1-3 is lost);
  * - sprite priority c1 7 (in front) sets bit 12, c1 2 (split) gate nibble 4; 6 and the rest
- *   leave both clear (behind the high-priority tiles), as does a cell that keeps the priority.
+ *   leave both clear (behind the high-priority tiles), as does a cell that keeps the priority;
+ * - an event cell a character walks into (`bump`: Mana keeps it solid) is a wall with bit 15, so
+ *   Evermore runs it from a B-trigger box when B is pressed facing it; `step` sets bit 14.
  */
-function collisionWord(c0: number, c2: number, step: boolean, c1 = 0): number {
+function collisionWord(c0: number, c2: number, step: boolean, c1 = 0, bump = false): number {
     const floor = c0 & 7, diag = mana.diagonalOf(c2), effect = c2 & 0xF0;
     const plane = floor === 1 ? PLANE_1 : PLANE_2;
+    if (bump) return SOLID | plane | INTERACT;
     let w: number;
     if (diag) w = DIAGONAL_GEOMETRY[diag] | (floor === 1 ? PLANE_1 : PLANE_2);
     else if (floor === 3) w = SOLID | PLANE_2;

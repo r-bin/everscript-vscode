@@ -66,13 +66,17 @@ interface PixelOptions {
     hide?: Uint8Array | null;
     /** BGR555 colour to fill a low-priority tile's transparent pixels with: Mana's backdrop. */
     backdrop?: number;
+    /** With `backdrop`: transparent pixels filled whatever the tile's priority (`backdropOpen`). */
+    open?: Uint8Array;
+    /** With `backdrop`: false fills a priority-0 tile only where `open` says so too. */
+    fillLow?: boolean;
 }
 
 /**
  * A metatile drawn as one 16x16 graphic: 256 colour indices, its palette and priority.
  * One priority per cell: the majority, or 0 when that composes as Mana does (below); a
  * priority-0 pixel that would then come in front of what Mana draws over it (`hide`) is left out. A layer-B tile of priority 0 shows `backdrop` where it
- * is transparent, as Mana's backdrop shows there (Evermore's is black).
+ * is transparent, as Mana's backdrop shows there (Evermore's is black); one of priority 1 (or any, `fillLow` false) where `open` says so.
  */
 function metatilePixels(map: ManaMap, table: Uint16Array, n: number, stats: Stats, rotating: ReadonlySet<number>, opts: PixelOptions = {}) {
     const vram = opts.vram || map.vram;
@@ -117,9 +121,10 @@ function metatilePixels(map: ManaMap, table: Uint16Array, n: number, stats: Stat
             if (px[i] && pal[i] !== main) { px[i] = nearest(map.cgram, map.cgram[pal[i] * 16 + px[i]], main, rotating); stats.recolouredPixels++; }
         }
     }
-    if (!priority && opts.backdrop !== undefined) {
+    const all = !priority && opts.fillLow !== false;
+    if (opts.backdrop !== undefined && (all || opts.open)) {
         const k = nearest(map.cgram, opts.backdrop, main, rotating);
-        for (let i = 0; i < 256; i++) if (!px[i]) px[i] = k;
+        for (let i = 0; i < 256; i++) if (!px[i] && (all || opts.open![i])) px[i] = k;
     }
     return { px, palette: main, priority, empty: false };
 }
@@ -241,6 +246,37 @@ function withBackdrop(map: ManaMap, trace: Trace | null, rotating: ReadonlySet<n
     return cgram;
 }
 
+/**
+ * Per layer-B metatile, the transparent pixels its fill may cover whatever its priority: those
+ * no layer-A pixel that counts covers in any cell (`pairs`: every A, B pair a cell shows; `cover`:
+ * a layer-A metatile's pixels that count, null for none). Mana shows its backdrop there.
+ */
+function backdropOpen(pairs: Iterable<[number, number]>, cover: (a: number) => Uint8Array | null) {
+    const out = new Map<number, Uint8Array>();
+    for (const [a, b] of pairs) {
+        let open = out.get(b);
+        if (!open) { open = new Uint8Array(256).fill(1); out.set(b, open); }
+        const c = cover(a);
+        if (c) for (let i = 0; i < 256; i++) if (c[i]) open[i] = 0;
+    }
+    return out;
+}
+
+/**
+ * The pixels metatile `n` of `table` draws at any moment of the trace, or at every moment
+ * (`every`); `draw` draws it at a moment's characters.
+ */
+function opaqueOver(trace: Trace, n: number, table: Uint16Array, every: boolean, draw: (vram: Uint8Array) => Uint8Array) {
+    const out = Uint8Array.from(draw(trace.vram), (v) => (v ? 1 : 0));
+    const vram = trace.vram.slice(), chars = new Set([0, 1, 2, 3].map((q) => table[n * 4 + q] & 0x3FF));
+    for (const st of trace.steps) {
+        for (const [c, d] of st.chars) vram.set(d, c * 32);
+        if (![...st.chars.keys()].some((c) => chars.has(c))) continue;
+        draw(vram).forEach((v, i) => { if (every ? !v : v) out[i] = every ? 0 : 1; });
+    }
+    return out;
+}
+
 /** A solid graphic in the colour nearest Mana's backdrop (still colours only), in the palette that has the nearest. */
 function backdropTile(map: ManaMap, tiles: Record<Layer, Map<number, Tile>>, rotating: ReadonlySet<number>, graphics: ReturnType<typeof graphicTable>) {
     if (![...tiles.B.values()].some((t) => t.m.empty) && tiles.B.size) return null;
@@ -256,4 +292,4 @@ function backdropTile(map: ManaMap, tiles: Record<Layer, Map<number, Tile>>, rot
 }
 
 export type { Stats, Trace, Placed, Layer, Tile, PixelOptions };
-export { EMPTY_GRAPHIC, metatilePixels, encodeGraphic, slotChr, graphicTable, hiddenUnder, withBackdrop, backdropTile };
+export { EMPTY_GRAPHIC, metatilePixels, encodeGraphic, slotChr, graphicTable, hiddenUnder, withBackdrop, backdropOpen, opaqueOver, backdropTile };

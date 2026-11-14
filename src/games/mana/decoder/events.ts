@@ -10,7 +10,10 @@
 // and rewrites cell k to $C0 + k ($02:B517). When a character's cell changes
 // ($00:D682 stores the new value in $E04B,X), $00:B637 takes any value v >= $C0 - b and
 // runs word (v - ($C0 - b)) + (bit 2 ? 1 : 0). So the metatiles $C0-b..$BF are step
-// events too, on every cell that shows them.
+// events too, on every cell that shows them. The movement code ($01:B9A3) keeps a character out
+// of a cell of value >= $C0 - b unless the cell's c1 has bit 6: the event of such a solid cell runs
+// when a character walks into it (the sword in the stone at Potos Falls, signposts), the others
+// when one walks onto it.
 // Checked in the headless game for maps $10, $11 and $3E (tools/mana/check-events.js).
 
 import { Rom, u16 } from './rom';
@@ -23,12 +26,16 @@ const EVENT_BANK = 0xC80000;
 const SPECIAL_BASE = 0xC0;
 const SLOTS = 64;                  // $02:B517 keeps the slot in one byte ORed with $C0
 
-export interface StepEvent { x: number; y: number; event: number }
+export interface StepEvent {
+    x: number; y: number; event: number;
+    /** Solid (c1 bit 6 clear): the event runs when a character walks into the cell, not onto it. */
+    bump: boolean;
+}
 
 export interface MapEvents {
     /** The map's own event (header byte 3 bit 2), or null. */
     onEnter: number | null;
-    /** Every layer-A cell that runs an event when stepped on, row by row. */
+    /** Every layer-A cell that runs an event when walked onto or into, row by row. */
     steps: StepEvent[];
 }
 
@@ -50,11 +57,12 @@ export function mapEvents(rom: Rom, map: ManaMap): MapEvents {
         for (let x = 0; x < map.w; x++) {
             const n = map.cell('A', x, y);
             let v = n;
-            if (specialOf(col.bytes[(y * map.w + x) * 4 + 1])) v = SPECIAL_BASE + (slot++ % SLOTS);
+            const c1 = col.bytes[(y * map.w + x) * 4 + 1];
+            if (specialOf(c1)) v = SPECIAL_BASE + (slot++ % SLOTS);
             if (v < SPECIAL_BASE - lead) continue;
             const event = words[v - (SPECIAL_BASE - lead) + own];
             // A word past the list reads whatever follows it; such cells are left out.
-            if (event !== undefined) steps.push({ x, y, event });
+            if (event !== undefined) steps.push({ x, y, event, bump: !(c1 & 0x40) });
         }
     }
     return { onEnter: own && words.length ? words[0] : null, steps };
