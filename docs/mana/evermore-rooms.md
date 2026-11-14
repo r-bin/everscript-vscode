@@ -130,3 +130,53 @@ equal to the editor's picture; the animation follows the editor's timeline withi
 Taking over vanilla ids is safe for a test ROM, which shows no other room. Still missing in the
 game: Mana's characters and enemies, its events and doors (a converted map is a closed room),
 layer switches (c0 bit 3), the stairs' slow-down and the currents' speeds.
+
+### Broken lines at the top and bottom of the emulator panel (open, 2026-11-14)
+
+Seen by the owner (Potos Falls 1, v0.406.0): about 2 s after the map appears, a band about 8 lines
+high at the top and at the bottom of the panel shows the wrong picture: plain blue water with no
+texture, and waterfall foam where the cliffs are. The 224 lines in between are right.
+
+**The game draws it right.** In the bundled vanilla snes9x core, headless, the owner's
+`Potos_Falls_1_emulator.sfc` and a freshly built ROM both match the editor's picture on
+every still pixel (5-bit colour, the Boy and the dog masked). That holds at rest and on every
+4th frame while walking up and then down for 200 frames each (scroll offset searched ±8 per
+frame). So the room, its graphics and its colours are not the cause.
+
+**The bands are drawn by the panel, not the emulator.** The owner's screenshot is 256×240 SNES
+pixels: the 224 emulated lines plus 8 above and 8 below. Those 16 lines come from the
+**extended map**. The page draws it (`renderExtendedMapAndOverlays`,
+`src/games/evermore/emulator/webview/overlays/06-inidisp-shadow.js`) from pictures the host renders
+from the loaded ROM (`requestRoomMap` → `room-map.ts` `roomMap`, room `$15` decoded with
+`maps.renderRoomComposite`). `tests/mana/mana-play.test.js` compares SNES lines 0-175 only, so it
+cannot see these bands.
+
+**Probable cause (not yet checked in the webview): the panel takes the room for a parallax room.**
+On each frame the page samples the camera (`$7E:0112/0114`) and the BG1 scroll shadow
+(`$7E:010E/0110`) (`samplePreLoopState`). The first frame in a room where the two differ sets
+`roomParallax` for the rest of that room. A room change clears it. Measured on the owner's ROM in
+the headless core:
+
+| frames | room | INIDISP shadow `$0106` | camera | BG1 shadow |
+|---|---|---|---|---|
+| ≤ 414 | `$00` (intro) | — | moving | its own (the intro scrolls BG1 apart) |
+| 415-441 | `$15` | `$8F` (forced blank) | 32, 453 (left over) | 42, 445 (left over) |
+| 442 on | `$15` | fades in from `$01` | 344, 407 | 344, 407 |
+
+During the 27 blanked frames on entry, BG1 still holds the intro's scroll and differs from the
+camera, so `roomParallax` turns on and stays on. Then the page asks for the layered pictures
+(`layered: true`: four PNGs at 2x). When they arrive, it draws the layered branch: black, then
+BG2 low, then BG1 low, each at its own scroll. There is **no colour math** in that branch, but
+the composite has it. So the bands show the bare BG2 water (blue, no texture) with BG1 painted
+opaquely over it, where in the game BG1 blends in through the header's TS/CGADSUB. That fits the
+blue band and the foam-coloured patches. The delay fits too: 27 frames plus the render of the
+layers. Not yet confirmed in headless Chromium.
+
+Not yet known:
+- whether vanilla rooms entered after a parallax room trip the same check. It would hardly
+  show there: most vanilla rooms draw the same without colour math.
+- which BG1 tiles the foam in the corners is, and whether BG1 is drawn at the right place there.
+
+A fix would most likely belong in the page, not the converter: ignore the sample while the screen
+is in forced blank (`INIDISP` bit 7, already in `preState.iniDisp`). It may also be worth giving the
+layered branch the colour math, or not using it for rooms whose header turns colour math on.
