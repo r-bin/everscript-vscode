@@ -3,7 +3,7 @@
 ```json
 {
   "summary": {
-    "total_entries": 7101,
+    "total_entries": 7109,
     "total_documented_bytes": 3237090,
     "banks_covered": 97,
     "architecture": "3 MB (24 Mbit) HiROM ($00 vectors/header mirror, $80..$AF FastROM, $C0..$EF Data)"
@@ -115,7 +115,7 @@
         "0x90FFFF"
       ],
       "name": "Animation VM, Sprites, Projectiles & Tile Animation",
-      "routines": 497,
+      "routines": 499,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -245,7 +245,7 @@
         "0x8CFFFF"
       ],
       "name": "Script VM Dispatcher, Sound Effects & Stat Curves",
-      "routines": 460,
+      "routines": 466,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -5262,7 +5262,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $8C — Script VM Dispatcher, Sound Effects & Stat Curves
 
-**Coverage:** 460 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 466 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
@@ -5539,7 +5539,8 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8C:D20D` | [`script_op_38_3a_yield`](knowledge/routines/script_op_38_3a_yield.md) | `code` | 2 B | script-vm | Script opcodes 0x38, 0x3a — yield: Handler of script opcodes 0x38, 0x3A. What it does, why ... |
 | `$8C:D20F` | [`script_op_a8_sleep`](knowledge/routines/script_op_a8_sleep.md) | `code` | 8 B | script-vm | Script opcode 0xa8 — sleep: Handler of script opcode 0xA8. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:D217` | [`script_op_a7_sleep`](knowledge/routines/script_op_a7_sleep.md) | `code` | 9 B | script-vm | Script opcode 0xa7 — sleep: Handler of script opcode 0xA7. What it does, why it exists and how scripts use it: the opcode entr... |
-| `$8C:D220` | [`script_op_39_3b_sleep`](knowledge/routines/script_op_39_3b_sleep.md) | `code` | 36 B | script-vm | Script opcodes 0x39, 0x3b — sleep: Handler of script opcodes 0x39, 0x3B. What it does, why ... |
+| `$8C:D220` | [`script_op_39_3b_sleep`](knowledge/routines/script_op_39_3b_sleep.md) | `code` | 4 B | script-vm | Script opcodes 0x39, 0x3b — sleep: Handler of script opcodes 0x39, 0x3B. What it does, why ... |
+| `$8C:D224` | [`sub_8CD224`](knowledge/routines/sub_8CD224.md) | `code` | 32 B | code, subroutine, script, vm | Script thread sleep duration calculation and target frame timer setup: Script VM sleep timer routine computing the 32-bit target wakeup frame for the active thread slot identified by DP `$7E`. Computes `($7E:0B1... |
 | `$8C:D244` | [`script_op_wait`](knowledge/routines/script_op_wait.md) | `code` | 77 B | script-vm | Script opcode 0x2e — wait for an entity, the text box or the camera: Handler of script opcode 0x2E. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:D291` | [`sub_8CD291`](knowledge/routines/sub_8CD291.md) | `code` | 8 B | code, subroutine, script, vm | Script thread status set to 6 (sleep/waiting state): Script VM thread management helper setting thread record status offset `+$03` to 6, clearing Carry, and returning via RTS. |
 | `$8C:D299` | [`BANK8C_PAD_D299`](knowledge/routines/BANK8C_PAD_D299.md) | `padding` | 72 B | unused, padding | Bank $8C alignment padding ($D299): 72 B alignment padding and unmapped ROM space in Bank $8C ($8C:D299..$8C:D2E0). |
@@ -5558,7 +5559,9 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8C:D3FD` | [`script_op_b4_start_thread_with_args`](knowledge/routines/script_op_b4_start_thread_with_args.md) | `code` | 3 B | script-vm | Script opcode 0xb4 — start thread with args: Handler of script opcode 0xB4. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:D400` | [`script_op_07_start_thread`](knowledge/routines/script_op_07_start_thread.md) | `code` | 40 B | script-vm | Script opcode 0x07 — start thread: Handler of script opcode 0x07. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:D428` | [`script_op_05_jump_back`](knowledge/routines/script_op_05_jump_back.md) | `code` | 12 B | script-vm | Script opcode 0x05 — jump back: Handler of script opcode 0x05. What it does, why it exists and how scripts use it: the opcode entr... |
-| `$8C:D434` | [`script_jump_relative`](knowledge/routines/script_jump_relative.md) | `code` | 49 B | script-vm | Script VM — jump by a 16-bit offset: Handler of script opcode 0x04. What it does, why it exists and how scripts use it: the opcode entr... |
+| `$8C:D434` | [`script_jump_relative`](knowledge/routines/script_jump_relative.md) | `code` | 22 B | script-vm | Script VM — jump by a 16-bit offset: Handler of script opcode 0x04. What it does, why it exists and how scripts use it: the opcode entr... |
+| `$8C:D44A` | [`sub_8CD44A`](knowledge/routines/sub_8CD44A.md) | `code` | 13 B | code, subroutine, script, vm | Script branch relative jump destination computation: Script VM branch helper adding accumulator offset with Carry to script PC word `$82`; if non-negative, sets bit 15, decrements script page r... |
+| `$8C:D457` | [`BANK8C_PAD_D457`](knowledge/routines/BANK8C_PAD_D457.md) | `padding` | 14 B | unused, padding | Bank $8C alignment padding ($D457): 14 B alignment padding and unmapped ROM space in Bank $8C ($8C:D457..$8C:D464). |
 | `$8C:D465` | [`script_op_08_jump_if_true`](knowledge/routines/script_op_08_jump_if_true.md) | `code` | 15 B | script-vm | Script opcode 0x08 — jump if true: Handler of script opcode 0x08. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:D474` | [`script_op_09_jump_if_false`](knowledge/routines/script_op_09_jump_if_false.md) | `code` | 15 B | script-vm | Script opcode 0x09 — jump if false: Handler of script opcode 0x09. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:D483` | [`script_op_8e_jump_if_currency_at_least`](knowledge/routines/script_op_8e_jump_if_currency_at_least.md) | `code` | 14 B | script-vm | Script opcode 0x8E: jump if a currency is at least an expression: Handler of script opcode 0x8E. What it does, why it exists and how scripts use it: the opcode entr... |
@@ -5576,7 +5579,8 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8C:D709` | [`script_opcode_0x33_music`](knowledge/routines/script_opcode_0x33_music.md) | `code` | 22 B | audio, script | Script opcode `0x33` (`music`): Script opcode `0x33` (`music`). |
 | `$8C:D71F` | [`script_op_ae_write_local_tile_pair`](knowledge/routines/script_op_ae_write_local_tile_pair.md) | `code` | 51 B | script-vm, reconstructed-c, g1-pass | Script opcode 0xae — write local tile pair: Handler of script opcode 0xAE. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:D752` | [`script_op_ad_write_temp_tile_pair`](knowledge/routines/script_op_ad_write_temp_tile_pair.md) | `code` | 25 B | script-vm | Script opcode 0xad — write temp tile pair: Handler of script opcode 0xAD. What it does, why it exists and how scripts use it: the opcode entr... |
-| `$8C:D76B` | [`script_op_1b_write_tile_pair`](knowledge/routines/script_op_1b_write_tile_pair.md) | `code` | 50 B | script-vm, reconstructed-c, g1-pass | Script opcode 0x1b — write tile pair: The handler reads two save offsets and two tile coordinates, scales each coordinate by eight, writes both pixel positions as words, and retu... |
+| `$8C:D76B` | [`script_op_1b_write_tile_pair`](knowledge/routines/script_op_1b_write_tile_pair.md) | `code` | 22 B | script-vm, reconstructed-c, g1-pass | Script opcode 0x1b — write tile pair: The handler reads two save offsets and two tile coordinates, scales each coordinate by eight, writes both pixel positions as words, and retu... |
+| `$8C:D781` | [`sub_8CD781`](knowledge/routines/sub_8CD781.md) | `code` | 28 B | code, subroutine, script, vm | Script VM dual 8-bit operand reader and coordinate multiplier (x8): Script VM argument unpacker reading two sequential bytes from the script stream pointer at DP `$82`, multiplying each by 8 (converting tile ... |
 | `$8C:D79D` | [`script_op_17_write_word_immediate`](knowledge/routines/script_op_17_write_word_immediate.md) | `code` | 22 B | script-vm | Script opcode 0x17 writes an immediate word to save memory: The handler reads a 16-bit offset and a 16-bit immediate value, writes the word to `$7E:2258 + offset`, and returns carry set. |
 | `$8C:D7B3` | [`script_op_1a_1e_write_local_word`](knowledge/routines/script_op_1a_1e_write_local_word.md) | `code` | 25 B | script-vm | Script opcodes 0x1a, 0x1e — write local word: The shared handler writes a 16-bit expression result to `active_slot + $0F + u8 byte_offset`. Opcodes `0x1A` and `0x1E` use this routine and... |
 | `$8C:D7CC` | [`script_op_19_1d_write_temp_word`](knowledge/routines/script_op_19_1d_write_temp_word.md) | `code` | 5 B | script-vm | Script opcodes 0x19, 0x1d — write temp word: The shared handler reads a 16-bit offset, evaluates an expression, and writes the resulting word to `$7E:2834 + offset`. Opcodes `0x19` and ... |
@@ -5701,7 +5705,9 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8C:E66F` | [`script_op_99_mode7_scene`](knowledge/routines/script_op_99_mode7_scene.md) | `code` | 96 B | script-vm, widescreen, widescreen.mode7, widescreen.gate | Script opcode 0x99: run a Mode 7 scene: Handler of script opcode 0x99. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:E6CF` | [`script_op_9a_font`](knowledge/routines/script_op_9a_font.md) | `code` | 23 B | script-vm | Script opcode 0x9A: select the font: Handler of script opcode 0x9A. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:E6E6` | [`tbl_8CE6E6`](knowledge/routines/tbl_8CE6E6.md) | `table` | 4 B | table, cdl, lookup, lookup | CDL lookup: 2 entries × 2B: CDL lookup table at $8C:E6E6 (4 bytes, 2 entries × 2B). Index: ? > tax. Result: tax > ?. Read by script_op_9a_font+$05 (8C:E6D4). |
-| `$8C:E6EA` | [`script_op_a9_attribute_bit`](knowledge/routines/script_op_a9_attribute_bit.md) | `code` | 261 B | script-vm | Script opcode 0xA9: set or clear an entity attribute: Handler of script opcode 0xA9. What it does, why it exists and how scripts use it: the opcode entr... |
+| `$8C:E6EA` | [`script_op_a9_attribute_bit`](knowledge/routines/script_op_a9_attribute_bit.md) | `code` | 80 B | script-vm | Script opcode 0xA9: set or clear an entity attribute: Handler of script opcode 0xA9. What it does, why it exists and how scripts use it: the opcode entr... |
+| `$8C:E73A` | [`sub_8CE73A`](knowledge/routines/sub_8CE73A.md) | `code` | 24 B | code, subroutine, script, entity | Script entity status update ($4000 flag set, $0076 clear, $FB87 mask): Entity state modification helper setting bit $4000 in entity record word `+$10`, clearing word field `+$76` to zero using TDC, masking attri... |
+| `$8C:E752` | [`BANK8C_PAD_E752`](knowledge/routines/BANK8C_PAD_E752.md) | `padding` | 157 B | unused, padding | Bank $8C alignment padding ($E752): 157 B alignment padding and unmapped ROM space in Bank $8C ($8C:E752..$8C:E7EE). |
 | `$8C:E7EF` | [`script_op_aa_cure`](knowledge/routines/script_op_aa_cure.md) | `code` | 44 B | script-vm | Script opcode 0xAA: cure Boy and Dog: Handler of script opcode 0xAA. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:E81B` | [`configure_projectile_motion`](knowledge/routines/configure_projectile_motion.md) | `code` | 66 B | script-vm | Configure projectile motion data: Handler of script opcode 0xB5. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:E85D` | [`script_op_b6_palette_cycle`](knowledge/routines/script_op_b6_palette_cycle.md) | `code` | 45 B | script-vm | Script opcode 0xB6: start a palette cycle: Handler of script opcode 0xB6. What it does, why it exists and how scripts use it: the opcode entr... |
@@ -6561,7 +6567,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $90 — Animation VM, Sprites, Projectiles & Tile Animation
 
-**Coverage:** 497 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 499 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
@@ -6697,7 +6703,8 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$90:9993` | [`sub_909993`](knowledge/routines/sub_909993.md) | `code` | 8 B | code, subroutine, cdl | CDL subroutine ($90:9993): CDL-identified subroutine entry point in ROM at $90:9993. |
 | `$90:999B` | [`sub_90999B`](knowledge/routines/sub_90999B.md) | `code` | 1 B | code, subroutine, cdl | CDL subroutine ($90:999B): CDL-identified subroutine entry point in ROM at $90:999B. |
 | `$90:999C` | [`room_tilemap_layer2_parallax_offset_calc`](knowledge/routines/room_tilemap_layer2_parallax_offset_calc.md) | `code` | 95 B | unverified, rea-partial-read, widescreen, widescreen.streaming | Calculates Layer 2 background parallax scrolling offsets and vertical perspective adjustments: Low confidence — Calculates Layer 2 background parallax scrolling offsets and vertical perspective adjustments.  > Inferred from a partial r... |
-| `$90:99FB` | [`room_collision_word_fetch_at_pixel_coords`](knowledge/routines/room_collision_word_fetch_at_pixel_coords.md) | `code` | 134 B | unverified, rea-partial-read, widescreen, widescreen.streaming | Reads the 16-bit room collision word at specified pixel coordinates from the active collision matrix: Low confidence — Reads the 16-bit room collision word at specified pixel coordinates from the active collision matrix.  > Inferred from a pa... |
+| `$90:99FB` | [`room_collision_word_fetch_at_pixel_coords`](knowledge/routines/room_collision_word_fetch_at_pixel_coords.md) | `code` | 93 B | unverified, rea-partial-read, widescreen, widescreen.streaming | Reads the 16-bit room collision word at specified pixel coordinates from the active collision matrix: Low confidence — Reads the 16-bit room collision word at specified pixel coordinates from the active collision matrix.  > Inferred from a pa... |
+| `$90:9A58` | [`sub_909A58`](knowledge/routines/sub_909A58.md) | `code` | 41 B | code, subroutine, graphics, dma, vram | Deferred VRAM DMA transfer request enqueue (64-byte block): Graphics VRAM DMA queue enqueue routine writing a deferred 64-byte DMA transfer record into the circular queue buffer at `$7E:013F` indexed ... |
 | `$90:9A81` | [`screen_shake_init_light_profile`](knowledge/routines/screen_shake_init_light_profile.md) | `code` | 23 B | "shake", "screen", "vfx", "profile", reconstructed-c, g1-pass | Configure light screen shake effect parameters ($90:9A81): Initializes light screen shake effect profile. Sets amplitude factors `$7E:22FA = $10` and `$7E:22FB = $10`, and clears displacement offsets... |
 | `$90:9A98` | [`screen_shake_sync_window_coordinates`](knowledge/routines/screen_shake_sync_window_coordinates.md) | `code` | 18 B | shake, screen, camera, coordinates, widescreen, widescreen.scroll, reconstructed-c, g1-pass | Synchronize camera screen coordinates to window boundary registers ($90:9A98): Synchronizes camera screen coordinates `<$59>` and `<$5B - 1>` into window coordinate bounds registers `$010E..$0114`.  ## Widescreen notes ... |
 | `$90:9AAA` | [`screen_shake_init_heavy_profile`](knowledge/routines/screen_shake_init_heavy_profile.md) | `code` | 37 B | shake, screen, vfx, profile | Configure heavy screen shake effect amplitude and displacement bounds ($90:9AAA): Initializes heavy screen shake effect profile. Sets active flag `$14E4 = 1`, frequency/amplitude factors `$7E:22FA = $10` and `$7E:22FB = $1... |
@@ -6997,7 +7004,8 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$90:CFF0` | [`dim_cgram_palette_buffer_by_half`](knowledge/routines/dim_cgram_palette_buffer_by_half.md) | `code` | 48 B | palette, cgram, color-math, menu | CGRAM 15-bit color buffer 50% brightness dimmer ($90:CFF0): Reduces the brightness of 112 colors in palette staging buffer `$7E:61A9` by 50% for menu transitions. Operates on 15-bit BGR555 words via l... |
 | `$90:D020` | [`load_up_to_7_tile_families_from_map_palette`](knowledge/routines/load_up_to_7_tile_families_from_map_palette.md) | `code` | 132 B | maps, palettes, graphics | Load up to 7 tile families from `MAP_PALETTE`: Loads up to 7 tile families (32 bytes each: 16 colors × 2 bytes) from master palette table `$9C:C322` into WRAM `$7E:61A7` via SNES DMA Chan... |
 | `$90:D0A4` | [`palette_color_math_and_lighting_transition_suite`](knowledge/routines/palette_color_math_and_lighting_transition_suite.md) | `code` | 514 B | palette, cgram, color-math, graphics, lighting | CGRAM palette color math, subtractive blending, and cross-fade lighting routines: Suite of PPU CGRAM palette color math and cross-fade transition routines: - Performs bitwise 15-bit BGR555 channel decomposition (5 bits Red... |
-| `$90:D2A6` | [`graphics_color_555_linear_blend_lerp`](knowledge/routines/graphics_color_555_linear_blend_lerp.md) | `code` | 166 B | palettes, graphics, math | Linearly interpolates two 15-bit BGR555 colors using hardware multiplier ($90:D2A6): Linearly interpolates between two 15-bit BGR555 colors in `DP $16` and `DP $18` according to blend factor `DP $12` (`$12 & $FF == 0` returns... |
+| `$90:D2A6` | [`graphics_color_555_linear_blend_lerp`](knowledge/routines/graphics_color_555_linear_blend_lerp.md) | `code` | 156 B | palettes, graphics, math | Linearly interpolates two 15-bit BGR555 colors using hardware multiplier ($90:D2A6): Linearly interpolates between two 15-bit BGR555 colors in `DP $16` and `DP $18` according to blend factor `DP $12` (`$12 & $FF == 0` returns... |
+| `$90:D342` | [`sub_90D342`](knowledge/routines/sub_90D342.md) | `code` | 10 B | code, subroutine, palette, graphics | Palette entry packing and direct page $1C bitwise OR: Palette processing routine widening registers to 16-bit, shifting bits 3..7 left by 2 (`<< 2`), ORing DP register `$1C`, and returning via R... |
 | `$90:D34C` | [`memory_block_copy_indirect_words`](knowledge/routines/memory_block_copy_indirect_words.md) | `code` | 188 B | palette, crossfade, dma, hardware-multiplier | 15-bit BGR555 palette color crossfader and direct word block transfer: Palette color crossfader and block transfer primitive.  Interpolates between two 15-bit BGR555 color palettes using the SNES hardware multip... |
 | `$90:D408` | [`fog_particle_emitter_config`](knowledge/routines/fog_particle_emitter_config.md) | `code` | 57 B | fog, weather, particles | Fog/weather particle emitter parameter and coordinate buffer setup ($90:D408): Configures a fog or weather particle emitter descriptor in WRAM. Populates an 8-entry coordinate array at `$7E:65D1` with X/Y pairs from dir... |
 | `$90:D441` | [`tbl_90D441`](knowledge/routines/tbl_90D441.md) | `table` | 32 B | table, cdl, lookup, increasing_curve | CDL increasing curve: 8 entries × 4B: CDL lookup table at $90:D441 (32 bytes, 8 entries × 4B). Index: #$0004. Result: sta $7E0026. Read by map_palette_change_and_cgram_reload+$0F... |

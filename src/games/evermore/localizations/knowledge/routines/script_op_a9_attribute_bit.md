@@ -1,7 +1,7 @@
 ---
 addr: 8CE6EA
-size: 261
-end: 8CE7EE
+size: 80
+end: 8CE739
 kind: code
 category: 🧠
 name: script_op_a9_attribute_bit

@@ -1,7 +1,7 @@
 ---
 addr: 8CD76B
-size: 50
-end: 8CD79C
+size: 22
+end: 8CD780
 kind: code
 category: 🧠
 name: script_op_1b_write_tile_pair

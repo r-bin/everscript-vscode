@@ -1,7 +1,7 @@
 ---
 addr: 9099FB
-end: 909A80
-size: 134
+end: 909A57
+size: 93
 kind: code
 category: 🧠
 name: room_collision_word_fetch_at_pixel_coords

@@ -1,7 +1,7 @@
 ---
 addr: 8CD434
-size: 49
-end: 8CD464
+size: 22
+end: 8CD449
 kind: code
 category: 🧠
 name: script_jump_relative

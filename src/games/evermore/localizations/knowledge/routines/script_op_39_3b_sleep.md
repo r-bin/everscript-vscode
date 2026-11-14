@@ -1,7 +1,7 @@
 ---
 addr: 8CD220
-size: 36
-end: 8CD243
+size: 4
+end: 8CD223
 kind: code
 category: 🧠
 name: script_op_39_3b_sleep
