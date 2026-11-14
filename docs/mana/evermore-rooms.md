@@ -131,11 +131,14 @@ Taking over vanilla ids is safe for a test ROM, which shows no other room. Still
 game: Mana's characters and enemies, its events and doors (a converted map is a closed room),
 layer switches (c0 bit 3), the stairs' slow-down and the currents' speeds.
 
-### Broken lines at the top and bottom of the emulator panel (open, 2026-11-14)
+### The panel's extended map on a converted room (2026-11-14)
 
-Seen by the owner (Potos Falls 1, v0.406.0): about 2 s after the map appears, a band about 8 lines
-high at the top and at the bottom of the panel shows the wrong picture: plain blue water with no
-texture, and waterfall foam where the cliffs are. The 224 lines in between are right.
+The emulator panel extends the picture past the SNES screen with the room drawn by the
+extension (the **extended map**, a feature, not a fault). On Potos Falls 1 (v0.406.0) its bands
+above and below the 224 emulated lines appear about 2 s after the map does. They look different
+from the game: plain blue water with no texture, and waterfall-foam colours where the cliffs
+are. The owner first took this for a bug in the converted room. The rest of this section is why
+it looks like that.
 
 **The game draws it right.** In the bundled vanilla snes9x core, headless, the owner's
 `Potos_Falls_1_emulator.sfc` and a freshly built ROM both match the editor's picture on
@@ -143,7 +146,7 @@ every still pixel (5-bit colour, the Boy and the dog masked). That holds at rest
 4th frame while walking up and then down for 200 frames each (scroll offset searched ±8 per
 frame). So the room, its graphics and its colours are not the cause.
 
-**The bands are drawn by the panel, not the emulator.** The owner's screenshot is 256×240 SNES
+**The bands are the extended map, not the emulator.** The owner's screenshot is 256×240 SNES
 pixels: the 224 emulated lines plus 8 above and 8 below. Those 16 lines come from the
 **extended map**. The page draws it (`renderExtendedMapAndOverlays`,
 `src/games/evermore/emulator/webview/overlays/06-inidisp-shadow.js`) from pictures the host renders
@@ -151,7 +154,7 @@ from the loaded ROM (`requestRoomMap` → `room-map.ts` `roomMap`, room `$15` de
 `maps.renderRoomComposite`). `tests/mana/mana-play.test.js` compares SNES lines 0-175 only, so it
 cannot see these bands.
 
-**Probable cause (not yet checked in the webview): the panel takes the room for a parallax room.**
+**Why they differ from the game (probable, not yet checked in the webview): the panel takes the room for a parallax room.**
 On each frame the page samples the camera (`$7E:0112/0114`) and the BG1 scroll shadow
 (`$7E:010E/0110`) (`samplePreLoopState`). The first frame in a room where the two differ sets
 `roomParallax` for the rest of that room. A room change clears it. Measured on the owner's ROM in
@@ -177,6 +180,6 @@ Not yet known:
   show there: most vanilla rooms draw the same without colour math.
 - which BG1 tiles the foam in the corners is, and whether BG1 is drawn at the right place there.
 
-A fix would most likely belong in the page, not the converter: ignore the sample while the screen
+To make the extension match the game (the page, not the converter): ignore the sample while the screen
 is in forced blank (`INIDISP` bit 7, already in `preState.iniDisp`). It may also be worth giving the
 layered branch the colour math, or not using it for rooms whose header turns colour math on.
