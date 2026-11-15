@@ -1,7 +1,7 @@
 ---
 addr: 9087BA
-end: 90880F
-size: 86
+end: 9087DE
+size: 37
 kind: code
 category: 🧠
 name: melee_weapon_strike_hitbox_offset_and_collision_test

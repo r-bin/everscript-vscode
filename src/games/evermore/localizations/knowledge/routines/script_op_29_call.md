@@ -1,7 +1,7 @@
 ---
 addr: 8CD3C9
-size: 52
-end: 8CD3FC
+size: 17
+end: 8CD3D9
 kind: code
 category: 🧠
 name: script_op_29_call

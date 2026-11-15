@@ -1,7 +1,7 @@
 ---
 addr: 8FA7D3
-size: 271
-end: 8FA8E1
+size: 237
+end: 8FA8BF
 kind: code
 category: 🧠
 name: entity_child_reposition

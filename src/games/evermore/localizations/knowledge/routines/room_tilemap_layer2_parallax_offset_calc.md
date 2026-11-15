@@ -1,7 +1,7 @@
 ---
 addr: 90999C
-end: 9099FA
-size: 95
+end: 9099CD
+size: 50
 kind: code
 category: 🧠
 name: room_tilemap_layer2_parallax_offset_calc

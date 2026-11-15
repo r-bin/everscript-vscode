@@ -5,13 +5,13 @@
 
 /*
  * Routine Rating & Verification:
- * - Target Routine:   sub_909A58 ($909A58) [RTS]
+ * - Target Routine:   sub_9099CE ($9099CE) [RTS]
  * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
- * - Initial ROM ASM:  17 instructions (41 bytes)
- * - Compiled C ASM:   143 instructions [Calypsi 65816 -O1 --speed]
- * - Code Expansion:   8.4x instructions vs ROM
+ * - Initial ROM ASM:  42 instructions (85 bytes)
+ * - Compiled C ASM:   238 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   5.7x instructions vs ROM
  * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
- * - Rating Hash:      ddf2a805a25c2782
+ * - Rating Hash:      da9925a266be37f7
  * - Rating Status:    VALID (unmodified since rating)
  */
 #include "soe.h"
@@ -30,4 +30,28 @@ SOE_BIND(sub_909A58, 0x909A58, RTS) {
     r->x = x;
     r->a = res;
     soe_nz16(r, res);
+}
+
+SOE_BIND(sub_9099CE, 0x9099CE, RTS) {
+    uint32_t ptr_26 = SOE_DPPTR(r, 0x26u);
+    while (1) {
+        uint16_t tile_idx = LONG16(0x7F0000u | r->x);
+        uint16_t word = LONG16(ptr_26 + tile_idx);
+        ABS16(r, r->y) = word;
+        uint16_t d12 = (uint16_t)(DP16(r, 0x12u) - 1u);
+        DP16(r, 0x12u) = d12;
+        soe_nz16(r, d12);
+        if (d12 == 0u) break;
+        r->x = (uint16_t)(r->x + 2u);
+        r->y = (uint16_t)(r->y + 2u);
+        soe_cmp16(r, r->y, DP16(r, 0x30u));
+        if (r->y == DP16(r, 0x30u)) {
+            r->y = DP16(r, 0x2Eu);
+            soe_nz16(r, r->y);
+        }
+    }
+    uint16_t a = (uint16_t)((DP16(r, 0x02u) & 0x001Fu) << 5);
+    r->a = a;
+    r->y = 0x0080u;
+    sub_909A58_bind(r);
 }

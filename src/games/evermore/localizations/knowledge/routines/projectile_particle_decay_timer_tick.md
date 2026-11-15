@@ -1,7 +1,7 @@
 ---
 addr: 90D6F9
-size: 57
-end: 90D731
+size: 2
+end: 90D6FA
 kind: code
 category: 🎮
 name: projectile_particle_decay_timer_tick

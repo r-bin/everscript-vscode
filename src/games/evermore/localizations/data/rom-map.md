@@ -3,7 +3,7 @@
 ```json
 {
   "summary": {
-    "total_entries": 7135,
+    "total_entries": 7143,
     "total_documented_bytes": 3237090,
     "banks_covered": 97,
     "architecture": "3 MB (24 Mbit) HiROM ($00 vectors/header mirror, $80..$AF FastROM, $C0..$EF Data)"
@@ -115,7 +115,7 @@
         "0x90FFFF"
       ],
       "name": "Animation VM, Sprites, Projectiles & Tile Animation",
-      "routines": 499,
+      "routines": 503,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -245,7 +245,7 @@
         "0x8CFFFF"
       ],
       "name": "Script VM Dispatcher, Sound Effects & Stat Curves",
-      "routines": 472,
+      "routines": 475,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -275,7 +275,7 @@
         "0x8FFFFF"
       ],
       "name": "Entity AI, Physics, Collision & Combat Engine",
-      "routines": 482,
+      "routines": 483,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -5263,7 +5263,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $8C — Script VM Dispatcher, Sound Effects & Stat Curves
 
-**Coverage:** 472 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 475 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
@@ -5280,7 +5280,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8C:81FD` | [`apu_command_handshake`](knowledge/routines/apu_command_handshake.md) | `code` | 57 B | audio, spc700, widescreen, widescreen.audio | APU command handshake / `$2140` spinlock: Atomic APU command transfer handshake across the SNES hardware I/O communication ports `$2140`–`$2143`. Disables interrupts, spin-waits for ... |
 | `$8C:8236` | [`load_song_soundbank`](knowledge/routines/load_song_soundbank.md) | `code` | 89 B | audio, spc700 | Song soundbank validation & sample loader: Validates whether a requested instrument soundbank is currently resident in SPC700 RAM (`$7E:0E4B`). If a new soundbank is required, it look... |
 | `$8C:828F` | [`play_music_track`](knowledge/routines/play_music_track.md) | `code` | 77 B | audio, music | Music track dispatcher & playback loader: Top-level music track driver routine. Sets up stereo panning / master volume via APU command `0x1C`, mutes previous track playback via comma... |
-| `$8C:82DC` | [`play_sound_effect_direct`](knowledge/routines/play_sound_effect_direct.md) | `code` | 7 B | audio, widescreen, widescreen.audio | Play Sound Effect (Direct Dispatch): Direct sound effect trigger for samples already resident in SPC700 ARAM: - Stores sound effect ID in parameter register `$0E4F`. - Forwards ... |
+| `$8C:82DC` | [`sub_8C82DC`](knowledge/routines/sub_8C82DC.md) | `code` | 7 B |  | sub_8C82DC: APU sound effect command dispatcher entry point that switches to 16-bit register mode, stores SFX identifier in A to $0E4F, and branches int... |
 | `$8C:82E3` | [`play_sound_effect_with_package`](knowledge/routines/play_sound_effect_with_package.md) | `code` | 58 B | audio | Play Sound Effect (With Soundbank Package Upload): Sound effect player with dynamic soundbank package verification: - Saves sound ID into `$0E4F`. - Looks up required sample package in master... |
 | `$8C:831D` | [`apu_send_sfx_command`](knowledge/routines/apu_send_sfx_command.md) | `code` | 11 B | audio, script | Dispatch SFX Command to APU Port Handshake: Dispatches sound effect playback commands to the SPC700 audio coprocessor: - Loads sound descriptor parameter from `$0E4F` into index regist... |
 | `$8C:8328` | [`audio_resolve_soundbank_package`](knowledge/routines/audio_resolve_soundbank_package.md) | `code` | 58 B | audio, spc700, soundbank | Resolve required soundbank sample package for BGM track or sound effect: Resolves the required sample package (BRR audio chunk) in SPC700 Audio RAM for a given music track or sound effect: - Queries master package... |
@@ -5556,7 +5556,8 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8C:D39D` | [`script_op_b0_call_global_with_args`](knowledge/routines/script_op_b0_call_global_with_args.md) | `code` | 3 B | script-vm, opcode, global, call | Script opcode 0xB0: call global script routine with evaluated arguments: Handler of script opcode 0xB0. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:D3A0` | [`script_op_call_global`](knowledge/routines/script_op_call_global.md) | `code` | 38 B | script-vm | Script opcode 0xa3 — call a global script by 8-bit id: Handler of script opcode 0xA3. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:D3C6` | [`script_op_af_call_with_args`](knowledge/routines/script_op_af_call_with_args.md) | `code` | 3 B | script-vm | Script opcode 0xaf — call with args: Handler of script opcode 0xAF. What it does, why it exists and how scripts use it: the opcode entr... |
-| `$8C:D3C9` | [`script_op_29_call`](knowledge/routines/script_op_29_call.md) | `code` | 52 B | script-vm | Script opcode 0x29 calls a script: This handler reads a packed script pointer and delegates slot allocation, caller linkage, and run-list scheduling to the shared scheduler ca... |
+| `$8C:D3C9` | [`script_op_29_call`](knowledge/routines/script_op_29_call.md) | `code` | 17 B | script-vm | Script opcode 0x29 calls a script: This handler reads a packed script pointer and delegates slot allocation, caller linkage, and run-list scheduling to the shared scheduler ca... |
+| `$8C:D3DA` | [`sub_8CD3DA`](knowledge/routines/sub_8CD3DA.md) | `code` | 35 B |  | sub_8CD3DA: Script thread allocation and attachment helper that allocates a script slot via $8C:CF18, attaches it as child to current entity $7E, increm... |
 | `$8C:D3FD` | [`script_op_b4_start_thread_with_args`](knowledge/routines/script_op_b4_start_thread_with_args.md) | `code` | 3 B | script-vm | Script opcode 0xb4 — start thread with args: Handler of script opcode 0xB4. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:D400` | [`script_op_07_start_thread`](knowledge/routines/script_op_07_start_thread.md) | `code` | 40 B | script-vm | Script opcode 0x07 — start thread: Handler of script opcode 0x07. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:D428` | [`script_op_05_jump_back`](knowledge/routines/script_op_05_jump_back.md) | `code` | 12 B | script-vm | Script opcode 0x05 — jump back: Handler of script opcode 0x05. What it does, why it exists and how scripts use it: the opcode entr... |
@@ -5585,7 +5586,9 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8C:D79D` | [`script_op_17_write_word_immediate`](knowledge/routines/script_op_17_write_word_immediate.md) | `code` | 22 B | script-vm | Script opcode 0x17 writes an immediate word to save memory: The handler reads a 16-bit offset and a 16-bit immediate value, writes the word to `$7E:2258 + offset`, and returns carry set. |
 | `$8C:D7B3` | [`script_op_1a_1e_write_local_word`](knowledge/routines/script_op_1a_1e_write_local_word.md) | `code` | 25 B | script-vm | Script opcodes 0x1a, 0x1e — write local word: The shared handler writes a 16-bit expression result to `active_slot + $0F + u8 byte_offset`. Opcodes `0x1A` and `0x1E` use this routine and... |
 | `$8C:D7CC` | [`script_op_19_1d_write_temp_word`](knowledge/routines/script_op_19_1d_write_temp_word.md) | `code` | 5 B | script-vm | Script opcodes 0x19, 0x1d — write temp word: The shared handler reads a 16-bit offset, evaluates an expression, and writes the resulting word to `$7E:2834 + offset`. Opcodes `0x19` and ... |
-| `$8C:D7D1` | [`script_op_18_1c_write_word`](knowledge/routines/script_op_18_1c_write_word.md) | `code` | 16 B | script-vm | Script opcodes 0x18, 0x1c — write word: The shared handler reads a 16-bit offset, evaluates an expression, and writes the resulting word to `$7E:2258 + offset`. Opcodes `0x18` and ... |
+| `$8C:D7D1` | [`script_op_18_1c_write_word`](knowledge/routines/script_op_18_1c_write_word.md) | `code` | 3 B | script-vm | Script opcodes 0x18, 0x1c — write word: The shared handler reads a 16-bit offset, evaluates an expression, and writes the resulting word to `$7E:2258 + offset`. Opcodes `0x18` and ... |
+| `$8C:D7D4` | [`sub_8CD7D4`](knowledge/routines/sub_8CD7D4.md) | `code` | 7 B |  | sub_8CD7D4: Script bytecode variable write offset adder that consumes a 16-bit inline offset from script stream $82, adds base address in A to determine... |
+| `$8C:D7DB` | [`sub_8CD7DB`](knowledge/routines/sub_8CD7DB.md) | `code` | 6 B |  | sub_8CD7DB: Script expression write execution helper that preserves target RAM address on stack, evaluates following script expression via $8C:EA43, sto... |
 | `$8C:D7E1` | [`tbl_script_opcode_jump_table`](knowledge/routines/tbl_script_opcode_jump_table.md) | `table` | 5 B | script-vm, bytecode, opcodes | Script VM opcode jump vector table (opcodes 0x00..0xFF): Master dispatch jump table for the Secret of Evermore event script virtual machine. Contains 256 16-bit ROM addresses within Bank `$8C` corr... |
 | `$8C:D7E6` | [`script_op_12_16_write_arg_byte`](knowledge/routines/script_op_12_16_write_arg_byte.md) | `code` | 25 B | script-vm | Script opcodes 0x12 and 0x16 write an argument byte: Opcodes `0x12` and `0x16` share this handler. It computes a destination at the active script slot plus `$0F` plus the one-byte operand, eval... |
 | `$8C:D7FF` | [`script_op_11_15_write_temp_byte`](knowledge/routines/script_op_11_15_write_temp_byte.md) | `code` | 5 B | script-vm | Script opcodes 0x11 and 0x15 write a temporary byte: Opcodes `0x11` and `0x15` share this handler. It fetches a 16-bit destination offset, adds it to `$2834`, evaluates an expression, stores th... |
@@ -6104,7 +6107,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $8F — Entity AI, Physics, Collision & Combat Engine
 
-**Coverage:** 482 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 483 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
@@ -6334,7 +6337,8 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8F:A774` | [`particle_emitter_check_priority_and_enqueue`](knowledge/routines/particle_emitter_check_priority_and_enqueue.md) | `code` | 22 B | particle, emitter, priority, enqueue | Evaluate particle emitter priority and enqueue active instance ($8F:A774): Checks emitter priority bit `$80` in `$3C10,X` and compares incoming priority A against current emitter priority `$3C01,X`. If higher or equ... |
 | `$8F:A78A` | [`particle_emitter_bind_entity_coordinates`](knowledge/routines/particle_emitter_bind_entity_coordinates.md) | `code` | 32 B | particle, emitter, entity, coordinates | Bind particle emitter position and orientation to entity coordinates ($8F:A78A): Copies entity position `+$1A,Y` and `+$1C,Y` to emitter record `$3C1C,X` and `$3C1E,X`, copies elevation `+$17,Y` to `$3BFA,X`, copies orien... |
 | `$8F:A7AA` | [`waypoint_set_target_coordinates`](knowledge/routines/waypoint_set_target_coordinates.md) | `code` | 41 B | waypoints, navigation, entities | Waypoint target coordinate scaler and route initiator ($8F:A7AA): Configures a waypoint node (index in DP `$4E`) with world target coordinates. Writes high-precision target pixel coordinates to node fields ... |
-| `$8F:A7D3` | [`entity_child_reposition`](knowledge/routines/entity_child_reposition.md) | `code` | 271 B | entities, physics, child-entities, barrier, coordinates | Synchronize child entity position (shadow, held weapon, aux barrier bubble) to parent: Synchronizes the 3D world coordinates and elevation layer plane of an attached child entity to its host parent: 1. Resolves child pointer fr... |
+| `$8F:A7D3` | [`entity_child_reposition`](knowledge/routines/entity_child_reposition.md) | `code` | 237 B | entities, physics, child-entities, barrier, coordinates | Synchronize child entity position (shadow, held weapon, aux barrier bubble) to parent: Synchronizes the 3D world coordinates and elevation layer plane of an attached child entity to its host parent: 1. Resolves child pointer fr... |
+| `$8F:A8C0` | [`sub_8FA8C0`](knowledge/routines/sub_8FA8C0.md) | `code` | 34 B |  | sub_8FA8C0: Companion dog waypoint navigation update helper that compares current waypoint against target node at $006C,x. If arrived, jumps to $8F:A8E2... |
 | `$8F:A8E2` | [`entity_release_waypoint_node_and_signal`](knowledge/routines/entity_release_waypoint_node_and_signal.md) | `code` | 36 B | companion, waypoint, entity | Detach the current entity from its waypoint node: If the current entity ($4C) holds a waypoint node in +$6C, give it up: when the node carries a signal mask (+$3C1A) it is ORed into the flag... |
 | `$8F:A906` | [`elevation_plane_update_bits_5_4_kept_on`](knowledge/routines/elevation_plane_update_bits_5_4_kept_on.md) | `code` | 14 B | collision, map, elevation, plane, physics | Metatile collision elevation plane extractor and bridge transparency updater: Extracts the 2-bit elevation plane (bits 5..4) from a metatile collision word into Direct Page `$44`. Evaluates bit 13 (always-walkable / co... |
 | `$8F:A914` | [`update_entity_plane`](knowledge/routines/update_entity_plane.md) | `code` | 31 B | maps, elevation | Entity elevation plane updater: Updates an entity's current elevation plane (bits 5..4) when walking onto standard metatiles. Preserves the entity's existing plane when tra... |
@@ -6593,7 +6597,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $90 — Animation VM, Sprites, Projectiles & Tile Animation
 
-**Coverage:** 499 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 503 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
@@ -6648,7 +6652,8 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$90:878B` | [`animation_script_noop_rts_b`](knowledge/routines/animation_script_noop_rts_b.md) | `code` | 1 B | animation, noop, stub | Animation script no-operation subroutine stub B ($90:878B): Bare `RTS` no-operation routine serving as opcode terminator or default hook. |
 | `$90:878C` | [`alchemy_icon_palette_greyout_check`](knowledge/routines/alchemy_icon_palette_greyout_check.md) | `code` | 44 B | ui, ring-menu, animation, palette, alchemy | Ring-menu formula icon disabled palette validator (animation opcode 0x56): Animation opcode `0x56` execution handler for ring menu formula icons. Evaluates whether the player possesses sufficient ingredients by call... |
 | `$90:87B8` | [`BANK90_PAD_87B8`](knowledge/routines/BANK90_PAD_87B8.md) | `padding` | 2 B | unused, padding | Bank $90 alignment padding ($87B8): 2 B alignment padding and unmapped ROM space in Bank $90 ($90:87B8..$90:87B9). |
-| `$90:87BA` | [`melee_weapon_strike_hitbox_offset_and_collision_test`](knowledge/routines/melee_weapon_strike_hitbox_offset_and_collision_test.md) | `code` | 86 B | unverified, rea-partial-read | Calculates weapon swing reach offsets from descriptor tables and tests collision against targets: Low confidence — Calculates weapon swing reach offsets from descriptor tables and tests collision against targets.  > Inferred from a partia... |
+| `$90:87BA` | [`melee_weapon_strike_hitbox_offset_and_collision_test`](knowledge/routines/melee_weapon_strike_hitbox_offset_and_collision_test.md) | `code` | 37 B | unverified, rea-partial-read | Calculates weapon swing reach offsets from descriptor tables and tests collision against targets: Low confidence — Calculates weapon swing reach offsets from descriptor tables and tests collision against targets.  > Inferred from a partia... |
+| `$90:87DF` | [`sub_9087DF`](knowledge/routines/sub_9087DF.md) | `code` | 49 B |  | sub_9087DF: Action animation hitbox strike coordinate resolver and collision probe that adds horizontal offset in A to entity X coordinate, reads frame ... |
 | `$90:8810` | [`entity_trigger_action_animation_sequence`](knowledge/routines/entity_trigger_action_animation_sequence.md) | `code` | 29 B | entity, animation, action, combat | Validate and initiate entity attack / action animation sequence ($90:8810): Entity action animation dispatcher. Calls validation hook `func_8FB8F0` (`$8F:B8F0`). If carry clear, retrieves active entity slot from `<$4... |
 | `$90:882D` | [`animation_script_bind_palette_slot_6`](knowledge/routines/animation_script_bind_palette_slot_6.md) | `code` | 22 B | animation, palette, cgram, script | Bind CGRAM palette slot 6 from animation script stream operand ($90:882D): Reads 16-bit sprite palette index from `[<$5D]`, uploads to CGRAM slot 6 via `func_90CE78` (`$90:CE78`), stores slot index into entity palet... |
 | `$90:8843` | [`BANK90_PAD_8843`](knowledge/routines/BANK90_PAD_8843.md) | `padding` | 23 B | unused, padding | Bank $90 alignment padding ($8843): 23 B alignment padding and unmapped ROM space in Bank $90 ($90:8843..$90:8859). |
@@ -6728,7 +6733,8 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$90:995E` | [`sub_90995E`](knowledge/routines/sub_90995E.md) | `code` | 53 B | code, subroutine, cdl | CDL subroutine ($90:995E): CDL-identified subroutine entry point in ROM at $90:995E. |
 | `$90:9993` | [`sub_909993`](knowledge/routines/sub_909993.md) | `code` | 8 B | code, subroutine, cdl | CDL subroutine ($90:9993): CDL-identified subroutine entry point in ROM at $90:9993. |
 | `$90:999B` | [`sub_90999B`](knowledge/routines/sub_90999B.md) | `code` | 1 B | code, subroutine, cdl | CDL subroutine ($90:999B): CDL-identified subroutine entry point in ROM at $90:999B. |
-| `$90:999C` | [`room_tilemap_layer2_parallax_offset_calc`](knowledge/routines/room_tilemap_layer2_parallax_offset_calc.md) | `code` | 95 B | unverified, rea-partial-read, widescreen, widescreen.streaming | Calculates Layer 2 background parallax scrolling offsets and vertical perspective adjustments: Low confidence — Calculates Layer 2 background parallax scrolling offsets and vertical perspective adjustments.  > Inferred from a partial r... |
+| `$90:999C` | [`room_tilemap_layer2_parallax_offset_calc`](knowledge/routines/room_tilemap_layer2_parallax_offset_calc.md) | `code` | 50 B | unverified, rea-partial-read, widescreen, widescreen.streaming | Calculates Layer 2 background parallax scrolling offsets and vertical perspective adjustments: Low confidence — Calculates Layer 2 background parallax scrolling offsets and vertical perspective adjustments.  > Inferred from a partial r... |
+| `$90:99CE` | [`sub_9099CE`](knowledge/routines/sub_9099CE.md) | `code` | 45 B |  | sub_9099CE: Terrain metatile decompression loop that copies metatile indices from $7F0000 and resolves tile pattern words via pointer $26 into staging V... |
 | `$90:99FB` | [`room_collision_word_fetch_at_pixel_coords`](knowledge/routines/room_collision_word_fetch_at_pixel_coords.md) | `code` | 93 B | unverified, rea-partial-read, widescreen, widescreen.streaming | Reads the 16-bit room collision word at specified pixel coordinates from the active collision matrix: Low confidence — Reads the 16-bit room collision word at specified pixel coordinates from the active collision matrix.  > Inferred from a pa... |
 | `$90:9A58` | [`sub_909A58`](knowledge/routines/sub_909A58.md) | `code` | 41 B | code, subroutine, graphics, dma, vram | Deferred VRAM DMA transfer request enqueue (64-byte block): Graphics VRAM DMA queue enqueue routine writing a deferred 64-byte DMA transfer record into the circular queue buffer at `$7E:013F` indexed ... |
 | `$90:9A81` | [`screen_shake_init_light_profile`](knowledge/routines/screen_shake_init_light_profile.md) | `code` | 23 B | "shake", "screen", "vfx", "profile", reconstructed-c, g1-pass | Configure light screen shake effect parameters ($90:9A81): Initializes light screen shake effect profile. Sets amplitude factors `$7E:22FA = $10` and `$7E:22FB = $10`, and clears displacement offsets... |
@@ -7064,7 +7070,9 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$90:D6D2` | [`projectile_cluster_set_profile_half_max`](knowledge/routines/projectile_cluster_set_profile_half_max.md) | `code` | 17 B | projectile, cluster, tracking, profile | Configure projectile cluster tracking profile half-maximum parameters ($90:D6D2): Configures projectile cluster tracking profile: sets maximum tracking distance `$0F54 = $7FFF`, clears tracking velocity `$0F56 = 0`, and se... |
 | `$90:D6E3` | [`projectile_cluster_set_rate_negative_16`](knowledge/routines/projectile_cluster_set_rate_negative_16.md) | `code` | 8 B | projectile, cluster, rate, tracking | Set projectile cluster tracking rate parameter to -16 ($90:D6E3): Sets projectile cluster tracking rate parameter `$0F58 = -16` (`$FFF0`) and returns `SEC`. |
 | `$90:D6EB` | [`projectile_cluster_inc_decay_timer_if_even`](knowledge/routines/projectile_cluster_inc_decay_timer_if_even.md) | `code` | 14 B | projectile, particle, decay, timer | Increment cluster particle decay counter on alternate coordinate ticks ($90:D6EB): If coordinate `$0B19` bit 0 is clear, increments cluster particle decay counter `+$ECF,X` before branching to update loop. |
-| `$90:D6F9` | [`projectile_particle_decay_timer_tick`](knowledge/routines/projectile_particle_decay_timer_tick.md) | `code` | 57 B | projectile, particle, decay, timer | Step decay timer and position calculation for projectile particles ($90:D6F9): Steps decay timer for projectile particle cluster. Decrements decay counter `+$ED5,X`, adds velocity delta to `+$ED0,X`, clamps minimum deca... |
+| `$90:D6F9` | [`projectile_particle_decay_timer_tick`](knowledge/routines/projectile_particle_decay_timer_tick.md) | `code` | 2 B | projectile, particle, decay, timer | Step decay timer and position calculation for projectile particles ($90:D6F9): Steps decay timer for projectile particle cluster. Decrements decay counter `+$ED5,X`, adds velocity delta to `+$ED0,X`, clamps minimum deca... |
+| `$90:D6FB` | [`sub_90D6FB`](knowledge/routines/sub_90D6FB.md) | `code` | 49 B |  | sub_90D6FB: Projectile cluster particle physics decay and bounce tick loop that decrements decay timers at $0ED5, integrates position offsets at $0ED0, ... |
+| `$90:D72C` | [`BANK90_PAD_D72C`](knowledge/routines/BANK90_PAD_D72C.md) | `padding` | 6 B | unused, padding | Bank $90 alignment padding ($D72C): 6 B alignment padding and unmapped ROM space in Bank $90 ($90:D72C..$90:D731). |
 | `$90:D732` | [`projectile_particle_frame_tick_or_expire`](knowledge/routines/projectile_particle_frame_tick_or_expire.md) | `code` | 17 B | projectile, particle, timer, decay | Step projectile particle decay or expire slot when timer elapses ($90:D732): Steps particle cluster decay. Checks controller pause state `$0100`: if paused, jumps directly to updater `FUN_90d749` (`$90:D749`). Otherwi... |
 | `$90:D743` | [`projectile_cluster_clear_slot`](knowledge/routines/projectile_cluster_clear_slot.md) | `code` | 6 B | projectile, cluster, slot, dealloc | Deactivate projectile cluster slot and clear control word ($90:D743): Deactivates projectile cluster slot by clearing slot control word `$0ECA,X = 0`, returning with `CLC`. |
 | `$90:D749` | [`effect_sprite_draw`](knowledge/routines/effect_sprite_draw.md) | `code` | 130 B | sprites, effect | Draw an effect sprite channel over an entity: Draws one short-lived effect over an entity during combat. |
