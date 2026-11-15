@@ -9,8 +9,9 @@
 - A working pipeline with one compiler (Calypsi 5.18): `tools/c-to-rom/` builds the vanilla ROM
   with bound C routines in banks `$F8–$FB`, a per-routine check (G1) and a 2:20 reference
   (`intro-2m20.evsmv`).
-- 70 routines are exact C (v0.399.32): each leaves the same WRAM, registers and flags as its asm on every
-  sampled and fuzzed entry state (Gate G1 verified). The ROM with them plays the intro and attract loop.
+- 289 routines are exact C (v0.399.51): each leaves the same WRAM, registers and flags as its asm on every
+  sampled and fuzzed entry state (Gate G1 verified). All 291 valid bindable routines called during the 8,414-frame
+  reference (intro-2m20.evsmv) are 100% bound. The ROM with them boots and plays through the intro and attract loop.
 - The remaining C files in `reconstructed-c/` are descriptions or in-progress lifts: routines that
   call functions or globals not yet bound or whose interfaces use abstract parameter signatures
   instead of direct 65816 CPU registers and direct page states.

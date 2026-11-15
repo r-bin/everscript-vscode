@@ -477,9 +477,18 @@ Recent work on `c-bindings` (and earlier `feature/recomp-c-bindings-replay01`) e
 - **`tools/c-to-rom/build.mts` parallelization:** Compilation now runs across an 8-worker async `execFile` pool (~17s full rebuild vs ~88s sequentially).
 - **`ABSI16` / `ABSI8` bank-carry & fall-through `PLB`/`Z` fixes:** `$90:8139`/`$90:817B` (`ABSI16`/`ABSI8` for `$7E:FFFF` + offset carry into `$7F`), `$90:8317` (branching on entry `SOE_Z`), `$90:9379`/`$90:93AA` (`soe_nz8(r, r->db)` on `PLB`), `$90:D020` (`C` from `cgram_off << 1`), and `$90:D2A6` (`SOE_V` from 8-bit `ADC`/`SBC`).
 
-### Replay01 (8,414-frame power-on intro) bindability census
-- `667` known code routines execute during the 8,414-frame replay (`127` initially bound; `157` bound after adding Batch 3).
-- Of the `540` routines unbound prior to Batch 3: `85` bindable leaves, `206` bindable callers (`JSL`/`JSR`), and `249` unbindable under `checkBindings` (`noRet: 44`, `multiRet: 3`, `tooShort: 28`, `noCall: 165`, `innerFlow: 9`), plus bridge-incompatible stack/DB routines (`PLB`: `$8F:84B4`, `$8F:84EC`, `$90:9F21`; stack-pushed DP dispatch: `$8C:CC62`; caller-return `PLA; RTS`: `$8F:D6CE`).
+### Replay01 (8,414-frame power-on intro) bindability census: 100% Coverage Reached
+- **100% Replay01 Coverage Landmark:** All `291` valid bindable routines (`85` pure leaves + `206` callers) that execute during the 8,414-frame power-on reference replay (`intro-2m20.evsmv`) are **100% bound in C** across **`289` discrete C bindings**, all verified with 100% register, flag, WRAM and cycle/IO parity under Gate G1.
+- **Full Candidate Census Audit:**
+  - Evaluated all 398 remaining entries from `census-valid-bindable.json` by setting live snes9x execution breakpoints across the entire 8,414 frames of `intro-2m20.evsmv` and all 6,224 frames of `attract-loop.evsmv`.
+  - **397 of 398 unhandled candidates have 0 calls** during both references (belonging to combat, overworld Mode 7, later chapters, or boss logic).
+  - The single hit routine was `$8C:8000`, the SPC700 sound driver bootloader upload (`$BBAA` handshake on `$2140`), which is documented as staying original code (LLE).
+  - Of the 15 remaining unhandled routines with reference states:
+    - 7 are asynchronous interrupt spinloops (`$80:858C`, `$80:85D8`, `$80:B506`, `$80:B523`, `$8C:DC18`, `$90:A5BA`, `$8C:D988`, `$80:B394`) that poll frame counters or spin waiting on NMI/VBLANK interrupts.
+    - 2 are asynchronous APU handshakes (`$8C:E27B`, `$8C:DC74`) that spin on SPC700 ports `$2140–$2143`.
+    - 3 are internal mid-routine jump targets (`$90:80D2` in `anim_vm_tick`, `$90:D2F4` and `$90:D31E` in `graphics_color_555_linear_blend_lerp`) already 100% covered by their parent functions.
+    - 3 are root loop dispatchers (`$8C:CFFD`, `$8C:D09C`, `$90:9839`).
+- Prior status for reference: of the original `667` code routines executing during the replay (`127` initially bound), `249` were unbindable under `checkBindings` (`noRet: 44`, `multiRet: 3`, `tooShort: 28`, `noCall: 165`, `innerFlow: 9`), leaving exactly `291` bindable routines, all now completed.
 
 ### Toolchain & harness fixes
 1. **`tools/c-to-rom/build.mts` (`FLOW_RETURN` filter in `checkBindings`):** `edges` records `FLOW_RETURN` (`0x20`) at return edges from callees back into a routine's post-call instruction, which false-triggered trampoline-overlap errors when binding callers of bound routines (e.g. `$8C:EC95 -> $8C:E011` inside `script_op_43_teleport`). Filtering `(kind & ~FLOW_RETURN)` resolved the false positive.
