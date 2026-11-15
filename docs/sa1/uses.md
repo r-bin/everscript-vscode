@@ -11,6 +11,9 @@ an *(estimate)*.
 How public SA-1 hacks of other games use the chip, and what that changes in this list (C2 as a whole-WRAM remap,
 the SA-1 as master CPU, a speed cap): [other-hacks.md](other-hacks.md) §4.
 
+A second game on the same board (Secret of Mana in the free blocks, Start switches the game, SNV/SIV and BMAPS
+per game): [../combo/README.md](../combo/README.md), a separate track that leaves this image as it is.
+
 ---
 
 ## 1. What the SA-1 gives, and the catch
