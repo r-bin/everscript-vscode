@@ -12,3 +12,4 @@ evidence: ["disasm: `bit #$FFF0 : bne $8F9E43 : sta $0064,y : rts` at $8F:9E3B",
 ---
 
 Companion movement helper alternate entry point that tests the accumulator against mask `$FFF0` and writes it to entity threshold `$0064,Y` before returning.
+

@@ -12,3 +12,4 @@ evidence: ["disasm: `ldy $4c : cpy #$4e89 : bcs $8CDAB2 : lda $002A,y : beq $8CD
 ---
 
 Calculates the facing angle towards a target entity or evaluates a jitter offset angle via `$8F:AA82`, returning with Carry set on completion.
+

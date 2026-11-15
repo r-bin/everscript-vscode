@@ -1,7 +1,7 @@
 ---
 addr: 8FC780
-size: 164
-end: 8FC823
+size: 68
+end: 8FC7C3
 kind: code
 category: 🧠
 name: sprite_depth_against_the_canopy

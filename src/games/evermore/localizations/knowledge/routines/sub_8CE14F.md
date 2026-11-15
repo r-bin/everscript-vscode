@@ -12,3 +12,4 @@ evidence: ["disasm: `tax : jsl $908124 : sec : rts` at $8C:E14F", "c: G1 passed 
 ---
 
 Script VM coordinate transformation bridge that moves accumulator to index register X, delegates to `$90:8124`, sets the carry flag, and returns via RTS.
+

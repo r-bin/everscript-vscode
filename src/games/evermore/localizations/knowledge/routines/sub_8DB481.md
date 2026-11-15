@@ -12,3 +12,4 @@ evidence: ["disasm: `dey : beq $8DB48F : inx : rep #$20 : asl a : sep #$20 : adc
 ---
 
 Arithmetic polynomial loop that iterates up to Y times, shifting accumulator A left by 1 bit in 16-bit mode, advancing index X, and adding the indexed memory byte with Carry.
+

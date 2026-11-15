@@ -3,7 +3,7 @@
 ```json
 {
   "summary": {
-    "total_entries": 7117,
+    "total_entries": 7129,
     "total_documented_bytes": 3237090,
     "banks_covered": 97,
     "architecture": "3 MB (24 Mbit) HiROM ($00 vectors/header mirror, $80..$AF FastROM, $C0..$EF Data)"
@@ -265,7 +265,7 @@
         "0x8EFFFF"
       ],
       "name": "Character Database, Ring Menu & Shop System",
-      "routines": 203,
+      "routines": 204,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -275,7 +275,7 @@
         "0x8FFFFF"
       ],
       "name": "Entity AI, Physics, Collision & Combat Engine",
-      "routines": 470,
+      "routines": 481,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -5888,7 +5888,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $8E — Character Database, Ring Menu & Shop System
 
-**Coverage:** 203 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 204 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
@@ -5960,7 +5960,8 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8E:99D0` | [`data_8E99D0`](knowledge/routines/data_8E99D0.md) | `data` | 2 B | data, cdl | CDL data block ($8E:99D0): CDL-identified data block in ROM at $8E:99D0. |
 | `$8E:99D2` | [`calc_equipped_armor_defense`](knowledge/routines/calc_equipped_armor_defense.md) | `code` | 93 B | ui, stats, armor, inventory | Calculate equipped armor physical and magic defense sums: Iterates through character equipment slots (helmets/collars, vests, bracers, accessories): 1. Verifies equipped items against inventory bitm... |
 | `$8E:9A2F` | [`ring_menu_usable_alchemical_formula_filter`](knowledge/routines/ring_menu_usable_alchemical_formula_filter.md) | `code` | 87 B | unverified, rea-partial-read | Scans learned formula bitfields and populates eligible spell entries into the Alchemy Ring Menu: Low confidence — Scans learned formula bitfields and populates eligible spell entries into the Alchemy Ring Menu.  > Inferred from a partial... |
-| `$8E:9A86` | [`init_equipment_screen_slots`](knowledge/routines/init_equipment_screen_slots.md) | `code` | 144 B | ui, ring-menu, equipment, reconstructed-c, g1-pass | Initialize UI equipment selection slots ($7E:0814..$081A): Initializes the 4 equipment sub-ring category slots in WRAM: - `$7E:0814 = 0x16`: Helmets / Collars - `$7E:0816 = 0x1A`: Body Armor / Vests ... |
+| `$8E:9A86` | [`init_equipment_screen_slots`](knowledge/routines/init_equipment_screen_slots.md) | `code` | 61 B | ui, ring-menu, equipment, reconstructed-c, g1-pass | Initialize UI equipment selection slots ($7E:0814..$081A): Initializes the 4 equipment sub-ring category slots in WRAM: - `$7E:0814 = 0x16`: Helmets / Collars - `$7E:0816 = 0x1A`: Body Armor / Vests ... |
+| `$8E:9AC3` | [`sub_8E9AC3`](knowledge/routines/sub_8E9AC3.md) | `code` | 83 B |  | sub_8E9AC3: Audio queue initialization and channel assignment routine that scans audio table in WRAM `$7E0000+X`, assigns queue entry `$0020` or `$0026`... |
 | `$8E:9B16` | [`sub_8E9B16`](knowledge/routines/sub_8E9B16.md) | `code` | 36 B | code, subroutine, audio, sound, wram | Audio table linear scan and counter clamp: Sound subsystem helper that scans entries in WRAM `$7E0000+X` until a non-zero value or index `$2343` is reached, increments counter `$0834`... |
 | `$8E:9B3A` | [`alchemy_menu_populate_ingredient_catalog`](knowledge/routines/alchemy_menu_populate_ingredient_catalog.md) | `code` | 53 B | alchemy, menu, inventory | Alchemy menu ingredient catalog list builder ($8E:9B3A): Constructs the active alchemy formula ingredient selection list for ring menus. Scans 9 inventory ingredient entries at `$0AD2`, indexing de... |
 | `$8E:9B6F` | [`alchemy_menu_populate_rare_items`](knowledge/routines/alchemy_menu_populate_rare_items.md) | `code` | 82 B | inventory, menu, quests | Rare and key item ring inventory list builder ($8E:9B6F): Populates the rare and key item ring inventory display buffer at `$07C8`. Queries completed quest milestones (`$8C:C3F8`) and opened chests ... |
@@ -6098,7 +6099,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $8F — Entity AI, Physics, Collision & Combat Engine
 
-**Coverage:** 470 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 481 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
@@ -6315,7 +6316,14 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8F:A3D4` | [`sub_8FA3D4`](knowledge/routines/sub_8FA3D4.md) | `code` | 4 B | code, subroutine, cdl | CDL subroutine ($8F:A3D4): CDL-identified subroutine entry point in ROM at $8F:A3D4. |
 | `$8F:A3D8` | [`SHARED_JUMP_TABLE_OF_AND`](knowledge/routines/SHARED_JUMP_TABLE_OF_AND.md) | `table` | 32 B | table | Shared jump table of $8F:9F46 and $8F:9ECA: 16 words. jmp ($A3D8,x) at $8F:9F46 uses all 16; jmp ($A3E8,x) at $8F:9ECA starts at entry 8. The CDL had only seen entries 0-7, and an 8-en... |
 | `$8F:A3F8` | [`TABLE_READ_RIGHT_AFTER_THE_DISPATCH`](knowledge/routines/TABLE_READ_RIGHT_AFTER_THE_DISPATCH.md) | `table` | 96 B | table | Table read right after the $8F:9F46 dispatch: lda $8FA3F8,x at $8F:9F4B; ends the jump table before it; meaning unknown. |
-| `$8F:A458` | [`companion_dog_pathfinding_elevation_step_solver`](knowledge/routines/companion_dog_pathfinding_elevation_step_solver.md) | `code` | 715 B | dog, ai, companion, pathfinding, elevation, physics | Companion dog pathfinding and terrain elevation traversal solver ($8F:A458): # companion_dog_pathfinding_elevation_step_solver  Companion dog AI pathfinding solver for terrain elevation and cliff boundaries. Tests adj... |
+| `$8F:A458` | [`companion_dog_pathfinding_elevation_step_solver`](knowledge/routines/companion_dog_pathfinding_elevation_step_solver.md) | `code` | 16 B | dog, ai, companion, pathfinding, elevation, physics | Companion dog pathfinding and terrain elevation traversal solver ($8F:A458): # companion_dog_pathfinding_elevation_step_solver  Companion dog AI pathfinding solver for terrain elevation and cliff boundaries. Tests adj... |
+| `$8F:A468` | [`sub_8FA468`](knowledge/routines/sub_8FA468.md) | `code` | 7 B |  | sub_8FA468: Metatile collision probe entry point that decrements tile X coordinate `$66`, decrements tile Y in accumulator A, stores it to `$67`, and br... |
+| `$8F:A46F` | [`BANK8F_PAD_A46F`](knowledge/routines/BANK8F_PAD_A46F.md) | `padding` | 2 B | unused, padding | Bank $8F alignment padding ($A46F): 2 B alignment padding and unmapped ROM space in Bank $8F ($8F:A46F..$8F:A470). |
+| `$8F:A471` | [`sub_8FA471`](knowledge/routines/sub_8FA471.md) | `code` | 5 B |  | sub_8FA471: Metatile collision probe entry point that increments tile Y in accumulator A, stores it to `$67`, and branches into `$8F:A47F`. |
+| `$8F:A476` | [`sub_8FA476`](knowledge/routines/sub_8FA476.md) | `code` | 4 B |  | sub_8FA476: Metatile collision probe entry point that increments tile X coordinate `$66` and branches into `$8F:A47F`. |
+| `$8F:A47A` | [`BANK8F_PAD_A47A`](knowledge/routines/BANK8F_PAD_A47A.md) | `padding` | 5 B | unused, padding | Bank $8F alignment padding ($A47A): 5 B alignment padding and unmapped ROM space in Bank $8F ($8F:A47A..$8F:A47E). |
+| `$8F:A47F` | [`sub_8FA47F`](knowledge/routines/sub_8FA47F.md) | `code` | 61 B |  | sub_8FA47F: Computes map metatile collision and elevation flags at tile position `($66, A)`: multiplies tile row index by map width stride (`$08EE`), in... |
+| `$8F:A4BC` | [`BANK8F_PAD_A4BC`](knowledge/routines/BANK8F_PAD_A4BC.md) | `padding` | 615 B | unused, padding | Bank $8F alignment padding ($A4BC): 615 B alignment padding and unmapped ROM space in Bank $8F ($8F:A4BC..$8F:A722). |
 | `$8F:A723` | [`companion_waypoint_history_poll`](knowledge/routines/companion_waypoint_history_poll.md) | `code` | 81 B | companion, dog, navigation, proximity, arrival | Evaluates companion distance to leader; flags arrival if within +-2px proximity: Checks spatial distance between the companion and the leader entity. If within $\pm 2$ pixels in both horizontal and vertical axes, flags ar... |
 | `$8F:A774` | [`particle_emitter_check_priority_and_enqueue`](knowledge/routines/particle_emitter_check_priority_and_enqueue.md) | `code` | 22 B | particle, emitter, priority, enqueue | Evaluate particle emitter priority and enqueue active instance ($8F:A774): Checks emitter priority bit `$80` in `$3C10,X` and compares incoming priority A against current emitter priority `$3C01,X`. If higher or equ... |
 | `$8F:A78A` | [`particle_emitter_bind_entity_coordinates`](knowledge/routines/particle_emitter_bind_entity_coordinates.md) | `code` | 32 B | particle, emitter, entity, coordinates | Bind particle emitter position and orientation to entity coordinates ($8F:A78A): Copies entity position `+$1A,Y` and `+$1C,Y` to emitter record `$3C1C,X` and `$3C1E,X`, copies elevation `+$17,Y` to `$3BFA,X`, copies orien... |
@@ -6336,7 +6344,9 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8F:AA51` | [`direction_index_from_signed_byte_pair`](knowledge/routines/direction_index_from_signed_byte_pair.md) | `code` | 49 B | direction, math, ai | Turn two signed bytes into an 8-way direction index (0..14, even): Takes a 16-bit value holding two signed bytes (H high, L low) and returns an even direction index 0..14 in A, going around a circle in steps... |
 | `$8F:AA82` | [`entity_dispatch_waypoint_movement_with_collision_check`](knowledge/routines/entity_dispatch_waypoint_movement_with_collision_check.md) | `code` | 81 B | waypoints, navigation, entities, collision | Entity waypoint navigation dispatcher with collision verification ($8F:AA82): Dispatches entity `Y` along a waypoint path toward target coordinates `$46`/`$48`. Checks target terrain collision via `tile_property_at_pix... |
 | `$8F:AAD3` | [`entity_dispatch_direct_waypoint_movement`](knowledge/routines/entity_dispatch_direct_waypoint_movement.md) | `code` | 56 B | waypoints, navigation, entities | Entity direct/unconstrained waypoint navigation dispatcher ($8F:AAD3): Dispatches an entity along an unconstrained or airborne waypoint route without collision checking. Clears elevation constraint `$44`, alloca... |
-| `$8F:AB0B` | [`companion_pathfinding_breadcrumb_queue_pop`](knowledge/routines/companion_pathfinding_breadcrumb_queue_pop.md) | `code` | 99 B | unverified, rea-partial-read | Pulls historical path breadcrumbs recorded by the Boy for dog companion navigation tracking: Low confidence — Pulls historical path breadcrumbs recorded by the Boy for dog companion navigation tracking.  > Inferred from a partial rea... |
+| `$8F:AB0B` | [`sub_8FAB0B`](knowledge/routines/sub_8FAB0B.md) | `code` | 3 B |  | sub_8FAB0B: Companion breadcrumb distance check entry point that clears accumulator A to 0 and branches into the breadcrumb traversal loop at `$8F:AB20`... |
+| `$8F:AB0E` | [`BANK8F_PAD_AB0E`](knowledge/routines/BANK8F_PAD_AB0E.md) | `padding` | 16 B | unused, padding | Bank $8F alignment padding ($AB0E): 16 B alignment padding and unmapped ROM space in Bank $8F ($8F:AB0E..$8F:AB1D). |
+| `$8F:AB1E` | [`sub_8FAB1E`](knowledge/routines/sub_8FAB1E.md) | `code` | 80 B |  | sub_8FAB1E: Traverses companion breadcrumb coordinate history ring buffer starting at pointer `$4E`, accumulating step distances between consecutive way... |
 | `$8F:AB6E` | [`calc_8way_direction_with_random_jitter`](knowledge/routines/calc_8way_direction_with_random_jitter.md) | `code` | 36 B | ai, combat, movement, rng | Target directional heading calculator with random angular jitter ($8F:AB6E): Calculates an 8-way directional heading from entity `Y` toward target coordinate `$46`/`$48` with pseudo-random angular jitter. Uses `$8F:AA... |
 | `$8F:AB92` | [`companion_idle_sniff_and_scratch_random_dice_roll`](knowledge/routines/companion_idle_sniff_and_scratch_random_dice_roll.md) | `code` | 91 B | reconstructed-c, g1-pass | Directional steering and wander heading updater with RNG decimation: Directional steering and wander heading updater with RNG decimation.  Updates companion/entity heading and directional wandering: 1. Reads a... |
 | `$8F:ABED` | [`companion_leash_distance_and_stuck_recovery_tick`](knowledge/routines/companion_leash_distance_and_stuck_recovery_tick.md) | `code` | 118 B | unverified, rea-partial-read | Monitors dog companion leash distance and triggers recovery teleport if obstructed or separated: Low confidence — Monitors dog companion leash distance and triggers recovery teleport if obstructed or separated.  > Inferred from a partial... |
@@ -6495,7 +6505,9 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8F:C75A` | [`entity_check_canopy_sprite_depth`](knowledge/routines/entity_check_canopy_sprite_depth.md) | `code` | 7 B | entity, layer, canopy, depth | Evaluate whether active entity is rendered in front of canopy layer ($8F:C75A): Evaluates whether active entity `<$4C>` is positioned in front of or behind the overhead canopy layer via `Sprite_in_front_of_canopy_bit_12_... |
 | `$8F:C761` | [`entity_trigger_spell_aoe_if_visible`](knowledge/routines/entity_trigger_spell_aoe_if_visible.md) | `code` | 18 B | spell, combat, aoe, entity | Trigger spell multi-target AoE if target entity is visible ($8F:C761): Checks entity visibility and sprite depth via `entity_sprite_depth` (`$8F:C773`). If non-zero, loads spell target slot `+$86,Y` into X and i... |
 | `$8F:C773` | [`entity_sprite_depth`](knowledge/routines/entity_sprite_depth.md) | `code` | 13 B | entity, sprite, collision, widescreen, widescreen.oam | Pick a character's sprite priority from the tile under it: Runs every frame for each drawn character and decides how it layers with the room's scenery, from the collision word of the tile it stands o... |
-| `$8F:C780` | [`sprite_depth_against_the_canopy`](knowledge/routines/sprite_depth_against_the_canopy.md) | `code` | 164 B | graphics | Sprite depth against the canopy: Sprite depth against the canopy. |
+| `$8F:C780` | [`sprite_depth_against_the_canopy`](knowledge/routines/sprite_depth_against_the_canopy.md) | `code` | 68 B | graphics | Sprite depth against the canopy: Sprite depth against the canopy. |
+| `$8F:C7C4` | [`sub_8FC7C4`](knowledge/routines/sub_8FC7C4.md) | `code` | 60 B |  | sub_8FC7C4: Calculates screen-relative entity sprite projection coordinates and bounding box clipping relative to camera origin `($59, $5B)`: sets up fl... |
+| `$8F:C800` | [`BANK8F_PAD_C800`](knowledge/routines/BANK8F_PAD_C800.md) | `padding` | 36 B | unused, padding | Bank $8F alignment padding ($C800): 36 B alignment padding and unmapped ROM space in Bank $8F ($8F:C800..$8F:C823). |
 | `$8F:C824` | [`spell_screen_projection_with_elevation`](knowledge/routines/spell_screen_projection_with_elevation.md) | `code` | 40 B | combat, alchemy, math, projection | Project 3D world coordinates with isometric Z elevation to screen space: Transforms a projectile or spell particle from 3D world space $(X, Y, Z)$ into 2D viewport coordinates. Inverts the Z elevation coordinate (... |
 | `$8F:C84C` | [`spell_hit_target_bounding_box_test`](knowledge/routines/spell_hit_target_bounding_box_test.md) | `code` | 32 B | combat, alchemy, math | Direct entity-relative screen coordinate transformer without child offsets: Calculates target entity root position on screen for direct spell targeting (bypassing secondary child offsets). Uses the same isometric ele... |
 | `$8F:C86C` | [`spell_multi_target_aoe_dispatcher`](knowledge/routines/spell_multi_target_aoe_dispatcher.md) | `code` | 114 B | combat, alchemy, oam, particles | Multi-target spell hit segment processor and particle compositor: Walks an array of 14-byte spell hit segment descriptors, applying signed offsets in screen space, filtering out particles hidden beneath gro... |

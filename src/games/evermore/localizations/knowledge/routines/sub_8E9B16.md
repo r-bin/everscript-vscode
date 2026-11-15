@@ -12,3 +12,4 @@ evidence: ["disasm: `lda $7E0000,x : bne $8E9B24 : cpx #$2343 : beq $8E9B2D : in
 ---
 
 Sound subsystem helper that scans entries in WRAM `$7E0000+X` until a non-zero value or index `$2343` is reached, increments counter `$0834`, and clamps `$0836` to zero if the decremented counter exceeds it.
+

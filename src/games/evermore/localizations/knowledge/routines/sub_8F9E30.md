@@ -12,3 +12,4 @@ evidence: ["disasm: `sta $0022,y : lda $12 : cmp $14 : bmi $8F9E3B : lda $14 : b
 ---
 
 Companion movement helper that records entity coordinate `$0022,Y`, compares direct page `$12` and `$14`, and updates threshold `$0064,Y` if `$14` is below the high mask `$FFF0`.
+
