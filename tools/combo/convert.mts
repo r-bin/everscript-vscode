@@ -124,6 +124,7 @@ export function convert(evSource: Uint8Array, manaSource: Uint8Array, work: stri
     // The game facts the code and the hooks rely on (docs/combo/poc.md): fail on any other ROM.
     expect(ev, 0x808020, [0xA9, 0x8F, 0x8D, 0x00, 0x21, 0x18, 0xFB], 'Evermore reset entry');
     expect(ev, 0x80848F, [0xAD, 0x18, 0x42, 0x80, 0x0C], 'Evermore pad-1 read');
+    expect(ev, 0x808F85, [0xA5, 0xD9, 0xD0, 0x01, 0x6B], 'Evermore frame yield');
     expect(ev, 0x80B3B0, [0xE2, 0x20, 0xA9, 0x03], 'Evermore scene set-up 1');
     expect(ev, 0x8EE08B, [0xA9, 0x8F, 0x00, 0x8D, 0x00, 0x21], 'Evermore scene set-up 2');
     expect(ev, 0x8CE249, [0xAD, 0x80, 0x0F, 0x8F, 0x2C, 0x21, 0x00], 'Evermore screen shadows');
@@ -157,7 +158,7 @@ export function convert(evSource: Uint8Array, manaSource: Uint8Array, work: stri
     image.set(JML(BOOT).bytes, loRomFile(COLD));
     // 5. combo code
     const { code, labels } = assemble(ev, mana, work);
-    const need = ['combo_reset', 'evermore_reset_entry', 'evermore_pad', 'mana_pad', 'mana_nmi', 'ev_scene1_hook', 'ev_scene2_hook', 'ma_title_hook', 'ma_list_hook', 'mana_field_pad', 'ma_reset_hook', 'ma_bg_hook', 'ma_screen_hook'];
+    const need = ['combo_reset', 'combo_back', 'evermore_reset_entry', 'evermore_pad', 'ev_frame_hook', 'mana_pad', 'mana_nmi', 'ev_scene1_hook', 'ev_scene2_hook', 'ma_title_hook', 'ma_list_hook', 'mana_field_pad', 'ma_reset_hook', 'ma_bg_hook', 'ma_screen_hook'];
     for (const n of need) if (labels[n] === undefined) throw new Error(`combo.asm has no label ${n}`);
     if (loRomFile(CODE) + code.length > loRomFile(0xB8FFFF) + 1) throw new Error('combo code does not fit in bank $B8');
     image.set(code, loRomFile(CODE));
@@ -175,6 +176,7 @@ export function convert(evSource: Uint8Array, manaSource: Uint8Array, work: stri
     image.set(vec, VECTORS);
     // 6. hooks into Evermore's LoROM code copy (Mana's is installed at run time by mana_nmi)
     image.set(JML(labels.evermore_pad).bytes, loRomFile(0x80848F));
+    image.set(JML(labels.ev_frame_hook).bytes, loRomFile(0x808F85));
     image.set(JML(labels.ev_scene1_hook).bytes, loRomFile(0x80B3B0));
     image.set(JML(labels.ev_scene2_hook).bytes, loRomFile(0x8EE08B));
     // hook into Mana's ROM (its $C0 view is block 1); its WRAM hooks are installed at run time by mana_nmi

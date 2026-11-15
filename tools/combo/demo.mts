@@ -1,7 +1,7 @@
 // Play the combo POC in MesenCE and prove the switch on screen (docs/combo/poc.md §5): Evermore runs a stored
 // playback, Start goes to Mana (cold boot), Mana runs its playback to its first map, Start goes back to Evermore
 // (resumed), and back to Mana again. Screenshots and a report go to out/combo/demo/.
-//   npm run combo:demo -- [--ev-movie file] [--mana-movie file] [--ev-at 4200] [--mana-at 10050] [--then 600]
+//   npm run combo:demo -- [--ev-movie file] [--mana-movie file] [--ev-at 4200] [--mana-at 10000] [--then 130]
 // The playbacks press Start for the games themselves, so the run sets the combo's test byte ($00:301E, bit 0:
 // Start goes to the game) and asks for each switch with bit 1, on the frame a player would press Start.
 import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
@@ -20,7 +20,7 @@ const args = process.argv.slice(2);
 const opt = (name: string, def: string) => { const i = args.indexOf(`--${name}`); return i < 0 ? def : args[i + 1]; };
 const MOVIES = join(homedir(), 'Library/Application Support/Code/User/globalStorage/rbin.everscript/tas-recordings');
 const OUT = join(REPO, 'out', 'combo', 'demo');
-const evAt = Number(opt('ev-at', '4200')), manaAt = Number(opt('mana-at', '10050')), then = Number(opt('then', '600'));
+const evAt = Number(opt('ev-at', '4200')), manaAt = Number(opt('mana-at', '10000')), then = Number(opt('then', '130'));
 
 const sha = (b: Uint8Array) => createHash('sha256').update(b.length % 1024 === 512 ? b.subarray(512) : b).digest('hex');
 /** The longest playback recorded on this ROM from power-on, or the one named. */
@@ -61,7 +61,7 @@ local function shot(tag)
 end
 local function rooms() return string.format("evermore room $%02X, mana map $%02X", emu.read(0x0ADB, wram, false), emu.read(0x00DC, wram, false)) end
 emu.addMemoryCallback(function() switching = true; print(string.format("EVENT f=%d switch from %s, %s", f, active() == 1 and "evermore" or "mana", rooms())) end, emu.callbackType.exec, ${L.combo_switch}, ${L.combo_switch})
-emu.addMemoryCallback(function() if switching then switching = false; since = 0; print(string.format("EVENT f=%d resumed %s", f, active() == 1 and "evermore" or "mana")) end end, emu.callbackType.exec, ${L.pad_filter_pass}, ${L.pad_filter_pass})
+emu.addMemoryCallback(function() if switching then switching = false; since = 0; print(string.format("EVENT f=%d resumed %s", f, active() == 1 and "evermore" or "mana")) end end, emu.callbackType.exec, ${L.combo_back}, ${L.combo_back})
 emu.addMemoryCallback(function() switching = false; since = 0; print(string.format("EVENT f=%d mana cold boot", f)) end, emu.callbackType.exec, 0x008004, 0x008004)
 emu.addEventCallback(function()
   local g = active(); local pads = g == 1 and evPads or maPads
