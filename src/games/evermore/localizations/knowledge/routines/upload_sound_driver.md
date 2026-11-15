@@ -14,3 +14,9 @@ Turns NMI and HDMA off and hands the driver, read from `$81:8000`, to the SPC700
 (`$8C:810E`). The time it takes depends on how fast the SPC700 answers, so an emulator or recomp whose APU
 runs differently boots the game at a different moment; the SecretOfEvermoreRecomp repository's
 docs/imperfections/apu-port-handshake.md measures it.
+
+What it uploads is only 214 bytes: a loader that keeps answering the boot ROM's protocol (the SPC700 then runs
+in direct page, PC around `$0009-$0012`). The driver itself and the first package follow with
+`$8C:801F` (spc700_driver_boot_and_music_init), as power-on does a few hundred frames later. Calling this
+routine alone leaves no working driver: the combo POC found that out when its resumed Evermore did not
+answer command `$0E` (docs/combo/poc.md, MesenCE, 2026-11-15).

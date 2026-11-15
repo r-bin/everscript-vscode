@@ -1,6 +1,8 @@
 # Evermore + Mana on one SA-1 cartridge, Start switches the game
 
-Status: 💡 **research, nothing built** (2026-11-15). A separate track next to the SA-1 port
+Status: 🧪 **research done; a working POC exists** (2026-11-15): [poc.md](poc.md). Where the POC took another way
+than this page planned: NMI/IRQ go through I-RAM stubs, not the SA-1's SNV/SIV (no SA-1 CPU needed); reset uses
+the spare vector slot `$FFE0`; Mana reads the pad in two places and keeps no register shadow (the combo keeps one). A separate track next to the SA-1 port
 ([../sa1/port.md](../sa1/port.md)) and the ExHiROM combo concept ([../exhirom/combo-rom.md](../exhirom/combo-rom.md)).
 Neither is replaced. Both stay as they are. This track reuses the SA-1 image's layout idea and adds a
 second game to it.

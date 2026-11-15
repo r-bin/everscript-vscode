@@ -82,3 +82,12 @@ from the code, not watched.
 
 More than 64 special cells in one layer (maps `$04`, `$05`, `$1FF`) push the slots past
 `$BC00`/`$C800` into layer B's tables.
+
+## Engine and I/O (seen while building the combo POC, 2026-11-15)
+
+| address | what | evidence |
+|---|---|---|
+| `$7E:0100`, `$7E:0104` | the NMI and IRQ vectors point here; the game keeps its own jumps in these bytes | ROM vectors; MesenCE |
+| `$7E:1E00–$1EFF` | sound state (direct page of `$C3:0000`/`$C3:0004`); `$1E00` command, `$1E05` current song (`$FF` none after init) | disasm |
+| `$7F:0090` | `$4200` shadow: bits set or cleared here, then stored | `$7E:A231`, `$7E:A256`, `$7E:A288` |
+| `$7E:8000`–… | code unpacked at boot (not in the ROM byte for byte): the pad routine `$7E:A6E8` (`LDA $004218,X`, used before play), the PPU register queue writer `$7E:C0FD` (two lists at `$7F:02DA`/`$7F:02DE`, per-register write count at `$7E:603E`; a queue, not a copy of the registers) and the IRQ line set-up `$7E:A1E2` (`$4209` = `$00C0`) | MesenCE WRAM dump, disasm |

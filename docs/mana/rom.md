@@ -12,6 +12,15 @@ Every routine and table here was read from Secret of Mana's own code and verifie
 | `$00:FFEA`, `$00:FFEE` | NMI vector `$0100`, IRQ vector `$0104`: both point into WRAM, where the game keeps its own jumps; emulation-mode vectors unused | read in the US ROM, 2026-11-15 |
 | `$00:8004` | reset entry: emulation off, 8-bit A/X, then `JML $C1:0010` | read in the US ROM, 2026-11-15 |
 | `$00–$02:8000–FFFF` | code, densely packed: no run of 64 `$00`/`$FF` bytes; `$00:8020`, `$00:823A`, `$00:84EA` are code (they matter for a combo image, `docs/combo/README.md` §4) | read in the US ROM, 2026-11-15 |
+| `$C3:0000` | sound init (`JMP $002C`, JSL entry): waits up to `$0800` loops for the SPC700 boot ROM's `$BBAA`, then uploads the driver in 6 blocks (pointer table `$C3:0008`, ARAM destinations `$C3:0014`) and starts it at ARAM `$0200`; without `$BBAA` but with a driver recorded in WRAM it sends `$08` and skips the upload. Clears WRAM `$1E00–$1EFF` | disasm; MesenCE port writes, frames 25–52 after power-on (2026-11-15) |
+| `$C3:0004` | sound command entry (`JMP $0160`, JSL): direct page `$1E00`, command in `$1E00` (`$01` song with params `$1E01–$1E03`, `$02–$6F` → `$C3:059F`, `$70+` → `$C3:05F3`) | disasm |
+| ARAM `$0279`, `$0CAF` | the driver's main loop calls its port poll `$0CAF`: port 0 non-zero = command (echoed, then dispatched once port 0 changes). `$FE` = upload: port 1 bits 0–2 pick a receive handler from ARAM `$1418` (mode 3 = 3 bytes per handshake from ports 1–3), ports 2–3 the destination; a counter in port 0 paces it; port 0 = 0 with mode 0 ends it and the driver returns to its main loop at `$027C` | ARAM read in MesenCE at frame 800, disasm (2026-11-15) |
+| `$CF:FE34` | pad 1 read during play: `LDA $4218` / `STA $0042` (A 16-bit); pad 2 at `$CF:FE3A` | MesenCE read callbacks along a stored playback (2026-11-15) |
+| `$02:B5E7` | PPU reset: forced blank, NMI off, every PPU register to its default ($2130 = `$30`, $2132 = `$E0`, mode-7 matrix identity) | disasm; MesenCE write callbacks |
+| `$01:FD52` | field BG set-up (JSR): mode `$09`, BG1/BG2 maps `$51`/`$39`, BG3 map `$58` or `$5C` by bit 0 of direct page `$E8`, character bases `$00`/`$04`; when `$B8 & $F8` is `$F8`, mode 7 instead | disasm; MesenCE write callbacks |
+| `$02:AAB1` | field screen set-up: mosaic, main/sub screen and colour math from direct page `$20–$23`, windows cleared, OBSEL `$63` | disasm; MesenCE write callbacks |
+| `$C0:27E0` | title screen set-up: mode 5 and its bases, all constants | disasm; MesenCE write callbacks |
+| `$00:C0BF` onwards | the NMI during play: brightness, BG1–BG3 scrolls and HDMA enable every frame | MesenCE write callbacks, frames 9000–10137 of a playback |
 | `$C1:E76D` | Step-on coordinate event handler and doorway trigger dispatch table | `tools/mana/check-events.js` |
 | `$CC:0000` | Compressed character and NPC tile graphics source bank | `src/games/mana/decoder/chars.ts` |
 | `$FF:0000` | Character sprite definition and animation bytecode sequence bank | `src/games/mana/decoder/chars.ts` |
