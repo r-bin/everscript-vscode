@@ -5,13 +5,13 @@
 
 /*
  * Routine Rating & Verification:
- * - Target Routine:   sub_8FA47F ($8FA47F) [RTL]
+ * - Target Routine:   sub_8FA463 ($8FA463) [RTL]
  * - Test Method:      G1 differential testing (trampoline + 4th MB bridge in snes9x / cpu65816)
- * - Initial ROM ASM:  26 instructions (58 bytes)
- * - Compiled C ASM:   3 instructions [Calypsi 65816 -O1 --speed]
- * - Code Expansion:   0.1x instructions vs ROM
+ * - Initial ROM ASM:  29 instructions (63 bytes)
+ * - Compiled C ASM:   112 instructions [Calypsi 65816 -O1 --speed]
+ * - Code Expansion:   3.9x instructions vs ROM
  * - ASM Closeness:    100% state parity per call (A, X, Y, S, D, DB, P, WRAM, I/O order match ROM)
- * - Rating Hash:      c97f7ce7055c19fa
+ * - Rating Hash:      ecdb53af35a6ca6c
  * - Rating Status:    VALID (unmodified since rating)
  */
 #include "soe.h"
@@ -63,6 +63,12 @@ static void probe_metatile_at(soe_regs r, uint8_t a) {
             }
         }
     }
+}
+
+SOE_BIND(sub_8FA463, 0x8FA463, RTL) {
+    uint8_t a = (uint8_t)(SOE_A8(r) - 1u);
+    DP8(r, 0x67u) = a;
+    probe_metatile_at(r, a);
 }
 
 SOE_BIND(sub_8FA468, 0x8FA468, RTL) {

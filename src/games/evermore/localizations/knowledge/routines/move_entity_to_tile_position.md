@@ -1,7 +1,7 @@
 ---
 addr: 8CDA67
-size: 33
-end: 8CDA87
+size: 2
+end: 8CDA68
 kind: code
 category: 🧠
 name: move_entity_to_tile_position

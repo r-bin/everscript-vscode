@@ -1,7 +1,7 @@
 ---
 addr: 8CDCEC
-size: 45
-end: 8CDD18
+size: 21
+end: 8CDD00
 kind: code
 category: 🧠
 name: script_op_3c_spawn

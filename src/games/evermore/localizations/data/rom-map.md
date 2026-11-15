@@ -3,7 +3,7 @@
 ```json
 {
   "summary": {
-    "total_entries": 7129,
+    "total_entries": 7135,
     "total_documented_bytes": 3237090,
     "banks_covered": 97,
     "architecture": "3 MB (24 Mbit) HiROM ($00 vectors/header mirror, $80..$AF FastROM, $C0..$EF Data)"
@@ -15,7 +15,7 @@
         "0x80FFFF"
       ],
       "name": "Engine Core, Reset, NMI & Hardware Utilities",
-      "routines": 262,
+      "routines": 263,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -245,7 +245,7 @@
         "0x8CFFFF"
       ],
       "name": "Script VM Dispatcher, Sound Effects & Stat Curves",
-      "routines": 468,
+      "routines": 472,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -275,7 +275,7 @@
         "0x8FFFFF"
       ],
       "name": "Entity AI, Physics, Collision & Combat Engine",
-      "routines": 481,
+      "routines": 482,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -1002,7 +1002,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $80 — Engine Core, Reset, NMI & Hardware Utilities
 
-**Coverage:** 262 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 263 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
@@ -1092,7 +1092,8 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$80:AE78` | [`face_cardinal`](knowledge/routines/face_cardinal.md) | `code` | 52 B | entities, movement | Cardinal facing code from signed coordinate deltas: Reads signed `dx` from DP `$02` and signed `dy` from DP `$04`. The confirmed caller `$8F:D6CE` sets these to entity position minus target po... |
 | `$80:AEAC` | [`math_vector_2d_angle_and_distance_calc`](knowledge/routines/math_vector_2d_angle_and_distance_calc.md) | `code` | 369 B | math, angle, trig, hardware-divider | Computes 8-bit directional angle (0..255) from signed X and Y coordinate displacements: Computes 8-bit directional angle (0..255) from signed delta-X (`$02`) and delta-Y (`$04`).  1. Determines absolute magnitude: `\|DX\| -> $12`,... |
 | `$80:B01D` | [`math_fixed_point_sin_cos_multiply`](knowledge/routines/math_fixed_point_sin_cos_multiply.md) | `code` | 300 B | unverified, rea-partial-read | Computes fixed-point sine and cosine projections using hardware multiplier registers: Low confidence — Computes fixed-point sine and cosine projections using hardware multiplier registers.  > Inferred from a partial read of th... |
-| `$80:B149` | [`strcpy_24bit_pointers`](knowledge/routines/strcpy_24bit_pointers.md) | `code` | 17 B | strings, util | 24-bit pointer null-terminated string copier (strcpy) ($80:B149): Copies a null-terminated byte string from 24-bit source pointer `[$26]` to 24-bit destination pointer `[$22]`. Standard SNES 65c816 `strcpy`... |
+| `$80:B149` | [`strcpy_24bit_pointers`](knowledge/routines/strcpy_24bit_pointers.md) | `code` | 8 B | strings, util | 24-bit pointer null-terminated string copier (strcpy) ($80:B149): Copies a null-terminated byte string from 24-bit source pointer `[$26]` to 24-bit destination pointer `[$22]`. Standard SNES 65c816 `strcpy`... |
+| `$80:B151` | [`sub_80B151`](knowledge/routines/sub_80B151.md) | `code` | 9 B |  | sub_80B151: Alternate entry point into 24-bit pointer null-terminated string copying routine without incrementing Y register before copying next byte. |
 | `$80:B15A` | [`string_length_count_null_terminated`](knowledge/routines/string_length_count_null_terminated.md) | `code` | 25 B | strings, dialogue, util | Null-terminated string length counter ($80:B15A): Calculates the byte length of a null-terminated string at 24-bit pointer `[$22]`. Sets data bank register to `$24`, iterates characters star... |
 | `$80:B173` | [`check_name_profanity`](knowledge/routines/check_name_profanity.md) | `code` | 101 B | ui, names, profanity, text | Check entered player or dog name for profanity ("FUCK" / "fuck"): Called during player/dog name entry to check for forbidden vulgarity substrings: - Scans null-terminated string at pointer `[$22]` with data... |
 | `$80:B1D8` | [`format_hex_32bit_uppercase`](knowledge/routines/format_hex_32bit_uppercase.md) | `code` | 55 B | text, hex, ascii, format, debug, ui | Format 32-bit integer into 8-character uppercase hexadecimal ASCII string: Converts an unsigned 32-bit integer located at direct page `$02..$05` into an 8-character uppercase hexadecimal string followed by a null te... |
@@ -5262,7 +5263,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $8C — Script VM Dispatcher, Sound Effects & Stat Curves
 
-**Coverage:** 468 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 472 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
@@ -5607,19 +5608,22 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8C:DA28` | [`script_op_6f_walk_by_direct`](knowledge/routines/script_op_6f_walk_by_direct.md) | `code` | 7 B | script-vm | Script opcode 0x6F: walk an entity by a tile offset, ignoring terrain: Handler of script opcode 0x6F. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:DA2F` | [`move_entity_by_tile_delta`](knowledge/routines/move_entity_by_tile_delta.md) | `code` | 49 B | script-vm | Move an entity by expression offsets: Handler of script opcode 0x6D. Evaluates entity, dx, dy; scales offsets by 16 and adds them with 1... |
 | `$8C:DA60` | [`script_op_6e_walk_to_tile_direct`](knowledge/routines/script_op_6e_walk_to_tile_direct.md) | `code` | 7 B | script-vm | Script opcode 0x6E: walk an entity to a tile, ignoring terrain: Handler of script opcode 0x6E. What it does, why it exists and how scripts use it: the opcode entr... |
-| `$8C:DA67` | [`move_entity_to_tile_position`](knowledge/routines/move_entity_to_tile_position.md) | `code` | 33 B | script-vm | Move an entity to tile coordinates: Handler of script opcode 0x6C. Evaluates the entity, reads two unsigned coordinate bytes, scales t... |
+| `$8C:DA67` | [`move_entity_to_tile_position`](knowledge/routines/move_entity_to_tile_position.md) | `code` | 2 B | script-vm | Move an entity to tile coordinates: Handler of script opcode 0x6C. Evaluates the entity, reads two unsigned coordinate bytes, scales t... |
+| `$8C:DA69` | [`sub_8CDA69`](knowledge/routines/sub_8CDA69.md) | `code` | 31 B |  | sub_8CDA69: Script opcode helper that resolves target coordinates from script stream arguments or target entity, setting script jitter flag $12 to 0 bef... |
 | `$8C:DA88` | [`script_op_9d_walk_to`](knowledge/routines/script_op_9d_walk_to.md) | `code` | 5 B | script-vm | Script opcode 0x9D: walk an entity to a point: Handler of script opcode 0x9D. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:DA8D` | [`script_op_73_walk_to_direct`](knowledge/routines/script_op_73_walk_to_direct.md) | `code` | 25 B | script-vm | Script opcode 0x73: walk an entity to a point, ignoring terrain: Handler of script opcode 0x73. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:DAA6` | [`script_face_target_or_jitter`](knowledge/routines/script_face_target_or_jitter.md) | `code` | 31 B | code, subroutine, script, vm, entity, direction | Script entity face target or jitter angle calculation: Calculates the facing angle towards a target entity or evaluates a jitter offset angle via `$8F:AA82`, returning with Carry set on completio... |
 | `$8C:DAC5` | [`unfreeze_boy`](knowledge/routines/unfreeze_boy.md) | `code` | 5 B | script-vm, entities, boy | Unfreeze Boy: Handler of script opcode 0xBD. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:DACA` | [`unfreeze_dog`](knowledge/routines/unfreeze_dog.md) | `code` | 5 B | script-vm | Unfreeze Dog: Handler of script opcode 0xBF. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:DACF` | [`unfreeze_boy_and_dog`](knowledge/routines/unfreeze_boy_and_dog.md) | `code` | 5 B | script-vm | Unfreeze Boy and Dog: Handler of script opcode 0xC1. What it does, why it exists and how scripts use it: the opcode entr... |
-| `$8C:DAD4` | [`script_op_2d_unfreeze_mask`](knowledge/routines/script_op_2d_unfreeze_mask.md) | `code` | 61 B | script-vm, cutscene, immobilization | Script opcode 0x2d unfreezes entities by mask: The handler reads an operand mask and unfreezes the current thread's bound entity, Boy, then Dog according to bits `0x08`, `0x01`, and `0x02... |
+| `$8C:DAD4` | [`script_op_2d_unfreeze_mask`](knowledge/routines/script_op_2d_unfreeze_mask.md) | `code` | 7 B | script-vm, cutscene, immobilization | Script opcode 0x2d unfreezes entities by mask: The handler reads an operand mask and unfreezes the current thread's bound entity, Boy, then Dog according to bits `0x08`, `0x01`, and `0x02... |
+| `$8C:DADB` | [`sub_8CDADB`](knowledge/routines/sub_8CDADB.md) | `code` | 54 B |  | sub_8CDADB: Selective entity unfreeze helper that inspects entity selection bitmask in A (bit 3: child entity, bit 0: boy at $4E89, bit 1: dog at $4F37)... |
 | `$8C:DB11` | [`script_op_unfreeze_entity`](knowledge/routines/script_op_unfreeze_entity.md) | `code` | 10 B | script-vm, entities, mobility | Script opcode 0x2b (unfreeze_entity): Handler of script opcode 0x2B. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:DB1B` | [`freeze_boy`](knowledge/routines/freeze_boy.md) | `code` | 5 B | script-vm | Freeze Boy: Handler of script opcode 0xBC. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:DB20` | [`freeze_dog`](knowledge/routines/freeze_dog.md) | `code` | 5 B | script-vm | Freeze Dog: Handler of script opcode 0xBE. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:DB25` | [`freeze_boy_and_dog`](knowledge/routines/freeze_boy_and_dog.md) | `code` | 5 B | script-vm, reconstructed-c, g1-pass | Freeze Boy and Dog: Handler of script opcode 0xC0. What it does, why it exists and how scripts use it: the opcode entr... |
-| `$8C:DB2A` | [`script_op_2c_freeze_mask`](knowledge/routines/script_op_2c_freeze_mask.md) | `code` | 61 B | script-vm, cutscene, immobilization | Script opcode 0x2c freezes entities by mask: The handler conditionally freezes the current thread's bound entity, Boy, then Dog according to operand bits `0x08`, `0x01`, and `0x02`, res... |
+| `$8C:DB2A` | [`script_op_2c_freeze_mask`](knowledge/routines/script_op_2c_freeze_mask.md) | `code` | 7 B | script-vm, cutscene, immobilization | Script opcode 0x2c freezes entities by mask: The handler conditionally freezes the current thread's bound entity, Boy, then Dog according to operand bits `0x08`, `0x01`, and `0x02`, res... |
+| `$8C:DB31` | [`sub_8CDB31`](knowledge/routines/sub_8CDB31.md) | `code` | 54 B |  | sub_8CDB31: Selective entity freeze helper that tests selection bitmask in A (bit 3: child entity, bit 0: boy at $4E89, bit 1: dog at $4F37) and invokes... |
 | `$8C:DB67` | [`script_op_freeze_entity`](knowledge/routines/script_op_freeze_entity.md) | `code` | 10 B | script-vm, entities, mobility | Script opcode 0x2a (freeze_entity): Handler of script opcode 0x2A. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:DB71` | [`script_op_22_load_map`](knowledge/routines/script_op_22_load_map.md) | `code` | 72 B | script-vm, maps, camera | Script opcode 0x22 loads a map at a tile: The handler loads the requested map/entrance word at `$7E:0ADB`, resets per-room state, places the party at the requested tile, and begins t... |
 | `$8C:DBB9` | [`script_op_21_restart_room`](knowledge/routines/script_op_21_restart_room.md) | `code` | 55 B | script-vm, camera, maps | Script opcode 0x21 restarts the current room: This same-room restart stops script threads and room entities, places Boy and Dog at the requested tile, starts the room-enter script, reset... |
@@ -5633,7 +5637,8 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8C:DC9A` | [`script_op_a2_spawn_at`](knowledge/routines/script_op_a2_spawn_at.md) | `code` | 41 B | script-vm | Script opcode 0xa2 — spawn at: Handler of script opcode 0xA2. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:DCC3` | [`script_op_c2_spawn_spawner`](knowledge/routines/script_op_c2_spawn_spawner.md) | `code` | 22 B | script-vm | Script opcode 0xc2 — spawn spawner: Handler of script opcode 0xC2. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:DCD9` | [`script_op_ba_spawn`](knowledge/routines/script_op_ba_spawn.md) | `code` | 19 B | script-vm | Script opcode 0xba — spawn: Handler of script opcode 0xBA. What it does, why it exists and how scripts use it: the opcode entr... |
-| `$8C:DCEC` | [`script_op_3c_spawn`](knowledge/routines/script_op_3c_spawn.md) | `code` | 45 B | script-vm | Script opcode 0x3c — spawn: Handler of script opcode 0x3C. What it does, why it exists and how scripts use it: the opcode entr... |
+| `$8C:DCEC` | [`script_op_3c_spawn`](knowledge/routines/script_op_3c_spawn.md) | `code` | 21 B | script-vm | Script opcode 0x3c — spawn: Handler of script opcode 0x3C. What it does, why it exists and how scripts use it: the opcode entr... |
+| `$8C:DD01` | [`sub_8CDD01`](knowledge/routines/sub_8CDD01.md) | `code` | 24 B |  | sub_8CDD01: Opcode spawning helper that decodes pixel coordinates from script bytecode, calculates distance vector via $8F:A933, and if in range initial... |
 | `$8C:DD19` | [`script_spawn_commit`](knowledge/routines/script_spawn_commit.md) | `code` | 26 B | script-vm, entities | Script VM entity spawn dispatcher and commit routine: Common tail routine for all entity and character spawn script VM opcodes: - Evaluates target tile plane elevation via `$8F:A933`. - Tests bi... |
 | `$8C:DD33` | [`release_entity_reference`](knowledge/routines/release_entity_reference.md) | `code` | 14 B | script-vm | Release an entity reference and clean up: Handler of script opcode 0x9B. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:DD41` | [`decrement_entity_reference`](knowledge/routines/decrement_entity_reference.md) | `code` | 10 B | script-vm | Decrement an entity reference count: Handler of script opcode 0x9C. What it does, why it exists and how scripts use it: the opcode entr... |
@@ -6099,7 +6104,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $8F — Entity AI, Physics, Collision & Combat Engine
 
-**Coverage:** 481 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 482 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
@@ -6316,7 +6321,8 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8F:A3D4` | [`sub_8FA3D4`](knowledge/routines/sub_8FA3D4.md) | `code` | 4 B | code, subroutine, cdl | CDL subroutine ($8F:A3D4): CDL-identified subroutine entry point in ROM at $8F:A3D4. |
 | `$8F:A3D8` | [`SHARED_JUMP_TABLE_OF_AND`](knowledge/routines/SHARED_JUMP_TABLE_OF_AND.md) | `table` | 32 B | table | Shared jump table of $8F:9F46 and $8F:9ECA: 16 words. jmp ($A3D8,x) at $8F:9F46 uses all 16; jmp ($A3E8,x) at $8F:9ECA starts at entry 8. The CDL had only seen entries 0-7, and an 8-en... |
 | `$8F:A3F8` | [`TABLE_READ_RIGHT_AFTER_THE_DISPATCH`](knowledge/routines/TABLE_READ_RIGHT_AFTER_THE_DISPATCH.md) | `table` | 96 B | table | Table read right after the $8F:9F46 dispatch: lda $8FA3F8,x at $8F:9F4B; ends the jump table before it; meaning unknown. |
-| `$8F:A458` | [`companion_dog_pathfinding_elevation_step_solver`](knowledge/routines/companion_dog_pathfinding_elevation_step_solver.md) | `code` | 16 B | dog, ai, companion, pathfinding, elevation, physics | Companion dog pathfinding and terrain elevation traversal solver ($8F:A458): # companion_dog_pathfinding_elevation_step_solver  Companion dog AI pathfinding solver for terrain elevation and cliff boundaries. Tests adj... |
+| `$8F:A458` | [`companion_dog_pathfinding_elevation_step_solver`](knowledge/routines/companion_dog_pathfinding_elevation_step_solver.md) | `code` | 11 B | dog, ai, companion, pathfinding, elevation, physics | Companion dog pathfinding and terrain elevation traversal solver ($8F:A458): # companion_dog_pathfinding_elevation_step_solver  Companion dog AI pathfinding solver for terrain elevation and cliff boundaries. Tests adj... |
+| `$8F:A463` | [`sub_8FA463`](knowledge/routines/sub_8FA463.md) | `code` | 5 B |  | sub_8FA463: Metatile collision probe entry point that decrements tile Y in accumulator A, stores it to direct page $67, and branches into the shared map... |
 | `$8F:A468` | [`sub_8FA468`](knowledge/routines/sub_8FA468.md) | `code` | 7 B |  | sub_8FA468: Metatile collision probe entry point that decrements tile X coordinate `$66`, decrements tile Y in accumulator A, stores it to `$67`, and br... |
 | `$8F:A46F` | [`BANK8F_PAD_A46F`](knowledge/routines/BANK8F_PAD_A46F.md) | `padding` | 2 B | unused, padding | Bank $8F alignment padding ($A46F): 2 B alignment padding and unmapped ROM space in Bank $8F ($8F:A46F..$8F:A470). |
 | `$8F:A471` | [`sub_8FA471`](knowledge/routines/sub_8FA471.md) | `code` | 5 B |  | sub_8FA471: Metatile collision probe entry point that increments tile Y in accumulator A, stores it to `$67`, and branches into `$8F:A47F`. |

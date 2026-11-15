@@ -1,7 +1,7 @@
 ---
 addr: 8CDB2A
-size: 61
-end: 8CDB66
+size: 7
+end: 8CDB30
 kind: code
 category: 🧠
 name: script_op_2c_freeze_mask

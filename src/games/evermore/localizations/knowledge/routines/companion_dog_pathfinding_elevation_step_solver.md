@@ -1,7 +1,7 @@
 ---
 addr: 8FA458
-size: 16
-end: 8FA467
+size: 11
+end: 8FA462
 kind: code
 category: 🐕
 name: companion_dog_pathfinding_elevation_step_solver

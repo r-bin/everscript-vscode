@@ -1,7 +1,7 @@
 ---
 addr: 80B149
-size: 17
-end: 80B159
+size: 8
+end: 80B150
 kind: code
 category: 🧠
 name: strcpy_24bit_pointers

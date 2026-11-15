@@ -1,7 +1,7 @@
 ---
 addr: 8CDAD4
-size: 61
-end: 8CDB10
+size: 7
+end: 8CDADA
 kind: code
 category: 🧠
 name: script_op_2d_unfreeze_mask
