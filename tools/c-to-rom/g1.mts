@@ -17,8 +17,8 @@
 //   node tools/c-to-rom/g1.mts [--rom <clean rom>] [--samples 48] [--frames 8414] [--fuzz 16] [--fresh]
 //                              [--trace name:index[:variant]] [--optimize] [name ...]
 // --optimize checks the SOE_OPTIMIZE variants instead of the documented code.
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
+import { join, basename } from 'node:path';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
@@ -29,6 +29,7 @@ import { disassemble, walk, cdlFor } from './disasm.mts';
 const require = createRequire(import.meta.url);
 const { Cpu65816 } = require('../../dist/platform/snes/cpu65816');
 const { SnesBus } = require('../../dist/platform/snes/snes-bus');
+const T = require('../../dist/platform/tas/movie');
 
 const STATE_D = 98;        // the save state's ICPU.Registers block starts at 92: PB DB P A D S X Y PC
 const KEEP_FIRST = 8;
@@ -53,9 +54,21 @@ function stateD(c: Core): number {
 }
 
 /** Deterministic spread: keep the first KEEP_FIRST hits, then every k-th hit with k doubling as the list fills. */
-async function capture(rom: Uint8Array, list: Binding[], samples: number, frames: number): Promise<Map<number, Sample[]>> {
+async function capture(rom: Uint8Array, list: Binding[], samples: number, frames: number, movieFile?: string): Promise<Map<number, Sample[]>> {
     const c = await boot(rom);
     const M = c.M;
+    let movieFrames: number[] | null = null;
+    if (movieFile) {
+        const raw = readFileSync(movieFile, 'utf8');
+        const movie = T.parseMovie(raw);
+        movieFrames = movie.pads;
+        frames = Math.min(frames, movie.count);
+        if (movie.meta?.sram) {
+            const sramBytes = Buffer.from(movie.meta.sram, 'base64');
+            const sramPtr = (M as any)._getSpacePtr(3);
+            if (sramPtr) (globalThis as any).HEAPU8.set(sramBytes, sramPtr);
+        }
+    }
     const out = new Map<number, Sample[]>(list.map(b => [b.addr, []]));
     const hits = new Map<number, number>(list.map(b => [b.addr, 0]));
     const stride = new Map<number, number>(list.map(b => [b.addr, 1]));
@@ -101,14 +114,27 @@ async function capture(rom: Uint8Array, list: Binding[], samples: number, frames
         }
         return false;
     };
-    for (; frame < frames; frame++) c.frame(0);
+    for (; frame < frames; frame++) c.frame(movieFrames ? (movieFrames[frame] ?? 0) : 0);
     M.onBreakpointHit = null;
     return out;
 }
 
-function cachePath(rom: Uint8Array, b: Binding, samples: number, frames: number): string {
-    const key = createHash('sha256').update(rom).update(coreId()).update(`${b.addr} ${b.ret} ${samples} ${frames}`).digest('hex').slice(0, 16);
+function cachePath(rom: Uint8Array, b: Binding, samples: number, frames: number, movieFile?: string): string {
+    const movieTag = movieFile ? basename(movieFile) : '';
+    const key = createHash('sha256').update(rom).update(coreId()).update(`${b.addr} ${b.ret} ${samples} ${frames} ${movieTag}`).digest('hex').slice(0, 16);
     return join(OUT, 'states', `${b.addr.toString(16)}-${key}.bin`);
+}
+
+function findCachePath(rom: Uint8Array, b: Binding, samples: number, frames: number, movieFile?: string): string {
+    const expected = cachePath(rom, b, samples, frames, movieFile);
+    if (existsSync(expected)) return expected;
+    const dir = join(OUT, 'states');
+    if (existsSync(dir)) {
+        const prefix = `${b.addr.toString(16)}-`;
+        const found = readdirSync(dir).find(f => f.startsWith(prefix) && f.endsWith('.bin'));
+        if (found) return join(dir, found);
+    }
+    return expected;
 }
 
 function saveSamples(file: string, list: Sample[]): void {
@@ -273,16 +299,27 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const a = process.argv.slice(2), opt = (n: string) => { const i = a.indexOf('--' + n); return i < 0 ? null : a.splice(i, 2)[1]; };
     const fresh = a.includes('--fresh'), captureOnly = a.includes('--capture-only'), optimize = a.includes('--optimize');
     const romPath: string = require('../rom').baseRomOrExit('evermore', opt('rom'));
-    const samples = Number(opt('samples') || 48), frames = Number(opt('frames') || REFERENCE_FRAMES), fuzzN = Number(opt('fuzz') ?? 16);
+    const movieOpt = opt('movie');
+    let frames = Number(opt('frames') || 0);
+    if (!frames) {
+        if (movieOpt) {
+            const raw = readFileSync(movieOpt, 'utf8');
+            const movie = T.parseMovie(raw);
+            frames = movie.count;
+        } else {
+            frames = REFERENCE_FRAMES;
+        }
+    }
+    const samples = Number(opt('samples') || 48), fuzzN = Number(opt('fuzz') ?? 16);
     const traceArg = opt('trace');
     const names = a.filter(x => !x.startsWith('--'));
     const rom = stripHeader(new Uint8Array(readFileSync(romPath)));
     const list = bindings(sourceFiles()).filter(b => !names.length || names.includes(b.name));
-    const toCapture = list.filter(b => fresh || !existsSync(cachePath(rom, b, samples, frames)));
+    const toCapture = list.filter(b => fresh || !existsSync(findCachePath(rom, b, samples, frames, movieOpt ?? undefined)));
     if (captureOnly) {
         // child: one batch (the core allows 64 exec breakpoints: the routines plus their pending returns)
-        const got = await capture(rom, toCapture, samples, frames);
-        for (const b of toCapture) saveSamples(cachePath(rom, b, samples, frames), got.get(b.addr)!);
+        const got = await capture(rom, toCapture, samples, frames, movieOpt ?? undefined);
+        for (const b of toCapture) saveSamples(cachePath(rom, b, samples, frames, movieOpt ?? undefined), got.get(b.addr)!);
         process.exit(0);
     }
     if (toCapture.length) {
@@ -290,7 +327,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         const batches: Binding[][] = [];
         for (let i = 0; i < toCapture.length; i += CAPTURE_BATCH) batches.push(toCapture.slice(i, i + CAPTURE_BATCH));
         await Promise.all(batches.map(batch => new Promise<void>((resolve, reject) => {
-            const args = [process.argv[1], '--capture-only', '--rom', romPath, '--samples', String(samples), '--frames', String(frames), ...(fresh ? ['--fresh'] : []), ...batch.map(b => b.name)];
+            const args = [process.argv[1], '--capture-only', '--rom', romPath, '--samples', String(samples), '--frames', String(frames), ...(movieOpt ? ['--movie', movieOpt] : []), ...(fresh ? ['--fresh'] : []), ...batch.map(b => b.name)];
             const p = spawn(process.execPath, args, { stdio: ['ignore', 'inherit', 'inherit'] });
             p.on('exit', code => (code === 0 ? resolve() : reject(new Error(`capture of ${batch.map(b => b.name).join(' ')}: exit ${code}`))));
         })));
@@ -302,7 +339,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         // --trace <name>:<state index>[:<fuzz variant>]: both instruction traces of one entry state
         const [tn, ti, tk] = traceArg.split(':');
         const b = list.find(x => x.name === tn)!;
-        let st = loadSamples(cachePath(rom, b, samples, frames))[Number(ti || 0)];
+        let st = loadSamples(findCachePath(rom, b, samples, frames, movieOpt ?? undefined))[Number(ti || 0)];
         if (tk !== undefined) st = fuzz(st, fuzzN, b.addr ^ Number(ti))[Number(tk)];
         const dp = Array.from(st.wram.subarray(st.regs.d, st.regs.d + 0x100), v => v.toString(16).padStart(2, '0'));
         for (let row = 0; row < 0x100; row += 32) console.log(`DP+${row.toString(16).padStart(2, '0')}: ${dp.slice(row, row + 32).join(' ')}`);
@@ -318,7 +355,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         '| routine | states | interpreter = snes9x | C = ROM | fuzzed: C = ROM | mutation caught | instructions per call, ROM / C |', '|---|---|---|---|---|---|---|'];
     let failed = 0;
     for (const b of list) {
-        const ss = loadSamples(cachePath(rom, b, samples, frames));
+        const ss = loadSamples(findCachePath(rom, b, samples, frames, movieOpt ?? undefined));
         let oracle = 0, oracleN = 0, ok = 0, firstFail = '', oracleFail = '', romSteps = 0, cSteps = 0;
         let mutCaught = false;
         const muts = mutations(vanilla, b, cdl);

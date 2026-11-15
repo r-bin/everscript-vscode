@@ -503,3 +503,38 @@ Recent work on `c-bindings` (and earlier `feature/recomp-c-bindings-replay01`) e
 - **WRAM & entry-width traps uncovered while binding:**
   - Legacy `soe_ram.h` symbols `$7E:235B–$7E:235E` (labeled `DOG_AI_STATE`..`dog_ai_collision_mode`) hold PPU register snapshots (`TM`/`TS`/`CGADSUB`/`CGWSEL` restored by `$8C:E20F`), and `$0B19`/`$0B1B` (`WAVE_PHASE_COUNTER`/`controller_prev_input`) serve as the 32-bit field frame counter for script sleep (`$8C:D20F`, `$8C:D217`).
   - Fall-through entry pairs can enter with differing accumulator widths (`$8C:818D` with `M=16`, falling into `$8C:8195` which external callers also enter with `M=8`), requiring `(r->p & SOE_M)` guards rather than hardcoded width assumptions.
+
+---
+
+## 10d. Replay 02 (02-newgame-boy-available.evsmv, 17,948 frames) bindability census & expansion
+
+Following completion of 100% certified C-binding coverage for Replay 01 in `v0.399.52`, work transitioned to **Replay 02 (`02-newgame-boy-available.evsmv`, 17,948 frames)** with initial SRAM state (`8,192` bytes).
+
+### Replay 02 Candidate Hit Census
+- Evaluated all 398 candidates remaining unhandled in `census-valid-bindable.json` using live snes9x-wasm execution breakpoints across the full 17,948 frames with initial SRAM loaded at `Module._getSpacePtr(3)`.
+- Scanned across 17 isolated child-process batches (`tools/c-to-rom/scan-replay02.mts` and `worker-replay02.mts`) complying with the 64-breakpoint core limit and returning `false` on hit to ensure continuous emulation.
+- **Results:**
+  - Exactly **356** candidates had execution hits during Replay 02 (42 had 0 calls).
+  - Cross-referencing direct call targets (`JSL` / `JSR`) and 24-bit pointer table dispatches revealed:
+    - **75** direct call targets (`JSL` / `JSR`).
+    - **99** 24-bit function pointer table targets (script VM, entity AI, graphics dispatch).
+    - **182** internal branch labels / loop targets belonging to parent functions.
+    - **Total discrete callable routines executed in Replay 02: 174** (63 pure leaves, 111 callers).
+
+### Multi-Replay G1 Capture Architecture (`tools/c-to-rom/g1.mts`)
+- Added `--movie <file.evsmv>` support to `tools/c-to-rom/g1.mts`.
+- Loads replay inputs (`movie.pads`) and injects initial SRAM (`_getSpacePtr(3)`).
+- Captures real entry states for movie-specific routines with automated state caching in `out/c-to-rom/states/`.
+- Implemented `findCachePath` allowing fast reuse of previously captured states across runs without requiring `--movie` on subsequent differential verification.
+
+### Replay 02 Initial Bound Routine: `vram_tile_lru_queues_reset` ($80:8F8C)
+- Bound in `reconstructed-c/80/808F8C_vram_tile_lru_queues_reset.c`:
+  - Resets the dynamic sprite tile LRU cache queue (`$7E:9726` / `$7E:96A5` / `$7E:97A7` / `$7E:97A8`).
+  - Resets the 16x16 macro-tile allocator LRU queue (`$7E:AB79` / `$7E:AB18` / `$7E:AB7A` / `$7E:ABDA` / `$7E:ABDB`).
+  - Zeroes direct page `$CB..$D2`, sets direct page `$D8 = 0x96`, preserves accumulator high byte (B), and faithfully mirrors `CPY #$61` carry flag behavior (`y2 >= 0x61`).
+- Verified under Gate G1:
+  - 40/40 real states match ROM (100% parity, 40/40 snes9x oracle agreement).
+  - 640/640 fuzzed states match ROM (100% parity).
+  - Mutation caught: yes.
+- Rated and audited: 290 clean, 0 stale/unrated. Total bound routines: **290**.
+
