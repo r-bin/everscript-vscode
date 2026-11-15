@@ -548,3 +548,14 @@ Following completion of 100% certified C-binding coverage for Replay 01 in `v0.3
   - 42/42 real states match ROM (100% parity, 42/42 snes9x oracle agreement).
   - Mutation caught: yes.
 - Rated and audited: 291 clean, 0 stale/unrated. Total bound routines: **291**.
+
+### Replay 02 Bound Routine: `minimap_cell_stride_and_palette_calc` ($90:A5D0)
+- Bound in `reconstructed-c/90/90A5D0_minimap_cell_stride_and_palette_calc.c`:
+  - Computes minimap screen buffer destination offset (`$0FB6` / DP `$AD`) using SNES hardware multiplier registers `$4202` / `$4216` for row stride multiplication ($Y \times \text{map\_tile\_width}$).
+  - Extracts 5-bit palette attribute bits (`attr & 0x1F00`) shifted into `$0FB4`, sets up candidate cell bounding box (`$0FB8`..`$0FC0`), sets DP `$AE = 0x7F00`, and raises VRAM DMA commit trigger flag at `$0FC2`.
+  - Accurately models hardware multiplier I/O interaction, direct page 24-bit pointer indirections (`[$8B],y`, `[$AA],y`), and flag preservation via `PLY`.
+- Verified under Gate G1:
+  - 37/37 real states match ROM (100% parity, 37/37 snes9x oracle agreement).
+  - 534/534 fuzzed states match ROM (100% parity).
+  - Mutation caught: yes.
+- Rated and audited: 292 clean, 0 stale/unrated. Total bound routines: **292**.
