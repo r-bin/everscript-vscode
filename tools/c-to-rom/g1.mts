@@ -272,6 +272,11 @@ function mutations(image: Uint8Array, b: Binding, cdl: Uint8Array | null, max = 
         const m = new Uint8Array(image);
         m[(l.pc & 0x3FFFFF) + 1] ^= 0x01;
         out.push({ image: m, what: `${hex(l.pc)} ${l.text}, operand bit 0 flipped` });
+        if (l.bytes.length >= 3 && out.length < max) {
+            const m2 = new Uint8Array(image);
+            m2[(l.pc & 0x3FFFFF) + 2] ^= 0x01;
+            out.push({ image: m2, what: `${hex(l.pc)} ${l.text}, operand bit 8 flipped` });
+        }
     }
     if (!out.length) {
         for (const l of body) {

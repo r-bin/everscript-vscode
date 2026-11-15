@@ -1,7 +1,7 @@
 ---
 addr: 808F85
-end: 808FED
-size: 105
+end: 808F8B
+size: 7
 kind: code
 category: 🧠
 name: vram_oam_buffer_dma_commit_on_nmi

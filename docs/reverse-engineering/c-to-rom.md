@@ -538,3 +538,13 @@ Following completion of 100% certified C-binding coverage for Replay 01 in `v0.3
   - Mutation caught: yes.
 - Rated and audited: 290 clean, 0 stale/unrated. Total bound routines: **290**.
 
+
+### Replay 02 Bound Routine: `entity_cardinal_facing_direction_resolve` ($8F:9DBD)
+- Bound in `reconstructed-c/8F/8F9DBD_entity_cardinal_facing_direction_resolve.c`:
+  - Resolves 8-way facing direction (0, 2, 4, 6, 8, 10, 12, 14) and proximity distance between target coordinates (X = target X, A = target Y) and entity coordinates (`+$1A,y` / `+$1C,y` in DB `$7E`).
+  - Stores facing direction to `+$22,y`, and if distance < 16, stores distance to `+$64,y`.
+  - Accurately models 65C816 `BIT immediate` behavior (only flags Z, preserving prior N/V) and absolute indexed Y DB-bank addressing.
+- Verified under Gate G1:
+  - 42/42 real states match ROM (100% parity, 42/42 snes9x oracle agreement).
+  - Mutation caught: yes.
+- Rated and audited: 291 clean, 0 stale/unrated. Total bound routines: **291**.

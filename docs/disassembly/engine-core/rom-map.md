@@ -3,7 +3,7 @@
 ```json
 {
   "summary": {
-    "total_entries": 7143,
+    "total_entries": 7144,
     "total_documented_bytes": 3237090,
     "banks_covered": 97,
     "architecture": "3 MB (24 Mbit) HiROM ($00 vectors/header mirror, $80..$AF FastROM, $C0..$EF Data)"
@@ -15,7 +15,7 @@
         "0x80FFFF"
       ],
       "name": "Engine Core, Reset, NMI & Hardware Utilities",
-      "routines": 263,
+      "routines": 264,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -1002,7 +1002,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $80 — Engine Core, Reset, NMI & Hardware Utilities
 
-**Coverage:** 263 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 264 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
@@ -1048,7 +1048,8 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$80:8DB5` | [`map_tile_index_from_world_coordinates`](knowledge/routines/map_tile_index_from_world_coordinates.md) | `code` | 157 B | unverified, rea-partial-read | Converts 16-bit world pixel coordinates (X, Y) into a linear tilemap collision grid offset: Low confidence — Converts 16-bit world pixel coordinates (X, Y) into a linear tilemap collision grid offset.  > Inferred from a partial read... |
 | `$80:8E52` | [`obj_tile_lru_cache_reclaim_orphaned_slots`](knowledge/routines/obj_tile_lru_cache_reclaim_orphaned_slots.md) | `code` | 72 B | sprites, vram, lru, oam | OBJ sprite tile LRU cache orphan auditor and free list restorer ($80:8E52): Audits both active sprite tile LRU caches in WRAM and restores unlinked or orphaned tile slots to their respective free lists. Scans all 128... |
 | `$80:8E9A` | [`map_decompression_terrain_collision_words_dma`](knowledge/routines/map_decompression_terrain_collision_words_dma.md) | `code` | 235 B | unverified, rea-partial-read, reconstructed-c, g1-pass | Streams decompressed room terrain collision words into WRAM spatial grid memory via hardware DMA channel 1: Low confidence — Streams decompressed room terrain collision words into WRAM spatial grid memory via hardware DMA channel 1.  > Inferred fro... |
-| `$80:8F85` | [`vram_oam_buffer_dma_commit_on_nmi`](knowledge/routines/vram_oam_buffer_dma_commit_on_nmi.md) | `code` | 105 B | oam, vram, dma, vblank, graphics, lru, queue, reconstructed-c, g1-pass | Flush and reset dynamic VRAM and OBJ tile allocation LRU queues upon V-Blank: Flushes and resets the dynamic Object (OBJ) and VRAM tile allocation LRU queues at the start of a new frame / V-Blank: 1. Tests the frame co... |
+| `$80:8F85` | [`vram_oam_buffer_dma_commit_on_nmi`](knowledge/routines/vram_oam_buffer_dma_commit_on_nmi.md) | `code` | 7 B | oam, vram, dma, vblank, graphics, lru, queue, reconstructed-c, g1-pass | Flush and reset dynamic VRAM and OBJ tile allocation LRU queues upon V-Blank: Flushes and resets the dynamic Object (OBJ) and VRAM tile allocation LRU queues at the start of a new frame / V-Blank: 1. Tests the frame co... |
+| `$80:8F8C` | [`vram_tile_lru_queues_reset`](knowledge/routines/vram_tile_lru_queues_reset.md) | `code` | 98 B | graphics, vram, lru, sprites, tiles | Resets dynamic sprite tile and macro-tile allocator LRU queues: Resets the dynamic sprite tile LRU cache queue (`$7E:9726` / `$7E:96A5` / `$7E:97A7` / `$7E:97A8`) and the 16x16 macro-tile allocator LRU qu... |
 | `$80:8FEE` | [`oam_finalize_and_blank_unused`](knowledge/routines/oam_finalize_and_blank_unused.md) | `code` | 69 B | oam, sprite, dma, vblank, graphics, widescreen, widescreen.oam, reconstructed-c, g1-pass | OAM Frame Finalizer, Offscreen Blanker & DMA Queue Null-Terminator: Finalizes the Low and High OAM hardware buffers (`$7E:ABDE` and `$7E:ADDE`) at the completion of an active game frame: - Compares the curren... |
 | `$80:9033` | [`direct_sprite_draw_oam`](knowledge/routines/direct_sprite_draw_oam.md) | `code` | 13 B | sprite, oam, culling, viewport, widescreen, widescreen.oam, widescreen.hud | Direct sprite draw (OAM) with hierarchical bounding box viewport culler: Draws one multi-part sprite record at screen position `$02`/`$04` with attribute word `$06`/`$07`. Performs coarse bounding box culling on d... |
 | `$80:9040` | [`oam_meta_sprite_assembler_with_clipping`](knowledge/routines/oam_meta_sprite_assembler_with_clipping.md) | `code` | 13 B | unverified, rea-partial-read, widescreen, widescreen.oam, widescreen.cull | Assembles multi-cel composite meta-sprites into hardware OAM buffers with off-screen viewport clipping: Low confidence — Assembles multi-cel composite meta-sprites into hardware OAM buffers with off-screen viewport clipping.  > Inferred from a ... |
@@ -6258,7 +6259,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8F:9DA6` | [`sub_8F9DA6`](knowledge/routines/sub_8F9DA6.md) | `code` | 13 B | code, subroutine, cdl | CDL subroutine ($8F:9DA6): CDL-identified subroutine entry point in ROM at $8F:9DA6. |
 | `$8F:9DB3` | [`sub_8F9DB3`](knowledge/routines/sub_8F9DB3.md) | `code` | 9 B | code, subroutine, cdl | CDL subroutine ($8F:9DB3): CDL-identified subroutine entry point in ROM at $8F:9DB3. |
 | `$8F:9DBC` | [`sub_8F9DBC`](knowledge/routines/sub_8F9DBC.md) | `code` | 1 B | code, subroutine, cdl | CDL subroutine ($8F:9DBC): CDL-identified subroutine entry point in ROM at $8F:9DBC. |
-| `$8F:9DBD` | [`entity_cardinal_facing_direction_resolve`](knowledge/routines/entity_cardinal_facing_direction_resolve.md) | `code` | 115 B | unverified, rea-partial-read | Resolves cardinal and diagonal facing direction codes from signed X and Y displacement vectors: Low confidence — Resolves cardinal and diagonal facing direction codes from signed X and Y displacement vectors.  > Inferred from a partial ... |
+| `$8F:9DBD` | [`entity_cardinal_facing_direction_resolve`](knowledge/routines/entity_cardinal_facing_direction_resolve.md) | `code` | 115 B | engine, entity, ai, movement | Resolves cardinal and diagonal facing direction codes from signed X and Y displacement vectors: Calculates the 8-way facing direction (0, 2, 4, 6, 8, 10, 12, 14) and proximity distance between target coordinates (X = target X, A = targe... |
 | `$8F:9E30` | [`sub_8F9E30`](knowledge/routines/sub_8F9E30.md) | `code` | 11 B | code, subroutine, companion, entity, movement | Companion entity coordinate delta store and threshold update: Companion movement helper that records entity coordinate `$0022,Y`, compares direct page `$12` and `$14`, and updates threshold `$0064,Y` if... |
 | `$8F:9E3B` | [`sub_8F9E3B`](knowledge/routines/sub_8F9E3B.md) | `code` | 9 B | code, subroutine, companion, entity, movement | Companion threshold mask test and update: Companion movement helper alternate entry point that tests the accumulator against mask `$FFF0` and writes it to entity threshold `$0064,Y` ... |
 | `$8F:9E44` | [`BANK8F_PAD_9E44`](knowledge/routines/BANK8F_PAD_9E44.md) | `padding` | 5 B | unused, padding | Bank $8F alignment padding ($9E44): 5 B alignment padding and unmapped ROM space in Bank $8F ($8F:9E44..$8F:9E48). |
