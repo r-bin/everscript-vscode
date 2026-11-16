@@ -36,7 +36,7 @@ function setupCodeTab(post: (msg: object) => void, activeTab: string): void {
     pane.dataset.codeBound = '1';
     const st = {
         rows: null as Row[] | null, error: '', requested: false, canOpen: false, known: { names: new Set<string>() } as Known,
-        query: '', onlyC: false, bytes: false, names: true, deep: null as { q: string; hits: Map<string, string[]> | 'pending' | { error: string } } | null,
+        query: '', onlyC: false, bytes: false, names: true, blocks: true, deep: null as { q: string; hits: Map<string, string[]> | 'pending' | { error: string } } | null,
         sel: '', version: 'asm' as Version, back: [] as string[],
         routines: {} as Record<string, Pending<Routine>>, texts: {} as Record<string, Pending<string>>, lines: {} as Record<string, Pending<Lines>>,
     };
@@ -87,7 +87,7 @@ function setupCodeTab(post: (msg: object) => void, activeTab: string): void {
         if ('error' in t) return '<div class="scr-empty">' + esc(t.error) + '</div>';
         const cdl = !st.names ? '' : t.cdl ? '<div class="scr-dim code-cdl">CDL: ' + t.cdl.ran + ' of ' + t.cdl.of + ' lines ran while recorded; hover a count for widths, DB and D</div>'
             : '<div class="scr-dim code-cdl">No CDL library for this ROM: record one in the emulator\'s CDL tab to see what each line ran and touched.</div>';
-        return cdl + asmHtml(t, st.known, { bytes: st.bytes, names: st.names });
+        return cdl + asmHtml(t, st.known, { bytes: st.bytes, names: st.names, blocks: st.blocks });
     }
 
     function textHtml(r: Routine): string {
@@ -195,6 +195,7 @@ function setupCodeTab(post: (msg: object) => void, activeTab: string): void {
     });
     $('code-only-c').addEventListener('change', (e) => { st.onlyC = (e.target as HTMLInputElement).checked; renderRail(); });
     $('code-names').addEventListener('change', (e) => { st.names = (e.target as HTMLInputElement).checked; renderMid(); });
+    $('code-blocks').addEventListener('change', (e) => { st.blocks = (e.target as HTMLInputElement).checked; renderMid(); });
     $('code-bytes').addEventListener('change', (e) => { st.bytes = (e.target as HTMLInputElement).checked; pane.querySelector('.code-asm')?.classList.toggle('code-nobytes', !st.bytes); });
     document.querySelector('.tab[data-tab="code"]')?.addEventListener('click', () => { if (!st.rows && !st.requested) request(); });
     window.addEventListener('message', (ev) => {

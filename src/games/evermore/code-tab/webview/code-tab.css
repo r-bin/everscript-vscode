@@ -35,6 +35,16 @@ a.scr-chip.code-link{color:var(--vscode-textLink-foreground,#3794ff)}
 .code-asm tr.code-target .code-addr{color:var(--vscode-charts-yellow,#cca700)}
 .code-pane .code-asm tr.code-flash td{animation:code-flash 1.2s ease-out}
 @keyframes code-flash{from{background:var(--scr-lit)}to{background:transparent}}
+/* if / else bodies (code-blocks.ts): 2ch per level, a guide line per level */
+.code-pane .code-asm td.code-ins[class*=code-d]{background-image:repeating-linear-gradient(to right,transparent 0 .5ch,var(--vscode-editorIndentGuide-background1,var(--vscode-editorIndentGuide-background,var(--scr-line))) .5ch calc(.5ch + 1px),transparent calc(.5ch + 1px) 2ch);background-repeat:no-repeat}
+.code-pane .code-asm td.code-d1{padding-left:2ch;background-size:2ch 100%}
+.code-pane .code-asm td.code-d2{padding-left:4ch;background-size:4ch 100%}
+.code-pane .code-asm td.code-d3{padding-left:6ch;background-size:6ch 100%}
+.code-pane .code-asm td.code-d4{padding-left:8ch;background-size:8ch 100%}
+.code-pane .code-asm td.code-d5{padding-left:10ch;background-size:10ch 100%}
+.code-pane .code-asm td.code-d6{padding-left:12ch;background-size:12ch 100%}
+.code-pane .code-asm td.code-d7{padding-left:14ch;background-size:14ch 100%}
+.code-pane .code-asm td.code-d8{padding-left:16ch;background-size:16ch 100%}
 .code-asm .code-hits{color:var(--scr-dim);text-align:right;font-size:11px}
 .code-asm tr.code-cold td{opacity:.45}
 .code-name{color:var(--vscode-charts-blue,#3794ff)}

@@ -66,6 +66,18 @@ async function unit(): Promise<void> {
         const failed = out.pop()!;
         assert.ok(failed.command === 'codeIndex' && /not found/.test(failed.error), 'a failed index answers as codeIndex');
     });
+    await test('blocks: if, else, else if flat, crossing and loops not indented', () => {
+        const { blockDepths } = require('../../dist/games/evermore/code-tab/webview/code-blocks');
+        /** `[text, jump line]` rows at $00..: a jump line is the index the branch goes to. */
+        const lines = (rows: [string, number?][]) => rows.map(([text, to], i) => ({ addr: '$' + i, text, jump: to === undefined ? undefined : '$' + to }));
+        // if A { x } else if B { y } else { z }
+        assert.deepStrictEqual(blockDepths(lines([['beq $', 3], ['x'], ['bra $', 8], ['bne $', 6], ['y'], ['bra $', 8], ['z'], ['w'], ['rts']])), [0, 1, 1, 0, 1, 1, 1, 1, 0]);
+        // if { if { x } y } z; a loop back to 0 adds nothing
+        assert.deepStrictEqual(blockDepths(lines([['bcc $', 4], ['bcs $', 3], ['x'], ['y'], ['bne $', 0], ['rts']])), [0, 1, 2, 1, 0, 0]);
+        // two branches that cross: the later one is not drawn; an indirect jmp ends no if body
+        assert.deepStrictEqual(blockDepths(lines([['beq $', 3], ['bne $', 4], ['x'], ['y'], ['rts']])), [0, 1, 1, 0, 0]);
+        assert.deepStrictEqual(blockDepths(lines([['beq $', 3], ['x'], ['jmp ($0000,x)', 4], ['y'], ['rts']])), [0, 1, 1, 0, 0]);
+    });
 }
 
 /** A soe:// reader over `resolveRom` (what the extension's file system answers), for one ROM. */

@@ -10,6 +10,7 @@ function buildCodeTabHtml(): string {
         '<span class="scr-tools">' +
         '<label class="scr-check" title="Only routines with reconstructed C"><input type="checkbox" id="code-only-c"> with C</label>' +
         '<label class="scr-check" title="Addresses by name, how often each line ran and what it touched (CDL library); off: the plain code"><input type="checkbox" id="code-names" checked> names</label>' +
+        '<label class="scr-check" title="Indent the lines an if / else skips: a forward branch\'s body and the else a jump over it skips (else if stays flat)"><input type="checkbox" id="code-blocks" checked> blocks</label>' +
         '<label class="scr-check" title="Show each instruction\'s bytes"><input type="checkbox" id="code-bytes"> bytes</label>' +
         '<span class="scr-dim" id="code-count"></span>' +
         '</span>' +
