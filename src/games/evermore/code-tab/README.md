@@ -7,7 +7,7 @@ The radar panel's **Code** tab: every routine with a knowledge entry (code or sc
 | Column | What |
 |---|---|
 | Rail | every routine by bank: category, name, `C` when it has reconstructed C, its address in this ROM. The filter matches name, title and address as you type; **Enter** runs the deep search (`index.json?q=`: knowledge text, C, the WRAM it touches, asm comments, what it calls), each hit with why in its tooltip. `with C` keeps routines with C |
-| Middle | title, name, US address and this ROM's (moved / not found), confidence, instruction and comment counts; **Called by** and **Calls** as links (a call without an entry shows its address); then one version: **ASM** (`lines.json`: rows of address, bytes (`bytes`), instruction, comment; a call links to its routine, a branch inside the routine jumps to its line; **names** on (default): operands by name, and with a CDL library how often each line ran (hover: widths, DB, D), lines that never ran dimmed, what each line touched after its comment; off: the plain code; **blocks** on (default): the lines an if / else skips indented with a guide per level, an `else if` kept flat, loops and crossing branches not), **C** (`reconstructed-c/`), **Pseudo-C** (a curated docs block or the snesrecomp lift); a version without a source is disabled. `open ↗` shows the file in an editor. **←** / Alt+← goes back |
+| Middle | title, name, US address and this ROM's (moved / not found), confidence, instruction and comment counts; **Called by** and **Calls** as links (a call without an entry shows its address); then one version: **ASM** (`lines.json`: rows of address, bytes (`bytes`), instruction, comment; a call links to its routine, a branch inside the routine jumps to its line; **names** on (default): operands by name, and with a CDL library how often each line ran (hover: widths, DB, D), lines that never ran dimmed, what each line touched after its comment; off: the plain code; **blocks** on (default): the lines an if / else skips indented with a guide per level, an `else` row where an else starts, an `else if` kept flat, loops and crossing branches not), **C** (`reconstructed-c/`), **Pseudo-C** (a curated docs block or the snesrecomp lift); a version without a source is disabled. `open ↗` shows the file in an editor. **←** / Alt+← goes back |
 | Right | the knowledge entry, its evidence, the WRAM it uses with names and access, record fields, I/O registers, the open work, its files |
 
 A version's text is read when it is shown, never with the routine, and cached per routine.
@@ -19,7 +19,7 @@ A version's text is read when it is shown, never with the routine, and cached pe
 | `render-code-tab.ts` | The pane scaffold |
 | `webview/code-tab.dom.ts` | The page (bundle `CodeTab`, set up inside the radar's script) |
 | `webview/code-listing.dom.ts` | lines.json, C and Markdown as HTML with routine links (pure) |
-| `webview/code-blocks.ts` | Each asm line's if / else depth from the branch targets in lines.json (pure, no DOM: unit-tested from `dist/`) |
+| `webview/code-blocks.ts` | Each asm line's if / else depth and where each else starts, from the branch targets in lines.json (pure, no DOM: unit-tested from `dist/`) |
 | `webview/code-tab.css` | What the tab adds to the Scripts tab's styles (`code-` prefix) |
 
 Host protocol:
