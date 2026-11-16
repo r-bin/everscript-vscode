@@ -4,7 +4,7 @@ Rules: [AGENTS.md](AGENTS.md). Translation table: [docs/terra/evermore-rooms.md]
 
 | File | What |
 |---|---|
-| `convert.ts` | `convertTerraRoom(rom, id, familyId)`: the part of the map the camera shows (`origin`; an exit just past it kept), which layers are converted and onto which Evermore layer, mixed-priority tiles split over both layers, the cells (three words each), graphics (past 256 the nearest-looking twins merged), families, the backdrop fill, exits and chests as boxes, map changes as objects, palette cycles, the header's display bytes, conversion counts |
+| `convert.ts` | `convertTerraRoom(rom, id, familyId)`: the part of the map the camera shows (`origin`; an exit just past it kept), which layers are converted and onto which Evermore layer, mixed-priority tiles split over both layers, the cells (three words each), graphics (past 256 first redrawn with fewer, the same picture, then the nearest-looking twins merged: `../common/redraw.ts` `fitCells`), families, the backdrop fill, exits and chests as boxes, map changes as objects, palette cycles, the header's display bytes, conversion counts |
 | `graphics.ts` | a metatile's pixels from the room's VRAM, its high- and low-priority parts (for a split), the seven kept palettes, a tile's palette and recolouring (never into a rotating colour), its priority, the backdrop colour |
 | `animation.ts` | the palette helpers every story state starts: their rotations (the longest runs that shift by one) as Evermore palette cycles, the rest counted |
 | `collision.ts` | cell types as Evermore collision words (the movement tables' rules, the slopes' solid half from the walls around) |

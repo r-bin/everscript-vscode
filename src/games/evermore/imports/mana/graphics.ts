@@ -8,7 +8,7 @@ import { EMPTY_GRAPHIC, encodeGraphic, slotChr, graphicTable } from '../common/g
 import { dist, nearest } from '../common/colours';
 import type { ManaMap } from '../../../mana/decoder';
 
-type Stats = { recolouredTiles: number; recolouredPixels: number; mixedPriority: number; droppedGraphics: number; substitutedGraphics?: number; hiddenPixels?: number };
+type Stats = { recolouredTiles: number; recolouredPixels: number; mixedPriority: number; droppedGraphics: number; substitutedGraphics?: number; redrawnGraphics?: number; twinCells?: number; stackedCells?: number; hiddenPixels?: number };
 type Trace = NonNullable<ReturnType<typeof mana.traceAnimation>>;
 import type { Placed } from '../common/graphics';
 type Layer = 'A' | 'B';

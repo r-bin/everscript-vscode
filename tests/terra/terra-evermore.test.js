@@ -144,18 +144,22 @@ if (!SOE || !TERRA || !fs.existsSync(SOE) || !fs.existsSync(TERRA)) {
     });
 
     test('every rail row converts into a room Evermore decodes', () => {
-        let n = 0, over = 0, dropped = 0;
+        let n = 0, over = 0, dropped = 0, exact = 0;
         for (const row of railRows()) {
             const id = parseInt(row.id.slice('terra-'.length), 16);
             const d = service.detail(row.id);
             const src = service.resolveRoom(0x2000 + id), room = maps.decodeRoom(src.rom, src.roomId);
             assert.strictEqual(room.header.widthTiles * room.header.heightTiles, d.content.initMap.x2 * d.content.initMap.y2 / 4);
             if (d.conversion.substitutedGraphics) over++;
+            exact += d.conversion.redrawnGraphics;
             dropped += d.conversion.droppedGraphics;
             n++;
         }
         assert.strictEqual(n, 862);
-        assert.strictEqual(over, 14, 'rooms past Evermore\'s 256 graphics: their rarest tiles drawn as the nearest listed one');
+        assert.strictEqual(over, 13, 'rooms past Evermore\'s 256 graphics: their rarest tiles drawn as the nearest listed one');
+        // Before that, cells redrawn with fewer graphics, the same picture (common/redraw.ts): $0F1 needs no approximation.
+        assert.strictEqual(exact, 165);
+        assert.deepStrictEqual([service.detail('terra-f1').conversion.redrawnGraphics, service.detail('terra-f1').conversion.substitutedGraphics], [14, 0]);
         assert.strictEqual(dropped, 0, 'no tile drawn empty');
     });
 

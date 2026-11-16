@@ -18,7 +18,8 @@
 
 import * as mana from '../../../mana/decoder';
 import { FAMILY_BASE, MAX_GRAPHICS } from '../common/ids';
-import { fitGraphics } from '../common/graphics';
+import { fitCells } from '../common/redraw';
+import type { Ref, Pair } from '../common/redraw';
 import { triggerBoxes } from '../common/boxes';
 import { flagObjects } from './pieces';
 import { paletteCycles, animatedMetatiles, animateTiles } from './animation';
@@ -104,37 +105,42 @@ function convertManaMap(manaRom: ManaRom, id: number) {
     const backdrop = fillBackdrop && !subBG2 ? backdropTile(map, tiles, rotating, graphics) : null;
     const anim = animateTiles(map, trace, tiles, graphics, (layer, n, vram, palette) =>
         metatilePixels(map, layer === 'A' ? map.tableA : map.tableB, n, scratch, rotating, { ...pixelOpts(layer, n), vram, main: palette }).px);
-    // Block 1 alone past Evermore's 256 graphics (then animateTiles kept no channel: `$0E`): those with the nearest
-    // twin are drawn as it, by the cells that show them (common/graphics.ts fitGraphics, as for Terranigma). Drawn
-    // empty before.
+    // Block 1 alone past Evermore's 256 graphics (then animateTiles kept no channel: `$0E`): as for Terranigma, cells are
+    // redrawn with fewer graphics where the picture stays the same (common/redraw.ts: the same colours in another
+    // palette; one graphic on layer A over another, where BG1 and BG2 take the same part in the main and sub screens and
+    // colour math), then those with the nearest twin are drawn as it, by the cells that show them (fitGraphics). Drawn
+    // empty before. `redrawn`: each (A, B) pair's two graphics then, by `a,b`.
     let blockSlots = graphics.slots;
+    let redrawn: Map<string, Pair> | null = null;
     stats.substitutedGraphics = 0;
     if (blockSlots.length > MAX_GRAPHICS) {
-        const shown = new Map<Tile, number>();
-        for (const [a, b] of pairs) for (const t of [tileOf('A', a), tileOf('B', b)]) if (t && !t.m.empty) shown.set(t, (shown.get(t) ?? 0) + 1);
-        const weight: number[] = [], drawnIn: number[] = [];
-        for (const [t, k] of shown) {
-            if ((weight[t.g.slot] ?? 0) < k) drawnIn[t.g.slot] = t.m.palette;
-            weight[t.g.slot] = (weight[t.g.slot] ?? 0) + k;
+        const refOf = (layer: Layer, n: number): Ref | null => {
+            const t = tileOf(layer, n);
+            if (layer === 'B' && (!t || t.m.empty) && backdrop) return { slot: backdrop.slot, h: 0, v: 0, palette: backdrop.palette, priority: 0 };
+            return !t || t.m.empty ? null : { ...t.g, palette: t.m.palette, priority: t.m.priority };
+        };
+        const pictures = new Map<string, Pair>();
+        for (const [a, b] of pairs) {
+            const p = pictures.get(a + ',' + b);
+            if (p) p.count++;
+            else pictures.set(a + ',' + b, { top: refOf('A', a), bottom: refOf('B', b), count: 1 });
         }
-        if (backdrop) drawnIn[backdrop.slot] = backdrop.palette;
-        const paletteOf = (slot: number) => drawnIn[slot] ?? 1;
-        const fit = fitGraphics(blockSlots, weight, (slot, k) => map.cgram[paletteOf(slot) * 16 + k], new Set([EMPTY_GRAPHIC, backdrop ? backdrop.slot : EMPTY_GRAPHIC]),
-            (slot, k) => rotating.has(paletteOf(slot) * 16 + k));
-        for (const layer of ['A', 'B'] as Layer[]) for (const t of tiles[layer].values()) {
-            const m = fit.remap[t.g.slot];
-            t.g = { slot: m.slot, h: t.g.h ^ m.h, v: t.g.v ^ m.v };
-        }
-        if (backdrop) backdrop.slot = fit.remap[backdrop.slot].slot;
+        const d = map.display, alike = (bits: number) => (bits & 1) === ((bits >> 1) & 1);
+        const drawnPalettes = new Set<number>();
+        for (const p of pictures.values()) for (const r of [p.top, p.bottom]) if (r) drawnPalettes.add(r.palette);
+        const fit = fitCells(blockSlots, [...pictures.values()], {
+            colour: (p, k) => map.cgram[p * 16 + k], moving: (p, k) => rotating.has(p * 16 + k), palettes: [...drawnPalettes],
+            keep: new Set([EMPTY_GRAPHIC, backdrop ? backdrop.slot : EMPTY_GRAPHIC]),
+            stack: (d.main & 3) === 3 && alike(d.sub) && alike(d.math),
+        });
+        Object.assign(stats, { redrawnGraphics: fit.redrawn, twinCells: fit.twins, stackedCells: fit.stacks, substitutedGraphics: fit.substituted });
         blockSlots = fit.slots;
-        stats.substitutedGraphics = fit.removed;
+        redrawn = pictures;
     }
     const used = new Map<number, Set<number>>();                     // Mana palette -> graphic slots drawn in it
-    for (const layer of ['A', 'B'] as Layer[]) for (const t of tiles[layer].values()) {
-        if (t.m.empty) continue;
-        if (!used.has(t.m.palette)) used.set(t.m.palette, new Set());
-        used.get(t.m.palette)!.add(t.g.slot);
-    }
+    const uses = (palette: number, slot: number) => { if (!used.has(palette)) used.set(palette, new Set()); used.get(palette)!.add(slot); };
+    if (redrawn) for (const p of redrawn.values()) for (const r of [p.top, p.bottom]) { if (r) uses(r.palette, r.slot); }
+    else for (const layer of ['A', 'B'] as Layer[]) for (const t of tiles[layer].values()) if (!t.m.empty) uses(t.m.palette, t.g.slot);
     if (backdrop && !used.has(backdrop.palette)) used.set(backdrop.palette, new Set([backdrop.slot]));
     const palettes = [...used.keys()].sort((x, y) => x - y);
     if (!palettes.length) palettes.push(1);
@@ -144,6 +150,13 @@ function convertManaMap(manaRom: ManaRom, id: number) {
         if (layer === 'B' && (!t || t.m.empty) && backdrop) return (slotOf(backdrop.palette) << 10) | slotChr(backdrop.slot);
         if (!t || t.m.empty) return 1 << 10;    // the empty graphic, in slot 1
         return (t.g.v << 15) | (t.g.h << 14) | (t.m.priority << 13) | (slotOf(t.m.palette) << 10) | slotChr(t.g.slot);
+    };
+    const refWord = (r: Ref | null): number =>
+        (!r ? 1 << 10 : (r.v << 15) | (r.h << 14) | (r.priority << 13) | (slotOf(r.palette) << 10) | slotChr(r.slot));
+    /** The layer 1 and layer 2 words of a cell showing metatile `a` on layer A and `b` on layer B. */
+    const wordsOf = (a: number, b: number): [number, number] => {
+        const p = redrawn?.get(a + ',' + b);
+        return p ? [refWord(p.top), refWord(p.bottom)] : [wordFor('A', a), wordFor('B', b)];
     };
     const events = mana.mapEvents(manaRom, map);
     // Signposts and doors are run by B in Evermore (solid, as in Mana); every other event, also
@@ -164,7 +177,7 @@ function convertManaMap(manaRom: ManaRom, id: number) {
     // is the walking layer's.
     const stamp = (x: number, y: number, a: number, b: number): number[] => {
         const c = mana.metatileCollision(manaRom, map, walk, walk === 'A' ? a : b);
-        return [wordFor('A', a), wordFor('B', b), collisionWord(c[0], c[2], stepAt.has(y * map.w + x), c[1], bAt.has(y * map.w + x))];
+        return [...wordsOf(a, b), collisionWord(c[0], c[2], stepAt.has(y * map.w + x), c[1], bAt.has(y * map.w + x))];
     };
     const cells: number[] = new Array(map.w * map.h * 3);
     for (let y = 0; y < map.h; y++) {
