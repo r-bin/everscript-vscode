@@ -5,10 +5,12 @@
 
 import { blockDepths } from './code-blocks';
 import type { Keyword } from './code-blocks';
-import { bodyCondition } from './code-cond';
+import { chainCondition, loopCondition } from './code-cond';
 
 const COND_TITLE = 'The condition follows A, X, Y and the flags from the nearest line something jumps to; what it cannot follow stays a flag (Z, C, N, V); widths are not shown';
-const KW_TITLE: Record<Exclude<Keyword, ''>, string> = {
+const KW_TITLE: Record<Exclude<Keyword, ''> | 'do', string> = {
+    do: 'do: a loop starts here; the indented lines repeat while the condition on its while line holds',
+    while: 'while: the loop goes round again (back to its do) when this branch is taken',
     if: 'if: the indented lines below run when this branch is not taken',
     else: 'else: the lines from here run when the if above branched here; its body jumps over them',
     'else if': 'else if: reached when the if above branched here; the indented lines run when this branch is not taken',
@@ -77,8 +79,8 @@ function asmHtml(data: Lines, known: Known, opts: { bytes: boolean; names: boole
     const blocks = opts.blocks ? blockDepths(data.lines) : null;
     const dcls = (d: number): string => (d ? ' code-d' + Math.min(d, 8) : '');
     /** The tag naming the construct line `i` opens, with the condition its body runs under. */
-    const kwHtml = (k: Exclude<Keyword, ''>, i: number): string => {
-        const cond = k === 'else' ? null : bodyCondition(data.lines, i, opts.names);
+    const kwHtml = (k: Exclude<Keyword, ''> | 'do', i: number): string => {
+        const cond = !blocks || k === 'else' || k === 'do' ? null : k === 'while' ? loopCondition(data.lines, i, opts.names) : chainCondition(data.lines, blocks.chains[i], opts.names);
         return '<span class="code-kw" title="' + esc(KW_TITLE[k] + (cond ? '\n' + COND_TITLE : '')) + '">' + k + (cond ? ' (' + esc(cond) + ')' : '') + '</span>';
     };
     const rows = data.lines.map((l, n) => {
@@ -97,12 +99,13 @@ function asmHtml(data: Lines, known: Known, opts: { bytes: boolean; names: boole
         const note = opts.names ? l.comment || '' : l.comment || l.call || '';
         const cls = [targets.has(at(l)) ? 'code-target' : '', cdl && l.cdl && !l.cdl.hits ? 'code-cold' : ''].filter(Boolean).join(' ');
         const kw = blocks ? blocks.kw[n] : '';
-        /** An else's tag sits at its if's level: one out from the body it starts. */
-        const depth = blocks ? blocks.depth[n] - (kw === 'else' ? 1 : 0) : 0;
+        /** An else's tag sits at its if's level, a do's outside its loop: one out from the body it starts. */
+        const head = !!blocks && blocks.loopHead[n];
+        const depth = blocks ? Math.max(0, blocks.depth[n] - (kw === 'else' || head ? 1 : 0)) : 0;
         return '<tr data-code-at="' + at(l) + '"' + (cls ? ' class="' + cls + '"' : '') + '>' +
             '<td class="code-addr">' + at(l) + '</td><td class="code-bytes">' + esc(l.bytes) + '</td>' +
             (cdl ? (l.cdl ? hitsCell(l.cdl) : '<td class="code-hits"></td>') : '') +
-            '<td class="code-ins' + dcls(depth) + '">' + (kw ? kwHtml(kw, n) : '') + insHtml + '</td><td class="code-note">' + linkNames(note, known) +
+            '<td class="code-ins' + dcls(depth) + '">' + (head ? kwHtml('do', n) : '') + (kw ? kwHtml(kw, n) : '') + insHtml + '</td><td class="code-note">' + linkNames(note, known) +
             (cdl && l.cdl ? (note ? ' ' : '') + touchedHtml(l.cdl, known) : '') + '</td></tr>';
     });
     return '<table class="code-asm' + (opts.bytes ? '' : ' code-nobytes') + '">' + rows.join('') + '</table>';

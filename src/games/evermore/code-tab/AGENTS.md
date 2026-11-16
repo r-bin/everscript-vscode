@@ -20,7 +20,9 @@ Kind: **feature** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
   name (checked against `[A-Za-z0-9_]`) and `asm` / `c` / `pseudo`. The ASM view reads
   `lines.json` (names and CDL facts are computed there, never in the page).
 - Show what the VFS says, never a guess: a missing version is disabled, a call without an entry
-  shows its address, a routine not found in this ROM says so.
+  shows its address, a routine not found in this ROM says so. The one reading aid computed in the page:
+  if / else / loop tags and their C conditions (`code-blocks.ts`, `code-cond.ts`), off with `blocks`, their
+  tooltips saying how they are worked out; the asm under them is never changed.
 - Page files stay ≤ 250 lines each; commands start with `code`.
 
 ## Tests

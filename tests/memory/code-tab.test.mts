@@ -66,7 +66,7 @@ async function unit(): Promise<void> {
         const failed = out.pop()!;
         assert.ok(failed.command === 'codeIndex' && /not found/.test(failed.error), 'a failed index answers as codeIndex');
     });
-    await test('blocks: if, else, else if flat, crossing and loops not indented', () => {
+    await test('blocks: if, else, else if flat, || / && chains, gotos, crossing, do-while loops', () => {
         const { blockDepths } = require('../../dist/games/evermore/code-tab/webview/code-blocks');
         /** `[text, jump line]` rows at $00..: a jump line is the index the branch goes to. */
         const lines = (rows: [string, number?][]) => rows.map(([text, to], i) => ({ addr: '$' + i, text, jump: to === undefined ? undefined : '$' + to }));
@@ -75,14 +75,26 @@ async function unit(): Promise<void> {
         const chain = blockDepths(lines([['beq $', 3], ['x'], ['bra $', 8], ['bne $', 6], ['y'], ['bra $', 8], ['z'], ['w'], ['rts']]));
         assert.deepStrictEqual(chain.depth, [0, 1, 1, 0, 1, 1, 1, 1, 0]);
         assert.deepStrictEqual(chain.kw, ['if', '', '', 'else if', '', '', 'else', '', '']);
-        // if { if { x } y } z; a loop back to 0 adds nothing
-        assert.deepStrictEqual(depths([['bcc $', 4], ['bcs $', 3], ['x'], ['y'], ['bne $', 0], ['rts']]), [0, 1, 2, 1, 0, 0]);
+        // do { if { if { x } y } } while: the loop back to 0 is the outer block
+        const loop = blockDepths(lines([['bcc $', 4], ['bcs $', 3], ['x'], ['y'], ['bne $', 0], ['rts']]));
+        assert.deepStrictEqual([loop.depth, loop.kw, loop.loopHead[0]], [[1, 2, 3, 2, 0, 0], ['if', 'if', '', '', 'while', ''], true]);
+        const { loopCondition } = require('../../dist/games/evermore/code-tab/webview/code-cond');
+        assert.strictEqual(loopCondition(lines([['inx'], ['cpx $10'], ['bne $', 0]]), 2, false), '(X + 1) != $10');
+        assert.strictEqual(loopCondition(lines([['inx'], ['bra $', 0]]), 1, false), 'true');
+        assert.strictEqual(loopCondition(lines([['inx'], ['tax'], ['cpx $10'], ['bne $', 0]]), 3, false), 'X != $10', 'a transfer from a register not followed keeps the name');
         // two branches that cross: the later one is not drawn; an indirect jmp ends no if body
         assert.deepStrictEqual(depths([['beq $', 3], ['bne $', 4], ['x'], ['y'], ['rts']]), [0, 1, 1, 0, 0]);
         assert.deepStrictEqual(depths([['beq $', 3], ['x'], ['jmp ($0000,x)', 4], ['y'], ['rts']]), [0, 1, 1, 0, 0]);
         // a branch on the last line of an if body that skips past it is a goto: no if, no indent
         const go = blockDepths(lines([['bne $', 3], ['x'], ['bne $', 4], ['jmp $'], ['rts']]));
-        assert.deepStrictEqual([go.depth, go.kw], [[0, 1, 1, 0, 0], ['if', '', '', '', '']]);
+        // ... unless it goes to a body of its own: one if with an || condition (lock set, or nothing ready)
+        const or = blockDepths(lines([['ldx $10'], ['bne $', 4], ['lda $12'], ['bne $', 5], ['jmp $'], ['lda $14'], ['rts']]));
+        assert.deepStrictEqual([or.depth, or.kw, or.chains[1]], [[0, 0, 0, 0, 1, 0, 0], ['', 'if', '', '', '', '', ''], [1, 3]]);
+        const { chainCondition } = require('../../dist/games/evermore/code-tab/webview/code-cond');
+        assert.strictEqual(chainCondition(lines([['ldx $10'], ['bne $', 4], ['lda $12'], ['bne $', 5], ['jmp $'], ['lda $14'], ['rts']]), [1, 3], false), '$10 != 0 || $12 == 0');
+        assert.strictEqual(chainCondition(lines([['lda $10'], ['beq $', 5], ['lda $12'], ['bne $', 5], ['inc'], ['rts']]), [1, 3], false), '$10 != 0 && $12 == 0');
+        // a store between the branches would hide that it runs only on one path: no chain
+        assert.deepStrictEqual(blockDepths(lines([['beq $', 4], ['sta $10'], ['lda $12'], ['bne $', 4], ['inc'], ['rts']])).depth, [0, 1, 1, 1, 0, 0]);
     });
     await test('conditions: the if body\'s condition in C from A, X, Y and the flags', () => {
         const { bodyCondition } = require('../../dist/games/evermore/code-tab/webview/code-cond');

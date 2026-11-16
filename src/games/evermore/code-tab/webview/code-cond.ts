@@ -1,7 +1,8 @@
 // Ownership: the C condition of an `if` in a routine's asm, pure (lines in, a string out). From the start of
 // the branch's basic block (the nearest line something jumps to) to the branch, A, X and Y are followed as C
 // expressions and each flag remembers what set it (a load, a compare, a bit test, a shift, a sum, a call); the branch's
-// flag then reads as C. The condition is the one under which the `if` body runs: the branch NOT taken.
+// flag then reads as C. The condition is the one under which the `if` body runs: the branch NOT taken (for a
+// chain of branches, code-blocks.ts, joined with `||` / `&&`).
 // What cannot be followed stays a flag name (Z, C, N, V). A guess for reading, never a decompilation.
 
 /** As far as a condition needs a line of lines.json: text, text by name, the routine it calls, where it jumps. */
@@ -44,7 +45,11 @@ function step(s: State, l: CondLine, named: boolean): void {
     const set = (r: 'A' | 'X' | 'Y', e: string) => { s[r] = cap(e, r); s.zn = { k: 'val', e: s[r] }; };
     switch (mn) {
         case 'lda': case 'ldx': case 'ldy': set(reg, op); return;
-        case 'tax': case 'tay': case 'txa': case 'tya': case 'txy': case 'tyx': set(mn[2].toUpperCase() as 'A', s[mn[1].toUpperCase() as 'A']); return;
+        case 'tax': case 'tay': case 'txa': case 'tya': case 'txy': case 'tyx': {
+            // from a register not followed (its own name), the destination keeps its name: `X`, not `A`
+            const to = mn[2].toUpperCase() as 'A', from = s[mn[1].toUpperCase() as 'A'];
+            set(to, /^[AXY]$/.test(from) ? to : from); return;
+        }
         case 'and': set('A', wrap(s.A) + ' & ' + op); return;
         case 'ora': set('A', wrap(s.A) + ' | ' + op); return;
         case 'eor': set('A', wrap(s.A) + ' ^ ' + op); return;
@@ -120,10 +125,8 @@ function taken(mn: string, s: State): string {
     }
 }
 
-/** The C condition under which the lines after the conditional branch on line `i` run, or null for no branch. */
-function bodyCondition(lines: CondLine[], i: number, named: boolean): string | null {
-    const mn = lines[i].text.slice(0, 3).toLowerCase();
-    if (!OPPOSITE[mn]) return null;
+/** A, X, Y and the flags just before line `i`, followed from the nearest line something jumps to. */
+function stateAt(lines: CondLine[], i: number, named: boolean): State {
     const index = new Map(lines.map((l, n) => [l.addr, n]));
     let start = 0;
     for (const l of lines) {
@@ -132,8 +135,36 @@ function bodyCondition(lines: CondLine[], i: number, named: boolean): string | n
     }
     const s: State = { A: 'A', X: 'X', Y: 'Y', zn: null, c: null, v: null };
     for (let n = start; n < i; n++) step(s, lines[n], named);
-    return taken(OPPOSITE[mn], s);
+    return s;
 }
 
+/**
+ * The C condition under which an `if` body runs, the body being the line after the last of `chain` (its
+ * branches, code-blocks.ts): a branch to the body adds `taken ||`, one past it `!taken &&`; the last is `!taken`.
+ * Null when a line of the chain is no conditional branch.
+ */
+function chainCondition(lines: CondLine[], chain: number[], named: boolean): string | null {
+    const mns = chain.map((b) => lines[b].text.slice(0, 3).toLowerCase());
+    if (!chain.length || mns.some((mn) => !OPPOSITE[mn])) return null;
+    const body = lines[chain[chain.length - 1] + 1]?.addr;
+    const at = (n: number, mn: string) => taken(mn, stateAt(lines, chain[n], named));
+    let expr = at(chain.length - 1, OPPOSITE[mns[mns.length - 1]]), op = '';
+    for (let n = chain.length - 2; n >= 0; n--) {
+        const toBody = !lines[chain[n]].call && lines[chain[n]].jump === body, join = toBody ? '||' : '&&';
+        expr = at(n, toBody ? mns[n] : OPPOSITE[mns[n]]) + ' ' + join + ' ' + (op && op !== join ? '(' + expr + ')' : expr);
+        op = join;
+    }
+    return expr;
+}
+
+/** When the loop whose branch back is on line `j` goes round again: the branch taken (`true` for a jump). */
+function loopCondition(lines: CondLine[], j: number, named: boolean): string {
+    const mn = lines[j].text.slice(0, 3).toLowerCase();
+    return OPPOSITE[mn] ? taken(mn, stateAt(lines, j, named)) : 'true';
+}
+
+/** The condition of a one-branch `if` on line `i`. */
+const bodyCondition = (lines: CondLine[], i: number, named: boolean): string | null => chainCondition(lines, [i], named);
+
 export type { CondLine };
-export { bodyCondition };
+export { bodyCondition, chainCondition, loopCondition };
