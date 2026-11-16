@@ -25,7 +25,8 @@ Investigating the technical feasibility of porting Secret of Mana rooms, enemies
 
 ### 1.3 Converted maps: open work (2026-11-14)
 
-The conversion (`src/games/evermore/imports/mana`, table: [evermore-rooms.md](../mana/evermore-rooms.md)).
+The conversion (`src/games/evermore/imports/mana`, table: [evermore-rooms.md](../mana/evermore-rooms.md);
+Terranigma: `imports/terra`, [evermore-rooms.md](../terra/evermore-rooms.md)).
 Rule from the owner: a cell carries the flag Mana's data gives it; where Evermore then behaves
 differently, measure it and report it, do not reshape the data.
 
@@ -49,6 +50,19 @@ differently, measure it and report it, do not reshape the data.
   it is entered and left.
 - 🟡 **Stairs on Potos' path.** `$66` (36,19)-(36,21) carry `$21` (stairs and slopes) under the
   north-east house: marked as vertical stairs. Check whether `$2n` covers more than stairs.
+- 💡 **Past 256 graphics: overlapping 16x16 windows (both games, measured 2026-11-16).** Evermore draws
+  BG1/BG2 with 16x16 tiles (BGMODE `$39`): a word naming character N draws N, N+1, N+16, N+17, so any
+  8-pixel-aligned 2x2 window of the 1024 characters is a graphic, not only the 256 aligned ones. The 14
+  Terranigma pictures past 256 (and Mana `$0E`) need 261-380 graphics but only 449-743 distinct 8x8
+  characters. Laying graphics out so neighbours share a column (an Eulerian chaining of left/right
+  columns, whole-graphic flips only) bounds them at 892-1416 characters: 7 of the 14 would fit, the rest
+  still need twins. Cost: every place that turns a character into a slot (`floor(chr/0x20)*8 + …`: `maps/render.ts`,
+  the editor's `map-editor-*.js`, `vanilla-index.ts`, `tile-files.ts`, `map-animation.ts`, `scripts-tab/model/map-tiles.ts`)
+  must compose a window from characters instead, and the editor's Tile tab shows graphics by slot.
+  Vertical sharing (windows at odd rows) is not measured. Wrap at a row's end is not checked: avoid column 15.
+- 💡 **Mixed-palette metatiles split over both layers.** One palette per Evermore cell: a metatile mixing
+  palettes is recoloured (`recolouredTiles`, ~12-48 per Mana map). Where layer 1 is empty in the cell, its
+  second palette's pixels could go there, as the priority split does for Terranigma.
 - 💡 **Events in Evermore.** Step-on and B-trigger boxes name Mana event numbers (return cells
   `$1000`); Play in emulator leaves them out. Doors and exits between converted maps need
   Evermore scripts written for them.

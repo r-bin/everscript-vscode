@@ -17,7 +17,8 @@
 // Only SNES facts are shared: both games use Mode 1 tilemap words with the same bits.
 
 import * as mana from '../../../mana/decoder';
-import { FAMILY_BASE } from '../common/ids';
+import { FAMILY_BASE, MAX_GRAPHICS } from '../common/ids';
+import { fitGraphics } from '../common/graphics';
 import { triggerBoxes } from '../common/boxes';
 import { flagObjects } from './pieces';
 import { paletteCycles, animatedMetatiles, animateTiles } from './animation';
@@ -40,7 +41,8 @@ function convertManaMap(manaRom: ManaRom, id: number) {
     const source = mana.loadMap(manaRom, id);
     if (!source) return null;
     const stats: Stats = { recolouredTiles: 0, recolouredPixels: 0, mixedPriority: 0, droppedGraphics: 0 };
-    const graphics = graphicTable(stats);
+    // Every graphic listed first; past Evermore's 256 the nearest twins merge (below).
+    const graphics = graphicTable(stats, { max: Infinity });
     let trace: Trace | null = null;
     try { trace = mana.traceAnimation(manaRom, source.header); } catch { /* $01:B17E never returns on some maps ($1FF): shown still */ }
     const moving = trace ? animatedMetatiles(source, trace) : { A: new Set<number>(), B: new Set<number>() };
@@ -102,6 +104,31 @@ function convertManaMap(manaRom: ManaRom, id: number) {
     const backdrop = fillBackdrop && !subBG2 ? backdropTile(map, tiles, rotating, graphics) : null;
     const anim = animateTiles(map, trace, tiles, graphics, (layer, n, vram, palette) =>
         metatilePixels(map, layer === 'A' ? map.tableA : map.tableB, n, scratch, rotating, { ...pixelOpts(layer, n), vram, main: palette }).px);
+    // Block 1 alone past Evermore's 256 graphics (then animateTiles kept no channel: `$0E`): those with the nearest
+    // twin are drawn as it, by the cells that show them (common/graphics.ts fitGraphics, as for Terranigma). Drawn
+    // empty before.
+    let blockSlots = graphics.slots;
+    stats.substitutedGraphics = 0;
+    if (blockSlots.length > MAX_GRAPHICS) {
+        const shown = new Map<Tile, number>();
+        for (const [a, b] of pairs) for (const t of [tileOf('A', a), tileOf('B', b)]) if (t && !t.m.empty) shown.set(t, (shown.get(t) ?? 0) + 1);
+        const weight: number[] = [], drawnIn: number[] = [];
+        for (const [t, k] of shown) {
+            if ((weight[t.g.slot] ?? 0) < k) drawnIn[t.g.slot] = t.m.palette;
+            weight[t.g.slot] = (weight[t.g.slot] ?? 0) + k;
+        }
+        if (backdrop) drawnIn[backdrop.slot] = backdrop.palette;
+        const paletteOf = (slot: number) => drawnIn[slot] ?? 1;
+        const fit = fitGraphics(blockSlots, weight, (slot, k) => map.cgram[paletteOf(slot) * 16 + k], new Set([EMPTY_GRAPHIC, backdrop ? backdrop.slot : EMPTY_GRAPHIC]),
+            (slot, k) => rotating.has(paletteOf(slot) * 16 + k));
+        for (const layer of ['A', 'B'] as Layer[]) for (const t of tiles[layer].values()) {
+            const m = fit.remap[t.g.slot];
+            t.g = { slot: m.slot, h: t.g.h ^ m.h, v: t.g.v ^ m.v };
+        }
+        if (backdrop) backdrop.slot = fit.remap[backdrop.slot].slot;
+        blockSlots = fit.slots;
+        stats.substitutedGraphics = fit.removed;
+    }
     const used = new Map<number, Set<number>>();                     // Mana palette -> graphic slots drawn in it
     for (const layer of ['A', 'B'] as Layer[]) for (const t of tiles[layer].values()) {
         if (t.m.empty) continue;
@@ -185,7 +212,7 @@ function convertManaMap(manaRom: ManaRom, id: number) {
         id, widthTiles: map.w, heightTiles: map.h,
         display: { tm: map.display.main, ts: map.display.sub, colorMath: map.display.math, colorWindow: 0x02 },
         cells,
-        graphics: graphics.slots.map(encodeGraphic),
+        graphics: blockSlots.map(encodeGraphic),
         frameGraphics: anim.frames.map(encodeGraphic),
         animation: anim.channels,
         paletteCycles: cycles.records,
@@ -197,7 +224,7 @@ function convertManaMap(manaRom: ManaRom, id: number) {
         onEnter: events.onEnter,
         walkLayer: walk,
         spawns: mana.mapObjects(manaRom, id).map((o) => ({ x: o.x, y: o.y, kind: o.kind })),
-        stats: Object.assign(stats, { graphics: graphics.slots.length, stepCells: stepAt.size, bTriggerCells: bAt.size,
+        stats: Object.assign(stats, { graphics: blockSlots.length, stepCells: stepAt.size, bTriggerCells: bAt.size,
             cuttable: cut.length, objects: objects.length,
             channels: anim.channels.length, frameGraphics: anim.frames.length, aperiodicTiles: anim.aperiodic,
             stillTiles: anim.still, peakUploads: anim.peakUploads, paletteCycles: cycles.records.length, droppedCycles: cycles.dropped,

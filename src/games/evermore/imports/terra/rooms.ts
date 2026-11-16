@@ -12,6 +12,7 @@ import { buildVirtualRom, roomHeader } from '../common/virtual-rom';
 import { defaultStart } from '../common/start';
 import * as ids from '../common/ids';
 import { convertTerraRoom } from './convert';
+import { arrivals } from './view';
 import type { TerraConverted } from './convert';
 
 type Rom = Uint8Array;
@@ -29,7 +30,6 @@ function createTerraRooms(deps: { soeRom(): Rom | null; terraRom(): Rom | null }
     const cache = new Map<number, Entry>();
     const familyMap = new Map<number, number>();         // family id -> room that last used it
     const familyIds = new Map<string, number>();         // 16 colours -> family id
-    let arrivalCache: { rom: Rom; at: Map<number, { x: number; y: number }[]> } | null = null;
 
     const roms = () => {
         const soe = deps.soeRom(), t = deps.terraRom();
@@ -80,22 +80,6 @@ function createTerraRooms(deps: { soeRom(): Rom | null; terraRom(): Rom | null }
         })).filter((g) => g.rooms.length);
     }
 
-    /** Where the game's exits into room `id` put the player (pixels), from every room's exit list. */
-    function arrivals(rom: Rom, id: number) {
-        if (!arrivalCache || arrivalCache.rom !== rom) {
-            const at = new Map<number, { x: number; y: number }[]>();
-            for (let k = 0; k < terra.TERRA_ROOM_COUNT; k++) {
-                if (!terra.isRoomSlotUsed(rom, k)) continue;
-                for (const e of terra.roomExits(rom, k)) for (const t of e.targets) {
-                    if (!at.has(t.room)) at.set(t.room, []);
-                    at.get(t.room)!.push({ x: t.x, y: t.y });
-                }
-            }
-            arrivalCache = { rom, at };
-        }
-        return arrivalCache.at.get(id) ?? [];
-    }
-
     /**
      * Where the Boy starts by default: the first floor cell where one of the game's exits arrives (the cell
      * holding the point, else the floor cell nearest it within two cells), else the middle (common/start.ts).
@@ -104,7 +88,7 @@ function createTerraRooms(deps: { soeRom(): Rom | null; terraRom(): Rom | null }
         const { room } = e, w = room.widthTiles, h = room.heightTiles;
         const floor = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && !(room.cells[(y * w + x) * 3 + 2] & 0xC00F);
         for (const p of arrivals(e.terraRom, roomId)) {
-            const cx = p.x >> 4, cy = p.y >> 4;
+            const cx = (p.x >> 4) - room.origin.x, cy = (p.y >> 4) - room.origin.y;
             let best: { x: number; y: number } | null = null, bestD = Infinity;
             for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
                 const d = dx * dx + dy * dy;
@@ -195,7 +179,7 @@ function createTerraRooms(deps: { soeRom(): Rom | null; terraRom(): Rom | null }
         return e ? { rom: e.image.rom, roomId: e.image.roomId } : null;
     }
 
-    return { railGroups, detail, resolveRoom, resolveFamily, playable, clear: () => { cache.clear(); familyMap.clear(); familyIds.clear(); arrivalCache = null; } };
+    return { railGroups, detail, resolveRoom, resolveFamily, playable, clear: () => { cache.clear(); familyMap.clear(); familyIds.clear(); } };
 }
 
 export { createTerraRooms, VID_PREFIX };

@@ -6,6 +6,7 @@
 //   the layer on BG1               -> layer 1 (canopy, BG1)
 //   the layer on BG2               -> layer 2 (terrain, BG2); a smaller one repeated over the map
 //   a sub-screen-only effect layer -> left out, as the room picture leaves it out (render.ts)
+//   cells the camera never shows   -> cut off, or blank walls inside the box kept (view.ts)
 //   metatile (4 chars)             -> one 16x16 graphic in one palette, one priority (graphics.ts)
 //   background palettes 0-7        -> the seven most drawn as families t<n>; the eighth recoloured
 //   layer 0's cell types           -> collision words (collision.ts)
@@ -25,6 +26,7 @@ import { rawTile, priorityPart, keptPalettes, withBackdrop, convertTile, fillBac
 import type { Chars, Raw, Stats } from './graphics';
 import { paletteAnimation } from './animation';
 import { paletteCycles } from '../common/cycles';
+import { cameraView } from './view';
 
 const STEP_ON = 0x4000, INTERACT = 0x8000;
 /** Evermore's BG3, on in every vanilla room's TM (header byte 4 is `$17` in all of them): its HUD and text. */
@@ -46,7 +48,7 @@ type Tile = { px: Uint8Array; palette: number; priority: number; empty: boolean 
 function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: number[]) => number) {
     const room = terra.loadRoom(rom, id);
     if (!room || !room.layers.length) return null;
-    const { w, h } = terra.roomSize(room);
+    const { w: mapW, h: mapH } = terra.roomSize(room);
     const { main, sub, cgadsub, cgwsel } = room.ppu;
     const stats: Stats & Record<string, number> = { recolouredTiles: 0, recolouredPixels: 0, mixedPriority: 0, droppedGraphics: 0, doorExits: 0 };
     const bgBit = (l: TerraLayer) => 1 << (terra.layerBg(l) - 1);
@@ -54,7 +56,7 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
     // As the picture: a layer smaller than the map only on the sub screen is a screen effect (light, haze),
     // and a layer on neither screen as the room loads is not shown (`$060`'s BG2) — unless no layer is
     // (`$004`: a script turns it on later; a blank picture shows nothing to edit).
-    const drawn = room.layers.filter((l) => onMain(l) || (l.w >= w && l.h >= h));
+    const drawn = room.layers.filter((l) => onMain(l) || (l.w >= mapW && l.h >= mapH));
     const visible = drawn.filter((l) => onMain(l) || !!(sub & bgBit(l)));
     const shown = visible.length ? visible : drawn;
     stats.effectLayers = room.layers.length - drawn.length;
@@ -86,18 +88,39 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
     stats.subLayersOnMain = asMain.length;
     stats.lostBackdropTint = asMain.length && backdrop ? 1 : 0;
     const chars: Record<Role, Chars> = { 1: charsOf(room, layer[1]), 2: charsOf(room, layer[2]) };
+
+    // Layer 0's cell types ($7E:A000, what movement reads), in map coordinates; past its size a wall. A room without
+    // a layer 0 (`$005`, a picture on layer 1 alone) has nothing to collide with: floor.
+    const l0 = room.layers.find((l) => l.index === 0);
+    const mapType = (x: number, y: number) => (!l0 ? 0 : x >= 0 && y >= 0 && x < l0.w && y < l0.h ? (l0.cells[y * l0.w + x] >> 9) & 0x1F : -1);
+    const rules = terra.cellTypeRules(rom), kind = rules.map((r) => terra.cellClass(r));
+    // The map changes, in map coordinates: [layer, x, y, word] each.
+    const edits = terra.roomChanges(rom, id).map((change) => ({ bit: change.bit, cells: terra.changeCells(room, change) }));
+    const changedTypes = new Map<number, number[]>();
+    for (const e of edits) for (const [index, x, y, word] of e.cells) {
+        if (index === 0) changedTypes.set(y * mapW + x, [...(changedTypes.get(y * mapW + x) ?? []), (word >> 9) & 0x1F]);
+    }
+    // What the camera can show (view.ts): the box kept, from map cell (view.x, view.y); outside `seen` a blank wall.
+    const passable = (x: number, y: number) => [mapType(x, y), ...(changedTypes.get(y * mapW + x) ?? [])].some((t) => t >= 0 && kind[t] !== 'wall');
+    const view = cameraView(rom, id, mapW, mapH, passable)
+        ?? { x: 0, y: 0, w: mapW, h: mapH, seen: new Uint8Array(mapW * mapH).fill(1), unseen: 0 };
+    const { w, h } = view, ox = view.x, oy = view.y;
+    const inside = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h;
+    const seenAt = (x: number, y: number) => inside(x, y) && view.seen[y * w + x] === 1;
+    stats.unseenCells = view.unseen;
     // A layer smaller than the map repeats (a background the game scrolls on its own; drawn fixed here).
     const cellOf = (role: Role, x: number, y: number) => {
         const l = layer[role];
-        return l ? l.cells[(y % l.h) * l.w + (x % l.w)] : -1;
+        return l && seenAt(x, y) ? l.cells[((y + oy) % l.h) * l.w + ((x + ox) % l.w)] : -1;
     };
 
     // The map changes: what each one writes, by cell, on Evermore's layers and in layer 0's cell types.
     const roleOf = (index: number): Role | null => (layer[1]?.index === index ? 1 : layer[2]?.index === index ? 2 : null);
-    const changes = terra.roomChanges(rom, id).map((change) => {
+    const changes = edits.map((change) => {
         const cells = new Map<number, { 1?: number; 2?: number; type?: number }>();
-        for (const [index, x, y, word] of terra.changeCells(room, change)) {
-            if (x >= w || y >= h) continue;
+        for (const [index, mx, my, word] of change.cells) {
+            const x = mx - ox, y = my - oy;
+            if (!seenAt(x, y)) continue;
             const c = cells.get(y * w + x) ?? {};
             const role = roleOf(index);
             if (role) c[role] = word;
@@ -107,12 +130,8 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
         return { bit: change.bit, cells };
     }).filter((c) => c.cells.size);
 
-    // Collision: layer 0's cell types ($7E:A000, what movement reads); past its size a wall. A room without a
-    // layer 0 (`$005`, a picture on layer 1 alone) has nothing to collide with: floor.
-    const l0 = room.layers.find((l) => l.index === 0);
-    const inside = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h;
-    const typeAt = (x: number, y: number) => (!inside(x, y) ? -1 : !l0 ? 0 : x < l0.w && y < l0.h ? (l0.cells[y * l0.w + x] >> 9) & 0x1F : -1);
-    const collision = collisionWords(terra.cellTypeRules(rom), w, h, typeAt);
+    const typeAt = (x: number, y: number) => (!seenAt(x, y) ? -1 : mapType(x + ox, y + oy));
+    const collision = collisionWords(rules, w, h, typeAt);
 
     // Terranigma gives each 8x8 character its own priority; an Evermore cell has one. A layer-2 metatile that
     // mixes them (a canopy's or a roof's lower edge, a signpost: the player walks behind its high half) is split
@@ -241,11 +260,11 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
     // `event` is the chests' count plus the exit's index (rooms.ts labels it).
     const events = new Map<number, number>();         // cell -> STEP_ON / INTERACT bits
     const exits = terra.roomExits(rom, id), steps: { x: number; y: number; event: number }[] = [], checks: typeof steps = [];
-    const chests = terra.roomChests(rom, id).filter((c) => c.x < w && c.y < h);
+    const chests = terra.roomChests(rom, id).map((c) => ({ ...c, x: c.x - ox, y: c.y - oy })).filter((c) => seenAt(c.x, c.y));
     chests.forEach((c, k) => { checks.push({ x: c.x, y: c.y, event: k }); events.set(c.y * w + c.x, INTERACT); });
     exits.forEach((e, k) => {
         const at: number[] = [];
-        for (let y = e.y; y < Math.min(h, e.y + e.h); y++) for (let x = e.x; x < Math.min(w, e.x + e.w); x++) at.push(y * w + x);
+        for (let y = e.y - oy; y < e.y - oy + e.h; y++) for (let x = e.x - ox; x < e.x - ox + e.w; x++) if (seenAt(x, y)) at.push(y * w + x);
         const door = at.length > 0 && at.every((i) => !standable(i % w, (i / w) | 0));
         if (door) stats.doorExits++;
         for (const i of at) {
@@ -288,6 +307,8 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
     });
     return {
         id, widthTiles: w, heightTiles: h,
+        /** The map cell the room's (0, 0) is, and which of its cells the camera can show (view.ts): the rest are blank walls. */
+        origin: { x: ox, y: oy }, seen: view.seen,
         display: displayOf(room.ppu, layer, asMain, math, fixedMath, !!solid, stats, stats.splitTiles > 0),
         cells,
         graphics: graphics.slots.map(encodeGraphic),
