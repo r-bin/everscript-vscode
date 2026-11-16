@@ -139,22 +139,27 @@ function stateAt(lines: CondLine[], i: number, named: boolean): State {
 }
 
 /**
- * The C condition under which an `if` body runs, the body being the line after the last of `chain` (its
- * branches, code-blocks.ts): a branch to the body adds `taken ||`, one past it `!taken &&`; the last is `!taken`.
- * Null when a line of the chain is no conditional branch.
+ * The C condition under which an `if` body runs, one clause per branch of `chain` (code-blocks.ts), the body
+ * being the line after the last: a branch to the body reads `taken ||`, one past it `!taken &&`, the last
+ * `!taken`; where the join changes, a `(` opens, closed after the last. Null when a line is no conditional branch.
  */
-function chainCondition(lines: CondLine[], chain: number[], named: boolean): string | null {
+function chainParts(lines: CondLine[], chain: number[], named: boolean): string[] | null {
     const mns = chain.map((b) => lines[b].text.slice(0, 3).toLowerCase());
     if (!chain.length || mns.some((mn) => !OPPOSITE[mn])) return null;
-    const body = lines[chain[chain.length - 1] + 1]?.addr;
-    const at = (n: number, mn: string) => taken(mn, stateAt(lines, chain[n], named));
-    let expr = at(chain.length - 1, OPPOSITE[mns[mns.length - 1]]), op = '';
-    for (let n = chain.length - 2; n >= 0; n--) {
-        const toBody = !lines[chain[n]].call && lines[chain[n]].jump === body, join = toBody ? '||' : '&&';
-        expr = at(n, toBody ? mns[n] : OPPOSITE[mns[n]]) + ' ' + join + ' ' + (op && op !== join ? '(' + expr + ')' : expr);
-        op = join;
-    }
-    return expr;
+    const body = lines[chain[chain.length - 1] + 1]?.addr, last = chain.length - 1;
+    const toBody = chain.map((b, n) => n < last && !lines[b].call && lines[b].jump === body);
+    const join = toBody.map((t) => (t ? '||' : '&&'));
+    let open = 0;
+    return chain.map((b, n) => {
+        const clause = taken(toBody[n] ? mns[n] : OPPOSITE[mns[n]], stateAt(lines, b, named));
+        const paren = n > 0 && n < last && join[n - 1] !== join[n] ? (open++, '(') : '';
+        return paren + clause + (n < last ? ' ' + join[n] : ')'.repeat(open));
+    });
+}
+
+/** The whole condition of `chainParts` on one line. */
+function chainCondition(lines: CondLine[], chain: number[], named: boolean): string | null {
+    return chainParts(lines, chain, named)?.join(' ') ?? null;
 }
 
 /** When the loop whose branch back is on line `j` goes round again: the branch taken (`true` for a jump). */
@@ -167,4 +172,4 @@ function loopCondition(lines: CondLine[], j: number, named: boolean): string {
 const bodyCondition = (lines: CondLine[], i: number, named: boolean): string | null => chainCondition(lines, [i], named);
 
 export type { CondLine };
-export { bodyCondition, chainCondition, loopCondition };
+export { bodyCondition, chainCondition, chainParts, loopCondition };

@@ -5,7 +5,7 @@
 
 import { blockDepths } from './code-blocks';
 import type { Keyword } from './code-blocks';
-import { chainCondition, loopCondition } from './code-cond';
+import { chainParts, loopCondition } from './code-cond';
 
 const COND_TITLE = 'The condition follows A, X, Y and the flags from the nearest line something jumps to; what it cannot follow stays a flag (Z, C, N, V); widths are not shown';
 const KW_TITLE: Record<Exclude<Keyword, ''> | 'do', string> = {
@@ -78,10 +78,24 @@ function asmHtml(data: Lines, known: Known, opts: { bytes: boolean; names: boole
     const cdl = opts.names && !!data.cdl;
     const blocks = opts.blocks ? blockDepths(data.lines) : null;
     const dcls = (d: number): string => (d ? ' code-d' + Math.min(d, 8) : '');
-    /** The tag naming the construct line `i` opens, with the condition its body runs under. */
-    const kwHtml = (k: Exclude<Keyword, ''> | 'do', i: number): string => {
-        const cond = !blocks || k === 'else' || k === 'do' ? null : k === 'while' ? loopCondition(data.lines, i, opts.names) : chainCondition(data.lines, blocks.chains[i], opts.names);
-        return '<span class="code-kw" title="' + esc(KW_TITLE[k] + (cond ? '\n' + COND_TITLE : '')) + '">' + k + (cond ? ' (' + esc(cond) + ')' : '') + '</span>';
+    /** An `if`'s condition split over its branches, as C reads across lines: `if (a ||` … `b)`, each clause on its branch. */
+    const clauses = new Map<number, { text: string; title: string }>();
+    if (blocks) blocks.kw.forEach((k, i) => {
+        if (k !== 'if' && k !== 'else if') return;
+        const chain = blocks.chains[i], parts = chainParts(data.lines, chain, opts.names);
+        if (!parts) return;
+        const title = KW_TITLE[k] + '\n' + k + ' (' + parts.join(' ') + ')\n' + COND_TITLE;
+        chain.forEach((b, n) => clauses.set(b, { title, text: (n ? '' : k + ' (') + parts[n] + (n === chain.length - 1 ? ')' : '') }));
+    });
+    const tag = (text: string, title: string): string => '<span class="code-kw" title="' + esc(title) + '">' + esc(text) + '</span>';
+    /** The tags on line `n`: `do` where a loop starts, then what the line opens or adds to (an if's clause, `else`, `while (…)`). */
+    const tagsHtml = (n: number, kw: Keyword, head: boolean): string => {
+        let out = head ? tag('do', KW_TITLE.do) : '';
+        const clause = clauses.get(n);
+        if (clause) out += tag(clause.text, clause.title);
+        else if (kw === 'else') out += tag('else', KW_TITLE.else);
+        else if (kw === 'while') out += tag('while (' + loopCondition(data.lines, n, opts.names) + ')', KW_TITLE.while + '\n' + COND_TITLE);
+        return out;
     };
     const rows = data.lines.map((l, n) => {
         const ins = opts.names ? l.named : l.text, t = jump(l);
@@ -105,7 +119,7 @@ function asmHtml(data: Lines, known: Known, opts: { bytes: boolean; names: boole
         return '<tr data-code-at="' + at(l) + '"' + (cls ? ' class="' + cls + '"' : '') + '>' +
             '<td class="code-addr">' + at(l) + '</td><td class="code-bytes">' + esc(l.bytes) + '</td>' +
             (cdl ? (l.cdl ? hitsCell(l.cdl) : '<td class="code-hits"></td>') : '') +
-            '<td class="code-ins' + dcls(depth) + '">' + (head ? kwHtml('do', n) : '') + (kw ? kwHtml(kw, n) : '') + insHtml + '</td><td class="code-note">' + linkNames(note, known) +
+            '<td class="code-ins' + dcls(depth) + '">' + tagsHtml(n, kw, head) + insHtml + '</td><td class="code-note">' + linkNames(note, known) +
             (cdl && l.cdl ? (note ? ' ' : '') + touchedHtml(l.cdl, known) : '') + '</td></tr>';
     });
     return '<table class="code-asm' + (opts.bytes ? '' : ' code-nobytes') + '">' + rows.join('') + '</table>';

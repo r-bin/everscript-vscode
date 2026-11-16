@@ -93,6 +93,10 @@ async function unit(): Promise<void> {
         const { chainCondition } = require('../../dist/games/evermore/code-tab/webview/code-cond');
         assert.strictEqual(chainCondition(lines([['ldx $10'], ['bne $', 4], ['lda $12'], ['bne $', 5], ['jmp $'], ['lda $14'], ['rts']]), [1, 3], false), '$10 != 0 || $12 == 0');
         assert.strictEqual(chainCondition(lines([['lda $10'], ['beq $', 5], ['lda $12'], ['bne $', 5], ['inc'], ['rts']]), [1, 3], false), '$10 != 0 && $12 == 0');
+        // one clause per branch, so each sits on its line; a change of join opens a ( closed after the last
+        const { chainParts } = require('../../dist/games/evermore/code-tab/webview/code-cond');
+        assert.deepStrictEqual(chainParts(lines([['beq $', 6], ['lda $10'], ['bne $', 7], ['lda $12'], ['beq $', 7], ['bne $', 7], ['inc'], ['rts']]), [0, 2, 4, 5], false),
+            ['Z ||', '($10 == 0 &&', '$12 != 0 &&', '$12 == 0)']);
         // a store between the branches would hide that it runs only on one path: no chain
         assert.deepStrictEqual(blockDepths(lines([['beq $', 4], ['sta $10'], ['lda $12'], ['bne $', 4], ['inc'], ['rts']])).depth, [0, 1, 1, 1, 0, 0]);
     });
