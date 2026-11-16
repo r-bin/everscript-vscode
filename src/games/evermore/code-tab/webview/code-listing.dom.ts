@@ -62,7 +62,7 @@ function touchedHtml(c: NonNullable<Line['cdl']>, known: Known): string {
 /**
  * A routine's lines (lines.json) as table rows. `names`: operands by name, how often each line ran and what it
  * touched (CDL), lines that never ran dimmed; off: the plain code with its comments. `bytes` shows each instruction's bytes;
- * `blocks` indents if / else bodies (code-blocks.ts), one guide per level, and names the construct each line opens (`if`, `else`, `else if`) in a column before the instruction.
+ * `blocks` indents if / else bodies (code-blocks.ts), one guide per level, and names the construct each line opens (`if`, `else`, `else if`) as a tag before the instruction.
  */
 function asmHtml(data: Lines, known: Known, opts: { bytes: boolean; names: boolean; blocks: boolean }): string {
     const at = (l: Line): string => l.addr.slice(1);
@@ -71,7 +71,7 @@ function asmHtml(data: Lines, known: Known, opts: { bytes: boolean; names: boole
     const jump = (l: Line): string | null => { const to = l.call || !l.jump ? null : l.jump.slice(1); return to && here.has(to) && to !== at(l) ? to : null; };
     const targets = new Set(data.lines.map(jump).filter(Boolean));
     const cdl = opts.names && !!data.cdl;
-    const found = opts.blocks ? blockDepths(data.lines) : null, blocks = found && found.kw.some(Boolean) ? found : null;
+    const blocks = opts.blocks ? blockDepths(data.lines) : null;
     const dcls = (d: number): string => (d ? ' code-d' + Math.min(d, 8) : '');
     const rows = data.lines.map((l, n) => {
         const ins = opts.names ? l.named : l.text, t = jump(l);
@@ -92,8 +92,7 @@ function asmHtml(data: Lines, known: Known, opts: { bytes: boolean; names: boole
         return '<tr data-code-at="' + at(l) + '"' + (cls ? ' class="' + cls + '"' : '') + '>' +
             '<td class="code-addr">' + at(l) + '</td><td class="code-bytes">' + esc(l.bytes) + '</td>' +
             (cdl ? (l.cdl ? hitsCell(l.cdl) : '<td class="code-hits"></td>') : '') +
-            (blocks ? '<td class="code-kw"' + (kw ? ' title="' + KW_TITLE[kw] + '"' : '') + '>' + kw + '</td>' : '') +
-            '<td class="code-ins' + dcls(blocks ? blocks.depth[n] : 0) + '">' + insHtml + '</td><td class="code-note">' + linkNames(note, known) +
+            '<td class="code-ins' + dcls(blocks ? blocks.depth[n] : 0) + '">' + (kw ? '<span class="code-kw" title="' + KW_TITLE[kw] + '">' + kw + '</span>' : '') + insHtml + '</td><td class="code-note">' + linkNames(note, known) +
             (cdl && l.cdl ? (note ? ' ' : '') + touchedHtml(l.cdl, known) : '') + '</td></tr>';
     });
     return '<table class="code-asm' + (opts.bytes ? '' : ' code-nobytes') + '">' + rows.join('') + '</table>';
