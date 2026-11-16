@@ -67,6 +67,11 @@ async function exportRenderedRoomPng(msg: EditorMessage, _ctx: EditorContext) {
     }
 }
 
+/** The running status sweep (requestImportedStatus): a new request stops the one before. */
+let statusSweep = 0;
+/** How long one step of the sweep may hold the host before it yields, and how often it posts. */
+const SWEEP_STEP_MS = 50, SWEEP_POST_MS = 500;
+
 const HANDLERS: Record<string, EditorHandler> = {
     ...ROM_HANDLERS,
     ...SUGGEST_HANDLERS,
@@ -113,6 +118,32 @@ const HANDLERS: Record<string, EditorHandler> = {
         } catch (err) {
             ctx.post({ ...reply, error: errorText(err) });
         }
+    },
+    requestImportedStatus(_msg, ctx) {
+        // Every converted room's status for the rail's colours (imports/common/status.ts): red, yellow or fine, and why.
+        // Converted in short steps, so the host stays responsive (about 40 s for every room the first time, cached after);
+        // posted in batches. The page asks once each time it is built.
+        const imports = ctx.importedRooms;
+        if (!imports) return;
+        const run = ++statusSweep, ids = imports.railIds();
+        let k = 0, batch: Record<string, unknown> = {}, posted = Date.now();
+        const flush = () => {
+            if (Object.keys(batch).length) ctx.post({ command: 'importedStatus', statuses: batch });
+            batch = {};
+            posted = Date.now();
+        };
+        const step = () => {
+            if (run !== statusSweep) return;
+            const until = Date.now() + SWEEP_STEP_MS;
+            while (k < ids.length && Date.now() < until) {
+                const s = imports.status(ids[k]);
+                if (s) batch[ids[k]] = s;
+                k++;
+            }
+            if (k >= ids.length || Date.now() - posted > SWEEP_POST_MS) flush();
+            if (k < ids.length) setTimeout(step, 0);
+        };
+        step();
     },
     requestRoomMetatiles(msg, ctx) {
         // The room's metatile dictionary — the stamps a map editor

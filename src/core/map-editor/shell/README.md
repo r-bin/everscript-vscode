@@ -18,7 +18,7 @@ also set on `globalThis`). `frame-dock.js` is the DOM half.
 | `pan.js` | `shellPanStart` / `shellPanEnd`: dragging the map |
 | `rail.js` | group and area collapse, the search filter, `shellRailBind({onSelect, onNew})` |
 | `status.js` | `shellStatusBind(describe)`: the pointer's cell in the status bar |
-| `shell-canvas.css`, `shell-layout.css`, `shell-rail.css`, `shell-tabs.css` | the look (tokens: `../map-view/map-view.css`) |
+| `shell-canvas.css`, `shell-layout.css`, `shell-rail.css`, `shell-tabs.css` | the look (tokens: `../map-view/map-view.css`); a rail row's `data-status` (`warn` / `error`, set by the game's page) colours its label and adds a dot |
 
 Contract between the files: the ids and classes of `frame.ts`'s markup (`#rg-wrap`, `#rg-canvas`, `#rg-svg`,
 `#rg-dock`, `#rg-panels`, `.rm-panels`, `.rm-rail`, …) are what the scripts and the stylesheets address.

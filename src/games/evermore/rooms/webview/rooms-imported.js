@@ -8,7 +8,7 @@
 // that its id is past the ROM rooms (roomVanillaIdNum accepts it for `imported`
 // rooms), and that its families carry a label (`m12`) instead of being ROM ids.
 //
-// Owns: _importedRooms, _importedWaiting, _importedFamilies, _importedPreviews.
+// Owns: _importedRooms, _importedWaiting, _importedFamilies, _importedPreviews, _importedStatus.
 
 /** Details already received, by rail id (`som-80`, `terra-a`). */
 var _importedRooms = {};
@@ -18,6 +18,30 @@ var _importedWaiting = null;
 var _importedFamilies = {};
 /** Family id -> the preview strip sheet that has its row (the host's buildFamilyPreviews shape). */
 var _importedPreviews = {};
+/** Rail id -> the room's status from the host ({level, reasons}: src/games/evermore/imports/common/status.ts). */
+var _importedStatus = {};
+
+/** Ask the host for every converted room's status (bootstrap.js, on `uiPrefs`); it answers in batches. */
+function importedRequestStatus() {
+  if (typeof vs === 'undefined' || !vs || !document.querySelector('li[data-import]')) return;
+  vs.postMessage({ command: 'requestImportedStatus' });
+}
+
+/** A batch of statuses: colour their rail rows (rooms-rail.js). */
+function applyImportedStatus(msg) {
+  var all = (msg && msg.statuses) || {};
+  Object.keys(all).forEach(function (id) {
+    _importedStatus[id] = all[id];
+    var li = document.querySelector('li[data-import="' + id + '"]');
+    if (typeof railMarkRow !== 'function') return;
+    if (li && li.classList.contains('rsel')) railMarkOpenRoom(); else railMarkRow(li, all[id]);
+  });
+}
+
+/** A converted room's status from the host, or null when it has not arrived. */
+function importedStatus(id) {
+  return _importedStatus[id] || null;
+}
 
 /** Open a converted room's rail row. */
 function importedOpen(li) {
@@ -43,7 +67,9 @@ function applyImportedRoom(msg) {
   var pv = msg.room.familyPreviews;
   if (pv && pv.families) pv.families.forEach(function (id) { _importedPreviews[id] = pv; });
   _importedRooms[msg.id] = msg.room;
+  if (msg.room.status) _importedStatus[msg.id] = msg.room.status;
   renderRoomDetail(msg.room);
+  if (typeof railMarkOpenRoom === 'function') railMarkOpenRoom();
 }
 
 /** A converted family's entry, or null for a ROM family. */

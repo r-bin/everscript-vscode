@@ -88,6 +88,8 @@ if(typeof window!=='undefined'&&window.addEventListener){
       // Custom maps live in their own folders on the host now; the prefs
       // arriving is the moment to ask for them (map-editor-custom-store.js).
       if(typeof customRequestMaps==='function')customRequestMaps();
+      // Every converted room's status for the rail's colours (rooms-imported.js).
+      if(typeof importedRequestStatus==='function')importedRequestStatus();
     }else if(data.command==='customMaps'){
       if(typeof customLoadMaps==='function')customLoadMaps(data);
     }else if(data.command==='customMapDeleted'){
@@ -103,6 +105,9 @@ if(typeof window!=='undefined'&&window.addEventListener){
     }else if(data.command==='mapExportRomDone'){
       // Export ROM finished, failed or was cancelled (map-editor-rom-export.js).
       if(typeof applyRomExportDone==='function')applyRomExportDone(data);
+    }else if(data.command==='importedStatus'){
+      // A batch of converted rooms' statuses (red / yellow), for the rail (rooms-imported.js).
+      if(typeof applyImportedStatus==='function')applyImportedStatus(data);
     }else if(data.command==='importedRoom'){
       // A converted room's details, asked for when its rail row was opened.
       if(typeof applyImportedRoom==='function')applyImportedRoom(data);

@@ -202,6 +202,9 @@ async function main() {
         await displayOf(page, '#rm-vanilla-tree') !== 'none');
     check('and lands on the destination room, selected',
         await page.$eval('.rn-map.rsel', (n) => n.dataset.vid) === '0x12');
+    // The open room's row takes the colour of its checks (rooms-rail.js railMarkOpenRoom): a vanilla room has none.
+    await page.waitForTimeout(300);
+    check('a vanilla room opened is not coloured', await page.$eval('.rn-map.rsel', (n) => n.dataset.status || null) === null);
 
     // ── + New Map ────────────────────────────────────────────────────────
     // A new map is a room of its own, under Custom rooms: "a new map creates
@@ -224,6 +227,8 @@ async function main() {
             spawns: document.querySelectorAll('#rg-svg .svge-spawn, #rg-svg .svge-arrival').length,
         };
     });
+    check('a new, empty custom map is not coloured either',
+        await page.$eval('.rn-map.rsel', (n) => n.dataset.status || null) === null);
     check('+ New Map adds an entry under Custom rooms and selects it',
         made.selected === 1 && !!made.custom && made.inCustom && /New map 1/.test(made.label)
         && /16×14/.test(made.label), JSON.stringify(made));

@@ -62,6 +62,13 @@ Not converted: character animation (above), the room's characters (no spawn mark
 exits and chests out (bits 14 and 15 too): their numbers are Terranigma's, and as Evermore script ids they would run
 whatever Evermore keeps there.
 
+## The rail's colours
+
+The same rules as for Mana ([docs/mana/evermore-rooms.md](../mana/evermore-rooms.md) "The rail's colours",
+`imports/common/status.ts`): red, it cannot be played as an Evermore room; yellow, it differs from its source or spends
+past vanilla. November 2026, every rail row: Terranigma 0 red, 810 yellow
+(most: tiles that mix palettes, palette animations left still), 52 fine.
+
 ## Where the room lives
 
 As for Mana ([docs/mana/evermore-rooms.md](../mana/evermore-rooms.md) "Where the room lives"): an in-memory image

@@ -66,6 +66,21 @@ function createTerraRooms(deps: { soeRom(): Rom | null; terraRom(): Rom | null }
     }
 
     /**
+     * `vid`'s conversion counts for its status (common/status.ts), converted without filling the cache (a sweep over
+     * every room must not push out the one on screen). Null when `vid` is not a Terranigma room or a ROM is missing;
+     * throws when the room does not convert.
+     */
+    function check(vid: unknown) {
+        const r = roms();
+        if (!r || typeof vid !== 'string' || !vid.startsWith(VID_PREFIX)) return null;
+        const roomId = parseInt(vid.slice(VID_PREFIX.length), 16), hit = cache.get(roomId);
+        const room = hit && hit.soe === r.soe && hit.terraRom === r.t ? hit.room : convertTerraRoom(r.t, roomId, familyId);
+        if (!room) throw new Error('no map of its own');
+        const image = hit && hit.room === room ? hit.image : buildVirtualRom(r.soe, room, SALT + roomId);
+        return { ...room.stats, wramBytes: image.wramBytes, blobBytes: image.blobBytes, families: room.families.length, contextRooms: room.context.length };
+    }
+
+    /**
      * The rail: one row per picture and part of it the camera shows (its first room; a picture of eight house interiors
      * is eight rooms, convert.ts keeps only what the screen can show), in Terranigma's groups of 64 ids. [] without both ROMs.
      */
@@ -207,7 +222,7 @@ function createTerraRooms(deps: { soeRom(): Rom | null; terraRom(): Rom | null }
         return e ? { rom: e.image.rom, roomId: e.image.roomId } : null;
     }
 
-    return { railGroups, detail, resolveRoom, resolveFamily, playable, clear: () => { cache.clear(); familyMap.clear(); familyIds.clear(); arrivalCache = null; } };
+    return { railGroups, detail, check, resolveRoom, resolveFamily, playable, clear: () => { cache.clear(); familyMap.clear(); familyIds.clear(); arrivalCache = null; } };
 }
 
 export { createTerraRooms, VID_PREFIX };

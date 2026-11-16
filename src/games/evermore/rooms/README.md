@@ -350,7 +350,16 @@ script by `memory/webview/index.ts` (`ROOMS_JS_FILES` fixes the order):
   came from itself (`data-vid` = ROM catalogue, `data-map` + `data-line` = a
   room declared in the active `.evs` file). One delegated click listener on
   `#rm-rail-scroll`, guarded by a dataset flag, walking up from `e.target`
-  in three branches (group header / area label / room row)
+  in three branches (group header / area label / room row). A row's **status colour**
+  (`railMarkRow`, `data-status`, drawn by the shell's `shell-rail.css`): yellow, the room works but
+  differs from its source (a converted room's tiles approximated, recoloured, an animation or effect
+  left out) or spends past any vanilla room; red, it cannot be played or exported; its title lists
+  why. A converted room's comes from the host (`requestImportedStatus` -> `importedStatus` batches,
+  `imports/common/status.ts`; editor-host.ts converts every room a few at a time, ~40 s the first
+  time, cached after). The open room's row follows the editor's own checks (`editErrors`: hard = red,
+  warn = yellow) on every `renderEditChrome` (`railMarkOpenRoom`), so a vanilla edit or a custom map
+  that breaks a ceiling turns red at once; a custom map not opened since the page was built is not
+  coloured (its budget needs its donor's dictionary)
 - `tab-init.js` — the radar panel's top-level tab strip, and nothing else
   since Phase 7b moved the rail out
 - `map-editor-theme.css` — the map editor's design tokens (oklch palette

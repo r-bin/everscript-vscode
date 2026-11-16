@@ -5,6 +5,8 @@
 import { createManaRooms } from './mana';
 import { createTerraRooms } from './terra';
 import { TERRA_ROOM_BASE, IMPORTED_ROOM_BASE } from './common/ids';
+import { conversionStatus, failedStatus } from './common/status';
+import type { RoomStatus } from './common/status';
 
 type Rom = Uint8Array;
 type Bridge = ReturnType<typeof createManaRooms> | ReturnType<typeof createTerraRooms>;
@@ -26,6 +28,17 @@ function createImportedRooms(deps: { soeRom(): Rom | null; manaRom(): Rom | null
         for (const b of all) { const r = ask(b); if (r) return r; }
         return null;
     };
+    /** Statuses already worked out, by rail id; null: not a converted room, or a ROM is missing. */
+    const statuses = new Map<string, RoomStatus | null>();
+    const status = (vid: string): RoomStatus | null => {
+        if (!statuses.has(vid)) {
+            let s: RoomStatus | null;
+            try { const c = first((b) => b.check(vid)); s = c ? conversionStatus(c) : null; }
+            catch (err) { s = failedStatus(err instanceof Error ? err.message : String(err)); }
+            statuses.set(vid, s);
+        }
+        return statuses.get(vid)!;
+    };
     return {
         /** The rail's groups of converted rooms; a game whose ROM is missing (or fails) has none. */
         groups() {
@@ -35,7 +48,16 @@ function createImportedRooms(deps: { soeRom(): Rom | null; manaRom(): Rom | null
                 return { ...g, areas };
             }).filter((g) => g.areas.length);
         },
-        detail: (vid: unknown, name?: string) => first((b) => b.detail(vid, name)),
+        /** A room's details for the tab, with its status (common/status.ts). */
+        detail: (vid: unknown, name?: string) => {
+            const d = first((b) => b.detail(vid, name));
+            return d ? { ...d, status: status(String(vid)) } : null;
+        },
+        /** Rail id `vid`'s status (red / yellow / fine and why), cached; null when it is not a converted room. */
+        status,
+        /** Every converted room's rail id, in rail order. */
+        railIds: (): string[] => GROUPS.flatMap((g) => { try { return bridges[g.key].railGroups(); } catch { return []; } })
+            .flatMap((a) => a.rooms.map((r) => r.id)),
         resolveRoom: (roomId: unknown) => first((b) => b.resolveRoom(roomId)),
         resolveFamily: (familyId: unknown) => first((b) => b.resolveFamily(familyId)),
         playable: (roomId: unknown) => first((b) => b.playable(roomId)),
@@ -44,7 +66,7 @@ function createImportedRooms(deps: { soeRom(): Rom | null; manaRom(): Rom | null
             const n = Number(roomId);
             return n >= TERRA_ROOM_BASE ? GROUPS[1].label : n >= IMPORTED_ROOM_BASE ? GROUPS[0].label : null;
         },
-        clear: () => all.forEach((b) => b.clear()),
+        clear: () => { all.forEach((b) => b.clear()); statuses.clear(); },
     };
 }
 

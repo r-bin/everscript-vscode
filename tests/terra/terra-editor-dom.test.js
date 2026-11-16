@@ -33,6 +33,9 @@ async function main() {
     const soe = new Uint8Array(fs.readFileSync(SOE)), terraRom = new Uint8Array(fs.readFileSync(TERRA));
     const service = createImportedRooms({ soeRom: () => soe, manaRom: () => null, terraRom: () => terraRom });
     const shots = process.argv[2] || null;
+    // Crysta (graphics past 256: yellow), and the first rooms of the rail, among them some that convert as they are.
+    const STATUS_ROOMS = ['terra-a', ...service.railIds().filter((id) => id.startsWith('terra-')).slice(0, 30)];
+    const fine = STATUS_ROOMS.find((id) => service.status(id).level === 'ok');
 
     // The answers extension.js gives (radar-panel.ts radarRoomRom, editor-host*.ts), condensed.
     const answer = (msg) => {
@@ -54,6 +57,8 @@ async function main() {
             return { command: 'familySheet', family: Number(msg.family), sheet: rooms.buildFamilySheet(s.rom, msg.family, s.roomId) }; }
         case 'requestFamilyCatalogue': return { command: 'familyCatalogue', families: rooms.buildFamilyCatalogue(soe) };
         case 'requestCustomMaps': return { command: 'customMaps', maps: [], active: null };
+        // editor-host.ts sweeps every room in batches; here one batch of the rooms the checks below look at.
+        case 'requestImportedStatus': return { command: 'importedStatus', statuses: Object.fromEntries(STATUS_ROOMS.map((id) => [id, service.status(id)])) };
         case 'mapPlayImported': {   // editor-host-rom.ts: the real builder and its picture check
             const parts = service.playable(msg.roomId);
             const built = own.buildOwnRoomExportRom(soe, parts.room, msg.start || parts.start);
@@ -89,9 +94,24 @@ async function main() {
     const rows = await page.locator('#rm-grp-terra li[data-import]').count();
     check('it lists every Terranigma picture, a row per part the camera shows (862)', rows === 862, String(rows));
 
+    // The rail's colours (imports/common/status.ts, rooms-rail.js): Crysta yellow, its title saying why; a room that
+    // converts as it is, uncoloured.
+    // radar-open.ts sends the prefs when the panel opens; the page then asks for the statuses.
+    await page.evaluate(() => window.postMessage({ command: 'uiPrefs', prefs: {} }, '*'));
+    await page.waitForTimeout(1500);
+    const mark = (id) => page.evaluate((i) => { const li = document.querySelector('li[data-import="' + i + '"]');
+        return { status: li.dataset.status || null, title: li.title, colour: getComputedStyle(li.querySelector('.rn-label')).color }; }, id);
+    const crystaMark = await mark('terra-a'), fineMark = fine ? await mark(fine) : null;
+    check('Crysta\'s row is yellow: some graphics are drawn as the nearest-looking one', crystaMark.status === 'warn'
+        && /nearest-looking one/.test(crystaMark.title) && crystaMark.colour !== (fineMark || {}).colour, JSON.stringify(crystaMark));
+    check('a room that converts as it is stays uncoloured', !!fineMark && fineMark.status === null, fine + ' ' + JSON.stringify(fineMark));
+    if (shots) await page.locator('.rg-rail').screenshot({ path: path.join(shots, 'terra-rail.png') });
+
     // Crysta: nine exits, a map change.
     await page.click('li[data-import="terra-a"]');
     await page.waitForTimeout(3000);
+    const openMark = await mark('terra-a');
+    check('opened, Crysta\'s row keeps its colour (its conversion, and the editor\'s checks on the draft)', openMark.status === 'warn', JSON.stringify(openMark));
     const tab = async (name) => {
         await page.evaluate((n) => { const t = [...document.querySelectorAll('[data-edit-active-tab]')].find((b) => b.textContent.trim().toLowerCase().startsWith(n)); if (t) t.click(); }, name);
         await page.waitForTimeout(800);

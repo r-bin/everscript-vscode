@@ -47,6 +47,21 @@ function createManaRooms(deps: { soeRom(): Rom | null; manaRom(): Rom | null }) 
         return e;
     }
 
+    /**
+     * `vid`'s conversion counts for its status (common/status.ts), converted without filling the cache (a sweep over
+     * every map must not push out the one on screen). Null when `vid` is not a Mana map or a ROM is missing; throws
+     * when the map does not convert.
+     */
+    function check(vid: unknown) {
+        const r = roms();
+        if (!r || typeof vid !== 'string' || !vid.startsWith(VID_PREFIX)) return null;
+        const manaId = parseInt(vid.slice(VID_PREFIX.length), 16), hit = cache.get(manaId);
+        const room = hit && hit.soe === r.soe && hit.manaRom === r.m ? hit.room : convertManaMap(r.m, manaId);
+        if (!room) throw new Error('no such map');
+        const image = hit && hit.room === room ? hit.image : buildVirtualRom(r.soe, room, manaId + 1);
+        return { ...room.stats, wramBytes: image.wramBytes, blobBytes: image.blobBytes, families: room.families.length };
+    }
+
     /** The rail: one row per picture, grouped by area. [] without both ROMs. */
     function railGroups() {
         const r = roms();
@@ -134,7 +149,7 @@ function createManaRooms(deps: { soeRom(): Rom | null; manaRom(): Rom | null }) 
         return e ? { rom: e.image.rom, roomId: e.image.roomId } : null;
     }
 
-    return { railGroups, detail, resolveRoom, resolveFamily, playable, clear: () => { cache.clear(); familyMap.clear(); } };
+    return { railGroups, detail, check, resolveRoom, resolveFamily, playable, clear: () => { cache.clear(); familyMap.clear(); } };
 }
 
 export const isImportedRoomId = (n: unknown): boolean => Number(n) >= ids.IMPORTED_ROOM_BASE;

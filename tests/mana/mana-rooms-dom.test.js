@@ -75,6 +75,18 @@ async function main() {
         order.indexOf('rm-grp-mana') === order.indexOf('rm-grp-vanilla') + 1, order.join(','));
 
     await page.click('[data-rail-grp="mana"]');
+    // The rail's colours: the prefs arriving makes the page ask for every converted room's status; a red one says why.
+    await page.evaluate(() => window.postMessage({ command: 'uiPrefs', prefs: {} }, '*'));
+    await page.waitForTimeout(100);
+    const askedStatus = await page.evaluate(() => window.__sent.filter((m) => m.command === 'requestImportedStatus').length);
+    check('the page asks the host for the rooms\' statuses once', askedStatus === 1, String(askedStatus));
+    await page.evaluate(() => window.postMessage({ command: 'importedStatus', statuses: {
+        'som-80': { level: 'error', reasons: [{ level: 'error', text: 'grid and stamps need 42672 bytes: Evermore\'s WRAM window holds 32768' }] } } }, '*'));
+    await page.waitForTimeout(100);
+    const red = await page.evaluate(() => { const li = document.querySelector('li[data-import="som-80"]');
+        return { status: li.dataset.status, title: li.title, colour: getComputedStyle(li.querySelector('.rn-label')).color }; });
+    check('a red room\'s row is red, its title saying why', red.status === 'error' && /Cannot be played or exported:\n✖ grid and stamps need 42672 bytes/.test(red.title)
+        && /oklch\(0\.68 0\.17 25/.test(red.colour), JSON.stringify(red));
     await page.click('li[data-import="som-80"]');
     const asked = await page.evaluate(() => window.__sent.filter((m) => m.command === 'requestImportedRoom'));
     check('opening a row asks the host for that room', asked.length === 1 && asked[0].id === 'som-80', JSON.stringify(asked));

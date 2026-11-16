@@ -25,6 +25,7 @@
   "tests/mana/mana-editor-props.test.js",
   "tests/terra/terra-maps-model.test.mts",
   "tests/imports/redraw.test.mts",
+  "tests/imports/status.test.mts",
   "tests/debugger/emulator-audio.test.mts",
   "tests/debugger/emulator-gamepad.test.mts",
   "tests/debugger/debugger.test.js",

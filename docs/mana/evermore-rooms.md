@@ -49,6 +49,18 @@ h-flip 14, priority 13, palette 10-12, character 0-9.
 One layer's collision is converted, the party's (`partyLayer`); where a walker changes layer (c0 bit 3) the other layer's is lost. A step-on or B-trigger box's `scriptId` is a Mana event number: it names no Evermore
 script, and the tab labels it `Mana event NNN`. Play in emulator leaves both out (bits 14 and 15 too).
 
+## The rail's colours
+
+A converted room's row in the Rooms tab is coloured by `imports/common/status.ts`, from the conversion's own counts
+(its title lists each reason): **red** when it cannot be played as an Evermore room — it does not convert, it needs more
+than seven families, or its grid and stamps pass Evermore's 32 KB WRAM window; **yellow** when it works but differs from
+its source — graphics drawn as a near twin or empty, tiles recoloured into one palette or drawn at one priority, an
+effect layer, colour math or the backdrop's tint left out, a palette or tile animation left still, graphics kept from an
+earlier room (a guess) — or spends more WRAM than any vanilla room. November 2026, every rail row: Secret of Mana 9 red
+(`$92`, `$A2`-`$A4`, `$DF`, `$191`-`$194`: past the WRAM window; the export still builds them, the game cannot hold
+their grid), 300 yellow (most: tiles that mix palettes), 43 fine. Every room not red passes Play in emulator's own
+export checks (built and compared, 1205 rooms).
+
 ## Where the room lives
 
 The Rooms tab draws every room from a ROM image, so a converted room gets one of its own
