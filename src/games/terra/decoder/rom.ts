@@ -18,6 +18,18 @@ export const TERRA_ROOM_COUNT = 1104;
 /** The 24-bit value an unused room slot holds instead of a pointer. */
 export const TERRA_UNUSED_SLOT_POINTER = 0x000002;
 
+/** File offset of the camera-area table (bus $99:C57A): two bytes per room, read by $86:9371 (docs/terra/README.md §3.11). */
+const TERRA_CAMERA_TABLE_OFFSET = 0x19c57a;
+
+/**
+ * Room `id`'s camera-area word as stored: low byte left (bits 0-3) and width (4-7), high byte top and height, in 256 px
+ * units; a low byte `$FF`: layer 0's whole size. Two rooms sharing a picture show the same part when it is equal.
+ */
+export function roomCameraWord(rom: Uint8Array, id: number): number {
+    const at = TERRA_CAMERA_TABLE_OFFSET + id * 2;
+    return rom[at] | (rom[at + 1] << 8);
+}
+
 /** True when the ROM bytes have a cartridge header recognized as Terranigma / Tenchi Souzou. */
 export function isTerraRom(file: Uint8Array): boolean {
     const rom = stripCopierHeader(file);

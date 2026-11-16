@@ -96,6 +96,8 @@ After the load the room change copies colour 32 (`$7F:0640`) into colour 0, the 
 | `$083A/$083C` | layer 0/1 metatile table: 512 metatiles × 4 SNES tile words (TL, TR, BL, BR) |
 | `$084E/$0850` | layer 0/1 cell-type table in bank `$7F` (one byte per metatile) |
 | `$7F:0600` | the palette (256 colours) the frame upload copies to CGRAM |
+| `$0874/$0876`, `$0878/$087A` | the camera's left / top and right / bottom limits in pixels (§3.11) |
+| `$0866` | `$E0` or `$100`: how far above the bottom limit the camera stops (§3.11) |
 
 The power-on routine `$86:B8D6` clears WRAM and writes a table of (address, word) pairs from `$86:B93F`
 (up to a negative address): the addresses above, `$0402` (a `PHB; MVN; PLB; RTS` stub whose banks
@@ -275,6 +277,26 @@ Two helper scripts animate the room, both checked in the running game in Crysta 
 interpreter, `$80:F3F1` runs to its end in Crysta but never returns in 142 rooms, and with the event flags of power-on
 it takes other branches than the game after the opening: the decoder walks the list instead (`roomHelpers`), along both
 sides of every `$FA`, and marks the helpers every path starts.
+
+### 3.11 What the screen can show: the camera's area
+
+The map is larger than what the player ever sees: past the camera's area it keeps the blocks map changes copy from
+(§3.8), staging rows, and in a picture several rooms share (`$012`: eight house interiors), the other rooms.
+
+* **Table** `$99:C57A` (file `$19C57A`): two bytes per room (× `$0480`). Low byte: left (bits 0-3) and width (bits 4-7),
+  high byte: top and height, in 256 px units. A low byte `$FF`: the whole of layer 0 (`$0826`, `$082A`).
+* **`$86:9371`**, called by the room loader at `$86:874F`, writes the limits: `$0874` left, `$0878` right, `$0876` top,
+  `$087A` bottom (pixels). Rooms that share a picture differ in this word: `$012`-`$019` are one 16 × 14 cell screen each.
+* **`$0866`**: `$100` when bit 6 of the display mode's layout byte (`$99:C2AE` entry +4) is set, else `$E0` (`$86:8CDE`).
+* **The camera** (`$87:9008`-`$87:905F`, every frame): x = the player's − 128, kept in `$0874` … `$0878` − 256 (`$080E`);
+  y = the player's − 112, kept in `$0876` … `$087A` − `$0866` (`$0812`). The screen's 224 lines then end at
+  `$087A` − `$0866` + 224: with `$100` the last 32 px of the area are never shown.
+
+Checked in the game (headless, Ark placed and left to stand, the screen found in the room picture): Crysta (`$00A`,
+`$40 $40`, `$0866` = `$100`) — Ark on row 61, the screen stops at y 768, its last line on row 61: rows 62-79 (the gate
+change 0 copies from 23,68) never show; `$0F1`, `$128` (left 512: the strip with the hole change copies), `$36F`
+(right 768), `$1D6`, `$101` read back as the table says; `$28C` (`$FF`) gets layer 0's size. Other writers of the limits
+(`$85:A4F4`…, `$8D:A16B`, `$8F:B812`, `$97:8985`…) are events, not read.
 
 ## 4. How the decoder gets a room
 

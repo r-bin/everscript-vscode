@@ -61,10 +61,12 @@ if (!SOE || !TERRA || !fs.existsSync(SOE) || !fs.existsSync(TERRA) || !fs.exists
         const sx = word(BG2_SCROLL), sy = word(BG2_SCROLL + 2) + 1;
         const sb = Module._getScreenBuffer();
         const pic = maps.renderRoomComposite(rom, maps.decodeRoom(rom, 0x15));
+        // The Boy and the dog, around the Boy's feet on the screen (the camera stops at the room's edge: not always the middle).
+        const b = st + WRAM_IN_STATE + BOY, bx = (HEAPU8[b + 0x1a] | (HEAPU8[b + 0x1b] << 8)) - sx, by = (HEAPU8[b + 0x1c] | (HEAPU8[b + 0x1d] << 8)) - sy;
         let same = 0, n = 0;
         for (let y = 0; y < 176; y++) {
             for (let x = 0; x < 256; x++) {
-                if (x >= 96 && x < 168 && y >= 24 && y < 136) continue;              // the Boy and the dog
+                if (x >= bx - 40 && x < bx + 40 && y >= by - 96 && y < by + 24) continue;
                 const g = sb + (y * 512 + x) * 4, e = ((sy + y) * pic.width + sx + x) * 4;
                 n++;
                 if ([0, 1, 2].every((c) => HEAPU8[g + c] >> 3 === pic.data[e + c] >> 3)) same++;

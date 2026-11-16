@@ -29,24 +29,25 @@ if (!SOE || !TERRA || !fs.existsSync(SOE) || !fs.existsSync(TERRA)) {
     const service = createImportedRooms({ soeRom: () => soe, manaRom: () => null, terraRom: () => terraRom });
     const q = (d, i) => (d[i] >> 3) << 10 | (d[i + 1] >> 3) << 5 | (d[i + 2] >> 3);
     const { convertTerraRoom } = require('../../dist/games/evermore/imports/terra');
-    // Over the cells the camera can show (imports/terra/view.ts), the converted room's (0, 0) at its origin in the map.
+    // The converted room is the part of the map the screen can show: its (0, 0) at `origin` in the map.
     const agreement = (id) => {
-        const src = service.resolveRoom(0x2000 + id), c = convertTerraRoom(terraRom, id, () => 42471);
+        const src = service.resolveRoom(0x2000 + id), { origin } = convertTerraRoom(terraRom, id, () => 42471);
         const ev = maps.renderRoomComposite(src.rom, maps.decodeRoom(src.rom, src.roomId)), tr = terra.renderRoom(terra.loadRoom(terraRom, id));
-        let same = 0, n = 0;
+        let same = 0;
         for (let y = 0; y < ev.height; y++) for (let x = 0; x < ev.width; x++) {
-            if (!c.seen[(y >> 4) * c.widthTiles + (x >> 4)]) continue;
-            const i = (y * ev.width + x) * 4, j = ((y + c.origin.y * 16) * tr.width + x + c.origin.x * 16) * 4;
-            n++;
+            const i = (y * ev.width + x) * 4, j = ((y + origin.y * 16) * tr.width + x + origin.x * 16) * 4;
             if ((ev.data[i + 3] ? q(ev.data, i) : 0) === q(tr.rgba, j)) same++;
         }
-        return same / n;
+        return same / (ev.width * ev.height);
     };
 
-    test('the rail: one Terranigma group, a row per picture, in groups of 64 ids', () => {
+    const railRows = () => service.groups().find((x) => x.key === 'terra').areas.flatMap((a) => a.rooms);
+    test('the rail: one Terranigma group, a row per picture and camera area, in groups of 64 ids', () => {
         const g = service.groups().find((x) => x.key === 'terra');
         assert.strictEqual(g.label, 'Terranigma');
-        assert.strictEqual(g.areas.reduce((n, a) => n + a.rooms.length, 0), 511);
+        // 511 pictures; one of eight house interiors ($012-$019) is eight rows, each house a room of its own.
+        assert.strictEqual(railRows().length, 862);
+        assert.deepStrictEqual(railRows().filter((r) => /^terra-1[2-9]$/.test(r.id)).map((r) => r.same.length), [0, 0, 0, 0, 0, 0, 0, 0]);
         assert.deepStrictEqual(g.areas[0].rooms.find((r) => r.id === 'terra-a'), { id: 'terra-a', name: 'Room $00A', tag: 'terra 00a', same: [] });
     });
 
@@ -110,20 +111,20 @@ if (!SOE || !TERRA || !fs.existsSync(SOE) || !fs.existsSync(TERRA)) {
         assert.strictEqual(blinking, 0);
     });
 
-    test('what the camera never shows is left out: the airship\'s staging rows between its two scenes, a castle\'s far towers', () => {
-        // $28C: two scenes of one airship, a copy of its deck between them; arrivals in both. $1D6: towers more than half
-        // a screen from every cell the exits lead to. Past 256 graphics before, $28C fits now.
-        const ship = service.detail('terra-28c').conversion, castle = convertTerraRoom(terraRom, 0x1d6, () => 42471);
-        assert.strictEqual(ship.substitutedGraphics, 0);
-        assert.ok(ship.unseenCells > 2000, String(ship.unseenCells));
-        assert.deepStrictEqual([castle.origin.x, castle.origin.y, castle.widthTiles, castle.heightTiles], [0, 0, 54, 64]);
-        // Blank cells are walls: the Boy never reaches them.
-        const blank = castle.seen.findIndex((v) => !v);
-        assert.strictEqual(castle.cells[blank * 3 + 2] & 0x0f, 0x0f);
-        // A room no exit leads into is kept whole.
-        const none = terra.roomCatalog(terraRom).pictures.map(([id]) => id).find((id) => !require('../../dist/games/evermore/imports/terra/view').arrivals(terraRom, id).length);
-        const whole = convertTerraRoom(terraRom, none, () => 42471), size = terra.roomSize(terra.loadRoom(terraRom, none));
-        assert.deepStrictEqual([whole.widthTiles, whole.heightTiles, whole.stats.unseenCells], [size.w, size.h, 0]);
+    test('the map past the camera\'s area is cut off: the blocks map changes copy from go', () => {
+        // docs/terra/README.md §3.11, measured in the game: Crysta's screen stops at row 62; rows 64-79 hold the gate a
+        // change copies in (from 23,68). Its south exit lies on row 62, just past the edge: that row stays.
+        const crysta = convertTerraRoom(terraRom, 0x0a, () => 42471);
+        assert.deepStrictEqual([crysta.origin.x, crysta.origin.y, crysta.widthTiles, crysta.heightTiles], [0, 0, 64, 63]);
+        // $128: the camera shows columns 32-63, rows 0-29 (an exit on rows 30-31); the hole a change copies in lies in the
+        // strip left of it.
+        const desert = convertTerraRoom(terraRom, 0x128, () => 42471);
+        assert.deepStrictEqual([desert.origin.x, desert.origin.y, desert.widthTiles, desert.heightTiles], [32, 0, 32, 31]);
+        assert.strictEqual(desert.objects.length, 1, 'the change still shows the hole: its cells were read before the cut');
+        assert.strictEqual(desert.stats.croppedCells, 80 * 32 - 32 * 31);
+        // $016 and $019 share $012's picture of eight houses: each is its own screen.
+        assert.deepStrictEqual([0x16, 0x19].map((id) => { const c = convertTerraRoom(terraRom, id, () => 42471); return [c.origin.x, c.origin.y, c.widthTiles, c.heightTiles]; }),
+            [[0, 16, 16, 14], [48, 16, 16, 14]]);
     });
 
     test('a chest becomes a solid B-trigger cell', () => {
@@ -136,22 +137,24 @@ if (!SOE || !TERRA || !fs.existsSync(SOE) || !fs.existsSync(TERRA)) {
     });
 
     test('Evermore\'s render of converted rooms agrees with the Terranigma render', () => {
-        // Crysta, Ark's house, a town (BG2 kept on neither screen: left out), a village; the halving room keeps its dimming.
+        // Crysta, Ark's house, a town (BG2 kept on neither screen: left out), a house, the halving room keeps its dimming.
+        // The house ($012) is one screen now: its light beams (colour math) are a larger share of it.
         const got = [0x0a, 0x0f, 0x60, 0x12, 0x4c].map((id) => Math.round(agreement(id) * 1000) / 10);
-        assert.ok(got.every((v) => v >= 96), got.join(' '));
+        assert.ok(got.every((v) => v >= 94), got.join(' '));
     });
 
-    test('every picture converts into a room Evermore decodes', () => {
+    test('every rail row converts into a room Evermore decodes', () => {
         let n = 0, over = 0, dropped = 0;
-        for (const [id] of terra.roomCatalog(terraRom).pictures) {
-            const d = service.detail('terra-' + id.toString(16));
+        for (const row of railRows()) {
+            const id = parseInt(row.id.slice('terra-'.length), 16);
+            const d = service.detail(row.id);
             const src = service.resolveRoom(0x2000 + id), room = maps.decodeRoom(src.rom, src.roomId);
             assert.strictEqual(room.header.widthTiles * room.header.heightTiles, d.content.initMap.x2 * d.content.initMap.y2 / 4);
             if (d.conversion.substitutedGraphics) over++;
             dropped += d.conversion.droppedGraphics;
             n++;
         }
-        assert.strictEqual(n, 511);
+        assert.strictEqual(n, 862);
         assert.strictEqual(over, 14, 'rooms past Evermore\'s 256 graphics: their rarest tiles drawn as the nearest listed one');
         assert.strictEqual(dropped, 0, 'no tile drawn empty');
     });

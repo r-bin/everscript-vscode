@@ -87,7 +87,7 @@ async function main() {
         order.indexOf('rm-grp-terra') > order.indexOf('rm-grp-vanilla') && order.indexOf('rm-grp-terra') < order.indexOf('rm-grp-live'), order.join(','));
     await page.click('[data-rail-grp="terra"]');
     const rows = await page.locator('#rm-grp-terra li[data-import]').count();
-    check('it lists every Terranigma picture (511)', rows === 511, String(rows));
+    check('it lists every Terranigma picture, a row per part the camera shows (862)', rows === 862, String(rows));
 
     // Crysta: nine exits, a map change.
     await page.click('li[data-import="terra-a"]');

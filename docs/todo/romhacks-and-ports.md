@@ -53,7 +53,7 @@ differently, measure it and report it, do not reshape the data.
 - 💡 **Past 256 graphics: overlapping 16x16 windows (both games, measured 2026-11-16).** Evermore draws
   BG1/BG2 with 16x16 tiles (BGMODE `$39`): a word naming character N draws N, N+1, N+16, N+17, so any
   8-pixel-aligned 2x2 window of the 1024 characters is a graphic, not only the 256 aligned ones. The 14
-  Terranigma pictures past 256 (and Mana `$0E`) need 261-380 graphics but only 449-743 distinct 8x8
+  Terranigma rooms past 256 (and Mana `$0E`) need 261-380 graphics but only 449-743 distinct 8x8
   characters. Laying graphics out so neighbours share a column (an Eulerian chaining of left/right
   columns, whole-graphic flips only) bounds them at 892-1416 characters: 7 of the 14 would fit, the rest
   still need twins. Cost: every place that turns a character into a slot (`floor(chr/0x20)*8 + …`: `maps/render.ts`,

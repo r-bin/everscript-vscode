@@ -5,7 +5,7 @@ rewritten as an Evermore room. What it does: [README.md](README.md); the transla
 [docs/terra/evermore-rooms.md](../../../../../docs/terra/evermore-rooms.md).
 
 ## Owns
-- Converting a Terranigma room into Evermore cells (only what the camera can show, `view.ts`), graphics, families, collision, step-on and B-trigger boxes,
+- Converting a Terranigma room into Evermore cells (only the part of the map the camera shows), graphics, families, collision, step-on and B-trigger boxes,
   objects and palette cycles (`convert.ts`, `collision.ts`, `graphics.ts`, `animation.ts`), and serving converted rooms to the Rooms tab's
   host (`rooms.ts`).
 

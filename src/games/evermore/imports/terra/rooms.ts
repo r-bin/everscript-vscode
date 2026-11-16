@@ -12,7 +12,6 @@ import { buildVirtualRom, roomHeader } from '../common/virtual-rom';
 import { defaultStart } from '../common/start';
 import * as ids from '../common/ids';
 import { convertTerraRoom } from './convert';
-import { arrivals } from './view';
 import type { TerraConverted } from './convert';
 
 type Rom = Uint8Array;
@@ -30,6 +29,7 @@ function createTerraRooms(deps: { soeRom(): Rom | null; terraRom(): Rom | null }
     const cache = new Map<number, Entry>();
     const familyMap = new Map<number, number>();         // family id -> room that last used it
     const familyIds = new Map<string, number>();         // 16 colours -> family id
+    let arrivalCache: { rom: Rom; at: Map<number, { x: number; y: number }[]> } | null = null;
 
     const roms = () => {
         const soe = deps.soeRom(), t = deps.terraRom();
@@ -65,19 +65,47 @@ function createTerraRooms(deps: { soeRom(): Rom | null; terraRom(): Rom | null }
         return e;
     }
 
-    /** The rail: one row per picture (its first room), in Terranigma's groups of 64 ids. [] without both ROMs. */
+    /**
+     * The rail: one row per picture and part of it the camera shows (its first room; a picture of eight house interiors
+     * is eight rooms, convert.ts keeps only what the screen can show), in Terranigma's groups of 64 ids. [] without both ROMs.
+     */
     function railGroups() {
         const r = roms();
         if (!r) return [];
+        const parts = (picture: number[]) => {
+            const by = new Map<number, number[]>();
+            for (const id of picture) {
+                const k = terra.roomCameraWord(r.t, id);
+                if (!by.has(k)) by.set(k, []);
+                by.get(k)!.push(id);
+            }
+            return [...by.values()];
+        };
         return terra.roomCatalog(r.t).groups.map((g) => ({
             area: g.name,
-            rooms: g.pictures.map(([id, ...same]) => ({
+            rooms: g.pictures.flatMap(parts).map(([id, ...same]) => ({
                 id: VID_PREFIX + id.toString(16),
                 name: 'Room ' + hex3(id) + (same.length ? ' +' + same.length : ''),
                 tag: 'terra ' + terra.hex3(id),
                 same: same.map((n) => n.toString(16)),
             })),
         })).filter((g) => g.rooms.length);
+    }
+
+    /** Where the game's exits into room `id` put the player (pixels), from every room's exit list. */
+    function arrivals(rom: Rom, id: number) {
+        if (!arrivalCache || arrivalCache.rom !== rom) {
+            const at = new Map<number, { x: number; y: number }[]>();
+            for (let k = 0; k < terra.TERRA_ROOM_COUNT; k++) {
+                if (!terra.isRoomSlotUsed(rom, k)) continue;
+                for (const e of terra.roomExits(rom, k)) for (const t of e.targets) {
+                    if (!at.has(t.room)) at.set(t.room, []);
+                    at.get(t.room)!.push({ x: t.x, y: t.y });
+                }
+            }
+            arrivalCache = { rom, at };
+        }
+        return arrivalCache.at.get(id) ?? [];
     }
 
     /**
@@ -179,7 +207,7 @@ function createTerraRooms(deps: { soeRom(): Rom | null; terraRom(): Rom | null }
         return e ? { rom: e.image.rom, roomId: e.image.roomId } : null;
     }
 
-    return { railGroups, detail, resolveRoom, resolveFamily, playable, clear: () => { cache.clear(); familyMap.clear(); familyIds.clear(); } };
+    return { railGroups, detail, resolveRoom, resolveFamily, playable, clear: () => { cache.clear(); familyMap.clear(); familyIds.clear(); arrivalCache = null; } };
 }
 
 export { createTerraRooms, VID_PREFIX };
