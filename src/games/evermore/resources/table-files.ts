@@ -23,6 +23,21 @@ const TABLE_TO_VARIANT_KEY: Record<string, string> = {
     'Song pointer table': 'song_packages',
 };
 
+const TABLE_ASSET_LINKS: Record<string, { uri: string; label: string }> = {
+    'Character table': { uri: '../characters/index.md', label: 'soe://rom/assets/characters/' },
+    'Ring-menu icon table': { uri: '../icons/index.md', label: 'soe://rom/assets/icons/' },
+    'String key table': { uri: '../strings/index.md', label: 'soe://rom/assets/strings/' },
+    'Song pointer table': { uri: '../audio/music/index.md', label: 'soe://rom/assets/audio/music/' },
+    'Master music soundtrack & sound package pointer table': { uri: '../audio/music/index.md', label: 'soe://rom/assets/audio/music/' },
+    'Script opcode handler table': { uri: '../scripts/opcodes/index.md', label: 'soe://rom/assets/scripts/opcodes/' },
+    'Room enter-script table': { uri: '../scripts/rooms/index.md', label: 'soe://rom/assets/scripts/rooms/' },
+    'ALCHEMY_BLOCK_TABLE': { uri: '../alchemy/index.md', label: 'soe://rom/assets/alchemy/' },
+    'Master map 16x16 graphics tile pointer directory': { uri: '../tiles/index.md', label: 'soe://rom/assets/tiles/' },
+    'Room pointer table': { uri: '../maps/index.md', label: 'soe://rom/assets/maps/' },
+    'Companion dog breed form attribute pointer table ($CF:945F)': { uri: '../characters/01/info.md', label: 'soe://rom/assets/characters/01/' },
+    'Dog form pointers': { uri: '../characters/01/info.md', label: 'soe://rom/assets/characters/01/' },
+};
+
 function toFileOffset(bus: number): number | null {
     const bank = bus >> 16;
     if (bank === 0x7E || bank === 0x7F) return null;
@@ -104,6 +119,7 @@ function resolveTables(segments: string[], rom: Uint8Array | null): VfsNode | nu
     }
 
     if (leaf === 'info.json') {
+        const link = TABLE_ASSET_LINKS[table.name];
         return json(() => ({
             name: table.name,
             slug: slugify(table.name),
@@ -113,6 +129,8 @@ function resolveTables(segments: string[], rom: Uint8Array | null): VfsNode | nu
             fileOffsetHex: fileOff !== null ? '$' + hexId(fileOff, 6) : null,
             size,
             notes: table.notes,
+            assetLink: link ? link.label : null,
+            assetUri: link ? link.uri : null,
         }));
     }
 
@@ -141,7 +159,7 @@ function parseTable(ident: string): Table | null {
         return getTable(addr);
     }
     const slug = slugify(ident);
-    return TABLES.find((t) => slugify(t.name) === slug) || null;
+    return TABLES.find((t) => slugify(t.name) === slug || (t.id && slugify(t.id) === slug)) || null;
 }
 
 function decodeTableData(rom: Uint8Array, off: number, len: number) {
@@ -158,17 +176,31 @@ function decodeTableData(rom: Uint8Array, off: number, len: number) {
 }
 
 function tableMarkdown(table: Table, fileOff: number | null, size: number, snesAddr = table.address): string {
-    return `# ${table.category} ${table.name}
-
-| Property | Value |
-|---|---|
-| SNES Bus Address | \`$${hexId(snesAddr, 6)}\` |
-| ROM File Offset | \`${fileOff !== null ? '$' + hexId(fileOff, 6) : '—'}\` |
-| Length | ${size} bytes |
-| Notes | ${table.notes || '—'} |
-
-[info.json](info.json) | [data.json](data.json) | [data.bin](data.bin)
-`;
+    const link = TABLE_ASSET_LINKS[table.name];
+    const lines = [
+        `# ${table.category} ${table.name}`,
+        '',
+        '| Property | Value |',
+        '|---|---|',
+        `| SNES Bus Address | \`$${hexId(snesAddr, 6)}\` |`,
+        `| ROM File Offset | \`${fileOff !== null ? '$' + hexId(fileOff, 6) : '—'}\` |`,
+        `| Length | ${size} bytes |`,
+        `| Notes | ${table.notes || '—'} |`,
+    ];
+    if (link) {
+        lines.push(
+            '',
+            '## Decoded Domain Asset',
+            '',
+            `See [${link.label}](${link.uri}) for decoded and structured views of this data.`,
+        );
+    }
+    lines.push(
+        '',
+        '[info.json](info.json) | [data.json](data.json) | [data.bin](data.bin)',
+        '',
+    );
+    return lines.join('\n');
 }
 
 function tablesIndexMarkdown() {
@@ -176,9 +208,13 @@ function tablesIndexMarkdown() {
 
 Master engine and lookup tables in Secret of Evermore ROM.
 
-| Category | Table Name | Address | Size | Notes |
-|---|---|---|---|---|
-${TABLES.map((t) => `| ${t.category} | [${t.name}](${slugify(t.name)}/info.md) | \`$${hexId(t.address, 6)}\` | ${t.size || 256} B | ${t.notes || ''} |`).join('\n')}
+| Category | Table Name | Address | Size | Asset | Notes |
+|---|---|---|---|---|---|
+${TABLES.map((t) => {
+    const link = TABLE_ASSET_LINKS[t.name];
+    const assetCol = link ? `[Asset](${slugify(t.name)}/${link.uri})` : '—';
+    return `| ${t.category} | [${t.name}](${slugify(t.name)}/info.md) | \`$${hexId(t.address, 6)}\` | ${t.size || 256} B | ${assetCol} | ${t.notes || ''} |`;
+}).join('\n')}
 `;
 }
 

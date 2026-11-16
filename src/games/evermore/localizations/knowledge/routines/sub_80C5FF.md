@@ -5,10 +5,10 @@ size: 1
 kind: code
 category: 🧠
 name: sub_80C5FF
-title: CDL subroutine ($80:C5FF)
+title: Mode 7 Flight: Joypad handler exit stub ($80:C5FF)
 confidence: confirmed
-tags: ["code","subroutine","cdl", "mode7"]
-evidence: ["CDL recorder export (out/recomp/asar/export.json)"]
+tags: ["code", "subroutine", "mode7", "flight", "exit"]
+evidence: ["disasm: rts target for branch from $80:C5E4 when START button is not pressed in mode7_flight joypad handler"]
 ---
 
-CDL-identified subroutine entry point in ROM at $80:C5FF.
+Simple `rts` exit stub terminating Mode 7 flight controller processing when START button is not pressed.

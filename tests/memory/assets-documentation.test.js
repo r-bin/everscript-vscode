@@ -8,6 +8,7 @@ const { resolveTiles } = require('../../dist/games/evermore/resources/tile-files
 const { resolveAudio } = require('../../dist/games/evermore/resources/audio-files');
 const { resolvePalettes } = require('../../dist/games/evermore/resources/palette-files');
 const { resolveSprites } = require('../../dist/games/evermore/resources/sprite-files');
+const { resolveTables } = require('../../dist/games/evermore/resources/table-files');
 const { readCharacter } = require('../../dist/games/evermore/sprites/character-model');
 const { SOUNDS } = require('../../dist/games/evermore/localizations/sounds');
 
@@ -131,5 +132,22 @@ test.describe('Assets Documentation & VFS Parity', () => {
         assert.ok(comments.rom, 'asm-comments must contain rom dictionary');
         assert.ok(comments.rom['0F9DBD'], 'entity_cardinal_facing_direction_resolve entry must have line comments');
         assert.ok(comments.rom['008F85'], 'vram_oam_buffer_dma_commit_on_nmi entry must have line comments');
+        assert.ok(comments.rom['00C5C6'], 'sub_80C5C6 flight abort check must have line comments');
+        assert.ok(comments.rom['00C5CE'], 'sub_80C5CE boost throttle check must have line comments');
+        assert.ok(comments.rom['00C5DB'], 'sub_80C5DB cruise speed & HUD toggle must have line comments');
+    });
+
+    test.it('tables VFS links domain assets and documents dog form pointers', async () => {
+        const tableNode = resolveTables(['character_table', 'info.md'], dummyRom);
+        assert.ok(tableNode && tableNode.kind === 'file', 'character_table info.md must be a file');
+        const text = (await tableNode.read()).toString();
+        assert.ok(text.includes('## Decoded Domain Asset'), 'Must contain Decoded Domain Asset section');
+        assert.ok(text.includes('soe://rom/assets/characters/'), 'Must link to characters domain');
+
+        const dogPointersNode = resolveTables(['dog_form_pointers', 'info.md'], dummyRom);
+        assert.ok(dogPointersNode && dogPointersNode.kind === 'file', 'dog_form_pointers info.md must be a file');
+        const dogText = (await dogPointersNode.read()).toString();
+        assert.ok(dogText.includes('Companion dog breed form attribute pointer table'), 'Must document breed table');
+        assert.ok(dogText.includes('soe://rom/assets/characters/01/'), 'Must link to Dog character');
     });
 });

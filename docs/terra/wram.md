@@ -16,11 +16,13 @@ Working RAM (Bank `$7E` and `$7F`) addresses identified and verified in the runn
 | `$7E:06C0` | table | `EVENT_FLAGS_CHESTS` | Persistent treasure chest and room event bitflags; tested as `$7E:06C0 + (flag >> 3)` (`tools/terra/check-chest.mts`, `check-exit.mts`). |
 | `$7E:0710` | table | `MAP_CHANGE_FLAGS` | Map change and terrain variation trigger bitmask; tested as `$7E:0710 + (bit >> 3)` (`tools/terra/check-change.mts`). |
 | `$7E:0826` | 2 bytes | `ROOM_WIDTH_SUBPIXELS` | Active room map width in subpixels (grid width = `$7E:0826 >> 4`) (`tools/terra/check-chest.mts`). |
+| `$7E:082A` | 2 bytes | `ROOM_HEIGHT_SUBPIXELS` | Active room map height in subpixels (grid height = `$7E:082A >> 4`) (`tools/terra/check-press.mts`). |
 | `$7E:095E` | 2 bytes | `PLAYER_BOX_X` | Player collision box top-left X coordinate in pixels (`tools/terra/check-exit.mts`). |
 | `$7E:0960` | 2 bytes | `PLAYER_BOX_Y` | Player collision box top-left Y coordinate in pixels (`tools/terra/check-exit.mts`). |
 | `$7E:0962` | 2 bytes | `PLAYER_BOX_CELL_X` | Player collision box cell X grid coordinate (`tools/terra/check-exit.mts`). |
 | `$7E:0964` | 2 bytes | `PLAYER_BOX_CELL_Y` | Player collision box cell Y grid coordinate (`tools/terra/check-exit.mts`). |
 | `$7E:097C` | 2 bytes | `ROOM_TRANSITION_FLAGS` | Room transition status word (bit 15 = transition requested) (`tools/terra/check-change.mts`). |
+| `$7E:0988` | 2 bytes | `PLAYER_HELD_OBJECT` | Object or throwable item held by the player (`tools/terra/check-press.mts`). |
 
 ---
 

@@ -1,6 +1,72 @@
 {
   "//": "Centralized ASM comments for Secret of Evermore routines. Compiled to mesen/labels.mlb and infused at runtime via VFS.",
   "rom": {
+    "00C5C6": {
+      "comment": "Test controller button $4000 (X / abort flight)"
+    },
+    "00C5C9": {
+      "comment": "If not pressed, proceed to flight speed evaluation"
+    },
+    "00C5CB": {
+      "comment": "Jump to scene fadeout and exit handler ($80:C6BF)"
+    },
+    "00C5CE": {
+      "comment": "Test controller button $0040 (boost throttle)"
+    },
+    "00C5D1": {
+      "comment": "If not pressed, fall through to normal cruise speed ($80:C5DB)"
+    },
+    "00C5D3": {
+      "comment": "Load boost maximum velocity ($7E:147A)"
+    },
+    "00C5D6": {
+      "comment": "Store to MODE7_CAMERA_PAN_MAX_SPEED ($7E:1474)"
+    },
+    "00C5D9": {
+      "comment": "Branch to START / HUD toggle check ($80:C5E1)"
+    },
+    "00C5DB": {
+      "comment": "Load normal cruise velocity ($7E:1478)"
+    },
+    "00C5DE": {
+      "comment": "Store to MODE7_CAMERA_PAN_MAX_SPEED ($7E:1474)"
+    },
+    "00C5E1": {
+      "comment": "Test controller button $1000 (START)"
+    },
+    "00C5E4": {
+      "comment": "If START not pressed, exit subroutine via rts ($80:C5FF)"
+    },
+    "00C5E6": {
+      "comment": "Load button mask $1000 to acknowledge joypad read"
+    },
+    "00C5E9": {
+      "comment": "Acknowledge joypad button press ($80:8597)"
+    },
+    "00C5ED": {
+      "comment": "Load MODE7_FLIGHT_HUD_VISIBLE flag ($7E:0B1D)"
+    },
+    "00C5F0": {
+      "comment": "Toggle HUD visibility bit 0"
+    },
+    "00C5F3": {
+      "comment": "Save updated MODE7_FLIGHT_HUD_VISIBLE ($7E:0B1D)"
+    },
+    "00C5F6": {
+      "comment": "If HUD toggled off, skip slide animation clamp"
+    },
+    "00C5F8": {
+      "comment": "Set HUD slide animation step counter to 28 frames ($001C)"
+    },
+    "00C5FB": {
+      "comment": "Store HUD transition animation step ($7E:0E7A)"
+    },
+    "00C5FE": {
+      "comment": "Return from subroutine"
+    },
+    "00C5FF": {
+      "comment": "Exit stub: return from subroutine when START not pressed"
+    },
     "0F9DBD": {
       "comment": "Delta Y = Target Y - Entity Y (+$1C,y)"
     },
