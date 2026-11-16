@@ -74,7 +74,7 @@ async function unit(): Promise<void> {
         // if A { x } else if B { y } else { z }
         const chain = blockDepths(lines([['beq $', 3], ['x'], ['bra $', 8], ['bne $', 6], ['y'], ['bra $', 8], ['z'], ['w'], ['rts']]));
         assert.deepStrictEqual(chain.depth, [0, 1, 1, 0, 1, 1, 1, 1, 0]);
-        assert.deepStrictEqual([...chain.elses], [[3, 0], [6, 0]], 'an else row before the else if and before the last else, both at the if\'s depth');
+        assert.deepStrictEqual(chain.kw, ['if', '', '', 'else if', '', '', 'else', '', '']);
         // if { if { x } y } z; a loop back to 0 adds nothing
         assert.deepStrictEqual(depths([['bcc $', 4], ['bcs $', 3], ['x'], ['y'], ['bne $', 0], ['rts']]), [0, 1, 2, 1, 0, 0]);
         // two branches that cross: the later one is not drawn; an indirect jmp ends no if body

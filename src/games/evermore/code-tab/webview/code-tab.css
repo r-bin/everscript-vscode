@@ -45,7 +45,7 @@ a.scr-chip.code-link{color:var(--vscode-textLink-foreground,#3794ff)}
 .code-pane .code-asm td.code-d6{padding-left:12ch;background-size:12ch 100%}
 .code-pane .code-asm td.code-d7{padding-left:14ch;background-size:14ch 100%}
 .code-pane .code-asm td.code-d8{padding-left:16ch;background-size:16ch 100%}
-.code-asm tr.code-else td.code-ins{color:var(--vscode-charts-purple,#b180d7);font-style:italic}
+.code-asm .code-kw{color:var(--vscode-charts-purple,#b180d7);font-style:italic;min-width:7ch}
 .code-asm .code-hits{color:var(--scr-dim);text-align:right;font-size:11px}
 .code-asm tr.code-cold td{opacity:.45}
 .code-name{color:var(--vscode-charts-blue,#3794ff)}
