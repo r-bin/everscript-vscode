@@ -556,23 +556,106 @@ function iconInfo(rom: Rom, iconId: number | null) {
 // ── strings ──────────────────────────────────────────────────────────────
 
 function strings(rom: Rom, name?: string, leaf?: string) {
-    if (leaf !== undefined) return null;
+    const stringMarkdown = (idx: number, s: string | null) => [
+        `# String $${hexId(idx, 4)}`,
+        '',
+        '| Property | Value |',
+        '|---|---|',
+        `| Index | \`${idx}\` (\`$${hexId(idx, 4)}\`) |`,
+        `| Table Key Offset | \`$${hexId(idx * 3, 6)}\` |`,
+        '| Master Key Table | `$11D000` (Bank `$C1`) |',
+        '',
+        '## Text',
+        '',
+        '```',
+        s !== null ? s : '(no ROM available)',
+        '```',
+        '',
+        `[${hexId(idx, 4)}.json](${hexId(idx, 4)}.json) | [${hexId(idx, 4)}.txt](${hexId(idx, 4)}.txt)`,
+        '',
+    ].join('\n');
+
+    const indexMarkdown = () => {
+        const top = Math.min(STRING_COUNT, 200);
+        return [
+            '# soe://rom/assets/strings/',
+            '',
+            `${STRING_COUNT} in-game strings, master key table at \`$11D000\` (Bank \`$C1\`).`,
+            '',
+            '| Index | Hex | Preview | Links |',
+            '|---|---|---|---|',
+            ...Array.from({ length: top }, (_, i) => {
+                const txt = stringText(rom, i);
+                const preview = txt !== null ? cell(txt.slice(0, 60)) : '—';
+                return `| ${i} | [\`$${hexId(i, 4)}\`](${hexId(i, 4)}.md) | ${preview} | [txt](${hexId(i, 4)}.txt) · [json](${hexId(i, 4)}.json) |`;
+            }),
+            STRING_COUNT > top ? `\n*... and ${STRING_COUNT - top} more strings (see individual files).*` : '',
+            '',
+        ].join('\n');
+    };
+
     if (name === undefined) {
-        const names = Array.from({ length: STRING_COUNT }, (_, i) => hexId(i, 4) + '.txt');
-        return dir(names.map((n): Entry => [n, 'file']), () => [
-            '# soe://rom/assets/strings/', '', `${STRING_COUNT} in-game strings, table at \`$11D000\`.`, '',
-            '| Index | Text |', '|---|---|',
-            ...names.map((n, i) => `| [${n.slice(0, 4)}](${n}) | ${cell(stringText(rom, i))} |`),
-        ].join('\n') + '\n');
+        const dirEntries: Entry[] = [
+            ['index.json', 'file'],
+            ['index.md', 'file'],
+            ...Array.from({ length: STRING_COUNT }, (_, i): Entry => [hexId(i, 4) + '.txt', 'file']),
+        ];
+        return dir(dirEntries, indexMarkdown);
     }
-    const m = /^([0-9a-f]{1,4})(\.txt)?$/i.exec(name);
-    const index = m ? parseInt(m[1], 16) : -1;
+
+    if (name === 'index.json') {
+        if (leaf !== undefined) return null;
+        return json(() => ({
+            count: STRING_COUNT,
+            tableAddress: '$11D000',
+            romLoaded: !!rom,
+            sample: Array.from({ length: Math.min(STRING_COUNT, 50) }, (_, i) => ({
+                index: i,
+                hex: '$' + hexId(i, 4),
+                text: stringText(rom, i),
+            })),
+        }));
+    }
+
+    if (name === 'index.md') {
+        if (leaf !== undefined) return null;
+        return text(indexMarkdown);
+    }
+
+    const m = /^([0-9a-f]{1,4})(?:\.(json|txt|md))?$/i.exec(name);
+    if (!m) return null;
+    const index = parseInt(m[1], 16);
     if (index < 0 || index >= STRING_COUNT) return null;
-    return text(() => {
-        const s = stringText(rom, index);
-        if (s === null) throw new Error(`string ${hexId(index, 4)} does not decode`);
-        return s + '\n';
-    });
+
+    const str = rom ? stringText(rom, index) : null;
+    const requested = leaf || m[2];
+
+    if (requested === 'txt') {
+        return text(() => (str !== null ? str : '') + '\n');
+    }
+    if (requested === 'json' || requested === 'info.json') {
+        return json(() => ({
+            index,
+            hex: '$' + hexId(index, 4),
+            keyOffset: '$' + hexId(index * 3, 6),
+            tableAddress: '$11D000',
+            text: str,
+        }));
+    }
+    if (requested === 'md' || requested === 'info.md') {
+        return text(() => stringMarkdown(index, str));
+    }
+
+    if (leaf === undefined && !m[2]) {
+        return dir([
+            ['info.json', 'file'],
+            ['info.md', 'file'],
+            [`${hexId(index, 4)}.txt`, 'file'],
+            [`${hexId(index, 4)}.json`, 'file'],
+        ], () => stringMarkdown(index, str));
+    }
+
+    return null;
 }
 
 export { resolveAssets };

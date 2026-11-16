@@ -8181,6 +8181,135 @@
     },
     "00C9A4": {
       "comment": "Calculate dynamic ground shadow projection geometry under aircraft (mode7_flight_shadow_projection_geometry_calc)"
+    },
+    "00CA2D": {
+      "comment": "Load dirty buffer flag ($0001)"
+    },
+    "00CA30": {
+      "comment": "Set display buffer dirty flag ($7E:0106)"
+    },
+    "00CA33": {
+      "comment": "Tick cockpit heading indicator frame (mode7_cockpit_heading_indicator_frame_tick)"
+    },
+    "00CA36": {
+      "comment": "Clear display buffer dirty flag ($7E:0106)"
+    },
+    "00CA39": {
+      "comment": "Finalize low and high OAM sprite buffers (oam_finalize_and_blank_unused)"
+    },
+    "00CA3D": {
+      "comment": "Wait for vertical blanking interrupt (wait_for_nmi)"
+    },
+    "00CA41": {
+      "comment": "Commit OAM sprite table to PPU via DMA (vram_oam_buffer_dma_commit_on_nmi)"
+    },
+    "00CA45": {
+      "comment": "Install scanline raster IRQ handler vector at $DF51 (install_raster_irq_handler_at_df51)"
+    },
+    "00CA48": {
+      "comment": "Compute dynamic ground shadow geometry under aircraft (mode7_flight_shadow_projection_geometry_calc)"
+    },
+    "00CA4B": {
+      "comment": "Set up flight HUD window OAM sprites (hud_window_oam_setup)"
+    },
+    "00CA4E": {
+      "comment": "Re-finalize OAM buffers with HUD elements (oam_finalize_and_blank_unused)"
+    },
+    "00CA52": {
+      "comment": "Load screen mode and brightness parameters ($800F)"
+    },
+    "00CA55": {
+      "comment": "Store to display control register shadow ($7E:0B83)"
+    },
+    "00CA58": {
+      "comment": "Set accumulator to 8-bit mode (M=1) for PPU status register polling"
+    },
+    "00CA5A": {
+      "comment": "Read PPU status register HVBJOY ($4212)"
+    },
+    "00CA5D": {
+      "comment": "Poll bit 7 (VBLANK): wait until VBlank period begins"
+    },
+    "00CA5F": {
+      "comment": "Restore 16-bit accumulator mode (M=0)"
+    },
+    "00CA61": {
+      "comment": "Load target VRAM word address ($2010)"
+    },
+    "00CA64": {
+      "comment": "Set DMA destination VRAM address ($26)"
+    },
+    "00CA66": {
+      "comment": "Load source memory bank $7E"
+    },
+    "00CA69": {
+      "comment": "Set DMA source bank ($28)"
+    },
+    "00CA6B": {
+      "comment": "Load source buffer offset ($6400 in $7E)"
+    },
+    "00CA6E": {
+      "comment": "Set DMA source offset ($2E)"
+    },
+    "00CA70": {
+      "comment": "Load DMA transfer length: 128 bytes ($0080)"
+    },
+    "00CA73": {
+      "comment": "Execute VRAM DMA block transfer (vram_dma_upload_tile_block)"
+    },
+    "00CA77": {
+      "comment": "Set accumulator to 8-bit mode (M=1)"
+    },
+    "00CA79": {
+      "comment": "Load active HDMA channel bitmask ($7E:0072)"
+    },
+    "00CA7B": {
+      "comment": "Write HDMA enable register HDMAEN ($420C) to trigger active channels"
+    },
+    "00CA7E": {
+      "comment": "Restore 16-bit accumulator mode (M=0)"
+    },
+    "00CA80": {
+      "comment": "Commit staged OAM buffer to PPU via DMA (vram_oam_buffer_dma_commit_on_nmi)"
+    },
+    "00CA84": {
+      "comment": "Update Mode 7 flight waypoint steering and path tracking (mode7_flight_waypoint_path_step)"
+    },
+    "00CA87": {
+      "comment": "Calculate aircraft heading angle and trigonometric yaw matrix (mode7_flight_heading_yaw_rotation_matrix_calc)"
+    },
+    "00CA8A": {
+      "comment": "Perform coordinate rotated camera pan step (camera_rotated_pan_step)"
+    },
+    "00CA8D": {
+      "comment": "Calculate camera scroll coordinates incorporating screen center offsets (calc_camera_scroll_with_screen_offset)"
+    },
+    "00CA90": {
+      "comment": "Apply screen shake offsets and commit camera scroll registers (screen_scroll_and_shake_step)"
+    },
+    "00CA93": {
+      "comment": "Set up flight HUD window OAM sprites (hud_window_oam_setup)"
+    },
+    "00CA96": {
+      "comment": "Step dialogue window slide transition animation (dialog_window_slide_transition_step)"
+    },
+    "00CA99": {
+      "comment": "Update compass needle heading with angular damping (mode7_flight_compass_needle_smooth_tracking_step)"
+    },
+    "00CA9C": {
+      "comment": "Step screen brightness towards target level (fade_brightness_step_towards_target)"
+    },
+    "00CA9F": {
+      "comment": "Tick cockpit heading indicator frame (mode7_cockpit_heading_indicator_frame_tick)"
+    },
+    "00CAA2": {
+      "comment": "Process queued palette family reload transfers (palette_family_reload_queue_process)"
+    },
+    "00CAA6": {
+      "comment": "Finalize low and high OAM sprite entries (oam_finalize_and_blank_unused)"
+    },
+    "00CAAA": {
+      "comment": "Loop back to start of Mode 7 flight inner frame loop ($80:CA58)"
     }
   }
 }

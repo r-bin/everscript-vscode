@@ -144,6 +144,41 @@ test.describe('Assets Documentation & VFS Parity', () => {
         assert.ok(comments.rom['00C95B'], 'sub_80C95B entry stub must have line comments');
         assert.ok(comments.rom['00C95D'], 'sub_80C95D VBlank & DMA must have line comments');
         assert.ok(comments.rom['00C985'], 'sub_80C985 frame coordinator must have line comments');
+        assert.ok(comments.rom['00CA2D'], 'sub_80CA2D HUD & raster setup must have line comments');
+        assert.ok(comments.rom['00CA58'], 'sub_80CA58 inner loop entry stub must have line comments');
+        assert.ok(comments.rom['00CA5A'], 'sub_80CA5A inner frame loop must have line comments');
+    });
+
+    test.it('strings VFS exposes index.json, index.md, and structured views', async () => {
+        const rootNode = resolveAssets(['strings'], dummyRom);
+        assert.ok(rootNode && rootNode.kind === 'dir', 'strings root must be a directory');
+        assert.ok(rootNode.entries.some(([n]) => n === 'index.json'), 'strings must list index.json');
+        assert.ok(rootNode.entries.some(([n]) => n === 'index.md'), 'strings must list index.md');
+
+        const indexJsonNode = resolveAssets(['strings', 'index.json'], dummyRom);
+        assert.ok(indexJsonNode && indexJsonNode.kind === 'file', 'strings index.json must be a file');
+        const indexData = JSON.parse((await indexJsonNode.read()).toString());
+        assert.strictEqual(indexData.count, 3002);
+        assert.strictEqual(indexData.tableAddress, '$11D000');
+
+        const indexMdNode = resolveAssets(['strings', 'index.md'], dummyRom);
+        assert.ok(indexMdNode && indexMdNode.kind === 'file', 'strings index.md must be a file');
+        const mdText = (await indexMdNode.read()).toString();
+        assert.ok(mdText.includes('# soe://rom/assets/strings/'), 'Must include header');
+        assert.ok(mdText.includes('3002 in-game strings'), 'Must mention total string count');
+
+        const singleJsonNode = resolveAssets(['strings', '0000.json'], dummyRom);
+        assert.ok(singleJsonNode && singleJsonNode.kind === 'file', '0000.json must be a file');
+        const singleData = JSON.parse((await singleJsonNode.read()).toString());
+        assert.strictEqual(singleData.index, 0);
+        assert.strictEqual(singleData.hex, '$0000');
+        assert.strictEqual(singleData.keyOffset, '$000000');
+
+        const singleMdNode = resolveAssets(['strings', '0000.md'], dummyRom);
+        assert.ok(singleMdNode && singleMdNode.kind === 'file', '0000.md must be a file');
+        const singleMd = (await singleMdNode.read()).toString();
+        assert.ok(singleMd.includes('# String $0000'), 'Must include String $0000 title');
+        assert.ok(singleMd.includes('Table Key Offset'), 'Must document Table Key Offset');
     });
 
     test.it('tables VFS links domain assets and documents dog form pointers', async () => {
