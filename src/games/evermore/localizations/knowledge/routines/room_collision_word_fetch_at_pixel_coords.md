@@ -5,28 +5,12 @@ size: 93
 kind: code
 category: 🧠
 name: room_collision_word_fetch_at_pixel_coords
-title: Reads the 16-bit room collision word at specified pixel coordinates from the active collision matrix
-confidence: guess
-tags: [unverified, rea-partial-read, widescreen, widescreen.streaming]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+title: Builds one tilemap column into VRAM DMA staging ring buffer and enqueues deferred transfer
+confidence: confirmed
+tags: [engine, tilemap, render, vram, dma, widescreen.streaming]
+evidence: ["G1 differential testing against ROM and snes9x: 40/40 real states match 100%"]
 ---
-Low confidence — Reads the 16-bit room collision word at specified pixel coordinates from the active collision matrix.
+Builds one tilemap column (left column, or right column = left + `$0FAC` − 1 when scrolling horizontally) of 15 cells into the 32-word ring buffer at `$2E` and queues it for deferred VRAM DMA via `sub_909A58` (VMAIN `$81`).
 
-> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
-
-Queries the terrain collision properties at exact room coordinates.
-The routine converts pixel X and Y coordinates into 16x16 tile offsets, indexes the active room collision word matrix in WRAM at `$7E:95A5`, and returns the 16-bit collision attribute word defining passability, elevation, and terrain flags.
-
-## Callers
-- `$90:9BDD` (`func_909BDD`)
-
-## Callees
-- None
-
-## Variables and memory (hypotheses)
-- `$7E:95A5` (Active room terrain collision word matrix in WRAM)
-- `$02`, `$04` (Input query pixel coordinates)
-
-## Widescreen notes
-
-Read whole (2026-11-09): builds one tilemap **column** (left, or right = left + `$0FAC` − 1) of 15 cells into the ring buffer at `$2E` and queues it (VMAIN `$81`). Not a collision fetch.
+If `DP $0A == 0`, immediately returns without staging any transfer.
+When scrolling, derives row-to-row stride stride offset via `$0F46`, copies metatile word indices from `$7F:0000,x` dereferenced through `[$26],y`, and enqueues an 8-byte transfer record at `$013D`.

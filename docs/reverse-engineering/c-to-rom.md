@@ -559,3 +559,12 @@ Following completion of 100% certified C-binding coverage for Replay 01 in `v0.3
   - 534/534 fuzzed states match ROM (100% parity).
   - Mutation caught: yes.
 - Rated and audited: 292 clean, 0 stale/unrated. Total bound routines: **292**.
+
+### Replay 02 Bound Routines: Tilemap Streaming Pair ($90:999C & $90:99FB)
+- Bound in `reconstructed-c/90/909A58_sub_909A58.c`:
+  - `room_tilemap_layer2_parallax_offset_calc` ($90:999C): Builds one tilemap row (top row or bottom row + 14) of `$0FAC` cells into the 32-word ring buffer at `$2E` and enqueues deferred VRAM DMA transfer via `sub_909A58` (VMAIN `$80`). Handles early exit when `DP $0C == 0`.
+  - `room_collision_word_fetch_at_pixel_coords` ($90:99FB): Builds one tilemap column of 15 cells into the 32-word ring buffer at `$2E` and enqueues deferred VRAM DMA transfer via `sub_909A58` (VMAIN `$81`). Handles early exit when `DP $0A == 0`.
+- Verified under Gate G1:
+  - 40/40 real states match ROM per routine (100% parity, 40/40 snes9x oracle agreement).
+  - Mutations caught: yes for both.
+- Rated and audited: 294 clean, 0 stale/unrated. Total bound routines: **294**.

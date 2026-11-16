@@ -5,32 +5,12 @@ size: 50
 kind: code
 category: 🧠
 name: room_tilemap_layer2_parallax_offset_calc
-title: Calculates Layer 2 background parallax scrolling offsets and vertical perspective adjustments
-confidence: likely
-tags: [unverified, rea-partial-read, widescreen, widescreen.streaming]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+title: Builds one tilemap row into VRAM DMA staging ring buffer and enqueues deferred transfer
+confidence: confirmed
+tags: [engine, tilemap, render, vram, dma, widescreen.streaming]
+evidence: ["G1 differential testing against ROM and snes9x: 40/40 real states match 100%"]
 ---
-Low confidence — Calculates Layer 2 background parallax scrolling offsets and vertical perspective adjustments.
+Builds one tilemap row (top row, or the bottom row + 14 when scrolling vertically) of `$0FAC` cells into the 32-word ring buffer at `$2E` and queues it for deferred VRAM DMA via `sub_909A58` (VMAIN `$80`).
 
-> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
-
-Computes scrolling displacement for multi-layered background rooms (such as mountain vistas or canopy forests).
-The routine multiplies camera horizontal displacement `$48` with parallax scalar `$08EE` via hardware multiplier `$4202`.
-
-It adds vertical perspective adjustments, outputting the resultant Layer 2 VRAM scrolling offsets into `$30` and `$46`.
-
-## Callers
-- `$90:98FA` (`FUN_9098fa`)
-
-## Callees
-- None
-
-## Variables and memory (hypotheses)
-- `$48` (Camera world horizontal displacement)
-- `$08EE` (Room background Layer 2 parallax ratio scalar)
-- `$4202`, `$4216` (Hardware multiplication registers)
-- `$30`, `$46` (Layer 2 scrolling offset registers)
-
-## Widescreen notes
-
-Read whole (2026-11-09): builds one tilemap **row** (top row, or the bottom row + 14 when scrolling down) of `$0FAC` cells into the 32-word ring buffer at `$2E` and queues it (VMAIN `$80`). Not a parallax calculation.
+If `DP $0C == 0`, immediately returns without staging any transfer.
+When scrolling, derives row offset using hardware multiplier `$4202` (`Y * map_width`), copies metatile word indices from `$7F:0000,x` dereferenced through `[$26],y`, and enqueues an 8-byte transfer record at `$013D`.
