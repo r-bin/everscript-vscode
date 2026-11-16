@@ -4,9 +4,11 @@
 // after the last) or past it, are one `if` with an `||` / `&&` condition. When the body ends in an
 // unconditional forward jump, the lines that jump skips are its `else`. An `else` that is itself one more
 // such `if` ending where the `else` ends is an `else if`: it stays at the outer depth, so a chain reads flat.
-// A branch or jump back is a `do { … } while (…)` loop over the lines from its target. Blocks that cross an
-// earlier one are not drawn (a branch that leaves its body is a goto). The keyword names the construct a line opens: `if` on its first branch, `else` on an
-// else's first line, `else if` on that branch.
+// When the body leaves instead (a jump out of the routine, a return), the if reads the other way round:
+// `if (c) { then: the branch target on } else { the body }`, the condition the one for the jump. A branch or
+// jump back is a `do { … } while (…)` loop over the lines from its target. Blocks that cross an earlier one
+// are not drawn (a branch that leaves its body is a goto). The keyword names the construct a line opens: `if`
+// on its first branch, `else` on an else's first line, `else if` on that branch.
 
 /** As far as the blocks need a line of lines.json: its address, text and where it branches (`$` + bus address). */
 interface BlockLine { addr: string; text: string; call?: string; jump?: string }
@@ -17,13 +19,18 @@ const ALWAYS = /^(bra|brl|jmp|jml)\s[^(\[]*$/i;
 const QUIET = /^((lda|ldx|ldy|and|ora|eor|adc|sbc|cmp|cpx|cpy|bit|rep|sep)\s|(tax|tay|txa|tya|txy|tyx|inx|iny|dex|dey|clc|sec)$|(asl|lsr|rol|ror|inc|dec)(\s+a)?$)/i;
 
 type Keyword = '' | 'if' | 'else' | 'else if' | 'while';
-interface Shape { chain: number[]; then: [number, number]; els: [number, number] | null; end: number }
+interface Shape { chain: number[]; then: [number, number]; els: [number, number] | null; end: number; exits: boolean }
+/** A body's last line that leaves: a return, an indirect jump, or (checked with its target) a jump. */
+const RETURN = /^(rts|rtl|rti)$|^(jmp|jml)\s*[(\[]/i, JUMP = /^(bra|brl|jmp|jml)\s/i;
 
 /**
  * Per line, how many if / else / loop bodies it sits in, the construct it opens (`while` on a loop's branch
- * back), for `if` / `else if` its branches, and whether a loop starts there (`do`).
+ * back), for `if` / `else if` its branches and whether it reads the other way round (`inverted`), whether a
+ * loop starts there (`do`) and whether an inverted if's then-part starts there.
  */
-function blockDepths(lines: BlockLine[]): { depth: number[]; kw: Keyword[]; chains: number[][]; loopHead: boolean[] } {
+function blockDepths(lines: BlockLine[]): {
+    depth: number[]; kw: Keyword[]; chains: number[][]; inverted: boolean[]; loopHead: boolean[]; thenAt: boolean[];
+} {
     const index = new Map(lines.map((l, i) => [l.addr, i]));
     const target = (i: number): number => { const l = lines[i]; return l.call || !l.jump ? -1 : index.get(l.jump) ?? -1; };
     const entered = new Set(lines.map((_, i) => target(i)));
@@ -39,7 +46,8 @@ function blockDepths(lines: BlockLine[]): { depth: number[]; kw: Keyword[]; chai
             const t = k + 1, e = target(k);
             if (e <= t || !chain.every((b) => b === k || target(b) === t || target(b) === e)) continue;
             const u = ALWAYS.test(lines[e - 1].text) ? target(e - 1) : -1;
-            best = { chain: chain.slice(), then: [t, e - 1], els: u > e ? [e, u - 1] : null, end: u > e ? u : e };
+            const last = lines[e - 1].text, exits = RETURN.test(last) || (JUMP.test(last) && target(e - 1) < 0);
+            best = { chain: chain.slice(), then: [t, e - 1], els: u > e ? [e, u - 1] : null, end: u > e ? u : e, exits };
         }
         return best;
     };
@@ -53,7 +61,8 @@ function blockDepths(lines: BlockLine[]): { depth: number[]; kw: Keyword[]; chai
     // first line to its branch back, for crossing. Outer constructs first (by start, longer first). A branch on
     // the last line of a body that skips past it crosses that body: a goto, not an if.
     const kept: [number, number][] = [], spans: [number, number][] = [], used = new Set<number>();
-    const kw: Keyword[] = lines.map(() => ''), chains: number[][] = lines.map(() => []), loopHead = lines.map(() => false);
+    const kw: Keyword[] = lines.map(() => ''), chains: number[][] = lines.map(() => []);
+    const loopHead = lines.map(() => false), inverted = lines.map(() => false), thenAt = lines.map(() => false);
     const crosses = ([a, b]: [number, number]): boolean => spans.some(([c, d]) => (a < c && c <= b && b < d) || (c < a && a <= d && d < b));
     const order: { at: number; span: [number, number]; loop: boolean }[] = [];
     shapes.forEach((s, i) => { if (s) order.push({ at: i, span: [i, s.end - 1], loop: false }); });
@@ -75,13 +84,19 @@ function blockDepths(lines: BlockLine[]): { depth: number[]; kw: Keyword[]; chai
         kw[i] ||= 'if';
         chains[i] = s.chain;
         for (const b of s.chain) used.add(b);
+        const t = s.then[0];
+        if (s.exits && !kw[t] && !COND.test(lines[t].text) && s.then[1] + 1 < lines.length) {
+            kw[t] = 'else';
+            inverted[i] = true;
+            thenAt[s.then[1] + 1] = true;
+        }
         if (!s.els || crosses(s.els)) continue;
         spans.push(s.els);
         const inner = shapes[s.els[0]], elseIf = !!inner && inner.end === s.els[1] + 1;
         kw[s.els[0]] = elseIf ? 'else if' : 'else';
         if (!elseIf) kept.push(s.els);
     }
-    return { depth: lines.map((_, j) => kept.filter(([a, b]) => a <= j && j <= b).length), kw, chains, loopHead };
+    return { depth: lines.map((_, j) => kept.filter(([a, b]) => a <= j && j <= b).length), kw, chains, inverted, loopHead, thenAt };
 }
 
 export type { BlockLine, Keyword };

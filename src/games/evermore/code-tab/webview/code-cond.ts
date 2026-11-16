@@ -141,17 +141,19 @@ function stateAt(lines: CondLine[], i: number, named: boolean): State {
 /**
  * The C condition under which an `if` body runs, one clause per branch of `chain` (code-blocks.ts), the body
  * being the line after the last: a branch to the body reads `taken ||`, one past it `!taken &&`, the last
- * `!taken`; where the join changes, a `(` opens, closed after the last. Null when a line is no conditional branch.
+ * `!taken`; where the join changes, a `(` opens, closed after the last. `negate`: the condition for not running
+ * the body (an if read the other way round). Null when a line is no conditional branch.
  */
-function chainParts(lines: CondLine[], chain: number[], named: boolean): string[] | null {
+function chainParts(lines: CondLine[], chain: number[], named: boolean, negate = false): string[] | null {
     const mns = chain.map((b) => lines[b].text.slice(0, 3).toLowerCase());
     if (!chain.length || mns.some((mn) => !OPPOSITE[mn])) return null;
     const body = lines[chain[chain.length - 1] + 1]?.addr, last = chain.length - 1;
     const toBody = chain.map((b, n) => n < last && !lines[b].call && lines[b].jump === body);
-    const join = toBody.map((t) => (t ? '||' : '&&'));
+    // negated (De Morgan): each clause the other way, || and && swapped; the parentheses stay where they are
+    const join = toBody.map((t) => (t !== negate ? '||' : '&&'));
     let open = 0;
     return chain.map((b, n) => {
-        const clause = taken(toBody[n] ? mns[n] : OPPOSITE[mns[n]], stateAt(lines, b, named));
+        const clause = taken(toBody[n] !== negate ? mns[n] : OPPOSITE[mns[n]], stateAt(lines, b, named));
         const paren = n > 0 && n < last && join[n - 1] !== join[n] ? (open++, '(') : '';
         return paren + clause + (n < last ? ' ' + join[n] : ')'.repeat(open));
     });
