@@ -135,6 +135,15 @@ test.describe('Assets Documentation & VFS Parity', () => {
         assert.ok(comments.rom['00C5C6'], 'sub_80C5C6 flight abort check must have line comments');
         assert.ok(comments.rom['00C5CE'], 'sub_80C5CE boost throttle check must have line comments');
         assert.ok(comments.rom['00C5DB'], 'sub_80C5DB cruise speed & HUD toggle must have line comments');
+        assert.ok(comments.rom['00C600'], 'camera_velocity_accelerate_and_clamp must have line comments');
+        assert.ok(comments.rom['00C61C'], 'camera_velocity_decelerate_and_clamp_neg must have line comments');
+        assert.ok(comments.rom['00C638'], 'camera_scroll_velocity_decelerate_and_clamp must have line comments');
+        assert.ok(comments.rom['00C659'], 'camera_pan_velocity_accel_step_a must have line comments');
+        assert.ok(comments.rom['00C672'], 'scene_transition_step_or_commit_at_9f must have line comments');
+        assert.ok(comments.rom['00C681'], 'scene_transition_timer_decrement_or_loop must have line comments');
+        assert.ok(comments.rom['00C95B'], 'sub_80C95B entry stub must have line comments');
+        assert.ok(comments.rom['00C95D'], 'sub_80C95D VBlank & DMA must have line comments');
+        assert.ok(comments.rom['00C985'], 'sub_80C985 frame coordinator must have line comments');
     });
 
     test.it('tables VFS links domain assets and documents dog form pointers', async () => {
@@ -143,6 +152,21 @@ test.describe('Assets Documentation & VFS Parity', () => {
         const text = (await tableNode.read()).toString();
         assert.ok(text.includes('## Decoded Domain Asset'), 'Must contain Decoded Domain Asset section');
         assert.ok(text.includes('soe://rom/assets/characters/'), 'Must link to characters domain');
+
+        const sfxTableNode = resolveTables(['sfx_translation_table', 'info.md'], dummyRom);
+        assert.ok(sfxTableNode && sfxTableNode.kind === 'file', 'sfx_translation_table info.md must be a file');
+        const sfxText = (await sfxTableNode.read()).toString();
+        assert.ok(sfxText.includes('soe://rom/assets/audio/sounds/'), 'Must link to audio sounds domain');
+
+        const musicTableNode = resolveTables(['music_translation_table', 'info.md'], dummyRom);
+        assert.ok(musicTableNode && musicTableNode.kind === 'file', 'music_translation_table info.md must be a file');
+        const musicText = (await musicTableNode.read()).toString();
+        assert.ok(musicText.includes('soe://rom/assets/audio/music/'), 'Must link to audio music domain');
+
+        const armorTableNode = resolveTables(['tbl_armor_records', 'info.md'], dummyRom);
+        assert.ok(armorTableNode && armorTableNode.kind === 'file', 'tbl_armor_records info.md must be a file');
+        const armorText = (await armorTableNode.read()).toString();
+        assert.ok(armorText.includes('soe://rom/assets/armor/'), 'Must link to armor domain');
 
         const dogPointersNode = resolveTables(['dog_form_pointers', 'info.md'], dummyRom);
         assert.ok(dogPointersNode && dogPointersNode.kind === 'file', 'dog_form_pointers info.md must be a file');

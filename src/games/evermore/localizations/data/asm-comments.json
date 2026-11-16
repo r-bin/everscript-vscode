@@ -1,6 +1,30 @@
 {
   "//": "Centralized ASM comments for Secret of Evermore routines. Compiled to mesen/labels.mlb and infused at runtime via VFS.",
   "rom": {
+    "108384": {
+      "comment": "hold_random: returns to $90:8387; [DP $5D] = range, base; Y = the entity (a knockback's length when its +$40 animation runs)"
+    },
+    "108792": {
+      "comment": "Advance bytecode pointer by 2 bytes"
+    },
+    "108794": {
+      "comment": "Call alchemy_formula_calc_available_casts"
+    },
+    "108798": {
+      "comment": "Restore DB"
+    },
+    "108799": {
+      "comment": "At least 1 cast available?"
+    },
+    "109460": {
+      "comment": "Read Metatile ID (e.g. $0280) | Y = base_metatile + (i * 8)"
+    },
+    "109463": {
+      "comment": "Lookup corresponding VRAM Word ($30C0) | Direct lookup at $7F0000 + Y ($26 = $7F0000)"
+    },
+    "109465": {
+      "comment": "Stream to SNES PPU VRAM! | Stream directly to PPU VRAM register ($2118)"
+    },
     "00C5C6": {
       "comment": "Test controller button $4000 (X / abort flight)"
     },
@@ -123,27 +147,6 @@
     },
     "008FEA": {
       "comment": "Restore 16-bit registers (REP #$30)"
-    },
-    "108792": {
-      "comment": "Advance bytecode pointer by 2 bytes"
-    },
-    "108794": {
-      "comment": "Call alchemy_formula_calc_available_casts"
-    },
-    "108798": {
-      "comment": "Restore DB"
-    },
-    "108799": {
-      "comment": "At least 1 cast available?"
-    },
-    "109460": {
-      "comment": "Read Metatile ID (e.g. $0280) | Y = base_metatile + (i * 8)"
-    },
-    "109463": {
-      "comment": "Lookup corresponding VRAM Word ($30C0) | Direct lookup at $7F0000 + Y ($26 = $7F0000)"
-    },
-    "109465": {
-      "comment": "Stream to SNES PPU VRAM! | Stream directly to PPU VRAM register ($2118)"
     },
     "008020": {
       "comment": "Force Blank (Screen brightness 0, display OFF)"
@@ -7813,14 +7816,371 @@
     "0FC08C": {
       "comment": "Damage roll: random_below(base + 1), Y = target, DP $4C = attacker"
     },
-    "108384": {
-      "comment": "hold_random: returns to $90:8387; [DP $5D] = range, base; Y = the entity (a knockback's length when its +$40 animation runs)"
-    },
     "0FB00F": {
       "comment": "Strike lockout: while +$36 holds an attacker, count +$38 down; clear both below 0 (21 ticks after the roll)"
     },
     "0FC2CD": {
       "comment": "Knockback start: X = record +$40, Y = target"
+    },
+    "00C600": {
+      "comment": "Load current camera scroll velocity ($7E:14B6)"
+    },
+    "00C603": {
+      "comment": "If velocity is negative, branch to add acceleration directly"
+    },
+    "00C605": {
+      "comment": "Clear carry flag before positive addition"
+    },
+    "00C606": {
+      "comment": "Add positive acceleration step ($7E:1480)"
+    },
+    "00C609": {
+      "comment": "Compare against max positive velocity threshold ($7E:147C)"
+    },
+    "00C60C": {
+      "comment": "If below ceiling limit, store updated velocity"
+    },
+    "00C60E": {
+      "comment": "Otherwise clamp velocity to max positive ceiling ($7E:147C)"
+    },
+    "00C611": {
+      "comment": "Jump to commit updated velocity ($80:C618)"
+    },
+    "00C614": {
+      "comment": "Clear carry flag for negative velocity acceleration"
+    },
+    "00C615": {
+      "comment": "Add acceleration step towards zero"
+    },
+    "00C618": {
+      "comment": "Store updated camera scroll velocity ($7E:14B6)"
+    },
+    "00C61B": {
+      "comment": "Return from subroutine"
+    },
+    "00C61C": {
+      "comment": "Load current camera scroll velocity ($7E:14B6)"
+    },
+    "00C61F": {
+      "comment": "If velocity is positive, branch to subtract deceleration directly"
+    },
+    "00C621": {
+      "comment": "Set carry flag before negative subtraction"
+    },
+    "00C622": {
+      "comment": "Subtract deceleration step ($7E:1480)"
+    },
+    "00C625": {
+      "comment": "Compare against min negative velocity lower bound ($7E:147E)"
+    },
+    "00C628": {
+      "comment": "If above lower bound, keep updated velocity"
+    },
+    "00C62A": {
+      "comment": "Otherwise clamp velocity to min negative limit ($7E:147E)"
+    },
+    "00C62D": {
+      "comment": "Jump to commit updated velocity ($80:C634)"
+    },
+    "00C630": {
+      "comment": "Set carry flag for positive velocity deceleration"
+    },
+    "00C631": {
+      "comment": "Subtract deceleration step towards zero"
+    },
+    "00C634": {
+      "comment": "Store updated camera scroll velocity ($7E:14B6)"
+    },
+    "00C637": {
+      "comment": "Return from subroutine"
+    },
+    "00C638": {
+      "comment": "Load current camera pan velocity ($7E:14B2)"
+    },
+    "00C63B": {
+      "comment": "If velocity is positive, branch to apply friction reduction"
+    },
+    "00C63D": {
+      "comment": "Two's complement negation step 1: decrement accumulator (A - 1)"
+    },
+    "00C63E": {
+      "comment": "Two's complement negation step 2: invert bits to obtain absolute speed"
+    },
+    "00C641": {
+      "comment": "Compare negative speed magnitude against target speed limit ($7E:1474)"
+    },
+    "00C644": {
+      "comment": "If negative speed exceeds limit, clamp to negative ceiling -$1474"
+    },
+    "00C646": {
+      "comment": "Reload current camera pan velocity ($7E:14B2)"
+    },
+    "00C649": {
+      "comment": "Set carry flag before friction subtraction"
+    },
+    "00C64A": {
+      "comment": "Subtract deceleration friction step ($7E:1476)"
+    },
+    "00C64D": {
+      "comment": "Store decelerated camera pan velocity ($7E:14B2)"
+    },
+    "00C650": {
+      "comment": "Return from subroutine"
+    },
+    "00C651": {
+      "comment": "Clear accumulator (TDC = 0 in 16-bit mode)"
+    },
+    "00C652": {
+      "comment": "Negate target speed: 0 - MODE7_CAMERA_PAN_MAX_SPEED (-$1474)"
+    },
+    "00C655": {
+      "comment": "Clamp camera pan velocity to negative speed ceiling"
+    },
+    "00C658": {
+      "comment": "Return from subroutine"
+    },
+    "00C659": {
+      "comment": "Load current camera pan velocity ($7E:14B2)"
+    },
+    "00C65C": {
+      "comment": "If velocity is negative, branch to add acceleration towards zero"
+    },
+    "00C65E": {
+      "comment": "Compare against positive target speed ceiling ($7E:1474)"
+    },
+    "00C661": {
+      "comment": "If at or above ceiling, branch to clamp at target speed"
+    },
+    "00C663": {
+      "comment": "Clear carry flag before acceleration addition"
+    },
+    "00C664": {
+      "comment": "Add acceleration step ($7E:1476) to camera velocity"
+    },
+    "00C667": {
+      "comment": "Store accelerated camera pan velocity ($7E:14B2)"
+    },
+    "00C66A": {
+      "comment": "Return from subroutine"
+    },
+    "00C66B": {
+      "comment": "Load target speed ceiling ($7E:1474)"
+    },
+    "00C66E": {
+      "comment": "Clamp camera pan velocity to target speed ceiling"
+    },
+    "00C671": {
+      "comment": "Return from subroutine"
+    },
+    "00C672": {
+      "comment": "Load scene transition step counter ($7E:14BA)"
+    },
+    "00C675": {
+      "comment": "Compare counter against completion threshold ($009F = 159 frames)"
+    },
+    "00C678": {
+      "comment": "If not yet completed, branch to increment step counter"
+    },
+    "00C67A": {
+      "comment": "Finalize scene transition, loading target room and committing graphics ($80:E002)"
+    },
+    "00C67D": {
+      "comment": "Increment scene transition progress counter ($7E:14BA)"
+    },
+    "00C680": {
+      "comment": "Return from subroutine"
+    },
+    "00C681": {
+      "comment": "Load scene transition timer ($7E:14BA)"
+    },
+    "00C684": {
+      "comment": "If timer is zero, exit subroutine via rts"
+    },
+    "00C686": {
+      "comment": "Decrement scene transition timer ($7E:14BA)"
+    },
+    "00C689": {
+      "comment": "Check midpoint pause threshold ($006F = 111 frames)"
+    },
+    "00C68C": {
+      "comment": "If midpoint threshold not reached, exit subroutine via rts"
+    },
+    "00C68E": {
+      "comment": "Load scene transition pause flag ($7E:0E7C)"
+    },
+    "00C691": {
+      "comment": "If pause not requested, exit subroutine via rts"
+    },
+    "00C693": {
+      "comment": "Reset timer to 127 frames ($007F) for transition delay"
+    },
+    "00C696": {
+      "comment": "Store reset timer to $7E:14BA"
+    },
+    "00C699": {
+      "comment": "Pop caller return address from stack (part 1)"
+    },
+    "00C69A": {
+      "comment": "Pop caller return address from stack (part 2)"
+    },
+    "00C69B": {
+      "comment": "Branch to transition state dispatcher ($80:C6A9)"
+    },
+    "00C69D": {
+      "comment": "Return from subroutine"
+    },
+    "00C69E": {
+      "comment": "Check transition progress counter ($7E:14BA)"
+    },
+    "00C6A1": {
+      "comment": "Compare against 128-frame landing threshold ($0080)"
+    },
+    "00C6A4": {
+      "comment": "If below 128 frames, branch to transition state handler ($80:C6A9)"
+    },
+    "00C6A6": {
+      "comment": "Jump to sub_80C5C6 to evaluate flight abort and throttle input"
+    },
+    "00C6A9": {
+      "comment": "Clear scene transition pause request flag ($7E:0E7C)"
+    },
+    "00C6AC": {
+      "comment": "Load scene transition mode ($7E:0E70)"
+    },
+    "00C6AF": {
+      "comment": "If transition mode is non-zero, branch to stepped brightness fade"
+    },
+    "00C6B1": {
+      "comment": "Execute synchronous full screen fade out to black (screen_fade_out_to_black_sync)"
+    },
+    "00C6B4": {
+      "comment": "Discard caller stack frame"
+    },
+    "00C6B5": {
+      "comment": "Jump to sub_80C95B to execute terrain collision decompression and VRAM update"
+    },
+    "00C6B8": {
+      "comment": "Execute stepped screen brightness fade down (screen_brightness_stepped_fade_down)"
+    },
+    "00C6BB": {
+      "comment": "Discard caller stack frame"
+    },
+    "00C6BC": {
+      "comment": "Jump to sub_80C95B to execute terrain collision decompression and VRAM update"
+    },
+    "00C6BF": {
+      "comment": "Landing abort entry: load scene transition mode ($7E:0E70)"
+    },
+    "00C6C2": {
+      "comment": "Compare transition mode against mode 10"
+    },
+    "00C6C5": {
+      "comment": "If mode >= 10, branch to video-only fade out"
+    },
+    "00C6C7": {
+      "comment": "Execute synchronized audio and video fade to black (fade_audio_and_video_to_black_sync)"
+    },
+    "00C6CA": {
+      "comment": "Branch to clean up stack frame"
+    },
+    "00C6CC": {
+      "comment": "Execute video-only screen fade out to black (screen_fade_out_to_black_sync)"
+    },
+    "00C6CF": {
+      "comment": "Clean up stack frame"
+    },
+    "00C6D0": {
+      "comment": "Return from subroutine"
+    },
+    "00C95B": {
+      "comment": "Set accumulator to 8-bit mode (M=1) for PPU registers"
+    },
+    "00C95D": {
+      "comment": "Read PPU status register HVBJOY ($4212)"
+    },
+    "00C960": {
+      "comment": "Poll bit 7 (VBLANK): wait until VBlank period begins"
+    },
+    "00C962": {
+      "comment": "Load forced blanking mode bits ($80)"
+    },
+    "00C965": {
+      "comment": "Shift scratch register to clear display carry state"
+    },
+    "00C967": {
+      "comment": "Write INIDISP ($2100): enable forced blanking to safely access VRAM"
+    },
+    "00C96A": {
+      "comment": "Restore 16-bit accumulator and index registers (M=0, X=0)"
+    },
+    "00C96C": {
+      "comment": "Decompress terrain collision matrix and stream to VRAM via DMA (map_decompression_terrain_collision_words_dma)"
+    },
+    "00C970": {
+      "comment": "Set accumulator to 8-bit mode (M=1)"
+    },
+    "00C972": {
+      "comment": "Reset display buffer dirty flag ($7E:0106)"
+    },
+    "00C975": {
+      "comment": "Write INIDISP ($2100): disable forced blanking and restore screen display"
+    },
+    "00C978": {
+      "comment": "Restore 16-bit accumulator (M=0)"
+    },
+    "00C97A": {
+      "comment": "Load MODE7_FLIGHT_HUD_VISIBLE flag ($7E:0B1D)"
+    },
+    "00C97D": {
+      "comment": "If Flight HUD is hidden/inactive, skip sky CGRAM gradient update"
+    },
+    "00C97F": {
+      "comment": "Update sky gradient color table and upload to CGRAM via DMA (mode7_sky_color_gradient_and_fade_cgram_dma)"
+    },
+    "00C982": {
+      "comment": "Hide dialogue and menu window border frame sprites (hide_window_frame_sprites)"
+    },
+    "00C985": {
+      "comment": "Upload window clip and plane attribute buffer to PPU VRAM (vram_dma_upload_window_attribute_buffer)"
+    },
+    "00C988": {
+      "comment": "Load scene transition counter ($7E:14BA)"
+    },
+    "00C98B": {
+      "comment": "Divide transition counter by 2 (lsr #1)"
+    },
+    "00C98C": {
+      "comment": "Divide transition counter by 4 (lsr #2)"
+    },
+    "00C98D": {
+      "comment": "Multiply by 2 for word indexing (asl #1)"
+    },
+    "00C98E": {
+      "comment": "Transfer calculated table offset to X register"
+    },
+    "00C98F": {
+      "comment": "Look up horizon pitch curve offset from Mode 7 trajectory table ($80:F933,x)"
+    },
+    "00C992": {
+      "comment": "Store evaluated pitch offset into MODE7_CAMERA_PITCH_OFFSET ($7E:14B4)"
+    },
+    "00C995": {
+      "comment": "Compute aircraft heading angle and trigonometric yaw rotation matrix (mode7_flight_heading_yaw_rotation_matrix_calc)"
+    },
+    "00C998": {
+      "comment": "Perform coordinate rotated camera panning step (camera_rotated_pan_step)"
+    },
+    "00C99B": {
+      "comment": "Calculate camera scroll coordinates incorporating screen center offsets (calc_camera_scroll_with_screen_offset)"
+    },
+    "00C99E": {
+      "comment": "Apply screen shake offsets and commit camera scroll registers (screen_scroll_and_shake_step)"
+    },
+    "00C9A1": {
+      "comment": "Update compass needle heading with angular damping (mode7_flight_compass_needle_smooth_tracking_step)"
+    },
+    "00C9A4": {
+      "comment": "Calculate dynamic ground shadow projection geometry under aircraft (mode7_flight_shadow_projection_geometry_calc)"
     }
   }
 }

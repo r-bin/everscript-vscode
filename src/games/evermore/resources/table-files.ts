@@ -36,7 +36,37 @@ const TABLE_ASSET_LINKS: Record<string, { uri: string; label: string }> = {
     'Room pointer table': { uri: '../maps/index.md', label: 'soe://rom/assets/maps/' },
     'Companion dog breed form attribute pointer table ($CF:945F)': { uri: '../characters/01/info.md', label: 'soe://rom/assets/characters/01/' },
     'Dog form pointers': { uri: '../characters/01/info.md', label: 'soe://rom/assets/characters/01/' },
+    'SFX translation table': { uri: '../audio/sounds/index.md', label: 'soe://rom/assets/audio/sounds/' },
+    'tbl_sfx_script_translation': { uri: '../audio/sounds/index.md', label: 'soe://rom/assets/audio/sounds/' },
+    'SFX_TRANSLATION_TABLE': { uri: '../audio/sounds/index.md', label: 'soe://rom/assets/audio/sounds/' },
+    'Music translation table': { uri: '../audio/music/index.md', label: 'soe://rom/assets/audio/music/' },
+    'MUSIC_TRANSLATION_TABLE': { uri: '../audio/music/index.md', label: 'soe://rom/assets/audio/music/' },
+    'HUD character portrait and currency icon palette': { uri: '../palettes/index.md', label: 'soe://rom/assets/palettes/' },
+    'pal_hud_portraits': { uri: '../palettes/index.md', label: 'soe://rom/assets/palettes/' },
+    'tbl_pal_hud_portraits': { uri: '../palettes/index.md', label: 'soe://rom/assets/palettes/' },
+    'HUD Boy character portrait 16x16 sprite record': { uri: '../sprites/index.md', label: 'soe://rom/assets/sprites/' },
+    'spr_hud_boy_portrait': { uri: '../sprites/index.md', label: 'soe://rom/assets/sprites/' },
+    'Master armor and collar attributes table (40 records × 10 bytes)': { uri: '../armor/index.md', label: 'soe://rom/assets/armor/' },
+    'tbl_armor_records': { uri: '../armor/index.md', label: 'soe://rom/assets/armor/' },
+    'Consumable item attributes and healing power table': { uri: '../consumables/index.md', label: 'soe://rom/assets/consumables/' },
+    'tbl_consumable_items': { uri: '../consumables/index.md', label: 'soe://rom/assets/consumables/' },
+    'Master item, weapon, and ring menu icon sprite pointer table': { uri: '../icons/index.md', label: 'soe://rom/assets/icons/' },
+    'tbl_item_icon_sprite_pointers': { uri: '../icons/index.md', label: 'soe://rom/assets/icons/' },
+    'Master weapon, item, currency, and lore string database': { uri: '../strings/index.md', label: 'soe://rom/assets/strings/' },
+    'tbl_weapon_item_lore_descriptions': { uri: '../strings/index.md', label: 'soe://rom/assets/strings/' },
+    'Boy weapon table': { uri: '../characters/00/info.md', label: 'soe://rom/assets/characters/00/' },
+    'BOY_WEAPON_TABLE': { uri: '../characters/00/info.md', label: 'soe://rom/assets/characters/00/' },
+    'ALCHEMY_COST_DATA': { uri: '../ingredients/index.md', label: 'soe://rom/assets/ingredients/' },
+    'Alchemy formula names and descriptions (pointers into bank $C4)': { uri: '../alchemy/index.md', label: 'soe://rom/assets/alchemy/' },
+    'ALCHEMY_FORMULA_TEXT': { uri: '../alchemy/index.md', label: 'soe://rom/assets/alchemy/' },
+    'ALCHEMY_POWER': { uri: '../alchemy/index.md', label: 'soe://rom/assets/alchemy/' },
+    'ALCHEMY_TARGET': { uri: '../alchemy/index.md', label: 'soe://rom/assets/alchemy/' },
+    'ALCHEMY_ANIM_MAP': { uri: '../alchemy/index.md', label: 'soe://rom/assets/alchemy/' },
 };
+
+function getAssetLink(table: Table): { uri: string; label: string } | undefined {
+    return TABLE_ASSET_LINKS[table.name] || (table.id ? TABLE_ASSET_LINKS[table.id] : undefined);
+}
 
 function toFileOffset(bus: number): number | null {
     const bank = bus >> 16;
@@ -119,7 +149,7 @@ function resolveTables(segments: string[], rom: Uint8Array | null): VfsNode | nu
     }
 
     if (leaf === 'info.json') {
-        const link = TABLE_ASSET_LINKS[table.name];
+        const link = getAssetLink(table);
         return json(() => ({
             name: table.name,
             slug: slugify(table.name),
@@ -176,7 +206,7 @@ function decodeTableData(rom: Uint8Array, off: number, len: number) {
 }
 
 function tableMarkdown(table: Table, fileOff: number | null, size: number, snesAddr = table.address): string {
-    const link = TABLE_ASSET_LINKS[table.name];
+    const link = getAssetLink(table);
     const lines = [
         `# ${table.category} ${table.name}`,
         '',
@@ -211,7 +241,7 @@ Master engine and lookup tables in Secret of Evermore ROM.
 | Category | Table Name | Address | Size | Asset | Notes |
 |---|---|---|---|---|---|
 ${TABLES.map((t) => {
-    const link = TABLE_ASSET_LINKS[t.name];
+    const link = getAssetLink(t);
     const assetCol = link ? `[Asset](${slugify(t.name)}/${link.uri})` : '—';
     return `| ${t.category} | [${t.name}](${slugify(t.name)}/info.md) | \`$${hexId(t.address, 6)}\` | ${t.size || 256} B | ${assetCol} | ${t.notes || ''} |`;
 }).join('\n')}
