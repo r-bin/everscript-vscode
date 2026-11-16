@@ -2,7 +2,7 @@
 // forward conditional branch skips an `if` body (the lines up to its target); when that body ends in an
 // unconditional forward jump, the lines that jump skips are its `else`. An `else` that is itself one more
 // such `if` ending where the `else` ends is an `else if`: it stays at the outer depth, so a chain reads flat.
-// Blocks that cross an earlier one are not drawn; loops (backward branches) are not blocks. The keyword names
+// Blocks that cross an earlier one are not drawn (a branch that leaves its body is a goto); loops (backward branches) are not blocks. The keyword names
 // the construct a line opens: `if` on its branch, `else` on an else's first line, `else if` on that branch.
 
 /** As far as the blocks need a line of lines.json: its address, text and where it branches (`$` + bus address). */
@@ -25,13 +25,17 @@ function blockDepths(lines: BlockLine[]): { depth: number[]; kw: Keyword[] } {
         return { then: [i + 1, t - 1], els: u > t ? [t, u - 1] : null, end: u > t ? u : t };
     };
     const shapes = lines.map((_, i) => shape(i));
-    const kept: [number, number][] = [], kw: Keyword[] = lines.map(() => '');
-    const crosses = ([a, b]: [number, number]): boolean => kept.some(([c, d]) => (a < c && c <= b && b < d) || (c < a && a <= d && d < b));
+    // `kept`: the bodies (they indent); `spans`: whole constructs, an `if` from its branch line, for crossing. A
+    // branch on the last line of a body that skips past it crosses that body: a goto, not an if.
+    const kept: [number, number][] = [], spans: [number, number][] = [], kw: Keyword[] = lines.map(() => '');
+    const crosses = ([a, b]: [number, number]): boolean => spans.some(([c, d]) => (a < c && c <= b && b < d) || (c < a && a <= d && d < b));
     shapes.forEach((s, i) => {
-        if (!s || crosses(s.then)) return;
+        if (!s || crosses([i, s.then[1]])) return;
+        spans.push([i, s.then[1]]);
         kept.push(s.then);
         kw[i] ||= 'if';
         if (!s.els || crosses(s.els)) return;
+        spans.push(s.els);
         const inner = shapes[s.els[0]], elseIf = !!inner && inner.end === s.els[1] + 1;
         kw[s.els[0]] = elseIf ? 'else if' : 'else';
         if (!elseIf) kept.push(s.els);

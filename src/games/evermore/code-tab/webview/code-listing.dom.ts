@@ -5,7 +5,9 @@
 
 import { blockDepths } from './code-blocks';
 import type { Keyword } from './code-blocks';
+import { bodyCondition } from './code-cond';
 
+const COND_TITLE = 'The condition follows A, X, Y and the flags from the nearest line something jumps to; what it cannot follow stays a flag (Z, C, N, V); widths are not shown';
 const KW_TITLE: Record<Exclude<Keyword, ''>, string> = {
     if: 'if: the indented lines below run when this branch is not taken',
     else: 'else: the lines from here run when the if above branched here; its body jumps over them',
@@ -62,7 +64,8 @@ function touchedHtml(c: NonNullable<Line['cdl']>, known: Known): string {
 /**
  * A routine's lines (lines.json) as table rows. `names`: operands by name, how often each line ran and what it
  * touched (CDL), lines that never ran dimmed; off: the plain code with its comments. `bytes` shows each instruction's bytes;
- * `blocks` indents if / else bodies (code-blocks.ts), one guide per level, and names the construct each line opens (`if`, `else`, `else if`) as a tag before the instruction.
+ * `blocks` indents if / else bodies (code-blocks.ts), one guide per level, and names the construct each line opens (`if`, `else`, `else if`) as a tag before the instruction, with its
+ * condition in C (code-cond.ts).
  */
 function asmHtml(data: Lines, known: Known, opts: { bytes: boolean; names: boolean; blocks: boolean }): string {
     const at = (l: Line): string => l.addr.slice(1);
@@ -73,6 +76,11 @@ function asmHtml(data: Lines, known: Known, opts: { bytes: boolean; names: boole
     const cdl = opts.names && !!data.cdl;
     const blocks = opts.blocks ? blockDepths(data.lines) : null;
     const dcls = (d: number): string => (d ? ' code-d' + Math.min(d, 8) : '');
+    /** The tag naming the construct line `i` opens, with the condition its body runs under. */
+    const kwHtml = (k: Exclude<Keyword, ''>, i: number): string => {
+        const cond = k === 'else' ? null : bodyCondition(data.lines, i, opts.names);
+        return '<span class="code-kw" title="' + esc(KW_TITLE[k] + (cond ? '\n' + COND_TITLE : '')) + '">' + k + (cond ? ' (' + esc(cond) + ')' : '') + '</span>';
+    };
     const rows = data.lines.map((l, n) => {
         const ins = opts.names ? l.named : l.text, t = jump(l);
         let insHtml = esc(ins);
@@ -94,7 +102,7 @@ function asmHtml(data: Lines, known: Known, opts: { bytes: boolean; names: boole
         return '<tr data-code-at="' + at(l) + '"' + (cls ? ' class="' + cls + '"' : '') + '>' +
             '<td class="code-addr">' + at(l) + '</td><td class="code-bytes">' + esc(l.bytes) + '</td>' +
             (cdl ? (l.cdl ? hitsCell(l.cdl) : '<td class="code-hits"></td>') : '') +
-            '<td class="code-ins' + dcls(depth) + '">' + (kw ? '<span class="code-kw" title="' + KW_TITLE[kw] + '">' + kw + '</span>' : '') + insHtml + '</td><td class="code-note">' + linkNames(note, known) +
+            '<td class="code-ins' + dcls(depth) + '">' + (kw ? kwHtml(kw, n) : '') + insHtml + '</td><td class="code-note">' + linkNames(note, known) +
             (cdl && l.cdl ? (note ? ' ' : '') + touchedHtml(l.cdl, known) : '') + '</td></tr>';
     });
     return '<table class="code-asm' + (opts.bytes ? '' : ' code-nobytes') + '">' + rows.join('') + '</table>';

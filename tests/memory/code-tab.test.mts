@@ -80,6 +80,25 @@ async function unit(): Promise<void> {
         // two branches that cross: the later one is not drawn; an indirect jmp ends no if body
         assert.deepStrictEqual(depths([['beq $', 3], ['bne $', 4], ['x'], ['y'], ['rts']]), [0, 1, 1, 0, 0]);
         assert.deepStrictEqual(depths([['beq $', 3], ['x'], ['jmp ($0000,x)', 4], ['y'], ['rts']]), [0, 1, 1, 0, 0]);
+        // a branch on the last line of an if body that skips past it is a goto: no if, no indent
+        const go = blockDepths(lines([['bne $', 3], ['x'], ['bne $', 4], ['jmp $'], ['rts']]));
+        assert.deepStrictEqual([go.depth, go.kw], [[0, 1, 1, 0, 0], ['if', '', '', '', '']]);
+    });
+    await test('conditions: the if body\'s condition in C from A, X, Y and the flags', () => {
+        const { bodyCondition } = require('../../dist/games/evermore/code-tab/webview/code-cond');
+        const cond = (rows: string[], target?: number) => bodyCondition(rows.map((text, i) => ({ addr: '$' + i, text, jump: i === rows.length - 1 ? '$' + (target ?? 99) : undefined })), rows.length - 1, false);
+        assert.strictEqual(cond(['lda $10', 'bne $']), '$10 == 0');
+        assert.strictEqual(cond(['lda $10,x', 'and #$04', 'beq $']), '$10[X] & 0x04');
+        assert.strictEqual(cond(['lda $10', 'cmp #$05', 'bcc $']), '$10 >= 0x05');
+        assert.strictEqual(cond(['ldx $12', 'dex', 'bpl $']), '(signed)($12 - 1) < 0');
+        assert.strictEqual(cond(['bit $14', 'bvs $']), '!bit6($14)');
+        assert.strictEqual(cond(['lda $10', 'lsr', 'bcs $']), '!($10 & 1)');
+        assert.strictEqual(cond(['lda $10', 'clc', 'adc $12', 'bcs $']), '!carry($10 + $12)');
+        assert.strictEqual(cond(['pla', 'bne $']), 'pop() == 0');
+        assert.strictEqual(cond(['lda $10', 'jsl $808000', 'bcc $']), '$808000() → C');
+        assert.strictEqual(cond(['lda $10', 'xce', 'beq $']), '!Z', 'unknown: the flag');
+        assert.strictEqual(cond(['lda $10', 'bne $'], 1), 'Z', 'a jump target resets what is known');
+        assert.strictEqual(cond(['lda $10', 'sta $12']), null, 'not a branch');
     });
 }
 
