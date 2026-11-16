@@ -46,12 +46,37 @@ function resolveTiles(segments: string[], rom: Uint8Array) {
         })));
     }
 
-    const m = /^([0-9a-f]{1,4})\.(png|bin|json)$/i.exec(name);
+    const m = /^([0-9a-f]{1,4})(?:\.(png|bin|json|md))?$/i.exec(name);
     if (!m) return null;
     const tileId = parseInt(m[1], 16);
     if (tileId < 0 || tileId >= GFX_COUNT) return null;
 
     const ext = m[2];
+
+    if (ext === undefined) {
+        if (leaf === undefined) {
+            return dir([
+                ['info.md', 'file'],
+                ['tile.png', 'file'],
+                ['tile.bin', 'file'],
+                ['tile.json', 'file'],
+            ], () => tileMarkdown(rom, tileId));
+        }
+        if (leaf === 'info.md') return text(() => tileMarkdown(rom, tileId));
+        if (leaf === 'tile.png') return file(() => renderTilePng(rom, tileId, 0));
+        if (leaf === 'tile.bin') return file(() => Buffer.from(decompressTile16x16(rom, tileId)));
+        if (leaf === 'tile.json') {
+            return json(() => {
+                const tileBytes = decompressTile16x16(rom, tileId);
+                return { id: tileId, hex: hexId(tileId, 4), size: tileBytes.length, pixels: Array.from(decodeTilePixels(tileBytes)) };
+            });
+        }
+        return null;
+    }
+
+    if (ext === 'md') {
+        return text(() => tileMarkdown(rom, tileId));
+    }
 
     if (ext === 'bin') {
         return file(() => Buffer.from(decompressTile16x16(rom, tileId)));
@@ -75,6 +100,33 @@ function resolveTiles(segments: string[], rom: Uint8Array) {
     }
 
     return null;
+}
+
+function tileMarkdown(rom: Uint8Array, tileId: number): string {
+    const tileBytes = decompressTile16x16(rom, tileId);
+    const hex = hexId(tileId, 4);
+    const ptrAddr = 0xee0000 + tileId * 3;
+    const snesPtrHex = '$EE' + (ptrAddr & 0xffff).toString(16).padStart(4, '0').toUpperCase();
+
+    return `# Tile 0x${hex} (#${tileId})
+
+Master map 16×16 CHR tile graphic from the pointer table at \`$EE0000\` (entry at \`${snesPtrHex}\`).
+
+| Property | Value |
+|---|---|
+| ID | \`0x${hex}\` (#${tileId}) |
+| Dimensions | 16×16 px |
+| Format | 4bpp SNES planar CHR |
+| Size | ${tileBytes.length} bytes uncompressed |
+| Pointer table entry | \`${snesPtrHex}\` |
+
+![Tile 0x${hex}](${hex}.png)
+
+## Data Files
+- [PNG Image](${hex}.png)
+- [Raw Binary](${hex}.bin)
+- [Pixel JSON](${hex}.json)
+`;
 }
 
 function renderTilePng(rom: Uint8Array, tileId: number, familyId = 0) {

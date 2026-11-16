@@ -12,6 +12,9 @@ import { animationGroups, animationIdRecord, ANIMATION_ID_COUNT } from '../maps/
 import { disassembleScript } from '../maps/animation-opcodes';
 import { projectileRecord } from '../maps/projectiles';
 import { paletteAddresses } from '../maps/character-record';
+import { ICON_ID_LAST, iconEntry } from '../maps/item-icons';
+import { alchemyModel } from '../scripts-tab/model/alchemy';
+import { lootRewardName, flagName } from '../script-model';
 import { hexLower as hex } from '../../../platform';
 
 const PROJECTILE_OP = 0x4c;
@@ -35,7 +38,9 @@ type Owner =
     | { kind: 'character'; id: number; name?: string; label?: string }
     | { kind: 'weapon'; id: number; name: string; label?: string; paletteAddr: number }
     | { kind: 'id'; id: number; idHex: string; names: string[]; paletteCharacter: number | null; paletteAddr: number }
-    | { kind: 'projectile'; id: number; idHex: string; thrower: string };
+    | { kind: 'projectile'; id: number; idHex: string; thrower: string }
+    | { kind: 'alchemy'; name: string; blockHex: string }
+    | { kind: 'icon'; id: number; idHex: string; name: string };
 
 /** Global id → the enum names that spell it, e.g. 0xae → ['ANIMATION_ENEMY.MAGMAR_ENTER']. */
 function idNames(): Map<number, IdName[]> {
@@ -114,6 +119,35 @@ function buildAnimationCatalog(rom: Uint8Array, characters: CatalogCharacter[]) 
             paletteCharacter: paletteOwnerForNames(idLabels, characters),
             paletteAddr: dogActPalette(idLabels, characters),
         });
+    }
+
+    try {
+        const alch = alchemyModel(rom);
+        for (const f of alch.formulas) {
+            for (const r of f.records) {
+                add(r.record, { kind: 'alchemy', name: f.name, blockHex: f.blockHex });
+            }
+        }
+    } catch (_) { /* alchemy model optional */ }
+
+    for (let id = 0; id <= ICON_ID_LAST; id += 2) {
+        try {
+            const e = iconEntry(rom, id);
+            if (e && e.record) {
+                let label = '';
+                if (id >= 0x0118 && id <= 0x0142) {
+                    label = lootRewardName(0x0200 + e.index) || '';
+                } else if (id >= 0x008e && id <= 0x009c) {
+                    label = lootRewardName(0x0800 + e.index) || '';
+                } else if (id >= 0x00a0 && id <= 0x00ee) {
+                    label = lootRewardName(0x0400 + Math.floor(e.index / 2)) || '';
+                } else if (id >= 0x0048 && id <= 0x008c) {
+                    const formulaIdx = Math.floor(e.index / 2);
+                    label = flagName(0x2258 + (formulaIdx >> 3), formulaIdx & 7);
+                }
+                add(e.record, { kind: 'icon', id, idHex: '$' + hex(id, 4), name: label || '$' + hex(id, 4) });
+            }
+        } catch (_) { /* ignore */ }
     }
 
     const groups = animationGroups(rom);
@@ -252,6 +286,10 @@ function catalogLabel(list: Owner[]): string {
     }
     const thrown = list.find((o) => o.kind === 'projectile');
     if (thrown) return `projectile ${thrown.idHex}`;
+    const alch = list.find((o) => o.kind === 'alchemy');
+    if (alch) return `alchemy · ${alch.name}`;
+    const ic = list.find((o) => o.kind === 'icon');
+    if (ic) return `icon · ${ic.name}`;
     const id = list.find((o) => o.kind === 'id');
     return id ? `id ${id.idHex}` : 'no known owner';
 }

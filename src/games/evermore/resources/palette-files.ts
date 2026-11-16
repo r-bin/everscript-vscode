@@ -152,51 +152,77 @@ export function resolvePalettes(segments: string[], rom: Rom): VfsNode | null {
     const modelsList = [...models.values()].sort((a, b) => a.index - b.index);
 
     // Root directory: soe://rom/assets/palettes/
+    const indexMd = () => {
+        const rows = modelsList.map((m) => {
+            const chars = m.characters.map((c) => `[${c.name}](soe://rom/assets/characters/${c.id}/)`).join(', ');
+            const who = chars || (m.tags.length ? m.tags.map((t) => `\`${t}\``).join(', ') : '*unowned*');
+            return `| [#${m.index}](soe://rom/assets/palettes/${m.index}/) | \`${m.addrHex}\` | ${who} |`;
+        }).join('\n');
+        return `# soe://rom/assets/palettes/\n\n${models.size} unique palettes referenced in ROM:\n\n| Index | Address | Characters |\n|:---|:---|:---|\n${rows}\n`;
+    };
+
     if (!palKey) {
-        const entries: Entry[] = modelsList.map((m) => [String(m.index), 'dir']);
-        return dir(entries, () => {
-            const rows = modelsList.map((m) => {
-                const chars = m.characters.map((c) => `[${c.name}](soe://rom/assets/characters/${c.id}/)`).join(', ');
-                const who = chars || (m.tags.length ? m.tags.map((t) => `\`${t}\``).join(', ') : '*unowned*');
-                return `| [#${m.index}](soe://rom/assets/palettes/${m.index}/) | \`${m.addrHex}\` | ${who} |`;
-            }).join('\n');
-            return `# soe://rom/assets/palettes/\n\n${models.size} unique palettes referenced in ROM:\n\n| Index | Address | Characters |\n|:---|:---|:---|\n${rows}\n`;
-        });
+        const entries: Entry[] = modelsList.map((m): Entry => [String(m.index), 'dir']);
+        return dir(entries, indexMd);
     }
 
+    if (palKey === 'index.json') {
+        return json(() => modelsList.map((m) => ({
+            index: m.index,
+            address: m.address,
+            addrHex: m.addrHex,
+            colors: m.colors,
+            tags: m.tags,
+            characters: m.characters,
+            animations: m.animations,
+        })));
+    }
+    if (palKey === 'index.md') {
+        return text(indexMd);
+    }
+
+    const m = /^(.+?)(?:\.(json|md))?$/i.exec(palKey);
+    const rawKey = m ? m[1] : palKey;
+    const ext = m ? m[2] : undefined;
+
     let model: PaletteModel | undefined;
-    if (/^\d+$/.test(palKey)) {
-        const idx = parseInt(palKey, 10);
-        model = modelsList.find((m) => m.index === idx);
+    if (/^\d+$/.test(rawKey)) {
+        const idx = parseInt(rawKey, 10);
+        model = modelsList.find((x) => x.index === idx);
     }
     if (!model) {
-        const addr = parseInt(palKey, 16);
+        const addr = parseInt(rawKey, 16);
         model = models.get(addr);
     }
     if (!model) return null;
+
+    const serializePalette = () => ({
+        index: model!.index,
+        address: model!.address,
+        addrHex: model!.addrHex,
+        colors: model!.colors,
+        tags: model!.tags,
+        characters: model!.characters,
+        animations: model!.animations,
+    });
+
+    if (ext === 'json') return leaf === undefined ? json(serializePalette) : null;
+    if (ext === 'md') return leaf === undefined ? text(() => paletteMarkdown(model!)) : null;
 
     // Palette directory: soe://rom/assets/palettes/<index>/
     if (!leaf) {
         const entries: Entry[] = [
             ['palette.json', 'file'],
         ];
-        return dir(entries, () => paletteMarkdown(model));
+        return dir(entries, () => paletteMarkdown(model!));
     }
 
     if (leaf === 'info.md' || leaf === 'index.md') {
-        return text(() => paletteMarkdown(model));
+        return text(() => paletteMarkdown(model!));
     }
 
-    if (leaf === 'palette.json') {
-        return json(() => ({
-            index: model.index,
-            address: model.address,
-            addrHex: model.addrHex,
-            colors: model.colors,
-            tags: model.tags,
-            characters: model.characters,
-            animations: model.animations,
-        }));
+    if (leaf === 'palette.json' || leaf === 'info.json') {
+        return json(serializePalette);
     }
 
     return null;

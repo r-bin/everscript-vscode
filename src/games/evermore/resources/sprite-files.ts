@@ -63,43 +63,80 @@ export function resolveSprites(segments: string[], rom: Rom): VfsNode | null {
     const models = buildSpriteModels(rom);
 
     // Root directory: soe://rom/assets/sprites/
+    const indexMd = () => {
+        const list = [...models.values()]
+            .map((m) => `- [#${m.index}: ${m.addrHex}](soe://rom/assets/sprites/${m.address.toString(16).padStart(6, '0')}/) — ~${m.widthPx}×${m.heightPx} px, ${m.chunkCount} chunks`)
+            .join('\n');
+        return `# soe://rom/assets/sprites/\n\n${models.size} unique sprites referenced in ROM:\n\n${list}\n`;
+    };
+
     if (!sprHex) {
-        const entries: Entry[] = [...models.values()].map((m) => [m.address.toString(16).padStart(6, '0'), 'dir']);
-        return dir(entries, () => {
-            const list = [...models.values()]
-                .map((m) => `- [#${m.index}: ${m.addrHex}](soe://rom/assets/sprites/${m.address.toString(16).padStart(6, '0')}/) — ~${m.widthPx}×${m.heightPx} px, ${m.chunkCount} chunks`)
-                .join('\n');
-            return `# soe://rom/assets/sprites/\n\n${models.size} unique sprites referenced in ROM:\n\n${list}\n`;
-        });
+        const entries: Entry[] = [
+            ['index.json', 'file'],
+            ['index.md', 'file'],
+            ...[...models.values()].map((m): Entry => [m.address.toString(16).padStart(6, '0'), 'dir']),
+        ];
+        return dir(entries, indexMd);
     }
 
-    const addr = parseInt(sprHex, 16);
+    if (sprHex === 'index.json') {
+        return json(() => [...models.values()].map((m) => ({
+            address: m.address,
+            addrHex: m.addrHex,
+            index: m.index,
+            widthPx: m.widthPx,
+            heightPx: m.heightPx,
+            chunkCount: m.chunkCount,
+            tags: m.tags,
+            characters: m.characters,
+            palettes: m.palettes,
+            animations: m.animations,
+        })));
+    }
+    if (sprHex === 'index.md') {
+        return text(indexMd);
+    }
+
+    const m = /^([0-9a-f]{1,6})(?:\.(json|md))?$/i.exec(sprHex);
+    const rawHex = m ? m[1] : sprHex;
+    const ext = m ? m[2] : undefined;
+
+    const addr = parseInt(rawHex, 16);
     const model = models.get(addr);
     if (!model) return null;
+
+    const serializeSprite = () => ({
+        address: model.address,
+        addrHex: model.addrHex,
+        index: model.index,
+        widthPx: model.widthPx,
+        heightPx: model.heightPx,
+        chunkCount: model.chunkCount,
+        tags: model.tags,
+        characters: model.characters,
+        palettes: model.palettes,
+        animations: model.animations,
+    });
+
+    if (ext === 'json') return leaf === undefined ? json(serializeSprite) : null;
+    if (ext === 'md') return leaf === undefined ? text(() => spriteMarkdown(model)) : null;
 
     // Sprite directory: soe://rom/assets/sprites/<6hex>/
     if (!leaf) {
         const entries: Entry[] = [
+            ['info.json', 'file'],
             ['info.md', 'file'],
             ['sprite.json', 'file'],
         ];
         return dir(entries, () => spriteMarkdown(model));
     }
 
-    if (leaf === 'info.md') {
+    if (leaf === 'info.md' || leaf === 'index.md') {
         return text(() => spriteMarkdown(model));
     }
 
-    if (leaf === 'sprite.json') {
-        return json(() => ({
-            address: model.address,
-            addrHex: model.addrHex,
-            index: model.index,
-            widthPx: model.widthPx,
-            heightPx: model.heightPx,
-            chunkCount: model.chunkCount,
-            animations: model.animations,
-        }));
+    if (leaf === 'sprite.json' || leaf === 'info.json') {
+        return json(serializeSprite);
     }
 
     return null;

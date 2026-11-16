@@ -1,6 +1,63 @@
 {
   "//": "Centralized ASM comments for Secret of Evermore routines. Compiled to mesen/labels.mlb and infused at runtime via VFS.",
   "rom": {
+    "0F9DBD": {
+      "comment": "Delta Y = Target Y - Entity Y (+$1C,y)"
+    },
+    "0F9DC1": {
+      "comment": "Save Delta Y to DP $14"
+    },
+    "0F9DC3": {
+      "comment": "Target X from register X"
+    },
+    "0F9DC5": {
+      "comment": "Delta X = Target X - Entity X (+$1A,y)"
+    },
+    "0F9DC8": {
+      "comment": "Save Delta X to DP $12"
+    },
+    "0F9DDC": {
+      "comment": "Store resolved 8-way facing direction code (0..14) to +$22,y"
+    },
+    "0F9E3B": {
+      "comment": "Check if proximity distance < 16 (mask upper bits via BIT #$FFF0)"
+    },
+    "0F9E40": {
+      "comment": "Store clamped proximity distance to +$64,y"
+    },
+    "008F85": {
+      "comment": "Check frame commit ready flag (DP $D9)"
+    },
+    "008F89": {
+      "comment": "If zero, skip commit and return immediately"
+    },
+    "008F9A": {
+      "comment": "Switch CPU to 8-bit registers (SEP #$30)"
+    },
+    "008F9C": {
+      "comment": "Load OBJ tile LRU queue tail from $7E:9726"
+    },
+    "008F9F": {
+      "comment": "Check if OBJ queue tail equals sentinel $81"
+    },
+    "008FBD": {
+      "comment": "Load VRAM tile LRU queue tail from $7E:AB79"
+    },
+    "008FC0": {
+      "comment": "Check if VRAM queue tail equals sentinel $61"
+    },
+    "008FD6": {
+      "comment": "Reset OBJ queue head and tail sentinels to $81"
+    },
+    "008FDE": {
+      "comment": "Reset VRAM queue head and tail sentinels to $61"
+    },
+    "008FE6": {
+      "comment": "Reset active VRAM page selector DP $D8 to $96"
+    },
+    "008FEA": {
+      "comment": "Restore 16-bit registers (REP #$30)"
+    },
     "108792": {
       "comment": "Advance bytecode pointer by 2 bytes"
     },

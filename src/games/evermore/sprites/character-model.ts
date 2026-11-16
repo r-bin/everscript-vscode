@@ -124,6 +124,11 @@ const WEAPON_PALETTE = 0x04;
 
 const BOY = 0, DOG = 1;
 const NAME_BUFFERS: Record<number, string> = { 0x7e2210: '<Boy Name>', 0x7e2234: '<Dog Name>' };
+const FALLBACK_CHARACTER_NAMES: Record<number, string> = {
+    25: 'Placeholder',
+    26: 'Dummy Entity (#26)',
+    75: 'Spark',
+};
 
 function anim(rom: Rom, base: { animRec: number }, extra: Omit<Anim, 'animRec' | 'scriptAddr' | 'flags'>): Anim {
     const animRec = base.animRec;
@@ -226,12 +231,16 @@ function readCharacter(rom: Rom, id: number) {
     const drawn = own.filter((a) => a.purpose !== 'death' && a.purpose !== 'spoils');
     const noVisuals = !drawn.some((a) => showsSprite(rom, a.scriptAddr)) && !(id === BOY || id === DOG);
     const flags = stats.flags;
-    const hostile = !(flags & 0x0002);
+    const isPlayer = id === BOY;
+    const isCompanion = id === DOG;
+    const hostile = isPlayer || isCompanion ? false : !(flags & 0x0002);
+    const resolvedName = name || FALLBACK_CHARACTER_NAMES[id] || '#' + id;
+    const dispositionLabel = isPlayer ? 'Player' : isCompanion ? 'Companion' : hostile ? 'Enemy' : 'NPC / Friendly';
     return {
-        id, name: name || '#' + id, noVisuals, snes: record, snesHex: hex(record), namePtr, namePtrHex: hex(namePtr),
+        id, name: resolvedName, noVisuals, snes: record, snesHex: hex(record), namePtr, namePtrHex: hex(namePtr),
         stats, hitbox,
         hurtbox: { radius: hitbox.radius, width: 2 * hitbox.radius, height: 2 * hitbox.radius },
-        disposition: { hostile, inactive: (flags & 0x0020) !== 0, phasing: (flags & 0x0400) !== 0, label: hostile ? 'Enemy' : 'NPC / Friendly' },
+        disposition: { hostile, inactive: (flags & 0x0020) !== 0, phasing: (flags & 0x0400) !== 0, label: dispositionLabel },
         paletteAddrHex: '0x' + stats.palette.toString(16),
         paletteIndex: paletteAddresses(rom).indexOf(stats.palette & 0xffff),
         paletteColors: characterPalette(rom, id).map(hexColour),
