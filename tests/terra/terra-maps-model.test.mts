@@ -91,6 +91,9 @@ test('the rail: one row per picture named by its first room, carrying every room
     assert.strictEqual(areas[0].area, 'Rooms $000–$03F');
     assert.deepStrictEqual(areas[0].rooms[0], { name: 'Room $00C +1', tag: '32×64', attrs: { room: 0x0C, rooms: '12 13', hexes: '00c 00d' } });
     assert.strictEqual(areas[0].rooms[1].name, 'Room $00F');
+    const named = m.railAreas([{ name: 'g', pictures: [[0x0C, 0x0D]], noMap: [] }], new Map([[0x0C, { w: 1, h: 1, name: 'Crysta' }], [0x0D, { w: 1, h: 1, name: 'Crysta, room 1' }]]));
+    assert.strictEqual(named[0].rooms[0].name, 'Crysta +1');
+    assert.strictEqual(named[0].rooms[0].attrs.hexes, '00c crysta 00d crysta, room 1');
 });
 
 test('variants: the rooms that show the same picture, in id order', () => {

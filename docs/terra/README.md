@@ -7,7 +7,7 @@ of the European base ROM unless a file offset is named. Nothing here comes from 
 
 Code: `src/games/terra/decoder` (pure TS), `terra://` (`src/games/terra/resources`), the Maps panel
 (`src/games/terra/maps`). The player's jump and what is solid in the air: [jumping.md](jumping.md). Rooms converted
-into Evermore rooms (the Rooms tab's Terranigma group): [evermore-rooms.md](evermore-rooms.md).
+into Evermore rooms (the Rooms tab's Terranigma group): [evermore-rooms.md](evermore-rooms.md). Room names (ours, from the exit graph): [room-names.md](room-names.md).
 
 ## 1. Cartridge
 
