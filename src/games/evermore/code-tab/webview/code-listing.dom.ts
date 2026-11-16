@@ -89,10 +89,12 @@ function asmHtml(data: Lines, known: Known, opts: { bytes: boolean; names: boole
         const note = opts.names ? l.comment || '' : l.comment || l.call || '';
         const cls = [targets.has(at(l)) ? 'code-target' : '', cdl && l.cdl && !l.cdl.hits ? 'code-cold' : ''].filter(Boolean).join(' ');
         const kw = blocks ? blocks.kw[n] : '';
+        /** An else's tag sits at its if's level: one out from the body it starts. */
+        const depth = blocks ? blocks.depth[n] - (kw === 'else' ? 1 : 0) : 0;
         return '<tr data-code-at="' + at(l) + '"' + (cls ? ' class="' + cls + '"' : '') + '>' +
             '<td class="code-addr">' + at(l) + '</td><td class="code-bytes">' + esc(l.bytes) + '</td>' +
             (cdl ? (l.cdl ? hitsCell(l.cdl) : '<td class="code-hits"></td>') : '') +
-            '<td class="code-ins' + dcls(blocks ? blocks.depth[n] : 0) + '">' + (kw ? '<span class="code-kw" title="' + KW_TITLE[kw] + '">' + kw + '</span>' : '') + insHtml + '</td><td class="code-note">' + linkNames(note, known) +
+            '<td class="code-ins' + dcls(depth) + '">' + (kw ? '<span class="code-kw" title="' + KW_TITLE[kw] + '">' + kw + '</span>' : '') + insHtml + '</td><td class="code-note">' + linkNames(note, known) +
             (cdl && l.cdl ? (note ? ' ' : '') + touchedHtml(l.cdl, known) : '') + '</td></tr>';
     });
     return '<table class="code-asm' + (opts.bytes ? '' : ' code-nobytes') + '">' + rows.join('') + '</table>';
