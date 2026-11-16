@@ -5,15 +5,14 @@
 
 import { blockDepths } from './code-blocks';
 import type { Keyword } from './code-blocks';
-import { chainParts, loopCondition } from './code-cond';
+import { bodyCondition, loopCondition } from './code-cond';
 
 const COND_TITLE = 'The condition follows A, X, Y and the flags from the nearest line something jumps to; what it cannot follow stays a flag (Z, C, N, V); widths are not shown';
-const KW_TITLE: Record<Exclude<Keyword, ''> | 'do' | 'then', string> = {
-    then: 'if … else, read the other way round: the indented else leaves (a jump out or a return), so the code from then on is the if\'s then-part, reached when the condition holds',
+const KW_TITLE: Record<Exclude<Keyword, ''> | 'do', string> = {
     do: 'do: a loop starts here; the indented lines repeat while the condition on its while line holds',
     while: 'while: the loop goes round again (back to its do) when this branch is taken',
     if: 'if: the indented lines below run when this branch is not taken',
-    else: 'else: the lines from here run when the if above branched here; its body jumps over them',
+    else: 'else: the lines from here run when the if above branched here; its body ends in a branch or jump over them',
     'else if': 'else if: reached when the if above branched here; the indented lines run when this branch is not taken',
 };
 
@@ -79,22 +78,14 @@ function asmHtml(data: Lines, known: Known, opts: { bytes: boolean; names: boole
     const cdl = opts.names && !!data.cdl;
     const blocks = opts.blocks ? blockDepths(data.lines) : null;
     const dcls = (d: number): string => (d ? ' code-d' + Math.min(d, 8) : '');
-    /** An `if`'s condition split over its branches, as C reads across lines: `if (a ||` … `b)`, each clause on its branch. */
-    const clauses = new Map<number, { text: string; title: string }>();
-    if (blocks) blocks.kw.forEach((k, i) => {
-        if (k !== 'if' && k !== 'else if') return;
-        const chain = blocks.chains[i], parts = chainParts(data.lines, chain, opts.names, blocks.inverted[i]);
-        if (!parts) return;
-        const title = (blocks.inverted[i] ? KW_TITLE.then : KW_TITLE[k]) + '\n' + k + ' (' + parts.join(' ') + ')\n' + COND_TITLE;
-        chain.forEach((b, n) => clauses.set(b, { title, text: (n ? '' : k + ' (') + parts[n] + (n === chain.length - 1 ? ')' : '') }));
-    });
     const tag = (text: string, title: string): string => '<span class="code-kw" title="' + esc(title) + '">' + esc(text) + '</span>';
-    /** The tags on line `n`: `do` where a loop starts, then what the line opens or adds to (an if's clause, `else`, `while (…)`). */
+    /** The tags on line `n`: `do` where a loop starts, then what the line opens (`if (…)`, `else`, `else if (…)`, `while (…)`). */
     const tagsHtml = (n: number, kw: Keyword, head: boolean): string => {
-        let out = (blocks?.thenAt[n] ? tag('then', KW_TITLE.then) : '') + (head ? tag('do', KW_TITLE.do) : '');
-        const clause = clauses.get(n);
-        if (clause) out += tag(clause.text, clause.title);
-        else if (kw === 'else') out += tag('else', KW_TITLE.else);
+        let out = head ? tag('do', KW_TITLE.do) : '';
+        if (kw === 'if' || kw === 'else if') {
+            const cond = bodyCondition(data.lines, n, opts.names);
+            out += tag(kw + (cond ? ' (' + cond + ')' : ''), KW_TITLE[kw] + (cond ? '\n' + COND_TITLE : ''));
+        } else if (kw === 'else') out += tag('else', KW_TITLE.else);
         else if (kw === 'while') out += tag('while (' + loopCondition(data.lines, n, opts.names) + ')', KW_TITLE.while + '\n' + COND_TITLE);
         return out;
     };

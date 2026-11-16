@@ -66,7 +66,7 @@ async function unit(): Promise<void> {
         const failed = out.pop()!;
         assert.ok(failed.command === 'codeIndex' && /not found/.test(failed.error), 'a failed index answers as codeIndex');
     });
-    await test('blocks: if, else, else if flat, || / && chains, gotos, crossing, do-while loops', () => {
+    await test('blocks: if, else (after a branch too), else if flat, gotos, crossing, do-while loops', () => {
         const { blockDepths } = require('../../dist/games/evermore/code-tab/webview/code-blocks');
         /** `[text, jump line]` rows at $00..: a jump line is the index the branch goes to. */
         const lines = (rows: [string, number?][]) => rows.map(([text, to], i) => ({ addr: '$' + i, text, jump: to === undefined ? undefined : '$' + to }));
@@ -85,24 +85,12 @@ async function unit(): Promise<void> {
         // two branches that cross: the later one is not drawn; an indirect jmp ends no if body
         assert.deepStrictEqual(depths([['beq $', 3], ['bne $', 4], ['x'], ['y'], ['rts']]), [0, 1, 1, 0, 0]);
         assert.deepStrictEqual(depths([['beq $', 3], ['x'], ['jmp ($0000,x)', 4], ['y'], ['rts']]), [0, 1, 1, 0, 0]);
-        // a branch on the last line of an if body that skips past it is a goto: no if, no indent
-        const go = blockDepths(lines([['bne $', 3], ['x'], ['bne $', 4], ['jmp $'], ['rts']]));
-        // ... unless it goes to a body of its own: one if with an || condition (lock set, or nothing ready)
-        const or = blockDepths(lines([['ldx $10'], ['bne $', 4], ['lda $12'], ['bne $', 5], ['jmp $'], ['lda $14'], ['rts']]));
-        assert.deepStrictEqual([or.depth, or.kw, or.chains[1]], [[0, 0, 0, 0, 1, 0, 0], ['', 'if', '', '', 'else', '', ''], [1, 3]]);
-        // its body jumps out of the routine: an if read the other way round, then from the branch target on
-        assert.deepStrictEqual([or.inverted[1], or.thenAt.indexOf(true)], [true, 5]);
-        const { chainCondition } = require('../../dist/games/evermore/code-tab/webview/code-cond');
-        assert.strictEqual(chainCondition(lines([['ldx $10'], ['bne $', 4], ['lda $12'], ['bne $', 5], ['jmp $'], ['lda $14'], ['rts']]), [1, 3], false), '$10 != 0 || $12 == 0');
-        assert.strictEqual(chainCondition(lines([['lda $10'], ['beq $', 5], ['lda $12'], ['bne $', 5], ['inc'], ['rts']]), [1, 3], false), '$10 != 0 && $12 == 0');
-        // one clause per branch, so each sits on its line; a change of join opens a ( closed after the last
-        const { chainParts } = require('../../dist/games/evermore/code-tab/webview/code-cond');
-        assert.deepStrictEqual(chainParts(lines([['beq $', 6], ['lda $10'], ['bne $', 7], ['lda $12'], ['beq $', 7], ['bne $', 7], ['inc'], ['rts']]), [0, 2, 4, 5], false),
-            ['Z ||', '($10 == 0 &&', '$12 != 0 &&', '$12 == 0)']);
-        assert.deepStrictEqual(chainParts(lines([['ldx $10'], ['bne $', 4], ['lda $12'], ['bne $', 5], ['jmp $'], ['lda $14'], ['rts']]), [1, 3], false, true),
-            ['$10 == 0 &&', '$12 != 0'], 'negated: each clause the other way, || and && swapped');
-        // a store between the branches would hide that it runs only on one path: no chain
-        assert.deepStrictEqual(blockDepths(lines([['beq $', 4], ['sta $10'], ['lda $12'], ['bne $', 4], ['inc'], ['rts']])).depth, [0, 1, 1, 1, 0, 0]);
+        // if bne / | lda / | bne / else / | jmp: a body ending in a branch past the next lines (conditional too)
+        // has those lines as its else; that branch is no if of its own
+        const ie = blockDepths(lines([['ldx $10'], ['bne $', 4], ['lda $12'], ['bne $', 5], ['jmp $'], ['lda $14'], ['rts']]));
+        assert.deepStrictEqual([ie.depth, ie.kw], [[0, 0, 1, 1, 1, 0, 0], ['', 'if', '', '', 'else', '', '']]);
+        // a branch on the last line of a body that leaves it with nothing to skip is a goto: no if, no indent
+        assert.deepStrictEqual(blockDepths(lines([['beq $', 3], ['x'], ['bra $', 9], ['y'], ['rts']])).kw, ['if', '', '', '', '']);
     });
     await test('conditions: the if body\'s condition in C from A, X, Y and the flags', () => {
         const { bodyCondition } = require('../../dist/games/evermore/code-tab/webview/code-cond');

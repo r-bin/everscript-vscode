@@ -1,8 +1,7 @@
 // Ownership: the C condition of an `if` in a routine's asm, pure (lines in, a string out). From the start of
 // the branch's basic block (the nearest line something jumps to) to the branch, A, X and Y are followed as C
 // expressions and each flag remembers what set it (a load, a compare, a bit test, a shift, a sum, a call); the branch's
-// flag then reads as C. The condition is the one under which the `if` body runs: the branch NOT taken (for a
-// chain of branches, code-blocks.ts, joined with `||` / `&&`).
+// flag then reads as C. The condition is the one under which the `if` body runs: the branch NOT taken.
 // What cannot be followed stays a flag name (Z, C, N, V). A guess for reading, never a decompilation.
 
 /** As far as a condition needs a line of lines.json: text, text by name, the routine it calls, where it jumps. */
@@ -138,30 +137,10 @@ function stateAt(lines: CondLine[], i: number, named: boolean): State {
     return s;
 }
 
-/**
- * The C condition under which an `if` body runs, one clause per branch of `chain` (code-blocks.ts), the body
- * being the line after the last: a branch to the body reads `taken ||`, one past it `!taken &&`, the last
- * `!taken`; where the join changes, a `(` opens, closed after the last. `negate`: the condition for not running
- * the body (an if read the other way round). Null when a line is no conditional branch.
- */
-function chainParts(lines: CondLine[], chain: number[], named: boolean, negate = false): string[] | null {
-    const mns = chain.map((b) => lines[b].text.slice(0, 3).toLowerCase());
-    if (!chain.length || mns.some((mn) => !OPPOSITE[mn])) return null;
-    const body = lines[chain[chain.length - 1] + 1]?.addr, last = chain.length - 1;
-    const toBody = chain.map((b, n) => n < last && !lines[b].call && lines[b].jump === body);
-    // negated (De Morgan): each clause the other way, || and && swapped; the parentheses stay where they are
-    const join = toBody.map((t) => (t !== negate ? '||' : '&&'));
-    let open = 0;
-    return chain.map((b, n) => {
-        const clause = taken(toBody[n] !== negate ? mns[n] : OPPOSITE[mns[n]], stateAt(lines, b, named));
-        const paren = n > 0 && n < last && join[n - 1] !== join[n] ? (open++, '(') : '';
-        return paren + clause + (n < last ? ' ' + join[n] : ')'.repeat(open));
-    });
-}
-
-/** The whole condition of `chainParts` on one line. */
-function chainCondition(lines: CondLine[], chain: number[], named: boolean): string | null {
-    return chainParts(lines, chain, named)?.join(' ') ?? null;
+/** The C condition under which the lines after the conditional branch on line `i` run (the branch not taken), or null for no branch. */
+function bodyCondition(lines: CondLine[], i: number, named: boolean): string | null {
+    const mn = lines[i].text.slice(0, 3).toLowerCase();
+    return OPPOSITE[mn] ? taken(OPPOSITE[mn], stateAt(lines, i, named)) : null;
 }
 
 /** When the loop whose branch back is on line `j` goes round again: the branch taken (`true` for a jump). */
@@ -170,8 +149,5 @@ function loopCondition(lines: CondLine[], j: number, named: boolean): string {
     return OPPOSITE[mn] ? taken(mn, stateAt(lines, j, named)) : 'true';
 }
 
-/** The condition of a one-branch `if` on line `i`. */
-const bodyCondition = (lines: CondLine[], i: number, named: boolean): string | null => chainCondition(lines, [i], named);
-
 export type { CondLine };
-export { bodyCondition, chainCondition, chainParts, loopCondition };
+export { bodyCondition, loopCondition };
