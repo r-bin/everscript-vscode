@@ -58,17 +58,36 @@ if (!SOE || !TERRA || !fs.existsSync(SOE) || !fs.existsSync(TERRA)) {
         assert.ok(d.families.length >= 1 && d.families.length <= 7 && d.families.every((f) => /^t\d+$/.test(f.label) && f.tiles > 0));
         assert.strictEqual(d.conversion.exits, 9);
         assert.ok(d.content.triggers.stepOn.every((t) => /^Terranigma exit to \$/.test(t.label)));
-        // Seven exits lie on wall cells (closed doors): B-triggers, as step-on boxes the Boy could never fire them.
+        // Seven exits lie on wall cells, each behind a door: the door's B-trigger opens it, the exit is a step-on box
+        // live once it is open.
         assert.strictEqual(d.conversion.doorExits, 7);
-        assert.ok(d.content.triggers.bTrigger.some((t) => t.x1 === 56 && t.y1 === 46 && /^Terranigma exit to \$01D \(door: B\)$/.test(t.label)));
-        assert.deepStrictEqual(d.content.triggers.stepOn.map((t) => [t.x1, t.y1]), [[32, 12], [0, 62]]);
+        assert.strictEqual(d.conversion.doors, 7);
+        assert.ok(d.content.triggers.bTrigger.some((t) => t.x1 === 56 && t.y1 === 46 && /^Terranigma door: B opens it \(object #16\), then the exit to \$01D$/.test(t.label)));
+        assert.deepStrictEqual(d.content.triggers.stepOn.filter((t) => !/behind a door/.test(t.label)).map((t) => [t.x1, t.y1]), [[32, 12], [0, 62]]);
+        assert.strictEqual(d.content.triggers.stepOn.length, 9);
         assert.strictEqual(d.conversion.mapChanges, 1);
         const src = service.resolveRoom(0x200a), room = maps.decodeRoom(src.rom, src.roomId);
-        assert.strictEqual(room.objects.length, 1);
-        const t = d.content.triggers.stepOn[0];
+        assert.strictEqual(room.objects.length, 1 + 7 + 9, 'the map change, seven doors, nine pots');
+        const t = d.content.triggers.stepOn.find((x) => !/behind a door/.test(x.label));
         assert.ok(room.collisionWords[t.y1][t.x1] & 0x4000, 'the exit cell has the step-on bit');
         assert.strictEqual(room.collisionWords[46][56] & 0x800f, 0x800f, 'a door cell is a solid B-trigger cell');
         assert.deepStrictEqual(d.start, { x: 31, y: 58 });     // where the game's exits into Crysta arrive
+    });
+
+    test('Crysta: a door opens in two pictures onto its exit, a pot lifts off the floor (both by B)', () => {
+        // docs/terra/README.md §3.9, seen in the game: A at (56,46) redraws $0F2/$0F3 as $0F4/$0F5 then $0F6/$0F7, the lower
+        // cell a wall until it opens; A at the pot (52,33) leaves $0F8, floor.
+        const d = service.detail('terra-a'), src = service.resolveRoom(0x200a), room = maps.decodeRoom(src.rom, src.roomId);
+        const at = (x, y) => room.objects.findIndex((o) => { const b = maps.objectBounds(src.rom, room, o); return b.x === x && b.y === y; });
+        const door = at(56, 45), pot = at(52, 33);
+        assert.strictEqual(maps.objectStateCount(room.objects[door]), 3);
+        const doorCell = (s) => maps.applyObjectStates(src.rom, room, { [door]: s }).collisionWords[46][56];
+        assert.deepStrictEqual([0, 1, 2].map(doorCell), [0x802f, 0x002f, 0x4020], 'closed: B; half open: a wall; open: floor and the exit');
+        assert.strictEqual(maps.objectStateCount(room.objects[pot]), 2);
+        const potCell = (s) => maps.applyObjectStates(src.rom, room, { [pot]: s }).collisionWords[33][52];
+        assert.deepStrictEqual([0, 1].map(potCell), [0x802f, 0x0020], 'the pot: B; lifted: floor');
+        assert.ok(d.content.triggers.bTrigger.some((t) => t.x1 === 52 && t.y1 === 33 && t.label === 'Terranigma pot $0FA: B lifts it (object #' + pot + ')'));
+        assert.strictEqual(d.conversion.pots, 9);
     });
 
     test('Crysta: a ledge is a wall, a canopy\'s high half and a roof ridge cover the Boy, only the waterfall\'s colours turn', () => {
@@ -158,8 +177,8 @@ if (!SOE || !TERRA || !fs.existsSync(SOE) || !fs.existsSync(TERRA)) {
         assert.strictEqual(n, 862);
         assert.strictEqual(over, 13, 'rooms past Evermore\'s 256 graphics: their rarest tiles drawn as the nearest listed one');
         // Before that, cells redrawn with fewer graphics, the same picture (common/redraw.ts): $0F1 needs no approximation.
-        assert.strictEqual(exact, 165);
-        assert.deepStrictEqual([service.detail('terra-f1').conversion.redrawnGraphics, service.detail('terra-f1').conversion.substitutedGraphics], [14, 0]);
+        assert.strictEqual(exact, 169);
+        assert.deepStrictEqual([service.detail('terra-f1').conversion.redrawnGraphics, service.detail('terra-f1').conversion.substitutedGraphics], [18, 0]);
         assert.strictEqual(dropped, 0, 'no tile drawn empty');
     });
 

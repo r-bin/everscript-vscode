@@ -353,8 +353,9 @@ script by `memory/webview/index.ts` (`ROOMS_JS_FILES` fixes the order):
   in three branches (group header / area label / room row). A row's **status colour**
   (`railMarkRow`, `data-status`, drawn by the shell's `shell-rail.css`): yellow, the room works but
   differs from its source (a converted room's tiles approximated, recoloured, an animation or effect
-  left out) or spends past any vanilla room; red, it cannot be played or exported; its title lists
-  why. A converted room's comes from the host (`requestImportedStatus` -> `importedStatus` batches,
+  left out) or spends past any vanilla room — a dot; the name is yellow too only for a severe reason
+  (`severe`, `data-severe`: graphics ran out and were estimated or left empty); red, it cannot be
+  played or exported; its title lists why, severe reasons first. A converted room's comes from the host (`requestImportedStatus` -> `importedStatus` batches,
   `imports/common/status.ts`; editor-host.ts converts every room a few at a time, ~40 s the first
   time, cached after). The open room's row follows the editor's own checks (`editErrors`: hard = red,
   warn = yellow) on every `renderEditChrome` (`railMarkOpenRoom`), so a vanilla edit or a custom map

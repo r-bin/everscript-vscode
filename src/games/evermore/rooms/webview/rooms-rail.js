@@ -52,22 +52,27 @@ function railSelectRow(li) {
 
 // ── A room's status ──────────────────────────────────────────────────────────
 // Yellow: the room works but is not what its source shows (a converted room's tiles approximated, recoloured, an
-// animation left out) or spends more than any vanilla room; red: it cannot be played or exported. A converted room's
-// status comes from the host (rooms-imported.js); the open room's also from the editor's own checks (editErrors), so
-// an edit that breaks a ceiling turns its row red at once. The row's tooltip lists why. shell-rail.css draws it.
+// animation left out) or spends more than any vanilla room: a dot. Only a severe reason (graphics ran out and were
+// estimated or left empty: `severe`) also tints the name (`data-severe`). Red: it cannot be played or exported. A
+// converted room's status comes from the host (rooms-imported.js); the open room's also from the editor's own checks
+// (editErrors), so an edit that breaks a ceiling turns its row red at once. The row's tooltip lists why, severe reasons
+// first. shell-rail.css draws it.
 
 /** Mark rail row `li` with `status` ({level: ok|warn|error, reasons: [{level, text}]}), or clear it (null). */
 function railMarkRow(li, status) {
   if (!li || !li.dataset) return;
   if (li.dataset.baseTitle === undefined) li.dataset.baseTitle = li.title || '';
   var base = li.dataset.baseTitle;
+  delete li.dataset.severe;
   if (!status || status.level === 'ok') {
     delete li.dataset.status;
     li.title = base;
     return;
   }
   li.dataset.status = status.level;
-  var lines = status.reasons.map(function (r) { return (r.level === 'error' ? '✖ ' : '⚠ ') + r.text; });
+  var reasons = status.reasons.filter(function (r) { return r.severe; }).concat(status.reasons.filter(function (r) { return !r.severe; }));
+  if (status.level === 'warn' && reasons.length && reasons[0].severe) li.dataset.severe = '';
+  var lines = reasons.map(function (r) { return (r.level === 'error' ? '✖ ' : '⚠ ') + r.text; });
   li.title = (base ? base + '\n' : '') + (status.level === 'error' ? 'Cannot be played or exported:' : 'Differs from its source or past vanilla:')
     + '\n' + lines.join('\n');
 }

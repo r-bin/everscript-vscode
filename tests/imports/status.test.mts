@@ -27,6 +27,13 @@ test('graphics drawn as a near twin, tiles recoloured: yellow, each said', () =>
     ]);
 });
 
+test('only graphics that ran out (estimated, empty) are severe: they tint the name, the rest only add the dot', () => {
+    const severe = (c: Record<string, number>) => conversionStatus(c).reasons.filter((r: { severe?: true }) => r.severe).length;
+    assert.strictEqual(severe({ substitutedGraphics: 3 }), 1);
+    assert.strictEqual(severe({ droppedGraphics: 1 }), 1);
+    assert.strictEqual(severe({ recolouredTiles: 40, stillPaletteAnimations: 2, wramBytes: 32700, contextRooms: 1 }), 0);
+});
+
 test('past the vanilla WRAM high-water mark: yellow; past the 32 KB window: red', () => {
     assert.strictEqual(conversionStatus({ wramBytes: 32700 }).level, 'warn');
     const red = conversionStatus({ wramBytes: 42672, recolouredTiles: 3 });

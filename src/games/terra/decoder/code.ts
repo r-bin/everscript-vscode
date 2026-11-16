@@ -159,6 +159,19 @@ export const TERRA_ROUTINES: TerraRoutine[] = [
     { name: 'tile_helper_queue', addr: 0x8D9470, len: 85, title: 'Character helper: queue one frame',
         what: 'Adds a DMA record (length, VRAM address, source, mode $1801) to the list at $82 (full at $0948) and moves the source on by the length.',
         confidence: 'read', doc: 'README.md §3.10' },
+
+    // The check action (the A button) on a cell: chests, doors, pots.
+    { name: 'check_cell_kind', addr: 0x87C7AE, len: 262, title: 'Check action: what the cell in front is',
+        what: 'With the point in front of the player ($1C, $22; only at a cell edge): carry set and $00 = 1 a type-4 cell or 2 a closed chest ($0F0, facing up only) found in the room\'s chest list, 3 a door ($0F3), $FA00-$FC00 a pot ($0FA-$0FC; low byte 0); Y the cell\'s offset. Doors and pots are not looked up in any list. While $04F6 is set only a door counts.',
+        notes: { 0x3A: 'facing up into a counter (type $10): look one cell further', 0x58: '$04F6 set: doors only', 0x77: 'a closed chest', 0x7C: 'a door: kind 3, no list', 0x81: 'a pot', 0x8B: 'the metatile to the high byte: kind 0 with the pot in $01', 0x9B: 'type 4: kind 1', 0xAD: 'walk the chest list for the cell' },
+        confidence: 'checked', doc: 'README.md §3.9' },
+    { name: 'door_open_script', addr: 0x879724, len: 34, title: 'Check action: open a door',
+        what: 'Kind 3 of check_cell_kind. Sets the player\'s pose and waits; the door cell and the one above become $0F5 / $0F4, then $0F7 / $0F6, each with its cell type from the layer\'s table (seen in the game; the part that writes them, past COP $37, is not read).',
+        confidence: 'checked', doc: 'README.md §3.9' },
+    { name: 'pot_lift_script', addr: 0x8795DD, len: 71, title: 'Check action: lift a pot',
+        what: 'A pot ($0FA-$0FC) is refused while the player holds one ($0988 set). Else the metatile to $09C7, and $0988 to $098A / $098F / $0994 by which pot; the cell becomes $0F8 with its table type (seen in the game; the write, past COP $BC, is not read).',
+        notes: { 0: 'holding one already: nothing', 0x1B: 'which pot', 0x20: 'to $09C7', 0x29: 'its slot', 0x39: 'what the player holds' },
+        confidence: 'checked', doc: 'README.md §3.9' },
 ];
 
 export function routineByName(name: string): TerraRoutine | undefined {

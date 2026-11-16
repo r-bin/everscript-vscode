@@ -10,9 +10,11 @@
 //   metatile (4 chars)             -> one 16x16 graphic in one palette, one priority (graphics.ts)
 //   background palettes 0-7        -> the seven most drawn as families t<n>; the eighth recoloured
 //   layer 0's cell types           -> collision words (collision.ts)
-//   exits                          -> step-on bit 14 + a box per exit
+//   exits                          -> step-on bit 14 + a box per exit (objects.ts)
 //   chests                         -> a wall with bit 15 + a B-trigger box
 //   map changes ($99:D4E7)         -> objects: state 0 the room as loaded, state 1 the change applied
+//   doors, pots (the A check)      -> objects with a B-trigger: a door opening (an exit behind it a step-on once
+//                                     open), a pot lifted
 //   a tile mixing char priorities  -> split: its high part on layer 1 at priority 1 where layer 1 is empty
 //   palette helpers' rotations     -> palette cycles (animation.ts)
 // Only SNES facts are shared: both games use Mode 1 tilemap words with the same bits.
@@ -27,9 +29,10 @@ import type { Chars, Raw, Stats } from './graphics';
 import { paletteAnimation } from './animation';
 import { paletteCycles } from '../common/cycles';
 import { fitCells } from '../common/redraw';
+import { objectSources, triggerCells, STEP_ON, INTERACT } from './objects';
+import type { CellEdit } from './objects';
 import type { Ref, Pair } from '../common/redraw';
 
-const STEP_ON = 0x4000, INTERACT = 0x8000;
 /** Evermore's BG3, on in every vanilla room's TM (header byte 4 is `$17` in all of them): its HUD and text. */
 const EVERMORE_BG3 = 0x04;
 /** CGADSUB's BG3 / BG4 bits: those layers are not converted. */
@@ -97,8 +100,7 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
     // The room is the map's part the screen can show (the camera's limits, docs/terra/README.md §3.11): past it the map
     // keeps what no one sees — the blocks map changes copy from, staging rows. An exit just past the edge (Crysta's south
     // exit, the row under the last one shown: the player walks off the screen into it) is kept, one cell at most.
-    const exits = terra.roomExits(rom, id);
-    const { x: ox, y: oy, w, h } = cameraBox(room.camera, exits, mapW, mapH);
+    const { x: ox, y: oy, w, h } = cameraBox(room.camera, terra.roomExits(rom, id), mapW, mapH);
     const inside = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h;
     stats.croppedCells = mapW * mapH - w * h;
     // A layer smaller than the map repeats (a background the game scrolls on its own; drawn fixed here).
@@ -107,21 +109,9 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
         return l && inside(x, y) ? l.cells[((y + oy) % l.h) * l.w + ((x + ox) % l.w)] : -1;
     };
 
-    // The map changes: what each one writes, by cell, on Evermore's layers and in layer 0's cell types.
+    // The objects (map changes, doors, pots): what each picture writes, by cell, on Evermore's layers and in layer 0's cell types.
     const roleOf = (index: number): Role | null => (layer[1]?.index === index ? 1 : layer[2]?.index === index ? 2 : null);
-    const changes = terra.roomChanges(rom, id).map((change) => {
-        const cells = new Map<number, { 1?: number; 2?: number; type?: number }>();
-        for (const [index, mx, my, word] of terra.changeCells(room, change)) {
-            const x = mx - ox, y = my - oy;
-            if (!inside(x, y)) continue;
-            const c = cells.get(y * w + x) ?? {};
-            const role = roleOf(index);
-            if (role) c[role] = word;
-            if (index === 0) c.type = (word >> 9) & 0x1F;
-            cells.set(y * w + x, c);
-        }
-        return { bit: change.bit, cells };
-    }).filter((c) => c.cells.size);
+    const sources = objectSources(rom, id, room, { ox, oy, w, h }, roleOf);
 
     const typeAt = (x: number, y: number) => (!inside(x, y) ? -1 : mapType(x + ox, y + oy));
     const collision = collisionWords(terra.cellTypeRules(rom), w, h, typeAt);
@@ -176,7 +166,7 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
         pairCount.set(a + ',' + b, (pairCount.get(a + ',' + b) ?? 0) + 1);
     };
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) see(cellPair(x, y));
-    for (const ch of changes) for (const [i, c] of ch.cells) see(cellPair(i % w, (i / w) | 0, c));
+    for (const o of sources) for (const f of o.frames) for (const [i, c] of f) see(cellPair(i % w, (i / w) | 0, c));
     stats.splitTiles = [...uses[2].keys()].filter((n) => n >= SPLIT).length;
 
     for (const role of [1, 2] as Role[]) for (const n of uses[role].keys()) rawOf(role, n);
@@ -245,24 +235,10 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
     /** Layer 1 and layer 2 words of metatile pair `[a, b]` (cellPair). */
     const wordsOf = ([a, b]: [number, number]): [number, number] => { const d = pictures.get(a + ',' + b)!; return [wordOf(d.top), wordOf(d.bottom)]; };
 
-    // An exit is a step-on box, unless every cell of it is a wall (a closed door, 186 exits): Evermore never runs a
-    // step-on trigger the Boy cannot stand on, so that one is a B-trigger, as for Mana's doors. Its box's
-    // `event` is the chests' count plus the exit's index (rooms.ts labels it).
-    const events = new Map<number, number>();         // cell -> STEP_ON / INTERACT bits
-    const steps: { x: number; y: number; event: number }[] = [], checks: typeof steps = [];
-    const chests = terra.roomChests(rom, id).map((c) => ({ ...c, x: c.x - ox, y: c.y - oy })).filter((c) => inside(c.x, c.y));
-    chests.forEach((c, k) => { checks.push({ x: c.x, y: c.y, event: k }); events.set(c.y * w + c.x, INTERACT); });
-    exits.forEach((e, k) => {
-        const at: number[] = [];
-        for (let y = e.y - oy; y < e.y - oy + e.h; y++) for (let x = e.x - ox; x < e.x - ox + e.w; x++) if (inside(x, y)) at.push(y * w + x);
-        const door = at.length > 0 && at.every((i) => !standable(i % w, (i / w) | 0));
-        if (door) stats.doorExits++;
-        for (const i of at) {
-            const cell = { x: i % w, y: (i / w) | 0 };
-            if (door) { checks.push({ ...cell, event: chests.length + k }); events.set(i, INTERACT); }
-            else { steps.push({ ...cell, event: k }); events.set(i, (events.get(i) ?? 0) | STEP_ON); }
-        }
-    });
+    // Exits, chests, doors, pots as trigger cells (objects.ts); a B-trigger's `scriptId` indexes `bWhat` (rooms.ts labels it).
+    const triggers = triggerCells(rom, id, room, { ox, oy, w, h }, standable, sources.filter((o) => o.kind === 'change').length);
+    const { exits, chests, events, steps, checks, opens } = triggers;
+    Object.assign(stats, triggers.stats);
     const collisionAt = (i: number, type?: number) => {
         const e = events.get(i) ?? 0;
         if (e & INTERACT) return SOLID | PLANE_2 | INTERACT;
@@ -275,17 +251,29 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
         [cells[i * 3], cells[i * 3 + 1]] = wordsOf(cellPair(x, y));
         cells[i * 3 + 2] = collisionAt(i);
     }
-    const objects = changes.map(({ bit, cells: changed }) => {
-        const at = [...changed.keys()];
+    // A map change keeps its cells' trigger bits; a door or a pot is the trigger: once opened or lifted its cell is what
+    // the game leaves (the table's type), and an exit behind a door is a step-on cell.
+    const objects = sources.map(({ kind, flag, frames }) => {
+        const at = [...new Set(frames.flatMap((f) => [...f.keys()]))];
         const xs = at.map((i) => i % w), ys = at.map((i) => (i / w) | 0);
         const x0 = Math.min(...xs), y0 = Math.min(...ys);
-        const frame: Record<string, { layer1: number; layer2: number; collision: number }> = {};
-        for (const [i, c] of changed) {
-            const x = i % w, y = (i / w) | 0;
-            const [layer1, layer2] = wordsOf(cellPair(x, y, c));
-            frame[(x - x0) + ',' + (y - y0)] = { layer1, layer2, collision: collisionAt(i, c.type) };
-        }
-        return { x: x0, y: y0, w: Math.max(...xs) - x0 + 1, h: Math.max(...ys) - y0 + 1, flag: bit, frames: [frame] };
+        const collide = (i: number, c: CellEdit) => {
+            if (kind === 'change') return collisionAt(i, c.type);
+            const word = c.type === undefined ? collision.words[i] : collision.word(i % w, (i / w) | 0, c.type);
+            return word | (opens.has(i) && (word & SOLID) !== SOLID ? STEP_ON : 0);
+        };
+        return {
+            x: x0, y: y0, w: Math.max(...xs) - x0 + 1, h: Math.max(...ys) - y0 + 1, flag, kind,
+            frames: frames.map((changed) => {
+                const frame: Record<string, { layer1: number; layer2: number; collision: number }> = {};
+                for (const [i, c] of changed) {
+                    const x = i % w, y = (i / w) | 0;
+                    const [layer1, layer2] = wordsOf(cellPair(x, y, c));
+                    frame[(x - x0) + ',' + (y - y0)] = { layer1, layer2, collision: collide(i, c) };
+                }
+                return frame;
+            }),
+        };
     });
 
     const cycles = paletteCycles(anim.rotations, (p) => (palettes.includes(p) ? slotOf(p) : 0));
@@ -312,11 +300,13 @@ function convertTerraRoom(rom: Uint8Array, id: number, familyId: (colours: numbe
         cut: [] as number[][],
         objects,
         exits, chests,
+        /** What each B-trigger is, by its `scriptId`: a chest, a walled exit, a door, a pot. */
+        bWhat: triggers.what,
         /** The rooms loaded before this one for the parts it keeps from before (a guess: the UI says so). */
         context: room.context,
         stats: Object.assign(stats, {
             graphics: graphics.slots.length, metatiles: uses[1].size + uses[2].size, exits: exits.length, exitCells: steps.length,
-            chests: chests.length, mapChanges: objects.length,
+            chests: chests.length, mapChanges: objects.filter((o) => o.kind === 'change').length,
             paletteCycles: cycles.records.length, droppedCycles: cycles.dropped, stillPaletteAnimations: anim.still, tileAnimations: anim.tiles, helpersInSomeStates: anim.someStates,
         }),
     };

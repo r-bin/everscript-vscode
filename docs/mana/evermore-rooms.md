@@ -56,7 +56,9 @@ A converted room's row in the Rooms tab is coloured by `imports/common/status.ts
 than seven families, or its grid and stamps pass Evermore's 32 KB WRAM window; **yellow** when it works but differs from
 its source — graphics drawn as a near twin or empty, tiles recoloured into one palette or drawn at one priority, an
 effect layer, colour math or the backdrop's tint left out, a palette or tile animation left still, graphics kept from an
-earlier room (a guess) — or spends more WRAM than any vanilla room. November 2026, every rail row: Secret of Mana 9 red
+earlier room (a guess) — or spends more WRAM than any vanilla room. Yellow is a dot after the id; the name turns
+yellow too only for a severe reason, graphics that ran out (drawn as a near twin or empty: the picture is wrong;
+Secret of Mana 1 of its 300 yellow rows). November 2026, every rail row: Secret of Mana 9 red
 (`$92`, `$A2`-`$A4`, `$DF`, `$191`-`$194`: past the WRAM window; the export still builds them, the game cannot hold
 their grid), 300 yellow (most: tiles that mix palettes), 43 fine. Every room not red passes Play in emulator's own
 export checks (built and compared, 1205 rooms).

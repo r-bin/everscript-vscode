@@ -89,7 +89,7 @@ After the load the room change copies colour 32 (`$7F:0640`) into colour 0, the 
 
 | Address | What |
 |---|---|
-| `$0826/$0828` | layer 0/1 width in pixels (0 = no such layer; `$7E:0826` / `$7E:0828`); `$082A/$082C` height |
+| `$0826/$0828` | layer 0/1 width in pixels (0 = no such layer; `$7E:0826` / `$7E:0828`); `$082A/$082C` height (`$7E:082A` / `$7E:082C`) |
 | `$082E/$0830` | layer 0/1 cell count |
 | `$0832/$0834` | layer 0/1 map (bank `$7E`), one word per 16 px cell, row by row |
 | `$0836/$0838` | layer 0/1 VRAM tilemap word address (which BG shows it) |
@@ -165,7 +165,8 @@ follows from BG priority (they are backdrop), not looked at pixel by pixel.
 Not every exit is reached by walking: 234 of the 1304 exits lie on wall cells only (a house's closed door, Crysta's
 (56,46) a type `$0E` cell above floor). In the headless core (November 2026) walking Ark up to (56,46) from two cells
 below stops him at the cell's edge, and holding up or pressing A there for 120 frames does not take the exit
-(`$047C` stays 0). What opens such a door (a room character? the room's character list is not decoded) is open.
+(`$047C` stays 0). Placed on the cell below, facing up, one press of A opens the door (§3.9: the cell turns to floor)
+and he can walk in; why the first try did not open it (the check wants the point in front on a cell edge) is not checked.
 
 Every frame the main loop runs `$8D:8797` (data bank `$81`): unless bit 4 of `$097C` is set, it walks the room's
 list at `$81:8000 + room × 2` — 12 bytes per exit up to an `$FF` byte: x, y, width, height in cells, a room word,
@@ -189,6 +190,7 @@ clear: inside an exit), called from character scripts.
 | `$7E:06C0` | event flags, a bit each (§3.7) |
 | `$7E:0710` | map-change bits, one per change of `$99:D4E7` (§3.8) |
 | `$7E:09C7` / `$7E:09C9` | a chest being opened: its contents word, and its flag in set-flag form (§3.9) |
+| `$7E:0988` | the pot the player holds: 0 none, else its slot `$098A` / `$098F` / `$0994` (§3.9); `$09C7` then holds the pot's metatile |
 
 A room word with bit 15 set points (bank `$81`) at choices instead (`$8D:8911`): 10 bytes each — an event flag,
 the room, the two style bytes, the arrival x and y — ending with flag `$FFFF` (no exit). The first choice whose
@@ -224,8 +226,10 @@ There are no per-room "B triggers": cells carry no event, and exits (§3.7) are 
 player's facing (`$0956`) it takes the point in front and tries, in order:
 
 1. a character there (`$87:C740`) — talk to it (`$87:9313`);
-2. `$87:C7AE`: the cell's metatile is `$0F0` (a closed chest, only while facing up, `$0956` = 1), `$0F3`, or
-   `$0FA-$0FC`, or the cell is of type 4 — then look the cell up in the room's chest list; found → `$87:939E`;
+2. `$87:C7AE` (only with the point on a cell edge): the cell's metatile is `$0F0` (a closed chest, only while facing
+   up, `$0956` = 1) or the cell is of type 4 — then look the cell up in the room's chest list; `$0F3` (a door) or
+   `$0FA-$0FC` (a pot) — no list. Found → `$87:939E`, which sends a door to `$87:9724` and a pot to `$87:95DD`
+   (below). While `$04F6` is set only a door counts;
 3. a cell of type `$10` in front (a counter): look for a character 32 px further.
 
 The chest list: `$99:D859 + room × 2` points (bank `$99`) at records up to an `$FF` byte: the cell (x, y), a flags
@@ -237,6 +241,20 @@ likely money, not checked; 0 empty) and the opened flag n. Opening (`$87:939E`) 
 → `$8D:8DF8`, which stores the map word at `$8D:8E16`) and sets event flag `$500 + n` (`$09C9` = n + `$8500`, the
 set-flag form of `$80:BB77`, built at `$87:93FF`). Every room load redraws the cells of the chests whose flag is set as open
 (`$8D:912B`, called at `$8D:8C10`; `$8D:91A2`). Bits 3-4 of the flags pick a variant of the opening (`$7F:102C`).
+
+**Doors and pots** are their metatile alone: what they become is that metatile's cell type from the layer's table
+(`$7F:0000`), as for a map change's set (§3.8). Seen in the game (`tools/terra/check-press.mts`, November 2026):
+
+* A **door** is `$0F3` with `$0F2` above it (the upper half): A from below (Crysta (56,46), `$052` (21,69)) redraws them
+  `$0F5` / `$0F4`, then ~10 frames later `$0F7` / `$0F6` (the open doorway). `$0F3` is a wall (type `$0E`); `$0F7` is type 0
+  (Crysta), or 2 (`$052`: its table says so), so the player walks in — onto the exit when the door has one. 157 pictures
+  have doors; 52 of them have one on an exit (the converted rooms: 65 of their exits on wall cells lie behind a door,
+  the rest are walls with no door), the others' doors lie between parts of one map. Three pictures use `$0F3` for something else, a floor cell with no `$0F2` above (`$0FD`, `$106`, `$280`).
+* A **pot** is `$0FA`, `$0FB` or `$0FC` (three looks: Ark's house has a brass pot, a jar and a plant pot), mostly on a wall
+  cell (type `$0C`). A lifts it at once: the cell becomes `$0F8` (`$18FA` → `$00F8`, Crysta (52,33); `$18FB` → `$00F8`,
+  Crysta (55,26) and Ark's house (25,21): the floor under it), `$09C7` takes the metatile and `$0988` one of three slots
+  (`$098A` / `$098F` / `$0994` by the pot). While `$0988` is set (one is held) no other pot lifts. About 150 pictures.
+  Throwing it, and whether a pot comes back on the next load, is not read.
 
 132 records in 96 rooms: 120 on a closed chest, 6 on a type-4 cell (the opening script takes another path,
 `$87:9471`, and changes no tile), 6 where the loaded map has neither (a map change or an event puts the chest
@@ -343,7 +361,9 @@ direction, printing the box's path: how the diagonals of §3.6 were checked.
 
 `node tools/terra/check-chest.mts <room hex> [chest]` stands the player below a chest and presses A: room `$103`'s
 chest (12,37) turned from `$18F0` to `$18F1` and its flag `$580` was set; entering the room again with the flag set
-draws it open, without it closed. `node tools/terra/check-change.mts <room hex> <bit>` sets a map-change bit and
+draws it open, without it closed. `node tools/terra/check-press.mts <room hex> <x> <y>` stands the player below a cell facing up, presses A and prints
+every layer-0 cell that changes, frame by frame, with `$047C` and `$0988`: how the doors and pots of §3.9 were seen.
+`node tools/terra/check-change.mts <room hex> <bit>` sets a map-change bit and
 enters the room: changes 0 and 1 (room `$101`, a block copy on each layer), 2 (`$102`), 6 (`$109`), 8 and 14 (`$10A`,
 one cell, and an 8×15 block) left exactly the cells the table says (room `$10A` also changes 8 cells itself on entry,
 with or without the bits).
@@ -355,7 +375,7 @@ and the same display registers (`$2105=$09`, BG1 `$3C00`, BG2 `$3800`, main `$17
 ## 6. Not decoded yet
 
 * What sets the map-change bits and most event flags (events), item names, whether bit 15 contents are money, the
-  `$0F3` / `$0FA-$0FC` lookups' own handling (`$87:9724`).
+  part of the door and pot scripts that writes the cells (past `COP $37` / `COP $BC`), throwing a pot.
 * Bit 14 of a map word, which characters the ground table `$80:E11C` applies to, what `$048A` bit 15 stands for, the style byte `$0484` and the high nibble of `$0490`.
 * The `08` commands `FC`/`FD`/`F8`/`F9`, sections `$04`/`$01`.
 * The rest of a room's script after the header (events, characters) and the room properties' flags.

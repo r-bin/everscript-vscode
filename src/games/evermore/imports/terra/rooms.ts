@@ -151,6 +151,14 @@ function createTerraRooms(deps: { soeRom(): Rom | null; terraRom(): Rom | null }
         return 'Terranigma chest, contents $' + c.contents.toString(16).toUpperCase().padStart(4, '0') + (c.contents & 0x8000 ? ' (not an item)' : '');
     }
 
+    /** A B-trigger in words (convert.ts `bWhat`): a chest, a walled exit, a door (objects.ts), a pot. */
+    function bLabel(room: TerraConverted, b: TerraConverted['bWhat'][number]): string {
+        if (b.kind === 'chest') return chestLabel(room.chests[b.chest]);
+        if (b.kind === 'exit') return exitLabel(room.exits[b.exit]) + ' (door: B)';
+        if (b.kind === 'pot') return 'Terranigma pot $' + b.metatile.toString(16).toUpperCase().padStart(3, '0') + ': B lifts it (object #' + b.object + ')';
+        return 'Terranigma door: B opens it (object #' + b.object + ')' + (b.exit === null ? '' : ', then the exit to ' + exitLabel(room.exits[b.exit]).replace(/^Terranigma exit to /, ''));
+    }
+
     /** The Rooms tab's room object for `vid` (`terra-a`), or null. */
     function detail(vid: unknown, name?: string) {
         if (typeof vid !== 'string' || !vid.startsWith(VID_PREFIX)) return null;
@@ -160,11 +168,10 @@ function createTerraRooms(deps: { soeRom(): Rom | null; terraRom(): Rom | null }
         const { room, image } = e;
         const row = (label: string) => (t: { x1: number; y1: number; x2: number; y2: number; scriptId: number }) =>
             ({ x1: t.x1, y1: t.y1, x2: t.x2, y2: t.y2, scriptId: t.scriptId, label, what: label });
-        // `scriptId` is the exit's or chest's index in the room's list: it names no Evermore script.
-        const stepOn = room.stepOn.map((t) => row(exitLabel(room.exits[t.scriptId]))(t));
-        // A B-trigger past the chests is a closed door: an exit on wall cells (convert.ts).
-        const bTrigger = room.bTrigger.map((t) => row(t.scriptId < room.chests.length ? chestLabel(room.chests[t.scriptId])
-            : exitLabel(room.exits[t.scriptId - room.chests.length]) + ' (door: B)')(t));
+        // `scriptId` is the exit's index in the room's list, or what a B-trigger is (`bWhat`): it names no Evermore script.
+        const behindDoor = new Set(room.bWhat.flatMap((b) => (b.kind === 'door' && b.exit !== null ? [b.exit] : [])));
+        const stepOn = room.stepOn.map((t) => row(exitLabel(room.exits[t.scriptId]) + (behindDoor.has(t.scriptId) ? ' (behind a door: once it is open)' : ''))(t));
+        const bTrigger = room.bTrigger.map((t) => row(bLabel(room, room.bWhat[t.scriptId]))(t));
         const context = room.context.length ? ', drawn after room ' + room.context.map(hex3).join(', ') + ' (the parts it keeps from before)' : '';
         return {
             name: name || ('Terranigma room ' + hex3(roomId)),

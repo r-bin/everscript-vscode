@@ -36,6 +36,8 @@ async function main() {
     // Crysta (graphics past 256: yellow), and the first rooms of the rail, among them some that convert as they are.
     const STATUS_ROOMS = ['terra-a', ...service.railIds().filter((id) => id.startsWith('terra-')).slice(0, 30)];
     const fine = STATUS_ROOMS.find((id) => service.status(id).level === 'ok');
+    // Yellow without a severe reason (no graphics ran out): a dot, the name uncoloured.
+    const mild = STATUS_ROOMS.find((id) => service.status(id).level === 'warn' && !service.status(id).reasons.some((r) => r.severe));
 
     // The answers extension.js gives (radar-panel.ts radarRoomRom, editor-host*.ts), condensed.
     const answer = (msg) => {
@@ -100,11 +102,14 @@ async function main() {
     await page.evaluate(() => window.postMessage({ command: 'uiPrefs', prefs: {} }, '*'));
     await page.waitForTimeout(1500);
     const mark = (id) => page.evaluate((i) => { const li = document.querySelector('li[data-import="' + i + '"]');
-        return { status: li.dataset.status || null, title: li.title, colour: getComputedStyle(li.querySelector('.rn-label')).color }; }, id);
-    const crystaMark = await mark('terra-a'), fineMark = fine ? await mark(fine) : null;
-    check('Crysta\'s row is yellow: some graphics are drawn as the nearest-looking one', crystaMark.status === 'warn'
+        return { status: li.dataset.status || null, severe: li.dataset.severe !== undefined, title: li.title,
+            colour: getComputedStyle(li.querySelector('.rn-label')).color, dot: getComputedStyle(li, '::after').backgroundColor }; }, id);
+    const crystaMark = await mark('terra-a'), fineMark = fine ? await mark(fine) : null, mildMark = mild ? await mark(mild) : null;
+    check('Crysta\'s row is yellow, its name too: some graphics are drawn as the nearest-looking one (severe)', crystaMark.status === 'warn' && crystaMark.severe
         && /nearest-looking one/.test(crystaMark.title) && crystaMark.colour !== (fineMark || {}).colour, JSON.stringify(crystaMark));
     check('a room that converts as it is stays uncoloured', !!fineMark && fineMark.status === null, fine + ' ' + JSON.stringify(fineMark));
+    check('a room yellow for mild reasons only has the dot, its name uncoloured', !!mildMark && mildMark.status === 'warn' && !mildMark.severe
+        && mildMark.colour === fineMark.colour && mildMark.dot === crystaMark.dot, mild + ' ' + JSON.stringify(mildMark));
     if (shots) await page.locator('.rg-rail').screenshot({ path: path.join(shots, 'terra-rail.png') });
 
     // Crysta: nine exits, a map change.
