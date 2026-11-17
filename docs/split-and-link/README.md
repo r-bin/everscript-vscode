@@ -80,6 +80,21 @@ manifest of §5 is a generated query, not manual research.
 - **a table's length**: entries that were never read are invisible
 - **rules that come from the code's meaning**, such as "a script never crosses a bank"
 
+**How symbolic the export is (count, 2026-11-18, export of 2026-11-16, recorded code only):**
+
+| Operand kind | Labels | Raw numbers |
+|---|---|---|
+| `jsl` / `jml` / `jsr` / `jmp`, branches | all (2,948 long and absolute jumps) | 0 |
+| long data `xxx.l` into ROM (`$80–$FF`) | part of the 688 labelled long operands | **265** |
+| long data `xxx.l` into WRAM | — | ~1,380 (harmless for moving ROM; names exist in `ram.asm`) |
+| 16-bit absolute `$8000–$FFFF`, bank from DB (645 `plb` sites) | — | **244** |
+| immediates that build an address (`adc #$C322`, a bank byte into DB, `pea`) | — | not counted |
+| pointers inside data | rooms, strings | 227 raw `dw`, plus whatever sits in the 3,466 `incbin` runs |
+
+The 265 raw ROM operands already carry the CDL's observed targets in their comment, for example
+`lda.l $80BF0E,x ; [data_C0BF10]` (a base biased by 2) or `lda.l $8E0007,x` (field +7 of a record whose
+16-bit address is in X). They can be written as `label-2` and `bank(records)<<16|7` by a pass over the xrefs.
+
 **Not there:** a padding test, the manifest generated from the CDL library, a layout engine shared with the
 compiler, codecs for music and animations, and a projectile definition.
 
