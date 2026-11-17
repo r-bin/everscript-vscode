@@ -47,6 +47,7 @@ Importance reflects "what everything else breaks without". It is my judgement, s
 | 17 | **Terranigma support** (rooms, `terra://`) | L2 | `src/games/terra` | 🟡 | 1, 8 | `supported-games`, `docs/terra/` |
 | 18 | **Mana→Evermore bridge / SoM port** | L3 | `games/evermore/imports/mana` | 💡 | 9, 16 | `docs/mana/evermore-rooms.md` |
 | 19 | **Romhack products**: hotkey, mirror mode, multiplayer, combo ROM | L3 | `docs/mirror-romhack-idea.md`, `docs/plans/multiplayer-mod.md`, `docs/exhirom/combo-rom.md`, `docs/combo/README.md` | 💡 | 12, 13 + whatever it needs | per-hack charter only |
+| 20 | **MSU-1 CD Audio streaming romhack** | L3 | `tools/msu1`, `docs/msu1`, `tests/msu1` | 🟢 | 1, 10, 12 | `docs/msu1/README.md`, `snes-asm-asar-patching` |
 
 > [!WARNING]
 > `compiler/` holds third-party toolchains (Calypsi, vbcc, vasm, 816-tcc, loomcc). Check that `git ls-files compiler` tracks only your own glue and notes, not their binaries or sources. That is a legal-first item. Also, `standalone-c-rom/` has an `extract-assets` step, so confirm it only reads the user's ROM at runtime.

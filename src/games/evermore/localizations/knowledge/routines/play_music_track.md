@@ -8,11 +8,12 @@ name: play_music_track
 title: Music track dispatcher & playback loader
 confidence: confirmed
 tags: [audio, music]
-evidence: ["disasm: saves song ID to $0E4D; sends APU cmd 0x1C (volume 0x8080); sends cmd 0x1A (silence); indexes table $81:9900 to find required soundbank; calls load_song_soundbank ($8C:8236); sends cmd 0x06 with song ID in Y to start track playback", "main-loop: invoked during room initialization and by Everscript music opcode 0x33"]
-see: [docs/disassembly/audio/spc-handshake.md, routines/apu_command_handshake.md, routines/load_song_soundbank.md]
+evidence: ["disasm: saves song ID to $0E4D; sends APU cmd 0x1C (volume 0x8080); sends cmd 0x1A (silence); indexes table $81:9900 to find required soundbank; calls load_song_soundbank ($8C:8236); sends cmd 0x06 with song ID in Y to start track playback", "main-loop: invoked during room initialization and by Everscript music opcode 0x33", "msu-1: primary entry point hooked by MSU-1 audio streaming enhancement at $8C:828F (JML $FE6000)"]
+see: [docs/disassembly/audio/spc-handshake.md, routines/apu_command_handshake.md, routines/load_song_soundbank.md, docs/msu1/README.md]
 ---
 Top-level music track driver routine. Sets up stereo panning / master volume via APU command `0x1C`,
 mutes previous track playback via command `0x1A`, indexes ROM metadata at `$81:9900` to determine the
 required instrument soundbank, triggers soundbank streaming via `load_song_soundbank` (`$8C:8236`),
 and finally triggers song playback via APU command `0x06`.
 Full disassembly and clean C reconstruction: `docs/disassembly/audio/spc-handshake.md`.
+Primary injection point for MSU-1 CD audio streaming (`docs/msu1/README.md`).
