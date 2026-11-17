@@ -36,6 +36,11 @@ The Scripts tab's **Music** view annotates a verified subset of track records an
 
 ---
 
+### 1.4 Porting to another driver
+Is AKAO (Square's FF4–FF6 / Chrono Trigger driver) a target? Researched: feasible for samples and, with work, notes, but a driver swap with all 90 SFX rewritten and no committable driver. Findings and open questions: `docs/disassembly/audio/akao-vs-wolfgang.md`.
+
+---
+
 ## 2. Music Tab Sequence & Piano Roll Visualization
 
 Once the sequence bytecode is decoded, extend the Radar Music panel:
