@@ -8,6 +8,7 @@ the ROM; *(hardware)* = generic SNES; *(estimate)*; *(to verify)*.
 | Page | What it answers |
 |---|---|
 | this page | the idea, what we have, the risks, what must come first |
+| [symbolic-export.md](symbolic-export.md) | step one in depth: the Asar export with labels instead of numbers. What it achieves, what is labelled today, the gaps M0–M9 |
 | [../reverse-engineering/asm-to-c-port.md](../reverse-engineering/asm-to-c-port.md) §4, §8 | the shiftable disassembly and every pointer form it must symbolise |
 | [../extension-tables.md](../extension-tables.md), [../table-hack.md](../table-hack.md) | every id-indexed table, its limit, and which ones already move |
 | [../exhirom/layout-options.md](../exhirom/layout-options.md), [../sa1/port.md](../sa1/port.md) | where the extra space comes from |
@@ -48,7 +49,7 @@ needs no new code.
 
 | Piece | State | Where |
 |---|---|---|
-| Byte-exact Asar export | ✅ G0, 48 bank files, 403 recorded functions; **3,466 `incbin rom.bin:` runs** remain *(repo, current export)* | `src/platform/cdl/asar-export.ts`, `out/recomp/asar/` |
+| Byte-exact Asar export | ✅ G0, 48 bank files, 987 recorded functions; **3,466 `incbin rom.bin:` runs** remain (1,272 never reached, 2,194 DMA graphics) *(repo, export of 2026-11-16)* | `src/platform/cdl/asar-export.ts`, `out/recomp/asar/` |
 | Symbolised pointers | rooms (`room_XX` labels, 127 blobs) and strings (`str_<index>`, 3,002) only | [asm-to-c-port.md](../reverse-engineering/asm-to-c-port.md) §8.1.1 |
 | Moved tables, proven identical | map table, enter scripts, string keys, script pointers, enemy index, character records, map palettes, `animate()` ids, sprite blocks 16×16 and 8×8 | [extension-tables.md](../extension-tables.md), `tools/table-hack/` |
 | Measure → lay out → write | done once, for the tables in `$F1:8000+` | [table-hack.md](../table-hack.md) §2 |
@@ -80,20 +81,9 @@ manifest of §5 is a generated query, not manual research.
 - **a table's length**: entries that were never read are invisible
 - **rules that come from the code's meaning**, such as "a script never crosses a bank"
 
-**How symbolic the export is (count, 2026-11-18, export of 2026-11-16, recorded code only):**
-
-| Operand kind | Labels | Raw numbers |
-|---|---|---|
-| `jsl` / `jml` / `jsr` / `jmp`, branches | all (2,948 long and absolute jumps) | 0 |
-| long data `xxx.l` into ROM (`$80–$FF`) | part of the 688 labelled long operands | **265** |
-| long data `xxx.l` into WRAM | — | ~1,380 (harmless for moving ROM; names exist in `ram.asm`) |
-| 16-bit absolute `$8000–$FFFF`, bank from DB (645 `plb` sites) | — | **244** |
-| immediates that build an address (`adc #$C322`, a bank byte into DB, `pea`) | — | not counted |
-| pointers inside data | rooms, strings | 227 raw `dw`, plus whatever sits in the 3,466 `incbin` runs |
-
-The 265 raw ROM operands already carry the CDL's observed targets in their comment, for example
-`lda.l $80BF0E,x ; [data_C0BF10]` (a base biased by 2) or `lda.l $8E0007,x` (field +7 of a record whose
-16-bit address is in X). They can be written as `label-2` and `bank(records)<<16|7` by a pass over the xrefs.
+**How symbolic the export is:** all jumps and branches are labels; 265 long ROM operands, 104 DB-relative
+operands and 867 pointer words are still numbers. Counts, forms and the plan are in
+[symbolic-export.md](symbolic-export.md).
 
 **Not there:** a padding test, the manifest generated from the CDL library, a layout engine shared with the
 compiler, codecs for music and animations, and a projectile definition.
@@ -164,7 +154,7 @@ music (AGENTS.md §0.1). Therefore:
 
 ### 4.2 Coverage: unknown readers crash where nobody looks
 
-90.7 % of the ROM was never touched by the CDL in the last export *(repo: STEPS.md, 2026-10-12)*. Within the
+9.7 % of the ROM was never touched by the CDL, and only 3.8 % ran as code *(repo: STEPS.md, export of 2026-11-16)*. Within the
 recorded code, the CDL finds the readers by itself (§2). Outside it, a forgotten `lda.l` into a moved table breaks
 only the room, boss or menu that uses it, which no playback may reach. So the CDL decides *what* can move, and more
 recording is the cheapest way to grow it. A static scan for the table's address in every operand (as the table
@@ -223,7 +213,7 @@ one shared directory, two of them will write to the same bytes.
 ### 4.8 Scale and variants
 
 There are 48 banks and 3,466 binary runs. Documenting every routine is years of work *(estimate)*. The
-progress figures in [PROGRESS.md](../disassembly/PROGRESS.md) count only the 403 recorded roots. Everything is
+progress figures in [PROGRESS.md](../disassembly/PROGRESS.md) count only the 403 roots recorded when it was written. Everything is
 US 1.0; other builds have other addresses ([../evermore-releases.md](../evermore-releases.md)).
 
 ### 4.9 Downstream consumers
