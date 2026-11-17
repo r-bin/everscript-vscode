@@ -60,8 +60,28 @@ needs no new code.
 | A second allocator | the everscript compiler places its scripts and text in the 4th MB itself | `../everscript` `compiler/linker.py` `MemoryManager` |
 | Oracle | stored playbacks, headless snes9x, MesenCE as the WRAM reference | `sample-playbacks`, `reference-emulators` skills |
 
-**Not there:** a padding test, a reader census for most tables, a layout engine shared with the compiler, codecs
-for music and animations, and a projectile definition.
+**The CDL already does most of the reader census** (`cdl-recorder` skill). For every recorded instruction it
+keeps:
+
+- the effective address, read or write, the width, and a pointer flag (`xrefs.bin`)
+- DB and D, with the pointer bases and Y at indirect sites (`regs.bin`)
+- the mirror an address was read through (`bus.cdl`)
+
+`xref-index.ts` already answers "who reads this table". For a part that the recorded code fully covers, the
+manifest of §5 is a generated query, not manual research.
+
+**What the CDL can't tell:**
+
+- **code that never ran**: the census is only as complete as the playbacks
+- **which operand bytes made the address**: easy for `lda.l Table,x`. For split constants (`adc #$C322` +
+  `lda #$9C` into DB) the CDL has the result and the DB, but finding the instructions that built it is a short
+  data-flow step
+- **addresses held as bytecode operands**: the script VM's reads show up as data reads, not as pointers
+- **a table's length**: entries that were never read are invisible
+- **rules that come from the code's meaning**, such as "a script never crosses a bank"
+
+**Not there:** a padding test, the manifest generated from the CDL library, a layout engine shared with the
+compiler, codecs for music and animations, and a projectile definition.
 
 ---
 
@@ -129,9 +149,11 @@ music (AGENTS.md §0.1). Therefore:
 
 ### 4.2 Coverage: unknown readers crash where nobody looks
 
-90.7 % of the ROM was never touched by the CDL in the last export *(repo: STEPS.md)*. A part may move only when
-every reader is known. A forgotten `lda.l` into a moved table breaks only the room, boss or menu that uses it,
-which no playback may reach. This is the main reason the whole game cannot be split at once.
+90.7 % of the ROM was never touched by the CDL in the last export *(repo: STEPS.md, 2026-10-12)*. Within the
+recorded code, the CDL finds the readers by itself (§2). Outside it, a forgotten `lda.l` into a moved table breaks
+only the room, boss or menu that uses it, which no playback may reach. So the CDL decides *what* can move, and more
+recording is the cheapest way to grow it. A static scan for the table's address in every operand (as the table
+hack did for `$928000`) covers code that the CDL missed.
 
 ### 4.3 Asar assembles, it does not link
 
@@ -205,8 +227,9 @@ move, they must read the symbol file (`build/out.sym`). They must not keep a lis
    - its placement rule (§4.3)
    - its status (`identical` / `movable` / `needs readers` / `bank-bound`)
 
-   It merges `known-regions.ts`, the ROM tab model and the status column of
-   [extension-tables.md](../extension-tables.md); none of these may stay a second copy (AGENTS.md §0.9).
+   It is **generated from the CDL library** (readers, pointer forms, mirrors), plus `known-regions.ts`, the ROM
+   tab model and the status column of [extension-tables.md](../extension-tables.md); none of these may stay a
+   second copy (AGENTS.md §0.9). Hand work is left only for the gaps listed in §2.
    `soe://rom/` serves it, so the ROM tab, the AI and the linker all read the same map.
 2. **The padding test, automated.** Insert N bytes before a part, rebuild, replay the stored playbacks
    headless, and diff WRAM. A part passes or names the first frame where it diverges. This turns "is it
