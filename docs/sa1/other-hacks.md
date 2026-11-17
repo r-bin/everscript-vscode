@@ -169,8 +169,10 @@ What Evermore has that they didn't:
 
 Ordered by how much they cost us, not by how hard they are to build.
 
-1. **The gain is unmeasured.** No busy scene is profiled ([uses.md](uses.md) use 1). If Evermore's slow scenes
-   are DMA/VBlank-bound, or rare, months buy little. Every public conversion started from known, heavy slowdown.
+1. **The gain is small** (measured 2026-11-18, [offload.md](offload.md) §1): slowdown frames are 0.1–3 % of field
+   play and come in spikes (spell map effects, cutscene scripts); the engine fills the rest of each frame with
+   pathfinding by design. Months buy little unless new load comes with them. Every public conversion started from
+   known, heavy slowdown.
 2. **Our own tooling watches the S-CPU.** The script debugger hooks the interpreter, the CDL recorder, Memory
    Radar and `soe://ram/` read the S-CPU and WRAM. With the game on the SA-1 and its RAM in BW-RAM, all of them
    go blind until the bundled core and tools learn the SA-1. That is a core change, so it needs the owner's OK

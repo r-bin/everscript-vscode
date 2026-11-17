@@ -10,7 +10,13 @@ npm run sa1 -- --listing         # … and print the boot block as assembly
 npm run sa1:measure              # boot timing in MesenCE: must equal the original's (~10 s)
 npm run sa1:measure -- --fit     # … and search REFRESH_FIT if it doesn't
 npm run sa1:prove -- --boot-frames 6000 --max-movies 4 --max-frames 15000   # full comparison (~4 min)
+npm run sa1:load -- --movies <.evsmv|.mmo>...  # S-CPU load per field frame + time per tick call (out/sa1/load/REPORT.md)
+npm run sa1:offload                # → out/sa1/soe-sa1-offload.sfc: the pathfinding steps on the SA-1 (experiment)
+npm run sa1:load -- --image out/sa1/soe-sa1-offload.sfc --movies <...>   # the same inputs on that image
 ```
+
+The profile and the offload experiment: [docs/sa1/offload.md](../../docs/sa1/offload.md). `load.mts` takes the
+recomp's MesenCE movies (`.mmo`, those with a save state too) as well as `.evsmv`; MesenCE movies stay in sync.
 
 `npm run sa1 -- rom.smc out.sfc --upper mesen --fill db` picks the source, the output, what the 4th MB answers
 (`hardware` | `mesen` | `snes9x2005` | `fill`) and the byte for unused space.
@@ -42,6 +48,8 @@ uses therefore reads what it read on the HiROM cartridge, and no game code is re
 | `asm.mts` | The few 65816 instructions the boot block uses, each with its cycle cost; decoding the original code | the boot block needs an instruction form not there yet |
 | `measure.mts` | Times the boot block against the original in MesenCE | — (run it) |
 | `prove.mts` | Builds release, `mesen` and trap images and compares their play with the original in MesenCE | adding checks or probes |
+| `load.mts` | Per field frame: fixed load, slowdown, pathfinding steps (S-CPU or SA-1), time per `per_frame_field_tick` call | adding a column |
+| `offload.mts`, `offload.asm` | The offload image: relocated bank copies, retargeted instructions, the store check, the S-CPU/SA-1 code | moving more work to the SA-1 |
 | `mesen.mts` | Runs MesenCE headless, each run under its own ROM name (no battery save carried over) | — |
 
 `tools/exhirom/convert.js` provides the vector-entry walker, the cartridge mirror and the checksum.
@@ -77,5 +85,9 @@ an internal cycle or I/O-register access 6; a stack access 8 (MesenCE's `Generat
 stretch `$80:802D–$810E` is 2,266 clocks by this model, and MesenCE measures 2,346 (+80, two DRAM refresh stalls of
 40). The boot block, padded to the same 2,266, gets the same two stalls, so `REFRESH_FIT` is 0. A changed block
 can catch a stall at another cycle boundary; `sa1:measure -- --fit` finds the value that makes up for it.
+
+MesenCE Lua: an exec callback on the SA-1 needs `emu.cpuType.sa1` **and** `emu.memType.sa1Memory`; `masterClock`
+comes as 32 bits (wraps every ~200 s). Asar: put `asar 1.90` in new asm (operator precedence), and write `.w` on
+immediates that are defines or short numbers in 16-bit code.
 
 Images and reports go to `out/`, never committed: they are game data, and the reports quote ROM bytes.

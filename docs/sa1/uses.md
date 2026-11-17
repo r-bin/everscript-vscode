@@ -1,6 +1,8 @@
 # What to use the SA-1 for: 50 uses, effort vs benefit
 
-Status: **ranked list, not built.** Stage C1 ([port.md](port.md)) gives an 8 MB SA-1 image that plays
+Status: **ranked list.** Use 1 (the profile) and a first offload of section B (the pathfinding steps) are done:
+[offload.md](offload.md). In short: slowdown is rare (0.1–3 % of field frames) and comes in spikes; the
+pathfinding (~31 % of CPU time) only fills spare time. Stage C1 ([port.md](port.md)) gives an 8 MB SA-1 image that plays
 cycle-identically with the SA-1 CPU held in reset. This page lists what that image could be used for, scores each
 use, and names the Evermore code or data each one touches. Nothing here has been tried.
 

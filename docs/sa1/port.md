@@ -2,7 +2,8 @@
 
 Status: **stage C1 built (v0.402.0): an 8 MB SA-1 image boots and plays cycle-identical to the HiROM original in
 MesenCE, with the SA-1 CPU held in reset.** `tools/sa1/convert.mts` builds it, `tools/sa1/prove.mts` proves it
-(§5). Nothing runs on the SA-1 yet; that is §7.
+(§5). The SA-1 CPU itself runs code only in the pathfinding offload experiment ([offload.md](offload.md)), which
+also holds the busy-scene profile and the answer to "move everything?".
 
 Labels: *(Mesen source)* = read in MesenCE's `Core/SNES/Coprocessors/SA1/` and `BaseCartridge.cpp`,
 *(MesenCE)* = measured in a MesenCE run, *(hardware)* = generic SA-1 knowledge, *(to verify)* = not checked on a
@@ -168,6 +169,7 @@ image's 4th MB (which differs from MesenCE's) was not exercised.
 | C1c | reclaim the duplicate: block 0's 32 KB view only needs ~3 KB; block 1 is free; most of block 2–3 is code that only runs from `$8x` | free-space map in the ROM tab |
 | C2 | shared state for the SA-1: the SA-1 can't see WRAM, so anything it computes must sit in I-RAM (2 KB) or BW-RAM | per-variable, from the WRAM map |
 | C3 | first offload: release the SA-1 (`$2200`), give it a routine with no WRAM inputs (`functions.json` blockers), compare cycles | measured time saved in a busy scene |
+| C3a | **done (2026-11-18), experiment**: the pathfinding steps on the SA-1 against a BW-RAM mirror of their WRAM ([offload.md](offload.md)) | plays (attract loop 40 k frames, replay 02); slowdown frames −21 %/−34 %; fewer steps |
 
 What to use the SA-1 for once it runs, ranked by effort and benefit: [uses.md](uses.md).
 
