@@ -8,6 +8,7 @@ the ROM; *(hardware)* = generic SNES; *(estimate)*; *(to verify)*.
 | Page | What it answers |
 |---|---|
 | this page | the idea, what we have, the risks, what must come first |
+| [tool.md](tool.md) | the split/link tool: the tree, the manifest, mods as an overlay, link step by step, codecs, phases P0–P8 |
 | [symbolic-export.md](symbolic-export.md) | step one in depth: the Asar export with labels instead of numbers. What it achieves, what is labelled today, the gaps M0–M9 |
 | [../reverse-engineering/asm-to-c-port.md](../reverse-engineering/asm-to-c-port.md) §4, §8 | the shiftable disassembly and every pointer form it must symbolise |
 | [../extension-tables.md](../extension-tables.md), [../table-hack.md](../table-hack.md) | every id-indexed table, its limit, and which ones already move |
