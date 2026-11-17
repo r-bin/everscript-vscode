@@ -213,6 +213,43 @@ Upsides: slowdown gone where it is CPU-bound, faster room loads, an S-CPU with m
 Effort *(estimate)*: several months for one person, with Gradius III's three months as the floor. Ship it, if at
 all, as a variant next to the vanilla-layout build, never instead of it.
 
+### 5.4 Step 1 done for early play: not worth it yet (2026-11-18)
+
+Asked again 2026-11-18, with the first busy-play profile in hand: `npm run sa1:load` (`tools/sa1/load.mts`)
+plays recorded movies on the original ROM in MesenCE and, per field frame, measures the clocks from the NMI to
+the start of `field_spare_time_loop` (`$8F:9817`). That is the frame's fixed work; past 100 % the game slows
+down *(MesenCE)*:
+
+| Replay | Field frames | Slowdown frames | Fixed load median | 95th | 99th | Pathfinding steps/frame |
+|---|---|---|---|---|---|---|
+| 02 new game → flowers | 21,180 | 104 (0.5 %) | 43.0 % | 70.2 % | 89.2 % | median 6, max 130 |
+| 03 intro → Thrax dies at Magmar | 51,526 | 107 (0.2 %) | 54.3 % | 72.7 % | 82.2 % | median 6, max 142 |
+
+Room loads are left out. Per room, the worst are `$32` (median 61 %, 99th ~105 %) and `$02` (99th ~154 %, short
+spikes); the room the player spends most time in, `$46`, has 99th ≤ 80 %.
+
+What it means:
+
+- **Slowdown is rare.** About one field frame in 200–500 runs long. A full port (§5.3) would remove those, not
+  much more.
+- **The spare half of the frame isn't idle.** The engine spends it on pathfinding steps until the next NMI, so
+  more CPU means more AI steps per frame, not a faster game. That is the one place extra CPU shows in play, and
+  it needs no full port: offloading the pathfinding call tree alone tests it (the experiment in
+  `tools/sa1/offload.mts`, in progress).
+- **The costs in §5.2 haven't changed.** Downsides 2–8 are as large as before; downside 1 is now known, and it
+  points against the port.
+
+Decision: **no full port for now.** The S-CPU stays master. In order: the uses that keep lockstep (block 1 space,
+bigger BW-RAM, saves; [uses.md](uses.md) 26, 29, 31–33), then single jobs on the SA-1 with few WRAM inputs
+(pathfinding, room decompression, uses 14 then 11–12), each measured with `sa1:load --image`.
+
+What would reopen it:
+
+- **Later scenes.** Both replays stop at Magmar. Ebon Keep and Omnitopia fights, bosses and the Mode 7 overworld
+  are not profiled *(to verify)*. Several percent of slowdown frames there would bring back §5.3.
+- **A goal that needs it.** More enemies on screen ([uses.md](uses.md) 37) or co-op (41) need the entity loop
+  off the S-CPU, which is most of the full port anyway.
+
 ## Sources
 
 - [VitorVilela7/SA1-Root](https://github.com/VitorVilela7/SA1-Root) (README; per-game READMEs

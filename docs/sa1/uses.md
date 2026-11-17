@@ -36,7 +36,7 @@ The catch, in order of how much it costs:
    RNG) is in `$7E/$7F`. Any SA-1 job first needs its inputs copied or moved to I-RAM/BW-RAM: the C2 step
    ([port.md](port.md) §7). The S-CPU can copy WRAM to BW-RAM/I-RAM with DMA through the `$2180` port (WRAM is on
    the B-bus, BW-RAM and I-RAM on the A-bus), which avoids moving variables for read-only inputs (use 4).
-2. **Speed is unmeasured.** The only cycle profile is the title and intro, where 85.6 % of cycles are the
+2. **Speed is measured only for early play** (other-hacks.md §5.4: little slowdown). Before that, the only cycle profile is the title and intro, where 85.6 % of cycles are the
    wait-for-NMI spin at `$80:858C` ([layout-options.md](../exhirom/layout-options.md) §5). In the intro the NMI hit
    entity and collision code (`$8F:98xx`, `$8F:A3xx`, `$90:9DE8`) when it didn't hit the spin
    ([c-to-rom.md](../reverse-engineering/c-to-rom.md) §7a). Fights and big rooms have not been recorded. **Every
@@ -64,7 +64,7 @@ the same thing without the SA-1.
 
 | # | Use | Evermore detail | Eff | Ben | Needs | ExHiROM? |
 |---|---|---|---|---|---|---|
-| 1 | **Busy-scene cycle profile**: record fights, big rooms, many entities, Mode 7 | CDL `functions.json` already has `cycles` per function and SA-1 blockers *(repo)*; only title/intro recorded | 1 | 5 | — | — |
+| 1 | **Busy-scene cycle profile**: record fights, big rooms, many entities, Mode 7 | CDL `functions.json` already has `cycles` per function and SA-1 blockers *(repo)*; early play profiled 2026-11-18 (`npm run sa1:load`): slowdown in 0.2–0.5 % of field frames, spare time runs pathfinding ([other-hacks.md](other-hacks.md) §5.4); later scenes open | 1 | 5 | — | — |
 | 2 | **Offload runtime**: release the SA-1 (`$2200`), a job queue and mailbox in I-RAM, IRQ on completion, a "wait for job" for the S-CPU | the SA-1's reset vector goes in block 0, next to the boot block's data | 3 | 5 | — | no |
 | 3 | **WRAM→BW-RAM/I-RAM variable map (C2)** per variable, from the WRAM map | [`wram-map.md`](../disassembly/engine-core/wram-map.md), `wram-map-7f.md`; 805 of 987 functions touch only WRAM ([other-hacks.md](other-hacks.md) §5.1) | 4 | 5 | D1 for moved variables | no |
 | 4 | **DMA snapshots instead of moves**: the S-CPU DMAs a WRAM struct through `$2180` into BW-RAM/I-RAM for the SA-1 to read, and back | avoids rewriting every reader of a variable; costs DMA time on the S-CPU | 2 | 4 | R | no |
