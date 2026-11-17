@@ -30,13 +30,12 @@ everscript `docs/audio_music_sound_formats.md` (protocol, packages, ARAM budget)
   revisions**, not one format: FF4, FF5 and FF6 differ in opcode tables.
 - The name comes from the `AKAO` magic of the **PlayStation** sequence containers. A web summary
   claimed the SNES data also carries that magic; I believe it does not (unverified; conflicting).
-- **Secret of Mana uses AKAO** (2026-11-17: confirmed to the project owner by an outside expert,
-  not yet checked by us). My first web searches disagreed (one said "Kikuta's own driver", one
-  "N-SPC variant"); the expert's word outweighs those summaries. Our own notes show only that the
-  Mana boot code uploads its driver in 6 blocks to ARAM `$0200` and starts it there
-  (`docs/mana/rom.md`, `$C3:0000`). Which AKAO revision it is, and how far its opcodes match FF6's,
-  is open: dump Mana's and a FF6 ARAM driver and compare dispatch tables (the approach used in §3
-  for Evermore). Do not copy FF6 facts into `docs/mana/` before that check (AGENTS rule 4).
+- **Secret of Mana uses AKAO** (confirmed and verified from disassembly, see `docs/mana/music.md`).
+  The driver is uploaded at console reset in 6 blocks to ARAM `$0200` (5,016 bytes). Sequence bytecodes
+  pack note and duration in single bytes ($00–$D1) via base-15 arithmetic ($N / 15$ pitch, $N \pmod{15}$ duration
+  from a 15-entry tick table at `$152C`). Opcodes ($D2–$FF) dispatch through jump table `$1428`.
+  Unlike Evermore's monolithic packages, Mana dynamically caches and compacts its 33 BRR samples in ARAM
+  using an LRU tracker in WRAM `$7E:1E28`–`$1E89`.
 - FF6-family sequence layout (secondary): a song is one blob with a small header, a pointer per
   channel (8 voices, plus further tracks that the sound-effect side uses), then a byte stream per
   channel. Note bytes `$00`–`$B3` encode **pitch and a length-table index in one byte**; bytes from
@@ -139,9 +138,9 @@ these needs AKAO specifically.
 
 ## 7. Open questions / next steps
 
-1. Which AKAO revision does Secret of Mana use (expert says AKAO)? Compare ARAM driver dispatch
-   tables of Mana and FF6 with the method used for Evermore. Mana's driver is the closest AKAO
-   source to read at runtime for any experiment (still the user's own ROM, never committed).
+1. Secret of Mana's AKAO driver format is now fully documented from disassembly in `docs/mana/music.md`.
+   Next step for cross-game comparison: compare Mana's dispatch table (`$1428`) with FF6's to establish
+   the exact evolution of AKAO opcodes between Seiken Densetsu 2 and Final Fantasy VI.
 2. Verify AKAO's note/length encoding and opcode table against a real FF6 ROM, in our own words.
 3. Complete the Wolfgang opcode table, `$F6`'s last five bytes, and the tempo source.
 4. Measure per-sample base pitch (DSP pitch at key-on for each instrument).

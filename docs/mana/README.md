@@ -5,7 +5,7 @@ Everything here was read from Secret of Mana's own code (US ROM, `Secret of MANA
 the running game. Nothing about Secret of Evermore applies here unless the SNES itself
 explains it. Code: [`src/games/mana/decoder/`](../../src/games/mana/decoder/README.md). Files: `som://rom/`.
 How to check a claim yourself: [verifying.md](verifying.md).
-RAM addresses: [wram.md](wram.md). Mana maps as Evermore rooms: [evermore-rooms.md](evermore-rooms.md).
+RAM addresses: [wram.md](wram.md). Music & Sound Architecture: [music.md](music.md). Mana maps as Evermore rooms: [evermore-rooms.md](evermore-rooms.md).
 
 Addresses are SNES bus addresses (`$CC:E270` = file offset `$0CE270`).
 
