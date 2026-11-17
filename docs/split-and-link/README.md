@@ -8,6 +8,7 @@ the ROM; *(hardware)* = generic SNES; *(estimate)*; *(to verify)*.
 | Page | What it answers |
 |---|---|
 | this page | the idea, what we have, the risks, what must come first |
+| [extending.md](extending.md) | when adding content becomes trivial (relocate → unlock → author), which memory map, fast ROM by measured heat, which resources can become dynamic, the map editor as the worked example |
 | [tool.md](tool.md) | the split/link tool: the tree, the manifest, mods as an overlay, link step by step, codecs, phases P0–P8 |
 | [symbolic-export.md](symbolic-export.md) | step one in depth: the Asar export with labels instead of numbers. What it achieves, what is labelled today, the gaps M0–M9 |
 | [../reverse-engineering/asm-to-c-port.md](../reverse-engineering/asm-to-c-port.md) §4, §8 | the shiftable disassembly and every pointer form it must symbolise |
