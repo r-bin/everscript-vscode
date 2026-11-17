@@ -199,6 +199,10 @@ Neither feeds the export today.
 | **M8** | **the proof** | (a) a ratchet check: count raw operands and pointer words per form, fail when one grows (`tools/check-*.mts` style); (b) the padding test per bank: insert N bytes, rebuild, replay with `sample-playbacks`, diff WRAM, report the first frame | days | G1 |
 | **M9** | layout as data | the `org` per bank and per moved item comes from one layout file the build reads, not edited by hand in `banks/*.asm` | days | A4, A5, A6 |
 
+**Where the work goes.** M1–M5 are passes in `tools/split/symbolise.mts`. They act through two optional
+hooks in the export, and the export's code stays as it is ([tool.md](tool.md) §10.2). M8 is part of the same
+tool (`report.mts`, `prove.mts`). M0 is a one-line fix in `tools/recomp/`.
+
 **Order:** M0 → M8a (so progress is measured) → M1, M2 (cheap) → M3 for `$8E` → M8b on bank `$8E` → M4, M5 → M6 → M7.
 
 The first visible result is **the character records moved by changing one `org`**, with the attract-loop

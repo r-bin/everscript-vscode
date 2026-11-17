@@ -8,18 +8,33 @@ Status: **design (2026-11-18), nothing built.** This page plans the tool behind 
 It builds on the symbolic export ([symbolic-export.md](symbolic-export.md)). Labels: *(repo)* = exists today;
 *(estimate)*; *(to verify)*; *(owner's call)* = a decision for the owner.
 
+**Shape: a `tools/split/` tool** like `tools/sa1/` and `tools/table-hack/`, an L3 lab
+([../projects/README.md](../projects/README.md) §1). It reads the compiled `dist/` modules and changes none of
+them, apart from two small export hooks, each in its own commit (§10.2). It moves into `src/` only by the
+promotion rule (used by two other projects, §10.4).
+
 ---
 
 ## 1. What the tool does, seen from outside
 
 ```sh
-npm run rom:split -- --rom <clean US ROM> --out ~/soe-src     # ROM → tree (once, or again after new CDL data)
-npm run rom:link  -- ~/soe-src --out build/soe.sfc            # tree + mods → ROM, symbols, CDL, BPS, report
-npm run rom:link  -- ~/soe-src --check                        # unmodified tree → must give the vanilla sha1
-npm run rom:link  -- ~/soe-src --prove                        # … and replay the stored playbacks against vanilla
+npm run split -- --out ~/soe-src              # base ROM of the ROM library + CDL library → tree
+npm run split -- rom.smc --out ~/soe-src      # … or a ROM given explicitly (as tools/sa1 takes args[0])
+npm run split:link -- ~/soe-src               # tree + mods → ~/soe-src/build/: ROM, symbols, CDL, BPS, report
+npm run split:link -- ~/soe-src --check       # unmodified tree → must give the vanilla sha1
+npm run split:prove -- ~/soe-src              # link, then replay the stored playbacks against vanilla
 ```
 
-The VS Code side gets the same as commands later (§9).
+The inputs are found the way other tools find them *(repo)*:
+
+| Input | How the tool finds it |
+|---|---|
+| ROM | `require('../rom').baseRomOrExit('evermore', arg)`: the ROM library, never a hard-coded path (`tools/README.md`) |
+| CDL library | `--lib <dir>`, default the extension's `globalStorage …/cdl-library`, as `tools/recomp/build.js` does |
+| Asar | `--asar <bin>`, then env `ASAR`, then `asar` on `PATH`, then `../asar/asar/bin/asar`, as `tools/recomp/build.js` does |
+| knowledge names | `tools/recomp/names.js` `collectNames` *(repo)*, reused |
+
+The VS Code side may get the same as commands, but only after promotion (§9).
 
 **The promise to the user:**
 
@@ -162,8 +177,7 @@ Results:
 
 - Generate `build/main.asm`: header, `layout.asm`, then every item's `incsrc` in a fixed order, then
   `mods/asm/patches/`.
-- Run Asar (`ASAR` env var or `asar` on `PATH`, as `build.sh` does today *(repo)*), writing `build/out.sfc`
-  and `build/out.sym`.
+- Run Asar (found as in §1), writing `build/out.sfc` and `build/out.sym`.
 - Run `build-cdl.js` *(repo)* to carry the CDL flags to wherever labels moved: `build/out.cdl`.
 
 ### 5.6 Check and report
@@ -185,7 +199,8 @@ Outputs besides the ROM:
 
 ## 6. Codecs
 
-One interface per asset kind. It lives in the game's folder, because formats are per game (AGENTS.md §0.4):
+One interface per asset kind, in `tools/split/evermore/codecs/` (formats are per game, AGENTS.md §0.4). A codec
+calls the decoders and encoders already compiled in `dist/games/evermore/` and never copies them:
 
 ```ts
 interface Codec {
@@ -251,7 +266,11 @@ The compiler (sibling repo, Python) allocates its own space today (`compiler/lin
 
 ---
 
-## 9. Editor integration (later)
+## 9. Editor integration (after promotion only)
+
+A tool in `tools/` has no VS Code side. Until promotion (§10.4), the editor connects in only one way:
+opening `build/out.sfc` through the ROM library or `soe://rom/…?rom=<path>`, which needs no code. After
+promotion:
 
 - **Commands:**
   - *Split ROM to folder…*
@@ -266,19 +285,79 @@ The compiler (sibling repo, Python) allocates its own space today (`compiler/lin
 
 ---
 
-## 10. Where the code goes
+## 10. The tool's files
 
-Following the layer rules in `src/README.md` *(repo)*:
+### 10.1 Layout of `tools/split/`
 
-| Code | Folder | Why |
+TypeScript `.mts`, run directly by Node like `tools/sa1/` (AGENTS.md §0.8: TS by default).
+
+```
+tools/split/
+  README.md            what it is, how to run it, the tree (§2), links to these docs
+  AGENTS.md            invariants (G0 always, no ROM bytes in the repo, stable layout) and its tests
+  split.mts            CLI: ROM + CDL library → tree; writes split.json; runs link --check at the end
+  link.mts             CLI: tree → build/ (§5); --check, --map hirom|exhirom|sa1
+  prove.mts            CLI: link, then replay the playbacks (wraps the replay of tools/table-hack/prove.js)
+  manifest.mts         split.json types, read/write, validation
+  overlay.mts          game/ + mods/ → item list; `from` references; DELETE markers (§4)
+  symbolise.mts        the symbolic export passes M1–M5, as hooks handed to the export (§10.2)
+  routines.mts         one file per routine: cuts the export's bank text at function labels (P1)
+  tables.mts           id-indexed tables generated from the items present (§5.3)
+  layout.mts           the allocator: stable first, pins, placement rules, free space per --map (§5.4)
+  directory.mts        the $F1:0000 directory (table-hack.md §3)
+  assemble.mts         main.asm, Asar, build-cdl.js, out.sym
+  bps.mts              BPS patch writer
+  report.mts           layout.md, the ratchet counts, budget failures
+  evermore/
+    regions.mts        what is an item: rooms, strings, tables, songs …; reuses dist/games/evermore/cdl/regions
+    rules.mts          placement rules and engine limits per kind, each with its source (knowledge entry / doc)
+    codecs/            one file per kind (§6): raw, code, table, room, string, song, palette …
+```
+
+The `evermore/` subfolder is the only place with game facts. A second game would get a sibling folder; nothing
+in the other files may name Evermore (AGENTS.md §0.4).
+
+### 10.2 What it reads from `dist/`, and the only changes outside `tools/split/`
+
+The tool only *calls* these *(repo)*:
+
+- `dist/platform/cdl/`: `library` (the CDL library), `rom-map`, `asar-export`, `xref-index`, `library-ext` (regs,
+  bases), and `asar-kit/build-cdl.js`
+- `dist/games/evermore/cdl/regions` (`evermoreRegions`)
+- `dist/games/evermore/maps` (decode and encode rooms)
+- the string, script and resource decoders
+- `dist/platform/tas/movie` (playbacks)
+
+The symbolisation (M1–M5) belongs to the tool, but it has to act *while* the export writes its text. Rewriting
+the text afterwards would mean parsing assembly again. So `asar-export.ts` gets two optional hooks, each a small
+L1 change in its own commit ([../projects/README.md](../projects/README.md) §1):
+
+| Hook | Called for | Default (no hook) |
 |---|---|---|
-| manifest types, overlay, allocator, table generator, Asar runner, BPS writer | `src/platform/split/` | game-neutral, no VS Code; reuses `platform/cdl` (export, `build-cdl.js`) and `platform/snes/` |
-| Evermore's codecs, placement rules, engine limits, `gameRegions` | `src/games/evermore/split/` | game facts stay in the game's folder |
-| CLI | `tools/split/` (`.mts`), npm scripts `rom:split`, `rom:link` | like `tools/sa1/` |
-| commands, editor saves | `src/games/evermore/` (with the Rooms and Scripts tabs) | VS Code side |
+| `resolveOperand(ins, bus, width, ctx)` | every operand the built-in `resolve` leaves as a number | number, as today |
+| `writeDataRun(start, end, ctx)` | every data run before it becomes `db` / `dw` | as today |
 
-Mana and Terranigma could later bring their own codecs and rules to the same platform code. Nothing of
-Evermore's carries over (AGENTS.md §0.4).
+With no hooks, the export stays exactly as it is, so the CDL tab and `npm run recomp` do not change. Fixing M0
+(the missing `gameRegions` in `tools/recomp/build.js`) is a separate one-line commit in `tools/recomp/`.
+
+### 10.3 Tests
+
+| Test | Tier | What |
+|---|---|---|
+| `tests/split/overlay.test.mts`, `layout.test.mts`, `tables.test.mts`, `bps.test.mts` | unit (`npm test`) | synthetic items and banks; no ROM |
+| `tests/split/round-trip.test.mts` | `rom` | every codec over every vanilla item of its kind: `link(split(x)) = x` |
+| `tests/split/g0.test.mts` | `rom` | split + link of the base ROM gives the vanilla sha1; skipped when no Asar is found |
+| `npm run split:prove` | on demand | playbacks; never in a test tier (`test-discipline` skill) |
+
+### 10.4 Promotion
+
+The tool stays in `tools/split/` while only it uses its parts. A part moves when two other projects need it:
+
+- the allocator and the directory, when the everscript compiler and the table hack read them
+- the codecs, when the Rooms tab saves into the tree
+
+The game-neutral parts would go to `src/platform/split/`, the codecs and rules to `src/games/evermore/split/`
+(`architecture` skill, `src/README.md` layer rules).
 
 ---
 
@@ -288,15 +367,15 @@ Each phase ends with something usable and a check that proves it.
 
 | Phase | Deliverable | Proof | Depends on |
 |---|---|---|---|
-| **P0 skeleton** | `rom:split` = today's export + `split.json` (all items `raw` or `code`, pin states); `rom:link` = Asar + `build-cdl.js` | G0 on a fresh split | M0 of [symbolic-export.md](symbolic-export.md) |
-| **P1 one file per routine** | `game/asm/<bank>/<routine>.asm` instead of one file per bank; data runs as their own items | G0 | — |
-| **P2 symbols** | M1, M2, M8a of the symbolic export; pins computed from the remaining raw operands | G0; the ratchet count in the link report | P0 |
+| **P0 skeleton** | `tools/split/` with `split.mts` (today's export with `gameRegions` + `split.json`, all items `raw` or `code`, pin states), `link.mts` (Asar + `build-cdl.js`), npm scripts, README, AGENTS.md | G0 on a fresh split (`tests/split/g0`) | M0 in `tools/recomp/` (own commit) |
+| **P1 one file per routine** | `routines.mts`: `game/asm/<bank>/<routine>.asm` instead of one file per bank; data runs as their own items | G0 | — |
+| **P2 symbols** | the two export hooks (own commit, §10.2); `symbolise.mts` with M1, M2; the ratchet counts in `report.mts`; pins from the remaining raw operands | G0; the counts in the link report | P0 |
 | **P3 overlay + tables + stable layout** | `mods/` merge, generated tables, the allocator with placement rules, `layout.md`, directory | G0 with empty `mods/`; a moved table proven with `--prove` | P2 |
 | **P4 first codecs** | rooms (full), strings (uncompressed write), tables, palettes; round-trip tests | round trip on every vanilla item | P3 |
 | **P5 first vertical slice: songs** | `music/` folders generate `$8C:8442` and `$81:9903` + count; `from`-references | song 5 copied to id 71 plays from a script; vanilla playbacks still identical (G2) | P3, reader census for both tables |
 | **P6 bank-bound pools** | M3 for `$8E`: character records as items, enemies as folders | the table hack's enemy test (a new enemy spawned) passes without the table hack | P3 |
 | **P7 projectiles** | the projectile schema over its tables | a new projectile launched by `0xB5` | P6, `$90:D986` census |
-| **P8 editor + compiler** | §9 commands; everscript reserved range (§7 stage 1) | Rooms tab saves a room, `rom:link` builds it, the room loads in the emulator | P4 |
+| **P8 compiler, then promotion** | everscript reserved range (§7 stage 1); then the promotion of §10.4 and the §9 commands | `split:link` builds an everscript mod; after promotion, the Rooms tab saves a room, `split:link` builds it, the room loads in the emulator | P4 |
 
 Sizes *(estimate)*: P0–P1 a few days; P2 a week; P3 one to two weeks; then about a week per codec or slice.
 
@@ -304,8 +383,8 @@ Sizes *(estimate)*: P0–P1 a few days; P2 a week; P3 one to two weeks; then abo
 
 ## 12. Open questions
 
-1. **Command names.** Is `rom:split` / `rom:link` right, or should the pair have one name of its own?
-   *(owner's call)*
+1. **Command names.** Is `split` / `split:link` / `split:prove` right, or should the tool have a name of its
+   own? *(owner's call)*
 2. **Where the tree lives.** A fixed default (`~/soe-src`), or chosen on the first split? *(owner's call)*
 3. **Splitting again after new CDL data.** It changes `game/` (more routines, fewer pins). `mods/` must survive
    it. A mod that replaces a routine must be told when the generated original changed, so the tool should
