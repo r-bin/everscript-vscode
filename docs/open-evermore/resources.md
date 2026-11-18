@@ -38,18 +38,29 @@ with `data.json`; decoder `src/platform/cdl/table-assets.ts`)*. Same JSON as the
 - **Limits.** Each entry's value range, from the table's description (`invalid-value`). A count that disagrees
   with a count byte elsewhere is an error.
 
-## palettes — tile families
+## tile_families — background palettes *(built, S2)*
 
-**Folder.** `palettes/<family>.json`: 16 colours as `#rrggbb` (the 15-bit SNES colour shown in 24 bits;
-implode checks that the low 3 bits of each channel are 0).
+**Folder.** `tile_families/_enum.json` + `tile_families/<family>.json`:
 
-- **References.** Used by maps (a room's family slots, by name). Uses nothing.
-- **Implode generates**: the family table at `$9CC322` *(repo: 365 families; moved once and proven,
-  [../extension-tables.md](../extension-tables.md))*, ids from `palettes/_enum.json`.
-- **Limits.** Exactly 16 colours (`invalid-value`). A family no map uses is a warning (`unreferenced`).
-- **Codec.** Palette decoding *(repo: `resources/`, `maps/` palette extraction)*; encoding is the inverse
-  (trivial).
-- **Later:** sprite palettes (bank `$90`, full) as `palettes/sprites/` once their readers allow it
+```jsonc
+{ "format": "open-evermore/tile-family", "version": 1,
+  "colours": ["#000000", "#f8f8f8", …] }          // 16 colours; each channel a multiple of 8 (5 bits on the SNES)
+```
+
+- **Names.** `family_<id>` (`family_024`): the repo has no names for families ("a ROM id tied to an area",
+  room-reference.md §5). Better names are an open question ([README.md](README.md) §9).
+- **References.** Used by maps (`"tileFamilies": ["family_024", …]`, `unknown-reference` when missing). Uses
+  nothing.
+- **Implode generates** one placeable item, the array (family *n* at base + 32·*n*, in enum order), and the
+  two operands of the loader `$90:D05C` that hold its address: `adc #$C322` and `lda #$9C`. They are the only
+  readers *(repo: the table hack moved the array the same way)*.
+- **Placement.** Upper half (the `$80–$BF` form), never across a bank; at most 1024 families (32 KiB).
+  The array sits between two rooms in bank `$9C`, so `--random` shuffles it with them.
+- **Proven (G1).** Seeds 1, 2, 99 moved it (`$9C:D25E`, `$9C:8000`, `$9C:8F3C`); the playbacks played identically
+  and no WRAM byte points into it (knowledge `asset_9cc322_background_palettes_tile_families`).
+- **Limits.** Exactly 16 colours, each `#rrggbb` with channels in steps of 8 (`invalid-value`); no gap in the ids
+  (`id-gap`).
+- **Later:** sprite palettes (bank `$90`, full) as their own kind once their readers allow it
   ([../split-and-link/extending.md](../split-and-link/extending.md) §5).
 
 ## strings
@@ -123,11 +134,11 @@ maps/<map>/map.json                  one room
 
 ```jsonc
 {
-  "format": "open-evermore/map", "version": 1,
+  "format": "open-evermore/map", "version": 2,
   "header": "…",                                   // 13 bytes, hex (room-reference.md §4)
   "stepOn":   [{ "area": [y1, x1, y2, x2], "script": 1234 }],
   "bTrigger": [{ "area": [y1, x1, y2, x2], "script": 1240 }],
-  "tileFamilies": [36, 37, 38],                    // ids into the family table (S2 makes them names)
+  "tileFamilies": ["family_024", "family_025"],    // names in tile_families/ (version 2)
   "extras": "…",                                   // palette-cycle descriptors, hex
   "block1": { "sub": 3, "decomp": 492, "data": "…base64…" },   // graphics list, kept compressed
   "section2": { "count": 13, "data": "…" },        // animation channels
@@ -161,7 +172,7 @@ comes as the kinds it references are exploded and the encoder can write decoded 
   engine keeps six long pointers into the current blob (`knowledge/wram/DIRECT_PAGE_BLOCK.md`), all translated.
 - **Limits.** Every field's range (`invalid-value`); blob ≤ 32 KiB (`over-budget`); 127 ids (the table stays put;
   the engine allows 256).
-- **Still numbers:** tile families, graphics ids and script ids point into `_base/` until S2, S3, S6.
+- **Still numbers:** graphics ids and script ids point into `_base/` until S3, S6.
 - **Logic warnings** *(proposal; checked against vanilla first)*: a trigger outside the map; a door to an entrance
   that does not exist; an unused family slot; the Boy's start on a solid cell.
 

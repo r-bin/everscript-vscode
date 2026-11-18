@@ -22,8 +22,9 @@ const len = (rom: Uint8Array, at: number) => rom[at] | (rom[at + 1] << 8);   // 
 
 const things: Codec = {
     kind: 'things', version: 1, path: 'things',
-    explode(rom, given) {
-        const names = NAMES.map((n, id) => given?.[id] ?? n);
+    defaultName: id => NAMES[id],
+    explode(rom, name) {
+        const names = NAMES.map((_, id) => name('things', id));
         const files: Tree = new Map(), pool = [], homes = [];
         for (let id = 0; id < COUNT; id++) {
             const at = ptr(rom, id), bytes = rom.slice(at, at + len(rom, at));

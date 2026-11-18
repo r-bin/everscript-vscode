@@ -1,6 +1,7 @@
 // Open Evermore on the user's ROM (docs/open-evermore/README.md §5): explode the base ROM of the ROM library, then
 // implode the tree in memory: stable gives the vanilla sha1 with no warning (G0); two random layouts place every
-// room, rewrite the map table and explode back to the same tree. Playing them is `open-evermore.mts prove` (on
+// room and the tile family array, rewrite their tables and explode back to the same tree; cross-kind references
+// and colours are checked. Playing them is `open-evermore.mts prove` (on
 // demand, minutes: never in a tier). Skips without the ROM.
 // Run: node tests/open-evermore/g0.test.mts   (npm run build:ts first)
 import assert from 'node:assert';
@@ -33,6 +34,20 @@ if (!path || !existsSync(path)) {
         assert.deepStrictEqual(r.findings.list.filter(f => f.severity !== 'info'), []);
         const moved = r.placed.filter(p => p.at !== p.home).length;
         assert.ok(moved > 100, `only ${moved} rooms moved`);
-        console.log(`  ✓ random ${seed}: ${moved} of ${r.placed.length} rooms moved, map table rewritten, round trip holds`);
+        const families = r.placed.find(p => p.key === 'tile_families/array')!;
+        console.log(`  ✓ random ${seed}: ${moved} of ${r.placed.length} resources moved (tile families ${families.at === families.home ? 'stayed' : 'moved'}), tables rewritten, round trip holds`);
     }
+
+    const rules = (edit: (t: typeof tree) => void) => {
+        const t = new Map(tree);
+        edit(t);
+        return implode(t, GAME, KINDS).findings.list.filter(f => f.severity !== 'info').map(f => `${f.rule} ${f.file}#${f.pointer}`);
+    };
+    const editJson = (t: typeof tree, path: string, fn: (v: any) => void) => {
+        const v = JSON.parse(Buffer.from(t.get(path)!).toString()); fn(v); t.set(path, new Uint8Array(Buffer.from(JSON.stringify(v))));
+    };
+    const room = [...tree.keys()].find(p => p.startsWith('maps/') && p.endsWith('/map.json'))!;
+    assert.deepStrictEqual(rules(t => editJson(t, room, m => { m.tileFamilies[0] = 'no_such_family'; })), [`unknown-reference ${room}#/tileFamilies/0`]);
+    assert.deepStrictEqual(rules(t => editJson(t, 'tile_families/family_000.json', f => { f.colours[3] = '#123456'; })), ['invalid-value tile_families/family_000.json#/colours/3']);
+    console.log('  ✓ a map naming a missing family, and a colour the SNES cannot show, are errors');
 }

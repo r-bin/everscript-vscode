@@ -7,6 +7,9 @@ import type { Findings } from './findings.mts';
 import type { Manifest } from './manifest.mts';
 import type { Tree } from './tree.mts';
 
+/** Names any exploded resource by kind and id. */
+export type NameOf = (kind: string, id: number) => string;
+
 /** A file-offset range, end exclusive. */
 export interface Span { start: number; end: number }
 
@@ -50,8 +53,13 @@ export interface Codec {
     version: number;
     /** The top-level folder of the tree this kind owns. */
     path: string;
-    /** `names[id]`: the names to give by id (the tree's own enum, on a round trip); default: the repo's names. */
-    explode(rom: Uint8Array, names?: (string | null)[]): Exploded;
+    /** The name explode gives resource `id` when nothing else names it (the repo's own names, or kind + id). */
+    defaultName(id: number): string;
+    /**
+     * `name(kind, id)`: the name of any kind's resource, for this kind's files and its references to other kinds
+     * (the tree's own enums on a round trip, else each kind's defaultName).
+     */
+    explode(rom: Uint8Array, name: NameOf): Exploded;
     /** The names of the resources in the tree (folder or file names, unordered); stray files are warnings. */
     names(ctx: ImplodeContext): Set<string>;
     /** Reads, validates and encodes the resources; findings go to ctx.findings. */

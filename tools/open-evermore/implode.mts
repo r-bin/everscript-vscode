@@ -50,12 +50,17 @@ export function implode(tree: Tree, game: string, kinds: Codec[], opts: Options 
     const ctx = { tree, manifest, size, base, findings, ids: new Map<string, Map<string, number>>() };
     const items: Item[] = [];
     const stats: KindStats[] = [];
+    // Every enum first: a kind's resources reference other kinds by name.
+    const present = new Map<string, Set<string>>();
     for (const codec of kinds) {
         const names = codec.names(ctx);
+        present.set(codec.kind, names);
         const path = `${codec.path}/${ENUM}`;
         const ids = resolveEnum(path, tree.get(path), names, findings);
         if (ids) ctx.ids.set(codec.kind, ids);
-        const list = codec.encode(ctx, names);
+    }
+    for (const codec of kinds) {
+        const list = codec.encode(ctx, present.get(codec.kind)!);
         items.push(...list);
         const changed = list.filter(i => base.homeSha1.get(i.key) !== sha1(i.bytes)).length;
         stats.push({ kind: codec.kind, items: list.length, bytes: list.reduce((s, i) => s + i.bytes.length, 0), changed, moved: 0 });

@@ -66,7 +66,7 @@ General rules; each kind adds its own in [resources.md](resources.md).
 | `round-trip` | error | exploding the built ROM does not give the folder back; names the resource (`manifest.json` is left out: explode always writes the default regions) |
 | `changed`, `random` | info | resources or enums changed since explode, so G0 was not checked; a random layout, its seed and how many resources moved |
 
-Built so far *(S1)*: `missing-file`, `parse-error`, `schema`, `bad-name`, `duplicate-name`, `locked-name-missing`,
+Built so far *(S2)*: `unknown-reference`, `missing-file`, `parse-error`, `schema`, `bad-name`, `duplicate-name`, `locked-name-missing`,
 `id-gap`, `id-over-limit`, `invalid-value`, `over-budget`, `base-changed`, `size-mismatch`, `no-space`,
 `unsupported-layout`, `outside-image`, `wrong-region`, `region-gap`, `region-overlap`, `header-mismatch`,
 `g0-failed`, `round-trip`, `unknown-file`, `unlocked-id`, `changed`, `random`. The rest come with the kinds that

@@ -43,13 +43,14 @@ Planned: `rename` (a resource and every reference to it, logged in the manifest)
 | `tree.mts`, `findings.mts`, `report.mts` | the tree as path → bytes; findings; terminal and `report.md` |
 | `evermore/kinds.mts` | Evermore's kinds, in migration order — the only place with game facts, with `evermore/codecs/` |
 | `evermore/codecs/maps.mts` | the maps kind ([resources.md](resources.md) §maps) |
+| `evermore/codecs/tile-families.mts` | the tile families kind: the array and its two loader operands |
 
 ## 3. Implode, step by step
 
 Each step can be tested on its own (`tests/open-evermore/`):
 
 1. **Manifest and base** (`manifest.mts`, `base.mts`): schema, regions cover the image, `_base/` unedited.
-2. **Names → ids** (`enum.mts`): per kind, from `_enum.json`; new names get free ids.
+2. **Names → ids** (`enum.mts`): every kind's enum, before any encoding, since resources name other kinds.
 3. **Encode** (each codec): read, check, encode every resource into bytes with its placement rule.
 4. **Place** (`layout.mts`): free space = the pool the kinds gave up + `free` manifest regions.
    - *stable*: every resource at its home if it still fits its old footprint; the rest first fit. An unchanged
@@ -66,8 +67,10 @@ Each step can be tested on its own (`tests/open-evermore/`):
 ```ts
 interface Codec {
   kind: string; version: number; path: string;
-  /** ROM → files, the pool its resources occupied, its table space, each resource's home. */
-  explode(rom: Uint8Array, names?: (string | null)[]): Exploded;
+  /** The name of resource `id` when nothing else names it. */
+  defaultName(id: number): string;
+  /** ROM → files, pool, table space, homes; `name(kind, id)` names any kind's resource (cross-kind references). */
+  explode(rom: Uint8Array, name: NameOf): Exploded;
   /** The resource names in the tree (unordered); stray files are warnings. */
   names(ctx: ImplodeContext): Set<string>;
   /** Check and encode; findings go to ctx.findings. */
@@ -86,6 +89,7 @@ random and `prove` pass.
 | Kind | Decoder | Encoder |
 |---|---|---|
 | maps | `src/games/evermore/maps` (`modelFromRom`, `parseBlobLayout`, `objectAreaEnd`) | `buildBlob` |
+| tile families | `maps.decodeRoom` (the count), the bytes themselves (BGR555) | BGR555 from `#rrggbb` |
 | names | `src/games/evermore/localizations/data/rooms.json` | — |
 | next kinds | `src/platform/cdl/table-assets.ts`, `resources/`, `script-model/`, `sprites/` | to write per kind |
 

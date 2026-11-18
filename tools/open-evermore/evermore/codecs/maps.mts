@@ -7,8 +7,8 @@
 //               in the order of maps/_enum.json
 //   pointer     bus form $80-$BF:8000+ (= 0x800000 | file offset of an upper half)
 //   blob        upper half of a bank, never across a bank, at most 32 KiB
-// The blob still holds ids of resources no kind owns yet (tile families, graphics, script ids): they stay numbers
-// until those kinds are exploded.
+// References to exploded kinds are names (tileFamilies → tile_families/); the ids of kinds not exploded yet
+// (graphics, script ids) stay numbers until their kinds are.
 import { createRequire } from 'node:module';
 import type { Codec, ImplodeContext, Item, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
@@ -21,7 +21,8 @@ const ROOMS: { id: number; path: string }[] = require('../../../../src/games/eve
 
 const DIR = 'maps', FILE = 'map.json';
 const STRIDE = 4, COUNT = 127, MAX_BLOB = 0x8000;
-const FORMAT = 'open-evermore/map', VERSION = 1;
+const FORMAT = 'open-evermore/map', VERSION = 2;
+const FAMILIES = 'tile_families';
 
 interface Block { sub: number; decomp: number; data: Uint8Array }
 interface Trigger { y1: number; x1: number; y2: number; x2: number; scriptId: number }
@@ -42,13 +43,13 @@ const b64 = (b: Uint8Array) => Buffer.from(b).toString('base64');
 const block = (b: Block) => ({ sub: b.sub, decomp: b.decomp, data: b64(b.data) });
 const trigger = (t: Trigger) => ({ area: [t.y1, t.x1, t.y2, t.x2], script: t.scriptId });
 
-function toJson(m: RoomModel): unknown {
+function toJson(m: RoomModel, family: (id: number) => string): unknown {
     return {
         format: FORMAT, version: VERSION,
         header: hex(m.header),
         stepOn: m.stepOn.map(trigger),
         bTrigger: m.bTrigger.map(trigger),
-        tileFamilies: m.tileFamilies,
+        tileFamilies: m.tileFamilies.map(family),
         extras: hex(m.extras),
         block1: block(m.block1),
         section2: { count: m.section2Count, data: b64(m.section2Data) },
@@ -86,10 +87,21 @@ function fromJson(v: any, file: string, ctx: ImplodeContext): RoomModel | null {
     if (v?.format !== FORMAT || v?.version !== VERSION) { ctx.findings.error('schema', file, '/format', `"${FORMAT}", version ${VERSION}`); return null; }
     const header = bytesHex(v.header, '/header');
     if (header && header.length !== 13) return bad('/header', '13 bytes');
+    const families = ctx.ids.get(FAMILIES) ?? new Map<string, number>();
+    const familyIds = (list: unknown, p: string): number[] | null => {
+        if (!Array.isArray(list) || list.length > 0xFF) return bad(p, 'a list of tile family names');
+        const out: number[] = [];
+        for (let i = 0; i < list.length; i++) {
+            const id = families.get(list[i]);
+            if (id === undefined) { ctx.findings.error('unknown-reference', file, `${p}/${i}`, `no tile family "${list[i]}" in ${FAMILIES}/`); return null; }
+            out.push(id);
+        }
+        return out;
+    };
     const words = (list: unknown, p: string, max: number) => Array.isArray(list) && list.length <= max && list.every(isWord) ? list as number[] : bad(p, `at most ${max} words`);
     const m = {
         header, stepOn: triggers(v.stepOn, '/stepOn'), bTrigger: triggers(v.bTrigger, '/bTrigger'),
-        tileFamilies: words(v.tileFamilies, '/tileFamilies', 0xFF), extras: bytesHex(v.extras, '/extras'),
+        tileFamilies: familyIds(v.tileFamilies, '/tileFamilies'), extras: bytesHex(v.extras, '/extras'),
         block1: blk(v.block1, '/block1'), section2Count: isByte(v.section2?.count) ? v.section2.count : bad('/section2/count', 'a byte'),
         section2Data: bytesB64(v.section2?.data, '/section2/data'), objectOffsets: words(v.objectOffsets, '/objectOffsets', 0xFF),
         block2: blk(v.block2, '/block2'), section4: bytesB64(v.section4, '/section4'), block3: blk(v.block3, '/block3'),
@@ -100,9 +112,11 @@ function fromJson(v: any, file: string, ctx: ImplodeContext): RoomModel | null {
 }
 
 export const mapsCodec: Codec = {
-    kind: 'maps', version: 1, path: DIR,
+    kind: 'maps', version: 2, path: DIR,
 
-    explode(rom, given) {
+    defaultName: mapName,
+
+    explode(rom, name) {
         const files: Tree = new Map();
         const table = maps.mapTableOffset(rom);
         const names: string[] = [];
@@ -113,11 +127,11 @@ export const mapsCodec: Codec = {
             const model = maps.modelFromRom(rom, id);
             const blob: Uint8Array = maps.buildBlob(model);
             if (sha1(blob) !== sha1(rom.subarray(at, end))) throw new Error(`room ${id}: the encoder does not give its bytes back; explode would lose data`);
-            const name = given?.[id] ?? mapName(id);
-            names.push(name);
-            files.set(`${DIR}/${name}/${FILE}`, json(toJson(model)));
+            const n = name('maps', id);
+            names.push(n);
+            files.set(`${DIR}/${n}/${FILE}`, json(toJson(model, f => name(FAMILIES, f))));
             pool.push({ start: at, end });
-            homes.push({ key: `${DIR}/${name}`, at, length: blob.length, sha1: sha1(blob) });
+            homes.push({ key: `${DIR}/${n}`, at, length: blob.length, sha1: sha1(blob) });
         }
         files.set(`${DIR}/${ENUM}`, enumFile({
             kind: 'maps', limit: COUNT, names,

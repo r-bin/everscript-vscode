@@ -2,7 +2,8 @@
 // adds its codec here; whatever no kind owns stays in `_base/`.
 import type { Codec } from '../codec.mts';
 import { mapsCodec } from './codecs/maps.mts';
+import { tileFamiliesCodec } from './codecs/tile-families.mts';
 
 export const GAME = 'evermore';
 
-export const KINDS: Codec[] = [mapsCodec];
+export const KINDS: Codec[] = [mapsCodec, tileFamiliesCodec];

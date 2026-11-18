@@ -10,10 +10,12 @@ import type { Tree } from './tree.mts';
 
 /** The tree of `rom`. `base` names the ROM the tree belongs to (the ROM itself, or the original on a round trip). */
 export function explode(rom: Uint8Array, base: Manifest['base'], game: string, kinds: Codec[], names?: Map<string, (string | null)[]>): Tree {
+    const byKind = new Map(kinds.map(k => [k.kind, k]));
+    const name = (kind: string, id: number): string => names?.get(kind)?.[id] ?? byKind.get(kind)?.defaultName(id) ?? `${kind}_${id.toString(16)}`;
     const tree: Tree = new Map();
     const parts: { kind: string; out: Exploded }[] = [];
     for (const codec of kinds) {
-        const out = codec.explode(rom, names?.get(codec.kind));
+        const out = codec.explode(rom, name);
         for (const [path, bytes] of out.files) tree.set(path, bytes);
         parts.push({ kind: codec.kind, out });
     }
