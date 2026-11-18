@@ -1,6 +1,9 @@
 # The split/link tool: plan
 
-Status: **design (2026-11-18), nothing built.** This page plans the tool behind [README.md](README.md):
+Status: **design (2026-11-18), nothing built. Partly superseded by [../open-evermore/](../open-evermore/README.md)**:
+the tool is `tools/open-evermore/` with explode / implode, one tree keyed by names (no `game/` + `mods/`, no
+`<id>-<slug>` folders) and `manifest.json` as the memory map. The link steps (§5), allocator (§5.4), compiler (§7)
+and promotion (§10.4) below still hold. This page plans the tool behind [README.md](README.md):
 
 - **`split`** turns the user's ROM into a source tree.
 - **`link`** turns the tree, plus your additions, back into a ROM.

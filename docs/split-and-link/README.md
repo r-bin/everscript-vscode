@@ -1,6 +1,7 @@
 # Split and link: Evermore as parts that Asar puts back together
 
-Status: **idea and gap analysis (2026-11-18), nothing built beyond what §2 lists.** The goal: take Evermore apart
+Status: **idea and gap analysis (2026-11-18), nothing built beyond what §2 lists.** The tool is now planned as
+[Open Evermore](../open-evermore/README.md) (explode / implode, resources by name, validation); this folder keeps the reasoning. The goal: take Evermore apart
 into documented assembly and editable assets, add content by adding files, and let one build put it all back into
 a ROM. Labels as in [../exhirom/layout-options.md](../exhirom/layout-options.md): *(repo)* = read in our code, docs or
 the ROM; *(hardware)* = generic SNES; *(estimate)*; *(to verify)*.
