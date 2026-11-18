@@ -16,7 +16,7 @@ A kind is **done** when all five columns are ✅:
 
 | Step | Kind | Explode | Implode | G0 + round trip | Validation | VFS by name | Bytes left in `raw/` | Notes |
 |---|---|---|---|---|---|---|---|---|
-| S0 | skeleton: manifest, raw | ⬜ | ⬜ | ⬜ | ⬜ | — | all (3 MiB) | implode writes bytes itself, no Asar |
+| S0 | skeleton: manifest, raw | ✅ | ✅ | ✅ | ✅ | — | all (3 MiB, 48 bank files) | implode writes bytes itself, no Asar; no BPS yet (nothing can change) |
 | S1 | header | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ (`header.json` exists) | | vectors stay raw labels until S10 |
 | S2 | tables | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ (168 by name) | | kinds take their tables over later |
 | S3 | palettes (tile families) | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | | |
@@ -46,3 +46,4 @@ Opened per kind, once its readers are symbols ([README.md](README.md) §7.4).
 | Date | Step | What |
 |---|---|---|
 | 2026-11-18 | — | project documented: README, manifest, resources, validation, tool, this page |
+| 2026-11-18 | S0 | `tools/open-evermore/`: `npm run explode` writes `manifest.json` + `raw/` (48 banks); `npm run implode` validates, rebuilds, checks the header against the manifest, G0 and the round trip. US 1.0: sha1 `79e77386…` back, 0 errors, 0 warnings. Tests: `s0` (unit, 14 cases), `g0` (rom) |

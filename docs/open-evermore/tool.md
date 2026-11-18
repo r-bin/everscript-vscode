@@ -23,14 +23,18 @@ npm run oe:prove -- <dir>                  # implode, then the stored playbacks 
 
 Inputs are found as other tools find them *(repo)*: the ROM through `tools/roms.js`, the CDL library with
 `--lib` (default: the extension's global storage), Asar with `--asar`, `$ASAR`, `PATH`, then `../asar/`.
-The names are an open question ([README.md](README.md) §9 Q2).
+Built *(S0)*: `explode` (with `--out`, `--force`) and `implode` (with `--check-only`, `--strict`); the others come
+with the steps that need them. The names may still change ([README.md](README.md) §9 Q2).
 
 ## 2. Files
 
+Built *(S0)*: `README.md` (with the invariants; no `AGENTS.md`, as no other tool has one), `explode.mts`,
+`implode.mts`, `manifest.mts`, `codec.mts`, `raw.mts` (the raw kind is game-neutral, so it sits at the top),
+`tree.mts`, `findings.mts` (planned as `validate.mts`), `report.mts`, `evermore/kinds.mts`. The rest is the plan:
+
 ```
 tools/open-evermore/
-  README.md            how to run it; links here
-  AGENTS.md            invariants: G0 on a fresh tree, no warnings on vanilla, no ROM bytes in the repo, one decoder
+  README.md            how to run it; links here; the invariants: G0 on a fresh tree, no warnings on vanilla, no ROM bytes in the repo, one decoder
   explode.mts          CLI: ROM → tree; writes manifest, header, kinds done so far, raw/ for the rest
   implode.mts          CLI: tree → _build/ (§3)
   rename.mts           CLI: rename + rewrite references (every kind declares where its references are)
@@ -114,7 +118,7 @@ Until promotion, the editor sees an imploded ROM the usual way: `soe://rom/…?r
 
 | Test | Tier | What |
 |---|---|---|
-| `tests/open-evermore/tree.test.mts`, `validate.test.mts`, `layout.test.mts`, `rename.test.mts` | unit (`npm test`) | synthetic trees: names, locks, every rule of validation.md §3 with one failing case each |
+| `tests/open-evermore/s0.test.mts` *(built)*; later per step | unit (`npm test`) | synthetic trees: names, locks, every rule of validation.md §3 with one failing case each |
 | `tests/open-evermore/codecs.test.mts` | `rom` | every codec over every vanilla resource of its kind: explode → encode = vanilla bytes |
-| `tests/open-evermore/g0.test.mts` | `rom` | explode + implode of the base ROM: vanilla sha1, no errors, **no warnings** |
+| `tests/open-evermore/g0.test.mts` *(built)* | `rom` | explode + implode of the base ROM: vanilla sha1, no errors, **no warnings** |
 | `npm run oe:prove` | on demand | playbacks; never in a test tier (`test-discipline` skill) |

@@ -16,15 +16,17 @@ The order of this page is the migration order ([progress.md](progress.md)).
 **Folder.** `raw/<region>.bin` + `raw/_raw.json`:
 
 ```jsonc
-{ "regions": [ { "name": "c0_8000", "at": "$C08000", "length": "0x1234", "file": "c0_8000.bin",
+{ "regions": [ { "name": "bank_c0", "at": "$C00000", "length": "0x10000", "file": "bank_c0.bin",
                  "sha1": "…", "why": "not yet exploded" } ] }
 ```
 
-- Named by address, since nothing else knows them. A region is pinned to its address.
+- Named by address, since nothing else knows them: `bank_c0` for a whole bank, `raw_c08000` for a stretch that
+  starts inside one. A file never crosses a bank. A region is pinned to its address *(built: `raw.mts`)*.
 - Each step of [progress.md](progress.md) cuts bytes out of `raw/` and gives them to a kind. When `raw/` is empty,
   the folder describes the whole ROM.
 - **Limits.** A `.bin` whose length or sha1 differs from `_raw.json` is an error (`raw-changed`): raw bytes are
-  not for editing, since nothing checks what they mean.
+  not for editing, since nothing checks what they mean. A `.bin` in `raw/` that the index does not list is a
+  warning (`unknown-file`) and is ignored.
 
 ## header
 

@@ -27,6 +27,8 @@
   "tests/terra/terra-maps-model.test.mts",
   "tests/imports/redraw.test.mts",
   "tests/imports/status.test.mts",
+  "tests/open-evermore/s0.test.mts",
+  "tests/msu1/msu1.test.mts",
   "tests/debugger/emulator-audio.test.mts",
   "tests/debugger/emulator-gamepad.test.mts",
   "tests/debugger/debugger.test.js",
@@ -72,6 +74,7 @@
   "tests/mana/mana-rom.test.js",
   "tests/mana/mana-evermore.test.js",
   "tests/terra/terra-rom.test.mts",
+  "tests/open-evermore/g0.test.mts",
   "tests/terra/terra-evermore.test.js",
   "tests/debugger/rom-history.test.js"
  ],

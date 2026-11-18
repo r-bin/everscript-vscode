@@ -53,14 +53,23 @@ General rules; each kind adds its own in [resources.md](resources.md).
 | `pinned-grew` | error | a resource that is still read through a raw address got bigger; names the reader |
 | `no-space` | error | the allocator found no place under the placement rules |
 | `unsupported-layout`, `unsupported-release` | error | [manifest.md](manifest.md) §1.1, §1.5 |
+| `outside-image`, `wrong-region`, `write-overlap` | error | a resource writes past the image, outside a `resources` / `header` region, or onto bytes another resource writes |
+| `header-mismatch` | error | the built header says another map mode, fast ROM, SRAM size, or a ROM size smaller than the image, than `manifest.json` ([manifest.md](manifest.md) §1.2) |
 | `region-gap`, `region-overlap`, `rule-loosened` | error | [manifest.md](manifest.md) §1.3–§1.4 |
 | `derived-field` | warning / error | a derived header field written by hand: warning if it agrees, error if not ([manifest.md](manifest.md) §2) |
+| `unknown-file` | warning | a file no kind owns, or a `raw/` file the index does not list; ignored |
 | `unreferenced` | warning | nothing references the resource (kinds that the game reaches only by reference) |
 | `unlocked-id` | warning | a name got an id that is not in the lock yet; `--lock` writes it |
 | `duplicate-content` | warning | two resources with identical content (tiles, palettes) |
 | `slow-hot` | warning | a resource measured as hot lands in slow ROM (from `exhirom` on) |
 | `g0-failed` | error | the tree is unchanged since explode, yet the ROM differs; names the first differing resource |
-| `round-trip` | error | exploding the built ROM does not give the folder back; names the resource |
+| `round-trip` | error | exploding the built ROM does not give the folder back; names the resource (`manifest.json` is left out: explode always writes the default regions) |
+| `unwritten`, `changed` | info | bytes no resource writes (filled with `$FF`); resources changed since explode, so G0 was not checked |
+
+Built so far *(S0)*: everything in this table except `bad-name` for kinds other than raw, `unknown-reference`,
+`locked-name-missing`, `id-over-limit`, `invalid-value`, `over-budget`, `pinned-grew`, `no-space`,
+`unsupported-release`, `rule-loosened`, `derived-field`, `unreferenced`, `unlocked-id`, `duplicate-content`,
+`slow-hot`: those come with the kinds and the allocator that need them.
 
 ## 4. The report
 
