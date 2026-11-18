@@ -106,6 +106,32 @@ export function checkManifest(m: Manifest, f: Findings): number | null {
     return f.failed ? null : size;
 }
 
+/** The 4 checksum bytes at $FFDC (complement, checksum): generated, so explode blanks them in `_base/`. */
+export const CHECKSUM: { start: number; end: number } = { start: 0xFFDC, end: 0xFFE0 };
+
+/**
+ * Writes the header checksum (hardware): the 16-bit sum of every byte, with an image that is not a power of two
+ * counted as the largest power of two below its size plus the rest repeated up to that size again (3 MiB = 2 MiB
+ * + the last 1 MiB twice). The complement/checksum pair is summed as $FF $FF $00 $00, which the final values
+ * always add up to as well.
+ */
+export function writeChecksum(image: Uint8Array): number {
+    image.set([0xFF, 0xFF, 0x00, 0x00], CHECKSUM.start);
+    let low = 1;
+    while (low * 2 <= image.length) low *= 2;
+    let sum = 0;
+    for (let i = 0; i < low; i++) sum += image[i];
+    const rest = image.length - low;
+    if (rest) {
+        let part = 0;
+        for (let i = low; i < image.length; i++) part += image[i];
+        sum += part * (low / rest);
+    }
+    const checksum = sum & 0xFFFF;
+    image.set([~checksum & 0xFF, (~checksum >> 8) & 0xFF, checksum & 0xFF, checksum >> 8], CHECKSUM.start);
+    return checksum;
+}
+
 /** The built image's header must say what the manifest says (manifest.md §1.2, §2). */
 export function checkHeader(m: Manifest, image: Uint8Array, f: Findings): void {
     const h = headerMemoryMap(image);

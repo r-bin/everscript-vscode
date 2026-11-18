@@ -39,3 +39,21 @@ Internal functional partitions:
   once claimed so). Behaviour outside the screen: `docs/entities/off-screen-behaviour.md`.
 
 Immediately followed at `$7E:0100` by the PPU Shadow Register mirror block.
+
+## Long pointers into the room blob (measured 2026-11-19)
+
+`tools/open-evermore` moved 112–119 of the 127 room blobs (`--random` 42, 7, 123456) and played the attract loop
+and the 2m20 intro on the moved and the original ROM in lockstep. WRAM differed only in these 24-bit pointers, each
+pointing to the same room and offset in both (`docs/open-evermore/progress.md`, S1):
+
+| Pointer (lo, hi, bank) | Holds |
+|---|---|
+| `$2A..$2C`, `$36..$38` | a position inside the room blob being read (they change while a room loads) |
+| `$8B..$8D` | a position inside the blob; so `$8B` is not (only) the audio handshake the partition list above says *(to verify which routine writes it)* |
+| `$A7..$A9`, `$B0..$B2` | a position inside the blob, kept after the load |
+| `$AA..$AC` | **one past the end** of the blob (room `$31`: `$AC:DE7C`, where the next blob starts) |
+| `$7E:1064`, `$7E:1069` | the trigger table pointers (ROOM_METATILE_TRIGGER_TABLE_PTR, ROOM_STEP_TRIGGER_TABLE_PTR) |
+
+Nothing else in WRAM, the screen or the PC changed, so the engine keeps no fixed blob address: rooms can move
+anywhere their placement rule allows (upper half, no bank crossing, ≤ 32 KiB). Which routine fills each slot is
+not traced yet.

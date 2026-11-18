@@ -45,31 +45,32 @@ General rules; each kind adds its own in [resources.md](resources.md).
 | `bad-name` | error | a name breaks the name rules ([README.md](README.md) §4) |
 | `duplicate-name` | error | two resources of one kind share a name (`code/a/x.asm` and `code/b/x.asm`) |
 | `unknown-reference` | error | a reference names no resource of its kind; the report lists the closest names |
-| `locked-name-missing` | error | `_ids.json` names a resource that is not there |
+| `locked-name-missing` | error | `_enum.json` names a resource that is not there (set the entry to `null` to delete it) |
+| `id-gap` | error | the kind's table cannot skip an id, yet the enum has a `null` there |
 | `id-over-limit` | error | a new id passes the kind's limit; the report gives the limit's reason |
 | `invalid-value` | error | a value outside its range (a colour channel, a size, a character the font lacks) |
 | `over-budget` | error | a limit is exceeded (graphics slots, families, blob size, audio RAM) |
-| `raw-changed` | error | a `raw/` file was edited ([resources.md](resources.md) §raw) |
-| `pinned-grew` | error | a resource that is still read through a raw address got bigger; names the reader |
+| `base-changed`, `size-mismatch` | error | `_base/unexploded.bin` was edited, or its size is not the manifest's ([resources.md](resources.md) §_base) |
 | `no-space` | error | the allocator found no place under the placement rules |
 | `unsupported-layout`, `unsupported-release` | error | [manifest.md](manifest.md) §1.1, §1.5 |
 | `outside-image`, `wrong-region`, `write-overlap` | error | a resource writes past the image, outside a `resources` / `header` region, or onto bytes another resource writes |
 | `header-mismatch` | error | the built header says another map mode, fast ROM, SRAM size, or a ROM size smaller than the image, than `manifest.json` ([manifest.md](manifest.md) §1.2) |
 | `region-gap`, `region-overlap`, `rule-loosened` | error | [manifest.md](manifest.md) §1.3–§1.4 |
 | `derived-field` | warning / error | a derived header field written by hand: warning if it agrees, error if not ([manifest.md](manifest.md) §2) |
-| `unknown-file` | warning | a file no kind owns, or a `raw/` file the index does not list; ignored |
+| `unknown-file` | warning | a file no kind owns, or a stray file inside a kind's folder; ignored |
 | `unreferenced` | warning | nothing references the resource (kinds that the game reaches only by reference) |
-| `unlocked-id` | warning | a name got an id that is not in the lock yet; `--lock` writes it |
+| `unlocked-id` | warning | a resource the enum does not list got the lowest free id; list it to keep it |
 | `duplicate-content` | warning | two resources with identical content (tiles, palettes) |
 | `slow-hot` | warning | a resource measured as hot lands in slow ROM (from `exhirom` on) |
 | `g0-failed` | error | the tree is unchanged since explode, yet the ROM differs; names the first differing resource |
 | `round-trip` | error | exploding the built ROM does not give the folder back; names the resource (`manifest.json` is left out: explode always writes the default regions) |
-| `unwritten`, `changed` | info | bytes no resource writes (filled with `$FF`); resources changed since explode, so G0 was not checked |
+| `changed`, `random` | info | resources or enums changed since explode, so G0 was not checked; a random layout, its seed and how many resources moved |
 
-Built so far *(S0)*: everything in this table except `bad-name` for kinds other than raw, `unknown-reference`,
-`locked-name-missing`, `id-over-limit`, `invalid-value`, `over-budget`, `pinned-grew`, `no-space`,
-`unsupported-release`, `rule-loosened`, `derived-field`, `unreferenced`, `unlocked-id`, `duplicate-content`,
-`slow-hot`: those come with the kinds and the allocator that need them.
+Built so far *(S1)*: `missing-file`, `parse-error`, `schema`, `bad-name`, `duplicate-name`, `locked-name-missing`,
+`id-gap`, `id-over-limit`, `invalid-value`, `over-budget`, `base-changed`, `size-mismatch`, `no-space`,
+`unsupported-layout`, `outside-image`, `wrong-region`, `region-gap`, `region-overlap`, `header-mismatch`,
+`g0-failed`, `round-trip`, `unknown-file`, `unlocked-id`, `changed`, `random`. The rest come with the kinds that
+need them.
 
 ## 4. The report
 

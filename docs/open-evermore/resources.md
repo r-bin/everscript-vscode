@@ -7,26 +7,20 @@ uses its names. **Implode generates**: the tables and counts it writes from the 
 checks. **Codec**: the decoder and encoder in the repo it reuses (never copies, AGENTS.md §0.9). Counts and
 addresses are US 1.0 *(repo)*.
 
-The order of this page is the migration order ([progress.md](progress.md)).
+The migration order is in [progress.md](progress.md); maps came first.
 
 ---
 
-## raw — everything not yet exploded
+## _base — everything not yet exploded
 
-**Folder.** `raw/<region>.bin` + `raw/_raw.json`:
+**Folder.** `_base/unexploded.bin` + `_base/_base.json` *(built: `base.mts`)*.
 
-```jsonc
-{ "regions": [ { "name": "bank_c0", "at": "$C00000", "length": "0x10000", "file": "bank_c0.bin",
-                 "sha1": "…", "why": "not yet exploded" } ] }
-```
-
-- Named by address, since nothing else knows them: `bank_c0` for a whole bank, `raw_c08000` for a stretch that
-  starts inside one. A file never crosses a bank. A region is pinned to its address *(built: `raw.mts`)*.
-- Each step of [progress.md](progress.md) cuts bytes out of `raw/` and gives them to a kind. When `raw/` is empty,
-  the folder describes the whole ROM.
-- **Limits.** A `.bin` whose length or sha1 differs from `_raw.json` is an error (`raw-changed`): raw bytes are
-  not for editing, since nothing checks what they mean. A `.bin` in `raw/` that the index does not list is a
-  warning (`unknown-file`) and is ignored.
+- Not a resource: the ROM with every exploded resource (the *pool*) and every generated table blanked to `$FF`,
+  pinned where it is. `_base.json` lists the pool and table ranges, each resource's home (address, length,
+  sha1) and each enum's sha1, so implode knows what changed.
+- **Not split into banks or regions**: a piece of `_base/` would be a resource nothing references by name, which
+  the hard rule forbids ([README.md](README.md) §1). Each step explodes one kind out of it.
+- **Limits.** An edited `_base/unexploded.bin` is an error (`base-changed`): change a resource through its kind.
 
 ## header
 
@@ -51,7 +45,7 @@ implode checks that the low 3 bits of each channel are 0).
 
 - **References.** Used by maps (a room's family slots, by name). Uses nothing.
 - **Implode generates**: the family table at `$9CC322` *(repo: 365 families; moved once and proven,
-  [../extension-tables.md](../extension-tables.md))*, ids from `palettes/_ids.json`.
+  [../extension-tables.md](../extension-tables.md))*, ids from `palettes/_enum.json`.
 - **Limits.** Exactly 16 colours (`invalid-value`). A family no map uses is a warning (`unreferenced`).
 - **Codec.** Palette decoding *(repo: `resources/`, `maps/` palette extraction)*; encoding is the inverse
   (trivial).
@@ -98,7 +92,7 @@ music/village_on_the_plateau/
 
 ## tiles — the master 16×16 tile graphics
 
-**Folder.** `tiles/<tile>.png` (indexed, 16 colours, 16×16) + `tiles/_ids.json`.
+**Folder.** `tiles/<tile>.png` (indexed, 16 colours, 16×16) + `tiles/_enum.json`.
 
 - **Names.** `tile_<hexid>` at first; the user's example `floor_sand_01` comes from renaming. Naming 6,688 tiles
   is work for a tool: group by the rooms and families that use them, propose names, let the user accept
@@ -106,7 +100,7 @@ music/village_on_the_plateau/
 - **References.** Used by maps (the graphics list and the metatile dictionary, by name). Uses nothing: the
   colours come from the family a map pairs it with.
 - **Implode generates**: the master table at `$EE0000` *(repo: 6,688 tiles; ~21,800 possible after the move,
-  to verify)*, ids from `tiles/_ids.json`.
+  to verify)*, ids from `tiles/_enum.json`.
 - **Limits.** 16×16, at most 16 colours (`invalid-value`); a room's graphics list ≤ 264 slots
   ([../map-format/room-reference.md](../map-format/room-reference.md) §3) is a map limit.
 - **Logic warnings.** Two tiles with identical pixels (`duplicate-content`); a tile no map uses (`unreferenced`).
@@ -115,45 +109,61 @@ music/village_on_the_plateau/
   (`invalid-value` otherwise). G0: unchanged tiles keep their original compressed bytes (cached by pixel hash)
   until the compressor reproduces them.
 
-## maps — rooms
+## maps — rooms *(built, S1)*
 
 **Folder.**
 
 ```
-maps/pyramid_outside/
-  map.json            the room: header, families, grid, dictionary, triggers, objects, animation — by name
-  scripts/            the room's enter and trigger scripts (or references into scripts/, see below)
+maps/_enum.json                      names[id]: the map table's order (README.md §4)
+maps/<map>/map.json                  one room
 ```
 
-`map.json` is the decoded blob ([../map-format/room-reference.md](../map-format/room-reference.md) §3), as in
-the blob-as-JSON of [../map-format/building-a-room-from-scratch.md](../map-format/building-a-room-from-scratch.md)
-§2, with every id replaced by a name:
+`map.json` today is the room model the repo's encoder reads and writes (`modelFromRom` / `buildBlob`
+*(repo)*), losslessly, in JSON:
 
-| Blob field *(repo)* | In `map.json` |
+```jsonc
+{
+  "format": "open-evermore/map", "version": 1,
+  "header": "…",                                   // 13 bytes, hex (room-reference.md §4)
+  "stepOn":   [{ "area": [y1, x1, y2, x2], "script": 1234 }],
+  "bTrigger": [{ "area": [y1, x1, y2, x2], "script": 1240 }],
+  "tileFamilies": [36, 37, 38],                    // ids into the family table (S2 makes them names)
+  "extras": "…",                                   // palette-cycle descriptors, hex
+  "block1": { "sub": 3, "decomp": 492, "data": "…base64…" },   // graphics list, kept compressed
+  "section2": { "count": 13, "data": "…" },        // animation channels
+  "objectOffsets": [0, 41],
+  "block2": { … }, "section4": "…", "block3": { … },            // grid, cuttable grass, dictionary
+  "objectArea": "…"                                // objects and stamps (offsets relative to it)
+}
+```
+
+The target is the readable form described below the table (tiles, families, scripts by name, grids decoded); it
+comes as the kinds it references are exploded and the encoder can write decoded grids.
+
+| Blob field *(repo)* | Target in `map.json` |
 |---|---|
 | graphics list (Block 1) | `"graphics": ["floor_sand_01", "tile_0a40", …]`: names in `tiles/` |
 | tile families | `"families": ["desert_day", …]`: names in `palettes/` (≤ 7 loaded at once) |
 | step-on / B-triggers | `{ "area": [y1, x1, y2, x2], "script": "pyramid_outside_door_north" }`: names in `scripts/` |
 | enter script | `"enter": "pyramid_outside_enter"` |
-| music (set by the enter script) | in the script, by name |
 | objects, animation, cuttable grass | as decoded, with tile references by name |
-| grid, dictionary | arrays of local indices, as decoded (the grid is the bulk; JSON arrays of numbers) |
+| grid, dictionary | arrays of local indices, decoded |
 
-- **Names.** From the room names already in the repo (`Antiqua › Pyramid › outside` → `pyramid_outside`
-  *(repo: `soe://rom/assets/maps/06/info.md`)*; D4: no new third-party names); `map_<hexid>` otherwise.
-- **References.** Used by scripts (doors: `change_map("pyramid_outside", entrance)`) and code that names a room.
-  Uses tiles, palettes, scripts, music.
-- **Implode generates**: each blob (`buildBlob`), the map table in bank `$9F` *(repo: 127 rooms)*, the enter
-  script pointers (`$928000 + 0x1B + 5·room` *(repo)*), ids from `maps/_ids.json`.
-- **Limits.** Every limit of the room reference table (sizes, 264 graphics, 7 families, 255 objects …, §3
-  there); blob ≤ 32 KiB, upper half, never across a bank.
-- **Logic warnings** *(proposal; each to be checked against vanilla first, so vanilla raises none it does
-  not deserve)*: a trigger outside the map; a door target entrance that does not exist; a family slot no
-  dictionary entry uses; the Boy's start on a solid cell.
-- **Codec.** `modelFromRom` → `buildBlob` round-trips all 127 rooms byte for byte *(repo:
-  `tests/memory/rom-export.test.js`)*. The map editor's custom map files
-  ([../map-format/custom-map-files.md](../map-format/custom-map-files.md)) stay the editor's own format; the
-  editor later saves into `maps/` (§ "Editors" in [tool.md](tool.md)).
+- **Names.** From `localizations/data/rooms.json` *(repo, our own wording)*: region + place + part in snake case
+  (`prehistoria_jungle_south_where_the_game_starts`); `map_<hexid>` for a room it does not name.
+- **Implode generates** the map table (127 × [24-bit pointer, pad 0], read by `$90:8F69` / `$90:8F6F` *(repo:
+  `tools/table-hack/tables.js`)*), in place, in the enum's order. The pointer is the `$80–$BF:8000+` form.
+- **Placement.** Upper half of a bank, never across a bank, ≤ 32 KiB *(repo: `writeRoomAt`)*. The vanilla rooms
+  fill `$9C–$AD` upper halves to within a few hundred bytes per bank (other data follows each bank's last room),
+  so `--random` shuffles rooms inside their bank; moving them between banks needs free space (`"size": "4MiB"`,
+  [progress.md](progress.md) §2).
+- **Proven (G1).** Seeds 42, 7, 123456, 99 moved 112–122 rooms; the stored playbacks played identically. The
+  engine keeps six long pointers into the current blob (`knowledge/wram/DIRECT_PAGE_BLOCK.md`), all translated.
+- **Limits.** Every field's range (`invalid-value`); blob ≤ 32 KiB (`over-budget`); 127 ids (the table stays put;
+  the engine allows 256).
+- **Still numbers:** tile families, graphics ids and script ids point into `_base/` until S2, S3, S6.
+- **Logic warnings** *(proposal; checked against vanilla first)*: a trigger outside the map; a door to an entrance
+  that does not exist; an unused family slot; the Boy's start on a solid cell.
 
 ## scripts
 

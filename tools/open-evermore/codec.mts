@@ -1,5 +1,8 @@
-// One codec per resource kind (docs/open-evermore/tool.md §4). Explode runs the kinds in order, each claiming the
-// ROM bytes it now owns; `raw` runs last and keeps the rest. Implode asks every kind for the bytes it writes.
+// One codec per resource kind (docs/open-evermore/tool.md §4).
+// Hard rule (README.md §1): every exploded resource is reached only through what implode generates (tables,
+// pointers), never through a fixed address. So a codec gives implode *items* to place anywhere their rule allows,
+// and writes the tables that point at wherever they landed. What no kind owns stays in `_base/`, pinned.
+import type { Base } from './base.mts';
 import type { Findings } from './findings.mts';
 import type { Manifest } from './manifest.mts';
 import type { Tree } from './tree.mts';
@@ -7,39 +10,52 @@ import type { Tree } from './tree.mts';
 /** A file-offset range, end exclusive. */
 export interface Span { start: number; end: number }
 
-export interface ExplodeContext {
-    rom: Uint8Array;
-    /** Ranges earlier kinds took. */
-    claimed: Span[];
+/** Where an item may go (manifest.md §1.4). */
+export interface Rule {
+    /** Only $xx:8000-$FFFF (the 32 KiB upper half of a bank). */
+    upperHalf?: boolean;
+    /** Never across a 64 KiB bank boundary. */
+    noCrossBank?: boolean;
+    maxSize?: number;
 }
 
+/** One placeable resource: `key` is `<kind>/<name>`. */
+export interface Item { key: string; file: string; bytes: Uint8Array; rule: Rule }
+
 export interface Exploded {
-    /** Files of this kind, by path inside the tree. */
     files: Tree;
-    claims: Span[];
+    /** Bytes the kind's resources occupied: implode may place any item there. */
+    pool: Span[];
+    /** Bytes implode generates (tables that point at items). */
+    tables: Span[];
+    /** Where each item was, and its bytes' sha1: the stable layout, and how implode tells what changed. */
+    homes: { key: string; at: number; length: number; sha1: string }[];
 }
 
 export interface ImplodeContext {
     tree: Tree;
     manifest: Manifest;
     size: number;
+    base: Base;
     findings: Findings;
+    /** Ids by name, per kind, from each folder's _enum.json (enum.mts); set before encode. */
+    ids: Map<string, Map<string, number>>;
 }
 
 /** Bytes for the image at a file offset, and the tree file they came from (for findings). */
 export interface Write { at: number; bytes: Uint8Array; file: string }
 
-export interface Imploded {
-    writes: Write[];
-    /** True when a resource differs from what explode wrote; G0 is checked only when no kind changed. */
-    changed: boolean;
-}
-
 export interface Codec {
     kind: string;
     version: number;
-    /** The top-level folder (or file) of the tree this kind owns. */
+    /** The top-level folder of the tree this kind owns. */
     path: string;
-    explode(ctx: ExplodeContext): Exploded;
-    implode(ctx: ImplodeContext): Imploded;
+    /** `names[id]`: the names to give by id (the tree's own enum, on a round trip); default: the repo's names. */
+    explode(rom: Uint8Array, names?: (string | null)[]): Exploded;
+    /** The names of the resources in the tree (folder or file names, unordered); stray files are warnings. */
+    names(ctx: ImplodeContext): Set<string>;
+    /** Reads, validates and encodes the resources; findings go to ctx.findings. */
+    encode(ctx: ImplodeContext, names: Set<string>): Item[];
+    /** The generated tables, given each name's id (ctx.ids) and where every item landed (file offsets by key). */
+    tables(ctx: ImplodeContext, placed: Map<string, number>): Write[];
 }

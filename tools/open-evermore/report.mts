@@ -16,19 +16,20 @@ function summary(r: Result): string {
 export function terminal(dir: string, r: Result, checkOnly: boolean): string {
     const tty = process.stdout.isTTY;
     const out = r.findings.list.map(f => (tty ? COLOUR[f.severity] : '') + line(f) + (tty ? RESET : ''));
-    for (const s of r.stats) out.push(`  ${s.kind.padEnd(10)} ${String(s.files).padStart(5)} files ${String(s.bytes).padStart(9)} bytes${s.changed ? '  changed' : ''}`);
+    for (const s of r.stats) out.push(`  ${s.kind.padEnd(10)} ${String(s.items).padStart(5)} resources ${String(s.bytes).padStart(9)} bytes  ${s.changed} changed  ${s.moved} moved`);
     const built = r.image ? `ROM ${dir}/_build/evermore.sfc, sha1 ${r.sha1}` : checkOnly ? 'checked only, no ROM' : 'no ROM written';
+    if (r.seed !== null) out.push(`random layout, seed ${r.seed} (repeat it with --random ${r.seed})`);
     out.push(`${summary(r)}; ${built}`);
     return out.join('\n');
 }
 
 export function markdown(dir: string, r: Result): string {
     const rows = r.findings.list.map(f => `| ${f.severity} | \`${f.rule}\` | \`${f.file}${f.pointer ? '#' + f.pointer : ''}\` | ${f.message.replace(/\|/g, '\\|')} |`);
-    const kinds = r.stats.map(s => `| ${s.kind} | ${s.files} | ${s.bytes} | ${s.changed ? 'yes' : 'no'} |`);
+    const kinds = r.stats.map(s => `| ${s.kind} | ${s.items} | ${s.bytes} | ${s.changed} | ${s.moved} |`);
     return [
         `# Implode report`, '',
-        `Tree: \`${dir}\`. ${summary(r)}. ${r.image ? `ROM: \`_build/evermore.sfc\`, sha1 \`${r.sha1}\`.` : 'No ROM written.'}`, '',
-        `## Kinds`, '', '| Kind | Files | Bytes written | Changed |', '|---|---|---|---|', ...kinds, '',
+        `Tree: \`${dir}\`. ${r.seed !== null ? `Random layout, seed ${r.seed}. ` : ''}${summary(r)}. ${r.image ? `ROM: \`_build/evermore.sfc\`, sha1 \`${r.sha1}\`.` : 'No ROM written.'}`, '',
+        `## Kinds`, '', '| Kind | Resources | Bytes | Changed | Moved |', '|---|---|---|---|---|', ...kinds, '',
         `## Findings`, '', ...(rows.length ? ['| Severity | Rule | Where | Message |', '|---|---|---|---|', ...rows] : ['None.']), '',
     ].join('\n');
 }

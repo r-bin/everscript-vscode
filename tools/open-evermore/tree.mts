@@ -9,8 +9,8 @@ export type Tree = Map<string, Uint8Array>;
 
 export const BUILD_DIR = '_build';
 
-/** Resource names: snake case, at most 48 characters, so they also work as Asar labels (README.md §4). */
-export const NAME_RE = /^[a-z][a-z0-9_]{0,47}$/;
+/** Resource names: snake case, at most 80 characters, so they also work as Asar labels (README.md §4). */
+export const NAME_RE = /^[a-z][a-z0-9_]{0,79}$/;
 
 export const sha1 = (bytes: Uint8Array): string => createHash('sha1').update(bytes).digest('hex');
 

@@ -6,38 +6,36 @@ Legend: ⬜ not started · 🟨 in progress · ✅ done · — not applicable
 
 ## 1. Kinds
 
-A kind is **done** when all five columns are ✅:
+A kind is **done** when all columns are ✅:
 
-- **Explode**: it writes its folder by name.
-- **Implode**: it encodes the folder and generates its tables.
-- **G0 + round trip**: a fresh tree implodes to the vanilla sha1 and explodes back to the same folder.
-- **Validation**: its rules exist, each with a unit test, and vanilla raises no warning.
+- **Explode**: it writes its folder by name, with its `_enum.json`, losslessly.
+- **Implode**: it encodes the folder and generates every table that reaches it (the hard rule, README.md §1).
+- **G0**: a fresh tree implodes (stable) to the vanilla sha1, with no warning.
+- **Random**: `--random` places every resource elsewhere and the round trip holds.
+- **Proven**: `prove` plays the stored playbacks identically (G1).
 - **VFS by name**: `soe://rom/` shows the same names and files ([README.md](README.md) §6).
 
-| Step | Kind | Explode | Implode | G0 + round trip | Validation | VFS by name | Bytes left in `raw/` | Notes |
+| Step | Kind | Explode | Implode | G0 | Random | Proven | VFS by name | Notes |
 |---|---|---|---|---|---|---|---|---|
-| S0 | skeleton: manifest, raw | ✅ | ✅ | ✅ | ✅ | — | all (3 MiB, 48 bank files) | implode writes bytes itself, no Asar; no BPS yet (nothing can change) |
-| S1 | header | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ (`header.json` exists) | | vectors stay raw labels until S10 |
-| S2 | tables | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ (168 by name) | | kinds take their tables over later |
-| S3 | palettes (tile families) | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | | |
-| S4 | strings | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ (by index today) | | compressor or cached bytes for G0 |
-| S5 | music, sounds | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ (by hex id today) | | first slice: a copied track under a new name plays (G2) |
-| S6 | tiles | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ (by hex id today) | | naming helper for 6,688 tiles |
-| S7 | maps | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ (by hex id today) | | `buildBlob` already round-trips all 127 |
-| S8 | scripts | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | | raw + labels until the compiler emits relocatable output |
-| S9 | characters, sprites, animations | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | | |
-| S10 | code | ⬜ | ⬜ | ⬜ | ⬜ | ✅ by name already | | Asar from here on; routines with raw operands stay pinned |
+| S1 | maps (127 rooms) | ✅ | ✅ | ✅ | ✅ | ✅ (~10 rooms visited) | ⬜ (by hex id) | blobs as built by the room encoder (header hex, blocks base64); tile families, graphics and script ids stay numbers until their kinds exist |
+| S2 | tile families (palettes) | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | family table `$9CC322` |
+| S3 | tiles | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ (by hex id) | master table `$EE0000`; naming helper for 6,688 tiles |
+| S4 | strings | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ (by index) | key table: lower halves, one 32 KiB half |
+| S5 | music, sounds | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ (by hex id) | then: a copied track under a new name plays (G2) |
+| S6 | scripts | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | upper halves, no bank crossing; packed pointers |
+| S7 | characters, sprites, animations | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | animation records bound to `$C4` |
+| S8 | header | ⬜ | ⬜ | ⬜ | — | — | ⬜ (`header.json` exists) | fixed by hardware at `$FFC0`; vectors by routine name once code is a kind |
+| S9 | code | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ✅ by name already | only routines whose every caller is symbolic; the rest stays in `_base/` |
 
-## 2. Beyond G0
-
-Opened per kind, once its readers are symbols ([README.md](README.md) §7.4).
+## 2. Beyond
 
 | Capability | State | Proven by |
 |---|---|---|
-| a kind's resource grows in place or moves (G1) | ⬜ | playbacks |
-| a new resource of a kind (G2) | ⬜ | its own playback |
-| `"size": "4MiB"`: the 4th MB as a free region | ⬜ | G1 on the moved tables (the table hack's moves, redone by implode) |
+| a proof over every room (a playback that enters all 127) | ⬜ | `prove` |
+| a changed or new resource (G2) | ⬜ | its own playback |
+| `"size": "4MiB"`: the 4th MB as a `free` region (rooms leave their banks) | ⬜ | `prove` |
 | `exhirom` / `sa1` layouts | ⬜ | [manifest.md](manifest.md) §1.1 |
+| `rename`, BPS output | ⬜ | unit tests |
 | the everscript compiler builds into the tree | ⬜ | [../split-and-link/tool.md](../split-and-link/tool.md) §7 |
 | editors save into the tree (promotion) | ⬜ | [tool.md](tool.md) §5 |
 
@@ -46,4 +44,5 @@ Opened per kind, once its readers are symbols ([README.md](README.md) §7.4).
 | Date | Step | What |
 |---|---|---|
 | 2026-11-18 | — | project documented: README, manifest, resources, validation, tool, this page |
-| 2026-11-18 | S0 | `tools/open-evermore/`: `npm run explode` writes `manifest.json` + `raw/` (48 banks); `npm run implode` validates, rebuilds, checks the header against the manifest, G0 and the round trip. US 1.0: sha1 `79e77386…` back, 0 errors, 0 warnings. Tests: `s0` (unit, 14 cases), `g0` (rom) |
+| 2026-11-18 | S0 | v0.435.0: explode to `manifest.json` + 48 raw bank files, implode back with validation. **Withdrawn** the next day: banks are not resources (nothing references a bank by name, so implode could only put them back in place) |
+| 2026-11-19 | S1 | maps: 127 rooms by name, `maps/_enum.json`, the map table generated; `_base/` replaces raw banks; one CLI (`explode`, `implode`, `prove`); `--random`; the lockstep proof. Seeds 42, 7, 123456, 99 moved 112–122 rooms; attract loop + 2m20 intro identical (14,638 frames). Found: the engine keeps six long pointers into the room blob, one of them one past its end (`knowledge/wram/DIRECT_PAGE_BLOCK.md`) |

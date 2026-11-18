@@ -57,7 +57,7 @@ and its header declares it (map mode `$31`, bit 4 *(repo: `soe://rom/header.json
 `"fastRom": true` therefore means three things, and implode checks all three:
 
 1. the header's map mode gets bit 4 (`header.json` does not repeat it, §2)
-2. the reset code still writes `$420D` = 1 (a code check, once code is exploded; until then the bytes are raw)
+2. the reset code still writes `$420D` = 1 (a code check, once code is exploded; until then it sits in `_base/`)
 3. the **fast space** is every bank in `$80–$FF` of the layout: all of it under `hirom`, and only the first
    4 MiB under `exhirom` (`$40–$7D` are slow)
 
@@ -125,13 +125,12 @@ A manifest may tighten a rule (`"speed": "fast"` for music) but never loosen one
 
 ### 1.5 Which ROM the tree belongs to
 
-- Implode looks the base sha1 up in the ROM library (`tools/roms.js` *(repo)*). It needs the base ROM only for
-  `raw/` byte ranges that point into it (when `raw/` stores references instead of bytes, a later option).
+- The tree carries everything it needs (`_base/`); the base sha1 is what G0 compares against.
 - The base must be US 1.0 for now (`unsupported-release`).
 
 ### 1.6 Renames
 
-Each `oe:rename` appends `{ "kind", "from", "to" }`. Exploding again replays the list, so the user's names
+Each `rename` (planned) appends `{ "kind", "from", "to" }`. Exploding again replays the list, so the user's names
 survive a fresh explode ([README.md](README.md) §9 Q4).
 
 ---
@@ -147,7 +146,7 @@ plain JSON, with derived fields left out:
   "region": 1,                       // hardware code: 1 = North America
   "developer": 51,                   // 51 ($33) = the extended header is used
   "version": 0,
-  "vectors": {                       // by routine name, from code/ (or raw labels until code is exploded)
+  "vectors": {                       // by routine name, from code/ (addresses in _base/ until code is exploded)
     "native":    { "nmi": "nmi_handler", "irq": "irq_handler" },
     "emulation": { "reset": "reset_handler" }
   }
