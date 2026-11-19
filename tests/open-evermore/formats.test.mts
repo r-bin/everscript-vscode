@@ -5,6 +5,7 @@ import assert from 'node:assert';
 import { createRequire } from 'node:module';
 import { deflateSync } from 'node:zlib';
 import { json, readText } from '../../tools/open-evermore/tree.mts';
+import { fromText, toText } from '../../tools/open-evermore/evermore/codecs/strings.mts';
 
 const require = createRequire(import.meta.url);
 const { decodePng, encodePng, encodeIndexedPng } = require('../../dist/platform/png');
@@ -96,6 +97,15 @@ test('PNG: indexed files keep their indices; 1-, 4- and 8-bit rows unpack', () =
         const file = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', ihdr), chunk('PLTE', Buffer.from(palette.flat())), chunk('IDAT', deflateSync(Buffer.from(raw))), chunk('IEND', Buffer.alloc(0))]);
         assert.deepStrictEqual(Array.from(decodePng(file).indices), want, `${depth}-bit`);
     }
+});
+
+test('string text: every byte has one spelling, and it parses back', () => {
+    const raw = [0x48, 0x69, 0x0a, 0x5b, 0x81, 0x80, 0x3d, 0x80, 0x5f, 0x7b, 0x60, 0x7d, 0x9c, 0x80, 0x41];
+    const t = toText(raw);
+    assert.strictEqual(t, 'Hi\n[[[BOY][PAUSE:3d]…‘`’[0x9c][0x80]A');
+    assert.deepStrictEqual(fromText(t), raw);
+    assert.match(fromText('[WAVE]') as string, /no such tag/);
+    assert.match(fromText('é') as string, /U\+00e9/);
 });
 
 console.log(`  ${passed} passed`);

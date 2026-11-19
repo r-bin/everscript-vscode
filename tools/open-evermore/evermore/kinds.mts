@@ -5,6 +5,7 @@ import type { Codec } from '../codec.mts';
 import { mapsCodec } from './codecs/maps.mts';
 import { tileFamiliesCodec } from './codecs/tile-families.mts';
 import { tilesCodec } from './codecs/tiles.mts';
+import { stringsCodec } from './codecs/strings.mts';
 
 export const GAME = 'evermore';
 
@@ -14,4 +15,4 @@ export const GAME = 'evermore';
  */
 export const PAST_END = [{ start: 0x30E293, end: 0x30E293 + 0x780 + 0x40 }];
 
-export const KINDS: Codec[] = [mapsCodec, tileFamiliesCodec, tilesCodec];
+export const KINDS: Codec[] = [mapsCodec, tileFamiliesCodec, tilesCodec, stringsCodec];

@@ -45,6 +45,7 @@ Planned: `rename` (a resource and every reference to it, logged in the manifest)
 | `evermore/kinds.mts` | Evermore's kinds, in migration order — the only place with game facts, with `evermore/codecs/` |
 | `evermore/codecs/maps.mts` | the maps kind ([resources.md](resources.md) §maps) |
 | `evermore/codecs/tile-families.mts` | the tile families kind: the array and its two loader operands; JSON or PNG |
+| `evermore/codecs/strings.mts` | the strings kind: the text form, the key table, our encoder |
 | `evermore/codecs/tiles.mts` | the tiles kind: indexed PNG or pixel rows, the `$EE0000` table, kept bytes for the six bit-6 tiles |
 
 ## 3. Implode, step by step
@@ -103,6 +104,7 @@ random and `prove` pass.
 | tile families | `maps.decodeRoom` (the count, the users), the bytes themselves (BGR555); `platform/png` | BGR555 from `#rrggbb` or a PNG cell |
 | tiles | `decodeTile`, `decodeTilePixels` (chr.ts) | `encodeTilePixels`, `encodeTile` |
 | map blocks | `unpackBlock`, `decompressMarkovGrid` | `lzssCompressVanilla`, `encodeBlock2` |
+| strings | our reader (the same as `localizations/strings.ts`, with extents) | our fewest-bytes encoder |
 | names | `src/games/evermore/localizations/data/rooms.json` | — |
 | next kinds | `src/platform/cdl/table-assets.ts`, `resources/`, `script-model/`, `sprites/` | to write per kind |
 

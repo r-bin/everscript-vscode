@@ -20,7 +20,7 @@ A kind is **done** when all columns are ✅:
 | S1 | maps (127 rooms) | ✅ | ✅ | ✅ | ✅ | ✅ (~10 rooms visited) | ⬜ (by hex id) | v5: map.json + grid.txt + metatiles.json (words as text) + preview.png; uncompressed with the compression noted (237/241 LZSS + all Markov reproduced; 4 blocks keep `packed`); objects, grass and script ids still raw |
 | S2 | tile families (365) | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ (no VFS folder yet) | one array item + the loader's two operands; maps name families; JSON (with the maps using it) or `--families png`; names `family_<id>` |
 | S3 | tiles (6,688) | ✅ | ✅ | ✅ | ✅ | ✅ 3 of 4 seeds | ⬜ (by hex id) | indexed PNG (default) or JSON rows; the table at `$EE0000`; 6,682 re-encoded byte for byte, 6 keep `encoded`; maps name graphics and animation frames; names `tile_<id>` |
-| S4 | strings | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ (by index) | key table: lower halves, one 32 KiB half |
+| S4 | strings (3,002) | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ (by index) | `.txt` per string in our lossless text form; key table generated; 2,157 keep vanilla bytes (vanilla's compressor not reproduced yet) |
 | S5 | music, sounds | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ (by hex id) | then: a copied track under a new name plays (G2) |
 | S6 | scripts | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | upper halves, no bank crossing; packed pointers |
 | S7 | characters, sprites, animations | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | animation records bound to `$C4` |
@@ -52,3 +52,4 @@ A kind is **done** when all columns are ✅:
 | 2026-11-19 | S3 | v0.439.0: tiles as indexed PNG by default (coloured with the family vanilla draws each with most), `--tiles json` the alternative; the six kept encodings in `tiles/_encoded.json`; the round trip compares content, not the file format (`Codec.canonical`) |
 | 2026-11-19 | S1 | v0.440.0: maps v5 for readability (rated 2/5 → 3.5/5, resources.md §maps): named header and palette cycles, `from`/`to` triggers, `grid.txt`, `metatiles.json` with layer and collision words as text, `preview.png`; the round trip compares meaning (flag order, padding) |
 | 2026-11-19 | — | v0.441.0: manifest layouts `hirom` (3/4 MiB), `exhirom`, `sa1`; hirom grows by itself to 4 MiB, then exhirom (1,549 resources land in `$41–$7D` on a random layout); `sa1` through tools/sa1. Rooms and tiles follow `$40–$7D` pointers (`romFileOffset`). Playbacks do not stay in step on exhirom/sa1 yet |
+| 2026-11-19 | S4 | v0.442.0: strings by name as text; the key table generated; our fewest-bytes encoder, vanilla bytes kept where it differs; seeds 1, 99 proven with 2,954 strings moved. Found: token `$C1` is a word, not a phrase, and a 0 follows every compressed string (dialogue-text-decoder.md corrected) |

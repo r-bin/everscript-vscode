@@ -17,6 +17,10 @@ export interface Span { start: number; end: number }
 export interface Rule {
     /** Only $xx:8000-$FFFF (the 32 KiB upper half of a bank). */
     upperHalf?: boolean;
+    /** Starts in $xx:0000-$7FFF (a pointer of 15 bits, like a string key's). */
+    lowerHalf?: boolean;
+    /** Ends below this file offset (a pointer that only reaches the first 4 MB). */
+    below?: number;
     /** Never across a 64 KiB bank boundary. */
     noCrossBank?: boolean;
     maxSize?: number;

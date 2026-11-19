@@ -69,19 +69,34 @@ with `data.json`; decoder `src/platform/cdl/table-assets.ts`)*. Same JSON as the
 - **Later:** sprite palettes (bank `$90`, full) as their own kind once their readers allow it
   ([../split-and-link/extending.md](../split-and-link/extending.md) §5).
 
-## strings
+## strings *(built, S4)*
 
-**Folder.** `strings/<string>.txt`, UTF-8, with control codes written as tags *(the tag syntax: the same as the
-VFS text view, to verify)*.
+**Folder.** `strings/_enum.json`, `strings/_strings.json` and one `strings/<string>.txt` per string, UTF-8:
 
-- **References.** Used by scripts (by name), and by code (string keys). Uses nothing.
-- **Implode generates**: the key table *(repo: 3,002 keys)* and the string data.
-- **Limits.** Characters the font has (`invalid-value`); strings only in lower halves, keys within one 32 KiB
-  half ([../table-hack.md](../table-hack.md) §1).
-- **Codec.** Decoder *(repo)*. G0 needs the compressor to reproduce the vanilla bytes; until there is one,
-  unchanged strings are written as their original compressed bytes (cached by text hash) and only edited ones
-  are written uncompressed (the key's bit 23 marks compressed strings *(repo)*; whether the engine accepts
-  uncompressed strings everywhere is *(to verify)*).
+```
+[SLOW]Whoa![PAUSE:3d] Now I know how `Dandy' Don Carlisle felt in `Sink, Boat, Sink!'[B]I think …
+```
+
+- **Text form** (lossless, ours): a line break is a line break; control bytes are tags (`[BOY]`, `[DOG]`, `[B]`, `[PAGE]`,
+  `[PAUSE:3d]` for `$80 nn $80`, `[CHOICE_INLINE]`, `[SLOW]`, …); the font's special glyphs are `…` `‘` `’` `→` `←`;
+  `[` is `[[`; any other byte `[0xNN]`. The repo's everscript form writes `$60` and `$7B` both as a backtick, so
+  it is not used here. The file ends with one line break that is not part of the string.
+- **Names.** `string_<hexid>` (`string_0375`), numbers for now. Scripts name a string by its key, id·3, so the enum's
+  order is what they see.
+- **`_strings.json`**: `plain` lists the 144 strings stored uncompressed (they stay so); `encoded` keeps the vanilla
+  bytes of the 2,157 compressed strings our encoder does not reproduce, used while they still give their text
+  (`reencoded`, info, once they do not).
+- **Implode generates** the key table at `$91:D000` (3,002 × 3 bytes, in place: data follows it). An entry is the
+  address in a lower half (15 bits), the bank above `$C0` (8 bits), and bit 23 = compressed (asm `$8C:CD33`).
+- **Placement.** A string starts in a bank's lower half, in the first 4 MiB, and never crosses a bank (rules
+  `lowerHalf`, `below`, `noCrossBank`). Vanilla fills `$C0–$C3`.
+- **Encoding.** Compressed strings use the tables in bank `$91` (single characters, pairs, words, phrases; they stay
+  in `_base/`). Our encoder takes the fewest bytes (dynamic programming over every token); vanilla's choices are
+  neither greedy nor fewest-bytes (ours is shorter for 1,001 strings), so its rule is open.
+- **Proven (G1).** Seeds 1 and 99: 2,954 strings moved, both playbacks in step; nothing points into the strings but
+  the key table (a scan found no code operand doing so; the text pointers in WRAM, `$22–$24` and neighbours,
+  translate).
+- **Limits.** Characters of the text form (`invalid-value`, with the reason); no 0 inside a string; 3,002 ids.
 
 ## music and sounds
 

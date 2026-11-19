@@ -9,7 +9,7 @@ import type { Home } from './base.mts';
 import type { Item, Rule, Span } from './codec.mts';
 
 const BANK = 0x10000, HALF = 0x8000;
-const ruleKey = (r: Rule) => `${!!r.upperHalf}/${!!r.noCrossBank}/${r.maxSize ?? ''}`;
+const ruleKey = (r: Rule) => `${!!r.upperHalf}/${!!r.lowerHalf}/${!!r.noCrossBank}/${r.maxSize ?? ''}/${r.below ?? ''}`;
 
 export interface Layout {
     at: Map<string, number>;
@@ -59,7 +59,9 @@ export function fitIn(span: Span, len: number, rule: Rule, from = span.start): n
     if (rule.maxSize !== undefined && len > rule.maxSize) return -1;
     let s = from;
     while (s + len <= span.end) {
+        if (rule.below !== undefined && s + len > rule.below) return -1;
         if (rule.upperHalf && (s & (BANK - 1)) < HALF) { s = (s & ~(BANK - 1)) + HALF; continue; }
+        if (rule.lowerHalf && (s & (BANK - 1)) >= HALF) { s = (s & ~(BANK - 1)) + BANK; continue; }
         if ((rule.noCrossBank || rule.upperHalf) && (s >> 16) !== ((s + len - 1) >> 16)) { s = (s & ~(BANK - 1)) + BANK; continue; }
         return s;
     }

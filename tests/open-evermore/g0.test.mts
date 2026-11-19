@@ -78,6 +78,15 @@ if (!path || !existsSync(path)) {
     assert.deepStrictEqual(rules(t => { t.delete('tiles/tile_0000.png'); t.set('tiles/tile_0000.json', other.get('tiles/tile_0000.json')!); }), []);
     console.log('  ✓ families as PNG stripes and tiles as JSON rows: the same ROM; one tile as JSON among PNGs too');
 
+    // Strings: an unknown tag is an error; an edited string is encoded anew (our encoder) and explodes back.
+    assert.deepStrictEqual(rules(t => { t.set('strings/string_0000.txt', new TextEncoder().encode('Hello [WAVE]\n')); }), ['invalid-value strings/string_0000.txt#']);
+    const said = new Map(tree);
+    said.set('strings/string_0375.txt', new TextEncoder().encode('[SLOW]Whoa![PAUSE:3d] Now I know how a moved string feels.[B]\n'));
+    const sr = implode(said, GAME, KINDS);
+    assert.deepStrictEqual(sr.findings.list.filter(f => f.severity === 'error'), []);
+    assert.ok(sr.findings.list.some(f => f.rule === 'reencoded' && f.file === 'strings/string_0375.txt'));
+    console.log('  ✓ strings: an unknown tag is an error; an edited string is encoded anew and round-trips');
+
     for (const layout of ['exhirom', 'sa1']) {
         const t = new Map(tree);
         editJson(t, 'manifest.json', m => { m.memoryMap.layout = layout; m.memoryMap.size = '8MiB'; });
