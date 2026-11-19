@@ -43,7 +43,7 @@ Planned: `rename` (a resource and every reference to it, logged in the manifest)
 | `prove.mts`, `play.mts` | the proof: two snes9x cores in one process, lockstep, pointer translation |
 | `tree.mts`, `findings.mts`, `report.mts` | the tree as path → bytes; findings; terminal and `report.md` |
 | `evermore/kinds.mts` | Evermore's kinds, in migration order — the only place with game facts, with `evermore/codecs/` |
-| `evermore/codecs/maps.mts` | the maps kind ([resources.md](resources.md) §maps): files, names, placement; the room ↔ files mapping is `src/games/evermore/maps/tree-map.ts` |
+| `evermore/codecs/maps.mts` | the maps kind ([resources.md](resources.md) §maps): files, names, placement, the map and enter-script tables (generated items) and `roomBlobs` (every kind walks the rooms through it); the room ↔ files mapping is `src/games/evermore/maps/tree-map.ts` |
 | `evermore/codecs/tile-families.mts` | the tile families kind: the array and its two loader operands; JSON or PNG |
 | `evermore/codecs/strings.mts` | the strings kind: the text form, the key table, our encoder |
 | `evermore/codecs/tiles.mts` | the tiles kind: indexed PNG or pixel rows, the `$EE0000` table, kept bytes for the six bit-6 tiles |
@@ -78,8 +78,9 @@ interface Codec {
   kind: string; version: number; path: string;
   /** The name of resource `id` when nothing else names it. */
   defaultName(id: number): string;
-  /** ROM → files, pool, table space, homes; `name(kind, id)` names any kind's resource (cross-kind references). */
-  explode(rom: Uint8Array, name: NameOf, options: Record<string, string>): Exploded;
+  /** ROM → files, pool, table space, homes; `name(kind, id)` names any kind's resource (cross-kind references);
+   *  `count(kind)`: a kind's enum length on a round trip (a grown table does not tell its length). */
+  explode(rom: Uint8Array, name: NameOf, options: Record<string, string>, count: CountOf): Exploded;
   /** What of a file the round trip compares, as [path, bytes]: content without derived or cached parts, and
    *  without the file format (a tile PNG or JSON compare by indices). */
   canonical?(path: string, bytes: Uint8Array): [string, Uint8Array];
@@ -87,7 +88,8 @@ interface Codec {
   names(ctx: ImplodeContext): Set<string>;
   /** Check and encode; findings go to ctx.findings. */
   encode(ctx: ImplodeContext, names: Set<string>): Item[];
-  /** The generated tables, from ctx.ids and where each resource landed. */
+  /** The generated tables, from ctx.ids and where each resource landed: in the table space explode recorded, or
+   *  in a `generated` item (a table that can grow: encode gives its size, it is placed like any item). */
   tables(ctx: ImplodeContext, placed: Map<string, number>): Write[];
 }
 ```
@@ -142,5 +144,6 @@ three actions; `report.json` as Problems-panel diagnostics. Other kinds are seen
 | `tests/open-evermore/implode.test.mts` | unit | a synthetic kind on a synthetic image: G0, random + round trip, enum reorder, changed resource, every error |
 | `tests/open-evermore/formats.test.mts` | unit | the compact JSON layout; the PNG decoder (RGB, every row filter, indexed at 1/4/8 bits) |
 | `tests/memory/map-units.test.js` | unit | `decodeTile` (bit-6 forms), `encodeTile`, `lzssCompressVanilla` round trips |
+| `tests/open-evermore/maps-in-game.test.mts` | `emulator` | G2 in the running game (~40 s): the opening's folder holding Brian's files boots into Brian's map (screen and VRAM as vanilla's Brian's room in slot `0x61`); a copy of Brian's room under a new name gets id `0x7F`, both map tables move, `load_map(0x7F)` enters it (screen and VRAM as vanilla's Brian's room), and without the map it does not. Screenshots in `out/open-evermore-tests/` |
 | `tests/open-evermore/g0.test.mts` | `rom` | the base ROM: stable = vanilla sha1 with no warning (also with PNG families); two 4 MiB seeds move > 100 resources and round-trip; missing tile or family, bad colour or pixel row; an edited metatile re-compressed |
 | `open-evermore.mts prove` | on demand | the playbacks; seconds today, never in a test tier (`test-discipline` skill) |

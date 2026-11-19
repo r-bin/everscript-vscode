@@ -15,7 +15,7 @@ export function explode(rom: Uint8Array, base: Manifest['base'], game: string, k
     const tree: Tree = new Map();
     const parts: { kind: string; out: Exploded }[] = [];
     for (const codec of kinds) {
-        const out = codec.explode(rom, name, options[codec.kind] ?? {});
+        const out = codec.explode(rom, name, options[codec.kind] ?? {}, kind => names?.get(kind)?.length);
         for (const [path, bytes] of out.files) tree.set(path, bytes);
         parts.push({ kind: codec.kind, out });
     }

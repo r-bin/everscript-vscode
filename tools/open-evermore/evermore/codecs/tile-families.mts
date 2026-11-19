@@ -16,11 +16,12 @@ import { ENUM, enumFile } from '../../enum.mts';
 import { Findings } from '../../findings.mts';
 import { json, NAME_RE, readText, sha1 } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
+import { roomBlobs } from './maps.mts';
 
 const require = createRequire(import.meta.url);
 const maps = require('../../../../dist/games/evermore/maps');
 const { decodePng, encodePng } = require('../../../../dist/platform/png');
-const ROOMS = 127, CELL = 8;
+const CELL = 8;
 
 export const KIND = 'tile_families';
 const DIR = KIND, ARRAY = `${DIR}/array`;
@@ -33,18 +34,18 @@ const channels = (c: number) => [c & 31, (c >> 5) & 31, (c >> 10) & 31].map(v =>
 const hexColour = (c: number) => '#' + [c & 31, (c >> 5) & 31, (c >> 10) & 31].map(v => (v << 3).toString(16).padStart(2, '0')).join('');
 
 /** The array's file offset and family count, from the loader operands and the rooms. */
-function locate(rom: Uint8Array): { start: number; count: number } {
+function locate(rom: Uint8Array, blobs: number[]): { start: number; count: number } {
     for (const s of [ADC, LDA]) {
         if (rom[s.at] !== s.opcode) throw new Error(`tile families: the loader at file 0x${s.at.toString(16)} is not the US 1.0 one; explode would not know the array's readers`);
     }
     let max = 0;
-    for (let id = 0; id < maps.MAX_ROOMS; id++) for (const f of maps.decodeRoom(rom, id).tileFamilies) max = Math.max(max, f);
+    blobs.forEach((at, id) => { for (const f of maps.decodeRoom(rom, id, at).tileFamilies) max = Math.max(max, f); });
     return { start: maps.romFileOffset(rom, (rom[LDA.at + 1] << 16) | rom[ADC.at + 1] | (rom[ADC.at + 2] << 8)), count: max + 1 };
 }
 
 /** Every family's 16 colours as [r, g, b], from the ROM (the tiles kind colours its PNGs with them). */
-export function familyColours(rom: Uint8Array): number[][][] {
-    const { start, count } = locate(rom);
+export function familyColours(rom: Uint8Array, blobs: number[]): number[][][] {
+    const { start, count } = locate(rom, blobs);
     return Array.from({ length: count }, (_, id) => Array.from({ length: 16 }, (_, c) => channels(rom[start + id * ENTRY + c * 2] | (rom[start + id * ENTRY + c * 2 + 1] << 8))));
 }
 
@@ -78,12 +79,13 @@ export const tileFamiliesCodec: Codec = {
         return [m[1] + '.family', json(colours ?? null)];
     },
 
-    explode(rom, name, options) {
+    explode(rom, name, options, countOf) {
         const format = options.format ?? 'json';
         if (format !== 'json' && format !== 'png') throw new Error(`tile families: format "${format}"; json or png`);
-        const { start, count } = locate(rom);
+        const blobs = roomBlobs(rom, countOf('maps'));
+        const { start, count } = locate(rom, blobs);
         const users: string[][] = Array.from({ length: count }, () => []);
-        for (let id = 0; id < ROOMS; id++) for (const f of new Set<number>(maps.decodeRoom(rom, id).tileFamilies)) users[f]?.push(name('maps', id));
+        blobs.forEach((at, id) => { for (const f of new Set<number>(maps.decodeRoom(rom, id, at).tileFamilies)) users[f]?.push(name('maps', id)); });
         const files: Tree = new Map();
         const names: string[] = [];
         for (let id = 0; id < count; id++) {

@@ -99,7 +99,7 @@ export function implode(tree: Tree, game: string, kinds: Codec[], opts: Options 
     for (const codec of kinds) {
         const list = codec.encode(ctx, present.get(codec.kind)!);
         items.push(...list);
-        const changed = list.filter(i => base.homeSha1.get(i.key) !== sha1(i.bytes)).length;
+        const changed = list.filter(i => !i.generated && base.homeSha1.get(i.key) !== sha1(i.bytes)).length;
         stats.push({ kind: codec.kind, items: list.length, bytes: list.reduce((s, i) => s + i.bytes.length, 0), changed, moved: 0 });
     }
     for (const path of tree.keys()) {
@@ -124,7 +124,7 @@ export function implode(tree: Tree, game: string, kinds: Codec[], opts: Options 
     }
     if (chosen !== tried[0]) findings.info('grown', MANIFEST, '/memoryMap', `${tried[0].label} did not hold every resource: built as ${chosen!.label}`);
     for (const item of layout.failed) findings.error('no-space', item.file, '', `no free space for ${item.bytes.length} bytes under its rule ${JSON.stringify(item.rule)}`);
-    for (const item of items) if (layout.at.has(item.key)) placed.push({ key: item.key, home: base.homes.get(item.key)?.at, at: layout.at.get(item.key)!, length: item.bytes.length, changed: base.homeSha1.get(item.key) !== sha1(item.bytes) });
+    for (const item of items) if (layout.at.has(item.key)) placed.push({ key: item.key, home: base.homes.get(item.key)?.at, at: layout.at.get(item.key)!, length: item.bytes.length, changed: !item.generated && base.homeSha1.get(item.key) !== sha1(item.bytes) });
     for (const s of stats) s.moved = items.filter(i => i.key.startsWith(s.kind + '/') && layout.at.get(i.key) !== base.homes.get(i.key)?.at).length;
     if (findings.failed || opts.checkOnly) return done(null, stats);
 
@@ -136,7 +136,7 @@ export function implode(tree: Tree, game: string, kinds: Codec[], opts: Options 
     p.prepare(content, base.image.length);
     for (const item of items) content.set(item.bytes, layout.at.get(item.key)!);
     const writes: Write[] = kinds.flatMap(codec => codec.tables(ctx, layout.at));
-    const tables = base.tables;
+    const tables: Span[] = [...base.tables, ...items.filter(i => i.generated).map(i => ({ start: layout.at.get(i.key)!, end: layout.at.get(i.key)! + i.bytes.length }))];
     for (const w of writes) {
         if (!tables.some(t => w.at >= t.start && w.at + w.bytes.length <= t.end)) findings.error('wrong-region', w.file, '', `generated table at ${formatAddr(busOf(w.at))} lies outside the table space explode recorded`);
         else content.set(w.bytes, w.at);

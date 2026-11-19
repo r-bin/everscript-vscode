@@ -22,6 +22,7 @@ import { Findings } from '../../findings.mts';
 import { json, NAME_RE, readText, sha1 } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
 import { familyColours } from './tile-families.mts';
+import { roomBlobs } from './maps.mts';
 
 const require = createRequire(import.meta.url);
 const maps = require('../../../../dist/games/evermore/maps');
@@ -29,7 +30,7 @@ const { getMapTileGraphicsOffset } = require('../../../../dist/games/evermore/va
 const { decodePng, encodeIndexedPng } = require('../../../../dist/platform/png');
 
 export const KIND = 'tiles';
-const DIR = KIND, COUNT = 6688, ROOMS = 127;
+const DIR = KIND, COUNT = 6688;
 const FORMAT = 'open-evermore/tile', VERSION = 1, ENCODED = '_encoded.json';
 /** Index 0 is transparent on a SNES background. */
 const ALPHA = [0, ...Array(15).fill(255)];
@@ -39,10 +40,10 @@ const hex = (b: Uint8Array) => Buffer.from(b).toString('hex');
 const same = (a: Uint8Array, b: Uint8Array) => a.length === b.length && a.every((x, i) => x === b[i]);
 
 /** Every graphic an animation channel shows, in any room (the streamer DMAs them raw). */
-function animationFrames(rom: Uint8Array): Set<number> {
+function animationFrames(rom: Uint8Array, blobs: number[]): Set<number> {
     const frames = new Set<number>();
-    for (let id = 0; id < ROOMS; id++) {
-        const m = maps.modelFromRom(rom, id), d: Uint8Array = m.section2Data;
+    for (const [id, at] of blobs.entries()) {
+        const m = maps.modelFromRom(rom, id, at), d: Uint8Array = m.section2Data;
         for (let c = 0; c < m.section2Count; c++) {
             const count = d[c * 4 + 1], offset = d[c * 4 + 2] | (d[c * 4 + 3] << 8);
             for (let k = 0; k < count; k++) frames.add(d[offset + k * 3 + 1] | (d[offset + k * 3 + 2] << 8));
@@ -52,7 +53,7 @@ function animationFrames(rom: Uint8Array): Set<number> {
 }
 
 /** The family each tile is drawn with most in vanilla (from every room's metatile words), for its PNG's colours. */
-function displayFamilies(rom: Uint8Array): Map<number, number> {
+function displayFamilies(rom: Uint8Array, blobs: number[]): Map<number, number> {
     const counts = new Map<number, Map<number, number>>();
     const add = (tile: number, family: number | undefined) => {
         if (family === undefined) return;
@@ -60,8 +61,8 @@ function displayFamilies(rom: Uint8Array): Map<number, number> {
         c.set(family, (c.get(family) ?? 0) + 1);
         counts.set(tile, c);
     };
-    for (let id = 0; id < ROOMS; id++) {
-        const d = maps.decodeRoom(rom, id);
+    for (const [id, at] of blobs.entries()) {
+        const d = maps.decodeRoom(rom, id, at);
         const slots: number[] = [...d.tilePalette, ...d.animatedTiles];
         const bySlot = new Map<number, number>();
         for (const w of [...d.metatileSlices.layer1, ...d.metatileSlices.layer2]) {
@@ -120,12 +121,13 @@ export const tilesCodec: Codec = {
         return [m[1] + '.tile', px ? Uint8Array.from(px) : bytes];
     },
 
-    explode(rom, name, options) {
+    explode(rom, name, options, countOf) {
         const format = options.format ?? 'png';
         if (format !== 'png' && format !== 'json') throw new Error(`tiles: format "${format}"; png or json`);
         const table = getMapTileGraphicsOffset(rom);
-        const frames = animationFrames(rom);
-        const colours = familyColours(rom), shown = format === 'png' ? displayFamilies(rom) : new Map<number, number>();
+        const blobs = roomBlobs(rom, countOf('maps'));
+        const frames = animationFrames(rom, blobs);
+        const colours = familyColours(rom, blobs), shown = format === 'png' ? displayFamilies(rom, blobs) : new Map<number, number>();
         const encoded: Record<string, { encoded: string; followedBy?: string }> = {};
         const at = Array.from({ length: COUNT }, (_, id) => maps.tileGraphicOffset(rom, id) as number);
         const starts = [...at].sort((a, b) => a - b);

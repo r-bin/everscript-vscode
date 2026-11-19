@@ -165,7 +165,8 @@ round trip compares the indices, not the file.
 **Folder.** One folder per room:
 
 ```
-maps/_enum.json                      names[id]: the map table's order (README.md §4)
+maps/_enum.json                      names[id]: the map table's order (README.md §4); up to 256 ids
+maps/_enter_scripts.json             each map's enter script by map name: { "packed": "$0060CA", "word": "$0001" }
 maps/<map>/map.json                  header, families, palette cycles, graphics, animations, triggers, cuttable grass
 maps/<map>/grid.txt                  the cells: one row per line, each cell its metatile id in hex
 maps/<map>/metatiles.json            what each metatile draws (canopy, terrain) and how it collides
@@ -242,20 +243,30 @@ the grid (0/5 → 4/5). Still to do: script names in triggers (S6), and maybe a 
 | Still to come | Target |
 |---|---|
 | step-on / B-triggers | `"script": "pyramid_outside_door_north"`: names in `scripts/` (S6) |
-| enter script | `"enter": "pyramid_outside_enter"` |
+| enter script | `_enter_scripts.json`: `"pyramid_outside": "pyramid_outside_enter"` |
 
 - **Names.** From `localizations/data/rooms.json` *(repo, our own wording)*: region + place + part in snake case
   (`prehistoria_jungle_south_where_the_game_starts`); `map_<hexid>` for a room it does not name.
-- **Implode generates** the map table (127 × [24-bit pointer, pad 0], read by `$90:8F69` / `$90:8F6F` *(repo:
-  `tools/table-hack/tables.js`)*), in place, in the enum's order. The pointer is the `$80–$BF:8000+` form.
+- **Implode generates** both id-indexed tables, in the enum's order: the map table (per id [24-bit pointer, pad 0],
+  read by `lda.l` at `$90:8F69` / `$90:8F6F`) and the enter-script table (per id [packed pointer, word], read by
+  `lda.l` at `$8C:CECC` / `$8C:CED2`, which read bytes 0–2 only) *(repo: `tools/table-hack/tables.js`)*. Each is a
+  generated item: in place while the ids fit it (vanilla's 127; byte for byte, G0), placed like any item once a map
+  is added (the enter table's vanilla footprint ends 2 bytes early: its last word lies on the script pointer
+  table), and the four reader operands are rewritten to wherever it landed. Explode finds both through those
+  operands. The blob pointer is the `$80–$BF:8000+` form.
+- **Enter scripts follow the name, not the files.** `_enter_scripts.json` keys them by map name, so copying one
+  map's files over another's keeps the target's enter script: Brian's files in `podunk_opening_over_the_machine`
+  boot into Brian's map under the intro's fade-in (tested); with Brian's own record (none) the screen stays black.
+  A map not listed has none (packed 0, as Brian's room); the packed pointer is a number until scripts are a kind.
 - **Placement.** Upper half of a bank, never across a bank, ≤ 32 KiB *(repo: `writeRoomAt`)*. The vanilla rooms
   fill `$9C–$AD` upper halves to within a few hundred bytes per bank (other data follows each bank's last room).
   `--random` grows the image to 4 MiB: rooms shuffle inside their bank or move to the 4th MB; a stable build grows
   only when an edited room no longer fits (`grown`, info).
 - **Proven (G1).** Seeds 42, 7, 123456, 99 moved 112–122 rooms; the stored playbacks played identically. The
   engine keeps six long pointers into the current blob (`knowledge/wram/DIRECT_PAGE_BLOCK.md`), all translated.
-- **Limits.** Every field's range (`invalid-value`); blob ≤ 32 KiB (`over-budget`); 127 ids (the table stays put;
-  the engine allows 256).
+- **Limits.** Every field's range (`invalid-value`); blob ≤ 32 KiB (`over-budget`); 256 ids (the enter-script
+  lookup's 8×8 multiply). A new map gets the next id: **proven in game** for `0x7F`, a copy of Brian's room
+  entered by `load_map(0x7F, …)` (`tests/open-evermore/maps-in-game.test.mts`, G2).
 - **Still numbers:** script ids point into `_base/` until S6.
 - **The Rooms tab reads trees.** A workspace folder holding a tree (or one up to two levels below) gets an *Open
   Evermore* rail group: its maps by name, built from their files into a copy of an Evermore image

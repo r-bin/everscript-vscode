@@ -117,16 +117,17 @@ export function buildBlob(model: RoomModel): Uint8Array {
 
 /**
  * Lossless extraction: `buildBlob(modelFromRom(rom, id))` reproduces the
- * original bytes exactly. Compressed payloads are kept verbatim.
+ * original bytes exactly. Compressed payloads are kept verbatim. `blobAt`: the
+ * blob's file offset when the vanilla map table does not reach it (decodeRoom).
  */
-export function modelFromRom(rom: Uint8Array, roomId: number): RoomModel {
+export function modelFromRom(rom: Uint8Array, roomId: number, blobAt?: number): RoomModel {
     // Copies, never views. The ROM is often a Node Buffer, whose `slice()`
     // shares memory: an edit to a model's header (custom-room.ts sets the
     // size) then wrote straight into the cached vanilla ROM, and every later
     // decode of the donor room failed.
     const copy = (from: number, to: number): Uint8Array => Uint8Array.prototype.slice.call(rom, from, to);
 
-    const blob = roomBlobOffset(rom, roomId);
+    const blob = blobAt ?? roomBlobOffset(rom, roomId);
     const L = parseBlobLayout(rom, blob);
 
     const records = (start: number, length: number): TriggerRecord[] => {

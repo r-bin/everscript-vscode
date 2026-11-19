@@ -9,6 +9,8 @@ import type { Tree } from './tree.mts';
 
 /** Names any exploded resource by kind and id. */
 export type NameOf = (kind: string, id: number) => string;
+/** How many ids a kind's enum holds on a round trip; undefined when exploding a ROM afresh. */
+export type CountOf = (kind: string) => number | undefined;
 
 /** A file-offset range, end exclusive. */
 export interface Span { start: number; end: number }
@@ -26,8 +28,12 @@ export interface Rule {
     maxSize?: number;
 }
 
-/** One placeable resource: `key` is `<kind>/<name>`. */
-export interface Item { key: string; file: string; bytes: Uint8Array; rule: Rule }
+/**
+ * One placeable resource: `key` is `<kind>/<name>`. A `generated` item is a table that points at other items (a
+ * grown map table): encode gives its size, `tables` writes its bytes where it landed; it is not a resource of its
+ * own, so it never counts as changed.
+ */
+export interface Item { key: string; file: string; bytes: Uint8Array; rule: Rule; generated?: boolean }
 
 export interface Exploded {
     files: Tree;
@@ -75,9 +81,10 @@ export interface Codec {
     defaultName(id: number): string;
     /**
      * `name(kind, id)`: the name of any kind's resource, for this kind's files and its references to other kinds
-     * (the tree's own enums on a round trip, else each kind's defaultName).
+     * (the tree's own enums on a round trip, else each kind's defaultName). `count(kind)`: how many ids the tree's
+     * enum of a kind holds, on a round trip (a table that can grow does not tell its length); undefined otherwise.
      */
-    explode(rom: Uint8Array, name: NameOf, options: Record<string, string>): Exploded;
+    explode(rom: Uint8Array, name: NameOf, options: Record<string, string>, count: CountOf): Exploded;
     /**
      * What of a file the round trip compares, as [path, bytes], when not all of it is the resource: a tile's indices
      * whether PNG or JSON (a PNG's palette only shows it), a JSON file without what explode derives (which maps use a
@@ -89,6 +96,7 @@ export interface Codec {
     names(ctx: ImplodeContext): Set<string>;
     /** Reads, validates and encodes the resources; findings go to ctx.findings. */
     encode(ctx: ImplodeContext, names: Set<string>): Item[];
-    /** The generated tables, given each name's id (ctx.ids) and where every item landed (file offsets by key). */
+    /** The generated tables, given each name's id (ctx.ids) and where every item landed (file offsets by key): in the
+     *  table space explode recorded, or in a `generated` item of this build. */
     tables(ctx: ImplodeContext, placed: Map<string, number>): Write[];
 }

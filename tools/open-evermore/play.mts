@@ -101,7 +101,8 @@ export function realDifferences(wa: Uint8Array, wb: Uint8Array, moved: Moved[], 
     return real;
 }
 
-function boot(): Promise<any> {
+/** One snes9x core in its own VM context (its Module and HEAPU8 are globals of that context). */
+export function boot(): Promise<any> {
     const src = readFileSync(CORE, 'utf8');
     return new Promise(resolve => {
         const ctx: any = { console, require, __dirname: dirname(CORE), __filename: CORE, WebAssembly, TextDecoder, TextEncoder, URL, setTimeout, clearTimeout, performance, process, Buffer };
