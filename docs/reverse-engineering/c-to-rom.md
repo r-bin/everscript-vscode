@@ -579,3 +579,15 @@ Following completion of 100% certified C-binding coverage for Replay 01 in `v0.3
   - 35/35 real states match ROM (100% parity, 35/35 snes9x oracle agreement).
   - Mutation caught: yes.
 - Rated and audited: 298 clean, 0 stale/unrated. Total bound routines: **298**.
+
+### Replay 02 Bound Routine: `joypad_button_typematic_repeat` ($80:8838)
+- Bound in `reconstructed-c/80/808838_joypad_button_typematic_repeat.c`:
+  - Implements the core joypad typematic auto-repeat acceleration engine for UI carousels, Ring Menu, dialogue text progression, and shop inventory scrolling.
+  - When input button word `A == 0` or `(A & $0345) == 0`: latches held button mask into `$0345`, primes repeat timer `$0343` with initial hold delay from `$0347` (e.g. 24 frames), and reloads `A` from `$0345`.
+  - When buttons remain held (`(A & $0345) != 0`): decrements countdown timer `$0343`. While non-zero, suppresses event by returning `A = 0`. Upon expiry (`timer == 0`), reloads sustained auto-repeat interval from `$0349` (e.g. 6 frames) and returns `A` to execute repeated button action.
+  - Faithfully models 65C816 `BIT absolute` status flag effects (sets N from bit 15, V from bit 14, and Z from bitwise AND) and conditional branch execution paths.
+- Verified under Gate G1:
+  - 33/33 real states match ROM (100% parity, 33/33 snes9x oracle agreement).
+  - 528/528 fuzzed states match ROM (100% parity).
+  - Mutation caught: yes.
+- Rated and audited: 299 clean, 0 stale/unrated. Total bound routines: **299**.
