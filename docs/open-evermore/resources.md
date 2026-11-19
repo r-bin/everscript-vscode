@@ -109,17 +109,19 @@ music/village_on_the_plateau/
 
 ## tiles — the 16×16 map graphics *(built, S3)*
 
-**Folder.** `tiles/_enum.json` + `tiles/<tile>.json`:
+**Folder.** `tiles/_enum.json` + one file per tile, by default `<tile>.png` (owner, 2026-11-19): an **indexed** PNG,
+16×16, 16 palette entries, index 0 transparent. The indices are the tile; the palette only shows it (the family
+vanilla draws the tile with most, from every room's metatile words), so an editor can repaint it but must save it
+indexed (an RGB PNG is `invalid-value`). `explode --tiles json` writes `<tile>.json` instead:
 
 ```jsonc
 { "format": "open-evermore/tile", "version": 1,
-  "pixels": ["55555555eeee2e2f", …],              // 16 rows of 16 palette indices, one hex digit each
-  "encoded": "4290ff00…",                          // only six tiles: the vanilla bytes, while they give these pixels
-  "followedBy": "tile_1668" }                      // only two: the tile the game reads three bytes of
+  "pixels": ["55555555eeee2e2f", …] }              // 16 rows of 16 palette indices, one hex digit each
 ```
 
-Pixels are colour indices, not colours: the colours come from the family a map pairs a tile with, so JSON rows
-rather than a PNG *(a PNG view per family: later)*.
+`tiles/_encoded.json` keeps the vanilla bytes of the six tiles our encoder does not reproduce
+(`{ "tile_1669": { "encoded": "4290…", "followedBy": "tile_1668" } }`). Either form may be mixed in one tree; the
+round trip compares the indices, not the file.
 
 - **Names.** `tile_<hexid>` (`tile_1669`), numbers until there are names (owner, 2026-11-19). The user's example
   `floor_sand_01` comes from renaming; naming 6,688 tiles is work for a tool (group by the rooms and families that

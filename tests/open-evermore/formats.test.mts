@@ -7,7 +7,7 @@ import { deflateSync } from 'node:zlib';
 import { json, readText } from '../../tools/open-evermore/tree.mts';
 
 const require = createRequire(import.meta.url);
-const { decodePng, encodePng } = require('../../dist/platform/png');
+const { decodePng, encodePng, encodeIndexedPng } = require('../../dist/platform/png');
 const { crc32 } = require('../../dist/platform/crc32');
 
 let passed = 0;
@@ -66,6 +66,36 @@ test('PNG: an RGB file with filters 0-4 reads as opaque RGBA', () => {
     const img = decodePng(file);
     for (let i = 0; i < w * h; i++) assert.deepStrictEqual(Array.from(img.rgba.subarray(i * 4, i * 4 + 4)), [px[i * 3], px[i * 3 + 1], px[i * 3 + 2], 255]);
     assert.throws(() => decodePng(Buffer.from('not a png')), /not a PNG/);
+});
+
+test('PNG: indexed files keep their indices; 1-, 4- and 8-bit rows unpack', () => {
+    const palette = Array.from({ length: 16 }, (_, i) => [i * 16, 255 - i * 16, i]);
+    const idx = Uint8Array.from({ length: 16 * 16 }, (_, i) => (i * 5) & 15);
+    const img = decodePng(encodeIndexedPng(16, 16, idx, palette, [0, ...Array(15).fill(255)]));
+    assert.deepStrictEqual(Array.from(img.indices), Array.from(idx));
+    assert.deepStrictEqual(Array.from(img.rgba.subarray(0, 8)), [0, 255, 0, 0, 80, 175, 5, 255], 'index 0 transparent');
+    for (const depth of [1, 4]) {
+        const w = 10, h = 3, per = 8 / depth, stride = Math.ceil(w / per), mask = (1 << depth) - 1;
+        const want = Array.from({ length: w * h }, (_, i) => (i * 3) & mask);
+        const raw: number[] = [];
+        for (let y = 0; y < h; y++) {
+            raw.push(0);
+            for (let b = 0; b < stride; b++) {
+                let v = 0;
+                for (let k = 0; k < per; k++) { const x = b * per + k; v = (v << depth) | (x < w ? want[y * w + x] : 0); }
+                raw.push(v);
+            }
+        }
+        const chunk = (type: string, data: Buffer) => {
+            const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
+            const body = Buffer.concat([Buffer.from(type, 'ascii'), data]);
+            const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(body));
+            return Buffer.concat([len, body, crc]);
+        };
+        const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = depth; ihdr[9] = 3;
+        const file = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', ihdr), chunk('PLTE', Buffer.from(palette.flat())), chunk('IDAT', deflateSync(Buffer.from(raw))), chunk('IEND', Buffer.alloc(0))]);
+        assert.deepStrictEqual(Array.from(decodePng(file).indices), want, `${depth}-bit`);
+    }
 });
 
 console.log(`  ${passed} passed`);

@@ -72,8 +72,8 @@ Built so far *(S3)*: `unknown-reference`, `missing-file`, `parse-error`, `schema
 `id-gap`, `id-over-limit`, `invalid-value`, `over-budget`, `base-changed`, `size-mismatch`, `no-space`,
 `unsupported-layout`, `outside-image`, `wrong-region`, `region-gap`, `region-overlap`, `header-mismatch`,
 `g0-failed`, `round-trip`, `unknown-file`, `unlocked-id`, `unreferenced` (tiles), `changed`, `random`, `grown`,
-`reencoded`, `repacked`. Keys a kind derives or caches (a family's `maps`, a block's `packed`) are left out of the
-round trip. The rest come with the kinds that
+`reencoded`, `repacked`. The round trip compares each file's canonical form: without what a kind derives or caches (a
+family's `maps`, a block's `packed`) and without the file format (a tile as PNG or JSON). The rest come with the kinds that
 need them.
 
 ## 4. The report

@@ -14,7 +14,7 @@ No npm commands (owner, 2026-11-19). `npm run build:ts` first: the codecs call t
 
 ```sh
 T=tools/open-evermore/open-evermore.mts
-node $T explode [rom] [--out <dir>] [--force] [--families json|png]   # rom: else the library's base ROM; dir: out/open-evermore
+node $T explode [rom] [--out <dir>] [--force] [--families json|png] [--tiles png|json]   # rom: else the library's base ROM; dir: out/open-evermore
 node $T implode <dir> [--random [seed]] [--check-only] [--strict]
 node $T prove <dir> [--random [seed]] [--movies <file|dir>…]
 ```
@@ -44,7 +44,7 @@ Planned: `rename` (a resource and every reference to it, logged in the manifest)
 | `evermore/kinds.mts` | Evermore's kinds, in migration order — the only place with game facts, with `evermore/codecs/` |
 | `evermore/codecs/maps.mts` | the maps kind ([resources.md](resources.md) §maps) |
 | `evermore/codecs/tile-families.mts` | the tile families kind: the array and its two loader operands; JSON or PNG |
-| `evermore/codecs/tiles.mts` | the tiles kind: pixel rows, the `$EE0000` table, kept bytes for the six bit-6 tiles |
+| `evermore/codecs/tiles.mts` | the tiles kind: indexed PNG or pixel rows, the `$EE0000` table, kept bytes for the six bit-6 tiles |
 
 ## 3. Implode, step by step
 
@@ -64,8 +64,8 @@ Each step can be tested on its own (`tests/open-evermore/`):
 5. **Build**: the base, each resource where it landed, each kind's tables (they must lie in the table space
    explode recorded), the header checksum.
 6. **After**: the header against the manifest; G0 when nothing changed (resources, enums); the round trip
-   (explode the image again, named by the tree's enums and with the manifest's `options`, compare; keys a codec
-   lists as `derived` are left out).
+   (explode the image again, named by the tree's enums and with the manifest's `options`, compare each file's
+   `canonical` form).
 
 ## 4. Codecs
 
@@ -76,8 +76,9 @@ interface Codec {
   defaultName(id: number): string;
   /** ROM → files, pool, table space, homes; `name(kind, id)` names any kind's resource (cross-kind references). */
   explode(rom: Uint8Array, name: NameOf, options: Record<string, string>): Exploded;
-  /** JSON keys (any depth) explode derives or caches; the round trip skips them. */
-  derived?: string[];
+  /** What of a file the round trip compares, as [path, bytes]: content without derived or cached parts, and
+   *  without the file format (a tile PNG or JSON compare by indices). */
+  canonical?(path: string, bytes: Uint8Array): [string, Uint8Array];
   /** The resource names in the tree (unordered); stray files are warnings. */
   names(ctx: ImplodeContext): Set<string>;
   /** Check and encode; findings go to ctx.findings. */
@@ -124,7 +125,7 @@ editors writing into the tree (the Rooms map editor saves `maps/<map>/map.json`)
 |---|---|---|
 | `tests/open-evermore/enum-layout.test.mts` | unit | the enum (ids, gaps, new names, limit, bad names) and the allocator (rules, stable, random, seeds, no space) apart |
 | `tests/open-evermore/implode.test.mts` | unit | a synthetic kind on a synthetic image: G0, random + round trip, enum reorder, changed resource, every error |
-| `tests/open-evermore/formats.test.mts` | unit | the compact JSON layout; the PNG decoder (RGB, every row filter) |
+| `tests/open-evermore/formats.test.mts` | unit | the compact JSON layout; the PNG decoder (RGB, every row filter, indexed at 1/4/8 bits) |
 | `tests/memory/map-units.test.js` | unit | `decodeTile` (bit-6 forms), `encodeTile`, `lzssCompressVanilla` round trips |
 | `tests/open-evermore/g0.test.mts` | `rom` | the base ROM: stable = vanilla sha1 with no warning (also with PNG families); two 4 MiB seeds move > 100 resources and round-trip; missing tile or family, bad colour or pixel row; an edited metatile re-compressed |
 | `open-evermore.mts prove` | on demand | the playbacks; seconds today, never in a test tier (`test-discipline` skill) |

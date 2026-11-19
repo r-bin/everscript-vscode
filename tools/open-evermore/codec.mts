@@ -72,9 +72,12 @@ export interface Codec {
      * (the tree's own enums on a round trip, else each kind's defaultName).
      */
     explode(rom: Uint8Array, name: NameOf, options: Record<string, string>): Exploded;
-    /** Keys, at any depth, of this kind's JSON files that explode derives (which maps use a family) or keeps as a
-     *  cache (vanilla packed bytes): implode does not need them, and the round trip does not compare them. */
-    derived?: string[];
+    /**
+     * What of a file the round trip compares, as [path, bytes], when not all of it is the resource: a tile's indices
+     * whether PNG or JSON (a PNG's palette only shows it), a JSON file without what explode derives (which maps use a
+     * family) or caches (vanilla packed bytes). The path may drop the file format, so either form compares equal.
+     */
+    canonical?(path: string, bytes: Uint8Array): [string, Uint8Array];
     /** The names of the resources in the tree (folder or file names, unordered); stray files are warnings. */
     names(ctx: ImplodeContext): Set<string>;
     /** Reads, validates and encodes the resources; findings go to ctx.findings. */

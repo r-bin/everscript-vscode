@@ -15,6 +15,7 @@ import { sha1 } from '../../tools/open-evermore/tree.mts';
 const require = createRequire(import.meta.url);
 const games = require('../../dist/games');
 const { stripCopierHeader } = require('../../dist/platform/roms/header');
+const { encodePng } = require('../../dist/platform/png');
 
 const path = games.baseRomPath('evermore');
 if (!path || !existsSync(path)) {
@@ -52,8 +53,9 @@ if (!path || !existsSync(path)) {
     assert.deepStrictEqual(rules(t => editJson(t, room, m => { m.tileFamilies[0] = 'no_such_family'; })), [`unknown-reference ${room}#/tileFamilies/0`]);
     assert.deepStrictEqual(rules(t => editJson(t, 'tile_families/family_000.json', f => { f.colours[3] = '#123456'; })), ['invalid-value tile_families/family_000.json#/colours/3']);
     assert.deepStrictEqual(rules(t => editJson(t, room, m => { m.graphics.tiles[0] = 'no_such_tile'; })), [`unknown-reference ${room}#/graphics/tiles/0`]);
-    assert.deepStrictEqual(rules(t => editJson(t, 'tiles/tile_0000.json', f => { f.pixels[2] = 'xyz'; })), ['invalid-value tiles/tile_0000.json#/pixels/2']);
-    console.log('  ✓ a map naming a missing family or tile, a colour the SNES cannot show and a bad pixel row are errors');
+    const rgb = new Uint8Array(encodePng(16, 16, new Uint8Array(16 * 16 * 4).fill(255)));
+    assert.deepStrictEqual(rules(t => { t.set('tiles/tile_0000.png', rgb); }), ['invalid-value tiles/tile_0000.png#']);
+    console.log('  ✓ a map naming a missing family or tile, a colour the SNES cannot show and a tile PNG that is not indexed are errors');
 
     // An edited metatile: the room is compressed anew, the ROM still builds and explodes back to the edit.
     const edited = new Map(tree);
@@ -63,10 +65,11 @@ if (!path || !existsSync(path)) {
     assert.notStrictEqual(e.sha1, sha1(rom));
     console.log('  ✓ an edited metatile is compressed anew and round-trips');
 
-    const png = explode(rom, { release: 'us', sha1: sha1(rom), explodedWith: 'test' }, GAME, KINDS, undefined, { tile_families: { format: 'png' } });
-    assert.ok(png.has('tile_families/family_000.png') && !png.has('tile_families/family_000.json'));
-    const p = implode(png, GAME, KINDS);
+    const other = explode(rom, { release: 'us', sha1: sha1(rom), explodedWith: 'test' }, GAME, KINDS, undefined, { tile_families: { format: 'png' }, tiles: { format: 'json' } });
+    assert.ok(other.has('tile_families/family_000.png') && other.has('tiles/tile_0000.json'));
+    const p = implode(other, GAME, KINDS);
     assert.deepStrictEqual(p.findings.list.filter(f => f.severity !== 'info'), []);
     assert.strictEqual(p.sha1, sha1(rom));
-    console.log('  ✓ families as PNG stripes: the same ROM');
+    assert.deepStrictEqual(rules(t => { t.delete('tiles/tile_0000.png'); t.set('tiles/tile_0000.json', other.get('tiles/tile_0000.json')!); }), []);
+    console.log('  ✓ families as PNG stripes and tiles as JSON rows: the same ROM; one tile as JSON among PNGs too');
 }

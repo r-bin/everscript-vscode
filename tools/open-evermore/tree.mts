@@ -39,6 +39,15 @@ function format(v: unknown, indent: string): string {
 }
 export const readText = (bytes: Uint8Array): string => decoder.decode(bytes);
 
+/** A JSON file without the given keys, at any depth (for Codec.canonical); other files unchanged. */
+export function withoutKeys(path: string, bytes: Uint8Array, keys: string[]): Uint8Array {
+    if (!path.endsWith('.json')) return bytes;
+    const drop = (v: any): void => { if (v && typeof v === 'object') for (const k of Object.keys(v)) { if (keys.includes(k)) delete v[k]; else drop(v[k]); } };
+    const v = JSON.parse(readText(bytes));
+    drop(v);
+    return json(v);
+}
+
 export function readTree(dir: string): Tree {
     const tree: Tree = new Map();
     const walk = (rel: string) => {

@@ -24,7 +24,7 @@ import { mark } from '../../codec.mts';
 import type { Codec, ImplodeContext, Item, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
 import { Findings } from '../../findings.mts';
-import { json, NAME_RE, readText, sha1 } from '../../tree.mts';
+import { json, NAME_RE, readText, sha1, withoutKeys } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
 
 const require = createRequire(import.meta.url);
@@ -247,7 +247,7 @@ function lossless(value: unknown, ids: Map<string, Map<string, number>>): Uint8A
 
 export const mapsCodec: Codec = {
     kind: 'maps', version: 4, path: DIR,
-    derived: ['packed'],
+    canonical: (path, bytes) => [path, withoutKeys(path, bytes, ['packed'])],
 
     defaultName: mapName,
 

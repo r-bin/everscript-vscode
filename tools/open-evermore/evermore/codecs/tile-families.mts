@@ -13,6 +13,7 @@
 import { createRequire } from 'node:module';
 import type { Codec, Item, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
+import { Findings } from '../../findings.mts';
 import { json, NAME_RE, readText, sha1 } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
 
@@ -41,6 +42,12 @@ function locate(rom: Uint8Array): { start: number; count: number } {
     return { start: ((rom[LDA.at + 1] & 0x3F) << 16) | rom[ADC.at + 1] | (rom[ADC.at + 2] << 8), count: max + 1 };
 }
 
+/** Every family's 16 colours as [r, g, b], from the ROM (the tiles kind colours its PNGs with them). */
+export function familyColours(rom: Uint8Array): number[][][] {
+    const { start, count } = locate(rom);
+    return Array.from({ length: count }, (_, id) => Array.from({ length: 16 }, (_, c) => channels(rom[start + id * ENTRY + c * 2] | (rom[start + id * ENTRY + c * 2 + 1] << 8))));
+}
+
 /** A 128×8 stripe → `{ colours }` like a JSON family; every 8×8 cell must be one opaque colour. */
 function fromPng(bytes: Uint8Array, file: string, findings: import('../../findings.mts').Findings): { colours: string[] } | null {
     let img: { width: number; height: number; rgba: Uint8Array };
@@ -64,7 +71,12 @@ export const tileFamiliesCodec: Codec = {
     kind: KIND, version: 1, path: DIR,
 
     defaultName: id => 'family_' + id.toString(16).padStart(3, '0'),
-    derived: ['maps'],
+    canonical: (path, bytes) => {
+        const m = /^(.*)\.(png|json)$/.exec(path);
+        if (!m) return [path, bytes];
+        const colours = m[2] === 'png' ? fromPng(bytes, path, new Findings())?.colours : JSON.parse(readText(bytes)).colours;
+        return [m[1] + '.family', json(colours ?? null)];
+    },
 
     explode(rom, name, options) {
         const format = options.format ?? 'json';

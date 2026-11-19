@@ -9,7 +9,7 @@ import { Findings } from './findings.mts';
 import { FILE as MANIFEST, busOf, checkHeader, checkManifest, declaredSize, fileOf, formatAddr, parseAddr, writeChecksum } from './manifest.mts';
 import type { Manifest } from './manifest.mts';
 import { allocate } from './layout.mts';
-import { diffTrees, json, readText, sha1 } from './tree.mts';
+import { diffTrees, readText, sha1 } from './tree.mts';
 import type { Tree } from './tree.mts';
 
 /** The largest HiROM image ($C0-$FF). */
@@ -127,12 +127,10 @@ export function implode(tree: Tree, game: string, kinds: Codec[], opts: Options 
     }));
     const again = explode(image, manifest.base, game, kinds, byId, manifest.options ?? {});
     const own = (p: string) => p !== MANIFEST && !p.startsWith(BASE_DIR + '/') && !ignored.has(p);
-    // Derived keys (Codec.derived) say what the image holds, not what the tree asks for: left out of the comparison.
+    // Each kind says what of a file counts (Codec.canonical): derived or cached parts are left out of the comparison.
     const strip = (t: Tree): Tree => new Map([...t].filter(([p]) => own(p)).map(([p, b]) => {
-        const keys = kinds.find(k => p.startsWith(k.path + '/'))?.derived;
-        if (!keys || !p.endsWith('.json')) return [p, b];
-        const drop = (v: any): void => { if (v && typeof v === 'object') for (const k of Object.keys(v)) { if (keys.includes(k)) delete v[k]; else drop(v[k]); } };
-        try { const v = JSON.parse(readText(b)); drop(v); return [p, json(v)]; } catch { return [p, b]; }
+        const codec = kinds.find(k => p.startsWith(k.path + '/'));
+        try { return codec?.canonical ? codec.canonical(p, b) : [p, b]; } catch { return [p, b]; }
     }));
     const differ = diffTrees(strip(again), strip(tree));
     for (const p of differ.slice(0, 20)) findings.error('round-trip', p, '', again.has(p) ? (tree.has(p) ? 'explodes to different content' : 'explode writes this file; the tree lacks it') : 'explode does not give this file back');
