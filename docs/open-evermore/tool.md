@@ -43,7 +43,7 @@ Planned: `rename` (a resource and every reference to it, logged in the manifest)
 | `prove.mts`, `play.mts` | the proof: two snes9x cores in one process, lockstep, pointer translation |
 | `tree.mts`, `findings.mts`, `report.mts` | the tree as path → bytes; findings; terminal and `report.md` |
 | `evermore/kinds.mts` | Evermore's kinds, in migration order — the only place with game facts, with `evermore/codecs/` |
-| `evermore/codecs/maps.mts` | the maps kind ([resources.md](resources.md) §maps) |
+| `evermore/codecs/maps.mts` | the maps kind ([resources.md](resources.md) §maps): files, names, placement; the room ↔ files mapping is `src/games/evermore/maps/tree-map.ts` |
 | `evermore/codecs/tile-families.mts` | the tile families kind: the array and its two loader operands; JSON or PNG |
 | `evermore/codecs/strings.mts` | the strings kind: the text form, the key table, our encoder |
 | `evermore/codecs/tiles.mts` | the tiles kind: indexed PNG or pixel rows, the `$EE0000` table, kept bytes for the six bit-6 tiles |
@@ -118,11 +118,21 @@ offset `0xC14`) and PC are compared every 60 frames. A frame out of step starts 
 within 60 frames (`MAX_DRIFT`), and the playback must end in step. Only differing frames are examined; nothing per frame is written (spare the SSD). The original must keep
 the playback's own WRAM checks, or the proof does not count.
 
-## 5. Editors (after promotion)
+## 5. Editors
 
-Until promotion, the editor sees an imploded ROM the usual way: `soe://rom/…?rom=<dir>/_build/evermore.sfc`
-*(repo)*. After promotion: commands for the three actions, `report.json` as Problems-panel diagnostics, and the
-editors writing into the tree (the Rooms map editor saves `maps/<map>/map.json`).
+**Maps, read (2026-11-19).** The Rooms tab finds trees in the workspace (a folder, or one up to two levels below,
+whose `manifest.json` is an Evermore tree's) and lists each tree's maps by name under *Open Evermore*. A map is read
+from its four files with the codec implode uses (`src/games/evermore/maps/tree-map.ts`), its names resolved through
+the tree's `_enum.json` files, and built into a copy of an Evermore image (`src/games/evermore/imports/tree/`): the
+tree's `_build/evermore.sfc` when implode left a 3 MiB one, so edited tiles and families show once imploded, else
+the library ROM. The tab then draws, inspects and edits it like a ROM room. Files that do not build show the
+findings. Tested: `tests/open-evermore/tree-editor-dom.test.mts` (every map draws as the vanilla room; an edit to
+`grid.txt` shows).
+
+**Still to do.** The editor saving into the tree (a draft → the room's files; until then, *duplicate as a custom
+map* keeps the work); Play in emulator for a tree map (implode, then run `_build/evermore.sfc`); commands for the
+three actions; `report.json` as Problems-panel diagnostics. Other kinds are seen through an imploded ROM:
+`soe://rom/…?rom=<dir>/_build/evermore.sfc` *(repo)*.
 
 ## 6. Tests
 

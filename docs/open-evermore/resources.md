@@ -166,17 +166,18 @@ round trip compares the indices, not the file.
 
 ```
 maps/_enum.json                      names[id]: the map table's order (README.md §4)
-maps/<map>/map.json                  header, families, palette cycles, graphics, animations, triggers, objects
+maps/<map>/map.json                  header, families, palette cycles, graphics, animations, triggers, cuttable grass
 maps/<map>/grid.txt                  the cells: one row per line, each cell its metatile id in hex
 maps/<map>/metatiles.json            what each metatile draws (canopy, terrain) and how it collides
+maps/<map>/objects.json              each object's states: where, which cells, how long each is held
 maps/<map>/preview.png               the room drawn by the repo's renderer; for the reader, implode ignores it
 ```
 
-`map.json` (version 5):
+`map.json` (version 6; the files are `src/games/evermore/maps/tree-map.ts`, which the Rooms tab reads too):
 
 ```jsonc
 {
-  "format": "open-evermore/map", "version": 5,
+  "format": "open-evermore/map", "version": 6,
   "header": { "triggerOrigin": [17, 11], "mainScreen": 23, "subScreen": 0, "colourMath": 0, "colourWindow": 2,
               "effect": 2, "cameraFlags": 0, "reserved": 0 },  // room-reference.md §4; width and height come from grid.txt
   "tileFamilies": ["family_020", …],               // names in tile_families/
@@ -187,8 +188,7 @@ maps/<map>/preview.png               the room drawn by the repo's renderer; for 
     { "from": [64, 16], "to": [68, 18], "script": 2016 }   // cells [x, y]
   ],
   "bTrigger": [ … ],
-  "cuttableGrass": "…",                            // Section 4, base64
-  "objects": { "offsets": [0, 41], "data": "…" }   // Section 3 + the object area, base64
+  "cuttableGrass": [{ "cut": "000", "into": ["507"] }, …]   // Section 4: metatile ids as in grid.txt
 }
 ```
 
@@ -200,6 +200,25 @@ maps/<map>/preview.png               the room drawn by the repo's renderer; for 
     { "id": "000", "canopy": "tile_0d7b p2 pr v", "terrain": "tile_02a3 p1 h", "collision": "gf z1" }, …
   ] }
 ```
+
+`objects.json`, one object per line (its id is its position: scripts set `object[n]`):
+
+```jsonc
+{ "format": "open-evermore/objects", "version": 1,
+  "list": [
+    { "id": 0, "holds": [1], "states": [{ "at": [39, 63], "cells": ["53d 53e", "53f 540"] }] }, …
+  ] }
+```
+
+- **A state** is how its cells look once reached (state 1 is `states[0]`; state 0 is grid.txt): a rectangle at
+  `at` (cells), one row per string, `.` for a cell it leaves alone. The cells are the object's own steps applied in
+  order to grid.txt (other objects at state 0); implode turns them back into the XOR deltas the engine applies, so an
+  edited grid.txt keeps each object's look. `holds[s]`: ticks state *s* stays up while a script steps through it
+  (the first is never read). `^<4 hex>` is a delta written as is: a cell off the grid (room `0x6E`, 3 stamps).
+- **Layout** is vanilla's: all records, then all stamps, in order (127 of 127 rooms rebuild byte for byte).
+- **Cuttable grass** (`map.json`): `cut` is a metatile the Boy cuts, `into` what is stamped in its place; `steps` if
+  not 1. The source count Section 4 starts with (also the grid's first Markov counter) is the number of distinct
+  `cut`s, as in all 7 vanilla rooms; `grassSources` overrides it. `#<4 hex>` is a word that is no metatile.
 
 - **Layer words** (`canopy` = BG1, `terrain` = BG2): `<graphic> p<palette>` and the set flags `pr` (priority), `h`, `v`
   (flips). The graphic is a name from `graphics.tiles` (`tile_10ee#2` for its second occurrence), `anim<n>` for
@@ -217,14 +236,13 @@ maps/<map>/preview.png               the room drawn by the repo's renderer; for 
 graphics, animations (4/5). Triggers in `[y1, x1, y2, x2]` with script numbers (3/5). A grid of unaligned numbers
 (2/5). Header, palette cycles and metatiles as hex words (1/5). Objects and cuttable grass as base64 (0/5).
 Version 5: about **3.5/5**. Named header and palette cycles, `from`/`to` triggers, an aligned `grid.txt`, metatiles
-in words, and a preview (4–5/5). Still to do: objects and cuttable grass decoded (0/5 → S7), script names in
-triggers (S6), and maybe a grid of names rather than ids.
+in words, and a preview (4–5/5). Version 6 (2026-11-19): objects and cuttable grass decoded, in metatile ids like
+the grid (0/5 → 4/5). Still to do: script names in triggers (S6), and maybe a grid of names rather than ids.
 
 | Still to come | Target |
 |---|---|
 | step-on / B-triggers | `"script": "pyramid_outside_door_north"`: names in `scripts/` (S6) |
 | enter script | `"enter": "pyramid_outside_enter"` |
-| objects, cuttable grass | decoded, with tile references by name |
 
 - **Names.** From `localizations/data/rooms.json` *(repo, our own wording)*: region + place + part in snake case
   (`prehistoria_jungle_south_where_the_game_starts`); `map_<hexid>` for a room it does not name.
@@ -239,6 +257,10 @@ triggers (S6), and maybe a grid of names rather than ids.
 - **Limits.** Every field's range (`invalid-value`); blob ≤ 32 KiB (`over-budget`); 127 ids (the table stays put;
   the engine allows 256).
 - **Still numbers:** script ids point into `_base/` until S6.
+- **The Rooms tab reads trees.** A workspace folder holding a tree (or one up to two levels below) gets an *Open
+  Evermore* rail group: its maps by name, built from their files into a copy of an Evermore image
+  (`src/games/evermore/imports/tree/`), drawn and edited like a ROM room; a file edit shows when the map is opened
+  again. Saving back into the tree is not done yet ([tool.md](tool.md) §5).
 - **Logic warnings** *(proposal; checked against vanilla first)*: a trigger outside the map; a door to an entrance
   that does not exist; an unused family slot; the Boy's start on a solid cell.
 

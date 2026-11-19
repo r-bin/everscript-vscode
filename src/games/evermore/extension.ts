@@ -156,11 +156,13 @@ function activate(context: vscode.ExtensionContext): void {
         getLogs: () => emulatorPanel.getLogHistory() as any,
         cdl: (rom: Uint8Array) => readLibrary(path.join(context.globalStorageUri.fsPath, 'cdl-library'), rom),
     });
-    // Rooms converted from Secret of Mana and Terranigma (games/evermore/imports) read those ROMs from the ROM library.
+    // Rooms converted from Secret of Mana and Terranigma (games/evermore/imports) read those ROMs from the ROM library;
+    // the maps of Open Evermore trees in the workspace are read from their files (imports/tree).
     radar.importedRooms = createImportedRooms({
         soeRom: () => romReaders.loadRomBuffer(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null, ''),
         manaRom: libraryRom('mana'),
         terraRom: libraryRom('terra'),
+        treeRoots: () => (vscode.workspace.workspaceFolders ?? []).filter(f => f.uri.scheme === 'file').map(f => f.uri.fsPath),
     });
 
     /** Re-render the open radar for the current document (Switch ROM to another Evermore ROM). */

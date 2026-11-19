@@ -223,7 +223,7 @@ Block 3). An object record:
 maxState × [hold:1][x:1][y:1][stamp:2]   descriptor s turns state s into s+1
 ```
 
-and the stamping block it points at (shared between descriptors in vanilla):
+and the stamping block it points at (one per descriptor: no vanilla stamp is shared):
 
 ```
 [tw:1][th:1]   then per cell, row-major: a mask byte every 8 cells (LSB first);
@@ -240,6 +240,14 @@ and the stamping block it points at (shared between descriptors in vanilla):
   then `max(1, hold[s])` ticks per state on the way, up or down. State 0 and the
   last state are never held. A value with bit 15 set takes `$90A3AC` instead and
   ignores the holds. Detail: `map_objects.md` §4b–§4c.
+- **Layout.** Every vanilla room stores all records first, in object order, then all
+  stamps in object and descriptor order, with no gap and no zero delta (127/127, checked
+  2026-11-19 by rebuilding each area from its parts: Open Evermore's `objects.json`,
+  `maps/tree-map-text.ts`, rebuilds them that way).
+- **Off the grid.** Room `0x6E` (38×61 cells) stamps objects 3, 4 and 7 at x = 41–44: past
+  the right edge. The write address is `(y·width + x)·2` (`map_objects.md` §4b), so they
+  would land in the next row at x = 3–6 — *unverified*: whether the engine clips them is not
+  traced. `objects.json` keeps such cells as raw deltas (`^<hex>`).
 - State lives in WRAM: current `$7E10CE,X`, target `$7E107E,X`, countdown
   `$7E111E,X` (`$FF` idle).
 

@@ -17,7 +17,7 @@ A kind is **done** when all columns are ✅:
 
 | Step | Kind | Explode | Implode | G0 | Random | Proven | VFS by name | Notes |
 |---|---|---|---|---|---|---|---|---|
-| S1 | maps (127 rooms) | ✅ | ✅ | ✅ | ✅ | ✅ (~10 rooms visited) | ⬜ (by hex id) | v5: map.json + grid.txt + metatiles.json (words as text) + preview.png; uncompressed with the compression noted (237/241 LZSS + all Markov reproduced; 4 blocks keep `packed`); objects, grass and script ids still raw |
+| S1 | maps (127 rooms) | ✅ | ✅ | ✅ | ✅ | ✅ (~10 rooms visited) | ⬜ (by hex id) | v6: map.json + grid.txt + metatiles.json (words as text) + objects.json (states as cells) + preview.png; cuttable grass as metatiles; uncompressed with the compression noted (237/241 LZSS + all Markov reproduced; 4 blocks keep `packed`); only script ids still numbers (S6). The Rooms tab reads it |
 | S2 | tile families (365) | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ (no VFS folder yet) | one array item + the loader's two operands; maps name families; JSON (with the maps using it) or `--families png`; names `family_<id>` |
 | S3 | tiles (6,688) | ✅ | ✅ | ✅ | ✅ | ✅ 3 of 4 seeds | ⬜ (by hex id) | indexed PNG (default) or JSON rows; the table at `$EE0000`; 6,682 re-encoded byte for byte, 6 keep `encoded`; maps name graphics and animation frames; names `tile_<id>` |
 | S4 | strings (3,002) | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ (by index) | `.txt` per string in our lossless text form; key table generated; 2,157 keep vanilla bytes (vanilla's compressor not reproduced yet) |
@@ -38,6 +38,7 @@ A kind is **done** when all columns are ✅:
 | `exhirom` / `sa1` layouts, automatic growth hirom → 4 MiB → exhirom | ✅ built, round trip; 🟨 not proven by playback (they leave step: slow ROM, lag frames) | [manifest.md](manifest.md) §1.1 |
 | `rename`, BPS output | ⬜ | unit tests |
 | the everscript compiler builds into the tree | ⬜ | [../split-and-link/tool.md](../split-and-link/tool.md) §7 |
+| the Rooms tab reads a tree's maps (*Open Evermore* rail group) | ✅ | `tree-editor-dom.test.mts` |
 | editors save into the tree (promotion) | ⬜ | [tool.md](tool.md) §5 |
 
 ## 3. Log
@@ -53,3 +54,4 @@ A kind is **done** when all columns are ✅:
 | 2026-11-19 | S1 | v0.440.0: maps v5 for readability (rated 2/5 → 3.5/5, resources.md §maps): named header and palette cycles, `from`/`to` triggers, `grid.txt`, `metatiles.json` with layer and collision words as text, `preview.png`; the round trip compares meaning (flag order, padding) |
 | 2026-11-19 | — | v0.441.0: manifest layouts `hirom` (3/4 MiB), `exhirom`, `sa1`; hirom grows by itself to 4 MiB, then exhirom (1,549 resources land in `$41–$7D` on a random layout); `sa1` through tools/sa1. Rooms and tiles follow `$40–$7D` pointers (`romFileOffset`). Playbacks do not stay in step on exhirom/sa1 yet |
 | 2026-11-19 | S4 | v0.442.0: strings by name as text; the key table generated; our fewest-bytes encoder, vanilla bytes kept where it differs; seeds 1, 99 proven with 2,954 strings moved. Found: token `$C1` is a word, not a phrase, and a 0 follows every compressed string (dialogue-text-decoder.md corrected) |
+| 2026-11-19 | S1 | v0.443.0: maps v6, completely decoded: `objects.json` (each state as the cells it shows, the XOR deltas rebuilt) and cuttable grass as `cut → into` metatiles; the codec moved to `src/games/evermore/maps/tree-map.ts` so the Rooms tab reads trees (*Open Evermore* group, `imports/tree/`): all 127 maps draw as vanilla. Blobs unchanged, so earlier proofs stand. Found: vanilla object areas are records then stamps, none shared (room-reference.md §8 said shared); room `0x6E` stamps 3 objects past the grid's right edge; grass records are always source → cut (cuttable_grass_mechanics.md corrected) |

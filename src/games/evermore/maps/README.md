@@ -36,6 +36,8 @@ it. See the `map-format` skill.
 | `own-room.ts` | `buildOwnRoomBlob`: a room from its own graphics list, families and header (no donor) — converted Secret of Mana maps |
 | `object-encode.ts` | Section 3 records and state descriptors, shared by both room builders |
 | `custom-room.ts` | A custom map's resolved grid → a room blob, borrowing a donor's graphics ([rom-export.md](../../../../docs/map-format/rom-export.md)) |
+| `tree-map.ts` | A room as the files of an Open Evermore tree (map.json, grid.txt, metatiles.json, objects.json) and back, byte for byte ([resources.md](../../../../docs/open-evermore/resources.md) §maps): used by `tools/open-evermore` and the Rooms tab (`imports/tree/`). 274 lines: one validator per file, kept together so the error pointers stay in one place |
+| `tree-map-text.ts` | Its text forms: layer and collision words, objects (states as cells, XOR deltas rebuilt in vanilla's layout), cuttable grass |
 | `custom-animation.ts` | A custom map's Section 2: a channel per placed animated graphic, the slot order and word renumbering that make it play |
 | `budget.ts` | The four ceilings (graphics, families, stamps, WRAM) and what an edit adds to them |
 | `animation-opcodes.ts` | The animation bytecode's instruction set — the one width table — and a disassembler ([animation_script.md](../../../../docs/entities/animation_script.md)) |

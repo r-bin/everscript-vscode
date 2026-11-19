@@ -99,7 +99,8 @@
   "tests/debugger/host-watch.test.js",
   "tests/debugger/click-walk.test.js",
   "tests/debugger/ui-log.test.js",
-  "tests/terra/terra-editor-dom.test.js"
+  "tests/terra/terra-editor-dom.test.js",
+  "tests/open-evermore/tree-editor-dom.test.mts"
  ],
  "emulator": [
   "tests/memory/music-tab.test.js",

@@ -1,27 +1,31 @@
-// Ownership: the rooms converted from other games (imports/mana, imports/terra) as one source for the Rooms
-// tab's host: the rail's groups, and each request answered by the bridge that owns the room. Each bridge's own
-// rules: its AGENTS.md; what they share on Evermore's side: common/.
+// Ownership: the rooms converted from other games (imports/mana, imports/terra), and the maps of Open Evermore trees
+// (imports/tree, Evermore's own rooms read from files), as one source for the Rooms tab's host: the rail's groups,
+// and each request answered by the bridge that owns the room. Each bridge's own rules: its AGENTS.md or header;
+// what they share on Evermore's side: common/.
 
 import { createManaRooms } from './mana';
 import { createTerraRooms } from './terra';
-import { TERRA_ROOM_BASE, IMPORTED_ROOM_BASE } from './common/ids';
+import { createTreeRooms } from './tree';
+import { TERRA_ROOM_BASE, IMPORTED_ROOM_BASE, TREE_ROOM_BASE } from './common/ids';
 import { conversionStatus, failedStatus } from './common/status';
 import type { RoomStatus } from './common/status';
 
 type Rom = Uint8Array;
-type Bridge = ReturnType<typeof createManaRooms> | ReturnType<typeof createTerraRooms>;
+type Bridge = ReturnType<typeof createManaRooms> | ReturnType<typeof createTerraRooms> | ReturnType<typeof createTreeRooms>;
 
 /** The rail groups, in this order under the vanilla rooms. */
 const GROUPS = [
     { key: 'mana', label: 'Secret of Mana', title: 'Secret of Mana maps converted to Evermore rooms: tiles, families, collision, step-on events' },
     { key: 'terra', label: 'Terranigma', title: 'Terranigma rooms converted to Evermore rooms: tiles, families, collision, exits, chests, map changes' },
+    { key: 'tree', label: 'Open Evermore', title: 'The maps of Open Evermore trees in the workspace (tools/open-evermore explode), read from their files: map.json, grid.txt, metatiles.json, objects.json' },
 ] as const;
 
-/** Each `…Rom()` returns the current buffer (or null). */
-function createImportedRooms(deps: { soeRom(): Rom | null; manaRom(): Rom | null; terraRom(): Rom | null }) {
+/** Each `…Rom()` returns the current buffer (or null); `treeRoots()` the folders that may hold Open Evermore trees. */
+function createImportedRooms(deps: { soeRom(): Rom | null; manaRom(): Rom | null; terraRom(): Rom | null; treeRoots?(): string[] }) {
     const bridges: Record<(typeof GROUPS)[number]['key'], Bridge> = {
         mana: createManaRooms({ soeRom: deps.soeRom, manaRom: deps.manaRom }),
         terra: createTerraRooms({ soeRom: deps.soeRom, terraRom: deps.terraRom }),
+        tree: createTreeRooms({ soeRom: deps.soeRom, roots: () => deps.treeRoots?.() ?? [] }),
     };
     const all = Object.values(bridges);
     const first = <T>(ask: (b: Bridge) => T | null | undefined): T | null => {
@@ -64,7 +68,7 @@ function createImportedRooms(deps: { soeRom(): Rom | null; manaRom(): Rom | null
         /** The game tab room `roomId` was converted from, by its id's range (common/ids.ts), or null for a ROM room. */
         game: (roomId: unknown): string | null => {
             const n = Number(roomId);
-            return n >= TERRA_ROOM_BASE ? GROUPS[1].label : n >= IMPORTED_ROOM_BASE ? GROUPS[0].label : null;
+            return n >= TREE_ROOM_BASE ? GROUPS[2].label : n >= TERRA_ROOM_BASE ? GROUPS[1].label : n >= IMPORTED_ROOM_BASE ? GROUPS[0].label : null;
         },
         clear: () => { all.forEach((b) => b.clear()); statuses.clear(); },
     };

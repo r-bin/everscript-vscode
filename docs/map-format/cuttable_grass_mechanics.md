@@ -53,7 +53,7 @@ Every vanilla record's sequence is exactly two words, so every record is 7 bytes
 ```
 
 - **First word** = the intact metatile ID, exactly as it appears in the room's metatile grid.
-- **Following words** = the sequence stamped in its place, one word per animation step. The first step re-stamps the *original* ID (a no-op frame), the last is the cut graphic.
+- **Following words** = what is stamped in its place, one word per step (**UNVERIFIED**: what `steps` and more than one word do). In vanilla there is exactly one: the cut metatile, never equal to the source (checked 2026-11-19 over the 7 rooms; an earlier version said the first word re-stamps the source, which no vanilla record does).
 - `0x0000` ends the sequence.
 
 ### 2.1 Structural invariants

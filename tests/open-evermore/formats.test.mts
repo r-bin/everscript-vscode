@@ -1,5 +1,6 @@
 // The file formats of an Open Evermore tree (docs/open-evermore/resources.md): the compact JSON every file is
-// written in, and the PNG decoder that reads tile families saved by an image editor (RGB, every row filter).
+// written in, the PNG decoder that reads tile families saved by an image editor (RGB, every row filter), and a
+// room's objects and cuttable grass as text.
 // Run: node tests/open-evermore/formats.test.mts   (npm run build:ts first)
 import assert from 'node:assert';
 import { createRequire } from 'node:module';
@@ -10,6 +11,7 @@ import { fromText, toText } from '../../tools/open-evermore/evermore/codecs/stri
 const require = createRequire(import.meta.url);
 const { decodePng, encodePng, encodeIndexedPng } = require('../../dist/platform/png');
 const { crc32 } = require('../../dist/platform/crc32');
+const { objectsText, parseObjects, grassText, parseGrass } = require('../../dist/games/evermore/maps/tree-map-text');
 
 let passed = 0;
 const test = (name: string, fn: () => void) => { fn(); passed++; console.log('  ✓ ' + name); };
@@ -106,6 +108,40 @@ test('string text: every byte has one spelling, and it parses back', () => {
     assert.deepStrictEqual(fromText(t), raw);
     assert.match(fromText('[WAVE]') as string, /no such tag/);
     assert.match(fromText('é') as string, /U\+00e9/);
+});
+
+
+test('objects: states as cells over the grid, deltas back byte for byte, records then stamps', () => {
+    // A 4×2 grid of metatiles 0-3 (ids base + 8·index); object 0 steps twice at [1, 0] (2×1), the second time one
+    // cell; object 1 writes a raw delta off the grid's edge.
+    const room = { width: 4, height: 2, base: 16, count: 6, cells: [0, 1, 2, 3, 0, 1, 2, 3] };
+    const list = [
+        { id: 0, holds: [0, 6], states: [{ at: [1, 0], cells: ['004 005'] }, { at: [1, 0], cells: ['001   .'] }] },
+        { id: 1, holds: [1], states: [{ at: [3, 1], cells: ['002 ^0018'] }] },
+    ];
+    const r = parseObjects(list, room);
+    assert.deepStrictEqual(r.offsets, [0, 11]);
+    // records: [2, 0,1,0,stamp, 6,1,0,stamp], [1, 1,3,1,stamp]; stamps: 2×1 mask 3 (1^4)·8, (2^5)·8; 2×1 mask 1; 2×1 mask 3
+    const id = (i: number) => 16 + 8 * i;
+    assert.deepStrictEqual(Array.from(r.area), [
+        2, 0, 1, 0, 17, 0, 6, 1, 0, 24, 0,
+        1, 1, 3, 1, 29, 0,
+        2, 1, 3, id(1) ^ id(4), 0, id(2) ^ id(5), 0,
+        2, 1, 1, id(4) ^ id(1), 0,
+        2, 1, 3, id(3) ^ id(2), 0, 0x18, 0,
+    ]);
+    assert.deepStrictEqual(objectsText(r.offsets, r.area, room, 3), list);
+    assert.strictEqual(parseObjects([{ holds: [1], states: [{ at: [0, 0], cells: ['009'] }] }], room).pointer, '/list/0/states/0/cells/0');
+});
+
+test('cuttable grass: cut → into, the source count derived unless it differs', () => {
+    const list = [{ cut: '000', into: ['004'] }, { cut: '001', into: ['005'] }, { cut: '000', into: ['005'], steps: 2 }];
+    const s4 = parseGrass(list, undefined, 16, 6);
+    assert.deepStrictEqual(Array.from(s4), [2, 1, 16, 0, 48, 0, 0, 0, 1, 24, 0, 56, 0, 0, 0, 2, 16, 0, 56, 0, 0, 0]);
+    assert.deepStrictEqual(grassText(s4, 16, 6, 3), { list });
+    const odd = parseGrass(list, 5, 16, 6);
+    assert.deepStrictEqual(grassText(odd, 16, 6, 3), { list, sources: 5 });
+    assert.deepStrictEqual(Array.from(parseGrass([], undefined, 16, 6)), [0]);
 });
 
 console.log(`  ${passed} passed`);

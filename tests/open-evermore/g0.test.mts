@@ -1,7 +1,7 @@
 // Open Evermore on the user's ROM (docs/open-evermore/README.md §5): explode the base ROM of the ROM library, then
 // implode the tree in memory: stable gives the vanilla sha1 with no warning (G0), also with the families as PNGs;
 // two random layouts (grown to 4 MiB) and an ExHiROM and SA-1 one place every room, the family array and every tile, rewrite their tables and
-// explode back to the same tree; an edited room is compressed anew; cross-kind references, colours and pixels are
+// explode back to the same tree; an edited room, object and grass record are compressed anew; cross-kind references, colours and pixels are
 // checked. Playing them is `open-evermore.mts prove` (on demand: never in a tier). Skips without the ROM.
 // Run: node tests/open-evermore/g0.test.mts   (npm run build:ts first)
 import assert from 'node:assert';
@@ -69,6 +69,20 @@ if (!path || !existsSync(path)) {
     assert.deepStrictEqual(e.findings.list.filter(f => f.severity === 'error'), []);
     assert.notStrictEqual(e.sha1, sha1(rom));
     console.log('  ✓ an edited metatile is compressed anew and round-trips');
+
+    // Objects and cuttable grass are text (map format v6): an edited state and an edited grass record build and
+    // explode back to the edit; a token that is no metatile is an error at its row.
+    const grassRoom = [...tree.keys()].find(p => p.endsWith('/map.json') && JSON.parse(Buffer.from(tree.get(p)!).toString()).cuttableGrass.length)!;
+    const objects = grassRoom.replace('map.json', 'objects.json');
+    const changed = new Map(tree);
+    editJson(changed, objects, o => { const st = o.list[0].states[0]; st.cells[0] = st.cells[0].replace(/^\s*[0-9a-f]+/, '000'); });
+    editJson(changed, grassRoom, m => { m.cuttableGrass[0].into = [m.cuttableGrass[1].into[0]]; });
+    const c = implode(changed, GAME, KINDS);
+    assert.deepStrictEqual(c.findings.list.filter(f => f.severity === 'error'), []);
+    assert.notStrictEqual(c.sha1, sha1(rom));
+    assert.deepStrictEqual(rules(t => editJson(t, objects, o => { const st = o.list[0].states[0]; st.cells[0] = st.cells[0].replace(/^\s*\S+/, 'zzz'); })), [`invalid-value ${objects}#/list/0/states/0/cells/0`]);
+    assert.deepStrictEqual(rules(t => editJson(t, grassRoom, m => { m.cuttableGrass[0].cut = 'fff'; })), [`invalid-value ${grassRoom}#/cuttableGrass/0`]);
+    console.log('  ✓ an edited object state and grass record build and round-trip; a cell that is no metatile is an error');
 
     const other = explode(rom, { release: 'us', sha1: sha1(rom), explodedWith: 'test' }, GAME, KINDS, undefined, { tile_families: { format: 'png' }, tiles: { format: 'json' } });
     assert.ok(other.has('tile_families/family_000.png') && other.has('tiles/tile_0000.json'));
