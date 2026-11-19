@@ -604,3 +604,16 @@ Following completion of 100% certified C-binding coverage for Replay 01 in `v0.3
   - 544/544 fuzzed states match ROM (100% parity).
   - Mutation caught: yes.
 - Rated and audited: 300 clean, 0 stale/unrated. Total bound routines: **300**.
+
+### Routine #301: `sub_8CD807` ($8C:D807)
+- Bound in `reconstructed-c/8C/8CD804_opcode_10_14_write_byte.c`:
+  - Implements the shared byte-write virtual machine execution core for script opcodes 0x10, 0x11, 0x14, 0x15:
+    - Reads the 16-bit inline destination offset through 24-bit direct page pointer `[$82]` and advances the instruction stream pointer by 2 bytes.
+    - Adds the base memory arena address in Accumulator A (`$2258` for opcodes 0x10/0x14 or `$2834` for scratch/temp opcodes 0x11/0x15) to compute the 16-bit target address `X`.
+    - Pushes the target address onto stack, calls `script_eval_expression` (`$8C:EA43`) via `soe_call_rtl`, and restores target address to `X` via `PLX`.
+    - Faithfully reproduces 65C816 status flags: sets N and Z flags from the popped 16-bit target address (`PLX`), sets 8-bit memory mode (`m=1`), stores the low byte of evaluated expression A into `DB:target`, sets Carry (`SOE_C`), and clears M and X (`REP #$30`).
+- Verified under Gate G1:
+  - 21/21 real states match ROM (100% parity, 21/21 snes9x oracle agreement).
+  - 201/201 fuzzed states match ROM (100% parity).
+  - Mutation caught: yes.
+- Rated and audited: 301 clean, 0 stale/unrated. Total bound routines: **301**.
