@@ -39,7 +39,7 @@ function locate(rom: Uint8Array): { start: number; count: number } {
     }
     let max = 0;
     for (let id = 0; id < maps.MAX_ROOMS; id++) for (const f of maps.decodeRoom(rom, id).tileFamilies) max = Math.max(max, f);
-    return { start: ((rom[LDA.at + 1] & 0x3F) << 16) | rom[ADC.at + 1] | (rom[ADC.at + 2] << 8), count: max + 1 };
+    return { start: maps.romFileOffset(rom, (rom[LDA.at + 1] << 16) | rom[ADC.at + 1] | (rom[ADC.at + 2] << 8)), count: max + 1 };
 }
 
 /** Every family's 16 colours as [r, g, b], from the ROM (the tiles kind colours its PNGs with them). */
@@ -163,7 +163,7 @@ export const tileFamiliesCodec: Codec = {
     tables(ctx, placed) {
         const at = placed.get(ARRAY);
         if (at === undefined) return [];
-        const bus = 0x800000 | at;
+        const bus = ctx.pointer(at);
         const file = `${DIR}/${ENUM}`;
         const writes: Write[] = [
             { at: ADC.at + 1, bytes: new Uint8Array([bus & 0xFF, (bus >> 8) & 0xFF]), file },

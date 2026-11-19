@@ -11,6 +11,7 @@ import type { Codec } from './codec.mts';
 import { implode } from './implode.mts';
 import { MAX_DRIFT } from './play.mts';
 import type { Moved, PlayResult } from './play.mts';
+import type { PastEnd } from './layouts.mts';
 import type { Tree } from './tree.mts';
 
 const require = createRequire(import.meta.url);
@@ -46,17 +47,19 @@ function ranges(addrs: string[]): string {
     return out.join(' ');
 }
 
-export async function prove(tree: Tree, game: string, kinds: Codec[], seed: number, out: string, movieSpecs: string[] = [DEFAULT_MOVIES]): Promise<Proof> {
+export async function prove(tree: Tree, game: string, kinds: Codec[], seed: number, out: string, movieSpecs: string[] = [DEFAULT_MOVIES], pastEnd: PastEnd[] = []): Promise<Proof> {
     const lines: string[] = [];
     const log = (s: string) => { lines.push(s); console.log(s); };
-    const original = implode(tree, game, kinds);
-    const layout = implode(tree, game, kinds, { seed });
+    // The original is plain HiROM at the base size: the playbacks were recorded on it.
+    const original = implode(tree, game, kinds, { layout: 'hirom', pastEnd });
+    const layout = implode(tree, game, kinds, { seed, pastEnd });
     if (!original.image || !layout.image) return { ok: false, lines: ['implode failed; run implode for the findings'] };
     if (original.placed.some(p => p.changed)) return { ok: false, lines: ['resources changed since explode: prove compares two layouts of an unchanged tree (G1); a changed resource needs its own playback (G2)'] };
 
     mkdirSync(out, { recursive: true });
     const romA = join(out, 'original.sfc'), romB = join(out, `random-${seed}.sfc`), movedPath = join(out, 'moved.json');
-    writeFileSync(romA, original.image); writeFileSync(romB, layout.image);
+    // An sa1 layout plays its HiROM content: our core has no SA-1; tools/sa1 proves the conversion in MesenCE.
+    writeFileSync(romA, original.image); writeFileSync(romB, layout.content!);
     const at = new Map(original.placed.map(p => [p.key, p.at]));
     const moved: Moved[] = layout.placed.filter(p => at.get(p.key) !== p.at).map(p => ({ key: p.key, a: at.get(p.key)!, b: p.at, length: p.length }));
     writeFileSync(movedPath, JSON.stringify(moved));
@@ -66,7 +69,7 @@ export async function prove(tree: Tree, game: string, kinds: Codec[], seed: numb
     const movies = files.filter(f => parseMovie(readFileSync(f, 'utf8'), basename(f)).meta.romSha256 === sha256);
     if (!movies.length) return { ok: false, lines: [`no playback recorded on the original (sha256 ${sha256.slice(0, 16)}…) among ${movieSpecs.join(', ')}`] };
 
-    log(`Seed ${seed}: ${moved.length} of ${layout.placed.length} resources moved. ${movies.length} playbacks, original and layout in lockstep.`);
+    log(`Seed ${seed}: ${moved.length} of ${layout.placed.length} resources moved, built as ${layout.layout}${layout.layout?.startsWith('SA-1') ? ' (its HiROM content is played)' : ''}. ${movies.length} playbacks, original and layout in lockstep.`);
     let ok = true;
     await Promise.all(movies.map(async (m, i) => {
         const resultPath = join(out, `run${i}.json`);

@@ -51,7 +51,7 @@ export function baseFiles(rom: Uint8Array, kinds: { kind: string; out: Exploded 
     return new Map([[IMAGE, image], [INDEX, json(index)]]);
 }
 
-export function readBase(tree: Tree, size: number, f: Findings): Base | null {
+export function readBase(tree: Tree, f: Findings): Base | null {
     const raw = tree.get(INDEX), image = tree.get(IMAGE);
     if (!raw) f.error('missing-file', INDEX, '', 'the base index is missing');
     if (!image) f.error('missing-file', IMAGE, '', 'the unexploded part of the ROM is missing');
@@ -60,7 +60,6 @@ export function readBase(tree: Tree, size: number, f: Findings): Base | null {
     try { index = JSON.parse(readText(raw)); }
     catch (e) { f.error('parse-error', INDEX, '', (e as Error).message); return null; }
     if (sha1(image) !== index.sha1) { f.error('base-changed', IMAGE, '', 'the unexploded part was edited; change a resource through its kind instead'); return null; }
-    if (image.length !== size) { f.error('size-mismatch', IMAGE, '', `${image.length} bytes, but manifest.json says ${size}`); return null; }
     const spans = (list: Range[], key: string): (Span & { kind: string })[] => (list ?? []).map((r, i) => {
         const from = parseAddr(r.from), to = parseAddr(r.to);
         if (from === null || to === null) { f.error('schema', INDEX, `/${key}/${i}`, 'from/to as "$BBAAAA"'); return { start: 0, end: 0, kind: r.kind }; }

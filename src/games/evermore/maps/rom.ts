@@ -35,10 +35,21 @@ export function readByte(rom: Uint8Array, offset: number): number {
     return offset >= 0 && offset < rom.length ? rom[offset] : 0;
 }
 
+/**
+ * File offset of a pointer the game follows, in this image: HiROM, or an ExHiROM image (over 4 MB) whose banks
+ * $40-$7D map its second 4 MB (docs/exhirom/port.md; Open Evermore places rooms and tiles there). Vanilla never
+ * points into $40-$7D, so in a HiROM image this is `snesToRom`.
+ */
+export function romFileOffset(rom: Uint8Array, bus: number): number {
+    const bank = bus >> 16;
+    if (rom.length > 0x400000 && bank >= 0x40 && bank <= 0x7d) return 0x400000 + ((bank - 0x40) << 16) + (bus & 0xffff);
+    return snesToRom(bus);
+}
+
 /** ROM file offset of a room's blob, resolved through the map pointer table. */
 export function roomBlobOffset(rom: Uint8Array, roomId: number): number {
     const tableAddr = mapTableOffset(rom);
-    return snesToRom(read24(rom, tableAddr + roomId * MAP_TABLE_STRIDE));
+    return romFileOffset(rom, read24(rom, tableAddr + roomId * MAP_TABLE_STRIDE));
 }
 
 /** Format a number as a fixed-width `0x`-prefixed uppercase hex string. */

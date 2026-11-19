@@ -16,7 +16,7 @@ export type {
     TriggerRecord,
 } from './room';
 
-export { MAX_ROOMS, MAP_LIST_ADDR, mapTableOffset, snesToRom, read16, read24, roomBlobOffset, hex } from './rom';
+export { MAX_ROOMS, MAP_LIST_ADDR, mapTableOffset, snesToRom, romFileOffset, read16, read24, roomBlobOffset, hex } from './rom';
 export {
     identifyEvermoreVariant,
     toVariantId,

@@ -17,7 +17,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve } from 'node:path';
 import { DIR as BASE_DIR } from './base.mts';
-import { GAME, KINDS } from './evermore/kinds.mts';
+import { GAME, KINDS, PAST_END } from './evermore/kinds.mts';
 import { explode } from './explode.mts';
 import { implode } from './implode.mts';
 import { prove } from './prove.mts';
@@ -76,7 +76,7 @@ async function runProve(args: string[]): Promise<number> {
     const movies = m < 0 ? undefined : args.splice(m).slice(1);
     if (!args[0]) { console.error(USAGE); return 2; }
     const dir = resolve(args[0]);
-    const result = await prove(readTree(dir), GAME, KINDS, seed, join(dir, BUILD_DIR, `prove-${seed}`), movies);
+    const result = await prove(readTree(dir), GAME, KINDS, seed, join(dir, BUILD_DIR, `prove-${seed}`), movies, PAST_END);
     if (!result.ok && result.lines.length === 1) console.error(result.lines[0]);
     return result.ok ? 0 : 1;
 }
@@ -86,7 +86,7 @@ function runImplode(args: string[], flag: (n: string) => boolean): number {
     const seed = takeSeed(args);
     if (!args[0]) { console.error(USAGE); return 2; }
     const dir = resolve(args[0]);
-    const result = implode(readTree(dir), GAME, KINDS, { checkOnly, seed });
+    const result = implode(readTree(dir), GAME, KINDS, { checkOnly, seed, pastEnd: PAST_END });
     if (strict) for (const f of result.findings.list) if (f.severity === 'warning') f.severity = 'error';
     const failed = result.findings.failed;
 

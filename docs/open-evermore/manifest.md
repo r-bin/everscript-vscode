@@ -25,9 +25,10 @@ Two files at the top of the tree describe the cartridge as a whole:
   },
   "memoryMap": {                     // §1.1
     "layout": "hirom",               // hirom | exhirom | sa1
-    "size": "3MiB",                  // the image implode writes: 3MiB (vanilla), 4MiB, 8MiB
+    "size": "3MiB",                  // the smallest image implode writes: 3MiB (vanilla) or 4MiB; 8MiB for exhirom, sa1
     "fastRom": true,                 // §1.2
-    "sram": "8KiB"
+    "sram": "8KiB",
+    "grow": true                     // hirom only: grow to 4 MiB, then exhirom, when the resources do not fit
   },
   "regions": [ … ],                  // §1.3
   "placement": { … },                // §1.4
@@ -35,17 +36,31 @@ Two files at the top of the tree describe the cartridge as a whole:
 }
 ```
 
-### 1.1 Layout and size
+### 1.1 Layout and size *(built, 2026-11-19)*
 
-| `layout` | Sizes | Banks implode may write | Source |
-|---|---|---|---|
-| `hirom` | 3 MiB (vanilla), 4 MiB | `$C0–$FF` (64 KiB each), mirrored at `$80–$BF:8000+` | *(hardware)*; the vanilla game |
-| `exhirom` | up to 8 MiB | the above, plus `$40–$7D` (and `$00–$3F:8000+`) for the second 4 MiB | [../exhirom/port.md](../exhirom/port.md) |
-| `sa1` | 8 MiB image | the dual view of [../sa1/port.md](../sa1/port.md) | [../sa1/README.md](../sa1/README.md) |
+Implode places resources in a **content** image mapped like the base ROM (HiROM file offsets) and turns it into the
+cartridge the layout names (`tools/open-evermore/layouts.mts`):
 
-Implode starts with `hirom` / `3MiB` only. The other layouts open when the table hack's moves and the ExHiROM or
-SA-1 ports can be expressed as placement rules (§1.4); until then a manifest that names them is an error
-(`unsupported-layout`).
+| `layout` | Image | Free beyond the base | Pointers | Built by |
+|---|---|---|---|---|
+| `hirom` | 3 MiB (vanilla) | — | `$80–$BF` in an upper half, `$C0–$FF` in a lower one, as vanilla | — |
+| `hirom` 4 MiB ("extension") | 4 MiB | the 4th MB | the same | — |
+| `exhirom` | 8 MiB | the 4th MB, and banks `$41–$7D` of the second 4 MiB (slow ROM) | `$40–$7D` there | [`tools/exhirom`](../../tools/exhirom/README.md) `convert` |
+| `sa1` | 8 MiB SA-1 image of a 4 MiB HiROM content | the 4th MB except `$B8:8000–$FFFF` (the boot block) | as `hirom` | [`tools/sa1`](../../tools/sa1/README.md) `convert` |
+
+- **Default and growth (owner, 2026-11-19).** Explode writes `hirom`, the base size, `"grow": true`. A build that
+  does not fit tries 4 MiB, then `exhirom` (`grown`, info). `sa1` is never chosen for you: it changes the chip.
+  `--random` starts at 4 MiB so half the resources can leave their spans.
+- **Held out:** in exhirom, bank `$40` (the converter's header copy and bank-`$00` vector stubs) and `$7E–$7F` (WRAM
+  on the bus). In every grown image, the span Evermore reads past its 3 MiB (`$B0:E293`+, up to 1,984 bytes,
+  knowledge `row_table_low_bytes_from_bank_b0`) answers as the 3 MiB original did on our core (offset modulo 3 MiB).
+- **Headers.** `hirom` raises the ROM size byte if a grown image needs it (Evermore's already declares 4 MiB); the
+  converters write their own. The manifest's `fastRom` and `sram` are checked against the HiROM content's header.
+- **Reading back.** The round trip explodes the cartridge (`exhirom`: room and tile pointers into `$40–$7D` are
+  followed by `romFileOffset`, `src/games/evermore/maps/rom.ts`) or, for `sa1`, its HiROM content.
+- **Proven?** `hirom` 3 and 4 MiB: yes (progress.md). `exhirom` and `sa1` build and round-trip; on the playbacks
+  they leave step for good (exhirom from frame 473: the slow ROM makes loads longer; sa1's content, like hirom
+  seed 7, at a lag frame). Screens match the original's 0–3 frames apart for 88 % of frames: a timing proof is open.
 
 ### 1.2 Fast ROM: what the manifest decides and what it does not
 
@@ -89,9 +104,8 @@ may use it.
 - Explode writes the regions from the facts the repo has: the ROM size, the header, and the bank plan of the
   4th MB ([../table-hack.md](../table-hack.md) §1). The addresses above are examples of the form; the real
   list comes from that bank plan, not from this page.
-- The vanilla tree (`"size": "3MiB"`) has no `fourth_mb` region. Setting `"size": "4MiB"` adds it; that is the
-  first step beyond G0.
-- Regions never overlap, and they cover the whole image (`region-gap`, `region-overlap` are errors).
+- The regions describe the **base image** (3 MiB): they never overlap and cover it exactly (`region-gap`,
+  `region-overlap` are errors). Space beyond it comes from the layout (§1.1), not from regions.
 - **One allocator.** The everscript compiler, the table hack and the hacks in `$FC–$FF` each claim space today
   ([../split-and-link/README.md](../split-and-link/README.md) §4.7). Each claim must appear here as `reserved`,
   until implode takes its place.

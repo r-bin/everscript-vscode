@@ -7,6 +7,7 @@ import type { Codec, Item } from '../../tools/open-evermore/codec.mts';
 import { ENUM, enumFile, resolveEnum } from '../../tools/open-evermore/enum.mts';
 import { explode } from '../../tools/open-evermore/explode.mts';
 import { implode } from '../../tools/open-evermore/implode.mts';
+import { plan } from '../../tools/open-evermore/layouts.mts';
 import { json, readText, sha1 } from '../../tools/open-evermore/tree.mts';
 import type { Tree } from '../../tools/open-evermore/tree.mts';
 
@@ -151,6 +152,29 @@ test('manifest checks still hold: a region gap and the header agreement', () => 
     assert.deepStrictEqual(rules(t), ['region-gap']);
     const u = fresh(); editJson(u, 'manifest.json', m => { m.memoryMap.fastRom = false; });
     assert.deepStrictEqual(rules(u), ['header-mismatch']);
+});
+
+test('a random layout grows to 4 MiB and raises the header size; a forced layout builds at its smallest', () => {
+    const r = run(fresh(), { seed: 5 });
+    assert.strictEqual(r.image!.length, 0x400000);
+    assert.strictEqual(1024 << r.image![0xFFD7], 0x400000, 'the header declares the grown size');
+    assert.strictEqual(run(fresh(), { seed: 5, layout: 'hirom' }).image!.length, 0x40000);
+});
+
+test('layout plans: free space, pointer forms, what they hold out', () => {
+    const past = [{ start: 0x30E293, end: 0x30EA93 }];
+    const four = plan('hirom', 0x400000, 0x300000, past);
+    assert.deepStrictEqual(four.free, [{ start: 0x300000, end: 0x30E293 }, { start: 0x30EA93, end: 0x400000 }]);
+    assert.deepStrictEqual([four.pointer(0x1C8000), four.pointer(0x1C1234)].map(n => n.toString(16)), ['9c8000', 'dc1234']);
+    assert.deepStrictEqual(plan('hirom', 0x300000, 0x300000, past).free, [], 'no growth, no extra space');
+    const ex = plan('exhirom', 0x800000, 0x300000, past);
+    assert.deepStrictEqual(ex.free.at(-1), { start: 0x410000, end: 0x7E0000 }, 'banks $41-$7D');
+    assert.strictEqual(ex.pointer(0x412345).toString(16), '412345');
+    assert.strictEqual(ex.pointer(0x7D8000).toString(16), '7d8000');
+    const sa1 = plan('sa1', 0x400000, 0x300000, past);
+    assert.ok(!sa1.free.some(s => s.start < 0x390000 && s.end > 0x388000), 'the boot block half bank is held out');
+    const c = new Uint8Array(0x400000); c[0x00E293] = 0x42; four.prepare(c, 0x300000);
+    assert.strictEqual(c[0x30E293], 0x42, 'the read past the end answers as the 3 MiB original did on our core');
 });
 
 test('a file no kind owns is a warning; the ROM is still built', () => {

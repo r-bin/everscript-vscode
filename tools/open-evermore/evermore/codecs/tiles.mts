@@ -256,7 +256,7 @@ export const tilesCodec: Codec = {
             const p = pairOf.get(n);
             const at = p ? placed.get(p.key)! + p.offset : placed.get(`${DIR}/${n}`);
             if (at === undefined) continue;
-            const bus = ((at & 0xFFFF) >= 0x8000 ? 0x800000 : 0xC00000) | at;
+            const bus = ctx.pointer(at);
             bytes.set([bus & 0xFF, (bus >> 8) & 0xFF, bus >> 16], id * 3);
         }
         return [{ at: table.start, bytes, file: `${DIR}/${ENUM}` }];

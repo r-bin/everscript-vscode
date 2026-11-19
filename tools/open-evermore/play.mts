@@ -45,13 +45,19 @@ export interface PlayResult {
 }
 
 /** True when `x` and `y` (24-bit bus values) are the same pointer into (or just past) a moved resource. */
+/** File offset of a ROM pointer in any form ($80-$BF:8000+, $C0-$FF, ExHiROM's $40-$7D), or -1 for anything else. */
+export function romOffset(bus: number): number {
+    const bank = bus >> 16;
+    if (bank >= 0x40 && bank <= 0x7D) return 0x400000 + ((bank - 0x40) << 16) + (bus & 0xFFFF);
+    if (bank >= 0xC0 || (bank >= 0x80 && (bus & 0xFFFF) >= 0x8000)) return bus & 0x3FFFFF;
+    return -1;
+}
+
 export function samePointer(x: number, y: number, moved: Moved[]): boolean {
     if (x === y) return false;
-    const bankX = x >> 16, bankY = y >> 16;
-    // Each a ROM pointer, in either form ($80-$BF:8000+ or $C0-$FF): a resource moved to another bank half changes form.
-    if (bankX < 0x80 || bankY < 0x80) return false;
-    if ((bankX < 0xC0 && (x & 0xFFFF) < 0x8000) || (bankY < 0xC0 && (y & 0xFFFF) < 0x8000)) return false;
-    const offX = x & 0x3FFFFF, offY = y & 0x3FFFFF;
+    // Each a ROM pointer, in any form: a resource moved to another bank half, or to ExHiROM's second half, changes form.
+    const offX = romOffset(x), offY = romOffset(y);
+    if (offX < 0 || offY < 0) return false;
     // `<=`: the engine also keeps a pointer one past a blob's end (seen at $7E00AA for room $31's object area).
     return moved.some(r => offX >= r.a && offX <= r.a + r.length && offY - r.b === offX - r.a);
 }
@@ -69,8 +75,10 @@ export function sameShortPointer(x: number, y: number, moved: Moved[]): boolean 
 /** True when bytes `x` and `y` are the bank of one moved resource in each layout, in the same form: what is left of
  *  a long pointer once its 16-bit part is cleared ($7E00B2 after a room load, seen when rooms change banks). */
 export function sameBank(x: number, y: number, moved: Moved[]): boolean {
-    if (x === y || x < 0x80 || y < 0x80 || (x & 0xC0) !== (y & 0xC0)) return false;
-    return moved.some(r => (r.a >> 16) === (x & 0x3F) && (r.b >> 16) === (y & 0x3F));
+    if (x === y) return false;
+    const fileBank = (b: number) => b >= 0x40 && b <= 0x7D ? 0x40 + (b - 0x40) : b >= 0x80 ? b & 0x3F : -1;
+    const bx = fileBank(x), by = fileBank(y);
+    return bx >= 0 && by >= 0 && moved.some(r => (r.a >> 16) === bx && (r.b >> 16) === by);
 }
 
 /** Differing bytes not explained by translated pointers, as "$7Exxxx:aa/bb"; `seen` collects the explained ones. */

@@ -1,13 +1,13 @@
 // Open Evermore on the user's ROM (docs/open-evermore/README.md §5): explode the base ROM of the ROM library, then
 // implode the tree in memory: stable gives the vanilla sha1 with no warning (G0), also with the families as PNGs;
-// two random layouts (grown to 4 MiB) place every room, the family array and every tile, rewrite their tables and
+// two random layouts (grown to 4 MiB) and an ExHiROM and SA-1 one place every room, the family array and every tile, rewrite their tables and
 // explode back to the same tree; an edited room is compressed anew; cross-kind references, colours and pixels are
 // checked. Playing them is `open-evermore.mts prove` (on demand: never in a tier). Skips without the ROM.
 // Run: node tests/open-evermore/g0.test.mts   (npm run build:ts first)
 import assert from 'node:assert';
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { GAME, KINDS } from '../../tools/open-evermore/evermore/kinds.mts';
+import { GAME, KINDS, PAST_END } from '../../tools/open-evermore/evermore/kinds.mts';
 import { explode } from '../../tools/open-evermore/explode.mts';
 import { implode } from '../../tools/open-evermore/implode.mts';
 import { sha1 } from '../../tools/open-evermore/tree.mts';
@@ -77,4 +77,15 @@ if (!path || !existsSync(path)) {
     assert.strictEqual(p.sha1, sha1(rom));
     assert.deepStrictEqual(rules(t => { t.delete('tiles/tile_0000.png'); t.set('tiles/tile_0000.json', other.get('tiles/tile_0000.json')!); }), []);
     console.log('  ✓ families as PNG stripes and tiles as JSON rows: the same ROM; one tile as JSON among PNGs too');
+
+    for (const layout of ['exhirom', 'sa1']) {
+        const t = new Map(tree);
+        editJson(t, 'manifest.json', m => { m.memoryMap.layout = layout; m.memoryMap.size = '8MiB'; });
+        const r = implode(t, GAME, KINDS, { seed: 3, pastEnd: PAST_END });
+        assert.deepStrictEqual(r.findings.list.filter(f => f.severity !== 'info'), [], layout);
+        assert.strictEqual(r.image!.length, 0x800000);
+        const second = r.placed.filter(p => p.at >= 0x400000).length;
+        if (layout === 'exhirom') assert.ok(second > 100, `only ${second} resources in the second 4 MB`);
+        console.log(`  ✓ ${layout}: an 8 MiB image, round trip holds${layout === 'exhirom' ? `, ${second} resources in $41-$7D` : ''}`);
+    }
 }

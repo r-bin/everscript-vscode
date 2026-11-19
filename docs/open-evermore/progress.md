@@ -35,7 +35,7 @@ A kind is **done** when all columns are ✅:
 | a changed or new resource (G2) | ⬜ | its own playback |
 | `"size": "4MiB"`: the 4th MB as a `free` region (rooms leave their banks) | ✅ for `--random` and when a stable build runs out | `prove` seeds 1, 2, 99 |
 | tile moves shift room-load timing: drifts that come back in step; seed 7 lost a lag frame for good | 🟨 cause open (not page offset, not bank half; the 64-pointer list at `$7E0140`?) | `prove` |
-| `exhirom` / `sa1` layouts | ⬜ | [manifest.md](manifest.md) §1.1 |
+| `exhirom` / `sa1` layouts, automatic growth hirom → 4 MiB → exhirom | ✅ built, round trip; 🟨 not proven by playback (they leave step: slow ROM, lag frames) | [manifest.md](manifest.md) §1.1 |
 | `rename`, BPS output | ⬜ | unit tests |
 | the everscript compiler builds into the tree | ⬜ | [../split-and-link/tool.md](../split-and-link/tool.md) §7 |
 | editors save into the tree (promotion) | ⬜ | [tool.md](tool.md) §5 |
@@ -51,3 +51,4 @@ A kind is **done** when all columns are ✅:
 | 2026-11-19 | S3 | tiles: `tiles/<name>.json` (pixel rows), the `$EE0000` table generated; maps name graphics and animation frames (`marks`: used, dma). Found: the bit-6 tile form (`$8C:C8B0`, six vanilla tiles, two fetched 3 bytes past their end; checked in VRAM), vanilla's tile encoding rules (6,682 reproduced) and LZSS encoder (237/241). Owner's asks the same day: `--random` grows to 4 MiB (≈900 resources land in the 4th MB); map.json v4 uncompressed and compact; families list their maps or are PNG stripes. The proof now checks VRAM and allows drifts; seeds 1, 2, 99 in step, 7 not |
 | 2026-11-19 | S3 | v0.439.0: tiles as indexed PNG by default (coloured with the family vanilla draws each with most), `--tiles json` the alternative; the six kept encodings in `tiles/_encoded.json`; the round trip compares content, not the file format (`Codec.canonical`) |
 | 2026-11-19 | S1 | v0.440.0: maps v5 for readability (rated 2/5 → 3.5/5, resources.md §maps): named header and palette cycles, `from`/`to` triggers, `grid.txt`, `metatiles.json` with layer and collision words as text, `preview.png`; the round trip compares meaning (flag order, padding) |
+| 2026-11-19 | — | v0.441.0: manifest layouts `hirom` (3/4 MiB), `exhirom`, `sa1`; hirom grows by itself to 4 MiB, then exhirom (1,549 resources land in `$41–$7D` on a random layout); `sa1` through tools/sa1. Rooms and tiles follow `$40–$7D` pointers (`romFileOffset`). Playbacks do not stay in step on exhirom/sa1 yet |

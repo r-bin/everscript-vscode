@@ -48,6 +48,8 @@ export interface ImplodeContext {
      * tile a room uses `used`, and every animation frame `dma` (streamed raw). Filled by encode, in kind order.
      */
     marks: Map<string, Set<string>>;
+    /** The 24-bit address the game uses for content offset `at`, in the layout being built (layouts.mts). */
+    pointer(at: number): number;
 }
 
 /** Records that `key` (`<kind>/<name>`) is required to be `what`. */

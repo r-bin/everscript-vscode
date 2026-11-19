@@ -457,7 +457,7 @@ export const mapsCodec: Codec = {
             if (name === undefined) { ctx.findings.error('id-gap', `${DIR}/${ENUM}`, `/names/${id}`, `no map has id ${id}; the map table cannot skip one yet`); continue; }
             const at = placed.get(`${DIR}/${name}`);
             if (at === undefined) continue;
-            const bus = 0x800000 | at;
+            const bus = ctx.pointer(at);
             bytes.set([bus & 0xFF, (bus >> 8) & 0xFF, bus >> 16, 0], id * STRIDE);
         }
         const write: Write = { at: span.start, bytes, file: `${DIR}/${ENUM}` };

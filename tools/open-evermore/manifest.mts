@@ -15,7 +15,11 @@ export interface Manifest {
     version: number;
     game: string;
     base: { release: string; sha1: string; explodedWith: string };
-    memoryMap: { layout: Layout; size: string; fastRom: boolean; sram: string };
+    /**
+     * The cartridge implode builds: its layout, the smallest image `size` (hirom: the base size or 4 MiB; exhirom and
+     * sa1: 8 MiB), and `grow` (default true): a hirom build that does not fit grows to 4 MiB, then to exhirom.
+     */
+    memoryMap: { layout: Layout; size: string; fastRom: boolean; sram: string; grow?: boolean };
     regions: Region[];
     placement: Record<string, unknown>;
     renames: { kind: string; from: string; to: string }[];
@@ -62,7 +66,7 @@ export function manifestFor(rom: Uint8Array, game: string, base: Manifest['base'
     const h = headerMemoryMap(rom);
     return {
         format: FORMAT, version: VERSION, game, base,
-        memoryMap: { layout: 'hirom', size: formatSize(rom.length), fastRom: h.fastRom, sram: h.sram },
+        memoryMap: { layout: 'hirom', size: formatSize(rom.length), fastRom: h.fastRom, sram: h.sram, grow: true },
         regions: [{ name: 'rom', from: formatAddr(busOf(0)), to: formatAddr(busOf(rom.length - 1)), use: 'resources' }],
         placement: {},
         renames: [],
@@ -71,7 +75,7 @@ export function manifestFor(rom: Uint8Array, game: string, base: Manifest['base'
 
 const USES: RegionUse[] = ['resources', 'header', 'free', 'reserved'];
 
-/** Schema and memory map checks (validation.md §2 stage 1, §3); returns the image size, or null on an error. */
+/** Schema and memory map checks (validation.md §2 stage 1, §3); returns the smallest image size, or null on an error. */
 export function checkManifest(m: Manifest, f: Findings): number | null {
     const bad = (pointer: string, msg: string) => f.error('schema', FILE, pointer, msg);
     if (m.format !== FORMAT) bad('/format', `must be "${FORMAT}"`);
@@ -80,13 +84,20 @@ export function checkManifest(m: Manifest, f: Findings): number | null {
     if (!m.base || !/^[0-9a-f]{40}$/.test(m.base.sha1)) bad('/base/sha1', 'must be the base ROM\'s sha1');
     const mm = m.memoryMap;
     if (!mm) { bad('/memoryMap', 'missing'); return null; }
-    if (mm.layout !== 'hirom') f.error('unsupported-layout', FILE, '/memoryMap/layout', `"${mm.layout}": only hirom for now (manifest.md §1.1)`);
+    if (!(['hirom', 'exhirom', 'sa1'] as Layout[]).includes(mm.layout)) f.error('unsupported-layout', FILE, '/memoryMap/layout', `"${mm.layout}": hirom, exhirom or sa1 (manifest.md §1.1)`);
     const size = parseSize(mm.size);
-    if (size === null || size > 4 * UNITS.MiB || size % (64 * UNITS.KiB)) bad('/memoryMap/size', 'whole 64 KiB banks, at most 4MiB under hirom');
+    if (mm.layout === 'hirom' && (size === null || size > 4 * UNITS.MiB || size % (64 * UNITS.KiB))) bad('/memoryMap/size', 'whole 64 KiB banks, at most 4MiB under hirom');
+    if (mm.layout !== 'hirom' && size !== 8 * UNITS.MiB) bad('/memoryMap/size', `"8MiB" under ${mm.layout}`);
+    if (mm.grow !== undefined && typeof mm.grow !== 'boolean') bad('/memoryMap/grow', 'true or false');
     if (typeof mm.fastRom !== 'boolean') bad('/memoryMap/fastRom', 'true or false');
     if (parseSize(mm.sram) === null && mm.sram !== '0KiB') bad('/memoryMap/sram', 'a size such as "8KiB"');
     if (!Array.isArray(m.regions)) { bad('/regions', 'missing'); return null; }
-    if (f.failed || size === null) return null;
+    return f.failed || size === null ? null : size;
+}
+
+/** The regions describe the base image: they must cover it exactly, without overlap (manifest.md §1.3). */
+export function checkRegions(m: Manifest, size: number, f: Findings): void {
+    const bad = (pointer: string, msg: string) => f.error('schema', FILE, pointer, msg);
 
     const spans: { name: string; from: number; to: number; i: number }[] = [];
     m.regions.forEach((r, i) => {
@@ -104,8 +115,7 @@ export function checkManifest(m: Manifest, f: Findings): number | null {
         next = Math.max(next, s.to + 1);
     }
     if (next < size) f.error('region-gap', FILE, '/regions', `no region covers ${formatAddr(busOf(next))}-${formatAddr(busOf(size - 1))}`);
-    if (next > size) f.error('region-overlap', FILE, '/regions', `regions reach past the ${mm.size} image`);
-    return f.failed ? null : size;
+    if (next > size) f.error('region-overlap', FILE, '/regions', `regions reach past the ${formatSize(size)} base image`);
 }
 
 /** The 4 checksum bytes at $FFDC (complement, checksum): generated, so explode blanks them in `_base/`. */
@@ -117,8 +127,8 @@ export const CHECKSUM: { start: number; end: number } = { start: 0xFFDC, end: 0x
  * + the last 1 MiB twice). The complement/checksum pair is summed as $FF $FF $00 $00, which the final values
  * always add up to as well.
  */
-export function writeChecksum(image: Uint8Array): number {
-    image.set([0xFF, 0xFF, 0x00, 0x00], CHECKSUM.start);
+export function writeChecksum(image: Uint8Array, copies: number[] = [CHECKSUM.start]): number {
+    for (const at of copies) image.set([0xFF, 0xFF, 0x00, 0x00], at);
     let low = 1;
     while (low * 2 <= image.length) low *= 2;
     let sum = 0;
@@ -130,7 +140,7 @@ export function writeChecksum(image: Uint8Array): number {
         sum += part * (low / rest);
     }
     const checksum = sum & 0xFFFF;
-    image.set([~checksum & 0xFF, (~checksum >> 8) & 0xFF, checksum & 0xFF, checksum >> 8], CHECKSUM.start);
+    for (const at of copies) image.set([~checksum & 0xFF, (~checksum >> 8) & 0xFF, checksum & 0xFF, checksum >> 8], at);
     return checksum;
 }
 

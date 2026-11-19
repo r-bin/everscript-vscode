@@ -36,6 +36,7 @@ Planned: `rename` (a resource and every reference to it, logged in the manifest)
 | `implode.mts` | `implode(tree, game, kinds, { seed, checkOnly })` → findings, image, placements; the stages of [validation.md](validation.md) §2 |
 | `enum.mts` | `<kind>/_enum.json`: names → ids, new names, gaps, the limit |
 | `layout.mts` | the allocator: stable or `seed`; placement rules (upper half, no bank crossing, size); free spans |
+| `layouts.mts` | the cartridge layouts (manifest.md §1.1): free space beyond the base, pointer forms, the build (exhirom and sa1 through their converters) |
 | `base.mts` | `_base/`: the unexploded image with the pool and tables blanked; homes; enum hashes |
 | `manifest.mts` | `manifest.json`: types, schema and region checks, header agreement, the SNES checksum |
 | `codec.mts` | the interface every kind implements (§4) |
@@ -60,9 +61,11 @@ Each step can be tested on its own (`tests/open-evermore/`):
      tree gives the original (G0).
    - *random (seed)*: the image grows to 4 MiB (the 4th MB free); resources shuffled inside the span they came
      from, among neighbours under the same rule, and about half move out of it. Same seed, same layout.
-   - A stable build that does not fit grows to 4 MiB too (`grown`).
-5. **Build**: the base, each resource where it landed, each kind's tables (they must lie in the table space
-   explode recorded), the header checksum.
+   - The layout's plans are tried smallest first: a hirom build that does not fit grows to 4 MiB, then exhirom
+     (`grown`); exhirom and sa1 have one plan each (manifest.md §1.1).
+5. **Build**: the content image (the base, each resource where it landed, each kind's tables, which must lie in
+   the table space explode recorded, pointing through the layout's `ctx.pointer`), then the layout's cartridge
+   image with its checksum.
 6. **After**: the header against the manifest; G0 when nothing changed (resources, enums); the round trip
    (explode the image again, named by the tree's enums and with the manifest's `options`, compare each file's
    `canonical` form).
