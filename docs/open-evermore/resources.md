@@ -86,8 +86,10 @@ with `data.json`; decoder `src/platform/cdl/table-assets.ts`)*. Same JSON as the
 - **`_strings.json`**: `plain` lists the 144 strings stored uncompressed (they stay so); `encoded` keeps the vanilla
   bytes of the 2,157 compressed strings our encoder does not reproduce, used while they still give their text
   (`reencoded`, info, once they do not).
-- **Implode generates** the key table at `$91:D000` (3,002 × 3 bytes, in place: data follows it). An entry is the
-  address in a lower half (15 bits), the bank above `$C0` (8 bits), and bit 23 = compressed (asm `$8C:CD33`).
+- **Implode generates** the key table, in enum order: in place at `$91:D000` while the ids fit it (data follows
+  it), else elsewhere in one bank, with the bank and offset immediates of both readers (`$8C:CCF5`, `$8C:CD35`:
+  `lda #$0091`, `ldy #$D000`, then `lda [$26],y` with the key at `$26`) rewritten. An entry is the address in a
+  lower half (15 bits), the bank above `$C0` (8 bits), and bit 23 = compressed (asm `$8C:CD33`).
 - **Placement.** A string starts in a bank's lower half, in the first 4 MiB, and never crosses a bank (rules
   `lowerHalf`, `below`, `noCrossBank`). Vanilla fills `$C0–$C3`.
 - **Encoding.** Compressed strings use the tables in bank `$91` (single characters, pairs, words, phrases; they stay
@@ -96,7 +98,9 @@ with `data.json`; decoder `src/platform/cdl/table-assets.ts`)*. Same JSON as the
 - **Proven (G1).** Seeds 1 and 99: 2,954 strings moved, both playbacks in step; nothing points into the strings but
   the key table (a scan found no code operand doing so; the text pointers in WRAM, `$22–$24` and neighbours,
   translate).
-- **Limits.** Characters of the text form (`invalid-value`, with the reason); no 0 inside a string; 3,002 ids.
+- **Limits.** Characters of the text form (`invalid-value`, with the reason); no 0 inside a string; 21,845 ids (a key is
+  id·3, added to the table's offset in one bank; the table-hack page's 10,900 assumed it stays in an upper half).
+  A new string is shown in game (`tests/open-evermore/in-game.test.mts`).
 
 ## music and sounds
 
@@ -143,8 +147,10 @@ round trip compares the indices, not the file.
   use them, propose names, let the user accept).
 - **References.** Used by maps: the graphics list and the animation frames, by name (`unknown-reference`). Uses
   nothing. The maps kind marks every tile it uses (`used`) and every animation frame (`dma`).
-- **Implode generates** the pointer table at `$EE0000` (6,688 × 3 bytes), in place, in enum order; its readers
-  (`$8C:C898`, `$90:A16A`, `$90:A23D`) are fixed. The pointer takes the `$80–$BF` form in an upper half, `$C0–$FF`
+- **Implode generates** the pointer table, in enum order: in place at `$EE0000` while the ids fit it, else
+  elsewhere in one bank, with its six reader operands (`$8C:C898`/`C8A1`, `$90:A16A`/`A170`, `$90:A237`/`A23D`)
+  rewritten. Census 2026-11-20: every long operand into `$EE0000–$EE0004` in the ROM is one of these or recorded
+  as data by the vanilla CDL; no immediate builds an `$EE` pointer. The pointer takes the `$80–$BF` form in an upper half, `$C0–$FF`
   in a lower half, as vanilla does.
 - **Encoding.** `encodeTile` *(repo: chr.ts)* gives back 6,682 vanilla tiles byte for byte; an animation frame is
   64 raw words (the streamer DMAs it). The six in the bit-6 form keep `encoded`
@@ -153,8 +159,8 @@ round trip compares the indices, not the file.
   item while both still give their pixels. A changed tile is encoded anew (`reencoded`, info).
 - **Placement.** Anywhere, never across a bank. Vanilla scatters them over ~80 banks in the gaps other data
   leaves; `--random` shuffles them among their neighbours and into the 4th MB.
-- **Limits.** 16 rows of 16 hex digits (`invalid-value`); 6,688 ids while the table stays put (its readers index
-  it with id·3 in 16 bits: 21,845 after a move); a room's graphics list ≤ 264 slots is a map limit.
+- **Limits.** 16 rows of 16 hex digits (`invalid-value`); 21,845 ids (the readers index the table with id·3 in
+  16 bits); a room's graphics list ≤ 264 slots is a map limit.
 - **Logic warnings.** A tile no map uses (`unreferenced`; vanilla uses all 6,688). *(Proposal: identical pixels.)*
 - **Proven (G1).** Seeds 1, 2, 99 (≈6,660 tiles moved each, 4 MiB): both playbacks in step, VRAM identical at
   every check. Moving tiles shifts room-load timing (drifts back in step within 17 frames); seed 7 lost a lag frame
@@ -266,7 +272,7 @@ the grid (0/5 → 4/5). Still to do: script names in triggers (S6), and maybe a 
   engine keeps six long pointers into the current blob (`knowledge/wram/DIRECT_PAGE_BLOCK.md`), all translated.
 - **Limits.** Every field's range (`invalid-value`); blob ≤ 32 KiB (`over-budget`); 256 ids (the enter-script
   lookup's 8×8 multiply). A new map gets the next id: **proven in game** for `0x7F`, a copy of Brian's room
-  entered by `load_map(0x7F, …)` (`tests/open-evermore/maps-in-game.test.mts`, G2).
+  entered by `load_map(0x7F, …)` (`tests/open-evermore/in-game.test.mts`, G2).
 - **Still numbers:** script ids point into `_base/` until S6.
 - **The Rooms tab reads trees.** A workspace folder holding a tree (or one up to two levels below) gets an *Open
   Evermore* rail group: its maps by name, built from their files into a copy of an Evermore image
@@ -275,24 +281,55 @@ the grid (0/5 → 4/5). Still to do: script names in triggers (S6), and maybe a 
 - **Logic warnings** *(proposal; checked against vanilla first)*: a trigger outside the map; a door to an entrance
   that does not exist; an unused family slot; the Boy's start on a solid cell.
 
-## scripts
+## scripts *(built, S6, 2026-11-20)*
 
-**Folder.** `scripts/<script>.evs` once the compiler emits relocatable output, `scripts/<script>.bin` +
-`<script>.json` (labels for its pointers) until then.
+**Folder.** One file per script; one script is one entry of the Scripts tab (a room's enter script, a step-on or
+B trigger, a global) or a script those call:
 
-- **Names.** `<room>_enter`, `<room>_<trigger>`, and the names of global functions *(repo:
-  `script-model/`, the script names of the Scripts tab)*; `script_<hexid>` otherwise.
-- **References.** Use strings, maps, music, sounds, characters, animations, other scripts — all by name, as
-  operands. Used by maps (triggers) and other scripts.
-- **Implode generates**: the script pointer table *(repo: 1,917 entries)* and the room script tables; the
-  operands that are ids are written from the locks.
-- **Limits.** Bytecode never crosses a bank; every operand in range (opcode descriptions:
-  `soe://rom/assets/scripts/opcodes/`).
-- **Codec.** Decoder and model *(repo: `script-model/`, `script-vm/`, `rooms/data/room-scripts.ts`)*; encoding through the everscript compiler
-  needs its relocatable output ([../split-and-link/tool.md](../split-and-link/tool.md) §7 *(owner's call)*).
-  Until then: raw bytes with their pointer operands as labels.
+```
+scripts/_enum.json          names[id]: the pointer table (trigger ids are byte offsets 3·id; globals from id 1,917)
+scripts/_scripts.json       the boot script (header +$0C) and the groups (below)
+scripts/<script>.txt        one command per line, its bytes in hex; another script as @name; skip <n>
+```
+
+```
+a3 36                       call_id(FADE_IN)
+29 @podunk_podunk_town_1965_enter_sub_1     call (absolute: the packed pointer is generated)
+a5 @global_loot_part1_sub_1                 call back (relative: the offset is generated)
+22 17 28 15 00              load_map(0x15, 0x17, 40): ends the script
+skip 7                      7 bytes no command reaches: not this script's
+```
+
+- **Names.** A table entry: the room trigger that uses it (`<map>_step_<n>`, `<map>_b_<n>`), a global's name
+  (`global_<name>`, `script-model/names.ts`), else `script_<id>`. An enter script `<map>_enter`, the boot script
+  `boot`, a called one `<root>_sub_<n>` after the first table script, map or boot script that reaches it. The
+  maps name their enter scripts in `maps/_enter_scripts.json` (`"script": "<name>"`). Every name is the tree's:
+  on a round trip, implode tells explode where each named script landed.
+- **References.** `@name` replaces the operand of `07`, `29`, `af`, `b4` (a packed pointer, any script) and of
+  `a5`, `b2` (one byte back), `a6`, `b3` (a word back). Ids stay numbers: global ids (`a3`, `b0`), trigger
+  offsets (`a4`, `b1`), string keys, map ids.
+- **Groups.** Scripts that call each other backwards by a relative offset are placed as one item, in the order
+  `_scripts.json` lists them; implode works out each offset and says when one is out of reach (`out-of-range`).
+  141 groups in vanilla, the largest 20 KB. The bytes between them are holes (`skip`): vanilla keeps tiles in
+  bank `$95` between two scripts of one group.
+- **Implode generates** the pointer table (a generated item: in place while the ids fit, else moved, with the
+  four reader operands rebased by header word +0, which stays), the packed pointers of `@name` calls, the boot
+  pointer and (maps kind) the enter-script table.
+- **Placement.** The script window: the upper halves of `$92–$BF`, read as one space, so a script may run on
+  from `$xx:FFFF` into `$xx+1:8000` (`Rule.window`). Three vanilla groups do.
+- **Reached.** The table's scripts, the maps' enter scripts, the boot script and what they name; a script nothing
+  reaches is left out of the ROM (`left-out`, a warning).
+- **Limits.** 21,625 ids (header word +0 plus 3·id in 16 bits); globals 256 (a one-byte operand).
+- **Proven (G1).** Seed 1 moved 2,597 of 2,599 script items; both stored playbacks identical. The proof
+  translates packed pointers (the engine keeps one at `$7E0026`) and the script program counter `$82–$84`.
+  In game (G2): the opening's enter script rewritten to `load_map(0x7F)`, and a new map's own enter script
+  (`tests/open-evermore/in-game.test.mts`).
+- **Next.** Labels for jumps inside a script (they are relative: editing a line's length moves the targets after
+  it); everscript text once the compiler writes relocatable output ([../split-and-link/tool.md](../split-and-link/tool.md) §7).
 
 ## characters, sprites, animations
+
+Explored 2026-11-20: [animations.md](animations.md) (what binds each layer, what can be exploded first).
 
 **Folder.**
 

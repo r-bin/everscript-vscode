@@ -8,10 +8,10 @@ import { explode } from './explode.mts';
 import { Findings } from './findings.mts';
 import { FILE as MANIFEST, busOf, checkHeader, checkManifest, checkRegions, fileOf, formatAddr, parseAddr } from './manifest.mts';
 import type { Layout, Manifest } from './manifest.mts';
-import { allocate } from './layout.mts';
+import { allocate, piecesOf } from './layout.mts';
 import { plan } from './layouts.mts';
 import type { PastEnd, Plan } from './layouts.mts';
-import { diffTrees, readText, sha1 } from './tree.mts';
+import { diffTrees, json, readText, sha1 } from './tree.mts';
 import type { Tree } from './tree.mts';
 
 /** The largest HiROM image ($C0-$FF). */
@@ -30,8 +30,9 @@ export interface Result {
     stats: KindStats[];
     sha1: string | null;
     seed: number | null;
-    /** Where each resource was (home) and where this build put it. */
-    placed: { key: string; home: number | undefined; at: number; length: number; changed: boolean }[];
+    /** Where each resource was (home) and where this build put it; `pieces`: the file spans it covers, each with its
+     *  offset in the resource (one, unless it runs on in a window or has holes). */
+    placed: { key: string; home: number | undefined; at: number; length: number; changed: boolean; pieces: (Span & { offset: number })[] }[];
 }
 
 export interface Options {
@@ -82,7 +83,7 @@ export function implode(tree: Tree, game: string, kinds: Codec[], opts: Options 
     let chosen: Plan | null = null;
     const ctx = {
         tree, manifest, size, base, findings, ids: new Map<string, Map<string, number>>(), marks: new Map<string, Set<string>>(),
-        pointer: (at: number) => chosen!.pointer(at),
+        pointer: (at: number) => chosen!.pointer(at), names: new Map<string, Set<string>>(), symbols: new Map<string, number>(),
     };
     const items: Item[] = [];
     const stats: KindStats[] = [];
@@ -91,8 +92,9 @@ export function implode(tree: Tree, game: string, kinds: Codec[], opts: Options 
     for (const codec of kinds) {
         const names = codec.names(ctx);
         present.set(codec.kind, names);
+        ctx.names.set(codec.kind, names);
         const path = `${codec.path}/${ENUM}`;
-        const ids = resolveEnum(path, tree.get(path), names, findings);
+        const ids = resolveEnum(path, tree.get(path), names, findings, codec.listedIdsOnly);
         if (ids) ctx.ids.set(codec.kind, ids);
     }
     // In the order of `kinds`: a kind that marks another's resources (ctx.marks) encodes before it.
@@ -124,7 +126,7 @@ export function implode(tree: Tree, game: string, kinds: Codec[], opts: Options 
     }
     if (chosen !== tried[0]) findings.info('grown', MANIFEST, '/memoryMap', `${tried[0].label} did not hold every resource: built as ${chosen!.label}`);
     for (const item of layout.failed) findings.error('no-space', item.file, '', `no free space for ${item.bytes.length} bytes under its rule ${JSON.stringify(item.rule)}`);
-    for (const item of items) if (layout.at.has(item.key)) placed.push({ key: item.key, home: base.homes.get(item.key)?.at, at: layout.at.get(item.key)!, length: item.bytes.length, changed: !item.generated && base.homeSha1.get(item.key) !== sha1(item.bytes) });
+    for (const item of items) if (layout.at.has(item.key)) placed.push({ key: item.key, home: base.homes.get(item.key)?.at, at: layout.at.get(item.key)!, length: item.bytes.length, changed: !item.generated && base.homeSha1.get(item.key) !== sha1(item.bytes), pieces: piecesOf(item, layout.at.get(item.key)!) });
     for (const s of stats) s.moved = items.filter(i => i.key.startsWith(s.kind + '/') && layout.at.get(i.key) !== base.homes.get(i.key)?.at).length;
     if (findings.failed || opts.checkOnly) return done(null, stats);
 
@@ -134,9 +136,12 @@ export function implode(tree: Tree, game: string, kinds: Codec[], opts: Options 
     const content = new Uint8Array(p.content).fill(0xFF);
     content.set(base.image);
     p.prepare(content, base.image.length);
-    for (const item of items) content.set(item.bytes, layout.at.get(item.key)!);
+    for (const item of items) {
+        for (const piece of piecesOf(item, layout.at.get(item.key)!)) content.set(item.bytes.subarray(piece.offset, piece.offset + piece.end - piece.start), piece.start);
+    }
+    for (const codec of kinds) for (const [key, at] of codec.symbols?.(ctx, layout.at) ?? []) ctx.symbols.set(key, at);
     const writes: Write[] = kinds.flatMap(codec => codec.tables(ctx, layout.at));
-    const tables: Span[] = [...base.tables, ...items.filter(i => i.generated).map(i => ({ start: layout.at.get(i.key)!, end: layout.at.get(i.key)! + i.bytes.length }))];
+    const tables: Span[] = [...base.tables, ...items.filter(i => i.generated || i.patched).flatMap(i => piecesOf(i, layout.at.get(i.key)!))];
     for (const w of writes) {
         if (!tables.some(t => w.at >= t.start && w.at + w.bytes.length <= t.end)) findings.error('wrong-region', w.file, '', `generated table at ${formatAddr(busOf(w.at))} lies outside the table space explode recorded`);
         else content.set(w.bytes, w.at);
@@ -152,19 +157,23 @@ export function implode(tree: Tree, game: string, kinds: Codec[], opts: Options 
     if (seed === null && !changed && p.layout === 'hirom' && p.content === base.image.length && hash !== manifest.base.sha1) {
         findings.error('g0-failed', MANIFEST, '/base/sha1', `nothing changed since explode, yet the ROM's sha1 is ${hash}`);
     }
-    const ignored = new Set(findings.list.filter(f => f.rule === 'unknown-file').map(f => f.file));
+    // Files no kind reads, and resources a kind left out of the build (nothing reaches them): not in the round trip.
+    const ignored = new Set(findings.list.filter(f => f.rule === 'unknown-file' || f.rule === 'left-out').map(f => f.file));
     const byId = new Map([...ctx.ids].map(([kind, ids]) => {
         const list: (string | null)[] = [];
         for (const [name, id] of ids) list[id] = name;
         return [kind, Array.from(list, n => n ?? null)];
     }));
     // The round trip reads what the game reads: the cartridge, or for sa1 its HiROM content.
-    const again = explode(p.layout === 'sa1' ? content : image, manifest.base, game, kinds, byId, manifest.options ?? {});
+    const located = new Map([...layout.at, ...ctx.symbols]);
+    const again = explode(p.layout === 'sa1' ? content : image, manifest.base, game, kinds, byId, manifest.options ?? {}, located);
     const own = (p: string) => p !== MANIFEST && !p.startsWith(BASE_DIR + '/') && !ignored.has(p);
     // Each kind says what of a file counts (Codec.canonical): derived or cached parts are left out of the comparison.
     const strip = (t: Tree): Tree => new Map([...t].filter(([p]) => own(p)).flatMap(([p, b]): [string, Uint8Array][] => {
         const codec = kinds.find(k => p.startsWith(k.path + '/'));
-        try { const c = codec?.canonical ? codec.canonical(p, b) : [p, b] as [string, Uint8Array]; return c ? [c] : []; } catch { return [[p, b]]; }
+        // A JSON file compares by its content, whatever its layout (a hand-written one need not be indented like ours).
+        const tidy = ([q, x]: [string, Uint8Array]): [string, Uint8Array] => { if (!q.endsWith('.json')) return [q, x]; try { return [q, json(JSON.parse(readText(x)))]; } catch { return [q, x]; } };
+        try { const c = codec?.canonical ? codec.canonical(p, b) : [p, b] as [string, Uint8Array]; return c ? [tidy(c)] : []; } catch { return [[p, b]]; }
     }));
     const differ = diffTrees(strip(again), strip(tree));
     for (const p of differ.slice(0, 20)) findings.error('round-trip', p, '', again.has(p) ? (tree.has(p) ? 'explodes to different content' : 'explode writes this file; the tree lacks it') : 'explode does not give this file back');

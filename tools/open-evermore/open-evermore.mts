@@ -17,7 +17,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve } from 'node:path';
 import { DIR as BASE_DIR } from './base.mts';
-import { GAME, KINDS, PAST_END } from './evermore/kinds.mts';
+import { GAME, KINDS, PAST_END, POINTER_WINDOWS } from './evermore/kinds.mts';
 import { explode } from './explode.mts';
 import { implode } from './implode.mts';
 import { prove } from './prove.mts';
@@ -76,7 +76,7 @@ async function runProve(args: string[]): Promise<number> {
     const movies = m < 0 ? undefined : args.splice(m).slice(1);
     if (!args[0]) { console.error(USAGE); return 2; }
     const dir = resolve(args[0]);
-    const result = await prove(readTree(dir), GAME, KINDS, seed, join(dir, BUILD_DIR, `prove-${seed}`), movies, PAST_END);
+    const result = await prove(readTree(dir), GAME, KINDS, seed, join(dir, BUILD_DIR, `prove-${seed}`), movies, PAST_END, POINTER_WINDOWS);
     if (!result.ok && result.lines.length === 1) console.error(result.lines[0]);
     return result.ok ? 0 : 1;
 }

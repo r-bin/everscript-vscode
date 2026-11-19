@@ -115,7 +115,7 @@
   "tests/debugger/tas-verify.test.js",
   "tests/mana/mana-play.test.js",
   "tests/terra/terra-play.test.js",
-  "tests/open-evermore/maps-in-game.test.mts"
+  "tests/open-evermore/in-game.test.mts"
  ],
  "manual": {
   "tests/debugger/emulator-runtime.test.js": "stale: waits for ss-hook-btn / ss-hook-all-btn and the pause/resume buttons removed in v0.219.0"

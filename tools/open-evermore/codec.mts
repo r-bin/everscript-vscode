@@ -9,6 +9,8 @@ import type { Tree } from './tree.mts';
 
 /** Names any exploded resource by kind and id. */
 export type NameOf = (kind: string, id: number) => string;
+/** On a round trip, the tree's name for what lies at a file offset; undefined when exploding a ROM afresh. */
+export type NameAt = (kind: string, at: number) => string | undefined;
 /** How many ids a kind's enum holds on a round trip; undefined when exploding a ROM afresh. */
 export type CountOf = (kind: string) => number | undefined;
 
@@ -26,14 +28,33 @@ export interface Rule {
     /** Never across a 64 KiB bank boundary. */
     noCrossBank?: boolean;
     maxSize?: number;
+    /**
+     * The item lives in a window: the upper halves of file banks `from` up to (not including) `to`, read as one
+     * space (a reader that steps from $xx:FFFF on to $xx+1:8000). It may run on into the next bank's upper half;
+     * its bytes are then written in pieces (layout.mts `windowPieces`).
+     */
+    window?: Window;
 }
+
+/** File banks whose upper halves a reader sees as one contiguous space. */
+export interface Window { from: number; to: number }
 
 /**
  * One placeable resource: `key` is `<kind>/<name>`. A `generated` item is a table that points at other items (a
  * grown map table): encode gives its size, `tables` writes its bytes where it landed; it is not a resource of its
  * own, so it never counts as changed.
  */
-export interface Item { key: string; file: string; bytes: Uint8Array; rule: Rule; generated?: boolean }
+export interface Item {
+    key: string; file: string; bytes: Uint8Array; rule: Rule; generated?: boolean;
+    /** Its kind's `tables` writes into it after placement (absolute references to other items); `bytes` hold
+     *  those operands as 0, and so does the sha1 explode recorded for its home. */
+    patched?: boolean;
+    /**
+     * Byte ranges (offsets in `bytes`, sorted) that are not the item's: it keeps its shape around them, but they stay
+     * free for others (scripts that call each other across another kind's data). `bytes` holds 0 there.
+     */
+    holes?: Span[];
+}
 
 export interface Exploded {
     files: Tree;
@@ -60,6 +81,13 @@ export interface ImplodeContext {
     marks: Map<string, Set<string>>;
     /** The 24-bit address the game uses for content offset `at`, in the layout being built (layouts.mts). */
     pointer(at: number): number;
+    /** Every kind's resource names (as `names` gave them); set before encode. */
+    names: Map<string, Set<string>>;
+    /**
+     * Named addresses inside items, `<kind>/<name>` → file offset, from each kind's `symbols` once every item is
+     * placed (a script inside a group of scripts); set before `tables`.
+     */
+    symbols: Map<string, number>;
 }
 
 /** Records that `key` (`<kind>/<name>`) is required to be `what`. */
@@ -77,14 +105,18 @@ export interface Codec {
     version: number;
     /** The top-level folder of the tree this kind owns. */
     path: string;
+    /** Only the names `_enum.json` lists get an id; the others are reached by name alone (scripts). */
+    listedIdsOnly?: boolean;
     /** The name explode gives resource `id` when nothing else names it (the repo's own names, or kind + id). */
     defaultName(id: number): string;
     /**
      * `name(kind, id)`: the name of any kind's resource, for this kind's files and its references to other kinds
      * (the tree's own enums on a round trip, else each kind's defaultName). `count(kind)`: how many ids the tree's
      * enum of a kind holds, on a round trip (a table that can grow does not tell its length); undefined otherwise.
+     * `nameAt(kind, at)`: on a round trip, the name the tree gave the resource that implode put at file offset `at`
+     * (resources no enum orders, such as scripts reached only from other scripts).
      */
-    explode(rom: Uint8Array, name: NameOf, options: Record<string, string>, count: CountOf): Exploded;
+    explode(rom: Uint8Array, name: NameOf, options: Record<string, string>, count: CountOf, nameAt: NameAt): Exploded;
     /**
      * What of a file the round trip compares, as [path, bytes], when not all of it is the resource: a tile's indices
      * whether PNG or JSON (a PNG's palette only shows it), a JSON file without what explode derives (which maps use a
@@ -96,7 +128,9 @@ export interface Codec {
     names(ctx: ImplodeContext): Set<string>;
     /** Reads, validates and encodes the resources; findings go to ctx.findings. */
     encode(ctx: ImplodeContext, names: Set<string>): Item[];
+    /** Named addresses inside this kind's items, once they are placed (ImplodeContext.symbols). */
+    symbols?(ctx: ImplodeContext, placed: Map<string, number>): Map<string, number>;
     /** The generated tables, given each name's id (ctx.ids) and where every item landed (file offsets by key): in the
-     *  table space explode recorded, or in a `generated` item of this build. */
+     *  table space explode recorded, or in a `generated` or `patched` item of this build. */
     tables(ctx: ImplodeContext, placed: Map<string, number>): Write[];
 }

@@ -8,7 +8,7 @@ name: tbl_room_enter_scripts
 title: Room enter script descriptor table
 confidence: confirmed
 tags: [rooms, scripts, script-vm]
-evidence: ["disasm: script_start_room_enter_script ($8C:CE99) multiplies room ID by 5 and loads the packed script pointer from $92:801B ($8C:CECC)", "variants.json defines room_enter_scripts at $92:801B for US and $93:801B for European / PAL localizations", "test: Open Evermore grows it to 128 entries elsewhere with the operands at $8C:CECC / $8C:CED2 rewritten; the 128th map's record (a fade-in script) runs when load_map(0x7F) enters it (tests/open-evermore/maps-in-game.test.mts, 2026-11-20)"]
+evidence: ["disasm: script_start_room_enter_script ($8C:CE99) multiplies room ID by 5 and loads the packed script pointer from $92:801B ($8C:CECC)", "variants.json defines room_enter_scripts at $92:801B for US and $93:801B for European / PAL localizations", "test: Open Evermore grows it to 128 entries elsewhere with the operands at $8C:CECC / $8C:CED2 rewritten; the 128th map's record (a fade-in script) runs when load_map(0x7F) enters it (tests/open-evermore/in-game.test.mts, 2026-11-20)"]
 see: [routines/script_start_room_enter_script.md, docs/disassembly/engine-core/room-enter.md, docs/scripts/vm.md]
 ---
 Master room enter script table for all 127 game rooms (rooms 0..126).

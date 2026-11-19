@@ -6,10 +6,42 @@
 //                   they came from, among the neighbours that share their rule, and (when there is other free space)
 //                   half of them move out of it. Same seed, same layout. Game-neutral: SNES banks only.
 import type { Home } from './base.mts';
-import type { Item, Rule, Span } from './codec.mts';
+import type { Item, Rule, Span, Window } from './codec.mts';
 
 const BANK = 0x10000, HALF = 0x8000;
-const ruleKey = (r: Rule) => `${!!r.upperHalf}/${!!r.lowerHalf}/${!!r.noCrossBank}/${r.maxSize ?? ''}/${r.below ?? ''}`;
+const ruleKey = (r: Rule) => `${!!r.upperHalf}/${!!r.lowerHalf}/${!!r.noCrossBank}/${r.maxSize ?? ''}/${r.below ?? ''}/${r.window ? r.window.from + '-' + r.window.to : ''}`;
+
+/** Position of file offset `at` (an upper half inside the window) in the window's space. */
+export const windowPos = (w: Window, at: number): number => ((at >> 16) - w.from) * HALF + (at & (HALF - 1));
+/** File offset of window position `pos`. */
+export const windowFile = (w: Window, pos: number): number => ((w.from + Math.floor(pos / HALF)) << 16) | HALF | (pos % HALF);
+/** True when `at` lies in the window (an upper half of one of its banks). */
+export const inWindow = (w: Window, at: number): boolean => (at & (BANK - 1)) >= HALF && (at >> 16) >= w.from && (at >> 16) < w.to;
+
+/** The file spans `len` window bytes from file offset `at` cover: one, or one per upper half it runs into. */
+export function windowPieces(w: Window, at: number, len: number): Span[] {
+    const out: Span[] = [];
+    for (let pos = windowPos(w, at), left = len; left > 0;) {
+        const start = windowFile(w, pos), n = Math.min(left, HALF - (pos % HALF));
+        out.push({ start, end: start + n });
+        pos += n; left -= n;
+    }
+    return out;
+}
+
+/** The file spans an item occupies at `at` (its holes left out), each with the offset in the item it starts at. */
+export function piecesOf(item: { bytes: Uint8Array; rule: Rule; holes?: Span[] }, at: number): (Span & { offset: number })[] {
+    const runs: Span[] = [];
+    let from = 0;
+    for (const h of item.holes ?? []) { if (h.start > from) runs.push({ start: from, end: h.start }); from = Math.max(from, h.end); }
+    if (from < item.bytes.length) runs.push({ start: from, end: item.bytes.length });
+    const w = item.rule.window;
+    return runs.flatMap(r => {
+        if (!w) return [{ start: at + r.start, end: at + r.end, offset: r.start }];
+        let offset = r.start;
+        return windowPieces(w, windowFile(w, windowPos(w, at) + r.start), r.end - r.start).map(p => { const o = offset; offset += p.end - p.start; return { ...p, offset: o }; });
+    });
+}
 
 export interface Layout {
     at: Map<string, number>;
@@ -71,20 +103,36 @@ export function fitIn(span: Span, len: number, rule: Rule, from = span.start): n
 class Free {
     spans: Span[];
     constructor(spans: Span[]) { this.spans = normalise(spans); }
-    /** Removes [start, start+len) if it lies inside one free span. */
-    take(start: number, len: number): boolean {
-        const i = this.spans.findIndex(s => start >= s.start && start + len <= s.end);
-        if (i < 0) return false;
-        const s = this.spans[i];
-        this.spans.splice(i, 1, ...[{ start: s.start, end: start }, { start: start + len, end: s.end }].filter(x => x.end > x.start));
+    /** Removes every piece if each lies inside one free span; else nothing. */
+    take(pieces: Span[]): boolean {
+        if (!pieces.every(p => this.spans.some(s => p.start >= s.start && p.end <= s.end))) return false;
+        for (const p of pieces) {
+            const i = this.spans.findIndex(s => p.start >= s.start && p.end <= s.end);
+            const s = this.spans[i];
+            this.spans.splice(i, 1, ...[{ start: s.start, end: p.start }, { start: p.end, end: s.end }].filter(x => x.end > x.start));
+        }
         return true;
     }
-    firstFit(len: number, rule: Rule): number {
-        for (const s of this.spans) { const at = fitIn(s, len, rule); if (at >= 0) return at; }
-        return -1;
+    /** The free space as window positions: upper halves inside the window, joined across bank boundaries. */
+    private windowSpans(w: Window): Span[] {
+        const out: Span[] = [];
+        for (const s of this.spans) {
+            const start = Math.max(s.start, (s.start & ~(BANK - 1)) | HALF);
+            if (start >= s.end || !inWindow(w, start)) continue;
+            const a = windowPos(w, start), b = a + (s.end - start), last = out[out.length - 1];
+            if (last && last.end === a) last.end = b; else out.push({ start: a, end: b });
+        }
+        return out;
     }
+    /** File offsets where `len` bytes fit under `rule`: the first of each free span (window positions for a window). */
+    private options(len: number, rule: Rule): number[] {
+        if (!rule.window) return this.spans.map(s => fitIn(s, len, rule)).filter(at => at >= 0);
+        if (rule.maxSize !== undefined && len > rule.maxSize) return [];
+        return this.windowSpans(rule.window).filter(s => s.end - s.start >= len).map(s => windowFile(rule.window!, s.start));
+    }
+    firstFit(len: number, rule: Rule): number { return this.options(len, rule)[0] ?? -1; }
     randomFit(len: number, rule: Rule, next: () => number): number {
-        const options = this.spans.map(s => fitIn(s, len, rule)).filter(at => at >= 0);
+        const options = this.options(len, rule);
         return options.length ? options[Math.floor(next() * options.length)] : -1;
     }
 }
@@ -97,14 +145,15 @@ export function allocate(items: Item[], pool: Span[], extra: Span[], homes: Map<
     const free = new Free([...pool, ...extra]);
     const at = new Map<string, number>();
     const failed: Item[] = [];
-    const place = (item: Item, where: number) => { if (where >= 0 && free.take(where, item.bytes.length)) { at.set(item.key, where); return true; } return false; };
+    const place = (item: Item, where: number) => { if (where >= 0 && free.take(piecesOf(item, where))) { at.set(item.key, where); return true; } return false; };
     const homed = items.filter(i => homes.has(i.key)).sort((a, b) => homes.get(a.key)!.at - homes.get(b.key)!.at);
     const rest: Item[] = items.filter(i => !homes.has(i.key));
 
     if (seed === undefined) {
         for (const item of homed) {
             const { at: home, length } = homes.get(item.key)!;
-            const ok = item.bytes.length <= length && fitIn({ start: home, end: home + item.bytes.length }, item.bytes.length, item.rule) === home && place(item, home);
+            const fits = item.rule.window ? inWindow(item.rule.window, home) : fitIn({ start: home, end: home + item.bytes.length }, item.bytes.length, item.rule) === home;
+            const ok = item.bytes.length <= length && fits && place(item, home);
             if (!ok) rest.push(item);
         }
         for (const item of rest) if (!place(item, free.firstFit(item.bytes.length, item.rule))) failed.push(item);
@@ -115,7 +164,8 @@ export function allocate(items: Item[], pool: Span[], extra: Span[], homes: Map<
         for (const item of homed) {
             const home = homes.get(item.key)!.at;
             const span = spans.find(s => home >= s.start && home < s.end);
-            if (!span || (extra.length && next() < 0.5)) { rest.push(item); continue; }
+            // A window item may run on into the next bank: it is placed among all the free window space instead.
+            if (!span || item.rule.window || (extra.length && next() < 0.5)) { rest.push(item); continue; }
             if (!bySpan.has(span)) bySpan.set(span, []);
             bySpan.get(span)!.push(item);
         }

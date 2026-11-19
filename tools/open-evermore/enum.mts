@@ -21,7 +21,7 @@ export const enumFile = (e: EnumFile): Uint8Array => json(e);
  * Ids for every name in `present`: the enum's own, then the lowest free id for each new name (sorted, so the
  * result never depends on folder order). Null when the enum file is unusable.
  */
-export function resolveEnum(path: string, raw: Uint8Array | undefined, present: Set<string>, f: Findings): Map<string, number> | null {
+export function resolveEnum(path: string, raw: Uint8Array | undefined, present: Set<string>, f: Findings, listedOnly = false): Map<string, number> | null {
     if (!raw) { f.error('missing-file', path, '', 'the enum of this kind is missing'); return null; }
     let e: EnumFile;
     try { e = JSON.parse(readText(raw)); }
@@ -38,6 +38,8 @@ export function resolveEnum(path: string, raw: Uint8Array | undefined, present: 
         ids.set(name, id);
     });
     const used = new Set(ids.values());
+    // A kind whose resources need no id (scripts reached only from other scripts): only the listed ones get one.
+    if (listedOnly) return ids;
     for (const name of [...present].sort()) {
         if (ids.has(name)) continue;
         let id = 0;

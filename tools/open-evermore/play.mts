@@ -16,6 +16,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { basename, dirname, join } from 'node:path';
 import { createContext, runInContext } from 'node:vm';
+import type { Window } from './codec.mts';
+import { windowFile } from './layout.mts';
 
 const require = createRequire(import.meta.url);
 const { parseMovie, groupEvents, wramCrc, WRAM_BASE, WRAM_SIZE, AUDIO_RATE } = require('../../dist/platform/tas/movie');
@@ -53,6 +55,15 @@ export function romOffset(bus: number): number {
     return -1;
 }
 
+/** True when `x` and `y` are positions in a window (a packed pointer) at the same offset of one moved resource. */
+export function sameWindowPointer(x: number, y: number, moved: Moved[], windows: Window[]): boolean {
+    if (x === y) return false;
+    return windows.some(w => {
+        const size = (w.to - w.from) * 0x8000;
+        return x < size && y < size && samePointer(0x800000 | windowFile(w, x), 0x800000 | windowFile(w, y), moved);
+    });
+}
+
 export function samePointer(x: number, y: number, moved: Moved[]): boolean {
     if (x === y) return false;
     // Each a ROM pointer, in any form: a resource moved to another bank half, or to ExHiROM's second half, changes form.
@@ -82,7 +93,7 @@ export function sameBank(x: number, y: number, moved: Moved[]): boolean {
 }
 
 /** Differing bytes not explained by translated pointers, as "$7Exxxx:aa/bb"; `seen` collects the explained ones. */
-export function realDifferences(wa: Uint8Array, wb: Uint8Array, moved: Moved[], seen: Set<number>, dead: (i: number) => boolean = () => false): string[] {
+export function realDifferences(wa: Uint8Array, wb: Uint8Array, moved: Moved[], seen: Set<number>, dead: (i: number) => boolean = () => false, windows: Window[] = []): string[] {
     const real: string[] = [];
     const covered = new Set<number>();
     for (let i = 0; i < wa.length; i++) {
@@ -90,7 +101,7 @@ export function realDifferences(wa: Uint8Array, wb: Uint8Array, moved: Moved[], 
         let ok = false;
         for (let w = Math.max(0, i - 2); w <= i && w + 2 < wa.length && !ok; w++) {
             const x = wa[w] | (wa[w + 1] << 8) | (wa[w + 2] << 16), y = wb[w] | (wb[w + 1] << 8) | (wb[w + 2] << 16);
-            if (samePointer(x, y, moved)) { ok = true; for (let j = w; j < w + 3; j++) { covered.add(j); seen.add(j); } }
+            if (samePointer(x, y, moved) || sameWindowPointer(x, y, moved, windows)) { ok = true; for (let j = w; j < w + 3; j++) { covered.add(j); seen.add(j); } }
         }
         for (let w = Math.max(0, i - 1); w <= i && w + 1 < wa.length && !ok; w++) {
             if (sameShortPointer(wa[w] | (wa[w + 1] << 8), wb[w] | (wb[w + 1] << 8), moved)) { ok = true; for (let j = w; j < w + 2; j++) { covered.add(j); seen.add(j); } }
@@ -115,7 +126,7 @@ export function boot(): Promise<any> {
 
 async function main(): Promise<void> {
     const [romA, romB, moviePath, movedPath, outPath] = process.argv.slice(2);
-    const moved: Moved[] = JSON.parse(readFileSync(movedPath, 'utf8'));
+    const { moved, windows }: { moved: Moved[]; windows: Window[] } = JSON.parse(readFileSync(movedPath, 'utf8'));
     const machines = await Promise.all([boot(), boot()]);
     machines.forEach((c, i) => {
         const rom = readFileSync(i === 0 ? romA : romB);
@@ -151,7 +162,7 @@ async function main(): Promise<void> {
             // Dead stack: below an equal stack pointer nothing is read before it is written, and an interrupt that
             // landed elsewhere during a drift leaves its pushes at another depth there.
             const spA = A.getCPUState().sp, spB = B.getCPUState().sp;
-            const real = realDifferences(wa, wb, moved, seen, i => spA === spB && i <= spA && i > spA - STACK);
+            const real = realDifferences(wa, wb, moved, seen, i => spA === spB && i <= spA && i > spA - STACK, windows);
             if (real.length) {
                 const first = parseInt(real[0].slice(1, 7), 16) - 0x7E0000;
                 const around = (w: Uint8Array) => Array.from(w.subarray(Math.max(0, first - 4), first + 6), b => b.toString(16).padStart(2, '0')).join(' ');

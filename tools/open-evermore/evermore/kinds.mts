@@ -6,6 +6,7 @@ import { mapsCodec } from './codecs/maps.mts';
 import { tileFamiliesCodec } from './codecs/tile-families.mts';
 import { tilesCodec } from './codecs/tiles.mts';
 import { stringsCodec } from './codecs/strings.mts';
+import { scriptsCodec, WINDOW as SCRIPT_WINDOW } from './codecs/scripts.mts';
 
 export const GAME = 'evermore';
 
@@ -15,4 +16,8 @@ export const GAME = 'evermore';
  */
 export const PAST_END = [{ start: 0x30E293, end: 0x30E293 + 0x780 + 0x40 }];
 
-export const KINDS: Codec[] = [mapsCodec, tileFamiliesCodec, tilesCodec, stringsCodec];
+/** Pointer forms that are positions in a window: the packed script pointer (scripts.mts), kept by the engine in
+ *  WRAM ($26-$28 when it starts a script). The proof translates them like long pointers. */
+export const POINTER_WINDOWS = [SCRIPT_WINDOW];
+
+export const KINDS: Codec[] = [mapsCodec, tileFamiliesCodec, tilesCodec, stringsCodec, scriptsCodec];

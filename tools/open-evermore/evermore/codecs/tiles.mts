@@ -5,8 +5,11 @@
 // vanilla bytes of the six tiles our encoder does not reproduce.
 //
 // Facts used (docs/map-format/map_tile_graphics_decompression.md, checked in VRAM 2026-11-19):
-//   table      6,688 × 24-bit pointer at $EE0000 (file 0x2E0000), read by $8C:C898 / $8C:C8A1 and $90:A16A /
-//              $90:A23D (lda.l $EE0000,x with x = id·3); implode rewrites it in place, in tiles/_enum.json order
+//   table      one 24-bit pointer per id, vanilla 6,688 at $EE0000 (file 0x2E0000), read by six long operands:
+//              $8C:C898 (+0), $8C:C8A1 (+2), $90:A16A (+1), $90:A170 (+0), $90:A237 (+1), $90:A23D (+0) (lda.l
+//              $EE000n,x with x = id·3). Census 2026-11-20: every long operand into $EE0000-$EE0004 in the ROM is one of
+//              these or recorded as data by the vanilla CDL, and no immediate builds an $EE pointer. A generated item:
+//              in place while the ids fit it, moved with the six operands once tiles are added; 21,845 ids (x is 16 bits)
 //   pointer    a graphic in a bank's upper half has the $80-$BF form, in the lower half the $C0-$FF form
 //   graphic    encoded by `encodeTile` (src/games/evermore/maps/chr.ts), which gives back 6,682 of the vanilla
 //              graphics; the six in bit-6 form keep their bytes (`_encoded.json`: encoded). Two of those (run form)
@@ -26,11 +29,18 @@ import { roomBlobs } from './maps.mts';
 
 const require = createRequire(import.meta.url);
 const maps = require('../../../../dist/games/evermore/maps');
-const { getMapTileGraphicsOffset } = require('../../../../dist/games/evermore/variant-resolver');
 const { decodePng, encodeIndexedPng } = require('../../../../dist/platform/png');
 
 export const KIND = 'tiles';
-const DIR = KIND, COUNT = 6688;
+const DIR = KIND, VANILLA = 6688, LIMIT = 0x10000 / 3 | 0, TABLE = `${DIR}/_table`;
+const READERS = [{ at: 0x0CC899, add: 0 }, { at: 0x0CC8A2, add: 2 }, { at: 0x10A16B, add: 1 }, { at: 0x10A171, add: 0 }, { at: 0x10A238, add: 1 }, { at: 0x10A23E, add: 0 }];
+
+/** The table (file offset), through its readers' operands. */
+function tableOf(rom: Uint8Array): number {
+    const ops = READERS.map(r => maps.romFileOffset(rom, ((rom[r.at] | rom[r.at + 1] << 8 | rom[r.at + 2] << 16) - r.add) & 0xFFFFFF));
+    if (READERS.some(r => rom[r.at - 1] !== 0xBF) || ops.some(o => o !== ops[0])) throw new Error('tiles: the table readers are not the ones this codec knows ($8C:C898, $90:A16A, $90:A237); another release?');
+    return ops[0];
+}
 const FORMAT = 'open-evermore/tile', VERSION = 1, ENCODED = '_encoded.json';
 /** Index 0 is transparent on a SNES background. */
 const ALPHA = [0, ...Array(15).fill(255)];
@@ -124,18 +134,18 @@ export const tilesCodec: Codec = {
     explode(rom, name, options, countOf) {
         const format = options.format ?? 'png';
         if (format !== 'png' && format !== 'json') throw new Error(`tiles: format "${format}"; png or json`);
-        const table = getMapTileGraphicsOffset(rom);
+        const table = tableOf(rom), count = countOf(KIND) ?? VANILLA;
         const blobs = roomBlobs(rom, countOf('maps'));
         const frames = animationFrames(rom, blobs);
         const colours = familyColours(rom, blobs), shown = format === 'png' ? displayFamilies(rom, blobs) : new Map<number, number>();
         const encoded: Record<string, { encoded: string; followedBy?: string }> = {};
-        const at = Array.from({ length: COUNT }, (_, id) => maps.tileGraphicOffset(rom, id) as number);
+        const at = Array.from({ length: count }, (_, id) => maps.romFileOffset(rom, rom[table + 3 * id] | rom[table + 3 * id + 1] << 8 | rom[table + 3 * id + 2] << 16) as number);
         const starts = [...at].sort((a, b) => a - b);
         const nextStart = (a: number) => { const i = starts.findIndex(s => s > a); return i < 0 ? Infinity : starts[i]; };
         const files: Tree = new Map();
         const names: string[] = [];
         const own: { start: number; end: number; follower: number }[] = [];
-        for (let id = 0; id < COUNT; id++) {
+        for (let id = 0; id < count; id++) {
             const { bytes, end } = maps.decodeTile(rom, at[id]);
             const next = nextStart(at[id]);
             const stored = Math.min(end, next);
@@ -155,18 +165,19 @@ export const tilesCodec: Codec = {
         }
         if (Object.keys(encoded).length) files.set(`${DIR}/${ENCODED}`, json(encoded));
         files.set(`${DIR}/${ENUM}`, enumFile({
-            kind: KIND, limit: COUNT, names,
-            why: `the pointer table at $EE0000 holds ${COUNT} entries and stays where it is for now (its readers index it with id·3 in 16 bits: 21,845 after a move)`,
+            kind: KIND, limit: LIMIT, names,
+            why: 'the readers index the pointer table with id·3 in 16 bits; past the vanilla 6,688 the table moves',
         }));
         const followers = new Set(own.map(o => o.follower).filter(f => f >= 0));
         const homes = [];
-        for (let id = 0; id < COUNT; id++) {
+        for (let id = 0; id < count; id++) {
             if (followers.has(id)) continue;
             const o = own[id];
             const end = o.follower >= 0 ? own[o.follower].end : o.end;
             homes.push({ key: `${DIR}/${names[id]}`, at: o.start, length: end - o.start, sha1: sha1(rom.subarray(o.start, end)) });
         }
-        return { files, pool: own.map(o => ({ start: o.start, end: o.end })), tables: [{ start: table, end: table + COUNT * 3 }], homes };
+        homes.push({ key: TABLE, at: table, length: count * 3, sha1: sha1(rom.subarray(table, table + count * 3)) });
+        return { files, pool: [...own.map(o => ({ start: o.start, end: o.end })), { start: table, end: table + count * 3 }], tables: READERS.map(r => ({ start: r.at, end: r.at + 3 })), homes };
     },
 
     names({ tree, findings }) {
@@ -244,6 +255,9 @@ export const tilesCodec: Codec = {
             if (pairOf.has(n) || paired.has(`${DIR}/${n}`)) continue;
             items.push({ key: `${DIR}/${n}`, file: t.file, bytes: t.out!, rule: { noCrossBank: true } });
         }
+        const listed = ctx.ids.get(KIND);
+        const count = listed && listed.size ? Math.max(...listed.values()) + 1 : 0;
+        items.push({ key: TABLE, file: `${DIR}/${ENUM}`, bytes: new Uint8Array(count * 3), rule: { noCrossBank: true }, generated: true });
         return items;
     },
 
@@ -251,9 +265,9 @@ export const tilesCodec: Codec = {
         const ids = ctx.ids.get(KIND);
         if (!ids) return [];
         const pairOf = pairs.get(ctx) ?? new Map();
-        const table = ctx.base.tables.find(t => t.kind === KIND);
-        if (!table) return [];
-        const bytes = new Uint8Array(table.end - table.start);
+        const tableAt = placed.get(TABLE);
+        if (tableAt === undefined) return [];
+        const bytes = new Uint8Array((Math.max(0, ...ids.values()) + 1) * 3);
         for (const [n, id] of ids) {
             const p = pairOf.get(n);
             const at = p ? placed.get(p.key)! + p.offset : placed.get(`${DIR}/${n}`);
@@ -261,6 +275,7 @@ export const tilesCodec: Codec = {
             const bus = ctx.pointer(at);
             bytes.set([bus & 0xFF, (bus >> 8) & 0xFF, bus >> 16], id * 3);
         }
-        return [{ at: table.start, bytes, file: `${DIR}/${ENUM}` }];
+        const operand = (r: { add: number }) => { const bus = ctx.pointer(tableAt) + r.add; return Uint8Array.of(bus & 0xFF, (bus >> 8) & 0xFF, bus >> 16); };
+        return [{ at: tableAt, bytes, file: `${DIR}/${ENUM}` }, ...READERS.map(r => ({ at: r.at, bytes: operand(r), file: `${DIR}/${ENUM}` }))];
     },
 };

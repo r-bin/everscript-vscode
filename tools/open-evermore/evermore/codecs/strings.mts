@@ -3,8 +3,11 @@
 // in strings/_enum.json are what they see; the bytes may go anywhere a key can point.
 //
 // Facts used (docs/disassembly/ui/dialogue-text-decoder.md, corrected 2026-11-19; asm $8C:CD33):
-//   key table  3,002 × 3 bytes at $91:D000 (file 0x11D000), read by $8C:CCF7 and $8C:CD35 (lda #$0091, ldy #$D000);
-//              data follows it, so it stays where it is (3,002 ids). Entry: bits 0-14 the address in a bank's lower
+//   key table  3 bytes per id, vanilla 3,002 at $91:D000 (file 0x11D000). Read by $8C:CCF5 and its twin $8C:CD35:
+//              `sta $26` (the key, id·3), `lda #$0091 : sta $28 : ldy #$D000`, `lda [$26],y`: the bank and the offset
+//              are immediates (at $8C:CCF8 / $8C:CCFD and $8C:CD36 / $8C:CD3B) and the key adds to the offset, carrying
+//              into the next bank. A generated item: in place while the ids fit it, moved with the four immediates
+//              once strings are added, never across a bank: 21,845 ids. Entry: bits 0-14 the address in a bank's lower
 //              half, bits 15-22 the bank above $C0, bit 23 compressed
 //   placement  a string starts in a lower half ($C0-$FF:0000-$7FFF) of the first 4 MB and never crosses a bank
 //              (the decoder steps a 16-bit pointer); vanilla fills $C0-$C3
@@ -24,10 +27,19 @@ import { json, NAME_RE, readText, sha1, text } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
 
 const require = createRequire(import.meta.url);
-const { getStringKeysOffset } = require('../../../../dist/games/evermore/variant-resolver');
+const { romFileOffset } = require('../../../../dist/games/evermore/maps');
 
 export const KIND = 'strings';
-const DIR = KIND, COUNT = 3002, META = '_strings.json';
+const DIR = KIND, VANILLA = 3002, LIMIT = 0x10000 / 3 | 0, META = '_strings.json', TABLE = `${DIR}/_table`;
+/** `lda #$0091 : sta $28 : ldy #$D000` in both readers: the bank immediate at +1, the offset at +6. */
+const SITES = [0x0CCCF7, 0x0CCD35], SITE = [0xA9, -1, 0x00, 0x85, 0x28, 0xA0, -1, -1];
+
+/** The key table (file offset), from the first reader's immediates. */
+function tableOf(rom: Uint8Array): number {
+    const bus = (at: number) => (rom[at + 1] << 16) | rom[at + 6] | (rom[at + 7] << 8);
+    if (SITES.some(at => SITE.some((b, i) => b >= 0 && rom[at + i] !== b)) || bus(SITES[0]) !== bus(SITES[1])) throw new Error('strings: the key table readers are not the ones this codec knows ($8C:CCF5, $8C:CD35); another release?');
+    return romFileOffset(rom, bus(SITES[0]));
+}
 const FORMAT = 'open-evermore/strings', VERSION = 1;
 const RULE = { lowerHalf: true, noCrossBank: true, below: 0x400000 };
 // The dictionary, in bank $91 (file offsets).
@@ -146,9 +158,9 @@ const fileText = (raw: number[]) => text(toText(raw) + '\n');
 const readFile = (b: Uint8Array) => readText(b).replace(/\r\n/g, '\n').replace(/\n$/, '');
 
 /** Where the string table entries point, and each key's flag. */
-function readKeys(rom: Uint8Array): { at: number; compressed: boolean }[] {
-    const table = getStringKeysOffset(rom);
-    return Array.from({ length: COUNT }, (_, i) => {
+function readKeys(rom: Uint8Array, count: number): { at: number; compressed: boolean }[] {
+    const table = tableOf(rom);
+    return Array.from({ length: count }, (_, i) => {
         const v = rom[table + i * 3] | (rom[table + i * 3 + 1] << 8) | (rom[table + i * 3 + 2] << 16);
         return { at: (v & 0x7FFF) | (((v >> 15) & 0xFF) << 16), compressed: (v & 0x800000) !== 0 };
     });
@@ -165,11 +177,12 @@ export const stringsCodec: Codec = {
         return [path, bytes];
     },
 
-    explode(rom, name) {
-        const d = dictionary(rom), table = getStringKeysOffset(rom), keys = readKeys(rom);
+    explode(rom, name, _options, countOf) {
+        const count = countOf(KIND) ?? VANILLA;
+        const d = dictionary(rom), table = tableOf(rom), keys = readKeys(rom, count);
         const files: Tree = new Map(), names: string[] = [], plain: string[] = [], encoded: Record<string, string> = {};
         const pool = [], homes = [];
-        for (let id = 0; id < COUNT; id++) {
+        for (let id = 0; id < count; id++) {
             const { at, compressed } = keys[id];
             const { out, end } = decode(rom, at, compressed, d);
             const n = name(KIND, id);
@@ -185,10 +198,12 @@ export const stringsCodec: Codec = {
         }
         files.set(`${DIR}/${META}`, json({ format: FORMAT, version: VERSION, plain, encoded }));
         files.set(`${DIR}/${ENUM}`, enumFile({
-            kind: KIND, limit: COUNT, names,
-            why: `the key table at $91:D000 holds ${COUNT} keys and data follows it; scripts name a string by id·3`,
+            kind: KIND, limit: LIMIT, names,
+            why: 'scripts name a string by its key, id·3, which the readers add to the table\'s offset in one bank; past the vanilla 3,002 the table moves',
         }));
-        return { files, pool, tables: [{ start: table, end: table + COUNT * 3 }], homes };
+        pool.push({ start: table, end: table + count * 3 });
+        homes.push({ key: TABLE, at: table, length: count * 3, sha1: sha1(rom.subarray(table, table + count * 3)) });
+        return { files, pool, tables: SITES.flatMap(at => [{ start: at + 1, end: at + 2 }, { start: at + 6, end: at + 8 }]), homes };
     },
 
     names({ tree, findings }) {
@@ -232,22 +247,27 @@ export const stringsCodec: Codec = {
             if (bytes.length > 0x8000) { findings.error('over-budget', file, '', `${bytes.length} bytes; a string stays in one bank`); continue; }
             items.push({ key: `${DIR}/${n}`, file, bytes, rule: RULE });
         }
+        const listed = ctx.ids.get(KIND);
+        const count = listed && listed.size ? Math.max(...listed.values()) + 1 : 0;
+        items.push({ key: TABLE, file: `${DIR}/${ENUM}`, bytes: new Uint8Array(count * 3), rule: { noCrossBank: true }, generated: true });
         return items;
     },
 
     tables(ctx, placed) {
-        const ids = ctx.ids.get(KIND), table = ctx.base.tables.find(t => t.kind === KIND);
-        if (!ids || !table) return [];
+        const ids = ctx.ids.get(KIND), tableAt = placed.get(TABLE);
+        if (!ids || tableAt === undefined) return [];
         const plain = new Set<string>();
         try { for (const n of JSON.parse(readText(ctx.tree.get(`${DIR}/${META}`)!)).plain ?? []) plain.add(n); } catch { /* reported by encode */ }
-        const bytes = new Uint8Array(table.end - table.start);
+        const bytes = new Uint8Array((Math.max(0, ...ids.values()) + 1) * 3);
         for (const [n, id] of ids) {
             const at = placed.get(`${DIR}/${n}`);
             if (at === undefined) continue;
             const v = (at & 0x7FFF) | ((at >> 16) << 15) | (plain.has(n) ? 0 : 0x800000);
             bytes.set([v & 0xFF, (v >> 8) & 0xFF, v >> 16], id * 3);
         }
-        const write: Write = { at: table.start, bytes, file: `${DIR}/${ENUM}` };
-        return [write];
+        const bus = ctx.pointer(tableAt), file = `${DIR}/${ENUM}`;
+        const writes: Write[] = [{ at: tableAt, bytes, file }];
+        for (const at of SITES) writes.push({ at: at + 1, bytes: Uint8Array.of(bus >> 16), file }, { at: at + 6, bytes: Uint8Array.of(bus & 0xFF, (bus >> 8) & 0xFF), file });
+        return writes;
     },
 };

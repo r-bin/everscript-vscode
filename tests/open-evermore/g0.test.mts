@@ -101,6 +101,40 @@ if (!path || !existsSync(path)) {
     assert.ok(sr.findings.list.some(f => f.rule === 'reencoded' && f.file === 'strings/string_0375.txt'));
     console.log('  ✓ strings: an unknown tag is an error; an edited string is encoded anew and round-trips');
 
+    // Scripts: one file per script, a command per line, `@name` for another script. An edited script round-trips; a
+    // name that is no script, a relative call to a script after it, and a line that is no bytes are errors.
+    const enter = 'scripts/podunk_opening_over_the_machine_enter.txt';
+    assert.ok(tree.has(enter) && tree.has('scripts/boot.txt') && tree.has('scripts/_scripts.json'));
+    const scriptCount = [...tree.keys()].filter(p => /^scripts\/[^_].*\.txt$/.test(p)).length;
+    assert.ok(scriptCount > 3000, `${scriptCount} script files`);
+    const lines = (p: string) => Buffer.from(tree.get(p)!).toString().split('\n');
+    const caller = [...tree.keys()].find(p => p.startsWith('scripts/') && lines(p).some(l => /^29 @/.test(l)))!;
+    const relative = [...tree.keys()].find(p => p.startsWith('scripts/') && lines(p).some(l => /^a5 @/.test(l)))!;
+    const setLines = (t: typeof tree, p: string, edit: (l: string[]) => string[]) => t.set(p, new TextEncoder().encode(edit(lines(p)).join('\n')));
+    // (the script it no longer names is left out: a warning)
+    assert.deepStrictEqual(rules(t => setLines(t, caller, l => l.map(x => x.replace(/^29 @\S+/, '29 @no_such_script')))).filter(r => !r.startsWith('left-out')), [`unknown-reference ${caller}#/${lines(caller).findIndex(l => /^29 @/.test(l)) + 1}`]);
+    assert.deepStrictEqual(rules(t => setLines(t, enter, l => ['zz', ...l])), [`invalid-value ${enter}#/1`]);
+    const r1 = rules(t => setLines(t, relative, l => l.map(x => x.replace(/^a5 @\S+/, 'a5 @boot')))).filter(r => !r.startsWith('left-out'));
+    assert.ok(r1.length === 1 && r1[0].startsWith(`out-of-range ${relative}#`), r1.join());
+    const sc = implode((() => { const t = new Map(tree); setLines(t, enter, l => ['a3 36', ...l]); return t; })(), GAME, KINDS);
+    assert.deepStrictEqual(sc.findings.list.filter(f => f.severity === 'error'), []);
+    console.log(`  ✓ scripts: ${scriptCount} files; an edited script builds and round-trips; an unknown @name, a relative call out of reach and a line that is no bytes are errors`);
+
+    // Every table grows past vanilla and moves (the engine limits: 256 maps, 21,845 tiles and strings, 21,625 scripts).
+    const grow = (dir: string, from: string, to: string, ext: string) => (t: typeof tree) => {
+        t.set(`${dir}/${to}.${ext}`, t.get(`${dir}/${from}.${ext}`)!);
+        editJson(t, `${dir}/_enum.json`, e => { e.names.push(to); });
+    };
+    const grown = new Map(tree);
+    grow('tiles', 'tile_0000', 'tile_new', 'png')(grown);
+    grow('strings', 'string_0000', 'string_new', 'txt')(grown);
+    grow('scripts', 'boot', 'script_new', 'txt')(grown);
+    const g = implode(grown, GAME, KINDS);
+    assert.deepStrictEqual(g.findings.list.filter(f => f.severity !== 'info' && f.rule !== 'unreferenced').map(f => `${f.rule} ${f.file}`), []);
+    for (const key of ['tiles/_table', 'strings/_table', 'scripts/_table']) assert.ok(g.placed.some(p => p.key === key && p.at !== p.home), `${key} did not move`);
+    for (const [kind, limit] of [['maps', 256], ['tiles', 21845], ['strings', 21845], ['scripts', 21625]] as const) assert.strictEqual(JSON.parse(Buffer.from(tree.get(`${kind}/_enum.json`)!).toString()).limit, limit, kind);
+    console.log('  ✓ a new tile, string and table script: each table grows and moves, the round trip holds; limits at the engine\'s');
+
     for (const layout of ['exhirom', 'sa1']) {
         const t = new Map(tree);
         editJson(t, 'manifest.json', m => { m.memoryMap.layout = layout; m.memoryMap.size = '8MiB'; });

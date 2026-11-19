@@ -25,5 +25,6 @@ node $T prove out/open-evermore --random 42       # original vs that layout on t
 - **One decoder.** Codecs call the decoders in `dist/` (the ones `soe://` uses); they never copy them.
 - **No ROM bytes in the repo.** The tree and `_build/` are ROM-derived: `out/` or outside the repository.
 - **Generic files stay generic.** Only `evermore/` names the game (AGENTS.md §0.4).
-- Tests: `tests/open-evermore/enum-layout.test.mts`, `implode.test.mts` (unit), `g0.test.mts` (rom); `prove` on
+- Tests: `tests/open-evermore/enum-layout.test.mts`, `implode.test.mts` (unit), `g0.test.mts` (rom), `in-game.test.mts`
+  (emulator: edits played in the snes9x core); `prove` on
   demand only.

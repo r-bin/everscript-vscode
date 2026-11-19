@@ -7,7 +7,7 @@ import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { basename, dirname, join } from 'node:path';
-import type { Codec } from './codec.mts';
+import type { Codec, Window } from './codec.mts';
 import { implode } from './implode.mts';
 import { MAX_DRIFT } from './play.mts';
 import type { Moved, PlayResult } from './play.mts';
@@ -47,7 +47,8 @@ function ranges(addrs: string[]): string {
     return out.join(' ');
 }
 
-export async function prove(tree: Tree, game: string, kinds: Codec[], seed: number, out: string, movieSpecs: string[] = [DEFAULT_MOVIES], pastEnd: PastEnd[] = []): Promise<Proof> {
+/** `windows`: the game's pointer forms that are positions in a window (Evermore's packed script pointers). */
+export async function prove(tree: Tree, game: string, kinds: Codec[], seed: number, out: string, movieSpecs: string[] = [DEFAULT_MOVIES], pastEnd: PastEnd[] = [], windows: Window[] = []): Promise<Proof> {
     const lines: string[] = [];
     const log = (s: string) => { lines.push(s); console.log(s); };
     // The original is plain HiROM at the base size: the playbacks were recorded on it.
@@ -60,16 +61,24 @@ export async function prove(tree: Tree, game: string, kinds: Codec[], seed: numb
     const romA = join(out, 'original.sfc'), romB = join(out, `random-${seed}.sfc`), movedPath = join(out, 'moved.json');
     // An sa1 layout plays its HiROM content: our core has no SA-1; tools/sa1 proves the conversion in MesenCE.
     writeFileSync(romA, original.image); writeFileSync(romB, layout.content!);
-    const at = new Map(original.placed.map(p => [p.key, p.at]));
-    const moved: Moved[] = layout.placed.filter(p => at.get(p.key) !== p.at).map(p => ({ key: p.key, a: at.get(p.key)!, b: p.at, length: p.length }));
-    writeFileSync(movedPath, JSON.stringify(moved));
+    const before = new Map(original.placed.map(p => [p.key, p]));
+    // One record per stretch that is contiguous in both builds (a resource in pieces: a window, holes).
+    const moved: Moved[] = layout.placed.filter(p => before.get(p.key)?.at !== p.at).flatMap(p => {
+        const out: Moved[] = [];
+        for (const x of before.get(p.key)!.pieces) for (const y of p.pieces) {
+            const from = Math.max(x.offset, y.offset), to = Math.min(x.offset + x.end - x.start, y.offset + y.end - y.start);
+            if (from < to) out.push({ key: p.key, a: x.start + from - x.offset, b: y.start + from - y.offset, length: to - from });
+        }
+        return out;
+    });
+    writeFileSync(movedPath, JSON.stringify({ moved, windows }));
 
     const sha256 = createHash('sha256').update(original.image).digest('hex');
     const files = movieSpecs.flatMap(s => statSync(s).isDirectory() ? readdirSync(s).filter(f => f.endsWith('.evsmv')).map(f => join(s, f)) : [s]);
     const movies = files.filter(f => parseMovie(readFileSync(f, 'utf8'), basename(f)).meta.romSha256 === sha256);
     if (!movies.length) return { ok: false, lines: [`no playback recorded on the original (sha256 ${sha256.slice(0, 16)}…) among ${movieSpecs.join(', ')}`] };
 
-    log(`Seed ${seed}: ${moved.length} of ${layout.placed.length} resources moved, built as ${layout.layout}${layout.layout?.startsWith('SA-1') ? ' (its HiROM content is played)' : ''}. ${movies.length} playbacks, original and layout in lockstep.`);
+    log(`Seed ${seed}: ${new Set(moved.map(m => m.key)).size} of ${layout.placed.length} resources moved, built as ${layout.layout}${layout.layout?.startsWith('SA-1') ? ' (its HiROM content is played)' : ''}. ${movies.length} playbacks, original and layout in lockstep.`);
     let ok = true;
     await Promise.all(movies.map(async (m, i) => {
         const resultPath = join(out, `run${i}.json`);
