@@ -591,3 +591,16 @@ Following completion of 100% certified C-binding coverage for Replay 01 in `v0.3
   - 528/528 fuzzed states match ROM (100% parity).
   - Mutation caught: yes.
 - Rated and audited: 299 clean, 0 stale/unrated. Total bound routines: **299**.
+
+### Routine #300: `audio_music_fade_step` ($8C:8619)
+- Bound in `reconstructed-c/8C/8C8619_audio_music_fade_step.c`:
+  - Implements the master music volume fade progression and APU communication interface:
+    - Tests direct page `$9B` (signed fade step / rate). If zero, immediately exits via `REP #$20; RTL` preserving register B from `TDC`.
+    - If `$9B > 0` (fade in): steps master volume `$9A` upwards with 8-bit `ADC $9A` towards `$FF` ceiling; upon carry, clears `$9B`, clamps to `$FF`, and transmits APU volume command `0x0028` via `$8C:81FD`.
+    - If `$9B < 0` (fade out): steps master volume `$9A` downwards with 8-bit `ADC $9A` towards zero floor; upon underflow (no carry), clears `$9B`, issues silence commands `0x1A` and `0x1C` to APU, followed by command `0x0028`.
+    - Faithfully handles 65C816 accumulator B preservation (`TDC` direct page high byte), 8-bit `ADC` overflow flag (`SOE_V`), carry status, and callee-preserved register state across `$8C:81FD` (`PHP`/`PLP`).
+- Verified under Gate G1:
+  - 34/34 real states match ROM (100% parity, 34/34 snes9x oracle agreement).
+  - 544/544 fuzzed states match ROM (100% parity).
+  - Mutation caught: yes.
+- Rated and audited: 300 clean, 0 stale/unrated. Total bound routines: **300**.
