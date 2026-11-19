@@ -65,11 +65,15 @@ General rules; each kind adds its own in [resources.md](resources.md).
 | `g0-failed` | error | the tree is unchanged since explode, yet the ROM differs; names the first differing resource |
 | `round-trip` | error | exploding the built ROM does not give the folder back; names the resource (`manifest.json` is left out: explode always writes the default regions) |
 | `changed`, `random` | info | resources or enums changed since explode, so G0 was not checked; a random layout, its seed and how many resources moved |
+| `grown` | info | the image did not hold every resource and grew to 4 MiB, the 4th MB free |
+| `reencoded`, `repacked` | info | a tile's or a block's kept vanilla bytes no longer give its data: encoded or compressed anew |
 
-Built so far *(S2)*: `unknown-reference`, `missing-file`, `parse-error`, `schema`, `bad-name`, `duplicate-name`, `locked-name-missing`,
+Built so far *(S3)*: `unknown-reference`, `missing-file`, `parse-error`, `schema`, `bad-name`, `duplicate-name`, `locked-name-missing`,
 `id-gap`, `id-over-limit`, `invalid-value`, `over-budget`, `base-changed`, `size-mismatch`, `no-space`,
 `unsupported-layout`, `outside-image`, `wrong-region`, `region-gap`, `region-overlap`, `header-mismatch`,
-`g0-failed`, `round-trip`, `unknown-file`, `unlocked-id`, `changed`, `random`. The rest come with the kinds that
+`g0-failed`, `round-trip`, `unknown-file`, `unlocked-id`, `unreferenced` (tiles), `changed`, `random`, `grown`,
+`reencoded`, `repacked`. Keys a kind derives or caches (a family's `maps`, a block's `packed`) are left out of the
+round trip. The rest come with the kinds that
 need them.
 
 ## 4. The report

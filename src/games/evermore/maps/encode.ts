@@ -13,9 +13,9 @@
 import { parseBlobLayout, BlobLayout } from './blob-layout';
 import { decompressLzss } from './lzss';
 import { parseObjectStamp } from './object-stamps';
-import { lzssCompress, encodeMarkovGrid } from './encode-streams';
+import { lzssCompress, lzssCompressVanilla, encodeMarkovGrid } from './encode-streams';
 
-export { lzssCompress, encodeMarkovGrid };
+export { lzssCompress, lzssCompressVanilla, encodeMarkovGrid };
 import { MAP_LIST_ADDR, MAX_ROOMS, MAP_TABLE_STRIDE, read16, read24, snesToRom, mapTableOffset, roomBlobOffset } from './rom';
 
 export const SUB_RAW = 0x00;

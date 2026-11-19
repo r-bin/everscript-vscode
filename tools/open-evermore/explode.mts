@@ -9,19 +9,21 @@ import { json } from './tree.mts';
 import type { Tree } from './tree.mts';
 
 /** The tree of `rom`. `base` names the ROM the tree belongs to (the ROM itself, or the original on a round trip). */
-export function explode(rom: Uint8Array, base: Manifest['base'], game: string, kinds: Codec[], names?: Map<string, (string | null)[]>): Tree {
+export function explode(rom: Uint8Array, base: Manifest['base'], game: string, kinds: Codec[], names?: Map<string, (string | null)[]>, options: Manifest['options'] = {}): Tree {
     const byKind = new Map(kinds.map(k => [k.kind, k]));
     const name = (kind: string, id: number): string => names?.get(kind)?.[id] ?? byKind.get(kind)?.defaultName(id) ?? `${kind}_${id.toString(16)}`;
     const tree: Tree = new Map();
     const parts: { kind: string; out: Exploded }[] = [];
     for (const codec of kinds) {
-        const out = codec.explode(rom, name);
+        const out = codec.explode(rom, name, options[codec.kind] ?? {});
         for (const [path, bytes] of out.files) tree.set(path, bytes);
         parts.push({ kind: codec.kind, out });
     }
     // The header checksum is generated over whatever implode builds.
     parts.push({ kind: 'checksum', out: { files: new Map(), pool: [], tables: [CHECKSUM], homes: [] } });
     for (const [path, bytes] of baseFiles(rom, parts)) tree.set(path, bytes);
-    tree.set(MANIFEST, json(manifestFor(rom, game, base)));
+    const manifest = manifestFor(rom, game, base);
+    if (Object.keys(options).length) manifest.options = options;
+    tree.set(MANIFEST, json(manifest));
     return tree;
 }

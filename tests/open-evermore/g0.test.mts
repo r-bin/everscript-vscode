@@ -1,8 +1,8 @@
 // Open Evermore on the user's ROM (docs/open-evermore/README.md §5): explode the base ROM of the ROM library, then
-// implode the tree in memory: stable gives the vanilla sha1 with no warning (G0); two random layouts place every
-// room and the tile family array, rewrite their tables and explode back to the same tree; cross-kind references
-// and colours are checked. Playing them is `open-evermore.mts prove` (on
-// demand, minutes: never in a tier). Skips without the ROM.
+// implode the tree in memory: stable gives the vanilla sha1 with no warning (G0), also with the families as PNGs;
+// two random layouts (grown to 4 MiB) place every room, the family array and every tile, rewrite their tables and
+// explode back to the same tree; an edited room is compressed anew; cross-kind references, colours and pixels are
+// checked. Playing them is `open-evermore.mts prove` (on demand: never in a tier). Skips without the ROM.
 // Run: node tests/open-evermore/g0.test.mts   (npm run build:ts first)
 import assert from 'node:assert';
 import { existsSync, readFileSync } from 'node:fs';
@@ -35,7 +35,9 @@ if (!path || !existsSync(path)) {
         const moved = r.placed.filter(p => p.at !== p.home).length;
         assert.ok(moved > 100, `only ${moved} rooms moved`);
         const families = r.placed.find(p => p.key === 'tile_families/array')!;
-        console.log(`  ✓ random ${seed}: ${moved} of ${r.placed.length} resources moved (tile families ${families.at === families.home ? 'stayed' : 'moved'}), tables rewritten, round trip holds`);
+        assert.strictEqual(r.image!.length, 0x400000, 'a random layout grows the image to 4 MiB');
+        const fourth = r.placed.filter(p => p.at >= 0x300000).length;
+        console.log(`  ✓ random ${seed}: ${moved} of ${r.placed.length} resources moved, ${fourth} into the 4th MB (tile families ${families.at === families.home ? 'stayed' : 'moved'}), tables rewritten, round trip holds`);
     }
 
     const rules = (edit: (t: typeof tree) => void) => {
@@ -49,5 +51,22 @@ if (!path || !existsSync(path)) {
     const room = [...tree.keys()].find(p => p.startsWith('maps/') && p.endsWith('/map.json'))!;
     assert.deepStrictEqual(rules(t => editJson(t, room, m => { m.tileFamilies[0] = 'no_such_family'; })), [`unknown-reference ${room}#/tileFamilies/0`]);
     assert.deepStrictEqual(rules(t => editJson(t, 'tile_families/family_000.json', f => { f.colours[3] = '#123456'; })), ['invalid-value tile_families/family_000.json#/colours/3']);
-    console.log('  ✓ a map naming a missing family, and a colour the SNES cannot show, are errors');
+    assert.deepStrictEqual(rules(t => editJson(t, room, m => { m.graphics.tiles[0] = 'no_such_tile'; })), [`unknown-reference ${room}#/graphics/tiles/0`]);
+    assert.deepStrictEqual(rules(t => editJson(t, 'tiles/tile_0000.json', f => { f.pixels[2] = 'xyz'; })), ['invalid-value tiles/tile_0000.json#/pixels/2']);
+    console.log('  ✓ a map naming a missing family or tile, a colour the SNES cannot show and a bad pixel row are errors');
+
+    // An edited metatile: the room is compressed anew, the ROM still builds and explodes back to the edit.
+    const edited = new Map(tree);
+    editJson(edited, room, m => { m.metatiles.list[0][2] = m.metatiles.list[0][2] === '0000' ? '0001' : '0000'; });
+    const e = implode(edited, GAME, KINDS);
+    assert.deepStrictEqual(e.findings.list.filter(f => f.severity === 'error'), []);
+    assert.notStrictEqual(e.sha1, sha1(rom));
+    console.log('  ✓ an edited metatile is compressed anew and round-trips');
+
+    const png = explode(rom, { release: 'us', sha1: sha1(rom), explodedWith: 'test' }, GAME, KINDS, undefined, { tile_families: { format: 'png' } });
+    assert.ok(png.has('tile_families/family_000.png') && !png.has('tile_families/family_000.json'));
+    const p = implode(png, GAME, KINDS);
+    assert.deepStrictEqual(p.findings.list.filter(f => f.severity !== 'info'), []);
+    assert.strictEqual(p.sha1, sha1(rom));
+    console.log('  ✓ families as PNG stripes: the same ROM');
 }

@@ -40,22 +40,28 @@ with `data.json`; decoder `src/platform/cdl/table-assets.ts`)*. Same JSON as the
 
 ## tile_families — background palettes *(built, S2)*
 
-**Folder.** `tile_families/_enum.json` + `tile_families/<family>.json`:
+**Folder.** `tile_families/_enum.json` + one file per family, by default `<family>.json`:
 
 ```jsonc
 { "format": "open-evermore/tile-family", "version": 1,
-  "colours": ["#000000", "#f8f8f8", …] }          // 16 colours; each channel a multiple of 8 (5 bits on the SNES)
+  "colours": ["#000000", "#f8f8f8", …],            // 16 colours; each channel a multiple of 8 (5 bits on the SNES)
+  "maps": ["antiqua_pyramid_outside", …] }         // derived: the maps that use it; implode ignores it
 ```
 
+`explode --families png` writes `<family>.png` instead: a 128×8 stripe of 16 solid 8×8 cells, colour 0 on the left
+(owner, 2026-11-19: easier to see; JSON stays the default because it carries more). The choice is kept in
+`manifest.json` `options`, so the round trip writes the same form. Implode reads either; a family that is both is
+`duplicate-name`; a cell that is not one opaque colour, or a stripe of another size, is `invalid-value`.
+
 - **Names.** `family_<id>` (`family_024`): the repo has no names for families ("a ROM id tied to an area",
-  room-reference.md §5). Better names are an open question ([README.md](README.md) §9).
+  room-reference.md §5). Better names are an open question ([README.md](README.md) §9); `maps` is there to help.
 - **References.** Used by maps (`"tileFamilies": ["family_024", …]`, `unknown-reference` when missing). Uses
   nothing.
 - **Implode generates** one placeable item, the array (family *n* at base + 32·*n*, in enum order), and the
   two operands of the loader `$90:D05C` that hold its address: `adc #$C322` and `lda #$9C`. They are the only
   readers *(repo: the table hack moved the array the same way)*.
 - **Placement.** Upper half (the `$80–$BF` form), never across a bank; at most 1024 families (32 KiB).
-  The array sits between two rooms in bank `$9C`, so `--random` shuffles it with them.
+  The array sits between two rooms in bank `$9C`, so `--random` shuffles it with them (or into the 4th MB).
 - **Proven (G1).** Seeds 1, 2, 99 moved it (`$9C:D25E`, `$9C:8000`, `$9C:8F3C`); the playbacks played identically
   and no WRAM byte points into it (knowledge `asset_9cc322_background_palettes_tile_families`).
 - **Limits.** Exactly 16 colours, each `#rrggbb` with channels in steps of 8 (`invalid-value`); no gap in the ids
@@ -101,24 +107,41 @@ music/village_on_the_plateau/
 - **Codec.** Descriptors *(repo: `soe://rom/assets/audio/`)*; packages raw. This is the first vertical slice
   of split-and-link: copy a package under a new name, play it from a script ([split-and-link](../split-and-link/README.md) §5.6).
 
-## tiles — the master 16×16 tile graphics
+## tiles — the 16×16 map graphics *(built, S3)*
 
-**Folder.** `tiles/<tile>.png` (indexed, 16 colours, 16×16) + `tiles/_enum.json`.
+**Folder.** `tiles/_enum.json` + `tiles/<tile>.json`:
 
-- **Names.** `tile_<hexid>` at first; the user's example `floor_sand_01` comes from renaming. Naming 6,688 tiles
-  is work for a tool: group by the rooms and families that use them, propose names, let the user accept
-  ([progress.md](progress.md) S6).
-- **References.** Used by maps (the graphics list and the metatile dictionary, by name). Uses nothing: the
-  colours come from the family a map pairs it with.
-- **Implode generates**: the master table at `$EE0000` *(repo: 6,688 tiles; ~21,800 possible after the move,
-  to verify)*, ids from `tiles/_enum.json`.
-- **Limits.** 16×16, at most 16 colours (`invalid-value`); a room's graphics list ≤ 264 slots
-  ([../map-format/room-reference.md](../map-format/room-reference.md) §3) is a map limit.
-- **Logic warnings.** Two tiles with identical pixels (`duplicate-content`); a tile no map uses (`unreferenced`).
-- **Codec.** CHR decompression *(repo: [map_tile_graphics_decompression.md](../map-format/map_tile_graphics_decompression.md))*.
-  PNG → CHR needs the colour index of each pixel, so the PNG must be indexed with the 16 slots in order
-  (`invalid-value` otherwise). G0: unchanged tiles keep their original compressed bytes (cached by pixel hash)
-  until the compressor reproduces them.
+```jsonc
+{ "format": "open-evermore/tile", "version": 1,
+  "pixels": ["55555555eeee2e2f", …],              // 16 rows of 16 palette indices, one hex digit each
+  "encoded": "4290ff00…",                          // only six tiles: the vanilla bytes, while they give these pixels
+  "followedBy": "tile_1668" }                      // only two: the tile the game reads three bytes of
+```
+
+Pixels are colour indices, not colours: the colours come from the family a map pairs a tile with, so JSON rows
+rather than a PNG *(a PNG view per family: later)*.
+
+- **Names.** `tile_<hexid>` (`tile_1669`), numbers until there are names (owner, 2026-11-19). The user's example
+  `floor_sand_01` comes from renaming; naming 6,688 tiles is work for a tool (group by the rooms and families that
+  use them, propose names, let the user accept).
+- **References.** Used by maps: the graphics list and the animation frames, by name (`unknown-reference`). Uses
+  nothing. The maps kind marks every tile it uses (`used`) and every animation frame (`dma`).
+- **Implode generates** the pointer table at `$EE0000` (6,688 × 3 bytes), in place, in enum order; its readers
+  (`$8C:C898`, `$90:A16A`, `$90:A23D`) are fixed. The pointer takes the `$80–$BF` form in an upper half, `$C0–$FF`
+  in a lower half, as vanilla does.
+- **Encoding.** `encodeTile` *(repo: chr.ts)* gives back 6,682 vanilla tiles byte for byte; an animation frame is
+  64 raw words (the streamer DMAs it). The six in the bit-6 form keep `encoded`
+  ([../map-format/map_tile_graphics_decompression.md](../map-format/map_tile_graphics_decompression.md) §4.1); two
+  of them (run form) are fetched three bytes past their end, so implode places each with the tile after it as one
+  item while both still give their pixels. A changed tile is encoded anew (`reencoded`, info).
+- **Placement.** Anywhere, never across a bank. Vanilla scatters them over ~80 banks in the gaps other data
+  leaves; `--random` shuffles them among their neighbours and into the 4th MB.
+- **Limits.** 16 rows of 16 hex digits (`invalid-value`); 6,688 ids while the table stays put (its readers index
+  it with id·3 in 16 bits: 21,845 after a move); a room's graphics list ≤ 264 slots is a map limit.
+- **Logic warnings.** A tile no map uses (`unreferenced`; vanilla uses all 6,688). *(Proposal: identical pixels.)*
+- **Proven (G1).** Seeds 1, 2, 99 (≈6,660 tiles moved each, 4 MiB): both playbacks in step, VRAM identical at
+  every check. Moving tiles shifts room-load timing (drifts back in step within 17 frames); seed 7 lost a lag frame
+  and never came back (progress.md §2).
 
 ## maps — rooms *(built, S1)*
 
@@ -129,50 +152,53 @@ maps/_enum.json                      names[id]: the map table's order (README.md
 maps/<map>/map.json                  one room
 ```
 
-`map.json` today is the room model the repo's encoder reads and writes (`modelFromRom` / `buildBlob`
-*(repo)*), losslessly, in JSON:
+`map.json` (version 4) holds the room uncompressed, in our compact layout (one trigger, grid row or metatile per
+line), with each block's compression noted so implode packs it as vanilla did (owner, 2026-11-19):
 
 ```jsonc
 {
-  "format": "open-evermore/map", "version": 2,
+  "format": "open-evermore/map", "version": 4,
   "header": "…",                                   // 13 bytes, hex (room-reference.md §4)
-  "stepOn":   [{ "area": [y1, x1, y2, x2], "script": 1234 }],
-  "bTrigger": [{ "area": [y1, x1, y2, x2], "script": 1240 }],
-  "tileFamilies": ["family_024", "family_025"],    // names in tile_families/ (version 2)
+  "stepOn": [
+    { "area": [16, 64, 18, 68], "script": 2016 }
+  ],
+  "bTrigger": [ … ],
+  "tileFamilies": ["family_024", "family_025"],    // names in tile_families/
   "extras": "…",                                   // palette-cycle descriptors, hex
-  "block1": { "sub": 3, "decomp": 492, "data": "…base64…" },   // graphics list, kept compressed
-  "section2": { "count": 13, "data": "…" },        // animation channels
+  "graphics": { "compression": "lzss", "tiles": ["tile_0d7b", …] },    // Block 1, names in tiles/
+  "animations": [{ "countdown": 0, "frames": [{ "ticks": 8, "tile": "tile_0a40" }, …] }],   // Section 2
   "objectOffsets": [0, 41],
-  "block2": { … }, "section4": "…", "block3": { … },            // grid, cuttable grass, dictionary
-  "objectArea": "…"                                // objects and stamps (offsets relative to it)
+  "grid": { "compression": "markov", "rows": [[72, 72, …], …] },       // Block 2: metatile index per cell
+  "section4": "…",                                 // cuttable grass, base64
+  "metatiles": { "compression": "lzss", "list": [["a800", "45c0", "001f"], …] },  // Block 3: canopy, terrain, collision
+  "objectArea": "…"                                // objects and stamps, base64
 }
 ```
 
-The target is the readable form described below the table (tiles, families, scripts by name, grids decoded); it
-comes as the kinds it references are exploded and the encoder can write decoded grids.
+- **Compression.** `lzss` is our `lzssCompressVanilla`, which gives back 237 of the 241 vanilla LZSS blocks
+  ([../map-format/lzss-vanilla.md](../map-format/lzss-vanilla.md)); the Markov encoder gives back all 127 grids.
+  The four other blocks (Block 3 of `0x0A`, `0x16`, `0x2D`, `0x67`) carry `"packed"`, their vanilla bytes, used
+  while they still unpack to the data (`repacked`, info, once they do not). `none` stores the block raw.
 
-| Blob field *(repo)* | Target in `map.json` |
+| Still to come | Target |
 |---|---|
-| graphics list (Block 1) | `"graphics": ["floor_sand_01", "tile_0a40", …]`: names in `tiles/` |
-| tile families | `"families": ["desert_day", …]`: names in `palettes/` (≤ 7 loaded at once) |
-| step-on / B-triggers | `{ "area": [y1, x1, y2, x2], "script": "pyramid_outside_door_north" }`: names in `scripts/` |
+| step-on / B-triggers | `"script": "pyramid_outside_door_north"`: names in `scripts/` (S6) |
 | enter script | `"enter": "pyramid_outside_enter"` |
-| objects, animation, cuttable grass | as decoded, with tile references by name |
-| grid, dictionary | arrays of local indices, decoded |
+| objects, cuttable grass | decoded, with tile references by name |
 
 - **Names.** From `localizations/data/rooms.json` *(repo, our own wording)*: region + place + part in snake case
   (`prehistoria_jungle_south_where_the_game_starts`); `map_<hexid>` for a room it does not name.
 - **Implode generates** the map table (127 × [24-bit pointer, pad 0], read by `$90:8F69` / `$90:8F6F` *(repo:
   `tools/table-hack/tables.js`)*), in place, in the enum's order. The pointer is the `$80–$BF:8000+` form.
 - **Placement.** Upper half of a bank, never across a bank, ≤ 32 KiB *(repo: `writeRoomAt`)*. The vanilla rooms
-  fill `$9C–$AD` upper halves to within a few hundred bytes per bank (other data follows each bank's last room),
-  so `--random` shuffles rooms inside their bank; moving them between banks needs free space (`"size": "4MiB"`,
-  [progress.md](progress.md) §2).
+  fill `$9C–$AD` upper halves to within a few hundred bytes per bank (other data follows each bank's last room).
+  `--random` grows the image to 4 MiB: rooms shuffle inside their bank or move to the 4th MB; a stable build grows
+  only when an edited room no longer fits (`grown`, info).
 - **Proven (G1).** Seeds 42, 7, 123456, 99 moved 112–122 rooms; the stored playbacks played identically. The
   engine keeps six long pointers into the current blob (`knowledge/wram/DIRECT_PAGE_BLOCK.md`), all translated.
 - **Limits.** Every field's range (`invalid-value`); blob ≤ 32 KiB (`over-budget`); 127 ids (the table stays put;
   the engine allows 256).
-- **Still numbers:** graphics ids and script ids point into `_base/` until S3, S6.
+- **Still numbers:** script ids point into `_base/` until S6.
 - **Logic warnings** *(proposal; checked against vanilla first)*: a trigger outside the map; a door to an entrance
   that does not exist; an unused family slot; the Boy's start on a solid cell.
 

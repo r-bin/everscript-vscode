@@ -139,16 +139,21 @@ exploded again, named by the tree's own enums, and must give the same resources.
 
 ### 5.1 Random layouts and the proof
 
-- `implode --random [seed]` shuffles where every resource goes (inside the space its kind gave up, and into any
-  `free` region of the manifest). The seed is printed; the same seed gives the same layout.
+- `implode --random [seed]` shuffles where every resource goes: among the neighbours that share its placement
+  rule, and (since the image grows to 4 MiB, the 4th MB free) about half of them out of their span. The seed is
+  printed; the same seed gives the same layout. A stable build grows to 4 MiB only when something no longer fits.
 - `prove <dir> --random [seed]` builds the original (stable) and that layout from the same tree, runs both in two
   snes9x cores in one process on every stored playback recorded on the original, and compares **WRAM every
-  frame, screen and PC every 60**. A WRAM difference passes only when it is a long pointer to the **same
-  resource and offset** in both ROMs (or one past its end). Anything else fails with the frame and the bytes.
-- First result (2026-11-19): seeds 42, 7, 123456 and 99 moved 112–122 of the 127 rooms; the attract loop and the
-  2m20 intro (14,638 frames) played identically. The pointers the engine keeps into the room blob are now
-  documented (`knowledge/wram/DIRECT_PAGE_BLOCK.md`). The two playbacks visit about 10 rooms; a proof over
-  every room needs a playback that enters them all.
+  frame; screen, VRAM and PC every 60**. A WRAM difference passes only when it is a pointer to the **same
+  resource and offset** in both ROMs (long, in either bank form, or one past the end; 16-bit with its bank kept
+  elsewhere; a lone bank byte), or dead stack below an equal stack pointer.
+- **Drift.** Moving tiles changes how long a room load takes, so mid-load frames can end at different points. A
+  frame out of step starts a drift; it must end with everything in step again within 60 frames, and the playback
+  must end in step. The report lists every drift.
+- Results (2026-11-19): rooms alone (seeds 42, 7, 123456, 99) never drift. With tiles (S3, 4 MiB): seeds 1, 2 and
+  99 moved ≈6,780 of 6,814 resources and both playbacks (14,638 frames) stayed in step, with 13–19 drifts of at
+  most 17 frames; seed 7 lost a lag frame at 2,846 and never got back (progress.md §2). The two playbacks visit
+  about 10 rooms; a proof over every room needs a playback that enters them all.
 
 ## 6. The VFS is the reference
 
@@ -193,8 +198,8 @@ where you write.
 1. **Music names.** The track names of `sounds.ts` *(repo)* are our existing labels; they already read like a
    soundtrack's titles. Explode will use them as they are, in snake case. Taking names from an orchestral
    release instead would add third-party names (D4), so it needs the owner's word. *(owner's call)*
-2. **Names without a source.** Tile families are `family_<id>`: the repo has no names for them. Name them by the
-   rooms that use them, or by hand? *(owner's call)*
+2. **Names without a source.** Tile families (`family_<id>`) and tiles (`tile_<id>`) have numbers for now (owner,
+   2026-11-19). Each family file lists the maps that use it, as a start for naming by hand or by tool.
 3. **Room names.** Names are region + place + part, so some repeat a word (`antiqua_antiqua_desert_…`). Shorter
    names need a rule (drop the region when the place repeats it?). *(owner's call)*
 4. **Sharing.** Is a BPS patch enough, or does the tree need the `mods/` overlay of

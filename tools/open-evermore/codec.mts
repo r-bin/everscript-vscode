@@ -43,6 +43,18 @@ export interface ImplodeContext {
     findings: Findings;
     /** Ids by name, per kind, from each folder's _enum.json (enum.mts); set before encode. */
     ids: Map<string, Map<string, number>>;
+    /**
+     * What one kind requires of another kind's resources, by `<kind>/<name>` (`mark`): the maps kind marks every
+     * tile a room uses `used`, and every animation frame `dma` (streamed raw). Filled by encode, in kind order.
+     */
+    marks: Map<string, Set<string>>;
+}
+
+/** Records that `key` (`<kind>/<name>`) is required to be `what`. */
+export function mark(ctx: ImplodeContext, key: string, what: string): void {
+    let s = ctx.marks.get(key);
+    if (!s) ctx.marks.set(key, s = new Set());
+    s.add(what);
 }
 
 /** Bytes for the image at a file offset, and the tree file they came from (for findings). */
@@ -59,7 +71,10 @@ export interface Codec {
      * `name(kind, id)`: the name of any kind's resource, for this kind's files and its references to other kinds
      * (the tree's own enums on a round trip, else each kind's defaultName).
      */
-    explode(rom: Uint8Array, name: NameOf): Exploded;
+    explode(rom: Uint8Array, name: NameOf, options: Record<string, string>): Exploded;
+    /** Keys, at any depth, of this kind's JSON files that explode derives (which maps use a family) or keeps as a
+     *  cache (vanilla packed bytes): implode does not need them, and the round trip does not compare them. */
+    derived?: string[];
     /** The names of the resources in the tree (folder or file names, unordered); stray files are warnings. */
     names(ctx: ImplodeContext): Set<string>;
     /** Reads, validates and encodes the resources; findings go to ctx.findings. */

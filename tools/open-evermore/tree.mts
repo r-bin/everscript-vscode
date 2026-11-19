@@ -16,7 +16,27 @@ export const sha1 = (bytes: Uint8Array): string => createHash('sha1').update(byt
 
 const encoder = new TextEncoder(), decoder = new TextDecoder();
 export const text = (s: string): Uint8Array => encoder.encode(s);
-export const json = (value: unknown): Uint8Array => text(JSON.stringify(value, null, 2) + '\n');
+/**
+ * JSON as the tree stores it: indented, but compact where a file holds many small things (owner, 2026-11-19): an
+ * array of numbers (a grid row) is one line; an object, or an array of plain values, that fits in LINE characters is
+ * one line (a trigger, a frame, a metatile); a list of objects is one per line. The rest is one item per line.
+ */
+export const json = (value: unknown): Uint8Array => text(format(value, '') + '\n');
+const LINE = 120;
+function format(v: unknown, indent: string): string {
+    if (v === null || typeof v !== 'object') return JSON.stringify(v);
+    const inline = (x: unknown): string => x === null || typeof x !== 'object' ? JSON.stringify(x)
+        : Array.isArray(x) ? `[${x.map(inline).join(', ')}]`
+        : `{ ${Object.entries(x).filter(([, e]) => e !== undefined).map(([k, e]) => `${JSON.stringify(k)}: ${inline(e)}`).join(', ')} }`;
+    const one = inline(v);
+    if (Array.isArray(v) && v.every(e => typeof e === 'number')) return one;
+    const flat = Array.isArray(v) ? v.every(e => e === null || typeof e !== 'object') : true;
+    if (flat && indent.length + one.length <= LINE) return one;
+    const inner = indent + '  ';
+    if (Array.isArray(v)) return v.length ? `[\n${v.map(e => inner + format(e, inner)).join(',\n')}\n${indent}]` : '[]';
+    const entries = Object.entries(v).filter(([, e]) => e !== undefined);
+    return entries.length ? `{\n${entries.map(([k, e]) => `${inner}${JSON.stringify(k)}: ${format(e, inner)}`).join(',\n')}\n${indent}}` : '{}';
+}
 export const readText = (bytes: Uint8Array): string => decoder.decode(bytes);
 
 export function readTree(dir: string): Tree {

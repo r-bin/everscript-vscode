@@ -6,11 +6,14 @@ import { ENUM, resolveEnum } from './enum.mts';
 import type { Codec, Item, Span, Write } from './codec.mts';
 import { explode } from './explode.mts';
 import { Findings } from './findings.mts';
-import { FILE as MANIFEST, busOf, checkHeader, checkManifest, fileOf, formatAddr, parseAddr, writeChecksum } from './manifest.mts';
+import { FILE as MANIFEST, busOf, checkHeader, checkManifest, declaredSize, fileOf, formatAddr, parseAddr, writeChecksum } from './manifest.mts';
 import type { Manifest } from './manifest.mts';
 import { allocate } from './layout.mts';
-import { diffTrees, readText, sha1 } from './tree.mts';
+import { diffTrees, json, readText, sha1 } from './tree.mts';
 import type { Tree } from './tree.mts';
+
+/** The largest HiROM image ($C0-$FF). */
+const FOUR_MIB = 0x400000;
 
 export interface KindStats { kind: string; items: number; bytes: number; changed: number; moved: number }
 
@@ -47,7 +50,7 @@ export function implode(tree: Tree, game: string, kinds: Codec[], opts: Options 
     if (!base) return done();
 
     // Stage 2: names → ids, one enum per kind.  Stage 3: every kind checks and encodes its resources.
-    const ctx = { tree, manifest, size, base, findings, ids: new Map<string, Map<string, number>>() };
+    const ctx = { tree, manifest, size, base, findings, ids: new Map<string, Map<string, number>>(), marks: new Map<string, Set<string>>() };
     const items: Item[] = [];
     const stats: KindStats[] = [];
     // Every enum first: a kind's resources reference other kinds by name.
@@ -59,6 +62,7 @@ export function implode(tree: Tree, game: string, kinds: Codec[], opts: Options 
         const ids = resolveEnum(path, tree.get(path), names, findings);
         if (ids) ctx.ids.set(codec.kind, ids);
     }
+    // In the order of `kinds`: a kind that marks another's resources (ctx.marks) encodes before it.
     for (const codec of kinds) {
         const list = codec.encode(ctx, present.get(codec.kind)!);
         items.push(...list);
@@ -69,21 +73,37 @@ export function implode(tree: Tree, game: string, kinds: Codec[], opts: Options 
         const top = path.split('/')[0];
         if (path !== MANIFEST && top !== BASE_DIR && !kinds.some(k => k.path === top)) findings.warning('unknown-file', path, '', 'no kind owns this path; ignored');
     }
-    const removed = [...base.homes.keys()].filter(key => !items.some(i => i.key === key));
+    const keys = new Set(items.map(i => i.key));
+    const removed = [...base.homes.keys()].filter(key => !keys.has(key));
     const reordered = [...base.enumSha1].filter(([path, hash]) => { const now = tree.get(path); return !now || sha1(now) !== hash; }).length;
     const changed = stats.some(s => s.changed > 0) || removed.length > 0 || reordered > 0;
     if (findings.failed) return done(null, stats);
 
     // Stage 5: placement. Free space: the pool the kinds gave up, plus manifest regions marked free.
     const extra: Span[] = manifest.regions.filter(r => r.use === 'free').map(r => ({ start: fileOf(parseAddr(r.from)!), end: fileOf(parseAddr(r.to)!) + 1 }));
-    const layout = allocate(items, base.pool, extra, base.homes, opts.seed);
+    // A random layout grows a HiROM image to 4 MiB and frees the new part ($F0-$FF, $B0-$BF:8000+): with room to
+    // spare, half the resources leave their home span, and a blob that no longer fits snugly still finds a place.
+    // A stable layout grows only when something no longer fits (an edited room that packs larger).
+    // Only as far as the header already declares, so the header stays as it is (Evermore's declares 4 MiB).
+    const room = Math.min(FOUR_MIB, declaredSize(base.image));
+    const canGrow = manifest.memoryMap.layout === 'hirom' && size < room;
+    let grown = seed !== null && canGrow ? room : size;
+    if (grown > size) extra.push({ start: size, end: grown });
+    let layout = allocate(items, base.pool, extra, base.homes, opts.seed);
+    if (layout.failed.length && canGrow && grown === size) {
+        grown = room;
+        extra.push({ start: size, end: grown });
+        layout = allocate(items, base.pool, extra, base.homes, opts.seed);
+        findings.info('grown', MANIFEST, '/memoryMap/size', `${size >> 20} MiB did not hold every resource: the image grows to ${grown >> 20} MiB, the 4th MB free`);
+    }
     for (const item of layout.failed) findings.error('no-space', item.file, '', `no free space for ${item.bytes.length} bytes under its rule ${JSON.stringify(item.rule)}`);
     for (const item of items) if (layout.at.has(item.key)) placed.push({ key: item.key, home: base.homes.get(item.key)?.at, at: layout.at.get(item.key)!, length: item.bytes.length, changed: base.homeSha1.get(item.key) !== sha1(item.bytes) });
     for (const s of stats) s.moved = items.filter(i => i.key.startsWith(s.kind + '/') && layout.at.get(i.key) !== base.homes.get(i.key)?.at).length;
     if (findings.failed || opts.checkOnly) return done(null, stats);
 
     // Stage 6: build. The base, the items where they landed, the tables that point at them, the checksum.
-    const image = base.image.slice();
+    const image = new Uint8Array(grown).fill(0xFF);
+    image.set(base.image);
     for (const item of items) image.set(item.bytes, layout.at.get(item.key)!);
     const writes: Write[] = kinds.flatMap(codec => codec.tables(ctx, layout.at));
     const tables = base.tables;
@@ -105,12 +125,19 @@ export function implode(tree: Tree, game: string, kinds: Codec[], opts: Options 
         for (const [name, id] of ids) list[id] = name;
         return [kind, Array.from(list, n => n ?? null)];
     }));
-    const again = explode(image, manifest.base, game, kinds, byId);
+    const again = explode(image, manifest.base, game, kinds, byId, manifest.options ?? {});
     const own = (p: string) => p !== MANIFEST && !p.startsWith(BASE_DIR + '/') && !ignored.has(p);
-    const differ = diffTrees(new Map([...again].filter(([p]) => own(p))), new Map([...tree].filter(([p]) => own(p))));
+    // Derived keys (Codec.derived) say what the image holds, not what the tree asks for: left out of the comparison.
+    const strip = (t: Tree): Tree => new Map([...t].filter(([p]) => own(p)).map(([p, b]) => {
+        const keys = kinds.find(k => p.startsWith(k.path + '/'))?.derived;
+        if (!keys || !p.endsWith('.json')) return [p, b];
+        const drop = (v: any): void => { if (v && typeof v === 'object') for (const k of Object.keys(v)) { if (keys.includes(k)) delete v[k]; else drop(v[k]); } };
+        try { const v = JSON.parse(readText(b)); drop(v); return [p, json(v)]; } catch { return [p, b]; }
+    }));
+    const differ = diffTrees(strip(again), strip(tree));
     for (const p of differ.slice(0, 20)) findings.error('round-trip', p, '', again.has(p) ? (tree.has(p) ? 'explodes to different content' : 'explode writes this file; the tree lacks it') : 'explode does not give this file back');
     if (differ.length > 20) findings.error('round-trip', MANIFEST, '', `${differ.length - 20} more files differ`);
     if (changed) findings.info('changed', MANIFEST, '', 'resources changed since explode: G0 not checked; prove with playbacks (G1/G2)');
-    if (seed !== null) findings.info('random', MANIFEST, '', `random layout, seed ${seed}: ${layout.moved} of ${items.length} resources moved; prove with playbacks`);
+    if (seed !== null) findings.info('random', MANIFEST, '', `random layout, seed ${seed}: ${layout.moved} of ${items.length} resources moved${grown > size ? `, the image grown to ${grown >> 20} MiB` : ''}; prove with playbacks`);
     return done(image, stats, hash);
 }

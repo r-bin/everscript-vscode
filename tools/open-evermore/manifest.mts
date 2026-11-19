@@ -19,6 +19,8 @@ export interface Manifest {
     regions: Region[];
     placement: Record<string, unknown>;
     renames: { kind: string; from: string; to: string }[];
+    /** How explode wrote a kind's files, by kind (`tile_families: { format: 'png' }`); the round trip writes them so again. */
+    options?: Record<string, Record<string, string>>;
 }
 
 // The internal header of a HiROM cartridge, as file offsets (hardware).
@@ -132,12 +134,15 @@ export function writeChecksum(image: Uint8Array): number {
     return checksum;
 }
 
+/** The ROM size the header declares (a power of two: Evermore's 3 MiB image declares 4 MiB). */
+export const declaredSize = (image: Uint8Array): number => image[ROM_SIZE] ? 1024 << image[ROM_SIZE] : 0;
+
 /** The built image's header must say what the manifest says (manifest.md §1.2, §2). */
 export function checkHeader(m: Manifest, image: Uint8Array, f: Findings): void {
     const h = headerMemoryMap(image);
     if (!h.hirom) f.error('header-mismatch', FILE, '/memoryMap/layout', 'the header\'s map mode is not HiROM');
     if (h.fastRom !== m.memoryMap.fastRom) f.error('header-mismatch', FILE, '/memoryMap/fastRom', `the header says fastRom ${h.fastRom}`);
     if (h.sram !== m.memoryMap.sram) f.error('header-mismatch', FILE, '/memoryMap/sram', `the header says ${h.sram}`);
-    const declared = image[ROM_SIZE] ? 1024 << image[ROM_SIZE] : 0;
+    const declared = declaredSize(image);
     if (declared < image.length) f.error('header-mismatch', FILE, '/memoryMap/size', `the header declares ${formatSize(declared)}, less than the image`);
 }

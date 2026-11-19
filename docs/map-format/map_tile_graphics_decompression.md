@@ -71,18 +71,47 @@ The first byte at the resolved data address is the **tile control byte** (`tileI
 
 | Bit | Field | Description |
 |---|---|---|
-| **Bit 7** | `compressed` | `0` = Uncompressed literal words; `1` = Dual-stream compressed |
-| **Bits 6..0** | `dataOffset` / `wordCount` | If uncompressed: `word_count - 1`. If compressed: Byte offset where data stream begins. |
+| **Bit 7** | `compressed` | `1` = dual-stream compressed (§5); bits 6..0 = byte offset where the data stream begins |
+| **Bit 6** | `prefix` | only with bit 7 clear: a prefix byte follows (§4.1) |
+| **Bits 5..0** | `wordCount` | with bit 7 clear: literal word count − 1 |
+
+*(Corrected 2026-11-19 from `$8C:C8B0`: older text read bits 6..0 as the count, which drew the six bit-6 graphics
+wrong.)*
 
 ---
 
-## 4. Uncompressed Tile Decoding (`Bit 7 == 0`)
+## 4. Literal Tile Decoding (`Bit 7 == 0`)
 
-If `tileInfo & 0x80 == 0`:
-1. **Word Count:** Read `count = (tileInfo & 0x7F) + 1`. (Capped at 64 words = 128 bytes).
+If `tileInfo & 0xC0 == 0`:
+1. **Word Count:** `count = (tileInfo & 0x3F) + 1`.
 2. **Data Source:** Raw 16-bit words begin at `dataaddr + 1`.
-3. **Copy:** Copy `count` words into the 128-byte destination buffer.
+3. **Copy:** Copy `count` words into the 128-byte destination buffer (by DMA: at most 32 words per 64-byte half).
 4. **Padding:** If `count < 64`, the **last word read is repeated** until all 128 bytes are filled.
+
+### 4.1 The prefix form (`Bit 6 == 1`)
+
+The byte after `tileInfo` is a prefix `p`:
+- `p & 0x80`: `p & 0x3F` copies of the word that follows `p` (written by `$8C:CC62`), then the literals;
+- else: `p` zero words (DMA from the fixed word `$0000` at `$8C:CC60`), then the literals at `dataaddr + 2`.
+
+Then `(tileInfo & 0x3F) + 1` literal words; the last repeats to the end. **The run form fetches its literals from
+`dataaddr + 7`**, not `+ 4` where they are stored: the routine both advances its pointer `$12` by 3 and sets its
+offset `$0A` to 3. If prefix + literals pass word 32, the first-half literals come from `+ 1` (zero form) or `+ 4`
+(run form) instead. Checked in VRAM (2026-11-19, every table entry pointed at the six graphics below). Six vanilla
+graphics use this form: 409, 2710, 2839, 3595 (zero), 5737, 5739 (run): the run-form two show three bytes of the
+graphic stored right after them. `src/games/evermore/maps/chr.ts` `decodeTile` reads all of it.
+
+### 4.2 How vanilla encoded (measured over all 6,688)
+
+`encodeTile` (same file) gives back 6,682 of the 6,688 vanilla graphics byte for byte (all but the six above):
+- an **animation frame** (any Section 2 channel shows it) is 64 raw words, `tileInfo = $3F`: the streamer
+  `$90:A1B4` DMAs 128 bytes from `+1` without decoding (all 994 frames are stored so);
+- otherwise the **dual stream** when strictly shorter, else the literal form with trailing repeats cut;
+- the dual stream is greedy: a repeat run of the previous word first (mode 9–12, at most 19, **never across word
+  32**), else the first fitting mode of 0–8, 15, 14, 13, else a literal word.
+
+Pointers: a graphic in a bank's upper half is pointed at in the `$80–$BF` form, one in the lower half in the
+`$C0–$FF` form; none crosses a bank (the loaders read through DMA).
 
 ---
 

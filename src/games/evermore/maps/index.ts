@@ -78,7 +78,7 @@ export type { GrassSwapTable, GrassRecord } from './cuttable-grass';
 
 export { extractTileFamilyPalette, buildRoomCgramPalettes, paletteCycleMask, paletteCycleFrames, shiftCgramPalettes } from './palette';
 export type { Rgba, PaletteCycleSpec } from './palette';
-export { decompressTile16x16, decodeTilePixels, tileColorMask } from './chr';
+export { decompressTile16x16, decodeTile, decodeTilePixels, encodeTile, encodeTilePixels, tileColorMask, tileGraphicOffset } from './chr';
 export { renderVramLayer, compositeLayers, renderRoomComposite, renderRoomForeground, renderRoomLayers, opaqueMask, hiddenTileMask, scale2x } from './render';
 export type { PixelBuffer, RenderOptions, LayerHalves } from './render';
 export { encodePng, encodePngDataUri } from './png';

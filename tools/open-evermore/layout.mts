@@ -3,12 +3,13 @@
 //                   first fit.
 //                   An unchanged tree therefore gives the original bytes (G0).
 //   random(seed)    proves that nothing reaches an item by a fixed address: items are shuffled inside the span
-//                   they came from, and (when there is other free space) half of them move out of it. Same seed,
-//                   same layout. Game-neutral: SNES banks only.
+//                   they came from, among the neighbours that share their rule, and (when there is other free space)
+//                   half of them move out of it. Same seed, same layout. Game-neutral: SNES banks only.
 import type { Home } from './base.mts';
 import type { Item, Rule, Span } from './codec.mts';
 
 const BANK = 0x10000, HALF = 0x8000;
+const ruleKey = (r: Rule) => `${!!r.upperHalf}/${!!r.noCrossBank}/${r.maxSize ?? ''}`;
 
 export interface Layout {
     at: Map<string, number>;
@@ -108,13 +109,27 @@ export function allocate(items: Item[], pool: Span[], extra: Span[], homes: Map<
     } else {
         const next = rng(seed);
         const spans = normalise(pool);
-        const groups = new Map<Span, Item[]>();
+        const bySpan = new Map<Span, Item[]>();
         for (const item of homed) {
             const home = homes.get(item.key)!.at;
             const span = spans.find(s => home >= s.start && home < s.end);
             if (!span || (extra.length && next() < 0.5)) { rest.push(item); continue; }
-            if (!groups.has(span)) groups.set(span, []);
-            groups.get(span)!.push(item);
+            if (!bySpan.has(span)) bySpan.set(span, []);
+            bySpan.get(span)!.push(item);
+        }
+        // Cut each span where the rule changes: neighbours under one rule fill their run in any order, while a
+        // run under a looser rule (a tile) shuffled into a tighter one's space (a room's upper half) would not.
+        const groups: [Span, Item[]][] = [];
+        for (const [span, members] of bySpan) {
+            let run: Item[] = [], start = span.start;
+            members.forEach((item, i) => {
+                run.push(item);
+                const nextItem = members[i + 1];
+                if (nextItem && ruleKey(nextItem.rule) === ruleKey(item.rule)) return;
+                const end = nextItem ? homes.get(nextItem.key)!.at : span.end;
+                groups.push([{ start, end }, run]);
+                run = []; start = end;
+            });
         }
         for (const [span, members] of groups) {
             let cursor = span.start;

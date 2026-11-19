@@ -9,6 +9,7 @@ import { createRequire } from 'node:module';
 import { basename, dirname, join } from 'node:path';
 import type { Codec } from './codec.mts';
 import { implode } from './implode.mts';
+import { MAX_DRIFT } from './play.mts';
 import type { Moved, PlayResult } from './play.mts';
 import type { Tree } from './tree.mts';
 
@@ -25,6 +26,25 @@ const play = (args: string[]) => new Promise<void>((resolve, reject) => {
     p.stderr.on('data', d => { err += d; });
     p.on('exit', code => (code === 0 ? resolve() : reject(new Error(`play.mts: exit ${code}\n${err}`))));
 });
+
+/** "$7e0140 $7e0141 $7e0142 $7e0148 …" → "$7e0140-42 …", and equal runs at one stride as "$7e0140-42 ×64 every 8". */
+function ranges(addrs: string[]): string {
+    const n = addrs.map(a => parseInt(a.slice(1), 16));
+    const runs: [number, number][] = [];
+    for (const a of n) { const r = runs.at(-1); if (r && a === r[0] + r[1]) r[1]++; else runs.push([a, 1]); }
+    const out: string[] = [];
+    for (let i = 0; i < runs.length;) {
+        let j = i + 1;
+        const stride = runs[j] ? runs[j][0] - runs[i][0] : 0;
+        while (runs[j] && runs[j][1] === runs[i][1] && runs[j][0] - runs[j - 1][0] === stride) j++;
+        const [a, len] = runs[i];
+        const one = `$${a.toString(16)}${len > 1 ? '-' + (a + len - 1).toString(16).slice(-2) : ''}`;
+        out.push(j - i >= 3 ? `${one} ×${j - i} every ${stride}` : one);
+        if (j - i < 3) j = i + 1;
+        i = j;
+    }
+    return out.join(' ');
+}
 
 export async function prove(tree: Tree, game: string, kinds: Codec[], seed: number, out: string, movieSpecs: string[] = [DEFAULT_MOVIES]): Promise<Proof> {
     const lines: string[] = [];
@@ -55,10 +75,11 @@ export async function prove(tree: Tree, game: string, kinds: Codec[], seed: numb
         if (r.sync !== 'ok') { ok = false; log(`- ${basename(m)}: the original itself lost the playback (sync ${r.sync}); no proof`); return; }
         if (r.difference) {
             ok = false;
-            log(`- ${basename(m)}: **differs at frame ${r.difference.frame}** (${r.difference.what}) ${r.difference.bytes.join(' ')}`);
+            log(`- ${basename(m)}: **differs from frame ${r.difference.frame}** and does not get back in step within ${MAX_DRIFT} frames (${r.difference.what}) ${r.difference.bytes.join(' ')}`);
             return;
         }
-        log(`- ${basename(m)}: ${r.frames} frames identical (WRAM every frame; screen and PC every 60). ${r.translated} frames held pointers to moved resources, at ${r.pointerBytes.join(' ') || 'none'}`);
+        const drifts = r.driftCount ? ` ${r.driftCount} drifts back in step (frame+length: ${r.drifts.map(([f, n]) => `${f}+${n}`).join(' ')}${r.driftCount > r.drifts.length ? ' …' : ''}).` : ' No drift.';
+        log(`- ${basename(m)}: ${r.frames} frames in step (WRAM every frame; screen, VRAM and PC every 60).${drifts} ${r.translated} frames held pointers to moved resources, at ${ranges(r.pointerBytes) || 'none'}`);
     }));
     log(ok ? 'Result: the random layout plays exactly like the original.' : 'Result: DIFFERENT, see above.');
     writeFileSync(join(out, 'REPORT.md'), '# Open Evermore proof\n\n' + lines.join('\n') + '\n');

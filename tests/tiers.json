@@ -28,6 +28,7 @@
   "tests/imports/redraw.test.mts",
   "tests/imports/status.test.mts",
   "tests/open-evermore/enum-layout.test.mts",
+  "tests/open-evermore/formats.test.mts",
   "tests/open-evermore/implode.test.mts",
   "tests/msu1/msu1.test.mts",
   "tests/debugger/emulator-audio.test.mts",

@@ -57,3 +57,21 @@ pointing to the same room and offset in both (`docs/open-evermore/progress.md`, 
 Nothing else in WRAM, the screen or the PC changed, so the engine keeps no fixed blob address: rooms can move
 anywhere their placement rule allows (upper half, no bank crossing, ≤ 32 KiB). Which routine fills each slot is
 not traced yet.
+
+## Pointers into tile graphics (measured 2026-11-19)
+
+Moving every 16×16 tile graphic as well (Open Evermore S3, `--random` 1, 2, 99) added these slots. They hold
+pointers into tile graphics, so they differ between layouts while pointing at the same graphic and offset:
+
+| Slot | Holds |
+|---|---|
+| `$12..$14` | the graphic being decoded (`$8C:C898` stores the low 16 bits at `$12`, the bank at `$14`); after a load `$12..$13` can keep the last graphic's low 16 bits while `$14` is reused |
+| `$06..$07` | the dual-stream decoder's stream pointer, low 16 bits (bank in DB) |
+| `$26..$28` | the animation streamer's source (`$90:A1B4`) |
+| `$7E:0140 + 8·n`, n < 64 | a list of 64 long pointers to graphics, 8 bytes apart (form follows the graphic: `$8x` in an upper half, `$Cx` in a lower) *(which routine fills it: to trace)* |
+| `$B2` alone | after a room load `$B0..$B1` are cleared and `$B2` keeps the room blob's bank (seen once rooms change banks) |
+
+Moving the tiles changes how long a room load takes: the original and the moved ROM fall out of step for up to
+17 frames and come back with identical WRAM. Keeping each graphic's page offset, or its page offset and bank half,
+does not remove that, so it is not page-crossing cycles alone *(cause open; the list at `$0140` suggests the order
+of the pointers matters)*. Once in 4 seeds (7) the shift cost a lag frame and the playback never got back in step.
