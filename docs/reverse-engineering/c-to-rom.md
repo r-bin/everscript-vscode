@@ -568,3 +568,14 @@ Following completion of 100% certified C-binding coverage for Replay 01 in `v0.3
   - 40/40 real states match ROM per routine (100% parity, 40/40 snes9x oracle agreement).
   - Mutations caught: yes for both.
 - Rated and audited: 294 clean, 0 stale/unrated. Total bound routines: **294**.
+
+### Replay 02 Bound Routine: `spell_projectile_polar_to_cartesian_trajectory_calc` ($91:CBB1)
+- Bound in `reconstructed-c/91/91CBB1_spell_projectile_polar_to_cartesian_trajectory_calc.c`:
+  - Computes target displacement vector ($\Delta X = \$3E - \$46 \to \text{DP } \$02$, $\Delta Y = \$40 - \$48 \to \text{DP } \$04$) and invokes `$80:AEAC` (`math_vector_2d_angle_and_distance_calc`).
+  - Implements distance threshold check ($\max(|\Delta X|, |\Delta Y|) \ge 12$): exits with carry cleared if $< 12$.
+  - Correctly seeds RNG call `$80:859B` with carry flag set on branch, applies low-7-bit jitter offset (`-32..+31`) to heading angle, and wraps to multiple of 8.
+  - Queries 7-byte stride polar trajectory lookup table via direct page pointer `[$2E]`, applies step deltas to projectile coordinates `$46`/`$48`, and returns with carry set.
+- Verified under Gate G1:
+  - 35/35 real states match ROM (100% parity, 35/35 snes9x oracle agreement).
+  - Mutation caught: yes.
+- Rated and audited: 298 clean, 0 stale/unrated. Total bound routines: **298**.
