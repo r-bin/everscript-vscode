@@ -128,9 +128,9 @@ export function implode(tree: Tree, game: string, kinds: Codec[], opts: Options 
     const again = explode(image, manifest.base, game, kinds, byId, manifest.options ?? {});
     const own = (p: string) => p !== MANIFEST && !p.startsWith(BASE_DIR + '/') && !ignored.has(p);
     // Each kind says what of a file counts (Codec.canonical): derived or cached parts are left out of the comparison.
-    const strip = (t: Tree): Tree => new Map([...t].filter(([p]) => own(p)).map(([p, b]) => {
+    const strip = (t: Tree): Tree => new Map([...t].filter(([p]) => own(p)).flatMap(([p, b]): [string, Uint8Array][] => {
         const codec = kinds.find(k => p.startsWith(k.path + '/'));
-        try { return codec?.canonical ? codec.canonical(p, b) : [p, b]; } catch { return [p, b]; }
+        try { const c = codec?.canonical ? codec.canonical(p, b) : [p, b] as [string, Uint8Array]; return c ? [c] : []; } catch { return [[p, b]]; }
     }));
     const differ = diffTrees(strip(again), strip(tree));
     for (const p of differ.slice(0, 20)) findings.error('round-trip', p, '', again.has(p) ? (tree.has(p) ? 'explodes to different content' : 'explode writes this file; the tree lacks it') : 'explode does not give this file back');

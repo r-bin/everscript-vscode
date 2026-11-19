@@ -147,40 +147,63 @@ round trip compares the indices, not the file.
 
 ## maps — rooms *(built, S1)*
 
-**Folder.**
+**Folder.** One folder per room:
 
 ```
 maps/_enum.json                      names[id]: the map table's order (README.md §4)
-maps/<map>/map.json                  one room
+maps/<map>/map.json                  header, families, palette cycles, graphics, animations, triggers, objects
+maps/<map>/grid.txt                  the cells: one row per line, each cell its metatile id in hex
+maps/<map>/metatiles.json            what each metatile draws (canopy, terrain) and how it collides
+maps/<map>/preview.png               the room drawn by the repo's renderer; for the reader, implode ignores it
 ```
 
-`map.json` (version 4) holds the room uncompressed, in our compact layout (one trigger, grid row or metatile per
-line), with each block's compression noted so implode packs it as vanilla did (owner, 2026-11-19):
+`map.json` (version 5):
 
 ```jsonc
 {
-  "format": "open-evermore/map", "version": 4,
-  "header": "…",                                   // 13 bytes, hex (room-reference.md §4)
+  "format": "open-evermore/map", "version": 5,
+  "header": { "triggerOrigin": [17, 11], "mainScreen": 23, "subScreen": 0, "colourMath": 0, "colourWindow": 2,
+              "effect": 2, "cameraFlags": 0, "reserved": 0 },  // room-reference.md §4; width and height come from grid.txt
+  "tileFamilies": ["family_020", …],               // names in tile_families/
+  "paletteCycles": [{ "start": 27, "colours": 4, "rate": 5 }],  // CGRAM colour, how many, frames per step (signed)
+  "graphics": { "compression": "lzss", "tiles": ["tile_0d7b", …] },   // Block 1, names in tiles/
+  "animations": [{ "countdown": 0, "frames": [{ "ticks": 8, "tile": "tile_0a40" }, …] }],   // Section 2
   "stepOn": [
-    { "area": [16, 64, 18, 68], "script": 2016 }
+    { "from": [64, 16], "to": [68, 18], "script": 2016 }   // cells [x, y]
   ],
   "bTrigger": [ … ],
-  "tileFamilies": ["family_024", "family_025"],    // names in tile_families/
-  "extras": "…",                                   // palette-cycle descriptors, hex
-  "graphics": { "compression": "lzss", "tiles": ["tile_0d7b", …] },    // Block 1, names in tiles/
-  "animations": [{ "countdown": 0, "frames": [{ "ticks": 8, "tile": "tile_0a40" }, …] }],   // Section 2
-  "objectOffsets": [0, 41],
-  "grid": { "compression": "markov", "rows": [[72, 72, …], …] },       // Block 2: metatile index per cell
-  "section4": "…",                                 // cuttable grass, base64
-  "metatiles": { "compression": "lzss", "list": [["a800", "45c0", "001f"], …] },  // Block 3: canopy, terrain, collision
-  "objectArea": "…"                                // objects and stamps, base64
+  "cuttableGrass": "…",                            // Section 4, base64
+  "objects": { "offsets": [0, 41], "data": "…" }   // Section 3 + the object area, base64
 }
 ```
 
-- **Compression.** `lzss` is our `lzssCompressVanilla`, which gives back 237 of the 241 vanilla LZSS blocks
-  ([../map-format/lzss-vanilla.md](../map-format/lzss-vanilla.md)); the Markov encoder gives back all 127 grids.
-  The four other blocks (Block 3 of `0x0A`, `0x16`, `0x2D`, `0x67`) carry `"packed"`, their vanilla bytes, used
-  while they still unpack to the data (`repacked`, info, once they do not). `none` stores the block raw.
+`grid.txt`, one row per line (`048 048 049 …`), and `metatiles.json`, one metatile per line:
+
+```jsonc
+{ "format": "open-evermore/metatiles", "version": 1, "compression": "lzss",
+  "list": [
+    { "id": "000", "canopy": "tile_0d7b p2 pr v", "terrain": "tile_02a3 p1 h", "collision": "gf z1" }, …
+  ] }
+```
+
+- **Layer words** (`canopy` = BG1, `terrain` = BG2): `<graphic> p<palette>` and the set flags `pr` (priority), `h`, `v`
+  (flips). The graphic is a name from `graphics.tiles` (`tile_10ee#2` for its second occurrence), `anim<n>` for
+  animation channel *n*'s slot, or `chr<3 hex>` for a character no slot names (82 vanilla words use `$3F0–$3FF`).
+- **Collision words** ([../map-format/room-reference.md](../map-format/room-reference.md) §9): `g<geometry>` and the
+  set flags `z<plane>`, `see`, `gate<n>`, `front`, `walk`, `step` (step-on cell), `b` (B-trigger cell); `bit7` if set.
+- `id` is the entry's position, written for the reader (`invalid-value` if it disagrees). Flags may come in any
+  order and grid ids without padding: the round trip compares what they mean.
+- **Compression** is noted, not stored: `lzss` is our `lzssCompressVanilla`, which gives back 237 of the 241 vanilla
+  LZSS blocks ([../map-format/lzss-vanilla.md](../map-format/lzss-vanilla.md)); the grid is always Markov (all 127
+  reproduced). The four other blocks (Block 3 of `0x0A`, `0x16`, `0x2D`, `0x67`) carry `"packed"`, their vanilla
+  bytes, used while they still unpack to the data (`repacked`, info, once they do not). `none` stores a block raw.
+
+**Readability, rated (owner asked, 2026-11-19).** Version 4 (one `map.json`): about **2/5**. Named: families,
+graphics, animations (4/5). Triggers in `[y1, x1, y2, x2]` with script numbers (3/5). A grid of unaligned numbers
+(2/5). Header, palette cycles and metatiles as hex words (1/5). Objects and cuttable grass as base64 (0/5).
+Version 5: about **3.5/5**. Named header and palette cycles, `from`/`to` triggers, an aligned `grid.txt`, metatiles
+in words, and a preview (4–5/5). Still to do: objects and cuttable grass decoded (0/5 → S7), script names in
+triggers (S6), and maybe a grid of names rather than ids.
 
 | Still to come | Target |
 |---|---|

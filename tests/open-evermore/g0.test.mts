@@ -57,9 +57,14 @@ if (!path || !existsSync(path)) {
     assert.deepStrictEqual(rules(t => { t.set('tiles/tile_0000.png', rgb); }), ['invalid-value tiles/tile_0000.png#']);
     console.log('  ✓ a map naming a missing family or tile, a colour the SNES cannot show and a tile PNG that is not indexed are errors');
 
+    const meta = room.replace('map.json', 'metatiles.json'), grid = room.replace('map.json', 'grid.txt');
+    assert.deepStrictEqual(rules(t => editJson(t, meta, m => { m.list[0].collision += ' sticky'; })), [`invalid-value ${meta}#/list/0/collision`]);
+    assert.deepStrictEqual(rules(t => { t.set(grid, new TextEncoder().encode('000 001\n000\n')); }), [`invalid-value ${grid}#/1`]);
+    console.log('  ✓ an unknown collision flag and a ragged grid.txt are errors');
+
     // An edited metatile: the room is compressed anew, the ROM still builds and explodes back to the edit.
     const edited = new Map(tree);
-    editJson(edited, room, m => { m.metatiles.list[0][2] = m.metatiles.list[0][2] === '0000' ? '0001' : '0000'; });
+    editJson(edited, meta, m => { const c: string = m.list[0].collision; m.list[0].collision = c.includes('front') ? c.replace(' front', '') : c + ' front'; });
     const e = implode(edited, GAME, KINDS);
     assert.deepStrictEqual(e.findings.list.filter(f => f.severity === 'error'), []);
     assert.notStrictEqual(e.sha1, sha1(rom));

@@ -76,8 +76,9 @@ export interface Codec {
      * What of a file the round trip compares, as [path, bytes], when not all of it is the resource: a tile's indices
      * whether PNG or JSON (a PNG's palette only shows it), a JSON file without what explode derives (which maps use a
      * family) or caches (vanilla packed bytes). The path may drop the file format, so either form compares equal.
+     * Null: a file only for the reader (a map's preview.png), left out.
      */
-    canonical?(path: string, bytes: Uint8Array): [string, Uint8Array];
+    canonical?(path: string, bytes: Uint8Array): [string, Uint8Array] | null;
     /** The names of the resources in the tree (folder or file names, unordered); stray files are warnings. */
     names(ctx: ImplodeContext): Set<string>;
     /** Reads, validates and encodes the resources; findings go to ctx.findings. */
