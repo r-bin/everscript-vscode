@@ -6,9 +6,13 @@ kind: code
 category: 🧠
 name: script_op_30_32_play_sound
 title: Script opcodes 0x30, 0x31, and 0x32 play a sound
-confidence: confirmed
-tags: [script-vm, audio]
-evidence: ["disasm: vanilla VFS at $8C:D6A7 sends $243B as payload with command $30 through $8C:81FD, clears $243B, reads one operand byte as the direct X offset into signed words at $8C:8362, skips negative entries, and calls $8C:82DC for nonnegative entries", "opcode table: $8C:E91D, $8C:E91F, and $8C:E921 all map to $8C:D6A7"]
+confidence: verified
+tags: [script-vm, audio, spc700, reconstructed-c, g1-pass]
+evidence: ["disasm: vanilla VFS at $8C:D6A7 sends $243B as payload with command $30 through $8C:81FD, clears $243B, reads one operand byte as the direct X offset into signed words at $8C:8362, skips negative entries, and calls $8C:82DC for nonnegative entries", "opcode table: $8C:E91D, $8C:E91F, and $8C:E921 all map to $8C:D6A7", "g1: 5/5 real states match ROM (100%), 5/5 snes9x oracle agreement, 2/2 fuzzed states match ROM, mutation caught: yes, rated 7d24b482471583e5"]
 see: [docs/disassembly/script-vm/opcode-30-32-play-sound.md, routines/SFX_TRANSLATION_TABLE.md, routines/play_sound_effect_direct.md]
 ---
 The handler uses the operand byte as a raw byte offset into the signed word table at `$8C:8362`; it does not multiply the ID by two. Negative entries suppress playback.
+
+## Reconstructed C
+Source: [`reconstructed-c/8C/8CD6A7_opcode_30_32_play_sound.c`](../../../../../../reconstructed-c/8C/8CD6A7_opcode_30_32_play_sound.c).
+Differential parity: Verified with Gate G1 against clean ROM on live 8,414-frame reference states.

@@ -645,3 +645,18 @@ Following completion of 100% certified C-binding coverage for Replay 01 in `v0.3
   - 369/369 fuzzed states match ROM (100% parity).
   - Mutation caught: yes.
 - Rated and audited: 303 clean, 0 stale/unrated. Total bound routines: **303**.
+
+### Routine #304: `script_op_30_32_play_sound` ($8C:D6A7)
+- Bound in `reconstructed-c/8C/8CD6A7_opcode_30_32_play_sound.c`:
+  - Implements the script virtual machine opcodes 0x30, 0x31, and 0x32 handler (play sound effect):
+    - Checks pending sound command at `$7E:243B` and forwards it as payload with command `$0030` to the audio driver via `apu_command_send_sync` (`$8C:81FD`).
+    - Clears `$7E:243B` using `TDC` / `STZ`.
+    - Reads the sound ID operand byte directly from the script instruction stream via pointer `[$82]` into X and advances `$82` by 1.
+    - Looks up the signed word translation entry at `$8C:8362 + X`.
+    - If the translated value is non-negative (`BPL`), invokes `sub_8C82DC` (`$8C:82DC`) to dispatch the sound effect.
+    - Sets Carry (`SEC`) and returns via `RTS`.
+- Verified under Gate G1:
+  - 5/5 real states match ROM (100% parity, 5/5 snes9x oracle agreement).
+  - 2/2 fuzzed states match ROM (100% parity).
+  - Mutation caught: yes.
+- Rated and audited: 304 clean, 0 stale/unrated. Total bound routines: **304**.
