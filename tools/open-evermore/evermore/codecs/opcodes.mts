@@ -1,6 +1,8 @@
 // The `opcodes` kind (docs/open-evermore/resources.md §opcodes): the event-script VM's opcodes by name, the names
 // the scripts kind writes each command with (`text 75 03` for `51 75 03`). One file per opcode, opcodes/<name>.json:
-// its handler; opcodes/_enum.json gives each name its byte. Implode writes the dispatch table from them.
+// its handler, and for the reader what it does as a C prototype with each parameter's type, encoding and unit
+// (script-vm/parameters.json, knowledge/opcodes/<xx>.md); opcodes/_enum.json gives each name its byte. Implode
+// writes the dispatch table from the handlers.
 //
 // Facts used (docs/scripts/vm.md, src/games/evermore/script-vm/spec.ts):
 //   table      $8C:E8BD, one 16-bit handler address per opcode, read by `JSR ($E8BD,x)` in the dispatcher
@@ -8,7 +10,8 @@
 //              into code, so 195 is the limit while the table stays where it is (bank $8C has no free space)
 //   unused     the opcodes spec.ts does not list point at STP instructions ($8C:E8B5-$E8BC): `unused_<xx>`
 //   names      spec.ts's (the script viewer's); a name two opcodes share gets the byte as a suffix
-// operands and flow in each file come from spec.ts and are for the reader: implode encodes only the handler.
+// Everything but the handler is derived for the reader: implode encodes only the handler.
+import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import type { Codec, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
@@ -17,6 +20,49 @@ import type { Tree } from '../../tree.mts';
 
 const require = createRequire(import.meta.url);
 const { OPCODES } = require('../../../../dist/games/evermore/script-vm/spec');
+const PARAMETERS: Record<string, { name: string; params?: { name: string; type: string; enum?: string; unit?: string }[] }> = require('../../../../src/games/evermore/script-vm/parameters.json');
+const KNOWLEDGE = new URL('../../../../src/games/evermore/localizations/knowledge/opcodes/', import.meta.url);
+
+/** C types for parameters.json's (types of its `types` table inherit from a base). */
+const C_TYPE: Record<string, string> = {
+    u8: 'uint8_t', u16: 'uint16_t', s16: 'int16_t', bool: 'bool', entity: 'entity_t', script: 'script_t', jump: 'label_t',
+    list: 'entity_t[] /* 0-terminated */', args: 'args_t', flag: 'flag_t', percentage: 'uint8_t', object_index: 'uint8_t', skip: 'uint8_t',
+};
+/** How each operand token is encoded in the script (spec.ts). */
+const ENCODING: Record<string, string> = {
+    u8: 'byte', u16: 'word', u24: 'packed script pointer (3 bytes)', E: 'expression', A: 'argument count, then expressions',
+    Z: 'expressions up to a 0', r16: 'signed word from the end of the operand', rb: 'byte back from the opcode',
+    cb: 'byte back (relative call)', c16: 'word back (relative call)', skip: 'byte, skipped',
+};
+const FLOW: Record<string, string> = {
+    next: 'the next command runs in the same frame', yield: 'the thread\'s turn ends', branch: 'the next command or the jump target',
+    jump: 'only the jump target', call: 'runs the script, then the next command (yields)', start: 'starts the script as a thread and continues',
+    end: 'the script ends', reset: 'the game resets',
+};
+
+/** The knowledge entry's title: what the opcode does. */
+function summary(op: number): string | undefined {
+    try { return /^title: (.*)$/m.exec(readFileSync(new URL(`${op.toString(16).toUpperCase().padStart(2, '0')}.md`, KNOWLEDGE), 'utf8'))?.[1]; } catch { return undefined; }
+}
+
+/** The reader's part of an opcode's file: a C prototype, each parameter, the flow. */
+function described(op: number, name: string): Record<string, unknown> {
+    const spec = OPCODES.get(op);
+    if (!spec) return { what: 'no handler: STP, the CPU stops' };
+    const params = PARAMETERS['0x' + hex(op, 2)]?.params ?? [];
+    const typeOf = (t: string) => C_TYPE[t] ?? C_TYPE[(PARAMETERS as any).types?.[t]?.base] ?? t;
+    const list = params.map((q, i) => ({
+        name: q.name, type: typeOf(q.type), ...(q.enum ? { enum: q.enum } : {}),
+        ...(params.length === spec.operands.length ? { encoding: ENCODING[spec.operands[i]] ?? spec.operands[i] } : {}),
+        ...(q.unit ? { unit: q.unit } : {}),
+    }));
+    return {
+        what: summary(op),
+        c: `void ${name}(${list.map(q => q.type.includes('[]') ? `${q.type.replace(/\[\].*$/, '')} ${q.name}[]` : `${q.type} ${q.name}`).join(', ')});`,
+        params: list,
+        flow: `${spec.flow}: ${FLOW[spec.flow] ?? ''}`,
+    };
+}
 
 export const KIND = 'opcodes';
 const DIR = KIND, TABLE = 0x0CE8BD, COUNT = 0xC3, BANK = 0x8C;
@@ -40,7 +86,7 @@ export const opcodesCodec: Codec = {
 
     defaultName: id => DEFAULT[id] ?? `opcode_${hex(id, 2)}`,
 
-    // operands and flow are spec.ts's, written for the reader; only the handler is the opcode.
+    // Only the handler is the opcode; the rest is written for the reader.
     canonical(path, bytes) {
         if (path === `${DIR}/${ENUM}`) return [path, bytes];
         const v = JSON.parse(readText(bytes));
@@ -50,12 +96,9 @@ export const opcodesCodec: Codec = {
     explode(rom, name) {
         const files: Tree = new Map(), names: string[] = [];
         for (let op = 0; op < COUNT; op++) {
-            const n = name(KIND, op), handler = rom[TABLE + 2 * op] | (rom[TABLE + 2 * op + 1] << 8), spec = OPCODES.get(op);
+            const n = name(KIND, op), handler = rom[TABLE + 2 * op] | (rom[TABLE + 2 * op + 1] << 8);
             names.push(n);
-            files.set(`${DIR}/${n}.json`, json({
-                handler: `$8C:${hex(handler, 4).toUpperCase()}`,
-                ...(spec ? { operands: spec.operands.join(' '), flow: spec.flow } : { why: 'no handler: STP, the CPU stops' }),
-            }));
+            files.set(`${DIR}/${n}.json`, json({ handler: `$8C:${hex(handler, 4).toUpperCase()}`, ...described(op, n) }));
         }
         files.set(`${DIR}/${ENUM}`, enumFile({
             kind: KIND, limit: COUNT, names,

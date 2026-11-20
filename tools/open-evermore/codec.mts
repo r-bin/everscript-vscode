@@ -112,6 +112,8 @@ export interface Codec {
     path: string;
     /** Only the names `_enum.json` lists get an id; the others are reached by name alone (scripts). */
     listedIdsOnly?: boolean;
+    /** What a name of this kind may look like, when not NAME_RE (scripts: `<map>/<local>`). */
+    nameRe?: RegExp;
     /** The name explode gives resource `id` when nothing else names it (the repo's own names, or kind + id). */
     defaultName(id: number): string;
     /**

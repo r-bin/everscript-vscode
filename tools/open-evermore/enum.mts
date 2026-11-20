@@ -21,7 +21,7 @@ export const enumFile = (e: EnumFile): Uint8Array => json(e);
  * Ids for every name in `present`: the enum's own, then the lowest free id for each new name (sorted, so the
  * result never depends on folder order). Null when the enum file is unusable.
  */
-export function resolveEnum(path: string, raw: Uint8Array | undefined, present: Set<string>, f: Findings, listedOnly = false): Map<string, number> | null {
+export function resolveEnum(path: string, raw: Uint8Array | undefined, present: Set<string>, f: Findings, listedOnly = false, nameRe = NAME_RE): Map<string, number> | null {
     if (!raw) { f.error('missing-file', path, '', 'the enum of this kind is missing'); return null; }
     let e: EnumFile;
     try { e = JSON.parse(readText(raw)); }
@@ -32,7 +32,7 @@ export function resolveEnum(path: string, raw: Uint8Array | undefined, present: 
     const ids = new Map<string, number>();
     e.names.forEach((name, id) => {
         if (name === null) return;
-        if (typeof name !== 'string' || !NAME_RE.test(name)) return f.error('bad-name', path, `/names/${id}`, `"${name}": snake_case, at most 80 characters`);
+        if (typeof name !== 'string' || !nameRe.test(name)) return f.error('bad-name', path, `/names/${id}`, `"${name}": snake_case, at most 80 characters`);
         if (ids.has(name)) return f.error('duplicate-name', path, `/names/${id}`, `"${name}" is also id ${ids.get(name)}`);
         if (!present.has(name)) return f.error('locked-name-missing', path, `/names/${id}`, `"${name}" (id ${id}) has no resource; set the entry to null to delete it`);
         ids.set(name, id);

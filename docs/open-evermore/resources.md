@@ -102,29 +102,32 @@ with `data.json`; decoder `src/platform/cdl/table-assets.ts`)*. Same JSON as the
   id·3, added to the table's offset in one bank; the table-hack page's 10,900 assumed it stays in an upper half).
   A new string is shown in game (`tests/open-evermore/in-game.test.mts`).
 
-## music and sounds
+## music and sounds *(built, 2026-11-20)*
 
-**Folder.** `music/<track>/` and `sounds/<sound>/`:
+**Folder.**
 
 ```
-music/village_on_the_plateau/
-  track.json          { "volume": …, other descriptor fields the VFS decodes }
-  package.bin         the song package (raw until the sequence format is decoded)
+music/_enum.json                   names[package id]: 0 the base (driver data, most sound effects), 1–70 the songs
+music/<package>/package.json       the transfers the driver's upload makes, in order: { "data", "to": "$1F38" }
+                                   (+ "offset", "length" for part of a piece); for the reader the music ids and
+                                   driver sound effects that load the package
+music/<package>/data_<n>.bin       the bytes those transfers copy (sequences, instruments, samples: raw)
+sounds/<name>.json                 a script sound id (opcode 0x30, animation opcode 0x2E): { "sfx": <driver effect> }
+sounds/_enum.json                  names[script sound id]
 ```
 
-- **Names**: from `src/games/evermore/localizations/sounds.ts` *(repo)*, snake case. The open naming question is
-  [README.md](README.md) §9 Q1.
-- **References.** Used by maps and scripts (`play_music("village_on_the_plateau")`, compiled to the id). Uses
-  nothing until samples are shared resources.
-- **Implode generates**: the song table `$8C:8442` (byte offsets) → descriptors `$81:9903` + the count *(repo:
-  70 tracks, ids `$00–$45`)*; the sound table `$8C:8362` *(repo: 54 sounds)*.
-- **Limits.** Music ids < 128 (opcode `0x33` takes a byte offset, [extending.md](../split-and-link/extending.md)
-  §5); a package must fit the audio RAM the driver leaves free *(the exact budget: to verify,
-  [../todo/audio-and-music.md](../todo/audio-and-music.md))*.
-- **Logic warnings.** A track no map or script plays (`unreferenced`; vanilla has unused tracks, so the vanilla
-  ones are listed as known).
-- **Codec.** Descriptors *(repo: `soe://rom/assets/audio/`)*; packages raw. This is the first vertical slice
-  of split-and-link: copy a package under a new name, play it from a script ([split-and-link](../split-and-link/README.md) §5.6).
+- **Names.** Packages by our music names (`localizations/sounds.ts`: package p plays music p − 1), the base
+  `sound_base`; sounds by its sound names (ids 2·id); data `data_<n>` in order of first use. A piece several packages
+  load lives in the first one's folder; the others name it `<package>/data_<n>`. Overlapping reads are one piece
+  (6 in vanilla): a transfer then says `offset` and `length`.
+- **Implode generates** every package's descriptor (`[count][length, source:24, spc address] …`, a generated item
+  read on through upper halves) and the package pointers at `$81:9903` (in place); the sound id table at `$8C:8362`
+  (in place). The data move anywhere: in a window of upper halves, or for the 11 pieces vanilla reads inside a
+  lower half, within one bank.
+- **Limits.** 71 packages: the tables after the pointers (`$81:99D8` music → package, `$81:9A1E` driver sound →
+  package) are found from the count (`$8C:82A8`), so the count and those tables stay (`_base/`); 112 sound ids.
+- **Next.** Decode the pieces (sample directory entries, BRR samples, sequences, instruments) so a package reads as
+  instruments and a song; name pieces by role; let packages grow once the three tables move together.
 
 ## tiles — the 16×16 map graphics *(built, S3)*
 
@@ -176,7 +179,7 @@ maps/<map>/map.json                  header, families, palette cycles, graphics,
 maps/<map>/grid.txt                  the cells: one row per line, each cell its metatile id in hex
 maps/<map>/metatiles.json            what each metatile draws (canopy, terrain) and how it collides
 maps/<map>/objects.json              each object's states: where, which cells, how long each is held
-maps/<map>/scripts/<script>.txt      the scripts this room reaches first (enter, step-on, B and what they call; §scripts)
+maps/<map>/scripts/<name>.txt        the room's scripts: enter.txt, step_<n>.txt, b_<n>.txt and what they call (§scripts)
 maps/<map>/preview.png               the room drawn by the repo's renderer; for the reader, implode ignores it
 ```
 
@@ -192,11 +195,11 @@ maps/<map>/preview.png               the room drawn by the repo's renderer; for 
   "graphics": { "compression": "lzss", "tiles": ["tile_0d7b", …] },   // Block 1, names in tiles/
   "animations": [{ "countdown": 0, "frames": [{ "ticks": 8, "tile": "tile_0a40" }, …] }],   // Section 2
   "stepOn": [
-    { "from": [64, 16], "to": [68, 18], "script": "pyramid_outside_step_1" }   // cells [x, y]; a script by name
+    { "from": [64, 16], "to": [68, 18], "script": "step_1" }   // cells [x, y]; this room's script, or <map>/<name>
   ],
   "bTrigger": [ … ],
   "cuttableGrass": [{ "cut": "000", "into": ["507"] }, …],  // Section 4: metatile ids as in grid.txt
-  "enter": { "script": "pyramid_outside_enter", "word": "$0001" }  // the enter-script record; none: no `enter`
+  "enter": { "script": "enter", "word": "$0001" }  // the enter-script record; none: no `enter`
 }
 ```
 
@@ -281,22 +284,25 @@ room's `scripts/` folder (owner: no central `_enter_scripts.json`). Still open: 
 ## scripts *(built, S6, 2026-11-20)*
 
 **Folder.** One file per script; one script is one entry of the Scripts tab (a room's enter script, a step-on or
-B trigger, a global) or a script those call. A script that only rooms reach lives in the folder of the first room
-(lowest id) that reaches it (owner, 2026-11-20); the rest in `scripts/`. Names are unique across both:
+B trigger, a global) or a script those call. A room's scripts live in its folder under short names (owner,
+2026-11-20): `enter`, `step_<n>`, `b_<n>` (the trigger's place in `map.json`), `<root>_sub_<n>` for what they call
+first. A script belongs to the room whose trigger or enter record reaches it first (table order); another room names
+it `<map>/<name>`. The rest (globals, the boot script and what they call first) in `scripts/`:
 
 ```
 scripts/_enum.json          names[id]: the pointer table (trigger ids are byte offsets 3·id; globals from id 1,917)
 scripts/_scripts.json       the boot script (header +$0C) and the groups (below)
-scripts/<script>.txt        globals, the boot script and what they reach
-maps/<map>/scripts/<script>.txt   the room's enter, step-on and B scripts and what they call (2,800 of 3,288)
+scripts/<script>.txt        globals, the boot script and what they call
+maps/<map>/scripts/<name>.txt     the room's scripts (2,700 of 3,288); full name `<map>/<name>` (the enum, other rooms)
 ```
 
 A line is one command: the opcode by its name in `opcodes/` (a hex byte works too), then its operand bytes in hex;
-another script as `@name`; `skip <n>`:
+another script as `@name` (`@b_1` this room's, `@global_x` one in `scripts/`, `@<map>/b_1` another room's, `@/name`
+the one in `scripts/` when this room has one of that name too); `skip <n>`:
 
 ```
 call_global 36              call_id(FADE_IN)
-call @podunk_podunk_town_1965_enter_sub_1    call (absolute: the packed pointer is generated)
+call @enter_sub_1           call (absolute: the packed pointer is generated)
 call_back @global_loot_part1_sub_1           call back (relative: the offset is generated)
 load_map 17 28 15 00        load_map(0x15, 0x17, 40): ends the script
 skip 7                      7 bytes no command reaches: not this script's
@@ -331,39 +337,56 @@ skip 7                      7 bytes no command reaches: not this script's
 
 ## opcodes *(built, 2026-11-20)*
 
-**Folder.** `opcodes/<name>.json`: `{ "handler": "$8C:D2A1", "operands": "u16 E", "flow": "next" }`, one per
-opcode `$00–$C2`; `opcodes/_enum.json` gives each its byte. Names are the Scripts tab's (`script-vm/spec.ts`); a
-name two opcodes share takes the byte (`write_byte_14`); the 27 without a handler are `unused_<xx>` (STP).
-`operands` and `flow` are for the reader: implode encodes the handler only.
+**Folder.** `opcodes/<name>.json`, one per opcode `$00–$C2`; `opcodes/_enum.json` gives each its byte:
+
+```jsonc
+{
+  "handler": "$8C:D5AA",                       // the opcode: implode encodes this only
+  "what": "Exchange money",                    // knowledge/opcodes/<xx>.md
+  "c": "void currency_convert(uint16_t divisor, uint16_t currency_from, uint16_t multiplier, uint16_t currency_to);",
+  "params": [{ "name": "currency_from", "type": "uint16_t", "enum": "CURRENCY", "encoding": "expression",
+               "unit": "currency: offset into $0AC6 (0 talons, 3 jewels, 6 gold coins, 9 credits)" }, …],
+  "flow": "next: the next command runs in the same frame"
+}
+```
+
+Names are the Scripts tab's (`script-vm/spec.ts`); a name two opcodes share takes the byte (`write_byte_14`); the 27
+without a handler are `unused_<xx>` (STP). Parameters, types, units: `script-vm/parameters.json` (2026-11-20: units
+for coordinates, durations, amounts and currencies from the handler readings in `knowledge/opcodes/`; 22 unnamed
+parameters named; `currency_convert` corrected to divisor, source, multiplier, destination). Still unresolved:
+`color_filter` (0x97) operands 1–7 and `projectile` (0xB5) operand 8.
 
 - **Implode generates** the dispatch table at `$8C:E8BD` (`JSR ($E8BD,x)` in `$8C:D0A6`), in place: handlers
   live in bank `$8C` and the table cannot grow (opcodes `$C3` and up index past it into code): 195.
 - **Scripts** write each command's opcode by these names; renaming an opcode here renames it in every script.
 
-## characters, enemies, animate ids, sprite blocks *(built, 2026-11-20)*
+## characters, animations, sprite blocks *(built, 2026-11-20)*
 
 The table hack's tables (`tools/table-hack/`, moved and proven there), now resources:
 
 ```
-characters/<name>.json      one 74-byte record as named fields (hp, attack, …, palette, animations: { stand, … })
-characters/_enum.json       the records in order: id = place in the block, so 16-bit address $B678 + 74·id
-enemies/<name>.json         an ENEMY id: { "character": "<name>" } or { "address": "$0A26" } (the Boy, the Dog)
-enemies/_enum.json          names[ENEMY id]
-animate_ids/<name>.json     { "record": "$C4:477A" }: the animation record an animate() id plays
-sprite_blocks_16/<name>.png 16×16 sprite block pixels, indexed, grey (the palette comes from the entity)
-sprite_blocks_8/<name>.png  8×8; sprite_blocks_8/block_17c5.json: an alias (below)
+characters/<name>/character.json    one 74-byte record as named fields (hp, attack, …, palette); `spawn` for the Boy
+                                    and the Dog, whose ENEMY ids spawn from WRAM ($0A26, $0A70)
+characters/<name>/animations.json   its twelve animation records (stand, walk, …, dodge), each with its facings,
+                                    frames and the sprite blocks every frame shows (for the reader)
+characters/_enum.json               names[ENEMY id], what spawn opcodes take; null: an id with no record
+characters/_records.json            the record block in order: record k at $xx:B678 + 74·k
+animations/<name>.json              an id `animate()` plays: its record ($C4:xxxx) and what it shows
+sprite_blocks_16/<name>.png         16×16 sprite block pixels, indexed, grey (the palette comes from the entity)
+sprite_blocks_8/<name>.png          8×8; sprite_blocks_8/block_17c5.json: an alias (below)
 ```
 
-- **Names.** Enemies: our compiler's ENEMY names (`language/data/index.json`); a record takes its first
-  enemy's name (records 0 and 1: `boy`, `dog`, the templates copied to WRAM); `animate_<id>`, `block_<id>`.
+- **Names.** Characters: our compiler's ENEMY names (`language/data/index.json`), `boy`, `dog`; animations: its
+  `ANIMATION_BOY` / `_DOG` / `_ENEMY` / `_ALL` / `_PLACEHOLDER` names (values 2·id), else `animation_<id>`;
+  `block_<id>`.
 - **Characters.** One item: the records stay a block at offset `$B678` of a bank in the `$80–$BF` form
-  (`Rule.bankOffset`), because the game keeps them by 16-bit address (enemy index, entity `+$60`, and five code
+  (`Rule.bankOffset`), because the game keeps them by 16-bit address (ENEMY index, entity `+$60`, and five code
   immediates that name records). Only the bank moves: implode writes it into the `mvn` at `$8F:8046` and the 131
-  `op $8E00xx,X` operands. Order is identity: add records at the end. 254 at most (to the end of the bank).
-- **Enemies.** The index (`$8E:B55A`, four `lda.l` in the spawn handlers) is a generated item; a character's entry
-  is its record's 16-bit address. 256 ids (opcodes `0xBA`/`0xC2` take a byte).
-- **Animate ids.** The table (`$C4:3C92`, one `lda.l` at `$8C:E13C`) is a generated item; records stay in
-  `_base/` (bank `$C4`, [animations.md](animations.md)). 2,048 ids.
+  `op $8E00xx,X` operands. `_records.json` order is identity: add records at the end. 254 at most (to the end of
+  the bank). The ENEMY index (`$8E:B55A`, four `lda.l` in the spawn handlers) is a generated item; 256 ids.
+- **Animations.** The id table (`$C4:3C92`, one `lda.l` at `$8C:E13C`) is a generated item; the records, scripts
+  and sprite infos stay in `_base/` ([animations.md](animations.md)): a file's `record` is what implode reads, the
+  facings and frames are derived from the ROM by the repo's decoders. 2,048 ids.
 - **Sprite blocks.** Each block is a resource placed anywhere from its base bank (`$D9` / `$D1`) to the end of the
   4 MiB (`Rule.above`, `below`), never across a bank; the tables (`$EC:0000`, `$D8:0000`, three `lda.l` each) are
   generated. Stored compressed exactly when shorter (vanilla's rule for all 11,119), so the PNG is the whole block.

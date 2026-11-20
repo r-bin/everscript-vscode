@@ -1,34 +1,41 @@
-// The `characters` and `enemies` kinds (docs/open-evermore/resources.md §characters).
-//   characters/<name>.json   one character record, its 74 bytes as named fields (docs/entities/character_table.md)
-//   enemies/<name>.json      one ENEMY id (what spawn opcodes take): the character it spawns, or a raw address
-// Implode writes the records as one block, the enemy index wherever it lands, and the bank byte of every operand
-// that reads the records.
+// The `characters` kind (docs/open-evermore/resources.md §characters): every character record, one folder each.
+//   characters/<name>/character.json   the record's fields by name (docs/entities/character_table.md); `spawn` when
+//                                      the ENEMY id spawns from another address (the Boy, the Dog: WRAM)
+//   characters/<name>/animations.json  the record's twelve animation ids, each with what it shows (animation-view.mts)
+//   characters/_enum.json              names[ENEMY id]: what spawn opcodes take (null: no record, address 0)
+//   characters/_records.json           the record block's order: a record's place is its 16-bit address
+// Implode writes the records as one block, the ENEMY index wherever it lands, and the bank byte of every operand that
+// reads the records.
 //
 // Facts used (docs/entities/character_table.md, knowledge routines/character_records.md, tools/table-hack/tables.js,
 // where both tables were moved and proven):
 //   records   74 bytes apart from $8E:B678, 142 in vanilla (records 0 and 1: the Boy's and the Dog's templates, copied
 //             to WRAM $0A26 by `mvn` at $8F:8046). Code reads a field as `op $8E00xx,X` with X = the record's 16-bit
 //             address: 131 such operands in the code banks, all in the $8E form (bank $8E mirrors low WRAM, so the
-//             same reads reach the Boy and Dog in WRAM). Records are kept by their 16-bit address (the enemy index,
-//             entity +$60, and five code immediates: $8F:803D, $8E:A1F0, $8F:99A6/$99EC/$9A27, $91:CD7E), so the
-//             block keeps offset $B678 and its order (ids): only its bank moves, in the $80-$BF form. Room for 254
-//   enemies   the index at $8E:B55A, one word per id (a record's 16-bit address), read by `lda.l $8EB55A,x` in the
-//             four spawn handlers ($8C:DC9A/DCC3/DCD9/DCEC); 143 ids, entries 0/1 the Boy's and Dog's WRAM records;
-//             0xBA/0xC2 take a byte id: 256 at most
-// Names: our compiler's ENEMY names (language/data/index.json; D4); a record takes its first enemy's name.
+//             same reads reach the Boy and Dog in WRAM). Records are kept by their 16-bit address (the ENEMY index,
+//             entity +$60, and five code immediates, knowledge character_records), so the block keeps offset $B678
+//             and its order; only its bank moves, in the $80-$BF form. Room for 254
+//   ENEMY     the index at $8E:B55A, one word per id (a record's 16-bit address), read by `lda.l $8EB55A,x` in the
+//             four spawn handlers ($8C:DC9A/DCC3/DCD9/DCEC); 143 ids: 0 and 1 the Boy's and Dog's WRAM records, one
+//             0, the rest one record each; 0xBA/0xC2 take a byte id: 256 at most
+// Names: our compiler's ENEMY names (language/data/index.json; D4); `boy`, `dog` for ids 0 and 1.
 import { createRequire } from 'node:module';
 import type { Codec, ImplodeContext, Item, Span, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
 import { json, NAME_RE, readText, sha1 } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
+import { describeRecord } from './animation-view.mts';
 import { hexText, parseHex, readerSpans, readerWrites, tableAt } from './readers.mts';
 import type { Reader } from './readers.mts';
 
 const require = createRequire(import.meta.url);
 const ENEMY_NAMES: { name: string; value: string }[] = require('../../../../src/games/evermore/language/data/index.json').enums.ENEMY ?? [];
 
-export const CHARACTERS = 'characters', ENEMIES = 'enemies';
-const RECORDS = `${CHARACTERS}/_records`, INDEX = `${ENEMIES}/_table`;
+export const CHARACTERS = 'characters';
+const DIR = CHARACTERS, RECORDS_FILE = '_records.json', CHARACTER = 'character.json', ANIMS = 'animations.json';
+const RECORDS = `${DIR}/_records`, INDEX = `${DIR}/_enemy_index`;
+/** The pseudo kind whose symbols tell a round trip each record's place. */
+const RECORD = 'characters.record';
 const OFFSET = 0xB678, STRIDE = 74, VANILLA_RECORDS = 142, VANILLA_ENEMIES = 143, ENEMY_LIMIT = 256;
 const RECORD_LIMIT = Math.floor((0x10000 - OFFSET) / STRIDE);
 /** `mvn $8E,$8E` at $8F:8046: the source bank (byte 2) is the records' bank. */
@@ -47,36 +54,29 @@ const FIELDS: Field[] = [
     ['hit_rate', 0x21, 2, 'n'], ['exp', 0x23, 4, 'n'], ['money', 0x27, 2, 'n'], ['prize_chance', 0x29, 1, 'n'],
     ['level', 0x2A, 2, 'n'], ['charge_limit', 0x2C, 2, 'n'], ['charge_speed', 0x2E, 2, 'n'], ['attack_proc', 0x30, 2, 'hex'],
 ];
-/** The animation ids at +$32-+$48, by what the game plays them for (character-model.ts). */
+/** The animation ids at +$32-+$48, by what the game plays them for (character-model.ts): animation record offsets. */
 const ANIMATIONS = ['stand', 'walk', 'run', 'attack_0', 'attack_1', 'attack_2', 'attack_3', 'knockback', 'death', 'death_with_drop', 'cast', 'dodge'];
 const ANIM_AT = 0x32;
 
 const word = (b: Uint8Array, at: number, n: number) => { let v = 0; for (let k = n - 1; k >= 0; k--) v = v * 256 + b[at + k]; return v; };
 
-function recordJson(b: Uint8Array): unknown {
-    const out: Record<string, unknown> = {};
-    for (const [n, at, size, form] of FIELDS) out[n] = form === 'n' ? word(b, at, size) : hexText(word(b, at, size), size * 2);
-    out.animations = Object.fromEntries(ANIMATIONS.map((n, k) => [n, hexText(word(b, ANIM_AT + 2 * k, 2), 4)]));
-    return out;
-}
-
-/** A record file → its 74 bytes; problems are findings. */
-function recordBytes(v: any, path: string, ctx: ImplodeContext): Uint8Array | null {
+/** A record file pair → its 74 bytes; problems are findings. */
+function recordBytes(c: any, a: any, dir: string, ctx: ImplodeContext): Uint8Array | null {
     const out = new Uint8Array(STRIDE);
     let ok = true;
-    const put = (value: unknown, at: number, size: number, form: 'n' | 'hex', pointer: string) => {
+    const put = (value: unknown, at: number, size: number, form: 'n' | 'hex', path: string, pointer: string) => {
         const max = 2 ** (8 * size) - 1;
         const n = form === 'n' ? (Number.isInteger(value) && (value as number) >= 0 && (value as number) <= max ? value as number : null) : parseHex(value, max);
         if (n === null) { ctx.findings.error('invalid-value', path, pointer, form === 'n' ? `a whole number 0-${max}` : `"$${'x'.repeat(size * 2)}"`); ok = false; return; }
         for (let k = 0, x = n; k < size; k++, x = Math.floor(x / 256)) out[at + k] = x & 0xFF;
     };
-    for (const [n, at, size, form] of FIELDS) put(v?.[n], at, size, form, `/${n}`);
-    ANIMATIONS.forEach((n, k) => put(v?.animations?.[n], ANIM_AT + 2 * k, 2, 'hex', `/animations/${n}`));
+    for (const [n, at, size, form] of FIELDS) put(c?.[n], at, size, form, `${dir}/${CHARACTER}`, `/${n}`);
+    ANIMATIONS.forEach((n, k) => put(a?.[n]?.record, ANIM_AT + 2 * k, 2, 'hex', `${dir}/${ANIMS}`, `/${n}/record`));
     return ok ? out : null;
 }
 
-/** Our name for ENEMY id `id`: the compiler's, as snake case. */
-const ENEMY_DEFAULT = new Map<number, string>();
+/** Our name for ENEMY id `id`: the compiler's, as snake case; the Boy and the Dog by theirs. */
+const ENEMY_DEFAULT = new Map<number, string>([[0, 'boy'], [1, 'dog']]);
 for (const e of ENEMY_NAMES) {
     const n = e.name.toLowerCase(), id = parseInt(e.value, 16);
     if (NAME_RE.test(n) && !ENEMY_DEFAULT.has(id) && ![...ENEMY_DEFAULT.values()].includes(n)) ENEMY_DEFAULT.set(id, n);
@@ -97,133 +97,142 @@ function bankSites(rom: Uint8Array): Span[] {
     return out;
 }
 
-/** Record names: the tree's on a round trip; afresh, the first enemy's that spawns it (boy, dog for the templates). */
-function recordNames(rom: Uint8Array, name: (kind: string, id: number) => string, countOf: (kind: string) => number | undefined): string[] {
-    const count = countOf(CHARACTERS);
-    if (count !== undefined) return Array.from({ length: count }, (_, id) => name(CHARACTERS, id));
-    const index = tableAt(rom, ENEMY_READERS, ENEMIES), used = new Set<string>(), out: string[] = [];
-    const firstEnemy = new Map<number, number>();
-    for (let e = VANILLA_ENEMIES - 1; e >= 0; e--) {
-        const k = (word(rom, index + 2 * e, 2) - OFFSET) / STRIDE;
-        if (Number.isInteger(k) && k >= 0) firstEnemy.set(k, e);
-    }
-    for (let id = 0; id < VANILLA_RECORDS; id++) {
-        const e = firstEnemy.get(id);
-        let n = id === 0 ? 'boy' : id === 1 ? 'dog' : e !== undefined ? name(ENEMIES, e) : `character_${id.toString(16).padStart(2, '0')}`;
-        while (used.has(n)) n += '_' + id.toString(16);
-        used.add(n); out.push(n);
-    }
-    return out;
+/** Each ENEMY id: the record it spawns (its index in the block), or a raw address (the Boy's, Dog's WRAM; 0). */
+function enemyEntries(rom: Uint8Array, count: number, records: number) {
+    const index = tableAt(rom, ENEMY_READERS, CHARACTERS);
+    return Array.from({ length: count }, (_, e) => {
+        const v = word(rom, index + 2 * e, 2), k = (v - OFFSET) / STRIDE;
+        return Number.isInteger(k) && k >= 0 && k < records ? { record: k } : { address: v };
+    });
+}
+
+/** Names afresh: a record takes the name of the ENEMY id that spawns it; the Boy's and Dog's templates the ids that
+ *  spawn from WRAM (0, 1); a record no id spawns `character_<n>`. Null for an id with no record (address 0). */
+function freshNames(rom: Uint8Array): { records: string[]; enemies: (string | null)[]; spawn: Map<string, number> } {
+    const entries = enemyEntries(rom, VANILLA_ENEMIES, VANILLA_RECORDS), records: (string | undefined)[] = new Array(VANILLA_RECORDS).fill(undefined);
+    const enemies: (string | null)[] = [], spawn = new Map<string, number>(), used = new Set<string>();
+    const claim = (n: string) => { let out = n, k = 2; while (used.has(out)) out = `${n}_${k++}`; used.add(out); return out; };
+    entries.forEach((e, id) => {
+        if ('record' in e) { const n = claim(ENEMY_DEFAULT.get(id) ?? `enemy_${id.toString(16).padStart(2, '0')}`); records[e.record!] = n; enemies.push(n); }
+        else if (id < 2) { const n = claim(ENEMY_DEFAULT.get(id)!); records[id] = n; spawn.set(n, e.address!); enemies.push(n); }
+        else enemies.push(null);
+    });
+    return { records: records.map((n, k) => n ?? claim(`character_${k.toString(16).padStart(2, '0')}`)), enemies, spawn };
 }
 
 export const charactersCodec: Codec = {
-    kind: CHARACTERS, version: 1, path: CHARACTERS,
-
-    defaultName: id => `character_${id.toString(16).padStart(2, '0')}`,
-
-    explode(rom, name, _options, countOf) {
-        const at = recordsAt(rom), names = recordNames(rom, name, countOf), files: Tree = new Map();
-        names.forEach((n, id) => files.set(`${CHARACTERS}/${n}.json`, json(recordJson(rom.subarray(at + STRIDE * id, at + STRIDE * (id + 1))))));
-        files.set(`${CHARACTERS}/${ENUM}`, enumFile({
-            kind: CHARACTERS, limit: RECORD_LIMIT, names,
-            why: 'records are 74 bytes from $xx:B678 to the end of one bank; the id is the record\'s place, so its 16-bit address (code immediates name five records by it): keep the order, add at the end',
-        }));
-        const length = STRIDE * names.length;
-        return { files, pool: [{ start: at, end: at + length }], tables: bankSites(rom), homes: [{ key: RECORDS, at, length, sha1: sha1(rom.subarray(at, at + length)) }] };
-    },
-
-    names({ tree, findings }) {
-        const names = new Set<string>();
-        for (const path of tree.keys()) {
-            if (!path.startsWith(CHARACTERS + '/') || path === `${CHARACTERS}/${ENUM}`) continue;
-            const m = /^characters\/([^/]+)\.json$/.exec(path);
-            if (m) names.add(m[1]); else findings.warning('unknown-file', path, '', 'a character is one <name>.json; ignored');
-        }
-        return names;
-    },
-
-    encode(ctx) {
-        const ids = ctx.ids.get(CHARACTERS);
-        if (!ids) return [];
-        const count = Math.max(-1, ...ids.values()) + 1, bytes = new Uint8Array(STRIDE * count), byId = new Map([...ids].map(([n, id]) => [id, n]));
-        for (let id = 0; id < count; id++) {
-            const n = byId.get(id);
-            if (n === undefined) { ctx.findings.error('id-gap', `${CHARACTERS}/${ENUM}`, `/names/${id}`, `no character has id ${id}: records are addressed by their place`); continue; }
-            const path = `${CHARACTERS}/${n}.json`;
-            if (!NAME_RE.test(n)) { ctx.findings.error('bad-name', path, '', `"${n}": snake_case, at most 80 characters`); continue; }
-            let v: unknown;
-            try { v = JSON.parse(readText(ctx.tree.get(path)!)); } catch (e) { ctx.findings.error('parse-error', path, '', (e as Error).message); continue; }
-            const b = recordBytes(v, path, ctx);
-            if (b) bytes.set(b, STRIDE * id);
-        }
-        // Offset $B678 in a bank the readers reach in the $80-$BF form.
-        return [{ key: RECORDS, file: `${CHARACTERS}/${ENUM}`, bytes, rule: { bankOffset: OFFSET, upperHalf: true, below: 0x400000 } }] satisfies Item[];
-    },
-
-    tables(ctx, placed) {
-        const at = placed.get(RECORDS);
-        if (at === undefined) return [];
-        const bank = Uint8Array.of(0x80 | (at >> 16));
-        return ctx.base.tables.filter(t => t.kind === CHARACTERS).flatMap(t => Array.from({ length: t.end - t.start }, (_, k) => ({ at: t.start + k, bytes: bank, file: `${CHARACTERS}/${ENUM}` })));
-    },
-};
-
-interface Enemy { character?: string; address?: string }
-
-export const enemiesCodec: Codec = {
-    kind: ENEMIES, version: 1, path: ENEMIES,
+    kind: CHARACTERS, version: 2, path: DIR, listedIdsOnly: true,
 
     defaultName: id => ENEMY_DEFAULT.get(id) ?? `enemy_${id.toString(16).padStart(2, '0')}`,
 
-    explode(rom, name, _options, countOf) {
-        const at = tableAt(rom, ENEMY_READERS, ENEMIES), count = countOf(ENEMIES) ?? VANILLA_ENEMIES;
-        const records = recordNames(rom, name, countOf), files: Tree = new Map(), names: string[] = [];
-        for (let id = 0; id < count; id++) {
-            const n = name(ENEMIES, id), v = word(rom, at + 2 * id, 2), k = (v - OFFSET) / STRIDE;
-            names.push(n);
-            const e: Enemy = Number.isInteger(k) && k >= 0 && k < records.length ? { character: records[k] } : { address: hexText(v, 4) };
-            files.set(`${ENEMIES}/${n}.json`, json(e));
+    // animations.json is the twelve record ids; what each shows is derived for the reader.
+    canonical(path, bytes) {
+        if (!path.endsWith('/' + ANIMS)) return [path, bytes];
+        const v = JSON.parse(readText(bytes));
+        return [path, json(Object.fromEntries(ANIMATIONS.map(n => [n, v[n]?.record])))];
+    },
+
+    explode(rom, name, _options, countOf, nameAt) {
+        const at = recordsAt(rom);
+        // On a round trip the tree's names: the records' order from where implode put each one (symbols), ENEMY ids
+        // from the enum.
+        const round = countOf(CHARACTERS) !== undefined;
+        let records: string[], enemies: (string | null)[], spawn = new Map<string, number>();
+        if (!round) ({ records, enemies, spawn } = freshNames(rom));
+        else {
+            const count = countOf(CHARACTERS)!;
+            records = [];
+            for (let k = 0; nameAt(RECORD, at + STRIDE * k) !== undefined; k++) records.push(nameAt(RECORD, at + STRIDE * k)!);
+            const entries = enemyEntries(rom, count, records.length);
+            enemies = entries.map((e, id) => 'record' in e ? records[e.record!] : e.address ? name(CHARACTERS, id) : null);
+            entries.forEach((e, id) => { if (!('record' in e) && e.address) spawn.set(name(CHARACTERS, id), e.address); });
         }
-        files.set(`${ENEMIES}/${ENUM}`, enumFile({ kind: ENEMIES, limit: ENEMY_LIMIT, names, why: 'spawn opcodes 0xBA/0xC2 take a one-byte ENEMY id; the index is read by `lda.l $8EB55A,x` in the four spawn handlers' }));
-        const span = { start: at, end: at + 2 * count };
-        return { files, pool: [span], tables: readerSpans(ENEMY_READERS), homes: [{ key: INDEX, at, length: 2 * count, sha1: sha1(rom.subarray(span.start, span.end)) }] };
+        const files: Tree = new Map();
+        records.forEach((n, k) => {
+            const b = rom.subarray(at + STRIDE * k, at + STRIDE * (k + 1)), c: Record<string, unknown> = {};
+            for (const [f, off, size, form] of FIELDS) c[f] = form === 'n' ? word(b, off, size) : hexText(word(b, off, size), size * 2);
+            if (spawn.has(n)) c.spawn = hexText(spawn.get(n)!, 4);
+            files.set(`${DIR}/${n}/${CHARACTER}`, json(c));
+            files.set(`${DIR}/${n}/${ANIMS}`, json(Object.fromEntries(ANIMATIONS.map((f, i) => {
+                const r = word(b, ANIM_AT + 2 * i, 2);
+                return [f, { record: hexText(r, 4), ...(describeRecord(rom, r, name) ?? {}) }];
+            }))));
+        });
+        files.set(`${DIR}/${ENUM}`, enumFile({ kind: CHARACTERS, limit: ENEMY_LIMIT, names: enemies as string[], why: 'ENEMY ids, what spawn opcodes take (0xBA/0xC2: one byte); null: an id with no record' }));
+        files.set(`${DIR}/${RECORDS_FILE}`, json({ why: `the record block in order: record k is at $xx:${OFFSET.toString(16).toUpperCase()} + 74·k, the address code and save data keep; add at the end (${RECORD_LIMIT} at most)`, names: records }));
+        const length = STRIDE * records.length, index = tableAt(rom, ENEMY_READERS, CHARACTERS), ids = enemies.length;
+        return {
+            files,
+            pool: [{ start: at, end: at + length }, { start: index, end: index + 2 * ids }],
+            tables: [...bankSites(rom), ...readerSpans(ENEMY_READERS)],
+            homes: [
+                { key: RECORDS, at, length, sha1: sha1(rom.subarray(at, at + length)) },
+                { key: INDEX, at: index, length: 2 * ids, sha1: sha1(rom.subarray(index, index + 2 * ids)) },
+            ],
+        };
     },
 
     names({ tree, findings }) {
         const names = new Set<string>();
         for (const path of tree.keys()) {
-            if (!path.startsWith(ENEMIES + '/') || path === `${ENEMIES}/${ENUM}`) continue;
-            const m = /^enemies\/([^/]+)\.json$/.exec(path);
-            if (m) names.add(m[1]); else findings.warning('unknown-file', path, '', 'an enemy is one <name>.json; ignored');
+            if (!path.startsWith(DIR + '/') || path === `${DIR}/${ENUM}` || path === `${DIR}/${RECORDS_FILE}`) continue;
+            const m = /^characters\/([^/]+)\/([^/]+)$/.exec(path);
+            if (m && (m[2] === CHARACTER || m[2] === ANIMS)) names.add(m[1]);
+            else findings.warning('unknown-file', path, '', `a character is a folder with ${CHARACTER} and ${ANIMS}; ignored`);
         }
         return names;
     },
 
     encode(ctx, names) {
-        const characters = ctx.names.get(CHARACTERS) ?? new Set<string>();
+        const { tree, findings } = ctx, recordsPath = `${DIR}/${RECORDS_FILE}`;
+        let order: string[] = [];
+        try { order = JSON.parse(readText(tree.get(recordsPath) ?? new Uint8Array())).names ?? []; } catch (e) { findings.error('parse-error', recordsPath, '', (e as Error).message); return []; }
+        if (!Array.isArray(order) || order.length > RECORD_LIMIT) { findings.error('schema', recordsPath, '/names', `a list of at most ${RECORD_LIMIT} characters`); return []; }
+        const place = new Map<string, number>();
+        order.forEach((n, k) => {
+            if (!names.has(n)) findings.error('unknown-reference', recordsPath, `/names/${k}`, `"${n}" is no character folder`);
+            else if (place.has(n)) findings.error('duplicate-name', recordsPath, `/names/${k}`, `"${n}" is also record ${place.get(n)}`);
+            else place.set(n, k);
+        });
+        const bytes = new Uint8Array(STRIDE * order.length), spawn = new Map<string, number>();
         for (const n of names) {
-            const path = `${ENEMIES}/${n}.json`;
-            if (!NAME_RE.test(n)) { ctx.findings.error('bad-name', path, '', `"${n}": snake_case, at most 80 characters`); continue; }
-            let v: Enemy;
-            try { v = JSON.parse(readText(ctx.tree.get(path)!)); } catch (e) { ctx.findings.error('parse-error', path, '', (e as Error).message); continue; }
-            if (typeof v.character === 'string') { if (!characters.has(v.character)) ctx.findings.error('unknown-reference', path, '/character', `"${v.character}" is no character in ${CHARACTERS}/`); }
-            else if (parseHex(v.address, 0xFFFF) === null) ctx.findings.error('invalid-value', path, '', '{ "character": "<name>" } or { "address": "$xxxx" } (a record outside characters/: the Boy\'s and Dog\'s in WRAM)');
+            const dir = `${DIR}/${n}`;
+            if (!NAME_RE.test(n)) { findings.error('bad-name', `${dir}/${CHARACTER}`, '', `"${n}": snake_case, at most 80 characters`); continue; }
+            if (!place.has(n)) { findings.error('not-placed', `${dir}/${CHARACTER}`, '', `list "${n}" in ${recordsPath}: a record's place is its address`); continue; }
+            let c: any, a: any;
+            try { c = JSON.parse(readText(tree.get(`${dir}/${CHARACTER}`) ?? new Uint8Array())); } catch (e) { findings.error('parse-error', `${dir}/${CHARACTER}`, '', (e as Error).message); continue; }
+            try { a = JSON.parse(readText(tree.get(`${dir}/${ANIMS}`) ?? new Uint8Array())); } catch (e) { findings.error('parse-error', `${dir}/${ANIMS}`, '', (e as Error).message); continue; }
+            if (c.spawn !== undefined) { const v = parseHex(c.spawn, 0xFFFF); if (v === null) findings.error('invalid-value', `${dir}/${CHARACTER}`, '/spawn', '"$xxxx": the address its ENEMY id spawns from'); else spawn.set(n, v); }
+            const b = recordBytes(c, a, dir, ctx);
+            if (b) bytes.set(b, STRIDE * place.get(n)!);
         }
-        const count = Math.max(-1, ...(ctx.ids.get(ENEMIES)?.values() ?? [])) + 1;
-        return [{ key: INDEX, file: `${ENEMIES}/${ENUM}`, bytes: new Uint8Array(2 * count), rule: { noCrossBank: true }, generated: true }] satisfies Item[];
+        state.set(ctx, { place, spawn });
+        const count = Math.max(-1, ...(ctx.ids.get(CHARACTERS)?.values() ?? [])) + 1;
+        // Offset $B678 in a bank the readers reach in the $80-$BF form; the index, long-indexed, inside one bank.
+        return [
+            { key: RECORDS, file: recordsPath, bytes, rule: { bankOffset: OFFSET, upperHalf: true, below: 0x400000 } },
+            { key: INDEX, file: `${DIR}/${ENUM}`, bytes: new Uint8Array(2 * count), rule: { noCrossBank: true }, generated: true },
+        ] satisfies Item[];
+    },
+
+    symbols(ctx, placed) {
+        const at = placed.get(RECORDS), s = state.get(ctx);
+        return new Map(at === undefined || !s ? [] : [...s.place].map(([n, k]) => [`${RECORD}/${n}`, at + STRIDE * k] as [string, number]));
     },
 
     tables(ctx, placed) {
-        const ids = ctx.ids.get(ENEMIES), at = placed.get(INDEX), records = ctx.ids.get(CHARACTERS);
-        if (!ids || at === undefined || !records) return [];
-        const count = Math.max(-1, ...ids.values()) + 1, bytes = new Uint8Array(2 * count), byId = new Map([...ids].map(([n, id]) => [id, n]));
+        const at = placed.get(RECORDS), index = placed.get(INDEX), ids = ctx.ids.get(CHARACTERS), s = state.get(ctx);
+        if (at === undefined || index === undefined || !ids || !s) return [];
+        const bank = Uint8Array.of(0x80 | (at >> 16));
+        const writes: Write[] = ctx.base.tables.filter(t => t.kind === CHARACTERS && t.end - t.start === 1).map(t => ({ at: t.start, bytes: bank, file: `${DIR}/${RECORDS_FILE}` }));
+        const count = Math.max(-1, ...ids.values()) + 1, table = new Uint8Array(2 * count), byId = new Map([...ids].map(([n, id]) => [id, n]));
         for (let id = 0; id < count; id++) {
             const n = byId.get(id);
-            if (n === undefined) { ctx.findings.error('id-gap', `${ENEMIES}/${ENUM}`, `/names/${id}`, `no enemy has id ${id}; the index cannot skip one yet`); continue; }
-            const v: Enemy = JSON.parse(readText(ctx.tree.get(`${ENEMIES}/${n}.json`)!));
-            const value = typeof v.character === 'string' ? OFFSET + STRIDE * records.get(v.character)! : parseHex(v.address, 0xFFFF)!;
-            bytes.set([value & 0xFF, value >> 8], 2 * id);
+            const v = n === undefined ? 0 : s.spawn.get(n) ?? OFFSET + STRIDE * s.place.get(n)!;
+            table.set([v & 0xFF, v >> 8], 2 * id);
         }
-        return [{ at, bytes, file: `${ENEMIES}/${ENUM}` }, ...readerWrites(ctx, ENEMY_READERS, at, `${ENEMIES}/${ENUM}`)] satisfies Write[];
+        return [...writes, { at: index, bytes: table, file: `${DIR}/${ENUM}` }, ...readerWrites(ctx, ENEMY_READERS, index, `${DIR}/${ENUM}`)];
     },
 };
+
+const state = new WeakMap<ImplodeContext, { place: Map<string, number>; spawn: Map<string, number> }>();

@@ -101,7 +101,11 @@ function createTreeRooms(deps: { roots(): string[]; soeRom(): Rom | null }) {
         const byName = (kind: string) => new Map(names(tree.dir, kind).map((n, i) => [n, i] as [string, number]));
         const families = byName('tile_families'), tiles = byName('tiles'), scripts = byName('scripts');
         // A trigger names its script; the trigger record holds its table offset, 3·id (scripts/_enum.json).
-        const refs: TreeRefs = { family: n => families.get(n), tile: n => tiles.get(n), script: n => { const id = scripts.get(n); return id === undefined ? undefined : id * 3; } };
+        const refs: TreeRefs = { family: n => families.get(n), tile: n => tiles.get(n), script: n => {
+            // A room names its own scripts by their local name (`b_1` = `<map>/b_1`), others `<map>/<name>`, `/name` or `name`.
+            const id = n.startsWith('/') ? scripts.get(n.slice(1)) : scripts.get(`${name}/${n}`) ?? scripts.get(n);
+            return id === undefined ? undefined : id * 3;
+        } };
         const problems: TreeProblem[] = [];
         const blob = blobFromTree(files, refs, p => problems.push(p));
         if (!blob) throw new Error(problems.filter(p => p.level === 'error').map(p => `maps/${name}/${p.file}${p.pointer ? '#' + p.pointer : ''}: ${p.message}`).join('; '));

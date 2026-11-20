@@ -132,7 +132,16 @@ class Free {
     private options(len: number, rule: Rule): number[] {
         if (!rule.window) return this.spans.map(s => fitIn(s, len, rule)).filter(at => at >= 0);
         if (rule.maxSize !== undefined && len > rule.maxSize) return [];
-        return this.windowSpans(rule.window).filter(s => s.end - s.start >= len).map(s => windowFile(rule.window!, s.start));
+        const spans = this.windowSpans(rule.window);
+        if (rule.bankOffset === undefined) return spans.filter(s => s.end - s.start >= len).map(s => windowFile(rule.window!, s.start));
+        // A window item that must start at an offset in its bank (it crosses into the next bank at the same byte).
+        const out: number[] = [];
+        for (const s of spans) {
+            let p = s.start - (s.start % HALF) + ((rule.bankOffset & (HALF - 1)));
+            if (p < s.start) p += HALF;
+            if (p + len <= s.end) out.push(windowFile(rule.window, p));
+        }
+        return out;
     }
     firstFit(len: number, rule: Rule): number { return this.options(len, rule)[0] ?? -1; }
     randomFit(len: number, rule: Rule, next: () => number): number {

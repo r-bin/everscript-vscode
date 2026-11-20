@@ -19,7 +19,7 @@
 // room reached them first (owner, 2026-11-20: no central enter-script file). References to exploded kinds are names
 // (tileFamilies → tile_families/, graphics and animation frames → tiles/, triggers and enter → scripts).
 import { createRequire } from 'node:module';
-import { fileOfPacked, packedOf, scriptLayout, scriptOf, scriptsCodec } from './scripts.mts';
+import { fileOfPacked, packedOf, relativeName, resolveName, scriptLayout, scriptOf, scriptsCodec } from './scripts.mts';
 import { mark } from '../../codec.mts';
 import type { Codec, ImplodeContext, Item, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
@@ -83,7 +83,7 @@ function toFiles(model: unknown, names: { family: (id: number) => string; tile: 
 }
 
 /** A room folder's files → blob; every problem is a finding with its file and JSON pointer (grid.txt: /row/column). */
-function fromFiles(files: Map<string, Uint8Array | undefined>, dir: string, ctx: ImplodeContext): Uint8Array | null {
+function fromFiles(files: Map<string, Uint8Array | undefined>, dir: string, ctx: ImplodeContext, room: string): Uint8Array | null {
     const values: Record<string, unknown> = {};
     for (const [key, file] of PARTS) {
         const b = files.get(file), path = `${dir}/${file}`;
@@ -95,7 +95,8 @@ function fromFiles(files: Map<string, Uint8Array | undefined>, dir: string, ctx:
     const scripts = ctx.ids.get(SCRIPTS) ?? new Map<string, number>();
     const refs = {
         family: (name: string) => families.get(name),
-        script: (name: string) => { const id = scripts.get(name); return id === undefined ? undefined : id * 3; },
+        // A trigger names a script of this room by its local name, others as scripts.mts resolves them.
+        script: (name: string) => { const id = scripts.get(resolveName(name, `${room}/`, n => scripts.has(n))); return id === undefined ? undefined : id * 3; },
         tile(name: string, dma: boolean) {
             const id = tiles.get(name);
             if (id !== undefined) { mark(ctx, `${TILES}/${name}`, 'used'); if (dma) mark(ctx, `${TILES}/${name}`, 'dma'); }
@@ -107,9 +108,9 @@ function fromFiles(files: Map<string, Uint8Array | undefined>, dir: string, ctx:
 }
 
 /** The blob a room's files implode to, ids taken from `ids`: explode's own check. */
-function lossless(files: Map<string, Uint8Array>, ids: Map<string, Map<string, number>>): Uint8Array {
+function lossless(files: Map<string, Uint8Array>, ids: Map<string, Map<string, number>>, room: string): Uint8Array {
     const findings = new Findings();
-    const blob = fromFiles(files, 'explode', { ids, findings, marks: new Map() } as unknown as ImplodeContext);
+    const blob = fromFiles(files, 'explode', { ids, findings, marks: new Map() } as unknown as ImplodeContext, room);
     if (!blob) throw new Error('explode wrote room files it cannot read: ' + findings.list.map(f => `${f.file}#${f.pointer} ${f.message}`).join('; '));
     return blob;
 }
@@ -127,8 +128,8 @@ function enterScripts(ctx: ImplodeContext, names: Set<string>, report: boolean):
         const num = (v: unknown, max: number) => typeof v === 'string' && /^\$[0-9a-fA-F]+$/.test(v) && parseInt(v.slice(1), 16) <= max ? parseInt(v.slice(1), 16) : null;
         const word = num(e?.word, 0xFFFF), script = e?.script ?? null;
         if (word === null || (script !== null && typeof script !== 'string')) error('invalid-value', path, '/enter', '{ "script": "<a script>" | null, "word": "$xxxx" }');
-        else if (script !== null && !scripts.has(script)) error('unknown-reference', path, '/enter/script', `"${script}" is no script (scripts/ or a map's scripts/)`);
-        else { out.set(name, { script, word }); if (script !== null) mark(ctx, `${SCRIPTS}/${script}`, 'used'); }
+        else if (script !== null && !scripts.has(resolveName(script, `${name}/`, n => scripts.has(n)))) error('unknown-reference', path, '/enter/script', `"${script}" is no script (scripts/ or a map's scripts/)`);
+        else { const full = script === null ? null : resolveName(script, `${name}/`, n => scripts.has(n)); out.set(name, { script: full, word }); if (full !== null) mark(ctx, `${SCRIPTS}/${full}`, 'used'); }
     }
     return out;
 }
@@ -164,6 +165,7 @@ export const mapsCodec: Codec = {
         const { table, enter } = locate(rom), blobs = roomBlobs(rom, count);
         const names: string[] = [];
         const L = scriptLayout(rom, name, countOf, nameAt), scriptNames = L.byAt;
+        const all = new Set(L.scripts.map(s => s.name)), exists = (n: string) => all.has(n);
         const scriptName = (scriptId: number) => scriptId % 3 || L.ids[scriptId / 3] === undefined ? undefined : scriptNames.get(L.ids[scriptId / 3])!.name;
         const pool = [], homes = [];
         const ids = new Map<string, Map<string, number>>();
@@ -179,9 +181,12 @@ export const mapsCodec: Codec = {
             names.push(n);
             const e = enter + id * ENTER_STRIDE, packed = maps.read24(rom, e), word = id < count - 1 ? maps.read16(rom, e + 3) : 0;
             // The last entry's word is never read (vanilla's lies on the script pointer table): only a pointer is kept.
-            const record = packed || word ? { script: packed ? scriptNames.get(fileOfPacked(packed))!.name : null, word: hexOf(word, 4) } : undefined;
-            const room = toFiles(model, { family: f => name(FAMILIES, f), tile: t => name(TILES, t), script: scriptName }, record);
-            if (sha1(lossless(room, ids)) !== sha1(rom.subarray(at, end))) throw new Error(`room ${id}: its files do not give its bytes back; explode would lose data`);
+            // Script names as the room's files write them: its own scripts by their local names.
+            const own = (full: string) => relativeName(full, `${n}/`, exists);
+            const record = packed || word ? { script: packed ? own(scriptNames.get(fileOfPacked(packed))!.name) : null, word: hexOf(word, 4) } : undefined;
+            const scriptOwn = (scriptId: number) => { const full = scriptName(scriptId); return full === undefined ? undefined : own(full); };
+            const room = toFiles(model, { family: f => name(FAMILIES, f), tile: t => name(TILES, t), script: scriptOwn }, record);
+            if (sha1(lossless(room, ids, n)) !== sha1(rom.subarray(at, end))) throw new Error(`room ${id}: its files do not give its bytes back; explode would lose data`);
             for (const [f, bytes] of room) files.set(`${DIR}/${n}/${f}`, bytes);
             files.set(`${DIR}/${n}/${PREVIEW}`, new Uint8Array(maps.encodePng(maps.renderRoomComposite(rom, maps.decodeRoom(rom, id, at)))));
             const blob = rom.subarray(at, end);
@@ -215,7 +220,7 @@ export const mapsCodec: Codec = {
         for (const name of names) {
             const dir = `${DIR}/${name}`, file = `${dir}/${FILE}`;
             if (!NAME_RE.test(name)) { findings.error('bad-name', file, '', `"${name}": snake_case, at most 80 characters`); continue; }
-            const bytes = fromFiles(new Map(PARTS.map(([, f]) => [f, tree.get(`${dir}/${f}`)])), dir, ctx);
+            const bytes = fromFiles(new Map(PARTS.map(([, f]) => [f, tree.get(`${dir}/${f}`)])), dir, ctx, name);
             if (!bytes) continue;
             if (bytes.length > MAX_BLOB) { findings.error('over-budget', file, '', `blob of ${bytes.length} bytes; a room is at most ${MAX_BLOB}`); continue; }
             items.push({ key: `${DIR}/${name}`, file, bytes, rule: { upperHalf: true, noCrossBank: true, maxSize: MAX_BLOB } });

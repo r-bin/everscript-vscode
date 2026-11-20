@@ -8,9 +8,10 @@ import { tilesCodec } from './codecs/tiles.mts';
 import { stringsCodec } from './codecs/strings.mts';
 import { scriptsCodec, WINDOW as SCRIPT_WINDOW } from './codecs/scripts.mts';
 import { opcodesCodec } from './codecs/opcodes.mts';
-import { animateIdsCodec } from './codecs/animate-ids.mts';
-import { charactersCodec, enemiesCodec } from './codecs/characters.mts';
+import { animationsCodec } from './codecs/animations.mts';
+import { charactersCodec } from './codecs/characters.mts';
 import { spriteBlocks16Codec, spriteBlocks8Codec } from './codecs/sprite-blocks.mts';
+import { musicCodec, soundsCodec } from './codecs/music.mts';
 
 export const GAME = 'evermore';
 
@@ -25,4 +26,4 @@ export const PAST_END = [{ start: 0x30E293, end: 0x30E293 + 0x780 + 0x40 }];
 export const POINTER_WINDOWS = [SCRIPT_WINDOW];
 
 export const KINDS: Codec[] = [mapsCodec, tileFamiliesCodec, tilesCodec, stringsCodec, scriptsCodec, opcodesCodec,
-    animateIdsCodec, charactersCodec, enemiesCodec, spriteBlocks16Codec, spriteBlocks8Codec];
+    animationsCodec, charactersCodec, spriteBlocks16Codec, spriteBlocks8Codec, musicCodec, soundsCodec];
